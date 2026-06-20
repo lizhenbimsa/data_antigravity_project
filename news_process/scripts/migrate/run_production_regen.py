@@ -2,7 +2,7 @@
 """生产/golden 协调式重生驱动 (REPRO-1 闭合) — 配套 PRODUCTION_REGEN_SOP_2026-06-15.md。
 
 把审计 PROJECT_REAUDIT_TOPTIER_T18 的 REPRO-1 (P1) 闭合工序脚本化: preflight 守卫 → 重建
-面板 (stage 45/46) → 重生 golden → 复现闸门转绿。**默认 --dry-run** (只打印不执行), 须显式
+面板 (stage 40/46) → 重生 golden → 复现闸门转绿。**默认 --dry-run** (只打印不执行), 须显式
 --execute 才真跑。设计为在【银行财务 outcome + IV enrichment 列接入到盘后】的一次受控 run 内执行。
 
 铁律 (见 SOP §前置): 勿删 _llm_cache.db; 全程 NEWS_PROCESS_LLM_OFFLINE=1; PYTHONHASHSEED=0
@@ -70,7 +70,7 @@ def preflight() -> list[str]:
                     f"财务 outcome 列未到盘: {missing} → 先做 SOP 步骤0 (接入财务面板 + 统一 roa 大小写), "
                     "否则重生只产 sentinel 占位 (主回归仍 capture-confirm 跳过)")
         else:
-            problems.append("40_panel_yearly.parquet 不在盘 → 先跑完整 pipeline 或 stage 45")
+            problems.append("40_panel_yearly.parquet 不在盘 → 先跑完整 pipeline 或 stage 40")
     except ImportError:
         problems.append("pandas 未装 (pip install -e .)")
 
@@ -96,7 +96,7 @@ def preflight() -> list[str]:
 def main() -> int:
     ap = argparse.ArgumentParser(description="生产/golden 协调式重生驱动 (REPRO-1)")
     ap.add_argument("--execute", action="store_true", help="真执行 (默认 dry-run 只打印)")
-    ap.add_argument("--skip-stages", action="store_true", help="跳过 stage 45/46, 仅重生 golden + 复验")
+    ap.add_argument("--skip-stages", action="store_true", help="跳过 stage 40/46, 仅重生 golden + 复验")
     args = ap.parse_args()
     execute = args.execute
 
@@ -117,13 +117,13 @@ def main() -> int:
 
     det_env = {"NEWS_PROCESS_LLM_OFFLINE": "1", "PYTHONHASHSEED": "0"}
 
-    print("\n[步骤 1] 重建面板 (stage 45 → 46) — 离线确定 ($0, 缓存全命中)")
+    print("\n[步骤 1] 重建面板 (stage 40 → 46) — 离线确定 ($0, 缓存全命中)")
     if args.skip_stages:
         print("    (--skip-stages: 跳过)")
     else:
-        rc = _run([sys.executable, "45_panel_export_main.py"], execute=execute, env=det_env)
+        rc = _run([sys.executable, "40_panel_export_main.py"], execute=execute, env=det_env)
         if execute and rc:
-            print(f"    [STOP] stage 45 退出码 {rc}"); return rc
+            print(f"    [STOP] stage 40 退出码 {rc}"); return rc
         rc = _run([sys.executable, "46_stata_export.py"], execute=execute, env=det_env)
         if execute and rc:
             print(f"    [STOP] stage 46 退出码 {rc}"); return rc

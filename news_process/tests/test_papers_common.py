@@ -120,8 +120,8 @@ class TestPanelLoader:
         (tmp_path / '11_bank_news.parquet').write_bytes(b'')
 
         result = list_available_panels(panel_dir=tmp_path)
-        assert '45_panel_export_main.py' in result
-        assert '40_panel_yearly.parquet' in result['45_panel_export_main.py']
+        assert '40_panel_export_main.py' in result
+        assert '40_panel_yearly.parquet' in result['40_panel_export_main.py']
         assert '11_news_bank.py' in result
         assert '11_bank_news.parquet' in result['11_news_bank.py']
 
@@ -140,8 +140,8 @@ class TestPanelLoader:
             load_panel('40_panel_yearly.parquet', project_config=cfg)
         msg = str(exc_info.value)
         assert '面板文件不存在' in msg
-        # 提示应含 producer stage 名 (45_panel_export_main.py per OUTPUT_REGISTRY)
-        assert '45_panel_export_main' in msg
+        # 提示应含 producer stage 名 (40_panel_export_main.py per OUTPUT_REGISTRY)
+        assert '40_panel_export_main' in msg
 
     def test_load_panel_raises_filenotfound_unknown_filename_no_hint(self, tmp_path):
         """未知文件名 (OUTPUT_REGISTRY 反查无结果) 仍 raise 但无 hint

@@ -65,7 +65,7 @@ valid (bank, event) 三元组覆盖 ≥ 60% bank-year.
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 39f_cross_media_alpha.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 75_cross_media_alpha.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
@@ -117,7 +117,7 @@ from news_process.core.config import load_config  # noqa: E402
 from news_process.core.logging import setup_logging  # noqa: E402
 
 CONFIG = load_config()
-STAGE_NAME = "39f_cross_media_alpha"
+STAGE_NAME = "75_cross_media_alpha"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 EVENT_WINDOW_DAYS = 3
@@ -573,7 +573,7 @@ def main():
     except Exception as _e:
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
-    panel_path = os.path.join(output_dir, '39f_cross_media_alpha.parquet')
+    panel_path = os.path.join(output_dir, '75_cross_media_alpha.parquet')
     panel.to_parquet(panel_path, index=False)
     logger.info(f"  panel → {panel_path}")
     logger.info(f"  耗时: {time.time() - stage_start:.1f} s")

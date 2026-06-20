@@ -5,7 +5,7 @@ V2.0 J-L-M 2026 robustness alignment plan §3 Phase 1 P1.6:
 ``benefit_society_placebo`` (4 业务线 + 1 中性基线) 编排为单一
 audit-only 输出:
 
-    data/processed/27c_alt_anchor_and_placebo_panel.parquet
+    data/processed/80_alt_anchor_and_placebo_panel.parquet
 
 Schema (键 = target_bank + year):
     - benefit_jlm_zh_mean / std / pos_frac / neg_frac  (+ ``_ctx`` twin 列,
@@ -33,7 +33,7 @@ fix(omni-g-benefit-01, 2026-06-11) 链路重接线 (2026-05-29 主轨换模后�
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 27c_placebo_and_alt_anchor.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 80_placebo_and_alt_anchor.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
@@ -300,10 +300,10 @@ def write_sidecar_json(panel_path: Path, metadata: dict[str, object]) -> Path:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python news_process/27c_placebo_and_alt_anchor.py",
+        prog="python news_process/80_placebo_and_alt_anchor.py",
         description=(
             "P1.6 — combined audit-only panel: J-L-M alt anchor + business-line placebo. "
-            "Outputs `data/processed/27c_alt_anchor_and_placebo_panel.parquet`."
+            "Outputs `data/processed/80_alt_anchor_and_placebo_panel.parquet`."
         ),
     )
     parser.add_argument(
@@ -360,7 +360,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--output",
         type=str,
-        default="news_process/data/processed/27c_alt_anchor_and_placebo_panel.parquet",
+        default="news_process/data/processed/80_alt_anchor_and_placebo_panel.parquet",
         help="Output parquet path",
     )
     parser.add_argument(
@@ -371,7 +371,7 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
 
-    # 接入项目统一日志: 写 <log_dir>/27c_placebo_and_alt_anchor.log。此前本阶段仅
+    # 接入项目统一日志: 写 <log_dir>/80_placebo_and_alt_anchor.log。此前本阶段仅
     # 模块级 getLogger(__name__) + 一次性 basicConfig, audit-only 旁支日志不落
     # <stage>.log; 现对齐 39c/39d 同族 audit 阶段的 setup_logging 约定 (替换而非
     # 叠加旧 basicConfig), 让日志自带阶段说明书。
@@ -379,7 +379,7 @@ def main(argv: list[str] | None = None) -> int:
     from news_process.core.config import load_config
     from news_process.core.logging import setup_logging
     logger = setup_logging(
-        "27c_placebo_and_alt_anchor",
+        "80_placebo_and_alt_anchor",
         load_config()["paths"].get("log_dir", "logs"),
     )
 

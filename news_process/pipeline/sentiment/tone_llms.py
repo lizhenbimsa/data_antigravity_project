@@ -44,7 +44,7 @@ news_process.pipeline.sentiment.tone_llms — 阶段21：统一 LLM 语义精筛
       10.1111/jofi.13366 系误植 — 已移除)。
 
 输入：
-    模块二前置输出的 `14_fintech_intensity.parquet`
+    模块二前置输出的 `15_fintech_intensity.parquet`
     (该文件在 12_fintech_news.parquet 基础上追加了 fintech_intensity_score 和 intensity_verified 列)
     (硬依赖: 阶段14 缺失即报错终止, 不再静默回退 12; 见 main() 的 "Step 4(a) 硬化")
     
@@ -58,7 +58,7 @@ news_process.pipeline.sentiment.tone_llms — 阶段21：统一 LLM 语义精筛
 
 ■ 详细功能说明
 
-**输入**: 读 stage 14 输出 `14_fintech_intensity.parquet` (硬依赖, 缺失即报错终止, 不再静默回退 stage 12; main() Step 4(a) 硬化; 因 LLM 需 stage 14 的 `fintech_intensity_score`/`intensity_verified` 列)。关键输入列: `内容`(全文)、`标题`、`content_ctx`(stage 13 物化, 缺则 main() 调 `_materialize_content_ctx` 兜底)、`content_ss`(stage 13 单一事实源物化, 缺则 `iter_article_track_prompts` 优雅回退 content_full)、`target_bank`、`co_mentioned_banks`。
+**输入**: 读 stage 14 输出 `15_fintech_intensity.parquet` (硬依赖, 缺失即报错终止, 不再静默回退 stage 12; main() Step 4(a) 硬化; 因 LLM 需 stage 14 的 `fintech_intensity_score`/`intensity_verified` 列)。关键输入列: `内容`(全文)、`标题`、`content_ctx`(stage 13 物化, 缺则 main() 调 `_materialize_content_ctx` 兜底)、`content_ss`(stage 13 单一事实源物化, 缺则 `iter_article_track_prompts` 优雅回退 content_full)、`target_bank`、`co_mentioned_banks`。
 
 **处理步骤**: ①`main()` 加载 parquet + schema 守护; ②`LLMCache(_llm_cache.db)` 打开 SQLite 缓存; ③`asyncio.run(run_all_llms(...))` 对每篇文章 × 三轨 × 三个 LLM 家族异步并发请求 (信号量 MAX_CONCURRENCY 控并发); ④`_aggregate_track` 对每轨返回 18 元组聚合 (verified 三角验证投票 + sentiment 投票 + locus/substantiveness/collab_mode 三维分类投票 + logit-to-score 概率分数); ⑤逐模型存档列 + 轨级聚合列写回 DataFrame; ⑥verified 并集过滤后写 `21_tone_llms.parquet`, 全量写 `21_tone_llms_full.parquet`。
 
@@ -1578,7 +1578,7 @@ def _materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
 
     学术依据:
       Hassan et al. (2019, QJE) Proximity-based Attribution。
-      敏感性检验: 35_radius_sensitivity.py 验证 radius ∈ {0,1,2,3} 的稳健性。
+      敏感性检验: 65_radius_sensitivity.py 验证 radius ∈ {0,1,2,3} 的稳健性。
 
     fix(omni-g-tonellms-14, 2026-06-11): 备援路径与 stage 13
     (ctx_materializer.materialize_content_ctx) 语义对齐 — content_ctx 同样经
@@ -1762,7 +1762,7 @@ def main():
     # 锚点, 静默降级为旧版"无强度筛选"模式, 与 v6 三家族 LLM 设计假设矛盾。
     # 若 stage 14 真的缺失, 必须通过 raise 让 orchestrator 立即停止并修复上游,
     # 而非继续生产含有"未见过的隐性降级"标签的 21_tone_llms.parquet。
-    input_14 = CONFIG['filenames'].get('output_14_fintech_intensity', '14_fintech_intensity.parquet')
+    input_14 = CONFIG['filenames'].get('output_14_fintech_intensity', '15_fintech_intensity.parquet')
     path_14 = os.path.join(CONFIG["paths"]["output_dir"], input_14)
 
     if not os.path.exists(path_14):

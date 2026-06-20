@@ -1815,7 +1815,7 @@ def main():
     processed_df = pd.concat(processed_dfs, ignore_index=True)
 
     # P1-4: 为每个词典的得分列添加 Z-score 标准化列（三轨 full/ctx/ss 独立计算）
-    # 解决跨词典量纲不一致问题，供 34_tone_validation.py 的 Cronbach's Alpha 分析使用
+    # 解决跨词典量纲不一致问题，供 64_tone_validation.py 的 Cronbach's Alpha 分析使用
     # 注意：_full / _ctx / _ss 的 μ 和 σ 必须独立计算，因文本长度差异导致数值分布本质不同
     # ss = 银行+金科同句轨; score_col 缺失时 (理论上 _dual_analyze 必产, 此守卫为防御) 优雅跳过。
     # fix(omni-g-tonewords-13, 2026-06-11): σ 退化分支改整列 NaN (见 _zscore_or_nan),

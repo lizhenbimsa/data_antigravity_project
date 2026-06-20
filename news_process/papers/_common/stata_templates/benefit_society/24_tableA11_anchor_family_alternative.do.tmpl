@@ -20,7 +20,7 @@
 *   benefit_jlm_zh  = config/jlm2026_chinese_anchors.yaml 5 对 J-L-M
 *                     Appendix A 锚点 (广义金融, K-T-E 2019 ASR 正典)
 *
-* 数据依赖: 须先从 data/processed/27c_alt_anchor_and_placebo_panel.parquet
+* 数据依赖: 须先从 data/processed/80_alt_anchor_and_placebo_panel.parquet
 *   merge 进 audit 面板列 benefit_jlm_zh_mean
 * ============================================================================
 
@@ -59,7 +59,7 @@ if _rc == 0 {
     display "  magnitude ratio           = " ratio_info " (informative; magnitude attenuation expected)"
 }
 else {
-    display "[INFO] benefit_jlm_zh_mean not in panel; run 27c_placebo_and_alt_anchor.py first"
+    display "[INFO] benefit_jlm_zh_mean not in panel; run 80_placebo_and_alt_anchor.py first"
     scalar sign_match = .
 }
 

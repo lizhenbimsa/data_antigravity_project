@@ -1,5 +1,5 @@
 """
-15_article_policy_alignment.py — 文章级政策语义对齐度计算模块
+16_article_policy_alignment.py — 文章级政策语义对齐度计算模块
 ============================================================================
 
 【学术支撑 (Academic Foundation)】
@@ -59,11 +59,11 @@
   - Stage 15: Article 粒度，逐篇比较，用于 Token/Hidden 四象限分类
 
 输入:
-  14_fintech_intensity.parquet (含 标题、内容、fintech_intensity_score 等)
+  15_fintech_intensity.parquet (含 标题、内容、fintech_intensity_score 等)
   config/authoritative_corpus.txt (权威政策文本)
 
 输出:
-  15_article_alignment.parquet (= 原数据 + 新增 7 列: policy_cosine_sim
+  16_article_alignment.parquet (= 原数据 + 新增 7 列: policy_cosine_sim
   (legacy alias = _full) + policy_cosine_sim_{full,ctx,ss} 三轨
   + policy_cosine_sim_t2v_{full,ctx,ss} 双模型稳健 twin)
   注: ss 轨 = content_ss (标题 + 银行∧金科同句共现窗), 上游 stage 13 物化;
@@ -72,15 +72,15 @@
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 15_article_policy_alignment.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 16_article_policy_alignment.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
 
-**在 DAG 中的位置**: STAGES_MAIN 阶段15, kind=filter, timeout=7200(因含 Embedding API)。上游 = stage 14(直接读 14_fintech_intensity.parquet), 下游被 stage 45 panel runner 的四象限分类(Token/Hidden/Substantive/Irrelevant)消费。
+**在 DAG 中的位置**: STAGES_MAIN 阶段15, kind=filter, timeout=7200(因含 Embedding API)。上游 = stage 14(直接读 15_fintech_intensity.parquet), 下游被 stage 45 panel runner 的四象限分类(Token/Hidden/Substantive/Irrelevant)消费。
 
 **输入**:
-- `14_fintech_intensity.parquet`(含 标题/内容/content_full/content_ctx/content_ss/year/日期 等)。
+- `15_fintech_intensity.parquet`(含 标题/内容/content_full/content_ctx/content_ss/year/日期 等)。
 - `config/authoritative_corpus.txt`(权威政策语料, 经 CONFIG['paths']['authoritative_corpus_file'] 读取, 与 stage 26 共享同一份)。
 
 **核心度量**: `policy_cosine_sim_i = cos(emb(article_i), emb(auth_anchor))`, 理论值域 [-1,1], 实务多落 0~1。
@@ -146,7 +146,7 @@ CACHE_DB_PATH = CONFIG['paths'].get('llm_cache_db', os.path.join(CONFIG['paths']
 _ALIGN_CFG = CONFIG.get('policy_alignment', {})
 
 # Stage 名称
-STAGE_NAME = "15_article_policy_alignment"
+STAGE_NAME = "16_article_policy_alignment"
 
 # ============================================================================
 # 2. tiktoken 精确 Token 计数器
@@ -679,7 +679,7 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
       Substantive (词频高+对齐高=言行一致) / Irrelevant (词频低+对齐低=不相关)
 
     Args:
-        df: DataFrame (来自 14_fintech_intensity.parquet)。full 轨优先读 stage 13
+        df: DataFrame (来自 15_fintech_intensity.parquet)。full 轨优先读 stage 13
             物化的 'content_full' 列; 缺列时回退用 '标题' + '内容' 经 prepend_title 构建。
             ctx 轨读 'content_ctx' 列; ss 轨读 'content_ss' 列 (银行+金科同句共现窗,
             stage 13 物化; 缺列时优雅跳过, 不产出 _ss 列)。
@@ -1008,13 +1008,13 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
 def main():
     """Stage 15 主入口。
 
-    数据流: 14_fintech_intensity.parquet → 15_article_alignment.parquet
+    数据流: 15_fintech_intensity.parquet → 16_article_alignment.parquet
     新增列: policy_cosine_sim 族共 7 列 (float32, 值域 [-1, 1];
     含 _full/_ctx/_ss 三轨 + _t2v_* 双模型稳健 twin; content_ss 缺失时退回 5 列)
     """
     # setup_logging 接线 (golden 范式): 本模块的 logger 自 encode.py import,
     # 其 STAGE_NAME='40_build_panel' → stage 15 日志原会落入 40_build_panel.log。
-    # 此处按本阶段 STAGE_NAME 重接, 使 <stage>.log 命名为 15_article_policy_alignment.log
+    # 此处按本阶段 STAGE_NAME 重接, 使 <stage>.log 命名为 16_article_policy_alignment.log
     # (纯日志路由, 不改任何返回值/产物/计量逻辑)。
     global logger
     from news_process.core.logging import setup_logging
@@ -1043,7 +1043,7 @@ def main():
     # 读取 Stage 14 输出
     output_dir = CONFIG['paths']['output_dir']
     input_filename = CONFIG['filenames'].get(
-        'output_14_fintech_intensity', '14_fintech_intensity.parquet')
+        'output_14_fintech_intensity', '15_fintech_intensity.parquet')
     input_path = os.path.join(output_dir, input_filename)
 
     if not os.path.exists(input_path):
@@ -1066,7 +1066,7 @@ def main():
 
     # 保存输出
     output_filename = CONFIG['filenames'].get(
-        'output_15_article_alignment', '15_article_alignment.parquet')
+        'output_15_article_alignment', '16_article_alignment.parquet')
     output_path = os.path.join(output_dir, output_filename)
 
     from news_process.core.logging import log_stage_summary
@@ -1078,7 +1078,7 @@ def main():
         df=df,
         output_path=output_path,
         logger=logger,
-        stage_name="15_article_policy_alignment",
+        stage_name="16_article_policy_alignment",
         config=CONFIG,
         input_files=[input_file],
     )

@@ -2,7 +2,7 @@
 news_process.validation.llms_human — 阶段32：生成人工“金标准”双任务联合验证包
 
 迁移说明 (Phase 7b)：
-    本模块由原 root script ``32_news_llms_human.py`` body 迁入。
+    本模块由原 root script ``61_news_llms_human.py`` body 迁入。
     规范调用方式: ``python -m news_process.validation.llms_human``
 
 ========================================================================
@@ -13,11 +13,11 @@ news_process.validation.llms_human — 阶段32：生成人工“金标准”双
     和人类判定情感（Sentiment）的双重联合标注列。
     
 输出：
-    一站式标注工作台 Excel 文件：`32_news_llms_human_samples.xlsx`
+    一站式标注工作台 Excel 文件：`61_news_llms_human_samples.xlsx`
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 32_news_llms_human.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 61_news_llms_human.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
@@ -33,7 +33,7 @@ news_process.validation.llms_human — 阶段32：生成人工“金标准”双
 - 列重排: 把 4 个标注列 + 关键展示列 (日期/媒体类型(中文)/标题/内容/target_bank/co_mentioned_banks/fintech_keyword_details, 取存在者) 提到最前。
 - 用 `xlsxwriter` 写 Excel (sheet 名 `验证数据`), 并经 `set_excel_data_validation()` 对验证列下拉锁定为 {'1','0'}、情感列锁定为 {正面,中性,负面} (动态范围 行2:行10000); 引擎不可用/写盘异常时回退普通 `to_excel`。
 
-**合并函数 `merge_annotations()`** (编码完成后手动调用): 读回填好的 xlsx, 逐行比对两编码者 —— 验证/情感各自: 两人皆有效且一致 → 写共识 `最终_验证`/`最终_情感`; 分歧 → 写哨兵 (`最终_验证`=-1, `最终_情感`='待仲裁'); 另加空 `裁定备注` 列; 输出 `*_merged.xlsx` + 一致率/分歧数/待仲裁数日志。这些哨兵正是 stage 33 评估时要剔除的 attrition。⚠ **该 merge 子命令仅经模块入口可达** —— `python -m news_process.validation.llms_human merge [in.xlsx] [out.xlsx]` (模块 `__main__` 解析 argv[1]=='merge'); 根 shim `32_news_llms_human.py` 的 `__main__` 只调 `main()` 且不透传 argv, 故 `python 32_news_llms_human.py merge` **不会** 触发合并 (只会跑抽样)。
+**合并函数 `merge_annotations()`** (编码完成后手动调用): 读回填好的 xlsx, 逐行比对两编码者 —— 验证/情感各自: 两人皆有效且一致 → 写共识 `最终_验证`/`最终_情感`; 分歧 → 写哨兵 (`最终_验证`=-1, `最终_情感`='待仲裁'); 另加空 `裁定备注` 列; 输出 `*_merged.xlsx` + 一致率/分歧数/待仲裁数日志。这些哨兵正是 stage 33 评估时要剔除的 attrition。⚠ **该 merge 子命令仅经模块入口可达** —— `python -m news_process.validation.llms_human merge [in.xlsx] [out.xlsx]` (模块 `__main__` 解析 argv[1]=='merge'); 根 shim `61_news_llms_human.py` 的 `__main__` 只调 `main()` 且不透传 argv, 故 `python 61_news_llms_human.py merge` **不会** 触发合并 (只会跑抽样)。
 
 **关键算法/公式**: 无统计计算, 核心是确定性随机抽样 (pandas `df.sample` + 固定 random_state) + Excel 数据校验下拉规则。
 
@@ -43,7 +43,7 @@ news_process.validation.llms_human — 阶段32：生成人工“金标准”双
 
 ■ 白话说明
 
-这一步是"出考卷": 从全部新闻里随机抽 500 篇 (固定随机种子, 每次抽的都一样), 做成一张 Excel 表 (默认文件名 32_news_llms_human_samples.xlsx) 发给两位人工编码员, 让他们逐篇判断 ①这条新闻是不是真的银行金融科技新闻 ②它的语气是正面/中性/负面。表格里的判断列被锁成下拉菜单, 防止有人手滑填错格式。
+这一步是"出考卷": 从全部新闻里随机抽 500 篇 (固定随机种子, 每次抽的都一样), 做成一张 Excel 表 (默认文件名 61_news_llms_human_samples.xlsx) 发给两位人工编码员, 让他们逐篇判断 ①这条新闻是不是真的银行金融科技新闻 ②它的语气是正面/中性/负面。表格里的判断列被锁成下拉菜单, 防止有人手滑填错格式。
 
 为什么需要它: 流水线主要靠 AI 大模型 (LLM) 给每篇新闻打标签, 但我们必须证明"机器打的标签跟人判断的一致", 否则审稿人不信。这张人工答卷就是后面给机器打分用的"标准答案"。编码员填完后, 还有个合并环节把两人的答案对齐 (一致就采纳, 吵架就标"待仲裁")—— 注意这个合并要用模块入口 `python -m news_process.validation.llms_human merge` 触发, 直接跑根脚本带 merge 参数是无效的。
 
@@ -73,7 +73,7 @@ from news_process.core.logging import log_memory_usage, log_stage_summary, setup
 # ============================================================================
 
 CONFIG = load_config()
-STAGE_NAME = "32_news_llms_human"
+STAGE_NAME = "61_news_llms_human"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 # 读取配置
@@ -201,7 +201,7 @@ def main():
     sample_df = sample_df[front_cols + other_cols]
     
     # 导出
-    output_filename = CONFIG.get('filenames', {}).get('output_32_human_sample', '32_news_llms_human_samples.xlsx')
+    output_filename = CONFIG.get('filenames', {}).get('output_32_human_sample', '61_news_llms_human_samples.xlsx')
     output_path = os.path.join(CONFIG["paths"]["output_dir"], output_filename)
         
     logger.info(f"正在保存带有数据校验规则的 Excel: {output_path}")
@@ -307,7 +307,7 @@ def merge_annotations(input_path: str = None, output_path: str = None):
     # 解析路径
     if input_path is None:
         input_filename = CONFIG.get('filenames', {}).get(
-            'output_32_human_sample', '32_news_llms_human_samples.xlsx'
+            'output_32_human_sample', '61_news_llms_human_samples.xlsx'
         )
         input_path = os.path.join(CONFIG["paths"]["output_dir"], input_filename)
 
@@ -416,7 +416,7 @@ def merge_annotations(input_path: str = None, output_path: str = None):
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1 and sys.argv[1] == 'merge':
-        # 用法: python 32_news_llms_human.py merge [input.xlsx] [output.xlsx]
+        # 用法: python 61_news_llms_human.py merge [input.xlsx] [output.xlsx]
         inp = sys.argv[2] if len(sys.argv) > 2 else None
         out = sys.argv[3] if len(sys.argv) > 3 else None
         merge_annotations(inp, out)

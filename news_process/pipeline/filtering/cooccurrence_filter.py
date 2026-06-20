@@ -12,7 +12,7 @@
 
 工作流:
     stage 12 (news_fintech)  → 12_fintech_news.parquet      (is_fintech_news==True 关键词金科)
-    stage 12b (本模块)       → 12b_cooccurrence_filtered.parquet (= 12 的近邻相关子集, 丢行)
+    stage 12b (本模块)       → 13_cooccurrence_filtered.parquet (= 12 的近邻相关子集, 丢行)
     stage 13 (materialize_ctx) → 读 12b 输出 (ctx_materializer.py main 的 in_name=output_12b_cooccurrence 重指针)
 
 口径 (与 stage 13 _ss 轨【不同】, 见 entity_context.has_bank_fintech_cooccurrence_within_radius):
@@ -60,7 +60,7 @@ from news_process.core.text.entity_context import (  # noqa: E402
 )
 
 CONFIG = load_config()
-STAGE_NAME = "12b_cooccurrence_filter"
+STAGE_NAME = "13_cooccurrence_filter"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 # 模块级加载 (镜像 ctx_materializer.py:106-136, 单一匹配语义事实源):
@@ -193,7 +193,7 @@ def _write_sidecar_meta(out_path: str, n_in: int, n_out: int) -> None:
 
 
 def main():
-    """Stage 12b 入口: 读 12_fintech_news.parquet → 写 12b_cooccurrence_filtered.parquet."""
+    """Stage 12b 入口: 读 12_fintech_news.parquet → 写 13_cooccurrence_filtered.parquet."""
     stage_start = time.time()
     # 功能说明 banner — 替换旧 "--- 开始执行阶段 ---" 短 banner (对齐 39c 黄金范式:
     # 单 banner 替换而非叠加; 末尾 log_stage_summary 仍负责收尾摘要)。
@@ -226,7 +226,7 @@ def main():
     filenames = CONFIG.get('filenames', {})
     in_name = filenames.get('output_12_fintech_news', '12_fintech_news.parquet')
     out_name = filenames.get(
-        'output_12b_cooccurrence', '12b_cooccurrence_filtered.parquet'
+        'output_12b_cooccurrence', '13_cooccurrence_filtered.parquet'
     )
     in_path = os.path.join(output_dir, in_name)
     out_path = os.path.join(output_dir, out_name)

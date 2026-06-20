@@ -2,7 +2,7 @@
 
 覆盖范围:
   A. 22_tone_words.py — 单词典 pos/neg ratio 计算 + 提取
-  B. 45_panel_export_main.py — negative 编码
+  B. 40_panel_export_main.py — negative 编码
   C. 41_panel_encode_aggregate.py — neg_count / ratio 聚合 + ft_word_ratio
   D. 45 面板指标 — disag / log_sent / algo_cater
   E. 48_llm_peer_iv.py — peer_compete_idx

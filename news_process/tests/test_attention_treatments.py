@@ -1,5 +1,5 @@
 """W2 守护测试: compute_attention_treatments (P2 attention 处理变量) 在真实试跑数据
-(14_fintech_intensity + 12_fintech_news_full) 上的正确性与全部 foolproof 守卫。
+(15_fintech_intensity + 12_fintech_news_full) 上的正确性与全部 foolproof 守卫。
 
 覆盖审核报告 P2_ATTENTION_FOOLPROOF_DUALTRACK_AUDIT 的硬坑:
   B1 全集脊柱防选择偏差 (零-fintech bank-year 不丢、index/pct=0)
@@ -26,13 +26,13 @@ from news_process.pipeline.panel.attention_media import (
 )
 
 _S14 = os.path.join(OUTPUT_DIR, FILENAMES.get(
-    'output_14_fintech_intensity', '14_fintech_intensity.parquet'))
+    'output_14_fintech_intensity', '15_fintech_intensity.parquet'))
 _F12 = os.path.join(OUTPUT_DIR, FILENAMES.get(
     'output_12_fintech_full', '12_fintech_news_full.parquet'))
 
 pytestmark = pytest.mark.skipif(
     not (os.path.exists(_S14) and os.path.exists(_F12)),
-    reason='需 14_fintech_intensity + 12_fintech_news_full 试跑产物',
+    reason='需 15_fintech_intensity + 12_fintech_news_full 试跑产物',
 )
 
 _OUT_COLS = [
@@ -163,7 +163,7 @@ _HERD = os.path.join(OUTPUT_DIR, FILENAMES.get(
 def test_verified_gate_applied(out):
     """panel-universe-consistency-audit ATT-1/ATT-2: fintech 分子收敛到 stage-21 verified
     集 (24_herd_decay)。实测 Σn_fintech_articles 应等于 verified (docid,target_bank) 行数,
-    且严格 < 未门控的 14_fintech_intensity 唯一对数 — 后者实质检验门控真生效 (未门控会泄漏
+    且严格 < 未门控的 15_fintech_intensity 唯一对数 — 后者实质检验门控真生效 (未门控会泄漏
     约 26.8% 被 stage 21 判伪文章)。"""
     n_verified = (pd.read_parquet(_HERD, columns=['docid', 'target_bank'])
                   .drop_duplicates().shape[0])

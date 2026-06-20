@@ -106,7 +106,7 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                         f"({low_pct:.1%} Bank-Year, conf < 0.5)")
 
     # ── G-14: 距离衰减敏感性检验结果摘要 ──
-    decay_report = os.path.join(OUTPUT_DIR, 'eval_reports', '38_decay_sensitivity.csv')
+    decay_report = os.path.join(OUTPUT_DIR, 'eval_reports', '69_decay_sensitivity.csv')
     if os.path.exists(decay_report):
         try:
             decay_df = pd.read_csv(decay_report)
@@ -323,7 +323,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     panel_filename = FILENAMES.get('output_40_panel_yearly', '40_panel_yearly.parquet')
     panel_path = os.path.join(OUTPUT_DIR, panel_filename)
     # 血缘修复 (audit-fixes 2026-05-29): stage 45 是 fan-in, runner 硬读
-    # 24_herd_decay (主) + 15_article_alignment (RuntimeError if absent, runner.py:1598).
+    # 24_herd_decay (主) + 16_article_alignment (RuntimeError if absent, runner.py:1598).
     # 记全部硬上游闭包, 否则 verify_data_integrity 对 15 的篡改/陈旧检测不到
     # (与 stage 14 fintech_intensity 记双输入的受测约定一致).
     # 2026-05-29 双模型重构: 原 stage 30 (30_text2vec_indicators) 已退役 — 其 t2v 列改由
@@ -333,10 +333,10 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     _fn = CONFIG['filenames']
     input_files = [
         os.path.join(_od, _fn['output_24_herd_decay']),
-        os.path.join(_od, _fn.get('output_15_article_alignment', '15_article_alignment.parquet')),
+        os.path.join(_od, _fn.get('output_15_article_alignment', '16_article_alignment.parquet')),
     ]
     save_dataset(panel, panel_path, logger,
-                stage_name="45_panel_export_main",
+                stage_name="40_panel_export_main",
                 config=CONFIG,
                 input_files=input_files)
 
@@ -1136,7 +1136,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 # ═══ 披露密度 (Abraham et al. 2024) ═══
                 'avg_ft_word_ratio':     'Avg Fintech Word Ratio',
                 'avg_ft_word_ratio_std': 'Std Fintech Word Ratio',
-                # ═══ 技术重度 (Li et al. 2021, RFS; 14_fintech_intensity.py) ═══
+                # ═══ 技术重度 (Li et al. 2021, RFS; 15_fintech_intensity.py) ═══
                 'avg_ft_intensity':     'Avg FinTech Intensity Score (TF-IDF)',
                 'avg_ft_intensity_std': 'Std FinTech Intensity Score (TF-IDF)',
                 # ═══ 同业竞争 (Cao et al. 2025) ═══
@@ -1307,6 +1307,6 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     input_file = os.path.join(CONFIG['paths']['output_dir'],
                               CONFIG['filenames']['output_24_herd_decay'])
     save_dataset(df_exploded, article_path, logger,
-                stage_name="45_panel_export_main",
+                stage_name="40_panel_export_main",
                 config=CONFIG,
                 input_files=[input_file])

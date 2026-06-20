@@ -3,7 +3,7 @@
 ==========================================================
 
 管线位置:
-  45_panel_export_main.py → 步骤 7f / 7g / 7h-cogn
+  40_panel_export_main.py → 步骤 7f / 7g / 7h-cogn
   本模块在 44_panel_iv_did.py 之后、 47_network_brokerage.py 之前执行。
   依赖 41_panel_encode_aggregate.py 生成的 co_mentioned_banks 列
   和 llm_vote_tone_* 情感指标。
@@ -1416,7 +1416,7 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
         # 且行随机, fillna(0) 把缺 tone 同行伪零注入分子而权重仍留在行和(=1)分母 → 在 T=18
         # 全量(缺 tone 同行有真实新闻/权重)下加权均值向 0 衰减。改为仅对 OBSERVED-tone 同行
         # 加权均值并按观测权重和重归一; denom>0 同时覆盖"有同行"(孤立行守卫)与"有观测-tone 同行"。
-        # ⚠ 落盘提示 (NSP-A): 本嵌入轨依赖 30a_article_embeddings(当前缺), stage 45 未重跑嵌入
+        # ⚠ 落盘提示 (NSP-A): 本嵌入轨依赖 25_article_embeddings(当前缺), stage 45 未重跑嵌入
         # pass, 故盘上 emb_peer_tone 仍是旧 fillna 值、golden 暂未反映本修(repro 仍绿因二者同陈旧)。
         # T=2 上本修为近-no-op (15 个缺 tone 银行 ln_news_coverage=0 → W_emb 权重~0, 旧≈新,
         # 盘上 [0.953,0.969] 即正确值); 真实差异仅现于 T=18。落盘待带 embeddings 的 production run。

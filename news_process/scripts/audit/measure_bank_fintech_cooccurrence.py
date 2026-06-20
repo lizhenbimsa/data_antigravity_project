@@ -78,7 +78,7 @@ def main() -> None:
     paths = cfg["paths"]
     out_dir = paths["output_dir"]
 
-    corpus_path = os.path.join(out_dir, "13_news_with_ctx.parquet")
+    corpus_path = os.path.join(out_dir, "14_news_with_ctx.parquet")
     if not os.path.exists(corpus_path):
         corpus_path = os.path.join(out_dir, "12_fintech_news.parquet")
     df = pd.read_parquet(corpus_path)

@@ -67,18 +67,18 @@ filenames:
   output_11_bank_news: 11_bank_news.parquet               # 11_news_bank.py → 银行新闻分类
   output_12_fintech_news: 12_fintech_news.parquet         # 12_news_fintech.py → 金融科技新闻分类（仅保留金融科技新闻）
   output_12_fintech_full: 12_fintech_news_full.parquet    # 12_news_fintech.py → 全量分类结果（含非金融科技，用于人工验证抽样）
-  output_12b_cooccurrence: 12b_cooccurrence_filtered.parquet  # 12b_cooccurrence_filter.py → 银行×金科邻近共现硬过滤（12 的近邻相关子集，丢行；Andreou et al. 2026）
-  output_13_news_with_ctx: 13_news_with_ctx.parquet       # 13_materialize_ctx.py → stage 12b 子集 + content_ctx 物化 (v3.6.0 Plan E P4 A1; 2026-06-15 改读 12b)
-  output_14_fintech_intensity: 14_fintech_intensity.parquet  # 14_fintech_intensity.py → TF-IDF 技术重度评分（在 12 基础上追加 intensity 列）
-  output_15_article_alignment: 15_article_alignment.parquet  # 15_article_policy_alignment.py → 文章级政策语义对齐度 (Distel et al. 2026)
+  output_12b_cooccurrence: 13_cooccurrence_filtered.parquet  # 13_cooccurrence_filter.py → 银行×金科邻近共现硬过滤（12 的近邻相关子集，丢行；Andreou et al. 2026）
+  output_13_news_with_ctx: 14_news_with_ctx.parquet       # 14_materialize_ctx.py → stage 12b 子集 + content_ctx 物化 (v3.6.0 Plan E P4 A1; 2026-06-15 改读 12b)
+  output_14_fintech_intensity: 15_fintech_intensity.parquet  # 15_fintech_intensity.py → TF-IDF 技术重度评分（在 12 基础上追加 intensity 列）
+  output_15_article_alignment: 16_article_alignment.parquet  # 16_article_policy_alignment.py → 文章级政策语义对齐度 (Distel et al. 2026)
   output_21_tone_llms: 21_tone_llms.parquet               # 21_tone_llms.py → LLM 语义精筛与情感分析（仅 llm_verified=True）
   output_21_tone_llms_full: 21_tone_llms_full.parquet     # 21_tone_llms.py → LLM 全量结果（含 llm_verified=True/False，供验证模块使用）
   output_22_words_tone: 22_words_tone.parquet             # 22_tone_words.py → 词典法情感分析
   output_23_bert_tone: 23_bert_tone.parquet               # 23_tone_berts.py → BERT 模型情感分析
   output_24_herd_decay: 24_herd_decay.parquet             # 24_herd_decay_processor.py → 跟风衰减权重 (Tetlock 2011, RFS)
-  output_32_human_sample: 32_human_samples.xlsx           # 32_news_llms_human.py → 人工验证样本（含真伪与情感标注）
-  output_40_panel_yearly: 40_panel_yearly.parquet          # 45_panel_export_main.py → 年度平衡面板 (Bank-Year)
-  output_40_article_bank: 40_article_bank_level.parquet    # 45_panel_export_main.py → 展开后文章-银行级数据
+  output_32_human_sample: 61_human_samples.xlsx           # 61_news_llms_human.py → 人工验证样本（含真伪与情感标注）
+  output_40_panel_yearly: 40_panel_yearly.parquet          # 40_panel_export_main.py → 年度平衡面板 (Bank-Year)
+  output_40_article_bank: 40_article_bank_level.parquet    # 40_panel_export_main.py → 展开后文章-银行级数据
   output_51_panel_controls: 51_panel_with_controls.parquet  # 51_falsification_test.py → 含伪造检验对照变量的面板
   output_27_benefit_cache: 27_benefit_embeddings.npy        # 27_fintech_benefit_society.py → Embedding 缓存 (Jha et al. 2026)
 

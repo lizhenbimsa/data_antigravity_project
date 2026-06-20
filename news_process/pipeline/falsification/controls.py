@@ -284,7 +284,7 @@ def load_data():
     )
     if not os.path.exists(art_path):
         logger.error(f"  ✗ 输入文件不存在: {art_path}")
-        logger.error(f"  → 请先运行 45_panel_export_main.py 生成此文件")
+        logger.error(f"  → 请先运行 40_panel_export_main.py 生成此文件")
         sys.exit(1)
     df_art = pd.read_parquet(art_path)
     logger.info(f"  (b) 40_article_bank_level: {len(df_art):,} 行")
@@ -299,7 +299,7 @@ def load_data():
     )
     if not os.path.exists(panel_path):
         logger.error(f"  ✗ 输入文件不存在: {panel_path}")
-        logger.error(f"  → 请先运行 45_panel_export_main.py 生成此文件")
+        logger.error(f"  → 请先运行 40_panel_export_main.py 生成此文件")
         sys.exit(1)
     panel = pd.read_parquet(panel_path)
     logger.info(f"  (c) 40_panel_yearly: {len(panel):,} 行")
@@ -621,7 +621,7 @@ def aggregate_non_fintech(df_nf: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  标题提及列 '{headline_col}' {'✓ 存在' if has_headline else '✗ 不存在'}")
     if has_headline:
         logger.info(f"    技术备注: 列名是 '{headline_col}' (来自 11_news_bank.py),")
-        logger.info(f"       而非 'in_title' (45_panel_export_main.py main() 中的重命名版本)")
+        logger.info(f"       而非 'in_title' (40_panel_export_main.py main() 中的重命名版本)")
 
     nf_agg = df_nf.groupby(['target_bank', '_year']).agg(
         nf_n_articles=('target_bank', 'count'),

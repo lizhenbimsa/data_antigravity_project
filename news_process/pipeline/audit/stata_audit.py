@@ -3,7 +3,7 @@ news_process.pipeline.audit.stata_audit — Stata 用面板数据最高标准审
 ==============================================================================
 
 迁移说明 (Phase 7a-8)：
-    本模块由原 root script ``52_stata_data_audit.py`` body 迁入。
+    本模块由原 root script ``81_stata_data_audit.py`` body 迁入。
     规范调用方式: ``python -m news_process.pipeline.audit.stata_audit``
 
 
@@ -33,12 +33,12 @@ news_process.pipeline.audit.stata_audit — Stata 用面板数据最高标准审
   data/processed/40_article_bank_level.parquet
 
 输出:
-  data/processed/eval_reports/52_stata_data_audit.csv    (审核摘要表)
-  logs/52_stata_data_audit.log                           (详细日志)
+  data/processed/eval_reports/81_stata_data_audit.csv    (审核摘要表)
+  logs/81_stata_data_audit.log                           (详细日志)
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 52_stata_data_audit.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 81_stata_data_audit.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
@@ -56,9 +56,9 @@ news_process.pipeline.audit.stata_audit — Stata 用面板数据最高标准审
 8. 地理变量 (`audit_geography_variables`): bank_province/city 跨年一致性、bank_zone 覆盖率。
 9. 描述性统计 (`audit_descriptive_stats`): 核心变量 describe + 零新闻占比。
 10. 跨文件一致性 (`audit_cross_file_consistency`, 仅 40+51 均存在时): 行数/键集/核心变量值/51 含 nf_ 列。
-汇总 audit_results → DataFrame → to_csv (eval_reports/52_stata_data_audit.csv)。
+汇总 audit_results → DataFrame → to_csv (eval_reports/81_stata_data_audit.csv)。
 
-**外部依赖**: 纯 pandas/numpy 只读; 无 LLM/Embedding/网络。无 timeout 约束 (不在 DAG)。确定性强 (只读校验)。规范调用: `python -m news_process.pipeline.audit.stata_audit` 或 `python news_process/52_stata_data_audit.py`。
+**外部依赖**: 纯 pandas/numpy 只读; 无 LLM/Embedding/网络。无 timeout 约束 (不在 DAG)。确定性强 (只读校验)。规范调用: `python -m news_process.pipeline.audit.stata_audit` 或 `python news_process/81_stata_data_audit.py`。
 
 **DAG 位置**: 不在 DAG。逻辑上是 stage 45/46/51 的下游质检关卡, 但作为 user-CLI 手动触发, 与流水线主链解耦。
 
@@ -97,7 +97,7 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 # ============================================================================
 
 CONFIG = load_config()
-STAGE_NAME = "52_stata_data_audit"
+STAGE_NAME = "81_stata_data_audit"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 OUTPUT_DIR = CONFIG["paths"]["output_dir"]
@@ -960,7 +960,7 @@ def main():
     logger.info("=" * 72)
     logger.info("【功能】交付前的数据质检员: 把准备送进 Stata 跑回归的面板表 (40_panel_yearly")
     logger.info("        / 51_panel_with_controls) 与同名 .dta 从头到脚体检一遍, 最后出一张")
-    logger.info("        体检报告 (eval_reports/52_stata_data_audit.csv) 列出每项 PASS/WARN/FAIL。")
+    logger.info("        体检报告 (eval_reports/81_stata_data_audit.csv) 列出每项 PASS/WARN/FAIL。")
     logger.info("【方法】对 40/51 各跑 9 类只读审核函数 + 1 类跨文件一致性, 共 10 类: 面板结构")
     logger.info("        (唯一键/平衡率)、变量质量 (缺失率/5σ异常/值域/Inf)、情感一致性 (frac")
     logger.info("        恒等式/三轨相关/VW·MW·HW 加权恒等式)、IV 预检 (Bartik 份额≤1/LOO/变异)、")
@@ -1151,13 +1151,13 @@ def main():
     # 导出审核结果
     report_dir = os.path.join(OUTPUT_DIR, 'eval_reports')
     os.makedirs(report_dir, exist_ok=True)
-    report_path = os.path.join(report_dir, '52_stata_data_audit.csv')
+    report_path = os.path.join(report_dir, '81_stata_data_audit.csv')
     df_results.to_csv(report_path, index=False, encoding='utf-8-sig')
     logger.info(f"  审核报告已导出: {report_path}")
 
     elapsed = time.time() - start_time
     logger.info(f"  总耗时: {elapsed:.1f}s")
-    logger.info("52_stata_data_audit 完成 ✓")
+    logger.info("81_stata_data_audit 完成 ✓")
 
     # 返回状态码
     return 1 if n_fail > 0 else 0

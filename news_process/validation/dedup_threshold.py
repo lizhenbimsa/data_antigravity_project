@@ -2,7 +2,7 @@
 news_process.validation.dedup_threshold — 去重阈值参数敏感性分析 (全量数据版)
 
 迁移说明 (Phase 7b)：
-    本模块由原 root script ``32a_dedup_threshold_sensitivity.py`` body 迁入。
+    本模块由原 root script ``62_dedup_threshold_sensitivity.py`` body 迁入。
     规范调用方式: ``python -m news_process.validation.dedup_threshold``
 
 =============================================================================
@@ -60,7 +60,7 @@ news_process.validation.dedup_threshold — 去重阈值参数敏感性分析 (�
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 32a_dedup_threshold_sensitivity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 62_dedup_threshold_sensitivity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
@@ -119,7 +119,7 @@ except ImportError as e:
         f"canonical path: news_process.pipeline.preprocess.dedup"
     )
 
-STAGE_NAME = "32a_dedup_sensitivity"
+STAGE_NAME = "62_dedup_sensitivity"
 
 # ArticleDeduplicator 全流程 (媒体权重排序 / 标题+内容合并 / 日期窗口) 所需最小列集
 PRE_DEDUP_REQUIRED_COLS = ['docid', '标题', '内容', '日期', '媒体(中文)']

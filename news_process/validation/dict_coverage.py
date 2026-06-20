@@ -2,7 +2,7 @@
 news_process.validation.dict_coverage — 金融科技词典覆盖率审计
 
 迁移说明 (Phase 7b)：
-    本模块由原 root script ``37_dict_coverage_audit.py`` body 迁入。
+    本模块由原 root script ``67_dict_coverage_audit.py`` body 迁入。
     规范调用方式: ``python -m news_process.validation.dict_coverage``
 
 ==================================================
@@ -47,8 +47,8 @@ news_process.validation.dict_coverage — 金融科技词典覆盖率审计
     - 所有阈值从 config 拆分 YAML (config/filtering.yaml) 动态读取
 
 用法:
-    python 37_dict_coverage_audit.py                  # 分析 1-4 + 5a (纯统计)
-    python 37_dict_coverage_audit.py --run-llm-check  # 追加 5b (注: 从未实装,
+    python 67_dict_coverage_audit.py                  # 分析 1-4 + 5a (纯统计)
+    python 67_dict_coverage_audit.py --run-llm-check  # 追加 5b (注: 从未实装,
                                                       # 仅输出披露, 见 analysis_5b
                                                       # docstring, fix omni 2026-06-11)
 
@@ -61,7 +61,7 @@ news_process.validation.dict_coverage — 金融科技词典覆盖率审计
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 37_dict_coverage_audit.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 67_dict_coverage_audit.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
@@ -121,7 +121,7 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 # ============================================================================
 
 CONFIG = load_config()
-STAGE_NAME = "37_dict_coverage_audit"
+STAGE_NAME = "67_dict_coverage_audit"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 OUTPUT_DIR = CONFIG["paths"]["output_dir"]
@@ -692,7 +692,7 @@ def analysis_5b_llm_cross_validation(grey_zone_df: pd.DataFrame):
     整个 try-block 自模块诞生起必然落入 except 分支, ~120 行 LLM 调用代码
     永久不可达, 且 except 文案 ("请确认 utils/llm_clients.py 存在且 API 密钥
     已配置") 把"从未实装"误导为可修复的环境问题。按主控裁决移除死代码,
-    本函数现仅输出诚实披露并返回 None (不产出 37_false_negative_estimate.csv)。
+    本函数现仅输出诚实披露并返回 None (不产出 67_false_negative_estimate.csv)。
 
     若未来实装, 设计约束:
       - 须复用 stage 21 的 LLM 基础设施 (pipeline.sentiment.tone_llms),
@@ -715,7 +715,7 @@ def analysis_5b_llm_cross_validation(grey_zone_df: pd.DataFrame):
     logger.error("  分析 5b 不可用: LLM 交叉验证从未实装 (历史代码依赖不存在的 "
                  "utils.llm_clients 模块, 属已编目死功能; 2026-06-11 移除死分支)。")
     logger.error(f"  灰色地带规模 (供参考): {len(grey_zone_df):,} 篇; "
-                 "FNR 自动化估计无产出, 37_false_negative_estimate.csv 不会生成。")
+                 "FNR 自动化估计无产出, 67_false_negative_estimate.csv 不会生成。")
     logger.error("  替代诊断: 分析 5a 的灰色地带形态统计仍然有效; 实装路线见本函数 docstring。")
     return None
 
@@ -797,7 +797,7 @@ def main():
     start_time = time.time()
 
     # ================================================================
-    # 【功能】banner (黄金范式: 让 37_dict_coverage_audit.log 自带说明书)
+    # 【功能】banner (黄金范式: 让 67_dict_coverage_audit.log 自带说明书)
     # ================================================================
     logger.info("=" * 72)
     logger.info("阶段 37: 金融科技词典覆盖率审计 (Precision/Coverage/Stability 三维, Sautner et al. 2023 JF)")
@@ -885,7 +885,7 @@ def main():
     logger.info("=" * 70)
 
     # 分析 1+2 合并输出
-    coverage_path = os.path.join(EVAL_DIR, '37_coverage_distribution.csv')
+    coverage_path = os.path.join(EVAL_DIR, '67_coverage_distribution.csv')
     if not group_df.empty:
         group_df.to_csv(coverage_path, index=False, encoding='utf-8-sig')
     else:
@@ -893,19 +893,19 @@ def main():
     logger.info(f"  分析 1+2: {coverage_path}")
 
     # 分析 3a: 关键词频率
-    freq_path = os.path.join(EVAL_DIR, '37_keyword_frequency.csv')
+    freq_path = os.path.join(EVAL_DIR, '67_keyword_frequency.csv')
     if not freq_df.empty:
         freq_df.to_csv(freq_path, index=False, encoding='utf-8-sig')
     logger.info(f"  分析 3a:  {freq_path}")
 
     # 分析 3c: 零命中关键词
-    zero_path = os.path.join(EVAL_DIR, '37_zero_hit_keywords.csv')
+    zero_path = os.path.join(EVAL_DIR, '67_zero_hit_keywords.csv')
     if not zero_hit_df.empty:
         zero_hit_df.to_csv(zero_path, index=False, encoding='utf-8-sig')
     logger.info(f"  分析 3c:  {zero_path}")
 
     # 分析 4: 时间趋势
-    trend_path = os.path.join(EVAL_DIR, '37_temporal_drift.csv')
+    trend_path = os.path.join(EVAL_DIR, '67_temporal_drift.csv')
     if not trend_df.empty:
         trend_df.to_csv(trend_path, index=False, encoding='utf-8-sig')
     logger.info(f"  分析 4:   {trend_path}")

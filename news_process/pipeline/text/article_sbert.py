@@ -41,18 +41,18 @@ D-0 实测项
 ---------
 本 stage 已注册于 core/dag.py::STAGES_MAIN (无 enabled_when 条件, 随主管道
 always-on 执行); 也可单独手动触发 (全量 40 万文章编码 GPU 约 4-6 h):
-    python news_process/30a_article_sbert.py
+    python news_process/25_article_sbert.py
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 30a_article_sbert.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 25_article_sbert.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
 
-**在 DAG 中的位置**: STAGES_MAIN 阶段30a, kind=robustness, timeout=21600(GPU 4-6h / CPU 12-24h)。D 组前置阶段, 上游 = stage 13(13_news_with_ctx.parquet), 下游被 stage 18(D2 staleness 的 semantic 轨)及模块 docstring 提及的 D3(Krippendorff α, 39c/39d/39f 族)复用——核心动机是把 article-level SBERT 嵌入持久化一次, 避免多处重复编码(节省约12-15h)。
+**在 DAG 中的位置**: STAGES_MAIN 阶段30a, kind=robustness, timeout=21600(GPU 4-6h / CPU 12-24h)。D 组前置阶段, 上游 = stage 13(14_news_with_ctx.parquet), 下游被 stage 18(D2 staleness 的 semantic 轨)及模块 docstring 提及的 D3(Krippendorff α, 39c/39d/39f 族)复用——核心动机是把 article-level SBERT 嵌入持久化一次, 避免多处重复编码(节省约12-15h)。
 
-**输入**: `13_news_with_ctx.parquet`(article 级; 优先用 content_full / content_ctx, 缺则回退 内容 + 标题)。
+**输入**: `14_news_with_ctx.parquet`(article 级; 优先用 content_full / content_ctx, 缺则回退 内容 + 标题)。
 
 **处理步骤**:
 1. `_resolve_sbert_model` 从 `config/features.yaml::embedding_robustness.model`(默认 shibing624/text2vec-base-chinese, 与 stage 15/25 t2v 轨真单源) 解析 model_id + 可选 revision(钉死 HF commit 防权重漂移)。
@@ -94,7 +94,7 @@ from news_process.core.config import load_config  # noqa: E402
 from news_process.core.logging import setup_logging  # noqa: E402
 
 CONFIG = load_config()
-STAGE_NAME = "30a_article_sbert"
+STAGE_NAME = "25_article_sbert"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 def _resolve_sbert_model(config: dict) -> tuple[str, str | None]:
@@ -239,7 +239,7 @@ def main():
     logger.info("=" * 72)
     logger.info(
         "【功能】把每篇新闻'翻译'成一串语义向量 (意思指纹, 默认 768 维, 随所配 SBERT 隐藏维), 一次性持久化成 "
-        "30a_article_embeddings.parquet 备用; 是 D 组前置 (stage 18 语义陈旧度 / D3 "
+        "25_article_embeddings.parquet 备用; 是 D 组前置 (stage 18 语义陈旧度 / D3 "
         "Krippendorff α 等)的共享地基, 算一次大家共用, 省 ~12-15h 重复编码。"
     )
     logger.info(
@@ -262,7 +262,7 @@ def main():
     )
 
     output_dir = CONFIG['paths']['output_dir']
-    src_path = os.path.join(output_dir, '13_news_with_ctx.parquet')
+    src_path = os.path.join(output_dir, '14_news_with_ctx.parquet')
     if not os.path.exists(src_path):
         logger.error(f"  上游 stage 13 未跑: {src_path}")
         sys.exit(1)
@@ -308,7 +308,7 @@ def main():
         )
 
     # ── 持久化 (fix(omni-g-embed-03, 2026-06-11): 含 provenance 列) ──
-    out_path = os.path.join(output_dir, '30a_article_embeddings.parquet')
+    out_path = os.path.join(output_dir, '25_article_embeddings.parquet')
     out_df = _build_output_frame(df, embs_full, embs_ctx)
     out_df.to_parquet(out_path, index=False)
 
@@ -334,7 +334,7 @@ def main():
             # 空 frame 守卫: 无任何文章 → 不进比率/方向判读 (否则 _full_rate=0.0 会误报
             # "100% 行全 NaN")。走"无有效数据"分支, 后续判读整体短路 (不抛异常)。
             logger.warning(
-                "  本阶段 0 篇文章 (上游 13_news_with_ctx.parquet 为空?), 无嵌入可体检; "
+                "  本阶段 0 篇文章 (上游 14_news_with_ctx.parquet 为空?), 无嵌入可体检; "
                 "跳过有效率/归一化/双轨覆盖判读。"
             )
         else:

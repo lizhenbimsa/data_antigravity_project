@@ -3,7 +3,7 @@ iv_extensions.py — 顶刊 IV 扩展族 (11 论文工具变量补全, 2026-06-1
 ============================================================================
 
 管线位置:
-  45_panel_export_main → 步骤 8z (全部面板 merge 之后, export 之前)。
+  40_panel_export_main → 步骤 8z (全部面板 merge 之后, export 之前)。
   与 iv_did.py (Bartik type/scale/fintech) / geography.py (省市 LOO) /
   llm_peer_iv.py (LLM-peer) / network_spillover.py (W² 二阶) 并列, 为
   此前缺 IV 的论文 (P2/P3/P4/P5/benefit_society/P10/P11) 物化工具变量列。

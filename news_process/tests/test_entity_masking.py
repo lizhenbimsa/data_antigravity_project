@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 
 # ============================================================================
-# 复制被测纯函数（避免 import 36_entity_masking_test 触发 LLM 模块加载）
+# 复制被测纯函数（避免 import 66_entity_masking_test 触发 LLM 模块加载）
 #
 # 注 fix(omni g-val-mask, 2026-06-11): 下列本地副本保留修复前语义, 仅锁通用算法
 # 骨架 (长别名优先/占位符分配等)。生产模块 validation/entity_masking.py 的修复后

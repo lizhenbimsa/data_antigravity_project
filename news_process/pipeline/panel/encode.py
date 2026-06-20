@@ -310,7 +310,7 @@ def compute_media_authority_weights(df: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  已加载 {len(media_weights)} 条媒体权重")
 
     # 默认权重: 从 media_weights.json 的 "default" 键读取
-    # 与 38_media_diversity.py 的 media_weights.get("default", 10) 一致
+    # 与 68_media_diversity.py 的 media_weights.get("default", 10) 一致
     default_weight = media_weights.get('default', 10)
     logger.info(f"  未评级媒体默认权重: {default_weight}")
 
@@ -922,7 +922,7 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
     agg['avg_ft_word_ratio'] = ('_ft_word_ratio', 'mean')
     agg['avg_ft_word_ratio_std'] = ('_ft_word_ratio', 'std')
 
-    # --- O. 技术重度 (14_fintech_intensity.py, Li et al. 2021, RFS) ---
+    # --- O. 技术重度 (15_fintech_intensity.py, Li et al. 2021, RFS) ---
     # DOI: 10.1093/rfs/hhaa079
     #   → TF-IDF + SIF 质心连续型技术强度得分, Bank-Year 均值聚合
     #   → v3.6.0 (Plan E P4 B1 + D2): 三轨化 — fintech_intensity_score_{full,ctx,ss}

@@ -15,7 +15,7 @@ if _PROJECT_PARENT not in sys.path:
 from news_process.core.caching import LLMCache
 
 # Phase 2a: stage 15 的实现体已迁入 news_process.pipeline.filtering.policy_alignment。
-# 旧版用 importlib.spec_from_file_location("15_article_policy_alignment.py")
+# 旧版用 importlib.spec_from_file_location("16_article_policy_alignment.py")
 # 加载根目录文件 (现已是 thin shim) 并依赖其内部符号。
 # 现改为直接 import canonical 实现体。
 from news_process.pipeline.filtering import policy_alignment as mod15  # noqa: E402

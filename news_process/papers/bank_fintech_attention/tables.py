@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
-# Attention treatment 列 (stage 14_fintech_intensity 衍生) + outcome enrichment 列。
+# Attention treatment 列 (stage 15_fintech_intensity 衍生) + outcome enrichment 列。
 # 三轨 (full/ctx/ss) 平价 (third-track-ss 2026-06-14): attention_index_ss = 银行+金科
 # 同句共现轨曝光强度 (content_ss; 标签 "(银行+金科同句)"; 配同句 IV lpeer_attention_iv_ss,
 # 与 full/ctx 各自 just-identified 并排, 严禁三轨合成 over-id Hansen J)。ss 列 stage

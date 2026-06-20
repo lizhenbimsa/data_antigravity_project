@@ -40,7 +40,7 @@ _SPEC = (Path(am.__file__).parents[2] / 'papers' / 'bank_fintech_attention'
          / 'paper_spec.yaml').read_text(encoding='utf-8')
 
 _S14_NAME = am.FILENAMES.get(
-    'output_14_fintech_intensity', '14_fintech_intensity.parquet')
+    'output_14_fintech_intensity', '15_fintech_intensity.parquet')
 _F12_NAME = am.FILENAMES.get(
     'output_12_fintech_full', '12_fintech_news_full.parquet')
 
@@ -50,7 +50,7 @@ _F12_NAME = am.FILENAMES.get(
 # ============================================================================
 
 def _write_attention_env(tmp_path, monkeypatch):
-    """写最小 14_fintech_intensity + 12_fintech_news_full 并重定向 OUTPUT_DIR。
+    """写最小 15_fintech_intensity + 12_fintech_news_full 并重定向 OUTPUT_DIR。
 
     设计: A/B/C 各 1 篇 fintech 文章, ctx/full 强度比分别 1.5 / 1.2 / 0.5
     (前两个在旧 clip 构造下越界删失到 1.0); D 仅 1 篇非 fintech (零 fintech 曝光)。

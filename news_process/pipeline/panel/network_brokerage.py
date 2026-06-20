@@ -3,7 +3,7 @@
 =====================================================
 
 管线位置:
-  45_panel_export_main.py → 步骤 7h-brok / 7h-neg / 7h-fire
+  40_panel_export_main.py → 步骤 7h-brok / 7h-neg / 7h-fire
   本模块在主管线中位于 46_network_spillovers.py 之后执行,
   依赖 41_panel_encode_aggregate.py 生成的 neg_count_full 和 n_articles。
 

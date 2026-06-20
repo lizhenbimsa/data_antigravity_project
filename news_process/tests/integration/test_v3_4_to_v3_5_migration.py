@@ -3,7 +3,7 @@
 Per 原 stage3_v3_5_0_augmentation_plan §4.1 + §4.2 (文档已随 docs/ 删除):
     6 个集成测试, 覆盖:
         - encode_collab.py 重构表面 (apply_v3_5_0 入口点存在)
-        - shim 39c_construct_orthogonality.py 存在 + 委托到模块
+        - shim 72_construct_orthogonality.py 存在 + 委托到模块
         - dag.py STAGES_VALIDATION 含 39c entry (per F-B-NEW-5 修正)
         - CELL_ID_VALUE_LABEL Stata 编码字典与 cell_id 公式一致
         - v3.5.0 Stata 模板放 v3_5_0/ 子目录 (per F45 隔离 legacy build glob)
@@ -37,8 +37,8 @@ def test_encode_collab_apply_v3_5_0_entry_point():
 # ----------------------------------------------------------------------------
 
 def test_shim_39c_exists_and_delegates():
-    """news_process/39c_construct_orthogonality.py 必须是 ≤ 30 行 thin shim, 且 import run_stage。"""
-    shim_path = Path(__file__).resolve().parents[2] / '39c_construct_orthogonality.py'
+    """news_process/72_construct_orthogonality.py 必须是 ≤ 30 行 thin shim, 且 import run_stage。"""
+    shim_path = Path(__file__).resolve().parents[2] / '72_construct_orthogonality.py'
     assert shim_path.exists(), f"Missing shim: {shim_path}"
     content = shim_path.read_text(encoding='utf-8')
     # shim 不变量: 非空行 ≤ 30
@@ -57,7 +57,7 @@ def test_dag_registers_stage_39c():
     from news_process.core import dag
 
     scripts = [s.script for s in dag.STAGES_VALIDATION]
-    assert '39c_construct_orthogonality.py' in scripts, (
+    assert '72_construct_orthogonality.py' in scripts, (
         f"Stage 39c not registered; STAGES_VALIDATION = {scripts}"
     )
     # construct_orthogonality 谓词也必须同步注册

@@ -211,7 +211,7 @@ def synthetic_corpus(tmp_path, monkeypatch):
         'fintech_intensity_score_ctx': [0.8, 0.8, 1.5],
     })
     f12.to_parquet(tmp_path / '12_fintech_news_full.parquet')
-    s14.to_parquet(tmp_path / '14_fintech_intensity.parquet')
+    s14.to_parquet(tmp_path / '15_fintech_intensity.parquet')
     monkeypatch.setattr(ds, 'OUTPUT_DIR', str(tmp_path))
     monkeypatch.setattr(ds, 'FILENAMES', {})
     monkeypatch.setitem(ds.CONFIG.setdefault('panel_building', {}),
@@ -277,13 +277,13 @@ class TestSyntheticPanelContract:
 # ============================================================================
 
 _S14 = os.path.join(OUTPUT_DIR, FILENAMES.get(
-    'output_14_fintech_intensity', '14_fintech_intensity.parquet'))
+    'output_14_fintech_intensity', '15_fintech_intensity.parquet'))
 _F12 = os.path.join(OUTPUT_DIR, FILENAMES.get(
     'output_12_fintech_full', '12_fintech_news_full.parquet'))
 
 _disk = pytest.mark.skipif(
     not (os.path.exists(_S14) and os.path.exists(_F12)),
-    reason='需 14_fintech_intensity + 12_fintech_news_full 试跑产物',
+    reason='需 15_fintech_intensity + 12_fintech_news_full 试跑产物',
 )
 
 _SUFFIXES = [_variant_suffix(t, w) for t, w in DEFAULT_VARIANTS]

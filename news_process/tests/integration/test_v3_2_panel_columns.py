@@ -125,7 +125,7 @@ def test_panel_dual_subset_identity(panel_or_skip):
     ctx 可验证 full 未验证的文章 (实测 fallback 率 10.4%, 见 CLAUDE.md v3.7.2)。
 
     新不变式: tech_lc/app_lc 桶互斥 (locus 字段 1-of-K), 故 tech_lc + app_lc 是
-    ctx-verified 中 locus∈{底层技术,应用场景} 的总数。从 13_news_with_ctx.parquet
+    ctx-verified 中 locus∈{底层技术,应用场景} 的总数。从 14_news_with_ctx.parquet
     动态推导 ctx-verified-with-locus 计数作为参照。
     """
     if not _panel_is_v3_2(panel_or_skip):

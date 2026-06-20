@@ -177,7 +177,7 @@ class TestPipelineDataFlowCalculation:
 # quality-hardening Round 42 (2026-05-27): reporting.py 覆盖率 84.57% → ≥90%
 # 补漏: panel_stages 段 (397-416, 423-427) + 逐 stage exception handler
 # (354-356) + 最终明细报告 exception (379-380) + total_rows==0 时的
-# 缺失率百分比 (line 189) + 14_fintech_intensity stage filename key
+# 缺失率百分比 (line 189) + 15_fintech_intensity stage filename key
 # ============================================================================
 
 
@@ -197,7 +197,7 @@ def pipeline_config_with_panels(tmp_path):
             'output_00_preprocessing': '00_preprocessing.parquet',
             'output_11_bank_news': '11_bank_news.parquet',
             'output_12_fintech_news': '12_fintech_news.parquet',
-            'output_14_fintech_intensity': '14_fintech_intensity.parquet',
+            'output_14_fintech_intensity': '15_fintech_intensity.parquet',
             'output_21_tone_llms': '21_tone_llms.parquet',
             'output_21_tone_llms_full': '21_tone_llms_full.parquet',
             'output_22_words_tone': '22_words_tone.parquet',

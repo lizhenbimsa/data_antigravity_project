@@ -11,7 +11,7 @@ v3.6.0 (Plan E P7 C4 stub):
     当前模块不阻塞 Plan E 主线; 推迟到 P7.b 单独 PR 实施。
 
 迁移说明 (Phase 7b)：
-    本模块由原 root script ``38b_decay_sensitivity.py`` body 迁入。
+    本模块由原 root script ``69_decay_sensitivity.py`` body 迁入。
     规范调用方式: ``python -m news_process.validation.decay_sensitivity``
 
 =======================================================
@@ -78,7 +78,7 @@ v3.6.0 (Plan E P7 C4 stub):
 
 输出：
     1. 衰减 vs 均匀权重的 Pearson/Spearman 相关性报告
-    2. eval_reports/38b_decay_sensitivity.csv
+    2. eval_reports/69_decay_sensitivity.csv
 
 白话:
     计算情感分时, 离银行名字越远的句子是否应该"打折"计入? 本检验把
@@ -90,7 +90,7 @@ v3.6.0 (Plan E P7 C4 stub):
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 38b_decay_sensitivity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 69_decay_sensitivity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
@@ -161,7 +161,7 @@ except ImportError:
 # ============================================================================
 
 CONFIG = load_config()
-STAGE_NAME = "38b_decay_sensitivity"
+STAGE_NAME = "69_decay_sensitivity"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 OUTPUT_DIR = CONFIG["paths"]["output_dir"]
@@ -335,7 +335,7 @@ def load_dictionaries() -> list:
 def _inject_custom_dicts_to_jieba(dictionaries: list) -> None:
     """将所有领域词汇注入 jieba 分词器, 防止专业词汇被切碎。
 
-    注入范围与 22_tone_words.py / 35_radius_sensitivity.py 保持一致:
+    注入范围与 22_tone_words.py / 65_radius_sensitivity.py 保持一致:
       1. 所有情感词典中的词汇
       2. 银行名称词典 (bank_names.json)
       3. 金融科技词典 (fintech_dict.json)
@@ -884,7 +884,7 @@ def log_correlation_report(score_df: pd.DataFrame, dict_names: list):
 # ============================================================================
 
 def main():
-    """38b_decay_sensitivity 主流程。
+    """69_decay_sensitivity 主流程。
 
     执行步骤:
       1. 加载 6 套中文金融情感词典
@@ -897,7 +897,7 @@ def main():
     start_time = time.time()
 
     # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39c)。
-    # 去重: 删除旧的短 banner (===  38b_decay_sensitivity ===), 只留本黄金范式单 banner。
+    # 去重: 删除旧的短 banner (===  69_decay_sensitivity ===), 只留本黄金范式单 banner。
     logger.info("=" * 72)
     logger.info("阶段 38b: 距离衰减权重敏感性检验 (Sautner et al. 2023 JF §2.2; G-14)")
     logger.info("=" * 72)
@@ -917,7 +917,7 @@ def main():
     dict_names = [name for name, _ in dictionaries]
 
     # ── 步骤 2: 注入领域词汇到 jieba ──
-    # 确保与 22_tone_words / 35_radius_sensitivity 的分词一致性
+    # 确保与 22_tone_words / 65_radius_sensitivity 的分词一致性
     _inject_custom_dicts_to_jieba(dictionaries)
 
     # ── 步骤 3: 加载数据 (阶段 21 输出) ──
@@ -960,7 +960,7 @@ def main():
     log_correlation_report(score_df, dict_names)
 
     # ── 保存 CSV ──
-    output_path = os.path.join(EVAL_DIR, '38b_decay_sensitivity.csv')
+    output_path = os.path.join(EVAL_DIR, '69_decay_sensitivity.csv')
     score_df.to_csv(output_path, index=False, encoding='utf-8-sig')
     logger.info(f"结果已保存: {output_path}")
 

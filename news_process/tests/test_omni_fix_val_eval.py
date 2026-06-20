@@ -203,7 +203,7 @@ def test_math_is_module_level():
 def _patch_config(monkeypatch, out_dir: str, models=None):
     cfg = {
         'paths': {'output_dir': out_dir, 'log_dir': out_dir},
-        'filenames': {'output_32_human_sample': '32_human_samples.xlsx'},
+        'filenames': {'output_32_human_sample': '61_human_samples.xlsx'},
         'tone_llm_processing': {'models': models or []},
     }
     monkeypatch.setattr(_mod, 'CONFIG', cfg)
@@ -256,7 +256,7 @@ def test_main_real_annotations_sentinels_nan_pred_and_math(tmp_path, monkeypatch
     out_dir = str(tmp_path)
     _patch_config(monkeypatch, out_dir)
     _build_annotated_df().to_excel(
-        os.path.join(out_dir, '32_human_samples.xlsx'), index=False)
+        os.path.join(out_dir, '61_human_samples.xlsx'), index=False)
 
     _mod.main()  # 旧实现会在 G-10 情感 κ CI 处 UnboundLocalError (omni-04)
 
@@ -310,12 +310,12 @@ def test_main_prefers_merged_xlsx(tmp_path, monkeypatch):
     _patch_config(monkeypatch, out_dir)
     # 原始标注 10 行; 合并产物 12 行 (n_samples 可区分来源)
     _build_annotated_df().to_excel(
-        os.path.join(out_dir, '32_human_samples.xlsx'), index=False)
+        os.path.join(out_dir, '61_human_samples.xlsx'), index=False)
     df_merged = pd.concat(
         [_build_annotated_df(), _build_annotated_df().head(2)],
         ignore_index=True)
     df_merged.to_excel(
-        os.path.join(out_dir, '32_human_samples_merged.xlsx'), index=False)
+        os.path.join(out_dir, '61_human_samples_merged.xlsx'), index=False)
 
     _mod.main()
 
@@ -331,7 +331,7 @@ def test_main_demo_mode_artifacts_all_marked(tmp_path, monkeypatch):
     """omni-02: 标注文件缺失 → demo_mode → 全部产物 _DEMO 后缀 + caption 警示。"""
     out_dir = str(tmp_path)
     _patch_config(monkeypatch, out_dir)
-    # 不写 32_human_samples.xlsx → demo 分支
+    # 不写 61_human_samples.xlsx → demo 分支
 
     _mod.main()
 

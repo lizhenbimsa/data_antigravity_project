@@ -392,8 +392,8 @@
         "fintech_keyword_details": "ebaf3593baa318d6"
       }
     },
-    "12b_cooccurrence_filtered.parquet": {
-      "file": "12b_cooccurrence_filtered.parquet",
+    "13_cooccurrence_filtered.parquet": {
+      "file": "13_cooccurrence_filtered.parquet",
       "size_bytes": 3129295,
       "n_rows": 1125,
       "n_columns": 35,
@@ -509,8 +509,8 @@
         "fintech_keyword_details": "f0331f1e56f6013c"
       }
     },
-    "13_news_with_ctx.parquet": {
-      "file": "13_news_with_ctx.parquet",
+    "14_news_with_ctx.parquet": {
+      "file": "14_news_with_ctx.parquet",
       "size_bytes": 9088347,
       "n_rows": 1125,
       "n_columns": 40,
@@ -641,8 +641,8 @@
         "ss_is_fallback": "c871fe6426f9baea"
       }
     },
-    "14_fintech_intensity.parquet": {
-      "file": "14_fintech_intensity.parquet",
+    "15_fintech_intensity.parquet": {
+      "file": "15_fintech_intensity.parquet",
       "size_bytes": 9131054,
       "n_rows": 1125,
       "n_columns": 48,
@@ -797,8 +797,8 @@
         "intensity_verified_ss": "bdcebd5e7a3d9689"
       }
     },
-    "15_article_alignment.parquet": {
-      "file": "15_article_alignment.parquet",
+    "16_article_alignment.parquet": {
+      "file": "16_article_alignment.parquet",
       "size_bytes": 9174782,
       "n_rows": 1125,
       "n_columns": 55,
@@ -974,8 +974,8 @@
         "policy_cosine_sim_t2v_ss": "06c5c08606405cf8"
       }
     },
-    "18_article_staleness.parquet": {
-      "file": "18_article_staleness.parquet",
+    "26_article_staleness.parquet": {
+      "file": "26_article_staleness.parquet",
       "size_bytes": 33268,
       "n_rows": 1125,
       "n_columns": 8,
@@ -1010,8 +1010,8 @@
         "semantic_staleness_ctx": "6b3fea55da0866a5"
       }
     },
-    "18_staleness_panel.parquet": {
-      "file": "18_staleness_panel.parquet",
+    "26_staleness_panel.parquet": {
+      "file": "26_staleness_panel.parquet",
       "size_bytes": 12929,
       "n_rows": 118,
       "n_columns": 12,
@@ -1058,8 +1058,8 @@
         "semantic_highstale_ctx": "76e823ffc7e2154c"
       }
     },
-    "30a_article_embeddings.parquet": {
-      "file": "30a_article_embeddings.parquet",
+    "25_article_embeddings.parquet": {
+      "file": "25_article_embeddings.parquet",
       "error": "TypeError: unhashable type: 'numpy.ndarray'"
     },
     "21_tone_llms.parquet": {
@@ -26711,7 +26711,7 @@
     "missing": 2
   },
   "missing_stages": [
-    "30a_article_embeddings.parquet",
+    "25_article_embeddings.parquet",
     "30_text2vec_indicators.parquet"
   ]
 }

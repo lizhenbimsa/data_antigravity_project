@@ -80,7 +80,7 @@ article_alignment:
 #     ⚠ 本项目 stage 12b 的操作化 = 【句级窗口邻近】(银行锚句 ±sentence_radius 句),
 #       比 Andreou 的 "10 lexical tokens span" 更宽(broader), 非逐字复刻、亦非近似;
 #       须在 manuscript 如实披露此口径差异 (见 cooccurrence_filter 下方)。
-# 敏感性检验: 35_radius_sensitivity.py 对 radius ∈ {0,1,2,3} 执行完整稳健性检验
+# 敏感性检验: 65_radius_sensitivity.py 对 radius ∈ {0,1,2,3} 执行完整稳健性检验
 #
 # 三轨 (ss 银行+金科同句共现轨, 2026-06-14): content_ss 由同一阶段 13 物化,
 #   锚点为"同句内 目标银行 ∧ 金科词 共现"(extract_bank_fintech_cooccurrence)。

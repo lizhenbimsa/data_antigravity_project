@@ -2,7 +2,7 @@
 news_process.validation.llms_evaluation — 阶段33：新闻分类模型评估
 
 迁移说明 (Phase 7b)：
-    本模块由原 root script ``33_news_llms_evaluation.py`` body 迁入。
+    本模块由原 root script ``63_news_llms_evaluation.py`` body 迁入。
     规范调用方式: ``python -m news_process.validation.llms_evaluation``
 
 =======================================================
@@ -40,7 +40,7 @@ news_process.validation.llms_evaluation — 阶段33：新闻分类模型评估
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 33_news_llms_evaluation.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 63_news_llms_evaluation.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
@@ -100,7 +100,7 @@ from news_process.core.plotting import configure_matplotlib_chinese_fonts
 # ============================================================================
 
 CONFIG = load_config()
-STAGE_NAME = "33_news_llms_evaluation"
+STAGE_NAME = "63_news_llms_evaluation"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 # fix(omni-g-val-tone-04, 2026-06-11) 构念披露 (写入 results JSON + 日志):
@@ -1364,7 +1364,7 @@ def main():
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
 
-    # ── 【功能】banner (黄金范式; 让 33_news_llms_evaluation.log 自带说明书) ──
+    # ── 【功能】banner (黄金范式; 让 63_news_llms_evaluation.log 自带说明书) ──
     logger.info("=" * 72)
     logger.info("阶段 33: 新闻分类模型评估 (Cohen κ/Krippendorff α: Landis-Koch 1977 / Krippendorff 2018; 误分类偏倚: Carlson & Burbano 2026 SMJ)")
     logger.info("=" * 72)
@@ -1385,7 +1385,7 @@ def main():
     # 定义输入输出路径
     verify_path = os.path.join(
         CONFIG['paths']['output_dir'],
-        CONFIG['filenames'].get('output_32_human_sample', '32_news_llms_human_samples.xlsx')
+        CONFIG['filenames'].get('output_32_human_sample', '61_news_llms_human_samples.xlsx')
     )
     # fix(omni-g-val-eval-03, 2026-06-11): 显式优先读取 merge_annotations 产物
     # (*_merged.xlsx, 含双编码者共识黄金标准 最终_* 列 — llms_human.py 默认命名);
@@ -1557,7 +1557,7 @@ def main():
             'verification': {},
             'sentiment': {}
             # Plan v1.37 P0 §3.3.2 R27B-02: ICR 保持 2 个键。
-            # 32_human_samples.xlsx 是 2 编码者 (coder_A/coder_B), 适配
+            # 61_human_samples.xlsx 是 2 编码者 (coder_A/coder_B), 适配
             # Cohen κ; manual_validation_samples.xlsx 是 3 编码者经多数票
             # 合并为单一 gold 列 (逐编码者数据已被合并掉)。创新维度的
             # 信度经 manual-validation-study-plan 的 κ/α 工作流单独报告。

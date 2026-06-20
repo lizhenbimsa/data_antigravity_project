@@ -8,8 +8,8 @@ Plan E P4 A1 (v3.6.0):
 
 工作流:
     stage 12 (news_fintech)  → 12_fintech_news.parquet
-    stage 12b (cooccurrence) → 12b_cooccurrence_filtered.parquet (邻近共现硬过滤后子集; 2026-06-15)
-    stage 13 (本模块)        → 13_news_with_ctx.parquet  (= 12b + content_ctx 列)
+    stage 12b (cooccurrence) → 13_cooccurrence_filtered.parquet (邻近共现硬过滤后子集; 2026-06-15)
+    stage 13 (本模块)        → 14_news_with_ctx.parquet  (= 12b + content_ctx 列)
     stage 14 (fintech_intensity) → 读 13, 三轨产 fintech_intensity_score_{full,ctx,ss}
     stage 15 (policy_alignment)  → 读 14, 三轨产 policy_cosine_sim_{full,ctx,ss}
     stage 21 (tone_llms)         → 已物化的 content_ctx 直接复用 (跳过重复物化)
@@ -41,12 +41,12 @@ Plan E P4 A1 (v3.6.0):
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 13_materialize_ctx.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 14_materialize_ctx.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
 
-**输入**: `12b_cooccurrence_filtered.parquet` (config 键 output_12b_cooccurrence; 自 2026-06-15 起 = stage 12b 银行×金科邻近共现硬过滤后的近邻相关子集, 上游来自 stage 12 金科子集) 的 '内容'/'标题'/'target_bank' 等列。模块导入时全局加载: 银行否定/短名排除配置 (`load_exclusion_patterns` → NEGATION_AC/SHORT_NAME_EXCLUSIONS/CONTEXT_WINDOW) 与金科 AC 自动机 (`load_fintech_dict` → FINTECH_AC; 加载失败 try/except 兜底为 None → content_ss 全回退)。
+**输入**: `13_cooccurrence_filtered.parquet` (config 键 output_12b_cooccurrence; 自 2026-06-15 起 = stage 12b 银行×金科邻近共现硬过滤后的近邻相关子集, 上游来自 stage 12 金科子集) 的 '内容'/'标题'/'target_bank' 等列。模块导入时全局加载: 银行否定/短名排除配置 (`load_exclusion_patterns` → NEGATION_AC/SHORT_NAME_EXCLUSIONS/CONTEXT_WINDOW) 与金科 AC 自动机 (`load_fintech_dict` → FINTECH_AC; 加载失败 try/except 兜底为 None → content_ss 全回退)。
 
 **处理步骤** (`main` → `materialize_content_ctx`, idempotent):
 1. 幂等短路: 若五列俱全直接返回; 旧 schema (仅有 content_ctx) 走兼容回填路径——补 content_full/ctx_is_fallback, 并以**哨兵**填 content_ss=content_full、ss_is_fallback=True (保幂等, 不重算 ss; 删 content_ctx 可触发全量重算)。
@@ -101,7 +101,7 @@ from news_process.core.text.entity_context import (  # noqa: E402
 )
 
 CONFIG = load_config()
-STAGE_NAME = "13_materialize_ctx"
+STAGE_NAME = "14_materialize_ctx"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 # fix(omni-g-entity-03/16, 2026-06-11): ctx 锚定与 stage 11 分类共用同一套
@@ -416,7 +416,7 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def main():
-    """Stage 13 入口: 读 12b_cooccurrence_filtered.parquet → 写 13_news_with_ctx.parquet.
+    """Stage 13 入口: 读 13_cooccurrence_filtered.parquet → 写 14_news_with_ctx.parquet.
 
     输入自 2026-06-15 起改为 stage 12b (银行×金科邻近共现硬过滤) 的输出, 而非
     stage 12 直出 —— 下游三轨情感/强度链由此天然继承 12b 过滤 (路线 A; 见
@@ -444,9 +444,9 @@ def main():
     output_dir = CONFIG['paths']['output_dir']
     filenames = CONFIG.get('filenames', {})
     in_name = filenames.get(
-        'output_12b_cooccurrence', '12b_cooccurrence_filtered.parquet'
+        'output_12b_cooccurrence', '13_cooccurrence_filtered.parquet'
     )
-    out_name = filenames.get('output_13_news_with_ctx', '13_news_with_ctx.parquet')
+    out_name = filenames.get('output_13_news_with_ctx', '14_news_with_ctx.parquet')
     in_path = os.path.join(output_dir, in_name)
     out_path = os.path.join(output_dir, out_name)
 

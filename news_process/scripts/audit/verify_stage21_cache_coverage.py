@@ -52,16 +52,16 @@ from news_process.pipeline.sentiment import tone_llms
 
 
 def _load_stage21_input(input_path: str | None = None) -> tuple[pd.DataFrame, str]:
-    """复刻 stage 21 main(): 读 14_fintech_intensity, idempotent 物化 content_ctx。
+    """复刻 stage 21 main(): 读 15_fintech_intensity, idempotent 物化 content_ctx。
 
     fix(2026-06-14 审计 DET-1): 支持 ``input_path`` 覆盖 — 缺省读配置的盘面
-    14_fintech_intensity (在裸机上即 T=2 试跑帧), 生产端须传全量 17M 语料帧
+    15_fintech_intensity (在裸机上即 T=2 试跑帧), 生产端须传全量 17M 语料帧
     以使覆盖率证明对生产规模有效。返回 (df, 实际路径)。
     """
     cfg = tone_llms.CONFIG
     if input_path is None:
         input_14 = cfg['filenames'].get('output_14_fintech_intensity',
-                                        '14_fintech_intensity.parquet')
+                                        '15_fintech_intensity.parquet')
         input_path = os.path.join(cfg['paths']['output_dir'], input_14)
     if not os.path.exists(input_path):
         raise SystemExit(
@@ -137,7 +137,7 @@ def verify_cache_coverage(max_show: int = 10, input_path: str | None = None,
         if min_rows > 0 and n_rows < min_rows:
             print(f"\n[verify] ⚠ 0 miss 但帧行数 {n_rows:,} < --min-rows={min_rows:,} — "
                   "覆盖率证明仅对该子生产帧有效, **不足以** 在 $0 下确定性复现全量 T=18 "
-                  "golden。请对全量 17M 语料帧重跑本检查 (--input <全量 14_fintech_intensity>)。")
+                  "golden。请对全量 17M 语料帧重跑本检查 (--input <全量 15_fintech_intensity>)。")
             return 3
         print("\n[verify] ✅ 0 miss — golden 语料完全被缓存覆盖, stage 21 可 $0 "
               "确定性复现 (缓存即确定性锚点, 勿删 _llm_cache.db)。")
@@ -156,7 +156,7 @@ def main() -> None:
     ap.add_argument('--max-show', type=int, default=10,
                     help="最多打印多少个 miss 样本 (默认 10)")
     ap.add_argument('--input', type=str, default=None,
-                    help="指定语料帧 parquet (缺省=配置的 14_fintech_intensity; "
+                    help="指定语料帧 parquet (缺省=配置的 15_fintech_intensity; "
                          "生产端须传全量 17M 语料帧, DET-1)")
     ap.add_argument('--min-rows', type=int, default=0,
                     help="生产规模门槛: 帧行数 < 此值时, 即便 0 miss 也判退出码 3 "

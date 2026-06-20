@@ -45,10 +45,10 @@ stages:
   - id: "12_news_fintech"
     duration_wk: 0   # M0.5.2 part 2 (chained with 11)
     resource: cpu
-  - id: "14_fintech_intensity"
+  - id: "15_fintech_intensity"
     duration_wk: 1   # M0.5.3
     resource: "cpu + embedding_api"
-  - id: "15_article_policy_alignment"
+  - id: "16_article_policy_alignment"
     duration_wk: 0   # M0.5.3 chained
     resource: cpu
   - id: "21_tone_llms"

@@ -1,10 +1,10 @@
 """news_process.pipeline.audit.stats_excel — 阶段 53: 审计用统计表 Excel 导出。
 
-由历史 ``news_process/53_export_stats_excel.py`` 在 Phase 1.4b **试点**
+由历史 ``news_process/82_export_stats_excel.py`` 在 Phase 1.4b **试点**
 正文迁移而来。功能行为逐字保留; 仅变更物理路径, 且原 ``utils.helpers``
 导入经 Phase 1 转发链解析至 ``news_process.core.*``。
 
-Phase 1 状态: 此处为规范实现体。根目录 ``news_process/53_export_stats_excel.py``
+Phase 1 状态: 此处为规范实现体。根目录 ``news_process/82_export_stats_excel.py``
 为极薄 CLI 适配层, 仅转调本模块 ``main()``。
 
 Phase 2 规划: (a) 将其余 23 个简易 CLI 正文迁入子包; (b) 将 22/23/35/38b/39
@@ -13,7 +13,7 @@ Phase 2 规划: (a) 将其余 23 个简易 CLI 正文迁入子包; (b) 将 22/23
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 53_export_stats_excel.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 82_export_stats_excel.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
@@ -27,7 +27,7 @@ Phase 2 规划: (a) 将其余 23 个简易 CLI 正文迁入子包; (b) 将 22/23
 
 **关键算法**: 纯 value_counts 频次分布, 无回归/聚合公式。
 
-**外部依赖**: pandas + openpyxl; 无 LLM/Embedding/网络。无 timeout (不在 DAG)。确定性强。规范调用: `python -m news_process.pipeline.audit.stats_excel` 或 `python news_process/53_export_stats_excel.py`。
+**外部依赖**: pandas + openpyxl; 无 LLM/Embedding/网络。无 timeout (不在 DAG)。确定性强。规范调用: `python -m news_process.pipeline.audit.stats_excel` 或 `python news_process/82_export_stats_excel.py`。
 
 **DAG 位置**: 不在 DAG。是横切多阶段的描述性统计便利工具, 由用户手动触发, 与主链解耦。
 
@@ -68,14 +68,14 @@ def main():
     config = load_config()
     output_dir = config['paths']['output_dir']
 
-    # 接入项目统一日志: 写 <log_dir>/53_export_stats_excel.log。
+    # 接入项目统一日志: 写 <log_dir>/82_export_stats_excel.log。
     # 此前本阶段仅用 print() 输出 (CLI 便利工具, 不在 DAG), 不落 <stage>.log。
     # 现对齐同族 audit 阶段的 setup_logging 约定, 让日志自带阶段用途说明与结果分析;
     # 原 print() 全部保留 (向后兼容外部 CLI 契约), 仅【新增】logger 调用。
     global logger
     from news_process.core.logging import setup_logging
     logger = setup_logging(
-        "53_export_stats_excel",
+        "82_export_stats_excel",
         config['paths'].get('log_dir', 'logs'),
     )
 

@@ -9,7 +9,7 @@ V2.0 J-L-M 2026 RFS robustness alignment plan §3 Phase 1 P1.1 + P1.2:
 
 **Audit-only / library-only 路径**: 本模块自身的 CLI (main) **不写任何 parquet**
 (只做 validation + 提供库函数, 见 main 末尾日志); 经编排的 placebo 面板由
-`benefit_society_audit_combined.py` 写出为 `data/processed/27c_alt_anchor_and_placebo_panel.parquet`;
+`benefit_society_audit_combined.py` 写出为 `data/processed/80_alt_anchor_and_placebo_panel.parquet`;
 **不**修改主面板 `40_panel_yearly.parquet` 及其 golden snapshot。
 
 白话: 这是一个"反向对照实验"。我们的主指标声称量出了"金融科技利好经营"

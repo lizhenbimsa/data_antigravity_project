@@ -1,7 +1,7 @@
 """test_audit_fixes_20260529 — 回归测试守卫 audit-fixes 2026-05-29 的生产改动.
 
 10 轮 post-fix 审核 (r1/r3/r6/r7/r10) 发现这些生产修复缺回归测试 (且
-test_34_tone_validation.py 是"复刻"文件, 本地副本仍内嵌旧逻辑、断言旧行为)。
+test_64_tone_validation.py 是"复刻"文件, 本地副本仍内嵌旧逻辑、断言旧行为)。
 本文件 import 真实生产函数, 断言修复后的新行为, 防止静默回退到 pre-fix 语义。
 
 覆盖:

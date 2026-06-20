@@ -1,5 +1,5 @@
 """
-45_panel_export_main.py — 面板导出与主流程编排 (入口文件)
+40_panel_export_main.py — 面板导出与主流程编排 (入口文件)
 ==========================================================
 
 本文件是整个金融科技新闻研究管线的主入口和编排器。
@@ -17,21 +17,21 @@
   Step 7f:  同行网络溢出 (46_network_spillovers)
   Step 7g:  网络中心度 22 指标 (46_network_spillovers)
   Step 7h:  经纪网络 + LOO冲击 + 火灾甩卖 (47_network_brokerage)
-  Step 8-9: 诊断统计 + 多格式导出 (45_panel_export_main)
+  Step 8-9: 诊断统计 + 多格式导出 (40_panel_export_main)
 
 拆分自: 40_build_panel.py (L2187-3142)
 
 运行方式:
-  python 45_panel_export_main.py
+  python 40_panel_export_main.py
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 45_panel_export_main.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 40_panel_export_main.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
 
-**输入**: 主读 `24_herd_decay.parquet` (df_exploded, stage 21 语义精筛后 article×bank 级 verified 集; 缺则 sys.exit(1)); 步骤 7h-token 段硬读 `15_article_alignment.parquet` (policy_cosine_sim; 缺则 raise RuntimeError, 非静默 skip); 步骤 6b `compute_fintech_attention_index` 内读 `12_fintech_news_full.parquet` (全量银行新闻, 注意力分母); 步骤 8c `_merge_optin_feature_panels` 条件 merge `18_staleness_panel.parquet` / `39f_cross_media_alpha.parquet` (含新鲜度 mtime 守卫 + 重复键 fail-loud)。入口处校验关键列 `target_bank` / `llm_sentiment_full` / `日期` / `llm_agreement_rate_full` (main() 数据加载段, 缺则 sys.exit(1))。
+**输入**: 主读 `24_herd_decay.parquet` (df_exploded, stage 21 语义精筛后 article×bank 级 verified 集; 缺则 sys.exit(1)); 步骤 7h-token 段硬读 `16_article_alignment.parquet` (policy_cosine_sim; 缺则 raise RuntimeError, 非静默 skip); 步骤 6b `compute_fintech_attention_index` 内读 `12_fintech_news_full.parquet` (全量银行新闻, 注意力分母); 步骤 8c `_merge_optin_feature_panels` 条件 merge `26_staleness_panel.parquet` / `75_cross_media_alpha.parquet` (含新鲜度 mtime 守卫 + 重复键 fail-loud)。入口处校验关键列 `target_bank` / `llm_sentiment_full` / `日期` / `llm_agreement_rate_full` (main() 数据加载段, 缺则 sys.exit(1))。
 
 **处理步骤 (runner.main(), 串行子步, StageSpec.name 对应 41→42→43→44→46→47→45)**:
 - 步骤2 `encode_sentiment` 篇章级情感数值编码。
@@ -342,14 +342,14 @@ def _gated_log_sent(panel: pd.DataFrame, track: str) -> pd.Series:
 
 
 # fix(omni-g-runner-16, 2026-06-11): 8c opt-in 特征面板的登记上游 (新鲜度守卫用)。
-# 18_staleness 读 13_news_with_ctx + 30a_article_embeddings + 24/21 verified 键
+# 18_staleness 读 14_news_with_ctx + 25_article_embeddings + 24/21 verified 键
 # (article_staleness.py:426-484); 39f 读 21_tone_llms[_full] (cross_media_alpha.py:340-347)。
 _OPTIN_FEATURE_UPSTREAMS = {
-    '18_staleness_panel.parquet': ['13_news_with_ctx.parquet',
-                                   '30a_article_embeddings.parquet',
+    '26_staleness_panel.parquet': ['14_news_with_ctx.parquet',
+                                   '25_article_embeddings.parquet',
                                    '24_herd_decay.parquet',
                                    '21_tone_llms.parquet'],
-    '39f_cross_media_alpha.parquet': ['21_tone_llms_full.parquet',
+    '75_cross_media_alpha.parquet': ['21_tone_llms_full.parquet',
                                       '21_tone_llms.parquet'],
 }
 
@@ -366,8 +366,8 @@ def _merge_optin_feature_panels(panel: pd.DataFrame, output_dir: str) -> pd.Data
     (2) drop_duplicates keep='first' 静默取任意首行且使行数守卫永真空转 →
         改为重复键即 raise。
     """
-    for _ofile, _otag in [('18_staleness_panel.parquet', 'staleness'),
-                          ('39f_cross_media_alpha.parquet', 'cross_media')]:
+    for _ofile, _otag in [('26_staleness_panel.parquet', 'staleness'),
+                          ('75_cross_media_alpha.parquet', 'cross_media')]:
         _opath = os.path.join(output_dir, _ofile)
         if not os.path.exists(_opath):
             continue
@@ -463,7 +463,7 @@ from news_process.pipeline.panel.export import export_panel, log_diagnostics  # 
 # ============================================================================
 
 def main():
-    """45_panel_export_main 主流程。
+    """40_panel_export_main 主流程。
 
     .. todo:: v3.0-split (Plan-r3 P1-7 锚点, god function)
 
@@ -485,7 +485,7 @@ def main():
         3. 本 main() 退化为薄编排器 (~50 行, 仅 dispatch + summary)
 
         约束: 拆分必须与 thin shim 退役 (Plan-r3 P3-18) 同期, 否则会破坏
-        ``python news_process/45_panel_export_main.py`` 这个外部 CLI 契约.
+        ``python news_process/40_panel_export_main.py`` 这个外部 CLI 契约.
     """
     start_time = time.time()
 
@@ -1626,7 +1626,7 @@ def main():
 
     # 尝试加载 Stage 15 输出
     _align_filename = FILENAMES.get(
-        'output_15_article_alignment', '15_article_alignment.parquet')
+        'output_15_article_alignment', '16_article_alignment.parquet')
     _align_path = os.path.join(OUTPUT_DIR, _align_filename)
 
     # Step 4(b) 硬化 (致命问题 5 / 红队 v6): 删除原"文件不存在则静默 skip"的
@@ -1649,7 +1649,7 @@ def main():
                     f"policy_cosine_sim 非空率: "
                     f"{df_align['policy_cosine_sim'].notna().mean():.1%}")
 
-        # 【关键】Stage 15 的输出基于 Stage 14 (14_fintech_intensity.parquet),
+        # 【关键】Stage 15 的输出基于 Stage 14 (15_fintech_intensity.parquet),
         #   该文件不含 'year' 列 — year 由 Stage 45 的 parse_time() 从 '日期' 派生。
         #   因此必须在此处自行从 '日期' 列计算 year, 否则 groupby('year') 会 KeyError。
         if 'year' not in df_align.columns and '日期' in df_align.columns:
@@ -2472,7 +2472,7 @@ def main():
         }
     )
 
-    logger.info("45_panel_export_main 执行完毕 ✓")
+    logger.info("40_panel_export_main 执行完毕 ✓")
 
 
 if __name__ == '__main__':

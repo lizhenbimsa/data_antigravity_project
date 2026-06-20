@@ -67,14 +67,14 @@ surface 与 semantic staleness 相关性 ∈ [0.3, 0.7] (互补 ≠ 冗余).
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 18_article_staleness.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 26_article_staleness.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
 
-**在 DAG 中的位置**: STAGES_MAIN 阶段18, kind=robustness, timeout=21600(6h)。上游 = stage 13(13_news_with_ctx.parquet) + stage 30a(30a_article_embeddings.parquet, semantic 轨依赖, 缺则仅 surface 轨) + stage 21/24(聚合域门控, _restrict_to_panel_domain 内连)。产出供下游 panel/稳健性消费。学术锚点 Tetlock 2011 RFS(陈旧信息 return reversal)。
+**在 DAG 中的位置**: STAGES_MAIN 阶段18, kind=robustness, timeout=21600(6h)。上游 = stage 13(14_news_with_ctx.parquet) + stage 30a(25_article_embeddings.parquet, semantic 轨依赖, 缺则仅 surface 轨) + stage 21/24(聚合域门控, _restrict_to_panel_domain 内连)。产出供下游 panel/稳健性消费。学术锚点 Tetlock 2011 RFS(陈旧信息 return reversal)。
 
-**输入**: `13_news_with_ctx.parquet`(article 级; 缺 year 则从 日期 派生); `30a_article_embeddings.parquet`(可选, 缺则只输出 surface 轨)。
+**输入**: `14_news_with_ctx.parquet`(article 级; 缺 year 则从 日期 派生); `25_article_embeddings.parquet`(可选, 缺则只输出 surface 轨)。
 
 **双指标算法**(对每篇文章求'过去7天内最相似旧文章'的最大相似度):
 1. **surface_staleness** `compute_surface_staleness`: 字符级 3-gram shingle(_char_shingles, 中文友好不依赖分词)→ MinHash(num_perm=128) → MinHashLSHForest。按 unique-day 分组的滚动 LSH(每个'天'重建一次 forest, 窗口 = [d-7d, d) **严格排除同日行**), 把原 O(N²) 降到约 7N。返回前按 stable argsort 的逆置换还原原始行序(P0 修复, 防整列错位)。第一周/空窗口 → NaN; 有窗口但 LSH 查询无命中 → 0.0。
@@ -118,7 +118,7 @@ from news_process.core.config import load_config  # noqa: E402
 from news_process.core.logging import setup_logging  # noqa: E402
 
 CONFIG = load_config()
-STAGE_NAME = "18_article_staleness"
+STAGE_NAME = "26_article_staleness"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 WINDOW_DAYS = 7
@@ -402,7 +402,7 @@ def _load_aligned_embeddings(
     """读取 stage 30a embeddings 并按 article_id 显式 join 对齐到 art_df 行序.
 
     fix(omni-g-embed-03/09, 2026-06-11): 此前 `np.stack(emb_df['emb_full'])` 纯位置
-    对齐, 与 13_news_with_ctx 的对应完全靠隐式行序 — stage 13 重生而 30a (4-6h
+    对齐, 与 14_news_with_ctx 的对应完全靠隐式行序 — stage 13 重生而 30a (4-6h
     手动重负载 stage) 陈旧时, 行数恰相等会**静默整列错位** (semantic staleness 全为
     噪声且不可见)。现按 article_id 键 reindex (30a 写出 article_id = stage 13 的
     df.index, 见 article_sbert.py::_build_output_frame), 长度不等/键缺失/键重复或
@@ -537,7 +537,7 @@ def main():
     logger.info("          逐位可复现 (P0 修复后两轨均逆置换还原原始行序, 不随输入序漂移)。")
 
     output_dir = CONFIG['paths']['output_dir']
-    src_path = os.path.join(output_dir, '13_news_with_ctx.parquet')
+    src_path = os.path.join(output_dir, '14_news_with_ctx.parquet')
     if not os.path.exists(src_path):
         logger.error(f"  stage 13 未跑: {src_path}")
         sys.exit(1)
@@ -545,7 +545,7 @@ def main():
     art_df = pd.read_parquet(src_path)
     logger.info(f"  article-level: {len(art_df)} 行")
 
-    # P0 修复 (metric-audit 2026-06-02): 13_news_with_ctx 仅有 str 型 '日期', 无
+    # P0 修复 (metric-audit 2026-06-02): 14_news_with_ctx 仅有 str 型 '日期', 无
     # 'year' 列; 此前 line ~331 (keep_cols 含 'year') 与 ~335 (groupby year) 必崩
     # KeyError: 'year' (stage 18 dead-on-arrival). 镜像 attention_media.py:255 派生.
     if 'year' not in art_df.columns:
@@ -578,7 +578,7 @@ def main():
     # 尚未上线 (低 ROI, 见模块 docstring ⚠ 平价分步 + 计划 §⑫/残余风险 #5)。30a ss 嵌入落盘前
     # 本阶段不产 semantic_staleness_ss → 下游 aggregate_to_bank_year 按"缺列即跳过"优雅降级,
     # 该列在 panel 暂为 NaN (不崩); 待 30a ss 上线后此处镜像 full/ctx 补 compute 即恢复平价。
-    emb_path = os.path.join(output_dir, '30a_article_embeddings.parquet')
+    emb_path = os.path.join(output_dir, '25_article_embeddings.parquet')
     if os.path.exists(emb_path):
         # fix(omni-g-embed-03/09, 2026-06-11): article_id 显式 join 取代裸位置对齐
         embs_full, embs_ctx = _load_aligned_embeddings(art_df, emb_path)
@@ -594,7 +594,7 @@ def main():
         )
 
     # ── article-level 持久化 ──
-    out_path = os.path.join(output_dir, '18_article_staleness.parquet')
+    out_path = os.path.join(output_dir, '26_article_staleness.parquet')
     keep_cols = (
         # docid 透传 (provenance 键, 供下游 join / 聚合域审计; 旧 schema 缺则跳过)
         [c for c in ('docid',) if c in art_df.columns]
@@ -607,7 +607,7 @@ def main():
     # ── bank-year 聚合 ──
     # fix(omni-g-embed-06/08, 2026-06-11): 平均域收缩到 verified 面板语料
     panel = aggregate_to_bank_year(_restrict_to_panel_domain(art_df, output_dir))
-    panel_path = os.path.join(output_dir, '18_staleness_panel.parquet')
+    panel_path = os.path.join(output_dir, '26_staleness_panel.parquet')
     panel.to_parquet(panel_path, index=False)
     logger.info(f"  bank-year → {panel_path} ({len(panel)} 行)")
 

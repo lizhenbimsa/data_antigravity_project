@@ -51,13 +51,13 @@ v3.9.0 (第三轨 _ss 同句共现) 三轨化升级:
   - 相似度阈值 0.35: 相似度 ≥ 此值视为"跟风" (闭边界, 代码用 >=)
   - 衰减公式: weight = 1 / (1 + n_similar_predecessors)
   - **三轨** (full / ctx / ss): full 用 'content_full'(标题+全文), ctx 用 'content_ctx'
-    (标题+实体窗口), ss 用 'content_ss'(标题+银行∧金科同句窗); 三者均由 stage 13
+    (标题+实体窗口), ss 用 'content_ss'(标题+银行∧金科同句窗); 三者均由 stage 14
     物化、含标题对称 (病根A 已修); 缺 content_full 时 full 回退裸 '内容', 缺 content_ctx
-    时 ctx 回退 full, 缺 content_ss 时 ss 回退 full (ss 回退公理由 stage 13 物化时
+    时 ctx 回退 full, 缺 content_ss 时 ss 回退 full (ss 回退公理由 stage 14 物化时
     镜像 ctx: 无银行∧金科同句共现→content_ss=全文 body, ss_is_fallback=True)
 
 输入: 23_bert_tone.parquet (含 content_ctx / content_ss / ss_is_fallback 列,
-      由 stage 13 ctx_materializer 物化后下传)
+      由 stage 14 ctx_materializer 物化后下传)
 输出: 24_herd_decay.parquet (追加 8 列: 6 三轨列 herd_weight_full + herd_weight_ctx
       + herd_weight_ss + n_similar_articles_full + n_similar_articles_ctx +
       n_similar_articles_ss, 外加 herd_weight + n_similar_articles 两个单列 ——
@@ -426,7 +426,7 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
         df: 篇章级 DataFrame, 须含 'target_bank', '日期', 'content_full'(或 '内容') 列;
             'content_ctx' 可选 — 缺失时 ctx 轨回退到 full 轨文本 (即与 full 同值);
             'content_ss' 可选 — 缺失时 ss 轨回退到 full 轨文本; 'ss_is_fallback' 可选
-            (由 stage 13 物化, =True 表示该行 content_ss 镜像回退到了全文 body)。
+            (由 stage 14 物化, =True 表示该行 content_ss 镜像回退到了全文 body)。
 
     Returns:
         df: 附加 'herd_weight_full' / 'herd_weight_ctx' / 'herd_weight_ss' /
@@ -464,12 +464,12 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
         '内容' if '内容' in df.columns else (
             '正文' if '正文' in df.columns else 'content'))
     has_full = full_col in df.columns
-    # ctx 轨: 来自 stage 13 ctx_materializer (fix(omni-g-herd-04, 2026-06-11):
+    # ctx 轨: 来自 stage 14 ctx_materializer (fix(omni-g-herd-04, 2026-06-11):
     # 原注释错标到 stage 21, 与本文件头部/现行架构矛盾); 缺失则回退 full
     has_ctx = 'content_ctx' in df.columns
-    # ss 轨 (v3.9.0 第三轨, 银行+金科同句): 同来自 stage 13 ctx_materializer 物化的
+    # ss 轨 (v3.9.0 第三轨, 银行+金科同句): 同来自 stage 14 ctx_materializer 物化的
     # 'content_ss' (标题+银行∧金科同句窗); 缺失则回退 full (镜像 ctx 回退语义)。
-    # 'ss_is_fallback' 由 stage 13 物化 (=True 表示该行无共现已回退全文 body), 供
+    # 'ss_is_fallback' 由 stage 14 物化 (=True 表示该行无共现已回退全文 body), 供
     # 下方独立性诊断门控 (回退行 ss≡full 不参与相关性判定); 缺该 flag 列时下方
     # 诊断按"全部非回退"宽松处理 (graceful)。
     has_ss = 'content_ss' in df.columns
@@ -489,18 +489,18 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
 
     if not has_ctx:
         logger.warning(
-            "  'content_ctx' 列不存在 (stage 13 ctx_materializer 未跑?), "
+            "  'content_ctx' 列不存在 (stage 14 ctx_materializer 未跑?), "
             "ctx 轨回退至全文计算 — 此时 herd_weight_ctx ≡ herd_weight_full, "
-            "ctx 轨退化为 full 轨同值 (非独立轨)。建议先执行 stage 13 物化 content_ctx。"
+            "ctx 轨退化为 full 轨同值 (非独立轨)。建议先执行 stage 14 物化 content_ctx。"
         )
 
     if not has_ss:
         # ss 轨缺列警告镜像 ctx (v3.9.0 第三轨): 缺 content_ss → ss 轨回退全文,
         # herd_weight_ss ≡ herd_weight_full, 不构成真三轨。
         logger.warning(
-            "  'content_ss' 列不存在 (stage 13 ctx_materializer 未物化同句轨?), "
+            "  'content_ss' 列不存在 (stage 14 ctx_materializer 未物化同句轨?), "
             "ss 轨回退至全文计算 — 此时 herd_weight_ss ≡ herd_weight_full, "
-            "不构成真三轨。建议先执行 stage 13 物化 content_ss。"
+            "不构成真三轨。建议先执行 stage 14 物化 content_ss。"
         )
 
     # 初始化结果列 (基线 + 阈值敏感性网格; 无新闻/无法向量化组保持 weight=1.0)
@@ -849,7 +849,7 @@ def main():
             logger.warning(
                 "  ⚠ ctx 轨 herd_weight 与 full 轨逐位相同 — content_ctx 缺列或全 fallback, "
                 "ctx 退化为非独立轨 (盘面 T=2 全无跟风时三轨权重同为 1.0 亦会逐位相同, 非必然 "
-                "content_ctx 缺列/fallback; 若全量 run 出现再查 stage 13 ctx_materializer 是否物化 content_ctx)。"
+                "content_ctx 缺列/fallback; 若全量 run 出现再查 stage 14 ctx_materializer 是否物化 content_ctx)。"
             )
         if _ss_eq_full:
             logger.warning(

@@ -5,7 +5,7 @@ ticket 跟踪; 本模块只固化下游评估所期望的 schema)。
 
 使用方:
   - news_process/validation/llms_evaluation.py (P0 4 任务扩展)
-  - news_process/tests/test_33_evaluation.py (test_r_column_schema_coupling)
+  - news_process/tests/test_63_evaluation.py (test_r_column_schema_coupling)
 
 抽样脚本 news_process/scripts/migrate/manual_validation_sampling.py 用
 f-string 模板生成编码者列名

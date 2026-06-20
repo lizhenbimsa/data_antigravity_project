@@ -2,7 +2,7 @@
 
 提供 ``restrict_to_verified``: 把"文章×银行"粒度的帧按 ``(docid, target_bank)``
 inner-join 收敛到 stage-21 LLM 语义精筛后的 verified 集 (``24_herd_decay.parquet``),
-让 attention / dedup-sensitivity 等"直读 pre-21 文件 (14_fintech_intensity /
+让 attention / dedup-sensitivity 等"直读 pre-21 文件 (15_fintech_intensity /
 12_fintech_news_full) 再聚合"的处理变量与面板其余文本测度共享同一聚合域。
 
 背景 (panel-universe-consistency-audit 2026-06-13, ATT-1/DEDUP-1): stage 14 的规则

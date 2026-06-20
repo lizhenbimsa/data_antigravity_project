@@ -21,7 +21,7 @@ Bank Fintech Attention — 银行 fintech 媒体话题曝光强度 (firm-level a
 - ``patent_fintech_count``   : IncoPat fintech 专利计数
 - ``employee_growth_it``     : CSMAR 员工增长 (IT 板块)
 
-核心处理变量 (stage 14_fintech_intensity 衍生):
+核心处理变量 (stage 15_fintech_intensity 衍生):
 - ``attention_index_full`` / ``attention_index_ctx`` /
   ``attention_disp_full`` / ``attention_pct_full``
 

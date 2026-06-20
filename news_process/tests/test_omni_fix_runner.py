@@ -435,7 +435,7 @@ class TestOptinFeatureMerge:
             'target_bank': ['工商'], 'year': [2018],
             'surface_staleness_full': [0.5],
         })
-        fpath = tmp_path / '18_staleness_panel.parquet'
+        fpath = tmp_path / '26_staleness_panel.parquet'
         feat.to_parquet(fpath, index=False)
         # 上游存在但 mtime 更旧 → 新鲜, 照常合并
         up = tmp_path / '24_herd_decay.parquet'
@@ -456,7 +456,7 @@ class TestOptinFeatureMerge:
             'target_bank': ['工商'], 'year': [2018],
             'cross_outlet_tone_variance_full': [0.5],
         })
-        fpath = tmp_path / '39f_cross_media_alpha.parquet'
+        fpath = tmp_path / '75_cross_media_alpha.parquet'
         feat.to_parquet(fpath, index=False)
         up = tmp_path / '21_tone_llms.parquet'
         pd.DataFrame({'docid': ['d1']}).to_parquet(up, index=False)
@@ -471,7 +471,7 @@ class TestOptinFeatureMerge:
             'target_bank': ['工商', '工商'], 'year': [2018, 2018],
             'surface_staleness_full': [0.5, 0.9],
         })
-        feat.to_parquet(tmp_path / '18_staleness_panel.parquet', index=False)
+        feat.to_parquet(tmp_path / '26_staleness_panel.parquet', index=False)
         with pytest.raises(RuntimeError, match="键重复"):
             _merge_optin_feature_panels(self._panel(), str(tmp_path))
 
@@ -481,7 +481,7 @@ class TestOptinFeatureMerge:
             'llm_vote_tone_full': [9.9],          # 与面板既有列同名
             'surface_staleness_full': [0.5],
         })
-        feat.to_parquet(tmp_path / '18_staleness_panel.parquet', index=False)
+        feat.to_parquet(tmp_path / '26_staleness_panel.parquet', index=False)
         out = _merge_optin_feature_panels(self._panel(), str(tmp_path))
         assert out.loc[out['target_bank'] == '工商',
                        'llm_vote_tone_full'].iloc[0] == 0.1
@@ -489,7 +489,7 @@ class TestOptinFeatureMerge:
 
     def test_missing_keys_skipped(self, tmp_path):
         feat = pd.DataFrame({'bank': ['工商'], 'val': [1.0]})
-        feat.to_parquet(tmp_path / '18_staleness_panel.parquet', index=False)
+        feat.to_parquet(tmp_path / '26_staleness_panel.parquet', index=False)
         out = _merge_optin_feature_panels(self._panel(), str(tmp_path))
         assert 'val' not in out.columns
 

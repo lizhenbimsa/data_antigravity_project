@@ -2,7 +2,7 @@
 news_process.validation.entity_masking — 阶段36：Entity Masking 稳健性测试（三轨版）
 
 迁移说明 (Phase 7b)：
-    本模块由原 root script ``36_entity_masking_test.py`` body 迁入。
+    本模块由原 root script ``66_entity_masking_test.py`` body 迁入。
     规范调用方式: ``python -m news_process.validation.entity_masking``
 
 =====================================================================
@@ -58,7 +58,7 @@ news_process.validation.entity_masking — 阶段36：Entity Masking 稳健性�
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 36_entity_masking_test.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 66_entity_masking_test.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
@@ -124,7 +124,7 @@ from news_process.core.plotting import configure_matplotlib_chinese_fonts
 # ============================================================================
 
 CONFIG = load_config()
-STAGE_NAME = "36_entity_masking_test"
+STAGE_NAME = "66_entity_masking_test"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 configure_matplotlib_chinese_fonts()
 

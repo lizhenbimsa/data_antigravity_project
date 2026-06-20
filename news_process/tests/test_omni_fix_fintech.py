@@ -8,7 +8,7 @@
 - g-fintech-03 (P2): DF 与 TF 同分词器 — DF 改 jieba 整词重算
   (_compute_global_df_jieba 替换 AC 子串计数源 _parse_global_df); 子串误命中
   ('网贷' ∈ '互联网贷款') 与重叠双计 ('大数据'+'数据风控') 不再进 DF;
-  main() DF 参考语料 = 12_full 全量 (⚠ 13_news_with_ctx 仅 fintech 子集, 禁用)
+  main() DF 参考语料 = 12_full 全量 (⚠ 14_news_with_ctx 仅 fintech 子集, 禁用)
   + 在线物化 content_full = prepend_title(标题, 内容) (与 TF 打分同语料,
   对齐 tone_words 先例)
 - 组级裁决①: 二次熔断零填改 NaN — "未验证" 文章不再以 0.0 计入下游 bank-year
@@ -210,7 +210,7 @@ class TestGlobalDFJiebaSameTokenizer:
     def test_main_df_corpus_is_full_corpus_with_materialized_title(self):
         # 源码文本锁: main() 的 DF 参考语料 = stage 12 全量 (含非金融科技,
         # GKT "full reference corpus") + 在线物化 content_full (prepend_title
-        # 单源, 与 TF 打分文本同语义)。⚠ 防回归: 13_news_with_ctx 盘上实证仅含
+        # 单源, 与 TF 打分文本同语义)。⚠ 防回归: 14_news_with_ctx 盘上实证仅含
         # is_fintech_news=True 子集 (1170/4054), 绝不可用作 IDF 参考语料。
         assert 'df_ref = pd.read_parquet(full_path)' in _SRC
         assert '_materialize_df_corpus_column(df_ref)' in _SRC

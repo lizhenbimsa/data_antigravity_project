@@ -2,7 +2,7 @@
 news_process.validation.media_diversity — 媒体名称与地域多样性审计
 
 迁移说明 (Phase 7b)：
-    本模块由原 root script ``38_media_diversity.py`` body 迁入。
+    本模块由原 root script ``68_media_diversity.py`` body 迁入。
     规范调用方式: ``python -m news_process.validation.media_diversity``
 
 =================================================
@@ -59,7 +59,7 @@ news_process.validation.media_diversity — 媒体名称与地域多样性审计
                    → 等效数量 ENM = 1/HHI 的方法论来源
 
 输出:
-    data/processed/eval_reports/38_media_diversity.xlsx
+    data/processed/eval_reports/68_media_diversity.xlsx
         - Sheet "跨阶段总览"       (含 Gini、均匀度、加权HHI 等扩展指标)
         - Sheet "全部媒体"
         - Sheet "媒体名称_Top20"
@@ -87,7 +87,7 @@ news_process.validation.media_diversity — 媒体名称与地域多样性审计
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 38_media_diversity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 68_media_diversity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
@@ -145,7 +145,7 @@ from news_process.core.logging import log_stage_summary, setup_logging
 # ============================================================================
 
 CONFIG = load_config()
-STAGE_NAME = "38_media_diversity"
+STAGE_NAME = "68_media_diversity"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 OUTPUT_DIR = CONFIG["paths"]["output_dir"]
@@ -929,7 +929,7 @@ def compute_cross_stage_delta(overview_rows: list,
 
 def log_comprehensive_summary(final_metrics: dict,
                               final_region_metrics: dict):
-    """输出综合审计结论 (对标 37_dict_coverage_audit log_summary 风格)。
+    """输出综合审计结论 (对标 67_dict_coverage_audit log_summary 风格)。
 
     Args:
         final_metrics:       最终阶段的媒体指标。
@@ -1113,11 +1113,11 @@ def main():
 
     输入: 跨 6 阶段遍历 (00_preprocessing / 11_bank_news / 12_fintech_news /
           21_tone_llms / 23_bert_tone / 40_article_bank_level 的 parquet)
-    输出: ``data/processed/eval_reports/38_media_diversity.xlsx``
+    输出: ``data/processed/eval_reports/68_media_diversity.xlsx``
     """
     start_time = time.time()
     logger.info("=" * 70)
-    logger.info("===  38_media_diversity: 媒体名称与地域多样性审计  ===")
+    logger.info("===  68_media_diversity: 媒体名称与地域多样性审计  ===")
     logger.info("=" * 70)
     logger.info("")
     logger.info("  审计框架: 8 维度全自动化多样性诊断")
@@ -1407,7 +1407,7 @@ def main():
     logger.info("-" * 72)
 
     # --- 导出 Excel ---
-    output_path = os.path.join(EVAL_DIR, "38_media_diversity.xlsx")
+    output_path = os.path.join(EVAL_DIR, "68_media_diversity.xlsx")
     export_to_excel(all_results, output_path)
 
     # --- 阶段摘要 ---
@@ -1425,7 +1425,7 @@ def main():
         }
     )
 
-    logger.info(f"38_media_diversity 执行完毕")
+    logger.info(f"68_media_diversity 执行完毕")
 
 
 if __name__ == '__main__':

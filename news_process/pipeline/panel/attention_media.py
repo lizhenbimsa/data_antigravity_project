@@ -325,7 +325,7 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
       三轨不同进一个 RHS (三轨各自 just-identified 并排, 严禁 full×ctx×ss 混进同一 over-id Hansen J)。
 
     防选择偏差 (B1/B2) + verified 域门控 (panel-universe-consistency-audit 2026-06-13,
-      ATT-1, 含同函数 HHI 分支): 分子(强度/计数, 取自 14_fintech_intensity)与 HHI 的 outlet 分布
+      ATT-1, 含同函数 HHI 分支): 分子(强度/计数, 取自 15_fintech_intensity)与 HHI 的 outlet 分布
       (取自 12_fintech_news_full is_fintech 子集)经 (docid,target_bank) semi-join 收敛到
       stage-21 verified 集 (24_herd_decay; 与面板政策对齐族 runner.py:_filter_to_verified_universe
       同域, 剔除约 26.8% 被 stage 21 判伪的非真实银行-金融科技文章)。⚠ 而 **分母 N_all +
@@ -356,11 +356,11 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
       test_panel_superset_rows_are_nan 锁定此契约)
     """
     s14_path = os.path.join(OUTPUT_DIR, FILENAMES.get(
-        'output_14_fintech_intensity', '14_fintech_intensity.parquet'))
+        'output_14_fintech_intensity', '15_fintech_intensity.parquet'))
     f12_path = os.path.join(OUTPUT_DIR, FILENAMES.get(
         'output_12_fintech_full', '12_fintech_news_full.parquet'))
     if not (os.path.exists(s14_path) and os.path.exists(f12_path)):
-        logger.warning("  14_fintech_intensity / 12_fintech_news_full 缺失, 跳过 "
+        logger.warning("  15_fintech_intensity / 12_fintech_news_full 缺失, 跳过 "
                        "attention 处理变量物化")
         return panel
 
@@ -375,7 +375,7 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     # fintech_intensity_score_ss, 缺列时仅 ss 轨优雅跳过 (graceful skip), full/ctx 照常。
     need_intensity = {'fintech_intensity_score_full', 'fintech_intensity_score_ctx'}
     if not need_intensity.issubset(s14.columns):
-        logger.warning(f"  14_fintech_intensity 缺强度列 {need_intensity - set(s14.columns)}, "
+        logger.warning(f"  15_fintech_intensity 缺强度列 {need_intensity - set(s14.columns)}, "
                        f"跳过 attention 处理变量")
         return panel
     _has_ss = 'fintech_intensity_score_ss' in s14.columns  # 三轨 ss 软门控
@@ -397,7 +397,7 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     universe = f12.drop_duplicates(GK)[GK].copy()
     n_all = f12.groupby(GK).size().rename('_n_all')
 
-    # ── 分子: 14_fintech_intensity (有 full/ctx/ss 三轨强度分) ──
+    # ── 分子: 15_fintech_intensity (有 full/ctx/ss 三轨强度分) ──
     # fix(panel-universe-consistency-audit 2026-06-13, ATT-1): 分子收敛到 stage-21
     # verified 集 (与政策对齐族 runner.py:_filter_to_verified_universe 同域), 剔除约
     # 26.8% 被 stage 21 判伪文章。⚠ 仅门控分子; 上方 universe/n_all (分母与全集脊柱)
@@ -783,7 +783,7 @@ def _save_attn_index(df, basename):
     save_parquet_with_metadata(
         df=df,
         output_path=parquet_path,
-        stage_name="45_panel_export_main",
+        stage_name="40_panel_export_main",
         config=CONFIG,
         input_files=[input_file],
     )

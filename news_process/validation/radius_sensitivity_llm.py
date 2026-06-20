@@ -280,7 +280,7 @@ def write_radius_llm_report(report: Dict, output_path: str,
                        f'{KAPPA_THRESHOLD_RADIUS}')
 
     out = {
-        'stage': '35_radius_sensitivity_llm',
+        'stage': '65_radius_sensitivity_llm',
         'methodology': 'plan v14 §3.5 P5.2; Hassan 2019 QJE + Sautner 2023 JF 等参数敏感性',
         'cached_radius': CACHED_RADIUS,
         'new_radii': [r for r in RADII_TO_TEST if r != CACHED_RADIUS],
@@ -344,7 +344,7 @@ def _check_launch_prerequisites() -> dict:
 
     # 3. Stage 14 输入 N
     try:
-        stage_14 = os.path.join(CONFIG['paths']['output_dir'], '14_fintech_intensity.parquet')
+        stage_14 = os.path.join(CONFIG['paths']['output_dir'], '15_fintech_intensity.parquet')
         checks['stage_14_exists'] = os.path.exists(stage_14)
         if checks['stage_14_exists']:
             df = pd.read_parquet(stage_14)
@@ -371,7 +371,7 @@ def main():
     args = _parse_args()
     CONFIG = load_config()
     stage_14_filename = CONFIG.get('filenames', {}).get(
-        'output_14_fintech_intensity', '14_fintech_intensity.parquet')
+        'output_14_fintech_intensity', '15_fintech_intensity.parquet')
     stage_14_path = os.path.join(CONFIG['paths']['output_dir'], stage_14_filename)
 
     logger.info("=== Stage 35 LLM 法升级 (plan v14 §3.5 P5.2) ===")

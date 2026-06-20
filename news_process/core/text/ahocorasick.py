@@ -7,7 +7,7 @@ core/text/ahocorasick.py - AC 自动机构建与匹配的公共模块
 供以下脚本共享调用:
   - 11_news_bank.py      (银行新闻分类)
   - 12_news_fintech.py   (金融科技新闻分类)
-  - 31_bank_fintech_threshold.py (阈值敏感性分析)
+  - 60_bank_fintech_threshold.py (阈值敏感性分析)
 
 设计目标:
   1. 消除三处重复实现带来的同步维护风险
@@ -365,7 +365,7 @@ def analyze_bank_matches(content: str, title: str,
                          min_lower: int = 1) -> dict:
     """分析单篇文章的银行匹配（带否定模式排除和短名歧义消解）。
 
-    这是 11_news_bank.py 和 31_bank_fintech_threshold.py 的共享核心逻辑。
+    这是 11_news_bank.py 和 60_bank_fintech_threshold.py 的共享核心逻辑。
 
     Args:
         content:                文章内容文本。
@@ -518,7 +518,7 @@ def analyze_fintech_matches(content: str, title: str,
                             min_lower: int = 1) -> dict:
     """分析单篇文章的金融科技关键词匹配。
 
-    这是 12_news_fintech.py 和 31_bank_fintech_threshold.py 的共享核心逻辑。
+    这是 12_news_fintech.py 和 60_bank_fintech_threshold.py 的共享核心逻辑。
 
     Args:
         content:               文章内容文本。

@@ -27,7 +27,7 @@ ss=银行+金科同句共现窗口) 各打一次标签。κ 衡量任意两套�
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 39a_inter_track_kappa.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 71_inter_track_kappa.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
@@ -68,7 +68,7 @@ from news_process.core.config import load_config
 from news_process.core.logging import setup_logging
 from news_process.validation.radius_sensitivity_llm import cohens_kappa_2cat
 
-STAGE_NAME = "39a_inter_track_kappa"
+STAGE_NAME = "71_inter_track_kappa"
 
 # Plan v1.37 §4.3.1 thresholds (Landis & Koch 1977 区间 + 项目内部约定; 原 docs/ 解释文档已删).
 # v3.4.0 §J.4: 第三维度 collab_mode κ ≥ 0.45 (mirrors substantiveness fair-to-moderate

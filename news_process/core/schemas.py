@@ -50,18 +50,18 @@ OUTPUT_REGISTRY: Mapping[str, list[str]] = {
         "12_fintech_news_full.parquet",
     ],
     # 2026-06-15: stage 12b 银行×金科邻近共现硬过滤 (= 12 的近邻相关子集, 丢行)
-    "12b_cooccurrence_filter.py": ["12b_cooccurrence_filtered.parquet"],
+    "13_cooccurrence_filter.py": ["13_cooccurrence_filtered.parquet"],
     # v3.6.0 (Plan E P4 A1): stage 13 = 12b + content_ctx 列, 供 stage 14/15 双轨化
-    "13_materialize_ctx.py": ["13_news_with_ctx.parquet"],
-    "14_fintech_intensity.py": ["14_fintech_intensity.parquet"],
-    "15_article_policy_alignment.py": ["15_article_alignment.parquet"],
+    "14_materialize_ctx.py": ["14_news_with_ctx.parquet"],
+    "15_fintech_intensity.py": ["15_fintech_intensity.parquet"],
+    "16_article_policy_alignment.py": ["16_article_alignment.parquet"],
     # v3.7.0 PR #11+#11.5 (D2.a + D2.b): article staleness 双指标
-    "18_article_staleness.py": [
-        "18_article_staleness.parquet",
-        "18_staleness_panel.parquet",
+    "26_article_staleness.py": [
+        "26_article_staleness.parquet",
+        "26_staleness_panel.parquet",
     ],
     # v3.7.0 PR #9 (D 组前置): article-level SBERT 持久化
-    "30a_article_sbert.py": ["30a_article_embeddings.parquet"],
+    "25_article_sbert.py": ["25_article_embeddings.parquet"],
     # 模块三: sentiment
     "21_tone_llms.py": [
         "21_tone_llms.parquet",
@@ -73,7 +73,7 @@ OUTPUT_REGISTRY: Mapping[str, list[str]] = {
     # 模块四c: text2vec 双轨稳健性 stage 30 已退役 (2026-05-29 双模型重构);
     # strat_diff_t2v / policy_cosine_sim_t2v 改由 stage 15/25 内联双模型产出。
     # 模块五: panel construction (阶段 45 产出 bank-year + article-bank 两类面板)
-    "45_panel_export_main.py": [
+    "40_panel_export_main.py": [
         "40_panel_yearly.parquet",
         "40_article_bank_level.parquet",
         "40_attn_index_year.parquet",
@@ -98,7 +98,7 @@ OUTPUT_REGISTRY: Mapping[str, list[str]] = {
 #     _FILENAME_KEYS[script] = list[filename_key | None]   # 与 OUTPUT_REGISTRY 下标一一对应
 # 旧风险:
 #     若 OUTPUT_REGISTRY[script] 列表顺序改了一处忘改 _FILENAME_KEYS, 例如
-#     45_panel_export_main 的 5 个输出顺序漂移, 会让 40_attn_index_city_year.parquet
+#     40_panel_export_main 的 5 个输出顺序漂移, 会让 40_attn_index_city_year.parquet
 #     被错映射到 'output_40_article_bank' 配置键 — 静默且严重。
 # 新设计 (本 Fix 5):
 #     _OUTPUT_FILENAME_KEYS[(script, default_filename)] = filename_key | None
@@ -115,14 +115,14 @@ _OUTPUT_FILENAME_KEYS: Mapping[tuple[str, str], Optional[str]] = {
     ("12_news_fintech.py", "12_fintech_news.parquet"): "output_12_fintech_news",
     ("12_news_fintech.py", "12_fintech_news_full.parquet"): "output_12_fintech_full",
     # 2026-06-15: stage 12b 银行×金科邻近共现硬过滤
-    ("12b_cooccurrence_filter.py", "12b_cooccurrence_filtered.parquet"): "output_12b_cooccurrence",
+    ("13_cooccurrence_filter.py", "13_cooccurrence_filtered.parquet"): "output_12b_cooccurrence",
     # v3.6.0 (Plan E P4 A1)
-    ("13_materialize_ctx.py", "13_news_with_ctx.parquet"): "output_13_news_with_ctx",
-    ("14_fintech_intensity.py", "14_fintech_intensity.parquet"): "output_14_fintech_intensity",
-    ("15_article_policy_alignment.py", "15_article_alignment.parquet"): "output_15_article_alignment",
+    ("14_materialize_ctx.py", "14_news_with_ctx.parquet"): "output_13_news_with_ctx",
+    ("15_fintech_intensity.py", "15_fintech_intensity.parquet"): "output_14_fintech_intensity",
+    ("16_article_policy_alignment.py", "16_article_alignment.parquet"): "output_15_article_alignment",
     # v3.7.0 PR #11+#11.5 (D2)
-    ("18_article_staleness.py", "18_article_staleness.parquet"): "output_18_article_staleness",
-    ("18_article_staleness.py", "18_staleness_panel.parquet"): "output_18_staleness_panel",
+    ("26_article_staleness.py", "26_article_staleness.parquet"): "output_18_article_staleness",
+    ("26_article_staleness.py", "26_staleness_panel.parquet"): "output_18_staleness_panel",
     ("21_tone_llms.py", "21_tone_llms.parquet"): "output_21_tone_llms",
     ("21_tone_llms.py", "21_tone_llms_full.parquet"): "output_21_tone_llms_full",
     ("22_tone_words.py", "22_words_tone.parquet"): "output_22_words_tone",
@@ -130,13 +130,13 @@ _OUTPUT_FILENAME_KEYS: Mapping[tuple[str, str], Optional[str]] = {
     ("24_herd_decay_processor.py", "24_herd_decay.parquet"): "output_24_herd_decay",
     # 30_robustness_text2vec 已退役 (2026-05-29 双模型重构), 不再登记。
     # v3.7.0 PR #9 (D 组前置): article-level SBERT 持久化
-    ("30a_article_sbert.py", "30a_article_embeddings.parquet"): None,
-    ("45_panel_export_main.py", "40_panel_yearly.parquet"): "output_40_panel_yearly",
-    ("45_panel_export_main.py", "40_article_bank_level.parquet"): "output_40_article_bank",
+    ("25_article_sbert.py", "25_article_embeddings.parquet"): None,
+    ("40_panel_export_main.py", "40_panel_yearly.parquet"): "output_40_panel_yearly",
+    ("40_panel_export_main.py", "40_article_bank_level.parquet"): "output_40_article_bank",
     # 40_attn_index_* 三个 — stage 内部副输出, 无 config key
-    ("45_panel_export_main.py", "40_attn_index_year.parquet"): None,
-    ("45_panel_export_main.py", "40_attn_index_province_year.parquet"): None,
-    ("45_panel_export_main.py", "40_attn_index_city_year.parquet"): None,
+    ("40_panel_export_main.py", "40_attn_index_year.parquet"): None,
+    ("40_panel_export_main.py", "40_attn_index_province_year.parquet"): None,
+    ("40_panel_export_main.py", "40_attn_index_city_year.parquet"): None,
     # v3.2.0 M6 (plan v14 §9.1; 2026-06-12 单一全列 .dta): stage 46 Stata 导出层产出 3 文件
     ("46_stata_export.py", "46_panel_yearly_full.dta"): None,
     ("46_stata_export.py", "46_panel_yearly_labels.do"): None,
@@ -157,7 +157,7 @@ _OUTPUT_FILENAME_KEYS: Mapping[tuple[str, str], Optional[str]] = {
 # 时, 若 stage 在此集合内 → debug log 跳过预清理 (合理); 否则 → raise
 # RuntimeError 强制开发者明确决定 (登记 OUTPUT_REGISTRY 或加入此集合)。
 #
-# 注: 52_stata_data_audit.py / 53_export_stats_excel.py 不在 STAGES_MAIN/
+# 注: 81_stata_data_audit.py / 82_export_stats_excel.py 不在 STAGES_MAIN/
 # STAGES_VALIDATION 中, orchestrator 永远不会调 _get_stage_output_files()
 # 查它们, 故不列入此集合 (避免无效条目误导维护者)。
 EXPECTED_NO_OUTPUT_STAGES: frozenset[str] = frozenset({
@@ -165,22 +165,22 @@ EXPECTED_NO_OUTPUT_STAGES: frozenset[str] = frozenset({
     # 注意: 多数 stage 只写 eval_reports/*.csv, 但 39c/39d/39f 仍会写
     # data/processed/39*_*.parquet|json — 这些 parquet/json 走 validation
     # 约定不进 OUTPUT_REGISTRY (按 per-stage 行内注释), orchestrator 不预清理。
-    "31_bank_fintech_threshold.py",
-    "32_news_llms_human.py",
-    "32a_dedup_threshold_sensitivity.py",
-    "33_news_llms_evaluation.py",
-    "34_tone_validation.py",
-    "35_radius_sensitivity.py",
-    "36_entity_masking_test.py",
-    "37_dict_coverage_audit.py",
-    "38_media_diversity.py",
-    "38b_decay_sensitivity.py",
-    "39_prompt_sensitivity.py",
-    "39a_inter_track_kappa.py",
-    "39c_construct_orthogonality.py",  # v3.5.0 D3 NMI: 写 data/processed/39c_*.parquet 但走 validation 约定 (per schemas.py:134 historical)
-    "39d_lexical_discriminant_validity.py",  # v3.5.1 A1/A3 HTMT+κ+α: 写 data/processed/39d_*.parquet + 39d_htmt_matrix.json, validation 不进 OUTPUT_REGISTRY
-    "39e_lm_discriminant_validity.py",  # v3.5.2 PR #4 (A1 LM 6 子词典 HTMT): 仅写 eval_reports/*.csv
-    "39f_cross_media_alpha.py",  # v3.7.0 PR #12 (D3 Krippendorff α): 写 data/processed/39f_*.parquet, 但 validation 类不进 OUTPUT_REGISTRY (与 39c/39d 约定一致)
+    "60_bank_fintech_threshold.py",
+    "61_news_llms_human.py",
+    "62_dedup_threshold_sensitivity.py",
+    "63_news_llms_evaluation.py",
+    "64_tone_validation.py",
+    "65_radius_sensitivity.py",
+    "66_entity_masking_test.py",
+    "67_dict_coverage_audit.py",
+    "68_media_diversity.py",
+    "69_decay_sensitivity.py",
+    "70_prompt_sensitivity.py",
+    "71_inter_track_kappa.py",
+    "72_construct_orthogonality.py",  # v3.5.0 D3 NMI: 写 data/processed/39c_*.parquet 但走 validation 约定 (per schemas.py:134 historical)
+    "73_lexical_discriminant_validity.py",  # v3.5.1 A1/A3 HTMT+κ+α: 写 data/processed/39d_*.parquet + 73_htmt_matrix.json, validation 不进 OUTPUT_REGISTRY
+    "74_lm_discriminant_validity.py",  # v3.5.2 PR #4 (A1 LM 6 子词典 HTMT): 仅写 eval_reports/*.csv
+    "75_cross_media_alpha.py",  # v3.7.0 PR #12 (D3 Krippendorff α): 写 data/processed/39f_*.parquet, 但 validation 类不进 OUTPUT_REGISTRY (与 39c/39d 约定一致)
 })
 
 

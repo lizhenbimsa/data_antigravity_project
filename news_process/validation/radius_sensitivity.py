@@ -2,7 +2,7 @@
 news_process.validation.radius_sensitivity — 窗口半径敏感性检验
 
 迁移说明 (Phase 7b)：
-    本模块由原 root script ``35_radius_sensitivity.py`` body 迁入。
+    本模块由原 root script ``65_radius_sensitivity.py`` body 迁入。
     规范调用方式: ``python -m news_process.validation.radius_sensitivity``
 
 ===============================================================
@@ -42,7 +42,7 @@ news_process.validation.radius_sensitivity — 窗口半径敏感性检验
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 35_radius_sensitivity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 65_radius_sensitivity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
@@ -113,7 +113,7 @@ except ImportError:
 # ============================================================================
 
 CONFIG = load_config()
-STAGE_NAME = "35_radius_sensitivity"
+STAGE_NAME = "65_radius_sensitivity"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 # 检验参数
@@ -122,7 +122,7 @@ FALLBACK_CHAR_RADIUS = 150               # 字符级回退窗口（与原始设�
 
 # v3.6.0 (Plan E P7 C1): 多轨标记 — 当前实现仍为词典法单轨 (用 '内容' 全文重提
 # ctx 在不同 radius 下的得分). 真正"多轨敏感性" 要求在 _full / _ctx / _ss 各跑一
-# 遍整个 RADII grid, 输出 35_radius_sensitivity_{full,ctx,ss}.json 各一份。
+# 遍整个 RADII grid, 输出 65_radius_sensitivity_{full,ctx,ss}.json 各一份。
 # 注(三轨, 2026-06-14): radius 扫描本身是 track-agnostic 的窗口半径参数扫描 (只动
 # 提取半径, 不切换 LLM 情感轨), 故 _ss 第三轨同 _ctx 一样落入下方待实施 TODO; 本轮
 # 三轨化无需改本模块的扫描逻辑, 仅同步术语 双轨→多轨。
@@ -985,7 +985,7 @@ def _compute_pairwise_radius_corr(per_radius_data: dict, dict_name: str,
     统计路径的 radius-zerovar-guard (2026-06-10, 见 run_sensitivity_analysis 内
     注释): 零方差 (常量分数 — 词典零命中/空实体窗口/T=2 退化样本) 或样本 n<=2
     时 pearsonr 无定义。此前热力图路径裸调 pearsonr → NaN + ConstantInputWarning,
-    'nan' 文本被直接渲染进论文附录图 35_radius_correlation_heatmap.png。
+    'nan' 文本被直接渲染进论文附录图 65_radius_correlation_heatmap.png。
     现与统计路径同语义置 NaN, 由调用方标注 'n/a'; 对角线按惯例固定 1.0。
 
     Args:
@@ -1066,7 +1066,7 @@ def generate_visualizations(results: dict, per_radius_data: dict, output_dir: st
 
     plt.suptitle('Label Distribution Across Window Radii', fontsize=13, fontweight='bold')
     plt.tight_layout()
-    fig_path_1 = os.path.join(output_dir, '35_radius_label_distribution.png')
+    fig_path_1 = os.path.join(output_dir, '65_radius_label_distribution.png')
     plt.savefig(fig_path_1, dpi=200, bbox_inches='tight')
     plt.close()
     logger.info(f"图表已保存: {fig_path_1}")
@@ -1105,7 +1105,7 @@ def generate_visualizations(results: dict, per_radius_data: dict, output_dir: st
 
     plt.suptitle('Score Correlation Across Window Radii (Pearson r)', fontsize=13, fontweight='bold')
     plt.tight_layout()
-    fig_path_2 = os.path.join(output_dir, '35_radius_correlation_heatmap.png')
+    fig_path_2 = os.path.join(output_dir, '65_radius_correlation_heatmap.png')
     plt.savefig(fig_path_2, dpi=200, bbox_inches='tight')
     plt.close()
     logger.info(f"图表已保存: {fig_path_2}")
@@ -1330,13 +1330,13 @@ def main():
 
     # ── 保存 JSON 结果 ──
     output_dir = CONFIG['paths']['output_dir']
-    json_path = os.path.join(output_dir, '35_radius_sensitivity.json')
+    json_path = os.path.join(output_dir, '65_radius_sensitivity.json')
     with open(json_path, 'w', encoding='utf-8') as f:
         json.dump(analysis_results, f, ensure_ascii=False, indent=2)
     logger.info(f"JSON 报告已保存: {json_path}")
 
     # ── 保存 LaTeX 表格 ──
-    latex_path = os.path.join(output_dir, '35_radius_sensitivity.tex')
+    latex_path = os.path.join(output_dir, '65_radius_sensitivity.tex')
     latex_content = generate_latex_table(analysis_results)
     with open(latex_path, 'w', encoding='utf-8') as f:
         f.write(latex_content)

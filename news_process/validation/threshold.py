@@ -2,7 +2,7 @@
 news_process.validation.threshold — 阶段31：分类阈值敏感性分析
 
 迁移说明 (Phase 7b)：
-    本模块由原 root script ``31_bank_fintech_threshold.py`` body 迁入。
+    本模块由原 root script ``60_bank_fintech_threshold.py`` body 迁入。
     规范调用方式: ``python -m news_process.validation.threshold``
 
 ==========================================================
@@ -42,12 +42,12 @@ news_process.validation.threshold — 阶段31：分类阈值敏感性分析
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 31_bank_fintech_threshold.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 60_bank_fintech_threshold.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
 
-**位置与角色**: 验证流水线诊断阶段, 不修改任何主链中间数据。shim (31_bank_fintech_threshold.py) 仅 `sys.path` 注入后 `from news_process.validation.threshold import main; main()`。
+**位置与角色**: 验证流水线诊断阶段, 不修改任何主链中间数据。shim (60_bank_fintech_threshold.py) 仅 `sys.path` 注入后 `from news_process.validation.threshold import main; main()`。
 
 **输入**: `data/processed/00_preprocessing.parquet` (CONFIG['filenames']['output_00_preprocessing']; 人民日报+Wisers 全量预处理语料), 取 `内容`/`标题` 两列。为提速做抽样: `sample_n = min(sample_max=10000, max(1000, int(总行数×sample_fraction=0.10)))`, `random_state=42`; 抽样量 ≥ 总行数时改全量。
 
@@ -102,7 +102,7 @@ from news_process.core.text.ahocorasick import (
 # ============================================================================
 
 CONFIG = load_config()
-STAGE_NAME = "31_bank_fintech_threshold"
+STAGE_NAME = "60_bank_fintech_threshold"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 

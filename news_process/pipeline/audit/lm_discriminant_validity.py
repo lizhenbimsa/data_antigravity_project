@@ -35,8 +35,8 @@ HTMT < 0.85 (判别效度通过).
 -----------
 输入: ``data/processed/40_panel_yearly.parquet`` (含 v3.5.1 + v3.5.2 全部列)
 输出 (按 full / ctx / ss 三轨各写一份):
-    ``eval_reports/39e_lm_htmt_matrix_{ctx,full,ss}.csv``   8×8 HTMT 矩阵
-    ``eval_reports/39e_lm_permutation_{ctx,full,ss}.csv``   1000-rep permutation null (seed=42)
+    ``eval_reports/74_lm_htmt_matrix_{ctx,full,ss}.csv``   8×8 HTMT 矩阵
+    ``eval_reports/74_lm_permutation_{ctx,full,ss}.csv``   1000-rep permutation null (seed=42)
     (仅产上述 CSV — 与 core/schemas.py 登记的契约一致; 不单独落盘 Cohen κ /
      Cronbach α CSV, 亦不产 parquet; ss = 银行+金科同句共现轨, 列缺失时该轨优雅跳过)
 
@@ -52,7 +52,7 @@ PR #3 (lm_non_sentiment) 输出的 panel 列存在; G-A1.2 准入门控
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 39e_lm_discriminant_validity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 74_lm_discriminant_validity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
@@ -101,7 +101,7 @@ from news_process.core.config import load_config  # noqa: E402
 from news_process.core.logging import setup_logging  # noqa: E402
 
 CONFIG = load_config()
-STAGE_NAME = "39e_lm_discriminant_validity"
+STAGE_NAME = "74_lm_discriminant_validity"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 # 8 个 indicator 列 (三轨各一组; main spec 用 _ctx 与 P1 v3.6.0 G3 对齐)。
@@ -275,8 +275,8 @@ def main():
     logger.info("【功能】给 8 个非情感文本测度 (LM 6 子词典频率 uncert/litig/constr/modal_strong/modal_weak/complexity +")
     logger.info("        清晰度 mean_clarity_score + 数字密集度 mean_num_intensity) 做判别效度安检:")
     logger.info("        把两两相关排成 8×8 表, 看它们是否各测各的、有没有谁跟谁其实在量同一件事。")
-    logger.info("        产出 (三轨各一份): 39e_lm_htmt_matrix_{ctx,full,ss}.csv (8×8 HTMT 矩阵) +")
-    logger.info("        39e_lm_permutation_{ctx,full,ss}.csv (1000-rep permutation null 汇总)。")
+    logger.info("        产出 (三轨各一份): 74_lm_htmt_matrix_{ctx,full,ss}.csv (8×8 HTMT 矩阵) +")
+    logger.info("        74_lm_permutation_{ctx,full,ss}.csv (1000-rep permutation null 汇总)。")
     logger.info("【方法】单 item HTMT 退化为 |Pearson r|; Cronbach α=(k/(k-1))(1-Σσ²_i/σ²_total);")
     logger.info("        permutation null 在 listwise-complete 子样本上对每列洗牌 1000 次 (seed=42);")
     logger.info("        G-A1.2 准入门控: max off-diagonal HTMT < 0.85(strict) → PASS, 否则 FAIL(需专家复核)。")
@@ -322,7 +322,7 @@ def main():
             logger.warning(f"  {suffix}: HTMT 跳过 (indicator 列缺失)")
             _skipped_tracks.append(suffix)
             continue
-        htmt_path = os.path.join(eval_dir, f'39e_lm_htmt_matrix_{suffix}.csv')
+        htmt_path = os.path.join(eval_dir, f'74_lm_htmt_matrix_{suffix}.csv')
         htmt.to_csv(htmt_path)
         logger.info(f"    HTMT matrix → {htmt_path}")
 
@@ -331,7 +331,7 @@ def main():
 
         perm = permutation_null(panel, indicators)
         if not perm.empty:
-            perm_path = os.path.join(eval_dir, f'39e_lm_permutation_{suffix}.csv')
+            perm_path = os.path.join(eval_dir, f'74_lm_permutation_{suffix}.csv')
             perm.to_csv(perm_path, index=False)
             logger.info(f"    Permutation → {perm_path}")
 

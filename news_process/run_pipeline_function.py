@@ -16,11 +16,11 @@ run_pipeline_function.py — 新闻处理流水线调度器
     └────────────────────────────────────────────────────────────┘
                       ↓
     ┌─ 模块二：新闻筛选模块 ──────────────────────────────┐
-    │ 11_news_bank → 12_news_fintech → 12b_cooccurrence_filter   │
-    │ → 13_materialize_ctx → 14_fintech_intensity                │
-    │ → 15_article_policy_alignment                              │
+    │ 11_news_bank → 12_news_fintech → 13_cooccurrence_filter   │
+    │ → 14_materialize_ctx → 15_fintech_intensity                │
+    │ → 16_article_policy_alignment                              │
     └────────────────────────────────────────────────────────────┘
-    (12b: 银行×金科邻近共现硬过滤, Andreou et al. 2026; 下游三轨链继承过滤)
+    (13: 银行×金科邻近共现硬过滤, Andreou et al. 2026; 下游三轨链继承过滤)
                       ↓
     ┌─ 模块三：新闻情感模块 ──────────────────────────────┐
     │ 21_tone_llms → 22_tone_words → 23_tone_berts               │
@@ -28,7 +28,7 @@ run_pipeline_function.py — 新闻处理流水线调度器
     └────────────────────────────────────────────────────────────┘
                       ↓
     ┌─ 模块五：面板数据构建 ──────────────────────────────┐
-    │ 45_panel_export_main (内含 41-44) → 46_stata_export        │
+    │ 40_panel_export_main (内含 41-44) → 46_stata_export        │
     └────────────────────────────────────────────────────────────┘
                       ↓
     ┌─ 模块六：伪造检验 ────────────────────────────────┐
@@ -40,7 +40,7 @@ run_pipeline_function.py — 新闻处理流水线调度器
     情感分析的 LLM (21) / 词典 (22) / BERT (23) / 跟风衰减 (24) 自 2026-06-13 起
     全部为无条件 always-on (用户决策"全部启用而非条件启用", 对齐 2026-06-12 的
     23/24 先例); sentiment_analysis.enabled_methods 仅作启用记录, 不再驱动启停。
-    文本嵌入与新颖度 (D 组: 30a_article_sbert / 18_article_staleness)
+    文本嵌入与新颖度 (D 组: 25_article_sbert / 26_article_staleness)
     在情感模块后、面板构建前执行。
 
     注：本图为高层概览；权威阶段清单以 core/dag.py::STAGES_MAIN 为准。
@@ -175,7 +175,7 @@ _STAGE21_FILTERED_FINGERPRINT_COLUMNS = (
     '内容',
 )
 
-# v3.2.0 双轨独立标签 — 下游 stage 45 (panel build) 强依赖. 若 --skip-21-if-exists
+# v3.2.0 双轨独立标签 — 下游 stage 40 (panel build) 强依赖. 若 --skip-21-if-exists
 # 命中旧 (v3.1.x) 产物且这些列缺失, 下游会抛 KeyError. 见 CLAUDE.md / CHANGELOG.md
 # v3.2.0 节: innovation_locus_{full,ctx} + innovation_substantiveness_{full,ctx}.
 # legacy (full/ctx) by design: 这两族是 cell_id (D2/D4) 分类的 LLM 创新属性, 锚定
@@ -232,7 +232,7 @@ def _stage21_skip_is_compatible(stage21_outputs: list[str]) -> tuple[bool, str]:
 
     upstream_name = CONFIG.get('filenames', {}).get(
         'output_14_fintech_intensity',
-        '14_fintech_intensity.parquet',
+        '15_fintech_intensity.parquet',
     )
     upstream_path = os.path.join(output_dir, upstream_name)
     if not os.path.exists(upstream_path):
@@ -357,9 +357,9 @@ def run_pipeline(args: argparse.Namespace | None = None):
 
     流程：
       1. 执行模块一：新闻预处理模块 (00)
-      2. 执行模块二：新闻筛选模块 (11, 12, 12b, 13, 14, 15)
+      2. 执行模块二：新闻筛选模块 (11, 12, 13, 14, 15, 16)
       3. 执行模块三：新闻情感模块 (21/22/23/24 全部无条件 always-on)
-      4. 执行模块五：面板数据构建 (41-45)
+      4. 执行模块五：面板数据构建 (40 面板编排, 内含 41-47)
       5. 执行模块六：伪造检验对照变量构建 (51)
       6. 生成管道执行摘要报告和耗时统计
 

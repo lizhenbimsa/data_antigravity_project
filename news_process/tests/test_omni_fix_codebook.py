@@ -4,7 +4,7 @@
 
   g-codebook-02/-09  LLM 投票阵容 notes 从 config 动态拼接 (Grok-4.1 幻影阵容清除)
   g-codebook-03      attention_index 锚点更正传播到 codebook (Fang & Peress 主锚)
-  g-codebook-04/-11  source_stage 错置修正 (attn→Stage 45, network/cent→Stage 45)
+  g-codebook-04/-11  source_stage 错置修正 (attn→Stage 40, network/cent→Stage 40)
   g-codebook-05      track 字段统一 full/ctx 枚举 + 生成期断言
   g-codebook-06/-14  target_bank 取值范围生成时动态 nunique (取代硬编码 '42家')
   g-codebook-01/-08  year 取值范围生成时动态 min–max (取代硬编码 '[2013, 2023]')
@@ -130,19 +130,19 @@ class TestSourceStage:
         for col in ('ft_attn_prov', 'ft_attn_city'):
             src = cb._infer_source_stage(col)
             assert src != 'Stage 24', f'{col} 仍错标 Stage 24 (herd_decay)'
-            assert 'Stage 45' in src, f'{col} 应标 Stage 45, got {src!r}'
+            assert 'Stage 40' in src, f'{col} 应标 Stage 40, got {src!r}'
 
     def test_infer_network_cent_no_longer_stage_46(self):
         for col in ('bank_between_cent', 'network_density'):
             src = cb._infer_source_stage(col)
             assert src != 'Stage 46', f'{col} 仍错标 Stage 46 (现 DAG=stata_export)'
-            assert 'Stage 45' in src and 'network_spillover' in src
+            assert 'Stage 40' in src and 'network_spillover' in src
 
     def test_bank_degree_cent_curated_stage(self):
         meta = cb.get_variable_metadata_dict()
         src = meta['bank_degree_cent'].source_stage
         assert src != 'Stage 46'
-        assert 'Stage 45' in src
+        assert 'Stage 40' in src
 
     def test_other_infer_mappings_untouched(self):
         """非 attn/network 分支不受影响 (回归保护)。"""

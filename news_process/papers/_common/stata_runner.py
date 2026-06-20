@@ -819,7 +819,7 @@ def _cli_doctor(args) -> int:
         from news_process.core.config import load_config
         CONFIG = load_config()
         for stage, fname in [
-            ('14_fintech_intensity', 'output_14_fintech_intensity'),
+            ('15_fintech_intensity', 'output_14_fintech_intensity'),
             ('21_tone_llms', 'output_21_tone_llms'),
             ('40_panel_yearly', 'output_40_panel_yearly'),
         ]:

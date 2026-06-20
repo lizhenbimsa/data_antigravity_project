@@ -33,8 +33,8 @@ def test_runner_has_feature_merge_block():
     """8c merge 循环必须引用两个尚存的孤儿特征面板
     (18 staleness + 39f cross_media_alpha, 后者是 paper-10 主 treatment)。"""
     src = _runner_src()
-    for fname in ("18_staleness_panel.parquet",
-                  "39f_cross_media_alpha.parquet"):
+    for fname in ("26_staleness_panel.parquet",
+                  "75_cross_media_alpha.parquet"):
         assert fname in src, f"runner.py missing feature-merge for {fname}"
 
 

@@ -321,18 +321,18 @@ def test_run_stage_smoke(tmp_path: Path):
 
     # 验证 6 个输出 (5 parquet + 1 json)
     expected_files = [
-        '39c_nmi_matrix_full.parquet',
-        '39c_nmi_matrix_ctx.parquet',
-        '39c_nmi_matrix_cross.parquet',
-        '39c_nmi_null_p95.parquet',
-        '39c_nmi_null_p99.parquet',
-        '39c_nmi_summary.json',
+        '72_nmi_matrix_full.parquet',
+        '72_nmi_matrix_ctx.parquet',
+        '72_nmi_matrix_cross.parquet',
+        '72_nmi_null_p95.parquet',
+        '72_nmi_null_p99.parquet',
+        '72_nmi_summary.json',
     ]
     for f in expected_files:
         assert (tmp_path / f).exists(), f"Missing output: {f}"
 
     # summary JSON 的结构
-    summary_disk = json.loads((tmp_path / '39c_nmi_summary.json').read_text(encoding='utf-8'))
+    summary_disk = json.loads((tmp_path / '72_nmi_summary.json').read_text(encoding='utf-8'))
     assert 'max_off_diag_nmi' in summary_disk
     assert 'classify_full_3x3' in summary_disk
     assert summary_disk['interpretation'] in ('strong', 'moderate', 'mixed')
@@ -423,7 +423,7 @@ def test_run_stage_uses_env_var_defaults(tmp_path, monkeypatch):
     # 调用时不传 args, 让 env var fallback 生效
     summary = run_stage(bootstrap_n=10, n_permutations=10, seed=42)
     assert 'max_off_diag_nmi' in summary
-    assert (tmp_path / '39c_nmi_summary.json').exists()
+    assert (tmp_path / '72_nmi_summary.json').exists()
 
 
 def test_run_stage_default_paths_config_resolved_absolute(monkeypatch):
@@ -576,7 +576,7 @@ def test_run_stage_interpretation_moderate(tmp_path, monkeypatch):
         'strong', 'moderate', 'weak', 'mixed', 'undefined',
     )
     # JSON 落盘
-    out_json = tmp_path / '39c_nmi_summary.json'
+    out_json = tmp_path / '72_nmi_summary.json'
     assert out_json.exists()
     data = json.loads(out_json.read_text(encoding='utf-8'))
     assert 'interpretation' in data

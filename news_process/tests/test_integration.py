@@ -292,7 +292,7 @@ class TestEnhancedIntegration:
                 'output_00_preprocessing': '00_preprocessing.parquet',
                 'output_11_bank_news': '11_bank_news.parquet',
                 'output_12_fintech_news': '12_fintech_news.parquet',
-                'output_14_fintech_intensity': '14_fintech_intensity.parquet',
+                'output_14_fintech_intensity': '15_fintech_intensity.parquet',
                 'output_21_tone_llms': '21_tone_llms.parquet',
                 'output_21_tone_llms_full': '21_tone_llms_full.parquet',
                 'output_22_words_tone': '22_words_tone.parquet',

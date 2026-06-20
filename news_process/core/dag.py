@@ -185,8 +185,8 @@ STAGES_MAIN: list[StageSpec] = [
     # 目标银行与 ≥1 金科词在 ±sentence_radius 句窗口内邻近共现的文章行, 降低 stage 12
     # 关键词判定的虚假相关; 下游 stage 13 改读其输出, 三轨情感/强度链天然继承过滤。
     StageSpec(
-        name="阶段12b: 银行×金科邻近共现预过滤 (Andreou et al. 2026)",
-        script="12b_cooccurrence_filter.py",
+        name="阶段13: 银行×金科邻近共现预过滤 (Andreou et al. 2026)",
+        script="13_cooccurrence_filter.py",
         group="main", kind="filter",
     ),
     # v3.6.0 (Plan E P4 A1): stage 13 物化 content_ctx 列, 让下游 14/15
@@ -195,18 +195,18 @@ STAGES_MAIN: list[StageSpec] = [
     # + ss_is_fallback 旗标 — 取"标题 + 含目标银行∧金科词同句 ±N 句窗"; 无共现→
     # 镜像 ctx 回退公理写全文 body。下游 14/15 自此消费 full/ctx/ss 三轨。
     StageSpec(
-        name="阶段13: 实体特异性上下文物化 (content_ctx / content_ss 三轨)",
-        script="13_materialize_ctx.py",
+        name="阶段14: 实体特异性上下文物化 (content_ctx / content_ss 三轨)",
+        script="14_materialize_ctx.py",
         group="main", kind="filter",
     ),
     StageSpec(
-        name="阶段14: 金融科技技术重度评分 (TF-IDF, 三轨 full/ctx/ss)",
-        script="14_fintech_intensity.py",
+        name="阶段15: 金融科技技术重度评分 (TF-IDF, 三轨 full/ctx/ss)",
+        script="15_fintech_intensity.py",
         group="main", kind="filter",
     ),
     StageSpec(
-        name="阶段15: 文章级政策语义对齐度",
-        script="15_article_policy_alignment.py",
+        name="阶段16: 文章级政策语义对齐度",
+        script="16_article_policy_alignment.py",
         group="main", kind="filter",
         timeout=7200,  # 阶段内含 Embedding API 调用
     ),
@@ -274,8 +274,8 @@ STAGES_MAIN: list[StageSpec] = [
     # 把 stage 30 内部计算后即丢的 article embeddings 持久化, 让 D1/D2/D3
     # 三 stage 直接复用 (节省 ~12-15 h 计算).
     StageSpec(
-        name="阶段30a: Article-level SBERT 持久化 (D 组前置)",
-        script="30a_article_sbert.py",
+        name="阶段25: Article-level SBERT 持久化 (D 组前置)",
+        script="25_article_sbert.py",
         group="main", kind="robustness",
         timeout=21600,  # 40 万文章: GPU 约 4-6 小时, CPU 约 12-24 小时
     ),
@@ -285,8 +285,8 @@ STAGES_MAIN: list[StageSpec] = [
     # article_staleness.enabled 仅作记录。⚠ 依赖 faiss-cpu + datasketch (已于 2026-06-01
     # pip 安装到位); always-on 后若缺包会真崩, 运行环境须确保两包已安装。
     StageSpec(
-        name="阶段18: Article-level staleness 双指标 (surface MinHash + semantic Faiss)",
-        script="18_article_staleness.py",
+        name="阶段26: Article-level staleness 双指标 (surface MinHash + semantic Faiss)",
+        script="26_article_staleness.py",
         group="main", kind="robustness",
         timeout=21600,  # MinHash + Faiss 在 400k 文章上 4 h
     ),
@@ -294,17 +294,17 @@ STAGES_MAIN: list[StageSpec] = [
     # ── 模块五：面板数据构建 (单文件入口, 内部串行执行 7 个子步) ──
     # Plan P1-6 (保守版): StageSpec.name 显式列出 panel runner 内部
     # 41 → 42 → 43 → 44 → 46 → 47 → 45 子步语义, 让日志/摘要可读;
-    # 文件名维持 ``45_panel_export_main.py`` 以保留外部 ``python 45_*`` 调用契约.
+    # 文件名维持 ``40_panel_export_main.py`` 以保留外部 ``python 45_*`` 调用契约.
     # 真正拆分为 7 个独立 stage (子进程隔离 + OUTPUT_REGISTRY 重整) 留待 v3.0
     # 与 thin shim 退役同期完成 (Plan 选项 B).
     StageSpec(
         name=(
-            "阶段45 (内含 41+42+43+44+46+47): "
+            "阶段40 (内含 41+42+43+44+46+47): "
             "Bank-Year 面板编排器 — 41 编码聚合 → 42 媒体注意力 → "
             "43 地理缓冲 → 44 Bartik IV/DID → 46 网络溢出 → "
             "47 经纪网络 → 45 诊断与多格式导出"
         ),
-        script="45_panel_export_main.py",
+        script="40_panel_export_main.py",
         group="main", kind="panel",
         timeout=7200,  # 阶段内含 Stage 25/26/27 Embedding 计算
     ),
@@ -339,19 +339,19 @@ STAGES_MAIN: list[StageSpec] = [
 
 STAGES_VALIDATION: list[StageSpec] = [
     StageSpec(
-        name="阶段31: 阈值敏感性分析",
-        script="31_bank_fintech_threshold.py",
+        name="阶段60: 阈值敏感性分析",
+        script="60_bank_fintech_threshold.py",
         group="validation", kind="sensitivity",
     ),
     StageSpec(
-        name="阶段32: 人工抽样验证样本生成",
-        script="32_news_llms_human.py",
+        name="阶段61: 人工抽样验证样本生成",
+        script="61_news_llms_human.py",
         group="validation", kind="human",
         # always_enabled — 历史 runner 对 stage 32 没有专门的 flag
     ),
     StageSpec(
-        name="阶段32a: 去重阈值敏感性分析",
-        script="32a_dedup_threshold_sensitivity.py",
+        name="阶段62: 去重阈值敏感性分析",
+        script="62_dedup_threshold_sensitivity.py",
         group="validation", kind="sensitivity",
         # 全量语料 (去重前 _cache, ~数百万行) 上对 5 个阈值 (0.70/0.75/0.80/0.85/0.90)
         # 各做一次精确+近似去重;
@@ -362,23 +362,23 @@ STAGES_VALIDATION: list[StageSpec] = [
         timeout=43200,
     ),
     StageSpec(
-        name="阶段33: 分类有效性评估",
-        script="33_news_llms_evaluation.py",
+        name="阶段63: 分类有效性评估",
+        script="63_news_llms_evaluation.py",
         group="validation", kind="evaluation",
     ),
     StageSpec(
-        name="阶段34: 情感三角验证",
-        script="34_tone_validation.py",
+        name="阶段64: 情感三角验证",
+        script="64_tone_validation.py",
         group="validation", kind="evaluation",
     ),
     StageSpec(
-        name="阶段35: 窗口半径敏感性检验",
-        script="35_radius_sensitivity.py",
+        name="阶段65: 窗口半径敏感性检验",
+        script="65_radius_sensitivity.py",
         group="validation", kind="sensitivity",
     ),
     StageSpec(
-        name="阶段36: Entity Masking 稳健性测试",
-        script="36_entity_masking_test.py",
+        name="阶段66: Entity Masking 稳健性测试",
+        script="66_entity_masking_test.py",
         group="validation", kind="robustness",
         # 三轨 (full/ctx/ss) 掩码复判最多 1,000 × 3 × 3 = 9,000 次 LLM 请求
         # (v3.9.0: entity_masking TRACKS 由 full/ctx 扩为 full/ctx/ss)。
@@ -386,24 +386,24 @@ STAGES_VALIDATION: list[StageSpec] = [
         timeout=21600,
     ),
     StageSpec(
-        name="阶段37: 金融科技词典覆盖率审计",
-        script="37_dict_coverage_audit.py",
+        name="阶段67: 金融科技词典覆盖率审计",
+        script="67_dict_coverage_audit.py",
         group="validation", kind="audit",
     ),
     StageSpec(
-        name="阶段38: 媒体名称与地域多样性审计",
-        script="38_media_diversity.py",
+        name="阶段68: 媒体名称与地域多样性审计",
+        script="68_media_diversity.py",
         group="validation", kind="audit",
     ),
     StageSpec(
-        name="阶段38b: 距离衰减权重敏感性检验",
-        script="38b_decay_sensitivity.py",
+        name="阶段69: 距离衰减权重敏感性检验",
+        script="69_decay_sensitivity.py",
         group="validation", kind="sensitivity",
         # always_enabled — 历史 runner 对 38b 没有专门的 flag
     ),
     StageSpec(
-        name="阶段39: Prompt措辞敏感度测试",
-        script="39_prompt_sensitivity.py",
+        name="阶段70: Prompt措辞敏感度测试",
+        script="70_prompt_sensitivity.py",
         group="validation", kind="robustness",
         # 4 个 prompt 变体 × 1,000 样本 × 3 模型 × 3 轨道 (full/ctx/ss) = 36,000
         # 次请求 (v3.9.0: prompt_sensitivity 由 2 轨扩为三轨)。该阶段有增量 LLM
@@ -411,14 +411,14 @@ STAGES_VALIDATION: list[StageSpec] = [
         timeout=43200,
     ),
     StageSpec(
-        name="阶段39a: Inter-track Cohen's κ for innovation dimensions",
-        script="39a_inter_track_kappa.py",
+        name="阶段71: Inter-track Cohen's κ for innovation dimensions",
+        script="71_inter_track_kappa.py",
         group="validation", kind="audit",
         # 仅 article-level κ + bootstrap CI; 一秒级运行
     ),
     StageSpec(
-        name="阶段39c: NMI 三 construct 正交性测度 + permutation null (v3.5.0 D3)",
-        script="39c_construct_orthogonality.py",
+        name="阶段72: NMI 三 construct 正交性测度 + permutation null (v3.5.0 D3)",
+        script="72_construct_orthogonality.py",
         group="validation", kind="audit",
         # 在 N≈40 万标签上做 bootstrap 1000 次 + permutation 1000 次;
         # 单线程约 70 分钟, 64 核 MP 上 n_jobs=16 约 5 分钟
@@ -426,8 +426,8 @@ STAGES_VALIDATION: list[StageSpec] = [
         timeout=10800,  # 3 小时上限 — 覆盖最坏情况并留余量
     ),
     StageSpec(
-        name="阶段39d: A1/A3 lexical discriminant validity (HTMT + AVE + κ + α; v3.5.1)",
-        script="39d_lexical_discriminant_validity.py",
+        name="阶段73: A1/A3 lexical discriminant validity (HTMT + AVE + κ + α; v3.5.1)",
+        script="73_lexical_discriminant_validity.py",
         group="validation", kind="audit",
         # 在 N≈9000 个 bank-year 面板观测上做成对 on-disk HTMT;
         # 单线程 < 1 分钟的轻量任务 (依据 plan v0.3 §2.3 修 R7-H3 + R8-H3)。
@@ -437,8 +437,8 @@ STAGES_VALIDATION: list[StageSpec] = [
     # v3.5.2 PR #4: LM 6 子词典 (uncert/litig/constr/modal_strong/modal_weak/complexity) HTMT.
     # Henseler-Ringle-Sarstedt (2015) JAMS 43(1) 双 cutoff 0.85/0.90.
     StageSpec(
-        name="阶段39e: LM 6 子词典 discriminant validity (HTMT + Cronbach α + permutation)",
-        script="39e_lm_discriminant_validity.py",
+        name="阶段74: LM 6 子词典 discriminant validity (HTMT + Cronbach α + permutation)",
+        script="74_lm_discriminant_validity.py",
         group="validation", kind="audit",
         timeout=900,  # 15 分钟上限, 仿 39d
     ),
@@ -446,8 +446,8 @@ STAGES_VALIDATION: list[StageSpec] = [
     # ⚠ 与第 10 篇 bank_media_disagreement 重叠; 同时输出 variance (main 候选)
     # + α (robustness), 启用前对齐 spec.
     StageSpec(
-        name="阶段39f: Cross-media tone variance + Krippendorff α (v3.7.0 D3)",
-        script="39f_cross_media_alpha.py",
+        name="阶段75: Cross-media tone variance + Krippendorff α (v3.7.0 D3)",
+        script="75_cross_media_alpha.py",
         group="validation", kind="audit",
         timeout=3600,  # 60 分钟上限, 含事件检测 + 媒体源聚合
     ),

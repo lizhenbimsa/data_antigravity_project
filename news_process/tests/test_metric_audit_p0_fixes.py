@@ -3,7 +3,7 @@
 覆盖两个修复 (见 scripts/audit/METRIC_AUDIT_FINAL_2026-06-02.md §2):
 - P0-④ staleness: compute_surface_staleness 行错位 (返回排序序数组按位置赋回未
   排序帧). 修复后返回值必须跟随**输入行序**.
-- P0-③/④ schema 契约: stage 18/19 的输入 13_news_with_ctx 只有 str 型 '日期'、
+- P0-③/④ schema 契约: stage 18/19 的输入 14_news_with_ctx 只有 str 型 '日期'、
   无 'year' 列; main() 直接 groupby(['target_bank','year']) → KeyError. 修复在
   聚合前从 '日期' 派生 'year'. 本测试钉住该 schema 契约.
 
@@ -74,7 +74,7 @@ class TestStaleAndNerYearSchemaContract:
     """P0-③: stage 18 输入无 'year' 列, 须由 '日期' 派生后才能 groupby."""
 
     def _thirteen_schema(self):
-        # 镜像 13_news_with_ctx schema: '日期' 为 str, 无 'year' 列.
+        # 镜像 14_news_with_ctx schema: '日期' 为 str, 无 'year' 列.
         return pd.DataFrame({
             'target_bank': ['工商银行', '工商银行', '建设银行'],
             '日期': ['2017-06-01', '2018-06-01', '2018-06-01'],

@@ -1,5 +1,5 @@
 {
-  "stage": "39_prompt_sensitivity",
+  "stage": "70_prompt_sensitivity",
   "methodology": "Carlson & Burbano (2026, SMJ §3.5)",
   "sample_size": 1000,
   "random_seed": 42,

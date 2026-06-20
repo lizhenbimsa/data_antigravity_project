@@ -260,7 +260,7 @@ class TestDictCoverage5bDeadBranchRemoved:
         assert '请确认 utils/llm_clients.py 存在' not in text
         # 死分支移除后不应产出任何 FNR 估计文件
         assert not os.path.exists(
-            os.path.join(str(tmp_path), '37_false_negative_estimate.csv'))
+            os.path.join(str(tmp_path), '67_false_negative_estimate.csv'))
 
     def test_5b_empty_grey_zone_skips(self, mod, monkeypatch):
         """空灰色地带 → 平静跳过 (原行为保留)。"""

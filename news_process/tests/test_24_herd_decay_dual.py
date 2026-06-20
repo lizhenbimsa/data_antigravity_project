@@ -192,9 +192,9 @@ def test_legacy_warning_logged(minimal_panel_df, monkeypatch):
     hd_mod.compute_herd_weights(df)
     joined = ' '.join(warns)
     # fix(omni-g-herd-04, 2026-06-11): 原断言锁定陈旧文案 "stage 21" — content_ctx
-    # 由 stage 13 ctx_materializer 物化 (现行架构), 警告文案已同步, 断言随改。
-    assert 'content_ctx' in joined and 'stage 13' in joined, \
-        f"WARN 应提到 content_ctx + stage 13 (物化归属); 实际 warns={warns}"
+    # 由 stage 14 ctx_materializer 物化 (现行架构), 警告文案已同步, 断言随改。
+    assert 'content_ctx' in joined and 'stage 14' in joined, \
+        f"WARN 应提到 content_ctx + stage 14 (物化归属); 实际 warns={warns}"
 
 
 # ============================================================================

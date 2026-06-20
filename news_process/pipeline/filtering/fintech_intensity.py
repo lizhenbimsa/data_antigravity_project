@@ -25,14 +25,14 @@ news_process.pipeline.filtering.fintech_intensity — 阶段14：金融科技技
       fix omni-g-fintech-01/-03, 2026-06-11: DF 按唯一文档 (标题,日期) 去重后以
       jieba 整词统计 — 与 TF 同分词器, 替换原 AC 子串计数源; 语料列在线物化
       content_full = 标题 + 内容, 与 TF 打分文本同语义。⚠ 参考语料必须是全量:
-      13_news_with_ctx 仅含 fintech 子集, 不可用作 IDF 语料; 此 _full 全量语料在
+      14_news_with_ctx 仅含 fintech 子集, 不可用作 IDF 语料; 此 _full 全量语料在
       stage 12b 上游、不受 12b 邻近共现过滤影响 — 保 IDF 区分度不塌缩）
-    打分语料: 优先 `13_news_with_ctx.parquet`（自 2026-06-15 起 stage 13 读 stage 12b
+    打分语料: 优先 `14_news_with_ctx.parquet`（自 2026-06-15 起 stage 13 读 stage 12b
       输出 = 12_fintech_news 经邻近共现硬过滤后的近邻相关金科子集 → 打分天然继承 12b;
       含 content_full/ctx/ss 三轨）; 缺失时回退 `12_fintech_news.parquet`（pre-12b, degraded）
 
 输出：
-    `14_fintech_intensity.parquet`（= 12 filtered + fintech_intensity_score + intensity_verified
+    `15_fintech_intensity.parquet`（= 12 filtered + fintech_intensity_score + intensity_verified
       + 三轨列 fintech_intensity_score_{full,ctx,ss} / intensity_verified_{full,ctx,ss};
       无后缀列 = _full alias 向后兼容。ss 轨 = 银行+金科同句共现, 回退镜像 ctx→全文 body）
 
@@ -54,13 +54,13 @@ news_process.pipeline.filtering.fintech_intensity — 阶段14：金融科技技
       Proceedings of SIGIR '96, pp. 21-29.
 
 迁移说明 (Phase 7a-3)：
-    本模块由原 root script ``14_fintech_intensity.py`` body 迁入。
+    本模块由原 root script ``15_fintech_intensity.py`` body 迁入。
     规范调用方式：
         python -m news_process.pipeline.filtering.fintech_intensity
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 14_fintech_intensity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 15_fintech_intensity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
@@ -68,8 +68,8 @@ news_process.pipeline.filtering.fintech_intensity — 阶段14：金融科技技
 **在 DAG 中的位置**: STAGES_MAIN 阶段14, kind=filter, 无显式 timeout (取 StageSpec 默认)。上游 = stage 12 (news_fintech) + stage 13 (materialize_ctx), 下游 = stage 15 (policy_alignment, 直接读 14 的 parquet)。
 
 **输入**:
-- `12_fintech_news_full.parquet` — 全量(含非金科)新闻, 仅用作全局 IDF 参考语料(Gentzkow-Kelly-Taddy 2019 JEL §2.2 "full reference corpus" 语义)。⚠ 注释明确警告勿改用 13_news_with_ctx(它只含 is_fintech_news=True 子集会塌缩 IDF 区分度)。
-- 逐篇打分语料: 优先 `13_news_with_ctx.parquet`(含 content_ctx/content_ss, 读后按 `is_fintech_news==True` 筛金科子集), 缺失则回退 `12_fintech_news.parquet`。
+- `12_fintech_news_full.parquet` — 全量(含非金科)新闻, 仅用作全局 IDF 参考语料(Gentzkow-Kelly-Taddy 2019 JEL §2.2 "full reference corpus" 语义)。⚠ 注释明确警告勿改用 14_news_with_ctx(它只含 is_fintech_news=True 子集会塌缩 IDF 区分度)。
+- 逐篇打分语料: 优先 `14_news_with_ctx.parquet`(含 content_ctx/content_ss, 读后按 `is_fintech_news==True` 筛金科子集), 缺失则回退 `12_fintech_news.parquet`。
 - 金科词典经 `core.text.ahocorasick.load_fintech_dict` 加载(与 stage 12 共享同一份)。
 
 **处理步骤**:
@@ -132,7 +132,7 @@ from news_process.core.text.ahocorasick import load_fintech_dict
 # ============================================================================
 
 CONFIG = load_config()
-STAGE_NAME = "14_fintech_intensity"
+STAGE_NAME = "15_fintech_intensity"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 # 读取技术重度评分配置 (config.yaml → fintech_intensity 节)
@@ -577,7 +577,7 @@ def main():
         raise SystemExit(1)
 
     # fix(omni-g-fintech-03, 2026-06-11): IDF 参考语料 = stage 12 全量 (含非金融科技
-    # 文档, GKT "full reference corpus" 语义) — ⚠ 勿改用 13_news_with_ctx: 盘上实证
+    # 文档, GKT "full reference corpus" 语义) — ⚠ 勿改用 14_news_with_ctx: 盘上实证
     # 其仅含 is_fintech_news=True 子集 (1170/4054 行), 用它会把参考语料塌缩为命中
     # 子集、摧毁 IDF 区分度。语料列与 TF 同语义: 在线物化 content_full (= 标题 +
     # 内容, prepend_title 单一事实源, 与 stage 13 物化口径逐字一致), 只进 DF 统计
@@ -607,7 +607,7 @@ def main():
     # 起 stage 13 读 12b 输出 → 此处 df 已是 12b 邻近共现过滤后子集, 评分继承过滤),
     # 缺失则 fallback 到 stage 12 输出 (无 ctx, 触发 _ctx 轨回退; 且绕过 12b)
     ctx_filename = CONFIG['filenames'].get(
-        'output_13_news_with_ctx', '13_news_with_ctx.parquet')
+        'output_13_news_with_ctx', '14_news_with_ctx.parquet')
     ctx_path = os.path.join(output_dir, ctx_filename)
     if os.path.exists(ctx_path):
         logger.info(f"加载 stage 13 输出 (含 content_ctx): {ctx_path}")
@@ -681,7 +681,7 @@ def main():
     assert 'intensity_verified' in df.columns
 
     output_filename = CONFIG['filenames'].get(
-        'output_14_fintech_intensity', '14_fintech_intensity.parquet')
+        'output_14_fintech_intensity', '15_fintech_intensity.parquet')
     output_path = os.path.join(output_dir, output_filename)
     # 使用数据版本控制保存
     input_file = os.path.join(CONFIG['paths']['output_dir'],
@@ -690,7 +690,7 @@ def main():
         df=df,
         output_path=output_path,
         logger=logger,
-        stage_name="14_fintech_intensity",
+        stage_name="15_fintech_intensity",
         config=CONFIG,
         input_files=[full_path, input_file],
     )

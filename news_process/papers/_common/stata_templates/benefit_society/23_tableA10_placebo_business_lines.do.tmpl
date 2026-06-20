@@ -14,7 +14,7 @@
 *   ≥4/5 个 placebo 规格满足 |β_placebo / β_main_fintech| < 0.3。
 *
 * 数据依赖: 本模板要求 audit-only 面板
-*   data/processed/27c_alt_anchor_and_placebo_panel.parquet
+*   data/processed/80_alt_anchor_and_placebo_panel.parquet
 * 已 merge 进 _prepared_panel.dta, 含以下列:
 *   benefit_placebo_housing_loans_mean / _credit_cards_mean /
 *   _intermediate_business_mean / _branch_channel_mean / _general_corporate_mean
@@ -60,7 +60,7 @@ foreach pl of local placebos {
         display "[CHECK] " "`pl'" ": β=" b_pl " ratio=" ratio_`pl' " accept=" accept_`pl'
     }
     else {
-        display "[INFO] Column `col' not in panel (run 27c_placebo_and_alt_anchor.py first); skipping"
+        display "[INFO] Column `col' not in panel (run 80_placebo_and_alt_anchor.py first); skipping"
     }
     local i = `i' + 1
 }

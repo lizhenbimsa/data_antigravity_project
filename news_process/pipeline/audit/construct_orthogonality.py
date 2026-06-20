@@ -44,7 +44,7 @@ Logging 约定 (修 F13):
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 39c_construct_orthogonality.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 72_construct_orthogonality.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
@@ -349,13 +349,13 @@ def run_stage(
     """Stage 39c 入口: 读 stage 21 parquet, 算 NMI 矩阵 + null 分布, 写出产物。
 
     产物 (per plan §2.2.3 + 第三轨 ss 三轨化):
-        39c_nmi_matrix_full.parquet   — full 3×3 NMI + CI + n_pair (multi-frame parquet)
-        39c_nmi_matrix_ctx.parquet    — ctx  3×3 同
-        39c_nmi_matrix_ss.parquet     — ss   3×3 同 (银行+金科同句共现轨 NMI 诊断)
-        39c_nmi_matrix_cross.parquet  — 6×6 full ∪ ctx cross-matrix
-        39c_nmi_null_p95.parquet      — Permutation null 95% percentile reference
-        39c_nmi_null_p99.parquet      — 99% percentile
-        39c_nmi_summary.json          — {max_off_diag, classify_per_pair, interpretation}
+        72_nmi_matrix_full.parquet   — full 3×3 NMI + CI + n_pair (multi-frame parquet)
+        72_nmi_matrix_ctx.parquet    — ctx  3×3 同
+        72_nmi_matrix_ss.parquet     — ss   3×3 同 (银行+金科同句共现轨 NMI 诊断)
+        72_nmi_matrix_cross.parquet  — 6×6 full ∪ ctx cross-matrix
+        72_nmi_null_p95.parquet      — Permutation null 95% percentile reference
+        72_nmi_null_p99.parquet      — 99% percentile
+        72_nmi_summary.json          — {max_off_diag, classify_per_pair, interpretation}
 
     有意不对称 (plan §7.3-A3): 正交性分类 (classify_orthogonality) 只对 full
     3×3 做 — substantiveness/locus/collab 这些是 full/ctx 锚定的 LLM 分类构念;
@@ -363,7 +363,7 @@ def run_stage(
 
     Reproducibility: 输入 parquet anchored to v3.4.0 commit 450c1aa7 (per plan §0 Tag-over-hash).
     """
-    # 接入项目统一日志: 写 <log_dir>/39c_construct_orthogonality.log。
+    # 接入项目统一日志: 写 <log_dir>/72_construct_orthogonality.log。
     # 此前本阶段仅 getLogger(__name__) 而无 FileHandler, 故虽能产出 parquet/json,
     # 却不像 39a/39e 等同族 audit 阶段那样落 <stage>.log (logger.info 被 root 默认
     # 级别静默丢弃)。现对齐 setup_logging 约定 (见模块 docstring「Logging 约定 修 F13」)。
@@ -372,7 +372,7 @@ def run_stage(
     from news_process.core.logging import setup_logging
     config = load_config()
     logger = setup_logging(
-        "39c_construct_orthogonality",
+        "72_construct_orthogonality",
         config["paths"].get("log_dir", "logs"),
     )
 
@@ -461,13 +461,13 @@ def run_stage(
                 })
         pd.DataFrame(long).to_parquet(out_path / name, index=False)  # CR-14
 
-    _save_matrix('39c_nmi_matrix_full.parquet', point_f, lo_f, hi_f, n_f)
-    _save_matrix('39c_nmi_matrix_ctx.parquet', point_c, lo_c, hi_c, n_c)
+    _save_matrix('72_nmi_matrix_full.parquet', point_f, lo_f, hi_f, n_f)
+    _save_matrix('72_nmi_matrix_ctx.parquet', point_c, lo_c, hi_c, n_c)
     # 第三轨 ss 3×3 NMI 诊断 (复用既有文件名模式; plan §⑪: 列内扩展, OUTPUT_REGISTRY 不新增)
-    _save_matrix('39c_nmi_matrix_ss.parquet', point_s, lo_s, hi_s, n_s)
-    _save_matrix('39c_nmi_matrix_cross.parquet', point_x, lo_x, hi_x, n_x)
-    null_p95.to_parquet(out_path / '39c_nmi_null_p95.parquet')
-    null_p99.to_parquet(out_path / '39c_nmi_null_p99.parquet')
+    _save_matrix('72_nmi_matrix_ss.parquet', point_s, lo_s, hi_s, n_s)
+    _save_matrix('72_nmi_matrix_cross.parquet', point_x, lo_x, hi_x, n_x)
+    null_p95.to_parquet(out_path / '72_nmi_null_p95.parquet')
+    null_p99.to_parquet(out_path / '72_nmi_null_p99.parquet')
 
     # summary 用的非对角最大值 (nan 安全, 防部分 pair 退化)
     off_diag_mask = ~np.eye(len(ALL_DIMS), dtype=bool)
@@ -504,7 +504,7 @@ def run_stage(
             'seed': seed,
         },
     }
-    with open(out_path / '39c_nmi_summary.json', 'w', encoding='utf-8') as f:
+    with open(out_path / '72_nmi_summary.json', 'w', encoding='utf-8') as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
 
     # 结果分析 — 写入日志: full 3×3 逐对 NMI vs null 门槛 + 判读。

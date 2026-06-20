@@ -60,14 +60,14 @@ class TestBuildAuditPanelMock:
 class TestThinShim:
     def test_27c_shim_is_short(self) -> None:
         """按 CLAUDE.md 不变量, shim 应 ≤30 行。"""
-        path = Path(__file__).resolve().parents[1] / "27c_placebo_and_alt_anchor.py"
+        path = Path(__file__).resolve().parents[1] / "80_placebo_and_alt_anchor.py"
         # 实际在 news_process 根目录而非 tests 根 — 此处做路径调整
         shim_path = (
-            Path(__file__).resolve().parents[1] / "27c_placebo_and_alt_anchor.py"
+            Path(__file__).resolve().parents[1] / "80_placebo_and_alt_anchor.py"
         )
         if not shim_path.exists():
             # tests 在 news_process/tests/ 下; shim 在 news_process/ 根
-            shim_path = Path(__file__).resolve().parent.parent / "27c_placebo_and_alt_anchor.py"
+            shim_path = Path(__file__).resolve().parent.parent / "80_placebo_and_alt_anchor.py"
         assert shim_path.exists(), f"shim not found: {shim_path}"
         # CLAUDE.md 硬上限: ≤30 行
         with open(shim_path, encoding="utf-8") as f:
@@ -77,7 +77,7 @@ class TestThinShim:
     def test_27c_shim_imports_main_only(self) -> None:
         """shim 应仅含"导入并转发"模式 (无业务逻辑)。"""
         shim_path = (
-            Path(__file__).resolve().parent.parent / "27c_placebo_and_alt_anchor.py"
+            Path(__file__).resolve().parent.parent / "80_placebo_and_alt_anchor.py"
         )
         text = shim_path.read_text(encoding="utf-8")
         # 必须从 pipeline.features.benefit_society_audit_combined 导入 main

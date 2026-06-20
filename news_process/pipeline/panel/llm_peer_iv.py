@@ -3,7 +3,7 @@
 ============================================================
 
 管线位置:
-  45_panel_export_main.py → 步骤 7h-llmpeer
+  40_panel_export_main.py → 步骤 7h-llmpeer
   本模块在 46_network_spillovers.py 之后执行。
   依赖 41_panel_encode_aggregate.py 生成的 co_mentioned_banks 列
   和 llm_vote_tone_* 情感指标。
@@ -917,7 +917,7 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
             # cutoff 扫描标注为 TNIC/Cao 相似度阈值。fix(omni-g-llm-peer-04/05,
             # 2026-06-11) 后 difflib 兜底已移除, cutoff 完全惰性 — 五档列结构性
             # 逐位相同 (披露见步骤 5 注释)。
-            # 与 45_panel_export_main.py Stata 标签 'llm_peer_tone_iv_full' 等对齐
+            # 与 40_panel_export_main.py Stata 标签 'llm_peer_tone_iv_full' 等对齐
             _primary_maps = [
                 ('llm_peer_count', 'llm_peer_count_80'),
                 ('llm_peer_tone_iv_full', 'llm_peer_tone_iv_full_80'),

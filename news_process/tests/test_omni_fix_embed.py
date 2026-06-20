@@ -156,7 +156,7 @@ class TestLoadAlignedEmbeddings:
         )
         art_df = _make_art_df(4)
         emb_df = _make_emb_df(art_df, order=[2, 0, 3, 1])  # 行序与 art_df 不同
-        p = tmp_path / '30a_article_embeddings.parquet'
+        p = tmp_path / '25_article_embeddings.parquet'
         emb_df.to_parquet(p, index=False)
         embs_full, embs_ctx = _load_aligned_embeddings(art_df, str(p))
         for i in range(4):

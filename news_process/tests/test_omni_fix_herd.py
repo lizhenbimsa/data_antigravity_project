@@ -249,13 +249,13 @@ class TestRelaxedFallbackTransparency:
 # ════════════════════════════════════════════════════════════════════════
 
 class TestDocSyncLocks:
-    """fix(omni-g-herd-04): stage 13 归属 / content_full / 闭边界 / chunk_size。"""
+    """fix(omni-g-herd-04): stage 14 归属 / content_full / 闭边界 / chunk_size。"""
 
     def test_no_stale_stage21_materialization_claims(self):
         src = _read_src(_SRC_PATH)
         assert 'stage 21 物化' not in src
         assert 'stage 21 _materialize_content_ctx' not in src
-        assert 'stage 13' in src, "ctx 物化归属应为 stage 13 ctx_materializer"
+        assert 'stage 14' in src, "ctx 物化归属应为 stage 14 ctx_materializer"
 
     def test_compute_herd_weights_docstring_says_content_full(self):
         doc = herd_module.compute_herd_weights.__doc__

@@ -16,7 +16,7 @@
 - g-encode-10: avg_category_confidence 死列复活 (改接 v3.2.0 双轨源)
 
 锁旧行为断言更新说明: 本文件为新增, 不改既有测试; 既有测试无锁旧分母/旧零填/
-旧 `==` 恒等式的断言 (核对 test_45_panel_export_main / test_audit_fixes_20260529 /
+旧 `==` 恒等式的断言 (核对 test_40_panel_export_main / test_audit_fixes_20260529 /
 test_metric_audit_p0_fixes), 无需迁移。
 
 # 白话: 面板聚合(把一篇篇文章汇总成"银行×年份"一行)有十个修过的坑:
@@ -46,7 +46,7 @@ from news_process.pipeline.panel.encode import (
 
 @pytest.fixture(autouse=True)
 def _isolate_cwd_relative_writes(tmp_path, monkeypatch):
-    """与 test_45_panel_export_main 同款隔离: aggregate_panel →
+    """与 test_40_panel_export_main 同款隔离: aggregate_panel →
     encode_collab.apply_v3_5_1 会向 cwd 相对路径写 sidecar JSON
     (data/processed/v3_5_1_constants.json); chdir 到临时目录防污染冻结锚点。"""
     monkeypatch.chdir(tmp_path)

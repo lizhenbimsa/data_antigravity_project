@@ -10,7 +10,7 @@ canonical 锚点集 (替代 ``pipeline/features/benefit_society.py`` 中扩充�
 "benefit_jlm_zh vs benefit_mean 的 β 符号一致 + 比值 > 0.5"。
 
 **Audit-only 路径**: 本模块输出写入独立 parquet
-(``data/processed/27c_alt_anchor_panel.parquet``), **不**修改主面板
+(``data/processed/80_alt_anchor_panel.parquet``), **不**修改主面板
 ``40_panel_yearly.parquet`` 及其 golden-snapshot schema。
 
 复用 (而非复制) ``benefit_society.py`` 的嵌入缓存 + 投影机制 —
@@ -446,7 +446,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--output",
         type=str,
-        default="news_process/data/processed/27c_alt_anchor_panel.parquet",
+        default="news_process/data/processed/80_alt_anchor_panel.parquet",
         help="Output path for bank-year alt-anchor panel",
     )
     parser.add_argument(

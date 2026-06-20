@@ -5,22 +5,22 @@ run_pipeline_validation.py — 新闻处理流水线: 评估验证模块
 功能:
     单独执行流水线的模块四: 评估验证模块。
     包含以下阶段 (2026-06-13 起全部无条件 always-on; validation.* flag 仅作启用记录):
-      - 阶段31:  阈值敏感性分析         (31_bank_fintech_threshold.py)
-      - 阶段32:  人工抽样验证样本生成   (32_news_llms_human.py)
-      - 阶段32a: 去重阈值敏感性分析     (32a_dedup_threshold_sensitivity.py)
-      - 阶段33:  分类有效性评估         (33_news_llms_evaluation.py)
-      - 阶段34:  情感三角验证           (34_tone_validation.py)
-      - 阶段35:  窗口半径敏感性检验     (35_radius_sensitivity.py)
-      - 阶段36:  Entity Masking 稳健性测试 (36_entity_masking_test.py)
-      - 阶段37:  金融科技词典覆盖率审计 (37_dict_coverage_audit.py)
-      - 阶段38:  媒体名称与地域多样性审计 (38_media_diversity.py)
-      - 阶段38b: 距离衰减权重敏感性检验 (38b_decay_sensitivity.py)
-      - 阶段39:  Prompt 措词敏感度测试  (39_prompt_sensitivity.py)
-      - 阶段39a: 轨间一致性 Cohen's κ    (39a_inter_track_kappa.py)
-      - 阶段39c: NMI construct 正交性     (39c_construct_orthogonality.py)
-      - 阶段39d: lexical HTMT+AVE+κ+α     (39d_lexical_discriminant_validity.py)
-      - 阶段39e: LM 6 子词典 discriminant (39e_lm_discriminant_validity.py)
-      - 阶段39f: cross-media Krippendorff α (39f_cross_media_alpha.py)
+      - 阶段60:  阈值敏感性分析         (60_bank_fintech_threshold.py)
+      - 阶段61:  人工抽样验证样本生成   (61_news_llms_human.py)
+      - 阶段62: 去重阈值敏感性分析     (62_dedup_threshold_sensitivity.py)
+      - 阶段63:  分类有效性评估         (63_news_llms_evaluation.py)
+      - 阶段64:  情感三角验证           (64_tone_validation.py)
+      - 阶段65:  窗口半径敏感性检验     (65_radius_sensitivity.py)
+      - 阶段66:  Entity Masking 稳健性测试 (66_entity_masking_test.py)
+      - 阶段67:  金融科技词典覆盖率审计 (67_dict_coverage_audit.py)
+      - 阶段68:  媒体名称与地域多样性审计 (68_media_diversity.py)
+      - 阶段69: 距离衰减权重敏感性检验 (69_decay_sensitivity.py)
+      - 阶段70:  Prompt 措词敏感度测试  (70_prompt_sensitivity.py)
+      - 阶段71: 轨间一致性 Cohen's κ    (71_inter_track_kappa.py)
+      - 阶段72: NMI construct 正交性     (72_construct_orthogonality.py)
+      - 阶段73: lexical HTMT+AVE+κ+α     (73_lexical_discriminant_validity.py)
+      - 阶段74: LM 6 子词典 discriminant (74_lm_discriminant_validity.py)
+      - 阶段75: cross-media Krippendorff α (75_cross_media_alpha.py)
     (阶段清单以 core/dag.py::STAGES_VALIDATION 为权威真源, 共 16 个。)
 
 设计意图:
@@ -84,22 +84,22 @@ def run_validation():
     """执行模块四：评估验证模块。
 
     流程：
-      1. 阶段31: 阈值敏感性分析（always-on）
-      2. 阶段32: 人工抽样验证样本生成（always-on）
-      2a.阶段32a: 去重阈值敏感性分析（always-on）
-      3. 阶段33: 分类有效性评估（always-on）
-      4. 阶段34: 情感三角验证（always-on）
-      5. 阶段35: 窗口半径敏感性检验（always-on）
-      6. 阶段36: Entity Masking 稳健性测试（always-on）
-      7. 阶段37: 金融科技词典覆盖率审计（always-on）
-      8. 阶段38: 媒体名称与地域多样性审计（always-on）
-      9. 阶段38b: 距离衰减权重敏感性检验（always-on）
-     10. 阶段39: Prompt 措辞敏感度测试（always-on）
-     11. 阶段39a: 轨间一致性 Cohen's κ
-     12. 阶段39c: NMI construct 正交性
-     13. 阶段39d: lexical HTMT+AVE+κ+α
-     14. 阶段39e: LM 6 子词典 discriminant
-     15. 阶段39f: cross-media Krippendorff α
+      1. 阶段60: 阈值敏感性分析（always-on）
+      2. 阶段61: 人工抽样验证样本生成（always-on）
+      2a.阶段62: 去重阈值敏感性分析（always-on）
+      3. 阶段63: 分类有效性评估（always-on）
+      4. 阶段64: 情感三角验证（always-on）
+      5. 阶段65: 窗口半径敏感性检验（always-on）
+      6. 阶段66: Entity Masking 稳健性测试（always-on）
+      7. 阶段67: 金融科技词典覆盖率审计（always-on）
+      8. 阶段68: 媒体名称与地域多样性审计（always-on）
+      9. 阶段69: 距离衰减权重敏感性检验（always-on）
+     10. 阶段70: Prompt 措辞敏感度测试（always-on）
+     11. 阶段71: 轨间一致性 Cohen's κ
+     12. 阶段72: NMI construct 正交性
+     13. 阶段73: lexical HTMT+AVE+κ+α
+     14. 阶段74: LM 6 子词典 discriminant
+     15. 阶段75: cross-media Krippendorff α
 
     阶段清单以 core/dag.py::STAGES_VALIDATION 为权威真源, 共 16 个;
     2026-06-13: 全部 16 阶段均为无条件 always-on (用户决策: 全部启用而非条件启用),
@@ -121,22 +121,22 @@ def run_validation():
         logger.info("     确保研究结论不受人为参数选择、模型偏差或数据噪声的影响。")
         logger.info("")
         logger.info("  📖 16 个验证阶段说明 (core/dag.py::STAGES_VALIDATION 为权威真源)")
-        logger.info("     31:  阈值敏感性  — 分类参数做网格搜索, 证明当前阈值是稳健的")
-        logger.info("     32:  人工抽样    — 生成分层随机样本供人工标注比对")
-        logger.info("     32a: 去重敏感性  — Jaccard MinHash 多阈值去重, 证明去重参数稳健 (Broder 1997)")
-        logger.info("     33:  分类评估    — 计算 Cohen's κ / Krippendorff's α, 量化 LLM 一致性")
-        logger.info("     34:  三角验证    — 词典/BERT/LLM 三种方法交叉验证构建效度")
-        logger.info("     35:  窗口敏感性  — 检验上下文提取半径对情感度量的影响")
-        logger.info("     36:  实体掩码    — 替换银行名验证情感判定不依赖实体先验")
-        logger.info("     37:  词典审计    — 金融科技关键词覆盖率和精确度系统审计")
-        logger.info("     38:  媒体多样性  — HHI/Shannon/Gini 多维度量化媒体来源与地域覆盖")
-        logger.info("     38b: 衰减敏感性  — 比较 uniform/inverse/exponential 权重, 检验结果稳健性")
-        logger.info("     39:  提示词敏感度 — 系统性改写 Prompt 措辞, 量化标注结果的表述稳健性")
-        logger.info("     39a: 轨间一致性  — full/ctx/ss 三轨两两 Cohen's κ (3 pair × 3 维 = 9 行)")
-        logger.info("     39c: 正交性      — 三 construct 的 NMI 正交性 + permutation null")
-        logger.info("     39d: 词汇判别效度 — HTMT+AVE+Cohen's κ+Cronbach's α")
-        logger.info("     39e: LM 判别效度 — LM 2011 JF 6 子词典 discriminant validity")
-        logger.info("     39f: 跨媒体一致性 — outlet×day Krippendorff's α")
+        logger.info("     60:  阈值敏感性  — 分类参数做网格搜索, 证明当前阈值是稳健的")
+        logger.info("     61:  人工抽样    — 生成分层随机样本供人工标注比对")
+        logger.info("     62: 去重敏感性  — Jaccard MinHash 多阈值去重, 证明去重参数稳健 (Broder 1997)")
+        logger.info("     63:  分类评估    — 计算 Cohen's κ / Krippendorff's α, 量化 LLM 一致性")
+        logger.info("     64:  三角验证    — 词典/BERT/LLM 三种方法交叉验证构建效度")
+        logger.info("     65:  窗口敏感性  — 检验上下文提取半径对情感度量的影响")
+        logger.info("     66:  实体掩码    — 替换银行名验证情感判定不依赖实体先验")
+        logger.info("     67:  词典审计    — 金融科技关键词覆盖率和精确度系统审计")
+        logger.info("     68:  媒体多样性  — HHI/Shannon/Gini 多维度量化媒体来源与地域覆盖")
+        logger.info("     69: 衰减敏感性  — 比较 uniform/inverse/exponential 权重, 检验结果稳健性")
+        logger.info("     70:  提示词敏感度 — 系统性改写 Prompt 措辞, 量化标注结果的表述稳健性")
+        logger.info("     71: 轨间一致性  — full/ctx/ss 三轨两两 Cohen's κ (3 pair × 3 维 = 9 行)")
+        logger.info("     72: 正交性      — 三 construct 的 NMI 正交性 + permutation null")
+        logger.info("     73: 词汇判别效度 — HTMT+AVE+Cohen's κ+Cronbach's α")
+        logger.info("     74: LM 判别效度 — LM 2011 JF 6 子词典 discriminant validity")
+        logger.info("     75: 跨媒体一致性 — outlet×day Krippendorff's α")
         logger.info("")
         logger.info(f"Python: {sys.version}")
         logger.info(f"工作目录: {os.path.dirname(os.path.abspath(__file__))}")

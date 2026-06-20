@@ -21,7 +21,7 @@ A1/A3 vs LLM substance 的 discriminant validity 检验 — 3 × 3 矩阵:
        _compute_kappa_with_bootstrap (seed=42) 一致, 修 R9-H3).
     3. HTMT 双 cutoff (修 R4-M2): strict < 0.85 / lenient < 0.90.
     4. ctx-fallback HTMT mask (R8-H1 audit anchor): 文档锁定但**当前未在 39d 内实施**.
-       实测 fallback 率 10.43% (v3.7.2 R4-1 测于 disk 13_news_with_ctx.parquet, 1170 行).
+       实测 fallback 率 10.43% (v3.7.2 R4-1 测于 disk 14_news_with_ctx.parquet, 1170 行).
        公共信号 `ctx_is_fallback` (article) + `frac_ctx_fallback` (panel) 已由 v3.7.2
        全管道延伸暴露; 39d 是 validation-only stage (EXPECTED_NO_OUTPUT, 不进 paper main
        analysis), 在此实施 mask 的 ROI 远低于 panel 列推广, 因此本 stage 推迟实施.
@@ -42,7 +42,7 @@ A1/A3 vs LLM substance 的 discriminant validity 检验 — 3 × 3 矩阵:
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 39d_lexical_discriminant_validity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 73_lexical_discriminant_validity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
@@ -87,7 +87,7 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-STAGE_NAME = "39d_lexical_discriminant_validity"
+STAGE_NAME = "73_lexical_discriminant_validity"
 
 # v3.5.1 frozen at D0
 HTMT_CUTOFF_STRICT = 0.85
@@ -377,14 +377,14 @@ def run_discriminant_validity(
 def _write_track_report(report: dict, out_dir: Path, suffix: str) -> None:
     """写单轨 39d 产物 (parquet 摘要 + JSON htmt 矩阵)。
 
-    full 轨保留 canonical 文件名 (``39d_lexical_discriminant.parquet`` /
-    ``39d_htmt_matrix.json``, 向后兼容旧测试/下游); ctx / ss 轨用 track-suffixed
-    名 (``39d_lexical_discriminant_{ctx,ss}.parquet`` 等)。
+    full 轨保留 canonical 文件名 (``73_lexical_discriminant.parquet`` /
+    ``73_htmt_matrix.json``, 向后兼容旧测试/下游); ctx / ss 轨用 track-suffixed
+    名 (``73_lexical_discriminant_{ctx,ss}.parquet`` 等)。
     """
-    name_pq = ('39d_lexical_discriminant.parquet' if suffix == 'full'
-               else f'39d_lexical_discriminant_{suffix}.parquet')
-    name_js = ('39d_htmt_matrix.json' if suffix == 'full'
-               else f'39d_htmt_matrix_{suffix}.json')
+    name_pq = ('73_lexical_discriminant.parquet' if suffix == 'full'
+               else f'73_lexical_discriminant_{suffix}.parquet')
+    name_js = ('73_htmt_matrix.json' if suffix == 'full'
+               else f'73_htmt_matrix_{suffix}.json')
 
     # 输出 1: parquet (主表)
     # quality-hardening Round 40 (2026-05-27): value 列旧实现是 int/float/str
@@ -446,7 +446,7 @@ def main():
     from news_process.core.config import load_config
     from news_process.core.logging import setup_logging
     config = load_config()
-    # 接入项目统一日志: 写 <log_dir>/39d_lexical_discriminant_validity.log。
+    # 接入项目统一日志: 写 <log_dir>/73_lexical_discriminant_validity.log。
     # 此前本阶段仅 getLogger(__name__) 无 FileHandler, 虽产出 parquet/json 却不落
     # <stage>.log (与 39a/39e 等同族 audit 阶段不一致); 现对齐 setup_logging 约定。
     global logger

@@ -2,7 +2,7 @@
 news_process.validation.tone_validation — 阶段34：情感分析三角验证与报告生成
 
 迁移说明 (Phase 7b)：
-    本模块由原 root script ``34_tone_validation.py`` body 迁入。
+    本模块由原 root script ``64_tone_validation.py`` body 迁入。
     规范调用方式: ``python -m news_process.validation.tone_validation``
 
 =====================================================
@@ -60,7 +60,7 @@ news_process.validation.tone_validation — 阶段34：情感分析三角验证�
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 34_tone_validation.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 64_tone_validation.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
@@ -118,7 +118,7 @@ from news_process.core.logging import log_memory_usage, log_stage_summary, setup
 # ============================================================================
 
 CONFIG = load_config()
-STAGE_NAME = "34_tone_validation"
+STAGE_NAME = "64_tone_validation"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 
@@ -745,7 +745,7 @@ HUMAN_VERIFY_LABELS = ('正面', '中性', '负面')
 def _human_verify_track_note(track: str) -> str:
     """被验证轨道的金标准构念口径说明 (随指标产物落盘, 防论文误读)。
 
-    与 stage 33 (32_human_samples, 全文构念 gold 同评三轨 → ctx/ss 指标为混合
+    与 stage 33 (61_human_samples, 全文构念 gold 同评三轨 → ctx/ss 指标为混合
     下界, 见 llms_evaluation.GOLD_CONSTRUCT_DISCLOSURE) 不同: 本工作台自
     omni-g-val-tone-04 起按轨独立抽样, 编码者基于该轨"机器输入文本"判定,
     金标准与机器口径构念对齐 — ctx/ss 轨在此获得真正的窗口级金标准。
@@ -760,12 +760,12 @@ def _human_verify_track_note(track: str) -> str:
     if track == '_ctx':
         return ('轨道级金标准: 编码者基于"机器输入文本"(标题+实体上下文窗口)判定, '
                 '与 ctx 轨机器口径构念对齐, 无全文-窗口构念混淆; 区别于 stage 33 '
-                '的 32_human_samples (全文构念 gold, 其 ctx 指标只能解读为混合下界)'
+                '的 61_human_samples (全文构念 gold, 其 ctx 指标只能解读为混合下界)'
                 + sampling_note)
     if track == '_ss':
         return ('轨道级金标准: 编码者基于"机器输入文本"(标题+银行+金科同句共现片段)判定, '
                 '与 ss 轨机器口径构念对齐, 无全文-同句构念混淆; 区别于 stage 33 '
-                '的 32_human_samples (全文构念 gold, 其 ss 指标只能解读为混合下界)'
+                '的 61_human_samples (全文构念 gold, 其 ss 指标只能解读为混合下界)'
                 + sampling_note)
     return ('轨道级金标准: 编码者基于"机器输入文本"(标题+正文全文)判定, '
             '与 full 轨机器口径构念对齐' + sampling_note)
@@ -823,7 +823,7 @@ def evaluate_human_verification(verify_path: str, track: str,
     评估循环只接 LLM 列)。
 
     指标实现复用 stage 33 单一事实源 (compute_classification_metrics /
-    compute_cohens_kappa), 保证与 LLM 族在 32_human_samples 上的口径可比。
+    compute_cohens_kappa), 保证与 LLM 族在 61_human_samples 上的口径可比。
 
     Args:
         verify_path: 工作台路径 (09_sentiment_verify{track}.xlsx)。

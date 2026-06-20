@@ -50,7 +50,7 @@
   },
   "v3_5_2_pr_4_stage_39e": {
     "module": "news_process.pipeline.audit.lm_discriminant_validity",
-    "shim": "39e_lm_discriminant_validity.py",
+    "shim": "74_lm_discriminant_validity.py",
     "htmt_strict_cutoff": 0.85,
     "htmt_lenient_cutoff": 0.90,
     "permutation_n_reps": 1000,
@@ -103,7 +103,7 @@
     "user_action_required": "Layer 2.1 — 用户命令行启用 5 包"
   },
   "v3_7_0_pr_9_sbert_persist": {
-    "shim": "30a_article_sbert.py",
+    "shim": "25_article_sbert.py",
     "sbert_model": "shibing624/text2vec-base-chinese",
     "truncation_strategy": "Bybee 2024 风格: 标题 100 字 + 首段 300 字",
     "embedding_dim": 768,
@@ -112,7 +112,7 @@
     "user_action_required": "Layer 4.2 — 400k articles × 768 dim × 2 轨编码 (GPU 2 h / CPU 4-6 h)"
   },
   "v3_7_0_pr_11_staleness": {
-    "shim": "18_article_staleness.py",
+    "shim": "26_article_staleness.py",
     "window_days": 7,
     "shingle_size": 3,
     "minhash_num_perm": 128,
@@ -123,7 +123,7 @@
     "anchor_papers": ["Tetlock (2011) RFS 24(5):1481-1512", "Gentzkow et al. (2019) JEL 57(3)"]
   },
   "v3_7_0_pr_12_alpha": {
-    "shim": "39f_cross_media_alpha.py",
+    "shim": "75_cross_media_alpha.py",
     "event_window_days": 3,
     "min_outlets_per_event": 2,
     "matrix_design": "outlet × day (raters × items); NaN 填充无报道 (修第 11 轮自审 S2.3)",
@@ -134,10 +134,10 @@
   },
   "v2_3_pr_14_integration": {
     "schemas_output_registry_added_stages": [
-      "18_article_staleness.py", "30a_article_sbert.py"
+      "26_article_staleness.py", "25_article_sbert.py"
     ],
     "schemas_expected_no_output_added_stages": [
-      "39e_lm_discriminant_validity.py", "39f_cross_media_alpha.py"
+      "74_lm_discriminant_validity.py", "75_cross_media_alpha.py"
     ],
     "dag_stages_main_count": "15 → 18 (2026-06-05 移除 1 个 main stage)",
     "dag_stages_validation_count": "15 → 17 (+2 stages)",

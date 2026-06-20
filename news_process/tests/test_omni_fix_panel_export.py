@@ -41,7 +41,7 @@ from news_process.pipeline.panel import geography as _geo  # noqa: E402
 
 # ============================================================================
 # 共用: 从 export.py 源码提取 STATA_LABELS 字典字面量并求值
-# (dict 仍为 export_panel 函数局部; 复用 test_45_panel_export_main 的
+# (dict 仍为 export_panel 函数局部; 复用 test_40_panel_export_main 的
 #  brace-matching 技术, 但 eval 整个字面量以同时覆盖 ** 推导式展开的键)
 # ============================================================================
 

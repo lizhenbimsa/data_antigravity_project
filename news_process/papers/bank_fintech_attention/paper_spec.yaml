@@ -48,8 +48,8 @@ treatment:
   # 集中度 HHI = Σ(n_o/Σn)² (单 outlet=1, 高值=集中=低分散)。"disp" 系历史命名,
   # 论文表述/系数解读应作 "outlet concentration (HHI)", 勿按 dispersion 反向解读符号。
   secondary: [attention_index_ctx, attention_disp_full, attention_pct_full]
-  source: "stage 14_fintech_intensity 衍生 (R36-m01 - 4 attention 度量 index_full/index_ctx/disp/pct;
-    M0 G0 时按 14_fintech_intensity.parquet schema 对齐 actual column names)"
+  source: "stage 15_fintech_intensity 衍生 (R36-m01 - 4 attention 度量 index_full/index_ctx/disp/pct;
+    M0 G0 时按 15_fintech_intensity.parquet schema 对齐 actual column names)"
 
 controls:
   # fix(omni-g-replication-07, 2026-06-11): bank_level 财务控制 5 列 (ln_assets/

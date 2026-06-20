@@ -151,11 +151,11 @@ def compute_dedup_sensitivity_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     attention index/pct/计数 → LEFT-join 回 panel。$0, 纯本地计算。
     """
     s14_path = os.path.join(OUTPUT_DIR, FILENAMES.get(
-        'output_14_fintech_intensity', '14_fintech_intensity.parquet'))
+        'output_14_fintech_intensity', '15_fintech_intensity.parquet'))
     f12_path = os.path.join(OUTPUT_DIR, FILENAMES.get(
         'output_12_fintech_full', '12_fintech_news_full.parquet'))
     if not (os.path.exists(s14_path) and os.path.exists(f12_path)):
-        logger.warning("  14_fintech_intensity / 12_fintech_news_full 缺失, "
+        logger.warning("  15_fintech_intensity / 12_fintech_news_full 缺失, "
                        "跳过去重敏感性处理变量")
         return panel
 
@@ -174,7 +174,7 @@ def compute_dedup_sensitivity_treatments(panel: pd.DataFrame) -> pd.DataFrame:
         'docid', 'target_bank', '日期', '媒体(中文)', '标题', '内容',
         'is_fintech_news'])
     # 三轨 (full/ctx/ss): ss = 银行+金科同句共现强度轨 (fintech_intensity_score_ss;
-    # 由 stage 14 在 content_ss 上算出, 回退=镜像 ctx)。旧 schema 的 14_fintech_intensity
+    # 由 stage 14 在 content_ss 上算出, 回退=镜像 ctx)。旧 schema 的 15_fintech_intensity
     # 可能尚无 ss 列 → 用 parquet_has_columns 探 schema, 缺列则优雅跳过 ss 变体 (镜像
     # ctx 守卫风格), 不抛 ArrowInvalid。
     _s14_cols = ['docid', 'target_bank', '日期',
@@ -183,7 +183,7 @@ def compute_dedup_sensitivity_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     if _has_ss:
         _s14_cols.append('fintech_intensity_score_ss')
     else:
-        logger.info("  14_fintech_intensity 无 fintech_intensity_score_ss 列, "
+        logger.info("  15_fintech_intensity 无 fintech_intensity_score_ss 列, "
                     "去重敏感性 ss 变体优雅跳过 (旧 schema)")
     s14 = pd.read_parquet(s14_path, columns=_s14_cols)
 

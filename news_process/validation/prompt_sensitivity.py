@@ -2,7 +2,7 @@
 news_process.validation.prompt_sensitivity — Prompt 措辞敏感度量化测试
 
 迁移说明 (Phase 7b)：
-    本模块由原 root script ``39_prompt_sensitivity.py`` body 迁入。
+    本模块由原 root script ``70_prompt_sensitivity.py`` body 迁入。
     规范调用方式: ``python -m news_process.validation.prompt_sensitivity``
 
 ===============================================================
@@ -57,7 +57,7 @@ v8 升级（2026-06-11, fix(omni-g-val-prompt-02)）：
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
-（对应 thin shim: 39_prompt_sensitivity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+（对应 thin shim: 70_prompt_sensitivity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
   经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
 
 ■ 详细功能说明
@@ -121,7 +121,7 @@ from news_process.core.logging import log_memory_usage, setup_logging
 # ============================================================================
 
 CONFIG = load_config()
-STAGE_NAME = "39_prompt_sensitivity"
+STAGE_NAME = "70_prompt_sensitivity"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 # Phase 7a-4: 21_tone_llms 已 thin shim 化, body 迁至 news_process.pipeline.sentiment.tone_llms
@@ -498,7 +498,7 @@ VARIANT_LABELS = {
 # 3. Fleiss' κ 内联实现
 # ============================================================================
 # 基于 Fleiss (1971, Psychological Bulletin, 76(5):378) 原始公式。
-# 代码库中 33_news_llms_evaluation.py 仅有 Krippendorff's α 和 Cohen's κ（二分类）。
+# 代码库中 63_news_llms_evaluation.py 仅有 Krippendorff's α 和 Cohen's κ（二分类）。
 # Fleiss' κ 用于 n 个固定编码者对 N 个项目的多编码者名义一致性。
 
 def compute_fleiss_kappa(ratings_matrix: np.ndarray) -> float:
@@ -569,7 +569,7 @@ def _build_fleiss_matrix(labels_matrix: np.ndarray) -> np.ndarray:
 # 4. LLM 三轨批量请求（自写编排，不能复用 run_all_llms）
 # ============================================================================
 # run_all_llms 硬编码了 PROMPT_TEMPLATE，无法传入变体 prompt。
-# 本函数结构参考 36_entity_masking_test.run_masked_llms (L178-215)，
+# 本函数结构参考 66_entity_masking_test.run_masked_llms (L178-215)，
 # 但增加了三轨 (full + ctx + ss) 支持。
 
 async def run_variant_llms(
@@ -1157,7 +1157,7 @@ def generate_reports(
 
     # ── 7.1 JSON 报告 ──
     json_report = {
-        'stage': '39_prompt_sensitivity',
+        'stage': '70_prompt_sensitivity',
         'methodology': 'Carlson & Burbano (2026, SMJ §3.5)',
         'sample_size': len(df),
         'random_seed': RANDOM_SEED,
