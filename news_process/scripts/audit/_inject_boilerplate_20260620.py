@@ -5,6 +5,9 @@
 - 确定性 gate: 同一语料重算两次逐值相等 (sorted vocab + 固定参数, 无 HASHSEED 依赖)。
 - 覆盖 gate: 面板 avg_boilerplate_full 的 NaN-mask == avg_specificity (同 bank-year 聚合域)。
 任一 gate 失败 → SystemExit(1)。
+
+⚠ 运行: 须 `cd news_process` 后跑 (DD='data/processed' 为相对路径)。一次性留档脚本,
+  ART_COL 用 df[col]=... 覆写 (天然幂等); 仍勿在已 golden-bless 盘面无谓重跑。
 """
 from __future__ import annotations
 
