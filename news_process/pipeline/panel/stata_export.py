@@ -568,7 +568,8 @@ def assign_core_columns(df: pd.DataFrame, rename_map: Dict[str, str] = None) -> 
         # v3.5.1 A3 Numerical Intensity (数值披露强度) — 3 列 (三轨 full/ctx/ss) 全进 core
         'mean_num_intensity_full', 'mean_num_intensity_ctx', 'mean_num_intensity_ss',
         # nonpolarity-dims (2026-06-20) Named-Entity Density (specificity 实体面; Hope 2016 RAS)
-        # — 3 列三轨全进 core (与 avg_specificity 高共线, 诊断/稳健性用, 勿同进一回归)
+        # — 3 列三轨全进 core (avg_specificity 真子集机械相关 T=2 corr≈0.81, 稳健性用,
+        #   勿与 avg_specificity 同进同一回归式)
         'avg_named_entity_full', 'avg_named_entity_ctx', 'avg_named_entity_ss',
         # v3.7.2 R8-H1 全管道延伸: ctx 独立度信号 (entity-miss → ctx ≡ full → 该轨退化为 full)
         # ⚠ 与 intensity_verified_{full,ctx} 不同义:
