@@ -37,6 +37,13 @@ _SCORE_PATTERNS = [
                           # 自相矛盾 — Grok 是 xAI 模型, 单一事实源 config/sentiment.yaml)
     'jiang_2021_score_', 'yao_2021_score_', 'bian_2021_score_',
     'du_2022_score_', 'you_2018_score_',
+    # v3.10.0 \u7b2c 6 \u90e8 L&M 2011 JF \u4e2d\u6587\u4e3b\u8bd1 (\u5217\u524d\u7f00\u522b\u540d 'loughran', \u6743\u5a01 =
+    # tone_words.DICT_COLUMN_ALIAS / encode.DICT_NAMES)\u3002fix(2026-06-20): \u6b64\u524d\u672c\u524d\u7f00\u8868
+    # \u6f0f\u5217 loughran (\u65b0\u589e\u7b2c 6 \u90e8\u65f6\u672a\u540c\u6b65), \u81f4 exc_*(\u505c\u520a\u7a33\u5065\u6027; \u76d8\u9762 T=2 \u5373\u7f3a 12 \u5217) \u4e0e
+    # bal_*(\u5e73\u8861\u5a92\u4f53; T=18 \u5168\u91cf\u540c\u7406, T=2 \u5e73\u8861\u5b50\u96c6\u4e3a\u7a7a\u6545\u6682\u4e0d\u663e) \u4e24\u65cf loughran \u4e0e\u5176\u4f59 5 \u90e8
+    # (jiang/yao/bian/du/you) \u4e0d\u5bf9\u79f0\u3002\u8865\u9f50\u540e\u516d\u90e8\u8d70\u5b8c\u5168\u76f8\u540c\u7684\u52a8\u6001\u53d1\u73b0\u8def\u5f84 (\u5b9e\u6d4b\u4ea7 12 \u4e2a
+    # exc_loughran_*, \u540e\u7f00\u7ed3\u6784\u4e0e exc_jiang_2021_* \u5168\u7b49)\u3002
+    'loughran_score_',
     'finbert_cn_\u6b63\u9762_', 'fin_sent_zh_\u6b63\u9762_',
     'finbert2_\u6b63\u9762_',
 ]

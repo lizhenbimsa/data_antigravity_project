@@ -518,3 +518,30 @@ class TestCountZeroFillContract:
         # bank-year 按契约保持 NaN (不可测), 不得连带填 0
         assert pd.isna(out.loc['B9', 'ceased_media_frac'])
         assert pd.isna(out.loc['B9', 'exc_tone_full'])
+
+
+# ============================================================================
+# fix(2026-06-20): 六部情感词典 ↔ _SCORE_PATTERNS 对称锁
+#   _SCORE_PATTERNS 驱动 exc_*(停刊稳健性) 与 bal_*(平衡媒体) 两族的动态发现。
+#   第 6 部 loughran (L&M 2011 JF 中文主译) 新增时漏列, 致 exc_loughran_* 缺 12 列、
+#   与其余 5 部不对称 (loughran 99 列 vs jiang/yao/bian/du/you 各 111 列)。
+#   本锁防回归: 凡 encode.DICT_NAMES 中的词典都须在 _SCORE_PATTERNS 有对应
+#   '{dict}_score_' 前缀 (再加第 7 部时若漏列, 此处即红)。
+# ============================================================================
+
+def test_all_sentiment_dicts_have_score_pattern():
+    """encode.DICT_NAMES ⊆ {p 去掉 '_score_' 后缀 | p ∈ _SCORE_PATTERNS}。"""
+    from news_process.pipeline.panel.encode import DICT_NAMES
+
+    pattern_dicts = {p[:-len('_score_')] for p in am._SCORE_PATTERNS
+                     if p.endswith('_score_')}
+    missing = [d for d in DICT_NAMES if d not in pattern_dicts]
+    assert not missing, (
+        f"词典 {missing} 在 encode.DICT_NAMES 但 _SCORE_PATTERNS 无 '{{d}}_score_' "
+        f"前缀 → exc_*/bal_* 稳健性两族缺该词典列, 与其余词典不对称 "
+        f"(见 attention_media.py::_SCORE_PATTERNS fix 2026-06-20)")
+
+
+def test_loughran_score_pattern_present():
+    """具体锁: 第 6 部 loughran 前缀就位 (回归此次 fix 的根因)。"""
+    assert 'loughran_score_' in am._SCORE_PATTERNS
