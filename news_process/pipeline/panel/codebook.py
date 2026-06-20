@@ -1184,6 +1184,10 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
          'bank-year 内有报道的不同日历天数(nunique 日期)', 'Hillert-Jacobs-Müller (2014) RFS', 'Stage 45 (encode)'),
         ('coverage_continuity', 'Coverage Continuity (active/span)', '[0,1] ∪ NaN',
          'coverage_active_days / (报道跨度天数); 1=天天有, 低=爆发式 (节奏, 与 staleness 内容重复正交)', 'Hillert-Jacobs-Müller (2014) RFS', 'Stage 45 (encode)'),
+        # nonpolarity-dims WS-B2 (2026-06-20): 跨文档套话比率 (单轨 full)
+        ('avg_boilerplate_full', 'Boilerplate Phrase Ratio (full)', '[0,1] ∪ NaN',
+         'bank-year mean of (命中跨语料高频 char_wb(4,6)-gram 套话集出现数/全部 n-gram 出现数); 单轨 full(套话集口径在 ctx/ss 子窗弱, by-design). ⚠ 套话集建在 stage22 输入子集(非真全量), 中文新闻落地非英文 10-K 原做法; 与 within_doc_redundancy(篇内)/staleness(整篇相似度)正交',
+         'Lang-Stice-Lawrence (2015) JAE 60(2-3):110; Dyer-Lang-Stice-Lawrence (2017) JAE 64(2-3)', 'Stage 22 (boilerplate) + Stage 45'),
     ]
     for _name, _label, _vr, _formula, _ref, _src in _SINGLE_TEXT_SPECS:
         metadata[_name] = VariableMetadata(

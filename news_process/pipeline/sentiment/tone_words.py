@@ -1869,6 +1869,18 @@ def main():
     except Exception as e:  # noqa: BLE001
         logger.warning(f"v3.5.1 A3 num_intensity enrich 失败 (graceful skip): {e}")
 
+    # nonpolarity-dims WS-B2: boilerplate_phrase_ratio_full 单轨 post-processor (语料级两遍).
+    # 跨文档高频套话短语命中率 (Lang-Stice-Lawrence 2015 JAE; Dyer-LSL 2017 JAE); 单轨 full
+    # (套话集口径在 ctx/ss 子窗口意义弱, by-design 延后); 语料=本 stage 输入子集 (如实披露)。
+    # 确定性纯 jieba/sklearn $0; 缺列/空套话集 graceful → 全 nan + WARNING (boilerplate 模块内)。
+    try:
+        from news_process.pipeline.sentiment.boilerplate import enrich_with_boilerplate
+        _bp_col = 'content_full' if 'content_full' in processed_df.columns else '内容'
+        processed_df = enrich_with_boilerplate(processed_df, text_col=_bp_col)
+        logger.info(f"nonpolarity-dims WS-B2: boilerplate 单轨派生完成 (语料={_bp_col})")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"WS-B2 boilerplate enrich 失败 (graceful skip): {e}")
+
     # 使用数据版本控制保存
     from news_process.core.data_versioning import save_parquet_with_metadata
     save_parquet_with_metadata(

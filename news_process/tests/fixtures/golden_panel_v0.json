@@ -1,6 +1,6 @@
 {
   "schema_version": 3,
-  "generated_utc": "2026-06-20T10:51:50.655729+00:00",
+  "generated_utc": "2026-06-20T11:35:27.314807+00:00",
   "git_tag": "baseline-pre-restructure",
   "data_dir": "data\\processed",
   "hash_method": "pd.util.hash_pandas_object(s, index=False).sum() -> u64 hex",
@@ -2102,9 +2102,9 @@
     },
     "22_words_tone.parquet": {
       "file": "22_words_tone.parquet",
-      "size_bytes": 8440170,
+      "size_bytes": 8448075,
       "n_rows": 847,
-      "n_columns": 439,
+      "n_columns": 440,
       "columns_order": [
         "docid",
         "pubcode",
@@ -2544,7 +2544,8 @@
         "num_intensity_word_full",
         "num_intensity_word_ctx",
         "num_intensity_ss",
-        "num_intensity_word_ss"
+        "num_intensity_word_ss",
+        "boilerplate_phrase_ratio_full"
       ],
       "dtypes": {
         "docid": "int64",
@@ -2985,7 +2986,8 @@
         "num_intensity_word_full": "float64",
         "num_intensity_word_ctx": "float64",
         "num_intensity_ss": "float64",
-        "num_intensity_word_ss": "float64"
+        "num_intensity_word_ss": "float64",
+        "boilerplate_phrase_ratio_full": "float64"
       },
       "column_hashes": {
         "docid": "0c51c6a97760794a",
@@ -3426,14 +3428,15 @@
         "num_intensity_word_full": "da6859ec543755dc",
         "num_intensity_word_ctx": "4925d5623e2daecc",
         "num_intensity_ss": "46d5be2d789737f7",
-        "num_intensity_word_ss": "2c55c43140a34d09"
+        "num_intensity_word_ss": "2c55c43140a34d09",
+        "boilerplate_phrase_ratio_full": "a5667be2b3fce425"
       }
     },
     "23_bert_tone.parquet": {
       "file": "23_bert_tone.parquet",
-      "size_bytes": 8538313,
+      "size_bytes": 8546214,
       "n_rows": 847,
-      "n_columns": 487,
+      "n_columns": 488,
       "columns_order": [
         "docid",
         "pubcode",
@@ -3921,7 +3924,8 @@
         "finbert2_infer_failed_ss",
         "bert_num_windows_ctx",
         "bert_num_windows_full",
-        "bert_num_windows_ss"
+        "bert_num_windows_ss",
+        "boilerplate_phrase_ratio_full"
       ],
       "dtypes": {
         "docid": "int64",
@@ -4410,7 +4414,8 @@
         "finbert2_infer_failed_ss": "bool",
         "bert_num_windows_ctx": "int64",
         "bert_num_windows_full": "int64",
-        "bert_num_windows_ss": "int64"
+        "bert_num_windows_ss": "int64",
+        "boilerplate_phrase_ratio_full": "float64"
       },
       "column_hashes": {
         "docid": "0c51c6a97760794a",
@@ -4899,14 +4904,15 @@
         "finbert2_infer_failed_ss": "0000000000000000",
         "bert_num_windows_ctx": "6f52a6b269bdac05",
         "bert_num_windows_full": "3c7f00e9eba4a77d",
-        "bert_num_windows_ss": "cf8082a3a2575a5d"
+        "bert_num_windows_ss": "cf8082a3a2575a5d",
+        "boilerplate_phrase_ratio_full": "a5667be2b3fce425"
       }
     },
     "24_herd_decay.parquet": {
       "file": "24_herd_decay.parquet",
-      "size_bytes": 8574263,
+      "size_bytes": 8582164,
       "n_rows": 847,
-      "n_columns": 519,
+      "n_columns": 520,
       "columns_order": [
         "docid",
         "pubcode",
@@ -5426,7 +5432,8 @@
         "herd_weight_ss_thr45",
         "n_similar_articles_ss_thr45",
         "herd_weight",
-        "n_similar_articles"
+        "n_similar_articles",
+        "boilerplate_phrase_ratio_full"
       ],
       "dtypes": {
         "docid": "int64",
@@ -5947,7 +5954,8 @@
         "herd_weight_ss_thr45": "float64",
         "n_similar_articles_ss_thr45": "int64",
         "herd_weight": "float64",
-        "n_similar_articles": "int64"
+        "n_similar_articles": "int64",
+        "boilerplate_phrase_ratio_full": "float64"
       },
       "column_hashes": {
         "docid": "0c51c6a97760794a",
@@ -6468,14 +6476,15 @@
         "herd_weight_ss_thr45": "ac6d34860d3d0b51",
         "n_similar_articles_ss_thr45": "b457889230276ce6",
         "herd_weight": "ced9eed54fc723cf",
-        "n_similar_articles": "4ae6365751d019db"
+        "n_similar_articles": "4ae6365751d019db",
+        "boilerplate_phrase_ratio_full": "a5667be2b3fce425"
       }
     },
     "40_panel_yearly.parquet": {
       "file": "40_panel_yearly.parquet",
-      "size_bytes": 3416397,
+      "size_bytes": 3418142,
       "n_rows": 172,
-      "n_columns": 2786,
+      "n_columns": 2787,
       "columns_order": [
         "target_bank",
         "year",
@@ -9262,7 +9271,8 @@
         "outlet_style_clarity_iv_full",
         "outlet_style_clarity_iv_ctx",
         "outlet_style_clarity_iv_ss",
-        "low_conf_flag"
+        "low_conf_flag",
+        "avg_boilerplate_full"
       ],
       "dtypes": {
         "target_bank": "object",
@@ -12050,7 +12060,8 @@
         "outlet_style_clarity_iv_full": "float64",
         "outlet_style_clarity_iv_ctx": "float64",
         "outlet_style_clarity_iv_ss": "float64",
-        "low_conf_flag": "int64"
+        "low_conf_flag": "int64",
+        "avg_boilerplate_full": "float64"
       },
       "column_hashes": {
         "target_bank": "553441609258571a",
@@ -14838,14 +14849,15 @@
         "outlet_style_clarity_iv_full": "521b65a219b50063",
         "outlet_style_clarity_iv_ctx": "5124d36b93687136",
         "outlet_style_clarity_iv_ss": "e4dcd270ef18f312",
-        "low_conf_flag": "c71ffc9c70fd8793"
+        "low_conf_flag": "c71ffc9c70fd8793",
+        "avg_boilerplate_full": "6a82841f1c5794fb"
       }
     },
     "40_article_bank_level.parquet": {
       "file": "40_article_bank_level.parquet",
-      "size_bytes": 10322075,
+      "size_bytes": 10329976,
       "n_rows": 847,
-      "n_columns": 1116,
+      "n_columns": 1117,
       "columns_order": [
         "docid",
         "pubcode",
@@ -15962,7 +15974,8 @@
         "_media_type",
         "_media_authority",
         "_bank_prov",
-        "_geo_proximity"
+        "_geo_proximity",
+        "boilerplate_phrase_ratio_full"
       ],
       "dtypes": {
         "docid": "int64",
@@ -17080,7 +17093,8 @@
         "_media_type": "object",
         "_media_authority": "object",
         "_bank_prov": "object",
-        "_geo_proximity": "object"
+        "_geo_proximity": "object",
+        "boilerplate_phrase_ratio_full": "float64"
       },
       "column_hashes": {
         "docid": "0c51c6a97760794a",
@@ -18198,7 +18212,8 @@
         "_media_type": "fac4361e84041b65",
         "_media_authority": "2d7901989f19e5aa",
         "_bank_prov": "91c2c9e1c26976ae",
-        "_geo_proximity": "9b7527b5d923ee8b"
+        "_geo_proximity": "9b7527b5d923ee8b",
+        "boilerplate_phrase_ratio_full": "a5667be2b3fce425"
       }
     },
     "40_attn_index_year.parquet": {
@@ -18284,9 +18299,9 @@
     },
     "51_panel_with_controls.parquet": {
       "file": "51_panel_with_controls.parquet",
-      "size_bytes": 3427239,
+      "size_bytes": 3428972,
       "n_rows": 172,
-      "n_columns": 2797,
+      "n_columns": 2798,
       "columns_order": [
         "target_bank",
         "year",
@@ -21084,7 +21099,8 @@
         "zero_coverage",
         "fintech_share",
         "ln_ft_articles",
-        "ln_nf_articles"
+        "ln_nf_articles",
+        "avg_boilerplate_full"
       ],
       "dtypes": {
         "target_bank": "object",
@@ -23883,7 +23899,8 @@
         "zero_coverage": "int64",
         "fintech_share": "float64",
         "ln_ft_articles": "float64",
-        "ln_nf_articles": "float64"
+        "ln_nf_articles": "float64",
+        "avg_boilerplate_full": "float64"
       },
       "column_hashes": {
         "target_bank": "553441609258571a",
@@ -26682,7 +26699,8 @@
         "zero_coverage": "708de67f60f281ae",
         "fintech_share": "6777331d4c96af02",
         "ln_ft_articles": "047598fc4493a07b",
-        "ln_nf_articles": "8488700e7e93f520"
+        "ln_nf_articles": "8488700e7e93f520",
+        "avg_boilerplate_full": "6a82841f1c5794fb"
       }
     }
   },
