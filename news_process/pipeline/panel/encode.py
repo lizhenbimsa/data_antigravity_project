@@ -52,9 +52,9 @@ PANEL_CFG = CONFIG.get("panel_building", {})
 
 # LLM 模型 short_name 列表(从 tone_llm_processing.models 读取)
 # 这些名称用于定位阶段 21 输出中各模型对应的情感结果列
-# v3 锁定: gpt54nano (OpenAI) / gemini31111 (Google) / deepseekv4 (DeepSeek)
+# v3 锁定: gpt54nano (OpenAI) / gemini31 (Google) / deepseekv4 (DeepSeek)
 _llm_cfg = CONFIG.get('tone_llm_processing', {}).get('models', [])
-LLM_MODELS = [m['short_name'] for m in _llm_cfg] if _llm_cfg else ['gpt54nano', 'gemini31111', 'deepseekv4']
+LLM_MODELS = [m['short_name'] for m in _llm_cfg] if _llm_cfg else ['gpt54nano', 'gemini31', 'deepseekv4']
 
 # 词典名列表 — 对应阶段 22 产出的情感词典列前缀。
 # v3.10.0: +第 6 部 'loughran' (= L&M 2011 JF 中文主译, 别名; 对应 stage 22 产的

@@ -31,7 +31,7 @@ from news_process.pipeline.panel.verified_universe import (
 # ── 停刊检测的情感列前缀（动态发现用） ──
 # 覆盖: LLM 投票 + 各大模型 + 词典法 + BERT
 _SCORE_PATTERNS = [
-    'llm_vote_score_', 'gpt54nano_score_', 'gemini31111_score_',
+    'llm_vote_score_', 'gpt54nano_score_', 'gemini31_score_',
     'deepseekv4_score_',  # v3: 从 claude4h_score_ 重命名 (反映真实身份: DeepSeek V4 Flash;
                           # fix(omni-g-panel-export-01, 2026-06-11): 原注 "DeepSeek Grok 4.1"
                           # 自相矛盾 — Grok 是 xAI 模型, 单一事实源 config/sentiment.yaml)

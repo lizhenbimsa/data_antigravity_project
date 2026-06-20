@@ -58,7 +58,7 @@ def _isolate_cwd_relative_writes(tmp_path, monkeypatch):
 # Fixtures: 合成上游数据
 # ============================================================================
 
-LLM_SHORTS = ['gpt54nano', 'gemini31111', 'deepseekv4']  # v3: 真三家族
+LLM_SHORTS = ['gpt54nano', 'gemini31', 'deepseekv4']  # v3: 真三家族
 # v3.10.0: 直接复用生产常量 _enc.DICT_NAMES (含第 6 部 'loughran' 别名), 避免测试硬编码与生产漂移。
 DICT_NAMES = _enc.DICT_NAMES
 BERT_SHORTS = ['finbert_cn', 'fin_sent_zh', 'finbert2']
@@ -311,7 +311,7 @@ class TestCompositeIndicators:
 
 class TestConfigReading:
     def test_llm_models_from_config(self):
-        assert bp.LLM_MODELS == ['gpt54nano', 'gemini31111', 'deepseekv4']  # v6
+        assert bp.LLM_MODELS == ['gpt54nano', 'gemini31', 'deepseekv4']  # v6
 
     def test_bert_models_from_config(self):
         assert bp.BERT_MODELS == ['finbert_cn', 'fin_sent_zh', 'finbert2']

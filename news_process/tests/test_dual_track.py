@@ -315,11 +315,11 @@ class TestFallbackAxiom:
     _LLM_NAN_ALLOWED_PREFIXES = (
         'llm_sentiment',
         'llm_agreement_rate_s',  # 仅 verifying 子集上的 agree rate
-        'gpt54nano_sentiment', 'gemini31111_sentiment', 'deepseekv4_sentiment',
-        'gpt54nano_prob_score', 'gemini31111_prob_score', 'deepseekv4_prob_score',
-        'gpt54nano_prob_source', 'gemini31111_prob_source', 'deepseekv4_prob_source',
+        'gpt54nano_sentiment', 'gemini31_sentiment', 'deepseekv4_sentiment',
+        'gpt54nano_prob_score', 'gemini31_prob_score', 'deepseekv4_prob_score',
+        'gpt54nano_prob_source', 'gemini31_prob_source', 'deepseekv4_prob_source',
         # v7: per-model verified API-failure NaN 容忍
-        'gpt54nano_verified', 'gemini31111_verified', 'deepseekv4_verified',
+        'gpt54nano_verified', 'gemini31_verified', 'deepseekv4_verified',
         # v3.7.1 (test drift fix): v3.2.0 dual-track BREAKING 后, stage 21 LLM
         # 也产 innovation_locus / innovation_substantiveness / category_confidence /
         # ...confidence 列 — 这些与 sentiment 同源, LLM 失败时 NaN 是预期信号.

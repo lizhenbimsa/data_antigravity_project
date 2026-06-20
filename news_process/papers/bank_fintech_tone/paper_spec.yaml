@@ -45,10 +45,10 @@ treatment:
     - llm_vote_tone_full
     # 双轨 robustness battery (per Tetlock 2007 / L&M 2016 Table III 标准)
     - gpt54nano_tone_ctx
-    - gemini31111_tone_ctx
+    - gemini31_tone_ctx
     - deepseekv4_tone_ctx
     - gpt54nano_tone_full
-    - gemini31111_tone_full
+    - gemini31_tone_full
     - deepseekv4_tone_full
 
 controls:
@@ -95,7 +95,7 @@ inference:
     # 三轨 (full/ctx/ss) 互为稳健性, 高相关孪生; ss = 银行+金科同句共现轨 (content_ss, 标签 "(银行+金科同句)")。
     sentiment_tracks: [llm_vote_tone_ctx, llm_vote_tone_full, llm_vote_tone_ss]   # full×ctx×ss 三轨 (互为稳健性, 高相关孪生)
     sentiment_methods: [llm, dictionary, bert]                  # 三法三角 robustness battery (L&M 2011)
-    cross_model: [gpt54nano, gemini31111, deepseekv4]           # LLM 跨模型 robustness
+    cross_model: [gpt54nano, gemini31, deepseekv4]           # LLM 跨模型 robustness
     weighting: [equal, value, media, herd]                      # EW vs VW/MW/HW 加权聚合
     outcomes: [funding_cost, loan_growth, roa, tobin_q]         # primary + secondary (secondary 标 exploratory)
   fwer:

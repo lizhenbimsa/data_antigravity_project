@@ -63,7 +63,7 @@ def infer_label(var_name: str) -> str:
 
     model_map = {
         'gpt54nano': 'GPT5nano',
-        'gemini31111': 'Gemini3',
+        'gemini31': 'Gemini3',
         'deepseekv4': 'DeepSeekV4',
         'llm': 'LLM',
         'jiang_2021': '江2021',

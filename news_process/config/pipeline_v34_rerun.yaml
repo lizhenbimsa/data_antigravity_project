@@ -55,7 +55,7 @@ stages:
     duration_wk: 4   # M0.5.4 — LLM API 调用是整条关键路径的瓶颈
     resource: "llm_api"
     cost_estimate_usd: 2400
-    families: [gpt54nano, gemini31111, deepseekv4]
+    families: [gpt54nano, gemini31, deepseekv4]
     temperature: 0
     cache_strategy: "hot_first"
   - id: "22_tone_words"

@@ -11,7 +11,7 @@ LLM_MODELS 硬编码 + 同步注释 (而非 import), 理由:
 import pandas as pd
 
 # 与 encode.py:55-56 LLM_MODELS 同步
-_LLM_MODELS_FOR_TEST = ['gpt54nano', 'gemini31111', 'deepseekv4']
+_LLM_MODELS_FOR_TEST = ['gpt54nano', 'gemini31', 'deepseekv4']
 _PANEL_PATH = 'news_process/data/processed/40_panel_yearly.parquet'
 
 

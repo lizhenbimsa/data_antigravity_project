@@ -199,12 +199,12 @@ class TestDiscoverSentimentColumns:
         df = pd.DataFrame({
             'gpt54nano_sentiment': ['正面'],
             'gpt54nano_sentiment_confidence': [0.92],
-            'gemini31111_sentiment': ['中性'],
-            'gemini31111_sentiment_confidence': [0.78],
+            'gemini31_sentiment': ['中性'],
+            'gemini31_sentiment_confidence': [0.78],
         })
         result = discover_sentiment_columns(df)
         assert result['llm']['gpt54nano']['confidence'] == 'gpt54nano_sentiment_confidence'
-        assert result['llm']['gemini31111']['confidence'] == 'gemini31111_sentiment_confidence'
+        assert result['llm']['gemini31']['confidence'] == 'gemini31_sentiment_confidence'
 
     def test_discover_llm_confidence_priority(self):
         """新旧格式共存时应优先选择新格式 _sentiment_confidence。"""

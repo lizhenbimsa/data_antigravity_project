@@ -739,8 +739,8 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'avg_llm_conf_std_ctx':                'LLM Confidence Std Dev (Ctx)',
                 'avg_gpt54nano_conf_full':              'GPT-5nano Confidence (Full)',
                 'avg_gpt54nano_conf_ctx':               'GPT-5nano Confidence (Ctx)',
-                'avg_gemini31111_conf_full':               'Gemini-3 Confidence (Full)',
-                'avg_gemini31111_conf_ctx':                'Gemini-3 Confidence (Ctx)',
+                'avg_gemini31_conf_full':               'Gemini-3 Confidence (Full)',
+                'avg_gemini31_conf_ctx':                'Gemini-3 Confidence (Ctx)',
                 # fix(omni-g-panel-export-01, 2026-06-11): 供应商归属勘误 —
                 # deepseekv4 实为 DeepSeek V4 Flash (单一事实源 config/
                 # sentiment.yaml::models, 直连 api.deepseek.com), 原误标
@@ -893,7 +893,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 # 单模型洗稿率 — full/ctx 动态生成 (第三轨 _ss 标签由字面量闭合后的
                 # _ctx→_ss 机械派生兜底, 见下方派生循环; 此处保持纯 full/ctx 字面量)
                 **{f'washing_ratio_{m}{s}': f'WR: {m} ({t})'
-                   for m in ['gpt54nano', 'gemini31111', 'deepseekv4',
+                   for m in ['gpt54nano', 'gemini31', 'deepseekv4',
                              'jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018', 'loughran',
                              'finbert_cn', 'fin_sent_zh', 'finbert2']
                    for s, t in [('', 'Full'), ('_ctx', 'Ctx')]},
@@ -1106,7 +1106,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 **{f'disag_llm{s}': f'Disagreement: LLM Vote ({t})'
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'disag_{m}{s}': f'Disagreement: {m} ({t})'
-                   for m in ['gpt54nano', 'gemini31111', 'deepseekv4']
+                   for m in ['gpt54nano', 'gemini31', 'deepseekv4']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'disag_bert{s}': f'Disagreement: BERT Avg ({t})'
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
@@ -1128,7 +1128,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                    for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018', 'loughran']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'cater_{m}{s}': f'Catering: Dict-{m} ({t})'
-                   for m in ['gpt54nano', 'gemini31111', 'deepseekv4']
+                   for m in ['gpt54nano', 'gemini31', 'deepseekv4']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'cater_{b}{s}': f'Catering: Dict-{b} ({t})'
                    for b in ['finbert_cn', 'fin_sent_zh', 'finbert2']
@@ -1145,7 +1145,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 # override (Plan-r3 P0-2 修复, ruff F601).
                 # ═══ 前置中间变量: neg_count ═══
                 **{f'{m}_neg_count{s}': f'Neg Count: {m} ({t})'
-                   for m in ['gpt54nano', 'gemini31111', 'deepseekv4']
+                   for m in ['gpt54nano', 'gemini31', 'deepseekv4']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'{d}_neg_count{s}': f'Neg Count: {d} ({t})'
                    for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018', 'loughran']

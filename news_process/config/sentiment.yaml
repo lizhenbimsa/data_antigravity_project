@@ -32,7 +32,7 @@ tone_llm_processing:
       base_url: https://yunwu.ai/v1
       api_key: ${YUNWU_API_KEY}                     # v6/N7: 统一 yunwu key
     - model_name: gemini-3.1-flash-lite
-      short_name: gemini31111
+      short_name: gemini31
       description: gemini-3.1-flash-lite (Google via yunwu)
       base_url: https://yunwu.ai/v1
       api_key: ${YUNWU_API_KEY}

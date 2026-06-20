@@ -49,7 +49,7 @@ def _build_dual(
 def models():
     return [
         {"short_name": "gpt54nano", "model_name": "gpt-5.4-nano"},
-        {"short_name": "gemini31111", "model_name": "gemini-3.1-flash-lite-preview"},
+        {"short_name": "gemini31", "model_name": "gemini-3.1-flash-lite-preview"},
         {"short_name": "deepseekv4", "model_name": "deepseek-v4-flash"},
     ]
 

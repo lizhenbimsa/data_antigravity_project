@@ -47,7 +47,7 @@ def _build_response(verified: bool, sentiment: str, ver_conf: float = 0.9, sent_
 def models():
     return [
         {"short_name": "gpt54nano", "model_name": "gpt-5.4-nano"},
-        {"short_name": "gemini31111", "model_name": "gemini-3.1-flash-lite-preview"},
+        {"short_name": "gemini31", "model_name": "gemini-3.1-flash-lite-preview"},
         {"short_name": "deepseekv4", "model_name": "deepseek-v4-flash"},
     ]
 
@@ -69,7 +69,7 @@ def test_majority_vote_sentiment_tie_returns_none():
 def test_aggregate_track_no_forced_neutral(models):
     """单模型 verified=False 时，其 sentiment 应保持原值，不被强制改写为中性。"""
     from news_process.pipeline.sentiment.tone_llms import _aggregate_track
-    # gpt54nano 拒绝（verified=False, sentiment 标 "正面"）；gemini31111/deepseekv4 通过
+    # gpt54nano 拒绝（verified=False, sentiment 标 "正面"）；gemini31/deepseekv4 通过
     res = {
         "gpt-5.4-nano": _build_response(False, "正面"),
         "gemini-3.1-flash-lite-preview": _build_response(True, "正面"),
@@ -129,7 +129,7 @@ def test_aggregate_track_only_verifying_models_vote_sentiment(models):
     """
     from news_process.pipeline.sentiment.tone_llms import _aggregate_track
     # gpt54nano 拒绝且 sentiment="负面"（如果走旧逻辑会被改为"中性"再进投票）
-    # gemini31111 + deepseekv4 通过 + sentiment="正面" → 应得 final_s="正面"
+    # gemini31 + deepseekv4 通过 + sentiment="正面" → 应得 final_s="正面"
     res = {
         "gpt-5.4-nano": _build_response(False, "负面"),
         "gemini-3.1-flash-lite-preview": _build_response(True, "正面"),
@@ -186,8 +186,8 @@ def test_v6_llm_models_are_real_three_families():
     """v3 锁定: LLM_MODELS 应为真三家族 (OpenAI + Google + DeepSeek)，无 claude4h。"""
     from news_process.pipeline.panel.encode import LLM_MODELS
     assert "claude4h" not in LLM_MODELS
-    # short_name 顺序应反映 sentiment.yaml 配置（默认 fallback: gpt54nano/gemini31111/deepseekv4）
-    assert set(LLM_MODELS) == {"gpt54nano", "gemini31111", "deepseekv4"} or \
+    # short_name 顺序应反映 sentiment.yaml 配置（默认 fallback: gpt54nano/gemini31/deepseekv4）
+    assert set(LLM_MODELS) == {"gpt54nano", "gemini31", "deepseekv4"} or \
         len(LLM_MODELS) == 3  # 容许配置自定义但必须 3 slot
 
 
