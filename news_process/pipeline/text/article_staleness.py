@@ -162,7 +162,11 @@ def compute_surface_staleness(
     # 按位置赋回"未排序"的 art_df → 整列行错位 (盘上 99.8% 行错配, 且与已做逆置换的
     # semantic 轨不一致). 改为捕获排序置换 _sort_idx, 返回前逆置换还原原始行序
     # (与 compute_semantic_staleness:207-208,244-245 一致).
-    _sort_idx = pd.to_datetime(df[date_col], errors='coerce').argsort(kind='stable').values
+    # fix(log-round4-2026-06-20): pd.Series.argsort() 对 NaT 返回 -1 (实测 pandas 2.2.3:
+    # [d,d,NaT,d,NaT].argsort()=[1,2,-1,0,-1]) → df.iloc[-1] 把 NaT 行错配成末行 + 丢失真行
+    # (整列错位)。改用 np.argsort(datetime64 ndarray): NaT 稳定排到末尾、返回合法置换,
+    # 与下方逆置换 np.argsort(_sort_idx) 自洽。生产 17M 必有不可解析日期 → NaT, 故为真 bug。
+    _sort_idx = np.argsort(pd.to_datetime(df[date_col], errors='coerce').values, kind='stable')
     df = df.iloc[_sort_idx].reset_index(drop=True)
     dates = pd.to_datetime(df[date_col], errors='coerce')
 
@@ -281,7 +285,9 @@ def compute_semantic_staleness(
     # metric-audit 2026-06-02 final: kind='stable' 与 surface 轨 (L108) 对齐 — 大量
     # 同时间戳 ties 下非 stable argsort 的 tie 顺序依赖输入行序 → semantic staleness
     # 值随任意输入序漂移 (实测 27% 行/max 0.75), 破坏可复现性. stable 使其确定.
-    sort_idx = pd.to_datetime(df[date_col], errors='coerce').argsort(kind='stable').values
+    # fix(log-round4-2026-06-20): 同 surface 轨 (L165) —— pd.Series.argsort() 对 NaT 返回 -1
+    # 致整列错位; 改用 np.argsort(datetime64), NaT 稳定排末尾、合法置换, 与逆置换自洽。
+    sort_idx = np.argsort(pd.to_datetime(df[date_col], errors='coerce').values, kind='stable')
     df_sorted = df.iloc[sort_idx].reset_index(drop=True)
     embs_sorted = embeddings[sort_idx]
     dates = pd.to_datetime(df_sorted[date_col], errors='coerce')

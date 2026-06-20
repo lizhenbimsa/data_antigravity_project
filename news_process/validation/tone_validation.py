@@ -1023,9 +1023,9 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
     """按新闻长度、时间段和词典覆盖率进行分层一致性分析 (Plan-r3 P3-16 docstring 扩充)。
 
     分层维度:
-        - **新闻长度**: 短 (<200 字) / 中 (200-1000) / 长 (>1000)
+        - **新闻长度**: 按分位数 q33/q66 切分为 短/中/长 (非固定字数阈值; 日志标签 <33%/<66%/>66%)
         - **时间段**: 按年度 / 按 DCEP 政策时点前后
-        - **词典覆盖率**: 高 (>=10 词) / 中 / 低 / 零覆盖
+        - **词典覆盖率**: 按分位数 q33/q66 切分为 高/中/低 (<33%/33-66%/>66%) + 零覆盖
 
     每个 strata 内分别计算各方法的 Cronbach α (内部一致性) 与
     full-agreement-rate (未校正的观测一致率)。注 (audit-fixes 2026-05-29):
@@ -1218,8 +1218,9 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
             results['temporal_drift'] = trend_result
 
     # --- 按 BERT 窗口数分层（单窗口 vs 多窗口） ---
-    if 'bert_num_windows' in df.columns:
-        nw = df['bert_num_windows']
+    _nw_col = f'bert_num_windows{track}'
+    if _nw_col in df.columns:
+        nw = df[_nw_col]
         # 排除未推理的文章 (num_windows=0)
         valid_mask = nw > 0
         if valid_mask.sum() >= 40:  # 两组各至少需要 20 篇
@@ -1250,9 +1251,9 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
 
             results['by_window_count'] = window_results
         else:
-            logger_inst.info("  bert_num_windows 有效样本不足 40，跳过窗口数分层分析")
+            logger_inst.info(f"  {_nw_col} 有效样本不足 40，跳过窗口数分层分析")
     else:
-        logger_inst.info("  bert_num_windows 列不存在，跳过窗口数分层分析（需先运行阶段 23）")
+        logger_inst.info(f"  {_nw_col} 列不存在，跳过窗口数分层分析（需先运行阶段 23 落该轨列）")
 
     # --- 按词典覆盖率分层 ---
     # 方法论依据: lexicon 方法的词汇覆盖率限制是核心挑战
@@ -1318,10 +1319,14 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
                             f"  覆盖率依赖: Δα={delta:+.3f}，"
                             f"词典法锚点在低覆盖率文章中不可靠"
                         )
+                    elif delta < -0.10:
+                        logger_inst.warning(
+                            f"  覆盖率非单调: Δα={delta:+.3f} (低覆盖 α 反高于高覆盖)，"
+                            f"提示覆盖率代理与一致性非单调, 需进一步排查 (非简单'稳健')"
+                        )
                     else:
                         logger_inst.info(
-                            f"  ✓ BERT+LLM 在低覆盖率文章中仍稳健 "
-                            f"(Δα={delta:+.3f})"
+                            f"  ✓ BERT+LLM 跨覆盖率稳健 (|Δα|={abs(delta):.3f}≤0.10)"
                         )
         else:
             logger_inst.info(
@@ -1428,7 +1433,7 @@ def diagnose_llm_category_bias(df: pd.DataFrame, llm_cols: dict,
     Returns:
         dict: 诊断结果，包含各模型类别比例、chi-square 结果、JS 散度。
     """
-    track_label = '全文' if track == '_full' else '上下文片段'
+    track_label = {'_full': '全文', '_ctx': '上下文片段', '_ss': '银行+金科同句'}.get(track, track)
     logger_inst.info("=" * 70)
     logger_inst.info(f"===    4.5a LLM 类别偏向诊断 [{track_label}]    ===")
     logger_inst.info("=" * 70)
@@ -1654,7 +1659,7 @@ def diagnose_confidence_calibration(df: pd.DataFrame, llm_cols: dict,
     Returns:
         dict: 校准诊断结果，含 ECE 值和可靠性图数据。
     """
-    track_label = '全文' if track == '_full' else '上下文片段'
+    track_label = {'_full': '全文', '_ctx': '上下文片段', '_ss': '银行+金科同句'}.get(track, track)
     logger_inst.info("=" * 70)
     logger_inst.info(f"===    4.5b 置信度校准诊断 [{track_label}]    ===")
     logger_inst.info("=" * 70)
@@ -2216,7 +2221,7 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
 
         save_correlation_heatmap(
             spearman, 'Spearman 相关矩阵 — 词典法 (内部)',
-            os.path.join(output_dir, 'heatmap_within_words.png'), logger
+            os.path.join(output_dir, f'heatmap_within_words{track}.png'), logger
         )
 
     # 3.1b IDF 词典法内部一致性（稳健性检验，独立报告）
@@ -2261,7 +2266,7 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
 
         save_correlation_heatmap(
             spearman, 'Spearman 相关矩阵 — BERT (内部)',
-            os.path.join(output_dir, 'heatmap_within_bert.png'), logger
+            os.path.join(output_dir, f'heatmap_within_bert{track}.png'), logger
         )
 
     # 3.3 LLM 模型间一致性（如有多个模型）
@@ -2294,7 +2299,7 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
 
     save_correlation_heatmap(
         full_spearman, 'Spearman 相关矩阵 — 全部方法 × 全部模型',
-        os.path.join(output_dir, 'heatmap_cross_all.png'), logger
+        os.path.join(output_dir, f'heatmap_cross_all{track}.png'), logger
     )
 
     # 4.2 方法级聚合对比
@@ -2335,7 +2340,7 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
 
         save_correlation_heatmap(
             method_spearman, 'Spearman 相关矩阵 — 方法级聚合',
-            os.path.join(output_dir, 'heatmap_cross_method.png'), logger
+            os.path.join(output_dir, f'heatmap_cross_method{track}.png'), logger
         )
 
     # 4.3 标签一致性
@@ -2591,11 +2596,13 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
         f"{_lab}={int(_cnt)}({_cnt / _vote_total * 100:.1f}%)"
         for _lab, _cnt in vote_dist.items()
     ) if _vote_total > 0 else "无"
+    _dom_lab = str(vote_dist.idxmax()) if _vote_total > 0 else "无"
+    _dom_pct = (vote_dist.max() / _vote_total * 100) if _vote_total > 0 else 0.0
     logger.info(
         f"  · 多数投票情感分布: {_vote_brief}。加权平均(等权)得分: "
         f"mean={weighted_score.mean():.4f}, std={weighted_score.std():.4f}。"
-        f"判读: 分布严重偏向单一类别(如'中性'占绝大多数)提示测量保守或题材中性化, "
-        f"需结合 LLM 类别偏向诊断(本轨 Step 6.5)一并解读。"
+        f"判读: 分布若严重偏向单一类别(本轨众数 {_dom_lab} 占 {_dom_pct:.1f}%)"
+        f"提示测量保守或题材集中, 需结合 LLM 类别偏向诊断(本轨 Step 6.5)一并解读。"
     )
     # 人工验证(效标效度)状态判读
     if _hv_status == 'ok':

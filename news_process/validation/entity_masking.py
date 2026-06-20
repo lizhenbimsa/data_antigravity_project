@@ -30,6 +30,10 @@ news_process.validation.entity_masking — 阶段36：Entity Masking 稳健性�
 
     学术依据：
       - SSRN-4558295 §7.2: Entity substitution robustness check
+        ⚠ 引用核验 (2026-06-20 日志审计): 该 SSRN 裸编号 (无作者/标题/年) 经 web/SSRN
+        检索未能独立解析, 投稿前须核验其作者/标题/年或降级为 working paper。实体替换
+        稳健性方法本身有可验证的已发表锚点: "Robustness of Named-Entity Replacements
+        for In-Context Learning" (Findings of EMNLP 2023, aclanthology 2023.findings-emnlp.728)。
       - Landis & Koch (1977, Biometrics 33(1):159-174): Cohen's κ 解释标准
         κ ≥ 0.81 → "almost perfect agreement"
         注: 本模块计算的是 Cohen's κ（2 编码者名义一致性），

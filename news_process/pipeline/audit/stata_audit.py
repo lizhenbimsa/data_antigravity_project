@@ -431,7 +431,7 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
                            f'Pearson r={r:.4f}')
 
     # 3d. LLM 模型间情感一致性
-    llm_models = ['gpt54nano', 'gemini31111', 'deepseekv4']  # v3: 真三家族 (OpenAI + Google + DeepSeek)
+    llm_models = ['gpt54nano', 'gemini31', 'deepseekv4']  # v3: 真三家族 (OpenAI + Google + DeepSeek)
     llm_tone_cols = [f'{m}_tone_full' for m in llm_models if f'{m}_tone_full' in p.columns]
     if len(llm_tone_cols) >= 2:
         corrs = p[llm_tone_cols].corr()
@@ -640,6 +640,19 @@ def audit_did_variables(panel: pd.DataFrame, name: str):
                 record(cat, f'{policy}_post 编码', 'FAIL', f'非0/1: {post_vals}')
             else:
                 record(cat, f'{policy}_post 编码', 'PASS', '0/1 编码正确')
+
+        # 5b-2. fix(log-round4-2026-06-20): DiD 可识别性退化守卫 — post 或 treated 无变异
+        #   (T=2 伪两年常见: post 全 0 = 无政策后期窗口) → DiD 结构不可识别, 下方 5c/5e 的
+        #   treated-post 逻辑 / event-study 互斥 PASS 均为【空集恒真 (vacuous)】, 不代表识别有效。
+        #   loud WARN 披露, 防 referee 误读 all-PASS 为"DiD 设计成立"。生产 T=18 方可识别。
+        if post_col in panel.columns:
+            _post_uniq = panel[post_col].dropna().nunique()
+            _treated_uniq = panel[treated_col].dropna().nunique()
+            if _post_uniq <= 1 or _treated_uniq <= 1:
+                record(cat, f'{policy} DiD 可识别性', 'WARN',
+                       f'post/treated 无变异 (post_uniq={_post_uniq}, treated_uniq={_treated_uniq}; '
+                       f'T=2 伪两年常见) → DiD 结构不可识别, 下方 treated-post/event-study 的 PASS '
+                       f'为空集恒真 (vacuous) 非识别有效; 生产 T=18 (2007–2024) 方可识别。')
 
         # 5c. post=1 仅在 treated=1 的行中出现
         if post_col in panel.columns:

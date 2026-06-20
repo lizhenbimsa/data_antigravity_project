@@ -1931,7 +1931,8 @@ def main():
 
         # ── 指标②: negonly 消融变体与全规则的相关性 (主结果对程度/转折规则的敏感性) ──
         # 判读: corr(full规则, negonly) 越接近 1 → 主结果对去掉程度/转折越不敏感 (越稳健)。
-        # 参考文档: 实测 corr ≈ 0.998–0.999 高度共线 (稳健性对照, 非独立信号)。
+        # 参考文档: 全量 T=18/bank-year 聚合参照 corr ≈ 0.998–0.999 高度共线 (稳健性对照, 非独立信号);
+        #           T=2 盘面样本小, 实测 r 会偏低 (与 verdict 文案口径一致, 见 ~line 1944)。
         logger.info("  · 指标② 规则消融稳健性 corr(msent_score, msent_negonly) — 仅否定 vs 全规则:")
         for track, tlabel in [('_full', '全文'), ('_ctx', '上下文片段'), ('_ss', '银行+金科同句')]:
             full_col, neg_col = f"msent_score{track}", f"msent_negonly{track}"
@@ -1941,7 +1942,7 @@ def main():
                 paired = pd.concat([a, b], axis=1).dropna()
                 if len(paired) >= 3 and paired.iloc[:, 0].std() > 0 and paired.iloc[:, 1].std() > 0:
                     r = float(paired.iloc[:, 0].corr(paired.iloc[:, 1]))
-                    verdict = ("稳健 (主结果不依赖程度/转折两规则, 符合预期 0.998–0.999)"
+                    verdict = ("稳健 (r≥0.95, 主结果不依赖程度/转折两规则; 全量 T=18/bank-year 聚合参照≈0.998-0.999, T=2 盘面更低)"
                                if r >= 0.95 else
                                "中等 (程度/转折规则贡献可观, 须在稳健性表披露)"
                                if r >= 0.7 else "偏低 (规则贡献大, 需进一步核查)")

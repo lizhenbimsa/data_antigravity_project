@@ -9,7 +9,7 @@ news_process.pipeline.sentiment.tone_llms — 阶段21：统一 LLM 语义精筛
 功能：
     将早期的 `13_news_llms.py` (真伪精筛) 和 `23_tone_llms.py` (情感分析) 组合，
     使用同一个大模型 Prompt 构建思维链 (Chain-of-Thought)，单次请求获取"真伪"与"情感"。
-    采用多模型（如 gpt54nano, gemini31111, deepseekv4）逐条并发请求，并使用多数投票（Majority Vote）
+    采用多模型（如 gpt54nano, gemini31, deepseekv4）逐条并发请求，并使用多数投票（Majority Vote）
     合成最终共识，满足顶级学术期刊的交叉验证和三角验证标准。
     每条新闻独立请求各模型，通过信号量控制并发。
 
@@ -66,7 +66,7 @@ news_process.pipeline.sentiment.tone_llms — 阶段21：统一 LLM 语义精筛
 
 **输出列** (每轨 _full/_ctx/_ss 各一套): `llm_verified_*`、`llm_sentiment_*`、`llm_agreement_rate_v/s_*`、`n_valid_votes_*`/`n_verifying_votes_*`、`innovation_locus_*`(Gomber 2018 JMIS)、`innovation_substantiveness_*`(W&Z 1994/1998 ASQ)、`innovation_collab_mode_*`(Chesbrough 2003 + L&S 2006 SMJ)、各维度 `*_confidence_*`、`llm_prob_score`(avg_prob_score, 轨级聚合主列)、per-model `{short}_prob_score_*`、`avg_subst/locus/collab_prob_score_*`、逐模型 `{short}_verified/sentiment_*` 存档列; 另产 `llm_verified_dual_*`(3 态) / `llm_verified_triple_*`(7 态) 互斥指示列。
 
-**外部依赖**: 三个 LLM 家族经 config/sentiment.yaml 锁定 = gpt-5.4-nano(short_name gpt54nano) / gemini-3.1-flash-lite(gemini31111) / deepseek-v4-flash(deepseekv4, 走 api.deepseek.com 直连, 其余两家走 yunwu.ai/v1); 需 YUNWU_API_KEY / DEEPSEEK_API_KEY。**Prompt v8 字节级冻结** (`iter_article_track_prompts` 为生产与缓存覆盖审计共用单一事实源; 缓存键 = 模型名+prompt 文本+prompt_version+temperature (+seed 仅当 temperature>0; 生产 temperature=0.0 下 seed 不进键, 故键与历史 no-seed schema 字节级一致, 零缓存失效))。**确定性锚点 = _llm_cache.db** (~407MB/13.3 万条): 命中即 $0 字节级复现; `NEWS_PROCESS_LLM_OFFLINE=1` 离线守卫下缓存 miss 抛 `LLMCacheMissError` 而非调 API + 跳 preflight 探针。**超时**: 父端子进程硬超时 21600s (3x 安全余量覆盖冷缓存/雪崩退避)。
+**外部依赖**: 三个 LLM 家族经 config/sentiment.yaml 锁定 = gpt-5.4-nano(short_name gpt54nano) / gemini-3.1-flash-lite(gemini31) / deepseek-v4-flash(deepseekv4, 走 api.deepseek.com 直连, 其余两家走 yunwu.ai/v1); 需 YUNWU_API_KEY / DEEPSEEK_API_KEY。**Prompt v8 字节级冻结** (`iter_article_track_prompts` 为生产与缓存覆盖审计共用单一事实源; 缓存键 = 模型名+prompt 文本+prompt_version+temperature (+seed 仅当 temperature>0; 生产 temperature=0.0 下 seed 不进键, 故键与历史 no-seed schema 字节级一致, 零缓存失效))。**确定性锚点 = _llm_cache.db** (~407MB/13.3 万条): 命中即 $0 字节级复现; `NEWS_PROCESS_LLM_OFFLINE=1` 离线守卫下缓存 miss 抛 `LLMCacheMissError` 而非调 API + 跳 preflight 探针。**超时**: 父端子进程硬超时 21600s (3x 安全余量覆盖冷缓存/雪崩退避)。
 
 **DAG 位置**: 上游 stage 14 (fintech_intensity) + stage 13 (content_ctx/content_ss 物化); 下游 stage 22 (词典法读 21 输出 `21_tone_llms.parquet`)、最终经 stage 24/45 进面板。本阶段是全流水线唯一核心付费阶段。
 
@@ -197,9 +197,10 @@ RANDOM_SEED = LLM_CONFIG.get('random_seed', 42)
 FORCE_JSON = LLM_CONFIG.get('force_json', True)
 
 # 显式记录 LLM 推理参数 (G-06: 审稿人可追溯的参数报告)
-logger.info(f"LLM 推理参数: temperature={TEMPERATURE}, seed={RANDOM_SEED}, "
-            f"force_json={FORCE_JSON}, models={len(MODELS)}, "
-            f"concurrency={MAX_CONCURRENCY}")
+# fix(log-round4-2026-06-20): 该参数回显移入 main() —— 模块级 emit 会在【本模块被 import 时】
+# (如 stage 45 面板构建经 runner→llm_peer_iv import 本模块取 LLMCacheMissError) 触发
+# setup_logging(delay=True) 的首写截断, 把 logs/21_tone_llms.log 覆写成 2 行 import banner
+# (掩盖真实 stage 21 运行记录)。移入 main() 后仅真正运行 stage 21 时回显, import 不再截断。
 
 MAX_RETRIES = LLM_CONFIG.get('max_retries', 5)
 RETRY_DELAY = LLM_CONFIG.get('retry_delay', 10)
@@ -495,7 +496,7 @@ def _log_retryable_transport_issue(
 #   Shapiro, A.H. et al. (2022). JoE, 228(2). DOI: 10.1016/j.jeconom.2020.07.053
 LOGIT_SCORE_CFG = LLM_CONFIG.get('logit_to_score', {})
 LOGIT_SCORE_ENABLED = LOGIT_SCORE_CFG.get('enabled', False)
-logger.info(f"Logit-to-Score 概率映射: enabled={LOGIT_SCORE_ENABLED}")
+# fix(log-round4-2026-06-20): 同上, 该回显移入 main() 防 import 期截断 21 日志。
 
 
 # ============================================================================
@@ -1721,7 +1722,7 @@ def main():
         1. 加载 stage 12/14 上游 + schema 守护 (含 ``stage 14 fallback to 12``
            硬化反模式根除, 见下方 "Step 4(a) 硬化" 注释)
         2. 三轨数据准备 + content/ctx/ss 物化 (content_ss 由 stage 13 单一事实源)
-        3. 三家族 LLM (gpt54nano / gemini31111 / deepseekv4) 并发请求 +
+        3. 三家族 LLM (gpt54nano / gemini31 / deepseekv4) 并发请求 +
            majority-vote ensemble (logit-to-score)
         4. SQLite 缓存读写 (缓存键含 prompt_version 命名空间, 已实现于 fetch_llm_async)
         5. N8 lineage 记录 + parquet 三轨 (full/ctx/ss) 输出
@@ -1734,6 +1735,11 @@ def main():
     logger.info("=" * 72)
     logger.info(f"阶段 21: 统一 LLM 语义精筛与情感分析 (三轨 full/ctx/ss; prompt {PROMPT_VERSION} 字节冻结)")
     logger.info("=" * 72)
+    # 参数回显 (G-06; 自模块级移入, 见 :199/:496 注释 fix(log-round4-2026-06-20)):
+    logger.info(f"LLM 推理参数: temperature={TEMPERATURE}, seed={RANDOM_SEED}, "
+                f"force_json={FORCE_JSON}, models={len(MODELS)}, "
+                f"concurrency={MAX_CONCURRENCY}")
+    logger.info(f"Logit-to-Score 概率映射: enabled={LOGIT_SCORE_ENABLED}")
     logger.info("【功能】让 3 个 LLM 家族 (相当于 3 位独立金融分析员) 各读同一篇新闻: 先精筛")
     logger.info("        判定是否真在讲'目标银行×金融科技'(verified 把关), 再判语气 正面/负面/中性,")
     logger.info("        顺带给 创新位点(底层/应用)、实质性(实质/象征)、协同模式(自研/外部) 三维标签;")

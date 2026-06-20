@@ -1603,7 +1603,10 @@ def main():
             df_both_sen = df_verify.copy()
         else:
             df_both_sen = df_verify[has_both_sen].copy()
-        
+        # fix(log-audit-2026-06-20, R6): demo_mode 下对称重赋 n_both_sen, 使其与实际
+        # 参与 κ/α 计算的行数一致 (否则下游 ICR-情感 报告打印旧的 n=0, 与 N=200 自相矛盾)。
+        n_both_sen = len(df_both_sen)
+
         # 定义映射：正面:2, 中性:1, 负面:0
         sen_map = {'正面': 2, '中性': 1, '负面': 0}
         

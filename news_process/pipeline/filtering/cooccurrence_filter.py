@@ -348,9 +348,9 @@ def main():
         # 小样本警告 (盘面 T=2)
         if n_banks_out <= 2 or n_in < 5000:
             logger.warning(
-                f"  [小样本警告] 当前为盘面小样本 (n_in={n_in} 行 / {n_banks_out} 家银行, "
-                f"疑似 T=2 验证盘): 上述 keep 率/银行覆盖仅用于验证管道正确性, 全量结论以 "
-                f"17M/T=18 实测为准。"
+                f"  [小样本警告] 当前为盘面小样本 (过滤前 {n_in} 行 / {n_banks_in} 家 → 过滤后 "
+                f"{n_out} 行 / {n_banks_out} 家, 疑似 T=2 验证盘): 上述 keep 率/银行覆盖仅用于"
+                f"验证管道正确性, 全量结论以 17M/T=18 实测为准。"
             )
     except Exception as _e:  # noqa: BLE001 — 诊断日志绝不阻断产物落盘
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")

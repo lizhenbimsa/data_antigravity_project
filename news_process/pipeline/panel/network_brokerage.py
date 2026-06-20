@@ -532,4 +532,15 @@ def compute_fire_sale_interaction(panel: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  火灾甩卖交乘已计算: {valid:,} 有效值, "
                 f"mean={panel['brokerage_fire_sale'].mean():.6f}")
 
+    # fix(log-audit-2026-06-20, R18): 零方差检测。盘面 T=2 下 industry_neg_shock 可能
+    # 某年全 0 (如 2018), 乘积恒为常量 0 → 下游回归该列无识别力且会被 reghdfe/共线性
+    # 自动剔除。显式告警, 避免"已计算 N 有效值"被误读为该交乘项可用。
+    _fs = panel['brokerage_fire_sale'].dropna()
+    if valid > 0 and _fs.nunique() <= 1:
+        logger.warning(
+            f"  ⚠ brokerage_fire_sale 退化为常量 (唯一值数={_fs.nunique()}, "
+            f"min=max={_fs.iloc[0] if len(_fs) else float('nan'):.6f}): 零方差列下游无识别力, "
+            f"疑因某年 industry_neg_shock 全 0 (T=2 盘面常见); 生产 T=18 应复核并移除该退化列。"
+        )
+
     return panel

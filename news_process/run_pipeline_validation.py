@@ -26,9 +26,9 @@ run_pipeline_validation.py — 新闻处理流水线: 评估验证模块
 设计意图:
     这些验证模块对应经济学顶级期刊审稿中常见的稳健性检验要求:
     - 阈值敏感性(31): 证明结论不依赖特定参数选择
-    - 人工标注一致性(32-33): Cohen's κ 和 Krippendorff's α
+    - 人工标注一致性(32-33): Cohen's κ 和 Krippendorff's α; 误分类系统相关性诊断 Carlson & Burbano (2026, SMJ)
     - 三角验证(34): 开放科学中的 “方法三角化” 原则
-    - 实体掩码(36): Carlson & Burbano (2026, SMJ) LLM 偏差诊断
+    - 实体掩码(36): 实体替换稳健性 (SSRN-4558295 §7.2) + Cohen's κ (Landis & Koch 1977)
     - Prompt 敏感度(39): LLM 研究中的表述稳健性检验
 
 使用方法::

@@ -419,7 +419,7 @@ class MultiModelSentimentEngine:
 
     def __init__(self, model_configs: list):
         self.model_configs = model_configs
-        self.models = {}         # short_name -> PyTorch model (FP32, AMP推理)
+        self.models = {}         # short_name -> PyTorch model (FP32 权重; AMP 仅 USE_AMP 时)
         self.tokenizers = {}     # short_name -> tokenizer
         self.loaded_configs = {} # short_name -> config (含实际 num_labels)
 
@@ -432,7 +432,7 @@ class MultiModelSentimentEngine:
         self._groups = {}  # (max_length, vocab_fingerprint) -> [short_name, ...]
 
     def load_all(self) -> list:
-        """一次性加载全部模型到 GPU（FP32 权重, AMP 推理）。
+        """一次性加载全部模型到 DEVICE（FP32 权重; AMP 仅在 USE_AMP 时启用, 严格确定性下禁用）。
 
         fix(omni-g-berts-04, 2026-06-11) 降级透明化: 预期 graceful skip 仅限
         "本地私有模型未配置" (model_id 为空 = FINBERT2_MODEL_DIR 未设, 或解析为
@@ -984,11 +984,11 @@ def log_classification_report(output: dict, total: int):
     logger.info(f"总记录数: {total:,}")
     logger.info(f"推理设备: {DEVICE}")
     logger.info(f"Mixed Precision: {'AMP' if USE_AMP else '禁用'}")
-    logger.info(f"模型权重精度: {'FP32 (AMP推理时动态转换)' if DEVICE.type == 'cuda' else 'FP32'}")
+    logger.info(f"模型权重精度: {'FP32 (AMP 推理时动态转换)' if USE_AMP else 'FP32 (无 AMP, 严格确定性)'}")
     logger.info(f"滑动窗口步长比例: {WINDOW_STRIDE_RATIO}")
     logger.info(f"推理 batch 大小: {INFERENCE_BATCH_SIZE}")
     logger.info(f"动态填充 + 长度排序: 已启用")
-    logger.info(f"多模型并行加载: 已启用 (共享分词)")
+    logger.info(f"多模型预加载: 已启用 (词表一致才共享分词, 异词表各自分窗; fix g-berts-01)")
 
     logger.info("-" * 70)
     logger.info(f"{'模型':<20} {'正面':>8} {'中性':>8} {'负面':>8} "
@@ -1074,7 +1074,7 @@ def main():
 
     流程：
       1. 加载输入数据（阶段22词典法输出）
-      2. 预加载全部模型到 GPU (FP32, AMP推理)
+      2. 预加载全部模型到 DEVICE (FP32 权重; AMP 仅 USE_AMP 时)
       3. 批量推理（分批调用 process_all_models）
       4. 写回各模型预测列，保存输出 Parquet
       5. 释放模型显存，生成统计报告和预览 CSV
@@ -1128,9 +1128,9 @@ def main():
     logger.info(f"已加载 {input_rows:,} 行数据。")
     log_memory_usage(logger, "数据加载后")
 
-    # ── Step 1: 一次性加载全部模型到 GPU (FP32, AMP推理) ──
+    # ── Step 1: 一次性加载全部模型到 DEVICE (FP32; AMP 仅在 USE_AMP 时启用) ──
     logger.info("=" * 50)
-    logger.info("正在预加载全部模型到 GPU (FP32, AMP推理)...")
+    logger.info(f"正在预加载全部模型到 {DEVICE} (FP32{', AMP 推理' if USE_AMP else ', 无 AMP'})...")
     engine = MultiModelSentimentEngine(MODEL_CONFIGS)
     loaded_names = engine.load_all()
     if not loaded_names:

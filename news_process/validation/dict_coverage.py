@@ -746,7 +746,9 @@ def log_summary(marginal_rate: float, effect_size: float,
     if marginal_rate > 0.15:
         issues.append(f"边际通过率偏高 ({marginal_rate:.1%} > 15%): "
                        f"太多文章刚好踩线通过, 词典对边际区域覆盖不足")
-    if abs(effect_size) >= 5.0:
+    # fix(log-audit-2026-06-20, R9): 阈值统一为 3.0pp, 与本文件 line ~974 (abs(effect_size)<3.0)
+    # 及结果分析块的 3pp 健康线一致 (此前为 5.0pp, 致 3-5pp 灰区"判不健康却不入问题清单"自相矛盾)。
+    if abs(effect_size) >= 3.0:
         issues.append(f"边际组精度下降 ({effect_size:+.1f}pp): "
                        f"踩线文章中混入了较多噪声")
     if enk < 50:

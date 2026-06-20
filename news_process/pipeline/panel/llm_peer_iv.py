@@ -128,10 +128,9 @@ FORCE_JSON = LLM_CONFIG.get('force_json', True)
 MAX_RETRIES = LLM_CONFIG.get('max_retries', 5)
 RETRY_DELAY = LLM_CONFIG.get('retry_delay', 10)
 
-logger.info(f"LLM-Peer IV 参数: temperature={TEMPERATURE}, seed={RANDOM_SEED}, "
-            f"force_json={FORCE_JSON}, models={len(MODELS)}, "
-            f"concurrency={MAX_CONCURRENCY}, "
-            f"retries={MAX_RETRIES}, delay={RETRY_DELAY}")
+# fix(log-round4-2026-06-20): 参数回显移入 compute_llm_peer_iv() —— 模块级 emit 会在 stage 45
+# 面板构建经 runner import 本模块时触发 setup_logging(delay=True) 首写截断, 覆写
+# logs/48_llm_peer_iv.log; 移入函数后仅真正计算 IV 时回显, import 不再截断。
 
 
 # ============================================================================
@@ -669,6 +668,10 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
     logger.info("=" * 60)
     logger.info("LLM-Peer 动态竞争网络 IV (Cao et al. 2025)")
     logger.info("=" * 60)
+    logger.info(f"LLM-Peer IV 参数: temperature={TEMPERATURE}, seed={RANDOM_SEED}, "
+                f"force_json={FORCE_JSON}, models_used=1 (仅 MODELS[0], 配置共 {len(MODELS)}), "
+                f"concurrency={MAX_CONCURRENCY}, "
+                f"retries={MAX_RETRIES}, delay={RETRY_DELAY} (flat sleep, 非 stage21 指数退避)")
 
     if not HAS_AIOHTTP:
         logger.error("  aiohttp 未安装, 无法进行 LLM-Peer IV 计算")

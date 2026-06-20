@@ -1454,6 +1454,16 @@ def main():
     logger.info(f"  depins_post: 实施后={panel['depins_post'].sum()}, "
                 f"实施前={(panel['depins_post'] == 0).sum()} "
                 f"({depins_count} 个交互项)")
+    # fix(log-reaudit-2026-06-20, P2-C): 零方差检测 (与 network_brokerage R18 对称)。
+    # 盘面 T=2 仅 {2017,2018} 全 ≥2015 → depins_post 恒为常量 1, tone_x_depins* 退化为
+    # tone×1 无识别力 (下游会被共线性/FE 吸收); 显式告警, 避免被误读为可用时间断点。
+    # 生产 T=18 (2007–2024) 跨越 2015 断点后自然有方差, 守卫不触发。
+    if panel['depins_post'].nunique() <= 1:
+        logger.warning(
+            f"  ⚠ depins_post 退化为常量 (唯一值={sorted(panel['depins_post'].unique().tolist())}): "
+            f"样本年份未跨越 2015 实施断点 (盘面 T=2 常见), tone_x_depins* 交互项零方差、"
+            f"下游无识别力; 生产 T=18 跨 2007–2024 后恢复方差。"
+        )
 
     # --- (h) 复合关注度指数 (Concern Score) ---
     # 公式: concern_score = ln_news_coverage × (senti_ratio + 1) / 2

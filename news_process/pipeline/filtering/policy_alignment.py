@@ -1028,7 +1028,7 @@ def main():
     logger.info("阶段 15: 文章级政策语义对齐度 (Distel/Grimpe/Poetz 2026 RP §3.2.1; "
                 "余弦相似度 Hoberg & Phillips 2016 JPE)")
     logger.info("=" * 72)
-    logger.info("【功能】给每篇金科新闻打一个 0~1 的『政策对齐分』: 把国家重磅金科政策文件浓缩成")
+    logger.info("【功能】给每篇金科新闻打一个『政策对齐分』(余弦相似度 ∈ [-1,1], 实务多落 0~1): 把国家重磅金科政策文件浓缩成")
     logger.info("        一份『标准答案向量』, 再算每篇新闻向量与它的夹角余弦; 产出 policy_cosine_sim")
     logger.info("        族列 (full/ctx/ss 三轨 + _t2v 双模型 twin), 供 stage 45 四象限分类消费。")
     logger.info("【方法】policy_cosine_sim_i = cos(emb(article_i), emb(auth_anchor)), 值域 [-1,1] 实务多落 0~1。")

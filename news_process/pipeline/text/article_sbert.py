@@ -60,7 +60,7 @@ always-on 执行); 也可单独手动触发 (全量 40 万文章编码 GPU 约 4
 3. emb_full 读 content_full(缺则裸 内容+标题, title_col='标题'), emb_ctx 读 content_ctx(缺则 np.full_like NaN)。
 4. `_build_output_frame`: 组装 article_id(= stage 13 的 df.index, 供 stage 18 显式 join 对齐键)+ docid 透传 + target_bank/year/日期 + emb_full/emb_ctx(parquet 兼容的 list-of-1D-array)+ 三列 provenance(model_id / model_revision / text_pipeline_version='v2-2026-06-08-dualtrack-prepend')。
 
-**外部依赖/确定性**: sentence-transformers + 本地 SBERT 模型(shibing624/text2vec, 与 stage 15 _t2v 同源)。**无 LLM/Embedding API、$0**(本地模型); 本地重跑须设 HF_HUB_OFFLINE=1 / TRANSFORMERS_OFFLINE=1(连不上 hf.co 但有本地缓存)。确定性由 ensure_torch_determinism + revision 钉死保证。无 _llm_cache.db 参与(本地编码每跑重算)。timeout=21600。
+**外部依赖/确定性**: sentence-transformers + 本地 SBERT 模型(shibing624/text2vec, 与 stage 15 _t2v 同源)。**无 LLM/Embedding API、$0**(本地模型); 本地重跑须设 HF_HUB_OFFLINE=1 / TRANSFORMERS_OFFLINE=1(连不上 hf.co 但有本地缓存)。确定性由 ensure_torch_determinism 保证(本地权重不变前提下逐位可复现; ⚠ revision 当前未钉死, 见 provenance 列, 上游权重更新风险靠本地缓存兜底)。无 _llm_cache.db 参与(本地编码每跑重算)。timeout=21600。
 
 ■ 白话说明
 
@@ -256,8 +256,9 @@ def main():
         "(偏离=归一化失效); emb_ctx 全 NaN = 上游缺 content_ctx 回退 (ctx 语义陈旧度将不可用)。"
     )
     logger.info(
-        "【确定性】纯本地 CPU/GPU 推理, 无 LLM/Embedding API、$0; ensure_torch_determinism + "
-        "revision 钉死保证逐位可复现; 无 _llm_cache.db 参与 (每跑重算)。"
+        "【确定性】纯本地 CPU/GPU 推理, 无 LLM/Embedding API、$0; ensure_torch_determinism 保证"
+        "本地权重不变前提下逐位可复现; ⚠ revision 当前未钉死 (见下方 provenance), 上游 hf.co 权重"
+        "若更新须靠本地缓存稳定性兜底; 无 _llm_cache.db 参与 (每跑重算)。"
     )
 
     output_dir = CONFIG['paths']['output_dir']

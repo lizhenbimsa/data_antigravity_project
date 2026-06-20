@@ -24,6 +24,48 @@ PROJECT_PARENT = os.path.dirname(NEWS_PROCESS_DIR)
 if PROJECT_PARENT not in sys.path:
     sys.path.insert(0, PROJECT_PARENT)
 
+# ============================================================================
+# 日志隔离【根因修复 R1】(2026-06-20 日志审计): 模块级 monkeypatch setup_logging,
+# 防 pytest 收集/import 覆写真实生产日志 logs/<stage>.log。
+# ============================================================================
+# 根因: 多个 pipeline stage 模块在【模块顶层】调用 setup_logging() 并随即 emit 横幅
+# (如 13/14/21 的 1-2 行 banner)。pytest 收集期 import 这些模块时, 该 emit 发生在
+# *import 时刻* —— 早于任何 fixture (含下方 session 级 handler 扫描), 故会以
+# file_mode='w' 首写截断覆写 logs/<stage>.log 里上一次【真实生产运行】的记录
+# (即 12b/37/47/39c/39e/39f/21 等"现盘日志实为测试产物"的成因)。session/function
+# 级 fixture 都无法阻止 import 期 emit —— 唯一可靠拦截点是在【收集开始前】(conftest
+# 模块导入即执行) monkeypatch setup_logging: 凡写【生产 logs/ 目录】的调用一律强制
+# console_only=True (不创建文件 handler); 写 tmp 目录的调用 (test_helpers /
+# test_pipeline_reporting 等单测) 经路径判别豁免, 行为不变。
+# 生产运行不导入 conftest, 故 setup_logging 在生产中行为完全不变 (零副作用)。
+try:
+    import news_process.core.logging as _np_logging
+
+    try:
+        from news_process.core.config import load_config as _np_load_config
+        _PROD_LOG_DIR = os.path.normcase(os.path.realpath(
+            str(_np_load_config()['paths']['log_dir'])))
+    except Exception:  # 配置不可用时回退到包内 logs/
+        _PROD_LOG_DIR = os.path.normcase(os.path.realpath(
+            os.path.join(NEWS_PROCESS_DIR, 'logs')))
+
+    _orig_setup_logging = _np_logging.setup_logging
+
+    def _testing_setup_logging(stage_name, log_dir, *args, **kwargs):
+        """测试期包装: 写生产 logs/ 的调用强制 console_only, 不触碰生产日志文件。"""
+        try:
+            _resolved = os.path.normcase(os.path.realpath(str(log_dir)))
+        except Exception:
+            _resolved = ''
+        if _resolved == _PROD_LOG_DIR:
+            kwargs['console_only'] = True
+        return _orig_setup_logging(stage_name, log_dir, *args, **kwargs)
+
+    if getattr(_np_logging.setup_logging, '__name__', '') != '_testing_setup_logging':
+        _np_logging.setup_logging = _testing_setup_logging
+except Exception:  # pragma: no cover — 极端环境下不阻断测试收集
+    pass
+
 
 # ============================================================================
 # V4 T1.6: 自动为测试分层打 marker (fast | integration)

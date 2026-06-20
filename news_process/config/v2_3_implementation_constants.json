@@ -108,7 +108,7 @@
     "truncation_strategy": "Bybee 2024 风格: 标题 100 字 + 首段 300 字",
     "embedding_dim": 768,
     "storage_estimate_400k": "~2.5 GB",
-    "anchor_paper": "Bybee, Kelly, Manela & Xiu (2024) RFS 37(3):887-936",
+    "anchor_paper": "Bybee, Kelly, Manela & Xiu (2024) JF 79(5):3105-3147",
     "user_action_required": "Layer 4.2 — 400k articles × 768 dim × 2 轨编码 (GPU 2 h / CPU 4-6 h)"
   },
   "v3_7_0_pr_11_staleness": {

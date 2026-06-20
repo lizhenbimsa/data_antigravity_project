@@ -472,7 +472,7 @@ def analyze_media_names(df: pd.DataFrame, stage_name: str,
     result["tier_df"] = pd.DataFrame(tier_rows)
 
     # --- 权重覆盖统计 (Tier 1-5 vs Tier 6) ---
-    rated_media = sum(1 for t, c in tier_counter.items() if "Tier 6" not in t)
+    rated_media = sum(c for t, c in tier_counter.items() if "Tier 6" not in t)
     rated_articles = sum(c for t, c in tier_article_counter.items() if "Tier 6" not in t)
     unrated_media = tier_counter.get("Tier 6 (未评级/默认, <60)", 0)
     unrated_articles = tier_article_counter.get("Tier 6 (未评级/默认, <60)", 0)

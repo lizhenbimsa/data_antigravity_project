@@ -22,20 +22,23 @@ fintech_news_classification:
 # ------------------------------------------------------------------------------
 # [模块二：新闻筛选模块] 金融科技技术重度评分 (FinTech Intensity Scoring) - 阶段 14
 # ------------------------------------------------------------------------------
-# 在阶段 12 的 AC 关键词分类基础上，使用 TF-IDF + SIF 词向量质心计算
+# 在阶段 12 的 AC 关键词分类基础上，使用 TF-IDF + IDF 加权词向量【普通质心】计算
 # 连续型技术强度得分。消除复读机刷分 (Cheap Talk) 和文档长度偏差。
+# fix(log-round4-2026-06-20): 订正"SIF"措辞 —— 本实现是 IDF 加权普通质心
+# (np.average(emb, weights=idf)), 非 SIF (无 a/(a+p(w)) 平滑逆频率、无首主成分去除);
+# 见 fintech_intensity.py docstring :44-52 (fix omni-g-fintech-02, 2026-06-11)。
 # 学术依据:
 #   Li, K., et al. (2021). Measuring corporate culture using machine learning.
 #     The Review of Financial Studies, 34(7), 3265-3315.  DOI: 10.1093/rfs/hhaa079
 #   Manning, C. D., et al. (2008). Introduction to Information Retrieval.
 #     Cambridge University Press. Ch 6.2.1 (smooth IDF), Ch 6.4.3 (sublinear TF).
 fintech_intensity:
-  embedding_model: 'shibing624/text2vec-base-chinese'   # SIF 质心所用词向量模型
+  embedding_model: 'shibing624/text2vec-base-chinese'   # IDF 加权普通质心所用词向量模型 (非 SIF)
   min_distinct_keywords_jieba: 2                         # Jieba 精算后去重关键词最低数量（二次熔断阈值）
                                                          # 白话: 用更准的 jieba 分词重数一遍, 不同的金融科技词不足 2 个就判定不算金融科技新闻 (防 AC 粗匹配误报)。
   winsorize_percentiles: [1, 99]                         # IDF Winsorization 分位数 (P1/P99)
                                                          # 白话: 把每个词的 IDF "稀有度"得分压到第 1 与第 99 百分位之间, 防个别极端罕见词把单篇得分拉爆。
-  anisotropy_floor: 0.1                                  # 各向异性校准下限 (Ethayarajh, 2019)
+  anisotropy_floor: 0.1                                  # 各向异性现象【动机】参考 Ethayarajh (2019); 此 min-max+floor 重标定为工程 ad-hoc, 非该文校准方法
                                                          # 白话: 中文词向量天生"挤在一个锥形里"导致任意两词都偏相似, 校准时给修正系数设个 0.1 下限防过度纠偏。
 
 # ------------------------------------------------------------------------------

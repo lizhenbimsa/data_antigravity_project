@@ -353,8 +353,9 @@ STAGES_VALIDATION: list[StageSpec] = [
         name="阶段32a: 去重阈值敏感性分析",
         script="32a_dedup_threshold_sensitivity.py",
         group="validation", kind="sensitivity",
-        # 全量语料 (去重前 _cache, ~数百万行) 上对 4 个阈值各做一次精确+近似去重;
-        # MinHash 签名已优化为 4 阈值共用一次 (validation/dedup_threshold.py), 但 LSH
+        # 全量语料 (去重前 _cache, ~数百万行) 上对 5 个阈值 (0.70/0.75/0.80/0.85/0.90)
+        # 各做一次精确+近似去重;
+        # MinHash 签名已优化为 5 阈值共用一次 (validation/dedup_threshold.py), 但 LSH
         # 构建 + 查询时间窗口仍逐阈值跑一遍, 全量下单遍即 ~1-1.5h → 默认 7200s (2h)
         # 远不够 (生产 stage 00 单遍去重 ~400k 文章即预算 6h)。提到 12h 安全上限,
         # 与最大长跑阶段对齐; 这是硬超时上限 (跑完即退), 非期望运行时长。

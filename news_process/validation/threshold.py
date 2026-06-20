@@ -207,16 +207,18 @@ def _precompute_fintech_matches(df: pd.DataFrame,
             continue
 
         mid = int(len(text) * split_ratio)
-        upper_text = text[:mid]
-        lower_text = text[mid:]
-
+        # fix(log-reaudit-2026-06-20 #1): 单遍扫【全文】后按匹配【起始位置】归入 upper/lower,
+        # 取代旧的物理切片 (text[:mid] / text[mid:] 各扫一遍) —— 旧法会漏掉横跨 mid 的关键词
+        # (在 upper_text 被截断、在 lower_text 又起始于切点之后), 与生产 analyze_fintech_matches
+        # 已修复的 omni-g-entity-07/11 "跨切分点关键词无声丢失" 同源。单遍全文扫无边界丢失。
         kw_stats = {}
-        for end_pos, kw in ac_automaton.iter(upper_text):
+        for end_pos, kw in ac_automaton.iter(text):
             kw_stats.setdefault(kw, {'upper': 0, 'lower': 0, 'in_title': False})
-            kw_stats[kw]['upper'] += 1
-        for end_pos, kw in ac_automaton.iter(lower_text):
-            kw_stats.setdefault(kw, {'upper': 0, 'lower': 0, 'in_title': False})
-            kw_stats[kw]['lower'] += 1
+            start_pos = end_pos - len(kw) + 1
+            if start_pos < mid:
+                kw_stats[kw]['upper'] += 1
+            else:
+                kw_stats[kw]['lower'] += 1
         if title:
             for end_pos, kw in ac_automaton.iter(title):
                 kw_stats.setdefault(kw, {'upper': 0, 'lower': 0, 'in_title': False})
@@ -486,7 +488,9 @@ def main():
     logger.info("【功能】把银行分类阈值 min_name_occurrences 与金科分类阈值 min_distinct_keywords")
     logger.info("        各从 1 扫到 10, 统计每个阈值下被判为正例的文章数/保留率, 验证当前生产")
     logger.info("        阈值(银行=3、金科=3)是否站得住脚 (产稳健性附录表/图, 不改任何主链数据)。")
-    logger.info("【方法】复用与 stage 11/12 完全一致的 Aho-Corasick 匹配逻辑(含否定模式+短名歧义消解);")
+    logger.info("【方法】银行轨复用与 stage 11 完全一致的 Aho-Corasick 匹配逻辑(analyze_bank_matches, 含否定模式+短名歧义消解);")
+    logger.info("        金科轨为本 stage 独立实现(单遍全文扫+按起始位置切 upper/lower, fix 已消除横跨切点关键词丢失),")
+    logger.info("        与 stage 12 analyze_fintech_matches 口径高度一致但非逐字复刻(边缘可能 ±1 篇分歧, 见 docstring);")
     logger.info("        银行判正 = total(含标题)>=阈值 且 (上下半各达标 或 标题命中且正文计数达标);")
     logger.info("        金科判正 = distinct_count>=阈值 且 (上下半各达标 或 标题命中且全文计数达标)。")
     logger.info("        为提速取 min(10000, max(1000, 10%)) 行抽样 (即下限 1000、上限封顶 1 万行;")

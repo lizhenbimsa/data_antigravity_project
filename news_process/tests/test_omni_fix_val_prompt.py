@@ -198,12 +198,19 @@ class TestCtxTitleStrip:
         asyncio.run(mod39.run_variant_llms(
             df, mod39.VARIANT_PROMPTS['V1_role'], models, 'V1_role'))
 
-        prompts = dict(captured)  # {'full': prompt, 'ctx': prompt}
-        assert set(prompts) == {'full', 'ctx'}
+        prompts = dict(captured)  # {'full': ..., 'ctx': ..., 'ss': ...}
+        # fix(log-reaudit-2026-06-20, P1-A): run_variant_llms 自 v3.9.0 起硬迭代三轨
+        # (full/ctx/ss, prompt_sensitivity.py:634-637); 本断言建于 _ss 第三轨之前 (写死
+        # {'full','ctx'}), 已陈旧 → 现实返回 {'full','ctx','ss'}, 与 content_ss 缺列时
+        # 回退 content_full (镜像 full) 的设计一致 (源 :630-631)。
+        assert set(prompts) == {'full', 'ctx', 'ss'}
         # 修复前 ctx prompt 标题出现 2 次 ({title} 字段 + content_ctx 前缀); 修复后均为 1 次
         assert prompts['ctx'].count(title) == 1, \
             f"ctx 轨标题双重注入未剥离: {prompts['ctx'].count(title)} 次"
         assert prompts['full'].count(title) == 1
+        # ss 轨: 本样本无 content_ss 列 → 回退 content_full (镜像 full), 标题应仅 1 次
+        assert prompts['ss'].count(title) == 1, \
+            f"ss 轨标题注入异常: {prompts['ss'].count(title)} 次"
         assert body in prompts['ctx']  # 正文窗口本体保留
 
 
