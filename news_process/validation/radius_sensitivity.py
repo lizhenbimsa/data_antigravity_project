@@ -13,9 +13,10 @@ news_process.validation.radius_sensitivity — 窗口半径敏感性检验
 
 检验设计：
     - 对 radius ∈ {0, 1, 2, 3} 四组设定，分别提取实体上下文
-    - 使用 5 套基准中文情感词典 (jiang/yao/bian/du/you) 重新计算情感得分和标签
-      (⚠ 生产主线 22_tone_words 自 2026-06-18 已扩为 6 词典 union, 含 loughran_mcdonald_zh_2026;
-       本敏感性检验为独立旁路 loader, 刻意仍取原 5 套, 非生产 union 口径)
+    - 使用与生产 22_tone_words 完全一致的 6 套基准中文情感词典
+      (jiang/yao/bian/du/you/loughran) 重新计算情感得分和标签
+      (2026-06-20 起本旁路 loader 已对齐生产 union 口径: 含第 6 部
+       loughran_mcdonald_zh_2026 + positive∩negative 跨类重叠双侧剔除)
     - 计算跨半径的标签一致性、得分相关性和分布统计
     - 生成学术论文附录级别的报告（LaTeX 表格 + 可视化图表）
 
@@ -51,8 +52,8 @@ news_process.validation.radius_sensitivity — 窗口半径敏感性检验
 **输入 (订正)**: 优先 `21_tone_llms.parquet` (CONFIG['filenames']['output_21_tone_llms'] — 经 LLM 精筛、仅 llm_verified=True 的下游产物, 含 `target_bank` 列), 回退 `12_fintech_news.parquet`。⚠ 注意是 `21_tone_llms.parquet` 而非 `_full` 版本。必需列 `target_bank` + `内容`。
 
 **处理步骤**:
-1. 加载 5 套中文金融情感词典 (jiang_2021/yao_2021/bian_2021/du_2022/you_2018; 正面+1/负面-1/政治正面+0.5), 注入 jieba (词典词+银行名+金科词+否定/程度/转折词)。⚠ 本旁路 loader 刻意仍取原 5 套, 不含生产 22_tone_words 自 2026-06-18 新增的第 6 部 loughran_mcdonald_zh_2026。
-2. 对每篇文章, `analyze_single_article_multi_radius`: 每个 radius 调 `core.text.entity_context.extract_entity_context(sentence_radius=r, fallback_char_radius=150)` 提上下文 (未命中回退原文), jieba 分词, 对 5 词典各算 `_compute_sentiment_with_rules` (否定窗口翻转/程度副词缩放/转折增强/句末标点重置状态机, 与 22_tone_words 逐行对齐) → 归一化得分 + 三分类标签 (正/中/负, 阈值 ±0.1)。
+1. 加载 6 套中文金融情感词典 (jiang_2021/yao_2021/bian_2021/du_2022/you_2018/loughran; 正面+1/负面-1/政治正面+0.5; positive∩negative 跨类重叠双侧剔除), 注入 jieba (词典词+银行名+金科词+否定/程度/转折词)。2026-06-20 起本旁路 loader 已与生产 22_tone_words 的 6 词典 union 口径完全对齐 (含第 6 部 loughran_mcdonald_zh_2026)。
+2. 对每篇文章, `analyze_single_article_multi_radius`: 每个 radius 调 `core.text.entity_context.extract_entity_context(sentence_radius=r, fallback_char_radius=150)` 提上下文 (未命中回退原文), jieba 分词, 对 6 词典各算 `_compute_sentiment_with_rules` (否定窗口翻转/程度副词缩放/转折增强/句末标点重置状态机, 与 22_tone_words 逐行对齐) → 归一化得分 + 三分类标签 (正/中/负, 阈值 ±0.1)。
 3. 跨半径对比 (基准 r=1): 对每词典算标签一致率、Cohen's κ、Pearson/Spearman 相关、配对 t 检验 (ttest_1samp 得分差)。
 
 **关键算法/公式**: 归一化得分 = total_score / (pos_count+neg_count)。Cohen's κ = (p_o−p_e)/(1−p_e)。零方差守卫 (radius-zerovar-guard, 2026-06-10): 常量分数 (词典零命中/空窗口/样本退化) 或 n≤2 下 pearsonr/spearmanr 置 NaN (语义=相关无定义), 下游裁决用 np.nanmin/np.nanmean (`_compute_pairwise_radius_corr` 热力图同款守卫, NaN 渲染为 'n/a')。'Kappa 悖论' 检测: 主导标签占比 ≥90% 时 κ 被数学压低, 此时一致率/Pearson 更可靠。判定: 邻近窗口 (r=1 vs 2/3) min κ≥0.80 = 强稳健; r=0 (仅实体所在句) 是故意极端压力测试, 偏差大属预期。
@@ -153,8 +154,13 @@ TONE_DICTS_FILE = CONFIG['paths'].get(
 # 2. 从 22_tone_words.py 复用的核心函数（避免导入时的副作用）
 # ============================================================================
 
+# 列前缀别名: loughran_mcdonald_zh_2026 → 'loughran' (镜像生产 tone_words.DICT_COLUMN_ALIAS;
+# 此处本地复制以避免 import 22_tone_words 触发模块级副作用, 见上方 §2 节标题)。
+_DICT_COLUMN_ALIAS = {'loughran_mcdonald_zh_2026': 'loughran'}
+
+
 def load_all_dictionaries() -> list[tuple[str, dict[str, float]]]:
-    """从 tone_dicts.json 加载 5 套与 22_tone_words 共有的中文情感词典 (jiang/yao/bian/du/you), 复用其逐句规则逻辑。注: 22_tone_words 自 2026-06-18 起已扩为 6 词典固定 union (新增 loughran), 本验证模块为独立 loader, 刻意仍取原 5 套子集 (非生产 union 口径)。"""
+    """从 tone_dicts.json 加载与 22_tone_words 完全一致的 6 套中文情感词典 (jiang/yao/bian/du/you/loughran), 复用其逐句规则逻辑。2026-06-20 起本旁路 loader 已对齐生产 union 口径: 含第 6 部 loughran_mcdonald_zh_2026 + positive∩negative 跨类重叠词双侧剔除 (LM 2011 惯例), 不再是早期刻意保留的 5 套子集。"""
     logger.info(f"正在从 {TONE_DICTS_FILE} 加载情感词典...")
 
     all_dict_data = {}
@@ -162,28 +168,40 @@ def load_all_dictionaries() -> list[tuple[str, dict[str, float]]]:
         try:
             with open(TONE_DICTS_FILE, 'r', encoding='utf-8') as f:
                 all_dict_data = json.load(f)
+            # 与生产 tone_words 一致: 顶层须为 JSON 对象, 否则优雅降级为空
+            # (防 list 型配置在 .get() 处抛 AttributeError)。
+            if not isinstance(all_dict_data, dict):
+                logger.error(f"词典文件格式错误: 期望 JSON 对象, 实际为 {type(all_dict_data).__name__}")
+                all_dict_data = {}
         except Exception as e:
             logger.error(f"加载词典文件失败: {e}")
 
     dictionaries = []
-    dict_keys = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
+    dict_keys = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018',
+                 'loughran_mcdonald_zh_2026']
 
     for dict_key in dict_keys:
         entry = all_dict_data.get(dict_key, {})
         d = {}
-        for word in entry.get('positive', []):
-            word = str(word).strip()
-            if word:
-                d[word] = 1.0
-        for word in entry.get('negative', []):
-            word = str(word).strip()
-            if word:
-                d[word] = -1.0
+        # positive∩negative 跨类重叠词双侧剔除 (LM 2011 惯例), 与生产 22_tone_words 一致;
+        # sorted 保证 dict 插入序确定 (可复现性)。
+        pos_words = {str(w).strip() for w in entry.get('positive', []) if str(w).strip()}
+        neg_words = {str(w).strip() for w in entry.get('negative', []) if str(w).strip()}
+        cross_overlap = pos_words & neg_words
+        if cross_overlap:
+            logger.warning(
+                f"  {dict_key}: positive∩negative 跨类重叠 {len(cross_overlap)} 词已双侧剔除 "
+                f"(LM 2011 惯例): {sorted(cross_overlap)}")
+        for word in sorted(pos_words - cross_overlap):
+            d[word] = 1.0
+        for word in sorted(neg_words - cross_overlap):
+            d[word] = -1.0
+        # 政治正面词 (du_2022 特有) 以 0.5 权重加入, 不覆盖已有正面/负面词。
         for word in entry.get('political_positive', []):
             word = str(word).strip()
             if word and word not in d:
                 d[word] = 0.5
-        dictionaries.append((dict_key, d))
+        dictionaries.append((_DICT_COLUMN_ALIAS.get(dict_key, dict_key), d))
 
         pos_cnt = sum(1 for v in d.values() if v > 0)
         neg_cnt = sum(1 for v in d.values() if v < 0)
@@ -1110,11 +1128,11 @@ def main():
     logger.info("=" * 72)
     logger.info("【功能】ctx 轨只截取'银行名所在句 ± N 句'这一小段文本来打情感分, '几句'(sentence_radius,")
     logger.info("        生产 = 前后 1 句) 是人为参数。本阶段把窗口改成 radius ∈ {0,1,2,3} 各重提一遍、用")
-    logger.info("        5 套中文金融情感词典各重算情感分, 检验结论对窗口大小是否稳健。产出 JSON/LaTeX 表 +")
+    logger.info("        6 套中文金融情感词典各重算情感分, 检验结论对窗口大小是否稳健。产出 JSON/LaTeX 表 +")
     logger.info("        标签分布柱状图 + 半径相关性热力图 (附录级证据, 无 parquet)。")
     logger.info(f"【方法】每篇文章对每个 radius 调 extract_entity_context(sentence_radius=r, "
                 f"fallback_char_radius={FALLBACK_CHAR_RADIUS}) 提上下文 (未命中回退原文), jieba 分词后")
-    logger.info("        对 5 词典各算否定翻转/程度缩放/转折增强的规则增强词典分 → 归一化得分 + 三分类标签")
+    logger.info("        对 6 词典各算否定翻转/程度缩放/转折增强的规则增强词典分 → 归一化得分 + 三分类标签")
     logger.info(f"        (阈值 ±{POS_THRESHOLD})。以 r=1 为基准, 跨半径算 标签一致率 / Cohen's κ / "
                 f"Pearson·Spearman 相关 / 配对 t 检验。")
     logger.info("【判读】邻近窗口 (r=1 vs 2/3): κ↑、一致率↑、Pearson↑ = 稳健 (min κ≥0.80 强稳健; ≥0.60")

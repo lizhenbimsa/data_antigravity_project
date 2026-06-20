@@ -100,9 +100,9 @@ v3.6.0 (Plan E P7 C4 stub):
 **输入**: `21_tone_llms_full.parquet` (CONFIG['filenames']['output_21_tone_llms_full'], 回退 glob `21_*.parquet` 取字典序末位)。过滤 `llm_verified_full == True` 仅保留已验证的金科新闻。
 
 **处理步骤**:
-1. 加载 5 套词典 (jiang/yao/bian/du/you; 正面+1/负面-1/政治正面+0.5) + 注入 jieba (与 stage 35 词典集一致; 语言学规则参数与 22_tone_words 一致, 但 22_tone_words 自 2026-06-18 起已扩为 6 词典 union, 本模块刻意仍取原 5 套子集)。
+1. 加载 6 套词典 (jiang/yao/bian/du/you/loughran; 正面+1/负面-1/政治正面+0.5; positive∩negative 跨类重叠双侧剔除) + 注入 jieba (与 stage 35 词典集一致; 语言学规则参数与 22_tone_words 一致)。2026-06-20 起本模块已对齐生产 22_tone_words 的 6 词典 union 口径 (含第 6 部 loughran)。
 2. `run_analysis` 逐文: `core.text.entity_context.extract_entity_context_with_distances(content, aliases, sentence_radius=2)` 提取 [(句文本, 句级距离 d), ...] (radius=2 大于生产 ctx 的 1, 给衰减留空间); 每句 jieba 分词一次 (3 衰减函数共享预分词)。
-3. 对 5 词典 × 3 衰减函数 = 15 组合调 `compute_decay_sentiment`。
+3. 对 6 词典 × 3 衰减函数 = 18 组合调 `compute_decay_sentiment`。
 
 **关键算法/公式**: 衰减函数 (3 种固定形式, 不做超参搜索以避免研究者自由度, DECAY_FUNCTIONS): uniform w(d)=1 / inverse w(d)=1/(1+d) / exponential w(d)=exp(−0.5d)。距离加权得分 = Σ w(d_s)·tone(s) / Σ w(d_s), 其中 tone(s)=单句归一化得分 (`_sentence_tone`, 否定/转折/程度三规则状态机, 与 22_tone_words 对齐)。`log_correlation_report` 算 uniform vs inverse/exponential 的 Pearson/Spearman + 均值差; 两类守卫行为相反: 缺列 / 有效样本 n<10 → 直接剔除 (不入表, 令对数减少); 零方差 / 异常 → 置 0.0 sentinel 但仍入表 (注: 与 35 选 NaN 路线不同, 这里是 0.0 sentinel)。判定: min Pearson≥0.95 高度不敏感 / ≥0.90 基本不敏感 / <0.90 正文讨论。
 
@@ -259,15 +259,21 @@ DECAY_FUNCTIONS = {
 # 3. 词典加载
 # ============================================================================
 
-def load_dictionaries() -> list:
-    """从 tone_dicts.json 加载 5 套中文金融情感词典。
+# 列前缀别名: loughran_mcdonald_zh_2026 → 'loughran' (镜像生产 tone_words.DICT_COLUMN_ALIAS;
+# 此处本地复制以避免 import 22_tone_words 触发模块级副作用)。
+_DICT_COLUMN_ALIAS = {'loughran_mcdonald_zh_2026': 'loughran'}
 
-    加载与 22_tone_words.py 共有的 5 套中文情感词典 (jiang/yao/bian/du/you)。注: 生产 22_tone_words 自 2026-06-18 起已扩为 6 词典固定 union (新增 loughran_mcdonald_zh_2026), 本验证模块刻意仍取原 5 套子集 (独立 loader, 非生产 union 口径), 故词典列表已非与 22_tone_words 完全一致 — follow-up 已披露:
+
+def load_dictionaries() -> list:
+    """从 tone_dicts.json 加载与 22_tone_words 完全一致的 6 套中文金融情感词典。
+
+    加载与 22_tone_words.py 共有的 6 套中文情感词典 (jiang/yao/bian/du/you/loughran)。2026-06-20 起本验证模块已对齐生产 union 口径: 含第 6 部 loughran_mcdonald_zh_2026 + positive∩negative 跨类重叠词双侧剔除 (LM 2011 惯例), 不再是早期刻意保留的 5 套子集:
       1. jiang_2021 — 姜富伟等 (2021) 中文金融情感词典
       2. yao_2021  — 姚加权等 (2021) 金融领域情绪词典
       3. bian_2021 — Bian et al. (2021) LM 中文扩充版
       4. du_2022   — Du et al. (2022) 含政治正面词扩充
       5. you_2018  — You et al. (2018) 中文金融情感词典
+      6. loughran  — Loughran-McDonald (2011 JF) 中文主译全本 (列前缀别名 'loughran')
 
     词典结构: {word: score}
       - 正面词: score = +1.0
@@ -275,38 +281,52 @@ def load_dictionaries() -> list:
       - 政治正面词 (du_2022 特有): score = +0.5
 
     Returns:
-        list[tuple[str, dict]]: [(dict_key, {word: score}), ...]
+        list[tuple[str, dict]]: [(dict_name, {word: score}), ...] (dict_name 经别名映射)
 
     Raises:
         无 — 词典文件不存在时返回空词典列表, 并记录警告日志。
     """
     all_dict_data = {}
     if os.path.exists(TONE_DICTS_FILE):
-        with open(TONE_DICTS_FILE, 'r', encoding='utf-8') as f:
-            all_dict_data = json.load(f)
+        try:
+            with open(TONE_DICTS_FILE, 'r', encoding='utf-8') as f:
+                all_dict_data = json.load(f)
+            # 与生产 tone_words 一致: 顶层须为 JSON 对象, 否则优雅降级为空
+            # (防 list 型配置在 .get() 处抛 AttributeError)。
+            if not isinstance(all_dict_data, dict):
+                logger.error(f"词典文件格式错误: 期望 JSON 对象, 实际为 {type(all_dict_data).__name__}")
+                all_dict_data = {}
+        except json.JSONDecodeError as e:
+            logger.error(f"词典文件 JSON 解析失败: {e}")
+        except Exception as e:
+            logger.error(f"加载 {TONE_DICTS_FILE} 失败: {e}")
     else:
         logger.warning(f"词典文件未找到: {TONE_DICTS_FILE}")
 
     dictionaries = []
-    for key in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']:
+    for key in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018',
+                'loughran_mcdonald_zh_2026']:
         entry = all_dict_data.get(key, {})
         d = {}
-        # 正面词 → +1.0
-        for w in entry.get('positive', []):
-            w = str(w).strip()
-            if w:
-                d[w] = 1.0
-        # 负面词 → -1.0
-        for w in entry.get('negative', []):
-            w = str(w).strip()
-            if w:
-                d[w] = -1.0
+        # positive∩negative 跨类重叠词双侧剔除 (LM 2011 惯例), 与生产 22_tone_words 一致;
+        # sorted 保证 dict 插入序确定 (可复现性)。
+        pos_words = {str(w).strip() for w in entry.get('positive', []) if str(w).strip()}
+        neg_words = {str(w).strip() for w in entry.get('negative', []) if str(w).strip()}
+        cross_overlap = pos_words & neg_words
+        if cross_overlap:
+            logger.warning(
+                f"  {key}: positive∩negative 跨类重叠 {len(cross_overlap)} 词已双侧剔除 "
+                f"(LM 2011 惯例): {sorted(cross_overlap)}")
+        for w in sorted(pos_words - cross_overlap):
+            d[w] = 1.0
+        for w in sorted(neg_words - cross_overlap):
+            d[w] = -1.0
         # 政治正面词 → +0.5 (仅 du_2022, 不覆盖已有正面/负面词)
         for w in entry.get('political_positive', []):
             w = str(w).strip()
             if w and w not in d:
                 d[w] = 0.5
-        dictionaries.append((key, d))
+        dictionaries.append((_DICT_COLUMN_ALIAS.get(key, key), d))
         logger.info(f"  {key}: {len(d)} 词")
 
     return dictionaries
@@ -568,7 +588,7 @@ def run_analysis(df: pd.DataFrame, dictionaries: list) -> pd.DataFrame:
         2. 调用 extract_entity_context_with_distances() 获取
            窗口内句子及其到最近实体的句级距离
         3. 对每个句子执行一次 jieba.cut() (预分词)
-        4. 对 5 词典 × 3 衰减函数 = 15 个组合, 共享预分词结果
+        4. 对 6 词典 × 3 衰减函数 = 18 个组合, 共享预分词结果
            调用 compute_decay_sentiment() 计算得分
 
     性能优化:
@@ -774,7 +794,7 @@ def log_correlation_report(score_df: pd.DataFrame, dict_names: list):
             logger.info('  "As a robustness check, we implement Sautner et al. (2023)-style')
             logger.info('   distance decay weighting over sentence windows of radius 2.')
             logger.info('   The Pearson correlation between uniform and decay-weighted')
-            logger.info(f'   dictionary sentiment exceeds {min_pr:.2f} across all five')
+            logger.info(f'   dictionary sentiment exceeds {min_pr:.2f} across all six')
             logger.info('   dictionaries, indicating that dictionary sentiment is insensitive')
             logger.info('   to the choice of distance-decay weights within this family.')
             logger.info('   This exercise uses sentence-level normalized scores at radius 2')
@@ -795,7 +815,7 @@ def log_correlation_report(score_df: pd.DataFrame, dict_names: list):
         # 恒 False 而落到错误档位。
         finite_pearsons = [float(p) for p in all_pearsons if np.isfinite(p)]
         n_nonfinite = len(all_pearsons) - len(finite_pearsons)
-        n_pairs = len(finite_pearsons)  # 算成且有限的 uniform-vs-衰减对数 (满编 = 5 词典 × 2 衰减 = 10)
+        n_pairs = len(finite_pearsons)  # 算成且有限的 uniform-vs-衰减对数 (满编 = 6 词典 × 2 衰减 = 12)
         expected_pairs = len(dict_names) * 2  # inverse + exponential 两对/词典
         logger.info("-" * 72)
         logger.info("【结果分析】距离衰减权重敏感性 (uniform vs inverse/exponential; Pearson 越接近 1 = 越不敏感):")
@@ -812,7 +832,7 @@ def log_correlation_report(score_df: pd.DataFrame, dict_names: list):
             # 并被 mean/min 拉低。切勿把"剔除致缺口"与"置 0.0 仍计入"混为同一档。
             n_gap = expected_pairs - n_pairs - n_nonfinite  # 被剔除致缺口的对数 (近似)
             logger.info(
-                f"  完成相关对 {n_pairs}/{expected_pairs} (满编 = 5 词典 × 2 衰减 = 10): "
+                f"  完成相关对 {n_pairs}/{expected_pairs} (满编 = {len(dict_names)} 词典 × 2 衰减 = {expected_pairs}): "
                 f"差额 {n_gap} 对 = 缺列或有效样本 n<10 被直接剔除 (不计入 n_pairs / mean / min); "
                 "零方差或异常对则 pr 置 0.0 仍计入 n_pairs 并进 mean/min (二者结果相反)"
             )
@@ -867,11 +887,11 @@ def main():
     """38b_decay_sensitivity 主流程。
 
     执行步骤:
-      1. 加载 5 套中文金融情感词典
+      1. 加载 6 套中文金融情感词典
       2. 注入领域词汇到 jieba 分词器
       3. 加载阶段 21 输出数据
       4. 过滤仅保留 LLM 验证通过的金融科技新闻
-      5. 对每篇文章计算 3 种衰减函数 × 5 词典 = 15 组情感得分
+      5. 对每篇文章计算 3 种衰减函数 × 6 词典 = 18 组情感得分
       6. 输出 Pearson/Spearman 相关性报告并保存 CSV
     """
     start_time = time.time()
@@ -882,8 +902,8 @@ def main():
     logger.info("阶段 38b: 距离衰减权重敏感性检验 (Sautner et al. 2023 JF §2.2; G-14)")
     logger.info("=" * 72)
     logger.info("【功能】算银行情感分时, 离银行名越远的句子是否该按距离'打折'计权? 本阶段对")
-    logger.info("        5 套词典各用 3 种衰减权重 (不打折/倒数/指数) 算一遍句级加权情感分,")
-    logger.info("        看三套分数相关性高不高, 产出 15 列得分矩阵 + Pearson/Spearman 相关报告。")
+    logger.info("        6 套词典各用 3 种衰减权重 (不打折/倒数/指数) 算一遍句级加权情感分,")
+    logger.info("        看三套分数相关性高不高, 产出 18 列得分矩阵 + Pearson/Spearman 相关报告。")
     logger.info("【方法】句级距离 d (radius=2 窗口) → 权重 w(d): uniform=1 / inverse=1/(1+d) /")
     logger.info("        exponential=exp(-0.5d); 加权得分 = Σ w(d)·tone(s) / Σ w(d), tone(s)=单句")
     logger.info("        否定/转折/程度三规则归一化分 (与 22_tone_words 对齐)。比 uniform vs 衰减的相关。")

@@ -867,10 +867,12 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'washing_asymmetry_ctx':            'Washing Asymmetry (Ctx)',
                 'tone_gap_symb_sub_full':           'Tone Gap: Symb-Sub (Full)',
                 'tone_gap_symb_sub_ctx':            'Tone Gap: Symb-Sub (Ctx)',
-                'washing_ratio_dict':               'WR: Dict 5-Avg (Full)',
-                'washing_ratio_dict_ctx':           'WR: Dict 5-Avg (Ctx)',
-                'washing_ratio_bert':               'WR: BERT 5-Avg (Full)',
-                'washing_ratio_bert_ctx':           'WR: BERT 5-Avg (Ctx)',
+                # 计数随聚合域: Dict-Avg = len(DICT_NAMES)=6 (encode.py 硬编码 6 部);
+                # BERT-Avg = len(BERT_MODELS)=3 默认 (encode.py, config 可增减)。
+                'washing_ratio_dict':               'WR: Dict 6-Avg (Full)',
+                'washing_ratio_dict_ctx':           'WR: Dict 6-Avg (Ctx)',
+                'washing_ratio_bert':               'WR: BERT 3-Avg (Full)',
+                'washing_ratio_bert_ctx':           'WR: BERT 3-Avg (Ctx)',
                 'washing_ratio_hc':                 'WR: Hi-Conf (Full)',
                 'washing_ratio_hc_ctx':             'WR: Hi-Conf (Ctx)',
                 # 文本类型与时间取向 (Categorical Dimensions)
