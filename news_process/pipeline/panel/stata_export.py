@@ -328,6 +328,8 @@ def build_variable_labels(
         'avg_named_entity_full':            "Named-Entity Density Full (specificity 实体子集; Hope 2016)",
         'avg_named_entity_ctx':             "Named-Entity Density Ctx (specificity 实体子集; Hope 2016)",
         'avg_named_entity_ss':              "Named-Entity Density same-sentence (specificity 实体子集; Hope 2016)",
+        # nonpolarity-dims WS-B2 (2026-06-20): Boilerplate Phrase Ratio 单轨 (Lang-Stice-Lawrence 2015 JAE)
+        'avg_boilerplate_full':             "Boilerplate Phrase Ratio Full (跨文档套话; LSL 2015)",
         # remove-title-track: title-indicator labels 已移除
         # ─────────────────────────────────────────────────────────────
         # 2026-05-29 双模型嵌入: text2vec 稳健 twin (主轨=text-embedding-3-small,
@@ -571,6 +573,9 @@ def assign_core_columns(df: pd.DataFrame, rename_map: Dict[str, str] = None) -> 
         # — 3 列三轨全进 core (avg_specificity 真子集机械相关 T=2 corr≈0.81, 稳健性用,
         #   勿与 avg_specificity 同进同一回归式)
         'avg_named_entity_full', 'avg_named_entity_ctx', 'avg_named_entity_ss',
+        # nonpolarity-dims WS-B2 (2026-06-20) Boilerplate Phrase Ratio (Lang-Stice-Lawrence 2015 JAE)
+        # — 单轨 full (套话集口径在 ctx/ss 子窗弱, by-design); 与 within_doc_redund/staleness 正交
+        'avg_boilerplate_full',
         # v3.7.2 R8-H1 全管道延伸: ctx 独立度信号 (entity-miss → ctx ≡ full → 该轨退化为 full)
         # ⚠ 与 intensity_verified_{full,ctx} 不同义:
         #    - frac_ctx_fallback: 上游 entity_context 提取失败 (Hassan 2019 QJE proximity)

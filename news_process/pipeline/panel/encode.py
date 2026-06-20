@@ -610,6 +610,10 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
         # Hope-Hu-Lu 2016 RAS. ⚠ 与 avg_specificity 高共线 (真子集), 回归不同进一式。
         agg[f'avg_named_entity{track}'] = (f'named_entity_ratio{track}', 'mean')
         agg[f'avg_within_doc_redund{track}'] = (f'within_doc_redundancy{track}', 'mean')
+        # nonpolarity-dims WS-B2: 跨文档套话比率 (Lang-Stice-Lawrence 2015 JAE) — **单轨 full**
+        # (套话集口径在 ctx/ss 子窗口意义弱, by-design); 仅 track=='_full' 登记一次, 短名 ≤32。
+        if track == '_full':
+            agg['avg_boilerplate_full'] = ('boilerplate_phrase_ratio_full', 'mean')
         # fix(hanzi-char-dual, 2026-06-13): 汉字口径篇内冗余 (剔数字/标点/拉丁后切3-gram),
         # 与上方字符口径 avg_within_doc_redund 互为"字符 vs 汉字"双口径稳健性。
         agg[f'avg_within_doc_redund_han{track}'] = (f'within_doc_redundancy_han{track}', 'mean')

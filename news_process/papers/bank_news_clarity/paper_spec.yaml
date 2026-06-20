@@ -123,6 +123,10 @@ treatment:
     # 稳健性对照, 因机械相关不与 avg_specificity 同进一式, 也不进下方 clarity composite_pca。
     - avg_named_entity_ctx          # complementary specificity (实体面)
     - avg_named_entity_full
+    # nonpolarity-dims WS-B2 (2026-06-20): 跨文档套话比率 (Lang-Stice-Lawrence 2015 JAE) —
+    # 套话越多→可证伪具体信息越少, 与 clarity 反向互补; 单轨 full (套话集口径在 ctx/ss 弱)。
+    # 与 within_doc_redundancy(篇内)/staleness(整篇相似度)正交; 不进 clarity composite_pca。
+    - avg_boilerplate_full          # 跨文档套话 (反向具体性稳健性)
 
   composite_pca:  # V4 F6.2 multiple testing
     method: "PCA on 6 alt clarity measures → 第一主成分作 composite_clarity_index (不含 avg_named_entity: 与 specificity 共线)"
