@@ -118,8 +118,9 @@ treatment:
     - mean_num_intensity_ctx        # 数值密度 Davis-Tama-Sweet 2012 CAR (complementary clarity; 原引 Hales 系误归)
     - mean_num_intensity_full
     # nonpolarity-dims (2026-06-20): 具名实体密度 = specificity 实体面 (Hope-Hu-Lu 2016 RAS),
-    # 与 mean_num_intensity (数字面) 互补刻画报道具体性。⚠ 与 avg_specificity 真子集高共线 →
-    # 仅作 specificity-face 稳健性对照, 不进下方 clarity composite_pca (避免共线污染主成分)。
+    # 与 mean_num_intensity (数字面) 互补刻画报道具体性。⚠ avg_specificity 真子集机械相关
+    # (T=2 实测 article corr≈0.81 / bank-year≈0.75-0.80, 中高非别名); 作 specificity-face
+    # 稳健性对照, 因机械相关不与 avg_specificity 同进一式, 也不进下方 clarity composite_pca。
     - avg_named_entity_ctx          # complementary specificity (实体面)
     - avg_named_entity_full
 

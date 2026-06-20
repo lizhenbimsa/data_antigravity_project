@@ -273,7 +273,8 @@ def _empty_result() -> dict[str, float]:
 # fix(nonpolarity-dims, 2026-06-20): 新增 'named_entity_ratio' (纯具名实体密度) —
 # specificity_index = (具名实体 + 硬数词)/实词; named_entity_ratio = 仅具名实体/实词,
 # 是 specificity_index 分子的真子集, 拆出"实体面"以与"数字面"(num_intensity) 正交。
-# 锚 Hope-Hu-Lu (2016 RAS). ⚠ 与 specificity_index 高共线 (真子集), 回归不同进一式, 须披露;
+# 锚 Hope-Hu-Lu (2016 RAS). ⚠ specificity_index 真子集 (机械相关; T=2 实测 article corr≈0.81),
+# 中高相关非别名 (信息量充分), 但因子集机械相关不与 specificity 同进同一回归式, 须披露;
 # 经 LEXICAL_COMPLEXITY_KEYS 自动物化为 *_full/*_ctx/*_ss (tone_words 三轨)。
 LEXICAL_COMPLEXITY_KEYS = (
     'rare_word_ratio', 'hard_char_ratio', 'nominalization_ratio',
@@ -429,7 +430,8 @@ def compute_lexical_complexity(content: str) -> dict[str, float]:
         'function_word_ratio': _safe_div(n_function, n_real),
         'specificity_index': _safe_div(n_entity, n_real),
         # named_entity_ratio: 纯具名实体密度 (specificity_index 实体子集分子, 不含硬数词);
-        # 锚 Hope-Hu-Lu (2016 RAS). ⚠ specificity_index 真子集 → 高共线, 不同进一回归。
+        # 锚 Hope-Hu-Lu (2016 RAS). ⚠ specificity_index 真子集 (机械相关, corr≈0.81 非别名),
+        # 不与 specificity 同进同一回归式。
         'named_entity_ratio': _safe_div(n_entity_only, n_real),
         'within_doc_redundancy': redundancy,
         # fix(omni-g-numlex-05): redundancy 的 log-length 控制变体 (非比率列)
