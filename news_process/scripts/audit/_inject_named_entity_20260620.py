@@ -5,6 +5,9 @@
   A 文章级: 重算 specificity_index == 盘上 (证 compute 路径 == 生产 stage 22)。
   B 面板级: 重算 avg_specificity (groupby bank-year mean) == 盘上 40_panel (证聚合 == encode)。
 两 gate 全过才注入 named_entity (同路径/同聚合)。任一 mismatch → SystemExit(1)。
+
+⚠ 运行: 须 `cd news_process` 后跑 (DD='data/processed' 为相对路径)。一次性留档脚本,
+  _insert_after 含幂等守卫 (已注入列再跑即 SystemExit, 勿在已注入盘面重跑)。
 """
 from __future__ import annotations
 
@@ -41,6 +44,10 @@ def _mismatch(a, b, tol=1e-9):
 
 
 def _insert_after(df, anchor, newcol, values):
+    # 幂等守卫 (code review 2026-06-20): 已含 newcol 时拒绝 (防重跑产重复列名);
+    # 本脚本为一次性外科注入留档, 勿在已注入数据上重跑 (须先从备份还原)。
+    if newcol in df.columns:
+        raise SystemExit(f"{newcol} 已存在 — 拒绝重复注入 (勿在已注入盘面重跑; 先还原备份)")
     cols = list(df.columns)
     df[newcol] = values
     pos = cols.index(anchor) + 1
