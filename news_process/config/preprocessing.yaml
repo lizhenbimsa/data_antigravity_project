@@ -8,6 +8,14 @@ preprocessing:
   min_lang_detect_length: 15                        # 语言检测所需的最小文本长度（字符数）
   sheet_name: Sheet1                                 # Excel 工作表名称
 
+  # --- 原始样本普查日志 (过滤前, 只读诊断) ---
+  # 运行 stage 00 时, 递归扫描 raw_data_dir (含 back/) 全部原始 Excel, 把『最初原始
+  # 所有 Excel 表格中的样本数据情况』(总量/来源/年份/媒体类型/地域/缺失/正文长度/精确
+  # 去重/逐文件明细) 写进 logs/00_preprocessing.log。纯只读统计, 不产出 parquet、不触发
+  # 任何过滤/去重, golden-safe。改 false 可跳过 (会省下一次对全量原始 Excel 的只读扫描)。
+  raw_census_logging: true
+  raw_census_workers: 10                             # 普查并行只读进程数 (不影响主处理)
+
   # --- 媒体类型过滤 ---
   # 仅保留的媒体类型列表（按"媒体类型(中文)"字段匹配，不在此列表中的类型将被排除），其他类型还包括APP、微博、政府、网页(U)、新闻通讯社、杂志。
   media_types_to_include:

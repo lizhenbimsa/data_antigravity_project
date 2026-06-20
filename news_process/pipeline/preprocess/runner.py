@@ -114,6 +114,7 @@ from news_process.core.logging import (
     log_and_time,
     log_memory_usage,
     log_stage_summary,
+    setup_logging,
 )
 from news_process.core.reporting import safe_save_preview_csv
 from news_process.pipeline.preprocess._constants import (
@@ -126,6 +127,7 @@ from news_process.pipeline.preprocess._constants import (
 )
 from news_process.pipeline.preprocess.dedup import ArticleDeduplicator
 from news_process.pipeline.preprocess.load import _process_single_file
+from news_process.pipeline.preprocess.raw_census import log_raw_corpus_census
 
 # ============================================================================
 # 增量缓存键 — config + 资源内容 + 清洗代码版本
@@ -420,6 +422,15 @@ def main() -> None:
     """主执行函数: 数据加载 → 文本标准化 → 过滤 → 去重."""
     stage_start = time.time()
 
+    # ── 让 stage 00 主进程真正落 logs/00_preprocessing.log ──
+    # _constants.py 的模块级 logger 恒以 console_only=True 配置 (防 ProcessPoolExecutor
+    # worker 并发写同一日志文件损坏); 但 stage 00 **主进程** 应像其它阶段一样落自己的
+    # 文件日志。此处在 main() 运行时 (非 import 时) 把同名单例 logger 升级为文件型
+    # (console_only=False, 每次运行覆盖) — worker 子进程仍各自 console_only (它们重新
+    # import _constants, 是独立进程, 不受此影响), 故无并发写文件冲突。
+    # 仅在真正运行 main() 时触发 (import 本模块/被测试导入不会写文件)。
+    setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"], console_only=False, file_mode="w")
+
     # ── 黄金范式【功能】banner (golden-safe: 纯日志; 单一权威 banner, 替换旧 emoji 概览) ──
     logger.info("=" * 72)
     logger.info("阶段 00: 数据预处理 (DAG 根阶段; MinHash LSH, Broder 1997)")
@@ -443,6 +454,25 @@ def main() -> None:
     logger.info("=" * 72)
 
     log_memory_usage(logger, "阶段启动")
+
+    # ── 原始 Excel 全量样本普查 (过滤前; 只读, golden-safe 纯日志) ──
+    # 用户需求 (2026-06-20): 运行 stage 00 时, 真正把『最初原始所有 Excel 表格中的样本
+    # 数据情况』(总量/来源/年份/媒体类型/地域/缺失/正文长度/去重/逐文件) 写进本阶段日志,
+    # 为 data appendix / 样本透明性供数。递归扫描 raw_data_dir (含 back/) 全部原始 Excel,
+    # 只读统计, 不产出 parquet、不触发任何过滤/去重。整体 try/except + 配置开关守护:
+    # 失败或关闭都不影响主处理 (纯诊断, 决不能拖垮 DAG 根阶段)。
+    if PARAMS.get('raw_census_logging', True):
+        try:
+            _census_workers = PARAMS.get('raw_census_workers', min(os.cpu_count() or 4, 10))
+            log_raw_corpus_census(
+                logger, CONFIG['paths']['raw_data_dir'],
+                set(PARAMS.get('mainland_china_regions', [])),
+                workers=_census_workers,
+            )
+        except Exception as _e:  # noqa: BLE001 — 普查仅诊断, 绝不阻断预处理
+            logger.warning(f"[原始普查] 执行失败, 跳过 (不影响后续处理): {_e}")
+    else:
+        logger.info("[原始普查] raw_census_logging=false, 跳过原始样本普查日志。")
 
     output_dir = CONFIG['paths']['output_dir']
     os.makedirs(output_dir, exist_ok=True)
