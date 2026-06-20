@@ -247,6 +247,7 @@ def _empty_result() -> dict[str, float]:
         'nominalization_ratio': float('nan'),
         'function_word_ratio': float('nan'),
         'specificity_index': float('nan'),
+        'named_entity_ratio': float('nan'),
         'within_doc_redundancy': float('nan'),
         'redundancy_log_length': float('nan'),
         'within_doc_redundancy_han': float('nan'),
@@ -269,9 +270,15 @@ def _empty_result() -> dict[str, float]:
 # within_doc_redundancy_han 再由 encode 聚合到面板。
 # ⚠ 此处"双口径"= char vs han (字符 vs 汉字) 计量口径, 与 full/ctx/ss 三轨是正交两轴,
 #   勿混淆 (汉字/字符双口径 × 三轨 = 6 个派生组合)。
+# fix(nonpolarity-dims, 2026-06-20): 新增 'named_entity_ratio' (纯具名实体密度) —
+# specificity_index = (具名实体 + 硬数词)/实词; named_entity_ratio = 仅具名实体/实词,
+# 是 specificity_index 分子的真子集, 拆出"实体面"以与"数字面"(num_intensity) 正交。
+# 锚 Hope-Hu-Lu (2016 RAS). ⚠ 与 specificity_index 高共线 (真子集), 回归不同进一式, 须披露;
+# 经 LEXICAL_COMPLEXITY_KEYS 自动物化为 *_full/*_ctx/*_ss (tone_words 三轨)。
 LEXICAL_COMPLEXITY_KEYS = (
     'rare_word_ratio', 'hard_char_ratio', 'nominalization_ratio',
-    'function_word_ratio', 'specificity_index', 'within_doc_redundancy',
+    'function_word_ratio', 'specificity_index', 'named_entity_ratio',
+    'within_doc_redundancy',
     'redundancy_log_length', 'within_doc_redundancy_han',
     'redundancy_han_log_length', 'adversative_ratio',
 )
@@ -376,6 +383,7 @@ def compute_lexical_complexity(content: str) -> dict[str, float]:
     n_nominal = 0       # 名词化 token 数
     n_function = 0      # 功能词 token 数
     n_entity = 0        # 具名实体 + 数词 token 数 (specificity 分子)
+    n_entity_only = 0   # 仅具名实体 token 数 (named_entity_ratio 分子, specificity 真子集)
     n_adversative = 0   # 逆接连词 token 数
     for w, f in real_pairs:
         # 1) rare_word: 词频 <= cutoff (OOV freq=0 也命中)
@@ -394,6 +402,9 @@ def compute_lexical_complexity(content: str) -> dict[str, float]:
         # 一些/许多/若干/几X/数X 等模糊量词 — 构念上属 vague 侧, 不是硬信息)。
         if f in _ENTITY_FLAGS or (f and f[0] == 'm' and _is_hard_m_token(w)):
             n_entity += 1
+        # 5b) named_entity: 仅具名实体 (nr/ns/nt/nz), 不含硬数词 — specificity 真子集分子
+        if f in _ENTITY_FLAGS:
+            n_entity_only += 1
         # 7) adversative: 命中独立逆接词表
         if w in _ADVERSATIVE_WORDS:
             n_adversative += 1
@@ -417,6 +428,9 @@ def compute_lexical_complexity(content: str) -> dict[str, float]:
         'nominalization_ratio': _safe_div(n_nominal, n_real),
         'function_word_ratio': _safe_div(n_function, n_real),
         'specificity_index': _safe_div(n_entity, n_real),
+        # named_entity_ratio: 纯具名实体密度 (specificity_index 实体子集分子, 不含硬数词);
+        # 锚 Hope-Hu-Lu (2016 RAS). ⚠ specificity_index 真子集 → 高共线, 不同进一回归。
+        'named_entity_ratio': _safe_div(n_entity_only, n_real),
         'within_doc_redundancy': redundancy,
         # fix(omni-g-numlex-05): redundancy 的 log-length 控制变体 (非比率列)
         'redundancy_log_length': redundancy_log_len,

@@ -43,6 +43,20 @@ def test_all_keys_present_and_in_range():
     assert all(_finite_or_nan_in_unit(r[k]) for k in ratio_keys)
     assert r['redundancy_log_length'] > 0  # 该样例 > 3 字 → ln(长度) 有限正值
     assert r['redundancy_han_log_length'] > 0  # 该样例 ≥ 3 汉字 → ln(汉字数) 有限正值
+
+
+def test_named_entity_ratio_is_subset_of_specificity():
+    """named_entity_ratio (纯具名实体) 必为 specificity_index (实体+硬数词) 的真子集分子,
+    故 named_entity_ratio ≤ specificity_index 恒成立 (fix nonpolarity-dims 2026-06-20)。"""
+    r = compute_lexical_complexity(
+        "中国工商银行与腾讯金融科技在深圳签署2017年战略合作协议，涉及金额约35亿元。"
+    )
+    assert 'named_entity_ratio' in _ALL_KEYS
+    assert _finite_or_nan_in_unit(r['named_entity_ratio'])
+    # 真子集: 实体密度 ≤ (实体+硬数词) 密度
+    assert r['named_entity_ratio'] <= r['specificity_index'] + 1e-9
+    # 含明确实体 (工商银行/腾讯/深圳) 的样例应 > 0
+    assert r['named_entity_ratio'] > 0
     assert r[WORD_COUNT_KEY] >= 1.0  # 该样例有多个词
     assert r[HAN_COUNT_KEY] >= 1.0  # 该样例有多个汉字 (汉字口径文章长度)
 

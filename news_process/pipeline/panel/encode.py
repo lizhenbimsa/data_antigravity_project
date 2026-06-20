@@ -606,6 +606,9 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
         agg[f'avg_nominalization{track}'] = (f'nominalization_ratio{track}', 'mean')
         agg[f'avg_function_word{track}'] = (f'function_word_ratio{track}', 'mean')
         agg[f'avg_specificity{track}'] = (f'specificity_index{track}', 'mean')
+        # fix(nonpolarity-dims, 2026-06-20): 纯具名实体密度 (specificity 实体面, 不含硬数词);
+        # Hope-Hu-Lu 2016 RAS. ⚠ 与 avg_specificity 高共线 (真子集), 回归不同进一式。
+        agg[f'avg_named_entity{track}'] = (f'named_entity_ratio{track}', 'mean')
         agg[f'avg_within_doc_redund{track}'] = (f'within_doc_redundancy{track}', 'mean')
         # fix(hanzi-char-dual, 2026-06-13): 汉字口径篇内冗余 (剔数字/标点/拉丁后切3-gram),
         # 与上方字符口径 avg_within_doc_redund 互为"字符 vs 汉字"双口径稳健性。
