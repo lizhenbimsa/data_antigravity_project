@@ -324,6 +324,10 @@ def build_variable_labels(
         # v3.5.1 A3 Numerical Intensity (数值披露强度; 引文勘误见 codebook reference) 三轨 (full/ctx/ss)
         'mean_num_intensity_full':          "Mean Numerical Intensity Full (three-track)",
         'mean_num_intensity_ctx':           "Mean Numerical Intensity Ctx (three-track)",
+        # nonpolarity-dims (2026-06-20): Named-Entity Density (Hope-Hu-Lu 2016 RAS; specificity 实体面)
+        'avg_named_entity_full':            "Named-Entity Density Full (specificity 实体子集; Hope 2016)",
+        'avg_named_entity_ctx':             "Named-Entity Density Ctx (specificity 实体子集; Hope 2016)",
+        'avg_named_entity_ss':              "Named-Entity Density same-sentence (specificity 实体子集; Hope 2016)",
         # remove-title-track: title-indicator labels 已移除
         # ─────────────────────────────────────────────────────────────
         # 2026-05-29 双模型嵌入: text2vec 稳健 twin (主轨=text-embedding-3-small,
@@ -563,6 +567,9 @@ def assign_core_columns(df: pd.DataFrame, rename_map: Dict[str, str] = None) -> 
         'frac_amb_articles_full', 'frac_amb_articles_ctx', 'frac_amb_articles_ss',
         # v3.5.1 A3 Numerical Intensity (数值披露强度) — 3 列 (三轨 full/ctx/ss) 全进 core
         'mean_num_intensity_full', 'mean_num_intensity_ctx', 'mean_num_intensity_ss',
+        # nonpolarity-dims (2026-06-20) Named-Entity Density (specificity 实体面; Hope 2016 RAS)
+        # — 3 列三轨全进 core (与 avg_specificity 高共线, 诊断/稳健性用, 勿同进一回归)
+        'avg_named_entity_full', 'avg_named_entity_ctx', 'avg_named_entity_ss',
         # v3.7.2 R8-H1 全管道延伸: ctx 独立度信号 (entity-miss → ctx ≡ full → 该轨退化为 full)
         # ⚠ 与 intensity_verified_{full,ctx} 不同义:
         #    - frac_ctx_fallback: 上游 entity_context 提取失败 (Hassan 2019 QJE proximity)
