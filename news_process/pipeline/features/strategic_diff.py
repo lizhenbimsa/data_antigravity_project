@@ -81,6 +81,9 @@
     → 图 1: BERTopic 余弦相似度 → 技术布局引导, 本模块迁移为行业质心距离
 
 输出列 (~50 列; 含 2026-05-29 双模型新增的 text2vec 稳健 twin 列)。
+口径披露 (fix inject-fintech-word-lda, 2026-06-21): **全部 word 级 TF-IDF 列 (*_w) 与全部 LDA 列
+(*_lda) 自 2026-06-21 起改用注入 1506 金科词的独立分词器** (见 _get_diff_tokenizer), 领域复合词
+(金融科技/区块链 等) 整词保留, 与 char 轨 (char_wb)/embedding 轨领域感知口径一致; char/emb 列字节不变。
 值域口径 (fix(omni-g-strategic-02/03), 2026-06-11): TF-IDF/LDA 轨 (非负向量/分布)
 ∈ [0,1]; **Embedding 轨余弦真值域 [-1,1]** → 相似度列 (strat_sim_max_emb*, coh_emb*)
 ∈ [-1,1], 距离列 (strat_diff_*_emb*, centroid_diff_emb*, strat_diff_t2v_*) ∈ [0,2]
@@ -173,6 +176,7 @@ import logging
 import os
 import re
 import sys
+import threading
 
 import jieba
 import numpy as np
@@ -307,17 +311,73 @@ _STOPWORDS = {'的', '了', '在', '是', '和', '与', '为', '对', '等',
               '将', '也', '及', '到', '从', '中', '上', '下', '不'}
 
 
+# ── 领域注入的独立 jieba Tokenizer (fix inject-fintech-word-lda, 2026-06-21) ──
+# 旧实现 _jieba_tokenizer 走裸全局 jieba.lcut, 默认词典把绝大多数中文金科复合词切碎
+# (实测 1381/1480 ≥3 字金科词被切, 如 金融科技→金融/科技 · 区块链→区块/链), 致 word 级
+# TF-IDF/LDA 稳健性对照轨的词表与 char 轨/embedding 轨**领域感知口径不一致**。修复: 把
+# fintech_dict.json (1506 词, 与 stage 11/14/15 同源单一事实源) 注入一个**独立** jieba.Tokenizer
+# 实例 (不污染全局 jieba.dt — 镜像 tone_words._get_tone_tokenizer / lexical_complexity
+# ._get_pristine_tokenizer 既有最佳实践), 让 word/LDA 轨看到整词领域复合词。
+# 影响列 = 全部 *_w (word TF-IDF) + 全部 *_lda 列 (含 ctx/ss/policy_similarity 复用)；
+# char 轨 (char_wb n-gram, 不经本 tokenizer) 与 embedding 轨**字节不变** (经验探针 C1 已证)。
+# 确定性来源 = 懒单例 (进程内只注入一次) + 词典文件确定序 + jieba==0.42.1 冻结
+# (add_word 本身**非幂等** FREQ 累加, 但单例只构建一次故无累加; 探针 C2/C3/C4: 注入态两跑 bit 一致)。
+# 6 个含空格/顿号关键词 (Open Banking 等) add_word 后仍被块切分正则切开退化为子 token,
+# bag-of-words 场景无害 (与未注入等价), 故无需 matchable/unmatchable 分区。
+# 权威计划 = scripts/audit/INJECT_FINTECH_DICT_WORD_LDA_TRACKS_PLAN_2026-06-21.md (三轮审核 + 经验实测)。
+_DIFF_TOKENIZER_LOCK = threading.RLock()  # RLock: 防 sklearn joblib 线程并行 fit 时注入竞态
+_DIFF_TOKENIZER: "jieba.Tokenizer | None" = None
+
+
+def _get_diff_tokenizer() -> "jieba.Tokenizer":
+    """返回注入了金科词的独立 jieba.Tokenizer (lazy 单例, DCL 锁)。
+
+    fix(inject-fintech-word-lda, 2026-06-21): 领域词注入只进此实例, 全局 jieba.dt 保持纯净。
+    词典缺失 (load_fintech_dict 返回空) → loud WARNING + 退化为未注入 Tokenizer, **绝不 raise**
+    (优雅降级, 镜像 ctx_materializer 的 FINTECH_AC=None 安全语义)。
+    """
+    global _DIFF_TOKENIZER
+    if _DIFF_TOKENIZER is None:
+        with _DIFF_TOKENIZER_LOCK:
+            if _DIFF_TOKENIZER is None:
+                tk = jieba.Tokenizer()
+                try:
+                    from news_process.core.text.ahocorasick import load_fintech_dict
+                    _dict_path = CONFIG['paths'].get('fintech_dict_file', '')
+                    fintech_keywords, _ = load_fintech_dict(_dict_path)
+                    if not fintech_keywords:
+                        # fix(impl-attestation P2, 2026-06-21): 空/缺失词典 load_fintech_dict
+                        # 返回 [] **不抛异常** → 必须显式 loud WARNING (否则只落静默 INFO,
+                        # 与 docstring 承诺的"词典缺失 loud WARNING"不符, 留失明窗)。
+                        logger.warning(
+                            f"    [strategic_diff] 金科词典为空或缺失 ({_dict_path!r}); "
+                            f"word/LDA 轨退化为未注入 jieba (领域复合词将被切碎, 口径回退旧态)")
+                    else:
+                        for _kw in fintech_keywords:
+                            tk.add_word(_kw)
+                        logger.info(
+                            f"    [strategic_diff] word/LDA 轨分词器已注入 {len(fintech_keywords)} "
+                            f"个金科词 (独立实例, 全局 jieba 纯净)")
+                except Exception as e:  # noqa: BLE001
+                    logger.warning(
+                        f"    [strategic_diff] 金科词注入失败 ({type(e).__name__}: {e}); "
+                        f"word/LDA 轨退化为未注入 jieba (领域复合词将被切碎, 口径回退旧态)")
+                _DIFF_TOKENIZER = tk
+    return _DIFF_TOKENIZER
+
+
 def _jieba_tokenizer(text: str) -> list[str]:
     """jieba 中文分词 + 停用词过滤 (Chinese Tokenizer with Stopword Filtering)。
 
-    【术语】基于 jieba 的中文分词器，保留 len≥2 的 token 并移除停用词，
-      符合 NLP 中文文本预处理的标准做法 (Gentzkow et al. 2019, JEL)。
+    【术语】基于**注入金科词的独立 jieba 实例** (见 ``_get_diff_tokenizer``) 的中文分词器,
+      保留 len≥2 的 token 并移除停用词, 符合 NLP 中文文本预处理的标准做法 (Gentzkow et al. 2019, JEL)。
     【白话】把一段中文文本切成一个个词语，然后：
       - 扔掉单个字（如"的""了"），因为单字没啥意义
       - 扔掉停用词（如"和""在"），只保留有意义的词
-    例如: "银行的金融科技" → ["银行", "金融", "科技"]
+      - **领域复合词整体保留**（如"金融科技""区块链"不再被切碎），与 char/embedding 轨口径一致
+    例如: "银行的金融科技" → ["银行", "金融科技"] (注入后; 旧裸 jieba 为 ["银行","金融","科技"])
     """
-    return [w for w in jieba.lcut(text) if len(w) >= 2 and w not in _STOPWORDS]
+    return [w for w in _get_diff_tokenizer().cut(text) if len(w) >= 2 and w not in _STOPWORDS]
 
 
 def _l2_normalize(m: np.ndarray) -> np.ndarray:

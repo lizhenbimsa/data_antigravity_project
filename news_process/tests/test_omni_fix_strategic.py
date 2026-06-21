@@ -447,3 +447,78 @@ class TestDisclosures:
         doc = sd._aggregate_bank_year_texts.__doc__
         assert '只计一次' in doc
         assert 'co_mention_downweight' in doc
+
+
+# ---------------------------------------------------------------------------
+# inject-fintech-word-lda (2026-06-21): word/LDA 轨注入金科词回归锁
+# 白话: word 级稳健性轨改用"注入了金融科技词典的独立分词器", 让"金融科技""区块链"
+# 这类领域复合词整体保留(不再被裸 jieba 切成"金融"+"科技"), 与 char/embedding 轨口径一致;
+# 注入只进独立实例, 全局 jieba 保持纯净; 结果跨调用确定。
+# ---------------------------------------------------------------------------
+
+class TestFintechInjectionWordLDA:
+
+    def test_injection_takes_effect_whole_compound(self):
+        # 注入后金科复合词整词保留 (核心修复断言)
+        toks = sd._jieba_tokenizer('银行的金融科技战略推进区块链')
+        assert '金融科技' in toks, '注入后"金融科技"应为整词 token'
+        assert '区块链' in toks, '注入后"区块链"应为整词 token'
+        # 旧裸 jieba 行为 (切碎) 不应再出现为孤立子词
+        assert '金融' not in toks and '科技' not in toks, \
+            '注入后不应再把"金融科技"切成孤立的"金融"/"科技"'
+
+    def test_global_jieba_stays_pure_isolation(self):
+        # 隔离: 注入只进独立实例, 全局 jieba 仍切碎 (不污染 posseg/FLS 等全局消费者)
+        import jieba
+        sd._get_diff_tokenizer()  # 触发注入
+        assert list(jieba.cut('金融科技')) == ['金融', '科技'], \
+            '全局 jieba 应保持纯净 (注入只进 _DIFF_TOKENIZER 独立实例)'
+
+    def test_injected_tokenizer_deterministic(self):
+        # 注入态两次分词逐 token 一致 (确定性 → golden 可复现前提)
+        s = '移动支付与智能投顾及开放银行的数字化转型布局'
+        assert sd._jieba_tokenizer(s) == sd._jieba_tokenizer(s)
+
+    def test_stopword_and_len_filter_preserved(self):
+        # len>=2 + 停用词过滤规则保持不变 (注入不改这两条)
+        toks = sd._jieba_tokenizer('的 在 和 区块链')
+        assert '的' not in toks and '在' not in toks and '和' not in toks
+        assert '区块链' in toks
+
+    def test_diff_tokenizer_singleton(self):
+        # DCL 单例: 多次取同一实例
+        assert sd._get_diff_tokenizer() is sd._get_diff_tokenizer()
+
+    def test_inject_disclosure_in_docstring(self):
+        # 口径变更须在 docstring 留痕 (可审计)
+        assert '金科' in sd._get_diff_tokenizer.__doc__ or '注入' in sd._get_diff_tokenizer.__doc__
+        assert '金融科技' in sd._jieba_tokenizer.__doc__
+
+    def test_no_bare_global_jieba_in_tokenizer_source(self):
+        # 源码级回归锁 (镜像 tone_words 的 'jieba.cut(' not in src): _jieba_tokenizer
+        # 不得回退到裸全局 jieba.lcut/jieba.cut, 必须经 _get_diff_tokenizer 独立实例。
+        src = inspect.getsource(sd._jieba_tokenizer)
+        assert 'jieba.lcut' not in src and 'jieba.cut' not in src, \
+            '_jieba_tokenizer 不得直接调裸全局 jieba (须走 _get_diff_tokenizer 注入实例)'
+        assert '_get_diff_tokenizer' in src
+
+    def test_empty_dict_graceful_degrade_loud_warning(self, monkeypatch):
+        # 优雅降级 (impl-attestation P2): 词典空/缺失 → loud WARNING + 不 raise +
+        # 仍返回可用(未注入) Tokenizer。验证 docstring 承诺的 "loud WARNING" 兑现。
+        # 直接 spy 模块 logger.warning (项目 logger propagate=False, caplog 不可靠)。
+        import news_process.core.text.ahocorasick as _ahoc
+        monkeypatch.setattr(_ahoc, 'load_fintech_dict', lambda *_a, **_k: ([], None))
+        warns: list[str] = []
+        monkeypatch.setattr(sd.logger, 'warning', lambda msg, *_a, **_k: warns.append(str(msg)))
+        sd._DIFF_TOKENIZER = None  # 强制重建以走 patched 路径
+        try:
+            tk = sd._get_diff_tokenizer()           # 不应 raise
+            assert tk is not None
+            # 降级后仍可用 **且确为未注入态** (强断言: 金科复合词应被裸 jieba 切碎,
+            # 证明走的是降级路径而非误用了注入实例) — closeout P3-a 加固原 tautology 断言。
+            assert list(tk.cut('金融科技')) == ['金融', '科技'], \
+                '降级 tokenizer 应为未注入态 (金融科技 被切碎), 且可用'
+            assert any('为空或缺失' in w or '退化' in w for w in warns), \
+                f'空词典须发 loud WARNING (非静默 INFO); 实捕获: {warns}'
+        finally:
+            sd._DIFF_TOKENIZER = None  # 清掉降级实例, 让后续测试重建真注入实例
