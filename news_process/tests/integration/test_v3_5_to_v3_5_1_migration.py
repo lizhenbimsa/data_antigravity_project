@@ -1,12 +1,11 @@
 """tests/integration/test_v3_5_to_v3_5_1_migration.py — v3.5.0 → v3.5.1 迁移单测.
 
-测试覆盖 (6 tests, per plan v0.3 §4.1):
+测试覆盖 (5 tests, per plan v0.3 §4.1; 2026-06-21 删 1 个 Stata IC ≤2048 测试 — 该机制已退役):
     1. 加载旧 panel (无 8 列) auto graceful skip; v3.5.1 加列 idempotent
     2. golden v0 → v1 hash schema-additive check (v0 archived 不删, parametrize 双轨)
     3. 双 idempotent: apply_v3_5_1 重复调用结果不变
     4. median_amb_d0 sidecar JSON 存在性 + 路径校验 (修 C1' panel.attrs 序列化丢失)
-    5. Stata IC core ≤ 2048 (修 R9)
-    6. HEURISTIC_LABELS 与 var_label_map 同步 (修 H2' 单 SoT)
+    5. HEURISTIC_LABELS 与 var_label_map 同步 (修 H2' 单 SoT)
 """
 from __future__ import annotations
 
@@ -109,26 +108,6 @@ def test_sidecar_json_path_exists_or_created():
     assert 'stage21_last_run_timestamp' in sidecar
     assert 'a1_clarity_panel_cols' in sidecar
     assert 'a3_num_intensity_panel_cols' in sidecar
-
-
-def test_stata_ic_core_below_2048():
-    """v3.5.1 +8 后 core ≤ STATA_IC_MAX_VARS = 2048 (修 R9)."""
-    from news_process.pipeline.panel.stata_export import (
-        STATA_IC_MAX_VARS,
-        assign_core_columns,
-    )
-    # 模拟 panel 含全部 v3.5.1 8 新列
-    a1_a3_cols = [
-        'mean_clarity_score_full', 'mean_clarity_score_ctx',
-        'mean_frac_definite_full', 'mean_frac_definite_ctx',
-        'frac_amb_articles_full', 'frac_amb_articles_ctx',
-        'mean_num_intensity_full', 'mean_num_intensity_ctx',
-    ]
-    df = pd.DataFrame(columns=a1_a3_cols + ['target_bank', 'year'])
-    core = assign_core_columns(df)
-    assert len(core) <= STATA_IC_MAX_VARS, (
-        f"v3.5.1 后 core 列数 {len(core)} 超 IC max {STATA_IC_MAX_VARS}"
-    )
 
 
 def test_heuristic_labels_export_stata_labels_sync():

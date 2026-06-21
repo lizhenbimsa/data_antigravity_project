@@ -4,7 +4,7 @@
     - 类别变量编码 (中文 str → byte 0/1)
     - variable labels ≤ 80 字符
     - 列名 ≤ 32 字符
-    - core 列归属 (assign_core_columns, 供 codebook is_core; 2026-06-12 起单一全列 .dta, 不再写独立切分)
+    - codebook .xlsx 生成 (2026-06-21: 取消 is_core 核心/辅助区分, 全列均为分析列)
     - labels .do 文件生成
     - 编码方向 (R32-B: 0=baseline, 1=对照)
 
@@ -113,11 +113,24 @@ def test_column_name_length_under_32(mock_panel):
     assert not too_long, f"列名超 32 字符: {too_long}"
 
 
-def test_core_columns_fit_ic(mock_panel):
-    """plan v14 §9.1 + §9.5 (R42-A): core 列 ≤ 2048 (Stata IC 兼容)."""
-    from news_process.pipeline.panel.stata_export import STATA_IC_MAX_VARS, assign_core_columns
-    core = assign_core_columns(mock_panel)
-    assert len(core) <= STATA_IC_MAX_VARS, f"Core 列数 {len(core)} 超 IC 限 {STATA_IC_MAX_VARS}"
+def test_codebook_xlsx_has_no_is_core_column(tmp_path):
+    """2026-06-21: codebook 取消 is_core 列 — 即便某列不属于任何旧"核心"子集, codebook
+    也不再输出 is_core 区分列 (assign_core_columns / core_patterns 已整体退役)。
+
+    可判别回归: 改动前 codebook 含 is_core 列 (该断言会失败); 改动后 is_core 列消失。
+    构造一个绝不属于旧 core_patterns 的列 some_aux_col 作判别哨兵。
+    """
+    import pandas as pd
+
+    from news_process.pipeline.panel.stata_export import _write_codebook_xlsx
+    df = pd.DataFrame({'target_bank': ['A'], 'year': [2020], 'some_aux_col': [1.0]})
+    out = tmp_path / 'codebook.xlsx'
+    _write_codebook_xlsx(df, {}, {}, str(out))  # 新签名: 无 core_cols 形参
+    cb = pd.read_excel(out)
+    assert 'is_core' not in cb.columns, "codebook 不应再有 is_core 列 (核心/辅助区分已取消)"
+    # 反查列等既有 schema 仍在 (回归保护)
+    assert 'var_name' in cb.columns and 'original_name' in cb.columns
+    assert set(cb['var_name']) == {'target_bank', 'year', 'some_aux_col'}
 
 
 def test_labels_do_file_generated(mock_panel, tmp_path):
@@ -448,9 +461,8 @@ def test_write_codebook_rename_map_none_default(tmp_path, mock_panel):
     )
     var_labels = build_variable_labels(mock_panel)
     out = tmp_path / 'codebook.xlsx'
-    # 不传 rename_map → 走 None 默认值 + line 619-620 fallback
-    _write_codebook_xlsx(mock_panel, var_labels, {}, list(mock_panel.columns),
-                          str(out), rename_map=None)
+    # 不传 rename_map → 走 None 默认值 fallback (2026-06-21: 签名已去 core_cols 形参)
+    _write_codebook_xlsx(mock_panel, var_labels, {}, str(out), rename_map=None)
     assert out.exists()
 
 

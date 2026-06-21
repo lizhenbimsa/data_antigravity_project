@@ -1053,13 +1053,13 @@ def apply_v3_5_2(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
 
     把 article 级 LM/FLS frac 列按简单均值聚合到 bank-year panel
     (输出列名与 article 源列**同名**, dst_col = src_col, 无 _panel 后缀 —
-    与 stata_export.py core_patterns 注册名一致):
+    与下游 Stata/codebook 既有契约期待的列名一致):
         LM 6 子词典 × 3 轨 (full, ctx, ss) = 18 个 panel 列:
             uncert_frac / litig_frac / constr_frac / modal_strong_frac /
             modal_weak_frac / complexity_frac  各 × {full,ctx,ss} (mean)
         FLS × 3 轨 = 3 个 panel 列: frac_fls_{full,ctx,ss} (mean)
 
-    这些 panel 列已在 stata_export.py 注册 core_patterns
+    这些 panel 列为下游 Stata/codebook 既有契约
     (即下游 Stata 已期待这些列存在)。
 
     _ss 第三轨 (v3.10.0): LM/FLS 非情感 lexicon 族**亦产 _ss** —— 这是用户
@@ -1099,7 +1099,7 @@ def apply_v3_5_2(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
     for k in LM_KEYS:
         for track in TRACKS:
             src_col = f'{k}_frac_{track}'
-            dst_col = src_col  # 与 stata_export.py core_patterns 一致
+            dst_col = src_col  # 与下游 Stata/codebook 既有契约列名一致
             if src_col in df.columns:
                 agg_dict[dst_col] = (src_col, 'mean')
                 added_cols.append(dst_col)

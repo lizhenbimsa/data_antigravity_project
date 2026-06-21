@@ -1,14 +1,12 @@
 """tests/test_stata_export_v3_5_1.py — v3.5.1 Stata 层契约测试 (修 R5-H3 + H2' + M3').
 
-测试覆盖 (8 tests):
-    1. 8 新列 in core_patterns
-    2. 8 HEURISTIC_LABELS entries 存在 + ≤ 80 UTF-8 bytes
-    3. 8 列名 ≤ 32 char (Stata 变量名限制, 修 M3')
-    4. core 数 +8 ≤ STATA_IC_MAX_VARS = 2048 (修 R9 + plan v0.3 §1.3)
-    5. stata_export.py HEURISTIC_LABELS 与 export.py STATA_LABELS 8 entries 一致 (修 H2')
-    6. value_label 字典不被新列污染
-    7. 旧 panel (无 8 列) export graceful (修 plan v0.1 漏)
-    8. codebook 与 HEURISTIC_LABELS 同步 (修 H2' 单 SoT 精神)
+测试覆盖 (6 tests; 2026-06-21 删 2 个 core_patterns/STATA_IC_MAX_VARS 测试 — 该机制已退役):
+    1. 8 HEURISTIC_LABELS entries 存在 + ≤ 80 UTF-8 bytes
+    2. 8 列名 ≤ 32 char (Stata 变量名限制, 修 M3')
+    3. stata_export.py HEURISTIC_LABELS 与 export.py STATA_LABELS 8 entries 一致 (修 H2')
+    4. value_label 字典不被新列污染
+    5. 旧 panel (无 8 列) build_variable_labels graceful (修 plan v0.1 漏)
+    6. codebook 与 HEURISTIC_LABELS 同步 (修 H2' 单 SoT 精神)
 """
 from __future__ import annotations
 
@@ -25,14 +23,6 @@ A1_A3_NEW_COLS = [
 ]
 
 
-def test_a1_a3_cols_in_core_patterns():
-    """8 新列在 stata_export.assign_core_columns 的白名单中."""
-    df = pd.DataFrame(columns=A1_A3_NEW_COLS)
-    core = stata_export.assign_core_columns(df)
-    for col in A1_A3_NEW_COLS:
-        assert col in core, f"{col} not in core_patterns"
-
-
 def test_a1_a3_labels_in_heuristic():
     """8 HEURISTIC_LABELS entries 存在 + ≤ 80 UTF-8 bytes."""
     df = pd.DataFrame(columns=A1_A3_NEW_COLS)
@@ -47,14 +37,6 @@ def test_a1_a3_col_names_under_32_chars():
     """8 列名 ≤ 32 char (Stata 变量名限制, 修 M3')."""
     for col in A1_A3_NEW_COLS:
         assert len(col) <= 32, f"{col} ({len(col)} chars) > 32 Stata limit"
-
-
-def test_core_count_below_stata_ic_max():
-    """core 列数 + 8 ≤ STATA_IC_MAX_VARS = 2048 (修 R9 + plan §1.3)."""
-    # 模拟现 v3.5.0 panel + 8 新列
-    df = pd.DataFrame(columns=A1_A3_NEW_COLS + ['target_bank', 'year', 'n_articles'])
-    core = stata_export.assign_core_columns(df)
-    assert len(core) <= stata_export.STATA_IC_MAX_VARS
 
 
 def test_heuristic_labels_match_export_stata_labels():
@@ -86,14 +68,13 @@ def test_value_label_dict_uncontaminated():
 
 
 def test_old_panel_without_a1_a3_graceful():
-    """旧 panel (无 8 列) 调用 build_variable_labels / assign_core_columns 不抛 (修 plan v0.1 漏)."""
+    """旧 panel (无 8 列) 调用 build_variable_labels 不抛 (修 plan v0.1 漏)."""
     old_df = pd.DataFrame(columns=['target_bank', 'year', 'foo', 'bar'])
     # 不抛
     labels = stata_export.build_variable_labels(old_df)
-    core = stata_export.assign_core_columns(old_df)
-    # 8 新列既不在 labels 也不在 core (因为 old_df 不含)
+    # 8 新列不在 labels (因为 old_df 不含)
     for col in A1_A3_NEW_COLS:
-        assert col not in core
+        assert col not in labels
 
 
 def test_codebook_consistency_with_heuristic():

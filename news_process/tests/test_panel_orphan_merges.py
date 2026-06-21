@@ -1,7 +1,7 @@
 """孤儿特征面板 merge 修复 (2026-05-30) — stage 18 / 39f 特征面板并入 40_panel_yearly。
 
 Stage 18 (staleness) 与 39f (cross_media_alpha) 各产出一个 bank-year 特征面板,
-其列在 stata_export.py core_patterns 已登记, 但此前没有任何环节把它们 merge 进
+其列为下游 Stata/codebook 既有契约, 但此前没有任何环节把它们 merge 进
 40_panel_yearly。runner.py main() 现有一个条件 left-merge 循环: opt-in 阶段跑过
 就把列并进来, 文件缺失时优雅 no-op (注: stage 18 原为 disabled-by-default,
 2026-06-01 全功能打开后配置已显式启用; merge 循环的存在性守卫不变)。

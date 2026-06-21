@@ -1336,7 +1336,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         # hybrid LLM×keyword 的 locus 分类置信度), 旧裸名 'category_confidence'
         # 检查恒假 → else 分支恒走, 列永久全 NaN (export.py G-20 低置信度诊断
         # 沦为死代码)。现改接 full/ctx 源: 产 avg_category_confidence_full/_ctx
-        # (stata_export core_patterns 已预留两名), 裸名列保留 = _full 别名
+        # (下游 Stata/codebook 既有契约期待这两名), 裸名列保留 = _full 别名
         # (export.py / codebook 既有消费者继续工作); 仍兼容 v3.1.x 裸名 parquet。
         # 注: category_confidence 是 full/ctx 锚定的分类置信度 (非情感轨), 不做 ss 轨
         # (与 cell_id 同, 见 plan §7.3-A1)。

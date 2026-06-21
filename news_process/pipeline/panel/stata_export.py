@@ -7,7 +7,7 @@
 不再做 core/aux 双切分 — 原 IC ≤2048 兼容切分仅为外部协作者保留, 已按项目策略移除):
     46_panel_yearly_full.dta    # 全列 (Stata SE/MP; 唯一 .dta 产物)
     46_panel_yearly_labels.do   # variable/value labels Stata 脚本
-    46_panel_yearly_codebook.xlsx  # 人类可读变量字典 (is_core 列仍标注分析核心变量子集)
+    46_panel_yearly_codebook.xlsx  # 人类可读变量字典 (2026-06-21: 取消 is_core 核心/辅助列区分, 全列均为分析列)
 
 关键转换 (plan v14 §9.1; v3.4.0 +collab_mode):
     - innovation_locus_{full,ctx,ss} (中文 str) → byte 0=底层技术, 1=应用场景 + value label
@@ -48,8 +48,7 @@
 3. `upcast_unsafe_int8_columns`: 非 value-labeled int8/Int8 计数列升 Int16 (Stata byte 合法值域 [-127,100], 101..127 是缺失码位 `.`/.a-.z, 防 pyreadstat 直写损值)。
 4. `shorten_long_column_names`(>32 字符缩写→截断→md5 后缀去重) + `asciify_non_ascii_columns`(中文情感标签 正面/负面/中性 → pos/neg/neu, 残留非 ASCII 移除), 全程同步 value_labels 键 + `rename_map` 链式压平 (`_chase_original` 反查最初原名); 写前跑 `_assert_track_triplet_unique` 三轨唯一性断言。
 5. `build_variable_labels`(改名列经 rename_map 反查原名命中 codebook meta / HEURISTIC_LABELS / 列名兜底, 按 UTF-8 字节边界截断 ≤80 字节) → `validate_stata_compat` (列名 ≤32 + 合法 Stata 标识符 + label ≤80 字节)。
-6. `assign_core_columns`(STATA_IC_MAX_VARS=2048 守卫分析核心列别膨胀; 2026-06-12 起仅供 codebook is_core 标注, 不再驱动文件切分; 声明却缺席的 pattern 记 WARN 监测 schema 漂移)。
-7. `write_dta` 写单一 `*_full.dta`; `write_labels_do_file` 写 labels.do (compound double quotes 安全转义); `_write_codebook_xlsx` 写 codebook (engine='xlsxwriter', 非阻塞, 失败仅 WARN)。
+6. `write_dta` 写单一 `*_full.dta`; `write_labels_do_file` 写 labels.do (compound double quotes 安全转义); `_write_codebook_xlsx` 写 codebook (engine='xlsxwriter', 非阻塞, 失败仅 WARN; 2026-06-21 起 codebook 全列均为分析列, 不再有 is_core 区分 — assign_core_columns/core_patterns 已退役)。
 
 **关键转换规则**: NaN→. (统一 sysmiss, extended missing .a/.b 未实现 — 两后端均不传 missing_user_values); .dta format version=118 (文件格式编号, 非 Stata 应用版本); 列名≤32 + 变量标签≤80 字节。
 
@@ -79,10 +78,9 @@ logger = logging.getLogger(__name__)
 # Stata 硬限 (plan v14 §9.5 / R32-D, R42-A 修复)
 STATA_VAR_NAME_MAXLEN = 32      # 变量名最长 32 字符
 STATA_VAR_LABEL_MAXLEN = 80     # 变量标签最长 80 字符
-STATA_IC_MAX_VARS = 2048        # Stata IC license 最大列数
-# 白话: 2048 是给外部协作者用低配 Stata IC 版预留的兼容上限, 不是本机限制
-# (本机 StataNow/MP 19.5 上限 12 万列)。2026-06-12 起已不再按它拆 core/aux
-# 两个 .dta, 只剩 assign_core_columns 用它做"分析核心列别膨胀过头"的守卫。
+# 2026-06-21: STATA_IC_MAX_VARS (Stata IC ≤2048 列守卫) + assign_core_columns +
+# core_patterns + codebook is_core 列一并退役 — codebook 取消"分析核心列 vs 辅助列"
+# 区分 (所有列均为分析列); 本机 StataNow/MP 19.5 直读全列, 无 IC 列数约束。
 
 # v3.2.0 类别 → byte encoding 映射 (plan v14 §9.1 + R32-B 编码方向论证)
 # 关键: 0=baseline, 1=对照 (洗稿率框架天然解释方向)
@@ -472,230 +470,6 @@ def build_variable_labels(
 
         labels[col] = label
     return labels
-
-
-def assign_core_columns(df: pd.DataFrame, rename_map: Dict[str, str] = None) -> List[str]:
-    """按 plan v14 §9.1 (R42-A + R44-A): 划分 core 列 (≤ 2048, Stata IC 兼容).
-
-    fix(omni-g-stata-export-09, 2026-06-11): 新增 rename_map 参数
-    ({short_stata_name: original_panel_name}) — core_patterns 以原始列名声明,
-    此前 >32 字符的声明列被 shorten 改名后按原名匹配必 miss → 静默落 aux。
-    fix(omni-g-stata-export-07, 2026-06-11): 声明却缺席的 pattern 记 warning
-    (此前 ``if c in df.columns`` 静默吞掉 schema 漂移, 23 个死 pattern 零告警)。
-
-    Core 列规则:
-        - 主键 (target_bank, year)
-        - sentiment 三轨 (full/ctx/ss) 主指标 (llm_sentiment_*, llm_vote_*, llm_prob_score_*)
-        - stage 3 三轨标签 + confidence (innovation_*_{full,ctx,ss})
-        - dual gate 三互斥指示
-        - 主子集 mean 列 (_lf × _full 隐式 + _lc × _ctx 显式对角线)
-        - 主洗稿率 count
-        - 主 Bartik IV (bartik_type_iv_*, full/ctx) + fintech 稳健套 (lf)
-        - 基础统计 (n_articles, frac, ln_news_coverage)
-
-    Aux 列:
-        - 4-way 洗稿率非主组合 (sentiment × subst 笛卡尔积非对角)
-        - inter-track κ
-        - 历史保留列
-
-    白话: 这个函数从上千列的面板里挑出"做主回归真正要用的核心列"清单。
-    早期会按这份清单把数据拆成 core.dta (≤2048 列, 低配 Stata IC 也能打开)
-    和 aux.dta 两个文件; 2026-06-12 起不再拆分、只写单一全列 .dta, 这份
-    清单现在只用来 (1) 在 codebook 里给核心列打 is_core 标记, (2) 守卫
-    核心列数量别无节制膨胀超过 2048。
-    """
-    rename_map = rename_map or {}
-    core_patterns = [
-        # 主键
-        'target_bank', 'year',
-        # 基础统计 + bank 属性
-        'n_articles', 'n_articles_llm_valid', 'n_articles_llm_valid_ctx', 'n_articles_llm_valid_ss', 'media_breadth', 'ln_news_coverage', 'bank_type',
-        'bank_size', 'bank_age', 'bank_province', 'bank_zone',
-        'digital_frontier',
-        # sentiment 三轨 (full/ctx/ss) 主指标 — ss = 银行+金科同句共现轨
-        'llm_sentiment_full', 'llm_sentiment_ctx', 'llm_sentiment_ss',
-        'llm_vote_tone_full', 'llm_vote_tone_ctx', 'llm_vote_tone_ss',
-        'llm_prob_score_full', 'llm_prob_score_ctx', 'llm_prob_score_ss',
-        'avg_llm_prob_score_full', 'avg_llm_prob_score_ctx', 'avg_llm_prob_score_ss',
-        # stage 3 三轨标签 + confidence (v3.4.0: 加 collab_mode 第三维度; ss = 同句共现)
-        'innovation_locus_full', 'innovation_locus_ctx', 'innovation_locus_ss',
-        'innovation_substantiveness_full', 'innovation_substantiveness_ctx', 'innovation_substantiveness_ss',
-        'innovation_collab_mode_full', 'innovation_collab_mode_ctx', 'innovation_collab_mode_ss',
-        'innovation_collab_mode_confidence_full', 'innovation_collab_mode_confidence_ctx', 'innovation_collab_mode_confidence_ss',
-        'category_confidence_full', 'category_confidence_ctx', 'category_confidence_ss',
-        # fix(omni-g-stata-export-07, 2026-06-11; three-track-verify 2026-06-18): panel 级
-        # 聚合列名。avg_category_confidence(=_full 别名) + _full/_ctx; ss 轨刻意不做该分类
-        # 置信度聚合 (与 encode.py:1331-1332/1752-1754 cell_id 口径一致: ss 当纯情感轨, LLM
-        # 分类属性仅 full/ctx) → 删去原 _ss 过度声明 (producer 不产出 avg_category_confidence_ss)。
-        'avg_category_confidence',
-        'avg_category_confidence_full', 'avg_category_confidence_ctx',
-        'avg_il_confidence_full', 'avg_il_confidence_ctx', 'avg_il_confidence_ss',
-        'avg_iss_confidence_full', 'avg_iss_confidence_ctx', 'avg_iss_confidence_ss',
-        'avg_icm_confidence_full', 'avg_icm_confidence_ctx', 'avg_icm_confidence_ss',
-        # dual gate = full×ctx 二元互斥划分 (数学上只有 3 态 _full_only/_ctx_only/_both;
-        # fix(three-track-verify 2026-06-18): 删去原 'llm_verified_dual_ss_only' — dual 是二元,
-        # 无 ss_only 态; 第三轨 ss 验证态由独立的 llm_verified_triple_ss_only 覆盖, tone_llms.py:2146)
-        'llm_verified_dual_full_only', 'llm_verified_dual_ctx_only', 'llm_verified_dual_both',
-        # 主子集对角线 (_lf × _full 隐式 + _lc × _ctx 显式; ss 轨情感 × ss-锚定分类对角 _ls/_ss)
-        'tech_frac', 'app_frac', 'sub_frac', 'symb_frac',
-        'tech_frac_lc', 'app_frac_lc', 'sub_frac_sc', 'symb_frac_sc',
-        # fix(three-track-verify, 2026-06-18): 补 ss 轨对角 frac 主测度, 恢复
-        # full(:上行 tech_frac)/ctx(_lc/_sc)/ss 三轨 is_core 平价 (encode.py 实产
-        # tech_frac_ls/app_frac_ls/sub_frac_ss/symb_frac_ss; 此前漏注册 → ss 主测度未标 is_core)
-        'tech_frac_ls', 'app_frac_ls', 'sub_frac_ss', 'symb_frac_ss',
-        'n_articles_tech', 'n_articles_app', 'n_articles_sub', 'n_articles_symb',
-        'n_articles_tech_lc_ctx', 'n_articles_app_lc_ctx',
-        'n_articles_sub_sc_ctx', 'n_articles_symb_sc_ctx',
-        # fix(three-track-verify, 2026-06-18): ss 轨对角计数真名用 _ls_ss/_ss_ss 中缀
-        # (encode.py:1433/1436/1578/1581); 原 _lc_ss/_sc_ss 是 ctx 中缀误抄, 永不命中→schema-drift WARN
-        'n_articles_tech_ls_ss', 'n_articles_app_ls_ss',
-        'n_articles_sub_ss_ss', 'n_articles_symb_ss_ss',
-        'llm_vote_tone_tech_full', 'llm_vote_tone_app_full',
-        'llm_vote_tone_tech_lc_ctx', 'llm_vote_tone_app_lc_ctx',
-        'llm_vote_tone_tech_ls_ss', 'llm_vote_tone_app_ls_ss',
-        'llm_vote_tone_sub_full', 'llm_vote_tone_symb_full',
-        'llm_vote_tone_sub_sc_ctx', 'llm_vote_tone_symb_sc_ctx',
-        'llm_vote_tone_sub_ss_ss', 'llm_vote_tone_symb_ss_ss',
-        # tone gap (full/ctx/ss 三轨; ss = 银行+金科同句情感差)
-        'tone_gap_tech_app', 'tone_gap_tech_app_lc_ctx', 'tone_gap_tech_app_ls_ss',
-        'tone_gap_sub_symb', 'tone_gap_sub_symb_sc_ctx', 'tone_gap_sub_symb_ss_ss',
-        # 主 Bartik IV (full/ctx/ss; _title 列已随标题情感轨删除)
-        # fix(omni-g-stata-export-07, 2026-06-11): 原声明 'bartik_fintech_iv_*'
-        # 是幻影列名 (生产代码从不产出) → 改真实列名: 主 Bartik = 银行类型
-        # bartik_type_iv_* (runner.py 'type'; iv_did.py f'bartik_{prefix}_iv{track}'),
-        # fintech 稳健套 = bartik_fintech_lf_iv_* (share=innovation_locus_full 基期占比)
-        # 三轨 (full/ctx/ss): ss 镜像 bartik_*_iv_ss; full×ctx×ss 各自 just-identified
-        # 并排, 禁混进同一 over-id Hansen J (镜像 ctx 红线)。
-        'bartik_type_iv_full', 'bartik_type_iv_ctx', 'bartik_type_iv_ss',
-        'bartik_fintech_lf_iv_full', 'bartik_fintech_lf_iv_ctx', 'bartik_fintech_lf_iv_ss',
-        # 主洗稿率 count (sentiment × _full/_ctx/_ss)
-        'pos_symb_count_full', 'pos_symb_count_ctx', 'pos_symb_count_ss',
-        'neg_sub_count_full', 'neg_sub_count_ctx', 'neg_sub_count_ss',
-        # Plan v1.37 P2 §5.3.4: 二元 prob_score 列 (归入分析核心列, 非 aux);
-        # 三维对称补 collab (2026-06-14) → 18 列 = 3 维 × 3 轨 (full/ctx/ss) × {mean, std}。
-        'avg_subst_prob_score_full', 'avg_subst_prob_score_ctx', 'avg_subst_prob_score_ss',
-        'avg_subst_prob_score_std_full', 'avg_subst_prob_score_std_ctx', 'avg_subst_prob_score_std_ss',
-        'avg_locus_prob_score_full', 'avg_locus_prob_score_ctx', 'avg_locus_prob_score_ss',
-        'avg_locus_prob_score_std_full', 'avg_locus_prob_score_std_ctx', 'avg_locus_prob_score_std_ss',
-        'avg_collab_prob_score_full', 'avg_collab_prob_score_ctx', 'avg_collab_prob_score_ss',
-        'avg_collab_prob_score_std_full', 'avg_collab_prob_score_std_ctx', 'avg_collab_prob_score_std_ss',
-        # v3.5.1 A1 Lexical Clarity (LM 2011 JF; You 2018) — 9 列 (三轨 full/ctx/ss) 全进 core
-        # (per plan v0.3 §1.3 invariant + §2.4.1; core 仍远低于 IC 2048).
-        'mean_clarity_score_full', 'mean_clarity_score_ctx', 'mean_clarity_score_ss',
-        'mean_frac_definite_full', 'mean_frac_definite_ctx', 'mean_frac_definite_ss',
-        'frac_amb_articles_full', 'frac_amb_articles_ctx', 'frac_amb_articles_ss',
-        # v3.5.1 A3 Numerical Intensity (数值披露强度) — 3 列 (三轨 full/ctx/ss) 全进 core
-        'mean_num_intensity_full', 'mean_num_intensity_ctx', 'mean_num_intensity_ss',
-        # nonpolarity-dims (2026-06-20) Named-Entity Density (specificity 实体面; Hope 2016 RAS)
-        # — 3 列三轨全进 core (avg_specificity 真子集机械相关 T=2 corr≈0.81, 稳健性用,
-        #   勿与 avg_specificity 同进同一回归式)
-        'avg_named_entity_full', 'avg_named_entity_ctx', 'avg_named_entity_ss',
-        # nonpolarity-dims WS-B2 (2026-06-20) Boilerplate Phrase Ratio (Lang-Stice-Lawrence 2015 JAE)
-        # — 单轨 full (套话集口径在 ctx/ss 子窗弱, by-design); 与 within_doc_redund/staleness 正交
-        'avg_boilerplate_full',
-        # v3.7.2 R8-H1 全管道延伸: ctx 独立度信号 (entity-miss → ctx ≡ full → 该轨退化为 full)
-        # ⚠ 与 intensity_verified_{full,ctx} 不同义:
-        #    - frac_ctx_fallback: 上游 entity_context 提取失败 (Hassan 2019 QJE proximity)
-        #    - intensity_verified_*: stage 14 fintech 关键词 IDF 验证失败
-        # n_articles_for_ctx_independence: 绝对独立文章数, 避免按比例 filter 时的银行规模偏差
-        # 论文用途: P1 (llm_vote_tone_ctx) / P11 (mean_clarity_score_ctx) measurement-error robustness
-        'frac_ctx_fallback', 'n_articles_for_ctx_independence',
-        # remove-title-track: 原 v3.7.4 P3.1.6 的 title indicator 列 (Panel D/E
-        # 分层稳健性) 已随标题情感轨整体移除, 此处不再声明对应 pattern。
-        # 历史锚点留档: Antweiler-Frank (2004) JF subject-relevance threshold;
-        #               Da-Engelberg-Gao (2011) JF attention-channel separation.
-        # ─────────────────────────────────────────────────────────────
-        # v3.5.2 PR #14 集成 — A1 LM 6 子词典 + A2 FLS (本批列在 v3.5.2
-        # PR #3 panel 集成完成前会被 ``if c in df.columns`` 过滤; append-only
-        # 不破坏 v3.6.0 已 frozen 契约).
-        # ─────────────────────────────────────────────────────────────
-        # A1 LM 2011 JF non-sentiment 6 子词典 (18 列三轨 full/ctx/ss; v3.10.0 +modal_weak/complexity)
-        'uncert_frac_full', 'uncert_frac_ctx', 'uncert_frac_ss',
-        'litig_frac_full', 'litig_frac_ctx', 'litig_frac_ss',
-        'constr_frac_full', 'constr_frac_ctx', 'constr_frac_ss',
-        'modal_strong_frac_full', 'modal_strong_frac_ctx', 'modal_strong_frac_ss',
-        'modal_weak_frac_full', 'modal_weak_frac_ctx', 'modal_weak_frac_ss',
-        'complexity_frac_full', 'complexity_frac_ctx', 'complexity_frac_ss',
-        # A2 Forward-Looking Statements (Li 2010 JAR) — 3 列三轨 full/ctx/ss
-        'frac_fls_full', 'frac_fls_ctx', 'frac_fls_ss',
-        # ─────────────────────────────────────────────────────────────
-        # v3.6.1 PR #14 集成 — C1 媒体 3 级 tier
-        # ─────────────────────────────────────────────────────────────
-        # C1 媒体 tier 加权 (sensitivity, 不替换原 media_authority_weight)
-        'media_authority_weight_tier', 'media_tier_label',
-        # ─────────────────────────────────────────────────────────────
-        # v3.7.0 PR #14 集成 — D 组 (staleness / α)
-        # ─────────────────────────────────────────────────────────────
-        # D2 staleness 双指标 (三轨 full/ctx/ss; surface_staleness_ss 免费加,
-        # semantic_staleness_ss 依赖 ss SBERT (stage 30a 未上线时优雅缺席→落 NaN/被过滤))
-        'surface_staleness_full', 'surface_staleness_ctx', 'surface_staleness_ss',
-        'semantic_staleness_full', 'semantic_staleness_ctx', 'semantic_staleness_ss',
-        # D3 Krippendorff α (与第 10 篇 bank_media_disagreement 对齐; 三轨 full/ctx/ss)
-        'cross_outlet_tone_variance_full', 'cross_outlet_tone_variance_ctx', 'cross_outlet_tone_variance_ss',
-        'cross_media_alpha_full', 'cross_media_alpha_ctx', 'cross_media_alpha_ss',
-        # ─────────────────────────────────────────────────────────────
-        # IV 扩展族 LOO 同业工具 (2026-06-13 iv_extensions.py; 单一 .dta 下
-        # 仅作 is_core 标记 + 计数守卫, 不影响落盘)。名以"原始 panel 名"声明:
-        # full 轨 _lag1 (>32 字符) 经 rename_map 反查短名匹配; ctx/ss 轨 lpeer_*
-        # (≤32) 直名匹配。三轨 (full/ctx/ss) 镜像各自 just-identified 并排, 非 overid
-        # (full×ctx×ss 禁混进同一 over-id Hansen J — 镜像 ctx 红线)。
-        # ─────────────────────────────────────────────────────────────
-        'leave_one_out_peer_attention_iv', 'leave_one_out_peer_attention_iv_lag1',
-        'leave_one_out_peer_subst_iv', 'leave_one_out_peer_subst_iv_lag1',
-        'leave_one_out_peer_locus_iv', 'leave_one_out_peer_locus_iv_lag1',
-        'leave_one_out_peer_collab_iv', 'leave_one_out_peer_collab_iv_lag1',
-        'leave_one_out_peer_benefit_iv', 'leave_one_out_peer_benefit_iv_lag1',
-        'zone_leave1out_benefit_iv', 'zone_leave1out_benefit_iv_ctx', 'zone_leave1out_benefit_iv_ss',
-        'lpeer_attention_iv_ctx', 'lpeer_attention_iv_ctx_lag1',
-        'lpeer_subst_iv_ctx', 'lpeer_subst_iv_ctx_lag1',
-        'lpeer_locus_iv_ctx', 'lpeer_locus_iv_ctx_lag1',
-        'lpeer_collab_iv_ctx', 'lpeer_collab_iv_ctx_lag1',
-        'lpeer_benefit_iv_ctx', 'lpeer_benefit_iv_ctx_lag1',
-        # ss 轨镜像 lpeer_*_ss (银行+金科同句 same-sentence window)
-        'lpeer_attention_iv_ss', 'lpeer_attention_iv_ss_lag1',
-        'lpeer_subst_iv_ss', 'lpeer_subst_iv_ss_lag1',
-        'lpeer_locus_iv_ss', 'lpeer_locus_iv_ss_lag1',
-        'lpeer_collab_iv_ss', 'lpeer_collab_iv_ss_lag1',
-        'lpeer_benefit_iv_ss', 'lpeer_benefit_iv_ss_lag1',
-    ]
-
-    # fix(omni-g-stata-export-09, 2026-06-11): 改名列经 rename_map 反查原名匹配 —
-    # pattern 命中原名时返回 df 中的短名 (如 innovation_collab_mode_confidence_*
-    # 38/37 字符, shorten 后才存在于 df)
-    orig2short = {orig: short for short, orig in rename_map.items()}
-    core: List[str] = []
-    seen: set = set()
-    missing: List[str] = []
-    for pattern in core_patterns:
-        if pattern in df.columns:
-            target = pattern
-        elif pattern in orig2short and orig2short[pattern] in df.columns:
-            target = orig2short[pattern]
-        else:
-            missing.append(pattern)
-            continue
-        if target not in seen:
-            seen.add(target)
-            core.append(target)
-
-    # fix(omni-g-stata-export-07, 2026-06-11): 声明却缺席的 pattern 不再静默吞掉 —
-    # 记 warning 监测 schema 漂移 (列改名/退役后 core_patterns 未同步即在此暴露)
-    if missing:
-        logger.warning(
-            f"  assign_core_columns: {len(missing)} 个声明的 core pattern 在 panel 中缺席 "
-            f"(schema 漂移监测; 样本: {missing[:8]})"
-        )
-
-    if len(core) > STATA_IC_MAX_VARS:
-        raise ValueError(
-            f"分析核心列数 {len(core)} 超过 STATA_IC_MAX_VARS={STATA_IC_MAX_VARS} 守卫上限. "
-            f"core/aux 双切分已于 2026-06-12 移除, 此守卫现仅防 codebook is_core 的"
-            f"分析核心列清单无节制膨胀 — 请精简 assign_core_columns 的 core_patterns "
-            f"或上调 STATA_IC_MAX_VARS (本机 StataNow/MP 19.5 直读全列, 无 IC 列数约束)."
-        )
-
-    logger.info(f"  Core 列数: {len(core)} / {len(df.columns)} (IC 余量 {STATA_IC_MAX_VARS - len(core)})")
-    return core
 
 
 def _assert_track_triplet_unique(orig_cols: List[str], new_cols: List[str]) -> None:
@@ -1139,8 +913,8 @@ def export_panel_to_stata(
 
     fix(omni-g-stata-export, 2026-06-11) 语义变更披露: ① 非 value-labeled 计数
     Int8 列升 Int16 写出 (byte 缺失码位防损值); ② shorten/asciify 改名后
-    value_labels 键全程同步 + rename_map 链式压平, build_variable_labels /
-    assign_core_columns 经原名反查 (改名列标签/core 归属不再静默丢失);
+    value_labels 键全程同步 + rename_map 链式压平, build_variable_labels
+    经原名反查 (改名列标签不再静默丢失);
     ③ labels.do 头部带 backend 指纹。
 
     Args:
@@ -1150,7 +924,7 @@ def export_panel_to_stata(
     Returns:
         dict 含产出文件路径: {'full_dta', 'labels_do', 'codebook_xlsx', 'backend'}
         (2026-06-12: 移除 core/aux 双切分 — 本机 StataNow/MP 19.5 直读全列 full.dta;
-         codebook is_core 列仍标注分析核心变量子集供参考)
+         2026-06-21: codebook 取消 is_core 核心/辅助列区分, 全列均为分析列)
     """
     backend_name, write_dta = _select_dta_backend()
 
@@ -1217,26 +991,22 @@ def export_panel_to_stata(
     # 3. Stata 兼容性校验 (plan v14 §9.5; 缩短后应全过)
     validate_stata_compat(df_encoded, var_labels)
 
-    # 4. 计算分析核心列归属 (2026-06-12: 不再写独立 core.dta; 仅供 codebook is_core
-    #    列标注核心变量子集 — 主键 + 三轨 (full/ctx/ss) 主指标 + stage3 标签 + 主 Bartik 等)。
-    #    本机 StataNow/MP 19.5 (maxvar≤120,000) 直读全列 full.dta, 无需 IC core/aux 切分。
-    #    assign_core_columns 内的 ≤2048 守卫保留为分析核心规模回归监测 (当前 ~100 列)。
-    core_cols = assign_core_columns(df_encoded, rename_map=rename_map)
-
-    # 5. 写单一全列 .dta (经 backend 抽象, 兼容 pyreadstat / pandas)
+    # 4. 写单一全列 .dta (经 backend 抽象, 兼容 pyreadstat / pandas)
+    #    2026-06-21: codebook 取消"分析核心列 vs 辅助列"区分 (assign_core_columns /
+    #    core_patterns 整体退役); .dta 本就写全列, 与该退役无关。
     full_path = os.path.join(output_dir, f'{output_prefix}_full.dta')
     write_dta(df_encoded, full_path, value_labels, var_labels)
     logger.info(f"  Full .dta 已写入: {full_path} ({len(df_encoded.columns)} 列; "
-                f"含 {len(core_cols)} 个分析核心列, 单一全列导出不再拆分 core/aux)")
+                f"单一全列导出不再拆分 core/aux)")
 
-    # 6. labels .do (omni-03/15: 带 backend 指纹)
+    # 5. labels .do (omni-03/15: 带 backend 指纹)
     labels_path = os.path.join(output_dir, f'{output_prefix}_labels.do')
     write_labels_do_file(labels_path, var_labels, value_labels, backend_name=backend_name)
 
-    # 7. codebook .xlsx (依赖 codebook.py)
+    # 6. codebook .xlsx (依赖 codebook.py)
     codebook_path = os.path.join(output_dir, f'{output_prefix}_codebook.xlsx')
     try:
-        _write_codebook_xlsx(df_encoded, var_labels, value_labels, core_cols, codebook_path,
+        _write_codebook_xlsx(df_encoded, var_labels, value_labels, codebook_path,
                               rename_map=rename_map)
     except Exception as e:
         logger.warning(f"  codebook .xlsx 写入失败 (非阻塞): {e}")
@@ -1253,11 +1023,13 @@ def _write_codebook_xlsx(
     df: pd.DataFrame,
     var_labels: Dict[str, str],
     value_labels: Dict[str, Dict[int, str]],
-    core_cols: List[str],
     out_path: str,
     rename_map: Dict[str, str] = None,
 ) -> None:
     """生成人类可读 codebook .xlsx.
+
+    2026-06-21: 取消 is_core 列 — codebook 不再区分"分析核心列 vs 辅助列",
+    所有列均为分析列 (assign_core_columns / core_patterns / STATA_IC_MAX_VARS 已整体退役)。
 
     Args:
         rename_map: v3.2.0 M3/7 新增: {short_stata_name: original_panel_name}
@@ -1266,14 +1038,12 @@ def _write_codebook_xlsx(
     if rename_map is None:
         rename_map = {}
     rows = []
-    core_set = set(core_cols)
     for col in df.columns:
         rows.append({
             'var_name': col,
             'original_name': rename_map.get(col, col),  # M3/7: 缩短前原名 (用户反查)
             'label': var_labels.get(col, col),
             'data_type': str(df[col].dtype),
-            'is_core': col in core_set,
             'value_labels': '; '.join(f'{k}={v}' for k, v in value_labels.get(col, {}).items()),
             'n_non_null': df[col].notna().sum(),
             'n_unique': df[col].nunique() if df[col].dtype.kind != 'f' else None,
@@ -1392,7 +1162,7 @@ def main():
     log.info("=" * 72)
     log.info("【功能】数据的「出关口岸」: 把 stage 45 的 bank-year 全列面板 (40_panel_yearly.parquet)")
     log.info("        翻译成经济学家 Stata 能直读的 .dta, 并附 variable/value labels 的 .do 脚本")
-    log.info("        与人类可读的 codebook.xlsx 变量字典 (含 is_core/original_name 反查)。")
+    log.info("        与人类可读的 codebook.xlsx 变量字典 (含 original_name 反查)。")
     log.info("【方法】① 三套中文类别 str→byte 0/1 + value label (LOCUS/SUBSTANTIVENESS/COLLAB_MODE,")
     log.info("        当前 bank-year 面板无文章级 str 列 → no-op); ② 非 value-labeled int8 计数列升")
     log.info("        Int16 (避开 Stata byte 缺失码位 101..127); ③ 列名超 32 字符缩写+md5 去重, 中文")

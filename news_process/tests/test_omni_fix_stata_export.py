@@ -7,11 +7,11 @@
     03/15   双后端差异 WARN 明示 + labels.do backend 指纹
     04/10/13 模块 docstring extended-missing 声称改与实现对齐 (诚实披露)
     04/11   encode_categorical_columns 未登记类别值 fail-loud (不再静默 NaN 合流)
-    05/09   shorten/asciify 改名后 value_labels 键同步 + build_variable_labels /
-            assign_core_columns 经 rename_map 原名反查
+    05/09   shorten/asciify 改名后 value_labels 键同步 + build_variable_labels
+            经 rename_map 原名反查
     06      labels.do 标签 compound double quotes + \\$ \\` 转义
-    07      core_patterns 幻影 bartik_fintech_iv_* → 真实 bartik_type_iv_* /
-            bartik_fintech_lf_iv_*; 声明缺席 pattern 记 WARN
+    07      [已退役 2026-06-21] core_patterns / assign_core_columns 整体移除
+            (codebook 取消 is_core 核心/辅助区分, 全列均为分析列), 对应回归测试已删
     12      shorten used 集合预载全部列名 (截短名不抢占真实同名列)
 
 全部测试用合成 DataFrame, 不依赖盘上大数据, 不调外部 API。
@@ -260,50 +260,13 @@ def test_shorten_short_names_unchanged():
 
 
 # ============================================================================
-# omni-07: core_patterns 真实 Bartik 列名 + 缺席 WARN
+# [omni-07 已退役 2026-06-21] core_patterns / assign_core_columns / STATA_IC_MAX_VARS
+# 整体移除 (codebook 取消 is_core 核心/辅助区分) — 原 4 个 assign_core_columns 回归测试
+# (test_core_contains_real_bartik_iv_names / test_core_phantom_bartik_name_retired /
+#  test_core_missing_patterns_warn / test_assign_core_resolves_renamed_columns) 已删。
 # ============================================================================
-
-def test_core_contains_real_bartik_iv_names():
-    df = pd.DataFrame(columns=[
-        'target_bank', 'year',
-        'bartik_type_iv_full', 'bartik_type_iv_ctx',
-        'bartik_fintech_lf_iv_full', 'bartik_fintech_lf_iv_ctx',
-    ])
-    core = se.assign_core_columns(df)
-    for c in ['bartik_type_iv_full', 'bartik_type_iv_ctx',
-              'bartik_fintech_lf_iv_full', 'bartik_fintech_lf_iv_ctx']:
-        assert c in core, f"{c} 应入 core (主 Bartik IV / fintech 稳健套)"
-
-
-def test_core_phantom_bartik_name_retired():
-    """幻影列名 bartik_fintech_iv_* 已从 core_patterns 退役 — 即使列存在也不入 core."""
-    df = pd.DataFrame(columns=['target_bank', 'year', 'bartik_fintech_iv_full'])
-    core = se.assign_core_columns(df)
-    assert 'bartik_fintech_iv_full' not in core
-
-
-def test_core_missing_patterns_warn(caplog):
-    """声明却缺席的 pattern 不再静默吞掉 — 记 WARN 监测 schema 漂移."""
-    df = pd.DataFrame(columns=['target_bank', 'year'])
-    with caplog.at_level(logging.WARNING, logger=_LOGGER_NAME):
-        se.assign_core_columns(df)
-    msgs = ' | '.join(r.getMessage() for r in caplog.records)
-    assert 'core pattern' in msgs and '缺席' in msgs
-
-
+# omni-05/09: rename_map 元数据反查 (labels)
 # ============================================================================
-# omni-05/09: rename_map 元数据反查 (labels + core 归属)
-# ============================================================================
-
-def test_assign_core_resolves_renamed_columns():
-    """>32 字符的声明 core 列被 shorten 改名后, 经 rename_map 反查仍归 core."""
-    orig = 'innovation_collab_mode_confidence_full'  # 38 chars, 在 core_patterns 中
-    df = pd.DataFrame({orig: [0.9], 'target_bank': ['A'], 'year': [2020]})
-    df_new, rename_map = se.shorten_long_column_names(df)
-    short = [c for c in df_new.columns if c not in ('target_bank', 'year')][0]
-    core = se.assign_core_columns(df_new, rename_map=rename_map)
-    assert short in core, "改名后的 collab confidence 列应经原名反查归 core (不再静默落 aux)"
-
 
 def test_build_labels_resolves_renamed_via_original_name():
     """HEURISTIC_LABELS 以原名为键 — 改名列经 rename_map 反查命中人工标签."""

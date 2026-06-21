@@ -303,7 +303,7 @@ MP 硬上限: max obs ≈ 1.1 兆 · maxvar 120,000 · RHS 65,532 · matsize 65,
 (来源: https://www.stata.com/products/detailed-size-limits/)。当前 panel 最大 `51_panel_with_controls.dta` ≈ 2782 列 (2026-06-19 实测最宽 dta; 列数随每次重生漂移, 以实读为准), 距 MP 上限裕度 > 11.7 万列, 可放心继续加特征。
 
 对本项目的含义:
-- **core/aux IC 双切分已整体移除** (2026-06-12 stage 46 改单一全列 `46_panel_yearly_full.dta`; 2026-06-13 清除 `01_data_prep.do.tmpl` IC 回退分支等最后残留)。`stata_export.py::STATA_IC_MAX_VARS = 2048` 仅余一个用途: `assign_core_columns` 守卫"分析核心列"清单别膨胀超 2048 (该清单现在只供 codebook `is_core` 标注), 不再驱动任何文件切分。
+- **core/aux IC 双切分已整体移除** (2026-06-12 stage 46 改单一全列 `46_panel_yearly_full.dta`; 2026-06-13 清除 `01_data_prep.do.tmpl` IC 回退分支等最后残留)。**2026-06-21 进一步整体退役 `STATA_IC_MAX_VARS` / `assign_core_columns` / `core_patterns` 与 codebook `is_core` 列** —— codebook 取消"分析核心列 vs 辅助列"区分, 所有列均为分析列 (`46_panel_yearly_codebook.xlsx` 不再含 `is_core` 列; 本机 StataNow/MP 19.5 直读全列, 无 IC 列数约束)。权威执行计划 = `scripts/audit/CODEBOOK_ALL_CORE_COLUMNS_EXECUTION_PLAN_2026-06-21.md` (A2+β, golden-safe)。
 - 不要在通用模板里硬编码 "前 2048 列" 之类的 IC 截断逻辑; IC 协作者如需运行, 自行 `keep` 变量子集或升级 SE/MP。
 - **行数瓶颈在面板深度 (T=2, ~172 行 = 86 banks × 2 years 2017–2018)**, 不在 Stata 容量; panel 扩展瓶颈在上游数据 / stage 41。
 - **64 核并行**: 跑 `bootstrap`/`permute`/`rwolf`/`ritest`/`csdid` wild bootstrap 时按 license 上限自动拉满 (`set processors 64`)。

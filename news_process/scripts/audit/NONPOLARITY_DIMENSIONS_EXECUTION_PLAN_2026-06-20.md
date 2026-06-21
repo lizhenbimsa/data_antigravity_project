@@ -129,6 +129,8 @@ LM 6 frac×3轨(18)、`frac_fls`×3、`mean_clarity_score`×3、`avg_specificity
 - **`assign_core_columns` 核心列清单真缺口**（`stata_export.py:558-590` 是逐列名字面 list、非 regex；已含 clarity/num_intensity/6 LM frac → **删除这些**）：仅补 `avg_specificity`/`avg_within_doc`/`avg_rare_word`/`avg_hard_char`/`avg_nominalization`/`avg_function_word`/`avg_adversative`/`lazy`/`coh`(主)/`strat_diff_n`/`centroid`(主)。
 - 注：`HEURISTIC_LABELS` 缺这些列的 base 标签是 **by-design**（仅 curate 每部词典 6 个 headline tone 列，衍生列走泛型推断 + `export.py:1265-1269 _apply_label_fallback` 100% 覆盖 fail-loud）；WS-A 补 base 标签是**增强**非修 bug，且只动标签字典、**不触** `_assert_track_triplet_unique`（:671，作用于列名缩短非标签）。
 
+> ⚠ **2026-06-21 更新（`CODEBOOK_ALL_CORE_COLUMNS_EXECUTION_PLAN_2026-06-21.md` 已落地，A2+β）**：`assign_core_columns` / `core_patterns` / `STATA_IC_MAX_VARS` / codebook `is_core` 列**已整体退役**（codebook 取消"分析核心列 vs 辅助列"区分，全列均为分析列）。故 **WS-C 中"补列到 `assign_core_columns` 核心列清单"的子项作废** —— 已无 core 列清单可补，这些衍生列本就全部出现在 codebook（不再需要 is_core 标记）。**WS-A 的 `HEURISTIC_LABELS` 标签增强不受影响**（标签字典独立于已删的 core 清单，照常可走）。
+
 ### WS-D　正交性证据（**降级为开放重设计项，移出第 1 波**）
 - **模块路径**：`pipeline/audit/construct_orthogonality.py`（**不在 validation/**）；`DIMS_FULL`（:90）仅 3 个**离散**创新构念。validation-only：写 `data/processed/39c_*.parquet`（在 `schemas.py:180 EXPECTED_NO_OUTPUT_STAGES`，**不并入 40_panel、不进 OUTPUT_REGISTRY** → golden-safe）。
 - **不可行点（v1 严重低估）**：39c 全文 `pearson|spearman|qcut|discretiz` **零命中**，只用 `normalized_mutual_info_score`（:110/204）；连续浮点（`lazy/specificity/named_entity`）直接喂 NMI 统计无效。且输入是 `21_tone_llms.parquet`（**article 级**，:343/397），而目标列是 **bank-year panel 列** → grain 不匹配。
