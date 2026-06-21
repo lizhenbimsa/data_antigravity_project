@@ -8,7 +8,7 @@
 #   make help            -- 列出全部 target
 #   make clean-cache     -- 删除 data/processed/_cache + _llm_cache.db (可恢复, 仅缓存)
 #   make clean-backup    -- 删除 data/processed/_backup_*/  (修复锚点, 仅在 release 后用)
-#   make clean-derived   -- 删除 stage 14+ 的 parquet/csv/dta (保留 stage 11/12 上游)
+#   make clean-derived   -- 删除 stage 15+ 的 parquet/csv/dta (保留 11/12 上游 + 13/14 ctx 派生)
 #   make purge-all       -- 上述三者并集 + logs/  (DANGER: 仅限完全重置)
 
 .PHONY: help clean-cache clean-backup clean-derived clean-logs purge-all sizes
@@ -24,7 +24,7 @@ help:
 	@echo "------------------------------------------------------------------"
 	@echo "  clean-cache    : 删除 _cache/ + _llm_cache.db    (≈8700 MiB; 重跑 LLM/embedding stage 会全部 cache miss)"
 	@echo "  clean-backup   : 删除 _backup_* 目录              (≈100 MiB; 仅在 issue #5 已 release 后执行)"
-	@echo "  clean-derived  : 删除 stage 14+ parquet/csv/dta   (保留 stage 11/12 上游, 重跑 stage 14-51)"
+	@echo "  clean-derived  : 删除 stage 15+ parquet/csv/dta   (保留 11/12 上游 + 13/14, 重跑 stage 15-82)"
 	@echo "  clean-logs     : 清空 news_process/logs/          (≈?? MB)"
 	@echo "  purge-all      : 上述全部 + logs                  (DANGER, 需 CONFIRM=yes 守门)"
 	@echo ""
@@ -56,14 +56,14 @@ clean-backup:
 		print(f'  ✓ {len(paths)} 个 _backup_* 目录已删除') if paths else print('  - skipped (无 _backup_*)')"
 
 clean-derived:
-	@echo "Plan-r3 P3-15: clean-derived -- 删除 stage 14+ parquet/csv/dta (保留 stage 11/12 上游)"
+	@echo "Plan-r3 P3-15: clean-derived -- 删除 stage 15+ parquet/csv/dta (保留 11/12 上游 + 13/14 派生)"
 	@$(PYTHON) -c "import re, os, glob; \
 		patterns = [f'$(PROCESSED)/{stage}_*.{ext}' \
-		            for stage in ['14', '15', '21', '22', '23', '24', '30', '31', '32', '32a', '33', '34', '35', '36', '37', '38', '38a', '38b', '39', '40', '41', '42', '43', '44', '45', '46', '47', '50', '51', '52', '53'] \
+		            for stage in ['15', '16', '21', '22', '23', '24', '25', '26', '40', '41', '42', '43', '44', '46', '47', '51', '60', '61', '62', '63', '64', '65', '66', '67', '68', '69', '70', '71', '72', '73', '74', '75', '80', '81', '82'] \
 		            for ext in ['parquet', 'csv', 'dta']]; \
 		files = [f for p in patterns for f in glob.glob(p)]; \
 		[os.remove(f) for f in files]; \
-		print(f'  ✓ {len(files)} 个 stage 14+ 派生文件已删除')"
+		print(f'  ✓ {len(files)} 个 stage 15+ 派生文件已删除')"
 
 clean-logs:
 	@echo "Plan-r3 P3-15: clean-logs -- 清空 news_process/logs/"
