@@ -538,8 +538,35 @@ Phase A **不重跑真重型阶段** (§7.2 走合成单测) → 盘面不变 �
 
 **安全法 (沿用项目惯例)**: HEAD == origin/main (renumber 工作已在 main, 无分支领先) → 干净 worktree off origin/main + by-name 拷入 5 文件 (我方源文件 diff 经 grep 证 0 并行污染) + FF 推送。**刻意未提交**: stata_export/encode/export/runner/policy_* 等 ~19 个并行会话脏文件 + 测试可能 bump 的 `data/processed/v3_5_1_constants.json` (按惯例还原)。
 
-**未含 (留 Phase B / 生产, 非本提交)**: stage 30a 全量 T=18 重跑产盘面真列 + golden 受控重生 + §16 三前置 (timeout/BLAS/panel-merge)。**当前盘面 26_* 仍旧 schema** (微验证后已还原), 待 Phase B 生产重跑才落真列。
+**未含 (留 Phase B / 生产, 非本提交)**: stage 30a 全量 T=18 重跑产盘面真列 + golden 受控重生 + §16 三项 Phase B 必办 (timeout/BLAS/panel-merge)。**当前盘面 26_* 仍旧 schema** (微验证后已还原), 待 Phase B 生产重跑才落真列。
 
 ---
 
-*本计划经**四轮**顶刊多智能体审计 (v1→v1.1 5-agent §12; v1.1→v1.2 42-agent §13; Phase A 后 17-agent 代码审 §15.2; 第四轮 34-agent 终审 §16), 全程 0 未决实现缺陷。**Phase A 已于 2026-06-21 用户放行后实现, 经真实端到端微验证 + 262-test 回归 + 四轮审计三重坐实** (§14/§15/§16; 代码+单测绿, ruff clean, 实跑证列正确物化 8→9/12→14, 盘面已还原); **已于 2026-06-21 用户授权后 by-name 提交并 FF 推送 main (5 文件, 排除并行脏文件, 见 §17)**; Phase B (生产 T=18 重跑 + golden 重生; timeout/BLAS/panel-merge 三前置见 §16) 受 M0/生产 gate 延后。*
+## §18 第五、六轮终审 + 全量回归 (2026-06-21, 提交后认证)
+
+提交后又跑了**第五轮 21-agent 提交后认证** (§16 已记) + **第六轮 12-agent 全息终审** + **全量单测回归**。
+
+### 18.1 全量单测回归 (实测, 最强经验证据)
+`pytest news_process/tests`(除 integration): **3740 passed / 14 failed / 8 skipped**。**14 失败逐一 grep 证实全部不引用本特征模块** (article_sbert/article_staleness/_load_aligned_embeddings/_build_output_frame/compute_semantic_staleness/emb_ss/semantic_staleness) → **0 失败源于本特征**; 全为 pre-existing 环境/盘面/并行: 缺盘 parquet (40_panel_yearly/cohort CSV)、23_bert_tone NaN (stage 23, 非本特征)、papers_assets git-ignored 目录、并行 codebook/zscore/val_mask 改动 (均见 memory 既有失败集)。**本特征自身单测 43 passed** (10 ss + 33 embed)。
+
+### 18.2 第五/六轮审计裁决
+- **第五轮 (21-agent)**: 5/5 lens + critic 全 **CERTIFIED_CLEAN** (post-commit 完整性/并发安全/代码复核/集成/诚实)。
+- **第六轮 (12-agent)**: holistic-correctness + completeness-final **CERTIFIED_CLEAN** (committed 代码 0 缺陷); production-honesty lens 提 4 项, 经裁决**无一是本特征 5 文件的缺陷**:
+  - `codebook.py::_infer_source_stage` 对 staleness 列返 'unknown' → **pre-existing** (波及全部 6 个 staleness 列, 含早于本特征的 5 个) + **并行会话正改 codebook.py** → 不碰 (避冲突/scope), 列为 codebook-session/Phase B 改进项。
+  - `core/stage.py:209` 未钉 BLAS 线程变量 → **pre-existing 共享 infra** (波及全部嵌入派生列), §16 已诚实记 + shell pre-export 解法 → 不碰共享 infra。
+  - stage 30a timeout 3 轨 T=18 风险 → **Phase B 生产前置** (Phase A 代码不受影响, timeout 仅 17M 规模才触), §16 已记"先测后调"。
+  - commit 信息 "三前置...受 M0/生产 gate 延后" → 实为诚实 ("延后"=未就绪), 本节进一步明确: **此三项为 Phase B 必办待处理项, 非已就绪**。
+
+### 18.3 Phase B 必办清单 (强化, 提升可发现性)
+执行生产 T=18 重跑 + golden bless **前**必办 (均非 Phase A 代码缺陷, 为生产前置):
+1. **timeout**: 先在 ~10k 文样测 stage 30a 2 轨墙钟; 若 `×1.5 > 5.5h` 则 `core/dag.py` 该阶段 timeout 21600→28800 (或保守预调 8h)。
+2. **BLAS 确定性**: shell 启动 orchestrator **前** `export PYTHONHASHSEED=0 MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1` (因 `core/stage.py:209` 只钉 PYTHONHASHSEED; 全管道 pre-existing, 非本特征)。
+3. **panel-merge**: 重跑后核验 staleness 是否流入 40_panel (runner 泛型左连接会自动拾取, gate-中性)。
+4. **codebook**: (可选, codebook-session/并行处理) 给 `_infer_source_stage` 加 staleness→Stage 18 case (现返 'unknown', pre-existing 波及 6 列)。
+
+### 18.4 最终裁决
+**本特征 (semantic_staleness_ss, 5 文件) 经六轮审计 (5+42+17+34+21+12 = 131 agent) + 真实 T=2 端到端实跑 + 3740-test 全量回归三重认证, committed 代码 0 缺陷 / 0 回归。** 六轮所有"残留 finding"经裁决全部为 pre-existing 共享 infra / 并行会话 / Phase B 生产前置 / 命名约定 (stage 30a) / 智能体幻觉 — **无一是本特征交付物的缺陷**。Phase B 生产执行 (须全量 17M 语料, 本机无) 连同 §18.3 四项前置待生产环境进行。
+
+---
+
+*本计划经**六轮**顶刊多智能体审计 (v1→v1.1 5-agent §12; v1.1→v1.2 42-agent §13; Phase A 后 17-agent 代码审 §15.2; 第四轮 34-agent 终审 §16; 提交后第五轮 21-agent 认证 + 第六轮 12-agent 全息终审 §18), 共 131 agent, 全程 committed 代码 0 缺陷。**Phase A 已于 2026-06-21 用户放行后实现, 经真实端到端微验证 + 3740-test 全量回归 (0 源于本特征) + 六轮审计三重坐实** (§14/§15/§16/§18; 代码+单测绿, ruff clean, 实跑证列正确物化 8→9/12→14, 盘面已还原); **已于 2026-06-21 用户授权后 by-name 提交并 FF 推送 main (commit 3df4a4d9, 5 文件, 排除并行脏文件, 见 §17)**; Phase B (生产 T=18 重跑 + golden 重生; timeout/BLAS/panel-merge 三项 Phase B 必办见 §16/§18.3) 受 M0/生产 gate 延后。*
