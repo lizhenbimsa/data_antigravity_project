@@ -1689,6 +1689,18 @@ def main():
             if 'policy_cosine_sim_ss' in df_align.columns:
                 _agg_spec['article_sim_mean_ss'] = ('policy_cosine_sim_ss', 'mean')
                 _agg_spec['article_sim_std_ss'] = ('policy_cosine_sim_ss', 'std')
+            # 全年份锚点稳健孪生 (_allv, 2026-06-21): stage 15 并列产 policy_cosine_sim_allv*
+            # (全语料静态锚点) 时, 同口径聚合为 article_sim_mean/std_allv* (与主轨对称,
+            # 缺列优雅跳过 = companion 关闭 / 旧 schema)。
+            if 'policy_cosine_sim_allv' in df_align.columns:
+                _agg_spec['article_sim_mean_allv'] = ('policy_cosine_sim_allv', 'mean')
+                _agg_spec['article_sim_std_allv'] = ('policy_cosine_sim_allv', 'std')
+            if 'policy_cosine_sim_allv_ctx' in df_align.columns:
+                _agg_spec['article_sim_mean_allv_ctx'] = ('policy_cosine_sim_allv_ctx', 'mean')
+                _agg_spec['article_sim_std_allv_ctx'] = ('policy_cosine_sim_allv_ctx', 'std')
+            if 'policy_cosine_sim_allv_ss' in df_align.columns:
+                _agg_spec['article_sim_mean_allv_ss'] = ('policy_cosine_sim_allv_ss', 'mean')
+                _agg_spec['article_sim_std_allv_ss'] = ('policy_cosine_sim_allv_ss', 'std')
             _agg = df_align.groupby(['target_bank', 'year']).agg(
                 **_agg_spec).reset_index()
             # fix(omni-group-std-singleobs, 2026-06-11, 组级裁决): 删除旧
@@ -1706,9 +1718,14 @@ def main():
             # 取均值聚合为 bank-year 同名列, 取代已退役的 stage 30 (30_text2vec_indicators)
             # 的 policy_cosine_sim_t2v_* 来源 (REQUIRED_PANEL_COLUMNS 契约名不变)。
             # 三轨 (full/ctx/ss): ss=银行+金科同句轨, 缺列优雅跳过 (列表推导自动过滤)。
+            # 主轨 _t2v + 全年份锚点 _t2v_allv 孪生 (2026-06-21): 列表推导自动按存在性
+            # 过滤 → companion 关闭 / 旧 schema 时 _allv 列不在 df_align, 优雅跳过。
             _t2v_src = [c for c in ('policy_cosine_sim_t2v_full',
                                     'policy_cosine_sim_t2v_ctx',
-                                    'policy_cosine_sim_t2v_ss')
+                                    'policy_cosine_sim_t2v_ss',
+                                    'policy_cosine_sim_t2v_allv_full',
+                                    'policy_cosine_sim_t2v_allv_ctx',
+                                    'policy_cosine_sim_t2v_allv_ss')
                         if c in df_align.columns]
             if _t2v_src:
                 _t2v_agg = (df_align.groupby(['target_bank', 'year'])[_t2v_src]
@@ -1765,58 +1782,73 @@ def main():
             # track-agnostic 元数据 (无 ctx 变体) 时复用 full 列并披露。
             # v3.9.0: 三轨 (full/ctx/ss) — ss=银行+金科同句轨, sim 用
             # policy_cosine_sim_ss, 词频优先 {freq_col}_ss; 缺列优雅跳过 (旧 schema)。
-            _sim_tracks = [('', 'policy_cosine_sim')]
-            if 'policy_cosine_sim_ctx' in df_align.columns:
-                _sim_tracks.append(('_ctx', 'policy_cosine_sim_ctx'))
+            # 全年份锚点稳健孪生 (_allv, 2026-06-21): anchor 变体外层循环 — '' = vintage
+            # 主轨 (sim 用 policy_cosine_sim*); '_allv' = 全语料静态锚点 (sim 用
+            # policy_cosine_sim_allv*)。两变体共用**完全一致**的 track(full/ctx/ss) ×
+            # 词频(kw/int) × 分位(P) 四象限构造, 唯 sim 阈值列基名不同 → 占比列名插入
+            # `_allv` (在 track 后缀前, 如 token_adopt_kw_p25_allv_ctx)。⚠ 词频侧后缀
+            # 只随 track (_ctx/_ss) 变, 与 anchor 无关 (词频不依赖政策锚点)。
+            _anchor_variants = [('', 'policy_cosine_sim')]
+            if 'policy_cosine_sim_allv' in df_align.columns:
+                _anchor_variants.append(('_allv', 'policy_cosine_sim_allv'))
             else:
-                logger.warning("  ⚠️ policy_cosine_sim_ctx 缺失, 四象限 ctx 孪生"
-                               "跳过 (旧 schema)")
-            if 'policy_cosine_sim_ss' in df_align.columns:
-                _sim_tracks.append(('_ss', 'policy_cosine_sim_ss'))
-            else:
-                logger.warning("  ⚠️ policy_cosine_sim_ss 缺失, 四象限 ss 孪生"
-                               "跳过 (旧 schema / ss 未上线)")
+                logger.info("  四象限: policy_cosine_sim_allv 缺失 "
+                            "(companion 关闭 / 旧 schema), 跳过 _allv 全年份锚点孪生")
 
-            for _sim_sfx, _sim_col in _sim_tracks:
-                for track_name, freq_col in _tracks:
-                    _freq_eff = freq_col
-                    # ctx/ss 轨: 词频优先同轨变体 {freq_col}{_sim_sfx}; kw 轨的 AC
-                    # 去重关键词数为 track-agnostic 元数据 (无同轨变体) 时复用 full 列。
-                    if _sim_sfx in ('_ctx', '_ss'):
-                        if f'{freq_col}{_sim_sfx}' in df_align.columns:
-                            _freq_eff = f'{freq_col}{_sim_sfx}'
-                        else:
-                            logger.info(
-                                f"  Track {track_name} ({_sim_sfx}): 词频列无同轨变体 "
-                                f"(track-agnostic), 复用 {freq_col}")
-                    if _freq_eff not in df_align.columns:
-                        logger.warning(f"  {_freq_eff} 列缺失, "
-                                       f"跳过 Track {track_name}{_sim_sfx}")
-                        continue
+            for _anc_sfx, _anc_base in _anchor_variants:
+                _sim_tracks = [('', _anc_base)]
+                if f'{_anc_base}_ctx' in df_align.columns:
+                    _sim_tracks.append(('_ctx', f'{_anc_base}_ctx'))
+                elif _anc_sfx == '':
+                    logger.warning("  ⚠️ policy_cosine_sim_ctx 缺失, 四象限 ctx 孪生"
+                                   "跳过 (旧 schema)")
+                if f'{_anc_base}_ss' in df_align.columns:
+                    _sim_tracks.append(('_ss', f'{_anc_base}_ss'))
+                elif _anc_sfx == '':
+                    logger.warning("  ⚠️ policy_cosine_sim_ss 缺失, 四象限 ss 孪生"
+                                   "跳过 (旧 schema / ss 未上线)")
 
-                    for pct in _percentiles:
-                        _tok, _hid, _sub = _classify_policy_quadrants(
-                            df_align, _sim_col, _freq_eff, pct)
-                        _k = f'{track_name}_p{pct}{_sim_sfx}'
-                        df_align[f'_is_token_{_k}'] = _tok
-                        df_align[f'_is_hidden_{_k}'] = _hid
-                        df_align[f'_is_subst_{_k}'] = _sub
+                for _sim_sfx, _sim_col in _sim_tracks:
+                    for track_name, freq_col in _tracks:
+                        _freq_eff = freq_col
+                        # ctx/ss 轨: 词频优先同轨变体 {freq_col}{_sim_sfx}; kw 轨的 AC
+                        # 去重关键词数为 track-agnostic 元数据 (无同轨变体) 时复用 full 列。
+                        if _sim_sfx in ('_ctx', '_ss'):
+                            if f'{freq_col}{_sim_sfx}' in df_align.columns:
+                                _freq_eff = f'{freq_col}{_sim_sfx}'
+                            elif _anc_sfx == '':
+                                logger.info(
+                                    f"  Track {track_name} ({_sim_sfx}): 词频列无同轨变体 "
+                                    f"(track-agnostic), 复用 {freq_col}")
+                        if _freq_eff not in df_align.columns:
+                            if _anc_sfx == '':
+                                logger.warning(f"  {_freq_eff} 列缺失, "
+                                               f"跳过 Track {track_name}{_sim_sfx}")
+                            continue
 
-                        # 按 (银行, 年) 聚合为占比 (mean 跳过 NaN →
-                        # 分母 = 已测量篇数; 全未测量 bank-year → NaN)
-                        _quadrant_agg = df_align.groupby(
-                            ['target_bank', 'year']).agg(
-                            **{f'token_adopt_{_k}': (f'_is_token_{_k}', 'mean'),
-                               f'hidden_adopt_{_k}': (f'_is_hidden_{_k}', 'mean'),
-                               f'subst_adopt_{_k}': (f'_is_subst_{_k}', 'mean'),
-                               }
-                        ).reset_index()
+                        for pct in _percentiles:
+                            _tok, _hid, _sub = _classify_policy_quadrants(
+                                df_align, _sim_col, _freq_eff, pct)
+                            _k = f'{track_name}_p{pct}{_anc_sfx}{_sim_sfx}'
+                            df_align[f'_is_token_{_k}'] = _tok
+                            df_align[f'_is_hidden_{_k}'] = _hid
+                            df_align[f'_is_subst_{_k}'] = _sub
 
-                        panel = panel.merge(
-                            _quadrant_agg, on=['target_bank', 'year'], how='left')
+                            # 按 (银行, 年) 聚合为占比 (mean 跳过 NaN →
+                            # 分母 = 已测量篇数; 全未测量 bank-year → NaN)
+                            _quadrant_agg = df_align.groupby(
+                                ['target_bank', 'year']).agg(
+                                **{f'token_adopt_{_k}': (f'_is_token_{_k}', 'mean'),
+                                   f'hidden_adopt_{_k}': (f'_is_hidden_{_k}', 'mean'),
+                                   f'subst_adopt_{_k}': (f'_is_subst_{_k}', 'mean'),
+                                   }
+                            ).reset_index()
 
-                    logger.info(f"  Track {track_name}{_sim_sfx}: "
-                                f"P={_percentiles} 四象限占比已合并")
+                            panel = panel.merge(
+                                _quadrant_agg, on=['target_bank', 'year'], how='left')
+
+                        logger.info(f"  Track {track_name}{_anc_sfx}{_sim_sfx}: "
+                                    f"P={_percentiles} 四象限占比已合并")
 
             # v6/F3 修复 (主路径全 NaN)：删除原 fillna(0.0)。
             # token_adopt / hidden_adopt / subst_adopt / article_sim_ / fintech_intensity_mean
@@ -2244,7 +2276,11 @@ def main():
         'policy_cosine_sim_t2v_full', 'policy_cosine_sim_t2v_ctx'
     ]
     t2v_cols_ss = ['strat_diff_t2v_ss', 'policy_cosine_sim_t2v_ss']  # 软诊断, 缺则不报错
-    _present = [c for c in t2v_cols + t2v_cols_ss if c in panel.columns]
+    # 全年份锚点 _t2v_allv 孪生 (2026-06-21): 纯软诊断 (companion 开启时出现; 非
+    # REQUIRED_PANEL_COLUMNS 硬契约, 缺则不报错 — 与 _ss 同级)。
+    t2v_cols_allv = ['policy_cosine_sim_t2v_allv_full', 'policy_cosine_sim_t2v_allv_ctx',
+                     'policy_cosine_sim_t2v_allv_ss']
+    _present = [c for c in t2v_cols + t2v_cols_ss + t2v_cols_allv if c in panel.columns]
     _missing = [c for c in t2v_cols if c not in panel.columns]  # 仅 full/ctx 硬契约入 missing
     if _missing:
         logger.warning(
@@ -2255,11 +2291,11 @@ def main():
     logger.info(f"  ✅ 内联双模型稳健性特征 (保留自然缺失值 NaN): present={_present}")
 
     # --- 8c. Opt-in 特征面板 merge (stage 18; orphan-panel fix 2026-05-30) ---
-    # 这些 opt-in stage 产出 bank-year FEATURE 面板, 其列
-    # stata_export.py core_patterns 已声明期待 (*_staleness 等), 但此前无任何代码把它们
+    # 这些 opt-in stage 产出 bank-year FEATURE 面板, 其列为下游 Stata/codebook
+    # 既有契约期待 (*_staleness 等), 但此前无任何代码把它们
     # 并入 40_panel_yearly。条件左连接 (opt-in stage 未运行 → 文件缺失 → graceful no-op)。
-    # 39f (cross_media_alpha) 同属此孤儿类 (bank-year; cross_outlet_tone_variance_* 在
-    # stata_export core_patterns — ⚠ 与 paper 10 spec 冻结 main treatment 同名异构,
+    # 39f (cross_media_alpha) 同属此孤儿类 (bank-year; cross_outlet_tone_variance_* 为
+    # 下游 Stata 契约列 — ⚠ 与 paper 10 spec 冻结 main treatment 同名异构,
     # 事件窗条件方差而非 spec 的全年截面口径, 见 cross_media_alpha.py 模块 docstring
     # 披露 fix(omni-g-audit-family-08, 2026-06-11)), 但它是 validation-class
     # (run_pipeline_validation 中, 排在 stage 45 之后)。故正常单趟主链运行时其文件尚不

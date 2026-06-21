@@ -1259,7 +1259,25 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                     if _ss_v == _v:  # 源标签无 (Ctx) 轨标记 → 显式补 SS 同句标识
                         _ss_v = f'{_v} [SS]'
                     STATA_LABELS[_ss_key] = _ss_v[:80]
-            # 仅保留面板中实际存在的列 (含 _ss; ss 列在 stage 21 ss 跑落盘前缺失 → 自动跳过)
+            # ═══ 全年份锚点 "_allv" 标签机械派生 (all-vintage anchor robustness, 2026-06-21) ═══
+            # 置于 _ss 派生之后 → full/ctx/ss 三轨政策键均已就绪, 一并派生其 _allv 孪生。
+            # 仅对 **anchor-dependent** 政策族派生 (余弦/相似度/四象限阈值依赖政策锚点):
+            # article_sim_ (mean/std) / auth_sim_ (5 法) / token|hidden|subst_adopt_ /
+            # policy_cosine_sim(_t2v_) — fintech_intensity_mean 等词频列不依赖锚点, 不派生。
+            # _allv 后缀插在 track 后缀 (_full/_ctx/_ss) 之前 (无 track 则 append), 与
+            # stage 15/26/runner 实产列名严格对齐; 标签 = 主轨标签 + " (All-Vintage anchor)"。
+            _ALLV_PREFIXES = ('article_sim_', 'auth_sim_', 'token_adopt_',
+                              'hidden_adopt_', 'subst_adopt_', 'policy_cosine_sim')
+            for _k, _v in [(k, v) for k, v in STATA_LABELS.items()
+                           if k.startswith(_ALLV_PREFIXES) and '_allv' not in k]:
+                if _k.endswith(('_full', '_ctx', '_ss')):
+                    _base, _trk = _k.rsplit('_', 1)
+                    _allv_key = f'{_base}_allv_{_trk}'
+                else:
+                    _allv_key = f'{_k}_allv'
+                if _allv_key not in STATA_LABELS:
+                    STATA_LABELS[_allv_key] = f'{_v} (All-Vintage anchor)'[:80]
+            # 仅保留面板中实际存在的列 (含 _ss/_allv; 缺列在落盘前缺失 → 自动跳过)
             labels = {k: v for k, v in STATA_LABELS.items()
                       if k in panel_stata.columns}
             # fix(omni-g-panel-export-06, 2026-06-11): 未命中 STATA_LABELS 的列

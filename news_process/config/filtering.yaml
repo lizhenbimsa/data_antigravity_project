@@ -61,6 +61,16 @@ article_alignment:
   # 白话: 算 2015 年新闻的"政策对齐度"时, 只许拿 2015 年及以前发布的政策文件当参照,
   #       不能偷看未来的政策 (否则指标带前视偏误, 回归结果不可信)。
   vintage_aware: true
+  # 全年份锚点稳健性孪生 (2026-06-21, 用户决策; stage 15 + 26 共用)。
+  # true (默认) = 在 vintage_aware 主轨**之外并列**再产一套用"所有年份政策文档"拼成
+  #   静态全语料锚点的 `_allv` 指标 (policy_cosine_sim_allv* / auth_sim_*_allv* /
+  #   article_sim_mean_allv* / token|hidden|subst_adopt_*_allv*), 用**完全一致的下游
+  #   构造**作 anchor-robustness 对照; false = 不产 _allv 列 (仅 vintage 主轨)。
+  # ⚠ `_allv` 含未来政策文本, **仅作稳健性对照, 绝不替换 vintage 主轨**; 论文须披露
+  #   其系 ex-post / 全语料口径 (非前视守卫指标), 两轨禁混进同一 over-identified 检验。
+  # 白话: vintage 主轨是"只用当年及以前政策"的诚实口径 (主结果用它); _allv 是额外
+  #   再用"全部政策(含以后年份)"算一遍, 给审稿人看"结论不被 vintage 裁剪本身驱动"。
+  all_vintage_companion: true
 
 # ------------------------------------------------------------------------------
 # [模块二：新闻筛选模块] 实体上下文窗口配置 (Entity Context Window) - 阶段 13 物化

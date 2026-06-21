@@ -306,12 +306,26 @@ class TestQuadrantClassification:
         assert np.isnan(tok.mean())
 
     def test_runner_wires_ctx_twin(self):
-        """四象限 ctx 孪生须接线 (sim 轨循环 + _ctx 列名后缀)."""
+        """四象限 ctx 孪生须接线 (sim 轨循环 + _ctx 列名后缀).
+
+        2026-06-21: _sim_tracks 改由 anchor 变体 (_anc_base) f-string 构造以支持
+        全年份 _allv 孪生 (`f'{_anc_base}_ctx'`), 故 ctx 接线断言更新为 f-string 形式。"""
         src = _runner_src()
         assert "_sim_tracks" in src
-        assert "('_ctx', 'policy_cosine_sim_ctx')" in src
+        assert "f'{_anc_base}_ctx'" in src, "ctx 孪生须经 anchor 变体 f-string 接线"
         assert "token_adopt_{_k}" in src
         assert src.count('_classify_policy_quadrants(') >= 2  # def + 调用
+
+    def test_runner_wires_allv_anchor_variant(self):
+        """全年份锚点 _allv 四象限孪生须接线 (anchor 变体外层循环 + _anc_sfx 进列名键)."""
+        src = _runner_src()
+        assert "_anchor_variants" in src, "缺 anchor 变体外层循环"
+        assert "('_allv', 'policy_cosine_sim_allv')" in src, "缺 _allv 全年份锚点变体"
+        # 占比列名键须含 anchor 后缀 (_anc_sfx) → token_adopt_kw_p25_allv_ctx 等
+        assert "{_anc_sfx}{_sim_sfx}" in src, "四象限列名键须插入 anchor 后缀"
+        # 连续聚合 + t2v 聚合的 _allv 孪生
+        assert "article_sim_mean_allv" in src
+        assert "policy_cosine_sim_t2v_allv_full" in src
 
 
 # ============================================================================

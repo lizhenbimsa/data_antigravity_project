@@ -499,3 +499,226 @@ def test_stage15_value_assertions_nan_safe():
     src = inspect.getsource(pa.compute_article_policy_alignment)
     assert 'np.nanmin' in src and 'np.nanmax' in src, \
         "值域断言必须 NaN-安全 (vintage 守卫产生合法 NaN)"
+
+
+# ---------------------------------------------------------------------------
+# 全年份锚点稳健孪生 (_allv = all-vintage anchor robustness, 2026-06-21)
+# ---------------------------------------------------------------------------
+
+def test_stage15_allv_companion_columns_and_lookahead_diff(tmp_path, monkeypatch):
+    """全年份 _allv 孪生: companion 开启 (默认) → 并列产 policy_cosine_sim_allv* 列;
+    且 2014 (vintage 前视守卫 NaN) 在 _allv 全年份锚点下有值 (anchor-robustness 证据),
+    2016 的 _allv (全年份 A+B 池化锚点) ≠ vintage 主轨 (仅 ≤2016 的 doc A 锚点)。"""
+    from news_process.pipeline.filtering import policy_alignment as pa
+    monkeypatch.setitem(pa.CONFIG['paths'], 'authoritative_corpus_file',
+                        _write_corpus(tmp_path))
+    monkeypatch.setattr(pa._eng, 'embed_texts', _fake_embed_axis)
+    _patch_stage15_tokenizers(monkeypatch, pa)
+
+    out = pa.compute_article_policy_alignment(
+        _toy_articles([2016, 2022, 2014, np.nan]))
+    # _allv 孪生列 (主轨 + _t2v 各一族) 全部就绪
+    for col in ['policy_cosine_sim_allv', 'policy_cosine_sim_allv_full',
+                'policy_cosine_sim_allv_ctx', 'policy_cosine_sim_t2v_allv_full',
+                'policy_cosine_sim_t2v_allv_ctx']:
+        assert col in out.columns, f"缺 _allv 孪生列 {col}"
+    # alias = _allv_full
+    assert (out['policy_cosine_sim_allv'] == out['policy_cosine_sim_allv_full']).all()
+    av = out['policy_cosine_sim_allv_full'].tolist()
+    # vintage 主轨: 2014 (早于全部) / 年份未知 → NaN (前视守卫)
+    assert np.isnan(out['policy_cosine_sim_full'].iloc[2])
+    assert np.isnan(out['policy_cosine_sim_full'].iloc[3])
+    # _allv 全年份(静态 A+B 池化)锚点: 全部文章有值 = cos([1,0],[1/√2,1/√2]) = 1/√2
+    assert av[2] == pytest.approx(1 / np.sqrt(2), abs=1e-6), \
+        "2014 _allv 应有值 (全年份锚点不做前视守卫)"
+    assert av[3] == pytest.approx(1 / np.sqrt(2), abs=1e-6), \
+        "年份未知文章在 _allv 静态锚点下仍有值"
+    # 2016: vintage 锚点=仅 doc A → cos=1.0; _allv 锚点=A+B 池化 → cos=1/√2 (两轨确有差异)
+    assert out['policy_cosine_sim_full'].iloc[0] == pytest.approx(1.0, abs=1e-6)
+    assert av[0] == pytest.approx(1 / np.sqrt(2), abs=1e-6), \
+        "2016 _allv 用全年份锚点应≠vintage 主轨 (anchor-robustness 信号成立)"
+
+
+def test_stage15_companion_off_emits_no_allv(tmp_path, monkeypatch):
+    """article_alignment.all_vintage_companion=false → 不产任何 _allv 列 (仅 vintage 主轨)。"""
+    from news_process.pipeline.filtering import policy_alignment as pa
+    monkeypatch.setitem(pa.CONFIG['paths'], 'authoritative_corpus_file',
+                        _write_corpus(tmp_path))
+    monkeypatch.setitem(pa.CONFIG.setdefault('article_alignment', {}),
+                        'all_vintage_companion', False)
+    monkeypatch.setattr(pa._eng, 'embed_texts', _fake_embed_axis)
+    _patch_stage15_tokenizers(monkeypatch, pa)
+
+    out = pa.compute_article_policy_alignment(_toy_articles([2016, 2022]))
+    assert 'policy_cosine_sim_full' in out.columns, "vintage 主轨仍须产出"
+    assert not any('_allv' in c for c in out.columns), \
+        "companion 关闭时不应产出任何 _allv 列"
+
+
+def test_stage26_allv_companion_columns_and_lookahead(tmp_path, monkeypatch):
+    """stage 26 全年份 _allv 孪生: 产 auth_sim_*_allv_* 列 (5 法 × 轨); 且 2014
+    (vintage 前视守卫整年 NaN) 在 _allv 全年份静态锚点下有值。"""
+    from news_process.pipeline.features import policy_similarity as ps
+    monkeypatch.setitem(ps.CONFIG['paths'], 'authoritative_corpus_file',
+                        _write_corpus(tmp_path))
+    from news_process.pipeline.text import embedding_engine as eng
+    monkeypatch.setattr(eng, 'embed_texts', _fake_embed_rand)
+
+    panel = ps.compute_authoritative_similarity(
+        _toy_df_exploded([2014, 2016, 2022]), _toy_panel([2014, 2016, 2022]))
+    # _allv 孪生列就绪 (5 指标 × full/ctx 轨; content_ctx 在 toy 中存在)
+    for col in ['auth_sim_tfidf_c_allv_full', 'auth_sim_tfidf_w_allv_full',
+                'auth_sim_lda_allv_full', 'auth_sim_emb_allv_full',
+                'auth_sim_emb_t2v_allv_full', 'auth_sim_tfidf_c_allv_ctx']:
+        assert col in panel.columns, f"缺 _allv 孪生列 {col}"
+    # 2014: vintage 主轨整年 NaN (前视守卫), 但 _allv 全年份锚点有值
+    y2014 = panel[panel['year'] == 2014]
+    assert y2014['auth_sim_tfidf_c_full'].isna().all(), "2014 vintage 主轨应整年 NaN"
+    assert y2014['auth_sim_tfidf_c_allv_full'].notna().any(), \
+        "2014 _allv 应有值 (全年份静态锚点不做前视守卫)"
+
+
+def test_stage26_companion_off_emits_no_allv(tmp_path, monkeypatch):
+    """stage 26 companion 关闭 → 无 _allv 列 (仅 vintage 主轨)。"""
+    from news_process.pipeline.features import policy_similarity as ps
+    monkeypatch.setitem(ps.CONFIG['paths'], 'authoritative_corpus_file',
+                        _write_corpus(tmp_path))
+    monkeypatch.setitem(ps.CONFIG.setdefault('article_alignment', {}),
+                        'all_vintage_companion', False)
+    from news_process.pipeline.text import embedding_engine as eng
+    monkeypatch.setattr(eng, 'embed_texts', _fake_embed_rand)
+
+    panel = ps.compute_authoritative_similarity(
+        _toy_df_exploded([2020]), _toy_panel([2020]))
+    assert 'auth_sim_tfidf_c_full' in panel.columns, "vintage 主轨仍须产出"
+    assert not any('_allv' in c for c in panel.columns), \
+        "companion 关闭时 stage 26 不应产 _allv 列"
+
+
+def test_allv_panel_column_names_within_stata_32():
+    """穷举全部 _allv 面板/文章列名, 断言 ≤32 字符 (Stata 变量名硬上限)。
+
+    防御性: _allv 后缀插在 track 后缀前, 与既有 _t2v/_ss 叠加后最长组合须仍合规
+    (CLAUDE.md Stata 段铁律; 镜像 _ss 三元组唯一性断言精神)。"""
+    names = []
+    # stage 15 文章级
+    for base in ['policy_cosine_sim', 'policy_cosine_sim_t2v']:
+        for t in ['', '_full', '_ctx', '_ss']:
+            names.append(f'{base}_allv{t}')
+    # runner 连续聚合
+    for stat in ['mean', 'std']:
+        for t in ['', '_ctx', '_ss']:
+            names.append(f'article_sim_{stat}_allv{t}')
+    # runner 四象限
+    for q in ['token_adopt', 'hidden_adopt', 'subst_adopt']:
+        for kw in ['kw', 'int']:
+            for p in (25, 50, 75):
+                for t in ['', '_ctx', '_ss']:
+                    names.append(f'{q}_{kw}_p{p}_allv{t}')
+    # stage 26 银行年
+    for m in ['tfidf_c', 'tfidf_w', 'lda', 'emb', 'emb_t2v']:
+        for t in ['_full', '_ctx', '_ss']:
+            names.append(f'auth_sim_{m}_allv{t}')
+    over = [(n, len(n)) for n in names if len(n) > 32]
+    assert not over, f"以下 _allv 列名超 Stata 32 字符上限: {over}"
+
+
+def test_companion_does_not_perturb_vintage_main_track_stage15(tmp_path, monkeypatch):
+    """铁律#1 GOLDEN-SAFETY 锁 (stage 15): 开/关 all_vintage_companion, 全部 vintage 主轨列
+    (非 _allv) 逐列哈希必须**字节级一致** — companion 纯加性, 绝不扰动既有主轨取值。
+
+    本测试把第二轮审计 (determinism 红队 H1) 的运行期硬证据固化为常驻回归门。"""
+    import pandas as pd
+
+    from news_process.pipeline.filtering import policy_alignment as pa
+    monkeypatch.setitem(pa.CONFIG['paths'], 'authoritative_corpus_file',
+                        _write_corpus(tmp_path))
+    monkeypatch.setattr(pa._eng, 'embed_texts', _fake_embed_axis)
+    _patch_stage15_tokenizers(monkeypatch, pa)
+
+    def _run(companion):
+        monkeypatch.setitem(pa.CONFIG.setdefault('article_alignment', {}),
+                            'all_vintage_companion', companion)
+        return pa.compute_article_policy_alignment(
+            _toy_articles([2016, 2022, 2014, np.nan]))
+
+    on, off = _run(True), _run(False)
+    vint_cols = [c for c in off.columns
+                 if '_allv' not in c and c.startswith('policy_cosine_sim')]
+    assert vint_cols, "应有 vintage 主轨政策列"
+    for c in vint_cols:
+        h_on = int(pd.util.hash_pandas_object(on[c].fillna(-999.0), index=False).sum())
+        h_off = int(pd.util.hash_pandas_object(off[c].fillna(-999.0), index=False).sum())
+        assert h_on == h_off, f"companion 扰动了 vintage 主轨列 {c} (违反铁律#1 golden-safety)"
+    # companion 纯加性: ON 多出 _allv 列, OFF 完全无
+    assert any('_allv' in c for c in on.columns), "companion=ON 应产 _allv 列"
+    assert not any('_allv' in c for c in off.columns), "companion=OFF 不应有任何 _allv 列"
+
+
+def test_companion_does_not_perturb_vintage_and_allv_differs_stage26(tmp_path, monkeypatch):
+    """铁律#1 锁 (stage 26) + allv 真实信号: 开/关 companion, vintage auth_sim 列哈希字节级
+    一致; 且早年 (vintage 子集锚 ≠ allv 全集锚) 的 auth_sim_tfidf_c (文本基) vintage ≠ allv,
+    证 _allv 是真实再计算而非静默复制 (TF-IDF 用真实锚点文本, 不受 count-based mock 退化)。"""
+    import pandas as pd
+
+    from news_process.pipeline.features import policy_similarity as ps
+    from news_process.pipeline.text import embedding_engine as eng
+    monkeypatch.setitem(ps.CONFIG['paths'], 'authoritative_corpus_file',
+                        _write_corpus(tmp_path))
+    monkeypatch.setattr(eng, 'embed_texts', _fake_embed_rand)
+
+    # years 含 2014 (< 语料最早 vintage 2015) → 触发前视守卫: companion OFF 走 continue,
+    # companion ON 不 continue 而产 vintage=NaN 行 — 这是开/关唯一行为差异路径。锁该路径下
+    # vintage 列仍字节级相等 (经 groupby.first(skipna)+merge.left 折叠后 2014 vintage 列恒 NaN)。
+    def _run(companion):
+        monkeypatch.setitem(ps.CONFIG.setdefault('article_alignment', {}),
+                            'all_vintage_companion', companion)
+        return ps.compute_authoritative_similarity(
+            _toy_df_exploded([2014, 2016, 2022]), _toy_panel([2014, 2016, 2022]))
+
+    on, off = _run(True), _run(False)
+    vint_cols = [c for c in off.columns
+                 if c.startswith('auth_sim_') and '_allv' not in c]
+    assert vint_cols, "应有 vintage auth_sim 列"
+    for c in vint_cols:
+        h_on = int(pd.util.hash_pandas_object(on[c].fillna(-999.0), index=False).sum())
+        h_off = int(pd.util.hash_pandas_object(off[c].fillna(-999.0), index=False).sum())
+        assert h_on == h_off, f"companion 扰动了 vintage auth_sim 列 {c} (违反铁律#1)"
+    # 前视守卫年 2014: companion ON 下 vintage 整年 NaN (与 OFF 的 merge-miss NaN 数值恒等)
+    assert on[on['year'] == 2014]['auth_sim_tfidf_c_full'].isna().all(), \
+        "2014 前视守卫年 vintage 列在 companion ON 下应整年 NaN (与 OFF continue 路径等价)"
+    # 2016 年: vintage 锚 = 仅 doc A (≤2016); allv 锚 = A+B 全集 → TF-IDF 锚点文本不同 → 必有差异
+    y = on[on['year'] == 2016]
+    vin = y['auth_sim_tfidf_c_full'].to_numpy(dtype=float)
+    allv = y['auth_sim_tfidf_c_allv_full'].to_numpy(dtype=float)
+    assert not np.allclose(vin, allv, equal_nan=True), \
+        "2016 _allv (全集锚) 应≠vintage (doc A 子集锚), 否则是静默复制 (非真实 anchor-robustness)"
+
+
+def test_allv_labels_mechanically_derived_in_both_label_dicts():
+    """_allv 标签机械派生在 export.py + stata_export.py 两侧均生效 (anchor-dependent
+    政策族 → 标签 + ' (All-Vintage anchor)'; codebook/.dta 标签兜底共用)。"""
+    import inspect
+
+    from news_process.pipeline.panel import export, stata_export
+    for mod in (export, stata_export):
+        src = inspect.getsource(mod)
+        assert '(All-Vintage anchor)' in src, \
+            f"{mod.__name__} 缺 _allv 标签派生文案"
+        assert '_ALLV_PREFIXES' in src, f"{mod.__name__} 缺 _allv 前缀白名单"
+
+    # 行为级: stata_export.build_variable_labels 对其 HEURISTIC_LABELS 内有基标签的
+    # _allv 政策列 (如 _t2v 族) 产出含 anchor 标识的派生标签 (canonical auth_sim/
+    # article_sim 基标签在 export.py STATA_LABELS, 走 .dta 路径; 此处只验 stata_export 源)。
+    df = pd.DataFrame({
+        'target_bank': ['工行'], 'year': [2020],
+        'policy_cosine_sim_t2v_full': [0.5],
+        'policy_cosine_sim_t2v_allv_full': [0.5],
+        'auth_sim_emb_t2v_full': [0.4],
+        'auth_sim_emb_t2v_allv_full': [0.4],
+    })
+    labels = stata_export.build_variable_labels(df)
+    assert '(All-Vintage anchor)' in labels['policy_cosine_sim_t2v_allv_full'], \
+        "policy_cosine_sim_t2v_allv_full 应得 All-Vintage anchor 派生标签"
+    assert '(All-Vintage anchor)' in labels['auth_sim_emb_t2v_allv_full'], \
+        "auth_sim_emb_t2v_allv_full 应得 All-Vintage anchor 派生标签"

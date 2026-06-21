@@ -428,6 +428,23 @@ def build_variable_labels(
         'lpeer_benefit_iv_ss':              "Same-type peer LOO benefit-attitude IV (ss 银行+金科同句)",
     }
 
+    # ═══ 全年份锚点 "_allv" 标签机械派生 (all-vintage anchor robustness, 2026-06-21) ═══
+    # 与 export.py STATA_LABELS 的 _allv 派生同逻辑 (codebook + .dta 标签兜底共用此源)。
+    # 仅对 anchor-dependent 政策族 (article_sim_/auth_sim_/token|hidden|subst_adopt_/
+    # policy_cosine_sim) 派生; _allv 插在 track 后缀 (_full/_ctx/_ss) 之前 (无 track 则
+    # append), 标签 = 主轨标签 + " (All-Vintage anchor)" (≤80 字节, codebook UTF-8 友好)。
+    _ALLV_PREFIXES = ('article_sim_', 'auth_sim_', 'token_adopt_',
+                      'hidden_adopt_', 'subst_adopt_', 'policy_cosine_sim')
+    for _k, _v in [(k, v) for k, v in HEURISTIC_LABELS.items()
+                   if k.startswith(_ALLV_PREFIXES) and '_allv' not in k]:
+        if _k.endswith(('_full', '_ctx', '_ss')):
+            _base, _trk = _k.rsplit('_', 1)
+            _allv_key = f'{_base}_allv_{_trk}'
+        else:
+            _allv_key = f'{_k}_allv'
+        if _allv_key not in HEURISTIC_LABELS:
+            HEURISTIC_LABELS[_allv_key] = f'{_v} (All-Vintage anchor)'[:80]
+
     for col in df.columns:
         # fix(omni-g-stata-export-05/09, 2026-06-11): 改名列先按原名查
         # (meta/HEURISTIC 以原始 panel 名为键), 短名兜底, fallback 用原名
