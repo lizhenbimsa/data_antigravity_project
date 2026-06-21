@@ -21,16 +21,18 @@ https://doi.org/10.1111/jofi.13377
    此前读不存在的 'embedding' 键恒走硬编码默认)
 2. **输入策略**: 标题 + 首段 300 字 (实际新闻中位 800 字 ≈ 1200 token, SBERT
    max_seq_len=512 截断会丢失末段)
-3. **嵌入轴仍 full/ctx 两路, ss 待 30a 嵌入上线** (2026-06-08 parity; legacy (full/ctx) 示例):
-   full 读 content_full / ctx 读 content_ctx (两者均由 stage 13 prepend 标题【恰好一次】),
-   编码时 title_col=None 关闭二次前置 → full/ctx 同型构造、标题各一次 (修 ctx 标题×2 反向
-   病根); 仅输入文本范围不同 (全文 vs 实体窗口)。缺 content_full 时回退裸 '内容'+'标题'
-   (走 _truncate_for_sbert Bybee 前置, 标题一次)。
-   **三轨说明 (v3.9.0)**: ss SBERT embedding 孪生 (emb_ss / semantic_staleness_ss) 在
-   v1 延后 (plan §④/§7.5, 最贵收益低; 30a ss 上线前 semantic_staleness_ss = NaN);
-   情感轨的 full/ctx/ss 三轨在 stage 21/22/23 已平价, 此处嵌入轴仅 full/ctx (ss 待 30a 上线)。
-4. **存储**: parquet (article_id, target_bank, year, emb_full[768], emb_ctx[768])
-   预估 400k × 768 × 4 byte × 2 轨 = ~2.5 GB
+3. **嵌入轴 full/ctx/ss 三路平价** (ss 嵌入 2026-06-21 上线, 镜像 ctx; 计划见
+   scripts/audit/SEMANTIC_STALENESS_SS_EXECUTION_PLAN_2026-06-21.md):
+   full 读 content_full / ctx 读 content_ctx / ss 读 content_ss (三者均由 stage 13
+   prepend 标题【恰好一次】), 编码时 title_col=None 关闭二次前置 → 三轨同型构造、标题各一次
+   (修 ctx 标题×2 反向病根); 仅输入文本范围不同 (全文 vs 实体窗口 vs 银行+金科同句窗口)。
+   缺 content_full 时回退裸 '内容'+'标题' (走 _truncate_for_sbert Bybee 前置, 标题一次)。
+   **三轨说明 (v3.9.0 + 2026-06-21)**: ss SBERT embedding 孪生 (emb_ss → 下游
+   semantic_staleness_ss) 现与 emb_ctx 平价产出; content_ss 缺列 (旧 schema) 时 embs_ss=None
+   不写该列, 下游 stage 18 优雅缺席 semantic_staleness_ss (向后兼容)。情感轨与嵌入轴的
+   full/ctx/ss 三轨现全平价。
+4. **存储**: parquet (article_id, target_bank, year, emb_full[768], emb_ctx[768], emb_ss[768])
+   预估 400k × 768 × 4 byte × 3 轨 = ~3.5 GB (ss 第三轨 +~1.2 GB; 回退行 emb_ss≡emb_full)
 
 D-0 实测项
 ----------
@@ -52,13 +54,13 @@ always-on 执行); 也可单独手动触发 (全量 40 万文章编码 GPU 约 4
 
 **在 DAG 中的位置**: STAGES_MAIN 阶段30a, kind=robustness, timeout=21600(GPU 4-6h / CPU 12-24h)。D 组前置阶段, 上游 = stage 13(14_news_with_ctx.parquet), 下游被 stage 18(D2 staleness 的 semantic 轨)及模块 docstring 提及的 D3(Krippendorff α, 39c/39d/39f 族)复用——核心动机是把 article-level SBERT 嵌入持久化一次, 避免多处重复编码(节省约12-15h)。
 
-**输入**: `14_news_with_ctx.parquet`(article 级; 优先用 content_full / content_ctx, 缺则回退 内容 + 标题)。
+**输入**: `14_news_with_ctx.parquet`(article 级; 优先用 content_full / content_ctx / content_ss, 缺则回退 内容 + 标题)。
 
 **处理步骤**:
 1. `_resolve_sbert_model` 从 `config/features.yaml::embedding_robustness.model`(默认 shibing624/text2vec-base-chinese, 与 stage 15/25 t2v 轨真单源) 解析 model_id + 可选 revision(钉死 HF commit 防权重漂移)。
 2. `encode_articles`: 推理前 `ensure_torch_determinism()`(seed 四源 + deterministic algorithms + cuDNN 策略, 对齐 stage 23)。文本构造 = Bybee 2024 风格'标题(≤100字, TITLE_CHARS) + 首段(≤300字, FIRST_PARA_CHARS)'(避免 SBERT 512-token 截断丢尾段)。**关键对称性**: content_full/content_ctx 已由 stage 13 prepend 标题恰好一次, 故 `title_col=None` 关闭二次前置(否则 ctx 轨标题被注入两次, 与 full 轨不对称)。`model.encode(normalize_embeddings=True, convert_to_numpy=True)` → (N,768) float32; show_progress_bar 仅交互式 TTY 显示。
-3. emb_full 读 content_full(缺则裸 内容+标题, title_col='标题'), emb_ctx 读 content_ctx(缺则 np.full_like NaN)。
-4. `_build_output_frame`: 组装 article_id(= stage 13 的 df.index, 供 stage 18 显式 join 对齐键)+ docid 透传 + target_bank/year/日期 + emb_full/emb_ctx(parquet 兼容的 list-of-1D-array)+ 三列 provenance(model_id / model_revision / text_pipeline_version='v2-2026-06-08-dualtrack-prepend')。
+3. emb_full 读 content_full(缺则裸 内容+标题, title_col='标题'), emb_ctx 读 content_ctx(缺则 np.full_like NaN), emb_ss 读 content_ss(缺列则 None, 2026-06-21 三轨平价上线, title_col=None)。
+4. `_build_output_frame`: 组装 article_id(= stage 13 的 df.index, 供 stage 18 显式 join 对齐键)+ docid 透传 + target_bank/year/日期 + emb_full/emb_ctx/emb_ss(parquet 兼容的 list-of-1D-array; emb_ss 在 embs_ss=None 时不写, 向后兼容)+ 三列 provenance(model_id / model_revision / text_pipeline_version='v2-2026-06-08-dualtrack-prepend')。
 
 **外部依赖/确定性**: sentence-transformers + 本地 SBERT 模型(shibing624/text2vec, 与 stage 15 _t2v 同源)。**无 LLM/Embedding API、$0**(本地模型); 本地重跑须设 HF_HUB_OFFLINE=1 / TRANSFORMERS_OFFLINE=1(连不上 hf.co 但有本地缓存)。确定性由 ensure_torch_determinism 保证(本地权重不变前提下逐位可复现; ⚠ revision 当前未钉死, 见 provenance 列, 上游权重更新风险靠本地缓存兜底)。无 _llm_cache.db 参与(本地编码每跑重算)。timeout=21600。
 
@@ -70,7 +72,7 @@ always-on 执行); 也可单独手动触发 (全量 40 万文章编码 GPU 约 4
 
 为什么需要它: 后面好几个步骤都要用'语义像不像'——比如 stage 18 判断一篇新闻是不是'旧闻重印'、还有评估多个评分者一致性的步骤(D3)。如果每个步骤各自重新算一遍这些指纹, 要多花十几个小时。这一步算一次、存下来、大家共用, 是个纯粹的'性能/复用'前置, 本身不产出面板里的最终变量。
 
-对最终面板/论文的影响: 它是间接的'地基'——它算出的语义向量喂给 stage 18 的'语义陈旧度', 进而进入稳健性检验。如果这里模型选错、标题被算重、或不同步(比如上游新闻重生了它却没重算导致向量和文章对不上号), 下游的语义相似度就会变成噪音; 代码因此特意用 article_id 严格配对并在对不上时直接报错停下, 强制重算, 防止论文用到错位的语义信号。注意它目前只算'全文'和'银行局部窗口'两条轨, 第三条'银行+金科同句'轨的语义向量暂未上线(成本高收益低), 所以面板里对应的'同句语义陈旧度'暂为空缺, 不影响其它指标。
+对最终面板/论文的影响: 它是间接的'地基'——它算出的语义向量喂给 stage 18 的'语义陈旧度', 进而进入稳健性检验。如果这里模型选错、标题被算重、或不同步(比如上游新闻重生了它却没重算导致向量和文章对不上号), 下游的语义相似度就会变成噪音; 代码因此特意用 article_id 严格配对并在对不上时直接报错停下, 强制重算, 防止论文用到错位的语义信号。它现在算三条轨的语义向量: '全文'、'银行局部窗口'、'银行+金科同句窗口'(第三条 ss 轨 2026-06-21 上线, 与前两条平价), 分别喂给 stage 18 的三轨语义陈旧度。
 ========================================================================
 """
 
@@ -201,10 +203,13 @@ def encode_articles(
 
 def _build_output_frame(
     df: pd.DataFrame, embs_full: np.ndarray, embs_ctx: np.ndarray,
+    embs_ss: np.ndarray | None = None,
 ) -> pd.DataFrame:
-    """组装 30a 输出 frame (对齐键 + provenance + full/ctx 两路向量).
+    """组装 30a 输出 frame (对齐键 + provenance + full/ctx/ss 三路向量).
 
-    嵌入轴仍 full/ctx 两路 (ss 待 30a 嵌入上线); legacy (full/ctx) 示例。
+    嵌入轴 full/ctx/ss 三路平价 (v3.9.0 第三轨 ss 嵌入上线 2026-06-21, 镜像 emb_ctx)。
+    ``embs_ss=None`` (旧 schema 无 content_ss) 时不写 emb_ss 列, 向后兼容 — 下游
+    stage 18 据 emb_ss 列是否存在决定产/不产 semantic_staleness_ss (优雅降级)。
 
     fix(omni-g-embed-03, 2026-06-11): 新增 model_id / model_revision /
     text_pipeline_version provenance 列 (与 LLMCache 键维度对齐) + docid 透传 —
@@ -222,6 +227,9 @@ def _build_output_frame(
         '日期': df['日期'] if '日期' in df.columns else pd.NA,
         'emb_full': list(embs_full),   # list of 1D arrays (parquet-compatible)
         'emb_ctx': list(embs_ctx),
+        # 三轨 ss (2026-06-21): embs_ss=None (旧 schema 无 content_ss) 时不写该列,
+        # 向后兼容 — 旧消费端按列存在性优雅降级 (镜像 emb_ctx)。
+        **({'emb_ss': list(embs_ss)} if embs_ss is not None else {}),
         'model_id': _SBERT_MODEL_ID,
         'model_revision': _SBERT_REVISION or '',
         'text_pipeline_version': _TEXT_PIPELINE_VERSION,
@@ -247,9 +255,9 @@ def main():
         f"(实解析={_SBERT_MODEL_ID}" + (f"@{_SBERT_REVISION}" if _SBERT_REVISION else "")
         + "); 输入构造 = 标题(≤"
         f"{TITLE_CHARS}字) + 首段(≤{FIRST_PARA_CHARS}字) 防 512-token 截断丢尾; "
-        "嵌入轴 full/ctx 两路 (content_full/content_ctx 已由 stage 13 prepend 标题恰好一次, "
-        "title_col=None 关二次前置); model.encode(normalize_embeddings=True) "
-        "→ (N, hidden_dim) float32 (默认 768)。"
+        "嵌入轴 full/ctx/ss 三路 (content_full/content_ctx/content_ss 已由 stage 13 prepend 标题恰好一次, "
+        "title_col=None 关二次前置; ss=银行+金科同句轨 2026-06-21 上线, content_ss 缺则不产 emb_ss); "
+        "model.encode(normalize_embeddings=True) → (N, hidden_dim) float32 (默认 768)。"
     )
     logger.info(
         "【判读】嵌入有效率越高(NaN 行越少)越好; emb_full 单位归一化 → L2 范数应≈1.0 "
@@ -270,14 +278,14 @@ def main():
     df = pd.read_parquet(src_path)
     logger.info(f"  article-level: {len(df)} 行")
 
-    # ── 嵌入轴 full/ctx 两路编码 (parity 2026-06-08; ss 嵌入轨 v1 延后; legacy (full/ctx) 示例) ──
-    # content_full / content_ctx 均已由 stage 13 (ctx_materializer) prepend 标题【恰好一次】。
+    # ── 嵌入轴 full/ctx/ss 三路编码 (full/ctx parity 2026-06-08; ss 嵌入轨 2026-06-21 平价上线) ──
+    # content_full / content_ctx / content_ss 均已由 stage 13 (ctx_materializer) prepend 标题【恰好一次】。
     # 故 title_col=None 关闭 encode_articles 内 _truncate_for_sbert 的二次标题前置 —— 否则
     # ctx 轨 (读已含标题的 content_ctx) 会重复注入标题 (标题×2), 与 full 轨 (标题×1) 不对称,
     # 致 emb_full/emb_ctx 语义权重不可比 (下传 stage 18 semantic_staleness;
     # 原 stage 17 topic emb 消费端已于 2026-06-09 随 BERTopic 阶段整体移除)。
-    # full/ctx 改为同型构造: 各取 content_*[:TITLE+PARA] (标题在串首恰好一次), 仅输入文本范围不同
-    # (full=标题+全文 / ctx=标题+实体窗口)。与同源 content_full/content_ctx 消费者 (stage 15
+    # full/ctx/ss 同型构造: 各取 content_*[:TITLE+PARA] (标题在串首恰好一次), 仅输入文本范围不同
+    # (full=标题+全文 / ctx=标题+实体窗口 / ss=标题+银行∧金科同句窗口)。与同源 content_full/content_ctx 消费者 (stage 15
     # policy_alignment / stage 27 benefit_society) 读同一含标题串、标题注入一次的口径对齐
     # (注: 各模块下游截断方式不同——sbert 取字符 [:400], stage 15 走 token 截断——此处仅指
     #  "读含标题串、标题恰好一次"这一点对齐, 非截断算法相同)。
@@ -294,22 +302,20 @@ def main():
         else np.full_like(embs_full, np.nan)
     )
 
-    # ss SBERT embedding twin deferred (plan §④/§7.5); semantic_staleness_ss = NaN
-    # until 30a ss online.
-    # 防御性优雅跳过: content_ss 即便已由 stage 13 物化 (v3.9.0 三轨), 本 stage 30a
-    # 在 v1 仍**不**为其编码 emb_ss (最贵收益低)。情感轨 full/ctx/ss 在 stage 21/22/23
-    # 已平价; 此处嵌入轨仅保留 full/ctx, 下游 stage 18 的 semantic_staleness_ss 因无
-    # emb_ss 而恒 NaN, 直到 30a ss 上线 (届时镜像 ctx 加 emb_ss 列即可)。下方仅显式
-    # 记录跳过决策, 不写任何 emb_ss / *_ss 列 (避免被审稿读成平价漏洞)。
-    if 'content_ss' in df.columns:
-        logger.info(
-            "  [30a] content_ss 已物化但 ss SBERT 嵌入轨 v1 延后 (plan §④/§7.5) — "
-            "本 stage 不编码 emb_ss; semantic_staleness_ss 在 30a ss 上线前恒 NaN。"
-        )
+    # 三轨 ss 嵌入 (2026-06-21 上线, 镜像 emb_ctx): content_ss 由 stage 13 v3.9.0
+    # 恒物化 (零共现亦回退全文 body + ss_is_fallback=True), 故生产数据恒走 encode 分支;
+    # `else None` 仅为后向兼容旧 schema (无 content_ss 列) —— 此时不产 emb_ss, 下游
+    # stage 18 的 semantic_staleness_ss 优雅缺席 (镜像 DEFER, 不崩)。title_col=None:
+    # content_ss 已 prepend 标题一次 (ctx_materializer), 同 full/ctx 关二次前置。
+    embs_ss = (
+        encode_articles(df, content_col='content_ss', title_col=None)
+        if 'content_ss' in df.columns
+        else None
+    )
 
     # ── 持久化 (fix(omni-g-embed-03, 2026-06-11): 含 provenance 列) ──
     out_path = os.path.join(output_dir, '25_article_embeddings.parquet')
-    out_df = _build_output_frame(df, embs_full, embs_ctx)
+    out_df = _build_output_frame(df, embs_full, embs_ctx, embs_ss)
     out_df.to_parquet(out_path, index=False)
 
     size_mb = os.path.getsize(out_path) / 1024 / 1024
@@ -390,11 +396,16 @@ def main():
                     "  emb_full 无有效行 (全 NaN 或空): 跳过归一化抽检; full 轨编码可能整体失败。"
                 )
 
-            # ss 嵌入轨上线状态 (v1 延后, 信息性记录)
-            if 'content_ss' in df.columns:
+            # ss 嵌入轨上线状态 (2026-06-21 平价产出, 体检 emb_ss 有效率)
+            if 'content_ss' in df.columns and embs_ss is not None and embs_ss.ndim == 2:
+                _ss_col0 = embs_ss[:, 0]
+                _ss_valid = int((~np.isnan(_ss_col0)).sum())
+                _ss_rate = _ss_valid / max(_n_art, 1)
                 logger.info(
-                    "  ss 嵌入轨: content_ss 已物化但 emb_ss 在 v1 延后 (plan §④/§7.5, 最贵收益低); "
-                    "semantic_staleness_ss 在 30a ss 上线前恒 NaN (预期行为, 非缺陷)。"
+                    f"  emb_ss 有效行 = {_ss_valid}/{_n_art} ({_ss_rate:.1%}); "
+                    + ("好: ss 轨 (银行+金科同句) 语义指纹齐备 (回退行其 emb_ss≡emb_full, 镜像 ctx)。"
+                       if _ss_rate >= 0.999
+                       else f"⚠ {(1 - _ss_rate):.1%} 行 emb_ss 全 NaN (部分文章无 content_ss)。")
                 )
 
             # provenance 自证 (供 stage 18 检测 30a 陈旧, 防位置错位)

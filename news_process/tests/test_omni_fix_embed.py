@@ -158,7 +158,7 @@ class TestLoadAlignedEmbeddings:
         emb_df = _make_emb_df(art_df, order=[2, 0, 3, 1])  # 行序与 art_df 不同
         p = tmp_path / '25_article_embeddings.parquet'
         emb_df.to_parquet(p, index=False)
-        embs_full, embs_ctx = _load_aligned_embeddings(art_df, str(p))
+        embs_full, embs_ctx, _ = _load_aligned_embeddings(art_df, str(p))
         for i in range(4):
             # 旧位置对齐: embs_full[0] 会是 [2,2,2] (错配); join 后必须按 id 还原
             assert np.allclose(embs_full[i], float(i)), f"row {i} 错配: {embs_full[i]}"
@@ -220,7 +220,7 @@ class TestLoadAlignedEmbeddings:
         emb_df = _make_emb_df(art_df, model_id='shibing624/text2vec-base-chinese')
         p = tmp_path / '30a.parquet'
         emb_df.to_parquet(p, index=False)
-        embs_full, _ = _load_aligned_embeddings(art_df, str(p))
+        embs_full, _, _ = _load_aligned_embeddings(art_df, str(p))
         assert embs_full.shape == (2, 3)
 
     def test_main_wiring_uses_explicit_join(self):
