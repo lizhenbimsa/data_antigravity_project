@@ -822,8 +822,8 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'net_avg_path_yr':      'Annual Avg Path Length (LCC)',
                 'net_degree_gini_yr':   'Annual Degree Distribution Gini',
                 # ═══ 网络指标扩展 2026-06-21: WS-A net 级 6 (年广播; 年 FE 下不可识别) ═══
-                'net_modularity_yr':    'Annual Co-mention Modularity (Clauset-Newman-Moore 2004)',
-                'net_assortativity_yr': 'Annual Degree Assortativity (Newman 2002)',
+                'net_modularity_yr':    'Annual Co-mention Modularity (CNM 2004; year-FE absorbed)',
+                'net_assortativity_yr': 'Annual Degree Assortativity (Newman 2002; year-FE absorbed)',
                 'net_transitivity_yr':  'Annual Global Transitivity (Watts-Strogatz 1998)',
                 'net_diameter_yr':      'Annual Co-mention Diameter (LCC, unweighted)',
                 'net_giant_share_yr':   'Annual Giant Component Share',

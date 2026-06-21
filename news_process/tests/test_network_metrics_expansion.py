@@ -164,6 +164,27 @@ def test_bipartite_returns_only_bank_nodes_all_metrics():
     assert all(not math.isnan(out[b]['brok_bip_degree_cent']) for b in banks)
 
 
+def test_bipartite_exact_values_cross_check():
+    """精确值交叉验证 (D5-09): 防 media/bank 混淆或 mode/归一错误产 finite-but-wrong
+    (探针实测于 _toy_bipartite, networkx 3.4.2)。"""
+    G, banks = _toy_bipartite()
+    out = _bipartite_bank_metrics(G, banks)
+    # b0 (deg2, 在 LCC 内): degree=2/|media|=2/3; between=0.0625; clustering=1.0;
+    #   closeness=1.0; redundancy=1.0
+    assert abs(out['b0']['brok_bip_degree_cent'] - 2 / 3) < 1e-9
+    assert abs(out['b0']['brok_bip_between_cent'] - 0.0625) < 1e-9
+    assert abs(out['b0']['brok_bip_clustering_ra'] - 1.0) < 1e-9
+    assert abs(out['b0']['brok_bip_closeness_cent'] - 1.0) < 1e-9
+    assert abs(out['b0']['brok_bip_node_redundancy'] - 1.0) < 1e-9
+    # b2 (deg1, 孤立分量): degree=1/3; between=0; clustering=0;
+    #   closeness/redundancy NaN (LCC 外 / degree<2)
+    assert abs(out['b2']['brok_bip_degree_cent'] - 1 / 3) < 1e-9
+    assert out['b2']['brok_bip_between_cent'] == 0.0
+    assert out['b2']['brok_bip_clustering_ra'] == 0.0
+    assert math.isnan(out['b2']['brok_bip_closeness_cent'])
+    assert math.isnan(out['b2']['brok_bip_node_redundancy'])
+
+
 # ───────────────────────── WS-A: net 级 (直测各拓扑分支) ─────────────────────────
 
 def test_net_assortativity_nan_guard_regular_vs_variance():
