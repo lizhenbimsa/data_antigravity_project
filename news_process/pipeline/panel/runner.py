@@ -468,7 +468,7 @@ def main():
     .. todo:: v3.0-split (Plan-r3 P1-7 锚点, god function)
 
         本函数当前是项目最大的 monolithic 主流程, 串行执行 7 个 stage 子步,
-        与 ``core.dag.py:STAGES_MAIN`` 的"阶段45 (内含 41+42+43+44+46+47)"
+        与 ``core.dag.py:STAGES_MAIN`` 的"阶段40 (内含 41+42+43+44+46+47)"
         StageSpec.name 一一对应:
 
             41 编码聚合          → encode.aggregate_panel

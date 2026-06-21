@@ -177,10 +177,10 @@ EXPECTED_NO_OUTPUT_STAGES: frozenset[str] = frozenset({
     "69_decay_sensitivity.py",
     "70_prompt_sensitivity.py",
     "71_inter_track_kappa.py",
-    "72_construct_orthogonality.py",  # v3.5.0 D3 NMI: 写 data/processed/39c_*.parquet 但走 validation 约定 (per schemas.py:134 historical)
-    "73_lexical_discriminant_validity.py",  # v3.5.1 A1/A3 HTMT+κ+α: 写 data/processed/39d_*.parquet + 73_htmt_matrix.json, validation 不进 OUTPUT_REGISTRY
+    "72_construct_orthogonality.py",  # v3.5.0 D3 NMI: 写 data/processed/72_*.parquet 但走 validation 约定 (per schemas.py:134 historical)
+    "73_lexical_discriminant_validity.py",  # v3.5.1 A1/A3 HTMT+κ+α: 写 data/processed/73_*.parquet + 73_htmt_matrix.json, validation 不进 OUTPUT_REGISTRY
     "74_lm_discriminant_validity.py",  # v3.5.2 PR #4 (A1 LM 6 子词典 HTMT): 仅写 eval_reports/*.csv
-    "75_cross_media_alpha.py",  # v3.7.0 PR #12 (D3 Krippendorff α): 写 data/processed/39f_*.parquet, 但 validation 类不进 OUTPUT_REGISTRY (与 39c/39d 约定一致)
+    "75_cross_media_alpha.py",  # v3.7.0 PR #12 (D3 Krippendorff α): 写 data/processed/75_*.parquet, 但 validation 类不进 OUTPUT_REGISTRY (与 72/73 约定一致)
 })
 
 
