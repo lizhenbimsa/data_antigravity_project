@@ -91,7 +91,7 @@ The pipeline is a **declarative DAG** defined in `news_process/core/dag.py`. All
 → 21_tone_llms / 22_tone_words / 23_tone_berts → 24_herd_decay_processor
 → 40_panel_export_main → 46_stata_export → 51_falsification_test
 ```
-`14_materialize_ctx` 物化 `content_ctx` 列 (v3.9.0 起同步物化 `content_ss`), 让下游 14/15 在 stage 21 之前即可消费 ctx/ss, 实现 fintech_intensity / policy_alignment 真**三轨** (`*_full` / `*_ctx` / `*_ss`)。stage 30 (`robustness_text2vec`) 已于 2026-05-29 退役 — `_t2v` 列改由 stage 15/25 inline 产出, 仅余 `25_article_sbert`。
+`14_materialize_ctx` 物化 `content_ctx` 列 (v3.9.0 起同步物化 `content_ss`), 让下游 15/16 在 stage 21 之前即可消费 ctx/ss, 实现 fintech_intensity / policy_alignment 真**三轨** (`*_full` / `*_ctx` / `*_ss`)。stage 30 (`robustness_text2vec`) 已于 2026-05-29 退役 — `_t2v` 列改由 stage 15/25 inline 产出, 仅余 `25_article_sbert`。
 
 Sentiment methods **21 (LLM) / 22 (词典) / 23 (BERT) / 24 (跟风衰减) 自 2026-06-13 起全部为无条件 always-on** (用户决策"全部启用而非条件启用", 在 2026-06-12 的 23/24 先例基础上扩展到 21/22 + 全部 14 个验证阶段): 所有 StageSpec 均取默认 `enabled_when=always_enabled`, 不再随 `config/sentiment.yaml::sentiment_analysis.enabled_methods` / `config/validation.yaml::validation.*` 启停; `METHOD_TO_PREDICATE` 已清空 `{}`, 各方法/验证谓词函数保留供测试。决策动机: 把全部阶段提升为结构性 always-on 后, 无论配置如何, 下游输入 (如 `24_herd_decay.parquet`) 始终生成 → 消除了 stage 45 因缺输入而 `sys.exit(1)` 的脆弱耦合。详见顶部 "全部 opt-in / 条件启用阶段 → 无条件 always-on (2026-06-13)" 段。**v3.9.0 起每个情感方法均跑三轨** `['_full', '_ctx', '_ss']` (原双轨循环 `['_full', '_ctx']` 加入第三轨 `_ss` 银行+金科同句; 详见顶部 v3.9.0 段)。
 
@@ -106,10 +106,10 @@ news_process/
 ├── config/         # Split YAML configs + prompt templates (config.yaml is a legacy stub)
 ├── data/           # Input (raw/) + output (processed/*.parquet)
 ├── tests/          # full sweep 2581 passed / 3 skipped / 0 failed (collect 数以 --collect-only 为准)
-└── NN_*.py         # 35 thin shim scripts under news_process/ (≤30 lines each; 含 2026-06-15 12b);
+└── NN_*.py         # 35 thin shim scripts under news_process/ (≤30 lines each; 含 2026-06-15 新增 13, 原 12b);
                     # 32 registered in core/dag.py (16 STAGES_MAIN + 16 STAGES_VALIDATION);
-                    # 3 unregistered by design: 27c (audit-only sibling),
-                    # 52/53 (user-CLI wrappers, schemas.py:160-162 显式排除).
+                    # 3 unregistered by design: 80 (audit-only sibling, 原 27c),
+                    # 81/82 (user-CLI wrappers, 原 52/53; schemas.py:160-162 显式排除).
                     # planned retirement Plan-r3 P3-18 (拆分约束见 pipeline/panel/runner.py).
 ```
 
