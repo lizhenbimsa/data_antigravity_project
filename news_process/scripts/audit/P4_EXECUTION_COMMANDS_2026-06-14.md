@@ -20,10 +20,10 @@ Remove-Item Env:\NEWS_PROCESS_LLM_OFFLINE -ErrorAction SilentlyContinue
 
 ## 2. 付费前置 (免费, 必做 —— 先看清成本再付钱)
 ```powershell
-# (a) 重生 stage 13: 物化 content_ss / ss_is_fallback (FREE, 纯 pandas/AC)
-python news_process/13_materialize_ctx.py
-# (b) 重生 stage 14: fintech_intensity 三轨 (FREE) —— 让 stage 21 输入含 content_ss
-python news_process/14_fintech_intensity.py
+# (a) 重生 stage 14: 物化 content_ss / ss_is_fallback (FREE, 纯 pandas/AC)
+python news_process/14_materialize_ctx.py
+# (b) 重生 stage 15: fintech_intensity 三轨 (FREE) —— 让 stage 21 输入含 content_ss
+python news_process/15_fintech_intensity.py
 # (c) 实测 ss 真缺口 (= 你的付费敞口): 读缓存, 不调 API
 python -m news_process.scripts.audit.verify_stage21_cache_coverage
 #     → 预期 ss misses ≈ 非回退文章数 × 3 模型 (盘面 ~960×3≈2880; 全量按语料比例放大)。
@@ -42,11 +42,11 @@ $env:NEWS_PROCESS_LLM_OFFLINE = "1"   # 锁定离线 (防后续误付费)
 
 ## 4. 下游阶段 (免费 / 本地)
 ```powershell
-python news_process/15_article_policy_alignment.py   # 嵌入低成本 (ss 文本短; 缓存键于 text)
+python news_process/16_article_policy_alignment.py   # 嵌入低成本 (ss 文本短; 缓存键于 text)
 python news_process/22_tone_words.py                 # FREE (词典)
 python news_process/23_tone_berts.py                 # FREE/本地 BERT (HF 离线)
 python news_process/24_herd_decay_processor.py       # FREE
-python news_process/45_panel_export_main.py          # 面板 (三轨 _ss 列落盘)
+python news_process/40_panel_export_main.py          # 面板 (三轨 _ss 列落盘)
 python news_process/46_stata_export.py               # .dta + 标签 + codebook
 python news_process/51_falsification_test.py
 # —— 或一键跑全 DAG (推荐, 自动按依赖序; ss 阶段 always-on 自动纳入):

@@ -342,8 +342,8 @@ def _gated_log_sent(panel: pd.DataFrame, track: str) -> pd.Series:
 
 
 # fix(omni-g-runner-16, 2026-06-11): 8c opt-in 特征面板的登记上游 (新鲜度守卫用)。
-# 18_staleness 读 14_news_with_ctx + 25_article_embeddings + 24/21 verified 键
-# (article_staleness.py:426-484); 39f 读 21_tone_llms[_full] (cross_media_alpha.py:340-347)。
+# 26_staleness 读 14_news_with_ctx + 25_article_embeddings + 24/21 verified 键
+# (article_staleness.py:426-484); 75 读 21_tone_llms[_full] (cross_media_alpha.py:340-347)。
 _OPTIN_FEATURE_UPSTREAMS = {
     '26_staleness_panel.parquet': ['14_news_with_ctx.parquet',
                                    '25_article_embeddings.parquet',

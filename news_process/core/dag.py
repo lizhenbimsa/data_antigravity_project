@@ -294,7 +294,7 @@ STAGES_MAIN: list[StageSpec] = [
     # ── 模块五：面板数据构建 (单文件入口, 内部串行执行 7 个子步) ──
     # Plan P1-6 (保守版): StageSpec.name 显式列出 panel runner 内部
     # 41 → 42 → 43 → 44 → 46 → 47 → 45 子步语义, 让日志/摘要可读;
-    # 文件名维持 ``40_panel_export_main.py`` 以保留外部 ``python 45_*`` 调用契约.
+    # 文件名维持单文件入口 ``40_panel_export_main.py`` (重编号后外部 CLI 契约即 ``python 40_*``).
     # 真正拆分为 7 个独立 stage (子进程隔离 + OUTPUT_REGISTRY 重整) 留待 v3.0
     # 与 thin shim 退役同期完成 (Plan 选项 B).
     StageSpec(
