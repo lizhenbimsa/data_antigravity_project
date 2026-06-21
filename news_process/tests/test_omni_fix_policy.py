@@ -595,6 +595,28 @@ def test_stage26_companion_off_emits_no_allv(tmp_path, monkeypatch):
         "companion 关闭时 stage 26 不应产 _allv 列"
 
 
+def test_stage26_allv_equals_vintage_when_anchors_coincide(tmp_path, monkeypatch):
+    """短路正确性锁 (stage26): 晚年 (vintage ≤t 锚点 == 全年份静态锚点) → auth_sim 的 vintage 与
+    allv 列 byte-identical (同锚点同输入确定性产同值; 无论走短路复用 vin 或重算)。
+
+    toy 语料 VINTAGE∈{2015,2021} → year 2022 的 vintage 锚点 (docs ≤2022 = 全部) == static 锚点,
+    触发短路 (policy_similarity.py: auth_text_vin == auth_text_static)。锁该路径不破坏 vin==allv 恒等。"""
+    from news_process.pipeline.features import policy_similarity as ps
+    from news_process.pipeline.text import embedding_engine as eng
+    monkeypatch.setitem(ps.CONFIG['paths'], 'authoritative_corpus_file',
+                        _write_corpus(tmp_path))
+    monkeypatch.setattr(eng, 'embed_texts', _fake_embed_rand)
+
+    panel = ps.compute_authoritative_similarity(
+        _toy_df_exploded([2022]), _toy_panel([2022]))
+    y = panel[panel['year'] == 2022]
+    for m in ('tfidf_c', 'tfidf_w', 'lda', 'emb', 'emb_t2v'):
+        vin = y[f'auth_sim_{m}_full'].to_numpy(dtype=float)
+        allv = y[f'auth_sim_{m}_allv_full'].to_numpy(dtype=float)
+        assert np.allclose(vin, allv, equal_nan=True), \
+            f"晚年锚点重合时 auth_sim_{m} vintage 应 == allv (短路复用须 byte-identical)"
+
+
 def test_allv_panel_column_names_within_stata_32():
     """穷举全部 _allv 面板/文章列名, 断言 ≤32 字符 (Stata 变量名硬上限)。
 

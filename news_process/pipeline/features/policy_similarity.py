@@ -290,11 +290,18 @@ def compute_authoritative_similarity(df_exploded, panel):
             # vintage 主轨指标 (auth_text_vin=None → 全 NaN); 经助手统一同构计算
             vin = _ghost_anchor_metrics(
                 texts, n_banks, year, auth_text_vin, track_suffix)
-            # 全年份 _allv 孪生: companion 开启时用全语料静态锚点再算一遍 (下游完全一致)
-            allv = (_ghost_anchor_metrics(
-                        texts, n_banks, year, auth_text_static,
-                        f'{track_suffix}/allv')
-                    if _companion else None)
+            # 全年份 _allv 孪生 (companion 开启时): 用全语料静态锚点再算一遍 (下游完全一致)。
+            # 短路对称 (镜像 stage15 _cosine_for_spec non-vintage 分支 return _wrap(static,static)):
+            # 当 vintage 锚点 == 全年份静态锚点 (晚年 ≤t 已含全部政策文档 / use_vintage=False 退化时
+            # auth_text_vin==auth_text_static) → allv 与 vin byte-identical, 复用 vin 副本即可, 免重算
+            # TF-IDF/LDA/embedding (golden-safe: 同锚点同输入确定性产同值; 生产 T=18 多数年锚点真不同则正常重算)。
+            if not _companion:
+                allv = None
+            elif auth_text_vin is not None and auth_text_vin == auth_text_static:
+                allv = {k: list(v) for k, v in vin.items()}
+            else:
+                allv = _ghost_anchor_metrics(
+                    texts, n_banks, year, auth_text_static, f'{track_suffix}/allv')
 
             # 打包记录 (vintage 主轨 + 可选 _allv 孪生)
             for i, bank in enumerate(banks):
