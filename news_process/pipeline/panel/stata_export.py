@@ -462,6 +462,29 @@ def build_variable_labels(
         if _allv_key not in HEURISTIC_LABELS:
             HEURISTIC_LABELS[_allv_key] = f'{_v} (All-Vintage anchor)'[:80]
 
+    # ═══ 规则消融梯度 "{d}_{suffix}_tone{track}" 标签机械生成 (rule-ablation ladder, v3.11.1) ═══
+    # 6 新变体 (negonly 已上方手写, 此处不重复) × 6 词典 × 3 轨 = 108 标签。变体语义 / 计数口径
+    # 不入梯度的理由见 tone_words._RULE_ABLATION_VARIANTS。标签 ≤80 字节 ASCII (最长 ~53 字符);
+    # 列名最长 jiang_2021_degonly_tone_full=28 ≤32 → 不被 shorten 改名, 按 orig 命中。
+    _ABL_DICT_REF = {
+        'loughran': 'L-M 2011 JF Chinese', 'jiang_2021': 'Jiang et al. 2021',
+        'yao_2021': 'Yao et al. 2021', 'bian_2021': 'Bian et al. 2021',
+        'du_2022': 'Du et al. 2022', 'you_2018': 'You et al. 2018',
+        'dict_avg': 'across 6 dicts',  # 跨词典均值 dict_avg_{sfx}_tone (geography.py, v3.11.1)
+    }
+    _ABL_VARIANT_DESC = {
+        'raw': 'raw no-rule baseline', 'degonly': 'degree-only',
+        'advonly': 'adversative-only', 'negdeg': 'neg+degree',
+        'negadv': 'neg+adversative', 'degadv': 'degree+adversative',
+    }
+    for _abl_d, _abl_ref in _ABL_DICT_REF.items():
+        for _abl_sfx, _abl_desc in _ABL_VARIANT_DESC.items():
+            for _abl_trk in ('full', 'ctx', 'ss'):
+                _abl_key = f'{_abl_d}_{_abl_sfx}_tone_{_abl_trk}'
+                if _abl_key not in HEURISTIC_LABELS:
+                    HEURISTIC_LABELS[_abl_key] = (
+                        f'Avg Tone {_abl_ref} ({_abl_desc}, {_abl_trk})')[:80]
+
     for col in df.columns:
         # fix(omni-g-stata-export-05/09, 2026-06-11): 改名列先按原名查
         # (meta/HEURISTIC 以原始 panel 名为键), 短名兜底, fallback 用原名

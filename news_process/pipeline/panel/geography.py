@@ -38,6 +38,7 @@ from news_process.pipeline.panel.encode import (
     CONFIG,
     DICT_NAMES,
     LLM_MODELS,
+    RULE_ABLATION_SUFFIXES,
     THREE_CLASS_MODELS,
     logger,
 )
@@ -104,6 +105,17 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
         # 构成跨词典层三点 ablation 谱。_safe_mean 缺列优雅返回 NaN (negonly 列由 stage 22
         # 重跑后落盘, golden 重生前缺列不崩)。dict_avg_negonly_tone_*=26 字符 ≤32。
         new_cols[f'dict_avg_negonly_tone{track}'] = _safe_mean([f'{d}_negonly_tone{track}' for d in DICT_NAMES])
+
+        # --- 词典法规则消融梯度跨词典均值 (rule-ablation ladder, v3.11.1; 全 powerset) ---
+        # 把上方三点谱 (dict_avg_tone 全规则 / dict_avg_negonly_tone 仅否定 / avg_msent 零规则计数)
+        # 扩为全 powerset 跨词典层 — 6 新变体各产 dict_avg_{sfx}_tone (negonly 已上方手写, 跳过)。
+        # 镜像 per-dict {d}_{sfx}_tone (encode.py)。_safe_mean 缺列优雅 NaN (golden 重生前不崩);
+        # 最长 dict_avg_degonly_tone_full=26 ≤32。⚠ MATH-1 非可加 (见 codebook 披露)。
+        for _abl_sfx in RULE_ABLATION_SUFFIXES:
+            if _abl_sfx == 'negonly':
+                continue  # 已于上方 :106 手写 (字节不变, golden-safe)
+            new_cols[f'dict_avg_{_abl_sfx}_tone{track}'] = _safe_mean(
+                [f'{d}_{_abl_sfx}_tone{track}' for d in DICT_NAMES])
 
         # --- BERT 综合 (fix(omni-g-geography-06): pos/neg/neu 同域 = 三分类模型) ---
         new_cols[f'bert_avg_pos{track}'] = _safe_mean([f'{b}_pos{track}' for b in _BERT3])

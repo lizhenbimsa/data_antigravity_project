@@ -62,6 +62,12 @@ LLM_MODELS = [m['short_name'] for m in _llm_cfg] if _llm_cfg else ['gpt54nano', 
 # 否则 `for d in DICT_NAMES` 聚合循环找不到列 → 静默全 NaN)。
 DICT_NAMES = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018', 'loughran']
 
+# v3.11.1 规则消融梯度后缀 (byte-sync with tone_words.RULE_ABLATION_SUFFIXES; 测试
+# test_rule_ablation_variant_set_synced 强制一致, 否则聚合静默漏列→全 NaN)。含 negonly:
+# 其物化值与既有 {d}_negonly_tone 字节一致 (golden-safe)。计数口径 msent 不入梯度 (程度/转折
+# 不翻号 → msent 退化, 见 tone_words._RULE_ABLATION_VARIANTS 注释)。
+RULE_ABLATION_SUFFIXES = ['raw', 'negonly', 'degonly', 'advonly', 'negdeg', 'negadv', 'degadv']
+
 # BERT 模型 short_name 列表与分类数（从 sentiment_analysis.tone_berts.models 读取）
 _bert_cfg = CONFIG.get('sentiment_analysis', {}).get('tone_berts', {}).get('models', [])
 BERT_MODELS = [m['short_name'] for m in _bert_cfg] if _bert_cfg else ['finbert_cn', 'fin_sent_zh', 'finbert2']
@@ -566,18 +572,19 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
             agg[f'{d}_idf_tone_sum{track}'] = (f'{d}_idf_score{track}', 'sum')
             agg[f'{d}_idf_tone_std{track}'] = (f'{d}_idf_score{track}', 'std')
 
-        # --- C3. 词典法规则消融稳健性: 仅否定 (negation-only, 2026-06-13) ---
-        # 轻规则(仅否定) vs 全规则 稳健性对照 (negonly≈LM 2011 JF 计数+否定档;
-        # avg_msent≈Tetlock 2007/Garcia 2013 纯计数档; {d}_tone=全规则 + degree/转折)。
-        # 关程度副词加权 + 转折 boost, 仅保留否定翻转。{d}_negonly_tone = bank-year 均值;
-        # 与 {d}_tone (全规则) + avg_msent (零规则) 构成三点 ablation 谱。注意 (full−negonly)
-        # 是 degree+adversative 的**联合净效应** (非可加分解, 含 negation×degree 交互+自归一化
-        # 分母变更, audit MATH-1)。⚠ 实测 corr(full,negonly)≈0.999 高度共线 → 该列证明"主结果
-        # 对去这两条规则不敏感", 非独立信号; 视作稳健性对照而非主测度 (audit MATH-3)。
-        # 主口径 Σ|final| (与 {d}_tone 同口径, 为可比性)。
-        # 仅落 mean (jiang_2021_negonly_tone_*=28 字符 ≤32; sum/std 后缀会贴 32 边界, 略)。
-        for d in DICT_NAMES:
-            agg[f'{d}_negonly_tone{track}'] = (f'{d}_score_negonly{track}', 'mean')
+        # --- C3. 词典法规则消融梯度 (rule-ablation ladder, v3.11.1; 全 powerset) ---
+        # 状态机三规则 (否定/程度六级/转折) 的全 powerset 组合 bank-year 均值, 与 {d}_tone
+        # (全规则 full) + avg_msent (**零规则计数口径** ≈ Tetlock 2007/Garcia 2013/Henry 2008
+        # 纯词频档) 共同构成完整 ablation 谱。raw = **零规则幅度口径** (Σ|base| 归一化, 非计数,
+        # 区别于 avg_msent); negonly≈LM 2011 JF 否定档; full=degree+转折叠加。
+        # ⚠ 非可加分解 (audit MATH-1): 每变体各自 Σ|final| 自归一化, 含 negation×degree 交互
+        # → 相邻级差非"某规则纯贡献", 仅作稳健性对照 (披露报 corr + 逐级变号占比, MATH-3;
+        # 实测 corr(full,negonly)≈0.999 高度共线)。仅落 mean (32 字符安全; 最长
+        # jiang_2021_degonly_tone_full=28 ≤32; sum/std 后缀贴边界, 略)。
+        # 计数口径 msent 不入此谱 (程度/转折严格正乘子、永不翻号 → 退化, 见 I2/I3 块)。
+        for _abl_sfx in RULE_ABLATION_SUFFIXES:
+            for d in DICT_NAMES:
+                agg[f'{d}_{_abl_sfx}_tone{track}'] = (f'{d}_score_{_abl_sfx}{track}', 'mean')
 
         # --- D. BERT 逐模型 ---
         for short in BERT_MODELS:

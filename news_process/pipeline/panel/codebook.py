@@ -182,6 +182,40 @@ def _is_lm_provenance_col(col: str) -> bool:
     return ('loughran' in col) or bool(_LM_SUBSET_FRAC_RE.match(col))
 
 
+# --- 规则消融梯度 (rule-ablation ladder, v3.11.1) codebook provenance / MATH-1 披露 ---
+# panel 列 {dict}_{suffix}_tone{track}: 逐 token 状态机三规则 (否定窗口 / 程度副词六级权重 /
+# 转折增强) 的**全 powerset** 组合在 bank-year 的均值。计数口径 msent 不入梯度 (程度/转折严格
+# 正乘子、永不翻号 → 退化)。变体语义单一事实源 = tone_words._RULE_ABLATION_VARIANTS。
+_RULE_ABLATION_SFX_DESC = {
+    'raw':     '零规则基线 (无否定/程度/转折)',
+    'negonly': '仅否定翻转 (≈ L&M 纯计数 baseline)',
+    'degonly': '仅程度六级加权',
+    'advonly': '仅转折增强',
+    'negdeg':  '否定+程度 (= full − 转折)',
+    'negadv':  '否定+转折 (= full − 程度)',
+    'degadv':  '程度+转折 (= full − 否定)',
+}
+# group(1) 含 'dict_avg' = 跨 6 词典均值的消融梯度 (geography.py dict_avg_{sfx}_tone, v3.11.1);
+# 其余 = per-dict {d}_{sfx}_tone (encode.py)。两者同享 rule-specific 标签 + MATH-1 披露。
+_RULE_ABLATION_RE = re.compile(
+    r'^(jiang_2021|yao_2021|bian_2021|du_2022|you_2018|loughran|dict_avg)_'
+    r'(raw|negonly|degonly|advonly|negdeg|negadv|degadv)_tone(?:_(?:full|ctx|ss))?$')
+_RULE_ABLATION_CITATION = ('Kennedy & Inkpen (2006); Ding, Liu & Yu (2008); '
+                           'Taboada et al. (2011); Loughran & McDonald (2011, JF)')
+_RULE_ABLATION_NOTE = (
+    '规则消融梯度变体 (v3.11.1): 状态机三规则 (否定窗口 / 程度副词六级权重 / 转折增强) 的 powerset '
+    '组合在 bank-year 的均值, 各变体独立 Σ|final| 自归一化。⚠ 非可加分解 (audit MATH-1): 相邻级差含 '
+    'negation×degree 交互 + 自归一化分母变更 → 仅作"主结果对每条规则是否敏感"的稳健性对照 (定性不变), '
+    '不可解读为某规则纯贡献; 计数口径 msent 不入梯度 (程度/转折不翻号)。'
+)
+
+
+def _rule_ablation_match(col: str):
+    """返回 (dict_name, suffix) 若 col 为规则消融梯度 panel 列 ({d}_{sfx}_tone{track}), 否则 None。"""
+    m = _RULE_ABLATION_RE.match(col)
+    return (m.group(1), m.group(2)) if m else None
+
+
 # ============================================================================
 # 2. 变量元数据字典（完整版）
 # ============================================================================
@@ -1487,6 +1521,17 @@ def generate_codebook(
             if (not _pn.strip()) or (_AUTO_INFER_NOTE in _pn):
                 row['备注'] = _LM_PROVENANCE_NOTE + (_LM_NEGONLY_NOTE if 'negonly' in col else '')
 
+        # 规则消融梯度 (v3.11.1): MATH-1 非可加披露 — 对全部 {d}_{sfx}_tone 列幂等追加 (含 negonly,
+        # 与上方 LM provenance 块叠加不冲突); 独立 if (非 elif) 故 loughran 消融列既得 provenance 又得 MATH-1。
+        if _rule_ablation_match(col):
+            if not (row.get('学术引用', '') or '').strip():
+                row['学术引用'] = _RULE_ABLATION_CITATION
+            _rn = row.get('备注', '') or ''
+            if 'audit MATH-1' not in _rn:
+                row['备注'] = (_RULE_ABLATION_NOTE
+                               if (not _rn.strip() or _AUTO_INFER_NOTE in _rn)
+                               else f'{_rn} {_RULE_ABLATION_NOTE}')
+
         # fix(omni-g-codebook-06/-14/-01, 2026-06-11): 主键取值范围动态实测覆盖
         row = _apply_dynamic_value_ranges(row, col, panel)
 
@@ -1589,6 +1634,11 @@ def _infer_label(var_name: str) -> str:
         track_suffix = ' (SS; 同句共现)'
 
     # 基础标签推断
+    # 规则消融梯度 (v3.11.1): rule-specific 标签, 须早于泛型 'tone' 分支
+    _abl = _rule_ablation_match(var_name)
+    if _abl:
+        _d = '跨词典均值' if _abl[0] == 'dict_avg' else _abl[0]
+        return f'词典语调 {_d} · 规则消融:{_RULE_ABLATION_SFX_DESC[_abl[1]]}{track_suffix}'
     if 'tone' in var_name:
         return f'Sentiment Tone{track_suffix}'
     elif 'attn' in var_name or var_name.startswith('ft_vol'):
@@ -1613,6 +1663,12 @@ def _infer_label(var_name: str) -> str:
 
 def _infer_description(var_name: str) -> str:
     """自动推断变量描述"""
+    _abl = _rule_ablation_match(var_name)
+    if _abl:
+        _d = '跨 6 词典均值' if _abl[0] == 'dict_avg' else f'词典 {_abl[0]}'
+        return (f'{_d} 的规则消融梯度变体「{_RULE_ABLATION_SFX_DESC[_abl[1]]}」: '
+                f'状态机 Σ|final| 自归一化语调在 bank-year 的均值, 作语言学规则稳健性对照 '
+                f'(详见备注 audit MATH-1 非可加披露)。')
     return f'变量 {var_name} 的详细描述（需要人工补充）'
 
 
@@ -1632,10 +1688,11 @@ def _infer_source_stage(var_name: str) -> str:
         return 'Stage 21'
     elif 'bert' in var_name:
         return 'Stage 23'
-    elif ('dict' in var_name or 'jiang' in var_name or 'yao' in var_name
-          or 'loughran' in var_name or 'modal_weak' in var_name
+    elif (_rule_ablation_match(var_name) or 'dict' in var_name or 'jiang' in var_name
+          or 'yao' in var_name or 'loughran' in var_name or 'modal_weak' in var_name
           or 'complexity' in var_name):
         # v3.10.0: loughran (L&M 第 6 部主词典) + LM 新非情感子集 modal_weak/complexity
+        # v3.11.1: 规则消融梯度全 6 词典 (含 bian/du/you 的 {sfx}_tone, 否则误落 '未知')
         return 'Stage 22'
     elif 'attn' in var_name or var_name.startswith('ft_vol'):
         # ft_vol_* = 地理注意力总量孪生 (compute_fintech_attention_index, 2026-06-13)

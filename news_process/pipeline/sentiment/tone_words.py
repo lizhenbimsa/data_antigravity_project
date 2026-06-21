@@ -75,7 +75,7 @@ news_process.pipeline.sentiment.tone_words — 阶段22：基于词典的情感�
 
 **关键算法/公式**: 核心是 `_compute_sentiment_with_rules(tokens, dict, apply_degree, apply_adversative)` —— 逐 token 状态机施加语言学规则: 否定词翻转极性 (窗口 NEGATION_WINDOW=2 个分词单元)、程度副词六级权重缩放 (HowNet 六级体系 + Liu 2012, DEGREE_WORDS 由 config 注入)、转折连词后权重 ×ADVERSATIVE_BOOST(默认 1.5)、句末标点重置作用域 (Ding 2008 从句级)。最终分 = self-normalized Σ(final)/Σ|final| ∈ [-1,+1]。**negonly 消融变体**: `apply_degree=False & apply_adversative=False` 只保留否定翻转, 产 `{dict}_score_negonly`/`msent_negonly`, 用作'主结果对去掉程度/转折两条规则是否敏感'的稳健性 (实测 corr(full,negonly)≈0.998-0.999 高度共线, 是稳健性对照非独立信号)。另产 `pos_ratio`/`neg_ratio` (固定 union 词典计数 / word-token 数)、`msent_score`=(raw_neg−raw_pos)/(raw_pos+raw_neg) 原始极性计数 (零规则; framing ≈ Tetlock 2007/Garcia 2013/Henry 2008; 代码注 He et al. 2024 IRFA Eq.1)、clarity/可读性/词汇复杂度等 $0 测度族。
 
-**输出列**: 每部词典 × 三轨的 `{dict}_score/zscore/idf_score/idf_zscore`、`{dict}_score_negonly`、跨词典 `pos_ratio/neg_ratio/msent_score/msent_negonly`、`num_intensity_{full,ctx,ss}`、可读性/复杂度列。
+**输出列**: 每部词典 × 三轨的 `{dict}_score/zscore/idf_score/idf_zscore`、**规则消融梯度 `{dict}_score_{raw,negonly,degonly,advonly,negdeg,negadv,degadv}`** (v3.11.1 全 powerset, 见 `_RULE_ABLATION_VARIANTS`)、跨词典 `pos_ratio/neg_ratio/msent_score/msent_negonly` (计数口径不入梯度: 程度/转折不翻号)、`num_intensity_{full,ctx,ss}`、可读性/复杂度列。
 
 **外部依赖**: jieba (`==0.42.1` 冻结); 纯 CPU, 无 LLM/网络/API, $0; 无缓存锚点 (确定性来自 jieba 版本 + 词典文件)。
 
@@ -529,6 +529,7 @@ def _get_union_dictionary() -> dict[str, float]:
 def _compute_sentiment_with_rules(
     tokens: list[str],
     sentiment_dict: dict[str, float],
+    apply_negation: bool = True,
     apply_degree: bool = True,
     apply_adversative: bool = True,
 ) -> tuple[float, float, int, int, list[dict[str, Any]]]:
@@ -558,6 +559,10 @@ def _compute_sentiment_with_rules(
     Args:
         tokens:         分词结果列表。
         sentiment_dict: ``{word: score}`` 情感词典。
+        apply_negation: 是否应用否定翻转 (默认 True, 保留现行为)。False = 不翻号但**仍保留**
+                        否定词识别 / continue / 窗口递减骨架 (与 degree/adversative 同款铁律,
+                        只锁数值效应不动 scoping) — 用于 raw/degonly/advonly/degadv 等"无否定"
+                        消融变体 (rule-ablation ladder, v3.11.1; 见 ``_RULE_ABLATION_VARIANTS``)。
         apply_degree:   是否应用程度副词加权 (默认 True, 保留现行为)。False = 程度倍率
                         锁 1.0 — 用于"仅否定"规则消融稳健性 (rule-ablation negonly)。
         apply_adversative: 是否应用转折 ×ADVERSATIVE_BOOST 加权 (默认 True)。False =
@@ -625,7 +630,10 @@ def _compute_sentiment_with_rules(
             base_score = sentiment_dict[token]
 
             # 应用否定词翻转
-            if negation_remaining > 0:
+            # fix(rule-ablation v3.11.1): apply_negation=False (raw 等无否定变体) 时不翻号,
+            # 但上方 NEGATION_WORDS 分支的识别/continue 与下方窗口递减 (L663-664) 一律保留
+            # → 共享 scoping 骨架, 仅锁翻号数值效应 (与 degree/adversative 同款铁律, audit MATH-1)。
+            if negation_remaining > 0 and apply_negation:
                 base_score = -base_score
 
             # 应用程度副词
@@ -669,6 +677,42 @@ def _compute_sentiment_with_rules(
     normalized_score = total_score / total_abs_score if total_abs_score > 0 else 0.0
 
     return total_score, normalized_score, pos_count, neg_count, matched_words
+
+
+# ============================================================================
+# 4A. 规则消融梯度变体谱 (rule-ablation ladder) — 单一事实源 (v3.11.1)
+# ============================================================================
+# 把状态机三条语言学规则 (① 否定翻转 / ② 程度六级权重 / ③ 转折增强) 的**全 powerset**
+# 组合物化为独立自归一化的中间得分列, 兑现"每经过一个步骤都要留存中间变量作为稳健性
+# 检验"。每个变体 = (suffix, apply_negation, apply_degree, apply_adversative)。
+#   article 列名 = ``{dict}_score_{suffix}{track}``  (写入 22_words_tone.parquet)
+#   panel  列名 = ``{d}_{suffix}_tone{track}``       (encode.py bank-year mean)
+#
+# ⚠ 计数口径 (msent) **不入此谱**: 程度②/转折③ 是严格正乘子、永不翻号 → 对
+#   (neg−pos)/(pos+neg) 计数零影响, msent_raw≡msent_score / msent_negdeg≡msent_negonly
+#   全退化。msent 口径已由 msent_score (零规则) + msent_negonly (仅否定) 完整覆盖,
+#   故**不新增任何 msent_* 列** (范围收敛关键)。
+#
+# ⚠ 非可加分解 (audit MATH-1): 每个变体各自 self-normalize (Σ|final| 分母随启用规则
+#   变化), 且否定×程度作用同一词含交互 → 相邻级差**非**"某规则纯贡献", 仅作 ablation
+#   稳健性对照。披露须报四级 corr + 逐级变号占比, 论文表述"定性不变"。
+#
+# full (T,T,T) = 主列 ``{dict}_score`` (不在本谱, 单独物化)。本谱含 negonly 在内的全部
+# **非-full** 组合 (7 项); negonly (T,F,F) 经本谱物化的值与既有 ``{dict}_score_negonly``
+# **字节一致** (相同 flag → 相同输出 → golden-safe, 旧手写 call site 已折入本谱)。
+_RULE_ABLATION_VARIANTS: list[tuple[str, bool, bool, bool]] = [
+    # (suffix,    apply_negation, apply_degree, apply_adversative)
+    ('raw',       False, False, False),  # L0 零规则基线
+    ('negonly',   True,  False, False),  # L1 仅否定 (既有, 折入)
+    ('degonly',   False, True,  False),  # 仅程度
+    ('advonly',   False, False, True),   # 仅转折
+    ('negdeg',    True,  True,  False),  # L2 否定+程度 (= full − adversative)
+    ('negadv',    True,  False, True),   # 否定+转折 (= full − degree)
+    ('degadv',    False, True,  True),   # 程度+转折 (= full − negation)
+]
+
+# panel 聚合 / 标签 / 测试跨模块复用的 suffix 列 (单一事实源派生)。
+RULE_ABLATION_SUFFIXES: list[str] = [v[0] for v in _RULE_ABLATION_VARIANTS]
 
 
 def _score_to_label(normalized_score: float, pos_threshold=0.1, neg_threshold=-0.1) -> str:
@@ -1164,8 +1208,9 @@ def _empty_article_result() -> dict:
         result[f'{dict_name}_label'] = '中性'
         result[f'{dict_name}_pos_ratio'] = float('nan')
         result[f'{dict_name}_neg_ratio'] = float('nan')
-        # rule-ablation negonly (仅否定): 空文本 → NaN (缺失语义, 与 _score 对称)
-        result[f'{dict_name}_score_negonly'] = float('nan')
+        # rule-ablation 梯度 (v3.11.1, 全 powerset): 空文本 → NaN (缺失语义, 与 _score 对称)
+        for _abl_sfx in RULE_ABLATION_SUFFIXES:
+            result[f'{dict_name}_score_{_abl_sfx}'] = float('nan')
     result['sentiment_details'] = ''
 
     result['avg_sentence_len'] = 0.0
@@ -1232,8 +1277,9 @@ def _analyze_single_article(content: str) -> dict:
             # 词典缺失 → 比率不可测, NaN (与 fix omni-g-tonewords-13 缺失语义一致)
             result[f'{dict_name}_pos_ratio'] = float('nan')
             result[f'{dict_name}_neg_ratio'] = float('nan')
-            # rule-ablation negonly: 词典缺失时与 _score 一致回填 0.0 (本分支语义)
-            result[f'{dict_name}_score_negonly'] = 0.0
+            # rule-ablation 梯度: 词典缺失时与 _score 一致回填 0.0 (本分支语义)
+            for _abl_sfx in RULE_ABLATION_SUFFIXES:
+                result[f'{dict_name}_score_{_abl_sfx}'] = 0.0
             continue
 
         raw_score, norm_score, pos_cnt, neg_cnt, matched = \
@@ -1242,23 +1288,21 @@ def _analyze_single_article(content: str) -> dict:
         result[f'{dict_name}_score'] = round(norm_score, 4)
         result[f'{dict_name}_label'] = _score_to_label(norm_score)
 
-        # ── 规则消融稳健性: 仅否定变体 (negation-only, rule-ablation, 2026-06-13) ──
-        # framing: 仅否定 (negonly) ≈ Loughran-McDonald 2011 JF 档 (计数 + 简单否定);
-        # msent_score (零规则原始极性) ≈ Tetlock 2007 / Garcia 2013 / Henry 2008 档 (纯计数)。
-        # 全规则 {dict}_score 额外叠加 degree 六级权重 + 转折 boost (NLP valence-shifter
-        # 谱系: Kennedy-Inkpen 2006 / Ding-Liu-Yu 2008 / Taboada 2011, 非金融顶刊惯例)。
-        # 本变体关程度+转折、仅保留否定翻转, 用途 = **轻规则 vs 全规则的稳健性对照**
-        # (检验主语调对语言学规则是否敏感), 而非声称 negonly 更优 (论文应表述"定性不变")。
-        #   (negonly − msent)  ≈ negation 的边际效应 (须在计数口径比较, 见下方 msent_negonly)
-        #   (full   − negonly) = degree + adversative 的**联合净效应** (非可加分解: 含
-        #                        negation×degree 交互 + 自归一化分母变更, 见 audit MATH-1)
-        # 主列沿用 Σ|final| 幅度归一化 (与 {dict}_score 同口径, 仅为可比性)。
-        # ⚠ 实测全语料 corr(full, negonly)≈0.998 (bank-year 聚合≈0.999): 程度+转折修饰
-        # 幅度极小, negonly 与全规则高度共线 → 它证明的是"主结果对去掉这两条规则不敏感"
-        # (有效稳健性结论), 但不是独立信号; 落盘后应报 corr + 非零差占比作诊断 (audit MATH-3)。
-        _, neg_norm, _, _, _ = _compute_sentiment_with_rules(
-            tokens, sentiment_dict, apply_degree=False, apply_adversative=False)
-        result[f'{dict_name}_score_negonly'] = round(neg_norm, 4)
+        # ── 规则消融梯度 (rule-ablation ladder, v3.11.1; 旧 negonly 折入此谱) ──
+        # 全 powerset 中间变体, 各自独立 Σ|final| 自归一化 (与 {dict}_score 同口径)。framing:
+        # raw(零规则, **幅度口径** Σ|base| 归一化, 加权 ±1.0 vs ±0.5 政治正面词, **非计数**);
+        # **计数口径**零规则 (msent_score) 才 ≈ Tetlock 2007/Garcia 2013/Henry 2008 纯词频档
+        # (raw 与 msent_score 同为零规则但口径不同, 勿混); negonly(仅否定)≈LM 2011 JF 档;
+        # full 叠加 degree 六级权重 + 转折 boost (valence-shifter 谱系: Kennedy-Inkpen 2006/
+        # Ding-Liu-Yu 2008/Taboada 2011)。用途 = 检验主语调对每条规则是否敏感 (论文表述
+        # "定性不变"), 非声称某变体更优。⚠ 非可加分解 + 计数口径不入谱: 见 _RULE_ABLATION_VARIANTS
+        # 注释 (audit MATH-1/MATH-3; 实测 corr(full,negonly)≈0.998-0.999 高度共线)。
+        # negonly 变体经本谱物化的值与旧手写 call site 字节一致 (相同 flag → 相同输出, golden-safe)。
+        for _abl_sfx, _abl_neg, _abl_deg, _abl_adv in _RULE_ABLATION_VARIANTS:
+            _, _abl_norm, _, _, _ = _compute_sentiment_with_rules(
+                tokens, sentiment_dict,
+                apply_negation=_abl_neg, apply_degree=_abl_deg, apply_adversative=_abl_adv)
+            result[f'{dict_name}_score_{_abl_sfx}'] = round(_abl_norm, 4)
 
         # --- 单词典正/负面词频分离 ---
         # 学术依据: Garcia, D. (2013). Sentiment during recessions.
@@ -1501,10 +1545,11 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
             new_columns[pos_key] = results.apply(lambda r, k=pos_key: r.get(k, 0.0))
             new_columns[neg_key] = results.apply(lambda r, k=neg_key: r.get(k, 0.0))
 
-            # rule-ablation negonly score 提取 (仅否定稳健性, Σ|final| 口径; 缺则 NaN)
-            negonly_key = f'{dict_name}_score_negonly{track}'
-            new_columns[negonly_key] = results.apply(
-                lambda r, k=negonly_key: r.get(k, float('nan')))
+            # rule-ablation 梯度 score 提取 (v3.11.1, 全 powerset; Σ|final| 口径; 缺则 NaN)
+            for _abl_sfx in RULE_ABLATION_SUFFIXES:
+                _abl_key = f'{dict_name}_score_{_abl_sfx}{track}'
+                new_columns[_abl_key] = results.apply(
+                    lambda r, k=_abl_key: r.get(k, float('nan')))
 
     # sentiment_details 三轨提取 (full/ctx/ss); ss = 银行+金科同句轨
     new_columns['sentiment_details_full'] = results.apply(
