@@ -14,7 +14,7 @@
      行随机标准化后, 用 Lag(Y-1) 加权平均同行情感作为网络压力变量。
      包含一阶溢出 (W×tone) 和二阶溢出 (W²×tone)。
   2. 银行共现网络中心度 (compute_bank_network_centrality):
-     计算 22 种网络中心度指标 (18 节点级 + 4 网络级)。
+     计算 33 种网络指标 (18 节点中心度 + 10 网络级 + 5 GF 经纪角色)。
   3. 认知邻近度 (compute_cognitive_proximity):
      基于 TF-IDF 文本向量余弦相似度衡量银行间知识基础的相似程度。
 
@@ -43,7 +43,7 @@
     避免 Manski 反射问题和同期反向因果
 
 输入: 41_panel_encode_aggregate 生成的面板 + 篇章级 df_exploded
-输出: 面板中追加 peer_tone_lag1_*、22 种中心度、bank_cogn_mean 列
+输出: 面板中追加 peer_tone_lag1_*、33 种网络指标 (含 WS-A net 级 + WS-C GF)、bank_cogn_mean 列
 
 T=2 样本披露 (metric-audit V3 data-02): fix(network-03) 后, 孤立银行(无共现同行)
 的 peer_tone/peer_tone_2nd/peer_cov 正确置 NaN(而非伪零)。当前 T=2(2017-2018)
@@ -448,7 +448,7 @@ def compute_network_spillovers(
 
 
 # ============================================================================
-# 5. 银行共现网络中心度计算 (22 指标)
+# 5. 银行共现网络指标计算 (33: 18 节点 + 10 网络级 + 5 GF, 扩展 2026-06-21)
 # ============================================================================
 # 学术依据:
 #   Freeman, L. C. (1979). Centrality in social networks. Social Networks,
@@ -480,19 +480,158 @@ def _gini(arr: np.ndarray) -> float:
     return (2 * (index * arr).sum() / (n * arr.sum())) - (n + 1) / n
 
 
+# ============================================================================
+# 5b. Gould-Fernandez 经纪角色分解 (WS-C, 网络指标扩展 2026-06-21)
+# ============================================================================
+# 学术依据:
+#   Gould, R. V., & Fernandez, R. M. (1989). Structures of mediation: A formal
+#   approach to brokerage in transaction networks. Sociological Methodology,
+#   19, 89-126. DOI: 10.2307/270949
+#   → 经纪角色按 2-path 端点的群归属分解。原定义在**有向**交易网 (5 角色);
+#     本项目银行共现图严格**无向** → 每条 2-path a-i-c 即其自身逆 →
+#     gatekeeper(入)≡representative(出) 机械坍缩 (perfect collinear) → 合并为
+#     gf_gatekeeper_rep, 落 **4 可区分角色 + gf_total** (执行计划 §6 / R2)。
+#   ⚠ 经典 GF 铁律: 仅计**端点不直连** (a-c 无边) 的 2-path (a 须真经 i 达 c) →
+#     对 C(N,2) clique 投影天然鲁棒 (clique 内端点全互邻 → 经纪计数 0, §3.1 Q2/R3)。
+#   动机区分 (§3.1 R-D6-08): brokerage_eigen_cent=声望 (Bonacich 特征向量),
+#     GF=真经纪 (跨群桥接); 二者互补, 勿混。
+
+def _gould_fernandez_roles(G: 'nx.Graph', group_map: dict) -> dict:
+    """无向图 Gould-Fernandez 经纪角色计数 (端点不直连, 唯一计数)。
+
+    每个 broker i: 枚举其邻居中**无序非邻接**对 {a,c} (canonical 名序, 不重复
+    计正/逆), 按 (g(a), g(i), g(c)) 三群归属归类:
+      - coordinator   : g(a)=g(i)=g(c)
+      - itinerant      : g(a)=g(c) ≠ g(i)            (i 在 a,c 群之外)
+      - gatekeeper_rep : g(a),g(c) 恰一个 = g(i)      (无向坍缩的 gatekeeper∪rep)
+      - liaison        : g(a),g(i),g(c) 三群互异
+    gf_total = 四者之和 (单测守恒)。
+
+    Args:
+        G: 无向共现图 (节点 = 银行名)
+        group_map: {bank_name → group_label}; 缺键银行 group=None
+
+    Returns:
+        {bank: {gf_coordinator, gf_itinerant, gf_gatekeeper_rep, gf_liaison,
+                gf_total}}。
+    缺失语义 (有意, C4): broker i **有分组但无可用 2-path** (孤立/邻居全直连/
+    邻居全缺分组) → gf_* = **0.0** (真实零经纪); broker i **分组缺失** (名键
+    未命中 load_bank_group_maps) → gf_* = **NaN** (不可计算)。下游回归须区分
+    "零经纪" 与 "未知"; 与 bank_constraint 等的 0-vs-NaN 约定一致。
+    """
+    _keys = ('gf_coordinator', 'gf_itinerant', 'gf_gatekeeper_rep',
+             'gf_liaison', 'gf_total')
+    roles = {}
+    for i in G.nodes():
+        gi = group_map.get(i)
+        if gi is None:
+            roles[i] = {k: np.nan for k in _keys}
+            continue
+        coord = itin = gk_rep = liaison = 0
+        nbrs = sorted(G.neighbors(i))  # 确定性 canonical 序
+        for ia in range(len(nbrs)):
+            a = nbrs[ia]
+            ga = group_map.get(a)
+            if ga is None:
+                continue
+            for ib in range(ia + 1, len(nbrs)):
+                c = nbrs[ib]
+                if G.has_edge(a, c):
+                    continue  # 经典 GF: 排除直连端点对 (clique-鲁棒)
+                gc = group_map.get(c)
+                if gc is None:
+                    continue
+                same_ai = (ga == gi)
+                same_ci = (gc == gi)
+                if same_ai and same_ci:
+                    coord += 1
+                elif same_ai ^ same_ci:
+                    gk_rep += 1
+                elif ga == gc:
+                    itin += 1
+                else:
+                    liaison += 1
+        roles[i] = {
+            'gf_coordinator': float(coord),
+            'gf_itinerant': float(itin),
+            'gf_gatekeeper_rep': float(gk_rep),
+            'gf_liaison': float(liaison),
+            'gf_total': float(coord + itin + gk_rep + liaison),
+        }
+    return roles
+
+
+# ============================================================================
+# 5c. WS-A 网络级结构控制 (网络指标扩展 2026-06-21)
+# ============================================================================
+
+def _net_level_extra_metrics(G: 'nx.Graph', G_lcc: 'nx.Graph',
+                             lcc_nodes: set, components: list,
+                             n_nodes: int) -> dict:
+    """WS-A 6 个新增**年度网络级**结构控制 (全确定性, golden-safe)。
+
+    复用已建 G / G_lcc / components / lcc_nodes / n_nodes (只读, 不重建图 →
+    加性铁律, 不移既有 BLAS 敏感列哈希)。抽为独立纯函数便于按拓扑直接单测。
+
+    Returns: {net_modularity_yr, net_assortativity_yr, net_transitivity_yr,
+              net_diameter_yr, net_giant_share_yr, net_n_components_yr}
+    """
+    out = {}
+    # 模块度 (Clauset-Newman-Moore 2004 greedy, 确定性无 RNG; 检测+打分均 weight='weight'
+    # 防 modularity 默认 weight='weight' 与 greedy 默认 weight=None 口径不一致致符号翻转 §3.1 Q2/R10)
+    if G.number_of_edges() > 0:
+        try:
+            _comms = nx.community.greedy_modularity_communities(G, weight='weight')
+            out['net_modularity_yr'] = float(
+                nx.community.modularity(G, _comms, weight='weight'))
+        except (ZeroDivisionError, nx.NetworkXError, ValueError) as e:
+            logger.warning(f"  modularity 失败 ({e})")
+            out['net_modularity_yr'] = np.nan
+    else:
+        out['net_modularity_yr'] = np.nan
+    # 度相关性; 度方差=0 (正则/平凡图) → NaN 守卫 (errstate 抑制 0/0 RuntimeWarning §3.1 R11)
+    _degs = [d for _, d in G.degree()]
+    if len(set(_degs)) <= 1:
+        out['net_assortativity_yr'] = np.nan
+    else:
+        with np.errstate(invalid='ignore', divide='ignore'):
+            _a = nx.degree_assortativity_coefficient(G)
+        out['net_assortativity_yr'] = float(_a) if np.isfinite(_a) else np.nan
+    # 全局传递性 (Watts-Strogatz 1998; 无权三角比, 忽略边权 → 无 _hn 孪生)
+    out['net_transitivity_yr'] = float(nx.transitivity(G))
+    # 直径 (LCC 内**无权** BFS 最长最短路; 复用 G_lcc 对象, **非** G_inv_lcc 加权 ecc §3.1 R9)
+    if len(lcc_nodes) >= 2:
+        try:
+            out['net_diameter_yr'] = float(max(nx.eccentricity(G_lcc).values()))
+        except nx.NetworkXError:
+            out['net_diameter_yr'] = np.nan
+    else:
+        out['net_diameter_yr'] = np.nan
+    # 巨片占比 + 连通分量数 (复用 components / lcc_nodes, 零额外计算)
+    out['net_giant_share_yr'] = (
+        float(len(lcc_nodes) / n_nodes) if n_nodes > 0 else np.nan)
+    out['net_n_components_yr'] = float(len(components))
+    return out
+
+
 def compute_bank_network_centrality(
     panel: pd.DataFrame,
     df_exploded: pd.DataFrame
 ) -> pd.DataFrame:
-    """计算银行共现网络中心度指标 (22 种) 并合并至面板。
+    """计算银行共现网络指标 (33 种) 并合并至面板。
 
-    指标分 4 组:
+    指标分 5 组 (网络指标扩展 2026-06-21: Part C +6 WS-A, 新增 Part E GF 5):
       Part A (11): degree, strength, betweenness, harmonic, eigen, katz,
                    subgraph, cfbetween, clustering, constraint, hub
       Part B (7):  ego_density, ci, effective_size, closeness,
                    eccentricity, avg_nbr_deg, coreness
-      Part C (4):  net_density_yr, net_avg_cluster_yr, net_avg_path_yr,
-                   net_degree_gini_yr
+      Part C (10): net_density_yr, net_avg_cluster_yr, net_avg_path_yr,
+                   net_degree_gini_yr  (+WS-A) net_modularity_yr,
+                   net_assortativity_yr, net_transitivity_yr,
+                   net_diameter_yr, net_giant_share_yr, net_n_components_yr
+      Part E (5):  gf_coordinator, gf_itinerant, gf_gatekeeper_rep,
+                   gf_liaison, gf_total  (Gould-Fernandez 1989 经纪角色,
+                   无向坍缩 gatekeeper≡representative; 分组复用 load_bank_group_maps)
 
     学术依据:
       Freeman (1979), Bonacich (1972), Burt (1992), Estrada (2005),
@@ -520,7 +659,7 @@ def compute_bank_network_centrality(
         df_exploded: 篇章级 DataFrame
 
     Returns:
-        panel: 追加 22 列的面板 (18 节点级 + 4 网络级)
+        panel: 追加 33 列的面板 (18 节点级 + 10 网络级 + 5 GF 经纪角色)
     """
     if not HAS_NETWORKX:
         logger.warning("  networkx 未安装, 跳过网络中心度计算。"
@@ -528,7 +667,7 @@ def compute_bank_network_centrality(
         return panel
 
     logger.info("=" * 60)
-    logger.info("步骤: 银行共现网络中心度计算 (22 指标)")
+    logger.info("步骤: 银行共现网络指标计算 (33: 18 节点 + 10 网络级 + 5 GF)")
     logger.info("=" * 60)
 
     years = sorted(panel['year'].unique())
@@ -537,6 +676,17 @@ def compute_bank_network_centrality(
     # 结果容器
     node_results = {}   # {(bank, year): {metric: value}}
     net_results = {}    # {year: {metric: value}}
+
+    # WS-C (GF) 节点分组: **复用既有生产 SSOT** load_bank_group_maps() (执行计划 §6/Q1),
+    # 勿重造 loader。type_map: {bank → soe/joint/city/rural/private/foreign/other}。
+    # 加载失败 (缺 bank_addresses.json 等) → 空 map → 全部 gf_* 优雅置 NaN。
+    try:
+        from news_process.pipeline.panel.iv_did import load_bank_group_maps
+        _gf_type_map, _ = load_bank_group_maps()
+        logger.info(f"  GF 分组已加载 (load_bank_group_maps): {len(_gf_type_map)} 银行")
+    except Exception as e:
+        logger.warning(f"  GF 分组加载失败 ({e}); gf_* 列将全 NaN")
+        _gf_type_map = {}
 
     for year in years:
         # 1. 构建年度邻接矩阵
@@ -794,6 +944,15 @@ def compute_bank_network_centrality(
                 metrics[b]['bank_is_hub'] = (
                     1 if metrics[b]['bank_degree_cent'] >= _hub_cutoff else 0)
 
+        # ─── WS-C: Gould-Fernandez 经纪角色 (无向坍缩 4 角色 + total, 节点级) ───
+        # GF 跑在已建 G 上 (只读, 不重排节点/不重建图 — 加性铁律); group_map 年不变。
+        _gf_roles = _gould_fernandez_roles(G, _gf_type_map)
+        _gf_nan = {k: np.nan for k in (
+            'gf_coordinator', 'gf_itinerant', 'gf_gatekeeper_rep',
+            'gf_liaison', 'gf_total')}
+        for b in bank_list:
+            metrics[b].update(_gf_roles.get(b, _gf_nan))
+
         # 存储节点级结果
         for b in bank_list:
             node_results[(b, year)] = metrics[b]
@@ -829,6 +988,16 @@ def compute_bank_network_centrality(
         degree_seq = np.array([G.degree(b) for b in bank_list],
                               dtype=np.float64)
         net_yr['net_degree_gini_yr'] = _gini(degree_seq)
+
+        # ─── WS-A (网络指标扩展 2026-06-21, 执行计划 §7 WS-A): 6 个新增网络级结构控制 ───
+        # 全部确定性 (无 RNG / 无谱分解 / 纯整数或拓扑) → golden-safe, 不扩 BLAS-FP 排除集。
+        # 计算逻辑抽到 _net_level_extra_metrics (只读 G/G_lcc/components/lcc_nodes/n_nodes,
+        # 不重建图 → 加性铁律), 便于直接单测各拓扑分支。
+        # ⚠ clique 膨胀披露 (§3.1 Q2): net_transitivity_yr / net_modularity_yr 被多行文章 clique
+        #   投影向上虚增; transitivity 忽略权重 → 无 _hn 孪生; modularity 加权可有 net_modularity_hn_yr。
+        # ⚠ 年 FE 不可识别 (§3.1 Q4): net_*_yr 年内对所有银行恒定 → 含 year FE 被吸收; 仅无年-FE 控制或交乘。
+        net_yr.update(_net_level_extra_metrics(
+            G, G_lcc, lcc_nodes, components, n_nodes))
 
         net_results[year] = net_yr
 

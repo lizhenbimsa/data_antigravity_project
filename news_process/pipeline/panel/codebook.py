@@ -1593,6 +1593,16 @@ def _infer_label(var_name: str) -> str:
         return f'Sentiment Tone{track_suffix}'
     elif 'attn' in var_name or var_name.startswith('ft_vol'):
         return f'Attention Index{track_suffix}'
+    elif var_name.startswith('gf_'):
+        # 网络指标扩展 2026-06-21: Gould-Fernandez 经纪角色 (无向坍缩)
+        return 'GF Brokerage Role (Gould-Fernandez 1989)'
+    elif var_name.startswith('brok_bip'):
+        # 仅 WS-B 二分图原生; **不**用 startswith('brok') 以免改写既有
+        # brokerage_eigen_cent / brokerage_fire_sale 的标签 (MISSING_SCHEMA-2)
+        return f'Bipartite Media-Bank Centrality{track_suffix}'
+    elif var_name.startswith('net_') and var_name.endswith('_yr'):
+        # net_*_yr = 年度网络级结构 (年广播; 年 FE 下不可识别)
+        return 'Network-Level Structure (annual)'
     elif 'cent' in var_name:
         return f'Network Centrality{track_suffix}'
     elif 'media' in var_name:
@@ -1630,8 +1640,12 @@ def _infer_source_stage(var_name: str) -> str:
     elif 'attn' in var_name or var_name.startswith('ft_vol'):
         # ft_vol_* = 地理注意力总量孪生 (compute_fintech_attention_index, 2026-06-13)
         return 'Stage 40 (panel/attention_media·encode)'
-    elif 'network' in var_name or 'cent' in var_name:
-        return 'Stage 40 (panel/network_spillover)'
+    elif ('network' in var_name or 'cent' in var_name
+          or var_name.startswith('gf_') or var_name.startswith('brok')
+          or (var_name.startswith('net_') and var_name.endswith('_yr'))):
+        # 网络指标扩展 2026-06-21: gf_*/brok_bip_*/net_*_yr 一并归网络族
+        # (含既有 4 个 net_*_yr — 此前漏 token 误落 '未知', 一并修, §3.1 Q7)
+        return 'Stage 40 (panel/network_spillover·network_brokerage)'
     elif 'strat' in var_name:
         return 'Stage 25'
     else:
@@ -1646,7 +1660,9 @@ def _infer_category(var_name: str) -> str:
         return '情感指标'
     elif 'attn' in var_name or var_name.startswith('ft_vol'):
         return '注意力指数'
-    elif 'cent' in var_name or 'network' in var_name:
+    elif ('cent' in var_name or 'network' in var_name
+          or var_name.startswith('gf_') or var_name.startswith('brok')
+          or (var_name.startswith('net_') and var_name.endswith('_yr'))):
         return '网络指标'
     elif 'media' in var_name:
         return '媒体指标'

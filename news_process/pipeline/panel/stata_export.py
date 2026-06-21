@@ -359,6 +359,25 @@ def build_variable_labels(
         'bank_emb_sim_mean_lag1':           "Bank Emb Sim Mean (L1)",
         'bank_emb_sim_mean_lag1_t2v':       "Bank Emb Sim Mean (L1, T2V robust)",
         'industry_neg_shock_lag1':          "Industry Neg Shock LOO (L1, year-FE-safe)",
+        # 网络指标扩展 2026-06-21 (WS-A net 级 6 / WS-C GF 5 / WS-B 二分图 5);
+        # .dta 标签经此 HEURISTIC_LABELS (build_variable_labels 优先级 2) 命中,
+        # export.py STATA_LABELS 不入 stage-46 .dta 路径 (MISSING_SCHEMA-1)。各 ≤80 字节。
+        'net_modularity_yr':                "Annual Co-mention Modularity (CNM 2004; year-FE absorbed)",
+        'net_assortativity_yr':             "Annual Degree Assortativity (Newman 2002; year-FE absorbed)",
+        'net_transitivity_yr':              "Annual Global Transitivity (Watts-Strogatz 1998)",
+        'net_diameter_yr':                  "Annual Co-mention Diameter (LCC, unweighted)",
+        'net_giant_share_yr':               "Annual Giant Component Share",
+        'net_n_components_yr':              "Annual Number of Connected Components",
+        'gf_coordinator':                   "GF Coordinator Brokerage (Gould-Fernandez 1989)",
+        'gf_itinerant':                     "GF Itinerant Brokerage (Gould-Fernandez 1989)",
+        'gf_gatekeeper_rep':                "GF Gatekeeper-Representative (undirected merge, 1989)",
+        'gf_liaison':                       "GF Liaison Brokerage (Gould-Fernandez 1989)",
+        'gf_total':                         "GF Total Brokerage (Gould-Fernandez 1989)",
+        'brok_bip_degree_cent':             "Bipartite Media-Bank Degree (Borgatti-Everett 1997)",
+        'brok_bip_between_cent':            "Bipartite Media-Bank Betweenness Brokerage (Freeman 1979)",
+        'brok_bip_closeness_cent':          "Bipartite Media-Bank Closeness (LCC-restricted)",
+        'brok_bip_clustering_ra':           "Bipartite Clustering Robins-Alexander (2004)",
+        'brok_bip_node_redundancy':         "Bipartite Node Redundancy (Latapy et al. 2008)",
         # IV 扩展族 LOO 同业工具 (2026-06-13): full 轨 leave_one_out_peer_* +
         # ctx 轨镜像 lpeer_*_ctx (实体窗口归因, Hassan 2019 QJE). 各 ≤ 80 字节.
         'leave_one_out_peer_attention_iv':  "Same-type peer LOO attention IV (full; Manski 1993 caveat)",

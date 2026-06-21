@@ -821,6 +821,25 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'net_avg_cluster_yr':   'Annual Avg Clustering Coefficient',
                 'net_avg_path_yr':      'Annual Avg Path Length (LCC)',
                 'net_degree_gini_yr':   'Annual Degree Distribution Gini',
+                # ═══ 网络指标扩展 2026-06-21: WS-A net 级 6 (年广播; 年 FE 下不可识别) ═══
+                'net_modularity_yr':    'Annual Co-mention Modularity (Clauset-Newman-Moore 2004)',
+                'net_assortativity_yr': 'Annual Degree Assortativity (Newman 2002)',
+                'net_transitivity_yr':  'Annual Global Transitivity (Watts-Strogatz 1998)',
+                'net_diameter_yr':      'Annual Co-mention Diameter (LCC, unweighted)',
+                'net_giant_share_yr':   'Annual Giant Component Share',
+                'net_n_components_yr':  'Annual Number of Connected Components',
+                # ═══ WS-C Gould-Fernandez 经纪角色 (无向坍缩 4+total; Gould-Fernandez 1989) ═══
+                'gf_coordinator':       'GF Coordinator Brokerage (Gould-Fernandez 1989)',
+                'gf_itinerant':         'GF Itinerant Brokerage (Gould-Fernandez 1989)',
+                'gf_gatekeeper_rep':    'GF Gatekeeper-Representative (undirected merge, 1989)',
+                'gf_liaison':           'GF Liaison Brokerage (Gould-Fernandez 1989)',
+                'gf_total':             'GF Total Brokerage (Gould-Fernandez 1989)',
+                # ═══ WS-B 二分图银行端原生中心度 (媒体-银行二分图; unweighted) ═══
+                'brok_bip_degree_cent':    'Bipartite Media-Bank Degree (Borgatti-Everett 1997)',
+                'brok_bip_between_cent':   'Bipartite Media-Bank Betweenness Brokerage (Freeman 1979)',
+                'brok_bip_closeness_cent': 'Bipartite Media-Bank Closeness (LCC-restricted)',
+                'brok_bip_clustering_ra':  'Bipartite Clustering Robins-Alexander (2004)',
+                'brok_bip_node_redundancy': 'Bipartite Node Redundancy (Latapy et al. 2008)',
                 # ═══ 银行共现网络: Part D-1 一阶溢出 (3) ═══
                 'peer_tone_lag1_full':      '1st-Order Peer Sentiment (Full)',
                 'peer_tone_lag1_ctx':       '1st-Order Peer Sentiment (Ctx)',

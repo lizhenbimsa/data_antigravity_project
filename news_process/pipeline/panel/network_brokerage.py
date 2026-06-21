@@ -232,6 +232,81 @@ def _eigenvector_centrality_by_component(G: 'nx.Graph', year: int) -> dict:
     return vals
 
 
+# ============================================================================
+# 2b. 二分图银行端原生中心度 (WS-B, 网络指标扩展 2026-06-21)
+# ============================================================================
+# 当前模块仅产 brokerage_eigen_cent (= 声望); WS-B 补 5 个二分图**原生**中心度,
+# 其中 brok_bip_between_cent 才直接操作化 Han-Kim-Nanda (2024, RFS) "信息经纪"
+# (银行桥接否则不相连的媒体渠道); 方法引文 Freeman (1979) / Borgatti-Everett (1997)。
+# ⚠ 铁律 (执行计划 §7 WS-B / §3.1):
+#   - 全部 nx.bipartite.* 返回**两端** dict → 必过滤 bank_nodes (R-D2/F6);
+#   - closeness 在断连图跨分量不可比 (实测孤立点 1.5 vs 连通 1.0) → 限制到 LCC 子图 (R13);
+#   - node_redundancy 对 degree<2 节点 raise NetworkXError 崩阶段 → degree>=2 预过滤铁律 (F5);
+#   - 二分图 between/clustering/redundancy **丢边权** (API 约束非选择) → unweighted 拓扑经纪,
+#     与加权 brokerage_eigen_cent 互补; degree 除以当年媒体数 → 年内相对 (年 FE)。
+
+def _bipartite_bank_metrics(G: 'nx.Graph', bank_nodes: set) -> dict:
+    """媒体-银行二分图银行端 5 原生中心度 (带 LCC / degree>=2 守卫)。
+
+    Returns:
+        {bank: {brok_bip_degree_cent, brok_bip_between_cent,
+                brok_bip_closeness_cent, brok_bip_clustering_ra,
+                brok_bip_node_redundancy}} — 仅 bank_nodes; 退化项 NaN。
+    """
+    out = {b: {} for b in bank_nodes}
+
+    # 度 / 介数 (全图; 返回两端 → 过滤 bank_nodes)
+    try:
+        _dc = nx.bipartite.degree_centrality(G, bank_nodes)
+    except Exception as e:
+        logger.warning(f"  bipartite.degree_centrality 失败 ({e})"); _dc = {}
+    try:
+        _bc = nx.bipartite.betweenness_centrality(G, bank_nodes)
+    except Exception as e:
+        logger.warning(f"  bipartite.betweenness_centrality 失败 ({e})"); _bc = {}
+    for b in bank_nodes:
+        out[b]['brok_bip_degree_cent'] = float(_dc.get(b, np.nan))
+        out[b]['brok_bip_between_cent'] = float(_bc.get(b, np.nan))
+
+    # 聚类 (Robins-Alexander 2004, mode='dot')
+    try:
+        _cl = nx.bipartite.clustering(G, nodes=bank_nodes, mode='dot')
+    except Exception as e:
+        logger.warning(f"  bipartite.clustering 失败 ({e})"); _cl = {}
+    for b in bank_nodes:
+        out[b]['brok_bip_clustering_ra'] = float(_cl.get(b, np.nan))
+
+    # 接近: 限制到最大连通分量 (R13; 否则跨分量不可比 → 排名倒挂)
+    _comps = list(nx.connected_components(G))
+    _lcc = max(_comps, key=len) if _comps else set()
+    _clo = {}
+    if len(_lcc) >= 2:
+        _sub = G.subgraph(_lcc)
+        _bank_lcc = {b for b in bank_nodes if b in _lcc}
+        if _bank_lcc:
+            try:
+                _clo = nx.bipartite.closeness_centrality(_sub, _bank_lcc)
+            except Exception as e:
+                logger.warning(f"  bipartite.closeness 失败 ({e})"); _clo = {}
+    for b in bank_nodes:
+        out[b]['brok_bip_closeness_cent'] = (
+            float(_clo[b]) if b in _clo else np.nan)
+
+    # 冗余: degree>=2 预过滤铁律 (node_redundancy 对 deg<2 抛 NetworkXError)
+    _elig = [b for b in bank_nodes if G.degree(b) >= 2]
+    _nr = {}
+    if _elig:
+        try:
+            _nr = nx.bipartite.node_redundancy(G, _elig)
+        except Exception as e:
+            logger.warning(f"  bipartite.node_redundancy 失败 ({e})"); _nr = {}
+    for b in bank_nodes:
+        out[b]['brok_bip_node_redundancy'] = (
+            float(_nr[b]) if b in _nr else np.nan)
+
+    return out
+
+
 def compute_brokerage_centrality(
     panel: pd.DataFrame, df_exploded: pd.DataFrame
 ) -> pd.DataFrame:
@@ -277,6 +352,7 @@ def compute_brokerage_centrality(
 
     years = sorted(panel['year'].unique())
     results = {}
+    bip_results = {}   # WS-B: {(bank, year): {brok_bip_*: value}}
 
     for year in years:
         G = build_media_bank_bipartite(df_exploded, year)
@@ -301,6 +377,10 @@ def compute_brokerage_centrality(
         for bank, val in eigen_vals.items():
             results[(bank, year)] = val
 
+        # ─── WS-B: 二分图银行端原生中心度 (5 指标, 带守卫) ───
+        for b, m in _bipartite_bank_metrics(G, bank_nodes).items():
+            bip_results[(b, year)] = m
+
         logger.info(f"  年份 {year}: {len(media_nodes)} 媒体, "
                     f"{len(bank_nodes)} 银行, "
                     f"{G.number_of_edges()} 边, "
@@ -322,6 +402,23 @@ def compute_brokerage_centrality(
                     f"mean={panel['brokerage_eigen_cent'].mean():.6f}")
     else:
         logger.warning("  未计算任何经纪中心度")
+
+    # ─── WS-B 合并: 二分图银行端 5 中心度 (独立 left join, 镜像 brokerage_eigen 加列式) ───
+    if bip_results:
+        _bip_rows = []
+        for (bank, yr), m in bip_results.items():
+            row = {'target_bank': bank, 'year': yr}
+            row.update(m)
+            _bip_rows.append(row)
+        _bip_df = pd.DataFrame(_bip_rows)
+        panel = panel.merge(_bip_df, on=['target_bank', 'year'], how='left')
+        _bcols = [c for c in _bip_df.columns
+                  if c not in ('target_bank', 'year')]
+        logger.info(f"  二分图银行端中心度已合并: {len(_bcols)} 列")
+        for c in _bcols:
+            if c in panel.columns:
+                v = int(panel[c].notna().sum())
+                logger.info(f"    {c}: {v:,} 有效值, mean={panel[c].mean():.6f}")
 
     return panel
 
