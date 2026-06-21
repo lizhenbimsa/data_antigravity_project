@@ -2,7 +2,7 @@
 
 - **日期**: 2026-06-13（检索 06-12/13, 终审 06-13; 本文件为终审后 v2, 取代初版）
 - **范围**: news_process 管线 12 个方法学族的全部核心做法
-- **规模**: 168 条族内条目 → 去重后 **141 条唯一文献** (2026-06-14 审计 CIT-3 补 Da-Engelberg-Gao 2011 对照锚, 140→141); 其中 2020–2026 年 103 条（占 73%）, 2023–2026 年 70 条（占 50%）; 工作论文 27 条, 其余为已刊期刊/会议/综述
+- **规模**: 168 条族内条目 → 去重后 **142 条唯一文献** (2026-06-14 审计 CIT-3 补 Da-Engelberg-Gao 2011 对照锚 140→141; 2026-06-21 Round-2 完整性审计补 Fang & Peress 2009 覆盖测度主锚 141→142; Round-3 补 Gomber, Koch & Siering 2017 P4 locus 二元框架直接出处 142→143); 其中 2020–2026 年 103 条（占 73%）, 2023–2026 年 70 条（占 50%）; 工作论文 27 条, 其余为已刊期刊/会议/综述
 - **核验**: 三层——检索代理自筛 → 独立核验代理 Crossref/出版社/NBER/SSRN/OpenReview 逐字段比对 → 终审（程序层 121 条 DOI 全量解析 0 死链 + Crossref 机器字段比对 + 17 代理对抗复核, 详见末节"终审记录"）
 - **生产方式**: 24 检索/核验代理两阶段工作流 + 17 代理终审工作流, 灰区一律剔除（"查不实=不存在"铁律）
 
@@ -107,7 +107,7 @@
 - Lopez-Lira, A., & Tang, Y. (2025). Can ChatGPT forecast stock price movements? Return predictability and large language models (SSRN Working Paper No. 4412788, rev. October 2025). https://ssrn.com/abstract=4412788 **〔元数据经核验纠正〕**
   - *锚定*: 对比 GPT 系 LLM 与 BERT/FinBERT 等小模型从新闻提取情感信号的收益预测力, 是项目 stage 21 (LLM) 与 stage 23 (BERT) 双方法互证、并讨论两者信息含量差异时的核心对照文献。
 - Xu, X., Wen, F., Chu, B., Fu, Z., Lin, Q., Liu, J., Fei, B., Li, Y., Zhou, L., & Yang, Z. (2025). FinBERT2: A specialized bidirectional encoder for bridging the gap in finance-specific deployment of large language models. In *Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2 (KDD '25)* (pp. 5117–5128). Association for Computing Machinery. https://doi.org/10.1145/3711896.3737219 **〔元数据经核验纠正〕**
-  - *锚定*: 项目私有 FinBERT2 模型同名同源的中文金融 BERT (32B token 中文金融语料预训练), 且实证显示其金融分类任务超过 GPT-4-turbo/Claude 等主流 LLM, 为 stage 23 在已有 LLM 轨 (stage 21) 之外仍 always-on 保留 FinBERT2 轨提供最直接的中文情境证据。
+  - *锚定*: 项目私有 FinBERT2 模型同名同源的中文金融 BERT (32B token 中文金融语料预训练), 且实证显示其金融分类任务平均超过主流大语言模型 (摘要表述为 'leading LLMs', 平均高 9.7–12.3%; 论文 Table 3 具名基线含 GPT-4-turbo / Claude-3.5-Sonnet, 经 2026-06-13 审计逐项核实), 为 stage 23 在已有 LLM 轨 (stage 21) 之外仍 always-on 保留 FinBERT2 轨提供最直接的中文情境证据。
 - Bochkay, K., Brown, S. V., Leone, A. J., & Tucker, J. W. (2023). Textual analysis in accounting: What's next? *Contemporary Accounting Research*, 40(2), 765–805. https://doi.org/10.1111/1911-3846.12825
   - *锚定*: 会计文本分析方法的权威 survey, 把词典→词袋 ML→上下文化 PLM (BERT) 组织成统一框架, 为项目'词典 (stage 22) / BERT (stage 23) / LLM (stage 21) 三类方法并行'的总体测度架构提供综述级引用锚点。
 - García, D., Hu, X., & Rohrer, M. (2023). The colour of finance words. *Journal of Financial Economics*, 147(3), 525–549. https://doi.org/10.1016/j.jfineco.2022.11.006
@@ -194,6 +194,8 @@
   - *锚定*: 经济学文本方法的 JEL 规范综述: 给出'文本→数值表示→回归输入'三步框架及稀疏计数表示的统计性质, 为项目整条'新闻文本→关键词份额→面板变量'流水线提供方法学总纲。
 - Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level political risk: Measurement and effects. *The Quarterly Journal of Economics*, 134(4), 2135–2202. https://doi.org/10.1093/qje/qjz021
   - *锚定*: 项目 stage 14 fintech attention intensity 的直接奠基范式: 用文本中主题词命中份额 (share of text devoted to topic) 构造公司层面暴露度, 并提供 human audit 效度验证模板, 正是项目'关键词命中 share'做法的方法学源头。
+- Fang, L., & Peress, J. (2009). Media coverage and the cross-section of stock returns. *The Journal of Finance*, 64(5), 2023–2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x
+  - *锚定 (覆盖/总量测度主锚)*: 媒体报道覆盖度(extensive coverage)与股票横截面收益关系的奠基文献(无媒体报道溢价), 是项目 attention 覆盖/总量族 (attention_index / ft_attn_* / ft_vol_* / ln_news_coverage / n_articles) 的**直接主锚**——按"是否被报道及报道篇数"构造覆盖测度的范式源头; Da, Engelberg & Gao (2011) 仅作搜索量替代方案的对照锚(见下条)。代码 attention_media.py / controls.py / encode.py 等 8+ 模块均以 Fang & Peress (2009) 为覆盖测度主锚。
 - Da, Z., Engelberg, J., & Gao, P. (2011). In search of attention. *The Journal of Finance*, 66(5), 1461–1499. https://doi.org/10.1111/j.1540-6261.2011.01679.x
   - *锚定 (对照锚, 非主锚 — 补录 2026-06-14 审计 CIT-2/3)*: DEG 以 Google 搜索量 (SVI) 作 **直接** 投资者注意力代理, 并明确论证报纸覆盖是其取代的 **间接/含噪** 代理。项目地理三档 ft_attn_*/ft_vol_* 系报纸覆盖比值/总量, 无搜索量数据 → DEG 仅作"搜索量替代方案"的 **对照** 引用, 覆盖比值的主锚为 Fang & Peress (2009 JF); **勿** 将 DEG 表述为本覆盖测度的奠基范式 (claim-fit 修正, 见 attention_media.py::compute_fintech_attention_index docstring)。
 - Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. *Journal of Accounting Research*, 54(4), 1187–1230. https://doi.org/10.1111/1475-679X.12123
@@ -263,7 +265,9 @@
 - Vives, X. (2019). Digital disruption in banking. *Annual Review of Financial Economics*, 11, 243-272. https://doi.org/10.1146/annurev-financial-100719-120854
   - *锚定*: 系统梳理在位银行面对 FinTech/BigTech 的可选策略(自建/合作/收购)与竞争后果, 为项目同时测度银行 fintech '采纳/竞争/合作'三类新闻信号的研究设计提供综述级框架 (经典锚点)。
 - Gomber, P., Kauffman, R. J., Parker, C., & Weber, B. W. (2018). On the fintech revolution: Interpreting the forces of innovation, disruption, and transformation in financial services. *Journal of Management Information Systems*, 35(1), 220-265. https://doi.org/10.1080/07421222.2018.1440766
-  - *锚定*: 系统梳理 fintech 技术创新对支付/信贷/投资等业务功能领域的颠覆与转型, 为按技术与业务功能给银行 fintech 新闻分类提供领域图谱式背景支撑; 显式的"业务功能 × 技术"维度分离可补引 Gomber, Koch & Siering (2017, Journal of Business Economics) 的 Digital Finance Cube 作为直接出处。
+  - *锚定*: 系统梳理 fintech 技术创新对支付/信贷/投资等业务功能领域的颠覆与转型, 为按技术与业务功能给银行 fintech 新闻分类提供领域图谱式背景支撑; 显式的"业务功能 × 技术"维度分离的直接出处见下条 Gomber, Koch & Siering (2017)。
+- Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital finance and FinTech: Current research and future research directions. *Journal of Business Economics, 87*(5), 537–580. https://doi.org/10.1007/s11573-017-0852-x
+  - *锚定 (P4 locus 二元框架直接出处, 补录 2026-06-21 Round-3)*: 提出 Digital Finance Cube('业务功能 × 技术 × 机构'三维框架), 显式分离技术维与业务功能维, 是项目 P4 locus'底层技术 vs 应用层'二元编码框架的**直接概念出处**(较 Gomber et al. 2018 JMIS 的功能图谱更直接)。
 - Chesbrough, H. W. (2003). *Open innovation: The new imperative for creating and profiting from technology*. Harvard Business School Press. **〔元数据经核验纠正〕**
   - *锚定*: P5 collab 维度的理论原点: 开放式创新框架界定内部研发与外部协同(合作/许可/合资)两种创新获取模式, 为项目把银行 fintech 新闻编码为'自主研发 vs 外部协同'二元属性提供概念正当性 (经典锚点)。
 
@@ -277,7 +281,7 @@
   - *锚定*: 用滞后新闻项刻画价格对新闻的延迟反应及其时变性, 并给出有限注意力模型; 为项目对当期与滞后跟进报道分别赋权、用衰减核刻画新闻效应随时间消退的回归设定提供近期顶刊正当性。
 - Bybee, L., Kelly, B., Manela, A., & Xiu, D. (2024). Business news and business cycles. *Journal of Finance*, 79(5), 3105–3147. https://doi.org/10.1111/jofi.13377
   - *锚定*: 对 80 万篇 WSJ 全文做主题模型并以主题注意力份额的时序消长刻画新闻叙事的兴起与衰减; 为项目'同主题报道流'的主题聚类口径及注意力份额随时间衰减的度量方式提供顶刊方法锚点。
-- Fedyk, A. (2024). Front-page news: The effect of news positioning on financial markets. *Journal of Finance*, 79(1), 5–33. https://doi.org/10.1111/jofi.13287
+- Fedyk, A. (2024). Front-page news: The effect of news positioning on financial markets. *The Journal of Finance*, 79(1), 5–33. https://doi.org/10.1111/jofi.13287
   - *锚定*: 用头版位置的外生变动证明同等重要的新闻因显著度不同, 信息融入价格的速度相差两天以上; 为项目对首发 (高显著) 与跟进 (低显著) 报道赋不同权重、并用指数衰减刻画信息吸收时间路径提供因果证据。
 - Fedyk, A., & Hodson, J. (2023). When can the market identify old news? *Journal of Financial Economics*, 149(1), 92–113. https://doi.org/10.1016/j.jfineco.2023.04.008
   - *锚定*: 2023 年对 Tetlock (2011) 范式的顶刊升级: 用 1700 万条 Bloomberg 新闻区分'直接转载'与'多源重组'两类旧新闻, 证明重组型旧新闻更难被识别, 为项目区分首发 vs 跟进报道并按相似度细分陈旧类型提供最新理论与大语料方法锚点。
@@ -323,7 +327,7 @@
 - Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. *Journal of Economic Literature*, 57(3), 535–574. https://doi.org/10.1257/jel.20181020
   - *锚定*: text-as-data 奠基综述, 确立文本→数值表征→回归输入的标准研究范式, 是整条新闻文本测度管线(含语义嵌入表征)进入计量框架的经典方法学锚点。
 - Hanley, K. W., & Hoberg, G. (2019). Dynamic interpretation of emerging risks in the financial sector. *The Review of Financial Studies*, 32(12), 4543–4603. https://doi.org/10.1093/rfs/hhz023
-  - *锚定*: 用词嵌入对银行披露文本做动态语义解释以测度金融部门新兴风险, 是'嵌入语义距离应用于银行/监管语境'的最贴切 RFS 先例, 锚定项目把语义对齐用于银行新闻×监管政策的场景合法性。
+  - *锚定 (claim-fit 修正 2026-06-21 Round-3)*: 用 **LDA 主题模型(25 主题)+ 银行对收益协方差**对 10-K 披露做动态、可解释的新兴风险测度(word2vec 仅作主题向量的辅助叠加, **非主方法**), 是'文本测度应用于银行/系统性风险语境'的 RFS 先例, 锚定项目把文本语义测度用于银行新闻×监管政策场景的合法性; ⚠ 余弦嵌入这一具体统计量的奠基出处应归 Hoberg & Phillips (2016) / Gennaro & Ash (2022), 本文属同语境间接旁证而非嵌入余弦测度的直接范式(原稿误述其主方法为"词嵌入", 已订正)。
 - Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Siamese BERT-networks. In *Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP)* (pp. 3980-3990). Association for Computational Linguistics. https://doi.org/10.18653/v1/D19-1410
   - *锚定*: SBERT 原始论文, 证明孪生网络微调后的句向量可直接用余弦相似度比较语义, 是 stage 30a 文章级 SBERT 嵌入与余弦对齐计算的技术源头引用。
 - Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous product differentiation. *Journal of Political Economy*, 124(5), 1423–1465. https://doi.org/10.1086/688176
@@ -356,7 +360,7 @@
 - Hope, O.-K., Hu, D., & Lu, H. (2016). The benefits of specific risk-factor disclosures. *Review of Accounting Studies*, 21(4), 1005-1045. https://doi.org/10.1007/s11142-016-9371-1
   - *锚定*: 用 NER 数实体 (人名/地名/数量/时间) 构造 specificity 测度并证明其定价含义: 项目 specificity 列对中文新闻数命名实体密度的做法即此算法的直接移植。
 - Lang, M., & Stice-Lawrence, L. (2015). Textual analysis and international financial reporting: Large sample evidence. *Journal of Accounting and Economics*, 60(2-3), 110-135. https://doi.org/10.1016/j.jacceco.2015.09.002
-  - *锚定*: boilerplate 操作化定义 (≥75% 公司共享的 4-gram 套话句) 与流动性后果: 项目 boilerplate 测度按语料共享 n-gram 识别中文新闻套话的算法正源于此。
+  - *锚定 (claim-fit 修正 2026-06-21 Round-4)*: 首次把 boilerplate 操作化为"同语料/同国高频套话 4-gram 句"并证其流动性后果, 为项目 boilerplate 测度提供会计学先例; ⚠ "≥75% 公司共享 4-gram"这一**具名阈值**实出自 Dyer, Lang & Stice-Lawrence (2017)(见上条), 项目以"DF≥10% 文档"中文落地变体复刻该阈值思想(原稿误把具名阈值与算法出处归此 2015 文, 已订正)。
 - Loughran, T., & McDonald, B. (2014). Measuring readability in financial disclosures. *The Journal of Finance*, 69(4), 1643-1671. https://doi.org/10.1111/jofi.12162
   - *锚定*: 系统批评 Fog 在财务文本失效并提出文件大小代理: 直接正当化项目放弃英文音节类公式、改用文本长度+中文专用词法复杂度多指标并行的 clarity 测度策略。
 - Lundholm, R. J., Rogo, R., & Zhang, J. L. (2014). Restoring the Tower of Babel: How foreign firms communicate with U.S. investors. *The Accounting Review*, 89(4), 1453-1485. https://doi.org/10.2308/accr-50725
@@ -386,7 +390,7 @@
   - *锚定*: 区分 LLM 新闻情感中的 look-ahead bias 与公司身份'分心效应'并用实体匿名化做反事实对照, 正当化项目用 LLM 对银行新闻打情感分时须评估训练期重叠污染、且可用实体遮蔽作辅助稳健性。
 - Golchin, S., & Surdeanu, M. (2024). Time travel in LLMs: Tracing data contamination in large language models. *The Twelfth International Conference on Learning Representations (ICLR 2024)*. https://arxiv.org/abs/2308.08493
   - *锚定*: 提出 guided-instruction 补全法在实例级与分区级探测训练数据污染, 为项目 DC4 若需对中文新闻语料做逐篇'是否见过'污染探针提供 NLP 侧标准方法学。
-- Oren, Y., Meister, N., Chatterji, N. S., Ladhak, F., & Hashimoto, T. B. (2024). Proving test set contamination in black box language models. *The Twelfth International Conference on Learning Representations (ICLR 2024)*. https://openreview.net/forum?id=KS8mIvetg2 **〔元数据经核验纠正〕**
+- Oren, Y., Meister, N., Chatterji, N. S., Ladhak, F., & Hashimoto, T. B. (2024). Proving test set contamination in black-box language models. *The Twelfth International Conference on Learning Representations (ICLR 2024)*. https://openreview.net/forum?id=KS8mIvetg2 **〔元数据经核验纠正〕**
   - *锚定*: 基于可交换性/序记忆的统计检验在黑箱、无训练数据访问条件下给出污染的可证伪保证, 为项目对闭源商用 LLM (无法查训练语料) 做 DC4 检验提供黑箱统计检验的正当性。
 - Rahimikia, E., & Drinkall, F. (2024). Re(Visiting) large language models in finance (SSRN Working Paper No. 4963618). https://doi.org/10.2139/ssrn.4963618
   - *锚定*: 按年逐个预训练 point-in-time FinText 模型 (2007-2023) 以根除 look-ahead bias 并开源全部模型, 为项目讨论时间一致替代模型与开源可复现实践提供金融侧对照。
@@ -428,7 +432,7 @@
 
 ---
 
-## 三、合并参考文献总表（去重后 141 条, APA 第 7 版, 按第一作者字母序）
+## 三、合并参考文献总表（去重后 143 条, APA 第 7 版, 按第一作者字母序）
 <!-- 2026-06-14 审计 CIT-3 补录: +Da-Engelberg-Gao 2011 (In Search of Attention) 作 ft_attn_* 对照锚, 140→141 -->
 
 
@@ -485,8 +489,9 @@
 - Engelberg, J. E., & Parsons, C. A. (2011). The causal impact of media in financial markets. *The Journal of Finance*, 66(1), 67–97. https://doi.org/10.1111/j.1540-6261.2010.01626.x
 - Engle, R. F., Giglio, S., Kelly, B., Lee, H., & Stroebel, J. (2020). Hedging climate change news. *The Review of Financial Studies*, 33(3), 1184–1216. https://doi.org/10.1093/rfs/hhz072
 - Fang, H., Li, M., & Lu, G. (2025). Decoding China's industrial policies (NBER Working Paper No. 33814). National Bureau of Economic Research. https://www.nber.org/papers/w33814
+- Fang, L., & Peress, J. (2009). Media coverage and the cross-section of stock returns. *The Journal of Finance*, 64(5), 2023–2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x
 - Fedyk, A., & Hodson, J. (2023). When can the market identify old news? *Journal of Financial Economics*, 149(1), 92–113. https://doi.org/10.1016/j.jfineco.2023.04.008
-- Fedyk, A. (2024). Front-page news: The effect of news positioning on financial markets. *Journal of Finance*, 79(1), 5–33. https://doi.org/10.1111/jofi.13287
+- Fedyk, A. (2024). Front-page news: The effect of news positioning on financial markets. *The Journal of Finance*, 79(1), 5–33. https://doi.org/10.1111/jofi.13287
 - Flammer, C. (2021). Corporate green bonds. *Journal of Financial Economics*, 142(2), 499–516. https://doi.org/10.1016/j.jfineco.2021.01.010
 - Florackis, C., Louca, C., Michaely, R., & Weber, M. (2023). Cybersecurity risk. *The Review of Financial Studies*, 36(1), 351–407. https://doi.org/10.1093/rfs/hhac024
 - Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. *Management Science*, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
@@ -501,6 +506,7 @@
 - Goldstein, I. (2023). Information in financial markets and its real effects. *Review of Finance*, 27(1), 1–32. https://doi.org/10.1093/rof/rfac052
 - Goldstein, B., Jagtiani, J., & Lemieux, C. (2025). Fintech innovations in banking: Fintech partnership and default rate on bank loans (Working Paper No. 25-21). Federal Reserve Bank of Philadelphia. https://doi.org/10.21799/frbp.wp.2025.21
 - Gomber, P., Kauffman, R. J., Parker, C., & Weber, B. W. (2018). On the fintech revolution: Interpreting the forces of innovation, disruption, and transformation in financial services. *Journal of Management Information Systems*, 35(1), 220-265. https://doi.org/10.1080/07421222.2018.1440766
+- Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital finance and FinTech: Current research and future research directions. *Journal of Business Economics, 87*(5), 537–580. https://doi.org/10.1007/s11573-017-0852-x
 - Grieser, W., Hadlock, C., LeSage, J., & Zekhnini, M. (2022). Network effects in corporate financial policies. *Journal of Financial Economics*, 144(1), 247–272. https://doi.org/10.1016/j.jfineco.2021.05.060
 - Guo, L., Peng, L., Tao, Y., & Tu, J. (2026). Joint news, attention spillover, and stock returns (SSRN Working Paper No. 2927561, rev. February 2026). https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2927561
 - Hanley, K. W., & Hoberg, G. (2019). Dynamic interpretation of emerging risks in the financial sector. *The Review of Financial Studies*, 32(12), 4543–4603. https://doi.org/10.1093/rfs/hhz023
@@ -550,7 +556,7 @@
 - Ludwig, J., Mullainathan, S., & Rambachan, A. (2025). Large language models: An applied econometric framework (NBER Working Paper No. 33344). National Bureau of Economic Research. https://doi.org/10.3386/w33344
 - Lundholm, R. J., Rogo, R., & Zhang, J. L. (2014). Restoring the Tower of Babel: How foreign firms communicate with U.S. investors. *The Accounting Review*, 89(4), 1453-1485. https://doi.org/10.2308/accr-50725
 - Lyon, T. P., & Montgomery, A. W. (2015). The means and end of greenwash. *Organization & Environment*, 28(2), 223–249. https://doi.org/10.1177/1086026615575332
-- Oren, Y., Meister, N., Chatterji, N. S., Ladhak, F., & Hashimoto, T. B. (2024). Proving test set contamination in black box language models. *The Twelfth International Conference on Learning Representations (ICLR 2024)*. https://openreview.net/forum?id=KS8mIvetg2
+- Oren, Y., Meister, N., Chatterji, N. S., Ladhak, F., & Hashimoto, T. B. (2024). Proving test set contamination in black-box language models. *The Twelfth International Conference on Learning Representations (ICLR 2024)*. https://openreview.net/forum?id=KS8mIvetg2
 - Parlour, C. A., Rajan, U., & Zhu, H. (2022). When FinTech competes for payment flows. *The Review of Financial Studies*, 35(11), 4985-5024. https://doi.org/10.1093/rfs/hhac022
 - Peress, J. (2014). The media and the diffusion of information in financial markets: Evidence from newspaper strikes. *The Journal of Finance*, 69(5), 2007–2043. https://doi.org/10.1111/jofi.12179
 - Pierri, N., & Timmer, Y. (2022). The importance of technology in banking during a crisis. *Journal of Monetary Economics*, 128, 88-104. https://doi.org/10.1016/j.jmoneco.2022.04.001
