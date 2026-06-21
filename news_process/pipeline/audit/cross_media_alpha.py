@@ -3,7 +3,7 @@
 v3.7.0 PR #12 (D3) — 跨媒体源 tone 一致性 Krippendorff α + tone variance.
 
 ⚠️  IMPORTANT — 同名异构披露 (fix(omni-g-audit-family-08, 2026-06-11)):
-    本模块输出列 ``cross_outlet_tone_variance_{full,ctx}`` 与第 10 篇
+    本模块输出列 ``cross_outlet_tone_variance_{full,ctx,ss}`` 与第 10 篇
     ``bank_media_disagreement`` paper_spec.yaml 冻结的 main treatment **同名但
     不同构** — spec 冻结构造 = bank-year **无条件全年截面** outlet 级均值的
     跨 outlet var (待新建, M2-M3; 矩已于 2026-06-11 统一为 var); 本模块实现 =
@@ -81,7 +81,7 @@ valid (bank, event) 三元组覆盖 ≥ 60% bank-year.
 
 **关键算法/公式**: Krippendorff(2004) α(多评分员、任意尺度, 比 Cohen κ 稳健); Tetlock(2007) 跨源 tone 一致性作信号质量代理; 事件窗 ±3d、min 2 outlets、p90 峰值。
 
-**输出**: 9 列(见三轨段)。⚠ 同名异构披露: cross_outlet_tone_variance_{full,ctx}(注: 披露仅列 full/ctx 两轨)与第 10 篇 bank_media_disagreement paper_spec 冻结的 main treatment **同名但不同构**(本模块=事件窗条件子样本逐 episode 方差再加权; spec=全年无条件截面 outlet 均值的跨 outlet var)——第 10 篇采用前必须对齐 spec 或重命名释放保留名。
+**输出**: 9 列(见三轨段)。⚠ 同名异构披露: cross_outlet_tone_variance_{full,ctx,ss}(注: 三轨同名异构; ss 轨 v3.9.0 2026-06-14 加入)与第 10 篇 bank_media_disagreement paper_spec 冻结的 main treatment **同名但不同构**(本模块=事件窗条件子样本逐 episode 方差再加权; spec=全年无条件截面 outlet 均值的跨 outlet var)——第 10 篇采用前必须对齐 spec 或重命名释放保留名。
 
 **外部依赖/超时**: 依赖 `krippendorff>=0.5.0`(默认在 requirements.txt 注释化, 未装时 α 输出 NaN、仅 variance 可用); 无 LLM/Embedding/_llm_cache.db(只读已落盘 stage 21 + 确定性 _SENT_TO_TONE 派生); DAG timeout=3600(60 分钟, 含事件检测+媒体源聚合)。
 

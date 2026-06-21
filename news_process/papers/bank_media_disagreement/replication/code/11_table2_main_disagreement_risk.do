@@ -7,7 +7,7 @@
 *         白话: Z-score 越高表示银行离资不抵债越远、风险越低; 此处资本项用监管
 *         资本充足率 (CAR), 与原版账面口径不同, 故称"变体"。
 *   TX  = cross_outlet_tone_variance_full   (V4 R3 critical 修复, M2-M3 新建字段)
-*         ⚠ 同名异构披露: 盘上 cross_outlet_tone_variance_{full,ctx} 实为 stage 39f
+*         ⚠ 同名异构披露: 盘上 cross_outlet_tone_variance_{full,ctx,ss} 实为 stage 39f
 *         (cross_media_alpha.py) 的【事件窗条件构造】(逐 episode 跨 outlet 方差按文章数
 *         再加权), **非** paper_spec 冻结的【全年无条件】跨 outlet 截面方差 (后者 M2-M3
 *         待 encode.py 新建, 尚未物化)。39f 列缺位时 01_data_prep 回退 llm_vote_tone_std_full
