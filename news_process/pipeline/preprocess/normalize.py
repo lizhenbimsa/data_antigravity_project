@@ -95,8 +95,10 @@ def _clean_single_text(text: str, cc) -> str:
     text = ftfy.fix_text(text)
     # 步骤 2: 繁体转简体
     text = cc.convert(text)
-    # 步骤 2.5: 移除特定敏感词 "习近平" (置于 t2s 之后, 原繁体 "習近平" 已在步骤 2 转为简体)
-    text = text.replace('习近平', '')
+    # 步骤 2.5: 敏感词 "习近平" 简体→繁体 "習近平" (体现而非删除; 2026-06-22 由删除改为转繁体)。
+    #          置于 t2s 之后 — 步骤 2 已把原繁体统一转简体, 此处再统一改回繁体;
+    #          下游无第二次 t2s (唯一 t2s 在步骤 2), 故繁体形态得以保留至 stage 21 LLM 入参。
+    text = text.replace('习近平', '習近平')
     # 步骤 3: 全角转半角 + 引号标准化(单次 translate 调用)
     text = text.translate(COMBINED_TRANS)
     # 步骤 4: HTML 标签去除
@@ -119,6 +121,7 @@ def clean_text_batch(df_batch: pd.DataFrame) -> pd.DataFrame:
     对"标题"和"内容"列执行以下处理管道:
       1. 编码修复 (ftfy) — 修复 UTF-8 编码错误和 mojibake 乱码
       2. 繁体转简体 (OpenCC) — t2s 配置
+      2.5 敏感词归一化 — "习近平"简体→繁体"習近平"(体现而非删除, 置于 t2s 之后)
       3. 全角转半角 + 引号标准化 — 合并为单次 str.translate()
       4. HTML 标签去除 — selectolax 高性能解析
       5. 噪声去除 — URL/Email/电话/Emoji/控制字符/自定义噪声模式

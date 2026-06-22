@@ -92,7 +92,7 @@
 **核心度量**: `policy_cosine_sim_i = cos(emb(article_i), emb(auth_anchor))`, 理论值域 [-1,1], 实务多落 0~1。
 
 **处理步骤**:
-1. **语料加载** `load_policy_corpus_docs`: 按 `# [VINTAGE YYYY]` 标注行 / 落款日期行(YYYY年M月)/ 文号〔YYYY〕N号 解析各政策文档发布年份(vintage); 经 `_strip_leader_names` 镜像新闻侧 normalize 步骤2.5 做敏感词('习近平')对称清洗; 无 VINTAGE 标注时按 ≥3 连续空行切文档。
+1. **语料加载** `load_policy_corpus_docs`: 按 `# [VINTAGE YYYY]` 标注行 / 落款日期行(YYYY年M月)/ 文号〔YYYY〕N号 解析各政策文档发布年份(vintage); 经 `_strip_leader_names` 镜像新闻侧 normalize 步骤2.5 做敏感词('习近平'简→繁'習近平')对称归一化; 无 VINTAGE 标注时按 ≥3 连续空行切文档。
 2. **Vintage-aware 前视守卫**(默认开, config: article_alignment.vintage_aware, 函数 vintage_aware_enabled): 年度 t 的文章只与 **发布年份 ≤ t** 的政策文档段拼成锚点算余弦(消除'2017年新闻比2022年才发布的政策'前视构造)。文章年份从 year 列或 日期 列派生; 年份未知或早于全部政策文档 → 该篇置 NaN。无年份信息或 opt-out 时降级为静态全语料锚点并 WARNING 披露。
 3. **嵌入与池化** `_cosine_for_spec`: 政策语料按文档朴素分段 (naive chunking)(_split_into_chunks, token 上限切不重叠段)→ 各段独立嵌入 → 对该年度允许的段做 mean pooling + L2 归一化 = 年度锚点; 文章侧无预截断(2026-06-12 选项 B 移除 8191-token 预截断), 超长文章由引擎 chunk+pool。文章与锚点算 cosine_similarity。每个 spec 用自己的模型独立嵌(API 1536维 vs text2vec 768维, 严禁混算)。
 4. **双模型**: MAIN = text-embedding-3-small(config embedding_api, yunwu OpenAI-compat API)→ canonical `policy_cosine_sim_{full,ctx,ss}` + 无后缀别名; ROBUSTNESS = shibing624/text2vec-base-chinese(本地, config embedding_robustness)→ `policy_cosine_sim_t2v_{full,ctx,ss}`。_t2v 失败(try/except 守卫)仅置 NaN 不破坏 canonical。
@@ -220,18 +220,23 @@ _DATE_LINE_RE = _re.compile(r'^[\s　]*((?:19|20)\d{2})\s*年\s*\d{1,2}\s*月[\s
 # 文号: 〔YYYY〕N号 / [YYYY]N号 (如 银发〔2015〕221号、国办发〔2025〕8号)
 _DOCNO_RE = _re.compile(r'[〔\[]\s*((?:19|20)\d{2})\s*[〕\]]\s*\d+\s*号')
 
-# fix(omni-g-policy-01, 2026-06-11): 与新闻侧预处理对称的敏感词清除。
-# preprocess/normalize.py::_clean_single_text 步骤 2.5 对全部新闻标题/内容无条件
-# 删除 '习近平'; 权威语料此前裸读不经该规则 → 相似度两端文本预处理不对称
-# (语料 6 处 vs 新闻侧 0 处)。此处镜像同一规则使两端口径一致 (对称清洗级,
+# fix(omni-g-policy-01, 2026-06-11; 2026-06-22 改: 删除→简繁转换): 与新闻侧预处理对称的
+# 敏感词归一化。preprocess/normalize.py::_clean_single_text 步骤 2.5 对全部新闻标题/内容
+# 把 '习近平' 简体→繁体 '習近平' (体现而非删除); 权威语料若裸读不经该规则 → 相似度两端
+# 文本预处理不对称 (语料 6 处)。此处镜像同一规则使两端口径一致 (对称归一化级,
 # 裁决: 锚为全行共享常量, 实测效应 ≤3.2e-3, P3 披露级)。
 _LEADER_NAME_TOKENS = ('习近平',)
+_LEADER_NAME_TRAD = '習近平'  # 简体 → 繁体, 与 normalize.py 步骤 2.5 同口径
 
 
 def _strip_leader_names(text: str) -> str:
-    """对语料文本应用与 normalize.py 步骤 2.5 相同的敏感词删除 (对称清洗)。"""
+    """对语料文本应用与 normalize.py 步骤 2.5 相同的敏感词归一化 (简体→繁体, 对称口径)。
+
+    2026-06-22: 由"删除 '习近平'"改为"简体→繁体 '習近平'" (体现而非删除), 与新闻侧
+    normalize 步骤 2.5 保持同一规则。函数名沿用历史前缀 (_strip_), 行为现为归一化而非删除。
+    """
     for tok in _LEADER_NAME_TOKENS:
-        text = text.replace(tok, '')
+        text = text.replace(tok, _LEADER_NAME_TRAD)
     return text
 
 
@@ -239,7 +244,7 @@ def load_policy_corpus_docs(auth_path: str) -> list[dict]:
     """加载权威政策语料并按文档切分, 解析各文档 vintage 年份。
 
     fix(omni-g-policy-01/02, 2026-06-11) 语义披露:
-      - 文本经 _strip_leader_names 对称清洗 (与新闻侧 normalize 步骤 2.5 同规则);
+      - 文本经 _strip_leader_names 对称归一化 (与新闻侧 normalize 步骤 2.5 同规则: '习近平'简→繁);
       - 文档切分: `# [VINTAGE]` 标注行优先, 无标注时按 ≥3 连续空行分隔;
       - 年份解析失败的文档默认取语料库最早已知年份, 并 logger.warning 披露。
 
@@ -803,7 +808,7 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
         return df
 
     # fix(omni-g-policy-01/02, 2026-06-11): 经 load_policy_corpus_docs 统一加载 —
-    # (01) 语料文本经与新闻侧 normalize 步骤 2.5 相同的敏感词对称清洗;
+    # (01) 语料文本经与新闻侧 normalize 步骤 2.5 相同的敏感词对称归一化 ('习近平'简→繁);
     # (02) 按政策发布年份 (vintage) 切分为文档列表, 供下方按年构造 ≤t 锚点。
     auth_docs = load_policy_corpus_docs(auth_path)
 

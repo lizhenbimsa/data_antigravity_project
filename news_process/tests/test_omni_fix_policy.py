@@ -1,7 +1,7 @@
 """test_omni_fix_policy — g-policy 组 omni 审计修复回归锁 (2026-06-11).
 
 锁定 5 条 finding 的修复后行为 (mock 外部 API, 合成语料/DataFrame, 不触网):
-  - g-policy-01: 权威语料对称清洗 (与新闻侧 normalize 步骤 2.5 同规则删领导人姓名)
+  - g-policy-01: 权威语料对称归一化 (与新闻侧 normalize 步骤 2.5 同规则: 领导人姓名简→繁)
   - g-policy-02: vintage-aware 政策锚点 (stage 15 + 26, 前视守卫: 年度 t 只用 ≤t 文档)
   - g-policy-03: stage 15 文章侧 8191-token 预截断 (后于 2026-06-12 选项 B 移除 —
     引擎 chunk+pool 接管, 两侧对称; 本组测试改锁 "无预截断" 行为)
@@ -9,7 +9,7 @@
   - g-policy-05: 降级透明 (<3 银行 warning; t2v 稳健轨 raise 不炸 canonical)
 
 # 白话: "政策契合度"是看文章和官方政策文件像不像。这组测试守住: 政策文件和
-# 新闻要用同一套清洗规则(领导人姓名两边都删); 算某年文章的契合度只能用该年
+# 新闻要用同一套清洗规则(领导人姓名两边都简→繁, 体现而非删除); 算某年文章的契合度只能用该年
 # 及更早发布的政策文件(不许拿 2021 年的文件去评 2016 年的文章); 超长文章
 # 不再预先砍断, 交给引擎分块平均; 稳健性备用轨失败时只把自己置空, 不连累
 # 主结果; 各种跳过和降级都要在日志里讲明。
@@ -74,11 +74,11 @@ def _toy_articles(years):
 
 
 # ---------------------------------------------------------------------------
-# g-policy-01: 对称清洗
+# g-policy-01: 对称归一化 (简→繁)
 # ---------------------------------------------------------------------------
 
 def test_loader_strips_leader_names_symmetric_with_news_side(tmp_path):
-    """语料侧应用与 preprocess/normalize 步骤 2.5 相同的领导人姓名删除。"""
+    """语料侧应用与 preprocess/normalize 步骤 2.5 相同的领导人姓名归一化 (简→繁, 体现而非删除)。"""
     from news_process.pipeline.filtering import policy_alignment as pa
     corpus = (
         "# [VINTAGE 2019] doc\n"
@@ -86,14 +86,16 @@ def test_loader_strips_leader_names_symmetric_with_news_side(tmp_path):
     )
     docs = pa.load_policy_corpus_docs(_write_corpus(tmp_path, corpus))
     assert len(docs) == 1
-    assert '习近平' not in docs[0]['text'], "语料侧未对称删除领导人姓名"
-    # 删除是 replace 级 (残句保留), 与新闻侧 normalize 完全同规则
+    # 2026-06-22: 由删除改为简体→繁体转换 (体现而非删除), 与新闻侧 normalize 步骤 2.5 同规则
+    assert '习近平' not in docs[0]['text'], "简体领导人姓名应已转繁体"
+    assert docs[0]['text'].count('習近平') == 2, "语料侧未对称转繁体 (应体现而非删除, 输入 2 处)"
+    # 转换是 replace 级 (整句保留), 与新闻侧 normalize 完全同规则
     assert '主席强调' in docs[0]['text']
 
 
 def test_real_corpus_loads_clean_and_fully_dated():
-    """真实语料: 10 份文档全部解析出年份, 且加载文本无领导人姓名 (盘上原文仍含 6 处;
-    2026-06-22 补入的 2001–2009 基础监管层 4 份均无 '习近平', 故领导人计数不变)。"""
+    """真实语料: 10 份文档全部解析出年份; 领导人姓名经对称归一化由简体转繁体 (盘上原文
+    仍含 6 处简体; 2026-06-22 补入的 2001–2009 基础监管层 4 份均无 '习近平', 故计数不变)。"""
     import os
 
     from news_process.pipeline.filtering import policy_alignment as pa
@@ -106,7 +108,9 @@ def test_real_corpus_loads_clean_and_fully_dated():
     assert years == [2001, 2006, 2006, 2009, 2015, 2019,
                      2021, 2022, 2024, 2025], years
     assert not any(d['year_imputed'] for d in docs), "真实语料不应有 impute 年份"
-    assert not any('习近平' in d['text'] for d in docs), "对称清洗未生效"
+    # 2026-06-22: 由删除改为简→繁, 简体应全部消失, 繁体应至少出现一次 (盘上 6 处)
+    assert not any('习近平' in d['text'] for d in docs), "简体领导人姓名应已转繁体"
+    assert any('習近平' in d['text'] for d in docs), "对称转繁体未生效 (6 处应体现为繁体)"
 
 
 # ---------------------------------------------------------------------------

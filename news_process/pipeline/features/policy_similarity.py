@@ -60,7 +60,7 @@ from news_process.pipeline.features.strategic_diff import (
 
 # fix(omni-g-policy-01/02, 2026-06-11): 权威语料加载/vintage 切分与 stage 15 共用
 # 同一实现 (policy_alignment) — 两 stage 消费同一份语料, 锚点口径必须一致:
-# (01) 对称清洗 (与新闻侧 normalize 步骤 2.5 同规则删除领导人姓名);
+# (01) 对称归一化 (与新闻侧 normalize 步骤 2.5 同规则: 领导人姓名 '习近平' 简→繁, 体现而非删除);
 # (02) vintage-aware 锚点 (年度 t 只用发布年份 ≤ t 的政策文档, 消除前视构造)。
 from news_process.pipeline.filtering.policy_alignment import (  # noqa: E402
     all_vintage_companion_enabled,
@@ -208,7 +208,7 @@ def compute_authoritative_similarity(df_exploded, panel):
         return panel
 
     # fix(omni-g-policy-01/02, 2026-06-11): 改经 load_policy_corpus_docs 加载 —
-    # 对称清洗 + 按发布年份切分; 静态全语料拼接仅作 vintage 不可用时的降级锚点。
+    # 对称归一化 (领导人姓名简→繁) + 按发布年份切分; 静态全语料拼接仅作 vintage 不可用时的降级锚点。
     auth_docs = load_policy_corpus_docs(auth_path)
     auth_text_static = '\n\n'.join(d['text'] for d in auth_docs).strip()
 

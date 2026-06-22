@@ -91,6 +91,23 @@ def test_clean_single_text_full_pipeline():
     assert '<p>' not in cleaned
 
 
+def test_clean_single_text_converts_leader_name_to_traditional():
+    """步骤 2.5: '习近平' 简体→繁体 '習近平' (体现而非删除, 2026-06-22)。
+
+    两路输入都应收敛到繁体: 简体直接转繁; 繁体先被步骤 2 (t2s) 转简, 再被步骤 2.5 转回繁。
+    下游无第二次 t2s, 故繁体保留至 stage 21 LLM 入参。
+    """
+    import opencc
+
+    from news_process.pipeline.preprocess.normalize import _clean_single_text
+    cc = opencc.OpenCC('t2s')
+    for raw in ('习近平主席强调金融科技', '習近平主席強調金融科技'):
+        cleaned = _clean_single_text(raw, cc)
+        assert '習近平' in cleaned, f"应体现繁体领导人姓名: {raw!r} → {cleaned!r}"
+        assert '习近平' not in cleaned, f"简体领导人姓名应已转繁体: {raw!r} → {cleaned!r}"
+        assert '主席' in cleaned  # 整句保留 (replace 级, 非删句)
+
+
 def test_clean_single_text_empty_string_short_circuit():
     """空文本走 short-circuit (line 89-90)."""
     import opencc
