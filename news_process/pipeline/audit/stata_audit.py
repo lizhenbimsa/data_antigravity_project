@@ -334,7 +334,7 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
     # metric-audit 2026-06-02 (encode-02 重构对齐): 情感/分类计数恒等式须用 LLM-valid
     # 篇数 (count 口径); 重构后 n_articles=物理 size → 用 n_articles_llm_valid (旧 panel
     # 缺列回退 n_articles, 其即 count). 否则含 LLM 失败行的 bank-year 令 size != tech+app
-    # → 误 FAIL, 而 audit_sentiment_consistency 的 FAIL 会使 stage 52 退出码=1.
+    # → 误 FAIL, 而 audit_sentiment_consistency 的 FAIL 会使 stage 81 退出码=1.
     _nac = 'n_articles_llm_valid' if 'n_articles_llm_valid' in panel.columns else 'n_articles'
     # 缺列兜底 (与 audit_variable_quality:198 对称; 终验复核修: _nac 改写不得丢失
     # 原 graceful 守卫, 否则无 count 列的 panel 抛 KeyError).
@@ -450,7 +450,7 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
     # fix(omni-g-stata-audit-01, 2026-06-11): LLM 族期望分母优先用 valid-mask 列
     # sum_wd_{wtag}_llm{track} (与 encode.py::_llm_denom 2026-06-10 修复对齐) —
     # 否则 valid-mask 重生面板上按物理分母重算恒等式必误 FAIL (含 LLM-invalid 文章
-    # 的 bank-year diff 可达 0.5) 并把 stage 52 退出码打成 1; 缺 mask 列回退物理分母
+    # 的 bank-year diff 可达 0.5) 并把 stage 81 退出码打成 1; 缺 mask 列回退物理分母
     # (同 encode 回退契约, 旧冻结 panel 兼容), detail 注明所用分母口径。
     # fix(omni-g-stata-audit-02, 2026-06-11): 修正两处陈旧列名导致的静默死亡 —
     # VW 分子 llm_vote_score_vw_sum_full → llm_vote_score_w_sum{track}; HW 物理
@@ -956,7 +956,7 @@ def main():
 
     # ---【功能 banner】交付前面板质检 (黄金范式: 紧随启动日志; 已替换旧短 banner, 不叠加) ---
     logger.info("=" * 72)
-    logger.info("阶段 52: Stata 用面板数据审计 (CLI; Baltagi 2021 / Wooldridge 2010 / GPSS 2020)")
+    logger.info("阶段 81: Stata 用面板数据审计 (CLI; Baltagi 2021 / Wooldridge 2010 / GPSS 2020)")
     logger.info("=" * 72)
     logger.info("【功能】交付前的数据质检员: 把准备送进 Stata 跑回归的面板表 (40_panel_yearly")
     logger.info("        / 51_panel_with_controls) 与同名 .dta 从头到脚体检一遍, 最后出一张")

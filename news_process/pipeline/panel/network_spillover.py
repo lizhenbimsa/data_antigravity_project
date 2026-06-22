@@ -5,7 +5,7 @@
 管线位置:
   40_panel_export_main.py → 步骤 7f / 7g / 7h-cogn
   本模块在 44_panel_iv_did.py 之后、 47_network_brokerage.py 之前执行。
-  依赖 41_panel_encode_aggregate.py 生成的 co_mentioned_banks 列
+  依赖 11_news_bank.py 生成的 co_mentioned_banks 列
   和 llm_vote_tone_* 情感指标。
 
 核心功能 (三大子模块):
@@ -641,9 +641,10 @@ def compute_bank_network_centrality(
       - 路径型指标 (betweenness/harmonic/closeness/eccentricity) 使用
         倒数权重图 G_inv (edge_weight = 1/w)
       - CFB 使用原始图 (weight = 电导语义)
-      - eigenvector 三级 fallback: 全图 power → numpy(LCC) → NaN;
-        非主分量/非 LCC 银行两级均兜底 0.0 (fix omni-g-net-spill-05,
-        退化语义跨年一致, 不随数值收敛性漂移)
+      - eigenvector: 按连通分量分别计算 (分量内 L2 归一); 微小分量
+        (<_CMNT_MIN_COMPONENT_SIZE 节点) 及任何未参与计算的银行一律置 NaN;
+        仅当分量内幂迭代不收敛时退回该分量 degree_centrality 兜底
+        (fix network-metrics-audit 2026-06-13, P1-1; 详见 :754-764 in-method 说明)
       - 断连图: CFB/eccentricity/avg_path 仅对最大连通分量计算
 
     白话: 中心度回答"这家银行在新闻共现网络里有多居中/多重要"。不同指标

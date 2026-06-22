@@ -110,7 +110,7 @@ orchestrator (`00_master.do`) + 包安装 + 数据准备 + 各表格/图脚本�
 
 ## 学术锚定（per paper_spec.yaml）
 
-- {paper_id == 'bank_media_disagreement' and 'Diether-Malloy-Scherbina (2002) JF + Cookson-Niessner (2020) JF (DOI 10.1111/jofi.12852) + Bushman-Williams (2012) JAE + Acharya 2016 RFS' or 'Bushman-Williams (2012) JAE + Bushee (2010) JAR + Loughran-McDonald (2014) JF + Acharya 2016 RFS'}
+- {paper_id == 'bank_media_disagreement' and 'Diether-Malloy-Scherbina (2002) JF + Cookson-Niessner (2020) JF (DOI 10.1111/jofi.12852) + Bushman-Williams (2012) JAE + Acharya, Anginer & Warburton 2016 (working paper)' or 'Bushman-Williams (2012) JAE + Bushee (2010) JAR + Loughran-McDonald (2014) JF + Acharya, Anginer & Warburton 2016 (working paper)'}
 - Risk-taking outcome: Laeven-Levine (2009) JFE Z-score framework
 
 ## 维护说明

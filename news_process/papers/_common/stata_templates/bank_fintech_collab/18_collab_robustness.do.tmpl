@@ -16,9 +16,9 @@ use "$data_dir/_prepared_panel.dta", clear
 
 set seed {{RANDOM_SEED}}
 
-* R1: ctx 轨替代设定 (indep_frac_cm / collab_frac_cm; Hassan 2019 QJE entity-proximity)
+* R1: ctx 轨替代设定 (collab_frac_cm; Hassan 2019 QJE entity-proximity)
 * 白话: 换用"标题+实体上下文窗口"口径分类出的协同占比重跑, 验证结论不依赖归因窗口。
-capture confirm variable indep_frac_cm collab_frac_cm
+capture confirm variable collab_frac_cm
 if !_rc {
     reghdfe {{MAIN_DV}} collab_frac_cm $controls, ///
         absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
@@ -57,7 +57,7 @@ if !_rc {
 
 * ============================================================================
 * R5: Wild cluster bootstrap (boottest) — v3.6.1 PR #7.5 新增
-* Cameron-Gelbach-Miller 2008 RES, MacKinnon-Webb 2017 ECJ; 84-cluster small.
+* Cameron-Gelbach-Miller 2008 RES, MacKinnon-Webb 2017 JAE; 84-cluster small.
 * ============================================================================
 capture which boottest
 if _rc != 0 {

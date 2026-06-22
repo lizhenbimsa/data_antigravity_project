@@ -27,10 +27,14 @@ label variable bartik_scale_iv_ctx "银行规模Bartik IV(上下文)"
 
 * 20.3 金融科技Bartik IV
 label variable digital_frontier "数字前沿银行"
-label variable bartik_fintech_share_app "金融科技应用份额"
-label variable bartik_fintech_share_tech "金融科技技术份额"
-label variable bartik_fintech_iv_full "金融科技Bartik IV(全文)"
-label variable bartik_fintech_iv_ctx "金融科技Bartik IV(上下文)"
+label variable bartik_fintech_lc_share_app "金融科技应用份额(贷款覆盖)"
+label variable bartik_fintech_lf_share_app "金融科技应用份额(贷款频率)"
+label variable bartik_fintech_lc_share_tech "金融科技技术份额(贷款覆盖)"
+label variable bartik_fintech_lf_share_tech "金融科技技术份额(贷款频率)"
+label variable bartik_fintech_lc_iv_full "金融科技Bartik IV(贷款覆盖,全文)"
+label variable bartik_fintech_lf_iv_full "金融科技Bartik IV(贷款频率,全文)"
+label variable bartik_fintech_lc_iv_ctx "金融科技Bartik IV(贷款覆盖,上下文)"
+label variable bartik_fintech_lf_iv_ctx "金融科技Bartik IV(贷款频率,上下文)"
 
 * 20.4 媒体类型Bartik IV
 label variable bartik_media_share_comp "综合媒体份额"

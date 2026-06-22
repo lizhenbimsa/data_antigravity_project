@@ -56,7 +56,7 @@ papers_assets/bank_fintech_locus/
 
 ### IV:
 - `iv.primary`: `leave_one_out_peer_locus_iv` (4 银行类型分类 peer mean; Cao 2025 RAS 风格但用分类同业, 不是 LLM-determined 语义同业 — 与 llm_peer paper 机制完全不同)
-- `iv.fallback`: `layer_scenario_industry_event_iv` (E1/E4 events × locus as instrument)
+- `iv.fallback`: `leave_one_out_peer_locus_iv_lag1` (full 轨滞后)
 
 ## Heterogeneity Wave (R4-M03 三波严格对称 + consolidation)
 

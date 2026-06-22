@@ -12,7 +12,7 @@
 * "同类型/同区域其他银行被媒体如何评价"当外生推力 — 行业/区域层面的舆论
 * 风向推得动对本行的态度, 但不直接由本行当期业绩决定。
 *
-* 第二阶段 DV: roa (外部财务面板待接入; 缺列时 2SLS 优雅跳过, 第一阶段照常输出)。
+* 第二阶段 DV: {{MAIN_DV}} (外部财务面板待接入; 缺列时 2SLS 优雅跳过, 第一阶段照常输出)。
 *
 * IV-2 (2026-06-14 顶刊重审): 在已有 Hansen J over-id 基础上补 weakiv 弱工具稳健
 *   AR-CI 块 — 把头注"KP F < Stock-Yogo 时改读 Anderson-Rubin CI"的声明落为真实
@@ -36,7 +36,7 @@ use "$data_dir/_prepared_panel.dta", clear
 local TX   benefit_mean_full
 local IV1  leave_one_out_peer_benefit_iv
 local IV2  zone_leave1out_benefit_iv
-local DV   roa
+local DV   {{MAIN_DV}}
 * ctx 轨镜像 (2026-06-13 终审): 内生孪生 benefit_mean_ctx 配 ctx 同业 LOO 工具
 * lpeer_benefit_iv_ctx, 与 full 轨【各自 just-identified、并排成列】表达双轨互为
 * 稳健性; 勿与 full 轨 LOO 合成 overid — 同文两窗共同冲击同污染, Hansen J

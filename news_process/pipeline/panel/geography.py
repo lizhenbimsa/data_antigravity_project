@@ -316,7 +316,7 @@ def standardize_panel_variables(panel: pd.DataFrame) -> pd.DataFrame:
     """年度截面标准化: 核心回归变量在每个年度截面内归至单位方差。
 
     学术依据:
-      Fama, E.F. & MacBeth, J.D. (1973, JPE, 71, 607-636):
+      Fama, E.F. & MacBeth, J.D. (1973, JPE, 81, 607-636):
         两阶段回归要求截面变量可比, 标准化确保系数
         可直接解读为 "1σ 变化对应 β 个单位的因变量变动"。
 
@@ -636,7 +636,7 @@ def merge_bank_geography(panel: pd.DataFrame) -> pd.DataFrame:
 
 # 地理列 → 输出变量名前缀的缩写映射
 # 避免 geo_col.replace("bank_","") 生成 "province_leave1out_tone_full" (28字符)
-# 而 Stata 模板和 LABELS 使用 "prov_leave1out_tone_full" (25字符) 的不一致
+# 而 Stata 模板和 LABELS 使用 "prov_leave1out_tone_full" (24字符) 的不一致
 _GEO_SHORT = {'bank_province': 'prov', 'bank_city': 'city'}
 
 def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
@@ -722,11 +722,11 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
 
         # 三轨 (full/ctx/ss): _ss = 银行+金科同句共现轨; tone_col 缺列 (ss 未落盘)
         # 时下方 `if tone_col not in panel.columns: continue` 守卫优雅跳过该轨。
-        # prov_leave1out_tone_ss (24字符) / city_leave1out_tone_ss (24字符) 均 ≤32。
+        # prov_leave1out_tone_ss (22字符) / city_leave1out_tone_ss (22字符) 均 ≤32。
         for track in ['_full', '_ctx', '_ss']:
             tone_col = f'llm_vote_tone{track}'
             # 使用 _GEO_SHORT 缩写映射, 确保变量名与 Stata 模板一致
-            # bank_province → prov_leave1out_tone_full (25字符)
+            # bank_province → prov_leave1out_tone_full (24字符)
             # bank_city     → city_leave1out_tone_full (24字符)
             out_col = f'{_GEO_SHORT[geo_col]}_leave1out_tone{track}'
 
@@ -798,7 +798,7 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
     # .dta 内同一三轨变量 (full/ctx/ss) 词干不同, Stata 通配
     # `*_leave1out_dict_avg_tone_*` 只捕获 ctx 轨。成对改名保持词干对称且
     # 全部 ≤32 字符 (bert_avg_pos 族本就 ≤32, 不变)。_ss(3)≤_ctx(4) → ss 轨
-    # 用同压缩词干 prov_leave1out_dict_tone_ss (28字符) 天然 ≤32, 不触发截断。
+    # 用同压缩词干 prov_leave1out_dict_tone_ss (27字符) 天然 ≤32, 不触发截断。
     _OUT_STEM = {'dict_avg_tone': 'dict_tone', 'bert_avg_pos': 'bert_avg_pos'}
     for base_col, desc in extra_tone_cols.items():
         for geo_col, geo_label in [('bank_province', '省级'),

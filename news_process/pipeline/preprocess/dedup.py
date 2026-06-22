@@ -82,11 +82,11 @@ class ArticleDeduplicator:
         去重基适配 "信息到达" 构念 (Tetlock 2011 RFS; Hassan et al. 2019 QJE) —
         attention_index/pct/density 等关注度指标消费本层输出 ✓; "保留首发" 排序键
         防止跨期转载错配 bank-year 年度归属。
-        ⚠ 更正 (2026-06-13 审核): 此前注释称 "传播广度" 构念由
-        falsification/controls.py::nf_media_breadth 用【去重前物理行集】另算 —— 该函数
-        【不存在】; 现行 media_breadth (panel/encode.py, groupby nunique '媒体(中文)') 实际
-        算在【去重后】面板上 (controls.py 的 _df_full_physical 仅是该模块自身复合键折叠前,
-        非 stage-00 去重前)。如需真正 "去重前" 口径的传播广度/outlet 构成对照 (Bushee 2010
+        ⚠ "传播广度" 有两个口径 (2026-06-13 审核更正): (a) nf_media_breadth
+        (falsification/controls.py, 经去重前物理快照 _df_full_physical →
+        df_nf.attrs["nf_media_breadth_physical"], 含跨媒体转载, 真【去重前】物理行集口径);
+        (b) media_breadth (panel/encode.py, groupby nunique '媒体(中文)') 算在【去重后】面板上。
+        如需真正 "去重前" 口径的传播广度/outlet 构成对照 (Bushee 2010
         JAR; Fang & Peress 2009 JF), 去重前语料经 validation/dedup_threshold.py::
         _load_pre_dedup_corpus 从 _cache/*.parquet 重建 (normalize+filter 后、去重前; 含全部
         非银行新闻, 用前须重放银行/长度过滤)。

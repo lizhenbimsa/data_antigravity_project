@@ -29,7 +29,7 @@ if _rc {
 }
 
 global controls "{{CONTROLS}}"
-* $bank_controls 保留为 $controls 的兼容性 alias (部分 robustness 模板引用)
+* $bank_controls 保留为 $controls 的兼容性 alias (本复现包无模板消费; 留作向后兼容 dead alias)
 global bank_controls "$controls"
 
 * 必需列: 内生 tone、IV (二阶同业)、中心度变量、政策处理 dummy (pipeline 产出)。

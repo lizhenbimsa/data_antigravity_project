@@ -144,7 +144,8 @@ esttab `models' using "$tables_dir/table9_moderation.tex", replace ///
              "2SLS INTERACTION (NOT OLS): peer_tone & peer_tone x L.centrality both endogenous," ///
              "instrumented by W2*tone & W2*tone x L.centrality (Wooldridge endogenous-interaction)." ///
              "Each column 2 endog / 2 IV = just-identified -> Hansen J df=0 (undefined)." ///
-             "KP rk Wald F = e(widstat); F<19.93 (2 IV Stock-Yogo) => weak IV => Anderson-Rubin CI (weakiv after ivreg2, logged; ASS 2019 ARE) for MOD1." ///
+             "KP rk Wald F = e(widstat); MOD1 是 2 内生/2 工具恰好识别, 1-内生 Stock-Yogo 临界值 (19.93) 不适用;" ///
+             "以 Anderson-Rubin 弱工具稳健 CI (weakiv after ivreg2; ASS 2019 ARE) 作 MOD1 主推断。" ///
              "Estimator ivreghdfe with ivreg2+i.bank_id i.year runtime fallback (IV-6; production-machine ivreghdfe r301)." ///
              "Moderator endogenous to coverage (P1-5); L.lag insufficient -> interpret as conditional, not causal amplification." ///
              "brokerage_eigen_cent is within-component normalized; within-bank time variation mixes 'island switching' noise (N-11)." ///

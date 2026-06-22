@@ -189,7 +189,7 @@ else {
 
 * ==========================================================================
 * Panel B — OSTER δ 系数稳定性 / 遗漏变量界值
-* psacalc delta {{MAIN_TREAT}}, rmax(...) mcontrol(i.year)
+* psacalc delta {{MAIN_TREAT}}, rmax(...) mcontrol(_yc_* 展开 year 哑变量)  // i.year 不被 psacalc 接受, 见下方说明
 *
 * ⚠ 处理变量口径披露 (fix COLLAB-23-OSTER-TREAT-MISMATCH): 本 Panel 的 Oster δ
 *   针对 **连续** collab_frac ({{MAIN_TREAT}}, spec.treatment.primary) 规格, 而 Panel A/C

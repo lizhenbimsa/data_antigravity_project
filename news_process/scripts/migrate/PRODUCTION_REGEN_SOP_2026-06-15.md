@@ -39,8 +39,9 @@ cost_income_ratio_change_3yr/citation_weighted_patent/m_and_a_fintech/tobin_q/z_
 
 ### 步骤 1 — 重建面板 (stage 40 → 46)
 ```
-NEWS_PROCESS_LLM_OFFLINE=1 python 40_panel_export_main.py   # 重建 40_panel_yearly.parquet / 51_panel_with_controls
-NEWS_PROCESS_LLM_OFFLINE=1 python 46_stata_export.py        # 重导 .dta + codebook (variable_codebook.{csv,json,md,xlsx})
+NEWS_PROCESS_LLM_OFFLINE=1 python 40_panel_export_main.py   # 重建 40_panel_yearly.parquet (+ 40_article_bank_level / 40_attn_index_*)
+NEWS_PROCESS_LLM_OFFLINE=1 python 46_stata_export.py        # 重导 .dta + codebook (46_panel_yearly_codebook.xlsx)
+NEWS_PROCESS_LLM_OFFLINE=1 python 51_falsification_test.py  # 重建 51_panel_with_controls.parquet
 ```
 (若上游 21/24 也漂移, 先按 DAG 重跑相关 stage; 缓存全命中下 stage 21 离线 $0 逐位等价。)
 

@@ -1,7 +1,7 @@
 """news_process.validation.radius_sensitivity_llm — Stage 35 LLM 升级 (v3.2.0)
 
 Plan v14 §3.5 P5.2: stage 35 词典法 → LLM 法升级
-    现行 stage 35 (radius_sensitivity.py) 是纯词典法 (5 个 jieba 词典).
+    现行 stage 35 (radius_sensitivity.py) 是纯词典法 (6 套 jieba 词典: jiang/yao/bian/du/you/loughran).
     本模块新建 LLM 法 section, 与 dict-based 并存 (plan v14 P5.2 backward-compat).
 
 核心洞察 (plan v14 R11):

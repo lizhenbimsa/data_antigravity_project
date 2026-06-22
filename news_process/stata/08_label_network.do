@@ -58,7 +58,7 @@ label variable brokerage_fire_sale "经纪网络火灾甩卖"
 * ============================================================================
 
 label variable emb_peer_tone_lag1_full "嵌入同行情感滞后1期(全文)"
-label variable bank_emb_sim_mean "银行嵌入相似度均值"
+label variable bank_emb_sim_mean_lag1 "银行嵌入相似度均值(滞后1期)"
 
 * ============================================================================
 * 25. LLM同行IV指标 (阶段48: LLM同行IV)

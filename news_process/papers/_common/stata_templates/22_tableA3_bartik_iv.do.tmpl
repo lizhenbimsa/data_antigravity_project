@@ -8,10 +8,9 @@
 * "该银行基期的题材结构 × 同题材其他银行当期的情感行情"拼出一个外生预测值: 它推得动
 * 本行的创新占比, 但不受本行当期自身新闻的反向影响, 以此当作干净的杠杆来估计因果效应。
 *
-* 双套 IV (plan v14 §3.4; v3.4.0 三套):
+* 双套 IV (plan v14 §3.4):
 *   bartik_fintech_lf_iv_*: share = innovation_locus_full 基期占比
 *   bartik_fintech_lc_iv_*: share = innovation_locus_ctx 基期占比
-*   bartik_collab_*       : share = innovation_collab_mode 基期占比 (v3.4.0, Chesbrough 2003)
 *   (Hassan 2019 QJE entity-proximity 同构)
 *
 * 必报: KP F (Kleibergen-Paap rk Wald F, weak-ID test).

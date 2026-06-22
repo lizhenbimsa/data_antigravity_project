@@ -32,6 +32,10 @@ news_process.pipeline.sentiment.tone_words — 阶段22：基于词典的情感�
 │ 5. you_2018   You et al.(2018) 中文金融情感词典               │
 │    ├─ positive(1,425)  / negative(1,583)                   │
 │    ├─ definite(388)  / ambiguous(178, v3.5.1 起用于 clarity) │
+│                                                            │
+│ 6. loughran_mcdonald_zh_2026  L&M 2011 JF 中文主译本          │
+│    │  (列前缀别名 loughran)                                  │
+│    └─ positive(1,310) / negative(3,752); 另含 5 类非极性词类   │
 └────────────────────────────────────────────────────────────┘
 
 词典消歧 (fix omni-g-tonewords-03/-07, 2026-06-11):
@@ -73,7 +77,7 @@ news_process.pipeline.sentiment.tone_words — 阶段22：基于词典的情感�
 
 **处理步骤**: ①`load_all_dictionaries()` 延迟加载六部中文金融情感词典 (jiang_2021 / yao_2021 / bian_2021 / du_2022 / you_2018 / loughran_mcdonald_zh_2026 = L&M 2011 JF 中文主译本) + 跨类重叠词双侧剔除 + `_inject_custom_dicts_to_jieba` 注入 jieba 自定义词; ②可选 `build_idf_weights` 在与 TF 同一语料 (caller 传 content_full, 缺则回退 '内容') 上算 IDF 文档频率 (Gentzkow-Kelly-Taddy 2019 JEL §2.2), 公式 `log10(N/(1+df(w)))`, 均值归一(mean→1) 后 P1/P99 Winsorize, 文档级去重统计 N/df, 存 22_idf_weights.json; ③joblib 线程并行分批 `classify_batch`, 每批对每篇文章三轨调用打分; ④对每部词典每轨的 score 列做 Z-score 标准化 (`_zscore_or_nan`, σ 退化→整列 NaN); ⑤调 `enrich_with_num_intensity_dual_track` (外部模块导入) 三轨派生 `num_intensity_{full,ctx,ss}` (数值披露强度, Davis & Tama-Sweet 2012 CAR); ⑥写 parquet + 预览 CSV + 三轨分类报告。
 
-**关键算法/公式**: 核心是 `_compute_sentiment_with_rules(tokens, dict, apply_degree, apply_adversative)` —— 逐 token 状态机施加语言学规则: 否定词翻转极性 (窗口 NEGATION_WINDOW=2 个分词单元)、程度副词六级权重缩放 (HowNet 六级体系 + Liu 2012, DEGREE_WORDS 由 config 注入)、转折连词后权重 ×ADVERSATIVE_BOOST(默认 1.5)、句末标点重置作用域 (Ding 2008 从句级)。最终分 = self-normalized Σ(final)/Σ|final| ∈ [-1,+1]。**negonly 消融变体**: `apply_degree=False & apply_adversative=False` 只保留否定翻转, 产 `{dict}_score_negonly`/`msent_negonly`, 用作'主结果对去掉程度/转折两条规则是否敏感'的稳健性 (实测 corr(full,negonly)≈0.998-0.999 高度共线, 是稳健性对照非独立信号)。另产 `pos_ratio`/`neg_ratio` (固定 union 词典计数 / word-token 数)、`msent_score`=(raw_neg−raw_pos)/(raw_pos+raw_neg) 原始极性计数 (零规则; framing ≈ Tetlock 2007/Garcia 2013/Henry 2008; 代码注 He et al. 2024 IRFA Eq.1)、clarity/可读性/词汇复杂度等 $0 测度族。
+**关键算法/公式**: 核心是 `_compute_sentiment_with_rules(tokens, dict, apply_negation, apply_degree, apply_adversative)` —— 逐 token 状态机施加语言学规则: 否定词翻转极性 (窗口 NEGATION_WINDOW=2 个分词单元)、程度副词六级权重缩放 (HowNet 六级体系 + Liu 2012, DEGREE_WORDS 由 config 注入)、转折连词后权重 ×ADVERSATIVE_BOOST(默认 1.5)、句末标点重置作用域 (Ding 2008 从句级)。最终分 = self-normalized Σ(final)/Σ|final| ∈ [-1,+1]。**negonly 消融变体**: `apply_degree=False & apply_adversative=False` 只保留否定翻转, 产 `{dict}_score_negonly`/`msent_negonly`, 用作'主结果对去掉程度/转折两条规则是否敏感'的稳健性 (实测 corr(full,negonly)≈0.998-0.999 高度共线, 是稳健性对照非独立信号)。另产 `pos_ratio`/`neg_ratio` (固定 union 词典计数 / word-token 数)、`msent_score`=(raw_neg−raw_pos)/(raw_pos+raw_neg) 原始极性计数 (零规则; framing ≈ Tetlock 2007/Garcia 2013/Henry 2008; 代码注 He et al. 2024 IRFA Eq.1)、clarity/可读性/词汇复杂度等 $0 测度族。
 
 **输出列**: 每部词典 × 三轨的 `{dict}_score/zscore/idf_score/idf_zscore`、**规则消融梯度 `{dict}_score_{raw,negonly,degonly,advonly,negdeg,negadv,degadv}`** (v3.11.1 全 powerset, 见 `_RULE_ABLATION_VARIANTS`)、跨词典 `pos_ratio/neg_ratio/msent_score/msent_negonly` (计数口径不入梯度: 程度/转折不翻号)、`num_intensity_{full,ctx,ss}`、可读性/复杂度列。
 
@@ -396,7 +400,8 @@ def load_all_dictionaries() -> list[tuple[str, dict[str, float]]]:
         logger.warning(f"词典文件未找到: {TONE_DICTS_FILE}")
 
     dictionaries = []
-    # v3.10.0: 第 6 部 = L&M 2011 JF 中文主译全本 (positive 510 / negative 1925)。
+    # v3.10.0: 第 6 部 = L&M 2011 JF 中文主译全本 (positive 1310 / negative 3752;
+    # 第二轮同类内最小词元主用版, 另含 uncertainty/litigious/modal/constraining/complexity 非极性类)。
     # 用 JSON 键加载，但列前缀经 DICT_COLUMN_ALIAS 映射为 'loughran' (见上常量注释)。
     dict_keys = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018',
                  'loughran_mcdonald_zh_2026']

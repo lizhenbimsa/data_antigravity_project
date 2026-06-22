@@ -463,7 +463,7 @@ def build_variable_labels(
             HEURISTIC_LABELS[_allv_key] = f'{_v} (All-Vintage anchor)'[:80]
 
     # ═══ 规则消融梯度 "{d}_{suffix}_tone{track}" 标签机械生成 (rule-ablation ladder, v3.11.1) ═══
-    # 6 新变体 (negonly 已上方手写, 此处不重复) × 6 词典 × 3 轨 = 108 标签。变体语义 / 计数口径
+    # 6 新变体 (negonly 已上方手写, 此处不重复) × 7 键 (6 词典 + dict_avg 跨词典均值) × 3 轨 = 126 标签。变体语义 / 计数口径
     # 不入梯度的理由见 tone_words._RULE_ABLATION_VARIANTS。标签 ≤80 字节 ASCII (最长 ~53 字符);
     # 列名最长 jiang_2021_degonly_tone_full=28 ≤32 → 不被 shorten 改名, 按 orig 命中。
     _ABL_DICT_REF = {

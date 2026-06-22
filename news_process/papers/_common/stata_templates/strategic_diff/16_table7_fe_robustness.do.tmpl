@@ -9,8 +9,10 @@
 *     白话: TF-IDF 文本距离处理变量易受地域/类型/区域层面共同时间冲击 (区域监管、
 *           省级金融科技政策) 污染。逐步加更细的"群体×年"固定效应, 证明主系数
 *           不是被"看不见的、随时间变的群体效应"驱动 (顶刊标配做法)。
-*   Panel B — 离群稳健估计 (outlier-robust estimators; Koenker & Bassett 1978
-*     Econometrica, doi:10.2307/1913643; Huber 1964): 中位数回归 qreg(.5) +
+*   Panel B — 离群稳健估计 (outlier-robust estimators; 中位数回归 = Koenker &
+*     Bassett 1978 Econometrica 46(1):33-50, doi:10.2307/1913643; 稳健 M-估计 =
+*     Huber 1964 Annals of Mathematical Statistics 35(1):73-101,
+*     doi:10.1214/aoms/1177703732): 中位数回归 qreg(.5) +
 *     Huber-Tukey biweight IRLS rreg (有界影响 M-估计, 非 Yohai 1987 MM-估计),
 *     对照 OLS 基准。reghdfe 高维 FE 不能与 qreg/rreg 同用,
 *     故用 i.year (+ 小样本择简) 显式哑变量。

@@ -5,7 +5,7 @@
 管线位置:
   40_panel_export_main.py → 步骤 7h-llmpeer
   本模块在 46_network_spillovers.py 之后执行。
-  依赖 41_panel_encode_aggregate.py 生成的 co_mentioned_banks 列
+  依赖 11_news_bank.py 生成的 co_mentioned_banks 列
   和 llm_vote_tone_* 情感指标。
 
 核心思想:

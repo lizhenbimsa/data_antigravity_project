@@ -739,7 +739,7 @@ def log_summary(marginal_rate: float, effect_size: float,
     # fix(omni-g-val-robust-02, 2026-06-11): 覆盖率为通过样本口径 (见分析 3 披露)
     logger.info(f"    · 有效覆盖率: {coverage_rate:.1%}   (建议: ≥50%; 通过样本口径)")
     if fnr is not None:
-        logger.info(f"    · 自动化 FNR: {fnr:.1%}      (安全阈值: <10%)")
+        logger.info(f"    · 自动化 FNR: {fnr:.1%}      (安全阈值: <=20%)")
     logger.info("")
 
     issues = []

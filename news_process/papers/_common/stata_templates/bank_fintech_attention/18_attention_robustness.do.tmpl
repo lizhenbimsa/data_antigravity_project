@@ -222,7 +222,7 @@ eststo wild_boot
 
 * ============================================================================
 * (5) Placebo / randomization inference (ritest)
-* Young 2019 QJE 134(2):557; MacKinnon & Webb 2020 JBES 38(3); v3.6.1 PR #7.
+* Young 2019 QJE 134(2):557; MacKinnon & Webb 2020 Journal of Econometrics 218(2):435; v3.6.1 PR #7.
 * SSC 自动检测, 装不上则跳过 (G-C2.0 准入门控由 v2.3).
 * 白话: 把处理变量随机打乱很多次构造"纯随机"分布, 看真实系数是否明显超出该分布 (随机化推断)。
 * ============================================================================
@@ -277,7 +277,7 @@ eststo excl_pre
 *   机械=1 (单 outlet → HHI 恒 1), 把"集中度"与"低覆盖量"混淆。disp 进回归时
 *   【强制】控 ln(1+n_outlets) (覆盖宽度) 以剥离低覆盖机械成分; codebook 已披露
 *   "n_outlets≥2 才有 disp 变异"。其余测度沿用 $controls。
-*   (Cookson-Niessner 2020 JF; HHI 小 N 退化)
+*   (HHI/Herfindahl 在小 N 下机械退化; 此处无标准引文, 见 codebook 披露)
 * ============================================================================
 * 预生成覆盖宽度控制列 (capture: n_outlets 缺则不控, 不阻断)
 capture confirm variable ln_n_outlets
@@ -336,7 +336,7 @@ esttab `models' using "$tables_dir/table5_robustness.tex", replace ///
     title("Table 5 — Advanced Robustness (P2 attention)") ///
     addnotes("Column wild_boot: analytic cluster SE shown; wild cluster bootstrap p (boottest, 9999 reps) reported in the p\_wild row." ///
              "Column es\_dcep (DID-3): INLINE intensity-DiD event study (attention x DCEP rel-year leads/lags); Pre-trend joint F/p tests H0: all pre-period (lead2, lead3) interactions = 0 (parallel-trends pre-test; Roth 2022 AER:Insights)." ///
-             "Romano-Wolf stepdown FWER-corrected p for the main treatment across the alternative-attention measure family: p\_rw = `rw_p_main' (rwolf, 1000 reps; Romano-Wolf 2005). attention\_disp\_full column additionally controls ln(1+n\_outlets) to net out mechanical low-coverage HHI=1 (Cookson-Niessner 2020; ATT CV-2)." ///
+             "Romano-Wolf stepdown FWER-corrected p for the main treatment across the alternative-attention measure family: p\_rw = `rw_p_main' (rwolf, 1000 reps; Romano-Wolf 2005). attention\_disp\_full column additionally controls ln(1+n\_outlets) to net out mechanical low-coverage HHI=1 (ATT CV-2)." ///
              "HonestDiD parallel-trends sensitivity (M-bands 0/.5/1/2; Rambachan-Roth 2023) saved to honestdid\_attention.gph when the event study is identified and the ado is installed. Oster delta / ritest in supplemental log.")
 
 * fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel — tables.py:build_table5_robustness

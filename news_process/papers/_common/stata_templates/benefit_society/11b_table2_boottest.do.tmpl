@@ -3,18 +3,17 @@
 * Paper: {{PAPER_ID}}
 *
 * V2.0 J-L-M 2026 稳健性对齐计划 §3 Phase 2 P2.A1:
-*   对主回归做按 bank_id 聚类的 wild cluster bootstrap (G_bank=84)。
-*   按 MacKinnon-Webb 2017 (Econometrics Journal), G≥30 满足 wild cluster
+*   对主回归做按 bank_id 聚类的 wild cluster bootstrap (G = 银行数 (当前面板 86))。
+*   按 MacKinnon-Webb 2018 (Econometrics Journal), G≥30 满足 wild cluster
 *   bootstrap 正则性。当前面板 G_year=2 → 不能按 year 聚类
 *   (推迟到 Stage B 触发条件 T≥30)。
 *
 * 参考文献:
 *   - Cameron, Gelbach & Miller (2008, REStat) wild cluster bootstrap
-*   - MacKinnon-Webb 2017 (Econometrics Journal) small-G 情形
-*   - Baron & Muir 2022 (RFS) 窄面板 SE 实务
+*   - MacKinnon-Webb 2018 (Econometrics Journal) few (treated) clusters 情形
 *
 * 把主回归系数 {{ATTITUDE_VAR}} 的常规聚类 SE p 值替换为 wild bootstrap p 值。
-* 白话: 银行数 84 够做按银行聚类的 bootstrap 重抽推断, 但年份只有 2 个,
+* 白话: G = 银行数 (当前面板 86) 够做按银行聚类的 bootstrap 重抽推断, 但年份只有 2 个,
 * 按年聚类在统计上站不住, 所以只按银行聚类; 本脚本对比两种 p 值是否接近作为验收。
 * ============================================================================
 
@@ -42,7 +41,7 @@ if _rc == 0 {
         cluster(bank_id) ///
         seed({{RANDOM_SEED}}) ///
         nograph
-    display _newline "Wild bootstrap p-value (cluster=bank_id, G=84, reps={{BOOTSTRAP_REPS}}): " r(p)
+    display _newline "Wild bootstrap p-value (cluster=bank_id, G=银行数 (当前面板 86), reps={{BOOTSTRAP_REPS}}): " r(p)
 
     * 验收标准 (AC-A1, plan §4): |p_wild - p_cluster| < 0.05
     scalar p_wild = r(p)

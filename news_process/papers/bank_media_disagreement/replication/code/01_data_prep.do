@@ -50,9 +50,18 @@ if _rc != 0 {
 }
 
 * 派生 controls (V4 F-P1.1)
+* fix(omni-g-replication-08, 2026-06-11): 原条件 `"total_assets" != ""` 是两个字符串
+* 字面量比较, 恒为真 (意图是检查变量存在性) → 在无 total_assets 的正典 stage 49
+* 输出上无守卫执行 gen ln(total_assets) 即 r(111) 崩溃。改为 capture confirm 嵌套守卫。
 capture confirm variable ln_assets
-if _rc != 0 & "total_assets" != "" {
-    gen ln_assets = ln(total_assets) if total_assets > 0
+if _rc {
+    capture confirm variable total_assets
+    if !_rc {
+        gen ln_assets = ln(total_assets) if total_assets > 0
+    }
+    else {
+        display "WARNING: ln_assets/total_assets 均缺失 — 银行财务面板待接入 (config/银行面板2007-2025年.xlsx); ln_assets 控制不可用"
+    }
 }
 
 * 排序保证 xtset 顺序

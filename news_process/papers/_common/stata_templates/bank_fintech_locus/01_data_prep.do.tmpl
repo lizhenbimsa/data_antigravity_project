@@ -56,7 +56,7 @@ if _rc {
 }
 
 * R35-M02: derive firm-year primary_pair (locus_layer_full, locus_scenario_full) from
-* panel-level locus 占比, 以"主导类别"二元化 (Gomber 2018 JMIS layer-vs-scenario):
+* panel-level locus 占比, 以"主导类别"二元化 (Gomber, Koch & Siering 2017 JBE layer-vs-scenario):
 * bank-year 若 底层占比 > 应用占比 → layer-focused; 反之 → scenario-focused;
 * 平局 (tech_frac == app_frac, 含两者皆 0) 两者皆 0, 作参照组 (避免与常数项共线)。
 * 白话: 每家银行每年看"底层技术"和"应用场景"哪类报道占比更高, 高者记 1;

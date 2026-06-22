@@ -50,9 +50,16 @@ label variable llm_vote_tone_mw_prob_full "LLM投票概率MW(全文)"
 * 13. 跟风衰减权重指标 (阶段24: 跟风衰减权重)
 * ============================================================================
 
-label variable avg_herd_weight "平均跟风衰减权重"
-label variable min_herd_weight "最小跟风衰减权重"
-label variable sum_herd_weight "跟风衰减权重总和"
+* 面板仅有带轨道后缀的列 (full/ctx/ss), 无裸名版本; 逐轨展开
+label variable avg_herd_weight_full "平均跟风衰减权重(全文)"
+label variable avg_herd_weight_ctx "平均跟风衰减权重(上下文)"
+label variable avg_herd_weight_ss "平均跟风衰减权重(同句)"
+label variable min_herd_weight_full "最小跟风衰减权重(全文)"
+label variable min_herd_weight_ctx "最小跟风衰减权重(上下文)"
+label variable min_herd_weight_ss "最小跟风衰减权重(同句)"
+label variable sum_herd_weight_full "跟风衰减权重总和(全文)"
+label variable sum_herd_weight_ctx "跟风衰减权重总和(上下文)"
+label variable sum_herd_weight_ss "跟风衰减权重总和(同句)"
 
 label variable llm_vote_tone_hw_full "LLM投票情感HW(全文)"
 label variable llm_vote_cont_hw_full "LLM投票连续HW(全文)"

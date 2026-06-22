@@ -8,8 +8,8 @@ P3 = Bank Fintech Substance: 度量银行 fintech 战略宣告的"实质性 vs �
 
 学术锚定:
 - **Westphal & Zajac (1994) ASQ 39(3)** — substance vs symbolism in CEO long-term incentive plans (主框架 anchor)
-- **Westphal & Zajac (1998) ASQ 43(1)** — symbolic management in stock-repurchase 公告
-- **Westphal & Zajac (2001) ASQ 46(2)** — decoupling policy from practice
+- **Westphal & Zajac (1998) ASQ 43(1), 127–153** — "The Symbolic Management of Stockholders": 治理改革 (LTIP 等) 的象征性采纳与股东反应
+- **Westphal & Zajac (2001) ASQ 46(2), 202–228** — "Decoupling Policy from Practice: The Case of Stock Repurchase Programs": 股票回购公告的 policy/practice 解耦 (象征性宣告框架)
 - **Fiss & Zajac (2006) AMJ 49(6), 1173–1193** — symbolic management of strategic change (SMJ-style exemplar)
 - **Bromiley & Rau (2014) SMJ 35(8), 1249–1256** — practice-based view of strategy (style exemplar)
 

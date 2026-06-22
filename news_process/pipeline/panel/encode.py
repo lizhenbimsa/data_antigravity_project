@@ -374,7 +374,7 @@ def compute_media_authority_weights(df: pd.DataFrame) -> pd.DataFrame:
 #   - main spec 仍用 'media_authority_weight' (raw_series / raw_mean, continuous)
 #   - 'media_authority_weight_tier' 新列作 paper Table A8 sensitivity
 # 学术依据:
-#   Solomon (2012). The Review of Financial Studies, 25(8), 3306-3322.
+#   Solomon (2012). Selective Publicity and Stock Prices. Journal of Finance, 67(2), 599-638.
 #     → IR 选择高 prestige 媒体投放; outlet effect 显著
 #   Engelberg & Parsons (2011). Journal of Finance, 66(1), 67-97.
 #     → 局部报纸覆盖的因果识别 (地理 IV)

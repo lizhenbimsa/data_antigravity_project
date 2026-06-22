@@ -86,7 +86,7 @@ esttab M1 M2 M3 M4 M5 M6 using "$tables_dir/table2_main.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
     title("Main Results --- benefit_society (PAP v1.0-final §4)") ///
     mtitles("M1" "M2 +bankFE" "M3 +yearFE" "M4 +ctrl" "M5 +size" "M6 +int") ///
-    addnotes("bank (bank_id) FE [M2+] + year FE [M3+]; SE clustered at {{CLUSTER_VAR}}; G=84 — main inference via wild cluster bootstrap (Table A2 / boottest)." ///
+    addnotes("bank (bank_id) FE [M2+] + year FE [M3+]; SE clustered at {{CLUSTER_VAR}}; G = 银行数 — main inference via wild cluster bootstrap (Table A2 / boottest)." ///
              "SPEC IV-1 (2026-06-14): main FE = bank_id per paper_spec bank_fe (Gormley-Matsa 2014 RFS); bank_type (coarse partition of bank_id) is subsumed by bank FE and used only as a heterogeneity/subsample dimension (Table 4/A14)." ///
              "Dual-track full/ctx comparison: Table A2 + Figure 2.")
 

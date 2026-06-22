@@ -72,19 +72,27 @@ else {
 * ----- 符号一致性验收记分板 (V2.0 plan AC-G4) -----
 * 在输出表中人工核对 β 符号; 软验收: ≥2/3 符号一致。
 
-esttab EXT_Y* using "$tables_dir/tableA9_external_validation.tex", replace ///
-    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-    title("External Validation (V2.0 plan G4; J-L-M 2026 §3 transposed to firm-year)") ///
-    mtitles("NCD spread" "Penalty freq" "Rating") ///
-    addnotes("Predicted signs: NCD spread (-), Penalty (-), Rating (+) as benefit_mean increases." ///
-             "Acceptance (AC-G4): >=2/3 sign-match with predicted direction." ///
-             "bank (bank_id) + year FE; SE clustered at {{CLUSTER_VAR}}.")
+* esttab/estout 名单守卫: 三个 EXT_Y 均条件 eststo, 全部 UA-2 哨兵缺失时
+* 无任何已存储估计 → 裸 esttab EXT_Y* 撞 r(111) 丢整表; 先 estimates dir 探测。
+qui estimates dir
+if "`r(names)'" == "" {
+    display as error "[WARN] Table A9: no external-Y estimates (UA-2 sentinels absent); table skipped"
+}
+else {
+    esttab EXT_Y* using "$tables_dir/tableA9_external_validation.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        title("External Validation (V2.0 plan G4; J-L-M 2026 §3 transposed to firm-year)") ///
+        mtitles("NCD spread" "Penalty freq" "Rating") ///
+        addnotes("Predicted signs: NCD spread (-), Penalty (-), Rating (+) as benefit_mean increases." ///
+                 "Acceptance (AC-G4): >=2/3 sign-match with predicted direction." ///
+                 "bank (bank_id) + year FE; SE clustered at {{CLUSTER_VAR}}.")
 
-* fix(omni-gapfill-08, 2026-06-12): CSV side-channel — papers/benefit_society/
-* tables.py:build_table_a9_external_validation 经 read_paper_esttab(...,
-* 'tableA9_external_validation.csv') 消费 (parse_esttab_csv 格式)。
-estout EXT_Y* using "$tables_dir/tableA9_external_validation.csv", replace delimiter(",") ///
-    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
-    starlevels(* 0.10 ** 0.05 *** 0.01) mlabels("NCD spread" "Penalty freq" "Rating")
+    * fix(omni-gapfill-08, 2026-06-12): CSV side-channel — papers/benefit_society/
+    * tables.py:build_table_a9_external_validation 经 read_paper_esttab(...,
+    * 'tableA9_external_validation.csv') 消费 (parse_esttab_csv 格式)。
+    estout EXT_Y* using "$tables_dir/tableA9_external_validation.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01) mlabels("NCD spread" "Penalty freq" "Rating")
+}
 
 display "[OK] Table A9 external validation --> $tables_dir/tableA9_external_validation.tex (+ .csv side-channel)"

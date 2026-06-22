@@ -168,7 +168,9 @@ esttab `models' using "$tables_dir/table10_network_het.tex", replace ///
              "Between-group difference is the pt_x_hub coefficient in the POOLED-interaction column," ///
              "NOT the eyeballed gap between split columns (suest unsupported for ivreghdfe)." ///
              "hub uses within-year median (not 10% absolute threshold, audit N-08); cross-year comparable within year only." ///
-             "Subsample N halves -> KP rk Wald F typically < Stock-Yogo 16.38 => Anderson-Rubin CI primary (weakiv after ivreg2, logged; ASS 2019 ARE) for the pooled-interaction column." ///
+             "Split-sample columns (G1/G2) are 1-endog/1-IV: weak IV when KP rk Wald F < Stock-Yogo 16.38." ///
+             "Pooled-interaction column is 2-endog/2-IV, where 1-endogenous Stock-Yogo values (16.38) do not apply;" ///
+             "Anderson-Rubin CI (weakiv after ivreg2, logged; ASS 2019 ARE) is its primary inference." ///
              "Estimator ivreghdfe with ivreg2+i.bank_id i.year runtime fallback (IV-6; production-machine ivreghdfe r301)." ///
              "Subsamples with effective N<30 are skipped (T=2 panel degenerate; production T=18 required)." ///
              "Grouping var _hub_q derives from bank_degree_cent (endogenous to media coverage, P1-5) and also enters instrument iv_x_hub:" ///

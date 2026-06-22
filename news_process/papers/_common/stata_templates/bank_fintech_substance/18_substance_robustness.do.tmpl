@@ -27,7 +27,7 @@ set seed {{RANDOM_SEED}}
 * 测度农场族 (主 sub_frac + ctx 孪生 sub_frac_sc + sub-symb gap) 同时检验同一
 * 机制的多个测度, 跨这族做 Romano-Wolf step-down FWER 校正, 把校正后 p 写进表。
 * 全程 capture 守卫: rwolf 未装 / DV sentinel 缺 / T=2 退化时优雅跳过, 不丢表。
-* 学术依据: Romano & Wolf 2005 ECMA; Romano-Wolf 2016 (rwolf Stata); Anderson 2008 JASA。
+* 学术依据: Romano & Wolf 2005 ECMA; Clarke, Romano & Wolf 2020 (rwolf, Stata Journal 20(4):812-843); Anderson 2008 JASA。
 local rw_p_main = .
 local rw_p_ctx  = .
 local rw_p_gap  = .
@@ -155,7 +155,7 @@ capture estadd scalar p_wild = `p_wild'
 capture estadd scalar rw_p = `rw_p_main'
 eststo wild_boot
 
-* (5) ritest 随机化推断 (randomization inference; Young 2019 QJE; MacKinnon-Webb 2020 JBES)
+* (5) ritest 随机化推断 (randomization inference; Young 2019 QJE; MacKinnon-Webb 2020 Journal of Econometrics)
 * v3.6.1 PR #7 启用; SSC 自动检测, 装不上则跳过 (G-C2.0 准入门控由 v2.3).
 * 白话: 把"谁受处理"随机打乱上千次重新跑回归, 看真实系数是否明显超出乱排出来的分布。
 capture which ritest

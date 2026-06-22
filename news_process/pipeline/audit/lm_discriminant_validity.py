@@ -289,7 +289,7 @@ def main():
     logger.info("=" * 72)
 
     output_dir = CONFIG['paths']['output_dir']
-    eval_dir = os.path.join(output_dir, '..', 'eval_reports')
+    eval_dir = os.path.join(output_dir, 'eval_reports')
     os.makedirs(eval_dir, exist_ok=True)
 
     panel_path = os.path.join(output_dir, '40_panel_yearly.parquet')

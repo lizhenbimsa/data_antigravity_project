@@ -46,9 +46,12 @@ do 11_table2_main.do
 capture noisily do 11b_table2_boottest.do
 if _rc display as error "[WARN] 11b_table2_boottest.do failed (rc=`=_rc'); wild bootstrap diagnostic skipped"
 do 12_table3_mechanism.do
-do 13_table4_heterogeneity.do
-do 14_table5_robustness.do
-do 15_table6_effect_size.do
+capture noisily do 13_table4_heterogeneity.do
+if _rc display as error "[WARN] 13_table4_heterogeneity.do failed (rc=`=_rc'); Table 4 skipped"
+capture noisily do 14_table5_robustness.do
+if _rc display as error "[WARN] 14_table5_robustness.do failed (rc=`=_rc'); Table 5 skipped"
+capture noisily do 15_table6_effect_size.do
+if _rc display as error "[WARN] 15_table6_effect_size.do failed (rc=`=_rc'); Table 6 skipped"
 capture noisily do 16_table7_robustness_loo_anchor.do
 if _rc display as error "[WARN] 16_table7_robustness_loo_anchor.do failed (rc=`=_rc'); Table 7 skipped"
 capture noisily do 17_table8_shrinkage_robustness.do

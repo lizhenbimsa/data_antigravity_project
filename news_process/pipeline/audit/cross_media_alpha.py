@@ -51,7 +51,7 @@ panel 新增 9 列 (三轨 full/ctx/ss; ss = 银行+金科同句共现轨, 列�
 
 依赖
 ----
-pip install krippendorff>=0.5.0 (默认注释化, 见 requirements.txt:123).
+krippendorff>=0.5.0 已在 requirements.txt:112 启用 (硬运行依赖, stage 18/39f always-on 后).
 
 D-0 实测项 (v2.3 G-D3.1)
 ------------------------
@@ -83,7 +83,7 @@ valid (bank, event) 三元组覆盖 ≥ 60% bank-year.
 
 **输出**: 9 列(见三轨段)。⚠ 同名异构披露: cross_outlet_tone_variance_{full,ctx,ss}(注: 三轨同名异构; ss 轨 v3.9.0 2026-06-14 加入)与第 10 篇 bank_media_disagreement paper_spec 冻结的 main treatment **同名但不同构**(本模块=事件窗条件子样本逐 episode 方差再加权; spec=全年无条件截面 outlet 均值的跨 outlet var)——第 10 篇采用前必须对齐 spec 或重命名释放保留名。
 
-**外部依赖/超时**: 依赖 `krippendorff>=0.5.0`(默认在 requirements.txt 注释化, 未装时 α 输出 NaN、仅 variance 可用); 无 LLM/Embedding/_llm_cache.db(只读已落盘 stage 21 + 确定性 _SENT_TO_TONE 派生); DAG timeout=3600(60 分钟, 含事件检测+媒体源聚合)。
+**外部依赖/超时**: 依赖 `krippendorff>=0.5.0`(已在 requirements.txt 启用; 若未装则 α 输出 NaN、仅 variance 可用); 无 LLM/Embedding/_llm_cache.db(只读已落盘 stage 21 + 确定性 _SENT_TO_TONE 派生); DAG timeout=3600(60 分钟, 含事件检测+媒体源聚合)。
 
 **DAG 位置**: 验证阶段 39f(STAGES_VALIDATION), 上游=stage 21 tone_llms, 下游与第 10 篇 bank_media_disagreement 论文重叠(启用前须对齐 spec, 当前仅 validation)。
 
@@ -288,8 +288,8 @@ def compute_variance_and_alpha(
         has_krip = True
     except ImportError:
         logger.warning(
-            "krippendorff 未装; v3.7.0 启用步骤: 取消 requirements.txt 中 "
-            "krippendorff 行注释后 pip install. α 输出 NaN, 仅 variance 可用"
+            "krippendorff 未装 (已在 requirements.txt 启用); "
+            "pip install krippendorff 后可用. α 输出 NaN, 仅 variance 可用"
         )
         has_krip = False
 
@@ -481,7 +481,7 @@ def main():
         if not _krip_ok:
             logger.warning(
                 "  krippendorff 未装 → 所有 cross_media_alpha_* 列为 NaN, 仅 variance 可用; "
-                "α 一致性证据缺失 (优雅降级, 取消 requirements.txt 注释后 pip install 可恢复)"
+                "α 一致性证据缺失 (优雅降级, pip install krippendorff 后可恢复)"
             )
         for _trk in ('full', 'ctx', 'ss'):
             _vcol = f'cross_outlet_tone_variance_{_trk}'

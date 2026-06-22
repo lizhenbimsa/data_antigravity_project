@@ -2,7 +2,7 @@
 *
 * 高阶稳健性 (顶刊 standard):
 *   1. Placebo test (随机分配处理变量, β 应为 0)
-*   2. Permutation inference (无参数化 p-value, MacKinnon & Webb 2020 JBES)
+*   2. Permutation inference (无参数化 p-value, MacKinnon & Webb 2020 J.Econometrics 218(2):435-450)
 *   3. Sub-period split (前后子样本 β 一致性)
 *   4. Drop one bank at a time (influential observation 检验)
 *
@@ -112,7 +112,7 @@ foreach b of local banks {
 }
 display "  Leave-one-out stable specs: `n_stable'/`n_banks' (within full-sample 95% CI [`ci_lo', `ci_hi'])"
 
-* --- 5d: 野聚类自助法 Wild bootstrap (MacKinnon & Webb 2020 JBES, 小聚类数情形) ---
+* --- 5d: 野聚类自助法 Wild bootstrap (MacKinnon & Webb 2020 J.Econometrics 218(2):435-450, 小聚类数情形) ---
 * 必装包: ssc install boottest
 * 白话: 银行 (聚类) 个数偏少时, 普通聚类标准误会低估不确定性; wild cluster bootstrap
 * 通过对残差反复重抽样重新算 p 值, 给出小样本下更可信的显著性判断。
@@ -164,7 +164,7 @@ else {
         mtitles(`mtitles') ///
         note("Placebo: bank-level permutation of treatment (treated count preserved); β should be insignificant. " ///
              "Leave-one-out: `n_stable'/`n_banks' bank exclusions yield β within the full-sample 95% CI. " ///
-             "MacKinnon & Webb 2020 JBES wild cluster bootstrap p reported in the Main column (boottest, 999 reps). " ///
+             "MacKinnon & Webb 2020 (J.Econometrics 218(2):435-450) wild cluster bootstrap p reported in the Main column (boottest, 999 reps). " ///
              "IDENTIFICATION NOTE: digital_frontier is a base-year within-bank time-invariant 0/1 classifier, so in every " ///
              "absorb(bank_id ...) column here it is collinear with the bank FE and silently dropped; beta(digital_frontier) " ///
              "is identified only in a no-absorb column (see 11_table2 M1). These robustness columns identify the within-bank " ///

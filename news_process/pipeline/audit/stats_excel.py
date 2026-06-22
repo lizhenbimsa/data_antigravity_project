@@ -1,4 +1,4 @@
-"""news_process.pipeline.audit.stats_excel — 阶段 53: 审计用统计表 Excel 导出。
+"""news_process.pipeline.audit.stats_excel — 阶段 82: 审计用统计表 Excel 导出。
 
 由历史 ``news_process/82_export_stats_excel.py`` 在 Phase 1.4b **试点**
 正文迁移而来。功能行为逐字保留; 仅变更物理路径, 且原 ``utils.helpers``
@@ -81,7 +81,7 @@ def main():
 
     # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39c)。
     logger.info("=" * 72)
-    logger.info("阶段 53: 各阶段媒体/地区/城市描述性统计 Excel 导出 (value_counts 频次分布)")
+    logger.info("阶段 82: 各阶段媒体/地区/城市描述性统计 Excel 导出 (value_counts 频次分布)")
     logger.info("=" * 72)
     logger.info("【功能】把流水线四个关键阶段 (00 预处理 / 11 银行新闻 / 12 金科新闻 / 21 LLM 打分后)")
     logger.info("        的新闻, 按发文媒体、来源省份、来源城市分别数频次, 写成多 sheet Excel,")
@@ -267,7 +267,7 @@ def main():
             )
         logger.info("-" * 72)
         logger.info(
-            f"  ✓ stage 53 done; 成功统计阶段={len(stage_rowcounts)} 个 / "
+            f"  ✓ stage 82 done; 成功统计阶段={len(stage_rowcounts)} 个 / "
             f"sheet={len(stage_field_summary)} 张; 输出 = {output_excel}"
         )
     except Exception as _e:

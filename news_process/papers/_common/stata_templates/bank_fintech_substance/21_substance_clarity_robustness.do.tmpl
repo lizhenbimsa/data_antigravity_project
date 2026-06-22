@@ -68,8 +68,22 @@ display "v3.5.1 39d HTMT(substance, clarity) = `htmt_subst_clarity'"
 display "  双 cutoff: strict < 0.85 / lenient < 0.90 (修 R4-M2)"
 
 * 输出
-esttab subst_clarity_main subst_clarity_interact subst_clarity_triangulate subst_clarity_binary ///
-    using "$tables_dir/tableA7_clarity_robustness.tex", ///
-    se star(* 0.10 ** 0.05 *** 0.01) replace ///
-    title("Table A7: Lexical Clarity Robustness (LM 2011 JF; You 2018) — {{PAPER_ID}}") ///
-    note("Dual-track independent dictionary scan over content_full and content_ctx.")
+* fix(esttab-dynamic, 2026-06-22): esttab 名单动态化 — subst_clarity_triangulate 仅在
+* 缺列 ln_fintech_mdna_length 守卫块内 eststo, 任一守卫跳过后旧版硬点名 → r(111) 丢整张
+* Table A7; 改为只对实际已存储的估计点名, 全空时如实告警跳过 (镜像 20_*.do.tmpl 习语)。
+qui estimates dir
+local stored `r(names)'
+local models
+foreach m in subst_clarity_main subst_clarity_interact subst_clarity_triangulate subst_clarity_binary {
+    if `: list m in stored' local models `models' `m'
+}
+if "`models'" == "" {
+    display as error "[WARN] clarity robustness 表无任何已存储估计, 表跳过"
+}
+else {
+    esttab `models' ///
+        using "$tables_dir/tableA7_clarity_robustness.tex", ///
+        se star(* 0.10 ** 0.05 *** 0.01) replace ///
+        title("Table A7: Lexical Clarity Robustness (LM 2011 JF; You 2018) — {{PAPER_ID}}") ///
+        note("Dual-track independent dictionary scan over content_full and content_ctx.")
+}

@@ -6,8 +6,9 @@
 触发 G3 决策重审（可能需保留 _full 为 main）。
 
 学术依据:
-    Cohen (1988) effect-size convention: |Δ/baseline| > 30% =
-    medium-large practical significance.
+    ad-hoc 实务显著性启发式 (ad-hoc practical-significance heuristic):
+    |Δ/baseline| > 30% 作为相对变化幅度阈值。
+    (注: 此为相对变化比阈值, 非 Cohen (1988) 标准化效应量 d=0.2/0.5/0.8 约定, 勿混淆。)
     Andrews, Stock & Sun (2019, Annual Review of Economics) weak IV diagnostic: t-stat < 1.96
     in 50% subsample is a leading indicator of full-sample insignificance.
 

@@ -1,7 +1,9 @@
 * ============================================================================
 * 19_bs_num_intensity_robustness.do — v3.5.1 A3 Numerical Intensity (benefit_society Table A8)
 * Paper: {{PAPER_ID}}
-* Anchor: Davis & Tama-Sweet (2012, CAR 29:3); 公式项目自定义 (原引 Hales 2011 系误归, 见 numerical_intensity docstring); 真双轨 (修 R3-C2).
+* Anchor: Campbell, Zheng & Zhou (2025, J. Corp. Finance 94:102813, "Number of Numbers",
+*   定量披露强度); 公式项目自定义 (原引 Hales 2011 / Davis-Tama-Sweet 2012 系误归 —
+*   后者测语言基调 tone 非数字密度, 见 numerical_intensity docstring); 真双轨 (修 R3-C2).
 * ============================================================================
 
 version 19
@@ -23,8 +25,9 @@ set seed {{RANDOM_SEED}}
 * 聚类; (iii) DV 统一 {{MAIN_DV}}_w (winsorized, 全篇其余表同口径); (iv) ctx 列
 * 补 capture confirm 守卫; (v) esttab 名单动态化 (守卫跳过后硬点名 → r(111))。
 
-* Panel A: 量化披露强度 (数字密度公式, 项目自定义; Davis-Tama-Sweet 2012 CAR;
-* 原引 Hales 系误归; 真双轨 — full / ctx 各自单轨一列)
+* Panel A: 量化披露强度 (数字密度公式, 项目自定义; 锚 Campbell-Zheng-Zhou 2025
+* JCF "Number of Numbers" 定量披露; 原引 Hales / Davis-Tama-Sweet 系误归 (后者测 tone);
+* 真双轨 — full / ctx 各自单轨一列)
 capture confirm variable mean_num_intensity_full
 if !_rc {
     reghdfe {{MAIN_DV}}_w mean_num_intensity_full $bank_controls, ///

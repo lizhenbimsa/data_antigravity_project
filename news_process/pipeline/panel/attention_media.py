@@ -4,7 +4,7 @@
 
 功能:
   - 金融科技公众注意力指数 (主锚 Fang & Peress 2009, JF; 对照 Da et al. 2011)
-  - 媒体信息中介异质性 (四维度分析)
+  - 媒体信息中介异质性 (九维度分析)
 
 拆分自: 40_build_panel.py (L1207-1631)
 """
@@ -388,7 +388,7 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     f12 = pd.read_parquet(f12_path, columns=_f12_cols)
 
     GK = ['target_bank', 'year']
-    for df in (s14, f12):  # year 派生 (镜像 attention_media.py:255, 防 groupby KeyError)
+    for df in (s14, f12):  # year 派生 (镜像 compute_fintech_attention_index (:609-611) 的 year 派生, 防 groupby KeyError)
         df['year'] = pd.to_datetime(df['日期'], errors='coerce').dt.year
         df.dropna(subset=['year'], inplace=True)
         df['year'] = df['year'].astype(int)
@@ -952,15 +952,15 @@ def _validate_attention_index(panel):
 
 
 # ============================================================================
-# 6c. 媒体信息中介异质性 - 四维度 (Bushee et al. 2010, JAR)
+# 6c. 媒体信息中介异质性 - 九维度 (Bushee et al. 2010, JAR)
 # ============================================================================
 
 def compute_media_heterogeneity(df, panel):
-    """计算媒体信息中介异质性变量 - 四维度分析。
+    """计算媒体信息中介异质性变量 - 九维度分析。
 
     .. todo:: v3.0-split (Plan-r3 P1-7 锚点, god function)
 
-        本函数将四个独立维度的计算耦合在一个流程中. 学术上每维度的
+        本函数将多个独立维度的计算耦合在一个流程中 (原始 4 大维度族, 现已扩至 9 维). 学术上每维度的
         测度方法 / 引用文献 / 标准误聚类层级都不同, 拆分理由充分:
 
         - ``_compute_financial_vs_other`` -- 财经 / 综合 媒体语调差
@@ -971,12 +971,17 @@ def compute_media_heterogeneity(df, panel):
         拆分后每个子函数独立可测 (合成 panel 行 + 各自断言), 现状只能
         端到端测.
 
-    四维度:
+    九维度:
       1. 财经 vs 其他: 财经类报章 (15家) 与非财经类
       2. 综合 vs 其他: 综合性报章 (27家) 与非综合性
       3. 财经 vs 综合 vs 其他: 三方分拆
       4. 中央级 vs 地方级: CNKI 171家中央级 vs 其余
          (Qin, Strömberg & Wu 2018, AER)
+      5. 官方 vs 非官方
+      6. 市场化 vs 非市场化
+      7. 深度期刊 vs 非深度
+      8. 高频日报 vs 非日报
+      9. 地理邻近性 (同省/同城)
 
     数据源: config/media_classification.json
 
@@ -994,7 +999,7 @@ def compute_media_heterogeneity(df, panel):
     panel = panel.copy()
 
     logger.info("=" * 60)
-    logger.info("步骤 6c: 媒体信息中介异质性 - 四维度")
+    logger.info("步骤 6c: 媒体信息中介异质性 - 九维度")
     logger.info("=" * 60)
 
     # ── 加载媒体分类名单 ──

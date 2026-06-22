@@ -44,7 +44,7 @@
 *
 * 注: locus 论文的 IV 是 leave_one_out_peer_locus_iv (同业 peer-LOO 工具), 工具实际
 *   构造在"银行类型×年"层 (同 bank_type、同 year 的 leave-one-out tech_frac 均值;
-*   见 iv_extensions.py:540 与 spec.identification.iv)。本表 Panel A 是 OLS 饱和阶梯
+*   见 iv_extensions.py:566 与 spec.identification.iv)。本表 Panel A 是 OLS 饱和阶梯
 *   (非 2SLS, 不使用该工具), 故纳入 bank_type×year 交互不会触及工具的内生镜像问题
 *   (那是 IV 表 20_locus_iv_2sls 须回避 type×year 的情形); 此处把 type×year 与
 *   province×year / zone×year 并列纳入饱和阶梯, 纯吸收类型差异化年度趋势。

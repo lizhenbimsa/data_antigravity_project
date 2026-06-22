@@ -15,7 +15,7 @@
 | Slot | model_name | 家族 |
 |---|---|---|
 | `gpt54nano` | `gpt-5.4-nano` | OpenAI |
-| `gemini31111` | `gemini-3.1-flash-lite` | Google |
+| `gemini31` | `gemini-3.1-flash-lite` | Google |
 | `deepseekv4`（原 `claude4h`）| `deepseek-v4-flash` | DeepSeek |
 
 **论文方法章节建议表述**：

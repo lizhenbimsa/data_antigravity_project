@@ -1,5 +1,5 @@
 * ============================================================================
-* 25_locus_era_stability.do — Table C: 跨时代稳定性 (era-stability) [P4 bank_fintech_locus]
+* 25_locus_era_stability.do — Table D: 跨时代稳定性 (era-stability) [P4 bank_fintech_locus]
 * Paper: {{PAPER_ID}}
 *
 * CY-2 修复 (2026-06-14): 全代码库此前无结构性断点 / 分时代稳定性检验; 唯一时间维
@@ -79,7 +79,7 @@ capture confirm variable locus_layer_full
 if !_rc local have_treat = 1
 
 if `have_treat' == 0 {
-    display as error "  [WARN] locus_layer_full 不在盘 — 须先跑 01_data_prep 派生主处理; Table C 跳过"
+    display as error "  [WARN] locus_layer_full 不在盘 — 须先跑 01_data_prep 派生主处理; Table D 跳过"
     exit 0
 }
 if `have_dv' == 0 {
@@ -196,24 +196,24 @@ foreach m of local stored {
 }
 
 if "`models'" == "" {
-    display as text "  [WIRE-AHEAD] Table C 无任何已存储估计 (financial DV 待接入 / T=2 单时代退化); 表跳过, 非失败"
+    display as text "  [WIRE-AHEAD] Table D 无任何已存储估计 (financial DV 待接入 / T=2 单时代退化); 表跳过, 非失败"
 }
 else {
-    esttab `models' using "$tables_dir/tableC_locus_era_stability.tex", replace ///
+    esttab `models' using "$tables_dir/tableD_locus_era_stability.tex", replace ///
         star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
         stats(N r2 wald_eq_F wald_eq_p, fmt(0 3 3 3) ///
               labels("N" "R\textsuperscript{2}" "Wald F (era 效应相等)" "Wald p")) ///
-        title("Table C --- Era-Stability: Three-Era Subperiod \& Treatment×Era Interaction (P4 locus)") ///
+        title("Table D --- Era-Stability: Three-Era Subperiod \& Treatment×Era Interaction (P4 locus)") ///
         addnotes("Era split: era1 = 2007-2012 (pre-fintech), era2 = 2013-2018 (互金/区块链浪潮), era3 = 2019-2024 (后蚂蚁/监管收紧/大模型)." ///
                  "Columns era_1/era_2/era_3: subperiod main spec; column era_interact: pooled with locus×era interactions (era1 reference)." ///
                  "Wald F/p rows (era_interact column) test H0: layer effect equal across eras (interaction terms era2=era3=0); rejection ⇒ effect varies by fintech regime." ///
                  "Bai-Perron 1998 / Hansen 2001 structural-stability rationale; optional xtbreak single-break diagnostic in supplemental log." ///
                  "T=2 trial frame (2017-2018) populates only era2 ⇒ other eras + interaction + Wald gracefully skipped; production T=18 activates all.")
 
-    estout `models' using "$tables_dir/tableC_locus_era_stability.csv", replace ///
+    estout `models' using "$tables_dir/tableD_locus_era_stability.csv", replace ///
         delimiter(",") cells(b(star fmt(3)) se(par fmt(3))) ///
         stats(N r2 wald_eq_F wald_eq_p, fmt(0 3 3 3)) ///
         starlevels(* 0.10 ** 0.05 *** 0.01)
 
-    display "[OK] Table C (era-stability: 3-era subperiod + era interaction + Wald) → $tables_dir/tableC_locus_era_stability.tex (+ .csv)"
+    display "[OK] Table D (era-stability: 3-era subperiod + era interaction + Wald) → $tables_dir/tableD_locus_era_stability.tex (+ .csv)"
 }

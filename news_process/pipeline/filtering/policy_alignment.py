@@ -98,7 +98,7 @@
 4. **双模型**: MAIN = text-embedding-3-small(config embedding_api, yunwu OpenAI-compat API)→ canonical `policy_cosine_sim_{full,ctx,ss}` + 无后缀别名; ROBUSTNESS = shibing624/text2vec-base-chinese(本地, config embedding_robustness)→ `policy_cosine_sim_t2v_{full,ctx,ss}`。_t2v 失败(try/except 守卫)仅置 NaN 不破坏 canonical。
 5. 统计/断言全部 NaN-安全(nanmin/nanmax/nanmean); full↔ctx Spearman ρ 轨间独立性诊断。
 
-**外部依赖/缓存**: 生产嵌入统一走 `pipeline/text/embedding_engine.embed_texts`(LLMCache 穿透 + 动态分批 + chunk-pool); 缓存键含逐字文本(故三轨 content_full/ctx/ss 文本不同字节天然隔离缓存项), 缓存库 = _llm_cache.db。content_full 与 stage 27(benefit_society)逐篇嵌入同源, 同篇文章 API 向量只付费一次。模块内 `_get_embeddings_api_dynamic` 是 legacy(仅 tests/test_pipeline_robustness.py 引用, 生产0调用)。**API 离线守卫**: 嵌入 miss 即付费调 API(不受 NEWS_PROCESS_LLM_OFFLINE 的 stage 21 守卫保护; 裸环境须设 SSL_CERT_FILE=certifi 修 yunwu.ai 证书)。timeout=7200。
+**外部依赖/缓存**: 生产嵌入统一走 `pipeline/text/embedding_engine.embed_texts`(LLMCache 穿透 + 动态分批 + chunk-pool); 缓存键含逐字文本(故三轨 content_full/ctx/ss 文本不同字节天然隔离缓存项), 缓存库 = _llm_cache.db。content_full 与 stage 27(benefit_society)逐篇嵌入同源, 同篇文章 API 向量只付费一次。模块内 `_get_embeddings_api_dynamic` 是 legacy(仅 tests/test_pipeline_robustness.py 与 tests/test_omni_fix_policy.py 引用, 生产0调用)。**API 离线守卫**: 嵌入 miss 即付费调 API(不受 NEWS_PROCESS_LLM_OFFLINE 的 stage 21 守卫保护; 裸环境须设 SSL_CERT_FILE=certifi 修 yunwu.ai 证书)。timeout=7200。
 
 ■ 白话说明
 
@@ -362,7 +362,8 @@ def vintage_anchor_text(docs: list[dict], year) -> str | None:
 #   (LLMCache 穿透 + 动态分批: 单批 ≤2000 条 且 token 总和 ≤ 上限 + 超长文本
 #   朴素分段 (naive chunking) + Mean Pooling)。Stage 25/26/27 也走同一引擎 (不存在旧注释
 #   所称 "Stage 25 固定每批 100 条" — 该描述已随引擎统一而过时)。
-#   本函数仅余 tests/test_pipeline_robustness.py 引用 (缓存穿透/重试机制单测),
+#   本函数仅余 tests/test_pipeline_robustness.py (缓存穿透/重试) 与
+#   tests/test_omni_fix_policy.py (legacy 标注断言) 引用,
 #   保留以维持测试契约; 勿在生产代码中新增调用。
 
 async def _get_embeddings_api_dynamic(
@@ -376,7 +377,8 @@ async def _get_embeddings_api_dynamic(
 
     ⚠ LEGACY (test-only, fix(omni-g-policy-04, 2026-06-11) 标注): 生产调用链已
     全部迁移至 embedding_engine.embed_texts (_cosine_for_spec 内), 本函数生产
-    0 调用, 仅 tests/test_pipeline_robustness.py 的缓存穿透/重试单测引用。
+    0 调用, 仅 tests/test_pipeline_robustness.py (缓存穿透/重试) 与
+    tests/test_omni_fix_policy.py (legacy 标注) 单测引用。
     保留以维持测试契约; 勿在生产代码中新增调用。
 
     【术语】

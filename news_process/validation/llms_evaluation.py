@@ -813,7 +813,7 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
       None (数据可用), 'file not present', 'schema mismatch', 'n=0'。
 
     输出 (gold 数据存在时):
-      - eval_reports/cm_innovation_{substantiveness,locus}_llm_{full,ctx}.png
+      - eval_reports/cm_innovation_{substantiveness,locus}_llm_{full,ctx,ss}.png
       - eval_reports/per_model_innovation_{substantiveness,locus}_comparison.csv
     """
     from news_process.core.config import load_config

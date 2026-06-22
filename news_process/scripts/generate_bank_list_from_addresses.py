@@ -191,7 +191,7 @@ def render_yaml(banks: list[dict], n_total: int) -> str:
 #   is_soe: bool (国务院 / 财政部 / 汇金 控股 ≥ 50%)
 #   is_commercial_bank: bool (排除央行; 下游 panel 过滤依据)  # M6 audit V2 修复
 #   bank_type_id: int 1-8 (国有/股份/城商/农商/民营/外资/政策/其他)
-#   implicit_guarantee_tier: int 1-5 (Acharya 2016 RFS 框架, 5=TBTF / 1=无)
+#   implicit_guarantee_tier: int 1-5 (Acharya, Anginer & Warburton 2016 (working paper) 框架, 5=TBTF / 1=无)
 #   wind_code: NFRA 机构 code (F010/F020xxxx 格式; 非股票 ticker. M5 audit warning)
 #   listed: bool (A/H/U 股任一; 基于 LISTED_BANKS_2024_Q4 hardcode set)
 #   province: 总部省份
