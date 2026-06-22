@@ -92,7 +92,8 @@ def test_loader_strips_leader_names_symmetric_with_news_side(tmp_path):
 
 
 def test_real_corpus_loads_clean_and_fully_dated():
-    """真实语料: 6 份文档全部解析出年份, 且加载文本无领导人姓名 (盘上原文含 6 处)。"""
+    """真实语料: 10 份文档全部解析出年份, 且加载文本无领导人姓名 (盘上原文仍含 6 处;
+    2026-06-22 补入的 2001–2009 基础监管层 4 份均无 '习近平', 故领导人计数不变)。"""
     import os
 
     from news_process.pipeline.filtering import policy_alignment as pa
@@ -100,9 +101,10 @@ def test_real_corpus_loads_clean_and_fully_dated():
     if not auth_path or not os.path.exists(auth_path):
         pytest.skip(f"auth corpus 不存在: {auth_path}")
     docs = pa.load_policy_corpus_docs(auth_path)
-    assert len(docs) == 6, f"真实语料应切为 6 份文档, 实得 {len(docs)}"
+    assert len(docs) == 10, f"真实语料应切为 10 份文档, 实得 {len(docs)}"
     years = sorted(d['year'] for d in docs)
-    assert years == [2015, 2019, 2021, 2022, 2024, 2025], years
+    assert years == [2001, 2006, 2006, 2009, 2015, 2019,
+                     2021, 2022, 2024, 2025], years
     assert not any(d['year_imputed'] for d in docs), "真实语料不应有 impute 年份"
     assert not any('习近平' in d['text'] for d in docs), "对称清洗未生效"
 

@@ -202,7 +202,7 @@ def _split_into_chunks(text: str, max_tokens: int = _MAX_TOKENS_PER_INPUT) -> li
 # ============================================================================
 # 2b. 权威政策语料 vintage 解析 (fix(omni-g-policy-02, 2026-06-11))
 # ============================================================================
-# 【术语】Vintage-aware Anchor: 静态权威语料把 2015-2025 间发布的 6 份政策文件
+# 【术语】Vintage-aware Anchor: 静态权威语料把 2001-2025 间发布的 10 份政策文件
 #   拼接为单一锚点 → 时刻 t 的 policy_cosine_sim / auth_sim_* 嵌入了 t 期不可知
 #   的未来政策语言 (look-ahead bias, 前视构造)。修复: 语料按文档切分并解析发布
 #   年份 (vintage), 消费方对年度 t 仅用发布年份 ≤ t 的文档段构造锚点。
