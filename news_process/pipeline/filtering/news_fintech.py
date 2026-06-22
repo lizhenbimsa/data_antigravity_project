@@ -54,7 +54,7 @@ news_process.pipeline.filtering.news_fintech — 阶段12：金融科技新闻�
 2. 每篇按 split_ratio (默认 0.5) 按字符数等分上下半; 用全局 Aho-Corasick (`load_fintech_dict`, 1506 词金科词典) 一次线性扫描。
 
 **关键判定公式** (`analyze_fintech_matches`, 整篇判定——stage 12 **不再** firm-document 展开, 沿用 stage 11 已展开的行):
-- 前置 (多样性): 标题或全文出现 ≥ `MIN_DISTINCT_KEYWORDS` (默认 3) 个**不同**金科词;
+- 前置 (多样性): 标题或全文出现 ≥ `MIN_DISTINCT_KEYWORDS` (默认 2) 个**不同**金科词;
 - 分布条件 (其一): (a) 全部词上半合计 ≥ `MIN_UPPER` (默认 1) ∧ 下半合计 ≥ `MIN_LOWER` (默认 1); 或 (b) 任一词在标题 ∧ 全文合计 ≥ `MIN_UPPER`。
 - 金科侧为**裸 AC 匹配** (不做否定/短名排除), 与 stage 13 ss 轨'不对称口径'的金科侧一致 (单一事实源 core/text/ahocorasick)。
 
@@ -72,7 +72,7 @@ news_process.pipeline.filtering.news_fintech — 阶段12：金融科技新闻�
 
 **这一步在做什么**: 在'已经是银行新闻'的稿件里, 再判断哪几篇是真的在谈'金融科技'(手机银行、移动支付、大数据风控、区块链这类)。它会输出两份: 一份是'银行新闻全集, 每篇都打上是不是金科的标记'(供抽查核对), 另一份是'确实是金科的那个子集'(交给后面用)。打个比方: 先有一摞银行剪报, 这步给每篇盖个章——'涉金融科技'或'不涉', 然后把盖章'涉'的单独抽出来一叠。
 
-**为什么需要它**: 整个项目研究的是'媒体怎么报道银行与金融科技的关系', 所以必须先框定'银行×金科'这个话题范围。判定要求一篇里出现至少 3 个不同的金科词 (而不是偶然蹦一个), 避免把只顺嘴提一句'扫码支付'的普通银行新闻误算进来。
+**为什么需要它**: 整个项目研究的是'媒体怎么报道银行与金融科技的关系', 所以必须先框定'银行×金科'这个话题范围。判定要求一篇里出现至少 2 个不同的金科词 (而不是偶然蹦一个), 避免把只顺嘴提一句'扫码支付'的普通银行新闻误算进来。
 
 **做得好不好的影响**: 这步圈定的金科新闻子集, 是后面所有'银行金融科技注意力/态度/实质性'指标的原料。框太宽会把噪声稿件灌进来, 框太窄会漏掉真实的金科报道, 都会让银行-年度面板里的核心解释变量偏移。它保留的那份'全量+标记'还充当 fintech_share (银行新闻里金科占比) 指标的分母来源之一, 直接影响该比例型变量的口径; 同时它的金科词典就是后面'银行和金科出现在同一句'(第三条文本轨) 用来认定共现的金科词源。
 ========================================================================
@@ -115,7 +115,7 @@ FINTECH_NEWS_PARAMS = CONFIG.get('fintech_news_classification', {})
 SPLIT_RATIO = FINTECH_NEWS_PARAMS.get('split_ratio', 0.5)
 MIN_UPPER = FINTECH_NEWS_PARAMS.get('min_occurrences_upper', 1)
 MIN_LOWER = FINTECH_NEWS_PARAMS.get('min_occurrences_lower', 1)
-MIN_DISTINCT_KEYWORDS = FINTECH_NEWS_PARAMS.get('min_distinct_keywords', 3)
+MIN_DISTINCT_KEYWORDS = FINTECH_NEWS_PARAMS.get('min_distinct_keywords', 2)
 
 
 # ============================================================================
@@ -400,8 +400,8 @@ def main():
         kw_coverage = (n_distinct_kw_hit / total_keywords * 100) if total_keywords > 0 else 0.0
         top_kw = kw_hit.most_common(1)[0] if kw_hit else None
         # corpus-level 集中度 (非 per-article 多样性): 最高频触发词占所有触发次数的份额。
-        # 注意此处与单篇 MIN_DISTINCT_KEYWORDS=3 门是【不同量纲】(全语料 broad vs 单篇 diversity),
-        # 故不复用 3 词门做广度判读; 仅作 log-only 诊断, 不回写 df, golden-safe。
+        # 注意此处与单篇 MIN_DISTINCT_KEYWORDS=2 门是【不同量纲】(全语料 broad vs 单篇 diversity),
+        # 故不复用 2 词门做广度判读; 仅作 log-only 诊断, 不回写 df, golden-safe。
         # top_share 越高 = 主题越集中于个别热词 (疑单点驱动); 经验阈值 0.30, 仅启发, 非硬 gate。
         breadth_top_share_warn = 0.30  # log-only 局部阈值, 不进 config / 不回写 df
         total_kw_hits = sum(kw_hit.values())
@@ -431,7 +431,7 @@ def main():
         )
         # ④ 词典覆盖广度 (corpus-level): 触发判定的不同金科词越多 + 最高频词份额越低,
         #    主题越分散 (非单点关键词驱动)。判据用 corpus-level 集中度 top_share, 与单篇
-        #    MIN_DISTINCT_KEYWORDS 门是不同量纲, 不复用 3 词门 (见上方注释)。
+        #    MIN_DISTINCT_KEYWORDS 门是不同量纲, 不复用 2 词门 (见上方注释)。
         if total_kw_hits == 0:
             verdict_breadth = "无触发词 (无金科篇, 无法判读广度)"
         elif top_share > breadth_top_share_warn:

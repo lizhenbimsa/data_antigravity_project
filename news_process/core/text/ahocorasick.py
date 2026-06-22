@@ -288,7 +288,7 @@ def load_fintech_dict(fintech_dict_file: str) -> tuple:
 #
 # 判定策略(影响精确率和召回率的核心参数):
 #   一篇文章被判定为某银行相关新闻需同时满足:
-#     (a) 出现次数 >= min_name_occurrences (默认 3)
+#     (a) 出现次数 >= min_name_occurrences (默认 2)
 #     (b) 上下半分布: 上半 >= min_upper(1) 且 下半 >= min_lower(1)
 #         或: 出现在标题中 且 正文总次数 >= min_upper
 #
@@ -360,7 +360,7 @@ def analyze_bank_matches(content: str, title: str,
                          negation_ac=None,
                          short_name_exclusions: dict = None,
                          context_window: int = 5,
-                         min_name_occurrences: int = 3,
+                         min_name_occurrences: int = 2,
                          min_upper: int = 1,
                          min_lower: int = 1) -> dict:
     """分析单篇文章的银行匹配（带否定模式排除和短名歧义消解）。
@@ -513,7 +513,7 @@ def analyze_bank_matches(content: str, title: str,
 
 def analyze_fintech_matches(content: str, title: str,
                             fintech_ac, split_ratio: float,
-                            min_distinct_keywords: int = 3,
+                            min_distinct_keywords: int = 2,
                             min_upper: int = 1,
                             min_lower: int = 1) -> dict:
     """分析单篇文章的金融科技关键词匹配。

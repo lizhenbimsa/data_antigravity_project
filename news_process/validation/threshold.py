@@ -65,9 +65,9 @@ news_process.validation.threshold — 阶段31：分类阈值敏感性分析
 
 ■ 白话说明
 
-**这一步在做什么**: 想象你用'文章里出现某银行名字几次'来判定'这是不是这家银行的新闻'。'几次'这个门槛是人为定的 (现在银行用3次、金融科技新闻用3个不同关键词)。这一步就是把门槛从1一直试到10, 每个门槛下数一数还剩多少篇新闻被判为'是', 画成曲线。
+**这一步在做什么**: 想象你用'文章里出现某银行名字几次'来判定'这是不是这家银行的新闻'。'几次'这个门槛是人为定的 (现在银行用2次、金融科技新闻用2个不同关键词)。这一步就是把门槛从1一直试到10, 每个门槛下数一数还剩多少篇新闻被判为'是', 画成曲线。
 
-**为什么需要它**: 审稿人会问'你为什么挑3而不是2或4? 是不是凑出来的好看结果?'。这一步用证据回答: 如果门槛在3附近上下挪一点, 入选新闻数几乎不变 (处在平坦区), 就说明结论稳, 不是挑出来的; 如果一挪就剧烈变化, 就得谨慎。
+**为什么需要它**: 审稿人会问'你为什么挑2而不是1或3? 是不是凑出来的好看结果?'。这一步用证据回答: 如果门槛在2附近上下挪一点, 入选新闻数几乎不变 (处在平坦区), 就说明结论稳, 不是挑出来的; 如果一挪就剧烈变化, 就得谨慎。
 
 **对面板和论文的影响**: 它本身不改任何数据, 只生成附录里的稳健性表格和图。它影响的是'可信度'而非数字 — 让最终银行-年度面板里'哪些新闻算数'这个最底层的过滤决策站得住脚。门槛选得稳, 后续所有情感、注意力指标的样本基础就稳; 选得不稳, 整篇论文的样本都可能被质疑。
 ========================================================================
@@ -552,7 +552,7 @@ def main():
     split_ratio = bank_params.get('split_ratio', 0.5)
     min_upper = bank_params.get('min_occurrences_upper', 1)
     min_lower = bank_params.get('min_occurrences_lower', 1)
-    current_threshold = bank_params.get('min_name_occurrences', 3)
+    current_threshold = bank_params.get('min_name_occurrences', 2)
 
     banks_list, bank_ac, _ = load_bank_names(bank_names_file)
     logger.info(f"已加载 {len(banks_list)} 家银行名称信息")
@@ -613,7 +613,7 @@ def main():
     ft_split_ratio = fintech_params.get('split_ratio', 0.5)
     ft_min_upper = fintech_params.get('min_occurrences_upper', 1)
     ft_min_lower = fintech_params.get('min_occurrences_lower', 1)
-    ft_current_threshold = fintech_params.get('min_distinct_keywords', 3)
+    ft_current_threshold = fintech_params.get('min_distinct_keywords', 2)
 
     keywords_list, fintech_ac = load_fintech_dict(fintech_dict_file)
     logger.info(f"已加载 {len(keywords_list)} 个金融科技关键词")

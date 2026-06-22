@@ -68,7 +68,7 @@ news_process.validation.dict_coverage — 金融科技词典覆盖率审计
 
 **职责**: 量化诊断静态金融科技词典 (`fintech_dict.json`, ~1500 词) 是否够用 —— 从 Precision (踩线噪声)、Coverage (词典遗漏/死词)、Stability (时间老化) 三维全自动审计, 零人工零 LLM 付费。
 
-**输入 (两文件)**: ① `21_tone_llms_full.parquet` (分析 1/2/3, 已过 distinct≥T 阈值的金科文章, 选择后样本; config 键 output_21_tone_llms_full) → 列 `fintech_distinct_keywords` / `llm_verified_full` / `fintech_keyword_details`; ② `12_fintech_news_full.parquet` (分析 4/5, 全量银行新闻含被拒行; output_12_fintech_full) → `is_fintech_news` / `日期`。任一缺则 `sys.exit(1)`。阈值 T = `fintech_news_classification.min_distinct_keywords` (默认 3, 实读自 config/filtering.yaml:20)。
+**输入 (两文件)**: ① `21_tone_llms_full.parquet` (分析 1/2/3, 已过 distinct≥T 阈值的金科文章, 选择后样本; config 键 output_21_tone_llms_full) → 列 `fintech_distinct_keywords` / `llm_verified_full` / `fintech_keyword_details`; ② `12_fintech_news_full.parquet` (分析 4/5, 全量银行新闻含被拒行; output_12_fintech_full) → `is_fintech_news` / `日期`。任一缺则 `sys.exit(1)`。阈值 T = `fintech_news_classification.min_distinct_keywords` (默认 2, 实读自 config/filtering.yaml:20)。
 
 **处理步骤 + 算法**:
 1. **边际通过率分布** (analysis_1): `fintech_distinct_keywords` 频次分布; 边际率 = 恰好命中 T 个 (刚踩线) 占比, >15% 报警 (词典覆盖勉强)。
@@ -130,7 +130,7 @@ os.makedirs(EVAL_DIR, exist_ok=True)
 
 # 从 config 拆分 YAML (config/filtering.yaml) 动态读取阈值 T
 FINTECH_PARAMS = CONFIG.get('fintech_news_classification', {})
-T = FINTECH_PARAMS.get('min_distinct_keywords', 3)
+T = FINTECH_PARAMS.get('min_distinct_keywords', 2)
 
 
 # ============================================================================

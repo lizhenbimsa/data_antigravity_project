@@ -70,7 +70,7 @@ news_process.pipeline.filtering.news_bank — 阶段11：银行新闻判断
 3. **firm-document 展开**: 一篇可同时命中多家银行 → 每家合格银行生成一条独立物理行 (故输出行数可多于输入)。
 
 **关键算法/判定公式** (`analyze_bank_matches`, 每家银行; classify_batch 复用同一阈值):
-- 前置: 任一别名 总计 (含标题, `total_with_title`) ≥ `MIN_NAME_OCCURRENCES` (默认 3);
+- 前置: 任一别名 总计 (含标题, `total_with_title`) ≥ `MIN_NAME_OCCURRENCES` (默认 2);
 - 分布条件 (满足其一): (a) 上半 ≥ `MIN_UPPER` (默认 1) ∧ 下半 ≥ `MIN_LOWER` (默认 1); 或 (b) 别名出现在标题 ∧ 全文合计 `total_count` ≥ `MIN_UPPER`。
 - **不对称口径的假阳性排除**: ① 否定模式排除 ('务农行列''交通行业'命中'农行' → 排除, NEGATION_AC); ② 短名歧义消解 (≤2 字简称如'工行''中行', 检查前后 context_window 字符, 命中排除词则剔除该次匹配)。这套排除规则与 stage 13 ctx/ss 锚定共用同一事实源 (core/text/ahocorasick)。
 
@@ -141,7 +141,7 @@ BANK_NEWS_PARAMS = CONFIG.get('bank_news_classification', {})
 SPLIT_RATIO = BANK_NEWS_PARAMS.get('split_ratio', 0.5)
 MIN_UPPER = BANK_NEWS_PARAMS.get('min_occurrences_upper', 1)
 MIN_LOWER = BANK_NEWS_PARAMS.get('min_occurrences_lower', 1)
-MIN_NAME_OCCURRENCES = BANK_NEWS_PARAMS.get('min_name_occurrences', 3)
+MIN_NAME_OCCURRENCES = BANK_NEWS_PARAMS.get('min_name_occurrences', 2)
 
 
 # ============================================================================
