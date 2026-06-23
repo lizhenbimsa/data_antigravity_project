@@ -56,6 +56,11 @@ EMB_MAX_TOKENS_PER_REQUEST = 250_000
 RETRY_DELAY = 5
 MAX_RETRY_DELAY = 60
 
+# API 嵌入批次最大并发数 (asyncio.gather + Semaphore 上限)。各批次结果按 batch_idx
+# 索引收集再按序重组 (绝不依赖完成顺序), 故并发对产出逐位不变, 仅缩短 wall-clock。
+# ⚠ 若调高需留意上游 API 的 RPS / 并发限流 (429 已由 per-batch 退避重试兜底)。
+EMB_API_CONCURRENCY = 100
+
 # local SentenceTransformer 按 model_id 缓存 (允许两个 spec 都是 local 时各持其模型)
 _LOCAL_MODELS: dict[str, object] = {}
 
@@ -161,6 +166,21 @@ def split_text_for_embedding(text) -> list[str]:
     ]
 
 
+def _select_torch_device() -> str:
+    """显式选择本地嵌入设备 (2026-06-23 加固): 有 CUDA → 'cuda', 否则 'cpu'。
+
+    此前 ``SentenceTransformer(model_id)`` 不传 device, 依赖 ST 当前默认 (新版
+    自动探测 → 有 GPU 取 'cuda:0')。写成显式契约防未来 ST 改默认把本应跑 GPU 的
+    嵌入 stage 静默拖回 CPU (本机 RTX 3090 上会从 ~65s 暴涨到 ~100min)。
+    与既有自动探测**同设备** → 数值 byte-for-byte 不变, golden-safe。
+    """
+    try:
+        import torch
+        return 'cuda' if torch.cuda.is_available() else 'cpu'
+    except ImportError:  # pragma: no cover - 本地编码环境必有 torch
+        return 'cpu'
+
+
 def encode_local(texts, spec: dict, *, log_prefix: str = "Embedding") -> np.ndarray:
     """用本地 sentence-transformers 模型 (spec['model']) 编码文本。
 
@@ -179,8 +199,9 @@ def encode_local(texts, spec: dict, *, log_prefix: str = "Embedding") -> np.ndar
 
     model_id = spec_model(spec, 'shibing624/text2vec-base-chinese')
     if model_id not in _LOCAL_MODELS:
-        logger.info(f"    {log_prefix}: 加载本地嵌入模型 {model_id}")
-        _LOCAL_MODELS[model_id] = SentenceTransformer(model_id)
+        device = _select_torch_device()
+        logger.info(f"    {log_prefix}: 加载本地嵌入模型 {model_id} (device={device})")
+        _LOCAL_MODELS[model_id] = SentenceTransformer(model_id, device=device)
     model = _LOCAL_MODELS[model_id]
     batch_size = int((spec or {}).get('batch_size', 32) or 32)
     texts = list(texts)
@@ -311,12 +332,27 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
         if current_batch:
             batches.append(current_batch)
 
-        if len(batches) > 1:
-            logger.info(f"    网络请求: 动态分批为 {len(batches)} 批")
+        n_batches = len(batches)
+        if n_batches > 1:
+            logger.info(
+                f"    网络请求: 动态分批为 {n_batches} 批 "
+                f"(并发度 ≤ {min(EMB_API_CONCURRENCY, n_batches)})"
+            )
 
-        async with aiohttp.ClientSession() as session:
-            for batch_idx, batch in enumerate(batches):
-                delay = RETRY_DELAY
+        # ── 并发批次 (asyncio.gather + Semaphore) ──
+        # ⚠ 铁律 (verify:concurrent-batches-safe 对抗审计逮到的静默错位坑):
+        #   旧实现用 ``missing_embs.extend(batch_embs)`` 顺序累加, 一旦批次**完成顺序**
+        #   乱序 (并发必然发生), 向量就被静默错位拼装 → 下游余弦全错且无任何报错。
+        #   修复: 各批次结果写入 ``_embs_by_idx[batch_idx]`` 锁定位置, gather 后再按
+        #   batch_idx **升序**重组 → 完成顺序无关, 产出与逐次串行逐位一致 (仅快)。
+        _embs_by_idx: dict[int, list] = {}
+        _done = 0
+        _sem = asyncio.Semaphore(max(1, min(EMB_API_CONCURRENCY, n_batches)))
+
+        async def _process_batch(batch_idx: int, batch: list[str], session) -> None:
+            nonlocal _done
+            delay = RETRY_DELAY
+            async with _sem:
                 while True:
                     try:
                         async with session.post(
@@ -335,7 +371,9 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
                                 sorted_data = sorted(
                                     data['data'], key=lambda x: x.get('index', 0))
                                 batch_embs = [d['embedding'] for d in sorted_data]
-                                missing_embs.extend(batch_embs)
+                                # 按 batch_idx 锁定位置 (asyncio 单线程, dict 赋值原子,
+                                # 完成顺序无关 → 重组后逐位等价串行)
+                                _embs_by_idx[batch_idx] = batch_embs
                                 if cache:
                                     cache.put_batch(
                                         embedding_model,
@@ -377,7 +415,11 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
                                             f"    LLM archive (batch {batch_idx + 1}) "
                                             f"失败 (不阻塞): {_arch_exc!r}"
                                         )
-                                break
+                                _done += 1
+                                if _done % 5 == 0 or _done == n_batches:
+                                    logger.info(
+                                        f"    API 进度: {_done}/{n_batches} 批完成")
+                                return
                             elif status in (429, 500, 502, 503, 504):
                                 err_text = await resp.text()
                                 logger.warning(
@@ -402,6 +444,16 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
                         await asyncio.sleep(delay)
                         delay = min(delay * 2, MAX_RETRY_DELAY)
 
+        async with aiohttp.ClientSession() as session:
+            await asyncio.gather(*[
+                _process_batch(i, b, session) for i, b in enumerate(batches)
+            ])
+
+        # 按 batch_idx 升序重组 → 与 missing_texts 原始顺序严格一致 (批次本就按
+        # missing_texts 顺序切分, 故顺序拼接即复原)。
+        for i in range(n_batches):
+            missing_embs.extend(_embs_by_idx[i])
+
     assert len(missing_embs) == len(missing_texts), (
         f"返回数量异常: expected {len(missing_texts)}, got {len(missing_embs)}"
     )
@@ -416,14 +468,112 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
     return np.array(final_embs, dtype=np.float32)
 
 
+def _encode_local_cached(chunks, spec: dict, *,
+                         cache=None,
+                         cache_db_path: str | None = None,
+                         log_prefix: str = "Embedding") -> np.ndarray:
+    """``encode_local`` 的穿透式缓存封装 (2026-06-23)。
+
+    本地 sentence-transformers (text2vec) 此前是全项目**唯一不走缓存**的嵌入路径
+    → 每次重跑 / 每个 stage (16/26/27/network 都嵌同一批 content_full) 都从头
+    forward 一遍。本封装按 ``(model_id, 完整 chunk 文本, text_pipeline_version)``
+    查 LLMCache: 命中即读 (反序列化), 仅未命中的 chunk 真正 ``encode_local`` 一次
+    并回写。键以 ``model_id`` 为首字段 → 与 API 主轨缓存天然隔离不串。
+
+    golden 语义 (与 API 轨 / stage 21 ``_llm_cache.db`` 锚点同源): 缓存冻结**首次
+    计算值** → 此后重跑逐位复现, 反而比"每 run 重算 (BLAS/CUDA-FP 漂移)"更稳。
+    首次播种须受控环境 (PYTHONHASHSEED=0 + BLAS 线程=1 + 保留 GPU + HF offline),
+    之后离线 $0 字节级复现。值经 ``json.dumps(float32.tolist())`` 往返**字节级无损**
+    (float32 ⊂ float64; repr 最短可逆 → 读回 ``np.float32`` 与原值逐位相等)。
+
+    cache 解析: 传入已打开的 ``cache`` → 复用 (跨多次调用省重复 open); 否则按
+    ``cache_db_path`` 自开自关; 两者皆缺 → 退化为无缓存裸 ``encode_local`` (向后兼容,
+    如测试直送 local spec 不带 cache_db_path 的路径)。
+    """
+    model_id = spec_model(spec, 'shibing624/text2vec-base-chinese')
+    version = spec_version(spec)
+
+    own_cache = None
+    if cache is None and cache_db_path:
+        own_cache = LLMCache(cache_db_path)
+        cache = own_cache
+    try:
+        cached = [
+            cache.get(model_id, c, prompt_version=version) if cache is not None else None
+            for c in chunks
+        ]
+        missing_idx = [i for i, res in enumerate(cached) if res is None]
+        if len(chunks) > 1:
+            logger.info(
+                f"    {log_prefix} 本地缓存拦截: 命中 {len(chunks) - len(missing_idx)} "
+                f"条, 缺失 {len(missing_idx)} 条 (model={model_id})"
+            )
+
+        # 缺失项内部去重 (golden 正确性 + 提速): 同一文本在三轨/回退场景下可重复出现
+        # (实测 content_full nunique 1329/1542)。GPU 批 forward 对"同文本不同批位"会给
+        # 1-ULP 级 FP 漂移 → 若不去重, 同文本两次出现可取不同值, 而 put_batch 同键后写
+        # 覆盖前 → 冷跑(各取各值)与暖跑(同读一值)不一致, 破坏 golden 逐位复现。去重后每个
+        # 唯一文本只 forward 一次 (取值唯一确定) → 冷暖逐位一致 + 更快。(跨 full/ctx/ss 三
+        # 轨的去重则由共享 cache 连接天然达成: 先嵌的轨写入后, 后续轨同文本即缓存命中。)
+        computed_map: dict = {}
+        uniq_dim = None
+        if missing_idx:
+            missing_chunks = [chunks[i] for i in missing_idx]
+            unique_texts = list(dict.fromkeys(missing_chunks))  # 保序去重
+            if len(unique_texts) < len(missing_chunks):
+                logger.info(
+                    f"    {log_prefix} 本地去重: 缺失 {len(missing_chunks)} 条 → "
+                    f"唯一 {len(unique_texts)} 条 (省 "
+                    f"{len(missing_chunks) - len(unique_texts)} 次 forward)"
+                )
+            uniq_emb = np.asarray(
+                encode_local(unique_texts, spec, log_prefix=log_prefix),
+                dtype=np.float32,
+            )
+            uniq_dim = int(uniq_emb.shape[1])
+            computed_map = {t: uniq_emb[k] for k, t in enumerate(unique_texts)}
+            if cache is not None:
+                cache.put_batch(
+                    model_id, unique_texts,
+                    [json.dumps(uniq_emb[k].tolist()) for k in range(len(unique_texts))],
+                    prompt_version=version,
+                )
+
+        # 按 chunks 原序复原 (命中条目反序列化 + 新算唯一向量按文本映射回各位置)
+        if uniq_dim is not None:
+            dim = uniq_dim
+        elif cached and cached[0] is not None:
+            dim = len(json.loads(cached[0]))
+        else:  # 空输入防御 (上游 embed_texts 已挡空 texts, 纯兜底)
+            return np.empty((0, 0), dtype=np.float32)
+        out = np.empty((len(chunks), dim), dtype=np.float32)
+        for i, res in enumerate(cached):
+            if res is None:
+                out[i] = computed_map[chunks[i]]
+            else:
+                out[i] = np.asarray(json.loads(res), dtype=np.float32)
+        return out
+    finally:
+        if own_cache is not None:
+            own_cache.close()
+
+
 def embed_texts(texts, spec: dict, *,
                 cache_db_path: str | None = None,
+                cache=None,
                 log_prefix: str = "Embedding",
                 enable_archive: bool = True) -> np.ndarray | None:
     """文本 → 文本级 Embedding 向量 (n_texts, dim), spec 决定模型与路径。
 
     超长文本走朴素分段 (naive chunking) + Mean Pooling。local spec 走 sentence-transformers,
     API spec 走 get_embeddings_api (经 LLMCache 穿透)。失败/形状异常 → None。
+
+    传入已打开的 ``cache`` (LLMCache 实例) 可跨多次 embed_texts 调用复用同一
+    sqlite 连接, 省去重复 open/WAL/建表 (2026-06-23 零风险小优化); 未传时按
+    ``cache_db_path`` 自动 open/close (向后兼容)。
+    local spec (2026-06-23 起) 同样穿透缓存 (经 _encode_local_cached, 键
+    = model_id+文本+text_pipeline_version) — 命中即读, 跨 run/跨 stage $0 复现;
+    两参数皆缺时退化为无缓存裸 encode_local (向后兼容)。
 
     fix(omni-g-embed-04, 2026-06-11): 多块池化改为"逐块 L2 归一 + token 数加权"
     (此前等权 mean — 8191+1 token 切分的 1-token 尾段碎片占 50% 方向权重)。切分
@@ -453,12 +603,21 @@ def embed_texts(texts, spec: dict, *,
         )
 
     if spec_uses_local(spec):
-        raw_emb = encode_local(all_chunks, spec, log_prefix=log_prefix)
+        # 2026-06-23: 本地嵌入改走穿透式缓存 (_encode_local_cached) — 此前每 run
+        # 全量重算 (text2vec 是唯一不缓存的嵌入路径)。命中即读 → 跨 run/跨 stage $0。
+        raw_emb = _encode_local_cached(
+            all_chunks, spec, cache=cache, cache_db_path=cache_db_path,
+            log_prefix=log_prefix)
     else:
-        if cache_db_path:
-            with LLMCache(cache_db_path) as cache:
+        if cache is not None:
+            # 调用方传入已打开的共享连接 → 跨多次 embed_texts 复用, 省重复 open
+            raw_emb = asyncio.run(
+                get_embeddings_api(all_chunks, spec, cache,
+                                   enable_archive=enable_archive))
+        elif cache_db_path:
+            with LLMCache(cache_db_path) as _cache:
                 raw_emb = asyncio.run(
-                    get_embeddings_api(all_chunks, spec, cache,
+                    get_embeddings_api(all_chunks, spec, _cache,
                                        enable_archive=enable_archive))
         else:
             raw_emb = asyncio.run(

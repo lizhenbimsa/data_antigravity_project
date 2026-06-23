@@ -32,6 +32,11 @@ embedding_robustness:                            # ROBUSTNESS twin — text2vec 
   model: shibing624/text2vec-base-chinese
   base_url: local
   api_key: local
+  # 本地 CPU 编码批大小 (2026-06-23: 32→128)。更大批 → 更少 GEMM 调用 + 更好 CPU
+  # cache 局部性, t2v 块约 1.5~2x 提速。⚠ batch_size 改变会让 batched matmul 的 FP
+  # 舍入路径变 → _t2v 列可能出现 ~1e-7 级漂移 (与既有 BLAS-FP 非确定性同量级, 语义
+  # 不变); 跑 golden 复现门时如标记 _t2v 列须受控环境重生 (PYTHONHASHSEED=0 + BLAS=1)。
+  batch_size: 128
   # 稳健轨独立 cache 命名空间 (model_id 已不同, 版本字符串再隔离一层)。
   text_pipeline_version: "v2-2026-05-29-t2v"
 

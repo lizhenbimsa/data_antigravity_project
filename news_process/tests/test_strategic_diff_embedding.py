@@ -9,8 +9,9 @@ from news_process.pipeline.features import strategic_diff as sd
 
 
 class _FakeSentenceTransformer:
-    def __init__(self, model_id):
+    def __init__(self, model_id, device=None):
         self.model_id = model_id
+        self.device = device
 
     def encode(self, texts, batch_size=32, show_progress_bar=False):
         return np.asarray(

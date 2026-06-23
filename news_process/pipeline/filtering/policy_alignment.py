@@ -187,6 +187,18 @@ def _count_tokens(text: str) -> int:
     return count_tokens(text)
 
 
+def _count_tokens_batch(texts) -> list[int]:
+    """批量精确 token 计数 (cl100k encode_batch, tiktoken 内部多线程)。
+
+    逐位等价于 ``[_count_tokens(t) for t in texts]`` (同 cl100k 编码器 + 同
+    disallowed_special 默认), 仅把纯诊断日志用的全量 token 统计从逐条 Python
+    encode 改走批接口提速 (2026-06-23 零风险小优化, 计数与输出均不变)。
+    """
+    from news_process.core.text.token_utils import get_encoding
+    enc = get_encoding()
+    return [len(t) for t in enc.encode_batch([str(x) for x in texts])]
+
+
 def _truncate_to_max_tokens(text: str, max_tokens: int = _MAX_TOKENS_PER_INPUT) -> str:
     """将文本精确截断至不超过 max_tokens 个 token (已迁至 core.text.token_utils)。"""
     from news_process.core.text.token_utils import truncate_to_max_tokens
@@ -600,19 +612,33 @@ def _cosine_for_spec(
     chunk_doc_idx = np.array(
         [i for i, chunks in enumerate(doc_chunks) for _ in chunks], dtype=int)
 
-    article_embs_full = _eng.embed_texts(
-        full_texts, spec, cache_db_path=CACHE_DB_PATH, log_prefix=log_prefix)
-    article_embs_ctx = _eng.embed_texts(
-        ctx_texts, spec, cache_db_path=CACHE_DB_PATH, log_prefix=log_prefix)
-    auth_chunk_embs = _eng.embed_texts(
-        auth_chunks, spec, cache_db_path=CACHE_DB_PATH, log_prefix=log_prefix)
-    # ss 轨: 镜像 full/ctx 嵌入路径; ss_texts=None 时不算 (优雅跳过 → cos_ss=None)
+    # 单连接复用 (2026-06-23 零风险小优化): 本函数 ≤4 次 embed_texts 调用此前各开一个
+    # LLMCache (≤4 次 sqlite connect/WAL/建表); 改为本函数开一个共享连接传入, 省去重复
+    # 打开 (产出逐位不变)。
+    # 2026-06-23: local spec (text2vec) 也改走缓存 (_encode_local_cached) → 同样传入
+    # 共享连接 (此前 local 不缓存故传 None), 让本地嵌入跨 run/跨 stage 命中即 $0 复现。
     has_ss = ss_texts is not None
-    article_embs_ss = (
-        _eng.embed_texts(
-            ss_texts, spec, cache_db_path=CACHE_DB_PATH, log_prefix=log_prefix)
-        if has_ss else None
-    )
+    shared_cache = LLMCache(CACHE_DB_PATH)
+    try:
+        article_embs_full = _eng.embed_texts(
+            full_texts, spec, cache=shared_cache, cache_db_path=CACHE_DB_PATH,
+            log_prefix=log_prefix)
+        article_embs_ctx = _eng.embed_texts(
+            ctx_texts, spec, cache=shared_cache, cache_db_path=CACHE_DB_PATH,
+            log_prefix=log_prefix)
+        auth_chunk_embs = _eng.embed_texts(
+            auth_chunks, spec, cache=shared_cache, cache_db_path=CACHE_DB_PATH,
+            log_prefix=log_prefix)
+        # ss 轨: 镜像 full/ctx 嵌入路径; ss_texts=None 时不算 (优雅跳过 → cos_ss=None)
+        article_embs_ss = (
+            _eng.embed_texts(
+                ss_texts, spec, cache=shared_cache, cache_db_path=CACHE_DB_PATH,
+                log_prefix=log_prefix)
+            if has_ss else None
+        )
+    finally:
+        if shared_cache is not None:
+            shared_cache.close()
 
     if (article_embs_full is None or article_embs_ctx is None
             or auth_chunk_embs is None or (has_ss and article_embs_ss is None)):
@@ -905,7 +931,7 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     # 【白话】数一数每篇文章多少 token、有几篇超长 (会被引擎拆段读完再取平均), 但
     #   不再"撕掉尾巴" — 超长文章整篇都算进对齐分, 跟政策文件那侧的处理方式一致。
     logger.info("  正在计算 token 数 (无预截断, 超长走引擎 chunk+pool)...")
-    token_counts = [_count_tokens(text) for text in raw_texts]
+    token_counts = _count_tokens_batch(raw_texts)
     n_long = sum(1 for n in token_counts if n > _MAX_TOKENS_PER_INPUT)
     avg_tokens = np.mean(token_counts) if token_counts else 0
     logger.info(f"  Token 统计: 平均 {avg_tokens:.0f} tokens/篇, "
@@ -947,12 +973,12 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     # ---- 4.4b ctx / ss 轨 token 诊断 (无预截断, 同 4.3 选项 B) ----
     # ctx 轨 = 标题 + 实体局部窗口, ss 轨 = 标题 + 同句共现窗口, 构造上几乎不超长;
     # 仍与 full 轨同口径不预截断, 万一超长由引擎 chunk+pool 接管 (三轨对称)。
-    ctx_token_counts = [_count_tokens(text) for text in ctx_texts]
+    ctx_token_counts = _count_tokens_batch(ctx_texts)
     n_long_ctx = sum(1 for n in ctx_token_counts if n > _MAX_TOKENS_PER_INPUT)
     logger.info(f"  ctx 轨 token: 超长 (引擎 chunk+pool) "
                 f"{n_long_ctx}/{len(ctx_texts)} 篇")
     if ss_texts is not None:
-        ss_token_counts = [_count_tokens(text) for text in ss_texts]
+        ss_token_counts = _count_tokens_batch(ss_texts)
         n_long_ss = sum(1 for n in ss_token_counts if n > _MAX_TOKENS_PER_INPUT)
         logger.info(f"  ss 轨 token: 超长 (引擎 chunk+pool) "
                     f"{n_long_ss}/{len(ss_texts)} 篇")
