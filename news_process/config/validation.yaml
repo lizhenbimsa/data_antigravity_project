@@ -35,7 +35,7 @@ entity_masking_test:
   max_concurrency: 100                              # 2026-05-14 用户决策: 项目统一 100 并发 (原阶段36=8); 监控 yunwu 网关 429, 若批量掩码复判抖动回退至 8
   request_spacing_seconds: 0.75                     # 每个模型相邻真实请求的最小间隔，避免 429 限流
   request_timeout_seconds: 60                       # 验证复判短超时；缓存优先，外部接口卡住时快速熔断
-  max_retries: 1                                    # 验证阶段不做长重试，避免外部 API 抖动拖垮整条流水线
+  max_retries: 80                                   # 2026-06-23 统一决策: 与生产 stage 21 一致 (原 1)。⚠ 掩码复判多为冷缓存, 80 次重试在 API 抖动期可能变慢; 失败行仍由 call_failure 掩码剔除, 不偏置 κ
   placeholder: "目标银行A"                           # 目标银行替换占位符
   peer_placeholder_template: "同业银行{}"             # 共提银行占位符模板（{} 填 B, C, D...）
   pass_threshold_verification: 0.90                 # 验证一致率通过阈值 (≥90%)
@@ -57,7 +57,7 @@ prompt_sensitivity_test:
   max_concurrency: 100                              # 2026-05-14 用户决策: 项目统一 100 并发 (原阶段39=8); ⚠️ 注意: 24k 请求 + 100 并发可能触发 yunwu 网关 429 雪崩, 重跑前需监控; 若雪崩回退至 8
   request_spacing_seconds: 0.10                     # Prompt 验证使用短重试熔断，可提高真实缺缓存请求放行速率
   request_timeout_seconds: 60                       # Prompt 灵敏度以缓存为主，缺缓存请求超时后本轮熔断
-  max_retries: 1                                    # 披露 fix(omni-g-val-prompt-05, 2026-06-11): 刻意低于生产 stage 21 (max_retries=80, 指数退避), 避免 24k 请求长尾重试卡住数小时; 代价是变体失败率系统性高于 baseline — 失败行已由代码掩码剔除不计入措辞不一致 (JSON 报 n_call_failures_excluded), 不再偏置 κ。删除本行则缺省对齐生产 MAX_RETRIES
+  max_retries: 80                                   # 2026-06-23 统一决策: 与生产 stage 21 一致 (原刻意设 1, fix omni-g-val-prompt-05)。⚠ 24k 变体请求多为冷缓存, 80 次重试在 API 抖动期可能使本阶段运行数小时 (原设 1 即为防此长尾); 失败行仍由 call_failure 掩码剔除 (n_call_failures_excluded), 不偏置 κ
   pass_threshold_verification: 0.85                 # 均值验证一致率通过阈值 (≥85%)
   pass_threshold_sentiment: 0.80                    # 均值情感一致率通过阈值 (≥80%)
   pass_threshold_kappa: 0.70                        # 最小 Cohen's κ 通过阈值 (≥0.70)

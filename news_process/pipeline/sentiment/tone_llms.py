@@ -202,7 +202,9 @@ FORCE_JSON = LLM_CONFIG.get('force_json', True)
 # setup_logging(delay=True) 的首写截断, 把 logs/21_tone_llms.log 覆写成 2 行 import banner
 # (掩盖真实 stage 21 运行记录)。移入 main() 后仅真正运行 stage 21 时回显, import 不再截断。
 
-MAX_RETRIES = LLM_CONFIG.get('max_retries', 5)
+# fallback 对齐生产 config (sentiment.yaml::tone_llm_processing.max_retries=80) —
+# 2026-06-23 统一决策: 大模型 API 调用失败一律重试 80 次; 误删 YAML 键也不再静默降级到旧 5。
+MAX_RETRIES = LLM_CONFIG.get('max_retries', 80)
 RETRY_DELAY = LLM_CONFIG.get('retry_delay', 10)
 # v6/N4: 指数退避 — 单 yunwu 账户避免雪崩
 RETRY_BACKOFF = LLM_CONFIG.get('retry_backoff', 'linear')  # 'exponential' or 'linear'

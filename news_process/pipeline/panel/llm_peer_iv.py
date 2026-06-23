@@ -125,7 +125,9 @@ MAX_CONCURRENCY = max(1, int(LLM_CONFIG.get('max_concurrency', 5)))
 TEMPERATURE = LLM_CONFIG.get('temperature', 0.0)
 RANDOM_SEED = LLM_CONFIG.get('random_seed', 42)
 FORCE_JSON = LLM_CONFIG.get('force_json', True)
-MAX_RETRIES = LLM_CONFIG.get('max_retries', 5)
+# fallback 对齐生产 config (tone_llm_processing.max_retries=80) — 2026-06-23 统一:
+# 大模型 API 调用失败一律重试 80 次 (本模块复用 stage 21 同一配置段)。
+MAX_RETRIES = LLM_CONFIG.get('max_retries', 80)
 RETRY_DELAY = LLM_CONFIG.get('retry_delay', 10)
 
 # fix(log-round4-2026-06-20): 参数回显移入 compute_llm_peer_iv() —— 模块级 emit 会在 stage 45

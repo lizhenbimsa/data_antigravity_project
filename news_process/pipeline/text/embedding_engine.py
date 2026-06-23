@@ -56,6 +56,25 @@ EMB_MAX_TOKENS_PER_REQUEST = 250_000
 RETRY_DELAY = 5
 MAX_RETRY_DELAY = 60
 
+# 单批瞬时失败 (429/5xx/网络异常) 的最大重试次数。2026-06-23 用户决策: 大模型 / 嵌入
+# API 调用失败一律按各自既有方法重试 80 次, 耗尽后走各自现有终态处理 — 与 stage 21
+# tone_llms 的 tone_llm_processing.max_retries=80 统一 (此前嵌入是 ``while True`` 无限
+# 重试)。耗尽 → raise EmbeddingRetryExhaustedError → get_embeddings_api 捕获 → 返回
+# None → 上游 _cosine_for_spec / policy_alignment 把该 spec/轨列置 NaN (优雅降级, 对称
+# tone_llms "瞬时失败重试 80 次后从多数投票缺席")。
+EMB_MAX_RETRIES = 80
+
+
+class EmbeddingRetryExhaustedError(RuntimeError):
+    """嵌入 API 单批瞬时失败 (429/5xx/网络) 重试 ``EMB_MAX_RETRIES`` 次仍未成功。
+
+    专用于把"可重试的瞬时故障耗尽"与"不可恢复的致命错误"区分开:
+      - 本异常 (瞬时耗尽): 由 ``get_embeddings_api`` 捕获 → 返回 ``None`` → 上游列置 NaN
+        (优雅降级, 与 stage 21 tone_llms 80 次后缺席投票对称)。
+      - ``ValueError`` (致命: 401/403/400 等非 5xx 状态 / 缺 'data' 字段): **不**在
+        ``get_embeddings_api`` 捕获, 仍按现有路径 raise 冒泡 (MAIN spec 崩 / _t2v 轨置 NaN)。
+    """
+
 # API 嵌入批次最大并发数 (asyncio.gather + Semaphore 上限)。各批次结果按 batch_idx
 # 索引收集再按序重组 (绝不依赖完成顺序), 故并发对产出逐位不变, 仅缩短 wall-clock。
 # ⚠ 若调高需留意上游 API 的 RPS / 并发限流 (429 已由 per-batch 退避重试兜底)。
@@ -266,11 +285,16 @@ def encode_local(texts, spec: dict, *, log_prefix: str = "Embedding") -> np.ndar
 
 
 async def get_embeddings_api(texts, spec: dict, cache=None, *,
-                             enable_archive: bool = True) -> np.ndarray:
-    """通过 API 获取文本 Embedding — 穿透式缓存 + 动态分批 + 死战不退容错。
+                             enable_archive: bool = True) -> np.ndarray | None:
+    """通过 API 获取文本 Embedding — 穿透式缓存 + 动态分批 + 有界重试(80次)容错。
 
     spec 提供 base_url / api_key / model / text_pipeline_version。
     与 LLMCache 配合: cache 命中的文本不重复调用; 写回时按 model_id+version 命名空间。
+
+    可重试的瞬时故障 (429/5xx/网络异常) 按 ``EMB_MAX_RETRIES`` (=80) 次指数退避重试;
+    任一批耗尽仍失败 → 捕获 EmbeddingRetryExhaustedError → 返回 ``None`` (调用方据此把
+    该轨列置 NaN, 优雅降级, 对称 tone_llms 80 次后缺席投票)。不可恢复的致命错误 (非 5xx
+    状态 / 缺 'data' / 缺 base_url+api_key / 单条超限) 仍立即 raise (现有路径不变)。
     """
     import aiohttp
 
@@ -352,8 +376,9 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
         async def _process_batch(batch_idx: int, batch: list[str], session) -> None:
             nonlocal _done
             delay = RETRY_DELAY
+            last_err = ""
             async with _sem:
-                while True:
+                for attempt in range(EMB_MAX_RETRIES):
                     try:
                         async with session.post(
                             f"{base_url}/embeddings",
@@ -422,9 +447,11 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
                                 return
                             elif status in (429, 500, 502, 503, 504):
                                 err_text = await resp.text()
+                                last_err = f"HTTP {status}: {err_text[:100]}"
                                 logger.warning(
                                     f"    HTTP {status} (batch {batch_idx + 1}): "
-                                    f"{err_text[:100]}。休眠 {delay}s 后重试..."
+                                    f"{err_text[:100]}。重试 "
+                                    f"{attempt + 1}/{EMB_MAX_RETRIES}, 休眠 {delay}s..."
                                 )
                                 await asyncio.sleep(delay)
                                 delay = min(delay * 2, MAX_RETRY_DELAY)
@@ -437,17 +464,37 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
                     except ValueError:
                         raise
                     except Exception as e:
+                        last_err = f"{type(e).__name__}: {e}"
                         logger.warning(
                             f"    网络异常 (batch {batch_idx + 1}): "
-                            f"{type(e).__name__}: {e}。休眠 {delay}s 后重试..."
+                            f"{type(e).__name__}: {e}。重试 "
+                            f"{attempt + 1}/{EMB_MAX_RETRIES}, 休眠 {delay}s..."
                         )
                         await asyncio.sleep(delay)
                         delay = min(delay * 2, MAX_RETRY_DELAY)
+                # 瞬时失败 (429/5xx/网络) 重试 EMB_MAX_RETRIES 次仍未成功 → 抛
+                # EmbeddingRetryExhaustedError, 由 get_embeddings_api 捕获 → 返回 None
+                # → 该 spec/轨列置 NaN (优雅降级, 对称 tone_llms 80 次后缺席投票)。
+                # 致命错误 (上方 raise ValueError) 不会到这里, 仍立即冒泡 (现有路径不变)。
+                raise EmbeddingRetryExhaustedError(
+                    f"嵌入 batch {batch_idx + 1} 重试 {EMB_MAX_RETRIES} 次仍失败"
+                    + (f" (末次: {last_err})" if last_err else "")
+                )
 
         async with aiohttp.ClientSession() as session:
-            await asyncio.gather(*[
-                _process_batch(i, b, session) for i, b in enumerate(batches)
-            ])
+            try:
+                await asyncio.gather(*[
+                    _process_batch(i, b, session) for i, b in enumerate(batches)
+                ])
+            except EmbeddingRetryExhaustedError as _exhausted:
+                # 任一批瞬时失败重试 EMB_MAX_RETRIES 次仍失败 → 整个 spec/轨优雅返回 None
+                # (上游列置 NaN), 对称 tone_llms 80 次后缺席投票; 不向上冒泡 (区别于致命
+                # ValueError 的现有崩溃路径)。
+                logger.error(
+                    f"    嵌入 API 重试 {EMB_MAX_RETRIES} 次仍失败 → 返回 None "
+                    f"(该轨列将置 NaN): {_exhausted}"
+                )
+                return None
 
         # 按 batch_idx 升序重组 → 与 missing_texts 原始顺序严格一致 (批次本就按
         # missing_texts 顺序切分, 故顺序拼接即复原)。
@@ -623,6 +670,14 @@ def embed_texts(texts, spec: dict, *,
             raw_emb = asyncio.run(
                 get_embeddings_api(all_chunks, spec, None,
                                    enable_archive=enable_archive))
+        # get_embeddings_api 在瞬时失败重试 EMB_MAX_RETRIES 次耗尽时返回 None →
+        # 该轨整体置 NaN (优雅降级, 对称 tone_llms 80 次后缺席投票)。
+        if raw_emb is None:
+            logger.warning(
+                f"    {log_prefix}: API ({spec_model(spec)}) 重试耗尽返回 None "
+                f"→ 该轨置 NaN"
+            )
+            return None
         logger.info(f"    {log_prefix}: API ({spec_model(spec)}) 成功")
 
     raw_emb = np.asarray(raw_emb)
