@@ -175,3 +175,11 @@ tables:
     template: null  # remove-title-track: 标题轨稳健性表已取消
   tA9:
     template:
+
+# -- WS-E + R8-EIC (per-dim validity_claim_gate full coverage of 4 main-measure papers) --
+validation:
+  commitment_status: new_2026-06-22
+  evidence_status: pending_T18_human_annotation
+  validity_claim_gate:
+    requires_real_human_kappa_for: substantiveness
+  note: "substance criterion closed loop (stage 63 Panel E) exists; awaits real human gold backfill"

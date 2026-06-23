@@ -26,6 +26,14 @@ R_COLUMNS_BY_RATER = {
         'R2_stage3b_locus',
         'R3_stage3b_locus',
     ],
+    # WS-A (G3): collab 编码者间 schema (自研/协同, Chesbrough 2003 / L&S 2006)。
+    # ⚠ 维度键裸名 'collab' (对齐 substantiveness/locus); task/pred/metrics
+    #   层用 innovation_collab_mode 前缀 (见 llms_evaluation.py)。
+    'collab': [
+        'R1_stage3c_collab',
+        'R2_stage3c_collab',
+        'R3_stage3c_collab',
+    ],
 }
 
 
@@ -36,11 +44,16 @@ _RATER_VALUE_TO_CANONICAL_LABEL_RAW = {
     'symbolic':    '象征性',
     'technology':  '底层技术',
     'application': '应用场景',
+    # WS-A: collab 取值 (自研/协同)
+    'self_developed': '自主研发',
+    'collaborative':  '外部协同',
     # 已是中文的原样透传
     '实质性': '实质性',
     '象征性': '象征性',
     '底层技术': '底层技术',
     '应用场景': '应用场景',
+    '自主研发': '自主研发',
+    '外部协同': '外部协同',
 }
 
 

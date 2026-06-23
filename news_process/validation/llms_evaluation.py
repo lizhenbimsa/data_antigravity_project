@@ -200,6 +200,141 @@ def compute_cohens_kappa(rater1: np.ndarray, rater2: np.ndarray) -> dict:
     }
 
 
+def compute_gwet_ac1(rater1: np.ndarray, rater2: np.ndarray) -> dict:
+    """计算 Gwet's AC1 一致性系数 (偏态患病率下破 Cohen κ 悖论)。
+
+    Gwet (2008, British Journal of Mathematical and Statistical Psychology
+    61(1):29-48)。当患病率极端偏态 (一类占绝大多数) 时, Cohen κ 会
+    悖论性地塌到接近 0 甚至负值 (Feinstein-Cicchetti 1990 κ paradox),
+    即便观察一致率很高。AC1 用不同的 chance-agreement 定义避开此悖论。
+
+    数学公式:
+        p_o = Σ_k n_{kk} / N                          (观察一致率, 同 κ)
+        π_k = (n^A_k + n^B_k) / (2N)                  (两评者类别 k 的平均边际比例)
+        p_e^AC1 = (1/(q-1)) · Σ_k π_k(1 - π_k)        (q = 类别数)
+        AC1 = (p_o - p_e^AC1) / (1 - p_e^AC1)
+
+    ⚠ 与 Cohen κ 的 p_e = Σ_k (n_{k·}·n_{·k})/N² (两评者各自边际之积) 不同;
+    AC1 用平均边际 π_k 的 Σπ_k(1-π_k)/(q-1)。误抄 κ 的 p_e 会静默出错数, 且
+    "完全一致=1"测不出区别 (两公式在完全一致时都给 1)。二分类闭式:
+    p_e^AC1 = 2π(1-π), π = (p^A_1 + p^B_1)/2。
+
+    Args:
+        rater1/rater2: 两评者判定数组 (整型/字符串均可, 内部 sorted(set) 编码)。
+
+    Returns:
+        dict: ac1, observed_agreement, expected_agreement, n_samples。
+
+    白话: 当某一类极少见 (如"象征性"创新只占 15%), Cohen κ 会因为
+    "瞎猜也大概率猜中多数类"而把分数压得很低, 显得编码者不一致, 其实
+    他们高度一致。AC1 换了个算"瞎猜一致"的方法, 不会被偏态坑。
+    """
+    rater1 = np.asarray(rater1)
+    rater2 = np.asarray(rater2)
+    assert len(rater1) == len(rater2), "两个编码者的样本数必须一致"
+    n = len(rater1)
+
+    if n == 0:
+        return {'ac1': 0.0, 'observed_agreement': 0.0,
+                'expected_agreement': 0.0, 'n_samples': 0}
+
+    categories = sorted(set(np.concatenate([rater1, rater2])))
+    cat_idx = {c: i for i, c in enumerate(categories)}
+    q = len(categories)
+
+    confusion = np.zeros((q, q), dtype=int)
+    for a, b in zip(rater1, rater2):
+        confusion[cat_idx[a], cat_idx[b]] += 1
+
+    observed_agreement = float(np.trace(confusion)) / n
+
+    # 单类别 (q==1): 两评者全打同一类 → 完全一致, AC1=1 (AC1 的本意正是不惩罚)
+    if q < 2:
+        return {'ac1': 1.0, 'observed_agreement': round(observed_agreement, 4),
+                'expected_agreement': 0.0, 'n_samples': n}
+
+    # π_k = 两评者类别 k 的平均边际比例
+    row_sums = confusion.sum(axis=1)   # 评者 A 各类别频次
+    col_sums = confusion.sum(axis=0)   # 评者 B 各类别频次
+    pi = (row_sums + col_sums) / (2.0 * n)
+    expected_agreement = float((pi * (1.0 - pi)).sum()) / (q - 1)
+
+    if expected_agreement == 1.0:
+        ac1 = 1.0
+    else:
+        ac1 = (observed_agreement - expected_agreement) / (1 - expected_agreement)
+
+    return {
+        'ac1': round(ac1, 4),
+        'observed_agreement': round(observed_agreement, 4),
+        'expected_agreement': round(expected_agreement, 4),
+        'n_samples': n,
+    }
+
+
+def compute_cohens_kappa_weighted(rater1: np.ndarray, rater2: np.ndarray,
+                                  weights: np.ndarray) -> dict:
+    """population-weighted Cohen's κ (Manski-Lerman 后分层外推口径)。
+
+    分层过采样 (少数类高估) 后, 未加权 κ 是 sample-conditional 估计量
+    (不可外推总体)。本函数用 population_weight 作 cell 权重重算加权混淆
+    矩阵的 p_o/p_e, 得外推总体的 κ_w。
+
+    数学公式:
+        C_w[i,j] = Σ_{n: y_true=i, y_pred=j} w_n   (加权混淆矩阵)
+        p_o = Σ_k C_w[k,k] / Σw
+        p_e = Σ_k (Σ_j C_w[k,j])(Σ_i C_w[i,k]) / (Σw)²   (加权边际)
+        κ_w = (p_o - p_e) / (1 - p_e)
+
+    向后兼容锚: 全 w=1 时逐位等于 compute_cohens_kappa。
+
+    Args:
+        rater1/rater2: 两评者判定数组 (整型/字符串均可)。
+        weights: 与 rater 等长的样本权重 (population_weight)。
+
+    Returns:
+        dict: kappa, observed_agreement, expected_agreement, n_samples,
+              w_sum (有效权重和)。
+    """
+    rater1 = np.asarray(rater1)
+    rater2 = np.asarray(rater2)
+    weights = np.asarray(weights, dtype=float)
+    assert len(rater1) == len(rater2) == len(weights), "rater 与 weights 样本数必须一致"
+    n = len(rater1)
+
+    w_sum = float(weights.sum())
+    if n == 0 or w_sum <= 0:
+        return {'kappa': 0.0, 'observed_agreement': 0.0,
+                'expected_agreement': 0.0, 'n_samples': n, 'w_sum': w_sum}
+
+    categories = sorted(set(np.concatenate([rater1, rater2])))
+    cat_idx = {c: i for i, c in enumerate(categories)}
+    k = len(categories)
+
+    # 加权混淆矩阵
+    confusion_w = np.zeros((k, k), dtype=float)
+    for a, b, w in zip(rater1, rater2, weights):
+        confusion_w[cat_idx[a], cat_idx[b]] += w
+
+    observed_agreement = float(np.trace(confusion_w)) / w_sum
+    row_sums = confusion_w.sum(axis=1)
+    col_sums = confusion_w.sum(axis=0)
+    expected_agreement = float((row_sums * col_sums).sum()) / (w_sum * w_sum)
+
+    if expected_agreement == 1.0:
+        kappa = 1.0
+    else:
+        kappa = (observed_agreement - expected_agreement) / (1 - expected_agreement)
+
+    return {
+        'kappa': round(kappa, 4),
+        'observed_agreement': round(observed_agreement, 4),
+        'expected_agreement': round(expected_agreement, 4),
+        'n_samples': n,
+        'w_sum': round(w_sum, 4),
+    }
+
+
 def compute_krippendorffs_alpha(ratings_matrix: np.ndarray) -> float:
     """计算 Krippendorff's Alpha（支持多编码者）。
 
@@ -642,44 +777,49 @@ def generate_latex_table(results: dict, output_path: str, logger_inst):
     # 与 Panel F (locus) 放在**独立的** \begin{tabular}...\end{tabular} 块中。
     # 按 R21A-01 的 pending 情形对账约定, Panel E/F 子表头**始终**渲染;
     # 已填充与待标注 (pending) 两种状态只在数据行上有差异。
+    # WS-A: per-dim pending (顶层 str=全局; by_dim=单维独立)。Panel G 与 E/F
+    # 同处第 2 个 tabular 内 (子表头, tabular 计数保持 2; F8)。
     pending_reason = results.get('innovation_pending_reason')
+    pending_by_dim = results.get('innovation_pending_by_dim', {}) or {}
+
+    def _panel_rows(panel_letter, title, metrics_key, dim_key):
+        dim_pending = pending_reason or pending_by_dim.get(dim_key)
+        _lines = [
+            rf"\multicolumn{{5}}{{l}}{{\textbf{{{title}}}}} \\",
+            r"\hline",
+        ]
+        dim_metrics = results.get('classifier_metrics', {}).get(metrics_key, {})
+        if dim_pending or not dim_metrics:
+            reason_text = dim_pending or 'n=0'
+            _lines.append(
+                rf"\multicolumn{{5}}{{l}}{{manual validation pending --- {reason_text}}} \\")
+        else:
+            for name, metrics in dim_metrics.items():
+                macro = metrics.get('macro', {})
+                _lines.append(
+                    rf"  {name} & {macro.get('precision', 0):.3f} & "
+                    rf"{macro.get('recall', 0):.3f} & {macro.get('f1', 0):.3f} & "
+                    rf"{metrics.get('accuracy', 0):.3f} \\"
+                )
+        return _lines
+
     lines.extend([
         "",
         r"\bigskip",
         r"\begin{tabular}{lcccc}",
         r"\hline",
-        r"\multicolumn{5}{l}{\textbf{Panel E: Innovation Substantiveness (binary, W\&Z 1994/1998 ASQ)}} \\",
-        r"\hline",
     ])
-    subst_metrics = results.get('classifier_metrics', {}).get('innovation_substantiveness', {})
-    if pending_reason or not subst_metrics:
-        reason_text = pending_reason or 'n=0'
-        lines.append(rf"\multicolumn{{5}}{{l}}{{manual validation pending --- {reason_text}}} \\")
-    else:
-        for name, metrics in subst_metrics.items():
-            macro = metrics.get('macro', {})
-            lines.append(
-                rf"  {name} & {macro.get('precision', 0):.3f} & "
-                rf"{macro.get('recall', 0):.3f} & {macro.get('f1', 0):.3f} & "
-                rf"{metrics.get('accuracy', 0):.3f} \\"
-            )
-    lines.extend([
-        r"\hline",
-        r"\multicolumn{5}{l}{\textbf{Panel F: Innovation Locus (binary, Gomber 2018 JMIS)}} \\",
-        r"\hline",
-    ])
-    locus_metrics = results.get('classifier_metrics', {}).get('innovation_locus', {})
-    if pending_reason or not locus_metrics:
-        reason_text = pending_reason or 'n=0'
-        lines.append(rf"\multicolumn{{5}}{{l}}{{manual validation pending --- {reason_text}}} \\")
-    else:
-        for name, metrics in locus_metrics.items():
-            macro = metrics.get('macro', {})
-            lines.append(
-                rf"  {name} & {macro.get('precision', 0):.3f} & "
-                rf"{macro.get('recall', 0):.3f} & {macro.get('f1', 0):.3f} & "
-                rf"{metrics.get('accuracy', 0):.3f} \\"
-            )
+    lines.extend(_panel_rows(
+        'E', r"Panel E: Innovation Substantiveness (binary, W\&Z 1994/1998 ASQ)",
+        'innovation_substantiveness', 'substantiveness'))
+    lines.append(r"\hline")
+    lines.extend(_panel_rows(
+        'F', r"Panel F: Innovation Locus (binary, Gomber-Koch-Siering 2017 JBE)",
+        'innovation_locus', 'locus'))
+    lines.append(r"\hline")
+    lines.extend(_panel_rows(
+        'G', r"Panel G: Innovation Collaboration Mode (binary, Chesbrough 2003 / Laursen-Salter 2006 SMJ)",
+        'innovation_collab_mode', 'collab'))
     lines.extend([
         r"\hline",
         r"\end{tabular}",
@@ -827,12 +967,23 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
     output_dir_cfg = config.get('paths', {}).get('output_dir', output_dir)
     mv_path = os.path.join(output_dir_cfg, 'manual_validation_samples.xlsx')
 
-    # 可达性检查 1 (Reachability check 1): 文件不存在
+    # WS-A (F23/R-P0-2): pending 两层。顶层 str = 全局失效 (向后兼容,
+    # 护 ≥10 处 flat 键断言); per-dim dict = 单维独立失效, 续跑其余维。
+    _DIMS = ('substantiveness', 'locus', 'collab')
+    results.setdefault('innovation_pending_reason', None)
+    results['innovation_pending_by_dim'] = {d: None for d in _DIMS}
+
+    def _global_pending(reason):
+        results['innovation_pending_reason'] = reason
+        for d in _DIMS:
+            results['innovation_pending_by_dim'][d] = reason
+
+    # 可达性检查 1 (Reachability check 1): 文件不存在 (全局)
     if not os.path.exists(mv_path):
-        results['innovation_pending_reason'] = 'file not present'
+        _global_pending('file not present')
         logger_inst.info(
             f"  manual_validation_samples.xlsx absent at {mv_path}; "
-            f"Panels E/F → pending."
+            f"Panels E/F/G → pending."
         )
         return
 
@@ -843,22 +994,31 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
             sheet = xl.sheet_names[0]
             df_mv = pd.read_excel(xl, sheet_name=sheet)
     except Exception as exc:
-        results['innovation_pending_reason'] = 'file not present'
+        _global_pending('file not present')
         logger_inst.warning(
             f"  failed to read manual_validation_samples.xlsx: {exc}; pending."
         )
         return
 
-    # 可达性检查 2 (Reachability check 2): schema 不匹配
-    all_r_cols = R_COLUMNS_BY_RATER['substantiveness'] + R_COLUMNS_BY_RATER['locus']
-    missing = [c for c in all_r_cols if c not in df_mv.columns]
+    # 可达性检查 2a: 核心两维 (subst+locus) schema 不匹配 → 全局 pending。
+    # ⚠ V-01: collab 不进此全局门 (其缺列只让 G pending, E/F 续跑)。
+    core_r_cols = R_COLUMNS_BY_RATER['substantiveness'] + R_COLUMNS_BY_RATER['locus']
+    missing = [c for c in core_r_cols if c not in df_mv.columns]
     if missing:
-        results['innovation_pending_reason'] = 'schema mismatch'
+        _global_pending('schema mismatch')
         logger_inst.warning(
-            f"  manual_validation_samples.xlsx missing R-columns: {missing}; "
-            f"Panels E/F → pending (schema mismatch)."
+            f"  manual_validation_samples.xlsx missing core R-columns: {missing}; "
+            f"Panels E/F/G → pending (schema mismatch)."
         )
         return
+
+    # 可达性检查 2b: collab schema (per-dim, 不触发全局早退)
+    collab_present = all(c in df_mv.columns for c in R_COLUMNS_BY_RATER['collab'])
+    if not collab_present:
+        results['innovation_pending_by_dim']['collab'] = 'schema mismatch'
+        logger_inst.info(
+            "  collab R-columns absent; Panel G → pending (E/F continue)."
+        )
 
     # 编码者合并 → gold (逐行对 3 名编码者做多数票)
     df_mv = df_mv.copy()
@@ -870,9 +1030,18 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
         lambda r: merge_three_rater_majority(r, R_COLUMNS_BY_RATER['locus']),
         axis=1,
     )
+    # collab gold (R6-P2-1): merge_three_rater_majority 用 row.get 容错, collab
+    # 缺列时返全 None → 软 pending; 勿改 df_mv[...] 直索引 (会 KeyError)。
+    df_mv['gold_collab'] = df_mv.apply(
+        lambda r: merge_three_rater_majority(r, R_COLUMNS_BY_RATER['collab']),
+        axis=1,
+    )
 
     n_gold_subst = df_mv['gold_substantiveness'].notna().sum()
     n_gold_locus = df_mv['gold_locus'].notna().sum()
+    n_gold_collab = df_mv['gold_collab'].notna().sum()
+    if collab_present and n_gold_collab == 0:
+        results['innovation_pending_by_dim']['collab'] = 'n=0'
 
     # fix(measurement-validation-audit 2026-06-13, P1-percoder-reliability): 在折叠成
     # 多数票 gold 之外, 对原始 3 编码者 (R1/R2/R3) 计算 Krippendorff α 并落盘。
@@ -883,10 +1052,15 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
     _INNOV_LABEL_CODE = {
         'substantiveness': {'实质性': 0, '象征性': 1},
         'locus': {'底层技术': 0, '应用场景': 1},
+        'collab': {'自主研发': 0, '外部协同': 1},
     }
+    # WS-A: collab 仅在其 R 列就位时纳入 ICR α 循环 (否则 df_mv[_col] KeyError)
+    _icr_dims = [('substantiveness', R_COLUMNS_BY_RATER['substantiveness']),
+                 ('locus', R_COLUMNS_BY_RATER['locus'])]
+    if collab_present:
+        _icr_dims.append(('collab', R_COLUMNS_BY_RATER['collab']))
     innov_icr = {}
-    for _dim, _rcols in (('substantiveness', R_COLUMNS_BY_RATER['substantiveness']),
-                         ('locus', R_COLUMNS_BY_RATER['locus'])):
+    for _dim, _rcols in _icr_dims:
         _code_map = _INNOV_LABEL_CODE[_dim]
         # (n_coders, n_items) 矩阵; 缺失/不可识别 = -1 (compute_krippendorffs_alpha 约定)
         _mat = np.full((len(_rcols), len(df_mv)), -1, dtype=int)
@@ -947,13 +1121,17 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
 
     df_joined = df_mv.merge(df_pred, on=join_key, how='inner', suffixes=('_mv', ''))
 
-    # 逐创新维度 × 逐轨道评估
+    # 逐创新维度 × 逐轨道评估 (WS-A: 加 collab → Panel G)
     for task_name, gold_col, pred_template, class_labels in [
         ('innovation_substantiveness', 'gold_substantiveness',
          'innovation_substantiveness{track}', ['实质性', '象征性']),
         ('innovation_locus', 'gold_locus',
          'innovation_locus{track}', ['底层技术', '应用场景']),
+        ('innovation_collab_mode', 'gold_collab',
+         'innovation_collab_mode{track}', ['自主研发', '外部协同']),
     ]:
+        # WS-A: 防御性 setdefault — 兼容未预置该 task 键的 caller/测试
+        results.setdefault('classifier_metrics', {}).setdefault(task_name, {})
         # 三轨 (full/ctx/ss); pred col 缺席时该轨优雅跳过 (下方守卫已处理)
         for track in ['_full', '_ctx', '_ss']:
             pred_col = pred_template.format(track=track)
@@ -970,6 +1148,24 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
             y_true = df_joined.loc[mask, gold_col].astype(str).to_numpy()
             y_pred = df_joined.loc[mask, pred_col].astype(str).to_numpy()
             metrics = compute_classification_metrics(y_true, y_pred, labels=class_labels)
+            # WS-A/WS-C criterion 信度 (F3/G4): sample-conditional κ + Gwet AC1
+            # (偏态稳健) + bootstrap κ CI。⚠ R6-P2-2: 直接喂中文 str array
+            # (compute_* 内部 sorted(set) 统一编码), 勿 _INNOV_LABEL_CODE 转换。
+            metrics['cohens_kappa'] = compute_cohens_kappa(y_true, y_pred)['kappa']
+            metrics['gwet_ac1'] = compute_gwet_ac1(y_true, y_pred)['ac1']
+            _rng = np.random.default_rng(42)
+            _nb = 1000
+            _boot = np.empty(_nb)
+            _ny = len(y_true)
+            for _bi in range(_nb):
+                _idx = _rng.integers(0, _ny, _ny)
+                _boot[_bi] = compute_cohens_kappa(y_true[_idx], y_pred[_idx])['kappa']
+            metrics['cohens_kappa_ci'] = [round(float(np.percentile(_boot, 2.5)), 4),
+                                          round(float(np.percentile(_boot, 97.5)), 4)]
+            # F13/R-P1-3: ctx/ss 轨为全文 gold 下的混合下界, 附构念披露
+            _disc = construct_disclosure_for(f"{task_name}{track}")
+            if _disc:
+                metrics['gold_construct_note'] = _disc
             # fix(measurement-validation-audit 2026-06-13, P1-population-weight): 样本按
             # LLM 预测分层过采样(稀有类相对总体被高估), 未加权 accuracy 是
             # stratum-conditional, 不可外推总体 (Manski-Lerman 1977 choice-based sample)。
@@ -991,6 +1187,25 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
                     metrics['accuracy_note'] = (
                         'accuracy=未加权(stratum-conditional, 不可外推总体); '
                         'accuracy_weighted_corpus=按 population_weight 后分层加权(总体口径)')
+                    # WS-C/F3: population-weighted κ_w (Manski-Lerman 外推口径)。
+                    # κ(未加权)=诊断分类器判别力; κ_w=外推总体, 二者并报。
+                    metrics['cohens_kappa_weighted'] = compute_cohens_kappa_weighted(
+                        y_true, y_pred, _w)['kappa']
+                    # 外推 CI: 加权 bootstrap (C2 + R8-fix)。⚠ 按 w 归一化概率
+                    # 重抽行**已承载总体口径**, 内层必须用**无权** κ; 若再 compute_
+                    # cohens_kappa_weighted(_w[_wi]) 会双重计权 → CI 偏移且不覆盖点估计。
+                    _wp = _w / _wsum
+                    _rng_w = np.random.default_rng(43)
+                    _bw = np.empty(1000)
+                    for _bj in range(1000):
+                        _wi = _rng_w.choice(_ny, _ny, p=_wp)
+                        _bw[_bj] = compute_cohens_kappa(y_true[_wi], y_pred[_wi])['kappa']
+                    metrics['cohens_kappa_weighted_ci'] = [
+                        round(float(np.percentile(_bw, 2.5)), 4),
+                        round(float(np.percentile(_bw, 97.5)), 4)]
+                    metrics['kappa_note'] = (
+                        'cohens_kappa=sample-conditional(诊断); cohens_kappa_weighted='
+                        'population-weighted 外推; gwet_ac1=偏态稳健(破 κ 悖论); 三者正交分列')
                 else:
                     metrics['accuracy_weighted_corpus'] = None
                     metrics['accuracy_note'] = (
@@ -1568,6 +1783,8 @@ def main():
             # Plan v1.37 P0 §3.3.2: 扩展为 4 任务, 支撑 Panel E (substantiveness) + F (locus)。
             'innovation_substantiveness': {},
             'innovation_locus': {},
+            # WS-A: Panel G (collab, Chesbrough 2003 / L&S 2006)
+            'innovation_collab_mode': {},
         },
         'mcnemar_test': {},
         # Plan v1.37 P0 §3.3.1 待标注 (pending) 语义

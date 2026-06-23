@@ -108,6 +108,81 @@ INDICATORS_FULL = {
 INDICATORS_CTX = {k: v.replace('_full', '_ctx') for k, v in INDICATORS_FULL.items()}
 INDICATORS_SS = {k: v.replace('_full', '_ss') for k, v in INDICATORS_FULL.items()}
 
+# WS-B (F6/F-R2): locus/collab 判别效度的焦点 indicator 列名。
+# ⚠ 硬编码命名例外 (third-track-ss/fintech-dims 两次踩坑): locus/collab 的
+#   ctx/ss 列名非机械 _full→_ctx/_ss swap, 禁 .replace 派生。
+#   对照轴 clarity/num_intensity 三维共用 (沿用 INDICATORS_*)。
+# direction=None → 无理论符号锚, 跳定向 κ, 只报无向 |corr| (见 run_discriminant_validity)。
+LOCUS_INDICATORS = {
+    '_full': {'substance_col': 'tech_frac',    'clarity_col': 'mean_clarity_score_full',
+              'num_intensity_col': 'mean_num_intensity_full'},
+    '_ctx':  {'substance_col': 'tech_frac_lc', 'clarity_col': 'mean_clarity_score_ctx',
+              'num_intensity_col': 'mean_num_intensity_ctx'},
+    '_ss':   {'substance_col': 'tech_frac_ls', 'clarity_col': 'mean_clarity_score_ss',
+              'num_intensity_col': 'mean_num_intensity_ss'},
+}
+COLLAB_INDICATORS = {
+    '_full': {'substance_col': 'collab_frac',       'clarity_col': 'mean_clarity_score_full',
+              'num_intensity_col': 'mean_num_intensity_full'},
+    '_ctx':  {'substance_col': 'collab_frac_cm',    'clarity_col': 'mean_clarity_score_ctx',
+              'num_intensity_col': 'mean_num_intensity_ctx'},
+    '_ss':   {'substance_col': 'collab_frac_cm_ss', 'clarity_col': 'mean_clarity_score_ss',
+              'num_intensity_col': 'mean_num_intensity_ss'},
+}
+
+# WS-B (F11): 三创新维彼此的 panel 列名 (跨构念 heterotrait-monomethod 块)。
+# ⚠ 硬编码命名例外, 禁 .replace 派生。substance=prob 均值 / locus·collab=frac 份额
+#   (口径异质, |corr| 不可与对照轴块横向比较, 见 compute_heterotrait_monomethod 披露)。
+INNOVATION_DIM_COLS = {
+    '_full': {'substance': 'avg_subst_prob_score_full', 'locus': 'tech_frac',    'collab': 'collab_frac'},
+    '_ctx':  {'substance': 'avg_subst_prob_score_ctx',  'locus': 'tech_frac_lc', 'collab': 'collab_frac_cm'},
+    '_ss':   {'substance': 'avg_subst_prob_score_ss',   'locus': 'tech_frac_ls', 'collab': 'collab_frac_cm_ss'},
+}
+
+
+def compute_heterotrait_monomethod(panel: pd.DataFrame, cols: dict,
+                                   min_n: int = 10) -> dict:
+    """三创新维彼此的跨构念 heterotrait-monomethod 裸相关块 (Campbell-Fiske 1959 概念锚)。
+
+    WS-B (F11): 对 (substance×locus) / (substance×collab) / (locus×collab) 三对
+    panel 列两两 |Pearson r|。⚠ 非 heteromethod 判别效度——三 frac/prob 列共享
+    stage21 LLM 单次调用方法方差, 低 |corr| 仅弱"非冗余"旁证; 承重判别证据是
+    stage 72 NMI。口径异质 (substance=prob 均值 vs locus/collab=frac 份额) 已披露。
+
+    Args:
+        panel: bank-year panel.
+        cols: {'substance': col, 'locus': col, 'collab': col} (某轨, 命名例外硬编码)。
+        min_n: 公共有限观测 < min_n → 该对标 insufficient_obs (与 F20 一致)。
+
+    Returns:
+        dict: {pair: {abs_corr|status, n_obs}} + method/披露串。
+    """
+    pairs = [('substance', 'locus'), ('substance', 'collab'), ('locus', 'collab')]
+    out = {
+        'method': 'heterotrait-monomethod |corr| (Campbell-Fiske 1959 概念锚, 非 heteromethod)',
+        'disclosure': ('三 frac/prob 列共享 stage21 LLM 单次调用方法方差 → 低 |corr| 仅弱'
+                       '非冗余旁证; 承重判别证据见 stage 72 NMI。口径异质 (substance=prob '
+                       '均值 vs locus/collab=frac 份额), |corr| 不可与对照轴块横向比较。'),
+        'pairs': {},
+    }
+    for a, b in pairs:
+        key = f'{a}_x_{b}'
+        ca, cb = cols.get(a), cols.get(b)
+        if ca not in panel.columns or cb not in panel.columns:
+            out['pairs'][key] = {'status': 'missing_column',
+                                 'missing': [c for c in (ca, cb) if c not in panel.columns]}
+            continue
+        arr_a = pd.to_numeric(panel[ca], errors='coerce').to_numpy(dtype=float)
+        arr_b = pd.to_numeric(panel[cb], errors='coerce').to_numpy(dtype=float)
+        n_common = int((np.isfinite(arr_a) & np.isfinite(arr_b)).sum())
+        if n_common < min_n:
+            out['pairs'][key] = {'status': 'insufficient_obs', 'n_obs': n_common}
+            continue
+        r = _safe_corrcoef(arr_a, arr_b)
+        out['pairs'][key] = {'abs_corr': abs(r) if not np.isnan(r) else float('nan'),
+                             'n_obs': n_common}
+    return out
+
 
 def _safe_corrcoef(a: np.ndarray, b: np.ndarray) -> float:
     """安全 Pearson r: 缺值 / 方差 0 → NaN."""
@@ -298,14 +373,27 @@ def run_discriminant_validity(
         clarity_col: str = 'mean_clarity_score_full',
         num_intensity_col: str = 'mean_num_intensity_full',
         n_articles_col: str = 'n_articles',
-        min_n_articles: int = 2) -> dict:
+        min_n_articles: int = 2,
+        focal_label: str = 'T1_substance',
+        direction: Optional[str] = 'positive') -> dict:
     """主入口: 对 bank-year panel 跑完整 discriminant validity 检验.
+
+    WS-B (F6/R-P1-2/R6-P2-3/P2-4): 泛化为可对任一创新维 (substance/locus/collab)
+    跑判别效度旁证。focal_col (=substance_col 形参, 复用) vs 词汇对照轴 clarity /
+    num_intensity 的裸相关 + permutation null。
+      - substance (direction='positive'): 有 W&Z 理论符号锚 → 报定向 Cohen κ;
+        返回键 cohen_kappa_substance_clarity / spearman_substance_clarity (M7 冻结)。
+      - locus/collab (direction=None): 无方向判别假设 → 跳过 κ, 只报无向
+        |corr| (abs_corr_focal_clarity) + spearman_focal_clarity。
+    ⚠ 判别效度承重证据是 stage 72 NMI; 此处 73 裸相关仅弱"非冗余"旁证。
 
     Args:
         panel: bank-year panel DataFrame.
-        substance_col / clarity_col / num_intensity_col: 列名.
+        substance_col / clarity_col / num_intensity_col: 焦点 + 对照轴列名.
         n_articles_col: n_articles 列名 (用于 ≥ 2 mask, 修 R8-H2).
         min_n_articles: 最小 article 数 cell (修 R8-H2).
+        focal_label: 焦点 indicator 的 T1 键名 (substance/locus/collab 区分).
+        direction: 'positive' → 有理论符号锚, 报定向 κ; None → 跳 κ 只报 |corr|.
 
     Returns:
         dict: 完整 discriminant validity report.
@@ -313,8 +401,9 @@ def run_discriminant_validity(
     required_cols = [substance_col, clarity_col, num_intensity_col]
     missing = [c for c in required_cols if c not in panel.columns]
     if missing:
-        logger.warning(f"v3.5.1 39d: 缺列 {missing}, graceful skip (R4)")
-        return {'status': 'missing_columns', 'missing': missing}
+        logger.warning(f"v3.5.1 73: 缺列 {missing}, graceful skip (R4)")
+        return {'status': 'missing_columns', 'missing': missing,
+                'focal_label': focal_label}
 
     # 修 R8-H2: n_articles ≥ 2 mask
     # metric-audit 2026-06-02: 判别效度 metric (substance/clarity) 建立在 LLM-valid
@@ -328,10 +417,11 @@ def run_discriminant_validity(
         logger.info(f"v3.5.1 39d: {_mask_col} ≥ {min_n_articles} mask 后 {len(panel)} obs")
 
     if len(panel) < 10:
-        return {'status': 'insufficient_obs', 'n_obs': len(panel)}
+        return {'status': 'insufficient_obs', 'n_obs': len(panel),
+                'focal_label': focal_label}
 
     indicators = {
-        'T1_substance': panel[substance_col].to_numpy(),
+        focal_label: panel[substance_col].to_numpy(),
         'T2_clarity': panel[clarity_col].to_numpy(),
         'T3_num_intensity': panel[num_intensity_col].to_numpy(),
     }
@@ -339,10 +429,6 @@ def run_discriminant_validity(
     htmt = compute_htmt(indicators)
     ave_phi = compute_ave_and_phi_squared(indicators)
     cronbach = compute_cronbach_alpha_across_indicators(indicators)
-    cohen_dict = compute_cohen_kappa_substance_vs_clarity(
-        indicators['T1_substance'], indicators['T2_clarity'])
-    spearman_sc = compute_spearman_substance_clarity(
-        indicators['T1_substance'], indicators['T2_clarity'])
     null_dist = compute_permutation_null(indicators, seed=PERMUTATION_SEED)
 
     # HTMT 双 cutoff 解读 (修 R4-M2)
@@ -357,21 +443,34 @@ def run_discriminant_validity(
         else:
             htmt_verdict[k] = 'fail'
 
-    return {
+    report = {
         'status': 'ok',
         'n_obs': len(panel),
+        'focal_label': focal_label,
         'htmt': htmt,
         'htmt_cutoff_strict': HTMT_CUTOFF_STRICT,
         'htmt_cutoff_lenient': HTMT_CUTOFF_LENIENT,
         'htmt_verdict': htmt_verdict,
         'ave_phi_squared': ave_phi,
         'cronbach_alpha_across': cronbach,
-        'cohen_kappa_substance_clarity': cohen_dict,
-        'spearman_substance_clarity': spearman_sc,
         'permutation_null': null_dist,
         'permutation_seed': PERMUTATION_SEED,
         'min_n_articles_mask': min_n_articles,
     }
+    # WS-B/R6-P2-4: substance 有理论符号锚 → 定向 κ + 旧键名冻结;
+    # locus/collab (direction=None) → 跳 κ, 只报无向 |corr| + spearman。
+    spearman_fc = compute_spearman_substance_clarity(
+        indicators[focal_label], indicators['T2_clarity'])
+    if direction is not None:
+        report['cohen_kappa_substance_clarity'] = (
+            compute_cohen_kappa_substance_vs_clarity(
+                indicators[focal_label], indicators['T2_clarity']))
+        report['spearman_substance_clarity'] = spearman_fc
+    else:
+        report['abs_corr_focal_clarity'] = htmt.get(
+            f'htmt_{focal_label}_T2_clarity', float('nan'))
+        report['spearman_focal_clarity'] = spearman_fc
+    return report
 
 
 def _write_track_report(report: dict, out_dir: Path, suffix: str) -> None:
@@ -471,7 +570,7 @@ def main():
 
     panel = pd.read_parquet(panel_path)
 
-    # 三轨各跑一次 (ss = 银行+金科同句共现轨; INDICATORS_SS 列缺失时优雅跳过)
+    # substance 三轨各跑一次 (有 W&Z 理论符号锚 → 定向 κ; INDICATORS_SS 列缺失优雅跳过)
     for suffix, cols in (
         ('full', INDICATORS_FULL),
         ('ctx', INDICATORS_CTX),
@@ -481,9 +580,44 @@ def main():
         # graceful skip 路径: run_discriminant_validity 在缺列 / 样本不足时
         # 返回 {'status': ..., ...} 而非完整 metric 字典. 此时不写文件 + 简短日志.
         if isinstance(report, dict) and report.get('status') in ('missing_columns', 'insufficient_obs'):
-            logger.info(f"v3.5.1 stage 39d [{suffix}] 跳过: {report}")
+            logger.info(f"v3.5.1 stage 73 [substance/{suffix}] 跳过: {report}")
             continue
         _write_track_report(report, out_dir, suffix)
+
+    # WS-B: locus / collab 三轨各跑一次 (无理论符号锚 → direction=None, 跳定向 κ,
+    # 只报无向 |corr|)。承重判别证据是 stage 72 NMI; 此处仅弱"非冗余"旁证。
+    # 命名例外列名硬编码在 LOCUS/COLLAB_INDICATORS (禁 .replace 派生)。
+    for dim, ind_map, flabel in (
+        ('locus', LOCUS_INDICATORS, 'T1_locus'),
+        ('collab', COLLAB_INDICATORS, 'T1_collab'),
+    ):
+        for track, cols in ind_map.items():
+            suffix = track.lstrip('_')
+            report = run_discriminant_validity(
+                panel, **cols, focal_label=flabel, direction=None)
+            if isinstance(report, dict) and report.get('status') in (
+                    'missing_columns', 'insufficient_obs'):
+                logger.info(f"v3.5.1 stage 73 [{dim}/{suffix}] 跳过: {report}")
+                continue
+            # dim-suffixed 产物 (73_discriminant_{dim}_{track})
+            name_js = f'73_discriminant_{dim}_{suffix}.json'
+            with open(out_dir / name_js, 'w', encoding='utf-8') as f:
+                json.dump(report, f, ensure_ascii=False, indent=2, default=str)
+            logger.info(
+                f"v3.5.1 stage 73 [{dim}/{suffix}] 完成 (无向 |corr| 旁证, 无定向 κ): "
+                f"HTMT verdict={report.get('htmt_verdict')}, "
+                f"abs_corr_focal_clarity={report.get('abs_corr_focal_clarity')}")
+
+    # WS-B (F11): 三创新维彼此跨构念 heterotrait-monomethod 块 (三轨各一份)。
+    # 弱"非冗余"旁证 (承重判别证据是 stage 72 NMI); 命名例外硬编码。
+    for track, dim_cols in INNOVATION_DIM_COLS.items():
+        suffix = track.lstrip('_')
+        hm = compute_heterotrait_monomethod(panel, dim_cols)
+        with open(out_dir / f'73_heterotrait_monomethod_{suffix}.json',
+                  'w', encoding='utf-8') as f:
+            json.dump(hm, f, ensure_ascii=False, indent=2, default=str)
+        logger.info(f"v3.5.1 stage 73 [跨构念/{suffix}] heterotrait-monomethod: "
+                    f"{ {k: v.get('abs_corr', v.get('status')) for k, v in hm['pairs'].items()} }")
 
     logger.info("⚠ 盘面 T=2 小样本 (mask 后约数十个 bank-year), 结果仅验证管道正确性, 非全量生产结论。")
 

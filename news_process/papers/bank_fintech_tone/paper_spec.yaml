@@ -155,3 +155,11 @@ tables:
     num_intensity_robustness:
       anchor: "Davis & Tama-Sweet (2012) CAR 29(3); 公式项目自定义操作化 (原引 Hales 2011 系误归, 见 numerical_intensity 模块 docstring)"
       dual_track: true  # 真双轨 (修 R3-C2)
+
+# -- WS-E + R8-EIC (per-dim validity_claim_gate full coverage of 4 main-measure papers) --
+validation:
+  commitment_status: new_2026-06-22
+  evidence_status: pending_human_annotation
+  validity_claim_gate:
+    requires_real_human_kappa_for: tone
+  note: "G0 tone real kappa is non-deferred (currently-disk startable via 61_human_samples + 09_sentiment_verify); unlocks ONLY tone paper"

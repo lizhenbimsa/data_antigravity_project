@@ -362,3 +362,98 @@ def test_main_writes_outputs_on_happy_path(tmp_path, monkeypatch):
     assert 'htmt' in data
     assert 'permutation_seed' in data
     assert data['permutation_seed'] == 42
+
+
+# ── WS-B: 泛化 73 到 locus/collab (F6/R-P1-2/R6-P2-3/P2-4) ──
+def _synthetic_panel(n=120, seed=0):
+    rng = np.random.RandomState(seed)
+    return pd.DataFrame({
+        'n_articles_llm_valid': [5] * n,
+        'avg_subst_prob_score_full': rng.rand(n),
+        'tech_frac': rng.rand(n), 'collab_frac': rng.rand(n),
+        'mean_clarity_score_full': rng.rand(n),
+        'mean_num_intensity_full': rng.rand(n),
+    })
+
+
+def test_wsb_naming_exceptions_hardcoded():
+    """R-2 唯一真护栏: locus/collab ctx/ss 命名例外列名字面硬断言 (防 .replace swap)。"""
+    from news_process.pipeline.audit.lexical_discriminant_validity import COLLAB_INDICATORS, LOCUS_INDICATORS
+    assert LOCUS_INDICATORS['_full']['substance_col'] == 'tech_frac'
+    assert LOCUS_INDICATORS['_ctx']['substance_col'] == 'tech_frac_lc'
+    assert LOCUS_INDICATORS['_ss']['substance_col'] == 'tech_frac_ls'
+    assert COLLAB_INDICATORS['_full']['substance_col'] == 'collab_frac'
+    assert COLLAB_INDICATORS['_ctx']['substance_col'] == 'collab_frac_cm'
+    assert COLLAB_INDICATORS['_ss']['substance_col'] == 'collab_frac_cm_ss'
+
+
+def test_wsb_substance_return_keys_frozen():
+    """M7: substance 轨返回 dict 保留旧 κ 键名字面 (向后兼容基线)。"""
+    from news_process.pipeline.audit.lexical_discriminant_validity import INDICATORS_FULL, run_discriminant_validity
+    r = run_discriminant_validity(_synthetic_panel(), **INDICATORS_FULL)
+    assert r['status'] == 'ok'
+    assert 'cohen_kappa_substance_clarity' in r
+    assert 'spearman_substance_clarity' in r
+
+
+def test_wsb_locus_collab_no_directional_kappa():
+    """R-P1-2: locus/collab direction=None → 不产 κ 键, 只报无向 |corr|。"""
+    from news_process.pipeline.audit.lexical_discriminant_validity import (
+        COLLAB_INDICATORS,
+        LOCUS_INDICATORS,
+        run_discriminant_validity,
+    )
+    panel = _synthetic_panel()
+    for ind, flabel in ((LOCUS_INDICATORS['_full'], 'T1_locus'),
+                        (COLLAB_INDICATORS['_full'], 'T1_collab')):
+        r = run_discriminant_validity(panel, **ind, focal_label=flabel, direction=None)
+        assert r['status'] == 'ok'
+        assert 'cohen_kappa_substance_clarity' not in r  # 无定向 κ
+        assert 'abs_corr_focal_clarity' in r              # 无向 |corr| 旁证
+        assert r['focal_label'] == flabel
+
+
+def test_wsb_cross_construct_block_present():
+    """C1/F11: 三创新维彼此 heterotrait-monomethod 裸相关块 (3 对 |corr|)。"""
+    from news_process.pipeline.audit.lexical_discriminant_validity import (
+        INNOVATION_DIM_COLS,
+        compute_heterotrait_monomethod,
+    )
+    rng = np.random.RandomState(1)
+    n = 60
+    panel = pd.DataFrame({
+        'avg_subst_prob_score_full': rng.rand(n),
+        'tech_frac': rng.rand(n), 'collab_frac': rng.rand(n),
+    })
+    hm = compute_heterotrait_monomethod(panel, INNOVATION_DIM_COLS['_full'])
+    assert 'heterotrait-monomethod' in hm['method']
+    assert set(hm['pairs'].keys()) == {'substance_x_locus', 'substance_x_collab', 'locus_x_collab'}
+    for v in hm['pairs'].values():
+        assert 0.0 <= v['abs_corr'] <= 1.0
+
+
+def test_wsb_cross_construct_min_n_guard():
+    """F20: 公共有限观测 < 10 → 标 insufficient_obs (非伪 |corr|)。"""
+    from news_process.pipeline.audit.lexical_discriminant_validity import (
+        INNOVATION_DIM_COLS,
+        compute_heterotrait_monomethod,
+    )
+    panel = pd.DataFrame({  # 仅 5 行有限观测
+        'avg_subst_prob_score_full': [0.1, 0.2, 0.3, 0.4, 0.5],
+        'tech_frac': [0.5, 0.4, 0.3, 0.2, 0.1],
+        'collab_frac': [0.2, 0.3, 0.4, 0.5, 0.6],
+    })
+    hm = compute_heterotrait_monomethod(panel, INNOVATION_DIM_COLS['_full'], min_n=10)
+    for v in hm['pairs'].values():
+        assert v['status'] == 'insufficient_obs'
+
+
+def test_wsb_cross_construct_missing_column():
+    """缺列 → 标 missing_column (graceful)。"""
+    from news_process.pipeline.audit.lexical_discriminant_validity import (
+        INNOVATION_DIM_COLS,
+        compute_heterotrait_monomethod,
+    )
+    panel = pd.DataFrame({'avg_subst_prob_score_full': [0.1] * 20})  # 缺 tech_frac/collab_frac
+    hm = compute_heterotrait_monomethod(panel, INNOVATION_DIM_COLS['_full'])
+    assert hm['pairs']['locus_x_collab']['status'] == 'missing_column'

@@ -190,3 +190,23 @@ tables:
     template: null  # remove-title-track: 标题轨稳健性表已取消
   tA9:
     template:
+
+# ── WS-E (G6/R-P0-2): 测量效度承诺块 (commitment_status=new; 非伪称兑现) ──
+validation:
+  commitment_status: new_2026-06-22
+  evidence_status: pending_T18_human_annotation
+  validity_claim_gate:
+    requires_real_human_kappa_for: locus
+  criterion_validity:
+    stage: 63
+    panel: "F"
+    method: "3-coder majority gold (R1/R2/R3) vs LLM 3-track; Cohen kappa + Gwet AC1 + Krippendorff alpha"
+    hybrid_disclosure: "Panel F (locus) machine label is HYBRID (LLM majority vote + canonicalize_topic keyword confidence adjustment + empty-vote fallback); its criterion/discriminant kappa inherits a keyword circularity absent from pure-LLM substance/collab, so locus validity numbers are NOT directly comparable to the pure-LLM dimensions (R4-EIC-F3)."
+  discriminant_validity:
+    stage: 73
+    method: "focal frac vs clarity/num_intensity |corr| (no directional kappa; non-redundancy aux only)"
+    main_evidence: "stage 72 NMI (article-level construct orthogonality)"
+    evidence_type: within_single_LLM_method_nonredundancy
+  inter_track_reliability:
+    stage: 71
+    method: "Cohen kappa across full/ctx/ss tracks (machine-machine)"

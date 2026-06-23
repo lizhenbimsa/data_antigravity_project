@@ -36,7 +36,7 @@ else {
 
 * Panel B: clarity_full × substantiveness 交互 (construct-separability 构念可分性检验)
 * 白话: 这里跑的是清晰度与实质性的交互回归, 检查两构念是否可区分; HTMT 比率本身不在本 do-file 计算,
-*       而是由 stage 39d 产出后填入下方 display 行 (见 line 64-66), 此回归只是其旁证。
+*       而是由 stage 73 产出后填入下方 display 行 (见 line 64-66), 此回归只是其旁证。
 capture confirm variable mean_clarity_score_full
 if !_rc {
     reghdfe {{MAIN_DV}} c.mean_clarity_score_full##c.{{MAIN_TREAT}} $bank_controls, ///
@@ -60,11 +60,11 @@ if !_rc {
     eststo subst_clarity_binary
 }
 
-* HTMT diagnostic (stage 39d 运行时填充, 修 R9-H3 seed=42).
-* Replication 包用户应先跑 stage 39d 生成 data/processed/73_htmt_matrix.json,
+* HTMT diagnostic (stage 73 运行时填充, 修 R9-H3 seed=42).
+* Replication 包用户应先跑 stage 73 生成 data/processed/73_htmt_matrix.json,
 * 然后人工填入 local; 或 batch 模式由 stata_runner pre-render 注入.
-local htmt_subst_clarity = "<run 39d first>"
-display "v3.5.1 39d HTMT(substance, clarity) = `htmt_subst_clarity'"
+local htmt_subst_clarity = "<run 73 first>"
+display "v3.5.1 73 HTMT(substance, clarity) = `htmt_subst_clarity'"
 display "  双 cutoff: strict < 0.85 / lenient < 0.90 (修 R4-M2)"
 
 * 输出
