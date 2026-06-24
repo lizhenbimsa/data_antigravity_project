@@ -5,8 +5,11 @@
          (build_union_dictionary, 多数票消歧+平票剔除), 替代逐篇漂移 best-dict
 - 02/06/12: clarity / {dict}_pos|neg_ratio / 全局 pos|neg_ratio 分母 word-token 化
          (复用 lm_non_sentiment._LMFLS_NONWORD_RE, 与 lmfls-01 LM/FLS 修复同口径)
-- 03/07: 词典加载 positive∩negative 跨类重叠显式双侧剔除 (jiang 21 / you_2018 5,
-         含 '打破'/'反弹'); clarity definite∩ambiguous ('不可') 同款
+- 03/07 (已被用户决策 2026-06-24 逆转): 词典加载 positive∩negative 跨类重叠词
+         **保留并两侧计数** (不再剔除; jiang 含 '打破' / you_2018 含 '反弹'): 登记
+         _BOTH_SIDED_BY_DICT, 打分时 pos/neg 各 +1、分子净 0 → 个体 {dict}_score 拉向中性;
+         union 以 (+1,−1) 平衡双票喂入 → msent/ratio 逐位不变。clarity definite∩ambiguous
+         ('不可') 同款保留 (两集合各计一次)。见 TestCrossPolarityOverlapResolution。
 - 04: build_idf_weights DF/N 按唯一文档去重 ((article×bank) 展开行不再膨胀 DF)
 - 09: 程度副词×3.0/转折×1.5 加权 tone 归一化分母 = Σ|final_score| → 恒有界 [-1,1]
 - 10/11: jieba 注入隔离 — 领域词只进独立 tone tokenizer, 全局 jieba 纯净
@@ -20,9 +23,12 @@
 
 # 白话: 词典法情感打分的修复锁: 五本情感词典合成一本"并集词典"统一计数,
 # 同一个词在不同词典里有正有负就按多数票定、平票直接剔除; 算比例的分母只数
-# 真正的词, 标点和纯数字不算; "打破""反弹"这种又在正面表又在负面表的词,
-# 两边都删掉; 程度词加权后的分数除以加权总幅度, 保证永远落在 -1~1 之间;
-# 领域词只注入到独立分词器, 不污染全局 jieba; 空文章给 NaN 而不是 0。
+# 真正的词, 标点和纯数字不算; "打破""反弹"这种在同一本词典里又算正面又算负面的词,
+# **保留下来、正负各记一次**(2026-06-24 用户决定, 不再两边都删): 这样它对那本词典
+# 自己的总分相互抵消、把语调往中间拉, 而不是被丢掉; 合并成并集词典时它算一张正票
+# 加一张负票、刚好抵消, 所以并集词典和以前一模一样(msent/占比不变); 程度词加权后的
+# 分数除以加权总幅度, 保证永远落在 -1~1 之间; 领域词只注入到独立分词器, 不污染全局
+# jieba; 空文章给 NaN 而不是 0。
 """
 from __future__ import annotations
 
@@ -56,19 +62,26 @@ def _preserve_tone_globals():
         tone._UNION_DICT_CACHE,
         tone._CLARITY_DICTS,
     )
+    saved_both = dict(tone._BOTH_SIDED_BY_DICT)  # 跨类重叠词注册表 (load 时 .clear()+重建)
     yield
     (tone.ALL_DICTIONARIES, tone.IDF_DICTIONARIES,
      tone._UNION_DICT_CACHE, tone._CLARITY_DICTS) = saved
+    tone._BOTH_SIDED_BY_DICT.clear()
+    tone._BOTH_SIDED_BY_DICT.update(saved_both)
 
 
 # ════════════════════════════════════════════════════════════════════════
-# fix omni-g-tonewords-03/-07: positive∩negative 跨类重叠双侧剔除
+# 跨类重叠词「保留并两侧计数」(用户决策 2026-06-24, 逆转 fix omni-g-tonewords-03/-07
+# 的双侧剔除)。该词在某词典 positive∩negative 同时出现时不再剔除, 而是:
+#   ① 保留在词典 (幅值 1.0 占位) + 登记到 _BOTH_SIDED_BY_DICT;
+#   ② 打分时同时计入 pos/neg, 分子净 0、分母 +2|w| → 个体 {dict}_score 拉向中性;
+#   ③ union 以 (+1,−1) 平衡双票喂入 → margin 守恒 → msent/ratio 逐位不变。
 # ════════════════════════════════════════════════════════════════════════
 
 class TestCrossPolarityOverlapResolution:
-    def test_overlap_words_dropped_from_both_sides(self):
-        """jiang_2021 (21 词, 含 '打破') / you_2018 (5 词, 含 '反弹') 重叠词
-        加载后双侧消失 — 旧实现 last-writer-wins 静默判负 (-1.0)。"""
+    def test_overlap_words_kept_and_registered(self):
+        """jiang_2021 (含 '打破') / you_2018 (含 '反弹') 重叠词加载后**保留**且登记到
+        _BOTH_SIDED_BY_DICT (逆转旧 last-writer-wins 静默判负 / 双侧剔除)。"""
         with open(tone.TONE_DICTS_FILE, 'r', encoding='utf-8') as f:
             raw = json.load(f)
         loaded = dict(tone.load_all_dictionaries())
@@ -78,33 +91,77 @@ class TestCrossPolarityOverlapResolution:
             overlap = pos & neg
             assert overlap, f"前提失效: {key} 源词典应存在 pos∩neg 重叠"
             for w in overlap:
-                assert w not in loaded[key], (
-                    f"{key} 重叠词 {w!r} 应被双侧剔除 (旧行为: 静默判负)")
-        # 高频代表词显式锁定
-        assert '打破' not in loaded['jiang_2021']
-        assert '反弹' not in loaded['you_2018']
+                assert w in loaded[key], f"{key} 重叠词 {w!r} 应被保留 (不再剔除)"
+            assert tone._BOTH_SIDED_BY_DICT.get(key) == frozenset(overlap), (
+                f"{key} 重叠词应全部登记到 _BOTH_SIDED_BY_DICT")
+        # 高频代表词显式锁定 (保留)
+        assert '打破' in loaded['jiang_2021']
+        assert '反弹' in loaded['you_2018']
 
-    def test_loaded_counts_match_post_resolution_sets(self):
-        """剔除后正/负词条数 = 源 set 差集大小 (数量断言, 防回归静默覆盖)。"""
+    def test_loaded_counts_equal_union_of_pos_neg(self):
+        """保留后词条数 = |pos ∪ neg| (含重叠词; 防回归漏词/静默覆盖)。"""
         with open(tone.TONE_DICTS_FILE, 'r', encoding='utf-8') as f:
             raw = json.load(f)
         loaded = dict(tone.load_all_dictionaries())
         entry = raw['jiang_2021']
         pos = {str(w).strip() for w in entry['positive'] if str(w).strip()}
         neg = {str(w).strip() for w in entry['negative'] if str(w).strip()}
-        overlap = pos & neg
         d = loaded['jiang_2021']
-        assert sum(1 for v in d.values() if v > 0) == len(pos - overlap)
-        assert sum(1 for v in d.values() if v < 0) == len(neg - overlap)
+        assert len(d) == len(pos | neg)
 
-    def test_clarity_cross_overlap_dropped(self):
-        """clarity definite∩ambiguous ('不可' 1 词) 双侧剔除 → 387/177。"""
+    def test_both_sided_word_counts_both_and_nets_zero(self):
+        """引擎语义: 命中跨类重叠词 → pos/neg 各 +1, 归一化分数净 0 (拉向中性)。"""
+        sd = {'打破': 1.0, '上涨': 1.0, '下跌': -1.0}
+        both = frozenset(['打破'])
+        # 纯重叠词 → 归一化 0 (净抵消), 但 pos/neg 各 +1
+        _, norm, p, n, matched = tone._compute_sentiment_with_rules(
+            ['打破'], sd, both_sided_words=both)
+        assert norm == pytest.approx(0.0)
+        assert p == 1 and n == 1
+        # matched 含一对 (+1,−1) 项 (供 union 口径正确双计)
+        assert sum(1 for m in matched if m['base'] > 0) == 1
+        assert sum(1 for m in matched if m['base'] < 0) == 1
+        # 与单极词同现: '上涨'(+1) + '打破'(两侧, 净0) → 分子 +1 / 分母 1+2=3
+        _, norm2, p2, n2, _ = tone._compute_sentiment_with_rules(
+            ['上涨', '打破'], sd, both_sided_words=both)
+        assert norm2 == pytest.approx(1.0 / 3.0)
+        assert p2 == 2 and n2 == 1  # 上涨→pos; 打破→pos+neg
+
+    def test_both_sided_dilutes_vs_single_polarity(self):
+        """两侧计数把语调拉向中性: 同一词若当作单极正面会得更高分。"""
+        # both-sided '词' 与 '上涨' 同现
+        sd = {'词': 1.0, '上涨': 1.0}
+        _, norm_single, *_ = tone._compute_sentiment_with_rules(['词', '上涨'], sd)
+        _, norm_both, *_ = tone._compute_sentiment_with_rules(
+            ['词', '上涨'], sd, both_sided_words=frozenset(['词']))
+        assert norm_single == pytest.approx(1.0)         # 两个正面 → +1
+        assert norm_both == pytest.approx(1.0 / 3.0)     # 重叠词稀释 → 更低
+        assert norm_both < norm_single
+
+    def test_union_unchanged_by_both_sided_balanced_votes(self):
+        """union 把跨类重叠词当 (+1,−1) 平衡双票 → margin 守恒, 与剔除版逐位一致。"""
+        dicts = [
+            ('jiang_2021', {'打破': 1.0, '风险': -1.0}),  # '打破' 仅此词典 (both-sided)
+            ('yao_2021', {'稳健': 1.0}),
+        ]
+        bs = {'jiang_2021': frozenset(['打破'])}
+        union = tone.build_union_dictionary(dicts, both_sided_by_dict=bs)
+        # '打破' margin = 0 → 平票剔除 (不进 union); 其余正常
+        assert '打破' not in union
+        assert union['风险'] == -1.0 and union['稳健'] == 1.0
+        # 对照: 同样的词在另一词典是单极正面 → margin 不被 (+1,−1) 改变
+        dicts2 = dicts + [('bian_2021', {'打破': 1.0})]
+        union2 = tone.build_union_dictionary(dicts2, both_sided_by_dict=bs)
+        assert union2['打破'] == 1.0  # bian 的 +1 决出多数, jiang 的平衡双票不改 margin
+
+    def test_clarity_cross_overlap_kept(self):
+        """clarity definite∩ambiguous ('不可' 1 词) 保留并两侧计数 → 388/178, 重叠仍在两集合。"""
         tone._CLARITY_DICTS = None
         def_set, amb_set = tone.load_clarity_dictionaries()
-        assert not (def_set & amb_set)
-        assert '不可' not in def_set and '不可' not in amb_set
-        assert len(def_set) == 387
-        assert len(amb_set) == 177
+        assert '不可' in def_set and '不可' in amb_set
+        assert def_set & amb_set == frozenset(['不可'])
+        assert len(def_set) == 388
+        assert len(amb_set) == 178
 
 
 # ════════════════════════════════════════════════════════════════════════

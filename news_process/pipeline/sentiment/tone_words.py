@@ -38,11 +38,17 @@ news_process.pipeline.sentiment.tone_words — 阶段22：基于词典的情感�
 │    └─ positive(1,310) / negative(3,752); 另含 5 类非极性词类   │
 └────────────────────────────────────────────────────────────┘
 
-词典消歧 (fix omni-g-tonewords-03/-07, 2026-06-11):
-    加载时对每部词典的 positive∩negative 跨类重叠词 (jiang_2021 21 词 /
-    you_2018 5 词) 按 LM 2011 JF 惯例**双侧剔除** + 日志披露 — 旧实现
-    negative 循环 last-writer-wins 静默判负。clarity 的 definite∩ambiguous
-    重叠 ('不可') 同样双侧剔除。故运行时词条数 < 上表原始计数。
+词典消歧 (用户决策 2026-06-24「保留并两侧计数」, 逆转 fix omni-g-tonewords-03/-07):
+    加载时对每部词典的 positive∩negative 跨类重叠词 (jiang_2021 21 词 / you_2018 5 词 /
+    loughran 61 词) **保留**而非剔除: 登记到 ``_BOTH_SIDED_BY_DICT``, 打分时同时计入
+    pos/neg (对该词典个体 ``{dict}_score`` 净语调拉向中性、不武断选边), 故运行时词条数
+    = 原始 |pos∪neg| (不再 < 上表)。clarity 的 definite∩ambiguous 重叠 ('不可') 同样保留,
+    在两集合各自计数 (clarity 口径的两侧计入)。
+    ⚠ union/msent/ratio 不受影响: 重叠词以 (+1,−1) 平衡双票喂入固定 union 词典 → 极性
+      margin 守恒 → union 逐位不变 (见 ``build_union_dictionary``)。
+    (历史: fix omni-g-tonewords-03/-07 曾按 LM 2011 JF 惯例双侧剔除, 旧旧实现则 negative
+      循环 last-writer-wins 静默判负; 现按用户决策恢复"保留", 但用对称两侧计数取代旧的
+      静默单极判负。)
 
 聚合测度的固定词典 (fix omni-g-tonewords-01/-05, 2026-06-11):
     pos_ratio / neg_ratio / msent_score 的计数基从"逐篇匹配数最多的词典"
@@ -75,7 +81,7 @@ news_process.pipeline.sentiment.tone_words — 阶段22：基于词典的情感�
 
 **输入**: 读 stage 21 输出 `21_tone_llms.parquet` (config 键 output_21_tone_llms; 取其 `content_full`/`content_ctx`/`content_ss`/`内容`/`标题` 等列)。
 
-**处理步骤**: ①`load_all_dictionaries()` 延迟加载六部中文金融情感词典 (jiang_2021 / yao_2021 / bian_2021 / du_2022 / you_2018 / loughran_mcdonald_zh_2026 = L&M 2011 JF 中文主译本) + 跨类重叠词双侧剔除 + `_inject_custom_dicts_to_jieba` 注入 jieba 自定义词; ②可选 `build_idf_weights` 在与 TF 同一语料 (caller 传 content_full, 缺则回退 '内容') 上算 IDF 文档频率 (Gentzkow-Kelly-Taddy 2019 JEL §2.2), 公式 `log10(N/(1+df(w)))`, 均值归一(mean→1) 后 P1/P99 Winsorize, 文档级去重统计 N/df, 存 22_idf_weights.json; ③joblib 线程并行分批 `classify_batch`, 每批对每篇文章三轨调用打分; ④对每部词典每轨的 score 列做 Z-score 标准化 (`_zscore_or_nan`, σ 退化→整列 NaN); ⑤调 `enrich_with_num_intensity_dual_track` (外部模块导入) 三轨派生 `num_intensity_{full,ctx,ss}` (数值披露强度, Davis & Tama-Sweet 2012 CAR); ⑥写 parquet + 预览 CSV + 三轨分类报告。
+**处理步骤**: ①`load_all_dictionaries()` 延迟加载六部中文金融情感词典 (jiang_2021 / yao_2021 / bian_2021 / du_2022 / you_2018 / loughran_mcdonald_zh_2026 = L&M 2011 JF 中文主译本) + 跨类重叠词保留并两侧计数 (用户决策 2026-06-24, 逆转旧双侧剔除; 登记 `_BOTH_SIDED_BY_DICT`) + `_inject_custom_dicts_to_jieba` 注入 jieba 自定义词; ②可选 `build_idf_weights` 在与 TF 同一语料 (caller 传 content_full, 缺则回退 '内容') 上算 IDF 文档频率 (Gentzkow-Kelly-Taddy 2019 JEL §2.2), 公式 `log10(N/(1+df(w)))`, 均值归一(mean→1) 后 P1/P99 Winsorize, 文档级去重统计 N/df, 存 22_idf_weights.json; ③joblib 线程并行分批 `classify_batch`, 每批对每篇文章三轨调用打分; ④对每部词典每轨的 score 列做 Z-score 标准化 (`_zscore_or_nan`, σ 退化→整列 NaN); ⑤调 `enrich_with_num_intensity_dual_track` (外部模块导入) 三轨派生 `num_intensity_{full,ctx,ss}` (数值披露强度, Davis & Tama-Sweet 2012 CAR); ⑥写 parquet + 预览 CSV + 三轨分类报告。
 
 **关键算法/公式**: 核心是 `_compute_sentiment_with_rules(tokens, dict, apply_negation, apply_degree, apply_adversative)` —— 逐 token 状态机施加语言学规则: 否定词翻转极性 (窗口 NEGATION_WINDOW=2 个分词单元)、程度副词六级权重缩放 (HowNet 六级体系 + Liu 2012, DEGREE_WORDS 由 config 注入)、转折连词后权重 ×ADVERSATIVE_BOOST(默认 1.5)、句末标点重置作用域 (Ding 2008 从句级)。最终分 = self-normalized Σ(final)/Σ|final| ∈ [-1,+1]。**negonly 消融变体**: `apply_degree=False & apply_adversative=False` 只保留否定翻转, 产 `{dict}_score_negonly`/`msent_negonly`, 用作'主结果对去掉程度/转折两条规则是否敏感'的稳健性 (实测 corr(full,negonly)≈0.998-0.999 高度共线, 是稳健性对照非独立信号)。另产 `pos_ratio`/`neg_ratio` (固定 union 词典计数 / word-token 数)、`msent_score`=(raw_neg−raw_pos)/(raw_pos+raw_neg) 原始极性计数 (零规则; framing ≈ Tetlock 2007/Garcia 2013/Henry 2008; 代码注 He et al. 2024 IRFA Eq.1)、clarity/可读性/词汇复杂度等 $0 测度族。
 
@@ -95,6 +101,7 @@ import json
 import logging
 import math
 import os
+import platform
 import re
 import string
 import sys
@@ -169,6 +176,14 @@ TONE_DICTS_FILE = CONFIG['paths'].get(
 # 的 append 处 (下方)；encode.py::DICT_NAMES / export.py::dict_names 直接硬编码别名 'loughran'
 # 与此一致 (两侧 byte-for-byte 相同，否则 stage 45 聚合静默漏列 → 全 NaN)。
 DICT_COLUMN_ALIAS = {'loughran_mcdonald_zh_2026': 'loughran'}
+
+# 跨类重叠词「两侧计数」注册表 (用户决策 2026-06-24, 逆转 fix omni-g-tonewords-03 的双侧剔除)。
+# 键 = 列前缀别名 (与 ALL_DICTIONARIES 元组的 name 同口径, 经 DICT_COLUMN_ALIAS 映射),
+# 值 = 该词典 positive∩negative 同时出现的词集 frozenset。由 load_all_dictionaries 每次
+# 加载时重建 (单一事实源)。消费方: ① _compute_sentiment_with_rules 经 both_sided_words 形参
+# 对这些词两侧计数; ② build_union_dictionary 把它们当作 (+1,−1) 双票 → union 极性 margin
+# 守恒, msent/ratio 字节不变 (见该函数注释)。空 dict 时所有 .get 回退空集 → 退化为旧行为。
+_BOTH_SIDED_BY_DICT: dict[str, frozenset[str]] = {}
 
 
 # ============================================================================
@@ -252,8 +267,9 @@ def load_clarity_dictionaries() -> tuple[frozenset, frozenset]:
         tuple[frozenset, frozenset]: ``(definite_set, ambiguous_set)``
             definite_set = 388 词 (Panel C, You 2018);
             ambiguous_set = 178 词 (Panel D, You 2018).
-            注 (fix omni-g-tonewords-03): definite∩ambiguous 跨类重叠词双侧剔除
-            后实际为 387 / 177 词 (剔除 '不可' 1 词, 见加载段日志披露)。
+            注 (用户决策 2026-06-24, 逆转 fix omni-g-tonewords-03): definite∩ambiguous
+            跨类重叠词 ('不可' 1 词) **保留并两侧计数** (不再剔除) → 实际仍为 388 / 178 词,
+            重叠词同时存于两集合 (clarity 口径下天然两侧计入, 见加载段日志披露)。
 
     锚定文献:
         - Loughran & McDonald (2011) JF 66(1) uncertain dictionary
@@ -277,17 +293,17 @@ def load_clarity_dictionaries() -> tuple[frozenset, frozenset]:
             if isinstance(you, dict):
                 def_set = frozenset(w.strip() for w in you.get('definite', []) if w and isinstance(w, str))
                 amb_set = frozenset(w.strip() for w in you.get('ambiguous', []) if w and isinstance(w, str))
-                # fix(omni-g-tonewords-03, 2026-06-11): definite∩ambiguous 跨类重叠词
-                # (实测 '不可' 1 词) 双侧剔除 — 旧实现同词双计, 在 clarity_score 中
-                # 抵消但同时虚增 frac_definite 与 frac_ambiguous; LM 2011 惯例为剔除
-                # 极性/类别歧义词。剔除清单日志披露。
+                # 跨类重叠词「保留并两侧计数」(用户决策 2026-06-24, 逆转 fix omni-g-tonewords-03
+                # 的双侧剔除): definite∩ambiguous (实测 '不可' 1 词) 不再剔除, 而是同时保留在
+                # 两个集合中。_compute_clarity_for_text 对两集合各自独立计数 → 重叠词天然两侧
+                # 计入 (n_definite 与 n_ambiguous 各 +1), 在 clarity_score = frac_def − frac_amb
+                # 中净抵消、但两侧 fraction 各自抬升 (= "两侧计数" 在 clarity 口径的自然体现)。
                 _cross = def_set & amb_set
                 if _cross:
-                    logger.warning(
-                        f"clarity definite∩ambiguous 跨类重叠 {len(_cross)} 词已双侧剔除 "
-                        f"(fix omni-g-tonewords-03): {sorted(_cross)}")
-                    def_set = def_set - _cross
-                    amb_set = amb_set - _cross
+                    logger.info(
+                        f"clarity definite∩ambiguous 跨类重叠 {len(_cross)} 词保留并两侧计数 "
+                        f"(用户决策 2026-06-24, 逆转 fix omni-g-tonewords-03 的双侧剔除): "
+                        f"{sorted(_cross)}")
         except Exception as e:
             logger.error(f"v3.5.1 A1 clarity 词典加载失败: {e}")
 
@@ -399,53 +415,70 @@ def load_all_dictionaries() -> list[tuple[str, dict[str, float]]]:
     else:
         logger.warning(f"词典文件未找到: {TONE_DICTS_FILE}")
 
+    # 每次加载重建跨类重叠词注册表 (单一事实源; 防跨调用陈旧残留)。
+    _BOTH_SIDED_BY_DICT.clear()
+
     dictionaries = []
     # v3.10.0: 第 6 部 = L&M 2011 JF 中文主译全本 (positive 1310 / negative 3752;
     # 第二轮同类内最小词元主用版, 另含 uncertainty/litigious/modal/constraining/complexity 非极性类)。
     # 用 JSON 键加载，但列前缀经 DICT_COLUMN_ALIAS 映射为 'loughran' (见上常量注释)。
     dict_keys = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018',
                  'loughran_mcdonald_zh_2026']
+    _both_total = 0  # 全词典跨类重叠词累计 (供加载汇总日志)
 
     for dict_key in dict_keys:
         entry = all_dict_data.get(dict_key, {})
         dict_name = entry.get('name', dict_key)
+        alias = DICT_COLUMN_ALIAS.get(dict_key, dict_key)
         d = {}
 
         # 从 JSON 中的 positive/negative 列表构建 {word: score}
-        # fix(omni-g-tonewords-03/-07, 2026-06-11): positive∩negative 跨类重叠词显式
-        # 消解 — 双侧剔除 (LM 2011 惯例) + 日志披露, 替代旧的静默 last-writer-wins 判负。
+        # 跨类重叠词「保留并两侧计数」(用户决策 2026-06-24, 逆转 fix omni-g-tonewords-03
+        # 的双侧剔除): positive∩negative 同时出现的词不再剔除, 而是保留在词典里 (幅值 1.0
+        # 占位, 极性由 _BOTH_SIDED_BY_DICT 标记决定两侧计数, 见 _compute_sentiment_with_rules),
+        # 不武断把它判成单极。同时登记到注册表供打分引擎与 union 构建消费。
         pos_words = {str(w).strip() for w in entry.get('positive', []) if str(w).strip()}
         neg_words = {str(w).strip() for w in entry.get('negative', []) if str(w).strip()}
         cross_overlap = pos_words & neg_words
         if cross_overlap:
-            logger.warning(
-                f"  {dict_key}: positive∩negative 跨类重叠 {len(cross_overlap)} 词已双侧剔除 "
-                f"(LM 2011 惯例, fix omni-g-tonewords-03): {sorted(cross_overlap)}")
-        # sorted 保证 dict 插入序确定 (可复现性)
+            logger.info(
+                f"  {dict_key}: positive∩negative 跨类重叠 {len(cross_overlap)} 词保留并两侧计数 "
+                f"(用户决策 2026-06-24, 逆转 fix omni-g-tonewords-03 的双侧剔除): "
+                f"{sorted(cross_overlap)}")
+            _BOTH_SIDED_BY_DICT[alias] = frozenset(cross_overlap)
+            _both_total += len(cross_overlap)
+        # sorted 保证 dict 插入序确定 (可复现性)。先正极专属词 → 负极专属词 → 重叠词
+        # (重叠词置 1.0 占位幅值, 不参与单极极性, 仅作为 both_sided 命中键)。
         for word in sorted(pos_words - cross_overlap):
             d[word] = 1.0
         for word in sorted(neg_words - cross_overlap):
             d[word] = -1.0
-        # 数量断言 (fix omni-g-tonewords-03): 剔除后正负词条数恒等校验 (防回归静默覆盖)
-        assert len(d) == len(pos_words - cross_overlap) + len(neg_words - cross_overlap), (
-            f"{dict_key}: 跨类重叠消解后词条数不恒等 (存在残余覆盖)")
+        for word in sorted(cross_overlap):
+            d[word] = 1.0  # 占位幅值 |1.0|; 两侧计数时取 abs, 符号无意义
+        # 数量断言: 保留全部词后词条数 = 正负并集大小 (防回归静默覆盖/漏词)
+        assert len(d) == len(pos_words | neg_words), (
+            f"{dict_key}: 跨类重叠词保留后词条数不等于 |pos∪neg| (存在残余覆盖/漏词)")
 
         # Du et al. (2022) 特有：政治正面词以较低权重 0.5 加入
         for word in entry.get('political_positive', []):
             word = str(word).strip()
-            if word and word not in d:  # 避免覆盖已有正面词
+            if word and word not in d:  # 避免覆盖已有正面/负面/重叠词
                 d[word] = 0.5
 
         # 列前缀用别名 (loughran_mcdonald_zh_2026 → 'loughran'); 其余词典恒等映射。
-        dictionaries.append((DICT_COLUMN_ALIAS.get(dict_key, dict_key), d))
+        dictionaries.append((alias, d))
 
-        pos_cnt = sum(1 for v in d.values() if v > 0)
-        neg_cnt = sum(1 for v in d.values() if v < 0)
+        # 计数按集合显式区分: 正极专属 / 负极专属 / 跨类两侧 / 政治正面 (避免 d.values()
+        # 把 1.0 占位的重叠词误并入正面)。
+        both_cnt = len(cross_overlap)
+        pos_cnt = len(pos_words - cross_overlap)
+        neg_cnt = len(neg_words - cross_overlap)
         pol_cnt = sum(1 for v in d.values() if v == 0.5)
 
         if d:
+            _both_str = f", 跨类两侧计数={both_cnt}" if both_cnt else ""
             logger.info(f"  {dict_key} ({dict_name}): {len(d)} 个词汇 "
-                        f"(正面={pos_cnt}, 负面={neg_cnt})")
+                        f"(正面={pos_cnt}, 负面={neg_cnt}{_both_str})")
             # 各词典子类别详细统计
             if dict_key == 'du_2022' and pol_cnt > 0:
                 logger.info(f"    └─ political_positive: {pol_cnt} 词 (权重=0.5)")
@@ -454,13 +487,16 @@ def load_all_dictionaries() -> list[tuple[str, dict[str, float]]]:
 
     total_loaded = sum(len(d) for _, d in dictionaries)
     non_empty = sum(1 for _, d in dictionaries if len(d) > 0)
-    logger.info(f"词典加载完成: {non_empty}/{len(dict_keys)} 个词典有效, 共 {total_loaded} 个词汇条目")
+    logger.info(f"词典加载完成: {non_empty}/{len(dict_keys)} 个词典有效, 共 {total_loaded} 个词汇条目"
+                f" (含 {_both_total} 个跨类重叠词保留并两侧计数, "
+                f"分布于 {len(_BOTH_SIDED_BY_DICT)} 部词典)")
 
     return dictionaries
 
 
 def build_union_dictionary(
     dictionaries: list[tuple[str, dict[str, float]]],
+    both_sided_by_dict: dict[str, frozenset[str]] | None = None,
 ) -> dict[str, float]:
     """构造 6 词典固定 union 词典 (fix omni-g-tonewords-01/-05, 2026-06-11).
 
@@ -475,8 +511,19 @@ def build_union_dictionary(
         3. 平票 (正负词典数相同) → 极性歧义, 剔除 (LM 2011 惯例);
         4. 幅值 = 胜出极性内最大 |score| (政治正面词 0.5 仅当无 ±1.0 同向词时保留)。
 
+    跨类重叠词「两侧计数」对 union 的处理 (用户决策 2026-06-24):
+        某词典 positive∩negative 同时出现的词 (登记在 ``both_sided_by_dict``) 不再被
+        各词典悄悄丢弃, 而是作为 **(+1.0, −1.0) 一对平衡票** 喂入。关键性质: 一对
+        (+1,−1) 对 (n_pos − n_neg) 的 margin 贡献恒为 0 → 既不改变其它词典已决出的
+        多数票方向, 也不改变平票判定 → **union 词典与剔除版逐位一致** (仅出现在某词典
+        且全 both-sided 的词仍因 margin=0 落入平票剔除, 不进 union)。因此 msent /
+        pos_ratio / neg_ratio (均走 union 口径) **完全不受本次保留改动影响**, 改动只
+        作用于各词典个体 ``{dict}_score`` 列。
+
     Args:
         dictionaries: ``load_all_dictionaries()`` 的输出 [(name, {word: score}), ...]。
+        both_sided_by_dict: {dict_name: frozenset(跨类重叠词)}; None → 读模块全局
+            ``_BOTH_SIDED_BY_DICT`` (生产路径)。命中词以 (+1,−1) 双票替代其占位 score。
 
     Returns:
         dict[str, float]: 固定 union 词典 {word: score}。
@@ -487,10 +534,17 @@ def build_union_dictionary(
     判正有的判负, 就按"判正的词典多还是判负的多"投票定极性; 票数打平
     说明这词本身有歧义, 干脆不要。
     """
+    bs_map = both_sided_by_dict if both_sided_by_dict is not None else _BOTH_SIDED_BY_DICT
     polarity_votes: dict[str, list[float]] = {}
     for _name, d in dictionaries:
+        both = bs_map.get(_name, frozenset())
         for word, score in (d or {}).items():
-            polarity_votes.setdefault(word, []).append(score)
+            if word in both:
+                # 跨类重叠词 → (+1,−1) 平衡双票 (margin 贡献 0 → union 逐位不变)
+                polarity_votes.setdefault(word, []).append(1.0)
+                polarity_votes[word].append(-1.0)
+            else:
+                polarity_votes.setdefault(word, []).append(score)
 
     union: dict[str, float] = {}
     n_dropped = 0
@@ -537,6 +591,7 @@ def _compute_sentiment_with_rules(
     apply_negation: bool = True,
     apply_degree: bool = True,
     apply_adversative: bool = True,
+    both_sided_words: frozenset[str] = frozenset(),
 ) -> tuple[float, float, int, int, list[dict[str, Any]]]:
     """对分词序列使用语言学规则增强的词典法计算情感得分。
 
@@ -575,6 +630,14 @@ def _compute_sentiment_with_rules(
                         注 (方案 a): 二者为 False 时仍**保留**程度/转折 token 的识别与
                         continue/句末重置骨架, 仅锁数值效应 → 与全规则共享 scoping,
                         否定窗口到达距离不被副作用改变 (删检测则会, 见方案 b 陷阱)。
+        both_sided_words: 跨类重叠词集 (该词典 positive∩negative 同时出现, 用户决策
+                        2026-06-24 "保留并两侧计数", 逆转 fix omni-g-tonewords-03 的双侧剔除)。
+                        命中其中的 token → **同时**计入 pos_count 与 neg_count, 对
+                        total_score 净贡献 0 (+final 与 −final 抵消), 对归一化分母
+                        total_abs_score 贡献 2|final| → 把该词的语调拉向中性而非剔除。
+                        否定/程度/转折规则正常作用于 |final| (否定对 ±对称的两侧无净效应,
+                        程度/转折等比缩放两侧, 仍净 0)。默认空集 → 行为与旧版逐位一致
+                        (union 词典/IDF 非重叠路径均传空集, golden-safe)。
                         ⚠ (full − negonly) 反映程度+转折对最终归一化语调的**联合净效应**,
                         非可加分解: full/negonly 各自 self-normalize (Σ|final| 分母随倍率
                         变化), 且否定×程度作用于同一词时倍率乘的是翻转后幅度 → 含
@@ -650,6 +713,28 @@ def _compute_sentiment_with_rules(
             # → 与全规则共享 scoping (从句边界在两种打分变体抵消, 不污染 negonly 纯否定语义)。
             if adversative_active and apply_adversative:
                 final_score *= ADVERSATIVE_BOOST
+
+            if token in both_sided_words:
+                # ── 跨类重叠词「两侧计数」(用户决策 2026-06-24, 逆转 fix omni-g-tonewords-03) ──
+                # 该词在本词典 positive∩negative 同时出现 → 保留且不武断选边: 同时计入
+                # pos/neg, 分子净贡献 0 (+mag 与 −mag 抵消), 分母进 2×|mag| → 语调拉向中性。
+                # 否定翻号对 ±对称两侧无净效应, 程度/转折等比缩放两侧, 仍净 0、分母随之缩放。
+                mag = abs(final_score)
+                total_abs_score += 2.0 * mag
+                pos_count += 1
+                neg_count += 1
+                # matched_words 记两条对称项 (base 取 ±|原始幅值|); 仅供 union 口径消费,
+                # 当前 union 路径传空集故不会进入本分支, 此处为防御性正确 (若未来对个体
+                # 词典取 matched 亦能正确双计)。
+                _base_mag = abs(sentiment_dict[token])
+                matched_words.append({'word': token, 'base': _base_mag,
+                                      'final': round(mag, 4), 'boosted': adversative_active})
+                matched_words.append({'word': token, 'base': -_base_mag,
+                                      'final': round(-mag, 4), 'boosted': adversative_active})
+                degree_multiplier = 1.0  # 已消费程度副词
+                if negation_remaining > 0:
+                    negation_remaining -= 1
+                continue
 
             total_score += final_score
             # fix(omni-g-tonewords-09, 2026-06-11): 累积加权幅度和 Σ|final_score|
@@ -1287,8 +1372,11 @@ def _analyze_single_article(content: str) -> dict:
                 result[f'{dict_name}_score_{_abl_sfx}'] = 0.0
             continue
 
+        # 该词典的跨类重叠词集 (两侧计数; 用户决策 2026-06-24)。非重叠词典 → 空集 → 旧行为。
+        _bs = _BOTH_SIDED_BY_DICT.get(dict_name, frozenset())
+
         raw_score, norm_score, pos_cnt, neg_cnt, matched = \
-            _compute_sentiment_with_rules(tokens, sentiment_dict)
+            _compute_sentiment_with_rules(tokens, sentiment_dict, both_sided_words=_bs)
 
         result[f'{dict_name}_score'] = round(norm_score, 4)
         result[f'{dict_name}_label'] = _score_to_label(norm_score)
@@ -1306,7 +1394,8 @@ def _analyze_single_article(content: str) -> dict:
         for _abl_sfx, _abl_neg, _abl_deg, _abl_adv in _RULE_ABLATION_VARIANTS:
             _, _abl_norm, _, _, _ = _compute_sentiment_with_rules(
                 tokens, sentiment_dict,
-                apply_negation=_abl_neg, apply_degree=_abl_deg, apply_adversative=_abl_adv)
+                apply_negation=_abl_neg, apply_degree=_abl_deg, apply_adversative=_abl_adv,
+                both_sided_words=_bs)
             result[f'{dict_name}_score_{_abl_sfx}'] = round(_abl_norm, 4)
 
         # --- 单词典正/负面词频分离 ---
@@ -1420,7 +1509,9 @@ def _analyze_single_article(content: str) -> dict:
                 result[f'{dict_name}_idf_score'] = 0.0
                 result[f'{dict_name}_idf_label'] = '中性'
                 continue
-            _, idf_norm, _, _, _ = _compute_sentiment_with_rules(tokens, idf_dict)
+            # 跨类重叠词集与 raw 词典同口径 (IDF 仅缩放幅值, 不改极性归属; 两侧计数取 abs)
+            _, idf_norm, _, _, _ = _compute_sentiment_with_rules(
+                tokens, idf_dict, both_sided_words=_BOTH_SIDED_BY_DICT.get(dict_name, frozenset()))
             result[f'{dict_name}_idf_score'] = round(idf_norm, 4)
             result[f'{dict_name}_idf_label'] = _score_to_label(idf_norm)
 
@@ -1728,6 +1819,55 @@ def _zscore_or_nan(series: pd.Series, col_label: str) -> pd.Series:
 # 7. 主函数
 # ============================================================================
 
+def _log_environment_and_config(input_path: str, output_path: str) -> None:
+    """打印项目/环境信息 + 运行配置 (日志富集, 2026-06-24)。
+
+    目标 (用户要求"在日志文件中提供尽可能多的项目信息、运行期间信息和运行结果信息"):
+    把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数"一次性落进日志, 便于
+    复现核对 / 审计 / 排错。纯日志, 不改任何产物 (golden-safe)。
+    """
+    try:
+        preview_path = output_path.replace('.parquet', '.csv')
+        idf_json = os.path.join(CONFIG['paths']['output_dir'], '22_idf_weights.json')
+        bank_file = CONFIG['paths'].get('bank_names_file', '(默认)')
+        fintech_file = CONFIG['paths'].get('fintech_dict_file', '(默认)')
+        parallel_cfg = CONFIG.get('parallel', {})
+
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (词典法情感分析, STAGES_MAIN; 三轨 full/ctx/ss)")
+        logger.info("     · 行为版本: 跨类重叠词『保留并两侧计数』(用户决策 2026-06-24, "
+                    "逆转 fix omni-g-tonewords-03 的双侧剔除)")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        logger.info(f"     · jieba:    {getattr(jieba, '__version__', '?')} (冻结锚点 0.42.1; "
+                    "确定性来源=jieba版本+词典文件)")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "本阶段纯 CPU / 无 LLM·网络·API ($0)")
+
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 输入:   {input_path}")
+        logger.info(f"     · 输出:   {output_path}")
+        logger.info(f"     · 预览:   {preview_path}")
+        logger.info(f"     · IDF权重:{idf_json}")
+        logger.info(f"     · 词典文件: {TONE_DICTS_FILE}")
+        logger.info(f"     · 注入词源: 银行名={bank_file} | 金科={fintech_file}")
+
+        logger.info("  ⚙ 运行配置 (config/sentiment.yaml::sentiment_analysis.tone_words 等)")
+        logger.info(f"     · IDF 加权: {SENTIMENT_PARAMS.get('idf_weighting', True)} "
+                    f"| 否定窗口 NEGATION_WINDOW={NEGATION_WINDOW} "
+                    f"| 转折增强 ADVERSATIVE_BOOST={ADVERSATIVE_BOOST}")
+        logger.info(f"     · 语言学规则词表: 否定词={len(NEGATION_WORDS)} | 程度副词={len(DEGREE_WORDS)} "
+                    f"| 转折连词={len(ADVERSATIVE_WORDS)} | 句末标点={len(SENTENCE_END_MARKERS)}")
+        logger.info(f"     · 并行: batch_size={parallel_cfg.get('batch_size', 5000)} "
+                    f"| n_jobs={parallel_cfg.get('n_jobs', -1)} (joblib threads)")
+        logger.info("     · 标签阈值: 正面>+0.1 / 负面<−0.1 / 其间=中性 (_score_to_label)")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置信息打印失败 (不影响处理): {e}")
+
+
 def main():
     """词典法情感分析阶段主入口。"""
     global ALL_DICTIONARIES, IDF_DICTIONARIES
@@ -1752,35 +1892,61 @@ def main():
     logger.info("     · 正/中/负面占比: 若某词典负面>60%, 可能存在负面偏差")
     logger.info("")
 
+    # 定义输入输出 (提前到环境信息块之前, 便于一次性披露读写路径)
+    input_path = os.path.join(CONFIG['paths']['output_dir'], CONFIG['filenames'].get('output_21_tone_llms', '21_tone_llms.parquet'))
+    output_path = os.path.join(CONFIG['paths']['output_dir'],
+                               CONFIG['filenames'].get('output_22_words_tone', '22_tone_words.parquet'))
+
+    # 项目/环境信息 + 运行配置 (日志富集 2026-06-24)
+    _log_environment_and_config(input_path, output_path)
+    logger.info("")
+
+    # 运行期阶段计时累计 (各主要阶段墙钟耗时, 末尾汇总打印)
+    phase_durations: dict[str, float] = {}
+
     # 延迟加载词典和注入 jieba（避免 import 时的副作用）
+    _t = time.time()
     ALL_DICTIONARIES = load_all_dictionaries()
     _inject_custom_dicts_to_jieba()
+    phase_durations['①词典加载+jieba注入'] = time.time() - _t
 
     non_empty_dicts = [(name, d) for name, d in ALL_DICTIONARIES if len(d) > 0]
     if not non_empty_dicts:
         logger.error("所有情感词典均为空！请检查词典文件。")
         raise SystemExit(1)
 
-    logger.info(f"有效词典: {len(non_empty_dicts)}/{len(ALL_DICTIONARIES)} 个")
+    # 词典概况富集: union 词典规模 + clarity/LM 子词典规模 (运行期信息)
+    try:
+        _union_sz = len(_get_union_dictionary())
+        _def_set, _amb_set = load_clarity_dictionaries()
+        _lm_sz = {k: len(v) for k, v in load_lm_non_sentiment_dicts().items()}
+        logger.info(f"词典概况: 固定 union 词典={_union_sz} 词 (跨词典多数票+平票剔除); "
+                    f"clarity definite={len(_def_set)}/ambiguous={len(_amb_set)} (含重叠词两侧保留); "
+                    f"LM 非极性子集={_lm_sz}")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"词典概况富集失败 (不影响处理): {e}")
 
-    # 定义输入输出
-    input_path = os.path.join(CONFIG['paths']['output_dir'], CONFIG['filenames'].get('output_21_tone_llms', '21_tone_llms.parquet'))
-    output_path = os.path.join(CONFIG['paths']['output_dir'],
-                               CONFIG['filenames'].get('output_22_words_tone', '22_tone_words.parquet'))
+    logger.info(f"有效词典: {len(non_empty_dicts)}/{len(ALL_DICTIONARIES)} 个")
 
     if not os.path.exists(input_path):
         logger.error(f"输入文件未找到: {input_path}")
         raise SystemExit(1)
 
     logger.info(f"正在从 {input_path} 加载数据...")
+    _t = time.time()
     df = pd.read_parquet(input_path)
     input_rows = len(df)
+    phase_durations['②读取输入parquet'] = time.time() - _t
     logger.info(f"已加载 {input_rows:,} 行数据。")
+    # 运行期信息: 输入列概况 (三轨文本列是否齐备, 直接决定 ctx/ss 轨是否回退)
+    _track_cols = [c for c in ('内容', '标题', 'content_ctx', 'content_ss', 'content_full') if c in df.columns]
+    logger.info(f"输入列概况: 共 {df.shape[1]} 列; 关键文本列存在={_track_cols}")
     log_memory_usage(logger, "数据加载后")
 
     # ── IDF 加权稳健性检验初始化 ──
     IDF_DICTIONARIES = None
     idf_enabled = SENTIMENT_PARAMS.get('idf_weighting', True)
+    _t = time.time()
     if idf_enabled:
         logger.info("═" * 60)
         logger.info("IDF 加权稳健性检验 (Gentzkow et al. 2019, JEL §2.2)")
@@ -1842,6 +2008,7 @@ def main():
         logger.info(f"  IDF 加权词典构建完成: {len(IDF_DICTIONARIES)} 个")
     else:
         logger.info("IDF 加权已在配置中禁用 (idf_weighting: false)")
+    phase_durations['③IDF加权构建'] = time.time() - _t
 
     # 执行词典法情感分析
     logger.info(f"开始执行词典法情感分析...")
@@ -1852,17 +2019,21 @@ def main():
     all_stats = []
     processed_dfs = []
     n_jobs = CONFIG['parallel'].get('n_jobs', -1)
-    logger.info(f"使用 joblib 并行处理: n_jobs={n_jobs}, 共 {num_batches} 个批次")
+    logger.info(f"使用 joblib 并行处理: n_jobs={n_jobs}, 共 {num_batches} 个批次 "
+                f"(batch_size={batch_size}; 每篇 6 词典 × 3 轨 × (1 主分+7 消融+IDF) 打分)")
 
+    _t = time.time()
     results = Parallel(n_jobs=n_jobs, prefer='threads')(
         delayed(classify_batch)(batch) for batch in df_batches
     )
     for res_df, res_stats in results:
         processed_dfs.append(res_df)
         all_stats.append(res_stats)
+    phase_durations['④三轨词典打分(并行)'] = time.time() - _t
 
     # 合并全部结果
     processed_df = pd.concat(processed_dfs, ignore_index=True)
+    log_memory_usage(logger, "三轨打分完成")
 
     # P1-4: 为每个词典的得分列添加 Z-score 标准化列（三轨 full/ctx/ss 独立计算）
     # 解决跨词典量纲不一致问题，供 64_tone_validation.py 的 Cronbach's Alpha 分析使用
@@ -1894,6 +2065,8 @@ def main():
             [processed_df, pd.DataFrame(zscore_columns, index=processed_df.index)],
             axis=1,
         ).copy()
+
+    _t = time.time()  # ⑤ 派生增强 (num_intensity + boilerplate) 计时起点
 
     # v3.5.1 A3: Numerical Intensity 三轨 post-processor (per plan v0.3 §2.2.3 修 R3-C2 + H4).
     # 对 content_full + content_ctx + content_ss 各调用 compute_num_intensity 一次, 写入
@@ -1930,9 +2103,11 @@ def main():
         logger.info(f"nonpolarity-dims WS-B2: boilerplate 单轨派生完成 (语料={_bp_col})")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"WS-B2 boilerplate enrich 失败 (graceful skip): {e}")
+    phase_durations['⑤派生增强(num_intensity+boilerplate)'] = time.time() - _t
 
     # 使用数据版本控制保存
     from news_process.core.data_versioning import save_parquet_with_metadata
+    _t = time.time()
     save_parquet_with_metadata(
         df=processed_df,
         output_path=output_path,
@@ -1940,6 +2115,8 @@ def main():
         config=CONFIG,
         input_files=[input_path],
     )
+    phase_durations['⑥落盘parquet'] = time.time() - _t
+    logger.info(f"产物已落盘: {output_path} (形状 {processed_df.shape[0]:,} 行 × {processed_df.shape[1]:,} 列)")
 
     # 统计报告（三轨 full/ctx/ss 分别打印）
     if all_stats:
@@ -1964,8 +2141,11 @@ def main():
         logger.info("【结果分析】词典法情感分析三轨产出诊断 (查字典版情绪打分, 给 LLM 找独立旁证)")
         logger.info(f"  行数守恒: 输入 {input_rows:,} → 输出 {n_out:,} 行 "
                     f"({'一致, 词典法只加列不删行 (符合预期)' if n_out == input_rows else '⚠ 不一致, 请检查 classify_batch 是否丢行'})")
+        _both_n = sum(len(s) for s in _BOTH_SIDED_BY_DICT.values())
         logger.info(f"  有效词典: {len(non_empty_dicts)}/{len(ALL_DICTIONARIES)} 部 "
-                    f"(jiang/yao/bian/du/you/loughran 六部金融情感词典; 跨类重叠词已双侧剔除)")
+                    f"(jiang/yao/bian/du/you/loughran 六部金融情感词典; 跨类重叠词共 {_both_n} 个"
+                    f"保留并两侧计数, 用户决策 2026-06-24 逆转旧双侧剔除 — 只影响各词典个体 "
+                    f"{{dict}}_score, union/msent/ratio 因 (+1,−1) 平衡双票而逐位不变)")
 
         # ── 指标①: msent_score (零规则原始极性 (neg−pos)/(pos+neg)) 的均值与覆盖率 ──
         # 口径提示: msent = (负面词−正面词)/(正负面词总数), **越大越负面** (与直觉相反)。
@@ -2063,6 +2243,35 @@ def main():
                     flag = " ⚠ 负面偏差(>60%)" if neg_pct > 60 else ""
                     logger.info(f"      [{tlabel}] 跨六词典聚合: 正面={pos_pct:.1f}%, 负面={neg_pct:.1f}%{flag}")
 
+        # ── 指标⑦: 跨类重叠词「两侧计数」概况 (用户决策 2026-06-24, 逆转旧双侧剔除) ──
+        # 判读: 每部词典 positive∩negative 同时出现的词被保留, 打分时两侧计入 → 净语调
+        # 拉向中性 (不武断选边)。union/msent/ratio 因 (+1,−1) 平衡双票 margin 守恒, 逐位不变;
+        # 仅影响各词典个体 {dict}_score。下列逐词典披露重叠词数, 供审阅与论文附录如实记载。
+        if _BOTH_SIDED_BY_DICT:
+            _both_total = sum(len(s) for s in _BOTH_SIDED_BY_DICT.values())
+            _per = ", ".join(f"{dn}={len(s)}" for dn, s in _BOTH_SIDED_BY_DICT.items())
+            logger.info(f"  · 指标⑦ 跨类重叠词保留并两侧计数: 共 {_both_total} 词 "
+                        f"(分布 {len(_BOTH_SIDED_BY_DICT)} 部词典: {_per})")
+            logger.info(f"      口径: pos_count 与 neg_count 各 +1, 分子净 0、分母 +2|w| → 拉向中性; "
+                        f"union/msent/ratio 不变 (平衡双票 margin 守恒)")
+        else:
+            logger.info("  · 指标⑦ 跨类重叠词: 本次加载无 positive∩negative 重叠 (或词典为空)")
+
+        # ── 指标⑧: 产物列族盘点 (运行结果信息 — 各家族落盘列数, 便于核对 schema 完整性) ──
+        _cols = list(processed_df.columns)
+        _fam = {
+            'score(主分)': sum(1 for c in _cols if c.endswith(('_score_full', '_score_ctx', '_score_ss'))),
+            'zscore': sum(1 for c in _cols if '_zscore_' in c),
+            'idf_score': sum(1 for c in _cols if '_idf_score_' in c),
+            '规则消融梯度': sum(1 for c in _cols for sfx in RULE_ABLATION_SUFFIXES if f'_score_{sfx}_' in c),
+            'pos/neg_ratio': sum(1 for c in _cols if '_pos_ratio_' in c or '_neg_ratio_' in c),
+            'msent': sum(1 for c in _cols if c.startswith('msent_')),
+            'clarity': sum(1 for c in _cols if c.startswith('clarity_')),
+            'num_intensity': sum(1 for c in _cols if c.startswith('num_intensity_')),
+        }
+        logger.info(f"  · 指标⑧ 产物列族盘点 (总列数 {len(_cols):,}): "
+                    + ", ".join(f"{k}={v}" for k, v in _fam.items()))
+
         # ── 小样本 / 确定性提示 ──
         if input_rows < 1000:
             logger.info(f"  ⚠ 小样本 ({input_rows:,} 行, 疑似 T=2 盘面): 上述判读仅验证管道正确性, "
@@ -2072,6 +2281,16 @@ def main():
     except Exception as e:  # noqa: BLE001
         # 结果分析纯属日志增强, 任何异常都不得影响产物落盘 (已在上方完成写盘)。
         logger.warning(f"【结果分析】诊断日志生成失败 (不影响产物, 已写盘): {e}")
+
+    # ── 运行期阶段计时汇总 (各主要阶段墙钟耗时占比, 便于性能定位) ──
+    try:
+        if phase_durations:
+            _tot = sum(phase_durations.values()) or 1.0
+            logger.info("⏱ 运行期阶段计时 (墙钟):")
+            for _name, _dur in phase_durations.items():
+                logger.info(f"     {_name}: {_dur:.2f}s ({_dur / _tot * 100:.1f}%)")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"阶段计时汇总打印失败 (不影响产物): {e}")
 
     log_stage_summary(logger, STAGE_NAME, stage_start,
                       input_rows=input_rows, output_rows=len(processed_df))

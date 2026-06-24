@@ -16,7 +16,8 @@ news_process.validation.radius_sensitivity — 窗口半径敏感性检验
     - 使用与生产 22_tone_words 完全一致的 6 套基准中文情感词典
       (jiang/yao/bian/du/you/loughran) 重新计算情感得分和标签
       (2026-06-20 起本旁路 loader 已对齐生产 union 口径: 含第 6 部
-       loughran_mcdonald_zh_2026 + positive∩negative 跨类重叠双侧剔除)
+       loughran_mcdonald_zh_2026 + positive∩negative 跨类重叠词保留并两侧计数,
+       用户决策 2026-06-24 逆转双侧剔除)
     - 计算跨半径的标签一致性、得分相关性和分布统计
     - 生成学术论文附录级别的报告（LaTeX 表格 + 可视化图表）
 
@@ -52,7 +53,7 @@ news_process.validation.radius_sensitivity — 窗口半径敏感性检验
 **输入 (订正)**: 优先 `21_tone_llms.parquet` (CONFIG['filenames']['output_21_tone_llms'] — 经 LLM 精筛、仅 llm_verified=True 的下游产物, 含 `target_bank` 列), 回退 `12_fintech_news.parquet`。⚠ 注意是 `21_tone_llms.parquet` 而非 `_full` 版本。必需列 `target_bank` + `内容`。
 
 **处理步骤**:
-1. 加载 6 套中文金融情感词典 (jiang_2021/yao_2021/bian_2021/du_2022/you_2018/loughran; 正面+1/负面-1/政治正面+0.5; positive∩negative 跨类重叠双侧剔除), 注入 jieba (词典词+银行名+金科词+否定/程度/转折词)。2026-06-20 起本旁路 loader 已与生产 22_tone_words 的 6 词典 union 口径完全对齐 (含第 6 部 loughran_mcdonald_zh_2026)。
+1. 加载 6 套中文金融情感词典 (jiang_2021/yao_2021/bian_2021/du_2022/you_2018/loughran; 正面+1/负面-1/政治正面+0.5; positive∩negative 跨类重叠词保留并两侧计数, 用户决策 2026-06-24 逆转双侧剔除), 注入 jieba (词典词+银行名+金科词+否定/程度/转折词)。2026-06-20 起本旁路 loader 已与生产 22_tone_words 的 6 词典 union 口径完全对齐 (含第 6 部 loughran_mcdonald_zh_2026)。
 2. 对每篇文章, `analyze_single_article_multi_radius`: 每个 radius 调 `core.text.entity_context.extract_entity_context(sentence_radius=r, fallback_char_radius=150)` 提上下文 (未命中回退原文), jieba 分词, 对 6 词典各算 `_compute_sentiment_with_rules` (否定窗口翻转/程度副词缩放/转折增强/句末标点重置状态机, 与 22_tone_words 逐行对齐) → 归一化得分 + 三分类标签 (正/中/负, 阈值 ±0.1)。
 3. 跨半径对比 (基准 r=1): 对每词典算标签一致率、Cohen's κ、Pearson/Spearman 相关、配对 t 检验 (ttest_1samp 得分差)。
 
@@ -158,9 +159,13 @@ TONE_DICTS_FILE = CONFIG['paths'].get(
 # 此处本地复制以避免 import 22_tone_words 触发模块级副作用, 见上方 §2 节标题)。
 _DICT_COLUMN_ALIAS = {'loughran_mcdonald_zh_2026': 'loughran'}
 
+# 跨类重叠词「两侧计数」注册表 (与生产 22_tone_words 一致, 用户决策 2026-06-24 逆转双侧剔除)。
+# 键 = 列前缀别名, 值 = 该词典 positive∩negative 同时出现的词集。由 load_all_dictionaries 重建。
+_BOTH_SIDED_BY_DICT: dict[str, frozenset[str]] = {}
+
 
 def load_all_dictionaries() -> list[tuple[str, dict[str, float]]]:
-    """从 tone_dicts.json 加载与 22_tone_words 完全一致的 6 套中文情感词典 (jiang/yao/bian/du/you/loughran), 复用其逐句规则逻辑。2026-06-20 起本旁路 loader 已对齐生产 union 口径: 含第 6 部 loughran_mcdonald_zh_2026 + positive∩negative 跨类重叠词双侧剔除 (LM 2011 惯例), 不再是早期刻意保留的 5 套子集。"""
+    """从 tone_dicts.json 加载与 22_tone_words 完全一致的 6 套中文情感词典 (jiang/yao/bian/du/you/loughran), 复用其逐句规则逻辑。2026-06-20 起本旁路 loader 已对齐生产 union 口径: 含第 6 部 loughran_mcdonald_zh_2026 + positive∩negative 跨类重叠词保留并两侧计数 (用户决策 2026-06-24 逆转双侧剔除, 与生产一致), 不再是早期刻意保留的 5 套子集。"""
     logger.info(f"正在从 {TONE_DICTS_FILE} 加载情感词典...")
 
     all_dict_data = {}
@@ -176,44 +181,55 @@ def load_all_dictionaries() -> list[tuple[str, dict[str, float]]]:
         except Exception as e:
             logger.error(f"加载词典文件失败: {e}")
 
+    _BOTH_SIDED_BY_DICT.clear()
     dictionaries = []
     dict_keys = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018',
                  'loughran_mcdonald_zh_2026']
 
     for dict_key in dict_keys:
         entry = all_dict_data.get(dict_key, {})
+        alias = _DICT_COLUMN_ALIAS.get(dict_key, dict_key)
         d = {}
-        # positive∩negative 跨类重叠词双侧剔除 (LM 2011 惯例), 与生产 22_tone_words 一致;
-        # sorted 保证 dict 插入序确定 (可复现性)。
+        # positive∩negative 跨类重叠词「保留并两侧计数」(用户决策 2026-06-24, 逆转双侧剔除),
+        # 与生产 22_tone_words 一致; sorted 保证 dict 插入序确定 (可复现性)。
         pos_words = {str(w).strip() for w in entry.get('positive', []) if str(w).strip()}
         neg_words = {str(w).strip() for w in entry.get('negative', []) if str(w).strip()}
         cross_overlap = pos_words & neg_words
         if cross_overlap:
-            logger.warning(
-                f"  {dict_key}: positive∩negative 跨类重叠 {len(cross_overlap)} 词已双侧剔除 "
-                f"(LM 2011 惯例): {sorted(cross_overlap)}")
+            logger.info(
+                f"  {dict_key}: positive∩negative 跨类重叠 {len(cross_overlap)} 词保留并两侧计数 "
+                f"(用户决策 2026-06-24, 逆转双侧剔除): {sorted(cross_overlap)}")
+            _BOTH_SIDED_BY_DICT[alias] = frozenset(cross_overlap)
         for word in sorted(pos_words - cross_overlap):
             d[word] = 1.0
         for word in sorted(neg_words - cross_overlap):
             d[word] = -1.0
-        # 政治正面词 (du_2022 特有) 以 0.5 权重加入, 不覆盖已有正面/负面词。
+        for word in sorted(cross_overlap):
+            d[word] = 1.0  # 占位幅值; 两侧计数取 abs (见 _compute_sentiment_with_rules both_sided)
+        # 政治正面词 (du_2022 特有) 以 0.5 权重加入, 不覆盖已有正面/负面/重叠词。
         for word in entry.get('political_positive', []):
             word = str(word).strip()
             if word and word not in d:
                 d[word] = 0.5
-        dictionaries.append((_DICT_COLUMN_ALIAS.get(dict_key, dict_key), d))
+        dictionaries.append((alias, d))
 
-        pos_cnt = sum(1 for v in d.values() if v > 0)
-        neg_cnt = sum(1 for v in d.values() if v < 0)
-        logger.info(f"  {dict_key}: {len(d)} 个词汇 (正面={pos_cnt}, 负面={neg_cnt})")
+        both_cnt = len(cross_overlap)
+        pos_cnt = len(pos_words - cross_overlap)
+        neg_cnt = len(neg_words - cross_overlap)
+        _both_str = f", 跨类两侧计数={both_cnt}" if both_cnt else ""
+        logger.info(f"  {dict_key}: {len(d)} 个词汇 (正面={pos_cnt}, 负面={neg_cnt}{_both_str})")
 
     return dictionaries
 
 
 def _compute_sentiment_with_rules(
-    tokens: list[str], sentiment_dict: dict[str, float]
+    tokens: list[str], sentiment_dict: dict[str, float],
+    both_sided_words: frozenset = frozenset(),
 ) -> tuple[float, float, int, int]:
     """语言学规则增强的词典情感计算。复用 22_tone_words.py 核心逻辑。
+
+    both_sided_words: 跨类重叠词集 (与生产一致, 用户决策 2026-06-24「保留并两侧计数」):
+        命中词同时计入 pos/neg、对 total_score 净贡献 0 → 拉向中性而非剔除。
 
     Returns:
         tuple: (raw_score, normalized_score, pos_count, neg_count)
@@ -249,11 +265,16 @@ def _compute_sentiment_with_rules(
             final_score = base_score * degree_multiplier
             if adversative_active:
                 final_score *= ADVERSATIVE_BOOST
-            total_score += final_score
-            if final_score > 0:
+            if token in both_sided_words:
+                # 跨类重叠词两侧计数: 净 0 贡献 total_score, pos/neg 各 +1 → 拉向中性 (与生产一致)
                 pos_count += 1
-            elif final_score < 0:
                 neg_count += 1
+            else:
+                total_score += final_score
+                if final_score > 0:
+                    pos_count += 1
+                elif final_score < 0:
+                    neg_count += 1
             degree_multiplier = 1.0
         else:
             degree_multiplier = 1.0
@@ -386,7 +407,9 @@ def analyze_single_article_multi_radius(
                 radius_result[f'{dict_name}_label'] = '中性'
                 continue
 
-            _, norm_score, pos_cnt, neg_cnt = _compute_sentiment_with_rules(tokens, sentiment_dict)
+            _bs = _BOTH_SIDED_BY_DICT.get(dict_name, frozenset())  # 跨类重叠词两侧计数 (与生产一致)
+            _, norm_score, pos_cnt, neg_cnt = _compute_sentiment_with_rules(
+                tokens, sentiment_dict, _bs)
             radius_result[f'{dict_name}_score'] = round(norm_score, 4)
             radius_result[f'{dict_name}_label'] = _score_to_label(norm_score)
             radius_result[f'{dict_name}_pos_count'] = pos_cnt

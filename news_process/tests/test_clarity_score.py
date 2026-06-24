@@ -6,7 +6,7 @@
     - plan v0.3 §2.1 + §4.1
 
 测试覆盖 (12 tests):
-    1. 词典加载: frozenset 结构 + 387/177 词数 (源 JSON 388/178, 跨类重叠词 '不可' 双侧剔除)
+    1. 词典加载: frozenset 结构 + 388/178 词数 (跨类重叠词 '不可' 保留并两侧计数, 用户决策 2026-06-24)
     2. clarity_score ∈ [-1, +1]
     3. NaN 分母传播 (空文本)
     4. NaN 分母传播 (单字符纯标点)
@@ -39,20 +39,20 @@ def reset_clarity_cache():
 
 
 def test_load_clarity_dictionaries_structure():
-    """词典加载: 返回 (frozenset, frozenset); 387 / 177 词数.
+    """词典加载: 返回 (frozenset, frozenset); 388 / 178 词数.
 
-    fix(omni-g-tonewords-03, 2026-06-11): definite∩ambiguous 跨类重叠词 ('不可' 1 词)
-    双侧剔除 → 原 388/178 (源 JSON 计数) 加载后为 387/177; 旧断言 388/178 锁的是
-    重叠词双计旧行为。
+    用户决策 2026-06-24 (逆转 fix omni-g-tonewords-03): definite∩ambiguous 跨类重叠词
+    ('不可' 1 词) **保留并两侧计数** (不再剔除) → 加载后仍为源 JSON 计数 388/178, 且
+    重叠词同时存于两集合 (clarity 口径下天然两侧计入)。
     """
     def_set, amb_set = tw.load_clarity_dictionaries()
     assert isinstance(def_set, frozenset)
     assert isinstance(amb_set, frozenset)
-    assert len(def_set) == 387, f"Expected 387 definite words (388-1 overlap), got {len(def_set)}"
-    assert len(amb_set) == 177, f"Expected 177 ambiguous words (178-1 overlap), got {len(amb_set)}"
-    # 跨类重叠应已消解
-    assert not (def_set & amb_set)
-    assert '不可' not in def_set and '不可' not in amb_set
+    assert len(def_set) == 388, f"Expected 388 definite words (源 JSON, 重叠保留), got {len(def_set)}"
+    assert len(amb_set) == 178, f"Expected 178 ambiguous words (源 JSON, 重叠保留), got {len(amb_set)}"
+    # 跨类重叠词保留在两集合 (两侧计数)
+    assert def_set & amb_set == frozenset(['不可'])
+    assert '不可' in def_set and '不可' in amb_set
 
 
 def test_clarity_score_range_in_minus_one_to_plus_one():

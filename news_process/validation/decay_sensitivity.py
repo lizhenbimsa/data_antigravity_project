@@ -100,7 +100,7 @@ v3.6.0 (Plan E P7 C4 stub):
 **输入**: `21_tone_llms_full.parquet` (CONFIG['filenames']['output_21_tone_llms_full'], 回退 glob `21_*.parquet` 取字典序末位)。过滤 `llm_verified_full == True` 仅保留已验证的金科新闻。
 
 **处理步骤**:
-1. 加载 6 套词典 (jiang/yao/bian/du/you/loughran; 正面+1/负面-1/政治正面+0.5; positive∩negative 跨类重叠双侧剔除) + 注入 jieba (与 stage 35 词典集一致; 语言学规则参数与 22_tone_words 一致)。2026-06-20 起本模块已对齐生产 22_tone_words 的 6 词典 union 口径 (含第 6 部 loughran)。
+1. 加载 6 套词典 (jiang/yao/bian/du/you/loughran; 正面+1/负面-1/政治正面+0.5; positive∩negative 跨类重叠词保留并两侧计数, 用户决策 2026-06-24 逆转双侧剔除) + 注入 jieba (与 stage 35 词典集一致; 语言学规则参数与 22_tone_words 一致)。2026-06-20 起本模块已对齐生产 22_tone_words 的 6 词典 union 口径 (含第 6 部 loughran)。
 2. `run_analysis` 逐文: `core.text.entity_context.extract_entity_context_with_distances(content, aliases, sentence_radius=2)` 提取 [(句文本, 句级距离 d), ...] (radius=2 大于生产 ctx 的 1, 给衰减留空间); 每句 jieba 分词一次 (3 衰减函数共享预分词)。
 3. 对 6 词典 × 3 衰减函数 = 18 组合调 `compute_decay_sentiment`。
 
@@ -263,11 +263,15 @@ DECAY_FUNCTIONS = {
 # 此处本地复制以避免 import 22_tone_words 触发模块级副作用)。
 _DICT_COLUMN_ALIAS = {'loughran_mcdonald_zh_2026': 'loughran'}
 
+# 跨类重叠词「两侧计数」注册表 (与生产 22_tone_words 一致, 用户决策 2026-06-24 逆转双侧剔除)。
+# 键 = 列前缀别名, 值 = 该词典 positive∩negative 同时出现的词集。由 load_dictionaries 重建。
+_BOTH_SIDED_BY_DICT: dict[str, frozenset[str]] = {}
+
 
 def load_dictionaries() -> list:
     """从 tone_dicts.json 加载与 22_tone_words 完全一致的 6 套中文金融情感词典。
 
-    加载与 22_tone_words.py 共有的 6 套中文情感词典 (jiang/yao/bian/du/you/loughran)。2026-06-20 起本验证模块已对齐生产 union 口径: 含第 6 部 loughran_mcdonald_zh_2026 + positive∩negative 跨类重叠词双侧剔除 (LM 2011 惯例), 不再是早期刻意保留的 5 套子集:
+    加载与 22_tone_words.py 共有的 6 套中文情感词典 (jiang/yao/bian/du/you/loughran)。2026-06-20 起本验证模块已对齐生产 union 口径: 含第 6 部 loughran_mcdonald_zh_2026 + positive∩negative 跨类重叠词保留并两侧计数 (用户决策 2026-06-24 逆转双侧剔除, 与生产 22_tone_words 一致), 不再是早期刻意保留的 5 套子集:
       1. jiang_2021 — 姜富伟等 (2021) 中文金融情感词典
       2. yao_2021  — 姚加权等 (2021) 金融领域情绪词典
       3. bian_2021 — Bian et al. (2021) LM 中文扩充版
@@ -303,31 +307,37 @@ def load_dictionaries() -> list:
     else:
         logger.warning(f"词典文件未找到: {TONE_DICTS_FILE}")
 
+    _BOTH_SIDED_BY_DICT.clear()
     dictionaries = []
     for key in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018',
                 'loughran_mcdonald_zh_2026']:
         entry = all_dict_data.get(key, {})
+        alias = _DICT_COLUMN_ALIAS.get(key, key)
         d = {}
-        # positive∩negative 跨类重叠词双侧剔除 (LM 2011 惯例), 与生产 22_tone_words 一致;
-        # sorted 保证 dict 插入序确定 (可复现性)。
+        # positive∩negative 跨类重叠词「保留并两侧计数」(用户决策 2026-06-24, 逆转双侧剔除),
+        # 与生产 22_tone_words 一致; sorted 保证 dict 插入序确定 (可复现性)。
         pos_words = {str(w).strip() for w in entry.get('positive', []) if str(w).strip()}
         neg_words = {str(w).strip() for w in entry.get('negative', []) if str(w).strip()}
         cross_overlap = pos_words & neg_words
         if cross_overlap:
-            logger.warning(
-                f"  {key}: positive∩negative 跨类重叠 {len(cross_overlap)} 词已双侧剔除 "
-                f"(LM 2011 惯例): {sorted(cross_overlap)}")
+            logger.info(
+                f"  {key}: positive∩negative 跨类重叠 {len(cross_overlap)} 词保留并两侧计数 "
+                f"(用户决策 2026-06-24, 逆转双侧剔除): {sorted(cross_overlap)}")
+            _BOTH_SIDED_BY_DICT[alias] = frozenset(cross_overlap)
         for w in sorted(pos_words - cross_overlap):
             d[w] = 1.0
         for w in sorted(neg_words - cross_overlap):
             d[w] = -1.0
-        # 政治正面词 → +0.5 (仅 du_2022, 不覆盖已有正面/负面词)
+        for w in sorted(cross_overlap):
+            d[w] = 1.0  # 占位幅值; 两侧计数取 abs (见 _sentence_tone both_sided_words 分支)
+        # 政治正面词 → +0.5 (仅 du_2022, 不覆盖已有正面/负面/重叠词)
         for w in entry.get('political_positive', []):
             w = str(w).strip()
             if w and w not in d:
                 d[w] = 0.5
-        dictionaries.append((_DICT_COLUMN_ALIAS.get(key, key), d))
-        logger.info(f"  {key}: {len(d)} 词")
+        dictionaries.append((alias, d))
+        logger.info(f"  {key}: {len(d)} 词"
+                    + (f" (含跨类重叠两侧计数 {len(cross_overlap)})" if cross_overlap else ""))
 
     return dictionaries
 
@@ -445,7 +455,8 @@ def _inject_custom_dicts_to_jieba(dictionaries: list) -> None:
 #     DOI: 10.1145/1341531.1341561
 # ============================================================================
 
-def _sentence_tone(tokens: list, sentiment_dict: dict) -> float:
+def _sentence_tone(tokens: list, sentiment_dict: dict,
+                   both_sided_words: frozenset = frozenset()) -> float:
     """计算单句的归一化情感得分。
 
     与 22_tone_words._compute_sentiment_with_rules() 对齐的三重规则:
@@ -456,6 +467,8 @@ def _sentence_tone(tokens: list, sentiment_dict: dict) -> float:
     Args:
         tokens: 分词后的 token 列表 (已过滤空白 token)。
         sentiment_dict: 情感词典, 格式为 {word: base_score}。
+        both_sided_words: 跨类重叠词集 (与生产一致, 用户决策 2026-06-24「保留并两侧计数」):
+            命中词同时计入 pos/neg (matched += 2), 对 score 净贡献 0 → 拉向中性而非剔除。
 
     Returns:
         float: 归一化情感得分。无命中时返回 0.0。
@@ -509,8 +522,12 @@ def _sentence_tone(tokens: list, sentiment_dict: dict) -> float:
             # 3. 应用转折增强
             if adversative_active:
                 final *= ADVERSATIVE_BOOST
-            score += final
-            matched += 1
+            if token in both_sided_words:
+                # 跨类重叠词两侧计数: 净 0 贡献 score, matched += 2 → 拉向中性 (与生产一致)
+                matched += 2
+            else:
+                score += final
+                matched += 1
             # 4. 消费程度副词 (重置为 1.0)
             degree_multiplier = 1.0
         else:
@@ -528,6 +545,7 @@ def compute_decay_sentiment(
     tokenized_sentences: list,
     sentiment_dict: dict,
     decay_func: callable,
+    both_sided_words: frozenset = frozenset(),
 ) -> float:
     """距离加权词典情感得分。
 
@@ -567,7 +585,7 @@ def compute_decay_sentiment(
     weight_total = 0.0
 
     for tokens, dist in tokenized_sentences:
-        tone = _sentence_tone(tokens, sentiment_dict)
+        tone = _sentence_tone(tokens, sentiment_dict, both_sided_words)
         w = decay_func(dist)
         weighted_sum += w * tone
         weight_total += w
@@ -648,8 +666,9 @@ def run_analysis(df: pd.DataFrame, dictionaries: list) -> pd.DataFrame:
 
         # 计算各组合得分 (共享 tokenized_swd, 无额外分词开销)
         for dn, sdict in dictionaries:
+            _bs = _BOTH_SIDED_BY_DICT.get(dn, frozenset())  # 跨类重叠词两侧计数 (与生产一致)
             for fn, decay_func in DECAY_FUNCTIONS.items():
-                score = compute_decay_sentiment(tokenized_swd, sdict, decay_func)
+                score = compute_decay_sentiment(tokenized_swd, sdict, decay_func, _bs)
                 results[(dn, fn)].append(round(score, 6))
 
         # 进度汇报 (每 10% 输出一次)
