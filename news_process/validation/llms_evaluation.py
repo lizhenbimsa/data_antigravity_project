@@ -1535,6 +1535,15 @@ def _sentiment_eval_domain(frame: pd.DataFrame, pred_col: str,
     现从评估域剔除无有效预测行, coverage (有效预测占比) 单独报告 —
     与 tone_validation.py / panel encode 的 NA 语义 (测量失败 → 排除) 对齐。
 
+    更新 (用户决策 2026-06-23, **按生产口径评估**): 上游 stage 21 已把 **verified 轨
+    情感投票平局/空票** 由"未定(None)→排除"改为保守降级"中性"(见 tone_llms.py 的
+    final_v 分支)。故上文列举的"投票平局"**不再产 NaN**, 也不再被本评估域剔除, 而是
+    按生产口径作有效"中性"预测计入分类指标 —— 这是用户明确选择 (平局降级中性即生产
+    测度本身, 评估照此口径, **不另设标志列排除**降级行)。本函数现仍剔除的"无有效预测"
+    仅剩: ① 模型调用失败 / ② final_v=False (整篇非金科) 轨的 None / ③ 非法标签字符串。
+    ⚠ 因 llm_undefined_{track} 改动后结构性恒 0, **不可**再用它识别平局降级行 (若日后
+    人工金标准 onboarding 后想恢复"纯模型质量"口径, 需上游另加标志列, 见审查记录)。
+
     Returns:
         tuple: (y_gold ndarray, y_pred ndarray, coverage dict, valid_mask Series)
     """

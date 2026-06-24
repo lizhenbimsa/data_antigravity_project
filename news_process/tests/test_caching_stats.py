@@ -102,3 +102,67 @@ def test_stats_hit_rate_mixed(tmp_path):
     assert s['misses'] == 2
     assert s['lookups'] == 3
     assert abs(s['hit_rate'] - 1.0 / 3) < 1e-9
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# delete() — 读取侧自愈坏缓存条目 (2026-06-23)
+# ────────────────────────────────────────────────────────────────────────────
+
+def test_delete_v1_entry_evicts_and_reports_count(tmp_path):
+    """put 后 delete 同 key -> 条目被删, get 返回 None, 删除计数=1."""
+    db_path = str(tmp_path / "del_v1.db")
+    with LLMCache(db_path) as cache:
+        cache.put("m", "p1", "bad resp", prompt_version="v6", temperature=0.0)
+        removed = cache.delete("m", "p1", prompt_version="v6", temperature=0.0)
+        after = cache.get("m", "p1", prompt_version="v6", temperature=0.0)
+    assert removed == 1
+    assert after is None
+
+
+def test_delete_miss_returns_zero(tmp_path):
+    """删除不存在的条目 -> 返回 0, 不报错."""
+    db_path = str(tmp_path / "del_miss.db")
+    with LLMCache(db_path) as cache:
+        removed = cache.delete("m", "nope", prompt_version="v6", temperature=0.0)
+    assert removed == 0
+
+
+def test_delete_v0_fallback_entry(tmp_path):
+    """默认参数 (v0/0.0) 下 delete 一并清除 v0 旧 schema 键, 防 fallback 再命中."""
+    db_path = str(tmp_path / "del_v0.db")
+    with LLMCache(db_path) as cache:
+        import time
+        v0_key = LLMCache._make_key_v0("m", "legacy")
+        with cache._lock:
+            cache._conn.execute(
+                "INSERT INTO llm_cache (cache_key, model_id, response, created_at) "
+                "VALUES (?, ?, ?, ?)",
+                (v0_key, "m", "legacy bad", time.time())
+            )
+            cache._conn.commit()
+        # 默认参数 get 走 v0 fallback 命中
+        assert cache.get("m", "legacy") == "legacy bad"
+        removed = cache.delete("m", "legacy")  # 默认 v0/0.0 → 删 v1+v0
+        after = cache.get("m", "legacy")
+    assert removed == 1, "应删除 v0 fallback 条目"
+    assert after is None, "删除后 v0 fallback 不再命中"
+
+
+def test_delete_evicts_both_v1_and_v0(tmp_path):
+    """同 (model, prompt) 同时存在 v1 + v0 条目时, 默认参数 delete 两者全清 (返回 2)."""
+    db_path = str(tmp_path / "del_both.db")
+    with LLMCache(db_path) as cache:
+        import time
+        # v1 条目 (默认 v0/0.0 → put 走 v1 算法)
+        cache.put("m", "dup", "v1 bad")
+        # v0 条目直接写
+        v0_key = LLMCache._make_key_v0("m", "dup")
+        with cache._lock:
+            cache._conn.execute(
+                "INSERT INTO llm_cache (cache_key, model_id, response, created_at) "
+                "VALUES (?, ?, ?, ?)",
+                (v0_key, "m", "v0 bad", time.time())
+            )
+            cache._conn.commit()
+        removed = cache.delete("m", "dup")
+    assert removed == 2, "应同时删除 v1 与 v0 两条"

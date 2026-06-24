@@ -2,9 +2,15 @@
 
 校验点:
 1. _aggregate_track 不再因 verified=False 强制改 sentiment 为 "中性"
-2. majority_vote_sentiment 平局返回 None (tie_strategy='undefined')
+2. majority_vote_sentiment **函数默认** 平局返回 None (tie_strategy='undefined', 保留供稳健性/单测);
+   但 **stage 21 生产 callsite (用户决策 2026-06-23)** 已 promote 到 verified 轨平局/空票→保守
+   "中性" (不产 None) —— 见 test_aggregate_track_verified_tie_yields_conservative_neutral /
+   _verified_empty_sentiment_yields_neutral; 范围仅 verified 轨 (final_v=True), 非金科轨
+   (final_v=False) 情感仍 None (test_aggregate_track_not_fintech_keeps_none)。
 3. 21 输出含 n_valid_votes_* / n_verifying_votes_* / llm_call_failure_* / llm_undefined_*
-4. encode_sentiment 把 测量失败/平局/verification 失败 行映射为 NaN 而非 0
+   (llm_undefined_* 在用户决策 2026-06-23 后对 verified 轨结构性恒 0)
+4. encode_sentiment 把 测量失败/undefined/verification 失败 行映射为 NaN 而非 0
+   (encode 契约不变: 给定 undefined=1 仍置 NaN; 生产 undefined 现恒 0, 故该路径主要防御异常态)
 
 三轨 (ss 银行+金科同句共现轨, 2026-06-14): _aggregate_track / fetch_llm_async /
 majority_vote_sentiment 均为 **track-agnostic** — full/ctx/ss 三轨各调一遍同一函数,
@@ -88,8 +94,10 @@ def test_aggregate_track_no_forced_neutral(models):
     assert undefined == 0
 
 
-def test_aggregate_track_three_way_disagreement_yields_undefined(models):
-    """三方完全分歧（正面/中性/负面）且全部 verified → 平局 → final_s = None, undefined=1。"""
+def test_aggregate_track_verified_tie_yields_conservative_neutral(models):
+    """用户决策 (2026-06-23): 三方完全分歧（正面/中性/负面）且全部 verified → 平局 →
+    保守降级为 '中性' (不再 final_s=None / undefined=1)。**逆转** v6/F2 平局→None;
+    范围铁律 = 仅 verified 轨 (final_v=True)。"""
     from news_process.pipeline.sentiment.tone_llms import _aggregate_track
     res = {
         "gpt-5.4-nano": _build_response(True, "正面"),
@@ -99,10 +107,59 @@ def test_aggregate_track_three_way_disagreement_yields_undefined(models):
     out = _aggregate_track(res, models)
     final_v, final_s, _, _, n_valid, n_verifying, _, undefined, *_ = out
     assert final_v is True
-    assert final_s is None
+    assert final_s == "中性"   # 平局保守降级 (用户决策 2026-06-23), 非 None
     assert n_valid == 3
     assert n_verifying == 3
-    assert undefined == 1
+    assert undefined == 0      # verified 轨结构性恒 0
+
+
+def test_aggregate_track_verified_two_way_tie_yields_neutral(models):
+    """两 verified 模型情感平局 (正面/负面) → 保守降级 '中性' (无人投中性票时
+    agree_rate_s 自然取 0, undefined=0)。第三模型 verified=False, 情感不计入。"""
+    from news_process.pipeline.sentiment.tone_llms import _aggregate_track
+    res = {
+        "gpt-5.4-nano": _build_response(True, "正面"),
+        "gemini-3.1-flash-lite-preview": _build_response(True, "负面"),
+        "deepseek-v4-flash": _build_response(False, "正面"),   # 拒绝, 情感不入票
+    }
+    out = _aggregate_track(res, models)
+    final_v, final_s, _, _, _, _, _, undefined, *_ = out
+    assert final_v is True
+    assert final_s == "中性"
+    assert undefined == 0
+
+
+def test_aggregate_track_verified_empty_sentiment_yields_neutral(models):
+    """用户决策 (2026-06-23): verified 但无任一模型给可解析情感 (空票) → 同样保守
+    降级为 '中性' (不产 None), 彻底兑现 'verified 轨不产 None'。"""
+    from news_process.pipeline.sentiment.tone_llms import _aggregate_track
+    # 三模型均 verified=True 但 sentiment 非法 (→ s=None, 不入 s_votes_verified_only)
+    res = {
+        "gpt-5.4-nano": _build_response(True, "无效情感"),
+        "gemini-3.1-flash-lite-preview": _build_response(True, "无效情感"),
+        "deepseek-v4-flash": _build_response(True, "无效情感"),
+    }
+    out = _aggregate_track(res, models)
+    final_v, final_s, _, _, _, _, _, undefined, *_ = out
+    assert final_v is True
+    assert final_s == "中性"
+    assert undefined == 0
+
+
+def test_aggregate_track_not_fintech_keeps_none(models):
+    """Case B 范围铁律: 整篇被多数判为非金科 (final_v=False) → 情感保持 None (N/A);
+    用户决策 (2026-06-23) 的保守降级**不**适用本轨 (不给非金科文章注入伪中性)。"""
+    from news_process.pipeline.sentiment.tone_llms import _aggregate_track
+    res = {
+        "gpt-5.4-nano": _build_response(False, "正面"),
+        "gemini-3.1-flash-lite-preview": _build_response(False, "负面"),
+        "deepseek-v4-flash": _build_response(True, "正面"),
+    }
+    out = _aggregate_track(res, models)
+    final_v, final_s, _, _, _, _, _, undefined, *_ = out
+    assert final_v is False
+    assert final_s is None
+    assert undefined == 0
 
 
 def test_aggregate_track_call_failure(models):

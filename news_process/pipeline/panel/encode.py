@@ -108,6 +108,14 @@ def encode_sentiment(df: pd.DataFrame) -> pd.DataFrame:
          `is_neutral{track}` 仅在 verified=True ∧ undefined=0 ∧ failure=0 ∧
          sentiment="中性" 时为 1，否则 NaN；
       4. 下游 sum 自动跳过 NaN，count() 给出"有效观测数"。
+
+    更新 (用户决策 2026-06-23, 见 tone_llms.py final_v 分支)：上游 stage 21 已把
+    **verified 轨情感平局/空票** 由"未定(None)→排除"改为保守降级"中性"(**逆转** v6/F2
+    的"平局→None 防中性污染")。故本函数契约文字仍字面成立, 但运行期效应变化:
+    `llm_undefined{track}` 现结构性恒 0 (invalid_mask 的 undefined 分量恒 False);
+    原被排除的平局行如今满足 is_neutral 四条件 → 以 is_neutral=1 / vote_score=0 计入
+    有效观测 (这是该决策的预期本意, 非 bug)。仅 final_v=False (非金科) 轨情感仍 None →
+    经 sentiment.isna()→pd.NA 正确置无效。
     """
     logger.info("=" * 60)
     logger.info("步骤 2: 篇章级情感数值编码（三轨 full/ctx/ss, v6/F2 nullable Int8 版本）")

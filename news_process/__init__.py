@@ -64,4 +64,18 @@ Post-recode round 3 (Plan-r3 P0-P3, 2026-05-09): 第二轮 17 单元修复
 本 docstring 仅保留 Phase 0-9 + recode 历史记录, 不再追加新版本节。
 """
 
+import os as _os
+
+# OpenMP 双运行时防御 (OMP Error #15).
+# 本机环境叠了三层 site-packages: conda base 的 numpy/scipy/sklearn 走 MKL ->
+# 加载 Intel OpenMP `Library/bin/libiomp5md.dll`; per-user site 的 pip torch
+# 自带 `torch/lib/libiomp5md.dll`. 同一进程同时 import numpy(MKL) 与 torch 时
+# 两份 libiomp5md.dll 各自初始化 -> "OMP: Error #15 ... already initialized" 中止.
+# 该 env var 必须在 *第二份* OpenMP 运行时 (torch) 加载前生效; 本 __init__ 是所有
+# 项目入口 (NN_*.py shim / `python -m news_process...` / pytest) 最先执行的项目代码,
+# 远早于任何 pipeline 子模块 import torch, 故在此 set 必然及时.
+# 用 setdefault: 不覆盖调用方/golden 重生 SOP 已显式导出的值. 这是本项目既定的
+# canonical 解 (见各 audit runbook); 确定性由线程钉死=1 单独保证, 与本 flag 正交.
+_os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+
 __version__ = "3.8.0"

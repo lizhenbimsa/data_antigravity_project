@@ -198,6 +198,11 @@ def run_stage(stage_script: str, stage_name: str, logger,
     env.setdefault("PYTHONUNBUFFERED", "1")
     env.setdefault("PYTHONIOENCODING", "utf-8:replace")
     env.setdefault("PYTHONUTF8", "1")
+    # OpenMP 双运行时防御 (OMP Error #15): conda base MKL 的 libiomp5md.dll 与
+    # pip torch 自带的 libiomp5md.dll 在同一 stage 子进程同时初始化会中止.
+    # 在子进程 spawn 前注入 env (比 news_process/__init__ 的 in-process setdefault
+    # 更早, 早于子进程任何 import), 与既有 canonical SOP 一致; setdefault 不覆盖外部值.
+    env.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
     # 确定性保障: 锁定 PYTHONHASHSEED 消除 stage 22 等 jieba+frozenset 链路上
     # 边界 token 数偶发非确定性 (实测最大漂移 < 0.001 in uncert_frac, 但触发
     # column hash 不一致, 影响回归测试 / golden snapshot 复现性)。

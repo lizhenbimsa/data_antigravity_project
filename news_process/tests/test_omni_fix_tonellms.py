@@ -307,6 +307,193 @@ def test_g02_truncated_200_response_never_cached(monkeypatch):
 
 
 # ────────────────────────────────────────────────────────────────────────────
+# 2026-06-23: 缺 is_bank_fintech_news 键的 200 响应 → 进现有 80 次重试流程
+# (扩展 g-tonellms-02 写入侧守卫: "JSON 可解析"之外追加验证键存在性校验;
+#  耗尽重试仍缺 → 落回 g-tonellms-01/08 的"模型缺席"现有处理)
+# ────────────────────────────────────────────────────────────────────────────
+
+class _SequenceSession:
+    """假 session: 按调用顺序依次返回 contents[i], 越界后恒返回最后一项。
+
+    与 _FakeSession (恒定 content) 互补 — 用于驱动"先坏后好"的重试-成功路径,
+    证明缺键响应确实触发了**重新调用 API** (而非首响应即被缓存短路)。
+    """
+
+    def __init__(self, contents):
+        self._contents = list(contents)
+        self.calls = 0
+
+    def post(self, *a, **kw):
+        idx = min(self.calls, len(self._contents) - 1)
+        self.calls += 1
+        return _FakeResp(self._contents[idx])
+
+
+class TestRetryOnMissingVerificationKey:
+    """缺 is_bank_fintech_news 键的可解析响应不再被静默缓存, 而是触发重试。"""
+
+    def test_missing_key_not_cacheable_under_force_json(self):
+        """可解析但缺验证键 → 写入侧守卫判不可缓存 (FORCE_JSON 下触发重试)。"""
+        missing = json.dumps({"sentiment": "正面"}, ensure_ascii=False)
+        assert T._is_cacheable_llm_response(missing, force_json=True) is False
+
+    def test_present_key_even_false_is_cacheable(self):
+        """对照: is_bank_fintech_news=false (键存在) 仍是合格响应, 不重试 (勿过度修)。"""
+        false_resp = json.dumps(
+            {"is_bank_fintech_news": False, "sentiment": "中性"}, ensure_ascii=False)
+        assert T._is_cacheable_llm_response(false_resp, force_json=True) is True
+
+    def test_missing_key_lenient_when_force_json_off(self):
+        """force_json=False 保持历史宽松语义 (不解析, 仅要求非空)。"""
+        missing = json.dumps({"sentiment": "正面"}, ensure_ascii=False)
+        assert T._is_cacheable_llm_response(missing, force_json=False) is True
+
+    @staticmethod
+    def _drive(monkeypatch, session, max_retries):
+        """同步驱动 fetch_llm_async 对给定 session (零真实 sleep / 零归档 / 零网络)。"""
+        monkeypatch.setattr(T, "LLM_OFFLINE", False)
+        monkeypatch.setattr(T, "FORCE_JSON", True)
+        monkeypatch.setattr(T, "_LLM_ARCHIVE_AVAILABLE", False)
+        monkeypatch.setattr(T, "_compute_retry_sleep", lambda attempt: 0.0)
+        ledger = []
+        cache = _RecordingCache(ledger)
+
+        async def _go():
+            sem = asyncio.Semaphore(1)
+            return await T.fetch_llm_async(
+                session, sem, "test prompt",
+                {"model_name": "fake-model", "short_name": "fake",
+                 "base_url": "http://invalid.localhost", "api_key": "x"},
+                row_idx=0, track="full", cache=cache, max_retries=max_retries,
+                prompt_version="test-v0",
+            )
+
+        return asyncio.run(_go()), ledger
+
+    def test_missing_key_then_good_retries_and_succeeds(self, monkeypatch):
+        """缺键 200 → 重新调用 API → 第二次合格 → 原样返回并写缓存。"""
+        missing = json.dumps({"sentiment": "正面"}, ensure_ascii=False)
+        good = _resp(True, "正面")
+        session = _SequenceSession([missing, good])
+        result, ledger = self._drive(monkeypatch, session, max_retries=5)
+        assert result[2] == good, "重试后第二次合格响应应原样返回"
+        assert session.calls == 2, "缺键响应必须重新调用 API (现有重试流程)"
+        assert "put" in ledger, "合格响应应写入缓存"
+
+    def test_persistent_missing_key_exhausts_retries_then_absent(self, monkeypatch):
+        """缺键持续 → 耗尽重试 → 返回 None (现有模型缺席处理), 绝不缓存。"""
+        missing = json.dumps({"sentiment": "正面"}, ensure_ascii=False)
+        session = _SequenceSession([missing])
+        result, ledger = self._drive(monkeypatch, session, max_retries=3)
+        assert result[2] is None, "缺键耗尽重试后落回模型缺席 (None)"
+        assert session.calls == 3, "应完整重试 max_retries=3 次后才放弃"
+        assert ledger == [], "缺键响应绝不写入确定性锚点"
+
+    def test_long_parseable_missing_key_like_rawlen933_never_cached(self, monkeypatch):
+        """复刻用户实测 (rawlen≈933 可解析但缺验证键): 全力避免入缓存 + 重调重取。
+
+        模拟一个 ~900 字符、JSON 可解析但缺 is_bank_fintech_news 的长响应
+        (含其他字段 + 长 reason), 连续两次后第三次返回合格响应。断言:
+        前两次坏响应绝不写缓存 (ledger 无对应 put), 仅最终合格响应入缓存。
+        """
+        bad = json.dumps({
+            "sentiment": "正面",
+            "verification_confidence": 0.9,
+            "sentiment_confidence": 0.8,
+            "reason": "工商银行升级数字人民币钱包功能并推动金融科技应用落地。" * 33,
+        }, ensure_ascii=False)
+        assert len(bad) > 800, "构造的坏响应应足够长以贴合 rawlen 量级"
+        assert "is_bank_fintech_news" not in bad, "坏响应须缺验证键"
+        good = _resp(True, "正面")
+        session = _SequenceSession([bad, bad, good])
+        result, ledger = self._drive(monkeypatch, session, max_retries=5)
+        assert result[2] == good, "缺键长响应应反复重调直到取得合格响应"
+        assert session.calls == 3, "前两次缺键响应必须触发重新调用 API"
+        assert ledger == ["put"], "仅最终合格响应入缓存; 缺键长响应绝不进缓存"
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# 2026-06-23: 缓存命中坏条目读取侧自愈 (在线: 删除缓存 + 重调 API 重取;
+#             离线: 严格只读, 坏条目原样返回交聚合侧按模型缺席处理)
+# ────────────────────────────────────────────────────────────────────────────
+
+class _HealingCache:
+    """假缓存: get 返回预置响应; delete 记录次数并清空; put 记录次数。"""
+
+    def __init__(self, cached):
+        self.cached = cached
+        self.deleted = 0
+        self.put_count = 0
+
+    def get(self, *a, **kw):
+        return self.cached
+
+    def delete(self, *a, **kw):
+        self.deleted += 1
+        self.cached = None
+        return 1
+
+    def put(self, *a, **kw):
+        self.put_count += 1
+
+
+class TestBadCacheHitSelfHeal:
+    """命中的缓存若为坏条目 (空/不可解析/缺键), 在线删除并重取, 离线只读。"""
+
+    @staticmethod
+    def _drive(monkeypatch, cache, session, *, offline, max_retries=3):
+        monkeypatch.setattr(T, "LLM_OFFLINE", offline)
+        monkeypatch.setattr(T, "FORCE_JSON", True)
+        monkeypatch.setattr(T, "_LLM_ARCHIVE_AVAILABLE", False)
+        monkeypatch.setattr(T, "_compute_retry_sleep", lambda attempt: 0.0)
+
+        async def _go():
+            sem = asyncio.Semaphore(1)
+            return await T.fetch_llm_async(
+                session, sem, "test prompt",
+                {"model_name": "fake-model", "short_name": "fake",
+                 "base_url": "http://invalid.localhost", "api_key": "x"},
+                row_idx=7, track="full", cache=cache, max_retries=max_retries,
+                prompt_version="test-v0",
+            )
+
+        return asyncio.run(_go())
+
+    def test_good_cache_hit_returned_no_delete(self, monkeypatch):
+        """合格缓存命中 → 快路径原样返回, 不删除不调 API (行为不变)。"""
+        good = _resp(True, "正面")
+        cache = _HealingCache(good)
+        # session 返回不同内容; 若被调用即说明走错了快路径
+        session = _FakeSession(_resp(False, "中性"))
+        result = self._drive(monkeypatch, cache, session, offline=False)
+        assert result[2] == good, "合格缓存命中应原样返回"
+        assert cache.deleted == 0, "合格命中不得删除缓存"
+        assert cache.put_count == 0, "合格命中不得重写缓存"
+
+    def test_bad_cache_hit_online_evicted_and_refetched(self, monkeypatch):
+        """在线坏缓存命中 → 删除 + 重调 API 重取 → 好响应回写。"""
+        bad = json.dumps({"sentiment": "正面"}, ensure_ascii=False)  # 缺验证键
+        good = _resp(True, "正面")
+        cache = _HealingCache(bad)
+        session = _FakeSession(good)
+        result = self._drive(monkeypatch, cache, session, offline=False)
+        assert result[2] == good, "坏缓存删除后应重取到好响应"
+        assert cache.deleted == 1, "坏缓存条目必须被删除"
+        assert cache.put_count == 1, "重取的好响应应回写缓存"
+
+    def test_bad_cache_hit_offline_returned_not_deleted(self, monkeypatch):
+        """离线坏缓存命中 → 严格只读, 原样返回, 绝不删除/重取 (确定性复现)。"""
+        bad = json.dumps({"sentiment": "正面"}, ensure_ascii=False)
+        cache = _HealingCache(bad)
+        # session 若被调用即违反离线零网络铁律
+        session = _FakeSession(_resp(True, "正面"))
+        result = self._drive(monkeypatch, cache, session, offline=True)
+        assert result[2] == bad, "离线坏缓存应原样返回 (交聚合侧按缺席处理)"
+        assert cache.deleted == 0, "离线模式严禁删除缓存 (只读铁律)"
+        assert cache.put_count == 0, "离线模式严禁写缓存"
+
+
+# ────────────────────────────────────────────────────────────────────────────
 # g-tonellms-07/11: compute_prob_score 无效 confidence 域 → P3_INV 拒绝
 # ────────────────────────────────────────────────────────────────────────────
 

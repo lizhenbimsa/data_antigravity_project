@@ -62,7 +62,7 @@ news_process.pipeline.sentiment.tone_llms — 阶段21：统一 LLM 语义精筛
 
 **处理步骤**: ①`main()` 加载 parquet + schema 守护; ②`LLMCache(_llm_cache.db)` 打开 SQLite 缓存; ③`asyncio.run(run_all_llms(...))` 对每篇文章 × 三轨 × 三个 LLM 家族异步并发请求 (信号量 MAX_CONCURRENCY 控并发); ④`_aggregate_track` 对每轨返回 18 元组聚合 (verified 三角验证投票 + sentiment 投票 + locus/substantiveness/collab_mode 三维分类投票 + logit-to-score 概率分数); ⑤逐模型存档列 + 轨级聚合列写回 DataFrame; ⑥verified 并集过滤后写 `21_tone_llms.parquet`, 全量写 `21_tone_llms_full.parquet`。
 
-**关键算法/公式**: 三模型 ensemble 多数决 (`majority_vote_bool` 严格多数 >50%; `majority_vote_sentiment`/`majority_vote_categorical` 分类决); 平局策略可配 (sentiment 平局 tie_strategy='undefined'→None 防中性污染; substantiveness 平局 tie_default='象征性'; locus 平局 tie_default='应用场景'; collab_mode 平局 tie_default='自主研发', 均 conservative=uniform-prior MAP 保守降级); `compute_prob_score(label, confidence)` 把 3 类情感标签+置信度映射到 [-1,+1] 连续分 (logit-to-score, config `logit_to_score.enabled=true`; NaN/越界 confidence→P3_INV 拒绝); `compute_prob_score_binary` 对三维创新标签产 [0,1] 二分类分 (P2_BIN/P3_BIN)。verified gate 用并集 `verified_full | verified_ctx | verified_ss` (非交集), 并产 triple-gate 7 互斥态诊断列 (`llm_verified_triple_*`)。
+**关键算法/公式**: 三模型 ensemble 多数决 (`majority_vote_bool` 严格多数 >50%; `majority_vote_sentiment`/`majority_vote_categorical` 分类决); 平局策略可配 (sentiment **verified 轨**平局/空票 tie_default='中性' [用户决策 2026-06-23 保守降级, 不产 None; **逆转** v6/F2 '平局→None 防中性污染'; final_v=False 非金科轨情感仍 None=N/A]; substantiveness 平局 tie_default='象征性'; locus 平局 tie_default='应用场景'; collab_mode 平局 tie_default='自主研发', 均 conservative=uniform-prior MAP 保守降级); `compute_prob_score(label, confidence)` 把 3 类情感标签+置信度映射到 [-1,+1] 连续分 (logit-to-score, config `logit_to_score.enabled=true`; NaN/越界 confidence→P3_INV 拒绝); `compute_prob_score_binary` 对三维创新标签产 [0,1] 二分类分 (P2_BIN/P3_BIN)。verified gate 用并集 `verified_full | verified_ctx | verified_ss` (非交集), 并产 triple-gate 7 互斥态诊断列 (`llm_verified_triple_*`)。
 
 **输出列** (每轨 _full/_ctx/_ss 各一套): `llm_verified_*`、`llm_sentiment_*`、`llm_agreement_rate_v/s_*`、`n_valid_votes_*`/`n_verifying_votes_*`、`innovation_locus_*`(Gomber 2018 JMIS)、`innovation_substantiveness_*`(W&Z 1994/1998 ASQ)、`innovation_collab_mode_*`(Chesbrough 2003 + L&S 2006 SMJ)、各维度 `*_confidence_*`、`llm_prob_score`(avg_prob_score, 轨级聚合主列)、per-model `{short}_prob_score_*`、`avg_subst/locus/collab_prob_score_*`、逐模型 `{short}_verified/sentiment_*` 存档列; 另产 `llm_verified_dual_*`(3 态) / `llm_verified_triple_*`(7 态) 互斥指示列。
 
@@ -385,8 +385,25 @@ def _strip_prepended_title(text: str, title: str) -> str:
     return rest
 
 
+# 验证键 SSOT (单一事实源): stage 21 prompt v8 要求 LLM 在 JSON 中返回
+# is_bank_fintech_news (真伪精筛主字段)。重试闸门 (_is_cacheable_llm_response,
+# 写入侧) 与读取侧缺席判定 (_aggregate_track) **共用此常量** — 二者必须对同
+# 一字段达成一致, 否则"通过重试闸门写入缓存"的响应可能在聚合侧仍被判为模型
+# 缺席 (或反之), 两处 key 名一旦漂移即静默错配。
+_VERIFICATION_KEY = "is_bank_fintech_news"
+
+
 def _is_cacheable_llm_response(result_text, force_json: bool | None = None) -> bool:
-    """HTTP 200 响应写缓存前的内容校验 (write-side guard)。
+    """HTTP 200 响应写缓存 / 是否触发重试的内容校验 (write-side + retry gate)。
+
+    判为「合格可缓存响应」需同时满足:
+      ① result_text 是非空字符串 (非 None / 非纯空白);
+      ② 若 FORCE_JSON: 内容 JSON 可解析 **且** 含 ``is_bank_fintech_news`` 键。
+    任一不满足 → 视为可重试瞬时失败: ``fetch_llm_async`` 在 200 分支不
+    ``cache.put``、不归档, 走现有重试流程**重新调用 API** (上限
+    ``MAX_RETRIES`` = 80 次); 耗尽重试仍不合格则返回 ``None``, 由
+    ``_aggregate_track`` 按「模型缺席」处理 (与本函数共用 ``_VERIFICATION_KEY``,
+    口径严格一致)。
 
     fix(omni-g-tonellms-02/15, 2026-06-11): 空串 / 纯空白 / (FORCE_JSON 时)
     JSON 不可解析的 200 响应一旦 ``cache.put`` 即被永久冻结为合法命中 —
@@ -397,18 +414,29 @@ def _is_cacheable_llm_response(result_text, force_json: bool | None = None) -> b
     已冻结的空串/截断响应**不动**, 由 ``_aggregate_track`` 在读取侧按
     "模型缺席"处理 (见 fix omni-g-tonellms-01/08/15)。
 
+    扩展(2026-06-23): 在「JSON 可解析」之外**追加** ``is_bank_fintech_news``
+    键存在性校验 — 缺该键的可解析响应 (如 ``{"sentiment": "正面"}``) 此前
+    直接写缓存并在聚合侧记为模型缺席, 现改为同样触发 80 次重试, 给 API 重新
+    返回合格响应的机会; 80 次仍缺则落回原模型缺席处理 (按现有问题处理方式)。
+    **golden-safe**: 离线确定性复现路径在 ``cache.get`` 命中即短路返回 (早于
+    本函数), 既有已缓存条目 (含历史缺键响应) 一律不动; 本扩展仅影响未来
+    cache-miss 的在线重跑, 不改 prompt / 缓存键, 不触碰 frozen v8 命中路径。
+
     Args:
         result_text: API 200 响应的 message.content。
         force_json: 覆盖模块级 FORCE_JSON (测试注入用); None = 取全局值。
 
     Returns:
-        bool: True = 内容非空且 (FORCE_JSON 时) JSON 可解析, 允许 cache.put。
+        bool: True = 内容非空且 (FORCE_JSON 时) JSON 可解析且含验证键, 允许 cache.put。
     """
     if force_json is None:
         force_json = FORCE_JSON
     if not isinstance(result_text, str) or not result_text.strip():
         return False
-    return not force_json or bool(parse_json_response(result_text))
+    if not force_json:
+        return True
+    parsed = parse_json_response(result_text)
+    return bool(parsed) and _VERIFICATION_KEY in parsed
 
 
 def _build_llm_request(model_id: str, api_key: str, prompt: str) -> tuple[dict, dict]:
@@ -548,7 +576,26 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
         cached_response = cache.get(model_id, prompt, prompt_version=prompt_version,
                                     temperature=TEMPERATURE, random_seed=RANDOM_SEED)
         if cached_response is not None:
-            return row_idx, model_id, cached_response, track
+            # 缓存命中读取侧自愈 (2026-06-23): 在线模式下校验命中的缓存响应,
+            # 若为坏条目 (空 / 纯空白 / 不可解析 / 缺 is_bank_fintech_news 键,
+            # 与写入侧 _is_cacheable_llm_response 同口径) 则**删除该缓存条目并
+            # 落入下方实时 API 重试路径重取** (重取成功后回写好响应; 80 次仍坏
+            # 则 return None → _aggregate_track 按模型缺席处理)。
+            # ⚠ 离线确定性模式 (LLM_OFFLINE) 严格只读 — 不校验不删除, 坏条目
+            # 原样返回交 _aggregate_track 按模型缺席处理, 保证离线复现路径字节
+            # 不变 (历史 idx 982 等冻结坏条目在离线下行为与改前一致)。
+            if LLM_OFFLINE or _is_cacheable_llm_response(cached_response):
+                return row_idx, model_id, cached_response, track
+            removed = cache.delete(model_id, prompt, prompt_version=prompt_version,
+                                   temperature=TEMPERATURE, random_seed=RANDOM_SEED)
+            logger.warning(
+                f"[{model_id}] 行 {row_idx} ({track} 轨): 缓存命中坏条目 "
+                f"(空/不可解析/缺 {_VERIFICATION_KEY} 键, rawlen="
+                f"{len(str(cached_response))}); 已删除 {removed} 条缓存, "
+                "将重新调用 API 重取"
+            )
+            # 注意: 不 return, 落入下方实时 API 重试路径 (此处 LLM_OFFLINE 必为
+            # False — 离线分支已在上方 return)。
 
     # 问题3: 离线确定性守卫 — 缓存 miss 且开启离线模式时拒绝任何付费 API
     # 调用, 显式 raise 让 run 经 asyncio.as_completed (run_all_llms) 立即
@@ -585,18 +632,24 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
                     if resp.status == 200:
                         data = await resp.json()
                         result_text = data['choices'][0]['message']['content']
-                        # fix(omni-g-tonellms-02/15, 2026-06-11): 200 但 completion
-                        # 为空/不可解析 → 按可重试瞬时失败处理, 绝不 cache.put —
-                        # 防止瞬时 API 故障被永久写入确定性锚点 (缓存命中后该格
-                        # 永不重试, 固化为伪 False 票)。
+                        # fix(omni-g-tonellms-02/15, 2026-06-11) + 扩展(2026-06-23):
+                        # 200 但 completion 为空 / 不可解析 / 缺 is_bank_fintech_news
+                        # 键 → 按可重试瞬时失败处理, 走 continue 重新调用 API (上限
+                        # MAX_RETRIES=80), **绝不 cache.put**。这是"全力避免坏记录进入
+                        # 缓存"的**唯一闸门**: 下方 archive + cache.put 仅在通过本校验后
+                        # 可达 (校验失败即 continue), 故空 / 不可解析 / 缺验证键的响应
+                        # 永不写入确定性锚点 _llm_cache.db (否则缓存命中后该格永不重试,
+                        # 被固化为伪 False 票 / 模型缺席, 即用户实测 rawlen=806/933 现象)。
                         if not _is_cacheable_llm_response(result_text):
                             last_failure_reason = (
                                 f"连续 {max_attempts} 次请求未成功，"
-                                f"最后一次 200 响应内容为空或不可解析"
+                                f"最后一次 200 响应内容为空、不可解析或缺 "
+                                f"{_VERIFICATION_KEY} 键"
                             )
                             if has_more_attempts:
                                 logger.debug(
-                                    f"[{model_id}] 200 响应内容为空/不可解析 "
+                                    f"[{model_id}] 200 响应内容为空/不可解析/缺 "
+                                    f"{_VERIFICATION_KEY} 键 "
                                     f"(attempt {attempt+1}/{max_attempts}) "
                                     f"- 等待 {sleep_s:.1f}s 后重试..."
                                 )
@@ -1006,8 +1059,16 @@ def majority_vote_sentiment(sents: list, tie_strategy: str = 'undefined'):
               且与上层 verified=False → forced "中性" 共同污染 is_neutral 列。
               诊断显示 81.7%(_full) / 84.1%(_ctx) 的中性标签源自污染，
               而非真实中性新闻。
-    新行为：默认平局返回 None，交由上层标记为 llm_undefined=1，与真实
+    v6 新行为：默认平局返回 None，交由上层标记为 llm_undefined=1，与真实
             中性严格区分；保留 'neutral' 作 robustness 备选。
+
+    ⚠ 生产现状 (用户决策 2026-06-23, 见 _aggregate_track 的 final_v 分支)：
+        **本函数默认 ('undefined') 保持不变** (供单测/稳健性), 但 stage 21 生产
+        callsite 已 **promote** 到 `tie_strategy='neutral'` (平局→保守"中性") + 对
+        空票显式补降级"中性" —— 即 v6/F2 的"平局→None"在生产侧已被逆转, verified
+        轨不再产 llm_undefined。改本函数默认会破坏 test_aggregate_track_decoupling /
+        test_majority_vote_categorical 的 'undefined' 断言, 故**勿改默认**, 仅生产
+        callsite 选策略。
 
     Implementation note:
         2026-05-14 重构：内部委托给 majority_vote_categorical 以统一三处
@@ -1229,8 +1290,11 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
        强制改写其 sentiment 为 "中性"。每个模型独立保留自己的 sentiment 判定。
     2. **聚合 sentiment 投票仅纳入"通过 verification 的模型"**：避免拒绝该
        新闻为金融科技的模型对情感投票产生噪声贡献。
-    3. **平局 → undefined**：majority_vote_sentiment 默认返回 None，上层
-       标记 llm_undefined=1；下游 panel 层把 None 映射为 NaN 而非"中性"。
+    3. **平局/空票 → 保守降级"中性"** (用户决策 2026-06-23, 逆转原 v6/F2 平局→None)：
+       verified 轨 (final_v=True) 情感平局/空票一律保守降级为"中性" (与创新三维
+       tie_default 同款 conservative MAP); llm_undefined_* 因此结构性恒 0, 下游
+       is_neutral_* 正常编码。**仅** final_v=False (整文被多数判非金科) 轨情感仍为
+       None (N/A, 不注入伪中性)。
     4. **新增 4 个状态指标**：n_valid_votes / n_verifying_votes /
        call_failure / undefined，用于下游精细化掩码。
     5. **agree_rate 拆分**：agree_rate_v (验证投票一致率) /
@@ -1267,10 +1331,12 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
     白话: 三个大模型各自独立读同一篇新闻, 各投两票: 第一票"这是不是
     银行金融科技新闻"(真伪), 第二票"语气是正面/中性/负面"(情感)。
     真伪票按"过半数"裁定; 情感票只数那些第一票投了"是"的模型 (认为
-    新闻不相关的模型, 它的情感意见不作数)。情感票打成平手时不硬判
-    中性, 而是标记"未定"留给下游剔除 —— 因为"真中性"和"吵不出结果"
-    是两回事。模型调用失败或答非所问 (JSON 解析不出) 按"缺席"处理,
-    既不投票也不充当反对票。
+    新闻不相关的模型, 它的情感意见不作数)。情感票打成平手 (或验证通过却
+    没人给得出情感) 时, 保守判为"中性"而不再标"未定"(用户决策 2026-06-23:
+    跟"实质性/应用场景/自主研发"三维平局降级同款保守口径, 下游不再因
+    "未定"剔除这些 verified 文章)。但**整篇被多数判为"非银行金科"**的, 情感
+    仍留空 (None/N/A) —— 不给判为不相关的文章硬塞中性。模型调用失败或
+    答非所问 (JSON 解析不出) 按"缺席"处理, 既不投票也不充当反对票。
     """
     v_votes = []
     s_votes_all = []           # 所有成功调用模型的 sentiment（含 verified=False 模型）
@@ -1323,10 +1389,10 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
         # 下游连续 DV (encode 的 ×agreement_rate 衰减) 与 HC 子样本 (agr≥0.67
         # 剔除); 与 sentiment 通道 (s=None 不入票) 编码不一致, 叠加 call-failure
         # 可翻转 final_v (盘上 8 例 deepseekv4 截断/空响应坐实)。
-        if not jd or 'is_bank_fintech_news' not in jd:
+        if not jd or _VERIFICATION_KEY not in jd:
             n_failures += 1
             logger.warning(
-                f"[{m_id}] 响应不可解析或缺 is_bank_fintech_news 键 "
+                f"[{m_id}] 响应不可解析或缺 {_VERIFICATION_KEY} 键 "
                 f"(rawlen={len(str(raw_text))}), 按模型缺席处理, "
                 f"该模型本篇判定从投票中排除"
             )
@@ -1336,7 +1402,7 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
             per_model_parsed[f"{short}_sentiment_confidence"] = 0.0
             continue
 
-        v = jd.get('is_bank_fintech_news', False)
+        v = jd.get(_VERIFICATION_KEY, False)
         if isinstance(v, str):
             v = v.strip().lower() in ('true', '1', 'yes')
         v = bool(v)
@@ -1435,11 +1501,27 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
 
     final_v = majority_vote_bool(v_votes)
 
-    # v6/F2: 仅在通过 verification 的模型子集上计算情感多数票。
+    # v6/F2 + 用户决策 (2026-06-23): 仅在通过 verification 的模型子集上计算情感多数票。
     if final_v:
-        final_s = majority_vote_sentiment(s_votes_verified_only, tie_strategy='undefined')
+        # 用户决策 (2026-06-23): verified 轨情感**平局/空票一律保守降级为"中性", 不产 None**
+        # —— promote 既有 'neutral' 稳健性策略到生产 (与创新三维 tie_default 象征性/应用场景/
+        # 自主研发 同款 conservative MAP, uniform prior)。**逆转** v6/F2「平局→None 防中性污染」
+        # (该决策曾诊断 81.7%(_full)/84.1%(_ctx) 中性源自污染; 用户已知情并明确选择保守降级,
+        # 接受这些 verified 文章以 is_neutral=1 进面板)。范围铁律 = **仅 verified 轨**
+        # (final_v=True):
+        #   · 平局 → 中性 ('neutral' 策略即 conservative + tie_default='中性');
+        #   · 空票 (无任一可解析情感票) → 'neutral' 经 majority_vote_categorical 仍回
+        #     empty_fallback=None, 故下方显式补降级为中性, 彻底兑现"verified 轨不产 None"。
+        # final_s 非 None ⟹ 下游 llm_undefined_* 恒 0、is_neutral_* 正常编码、
+        # agree_rate_s / avg_prob_score 取自然值 (平局→中性时 agree_s=投中性票占比、prob≈0,
+        # 整行内部自洽)。函数 majority_vote_sentiment 默认仍为 'undefined' (保留作稳健性/单测)。
+        final_s = majority_vote_sentiment(s_votes_verified_only, tie_strategy='neutral')
+        if final_s is None:
+            final_s = '中性'
     else:
-        # 整篇被多数判为非金融科技 → 情感无意义；标记为 undefined（None）。
+        # Case B: 整篇被多数判为非金融科技 → 情感无意义, **保持 None** (N/A, 非"未定";
+        # 用户决策范围明确排除本轨 — 不给判为非金科的文章注入伪中性。下游 encode 经
+        # verified=False 掩码置 NaN, panel 不计入)。
         final_s = None
 
     # fix(omni-g-tonellms-09, 2026-06-11): 文章级 final_v 门控 (标签层, 镜像
@@ -1464,6 +1546,10 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
         agree_rate_s = float('nan')
 
     call_failure = 1 if n_valid_votes == 0 else 0
+    # 用户决策 (2026-06-23) 后: final_v=True ⟹ final_s 永不 None (平局/空票→保守"中性"),
+    # 故本式对 verified 轨**结构性恒 0**; final_v=False 时被 `final_v and` 短路同样得 0。
+    # ⇒ llm_undefined_* 列现全 0 (保留供 schema 稳定 + encode 掩码兼容)。保留防御式写法:
+    # 万一未来 final_s 在 final_v=True 下意外为 None, 仍会被如实标记为 undefined。
     undefined = 1 if (final_v and final_s is None) else 0
 
     prob_scores = []
@@ -1526,10 +1612,15 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
             collab_prob_scores.append(collab_bin["prob_score"])
 
     avg_prob_score = sum(prob_scores) / len(prob_scores) if prob_scores else float('nan')
-    # fix(tonellms-probgate-articlelevel, review-closure 2026-06-10 PROBGATE-1): 离散主 DV
-    # final_s 在 final_v=False(整文被多数判非 fintech)或 tie(undefined)时为 None; 连续稳健/
-    # falsification DV avg_prob_score 须同步置 nan, 否则当多数拒但少数 verified 模型仍投情感时,
-    # 连续 DV 仍含该泄漏情感 → 与离散 DV 不在同一观测子集。final_s is None 覆盖拒绝与 tie 两种。
+    # fix(tonellms-probgate-articlelevel, review-closure 2026-06-10 PROBGATE-1) + 用户决策更新
+    # (2026-06-23): 连续 DV avg_prob_score 须与离散 DV final_s 在同一观测子集。
+    # final_s is None 现**仅** = Case B (final_v=False, 整文被多数判非 fintech) — 此时连续 DV
+    # 同步置 nan (杜绝"多数拒但少数 verified 模型仍投情感"的泄漏)。verified 轨平局已保守降级
+    # 为"中性"(final_s 非 None), 其 avg_prob_score = 各 verified 模型 prob 均值 (正/负平局≈0,
+    # 与中性自洽), 不再 nan ⇒ 离散/连续仍同子集。**可忽略例外**: verified 但**空票**(零可解析
+    # 情感票) 时 final_s 显式=中性 而 prob_scores 为空 ⟹ avg_prob_score 经上方 line 已是 nan;
+    # 此极罕见态 (verified 却无任一模型给情感) 下离散=中性/连续=nan 轻微不同子集, 可接受
+    # (连续 DV 无数据时诚实置 nan)。
     if final_s is None:
         avg_prob_score = float('nan')
     avg_subst_prob_score = (sum(subst_prob_scores) / len(subst_prob_scores)
@@ -1746,7 +1837,7 @@ def main():
     logger.info("        判定是否真在讲'目标银行×金融科技'(verified 把关), 再判语气 正面/负面/中性,")
     logger.info("        顺带给 创新位点(底层/应用)、实质性(实质/象征)、协同模式(自研/外部) 三维标签;")
     logger.info("        三轨各跑一遍并各自 majority-vote, 产 _full/_ctx/_ss 整套列, 是面板'媒体语调'主变量之源。")
-    logger.info("【方法】三模型 ensemble 多数决 (>50% 严格多数); sentiment 平局→None (防中性污染),")
+    logger.info("【方法】三模型 ensemble 多数决 (>50% 严格多数); sentiment(verified 轨) 平局/空票→保守'中性'(不产未定; 非金科轨 None=N/A),")
     logger.info("        创新三维平局→保守 MAP 降级(象征性/应用场景/自主研发); logit-to-score 把"
                 f"(标签×置信度) 映射到 [-1,+1] 连续分 (enabled={LOGIT_SCORE_ENABLED})。")
     logger.info("        verified gate = 并集 verified_full|verified_ctx|verified_ss (任一轨过即留, 非交集)。")
@@ -2397,37 +2488,176 @@ def main():
                 _pos = int(_sc.get('正面', 0))
                 _neg = int(_sc.get('负面', 0))
                 _neu = int(_sc.get('中性', 0))
-                _undef = _n_v - _pos - _neg - _neu  # None/未定 (平局 tie→None, 防中性污染)
+                _undef = _n_v - _pos - _neg - _neu  # None/未定: 用户决策 2026-06-23 后 verified 轨平局/空票→中性, 此项结构性≈0 (残留非0 即异常态)
                 logger.info(
                     f"    · 轨道 {_trk} (verified={_n_v}): 正面 {_pos / _n_v * 100:.1f}% / "
                     f"负面 {_neg / _n_v * 100:.1f}% / 中性 {_neu / _n_v * 100:.1f}% / "
                     f"未定 {_undef / _n_v * 100:.1f}%。"
                 )
             logger.info(
-                "    判读: '未定'(None)是平局保守降级而非中性, 占比偏高=三模型分歧大(测度噪声); "
+                "    判读: 用户决策 (2026-06-23) 后 verified 轨情感平局/空票已保守降级为'中性'(不再产'未定'), "
+                "故'未定'占比应≈0 (残留非0 即异常态, 需排查); '中性'占比已含原平局降级部分; "
                 "正负面方向跨轨一致=测度收敛(好)。"
             )
 
-            # ⑤ logit-to-score 连续分 — 取 verified 并集样本的轨级均值
+            # ⑤ logit-to-score 连续分 — verified 并集样本的轨级分布 (均值 + 离散度 + 极性桶)
             if LOGIT_SCORE_ENABLED:
                 for _trk, _pcol in [('_full', 'llm_prob_score_full'),
                                     ('_ctx', 'llm_prob_score_ctx'),
                                     ('_ss', 'llm_prob_score_ss')]:
                     if _pcol in df_filtered.columns and len(df_filtered) > 0:
-                        _ser = pd.to_numeric(df_filtered[_pcol], errors='coerce')
-                        _nn = int(_ser.notna().sum())
+                        _ser = pd.to_numeric(df_filtered[_pcol], errors='coerce').dropna()
+                        _nn = int(_ser.shape[0])
                         if _nn == 0:
-                            logger.info(f"    · llm_prob_score{_trk}: 该轨无有效数据(全 NaN), 跳过均值判读。")
+                            logger.info(f"    · llm_prob_score{_trk}: 该轨无有效数据(全 NaN), 跳过分布判读。")
                         else:
                             _mean = float(_ser.mean())
+                            _std = float(_ser.std()) if _nn > 1 else 0.0
+                            _pos = int((_ser > 0).sum())
+                            _neg = int((_ser < 0).sum())
+                            _zero = _nn - _pos - _neg
                             logger.info(
-                                f"    · llm_prob_score{_trk} 并集均值={_mean:+.4f} (非空 {_nn}); "
-                                "[-1,+1] 连续分, >0 偏正面、<0 偏负面、|值| 越大语气越强。"
+                                f"    · llm_prob_score{_trk} 并集 mean={_mean:+.4f} sd={_std:.4f} "
+                                f"范围[{_ser.min():+.3f},{_ser.max():+.3f}] (非空 {_nn}); "
+                                f"极性桶 >0 {_pos / _nn * 100:.1f}% / <0 {_neg / _nn * 100:.1f}% / "
+                                f"≈0 {_zero / _nn * 100:.1f}%。"
                             )
+                logger.info(
+                    "    判读: [-1,+1] 连续分(置信加权), >0 偏正面、<0 偏负面、|值| 越大语气越强; "
+                    "sd 越小=语气越集中(本语料近全正面故 mean 高、sd 小属预期), <0 桶占比即负面信号密度; "
+                    "回归前据此判断 DV 是否有足够变异 — 过度集中(sd≈0)会削弱识别力。"
+                )
             else:
                 logger.info("    · logit-to-score 已禁用 (LOGIT_SCORE_ENABLED=False), 无 llm_prob_score_* 连续分输出。")
 
-            # ⑥ 小样本/盘面规模警告
+            # ⑥ 创新三维标签分布 — verified 子样本上 locus/substantiveness/collab 的二元构成
+            #    (下游 P4 locus / P3 substance / P5 collab 三篇论文 main DV 之源; 二元标签即面板列编码)。
+            #    positive_class 与 stata_export value_labels / prob_score 对齐:
+            #    locus→应用场景 / subst→象征性 / collab→外部协同 (1=对照类)。
+            _innov_dims = [
+                ('创新位点', '底层技术/应用场景', 'P4 locus', 'innovation_locus', ('应用场景', '底层技术')),
+                ('实质性', '实质性/象征性', 'P3 substance', 'innovation_substantiveness', ('象征性', '实质性')),
+                ('协同模式', '自主研发/外部协同', 'P5 collab', 'innovation_collab_mode', ('外部协同', '自主研发')),
+            ]
+            logger.info("  · 创新三维标签分布 (各轨 verified 子样本; 平局/低置信→保守 MAP 降级):")
+            for _dname, _dlab, _paper, _base, (_lab_a, _lab_b) in _innov_dims:
+                _parts = []
+                for _trk, _vcol in [('full', 'llm_verified_full'),
+                                    ('ctx', 'llm_verified_ctx'),
+                                    ('ss', 'llm_verified_ss')]:
+                    _dcol = f"{_base}_{_trk}"
+                    if _vcol not in df.columns or _dcol not in df.columns:
+                        _parts.append(f"{_trk} N/A")
+                        continue
+                    _sub = df[df[_vcol]]
+                    if len(_sub) == 0:
+                        _parts.append(f"{_trk} 无verified")
+                        continue
+                    _vc = _sub[_dcol].value_counts(dropna=True)
+                    _na = int(_vc.get(_lab_a, 0))
+                    _nb = int(_vc.get(_lab_b, 0))
+                    _den = _na + _nb
+                    if _den == 0:
+                        _parts.append(f"{_trk} 标签全空")
+                        continue
+                    _parts.append(f"{_trk} {_lab_a}{_na / _den * 100:.0f}%/{_lab_b}{_nb / _den * 100:.0f}%")
+                logger.info(f"    - {_dname} ({_dlab} → {_paper}): " + " | ".join(_parts))
+            logger.info(
+                "    判读: 二元构成是下游 P3/P4/P5 论文主因变量之源; 因平局/低置信票按保守 MAP 降级到"
+                "基类(应用场景/象征性/自主研发), 该方向占比天然偏高 — 极端单边(如某类>99%)在 T=2 小样本"
+                "属正常退化, 须以全量 T=18 占比为准, 不可据盘面下实质结论。"
+            )
+
+            # ⑦ 模型间一致性 (ensemble inter-model agreement) — 3-LLM 多数决的可靠性 / inter-rater 替代量
+            #    llm_agreement_rate_*   = verified 票与最终判定一致的(有效)模型占比;
+            #    llm_agreement_rate_s_* = verified 子样本上情感票与最终情感一致占比 (NaN=无有效情感票)。
+            _n_models = len(MODELS) if MODELS else 3
+            logger.info(f"  · 模型间一致性 (ensemble, n_models={_n_models}; 越接近 1=三模型越趋同, 测度越可靠):")
+            for _trk, _vcol, _arv, _ars in [
+                ('_full', 'llm_verified_full', 'llm_agreement_rate_full', 'llm_agreement_rate_s_full'),
+                ('_ctx', 'llm_verified_ctx', 'llm_agreement_rate_ctx', 'llm_agreement_rate_s_ctx'),
+                ('_ss', 'llm_verified_ss', 'llm_agreement_rate_ss', 'llm_agreement_rate_s_ss'),
+            ]:
+                if _vcol not in df.columns:
+                    continue
+                _sub = df[df[_vcol]]
+                if len(_sub) == 0:
+                    logger.info(f"    · 轨道 {_trk}: 无 verified 篇, 跳过。")
+                    continue
+                _msg = f"    · 轨道 {_trk} (verified={len(_sub)}): "
+                if _arv in _sub.columns:
+                    _rv = pd.to_numeric(_sub[_arv], errors='coerce').dropna()
+                    if len(_rv) > 0:
+                        _unan_v = float((_rv >= 0.999).mean()) * 100
+                        _msg += f"verified 票一致率 mean={_rv.mean():.3f} (全票一致 {_unan_v:.0f}%)"
+                    else:
+                        _msg += "verified 票一致率 N/A"
+                if _ars in _sub.columns:
+                    _rs = pd.to_numeric(_sub[_ars], errors='coerce').dropna()
+                    if len(_rs) > 0:
+                        _unan_s = float((_rs >= 0.999).mean()) * 100
+                        _msg += f"; 情感票一致率 mean={_rs.mean():.3f} (非空 {len(_rs)}, 全票一致 {_unan_s:.0f}%)"
+                    else:
+                        _msg += "; 情感票一致率 N/A(无有效情感票)"
+                logger.info(_msg)
+            logger.info(
+                "    判读: 一致率是 3-LLM 评分员的 inter-rater reliability 替代量 — mean 越高 / 全票一致占比"
+                "越大 = 三模型对'是否金科×语气'判断越收敛, 主变量越可信; 某轨显著低于其他轨说明该轨边界"
+                "样本更多(语义更模糊), 解释其回归时需谨慎。下游 encode 以 agreement_rate 作连续衰减权重。"
+            )
+
+            # ⑧ 三轨情感收敛 (convergent validity) — all-three verified 子样本上三轨情感是否一致
+            _scols = ['llm_sentiment_full', 'llm_sentiment_ctx', 'llm_sentiment_ss']
+            if all(c in df.columns for c in _scols) and 'llm_verified_triple_all_three' in df.columns:
+                _at = df[df['llm_verified_triple_all_three']]
+                _nat = len(_at)
+                if _nat > 0:
+                    _agree3 = int(((_at['llm_sentiment_full'] == _at['llm_sentiment_ctx'])
+                                   & (_at['llm_sentiment_ctx'] == _at['llm_sentiment_ss'])).sum())
+                    logger.info(
+                        f"  · 三轨情感收敛 (all-three verified={_nat} 篇): 三轨情感标签完全一致 "
+                        f"{_agree3}/{_nat} ({_agree3 / _nat * 100:.1f}%)。"
+                    )
+                    _pcols = ['llm_prob_score_full', 'llm_prob_score_ctx', 'llm_prob_score_ss']
+                    if LOGIT_SCORE_ENABLED and all(c in df.columns for c in _pcols):
+                        _pf = pd.to_numeric(_at['llm_prob_score_full'], errors='coerce')
+                        _pc = pd.to_numeric(_at['llm_prob_score_ctx'], errors='coerce')
+                        _ps = pd.to_numeric(_at['llm_prob_score_ss'], errors='coerce')
+                        logger.info(
+                            f"    连续分跨轨 Pearson r: full~ctx={_pf.corr(_pc):.3f}, "
+                            f"full~ss={_pf.corr(_ps):.3f}, ctx~ss={_pc.corr(_ps):.3f}。"
+                        )
+                    logger.info(
+                        "    判读: 同一篇在三种归因窗口(全文 / 银行邻近句 / 银行∧金科同句)下情感判定高度一致 = "
+                        "测度对窗口选择稳健(收敛效度好); 一致率/相关偏低则窗口口径会实质改变语气测度 — 三轨更应"
+                        "作为彼此独立的稳健性各自进回归(铁律: 禁混同一 Hansen J), 而非互相替代。"
+                    )
+
+            # ⑨ 投票完整性 / API 退化诊断 — 每篇有多少模型成功返回 (满票=n_models)
+            logger.info(f"  · 投票完整性 (满票=n_models={_n_models}; 缺票轨多数决退化为双/单模型):")
+            for _trk, _nvc, _cfc, _udc in [
+                ('_full', 'n_valid_votes_full', 'llm_call_failure_full', 'llm_undefined_full'),
+                ('_ctx', 'n_valid_votes_ctx', 'llm_call_failure_ctx', 'llm_undefined_ctx'),
+                ('_ss', 'n_valid_votes_ss', 'llm_call_failure_ss', 'llm_undefined_ss'),
+            ]:
+                if _nvc not in df.columns:
+                    continue
+                _nv = pd.to_numeric(df[_nvc], errors='coerce')
+                _full_vote = int((_nv >= _n_models).sum())
+                _pct_full = (_full_vote / _total * 100) if _total else float('nan')
+                _cf = int(df[_cfc].sum()) if _cfc in df.columns else 0
+                _ud = int(df[_udc].sum()) if _udc in df.columns else 0
+                logger.info(
+                    f"    · 轨道 {_trk}: 满票 {_full_vote}/{_total} ({_pct_full:.1f}%), "
+                    f"全模型缺席 {_cf} 篇, undefined(平局未决) {_ud} 篇。"
+                )
+            logger.info(
+                "    判读: 离线/缓存全命中时满票应≈100%、全模型缺席=0; undefined 在 2026-06-23 决策后结构性"
+                "恒 0(verified 轨平局已降级中性), 非 0 即异常须排查。满票率显著 <100% = 有模型响应缺失, "
+                "该批投票从 3 票退化为 2/1 票, 可靠性下降, 需核查网络/限流后重跑。"
+            )
+
+            # ⑩ 小样本/盘面规模警告
             if _total <= 2000:
                 logger.info(
                     f"  · 样本规模 {_total:,} 行 (盘面 T=2 小样本): 本次仅验证三轨 LLM 管道正确性, "

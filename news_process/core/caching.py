@@ -420,6 +420,54 @@ class LLMCache:
             self._conn.commit()
             self._writes += len(rows)  # T0.0a
 
+    def delete(self, model_id: str, prompt: str,
+               *, prompt_version: str = "v0",
+               temperature: float = 0.0,
+               random_seed: int | None = None) -> int:
+        """删除指定 (model_id, prompt, ...) 的缓存条目 (v1 + 适用时 v0 fallback)。
+
+        用于**读取侧自愈** (2026-06-23): 当 ``get()`` 命中的响应经上层校验为
+        坏条目 (空 / 不可解析 / 缺验证键) 时, 上层 (stage 21 ``fetch_llm_async``
+        在线模式) 删除该条目并重新调 API 重取, 让坏缓存自我修复。
+
+        ⚠ 这是对确定性锚点 ``_llm_cache.db`` 的**写 (删) 操作** — 仅应在
+        在线重跑、明确要求自愈坏缓存时调用; **离线确定性模式
+        (``NEWS_PROCESS_LLM_OFFLINE=1``) 严禁调用本方法** (离线须严格只读,
+        保证字节级复现)。删坏条目后, 下次该 (model, prompt) 会 cache miss →
+        重新付费调 API → 重写好响应; 这会改变受影响篇目的聚合结果, 须随后
+        受控重生 golden (与项目"勿删整库"铁律不冲突: 此处只精准清除坏条目)。
+
+        与 ``get()`` 的 v0 fallback 对称: 当 ``prompt_version == 'v0'`` 且
+        ``temperature == 0.0`` 时一并删除 v0 旧 schema 键, 防坏条目藏在 v0
+        命名空间躲过删除后又被 ``get`` 的 fallback 命中。
+
+        Args:
+            model_id:        模型标识符.
+            prompt:          请求的 prompt 文本.
+            prompt_version:  prompt 模板版本 (须与写入时一致才能命中删除).
+            temperature:     推理温度.
+            random_seed:     随机种子 (仅 temperature>0 时进键).
+
+        Returns:
+            int: 实际删除的行数 (0 = 未命中任何键, 1 = 删 v1, 最多 2 = v1+v0)。
+        """
+        keys = [self._make_key(model_id, prompt,
+                               prompt_version=prompt_version,
+                               temperature=temperature,
+                               random_seed=random_seed)]
+        if prompt_version == "v0" and temperature == 0.0:
+            keys.append(self._make_key_v0(model_id, prompt))
+        deleted = 0
+        with self._lock:
+            for k in keys:
+                cursor = self._conn.execute(
+                    "DELETE FROM llm_cache WHERE cache_key = ?", (k,)
+                )
+                if cursor.rowcount and cursor.rowcount > 0:
+                    deleted += cursor.rowcount
+            self._conn.commit()
+        return deleted
+
     def stats(self) -> dict:
         """返回运行时 hit/miss/write 计数 + 推导的 hit_rate (T0.0a).
 
