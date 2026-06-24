@@ -87,6 +87,12 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
+# fix(perf, golden-safe): 强制 HF 离线 (镜像 stage 23) — 本地已有 text2vec 快照, 跳过 hf.co
+# revision 网络解析 (实测 stage 25 联网三轨加载 ~107s, 离线 ~14s; 只切换加载来源、不改权重
+# → 嵌入数值逐位不变, golden-safe)。setdefault 保留生产首跑显式 HF_HUB_OFFLINE=0 的逃生口。
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+
 # 路径注入: 让 ``news_process.core.*`` 在任意 cwd 下可解析
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
@@ -137,11 +143,39 @@ def _truncate_for_sbert(title: str, content: str) -> str:
     return t or c
 
 
+def _load_sbert_model():
+    """加载 SBERT 模型一次 (含确定性硬化); 供 main 三轨复用, 避免重复加载同一权重。
+
+    fix(perf, golden-safe): 原 encode_articles 内每轨各 new 一次 SentenceTransformer
+    (full/ctx/ss 三次从磁盘重载同一权重, ~85s 浪费); 提取为单次加载供三轨复用。SBERT
+    encode 在 eval/no_grad 下不消费 RNG → 复用同一实例与每轨各自重建逐位等价 (实测
+    max|d|=0)。ensure_torch_determinism() 幂等 (进程内只设一次), 此处调一次即可。
+    """
+    try:
+        from sentence_transformers import SentenceTransformer  # noqa: E402
+    except ImportError:
+        logger.error("sentence-transformers 未安装; pip install sentence-transformers")
+        raise
+
+    # 推理前确定性硬化 (共享 helper, 对齐 stage 23 — seed 四源 + deterministic algorithms)
+    from news_process.pipeline.text.embedding_engine import ensure_torch_determinism
+    ensure_torch_determinism()
+
+    logger.info(
+        f"  加载 SBERT: {_SBERT_MODEL_ID}"
+        + (f" @ revision={_SBERT_REVISION}" if _SBERT_REVISION else "")
+    )
+    if _SBERT_REVISION:
+        return SentenceTransformer(_SBERT_MODEL_ID, revision=_SBERT_REVISION)
+    return SentenceTransformer(_SBERT_MODEL_ID)
+
+
 def encode_articles(
     df: pd.DataFrame,
     content_col: str,
     title_col: Optional[str] = '标题',
     batch_size: int = 64,
+    model=None,
 ) -> np.ndarray:
     """SBERT batch 编码; 输出 (N, 768) numpy 数组.
 
@@ -154,27 +188,11 @@ def encode_articles(
     Returns:
         (N, 768) float32 embeddings.
     """
-    try:
-        from sentence_transformers import SentenceTransformer  # noqa: E402
-    except ImportError:
-        logger.error("sentence-transformers 未安装; pip install sentence-transformers")
-        raise
-
-    # fix(omni-g-embed-07, 2026-06-11): 推理前确定性硬化 (共享 helper, 对齐 stage 23
-    # tone_berts V4 T1.1a — seed 四源 + deterministic algorithms + cuDNN 策略)
-    from news_process.pipeline.text.embedding_engine import ensure_torch_determinism
-    ensure_torch_determinism()
-
-    logger.info(
-        f"  加载 SBERT: {_SBERT_MODEL_ID}"
-        + (f" @ revision={_SBERT_REVISION}" if _SBERT_REVISION else "")
-    )
-    # fix(omni-g-embed-05, 2026-06-11): 配置了 revision 时钉死 HF commit;
-    # 未配置保持旧调用形态 (兼容旧版 sentence-transformers 无 revision kwarg)
-    if _SBERT_REVISION:
-        model = SentenceTransformer(_SBERT_MODEL_ID, revision=_SBERT_REVISION)
-    else:
-        model = SentenceTransformer(_SBERT_MODEL_ID)
+    # fix(perf, golden-safe): model=None 时内部加载一次 (兼容直接调用/测试 monkeypatch
+    # sentence_transformers.SentenceTransformer); main 三轨传入预加载实例复用避免重复加载。
+    # 确定性硬化 (ensure_torch_determinism) 在 _load_sbert_model 内完成。
+    if model is None:
+        model = _load_sbert_model()
 
     if title_col and title_col in df.columns:
         docs = [
@@ -358,14 +376,19 @@ def main():
     # (注: 各模块下游截断方式不同——sbert 取字符 [:400], stage 15 走 token 截断——此处仅指
     #  "读含标题串、标题恰好一次"这一点对齐, 非截断算法相同)。
     # 缺 content_full 时回退裸 '内容'+'标题' (旧 schema; _truncate_for_sbert 注入标题一次)。
+    # fix(perf, golden-safe): 加载一次 SBERT 模型, 三轨 (full/ctx/ss) 复用同一实例,
+    # 替代原每轨各 new 一次 (~85s 重复加载浪费)。复用与重建逐位等价 (encode 不消费 RNG)。
+    _sbert_model = _load_sbert_model()
+
     _has_cfull = 'content_full' in df.columns
     embs_full = encode_articles(
         df,
         content_col='content_full' if _has_cfull else '内容',
         title_col=None if _has_cfull else '标题',
+        model=_sbert_model,
     )
     embs_ctx = (
-        encode_articles(df, content_col='content_ctx', title_col=None)
+        encode_articles(df, content_col='content_ctx', title_col=None, model=_sbert_model)
         if 'content_ctx' in df.columns
         else np.full_like(embs_full, np.nan)
     )
@@ -376,7 +399,7 @@ def main():
     # stage 18 的 semantic_staleness_ss 优雅缺席 (镜像 DEFER, 不崩)。title_col=None:
     # content_ss 已 prepend 标题一次 (ctx_materializer), 同 full/ctx 关二次前置。
     embs_ss = (
-        encode_articles(df, content_col='content_ss', title_col=None)
+        encode_articles(df, content_col='content_ss', title_col=None, model=_sbert_model)
         if 'content_ss' in df.columns
         else None
     )

@@ -57,7 +57,9 @@ config.yaml 已是 legacy stub, 配置拆分后单一真值在 7 域 split YAML�
     - **分词结果共享**：(max_length, 词表指纹) 完全一致的模型才共享同一次批量分词
       和窗口 (fix g-berts-01: 历史按 max_length 分组会把不同词表模型的 token id
       跨词表错配, 词表不同的模型现各自独立分词)
-    - **pin_memory + non_blocking**：异步 CPU→GPU 数据传输
+    - **同步 H2D 传输**：input_ids/attn_mask 为小 int64 张量, 直接 .to(DEVICE)
+      (perf 优化已删除冗余 pin_memory()+non_blocking — pin 自身一次 host→host 拷贝
+       成本 > 小张量异步收益; 默认流 in-order 保证拷贝先于前向, 字节等价)
 
 输入：
     阶段22（词典法情感分析）输出的 Parquet 文件（output_22_words_tone）
@@ -124,6 +126,12 @@ warnings.filterwarnings(
     category=UserWarning,
     module=r"triton\.windows_utils",
 )
+
+# fix(perf, golden-safe): 强制 HF 离线 — 本地已有模型快照, 跳过 hf.co revision 网络解析
+# (实测联网每 HF 模型加载 ~53s, 离线 ~1-3s; 只切换加载来源、不改权重 → 数值不变, golden-safe)。
+# setdefault 保留生产首跑显式 HF_HUB_OFFLINE=0 下载模型的逃生口。须在 transformers import 前设。
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 
 try:
     import torch
@@ -487,12 +495,14 @@ class MultiModelSentimentEngine:
             try:
                 logger.info(f"  正在加载模型: {model_id} ...")
 
-                # 加载 tokenizer
-                tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+                # 加载 tokenizer (local_files_only: 纯本地快照, 不触网; 对本地路径模型为 no-op)
+                tokenizer = AutoTokenizer.from_pretrained(
+                    model_path, trust_remote_code=True, local_files_only=True
+                )
 
-                # 加载模型
+                # 加载模型 (同上, 本地快照, 不触网)
                 model = AutoModelForSequenceClassification.from_pretrained(
-                    model_path, trust_remote_code=True
+                    model_path, trust_remote_code=True, local_files_only=True
                 )
                 model.to(DEVICE)
                 model.eval()
@@ -602,7 +612,7 @@ class MultiModelSentimentEngine:
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
-    @torch.no_grad()
+    @torch.inference_mode()
     def run_all_models(self, texts: list) -> dict:
         """对一批文本执行全部模型的推理。
 
@@ -715,12 +725,10 @@ class MultiModelSentimentEngine:
                 all_logits = torch.zeros(total_windows, num_labels,
                                          device=DEVICE if DEVICE.type == 'cuda' else 'cpu')
 
-                batch_counter = 0
                 for bs in range(0, total_windows, INFERENCE_BATCH_SIZE):
                     be = min(bs + INFERENCE_BATCH_SIZE, total_windows)
                     batch_sorted_idx = sorted_indices[bs:be]
                     batch_size = be - bs
-                    batch_counter += 1
 
                     # 动态填充：仅填充到该 mini-batch 内的最长序列
                     max_seq_in_batch = max(windows_data[k][1] for k in batch_sorted_idx)
@@ -734,28 +742,27 @@ class MultiModelSentimentEngine:
                         input_ids_np[local_i, :seq_len] = win_ids
                         attn_mask_np[local_i, :seq_len] = 1
 
+                    # 删除冗余 pin_memory: input_ids 是小 int64 张量, pin+非阻塞收益 < pin 自身
+                    # 一次 host→host 拷贝成本; 默认流 in-order 保证拷贝先于前向, 同步 .to 字节等价。
                     input_ids_t = torch.from_numpy(input_ids_np)
                     attn_mask_t = torch.from_numpy(attn_mask_np)
-                    if DEVICE.type == 'cuda':
-                        input_ids_t = input_ids_t.pin_memory()
-                        attn_mask_t = attn_mask_t.pin_memory()
 
                     # GPU 推理（AMP autocast 动态混合精度）
                     inputs = {
-                        'input_ids': input_ids_t.to(DEVICE, non_blocking=True),
-                        'attention_mask': attn_mask_t.to(DEVICE, non_blocking=True),
+                        'input_ids': input_ids_t.to(DEVICE),
+                        'attention_mask': attn_mask_t.to(DEVICE),
                     }
                     with torch.amp.autocast(DEVICE.type, enabled=USE_AMP):
                         outputs = model(**inputs)
 
-                    # 将 logits 还原到原始索引位置（在 GPU 上收集）
+                    # 将 logits 还原到原始索引位置（向量化 index_copy_, 替代逐窗口标量散射）。
+                    # batch_sorted_idx 是 sorted_indices 的不相交切片 = 无重复索引 → index_copy_
+                    # 确定且与逐元素赋值逐位等价 (golden-safe)。删除原每10批 empty_cache (cpu_strict
+                    # 下 cudnn.benchmark=False, 清缓存只打断 allocator 复用、不影响数值)。
                     batch_logits = outputs.logits.float()
-                    for local_i, global_i in enumerate(batch_sorted_idx):
-                        all_logits[global_i] = batch_logits[local_i]
-
-                    # GPU 内存管理：每10批清理一次缓存，防止碎片累积
-                    if DEVICE.type == 'cuda' and batch_counter % 10 == 0:
-                        torch.cuda.empty_cache()
+                    idx_t = torch.as_tensor(batch_sorted_idx, dtype=torch.long,
+                                            device=all_logits.device)
+                    all_logits.index_copy_(0, idx_t, batch_logits)
 
                 # 一次性回传 CPU 做聚合
                 all_logits_cpu = all_logits.cpu()

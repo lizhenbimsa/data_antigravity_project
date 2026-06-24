@@ -324,7 +324,7 @@ def load_clarity_dictionaries() -> tuple[frozenset, frozenset]:
     return _CLARITY_DICTS
 
 
-def _compute_clarity_for_text(text: str, def_set: frozenset, amb_set: frozenset) -> dict[str, float]:
+def _compute_clarity_for_text(text: str, def_set: frozenset, amb_set: frozenset, _precut: list | None = None) -> dict[str, float]:
     """对**单一文本**独立扫描派生 clarity 指标 (v3.5.1 A1 三轨核心).
 
     此函数是三轨的关键: ``_dual_analyze`` 对 content_full / content_ctx / content_ss 各调用一次,
@@ -363,7 +363,8 @@ def _compute_clarity_for_text(text: str, def_set: frozenset, amb_set: frozenset)
             'clarity_score': float('nan'),
         }
 
-    tokens = list(_get_tone_tokenizer().cut(text))
+    # [G] 复用调用方预切的 raw token (同文本同 tokenizer → 逐字节等价), 否则内部切
+    tokens = _precut if _precut is not None else list(_get_tone_tokenizer().cut(text))
     tokens = [t for t in tokens if t.strip()]
     # fix(omni-g-tonewords-02, 2026-06-11): 分母 word-token 化 — 排除纯标点/纯数字
     # token (与 lm_non_sentiment lmfls-01 修复同口径); 分子 def/amb 词均为真词,
@@ -1238,6 +1239,7 @@ def _inject_custom_dicts_to_jieba():
 def _compute_lm_non_sentiment_for_text_tone_tok(
     text: str,
     dicts: dict[str, frozenset[str]],
+    _precut: list | None = None,
 ) -> dict[str, float]:
     """LM 6 子词典扫描 — tone tokenizer 版 (fix omni-g-tonewords-10/-11 配套, 2026-06-11).
 
@@ -1268,7 +1270,8 @@ def _compute_lm_non_sentiment_for_text_tone_tok(
     if not text or not text.strip():
         return empty
 
-    tokens = list(_get_tone_tokenizer().cut(text))
+    # [G] 复用调用方预切的 raw token (同文本同 tokenizer → 逐字节等价), 否则内部切
+    tokens = _precut if _precut is not None else list(_get_tone_tokenizer().cut(text))
     # lmfls-01 同口径: 分母 = word-token 数 (排除纯标点/纯数字)
     word_tokens = [t for t in tokens if t.strip() and not _LMFLS_NONWORD_RE.fullmatch(t.strip())]
     n_tokens = len(word_tokens)
@@ -1327,7 +1330,7 @@ def _empty_article_result() -> dict:
     return result
 
 
-def _analyze_single_article(content: str) -> dict:
+def _analyze_single_article(content: str, _precut: list | None = None) -> dict:
     """对单篇文章执行所有词典的情感分析。
 
     分词只执行一次（独立 tone tokenizer, 见 ``_get_tone_tokenizer``），然后对每个
@@ -1352,7 +1355,8 @@ def _analyze_single_article(content: str) -> dict:
 
     # 分词（单次调用，所有词典共享分词结果; fix omni-g-tonewords-10: 用独立
     # tone tokenizer, 领域词注入不再污染全局 jieba）
-    tokens = list(_get_tone_tokenizer().cut(content))
+    # [G] 复用调用方预切的 raw token (同文本同 tokenizer → 逐字节等价), 否则内部切
+    tokens = _precut if _precut is not None else list(_get_tone_tokenizer().cut(content))
 
     # 防御：极端文本（纯符号、纯控制字符）可能产生全空分词结果
     tokens = [t for t in tokens if t.strip()]
@@ -1574,9 +1578,15 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
         content_ss = prepend_title(
             _title, str(row.get('content_ss', row.get('content_ctx', row.get('内容', '')))))
 
-        res_full = _analyze_single_article(content_full)
-        res_ctx = _analyze_single_article(content_ctx)
-        res_ss = _analyze_single_article(content_ss)
+        # [G] 每轨 raw cut 算一次, 主分/clarity/LM 三函数复用 → 省 6/9 次 tone 分词。
+        # 同文本同 tone tokenizer 单例 → 逐字节等价 (实测 jieba 确定性); 各函数仍各自做
+        # 自己的 whitespace/word-token 过滤 (空白 token 进状态机会改分, 故过滤不可省)。
+        _tok_full = list(_get_tone_tokenizer().cut(content_full))
+        _tok_ctx = list(_get_tone_tokenizer().cut(content_ctx))
+        _tok_ss = list(_get_tone_tokenizer().cut(content_ss))
+        res_full = _analyze_single_article(content_full, _precut=_tok_full)
+        res_ctx = _analyze_single_article(content_ctx, _precut=_tok_ctx)
+        res_ss = _analyze_single_article(content_ss, _precut=_tok_ss)
 
         # 合并：为每个键追加轨道后缀 (三轨 full/ctx/ss)
         merged = {}
@@ -1590,9 +1600,9 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
         # v3.5.1 A1 三轨 clarity (per plan v0.3 §2.1.1 修 R3-C1):
         # 对 content_full + content_ctx + content_ss **独立扫描** (title 轨不纳入, 修 R3-H1
         # 锁定排除 — title 文本 < 50 字符分母不稳).
-        clarity_full = _compute_clarity_for_text(content_full, _def_set, _amb_set)
-        clarity_ctx = _compute_clarity_for_text(content_ctx, _def_set, _amb_set)
-        clarity_ss = _compute_clarity_for_text(content_ss, _def_set, _amb_set)
+        clarity_full = _compute_clarity_for_text(content_full, _def_set, _amb_set, _precut=_tok_full)
+        clarity_ctx = _compute_clarity_for_text(content_ctx, _def_set, _amb_set, _precut=_tok_ctx)
+        clarity_ss = _compute_clarity_for_text(content_ss, _def_set, _amb_set, _precut=_tok_ss)
         for k, v in clarity_full.items():
             merged[f'clarity_{k}_full'] = v
         for k, v in clarity_ctx.items():
@@ -1605,9 +1615,9 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
         # constr_frac_{full,ctx,ss} / modal_strong_frac_{full,ctx,ss}.
         # fix(omni-g-tonewords-10/-11, 2026-06-11): 改走 tone tokenizer 包装 —
         # lm_non_sentiment 原函数内部用全局 jieba, 注入隔离后会把多字 LM 词切碎。
-        lm_full = _compute_lm_non_sentiment_for_text_tone_tok(content_full, _lm_dicts)
-        lm_ctx = _compute_lm_non_sentiment_for_text_tone_tok(content_ctx, _lm_dicts)
-        lm_ss = _compute_lm_non_sentiment_for_text_tone_tok(content_ss, _lm_dicts)
+        lm_full = _compute_lm_non_sentiment_for_text_tone_tok(content_full, _lm_dicts, _precut=_tok_full)
+        lm_ctx = _compute_lm_non_sentiment_for_text_tone_tok(content_ctx, _lm_dicts, _precut=_tok_ctx)
+        lm_ss = _compute_lm_non_sentiment_for_text_tone_tok(content_ss, _lm_dicts, _precut=_tok_ss)
         for k in SUBSET_PREFIXES:  # v3.10.0: 6 子集 (含 modal_weak/complexity)
             merged[f'{k}_frac_full'] = lm_full.get(f'frac_{k}', float('nan'))
             merged[f'{k}_frac_ctx'] = lm_ctx.get(f'frac_{k}', float('nan'))
@@ -1625,18 +1635,31 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
 
     results = df.apply(_dual_analyze, axis=1)
 
+    # [I] 把 Series-of-dict 一次性展开成宽表 (单次 C 级构建), 取代下方数百次
+    # results.apply(lambda r: r.get(k, default)) 的逐列全量 Python 遍历。逐列取值与原
+    # .apply(r.get(k, default)) 逐字节等价: 始终存在的键 (score/label 等) recs[k] 即原值;
+    # 可缺键 (lexical/clarity/lm 等) 其默认恰为 NaN, 与 DataFrame 缺键填 NaN 一致;
+    # 绝不对"已存在的合法 NaN"再 fillna。列序/列集由下方显式枚举循环锁定 (不依赖 recs 列序)。
+    # ⚠ 不变量 (须维持): 凡用非-NaN 默认 (_score=0.0/_label='中性'/pos_ratio/msent_*) 提取的键,
+    #   必须在空文本与满文本两条返回路径都无条件存在 (_empty_article_result 也产出)。否则
+    #   recs 缺键行被 _col 回退为默认 Series 但'部分缺键'会被填 NaN → 破 golden。新增此类键须复核。
+    recs = pd.DataFrame(results.tolist(), index=df.index)
+
+    def _col(_k, _default):
+        """按键取列: 存在取 recs[_k] (== 原 r.get 口径); 整列缺键回退默认 Series。"""
+        return recs[_k] if _k in recs.columns else pd.Series(_default, index=df.index)
+
     # 提取各列（三轨 full/ctx/ss）。先攒成一个列字典, 再一次性 concat, 避免大量
     # ``df[col] = ...`` 造成 pandas block fragmentation。
     # ss = 银行+金科同句轨: 缺 content_ss 时 _dual_analyze 已回退 → 各 key 必存在,
-    # 此处与 full/ctx 同口径提取 (r.get 兜底)。
+    # 此处与 full/ctx 同口径提取 (_col 兜底)。
     new_columns = {}
     for dict_name, _ in ALL_DICTIONARIES:
         for track in ['_full', '_ctx', '_ss']:
             score_key = f'{dict_name}_score{track}'
             label_key = f'{dict_name}_label{track}'
-            label_series = results.apply(lambda r, k=label_key: r.get(k, '中性'))
-            new_columns[score_key] = results.apply(
-                lambda r, k=score_key: r.get(k, 0.0))
+            label_series = _col(label_key, '中性')
+            new_columns[score_key] = _col(score_key, 0.0)
             new_columns[label_key] = label_series
 
             label_counts = label_series.value_counts()
@@ -1647,22 +1670,18 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
             # 单词典 pos/neg ratio 提取 (Garcia 2013, JF)
             pos_key = f'{dict_name}_pos_ratio{track}'
             neg_key = f'{dict_name}_neg_ratio{track}'
-            new_columns[pos_key] = results.apply(lambda r, k=pos_key: r.get(k, 0.0))
-            new_columns[neg_key] = results.apply(lambda r, k=neg_key: r.get(k, 0.0))
+            new_columns[pos_key] = _col(pos_key, 0.0)
+            new_columns[neg_key] = _col(neg_key, 0.0)
 
             # rule-ablation 梯度 score 提取 (v3.11.1, 全 powerset; Σ|final| 口径; 缺则 NaN)
             for _abl_sfx in RULE_ABLATION_SUFFIXES:
                 _abl_key = f'{dict_name}_score_{_abl_sfx}{track}'
-                new_columns[_abl_key] = results.apply(
-                    lambda r, k=_abl_key: r.get(k, float('nan')))
+                new_columns[_abl_key] = _col(_abl_key, float('nan'))
 
     # sentiment_details 三轨提取 (full/ctx/ss); ss = 银行+金科同句轨
-    new_columns['sentiment_details_full'] = results.apply(
-        lambda r: r.get('sentiment_details_full', ''))
-    new_columns['sentiment_details_ctx'] = results.apply(
-        lambda r: r.get('sentiment_details_ctx', ''))
-    new_columns['sentiment_details_ss'] = results.apply(
-        lambda r: r.get('sentiment_details_ss', ''))
+    new_columns['sentiment_details_full'] = _col('sentiment_details_full', '')
+    new_columns['sentiment_details_ctx'] = _col('sentiment_details_ctx', '')
+    new_columns['sentiment_details_ss'] = _col('sentiment_details_ss', '')
 
     # ── 提取 IDF 加权列（三轨 full/ctx/ss）──
     if IDF_DICTIONARIES is not None:
@@ -1670,10 +1689,8 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
             for track in ['_full', '_ctx', '_ss']:
                 score_key = f'{dict_name}_idf_score{track}'
                 label_key = f'{dict_name}_idf_label{track}'
-                new_columns[score_key] = results.apply(
-                    lambda r, k=score_key: r.get(k, 0.0))
-                new_columns[label_key] = results.apply(
-                    lambda r, k=label_key: r.get(k, '中性'))
+                new_columns[score_key] = _col(score_key, 0.0)
+                new_columns[label_key] = _col(label_key, '中性')
 
     # ── 提取新增指标列（三轨 full/ctx/ss）──
     new_metric_cols = [
@@ -1685,7 +1702,7 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     for col in new_metric_cols:
         for track in ['_full', '_ctx', '_ss']:
             col_key = f'{col}{track}'
-            new_columns[col_key] = results.apply(lambda r, k=col_key: r.get(k, 0.0))
+            new_columns[col_key] = _col(col_key, 0.0)
 
     # ── v3.5.1 A1 三轨 clarity 列提取 (per plan v0.3 §2.1.1 + §2.1.3) ──
     # title 轨不纳入 (R3-H1 锁定); full + ctx + ss 三轨各自独立扫描 (ss=银行+金科同句).
@@ -1696,7 +1713,7 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     for col in clarity_metric_cols:
         for track in ['_full', '_ctx', '_ss']:
             col_key = f'clarity_{col}{track}'
-            new_columns[col_key] = results.apply(lambda r, k=col_key: r.get(k, float('nan')))
+            new_columns[col_key] = _col(col_key, float('nan'))
 
     # ── v3.5.2 PR #3 (A1 LM 6 子词典 + A2 FLS) 三轨列提取 ──
     # A1: uncert_frac_{full,ctx,ss} / litig_frac_{full,ctx,ss} / constr_frac_{full,ctx,ss}
@@ -1707,18 +1724,14 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     for col in lm_a2_metric_cols:
         for track in ['_full', '_ctx', '_ss']:
             col_key = f'{col}{track}'
-            new_columns[col_key] = results.apply(
-                lambda r, k=col_key: r.get(k, float('nan'))
-            )
+            new_columns[col_key] = _col(col_key, float('nan'))
 
     # ── 词汇/句法复杂度 $0 测度族 (批 #2–#6) + 词级长度 n_words_real (批 #7)
     #    + 汉字级长度 n_han_real (HAN_COUNT_KEY, hanzi-char-dual 2026-06-13) 三轨列提取 ──
     for col in (*LEXICAL_COMPLEXITY_KEYS, WORD_COUNT_KEY, HAN_COUNT_KEY):
         for track in ['_full', '_ctx', '_ss']:
             col_key = f'{col}{track}'
-            new_columns[col_key] = results.apply(
-                lambda r, k=col_key: r.get(k, float('nan'))
-            )
+            new_columns[col_key] = _col(col_key, float('nan'))
 
     if new_columns:
         df = pd.concat([df, pd.DataFrame(new_columns, index=df.index)], axis=1).copy()
