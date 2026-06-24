@@ -17,7 +17,7 @@ news_process.pipeline.filtering.news_fintech — 阶段12：金融科技新闻�
 学术依据：
     [胡俊2024]     胡俊, 李强, 戴嘉诚, 曾勇 (2024). "基于文本分析的商业银行
                    金融科技测度及赋能效果检验." 中国管理科学, 32(1), 31–41.
-                   DOI: 10.16381/j.cnki.issn1003-207x.2022.0125
+                   DOI: 10.16381/j.cnki.issn1003-207x.2021.1714
 
     [LoughranMcDonald2011] Loughran, T. & McDonald, B. (2011).
                    "When Is a Liability Not a Liability?" Journal of Finance,
@@ -80,6 +80,7 @@ news_process.pipeline.filtering.news_fintech — 阶段12：金融科技新闻�
 
 import json
 import os
+import platform
 import sys
 import time
 from collections import Counter
@@ -96,7 +97,13 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import log_memory_usage, log_stage_summary, setup_logging
+from news_process.core.logging import (
+    log_memory_usage,
+    log_stage_summary,
+    pct4,
+    setup_logging,
+    sig4,
+)
 from news_process.core.reporting import safe_save_preview_csv
 from news_process.core.text.ahocorasick import analyze_fintech_matches, load_fintech_dict
 
@@ -230,15 +237,15 @@ def log_classification_report(stats: dict, logger):
     pct = (true_count / total * 100) if total > 0 else 0.0
 
     logger.info(f"总记录数: {total:,}")
-    logger.info(f"判定为金融科技新闻: {true_count:,} ({pct:.2f}%)")
+    logger.info(f"判定为金融科技新闻: {true_count:,} ({pct4(pct, fraction=False)})")
     if true_count > 0:
         with_title = stats.get('is_fintech_news_with_title', 0)
         no_title = true_count - with_title
-        logger.info(f"  - 包含标题匹配的篇数: {with_title:,} 篇 ({with_title/true_count*100:.2f}%)")
-        logger.info(f"  - 仅靠正文匹配的篇数: {no_title:,} 篇 ({no_title/true_count*100:.2f}%)")
-    logger.info(f"判定为非金融科技新闻: {stats['is_fintech_news_false']:,} ({100 - pct:.2f}%)")
+        logger.info(f"  - 包含标题匹配的篇数: {with_title:,} 篇 ({pct4(with_title/true_count)})")
+        logger.info(f"  - 仅靠正文匹配的篇数: {no_title:,} 篇 ({pct4(no_title/true_count)})")
+    logger.info(f"判定为非金融科技新闻: {stats['is_fintech_news_false']:,} ({pct4(100 - pct, fraction=False)})")
     logger.info(
-        f"判定参数: 内容分割比例={SPLIT_RATIO}, "
+        f"判定参数: 内容分割比例={sig4(SPLIT_RATIO)}, "
         f"上半最低出现={MIN_UPPER}次, 下半最低出现={MIN_LOWER}次, "
         f"前置最少不同词汇数={MIN_DISTINCT_KEYWORDS}个, 标题出现时全文最少={MIN_UPPER}次即可"
     )
@@ -261,9 +268,72 @@ def log_classification_report(stats: dict, logger):
 # 4. 主函数
 # ============================================================================
 
+def _log_environment_and_config(input_path: str, output_path: str, full_output_path: str,
+                                total_keywords: int, n_jobs: int, batch_size: int) -> None:
+    """打印项目/环境信息 + 输入输出 + 运行配置 + 方法论依据 (日志富集, 2026-06-24)。
+
+    把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数、依据哪些学术方法"一次性
+    落进 12_news_fintech.log, 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 (golden-safe)。
+    引文逐字取自经核验参考文献注册表 (VERIFIED_REFERENCES.md), 零伪造。
+    """
+    try:
+        preview_path = output_path.replace('.parquet', '.csv')
+        fintech_file = CONFIG['paths'].get('fintech_dict_file', '(默认)')
+
+        # ① 🧭 项目 / 环境信息
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (金融科技新闻判断, STAGES_MAIN; "
+                    "在'已是银行新闻'稿件里再框定'银行×金科'话题范围)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板), "
+                    "当前版本 v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        logger.info(f"     · ahocorasick: {getattr(ahocorasick, '__version__', '?')} "
+                    "(确定性来源 = AC 自动机 + fintech_dict.json 内容)")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "本阶段纯 CPU / 无 LLM·网络·API ($0) / 逐位可复现")
+
+        # ② 📂 输入 / 输出文件
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 输入:        {input_path} (config 键 output_11_bank_news)")
+        logger.info(f"     · 输出(full):  {full_output_path} (过滤前全量银行新闻+金科标记, 与 11 1:1)")
+        logger.info(f"     · 输出(filter):{output_path} (is_fintech_news==True 子集, 交 stage 13+)")
+        logger.info(f"     · 预览:        {preview_path}")
+        logger.info(f"     · 金科词典:    {fintech_file} (纳入两 parquet 的 input_hashes 血缘)")
+
+        # ③ ⚙ 运行配置 (config 键 fintech_news_classification + parallel)
+        logger.info("  ⚙ 运行配置 (config::fintech_news_classification / parallel)")
+        logger.info(f"     · 分割比例 split_ratio={sig4(SPLIT_RATIO)} | "
+                    f"上半最低 MIN_UPPER={MIN_UPPER} | 下半最低 MIN_LOWER={MIN_LOWER}")
+        logger.info(f"     · 前置多样性门 MIN_DISTINCT_KEYWORDS={MIN_DISTINCT_KEYWORDS} 个不同金科词")
+        logger.info(f"     · 金科词典词数={total_keywords:,} | AC 自动机={'已构建' if FINTECH_AC_AUTOMATON else '未构建'}")
+        logger.info(f"     · 并行: batch_size={batch_size:,} | n_jobs={n_jobs} (joblib Parallel)")
+
+        # ④ 📖 方法论依据 (引文逐字取自 VERIFIED_REFERENCES.md, 含 DOI 可访问链接)
+        logger.info("  📖 方法论依据 (参考文献)")
+        logger.info("     · 金科测度构念: 胡俊, 李强, 戴嘉诚, & 曾勇. (2024). 基于文本分析的商业银行"
+                    "金融科技测度及赋能效果检验. 中国管理科学, 32(1), 31–41. "
+                    "https://doi.org/10.16381/j.cnki.issn1003-207x.2021.1714")
+        logger.info("       → 白话: 用金融科技词典在中文报道里做关键词测度, 框定'银行×金科'话题, "
+                    "本阶段沿用该法的词频/分布判定思路。")
+        logger.info("     · 词典法文本分析: Loughran, T., & McDonald, B. (2011). When is a "
+                    "liability not a liability? Textual analysis, dictionaries, and 10-Ks. "
+                    "The Journal of Finance, 66(1), 35-65. "
+                    "https://doi.org/10.1111/j.1540-6261.2010.01625.x")
+        logger.info("       → 白话: 词典法做金融文本测度的经典范式 (须多样性/分布门压噪声), "
+                    "本阶段以 ≥2 不同词 + 上下半分布门避免'顺嘴一句'误判。")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
+
+
 def main():
     """金融科技新闻判断阶段主入口。"""
     stage_start = time.time()
+    # 运行期各主要子阶段墙钟耗时累计 (末尾汇总; 纯日志, golden-safe)
+    phase_durations: dict[str, float] = {}
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
 
     # threshold_number_fidelity 修复: 词数动态取自 len(FINTECH_KEYWORDS), 不再硬编码 "1506",
@@ -287,45 +357,52 @@ def main():
     logger.info("【确定性】纯 CPU (ahocorasick/joblib/psutil), 无 LLM/网络, 逐位可复现; fintech_dict.json")
     logger.info("          纳入两 parquet 的 input_hashes 血缘 (防词典篡改失明)。")
 
-    logger.info(f"金融科技词典: 共 {total_keywords} 个词汇")
-    logger.info(f"AC 自动机状态: {'已构建' if FINTECH_AC_AUTOMATON else '未构建'}")
-    logger.info(
-        f"分割比例: {SPLIT_RATIO}, "
-        f"上半最低出现次数: {MIN_UPPER}, 下半最低出现次数: {MIN_LOWER}, "
-        f"最少不同词汇数: {MIN_DISTINCT_KEYWORDS}"
-    )
-
     if not FINTECH_KEYWORDS:
         logger.error("金融科技词典为空！无法执行分类。")
         raise SystemExit(1)
 
     input_path = os.path.join(CONFIG['paths']['output_dir'], CONFIG['filenames']['output_11_bank_news'])
     output_path = os.path.join(CONFIG['paths']['output_dir'], CONFIG['filenames']['output_12_fintech_news'])
+    full_output_path = os.path.join(
+        CONFIG['paths']['output_dir'],
+        CONFIG['filenames'].get('output_12_fintech_full', '12_fintech_news_full.parquet')
+    )
+
+    # 并行参数解析 (上移到 ENV/CONFIG block 之前, 便于一次性披露)
+    n_jobs = CONFIG['parallel'].get('n_jobs', -1)
+    batch_size = CONFIG['parallel'].get('batch_size', 5000)
+    if n_jobs <= 0:
+        n_jobs = max(1, psutil.cpu_count(logical=True) - 1)
+
+    # 项目/环境信息 + 输入输出 + 运行配置 + 方法论依据 (日志富集 2026-06-24)
+    logger.info("")
+    _log_environment_and_config(input_path, output_path, full_output_path,
+                                total_keywords, n_jobs, batch_size)
+    logger.info("")
 
     if not os.path.exists(input_path):
         logger.error(f"输入文件未找到: {input_path}")
         raise SystemExit(1)
 
     logger.info(f"正在从 {input_path} 加载数据...")
+    _t = time.time()
     df = pd.read_parquet(input_path)
     input_rows = len(df)
+    phase_durations['①加载输入'] = time.time() - _t
     logger.info(f"已加载 {input_rows:,} 行数据。")
     log_memory_usage(logger, "数据加载后")
 
     logger.info("开始执行金融科技新闻判断（Aho-Corasick + 并行）...")
 
-    n_jobs = CONFIG['parallel'].get('n_jobs', -1)
-    batch_size = CONFIG['parallel'].get('batch_size', 5000)
-    if n_jobs <= 0:
-        n_jobs = max(1, psutil.cpu_count(logical=True) - 1)
-
     num_batches = max(1, (len(df) - 1) // batch_size + 1)
     df_batches = [df.iloc[i * batch_size:(i + 1) * batch_size] for i in range(num_batches)]
     logger.info(f"批次处理: 共 {num_batches} 个批次，每批次 {batch_size} 行，使用 {n_jobs} 个并行进程")
 
+    _t = time.time()
     results = Parallel(n_jobs=n_jobs)(
         delayed(classify_batch)(batch) for batch in df_batches
     )
+    phase_durations['②AC并行扫描判定'] = time.time() - _t
 
     classified_dfs = []
     all_stats = []
@@ -350,11 +427,9 @@ def main():
     log_classification_report(merged_stats, logger)
 
     # --- 保存全量分类结果（过滤前，含非金融科技新闻，供人工验证抽样使用） ---
-    full_output_path = os.path.join(
-        CONFIG['paths']['output_dir'],
-        CONFIG['filenames'].get('output_12_fintech_full', '12_fintech_news_full.parquet')
-    )
+    # full_output_path 已在 main() 开头解析 (供 ENV/CONFIG block 一次性披露)。
     logger.info(f"正在将全量分类结果（含非金融科技新闻）写入 {full_output_path}...")
+    _t = time.time()
     # 使用数据版本控制保存 full 版本
     from news_process.core.data_versioning import save_parquet_with_metadata
     input_file = os.path.join(CONFIG['paths']['output_dir'],
@@ -375,6 +450,7 @@ def main():
     )
     full_preview_path = full_output_path.replace('.parquet', '.csv')
     safe_save_preview_csv(processed_df, full_preview_path, logger)
+    phase_durations['③写盘 full+预览'] = time.time() - _t
     logger.info(f"全量分类结果已保存: {len(processed_df):,} 行（供人工验证抽样使用）")
 
     # --- 只保留金融科技新闻 ---
@@ -422,11 +498,11 @@ def main():
         else:
             verdict_pct = "适中 (好)"
         logger.info(
-            f"  ② 金科判定率: {true_n:,}/{total_n:,} = {true_pct:.2f}% → {verdict_pct}"
+            f"  ② 金科判定率: {true_n:,}/{total_n:,} = {pct4(true_pct, fraction=False)} → {verdict_pct}"
         )
         # ③ 标题匹配占比: 标题命中 = 强信号, 占比越高判定越可信
         logger.info(
-            f"  ③ 标题命中占比 (金科篇内): {with_title_n:,}/{true_n:,} = {title_pct:.2f}%"
+            f"  ③ 标题命中占比 (金科篇内): {with_title_n:,}/{true_n:,} = {pct4(title_pct, fraction=False)}"
             f" → {'含标题强信号, 判定可信度高 (好)' if title_pct >= 30.0 else '多靠正文匹配 (信号偏弱, 关注)' if true_n > 0 else '无金科篇'}"
         )
         # ④ 词典覆盖广度 (corpus-level): 触发判定的不同金科词越多 + 最高频词份额越低,
@@ -436,14 +512,14 @@ def main():
             verdict_breadth = "无触发词 (无金科篇, 无法判读广度)"
         elif top_share > breadth_top_share_warn:
             verdict_breadth = (
-                f"⚠ 触发高度集中 (最高频词占 {top_share:.1%} > {breadth_top_share_warn:.0%}), "
+                f"⚠ 触发高度集中 (最高频词占 {pct4(top_share)} > {pct4(breadth_top_share_warn)}), "
                 "疑单点关键词主导, 主题不分散"
             )
         else:
-            verdict_breadth = f"广度健康, 非单点驱动 (最高频词占 {top_share:.1%}, 好)"
+            verdict_breadth = f"广度健康, 非单点驱动 (最高频词占 {pct4(top_share)}, 好)"
         logger.info(
             f"  ④ 词典命中广度: {n_distinct_kw_hit:,}/{total_keywords:,} 个金科词曾触发判定 "
-            f"({kw_coverage:.1f}%) → {verdict_breadth}"
+            f"({pct4(kw_coverage, fraction=False)}) → {verdict_breadth}"
         )
         if top_kw is not None:
             logger.info(f"     最高频触发词: '{top_kw[0]}' ({top_kw[1]:,} 篇)")
@@ -468,6 +544,7 @@ def main():
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
     logger.info(f"正在将处理结果写入 {output_path}...")
+    _t = time.time()
     # 使用数据版本控制保存 filtered 版本
     from news_process.core.data_versioning import save_parquet_with_metadata
     input_file = os.path.join(CONFIG['paths']['output_dir'],
@@ -487,6 +564,18 @@ def main():
 
     preview_path = output_path.replace('.parquet', '.csv')
     safe_save_preview_csv(processed_df, preview_path, logger)
+    phase_durations['④写盘 filtered+预览'] = time.time() - _t
+
+    # ⏱ 各子阶段墙钟耗时汇总 (纯日志, golden-safe)
+    try:
+        logger.info("  ⏱ 各子阶段墙钟耗时 (秒, 4 位有效数字):")
+        for _name, _dur in phase_durations.items():
+            logger.info(f"     · {_name}: {sig4(_dur)} 秒")
+        _total_phase = sum(phase_durations.values())
+        logger.info(f"     · 子阶段合计: {sig4(_total_phase)} 秒 "
+                    f"(占总阶段 {pct4(_total_phase / max(time.time() - stage_start, 1e-9))})")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  [计时汇总] 异常, 跳过(不影响产物): {_e}")
 
     log_stage_summary(logger, STAGE_NAME, stage_start,
                       input_rows=input_rows, output_rows=len(processed_df))

@@ -88,10 +88,12 @@ from __future__ import annotations
 
 import json
 import os
+import time
 
 import numpy as np
 import pandas as pd
 
+from news_process.core.logging import pct4, sig4
 from news_process.pipeline.panel.encode import (
     CONFIG,
     FILENAMES,
@@ -164,11 +166,41 @@ def compute_dedup_sensitivity_treatments(panel: pd.DataFrame) -> pd.DataFrame:
         logger.warning("  dedup_sensitivity: 变体网格为空, 跳过")
         return panel
 
+    _t0 = time.time()
     logger.info("=" * 60)
     logger.info("步骤 6b-3: 去重阈值敏感性 (Tetlock 2011 RFS; Hassan 2019 QJE; "
                 f"严格方向网格 {[_variant_suffix(t, w) for t, w in variants]}, "
                 f"生产锚点 j{int(PRODUCTION_JACCARD * 100)}w{PRODUCTION_WINDOW})")
     logger.info("=" * 60)
+
+    # ── ④ 方法论依据 (参考文献信息, emit 进日志; 逐字取自经核验注册表) ──
+    # 白话: 这一步把"去重阈值是不是拍脑袋"的审稿质疑量化成稳健性扰动检验, 其学术
+    # 依据 (转载非新信息须去重 / 份额归一化测度隐含排斥机械重复 / 传播广度构念才不去重)
+    # 直接 emit 进日志, 便于审计追溯, 不只留在代码注释里。
+    try:
+        logger.info("  · 方法论依据 (参考文献):")
+        logger.info("    · 去重不足→信息到达构念被高估 (转载非新信息): "
+                    "Tetlock, P. C. (2011). All the news that's fit to reprint: "
+                    "Do investors react to stale information? The Review of Financial Studies, "
+                    "24(5), 1481-1512. https://doi.org/10.1093/rfs/hhq141")
+        logger.info("    · 份额归一化测度隐含排斥机械重复计数: "
+                    "Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). "
+                    "Firm-level political risk: Measurement and effects. The Quarterly "
+                    "Journal of Economics, 134(4), 2135-2202. "
+                    "https://doi.org/10.1093/qje/qjz021")
+        logger.info("    · 传播广度构念则不去重 (覆盖广度, 另行实现于 controls.py): "
+                    "Fang, L., & Peress, J. (2009). Media coverage and the "
+                    "cross-section of stock returns. The Journal of Finance, 64(5), "
+                    "2023-2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x")
+        logger.info("    · 商业新闻作为信息中介 (覆盖广度的角色): "
+                    "Bushee, B. J., Core, J. E., Guay, W., & Hamm, S. J. W. (2010). "
+                    "The role of the business press as an information intermediary. "
+                    "Journal of Accounting Research, 48(1), 1-19. "
+                    "https://doi.org/10.1111/j.1475-679X.2009.00357.x")
+        logger.info("  · 成本/确定性: 纯本地 MinHash 重判重, $0 (不调 LLM/嵌入); "
+                    "签名一次计算、参数无关 → 变体间确定可复现")
+    except Exception as _e:  # noqa: BLE001 — 日志块绝不阻断面板主流程
+        logger.warning(f"  dedup_sensitivity 方法论日志块异常 (不影响计算): {_e}")
 
     f12 = pd.read_parquet(f12_path, columns=[
         'docid', 'target_bank', '日期', '媒体(中文)', '标题', '内容',
@@ -230,7 +262,7 @@ def compute_dedup_sensitivity_treatments(panel: pd.DataFrame) -> pd.DataFrame:
         retained = len(survivors) / n_prod_articles if n_prod_articles else np.nan
         logger.info(f"  {sfx}: 追加剔除 {len(dropped_docids):,} 篇, "
                     f"存活 {len(survivors):,}/{n_prod_articles:,} "
-                    f"({retained:.1%})")
+                    f"({pct4(retained)})")
 
         f12_v = f12[f12['docid'].isin(survivors)]
         s14_v = s14[s14['docid'].isin(survivors)]
@@ -305,10 +337,10 @@ def compute_dedup_sensitivity_treatments(panel: pd.DataFrame) -> pd.DataFrame:
                 'max_abs': round(float(delta[_pair].max()), 6) if _pair.any() else None,
             }
             logger.info(f"    corr(attention_index_full, _{sfx}) = "
-                        f"{corr if pd.notna(corr) else float('nan'):.4f} "
+                        f"{sig4(corr if pd.notna(corr) else float('nan'))} "
                         f"[低剔除率下接近平凡, 非充分稳健性证据 — 见 docstring METHOD-3]; "
                         f"Δ: {int((delta[_pair] > 1e-9).sum())} bank-year 变化, "
-                        f"max|Δ|={float(delta[_pair].max()) if _pair.any() else 0:.4f}")
+                        f"max|Δ|={sig4(float(delta[_pair].max()) if _pair.any() else 0)}")
 
     _validate(merged, new_cols)
     _write_summary_sidecar(summary)
@@ -323,6 +355,38 @@ def compute_dedup_sensitivity_treatments(panel: pd.DataFrame) -> pd.DataFrame:
                 f"{len(new_cols)} 列并入 panel; 首列匹配 {matched}/{len(merged)} "
                 f"bank-year (其中 index>0 有曝光 {_pos}, index=0 真零 "
                 f"{matched - _pos}, NaN 全集外 {len(merged) - matched})")
+
+    # ── ⑤ 关键指标解读 (运行结果信息, 对照阈值给好/临界/坏判读) ──
+    try:
+        _match_rate = matched / len(merged) if len(merged) else float('nan')
+        # 匹配率 = 有可测去重敏感性指标的 bank-year 占比 (NaN 为全集外, 不可测);
+        # 越高说明变体存活集对面板覆盖越完整。
+        _v = ("好" if pd.notna(_match_rate) and _match_rate >= 0.95
+              else "临界" if pd.notna(_match_rate) and _match_rate >= 0.80
+              else "偏弱(多数 bank-year 落在变体全集外, 检验功效受限)")
+        logger.info(f"  · 面板匹配率 {pct4(_match_rate)} → {_v} "
+                    f"(阈值: ≥95% 好 / ≥80% 临界)")
+        # 各变体存活率与相关性研判 (低剔除率→corr≈1 是平凡, 须看主回归; 见 METHOD-3)
+        for _sfx, _s in summary.items():
+            _ret = _s.get('retained_share')
+            _corr = _s.get('corr_index_full_vs_production')
+            _rv = ("低剔除(corr 必接近平凡, 非充分证据)" if _ret is not None and _ret >= 0.97
+                   else "中等剔除" if _ret is not None and _ret >= 0.90
+                   else "高剔除(扰动较强, 检验更有力)")
+            logger.info(f"    · {_sfx}: 存活率 {pct4(_ret) if _ret is not None else 'NA'}"
+                        f" / corr={sig4(_corr) if _corr is not None else 'NA'} → {_rv}")
+        # 试跑样本 caveat (METHOD-3): T=2/~176 bank-year 下结论须来自 Stata Table A
+        logger.info("  · ⚠ 稳健性结论须来自主回归各变体系数符号/显著性稳定 (Stata Table A), "
+                    "非面板内相关性; 当前试跑数字 (1–3% 剔除率→corr≈1) 不可外推至全量 17M/T=18")
+    except Exception as _e:  # noqa: BLE001 — 结果解读块绝不阻断面板主流程
+        logger.warning(f"  dedup_sensitivity 结果解读日志块异常 (不影响计算): {_e}")
+
+    # ── ⑥ 阶段计时 (per-phase wall-clock) ──
+    try:
+        logger.info(f"  ⏱ 去重敏感性步骤 6b-3 墙钟耗时: {sig4(time.time() - _t0)} 秒 "
+                    f"({len(variants):,} 变体, {n_prod_articles:,} 篇签名一次复用)")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  dedup_sensitivity 计时日志块异常 (不影响计算): {_e}")
     return merged
 
 
@@ -341,9 +405,9 @@ def _validate(panel: pd.DataFrame, new_cols: list) -> None:
         else:
             ok = (v >= 0).all()
         if ok:
-            logger.info(f"  ✓ {c}: [{v.min():.4f}, {v.max():.4f}]")
+            logger.info(f"  ✓ {c}: [{sig4(v.min())}, {sig4(v.max())}]")
         else:
-            logger.error(f"  ✗ {c}: 越界 [{v.min():.4f}, {v.max():.4f}]")
+            logger.error(f"  ✗ {c}: 越界 [{sig4(v.min())}, {sig4(v.max())}]")
 
 
 def _write_summary_sidecar(summary: dict) -> None:

@@ -100,6 +100,7 @@ valid (bank, event) 三元组覆盖 ≥ 60% bank-year.
 from __future__ import annotations
 
 import os
+import platform
 import sys
 import time
 from datetime import timedelta
@@ -114,7 +115,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config  # noqa: E402
-from news_process.core.logging import setup_logging  # noqa: E402
+from news_process.core.logging import pct4, setup_logging, sig4  # noqa: E402
 
 CONFIG = load_config()
 STAGE_NAME = "75_cross_media_alpha"
@@ -406,11 +407,60 @@ def main():
         logger.error(f"  stage 21 tone 未跑")
         sys.exit(1)
 
-    art_df = pd.read_parquet(src_path)
-    logger.info(f"  article-level tone: {len(art_df)} 行")
+    panel_path = os.path.join(output_dir, '75_cross_media_alpha.parquet')
 
+    # 🧭 项目 / 环境信息 + ⚙ 运行配置 + 📖 方法论依据 (仿 tone_words.py 金标准; 纯日志, golden-safe)。
+    try:
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (跨媒体源 tone 一致性 Krippendorff α; 验证支线 39f)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "纯 CPU / 无 LLM·Embedding·网络·API ($0) / 逐位可复现")
+        try:
+            import krippendorff as _krip_probe  # noqa: F401
+            _krip_ver = getattr(_krip_probe, '__version__', '?')
+            logger.info(f"     · krippendorff: {_krip_ver} (硬运行依赖; 缺失则 α 输出 NaN, 仅 variance 可用)")
+        except ImportError:
+            logger.warning("     · krippendorff: 未装 → cross_media_alpha_* 全 NaN, 仅 variance 可用")
+
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 输入:   {src_path} (优先 21_tone_llms_full, 回退 21_tone_llms)")
+        logger.info(f"     · 输出:   {panel_path} (bank-year 面板 9 列: variance/α/n_events × 三轨)")
+
+        logger.info("  ⚙ 运行配置 (模块常量)")
+        logger.info(f"     · 事件窗: ±{EVENT_WINDOW_DAYS}d | 峰值分位 N_ARTICLE_PERCENTILE="
+                    f"{sig4(N_ARTICLE_PERCENTILE)} (p90) | 每事件最少媒体 MIN_OUTLETS_PER_EVENT="
+                    f"{MIN_OUTLETS_PER_EVENT}")
+        logger.info(f"     · episode 合并: 相邻 peak gap ≤ 2×{EVENT_WINDOW_DAYS}d 窗重叠 → 传递合并 (取窗口并集)")
+        logger.info("     · 轨道集: full / ctx / ss (银行+金科同句); ss 列缺失时该轨优雅跳过")
+        logger.info(f"     · α 门槛: 可接受 ≥ {sig4(0.667)} / 良好 ≥ {sig4(0.80)} (Krippendorff 2004)")
+        logger.info(f"     · G-D3.1 覆盖目标: valid bank-year ≥ {pct4(0.60)} (D-0 实测项)")
+
+        logger.info("  📖 方法论依据")
+        logger.info("     · 跨多源 tone 一致性作信号质量代理: Tetlock, P. C. (2007). Giving content to "
+                    "investor sentiment: The role of media in the stock market. The Journal of "
+                    "Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x")
+        logger.info("     · 跨标注者一致性度量: Krippendorff, K. (2004). Content analysis: An "
+                    "introduction to its methodology. SAGE Publications. "
+                    "(多评分员+任意测量尺度, 比 Cohen κ 稳健; 专著无 DOI)")
+        logger.info("     · 白话: 把各家媒体当『评分员』, α 衡量它们对同一银行事件的语调打分有多吻合 —— "
+                    "越吻合=情感信号越可靠; 分歧本身也是信息 (媒体分歧度)。")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {_e}")
+
+    _t_load = time.time()
+    art_df = pd.read_parquet(src_path)
+    logger.info(f"  article-level tone: {len(art_df):,d} 行 (加载耗时 {sig4(time.time() - _t_load)} s)")
+
+    _t_events = time.time()
     events = detect_bank_events(art_df)
-    logger.info(f"  检测到 {len(events)} 个 bank-level events")
+    logger.info(f"  检测到 {len(events):,d} 个 bank-level events "
+                f"(事件检测耗时 {sig4(time.time() - _t_events)} s)")
 
     # 39f fix (2026-05-30): panel 级 llm_vote_tone_{full,ctx,ss} 是 bank-year 聚合阶段
     # 才产生的列, article 级 parquet 没有 (只有 llm_sentiment_{full,ctx,ss})。此前
@@ -428,6 +478,7 @@ def main():
                         f"(非空 {int(art_df[_tcol].notna().sum())}/{len(art_df)})")
 
     # 三轨各算一次 (full/ctx/ss); ss = 银行+金科同句共现轨, tone 列缺失时跳过该轨
+    _t_tracks = time.time()
     panels = []
     for suffix, tone_col in (
         ('full', 'llm_vote_tone_full'),
@@ -437,11 +488,13 @@ def main():
         if tone_col not in art_df.columns:
             logger.warning(f"  {tone_col} 不在 art_df.columns; 跳过 {suffix}")
             continue
+        _t_trk = time.time()
         logger.info(f"  ── 轨道 {suffix} ──")
         outlet_tones = compute_outlet_tone_aggregates(art_df, events, tone_col)
-        logger.info(f"    valid 三元组 (n_outlets ≥ 2): {len(outlet_tones)}")
+        logger.info(f"    valid 三元组 (n_outlets ≥ 2): {len(outlet_tones):,d}")
         events_metrics = compute_variance_and_alpha(outlet_tones)
         if events_metrics.empty:
+            logger.info(f"    轨道 {suffix} 无有效事件指标 (耗时 {sig4(time.time() - _t_trk)} s); 跳过")
             continue
         panel_s = aggregate_to_bank_year(events_metrics, suffix)
         panels.append(panel_s)
@@ -450,9 +503,10 @@ def main():
         bank_year_total = art_df.groupby(['target_bank']).size().shape[0]
         cov = panel_s['target_bank'].nunique() / max(bank_year_total, 1)
         logger.info(
-            f"    G-D3.1: valid bank 覆盖 = {cov:.1%} "
-            f"({'PASS' if cov >= 0.60 else 'WARN'})"
+            f"    G-D3.1: valid bank 覆盖 = {pct4(cov)} "
+            f"({'PASS' if cov >= 0.60 else 'WARN'}); 轨道耗时 {sig4(time.time() - _t_trk)} s"
         )
+    logger.info(f"  三轨计算合计耗时 {sig4(time.time() - _t_tracks)} s")
 
     if not panels:
         # graceful skip: stage 21 article-level parquet 早期版本 schema 缺
@@ -502,8 +556,8 @@ def main():
             # NaN-guard (硬化 B): dropna 后 len==0 走 "全 NaN" 分支, 不落进数值统计
             if len(_var_s) > 0:
                 logger.info(
-                    f"    cross_outlet_tone_variance: 均值={_var_s.mean():.4f} "
-                    f"中位={_var_s.median():.4f} [min={_var_s.min():.4f}, max={_var_s.max():.4f}]  "
+                    f"    cross_outlet_tone_variance: 均值={sig4(_var_s.mean())} "
+                    f"中位={sig4(_var_s.median())} [min={sig4(_var_s.min())}, max={sig4(_var_s.max())}]  "
                     "(越高=各媒体语调分歧越大; 0=完全一致)"
                 )
             else:
@@ -519,8 +573,8 @@ def main():
                 else:
                     _verdict = "偏低/分歧 (信号一致性弱, 或本身即媒体分歧信息)"
                 logger.info(
-                    f"    cross_media_alpha: 均值={_a_mean:.4f} 中位={_alpha_s.median():.4f} "
-                    f"(非空 {len(_alpha_s)}/{_n_units})  → {_verdict}"
+                    f"    cross_media_alpha: 均值={sig4(_a_mean)} 中位={sig4(_alpha_s.median())} "
+                    f"(非空 {len(_alpha_s):,d}/{_n_units:,d})  → {_verdict}"
                 )
             elif _krip_ok:
                 logger.info(
@@ -559,7 +613,7 @@ def main():
                     _cov_num = int(panel['cross_outlet_tone_variance_full'].notna().sum())
                 _cov_full = _cov_num / _cov_denom
                 logger.info(
-                    f"  G-D3.1 覆盖: {_cov_label} = {_cov_full:.1%} "
+                    f"  G-D3.1 覆盖: {_cov_label} = {pct4(_cov_full)} "
                     f"({'PASS (≥60%)' if _cov_full >= 0.60 else 'WARN (<60%, 事件/媒体稀疏)'})"
                 )
         logger.info(
@@ -573,10 +627,11 @@ def main():
     except Exception as _e:
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
-    panel_path = os.path.join(output_dir, '75_cross_media_alpha.parquet')
+    _t_write = time.time()
     panel.to_parquet(panel_path, index=False)
-    logger.info(f"  panel → {panel_path}")
-    logger.info(f"  耗时: {time.time() - stage_start:.1f} s")
+    logger.info(f"  panel → {panel_path} ({len(panel):,d} 行 × {panel.shape[1]:,d} 列; "
+                f"写盘耗时 {sig4(time.time() - _t_write)} s)")
+    logger.info(f"  ⏱ 阶段总耗时: {sig4(time.time() - stage_start)} s")
 
 
 if __name__ == '__main__':

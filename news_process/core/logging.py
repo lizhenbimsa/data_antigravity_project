@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import os
 import sys
 import time
@@ -293,6 +294,70 @@ def log_and_time(logger):
 
         return wrapper
     return decorator
+
+
+def sig4(value, sig: int = 4) -> str:
+    """将非整数数字格式化为 ``sig`` 位有效数字 (significant figures, 默认 4 位)。
+
+    项目规范 (用户决策 2026-06-24): **日志中所有非整数数字一律保留四位有效数字**。
+    本函数是该规范的单一事实源 —— 富集日志时凡打印 float/比率/分数/统计量, 统一
+    经 ``sig4(...)`` 渲染, 以保证全流水线日志的有效数字口径一致、可审计、可复现。
+
+    与 Python 内建 ``format(x, '.4g')`` 的区别 (后者**不**满足"保留四位有效数字"):
+      * ``.4g`` 会丢弃尾随零 (``0.5 -> '0.5'``, 仅 1 位有效数字呈现);
+        本函数补齐为 ``'0.5000'`` (4 位有效数字), 忠于"保留"。
+      * ``.4g`` 对 ≥1e4 即切科学计数法 (``12345 -> '1.234e+04'``);
+        本函数在常规量级保持定点 (``'12340'``), 仅在极端量级才回退科学计数法,
+        使日志对人类读者更友好。
+
+    边界: ``nan``/``inf``/``0``/非数值入参均安全降级 (返回可读串, 绝不抛异常)。
+    纯字符串格式化, 不参与任何产物计算 —— 仅用于 ``logger.*`` 输出 (golden-safe)。
+
+    Examples:
+        >>> sig4(0.5)            # '0.5000'  (4 sig figs, 尾随零补齐)
+        >>> sig4(98.234567)      # '98.23'
+        >>> sig4(0.00123456)     # '0.001235'
+        >>> sig4(12345.6)        # '12350'   (定点, 4 sig figs)
+        >>> sig4(1.0)            # '1.000'
+    """
+    try:
+        x = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    if math.isnan(x):
+        return "nan"
+    if math.isinf(x):
+        return "inf" if x > 0 else "-inf"
+    if x == 0:
+        return "0." + "0" * (sig - 1) if sig > 1 else "0"
+    # 极端量级 (过大/过小) 回退科学计数法, 避免荒谬长定点串
+    if abs(x) >= 10 ** (sig + 6) or abs(x) < 10 ** -(sig + 5):
+        return f"{x:.{sig - 1}e}"
+    decimals = sig - 1 - math.floor(math.log10(abs(x)))
+    if decimals < 0:
+        # 整数部分位数已 ≥ sig: 在相应数量级上四舍五入到 sig 位有效数字
+        factor = 10 ** (-decimals)
+        x = round(x / factor) * factor
+        return f"{x:.0f}"
+    return f"{x:.{decimals}f}"
+
+
+def pct4(value, fraction: bool = True, sig: int = 4) -> str:
+    """百分比格式化到 ``sig`` 位有效数字并追加 ``'%'`` (配合 :func:`sig4`)。
+
+    Args:
+        value:    数值。``fraction=True`` 时按比例解读 (``0.5 -> '50.00%'``);
+                  ``fraction=False`` 时按已是百分数解读 (``50.0 -> '50.00%'``)。
+        fraction: 入参是否为比例 (0–1 区间), 默认 True。
+        sig:      有效数字位数, 默认 4。
+    """
+    try:
+        x = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    if fraction:
+        x *= 100.0
+    return sig4(x, sig) + "%"
 
 
 def _format_bytes(b: int) -> str:

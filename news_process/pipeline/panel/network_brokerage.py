@@ -59,7 +59,9 @@
 """
 
 import os
+import platform
 import sys
+import time
 
 import numpy as np
 import pandas as pd
@@ -77,7 +79,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging
+from news_process.core.logging import pct4, setup_logging, sig4
 
 # ============================================================================
 # 全局配置
@@ -182,6 +184,74 @@ def build_media_bank_bipartite(
 # 取 3 (= 1 媒体 + 2 银行), 与全图层面的最小节点数门槛语义一致。
 _MIN_COMPONENT_SIZE = 3
 
+# 一次性 banner 守门 (本模块三个 entry fn 共享同一 47_network_brokerage 日志;
+# ENV/CONFIG/METHODOLOGY 块仅在首个被 runner 调用的 entry fn 起始处 emit 一次)。
+_BANNER_EMITTED = False
+
+
+def _log_env_config_methodology() -> None:
+    """一次性打印 项目/环境 + 运行配置 + 方法论引用 (含 DOI) 三大块。
+
+    本模块是 panel runner (步骤 7h-brok/7h-neg/7h-fire) 调用的库函数, 三个 entry
+    fn (compute_brokerage_centrality / compute_industry_neg_shock /
+    compute_fire_sale_interaction) 共享 logs/47_network_brokerage.log。为避免重复,
+    本 banner 经 _BANNER_EMITTED 守门, 仅在首个被调 entry fn 起始处 emit 一次。
+
+    纯日志, 不改任何产物 / schema / 控制流 / 返回值 (golden-safe)。失败仅 warning,
+    绝不让日志块崩阶段。
+    """
+    global _BANNER_EMITTED
+    if _BANNER_EMITTED:
+        return
+    _BANNER_EMITTED = True
+    try:
+        logger.info("=" * 60)
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (信息经纪网络与二分图中心度; "
+                    "panel runner 步骤 7h-brok / 7h-neg / 7h-fire)")
+        logger.info("     · 项目: news_process 研究数据流水线 "
+                    "(中文银行/金科新闻 → 计量面板); 版本 v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "本阶段纯 CPU / 无 LLM·网络·API ($0)")
+        logger.info(f"     · networkx 可用: {HAS_NETWORKX} "
+                    "(缺失 → 经纪中心度优雅跳过, 仅产 LOO 行业冲击)")
+        logger.info("     · 确定性: 中心度走确定性迭代法 (uniform nstart, 无 BLAS/ARPACK "
+                    "随机初值) → 跨 run 逐位可复现 (见 _eigenvector_centrality_by_component)")
+
+        logger.info("  ⚙ 运行配置")
+        logger.info(f"     · 微小分量门槛 _MIN_COMPONENT_SIZE={_MIN_COMPONENT_SIZE:,d} "
+                    "(节点数低于此的分量银行置 NaN)")
+        logger.info("     · 特征向量中心度: max_iter=2,000 | tol="
+                    f"{sig4(1e-06)} | 分量内 L2 归一 | weight='weight'")
+        logger.info("     · 行业负面冲击 LOO: min_count 默认=5 (单篇 {0,1} 极值守门); "
+                    "同期 + t-1 滞后双变体")
+        logger.info("     · 二分图银行端原生中心度 (WS-B): 5 指标 (degree/between/"
+                    "closeness@LCC/clustering-ra/node-redundancy@deg>=2)")
+
+        logger.info("  📖 方法论依据 (运行结果可对照下列文献核验)")
+        logger.info("     · 二分图信息经纪网络 + 特征向量中心度: "
+                    "Han, M., Kim, S. (H.), & Nanda, V. K. (2024). "
+                    "Institutional brokerage networks: Facilitating liquidity "
+                    "provision. The Review of Financial Studies, 37(9), "
+                    "2903-2935. https://doi.org/10.1093/rfs/hhae026")
+        logger.info("       (白话: 把原文『基金-券商』二分图改造为『媒体-银行』, "
+                    "衡量银行在信息分发网络中的枢纽地位)")
+        logger.info("     · LOO 消除机械性自相关: "
+                    "Manski, C. F. (1993). Identification of endogenous social "
+                    "effects: The reflection problem. The Review of Economic "
+                    "Studies, 60(3), 531–542. https://doi.org/10.2307/2298123")
+        logger.info("       (白话: 行业负面冲击=同年『其余』银行的负面比率均值, "
+                    "排除自身→去自相关; ⚠ 同期 LOO 仍不解反射问题, "
+                    "作 IV/treatment 须滞后 t-1)")
+        logger.info("=" * 60)
+    except Exception as e:  # noqa: BLE001 — 日志块绝不崩阶段
+        logger.warning(f"  环境/配置/方法论 banner 输出失败 (忽略, 不影响计算): {e}")
+
 
 def _eigenvector_centrality_by_component(G: 'nx.Graph', year: int) -> dict:
     """按连通分量分别计算特征向量中心度 (分量内 L2 归一)。
@@ -237,7 +307,7 @@ def _eigenvector_centrality_by_component(G: 'nx.Graph', year: int) -> dict:
 # ============================================================================
 # 当前模块仅产 brokerage_eigen_cent (= 声望); WS-B 补 5 个二分图**原生**中心度,
 # 其中 brok_bip_between_cent 才直接操作化 Han-Kim-Nanda (2024, RFS) "信息经纪"
-# (银行桥接否则不相连的媒体渠道); 方法引文 Freeman (1979) / Borgatti-Everett (1997)。
+# (银行桥接否则不相连的媒体渠道); 方法引文 Freeman (1978) / Borgatti-Everett (1997)。
 # ⚠ 铁律 (执行计划 §7 WS-B / §3.1):
 #   - 全部 nx.bipartite.* 返回**两端** dict → 必过滤 bank_nodes (R-D2/F6);
 #   - closeness 在断连图跨分量不可比 (实测孤立点 1.5 vs 连通 1.0) → 限制到 LCC 子图 (R13);
@@ -342,12 +412,16 @@ def compute_brokerage_centrality(
     Returns:
         panel: 追加 brokerage_eigen_cent 列的面板 (left join, 无匹配为 NaN)
     """
+    _log_env_config_methodology()
+
     if not HAS_NETWORKX:
         logger.warning("  networkx 未安装, 跳过经纪中心度计算")
         return panel
 
+    _t0 = time.time()
     logger.info("=" * 60)
-    logger.info("步骤: 信息经纪网络中心度 (Han et al. 2024, RFS)")
+    logger.info("步骤 7h-brok: 信息经纪网络中心度 (Han, Kim & Nanda 2024, "
+                "RFS 37(9):2903-2935; https://doi.org/10.1093/rfs/hhae026)")
     logger.info("=" * 60)
 
     years = sorted(panel['year'].unique())
@@ -397,9 +471,30 @@ def compute_brokerage_centrality(
         panel = panel.merge(brok_df, on=['target_bank', 'year'],
                             how='left')
 
-        valid = panel['brokerage_eigen_cent'].notna().sum()
+        valid = int(panel['brokerage_eigen_cent'].notna().sum())
+        _ec = panel['brokerage_eigen_cent']
         logger.info(f"  经纪中心度已合并: {valid:,} 有效值, "
-                    f"mean={panel['brokerage_eigen_cent'].mean():.6f}")
+                    f"mean={sig4(_ec.mean())}")
+        # 📊 关键指标解读 (运行结果信息)
+        try:
+            _n_rows = len(panel)
+            _cov = valid / _n_rows if _n_rows else float('nan')
+            logger.info(f"  📊 经纪中心度覆盖率={pct4(_cov)} "
+                        f"({valid:,}/{_n_rows:,}); "
+                        f"σ={sig4(_ec.std())} | min={sig4(_ec.min())} | "
+                        f"max={sig4(_ec.max())}")
+            if valid == 0:
+                logger.warning("     · ⚠ 坏: 零有效值 — 全部年份节点不足/分量过小, "
+                               "下游该列无识别力 (T=2 盘面常见, 生产 T=18 应复核)")
+            elif _ec.nunique(dropna=True) <= 1:
+                logger.warning("     · ⚠ 坏: 退化为常量 (零方差), 下游回归无识别力")
+            elif _cov < 0.5:
+                logger.info("     · ⚠ 临界: 覆盖率 < 50%, 多数 Bank-Year 落在微小分量 "
+                            "(< 3 节点) → NaN; 解读须注意样本选择")
+            else:
+                logger.info("     · ✅ 好: 覆盖率充足且有方差, 可作『信息可见度』代理变量")
+        except Exception as e:  # noqa: BLE001 — 结果分析块绝不崩阶段
+            logger.warning(f"  经纪中心度结果分析失败 (忽略): {e}")
     else:
         logger.warning("  未计算任何经纪中心度")
 
@@ -414,11 +509,17 @@ def compute_brokerage_centrality(
         panel = panel.merge(_bip_df, on=['target_bank', 'year'], how='left')
         _bcols = [c for c in _bip_df.columns
                   if c not in ('target_bank', 'year')]
-        logger.info(f"  二分图银行端中心度已合并: {len(_bcols)} 列")
+        logger.info(f"  二分图银行端中心度已合并 (WS-B, Freeman 1978 / "
+                    f"Borgatti-Everett 1997): {len(_bcols):,d} 列")
         for c in _bcols:
             if c in panel.columns:
                 v = int(panel[c].notna().sum())
-                logger.info(f"    {c}: {v:,} 有效值, mean={panel[c].mean():.6f}")
+                logger.info(f"    {c}: {v:,} 有效值, mean={sig4(panel[c].mean())}")
+
+    try:
+        logger.info(f"  ⏱ 经纪中心度子步骤耗时 {sig4(time.time() - _t0)} 秒")
+    except Exception:  # noqa: BLE001
+        pass
 
     return panel
 
@@ -488,8 +589,12 @@ def compute_industry_neg_shock(panel: pd.DataFrame,
         panel: 追加 industry_neg_shock + industry_neg_shock_lag1 列
                (∈ [0,1], NaN 表示无法计算)
     """
+    _log_env_config_methodology()
+    _t0 = time.time()
     logger.info("=" * 60)
-    logger.info("步骤: 行业负面冲击指数 (LOO, Manski 1993)")
+    logger.info("步骤 7h-neg: 行业负面冲击指数 (LOO; Manski 1993, "
+                "RES 60(3):531-542; https://doi.org/10.2307/2298123)")
+    logger.info(f"  · 配置: min_count={min_count:,d} (neg_ratio 最小有效篇数守门)")
     logger.info("=" * 60)
 
     # no-ss-track (三轨重定位 2026-06-14, 静态枚举护栏): industry_neg_shock 是
@@ -548,11 +653,38 @@ def compute_industry_neg_shock(panel: pd.DataFrame,
     panel['industry_neg_shock_lag1'] = (
         _sorted.groupby('target_bank')['industry_neg_shock'].shift(1))
 
-    valid = panel['industry_neg_shock'].notna().sum()
-    valid_lag = panel['industry_neg_shock_lag1'].notna().sum()
+    valid = int(panel['industry_neg_shock'].notna().sum())
+    valid_lag = int(panel['industry_neg_shock_lag1'].notna().sum())
+    _sh = panel['industry_neg_shock']
     logger.info(f"  行业负面冲击已计算: {valid:,} 有效值, "
-                f"mean={panel['industry_neg_shock'].mean():.4f}; "
+                f"mean={sig4(_sh.mean())}; "
                 f"lag1: {valid_lag:,} 有效值")
+    # 📊 关键指标解读: industry_neg_shock ∈ [0,1] 应为非退化分布
+    try:
+        if valid == 0:
+            logger.warning("     · ⚠ 坏: 零有效值 — 上游 neg_count_full / 分母缺失或全 "
+                           "< min_count, 行业冲击不可用")
+        else:
+            _smin, _smax = _sh.min(), _sh.max()
+            logger.info(f"     · 分布: σ={sig4(_sh.std())} | "
+                        f"min={sig4(_smin)} | max={sig4(_smax)} | "
+                        f"取值域应 ∈ [0,1]")
+            if _sh.nunique(dropna=True) <= 1:
+                logger.warning("     · ⚠ 坏: industry_neg_shock 退化为常量 (零方差), "
+                               "下游回归无识别力 (某年全 0 → 全 LOO 同值, T=2 常见)")
+            elif valid_lag == 0:
+                logger.info("     · ⚠ 临界: lag1 全 NaN (T 太短无 t-1) — 含年 FE 规格须用 "
+                            "lag1 (同期项与自身 neg_ratio within-year 精确共线)")
+            else:
+                logger.info("     · ✅ 好: 同期 + lag1 双变体均有方差; 含年 FE 规格请用 "
+                            "industry_neg_shock_lag1 (同期项年 FE 下精确共线)")
+    except Exception as e:  # noqa: BLE001 — 结果分析块绝不崩阶段
+        logger.warning(f"  行业负面冲击结果分析失败 (忽略): {e}")
+
+    try:
+        logger.info(f"  ⏱ 行业负面冲击子步骤耗时 {sig4(time.time() - _t0)} 秒")
+    except Exception:  # noqa: BLE001
+        pass
 
     return panel
 
@@ -600,8 +732,11 @@ def compute_fire_sale_interaction(panel: pd.DataFrame) -> pd.DataFrame:
     Returns:
         panel: 追加 brokerage_fire_sale 列
     """
+    _log_env_config_methodology()
+    _t0 = time.time()
     logger.info("=" * 60)
-    logger.info("步骤: 火灾甩卖交乘项 (Han et al. 2024)")
+    logger.info("步骤 7h-fire: 火灾甩卖交乘项 cent(t-1) × shock(t) (Han, Kim & "
+                "Nanda 2024, RFS 37(9):2903-2935; https://doi.org/10.1093/rfs/hhae026)")
     logger.info("=" * 60)
 
     if 'brokerage_eigen_cent' not in panel.columns:
@@ -625,19 +760,29 @@ def compute_fire_sale_interaction(panel: pd.DataFrame) -> pd.DataFrame:
         panel['_lag1'] * panel['industry_neg_shock'])
     panel.drop('_lag1', axis=1, inplace=True, errors='ignore')
 
-    valid = panel['brokerage_fire_sale'].notna().sum()
+    valid = int(panel['brokerage_fire_sale'].notna().sum())
     logger.info(f"  火灾甩卖交乘已计算: {valid:,} 有效值, "
-                f"mean={panel['brokerage_fire_sale'].mean():.6f}")
+                f"mean={sig4(panel['brokerage_fire_sale'].mean())}")
 
     # fix(log-audit-2026-06-20, R18): 零方差检测。盘面 T=2 下 industry_neg_shock 可能
     # 某年全 0 (如 2018), 乘积恒为常量 0 → 下游回归该列无识别力且会被 reghdfe/共线性
     # 自动剔除。显式告警, 避免"已计算 N 有效值"被误读为该交乘项可用。
     _fs = panel['brokerage_fire_sale'].dropna()
     if valid > 0 and _fs.nunique() <= 1:
+        _const_val = _fs.iloc[0] if len(_fs) else float('nan')
         logger.warning(
-            f"  ⚠ brokerage_fire_sale 退化为常量 (唯一值数={_fs.nunique()}, "
-            f"min=max={_fs.iloc[0] if len(_fs) else float('nan'):.6f}): 零方差列下游无识别力, "
+            f"  ⚠ 坏: brokerage_fire_sale 退化为常量 (唯一值数={_fs.nunique():,d}, "
+            f"min=max={sig4(_const_val)}): 零方差列下游无识别力, "
             f"疑因某年 industry_neg_shock 全 0 (T=2 盘面常见); 生产 T=18 应复核并移除该退化列。"
         )
+    elif valid > 0:
+        logger.info(
+            f"     · ✅ 好: 交乘项随 i×t 变异 (唯一值数={_fs.nunique():,d}, "
+            f"σ={sig4(_fs.std())}); 正系数 → 信息枢纽银行在行业负面冲击下遭更大损失")
+
+    try:
+        logger.info(f"  ⏱ 火灾甩卖交乘子步骤耗时 {sig4(time.time() - _t0)} 秒")
+    except Exception:  # noqa: BLE001
+        pass
 
     return panel

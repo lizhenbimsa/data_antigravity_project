@@ -24,6 +24,7 @@ import ahocorasick
 import numpy as np
 import pandas as pd
 
+from news_process.core.logging import pct4
 from news_process.pipeline.preprocess._constants import (
     BANK_KEYWORDS,
     CHINESE_CHAR_PATTERN,
@@ -32,6 +33,11 @@ from news_process.pipeline.preprocess._constants import (
     SHEET_NAME,
     logger,
 )
+
+# 富集日志一次性开关 (per-worker 进程级, 仅服务日志; ProcessPoolExecutor spawn 的每个
+# worker 各自一份 False → 每进程仅在首个文件打印一次方法论引文与配置 banner, 避免逐文件刷屏)。
+# 纯日志状态, 不入任何产物 / schema / 控制流 (golden-safe)。
+_WORKER_BANNER_EMITTED = False
 
 # ============================================================================
 # 1. Aho-Corasick 自动机 (多模式匹配, O(n) 时间复杂度)
@@ -128,6 +134,57 @@ if BANK_KW_AUTOMATON is not None:
 # ============================================================================
 
 
+def _log_worker_banner_once() -> None:
+    """每个 worker 进程首个文件时打印一次子步骤 banner (环境/配置/方法论引文).
+
+    本模块是 stage 00 预处理 runner 在 ProcessPoolExecutor 中按文件并行调用的
+    worker 级 loader, 无独立 main()/run_stage(), 写入共享 logs/00_preprocessing.log。
+    依手册 §0.6 (called-by-runner helper): 不重复打 runner 入口的全量 ENV/CONFIG,
+    仅在被调函数起始处打一个子步骤 banner —— 步骤名 + 方法依据引文 + 关键配置。
+    用进程级 ``_WORKER_BANNER_EMITTED`` 守卫保证每 worker 仅打一次 (避免逐文件刷屏)。
+    纯日志, 不改任何产物 (golden-safe)。
+    """
+    global _WORKER_BANNER_EMITTED
+    if _WORKER_BANNER_EMITTED:
+        return
+    _WORKER_BANNER_EMITTED = True
+    try:
+        import platform
+        import sys
+
+        logger.info("  🧭 子步骤: stage 00 预处理 · 单文件加载-清洗-长度过滤 (worker 进程入口)")
+        logger.info(f"     · 模块: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:  {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:    {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        logger.info(f"     · PID={os.getpid()} | 本步纯 CPU / 无 LLM·网络·API ($0, 确定性)")
+
+        # ⚙ 配置块: 本 worker 实际生效的长度过滤阈值 (来源 config preprocessing.yaml::PARAMS)
+        _title_min = PARAMS.get('title_min_length', 2)
+        _content_min = PARAMS.get('content_min_length', 100)
+        _content_max = PARAMS.get('content_max_length', 10000)
+        logger.info(
+            f"  ⚙ 长度过滤阈值: 标题汉字≥{_title_min:,} | "
+            f"内容汉字 {_content_min:,}~{_content_max:,} | "
+            f"银行关键词={len(BANK_KEYWORDS):,} (+繁体/全角括号变体, AC 自动机 O(n) 匹配)"
+        )
+
+        # 📖 方法论依据 (长度过滤下限的测量可靠性论证; 逐字取自经核验参考文献注册表)
+        logger.info("  📖 方法论依据 (长度过滤下限):")
+        logger.info(
+            "     · Tetlock, P. C., Saar-Tsechansky, M., & Macskassy, S. (2008). "
+            "More than words: Quantifying language to measure firms' fundamentals. "
+            "The Journal of Finance, 63(3), 1437-1467. "
+            "https://doi.org/10.1111/j.1540-6261.2008.01362.x"
+        )
+        logger.info(
+            "       → 每篇 ≥50 词以保证语调测度可靠 (排除表格/列表残片); "
+            "本阶段以汉字数近似 (50 词≈75-100 字), 取 100 汉字为更宽松边界"
+        )
+    except Exception as e:  # noqa: BLE001  纯日志, 失败绝不阻断 worker 处理
+        logger.warning(f"  worker banner 打印失败 (不影响处理): {e}")
+
+
 # ============================================================================
 # 长度过滤诊断 (log-only, 零行为变更)
 # ============================================================================
@@ -187,7 +244,7 @@ def _length_filter_diagnostics(content_len: pd.Series) -> dict:
 
 
 def _log_length_filter_diagnostics(content_len: pd.Series) -> None:
-    """将 ``_length_filter_diagnostics`` 结果格式化为两行紧凑日志."""
+    """将 ``_length_filter_diagnostics`` 结果格式化为紧凑日志 (含保留率判读)."""
     diag = _length_filter_diagnostics(content_len)
     if diag['n'] == 0:
         return
@@ -202,6 +259,31 @@ def _log_length_filter_diagnostics(content_len: pd.Series) -> None:
         for (lo, hi), cnt in diag['kept'].items()
     )
     logger.info(f"  [长度诊断] 替代阈值保留行数: {kept_str}")
+    # 📊 关键指标解读 (运行结果信息): 生产阈值 (100~10000 汉字) 下的保留率 + 阈值敏感性判读
+    try:
+        n = diag['n']
+        lo_prod = PARAMS.get('content_min_length', 100)
+        hi_prod = PARAMS.get('content_max_length', 10000)
+        kept_prod = diag['kept'].get((lo_prod, hi_prod))
+        if kept_prod is not None and n > 0:
+            keep_frac = kept_prod / n
+            # 与"不设上限"对照: TSM 2008 实际做法不设上限 → 上限剔除应仅占极小比例
+            kept_noupper = diag['kept'].get((lo_prod, None))
+            upper_drop = (
+                (kept_noupper - kept_prod) / n
+                if kept_noupper is not None else float('nan')
+            )
+            verdict = (
+                '✅ 主体保留, 长度过滤温和' if keep_frac >= 0.70
+                else '⚠ 保留率偏低, 截断敏感性需复核' if keep_frac >= 0.40
+                else '❌ 过滤过激, 多数行被剔除 (须核查阈值/语料)'
+            )
+            logger.info(
+                f"  [长度诊断] 生产阈值 {lo_prod:,}~{hi_prod:,} 保留率="
+                f"{pct4(keep_frac)} (其中上限剔除占 {pct4(upper_drop)}) → {verdict}"
+            )
+    except Exception as e:  # noqa: BLE001  纯日志, 失败绝不阻断处理
+        logger.warning(f"  [长度诊断] 保留率判读失败 (不影响处理): {e}")
 
 
 # 标题长度替代阈值: 1/2/3 字, 用于支撑"≥2 删的是损坏行而非真标题"的披露主张。
@@ -237,7 +319,7 @@ def _title_filter_diagnostics(title_len: pd.Series) -> dict:
 
 
 def _log_title_filter_diagnostics(title_len: pd.Series) -> None:
-    """将 ``_title_filter_diagnostics`` 结果格式化为一行紧凑日志."""
+    """将 ``_title_filter_diagnostics`` 结果格式化为紧凑日志 (含样本选择风险判读)."""
     d = _title_filter_diagnostics(title_len)
     if d['n'] == 0:
         return
@@ -247,6 +329,21 @@ def _log_title_filter_diagnostics(title_len: pd.Series) -> None:
         f"保留 ≥1:{k[1]:,} ≥2:{k[2]:,} ≥3:{k[3]:,} | "
         f"被≥2删除 {d['removed_lt2']:,} (其中 0字:{d['n_zero']:,} 1字:{d['n_one']:,})"
     )
+    # 📊 关键指标解读: 被 ≥2 删除者中 0 字 (空/损坏) 占比越高 → 越坐实"数据完整性过滤, 非样本选择"
+    try:
+        removed = d['removed_lt2']
+        if removed > 0:
+            zero_share = d['n_zero'] / removed
+            verdict = (
+                '✅ 删除项以 0 字(空/损坏)为主 → 数据完整性过滤, 非样本选择' if zero_share >= 0.80
+                else '⚠ 含较多 1 字真标题, 样本选择风险需附录披露' if zero_share >= 0.50
+                else '❌ 多为 1 字真标题, 存在样本选择风险'
+            )
+            logger.info(
+                f"  [长度诊断] 标题 ≥2 删除构成: 0字占 {pct4(zero_share)} → {verdict}"
+            )
+    except Exception as e:  # noqa: BLE001  纯日志, 失败绝不阻断处理
+        logger.warning(f"  [长度诊断] 标题删除构成判读失败 (不影响处理): {e}")
 
 
 def _process_single_file(file_path: str) -> pd.DataFrame | None:
@@ -271,6 +368,8 @@ def _process_single_file(file_path: str) -> pd.DataFrame | None:
 
     file_name = os.path.basename(file_path)
     try:
+        # 每 worker 进程首个文件时打印一次子步骤 banner (环境/配置/方法论引文)
+        _log_worker_banner_once()
         logger.info(f"--- 开始处理: {file_name} ---")
 
         # 使用 calamine 引擎(基于 Rust, 比 openpyxl 快 5-10x)

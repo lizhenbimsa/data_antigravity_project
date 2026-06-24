@@ -17,11 +17,15 @@ runner.py re-export 这两个函数以保持向后兼容。
 from __future__ import annotations
 
 import os
+import platform
+import sys
+import time
 
 import numpy as np
 import pandas as pd
 
 from news_process.core.config import herd_sensitivity_grid
+from news_process.core.logging import pct4, sig4
 from news_process.core.reporting import save_dataset
 from news_process.pipeline.panel.encode import (
     CONFIG,
@@ -48,6 +52,29 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     logger.info("步骤 8: 诊断统计量")
     logger.info("=" * 60)
 
+    # ── 子步骤 banner (helper, 复用 runner/40_panel_export_main 共享日志;
+    #    per playbook §0.5: 不重复 runner 入口的全量 ENV/CONFIG, 仅打子步骤
+    #    环境指纹 + 方法依据 + 本步判读铁律。try/except 包裹, 日志块绝不崩阶段) ──
+    try:
+        logger.info("  🧭 子步骤环境 (panel diagnostics, called-by-runner helper)")
+        logger.info(f"     · 模块: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "纯只读诊断 / 无 LLM·网络·API ($0)")
+        logger.info("  📖 方法依据 (面板平衡性诊断 G-07)")
+        logger.info("     · 不平衡面板 (unbalanced panel) 的银行进入/退出诊断 = "
+                    "面板计量经济学标准做法 (Wooldridge 2010; Baltagi 2021; "
+                    "DOI 不在核验注册表, 仅列注释依据, 不 emit 为已证文献)")
+        logger.info("     · 白话: 算清每家银行覆盖几年、每年有几家银行、有效新闻覆盖率, "
+                    "判面板是否'方正'到能直接跑固定效应回归。")
+    except Exception as _e:
+        logger.warning(f"  [diag-banner] 子步骤 banner 输出失败 (不影响诊断): {_e}")
+
+    _diag_t0 = time.time()
+
     n_banks = panel['target_bank'].nunique()
     n_years = panel['year'].nunique()
     year_min, year_max = panel['year'].min(), panel['year'].max()
@@ -57,27 +84,38 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
 
     logger.info(f"  面板维度: {len(panel):,} 行 ({n_banks} 银行 × {n_years} 年)")
     logger.info(f"  时间跨度: {year_min} - {year_max}")
-    logger.info(f"  零新闻观测: {no_news:,} ({no_news_pct:.1%})")
+    logger.info(f"  零新闻观测: {no_news:,} ({pct4(no_news_pct)})")
 
     if 'n_articles' in panel.columns:
         logger.info(f"  新闻覆盖量统计:")
         desc = panel['n_articles'].describe()
-        logger.info(f"    mean={desc['mean']:.1f}, median={desc['50%']:.0f}, "
-                    f"max={desc['max']:.0f}, std={desc['std']:.1f}")
+        logger.info(f"    mean={sig4(desc['mean'])}, median={sig4(desc['50%'])}, "
+                    f"max={sig4(desc['max'])}, std={sig4(desc['std'])}")
 
     if 'llm_vote_tone_full' in panel.columns:
         valid_tone = panel['llm_vote_tone_full'].dropna()
         if len(valid_tone) > 0:
-            logger.info(f"  LLM 投票情感强度: mean={valid_tone.mean():.4f}, "
-                        f"std={valid_tone.std():.4f}")
+            _tone_mean = valid_tone.mean()
+            logger.info(f"  LLM 投票情感强度: mean={sig4(_tone_mean)}, "
+                        f"std={sig4(valid_tone.std())}")
+            # 结果判读 (favorability/optimism 口径, 名义双极 [-1,1] 实为单极正向):
+            try:
+                if _tone_mean > 0.30:
+                    logger.info("    研判: 媒体整体偏正向乐观 (mean>0.30, 与 favorability 口径一致)")
+                elif _tone_mean > 0.0:
+                    logger.info("    研判: 媒体轻微偏正向 (0<mean≤0.30)")
+                else:
+                    logger.info("    🔴 研判: 媒体非正向 (mean≤0), 与既往负面近退化的预期相悖, 建议复核")
+            except Exception as _e:
+                logger.warning(f"    [diag] tone 判读跳过: {_e}")
 
     # --- 分类维度诊断 ---
     if 'tech_frac' in panel.columns:
         valid_tf = panel['tech_frac'].dropna()
         if len(valid_tf) > 0:
             logger.info(f"  底层技术占比 (tech_frac):")
-            logger.info(f"    mean={valid_tf.mean():.3f}, median={valid_tf.median():.3f}, "
-                        f"std={valid_tf.std():.3f}")
+            logger.info(f"    mean={sig4(valid_tf.mean())}, median={sig4(valid_tf.median())}, "
+                        f"std={sig4(valid_tf.std())}")
     for suffix, label in [('_tech', '底层技术'), ('_app', '应用场景')]:
         col = f'n_articles{suffix}'
         if col in panel.columns:
@@ -85,14 +123,25 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
             total = (panel['n_articles'] > 0).sum()
             if total > 0:
                 logger.info(f"  {label} ({col}): "
-                            f"有文章的 Bank-Year = {has_cat}/{total} ({has_cat/total:.1%})")
+                            f"有文章的 Bank-Year = {has_cat}/{total} ({pct4(has_cat/total)})")
             else:
                 logger.info(f"  {label} ({col}): 无有效新闻观测")
     if 'avg_category_confidence' in panel.columns:
         valid_conf = panel['avg_category_confidence'].dropna()
         if len(valid_conf) > 0:
-            logger.info(f"  分类置信度: mean={valid_conf.mean():.3f}, "
-                        f"median={valid_conf.median():.3f}")
+            _conf_mean = valid_conf.mean()
+            logger.info(f"  分类置信度: mean={sig4(_conf_mean)}, "
+                        f"median={sig4(valid_conf.median())}")
+            # 结果判读: 分类置信度均值 vs 0.5 阈值 (低于 0.5 为低置信, 见下 G-20)
+            try:
+                if _conf_mean >= 0.70:
+                    logger.info("    研判: 分类置信度高 (mean≥0.70), 维度归类可靠")
+                elif _conf_mean >= 0.50:
+                    logger.info("    研判: 分类置信度中等 (0.50≤mean<0.70)")
+                else:
+                    logger.info("    🔴 研判: 分类置信度偏低 (mean<0.50), 底层/应用归类噪声大, 慎用维度切分")
+            except Exception as _e:
+                logger.warning(f"    [diag] 置信度判读跳过: {_e}")
 
             # ── G-20: 低置信度分类诊断 (read-only) ──
             # fix(omni-g-panel-export-05, 2026-06-11): 不再在诊断函数内变异
@@ -103,7 +152,7 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
             low_n = int(_low_mask.sum())
             low_pct = low_n / max(len(panel), 1)
             logger.info(f"  G-20 低置信度标记: {low_n}/{len(panel)} "
-                        f"({low_pct:.1%} Bank-Year, conf < 0.5)")
+                        f"({pct4(low_pct)} Bank-Year, conf < 0.5)")
 
     # ── G-14: 距离衰减敏感性检验结果摘要 ──
     decay_report = os.path.join(OUTPUT_DIR, 'eval_reports', '69_decay_sensitivity.csv')
@@ -122,15 +171,26 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                     if not np.isnan(r):
                         pearsons.append(r)
             if pearsons:
+                _avg_p, _min_p = float(np.mean(pearsons)), float(min(pearsons))
                 logger.info(f"  G-14 距离衰减: Pearson(uniform, inverse) = "
-                            f"{np.mean(pearsons):.4f} (avg), "
-                            f"{min(pearsons):.4f} (min)")
+                            f"{sig4(_avg_p)} (avg), "
+                            f"{sig4(_min_p)} (min)")
+                # 研判: uniform vs inverse 高相关 = 距离衰减权重对结果不敏感 (稳健)
+                try:
+                    if _min_p >= 0.95:
+                        logger.info("    研判: 距离衰减权重稳健 (min Pearson≥0.95, uniform/inverse 定性不变)")
+                    elif _min_p >= 0.80:
+                        logger.info("    研判: 距离衰减权重较稳健 (0.80≤min Pearson<0.95)")
+                    else:
+                        logger.info("    🔴 研判: 距离衰减权重敏感 (min Pearson<0.80), 衰减设定影响测度, 需披露")
+                except Exception as _e:
+                    logger.warning(f"    [diag] G-14 判读跳过: {_e}")
         except Exception as e:
             logger.debug(f"  G-14 报告读取失败: {e}")
 
     # 文章级统计
     logger.info(f"  展开后文章-银行级行数: {len(df_exploded):,}")
-    logger.info(f"  多银行文章占比: {df_exploded['is_multi_bank'].mean():.1%}")
+    logger.info(f"  多银行文章占比: {pct4(df_exploded['is_multi_bank'].mean())}")
 
 
     # ── G-07: 面板平衡性诊断 ──
@@ -143,7 +203,7 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     theoretical_rows = n_banks * max_years
     balance_ratio = len(panel) / theoretical_rows if theoretical_rows > 0 else 0
     logger.info(f"  理论最大维度: {n_banks} 银行 × {max_years} 年 = {theoretical_rows:,} 行")
-    logger.info(f"  实际行数: {len(panel):,} ({balance_ratio:.1%} 平衡率)")
+    logger.info(f"  实际行数: {len(panel):,} ({pct4(balance_ratio)} 平衡率)")
     if balance_ratio >= 0.95:
         logger.info(f"  ✅ 高度平衡面板 (≥95%)")
     elif balance_ratio >= 0.80:
@@ -156,7 +216,7 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     full_coverage = (bank_year_counts == max_years).sum()
     partial = (bank_year_counts < max_years).sum()
     logger.info(f"  完整覆盖 ({max_years} 年): {full_coverage}/{n_banks} 银行 "
-                f"({full_coverage/n_banks:.1%})")
+                f"({pct4(full_coverage/n_banks)})")
     if partial > 0:
         min_years = bank_year_counts.min()
         logger.info(f"  部分覆盖银行: {partial} 家, 最少仅覆盖 {min_years} 年")
@@ -172,7 +232,7 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     # (d) 有效覆盖率 (有新闻的 Bank-Year 占比)
     has_news = (panel['n_articles'] > 0).sum()
     news_coverage = has_news / len(panel) if len(panel) > 0 else 0
-    logger.info(f"  有效新闻覆盖: {has_news}/{len(panel)} Bank-Year ({news_coverage:.1%})")
+    logger.info(f"  有效新闻覆盖: {has_news}/{len(panel)} Bank-Year ({pct4(news_coverage)})")
 
     # (e) 关键变量缺失率
     key_vars = ['llm_vote_tone_full', 'llm_vote_tone_ctx', 'bank_province',
@@ -182,7 +242,24 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
         if var in panel.columns:
             miss = panel[var].isna().sum()
             miss_pct = miss / len(panel) if len(panel) > 0 else 0
-            logger.info(f"    {var}: {miss:,}/{len(panel):,} ({miss_pct:.1%})")
+            logger.info(f"    {var}: {miss:,}/{len(panel):,} ({pct4(miss_pct)})")
+
+    # ── 📊 平衡性结果总判读 (panel-3-network 类似的小样本/优雅降级提示) ──
+    try:
+        if n_years <= 2:
+            logger.info(f"  ⚠ 小样本面板 (T={n_years}): 盘上试跑深度, 平衡率/覆盖率判读仅供形态参考, "
+                        "非生产规模 (生产 T=18, 2007–2024)")
+        if news_coverage < 0.50:
+            logger.info(f"  🔴 有效新闻覆盖偏低 ({pct4(news_coverage)}<50%), 大量 Bank-Year 零新闻 → "
+                        "情感/注意力列稀疏, 下游回归须留意样本损失")
+    except Exception as _e:
+        logger.warning(f"  [diag] 总判读跳过: {_e}")
+
+    # ── ⏱ 子步骤计时 ──
+    try:
+        logger.info(f"  ⏱ 步骤 8 (面板诊断) 墙钟耗时: {sig4(time.time() - _diag_t0)} 秒")
+    except Exception as _e:
+        logger.warning(f"  [diag] 计时输出跳过: {_e}")
 
 
 # ============================================================================
@@ -318,6 +395,27 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     logger.info("=" * 60)
     logger.info("步骤 9: 多格式导出")
     logger.info("=" * 60)
+
+    _export_t0 = time.time()
+
+    # ── ⚙ 子步骤运行配置 (helper, 复用 runner 共享日志; 仅 emit 本步可调参数/路径) ──
+    try:
+        _export_stata = PANEL_CFG.get('export_stata', True)
+        logger.info("  ⚙ 导出配置")
+        logger.info(f"     · 输出目录: {OUTPUT_DIR}")
+        logger.info(f"     · Parquet 文件: "
+                    f"{FILENAMES.get('output_40_panel_yearly', '40_panel_yearly.parquet')}")
+        logger.info(f"     · 文章级文件: "
+                    f"{FILENAMES.get('output_40_article_bank', '40_article_bank_level.parquet')}")
+        logger.info(f"     · 导出 Stata .dta: {_export_stata} (.dta 格式 spec=118; "
+                    "列名 Stata 32 字符纪律 + 哈希防撞 + 100% 变量标签覆盖)")
+        logger.info(f"     · 必填列校验: {len(REQUIRED_PANEL_COLUMNS)} 列 "
+                    "(主键 + t2v 稳健性 twin; 缺即 raise, 杜绝 .parquet/.dta 语义错位)")
+        logger.info(f"     · 当前 panel: {len(panel):,} 行 × {len(panel.columns):,} 列")
+        logger.info("  📖 方法依据: pandas→Stata 边界适配 (Float64/Int64 nullable → strict "
+                    "float/double; object→float64 防御性转换, 避免 to_stata 误判全空列)")
+    except Exception as _e:
+        logger.warning(f"  [export] 配置 banner 输出失败 (不影响导出): {_e}")
 
     # 年度面板 Parquet
     panel_filename = FILENAMES.get('output_40_panel_yearly', '40_panel_yearly.parquet')
@@ -1310,12 +1408,24 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                     f"[export_panel] 变量标签覆盖率断言失败: "
                     f"{len(_unlabeled)} 列无标签 (前 10): {_unlabeled[:10]}"
                 )
+            _n_explicit = sum(1 for c in panel_stata.columns if c in STATA_LABELS)
+            _n_cols = len(panel_stata.columns)
+            _explicit_frac = _n_explicit / _n_cols if _n_cols > 0 else 0.0
             logger.info(
-                f"  变量标签覆盖: {len(labels)}/{len(panel_stata.columns)} 列 "
-                f"(显式 STATA_LABELS 命中 "
-                f"{sum(1 for c in panel_stata.columns if c in STATA_LABELS)}, "
+                f"  变量标签覆盖: {len(labels):,}/{_n_cols:,} 列 "
+                f"(显式 STATA_LABELS 命中 {_n_explicit:,} = {pct4(_explicit_frac)}, "
                 f"其余启发式兜底)"
             )
+            # 研判: 标签覆盖经 _apply_label_fallback 后必为 100% (上方 _unlabeled 断言);
+            # 显式命中占比反映 STATA_LABELS 字典对当前 schema 的直接覆盖度。
+            try:
+                if _explicit_frac >= 0.50:
+                    logger.info("    研判: 显式标签命中 ≥50%, 主回归变量多有学术级标签")
+                else:
+                    logger.info("    研判: 显式标签命中 <50%, 多数列依赖启发式兜底 "
+                                "(仍 100% 有标签, 但建议为高频新列补 STATA_LABELS 显式条目)")
+            except Exception as _e:
+                logger.warning(f"    [export] 标签覆盖判读跳过: {_e}")
             panel_stata.to_stata(dta_path, write_index=False, version=118,
                                  variable_labels=labels)
             logger.info(f"  已导出 Stata 文件: {dta_path}")
@@ -1347,3 +1457,9 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 stage_name="40_panel_export_main",
                 config=CONFIG,
                 input_files=[input_file])
+
+    # ── ⏱ 子步骤计时 (面板 + 文章级全部格式落盘) ──
+    try:
+        logger.info(f"  ⏱ 步骤 9 (多格式导出) 墙钟耗时: {sig4(time.time() - _export_t0)} 秒")
+    except Exception as _e:
+        logger.warning(f"  [export] 计时输出跳过: {_e}")

@@ -34,15 +34,40 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 from typing import Optional
 
 import pandas as pd
+
+# 日志富集 (2026-06-24): 四位有效数字渲染单一事实源 (sig4/pct4); 仅服务于日志,
+# 不改任何写盘值/schema/控制流 (golden-safe, 纯增量 logging)。
+from news_process.core.logging import pct4, sig4
 
 # v3.10.0: LM 子集前缀单一事实源 (取代 apply_v3_5_2 内硬编码 6-tuple, 防漂移)。
 # lm_non_sentiment 仅依赖 jieba/json/re/pathlib, 无 panel 导入 → 无循环。
 from news_process.pipeline.sentiment.lm_non_sentiment import SUBSET_PREFIXES
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# 方法学引文注册表 (经核验, 仅供 emit 进日志; 逐字取自 VERIFIED_REFERENCES.md)。
+# encode_collab 是 encode.py 调用的库模块 (无独立 main/run_stage), 共享 panel-build
+# 运行期日志; 各 apply_v3_5_* 入口在被调时打印子步骤 banner + 下列方法依据 + 本步判读。
+# Sun & Abraham (2021 JOE 225) cohort decomposition 注册表未收录 → 有意不 emit。
+# ---------------------------------------------------------------------------
+_METHOD_REFS_D2 = (
+    "Angrist, J. D., & Pischke, J.-S. (2009). Mostly harmless econometrics: "
+    "An empiricist's companion. Princeton University Press. "
+    "https://doi.org/10.1515/9781400829828",
+)
+_METHOD_REFS_D4 = (
+    "Loughran, T., & McDonald, B. (2011). When is a liability not a liability? "
+    "Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), "
+    "35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x",
+    "Westphal, J. D., & Zajac, E. J. (2001). Decoupling policy from practice: "
+    "The case of stock repurchase programs. Administrative Science Quarterly, "
+    "46(2), 202–228. https://doi.org/10.2307/2667086",
+)
 
 # v3.5.0 D2: 8-cell encoding (baseline=cell 1 三维全 0)
 VALID_SUBST = {'实质性', '象征性'}
@@ -380,8 +405,24 @@ def aggregate_d2_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
         # 把 LLM partial failure 的诊断信息从 WARNING 降为 INFO (设计性预期)
         logger.info(
             f"  ✓ cell_id identity 通过 (n_articles_cell_NA_full bucket = "
-            f"{na_total}/{n_articles_total} = {na_pct:.1f}% LLM 部分失败 articles)"
+            f"{na_total:,d}/{n_articles_total:,d} = {pct4(na_pct, fraction=False)} "
+            f"LLM 部分失败 articles)"
         )
+        # 结果判读 (D2 8 格覆盖率): NA 桶占比衡量 collab_mode 三维标注的完整度。
+        # 阈值 (经验): <5% 好 (LLM 三维标注稳健) / 5–15% 临界 / >15% 偏弱
+        # (substantiveness/locus/collab_mode 任一维度失败率偏高, 8 格分解功效下降)。
+        try:
+            if na_pct < 5.0:
+                _verdict = "好 (LLM 三维标注完整, 8 格分解可用)"
+            elif na_pct <= 15.0:
+                _verdict = "临界 (部分维度标注缺失, 留意 cell 计数稀释)"
+            else:
+                _verdict = "偏弱 (collab_mode 维度标注失败偏高, 建议复查 stage 21 prompt v8)"
+            logger.info(
+                f"  📊 D2 cell-NA 覆盖判读: na_pct={pct4(na_pct, fraction=False)} → {_verdict}"
+            )
+        except Exception as _e:  # noqa: BLE001
+            logger.warning(f"  ⚠ D2 cell-NA 判读日志失败 (graceful): {_e}")
 
     return {
         'main_fail': main_fail,
@@ -526,11 +567,19 @@ def aggregate_d4_panel(df: pd.DataFrame, panel: pd.DataFrame,
         if current_coverage < threshold_low:
             quality_flag = 'insufficient'
             logger.warning(
-                f"  ⚠ ctx coverage {current_coverage:.2%} < "
+                f"  ⚠ ctx coverage {pct4(current_coverage)} < "
                 f"{'baseline-2σ' if baseline_loaded else 'fallback'} threshold "
-                f"{threshold_low:.2%}; panel.attrs['D4_data_quality'] marked"
+                f"{pct4(threshold_low)}; panel.attrs['D4_data_quality'] marked"
             )
             panel.attrs['D4_data_quality'] = 'insufficient_ctx_coverage'
+        else:
+            # 结果判读 (D4 ctx 覆盖率): 高于阈值即认为实体上下文抽取覆盖充足,
+            # both_valid 分母可靠 → frac 信号无系统性下偏风险。
+            logger.info(
+                f"  📊 D4 ctx 覆盖判读: coverage={pct4(current_coverage)} ≥ "
+                f"{'baseline-2σ' if baseline_loaded else 'fallback'} "
+                f"{pct4(threshold_low)} → 好 (both_valid 分母可靠, frac 信号无下偏)"
+            )
 
     # F6: str column 持久化到 parquet/.dta, Stata 用户可见
     panel['d4_data_quality_flag'] = quality_flag
@@ -549,6 +598,39 @@ def apply_v3_5_0(df: pd.DataFrame, panel: pd.DataFrame,
     由 encode.py::aggregate_panel 在 v3.4.0 collab_mode 聚合块之后调用。
     返回汇总诊断 dict, 供 audit log §A。
     """
+    # ---- 子步骤 banner (helper module, 复用 panel-build 运行期日志; 不重打 ENV/CONFIG) ----
+    # 该块为纯日志增量 (golden-safe): 仅 logger.info + 局部 _t* 计时变量, 不改任何写盘值。
+    _t0 = time.time()
+    try:
+        logger.info("=" * 72)
+        logger.info(
+            "  步骤 D2+D4 (encode_collab.apply_v3_5_0): collab-cell 八格分解 + 跨轨残差信号"
+        )
+        logger.info(
+            f"    · 输入: article df={df.shape[0]:,d} 行 × {df.shape[1]:,d} 列, "
+            f"panel={panel.shape[0]:,d} 行 (bank-year)"
+        )
+        logger.info(
+            "    · 方法 D2 (8-cell 饱和编码 cell_id = subst*4 + locus*2 + collab + 1):"
+        )
+        for _ref in _METHOD_REFS_D2:
+            logger.info(f"        - {_ref}")
+        logger.info(
+            "    · 方法 D4 (full vs ctx 标签一致性残差 = disagree/freerider/quietworker):"
+        )
+        for _ref in _METHOD_REFS_D4:
+            logger.info(f"        - {_ref}")
+        logger.info(
+            "    · 白话: 把每篇文章按三个二选一属性落进 2×2×2=8 格做饱和回归; "
+            "D4 看 full/ctx 两口径判得是否一致 (不一致本身即信号)。"
+        )
+        logger.info(
+            "    · 轨道范围 (plan §7.3-A1): D2/D4 cell 分解有意仅 full/ctx 两轨, "
+            "ss 是纯情感轨不分解属性 (无 cell_id_ss)。确定性纯 CPU/$0。"
+        )
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  ⚠ apply_v3_5_0 banner 日志失败 (graceful): {_e}")
+
     # 文章级 D2
     # cell_id_ss intentionally NOT produced: D2/D4 collab cells classify full/ctx-anchored
     # attributes (substantiveness/locus/collab_mode); ss 是纯情感轨, 不分解属性
@@ -558,12 +640,29 @@ def apply_v3_5_0(df: pd.DataFrame, panel: pd.DataFrame,
 
     # 文章级 D4
     residual_cols = derive_residual_signals(df)
+    _t_article = time.time()
 
     # 面板级 D2 8 格计数 + 恒等式
     d2_diag = aggregate_d2_panel(df, panel)
 
     # 面板级 D4 frac/count + d4_data_quality_flag
     d4_diag = aggregate_d4_panel(df, panel, ctx_baseline_path)
+    _t_panel = time.time()
+
+    # ---- 阶段计时 + 结果汇总 (纯日志) ----
+    try:
+        logger.info(
+            f"  ⏱ apply_v3_5_0 计时: article 级 (cell_id+residual) "
+            f"{sig4(_t_article - _t0)}s · panel 级 (D2+D4 聚合) "
+            f"{sig4(_t_panel - _t_article)}s · 合计 {sig4(_t_panel - _t0)}s"
+        )
+        logger.info(
+            f"  ✓ apply_v3_5_0 完成: cell_id 2 轨 + residual {len(residual_cols):,d} 文章级列; "
+            f"D2 skipped={d2_diag.get('cell_aggregation_skipped')} · "
+            f"D4 quality_flag={d4_diag.get('d4_data_quality_flag', 'n/a')}"
+        )
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  ⚠ apply_v3_5_0 计时/汇总日志失败 (graceful): {_e}")
 
     return {
         'v3_5_0_cell_id_added': ['cell_id_full', 'cell_id_ctx'],
@@ -643,15 +742,15 @@ def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
     # 生产由 apply_v3_5_1 从 sidecar JSON 读冻结值传入 (fix(omni-known-open-2, 2026-06-11))
     if median_amb_d0 is None:
         median_amb_d0 = float(df['clarity_frac_ambiguous_full'].dropna().median())
-        logger.info(f"v3.5.1 A1: D0 median_amb(full) 实测 = {median_amb_d0:.6f}")
+        logger.info(f"v3.5.1 A1: D0 median_amb(full) 实测 = {sig4(median_amb_d0)}")
     # fix(encode_collab-01): ctx 轨用 ctx 自身分布的 median 二值化, 不再套用 full 轨阈值
     if median_amb_d0_ctx is None:
         median_amb_d0_ctx = float(df['clarity_frac_ambiguous_ctx'].dropna().median())
-        logger.info(f"v3.5.1 A1: D0 median_amb(ctx) 实测 = {median_amb_d0_ctx:.6f}")
+        logger.info(f"v3.5.1 A1: D0 median_amb(ctx) 实测 = {sig4(median_amb_d0_ctx)}")
     # ss 轨 (银行+金科同句) 用 ss 自身分布的 median 二值化 (镜像 ctx, 各轨独立阈值)
     if has_ss and median_amb_d0_ss is None:
         median_amb_d0_ss = float(df['clarity_frac_ambiguous_ss'].dropna().median())
-        logger.info(f"v3.5.1 A1: D0 median_amb(ss) 实测 = {median_amb_d0_ss:.6f}")
+        logger.info(f"v3.5.1 A1: D0 median_amb(ss) 实测 = {sig4(median_amb_d0_ss)}")
 
     # weight = stage21 media_authority × herd_decay
     # fix(herd-ghost-01): full/ctx/ss 三轨各配自己的 herd 权重 (Edwards 2001 measurement-treatment
@@ -955,6 +1054,30 @@ def apply_v3_5_1(df: pd.DataFrame, panel: pd.DataFrame,
     import os
     from datetime import datetime, timezone
 
+    # ---- 子步骤 banner (helper module, 复用 panel-build 运行期日志; 不重打 ENV/CONFIG) ----
+    _t0 = time.time()
+    try:
+        logger.info("=" * 72)
+        logger.info(
+            "  步骤 A1+A3 (encode_collab.apply_v3_5_1): clarity 清晰度 + num_intensity "
+            "数字密度 文章级→bank-year 加权聚合 (三轨 full/ctx/ss)"
+        )
+        logger.info(
+            f"    · 输入: article df={df.shape[0]:,d} 行 × {df.shape[1]:,d} 列, "
+            f"panel={panel.shape[0]:,d} 行"
+        )
+        logger.info(
+            "    · 方法 (词典法文本测度族, D0-frozen median 二值化防全样本中位数泄漏):"
+        )
+        for _ref in _METHOD_REFS_D4[:1]:  # Loughran & McDonald (2011) 词典文本分析锚点
+            logger.info(f"        - {_ref}")
+        logger.info(
+            "    · 白话: 把每篇文章的措辞清晰度/数字密集度按媒体权威×跟风权重加权, "
+            "聚合到银行-年; 二值化阈值用历史冻结中位数, 不随每次重跑漂移。确定性纯 CPU/$0。"
+        )
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  ⚠ apply_v3_5_1 banner 日志失败 (graceful): {_e}")
+
     sidecar_path = 'data/processed/v3_5_1_constants.json'
     # P0-B (2026-05-25): preserve-if-set — 若 caller 未显式传 prompt_v8_sha256
     # 但已有 sidecar 含非 null SHA, 保留旧值 (避免 stage 21 重跑无声 wipe
@@ -1041,6 +1164,33 @@ def apply_v3_5_1(df: pd.DataFrame, panel: pd.DataFrame,
     except Exception as e:  # noqa: BLE001
         logger.warning(f"v3.5.1: sidecar JSON 写入失败 (graceful): {e}")
 
+    # ---- 阶段计时 + 结果判读 (纯日志) ----
+    try:
+        _n_clar = len(clarity_diag.get('v3_5_1_clarity_added', []) or [])
+        _n_ni = len(ni_diag.get('v3_5_1_num_intensity_added', []) or [])
+        logger.info(
+            f"  ⏱ apply_v3_5_1 计时: 合计 {sig4(time.time() - _t0)}s "
+            f"(clarity {_n_clar:,d} 列 + num_intensity {_n_ni:,d} 列)"
+        )
+        # 结果判读 (clarity 列产出 + 冻结阈值): 满产 (full/ctx 各 3 + ss 3 = 9 列) 为好;
+        # 仅 full/ctx (6 列) 为临界 (旧 parquet 无 ss 轨, 第三轨平价覆盖缺失); 0 列偏弱
+        # (上游 stage 22 clarity article 列缺失, 须重跑)。
+        if _n_clar >= 9:
+            _v = "好 (三轨 full/ctx/ss 满产)"
+        elif _n_clar >= 6:
+            _v = "临界 (仅 full/ctx, ss 第三轨缺失)"
+        elif _n_clar > 0:
+            _v = "偏弱 (clarity 列部分产出)"
+        else:
+            _v = "缺失 (上游 stage 22 clarity 列不可用, 优雅跳过)"
+        _med = clarity_diag.get('median_amb_d0', float('nan'))
+        logger.info(
+            f"  📊 A1 clarity 判读: 产出 {_n_clar:,d} 列 → {_v}; "
+            f"frozen median_amb(full)={sig4(_med)}"
+        )
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  ⚠ apply_v3_5_1 计时/判读日志失败 (graceful): {_e}")
+
     return {
         **clarity_diag,
         **ni_diag,
@@ -1074,6 +1224,28 @@ def apply_v3_5_2(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
     Returns:
         dict: {v3_5_2_lm_added, v3_5_2_fls_added, v3_5_2_skipped_reason}。
     """
+    # ---- 子步骤 banner (helper module, 复用 panel-build 运行期日志; 不重打 ENV/CONFIG) ----
+    _t0 = time.time()
+    try:
+        logger.info("=" * 72)
+        logger.info(
+            "  步骤 v3.5.2 (encode_collab.apply_v3_5_2): LM 6 子词典 + FLS 文章级 frac "
+            "→ bank-year 简单均值聚合 (三轨 full/ctx/ss, 21 列)"
+        )
+        logger.info(
+            f"    · 输入: article df={df.shape[0]:,d} 行 × {df.shape[1]:,d} 列, "
+            f"panel={panel.shape[0]:,d} 行"
+        )
+        logger.info("    · 方法 (LM 子词典文本分析, 不确定/诉讼/约束/语气/复杂度 + 前瞻陈述 FLS):")
+        for _ref in _METHOD_REFS_D4[:1]:  # Loughran & McDonald (2011) 词典文本分析锚点
+            logger.info(f"        - {_ref}")
+        logger.info(
+            "    · 白话: 把每篇文章在 6 个语言学子词典 + 前瞻陈述上的词频占比, "
+            "按银行-年取简单均值, 供下游 Stata/codebook 既有契约列。确定性纯 CPU/$0。"
+        )
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  ⚠ apply_v3_5_2 banner 日志失败 (graceful): {_e}")
+
     # v3.10.0: 6 子集前缀直接复用 lm_non_sentiment.SUBSET_PREFIXES (单一事实源, 防漂移)。
     # 现值 = ('uncert','litig','constr','modal_strong','modal_weak','complexity')。
     LM_KEYS = SUBSET_PREFIXES
@@ -1147,6 +1319,27 @@ def apply_v3_5_2(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
 
     lm_added = [c for c in added_cols if any(c.startswith(k) for k in LM_KEYS)]
     fls_added = [c for c in added_cols if 'fls' in c]
+
+    # ---- 阶段计时 + 结果判读 (纯日志) ----
+    try:
+        # 期望满产: LM 6 子集 × 3 轨 = 18 + FLS 3 轨 = 3 → 共 21 列。
+        _n_lm, _n_fls = len(lm_added), len(fls_added)
+        _n_total = _n_lm + _n_fls
+        if _n_total >= 21:
+            _v = "好 (LM 18 + FLS 3 三轨满产)"
+        elif _n_total >= 14:
+            _v = "临界 (部分轨缺失, 多半旧 parquet 无 _ss 第三轨)"
+        else:
+            _v = "偏弱 (上游 stage 22 LM/FLS article 列大量缺失)"
+        logger.info(
+            f"  ⏱ apply_v3_5_2 计时: 合计 {sig4(time.time() - _t0)}s"
+        )
+        logger.info(
+            f"  📊 v3.5.2 LM+FLS 判读: LM {_n_lm:,d} 列 + FLS {_n_fls:,d} 列 = "
+            f"{_n_total:,d}/21 → {_v}; 跳过源列 {len(skipped_cols):,d} 个"
+        )
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  ⚠ apply_v3_5_2 计时/判读日志失败 (graceful): {_e}")
 
     return {
         'v3_5_2_lm_added': lm_added,

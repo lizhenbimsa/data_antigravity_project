@@ -93,6 +93,7 @@ news_process.pipeline.filtering.news_bank — 阶段11：银行新闻判断
 
 import json
 import os
+import platform
 import sys
 import time
 from collections import Counter
@@ -111,7 +112,13 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import log_memory_usage, log_stage_summary, setup_logging
+from news_process.core.logging import (
+    log_memory_usage,
+    log_stage_summary,
+    pct4,
+    setup_logging,
+    sig4,
+)
 from news_process.core.reporting import safe_save_preview_csv
 from news_process.core.text.ahocorasick import (
     analyze_bank_matches,
@@ -383,13 +390,13 @@ def log_classification_report(stats: dict, logger):
     pct = (true_count / total * 100) if total > 0 else 0.0
 
     logger.info(f"总记录数: {total:,}")
-    logger.info(f"判定为银行新闻: {true_count:,} ({pct:.2f}%)")
+    logger.info(f"判定为银行新闻: {true_count:,} ({pct4(pct, fraction=False)})")
     if true_count > 0:
         with_title = stats.get('is_bank_news_with_title', 0)
         no_title = true_count - with_title
-        logger.info(f"  - 包含标题匹配: {with_title:,} 篇 ({with_title/true_count*100:.2f}%)")
-        logger.info(f"  - 仅靠正文匹配: {no_title:,} 篇 ({no_title/true_count*100:.2f}%)")
-    logger.info(f"判定为非银行新闻: {stats['is_bank_news_false']:,} ({100 - pct:.2f}%)")
+        logger.info(f"  - 包含标题匹配: {with_title:,} 篇 ({pct4(with_title / true_count)})")
+        logger.info(f"  - 仅靠正文匹配: {no_title:,} 篇 ({pct4(no_title / true_count)})")
+    logger.info(f"判定为非银行新闻: {stats['is_bank_news_false']:,} ({pct4(100 - pct, fraction=False)})")
     logger.info(
         f"判定参数: 内容分割比例={SPLIT_RATIO}, "
         f"上半最低出现={MIN_UPPER}次, 下半最低出现={MIN_LOWER}次, "
@@ -428,6 +435,68 @@ def log_classification_report(stats: dict, logger):
 # 4. 主函数
 # ============================================================================
 
+def _log_environment_and_methodology(input_path: str, output_path: str) -> None:
+    """打印 ① 项目/环境信息 ② 输入/输出文件 ③ 运行配置 ④ 方法论依据(含 DOI)。
+
+    目标 (日志富集, 2026-06-24, 用户要求"在日志中提供尽可能多的项目/运行期/结果信息"):
+    把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数、方法学出处"一次性落进
+    11_news_bank.log, 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 (golden-safe)。
+    方法论引文逐字取自经核验参考文献注册表 (VERIFIED_REFERENCES), 含可访问 DOI 链接。
+    """
+    try:
+        preview_path = output_path.replace('.parquet', '.csv')
+        bank_file = CONFIG['paths'].get('bank_names_file', '(默认)')
+        excl_file = CONFIG['paths'].get('bank_name_exclusions_file', _exclusion_file)
+        parallel_cfg = CONFIG.get('parallel', {})
+        total_variants = sum(len(b['variants']) for b in BANKS) if BANKS else 0
+
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (银行新闻判定, STAGES_MAIN; firm-document 级展开)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) "
+                    "| 版本 v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "本阶段纯 CPU (ahocorasick/joblib/psutil), 无 LLM·网络·API ($0)")
+        logger.info("     · 确定性: 给定语料+词典逐位可复现; 词典文件纳入 parquet 血缘 "
+                    "input_hashes (防词典内容篡改而路径不变致完整性校验失明)。")
+
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 输入:     {input_path} (config 键 output_00_preprocessing)")
+        logger.info(f"     · 输出:     {output_path} (config 键 output_11_bank_news)")
+        logger.info(f"     · 预览:     {preview_path}")
+        logger.info(f"     · 银行词典: {bank_file}")
+        logger.info(f"     · 排除词典: {excl_file}")
+
+        logger.info("  ⚙ 运行配置 (config::bank_news_classification + config::parallel)")
+        logger.info(f"     · 分布判定: split_ratio={sig4(SPLIT_RATIO)} | MIN_UPPER={MIN_UPPER} "
+                    f"| MIN_LOWER={MIN_LOWER} | MIN_NAME_OCCURRENCES={MIN_NAME_OCCURRENCES}")
+        logger.info(f"     · 词典规模: 银行 {len(BANKS):,} 家 | 名称变体合计 {total_variants:,} "
+                    f"| AC 自动机={'已构建' if BANK_AC_AUTOMATON else '未构建'}")
+        logger.info(f"     · 假阳性闸门: 否定模式 AC={'已加载' if NEGATION_AC else '缺失'} "
+                    f"| 短名排除词 {len(SHORT_NAME_EXCLUSIONS):,} 项 "
+                    f"| context_window={CONTEXT_WINDOW} 字符")
+        logger.info(f"     · 并行: batch_size={parallel_cfg.get('batch_size', 5000):,} "
+                    f"| n_jobs={parallel_cfg.get('n_jobs', -1)} (joblib)")
+
+        logger.info("  📖 方法论依据 (核心方法/构念学术出处; 逐字取自经核验参考文献注册表)")
+        logger.info("     · 企业级文本暴露度 (article×bank 展开 + mention_density value-weighted "
+                    "exposure 对标 firm-level exposure 框架):")
+        logger.info("       Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). "
+                    "Firm-level political risk: Measurement and effects. The Quarterly Journal "
+                    "of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021")
+        logger.info("     · 文本分类规范框架 (关键词匹配 + 分布条件 + 阈值敏感性, 多条件判定逻辑"
+                    "与阈值设计遵循 Text-as-Data 方法论标准):")
+        logger.info("       Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal "
+                    "of Economic Literature, 57(3), 535-574. "
+                    "https://doi.org/10.1257/jel.20181020")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法论信息打印失败 (不影响处理): {e}")
+
+
 def main():
     """银行新闻判断阶段主入口。"""
     stage_start = time.time()
@@ -456,6 +525,13 @@ def main():
     logger.info("【确定性】纯 CPU (ahocorasick/joblib/psutil), 无 LLM/Embedding/网络;")
     logger.info("        给定语料+词典逐位可复现, 词典文件已纳入 parquet 血缘 input_hashes。")
 
+    # 定义输入输出 (env/方法论 banner 需引用路径, 故先解析)
+    input_path = os.path.join(CONFIG['paths']['output_dir'], CONFIG['filenames']['output_00_preprocessing'])
+    output_path = os.path.join(CONFIG['paths']['output_dir'], CONFIG['filenames']['output_11_bank_news'])
+
+    # ── 黄金范式【环境/输入输出/配置/方法论(含 DOI)】banner ───────────────────
+    _log_environment_and_methodology(input_path, output_path)
+
     # 检查数据加载状态
     logger.info(f"银行名称分组数据: 共 {len(BANKS)} 家银行")
     if BANKS:
@@ -473,21 +549,23 @@ def main():
         logger.error("银行名称分组数据为空！无法执行分类。")
         raise SystemExit(1)
 
-    # 定义输入输出
-    input_path = os.path.join(CONFIG['paths']['output_dir'], CONFIG['filenames']['output_00_preprocessing'])
-    output_path = os.path.join(CONFIG['paths']['output_dir'], CONFIG['filenames']['output_11_bank_news'])
+    # input_path / output_path 已在 banner 前解析 (供 env/方法论 banner 引用)
 
     if not os.path.exists(input_path):
         logger.error(f"输入文件未找到: {input_path}")
         raise SystemExit(1)
 
+    # ── per-phase 墙钟计时 (日志富集, golden-safe; 仅服务日志, 不改产物) ──
+    _t_load0 = time.time()
     logger.info(f"正在从 {input_path} 加载数据...")
     df = pd.read_parquet(input_path)
     input_rows = len(df)
-    logger.info(f"已加载 {input_rows:,} 行数据。")
+    _t_load = time.time() - _t_load0
+    logger.info(f"已加载 {input_rows:,} 行数据。(⏱ 加载耗时 {sig4(_t_load)} 秒)")
     log_memory_usage(logger, "数据加载后")
 
     # --- 执行并行分类 ---
+    _t_clf0 = time.time()
     logger.info("开始执行银行新闻判断（Aho-Corasick + 并行）...")
 
     n_jobs = CONFIG['parallel'].get('n_jobs', -1)
@@ -520,6 +598,12 @@ def main():
             columns=list(df.columns) + ['is_bank_news', 'matched_banks_info']
         )
 
+    _t_clf = time.time() - _t_clf0
+    logger.info(
+        f"并行分类 + firm-document 展开 + 合并完成。(⏱ 分类阶段耗时 {sig4(_t_clf)} 秒; "
+        f"{sig4(input_rows / _t_clf) if _t_clf > 0 else 'n/a'} 行/秒)"
+    )
+
     # 统计报告
     merged_stats = merge_stats(all_stats)
     log_classification_report(merged_stats, logger)
@@ -548,19 +632,19 @@ def main():
         logger.info("-" * 72)
         logger.info("【结果分析】对本次银行新闻判定的关键产出指标逐项解读 (对照阈值/预期方向):")
         logger.info(
-            f"  · 银行新闻判定率: {_bank_true:,}/{_total_seen:,} = {_bank_pct:.2f}% "
+            f"  · 银行新闻判定率: {_bank_true:,}/{_total_seen:,} = {pct4(_bank_pct, fraction=False)} "
             f"(文章去重计)。判读: 中文报纸语料里多数稿件并非银行报道, 该比率通常远低于"
             f" 50%; 若异常高(>50%)需警惕判定过松(噪声混入), 异常低(接近 0)需警惕过严或"
             f"词典/输入异常。"
         )
         logger.info(
-            f"  · 标题命中占比: {_with_title:,}/{_bank_true:,} = {_title_pct:.2f}% "
+            f"  · 标题命中占比: {_with_title:,}/{_bank_true:,} = {pct4(_title_pct, fraction=False)} "
             f"(银行名出现在标题的银行新闻)。判读: 偏高=报道更聚焦该行(target_bank_in_title"
             f"=1 这类显著性/β 信号更密集); 偏低=多为正文一笔带过, 下游加权权重更分散。"
         )
         logger.info(
             f"  · firm-document 展开比: 展开后 {after_count:,} 行 / 银行新闻 {_bank_true:,} "
-            f"篇 = {_expand_ratio:.3f} 行每篇。判读: >1 表示存在'一篇同时讲多家银行'被复制成"
+            f"篇 = {sig4(_expand_ratio)} 行每篇。判读: >1 表示存在'一篇同时讲多家银行'被复制成"
             f"多行 (Hassan 2019 firm-level 标准做法); =1 则几乎每篇只命中单一银行。"
         )
         logger.info(
@@ -593,6 +677,7 @@ def main():
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
     # --- 保存结果 ---
+    _t_write0 = time.time()
     logger.info(f"正在将处理结果写入 {output_path}...")
     # 使用数据版本控制保存
     from news_process.core.data_versioning import save_parquet_with_metadata
@@ -620,6 +705,21 @@ def main():
 
     preview_path = output_path.replace('.parquet', '.csv')
     safe_save_preview_csv(processed_df, preview_path, logger)
+    _t_write = time.time() - _t_write0
+    logger.info(f"写盘 (parquet+血缘) + 预览 CSV 完成。(⏱ 写盘阶段耗时 {sig4(_t_write)} 秒)")
+
+    # ── per-phase 计时汇总 (墙钟; 各子阶段 + 总耗时) ──
+    try:
+        _t_total = time.time() - stage_start
+        logger.info("-" * 72)
+        logger.info("⏱ 阶段计时汇总 (墙钟秒):")
+        logger.info(f"     · 加载 parquet:        {sig4(_t_load)} 秒")
+        logger.info(f"     · 并行分类+展开+合并:  {sig4(_t_clf)} 秒")
+        logger.info(f"     · 写盘+预览:           {sig4(_t_write)} 秒")
+        logger.info(f"     · 阶段总耗时:          {sig4(_t_total)} 秒")
+        logger.info("-" * 72)
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"[阶段计时] 汇总打印异常, 跳过(不影响产物): {_e}")
 
     # 阶段摘要
     log_stage_summary(logger, STAGE_NAME, stage_start,

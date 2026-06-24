@@ -32,12 +32,16 @@ from __future__ import annotations
 import json
 import logging
 import os
+import platform
 import re
+import sys
+import time
 from typing import Any, Dict, List
 
 import pandas as pd
 
 from news_process.core.config import load_config
+from news_process.core.logging import pct4, sig4
 
 # 初始化配置和日志
 CONFIG = load_config()
@@ -1455,6 +1459,132 @@ def _apply_dynamic_value_ranges(
     return row
 
 
+def _log_codebook_environment_and_config(
+    panel: pd.DataFrame,
+    output_dir: str,
+    formats: List[str],
+) -> None:
+    """打印 codebook 生成的【项目/环境 + 输入输出 + 配置 + 方法论依据】块 (日志富集, 2026-06-24)。
+
+    本模块是 runner / stata_export / scripts.generate_codebook 调用的库函数, 无独立 main();
+    按"日志富集 playbook §0.5 (called-by-runner helper)"做法, 在被调函数起始处一次性落入
+    五大块中的①②③④ (环境/IO/配置/方法论), 结果分析⑤与计时⑥在主流程末尾另行汇总。
+    纯日志, 不改任何产物/schema/控制流 (golden-safe); 失败仅 WARN, 绝不中断 codebook 生成。
+    """
+    try:
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info("     · 阶段: 变量代码手册生成 (Variable Codebook; stage 45/46 panel→Stata "
+                    "导出族的人类可读变量字典层)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); "
+                    "版本 v3.11.1 (rule-ablation-ladder)")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "本阶段纯 CPU·读 panel/写字典 / 无 LLM·网络·API ($0, 确定性)")
+
+        logger.info("  📂 输入 / 输出")
+        logger.info(f"     · 输入: 内存 panel DataFrame ({len(panel):,d} 行 × "
+                    f"{len(panel.columns):,d} 列; 上游 51_panel_with_controls / 40_panel_yearly)")
+        logger.info(f"     · 输出目录: {output_dir}")
+        for _fmt in ('excel', 'csv', 'markdown', 'json'):
+            _ext = {'excel': 'xlsx', 'csv': 'csv', 'markdown': 'md', 'json': 'json'}[_fmt]
+            _on = '✓启用' if _fmt in formats else '—跳过'
+            logger.info(f"     · {_on} {_fmt:8s}: variable_codebook.{_ext}")
+
+        logger.info("  ⚙ 运行配置")
+        logger.info(f"     · 导出格式: {list(formats)} (默认全 4: {list(_DEFAULT_CODEBOOK_FORMATS)})")
+        logger.info(f"     · 文本轨道枚举 (生成期断言): {sorted(_ALLOWED_TRACKS)} "
+                    "(非法值 fail-loud raise ValueError)")
+        logger.info(f"     · LLM 投票阵容 (单一事实源 config/sentiment.yaml): {_LLM_MODEL_NAMES}")
+        logger.info("     · provenance 注入开关 (panel 驱动幂等): "
+                    "6-词典 union 5→6 披露 / L&M 第6部 provenance / 规则消融 MATH-1 非可加披露")
+
+        logger.info("  📖 方法论依据 (codebook 内嵌的学术 provenance, emit 进日志)")
+        logger.info("     · 金融情感词典 (第6部主词典): Loughran, T., & McDonald, B. (2011). "
+                    "When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. "
+                    "The Journal of Finance, 66(1), 35-65. "
+                    "https://doi.org/10.1111/j.1540-6261.2010.01625.x")
+        logger.info("       → 为何用: 金融文本情感的标准词表锚点, 中文主译本接入构成 6-词典 union 投票基")
+        logger.info("     · 媒体语调度量: Tetlock, P. C. (2007). Giving content to investor sentiment: "
+                    "The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. "
+                    "https://doi.org/10.1111/j.1540-6261.2007.01232.x")
+        logger.info("     · 语调景气循环: García, D. (2013). Sentiment during recessions. "
+                    "The Journal of Finance, 68(3), 1267-1300. https://doi.org/10.1111/jofi.12027")
+        logger.info("     · 文本分析综述: Loughran, T., & McDonald, B. (2016). Textual analysis in "
+                    "accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. "
+                    "https://doi.org/10.1111/1475-679X.12123")
+        logger.info("     · 词典消融-否定/上下文价移: Kennedy, A., & Inkpen, D. (2006). Sentiment "
+                    "classification of movie reviews using contextual valence shifters. "
+                    "Computational Intelligence, 22(2), 110-125. "
+                    "https://doi.org/10.1111/j.1467-8640.2006.00277.x")
+        logger.info("     · 词典消融-整体词典法: Ding, X., Liu, B., & Yu, P. S. (2008). A holistic "
+                    "lexicon-based approach to opinion mining. In Proceedings of WSDM '08 (pp. 231-240). "
+                    "ACM. https://doi.org/10.1145/1341531.1341561")
+        logger.info("     · 实质/象征二元 (W&Z 1994/1998 ASQ) 与底层/应用二元 (Gomber et al. 2018 JMIS) "
+                    "构念见列名后缀正名, 注册表无对应 DOI 故此处仅注名。")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  codebook 环境/配置/方法论信息打印失败 (不影响生成): {e}")
+
+
+def _log_codebook_result_analysis(
+    codebook_df: pd.DataFrame,
+    panel: pd.DataFrame,
+) -> None:
+    """打印 codebook 关键指标解读 (运行结果信息, ⑤; 阈值判读, 日志富集 2026-06-24)。
+
+    对生成的 codebook 做覆盖度自检: 预定义 vs 自动推断占比、学术引用/来源阶段填充率、
+    文本轨道分布、面板维度与小样本告警。纯日志读已算出的真实值, 不改任何产物 (golden-safe)。
+    """
+    try:
+        if codebook_df is None or len(codebook_df) == 0:
+            logger.warning("  📊 关键指标解读: codebook 为空 (0 变量), 跳过解读")
+            return
+        n_var = len(codebook_df)
+
+        # ① 自动推断占比 (越低越好 = 越多列有人工预定义元数据)
+        _note_col = codebook_df.get('备注')
+        n_auto = int(_note_col.astype(str).str.contains(_AUTO_INFER_NOTE, na=False).sum()) \
+            if _note_col is not None else 0
+        auto_frac = n_auto / n_var if n_var else 0.0
+        _v_auto = ('好 (元数据覆盖高)' if auto_frac < 0.30
+                   else '临界' if auto_frac < 0.60 else '偏弱 (大量列待人工审核)')
+        logger.info(f"     · 自动推断列: {n_auto:,d}/{n_var:,d} = {pct4(auto_frac)} → {_v_auto}")
+
+        # ② 学术引用填充率 (越高越好)
+        _cite_col = codebook_df.get('学术引用')
+        n_cite = int((_cite_col.astype(str).str.strip() != '').sum()) if _cite_col is not None else 0
+        cite_frac = n_cite / n_var if n_var else 0.0
+        logger.info(f"     · 含学术引用列: {n_cite:,d}/{n_var:,d} = {pct4(cite_frac)} "
+                    "(provenance 注入覆盖度)")
+
+        # ③ 来源阶段已知率 (未知=溯源缺口, 越低越好)
+        _src_col = codebook_df.get('来源阶段')
+        n_unknown = int((_src_col.astype(str).str.strip() == '未知').sum()) \
+            if _src_col is not None else 0
+        unk_frac = n_unknown / n_var if n_var else 0.0
+        _v_unk = ('好' if unk_frac < 0.10 else '临界' if unk_frac < 0.25 else '偏高 (溯源缺口)')
+        logger.info(f"     · 来源阶段=未知: {n_unknown:,d}/{n_var:,d} = {pct4(unk_frac)} → {_v_unk}")
+
+        # ④ 文本轨道分布 (三轨 full/ctx/ss + track-agnostic)
+        _trk_col = codebook_df.get('文本轨道')
+        if _trk_col is not None:
+            _vc = _trk_col.fillna('').astype(str).value_counts()
+            _parts = [f"{(k or 'track-agnostic')}={int(v):,d}" for k, v in _vc.items()]
+            logger.info(f"     · 文本轨道分布: {' | '.join(_parts)}")
+
+        # ⑤ 面板维度 + 小样本告警
+        n_rows = len(panel)
+        logger.info(f"     · 面板维度: {n_rows:,d} 行 × {len(panel.columns):,d} 列")
+        if n_rows < 200:
+            logger.warning(f"     · ⚠ 面板深度仅 {n_rows:,d} 行 (T 小样本, 如 T=2 试跑); "
+                           "codebook 统计量 (均值/分位) 仅供结构核对, 非生产规模解读")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  codebook 结果解读打印失败 (不影响生成): {e}")
+
+
 def generate_codebook(
     panel: pd.DataFrame,
     output_dir: str,
@@ -1475,14 +1605,22 @@ def generate_codebook(
     Returns:
         生成的文件路径字典
     """
+    _stage_start = time.time()
+    _phase_durations: Dict[str, float] = {}
     if formats is None:
         formats = list(_DEFAULT_CODEBOOK_FORMATS)
     logger.info("=" * 70)
     logger.info("生成变量代码手册（Variable Codebook）")
     logger.info("=" * 70)
 
+    # 日志富集 (2026-06-24): 环境/IO/配置/方法论 (①-④) 一次性落盘 (纯日志, golden-safe)
+    _log_codebook_environment_and_config(panel, output_dir, formats)
+
     # 获取变量元数据字典
+    _t = time.time()
     metadata_dict = get_variable_metadata_dict()
+    _phase_durations['①元数据字典构建'] = time.time() - _t
+    _t = time.time()
 
     # 构建完整的代码手册数据
     codebook_data = []
@@ -1557,8 +1695,14 @@ def generate_codebook(
 
     # 转换为 DataFrame
     codebook_df = pd.DataFrame(codebook_data)
+    _phase_durations['②逐列元数据+统计+provenance注入'] = time.time() - _t
+
+    # 关键指标解读 (⑤): codebook 覆盖度/溯源/轨道分布自检 (纯日志, golden-safe)
+    logger.info("  📊 关键指标解读 (codebook 覆盖度自检)")
+    _log_codebook_result_analysis(codebook_df, panel)
 
     # 生成输出文件
+    _t = time.time()
     output_files = {}
     os.makedirs(output_dir, exist_ok=True)
 
@@ -1620,7 +1764,21 @@ def generate_codebook(
         output_files['json'] = json_path
         logger.info(f"  ✓ JSON 格式: {json_path}")
 
-    logger.info(f"\n变量代码手册生成完成！共 {len(codebook_df)} 个变量")
+    _phase_durations['③多格式落盘'] = time.time() - _t
+
+    logger.info(f"\n变量代码手册生成完成！共 {len(codebook_df):,d} 个变量")
+
+    # ⏱ 阶段计时 (墙钟): 各子阶段耗时 + 总耗时 (秒 → sig4; 纯日志, golden-safe)
+    try:
+        _total = time.time() - _stage_start
+        logger.info("  ⏱ 运行期阶段计时 (墙钟, 秒)")
+        for _name, _dur in _phase_durations.items():
+            _frac = (_dur / _total) if _total > 0 else 0.0
+            logger.info(f"     · {_name}: {sig4(_dur)} s ({pct4(_frac)})")
+        logger.info(f"     · 合计: {sig4(_total)} s | 生成 {len(output_files):,d} 个格式文件")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  codebook 计时汇总打印失败 (不影响生成): {e}")
+
     return output_files
 
 

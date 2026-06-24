@@ -35,6 +35,8 @@ import re
 import numpy as np
 import pandas as pd
 
+from news_process.core.logging import pct4, sig4
+
 logger = logging.getLogger(__name__)
 
 # 套话判据: n-gram 出现在 ≥ 此比例的文档中即视为"跨文档套话"。0.10 = 出现在 ≥10% 文档。
@@ -112,13 +114,14 @@ def compute_boilerplate_ratios(texts: list[str],
     n_boiler = int(boiler_mask.sum())
     if n_boiler == 0:
         logger.warning(
-            f"boilerplate: 无 n-gram 达 DF≥{df_ratio_threshold:.0%} (套话集为空, "
-            f"n_docs={n_docs}) → 全 nan (SAFE 降级, 绝不静默清空)")
+            f"boilerplate: 无 n-gram 达 DF≥{pct4(df_ratio_threshold)} (套话集为空, "
+            f"n_docs={n_docs:,d}) → 全 nan (SAFE 降级, 绝不静默清空)")
         return out
     # vocabulary 固定序 (sorted by ngram 字面) — 防 HASHSEED 漂移; mask 已按列序故确定。
     logger.info(
-        f"boilerplate: 套话集 {n_boiler}/{X.shape[1]} 个 char_wb{ngram_range}-gram "
-        f"(DF≥{df_ratio_threshold:.0%} of {n_docs} 文); 第二遍算逐文命中率")
+        f"boilerplate: 套话集 {n_boiler:,d}/{X.shape[1]:,d} 个 char_wb{ngram_range}-gram "
+        f"(占全词表 {pct4(n_boiler / X.shape[1]) if X.shape[1] else 'n/a'}, "
+        f"DF≥{pct4(df_ratio_threshold)} of {n_docs:,d} 文); 第二遍算逐文命中率")
 
     # 第二遍: 逐文 命中套话 n-gram 出现数 / 全部 n-gram 出现数 (occurrence-weighted)。
     total = np.asarray(X.sum(axis=1)).ravel().astype(float)
@@ -133,6 +136,28 @@ def enrich_with_boilerplate(df: pd.DataFrame, text_col: str = 'content_full',
     """在 df 上加单轨 boilerplate_phrase_ratio_full 列 (in-place 安全, 返回同 df)。
 
     缺 text_col → 加全 nan 列 + WARNING (graceful, 不阻断 stage 22)。"""
+    # ── 子步骤 banner (called-by-runner helper, 共享 stage 22 tone_words 日志) ──
+    # 不重打 ENV/CONFIG (那是 stage 22 入口 main 的职责), 仅打本步骤名+方法依据+本步配置。
+    try:
+        logger.info("─" * 70)
+        logger.info("[stage 22 子步骤] boilerplate_phrase_ratio_full — 跨文档套话比率派生")
+        logger.info(
+            "  · 功能: 语料级两遍统计 char_wb%s-gram 的 document-frequency, "
+            "DF/N ≥ 阈值者为'套话集', 逐文算 命中套话 n-gram 数 / 全部 n-gram 数 (占比越高=越公式化套话)",
+            NGRAM_RANGE)
+        # 方法依据 (注册表中无对应 DOI → 仅作者-年散文, 不伪造 DOI; 见富集铁律 §4)。
+        logger.info(
+            "  · 方法依据: Lang & Stice-Lawrence (2015), JAE; "
+            "Dyer, Lang & Stice-Lawrence (2017), JAE — 跨语料高频公式化短语(套话)占比构念 "
+            "(DOI 不在经核验注册表, 仅注释保留, 未 emit)")
+        logger.info(
+            "  · 本步配置: text_col=%s | out_col=%s | DF 阈值=%s | n-gram=char_wb%s | "
+            "单遍安全规模上界 _MAX_SAFE_DOCS=%s | 单轨(full only, ctx/ss by-design DEFER) | "
+            "$0 纯 CPU/确定性(CountVectorizer 固定参数, 无 HASHSEED 依赖)",
+            text_col, out_col, pct4(DF_RATIO_THRESHOLD), NGRAM_RANGE, f"{_MAX_SAFE_DOCS:,d}")
+    except Exception as e:  # noqa: BLE001 — 日志块绝不阻断阶段
+        logger.warning(f"boilerplate: 子步骤 banner 打印失败 (忽略, 不影响派生): {e}")
+
     if text_col not in df.columns:
         logger.warning(f"boilerplate: 缺文本列 {text_col} → {out_col} 全 nan (graceful)")
         df[out_col] = float('nan')
@@ -140,5 +165,44 @@ def enrich_with_boilerplate(df: pd.DataFrame, text_col: str = 'content_full',
     ratios = compute_boilerplate_ratios(df[text_col].tolist())
     df[out_col] = ratios
     n_valid = sum(1 for v in ratios if not (isinstance(v, float) and math.isnan(v)))
-    logger.info(f"boilerplate: {out_col} 派生完成 ({n_valid}/{len(ratios)} 非空, 单轨 full)")
+    logger.info(f"boilerplate: {out_col} 派生完成 ({n_valid:,d}/{len(ratios):,d} 非空, 单轨 full)")
+
+    # ── 结果分析 (阈值判读: 有效率 / 套话占比分布 / 饱和退化告警) ──
+    try:
+        n_total = len(ratios)
+        valid_rate = n_valid / n_total if n_total else 0.0
+        if valid_rate >= 0.95:
+            vr_verdict = "✅ 好 (≥95% 文档可算套话比率)"
+        elif valid_rate >= 0.80:
+            vr_verdict = "⚠ 临界 (80–95% 有效, 留意空/哨兵/退化文本占比)"
+        else:
+            vr_verdict = "❌ 偏弱 (<80% 有效, 多数文本退化/无套话集, 谨慎解读)"
+        logger.info(
+            f"  ⑤ 有效率: {n_valid:,d}/{n_total:,d} = {pct4(valid_rate)} — {vr_verdict}")
+
+        vals = np.asarray(
+            [v for v in ratios if isinstance(v, float) and not math.isnan(v)],
+            dtype=float)
+        if vals.size:
+            mean_r = float(vals.mean())
+            std_r = float(vals.std())
+            min_r, max_r = float(vals.min()), float(vals.max())
+            # 饱和退化: 小语料下套话集坍缩为全词表 → 比率饱和≈1.0 不可解释。
+            sat_frac = float((vals >= 0.99).mean())
+            if mean_r >= 0.95 or sat_frac >= 0.50:
+                dist_verdict = ("❌ 饱和退化 (套话比率≈1.0, 套话集疑坍缩为全词表; "
+                                "小样本/stage-22 子集过小, 不可解释)")
+            elif std_r < 1e-4:
+                dist_verdict = "⚠ 临界 (零方差: 全文同值, 无区分度, 单列对回归无信息)"
+            else:
+                dist_verdict = "✅ 好 (比率分布有区分度, 套话集口径有效)"
+            logger.info(
+                f"  ⑤ 套话比率分布: μ={sig4(mean_r)} σ={sig4(std_r)} "
+                f"[min={sig4(min_r)}, max={sig4(max_r)}] 饱和(≥0.99)占比={pct4(sat_frac)} "
+                f"— {dist_verdict}")
+        else:
+            logger.warning(
+                "  ⑤ 套话比率分布: 全部 nan (无有效值) — ❌ 套话集为空或全文退化, 该列下游无信息")
+    except Exception as e:  # noqa: BLE001 — 日志块绝不阻断阶段
+        logger.warning(f"boilerplate: 结果分析块打印失败 (忽略, 不影响派生): {e}")
     return df

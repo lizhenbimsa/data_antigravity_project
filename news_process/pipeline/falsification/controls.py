@@ -91,6 +91,7 @@
 """
 
 import os
+import platform
 import sys
 import time
 import warnings
@@ -107,7 +108,7 @@ import numpy as np
 import pandas as pd
 
 from news_process.core.config import load_config
-from news_process.core.logging import log_stage_summary, setup_logging
+from news_process.core.logging import log_stage_summary, pct4, setup_logging, sig4
 from news_process.core.reporting import save_dataset
 
 warnings.filterwarnings('ignore', category=FutureWarning)
@@ -245,6 +246,109 @@ REFERENCES = {
         'https://doi.org/10.1086/467037'
     ),
 }
+
+# ============================================================================
+# 经核验 DOI 参考文献 (单一事实源 = VERIFIED_REFERENCES 注册表, 逐字照抄 APA-7 串)
+# 日志富集 2026-06-24: 把本阶段核心方法/构念的学术出处 emit 进 .log (不只留注释),
+# 形如 "作者 (年). 期刊, 卷(期), 页. https://doi.org/..."。仅引用注册表 status=match/minor
+# 的条目, 绝不自创/猜测; 纯日志输出, golden-safe。
+# ============================================================================
+VERIFIED_REFS_FOR_LOG = (
+    # 伪造检验范式 (核心方法论对标; PRisk/NPRisk 互补划分)
+    ("伪造检验范式 (PRisk vs NPRisk 互补划分)",
+     "Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). "
+     "Firm-level political risk: Measurement and effects. The Quarterly "
+     "Journal of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021"),
+    # nf_ln_coverage = log(1+count) 媒体关注度对数变换
+    ("nf_ln_coverage = ln(1+count) 媒体关注度对数变换",
+     "Fang, L., & Peress, J. (2009). Media coverage and the cross-section of "
+     "stock returns. The Journal of Finance, 64(5), 2023-2052. "
+     "https://doi.org/10.1111/j.1540-6261.2009.01493.x"),
+    # 新闻量(volume) vs 情感内容(content) 概念区分 + |r| 区分效力诊断
+    ("新闻量(volume) vs 情感内容(content) 概念区分 (诊断 |r|<0.3 支持 H1)",
+     "Tetlock, P. C. (2007). Giving content to investor sentiment: The role "
+     "of media in the stock market. The Journal of Finance, 62(3), 1139-1168. "
+     "https://doi.org/10.1111/j.1540-6261.2007.01232.x"),
+    # nf_media_breadth (不同媒体来源数) 作为信息环境指标
+    ("nf_media_breadth (distinct-outlet 媒体广度) 信息中介依据",
+     "Bushee, B. J., Core, J. E., Guay, W., & Hamm, S. J. W. (2010). The role "
+     "of the business press as an information intermediary. Journal of "
+     "Accounting Research, 48(1), 1-19. "
+     "https://doi.org/10.1111/j.1475-679X.2009.00357.x"),
+    # 治理约束型合约控制变量 (GOV_* 列)
+    ("治理约束型合约控制变量 (GOV_* 系列)",
+     "Zhou, Y., Chen, L., Zhou, F., & Ye, M. (2026). Contractual arrangements "
+     "and information consistency: How ESG executive compensation incentives "
+     "affect corporate AI disclosure. Journal of Business Research, 207, "
+     "116019. https://doi.org/10.1016/j.jbusres.2026.116019"),
+    ("长期导向治理价值 (合约控制变量动机)",
+     "Flammer, C., & Bansal, P. (2017). Does a long-term orientation create "
+     "value? Evidence from a regression discontinuity. Strategic Management "
+     "Journal, 38(9), 1827-1847. https://doi.org/10.1002/smj.2629"),
+    ("高管激励合约结构 (GOV_equity_ratio / GOV_top3_pay_gap 依据)",
+     "Edmans, A., Gabaix, X., & Landier, A. (2009). A multiplicative model of "
+     "optimal CEO incentives in market equilibrium. The Review of Financial "
+     "Studies, 22(12), 4881-4917. https://doi.org/10.1093/rfs/hhn117"),
+    ("CSR/制度逻辑与分析师感知 (治理控制变量动机)",
+     "Ioannou, I., & Serafeim, G. (2015). The impact of corporate social "
+     "responsibility on investment recommendations: Analysts' perceptions and "
+     "shifting institutional logics. Strategic Management Journal, 36(7), "
+     "1053-1081. https://doi.org/10.1002/smj.2268"),
+    ("所有权与控制权分离 (董事会独立性/双重身份控制变量)",
+     "Fama, E. F., & Jensen, M. C. (1983). Separation of ownership and "
+     "control. The Journal of Law and Economics, 26(2), 301-325. "
+     "https://doi.org/10.1086/467037"),
+)
+
+
+def _log_environment_and_config(df_full_path: str, art_path: str,
+                                panel_path: str, output_path: str) -> None:
+    """打印项目/环境信息 + 输入输出 + 运行配置 + 方法论引文 (日志富集 2026-06-24)。
+
+    把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数、依据哪些文献"一次性
+    落进 .log, 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 (golden-safe)。
+    所有非整数数字一律经 sig4/pct4 渲染为 4 位有效数字 (项目规范)。
+    """
+    try:
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (伪造检验对照变量构建, STAGES_MAIN 主链末端)")
+        logger.info("     · 项目: news_process 研究数据流水线 "
+                    "(中文银行/金科新闻 → 计量面板); 版本 v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "本阶段纯 pandas/numpy, 无 LLM·Embedding·网络·API ($0), 逐位可复现")
+
+        logger.info("  📂 输入 / 输出文件 (3-way fan-in; 任一缺失 → sys.exit(1))")
+        logger.info(f"     · 输入(a) 全量银行新闻:   {df_full_path}")
+        logger.info(f"     · 输入(b) 面板 fintech 文章: {art_path}")
+        logger.info(f"     · 输入(c) Bank-Year 面板:  {panel_path}")
+        logger.info(f"     · 输出   parquet:          {output_path}")
+        logger.info(f"     · 输出   Stata .dta:       "
+                    f"{os.path.splitext(output_path)[0] + '.dta'}")
+        logger.info(f"     · 输出   诊断 CSV:         "
+                    f"{os.path.join(OUTPUT_DIR, '51_falsification_diagnostics.csv')}")
+
+        logger.info("  ⚙ 运行配置 (CONFIG['paths'] / CONFIG['filenames'])")
+        logger.info(f"     · output_dir: {OUTPUT_DIR}")
+        logger.info(f"     · log_dir:    {CONFIG['paths']['log_dir']}")
+        logger.info("     · anti-join 复合键: (target_bank, 标题, 日期) 双侧 drop_duplicates")
+        logger.info("     · 媒体广度口径: 物理(去重前)distinct-outlet (转载计入广度, Bushee 2010)")
+        logger.info("     · 计数基: ft_n_articles_dedup 与 nf_n_articles 同基去重 (Hassan Table 7)")
+        logger.info("     · fintech_share 分母0 语义: → NaN (zero_coverage 标记, 不冒充 0 份额)")
+        logger.info("     · 区分效力诊断阈值: |r|<0.3 弱相关(支持 H1) / [0.3,0.7) 中等 / ≥0.7 高相关")
+        logger.info("     · 挤出弹性阈值: r(ln_ft,ln_nf)<-0.95 机械约束(坏) / >-0.95 有效(好)")
+        logger.info("     · 假设框架: H0 解释力全来自一般媒体关注度 vs H1 含金融科技特异性增量信息")
+
+        logger.info("  📖 方法论依据 (核心方法/构念学术出处, 经核验注册表逐字照抄)")
+        for _tag, _ref in VERIFIED_REFS_FOR_LOG:
+            logger.info(f"     · {_tag}:")
+            logger.info(f"       {_ref}")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法论信息打印失败 (不影响处理): {e}")
 
 
 # ============================================================================
@@ -408,12 +512,12 @@ def build_non_fintech(df_full: pd.DataFrame,
     logger.info(
         f"    40_article_bank_level: {_df_art_before:,} → {len(df_art):,} "
         f"(去重 {_df_art_dropped:,} 行, "
-        f"{_df_art_dropped / max(_df_art_before, 1) * 100:.4f}%)"
+        f"{pct4(_df_art_dropped / max(_df_art_before, 1))})"
     )
     logger.info(
         f"    12_fintech_news_full:  {_df_full_before:,} → {len(df_full):,} "
         f"(去重 {_df_full_dropped:,} 行, "
-        f"{_df_full_dropped / max(_df_full_before, 1) * 100:.4f}%)"
+        f"{pct4(_df_full_dropped / max(_df_full_before, 1))})"
     )
     if _df_art_dropped > 0 or _df_full_dropped > 0:
         logger.info(
@@ -491,8 +595,8 @@ def build_non_fintech(df_full: pd.DataFrame,
     logger.info(f"    全量银行新闻:                                 {n_total:,} 条")
     logger.info(f"    恒等校验: {n_panel:,} + {n_nf:,} = {n_panel + n_nf:,} "
                 f"{'== ✓' if n_panel + n_nf == n_total else '!= ✗'} {n_total:,}")
-    logger.info(f"    Fintech 占比: {n_panel / n_total * 100:.1f}%")
-    logger.info(f"    Non-Fintech 占比: {n_nf / n_total * 100:.1f}%")
+    logger.info(f"    Fintech 占比: {pct4(n_panel / max(n_total, 1))}")
+    logger.info(f"    Non-Fintech 占比: {pct4(n_nf / max(n_total, 1))}")
 
     if n_panel + n_nf != n_total:
         # 双侧 drop_duplicates 后理论上必有 panel + nf == total; 仍不等说明
@@ -501,7 +605,7 @@ def build_non_fintech(df_full: pd.DataFrame,
         logger.warning(f"  去重后三分类不等式仍不成立! panel+nf-total = {diff:,} 条。")
         logger.warning("     可能原因: df_art 中存在 df_full 未覆盖的 (target_bank, 标题, 日期) 组合,")
         logger.warning("              即上游 ETL 漏抓部分稿件; 请检查 12 与 40 的覆盖一致性。")
-        logger.warning(f"     影响评估: 差异量占总量 {abs(diff) / n_total * 100:.4f}%, 通常可忽略。")
+        logger.warning(f"     影响评估: 差异量占总量 {pct4(abs(diff) / max(n_total, 1))}, 通常可忽略。")
 
     # 子分类统计 (区分 ① 和 ②)
     if 'is_fintech_news' in df_nf.columns:
@@ -510,9 +614,9 @@ def build_non_fintech(df_full: pd.DataFrame,
         logger.info("")
         logger.info("  ─── Non-Fintech 子分类 ───")
         logger.info(f"    ① 关键词未匹配 (is_fintech_news=False):  {n_kw_false:,} 条 "
-                     f"({n_kw_false / max(n_nf, 1) * 100:.1f}%)")
+                     f"({pct4(n_kw_false / max(n_nf, 1))})")
         logger.info(f"    ② 关键词匹配但 LLM 拒绝:                  {n_kw_true_llm_reject:,} 条 "
-                     f"({n_kw_true_llm_reject / max(n_nf, 1) * 100:.1f}%)")
+                     f"({pct4(n_kw_true_llm_reject / max(n_nf, 1))})")
         logger.info(f"    说明: ①是完全不涉及金融科技的银行新闻,")
         logger.info(f"          ②是规则预筛通过但经 LLM 语义验证后被认定为非金融科技的新闻。")
         logger.info(f"          两者合并构成伪造检验的对照组。")
@@ -603,7 +707,7 @@ def aggregate_non_fintech(df_nf: pd.DataFrame) -> pd.DataFrame:
     dropped = before_drop - after_drop
     if dropped > 0:
         logger.warning(f"  丢弃 {dropped:,} 条无效日期记录 "
-                        f"({dropped / max(before_drop, 1) * 100:.2f}%)")
+                        f"({pct4(dropped / max(before_drop, 1))})")
     logger.info(f"  有效记录: {after_drop:,} 条")
 
     # 聚合
@@ -673,17 +777,17 @@ def aggregate_non_fintech(df_nf: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  聚合后行数 (Bank-Year): {len(nf_agg):,}")
     logger.info(f"  唯一银行数: {nf_agg['target_bank'].nunique()}")
     logger.info(f"  年份范围: {nf_agg['year'].min()} - {nf_agg['year'].max()}")
-    logger.info(f"  nf_n_articles:    mean={nf_agg['nf_n_articles'].mean():.1f}, "
-                f"median={nf_agg['nf_n_articles'].median():.0f}, "
-                f"std={nf_agg['nf_n_articles'].std():.1f}, "
-                f"min={nf_agg['nf_n_articles'].min():.0f}, "
-                f"max={nf_agg['nf_n_articles'].max():.0f}")
-    logger.info(f"  nf_ln_coverage:   mean={nf_agg['nf_ln_coverage'].mean():.3f}, "
-                f"median={nf_agg['nf_ln_coverage'].median():.3f}")
-    logger.info(f"  nf_media_breadth: mean={nf_agg['nf_media_breadth'].mean():.1f}, "
-                f"median={nf_agg['nf_media_breadth'].median():.0f}")
-    logger.info(f"  nf_headline_frac: mean={nf_agg['nf_headline_frac'].mean():.3f}, "
-                f"median={nf_agg['nf_headline_frac'].median():.3f}")
+    logger.info(f"  nf_n_articles:    mean={sig4(nf_agg['nf_n_articles'].mean())}, "
+                f"median={sig4(nf_agg['nf_n_articles'].median())}, "
+                f"std={sig4(nf_agg['nf_n_articles'].std())}, "
+                f"min={int(nf_agg['nf_n_articles'].min()):,}, "
+                f"max={int(nf_agg['nf_n_articles'].max()):,}")
+    logger.info(f"  nf_ln_coverage:   mean={sig4(nf_agg['nf_ln_coverage'].mean())}, "
+                f"median={sig4(nf_agg['nf_ln_coverage'].median())}")
+    logger.info(f"  nf_media_breadth: mean={sig4(nf_agg['nf_media_breadth'].mean())}, "
+                f"median={sig4(nf_agg['nf_media_breadth'].median())}")
+    logger.info(f"  nf_headline_frac: mean={sig4(nf_agg['nf_headline_frac'].mean())}, "
+                f"median={sig4(nf_agg['nf_headline_frac'].median())}")
 
     return nf_agg
 
@@ -832,7 +936,7 @@ def merge_to_panel(panel: pd.DataFrame,
         else:
             _shrink = float((panel['n_articles'] - panel['ft_n_articles_dedup']).sum())
             logger.info(f"  ✓ 去重计数 ≤ 物理计数 逐行成立 ({len(panel):,} 行); "
-                        f"复合键去重收缩合计 {_shrink:.0f} 篇")
+                        f"复合键去重收缩合计 {int(round(_shrink)):,} 篇")
     else:
         logger.info("  (跳过: ft_dedup_agg 缺失, 无跨源可比计数)")
 
@@ -849,10 +953,10 @@ def merge_to_panel(panel: pd.DataFrame,
     logger.info("  ─── 合并后描述性统计 ───")
     logger.info(f"  面板行数: {len(panel):,}")
     logger.info(f"  新增列: {sorted(new_cols)}")
-    logger.info(f"  fintech_share: mean={panel['fintech_share'].mean():.4f}, "
-                f"median={panel['fintech_share'].median():.4f}, "
-                f"p25={panel['fintech_share'].quantile(0.25):.4f}, "
-                f"p75={panel['fintech_share'].quantile(0.75):.4f}")
+    logger.info(f"  fintech_share: mean={sig4(panel['fintech_share'].mean())}, "
+                f"median={sig4(panel['fintech_share'].median())}, "
+                f"p25={sig4(panel['fintech_share'].quantile(0.25))}, "
+                f"p75={sig4(panel['fintech_share'].quantile(0.75))}")
 
     zero_all = (panel['all_n_articles'] == 0).sum()
     zero_ft = (panel['n_articles'] == 0).sum()
@@ -941,17 +1045,17 @@ def run_diagnostics(panel: pd.DataFrame):
             r = pearson.loc[tone_col, c]
             r_abs = abs(r)
             if r_abs < 0.3:
-                logger.info(f"  ✅ r({tone_col}, {c}) = {r:.4f}")
-                logger.info(f"     |r| = {r_abs:.4f} < 0.30 → 弱相关")
+                logger.info(f"  ✅ r({tone_col}, {c}) = {sig4(r)}")
+                logger.info(f"     |r| = {sig4(r_abs)} < 0.30 → 弱相关")
                 logger.info(f"     解读: 金融科技情感与非金融科技新闻量相对独立,")
                 logger.info(f"           支持 H1 (fintech tone 具有特异性信息)。")
             elif r_abs < 0.7:
-                logger.info(f"  ℹ️  r({tone_col}, {c}) = {r:.4f}")
-                logger.info(f"     |r| = {r_abs:.4f} ∈ [0.30, 0.70) → 中等相关")
+                logger.info(f"  ℹ️  r({tone_col}, {c}) = {sig4(r)}")
+                logger.info(f"     |r| = {sig4(r_abs)} ∈ [0.30, 0.70) → 中等相关")
                 logger.info(f"     解读: 存在一定关联,Stata 回归中应同时控制 non-fintech 变量。")
             else:
-                logger.info(f"  r({tone_col}, {c}) = {r:.4f}")
-                logger.info(f"     |r| = {r_abs:.4f} ≥ 0.70 → 高度相关")
+                logger.info(f"  r({tone_col}, {c}) = {sig4(r)}")
+                logger.info(f"     |r| = {sig4(r_abs)} ≥ 0.70 → 高度相关")
                 logger.info(f"     解读: 需警惕多重共线性,可能削弱赛马回归的区分效力。")
 
     # ── 挤出弹性相关性校验 (方案断言 4) ──
@@ -961,7 +1065,7 @@ def run_diagnostics(panel: pd.DataFrame):
             r_elast = valid_pair.corr().iloc[0, 1]
             logger.info("")
             logger.info("  ─── 挤出弹性校验 ───")
-            logger.info(f"  r(ln_ft, ln_nf) = {r_elast:.4f}")
+            logger.info(f"  r(ln_ft, ln_nf) = {sig4(r_elast)}")
             if r_elast < -0.95:
                 logger.error("  ✗ r < -0.95: 疑似机械关联, "
                              "百分比约束未被对数变换消除!")
@@ -1338,7 +1442,7 @@ def diagnose_fintech_classification_consistency(panel: pd.DataFrame,
         if len(valid) > 10:
             corr = valid['tech_frac'].corr(valid['n_articles'])
             result['tech_frac_vs_n_articles'] = round(corr, 4)
-            lg.info(f"  tech_frac × n_articles: r = {corr:.4f}"
+            lg.info(f"  tech_frac × n_articles: r = {sig4(corr)}"
                     f" {'✓ 正相关' if corr > 0.1 else '低相关'}")
 
     # (2) 年度均值趋势
@@ -1347,7 +1451,7 @@ def diagnose_fintech_classification_consistency(panel: pd.DataFrame,
         result['yearly_trend'] = trend.to_dict()
         lg.info(f"  tech_frac 年度均值趋势:")
         for y, v in trend.items():
-            lg.info(f"    {y}: {v:.4f}")
+            lg.info(f"    {y}: {sig4(v)}")
 
         # 简单线性趋势检验 (年份与均值的相关性)
         if len(trend) >= 3:
@@ -1356,7 +1460,7 @@ def diagnose_fintech_classification_consistency(panel: pd.DataFrame,
             if np.std(years) > 0 and np.std(vals) > 0:
                 trend_corr = np.corrcoef(years, vals)[0, 1]
                 result['trend_correlation'] = round(trend_corr, 4)
-                lg.info(f"  时间趋势相关系数: r = {trend_corr:.4f}"
+                lg.info(f"  时间趋势相关系数: r = {sig4(trend_corr)}"
                         f" {'✓ 上升趋势' if trend_corr > 0.3 else '无明显趋势'}")
 
     # (3) 外部验证建议
@@ -1403,33 +1507,33 @@ def diagnose_alias_matching_quality(panel: pd.DataFrame,
     n_covered = bank_has_articles.sum()
     n_total = len(bank_has_articles)
     result['bank_coverage'] = f"{n_covered}/{n_total}"
-    lg.info(f"  银行覆盖率: {n_covered}/{n_total} "
-            f"({n_covered/max(n_total,1)*100:.1f}%)")
+    lg.info(f"  银行覆盖率: {n_covered:,}/{n_total:,} "
+            f"({pct4(n_covered / max(n_total, 1))})")
 
     # (2) 匹配浓度
     bank_avg = panel.groupby('target_bank')['n_articles'].mean()
     result['articles_per_bank_mean'] = round(bank_avg.mean(), 2)
     result['articles_per_bank_median'] = round(bank_avg.median(), 2)
     result['articles_per_bank_p95'] = round(bank_avg.quantile(0.95), 2)
-    lg.info(f"  年均文章数: mean={bank_avg.mean():.1f}, "
-            f"median={bank_avg.median():.1f}, "
-            f"P95={bank_avg.quantile(0.95):.1f}")
+    lg.info(f"  年均文章数: mean={sig4(bank_avg.mean())}, "
+            f"median={sig4(bank_avg.median())}, "
+            f"P95={sig4(bank_avg.quantile(0.95))}")
 
     # (3) 异常值检测 (>3σ)
     threshold = bank_avg.mean() + 3 * bank_avg.std()
     outliers = bank_avg[bank_avg > threshold]
     if len(outliers) > 0:
         result['outlier_banks'] = list(outliers.index[:5])
-        lg.info(f"  高匹配异常值 (>3σ={threshold:.0f}): "
+        lg.info(f"  高匹配异常值 (>3σ={sig4(threshold)}): "
                 f"{list(outliers.index[:5])}")
     else:
-        lg.info(f"  ✓ 无高匹配异常值 (3σ={threshold:.0f})")
+        lg.info(f"  ✓ 无高匹配异常值 (3σ={sig4(threshold)})")
 
     # (4) 零匹配年份比例
     zero_pct = (panel['n_articles'] == 0).sum() / max(len(panel), 1)
     result['zero_article_pct'] = round(zero_pct, 4)
-    lg.info(f"  零匹配 Bank-Year: {(panel['n_articles']==0).sum()}/{len(panel)} "
-            f"({zero_pct*100:.1f}%)")
+    lg.info(f"  零匹配 Bank-Year: {int((panel['n_articles']==0).sum()):,}/{len(panel):,} "
+            f"({pct4(zero_pct)})")
     if zero_pct > 0.5:
         lg.info(f"  零匹配比例较高, 建议检查关键词阈值或银行名称覆盖度")
 
@@ -1463,17 +1567,57 @@ def main():
     logger.info("【判读】fintech_share 与 nf_* 越是弱相关 (|r|<0.3) → fintech tone 越像独立信号(好);")
     logger.info("        |r|≥0.7 高相关→赛马回归区分力存疑(坏); 挤出弹性 r(ln_ft,ln_nf)<-0.95→机械约束(坏)。")
     logger.info("【确定性】纯 pandas/numpy, 无 LLM/Embedding/网络, 逐位可复现。")
+    logger.info("")
 
-    # 1-7. 主流程
+    # ── 黄金范式【项目/环境信息 + 输入输出 + 运行配置 + 方法论引文】(日志富集 2026-06-24) ──
+    # 提前解析输出路径, 供环境块一次性披露读写路径; 纯日志, 不改任何产物 (golden-safe)。
+    _output_path = os.path.join(
+        OUTPUT_DIR,
+        FILENAMES.get('output_51_panel_controls', '51_panel_with_controls.parquet'),
+    )
+    _full_path = os.path.join(
+        OUTPUT_DIR,
+        FILENAMES.get('output_12_fintech_full', '12_fintech_news_full.parquet'))
+    _art_path = os.path.join(
+        OUTPUT_DIR,
+        FILENAMES.get('output_40_article_bank', '40_article_bank_level.parquet'))
+    _panel_path = os.path.join(
+        OUTPUT_DIR,
+        FILENAMES.get('output_40_panel_yearly', '40_panel_yearly.parquet'))
+    _log_environment_and_config(_full_path, _art_path, _panel_path, _output_path)
+    logger.info("")
+
+    # 运行期阶段计时累计 (各主要子步墙钟耗时, 末尾汇总打印; 仅服务日志, golden-safe)
+    phase_durations: dict[str, float] = {}
+
+    # 1-7. 主流程 (逐步 wall-clock 计时)
+    _t = time.time()
     df_full, df_art, panel = load_data()
+    phase_durations['①数据加载(3-way fan-in)'] = time.time() - _t
+
+    _t = time.time()
     df_nf = build_non_fintech(df_full, df_art)
+    phase_durations['②anti-join 构建 NF 对照组'] = time.time() - _t
+
+    _t = time.time()
     nf_agg = aggregate_non_fintech(df_nf)
+    phase_durations['③NF Bank-Year 聚合'] = time.time() - _t
+
     # fix(fintech-share-counting-basis): 取去重口径 fintech 计数 (build_non_fintech 经 attrs
     # 暴露) 作 fintech_share 分子, 与 NF 分母同基。
     _ft_dedup = df_nf.attrs.get('ft_dedup_agg') if hasattr(df_nf, 'attrs') else None
+    _t = time.time()
     panel = merge_to_panel(panel, nf_agg, ft_dedup_agg=_ft_dedup)
+    phase_durations['④合并到面板+总量变量'] = time.time() - _t
+
+    _t = time.time()
     pearson_corr = run_diagnostics(panel)
+    phase_durations['⑤诊断(相关矩阵)'] = time.time() - _t
+
+    _t = time.time()
     export_results(panel, pearson_corr)
+    phase_durations['⑥多格式导出(parquet/dta/csv)'] = time.time() - _t
+
     print_stata_template()
     print_references()
 
@@ -1497,7 +1641,7 @@ def main():
             _n_nf_rows = 0
         _nf_cover_rate = _n_nf_rows / max(_n_panel, 1) * 100
         logger.info(f"  ① 对照组覆盖: {_n_nf_rows:,}/{_n_panel:,} 个面板 bank-year 有非金融科技新闻 "
-                    f"({_nf_cover_rate:.1f}%)。")
+                    f"({pct4(_nf_cover_rate, fraction=False)})。")
         if _nf_cover_rate >= 50:
             logger.info("     判读: 多数 bank-year 有 NF 对照新闻 → 安慰剂 volume 变量有足量变异 (好)。")
         elif _nf_cover_rate > 0:
@@ -1516,7 +1660,7 @@ def main():
             else:
                 _fs_mean = float(_fs.mean())
                 _fs_med = float(_fs.median())
-                logger.info(f"  ② fintech_share: mean={_fs_mean:.4f}, median={_fs_med:.4f} "
+                logger.info(f"  ② fintech_share: mean={sig4(_fs_mean)}, median={sig4(_fs_med)} "
                             f"(有定义行 {len(_fs):,}/{_n_panel:,})。")
                 if _fs_mean < 0.5:
                     logger.info("     判读: 金融科技新闻在全部银行新闻中占少数 → 与制度先验一致, "
@@ -1529,7 +1673,7 @@ def main():
                 _zc = int(panel['zero_coverage'].sum())
                 _zc_rate = _zc / max(_n_panel, 1) * 100
                 logger.info(f"     zero_coverage (全年零新闻, fintech_share 无定义): {_zc:,} 行 "
-                            f"({_zc_rate:.1f}%)。")
+                            f"({pct4(_zc_rate, fraction=False)})。")
                 if _zc_rate > 50:
                     logger.warning("     判读: 过半 bank-year 零新闻 → 面板稀疏, 份额类变量样本严重缩水 (坏)。")
                 else:
@@ -1554,7 +1698,7 @@ def main():
                 _max_r = max(_r_abs_list)
                 _n_weak = sum(1 for v in _r_abs_list if v < 0.3)
                 logger.info(f"  ③ 区分效力: 情感×NF新闻量 共 {len(_r_abs_list)} 对相关, "
-                            f"其中 {_n_weak} 对 |r|<0.3 (弱相关), 最大 |r|={_max_r:.4f}。")
+                            f"其中 {_n_weak} 对 |r|<0.3 (弱相关), 最大 |r|={sig4(_max_r)}。")
                 if _max_r < 0.3:
                     logger.info("     判读: 全部弱相关 → fintech tone 与一般媒体关注度独立, 强支持 H1 (好)。")
                 elif _max_r < 0.7:
@@ -1575,7 +1719,7 @@ def main():
                         logger.info("     挤出弹性 r(ln_ft, ln_nf) = NaN (某列零方差/常数) → "
                                     "无法判读机械关联, 跳过。")
                     else:
-                        logger.info(f"     挤出弹性 r(ln_ft, ln_nf) = {_r_elast:.4f}。")
+                        logger.info(f"     挤出弹性 r(ln_ft, ln_nf) = {sig4(_r_elast)}。")
                         if _r_elast < -0.95:
                             logger.warning("     判读: r<-0.95 → 疑似机械关联, 对数变换未消除百分比约束 (坏)。")
                         else:
@@ -1596,6 +1740,17 @@ def main():
         logger.info("-" * 72)
     except Exception as _e:
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
+
+    # ── ⏱ 运行期阶段计时 (墙钟; 纯日志, golden-safe) ──
+    try:
+        logger.info("⏱ 运行期阶段计时 (墙钟):")
+        _total_phase = sum(phase_durations.values()) or 1.0
+        for _name, _dur in phase_durations.items():
+            logger.info(f"     · {_name}: {sig4(_dur)} 秒 "
+                        f"({pct4(_dur / _total_phase)})")
+        logger.info(f"     · 子步合计: {sig4(sum(phase_durations.values()))} 秒")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"[阶段计时] 打印异常, 跳过(不影响产物): {_e}")
 
     # 阶段摘要
     log_stage_summary(

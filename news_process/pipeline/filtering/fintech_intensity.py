@@ -103,6 +103,7 @@ news_process.pipeline.filtering.fintech_intensity — 阶段14：金融科技技
 import logging
 import math
 import os
+import platform
 import sys
 import time
 
@@ -123,7 +124,13 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import log_memory_usage, log_stage_summary, setup_logging
+from news_process.core.logging import (
+    log_memory_usage,
+    log_stage_summary,
+    pct4,
+    setup_logging,
+    sig4,
+)
 from news_process.core.reporting import save_dataset
 from news_process.core.text.ahocorasick import load_fintech_dict
 
@@ -349,8 +356,8 @@ def _build_intensity_weights(keyword_doc_freq: Counter, N_total: int) -> dict:
     else:
         idf_weights = dict(normed_idf)
 
-    logger.info(f"IDF 权重: mean={np.mean(list(idf_weights.values())):.4f}, "
-                f"std={np.std(list(idf_weights.values())):.4f}")
+    logger.info(f"IDF 权重: mean={sig4(np.mean(list(idf_weights.values())))}, "
+                f"std={sig4(np.std(list(idf_weights.values())))}")
 
     # ── 步骤 B: IDF 加权质心 + 各向异性重标定 ──
     # fix(omni-g-fintech-02, 2026-06-11): 原注释 "SIF 加权质心" 名实不符, 见模块
@@ -388,8 +395,8 @@ def _build_intensity_weights(keyword_doc_freq: Counter, N_total: int) -> dict:
                          "勿用于发表/跨样本对比")
             cos_sim_scaled = {kw: 1.0 for kw in kw_list}
 
-        logger.info(f"CosSim 校准: min={min_sim:.4f}, max={max_sim:.4f}, "
-                    f"floor={ANISOTROPY_FLOOR}")
+        logger.info(f"CosSim 校准: min={sig4(min_sim)}, max={sig4(max_sim)}, "
+                    f"floor={sig4(ANISOTROPY_FLOOR)}")
         del model, embeddings
 
     except ImportError:
@@ -416,12 +423,12 @@ def _build_intensity_weights(keyword_doc_freq: Counter, N_total: int) -> dict:
     sorted_weights = sorted(combined_weights.items(), key=lambda x: x[1], reverse=True)
     logger.info("综合权重 Top 20 (硬核词):")
     for kw, w in sorted_weights[:20]:
-        logger.info(f"  {kw}: {w:.4f} (IDF={idf_weights.get(kw, 0):.3f}, "
-                    f"CosSim={cos_sim_scaled.get(kw, 0):.3f})")
+        logger.info(f"  {kw}: {sig4(w)} (IDF={sig4(idf_weights.get(kw, 0))}, "
+                    f"CosSim={sig4(cos_sim_scaled.get(kw, 0))})")
     logger.info("综合权重 Bottom 20 (泛化词):")
     for kw, w in sorted_weights[-20:]:
-        logger.info(f"  {kw}: {w:.4f} (IDF={idf_weights.get(kw, 0):.3f}, "
-                    f"CosSim={cos_sim_scaled.get(kw, 0):.3f})")
+        logger.info(f"  {kw}: {sig4(w)} (IDF={sig4(idf_weights.get(kw, 0))}, "
+                    f"CosSim={sig4(cos_sim_scaled.get(kw, 0))})")
 
     return combined_weights
 
@@ -525,17 +532,17 @@ def _compute_intensity_scores(
         scores.append(round(score, 6))
         verified_flags.append(True)
 
-    logger.info(f"得分计算完成: {n_docs} 篇, 二次熔断降级: {n_fused} 篇 "
-                f"({n_fused / max(n_docs, 1) * 100:.1f}%)")
+    logger.info(f"得分计算完成: {n_docs:,} 篇, 二次熔断降级: {n_fused:,} 篇 "
+                f"({pct4(n_fused / max(n_docs, 1))})")
 
     valid_scores = [s for s, v in zip(scores, verified_flags) if v]
     if valid_scores:
         logger.info(f"得分分布 (verified=True): "
-                    f"mean={np.mean(valid_scores):.4f}, "
-                    f"std={np.std(valid_scores):.4f}, "
-                    f"min={np.min(valid_scores):.4f}, "
-                    f"max={np.max(valid_scores):.4f}, "
-                    f"median={np.median(valid_scores):.4f}")
+                    f"mean={sig4(np.mean(valid_scores))}, "
+                    f"std={sig4(np.std(valid_scores))}, "
+                    f"min={sig4(np.min(valid_scores))}, "
+                    f"max={sig4(np.max(valid_scores))}, "
+                    f"median={sig4(np.median(valid_scores))}")
 
     return scores, verified_flags
 
@@ -543,6 +550,90 @@ def _compute_intensity_scores(
 # ============================================================================
 # 5. 主流程编排 (Module D)
 # ============================================================================
+
+def _log_environment_and_config(full_path: str, ctx_path: str,
+                                filtered_path: str, output_path: str) -> None:
+    """打印项目/环境信息 + 输入输出 + 运行配置 + 方法论引文 (日志富集, 2026-06-24)。
+
+    目标 (用户要求"在日志文件中提供尽可能多的项目信息、运行期间信息和运行结果信息"):
+    把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数、方法学出处"一次性落进
+    日志, 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 (golden-safe)。所有学术
+    引文逐字取自经核验参考文献注册表 (Crossref/DataCite 真值), 含期刊卷(期):页 + DOI。
+    """
+    try:
+        intensity_cfg_keys = sorted(INTENSITY_CONFIG.keys()) if INTENSITY_CONFIG else []
+
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (金融科技技术重度评分, STAGES_MAIN 阶段14; 三轨 full/ctx/ss)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        logger.info(f"     · jieba:    {getattr(jieba, '__version__', '?')} (冻结锚点 0.42.1; "
+                    "确定性来源=jieba版本+本地词向量模型)")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "本阶段纯 CPU (jieba+joblib线程+本地text2vec) / 无 LLM·网络·API ($0)")
+
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · IDF 参考语料 (stage 12 全量): {full_path}")
+        logger.info(f"     · 打分语料 (优先 stage 13): {ctx_path}")
+        logger.info(f"     · 打分语料回退 (stage 12 子集): {filtered_path}")
+        logger.info(f"     · 输出: {output_path}")
+        logger.info("     · 金科词典: core.text.ahocorasick.load_fintech_dict (与 stage 12 共享同一份)")
+
+        logger.info("  ⚙ 运行配置 (config/filtering.yaml::fintech_intensity)")
+        logger.info(f"     · 词向量模型 EMBEDDING_MODEL={EMBEDDING_MODEL} (本地, 仅用于关键词级语义权重, 非文章嵌入)")
+        logger.info(f"     · 二次熔断阈值 MIN_DISTINCT_KEYWORDS_JIEBA={MIN_DISTINCT_KEYWORDS_JIEBA:,} "
+                    "(distinct 金科词 < 此值 → score=NaN, verified=False)")
+        logger.info(f"     · Winsorize 分位 WINSORIZE_PERCENTILES={WINSORIZE_PERCENTILES} "
+                    f"| 各向异性下限 ANISOTROPY_FLOOR={sig4(ANISOTROPY_FLOOR)}")
+        logger.info(f"     · 金科词典规模: {len(FINTECH_KEYWORDS):,} 个词汇 "
+                    "| 并行 n_jobs=-1 (joblib threads), batch_size=2000")
+        logger.info(f"     · 完整配置键: {intensity_cfg_keys}")
+
+        logger.info("  📖 方法论依据 (引文逐字取自经核验注册表; 中文白话=本阶段为何用该方法)")
+        logger.info("     · IDF 在全量参考语料上统一计算 (full reference corpus):")
+        logger.info("       Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. "
+                    "Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020")
+        logger.info("       → 越稀有的金科词区分度越高: IDF 给罕见术语加权、压低篇篇出现的泛词")
+        logger.info("     · TF-IDF 词项加权的理论基础:")
+        logger.info("       Salton, G., & Buckley, C. (1988). Term-weighting approaches in automatic "
+                    "text retrieval. Information Processing & Management, 24(5), 513-523. "
+                    "https://doi.org/10.1016/0306-4573(88)90021-0")
+        logger.info("       → 对 TF 取对数 (1+ln(TF)) 防同词重复刷分, 分母 1+ln(L) 防长文偏差")
+        logger.info("     · 文档长度归一化 / IDF 计算范式:")
+        logger.info("       Manning, C. D., Raghavan, P., & Schütze, H. (2008). Introduction to "
+                    "information retrieval. Cambridge University Press. "
+                    "https://doi.org/10.1017/CBO9780511809071")
+        logger.info("       → 长文不会因字数多就自动得高分 (Ch 6.4 文档长度偏差校正)")
+        logger.info("     · 金融文本词典/术语区分度缺失问题:")
+        logger.info("       Loughran, T., & McDonald, B. (2011). When is a liability not a liability? "
+                    "Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. "
+                    "https://doi.org/10.1111/j.1540-6261.2010.01625.x")
+        logger.info("       → 泛用词典在金融语境失真, 故叠加语义纯度权重区分'硬核词'与'泛化词'")
+        logger.info("     · 复读机刷分 (cheap talk / cherry-picking) 防御:")
+        logger.info("       Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022). Cheap talk "
+                    "and cherry-picking: What ClimateBert has to say on corporate climate risk "
+                    "disclosures. Finance Research Letters, 47, 102776. "
+                    "https://doi.org/10.1016/j.frl.2022.102776")
+        logger.info("       → 翻来覆去喊口号不应线性加分, 对 TF 取对数压制注水稿件")
+        logger.info("     · 关键词级语义编码 (SentenceTransformer 本地模型):")
+        logger.info("       Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using "
+                    "Siamese BERT-networks. In Proceedings of the 2019 Conference on Empirical Methods "
+                    "in Natural Language Processing and the 9th International Joint Conference on Natural "
+                    "Language Processing (EMNLP-IJCNLP) (pp. 3980-3990). Association for Computational "
+                    "Linguistics. https://doi.org/10.18653/v1/D19-1410")
+        logger.info("       → 用句向量模型给每个金科词取语义向量, 对质心余弦度量其'语义纯度'")
+        logger.info("     · 银行金融科技测度 (本任务直接对标的中文研究):")
+        logger.info("       胡俊, 李强, 戴嘉诚, & 曾勇. (2024). 基于文本分析的商业银行金融科技测度及赋能效果检验. "
+                    "中国管理科学, 32(1), 31-41. "
+                    "https://doi.org/10.16381/j.cnki.issn1003-207x.2021.1714")
+        logger.info("       → 用文本关键词构造银行金科强度, 与本阶段连续型 intensity 测度同源")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法论信息打印失败 (不影响处理): {e}")
+
 
 def main():
     stage_start = time.time()
@@ -566,10 +657,25 @@ def main():
     logger.info("【确定性】纯 CPU (jieba 整词 + joblib 线程并行 + 本地 text2vec 词向量), "
                 "不调任何 LLM/Embedding API, 本阶段 $0, 确定性取决于 jieba==0.42.1 与本地词向量模型。")
 
+    # 运行期阶段计时累计 (各主要子阶段墙钟耗时, 末尾汇总打印; 仅服务于日志)
+    phase_durations: dict[str, float] = {}
+
     output_dir = CONFIG['paths']['output_dir']
 
     full_filename = CONFIG['filenames'].get('output_12_fintech_full', '12_fintech_news_full.parquet')
     full_path = os.path.join(output_dir, full_filename)
+
+    filtered_filename = CONFIG['filenames'].get('output_12_fintech_news', '12_fintech_news.parquet')
+    filtered_path = os.path.join(output_dir, filtered_filename)
+    ctx_filename = CONFIG['filenames'].get(
+        'output_13_news_with_ctx', '14_news_with_ctx.parquet')
+    ctx_path = os.path.join(output_dir, ctx_filename)
+    output_filename = CONFIG['filenames'].get(
+        'output_14_fintech_intensity', '15_fintech_intensity.parquet')
+    output_path = os.path.join(output_dir, output_filename)
+
+    # 项目/环境信息 + 输入输出 + 运行配置 + 方法论引文 (日志富集 2026-06-24)
+    _log_environment_and_config(full_path, ctx_path, filtered_path, output_path)
 
     if not os.path.exists(full_path):
         logger.error(f"全量分类结果文件未找到: {full_path}")
@@ -583,22 +689,23 @@ def main():
     # 内容, prepend_title 单一事实源, 与 stage 13 物化口径逐字一致), 只进 DF 统计
     # 不写盘。DF 以 jieba 整词重算 (_compute_global_df_jieba), 不再消费 AC 子串计数。
     logger.info(f"加载 IDF 参考语料 (stage 12 全量): {full_path}")
+    _t = time.time()
     df_ref = pd.read_parquet(full_path)
     df_ref, ref_text_col = _materialize_df_corpus_column(df_ref)
     keyword_doc_freq, N_total = _compute_global_df_jieba(df_ref, text_col=ref_text_col)
     del df_ref
+    phase_durations['①全局DF解析(jieba整词)'] = time.time() - _t
     log_memory_usage(logger, "全量 DF 解析后(已释放)")
 
+    _t = time.time()
     combined_weights = _build_intensity_weights(keyword_doc_freq, N_total)
+    phase_durations['②综合权重构建(IDF×CosSim)'] = time.time() - _t
 
     # 存在性 gate: 校验 stage 12 原始金科子集仍在盘。2026-06-15 插入 stage 12b
     # (邻近共现硬过滤) 后, 12_fintech_news.parquet 仍由 stage 12 产出 (12b 只读它、
     # 不删) → 本 gate 照常通过; 真正的【打分语料】走下方 stage 13 输出 (已是 12b
     # 过滤后物化的子集, 故评分天然继承 12b)。仅当 stage 13 输出缺失才回退读此文件
     # (degraded 模式, 会绕过 12b; 全量 run 下 stage 13 always-on, 不触发)。
-    filtered_filename = CONFIG['filenames'].get('output_12_fintech_news', '12_fintech_news.parquet')
-    filtered_path = os.path.join(output_dir, filtered_filename)
-
     if not os.path.exists(filtered_path):
         logger.error(f"金融科技子集文件未找到: {filtered_path}")
         raise SystemExit(1)
@@ -606,9 +713,7 @@ def main():
     # v3.6.0 (Plan E P4 A1/B1): 优先读 stage 13 输出 (含 content_ctx 列; 2026-06-15
     # 起 stage 13 读 12b 输出 → 此处 df 已是 12b 邻近共现过滤后子集, 评分继承过滤),
     # 缺失则 fallback 到 stage 12 输出 (无 ctx, 触发 _ctx 轨回退; 且绕过 12b)
-    ctx_filename = CONFIG['filenames'].get(
-        'output_13_news_with_ctx', '14_news_with_ctx.parquet')
-    ctx_path = os.path.join(output_dir, ctx_filename)
+    _t = time.time()
     if os.path.exists(ctx_path):
         logger.info(f"加载 stage 13 输出 (含 content_ctx): {ctx_path}")
         df = pd.read_parquet(ctx_path)
@@ -623,8 +728,10 @@ def main():
                        f"(ctx 轨将退化为 full)")
         logger.info(f"加载金融科技子集: {filtered_path}")
         df = pd.read_parquet(filtered_path)
+    phase_durations['③打分语料加载'] = time.time() - _t
     logger.info(f"金融科技子集: {len(df)} 篇文档")
 
+    _t = time.time()
     # v3.6.0 (Plan E P4 B1): 三轨计算 — full 用 content_full (回退 '内容'),
     # ctx 用 'content_ctx', ss 用 'content_ss' (银行+金科同句共现, 回退镜像 ctx→全文 body)
     # 输出列: fintech_intensity_score_{full,ctx,ss} + intensity_verified_{full,ctx,ss}
@@ -672,6 +779,7 @@ def main():
             "ss 轨回退 = full — 此时 fintech_intensity_score_ss ≡ _full")
         df['fintech_intensity_score_ss'] = scores_full
         df['intensity_verified_ss'] = verified_full
+    phase_durations['④三轨逐文档打分(full/ctx/ss)'] = time.time() - _t
 
     assert 'is_fintech_news' in df.columns, "原有列 is_fintech_news 丢失!"
     assert 'fintech_intensity_score' in df.columns
@@ -680,10 +788,8 @@ def main():
     assert 'fintech_intensity_score_ss' in df.columns
     assert 'intensity_verified' in df.columns
 
-    output_filename = CONFIG['filenames'].get(
-        'output_14_fintech_intensity', '15_fintech_intensity.parquet')
-    output_path = os.path.join(output_dir, output_filename)
     # 使用数据版本控制保存
+    _t = time.time()
     input_file = os.path.join(CONFIG['paths']['output_dir'],
                               CONFIG['filenames']['output_12_fintech_news'])
     save_dataset(
@@ -694,17 +800,18 @@ def main():
         config=CONFIG,
         input_files=[full_path, input_file],
     )
+    phase_durations['⑤写盘(save_dataset)'] = time.time() - _t
 
     n_verified_full = sum(verified_full)
     n_verified_ctx = sum(df['intensity_verified_ctx'])
     n_verified_ss = sum(df['intensity_verified_ss'])
     n_total = len(df)
-    logger.info(f"intensity_verified_full=True: {n_verified_full}/{n_total} "
-                f"({n_verified_full / max(n_total, 1) * 100:.1f}%)")
-    logger.info(f"intensity_verified_ctx=True:  {n_verified_ctx}/{n_total} "
-                f"({n_verified_ctx / max(n_total, 1) * 100:.1f}%)")
-    logger.info(f"intensity_verified_ss=True:   {n_verified_ss}/{n_total} "
-                f"({n_verified_ss / max(n_total, 1) * 100:.1f}%)")
+    logger.info(f"intensity_verified_full=True: {n_verified_full:,}/{n_total:,} "
+                f"({pct4(n_verified_full / max(n_total, 1))})")
+    logger.info(f"intensity_verified_ctx=True:  {n_verified_ctx:,}/{n_total:,} "
+                f"({pct4(n_verified_ctx / max(n_total, 1))})")
+    logger.info(f"intensity_verified_ss=True:   {n_verified_ss:,}/{n_total:,} "
+                f"({pct4(n_verified_ss / max(n_total, 1))})")
 
     # ── 结果分析 (仿 39c): 把真实算出的产出指标逐个打印 + 对照阈值/预期方向给判读 ──
     # 仅用于日志, 不回写 df / 不改任何产物 (golden-safe 纯增量)。本块整体在 save_dataset
@@ -747,7 +854,7 @@ def main():
         logger.info(f"  IDF 参考语料: N_total={N_total:,} 篇唯一文档, "
                     f"命中 {len(keyword_doc_freq):,} 个不同金科关键词 (jieba 整词口径)")
         logger.info(f"  综合权重宇宙: {len(combined_weights):,} 个可匹配关键词, "
-                    f"W mean={_w_mean:.4f}, std={_w_std:.4f}")
+                    f"W mean={sig4(_w_mean)}, std={sig4(_w_std)}")
         # NaN-guard: _w_std 为 NaN (空权重) 时不进 ">0" 方向判读, 单列降级提示
         if not np.isfinite(_w_std):
             logger.info("    → ⚠ 权重宇宙为空 (combined_weights 为空), 评分将全部熔断/降级, 见上方口径降级日志")
@@ -756,7 +863,7 @@ def main():
         else:
             logger.info("    → ⚠ 权重几乎无区分度 (std≈0), 评分可能已降级为纯词频/纯 IDF, 见上方口径降级日志")
         logger.info(f"  full 轨 verified=True: {n_verified_full:,}/{n_total:,} "
-                    f"({_verif_rate_full*100:.1f}%), 通过验证文章 mean score={_mean_full:.4f}")
+                    f"({pct4(_verif_rate_full)}), 通过验证文章 mean score={sig4(_mean_full)}")
         logger.info("    → " + ("验证通过率健康, 多数金科文章含 ≥2 个 distinct 金科词, 强度信号可用"
                                 if _verif_rate_full >= 0.50 else
                                 "⚠ 验证通过率偏低, 大量文章仅孤立提及 1 个金科词 → 被熔断为 NaN "
@@ -765,13 +872,13 @@ def main():
         if _sc_ctx is None:
             logger.info(f"  ctx 轨: 列 fintech_intensity_score_ctx 缺失, 跳过 (verified={n_verified_ctx:,})")
         else:
-            logger.info(f"  ctx 轨 verified=True: {n_verified_ctx:,}/{n_total:,} ({_verif_rate_ctx*100:.1f}%), "
-                        f"mean score={_mean_ctx:.4f}, 独立于 full: {_ctx_distinct}")
+            logger.info(f"  ctx 轨 verified=True: {n_verified_ctx:,}/{n_total:,} ({pct4(_verif_rate_ctx)}), "
+                        f"mean score={sig4(_mean_ctx)}, 独立于 full: {_ctx_distinct}")
         if _sc_ss is None:
             logger.info(f"  ss  轨: 列 fintech_intensity_score_ss 缺失, 跳过 (verified={n_verified_ss:,})")
         else:
-            logger.info(f"  ss  轨 verified=True: {n_verified_ss:,}/{n_total:,} ({_verif_rate_ss*100:.1f}%), "
-                        f"mean score={_mean_ss:.4f}, 独立于 full: {_ss_distinct}")
+            logger.info(f"  ss  轨 verified=True: {n_verified_ss:,}/{n_total:,} ({pct4(_verif_rate_ss)}), "
+                        f"mean score={sig4(_mean_ss)}, 独立于 full: {_ss_distinct}")
         if _sc_ctx is not None and not _ctx_distinct:
             logger.warning("  ⚠ ctx 轨得分逐元素 ≡ full → content_ctx 列缺失或全回退 "
                            "(stage 13 _materialize_ctx 未跑?), ctx 轨此次不提供独立信号")
@@ -786,6 +893,17 @@ def main():
         logger.info("-" * 72)
     except Exception as _e:
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
+
+    # ── ⏱ 阶段计时 (各主要子阶段墙钟耗时; 仅服务于日志, golden-safe) ──
+    try:
+        logger.info("  ⏱ 阶段计时 (各子阶段墙钟耗时, 秒)")
+        _phase_total = sum(phase_durations.values()) if phase_durations else 0.0
+        for _name, _dur in phase_durations.items():
+            _pct = (_dur / _phase_total) if _phase_total > 0 else float('nan')
+            logger.info(f"     · {_name}: {sig4(_dur)} 秒 ({pct4(_pct)})")
+        logger.info(f"     · 计时子阶段合计: {sig4(_phase_total)} 秒")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  阶段计时打印失败 (不影响产物): {_e}")
 
     log_stage_summary(logger, STAGE_NAME, stage_start, n_total, n_total)
     logger.info(f"--- 阶段执行完毕: {STAGE_NAME} ---")

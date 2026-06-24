@@ -106,6 +106,62 @@ except ImportError:  # pragma: no cover
 # 进程级幂等标志: 确定性硬化只设一次 (torch 全局开关, 重复设置无害但避免日志噪声)
 _TORCH_DETERMINISM_DONE = False
 
+# 进程级幂等标志: 引擎方法学/配置 banner 只 emit 一次 (本模块是无独立 main 的共享
+# 嵌入引擎, 被 stage 15/25/26/27/network 的 runner 调用, 复用调用方阶段日志; banner
+# 一旦在首个 callsite 触发即对全进程后续调用静默, 避免重复刷屏)。
+_ENGINE_BANNER_DONE = False
+
+
+def _log_engine_banner(spec: dict | None = None, *, log_prefix: str = "Embedding") -> None:
+    """嵌入引擎子步骤 banner: 方法论引文 (含 DOI) + 关键引擎配置, 进程内只 emit 一次.
+
+    本模块无独立 ``main()/run_stage()`` (是被 feature-stage runner 调用的共享库), 故
+    依 ENRICHMENT_PLAYBOOK §0.5 "called-by-runner helper" 规约: **不**重复打 ENV/CONFIG
+    全块 (那是 runner 入口职责), 仅在首个被调函数起始处打一个子步骤 banner —— 步骤名
+    + 方法依据引文 (逐字取自经核验参考文献注册表) + 本引擎可调常量。emit 只发生在函数
+    体内 (绝不在模块顶层 import 时执行, 避免 setup_logging 首写截断生产日志)。
+
+    纯日志, 不读写任何产物 / 不改控制流; 任何异常被吞掉以保证绝不拖垮嵌入阶段
+    (golden-safe)。
+    """
+    global _ENGINE_BANNER_DONE
+    if _ENGINE_BANNER_DONE:
+        return
+    _ENGINE_BANNER_DONE = True
+    try:
+        logger.info(f"  ── 嵌入引擎子步骤: 文本→向量统一引擎 ({log_prefix}) ──")
+        # ① 方法论依据 (引文逐字取自经核验注册表, 进 .log 而非仅留 docstring)
+        logger.info("     📖 方法论依据 (核心方法/构念学术出处, 引文取自经核验注册表):")
+        logger.info("       · 超长文本分段 Mean Pooling (Sentence-BERT mean pooling):")
+        logger.info(
+            "         Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence "
+            "embeddings using Siamese BERT-networks. In Proceedings of the 2019 "
+            "Conference on Empirical Methods in Natural Language Processing and the "
+            "9th International Joint Conference on Natural Language Processing "
+            "(EMNLP-IJCNLP) (pp. 3980-3990). Association for Computational "
+            "Linguistics. https://doi.org/10.18653/v1/D19-1410")
+        logger.info(
+            "       白话: 太长的文本先按 token 切成小段, 各段算完向量后逐块归一+按 "
+            "token 数加权平均成一条 (mean pooling), 避免超长文被静默截断。")
+        # ② 关键引擎配置 (本模块可调常量 + 本次 spec; 路径/参数级 CONFIG 由 runner 入口打)
+        if spec is not None:
+            _model = spec_model(spec)
+            _is_local = spec_uses_local(spec)
+            _route = "本地 sentence-transformers" if _is_local else "API (穿透 LLMCache)"
+            _bs = int((spec or {}).get('batch_size', 32) or 32)
+            logger.info(
+                f"     ⚙ 本次 spec: model={_model} · 路径={_route} · "
+                f"batch_size={_bs:,d} · cache_version={spec_version(spec)}")
+        logger.info(
+            f"     ⚙ 引擎常量: 单条上限={EMB_MAX_TOKENS:,d} tokens (cl100k_base) · "
+            f"单请求 token 上限={EMB_MAX_TOKENS_PER_REQUEST:,d} · "
+            f"API 并发上限={EMB_API_CONCURRENCY:,d} · 瞬时失败重试={EMB_MAX_RETRIES:,d} 次")
+        logger.info(
+            "     ⚙ 确定性/成本: API 主轨 (text-embedding-3-small) miss 即付费, 命中 $0; "
+            "本地稳健轨 (text2vec) 纯 GPU/CPU $0; 两轨缓存按 model_id 隔离 → 命中逐位复现。")
+    except Exception as _banner_exc:  # pragma: no cover - banner 绝不拖垮阶段
+        logger.warning(f"    嵌入引擎 banner 输出失败 (不阻塞): {_banner_exc!r}")
+
 
 def ensure_torch_determinism(seed: int = 42) -> None:
     """本地 torch 推理确定性硬化 (对齐 stage 23 tone_berts.py V4 T1.1a 块).
@@ -215,6 +271,8 @@ def encode_local(texts, spec: dict, *, log_prefix: str = "Embedding") -> np.ndar
     from sentence_transformers import SentenceTransformer
 
     ensure_torch_determinism()  # fix(omni-g-embed-07, 2026-06-11)
+    # called-by-runner 子步骤 banner (本地直调 encode_local 的 callsite 也覆盖到); 只 emit 一次。
+    _log_engine_banner(spec, log_prefix=log_prefix)
 
     model_id = spec_model(spec, 'shibing624/text2vec-base-chinese')
     if model_id not in _LOCAL_MODELS:
@@ -632,6 +690,9 @@ def embed_texts(texts, spec: dict, *,
     texts = [] if texts is None else list(texts)
     if len(texts) == 0:
         return None
+
+    # called-by-runner 子步骤 banner (方法引文 + 引擎配置), 进程内只 emit 一次。
+    _log_engine_banner(spec, log_prefix=log_prefix)
 
     all_chunks: list[str] = []
     chunk_map: list[tuple[int, int]] = []

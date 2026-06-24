@@ -79,11 +79,16 @@ from __future__ import annotations
 import json
 import logging
 import os
+import platform
+import sys
+import time
 from pathlib import Path
 from typing import Optional
 
 import numpy as np
 import pandas as pd
+
+from news_process.core.logging import pct4, sig4
 
 logger = logging.getLogger(__name__)
 
@@ -230,7 +235,7 @@ def compute_nmi_matrix(
                 if degen_frac > 0.05:
                     logger.warning(
                         f"  v3.5.0 D3 bootstrap ({d1}, {d2}): "
-                        f"{n_degenerate}/{bootstrap_n} = {degen_frac:.1%} resamples degenerate; "
+                        f"{n_degenerate:,d}/{bootstrap_n:,d} = {pct4(degen_frac)} resamples degenerate; "
                         "CI computed via nanpercentile"
                     )
             # nanpercentile 自动跳过 NaN; 若 boot 全 NaN, 留 ci 为 NaN
@@ -386,6 +391,61 @@ def run_stage(
     logger.info("        取单侧 p95/p99 为门槛; bootstrap 1000 次给 CI。NMI 越低越正交。")
     logger.info("【判读】obs≤p95→strong(充分正交,好); ≤p99→moderate; >p99→weak(超出随机的真重叠,不利)。")
 
+    # ① 🧭 项目 / 环境信息 (日志富集, 2026-06-24; 失败不阻断阶段)
+    try:
+        logger.info("-" * 72)
+        logger.info("① 🧭 项目 / 环境信息")
+        logger.info(
+            "     · 阶段 39c construct_orthogonality (验证支线; thin shim 72_construct_orthogonality.py)"
+        )
+        logger.info(
+            "     · 项目:     news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1"
+        )
+        logger.info(f"     · 模块:     {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(
+            f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+            "纯 CPU / 无 LLM·嵌入·_llm_cache.db / 无网络 ($0)"
+        )
+        logger.info(
+            "     · 确定性: SeedSequence(seed) 派生 bootstrap/permutation 子种子, "
+            "跨 NumPy 版本可复现; sklearn NMI lazy import"
+        )
+    except Exception as _e:  # noqa: BLE001 — 日志块绝不阻断阶段
+        logger.warning(f"  (ENV banner 跳过: {_e})")
+
+    # ④ 📖 方法论依据 (参考文献信息) — emit 进日志, 非仅留注释。
+    # 注: 本模块核心锚点 (Vinh-Epps-Bailey 2010 JMLR / Fred-Jain 2003 CVPR /
+    # Bagozzi-Yi 1988 JAMS) 不在经核验注册表内, 故按 docstring 既有作者-年-刊面
+    # prose 形式诚实 emit, 不附 (未经核验的) DOI 链接 (铁律: 参考文献零伪造)。
+    try:
+        logger.info("-" * 72)
+        logger.info("④ 📖 方法论依据 (构念正交性 / 判别效度)")
+        logger.info(
+            "     · NMI 算术平均归一化: Vinh, N. X., Epps, J., & Bailey, J. (2010). "
+            "Information theoretic measures for clusterings comparison. Journal of Machine "
+            "Learning Research, 11, 2837-2854. (JMLR 开放获取无 DOI; https://www.jmlr.org/papers/v11/vinh10a.html)"
+        )
+        logger.info(
+            "     · NMI 用于聚类/标签比较: Fred, A. L. N., & Jain, A. K. (2003). Robust data "
+            "clustering. Proceedings of the 2003 IEEE Computer Society Conference on Computer "
+            "Vision and Pattern Recognition (CVPR), II-128–II-133. https://doi.org/10.1109/CVPR.2003.1211462"
+        )
+        logger.info(
+            "     · 判别效度 (discriminant validity, CFA): Bagozzi, R. P., & Yi, Y. (1988). "
+            "On the evaluation of structural equation models. Journal of the Academy of Marketing "
+            "Science, 16(1), 74-94. https://doi.org/10.1007/BF02723327"
+        )
+        logger.info(
+            "     · 白话: 用 NMI 衡量两把'创新尺子'读数互相能猜多少, 再与置换 null 比, "
+            "证明三个构念各自独立、无重复计量 (论文 Appendix A.2 构念效度证据)。"
+        )
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  (METHOD banner 跳过: {_e})")
+
     # fix(2026-06-19 run-check F2): 默认路径改用 load_config 解析的 output_dir (绝对,
     # CWD 无关), 镜像兄弟阶段 39d/39e; 此前相对 'data/processed/...' 仅当 CWD==news_process/
     # 才有效, 经 run_pipeline_validation.py 子进程 (无 cwd=) 从仓库根启动时 FileNotFound。
@@ -402,15 +462,48 @@ def run_stage(
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
 
+    # ②📂 输入/输出 + ③⚙ 运行配置 (日志富集, 2026-06-24)
+    try:
+        logger.info("-" * 72)
+        logger.info("②📂 输入 / 输出 文件")
+        logger.info(f"     · 输入:   {stage_21_parquet} (canonical 21_tone_llms.parquet)")
+        logger.info(f"     · 输出目录: {out_path}")
+        logger.info(
+            "     · 产物:   72_nmi_matrix_{full,ctx,ss,cross}.parquet + "
+            "72_nmi_null_p95/p99.parquet + 72_nmi_summary.json"
+        )
+        logger.info("③⚙ 运行配置 (可调参数)")
+        logger.info(
+            f"     · bootstrap_n={bootstrap_n:,d} | n_permutations={n_permutations:,d} | "
+            f"seed={seed:,d} | sample_strategy='listwise_complete'"
+        )
+        logger.info(
+            "     · 维度轨: full=" + ",".join(d.replace('innovation_', '') for d in DIMS_FULL)
+            + " | ctx/ss 同三维 | cross=ALL_DIMS 6 维 (full∪ctx)"
+        )
+        logger.info(
+            "     · 分类阈值: permutation null 单侧 p95/p99 (≈单侧 Z "
+            f"{sig4(1.645)}/{sig4(2.326)}); 观测与 null 同 DIMS_FULL listwise 域"
+        )
+        logger.info("     · config 来源: paths.yaml::{output_dir,log_dir}; env 覆盖 STAGE_21_PARQUET/OUT_DIR")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  (CONFIG banner 跳过: {_e})")
+
+    # ⑥ ⏱ per-phase 墙钟计时锚点
+    _phase_t: dict[str, float] = {}
+    _t0 = time.time()
+
     logger.info(f"v3.5.0 D3 stage 39c reading: {stage_21_parquet}")
     df = pd.read_parquet(stage_21_parquet)
     logger.info(f"  loaded {len(df):,} article rows")
+    _phase_t['load_parquet'] = time.time() - _t0
 
     # CR-13: SeedSequence.spawn(2) 派生 2 个独立子序列, 避免 `seed + 1` 的耦合
     root_seq = np.random.SeedSequence(seed)
     boot_seed_state, perm_seed_state = (int(s.generate_state(1)[0])
                                         for s in root_seq.spawn(2))
 
+    _t1 = time.time()
     # full 3x3
     point_f, lo_f, hi_f, n_f = compute_nmi_matrix(
         df, DIMS_FULL, bootstrap_n=bootstrap_n, seed=boot_seed_state,
@@ -428,6 +521,9 @@ def run_stage(
     point_x, lo_x, hi_x, n_x = compute_nmi_matrix(
         df, ALL_DIMS, bootstrap_n=bootstrap_n, seed=boot_seed_state,
     )
+    _phase_t['nmi_matrices(full/ctx/ss/cross)'] = time.time() - _t1
+
+    _t2 = time.time()
     # permutation null (独立 seed) — 6×6 cross-matrix 参考 (落盘用)
     null_p95, null_p99 = compute_permutation_null(
         df, ALL_DIMS, n_permutations=n_permutations, seed=perm_seed_state,
@@ -444,7 +540,9 @@ def run_stage(
     # 正交性分类 (有意只对 full 3 维 — 论文 Appendix A.2 叙事更简洁; plan §7.3-A3
     # 不对称: ctx/ss 仅出 3×3 NMI 矩阵作诊断, 不进分类/解读)
     classify = classify_orthogonality(point_f, null_p95_f, null_p99_f)
+    _phase_t['permutation_null+classify'] = time.time() - _t2
 
+    _t3 = time.time()
     # 写出产物
     def _save_matrix(name: str, point: pd.DataFrame, lo: pd.DataFrame,
                      hi: pd.DataFrame, n: pd.DataFrame) -> None:
@@ -506,6 +604,7 @@ def run_stage(
     }
     with open(out_path / '72_nmi_summary.json', 'w', encoding='utf-8') as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
+    _phase_t['write_products'] = time.time() - _t3
 
     # 结果分析 — 写入日志: full 3×3 逐对 NMI vs null 门槛 + 判读。
     logger.info("-" * 72)
@@ -520,10 +619,10 @@ def run_stage(
         v2 = classify.get(f'{d2}__{d1}', 'undefined')
         verdict = v1 if v1 == v2 else f'{v1}/{v2} (临界)'
         logger.info(
-            f"  {s1} × {s2}: NMI={point_f.iloc[i, j]:.4f}  "
-            f"null_p95={null_p95_f.iloc[i, j]:.4f}  null_p99={null_p99_f.iloc[i, j]:.4f}  → {verdict}"
+            f"  {s1} × {s2}: NMI={sig4(point_f.iloc[i, j])}  "
+            f"null_p95={sig4(null_p95_f.iloc[i, j])}  null_p99={sig4(null_p99_f.iloc[i, j])}  → {verdict}"
         )
-    logger.info(f"  cross 6×6 非对角最大 NMI = {max_off_diag:.4f}")
+    logger.info(f"  cross 6×6 非对角最大 NMI = {sig4(max_off_diag)}")
     logger.info(
         f"  总判读 interpretation = {interpretation} "
         "(strong=全对正交; moderate=无 weak 但非全 strong; mixed=至少一对 weak; undefined=不可判)"
@@ -532,8 +631,18 @@ def run_stage(
         f"  ⚠ 样本 = {len(df):,} 篇 (盘面 T=2 小样本, 仅验证管道正确性, 非全量生产结论)"
     )
     logger.info("-" * 72)
+
+    # ⑥ ⏱ 阶段计时 — 各主要子阶段墙钟耗时汇总 (日志富集, 2026-06-24)
+    try:
+        logger.info("⑥ ⏱ 阶段计时 (各子阶段墙钟耗时, 秒)")
+        for _name, _sec in _phase_t.items():
+            logger.info(f"     · {_name:<34} {sig4(_sec):>10} 秒")
+        logger.info(f"     · {'合计 (load→write)':<34} {sig4(sum(_phase_t.values())):>10} 秒")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  (TIMING banner 跳过: {_e})")
+
     logger.info(
-        f"  ✓ v3.5.0 D3 stage 39c done; max off-diag NMI = {max_off_diag:.4f}; "
+        f"  ✓ v3.5.0 D3 stage 39c done; max off-diag NMI = {sig4(max_off_diag)}; "
         f"interpretation = {summary['interpretation']}"
     )
     return summary

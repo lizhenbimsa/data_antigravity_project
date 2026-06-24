@@ -131,6 +131,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.caching import LLMCache
+from news_process.core.logging import pct4, sig4  # 4 有效数字渲染 (日志专用)
 
 # ============================================================================
 # 1. 全局配置和初始化  (Phase 2a: 取代旧的 importlib 反射)
@@ -934,8 +935,8 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     token_counts = _count_tokens_batch(raw_texts)
     n_long = sum(1 for n in token_counts if n > _MAX_TOKENS_PER_INPUT)
     avg_tokens = np.mean(token_counts) if token_counts else 0
-    logger.info(f"  Token 统计: 平均 {avg_tokens:.0f} tokens/篇, "
-                f"超长 (引擎 chunk+pool) {n_long}/{len(raw_texts)} 篇")
+    logger.info(f"  Token 统计: 平均 {sig4(avg_tokens)} tokens/篇, "
+                f"超长 (引擎 chunk+pool) {n_long:,d}/{len(raw_texts):,d} 篇")
 
     # ---- 4.4 权威政策文本分段 (Chunk-then-Pool, 按文档分组) ----
     # 【术语】朴素分段 (naive / independent chunking) + Mean Pooling (Reimers &
@@ -1121,8 +1122,8 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
         if np.isnan(_sc).all():
             logger.warning(f"     {_nm} 轨全 NaN (无任何可比文章-锚点对)")
             continue
-        logger.info(f"     {_nm} 范围: [{np.nanmin(_sc):.4f}, {np.nanmax(_sc):.4f}], "
-                    f"均值={np.nanmean(_sc):.4f}, σ={np.nanstd(_sc):.4f}")
+        logger.info(f"     {_nm} 范围: [{sig4(np.nanmin(_sc))}, {sig4(np.nanmax(_sc))}], "
+                    f"均值={sig4(np.nanmean(_sc))}, σ={sig4(np.nanstd(_sc))}")
 
     # 全年份锚点 _allv 孪生范围统计 (companion 开启且静态锚点有效时); 与主轨对照可见
     # vintage 裁剪对均值的影响幅度 (全年份锚点通常覆盖率更高、早年文章不再 NaN)。
@@ -1133,8 +1134,8 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
         for _nm, _sc in _av_stats:
             if _sc is None or np.isnan(_sc).all():
                 continue
-            logger.info(f"     {_nm} 范围: [{np.nanmin(_sc):.4f}, {np.nanmax(_sc):.4f}], "
-                        f"均值={np.nanmean(_sc):.4f}, σ={np.nanstd(_sc):.4f} (全年份锚点)")
+            logger.info(f"     {_nm} 范围: [{sig4(np.nanmin(_sc))}, {sig4(np.nanmax(_sc))}], "
+                        f"均值={sig4(np.nanmean(_sc))}, σ={sig4(np.nanstd(_sc))} (全年份锚点)")
 
     # 轨间独立性诊断 (Plan E 验收门; full vs ctx pairwise — ss 轨的 full/ctx/ss
     # 三向 pairwise 独立性集中在 stage 24 herd_decay 做, 此处仍仅 full↔ctx 单对)
@@ -1152,7 +1153,7 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
                         "Spearman ρ 无定义, 跳过")
         else:
             rho, _ = spearmanr(_vf, _vc)
-            logger.info(f"     轨间独立性诊断 (full↔ctx): Spearman ρ = {rho:.4f} "
+            logger.info(f"     轨间独立性诊断 (full↔ctx): Spearman ρ = {sig4(rho)} "
                         f"({'轨道真独立' if abs(rho) < 0.95 else '⚠ 高度相关'})")
     except ImportError:
         pass
@@ -1220,6 +1221,78 @@ def main():
     logger.info("【确定性】调 Embedding API (MAIN 轨, miss 即付费; 不受 NEWS_PROCESS_LLM_OFFLINE 守卫保护) +")
     logger.info("          本地 text2vec (_t2v, $0)。API 向量经 _llm_cache.db 缓存, 命中即逐位可复现。")
 
+    # ---- 🧭 项目 / 环境信息 (golden 范式 ①: 运行环境指纹, 纯日志) ----
+    # crash-guard: 整块包 try/except, 任何环境探针异常仅降级 warning, 绝不让纯日志块崩阶段。
+    try:
+        import platform as _platform
+        logger.info("-" * 72)
+        logger.info("🧭 项目 / 环境信息")
+        logger.info("  · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) | 版本 v3.11.1")
+        logger.info(f"  · 阶段: {STAGE_NAME} (STAGES_MAIN, kind=filter, timeout=7200s 因含 Embedding API)")
+        logger.info("  · 功能: 文章级政策语义对齐度 (article-level policy cosine similarity), 供 stage 45 四象限分类")
+        logger.info(f"  · Python {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"  · 平台: {_platform.platform()} | CPU {os.cpu_count()} 核 | PID {os.getpid()}")
+        logger.info(f"  · RUN_ID={os.environ.get('NEWS_PROCESS_RUN_ID', '(未设)')} | "
+                    f"LLM_OFFLINE={os.environ.get('NEWS_PROCESS_LLM_OFFLINE', '0')} "
+                    "(⚠ 本阶段嵌入 miss 不受该守卫保护, 仍付费调 API)")
+        logger.info("  · 成本/确定性: MAIN-API 嵌入 miss 即付费 (yunwu OpenAI-compat); _t2v 本地 $0; "
+                    "缓存命中即逐位可复现")
+        logger.info(f"  · 模块: {os.path.abspath(__file__)}")
+        logger.info(f"  · 工作目录: {os.getcwd()}")
+    except Exception as _e:
+        logger.warning(f"[环境信息] 探针异常, 跳过(不影响产物): {_e}")
+
+    # ---- 📖 方法论依据 (golden 范式 ④: 核心方法学出处 emit 进日志, 仅引经核验注册表) ----
+    # 5 个 DOI 逐字取自 VERIFIED_REFERENCES 注册表 (Crossref 核验, status=match); 不自创/不改动。
+    try:
+        logger.info("-" * 72)
+        logger.info("📖 方法论依据 (本阶段核心方法/构念的学术出处, 进日志以供审计追溯)")
+        logger.info("  · 余弦相似度作为文本语义距离的标准度量 (本阶段核心算子):")
+        logger.info("    Hoberg, G., & Phillips, G. (2016). Text-based network industries and "
+                    "endogenous product differentiation. Journal of Political Economy, 124(5), "
+                    "1423-1465. https://doi.org/10.1086/688176")
+        logger.info("  · 宏观政策向量注入微观企业文本空间 (锚点注入范式):")
+        logger.info("    Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). "
+                    "Firm-level political risk: Measurement and effects. The Quarterly Journal "
+                    "of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021")
+        logger.info("  · 逐篇文档级相似度 / 显性引用 vs 文本级语义实质借鉴 (Token vs Hidden 解耦):")
+        logger.info("    Distel, A. P., Grimpe, C., & Poetz, M. (2026). From evidence to impact: "
+                    "The use of scientific research in policy documents. Research Policy, 55(3), "
+                    "105426. https://doi.org/10.1016/j.respol.2026.105426")
+        logger.info("  · 象征性采用的制度理论基础 (Token Adoption 获取合法性):")
+        logger.info("    Westphal, J. D., & Zajac, E. J. (2001). Decoupling policy from practice: "
+                    "The case of stock repurchase programs. Administrative Science Quarterly, "
+                    "46(2), 202-228. https://doi.org/10.2307/2667086")
+        logger.info("  · Cheap talk 偏差 (高频关键词 ≠ 实质性行动, 需语义层独立度量):")
+        logger.info("    Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022). "
+                    "Cheap talk and cherry-picking: What ClimateBert has to say on corporate "
+                    "climate risk disclosures. Finance Research Letters, 47, 102776. "
+                    "https://doi.org/10.1016/j.frl.2022.102776")
+    except Exception as _e:
+        logger.warning(f"[方法论] 引文输出异常, 跳过(不影响产物): {_e}")
+
+    # ---- ⚙ 运行配置 (golden 范式 ③: 本阶段可调参数 + config 来源键, 纯日志) ----
+    try:
+        logger.info("-" * 72)
+        logger.info("⚙ 运行配置 (来源 config/filtering.yaml::article_alignment + config/paths.yaml)")
+        logger.info(f"  · vintage_aware 前视守卫: {vintage_aware_enabled()} "
+                    "(article_alignment.vintage_aware; True=年度 t 仅用 ≤t 政策段)")
+        logger.info(f"  · all_vintage_companion (_allv 全年份锚点孪生): {all_vintage_companion_enabled()} "
+                    "(article_alignment.all_vintage_companion; 仅稳健性对照, 不替换主轨)")
+        logger.info(f"  · 单条输入 token 上限 max_tokens_per_input: {_MAX_TOKENS_PER_INPUT:,d} | "
+                    f"单次请求 token 上限 max_tokens_per_request: {_MAX_TOKENS_PER_REQUEST:,d}")
+        logger.info(f"  · MAIN spec (canonical): {_eng.spec_model(EMBEDDING_CONFIG)} "
+                    "(text-embedding-3-small, API 1536 维)")
+        logger.info(f"  · ROBUSTNESS spec (_t2v twin): {_eng.spec_model(_ROBUSTNESS_SPEC)} "
+                    "(shibing624/text2vec-base-chinese, 本地 768 维; 严禁与 MAIN 混算)")
+        logger.info(f"  · 缓存库: {CACHE_DB_PATH} | 重试退避: 起 {sig4(RETRY_DELAY)}s → 封顶 {sig4(MAX_RETRY_DELAY)}s")
+        logger.info("  · 权威语料: config/authoritative_corpus.txt (paths.authoritative_corpus_file, 与 stage 26 共享)")
+    except Exception as _e:
+        logger.warning(f"[运行配置] 输出异常, 跳过(不影响产物): {_e}")
+
+    # per-phase 墙钟计时锚点 (golden 范式 ⑥): 各子阶段 time.time() 差, 末尾汇总。
+    _phase_t = {}
+
     # 读取 Stage 14 输出
     output_dir = CONFIG['paths']['output_dir']
     input_filename = CONFIG['filenames'].get(
@@ -1231,11 +1304,15 @@ def main():
         raise SystemExit(1)
 
     logger.info(f"加载输入: {input_path}")
+    _t0 = time.time()
     df = pd.read_parquet(input_path)
-    logger.info(f"输入数据: {len(df)} 篇文档, {len(df.columns)} 列")
+    _phase_t['加载输入parquet'] = time.time() - _t0
+    logger.info(f"输入数据: {len(df):,d} 篇文档, {len(df.columns):,d} 列")
 
-    # 执行计算
+    # 执行计算 (含语料加载 + 双模型三轨嵌入 + 余弦 + 统计诊断)
+    _t0 = time.time()
     df = compute_article_policy_alignment(df)
+    _phase_t['嵌入+余弦计算'] = time.time() - _t0
 
     # 列完整性断言
     assert 'policy_cosine_sim' in df.columns, "policy_cosine_sim 列缺失!"
@@ -1254,6 +1331,7 @@ def main():
     # 使用数据版本控制保存
     input_file = os.path.join(CONFIG['paths']['output_dir'],
                               CONFIG['filenames']['output_14_fintech_intensity'])
+    _t0 = time.time()
     save_dataset(
         df=df,
         output_path=output_path,
@@ -1262,11 +1340,12 @@ def main():
         config=CONFIG,
         input_files=[input_file],
     )
+    _phase_t['写盘parquet'] = time.time() - _t0
 
     # 统计报告
     n_valid = df['policy_cosine_sim'].notna().sum()
-    logger.info(f"  有效 policy_cosine_sim: {n_valid}/{len(df)} "
-                f"({n_valid / max(len(df), 1) * 100:.1f}%)")
+    logger.info(f"  有效 policy_cosine_sim: {n_valid:,d}/{len(df):,d} "
+                f"({pct4(n_valid / max(len(df), 1))})")
 
     # ---- 【结果分析】(golden 范式: 取真实产出指标 + 对照阈值/方向给判读) ----
     # 全部为日志专用局部量, 不回写 df / 不改任何产物。
@@ -1286,8 +1365,8 @@ def main():
             _cov_judge = "临界 (相当比例文章年份未知或早于全部政策 → 合法 NaN, 检查 year/日期 列与语料最早 vintage)"
         else:
             _cov_judge = "差/可疑 (多数文章无对齐分; 多因 vintage 前视守卫剔除或锚点缺失, 须核语料年份覆盖)"
-        logger.info(f"  · canonical 主轨覆盖率 policy_cosine_sim: {n_valid}/{_n_total} "
-                    f"({_valid_pct:.1f}%) → {_cov_judge}")
+        logger.info(f"  · canonical 主轨覆盖率 policy_cosine_sim: {n_valid:,d}/{_n_total:,d} "
+                    f"({pct4(_valid_pct, fraction=False)}) → {_cov_judge}")
 
         # (2) 逐轨值域/均值判读: 政策余弦实务多落 0~1, 均值偏高=语料整体偏政策腔, 偏低=偏市场化报道。
         _track_cols = [
@@ -1318,7 +1397,7 @@ def main():
             _mu, _sd = np.nanmean(_arr), np.nanstd(_arr)
             _range_ok = (_lo >= -1.0 - 1e-6) and (_hi <= 1.0 + 1e-6)
             _range_judge = "值域合法 ⊆[-1,1]" if _range_ok else "⚠ 值域越界! 嵌入/池化异常"
-            logger.info(f"  · {_nm} 轨 {_col}: 范围=[{_lo:.4f}, {_hi:.4f}] 均值={_mu:.4f} σ={_sd:.4f} → {_range_judge}")
+            logger.info(f"  · {_nm} 轨 {_col}: 范围=[{sig4(_lo)}, {sig4(_hi)}] 均值={sig4(_mu)} σ={sig4(_sd)} → {_range_judge}")
 
         # (3) 轨间独立性 (full vs ctx): ρ 过高说明 ctx 局部窗口未带来增量信号 (退化为 full)。
         if ('policy_cosine_sim_full' in df.columns
@@ -1341,7 +1420,7 @@ def main():
                         _rho_judge = "已知降级 (content_ctx 缺失 → ctx 轨回退为 full, ρ≈1 符合预期)"
                     else:
                         _rho_judge = "⚠ 高度相关 (ctx 与 full 近乎一致, 独立性存疑, 须核 content_ctx 物化)"
-                    logger.info(f"  · 轨间独立性 full↔ctx: Spearman ρ={_rho:.4f} (n={_n_both}) → {_rho_judge}")
+                    logger.info(f"  · 轨间独立性 full↔ctx: Spearman ρ={sig4(_rho)} (n={_n_both:,d}) → {_rho_judge}")
                 except ImportError:
                     logger.info("  · 轨间独立性 full↔ctx: scipy 缺失, 跳过相关性诊断")
 
@@ -1362,13 +1441,13 @@ def main():
                     _rho_mt, _ = spearmanr(_m[_mt], _t[_mt])
                     _mt_judge = ("好 (两套嵌入同向, 对齐分稳健)" if _rho_mt >= 0.3
                                  else "临界/弱 (两套嵌入结论分歧, 稳健性对照偏弱, 披露即可)")
-                    logger.info(f"  · 双模型一致性 MAIN↔t2v(full): Spearman ρ={_rho_mt:.4f} (n={_n_mt}) → {_mt_judge}")
+                    logger.info(f"  · 双模型一致性 MAIN↔t2v(full): Spearman ρ={sig4(_rho_mt)} (n={_n_mt:,d}) → {_mt_judge}")
                 except ImportError:
                     pass
 
         # (5) 小样本 / 依赖缺失警告。
         if _n_total < 50:
-            logger.info(f"  · ⚠ 小样本: 本次仅 {_n_total} 篇 (盘面 T=2 演示规模) → 上述判读仅验证管道正确性, "
+            logger.info(f"  · ⚠ 小样本: 本次仅 {_n_total:,d} 篇 (盘面 T=2 演示规模) → 上述判读仅验证管道正确性, "
                         f"全量结论以 17M/T=18 实测为准。")
         if 'policy_cosine_sim_ss' not in df.columns:
             logger.warning("  · content_ss 未物化 → ss 三轨 (policy_cosine_sim_ss / _t2v_ss) 未产出, "
@@ -1379,6 +1458,16 @@ def main():
         logger.info("-" * 72)
     except Exception as _e:
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
+
+    # ---- ⏱ 阶段计时 (golden 范式 ⑥: 各子阶段墙钟耗时, 末尾汇总; 秒数 sig4) ----
+    try:
+        logger.info("⏱ 阶段计时 (per-phase wall-clock, 秒)")
+        for _ph, _sec in _phase_t.items():
+            logger.info(f"  · {_ph}: {sig4(_sec)} s")
+        logger.info(f"  · 小计 (已计时子阶段): {sig4(sum(_phase_t.values()))} s "
+                    f"/ 阶段总墙钟: {sig4(time.time() - stage_start)} s")
+    except Exception as _e:
+        logger.warning(f"[阶段计时] 输出异常, 跳过(不影响产物): {_e}")
 
     log_stage_summary(logger, STAGE_NAME, stage_start, len(df), len(df))
     logger.info(f"--- 阶段执行完毕: {STAGE_NAME} ---")

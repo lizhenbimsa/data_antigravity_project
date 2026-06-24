@@ -109,7 +109,13 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import log_memory_usage, log_stage_summary, setup_logging
+from news_process.core.logging import (
+    log_memory_usage,
+    log_stage_summary,
+    pct4,
+    setup_logging,
+    sig4,
+)
 from news_process.core.reporting import safe_save_preview_csv
 
 warnings.filterwarnings(
@@ -182,7 +188,7 @@ if _DETERMINISTIC_MODE in ('cpu_strict', 'gpu_strict'):
 if DEVICE.type == 'cuda':
     logger.info(f"GPU: {torch.cuda.get_device_name(0)}")
     gpu_total_mem = torch.cuda.get_device_properties(0).total_memory
-    logger.info(f"GPU 显存: {gpu_total_mem / 1e9:.1f} GB")
+    logger.info(f"GPU 显存: {sig4(gpu_total_mem / 1e9)} GB")
     if _DETERMINISTIC_MODE in ('cpu_strict', 'gpu_strict'):
         # cuDNN deterministic + 关 benchmark: 牺牲 ~10-30% 推理速度换位级一致
         torch.backends.cudnn.deterministic = True
@@ -576,14 +582,14 @@ class MultiModelSentimentEngine:
             f"全部模型加载完毕: {len(loaded_names)}/{len(self.model_configs)} "
             f"(预期跳过 {len(self.skipped_expected)}: {self.skipped_expected}; "
             f"意外失败 {len(self.failed_models)}: {self.failed_models}) "
-            f"(耗时 {load_elapsed:.1f}s)"
+            f"(耗时 {sig4(load_elapsed)}s)"
         )
 
         if DEVICE.type == 'cuda':
             allocated = torch.cuda.memory_allocated() / 1e9
             reserved = torch.cuda.memory_reserved() / 1e9
-            logger.info(f"GPU 显存: 所有模型已分配 {allocated:.2f} GB, "
-                        f"已保留 {reserved:.2f} GB")
+            logger.info(f"GPU 显存: 所有模型已分配 {sig4(allocated)} GB, "
+                        f"已保留 {sig4(reserved)} GB")
 
         return loaded_names
 
@@ -898,12 +904,13 @@ def process_all_models(df: pd.DataFrame, engine: MultiModelSentimentEngine, cont
         if processed % 500 == 0 or processed == total:
             elapsed = time.time() - inference_start
             speed = processed / elapsed if elapsed > 0 else 0
-            logger.info(f"  [全部模型] 进度: {processed}/{total} "
-                        f"({speed:.1f} 文章/秒)")
+            logger.info(f"  [全部模型] 进度: {processed:,}/{total:,} "
+                        f"({sig4(speed)} 文章/秒)")
 
     total_elapsed = time.time() - inference_start
-    logger.info(f"  全部模型推理完成。总耗时: {total_elapsed:.1f}s, "
-                f"速度: {total / total_elapsed:.1f} 文章/秒 (×{len(model_results_all)}模型)")
+    _avg_speed = (total / total_elapsed) if total_elapsed > 0 else 0.0
+    logger.info(f"  全部模型推理完成。总耗时: {sig4(total_elapsed)}s, "
+                f"速度: {sig4(_avg_speed)} 文章/秒 (×{len(model_results_all)}模型)")
 
     # fix(omni-g-berts-02): 末尾统计重试后仍失败的文章数 (失败哨兵已写入,
     # 下游可由 {sn}_infer_failed 标志列 / num_windows=-1 过滤)
@@ -918,7 +925,7 @@ def process_all_models(df: pd.DataFrame, engine: MultiModelSentimentEngine, cont
     if DEVICE.type == 'cuda':
         allocated = torch.cuda.memory_allocated() / 1e9
         reserved = torch.cuda.memory_reserved() / 1e9
-        logger.info(f"  GPU 显存: 已分配 {allocated:.2f} GB, 已保留 {reserved:.2f} GB")
+        logger.info(f"  GPU 显存: 已分配 {sig4(allocated)} GB, 已保留 {sig4(reserved)} GB")
 
     # ── 构建输出 ──
     output = {}
@@ -985,8 +992,8 @@ def log_classification_report(output: dict, total: int):
     logger.info(f"推理设备: {DEVICE}")
     logger.info(f"Mixed Precision: {'AMP' if USE_AMP else '禁用'}")
     logger.info(f"模型权重精度: {'FP32 (AMP 推理时动态转换)' if USE_AMP else 'FP32 (无 AMP, 严格确定性)'}")
-    logger.info(f"滑动窗口步长比例: {WINDOW_STRIDE_RATIO}")
-    logger.info(f"推理 batch 大小: {INFERENCE_BATCH_SIZE}")
+    logger.info(f"滑动窗口步长比例: {sig4(WINDOW_STRIDE_RATIO)}")
+    logger.info(f"推理 batch 大小: {INFERENCE_BATCH_SIZE:,}")
     logger.info(f"动态填充 + 长度排序: 已启用")
     logger.info(f"多模型预加载: 已启用 (词表一致才共享分词, 异词表各自分窗; fix g-berts-01)")
 
@@ -1003,9 +1010,9 @@ def log_classification_report(output: dict, total: int):
         pos = stats.get(f'{sn}_正面', 0)
         neu = stats.get(f'{sn}_中性', 0)
         neg = stats.get(f'{sn}_负面', 0)
-        pos_pct = f"{pos / total * 100:.1f}%" if total > 0 else "N/A"
-        neu_pct = f"{neu / total * 100:.1f}%" if total > 0 else "N/A"
-        neg_pct = f"{neg / total * 100:.1f}%" if total > 0 else "N/A"
+        pos_pct = pct4(pos / total) if total > 0 else "N/A"
+        neu_pct = pct4(neu / total) if total > 0 else "N/A"
+        neg_pct = pct4(neg / total) if total > 0 else "N/A"
         logger.info(f"  {sn:<20} {pos:>8,} {neu:>8,} {neg:>8,} "
                     f"{pos_pct:>10} {neu_pct:>10} {neg_pct:>10}")
 
@@ -1025,12 +1032,12 @@ def log_classification_report(output: dict, total: int):
             logger.info("-" * 70)
             logger.info("滑动窗口截断统计 (Sliding Window Truncation Statistics):")
             logger.info(f"  有效文章数: {n_valid:,} "
-                        f"(排除 {n_empty} 篇空文本, {n_failed} 篇推理失败哨兵)")
-            logger.info(f"  单窗口文章: {single_window:,} 篇 ({single_window / n_valid * 100:.1f}%)")
-            logger.info(f"  多窗口文章: {multi_window:,} 篇 ({multi_window / n_valid * 100:.1f}%)")
-            logger.info(f"  窗口数统计: mean={valid_nw.mean():.2f}, "
-                        f"median={float(np.median(valid_nw)):.0f}, "
-                        f"max={int(valid_nw.max())}, std={valid_nw.std():.2f}")
+                        f"(排除 {n_empty:,} 篇空文本, {n_failed:,} 篇推理失败哨兵)")
+            logger.info(f"  单窗口文章: {single_window:,} 篇 ({pct4(single_window / n_valid)})")
+            logger.info(f"  多窗口文章: {multi_window:,} 篇 ({pct4(multi_window / n_valid)})")
+            logger.info(f"  窗口数统计: mean={sig4(valid_nw.mean())}, "
+                        f"median={int(np.median(valid_nw)):,}, "
+                        f"max={int(valid_nw.max()):,}, std={sig4(valid_nw.std())}")
             nw_dist = sorted(Counter(valid_nw.tolist()).items())
             dist_str = ", ".join(f"{int(k)}窗口:{v}篇" for k, v in nw_dist[:8])
             if len(nw_dist) > 8:
@@ -1090,7 +1097,7 @@ def main():
     logger.info("        出 {模型}_label + 各标签概率列 (供下游 stage 45 panel/encode 聚合 BERT 极性) +")
     logger.info("        bert_num_windows_{轨} (仅供可选验证阶段 tone_validation 窗口数分层; production panel 不消费)。")
     logger.info("        stage 24 herd_decay 硬依赖本阶段整个 23_bert_tone.parquet 文件 (缺文件即 SystemExit(1)), 但只读 content/标识列。")
-    logger.info(f"【方法】超长文本滑动窗口切片 (WINDOW_STRIDE_RATIO={WINDOW_STRIDE_RATIO:.2f}, "
+    logger.info(f"【方法】超长文本滑动窗口切片 (WINDOW_STRIDE_RATIO={sig4(WINDOW_STRIDE_RATIO)}, "
                 "相邻窗 50% 重叠, 单窗 ≤")
     logger.info("        max_length 512 含特殊 token) + 置信度加权池化 logits*=Σ(conf_k·logits_k)/Σconf_k;")
     logger.info("        各模型按自身 tokenizer 分窗 (fix g-berts-01 词表不同不共享分词); argmax 分类。")
@@ -1102,11 +1109,74 @@ def main():
     logger.info(f"          权重 + argmax (deterministic_mode={_DETERMINISTIC_MODE}; "
                 "AMP 对 argmax 分类结果无影响)。")
     logger.info("=" * 72)
-    logger.info(f"配置的模型数量: {len(MODEL_CONFIGS)}")
-    logger.info(f"推理 batch 大小: {INFERENCE_BATCH_SIZE}")
-    logger.info(f"每次处理文章数: {ARTICLES_PER_BATCH}")
+    logger.info(f"配置的模型数量: {len(MODEL_CONFIGS):,}")
+    logger.info(f"推理 batch 大小: {INFERENCE_BATCH_SIZE:,}")
+    logger.info(f"每次处理文章数: {ARTICLES_PER_BATCH:,}")
     for mc in MODEL_CONFIGS:
         logger.info(f"  - {mc['short_name']}: {mc['model_id']} ({mc['description']})")
+
+    # ── ① 🧭 项目 / 环境信息 (golden-safe, 纯日志; 失败不影响阶段) ──
+    try:
+        import platform as _platform
+        logger.info("─" * 72)
+        logger.info("🧭 项目/环境信息:")
+        logger.info(
+            "  · 阶段 23 tone_berts — BERT 系列预训练模型情感分类 "
+            "(滑动窗口切片 + 置信度加权池化, 三轨 full/ctx/ss)。"
+        )
+        logger.info(
+            "  · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); "
+            "版本 v3.11.1 (rule-ablation-ladder)。"
+        )
+        logger.info(
+            f"  · Python {sys.version.split()[0]} @ {sys.executable}"
+        )
+        logger.info(
+            f"  · 平台: {_platform.platform()}; CPU 核数: {os.cpu_count()}; "
+            f"PID: {os.getpid()}; RUN_ID: {os.environ.get('NEWS_PROCESS_RUN_ID', '(未设)')}"
+        )
+        logger.info(
+            f"  · 推理设备: {DEVICE}; 确定性模式: {_DETERMINISTIC_MODE}; "
+            f"随机种子: {_SEED:,}; AMP: {'启用' if USE_AMP else '禁用'}。"
+        )
+        logger.info(
+            "  · 成本/确定性: 纯本地 torch/transformers 推理 ($0, 无 LLM API、无 "
+            "_llm_cache.db); 确定性来自模型权重 + argmax 分类 (AMP 对 argmax 结果无影响)。"
+        )
+        logger.info(
+            "  · 本地重跑须设 HF_HUB_OFFLINE=1 / TRANSFORMERS_OFFLINE=1 "
+            "(两 HF 模型连不上 hf.co 但有本地缓存)。"
+        )
+        logger.info(f"  · 模块: {os.path.abspath(__file__)}")
+        logger.info(f"  · 工作目录: {os.getcwd()}")
+    except Exception as _e:  # noqa: BLE001  仅日志, 绝不影响产物
+        logger.warning(f"[环境信息] 日志诊断异常, 跳过(不影响产物): {_e}")
+
+    # ── ④ 📖 方法论依据 (参考文献信息; 经核验注册表逐字引用 + DOI 进日志) ──
+    try:
+        logger.info("─" * 72)
+        logger.info("📖 方法论依据 (核心方法/构念学术出处, 经 Crossref/DataCite 核验):")
+        logger.info(
+            "  · 金融领域 BERT 情感: Huang, A. H., Wang, H., & Yang, Y. (2023). "
+            "FinBERT: A large language model for extracting information from financial "
+            "text. Contemporary Accounting Research, 40(2), 806-841. "
+            "https://doi.org/10.1111/1911-3846.12832"
+        )
+        logger.info(
+            "    (白话: 本阶段三个模型均为在金融文本上预训练/微调的 BERT 系列, FinBERT "
+            "是该范式的权威出处 — 不靠关键词硬数, 而整体理解一段话的语气。)"
+        )
+        logger.info(
+            "  · 多方法三角验证: Denzin, N. K. (2017). The research act: A theoretical "
+            "introduction to sociological methods. Routledge. "
+            "https://doi.org/10.4324/9781315134543"
+        )
+        logger.info(
+            "    (白话: BERT(本阶段) 与 stage 21 大模型、stage 22 词典构成三条独立测度路线, "
+            "互相印证以提升媒体语调测度的收敛效度。)"
+        )
+    except Exception as _e:  # noqa: BLE001  仅日志, 绝不影响产物
+        logger.warning(f"[方法论引用] 日志诊断异常, 跳过(不影响产物): {_e}")
 
     # ── 定义输入输出路径 ──
     input_path = os.path.join(
@@ -1289,9 +1359,9 @@ def main():
             neg_list = [v['neg_pct'] for v in shares.values()]
             for sn, v in shares.items():
                 logger.info(
-                    f"  · 轨道 {track_name} 模型 {sn}: 正面 {v['pos_pct']:.1f}% / "
-                    f"中性 {v['neu_pct']:.1f}% / 负面 {v['neg_pct']:.1f}%, "
-                    f"平均窗口数 {v['avg_windows']:.2f}, 推理失败 {v['n_failed']} 篇。"
+                    f"  · 轨道 {track_name} 模型 {sn}: 正面 {pct4(v['pos_pct'], fraction=False)} / "
+                    f"中性 {pct4(v['neu_pct'], fraction=False)} / 负面 {pct4(v['neg_pct'], fraction=False)}, "
+                    f"平均窗口数 {sig4(v['avg_windows'])}, 推理失败 {v['n_failed']:,} 篇。"
                 )
                 if v['n_failed'] > 0:
                     logger.warning(
@@ -1311,8 +1381,8 @@ def main():
                 _verdict = ("边际占比相近" if max(pos_spread, neg_spread) <= _AGREE_THRESHOLD_PP
                             else "边际占比发散(需关注)")
                 logger.info(
-                    f"    模型间占比极差: 正面 {pos_spread:.1f}pp / 负面 {neg_spread:.1f}pp "
-                    f"→ {_verdict} (阈值 {_AGREE_THRESHOLD_PP:.0f}pp; ≤阈值=三模型全语料聚合极性"
+                    f"    模型间占比极差: 正面 {sig4(pos_spread)}pp / 负面 {sig4(neg_spread)}pp "
+                    f"→ {_verdict} (阈值 {sig4(_AGREE_THRESHOLD_PP)}pp; ≤阈值=三模型全语料聚合极性"
                     f"占比相近(边际分布一致), 非逐文章一致性; >阈值=三角验证重点关注; "
                     f"文章级 concordance/收敛效度须看 stage 39a inter_track_kappa.py)。"
                 )
@@ -1330,16 +1400,16 @@ def main():
             _valid = _nw[_nw > 0]
             if len(_valid) > 0:
                 _multi = int((_valid > 1).sum())
-                _multi_pct = _multi / len(_valid) * 100
+                _multi_frac = _multi / len(_valid)
                 _empty = int((_nw == 0).sum())
                 _maxw = int(_valid.max())
                 logger.info(
-                    f"  · 滑动窗口 (基于 {_first_sn}, _full 轨): 多窗口长文 {_multi} 篇 "
-                    f"({_multi_pct:.1f}%), 最大窗口数 {_maxw}, 空文本 {_empty} 篇。"
+                    f"  · 滑动窗口 (基于 {_first_sn}, _full 轨): 多窗口长文 {_multi:,} 篇 "
+                    f"({pct4(_multi_frac)}), 最大窗口数 {_maxw:,}, 空文本 {_empty:,} 篇。"
                 )
                 if _maxw > 10:
                     logger.info(
-                        f"    注: 最大窗口数 {_maxw}>10, 存在超长文本; 置信度加权池化已无损融合各窗, 无截断丢失。"
+                        f"    注: 最大窗口数 {_maxw:,}>10, 存在超长文本; 置信度加权池化已无损融合各窗, 无截断丢失。"
                     )
 
         # ④ 小样本/盘面规模警告

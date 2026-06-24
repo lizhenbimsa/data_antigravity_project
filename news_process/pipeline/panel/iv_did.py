@@ -53,8 +53,46 @@ import os
 import numpy as np
 import pandas as pd
 
+# 日志四位有效数字规范 (用户决策 2026-06-24): logger 输出的所有非整数一律经 sig4/pct4
+# 渲染。纯字符串格式化, 不参与任何产物计算 (golden-safe)。
+from news_process.core.logging import pct4, sig4
+
 # Phase 2a: 取代旧的 importlib.spec_from_file_location 反射,改为正规子包 import。
 from news_process.pipeline.panel.encode import CONFIG, logger
+
+# ============================================================================
+# 方法学参考文献 (single source of truth for IN-LOG citations)
+# 经核验注册表 (Crossref/DataCite 真值) 逐字照抄; 仅 emit 进日志, 绝不参与计算。
+# ============================================================================
+_IV_DID_REFERENCES = (
+    "Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik instruments: "
+    "What, when, why, and how. American Economic Review, 110(8), 2586-2624. "
+    "https://doi.org/10.1257/aer.20181047",
+    "Borusyak, K., Hull, P., & Jaravel, X. (2022). Quasi-experimental shift-share "
+    "research designs. The Review of Economic Studies, 89(1), 181-213. "
+    "https://doi.org/10.1093/restud/rdab030",
+    "Callaway, B., & Sant'Anna, P. H. C. (2021). Difference-in-Differences with "
+    "multiple time periods. Journal of Econometrics, 225(2), 200-230. "
+    "https://doi.org/10.1016/j.jeconom.2020.12.001",
+)
+
+
+def _log_iv_did_method_refs(lg=None) -> None:
+    """把本模块核心方法 (Bartik shift-share IV / 交错 DiD) 的学术出处 emit 进日志。
+
+    called-by-runner 库模块无独立 main(), 该函数在首个被调入口 (compute_bartik_iv)
+    起始处调用一次, 让 .log 而非仅注释承载 DOI 级方法学溯源 (顶刊审计标准)。
+    白话: 把"我们的工具变量/双重差分是按哪几篇经典论文做的"写进运行日志, 方便复核。
+    """
+    try:
+        _lg = lg or logger
+        _lg.info("  📖 方法论依据 (Bartik shift-share IV + 交错 DiD):")
+        _lg.info("    · Bartik IV (share 视角=基期份额外生性): " + _IV_DID_REFERENCES[0])
+        _lg.info("    · shift-share (shift 视角=冲击准随机, 仅作对比非双重主张): "
+                 + _IV_DID_REFERENCES[1])
+        _lg.info("    · 交错 DiD (多期处理时点, ATT 分解): " + _IV_DID_REFERENCES[2])
+    except Exception as e:  # noqa: BLE001 — 日志块绝不得让阶段崩溃
+        (lg or logger).warning(f"  方法论引用日志块跳过 (非致命): {e}")
 
 # ============================================================================
 # 2b. 银行分组映射加载 (Bartik IV 前置依赖)
@@ -152,6 +190,16 @@ def compute_bartik_iv(panel: pd.DataFrame,
     else:
         resolved_base_years = [int(panel['year'].min())]
     groups = sorted(set(v for v in bank_group_map.values() if v != 'other'))
+    # ── 子步骤 banner: Bartik shift-share IV (called-by-runner, 共享 panel-export 日志) ──
+    try:
+        logger.info("=" * 60)
+        logger.info(f"步骤 7e/8z: Bartik Shift-Share IV [{group_prefix}] — 缓解情感↔结果内生性")
+        logger.info("  方法: 基期份额 (冻结) × 同组其他银行 LOO 情感 shift; 三轨 full/ctx/ss "
+                    "各自 just-identified, 禁混进同一 over-id Hansen J")
+        logger.info("=" * 60)
+        _log_iv_did_method_refs()
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  Bartik IV banner 跳过 (非致命): {e}")
     logger.info(f"  Bartik IV [{group_prefix}]: 基期 T0={resolved_base_years}, "
                 f"组别={groups} ({len(groups)} 维)")
     panel = panel.copy()
@@ -503,16 +551,29 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
             f"  [{group_prefix}] {int(_pre_base_mask.sum())} 行面板年份早于基期末年 "
             f"{max(resolved_base_years)} → IV 置 NaN (share 前视掩码)")
 
-    # 诊断日志 (三轨 full/ctx/ss)
+    # 诊断日志 (三轨 full/ctx/ss) + 结果判读: IV 覆盖率与区分度对照阈值
     for track in ['_full', '_ctx', '_ss']:
         iv_col = f'bartik_{group_prefix}_iv{track}'
         if iv_col in panel.columns:
-            n_valid = panel[iv_col].notna().sum()
+            n_valid = int(panel[iv_col].notna().sum())
+            n_rows = len(panel)
+            valid_frac = n_valid / n_rows if n_rows else 0.0
             iv_mean = panel[iv_col].mean()
             iv_std = panel[iv_col].std()
             logger.info(f"  [{group_prefix}] {iv_col}: "
-                        f"{n_valid}/{len(panel)} 有效, "
-                        f"mean={iv_mean:.4f}, std={iv_std:.4f}")
+                        f"{n_valid:,d}/{n_rows:,d} 有效 ({pct4(valid_frac)}), "
+                        f"mean={sig4(iv_mean)}, std={sig4(iv_std)}")
+            # 结果判读: 覆盖率 (一阶段有效 N) + 区分度 (std=0 → 工具退化近共线于 FE)
+            try:
+                if valid_frac < 0.5:
+                    logger.warning(f"    ⚠ {iv_col} 有效率 {pct4(valid_frac)} < 50% — "
+                                   "基期退化/前视掩码致工具大面积缺失, 一阶段 N 偏低, "
+                                   "相应 2SLS spec 须降权并披露 (T=2 退化, GPSS 2020)")
+                if iv_std is not None and float(np.nan_to_num(iv_std)) == 0.0 and n_valid > 0:
+                    logger.warning(f"    ⚠ {iv_col} std=0 — 工具零方差 (近共线于 bank-type FE), "
+                                   "一阶段弱工具风险高")
+            except Exception as e:  # noqa: BLE001
+                logger.warning(f"    IV 结果判读跳过 (非致命): {e}")
 
     return panel
 
@@ -616,14 +677,20 @@ def compute_zone_leave1out(panel: pd.DataFrame,
         panel = panel.merge(tmp[['target_bank', 'year', out_col]],
                             on=['target_bank', 'year'], how='left')
 
-    # 诊断 (三轨 full/ctx/ss)
+    # 诊断 (三轨 full/ctx/ss) + 结果判读: 区域 LOO IV 覆盖率
     zone_dist = panel.drop_duplicates('target_bank')['bank_zone'].value_counts()
-    logger.info(f"  经济圈分布: {dict(zone_dist)}")
+    logger.info(f"  经济圈分布: {dict(zone_dist)} (min_group_size={min_group_size} 篇文章)")
     for track in ['_full', '_ctx', '_ss']:
         out_col = f'zone_leave1out_tone{track}'
         if out_col in panel.columns:
-            n_valid = panel[out_col].notna().sum()
-            logger.info(f"  {out_col}: {n_valid}/{len(panel)} 有效 ({n_valid/len(panel)*100:.1f}%)")
+            n_valid = int(panel[out_col].notna().sum())
+            n_rows = len(panel)
+            valid_frac = n_valid / n_rows if n_rows else 0.0
+            logger.info(f"  {out_col}: {n_valid:,d}/{n_rows:,d} 有效 ({pct4(valid_frac)})")
+            if valid_frac < 0.5:
+                logger.warning(f"    ⚠ {out_col} 有效率 {pct4(valid_frac)} < 50% — "
+                               "经济圈内 LOO 文章数不足 min_group_size 或 'other' 伪圈致缺失, "
+                               "区域共同冲击工具偏弱, 须披露")
 
     return panel
 
@@ -673,6 +740,17 @@ def merge_policy_shocks(panel: pd.DataFrame) -> pd.DataFrame:
 
     with open(shock_path, 'r', encoding='utf-8') as f:
         shocks = json.load(f)
+
+    # ── 子步骤 banner: 交错 DiD 政策冲击合并 (DCEP / 监管沙盒) ──
+    try:
+        logger.info("=" * 60)
+        logger.info("步骤 DiD: 政策冲击处理变量合并 (treated/post/treat_year + event-study lead/lag)")
+        logger.info("  方法依据: " + _IV_DID_REFERENCES[2])
+        logger.info("  白话: 给每家银行标注它哪一年起被数字货币/监管沙盒试点覆盖, "
+                    "生成交错 DiD 所需的处理组/政策后哑变量与事件期 (lead/lag)。")
+        logger.info("=" * 60)
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  DiD banner 跳过 (非致命): {e}")
 
     # fix(omni-g-ivdid-06, 2026-06-11): HQ-based 处理分配假设显式披露 (详见 docstring)
     logger.warning(
@@ -854,8 +932,8 @@ def merge_policy_shocks(panel: pd.DataFrame) -> pd.DataFrame:
                     if exp > 0:
                         chi2 += (obs - exp) ** 2 / exp
             cramers_v = (chi2 / max(n_obs, 1)) ** 0.5
-            logger.info(f"  Cramér's V = {cramers_v:.4f}"
-                        f" {'✓ < 0.3 弱相关' if cramers_v < 0.3 else '≥ 0.3 中强相关'}")
+            logger.info(f"  Cramér's V = {sig4(cramers_v)}"
+                        f" {'✓ < 0.3 弱相关 (处理组近似独立)' if cramers_v < 0.3 else '≥ 0.3 中强相关'}")
             if cramers_v >= 0.3:
                 logger.info(f"  → 建议: 在论文中讨论 {p1} 与 {p2} 的处理组重叠问题,")
                 logger.info(f"    或在稳健性检验中单独估计各政策效应")
@@ -912,6 +990,15 @@ def diagnose_rotemberg_weights(panel: pd.DataFrame,
     lg.info(f"G-03: Rotemberg 权重诊断 [{group_prefix}]")
     lg.info("  对标: Goldsmith-Pinkham et al. (2020, AER, §5, Table 3)")
     lg.info("=" * 60)
+    # 方法论引用入日志 (Rotemberg 权重分解 = GPSS §5 核心诊断; BHJ 提供 shift 视角对比)
+    try:
+        lg.info("  📖 方法依据:")
+        lg.info("    · " + _IV_DID_REFERENCES[0])
+        lg.info("    · " + _IV_DID_REFERENCES[1])
+        lg.info("  注: 本函数用 Cov(share,BIV)/Var(BIV) 单变量 OLS 近似 α_k, 仅作集中度提示; "
+                "正式论文须走 Stata bartik_weight 包跑真 GPSS §5 分解。")
+    except Exception as e:  # noqa: BLE001
+        lg.warning(f"  Rotemberg 方法引用日志块跳过 (非致命): {e}")
 
     # 推断组别列表
     if groups is None:
@@ -971,11 +1058,12 @@ def diagnose_rotemberg_weights(panel: pd.DataFrame,
     top5 = sorted(weights.items(), key=lambda x: abs(x[1]), reverse=True)[:5]
 
     # --- 日志输出 ---
-    lg.info(f"  ── Rotemberg 权重 α_k (共 {len(weights)} 个维度) ──")
+    lg.info(f"  ── Rotemberg 权重 α_k (共 {len(weights):,d} 个维度) ──")
     for g, alpha in sorted(weights.items(), key=lambda x: -abs(x[1])):
         flag = " NEGATIVE" if alpha < 0 else ""
-        lg.info(f"    {g:>15s}: α = {alpha:+.6f}, "
-                f"E[share] = {share_means.get(g, 0):.4f}{flag}")
+        _alpha_s = ('+' if alpha >= 0 else '-') + sig4(abs(alpha))
+        lg.info(f"    {g:>15s}: α = {_alpha_s}, "
+                f"E[share] = {sig4(share_means.get(g, 0))}{flag}")
 
     lg.info(f"  ── 诊断汇总 ──")
     lg.info(f"    负权重维度: {n_negative}/{len(weights)}"
@@ -984,10 +1072,10 @@ def diagnose_rotemberg_weights(panel: pd.DataFrame,
         lg.info(f"    负权重提示可能的排他性约束违背 "
                 f"(Goldsmith-Pinkham 2020, AER §5.2)")
         lg.info(f"    → 建议: 在论文稳健性检验中移除负权重维度后重新估计")
-    lg.info(f"    HHI(|α|) = {hhi:.4f}"
-            f" {'✓ < 0.25 分散' if hhi < 0.25 else '≥ 0.25 集中'}")
+    lg.info(f"    HHI(|α|) = {sig4(hhi)}"
+            f" {'✓ < 0.25 分散 (无单一 share 维度主导)' if hhi < 0.25 else '≥ 0.25 集中 (少数维度主导, BHJ 2022 §4.2 警示)'}")
     lg.info(f"    Top-5 权重维度: "
-            f"{[(g, f'{a:+.4f}') for g, a in top5]}")
+            f"{[(g, ('+' if a >= 0 else '-') + sig4(abs(a))) for g, a in top5]}")
 
     # Stata 命令建议
     lg.info(f"  ── Stata 验证命令 ──")

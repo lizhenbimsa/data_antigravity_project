@@ -123,6 +123,7 @@ news_process.validation.media_diversity — 媒体名称与地域多样性审计
 
 import json
 import os
+import platform
 import sys
 import time
 from collections import Counter
@@ -138,7 +139,12 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import log_stage_summary, setup_logging
+from news_process.core.logging import (
+    log_stage_summary,
+    pct4,
+    setup_logging,
+    sig4,
+)
 
 # ============================================================================
 # 1. 全局配置与初始化
@@ -181,12 +187,14 @@ REFERENCES = {
     'Bushee2010': (
         'Bushee, B.J., Core, J.E., Guay, W. & Hamm, S.J.W. (2010). '
         '"The Role of the Business Press as an Information Intermediary." '
-        'Journal of Accounting Research, 48(1), 1–19.'
+        'Journal of Accounting Research, 48(1), 1–19. '
+        'https://doi.org/10.1111/j.1475-679X.2009.00357.x'
     ),
     'Tetlock2007': (
         'Tetlock, P.C. (2007). "Giving Content to Investor Sentiment: '
         'The Role of Media in the Stock Market." '
-        'The Journal of Finance, 62(3), 1139–1168.'
+        'The Journal of Finance, 62(3), 1139–1168. '
+        'https://doi.org/10.1111/j.1540-6261.2007.01232.x'
     ),
     'Laakso1979': (
         'Laakso, M. & Taagepera, R. (1979). "Effective Number of Parties." '
@@ -381,7 +389,7 @@ def analyze_media_names(df: pd.DataFrame, stage_name: str,
     logger.info(f"  Top 20 媒体 (按报道数量):")
     for row in top20_rows:
         logger.info(f"    {row['排名']:2d}. {row['媒体名称']:<18s} | {row['报道数']:>6,} 篇 "
-                     f"({row['占比(%)']:5.2f}%) | 权重={row['权重']} | {row['层级']}")
+                     f"({pct4(row['占比(%)'], fraction=False):>7}) | 权重={row['权重']} | {row['层级']}")
     result["top20_df"] = pd.DataFrame(top20_rows)
 
     # --- 集中度指标体系 ---
@@ -402,23 +410,23 @@ def analyze_media_names(df: pd.DataFrame, stage_name: str,
     w_hhi = compute_weighted_hhi(media_counts, media_weights, default_weight)
 
     logger.info(f"  集中度指标体系:")
-    logger.info(f"    [Shannon1948] Shannon 熵 H: {shannon:.4f} (最大={shannon_max:.4f})")
+    logger.info(f"    [Shannon1948] Shannon 熵 H: {sig4(shannon)} (最大={sig4(shannon_max)})")
     logger.info(f"      H 越高 = 媒体来源越多样化。H_max = log2(N) = 完全均匀时的熵值。")
-    logger.info(f"    [Pielou1966] 均匀度 J': {evenness:.4f}")
+    logger.info(f"    [Pielou1966] 均匀度 J': {sig4(evenness)}")
     logger.info(f"      J' = H/H_max, 范围[0,1], 越接近1 = 报道数在各媒体间越均匀。")
-    logger.info(f"    [Herfindahl1950] HHI: {hhi:.6f}")
+    logger.info(f"    [Herfindahl1950] HHI: {sig4(hhi)}")
     logger.info(f"      HHI ∈ (0,1], <0.01=高度分散, 0.01-0.15=适度集中, >0.25=高度集中。")
-    logger.info(f"    [Laakso1979] 等效媒体数 ENM = 1/HHI: {enm:.1f}")
-    logger.info(f"      ENM 表示'如果所有媒体均匀报道, 等效于 {enm:.0f} 家媒体在工作'。")
-    logger.info(f"    [Gini1912] Gini 系数: {gini:.4f}")
+    logger.info(f"    [Laakso1979] 等效媒体数 ENM = 1/HHI: {sig4(enm)}")
+    logger.info(f"      ENM 表示'如果所有媒体均匀报道, 等效于 {sig4(enm)} 家媒体在工作'。")
+    logger.info(f"    [Gini1912] Gini 系数: {sig4(gini)}")
     logger.info(f"      Gini ∈ [0,1], 越接近0=越均匀, 越接近1=越集中于少数媒体。")
-    logger.info(f"    加权 HHI (按媒体权威权重): {w_hhi:.6f}")
+    logger.info(f"    加权 HHI (按媒体权威权重): {sig4(w_hhi)}")
     logger.info(f"      利用 media_weights.json 权重对报道数加权后计算的集中度。")
     logger.info(f"    集中率:")
-    logger.info(f"      CR1={cr1:.2%} | CR3={cr3:.2%} | CR5={top5_share:.2%} "
-                 f"| CR10={top10_share:.2%} | CR20={top20_share:.2%}")
-    logger.info(f"    媒体报道数: 均值={media_counts.mean():.1f}, "
-                 f"中位数={media_counts.median():.0f}, 标准差={media_counts.std():.1f}")
+    logger.info(f"      CR1={pct4(cr1)} | CR3={pct4(cr3)} | CR5={pct4(top5_share)} "
+                 f"| CR10={pct4(top10_share)} | CR20={pct4(top20_share)}")
+    logger.info(f"    媒体报道数: 均值={sig4(media_counts.mean())}, "
+                 f"中位数={sig4(media_counts.median())}, 标准差={sig4(media_counts.std())}")
 
     result["metrics"] = {
         "阶段": stage_name, "总行数": total, "唯一媒体数": n_unique,
@@ -437,9 +445,9 @@ def analyze_media_names(df: pd.DataFrame, stage_name: str,
     n_le5 = int((media_counts <= 5).sum())
     n_le10 = int((media_counts <= 10).sum())
     logger.info(f"  长尾分析:")
-    logger.info(f"    仅 1 篇: {n_one} ({n_one/n_unique*100:.1f}%)")
-    logger.info(f"    <=5 篇: {n_le5} ({n_le5/n_unique*100:.1f}%)")
-    logger.info(f"    <=10 篇: {n_le10} ({n_le10/n_unique*100:.1f}%)")
+    logger.info(f"    仅 1 篇: {n_one:,} ({pct4(n_one/n_unique)})")
+    logger.info(f"    <=5 篇: {n_le5:,} ({pct4(n_le5/n_unique)})")
+    logger.info(f"    <=10 篇: {n_le10:,} ({pct4(n_le10/n_unique)})")
     result["tail_df"] = pd.DataFrame([{
         "阶段": stage_name,
         "仅1篇媒体数": n_one, "仅1篇占比(%)": round(n_one / n_unique * 100, 1),
@@ -462,8 +470,8 @@ def analyze_media_names(df: pd.DataFrame, stage_name: str,
         n_media = tier_counter[tier]
         n_articles = tier_article_counter[tier]
         pct = n_articles / total * 100
-        logger.info(f"    {tier:<35s} | {n_media:>5} 家 | "
-                     f"{n_articles:>6,} 篇 ({pct:.2f}%)")
+        logger.info(f"    {tier:<35s} | {n_media:>5,} 家 | "
+                     f"{n_articles:>6,} 篇 ({pct4(pct, fraction=False)})")
         tier_rows.append({
             "阶段": stage_name, "层级": tier,
             "媒体数": n_media, "报道数": n_articles,
@@ -479,9 +487,9 @@ def analyze_media_names(df: pd.DataFrame, stage_name: str,
     rated_media_pct = rated_media / n_unique * 100 if n_unique > 0 else 0
     rated_article_pct = rated_articles / total * 100 if total > 0 else 0
     logger.info(f"  权重覆盖统计 [Bushee2010]:")
-    logger.info(f"    已评级 (Tier 1-5): {rated_media} 家 ({rated_media_pct:.1f}%) "
-                 f"| {rated_articles:,} 篇 ({rated_article_pct:.1f}%)")
-    logger.info(f"    未评级 (Tier 6):   {unrated_media} 家 "
+    logger.info(f"    已评级 (Tier 1-5): {rated_media:,} 家 ({pct4(rated_media_pct, fraction=False)}) "
+                 f"| {rated_articles:,} 篇 ({pct4(rated_article_pct, fraction=False)})")
+    logger.info(f"    未评级 (Tier 6):   {unrated_media:,} 家 "
                  f"| {unrated_articles:,} 篇")
     result["metrics"]["已评级媒体占比(%)"] = round(rated_media_pct, 1)
     result["metrics"]["已评级报道占比(%)"] = round(rated_article_pct, 1)
@@ -531,8 +539,8 @@ def analyze_regions(df: pd.DataFrame, stage_name: str,
         for name, count in region_counts.items():
             pct = count / total * 100
             cumulative += pct
-            logger.info(f"    {name:<12s} | {count:>6,} 篇 ({pct:5.2f}%) "
-                         f"累计 {cumulative:5.1f}%")
+            logger.info(f"    {name:<12s} | {count:>6,} 篇 ({pct4(pct, fraction=False):>7}) "
+                         f"累计 {pct4(cumulative, fraction=False)}")
             region_rows.append({
                 "阶段": stage_name, "地域": name,
                 "报道数": count, "占比(%)": round(pct, 2),
@@ -552,12 +560,12 @@ def analyze_regions(df: pd.DataFrame, stage_name: str,
         region_gini = compute_gini(region_counts.values.astype(float))
 
         logger.info(f"  地域集中度指标体系:")
-        logger.info(f"    HHI: {region_hhi:.6f} | 等效地域数 ENR: {region_enr:.1f}")
-        logger.info(f"    Top 3 占比: {top3_share:.2%}")
-        logger.info(f"    Shannon 熵: {region_shannon:.4f} "
-                     f"(最大={region_shannon_max:.4f})")
-        logger.info(f"    Pielou 均匀度: {region_evenness:.4f}")
-        logger.info(f"    Gini 系数: {region_gini:.4f}")
+        logger.info(f"    HHI: {sig4(region_hhi)} | 等效地域数 ENR: {sig4(region_enr)}")
+        logger.info(f"    Top 3 占比: {pct4(top3_share)}")
+        logger.info(f"    Shannon 熵: {sig4(region_shannon)} "
+                     f"(最大={sig4(region_shannon_max)})")
+        logger.info(f"    Pielou 均匀度: {sig4(region_evenness)}")
+        logger.info(f"    Gini 系数: {sig4(region_gini)}")
 
         result["region_metrics"] = {
             "唯一地域数": n_unique, "地域HHI": round(region_hhi, 6),
@@ -575,7 +583,7 @@ def analyze_regions(df: pd.DataFrame, stage_name: str,
             group_count = sum(region_counts.get(p, 0) for p in provinces)
             group_pct = group_count / total * 100 if total > 0 else 0
             n_covered = sum(1 for p in provinces if p in region_counts.index)
-            logger.info(f"    {group_name}: {group_count:>6,} 篇 ({group_pct:5.1f}%) "
+            logger.info(f"    {group_name}: {group_count:>6,} 篇 ({pct4(group_pct, fraction=False):>7}) "
                          f"| 覆盖 {n_covered}/{len(provinces)} 省")
             result["region_metrics"][f"{group_name}报道占比"] = round(group_pct, 2)
 
@@ -589,7 +597,7 @@ def analyze_regions(df: pd.DataFrame, stage_name: str,
             for p in uncovered:
                 logger.info(f"    - {p}")
         logger.info(f"  省份覆盖率: {len(expected) - len(uncovered)}/{len(expected)} "
-                     f"= {coverage_rate:.1%}")
+                     f"= {pct4(coverage_rate)}")
         result["region_metrics"]["省份覆盖率"] = round(coverage_rate, 4)
         result["uncovered_df"] = pd.DataFrame([
             {"阶段": stage_name, "未覆盖省份": p} for p in uncovered
@@ -612,7 +620,7 @@ def analyze_regions(df: pd.DataFrame, stage_name: str,
             logger.info(f"  全部城市分布 ({n_cities} 个):")
             for name, count in city_counts.items():
                 pct = count / total_city * 100
-                logger.info(f"    {name:<12s} | {count:>6,} 篇 ({pct:5.2f}%)")
+                logger.info(f"    {name:<12s} | {count:>6,} 篇 ({pct4(pct, fraction=False):>7})")
                 city_rows.append({
                     "阶段": stage_name, "城市": name,
                     "报道数": count, "占比(%)": round(pct, 2),
@@ -684,24 +692,27 @@ def analyze_bank_media(df: pd.DataFrame, media_weights: dict,
 
     bank_df = pd.DataFrame(rows).sort_values('唯一媒体数', ascending=False)
 
-    logger.info(f"  按银行的媒体多样性 ({len(bank_df)} 家银行):")
+    # 子步骤 banner: 方法依据 (经核验注册表) + 本步用途
+    logger.info("  [方法] 按银行 media breadth = 唯一媒体数 (Bushee et al. 2010, JAR; "
+                "DOI 10.1111/j.1475-679X.2009.00357.x) + Shannon 熵 + 层级加权得分")
+    logger.info(f"  按银行的媒体多样性 ({len(bank_df):,} 家银行):")
     logger.info(f"  {'银行':<25s} | {'媒体数':>5s} | {'Shannon':>7s} | "
                  f"{'加权得分':>7s} | {'T1-3(%)':>7s}")
     logger.info(f"  {'-'*70}")
     for _, row in bank_df.iterrows():
-        logger.info(f"    {row['银行']:<25s} | {row['唯一媒体数']:>4} 家 | "
-                     f"{row['Shannon熵']:>7.3f} | {row['层级加权得分']:>7.1f} | "
-                     f"{row['Tier1-3覆盖率(%)']:>6.1f}%")
+        logger.info(f"    {row['银行']:<25s} | {row['唯一媒体数']:>4,} 家 | "
+                     f"{sig4(row['Shannon熵']):>7} | {sig4(row['层级加权得分']):>7} | "
+                     f"{pct4(row['Tier1-3覆盖率(%)'], fraction=False)}")
 
     # 描述性统计
     logger.info(f"  银行媒体多样性汇总统计:")
-    logger.info(f"    唯一媒体数: mean={bank_df['唯一媒体数'].mean():.1f}, "
-                 f"median={bank_df['唯一媒体数'].median():.0f}, "
-                 f"std={bank_df['唯一媒体数'].std(ddof=0):.1f}")
-    logger.info(f"    Shannon 熵: mean={bank_df['Shannon熵'].mean():.3f}, "
-                 f"median={bank_df['Shannon熵'].median():.3f}")
-    logger.info(f"    层级加权得分: mean={bank_df['层级加权得分'].mean():.1f}, "
-                 f"median={bank_df['层级加权得分'].median():.1f}")
+    logger.info(f"    唯一媒体数: mean={sig4(bank_df['唯一媒体数'].mean())}, "
+                 f"median={sig4(bank_df['唯一媒体数'].median())}, "
+                 f"std={sig4(bank_df['唯一媒体数'].std(ddof=0))}")
+    logger.info(f"    Shannon 熵: mean={sig4(bank_df['Shannon熵'].mean())}, "
+                 f"median={sig4(bank_df['Shannon熵'].median())}")
+    logger.info(f"    层级加权得分: mean={sig4(bank_df['层级加权得分'].mean())}, "
+                 f"median={sig4(bank_df['层级加权得分'].median())}")
 
     return bank_df
 
@@ -786,22 +797,22 @@ def analyze_temporal_stability(df: pd.DataFrame, stage_name: str,
 
     logger.info(f"  时序稳定性 ({years[0]}-{years[-1]}):")
     for _, r in trend_df.iterrows():
-        jac_str = f"Jaccard={r['Jaccard相似度']:.3f}" if r['Jaccard相似度'] > 0 else "—"
+        jac_str = f"Jaccard={sig4(r['Jaccard相似度'])}" if r['Jaccard相似度'] > 0 else "—"
         logger.info(f"    {int(r['年份'])}: {r['报道数']:>5,} 篇 | "
-                     f"媒体={r['唯一媒体数']:>3} | HHI={r['HHI']:.4f} | "
-                     f"J'={r['Pielou均匀度']:.3f} | "
-                     f"+{r['新进入媒体']}/-{r['退出媒体']} | {jac_str}")
+                     f"媒体={r['唯一媒体数']:>3,} | HHI={sig4(r['HHI'])} | "
+                     f"J'={sig4(r['Pielou均匀度'])} | "
+                     f"+{r['新进入媒体']:,}/-{r['退出媒体']:,} | {jac_str}")
 
     # 趋势判断
     if len(trend_df) >= 3:
         jac_values = trend_df['Jaccard相似度'].iloc[1:].values
         avg_jac = np.mean(jac_values) if len(jac_values) > 0 else 0
         if avg_jac >= 0.7:
-            logger.info(f"  ✓ 平均 Jaccard={avg_jac:.3f} ≥ 0.70, 媒体构成跨年稳定")
+            logger.info(f"  ✓ 平均 Jaccard={sig4(avg_jac)} ≥ 0.70, 媒体构成跨年稳定")
         elif avg_jac >= 0.5:
-            logger.info(f"  ℹ️  平均 Jaccard={avg_jac:.3f}, 媒体构成有一定变动")
+            logger.info(f"  ℹ️  平均 Jaccard={sig4(avg_jac)}, 媒体构成有一定变动")
         else:
-            logger.info(f"  平均 Jaccard={avg_jac:.3f} < 0.50, 媒体构成跨年变动较大")
+            logger.info(f"  平均 Jaccard={sig4(avg_jac)} < 0.50, 媒体构成跨年变动较大")
 
     return trend_df
 
@@ -912,11 +923,14 @@ def compute_cross_stage_delta(overview_rows: list,
     logger.info("  跨阶段媒体多样性差异分析")
     logger.info("=" * 70)
     for _, r in delta_df.iterrows():
+        _hhi_sign = '+' if r['HHI变化'] >= 0 else ''
+        _hhipct_sign = '+' if r['HHI变化率(%)'] >= 0 else ''
         logger.info(f"  {r['从阶段'][:20]:<20s} → {r['到阶段'][:20]:<20s}")
-        logger.info(f"    媒体数变化: {r['媒体数变化']:+d} | "
-                     f"HHI变化: {r['HHI变化']:+.6f} ({r['HHI变化率(%)']:+.1f}%)")
-        logger.info(f"    媒体存留率: {r['媒体存留率']:.2%} | "
-                     f"Jaccard相似度: {r['Jaccard相似度']:.4f}")
+        logger.info(f"    媒体数变化: {r['媒体数变化']:+,d} | "
+                     f"HHI变化: {_hhi_sign}{sig4(r['HHI变化'])} "
+                     f"({_hhipct_sign}{pct4(r['HHI变化率(%)'], fraction=False)})")
+        logger.info(f"    媒体存留率: {pct4(r['媒体存留率'])} | "
+                     f"Jaccard相似度: {sig4(r['Jaccard相似度'])}")
         if abs(r['HHI变化率(%)']) > 20:
             logger.info(f"    HHI 变化超过 20%, 该阶段对媒体集中度影响显著")
 
@@ -954,43 +968,43 @@ def log_comprehensive_summary(final_metrics: dict,
     region_evenness = final_region_metrics.get("地域Pielou均匀度", 0)
     coverage = final_region_metrics.get("省份覆盖率", 0)
 
-    logger.info(f"    · 最终唯一媒体数:       {n_media}")
-    logger.info(f"    · HHI:                  {hhi:.6f}      "
+    logger.info(f"    · 最终唯一媒体数:       {n_media:,}")
+    logger.info(f"    · HHI:                  {sig4(hhi)}      "
                  f"({'✓ <0.10 分散' if hhi < 0.10 else '≥0.10 集中'})")
-    logger.info(f"    · 等效媒体数 ENM:       {enm:.0f}          "
+    logger.info(f"    · 等效媒体数 ENM:       {sig4(enm)}          "
                  f"[Laakso1979]")
     # fix(omni-g-val-robust-05, 2026-06-11): J' 在 S=1 时为 NaN (不适用),
     # 显示 n/a 而非误导性的数值/阈值判定; 单一媒体垄断由 HHI≥0.10 门捕获。
     if pd.isna(evenness):
         logger.info("    · Pielou 均匀度 J':     n/a       (S=1 单一媒体, J' 不适用)")
     else:
-        logger.info(f"    · Pielou 均匀度 J':     {evenness:.4f}    "
+        logger.info(f"    · Pielou 均匀度 J':     {sig4(evenness)}    "
                      f"({'✓ ≥0.70' if evenness >= 0.70 else '<0.70'})")
-    logger.info(f"    · Gini 系数:            {gini:.4f}    "
+    logger.info(f"    · Gini 系数:            {sig4(gini)}    "
                  f"({'✓ <0.80' if gini < 0.80 else '≥0.80 高度不均'})")
-    logger.info(f"    · Tier 1-5 报道占比:    {rated_pct:.1f}%    "
+    logger.info(f"    · Tier 1-5 报道占比:    {pct4(rated_pct, fraction=False)}    "
                  f"({'✓ ≥40%' if rated_pct >= 40 else '<40%'})")
-    logger.info(f"    · 唯一地域数:           {n_region}")
-    logger.info(f"    · 地域 HHI:             {region_hhi:.6f}")
-    logger.info(f"    · 地域均匀度:           {region_evenness:.4f}")
-    logger.info(f"    · 省份覆盖率:           {coverage:.1%}    "
+    logger.info(f"    · 唯一地域数:           {n_region:,}")
+    logger.info(f"    · 地域 HHI:             {sig4(region_hhi)}")
+    logger.info(f"    · 地域均匀度:           {sig4(region_evenness)}")
+    logger.info(f"    · 省份覆盖率:           {pct4(coverage)}    "
                  f"({'✓ ≥80%' if coverage >= 0.80 else '<80%'})")
 
     # 自动化判定
     issues = []
     if hhi >= 0.10:
-        issues.append(f"媒体 HHI={hhi:.4f} ≥0.10: 来源过度集中于少数媒体")
+        issues.append(f"媒体 HHI={sig4(hhi)} ≥0.10: 来源过度集中于少数媒体")
     # fix(omni-g-val-robust-05, 2026-06-11): NaN (S=1 不适用) 不触发均匀度判定
     if not pd.isna(evenness) and evenness < 0.70:
-        issues.append(f"Pielou J'={evenness:.3f} <0.70: 报道数在各媒体间分布不均")
+        issues.append(f"Pielou J'={sig4(evenness)} <0.70: 报道数在各媒体间分布不均")
     if gini >= 0.80:
-        issues.append(f"Gini={gini:.3f} ≥0.80: 媒体报道数高度不等")
+        issues.append(f"Gini={sig4(gini)} ≥0.80: 媒体报道数高度不等")
     if rated_pct < 40:
-        issues.append(f"已评级报道占比={rated_pct:.1f}% <40%: 大量报道来自未评级媒体")
+        issues.append(f"已评级报道占比={pct4(rated_pct, fraction=False)} <40%: 大量报道来自未评级媒体")
     if coverage < 0.80:
-        issues.append(f"省份覆盖率={coverage:.1%} <80%: 地域覆盖存在盲区")
+        issues.append(f"省份覆盖率={pct4(coverage)} <80%: 地域覆盖存在盲区")
     if region_hhi >= 0.15:
-        issues.append(f"地域HHI={region_hhi:.4f} ≥0.15: 地域分布过度集中")
+        issues.append(f"地域HHI={sig4(region_hhi)} ≥0.15: 地域分布过度集中")
 
     logger.info("")
     if issues:
@@ -1095,6 +1109,66 @@ def export_to_excel(all_results: dict, output_path: str):
 # 13. 主流程
 # ============================================================================
 
+def _log_environment_and_config(media_weights: dict, default_weight: int,
+                                stage_specs: list) -> None:
+    """打印 ① 项目/环境信息 + ② 输入输出文件 + ③ 运行配置 + ④ 方法论依据 (含 DOI)。
+
+    日志富集 (2026-06-24): 把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调
+    参数、依据哪些学术文献"一次性落进 68_media_diversity.log, 对标 tone_words.py
+    黄金范式。纯 logger 输出 + 仅服务于日志的局部变量, 不改任何产物 (golden-safe)。
+    """
+    try:
+        # ① 🧭 项目 / 环境信息
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (媒体名称与地域多样性审计, STAGES_VALIDATION 支线 stage 38)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1")
+        logger.info("     · 功能: 逐道流水线筛子量化媒体来源/地域覆盖多样性, 为论文'样本代表性'辩护")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "纯 CPU (pandas/numpy/openpyxl), 无 LLM·Embedding·网络 ($0); 逐位可复现")
+
+        # ② 📂 输入 / 输出文件
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 输入目录: {OUTPUT_DIR}")
+        logger.info(f"     · 跨 {len(stage_specs)} 阶段遍历 parquet (缺则跳过该阶段):")
+        for _key, _default, _label in stage_specs:
+            _fname = FILENAMES.get(_key, _default)
+            logger.info(f"         - {_label}: {_fname}")
+        logger.info(f"     · 媒体权重表: {CONFIG['paths']['media_weights_file']}")
+        logger.info(f"     · 输出 Excel: {os.path.join(EVAL_DIR, '68_media_diversity.xlsx')} (12 Sheet)")
+
+        # ③ ⚙ 运行配置
+        logger.info("  ⚙ 运行配置 (config/paths.yaml + config/preprocessing.yaml)")
+        logger.info(f"     · 已加载媒体权威权重: {len(media_weights):,} 条 | 默认权重 default_weight={default_weight}")
+        logger.info(f"     · 大陆省份基准 (mainland_china_regions): {len(MAINLAND_REGIONS):,} 个")
+        logger.info(f"     · 东中西部分组 (国统局): 东部={len(REGION_GROUPS['东部'])} / "
+                    f"中部={len(REGION_GROUPS['中部'])} / 西部={len(REGION_GROUPS['西部'])} 省")
+        logger.info("     · 媒体层级阈值 (get_tier): T1≥100 / T2≥90 / T3≥80 / T4≥70 / T5≥60 / T6<60")
+        logger.info(f"     · 高权威覆盖门 (Tier1-3): 权重 w≥80 | 时序稳定门: 平均 Jaccard≥{sig4(0.70)}")
+        logger.info("     · 告警阈值: 媒体 HHI≥0.10 / J'<0.70 / Gini≥0.80 / 已评级报道<40% / "
+                    "省份覆盖<80% / 地域 HHI≥0.15")
+
+        # ④ 📖 方法论依据 (参考文献信息) — 仅 emit 经核验注册表 (verified) 的 DOI
+        logger.info("  📖 方法论依据 (核心构念学术出处; ✅ = 经 Crossref 核验注册表)")
+        logger.info("     · 媒体广度 (media breadth) 作为信息环境指标 ✅:")
+        logger.info(f"       {REFERENCES['Bushee2010']}")
+        logger.info("     · 新闻来源多样性与信息效率 ✅:")
+        logger.info(f"       {REFERENCES['Tetlock2007']}")
+        logger.info("     · 多样性/集中度指标族: Shannon, C. E. (1948). A mathematical theory of "
+                    "communication. Bell System Technical Journal, 27(3), 379-423. "
+                    "https://doi.org/10.1002/j.1538-7305.1948.tb01338.x  [熵 H=-Σpᵢlog₂pᵢ]")
+        logger.info("       (其余经典指标以作者-年份形式: Herfindahl 1950 / Hirschman 1964 HHI=Σsᵢ²; "
+                    "Pielou 1966 均匀度 J'=H/log₂N; Gini 1912 不等系数; Laakso-Taagepera 1979 等效数 ENM=1/HHI)")
+        logger.info("     · 白话: 这些是'分散度体检'的经典量尺 — HHI/Gini 越低=来源越分散(好), "
+                    "ENM=相当于几家媒体在均匀供稿, J'/Shannon=报道量摊得匀不匀")
+    except Exception as e:  # noqa: BLE001 — 仅日志, 失败不影响审计
+        logger.warning(f"  环境/配置/方法论信息打印失败 (不影响处理): {e}")
+
+
 def main():
     """Stage 38 媒体名称与地域多样性审计主流程 (Plan-r3 P3-16 docstring 补齐)。
 
@@ -1142,7 +1216,11 @@ def main():
     logger.info("        省份覆盖<80% / 地域 HHI≥0.15 任一触发即提示来源/地域过度集中。")
     logger.info("【确定性】纯 CPU (pandas/numpy/openpyxl), 无 LLM/Embedding API, $0; 逐位可复现。")
 
+    # ⏱ per-phase wall-clock 计时累加器 (日志富集 2026-06-24, golden-safe)
+    phase_timings: dict[str, float] = {}
+
     # --- 加载媒体权重 ---
+    _t_load = time.time()
     media_weights = load_media_weights()
     default_weight = media_weights.get("default", 10)
 
@@ -1165,6 +1243,10 @@ def main():
          "40_article_bank (文章-银行级)"),
     ]
 
+    # --- 项目/环境/配置/方法论信息块 (日志富集 2026-06-24, 对标 tone_words 黄金范式) ---
+    _log_environment_and_config(media_weights, default_weight, stages)
+    phase_timings['加载权重+环境块'] = time.time() - _t_load
+
     # --- 收集结果 ---
     overview_rows = []
     all_media_list = []
@@ -1181,6 +1263,7 @@ def main():
     last_metrics = {}
     last_region_metrics = {}
 
+    _t_stages = time.time()
     for filename_key, default_name, stage_label in stages:
         logger.info("")
         logger.info("=" * 60)
@@ -1259,9 +1342,12 @@ def main():
                 all_weight_diag.append(weight_diag)
 
         del df  # 释放内存
+    phase_timings['逐阶段多样性分析(A-E)'] = time.time() - _t_stages
 
     # --- F. 跨阶段差异分析 ---
+    _t_delta = time.time()
     delta_df = compute_cross_stage_delta(overview_rows, stage_media_sets)
+    phase_timings['跨阶段差异(F)'] = time.time() - _t_delta
 
     # --- 组装 Excel 输出数据 ---
     all_results = {}
@@ -1309,10 +1395,10 @@ def main():
             n_region = row.get("唯一地域数", "-")
             rhhi = row.get("地域HHI", "-")
 
-            hhi_str = f"{hhi:.6f}" if isinstance(hhi, float) else str(hhi)
-            top5_str = f"{top5:.2%}" if isinstance(top5, float) else str(top5)
-            evn_str = f"{evn:.3f}" if isinstance(evn, float) else str(evn)
-            rhhi_str = f"{rhhi:.6f}" if isinstance(rhhi, float) else str(rhhi)
+            hhi_str = sig4(hhi) if isinstance(hhi, float) else str(hhi)
+            top5_str = pct4(top5) if isinstance(top5, float) else str(top5)
+            evn_str = sig4(evn) if isinstance(evn, float) else str(evn)
+            rhhi_str = sig4(rhhi) if isinstance(rhhi, float) else str(rhhi)
 
             logger.info(
                 f"  {stage:<35s} | {total:>8,} 行 | "
@@ -1343,16 +1429,16 @@ def main():
                        else "⚠ ≥0.10 来源向少数媒体集中 (坏)")
         gini_verdict = "✓ <0.80 (好)" if fin_gini < 0.80 else "⚠ ≥0.80 报道数高度不等 (坏)"
         rated_verdict = "✓ ≥40% (好)" if fin_rated >= 40 else "⚠ <40% 大量未评级媒体 (坏)"
-        logger.info(f"  · 最终阶段(40_article_bank)唯一媒体数: {fin_media} 家, "
-                    f"等效媒体数 ENM={fin_enm:.0f} (越大越好, 相当于几家媒体在均匀供稿)")
-        logger.info(f"  · 媒体 HHI={fin_hhi:.6f} → {hhi_verdict}")
+        logger.info(f"  · 最终阶段(40_article_bank)唯一媒体数: {fin_media:,} 家, "
+                    f"等效媒体数 ENM={sig4(fin_enm)} (越大越好, 相当于几家媒体在均匀供稿)")
+        logger.info(f"  · 媒体 HHI={sig4(fin_hhi)} → {hhi_verdict}")
         if pd.isna(fin_evn):
             logger.info("  · Pielou 均匀度 J': n/a (S=1 单一媒体垄断, J' 不适用; 集中度已由 HHI 门捕获)")
         else:
             evn_verdict = "✓ ≥0.70 报道摊得匀 (好)" if fin_evn >= 0.70 else "⚠ <0.70 报道分布不均 (坏)"
-            logger.info(f"  · Pielou 均匀度 J'={fin_evn:.4f} → {evn_verdict}")
-        logger.info(f"  · Gini 系数={fin_gini:.4f} → {gini_verdict}")
-        logger.info(f"  · Tier1-5 已评级报道占比={fin_rated:.1f}% → {rated_verdict}")
+            logger.info(f"  · Pielou 均匀度 J'={sig4(fin_evn)} → {evn_verdict}")
+        logger.info(f"  · Gini 系数={sig4(fin_gini)} → {gini_verdict}")
+        logger.info(f"  · Tier1-5 已评级报道占比={pct4(fin_rated, fraction=False)} → {rated_verdict}")
 
     if last_region_metrics:
         reg_n = last_region_metrics.get("唯一地域数", 0)
@@ -1361,8 +1447,8 @@ def main():
         reg_hhi_verdict = ("✓ <0.15 地域分散 (好)" if reg_hhi < 0.15
                            else "⚠ ≥0.15 地域过度集中 (坏)")
         cov_verdict = "✓ ≥80% (好)" if reg_cov >= 0.80 else "⚠ <80% 地域覆盖存盲区 (坏)"
-        logger.info(f"  · 最终阶段唯一地域数: {reg_n} 个 | 地域 HHI={reg_hhi:.6f} → {reg_hhi_verdict}")
-        logger.info(f"  · 省份覆盖率={reg_cov:.1%} → {cov_verdict}")
+        logger.info(f"  · 最终阶段唯一地域数: {reg_n:,} 个 | 地域 HHI={sig4(reg_hhi)} → {reg_hhi_verdict}")
+        logger.info(f"  · 省份覆盖率={pct4(reg_cov)} → {cov_verdict}")
 
     # 时序稳定性 (年际 Jaccard 平均, ≥0.7 视为媒体构成跨年稳定)
     if all_temporal:
@@ -1375,7 +1461,7 @@ def main():
                 jac_verdict = ("✓ ≥0.70 媒体构成跨年稳定 (好)" if avg_jac >= 0.70
                                else "ℹ 0.50-0.70 有一定变动" if avg_jac >= 0.50
                                else "⚠ <0.50 媒体构成跨年变动大 (坏)")
-                logger.info(f"  · 年际媒体 Jaccard 相似度均值={avg_jac:.3f} → {jac_verdict}")
+                logger.info(f"  · 年际媒体 Jaccard 相似度均值={sig4(avg_jac)} → {jac_verdict}")
         except Exception:  # noqa: BLE001 — 仅日志统计, 失败不影响产物
             logger.info("  · 年际 Jaccard 统计跳过 (时序数据不足或列缺失)")
     else:
@@ -1385,16 +1471,16 @@ def main():
     if not delta_df.empty and '媒体存留率' in delta_df.columns:
         min_ret = float(delta_df['媒体存留率'].min())
         max_hhi_jump = float(delta_df['HHI变化率(%)'].abs().max())
-        logger.info(f"  · 跨阶段最低媒体存留率={min_ret:.1%} "
+        logger.info(f"  · 跨阶段最低媒体存留率={pct4(min_ret)} "
                     f"({'✓ 各筛子保留多数来源' if min_ret >= 0.50 else '⚠ 某筛子大幅削减来源, 见跨阶段差异 Sheet'})")
-        logger.info(f"  · 跨阶段最大 HHI 变化率={max_hhi_jump:.1f}% "
+        logger.info(f"  · 跨阶段最大 HHI 变化率={pct4(max_hhi_jump, fraction=False)} "
                     f"({'某筛子显著改变集中度, 需复核是否过度过滤' if max_hhi_jump > 20 else '集中度跨筛子平稳'})")
 
     # 按银行覆盖 (仅 40_ 阶段产出)
     if not bank_media_df.empty:
         mean_breadth = float(bank_media_df['唯一媒体数'].mean())
         logger.info(f"  · 按银行媒体广度 (Bushee2010 breadth): "
-                    f"{len(bank_media_df)} 家银行, 平均唯一媒体数={mean_breadth:.1f} 家/行")
+                    f"{len(bank_media_df):,} 家银行, 平均唯一媒体数={sig4(mean_breadth)} 家/行")
 
     # 小样本 / 优雅降级告警
     n_stage40 = sum(1 for r in overview_rows
@@ -1407,8 +1493,20 @@ def main():
     logger.info("-" * 72)
 
     # --- 导出 Excel ---
+    _t_excel = time.time()
     output_path = os.path.join(EVAL_DIR, "68_media_diversity.xlsx")
     export_to_excel(all_results, output_path)
+    phase_timings['Excel 导出'] = time.time() - _t_excel
+
+    # --- ⏱ per-phase 墙钟计时汇总 (日志富集 2026-06-24) ---
+    try:
+        logger.info("-" * 72)
+        logger.info("  ⏱ 各阶段墙钟耗时 (秒, 4 位有效数字):")
+        for _phase, _sec in phase_timings.items():
+            logger.info(f"     · {_phase:<24s}: {sig4(_sec)} 秒")
+        logger.info(f"     · {'累计 (不含本计时块)':<24s}: {sig4(sum(phase_timings.values()))} 秒")
+    except Exception as e:  # noqa: BLE001 — 仅日志计时, 失败不影响产物
+        logger.warning(f"  计时汇总打印失败 (不影响处理): {e}")
 
     # --- 阶段摘要 ---
     final_media = overview_rows[-1].get("唯一媒体数", 0) if overview_rows else 0

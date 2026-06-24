@@ -92,7 +92,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import log_stage_summary, setup_logging
+from news_process.core.logging import log_stage_summary, pct4, setup_logging, sig4
 from news_process.core.plotting import configure_matplotlib_chinese_fonts
 
 # ============================================================================
@@ -898,10 +898,11 @@ def _safe_ttest(group_a, group_b, label_a, label_b, var_name, logger_inst):
     if logger_inst and not result['skipped']:
         diff = (result['mean_a'] or 0) - (result['mean_b'] or 0)
         sig = '显著' if result['significant'] else '不显著'
+        _diff_txt = f"{'+' if diff >= 0 else '-'}{sig4(abs(diff))}"  # 保留 ± 号 + 4 有效数字
         logger_inst.info(
             f"    {var_name}: {label_a}均值={result['mean_a']}(n={n_a}), "
             f"{label_b}均值={result['mean_b']}(n={n_b}), "
-            f"差值={diff:+.4f}, t={result['statistic']}, p={result['p_value']} {sig}"
+            f"差值={_diff_txt}, t={result['statistic']}, p={result['p_value']} {sig}"
         )
     return result
 
@@ -1350,7 +1351,7 @@ def diagnose_misclassification_bias(
         lg.info(f"  [{track}]   False Positive (FP) = {n_fp:>4d}  (gold=0, pred=1: 应排除却保留)")
         lg.info(f"  [{track}]   False Negative (FN) = {n_fn:>4d}  (gold=1, pred=0: 应保留却排除)")
         lg.info(f"  [{track}]   True Negative  (TN) = {n_tn:>4d}  (gold=0, pred=0: 正确排除)")
-        lg.info(f"  [{track}]   总计={n_total}, 误分类={n_wrong} ({n_wrong/max(n_total,1)*100:.1f}%), 正确={n_correct} ({n_correct/max(n_total,1)*100:.1f}%)")
+        lg.info(f"  [{track}]   总计={n_total}, 误分类={n_wrong} ({pct4(n_wrong/max(n_total,1))}), 正确={n_correct} ({pct4(n_correct/max(n_total,1))})")
 
     # ── 构建下游代理变量 ──
     if lg:
@@ -1371,7 +1372,7 @@ def diagnose_misclassification_bias(
     if '内容' in df.columns:
         df['_len'] = df['内容'].astype(str).str.len().astype(float)
         if lg:
-            lg.info(f"  [{track}]   (b) 文本长度: min={df['_len'].min():.0f}, median={df['_len'].median():.0f}, max={df['_len'].max():.0f} 字符")
+            lg.info(f"  [{track}]   (b) 文本长度: min={sig4(df['_len'].min())}, median={sig4(df['_len'].median())}, max={sig4(df['_len'].max())} 字符")
     else:
         df['_len'] = np.nan
         if lg:
@@ -1389,7 +1390,7 @@ def diagnose_misclassification_bias(
     df['_conf'] = df[conf_cols].mean(axis=1) if conf_cols else np.nan
     if lg:
         if conf_cols:
-            lg.info(f"  [{track}]   (c) 验证置信度: 聚合 {len(conf_cols)} 个模型列均值, mean={df['_conf'].mean():.4f}")
+            lg.info(f"  [{track}]   (c) 验证置信度: 聚合 {len(conf_cols)} 个模型列均值, mean={sig4(df['_conf'].mean())}")
         else:
             lg.info(f"  [{track}]   (c) 无可用验证置信度列 (模型数={len(models)})")
 
@@ -1606,6 +1607,49 @@ def main():
     logger.info("        [模型误差 + 窗口-全文构念差] 的混合下界, 非纯模型误差。")
     logger.info("-" * 72)
 
+    # ── ① 🧭 项目 / 环境信息 (黄金范式; 让日志自证运行环境指纹, 可审计可复现) ──
+    # 纯增量日志, golden-safe: 仅 emit logger.info, 不读写产物/不改控制流。整体 try/except,
+    # 任何环境探针异常都降级 WARNING, 绝不让 banner 崩掉本阶段产物。
+    try:
+        import platform as _platform
+        logger.info("① 🧭 项目 / 环境信息")
+        logger.info("  · 阶段: 33 news_llms_evaluation (验证支线; 拿人工金标准给 LLM 分类器开'体检报告' = 测量效度成绩单)")
+        logger.info("  · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.11.1 (rule-ablation-ladder)")
+        logger.info(f"  · Python: {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"  · 平台: {_platform.platform()}; CPU 逻辑核数={os.cpu_count()}; PID={os.getpid()}")
+        logger.info(f"  · RUN_ID: {os.environ.get('NEWS_PROCESS_RUN_ID', '(未设)')}")
+        logger.info(f"  · 模块: {os.path.abspath(__file__)}")
+        logger.info(f"  · 工作目录: {os.getcwd()}")
+        logger.info("  · 确定性/成本: 纯 CPU/磁盘, 无 LLM/Embedding API 调用, 无缓存, $0; 给定输入逐位可复现。")
+    except Exception as _e:
+        logger.warning(f"[ENV banner] 环境指纹打印异常, 跳过(不影响产物): {_e}")
+    logger.info("-" * 72)
+
+    # ── ④ 📖 方法论依据 (参考文献 emit 进日志; 仅引经核验注册表 status=match 条目) ──
+    # 仅 emit 注册表中已核验 (Crossref) 的 DOI 串; 本模块另用的 Cohen κ (Landis & Koch
+    # 1977) / Krippendorff α (Krippendorff 2004/2018) / Carlson & Burbano (2026, SMJ)
+    # 在注册表中无对应可核验 DOI 条目, 故仅在判读散文里以 Author-Year 出现, 此处不伪造 DOI。
+    try:
+        logger.info("④ 📖 方法论依据 (核心构念学术出处; Author (Year). Journal, vol(issue), pages. DOI)")
+        logger.info("  · 文本分析/词典效度: Loughran, T., & McDonald, B. (2011). When is a liability not a "
+                    "liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), "
+                    "35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x")
+        logger.info("    (白话: 顶刊文本分析须把'词典/机器标签是否量到真实构念'当效度问题, 本阶段即用人工 gold 量化验证。)")
+        logger.info("  · 量化语言→基本面 (机器标签效度参照): Tetlock, P. C., Saar-Tsechansky, M., & Macskassy, "
+                    "S. (2008). More than words: Quantifying language to measure firms' fundamentals. The "
+                    "Journal of Finance, 63(3), 1437-1467. https://doi.org/10.1111/j.1540-6261.2008.01362.x")
+        logger.info("    (白话: 用语言度量企业基本面前须先证度量准确, 故先评分类器精度再下结论。)")
+        logger.info("  · 选择性样本加权 (Panel E/F 总体后分层 accuracy): Manski, C. F. (1993). Identification "
+                    "of endogenous social effects: The reflection problem. The Review of Economic Studies, "
+                    "60(3), 531-542. https://doi.org/10.2307/2298123")
+        logger.info("    (白话: 人工抽样非简单随机时, 须按总体权重 (Manski-Lerman 修正) 还原无偏 accuracy。)")
+        logger.info("  · 一致度/误分类偏倚依据 (注册表无可核验 DOI, 仅作者-年份): Cohen κ = Landis & Koch (1977, "
+                    "Biometrics 33(1):159-174); Krippendorff α = Krippendorff (2004/2018); 误分类偏倚诊断 = "
+                    "Carlson & Burbano (2026, SMJ 47(3):699-725)。")
+    except Exception as _e:
+        logger.warning(f"[METHOD banner] 方法论引用打印异常, 跳过(不影响产物): {_e}")
+    logger.info("-" * 72)
+
     # 定义输入输出路径
     verify_path = os.path.join(
         CONFIG['paths']['output_dir'],
@@ -1621,6 +1665,29 @@ def main():
         verify_path = _merged_path
     output_dir = os.path.join(CONFIG['paths']['output_dir'], 'eval_reports')
     os.makedirs(output_dir, exist_ok=True)
+
+    # ── ②③ 📂 输入/输出 + ⚙ 运行配置块 (黄金范式; 集中 emit 路径 + 可调参数) ──
+    # 纯日志, golden-safe: 仅读已就绪的路径/常量字符串 emit, 不改任何写盘值/控制流。
+    try:
+        _tone_cfg = CONFIG.get('tone_llm_processing', {})
+        _cfg_models = [m.get('short_name', '?') for m in _tone_cfg.get('models', [])]
+        logger.info("②③ 📂 输入/输出 · ⚙ 运行配置")
+        logger.info(f"  · 输入(人工金标准 Excel): {verify_path}")
+        logger.info(f"  · 输入(机器预测 parquet): {os.path.join(CONFIG['paths']['output_dir'], '21_tone_llms.parquet')} (sheet/列 由下游读取)")
+        logger.info(f"  · 输出目录(报告/CSV/PNG/LaTeX): {output_dir}")
+        logger.info(f"  · 配置来源: config/*.yaml (paths/filenames/tone_llm_processing) via load_config()")
+        logger.info("  · 可调参数: McNemar EXACT_CUTOFF=25 (分歧数<25 精确二项, ≥25 连续校正卡方);")
+        logger.info(f"    一致度阈值 κ/α≥{sig4(0.80)} 可靠, α≥{sig4(0.667)} 暂定可接受 (Krippendorff 2004); "
+                    f"分类器启发式分档 ≳{sig4(0.80)}/{sig4(0.70)};")
+        logger.info(f"    显著性水平 p<{sig4(0.05)}; demo 合成样本量 n=200 (人工文件缺失时回退, 全产物加 _DEMO 标记禁引用);")
+        logger.info(f"    评估轨道集 = ['_full','_ctx','_ss'] (三轨); 配置模型列表 = {_cfg_models if _cfg_models else '(空)'}。")
+    except Exception as _e:
+        logger.warning(f"[CONFIG banner] 配置块打印异常, 跳过(不影响产物): {_e}")
+    logger.info("-" * 72)
+
+    # ⏱ per-phase 计时锚: 仅服务日志的局部累加器, 不进任何产物/不改控制流。
+    _phase_marks = [("入口/环境/配置 banner", time.time() - stage_start)]
+    _t_load = time.time()
 
     # ======================================================================
     # Step 1: 加载人工验证数据
@@ -1652,6 +1719,8 @@ def main():
             demo_mode = True
 
     logger.info(f"验证样本数: {len(df_verify):,} ({'模拟数据' if demo_mode else '真实数据'})")
+    _phase_marks.append(("Step1 加载人工验证数据", time.time() - _t_load))
+    _t_eval = time.time()
 
     # ======================================================================
     # Step 2: 数据预处理——提取验证标签与情感标签
@@ -1815,13 +1884,13 @@ def main():
 
         kappa_result = compute_cohens_kappa(rater1, rater2)
         results['inter_coder_reliability']['verification'].update({'cohens_kappa': kappa_result})
-        logger.info(f"[验证] Cohen's Kappa: {kappa_result['kappa']:.4f}")
+        logger.info(f"[验证] Cohen's Kappa: {sig4(kappa_result['kappa'])}")
 
         # Krippendorff's Alpha
         ratings_matrix = np.stack([rater1, rater2], axis=0)
         alpha = compute_krippendorffs_alpha(ratings_matrix)
         results['inter_coder_reliability']['verification'].update({'krippendorffs_alpha': alpha})
-        logger.info(f"[验证] Krippendorff's Alpha: {alpha:.4f}")
+        logger.info(f"[验证] Krippendorff's Alpha: {sig4(alpha)}")
 
     # 3.2 情感任务 ICR (需要将字符串映射为 int，剔除空值)
     if demo_mode or n_both_sen > 0:
@@ -1847,12 +1916,12 @@ def main():
         if len(rater1_sen_valid) > 0:
             kappa_result_sen = compute_cohens_kappa(rater1_sen_valid, rater2_sen_valid)
             results['inter_coder_reliability']['sentiment'].update({'cohens_kappa': kappa_result_sen})
-            logger.info(f"[情感] Cohen's Kappa: {kappa_result_sen['kappa']:.4f}")
+            logger.info(f"[情感] Cohen's Kappa: {sig4(kappa_result_sen['kappa'])}")
 
             ratings_matrix_sen = np.stack([rater1_sen_valid, rater2_sen_valid], axis=0)
             alpha_sen = compute_krippendorffs_alpha(ratings_matrix_sen)
             results['inter_coder_reliability']['sentiment'].update({'krippendorffs_alpha': alpha_sen})
-            logger.info(f"[情感] Krippendorff's Alpha: {alpha_sen:.4f}")
+            logger.info(f"[情感] Krippendorff's Alpha: {sig4(alpha_sen)}")
 
     # ======================================================================
     # Step 4: 分类器性能评估
@@ -1872,8 +1941,8 @@ def main():
     results['classifier_metrics']['verification'].update({'规则分类器 (Rule-Based)': rule_metrics})
 
     logger.info("  规则分类器:")
-    logger.info(f"    Macro F1:  {rule_metrics['macro']['f1']:.4f}")
-    logger.info(f"    Accuracy:  {rule_metrics['accuracy']:.4f}")
+    logger.info(f"    Macro F1:  {sig4(rule_metrics['macro']['f1'])}")
+    logger.info(f"    Accuracy:  {sig4(rule_metrics['accuracy'])}")
 
     # LLM 分类器（三轨对比 full/ctx/ss; ss 列缺席时该轨自然跳过）
     y_pred_llm_tracks = {}
@@ -1886,10 +1955,10 @@ def main():
             results['classifier_metrics']['verification'][f'LLM 验证 ({track})'] = llm_metrics
 
             logger.info(f"  LLM 语义精筛 [{track}]:")
-            logger.info(f"    Macro Precision: {llm_metrics['macro']['precision']:.4f}")
-            logger.info(f"    Macro Recall:    {llm_metrics['macro']['recall']:.4f}")
-            logger.info(f"    Macro F1:  {llm_metrics['macro']['f1']:.4f}")
-            logger.info(f"    Accuracy:  {llm_metrics['accuracy']:.4f}")
+            logger.info(f"    Macro Precision: {sig4(llm_metrics['macro']['precision'])}")
+            logger.info(f"    Macro Recall:    {sig4(llm_metrics['macro']['recall'])}")
+            logger.info(f"    Macro F1:  {sig4(llm_metrics['macro']['f1'])}")
+            logger.info(f"    Accuracy:  {sig4(llm_metrics['accuracy'])}")
 
             # fix(omni-g-val-eval-02, 2026-06-11): demo_mode 产物加 DEMO 标记
             save_confusion_matrix_plot(
@@ -1904,7 +1973,7 @@ def main():
     if '_full' in y_pred_llm_tracks:
         mcnemar = compute_mcnemar_test(y_gold_ver, y_pred_rule, y_pred_llm_tracks['_full'])
         results['mcnemar_rule_vs_llm_full'] = mcnemar
-        logger.info(f"  McNemar (规则 vs LLM_full) p值: {mcnemar['p_value']:.6f}  {'显著' if mcnemar['significant'] else '不显著'}")
+        logger.info(f"  McNemar (规则 vs LLM_full) p值: {sig4(mcnemar['p_value'])}  {'显著' if mcnemar['significant'] else '不显著'}")
 
     # McNemar: 三轨两两 pairwise (full↔ctx / full↔ss / ctx↔ss) —— 三轨化后
     # 由 2 轨单一对比 (full vs ctx) 扩为 3 对 (任一轨缺席时该对自然跳过)。
@@ -1916,7 +1985,7 @@ def main():
             la, lb = ta.lstrip('_'), tb.lstrip('_')
             results[f'mcnemar_{la}_vs_{lb}'] = mcnemar_pair
             logger.info(
-                f"  McNemar ({la} vs {lb}) p值: {mcnemar_pair['p_value']:.6f}  "
+                f"  McNemar ({la} vs {lb}) p值: {sig4(mcnemar_pair['p_value'])}  "
                 f"{'显著' if mcnemar_pair['significant'] else '不显著'}"
             )
 
@@ -1945,10 +2014,10 @@ def main():
                 results['classifier_metrics']['verification'][f"{short}{track} (独立)"] = model_metrics
                 
                 logger.info(f"  {short}{track} 独立验证:")
-                logger.info(f"    Precision: {model_metrics['macro']['precision']:.4f}")
-                logger.info(f"    Recall:    {model_metrics['macro']['recall']:.4f}")
-                logger.info(f"    F1:        {model_metrics['macro']['f1']:.4f}")
-                logger.info(f"    Accuracy:  {model_metrics['accuracy']:.4f}")
+                logger.info(f"    Precision: {sig4(model_metrics['macro']['precision'])}")
+                logger.info(f"    Recall:    {sig4(model_metrics['macro']['recall'])}")
+                logger.info(f"    F1:        {sig4(model_metrics['macro']['f1'])}")
+                logger.info(f"    Accuracy:  {sig4(model_metrics['accuracy'])}")
             else:
                 logger.info(f"  {short}{track}: 列 {col_name} 不存在，跳过")
     
@@ -2014,7 +2083,7 @@ def main():
                 results['sentiment_prediction_coverage'][f'LLM 情感分析 ({track})'] = cov
                 logger.info(
                     f"  [{track}] 情感评估域 coverage: {cov['n_valid_pred']}/{cov['n_gold']}"
-                    f" ({cov['coverage']:.1%}), 剔除无有效预测 {cov['n_excluded_invalid_pred']} 行"
+                    f" ({pct4(cov['coverage'])}), 剔除无有效预测 {cov['n_excluded_invalid_pred']} 行"
                 )
                 if cov['n_valid_pred'] == 0:
                     logger.warning(f"  [{track}] 无有效情感预测 (coverage=0), 跳过该轨评估")
@@ -2026,10 +2095,10 @@ def main():
                 results['classifier_metrics']['sentiment'][f'LLM 情感分析 ({track})'] = llm_sen_metrics
 
                 logger.info(f"  LLM 情感分析 [{track}]:")
-                logger.info(f"    Macro Precision: {llm_sen_metrics['macro']['precision']:.4f}")
-                logger.info(f"    Macro Recall:    {llm_sen_metrics['macro']['recall']:.4f}")
-                logger.info(f"    Macro F1:  {llm_sen_metrics['macro']['f1']:.4f}")
-                logger.info(f"    Accuracy:  {llm_sen_metrics['accuracy']:.4f}")
+                logger.info(f"    Macro Precision: {sig4(llm_sen_metrics['macro']['precision'])}")
+                logger.info(f"    Macro Recall:    {sig4(llm_sen_metrics['macro']['recall'])}")
+                logger.info(f"    Macro F1:  {sig4(llm_sen_metrics['macro']['f1'])}")
+                logger.info(f"    Accuracy:  {sig4(llm_sen_metrics['accuracy'])}")
                 # 逐类别 Recall（cf. FinBERT Table 1 Panel A: Per-class Recall）
                 per_class = llm_sen_metrics.get('per_class', {})
                 if per_class:
@@ -2039,9 +2108,9 @@ def main():
                         support = cls_m.get('support', 0)
                         logger.info(
                             f"    {cls_label:　<3s}: "
-                            f"Precision={cls_m.get('precision', 0):.4f}  "
-                            f"Recall={cls_m.get('recall', 0):.4f}  "
-                            f"F1={cls_m.get('f1', 0):.4f}  "
+                            f"Precision={sig4(cls_m.get('precision', 0))}  "
+                            f"Recall={sig4(cls_m.get('recall', 0))}  "
+                            f"F1={sig4(cls_m.get('f1', 0))}  "
                             f"(n={support})"
                         )
                 
@@ -2076,10 +2145,10 @@ def main():
                     per_model_sen_results[f"{short}{track}"] = model_sen_metrics
                     results['classifier_metrics']['sentiment'][f"{short}{track} (独立)"] = model_sen_metrics
                     logger.info(f"  {short}{track} 独立情感:")
-                    logger.info(f"    Precision: {model_sen_metrics['macro']['precision']:.4f}")
-                    logger.info(f"    Recall:    {model_sen_metrics['macro']['recall']:.4f}")
-                    logger.info(f"    F1:        {model_sen_metrics['macro']['f1']:.4f}")
-                    logger.info(f"    Accuracy:  {model_sen_metrics['accuracy']:.4f}")
+                    logger.info(f"    Precision: {sig4(model_sen_metrics['macro']['precision'])}")
+                    logger.info(f"    Recall:    {sig4(model_sen_metrics['macro']['recall'])}")
+                    logger.info(f"    F1:        {sig4(model_sen_metrics['macro']['f1'])}")
+                    logger.info(f"    Accuracy:  {sig4(model_sen_metrics['accuracy'])}")
                     # 逐类别指标
                     per_class_m = model_sen_metrics.get('per_class', {})
                     if per_class_m:
@@ -2087,9 +2156,9 @@ def main():
                             cls_m = per_class_m.get(str(cls_label), {})
                             logger.info(
                                 f"      {cls_label}: "
-                                f"P={cls_m.get('precision', 0):.4f} "
-                                f"R={cls_m.get('recall', 0):.4f} "
-                                f"F1={cls_m.get('f1', 0):.4f} "
+                                f"P={sig4(cls_m.get('precision', 0))} "
+                                f"R={sig4(cls_m.get('recall', 0))} "
+                                f"F1={sig4(cls_m.get('f1', 0))} "
                                 f"(n={cls_m.get('support', 0)})"
                             )
                 else:
@@ -2286,7 +2355,7 @@ def main():
             ci_high = round(min(1.0, kappa_val + 1.96 * se_kappa), 4)
             std_report['验证任务_κ_95%CI'] = f"[{ci_low}, {ci_high}]"
             std_report['验证任务_κ_CI方法'] = '渐近近似(Fleiss简化SE,截断至[-1,1]);建议bootstrap'
-            logger.info(f"  验证任务: κ = {kappa_val:.4f}, 95% CI = [{ci_low:.4f}, {ci_high:.4f}]")
+            logger.info(f"  验证任务: κ = {sig4(kappa_val)}, 95% CI = [{sig4(ci_low)}, {sig4(ci_high)}]")
             logger.info(f"  验证任务: α = {alpha_ver}, N = {n_s}")
 
     icr_sen = results.get('inter_coder_reliability', {}).get('sentiment', {})
@@ -2309,7 +2378,7 @@ def main():
             ci_high_s = round(min(1.0, kappa_val_s + 1.96 * se_s), 4)
             std_report['情感任务_κ_95%CI'] = f"[{ci_low_s}, {ci_high_s}]"
             std_report['情感任务_κ_CI方法'] = '渐近近似(Fleiss简化SE,截断至[-1,1]);建议bootstrap'
-            logger.info(f"  情感任务: κ = {kappa_val_s:.4f}, 95% CI = [{ci_low_s:.4f}, {ci_high_s:.4f}]")
+            logger.info(f"  情感任务: κ = {sig4(kappa_val_s)}, 95% CI = [{sig4(ci_low_s)}, {sig4(ci_high_s)}]")
             logger.info(f"  情感任务: α = {alpha_sen}, N = {n_s_s}")
 
     # 输出标准化报告 CSV (fix(omni-g-val-eval-02, 2026-06-11): demo 产物加 _DEMO 后缀)
@@ -2362,12 +2431,12 @@ def main():
         if _v is None or pd.isna(_v):
             return "N/A"
         if _v >= 0.80:
-            return f"{_v:.4f} (κ≥0.80 几乎完全一致, 好)"
+            return f"{sig4(_v)} (κ≥0.80 几乎完全一致, 好)"
         if _v >= 0.60:
-            return f"{_v:.4f} (κ 0.60–0.80 实质一致, 临界)"
+            return f"{sig4(_v)} (κ 0.60–0.80 实质一致, 临界)"
         if _v >= 0.40:
-            return f"{_v:.4f} (κ 0.40–0.60 中等, 偏弱)"
-        return f"{_v:.4f} (κ<0.40 一致度差, 金标准可信度存疑)"
+            return f"{sig4(_v)} (κ 0.40–0.60 中等, 偏弱)"
+        return f"{sig4(_v)} (κ<0.40 一致度差, 金标准可信度存疑)"
 
     def _grade_alpha(_v):
         # Krippendorff α 专用判读 (Krippendorff 2004 canonical 门槛; 与 κ 解耦):
@@ -2378,10 +2447,10 @@ def main():
         if _v is None or pd.isna(_v):
             return "N/A"
         if _v >= 0.80:
-            return f"{_v:.4f} (α≥0.80 可靠, 好)"
+            return f"{sig4(_v)} (α≥0.80 可靠, 好)"
         if _v >= 0.667:
-            return f"{_v:.4f} (α 0.667–0.80 暂定可接受, 临界)"
-        return f"{_v:.4f} (α<0.667 信度不足)"
+            return f"{sig4(_v)} (α 0.667–0.80 暂定可接受, 临界)"
+        return f"{sig4(_v)} (α<0.667 信度不足)"
 
     def _grade_perf(_acc, _f1):
         # 分类器性能分档 (任务相关启发式, 非公认顶刊门槛): 分类器 accuracy/F1 的可接受
@@ -2437,7 +2506,7 @@ def main():
             _ci = _m.get('accuracy_ci', None)
             _ci_txt = f" 95%CI{_ci}" if _ci else ""
             logger.info(
-                f"  · [验证] {_name}: Acc={_acc:.4f}{_ci_txt}, Macro-F1={_f1:.4f} → {_grade_perf(_acc, _f1)}"
+                f"  · [验证] {_name}: Acc={sig4(_acc)}{_ci_txt}, Macro-F1={sig4(_f1)} → {_grade_perf(_acc, _f1)}"
             )
         _sen_metrics = results.get('classifier_metrics', {}).get('sentiment', {})
         if _sen_metrics:
@@ -2445,10 +2514,10 @@ def main():
                 _acc = _m.get('accuracy', 0.0)
                 _f1 = _m.get('macro', {}).get('f1', 0.0)
                 _cov = _m.get('coverage', None)
-                _cov_txt = f", coverage={_cov:.1%}" if isinstance(_cov, (int, float)) else ""
+                _cov_txt = f", coverage={pct4(_cov)}" if isinstance(_cov, (int, float)) else ""
                 _wndw = " [窗口轨, 含构念差→保守下界]" if ('_ctx' in _name or '_ss' in _name) else ""
                 logger.info(
-                    f"  · [情感] {_name}: Acc={_acc:.4f}, Macro-F1={_f1:.4f}{_cov_txt}"
+                    f"  · [情感] {_name}: Acc={sig4(_acc)}, Macro-F1={sig4(_f1)}{_cov_txt}"
                     f" → {_grade_perf(_acc, _f1)}{_wndw}"
                 )
         else:
@@ -2508,6 +2577,19 @@ def main():
             )
     except Exception as _e:
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
+    logger.info("-" * 72)
+
+    # ── ⏱ 阶段计时 (黄金范式; 各主要子阶段墙钟耗时 + 总耗时, 秒数一律 sig4) ──
+    try:
+        _phase_marks.append(("Step2-5 评估/诊断/导出", time.time() - _t_eval))
+        _total = time.time() - stage_start
+        logger.info("⏱ 阶段计时 (各子阶段墙钟耗时, 秒)")
+        for _label, _sec in _phase_marks:
+            _share = (_sec / _total) if _total > 0 else 0.0
+            logger.info(f"  · {_label}: {sig4(_sec)} 秒 ({pct4(_share)})")
+        logger.info(f"  · 合计: {sig4(_total)} 秒")
+    except Exception as _e:
+        logger.warning(f"[TIMING banner] 计时汇总打印异常, 跳过(不影响产物): {_e}")
     logger.info("-" * 72)
 
     log_stage_summary(logger, STAGE_NAME, stage_start,

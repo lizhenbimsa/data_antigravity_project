@@ -38,13 +38,18 @@ import argparse
 import hashlib
 import json
 import logging
+import os
+import platform
 import sys
+import time
 from pathlib import Path
 from typing import Sequence
 
 import numpy as np
 import pandas as pd
 import yaml
+
+from news_process.core.logging import pct4, sig4
 
 logger = logging.getLogger(__name__)
 
@@ -393,6 +398,172 @@ def write_sidecar_json(
 # ============================================================================
 
 
+def _log_environment_config_method(args: argparse.Namespace) -> None:
+    """打印 🧭 环境 / 📂 输入输出 / ⚙ 配置 / 📖 方法论依据 四块 banner.
+
+    顶刊审计标准的运行期日志 (照搬 tone_words.py 范式)。纯日志, 不改任何
+    产物 / schema / 控制流 (golden-safe)。失败用 try/except 包住, 绝不让日志
+    块崩阶段。引文逐字取自经核验注册表 (status=match)。
+    """
+    try:
+        _run_id = os.environ.get("NEWS_PROCESS_RUN_ID")
+        _offline = os.environ.get("NEWS_PROCESS_LLM_OFFLINE")
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(
+            "     · 阶段: 80_alt_anchor (J-L-M 2026 替代锚点族, A2 稳健性, audit-only sibling)"
+        )
+        logger.info(
+            "     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.11.1"
+        )
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        logger.info(
+            f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+            f"LLM_OFFLINE={_offline or '(未设置)'}"
+        )
+        logger.info(
+            "     · 确定性/成本: 投影/聚合纯 CPU·确定性 ($0); 锚点嵌入经统一引擎穿透 LLMCache "
+            "(命中即 $0, miss 受离线守卫约束 deferred 到生产 run)"
+        )
+
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 锚点 yaml:        {args.anchors_yaml or '(默认 config/jlm2026_chinese_anchors.yaml)'}")
+        logger.info(f"     · full 轨嵌入:      {args.text_embeddings_full or '(未提供 → 仅校验 yaml)'}")
+        logger.info(f"     · ctx 轨嵌入(可选): {args.text_embeddings_ctx or '(未提供)'}")
+        logger.info(f"     · ss 轨嵌入(可选):  {args.text_embeddings_ss or '(未提供)'}")
+        logger.info(f"     · df_exploded:      {args.df_exploded or '(未提供)'}")
+        logger.info(f"     · 输出面板:         {args.output}")
+        logger.info(
+            "     · audit-only: 写独立 80_alt_anchor_panel.parquet, 不改主面板 "
+            "40_panel_yearly.parquet 及其 golden-snapshot schema"
+        )
+
+        logger.info("  ⚙ 运行配置")
+        logger.info(
+            "     · 锚点集: J-L-M 2026 Appendix A Table IA.1(b) 中文 5 对 canonical 锚点 "
+            "(替代主模块扩充的 10 对)"
+        )
+        logger.info(
+            "     · 方向向量: p = mean(pos) − mean(neg) (单位范数); 文章投影 = 余弦相似度 ∈ [−1,1]"
+        )
+        logger.info(
+            "     · 聚合: J-L-M Eq.(2) 文章级 c=1 → bank-year 均值; pos/neg_frac center=in-sample median "
+            "(各向异性嵌入空间 sign-at-0 饱和退化, 故中位居中)"
+        )
+        logger.info(
+            f"     · 轨道: full{' +ctx' if args.text_embeddings_ctx else ''}"
+            f"{' +ss' if args.text_embeddings_ss else ''} (投影机制 track-agnostic, 仅切换文章嵌入子集)"
+        )
+        logger.info(
+            f"     · validate_only={args.validate_only} (仅校验 yaml schema, 不跑投影)"
+        )
+
+        logger.info("  📖 方法论依据 (核心方法的学术出处, 经核验注册表逐字照抄)")
+        logger.info(
+            "     · 语言嵌入 benefit-society 方向投影: "
+            "Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? "
+            "A language embedding approach. The Review of Financial Studies, 39(5), "
+            "1227-1266. https://doi.org/10.1093/rfs/hhaf012"
+        )
+        logger.info(
+            "       → 本阶段直接复刻 J-L-M 官方 5 对锚点, 与自选 10 对互为稳健性对照"
+        )
+        logger.info(
+            "     · 极性对锚点 → 方向向量 (geometry-of-culture): "
+            "Kozlowski, A. C., Taddy, M., & Evans, J. A. (2019). The geometry of culture: "
+            "Analyzing the meanings of class through word embeddings. American Sociological "
+            "Review, 84(5), 905-949. https://doi.org/10.1177/0003122419877135"
+        )
+        logger.info(
+            "       → mean(pos) − mean(neg) 构造语义对立轴, 投影量化文本在该轴上的位置"
+        )
+        logger.info(
+            "     · 句嵌入引擎: "
+            "Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using "
+            "Siamese BERT-networks. In Proceedings of the 2019 Conference on Empirical Methods "
+            "in Natural Language Processing and the 9th International Joint Conference on Natural "
+            "Language Processing (EMNLP-IJCNLP) (pp. 3980-3990). Association for Computational "
+            "Linguistics. https://doi.org/10.18653/v1/D19-1410"
+        )
+        logger.info(
+            "       → 锚点句与文章在同一句嵌入空间 (model_id 由 stage 27 sidecar 反查), 保证可比"
+        )
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
+
+
+def _log_result_analysis(
+    panel: pd.DataFrame,
+    scores: np.ndarray,
+    tracks: Sequence[str],
+    meta: dict,
+) -> None:
+    """打印 📊 关键指标解读 — 把真实算出的统计量对照阈值给 好/临界/坏 判读.
+
+    纯日志, 只读已算出的真实值, 不改任何产物 (golden-safe)。所有非整数数字
+    用 sig4/pct4 渲染 (4 位有效数字)。失败用 try/except 包住。
+    """
+    try:
+        logger.info("  📊 关键指标解读 (替代锚点投影结果, 数字均 4 位有效数字)")
+        n_obs = len(panel)
+        # ① 面板深度 (T=2 小样本下退化警告)
+        n_banks = panel["target_bank"].nunique() if "target_bank" in panel else 0
+        n_years = panel["year"].nunique() if "year" in panel else 0
+        logger.info(
+            f"     ① 面板规模: {n_obs:,d} bank-year obs | 银行 {n_banks:,d} | 年份 {n_years:,d}"
+        )
+        if n_obs < 30:
+            logger.info(
+                "        ⚠ 小样本 (<30 obs): A2 β 符号/比值验收在生产规模 (T=18) 才有充分功效, "
+                "本盘 T=2 试跑仅作链路自检 (优雅降级)"
+            )
+
+        # ② 文章级投影分布
+        sc = np.asarray(scores, dtype=np.float64)
+        sc = sc[np.isfinite(sc)]
+        if sc.size:
+            s_mean = float(sc.mean())
+            s_std = float(sc.std(ddof=1)) if sc.size > 1 else float("nan")
+            s_pos = float((sc > 0).mean())
+            logger.info(
+                f"     ② 文章级投影 (n={sc.size:,d}): μ={sig4(s_mean)} | σ={sig4(s_std)} | "
+                f"投影>0 占比={pct4(s_pos)} (理论范围 [−1,1])"
+            )
+            if s_pos > 0.95 or s_pos < 0.05:
+                logger.info(
+                    f"        ⚠ sign-at-0 饱和 (投影>0={pct4(s_pos)} 极端): 各向异性嵌入空间已知现象, "
+                    "故 pos/neg_frac 改用 in-sample median 居中 (见聚合口径)"
+                )
+            else:
+                logger.info("        ✓ 投影方向分布无明显饱和退化")
+
+        # ③ 各轨 bank-year 均值列的有效率 (notna) + 量级
+        for trk in tracks:
+            suffix = "" if trk == "full" else f"_{trk}"
+            mcol = f"benefit_jlm_zh_mean{suffix}"
+            if mcol not in panel.columns:
+                continue
+            col = pd.to_numeric(panel[mcol], errors="coerce")
+            notna = float(col.notna().mean()) if n_obs else 0.0
+            m_mean = float(col.mean()) if col.notna().any() else float("nan")
+            m_std = float(col.std(ddof=1)) if col.notna().sum() > 1 else float("nan")
+            verdict = "✓ 良好" if notna >= 0.95 else ("⚠ 临界" if notna >= 0.80 else "❌ 偏低")
+            logger.info(
+                f"     ③ [{trk}] {mcol}: 有效率={pct4(notna)} {verdict} | "
+                f"列均值={sig4(m_mean)} | 列内 σ={sig4(m_std)}"
+            )
+
+        # ④ 锚点族元信息
+        logger.info(
+            f"     ④ 锚点族: family={meta.get('anchor_family')} | n_pairs={meta.get('n_pairs')} | "
+            f"source_doi={meta.get('source_doi') or '(yaml 未声明)'} | sha={str(meta.get('yaml_sha256', ''))[:16]}"
+        )
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  结果分析打印失败 (不影响产物): {e}")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m news_process.pipeline.features.benefit_society_alt_anchor",
@@ -461,6 +632,11 @@ def main(argv: list[str] | None = None) -> int:
         format="%(asctime)s [%(name)s] %(levelname)s %(message)s",
     )
 
+    stage_start = time.time()
+    logger.info("--- 开始执行阶段: 80_alt_anchor (J-L-M 2026 替代锚点投影; audit-only) ---")
+    _log_environment_config_method(args)
+
+    _t0 = time.time()
     pos, neg, meta = load_jlm_zh_anchors(args.anchors_yaml)
     logger.info(
         "Loaded J-L-M Appendix A anchors: %d pairs, family=%s, sha=%s",
@@ -468,9 +644,11 @@ def main(argv: list[str] | None = None) -> int:
         meta["anchor_family"],
         meta["yaml_sha256"][:16],
     )
+    logger.info(f"  ⏱ [锚点加载/校验] 耗时 {sig4(time.time() - _t0)} 秒")
 
     if args.validate_only:
         logger.info("[validate-only] yaml schema OK; exiting.")
+        logger.info(f"--- 阶段 80_alt_anchor (validate-only) 完成, 总耗时 {sig4(time.time() - stage_start)} 秒 ---")
         return 0
 
     if args.text_embeddings_full is None or args.df_exploded is None:
@@ -478,10 +656,12 @@ def main(argv: list[str] | None = None) -> int:
             "Skipping projection (missing --text-embeddings-full / --df-exploded). "
             "Yaml schema validated; rerun with embedding inputs to produce panel."
         )
+        logger.info(f"--- 阶段 80_alt_anchor (跳过投影) 完成, 总耗时 {sig4(time.time() - stage_start)} 秒 ---")
         return 0
 
     # fix(omni-g-benefit-01, 2026-06-11): 文章嵌入须带 sidecar (fail-loud on
     # stale npy); 锚点经统一引擎用 sidecar model_id 反查的 spec 嵌入 → 同空间。
+    _t0 = time.time()
     text_embeddings, emb_meta = load_article_embeddings(args.text_embeddings_full)
     df_exploded = pd.read_parquet(args.df_exploded)
     if len(df_exploded) != text_embeddings.shape[0]:
@@ -498,11 +678,15 @@ def main(argv: list[str] | None = None) -> int:
         model_id,
         len(df_exploded),
     )
+    logger.info(f"  ⏱ [文章嵌入加载/对齐] 耗时 {sig4(time.time() - _t0)} 秒")
 
+    _t0 = time.time()
     direction = compute_direction_vector(pos, neg, embedding_fn)
     dir_sha = hashlib.sha256(direction.tobytes()).hexdigest()
     logger.info("Direction vector computed: norm=1.0, sha=%s", dir_sha[:16])
+    logger.info(f"  ⏱ [方向向量构建 (锚点嵌入)] 耗时 {sig4(time.time() - _t0)} 秒")
 
+    _t0 = time.time()
     scores = project_texts(text_embeddings, direction)
     panel = aggregate_to_bank_year(df_exploded, scores)
     tracks: list[str] = ["full"]
@@ -545,7 +729,12 @@ def main(argv: list[str] | None = None) -> int:
                                           col_suffix="_ss")
         panel = panel.merge(panel_ss, on=["target_bank", "year"], how="outer")
         tracks.append("ss")
+    logger.info(f"  ⏱ [投影 + bank-year 聚合 ({len(tracks)} 轨)] 耗时 {sig4(time.time() - _t0)} 秒")
 
+    # 📊 结果分析 (纯日志, 不改产物)
+    _log_result_analysis(panel, scores, tracks, meta)
+
+    _t0 = time.time()
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     panel.to_parquet(output_path, index=False)
@@ -559,6 +748,8 @@ def main(argv: list[str] | None = None) -> int:
         tracks=tuple(tracks),
     )
     logger.info("Wrote sidecar JSON: %s", sidecar_path)
+    logger.info(f"  ⏱ [写盘 (parquet + sidecar)] 耗时 {sig4(time.time() - _t0)} 秒")
+    logger.info(f"--- 阶段 80_alt_anchor 完成, 总耗时 {sig4(time.time() - stage_start)} 秒 ---")
     return 0
 
 

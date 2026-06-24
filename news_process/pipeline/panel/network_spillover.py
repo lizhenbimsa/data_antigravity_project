@@ -55,7 +55,9 @@ brokerage 2SLS 有效 N≈22(含 DV), 在 absorb(bank_id year) 下 bank FE 饱�
 
 import json
 import os
+import platform
 import sys
+import time
 
 import numpy as np
 import pandas as pd
@@ -81,7 +83,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging
+from news_process.core.logging import pct4, setup_logging, sig4
 from news_process.pipeline.text import embedding_engine as _eng
 
 # ============================================================================
@@ -96,6 +98,97 @@ logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 # 的微小分量门槛 (孤立点 / 单边对 → 特征向量平凡, 置 NaN); 与
 # network_brokerage._MIN_COMPONENT_SIZE 语义一致 (3 = 最小三角)。
 _CMNT_MIN_COMPONENT_SIZE = 3
+
+# 日志富集 (2026-06-24): 本模块是 runner 在 panel 步骤 7f/7g/7h-cogn/7h-emb 调用的
+# **函数库** (无独立 main()/run_stage()), 复用同一 logger 写 logs/46_network_spillovers.log。
+# 入口级 ENV/CONFIG/方法论 banner 只需打印一次 (首个被调函数触发), 由此模块级 flag 守卫;
+# 各 compute_* 函数另各打自己的子步骤 banner (步骤名 + 方法依据 DOI + 结果判读)。
+# ⚠ 铁律: 该 flag 仅服务日志去重, 绝不进入任何产物/控制流; banner emit 只在函数体内执行。
+_ENV_BANNER_EMITTED = False
+
+
+def _log_network_env_and_config() -> None:
+    """打印一次性 项目/环境/配置/方法论依据 banner (日志富集, 2026-06-24)。
+
+    被首个进入的 compute_* 函数调用 (模块级 flag 去重)。纯日志, 不改任何产物
+    (golden-safe)。把"谁在跑、跑在什么环境、用了哪些可调参数、方法学出处"一次性
+    落进 logs/46_network_spillovers.log, 供顶刊审计/复现核对/排错。
+    """
+    global _ENV_BANNER_EMITTED
+    if _ENV_BANNER_EMITTED:
+        return
+    _ENV_BANNER_EMITTED = True
+    try:
+        logger.info("=" * 60)
+        logger.info("  🧭 项目 / 环境信息 (network_spillover 函数库, 步骤 7f/7g/7h)")
+        logger.info("     · 阶段: %s (同行网络传染/溢出 + 33 网络指标 + 认知/嵌入邻近)",
+                    STAGE_NAME)
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板);"
+                    " 版本 v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'}")
+        logger.info("     · 确定性/成本: 溢出/中心度/认知邻近 = 纯 CPU 确定性 ($0); "
+                    "嵌入同业网 = 命中缓存 $0 / miss 时付费 API (yunwu /embeddings)")
+        logger.info("     · ⚠ 非确定列 (memory panel-3-network-cols): bank_clustering / "
+                    "bank_cfbetween_cent / bank_harmonic_cent 受 BLAS 浮点漂移, 跨次非逐位可复现")
+
+        logger.info("  ⚙ 运行配置")
+        logger.info(f"     · 微小分量门槛 _CMNT_MIN_COMPONENT_SIZE={_CMNT_MIN_COMPONENT_SIZE:,d} "
+                    "(< 此节点数的连通分量 bank_eigen_cent 置 NaN)")
+        logger.info("     · 情感轨集: ['_full', '_ctx', '_ss'] (ss=银行+金科同句共现)")
+        logger.info("     · 网络指标: 18 节点级 + 10 网络级 + 5 GF 经纪角色 = 33 列")
+        logger.info("     · 滞后口径: 严格 Lag(Y-1) — 去年网络权重 × 去年同行情感 "
+                    "(规避 Manski 反射问题)")
+        _has_sk = "可用" if HAS_SKLEARN else "缺失(认知/嵌入邻近降级)"
+        _has_nx = "可用" if HAS_NETWORKX else "缺失(中心度跳过)"
+        logger.info(f"     · 依赖: scikit-learn={_has_sk} | networkx={_has_nx}")
+        logger.info(f"     · 嵌入主轨 spec: model={EMBEDDING_CONFIG.get('model', '(默认)')} "
+                    f"| base_url={EMBEDDING_CONFIG.get('base_url', '(默认)')}")
+        logger.info(f"     · 嵌入稳健轨 (_t2v): {'已配置' if _ROBUSTNESS_SPEC else '未配置(跳过)'}")
+
+        logger.info("  📖 方法论依据 (经核验注册表; DOI 可访问)")
+        logger.info("     · 同行效应范式: Leary, M. T., & Roberts, M. R. (2014). Do peer "
+                    "firms affect corporate financial policy? The Journal of Finance, "
+                    "69(1), 139-178. https://doi.org/10.1111/jofi.12094")
+        logger.info("     · 反射问题/滞后识别: Manski, C. F. (1993). Identification of "
+                    "endogenous social effects: The reflection problem. The Review of "
+                    "Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123")
+        logger.info("     · 空间权重矩阵 (行随机 W×y): LeSage, J., & Pace, R. K. (2009). "
+                    "Introduction to spatial econometrics. Chapman and Hall/CRC. "
+                    "https://doi.org/10.1201/9781420064254")
+        logger.info("     · 中心度定义: Freeman, L. C. (1978). Centrality in social "
+                    "networks conceptual clarification. Social Networks, 1(3), 215-239. "
+                    "https://doi.org/10.1016/0378-8733(78)90021-7")
+        logger.info("     · 系统性风险/网络连通: Billio, M., Getmansky, M., Lo, A. W., & "
+                    "Pelizzon, L. (2012). Econometric measures of connectedness and "
+                    "systemic risk in the finance and insurance sectors. Journal of "
+                    "Financial Economics, 104(3), 535-559. "
+                    "https://doi.org/10.1016/j.jfineco.2011.12.010")
+        logger.info("     · 经纪角色 (GF): Gould, R. V., & Fernandez, R. M. (1989). "
+                    "Structures of mediation: A formal approach to brokerage in "
+                    "transaction networks. Sociological Methodology, 19, 89-126. "
+                    "https://doi.org/10.2307/270949")
+        logger.info("     · 认知邻近度: Boschma, R. (2005). Proximity and innovation: A "
+                    "critical assessment. Regional Studies, 39(1), 61-74. "
+                    "https://doi.org/10.1080/0034340052000320887")
+        logger.info("     · 文本同行网: Hoberg, G., & Phillips, G. (2016). Text-based "
+                    "network industries and endogenous product differentiation. Journal "
+                    "of Political Economy, 124(5), 1423-1465. "
+                    "https://doi.org/10.1086/688176")
+        logger.info("     · 句向量 (本地降级): Reimers, N., & Gurevych, I. (2019). "
+                    "Sentence-BERT: Sentence embeddings using Siamese BERT-networks. "
+                    "In Proceedings of the 2019 Conference on Empirical Methods in "
+                    "Natural Language Processing and the 9th International Joint "
+                    "Conference on Natural Language Processing (EMNLP-IJCNLP) "
+                    "(pp. 3980-3990). Association for Computational Linguistics. "
+                    "https://doi.org/10.18653/v1/D19-1410")
+        logger.info("=" * 60)
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法论 banner 打印失败 (不影响计算): {e}")
 
 
 # ============================================================================
@@ -269,8 +362,12 @@ def compute_network_spillovers(
     Returns:
         panel: 追加 peer_tone_lag1_* 列的面板
     """
+    _log_network_env_and_config()
+    _t0 = time.time()
     logger.info("=" * 60)
-    logger.info("步骤: 同行网络传染/溢出效应计算")
+    logger.info("步骤 7f: 同行网络传染/溢出效应计算 (row-stochastic 空间滞后 W×tone)")
+    logger.info("  · 方法: LeSage & Pace (2009) 行随机 W + Leary-Roberts (2014) 同行均值 "
+                "+ Lag(Y-1) 规避 Manski (1993) 反射问题")
     logger.info("=" * 60)
 
     # fix(omni-g-net-spill-01, 2026-06-11): docid 是 both-verified 主路径键;
@@ -440,10 +537,34 @@ def compute_network_spillovers(
                 if peer_col in panel.columns:
                     valid = panel[peer_col].notna().sum()
                     logger.info(f"    {peer_col}: {valid:,} 有效值, "
-                                f"mean={panel[peer_col].mean():.4f}")
+                                f"mean={sig4(panel[peer_col].mean())}")
+
+        # ── 📊 关键指标解读 (运行结果信息, 阈值判读) ──
+        try:
+            _n_total = len(panel)
+            _primary = 'peer_tone_lag1_full'
+            if _primary in panel.columns:
+                _cov = panel[_primary].notna().sum()
+                _cov_frac = _cov / _n_total if _n_total else float('nan')
+                if _cov_frac < 0.05:
+                    _verdict = "❌ 极稀疏 (T=2 单截面退化, 不足识别; 须 production T≥3)"
+                elif _cov_frac < 0.30:
+                    _verdict = "⚠ 偏稀疏 (孤立银行去伪零后, 一阶 peer 网覆盖低)"
+                else:
+                    _verdict = "✅ 覆盖充分"
+                logger.info(f"  📊 peer_tone 一阶覆盖: {_cov:,}/{_n_total:,} "
+                            f"({pct4(_cov_frac)}) — {_verdict}")
+                _vals = panel[_primary].dropna()
+                if len(_vals):
+                    logger.info(f"     · peer_tone_lag1_full 分布: mean={sig4(_vals.mean())} "
+                                f"std={sig4(_vals.std())} "
+                                f"min={sig4(_vals.min())} max={sig4(_vals.max())}")
+        except Exception as _e:  # noqa: BLE001
+            logger.warning(f"  溢出结果分析失败 (不影响产物): {_e}")
     else:
         logger.warning("  未生成任何网络溢出变量")
 
+    logger.info(f"  ⏱ 步骤 7f (同行网络溢出) 耗时: {sig4(time.time() - _t0)} 秒")
     return panel
 
 
@@ -451,8 +572,8 @@ def compute_network_spillovers(
 # 5. 银行共现网络指标计算 (33: 18 节点 + 10 网络级 + 5 GF, 扩展 2026-06-21)
 # ============================================================================
 # 学术依据:
-#   Freeman, L. C. (1979). Centrality in social networks. Social Networks,
-#   1(3), 215-239. DOI: 10.1016/0378-8733(78)90021-7
+#   Freeman, L. C. (1978). Centrality in social networks conceptual
+#   clarification. Social Networks, 1(3), 215-239. DOI: 10.1016/0378-8733(78)90021-7
 #   → degree, betweenness, closeness 的经典定义
 #
 #   Burt, R. S. (1992). Structural Holes. Harvard University Press.
@@ -667,12 +788,16 @@ def compute_bank_network_centrality(
                        " 请运行: pip install networkx")
         return panel
 
+    _log_network_env_and_config()
+    _t0 = time.time()
     logger.info("=" * 60)
-    logger.info("步骤: 银行共现网络指标计算 (33: 18 节点 + 10 网络级 + 5 GF)")
+    logger.info("步骤 7g: 银行共现网络指标计算 (33: 18 节点 + 10 网络级 + 5 GF)")
+    logger.info("  · 方法: Freeman (1978) 中心度 + Billio et al. (2012, JFE) 网络连通 "
+                "+ Gould-Fernandez (1989) 经纪角色")
     logger.info("=" * 60)
 
     years = sorted(panel['year'].unique())
-    logger.info(f"  面板年份范围: {min(years)}-{max(years)}, 共 {len(years)} 年")
+    logger.info(f"  面板年份范围: {min(years)}-{max(years)}, 共 {len(years):,d} 年")
 
     # 结果容器
     node_results = {}   # {(bank, year): {metric: value}}
@@ -684,7 +809,7 @@ def compute_bank_network_centrality(
     try:
         from news_process.pipeline.panel.iv_did import load_bank_group_maps
         _gf_type_map, _ = load_bank_group_maps()
-        logger.info(f"  GF 分组已加载 (load_bank_group_maps): {len(_gf_type_map)} 银行")
+        logger.info(f"  GF 分组已加载 (load_bank_group_maps): {len(_gf_type_map):,d} 银行")
     except Exception as e:
         logger.warning(f"  GF 分组加载失败 ({e}); gf_* 列将全 NaN")
         _gf_type_map = {}
@@ -1002,9 +1127,9 @@ def compute_bank_network_centrality(
 
         net_results[year] = net_yr
 
-        logger.info(f"  年份 {year}: {n_nodes} 节点, {n_edges_raw} 边, "
-                    f"LCC={len(lcc_nodes)}, "
-                    f"density={net_yr['net_density_yr']:.4f}")
+        logger.info(f"  年份 {year}: {n_nodes:,d} 节点, {n_edges_raw:,d} 边, "
+                    f"LCC={len(lcc_nodes):,d}, "
+                    f"density={sig4(net_yr['net_density_yr'])}")
 
     # ─── 7. 合并至面板 ───
 
@@ -1036,16 +1161,41 @@ def compute_bank_network_centrality(
     cent_cols = [c for c in node_df.columns
                  if c not in ('target_bank', 'year')]
     net_cols = [c for c in net_df.columns if c != 'year']
-    logger.info(f"  网络中心度已合并: {len(cent_cols)} 节点级 + "
-                f"{len(net_cols)} 网络级 = {len(cent_cols)+len(net_cols)} 变量")
+    logger.info(f"  网络中心度已合并: {len(cent_cols):,d} 节点级 + "
+                f"{len(net_cols):,d} 网络级 = {len(cent_cols)+len(net_cols):,d} 变量")
+    _zero_var_cols = []
     for col in cent_cols + net_cols:
         if col in panel.columns:
             valid = panel[col].notna().sum()
             total = len(panel)
+            _frac = valid / total if total else float('nan')
             logger.info(f"    {col}: {valid:,}/{total:,} "
-                        f"({valid/total:.1%}), "
-                        f"mean={panel[col].mean():.4f}")
+                        f"({pct4(_frac)}), "
+                        f"mean={sig4(panel[col].mean())}")
+            _v = panel[col].dropna()
+            if len(_v) >= 2 and float(_v.std()) == 0.0:
+                _zero_var_cols.append(col)
 
+    # ── 📊 关键指标解读 (零方差列诊断, 回归会被吸收) ──
+    try:
+        if _zero_var_cols:
+            logger.info(f"  📊 零方差列诊断: {len(_zero_var_cols):,d} 列方差=0 "
+                        f"(进回归被吸收, 多因 T=2 退化/正则图): {_zero_var_cols[:8]}"
+                        f"{' ...' if len(_zero_var_cols) > 8 else ''}")
+        else:
+            logger.info("  📊 零方差列诊断: ✅ 无零方差中心度列")
+        _eig = 'bank_eigen_cent'
+        if _eig in panel.columns:
+            _eig_cov = panel[_eig].notna().sum()
+            _eig_frac = _eig_cov / len(panel) if len(panel) else float('nan')
+            _ev = ("⚠ 多数置 NaN (断连图微小分量, 见 P1-1)"
+                   if _eig_frac < 0.5 else "✅ 大分量覆盖良好")
+            logger.info(f"  📊 bank_eigen_cent 覆盖: {_eig_cov:,}/{len(panel):,} "
+                        f"({pct4(_eig_frac)}) — {_ev}")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  中心度结果分析失败 (不影响产物): {_e}")
+
+    logger.info(f"  ⏱ 步骤 7g (网络中心度) 耗时: {sig4(time.time() - _t0)} 秒")
     return panel
 
 
@@ -1104,8 +1254,12 @@ def compute_cognitive_proximity(
                        " 请运行: pip install scikit-learn")
         return panel
 
+    _log_network_env_and_config()
+    _t0 = time.time()
     logger.info("=" * 60)
-    logger.info("步骤: 认知邻近度计算 (Boschma 2005; 操作化=本项目自定义 TF-IDF cosine)")
+    logger.info("步骤 7h-cogn: 认知邻近度计算 (Boschma 2005; 操作化=本项目自定义 TF-IDF cosine)")
+    logger.info("  · 方法: Boschma, R. (2005). Regional Studies, 39(1), 61-74. "
+                "https://doi.org/10.1080/0034340052000320887 — 认知邻近度 = 知识基础相似度")
     logger.info("=" * 60)
 
     # 文本列发现 (复用 24_herd_decay_processor.py L86-87 逻辑)
@@ -1190,8 +1344,8 @@ def compute_cognitive_proximity(
         year_vals = [v for k, v in cogn_results.items()
                      if k[1] == year and not np.isnan(v)]
         mean_val = np.mean(year_vals) if year_vals else float('nan')
-        logger.info(f"  年份 {year}: {n_valid}/{n_banks} 有效银行, "
-                    f"cogn_mean 均值={mean_val:.4f}")
+        logger.info(f"  年份 {year}: {n_valid:,d}/{n_banks:,d} 有效银行, "
+                    f"cogn_mean 均值={sig4(mean_val)}")
 
     # 合并至面板
     if cogn_results:
@@ -1213,10 +1367,24 @@ def compute_cognitive_proximity(
                     f"[{valid_vals.min():.6f}, {valid_vals.max():.6f}]")
             n_valid_total = valid_vals.notna().sum()
             logger.info(f"  认知邻近度已合并: {n_valid_total:,} 有效值, "
-                        f"mean={valid_vals.mean():.4f}, std={valid_vals.std():.4f}")
+                        f"mean={sig4(valid_vals.mean())}, std={sig4(valid_vals.std())}")
+            # ── 📊 关键指标解读 (认知锁定 vs 差异化) ──
+            try:
+                _m = float(valid_vals.mean())
+                if _m >= 0.7:
+                    _cv = "⚠ 高同质 (认知锁定: 行业新闻话语高度趋同)"
+                elif _m >= 0.3:
+                    _cv = "✅ 中等 (银行间认知有差异)"
+                else:
+                    _cv = "✅ 高差异化 (信息空间独特性强)"
+                logger.info(f"  📊 cogn_mean 全样本均值={sig4(_m)} — {_cv} "
+                            f"(值域 [0,1], TF-IDF char-ngram cosine)")
+            except Exception as _e:  # noqa: BLE001
+                logger.warning(f"  认知邻近度结果分析失败 (不影响产物): {_e}")
     else:
         logger.warning("  未生成任何认知邻近度变量")
 
+    logger.info(f"  ⏱ 步骤 7h-cogn (认知邻近度) 耗时: {sig4(time.time() - _t0)} 秒")
     return panel
 
 
@@ -1385,7 +1553,7 @@ async def _get_embeddings_api(texts, model='text-embedding-3-small', cache=None)
                                     logger.warning(
                                         f"    Embedding HTTP {resp.status} "
                                         f"attempt {attempt + 1}/{MAX_RETRIES}, "
-                                        f"sleep {delay:.1f}s"
+                                        f"sleep {sig4(delay)}s"
                                     )
                                     await asyncio.sleep(delay)
                                     delay = min(delay * 2, MAX_RETRY_DELAY)
@@ -1404,7 +1572,7 @@ async def _get_embeddings_api(texts, model='text-embedding-3-small', cache=None)
                             logger.warning(
                                 f"    Embedding ClientError {type(e).__name__} "
                                 f"attempt {attempt + 1}/{MAX_RETRIES}, "
-                                f"sleep {delay:.1f}s"
+                                f"sleep {sig4(delay)}s"
                             )
                             await asyncio.sleep(delay)
                             delay = min(delay * 2, MAX_RETRY_DELAY)
@@ -1623,9 +1791,9 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
             emb_results[(bank, year)] = _entry
 
         _log_tone = _track_tone_vecs.get('_full')
-        _mean_str = (f"{np.nanmean(_log_tone):.4f}"
+        _mean_str = (sig4(np.nanmean(_log_tone))
                      if _log_tone is not None and len(_log_tone) else "n/a")
-        logger.info(f"  年份 {year}: {n_banks} 家银行, "
+        logger.info(f"  年份 {year}: {n_banks:,d} 家银行, "
                     f"Embedding 同行情感均值(full)={_mean_str}")
 
     return emb_results
@@ -1673,8 +1841,14 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
         Reimers, N., & Gurevych, I. (2019). EMNLP-IJCNLP 2019.
         Manski, C. F. (1993). RES, 60(3), 531-542.
     """
+    _log_network_env_and_config()
+    _t0 = time.time()
     logger.info("=" * 60)
-    logger.info("Embedding 同业网络控制变量 (Hoberg & Phillips 2016)")
+    logger.info("步骤 7h-emb: Embedding 同业网络控制变量 (双模型嵌入)")
+    logger.info("  · 方法: Hoberg, G., & Phillips, G. (2016). Journal of Political "
+                "Economy, 124(5), 1423-1465. https://doi.org/10.1086/688176 — 文本相似度"
+                "构建动态同行网; Manski (1993) Lag(Y-1) 规避反射问题")
+    logger.info("  · ⚠ 成本: 嵌入 miss 时付费 yunwu /embeddings; 命中 _llm_cache.db 即 $0")
     logger.info("=" * 60)
 
     tone_col = 'llm_vote_tone_full'
@@ -1704,8 +1878,18 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
                 raise ValueError(
                     f"bank_emb_sim_mean_lag1 超出 [-1,1]: "
                     f"[{valid_sim.min():.6f}, {valid_sim.max():.6f}]")
-            logger.info(f"  Embedding 同业网络已合并: {len(valid_sim):,} 有效值, "
-                        f"sim_mean={valid_sim.mean():.4f}")
+            logger.info(f"  Embedding 同业网络已合并 (主轨): {len(valid_sim):,} 有效值, "
+                        f"sim_mean={sig4(valid_sim.mean())}")
+            # ── 📊 关键指标解读 (嵌入同行网相似度) ──
+            try:
+                _sm = float(valid_sim.mean())
+                _sv = ("⚠ 极高同质 (嵌入语义高度趋同)" if _sm >= 0.9
+                       else "✅ 区分度良好" if _sm >= 0.3
+                       else "⚠ 低相似 (嵌入轨语义分散)")
+                logger.info(f"  📊 bank_emb_sim_mean_lag1 主轨均值={sig4(_sm)} — {_sv} "
+                            f"(真实 cosine 域 [-1,1])")
+            except Exception as _e:  # noqa: BLE001
+                logger.warning(f"  嵌入同业网结果分析失败 (不影响产物): {_e}")
     else:
         logger.warning("  未生成任何 Embedding 同业网络变量")
 
@@ -1747,10 +1931,11 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
         valid_t2v_sim = panel[t2v_sim_col].dropna()
         if len(valid_t2v_sim) > 0:
             logger.info(f"  _t2v 稳健轨已合并: {len(valid_t2v_sim):,} 有效值, "
-                        f"sim_mean={valid_t2v_sim.mean():.4f}")
+                        f"sim_mean={sig4(valid_t2v_sim.mean())}")
     else:
         logger.warning("  _t2v 稳健轨未生成任何变量, 相关列填 NaN")
         for _c in (*t2v_tone_cols, t2v_sim_col):
             panel[_c] = np.nan
 
+    logger.info(f"  ⏱ 步骤 7h-emb (嵌入同业网) 耗时: {sig4(time.time() - _t0)} 秒")
     return panel

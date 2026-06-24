@@ -12,9 +12,16 @@
 import csv
 import json
 import os
+import platform
+import sys
+import time
 
 import numpy as np
 import pandas as pd
+
+# 日志富集 (2026-06-24): 全部非整数日志数字统一经 sig4/pct4 渲染为 4 位有效数字
+# (单一事实源 = core/logging.py)。整数/计数仍用 :,d。
+from news_process.core.logging import pct4, sig4
 
 # Phase 2a: 取代旧的 importlib.spec_from_file_location 反射,改为正规子包 import。
 from news_process.pipeline.panel.encode import (
@@ -47,6 +54,38 @@ _SCORE_PATTERNS = [
     'finbert_cn_\u6b63\u9762_', 'fin_sent_zh_\u6b63\u9762_',
     'finbert2_\u6b63\u9762_',
 ]
+
+
+def _log_attention_substep_banner(step_tag: str, title: str, refs: list) -> None:
+    """called-by-runner 子步骤 banner (日志富集, 2026-06-24, golden-safe)。
+
+    本模块是 panel runner 在 步骤 6b/6b-2/6c 调用的库函数 (无独立 main()/run_stage(),
+    复用 encode.logger 写入共享的 40_panel_export_main 日志)。按 ENRICHMENT_PLAYBOOK §0.5
+    的 called-by-runner 约定: 不重复打 runner 入口已负责的 ENV/CONFIG 全块, 仅在每个被调
+    入口函数起始处打一个**子步骤 banner** —— 步骤名 + 运行环境指纹一行 + 方法论依据引文
+    (Author (Year). Journal, vol(issue), pages. DOI, 逐字取自经核验注册表)。纯日志, 不改
+    任何写盘值/schema/控制流 (golden-safe)。
+
+    Args:
+        step_tag: 步骤标签 (如 '6b' / '6b-2' / '6c')。
+        title:    子步骤一句话功能 (中文)。
+        refs:     方法论引文串列表 (APA-7 + DOI, 逐字取自 VERIFIED_REFERENCES.md)。
+    """
+    try:
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info("=" * 60)
+        logger.info(f"步骤 {step_tag}: {title}")
+        logger.info(f"  🧭 环境: Python {sys.version.split()[0]} | {platform.platform()} | "
+                    f"CPU={os.cpu_count()} | PID={os.getpid()} | "
+                    f"RUN_ID={_run_id or '(未设置)'} | 纯 CPU/$0 (无 LLM·API)")
+        logger.info(f"  📁 模块: {os.path.abspath(__file__)}")
+        logger.info(f"  📂 输出目录: {OUTPUT_DIR}")
+        logger.info("  📖 方法论依据 (Author (Year). Journal, vol(issue), pages. DOI):")
+        for _r in refs:
+            logger.info(f"     · {_r}")
+        logger.info("=" * 60)
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  子步骤 banner 打印失败 (不影响处理): {e}")
 
 
 def detect_defacto_cessation(df, logger, output_dir, threshold_gap=2):
@@ -256,11 +295,11 @@ def _validate_attention_treatments(panel: pd.DataFrame) -> None:
             continue
         ok = (v >= lo - 1e-9).all() and (hi is None or (v <= hi + 1e-9).all())
         if ok:
-            logger.info(f"  ✓ {col}: n={len(v)} mean={v.mean():.4f} "
-                        f"[{v.min():.4f}, {v.max():.4f}]")
+            logger.info(f"  ✓ {col}: n={len(v):,} mean={sig4(v.mean())} "
+                        f"[{sig4(v.min())}, {sig4(v.max())}]")
         else:
             rng = f"[{lo}, {hi}]" if hi is not None else f"[{lo}, +inf)"
-            logger.error(f"  ✗ {col}: 越界 [{v.min():.4f}, {v.max():.4f}], 期望 {rng}")
+            logger.error(f"  ✗ {col}: 越界 [{sig4(v.min())}, {sig4(v.max())}], 期望 {rng}")
 
 
 def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
@@ -364,11 +403,26 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
                        "attention 处理变量物化")
         return panel
 
-    logger.info("=" * 60)
+    _t0_treat = time.time()
     # fix(omni-g-papers-misc-09, 2026-06-11): 日志锚点与本函数 docstring 锚点更正对齐
-    logger.info("步骤 6b-2: P2 attention 处理变量 (Fang-Peress 2009 JF extensive 覆盖; "
-                "Hassan 2019 QJE 仅限 pct/density/ctx 归因; 三轨 full/ctx/ss=互为稳健性)")
-    logger.info("=" * 60)
+    _log_attention_substep_banner(
+        '6b-2',
+        'P2 attention 处理变量 (Fang-Peress 2009 JF extensive 覆盖; Hassan 2019 仅限 '
+        'pct/density 归因; 三轨 full/ctx/ss=互为稳健性)',
+        [
+            'Fang, L., & Peress, J. (2009). Media coverage and the cross-section of '
+            'stock returns. The Journal of Finance, 64(5), 2023-2052. '
+            'https://doi.org/10.1111/j.1540-6261.2009.01493.x  (extensive 覆盖加权曝光主锚)',
+            'Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). '
+            'Firm-level political risk: Measurement and effects. The Quarterly '
+            'Journal of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021'
+            '  (intensive 归一化份额; 仅限 attention_pct/density)',
+        ],
+    )
+    logger.info("  ⚙ 运行配置: _ATTN_MIN_ARTICLES=%d | 三轨={full,ctx,ss} | "
+                "verified 域门控=on (semi-join 24_herd_decay, 剔 ~26.8%% 判伪)",
+                _ATTN_MIN_ARTICLES)
+    logger.info(f"  📂 输入: 分子={s14_path} | 分母/全集={f12_path}")
 
     s14 = pd.read_parquet(s14_path)
     # full/ctx 为硬依赖 (缺则整族跳过); ss 为软依赖 — stage 14 三轨化后才落盘
@@ -508,9 +562,10 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     panel = panel.merge(treat, on=GK, how='left')
 
     matched = panel['attention_index_full'].notna().sum()
-    logger.info(f"  attention 处理变量: 匹配 {matched}/{len(panel)} bank-year "
-                f"({matched / len(panel) * 100:.1f}%); 全集脊柱 {len(universe)} bank-year")
+    logger.info(f"  attention 处理变量: 匹配 {matched:,}/{len(panel):,} bank-year "
+                f"({pct4(matched / len(panel))}); 全集脊柱 {len(universe):,} bank-year")
     _validate_attention_treatments(panel)
+    logger.info(f"  ⏱ 步骤 6b-2 (attention 处理变量) 墙钟耗时: {sig4(time.time() - _t0_treat)} 秒")
     return panel
 
 
@@ -586,9 +641,22 @@ def compute_fintech_attention_index(panel: pd.DataFrame) -> pd.DataFrame:
         logger.warning("  12_fintech_news_full.parquet 不存在, 跳过注意力指数")
         return panel
 
-    logger.info("=" * 60)
-    logger.info("步骤 6b: 金融科技公众注意力指数 (主锚 Fang & Peress 2009; 对照 Da et al. 2011)")
-    logger.info("=" * 60)
+    _t0_geo = time.time()
+    _log_attention_substep_banner(
+        '6b',
+        '金融科技公众注意力指数 — 三级地理维度 (主锚 Fang & Peress 2009; 对照 Da et al. 2011)',
+        [
+            'Fang, L., & Peress, J. (2009). Media coverage and the cross-section of '
+            'stock returns. The Journal of Finance, 64(5), 2023-2052. '
+            'https://doi.org/10.1111/j.1540-6261.2009.01493.x  (主锚: 报纸覆盖率作关注度度量)',
+            'Da, Z., Engelberg, J., & Gao, P. (2011). In search of attention. The '
+            'Journal of Finance, 66(5), 1461-1499. '
+            'https://doi.org/10.1111/j.1540-6261.2011.01679.x  (对照: 直接注意力代理, 本项目以报纸覆盖作间接代理)',
+            'Gurun, U. G., & Butler, A. W. (2012). Don\'t believe the hype: Local '
+            'media slant, local advertising, and firm value. The Journal of Finance, '
+            '67(2), 561-598. https://doi.org/10.1111/j.1540-6261.2012.01725.x  (地理本地媒体偏斜)',
+        ],
+    )
 
     # ── 加载 ──
     core_cols = ['docid', 'target_bank', '日期', 'is_fintech_news']
@@ -667,7 +735,7 @@ def compute_fintech_attention_index(panel: pd.DataFrame) -> pd.DataFrame:
     for _, r in idx_yr.iterrows():
         logger.info(f"    {int(r['year'])}: "
                      f"{int(r['_ft']):,}/{int(r['_total']):,} "
-                     f"= {r['ft_attn_yr']:.4f}")
+                     f"= {sig4(r['ft_attn_yr'])} (议程份额)")
 
     # 保存中间数据
     _save_attn_index(idx_yr.rename(columns={'_total': 'total_articles',
@@ -732,6 +800,44 @@ def compute_fintech_attention_index(panel: pd.DataFrame) -> pd.DataFrame:
 
     # ── 校验 ──
     _validate_attention_index(panel)
+
+    # ── 📊 关键指标解读 (运行结果信息, 日志富集 2026-06-24) ──
+    try:
+        logger.info("  📊 关键指标解读 (地理注意力指数族)")
+        for _col, _lbl in [('ft_attn_yr', '年度议程份额'),
+                            ('ft_attn_prov', '省级 LOO 份额'),
+                            ('ft_attn_city', '市级 LOO 份额')]:
+            if _col not in panel.columns:
+                continue
+            _v = panel[_col].dropna()
+            if len(_v) == 0:
+                logger.warning(f"     · {_col} ({_lbl}): 全为 NaN — 该地理层级无可估样本")
+                continue
+            _cov = len(_v) / len(panel)
+            _mean = _v.mean()
+            # 议程份额∈[0,1]: 偏高 (>0.5) 提示 fintech 话题主导, 偏低 (<0.05) 提示稀疏覆盖
+            if _mean > 0.5:
+                _vd = '偏高 (fintech 话题在该层级新闻中主导)'
+            elif _mean < 0.05:
+                _vd = '偏低 (fintech 覆盖稀疏, 多数为非 fintech 银行新闻)'
+            else:
+                _vd = '正常区间'
+            logger.info(f"     · {_col} ({_lbl}): 覆盖 {len(_v):,}/{len(panel):,} "
+                        f"({pct4(_cov)}), 均值={sig4(_mean)} → {_vd}")
+        for _col, _lbl in [('ft_vol_yr', '年度总量'),
+                           ('ft_vol_prov', '省级 LOO 总量'),
+                           ('ft_vol_city', '市级 LOO 总量')]:
+            if _col not in panel.columns:
+                continue
+            _v = panel[_col].dropna()
+            if len(_v) == 0:
+                continue
+            logger.info(f"     · {_col} ({_lbl}, ln(1+篇数)): 覆盖 {len(_v):,}/{len(panel):,}, "
+                        f"均值={sig4(_v.mean())} [{sig4(_v.min())}, {sig4(_v.max())}]")
+        logger.info(f"  ⏱ 步骤 6b (地理注意力指数) 墙钟耗时: {sig4(time.time() - _t0_geo)} 秒")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  地理注意力指数结果解读打印失败 (不影响处理): {e}")
+
     return panel
 
 
@@ -884,12 +990,12 @@ def _merge_geo_index_to_panel(df_all, panel, idx_geo,
                         on=['target_bank', 'year'], how='left')
 
     matched = panel[target_col].notna().sum()
-    logger.info(f"    {target_col}: 匹配 {matched}/{len(panel)} "
-                f"({matched/len(panel)*100:.1f}%) [leave-one-out]")
+    logger.info(f"    {target_col}: 匹配 {matched:,}/{len(panel):,} "
+                f"({pct4(matched / len(panel))}) [leave-one-out]")
     if vol_col is not None:
         vmatched = panel[vol_col].notna().sum()
-        logger.info(f"    {vol_col}: 匹配 {vmatched}/{len(panel)} "
-                    f"({vmatched/len(panel)*100:.1f}%) [LOO 总量 ln(1+篇数)]")
+        logger.info(f"    {vol_col}: 匹配 {vmatched:,}/{len(panel):,} "
+                    f"({pct4(vmatched / len(panel))}) [LOO 总量 ln(1+篇数)]")
     return panel
 
 
@@ -905,9 +1011,9 @@ def _validate_attention_index(panel):
         if not valid.between(0, 1).all():
             logger.error(f"  ✗ {col}: 含超出 [0,1] 的值!")
         else:
-            logger.info(f"  ✓ {col}: mean={valid.mean():.4f}, "
-                         f"std={valid.std():.4f}, "
-                         f"[{valid.min():.4f}, {valid.max():.4f}]")
+            logger.info(f"  ✓ {col}: mean={sig4(valid.mean())}, "
+                         f"std={sig4(valid.std())}, "
+                         f"[{sig4(valid.min())}, {sig4(valid.max())}]")
 
     # 总量孪生校验 ([0, +∞), ln(1+篇数) 故 ≥0; 非 share 不查上界 1)
     for col in ['ft_vol_yr', 'ft_vol_prov', 'ft_vol_city']:
@@ -920,9 +1026,9 @@ def _validate_attention_index(panel):
         if (valid < -1e-9).any():
             logger.error(f"  ✗ {col}: 含负值 (ln(1+篇数) 应 ≥0)!")
         else:
-            logger.info(f"  ✓ {col}: mean={valid.mean():.4f}, "
-                         f"std={valid.std():.4f}, "
-                         f"[{valid.min():.4f}, {valid.max():.4f}]")
+            logger.info(f"  ✓ {col}: mean={sig4(valid.mean())}, "
+                         f"std={sig4(valid.std())}, "
+                         f"[{sig4(valid.min())}, {sig4(valid.max())}]")
 
     # year-level 常量校验 (比值与总量两个 year 档均应同年常量)
     for _yc in ['ft_attn_yr', 'ft_vol_yr']:
@@ -948,7 +1054,7 @@ def _validate_attention_index(panel):
         elif mean_std < 1e-6:
             logger.warning(f"  {col}: 年内几乎无变异 (退化为 year-level)")
         else:
-            logger.info(f"  ✓ {col}: 年内 std 均值={mean_std:.6f}")
+            logger.info(f"  ✓ {col}: 年内 std 均值={sig4(mean_std)}")
 
 
 # ============================================================================
@@ -998,9 +1104,40 @@ def compute_media_heterogeneity(df, panel):
     df = df.copy()
     panel = panel.copy()
 
-    logger.info("=" * 60)
-    logger.info("步骤 6c: 媒体信息中介异质性 - 九维度")
-    logger.info("=" * 60)
+    _t0_het = time.time()
+    _log_attention_substep_banner(
+        '6c',
+        '媒体信息中介异质性 — 九维度分析 (Bushee et al. 2010 媒体中介; 维度④⑤⑥⑨ 各有学术依据)',
+        [
+            'Bushee, B. J., Core, J. E., Guay, W., & Hamm, S. J. W. (2010). The role '
+            'of the business press as an information intermediary. Journal of '
+            'Accounting Research, 48(1), 1-19. '
+            'https://doi.org/10.1111/j.1475-679X.2009.00357.x  (维度⑦ 媒体广度/原创信息)',
+            'You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the '
+            'pen? The Review of Financial Studies, 31(1), 43-96. '
+            'https://doi.org/10.1093/rfs/hhx055  (维度⑤⑥ 官方 vs 市场化媒体治理效应)',
+            'Piotroski, J. D., Wong, T. J., & Zhang, T. (2015). Political incentives '
+            'to suppress negative information: Evidence from Chinese listed firms. '
+            'Journal of Accounting Research, 53(2), 405-459. '
+            'https://doi.org/10.1111/1475-679X.12071  (政治激励压制负面信息)',
+            'Guest, N. M. (2021). The information role of the media in earnings news. '
+            'Journal of Accounting Research, 59(3), 1021-1076. '
+            'https://doi.org/10.1111/1475-679X.12349  (维度⑦ 深度分析型媒体原创性)',
+            'Tetlock, P. C. (2007). Giving content to investor sentiment: The role of '
+            'media in the stock market. The Journal of Finance, 62(3), 1139-1168. '
+            'https://doi.org/10.1111/j.1540-6261.2007.01232.x  (维度⑧ 日频媒体情感)',
+            'Tetlock, P. C., Saar-Tsechansky, M., & Macskassy, S. (2008). More than '
+            'words: Quantifying language to measure firms\' fundamentals. The Journal '
+            'of Finance, 63(3), 1437-1467. '
+            'https://doi.org/10.1111/j.1540-6261.2008.01362.x  (维度⑧ 负面词汇预测基本面)',
+            'Gurun, U. G., & Butler, A. W. (2012). Don\'t believe the hype: Local '
+            'media slant, local advertising, and firm value. The Journal of Finance, '
+            '67(2), 561-598. https://doi.org/10.1111/j.1540-6261.2012.01725.x  (维度⑨ 本地媒体偏斜)',
+            'Core, J. E., Guay, W., & Larcker, D. F. (2008). The power of the pen and '
+            'executive compensation. Journal of Financial Economics, 88(1), 1-25. '
+            'https://doi.org/10.1016/j.jfineco.2007.05.001  (维度⑨ 负面信息选择性抑制)',
+        ],
+    )
 
     # ── 加载媒体分类名单 ──
     config_dir = os.path.dirname(os.path.abspath(
@@ -1057,7 +1194,7 @@ def compute_media_heterogeneity(df, panel):
     vc = df['_media_type'].value_counts()
     for mt in ['fin', 'comp', 'other']:
         n = vc.get(mt, 0)
-        logger.info(f"    内容分类 - {mt}: {n:,} ({n/len(df)*100:.1f}%)")
+        logger.info(f"    内容分类 - {mt}: {n:,} ({pct4(n / len(df))})")
 
     # (1) 占比 - 维度①②
     for mt, col in [('fin', 'fin_media_frac'), ('comp', 'comp_media_frac')]:
@@ -1093,7 +1230,7 @@ def compute_media_heterogeneity(df, panel):
     df['_is_central'] = df['媒体(中文)'].isin(CENTRAL).astype(int)
     n_central = df['_is_central'].sum()
     logger.info(f"    行政分类 - 中央级: {n_central:,} "
-                f"({n_central/len(df)*100:.1f}%)")
+                f"({pct4(n_central / len(df))})")
 
     # (3) 中央级占比
     frac_c = (df.groupby(['target_bank', 'year'])['_is_central']
@@ -1133,7 +1270,7 @@ def compute_media_heterogeneity(df, panel):
     df['_is_official'] = df['媒体(中文)'].isin(OFFICIAL - MARKET).astype(int)
     n_official = df['_is_official'].sum()
     logger.info(f"    政治取向 - 纯官方 (OFF−MKT): {n_official:,} "
-                f"({n_official/len(df)*100:.1f}%)")
+                f"({pct4(n_official / len(df))})")
 
     frac_off = (df.groupby(['target_bank', 'year'])['_is_official']
                 .mean().reset_index(name='official_media_frac'))
@@ -1167,7 +1304,7 @@ def compute_media_heterogeneity(df, panel):
     df['_is_market'] = df['媒体(中文)'].isin(MARKET - OFFICIAL).astype(int)
     n_market = df['_is_market'].sum()
     logger.info(f"    政治取向 - 纯市场化 (MKT−OFF): {n_market:,} "
-                f"({n_market/len(df)*100:.1f}%)")
+                f"({pct4(n_market / len(df))})")
 
     frac_mkt = (df.groupby(['target_bank', 'year'])['_is_market']
                 .mean().reset_index(name='market_media_frac'))
@@ -1197,7 +1334,7 @@ def compute_media_heterogeneity(df, panel):
     df['_is_deepdive'] = df['媒体(中文)'].isin(DEEPDIVE).astype(int)
     n_deepdive = df['_is_deepdive'].sum()
     logger.info(f"    出版频率 - 深度期刊: {n_deepdive:,} "
-                f"({n_deepdive/len(df)*100:.1f}%)")
+                f"({pct4(n_deepdive / len(df))})")
 
     frac_dd = (df.groupby(['target_bank', 'year'])['_is_deepdive']
                .mean().reset_index(name='deepdive_media_frac'))
@@ -1227,7 +1364,7 @@ def compute_media_heterogeneity(df, panel):
     df['_is_daily'] = df['媒体(中文)'].isin(DAILY).astype(int)
     n_daily = df['_is_daily'].sum()
     logger.info(f"    出版频率 - 高频日报: {n_daily:,} "
-                f"({n_daily/len(df)*100:.1f}%)")
+                f"({pct4(n_daily / len(df))})")
 
     frac_dl = (df.groupby(['target_bank', 'year'])['_is_daily']
                .mean().reset_index(name='daily_media_frac'))
@@ -1339,9 +1476,9 @@ def compute_media_heterogeneity(df, panel):
         n_homeprov = int(df['_is_homeprov'].sum())
         n_homecity = int(df['_is_homecity'].sum())
         n_geo_na = int(df['_is_homeprov'].isna().sum())
-        logger.info(f"    同省报道: {n_homeprov:,} ({n_homeprov/n_total*100:.1f}%), "
-                    f"同城报道: {n_homecity:,} ({n_homecity/n_total*100:.1f}%), "
-                    f"地理不可判 (出域): {n_geo_na:,} ({n_geo_na/n_total*100:.1f}%)")
+        logger.info(f"    同省报道: {n_homeprov:,} ({pct4(n_homeprov / n_total)}), "
+                    f"同城报道: {n_homecity:,} ({pct4(n_homecity / n_total)}), "
+                    f"地理不可判 (出域): {n_geo_na:,} ({pct4(n_geo_na / n_total)})")
 
         # (9f) 三项核心指标 × Prov/City 双层 (geo 层级, 与情感 full/ctx/ss 三轨正交)
         #   指标1: 偏袒度 (tone_gap) — 均值层面的系统性倾斜
@@ -1399,7 +1536,7 @@ def compute_media_heterogeneity(df, panel):
                     - panel.get(f'tone_{away_sfx}_media{track}', np.nan))
 
             logger.info(f"    {geo_label}: {frac_col} 均值="
-                        f"{panel[frac_col].dropna().mean():.4f}")
+                        f"{sig4(panel[frac_col].dropna().mean())}")
 
         # (9g) 拓扑断言: 同省占比 >= 同城占比
         if ('homeprov_media_frac' in panel.columns
@@ -1511,7 +1648,7 @@ def compute_media_heterogeneity(df, panel):
             if len(valid) > 0 and not valid.between(0, 1).all():
                 logger.error(f"  ✗ {col}: 含超出 [0,1] 的值!")
             elif len(valid) > 0:
-                logger.info(f"  ✓ {col}: [{valid.min():.4f}, {valid.max():.4f}]")
+                logger.info(f"  ✓ {col}: [{sig4(valid.min())}, {sig4(valid.max())}]")
 
     # (6) 内容分类互斥: fin + comp <= 1
     if 'fin_media_frac' in panel.columns and 'comp_media_frac' in panel.columns:
@@ -1547,5 +1684,48 @@ def compute_media_heterogeneity(df, panel):
     logger.info("  ✓ 中央级/official/market 与内容分类 (fin/comp) 为正交分类; "
                 "official ⊥ market 为互斥构造 (见 7b)")
     logger.info("  ✓ deepdive/daily 与其他维度正交")
+
+    # ── 📊 关键指标解读 (运行结果信息, 日志富集 2026-06-24) ──
+    try:
+        logger.info("  📊 关键指标解读 (媒体异质性九维度占比)")
+        for _col, _lbl in [
+            ('fin_media_frac', '财经媒体占比'), ('comp_media_frac', '综合媒体占比'),
+            ('central_media_frac', '中央级占比'), ('official_media_frac', '纯官方占比'),
+            ('market_media_frac', '纯市场化占比'), ('deepdive_media_frac', '深度期刊占比'),
+            ('daily_media_frac', '高频日报占比'), ('homeprov_media_frac', '同省占比'),
+            ('homecity_media_frac', '同城占比'),
+        ]:
+            if _col not in panel.columns:
+                continue
+            _v = panel[_col].dropna()
+            if len(_v) == 0:
+                logger.warning(f"     · {_col} ({_lbl}): 全为 NaN — 该维度无可估样本")
+                continue
+            _mean = _v.mean()
+            # 占比∈[0,1]: 近 0 或近 1 提示该类媒体在样本中近乎缺失/主导 (退化风险)
+            if _mean < 0.02:
+                _vd = '近零 (该类媒体几乎缺席, 对照组检验功效弱)'
+            elif _mean > 0.95:
+                _vd = '近饱和 (该类媒体近乎主导, 对照组样本稀薄)'
+            else:
+                _vd = '区分度健康'
+            logger.info(f"     · {_col} ({_lbl}): 覆盖 {len(_v):,}/{len(panel):,}, "
+                        f"均值={sig4(_mean)} [{sig4(_v.min())}, {sig4(_v.max())}] → {_vd}")
+        if 'media_hhi' in panel.columns:
+            _h = panel['media_hhi'].dropna()
+            if len(_h) > 0:
+                _hm = _h.mean()
+                # HHI∈[0,1]: >0.25 高度集中 (来源单一), <0.15 分散 (来源多元)
+                if _hm > 0.25:
+                    _hvd = '高度集中 (媒体来源单一, 注意信息冗余/同源风险)'
+                elif _hm < 0.15:
+                    _hvd = '来源多元 (媒体覆盖分散)'
+                else:
+                    _hvd = '中等集中'
+                logger.info(f"     · media_hhi (媒体来源集中度): 均值={sig4(_hm)} "
+                            f"[{sig4(_h.min())}, {sig4(_h.max())}] → {_hvd}")
+        logger.info(f"  ⏱ 步骤 6c (媒体异质性九维度) 墙钟耗时: {sig4(time.time() - _t0_het)} 秒")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  媒体异质性结果解读打印失败 (不影响处理): {e}")
 
     return panel

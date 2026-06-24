@@ -68,7 +68,9 @@ pos/neg_frac 阈值中心 (KNOWN-OPEN① 修复, fix(omni-g-benefit, 2026-06-11)
 import asyncio
 import json
 import os
+import platform
 import sys
+import time
 from datetime import datetime, timezone
 
 import numpy as np
@@ -110,6 +112,7 @@ except ImportError as _archive_import_exc:
 # ============================================================================
 # 1. 全局配置和初始化  (Phase 2a: 取代旧的 importlib 反射)
 # ============================================================================
+from news_process.core.logging import pct4, sig4  # noqa: E402  # 4-sig-fig 日志渲染单一事实源
 from news_process.pipeline.panel.encode import CONFIG, FILENAMES, OUTPUT_DIR, logger  # noqa: E402
 
 STAGE_NAME = "27_fintech_benefit_society"
@@ -462,27 +465,44 @@ def _compute_direction_vector(spec: dict | None = None) -> np.ndarray | None:
         if margin <= _ANCHOR_PAIR_MIN_MARGIN:
             logger.warning(
                 f"    锚点对 #{i+1} 正负间隔异常 "
-                f"(pos={pos_score:.4f}, neg={neg_score:.4f}, margin={margin:.4f}): "
+                f"(pos={sig4(pos_score)}, neg={sig4(neg_score)}, margin={sig4(margin)}): "
                 f"{pos_sentence[:18]}... / {neg_sentence[:18]}..."
             )
         elif pos_score <= -_ANCHOR_SIGN_TOL:
             logger.warning(
-                f"    正极句 #{i+1} 明显投影为负 ({pos_score:.4f}): "
+                f"    正极句 #{i+1} 明显投影为负 ({sig4(pos_score)}): "
                 f"{pos_sentence[:20]}..."
             )
         elif neg_score >= _ANCHOR_SIGN_TOL:
             logger.warning(
-                f"    负极句 #{i+1} 明显投影为正 ({neg_score:.4f}): "
+                f"    负极句 #{i+1} 明显投影为正 ({sig4(neg_score)}): "
                 f"{neg_sentence[:20]}..."
             )
         elif pos_score <= 0 or neg_score >= 0:
             logger.info(
                 f"    锚点对 #{i+1} 存在近零边界符号 "
-                f"(pos={pos_score:.4f}, neg={neg_score:.4f}, margin={margin:.4f}), "
+                f"(pos={sig4(pos_score)}, neg={sig4(neg_score)}, margin={sig4(margin)}), "
                 "正负间隔正常"
             )
 
-    logger.info(f"    方向向量: 维度 {direction.shape}, ||p|| = {dir_norm_val:.4f}")
+    # 结果解读: 方向向量范数 = 正负极语义可分性 (Jha et al. 2026, RFS §1.3.2; 双极锚点
+    # 差分 p=mean(pos)−mean(neg))。范数越大 → 正负极锚点在嵌入空间分得越开 → 投影轴越锐利。
+    try:
+        _n_pairs = len(POSITIVE_ANCHORS)
+        _mean_margin = float(np.mean(pos_scores - neg_scores)) if _n_pairs else float('nan')
+        _min_margin = float(np.min(pos_scores - neg_scores)) if _n_pairs else float('nan')
+        _verdict = (
+            "✅ 锚点轴锐利" if (np.isfinite(_min_margin) and _min_margin > _ANCHOR_PAIR_MIN_MARGIN)
+            else "⚠ 存在弱可分锚点对 (见上方告警)"
+        )
+        logger.info(
+            f"    方向向量: 维度 {direction.shape}, ||p|| = {sig4(dir_norm_val)} | "
+            f"锚点对均值间隔={sig4(_mean_margin)} / 最小间隔={sig4(_min_margin)} "
+            f"(阈值>{sig4(_ANCHOR_PAIR_MIN_MARGIN)}) → {_verdict}"
+        )
+    except Exception as _ml_exc:  # noqa: BLE001
+        logger.warning(f"    方向向量范数: 维度 {direction.shape}, ||p|| = {sig4(dir_norm_val)} "
+                       f"(间隔解读跳过: {_ml_exc!r})")
     return direction
 
 
@@ -651,7 +671,7 @@ def _get_frozen_center(score_key: str, scores: pd.Series, model_id: str) -> floa
                 f"{frozen_model!r}, 当前 spec model={model_id!r} — 嵌入模型换代须"
                 f"删除 {sidecar_path} 中该条目后重冻结 (防跨嵌入空间阈值误用)"
             )
-        logger.info(f"    {score_key}: 使用冻结 center={entry['center']:.6f} (sidecar)")
+        logger.info(f"    {score_key}: 使用冻结 center={sig4(entry['center'])} (sidecar)")
         return float(entry['center'])
 
     center = float(scores.dropna().median()) if scores.notna().any() else float('nan')
@@ -661,8 +681,8 @@ def _get_frozen_center(score_key: str, scores: pd.Series, model_id: str) -> floa
     n_scores = int(scores.notna().sum())
     if n_scores < _CENTER_MIN_N_TO_FREEZE:
         logger.warning(
-            f"    {score_key}: 有效得分仅 {n_scores} 篇 < {_CENTER_MIN_N_TO_FREEZE}, "
-            f"本次使用现算 center={center:.6f} 但**不冻结** (防 toy/试跑数据持久化)"
+            f"    {score_key}: 有效得分仅 {n_scores:,d} 篇 < {_CENTER_MIN_N_TO_FREEZE}, "
+            f"本次使用现算 center={sig4(center)} 但**不冻结** (防 toy/试跑数据持久化)"
         )
         return center
     record[score_key] = {
@@ -675,15 +695,87 @@ def _get_frozen_center(score_key: str, scores: pd.Series, model_id: str) -> floa
     try:
         with open(sidecar_path, 'w', encoding='utf-8') as f:
             json.dump(record, f, ensure_ascii=False, indent=2)
-        logger.info(f"    {score_key}: 首跑冻结 center={center:.6f} "
+        logger.info(f"    {score_key}: 首跑冻结 center={sig4(center)} "
                     f"→ {_CENTER_SIDECAR_FILENAME}")
     except OSError as exc:
-        logger.warning(f"    center sidecar 写入失败 (本次仍用 {center:.6f}): {exc!r}")
+        logger.warning(f"    center sidecar 写入失败 (本次仍用 {sig4(center)}): {exc!r}")
     return center
 
 # ============================================================================
 # 6. Bank-Year 聚合 + 面板合并（核心入口函数）
 # ============================================================================
+
+def _log_benefit_env_config_methods(panel: pd.DataFrame,
+                                     df_exploded: pd.DataFrame) -> None:
+    """子步骤 banner: 环境/配置/方法论引文 (日志富集, 2026-06-24, golden-safe)。
+
+    benefit_society 是 panel runner (步骤 7h-benefit) 调用的库函数, 共用
+    panel-build 日志, 无独立 main()。按 playbook §0.5 (called-by-runner helper):
+    在被调函数起始处打一个**子步骤 banner** —— ① 环境指纹 + ② 输入/输出 +
+    ③ 运行配置 + ④ 方法论依据 (含 DOI, 逐字取自经核验注册表)。纯日志, 不改任何
+    写盘值 / schema / 控制流 (golden-safe)。
+    """
+    try:
+        _main_model = _eng.spec_model(EMBEDDING_CONFIG)
+        _t2v_model = _eng.spec_model(_ROBUSTNESS_SPEC) if _ROBUSTNESS_SPEC else '(未配置)'
+        _offline = os.environ.get('NEWS_PROCESS_LLM_OFFLINE', '') in ('1', 'true', 'True')
+
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 子步骤: 7h-benefit ({STAGE_NAME}; runner 调用的库函数, 无独立 main)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板)")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    f"LLM_OFFLINE={'是' if _offline else '否'}")
+        logger.info("     · 成本/确定性: 嵌入 API 缓存命中=$0; 冷缓存=付费嵌入调用 "
+                    "(text-embedding-3-small); 本地 text2vec twin 纯算力 $0")
+
+        logger.info("  📂 输入 / 输出")
+        logger.info(f"     · 输入 panel: {len(panel):,d} 行 × {panel.shape[1]:,d} 列 "
+                    f"(bank-year 面板)")
+        logger.info(f"     · 输入 df_exploded: {len(df_exploded):,d} 行 (文章-银行级)")
+        logger.info(f"     · 嵌入缓存 DB: {CACHE_DB_PATH}")
+        logger.info(f"     · 嵌入落盘目录: {OUTPUT_DIR} "
+                    f"(27_benefit_embeddings*.npy / 27_benefit_direction*.npy)")
+        logger.info(f"     · center sidecar: "
+                    f"{os.path.join(OUTPUT_DIR, _CENTER_SIDECAR_FILENAME)}")
+
+        logger.info("  ⚙ 运行配置 (config::benefit_society / embedding_api / embedding_robustness)")
+        logger.info(f"     · MAIN 嵌入模型: {_main_model} (canonical 列) | "
+                    f"ROBUSTNESS twin: {_t2v_model} (_t2v 列)")
+        logger.info(f"     · 锚点对数: {len(POSITIVE_ANCHORS):,d} (正/负极严格对偶, "
+                    "single-word-change)")
+        logger.info(f"     · 锚点符号容差 anchor_sign_tolerance={sig4(_ANCHOR_SIGN_TOL)} | "
+                    f"锚点对最小间隔 anchor_pair_min_margin={sig4(_ANCHOR_PAIR_MIN_MARGIN)}")
+        logger.info(f"     · max_tokens_per_input={_MAX_TOKENS_PER_INPUT:,d} | "
+                    f"max_tokens_per_request={_MAX_TOKENS_PER_REQUEST:,d} | "
+                    f"cache_embeddings={_CACHE_EMBEDDINGS}")
+        logger.info(f"     · center 冻结最小样本 _CENTER_MIN_N_TO_FREEZE={_CENTER_MIN_N_TO_FREEZE:,d} | "
+                    "三轨 = full / ctx / ss")
+
+        logger.info("  📖 方法论依据 (参考文献逐字取自经核验注册表)")
+        logger.info("     · 双极锚点连续投影 a_j = cos(s_j, p), p = mean(pos) − mean(neg):")
+        logger.info("       Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit "
+                    "society? A language embedding approach. The Review of Financial "
+                    "Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012")
+        logger.info("       → §1.3.2 Eq. 1 文章级投影 + Eq. 2 等权 Bank-Year 聚合")
+        logger.info("     · 语义维度 = 正−负差分向量 (文化几何学, 方法论上游):")
+        logger.info("       Kozlowski, A. C., Taddy, M., & Evans, J. A. (2019). The geometry "
+                    "of culture: Analyzing the meanings of class through word embeddings. "
+                    "American Sociological Review, 84(5), 905-949. "
+                    "https://doi.org/10.1177/0003122419877135")
+        logger.info("     · 句向量降级方案 (本地 text2vec twin 同族):")
+        logger.info("       Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence "
+                    "embeddings using Siamese BERT-networks. In Proceedings of EMNLP-IJCNLP "
+                    "(pp. 3980-3990). ACL. https://doi.org/10.18653/v1/D19-1410")
+        logger.info("     · 白话: 给每篇金科新闻打『利好/损害银行经营』连续态度分 "
+                    "(>0 利好, <0 损害), 双模型 × 三轨交叉验证。")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法块打印失败 (不影响处理): {exc!r}")
+
 
 def compute_benefit_society_panel(panel: pd.DataFrame,
                                  df_exploded: pd.DataFrame) -> pd.DataFrame:
@@ -705,12 +797,16 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
     Returns:
         pd.DataFrame: 合并了 24 列 benefit_* 指标的面板 (MAIN + _t2v 双模型 × Full/Ctx/SS 三轨 × 4 指标)
     """
+    _step_start = time.time()
     logger.info("=" * 60)
     logger.info("步骤 7h-benefit: 金融科技经营效益态度投影")
     logger.info("  (Jha, Liu & Manela 2026, RFS §1.3.2)")
     logger.info("=" * 60)
 
+    _log_benefit_env_config_methods(panel, df_exploded)
+
     df_exploded = df_exploded.copy()
+    _emitted_cols: list[str] = []  # 仅服务于末尾结果分析/计时的日志局部变量
 
     # ---- 6.0 缓存路径 ----
     cache_filename = FILENAMES.get('output_27_benefit_cache',
@@ -867,9 +963,49 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
                 how='left'
             )
 
+            _mean_col = f'benefit_mean{suffix}_{track}'
+            _emitted_cols.append(_mean_col)
+            _notna_rate = float(panel[_mean_col].notna().mean())
+            # 结果解读: 非空率 = 该 (spec×轨) 在 bank-year 面板的覆盖率。
+            # T=2 试跑下覆盖率天然偏低; 生产 T=18 应趋高。
+            _cov_verdict = (
+                "✅ 覆盖充分" if _notna_rate >= 0.50
+                else ("⚠ 覆盖偏低 (小样本/稀疏轨)" if _notna_rate > 0
+                      else "❌ 全空 (无有效投影)")
+            )
             logger.info(f"  [{spec_tag}] {track.upper()} 轨聚合完成: "
-                        f"benefit_mean{suffix}_{track} 非空率 "
-                        f"{panel[f'benefit_mean{suffix}_{track}'].notna().mean():.1%}")
+                        f"{_mean_col} 非空率 {pct4(_notna_rate)} → {_cov_verdict}")
+
+    # ---- 6.6 结果分析 + 阶段计时 (日志富集, golden-safe) ----
+    try:
+        logger.info("  📊 关键指标解读 (benefit 面板覆盖率, sig4)")
+        _n_emitted = len(_emitted_cols)
+        if _n_emitted == 0:
+            logger.warning("     · 未产出任何 benefit_mean 列 (全部 spec×轨 跳过); "
+                           "检查嵌入 API / content_ctx·content_ss 列可用性")
+        else:
+            _rates = {c: float(panel[c].notna().mean()) for c in _emitted_cols}
+            _best = max(_rates.values())
+            _worst = min(_rates.values())
+            logger.info(f"     · 产出 benefit_mean 列数={_n_emitted:,d} (含 _t2v twin × 三轨) | "
+                        f"覆盖率区间 [{pct4(_worst)}, {pct4(_best)}]")
+            for _c, _r in _rates.items():
+                logger.info(f"       - {_c}: 非空率 {pct4(_r)}")
+            # 连续主测度 benefit_mean 的整体数值健康 (取首个非全空列做快速诊断)
+            for _c in _emitted_cols:
+                _ser = panel[_c].dropna()
+                if len(_ser) > 0:
+                    logger.info(
+                        f"     · {_c} 分布: μ={sig4(float(_ser.mean()))} / "
+                        f"σ={sig4(float(_ser.std()))} / "
+                        f"min={sig4(float(_ser.min()))} / max={sig4(float(_ser.max()))} "
+                        f"(理论域 [-1, 1])"
+                    )
+                    break
+        _elapsed = time.time() - _step_start
+        logger.info(f"  ⏱ 步骤 7h-benefit 墙钟耗时: {sig4(_elapsed)} 秒")
+    except Exception as _ra_exc:  # noqa: BLE001
+        logger.warning(f"  结果分析/计时块打印失败 (不影响产物): {_ra_exc!r}")
 
     logger.info("=" * 60)
     return panel

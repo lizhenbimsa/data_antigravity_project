@@ -112,9 +112,11 @@ _PROJECT_PARENT = os.path.dirname(os.path.dirname(_HERE))
 if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
+import platform
+
 from news_process.core.caching import LLMCache
 from news_process.core.config import load_config
-from news_process.core.logging import log_memory_usage, setup_logging
+from news_process.core.logging import log_memory_usage, pct4, setup_logging, sig4
 
 # ============================================================================
 # 1. 全局配置和初始化
@@ -600,9 +602,9 @@ async def run_variant_llms(
     total_tasks = len(df) * len(models) * 3
     logger.info(
         f"  [{variant_name}] 三轨请求: {len(df)} 条 × {len(models)} 模型 × 3 轨道 = "
-        f"{total_tasks} 请求, concurrency={PROMPT_MAX_CONCURRENCY}, "
-        f"per_model_spacing={PROMPT_REQUEST_SPACING:.2f}s, "
-        f"timeout={PROMPT_REQUEST_TIMEOUT_SECONDS:.0f}s, retries={PROMPT_MAX_RETRIES}"
+        f"{total_tasks:,} 请求, concurrency={PROMPT_MAX_CONCURRENCY}, "
+        f"per_model_spacing={sig4(PROMPT_REQUEST_SPACING)}s, "
+        f"timeout={sig4(PROMPT_REQUEST_TIMEOUT_SECONDS)}s, retries={PROMPT_MAX_RETRIES}"
     )
 
     connector = build_llm_connector(PROMPT_MAX_CONCURRENCY)
@@ -665,8 +667,8 @@ async def run_variant_llms(
             completed += 1
             if completed % report_interval == 0 or completed == total:
                 elapsed = time.time() - t0
-                logger.info(f"    [{variant_name}] 进度: {completed}/{total} "
-                            f"({completed/total*100:.0f}%) | {elapsed:.0f}s")
+                logger.info(f"    [{variant_name}] 进度: {completed:,}/{total:,} "
+                            f"({pct4(completed / total)}) | {sig4(elapsed)}s")
 
     return results_map
 
@@ -765,7 +767,7 @@ def aggregate_variant_results(
 
     fail_rate = n_parse_fail / max(n_total, 1)
     if fail_rate > 0.20:
-        logger.info(f"  [{variant_key}] API/解析失败率 {fail_rate:.1%} > 20%，该变体可能不可靠")
+        logger.info(f"  [{variant_key}] API/解析失败率 {pct4(fail_rate)} > 20%，该变体可能不可靠")
 
     df[f'{variant_key}_parse_fail_rate'] = fail_rate
     return df
@@ -1419,14 +1421,45 @@ def main():
             "NEWS_PROCESS_LLM_OFFLINE=1 离线守卫下优雅跳过 — 在线运行不受影响。"
         )
         return
+
+    stage_start = time.time()
+    # 运行期 per-phase 墙钟计时累计 (Step 1-8 各阶段, 末尾汇总; 纯日志, golden-safe)
+    phase_durations: dict[str, float] = {}
+
+    # ── ① 🧭 项目 / 环境信息 (日志富集 2026-06-24; 纯日志, 不改任何产物) ──
+    try:
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info("     · 阶段: 70_prompt_sensitivity / 阶段 39 (Prompt 措辞敏感度量化测试, "
+                    "STAGES_VALIDATION; thin shim 70_prompt_sensitivity.py)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) "
+                    "| 版本 v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'}")
+        logger.info("     · 成本/确定性: 调 LLM API (变体 prompt ≠ 生产 → 增量付费请求, 冷缓存需线上跑); "
+                    "确定性锚点 = _llm_cache.db; NEWS_PROCESS_LLM_OFFLINE=1 时缓存 miss 抛错而非偷跑。")
+        logger.info("     · 全流水线最贵检验 (最多 4 变体 × N × 3 模型 × 3 轨 请求); "
+                    "validation-only, 不写 panel/parquet (EXPECTED_NO_OUTPUT)。")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境信息打印失败 (不影响处理): {e}")
+
     logger.info("=" * 70)
     logger.info("=== 阶段 39: Prompt 措辞敏感度量化测试 (Prompt Wording Sensitivity) ===")
     logger.info("=" * 70)
     logger.info("")
-    logger.info("  📌 方法论依据")
-    logger.info("     Carlson & Burbano (2026, SMJ 47(3):699–725, §3.5)")
-    logger.info('     "generating families of related prompts... testing their')
-    logger.info('      impact on downstream analyses"')
+    logger.info("  📌 方法论依据 (核心方法/构念学术出处)")
+    logger.info("     · 措辞敏感度框架: Carlson & Burbano (2026, SMJ 47(3):699–725, §3.5)")
+    logger.info('        "generating families of related prompts... testing their')
+    logger.info('         impact on downstream analyses" (Stage 5: Validation & Robustness)')
+    logger.info("        → 为何用: 量化 LLM 标注对 prompt 表述选择的稳健性, 排除'问法偶然产物'")
+    logger.info("     · 创新实质性维度: Westphal & Zajac (1994/1998, ASQ) substantive-vs-symbolic 框架")
+    logger.info("     · 创新位点维度:   Gomber et al. (2018, JMIS) enabling-technology vs business-function")
+    logger.info("     · 创新协作模式:   Chesbrough (2003) Open Innovation; Laursen & Salter (2006, SMJ 27(2):131-150)")
+    logger.info("     · 一致性度量:     Cohen's κ / Krippendorff's α / Fleiss' κ (扣除碰巧一致后的真实一致度)")
+    logger.info("     (注: 上述框架文献 DOI 不在本工作流的经核验注册表中, 故仅 emit 作者-年-期刊, 不 emit DOI)")
     logger.info("")
     logger.info("  📖 测试设计")
     logger.info(f"     变体数量: {len(VARIANT_PROMPTS)} (V1-V4) + V0 Baseline")
@@ -1450,11 +1483,11 @@ def main():
     logger.info("        + 三创新维度 κ) + 5 编码者多变体 (Krippendorff's α + Fleiss' κ=(P̄−P_e)/(1−P_e)) + 跨变体方差;")
     logger.info("        API 全失败行掩码剔除 (不计为措辞不一致), 全失败→指标 NaN (fail-loud)。")
     logger.info(
-        f"【阈值】验证一致率≥{PASS_THRESHOLD_VERIFICATION:.2f} / 情感≥{PASS_THRESHOLD_SENTIMENT:.2f} / "
-        f"κ≥{PASS_THRESHOLD_KAPPA:.2f} / α≥{PASS_THRESHOLD_ALPHA:.3f} / "
-        f"substantiveness κ≥{PASS_THRESHOLD_INNOVATION_SUBSTANTIVENESS:.2f} / "
-        f"locus κ≥{PASS_THRESHOLD_INNOVATION_LOCUS:.2f} / "
-        f"collab κ≥{PASS_THRESHOLD_INNOVATION_COLLAB_MODE:.2f}")
+        f"【阈值】验证一致率≥{sig4(PASS_THRESHOLD_VERIFICATION)} / 情感≥{sig4(PASS_THRESHOLD_SENTIMENT)} / "
+        f"κ≥{sig4(PASS_THRESHOLD_KAPPA)} / α≥{sig4(PASS_THRESHOLD_ALPHA)} / "
+        f"substantiveness κ≥{sig4(PASS_THRESHOLD_INNOVATION_SUBSTANTIVENESS)} / "
+        f"locus κ≥{sig4(PASS_THRESHOLD_INNOVATION_LOCUS)} / "
+        f"collab κ≥{sig4(PASS_THRESHOLD_INNOVATION_COLLAB_MODE)}")
     logger.info("【判读】各指标越高=越稳健 (=好); gate = full/ctx/ss 三轨各自全 criteria AND (P1 主 spec 在 ctx 轨);")
     logger.info("        过线 → 可在论文写'LLM 标注对 prompt 措辞稳健'; 不过线 → AI 派生情感/创新变量恐成'问法的产物'。")
     logger.info("【确定性】调 LLM API (变体 prompt 与生产不同 → 增量付费请求, 冷缓存需线上跑); 确定性锚点 = _llm_cache.db;")
@@ -1463,12 +1496,38 @@ def main():
 
     log_memory_usage(logger, "模块启动")
 
+    # ── ③ ⚙ 运行配置 (config: prompt_sensitivity_test 块 + paths; 纯日志, golden-safe) ──
+    try:
+        _in_fn = CONFIG.get('filenames', {}).get(
+            'output_21_tone_llms_full', '21_tone_llms_full.parquet')
+        _in_path = os.path.join(CONFIG['paths']['output_dir'], _in_fn)
+        _report_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'eval_reports')
+        logger.info("  ⚙ 运行配置 (config/validation.yaml::prompt_sensitivity_test + paths)")
+        logger.info(f"     · 抽样: sample_size={SAMPLE_SIZE:,} | random_seed={RANDOM_SEED}")
+        logger.info(f"     · 变体: {len(VARIANT_PROMPTS)} (V1_role/V2_structure/V3_concise/V4_paraphrase) + V0 baseline")
+        logger.info(f"     · 模型: {len(MODELS)} ({', '.join(m['model_name'] for m in MODELS)}) | 轨道: full/ctx/ss (三轨)")
+        logger.info(f"     · 并发: max_concurrency={PROMPT_MAX_CONCURRENCY} "
+                    f"| request_spacing={sig4(PROMPT_REQUEST_SPACING)}s "
+                    f"| request_timeout={sig4(PROMPT_REQUEST_TIMEOUT_SECONDS)}s")
+        logger.info(f"     · 重试: prompt_max_retries={PROMPT_MAX_RETRIES} (生产 MAX_RETRIES={_tone_llms.MAX_RETRIES})")
+        logger.info(f"     · 阈值: verif≥{sig4(PASS_THRESHOLD_VERIFICATION)} / sent≥{sig4(PASS_THRESHOLD_SENTIMENT)} "
+                    f"/ κ≥{sig4(PASS_THRESHOLD_KAPPA)} / α≥{sig4(PASS_THRESHOLD_ALPHA)} "
+                    f"/ subst κ≥{sig4(PASS_THRESHOLD_INNOVATION_SUBSTANTIVENESS)} "
+                    f"/ locus κ≥{sig4(PASS_THRESHOLD_INNOVATION_LOCUS)} "
+                    f"/ collab κ≥{sig4(PASS_THRESHOLD_INNOVATION_COLLAB_MODE)}")
+        logger.info(f"     · 输入:   {_in_path}")
+        logger.info(f"     · 输出目录: {_report_dir} (results.json / detail.csv / table.tex / heatmap.png)")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  运行配置打印失败 (不影响处理): {e}")
+    logger.info("")
+
     # 2026-06-13: stage 39 已改为无条件 always-on (用户决策: 全部启用而非条件启用),
     # 移除 prompt_sensitivity_test.enabled 早退门; enabled flag 仅作记录, 启停由
     # core/dag.py 的 always_enabled 谓词决定。
 
     # ── Step 1: 加载数据 ──
     logger.info("Step 1: 加载 21_tone_llms_full.parquet ...")
+    _t_load = time.time()
     input_filename = CONFIG.get('filenames', {}).get(
         'output_21_tone_llms_full', '21_tone_llms_full.parquet')
     input_path = os.path.join(CONFIG['paths']['output_dir'], input_filename)
@@ -1480,6 +1539,7 @@ def main():
 
     df_full = pd.read_parquet(input_path)
     logger.info(f"  加载 {len(df_full):,} 条记录")
+    phase_durations['①加载+抽样+baseline'] = time.time() - _t_load
 
     # ── Step 2: 随机抽样 ──
     logger.info(f"Step 2: 随机抽样 N={SAMPLE_SIZE}, seed={RANDOM_SEED} ...")
@@ -1499,7 +1559,7 @@ def main():
 
     df_sample = extract_baseline(df_sample)
     baseline_true_rate = df_sample['V0_baseline_verified_full'].astype(int).mean()
-    logger.info(f"  Baseline true_rate (full): {baseline_true_rate:.2%}")
+    logger.info(f"  Baseline true_rate (full): {pct4(baseline_true_rate)}")
 
     # ── Step 4: 物化 content_ctx（安全后备） ──
     if 'content_ctx' not in df_sample.columns:
@@ -1517,6 +1577,7 @@ def main():
 
     # ── Step 5: 循环 4 个变体执行三轨 LLM 请求 ──
     logger.info("Step 5: 执行变体 LLM 三轨请求 ...")
+    _t_variants = time.time()
     variant_keys = list(VARIANT_PROMPTS.keys())
 
     cache_db = os.path.join(CONFIG["paths"]["output_dir"], '_llm_cache.db')
@@ -1539,10 +1600,13 @@ def main():
             elapsed = time.time() - t0
             true_rate = df_sample[f'{vk}_verified_full'].astype(int).mean()
             logger.info(f"  ── {VARIANT_LABELS.get(vk, vk)} 完成 | "
-                        f"耗时 {elapsed:.0f}s | true_rate(full): {true_rate:.2%} ──")
+                        f"耗时 {sig4(elapsed)}s | true_rate(full): {pct4(true_rate)} ──")
+
+    phase_durations['②变体 LLM 三轨请求 (Step 5)'] = time.time() - _t_variants
 
     # ── Step 6: 分轨道计算全部一致性指标 ──
     logger.info("Step 6: 计算一致性指标（分轨道）...")
+    _t_metrics = time.time()
     pairwise_results = {}
     multi_results = {}
     variance_results = {}
@@ -1562,27 +1626,28 @@ def main():
         for vk in variant_keys:
             pw[vk] = compute_pairwise_consistency(df_sample, vk, track)
             logger.info(f"    {VARIANT_LABELS.get(vk, vk)}: "
-                        f"v_agree={pw[vk]['verification_agreement']:.2%}, "
-                        f"s_agree={pw[vk]['sentiment_agreement']:.2%}, "
-                        f"κ={pw[vk]['cohens_kappa_verification']:.4f}")
+                        f"v_agree={pct4(pw[vk]['verification_agreement'])}, "
+                        f"s_agree={pct4(pw[vk]['sentiment_agreement'])}, "
+                        f"κ={sig4(pw[vk]['cohens_kappa_verification'])}")
         pairwise_results[track] = pw
 
         # 6.2 Multi-variant
         multi = compute_multivariant_consistency(df_sample, variant_keys, track)
         multi_results[track] = multi
-        logger.info(f"    Multi-variant α={multi['krippendorffs_alpha']:.4f}, "
-                    f"Fleiss' κ={multi['fleiss_kappa']:.4f}")
+        logger.info(f"    Multi-variant α={sig4(multi['krippendorffs_alpha'])}, "
+                    f"Fleiss' κ={sig4(multi['fleiss_kappa'])}")
 
         # 6.3 跨变体方差 Cross-variant variance
         var = compute_cross_variant_variance(df_sample, variant_keys, track)
         variance_results[track] = var
-        logger.info(f"    True rate σ={var['true_rate_std']:.4f}")
+        logger.info(f"    True rate σ={sig4(var['true_rate_std'])}")
 
     # ── Step 7: 通过/未通过判定（三轨 AND） ──
     # fix(omni-g-val-prompt-03, 2026-06-11): 此前仅 full 轨进 gate, 而 P1 主线
     # main spec = llm_vote_tone_ctx (ctx 轨) — full 过 ctx 不过会误报通过。
     # 改为 full / ctx / ss 各自评估全部 criteria, 总判定 = 三轨 AND, JSON 报 per-track。
     logger.info("Step 7: 通过/未通过判定（full / ctx / ss 三轨均须通过）...")
+    phase_durations['③一致性指标计算 (Step 6)'] = time.time() - _t_metrics
 
     summary_by_track = {}
     passed_by_track = {}
@@ -1610,12 +1675,14 @@ def main():
 
     # ── Step 8: 生成报告 ──
     logger.info("Step 8: 生成报告 ...")
+    _t_report = time.time()
     report_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'eval_reports')
     os.makedirs(report_dir, exist_ok=True)
 
     generate_reports(df_sample, variant_keys, pairwise_results,
                      multi_results, variance_results, passed, report_dir,
                      passed_by_track=passed_by_track)
+    phase_durations['④报告生成 (Step 8)'] = time.time() - _t_report
 
     # ── 最终摘要 ──
     logger.info("")
@@ -1628,11 +1695,11 @@ def main():
         track_label = track.lstrip('_')
         s = summary_by_track[track]
         logger.info(f"  {track_label.capitalize()} 轨道:")
-        logger.info(f"    均值验证一致率: {s['mean_verification_agreement']:.2%}")
-        logger.info(f"    均值情感一致率: {s['mean_sentiment_agreement']:.2%}")
-        logger.info(f"    最小 Cohen's κ: {s['min_kappa_verification']:.4f}")
-        logger.info(f"    Krippendorff's α: {s['krippendorffs_alpha']:.4f}")
-        logger.info(f"    Fleiss' κ: {multi_results[track]['fleiss_kappa']:.4f}")
+        logger.info(f"    均值验证一致率: {pct4(s['mean_verification_agreement'])}")
+        logger.info(f"    均值情感一致率: {pct4(s['mean_sentiment_agreement'])}")
+        logger.info(f"    最小 Cohen's κ: {sig4(s['min_kappa_verification'])}")
+        logger.info(f"    Krippendorff's α: {sig4(s['krippendorffs_alpha'])}")
+        logger.info(f"    Fleiss' κ: {sig4(multi_results[track]['fleiss_kappa'])}")
         logger.info(f"    轨道判定: {'✅ 通过' if passed_by_track[track] else '❌ 未通过'}")
     logger.info(f"  总判定 ({' AND '.join(t.lstrip('_') for t in active_tracks)}): "
                 f"{'✅ 通过' if passed else '❌ 未通过'}")
@@ -1660,39 +1727,39 @@ def main():
         logger.info(f"  ── {track_label} 轨道 ──")
         # 1) 验证一致率: 4 变体相对 V0 的"是否金科新闻"判定一致比例
         logger.info(
-            f"    均值验证一致率 = {s['mean_verification_agreement']:.2%} "
-            f"(阈值 {PASS_THRESHOLD_VERIFICATION:.0%}) → {_verdict(s['mean_verification_agreement'], PASS_THRESHOLD_VERIFICATION)}")
+            f"    均值验证一致率 = {pct4(s['mean_verification_agreement'])} "
+            f"(阈值 {pct4(PASS_THRESHOLD_VERIFICATION)}) → {_verdict(s['mean_verification_agreement'], PASS_THRESHOLD_VERIFICATION)}")
         # 2) 情感一致率: 三分类(正/中/负)简单匹配率
         logger.info(
-            f"    均值情感一致率 = {s['mean_sentiment_agreement']:.2%} "
-            f"(阈值 {PASS_THRESHOLD_SENTIMENT:.0%}) → {_verdict(s['mean_sentiment_agreement'], PASS_THRESHOLD_SENTIMENT)}")
+            f"    均值情感一致率 = {pct4(s['mean_sentiment_agreement'])} "
+            f"(阈值 {pct4(PASS_THRESHOLD_SENTIMENT)}) → {_verdict(s['mean_sentiment_agreement'], PASS_THRESHOLD_SENTIMENT)}")
         # 3) 最小 Cohen's κ (验证): 取最差变体, 扣除碰巧一致后的真实一致度
         logger.info(
-            f"    最小 Cohen's κ(verification) = {s['min_kappa_verification']:.4f} "
-            f"(阈值 {PASS_THRESHOLD_KAPPA:.2f}) → {_verdict(s['min_kappa_verification'], PASS_THRESHOLD_KAPPA)}")
+            f"    最小 Cohen's κ(verification) = {sig4(s['min_kappa_verification'])} "
+            f"(阈值 {sig4(PASS_THRESHOLD_KAPPA)}) → {_verdict(s['min_kappa_verification'], PASS_THRESHOLD_KAPPA)}")
         # 4) Krippendorff's α: 5 编码者整体一致性
         logger.info(
-            f"    Krippendorff's α = {s['krippendorffs_alpha']:.4f} "
-            f"(阈值 {PASS_THRESHOLD_ALPHA:.3f}) → {_verdict(s['krippendorffs_alpha'], PASS_THRESHOLD_ALPHA)}")
+            f"    Krippendorff's α = {sig4(s['krippendorffs_alpha'])} "
+            f"(阈值 {sig4(PASS_THRESHOLD_ALPHA)}) → {_verdict(s['krippendorffs_alpha'], PASS_THRESHOLD_ALPHA)}")
         # 5) Fleiss' κ: 5 编码者多人名义一致 (与 α 互证, 越高越好, 无独立 gate 阈值)
         logger.info(
-            f"    Fleiss' κ(5 编码者) = {multi['fleiss_kappa']:.4f} (与 α 互证, 越高=越一致)")
+            f"    Fleiss' κ(5 编码者) = {sig4(multi['fleiss_kappa'])} (与 α 互证, 越高=越一致)")
         # 6) 三创新维度最小 κ (仅 verified=True 子集; NaN=该轨双向 verified 样本不足)
         logger.info(
-            f"    最小 κ(substantiveness, W&Z 1994) = {s['min_kappa_innovation_substantiveness']:.4f} "
-            f"(阈值 {PASS_THRESHOLD_INNOVATION_SUBSTANTIVENESS:.2f}) → "
+            f"    最小 κ(substantiveness, W&Z 1994) = {sig4(s['min_kappa_innovation_substantiveness'])} "
+            f"(阈值 {sig4(PASS_THRESHOLD_INNOVATION_SUBSTANTIVENESS)}) → "
             f"{_verdict(s['min_kappa_innovation_substantiveness'], PASS_THRESHOLD_INNOVATION_SUBSTANTIVENESS)}")
         logger.info(
-            f"    最小 κ(locus, Gomber 2018) = {s['min_kappa_innovation_locus']:.4f} "
-            f"(阈值 {PASS_THRESHOLD_INNOVATION_LOCUS:.2f}) → "
+            f"    最小 κ(locus, Gomber 2018) = {sig4(s['min_kappa_innovation_locus'])} "
+            f"(阈值 {sig4(PASS_THRESHOLD_INNOVATION_LOCUS)}) → "
             f"{_verdict(s['min_kappa_innovation_locus'], PASS_THRESHOLD_INNOVATION_LOCUS)}")
         logger.info(
-            f"    最小 κ(collab_mode, Chesbrough 2003) = {s['min_kappa_innovation_collab_mode']:.4f} "
-            f"(阈值 {PASS_THRESHOLD_INNOVATION_COLLAB_MODE:.2f}) → "
+            f"    最小 κ(collab_mode, Chesbrough 2003) = {sig4(s['min_kappa_innovation_collab_mode'])} "
+            f"(阈值 {sig4(PASS_THRESHOLD_INNOVATION_COLLAB_MODE)}) → "
             f"{_verdict(s['min_kappa_innovation_collab_mode'], PASS_THRESHOLD_INNOVATION_COLLAB_MODE)}")
         # 7) 跨变体 true_rate 标准差: 5 问法下"判 true 比例"的离散度, 越小越好 (措辞越不影响产出)
         logger.info(
-            f"    跨变体 true_rate σ = {var['true_rate_std']:.4f} "
+            f"    跨变体 true_rate σ = {sig4(var['true_rate_std'])} "
             f"(越小越好; σ→0 表示措辞几乎不改变金科新闻判定比例)")
         # 8) API 全失败掩码剔除量 (透明披露; 剔除多则该轨指标基于更小有效样本)
         n_excluded = multi.get('n_call_failures_excluded', 0)
@@ -1731,6 +1798,17 @@ def main():
             "  ❌ 总判读: 至少一条轨道有指标低于阈值 — AI 派生情感/创新变量可能随措辞飘忽, "
             "须审查未过线维度/变体, 否则面板下游结论存效度风险")
     logger.info("-" * 72)
+
+    # ── ⑥ ⏱ 阶段计时 (各主要子阶段墙钟耗时 + 总耗时; 纯日志, golden-safe) ──
+    try:
+        total_elapsed = time.time() - stage_start
+        logger.info("  ⏱ 阶段计时 (各子阶段墙钟耗时)")
+        for _phase_name, _dur in phase_durations.items():
+            _share = pct4(_dur / total_elapsed) if total_elapsed > 0 else "n/a"
+            logger.info(f"     · {_phase_name}: {sig4(_dur)}s ({_share})")
+        logger.info(f"     · 总耗时: {sig4(total_elapsed)}s")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  阶段计时打印失败 (不影响处理): {e}")
 
     log_memory_usage(logger, "模块完成")
 

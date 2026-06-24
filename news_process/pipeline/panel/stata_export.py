@@ -73,6 +73,8 @@ from typing import Dict, List, Tuple
 
 import pandas as pd
 
+from news_process.core.logging import pct4, sig4
+
 logger = logging.getLogger(__name__)
 
 # Stata 硬限 (plan v14 §9.5 / R32-D, R42-A 修复)
@@ -968,27 +970,39 @@ def export_panel_to_stata(
         (2026-06-12: 移除 core/aux 双切分 — 本机 StataNow/MP 19.5 直读全列 full.dta;
          2026-06-21: codebook 取消 is_core 核心/辅助列区分, 全列均为分析列)
     """
+    import time as _time
     backend_name, write_dta = _select_dta_backend()
 
     logger.info("=== Stage 46 Stata Export (plan v14 §9.1) ===")
     logger.info(f"  Backend: {backend_name}")
     logger.info(f"  输入: {panel_path}")
+    logger.info(f"  输出目录: {output_dir} | 产物前缀: {output_prefix}")
 
     if not os.path.exists(panel_path):
         raise FileNotFoundError(f"panel parquet 不存在: {panel_path}")
 
+    # ⏱ per-phase 墙钟计时 (纯日志, golden-safe; 末尾汇总打印)
+    _phase: Dict[str, float] = {}
+
+    _t = _time.time()
     df = pd.read_parquet(panel_path)
+    _phase['①载入parquet'] = _time.time() - _t
     logger.info(f"  panel 载入: {len(df)} 行 × {len(df.columns)} 列")
 
     # 1. 类别变量编码 (中文 str → byte 0/1)
+    _t = _time.time()
     df_encoded, value_labels = encode_categorical_columns(df)
+    _phase['②类别编码'] = _time.time() - _t
 
     # 1a'. fix(omni-g-stata-export-01, 2026-06-11): 计数列禁 Int8 — 非 value-labeled
     # int8/Int8 列升 Int16 (Stata byte 上限 100 零余量; 101..127 是缺失码位,
     # pyreadstat 直写损值 / pandas 静默升型 → 两后端在此统一)
+    _t = _time.time()
     df_encoded = upcast_unsafe_int8_columns(df_encoded, value_labels)
+    _phase['③int8升型'] = _time.time() - _t
 
     # 1b. v3.2.0 M3/7: 自动缩短超 32 字符列名 (Stata 硬限) + 记录 mapping
+    _t = _time.time()
     df_encoded, rename_map = shorten_long_column_names(df_encoded)
     if rename_map:
         logger.info(f"  Renamed {len(rename_map)} long columns (>32 chars) to Stata-compatible names")
@@ -1026,32 +1040,59 @@ def export_panel_to_stata(
                 name = rename_map[name]
             return name
         rename_map = {k: _chase_original(v) for k, v in rename_map.items()}
+    _phase['④列名缩短/转写'] = _time.time() - _t
 
     # 2. 生成 variable labels (改名列经 rename_map 反查原名命中 codebook/HEURISTIC)
+    _t = _time.time()
     var_labels = build_variable_labels(df_encoded, rename_map=rename_map)
+    _phase['⑤变量标签构建'] = _time.time() - _t
+    _n_labeled = sum(1 for c in df_encoded.columns if var_labels.get(c, c) != c)
+    try:
+        _label_cov = _n_labeled / max(len(df_encoded.columns), 1)
+        logger.info(f"  variable label 覆盖: {_n_labeled:,d}/{len(df_encoded.columns):,d} 列 "
+                    f"({pct4(_label_cov)}) 有非列名兜底标签 (越高越好)")
+    except Exception:  # noqa: BLE001
+        pass
 
     # 3. Stata 兼容性校验 (plan v14 §9.5; 缩短后应全过)
+    _t = _time.time()
     validate_stata_compat(df_encoded, var_labels)
+    _phase['⑥兼容性校验'] = _time.time() - _t
 
     # 4. 写单一全列 .dta (经 backend 抽象, 兼容 pyreadstat / pandas)
     #    2026-06-21: codebook 取消"分析核心列 vs 辅助列"区分 (assign_core_columns /
     #    core_patterns 整体退役); .dta 本就写全列, 与该退役无关。
     full_path = os.path.join(output_dir, f'{output_prefix}_full.dta')
+    _t = _time.time()
     write_dta(df_encoded, full_path, value_labels, var_labels)
+    _phase['⑦写.dta'] = _time.time() - _t
     logger.info(f"  Full .dta 已写入: {full_path} ({len(df_encoded.columns)} 列; "
                 f"单一全列导出不再拆分 core/aux)")
 
     # 5. labels .do (omni-03/15: 带 backend 指纹)
     labels_path = os.path.join(output_dir, f'{output_prefix}_labels.do')
+    _t = _time.time()
     write_labels_do_file(labels_path, var_labels, value_labels, backend_name=backend_name)
+    _phase['⑧写labels.do'] = _time.time() - _t
 
     # 6. codebook .xlsx (依赖 codebook.py)
     codebook_path = os.path.join(output_dir, f'{output_prefix}_codebook.xlsx')
+    _t = _time.time()
     try:
         _write_codebook_xlsx(df_encoded, var_labels, value_labels, codebook_path,
                               rename_map=rename_map)
     except Exception as e:
         logger.warning(f"  codebook .xlsx 写入失败 (非阻塞): {e}")
+    _phase['⑨写codebook.xlsx'] = _time.time() - _t
+
+    # ⏱ per-phase 墙钟汇总 (纯日志, 数字 sig4 秒; golden-safe)
+    try:
+        logger.info("  ⏱ 阶段计时 (墙钟, 秒):")
+        for _name, _sec in _phase.items():
+            logger.info(f"     · {_name}: {sig4(_sec)} s")
+        logger.info(f"     · 合计: {sig4(sum(_phase.values()))} s")
+    except Exception as _te:  # noqa: BLE001
+        logger.warning(f"  计时汇总打印失败 (不影响产物): {_te}")
 
     return {
         'full_dta': full_path,
@@ -1189,11 +1230,78 @@ def _log_export_result_analysis(log, panel_path: str, results: Dict[str, str]) -
         log.warning(f"【结果分析】日志诊断计算异常, 跳过(不影响产物): {_e}")
 
 
+def _log_environment_and_config(log, stage_name: str, panel_path: str, output_dir: str) -> None:
+    """【项目/环境/配置/方法论】banner (日志富集, 2026-06-24, golden-safe)。
+
+    把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数、方法学出处"一次性
+    落进 .log, 对齐 tone_words.py 黄金范式。纯日志, 不改任何产物。emit 在函数体内
+    (绝不在模块顶层 import 时执行 — 防生产日志首写截断)。
+    """
+    try:
+        import platform
+        import sys
+
+        # ① 🧭 项目 / 环境信息
+        log.info("  🧭 项目 / 环境信息")
+        log.info(f"     · 阶段: {stage_name} (Stata 数据导出层; STAGES_MAIN 末端「出关口岸」)")
+        log.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板; v3.11.1)")
+        log.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        log.info(f"     · 工作目录: {os.getcwd()}")
+        log.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        log.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        log.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                 "本阶段纯 CPU 函数转换 / 无 LLM·Embedding·网络·API ($0)")
+
+        # ② 📂 输入 / 输出文件
+        log.info("  📂 输入 / 输出文件")
+        log.info(f"     · 输入:   {panel_path} (stage 45 产出 bank-year 全列面板)")
+        log.info(f"     · 输出.dta:      {os.path.join(output_dir, '46_panel_yearly_full.dta')}")
+        log.info(f"     · 输出labels.do: {os.path.join(output_dir, '46_panel_yearly_labels.do')}")
+        log.info(f"     · 输出codebook:  {os.path.join(output_dir, '46_panel_yearly_codebook.xlsx')}")
+
+        # ③ ⚙ 运行配置 (本阶段 Stata 硬限 + 类别编码方向 + backend 选择策略)
+        log.info("  ⚙ 运行配置 (Stata 硬限 + 类别编码; 来源=本模块常量 + config/paths.yaml)")
+        log.info(f"     · Stata 硬限: 变量名 ≤{STATA_VAR_NAME_MAXLEN} 字符 | "
+                 f"变量标签 ≤{STATA_VAR_LABEL_MAXLEN} 字节 | .dta format version=118 (文件格式编号≠Stata 版本)")
+        log.info(f"     · 类别编码方向 (0=baseline / 1=对照): LOCUS={LOCUS_ENCODING} | "
+                 f"SUBST={SUBSTANTIVENESS_ENCODING} | COLLAB={COLLAB_MODE_ENCODING}")
+        log.info("     · backend 优先级: pyreadstat (嵌入 value labels + 中文 column labels) → "
+                 "fallback pandas to_stata (WARN; 须手动 run labels.do)")
+        log.info("     · int8/Int8 非 value-labeled 计数列一律升 Int16 (避开 Stata byte 缺失码位 101..127)")
+        log.info("     · codebook 全列均为分析列 (2026-06-21 起取消 is_core 核心/辅助列区分)")
+
+        # ④ 📖 方法论依据 (参考文献 emit 进日志; 仅引经核验注册表条目, 逐字照抄 DOI)
+        log.info("  📖 方法论依据 (本阶段类别编码 / 三轨归因 / 词典-清晰度标签的学术出处)")
+        log.info("     · 实体邻近归因 (ctx 轨): Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). "
+                 "Firm-level political risk: Measurement and effects. The Quarterly Journal of Economics, "
+                 "134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021")
+        log.info("       → ctx 轨用实体窗口截取文本, 把语调归因到目标银行而非全文背景, 降低主题串味。")
+        log.info("     · 媒体共提及计量 (ss 轨): Gentzkow, M., & Shapiro, J. M. (2010). What drives media "
+                 "slant? Evidence from U.S. daily newspapers. Econometrica, 78(1), 35–71. "
+                 "https://doi.org/10.3982/ECTA7195")
+        log.info("     · 媒体共提及计量 (ss 轨): Dougal, C., Engelberg, J., García, D., & Parsons, C. A. (2012). "
+                 "Journalists and the stock market. The Review of Financial Studies, 25(3), 639-679. "
+                 "https://doi.org/10.1093/rfs/hhr133")
+        log.info("       → ss 轨 (银行+金科同句共现) 与 ctx 的 proximity 谱系并列, 度量银行-金科共提及强度。")
+        log.info("     · 文本清晰度词典: Loughran, T., & McDonald, B. (2011). When is a liability not a "
+                 "liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), "
+                 "35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x")
+        log.info("     · 文本清晰度词典: You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of "
+                 "the pen? The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055")
+        log.info("       → clarity / definite / ambiguous 三轨标签的学术锚点 (本阶段为这些派生列贴 Stata 标签)。")
+    except Exception as e:  # noqa: BLE001
+        log.warning(f"  环境/配置/方法论 banner 打印失败 (不影响导出): {e}")
+
+
 def main():
     """Stage 46 CLI 入口 (由 thin shim 46_stata_export.py 调用)."""
-    from news_process.core.config import load_config
-    from news_process.core.logging import setup_logging
+    import time as _time
 
+    from news_process.core.config import load_config
+    from news_process.core.logging import log_stage_summary, setup_logging
+
+    _stage_start = _time.time()
     CONFIG = load_config()
     STAGE_NAME = '46_stata_export'
     log = setup_logging(STAGE_NAME, CONFIG['paths']['log_dir'])
@@ -1220,12 +1328,21 @@ def main():
     panel_path = os.path.join(CONFIG['paths']['output_dir'], panel_filename)
     output_dir = CONFIG['paths']['output_dir']
 
+    # ── 项目/环境/配置/方法论 banner (日志富集 2026-06-24; 函数体内 emit, golden-safe) ──
+    _log_environment_and_config(log, STAGE_NAME, panel_path, output_dir)
+
     results = export_panel_to_stata(panel_path, output_dir)
     log.info(f"Stage 46 完成. 产出:")
     for k, v in results.items():
         log.info(f"  {k}: {v}")
 
     _log_export_result_analysis(log, panel_path, results)
+
+    # ⏱ 阶段总墙钟 + RSS (log_stage_summary; 行数取产出 .dta 视产物存在性)
+    try:
+        log_stage_summary(log, STAGE_NAME, _stage_start)
+    except Exception as _se:  # noqa: BLE001
+        log.warning(f"  log_stage_summary 失败 (不影响产物): {_se}")
 
 
 if __name__ == '__main__':

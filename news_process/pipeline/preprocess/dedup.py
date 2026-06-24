@@ -12,8 +12,10 @@ from __future__ import annotations
 import json
 import multiprocessing
 import os
+import platform
 import string
 import sys
+import time
 from functools import partial
 from typing import Any, Callable, Dict, Set
 
@@ -29,7 +31,7 @@ try:
 except ImportError:
     TQDM_AVAILABLE = False
 
-from news_process.core.logging import log_and_time
+from news_process.core.logging import log_and_time, pct4, sig4
 
 
 class ArticleDeduplicator:
@@ -140,7 +142,7 @@ class ArticleDeduplicator:
         # 参数边界校验
         if not (0 < self.threshold < 1):
             self.logger.warning(
-                f"jaccard_similarity_threshold={self.threshold} 超出合理范围 (0, 1), "
+                f"jaccard_similarity_threshold={sig4(self.threshold)} 超出合理范围 (0, 1), "
                 f"已回退到默认值 0.80。"
                 f"(threshold=0 会将所有文档视为重复, threshold=1 不去除任何重复)"
             )
@@ -200,7 +202,7 @@ class ArticleDeduplicator:
         n_matched = int((~unmatched_mask).sum())
         coverage = n_matched / total
         self.logger.info(
-            f"媒体权重覆盖率: {n_matched:,}/{total:,} 行 ({coverage:.1%}) 命中 "
+            f"媒体权重覆盖率: {n_matched:,}/{total:,} 行 ({pct4(coverage)}) 命中 "
             f"media_weights.json; 未匹配行回退默认权重 {self.default_weight}"
         )
         if not bool(unmatched_mask.any()):
@@ -259,7 +261,7 @@ class ArticleDeduplicator:
         valid_dates = df['temp_datetime'].notna().sum()
         total_rows = len(df)
         self.logger.info(
-            f"日期解析: {valid_dates:,}/{total_rows:,} 有效({valid_dates/total_rows:.1%})"
+            f"日期解析: {valid_dates:,}/{total_rows:,} 有效({pct4(valid_dates / total_rows)})"
         )
         if valid_dates < total_rows:
             self.logger.warning(
@@ -325,9 +327,9 @@ class ArticleDeduplicator:
                 if mh is not None:
                     minhash_results[idx] = mh
                 if (i + 1) % progress_step == 0 or (i + 1) == total_count:
-                    pct = (i + 1) / total_count * 100
+                    pct = (i + 1) / total_count
                     self.logger.info(
-                        f"  MinHash 进度: {i + 1:,}/{total_count:,} ({pct:.0f}%)"
+                        f"  MinHash 进度: {i + 1:,}/{total_count:,} ({pct4(pct)})"
                     )
 
         return pd.Series(minhash_results)
@@ -381,7 +383,7 @@ class ArticleDeduplicator:
         # ── Step 2: 构建 LSH 索引 ──
         self.logger.info(
             f"构建 LSH 索引({len(minhashes):,} 个文档, "
-            f"threshold={threshold}, window={window_busdays} 工作日)..."
+            f"threshold={sig4(threshold)}, window={window_busdays} 工作日)..."
         )
         lsh = MinHashLSH(threshold=threshold, num_perm=self.num_perm)
         lsh_data = list(minhashes.items())
@@ -486,6 +488,173 @@ class ArticleDeduplicator:
         drop = self.find_near_duplicate_indices(df, minhashes)
         return df.drop(index=list(drop)) if drop else df
 
+    def _log_dedup_banner(self, n_rows: int) -> None:
+        """去重子步骤 banner: 项目/环境 + 运行配置 + 方法论依据 (日志富集, 2026-06-24).
+
+        本类是 stage 00 preprocessing runner (``pipeline/preprocess/runner.py``) 调用的
+        去重子层 helper (非独立 main); 复用 runner 的 ``00_preprocessing.log``。按 playbook
+        §0.5 (called-by-runner helper), 在被调函数 (``run()``) 起始处打一个子步骤 banner
+        (步骤名 + 可调参数 + 方法依据引文 + 本步判读阈值), 把"用了哪些参数、依据哪些方法、
+        如何研判结果"一次性落进日志, 便于复现/审计。纯日志, 不改任何产物 (golden-safe)。
+
+        参考文献逐字取自经核验注册表 (Crossref/DataCite 真值): 仅 emit 注册表内
+        status=match/minor 且本模块 docstring 确有引用的条目。
+        """
+        try:
+            self.logger.info("  ── 子步骤: 去重层 (精确 + MinHash LSH 近似) ──")
+
+            # ① 🧭 项目 / 环境信息
+            self.logger.info("  🧭 项目 / 环境信息")
+            self.logger.info(
+                "     · 阶段: stage 00 preprocessing 去重子层 (ArticleDeduplicator; "
+                "DAG 根阶段, 共享 00_preprocessing.log)"
+            )
+            self.logger.info(
+                "     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板)"
+            )
+            self.logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+            self.logger.info(f"     · 工作目录: {os.getcwd()}")
+            self.logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+            self.logger.info(
+                f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}"
+            )
+            self.logger.info(
+                f"     · datasketch={getattr(__import__('datasketch'), '__version__', '?')} "
+                "(MinHash banding 确定性来源=版本+num_perm+权重)"
+            )
+            _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+            self.logger.info(
+                f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                f"并行工作进程={nb_workers} | 本步纯 CPU / 无 LLM·网络·API ($0)"
+            )
+
+            # ② 📂 输入 / 输出文件
+            self.logger.info("  📂 输入 / 输出文件")
+            self.logger.info(
+                f"     · 输入: 上游 normalize+filter 后内存 DataFrame ({n_rows:,} 行)"
+            )
+            self.logger.info(
+                f"     · 媒体权重表: {self.paths.get('media_weights_file', '(未配置)')}"
+            )
+            self.logger.info(
+                f"     · 未匹配媒体 sidecar 输出目录: {self.paths.get('output_dir', '(未配置)')}"
+            )
+
+            # ③ ⚙ 运行配置 (config/preprocessing.yaml::deduplication)
+            self.logger.info("  ⚙ 运行配置 (config/preprocessing.yaml::deduplication)")
+            self.logger.info(
+                f"     · Jaccard 阈值={sig4(self.threshold)} (生产=0.8000; 概率近似阈值非硬阈值) "
+                f"| MinHash 置换数 num_perm={self.num_perm:,} | char-{self.ngram_size}-gram 特征"
+            )
+            self.logger.info(
+                "     · 时间窗口=5 工作日 (busday; 实覆盖发文起 7~9 自然日) "
+                "| 簇内排序键=[日期↑, 媒体权重↓, docid↑] (保留首发)"
+            )
+            self.logger.info(
+                "     · LSH banding 披露 (datasketch 默认 FP/FN 权重 0.5/0.5, num_perm=128, "
+                "threshold=0.8): 自动分带 b=9 带 × r=13 行 (用 117/128 排列), 有效 50%-检出 "
+                f"≈ {sig4(0.819)}; 偏保守 (偏漏删轻度改写转载, 不误删独立文)"
+            )
+            self.logger.info(
+                f"     · 默认媒体权重 (未匹配回退)={self.default_weight} "
+                f"| 已加载媒体权重条目={len(self.media_weights):,}"
+            )
+
+            # ④ 📖 方法论依据 (参考文献信息) — emit 进日志, 逐字取自经核验注册表
+            self.logger.info("  📖 方法论依据 (参考文献; DOI 经 Crossref/DataCite 核验)")
+            self.logger.info(
+                "     · MinHash 文档相似度 (近似去重核心算法): Broder, A. Z. (1997). "
+                "On the resemblance and containment of documents. In Proceedings. "
+                "Compression and Complexity of SEQUENCES 1997 (Cat. No.97TB100171) "
+                "(pp. 21-29). IEEE Computer Society. "
+                "https://doi.org/10.1109/SEQUEN.1997.666900"
+            )
+            self.logger.info(
+                "       → MinHash 签名近似 Jaccard 相似度, LSH 分桶 O(1) 召回转载/通稿簇")
+            self.logger.info(
+                "     · '信息到达' 构念 (去重适配的下游关注度度量): Hassan, T. A., "
+                "Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level political "
+                "risk: Measurement and effects. The Quarterly Journal of Economics, "
+                "134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021"
+            )
+            self.logger.info(
+                "     · 商业新闻媒体作为信息中介 ('去重前'传播广度对照): Bushee, B. J., "
+                "Core, J. E., Guay, W., & Hamm, S. J. W. (2010). The role of the business "
+                "press as an information intermediary. Journal of Accounting Research, "
+                "48(1), 1-19. https://doi.org/10.1111/j.1475-679X.2009.00357.x"
+            )
+            self.logger.info(
+                "     · 媒体覆盖广度 (outlet 构成口径依据): Fang, L., & Peress, J. (2009). "
+                "Media coverage and the cross-section of stock returns. The Journal of "
+                "Finance, 64(5), 2023-2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x"
+            )
+            self.logger.info(
+                "     · 中文金融文本去重门槛: 相似度 ≥ 0.8 为通稿/转载过滤的高相似度基准 "
+                "(中文金融文本去重文献普遍口径)"
+            )
+        except Exception as e:  # noqa: BLE001
+            self.logger.warning(f"  去重 banner 打印失败 (不影响处理): {e}")
+
+    def _log_dedup_result_analysis(
+        self, n_in: int, n_after_exact: int, n_out: int,
+        phase_durations: Dict[str, float],
+    ) -> None:
+        """去重结果判读 (运行结果信息) + 阶段计时汇总 (日志富集, 2026-06-24).
+
+        逐项把真实算出的去重量对照阈值给好/临界/坏判读: 精确去重占比、近似去重占比、
+        总保留率。纯日志, 数字一律 sig4/pct4, 读取已算出的真实值 (golden-safe)。
+        """
+        try:
+            if n_in <= 0:
+                return
+            exact_removed = n_in - n_after_exact
+            near_removed = n_after_exact - n_out
+            total_removed = n_in - n_out
+            exact_frac = exact_removed / n_in
+            near_frac = near_removed / n_in if n_in else 0.0
+            retain_frac = n_out / n_in
+
+            self.logger.info("  📊 去重结果判读 (运行结果信息)")
+            self.logger.info(
+                f"     · 精确去重: 移除 {exact_removed:,} 条 ({pct4(exact_frac)}); "
+                "字符完全重复, 必为转载/重复入库"
+            )
+            self.logger.info(
+                f"     · 近似去重: 移除 {near_removed:,} 条 ({pct4(near_frac)}); "
+                f"MinHash-LSH (J≥{sig4(self.threshold)}) + 5 工作日窗 + N4 真 Jaccard 复核"
+            )
+            self.logger.info(
+                f"     · 合计移除 {total_removed:,} / {n_in:,} 条 → 保留 {n_out:,} 条 "
+                f"(保留率 {pct4(retain_frac)})"
+            )
+            # 阈值判读: 报纸语料经验上去重移除多落在 10%~50% 区间
+            if retain_frac < 0.30:
+                self.logger.warning(
+                    f"     ⚠ 保留率偏低 ({pct4(retain_frac)} < 30%): 去重过于激进或语料"
+                    "高度同质 (通稿密集), 请核对 Jaccard 阈值与时间窗口"
+                )
+            elif retain_frac > 0.98:
+                self.logger.info(
+                    f"     · 保留率偏高 ({pct4(retain_frac)} > 98%): 去重几乎未触发, "
+                    "语料原创性高或阈值偏严 (偏保守, against 误删)"
+                )
+            else:
+                self.logger.info(
+                    f"     ✓ 保留率 {pct4(retain_frac)} 处常规区间 (报纸语料去重通常移除 "
+                    "10%~50%); 去重力度合理"
+                )
+
+            # ⏱ 阶段计时汇总 (各子阶段墙钟耗时占比)
+            if phase_durations:
+                _tot = sum(phase_durations.values()) or 1.0
+                self.logger.info("  ⏱ 去重子阶段计时 (墙钟):")
+                for _name, _dur in phase_durations.items():
+                    self.logger.info(
+                        f"     {_name}: {sig4(_dur)}s ({pct4(_dur / _tot)})"
+                    )
+        except Exception as e:  # noqa: BLE001
+            self.logger.warning(f"  去重结果判读打印失败 (不影响产物): {e}")
+
     @log_and_time(logger)
     def run(self, df: pd.DataFrame) -> pd.DataFrame:
         """执行完整去重流程 (精确 + 近似)."""
@@ -493,12 +662,32 @@ class ArticleDeduplicator:
             self.logger.warning("输入为空, 跳过去重")
             return df
 
+        # 子步骤 banner (项目/环境 + 配置 + 方法论引文; 日志富集 2026-06-24)
+        n_in = len(df)
+        self._log_dedup_banner(n_in)
+
+        # 各子阶段墙钟耗时 (末尾汇总判读)
+        phase_durations: Dict[str, float] = {}
+
+        _t = time.time()
         df_prepared = self._prepare_dataframe(df)
+        phase_durations['①辅助列+权重覆盖'] = time.time() - _t
         # fix(omni-g-preprocess-06, 2026-06-11): 未匹配媒体清单 sidecar 仅在
         # 主流程 run() 落盘 (validation 复用内部方法时不覆写 stage 00 产物)
         self._write_weight_coverage_sidecar()
+
+        _t = time.time()
         df_exact = self._perform_exact_deduplication(df_prepared)
+        phase_durations['②精确去重'] = time.time() - _t
+
+        _t = time.time()
         df_near = self._perform_near_deduplication(df_exact)
+        phase_durations['③近似去重(MinHash+窗口)'] = time.time() - _t
+
+        # 去重结果判读 + 阶段计时汇总 (运行结果信息; 日志富集 2026-06-24)
+        self._log_dedup_result_analysis(
+            n_in, len(df_exact), len(df_near), phase_durations
+        )
 
         # 清理辅助列
         cols_to_drop = [

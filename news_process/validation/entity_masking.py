@@ -93,6 +93,7 @@ news_process.validation.entity_masking — 阶段36：Entity Masking 稳健性�
 import asyncio
 import json
 import os
+import platform
 import sys
 import time
 from itertools import combinations
@@ -116,7 +117,7 @@ if _PROJECT_PARENT not in sys.path:
 
 from news_process.core.caching import LLMCache
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging
+from news_process.core.logging import pct4, setup_logging, sig4
 from news_process.core.plotting import configure_matplotlib_chinese_fonts
 
 # ============================================================================
@@ -361,10 +362,10 @@ async def run_masked_llms(
                     )
 
         logger.info(f"🔬 Entity Masking LLM 三轨请求: "
-                    f"{len(df_masked)} 条 × {len(models)} 模型 × {len(TRACKS)} 轨道 = {len(tasks)} 请求, "
+                    f"{len(df_masked):,d} 条 × {len(models):,d} 模型 × {len(TRACKS):,d} 轨道 = {len(tasks):,d} 请求, "
                     f"concurrency={ENTITY_MASKING_MAX_CONCURRENCY}, "
-                    f"per_model_spacing={ENTITY_MASKING_REQUEST_SPACING:.2f}s, "
-                    f"timeout={ENTITY_MASKING_REQUEST_TIMEOUT_SECONDS:.0f}s, "
+                    f"per_model_spacing={sig4(ENTITY_MASKING_REQUEST_SPACING)}s, "
+                    f"timeout={sig4(ENTITY_MASKING_REQUEST_TIMEOUT_SECONDS)}s, "
                     f"retries={ENTITY_MASKING_MAX_RETRIES}")
 
         completed = 0
@@ -377,8 +378,8 @@ async def run_masked_llms(
             results_map[row_idx][track][model_id] = res_text
             completed += 1
             if completed >= next_report or completed == total:
-                pct = completed / total * 100
-                logger.info(f"📡 Entity Masking 进度: {completed}/{total} ({pct:.1f}%)")
+                pct = completed / total if total else 0.0
+                logger.info(f"📡 Entity Masking 进度: {completed:,d}/{total:,d} ({pct4(pct)})")
                 next_report += report_interval
 
     return results_map
@@ -696,8 +697,68 @@ def _generate_confusion_matrix_per_track(
 # 7. 主流程
 # ============================================================================
 
+def _log_environment_and_config(input_path: str) -> None:
+    """打印项目/环境信息 + 输入输出 + 运行配置 + 方法论引文 (日志富集, 2026-06-24)。
+
+    目标 (用户要求"在日志文件中提供尽可能多的项目信息、运行期间信息和运行结果信息"):
+    把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数、方法学出处"一次性落进
+    日志, 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 (golden-safe)。
+
+    note(参考文献): 本阶段核心方法 (实体替换稳健性检验 / Cohen's κ 解释阈值) 的学术
+    锚点 (SSRN-4558295 §7.2; Landis & Koch 1977 Biometrics 33(1):159-174) 在经核验
+    参考文献注册表中**无对应 DOI 条目**, 按手册"表中查不到的 DOI 不得 emit"铁律, 仅
+    emit Author-Year/期刊卷(期):页, 不伪造 DOI。
+    """
+    try:
+        report_dir = os.path.join(CONFIG['paths']['output_dir'], 'eval_reports')
+
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (Entity Masking 实体掩码稳健性, STAGES_VALIDATION; "
+                    "三轨 full/ctx/ss)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'}")
+        logger.info("     · 确定性/成本: 在线付费 LLM 重判 (掩码文本 prompt 与生产不同 → 增量请求, "
+                    "冷缓存需付费; 命中 _llm_cache.db 则 $0); 离线守卫 NEWS_PROCESS_LLM_OFFLINE=1 优雅跳过")
+
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 输入:   {input_path}")
+        logger.info(f"     · 报告目录: {report_dir}")
+        logger.info("     · 产物:   entity_masking_results.json / _detail.csv / _table.tex / _confusion.png")
+        logger.info(f"     · LLM缓存: {os.path.join(CONFIG['paths']['output_dir'], '_llm_cache.db')}")
+        logger.info(f"     · 银行名表: {CONFIG['paths'].get('bank_names_file', '(默认)')}")
+
+        logger.info("  ⚙ 运行配置 (config::entity_masking_test)")
+        logger.info(f"     · 抽样: sample_size={EM_CFG.get('sample_size', 1000):,d} | "
+                    f"random_seed={EM_CFG.get('random_seed', 42)} | 轨道集 TRACKS={TRACKS}")
+        logger.info(f"     · 占位符: 目标行={PLACEHOLDER!r} | 共提行模板={PEER_TEMPLATE!r}")
+        logger.info(f"     · LLM: 模型数={len(MODELS)} | concurrency={ENTITY_MASKING_MAX_CONCURRENCY} | "
+                    f"per_model_spacing={sig4(ENTITY_MASKING_REQUEST_SPACING)}s | "
+                    f"timeout={sig4(ENTITY_MASKING_REQUEST_TIMEOUT_SECONDS)}s | "
+                    f"retries={ENTITY_MASKING_MAX_RETRIES}")
+        logger.info(f"     · 通过门槛: 验证一致率≥{pct4(EM_CFG.get('pass_threshold_verification', 0.90))} | "
+                    f"情感一致率≥{pct4(EM_CFG.get('pass_threshold_sentiment', 0.85))} | "
+                    f"κ≥{sig4(EM_CFG.get('pass_threshold_kappa', 0.80))}")
+
+        logger.info("  📖 方法论依据 (参考文献; 注: 以下两条 DOI 未在经核验注册表内, 仅 emit 题录不 emit DOI)")
+        logger.info("     · 实体替换稳健性: SSRN-4558295 §7.2 (entity substitution robustness check) "
+                    "→ 把银行名换匿名代号, 检验 LLM 是否靠'读懂文本'而非'银行身份先验'下判定")
+        logger.info("       可发表锚点: Robustness of Named-Entity Replacements for In-Context Learning "
+                    "(Findings of EMNLP 2023, 2023.findings-emnlp.728)")
+        logger.info("     · κ 解释阈值: Landis, J. R., & Koch, G. G. (1977). The measurement of observer "
+                    "agreement for categorical data. Biometrics, 33(1), 159-174.")
+        logger.info("       → κ≥0.81 almost-perfect / 0.61-0.80 substantial / 0.41-0.60 moderate")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
+
+
 def main():
     stage_start = time.time()
+    phase_durations: dict[str, float] = {}
 
     # fix(2026-06-19 run-check F7): 离线确定性模式下本阶段必为冷缓存 (掩码文本 prompt 与生产不同),
     # 强行运行会抛大量 LLMCacheMissError + "Task exception was never retrieved" 异步噪声。
@@ -732,8 +793,8 @@ def main():
     logger.info("        四维指标 × 三轨(full/ctx/ss): ①验证一致率 ②情感一致率(双方均判真子集)")
     logger.info("        ③Cohen's κ(扣随机一致) ④逐模型分解; 分母双口径(per-protocol 主 / ITT 披露,")
     logger.info("        调用全失败行属测量缺失剔出主口径)。Landis & Koch (1977) κ 解释阈值。")
-    logger.info(f"【判读】验证一致率↑=好(≥{thresholds_preview_ver * 100:.0f}% 视为不受身份干扰); "
-                f"κ↑=好(≥{thresholds_preview_kappa:.2f} 通过门槛; 落 0.61-0.80 substantial 高度一致, "
+    logger.info(f"【判读】验证一致率↑=好(≥{pct4(thresholds_preview_ver)} 视为不受身份干扰); "
+                f"κ↑=好(≥{sig4(thresholds_preview_kappa)} 通过门槛; 落 0.61-0.80 substantial 高度一致, "
                 f"≥0.81 才 almost-perfect, Landis-Koch 1977);")
     logger.info("        实体残留率应=0%(否则掩码不完整, 稳健性被高估); 三轨两两差异 <5pp 为好")
     logger.info("        (否则提示文本输入粒度敏感)。三轨须全过(full∧ctx∧ss)才算整体通过。")
@@ -755,11 +816,17 @@ def main():
         CONFIG['paths']['output_dir'],
         CONFIG.get('filenames', {}).get('output_21_tone_llms_full', '21_tone_llms_full.parquet')
     )
+
+    # 项目/环境信息 + 输入输出 + 运行配置 + 方法论引文 (日志富集 2026-06-24)
+    _log_environment_and_config(input_path)
+    logger.info("")
+
     if not os.path.exists(input_path):
         logger.error(f"输入文件不存在: {input_path}")
         return
+    _t_load = time.time()
     df = pd.read_parquet(input_path)
-    logger.info(f"加载全量 LLM 结果: {len(df)} 条")
+    logger.info(f"加载全量 LLM 结果: {len(df):,d} 条")
 
     # 确认 content_ctx 列存在
     if 'content_ctx' not in df.columns:
@@ -771,14 +838,17 @@ def main():
         logger.warning("输入数据缺少 content_ss 列，ss 轨道将回退至全文")
         df['content_ss'] = df['内容'].astype(str)
 
+    phase_durations['①加载+列检查'] = time.time() - _t_load
+
     # ── Step 2: 随机抽样 ──
     df_sample = random_sample(df, sample_size, seed)
-    logger.info(f"随机抽样 {len(df_sample)} 条 (seed={seed})")
+    logger.info(f"随机抽样 {len(df_sample):,d} 条 (seed={seed})")
 
     # ── Step 3: 提取 baseline（三轨 full/ctx/ss）──
     df_sample = extract_baseline(df_sample)
 
     # ── Step 4: 执行掩码替换（三轨 full/ctx/ss）──
+    _t_mask = time.time()
     n_incomplete = {track: 0 for track in TRACKS}
     for idx, row in df_sample.iterrows():
         aliases = get_target_aliases(str(row['target_bank']), bnf)
@@ -857,24 +927,30 @@ def main():
         df_sample.at[idx, 'masked_text_ss'] = result_ss['masked_text']
         df_sample.at[idx, 'n_replacements_ss'] = result_ss['n_replacements']
 
+    n_sample = len(df_sample)
     for track in TRACKS:
         n_zero = int((df_sample[f'n_replacements_{track}'] == 0).sum())
-        logger.info(f"[{track}] 掩码替换完成: {len(df_sample)} 条, "
-                    f"残留异常 {n_incomplete[track]} 条, "
-                    f"零替换 {n_zero} 条")
+        zero_rate = n_zero / n_sample if n_sample else 0.0
+        logger.info(f"[{track}] 掩码替换完成: {n_sample:,d} 条, "
+                    f"残留异常 {n_incomplete[track]:,d} 条 ({pct4(n_incomplete[track] / n_sample if n_sample else 0.0)}), "
+                    f"零替换 {n_zero:,d} 条 ({pct4(zero_rate)})")
+    phase_durations['②三轨掩码替换'] = time.time() - _t_mask
 
     # ── Step 5: 调用 LLM（掩码后文本，三轨 full/ctx/ss）──
+    _t_llm = time.time()
     cache_db = os.path.join(CONFIG["paths"]["output_dir"], '_llm_cache.db')
     with LLMCache(cache_db) as cache:
-        logger.info(f"Entity Masking LLM 缓存: {cache.size()} 条已缓存, 路径: {cache_db}")
+        logger.info(f"Entity Masking LLM 缓存: {cache.size():,d} 条已缓存, 路径: {cache_db}")
         masked_llm_results = asyncio.run(
             run_masked_llms(
                 df_sample, MODELS, cache=cache,
                 model_availability=AsyncModelAvailability(),
             )
         )
+    phase_durations['③掩码文本 LLM 重判'] = time.time() - _t_llm
 
     # ── Step 6: 解析 + 投票（三轨 full/ctx/ss）──
+    _t_agg = time.time()
     _empty_row_res = {track: {} for track in TRACKS}
     for idx in df_sample.index:
         row_res = masked_llm_results.get(idx, _empty_row_res)
@@ -911,7 +987,10 @@ def main():
                 df_sample.at[idx, f'{short}_masked_verified_{track}'] = parsed.get(f'{short}_verified')
                 df_sample.at[idx, f'{short}_masked_sentiment_{track}'] = parsed.get(f'{short}_sentiment')
 
+    phase_durations['④聚合解析+投票'] = time.time() - _t_agg
+
     # ── Step 7: 计算一致性（排除零替换异常条）──
+    _t_metric = time.time()
     results = {}
     df_valids = {}
     for track in TRACKS:
@@ -921,6 +1000,7 @@ def main():
             return
         df_valids[track] = df_valid
         results[track] = compute_masking_consistency(df_valid, track)
+    phase_durations['⑤四维一致性指标'] = time.time() - _t_metric
 
     # ── Step 8: 判定（三轨 full/ctx/ss 均须通过）──
     thresholds = {
@@ -949,17 +1029,17 @@ def main():
         c['sentiment_inconclusive'] = sentiment_inconclusive
         c['thresholds'] = thresholds
 
-        sen_display = (f"{c['sentiment_consistency']:.1%}"
+        sen_display = (pct4(c['sentiment_consistency'])
                        if c['sentiment_consistency'] is not None
                        else 'N/A(子集为空,不可判定)')
         # fix(omni-g-val-mask-02, 2026-06-11): 主口径=per-protocol, 同时报 ITT 双口径
         logger.info(f"[{track.upper()}] {'✅ 通过' if passed else '❌ 未通过'}"
                     f"{' [情感不可判定]' if sentiment_inconclusive else ''}: "
-                    f"验证一致率={c['verification_consistency']:.1%} "
-                    f"(ITT={c['verification_consistency_itt']:.1%}, "
-                    f"call_failure 排除 {c['n_call_failure']} 行), "
+                    f"验证一致率={pct4(c['verification_consistency'])} "
+                    f"(ITT={pct4(c['verification_consistency_itt'])}, "
+                    f"call_failure 排除 {c['n_call_failure']:,d} 行), "
                     f"情感一致率={sen_display}, "
-                    f"κ={c['cohens_kappa']['kappa']:.4f}")
+                    f"κ={sig4(c['cohens_kappa']['kappa'])}")
 
     # 三轨综合判定 (full/ctx/ss 全过才算整体通过)
     overall_pass = all(results[track]['passed'] for track in TRACKS)
@@ -979,9 +1059,9 @@ def main():
         )
         if delta_ver > 0.05 or delta_kappa > 0.05:
             max_delta_flagged = True
-            logger.info(f"   {t1}↔{t2} 差异较大: Δ验证一致率={delta_ver:.1%}, Δκ={delta_kappa:.4f}")
+            logger.info(f"   {t1}↔{t2} 差异较大: Δ验证一致率={pct4(delta_ver)}, Δκ={sig4(delta_kappa)}")
         else:
-            logger.info(f"   {t1}↔{t2} 差异正常: Δ验证一致率={delta_ver:.1%}, Δκ={delta_kappa:.4f}")
+            logger.info(f"   {t1}↔{t2} 差异正常: Δ验证一致率={pct4(delta_ver)}, Δκ={sig4(delta_kappa)}")
     if max_delta_flagged:
         logger.info("   提示: 文本输入粒度可能影响稳健性，建议检查 ctx/ss 提取质量")
 
@@ -1013,8 +1093,8 @@ def main():
         th_ver = thresholds['verification']
         th_sen = thresholds['sentiment']
         th_kap = thresholds['kappa']
-        logger.info(f"  样本规模: 抽样 {n_total_sample} 条; 通过门槛 验证一致率≥{th_ver:.0%} / "
-                    f"情感一致率≥{th_sen:.0%} / κ≥{th_kap:.2f}")
+        logger.info(f"  样本规模: 抽样 {n_total_sample:,d} 条; 通过门槛 验证一致率≥{pct4(th_ver)} / "
+                    f"情感一致率≥{pct4(th_sen)} / κ≥{sig4(th_kap)}")
 
         for track in TRACKS:
             c = results[track]
@@ -1026,7 +1106,7 @@ def main():
             # NaN-guard (硬化 B): 全 call_failure 退化场景 verification_consistency=NaN,
             # 不能落进 ver>=th_ver 的方向判读 (NaN 比较恒 False 会误判"❌弱(身份偏见)")。
             ver_is_nan = pd.isna(ver)
-            ver_disp = "NaN(无有效数据)" if ver_is_nan else f"{ver:.1%}"
+            ver_disp = "NaN(无有效数据)" if ver_is_nan else pct4(ver)
             if ver_is_nan:
                 ver_verdict = "⚪该轨无有效数据(全 NaN, 调用全失败)"
             else:
@@ -1043,21 +1123,21 @@ def main():
             else:
                 sen_verdict = ("✅好" if sen >= th_sen
                                else ("⚠临界" if sen >= th_sen - 0.05 else "❌弱"))
-                sen_line = (f"情感一致率(双方均判真 n_both_true={c['n_both_true']} 子集)="
-                            f"{sen:.1%} {sen_verdict}")
+                sen_line = (f"情感一致率(双方均判真 n_both_true={c['n_both_true']:,d} 子集)="
+                            f"{pct4(sen)} {sen_verdict}")
             logger.info(f"  [{track.upper()}] {'✅整体通过' if c['passed'] else '❌整体未通过'}")
             logger.info(f"     · 验证一致率(per-protocol)={ver_disp} {ver_verdict} "
-                        f"| ITT={ver_itt:.1%} (剔除 call_failure {c['n_call_failure']} 行)")
-            logger.info(f"     · Cohen's κ(per-protocol)={kap:.4f} [{kap_verdict}] {kap_flag} "
-                        f"| ITT κ={kap_itt:.4f}")
+                        f"| ITT={pct4(ver_itt)} (剔除 call_failure {c['n_call_failure']:,d} 行)")
+            logger.info(f"     · Cohen's κ(per-protocol)={sig4(kap)} [{kap_verdict}] {kap_flag} "
+                        f"| ITT κ={sig4(kap_itt)}")
             logger.info(f"     · {sen_line}")
             # 逐模型分解 (哪个模型对掩码最敏感)
             pm = c['per_model_consistency']
             if pm:
-                pm_str = ', '.join(f"{k}={v:.1%}" for k, v in pm.items())
+                pm_str = ', '.join(f"{k}={pct4(v)}" for k, v in pm.items())
                 pm_min = min(pm.values())
                 pm_flag = ("(全模型稳健)" if pm_min >= th_ver
-                           else f"(最低 {pm_min:.1%}, 该模型对掩码偏敏感)")
+                           else f"(最低 {pct4(pm_min)}, 该模型对掩码偏敏感)")
                 logger.info(f"     · 逐模型一致率: {pm_str} {pm_flag}")
             # 掩码质量: 残留率 + 零替换率
             n_resid = n_incomplete[track]
@@ -1065,16 +1145,16 @@ def main():
             resid_rate = n_resid / n_total_sample if n_total_sample else 0.0
             zero_rate = n_zero / n_total_sample if n_total_sample else 0.0
             if n_resid > 0:
-                logger.warning(f"     · ⚠掩码不完整: 残留 {n_resid} 条 ({resid_rate:.1%}) — "
+                logger.warning(f"     · ⚠掩码不完整: 残留 {n_resid:,d} 条 ({pct4(resid_rate)}) — "
                                f"银行名经标题/正文泄漏给 LLM, 该轨稳健性结论被高估, 须排查别名表")
             else:
-                logger.info("     · 掩码完整性: 残留 0 条 (0.0%) ✅ 别名全部涂净")
+                logger.info("     · 掩码完整性: 残留 0 条 (0.000%) ✅ 别名全部涂净")
             if zero_rate > 0.10:
-                logger.warning(f"     · ⚠零替换 {n_zero} 条 ({zero_rate:.1%}) 偏高 — "
+                logger.warning(f"     · ⚠零替换 {n_zero:,d} 条 ({pct4(zero_rate)}) 偏高 — "
                                f"这些文未命中任何目标行别名, 涂名对其无效, 已排除出一致性分母")
             else:
-                logger.info(f"     · 零替换: {n_zero} 条 ({zero_rate:.1%}); 有效子样本 "
-                            f"n_valid={c['n_samples_valid']}")
+                logger.info(f"     · 零替换: {n_zero:,d} 条 ({pct4(zero_rate)}); 有效子样本 "
+                            f"n_valid={c['n_samples_valid']:,d}")
 
         # 整体方向判读
         if overall_pass:
@@ -1087,7 +1167,7 @@ def main():
 
         # 小样本警告 (盘面 T=2 退化场景)
         if n_total_sample < 200:
-            logger.info(f"  ⚠小样本提示: 本次仅 {n_total_sample} 条 (远小于 EM_CFG.sample_size 目标), "
+            logger.info(f"  ⚠小样本提示: 本次仅 {n_total_sample:,d} 条 (远小于 EM_CFG.sample_size 目标), "
                         "一致率/κ 抽样方差大、混淆矩阵稀疏, 仅用于验证管道正确性; "
                         "稳健性结论以全量 17M/T=18 实测 N=1000 为准。")
         logger.info("-" * 72)
@@ -1095,8 +1175,22 @@ def main():
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
     # ── Step 9: 输出报告 (三轨) ──
+    _t_report = time.time()
     generate_report(results, df_sample, df_valids)
-    logger.info(f"Entity Masking 三轨测试完成, 耗时 {time.time()-stage_start:.1f}s")
+    phase_durations['⑥报告生成(JSON/CSV/LaTeX/PNG)'] = time.time() - _t_report
+
+    # ── 阶段计时汇总 (各主要子阶段墙钟耗时; 纯日志, golden-safe) ──
+    try:
+        total_elapsed = time.time() - stage_start
+        logger.info("  ⏱ 阶段计时 (各子阶段墙钟耗时)")
+        for _phase, _dur in phase_durations.items():
+            _share = _dur / total_elapsed if total_elapsed > 0 else 0.0
+            logger.info(f"     · {_phase}: {sig4(_dur)}s ({pct4(_share)})")
+        logger.info(f"     · 合计: {sig4(total_elapsed)}s")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  [阶段计时] 汇总打印异常 (不影响处理): {_e}")
+
+    logger.info(f"Entity Masking 三轨测试完成, 耗时 {sig4(time.time()-stage_start)}s")
 
 
 if __name__ == "__main__":

@@ -85,6 +85,7 @@ PR #3 (lm_non_sentiment) 输出的 panel 列存在; G-A1.2 准入门控
 from __future__ import annotations
 
 import os
+import platform
 import sys
 import time
 
@@ -98,7 +99,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config  # noqa: E402
-from news_process.core.logging import setup_logging  # noqa: E402
+from news_process.core.logging import pct4, setup_logging, sig4  # noqa: E402
 
 CONFIG = load_config()
 STAGE_NAME = "74_lm_discriminant_validity"
@@ -267,6 +268,65 @@ def permutation_null(panel: pd.DataFrame, indicators: list[str],
     }])
 
 
+def _log_environment_and_config(panel_path: str, eval_dir: str) -> None:
+    """打印 ① 项目/环境 + ② 输入输出 + ③ 运行配置 + ④ 方法论依据 块 (日志富集 2026-06-24)。
+
+    把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数、依据哪些方法学文献"一次性
+    落进日志, 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 / schema / 控制流 (golden-safe)。
+
+    方法学引文按手册铁律仅 emit 已核验事实: 本阶段三处依据 (Henseler-Ringle-Sarstedt 2015
+    JAMS / Cohen 1960 EPM / Cronbach 1951 Psychometrika) 均**不在**经核验参考文献注册表内,
+    故只 emit 作者-年-期刊卷(期):页 (与顶部 docstring 逐字一致), **不**附 DOI 链接 (避免伪造)。
+    """
+    try:
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (LM 8 维判别效度 / 验证轨 STAGES_VALIDATION; "
+                    "DAG stage 39e)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) "
+                    "| 版本 v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        logger.info(f"     · numpy={np.__version__} | pandas={pd.__version__}")
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "纯 numpy/pandas, 无 LLM·Embedding·sklearn·网络 ($0); seed=42 逐位可复现")
+
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 输入 panel:  {panel_path}")
+        logger.info(f"     · 输出目录:    {eval_dir}")
+        logger.info("     · 输出 (三轨各一份, 仅 CSV 诊断表, 不落 parquet / 不进主面板):")
+        logger.info("         74_lm_htmt_matrix_{ctx,full,ss}.csv   (8×8 HTMT 矩阵)")
+        logger.info("         74_lm_permutation_{ctx,full,ss}.csv   (1000-rep permutation null 汇总)")
+
+        logger.info("  ⚙ 运行配置")
+        logger.info(f"     · HTMT 双 cutoff: strict={sig4(HTMT_STRICT)} / lenient={sig4(HTMT_LENIENT)} "
+                    "(G-A1.2 准入门控以 strict 为界)")
+        logger.info(f"     · 样本过滤: n_articles_llm_valid ≥ {MIN_N_ARTICLES:,d} "
+                    "(缺该列回退 n_articles; 与 stage 39d R8-H2 口径统一)")
+        logger.info(f"     · permutation: n_perm={1000:,d} reps | seed={42:,d} "
+                    "(listwise-complete 子样本上逐列洗牌; Henseler 建议 ≥500)")
+        logger.info(f"     · 三轨 indicator 集 (各 8 维): ctx={len(INDICATORS_CTX):,d} | "
+                    f"full={len(INDICATORS_FULL):,d} | ss={len(INDICATORS_SS):,d} "
+                    "(LM 6 子词典 frac + clarity + num_intensity)")
+
+        logger.info("  📖 方法论依据 (本阶段核心构念/方法的学术出处)")
+        logger.info("     · HTMT 判别效度判据: Henseler, J., Ringle, C. M., & Sarstedt, M. (2015). "
+                    "Journal of the Academy of Marketing Science, 43(1), 115-135.")
+        logger.info("       → 异质-同质相关比 (HTMT) 双 cutoff 0.85 strict / 0.90 lenient; "
+                    "低=两构念各测各的、未重复造轮子")
+        logger.info("     · Cronbach α (内部一致性): Cronbach, L. J. (1951). "
+                    "Psychometrika, 16(3), 297-334.")
+        logger.info("       → α=(k/(k-1))(1-Σσ²_i/σ²_total); 8 维本应低耦合, α 高反提示构念不纯")
+        logger.info("     · 名义一致性系数 (κ 谱系): Cohen, J. (1960). "
+                    "Educational and Psychological Measurement, 20(1), 37-46.")
+        logger.info("       (注: 上述三条均不在本工作流『经核验参考文献注册表』内, 故按手册铁律"
+                    "仅 emit 作者-年-期刊卷(期):页, 不附 DOI 链接以避免伪造)")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法论信息打印失败 (不影响处理): {e}")
+
+
 def main():
     stage_start = time.time()
     logger.info("=" * 72)
@@ -293,16 +353,23 @@ def main():
     os.makedirs(eval_dir, exist_ok=True)
 
     panel_path = os.path.join(output_dir, '40_panel_yearly.parquet')
+
+    # 项目/环境 + 输入输出 + 运行配置 + 方法论依据 (日志富集 2026-06-24; golden-safe)
+    _log_environment_and_config(panel_path, eval_dir)
+
     if not os.path.exists(panel_path):
         logger.error(f"  panel 未找到: {panel_path}; 跳过 39e")
         sys.exit(0)
 
+    _t_load = time.time()
     panel = pd.read_parquet(panel_path)
-    logger.info(f"  panel: {len(panel)} 行 × {len(panel.columns)} 列")
+    logger.info(f"  panel: {len(panel):,d} 行 × {len(panel.columns):,d} 列")
 
     # fix(omni-g-audit-family-05, 2026-06-11): 与 39d 统一 n_articles_llm_valid ≥ 2
     # 样本过滤 (HTMT / Cronbach α / permutation 全部在同一过滤后样本上计算)
     panel = _apply_llm_valid_mask(panel)
+    # per-phase 墙钟计时 (日志富集; 纯日志, 不影响产物)
+    _phase_durations: dict[str, float] = {'①加载panel+样本过滤': time.time() - _t_load}
 
     # 三轨各跑一次 (full / ctx / ss; 与 v3.5.1 stage 39d 对齐)
     # ss = 银行+金科同句共现轨; INDICATORS_SS 列尚未物化时 compute_htmt_matrix
@@ -317,17 +384,19 @@ def main():
         ('ss', INDICATORS_SS),
     ):
         logger.info(f"  ── 轨道 {suffix} ──")
+        _t_track = time.time()
         htmt = compute_htmt_matrix(panel, indicators)
         if htmt.empty:
             logger.warning(f"  {suffix}: HTMT 跳过 (indicator 列缺失)")
             _skipped_tracks.append(suffix)
+            _phase_durations[f'②轨{suffix}(跳过)'] = time.time() - _t_track
             continue
         htmt_path = os.path.join(eval_dir, f'74_lm_htmt_matrix_{suffix}.csv')
         htmt.to_csv(htmt_path)
         logger.info(f"    HTMT matrix → {htmt_path}")
 
         alpha = compute_cronbach_alpha(panel, indicators)
-        logger.info(f"    Cronbach α = {alpha:.4f}")
+        logger.info(f"    Cronbach α = {sig4(alpha)}")
 
         perm = permutation_null(panel, indicators)
         if not perm.empty:
@@ -338,7 +407,7 @@ def main():
         # G-A1.2 准入门控判定
         max_htmt = _offdiag_max(htmt)  # P0 修复: CoW 安全
         logger.info(
-            f"    G-A1.2 判定: max HTMT = {max_htmt:.4f} "
+            f"    G-A1.2 判定: max HTMT = {sig4(max_htmt)} "
             f"({'PASS' if max_htmt < HTMT_STRICT else 'FAIL (need expert audit)'})"
         )
         # 记录本轨汇总供【结果分析】(纯日志, 不影响产物)
@@ -351,6 +420,7 @@ def main():
             'p95': (None if perm.empty else float(perm['perm_htmt_max_p95'].iloc[0])),
             'n_listwise': (None if perm.empty else int(perm['n_listwise'].iloc[0])),
         })
+        _phase_durations[f'②轨{suffix}(HTMT+α+1000置换)'] = time.time() - _t_track
 
     # ── 【结果分析】(纯日志增量; 引用变量均在作用域内) ──────────────────
     # crash-guard (硬化 A): 整块【结果分析】纯读 _track_summaries / n_obs_masked 算指标,
@@ -359,7 +429,7 @@ def main():
     try:
         logger.info("-" * 72)
         logger.info("【结果分析】LM 8 维判别效度安检结果逐轨解读 (主 spec 用 ctx 轨):")
-        logger.info(f"  样本: mask 后 {n_obs_masked} 个 bank-year 单元参与判别效度计算。")
+        logger.info(f"  样本: mask 后 {n_obs_masked:,d} 个 bank-year 单元参与判别效度计算。")
         if _track_summaries:
             for s in _track_summaries:
                 mh = s['max_htmt']
@@ -376,24 +446,26 @@ def main():
                     # 仅按 Henseler-Ringle-Sarstedt(2015) lenient(0.90) 线尚属临界 (仍需专家复核),
                     # 不把门控未过的指标软化为 "borderline 可放行"。
                     verdict = (
-                        f'PASS(G-A1.2 门控通过, max<strict={HTMT_STRICT})' if mh < HTMT_STRICT
+                        f'PASS(G-A1.2 门控通过, max<strict={sig4(HTMT_STRICT)})' if mh < HTMT_STRICT
                         else (
-                            f'G-A1.2 门控判 FAIL — max≥strict({HTMT_STRICT})未达; '
-                            f'按 Henseler lenient({HTMT_LENIENT})尚属临界 '
-                            f'({HTMT_STRICT}≤HTMT<{HTMT_LENIENT}), 仍需专家复核' if mh < HTMT_LENIENT
-                            else f'FAIL(疑似重复计量, max≥lenient={HTMT_LENIENT}, 需专家复核)'))
+                            f'G-A1.2 门控判 FAIL — max≥strict({sig4(HTMT_STRICT)})未达; '
+                            f'按 Henseler lenient({sig4(HTMT_LENIENT)})尚属临界 '
+                            f'({sig4(HTMT_STRICT)}≤HTMT<{sig4(HTMT_LENIENT)}), 仍需专家复核'
+                            if mh < HTMT_LENIENT
+                            else f'FAIL(疑似重复计量, max≥lenient={sig4(HTMT_LENIENT)}, 需专家复核)'))
                     logger.info(
                         f"  [{s['suffix']:>4}] {s['n_items']} 维: max off-diag HTMT = "
-                        f"{mh:.4f} (阈值 strict={HTMT_STRICT} / lenient={HTMT_LENIENT}) → {verdict}")
+                        f"{sig4(mh)} (阈值 strict={sig4(HTMT_STRICT)} / "
+                        f"lenient={sig4(HTMT_LENIENT)}) → {verdict}")
                     if mh >= HTMT_STRICT:
                         logger.warning(
-                            f"  [{s['suffix']}] 最大 HTMT ≥ {HTMT_STRICT}: 8 个测度中存在疑似冗余对, "
+                            f"  [{s['suffix']}] 最大 HTMT ≥ {sig4(HTMT_STRICT)}: 8 个测度中存在疑似冗余对, "
                             f"该轨这些词典/文本指标不应同时进回归 (论文需砍掉或合并)。")
                 # Cronbach α 反向判读: 8 维本应低耦合, α 高反而提示构念不纯
                 if s['alpha'] == s['alpha']:  # 非 NaN (NaN != NaN)
                     a_read = ('良性(8 维低耦合, 符合判别效度预期)' if s['alpha'] < 0.7
                               else '偏高(8 维内部一致性高 → 可能在量同一构念, 与判别效度方向相悖, 留意)')
-                    logger.info(f"        Cronbach α = {s['alpha']:.4f} → {a_read}")
+                    logger.info(f"        Cronbach α = {sig4(s['alpha'])} → {a_read}")
                 else:
                     logger.info("        Cronbach α = NaN (present 列不足或方差退化, 不可估)")
                 # permutation null 判读: p_empirical 越大越说明观测 HTMT 接近随机噪声
@@ -402,11 +474,12 @@ def main():
                               if s['p_emp'] >= 0.05
                               else '观测 HTMT 显著高于洗牌 null (p<0.05), 该轨指标对存在系统性相关')
                     logger.info(
-                        f"        permutation: p_empirical = {s['p_emp']:.4f}, "
-                        f"null p95 = {s['p95']:.4f}, n_listwise = {s['n_listwise']} → {p_read}")
+                        f"        permutation: p_empirical = {sig4(s['p_emp'])}, "
+                        f"null p95 = {sig4(s['p95'])}, "
+                        f"n_listwise = {s['n_listwise']:,d} → {p_read}")
                     if s['n_listwise'] is not None and s['n_listwise'] < 30:
                         logger.warning(
-                            f"        [{s['suffix']}] listwise-complete 样本仅 {s['n_listwise']} 行: "
+                            f"        [{s['suffix']}] listwise-complete 样本仅 {s['n_listwise']:,d} 行: "
                             f"permutation null 自由度低, p 值不稳, 仅供参考。")
                 else:
                     logger.info("        permutation: 跳过 (listwise-complete 样本 < 4 行)")
@@ -420,14 +493,25 @@ def main():
         # 小样本警告 (盘面 T=2 → bank-year 单元有限, HTMT/permutation 自由度低)
         if n_obs_masked < 50:
             logger.info(
-                f"  小样本提示: 当前仅 {n_obs_masked} 个 bank-year 单元 (盘面 T=2 demo), "
+                f"  小样本提示: 当前仅 {n_obs_masked:,d} 个 bank-year 单元 (盘面 T=2 demo), "
                 f"HTMT 矩阵与 permutation null 自由度低, 此结果仅验证管道正确性; "
                 f"判别效度结论以全量 17M / T=18 实测为准。")
         logger.info("-" * 72)
     except Exception as _e:
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
-    logger.info(f"  耗时: {time.time() - stage_start:.1f} s")
+    # ── ⏱ 阶段计时汇总 (各子阶段墙钟耗时; 纯日志增量, golden-safe) ──────────
+    try:
+        _total = time.time() - stage_start
+        logger.info("  ⏱ 阶段计时汇总 (墙钟秒)")
+        for _name, _dur in _phase_durations.items():
+            _share = (_dur / _total) if _total > 0 else 0.0
+            logger.info(f"     · {_name}: {sig4(_dur)} s ({pct4(_share)})")
+        logger.info(f"     · 合计: {sig4(_total)} s")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  [阶段计时] 汇总打印异常, 跳过(不影响产物): {_e}")
+
+    logger.info(f"  耗时: {sig4(time.time() - stage_start)} s")
 
 
 if __name__ == '__main__':

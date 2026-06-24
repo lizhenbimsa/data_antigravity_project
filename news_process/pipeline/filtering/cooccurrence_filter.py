@@ -37,6 +37,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import platform
 import sys
 import time
 
@@ -49,7 +50,12 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config  # noqa: E402
-from news_process.core.logging import log_stage_summary, setup_logging  # noqa: E402
+from news_process.core.logging import (  # noqa: E402
+    log_stage_summary,
+    pct4,
+    setup_logging,
+    sig4,
+)
 from news_process.core.text.ahocorasick import (  # noqa: E402
     load_exclusion_patterns,
     load_fintech_dict,
@@ -192,6 +198,77 @@ def _write_sidecar_meta(out_path: str, n_in: int, n_out: int) -> None:
     logger.info(f"  provenance sidecar 已写出: {meta_path}")
 
 
+def _log_environment_and_config(in_path: str, out_path: str) -> None:
+    """打印 ①项目/环境 ②输入/输出 ③运行配置 ④方法论依据 四块 (日志富集 2026-06-24)。
+
+    对齐 tone_words.py 黄金范式: 把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调
+    参数、依据哪些学术方法"一次性落进日志, 便于复现核对 / 审计 / 排错。纯日志, 不改
+    任何产物 / schema / 控制流 (golden-safe)。失败仅 WARNING, 绝不阻断阶段。
+    """
+    try:
+        _cfg = CONFIG.get('cooccurrence_filter', {})
+        _sentence_radius = _cfg.get('sentence_radius', 1)
+        _min_keep_frac = _cfg.get('min_keep_frac', 0.001)
+        _fallback_char_radius = CONFIG.get('context_window', {}).get(
+            'fallback_char_radius', 150
+        )
+        _bank_file = CONFIG['paths'].get('bank_names_file', '(默认)')
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+
+        # ① 🧭 项目 / 环境信息
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (stage 12b 银行×金科邻近共现硬过滤, "
+                    "STAGES_MAIN)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) "
+                    "| 版本 v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "本阶段纯 CPU (ahocorasick + 正则分句) / 无 LLM·Embedding·网络·API "
+                    "($0); 逐位可复现")
+
+        # ② 📂 输入 / 输出文件
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 输入:   {in_path} (stage 12 关键词金科子集)")
+        logger.info(f"     · 输出:   {out_path} (= stage 12 的近邻相关子集, 丢行)")
+        logger.info(f"     · sidecar: {os.path.splitext(out_path)[0]}.meta.json "
+                    "(判据 + criterion_sha256 + 行数对账)")
+        logger.info(f"     · 金科词典: {_FINTECH_DICT_FILE}")
+        logger.info(f"     · 银行排除: {_EXCLUSION_FILE}")
+        logger.info(f"     · 银行别名: {_bank_file}")
+
+        # ③ ⚙ 运行配置 (config/filtering.yaml::cooccurrence_filter 等)
+        logger.info("  ⚙ 运行配置 (config/filtering.yaml::cooccurrence_filter 等)")
+        logger.info(f"     · sentence_radius={_sentence_radius:,d} 句 (银行锚句 ±radius "
+                    "邻句窗口; radius=0 退化为严格同句 _ss 子集)")
+        logger.info(f"     · min_keep_frac={sig4(_min_keep_frac)} (keep 率下界; 低于即 "
+                    "SystemExit(1) 防全库误删)")
+        logger.info(f"     · fallback_char_radius={_fallback_char_radius:,d} 字 "
+                    "(无法分句时的字符窗回退)")
+        logger.info(f"     · 金科 AC 词数: {len(_FINTECH_KEYWORDS):,d} | FINTECH_AC "
+                    f"{'已加载' if FINTECH_AC is not None else 'None → SAFE-1 全保留'}")
+        logger.info("     · 不对称匹配口径: 银行侧否定/短名排除 (has_unexcluded_occurrence) "
+                    "| 金科侧裸 AC")
+
+        # ④ 📖 方法论依据 (参考文献 emit 进日志; 仅引经核验注册表条目)
+        logger.info("  📖 方法论依据")
+        logger.info("     · 邻近配对归因过滤: Andreou et al. (2026). Research Policy. "
+                    "core-contextual word-pairing within a span (DOI 待核验, 不作已证事实)")
+        logger.info("       → 银行与金科词若仅各说各的、隔太远共现, 则主题相关性弱, 删之降"
+                    "虚假相关; 本实现是其【句级窗口】操作化")
+        logger.info("     · 邻近归因 (proximity-based attribution): Hassan, T. A., "
+                    "Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level "
+                    "political risk: Measurement and effects. The Quarterly Journal of "
+                    "Economics, 134(4), 2135-2202. "
+                    "https://doi.org/10.1093/qje/qjz021")
+        logger.info("       → §III.B 以「距实体的邻近度」加权归因, 本阶段借其思路把"
+                    "「距银行」近邻的金科共现作为主题相关性判据")
+    except Exception as e:  # noqa: BLE001 — 环境/配置/方法块日志失败绝不阻断阶段
+        logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
+
+
 def main():
     """Stage 12b 入口: 读 12_fintech_news.parquet → 写 13_cooccurrence_filtered.parquet."""
     stage_start = time.time()
@@ -231,10 +308,17 @@ def main():
     in_path = os.path.join(output_dir, in_name)
     out_path = os.path.join(output_dir, out_name)
 
+    # ①-④ 项目/环境/输入输出/运行配置/方法论依据 块 (日志富集 2026-06-24)
+    _log_environment_and_config(in_path, out_path)
+
+    # 运行期各子阶段墙钟耗时累计 (末尾 ⏱ 汇总; 数字一律 sig4 秒)
+    phase_durations: dict[str, float] = {}
+
     if not os.path.exists(in_path):
         logger.error(f"输入未找到: {in_path}")
         raise SystemExit(1)
 
+    _t = time.time()
     df = pd.read_parquet(in_path)
     n_in = len(df)
     n_banks_in = (
@@ -243,9 +327,13 @@ def main():
         ].nunique()
         if 'target_bank' in df.columns else 0
     )
-    logger.info(f"加载 stage 12 输出: {n_in} 行, {n_banks_in} 家银行")
+    phase_durations['①读盘'] = time.time() - _t
+    logger.info(f"加载 stage 12 输出: {n_in:,d} 行, {n_banks_in:,d} 家银行 "
+                f"(读盘耗时 {sig4(phase_durations['①读盘'])} 秒)")
 
+    _t = time.time()
     df_kept = filter_cooccurrence(df)
+    phase_durations['②邻近共现过滤'] = time.time() - _t
     n_out = len(df_kept)
     n_banks_out = (
         df_kept['target_bank'].astype(str).str.strip().loc[
@@ -255,8 +343,9 @@ def main():
     )
     keep_frac = (n_out / n_in) if n_in else 0.0
     logger.info(
-        f"  邻近共现过滤: 保留 {n_out}/{n_in} 行 (keep={keep_frac:.4f}), "
-        f"丢弃 {n_in - n_out} 行; 银行 {n_banks_in}→{n_banks_out}"
+        f"  邻近共现过滤: 保留 {n_out:,d}/{n_in:,d} 行 (keep={sig4(keep_frac)} = "
+        f"{pct4(keep_frac)}), 丢弃 {n_in - n_out:,d} 行; 银行 {n_banks_in:,d}→"
+        f"{n_banks_out:,d} (过滤耗时 {sig4(phase_durations['②邻近共现过滤'])} 秒)"
     )
 
     # min-N 守卫: 仅当 FINTECH_AC 实际生效 (非 SAFE-1 全保留) 才校验, 防止真实
@@ -267,9 +356,9 @@ def main():
         )
         if n_out == 0 or keep_frac < min_keep_frac:
             logger.error(
-                f"  ✗ keep 率 {keep_frac:.4f} 低于 min_keep_frac={min_keep_frac} "
-                f"(或 0 行): 疑似全库误删, 中止以防污染下游。请核对金科词典/语料/"
-                f"sentence_radius。"
+                f"  ✗ keep 率 {sig4(keep_frac)} 低于 min_keep_frac="
+                f"{sig4(min_keep_frac)} (或 0 行): 疑似全库误删, 中止以防污染下游。请"
+                f"核对金科词典/语料/sentence_radius。"
             )
             raise SystemExit(1)
 
@@ -278,6 +367,7 @@ def main():
     # 绝不阻断后续 save_dataset 写盘 (golden-safe: 日志诊断永不拖垮产物)。
     logger.info("-" * 72)
     logger.info("【结果分析】banner-as-spec: 逐项解读本次硬过滤的产出指标与方向判读")
+    _t = time.time()
     try:
         _n_dropped = n_in - n_out
         _drop_frac = (_n_dropped / n_in) if n_in else 0.0
@@ -285,8 +375,8 @@ def main():
             # SAFE-1 生效: 词典缺失 → 原样全保留, keep 必为 1.0
             logger.warning(
                 f"  [SAFE-1 优雅降级] FINTECH_AC=None (金科词典加载失败), 12b 未执行任何"
-                f"过滤, 原样保留全部 {n_out} 行 (keep=1.0)。下游沿用 stage 12 原始关键词口径, "
-                f"近邻共现硬过滤【未生效】, 请核对金科词典 "
+                f"过滤, 原样保留全部 {n_out:,d} 行 (keep={pct4(1.0)})。下游沿用 stage 12 "
+                f"原始关键词口径, 近邻共现硬过滤【未生效】, 请核对金科词典 "
                 f"{os.path.basename(_FINTECH_DICT_FILE)} 后重跑以激活过滤。"
             )
         elif n_in == 0:
@@ -297,8 +387,8 @@ def main():
             )
         else:
             logger.info(
-                f"  [keep_frac] 保留 {n_out}/{n_in} 行, keep={keep_frac:.4f} "
-                f"(丢弃 {_n_dropped} 行 / drop={_drop_frac:.4f})。"
+                f"  [keep_frac] 保留 {n_out:,d}/{n_in:,d} 行, keep={sig4(keep_frac)} "
+                f"({pct4(keep_frac)}) (丢弃 {_n_dropped:,d} 行 / drop={pct4(_drop_frac)})。"
             )
             # 方向判读: keep 率对照 min_keep_frac 下界 + 严格同句 (radius=0) 14.27% 零共现上界。
             # 注: 14.27% 是【严格同句零共现率】上界 → 窗口 (radius≥1) 实际丢行率应更低,
@@ -307,36 +397,37 @@ def main():
                 'min_keep_frac', 0.001
             )
             _ss_zero_cooc_upper = 0.1427  # 严格同句 radius=0 零共现率上界 (disk 1170 篇实测)
-            if keep_frac >= (1.0 - _ss_zero_cooc_upper):
+            _keep_lower = 1.0 - _ss_zero_cooc_upper  # 保守 keep 率下界 ≈0.8573
+            if keep_frac >= _keep_lower:
                 logger.info(
-                    f"  [判读: 好] keep={keep_frac:.4f} ≥ 保守下界 "
-                    f"{1.0 - _ss_zero_cooc_upper:.4f} (=1−严格同句零共现上界 "
-                    f"{_ss_zero_cooc_upper}); 窗口邻近 (radius≥1) 删行少于严格同句, "
+                    f"  [判读: 好] keep={sig4(keep_frac)} ({pct4(keep_frac)}) ≥ 保守下界 "
+                    f"{sig4(_keep_lower)} (=1−严格同句零共现上界 "
+                    f"{pct4(_ss_zero_cooc_upper)}); 窗口邻近 (radius≥1) 删行少于严格同句, "
                     f"符合预期方向 (窗口比同句更宽)。"
                 )
             elif keep_frac >= 0.5:
                 logger.warning(
-                    f"  [判读: 临界] keep={keep_frac:.4f} 低于保守下界 "
-                    f"{1.0 - _ss_zero_cooc_upper:.4f} 但仍 ≥0.5; 删行偏多, 请核对 "
+                    f"  [判读: 临界] keep={sig4(keep_frac)} ({pct4(keep_frac)}) 低于保守"
+                    f"下界 {sig4(_keep_lower)} 但仍 ≥0.5; 删行偏多, 请核对 "
                     f"sentence_radius / 金科词典覆盖是否过严。"
                 )
             else:
                 logger.warning(
-                    f"  [判读: 坏] keep={keep_frac:.4f} <0.5 (删掉过半行) 但未触发 "
-                    f"min_keep_frac={_min_keep} 中止; 远低于严格同句口径预期, 强烈怀疑"
-                    f"词典/语料/radius 配置异常, 请人工复核后再放行下游。"
+                    f"  [判读: 坏] keep={sig4(keep_frac)} ({pct4(keep_frac)}) <0.5 (删掉"
+                    f"过半行) 但未触发 min_keep_frac={sig4(_min_keep)} 中止; 远低于严格同句"
+                    f"口径预期, 强烈怀疑词典/语料/radius 配置异常, 请人工复核后再放行下游。"
                 )
         # 银行覆盖判读: 过滤后若有银行整家掉出 → 该银行无任何近邻共现稿件, 面板会少一格
         _n_banks_lost = n_banks_in - n_banks_out
         if _n_banks_lost > 0:
             logger.warning(
-                f"  [银行覆盖] 过滤后银行数 {n_banks_in}→{n_banks_out} "
-                f"(掉出 {_n_banks_lost} 家): 这些银行无任何 '与金科近邻共现' 稿件, "
+                f"  [银行覆盖] 过滤后银行数 {n_banks_in:,d}→{n_banks_out:,d} "
+                f"(掉出 {_n_banks_lost:,d} 家): 这些银行无任何 '与金科近邻共现' 稿件, "
                 f"将不进入下游 bank-year 面板的金科口径。"
             )
         else:
             logger.info(
-                f"  [银行覆盖: 好] 银行数 {n_banks_in}→{n_banks_out} (无银行整家掉出), "
+                f"  [银行覆盖: 好] 银行数 {n_banks_in:,d}→{n_banks_out:,d} (无银行整家掉出), "
                 f"面板银行维度无收缩。"
             )
         # 守恒/口径披露 (路线 A): 12b 仅丢行, fintech_share 分母望远镜式坍缩恒不变
@@ -348,14 +439,16 @@ def main():
         # 小样本警告 (盘面 T=2)
         if n_banks_out <= 2 or n_in < 5000:
             logger.warning(
-                f"  [小样本警告] 当前为盘面小样本 (过滤前 {n_in} 行 / {n_banks_in} 家 → 过滤后 "
-                f"{n_out} 行 / {n_banks_out} 家, 疑似 T=2 验证盘): 上述 keep 率/银行覆盖仅用于"
-                f"验证管道正确性, 全量结论以 17M/T=18 实测为准。"
+                f"  [小样本警告] 当前为盘面小样本 (过滤前 {n_in:,d} 行 / {n_banks_in:,d} 家 → "
+                f"过滤后 {n_out:,d} 行 / {n_banks_out:,d} 家, 疑似 T=2 验证盘): 上述 keep 率/"
+                f"银行覆盖仅用于验证管道正确性, 全量结论以 17M/T=18 实测为准。"
             )
     except Exception as _e:  # noqa: BLE001 — 诊断日志绝不阻断产物落盘
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
+    phase_durations['③结果分析'] = time.time() - _t
     logger.info("-" * 72)
 
+    _t = time.time()
     from news_process.core.reporting import save_dataset
     _lineage = [
         p for p in (in_path, _FINTECH_DICT_FILE, _EXCLUSION_FILE,
@@ -368,6 +461,17 @@ def main():
     # CF-02: parquet 成功落盘【之后】再写 provenance sidecar, 保证 sidecar 永远
     # 描述一个真实存在且最新的 parquet (save_dataset 若抛错则不留陈旧 sidecar)。
     _write_sidecar_meta(out_path, n_in, n_out)
+    phase_durations['④写盘+sidecar'] = time.time() - _t
+
+    # ⏱ 各子阶段墙钟耗时汇总 (纯日志; 数字 sig4 秒)
+    try:
+        logger.info("  ⏱ 各子阶段墙钟耗时 (秒)")
+        for _name, _dur in phase_durations.items():
+            logger.info(f"     · {_name}: {sig4(_dur)} 秒")
+        _total = sum(phase_durations.values())
+        logger.info(f"     · 子阶段合计: {sig4(_total)} 秒 (不含 banner/收尾)")
+    except Exception as _te:  # noqa: BLE001 — 计时汇总日志绝不阻断阶段
+        logger.warning(f"  ⏱ 计时汇总打印失败 (不影响处理): {_te}")
 
     log_stage_summary(logger, STAGE_NAME, stage_start, n_in, n_out)
     logger.info(f"--- 阶段执行完毕: {STAGE_NAME} ---")

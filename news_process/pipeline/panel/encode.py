@@ -20,6 +20,7 @@ import json
 import os
 import re
 import sys
+import time
 import warnings
 
 # Phase 5c-1: 解析 ``news_process.core.*`` 需要项目根 (news_process/ 父目录)
@@ -33,7 +34,7 @@ import numpy as np
 import pandas as pd
 
 from news_process.core.config import herd_sensitivity_grid, load_config
-from news_process.core.logging import setup_logging
+from news_process.core.logging import pct4, setup_logging, sig4
 
 warnings.filterwarnings('ignore', category=FutureWarning)
 
@@ -89,6 +90,56 @@ if not THREE_CLASS_MODELS:
 # ============================================================================
 
 SENTIMENT_MAP = {'正面': 1, '中性': 0, '负面': -1}
+
+# 方法论参考文献注册表 (运行期 emit 进 40_build_panel.log; 逐字取自经核验注册表
+# VERIFIED_REFERENCES.md, status=match/minor)。本模块"先分后合"Bank-Year 聚合契约
+# 各核心构念的学术出处, 由 _log_panel_methodology() 在 aggregate_panel 入口 emit;
+# golden-safe (纯日志, 不参与任何产物计算)。⚠ 仅服务日志, 勿当作产物 schema。
+_PANEL_METHOD_REFS = [
+    ("先分后合 / 测量误差衰减偏误",
+     "Shapiro, A. H., Sudhof, M., & Wilson, D. J. (2022). Measuring news sentiment. "
+     "Journal of Econometrics, 228(2), 221-243. https://doi.org/10.1016/j.jeconom.2020.07.053"),
+    ("媒体权威性加权 (Outlet Impact)",
+     "Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing enthusiasm: Media "
+     "sentiment and the disciplining role of quarterly earnings announcements. The "
+     "Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104"),
+    ("媒体声誉 3 级 tier 权重",
+     "Hillert, A., Jacobs, H., & Müller, S. (2014). Media makes momentum. The Review of "
+     "Financial Studies, 27(12), 3467-3501. https://doi.org/10.1093/rfs/hhu061"),
+    ("正/负面词频分离 (避免极性对冲)",
+     "García, D. (2013). Sentiment during recessions. The Journal of Finance, 68(3), "
+     "1267-1300. https://doi.org/10.1111/jofi.12027"),
+    ("单词典 pos/neg_ratio 词级聚合",
+     "姜富伟, 李梦如, & 孟令超. (2024). 调预期、防风险：央行金融稳定沟通效果研究——基于文本分析的视角. "
+     "经济学（季刊）, 24(6), 2025–2040. https://doi.org/10.13821/j.cnki.ceq.2024.06.19"),
+    ("相对披露密度 (ft_word_ratio)",
+     "Abraham, J., Olbert, M., & Vasvari, F. P. (2024). ESG disclosures in the private "
+     "equity industry. Journal of Accounting Research, 62(5), 1611–1660. "
+     "https://doi.org/10.1111/1475-679X.12570"),
+    ("技术重度 (TF-IDF + SIF 质心)",
+     "Li, K., Mai, F., Shen, R., & Yan, X. (2021). Measuring corporate culture using "
+     "machine learning. The Review of Financial Studies, 34(7), 3265-3315. "
+     "https://doi.org/10.1093/rfs/hhaa079"),
+    ("Logit-to-Score 概率映射情感",
+     "Törnberg, P. (2023). How to use LLMs for text analysis. arXiv. "
+     "https://doi.org/10.48550/arXiv.2307.13106"),
+]
+
+
+def _log_panel_methodology() -> None:
+    """把 Bank-Year 聚合核心构念的学术出处 emit 进 40_build_panel.log。
+
+    纯日志输出 (golden-safe), 逐条 = 中文白话标签 + 经核验 APA-7 串 + DOI 链接。
+    失败包 try/except, 绝不让日志块崩阶段。
+    """
+    try:
+        logger.info("-" * 60)
+        logger.info("📖 方法论依据 (Bank-Year 聚合核心构念出处; 经核验注册表逐字)")
+        for _tag, _ref in _PANEL_METHOD_REFS:
+            logger.info(f"  · {_tag}: {_ref}")
+        logger.info("-" * 60)
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  方法论引文 emit 失败 (不影响聚合): {_e}")
 
 
 def encode_sentiment(df: pd.DataFrame) -> pd.DataFrame:
@@ -262,8 +313,8 @@ def encode_sentiment(df: pd.DataFrame) -> pd.DataFrame:
         src = f'llm_prob_score{track}'
         if src in df.columns:
             valid = df[src].notna()
-            logger.info(f"  {src}: mean={df.loc[valid, src].mean():.4f}, "
-                        f"std={df.loc[valid, src].std():.4f}, n={valid.sum()}")
+            logger.info(f"  {src}: mean={sig4(df.loc[valid, src].mean())}, "
+                        f"std={sig4(df.loc[valid, src].std())}, n={int(valid.sum()):,d}")
 
     return df
 
@@ -300,6 +351,12 @@ def compute_media_authority_weights(df: pd.DataFrame) -> pd.DataFrame:
     """
     logger.info("=" * 60)
     logger.info("步骤 3c: 媒体权威性加权 (Holzman et al. 2023, TAR)")
+    logger.info("  方法依据: Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). "
+                "Curbing enthusiasm: Media sentiment and the disciplining role of quarterly "
+                "earnings announcements. The Accounting Review, 98(7), 315-345. "
+                "https://doi.org/10.2308/TAR-2020-0104")
+    logger.info("  白话: 不同媒体的报道影响力不同, 按媒体权威性给情感加权 (Appendix A "
+                "Outlet Impact Media Sent), 防小报与权威财经媒体等权混同。")
     logger.info("=" * 60)
 
     df = df.copy()
@@ -326,7 +383,7 @@ def compute_media_authority_weights(df: pd.DataFrame) -> pd.DataFrame:
     # 默认权重: 从 media_weights.json 的 "default" 键读取
     # 与 68_media_diversity.py 的 media_weights.get("default", 10) 一致
     default_weight = media_weights.get('default', 10)
-    logger.info(f"  未评级媒体默认权重: {default_weight}")
+    logger.info(f"  未评级媒体默认权重: {sig4(default_weight)}")
 
     # ── 双层匹配 ──
     def _normalize_media_name(name: str) -> str:
@@ -364,13 +421,31 @@ def compute_media_authority_weights(df: pd.DataFrame) -> pd.DataFrame:
 
     # ── 诊断日志 ──
     total = len(df)
-    logger.info(f"  匹配诊断: 精确={exact_count} ({exact_count/total:.1%}), "
-                f"归一化={fuzzy_count} ({fuzzy_count/total:.1%}), "
-                f"默认={default_count} ({default_count/total:.1%})")
-    logger.info(f"  原始权重: mean={raw_series.mean():.1f}, "
-                f"min={raw_series.min():.0f}, max={raw_series.max():.0f}")
-    logger.info(f"  归一化后: mean={df['media_authority_weight'].mean():.4f}, "
-                f"std={df['media_authority_weight'].std():.4f}")
+    _exact_frac = exact_count / total if total else 0.0
+    logger.info(f"  匹配诊断: 精确={exact_count:,d} ({pct4(_exact_frac)}), "
+                f"归一化={fuzzy_count:,d} ({pct4(fuzzy_count / total if total else 0.0)}), "
+                f"默认={default_count:,d} ({pct4(default_count / total if total else 0.0)})")
+    logger.info(f"  原始权重: mean={sig4(raw_series.mean())}, "
+                f"min={sig4(raw_series.min())}, max={sig4(raw_series.max())}")
+    _norm_mean = df['media_authority_weight'].mean()
+    _norm_std = df['media_authority_weight'].std()
+    logger.info(f"  归一化后: mean={sig4(_norm_mean)}, std={sig4(_norm_std)}")
+    # 结果判读 (mean 归一后应 ≈1.0; std 反映权威性区分度)
+    try:
+        if _exact_frac >= 0.30:
+            logger.info(f"  📊 权威匹配率判读: 精确命中 {pct4(_exact_frac)} ≥30% → 良好 "
+                        f"(多数媒体已评级, 加权信号充分)")
+        else:
+            logger.info(f"  📊 权威匹配率判读: 精确命中 {pct4(_exact_frac)} <30% → 偏弱 "
+                        f"(多数落默认权重, MW Tone 接近等权; 可补 media_weights.json)")
+        if float(_norm_std) >= 0.10:
+            logger.info(f"  📊 权重区分度判读: std={sig4(_norm_std)} ≥0.10 → 有区分度 "
+                        f"(权威加权与等权可拉开差异, 稳健性表有信息量)")
+        else:
+            logger.info(f"  📊 权重区分度判读: std={sig4(_norm_std)} <0.10 → 区分度低 "
+                        f"(MW Tone 近似等权 EW, 稳健性贡献有限)")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  权威性加权结果判读跳过: {_e}")
 
     return df
 
@@ -429,6 +504,11 @@ def compute_media_tier_weights(
     """
     logger.info("=" * 60)
     logger.info("步骤 3c.bis: 媒体声誉 3 级 tier 权重 (v3.6.1 C1)")
+    logger.info("  方法依据: Hillert, A., Jacobs, H., & Müller, S. (2014). Media makes "
+                "momentum. The Review of Financial Studies, 27(12), 3467-3501. "
+                "https://doi.org/10.1093/rfs/hhu061")
+    logger.info("  白话: 把媒体分央媒/财经/综合三级离散加权 (robustness, 不覆盖主 spec "
+                "连续权威权重), 供 Table A8 稳健性。")
     logger.info("=" * 60)
 
     weights = weights or _TIER_WEIGHTS_DEFAULT
@@ -488,10 +568,10 @@ def compute_media_tier_weights(
     total = len(df)
     for tier in ('central', 'financial', 'comprehensive', 'other'):
         n = int(counts.get(tier, 0))
-        logger.info(f"  tier={tier:<14} n={n:>7} ({n/total:.1%}) "
-                    f"weight={weights[tier]}")
-    logger.info(f"  权重列: mean={df['media_authority_weight_tier'].mean():.4f}, "
-                f"std={df['media_authority_weight_tier'].std():.4f}")
+        logger.info(f"  tier={tier:<14} n={n:>7,d} ({pct4(n / total if total else 0.0)}) "
+                    f"weight={sig4(weights[tier])}")
+    logger.info(f"  权重列: mean={sig4(df['media_authority_weight_tier'].mean())}, "
+                f"std={sig4(df['media_authority_weight_tier'].std())}")
 
     return df
 
@@ -923,7 +1003,7 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
             agg[f'{b}_neg_count{track}'] = (f'_is_{b}_negative{track}', 'sum')
 
     # --- M. 单词典 pos_ratio / neg_ratio 聚合 (词级 disag 输入) ---
-    # 姜富伟, 李梦如, 孟令超 (2024). 经济学（季刊）, 24(6), 2281-2300.
+    # 姜富伟, 李梦如, 孟令超 (2024). 经济学（季刊）, 24(6), 2025-2040.
     #   DOI: 10.13821/j.cnki.ceq.2024.06.19
     for track in ['_full', '_ctx', '_ss']:  # 三轨 full/ctx/ss
         for d in DICT_NAMES:
@@ -1112,8 +1192,17 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
       - _tech / _app 分类指标: 按 innovation_locus 分组的情感均值
     """
     logger.info("=" * 60)
-    logger.info("步骤 5: Bank-Year 聚合")
+    logger.info("步骤 5: Bank-Year 聚合 (Tetlock et al. 2008 JF 先分后合范式)")
     logger.info("=" * 60)
+    _agg_t0 = time.time()
+    # 方法论依据 emit 进日志 (本聚合阶段核心构念出处; golden-safe)
+    _log_panel_methodology()
+    try:
+        logger.info(f"  ⚙ 输入文章级 DataFrame: {len(df):,d} 行 × {df.shape[1]:,d} 列; "
+                    f"LLM 模型={LLM_MODELS}; 词典={DICT_NAMES}; BERT={BERT_MODELS}; "
+                    f"三轨=['_full','_ctx','_ss']")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  聚合入口配置摘要跳过: {_e}")
 
     # --- 篇章级相对披露密度预计算 ---
     # Abraham, J., Olbert, M., & Vasvari, F. P. (2024). ESG disclosures
@@ -1127,8 +1216,8 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             axis=1,
         ).copy()
         logger.info(f"  _ft_word_ratio 预计算完成: "
-                    f"mean={df['_ft_word_ratio'].mean():.6f}, "
-                    f"非空={df['_ft_word_ratio'].notna().sum()}")
+                    f"mean={sig4(df['_ft_word_ratio'].mean())}, "
+                    f"非空={int(df['_ft_word_ratio'].notna().sum()):,d}")
 
     # v3.7.2 R8-H1: bool dtype 防御 (防 parquet round-trip 漂移为 object → mean() 退化)
     # fix(omni-g-encode-06, 2026-06-11): 裸 astype('bool') 对缺失值语义错乱 —
@@ -2009,6 +2098,48 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  聚合后面板行数: {panel.shape[0]:,}")
     logger.info(f"  唯一银行数: {panel['target_bank'].nunique()}")
     logger.info(f"  年份范围: {panel['year'].min()} - {panel['year'].max()}")
+
+    # --- 📊 关键指标解读 (运行结果信息; 全 sig4/pct4, golden-safe 纯日志) ---
+    try:
+        _n_banks = int(panel['target_bank'].nunique())
+        _n_years = int(panel['year'].nunique())
+        _n_rows = int(panel.shape[0])
+        logger.info("-" * 60)
+        logger.info("📊 Bank-Year 聚合结果判读")
+        # 面板深度 (T): 顶刊计量 FE 识别力随 T 提升; T=2 为试跑退化警告
+        if _n_years >= 5:
+            logger.info(f"  面板深度: T={_n_years:,d} 年 × {_n_banks:,d} 银行 → "
+                        f"良好 (双向 FE 识别力充分)")
+        else:
+            logger.warning(f"  面板深度: T={_n_years:,d} 年 × {_n_banks:,d} 银行 → "
+                           f"小样本 (T<5; 试跑/退化场景, 生产全量 T=18; 弱识别力警告)")
+        # 核心 DV 覆盖率: llm_vote_tone_full 非空占比 (主语调测度)
+        if 'llm_vote_tone_full' in panel.columns:
+            _dv = panel['llm_vote_tone_full']
+            _cov = float(_dv.notna().mean())
+            _verdict = ("良好" if _cov >= 0.80 else
+                        "临界" if _cov >= 0.50 else "偏弱 (大量零新闻 bank-year)")
+            logger.info(f"  主语调 DV 覆盖: llm_vote_tone_full 非空率={pct4(_cov)} "
+                        f"({int(_dv.notna().sum()):,d}/{_n_rows:,d}) → {_verdict}")
+            if _dv.notna().any():
+                logger.info(f"    分布: mean={sig4(_dv.mean())}, std={sig4(_dv.std())}, "
+                            f"min={sig4(_dv.min())}, max={sig4(_dv.max())}")
+        # 媒体覆盖量: n_articles 描述 (媒体关注度分母, Fang-Peress 2009 JF)
+        if 'n_articles' in panel.columns:
+            _na = panel['n_articles']
+            _zero_frac = float((_na.fillna(0) == 0).mean())
+            logger.info(f"  新闻覆盖量 n_articles: mean={sig4(_na.mean())}, "
+                        f"max={int(_na.max()):,d}, 零覆盖 bank-year 占比={pct4(_zero_frac)}")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  聚合结果判读跳过 (不影响产物): {_e}")
+
+    # --- ⏱ 阶段计时 ---
+    try:
+        logger.info(f"  ⏱ aggregate_panel 墙钟耗时: {sig4(time.time() - _agg_t0)} 秒")
+        logger.info("-" * 60)
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  聚合计时输出跳过: {_e}")
+
     return panel
 
 
@@ -2033,6 +2164,7 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
     logger.info("=" * 60)
     logger.info("步骤 6: 面板平衡与缺失期填充 (Panel Balancing)")
     logger.info("=" * 60)
+    _bal_t0 = time.time()
 
     rows_before = len(panel)
 
@@ -2127,7 +2259,18 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  完全笛卡尔积: {len(all_banks)} 银行 × {len(all_years)} 年 = {rows_after:,} 行")
     logger.info(f"  原有观测值: {rows_before:,} 行")
     fill_pct = filled_count / rows_after if rows_after > 0 else 0
-    logger.info(f"  填充的零新闻观测: {filled_count:,} 行 ({fill_pct:.1%})")
+    logger.info(f"  填充的零新闻观测: {filled_count:,} 行 ({pct4(fill_pct)})")
+    # 结果判读: 填充率高 = 媒体覆盖稀疏 (零新闻 bank-year 多), 计数列已零填、比率列保持 NaN
+    try:
+        if fill_pct >= 0.50:
+            logger.info(f"  📊 平衡填充判读: 零新闻占比 {pct4(fill_pct)} ≥50% → 覆盖稀疏 "
+                        f"(多数 bank-year 无新闻; 计数/和列已零填, 比率/语调列保持 NaN)")
+        else:
+            logger.info(f"  📊 平衡填充判读: 零新闻占比 {pct4(fill_pct)} <50% → 覆盖较密 "
+                        f"(多数 bank-year 有新闻)")
+        logger.info(f"  ⏱ balance_panel 墙钟耗时: {sig4(time.time() - _bal_t0)} 秒")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  平衡结果判读跳过: {_e}")
 
     return panel
 

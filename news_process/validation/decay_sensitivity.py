@@ -140,7 +140,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import log_stage_summary, setup_logging
+from news_process.core.logging import log_stage_summary, pct4, setup_logging, sig4
 from news_process.core.text.entity_context import (
     extract_entity_context_with_distances,
     get_target_aliases,
@@ -674,11 +674,12 @@ def run_analysis(df: pd.DataFrame, dictionaries: list) -> pd.DataFrame:
         # 进度汇报 (每 10% 输出一次)
         if (i + 1) % report_interval == 0:
             elapsed = time.time() - t0
-            logger.info(f"  进度: {i+1:,}/{total:,} ({(i+1)/total*100:.0f}%) "
-                        f"| {(i+1)/elapsed:.0f} 篇/秒")
+            rate = (i + 1) / elapsed if elapsed > 0 else 0.0
+            logger.info(f"  进度: {i+1:,}/{total:,} ({pct4((i+1)/total)}) "
+                        f"| {sig4(rate)} 篇/秒")
 
     elapsed = time.time() - t0
-    logger.info(f"处理完成。耗时: {elapsed:.1f}s")
+    logger.info(f"处理完成。耗时: {sig4(elapsed)}s")
 
     # 转为 DataFrame: 列名格式 '{dict_name}_{decay_name}'
     score_df = pd.DataFrame()
@@ -779,14 +780,14 @@ def log_correlation_report(score_df: pd.DataFrame, dict_names: list):
             all_pearsons.append(pr)
 
             logger.info(f"  {dn:<14} uniform vs {fn:<12} "
-                        f"{pr:>8.4f}  {sr:>8.4f}  {mean_diff:>+8.5f}")
+                        f"{sig4(pr):>9}  {sig4(sr):>9}  {sig4(mean_diff):>10}")
 
     logger.info("-" * 65)
 
     if all_pearsons:
         avg_pr = np.mean(all_pearsons)
         min_pr = min(all_pearsons)
-        logger.info(f"  平均 Pearson = {avg_pr:.4f}, 最低 = {min_pr:.4f}")
+        logger.info(f"  平均 Pearson = {sig4(avg_pr)}, 最低 = {sig4(min_pr)}")
 
         # 稳健性判定 (三级阈值体系)
         # fix(omni-g-val-robust-04, 2026-06-11): 结论措辞限定为 "衰减权重族内
@@ -813,7 +814,7 @@ def log_correlation_report(score_df: pd.DataFrame, dict_names: list):
             logger.info('  "As a robustness check, we implement Sautner et al. (2023)-style')
             logger.info('   distance decay weighting over sentence windows of radius 2.')
             logger.info('   The Pearson correlation between uniform and decay-weighted')
-            logger.info(f'   dictionary sentiment exceeds {min_pr:.2f} across all six')
+            logger.info(f'   dictionary sentiment exceeds {sig4(min_pr)} across all six')
             logger.info('   dictionaries, indicating that dictionary sentiment is insensitive')
             logger.info('   to the choice of distance-decay weights within this family.')
             logger.info('   This exercise uses sentence-level normalized scores at radius 2')
@@ -858,24 +859,24 @@ def log_correlation_report(score_df: pd.DataFrame, dict_names: list):
             if n_nonfinite:
                 logger.info(f"  (另剔除 {n_nonfinite} 个 NaN/inf 相关值, 不计入分布统计)")
             logger.info(
-                f"  Pearson 分布: 平均={avg_pr_a:.4f}  最低={min_pr_a:.4f}  最高={max_pr_a:.4f}"
+                f"  Pearson 分布: 平均={sig4(avg_pr_a)}  最低={sig4(min_pr_a)}  最高={sig4(max_pr_a)}"
             )
             logger.info(
                 f"  命中率: ≥0.95 的对 {n_ge95}/{n_pairs} (高度不敏感)  ≥0.90 的对 {n_ge90}/{n_pairs} (基本不敏感)"
             )
             if min_pr_a >= 0.95:
                 logger.info(
-                    f"  → 判读: min r={min_pr_a:.4f} ≥ 0.95, 衰减权重族内 (radius=2) 高度不敏感 (好); "
+                    f"  → 判读: min r={sig4(min_pr_a)} ≥ 0.95, 衰减权重族内 (radius=2) 高度不敏感 (好); "
                     "论文 Appendix 一句话即可。"
                 )
             elif min_pr_a >= 0.90:
                 logger.info(
-                    f"  → 判读: min r={min_pr_a:.4f} ∈ [0.90,0.95), 衰减权重族内基本不敏感 (好); "
+                    f"  → 判读: min r={sig4(min_pr_a)} ∈ [0.90,0.95), 衰减权重族内基本不敏感 (好); "
                     "论文 Appendix 报相关性表格。"
                 )
             else:
                 logger.info(
-                    f"  → 判读: min r={min_pr_a:.4f} < 0.90, 至少一套词典对衰减权重敏感 (临界/不利); "
+                    f"  → 判读: min r={sig4(min_pr_a)} < 0.90, 至少一套词典对衰减权重敏感 (临界/不利); "
                     "须在正文讨论衰减函数选择。"
                 )
             logger.info(
@@ -901,6 +902,81 @@ def log_correlation_report(score_df: pd.DataFrame, dict_names: list):
 # ============================================================================
 # 7. 主流程
 # ============================================================================
+
+def _log_environment_config_methods(input_path: str = "") -> None:
+    """打印 ENV / CONFIG / METHODOLOGY 三大块到 <stage>.log (仿 tone_words.py 金标准)。
+
+    全部为 logger.* 纯输出, 不读写任何产物 / schema / 控制流 (golden-safe)。
+    只在 main() 入口函数体内被调用 (绝不在模块顶层 emit, 防 import-time 截断)。
+    每个子块独立 try/except 包裹, 任一块异常仅 warning, 绝不带走整阶段。
+    """
+    # ── ① 🧭 项目 / 环境信息 ──
+    try:
+        import platform
+        logger.info("🧭 项目 / 环境")
+        logger.info("  · 阶段: 38b decay_sensitivity (shim 69_decay_sensitivity) — 距离衰减权重敏感性检验 (G-14)")
+        logger.info("  · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.11.1")
+        logger.info(f"  · Python {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"  · 平台 {platform.platform()}; CPU {os.cpu_count()} 核; PID {os.getpid()}")
+        run_id = os.environ.get("NEWS_PROCESS_RUN_ID", "(未设)")
+        logger.info(f"  · RUN_ID={run_id}; 纯词典 + 确定句级提取 + jieba, 无 LLM/Embedding 调用, $0 / 逐位可复现")
+        logger.info(f"  · 模块: {os.path.abspath(__file__)}")
+        logger.info(f"  · 工作目录: {os.getcwd()}")
+    except Exception as _e:
+        logger.warning(f"[ENV] 环境信息日志块异常, 跳过: {_e}")
+
+    # ── ② 📂 输入 / 输出文件 + ③ ⚙ 运行配置 ──
+    try:
+        logger.info("📂 输入 / 输出")
+        logger.info(f"  · 输入: {input_path or '(待解析 21_tone_llms_full.parquet)'} "
+                    "(CONFIG['filenames']['output_21_tone_llms_full'], 回退 glob 21_*.parquet 取字典序末位)")
+        logger.info("  · 过滤: llm_verified_full == True (仅已验证金科新闻)")
+        logger.info(f"  · 词典源: {TONE_DICTS_FILE}")
+        logger.info(f"  · 输出: {os.path.join(EVAL_DIR, '69_decay_sensitivity.csv')} (18 列得分矩阵 = 6 词典 × 3 衰减)")
+        logger.info("⚙ 运行配置 (来自 config/sentiment.yaml::sentiment_analysis.tone_words + config/filtering.yaml)")
+        logger.info("  · sentence_radius=2 (本模块固定; 大于生产 ctx 轨 radius=1, 给衰减留对比空间)")
+        logger.info(f"  · 衰减函数 (3 固定形式, 不做超参搜索避免研究者自由度): "
+                    f"uniform=1 / inverse=1/(1+d) / exponential=exp(−0.5·d), λ={sig4(0.5)}")
+        logger.info(f"  · 否定窗口 NEGATION_WINDOW={NEGATION_WINDOW:,d}; 否定词 {len(NEGATION_WORDS):,d} 个; "
+                    f"程度副词 {len(DEGREE_WORDS):,d} 个; 转折词 {len(ADVERSATIVE_WORDS):,d} 个")
+        logger.info(f"  · 转折提升 ADVERSATIVE_BOOST={sig4(ADVERSATIVE_BOOST)}; "
+                    f"句末标点 {len(SENTENCE_END_MARKERS):,d} 个 (状态机重置边界; 与 22_tone_words 对齐)")
+        logger.info(f"  · 相关性阈值: min Pearson ≥ {sig4(0.95)} 高度不敏感 / ≥ {sig4(0.90)} 基本不敏感 / "
+                    f"< {sig4(0.90)} 正文讨论; 有效样本下限 n ≥ {10:,d} (Pearson df=n−2≥8)")
+    except Exception as _e:
+        logger.warning(f"[CONFIG] 输入输出/配置日志块异常, 跳过: {_e}")
+
+    # ── ④ 📖 方法论依据 (参考文献 emit 进日志, 逐字取自经核验注册表) ──
+    try:
+        logger.info("📖 方法论依据 (参考文献)")
+        logger.info("  · 距离衰减权重 (倒数距离, 本模块句级适配): "
+                    "Sautner, Z., van Lent, L., Vilkov, G., & Zhang, R. (2023). Firm-level climate change "
+                    "exposure. The Journal of Finance, 78(3), 1449-1498. https://doi.org/10.1111/jofi.13219")
+        logger.info("  · proximity-based attribution 框架: "
+                    "Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level political "
+                    "risk: Measurement and effects. The Quarterly Journal of Economics, 134(4), 2135-2202. "
+                    "https://doi.org/10.1093/qje/qjz021")
+        logger.info("  · 加权方案对文本度量稳健性的影响: "
+                    "Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A "
+                    "survey. Journal of Accounting Research, 54(4), 1187-1230. "
+                    "https://doi.org/10.1111/1475-679X.12123")
+        logger.info("  · 否定词极性翻转: "
+                    "Jia, L., Yu, C., & Meng, W. (2009). The effect of negation on sentiment analysis and "
+                    "retrieval effectiveness. In Proceedings of the 18th ACM Conference on Information and "
+                    "Knowledge Management (CIKM '09) (pp. 1827-1830). ACM. "
+                    "https://doi.org/10.1145/1645953.1646241")
+        logger.info("  · 程度副词缩放: "
+                    "Li, F., Huang, M., & Zhu, X. (2010). Sentiment analysis with global topics and local "
+                    "dependency. Proceedings of the AAAI Conference on Artificial Intelligence, 24(1), "
+                    "1371-1376. https://doi.org/10.1609/aaai.v24i1.7523")
+        logger.info("  · 转折连词增强: "
+                    "Ding, X., Liu, B., & Yu, P. S. (2008). A holistic lexicon-based approach to opinion "
+                    "mining. In Proceedings of the International Conference on Web Search and Web Data "
+                    "Mining (WSDM '08) (pp. 231-240). ACM. https://doi.org/10.1145/1341531.1341561")
+        logger.info("  (白话: 用倒数/指数距离衰减给离银行名远的句子打折计权, 检验词典情感分对'打折方式'是否敏感)")
+    except Exception as _e:
+        logger.warning(f"[METHOD] 方法论引文日志块异常, 跳过: {_e}")
+
 
 def main():
     """69_decay_sensitivity 主流程。
@@ -931,13 +1007,20 @@ def main():
     logger.info("        无标题 prepend 三重口径差), 结论只支持'衰减权重族内稳健', 勿当'主结果不敏感'。")
     logger.info("【确定性】纯词典 + 确定句级提取 + jieba 分词, 无 LLM/Embedding 调用, 逐位可复现。")
 
+    # ── per-phase 墙钟计时容器 (仅服务日志, golden-safe) ──
+    _phase_t = {}
+
     # ── 步骤 1: 加载词典 ──
+    _t = time.time()
     dictionaries = load_dictionaries()
     dict_names = [name for name, _ in dictionaries]
+    _phase_t['1_load_dicts'] = time.time() - _t
 
     # ── 步骤 2: 注入领域词汇到 jieba ──
     # 确保与 22_tone_words / 65_radius_sensitivity 的分词一致性
+    _t = time.time()
     _inject_custom_dicts_to_jieba(dictionaries)
+    _phase_t['2_inject_jieba'] = time.time() - _t
 
     # ── 步骤 3: 加载数据 (阶段 21 输出) ──
     # 路径查找策略: config → fallback 搜索 output 目录中以 21_ 开头的 parquet 文件
@@ -963,6 +1046,11 @@ def main():
             logger.error("未找到阶段 21 输出文件")
             return
 
+    # ── ENV / CONFIG / METHODOLOGY 三大块 (仿 tone_words 金标准, golden-safe) ──
+    # 放在 input_path 解析后, 让 CONFIG 块显示真实解析到的输入路径。
+    _log_environment_config_methods(input_path)
+
+    _t = time.time()
     logger.info(f"加载数据: {input_path}")
     df = pd.read_parquet(input_path)
     logger.info(f"数据量: {len(df):,} 行")
@@ -971,17 +1059,35 @@ def main():
     if 'llm_verified_full' in df.columns:
         df = df[df['llm_verified_full'] == True].copy()
         logger.info(f"LLM 验证后: {len(df):,} 行")
+    _phase_t['3_load_filter'] = time.time() - _t
 
     # ── 步骤 5: 运行分析 ──
+    _t = time.time()
     score_df = run_analysis(df, dictionaries)
+    _phase_t['5_run_analysis'] = time.time() - _t
 
     # ── 步骤 6: 输出报告 ──
+    _t = time.time()
     log_correlation_report(score_df, dict_names)
+    _phase_t['6_corr_report'] = time.time() - _t
 
     # ── 保存 CSV ──
+    _t = time.time()
     output_path = os.path.join(EVAL_DIR, '69_decay_sensitivity.csv')
     score_df.to_csv(output_path, index=False, encoding='utf-8-sig')
     logger.info(f"结果已保存: {output_path}")
+    _phase_t['7_write_csv'] = time.time() - _t
+
+    # ── ⏱ per-phase 墙钟耗时汇总 (仅日志, golden-safe) ──
+    try:
+        logger.info("⏱ per-phase 墙钟耗时 (秒)")
+        _total = sum(_phase_t.values())
+        for _name, _sec in _phase_t.items():
+            _share = (_sec / _total) if _total > 0 else 0.0
+            logger.info(f"  · {_name:<16} {sig4(_sec):>10} s  ({pct4(_share)})")
+        logger.info(f"  · {'核心子阶段合计':<16} {sig4(_total):>10} s")
+    except Exception as _e:
+        logger.warning(f"[TIMING] per-phase 计时日志块异常, 跳过: {_e}")
 
     # ── 阶段摘要 ──
     log_stage_summary(

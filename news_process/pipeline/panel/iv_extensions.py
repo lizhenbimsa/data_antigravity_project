@@ -97,9 +97,15 @@ T=2 试跑样本披露: 当前磁盘面板 2017-2018 (T=2, 176 行) 下, _lag1 �
 全量语料 (2007-2024, T=18) 下自然恢复。论文须报告一阶段有效 N 与 KP F。
 """
 
+import os
+import platform
+import sys
+import time
+
 import numpy as np
 import pandas as pd
 
+from news_process.core.logging import pct4, sig4
 from news_process.pipeline.panel.encode import logger
 
 # 媒体来源列 (与 network_brokerage.py L108 同一单一事实源列名)
@@ -522,9 +528,109 @@ def compute_iv_extensions(panel: pd.DataFrame,
     Silva 2012 EL)。要做 overid 用跨族工具 (LOO × Bartik / LOO × zone-LOO, 见
     各 2SLS 模板既有 overid 列)。
     """
+    _t0 = time.time()
     logger.info("=" * 60)
     logger.info("步骤 8z: IV 扩展族 (11 论文工具变量补全, 2026-06-13)")
     logger.info("=" * 60)
+
+    # ── 【环境/配置/方法论 banner】(仅日志, golden-safe; 全程 try/except 不崩阶段) ──
+    # 本模块是 runner 步骤 8z 调用的库函数 (无独立 main), 共享 40_panel_export_main
+    # 日志; 此处补一个子步骤 banner (运行环境指纹 + 配置 + 方法论引文 + 结果判读),
+    # 把 10 条核心学术依据从 docstring 提升进 .log, 达顶刊审计标准。
+    try:
+        logger.info("🧭 项目/环境:")
+        logger.info("    项目 = news_process 研究数据流水线 "
+                    "(中文银行/金科新闻 → 计量面板); 版本 v3.11.1")
+        logger.info(f"    Python {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"    platform={platform.platform()} | "
+                    f"cpu={os.cpu_count()} | pid={os.getpid()}")
+        logger.info(f"    run_id={os.environ.get('NEWS_PROCESS_RUN_ID', '-')} | "
+                    f"cwd={os.getcwd()}")
+        logger.info(f"    模块={os.path.abspath(__file__)}")
+        logger.info("    成本/确定性: 纯 CPU/$0 (仅消费既有 panel/文章列, "
+                    "无 LLM/embedding 调用; 确定性 groupby 算术, golden-safe)")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  [8z] ENV banner 失败 (忽略, 不影响计算): {_e}")
+
+    try:
+        n_panel = len(panel)
+        n_art = len(df_exploded)
+        n_groups = len({v for v in type_map.values() if v != 'other'})
+        _T0_base = max(int(y) for y in base_years) if base_years else None
+        _yr_lo = int(panel['year'].min()) if 'year' in panel.columns else None
+        _yr_hi = int(panel['year'].max()) if 'year' in panel.columns else None
+        n_T = (_yr_hi - _yr_lo + 1) if (_yr_lo is not None) else None
+        logger.info("📂 输入/输出:")
+        logger.info(f"    输入 panel: {n_panel:,d} 行 (bank-year) × "
+                    f"{len(panel.columns):,d} 列")
+        logger.info(f"    输入 df_exploded: {n_art:,d} 篇文章级行")
+        logger.info("    输出: 追加 ~30 个 IV 列 (LOO/Bartik/outlet 三引擎) "
+                    "至 panel (就地 merge, 不写盘 — 由 runner 后续 export)")
+        logger.info("⚙ 运行配置:")
+        logger.info(f"    group_col 默认 bank_type ({n_groups:,d} 个有效组, "
+                    "'other'/未映射 → NaN); zone LOO 用 bank_zone")
+        logger.info("    min_peers=2 (LOO 后组内最少有效同业数, <2 → NaN); "
+                    "min_outlet_loo=1 (outlet-year 最少剩余文章)")
+        logger.info(f"    基期年集合 base_years={base_years} "
+                    f"(T0={_T0_base}; share 冻结 + year<T0 前视掩码)")
+        logger.info(f"    share_prefix=bartik_type_share_ (复用步骤 7e); "
+                    f"outlet_col={OUTLET_COL!r}; add_lag1=True (滞后变体)")
+        if n_T is not None:
+            _t2_note = " ⚠ T=2 试跑 (_lag1 仅末年有值/Bartik share one-hot 退化)" \
+                if n_T <= 2 else ""
+            logger.info(f"    面板深度: {_yr_lo}–{_yr_hi} "
+                        f"(T≈{n_T:,d}){_t2_note}")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  [8z] CONFIG banner 失败 (忽略, 不影响计算): {_e}")
+
+    try:
+        logger.info("📖 方法论依据 (核心构念学术出处; 引文逐字取自经核验注册表):")
+        logger.info("  · 同组 LOO IV — 同业均值作工具, 排他性局限须如实披露:")
+        logger.info("      Manski, C. F. (1993). Identification of endogenous "
+                    "social effects: The reflection problem. The Review of "
+                    "Economic Studies, 60(3), 531-542. "
+                    "https://doi.org/10.2307/2298123")
+        logger.info("      Leary, M. T., & Roberts, M. R. (2014). Do peer firms "
+                    "affect corporate financial policy? The Journal of Finance, "
+                    "69(1), 139-178. https://doi.org/10.1111/jofi.12094")
+        logger.info("      Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). "
+                    "Identification of peer effects through social networks. "
+                    "Journal of Econometrics, 150(1), 41-55. "
+                    "https://doi.org/10.1016/j.jeconom.2008.12.021")
+        logger.info("  · 广义 Bartik (基期 share × 组×年 LOO shift; 识别靠基期份额外生):")
+        logger.info("      Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). "
+                    "Bartik instruments: What, when, why, and how. American "
+                    "Economic Review, 110(8), 2586-2624. "
+                    "https://doi.org/10.1257/aer.20181047")
+        logger.info("      Borusyak, K., Hull, P., & Jaravel, X. (2022). "
+                    "Quasi-experimental shift-share research designs. The Review "
+                    "of Economic Studies, 89(1), 181-213. "
+                    "https://doi.org/10.1093/restud/rdab030")
+        logger.info("  · 媒体来源构成 IV (基期 outlet 份额 × outlet house-style LOO):")
+        logger.info("      Gentzkow, M., & Shapiro, J. M. (2010). What drives "
+                    "media slant? Evidence from U.S. daily newspapers. "
+                    "Econometrica, 78(1), 35-71. https://doi.org/10.3982/ECTA7195")
+        logger.info("      Dougal, C., Engelberg, J., García, D., & Parsons, "
+                    "C. A. (2012). Journalists and the stock market. The Review "
+                    "of Financial Studies, 25(3), 639-679. "
+                    "https://doi.org/10.1093/rfs/hhr133")
+        logger.info("      Gurun, U. G., & Butler, A. W. (2012). Don't believe "
+                    "the hype: Local media slant, local advertising, and firm "
+                    "value. The Journal of Finance, 67(2), 561-598. "
+                    "https://doi.org/10.1111/j.1540-6261.2012.01725.x")
+        logger.info("  · 弱工具诊断 (下游 2SLS 模板统一 KP rk F + AR 稳健 CI):")
+        logger.info("      Kleibergen, F., & Paap, R. (2006). Generalized "
+                    "reduced rank tests using the singular value decomposition. "
+                    "Journal of Econometrics, 133(1), 97-126. "
+                    "https://doi.org/10.1016/j.jeconom.2005.02.011")
+        logger.info("      Andrews, I., Stock, J. H., & Sun, L. (2019). Weak "
+                    "instruments in instrumental variables regression: Theory "
+                    "and practice. Annual Review of Economics, 11(1), 727-753. "
+                    "https://doi.org/10.1146/annurev-economics-080218-025643")
+        logger.info("  ⚠ 铁律: full/ctx/ss 三轨 LOO 严禁拼成同一 Hansen J "
+                    "(同篇三窗共同冲击同污染, J 零功效); overid 须用跨族工具。")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  [8z] METHOD banner 失败 (忽略, 不影响计算): {_e}")
 
     # ── P2: attention (Hassan et al. 2019 QJE 注意力测度的同业/Bartik 工具) ──
     panel = compute_peer_loo_iv(panel, 'attention_index_full',
@@ -653,5 +759,43 @@ def compute_iv_extensions(panel: pd.DataFrame,
     panel = compute_outlet_composition_iv(
         panel, df_exploded, clarity_vals, 'outlet_style_clarity_iv', base_years)
 
-    logger.info("  IV 扩展族完成 ✓")
+    # ── 【结果分析】(仅日志, 不回写 panel/产物; golden-safe) ──
+    # 逐 IV 列报有效率 (notna), 对照"一阶段最少有效观测"阈值给好/临界/弱判读。
+    # IV 列在 T=2 试跑下大面积退化属预期 (见模块头披露), 全量 T=18 自然恢复。
+    try:
+        _iv_cols = [c for c in panel.columns
+                    if ('leave_one_out_peer_' in c or c.startswith('lpeer_')
+                        or c.startswith('bartik_') or 'zone_leave1out' in c
+                        or 'outlet_disp_exposure' in c
+                        or 'outlet_style_clarity' in c)]
+        n_panel = len(panel)
+        logger.info("📊 IV 扩展族结果解读 (有效率 = notna 行占比; "
+                    "n_valid = 可用一阶段观测):")
+        n_good = n_borderline = n_empty = 0
+        for c in sorted(_iv_cols):
+            n_valid = int(panel[c].notna().sum())
+            frac = n_valid / n_panel if n_panel else 0.0
+            if n_valid == 0:
+                verdict = "❌ 全 NaN (源列缺/组退化; T=2 下属预期)"
+                n_empty += 1
+            elif n_valid < 10:
+                verdict = "⚠ 一阶段 N 偏少 (须报 KP rk F + AR CI)"
+                n_borderline += 1
+            else:
+                verdict = "✅ 可用"
+                n_good += 1
+            logger.info(f"    {c}: {n_valid:,d}/{n_panel:,d} "
+                        f"({pct4(frac)}) {verdict}")
+        logger.info(f"  汇总: IV 列 {len(_iv_cols):,d} 个 | "
+                    f"可用 {n_good:,d} / 临界 {n_borderline:,d} / "
+                    f"空 {n_empty:,d}")
+        if n_panel and len(_iv_cols):
+            _empty_frac = n_empty / len(_iv_cols)
+            if _empty_frac >= 0.5:
+                logger.warning(f"  ⚠ {pct4(_empty_frac)} 的 IV 列全 NaN —— "
+                               "若非 T=2 试跑, 须排查上游源列/share/分组缺失。")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  [8z] 结果分析块失败 (忽略, 不影响 panel): {_e}")
+
+    logger.info(f"  IV 扩展族完成 ✓ (⏱ {sig4(time.time() - _t0)} 秒)")
     return panel

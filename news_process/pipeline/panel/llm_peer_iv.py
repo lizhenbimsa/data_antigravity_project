@@ -58,8 +58,10 @@
 import asyncio
 import json
 import os
+import platform
 import re
 import sys
+import time
 from typing import Dict, List, Optional, Set, Tuple
 
 import pandas as pd
@@ -107,7 +109,7 @@ except ImportError as _archive_import_exc:
         "将无归档 — 顶刊复现性 (V4 F-P2.1) 受损.", _archive_import_exc,
     )
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging
+from news_process.core.logging import pct4, setup_logging, sig4
 
 # ============================================================================
 # 1. 全局配置
@@ -620,7 +622,72 @@ def _peer_leave_out_tone_mean(art_index: Dict[tuple, tuple],
 
 
 # ============================================================================
-# 9. 主函数
+# 9. 日志富集: 环境 / 方法论 (2026-06-24)
+# ============================================================================
+
+def _log_environment_and_methodology(panel: pd.DataFrame,
+                                      df_exploded: pd.DataFrame,
+                                      cache_db: str) -> None:
+    """打印项目/环境信息 + 方法论引文 (日志富集, golden-safe)。
+
+    本模块经 runner import 调用 (无独立 main), 但有自己的日志文件
+    ``logs/48_llm_peer_iv.log``, 故在计算入口处补打 tone_words.py 金标准的
+    ① 项目/环境指纹 ② 输入/输出 ③ 方法论依据(含 DOI) 三块 (CONFIG 块已由
+    compute_llm_peer_iv 入口的参数回显覆盖)。纯 logger.* 输出, 不改任何
+    产物/schema/控制流。引文逐字取自经核验参考文献注册表。
+    """
+    try:
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (LLM-Peer 动态竞争网络工具变量; "
+                    "panel 步骤 7h-llmpeer, 经 runner 调用)")
+        logger.info("     · 项目: news_process 研究数据流水线 "
+                    "(中文银行/金科新闻 → 计量面板) | 版本 v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    f"aiohttp={'已装' if HAS_AIOHTTP else '缺失'}")
+        logger.info(f"     · 成本/确定性: LLM_OFFLINE={LLM_OFFLINE} "
+                    f"({'缓存全命中→$0 离线确定性复现' if LLM_OFFLINE else '缓存 miss 时调付费 API'}); "
+                    "确定性锚点=_llm_cache.db (勿删)")
+
+        logger.info("  📂 输入 / 输出")
+        logger.info(f"     · 输入面板: {len(panel):,} 行 × {panel.shape[1]:,} 列 "
+                    "(in-memory, 来自 runner panel 构建链)")
+        logger.info(f"     · 输入文章级: df_exploded {len(df_exploded):,} 行 × "
+                    f"{df_exploded.shape[1]:,} 列 (文章级 leave-out 数据源)")
+        logger.info(f"     · LLM 缓存 DB: {cache_db}")
+        logger.info("     · 输出: 就地为 panel 追加 llm_peer_tone_iv_full/ctx/ss + "
+                    "coverage_iv + count + n_effective + queried + 五档 cutoff 列")
+
+        logger.info("  📖 方法论依据 (参考文献逐字取自经核验注册表)")
+        logger.info("     · LLM 识别竞争同行 (Peer ≤10, TNIC 标准): Cao, Y., Chen, L., "
+                    "Tucker, J. W., & Wan, C. (2025). Can generative AI help identify "
+                    "peer firms? Review of Accounting Studies, 30(4), 3344-3386. "
+                    "https://doi.org/10.1007/s11142-025-09892-6")
+        logger.info("     · TNIC '10 closest peers' 上限: Hoberg, G., & Phillips, G. "
+                    "(2016). Text-based network industries and endogenous product "
+                    "differentiation. Journal of Political Economy, 124(5), 1423-1465. "
+                    "https://doi.org/10.1086/688176")
+        logger.info("     · 滞后一期规避反射问题: Manski, C. F. (1993). Identification "
+                    "of endogenous social effects: The reflection problem. The Review "
+                    "of Economic Studies, 60(3), 531-542. "
+                    "https://doi.org/10.2307/2298123")
+        logger.info("     · 同行均值 IV 排除约束讨论 (→ 改文章级 leave-out): Leary, M. T., "
+                    "& Roberts, M. R. (2014). Do peer firms affect corporate financial "
+                    "policy? The Journal of Finance, 69(1), 139-178. "
+                    "https://doi.org/10.1111/jofi.12094")
+        logger.info("     → 白话: 用大模型从新闻里认出『谁跟谁是竞争对手』搭出动态同行网, "
+                    "再取同行去年的情感均值(剔除共提报道)当工具变量; 滞后+leave-out 是为了"
+                    "让这个工具变量满足『只经同行渠道影响焦点银行』的识别假设。")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/方法论信息打印失败 (不影响计算): {e}")
+
+
+# ============================================================================
+# 10. 主函数
 # ============================================================================
 
 def compute_llm_peer_iv(panel: pd.DataFrame,
@@ -667,13 +734,17 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
         Manski, C. F. (1993). RES, 60(3), 531-542.
         Leary, M. T., & Roberts, M. R. (2014). JF, 69(1), 139-178.
     """
+    _stage_start = time.time()
+    # 运行期阶段计时累计 (各主要子阶段墙钟耗时, 末尾汇总; 纯日志, golden-safe)
+    _phase_durations: dict[str, float] = {}
+
     logger.info("=" * 60)
     logger.info("LLM-Peer 动态竞争网络 IV (Cao et al. 2025)")
     logger.info("=" * 60)
-    logger.info(f"LLM-Peer IV 参数: temperature={TEMPERATURE}, seed={RANDOM_SEED}, "
+    logger.info(f"  ⚙ 运行配置: temperature={sig4(TEMPERATURE)}, seed={RANDOM_SEED}, "
                 f"force_json={FORCE_JSON}, models_used=1 (仅 MODELS[0], 配置共 {len(MODELS)}), "
                 f"concurrency={MAX_CONCURRENCY}, "
-                f"retries={MAX_RETRIES}, delay={RETRY_DELAY} (flat sleep, 非 stage21 指数退避)")
+                f"retries={MAX_RETRIES}, delay={sig4(RETRY_DELAY)}s (flat sleep, 非 stage21 指数退避)")
 
     if not HAS_AIOHTTP:
         logger.error("  aiohttp 未安装, 无法进行 LLM-Peer IV 计算")
@@ -710,9 +781,14 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
     # ── 2. 初始化 LLMCache (SQLite 持久化缓存) ──
     cache_db = os.path.join(CONFIG["paths"]["output_dir"], '_llm_cache.db')
     cache = LLMCache(cache_db)
-    logger.info(f"  LLM 缓存: {cache.size()} 条已缓存, 路径: {cache_db}")
+    logger.info(f"  LLM 缓存: {cache.size():,} 条已缓存, 路径: {cache_db}")
+
+    # 项目/环境信息 + 方法论引文 (日志富集 2026-06-24; 纯日志, golden-safe)
+    _log_environment_and_methodology(panel, df_exploded, cache_db)
+    _phase_durations['①加载词典+银行名+缓存'] = time.time() - _stage_start
 
     # ── 3. 按银行×年份提取句子 + LLM 调用 ──
+    _t_extract = time.time()
     banks = sorted(panel['target_bank'].unique())
     years = sorted(panel['year'].unique())
     model_cfg = MODELS[0]  # 使用第一个模型
@@ -739,9 +815,12 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
 
             tasks_to_call.append((bank, year, sents))
 
-    logger.info(f"  需调用 LLM: {len(tasks_to_call)} 对 (银行×年份)")
+    logger.info(f"  需调用 LLM: {len(tasks_to_call):,} 对 (银行×年份), "
+                f"全集 {len(banks):,} 银行 × {len(years):,} 年")
+    _phase_durations['②句子双重筛选'] = time.time() - _t_extract
 
     # ── 4. 异步并发调用 ──
+    _t_llm = time.time()
     raw_results = []
     if tasks_to_call:
         async def _run_all():
@@ -776,9 +855,12 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
             else:
                 n_fail += 1
 
-        logger.info(f"  LLM 调用完成: 成功={n_success}, 失败={n_fail}")
+        logger.info(f"  LLM 调用完成: 成功={n_success:,}, 失败={n_fail:,} "
+                    f"(成功率 {pct4(n_success / (n_success + n_fail)) if (n_success + n_fail) else 'n/a'})")
+    _phase_durations['③LLM 调用/缓存'] = time.time() - _t_llm
 
     # ── 5. 解析结果 → peer_map ──
+    _t_parse = time.time()
     # disclosure(omni-g-llm-peer-05, 2026-06-11): cutoff 五档 (0.70..0.90) 原仅
     # 作用于已移除的策略 4 difflib 兜底; 策略 1-3 (精确/变体/唯一子串) 与 cutoff
     # 无关 → 五档后缀列结构性逐位相同 (盘上实证: nonnull 数与 mean 五档全同)。
@@ -827,9 +909,11 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
     cache.close()
 
     for c in cutoffs:
-        logger.info(f"  Peer 网络 (cutoff={c}): {len(peer_maps[c])} 对有效 (银行×年份)")
+        logger.info(f"  Peer 网络 (cutoff={sig4(c)}): {len(peer_maps[c]):,} 对有效 (银行×年份)")
+    _phase_durations['④解析 peer_map'] = time.time() - _t_parse
 
     # ── 6. IV 构建 (滞后一期 + 文章级 leave-out) ──
+    _t_build = time.time()
     # fix(omni-g-llm-peer-01, 2026-06-11): tone IV 改两层等权均值 —
     #   外层: 对 peers 等权; 内层: 每个 peer j 取其 t-1 文章级情感均值,
     #   剔除 co_mentioned_banks 含焦点银行 i 的共提文章 (leave-out)。
@@ -1000,7 +1084,7 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
     if compete_records:
         compete_df = pd.DataFrame(compete_records)
         panel = panel.merge(compete_df, on=['target_bank', 'year'], how='left')
-        logger.info(f"  peer_compete_idx 生成完毕 (多阈值)")
+        logger.info(f"  peer_compete_idx 生成完毕 (多阈值, {len(compete_records):,} bank-year 有记录)")
     else:
         logger.info("  peer_compete_idx: 无 peer_map 记录, 跳过")
 
@@ -1012,8 +1096,10 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
         int(f"{b}_{y}" in queried_keys)
         for b, y in zip(panel['target_bank'], panel['year'])
     ]
-    logger.info(f"  llm_peer_queried: {int(panel['llm_peer_queried'].sum())}/"
-                f"{len(panel)} bank-year 已查证")
+    _n_queried = int(panel['llm_peer_queried'].sum())
+    logger.info(f"  llm_peer_queried: {_n_queried:,}/{len(panel):,} bank-year 已查证 "
+                f"({pct4(_n_queried / len(panel)) if len(panel) else 'n/a'})")
+    _phase_durations['⑤IV 构建+合并'] = time.time() - _t_build
 
     # 诊断统计
     if results:
@@ -1023,8 +1109,68 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
                 if col in panel.columns:
                     valid = panel[col].dropna()
                     logger.info(f"  {col}: {len(valid):,} 有效值, "
-                                f"mean={valid.mean():.4f}")
+                                f"mean={sig4(valid.mean())}")
     else:
         logger.warning("  未生成任何 LLM-Peer IV 变量")
+
+    # ── 8. 关键指标解读 (运行结果信息, 对照阈值给好/临界/坏判读) ──
+    # 纯日志块; 任何异常以 warning 吞掉, 绝不让结果分析崩 stage (golden-safe)。
+    try:
+        logger.info("  📊 关键指标解读 (LLM-Peer IV 质量诊断)")
+        n_panel = len(panel)
+        # ① 查证覆盖率: LLM 成功识别同行的 bank-year 占比 (识别样本是否足够)
+        cov = _n_queried / n_panel if n_panel else 0.0
+        cov_verdict = ("✅ 充分" if cov >= 0.50 else
+                       "⚠ 临界 (识别样本偏小, IV 第一阶段 N 受限)" if cov >= 0.20 else
+                       "❌ 偏弱 (查证覆盖不足, 多数 bank-year 无 peer 网络)")
+        logger.info(f"     · 查证覆盖率 llm_peer_queried = {pct4(cov)} → {cov_verdict}")
+        # ② 核心 tone IV (cutoff=0.80 主回归口径) 有效率 + 均值
+        main_col = 'llm_peer_tone_iv_full_80'
+        if main_col in panel.columns:
+            mv = panel[main_col].dropna()
+            iv_cov = len(mv) / n_panel if n_panel else 0.0
+            iv_verdict = ("✅ 充分" if iv_cov >= 0.50 else
+                          "⚠ 临界" if iv_cov >= 0.20 else "❌ 偏弱 (IV 缺失过多)")
+            logger.info(f"     · 核心 IV {main_col}: 有效 {len(mv):,}/{n_panel:,} "
+                        f"({pct4(iv_cov)}) → {iv_verdict}")
+            if len(mv) >= 2:
+                _std = float(mv.std())
+                std_verdict = ("✅ 有横截面变异" if _std > 1e-6 else
+                               "❌ 零方差 (IV 无识别力, 全样本同值)")
+                logger.info(f"       均值={sig4(mv.mean())} σ={sig4(_std)} "
+                            f"[{sig4(mv.min())}, {sig4(mv.max())}] → {std_verdict}")
+        # ③ 三轨并排在场性 (full/ctx/ss 各自 just-identified, 禁混 Hansen J)
+        present_tracks = [t for t in ('full', 'ctx', 'ss')
+                          if f'llm_peer_tone_iv_{t}_80' in panel.columns]
+        tr_verdict = ("✅ 三轨齐备" if len(present_tracks) == 3 else
+                      f"⚠ 仅 {len(present_tracks)}/3 轨 (ss 轨依赖 llm_vote_score_ss)")
+        logger.info(f"     · 三轨在场: {present_tracks} → {tr_verdict} "
+                    "(⚠ 三轨禁混进同一 over-id Hansen J)")
+        # ④ 同行网络规模 (诊断: 平均连通度)
+        if 'llm_peer_count_80' in panel.columns:
+            pc = panel['llm_peer_count_80'].dropna()
+            if len(pc):
+                logger.info(f"     · 同行连通度 llm_peer_count: 均值={sig4(pc.mean())} "
+                            f"(TNIC 上限=10; >10 提示归一化异常)")
+        # ⑤ 小样本/确定性警告
+        if n_panel < 100:
+            logger.warning(f"     · ⚠ 小样本: panel 仅 {n_panel:,} 行 — "
+                           "IV 第一阶段功效受限, 生产规模 (T=18) 才有充分识别力")
+        if not LLM_OFFLINE:
+            logger.info("     · ⚠ 非离线模式: 缓存 miss 将调付费 API → peer 网络可能随重判漂移; "
+                        "复现性优先时设 NEWS_PROCESS_LLM_OFFLINE=1")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  关键指标解读失败 (不影响产物): {e}")
+
+    # ── 9. 阶段计时汇总 (各子阶段墙钟; 纯日志, golden-safe) ──
+    try:
+        _total = time.time() - _stage_start
+        logger.info("  ⏱ 阶段计时 (墙钟)")
+        for _name, _dur in _phase_durations.items():
+            _frac = _dur / _total if _total > 0 else 0.0
+            logger.info(f"     · {_name}: {sig4(_dur)}s ({pct4(_frac)})")
+        logger.info(f"     · 合计: {sig4(_total)}s")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  计时汇总失败 (不影响产物): {e}")
 
     return panel

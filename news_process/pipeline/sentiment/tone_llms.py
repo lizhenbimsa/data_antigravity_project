@@ -80,6 +80,7 @@ import asyncio
 import json
 import math
 import os
+import platform
 import sys
 import time
 import warnings
@@ -98,7 +99,13 @@ if _PROJECT_PARENT not in sys.path:
 
 from news_process.core.caching import LLMCache
 from news_process.core.config import load_config
-from news_process.core.logging import log_memory_usage, log_stage_summary, setup_logging
+from news_process.core.logging import (
+    log_memory_usage,
+    log_stage_summary,
+    pct4,
+    setup_logging,
+    sig4,
+)
 from news_process.core.reporting import save_dataset
 from news_process.core.text.canonicalization import canonicalize_topic
 from news_process.core.text.entity_context import extract_entity_context, get_target_aliases
@@ -532,7 +539,7 @@ def _log_retryable_transport_issue(
 ) -> None:
     logger.debug(
         f"[{model_id}] 连接暂不可用 "
-        f"(attempt {attempt + 1}/{max_attempts}) - 等待 {sleep_s:.1f}s 后重试..."
+        f"(attempt {attempt + 1:,d}/{max_attempts:,d}) - 等待 {sig4(sleep_s)}s 后重试..."
     )
 
 # ── Logit-to-Score 概率映射法（稳健性检验指标）──────────────────────────
@@ -679,8 +686,8 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
                                 logger.debug(
                                     f"[{model_id}] 200 响应内容为空/不可解析/缺 "
                                     f"{_VERIFICATION_KEY} 键 "
-                                    f"(attempt {attempt+1}/{max_attempts}) "
-                                    f"- 等待 {sleep_s:.1f}s 后重试..."
+                                    f"(attempt {attempt+1:,d}/{max_attempts:,d}) "
+                                    f"- 等待 {sig4(sleep_s)}s 后重试..."
                                 )
                                 await asyncio.sleep(sleep_s)
                             continue
@@ -737,7 +744,7 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
                         if has_more_attempts:
                             logger.debug(
                                 f"[{model_id}] API 状态码 {resp.status} "
-                                f"(attempt {attempt+1}/{max_attempts}) - 等待 {sleep_s:.1f}s 后重试..."
+                                f"(attempt {attempt+1:,d}/{max_attempts:,d}) - 等待 {sig4(sleep_s)}s 后重试..."
                             )
                             await asyncio.sleep(sleep_s)
                     else:
@@ -759,7 +766,7 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
                 if has_more_attempts:
                     logger.debug(
                         f"[{model_id}] 请求等待超过时限 "
-                        f"(attempt {attempt+1}/{max_attempts}) - 等待 {sleep_s:.1f}s 后重试..."
+                        f"(attempt {attempt+1:,d}/{max_attempts:,d}) - 等待 {sig4(sleep_s)}s 后重试..."
                     )
                     await asyncio.sleep(sleep_s)
             except Exception:
@@ -889,8 +896,10 @@ async def run_all_llms(df: pd.DataFrame, models: list, cache: LLMCache = None) -
             results_map[row_idx][track][model_id] = res_text
             completed += 1
             if completed >= next_report or completed == total:
-                pct = completed / total * 100
-                logger.info(f"📡 LLM 请求进度: {completed}/{total} ({pct:.1f}%)")
+                logger.info(
+                    f"📡 LLM 请求进度: {completed:,d}/{total:,d} "
+                    f"({pct4(completed / total) if total else 'n/a'})"
+                )
                 next_report += report_interval
         
         logger.info(f"📡 LLM 三轨逐条请求完成: 共 {total} 个请求全部处理完毕")
@@ -1947,11 +1956,11 @@ def _materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
     # 统计逻辑与 L404 的 NaN 防御保持一致：排除 'nan'/'None'/空字符串
     _bank_strs = df['target_bank'].astype(str).str.strip()
     n_with_bank = ((_bank_strs != '') & (_bank_strs != 'nan') & (_bank_strs != 'None')).sum()
-    logger.info(f"  content_ctx 列物化完成: {len(df)} 行, "
-                f"回退至全文: {n_fallback}/{n_with_bank} 条"
-                f"（{n_fallback/max(n_with_bank,1)*100:.1f}%）")
+    logger.info(f"  content_ctx 列物化完成: {len(df):,d} 行, "
+                f"回退至全文: {n_fallback:,d}/{n_with_bank:,d} 条"
+                f"（{pct4(n_fallback / max(n_with_bank, 1))}）")
     logger.info(f"  ctx_is_fallback 列已写入 (bool, fallback path): "
-                f"{int(df['ctx_is_fallback'].sum())}/{len(df)} True")
+                f"{int(df['ctx_is_fallback'].sum()):,d}/{len(df):,d} True")
     return df
 
 
@@ -1998,6 +2007,133 @@ def _write_run_lineage(stage_start: float):
         logger.warning(f"  [N8 lineage] 写入失败 (非阻塞): {e}")
 
 
+def _log_environment_and_methodology(input_path: str) -> None:
+    """打印项目/环境信息 + 运行配置 + 方法论依据 (含 DOI) — 日志富集 (2026-06-24)。
+
+    把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数、核心方法的学术出处"
+    一次性落进 logs/21_tone_llms.log, 达到顶刊审计标准 (gold = tone_words.py)。
+    **纯日志, 不改任何产物 / schema / 控制流 / 缓存键 (golden-safe)**; 整体 try/except
+    包裹, 任何日志诊断异常绝不拖垮阶段。所有非整数数字经 sig4/pct4 渲染 (4 位有效数字)。
+
+    ⚠ 必须由 main() 在运行期调用 (绝不在模块顶层 emit) — import 期 emit 会触发
+    setup_logging(delay=True) 首写截断, 把生产 stage 21 日志覆盖 (历史事故, 见 :202 注)。
+    """
+    try:
+        out_dir = CONFIG["paths"]["output_dir"]
+        cache_db = os.path.join(out_dir, "_llm_cache.db")
+        out_full = os.path.join(
+            out_dir,
+            CONFIG.get("filenames", {}).get("output_21_tone_llms_full", "21_tone_llms_full.parquet"),
+        )
+        out_main = os.path.join(
+            out_dir,
+            CONFIG.get("filenames", {}).get("output_21_tone_llms", "21_tone_llms.parquet"),
+        )
+
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(
+            f"     · 阶段: {STAGE_NAME} (统一 LLM 语义精筛与情感分析, STAGES_MAIN; "
+            "三轨 full/ctx/ss; 全流水线唯一核心付费阶段)"
+        )
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get("NEWS_PROCESS_RUN_ID")
+        logger.info(
+            f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+            f"OFFLINE 离线确定性守卫={'ON (缓存 miss→raise, 零网络/$0)' if LLM_OFFLINE else 'OFF (在线模式, 缓存 miss 会付费调 API)'}"
+        )
+        logger.info(
+            "     · 确定性/成本: 命中 _llm_cache.db 即 $0 字节级复现; 缓存键=模型名+prompt 文本"
+            f"+prompt_version({PROMPT_VERSION})+temperature({sig4(TEMPERATURE)}) (temperature=0 下 seed 不进键)。"
+        )
+
+        logger.info("  📂 输入 / 输出文件 (config/paths.yaml::output_dir + filenames)")
+        logger.info(f"     · 输入:     {input_path} (stage 14 fintech_intensity, 硬依赖)")
+        logger.info(f"     · 缓存:     {cache_db} (确定性锚点, 勿删铁律)")
+        logger.info(f"     · 输出全量: {out_full} (含 verified True/False, 供验证模块)")
+        logger.info(f"     · 输出主表: {out_main} (verified 并集过滤, 下游 stage 22/24/45 消费)")
+
+        logger.info("  ⚙ 运行配置 (config/sentiment.yaml::tone_llm_processing)")
+        logger.info(
+            f"     · LLM 推理: temperature={sig4(TEMPERATURE)} | seed={RANDOM_SEED:,d} | "
+            f"force_json={FORCE_JSON} | models={len(MODELS):,d} 家族 | 并发 MAX_CONCURRENCY={MAX_CONCURRENCY:,d}"
+        )
+        logger.info(
+            f"     · 模型清单: {[m.get('short_name') for m in MODELS]} "
+            "(gpt54nano/gemini31/deepseekv4; Prompt v8 字节冻结)"
+        )
+        logger.info(
+            f"     · 重试: max_retries={MAX_RETRIES:,d} (API 失败统一 80 次) | retry_delay={sig4(RETRY_DELAY)}s | "
+            f"backoff={RETRY_BACKOFF} (cap={sig4(RETRY_BACKOFF_CAP)}s)"
+        )
+        logger.info(
+            f"     · 平局重试: sentiment_tie_retry_rounds={SENTIMENT_TIE_RETRY_ROUNDS:,d} "
+            "(verified 轨情感平局/空票保守降级前先逐轮 barrier 绕缓存重调实时 API; ≤0 关闭; 仅在线模式)"
+        )
+        logger.info(
+            f"     · 超时: total={sig4(REQUEST_TIMEOUT_TOTAL)}s | connect={sig4(REQUEST_TIMEOUT_CONNECT)}s | "
+            f"sock_read={sig4(REQUEST_TIMEOUT_SOCK_READ)}s"
+        )
+        logger.info(f"     · Logit-to-Score 概率映射: enabled={LOGIT_SCORE_ENABLED} (logit→[-1,+1] 连续分稳健性指标)")
+
+        # 📖 方法论依据 (核心方法/构念学术出处 emit 进日志; 逐字取自经核验参考文献注册表) ──
+        logger.info("  📖 方法论依据 (Author (Year). Journal, vol(issue), pages. DOI)")
+        logger.info(
+            "     · 多模型投票共识 (self-consistency): Wang, X., Wei, J., Schuurmans, D., Le, Q., Chi, E., "
+            "Narang, S., Chowdhery, A., & Zhou, D. (2022). Self-consistency improves chain of thought "
+            "reasoning in language models. arXiv. https://doi.org/10.48550/arXiv.2203.11171"
+        )
+        logger.info(
+            "       → 三模型各跑思维链后取多数票, 替代单模型采样, 提升判定稳健性。"
+        )
+        logger.info(
+            "     · 三角验证 (triangulation): Denzin, N. K. (2017). The research act: A theoretical "
+            "introduction to sociological methods. Routledge. https://doi.org/10.4324/9781315134543"
+        )
+        logger.info(
+            "       → 三轨(全文/邻近句/同句)× 三模型多源交叉, 满足顶刊三角验证标准。"
+        )
+        logger.info(
+            "     · LLM 文本标注可复现性 / temperature=0 锚点: Lopez-Lira, A., & Tang, Y. (2023). "
+            "Can ChatGPT forecast stock price movements? Return predictability and large language "
+            "models. SSRN Electronic Journal. https://doi.org/10.2139/ssrn.4412788"
+        )
+        logger.info(
+            "       → temperature=0 确定性推理 + 缓存锚点, 保证情感标签可 $0 复现。"
+        )
+        logger.info(
+            "     · LLM 优于众包标注 (annotation quality): Gilardi, F., Alizadeh, M., & Kubli, M. (2023). "
+            "ChatGPT outperforms crowd workers for text-annotation tasks. Proceedings of the National "
+            "Academy of Sciences, 120(30), e2305016120. https://doi.org/10.1073/pnas.2305016120"
+        )
+        logger.info(
+            "       → 支撑以 LLM 取代人工逐篇标注金融新闻语气/真伪的方法选择。"
+        )
+        logger.info(
+            "     · logit-to-score 连续分映射 (置信加权): Törnberg, P. (2023). How to use LLMs for "
+            "text analysis. arXiv. https://doi.org/10.48550/arXiv.2307.13106; "
+            "Shapiro, A. H., Sudhof, M., & Wilson, D. J. (2022). Measuring news sentiment. Journal "
+            "of Econometrics, 228(2), 221-243. https://doi.org/10.1016/j.jeconom.2020.07.053"
+        )
+        logger.info(
+            "       → 把(三分类标签 × 置信度)映射到 [-1,+1] 连续语气分, 作词典法之外的稳健性度量。"
+        )
+        logger.info(
+            "     · 不确定性表达 / 置信度引出: Xiong, M., Hu, Z., Lu, X., Li, Y., Fu, J., He, J., & "
+            "Hooi, B. (2023). Can LLMs express their uncertainty? An empirical evaluation of confidence "
+            "elicitation in LLMs. arXiv. https://doi.org/10.48550/arXiv.2306.13063"
+        )
+        logger.info(
+            "     · 最大熵/信息论 (类先验保守降级理据): Jaynes, E. T. (1957). Information theory and "
+            "statistical mechanics. Physical Review, 106(4), 620-630. https://doi.org/10.1103/PhysRev.106.620"
+        )
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法论信息打印失败 (不影响处理): {e}")
+
+
 def main():
     """Stage 21 LLM 三模型 ensemble 情感分析主入口.
 
@@ -2021,7 +2157,7 @@ def main():
     logger.info(f"阶段 21: 统一 LLM 语义精筛与情感分析 (三轨 full/ctx/ss; prompt {PROMPT_VERSION} 字节冻结)")
     logger.info("=" * 72)
     # 参数回显 (G-06; 自模块级移入, 见 :199/:496 注释 fix(log-round4-2026-06-20)):
-    logger.info(f"LLM 推理参数: temperature={TEMPERATURE}, seed={RANDOM_SEED}, "
+    logger.info(f"LLM 推理参数: temperature={sig4(TEMPERATURE)}, seed={RANDOM_SEED}, "
                 f"force_json={FORCE_JSON}, models={len(MODELS)}, "
                 f"concurrency={MAX_CONCURRENCY}")
     logger.info(f"Logit-to-Score 概率映射: enabled={LOGIT_SCORE_ENABLED}")
@@ -2035,7 +2171,7 @@ def main():
     logger.info("        verified gate = 并集 verified_full|verified_ctx|verified_ss (任一轨过即留, 非交集)。")
     logger.info("【判读】verified 率高=语料金科相关度高; 情绪三类占比看方向; 三轨样本各自 just-identified")
     logger.info("        不混同一 Hansen J。Triple-gate 7 互斥态之和 == 并集样本数 (恒等校验)。")
-    logger.info(f"【确定性】核心付费阶段, 但确定性锚点 = _llm_cache.db (temperature={TEMPERATURE}, prompt {PROMPT_VERSION});")
+    logger.info(f"【确定性】核心付费阶段, 但确定性锚点 = _llm_cache.db (temperature={sig4(TEMPERATURE)}, prompt {PROMPT_VERSION});")
     logger.info(f"          缓存全命中 ⟺ 零 API 调用 ⟺ golden 字节级可复现 (并发 MAX_CONCURRENCY={MAX_CONCURRENCY};"
                 + ("  OFFLINE 离线守卫 ON" if LLM_OFFLINE else "  在线模式") + ")。")
     logger.info("=" * 72)
@@ -2060,11 +2196,19 @@ def main():
         )
     input_path = path_14
     logger.info(f"使用阶段14输出: {input_14}")
-        
+
+    # 项目/环境信息 + 运行配置 + 方法论依据 (含 DOI) — 日志富集 2026-06-24, golden-safe
+    _log_environment_and_methodology(input_path)
+
+    # 运行期各主要子阶段墙钟耗时累计 (末尾汇总; 纯日志, 不影响产物)
+    phase_durations: dict[str, float] = {}
+
+    _t = time.time()
     logger.info(f"加载预筛数据: {input_path}")
     df = pd.read_parquet(input_path)
-    logger.info(f"总计候选新闻: {len(df)}")
+    logger.info(f"总计候选新闻: {len(df):,d}")
     log_memory_usage(logger, "数据加载完成")
+    phase_durations['①加载+ctx物化'] = time.time() - _t
     
     # 物化 content_ctx 列（供 LLM 三轨请求的 ctx 轨 + 下游阶段 22/23 直接复用）
     # v3.6.0 (Plan E P4 A1): idempotent — 若 stage 13 已物化, 跳过重复计算
@@ -2083,7 +2227,9 @@ def main():
 
         # 异步并发大模型（三轨 full/ctx/ss）
         logger.info(f"开始分发三轨组合模型处理任务，包含模型: {[m['short_name'] for m in MODELS]}")
+        _t = time.time()
         results_map = asyncio.run(run_all_llms(df, MODELS, cache=cache))
+        phase_durations['②三轨LLM并发请求'] = time.time() - _t
 
         # 问题3: 缓存命中统计摘要 — 让确定性可观测。misses=0 & writes=0
         # ⟺ 本次 run 全部命中 _llm_cache.db (无新 API 调用) → golden 字节级
@@ -2091,14 +2237,15 @@ def main():
         # 此处能打印即代表零 miss。
         _cstats = cache.stats()
         logger.info(
-            f"LLM 缓存命中统计: lookups={_cstats['lookups']} hits={_cstats['hits']} "
-            f"v0_hits={_cstats['v0_hits']} misses={_cstats['misses']} "
-            f"writes={_cstats['writes']} hit_rate={_cstats['hit_rate']:.4f}"
+            f"LLM 缓存命中统计: lookups={_cstats['lookups']:,d} hits={_cstats['hits']:,d} "
+            f"v0_hits={_cstats['v0_hits']:,d} misses={_cstats['misses']:,d} "
+            f"writes={_cstats['writes']:,d} hit_rate={sig4(_cstats['hit_rate'])}"
             + ("  [OFFLINE 确定性模式]" if LLM_OFFLINE else "")
         )
 
         # 提取与投票（三轨 full/ctx/ss）
         logger.info("开始聚合各模型 JSON 响应并执行三轨多数投票三角验证...")
+        _t = time.time()
 
         llm_verified_full_arr = []
         llm_verified_ctx_arr = []
@@ -2379,7 +2526,8 @@ def main():
             innov_collab_conf_ctx_arr.append(_avg_innovation_confidence(parsed_ctx, 'innovation_collab_mode', MODELS))
             innov_collab_conf_ss_arr.append(_avg_innovation_confidence(parsed_ss, 'innovation_collab_mode', MODELS))
 
-
+        phase_durations['③三轨聚合+多数投票'] = time.time() - _t
+        _t = time.time()
 
         # fix(2026-06-19 run-check F3): 以下向宽表一次性批量加 ~80 列 (per-model 独立判断 +
         # 三轨 verified/sentiment/agreement/innovation/prob_score 等; 所有值均预先算好,
@@ -2495,9 +2643,9 @@ def main():
             mean_ctx = sum(_pc) / len(_pc) if _pc else float('nan')
             mean_ss = sum(_ps) / len(_ps) if _ps else float('nan')
             logger.info(f"Logit-to-Score (NaN-aware 均值, 分母=非空数): "
-                        f"full mean={mean_full:.4f} (n={len(_pf)}), "
-                        f"ctx mean={mean_ctx:.4f} (n={len(_pc)}), "
-                        f"ss mean={mean_ss:.4f} (n={len(_ps)}), n_total={n_rows}")
+                        f"full mean={sig4(mean_full)} (n={len(_pf):,d}), "
+                        f"ctx mean={sig4(mean_ctx)} (n={len(_pc):,d}), "
+                        f"ss mean={sig4(mean_ss)} (n={len(_ps):,d}), n_total={n_rows:,d}")
 
         if n_api_failures > 0:
             logger.warning(f"共有 {n_api_failures} 次模型 API 调用失败，已从对应投票中排除")
@@ -2520,12 +2668,15 @@ def main():
             ver_col = f'llm_verified{track}'
             sent_col = f'llm_sentiment{track}'
             passed_len = df[ver_col].sum()
-            logger.info(f"[{track}] 多数决判定为真: {passed_len}/{total_len} ({passed_len/total_len*100:.1f}%)")
+            logger.info(
+                f"[{track}] 多数决判定为真: {passed_len:,d}/{total_len:,d} "
+                f"({pct4(passed_len / total_len) if total_len else 'n/a'})"
+            )
 
             if passed_len > 0:
                 sent_counts = df[df[ver_col]][sent_col].value_counts()
                 for s_type, cnt in sent_counts.items():
-                    logger.info(f"  [{track}] [{s_type}]: {cnt} ({cnt/passed_len*100:.1f}%)")
+                    logger.info(f"  [{track}] [{s_type}]: {cnt:,d} ({pct4(cnt / passed_len)})")
 
         # 保存全量结果（含 llm_verified=True 和 False），供验证模块使用
         full_output_filename = CONFIG.get('filenames', {}).get(
@@ -2607,8 +2758,8 @@ def main():
             _writes = _cstats.get('writes', 0)
             _hit_rate = _cstats.get('hit_rate', 0.0)
             logger.info(
-                f"  · 缓存命中: hit_rate={_hit_rate:.4f}, misses={_miss}, writes={_writes} "
-                f"(lookups={_cstats.get('lookups', 0)})。"
+                f"  · 缓存命中: hit_rate={sig4(_hit_rate)}, misses={_miss:,d}, writes={_writes:,d} "
+                f"(lookups={_cstats.get('lookups', 0):,d})。"
             )
             if _miss == 0 and _writes == 0:
                 logger.info("    → 零 miss/零 write = 本次全部命中 _llm_cache.db, 无新 API 调用, golden 字节级可复现(好)。")
@@ -2626,8 +2777,8 @@ def main():
             # ② verified 精筛闸门 — 三轨各自通过率 + 并集 (下游主消费样本)
             _n_union = len(df_filtered)
             logger.info(
-                f"  · verified 并集 (任一轨过即留): {_n_union}/{_total} "
-                f"({(_n_union / _total * 100) if _total else float('nan'):.1f}%) → 即 21_tone_llms.parquet 下游样本。"
+                f"  · verified 并集 (任一轨过即留): {_n_union:,d}/{_total:,d} "
+                f"({pct4(_n_union / _total) if _total else 'n/a'}) → 即 21_tone_llms.parquet 下游样本。"
             )
             for _trk, _vcol in [('_full', 'llm_verified_full'),
                                 ('_ctx', 'llm_verified_ctx'),
@@ -2636,8 +2787,8 @@ def main():
                     logger.info(f"    · 轨道 {_trk}: 列 {_vcol} 缺失, 跳过该轨。")
                     continue
                 _passed = int(df[_vcol].sum())
-                _pct = (_passed / _total * 100) if _total else float('nan')
-                logger.info(f"    · 轨道 {_trk}: verified {_passed}/{_total} ({_pct:.1f}%)。")
+                _pct = pct4(_passed / _total) if _total else 'n/a'
+                logger.info(f"    · 轨道 {_trk}: verified {_passed:,d}/{_total:,d} ({_pct})。")
             logger.info(
                 "    判读: verified 率越高=语料越聚焦'银行×金科', 率过低(经验上 <10%)再结合金科词典缺失/语料漂移排查; "
                 "三轨取材窗口不同(全文 / 银行邻近句 / 银行∧金科同句)且回退比例各异 — ss 无共现时回退全文(镜像 ctx), "
@@ -2648,20 +2799,20 @@ def main():
             _gate_sum = (_n_full_only + _n_ctx_only + _n_ss_only + _n_full_ctx
                          + _n_full_ss + _n_ctx_ss + _n_all_three)
             logger.info(
-                f"  · Triple-gate 7 态之和={_gate_sum}, 并集样本={_n_union} → "
+                f"  · Triple-gate 7 态之和={_gate_sum:,d}, 并集样本={_n_union:,d} → "
                 + ("一致(恒等校验通过, 好)。" if _gate_sum == _n_union
                    else "不一致(异常! 互斥态分解与并集不闭合, 须排查 verified 列对齐)。")
             )
             if _gate_sum != _n_union:
                 logger.warning(
-                    f"    ⚠ Triple-gate 恒等校验失败: 7 态和 {_gate_sum} != 并集 {_n_union}; "
+                    f"    ⚠ Triple-gate 恒等校验失败: 7 态和 {_gate_sum:,d} != 并集 {_n_union:,d}; "
                     "互斥/穷尽假设被破坏, 下游 triple-gate 诊断列不可信。"
                 )
             _n_three_track = _n_all_three
             if _n_union > 0:
                 logger.info(
-                    f"    三轨全 verified (all-three) {_n_three_track} 篇 "
-                    f"({_n_three_track / _n_union * 100:.1f}% of 并集); 占比越高=三种归因窗口判定越一致, 测度越稳。"
+                    f"    三轨全 verified (all-three) {_n_three_track:,d} 篇 "
+                    f"({pct4(_n_three_track / _n_union)} of 并集); 占比越高=三种归因窗口判定越一致, 测度越稳。"
                 )
 
             # ④ 情绪极性方向 — 并集样本各轨情绪占比 (主变量信号)
@@ -2682,9 +2833,9 @@ def main():
                 _neu = int(_sc.get('中性', 0))
                 _undef = _n_v - _pos - _neg - _neu  # None/未定: 用户决策 2026-06-23 后 verified 轨平局/空票→中性, 此项结构性≈0 (残留非0 即异常态)
                 logger.info(
-                    f"    · 轨道 {_trk} (verified={_n_v}): 正面 {_pos / _n_v * 100:.1f}% / "
-                    f"负面 {_neg / _n_v * 100:.1f}% / 中性 {_neu / _n_v * 100:.1f}% / "
-                    f"未定 {_undef / _n_v * 100:.1f}%。"
+                    f"    · 轨道 {_trk} (verified={_n_v:,d}): 正面 {pct4(_pos / _n_v)} / "
+                    f"负面 {pct4(_neg / _n_v)} / 中性 {pct4(_neu / _n_v)} / "
+                    f"未定 {pct4(_undef / _n_v)}。"
                 )
             logger.info(
                 "    判读: 用户决策 (2026-06-23) 后 verified 轨情感平局/空票已保守降级为'中性'(不再产'未定'), "
@@ -2709,10 +2860,10 @@ def main():
                             _neg = int((_ser < 0).sum())
                             _zero = _nn - _pos - _neg
                             logger.info(
-                                f"    · llm_prob_score{_trk} 并集 mean={_mean:+.4f} sd={_std:.4f} "
-                                f"范围[{_ser.min():+.3f},{_ser.max():+.3f}] (非空 {_nn}); "
-                                f"极性桶 >0 {_pos / _nn * 100:.1f}% / <0 {_neg / _nn * 100:.1f}% / "
-                                f"≈0 {_zero / _nn * 100:.1f}%。"
+                                f"    · llm_prob_score{_trk} 并集 mean={sig4(_mean)} sd={sig4(_std)} "
+                                f"范围[{sig4(_ser.min())},{sig4(_ser.max())}] (非空 {_nn:,d}); "
+                                f"极性桶 >0 {pct4(_pos / _nn)} / <0 {pct4(_neg / _nn)} / "
+                                f"≈0 {pct4(_zero / _nn)}。"
                             )
                 logger.info(
                     "    判读: [-1,+1] 连续分(置信加权), >0 偏正面、<0 偏负面、|值| 越大语气越强; "
@@ -2752,7 +2903,7 @@ def main():
                     if _den == 0:
                         _parts.append(f"{_trk} 标签全空")
                         continue
-                    _parts.append(f"{_trk} {_lab_a}{_na / _den * 100:.0f}%/{_lab_b}{_nb / _den * 100:.0f}%")
+                    _parts.append(f"{_trk} {_lab_a}{pct4(_na / _den)}/{_lab_b}{pct4(_nb / _den)}")
                 logger.info(f"    - {_dname} ({_dlab} → {_paper}): " + " | ".join(_parts))
             logger.info(
                 "    判读: 二元构成是下游 P3/P4/P5 论文主因变量之源; 因平局/低置信票按保守 MAP 降级到"
@@ -2776,19 +2927,19 @@ def main():
                 if len(_sub) == 0:
                     logger.info(f"    · 轨道 {_trk}: 无 verified 篇, 跳过。")
                     continue
-                _msg = f"    · 轨道 {_trk} (verified={len(_sub)}): "
+                _msg = f"    · 轨道 {_trk} (verified={len(_sub):,d}): "
                 if _arv in _sub.columns:
                     _rv = pd.to_numeric(_sub[_arv], errors='coerce').dropna()
                     if len(_rv) > 0:
                         _unan_v = float((_rv >= 0.999).mean()) * 100
-                        _msg += f"verified 票一致率 mean={_rv.mean():.3f} (全票一致 {_unan_v:.0f}%)"
+                        _msg += f"verified 票一致率 mean={sig4(_rv.mean())} (全票一致 {pct4(_unan_v, fraction=False)})"
                     else:
                         _msg += "verified 票一致率 N/A"
                 if _ars in _sub.columns:
                     _rs = pd.to_numeric(_sub[_ars], errors='coerce').dropna()
                     if len(_rs) > 0:
                         _unan_s = float((_rs >= 0.999).mean()) * 100
-                        _msg += f"; 情感票一致率 mean={_rs.mean():.3f} (非空 {len(_rs)}, 全票一致 {_unan_s:.0f}%)"
+                        _msg += f"; 情感票一致率 mean={sig4(_rs.mean())} (非空 {len(_rs):,d}, 全票一致 {pct4(_unan_s, fraction=False)})"
                     else:
                         _msg += "; 情感票一致率 N/A(无有效情感票)"
                 logger.info(_msg)
@@ -2807,8 +2958,8 @@ def main():
                     _agree3 = int(((_at['llm_sentiment_full'] == _at['llm_sentiment_ctx'])
                                    & (_at['llm_sentiment_ctx'] == _at['llm_sentiment_ss'])).sum())
                     logger.info(
-                        f"  · 三轨情感收敛 (all-three verified={_nat} 篇): 三轨情感标签完全一致 "
-                        f"{_agree3}/{_nat} ({_agree3 / _nat * 100:.1f}%)。"
+                        f"  · 三轨情感收敛 (all-three verified={_nat:,d} 篇): 三轨情感标签完全一致 "
+                        f"{_agree3:,d}/{_nat:,d} ({pct4(_agree3 / _nat)})。"
                     )
                     _pcols = ['llm_prob_score_full', 'llm_prob_score_ctx', 'llm_prob_score_ss']
                     if LOGIT_SCORE_ENABLED and all(c in df.columns for c in _pcols):
@@ -2816,8 +2967,8 @@ def main():
                         _pc = pd.to_numeric(_at['llm_prob_score_ctx'], errors='coerce')
                         _ps = pd.to_numeric(_at['llm_prob_score_ss'], errors='coerce')
                         logger.info(
-                            f"    连续分跨轨 Pearson r: full~ctx={_pf.corr(_pc):.3f}, "
-                            f"full~ss={_pf.corr(_ps):.3f}, ctx~ss={_pc.corr(_ps):.3f}。"
+                            f"    连续分跨轨 Pearson r: full~ctx={sig4(_pf.corr(_pc))}, "
+                            f"full~ss={sig4(_pf.corr(_ps))}, ctx~ss={sig4(_pc.corr(_ps))}。"
                         )
                     logger.info(
                         "    判读: 同一篇在三种归因窗口(全文 / 银行邻近句 / 银行∧金科同句)下情感判定高度一致 = "
@@ -2836,12 +2987,12 @@ def main():
                     continue
                 _nv = pd.to_numeric(df[_nvc], errors='coerce')
                 _full_vote = int((_nv >= _n_models).sum())
-                _pct_full = (_full_vote / _total * 100) if _total else float('nan')
+                _pct_full = pct4(_full_vote / _total) if _total else 'n/a'
                 _cf = int(df[_cfc].sum()) if _cfc in df.columns else 0
                 _ud = int(df[_udc].sum()) if _udc in df.columns else 0
                 logger.info(
-                    f"    · 轨道 {_trk}: 满票 {_full_vote}/{_total} ({_pct_full:.1f}%), "
-                    f"全模型缺席 {_cf} 篇, undefined(平局未决) {_ud} 篇。"
+                    f"    · 轨道 {_trk}: 满票 {_full_vote:,d}/{_total:,d} ({_pct_full}), "
+                    f"全模型缺席 {_cf:,d} 篇, undefined(平局未决) {_ud:,d} 篇。"
                 )
             logger.info(
                 "    判读: 离线/缓存全命中时满票应≈100%、全模型缺席=0; undefined 在 2026-06-23 决策后结构性"
@@ -2858,6 +3009,19 @@ def main():
             logger.info("-" * 72)
         except Exception as _e:  # noqa: BLE001  (只读诊断, 异常绝不拖垮阶段/丢失已落盘产物)
             logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
+
+        phase_durations['④写回+过滤+写盘+结果分析'] = time.time() - _t
+
+        # ── ⏱ 运行期各主要子阶段墙钟耗时汇总 (便于性能定位; 纯日志, 不影响产物) ──
+        try:
+            if phase_durations:
+                _tot = sum(phase_durations.values()) or 1.0
+                logger.info("  ⏱ 运行期阶段计时 (墙钟):")
+                for _pname, _pdur in phase_durations.items():
+                    logger.info(f"     {_pname}: {sig4(_pdur)}s ({pct4(_pdur / _tot)})")
+                logger.info(f"     合计(子阶段和): {sig4(_tot)}s")
+        except Exception as _te:  # noqa: BLE001
+            logger.warning(f"  阶段计时汇总打印失败 (不影响产物): {_te}")
 
         log_stage_summary(logger, STAGE_NAME, stage_start, len(df), len(df_filtered))
 

@@ -96,6 +96,7 @@ news_process.validation.dict_coverage — 金融科技词典覆盖率审计
 import argparse
 import json
 import os
+import platform
 import sys
 import time
 import warnings
@@ -112,7 +113,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging
+from news_process.core.logging import pct4, setup_logging, sig4
 
 warnings.filterwarnings('ignore', category=FutureWarning)
 
@@ -259,9 +260,9 @@ def analysis_1_marginal_distribution(df: pd.DataFrame) -> pd.DataFrame:
     for _, row in dist_df.iterrows():
         marker = f" ← 边际组 (恰好={T}个, 刚好踩线)" if row['distinct_keywords'] == T else ""
         logger.info(f"    命中 {int(row['distinct_keywords']):>2} 个不同关键词: "
-                     f"{int(row['n_articles']):>6,} 篇 ({row['pct']:>5.1f}%){marker}")
+                     f"{int(row['n_articles']):>6,} 篇 ({pct4(row['pct'], fraction=False):>7}){marker}")
     logger.info("")
-    logger.info(f"  【边际通过率】: {marginal_rate:.1%} "
+    logger.info(f"  【边际通过率】: {pct4(marginal_rate)} "
                  f"({marginal_count:,} / {total:,})")
     if marginal_rate > 0.15:
         logger.info(f"    超过 15% 的安全阈值! 说明大量文章是'勉强通过'的,")
@@ -335,9 +336,9 @@ def analysis_2_monotonicity_test(df: pd.DataFrame,
 
     for _, row in results_df.iterrows():
         if row['n'] > 0:
-            ci_str = f"[{row.get('ci_lower', '?'):.3f}, {row.get('ci_upper', '?'):.3f}]"
+            ci_str = f"[{sig4(row.get('ci_lower', '?'))}, {sig4(row.get('ci_upper', '?'))}]"
             logger.info(f"  组 {row['group']}: n={int(row['n']):,}, "
-                         f"验证率={row['verified_rate']:.3f} "
+                         f"验证率={sig4(row['verified_rate'])} "
                          f"95% Wilson CI {ci_str}")
 
     # --- 效应量: 边际组 vs 高命中组 ---
@@ -363,9 +364,9 @@ def analysis_2_monotonicity_test(df: pd.DataFrame,
         else:
             diff_lo, diff_hi = np.nan, np.nan
 
-        logger.info(f"    边际组 (={T}) 验证率: {m_rate:.1%} ({m_n:,} 篇)")
-        logger.info(f"    高命中组 (>={T+3}) 验证率: {h_rate:.1%} ({h_n:,} 篇)")
-        logger.info(f"    差异: {diff_pp:+.1f} 百分点 (95% 置信区间: [{diff_lo:.1f}, {diff_hi:.1f}]pp)")
+        logger.info(f"    边际组 (={T}) 验证率: {pct4(m_rate)} ({m_n:,} 篇)")
+        logger.info(f"    高命中组 (>={T+3}) 验证率: {pct4(h_rate)} ({h_n:,} 篇)")
+        logger.info(f"    差异: {sig4(diff_pp)} 百分点 (95% 置信区间: [{sig4(diff_lo)}, {sig4(diff_hi)}]pp)")
         if abs(diff_pp) < 3.0:
             logger.info(f"    ✓ 差异不足 3 百分点, 可视为无实质差异 → 词典精度在各级别上保持稳定")
         else:
@@ -405,7 +406,9 @@ def analysis_2_monotonicity_test(df: pd.DataFrame,
             logger.info("")
             logger.info("  [Cochran-Armitage 趋势检验]")
             logger.info(f"    这是一个统计学检验, 用于判断'验证率'是否随关键词数量单调变化。")
-            logger.info(f"    z 统计量 = {ca_result['statistic']:.3f}, p 值 = {ca_result['p_value']:.4f}")
+            logger.info("    方法依据 (趋势检验): Cochran (1954) Biometrics 10(4):417-451 + "
+                        "Armitage (1955) Biometrics 11(3):375-386 (DOI 未在核验注册表, 仅留方法名)")
+            logger.info(f"    z 统计量 = {sig4(ca_result['statistic'])}, p 值 = {sig4(ca_result['p_value'])}")
             if ca_result['p_value'] < 0.05 and ca_result['slope_sign'] > 0:
                 logger.info(f"    ✓ 趋势在统计学上显著 (p<0.05): {trend_msg}")
                 logger.info(f"      说明关键词命中数越多, 文章越可能是真正的金融科技新闻。")
@@ -435,7 +438,7 @@ def analysis_2_monotonicity_test(df: pd.DataFrame,
                 [int(h_row['n_verified']), int(h_row['n'] - h_row['n_verified'])],
             ])
             _, p_fisher = fisher_exact(table)
-            logger.info(f"  【Fisher's Exact Test (辅助)】p={p_fisher:.4f}")
+            logger.info(f"  【Fisher's Exact Test (辅助)】p={sig4(p_fisher)}")
     except Exception as e:
         logger.info(f"  Fisher's Exact Test 跳过: {e}")
 
@@ -515,14 +518,14 @@ def analysis_3_keyword_concentration(df: pd.DataFrame) -> tuple:
         hhi = compute_hhi(freq_array)
         enk = 1.0 / hhi if hhi > 0 else len(keyword_counter)
         logger.info("")
-        logger.info(f"  【HHI 集中度指数】: {hhi:.6f}")
+        logger.info(f"  【HHI 集中度指数】: {sig4(hhi)}")
         logger.info(f"    HHI 衡量关键词使用的集中程度, 范围 0~1。")
         logger.info(f"    越接近 0 = 越分散 (好), 越接近 1 = 越集中在少数词 (差)。")
-        logger.info(f"  【有效关键词数 ENK = 1/HHI】: {enk:.1f}")
+        logger.info(f"  【有效关键词数 ENK = 1/HHI】: {sig4(enk)}")
         logger.info(f"    ENK 表示'如果所有关键词被均匀使用, 等效于有多少个词在工作'。")
         if enk < 50:
             logger.info(f"    ENK < 50, 说明词典虽然有 {len(keyword_counter)} 个命中词,")
-            logger.info(f"      但实际上只有约 {enk:.0f} 个词在真正发挥作用。")
+            logger.info(f"      但实际上只有约 {sig4(enk)} 个词在真正发挥作用。")
         else:
             logger.info(f"    ✓ ENK ≥ 50, 关键词使用相对分散, 词典有效覆盖面较好。")
     else:
@@ -542,7 +545,7 @@ def analysis_3_keyword_concentration(df: pd.DataFrame) -> tuple:
     logger.info(f"  【零命中关键词】: {len(zero_hit)} / {len(all_keywords)} 个")
     logger.info(f"    这 {len(zero_hit)} 个词存在于词典中, 但在**通过分类的金融科技文章**中")
     logger.info(f"    从未命中 (选择后样本口径, 非全语料 '死词' 判定)。")
-    logger.info(f"  【有效覆盖率】: {coverage_rate:.1%}")
+    logger.info(f"  【有效覆盖率】: {pct4(coverage_rate)}")
     logger.info(f"    即词典中在通过分类的文章中命中过的词占总词表的比例。")
     if coverage_rate < 0.50:
         logger.info(f"    有效覆盖率低于 50% (通过样本口径)。注意: 本统计在阈值")
@@ -608,9 +611,9 @@ def analysis_4_temporal_stability(df_full: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  年份范围: {min(years)} - {max(years)}")
     for _, row in trend_df.iterrows():
         logger.info(f"  {int(row['year'])}: "
-                     f"总体通过率={row['overall_pass_rate']:.1%}, "
-                     f"边际率={row['marginal_rate']:.1%}, "
-                     f"平均命中词={row['avg_distinct_keywords']:.1f}")
+                     f"总体通过率={pct4(row['overall_pass_rate'])}, "
+                     f"边际率={pct4(row['marginal_rate'])}, "
+                     f"平均命中词={sig4(row['avg_distinct_keywords'])}")
 
     # 简单趋势判断
     if len(trend_df) >= 3:
@@ -666,8 +669,8 @@ def analysis_5a_grey_zone_stats(df_full: pd.DataFrame) -> dict:
 
     logger.info(f"  全部银行新闻: {total_bank_news:,}")
     logger.info(f"  被拒绝 (fintech=False): {n_rejected:,}")
-    logger.info(f"    零命中 (distinct=0): {n_zero:,} ({pct_zero:.1%})")
-    logger.info(f"    灰色地带 (1≤distinct<{T}): {n_grey:,} ({pct_grey:.1%})"
+    logger.info(f"    零命中 (distinct=0): {n_zero:,} ({pct4(pct_zero)})")
+    logger.info(f"    灰色地带 (1≤distinct<{T}): {n_grey:,} ({pct4(pct_grey)})"
                  f" {'> 10%' if pct_grey > 0.10 else '✓'}")
 
     if has_kw_col and n_grey > 0:
@@ -733,34 +736,34 @@ def log_summary(marginal_rate: float, effect_size: float,
     logger.info("=" * 70)
     logger.info("")
     logger.info("  以下是本次审计的核心指标汇总:")
-    logger.info(f"    · 边际通过率: {marginal_rate:.1%}   (安全阈值: ≤15%)")
-    logger.info(f"    · 验证率差异: {effect_size:+.1f}pp  (安全阈值: <3pp)")
-    logger.info(f"    · 有效关键词数 ENK: {enk:.0f}     (建议: ≥50)")
+    logger.info(f"    · 边际通过率: {pct4(marginal_rate)}   (安全阈值: ≤15%)")
+    logger.info(f"    · 验证率差异: {sig4(effect_size)}pp  (安全阈值: <3pp)")
+    logger.info(f"    · 有效关键词数 ENK: {sig4(enk)}     (建议: ≥50)")
     # fix(omni-g-val-robust-02, 2026-06-11): 覆盖率为通过样本口径 (见分析 3 披露)
-    logger.info(f"    · 有效覆盖率: {coverage_rate:.1%}   (建议: ≥50%; 通过样本口径)")
+    logger.info(f"    · 有效覆盖率: {pct4(coverage_rate)}   (建议: ≥50%; 通过样本口径)")
     if fnr is not None:
-        logger.info(f"    · 自动化 FNR: {fnr:.1%}      (安全阈值: <=20%)")
+        logger.info(f"    · 自动化 FNR: {pct4(fnr)}      (安全阈值: <=20%)")
     logger.info("")
 
     issues = []
     if marginal_rate > 0.15:
-        issues.append(f"边际通过率偏高 ({marginal_rate:.1%} > 15%): "
+        issues.append(f"边际通过率偏高 ({pct4(marginal_rate)} > 15%): "
                        f"太多文章刚好踩线通过, 词典对边际区域覆盖不足")
     # fix(log-audit-2026-06-20, R9): 阈值统一为 3.0pp, 与本文件 line ~974 (abs(effect_size)<3.0)
     # 及结果分析块的 3pp 健康线一致 (此前为 5.0pp, 致 3-5pp 灰区"判不健康却不入问题清单"自相矛盾)。
     if abs(effect_size) >= 3.0:
-        issues.append(f"边际组精度下降 ({effect_size:+.1f}pp): "
+        issues.append(f"边际组精度下降 ({sig4(effect_size)}pp): "
                        f"踩线文章中混入了较多噪声")
     if enk < 50:
-        issues.append(f"有效关键词数不足 (ENK={enk:.0f}): "
+        issues.append(f"有效关键词数不足 (ENK={sig4(enk)}): "
                        f"词典过度依赖少数高频词, 有效维度偏低")
     if coverage_rate < 0.50:
         # fix(omni-g-val-robust-02, 2026-06-11): 限定通过样本口径, 撤回全语料声称
-        issues.append(f"有效覆盖率偏低 ({coverage_rate:.1%}): "
+        issues.append(f"有效覆盖率偏低 ({pct4(coverage_rate)}): "
                        f"词典中超过一半的词条从未在通过分类的文章中命中 "
                        f"(选择后样本口径, 高估死词数)")
     if fnr is not None and fnr > 0.20:
-        issues.append(f"FNR 偏高 ({fnr:.1%}): "
+        issues.append(f"FNR 偏高 ({pct4(fnr)}): "
                        f"灰色地带中有大量真正的金融科技新闻被遗漏")
 
     if not issues:
@@ -786,6 +789,66 @@ def log_summary(marginal_rate: float, effect_size: float,
 # ============================================================================
 # 主流程
 # ============================================================================
+
+def _log_environment_and_references(llm_full_path: str, ft_full_path: str,
+                                    run_llm_check: bool) -> None:
+    """打印项目/环境信息 + 输入输出 + 运行配置 + 方法论文献 (日志富集 2026-06-24)。
+
+    把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数、核心方法学出处"
+    一次性落进 67_dict_coverage_audit.log, 便于复现核对 / 审计 / 排错。
+    纯日志, 不改任何产物 (golden-safe)。注: 仅 emit 经核验注册表中存在的 DOI
+    (Sautner et al. 2023 JF = 10.1111/jofi.13219); 趋势检验/Wilson/ENK 的原始
+    文献 (Cochran/Armitage/Wilson/Laakso-Taagepera) 不在注册表 → 仅留方法名, 不伪造 DOI。
+    """
+    try:
+        coverage_path = os.path.join(EVAL_DIR, '67_coverage_distribution.csv')
+        freq_path = os.path.join(EVAL_DIR, '67_keyword_frequency.csv')
+        zero_path = os.path.join(EVAL_DIR, '67_zero_hit_keywords.csv')
+        trend_path = os.path.join(EVAL_DIR, '67_temporal_drift.csv')
+        dict_file = CONFIG['paths'].get('fintech_dict_file', '(默认 config/fintech_dict.json)')
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (金融科技词典覆盖率审计, 验证支线 stage 37; "
+                    "Precision/Coverage/Stability 三维)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板)"
+                    " | 版本 v3.11.1 (rule-ablation-ladder)")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "纯统计 (pandas/numpy/scipy), 无 LLM·Embedding·网络·API ($0), 逐位可复现")
+
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 输入①: {llm_full_path} (分析 1/2/3, output_21_tone_llms_full)")
+        logger.info(f"     · 输入②: {ft_full_path} (分析 4/5, output_12_fintech_full)")
+        logger.info(f"     · 词典:   {dict_file}")
+        logger.info(f"     · 输出①: {coverage_path} (分析 1+2 分布/单调性)")
+        logger.info(f"     · 输出②: {freq_path} (分析 3a 关键词频率)")
+        logger.info(f"     · 输出③: {zero_path} (分析 3c 零命中词)")
+        logger.info(f"     · 输出④: {trend_path} (分析 4 时间趋势)")
+
+        logger.info("  ⚙ 运行配置 (config/filtering.yaml::fintech_news_classification)")
+        logger.info(f"     · 阈值 T (min_distinct_keywords) = {T} (文章须命中 ≥T 个不同金科词)")
+        logger.info(f"     · LLM 灰色地带交叉验证 = {'启用' if run_llm_check else '禁用'} "
+                    "(5b 从未实装, 仅输出诚实披露)")
+        logger.info("     · 健康阈值: 边际率≤15% / ENK≥50 / 有效覆盖率≥50% / 验证率差异<3pp / "
+                    "灰色地带≤10% / 老化斜率各 ±0.005")
+
+        logger.info("  📖 方法论依据 (参考文献)")
+        logger.info("     · 核心构念 (预定义关键词表的系统性覆盖盲区): Sautner, Z., van Lent, L., "
+                    "Vilkov, G., & Zhang, R. (2023). Firm-level climate change exposure. "
+                    "The Journal of Finance, 78(3), 1449-1498. https://doi.org/10.1111/jofi.13219")
+        logger.info("       → 证明静态关键词表会系统性遗漏'利基语言' (niche language), 本审计量化此风险。")
+        logger.info("     · 趋势检验: Cochran (1954) Biometrics 10(4):417-451 + "
+                    "Armitage (1955) Biometrics 11(3):375-386 (Cochran-Armitage; DOI 未在核验注册表, 仅留方法名)")
+        logger.info("     · 区间估计: Wilson (1927) JASA 22(158):209-212 (Wilson score CI; DOI 未在核验注册表)")
+        logger.info("     · 有效数量: Laakso & Taagepera (1979) Comparative Political Studies 12(1):3-27 "
+                    "(ENK=1/HHI; DOI 未在核验注册表)")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/文献信息打印失败 (不影响审计): {e}")
+
 
 def main():
     parser = argparse.ArgumentParser(description='金融科技词典覆盖率审计')
@@ -828,6 +891,9 @@ def main():
         'output_12_fintech_full', '12_fintech_news_full.parquet')
     ft_full_path = os.path.join(OUTPUT_DIR, ft_full_file)
 
+    # 项目/环境信息 + 输入输出 + 运行配置 + 方法论文献 (日志富集 2026-06-24)
+    _log_environment_and_references(llm_full_path, ft_full_path, args.run_llm_check)
+
     if not os.path.exists(llm_full_path):
         logger.error(f"文件不存在: {llm_full_path}")
         logger.error("请先运行阶段 21 (21_tone_llms.py)")
@@ -838,6 +904,10 @@ def main():
         logger.error("请先运行阶段 12 (12_news_fintech.py)")
         sys.exit(1)
 
+    # per-phase 墙钟计时 (日志富集 2026-06-24): 仅服务于日志, 不改任何产物 (golden-safe)
+    _phase_times = {}
+
+    _t0 = time.time()
     logger.info(f"加载 LLM 全量数据: {llm_full_path}")
     df_llm = pd.read_parquet(llm_full_path)
     logger.info(f"  行数: {len(df_llm):,}, 列数: {df_llm.shape[1]}")
@@ -845,31 +915,42 @@ def main():
     logger.info(f"加载 fintech 全量数据: {ft_full_path}")
     df_ft_full = pd.read_parquet(ft_full_path)
     logger.info(f"  行数: {len(df_ft_full):,}, 列数: {df_ft_full.shape[1]}")
+    _phase_times['数据加载'] = time.time() - _t0
 
     # ================================================================
     # 分析 1: 边际通过率分布
     # ================================================================
+    _t0 = time.time()
     dist_df = analysis_1_marginal_distribution(df_llm)
+    _phase_times['分析1_边际分布'] = time.time() - _t0
 
     # ================================================================
     # 分析 2: LLM 验证率单调性检验
     # ================================================================
+    _t0 = time.time()
     group_df = analysis_2_monotonicity_test(df_llm, dist_df)
+    _phase_times['分析2_单调性'] = time.time() - _t0
 
     # ================================================================
     # 分析 3: 关键词贡献集中度
     # ================================================================
+    _t0 = time.time()
     freq_df, zero_hit_df = analysis_3_keyword_concentration(df_llm)
+    _phase_times['分析3_集中度'] = time.time() - _t0
 
     # ================================================================
     # 分析 4: 时间稳定性
     # ================================================================
+    _t0 = time.time()
     trend_df = analysis_4_temporal_stability(df_ft_full)
+    _phase_times['分析4_时间稳定性'] = time.time() - _t0
 
     # ================================================================
     # 分析 5a: 灰色地带形态统计
     # ================================================================
+    _t0 = time.time()
     grey_info = analysis_5a_grey_zone_stats(df_ft_full)
+    _phase_times['分析5a_灰色地带'] = time.time() - _t0
 
     # ================================================================
     # 分析 5b: LLM 交叉验证 (可选)
@@ -959,7 +1040,7 @@ def main():
         logger.info("【结果分析】本次词典体检的核心产出指标逐项解读 (越偏离阈值 = 词典越需修):")
 
         # ① 边际通过率 (Precision): 恰好踩线 T 个的占比
-        logger.info(f"  ① 边际通过率 = {marginal_rate:.1%} "
+        logger.info(f"  ① 边际通过率 = {pct4(marginal_rate)} "
                      f"({n_marginal:,}/{total_fintech:,}, 安全阈值 ≤15%): "
                      + ("偏高, 大量文章勉强踩线, 词典对边际区域覆盖不足"
                         if marginal_rate > 0.15 else "✓ 健康, 词典在阈值区域表现稳健"))
@@ -970,7 +1051,7 @@ def main():
         ca_p = group_df.attrs.get('ca_p_value') if not group_df.empty else None
         ca_sign = group_df.attrs.get('ca_slope_sign') if not group_df.empty else None
         if not group_df.empty and 'verified_rate' in group_df.columns:
-            logger.info(f"  ② 验证率差异 (边际组 vs 高命中组) = {effect_size:+.1f}pp "
+            logger.info(f"  ② 验证率差异 (边际组 vs 高命中组) = {sig4(effect_size)}pp "
                          f"(安全阈值 |差异|<3pp): "
                          + ("✓ 无实质差异, 踩线文章未明显混入噪声"
                             if abs(effect_size) < 3.0
@@ -983,19 +1064,19 @@ def main():
                     ca_msg = "⚠ 显著但为负向趋势 (异常信号), 关键词数越多验证率反而越低, 词典需重审"
                 else:
                     ca_msg = "趋势不显著 (p≥0.05), 命中数与真伪关联弱"
-                logger.info(f"     Cochran-Armitage 趋势检验 p={ca_p:.4f}: " + ca_msg)
+                logger.info(f"     Cochran-Armitage 趋势检验 p={sig4(ca_p)}: " + ca_msg)
         else:
             logger.warning("  ② 验证率单调性不可用 (llm_verified_full 缺失或 group_df 为空) → 跳过 Precision 第二维")
 
         # ③ 集中度 ENK (Coverage)
         n_hit_kw = len(freq_df) if not freq_df.empty else 0
-        logger.info(f"  ③ 有效关键词数 ENK = {enk:.0f} (实际命中 {n_hit_kw} 个不同词, 建议 ≥50): "
+        logger.info(f"  ③ 有效关键词数 ENK = {sig4(enk)} (实际命中 {n_hit_kw} 个不同词, 建议 ≥50): "
                      + ("偏低, 词典靠少数高频词撑场, 有效维度不足"
                         if enk < 50 else "✓ 关键词使用分散, 有效覆盖面较好"))
 
         # ④ 有效覆盖率 + 零命中死词 (Coverage)
         n_zero = len(zero_hit_df)
-        logger.info(f"  ④ 有效覆盖率 = {coverage_rate:.1%} (零命中词 {n_zero:,} 个, 建议 ≥50%; 通过样本口径): "
+        logger.info(f"  ④ 有效覆盖率 = {pct4(coverage_rate)} (零命中词 {n_zero:,} 个, 建议 ≥50%; 通过样本口径): "
                      + ("偏低, 但属选择后样本口径, 系统性高估死词数, 删词前须在全量语料复核"
                         if coverage_rate < 0.50 else "✓ 词典与通过样本匹配度尚可"))
 
@@ -1015,8 +1096,8 @@ def main():
                 else:
                     m_slope = float(np.polyfit(range(n_years), m_series.values, 1)[0])
                     o_slope = float(np.polyfit(range(n_years), o_series.values, 1)[0])
-                    logger.info(f"  ⑤ 时间稳定性 ({n_years} 年, 边际率斜率={m_slope:+.4f}/年, "
-                                 f"总体率斜率={o_slope:+.4f}/年, 老化阈值各 ±0.005): "
+                    logger.info(f"  ⑤ 时间稳定性 ({n_years} 年, 边际率斜率={sig4(m_slope)}/年, "
+                                 f"总体率斜率={sig4(o_slope)}/年, 老化阈值各 ±0.005): "
                                  + ("边际率↑且总体率↓ = 词典老化, 应扩词或调阈值"
                                     if (m_slope > 0.005 and o_slope < -0.005)
                                     else "边际率有上升趋势, 需留意" if m_slope > 0.005
@@ -1031,7 +1112,7 @@ def main():
 
         # ⑥ 灰色地带 (Coverage 下界): 可能被漏掉的真金科新闻
         pct_grey = grey_info.get('pct_grey_zone', 0)
-        logger.info(f"  ⑥ 灰色地带占比 = {pct_grey:.1%} "
+        logger.info(f"  ⑥ 灰色地带占比 = {pct4(pct_grey)} "
                      f"(1≤distinct<{T} 的被拒文章 {grey_info.get('n_grey_zone', 0):,} 篇, 全部银行新闻"
                      f" {grey_info.get('total_bank_news', 0):,} 篇, 参考阈值 ≤10%): "
                      + ("偏高, 可能有真金科新闻因词典覆盖不足被漏判"
@@ -1049,8 +1130,19 @@ def main():
 
     log_summary(marginal_rate, effect_size, enk, coverage_rate)
 
+    # ================================================================
+    # ⏱ 各分析阶段墙钟耗时 (日志富集 2026-06-24, 纯日志 golden-safe)
+    # ================================================================
+    try:
+        logger.info("")
+        logger.info("  ⏱ 各分析阶段墙钟耗时:")
+        for _phase, _sec in _phase_times.items():
+            logger.info(f"     · {_phase}: {sig4(_sec)} 秒")
+    except Exception as _te:  # noqa: BLE001
+        logger.warning(f"  [计时] 阶段耗时汇总打印异常, 跳过: {_te}")
+
     elapsed = time.time() - start_time
-    logger.info(f"\n审计完成, 总耗时: {elapsed:.1f} 秒")
+    logger.info(f"\n审计完成, 总耗时: {sig4(elapsed)} 秒")
 
 
 if __name__ == '__main__':

@@ -129,7 +129,13 @@ if _PROJECT_PARENT not in sys.path:
 # 同句内同时含 目标银行∧金科词 的句±N句窗 (银行+金科同句, suffix '_ss'; 缺/无共现
 # →content_ss 镜像 ctx 回退至全文 body, ss_is_fallback=True)。
 from news_process.core.config import load_config
-from news_process.core.logging import log_memory_usage, log_stage_summary, setup_logging
+from news_process.core.logging import (
+    log_memory_usage,
+    log_stage_summary,
+    pct4,
+    setup_logging,
+    sig4,
+)
 from news_process.core.reporting import safe_save_preview_csv
 from news_process.pipeline.sentiment.forward_looking import (  # noqa: E402
     compute_fls_for_text,
@@ -197,9 +203,9 @@ _BOTH_SIDED_BY_DICT: dict[str, frozenset[str]] = {}
 #     - Jia, L., Yu, C., & Meng, W. (2009). The effect of negation on sentiment analysis and retrieval effectiveness. 
 #       In Proceedings of the 18th ACM Conference on Information and Knowledge Management (CIKM '09), 1827-1830.
 #       https://doi.org/10.1145/1645953.1646241
-#     - Pang, B., & Lee, L. (2008). Opinion mining and sentiment analysis. 
+#     - Pang, B., & Lee, L. (2008). Opinion mining and sentiment analysis.
 #       Foundations and Trends® in Information Retrieval, 2(1-2), 1-135.
-#       https://doi.org/10.1561/1500000001
+#       https://doi.org/10.1561/1500000011
 #
 #   程度副词权重矩阵：
 #     - Li, F., Huang, M., & Zhu, X. (2010). Sentiment analysis with global topics and local dependency. 
@@ -1782,9 +1788,9 @@ def log_classification_report(stats: dict, logger, track_suffix: str = ''):
         pos = stats.get(f'{dict_name}_正面{track_suffix}', 0)
         neu = stats.get(f'{dict_name}_中性{track_suffix}', 0)
         neg = stats.get(f'{dict_name}_负面{track_suffix}', 0)
-        pos_pct = f"{pos / total * 100:.1f}%" if total > 0 else "N/A"
-        neu_pct = f"{neu / total * 100:.1f}%" if total > 0 else "N/A"
-        neg_pct = f"{neg / total * 100:.1f}%" if total > 0 else "N/A"
+        pos_pct = pct4(pos / total) if total > 0 else "N/A"
+        neu_pct = pct4(neu / total) if total > 0 else "N/A"
+        neg_pct = pct4(neg / total) if total > 0 else "N/A"
         dict_label = f"{dict_name}({len(d)}词)"
         logger.info(f"  {dict_label:<20} {pos:>8,} {neu:>8,} {neg:>8,} {pos_pct:>10} {neu_pct:>10} {neg_pct:>10}")
 
@@ -1810,7 +1816,7 @@ def _zscore_or_nan(series: pd.Series, col_label: str) -> pd.Series:
     mean_val = series.mean()
     std_val = series.std()
     if std_val > 0:
-        logger.info(f"  {col_label}: Z-score 标准化完成 (μ={mean_val:.4f}, σ={std_val:.4f})")
+        logger.info(f"  {col_label}: Z-score 标准化完成 (μ={sig4(mean_val)}, σ={sig4(std_val)})")
         return (series - mean_val) / std_val
     logger.error(
         f"  {col_label}: Z-score 退化 (μ={mean_val!r}, σ={std_val!r}) → 整列置 NaN "
@@ -1883,11 +1889,57 @@ def main():
     logger.info("     每部词典独立计算正/负词频比, 并通过语言学规则(否定/程度/转折)修正。")
     logger.info("     采用三轨模式: 全文(_full)、上下文片段(_ctx)和银行+金科同句(_ss)分别计算, 供下游三角验证。")
     logger.info("")
-    logger.info("  📖 方法论依据")
-    logger.info("     · IDF 加权: Gentzkow, Kelly & Taddy (2019, JEL 57(3):535-574) §2.2")
-    logger.info("       → 降低高频常见词的权重, 提升稀有金融术语的区分度")
-    logger.info("     · 语言学规则参考: Jia et al. (2009), Pang & Lee (2008),")
-    logger.info("       Li et al. (2010), Liu (2012), Kennedy & Inkpen (2006)")
+    logger.info("  📖 方法论依据 (核心方法/构念的学术出处, 引文逐字取自经核验注册表)")
+    try:
+        # IDF 加权 (TF-IDF 文本量化): 降低高频常见词权重, 提升稀有金融术语区分度
+        logger.info("     · IDF 加权 (TF-IDF 文本量化) §2.2:")
+        logger.info("       Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. "
+                    "Journal of Economic Literature, 57(3), 535-574. "
+                    "https://doi.org/10.1257/jel.20181020")
+        # 否定词翻转: 否定窗口内极性翻号 (中文情感分析的标准 valence-shifter 处理)
+        logger.info("     · 语言学规则①否定词翻转 (negation valence shifter):")
+        logger.info("       Jia, L., Yu, C., & Meng, W. (2009). The effect of negation on "
+                    "sentiment analysis and retrieval effectiveness. In Proceedings of the "
+                    "18th ACM Conference on Information and Knowledge Management (CIKM '09) "
+                    "(pp. 1827-1830). ACM. https://doi.org/10.1145/1645953.1646241")
+        logger.info("       Pang, B., & Lee, L. (2008). Opinion mining and sentiment analysis. "
+                    "Foundations and Trends® in Information Retrieval, 2(1-2), 1-135. "
+                    "https://doi.org/10.1561/1500000011")
+        # 程度副词六级权重: 放大/缩小情感强度的 contextual valence shifter
+        logger.info("     · 语言学规则②程度副词六级权重 (degree contextual valence shifter):")
+        logger.info("       Li, F., Huang, M., & Zhu, X. (2010). Sentiment analysis with global "
+                    "topics and local dependency. Proceedings of the AAAI Conference on "
+                    "Artificial Intelligence, 24(1), 1371-1376. "
+                    "https://doi.org/10.1609/aaai.v24i1.7523")
+        logger.info("       Kennedy, A., & Inkpen, D. (2006). Sentiment classification of movie "
+                    "reviews using contextual valence shifters. Computational Intelligence, "
+                    "22(2), 110-125. https://doi.org/10.1111/j.1467-8640.2006.00277.x")
+        logger.info("       Liu, B. (2012). Sentiment analysis and opinion mining. Synthesis "
+                    "Lectures on Human Language Technologies. Morgan & Claypool Publishers. "
+                    "https://doi.org/10.2200/s00416ed1v01y201204hlt016")
+        # 转折连词增强: 转折后子句权重提升 (holistic lexicon-based opinion mining)
+        logger.info("     · 语言学规则③转折连词增强 (adversative reweighting):")
+        logger.info("       Ding, X., Liu, B., & Yu, P. S. (2008). A holistic lexicon-based "
+                    "approach to opinion mining. In Proceedings of the International Conference "
+                    "on Web Search and Web Data Mining (WSDM '08) (pp. 231-240). ACM. "
+                    "https://doi.org/10.1145/1341531.1341561")
+        # 固定 union 词典聚合测度 (msent/pos_ratio/neg_ratio) 的金融文本词典法构念
+        logger.info("     · 固定词表聚合测度 (msent/pos_ratio/neg_ratio):")
+        logger.info("       Tetlock, P. C. (2007). Giving content to investor sentiment: The role "
+                    "of media in the stock market. The Journal of Finance, 62(3), 1139-1168. "
+                    "https://doi.org/10.1111/j.1540-6261.2007.01232.x")
+        logger.info("       García, D. (2013). Sentiment during recessions. The Journal of "
+                    "Finance, 68(3), 1267-1300. https://doi.org/10.1111/jofi.12027")
+        logger.info("       Henry, E. (2008). Are investors influenced by how earnings press "
+                    "releases are written? Journal of Business Communication, 45(4), 363-407. "
+                    "https://doi.org/10.1177/0021943608319388")
+        # 金融文本词典法的权威综述与中文金融情感词典基底
+        logger.info("     · 金融文本词典法基底 (Loughran-McDonald):")
+        logger.info("       Loughran, T., & McDonald, B. (2011). When is a liability not a "
+                    "liability? Textual analysis, dictionaries, and 10-Ks. The Journal of "
+                    "Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  方法论引文打印失败 (不影响处理): {e}")
     logger.info("")
     logger.info("  📊 关键指标解读")
     logger.info("     · Z-score 标准化: 均值=0, 标准差=1。正值=正面倾向, 负值=负面倾向")
@@ -1972,14 +2024,14 @@ def main():
             if w:
                 vals = np.array(list(w.values()))
                 logger.info(
-                    f"  {dict_name}: {len(w)} 词, "
-                    f"IDF [min={vals.min():.3f}, P25={np.percentile(vals, 25):.3f}, "
-                    f"P50={np.percentile(vals, 50):.3f}, P75={np.percentile(vals, 75):.3f}, "
-                    f"max={vals.max():.3f}]"
+                    f"  {dict_name}: {len(w):,} 词, "
+                    f"IDF [min={sig4(vals.min())}, P25={sig4(np.percentile(vals, 25))}, "
+                    f"P50={sig4(np.percentile(vals, 50))}, P75={sig4(np.percentile(vals, 75))}, "
+                    f"max={sig4(vals.max())}]"
                 )
                 sorted_w = sorted(w.items(), key=lambda x: x[1], reverse=True)
-                top5 = [(k, f"{v:.2f}") for k, v in sorted_w[:5]]
-                bot5 = [(k, f"{v:.2f}") for k, v in sorted_w[-5:]]
+                top5 = [(k, sig4(v)) for k, v in sorted_w[:5]]
+                bot5 = [(k, sig4(v)) for k, v in sorted_w[-5:]]
                 logger.info(f"    IDF 最高 (稀有→高权重): {top5}")
                 logger.info(f"    IDF 最低 (常见→低权重): {bot5}")
 
@@ -2169,8 +2221,8 @@ def main():
                     # mean<0 → 正面词占优 → 整体偏正面 (两条独立审计 + 真数据 mean=-0.79/98.2%正面词 坐实)。
                     direction = ("整体偏负面" if mean_v > 0.05 else
                                  "整体偏正面" if mean_v < -0.05 else "正负大致平衡")
-                    logger.info(f"      [{tlabel}] 均值={mean_v:+.4f} ({direction}), "
-                                f"覆盖={n_valid:,}/{n_out:,} ({cov:.1f}%)")
+                    logger.info(f"      [{tlabel}] 均值={sig4(mean_v)} ({direction}), "
+                                f"覆盖={n_valid:,}/{n_out:,} ({pct4(cov, fraction=False)})")
             else:
                 logger.warning(f"      [{tlabel}] {col} 列缺失 (该轨未产出, 优雅降级)")
 
@@ -2191,7 +2243,7 @@ def main():
                                if r >= 0.95 else
                                "中等 (程度/转折规则贡献可观, 须在稳健性表披露)"
                                if r >= 0.7 else "偏低 (规则贡献大, 需进一步核查)")
-                    logger.info(f"      [{tlabel}] r={r:.4f} → {verdict} (n={len(paired):,})")
+                    logger.info(f"      [{tlabel}] r={sig4(r)} → {verdict} (n={len(paired):,})")
                 else:
                     logger.info(f"      [{tlabel}] 样本/方差不足 (n={len(paired):,}), 相关性不可计算 (T=2 盘面常见)")
 
@@ -2216,7 +2268,7 @@ def main():
             ni_msg = []
             for t in ni_present:
                 s = pd.to_numeric(processed_df[f"num_intensity_{t}"], errors='coerce')
-                ni_msg.append(f"{t}={s.mean():.4f}" if s.notna().any() else f"{t}=NaN")
+                ni_msg.append(f"{t}={sig4(s.mean())}" if s.notna().any() else f"{t}=NaN")
             logger.info(f"  · 指标④ num_intensity 数值披露强度均值 (三轨): {', '.join(ni_msg)} "
                         f"(注: 为按句数归一化的密度=数字token数/句数, 非原始计数; 三轨高低取决于"
                         f"各窗口内句子相对全文的数字密集度, 不必然单调 full≥ctx≥ss)")
@@ -2244,7 +2296,8 @@ def main():
                     neg_pct = neg_sum / base * 100
                     pos_pct = pos_sum / base * 100
                     flag = " ⚠ 负面偏差(>60%)" if neg_pct > 60 else ""
-                    logger.info(f"      [{tlabel}] 跨六词典聚合: 正面={pos_pct:.1f}%, 负面={neg_pct:.1f}%{flag}")
+                    logger.info(f"      [{tlabel}] 跨六词典聚合: 正面={pct4(pos_pct, fraction=False)}, "
+                                f"负面={pct4(neg_pct, fraction=False)}{flag}")
 
         # ── 指标⑦: 跨类重叠词「两侧计数」概况 (用户决策 2026-06-24, 逆转旧双侧剔除) ──
         # 判读: 每部词典 positive∩negative 同时出现的词被保留, 打分时两侧计入 → 净语调
@@ -2291,7 +2344,7 @@ def main():
             _tot = sum(phase_durations.values()) or 1.0
             logger.info("⏱ 运行期阶段计时 (墙钟):")
             for _name, _dur in phase_durations.items():
-                logger.info(f"     {_name}: {_dur:.2f}s ({_dur / _tot * 100:.1f}%)")
+                logger.info(f"     {_name}: {sig4(_dur)}s ({pct4(_dur / _tot)})")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"阶段计时汇总打印失败 (不影响产物): {e}")
 

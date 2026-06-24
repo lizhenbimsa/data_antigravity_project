@@ -94,6 +94,7 @@ import gc
 import glob
 import json
 import os
+import platform
 import sys
 import time
 
@@ -114,12 +115,16 @@ from news_process.core.logging import (
     log_and_time,
     log_memory_usage,
     log_stage_summary,
+    pct4,
     setup_logging,
+    sig4,
 )
 from news_process.core.reporting import safe_save_preview_csv
 from news_process.pipeline.preprocess._constants import (
     CONFIG,
+    DEDUP_PARAMS,
     MEDIA_NAME_OVERRIDES,
+    NORMALIZATION_PARAMS,
     PARAMS,
     PREPROCESS_CODE_VERSION,
     STAGE_NAME,
@@ -445,13 +450,88 @@ def main() -> None:
     logger.info("       (MinHash LSH, 128 置换, 字符级 3-gram, Jaccard≥阈值, 5 工作日时间窗)。")
     logger.info("       银行关键词保留过滤走 Aho-Corasick 自动机 (O(n) 一次线性扫描)。")
     logger.info("       [方法论锚点] 近似去重 = Broder 1997 (SEQUENCES '97); 128 置换 → Jaccard")
-    logger.info("       估计标准差 ≈ 1/√128 ≈ 8.8%; Jaccard 阈值由 config 控制 (默认 0.8, 越高越保守)。")
+    logger.info("       估计标准差 ≈ 1/√128 ≈ 8.839%; Jaccard 阈值由 config 控制 (默认 0.8, 越高越保守)。")
     logger.info("【判读】去重保留率 85%~95% 为健康区间; <80% 须排查源质量 (可能误删真实报道),")
     logger.info("       >98% 可能去重过松 (转载灌水将虚高银行媒体关注度)。该保留率直接决定")
     logger.info("       银行-年度面板里注意力/情感等核心指标的分母。")
     logger.info("【确定性】纯 CPU (calamine/pyarrow/multiprocessing/datasketch/ahocorasick),")
     logger.info("         不调任何 LLM/Embedding/BERT, 无网络; 给定语料+配置+词典逐位可复现。")
     logger.info("=" * 72)
+
+    # ── 黄金范式【环境/配置/方法论】三块 (golden-safe: 纯日志, try/except 兜底) ──
+    # 全部包在 try/except 内, 任何日志诊断异常都不得拖垮 DAG 根阶段。
+    try:
+        _cpu = os.cpu_count() or 0
+        logger.info("🧭 项目 / 环境信息")
+        logger.info(
+            "  · 项目 = news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); "
+            "版本 v3.11.1"
+        )
+        logger.info(
+            f"  · 阶段 = {STAGE_NAME} (DAG 根阶段; 下游 11/12/13… 全部依赖其 parquet)"
+        )
+        logger.info(
+            f"  · Python {sys.version.split()[0]} @ {sys.executable}"
+        )
+        logger.info(f"  · 平台 = {platform.platform()}")
+        logger.info(
+            f"  · CPU 核心 = {_cpu:,d} | PID = {os.getpid():,d} | "
+            f"RUN_ID = {os.environ.get('NEWS_PROCESS_RUN_ID', '<unset>')}"
+        )
+        logger.info(f"  · 模块路径 = {os.path.abspath(__file__)}")
+        logger.info(f"  · 工作目录 = {os.getcwd()}")
+        logger.info(
+            "  · 确定性/成本 = 纯 CPU, $0 (不调 LLM/Embedding/BERT, 无网络); "
+            "给定语料+配置+词典逐位可复现。"
+        )
+
+        logger.info("⚙ 运行配置 (来源: config/{preprocessing,normalization,deduplication}.yaml)")
+        _num_perm = DEDUP_PARAMS.get('minhash_permutations', 128)
+        _jaccard = DEDUP_PARAMS.get('jaccard_similarity_threshold', 0.80)
+        # MinHash 估计标准差 ≈ 1/√num_perm (Broder 1997): 置换越多, Jaccard 估计越准。
+        _minhash_std = (1.0 / (float(_num_perm) ** 0.5)) if _num_perm else float('nan')
+        logger.info(
+            f"  · 近似去重: 置换数 num_perm = {_num_perm:,d}, "
+            f"Jaccard 阈值 = {sig4(_jaccard)} (越高越保守), 时间窗 = 5 工作日"
+        )
+        logger.info(
+            f"  · MinHash 估计标准差 ≈ 1/√{_num_perm:,d} = {pct4(_minhash_std)} "
+            f"(置换越多估计越准)"
+        )
+        logger.info(
+            f"  · 并行去重 worker = {DEDUP_PARAMS.get('parallel_workers', _cpu):,d}; "
+            f"加载 worker = {PARAMS.get('num_workers', min(_cpu, 32)):,d}"
+        )
+        logger.info(
+            f"  · 长度过滤: 标题汉字数下限 = "
+            f"{PARAMS.get('min_title_chinese_chars', 2):,d}, "
+            f"内容汉字数 ["
+            f"{PARAMS.get('min_content_chinese_chars', 100):,d}, "
+            f"{PARAMS.get('max_content_chinese_chars', 10000):,d}]"
+        )
+        logger.info(
+            f"  · OpenCC 繁简配置 = "
+            f"{NORMALIZATION_PARAMS.get('opencc_config', '<default>')}; "
+            f"清洗代码版本 = {PREPROCESS_CODE_VERSION}"
+        )
+        logger.info(
+            f"  · 输入目录 = {CONFIG['paths']['raw_data_dir']}; "
+            f"输出目录 = {CONFIG['paths']['output_dir']}"
+        )
+
+        logger.info("📖 方法论依据 (核心方法的学术出处; 仅引经核验注册表)")
+        logger.info(
+            "  · 近似去重 (MinHash LSH): Broder, A. Z. (1997). On the resemblance "
+            "and containment of documents. In Proceedings. Compression and Complexity "
+            "of SEQUENCES 1997 (Cat. No.97TB100171) (pp. 21-29). IEEE Computer Society. "
+            "https://doi.org/10.1109/SEQUEN.1997.666900"
+        )
+        logger.info(
+            "    (白话: 用 MinHash 签名近似估计两稿的 Jaccard 相似度, 把'同一新闻被多家"
+            "媒体转载'的重复稿删到只剩最早一份, 避免媒体关注度被转载灌水虚高。)"
+        )
+    except Exception as _e:  # noqa: BLE001 — 环境/配置/方法日志块, 绝不阻断预处理
+        logger.warning(f"[环境/配置/方法] 日志 banner 异常, 跳过(不影响处理): {_e}")
 
     log_memory_usage(logger, "阶段启动")
 
@@ -480,10 +560,19 @@ def main() -> None:
         output_dir, CONFIG['filenames']['output_00_preprocessing']
     )
 
-    # ── 数据加载、过滤和标准化 ──
+    # ── 数据加载、过滤和标准化 ── (per-phase 墙钟计时, 纯日志)
+    _t_load0 = time.time()
     load_rows = load_and_process_data(CONFIG['paths']['raw_data_dir'], output_path)
+    try:
+        logger.info(
+            f"⏱ [阶段计时] 加载+过滤+标准化 (load_and_process_data) 墙钟 "
+            f"{sig4(time.time() - _t_load0)} 秒"
+        )
+    except Exception:  # noqa: BLE001 — 计时日志, 绝不阻断处理
+        pass
 
     # ── 媒体名称映射后处理 + 去重 ──
+    _t_dedup0 = time.time()
     if os.path.exists(output_path):
         logger.info("读取合并数据...")
         df = pd.read_parquet(output_path)
@@ -531,6 +620,14 @@ def main() -> None:
         input_rows = load_rows
         output_rows = load_rows
 
+    try:
+        logger.info(
+            f"⏱ [阶段计时] 媒体名映射+去重+写盘 (dedup+write) 墙钟 "
+            f"{sig4(time.time() - _t_dedup0)} 秒"
+        )
+    except Exception:  # noqa: BLE001 — 计时日志, 绝不阻断处理
+        pass
+
     # ── 黄金范式【结果分析】(golden-safe: 仅读已算出的 load_rows/input_rows/output_rows) ──
     # 派生去重指标只服务于日志判读, 不回写 df / 不入任何产物。整体包 try/except:
     # 本块虽在最终写盘之后 (产物已落盘, 不会丢), 仍兜底防御异常拖垮阶段退出码。
@@ -546,24 +643,24 @@ def main() -> None:
             keep_rate = output_rows / input_rows
             removed_rate = n_removed / input_rows
             logger.info(
-                f"  · 去重剔除 (精确+近似合计): {n_removed:,} 行 ({removed_rate:.1%}); "
-                f"保留率 = {keep_rate:.1%}"
+                f"  · 去重剔除 (精确+近似合计): {n_removed:,} 行 ({pct4(removed_rate)}); "
+                f"保留率 = {pct4(keep_rate)}"
             )
             # 保留率判读: 报警门 <80% (偏激进) / >98% (偏松); 中间 [80%,98%] 不报警,
             # 其中 85%~95% 为典型理想带 (与上方【判读】banner 口径对齐, 避免把 81%/96% 误称"健康")
             if keep_rate < 0.80:
                 logger.warning(
-                    f"  ⚠ 保留率 {keep_rate:.1%} < 80%: 去重偏激进, 可能误删真实报道 — "
+                    f"  ⚠ 保留率 {pct4(keep_rate)} < 80%: 去重偏激进, 可能误删真实报道 — "
                     f"须排查源质量/重复稿占比 (删多了会丢真实报道, 使面板分母偏小、估计不稳)。"
                 )
             elif keep_rate > 0.98:
                 logger.warning(
-                    f"  ⚠ 保留率 {keep_rate:.1%} > 98%: 去重偏宽松, 转载灌水可能未删净 — "
+                    f"  ⚠ 保留率 {pct4(keep_rate)} > 98%: 去重偏宽松, 转载灌水可能未删净 — "
                     f"将虚高银行媒体关注度 (核对 Jaccard 阈值是否过高/时间窗是否过窄)。"
                 )
             else:
                 logger.info(
-                    f"  ✓ 保留率 {keep_rate:.1%} 落在不报警区间 [80%,98%] "
+                    f"  ✓ 保留率 {pct4(keep_rate)} 落在不报警区间 [80%,98%] "
                     f"(85%~95% 为典型理想带), 去重力度可接受 "
                     f"(该保留率即银行-年度面板注意力/情感指标的分母基数)。"
                 )

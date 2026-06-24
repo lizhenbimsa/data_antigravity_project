@@ -1,9 +1,11 @@
 """news_process.pipeline.sentiment.numerical_intensity — v3.5.1 A3 真三轨 (full/ctx/ss) 数字密度.
 
-锚定文献 (2026-06-05 引文勘误):
+锚定文献 (2026-06-05 引文勘误; 2026-06-24 Crossref 核验):
     - 数值披露强度构念 (numerical intensity = 数字 token / 篇幅):
       Davis, A. K., & Tama-Sweet, I. (2012). Managers' use of language across
-      alternative disclosure outlets. Contemporary Accounting Research, 29(3): 804-837.
+      alternative disclosure outlets: Earnings press releases versus MD&A.
+      Contemporary Accounting Research, 29(3), 804-837.
+      https://doi.org/10.1111/j.1911-3846.2011.01125.x
     - ⚠ 原注 "Hales, Kuang & Venkataraman (2011) CAR 28(1):305-339 — numerical
       intensity Eq.(1)" 经 web 核对有误: 该文实为 Journal of Accounting Research
       49(1):223-255, 主题是 vivid/pallid 语言对投资者判断的影响, 并未定义 numerical
@@ -40,10 +42,15 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from typing import Optional
 
 import jieba
 import pandas as pd
+
+# 日志富集 (2026-06-24): 非整数数字一律 4 位有效数字 (项目规范单一事实源)。
+# 仅服务 logger.* 输出, 不参与任何产物计算 (golden-safe)。
+from news_process.core.logging import pct4, sig4
 
 # fix(omni-g-numlex word-denominator, 2026-06-11): 复用 lm_non_sentiment 的
 # word-token 过滤正则 (单一事实源), 让 _count_word_tokens 与 lmfls-01 修复后的
@@ -444,6 +451,31 @@ def enrich_with_num_intensity_dual_track(df: pd.DataFrame,
     if df is None or len(df) == 0:
         return df
 
+    # ── 子步骤 banner (called-by-runner helper; 复用上游 stage22 日志句柄, 不打 ENV/CONFIG 块) ──
+    # 富集铁律: 仅 logger.* + 纯日志局部变量, 不改任何写盘值/schema/控制流 (golden-safe)。
+    _t0 = time.time()
+    try:
+        logger.info("─" * 64)
+        logger.info("【数字密度子步骤】numerical intensity 三轨富集 (full / ctx / ss)")
+        logger.info("  · 功能: 数值披露强度 = 数字 token / 归一化分母 (句级 + 词级两口径)")
+        logger.info(f"  · 输入: {len(df):,d} 行 article-level DataFrame; 模块 = "
+                    "pipeline.sentiment.numerical_intensity (called-by-runner helper, 纯 CPU/$0)")
+        # 方法论依据 (参考文献信息): 数值披露强度构念锚。
+        # ✓ 构念锚 Davis & Tama-Sweet (2012) CAR 29(3):804-837 已经 Crossref 核验 (2026-06-24),
+        #   DOI=10.1111/j.1911-3846.2011.01125.x; 故现 emit 完整核验引文含 DOI (在经核验注册表内)。
+        #   模块 docstring 仍记录早期 Hales-Kuang-Venkataraman 引文勘误 + 精确公式锚待最终确认。
+        logger.info("  · 方法论: 数值披露强度 (numerical disclosure intensity) 构念出处 "
+                    "Davis, A. K., & Tama-Sweet, I. (2012). Managers' use of language across "
+                    "alternative disclosure outlets: Earnings press releases versus MD&A. "
+                    "Contemporary Accounting Research, 29(3), 804-837. "
+                    "https://doi.org/10.1111/j.1911-3846.2011.01125.x "
+                    "(构念锚, 已 Crossref 核验); 本实现公式 n_numeric / n_sentences "
+                    "(句级) 与 n_numeric / jieba 词数 (词级) 为项目自定义操作化, 互为分母稳健性。")
+        logger.info("  · 白话: 一篇报道里出现多少『具体数字』(经中文数字→阿拉伯转换 + 不定数/序数/"
+                    "功能词守卫), 除以句子数或词数得到数字密度; 数字越密通常硬信息含量越高。")
+    except Exception as _e_banner:  # 日志块绝不许崩阶段
+        logger.warning(f"num_intensity 子步骤 banner 渲染失败 (已跳过, 不影响产物): {_e_banner}")
+
     df = df.copy()
     # 防御: full_col 缺失 (旧 schema 未物化 content_full) 时回退裸 '内容'。
     # dual-track 一致性修 (2026-06-08): 默认 full_col 已由历史地雷 '内容'(裸正文无标题)
@@ -480,5 +512,54 @@ def enrich_with_num_intensity_dual_track(df: pd.DataFrame,
         df['num_intensity_word_ss'] = [t[1] for t in _both_ss]
     else:
         logger.info(f"num_intensity: '{ss_col}' 缺失, ss 轨 (同句共现) 跳过 (镜像 ctx 守卫优雅降级)")
+
+    # ── 关键指标解读 (运行结果信息): 对**真实算出的**列逐轨给阈值判读 (sig4/pct4) ──
+    # 仅读取已写入的列, 不改任何值; 全块 try/except 保护, 失败仅 warning 不崩阶段。
+    try:
+        _n = len(df)
+        logger.info("  · 结果解读 (数字一律 4 位有效数字):")
+        # 句级 + 词级两口径 × (full/ctx[/ss]) 逐列: 非空率 + 均值 + 标准差
+        _intensity_cols = [
+            ('num_intensity_full', '句级·full'),
+            ('num_intensity_ctx', '句级·ctx'),
+            ('num_intensity_ss', '句级·ss'),
+            ('num_intensity_word_full', '词级·full'),
+            ('num_intensity_word_ctx', '词级·ctx'),
+            ('num_intensity_word_ss', '词级·ss'),
+        ]
+        for _col, _label in _intensity_cols:
+            if _col not in df.columns:
+                continue
+            _s = pd.to_numeric(df[_col], errors='coerce')
+            _notna = int(_s.notna().sum())
+            _rate = (_notna / _n) if _n else 0.0
+            # 非空率判读: 空/单字符文本 → NaN 是设计行为, 但全语料 NaN 率应低
+            _verdict = ("好" if _rate >= 0.90 else "临界" if _rate >= 0.70 else "偏低(空/单字文本多?)")
+            _mean = float(_s.mean()) if _notna else float('nan')
+            _std = float(_s.std()) if _notna > 1 else float('nan')
+            logger.info(
+                f"     - {_label} ({_col}): 非空 {_notna:,d}/{_n:,d} = "
+                f"{pct4(_rate)} [{_verdict}]; 均值={sig4(_mean)} 标准差={sig4(_std)}"
+            )
+        # 三轨独立性自检: full vs ctx 句级数字密度相关 (过高 → ctx 窗口未带来增量信号)
+        if {'num_intensity_full', 'num_intensity_ctx'}.issubset(df.columns):
+            _ff = pd.to_numeric(df['num_intensity_full'], errors='coerce')
+            _cc = pd.to_numeric(df['num_intensity_ctx'], errors='coerce')
+            _both = _ff.notna() & _cc.notna()
+            if int(_both.sum()) >= 3 and _ff[_both].std() > 0 and _cc[_both].std() > 0:
+                _corr = float(_ff[_both].corr(_cc[_both]))
+                _corr_verdict = (
+                    "ctx 近乎复制 full(共线高)" if abs(_corr) >= 0.95
+                    else "两轨高度相关" if abs(_corr) >= 0.80
+                    else "两轨独立信号成立"
+                )
+                logger.info(
+                    f"     - 三轨独立性: corr(句级 full, ctx) = {sig4(_corr)} "
+                    f"[{_corr_verdict}] (n={int(_both.sum()):,d} 双非空)"
+                )
+        logger.info(f"  · ⏱ 数字密度三轨富集墙钟耗时: {sig4(time.time() - _t0)} 秒")
+        logger.info("─" * 64)
+    except Exception as _e_result:  # 结果解读块绝不许崩阶段
+        logger.warning(f"num_intensity 结果解读块渲染失败 (已跳过, 不影响产物): {_e_result}")
 
     return df

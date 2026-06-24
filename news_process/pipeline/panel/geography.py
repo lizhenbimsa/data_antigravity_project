@@ -28,9 +28,18 @@ import json
 import math
 import os
 import re
+import sys
+import time
 
 import numpy as np
 import pandas as pd
+
+# 日志富集 (2026-06-24): sig4/pct4 = 项目"日志非整数一律四位有效数字"规范的单一事实源
+# (core/logging.py)。整数/计数仍用 :,d。本模块为 runner 调用的库函数, 无独立
+# main()/setup_logging, 复用 encode.logger 写入共享面板构建日志 (logs/40_build_panel.log);
+# 故按 playbook §0.5: 不在 import 时打 ENV/CONFIG 块 (顶层 emit 会触发首写截断), 改在各
+# 被调函数体内补 子步骤 banner + 方法引文 (含 DOI) + 结果阈值判读 + per-phase 墙钟计时。
+from news_process.core.logging import pct4, sig4
 
 # Phase 2a: 取代旧的 importlib.spec_from_file_location 反射,改为正规子包 import。
 from news_process.pipeline.panel.encode import (
@@ -42,6 +51,87 @@ from news_process.pipeline.panel.encode import (
     THREE_CLASS_MODELS,
     logger,
 )
+
+# ── 经核验参考文献 (VERIFIED_REFERENCES 注册表, 逐字照抄 APA-7 + DOI; 仅日志用) ──
+# emit 进运行期日志的学术依据, 让 .log 自证方法学锚点 (非仅留注释)。
+_GEO_REFERENCES = {
+    "fama_macbeth_z": (
+        "Shapiro, A. H., Sudhof, M., & Wilson, D. J. (2022). Measuring news "
+        "sentiment. Journal of Econometrics, 228(2), 221-243. "
+        "https://doi.org/10.1016/j.jeconom.2020.07.053"
+    ),
+    "manski_reflection": (
+        "Manski, C. F. (1993). Identification of endogenous social effects: "
+        "The reflection problem. The Review of Economic Studies, 60(3), "
+        "531-542. https://doi.org/10.2307/2298123"
+    ),
+    "bramoulle_peer": (
+        "Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of "
+        "peer effects through social networks. Journal of Econometrics, "
+        "150(1), 41-55. https://doi.org/10.1016/j.jeconom.2008.12.021"
+    ),
+    "coval_moskowitz": (
+        "Coval, J. D., & Moskowitz, T. J. (1999). Home bias at home: Local "
+        "equity preference in domestic portfolios. The Journal of Finance, "
+        "54(6), 2045-2073. https://doi.org/10.1111/0022-1082.00181"
+    ),
+    "gurun_butler": (
+        "Gurun, U. G., & Butler, A. W. (2012). Don't believe the hype: Local "
+        "media slant, local advertising, and firm value. The Journal of "
+        "Finance, 67(2), 561-598. https://doi.org/10.1111/j.1540-6261.2012.01725.x"
+    ),
+    "engelberg_parsons": (
+        "Engelberg, J. E., & Parsons, C. A. (2011). The causal impact of "
+        "media in financial markets. The Journal of Finance, 66(1), 67-97. "
+        "https://doi.org/10.1111/j.1540-6261.2010.01626.x"
+    ),
+    "leary_roberts": (
+        "Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect "
+        "corporate financial policy? The Journal of Finance, 69(1), 139-178. "
+        "https://doi.org/10.1111/jofi.12094"
+    ),
+    "dahlke_diffusion": (
+        "Dahlke, J., Beck, M., Kinne, J., Lenz, D., Dehghan, R., Wörter, M., "
+        "& Ebersberger, B. (2024). Epidemic effects in the diffusion of "
+        "emerging digital technologies: Evidence from artificial intelligence "
+        "adoption. Research Policy, 53(2), 104917. "
+        "https://doi.org/10.1016/j.respol.2023.104917"
+    ),
+}
+
+
+def _log_geo_substep_env(step_label: str, ref_keys=(), note: str = "") -> None:
+    """在被 runner 调用的地理子步骤函数体内打印一个轻量子步骤 banner。
+
+    本模块无独立 main(), 复用 encode.logger 写入面板构建共享日志; 按 playbook §0.5
+    不重复打完整 ENV/CONFIG 块 (那是 runner 入口职责), 仅在每个被调函数起始处补:
+      · 一行运行环境指纹 (python/platform/PID/cwd; 确定性 = 纯 CPU 聚合, $0 无 LLM/网络)
+      · 本步骤所引用的经核验学术依据 (Author Year. Journal vol(issue), pp. + DOI)
+      · 一句中文方法白话 (为何本步用该方法)
+    纯 logger.* 输出, try/except 包裹, 日志块绝不让阶段崩 (golden-safe)。
+    """
+    try:
+        import platform
+        logger.info(
+            f"  🧭 {step_label} | news_process 流水线 (中文银行/金科新闻→计量面板) "
+            f"{CONFIG.get('version', '') if isinstance(CONFIG, dict) else ''}".rstrip())
+        logger.info(
+            f"     env: Python {sys.version.split()[0]} @ {sys.executable} | "
+            f"{platform.platform()} | CPU={os.cpu_count()} | PID={os.getpid()} | "
+            f"RUN_ID={os.environ.get('NEWS_PROCESS_RUN_ID', '-')}")
+        logger.info(
+            f"     模块={os.path.abspath(__file__)} | cwd={os.getcwd()}")
+        logger.info(
+            "     确定性: 纯 pandas/numpy 面板聚合, 无 LLM/嵌入/网络 → $0、可复现 "
+            "(地理坐标查找记忆化逐位等价)")
+        if note:
+            logger.info(f"     方法白话: {note}")
+        for k in ref_keys:
+            ref = _GEO_REFERENCES.get(k)
+            if ref:
+                logger.info(f"     📖 {ref}")
+    except Exception as _e:  # noqa: BLE001 — 日志块绝不让阶段崩
+        logger.warning(f"  (子步骤 banner 日志失败, 忽略不影响计算): {_e}")
 
 # ============================================================================
 # 7. 面板级综合指标计算
@@ -58,6 +148,19 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
     logger.info("=" * 60)
     logger.info("步骤 7: 面板级综合指标计算")
     logger.info("=" * 60)
+    _t7_start = time.time()
+    _log_geo_substep_env(
+        "步骤 7: 面板级综合指标 (跨模型/词典/BERT 行均值 + Fintech Exposure 复合)",
+        note=("跨 LLM/词典/BERT 多估计器取行均值得集成情感, 降单方法测量噪声; "
+              "Fintech Exposure = ln_coverage × tone_std (高覆盖+高波动=高叙事暴露)。"))
+    try:
+        logger.info(
+            f"  ⚙ 聚合域: LLM={len(LLM_MODELS):,} 模型 | 词典={len(DICT_NAMES):,} 部 | "
+            f"BERT 三分类子集={len([b for b in BERT_MODELS if b in THREE_CLASS_MODELS]):,}"
+            f"/{len(BERT_MODELS):,} | 规则消融后缀={len(RULE_ABLATION_SUFFIXES):,} | "
+            "轨道=full/ctx/ss")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  (config 摘要日志失败, 忽略): {_e}")
 
     def _safe_mean(cols):
         """取存在列的行均值。"""
@@ -236,9 +339,21 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
             new_cols[f'fintech_exposure{track}'] = coverage * panel[std_col]
             valid = new_cols[f'fintech_exposure{track}'].dropna()
             logger.info(f"  fintech_exposure{track}: "
-                        f"mean={valid.mean():.4f}, "
-                        f"std={valid.std():.4f}, "
+                        f"mean={sig4(valid.mean())}, "
+                        f"std={sig4(valid.std())}, "
                         f"非空={len(valid):,}")
+            # 📊 结果判读: std 反映银行间叙事暴露离散度; 近零=区分度弱
+            try:
+                _fe_std = float(valid.std()) if len(valid) else float('nan')
+                if pd.isna(_fe_std):
+                    _verdict = "⚠ 全空 (无 tone_std/coverage), 该轨暴露度不可用"
+                elif _fe_std < 1e-6:
+                    _verdict = "⚠ 离散度近零, 横截面区分度弱 (小样本/单一银行)"
+                else:
+                    _verdict = "✓ 存在横截面变异, 可作叙事暴露代理"
+                logger.info(f"    判读 fintech_exposure{track}: std={sig4(_fe_std)} → {_verdict}")
+            except Exception as _e:  # noqa: BLE001
+                logger.warning(f"    (fintech_exposure 判读失败, 忽略): {_e}")
         else:
             new_cols[f'fintech_exposure{track}'] = pd.Series(np.nan, index=panel.index)
             logger.warning(f"  fintech_exposure{track}: "
@@ -251,6 +366,11 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
     panel = pd.concat(
         [panel, pd.DataFrame(new_cols, index=panel.index)], axis=1
     )
+    try:
+        logger.info(f"  ⏱ 步骤 7 完成: 新增 {len(new_cols):,} 综合指标列, "
+                    f"墙钟 {sig4(time.time() - _t7_start)} 秒")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  (步骤 7 计时日志失败, 忽略): {_e}")
     return panel
 
 
@@ -331,6 +451,14 @@ def standardize_panel_variables(panel: pd.DataFrame) -> pd.DataFrame:
     logger.info("=" * 60)
     logger.info("步骤 7b: 年度截面标准化 (Fama-MacBeth 1973)")
     logger.info("=" * 60)
+    _t7b_start = time.time()
+    # 注: Fama & MacBeth (1973, JPE, 81, 607-636) 为截面标准化方法学锚点 (不在经核验
+    # 注册表, 仅注释引用); 经核验可 emit 的相关依据 = 置信度 Z-score 噪声→衰减偏误。
+    _log_geo_substep_env(
+        "步骤 7b: 年度截面 z-score (核心回归变量年内归至单位方差)",
+        ref_keys=("fama_macbeth_z",),
+        note=("逐年度截面把核心 tone 变量标准化为 μ=0/σ=1, 使 β 可直接读为 "
+              "'1σ 情感变化→β 单位因变量'; 上文 Shapiro 2022 §4 指测量噪声致系数向零衰减。"))
 
     # ── 展开白名单 ──
     target_cols = (_expand_track_templates(_STANDARDIZE_COLS)
@@ -396,16 +524,23 @@ def standardize_panel_variables(panel: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  已生成 {z_count} 个 _z 标准化列")
 
     # ── 校验: 标准化后年内 std ≈ 1 ──
+    # 📊 结果判读: z-score 自洽性 = 各年内标准差应 ≈ 1.0 (容差 0.1); 偏离提示
+    #    年内有效样本过少 (T=2 小样本) 或上游列异常。
     sample_z_cols = [c for c in panel.columns if c.endswith('_z')][:5]
     for col in sample_z_cols:
         within_std = (panel[has_news].dropna(subset=[col])
                       .groupby('year')[col].std())
         mean_std = within_std.mean()
         if pd.notna(mean_std):
-            ok = '✓' if abs(mean_std - 1.0) < 0.1 else '需关注'
+            ok = '✓ 单位方差自洽' if abs(mean_std - 1.0) < 0.1 else '⚠ 需关注 (年内样本不足/列异常)'
             logger.info(f"  校验 {col}: 年内 std 均值 = "
-                        f"{mean_std:.4f} {ok}")
+                        f"{sig4(mean_std)} {ok}")
 
+    try:
+        logger.info(f"  ⏱ 步骤 7b 完成: 生成 {z_count:,} 个 _z 列 "
+                    f"(有效白名单 {len(valid_cols):,}), 墙钟 {sig4(time.time() - _t7b_start)} 秒")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  (步骤 7b 计时日志失败, 忽略): {_e}")
     return panel
 
 
@@ -492,8 +627,16 @@ def merge_bank_geography(panel: pd.DataFrame) -> pd.DataFrame:
     logger.info("=" * 60)
     logger.info("步骤 7c: 合并银行注册地地理信息 (Luo & Li 2025)")
     logger.info("=" * 60)
+    _t7c_start = time.time()
     logger.info("  学术依据: Luo & Li (2025, FRL, Table A.2)")
     logger.info("  聚类推断: Cameron & Miller (2015, JHR, 50(2), 317-372)")
+    # Luo & Li (2025) 与 Cameron & Miller (2015) 不在经核验注册表 → 仅短名 emit;
+    # 经核验的本地媒体/地理依据 (Gurun & Butler 2012) 见下方 DOI 行。
+    _log_geo_substep_env(
+        "步骤 7c: 银行注册地省/市映射 (供地理层级递进聚类 + LOO-IV 前置)",
+        ref_keys=("gurun_butler",),
+        note=("从 bank_addresses.json 把省/市贴到 bank-year, 支撑 Stata 逐级提升聚类层级 "
+              "(银行→城市→省) 检验稳健性; 同地理银行受相同本地媒体生态影响。"))
 
     # ── 加载 bank_addresses.json ──
     # 路径优先从 config.yaml 的 paths.bank_addresses_file 读取,
@@ -533,10 +676,15 @@ def merge_bank_geography(panel: pd.DataFrame) -> pd.DataFrame:
     panel['bank_city'] = panel['target_bank'].map(city_map).fillna('')
 
     # ── 匹配率诊断 ──
+    # 📊 结果判读: 地理匹配率 < 100% 时, 未匹配银行的省/市级聚类观测会被
+    #    Stata vce(cluster ...) 静默剔除 → 跨聚类层级样本不一致 (下方警告)。
     matched = (panel['bank_province'] != '').sum()
     total = len(panel)
-    logger.info(f"  匹配率: {matched}/{total} "
-                f"= {matched / max(total, 1) * 100:.1f}%")
+    _match_frac = matched / max(total, 1)
+    _match_verdict = ('✓ 全匹配, 跨聚类层级样本一致' if _match_frac >= 0.999
+                      else '⚠ 有缺口, 省/市级聚类样本将缩小')
+    logger.info(f"  匹配率: {matched:,}/{total:,} "
+                f"= {pct4(_match_frac)} {_match_verdict}")
 
     # 输出未匹配银行名单 (帮助调试 bank_names 与 bank_addresses 的不一致)
     unmatched_banks = panel.loc[
@@ -572,6 +720,11 @@ def merge_bank_geography(panel: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  省份 Top-5: {dict(prov_dist.head())}")
     logger.info(f"  城市 Top-5: {dict(city_dist.head())}")
 
+    try:
+        logger.info(f"  ⏱ 步骤 7c 完成: 省聚类={n_prov:,} / 市聚类={n_city:,}, "
+                    f"墙钟 {sig4(time.time() - _t7c_start)} 秒")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  (步骤 7c 计时日志失败, 忽略): {_e}")
     return panel
 
 
@@ -701,12 +854,21 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
     logger.info("=" * 60)
     logger.info("步骤 7d: Leave-one-out 地理平均情感 (Luo & Li 2025)")
     logger.info("=" * 60)
+    _t7d_start = time.time()
+    _log_geo_substep_env(
+        "步骤 7d: 同省/同城 LOO 情感工具变量 (排除自身的本地平均舆论)",
+        note=("leave1out_i = (Σ_j tone_j − tone_i)/(N−1): 拿'除我之外的本地平均'作外生推力, "
+              "邻居语调不太可能由我自己决定; ⚠ 反射问题 = 下方识别威胁披露 (非背书)。"))
     # fix(omni-g-geography-05, 2026-06-11): 引文角色勘误 — Manski/Bramoullé
     # 是本同期组均值 IV 的**识别威胁/限定条件**, 非支撑性引用 (Manski 1993
     # 证明线性均值模型下同期组均值不可识别; Bramoullé 2009 的识别条件依赖
     # 网络非传递三元组, 同省/同城完全图不满足), 旧日志标"文献支撑"属倒置。
-    logger.info("  [识别威胁披露 1]: Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. The Review of Economic Studies. https://doi.org/10.2307/2298123 — 反射问题: 同期组均值 (本 LOO IV) 在线性均值模型下不可识别; 本 IV 的有效性依赖 Luo & Li (2025) 的排他性论证而非该文背书")
-    logger.info("  [识别威胁披露 2]: Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effects through social networks. Journal of Econometrics. https://doi.org/10.1016/j.jeconom.2008.12.021 — 其识别条件要求网络存在非传递三元组; 地理完全组 (同省/同城全连接) 不满足, 故本 IV 不能援引该文主张点识别")
+    logger.info(f"  [识别威胁披露 1] 📖 {_GEO_REFERENCES['manski_reflection']}")
+    logger.info("    → 反射问题: 同期组均值 (本 LOO IV) 在线性均值模型下不可识别; "
+                "本 IV 的有效性依赖 Luo & Li (2025) 的排他性论证而非该文背书")
+    logger.info(f"  [识别威胁披露 2] 📖 {_GEO_REFERENCES['bramoulle_peer']}")
+    logger.info("    → 其识别条件要求网络存在非传递三元组; 地理完全组 (同省/同城全连接) "
+                "不满足, 故本 IV 不能援引该文主张点识别")
     logger.info("  对标: Province_news_sentiment (Table 3)")
     logger.info("  公式: leave1out_i = (Σ tone_j - tone_i) / (N - 1), j ≠ i")
 
@@ -786,7 +948,9 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
     #   若 llm_vote_tone, dict_avg_tone, bert_avg_pos 的 LOO IV 均可用,
     #   则可在 Stata 中执行 overid 检验。
     # 参考: Luo & Li (2025, FRL, Table 3), Goldsmith-Pinkham (2020, AER, §4)
+    # (二者不在经核验注册表 → 仅注释; 同行压力操作化的经核验锚点 = Leary & Roberts 2014)
     logger.info("  ── G-08: 多情感度量 LOO IV 扩展 ──")
+    logger.info(f"    📖 同行压力操作化: {_GEO_REFERENCES['leary_roberts']}")
     extra_tone_cols = {
         'dict_avg_tone': '词典法综合',
         'bert_avg_pos': 'BERT正面概率',
@@ -859,6 +1023,20 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
         [panel, pd.DataFrame(new_cols, index=panel.index)], axis=1
     )
 
+    # 📊 结果判读: LOO-IV 列的有效占比; 过低提示地理稀疏/单一银行组多 →
+    #    弱工具风险 (T=2 面板已知一阶段 F≪10, 仅作 falsification, 见上文披露)。
+    try:
+        _n_loo = len(new_cols)
+        if _n_loo > 0:
+            _valid_fracs = [c.notna().mean() for c in new_cols.values()]
+            _avg_valid = float(np.nanmean(_valid_fracs)) if _valid_fracs else float('nan')
+            _loo_verdict = ('✓ 多数行有同地理同行' if _avg_valid >= 0.5
+                            else '⚠ 有效占比低, 单一银行组多 → 弱工具风险 (仅证伪/稳健性)')
+            logger.info(f"  判读 LOO-IV: 生成 {_n_loo:,} 列, 平均有效占比 "
+                        f"{pct4(_avg_valid)} → {_loo_verdict}")
+        logger.info(f"  ⏱ 步骤 7d 完成: 墙钟 {sig4(time.time() - _t7d_start)} 秒")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  (步骤 7d 判读/计时日志失败, 忽略): {_e}")
     return panel
 
 
@@ -964,6 +1142,17 @@ def compute_geo_proximity_buffers(
     logger.info("步骤: 四梯度地理距离缓冲 "
                 "(Gurun & Butler 2012; Engelberg & Parsons 2011)")
     logger.info("=" * 60)
+    _t12_start = time.time()
+    _log_geo_substep_env(
+        "步骤 12: 四梯度 (50/100/150/200km) 地理距离缓冲媒体接近度",
+        ref_keys=("gurun_butler", "engelberg_parsons", "coval_moskowitz"),
+        note=("以银行总部为圆心画 50/100/150/200km 四圈, 统计圈内媒体报道量/语调, "
+              "检验'近处媒体是否更捧本地银行'; Haversine 球面距离 (坐标含省会插补水分, "
+              "输出 prox_geo_imputed_frac 供剔除稳健性)。"))
+    try:
+        logger.info(f"  ⚙ 距离阈值 (km): {_DISTANCE_THRESHOLDS_KM} | 轨道=full/ctx/ss")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  (config 摘要日志失败, 忽略): {_e}")
 
     # ── 加载坐标数据 (Phase 2a: 通过 CONFIG['paths'][...] 解析) ──
     coord_path = CONFIG['paths'].get('city_coordinates_file')
@@ -1208,10 +1397,27 @@ def compute_geo_proximity_buffers(
 
         n_vars = len([c for c in buf_df.columns if c.startswith('prox_')])
         logger.info(f"  距离缓冲已合并: {len(buf_df):,} 个 Bank-Year, "
-                    f"{n_vars} 个变量")
+                    f"{n_vars:,} 个变量")
+        # 📊 结果判读: 省会插补率 — 高则距离与银行区位系统相关 (非经典测量误差),
+        #    与 Gurun-Butler/Engelberg-Parsons 的精确媒体定位口径有差距, 须披露。
+        try:
+            if 'prox_geo_imputed_frac' in panel.columns:
+                _imp = panel['prox_geo_imputed_frac'].dropna()
+                if len(_imp):
+                    _imp_mean = float(_imp.mean())
+                    _imp_verdict = ('✓ 插补占比低, 定位口径较纯' if _imp_mean < 0.2
+                                    else '⚠ 省会插补偏高, 距离含区位相关误差, 论文须披露+剔除稳健性')
+                    logger.info(f"  判读 prox_geo_imputed_frac: 均值={pct4(_imp_mean)} "
+                                f"(覆盖 {len(_imp):,} bank-year) → {_imp_verdict}")
+        except Exception as _e:  # noqa: BLE001
+            logger.warning(f"  (省会插补率判读失败, 忽略): {_e}")
     else:
         logger.warning("  未生成任何距离缓冲变量")
 
+    try:
+        logger.info(f"  ⏱ 步骤 12 完成: 墙钟 {sig4(time.time() - _t12_start)} 秒")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  (步骤 12 计时日志失败, 忽略): {_e}")
     return panel
 
 
@@ -1262,6 +1468,12 @@ def compute_regional_imitation_pressure(
     logger.info("步骤: 区域同行 FinTech 覆盖渗透率 "
                 "(六层 LOO, Leary & Roberts 2014)")
     logger.info("=" * 60)
+    _t13_start = time.time()
+    _log_geo_substep_env(
+        "步骤 13: 六层 (省/市/50/100/150/200km) 区域同行 FinTech 覆盖渗透率 LOO",
+        ref_keys=("leary_roberts", "dahlke_diffusion"),
+        note=("ai_reg_X = 区域内**其他**银行有任意 fintech 新闻覆盖的比例 (同行媒体覆盖渗透)。"
+              "⚠ 构念勘误: 无 AI 子类过滤, 非'AI 模仿率'; Dahlke 2024 仅历史动机, 不宜直接背书。"))
 
     # 指示变量: 该银行该年是否有 fintech 新闻
     if 'n_articles' not in panel.columns:
@@ -1295,7 +1507,7 @@ def compute_regional_imitation_pressure(
         panel[var_name] = vals
         valid = vals.notna().sum()
         logger.info(f"  {var_name}: {valid:,} 有效值, "
-                    f"mean={vals.mean():.4f}")
+                    f"mean={sig4(vals.mean())}")
 
     # ── 距离级 LOO (Phase 2a: 通过 CONFIG['paths'][...] 解析) ──
     coord_path = CONFIG['paths'].get('city_coordinates_file')
@@ -1380,7 +1592,7 @@ def compute_regional_imitation_pressure(
         panel[var_name] = vals
         valid = vals.notna().sum()
         logger.info(f"  {var_name}: {valid:,} 有效值, "
-                    f"mean={vals.mean():.4f}")
+                    f"mean={sig4(vals.mean())}")
 
     # ── 拓扑断言 ──
     for i in range(len(_DISTANCE_THRESHOLDS_KM) - 1):
@@ -1393,8 +1605,12 @@ def compute_regional_imitation_pressure(
             n2 = panel[col2].notna().sum()
             if n1 > n2:
                 logger.warning(
-                    f"  拓扑警告: {col1} 有效样本 ({n1}) > {col2} ({n2})")
+                    f"  拓扑警告: {col1} 有效样本 ({n1:,}) > {col2} ({n2:,})")
 
     panel.drop('_has_fintech', axis=1, inplace=True, errors='ignore')
+    try:
+        logger.info(f"  ⏱ 步骤 13 完成: 墙钟 {sig4(time.time() - _t13_start)} 秒")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  (步骤 13 计时日志失败, 忽略): {_e}")
     return panel
 

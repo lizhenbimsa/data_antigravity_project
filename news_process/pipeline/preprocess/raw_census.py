@@ -57,7 +57,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging
+from news_process.core.logging import pct4, setup_logging, sig4
 
 STAGE_NAME = "00_preprocessing"
 SHEET = "Sheet1"
@@ -279,7 +279,8 @@ def _f(n):
 
 
 def _pct(a, b):
-    return f"{100*a/b:.2f}%" if b else "—"
+    # 4 位有效数字 (项目日志规范, 用户决策 2026-06-24); 纯展示串, 不参与任何产物计算。
+    return pct4(a / b) if b else "—"
 
 
 def render_census_to_logger(summary: dict, perfile: list[dict], logger,
@@ -316,6 +317,50 @@ def render_census_to_logger(summary: dict, perfile: list[dict], logger,
         logger.info(f"⚠ 跨目录同名副本: 已跳过 {len(dropped_dups)} 个 (每源只计一次, 避免行数双计): "
                     f"{', '.join(os.path.basename(x) for x in dropped_dups)}")
     logger.info("-" * 78)
+
+    # ── ① 🧭 项目 / 环境信息 (golden-safe: 纯日志, try/except 包住绝不崩阶段) ──
+    try:
+        import platform as _platform  # 局部 import, 仅服务于日志
+        logger.info("🧭 项目 / 环境")
+        logger.info("  · 项目     : news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板)")
+        logger.info("  · 子步     : 阶段 00 原始 Excel 全量样本普查 (raw_census; 过滤前只读体量/构成)")
+        logger.info(f"  · Python   : {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"  · 平台     : {_platform.platform()} | CPU 核数={os.cpu_count()} | PID={os.getpid()}")
+        logger.info(f"  · RUN_ID   : {os.environ.get('NEWS_PROCESS_RUN_ID', '(未设置)')}")
+        logger.info(f"  · 模块路径 : {os.path.abspath(__file__)}")
+        logger.info(f"  · 工作目录 : {os.getcwd()}")
+        logger.info("  · 确定性/成本: 纯本地只读 Excel, $0 (不调 LLM/嵌入), 不写 parquet、不触发去重/过滤 → golden-safe。")
+        logger.info("-" * 78)
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"[原始普查] ENV banner 渲染失败 (不影响普查): {_e}")
+
+    # ── ③ ⚙ 运行配置 (本子步可调参数; 单一事实源 = 本模块常量 + config/preprocessing.yaml) ──
+    try:
+        logger.info("⚙ 运行配置 (普查口径常量)")
+        logger.info(f"  · 读取 Sheet         : {SHEET!r}; 引擎=calamine (只读)")
+        logger.info(f"  · 关键字段缺失检查列 : {KEY_NA_COLS}")
+        logger.info(f"  · 正文长度合规区间   : [{CONTENT_MIN:,d}, {CONTENT_MAX:,d}] 字符 (近似, pipeline 实判用汉字数)")
+        logger.info(f"  · 正文长度直方图分箱 : {len(LEN_BINS) - 1:,d} 档 (上界 ∞)")
+        logger.info(f"  · 大陆省级保留集大小 : {len(mainland_regions):,d} (config/preprocessing.yaml::mainland_china_regions)")
+        logger.info("-" * 78)
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"[原始普查] CONFIG banner 渲染失败 (不影响普查): {_e}")
+
+    # ── ④ 📖 方法论依据 (data appendix / 样本透明性; 引文逐字取自经核验注册表, 含 DOI) ──
+    try:
+        logger.info("📖 方法论依据 (样本透明性 / 数据来源披露)")
+        logger.info("  本普查为论文 data appendix 供数: 过滤前全量原始语料的体量与构成需可审计、可复现。")
+        logger.info("  · 文本即数据范式 (语料构成/抽样透明须前置披露): "
+                    "Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. "
+                    "Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020")
+        logger.info("  · 新闻媒体覆盖度量 (报纸语料的覆盖广度构念): "
+                    "Fang, L., & Peress, J. (2009). Media coverage and the cross-section of stock returns. "
+                    "The Journal of Finance, 64(5), 2023-2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x")
+        logger.info("  · 本语料数据集 (DOI): "
+                    "Li, Z. (2026). Bank FinTech [Data set]. Zenodo. https://doi.org/10.5281/zenodo.20453766")
+        logger.info("-" * 78)
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"[原始普查] METHOD banner 渲染失败 (不影响普查): {_e}")
 
     logger.info("一、总量概览")
     logger.info(f"  · 去重后源文件数 : {_f(d['n_files'])} (成功 {_f(d['n_ok'])} / 失败 {_f(d['n_err'])})")
@@ -375,7 +420,7 @@ def render_census_to_logger(summary: dict, perfile: list[dict], logger,
     logger.info(f"  · 参与去重的行 : {_f(dd.get('total_key_rows'))}")
     logger.info(f"  · 全局唯一文档 : {_f(dd.get('global_unique_docs'))}")
     logger.info(f"  · 精确重复行   : {_f(dd.get('global_dup_rows'))} "
-                f"(重复率 {dd.get('global_dup_rate',0)*100:.2f}%)")
+                f"(重复率 {pct4(dd.get('global_dup_rate', 0) * 100, fraction=False)})")
 
     logger.info("-" * 78)
     logger.info("九、原始 → 可用样本 漏斗 (各级为独立单条件边际计数, 非逐级求交)")
@@ -395,7 +440,7 @@ def render_census_to_logger(summary: dict, perfile: list[dict], logger,
             logger.info(f"  · {r['file']:<40} [读取失败] {r.get('error')}")
             continue
         nc = r.get("null_content")
-        ncs = f"{_f(nc)}({100*nc/r['n_rows']:.0f}%)" if nc and r["n_rows"] else _f(nc)
+        ncs = f"{_f(nc)}({pct4(nc / r['n_rows'])})" if nc and r["n_rows"] else _f(nc)
         logger.info(f"  · {r['file']:<40} {r['source']:<6} {_f(r['n_rows']):>9} "
                     f"内容空={ncs:<12} {r.get('date_min')}~{r.get('date_max')}")
 
@@ -404,6 +449,52 @@ def render_census_to_logger(summary: dict, perfile: list[dict], logger,
         logger.info("附: 读取失败文件")
         for e in d["errors"]:
             logger.info(f"  · {e['file']}: {e['error']}")
+
+    # ── ⑤ 📊 关键指标解读 (对真实算出值给好/临界/坏判读; 数字一律 4 位有效数字) ──
+    try:
+        logger.info("-" * 78)
+        logger.info("十一、关键指标解读 (普查质量自检; 仅诊断, 不改语料)")
+
+        n_files = d.get("n_files", 0) or 0
+        n_err = d.get("n_err", 0) or 0
+        err_rate = n_err / n_files if n_files else 0.0
+        v_err = "好" if err_rate == 0 else ("临界" if err_rate <= 0.02 else "坏")
+        logger.info(f"  · 文件读取成功率 : 失败 {_f(n_err)}/{_f(n_files)} (失败率 {pct4(err_rate)}) "
+                    f"[{v_err}] — 0=全部可读; >2% 须排查 Excel 损坏/格式漂移。")
+
+        dup_rate = dd.get("global_dup_rate", 0) or 0.0
+        v_dup = "好" if dup_rate <= 0.10 else ("临界" if dup_rate <= 0.30 else "坏 (副本污染?)")
+        logger.info(f"  · 精确重复率     : {pct4(dup_rate)} [{v_dup}] — 跨文件 MD5 Docid 完全重复占比; "
+                    f"过高提示采集/归档副本污染 (pipeline 另有 MinHash 近似去重)。")
+
+        content_share = with_content / total if total else 0.0
+        v_cont = "好" if content_share >= 0.90 else ("临界" if content_share >= 0.70 else "坏 (正文缺失多)")
+        logger.info(f"  · 含正文行占比   : {pct4(content_share)} [{v_cont}] — 正文空行 (多为早期年份纯标题) "
+                    f"将被 pipeline 整行剔除; 偏低则有效样本损耗大。")
+
+        paper_share = n_paper / total if total else 0.0
+        v_pap = "好" if paper_share >= 0.50 else ("临界" if paper_share >= 0.20 else "偏低 (报纸占比小)")
+        logger.info(f"  · 报纸类型占比   : {pct4(paper_share)} [{v_pap}] — pipeline 仅保留『报纸』; "
+                    f"其余媒体类型整体剔除, 此值为该过滤的保留上界。")
+
+        range_share = in_range / total if total else 0.0
+        v_rng = "好" if range_share >= 0.50 else ("临界" if range_share >= 0.20 else "偏低")
+        logger.info(f"  · 正文长度合规率 : {pct4(range_share)} [{v_rng}] — 落在 "
+                    f"[{CONTENT_MIN:,d},{CONTENT_MAX:,d}] 字符 (总字符近似口径); 反映长度过滤的样本损耗。")
+        logger.info("  ⚠ 上述各率为独立单条件边际值 (非逐级求交); 最终分析样本主削减来自银行关键词保留过滤, 远小于任一率。")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"[原始普查] RESULT-ANALYSIS 渲染失败 (不影响普查): {_e}")
+
+    # ── ⑥ ⏱ 计时 (普查全量读取墙钟; 取自 summary 实测 elapsed_min, 数字 4 位有效数字) ──
+    try:
+        elapsed_min = d.get("elapsed_min")
+        if elapsed_min is not None:
+            logger.info("-" * 78)
+            logger.info(f"⏱ 普查全量只读耗时: {sig4(elapsed_min)} 分钟 "
+                        f"({sig4(float(elapsed_min) * 60)} 秒; 并行只读 {_f(d.get('n_files'))} 个去重源文件)。")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"[原始普查] TIMING 渲染失败 (不影响普查): {_e}")
+
     logger.info(bar)
     logger.info("=== 完成: 原始 Excel 全量样本普查 (已写入 logs/00_preprocessing.log) ===")
 

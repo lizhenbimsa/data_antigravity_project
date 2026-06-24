@@ -73,7 +73,7 @@ def main():
     # 现对齐同族 audit 阶段的 setup_logging 约定, 让日志自带阶段用途说明与结果分析;
     # 原 print() 全部保留 (向后兼容外部 CLI 契约), 仅【新增】logger 调用。
     global logger
-    from news_process.core.logging import setup_logging
+    from news_process.core.logging import pct4, setup_logging, sig4
     logger = setup_logging(
         "82_export_stats_excel",
         config['paths'].get('log_dir', 'logs'),
@@ -90,6 +90,36 @@ def main():
     logger.info("        无回归/聚合公式。外部依赖仅 pandas + openpyxl, 无 LLM/Embedding/网络, 确定性强。")
     logger.info("【判读】看 ① 各阶段行数的逐级漏斗 (筛选强度); ② 头部媒体/地区集中度 (代表性偏倚预警);")
     logger.info("        ③ 各字段不同取值数与空值占比 (元数据完整性)。本工具不影响论文核心结果。")
+
+    # ------------------------------------------------------------------
+    # ① 🧭 项目 / 环境信息 (ENV banner) — 运行环境指纹, 便于审计可复现性。
+    # 纯 logger 输出, 不参与任何产物计算 (golden-safe, 失败不崩阶段)。
+    # ------------------------------------------------------------------
+    import time as _time
+    phase_t: dict[str, float] = {}  # 仅供 per-phase 计时日志 (绝不回写产物)
+    _t_overall = _time.time()
+    try:
+        import platform as _platform
+        logger.info("-" * 72)
+        logger.info("【环境】项目 = news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1")
+        logger.info("        阶段 82 export_stats_excel — 审计 CLI, 不在 DAG, 用户手动触发, 与主链解耦。")
+        logger.info(
+            f"        Python {sys.version.split()[0]} @ {sys.executable}"
+        )
+        logger.info(
+            f"        platform={_platform.platform()}  cpu={os.cpu_count()}  pid={os.getpid()}"
+        )
+        logger.info(
+            f"        run_id={os.environ.get('NEWS_PROCESS_RUN_ID', '(unset)')}  cwd={os.getcwd()}"
+        )
+        logger.info(
+            f"        module={os.path.abspath(__file__)}"
+        )
+        logger.info(
+            "        成本/确定性: 纯 pandas+openpyxl value_counts, 无 LLM/Embedding/网络 = $0, 确定性强。"
+        )
+    except Exception as _e:
+        logger.warning(f"[环境] ENV banner 输出异常, 跳过 (不影响产物): {_e}")
 
     # 仅供【结果分析】的日志变量 (绝不回写产物): 逐阶段行数 + 逐 sheet 摘要。
     stage_rowcounts: dict[str, int] = {}
@@ -119,6 +149,34 @@ def main():
     output_excel = os.path.join(output_dir, '各阶段_媒体_地区_城市_统计.xlsx')
     print(f"输出文件: {output_excel}")
 
+    # ------------------------------------------------------------------
+    # ⚙ 运行配置 (CONFIG block) — 输入 parquet 集 / 输出路径 / 统计字段 / 阈值清单。
+    # 此前这些信息散在 print(); 现集中 emit 进 <stage>.log 以便审计 (纯日志, golden-safe)。
+    # 阈值字面值与下方【结果分析】块的常量同源 (HIGH_CONCENTRATION/HIGH_NULL), 仅作记录。
+    # ------------------------------------------------------------------
+    try:
+        logger.info("-" * 72)
+        logger.info("【配置】路径与可调参数 (来源 config: paths.yaml::output_dir + filenames::output_*):")
+        logger.info(f"  · output_dir       = {output_dir}")
+        logger.info(f"  · 输出 Excel       = {output_excel}")
+        logger.info(
+            f"  · 扫描阶段 ({len(stages):,} 个) = "
+            + ", ".join(f"{s['label']}<-{s['filename']}" for s in stages)
+        )
+        logger.info(
+            f"  · 统计字段 ({len(stat_fields):,} 个) = "
+            + ", ".join(f"{f}->sheet后缀'{sfx}'" for f, sfx in stat_fields)
+        )
+        logger.info(
+            "  · 阈值: 头部集中度告警 HIGH_CONCENTRATION="
+            f"{sig4(0.50)} (头部单一取值占比 ≥ 此值视高集中); "
+            f"空值告警 HIGH_NULL={sig4(0.20)} (空值占比 ≥ 此值视元数据偏低)。"
+        )
+        logger.info("  · sheet 名上限 = 31 字符 (Excel 约束, 超长截断); 缺文件/缺列则 print 跳过该项。")
+    except Exception as _e:
+        logger.warning(f"[配置] CONFIG block 输出异常, 跳过 (不影响产物): {_e}")
+
+    _t_excel = _time.time()
     with pd.ExcelWriter(output_excel, engine='openpyxl') as writer:
         for stage in stages:
             parquet_path = os.path.join(output_dir, stage['filename'])
@@ -172,6 +230,7 @@ def main():
                     )
 
     print(f"\n已生成 Excel: {output_excel}")
+    phase_t['read_count_write_excel'] = _time.time() - _t_excel
 
     # ------------------------------------------------------------------
     # 结果分析 — 写入日志: 逐阶段行数漏斗 + 各 sheet 集中度/完整性判读。
@@ -207,7 +266,7 @@ def main():
                 elif not prev_n:  # 上一阶段存在但 0 行: 保留率无意义, 不误标为漏斗起点
                     logger.info(
                         f"    {prev_label} → {s}: {n:,} 篇  上一阶段 0 行, 本步保留率无意义  "
-                        f"累计占首阶段={cum_share:.1%}"
+                        f"累计占首阶段={pct4(cum_share)}"
                     )
                 else:
                     step_ratio = n / prev_n
@@ -218,8 +277,8 @@ def main():
                         # 同口径 firm-doc 阶段对 (11→12, 12→21): 才用子集保留率, 反增才提示
                         note = "" if step_ratio <= 1.0 + 1e-9 else "  ⚠ 反增(本阶段非上阶段子集?)"
                     logger.info(
-                        f"    {prev_label} → {s}: {n:,} 篇  本步比值={step_ratio:.1%}  "
-                        f"累计占首阶段={cum_share:.1%}{note}"
+                        f"    {prev_label} → {s}: {n:,} 篇  本步比值={pct4(step_ratio)}  "
+                        f"累计占首阶段={pct4(cum_share)}{note}"
                     )
                 prev_label, prev_n = s, n
         else:
@@ -241,7 +300,7 @@ def main():
                 verdict = ("  ⚠ " + " / ".join(flags)) if flags else "  ✓ 分布健康"
                 logger.info(
                     f"    {label} · {col_name}: 不同取值={n_distinct:,} 个  "
-                    f"头部占比={top_share:.1%}  空值占比={null_share:.1%}{verdict}"
+                    f"头部占比={pct4(top_share)}  空值占比={pct4(null_share)}{verdict}"
                 )
         else:
             logger.info("  (无任何字段成功统计)")
@@ -265,6 +324,17 @@ def main():
                 f"  缺失统计字段 (跳过对应 sheet): {', '.join(missing_fields)} "
                 "— 该阶段 parquet 不含此元数据列 (如 21 阶段精筛后可能丢列); 仅影响该字段分布。"
             )
+        # ⑤ ⏱ 阶段计时: 读盘+频次+写 Excel 主相 + 全程墙钟 (秒, 4 位有效数字)。
+        try:
+            phase_t['total_wall'] = _time.time() - _t_overall
+            logger.info("  ⏱ 阶段计时 (墙钟, 秒):")
+            logger.info(
+                f"    读盘+value_counts+写 Excel = {sig4(phase_t.get('read_count_write_excel', 0.0))} s"
+            )
+            logger.info(f"    全程 (含环境/配置/结果分析日志) = {sig4(phase_t['total_wall'])} s")
+        except Exception as _te:
+            logger.warning(f"[计时] per-phase 计时输出异常, 跳过 (不影响产物): {_te}")
+
         logger.info("-" * 72)
         logger.info(
             f"  ✓ stage 82 done; 成功统计阶段={len(stage_rowcounts)} 个 / "

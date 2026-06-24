@@ -52,6 +52,7 @@ news_process.validation.llms_human — 阶段32：生成人工“金标准”双
 """
 
 import os
+import platform
 import sys
 import time
 
@@ -66,7 +67,13 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import log_memory_usage, log_stage_summary, setup_logging
+from news_process.core.logging import (
+    log_memory_usage,
+    log_stage_summary,
+    pct4,
+    setup_logging,
+    sig4,
+)
 
 # ============================================================================
 # 1. 全局配置和初始化
@@ -149,6 +156,37 @@ def main():
     logger.info("【判读】抽样代表性是 stage 33/34 结论可信度的前提: 抽偏 (全抽易判篇) 会高估机器水平;")
     logger.info("        抽样率应≈目标量/总量, 全选 (N≤目标量) 时下游金标准覆盖度受限须披露。")
     logger.info("【确定性】纯 CPU, 无 LLM/Embedding/网络调用, $0; 固定 random_state → 逐位可复现。")
+
+    # 🧭 项目 / 环境信息 + ⚙ 运行配置 + 📖 方法论依据 (日志富集 2026-06-24, 纯日志 golden-safe)
+    # crash-guard: 整块 try/except 包住, 日志渲染异常绝不冒泡崩阶段 (铁律: 日志块不得让阶段挂)。
+    try:
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.11.1")
+        logger.info(f"     · 阶段: {STAGE_NAME} (人工金标准采样器, 验证支线 stage 32; criterion validity 上游)")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "本阶段纯 CPU / 无 LLM·网络·API ($0) / 固定 random_state → 逐位可复现")
+
+        logger.info("  ⚙ 运行配置 (config::human_validation)")
+        logger.info(f"     · 目标抽样量 SAMPLE_SIZE={SAMPLE_SIZE:,} | 随机种子 RANDOM_SEED={RANDOM_SEED}")
+        logger.info("     · 抽样法: 简单随机抽样 df.sample(n=min(SAMPLE_SIZE,N), random_state=RANDOM_SEED)")
+        logger.info("     · 标注列: 编码者A/B_验证 (锁下拉 {1,0}) + 编码者A/B_情感 (锁下拉 {正面,中性,负面})")
+        logger.info("     · 写盘引擎: xlsxwriter (带数据校验下拉) → 失败回退普通 to_excel")
+
+        logger.info("  📖 方法论依据 (人工金标准 / 双编码者一致性 / LLM-vs-人工效标效度)")
+        logger.info("     · LLM 标注 vs 人工编码 (效标效度): Gilardi, F., Alizadeh, M., & Kubli, M. (2023). "
+                    "ChatGPT outperforms crowd workers for text-annotation tasks. Proceedings of the National "
+                    "Academy of Sciences, 120(30), e2305016120. https://doi.org/10.1073/pnas.2305016120")
+        logger.info("       → 本阶段抽样产'人工标准答案', 用于 stage 33/34 检验 LLM 投票与人工判定是否一致。")
+        logger.info("     · 多编码者三角验证: Denzin, N. K. (2017). The research act: A theoretical introduction "
+                    "to sociological methods. Routledge. https://doi.org/10.4324/9781315134543")
+        logger.info("       → 两位独立编码员交叉复核 (一致采纳 / 分歧标'待仲裁') = 调查者三角化以提升测度可信度。")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法论信息打印失败 (不影响结果生成): {_e}")
 
     # 优先使用全量 LLM 结果
     input_filename = CONFIG.get('filenames', {}).get('output_21_tone_llms_full', '21_tone_llms_full.parquet')
@@ -245,7 +283,7 @@ def main():
             )
         else:
             logger.info(
-                f"  实际抽样 = {n_sample:,} 篇, 抽样率 = {sample_frac:.2f}% "
+                f"  实际抽样 = {n_sample:,} 篇, 抽样率 = {pct4(sample_frac, fraction=False)} "
                 f"(简单随机, random_state={RANDOM_SEED}, 逐位可复现)"
             )
             # 仅作记录: 抽样率 = 实际抽样量/总量, 由 .sample(n=target) 构造保证抽样量恒等于目标量
@@ -302,7 +340,16 @@ def merge_annotations(input_path: str = None, output_path: str = None):
         output_path: 合并后的输出文件路径。默认在同目录生成 ``_merged`` 后缀文件。
     """
     merge_start = time.time()
-    logger.info(f"--- 开始人工标注合并 ---")
+    logger.info("--- 开始人工标注合并 ---")
+
+    # 📖 子步骤 banner: 双编码者一致性合并 = 调查者三角化 (日志富集 2026-06-24, 纯日志 golden-safe)
+    try:
+        logger.info("  步骤: 双编码者人工判定合并 (一致采纳共识 / 分歧标'待仲裁'剔除)")
+        logger.info("     方法依据: Denzin, N. K. (2017). The research act: A theoretical introduction "
+                    "to sociological methods. Routledge. https://doi.org/10.4324/9781315134543")
+        logger.info("     判读: 一致率越高 → 标注任务越客观、金标准越可信; 待仲裁条目正是 stage 33 须剔除的 attrition。")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  合并方法论 banner 打印失败 (不影响合并): {_e}")
 
     # 解析路径
     if input_path is None:
@@ -353,8 +400,8 @@ def merge_annotations(input_path: str = None, output_path: str = None):
         n_total_ver = int(both_valid.sum())
         agree_rate_ver = n_agree_ver / n_total_ver * 100 if n_total_ver > 0 else 0
 
-        logger.info(f"[验证] 合并完成: 一致={n_agree_ver}, 分歧={n_disagree_ver}, "
-                     f"一致率={agree_rate_ver:.1f}%")
+        logger.info(f"[验证] 合并完成: 一致={n_agree_ver:,}, 分歧={n_disagree_ver:,}, "
+                     f"一致率={pct4(agree_rate_ver, fraction=False)}")
     else:
         logger.warning(f"未找到验证判定列（{ver_a_col}, {ver_b_col}），跳过验证合并")
 
@@ -383,8 +430,8 @@ def merge_annotations(input_path: str = None, output_path: str = None):
         n_total_sen = int(both_valid_sen.sum())
         agree_rate_sen = n_agree_sen / n_total_sen * 100 if n_total_sen > 0 else 0
 
-        logger.info(f"[情感] 合并完成: 一致={n_agree_sen}, 分歧={n_disagree_sen}, "
-                     f"一致率={agree_rate_sen:.1f}%")
+        logger.info(f"[情感] 合并完成: 一致={n_agree_sen:,}, 分歧={n_disagree_sen:,}, "
+                     f"一致率={pct4(agree_rate_sen, fraction=False)}")
     else:
         logger.warning(f"未找到情感判定列（{sen_a_col}, {sen_b_col}），跳过情感合并")
 
@@ -404,13 +451,13 @@ def merge_annotations(input_path: str = None, output_path: str = None):
     logger.info("--- 合并统计摘要 ---")
     if final_ver_col in df.columns:
         pending_ver = int((df[final_ver_col] == -1).sum())
-        logger.info(f"  验证: 待仲裁 {pending_ver} 条")
+        logger.info(f"  验证: 待仲裁 {pending_ver:,} 条 (stage 33 须剔除的 attrition)")
     if final_sen_col in df.columns:
         pending_sen = int((df[final_sen_col] == '待仲裁').sum())
-        logger.info(f"  情感: 待仲裁 {pending_sen} 条")
+        logger.info(f"  情感: 待仲裁 {pending_sen:,} 条 (stage 33 须剔除的 attrition)")
 
     elapsed = time.time() - merge_start
-    logger.info(f"--- 标注合并完毕 (耗时 {elapsed:.1f}s) ---")
+    logger.info(f"--- 标注合并完毕 (耗时 {sig4(elapsed)}s) ---")
 
 
 if __name__ == "__main__":

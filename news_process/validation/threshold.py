@@ -74,6 +74,7 @@ news_process.validation.threshold — 阶段31：分类阈值敏感性分析
 """
 
 import os
+import platform
 import sys
 import time
 
@@ -88,7 +89,13 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import log_memory_usage, log_stage_summary, setup_logging
+from news_process.core.logging import (
+    log_memory_usage,
+    log_stage_summary,
+    pct4,
+    setup_logging,
+    sig4,
+)
 from news_process.core.plotting import configure_matplotlib_chinese_fonts
 from news_process.core.text.ahocorasick import (
     analyze_bank_matches,
@@ -498,10 +505,37 @@ def main():
     logger.info("【判读】最理想是当前阈值落在'平台区'(±1 微调时正例数几乎不变=稳健, 非凑结果);")
     logger.info("        相邻阈值 |Δ正例数| 降幅最大处(np.argmin diffs, 即 diff 最负处)= '拐点/陡降区',")
     logger.info("        离当前阈值越远越好 (注: 正例数随阈值单调非增, diffs<=0, argmin 取最负=绝对降幅最大)。")
-    logger.info("【文献】Loughran & McDonald (2011, JF 66(1):35-65) 分类关键参数须做敏感性分析;")
-    logger.info("        Gentzkow, Kelly & Taddy (2019, JEL 57(3):535-574) 文本分析人为选择须报告稳健性。")
+    logger.info("【文献】分类关键参数须做敏感性分析 + 文本分析全部人为选择 (如阈值) 须报告稳健性:")
+    logger.info("  · Loughran, T., & McDonald, B. (2011). When is a liability not a liability? "
+                "Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. "
+                "https://doi.org/10.1111/j.1540-6261.2010.01625.x")
+    logger.info("  · Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. "
+                "Journal of Economic Literature, 57(3), 535-574. "
+                "https://doi.org/10.1257/jel.20181020")
     logger.info("【确定性】纯 CPU 计数, 无 LLM/Embedding/BERT; 抽样 seed 固定=42 → 逐位可复现。")
     logger.info("=" * 72)
+
+    # ① 🧭 项目 / 环境信息 (运行环境指纹 — tone_words.py 黄金范式; 仅日志, golden-safe)。
+    # 整块 try/except 兜底: 任何 env-probe 异常都不得拖垮验证阶段。
+    try:
+        _ver = CONFIG.get('project', {}).get('version', 'v3.11.1')
+        logger.info("【环境】项目 = news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) "
+                    f"| 版本 {_ver}")
+        logger.info(
+            f"        Python {sys.version.split()[0]} @ {sys.executable}"
+        )
+        logger.info(
+            f"        平台 {platform.platform()} | CPU {os.cpu_count()} 核 | PID {os.getpid()}"
+        )
+        logger.info(
+            f"        run_id={os.environ.get('NEWS_PROCESS_RUN_ID', '(未设)')} "
+            "| 成本 $0 (纯本地 CPU, 无付费 API / 无网络)"
+        )
+        logger.info(f"        模块 = {os.path.abspath(__file__)}")
+        logger.info(f"        工作目录 = {os.getcwd()}")
+        logger.info("=" * 72)
+    except Exception as _e:  # pragma: no cover - env banner 仅日志
+        logger.warning(f"[环境] banner 输出异常, 跳过(不影响产物): {_e}")
 
     # 使用抽样进行快速分析——取 min(10000, max(1000, 10%)) 行 (下限 1000, 上限封顶 1 万)
     sample_frac = CONFIG.get('threshold_sensitivity', {}).get('sample_fraction', 0.10)
@@ -533,7 +567,7 @@ def main():
     sample_n = min(sample_max, max(1000, int(total_rows * sample_frac)))
     if sample_n < total_rows:
         df_sample = df.sample(n=sample_n, random_state=42)
-        logger.info(f"使用 {sample_n:,} 条抽样进行分析（占比 {sample_n/total_rows*100:.1f}%）")
+        logger.info(f"使用 {sample_n:,} 条抽样进行分析（占比 {pct4(sample_n/total_rows)}）")
     else:
         df_sample = df
         logger.info("使用全量数据进行分析")
@@ -573,7 +607,7 @@ def main():
         short_name_exclusions=short_name_exclusions,
         context_window=context_window,
     )
-    logger.info(f"银行匹配预计算完成，耗时 {time.time() - t_precompute:.1f}s")
+    logger.info(f"银行匹配预计算完成，耗时 {sig4(time.time() - t_precompute)}s")
 
     bank_results = []
     for threshold in threshold_range:
@@ -596,9 +630,9 @@ def main():
         marker = " ← 当前阈值" if threshold == current_threshold else ""
         logger.info(
             f"  min_name_occurrences={threshold}: "
-            f"正例={n_positive:,} ({ratio:.1f}%), "
+            f"正例={n_positive:,} ({pct4(ratio, fraction=False)}), "
             f"估计全量={result['estimated_total']:,}, "
-            f"耗时={elapsed:.1f}s{marker}"
+            f"耗时={sig4(elapsed)}s{marker}"
         )
 
     # ======================================================================
@@ -644,9 +678,9 @@ def main():
         marker = " ← 当前阈值" if threshold == ft_current_threshold else ""
         logger.info(
             f"  min_distinct_keywords={threshold}: "
-            f"正例={n_positive:,} ({ratio:.1f}%), "
+            f"正例={n_positive:,} ({pct4(ratio, fraction=False)}), "
             f"估计全量={result['estimated_total']:,}, "
-            f"耗时={elapsed:.1f}s{marker}"
+            f"耗时={sig4(elapsed)}s{marker}"
         )
 
     # ======================================================================
@@ -729,11 +763,14 @@ def main():
         max_pct = max(abs(n['count'] - cur['count']) / cur['count'] * 100
                       for n in neighbors)
         if max_pct < 5.0:
-            verdict = f'平台区 (±1 仅 {max_pct:.1f}% 波动 <5% → 阈值稳健, 非凑结果)'
+            verdict = (f'平台区 (±1 仅 {pct4(max_pct, fraction=False)} 波动 <5% '
+                       '→ 阈值稳健, 非凑结果)')
         elif max_pct < 15.0:
-            verdict = f'缓坡区 (±1 波动 {max_pct:.1f}% → 尚可, 建议附录披露敏感性)'
+            verdict = (f'缓坡区 (±1 波动 {pct4(max_pct, fraction=False)} '
+                       '→ 尚可, 建议附录披露敏感性)')
         else:
-            verdict = f'陡降区 (±1 波动 {max_pct:.1f}% ≥15% → 不利, 微调即显著改变样本, 须谨慎)'
+            verdict = (f'陡降区 (±1 波动 {pct4(max_pct, fraction=False)} ≥15% '
+                       '→ 不利, 微调即显著改变样本, 须谨慎)')
         return cur['count'], cur['ratio'], max_pct, verdict
 
     # crash-guard: 结果分析块整体 try/except, 任何诊断异常都不得拖垮阶段
@@ -748,22 +785,22 @@ def main():
         b_cnt, b_ratio, b_pct, b_verdict = _platform_verdict(
             bank_results, current_threshold)
         logger.info(
-            f"  · 银行分类 @当前阈值={current_threshold}: 正例={b_cnt:,} ({b_ratio:.1f}%), "
+            f"  · 银行分类 @当前阈值={current_threshold}: 正例={b_cnt:,} ({pct4(b_ratio, fraction=False)}), "
             f"估计全量={next((r['estimated_total'] for r in bank_results if r['threshold'] == current_threshold), 0):,}"
         )
         logger.info(
-            f"    判读 (±1 最大波动 {b_pct:.1f}%): {b_verdict}"
+            f"    判读 (±1 最大波动 {pct4(b_pct, fraction=False)}): {b_verdict}"
             if b_pct is not None else f"    判读: {b_verdict}"
         )
 
         f_cnt, f_ratio, f_pct, f_verdict = _platform_verdict(
             fintech_results, ft_current_threshold)
         logger.info(
-            f"  · 金科分类 @当前阈值={ft_current_threshold}: 正例={f_cnt:,} ({f_ratio:.1f}%), "
+            f"  · 金科分类 @当前阈值={ft_current_threshold}: 正例={f_cnt:,} ({pct4(f_ratio, fraction=False)}), "
             f"估计全量={next((r['estimated_total'] for r in fintech_results if r['threshold'] == ft_current_threshold), 0):,}"
         )
         logger.info(
-            f"    判读 (±1 最大波动 {f_pct:.1f}%): {f_verdict}"
+            f"    判读 (±1 最大波动 {pct4(f_pct, fraction=False)}): {f_verdict}"
             if f_pct is not None else f"    判读: {f_verdict}"
         )
 
@@ -788,7 +825,7 @@ def main():
         # 小样本警告 (盘面抽样 / T=2)。
         if sample_n < total_rows:
             logger.info(
-                f"  ⚠ 本次为抽样分析 ({sample_n:,}/{total_rows:,}={sample_n / total_rows * 100:.1f}%), "
+                f"  ⚠ 本次为抽样分析 ({sample_n:,}/{total_rows:,}={pct4(sample_n / total_rows)}), "
                 "全量比率以外推值为参考; 阈值平台/陡降判读以 17M/T=18 全量实测为准, 当前仅验证管道正确性。"
             )
         logger.info("-" * 72)

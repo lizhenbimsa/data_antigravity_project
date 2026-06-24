@@ -65,8 +65,10 @@
     Introduction to information retrieval. Cambridge University Press. 
     https://doi.org/10.1017/CBO9780511809071
   - 文本连贯性: 欧阳志刚, 胡雯华. (2024). 央行沟通公告有助于提升政策利率
-    的传导效率吗？数量经济技术经济研究, 41(10), 69–88. 
+    的传导效率吗？数量经济技术经济研究, 41(10), 69–88.
     https://doi.org/10.13653/j.cnki.jqte.2024.10.004
+    [DOI 未在 chndoi.org 注册, 经 Crossref/DataCite/doi.org 均 404; 文献本身经
+     WebSearch 佐证存在 (欧阳志刚 & 胡雯华 2024 央行沟通研究), 但 DOI 链接待核验]
   - 句向量表征: Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence
     embeddings using Siamese BERT-networks. Proceedings of EMNLP 2019,
     3982–3992. https://doi.org/10.18653/v1/D19-1410
@@ -274,6 +276,7 @@ def _split_text_for_embedding(text: str) -> list[str]:
 
 
 # --- 从 panel/encode 导入共享配置 (Phase 2a: 取代旧的 importlib 反射) ---
+from news_process.core.logging import pct4, sig4  # noqa: E402  # 日志四位有效数字单一事实源
 from news_process.pipeline.panel.encode import CONFIG, logger  # noqa: E402
 
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
@@ -631,7 +634,7 @@ def _build_lda_jsd_matrix(texts, n_banks):
         n_components=K, random_state=42,
         max_iter=50, learning_method='online', n_jobs=1)
     theta = lda.fit_transform(dtm)
-    logger.info(f"    LDA K={K}, perplexity={lda.perplexity(cv.transform(texts)):.1f}")
+    logger.info(f"    LDA K={K}, perplexity={sig4(lda.perplexity(cv.transform(texts)))}")
 
     # 计算 pairwise JSD (对称半矩阵)
     jsd_mat = np.zeros((n_banks, n_banks))
@@ -1149,6 +1152,7 @@ def _compute_fluidity(agg_df, mode='char'):
 #   欧阳志刚, 胡雯华. (2024). 央行沟通公告有助于提升政策利率的传导效率吗？
 #     数量经济技术经济研究, 41(10), 69–88.
 #     https://doi.org/10.13653/j.cnki.jqte.2024.10.004
+#     [DOI 未在 chndoi.org 注册, Crossref/DataCite/doi.org 均 404; 文献待核验]
 #   Salton, G., & Buckley, C. (1988). Term-weighting approaches in automatic
 #     text retrieval. Information Processing & Management, 24(5), 513–523.
 #     https://doi.org/10.1016/0306-4573(88)90021-0
@@ -1472,7 +1476,7 @@ def _log_coherence_diagnostics(panel):
             valid = panel[[cc, tone_col]].dropna()
             if len(valid) > 5:
                 r = valid[cc].corr(valid[tone_col])
-                logger.info(f"    {cc} ↔ {tone_col}: r = {r:.3f} "
+                logger.info(f"    {cc} ↔ {tone_col}: r = {sig4(r)} "
                             f"({'✅ 正交' if abs(r) < 0.3 else '相关偏高'})")
 
     # 值域断言 (fix(omni-g-strategic-03), 2026-06-11): coh_emb* (embedding 余弦,
@@ -1482,7 +1486,7 @@ def _log_coherence_diagnostics(panel):
         if len(v) > 0:
             lo = -1.0 if col.startswith('coh_emb') else 0.0
             assert (v >= lo - 1e-10).all() and (v <= 1 + 1e-10).all(), \
-                f"{col} 超出 [{lo:g},1] 值域: min={v.min():.6f}, max={v.max():.6f}"
+                f"{col} 超出 [{lo:g},1] 值域: min={sig4(v.min())}, max={sig4(v.max())}"
 
 
 # ============================================================================
@@ -1538,6 +1542,54 @@ def compute_strategic_differentiation(df_exploded, panel):
     logger.info("战略差异度指数 (Guzman & Li 2023; Hoberg & Phillips 2016)")
     logger.info("=" * 60)
 
+    # ── 子步骤 banner (called-by-runner helper, 共享 40_build_panel 日志; ENV/CONFIG
+    #    由 runner 入口负责, 此处只打 step 名 + 方法依据引文 + 本步配置/判读) ──
+    # 失败包 try/except, 日志块绝不崩阶段 (playbook §1)。
+    import time as _time  # 仅服务于本步 per-phase 计时
+    _t_entry = _time.time()
+    try:
+        logger.info("  ┌─ 子步骤: 金融科技战略差异度指数 (FinTech Strategic Differentiation)")
+        logger.info("  │  功能: (银行,年) 聚合新闻文档 → 4 法文本距离矩阵 → N-最近邻聚合 Ŝ_i")
+        logger.info("  │        + 全行业质心距离 + Fluidity + 相邻期连贯性; 三轨 full/ctx/ss 互为稳健性")
+        logger.info("  │  确定性/成本: 本地 TF-IDF/LDA $0 确定 (LDA n_jobs=1+seed=42 逐位可复现);")
+        logger.info("  │        Embedding 主轨 (text-embedding-3-small) 缓存命中 $0, 缺失才付费;")
+        logger.info("  │        text2vec 稳健 twin 走本地 sentence-transformers ($0)")
+        logger.info("  │  📖 方法论依据 (核心构念 → 学术出处, emit 进日志):")
+        logger.info("  │   · N-最近邻战略差异度 Ŝ_i=(1/N)Σδ_ij: Guzman, J., & Li, A. (2023). "
+                    "Measuring founding strategy. Management Science, 69(1), 101-118. "
+                    "https://doi.org/10.1287/mnsc.2022.4369")
+        logger.info("  │   · 逐年文本相似度网络 (TNIC): Hoberg, G., & Phillips, G. (2016). "
+                    "Text-based network industries and endogenous product differentiation. "
+                    "Journal of Political Economy, 124(5), 1423-1465. https://doi.org/10.1086/688176")
+        logger.info("  │   · Fluidity 竞争流动性: Hoberg, G., Phillips, G., & Prabhala, N. (2014). "
+                    "Product market threats, payouts, and financial flexibility. The Journal of "
+                    "Finance, 69(1), 293-324. https://doi.org/10.1111/jofi.12050")
+        logger.info("  │   · 文本创新度量: Bellstam, G., Bhagat, S., & Cookson, J. A. (2021). "
+                    "A text-based analysis of corporate innovation. Management Science, 67(7), "
+                    "4004-4031. https://doi.org/10.1287/mnsc.2020.3682")
+        logger.info("  │   · JSD 主题分布距离: Lin, J. (1991). Divergence measures based on the "
+                    "Shannon entropy. IEEE Transactions on Information Theory, 37(1), 145-151. "
+                    "https://doi.org/10.1109/18.61115")
+        logger.info("  │   · TF-IDF 词权与 sublinear tf: Manning, C. D., Raghavan, P., & Schütze, H. "
+                    "(2008). Introduction to information retrieval. Cambridge University Press. "
+                    "https://doi.org/10.1017/CBO9780511809071")
+        logger.info("  │   · term-weighting 经典依据: Salton, G., & Buckley, C. (1988). "
+                    "Term-weighting approaches in automatic text retrieval. Information Processing "
+                    "& Management, 24(5), 513-523. https://doi.org/10.1016/0306-4573(88)90021-0")
+        logger.info("  │   · 稠密语义向量 (Embedding 轨): Reimers, N., & Gurevych, I. (2019). "
+                    "Sentence-BERT: Sentence embeddings using Siamese BERT-networks. In Proceedings "
+                    "of the 2019 Conference on Empirical Methods in Natural Language Processing and "
+                    "the 9th International Joint Conference on Natural Language Processing "
+                    "(EMNLP-IJCNLP) (pp. 3980-3990). Association for Computational Linguistics. "
+                    "https://doi.org/10.18653/v1/D19-1410")
+        logger.info("  │   · 文本数据方法论 (分词/停用词): Gentzkow, M., Kelly, B., & Taddy, M. (2019). "
+                    "Text as data. Journal of Economic Literature, 57(3), 535-574. "
+                    "https://doi.org/10.1257/jel.20181020")
+        logger.info("  │   · 相邻期连贯性: 欧阳志刚 & 胡雯华 (2024). 数量经济技术经济研究, 41(10), "
+                    "69-88 (DOI 待核验, chndoi.org 未注册, 不作已证事实引用)")
+    except Exception as _banner_exc:  # noqa: BLE001
+        logger.warning(f"  战略差异度 banner 日志失败 (不阻塞): {_banner_exc!r}")
+
     # 【白话】N_LIST = [3,4,5,6,7] 表示分别看最像的 3/4/5/6/7 家同行
     #   N=5 是论文推荐的基准值，其他是"换个数字看结果是否稳定"
     N_LIST = [3, 4, 5, 6, 7]
@@ -1550,6 +1602,19 @@ def compute_strategic_differentiation(df_exploded, panel):
     # fix(completeness-04): full 轨读 content_full(含标题), 与 ctx 轨(content_ctx)对称;
     # 原默认裸 '内容'(无标题) 致 full↔ctx 不对称 (病根A 同型, 见 :339 注释)。
     _full_text_col = 'content_full' if 'content_full' in df_exploded.columns else '内容'
+    # ── 本步配置快照 (helper 读取的可调参数; 输入/输出路径由 runner 入口已打) ──
+    try:
+        _emb_main = (EMBEDDING_CONFIG.get('model') or 'text-embedding-3-small') if EMBEDDING_CONFIG else 'text-embedding-3-small'
+        _emb_t2v = _ROBUSTNESS_SPEC.get('model') or _ROBUSTNESS_SPEC.get('model_dir') or '(text2vec local)'
+        logger.info(
+            f"  │  ⚙ 配置: N_LIST={N_LIST} (基准 N=5) · co_mention_downweight={_co_dw} · "
+            f"full轨文本列='{_full_text_col}' · 主嵌入='{_emb_main}' · 稳健twin='{_emb_t2v}' · "
+            f"emb单条上限={_EMB_MAX_TOKENS:,d} tok · 批上限={_EMB_MAX_TOKENS_PER_REQUEST:,d} tok")
+        logger.info(
+            "  └─ 值域口径: TF-IDF/LDA 距离∈[0,1]; Embedding 相似度∈[-1,1], 距离δ=1−cos∈[0,2]; "
+            "LDA n_jobs=1+seed=42 (跨机逐位可复现)")
+    except Exception as _cfg_exc:  # noqa: BLE001
+        logger.warning(f"  战略差异度 config 日志失败 (不阻塞): {_cfg_exc!r}")
     agg_df = _aggregate_bank_year_texts(df_exploded, text_col=_full_text_col,
                                         co_mention_downweight=_co_dw)
     all_results = []  # 用来收集所有年度、所有银行的计算结果
@@ -1867,6 +1932,46 @@ def compute_strategic_differentiation(df_exploded, panel):
         if _contract_col not in panel.columns:
             panel[_contract_col] = np.nan
 
+    # ── 关键指标解读 (运行结果信息) + 子步骤墙钟 ──
+    try:
+        _strat_cols = [c for c in panel.columns
+                       if c.startswith('strat_') or c.startswith('centroid_')
+                       or c.startswith('coh_') or c.startswith('lazy_')]
+        logger.info(f"  📊 战略差异度结果: 落列 {len(_strat_cols):,d} 列 "
+                    f"(strat_*/centroid_*/coh_*/lazy_*) on {len(panel):,d} 银行年")
+        # 基准列 strat_diff_n5 (Guzman-Li N=5) 的覆盖率与分布判读
+        _base = 'strat_diff_n5'
+        if _base in panel.columns:
+            v = panel[_base].dropna()
+            if len(v) > 0:
+                _cov = len(v) / max(1, len(panel))
+                _cov_verdict = ('✅ 覆盖充分' if _cov >= 0.5
+                                else ('⚠ 覆盖偏低 (小样本/年内<3 银行闸门)' if _cov >= 0.2
+                                      else '❌ 覆盖过低'))
+                logger.info(
+                    f"    · {_base}: 非空 {len(v):,d}/{len(panel):,d} "
+                    f"({pct4(_cov)}) {_cov_verdict}; "
+                    f"μ={sig4(v.mean())} σ={sig4(v.std())} "
+                    f"[min={sig4(v.min())}, max={sig4(v.max())}]")
+                # 零方差自检 (战略差异度若全相等 → 文档高度同质, 无区分力)
+                if float(v.std()) < 1e-9:
+                    logger.warning("    · strat_diff_n5 近零方差: 年内文档高度同质, "
+                                   "战略差异度无区分力 (检查文本聚合/共提及机械相似)")
+            else:
+                logger.warning(f"    · {_base}: 全空 (无年度通过 ≥3 银行闸门)")
+        # 三轨齐备性判读 (full/ctx/ss N=5 主列)
+        _track_cov = {
+            sfx or 'full': (panel[f'strat_diff_n5{sfx}'].notna().sum()
+                            if f'strat_diff_n5{sfx}' in panel.columns else 0)
+            for sfx in ('', '_ctx', '_ss')}
+        logger.info(f"    · 三轨 strat_diff_n5 覆盖 (非空行数): "
+                    f"full={_track_cov['full']:,d} ctx={_track_cov['_ctx']:,d} "
+                    f"ss={_track_cov['_ss']:,d} "
+                    f"({'三轨齐备' if all(_track_cov.values()) else '部分轨道空/缺列, 优雅降级'})")
+        logger.info(f"  ⏱ 战略差异度子步骤墙钟: {sig4(_time.time() - _t_entry)} 秒")
+    except Exception as _result_exc:  # noqa: BLE001
+        logger.warning(f"  战略差异度 result-analysis 日志失败 (不阻塞): {_result_exc!r}")
+
     return panel
 
 
@@ -1903,4 +2008,4 @@ def _log_robustness_diagnostics(panel):
         else:
             lo, hi = 0.0, 1.0        # TF-IDF / LDA / fluidity
         assert (v >= lo - 1e-10).all() and (v <= hi + 1e-10).all(), \
-            f"{col} 超出 [{lo:g},{hi:g}] 值域: min={v.min():.6f}, max={v.max():.6f}"
+            f"{col} 超出 [{lo:g},{hi:g}] 值域: min={sig4(v.min())}, max={sig4(v.max())}"

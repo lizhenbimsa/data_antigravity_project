@@ -59,13 +59,16 @@ ss=银行+金科同句共现窗口) 各打一次标签。κ 衡量任意两套�
 ========================================================================
 """
 import os
+import platform
+import sys
+import time
 import warnings
 
 import numpy as np
 import pandas as pd
 
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging
+from news_process.core.logging import pct4, setup_logging, sig4
 from news_process.validation.radius_sensitivity_llm import cohens_kappa_2cat
 
 STAGE_NAME = "71_inter_track_kappa"
@@ -274,6 +277,60 @@ def _render_tex(table_df, out_path):
         f.write("\n".join(lines) + "\n")
 
 
+def _log_environment_config_methods(logger, config, input_path, csv_path, tex_path):
+    """打印 项目/环境 + 输入输出 + 运行配置 + 方法论依据 四块 (日志富集 2026-06-24)。
+
+    把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数、方法学出处"一次性落进
+    日志, 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 / schema / 控制流 (golden-safe)。
+
+    参考文献策略: 本模块核心方法 (Cohen 1960 κ / Landis & Koch 1977 解释阈值 /
+    Holm 1979 FWER) 的 DOI 不在本工作流"经核验参考文献注册表"中, 故按铁律仅 emit
+    作者-年份-期刊方法名 (不伪造 DOI 链接); 完整出处见模块顶部 docstring 注释。
+    """
+    try:
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (轨间一致性 Cohen's κ; STAGES_VALIDATION 39a)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "纯 numpy/pandas, 无 LLM·Embedding·BERT·网络 ($0); seed=42 确定性逐位可复现")
+
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 输入:     {input_path} (文章级 LLM 标注; 过滤 llm_verified_dual_both==True)")
+        logger.info(f"     · 输出 CSV: {csv_path} (机器可读 9 行诊断表)")
+        logger.info(f"     · 输出 TeX: {tex_path} (论文附录 Table A1 booktabs)")
+        logger.info("     · config 来源键: paths.output_dir / paths.log_dir")
+
+        logger.info("  ⚙ 运行配置")
+        logger.info("     · bootstrap: n_boot=1000 | seed=42 | 95% CI=NaN-aware [2.5%, 97.5%] nanpercentile")
+        logger.info("     · CI 守卫: n_obs<3 短路 NaN | 有限重抽 <50% → CI=NaN + RuntimeWarning")
+        logger.info(f"     · bootstrap p 值: 单侧 H0 κ=0 vs κ>0; 同维度 family={len(_TRACK_PAIRS)} pair 做 Holm 校正")
+        logger.info("     · 三轨 pair: " + " / ".join(p[2] for p in _TRACK_PAIRS)
+                    + " (full=全文 / ctx=银行实体窗 / ss=银行+金科同句窗)")
+        for fld, thr in _THRESHOLDS.items():
+            logger.info(f"     · 阈值 {fld.replace('innovation_', ''):<16}: κ ≥ {sig4(thr)} "
+                        "(passes_threshold 判定线)")
+        logger.info("     · 哨兵区间: κ∈[0.30, 0.70] 为期望区 (<0.30 某轨噪声 / >0.70 轨间冗余)")
+
+        logger.info("  📖 方法论依据 (核心构念学术出处, 经 logger 落入 .log)")
+        logger.info("     · Cohen, J. (1960). A coefficient of agreement for nominal scales. "
+                    "Educational and Psychological Measurement, 20(1), 37-46. "
+                    "https://doi.org/10.1177/001316446002000104  [κ=(p_o−p_e)/(1−p_e)]")
+        logger.info("       → 两评分者名义类别一致性的偶然校正度量 (此处=两文本口径标签一致程度)")
+        logger.info("     · Landis, J. R., & Koch, G. G. (1977). The measurement of observer agreement "
+                    "for categorical data. Biometrics, 33(1), 159-174. https://doi.org/10.2307/2529310")
+        logger.info("       → fair/moderate/substantial 分级; 项目约定期望 κ∈[0.50, 0.70] (非越高越好)")
+        logger.info("     · Holm (1979). step-down FWER 校正, Scandinavian Journal of Statistics")
+        logger.info("       → 同维度 3 个 pair 多重检验族错误率控制 (比 Bonferroni 更不保守)")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
+
+
 def run_stage(config=None, logger=None):
     """Stage 39a 入口。
 
@@ -303,7 +360,18 @@ def run_stage(config=None, logger=None):
 
     output_dir = config["paths"]["output_dir"]
     input_path = os.path.join(output_dir, "21_tone_llms.parquet")
+    eval_dir = os.path.join(output_dir, "eval_reports")
+    csv_path = os.path.join(eval_dir, "inter_track_kappa_table.csv")
+    tex_path = os.path.join(eval_dir, "inter_track_kappa_table.tex")
 
+    # 项目/环境 + 输入输出 + 配置 + 方法论依据 四块 (日志富集 2026-06-24)
+    _log_environment_config_methods(logger, config, input_path, csv_path, tex_path)
+
+    # 运行期阶段计时累计 (各主要阶段墙钟耗时, 末尾汇总打印)
+    phase_durations: dict[str, float] = {}
+
+    # ① 读取 + dual_both 过滤
+    _t = time.perf_counter()
     if not os.path.exists(input_path):
         logger.warning(f"Input not found: {input_path}; emitting NaN row table.")
         # 三轨占位列 (full/ctx/ss); ss = 银行+金科同句共现轨
@@ -326,16 +394,19 @@ def run_stage(config=None, logger=None):
             df_subset = df[df['llm_verified_dual_both'] == True].copy()
             if len(df_subset) == 0:
                 logger.warning("dual_both subset empty; emitting NaN rows.")
+    phase_durations['①读取+dual_both过滤'] = time.perf_counter() - _t
 
+    # ② κ 点估计 + bootstrap CI + Holm FWER (本阶段计算主体)
+    _t = time.perf_counter()
     table = compute_inter_track_kappa(df_subset)
+    phase_durations['②κ+bootstrap+Holm'] = time.perf_counter() - _t
 
-    eval_dir = os.path.join(output_dir, "eval_reports")
+    # ③ 写 CSV + TeX
+    _t = time.perf_counter()
     os.makedirs(eval_dir, exist_ok=True)
-    csv_path = os.path.join(eval_dir, "inter_track_kappa_table.csv")
-    tex_path = os.path.join(eval_dir, "inter_track_kappa_table.tex")
-
     table.to_csv(csv_path, index=False, encoding='utf-8')
     _render_tex(table, tex_path)
+    phase_durations['③写CSV+TeX'] = time.perf_counter() - _t
 
     # 阈值区间告警, 按 plan v1.37 §4.3.1 step 6 (三轨化: 含 pair 标签)
     for _, r in table.iterrows():
@@ -348,7 +419,7 @@ def run_stage(config=None, logger=None):
                 stacklevel=2,
             )
             logger.warning(
-                f"{r['field']} [{r['pair']}] κ={k:.4f} outside [0.30, 0.70] sentinel range."
+                f"{r['field']} [{r['pair']}] κ={sig4(k)} outside [0.30, 0.70] sentinel range."
             )
 
     # 结果分析 — 写入日志: 逐行 κ 点估计 + CI + Holm p 值 + 阈值/区间判读。
@@ -386,21 +457,23 @@ def run_stage(config=None, logger=None):
             verdict = "κ<0.30 → 某轨噪声 (不利)"
             n_noise += 1
         elif k >= thr:
-            verdict = f"达阈值 (≥{thr:.2f}) 且落 [0.30,0.70] 互补区间 (好)"
+            verdict = f"达阈值 (≥{sig4(thr)}) 且落 [0.30,0.70] 互补区间 (好)"
             n_pass += 1
         else:
-            verdict = f"未达阈值 (<{thr:.2f}) 但落 [0.30,0.70] (临界偏弱)"
-        ph_str = "NaN" if (ph is None or np.isnan(ph)) else f"{ph:.4f}"
+            verdict = f"未达阈值 (<{sig4(thr)}) 但落 [0.30,0.70] (临界偏弱)"
+        ph_str = "NaN" if (ph is None or np.isnan(ph)) else sig4(ph)
         sig = "" if (ph is None or np.isnan(ph)) else (
             " [Holm 后 κ>0 显著]" if ph < 0.05 else " [Holm 后不显著]"
         )
         logger.info(
-            f"  {fld} [{r['pair']}]: κ={k:.4f}  95%CI=[{lo:.4f}, {hi:.4f}]  "
+            f"  {fld} [{r['pair']}]: κ={sig4(k)}  95%CI=[{sig4(lo)}, {sig4(hi)}]  "
             f"n_obs={n_obs}  Holm_p={ph_str}{sig} → {verdict}"
         )
-    # 汇总判读
+    # 汇总判读 (达阈值占比 pct4)
+    pass_frac = (n_pass / n_valid) if n_valid else float('nan')
+    pass_str = "n/a" if np.isnan(pass_frac) else pct4(pass_frac)
     logger.info(
-        f"  汇总: 有效行 {n_valid}/{len(table)} | 达阈值(好) {n_pass} | "
+        f"  汇总: 有效行 {n_valid}/{len(table)} | 达阈值(好) {n_pass} (占有效行 {pass_str}) | "
         f"冗余 κ>0.70 {n_redundant} | 噪声 κ<0.30 {n_noise}"
     )
     if n_valid == 0:
@@ -420,6 +493,15 @@ def run_stage(config=None, logger=None):
             "全量结论以 17M/T=18 实测为准。"
         )
     logger.info("-" * 72)
+
+    # ⏱ 阶段计时汇总 (各子阶段墙钟耗时; 数值 sig4 秒)
+    try:
+        logger.info("  ⏱ 阶段计时 (墙钟秒)")
+        for _name, _dur in phase_durations.items():
+            logger.info(f"     · {_name}: {sig4(_dur)} 秒")
+        logger.info(f"     · 合计: {sig4(sum(phase_durations.values()))} 秒")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  计时汇总打印失败 (不影响处理): {e}")
 
     logger.info(f"Wrote {csv_path} + {tex_path} (n_obs={int(table['n_obs'].iloc[0] if len(table) else 0)})")
     return table

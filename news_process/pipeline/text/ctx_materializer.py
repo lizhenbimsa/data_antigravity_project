@@ -77,6 +77,7 @@ Plan E P4 A1 (v3.6.0):
 from __future__ import annotations
 
 import os
+import platform
 import sys
 import time
 
@@ -89,7 +90,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config  # noqa: E402
-from news_process.core.logging import setup_logging  # noqa: E402
+from news_process.core.logging import pct4, setup_logging, sig4  # noqa: E402
 from news_process.core.text.ahocorasick import (  # noqa: E402
     load_exclusion_patterns,
     load_fintech_dict,
@@ -332,12 +333,12 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
                    (_bank_strs != 'None')).sum()
     logger.info(f"  content_ctx 物化完成: {len(df)} 行, "
                 f"回退至全文: {n_fallback}/{n_with_bank} 条 "
-                f"({n_fallback/max(n_with_bank,1)*100:.1f}%)")
+                f"({pct4(n_fallback / max(n_with_bank, 1))})")
     logger.info(f"  ctx_is_fallback 列已写入 (bool): "
                 f"{int(df['ctx_is_fallback'].sum())}/{len(df)} True")
     logger.info(f"  content_ss 物化完成 (银行+金科同句): {len(df)} 行, "
                 f"回退至全文: {n_ss_fallback}/{n_with_bank} 条 "
-                f"({n_ss_fallback/max(n_with_bank,1)*100:.1f}%)")
+                f"({pct4(n_ss_fallback / max(n_with_bank, 1))})")
     logger.info(f"  ss_is_fallback 列已写入 (bool): "
                 f"{int(df['ss_is_fallback'].sum())}/{len(df)} True")
 
@@ -374,11 +375,11 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
             logger.info("  本批无任何带有效 target_bank 的行: ctx/ss 三轨全部退化为全文 body, "
                         "回退率/分歧率不适用 (核查上游 target_bank 是否全空)")
         else:
-            logger.info(f"  平均文本长度: full={_mean_full:,.0f} 字 | "
-                        f"ctx={_mean_ctx:,.0f} 字 ({_mean_ctx/max(_mean_full,1)*100:.0f}% of full) | "
-                        f"ss={_mean_ss:,.0f} 字 ({_mean_ss/max(_mean_full,1)*100:.0f}% of full)")
+            logger.info(f"  平均文本长度: full={sig4(_mean_full)} 字 | "
+                        f"ctx={sig4(_mean_ctx)} 字 ({pct4(_mean_ctx / max(_mean_full, 1))} of full) | "
+                        f"ss={sig4(_mean_ss)} 字 ({pct4(_mean_ss / max(_mean_full, 1))} of full)")
             logger.info(f"  ctx 轨: {_ctx_hit:,}/{n_with_bank:,} 条截到银行相关句, "
-                        f"{n_fallback:,} 条无命中→回退全文 (回退率 {_ctx_fb_rate*100:.1f}%)")
+                        f"{n_fallback:,} 条无命中→回退全文 (回退率 {pct4(_ctx_fb_rate)})")
             logger.info("    → " + ("回退率低, 多数文章成功聚焦到银行相关句, ctx 轨信号有效"
                                     if _ctx_fb_rate < 0.30 else
                                     "回退率偏高, 较多文章 ctx≈full 聚焦信号弱 (核查别名表/分句口径/语料是否离题)"))
@@ -389,10 +390,10 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
             # 守卫外只打原始计数并明示分歧全部来自 ss 退化为全文 body, 非 ss 独立信号。
             if FINTECH_AC is not None:
                 logger.info(f"  ss 轨: {_ss_hit:,}/{n_with_bank:,} 条截到'银行∧金科同句', "
-                            f"{n_ss_fallback:,} 条无共现→回退全文 (回退率 {_ss_fb_rate*100:.1f}%)")
+                            f"{n_ss_fallback:,} 条无共现→回退全文 (回退率 {pct4(_ss_fb_rate)})")
                 logger.info("    → ss 回退率天然高于 ctx 属预期 (大量银行新闻讲罚款/坏账, 与金科无关); "
                             "回退即按镜像 ctx 的公理退回全文 body")
-                logger.info(f"  ctx↔ss 分歧率: {n_div:,}/{n_with_bank:,} ({_div_rate*100:.1f}%) 两轨截到不同句子")
+                logger.info(f"  ctx↔ss 分歧率: {n_div:,}/{n_with_bank:,} ({pct4(_div_rate)}) 两轨截到不同句子")
                 logger.info("    → " + ("分歧明显, ss 带来独立于 ctx 的新信息, 支撑三轨稳健性设计"
                                         if _div_rate > 0.40 else
                                         "分歧较小, ss 与 ctx 高度重叠, 作为独立信号的增量有限 (论文须如实披露)"))
@@ -400,8 +401,8 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
                 # FINTECH_AC is None: ss 全回退全文 → _ss_hit=0、回退率=100%、分歧率纯由 ss
                 # 退化为全文 body 与 ctx 不同所致, 与"ss 独立信号"无关。只打原始计数 + 明确禁判读。
                 logger.info(f"  ss 轨: 0/{n_with_bank:,} 条截到'银行∧金科同句', "
-                            f"全部 {n_ss_fallback:,} 条回退全文 (回退率 100.0%, 因金科词典未加载)")
-                logger.info(f"  ctx↔ss 分歧={_div_rate*100:.1f}% ({n_div:,}/{n_with_bank:,}) 全部来自 ss "
+                            f"全部 {n_ss_fallback:,} 条回退全文 (回退率 {pct4(1.0)}, 因金科词典未加载)")
+                logger.info(f"  ctx↔ss 分歧={pct4(_div_rate)} ({n_div:,}/{n_with_bank:,}) 全部来自 ss "
                             "退化为全文 body (词典缺失), 非 ss 独立信号, 请勿据此判读三轨稳健性")
         if FINTECH_AC is None:
             logger.warning("  ⚠ 金科词典未加载 (FINTECH_AC=None): content_ss 已全部回退全文, "
@@ -450,21 +451,96 @@ def main():
     in_path = os.path.join(output_dir, in_name)
     out_path = os.path.join(output_dir, out_name)
 
+    # ── 🧭 项目 / 环境信息 + 📂 输入输出 + ⚙ 运行配置 + 📖 方法论依据 (日志富集, 2026-06-24) ──
+    # 目标 (用户要求"在日志文件中提供尽可能多的项目信息、运行期间信息、运行结果信息"):
+    # 把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数、依据哪篇文献"一次性落进日志,
+    # 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 / schema / 控制流 (golden-safe)。
+    try:
+        _ctx_cfg_banner = CONFIG.get('context_window', {})
+        _sr = _ctx_cfg_banner.get('sentence_radius', 1)
+        _ssr = _ctx_cfg_banner.get('ss_sentence_radius', _sr)
+        _fcr = _ctx_cfg_banner.get('fallback_char_radius', 150)
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (stage 13 三轨文本物化; STAGES_MAIN)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) "
+                    "| 版本 v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "本阶段纯 CPU / 无 LLM·Embedding·网络·API ($0) / 逐位可复现")
+
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 输入:   {in_path} (config 键 output_12b_cooccurrence)")
+        logger.info(f"     · 输出:   {out_path} (config 键 output_13_news_with_ctx)")
+        logger.info(f"     · 银行别名: {CONFIG['paths'].get('bank_names_file', '(默认)')}")
+        logger.info(f"     · 银行排除: {_EXCLUSION_FILE}")
+        logger.info(f"     · 金科词典: {_FINTECH_DICT_FILE} "
+                    f"({len(_FINTECH_KEYWORDS):,d} 词, "
+                    f"FINTECH_AC={'已加载' if FINTECH_AC is not None else 'None(ss 全回退)'})")
+
+        logger.info("  ⚙ 运行配置 (config\\filtering.yaml::context_window)")
+        logger.info(f"     · ctx 扩窗半径 sentence_radius={_sr:,d} 句 "
+                    f"| ss 扩窗半径 ss_sentence_radius={_ssr:,d} 句")
+        logger.info(f"     · 短文本字符级回退半径 fallback_char_radius={_fcr:,d} 字")
+        logger.info(f"     · 银行侧匹配: 否定模式 NEGATION_AC + 短名歧义排除 "
+                    f"({len(SHORT_NAME_EXCLUSIONS):,d} 条) | 金科侧: 裸 AC (不对称口径)")
+        logger.info("     · 三轨: ['_full','_ctx','_ss'] 平价并列; 回退公理=无命中→退回全文 body")
+
+        logger.info("  📖 方法论依据 (运行期 emit, 非仅注释)")
+        logger.info("     · 实体特异性上下文窗口 (proximity-based attribution, §III.B):")
+        logger.info("       Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. "
+                    "(2019). Firm-level political risk: Measurement and effects. "
+                    "The Quarterly Journal of Economics, 134(4), 2135-2202. "
+                    "https://doi.org/10.1093/qje/qjz021")
+        logger.info("       (白话: 只把'离目标实体最近的那几句'剪出来, 比整篇正文更精准地"
+                    "捕捉对该实体的态度, 是 ctx/ss 两轨的方法学锚点)")
+    except Exception as _e:  # noqa: BLE001 — 仅日志诊断, 绝不阻断处理
+        logger.warning(f"[环境/配置/方法论] 日志 banner 打印失败 (不影响处理): {_e}")
+
     if not os.path.exists(in_path):
         logger.error(f"输入未找到: {in_path}")
         raise SystemExit(1)
 
+    _t_load = time.time()
     df = pd.read_parquet(in_path)
-    logger.info(f"加载 stage 12b 输出 (邻近共现过滤后): {len(df)} 行")
+    _load_elapsed = time.time() - _t_load
+    logger.info(f"加载 stage 12b 输出 (邻近共现过滤后): {len(df)} 行 "
+                f"(⏱ 读盘 {sig4(_load_elapsed)} 秒)")
+
+    _t_mat = time.time()
     df = materialize_content_ctx(df)
+    _mat_elapsed = time.time() - _t_mat
+    logger.info(f"  ⏱ 三轨物化耗时: {sig4(_mat_elapsed)} 秒 "
+                f"({sig4(len(df) / max(_mat_elapsed, 1e-9))} 行/秒)")
     assert 'content_full' in df.columns
     assert 'content_ctx' in df.columns
     assert 'content_ss' in df.columns
     assert 'ss_is_fallback' in df.columns
 
     from news_process.core.reporting import save_dataset
+    _t_save = time.time()
     save_dataset(df=df, output_path=out_path, logger=logger,
                  stage_name=STAGE_NAME, config=CONFIG, input_files=[in_path])
+    _save_elapsed = time.time() - _t_save
+    logger.info(f"  ⏱ 写盘耗时: {sig4(_save_elapsed)} 秒")
+
+    # ⏱ 阶段计时汇总 (各子阶段墙钟): 读盘 / 物化 / 写盘 + 全阶段总耗时。
+    try:
+        _total = time.time() - stage_start
+        logger.info("  ⏱ 阶段计时汇总 (墙钟秒, 4 位有效数字):")
+        logger.info(f"     · 读盘   = {sig4(_load_elapsed)} 秒 "
+                    f"({pct4(_load_elapsed / max(_total, 1e-9))})")
+        logger.info(f"     · 三轨物化 = {sig4(_mat_elapsed)} 秒 "
+                    f"({pct4(_mat_elapsed / max(_total, 1e-9))})")
+        logger.info(f"     · 写盘   = {sig4(_save_elapsed)} 秒 "
+                    f"({pct4(_save_elapsed / max(_total, 1e-9))})")
+        logger.info(f"     · 全阶段 = {sig4(_total)} 秒")
+    except Exception as _e:  # noqa: BLE001 — 仅日志诊断, 绝不阻断收尾
+        logger.warning(f"[阶段计时汇总] 打印失败 (不影响产物): {_e}")
 
     from news_process.core.logging import log_stage_summary
     log_stage_summary(logger, STAGE_NAME, stage_start, len(df), len(df))

@@ -111,7 +111,13 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import log_memory_usage, log_stage_summary, setup_logging
+from news_process.core.logging import (
+    log_memory_usage,
+    log_stage_summary,
+    pct4,
+    setup_logging,
+    sig4,
+)
 
 # ============================================================================
 # 1. 全局配置和初始化
@@ -997,9 +1003,9 @@ def evaluate_human_verification(verify_path: str, track: str,
                            'kappa_vs_human': kappa['kappa'],
                            'status': method_status}
         logger_inst.info(
-            f"  [{track}] {col}: Acc={m['accuracy']:.4f} "
-            f"MacroF1={m['macro']['f1']:.4f} κ={kappa['kappa']:.4f} "
-            f"(n={n_valid}/{n_annotated})")
+            f"  [{track}] {col}: Acc={sig4(m['accuracy'])} "
+            f"MacroF1={sig4(m['macro']['f1'])} κ={sig4(kappa['kappa'])} "
+            f"(n={n_valid:,}/{n_annotated:,})")
 
     pd.DataFrame(csv_rows).to_csv(csv_path, index=False, encoding='utf-8-sig')
     logger_inst.info(f"  人工验证指标已保存: {csv_path} ({len(per_method)} 个方法)")
@@ -1076,7 +1082,7 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
             }
             logger_inst.info(
                 f"  分层[{group_name}]: n={int(mask.sum()):,}, "
-                f"α={alpha:.3f}, 完全一致率={agreement['full_agreement_rate']:.3f}"
+                f"α={sig4(alpha)}, 完全一致率={sig4(agreement['full_agreement_rate'])}"
             )
 
         results['by_text_length'] = length_results
@@ -1111,7 +1117,7 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
             }
             logger_inst.info(
                 f"  分层[{int(year)}年]: n={int(mask.sum()):,}, "
-                f"α={alpha:.3f}, 完全一致率={agreement['full_agreement_rate']:.3f}"
+                f"α={sig4(alpha)}, 完全一致率={sig4(agreement['full_agreement_rate'])}"
             )
 
         results['by_year'] = year_results
@@ -1149,8 +1155,8 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
                         'n_years': n_valid,
                     }
                     logger_inst.info(
-                        f"  ✓ 年际α完全一致 (n={n_valid}年，"
-                        f"α={alpha_arr_sp.mean():.3f}，无变异)"
+                        f"  ✓ 年际α完全一致 (n={n_valid:,}年，"
+                        f"α={sig4(alpha_arr_sp.mean())}，无变异)"
                     )
                 else:
                     try:
@@ -1167,7 +1173,7 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
                         if p_val < 0.05 and rho < 0:
                             logger_inst.warning(
                                 f"  年际一致性趋势: α 呈显著下降 "
-                                f"(ρ={rho:.3f}, p={p_val:.3f}, n={n_valid}年)"
+                                f"(ρ={sig4(rho)}, p={sig4(p_val)}, n={n_valid:,}年)"
                             )
                             logger_inst.warning(
                                 f"     解读: 模型可能存在时间漂移(temporal drift)，"
@@ -1176,7 +1182,7 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
                         else:
                             logger_inst.info(
                                 f"  ✓ 年际一致性趋势: 无显著衰减 "
-                                f"(ρ={rho:.3f}, p={p_val:.3f}, n={n_valid}年)"
+                                f"(ρ={sig4(rho)}, p={sig4(p_val)}, n={n_valid:,}年)"
                             )
                     except ImportError:
                         alpha_arr = np.array(valid_alphas)
@@ -1191,7 +1197,7 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
                         }
                         logger_inst.info(
                             f"  ℹ️ 年际α描述性统计 (scipy不可用): "
-                            f"mean={alpha_arr.mean():.3f}, std={alpha_arr.std():.3f}"
+                            f"mean={sig4(alpha_arr.mean())}, std={sig4(alpha_arr.std())}"
                         )
             elif n_valid >= 3:
                 # 统计功效不足: 仅输出描述性统计
@@ -1206,8 +1212,8 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
                     'n_years': n_valid,
                 }
                 logger_inst.info(
-                    f"  ℹ️ 年际α描述性统计 (n={n_valid}<5，不做推断): "
-                    f"mean={alpha_arr.mean():.3f}, std={alpha_arr.std():.3f}"
+                    f"  ℹ️ 年际α描述性统计 (n={n_valid:,}<5，不做推断): "
+                    f"mean={sig4(alpha_arr.mean())}, std={sig4(alpha_arr.std())}"
                 )
             else:
                 trend_result = {
@@ -1246,7 +1252,7 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
                 }
                 logger_inst.info(
                     f"  分层[{group_name}]: n={int(mask.sum()):,}, "
-                    f"α={alpha:.3f}, 完全一致率={agreement['full_agreement_rate']:.3f}"
+                    f"α={sig4(alpha)}, 完全一致率={sig4(agreement['full_agreement_rate'])}"
                 )
 
             results['by_window_count'] = window_results
@@ -1300,8 +1306,8 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
                 }
                 logger_inst.info(
                     f"  分层[{group_name}]: n={int(mask.sum()):,}, "
-                    f"α(BERT+LLM)={alpha:.3f}, "
-                    f"一致率={agreement['full_agreement_rate']:.3f}"
+                    f"α(BERT+LLM)={sig4(alpha)}, "
+                    f"一致率={sig4(agreement['full_agreement_rate'])}"
                 )
 
             results['by_dict_coverage'] = coverage_results
@@ -1316,17 +1322,17 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
                     delta = alpha_high - alpha_low
                     if delta > 0.10:
                         logger_inst.warning(
-                            f"  覆盖率依赖: Δα={delta:+.3f}，"
+                            f"  覆盖率依赖: Δα={sig4(delta)}，"
                             f"词典法锚点在低覆盖率文章中不可靠"
                         )
                     elif delta < -0.10:
                         logger_inst.warning(
-                            f"  覆盖率非单调: Δα={delta:+.3f} (低覆盖 α 反高于高覆盖)，"
+                            f"  覆盖率非单调: Δα={sig4(delta)} (低覆盖 α 反高于高覆盖)，"
                             f"提示覆盖率代理与一致性非单调, 需进一步排查 (非简单'稳健')"
                         )
                     else:
                         logger_inst.info(
-                            f"  ✓ BERT+LLM 跨覆盖率稳健 (|Δα|={abs(delta):.3f}≤0.10)"
+                            f"  ✓ BERT+LLM 跨覆盖率稳健 (|Δα|={sig4(abs(delta))}≤0.10)"
                         )
         else:
             logger_inst.info(
@@ -1437,6 +1443,10 @@ def diagnose_llm_category_bias(df: pd.DataFrame, llm_cols: dict,
     logger_inst.info("=" * 70)
     logger_inst.info(f"===    4.5a LLM 类别偏向诊断 [{track_label}]    ===")
     logger_inst.info("=" * 70)
+    # 子步骤方法依据 (called-by 主控的诊断 helper): 类别比例 + 模型间 chi-square 同质性 +
+    # Jensen-Shannon 散度。方法源 Chiu & Hung (2025, PBFJ) Fig.2 Neutral 偏好诊断思路 +
+    # Carlson & Burbano (2026, SMJ §4.2) 报告 model certainty (二者均不在经核验注册表,
+    # 按铁律不 emit DOI; 仅判读: JSD>0.1=偏向差异大→多数投票有效, JSD<0.01=高度同质化→投票退化风险)。
 
     # ── 0. 过滤聚合列，仅保留独立模型 ──
     independent_models = {
@@ -1474,7 +1484,7 @@ def diagnose_llm_category_bias(df: pd.DataFrame, llm_cols: dict,
         counts_raw[name] = cnt
         logger_inst.info(
             f"  [{name}] 类别分布: "
-            + ", ".join(f"{cat}={dist[cat]:.1%} ({cnt[cat]})" for cat in categories)
+            + ", ".join(f"{cat}={pct4(dist[cat])} ({cnt[cat]:,})" for cat in categories)
         )
 
     if len(model_names) < 2:
@@ -1539,8 +1549,8 @@ def diagnose_llm_category_bias(df: pd.DataFrame, llm_cols: dict,
             sig_mark = '*' if p_val < 0.05 else ''
             drop_note = f"（剔除 {n_dropped} 个空类别）" if n_dropped else ""
             logger_inst.info(
-                f"  {m1} vs {m2}: chi2={chi2_stat:.2f}, "
-                f"p={p_val:.4f}{sig_mark}, dof={dof}{drop_note}"
+                f"  {m1} vs {m2}: chi2={sig4(chi2_stat)}, "
+                f"p={sig4(p_val)}{sig_mark}, dof={dof:,}{drop_note}"
             )
 
     # ── 3. 模型间 Jensen-Shannon 散度 ──
@@ -1560,7 +1570,7 @@ def diagnose_llm_category_bias(df: pd.DataFrame, llm_cols: dict,
                 interp = '高度同质化（多数投票退化风险）'
             else:
                 interp = '偏向差异适中'
-            logger_inst.info(f"  {m1} vs {m2}: JSD={jsd:.4f} — {interp}")
+            logger_inst.info(f"  {m1} vs {m2}: JSD={sig4(jsd)} — {interp}")
 
     # ── 4. 输出 CSV ──
     csv_rows = []
@@ -1663,6 +1673,9 @@ def diagnose_confidence_calibration(df: pd.DataFrame, llm_cols: dict,
     logger_inst.info("=" * 70)
     logger_inst.info(f"===    4.5b 置信度校准诊断 [{track_label}]    ===")
     logger_inst.info("=" * 70)
+    # 子步骤方法依据 (called-by 主控的诊断 helper): 等宽分箱 Expected Calibration Error (ECE)。
+    # 方法源 Guo et al. (2017, ICML, On calibration of modern neural networks) — 不在经核验注册表,
+    # 按铁律不 emit DOI; 判读: ECE<0.05=校准良好 / 0.05-0.10=一般 / 0.10-0.15=偏差 / ≥0.15=校准不良。
 
     # ── 0. 过滤聚合列 ──
     independent_models = {
@@ -1706,9 +1719,9 @@ def diagnose_confidence_calibration(df: pd.DataFrame, llm_cols: dict,
 
         stats_results[name] = stats
         logger_inst.info(
-            f"  [{name}] mean={stats['mean']:.3f}, "
-            f"median={stats['median']:.3f}, std={stats['std']:.3f}, "
-            f"skew={stats['skew']:.3f}, n={stats['n']}"
+            f"  [{name}] mean={sig4(stats['mean'])}, "
+            f"median={sig4(stats['median'])}, std={sig4(stats['std'])}, "
+            f"skew={sig4(stats['skew'])}, n={stats['n']:,}"
         )
 
     # ── 2. ECE 计算 (G-02 升级) ──
@@ -1835,17 +1848,17 @@ def diagnose_confidence_calibration(df: pd.DataFrame, llm_cols: dict,
         else:
             quality = '🔴 校准不良 (≥ 0.15)'
 
-        logger_inst.info(f"  [{name}] ECE = {ece_value:.4f} {quality}")
-        logger_inst.info(f"    Ground Truth: {gt_source}, N = {n_total}")
+        logger_inst.info(f"  [{name}] ECE = {sig4(ece_value)} {quality}")
+        logger_inst.info(f"    Ground Truth: {gt_source}, N = {n_total:,}")
 
         # 输出分箱详情
         for bd in bin_details:
             if bd['n'] > 0:
                 logger_inst.info(
-                    f"    Bin {bd['bin']}: n={bd['n']:>5}, "
-                    f"avg_conf={bd['avg_conf']:.3f}, "
-                    f"accuracy={bd['accuracy']:.3f}, "
-                    f"gap={bd['gap']:.3f}"
+                    f"    Bin {bd['bin']}: n={bd['n']:>5,}, "
+                    f"avg_conf={sig4(bd['avg_conf'])}, "
+                    f"accuracy={sig4(bd['accuracy'])}, "
+                    f"gap={sig4(bd['gap'])}"
                 )
 
     # ── 3. 输出 CSV ──
@@ -2014,6 +2027,74 @@ def main():
     output_dir = os.path.join(CONFIG['paths']['output_dir'], 'eval_reports')
     os.makedirs(output_dir, exist_ok=True)
 
+    # ── 黄金范式【① 项目/环境信息】指纹 (golden-safe; 仅日志, 不入任何产物) ──
+    try:
+        import platform
+        logger.info("=" * 72)
+        logger.info("🧭 项目 / 环境信息")
+        logger.info("  · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.11.1")
+        logger.info("  · 阶段: 34 tone_validation (验证支线; thin shim 64_tone_validation.py) — 词典/BERT/LLM 三角交叉验证")
+        logger.info(f"  · Python {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"  · 平台: {platform.platform()}; CPU 逻辑核心={os.cpu_count()}; PID={os.getpid()}")
+        logger.info(f"  · NEWS_PROCESS_RUN_ID={os.environ.get('NEWS_PROCESS_RUN_ID', '(未设)')}")
+        logger.info("  · 确定性/成本: 纯 pandas/numpy/scipy/matplotlib, 无 LLM/Embedding API 调用, $0; 抽样 seed=42 逐位可复现。")
+        logger.info(f"  · 模块: {os.path.abspath(__file__)}")
+        logger.info(f"  · 工作目录: {os.getcwd()}")
+    except Exception as _e_env:
+        logger.warning(f"环境信息块打印失败 (不影响阶段): {_e_env}")
+
+    # ── 黄金范式【③ 运行配置】可调参数 + 输入输出路径集中打印 ──
+    try:
+        _out_dir = CONFIG['paths']['output_dir']
+        _log_dir = CONFIG['paths']['log_dir']
+        logger.info("=" * 72)
+        logger.info("⚙ 运行配置")
+        logger.info("  · 验证轨道集: _full(全文) / _ctx(上下文窗口) / _ss(银行+金科同句) — 三轨各跑完整 6 步")
+        logger.info(
+            f"  · 人工验证抽样: n_agree=100 + n_disagree=200 (分歧案例 2:1 过采样), "
+            f"seed=42; 样本量下限 HUMAN_VERIFY_MIN_N={HUMAN_VERIFY_MIN_N:,} (CLT 经验下限)"
+        )
+        logger.info(f"  · ECE 分箱数 N_BINS=10 (等宽分箱, 见 diagnose_confidence_calibration); 合法人工标签词表={'/'.join(HUMAN_VERIFY_LABELS)}")
+        logger.info(
+            f"  · 判读阈值: Cronbach α 可接受≥{sig4(0.70)} / 良好≥{sig4(0.80)} / 优秀≥{sig4(0.90)}; "
+            f"Spearman 强一致|ρ|≥{sig4(0.70)} / 中等≥{sig4(0.40)}; 标签多数一致率良好≥{pct4(0.85)}"
+        )
+        logger.info(f"  · 输入键: output_23_bert_tone (回退 output_22_words_tone); 输出目录: {os.path.join(_out_dir, 'eval_reports')}")
+        logger.info(f"  · 数据根目录: {_out_dir}; 日志目录: {_log_dir}")
+        logger.info("  · 配置来源: config/paths.yaml (路径) + config/sentiment.yaml (上游方法产物); 本阶段无独立 tunable YAML 块")
+    except Exception as _e_cfg:
+        logger.warning(f"配置块打印失败 (不影响阶段): {_e_cfg}")
+
+    # ── 黄金范式【④ 方法论依据】学术出处 emit 进日志 (含期刊卷(期):页 + DOI 可访问链接) ──
+    # 仅引用"经核验参考文献注册表" (VERIFIED_REFERENCES.md, status=match) 中本模块实现的核心构念出处。
+    try:
+        logger.info("=" * 72)
+        logger.info("📖 方法论依据 (核心构念学术出处; 逐字取自经核验参考文献注册表)")
+        logger.info(
+            "  · 收敛效度(方法间相关性为构建效度核心证据): "
+            "Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. "
+            "Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123"
+        )
+        logger.info(
+            "  · 词典法(中文银行情感词典构念基础): "
+            "胡俊, 李强, 戴嘉诚, & 曾勇. (2024). 基于文本分析的商业银行金融科技测度及赋能效果检验. "
+            "中国管理科学, 32(1), 31–41. https://doi.org/10.16381/j.cnki.issn1003-207x.2021.1714"
+        )
+        logger.info(
+            "  · 媒体情感离散度量化(三分类标签数值化 +1/0/-1 的方法学先例): "
+            "Tetlock, P. C., Saar-Tsechansky, M., & Macskassy, S. (2008). More than words: "
+            "Quantifying language to measure firms' fundamentals. The Journal of Finance, 63(3), 1437-1467. "
+            "https://doi.org/10.1111/j.1540-6261.2008.01362.x"
+        )
+        logger.info(
+            "  · 白话: 用三种机理完全不同的方法(查词典/BERT 神经网络/LLM 大模型)给同一篇新闻判情感, "
+            "若彼此趋同则收敛效度强 (但仍≠效标效度=对人工金标准, 须人工回读/stage 33)。"
+        )
+        # 注: Cronbach (1951, Psychometrika) / Chiu & Hung (2025, PBFJ) / Carlson & Burbano (2026, SMJ §4.2)
+        # / Guo et al. (2017, ICML, ECE) 不在经核验注册表内, 按铁律不 emit DOI, 仅保留代码注释/docstring。
+    except Exception as _e_ref:
+        logger.warning(f"方法论引用块打印失败 (不影响阶段): {_e_ref}")
+
     # ======================================================================
     # Step 1: 加载情感分析数据
     # ======================================================================
@@ -2047,12 +2128,26 @@ def main():
         '_ctx': '上下文片段',
         '_ss': '银行+金科同句',  # ss 轨人类可读标签 (镜像 ctx 标签 + 同句共现口径)
     }
+    _track_elapsed = {}  # 仅服务于日志的 per-轨墙钟计时
     for track in ['_full', '_ctx', '_ss']:
         track_label = _TRACK_LABELS.get(track, track)
         logger.info("\n" + "#" * 70)
         logger.info(f"#####  三角验证轨道: [{track_label}] ({track})  #####")
         logger.info("#" * 70)
+        _t_track = time.time()
         _run_validation_for_track(df, track, output_dir, logger, CONFIG)
+        _track_elapsed[track] = time.time() - _t_track
+
+    # ── 黄金范式【⑥ 阶段计时】per-轨墙钟 + 总耗时汇总 (仅日志, golden-safe) ──
+    try:
+        logger.info("=" * 72)
+        logger.info("⏱ 阶段计时 (per-轨墙钟)")
+        for _tk, _el in _track_elapsed.items():
+            logger.info(f"  · 轨道 {_TRACK_LABELS.get(_tk, _tk)} ({_tk}): {sig4(_el)} 秒")
+        _total_track = sum(_track_elapsed.values())
+        logger.info(f"  · 三轨验证合计: {sig4(_total_track)} 秒; 阶段总墙钟: {sig4(time.time() - stage_start)} 秒")
+    except Exception as _e_timing:
+        logger.warning(f"计时汇总块打印失败 (不影响阶段): {_e_timing}")
 
     log_stage_summary(logger, STAGE_NAME, stage_start,
                       input_rows=len(df))
@@ -2212,7 +2307,7 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
         alpha = compute_cronbachs_alpha(words_scores)
         within_results['cronbach_alpha']['Dictionary'] = alpha
         within_results['n_models']['Dictionary'] = n_words
-        logger.info(f"  Cronbach's Alpha: {alpha:.4f}")
+        logger.info(f"  Cronbach's Alpha: {sig4(alpha)}")
 
         spearman = compute_spearman_matrix(words_scores)
         logger.info("  Spearman 相关矩阵:")
@@ -2241,7 +2336,7 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
             idf_alpha = compute_cronbachs_alpha(idf_scores)
             within_results['cronbach_alpha']['Dictionary_IDF'] = idf_alpha
             within_results['n_models']['Dictionary_IDF'] = n_words_idf
-            logger.info(f"  IDF Cronbach's Alpha: {idf_alpha:.4f}")
+            logger.info(f"  IDF Cronbach's Alpha: {sig4(idf_alpha)}")
 
             idf_spearman = compute_spearman_matrix(idf_scores)
             logger.info("  IDF Spearman 相关矩阵:")
@@ -2257,7 +2352,7 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
         alpha = compute_cronbachs_alpha(bert_scores)
         within_results['cronbach_alpha']['BERT'] = alpha
         within_results['n_models']['BERT'] = n_bert
-        logger.info(f"  Cronbach's Alpha: {alpha:.4f}")
+        logger.info(f"  Cronbach's Alpha: {sig4(alpha)}")
 
         spearman = compute_spearman_matrix(bert_scores)
         logger.info("  Spearman 相关矩阵:")
@@ -2278,7 +2373,7 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
         alpha = compute_cronbachs_alpha(llm_scores)
         within_results['cronbach_alpha']['LLM'] = alpha
         within_results['n_models']['LLM'] = n_llm
-        logger.info(f"  Cronbach's Alpha: {alpha:.4f}")
+        logger.info(f"  Cronbach's Alpha: {sig4(alpha)}")
 
     results['within_method']['cronbach_alpha'] = within_results['cronbach_alpha']
 
@@ -2349,9 +2444,9 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
     cross_results['label_agreement'] = agreement
     results['cross_method']['label_agreement'] = agreement
 
-    logger.info(f"  完全一致率: {agreement['full_agreement_rate']:.4f}")
-    logger.info(f"  多数一致率: {agreement['majority_agreement_rate']:.4f}")
-    logger.info(f"  参与方法/模型数: {agreement['n_methods']}")
+    logger.info(f"  完全一致率: {sig4(agreement['full_agreement_rate'])} ({pct4(agreement['full_agreement_rate'])})")
+    logger.info(f"  多数一致率: {sig4(agreement['majority_agreement_rate'])} ({pct4(agreement['majority_agreement_rate'])})")
+    logger.info(f"  参与方法/模型数: {agreement['n_methods']:,}")
 
     # ======================================================================
     # Step 5: 合成策略
@@ -2365,13 +2460,13 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
     vote_dist = vote_labels.value_counts()
     logger.info("多数投票情感分布:")
     for label, count in vote_dist.items():
-        pct = count / len(vote_labels) * 100
-        logger.info(f"  {label}: {count:,} ({pct:.1f}%)")
+        pct = count / len(vote_labels)
+        logger.info(f"  {label}: {count:,} ({pct4(pct)})")
 
     # 5.2 加权平均（等权）
     weighted_score = weighted_average_score(all_scores_df)
-    logger.info(f"加权平均得分: mean={weighted_score.mean():.4f}, "
-                f"std={weighted_score.std():.4f}")
+    logger.info(f"加权平均得分: mean={sig4(weighted_score.mean())}, "
+                f"std={sig4(weighted_score.std())}")
 
     # 保存合成结果到 DataFrame
     df['consensus_vote_label'] = vote_labels.values
@@ -2559,7 +2654,7 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
                 _af = float(_a)
             except (TypeError, ValueError):
                 continue
-            logger.info(f"  · 内部一致性 Cronbach α [{_m}]: {_af:.4f} → {_alpha_verdict(_af)}")
+            logger.info(f"  · 内部一致性 Cronbach α [{_m}]: {sig4(_af)} → {_alpha_verdict(_af)}")
     else:
         logger.info(
             "  · 内部一致性 Cronbach α: 本轨无任一方法满足 ≥2 个模型, 未计算 α "
@@ -2572,7 +2667,7 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
                 _rf = float(_r)
             except (TypeError, ValueError):
                 continue
-            logger.info(f"  · 跨方法 Spearman ρ [{_pair}]: {_rf:.4f} → {_rho_verdict(_rf)}")
+            logger.info(f"  · 跨方法 Spearman ρ [{_pair}]: {sig4(_rf)} → {_rho_verdict(_rf)}")
     else:
         logger.info(
             "  · 跨方法 Spearman ρ: 可比较的方法不足 2 族, 未产出成对相关 "
@@ -2580,28 +2675,28 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
         )
     # 标签一致率判读 (经验参考 ≥85% 良好)
     logger.info(
-        f"  · 标签完全一致率: {_agree_full:.4f} ({_agree_full * 100:.1f}%) — "
-        f"{_agree_nm} 个方法/模型对同一篇判出完全相同标签的占比。"
+        f"  · 标签完全一致率: {sig4(_agree_full)} ({pct4(_agree_full)}) — "
+        f"{_agree_nm:,} 个方法/模型对同一篇判出完全相同标签的占比。"
         f"判读: 越高=测量越稳; 完全一致较多数一致更严苛, 中文情感三分类下偏低属正常。"
     )
     _maj_verdict = "良好(≥85%)" if _agree_maj >= 0.85 else (
         "中等(70%-85%)" if _agree_maj >= 0.70 else "偏弱(<70%, 方法间分歧较多)")
     logger.info(
-        f"  · 标签多数一致率: {_agree_maj:.4f} ({_agree_maj * 100:.1f}%) → {_maj_verdict} "
+        f"  · 标签多数一致率: {sig4(_agree_maj)} ({pct4(_agree_maj)}) → {_maj_verdict} "
         f"(严格多数 > 方法数/2)。判读: ≥85% 视为方法间一致性良好(经验参考值)。"
     )
     # 合成产物的描述性判读 (仅供解读, 不入产物列以外用途)
     _vote_total = int(vote_dist.sum()) if len(vote_dist) else 0
     _vote_brief = ", ".join(
-        f"{_lab}={int(_cnt)}({_cnt / _vote_total * 100:.1f}%)"
+        f"{_lab}={int(_cnt):,}({pct4(_cnt / _vote_total)})"
         for _lab, _cnt in vote_dist.items()
     ) if _vote_total > 0 else "无"
     _dom_lab = str(vote_dist.idxmax()) if _vote_total > 0 else "无"
-    _dom_pct = (vote_dist.max() / _vote_total * 100) if _vote_total > 0 else 0.0
+    _dom_frac = (vote_dist.max() / _vote_total) if _vote_total > 0 else 0.0
     logger.info(
         f"  · 多数投票情感分布: {_vote_brief}。加权平均(等权)得分: "
-        f"mean={weighted_score.mean():.4f}, std={weighted_score.std():.4f}。"
-        f"判读: 分布若严重偏向单一类别(本轨众数 {_dom_lab} 占 {_dom_pct:.1f}%)"
+        f"mean={sig4(weighted_score.mean())}, std={sig4(weighted_score.std())}。"
+        f"判读: 分布若严重偏向单一类别(本轨众数 {_dom_lab} 占 {pct4(_dom_frac)})"
         f"提示测量保守或题材集中, 需结合 LLM 类别偏向诊断(本轨 Step 6.5)一并解读。"
     )
     # 人工验证(效标效度)状态判读

@@ -73,12 +73,16 @@ import argparse
 import hashlib
 import json
 import logging
+import os
+import platform
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
+from news_process.core.logging import pct4, sig4
 from news_process.pipeline.features.benefit_society_alt_anchor import (
     aggregate_to_bank_year as _alt_aggregate,
 )
@@ -400,6 +404,58 @@ def main(argv: list[str] | None = None) -> int:
     logger.info("        注: RAW 余弦投影均值在各向异性嵌入空间 (sign-at-0 实测 ~97% 投影>0, 见 alt_anchor 饱和退化披露) 下系统性非零, 无绝对 ≈0 基线, 故只作 *相对* 量级判读。")
     logger.info("【确定性】不调 LLM; 仅嵌 ~10 句锚点 (≈$0, 经 LLMCache); 文章嵌入读 stage 27 预落盘 .npy; 显式 seed。")
 
+    # ① 🧭 项目 / 环境信息 + ② 输入/输出 + ③ 运行配置 + ④ 方法论依据 (日志富集 2026-06-24, 纯增量 golden-safe)。
+    # 全块 try/except 兜底: 纯日志诊断绝不让 audit 阶段返回非 0。emit 只在函数体内 (避免 import-time 截断)。
+    _t_start = time.time()
+    try:
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info("     · 阶段: 27c benefit_society 替代锚点 + 安慰剂审计 (audit-only 旁支, shim 80_placebo_and_alt_anchor)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get("NEWS_PROCESS_RUN_ID")
+        logger.info(
+            f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+            "确定性 (显式 seed + 锚点经 LLMCache); 不调 LLM, 仅嵌 ~10 句锚点 (≈$0); audit-only 不进主面板/golden"
+        )
+
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 文章嵌入 full: {args.text_embeddings_full or '(未提供 → 仅 yaml 校验)'}")
+        logger.info(f"     · 文章嵌入 ctx:  {args.text_embeddings_ctx or '(未提供)'}")
+        logger.info(f"     · 文章嵌入 ss:   {args.text_embeddings_ss or '(未提供)'}")
+        logger.info(f"     · 文章-银行 df:  {args.df_exploded or '(未提供)'}")
+        logger.info(f"     · 主方向 .npy:   {args.main_direction_npy or '(未提供)'} (stage 27 27_benefit_direction.npy)")
+        logger.info(f"     · 输出 parquet:  {args.output}")
+
+        logger.info("  ⚙ 运行配置 (CLI argv + 默认值)")
+        logger.info(f"     · 随机种子 seed = {args.seed:,d} (默认 DEFAULT_SEED={DEFAULT_SEED:,d}; 当前链路无随机步, 守卫未来抽样)")
+        logger.info(f"     · validate-only = {args.validate_only} (True=仅校验 yaml schema, 不加载嵌入/不投影)")
+        logger.info("     · 锚点集 = J-L-M canonical 5 对正/负锚句 (config yaml SHA 见 sidecar)")
+        logger.info("     · 安慰剂 = 4 业务线 (housing_loans/credit_cards/intermediate_business/branch_channel) + 1 中性基线 (general_corporate)")
+        logger.info("     · pos/neg_frac center = 批内 in-sample median (聚合口径见 benefit_society_alt_anchor.aggregate_to_bank_year)")
+
+        logger.info("  📖 方法论依据 (核心方法/构念学术出处)")
+        logger.info("     · 语言嵌入『惠及社会』方向投影 (本审计的替代锚点主方法):")
+        logger.info("       Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? "
+                    "A language embedding approach. The Review of Financial Studies, 39(5), 1227-1266. "
+                    "https://doi.org/10.1093/rfs/hhaf012")
+        logger.info("     · 锚点对方向向量 = 概念双极投影 (geometry of culture, 锚句对差向量定义语义轴):")
+        logger.info("       Kozlowski, A. C., Taddy, M., & Evans, J. A. (2019). The geometry of culture: "
+                    "Analyzing the meanings of class through word embeddings. American Sociological Review, "
+                    "84(5), 905-949. https://doi.org/10.1177/0003122419877135")
+        logger.info("     · 句嵌入 (锚句/文章同空间余弦投影):")
+        logger.info("       Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using "
+                    "Siamese BERT-networks. In Proceedings of the 2019 Conference on Empirical Methods in "
+                    "Natural Language Processing and the 9th International Joint Conference on Natural Language "
+                    "Processing (EMNLP-IJCNLP) (pp. 3980-3990). Association for Computational Linguistics. "
+                    "https://doi.org/10.18653/v1/D19-1410")
+        logger.info("     · 白话: 用 J-L-M 的『语言嵌入测惠及社会』范式, 换一组锚句重打分 (替代锚点) "
+                    "+ 拿无关业务线打同样的分 (安慰剂), 检验主测度是否锚点敏感/伪相关。")
+    except Exception as _e:
+        logger.warning(f"[环境/配置/方法块] 日志诊断异常, 跳过(不影响产物): {_e}")
+
     # 恒安全的 yaml schema 校验 (不加载嵌入)
     pos, neg, alt_meta = load_jlm_zh_anchors()
     bl, nb, placebo_meta = load_placebo_keywords()
@@ -425,6 +481,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # fix(omni-g-benefit-01, 2026-06-11): sidecar 强制 (fail-loud on stale npy)
     # + model_id 反查 spec → 锚点与文章同嵌入空间。
+    _t_load = time.time()
     text_embeddings, emb_meta = load_article_embeddings(args.text_embeddings_full)
     model_id = str(emb_meta["model_id"])
     df_exploded = pd.read_parquet(args.df_exploded)
@@ -465,6 +522,7 @@ def main(argv: list[str] | None = None) -> int:
                 f"model={model_id!r} — 三轨必须同嵌入空间"
             )
 
+    _elapsed_load = time.time() - _t_load
     logger.info(
         "Loaded embeddings shape=%s (model=%s) / df len=%d / direction shape=%s / ctx=%s / ss=%s",
         text_embeddings.shape,
@@ -474,7 +532,9 @@ def main(argv: list[str] | None = None) -> int:
         "yes" if text_embeddings_ctx is not None else "no",
         "yes" if text_embeddings_ss is not None else "no",
     )
+    logger.info("  ⏱ [phase] 嵌入/df/方向加载: %s 秒", sig4(_elapsed_load))
 
+    _t_build = time.time()
     combined, meta = build_audit_panel(
         df_exploded,
         text_embeddings,
@@ -484,6 +544,10 @@ def main(argv: list[str] | None = None) -> int:
         embedding_model_id=model_id,
         seed=args.seed,
     )
+    _elapsed_build = time.time() - _t_build
+    logger.info("  ⏱ [phase] 锚点投影 + 安慰剂 + bank-year 聚合 (build_audit_panel): %s 秒", sig4(_elapsed_build))
+
+    _t_write = time.time()
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     combined.to_parquet(output_path, index=False)
@@ -491,6 +555,7 @@ def main(argv: list[str] | None = None) -> int:
 
     sidecar_path = write_sidecar_json(output_path, meta)
     logger.info("Wrote sidecar JSON: %s", sidecar_path)
+    logger.info("  ⏱ [phase] 写盘 (parquet + sidecar): %s 秒", sig4(time.time() - _t_write))
 
     # 结果分析 — 写入日志: 替代锚点信号强度 + 逐安慰剂命中数/均值, 对照"伪相关"方向判读。
     # 仅用于日志打印, 不回写 combined / meta (golden-safe 纯增量)。此块在产物 (parquet
@@ -520,16 +585,16 @@ def main(argv: list[str] | None = None) -> int:
             alt_pos = float(combined["benefit_jlm_zh_pos_frac"].mean())
             alt_neg = float(combined["benefit_jlm_zh_neg_frac"].mean())
             logger.info(
-                "  ① 替代锚点 full: 均值=%.4f  |均值|=%.4f  pos_frac=%.3f  neg_frac=%.3f "
+                "  ① 替代锚点 full: 均值=%s  |均值|=%s  pos_frac=%s  neg_frac=%s "
                 "(pos_frac 以批内 median 为 center → ~0.5 属预期; 与主测度方向一致即稳健)",
-                alt_mean, alt_abs_mean, alt_pos, alt_neg,
+                sig4(alt_mean), sig4(alt_abs_mean), sig4(alt_pos), sig4(alt_neg),
             )
         else:
             logger.warning("  ① 替代锚点列缺失 (benefit_jlm_zh_*) — 上游嵌入/锚点链路异常, 替代锚点检验未生效")
 
         # ② 安慰剂 (4 业务线 + 1 中性) — 命中数 + 均值; 期望"业务线信号量级 *远小于* 替代锚点 (相对判读, 非绝对 ≈0)"。
         # 各向异性嵌入空间下 RAW |均值| 系统性非零 (alt_anchor.py:317 实测 ~97% 投影>0), 故不存在绝对 ≈0 基线, 只看相对占比。
-        logger.info("  ② 安慰剂 (期望: 命中数充足且均值 |·| 远小于替代锚点 |均值|=%.4f → 无伪相关, 好):", alt_abs_mean)
+        logger.info("  ② 安慰剂 (期望: 命中数充足且均值 |·| 远小于替代锚点 |均值|=%s → 无伪相关, 好):", sig4(alt_abs_mean))
         # ⚠ 判读口径说明 (顶刊免责声明, 仅日志): 替代锚点与安慰剂均用 *未去中心* 的 RAW |余弦均值|,
         # 在各向异性嵌入空间 (sign-at-0 实测 ~97% 投影>0, 见 alt_anchor.py:317 饱和退化披露) 下二者各带
         # 固定方向的基线正偏移, 故下方 ratio 主要反映两条 direction 的偏移大小关系, 仅作 *量级参考*;
@@ -566,11 +631,11 @@ def main(argv: list[str] | None = None) -> int:
                 if ratio >= 0.5:
                     leak_lines.append(pid)
                 logger.info(
-                    "    - %s%s: 命中 %d 篇  |均值|=%.4f  占替代锚点信号 %.0f%%  → %s",
-                    pid, tag, n_hit, p_abs_mean, ratio * 100, verdict,
+                    "    - %s%s: 命中 %d 篇  |均值|=%s  占替代锚点信号 %s  → %s",
+                    pid, tag, n_hit, sig4(p_abs_mean), pct4(ratio), verdict,
                 )
             else:
-                logger.info("    - %s%s: 命中 %d 篇  |均值|=%.4f (替代锚点基准不可比)", pid, tag, n_hit, p_abs_mean)
+                logger.info("    - %s%s: 命中 %d 篇  |均值|=%s (替代锚点基准不可比)", pid, tag, n_hit, sig4(p_abs_mean))
 
         # 辅助判读 (更干净, 仅日志): 以中性基线 general_corporate |均值| 为分母, 算各业务线 |均值| 的相对偏离。
         # 中性基线与业务线安慰剂同走 MAIN 方向投影 → 共享同一各向异性正偏移, 相比 alt-anchor 分母能更多消去固定偏移,
@@ -580,8 +645,8 @@ def main(argv: list[str] | None = None) -> int:
             neutral_abs_mean = float(combined[neutral_col].abs().mean())
             if neutral_abs_mean > 0:
                 logger.info(
-                    "  (辅助) 相对中性基线 general_corporate |均值|=%.4f 的偏离 (更干净的伪相关参考量, 越接近 1 越无超额信号):",
-                    neutral_abs_mean,
+                    "  (辅助) 相对中性基线 general_corporate |均值|=%s 的偏离 (更干净的伪相关参考量, 越接近 1 越无超额信号):",
+                    sig4(neutral_abs_mean),
                 )
                 for pid, n_hit in placebo_hits.items():
                     if pid == "general_corporate" or n_hit == 0:
@@ -590,7 +655,7 @@ def main(argv: list[str] | None = None) -> int:
                     if col not in combined or combined[col].notna().sum() == 0:
                         continue
                     rel = float(combined[col].abs().mean()) / neutral_abs_mean
-                    logger.info("    - %s: |均值| / 中性基线 |均值| = %.2f", pid, rel)
+                    logger.info("    - %s: |均值| / 中性基线 |均值| = %s", pid, sig4(rel))
             else:
                 logger.info("  (辅助) 中性基线 general_corporate |均值|=0, 无法作相对中性参考")
 
@@ -610,6 +675,11 @@ def main(argv: list[str] | None = None) -> int:
         logger.info("-" * 72)
     except Exception as _e:
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
+
+    try:
+        logger.info("  ⏱ [phase] 阶段 27c 总墙钟 (加载→build→写盘→分析): %s 秒", sig4(time.time() - _t_start))
+    except Exception as _e:
+        logger.warning(f"[计时汇总] 日志诊断异常, 跳过(不影响产物): {_e}")
     return 0
 
 

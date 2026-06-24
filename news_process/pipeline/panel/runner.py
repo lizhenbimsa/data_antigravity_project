@@ -65,6 +65,7 @@
 
 import json
 import os
+import platform
 import sys
 import time
 import warnings
@@ -74,7 +75,7 @@ import pandas as pd
 from pandas.errors import PerformanceWarning
 
 from news_process.core.config import herd_sensitivity_grid
-from news_process.core.logging import log_stage_summary
+from news_process.core.logging import log_stage_summary, pct4, sig4
 from news_process.pipeline.features.benefit_society import (
     compute_benefit_society_panel,
 )
@@ -462,6 +463,109 @@ from news_process.pipeline.panel.export import export_panel, log_diagnostics  # 
 # 主流程
 # ============================================================================
 
+
+def _log_environment_config_and_methods(input_path: str) -> None:
+    """打印 项目/环境 + 输入输出 + 运行配置 + 方法论依据 四大块 (日志富集 2026-06-24)。
+
+    目标 (用户要求"在日志文件中提供尽可能多的项目信息、运行期间信息和运行结果信息"):
+    把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数、构念学术出处"一次性
+    落进 40_panel_export_main.log, 便于复现核对 / 审计 / 排错。**纯日志, 不读不写
+    任何产物, 不改任何值/schema/控制流 (golden-safe)**。整体 try/except 包裹, 任一
+    子项异常都降级为 warning, 绝不让日志块崩掉面板总装阶段 (此乃流水线 fan-in 汇聚点)。
+    """
+    try:
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (面板导出主入口, STAGES_MAIN; "
+                    "内含子步 41+42+43+44+46+47→45 的串行编排; 三轨 full/ctx/ss)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); "
+                    "版本 v3.11.1 (rule-ablation-ladder)")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'}")
+        logger.info("     · 成本/确定性: 本阶段不直接调 LLM (消费 stage 21 缓存产物), 主体纯 CPU / $0;"
+                    " 仅 7h-emb/llmpeer 内联 Sentence-Embedding 相似度可能触网 (timeout=7200);"
+                    " 3 个网络中心度列 (clustering/cfbetween/harmonic) 受 BLAS-FP 影响非逐位确定。")
+
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 主输入:   {input_path} (24_herd_decay, df_exploded, stage21 语义精筛 verified 集)")
+        _align_fn = FILENAMES.get('output_15_article_alignment', '16_article_alignment.parquet')
+        _ftfull_fn = FILENAMES.get('output_12_fintech_full', '12_fintech_news_full.parquet')
+        logger.info(f"     · 硬依赖:   {os.path.join(OUTPUT_DIR, _align_fn)} (policy_cosine_sim; 7h-token)")
+        logger.info(f"     · 注意力分母: {os.path.join(OUTPUT_DIR, _ftfull_fn)} (全量银行新闻; 6b)")
+        _panel_fn = FILENAMES.get('output_40_panel_yearly', '40_panel_yearly.parquet')
+        logger.info(f"     · 主输出:   {os.path.join(OUTPUT_DIR, _panel_fn)} (+.csv/.dta + 3 张地理注意力副表)")
+        logger.info(f"     · 输出目录: {OUTPUT_DIR}")
+
+        logger.info("  ⚙ 运行配置 (config/panel.yaml::panel 等)")
+        try:
+            _sens_thrs, _sens_tags = herd_sensitivity_grid(CONFIG)
+            logger.info(f"     · HW 阈值敏感性网格 herd_sensitivity_grid: "
+                        f"阈值={[sig4(t) for t in _sens_thrs]} | 标签={list(_sens_tags)} "
+                        "(仅施于 LLM 投票主测度)")
+        except Exception as _e1:  # noqa: BLE001
+            logger.info(f"     · HW 阈值敏感性网格: (读取跳过: {_e1})")
+        _bartik_base = PANEL_CFG.get('bartik_base_year', 'auto')
+        _bartik_cut = PANEL_CFG.get('bartik_pre_treatment_cutoff', 2019)
+        logger.info(f"     · Bartik IV: base_year={_bartik_base} (auto→max(year.min,2010)) "
+                    f"| pre_treatment_cutoff={_bartik_cut} (GPSS 2020 外生性守卫)")
+        logger.info(f"     · 模型族: LLM={list(LLM_MODELS)} | 词典={list(DICT_NAMES)} "
+                    f"| BERT={list(BERT_MODELS)}")
+        logger.info("     · 三轨: ['_full','_ctx','_ss'] 全平价 (ss=银行+金科同句, 缺列优雅跳过); "
+                    "语调时序波动率窗口 rolling SD w=3 (min_periods=2)")
+
+        logger.info("  📖 方法论依据 (构念学术出处, 逐字取自经核验注册表; emit 进日志便于审计)")
+        logger.info("     · 面板平衡/笛卡尔补全(结构自检): Angrist, J. D., & Pischke, J.-S. (2009). "
+                    "Mostly harmless econometrics: An empiricist's companion. Princeton University Press. "
+                    "https://doi.org/10.1515/9781400829828")
+        logger.info("     · 媒体注意力(extensive 覆盖): Fang, L., & Peress, J. (2009). Media coverage and "
+                    "the cross-section of stock returns. The Journal of Finance, 64(5), 2023-2052. "
+                    "https://doi.org/10.1111/j.1540-6261.2009.01493.x")
+        logger.info("     · 媒体语调/情绪(过度反应基线): De Bondt, W. F. M., & Thaler, R. (1985). Does the "
+                    "stock market overreact? The Journal of Finance, 40(3), 793-805. "
+                    "https://doi.org/10.1111/j.1540-6261.1985.tb05004.x")
+        logger.info("     · 媒体悲观语调→市场: García, D. (2013). Sentiment during recessions. The Journal "
+                    "of Finance, 68(3), 1267-1300. https://doi.org/10.1111/jofi.12027")
+        logger.info("     · 文本看涨/看跌分歧度(disag): Antweiler, W., & Frank, M. Z. (2004). Is all that "
+                    "talk just noise? The information content of internet stock message boards. The Journal "
+                    "of Finance, 59(3), 1259-1294. https://doi.org/10.1111/j.1540-6261.2004.00662.x")
+        logger.info("     · 媒体声誉(媒体权威性加权依据): Deephouse, D. L. (2000). Media reputation as a "
+                    "strategic resource: An integration of mass communication and resource-based theories. "
+                    "Journal of Management, 26(6), 1091-1112. https://doi.org/10.1177/014920630002600602")
+        logger.info("     · 交互项构建规范(异质性): Brambor, T., Clark, W. R., & Golder, M. (2006). "
+                    "Understanding interaction models: Improving empirical analyses. Political Analysis, "
+                    "14(1), 63-82. https://doi.org/10.1093/pan/mpi014")
+        logger.info("     · 文本沟通可信度(disclosure 计量): Cao, S., Jiang, W., Yang, B., & Zhang, A. L. "
+                    "(2023). How to talk when a machine is listening: Corporate disclosure in the age of AI. "
+                    "The Review of Financial Studies, 36(9), 3603-3642. https://doi.org/10.1093/rfs/hhad021")
+        logger.info("     · 中文金融文本气候/情感测度对标: Bingler, J. A., Kraus, M., Leippold, M., & "
+                    "Webersinke, N. (2022). Cheap talk and cherry-picking: What ClimateBert has to say on "
+                    "corporate climate risk disclosures. Finance Research Letters, 47, 102776. "
+                    "https://doi.org/10.1016/j.frl.2022.102776")
+        logger.info("     · FinBERT 金融文本信息抽取: Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A "
+                    "large language model for extracting information from financial text. Contemporary "
+                    "Accounting Research, 40(2), 806-841. https://doi.org/10.1111/1911-3846.12832")
+        logger.info("     · 政策语料/文本相似(政策对齐): Distel, A. P., Grimpe, C., & Poetz, M. (2026). From "
+                    "evidence to impact: The use of scientific research in policy documents. Research Policy, "
+                    "55(3), 105426. https://doi.org/10.1016/j.respol.2026.105426")
+        logger.info("     · 政策脱耦(象征 vs 实质对齐): Westphal, J. D., & Zajac, E. J. (2001). Decoupling "
+                    "policy from practice: The case of stock repurchase programs. Administrative Science "
+                    "Quarterly, 46(2), 202-228. https://doi.org/10.2307/2667086")
+        logger.info("     · 数字经济(金科测度宏观背景): Goldfarb, A., & Tucker, C. (2019). Digital economics. "
+                    "Journal of Economic Literature, 57(1), 3-43. https://doi.org/10.1257/jel.20171452")
+        logger.info("     · 文本情绪计量(预期/不确定性): Angelico, C., Marcucci, J., Miccoli, M., & Quarta, F. "
+                    "(2022). Can we measure inflation expectations using Twitter? Journal of Econometrics, "
+                    "228(2), 259-277. https://doi.org/10.1016/j.jeconom.2021.12.008")
+        logger.info("     · 央行/政策沟通文本(中文金融语境): 姜富伟, 李梦如, & 孟令超. (2024). 调预期、防风险："
+                    "央行金融稳定沟通效果研究——基于文本分析的视角. 经济学（季刊）, 24(6), 2025-2040. "
+                    "https://doi.org/10.13821/j.cnki.ceq.2024.06.19")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法论信息打印失败 (不影响处理): {e}")
+
+
 def main():
     """40_panel_export_main 主流程。
 
@@ -520,6 +624,9 @@ def main():
     logger.info("【确定性】本阶段不直接调 LLM (消费 stage 21 缓存); 仅 7h-emb/llmpeer 内联")
     logger.info("        Sentence-Embedding 相似度可能触网 (timeout=7200 留 buffer); 其余纯 CPU。")
 
+    # 运行期 per-phase 墙钟计时累计 (各主要子步耗时, 末尾汇总打印; 纯日志)
+    phase_durations: dict[str, float] = {}
+
     # --- 1. 数据加载与验证 ---
     logger.info("=" * 60)
     logger.info("步骤 1: 数据加载与验证")
@@ -528,10 +635,14 @@ def main():
     input_filename = FILENAMES.get('output_24_herd_decay', '24_herd_decay.parquet')
     input_path = os.path.join(OUTPUT_DIR, input_filename)
 
+    # 项目/环境 + 输入输出 + 运行配置 + 方法论依据 四大块 (日志富集 2026-06-24, golden-safe)
+    _log_environment_config_and_methods(input_path)
+
     if not os.path.exists(input_path):
         logger.error(f"输入文件不存在: {input_path}")
         sys.exit(1)
 
+    _t_load = time.time()
     df = pd.read_parquet(input_path)
     logger.info(f"  已加载: {input_path}")
     logger.info(f"  行数: {len(df):,}, 列数: {df.shape[1]}")
@@ -543,9 +654,12 @@ def main():
         logger.error(f"  缺失关键列: {missing}")
         sys.exit(1)
     logger.info(f"  关键列校验通过 ✓")
+    phase_durations['①数据加载+校验'] = time.time() - _t_load
 
     # --- 2. 篇章级情感数值编码 ---
+    _t_enc = time.time()
     df = encode_sentiment(df)
+    phase_durations['②篇章级情感编码 encode_sentiment'] = time.time() - _t_enc
 
     # --- 3. 多银行特征提取（展开已在阶段 11 完成） ---
     logger.info("=" * 60)
@@ -979,6 +1093,7 @@ def main():
     logger.info(f"  洗稿率前置列生成完毕: {len(_wr_flag_cols)} 列 (三轨 full/ctx/ss)")
 
     # --- 5. Bank-Year 聚合 (df 为只读: groupby/filter/merge) ---
+    _t_agg = time.time()
     panel = aggregate_panel(df)
 
     # fix(omni-g-runner-10/g-runner-14, 2026-06-11): _svd_* subst-valid 分母计数
@@ -1001,10 +1116,14 @@ def main():
     # 不改数据/列序/取值, 仅消除非预期告警 (audit 2026-05-30)。
     panel = panel.copy()
 
+    phase_durations['③聚合+平衡 aggregate/balance_panel'] = time.time() - _t_agg
+
     # --- 6a. has_coverage 哑变量 ---
     panel['has_coverage'] = (panel['n_articles'] > 0).astype(int)
     logger.info(f"  has_coverage: 有报道={panel['has_coverage'].sum()}, "
                 f"无报道={len(panel) - panel['has_coverage'].sum()}")
+
+    _t_attn = time.time()
 
     # --- 6b. 金融科技注意力指数 (三级地理: 年/省/市) ---
     # 每档并行产 比值 ft_attn_* (fintech/total, intensive 份额) 与 总量 ft_vol_*
@@ -1647,7 +1766,7 @@ def main():
         df_align = pd.read_parquet(_align_path)
         logger.info(f"  加载 Stage 15: {len(df_align)} 篇, "
                     f"policy_cosine_sim 非空率: "
-                    f"{df_align['policy_cosine_sim'].notna().mean():.1%}")
+                    f"{pct4(df_align['policy_cosine_sim'].notna().mean())}")
 
         # 【关键】Stage 15 的输出基于 Stage 14 (15_fintech_intensity.parquet),
         #   该文件不含 'year' 列 — year 由 Stage 45 的 parse_time() 从 '日期' 派生。
@@ -2075,8 +2194,8 @@ def main():
             valid = panel[var_name].dropna()
             if len(valid) > 0:
                 logger.info(f"    {var_name} [{desc}]: "
-                            f"n={len(valid):,}, mean={valid.mean():.4f}, "
-                            f"std={valid.std():.4f}")
+                            f"n={len(valid):,}, mean={sig4(valid.mean())}, "
+                            f"std={sig4(valid.std())}")
             else:
                 logger.info(f"    {var_name} [{desc}]: 全部 NaN")
 
@@ -2137,11 +2256,11 @@ def main():
             if len(_jf_valid) and not _jf_valid.between(-1.0, 1.0).all():
                 raise ValueError(
                     f"jf_coefficient{track} 越界 [-1,1]: "
-                    f"min={_jf_valid.min():.4f}, max={_jf_valid.max():.4f} "
+                    f"min={sig4(_jf_valid.min())}, max={sig4(_jf_valid.max())} "
                     f"(疑似整数溢出未根治)")
             logger.info(f"  jf_coefficient{track}: "
-                        f"mean={panel[f'jf_coefficient{track}'].mean():.4f}, "
-                        f"std={panel[f'jf_coefficient{track}'].std():.4f}")
+                        f"mean={sig4(panel[f'jf_coefficient{track}'].mean())}, "
+                        f"std={sig4(panel[f'jf_coefficient{track}'].std())}")
         else:
             logger.warning(f"  {pos_col} 或 {neg_col} 不存在, 跳过 J-F 系数{track}")
 
@@ -2307,10 +2426,13 @@ def main():
     # (替代旧 drop_duplicates keep='first' 静默取首行, 旧行为使行数守卫永真空转)。
     panel = _merge_optin_feature_panels(panel, OUTPUT_DIR)
 
+    phase_durations['④注意力+地理+IV/DID+网络族 (6b→8e)'] = time.time() - _t_attn
+
     # --- 8z. IV 扩展族 (11 论文工具变量补全, 2026-06-13) ---
     # 必须在全部面板 merge 之后: 消费 attention_index (步骤 6) / sub_frac 等
     # 分类 frac (步骤 5) / benefit_mean_full (7h-benefit) / bank_type+share
     # (7e) / bank_zone (7f)。引擎与引用见 pipeline/panel/iv_extensions.py。
+    _t_ivx = time.time()
     _ivx_type_map, _ = load_bank_group_maps()
     # 基期解析与步骤 7e 完全同口径 (share 复用 7e 产物, 掩码须一致)
     _ivx_base_cfg = PANEL_CFG.get('bartik_base_year', 'auto')
@@ -2320,6 +2442,7 @@ def main():
         _ivx_T0 = int(_ivx_base_cfg)
     panel = compute_iv_extensions(panel, df_exploded,
                                   _ivx_type_map, [_ivx_T0])
+    phase_durations['⑤IV 扩展族 compute_iv_extensions (8z)'] = time.time() - _t_ivx
 
     # ── 【结果分析】(仅日志, 不回写 panel/产物; golden-safe) ──
     # 取最终 panel 的真实产出指标, 对照阈值/预期方向给出好/坏/临界判读,
@@ -2364,14 +2487,14 @@ def main():
                             "正常应被 _merge_optin_feature_panels fail-loud 拦截)")
         logger.info(
             f"  · 结构完整性自检: 实际 {_n_rows:,} / 理论笛卡尔积 {_theo:,} = "
-            f"{_bal:.1%} → {_bal_verdict}"
+            f"{pct4(_bal)} → {_bal_verdict}"
         )
         # 真实覆盖率 (信号密度): 有报道 bank-year 占完整笛卡尔积比例 —— 这才是有信息量
         # 的口径 (零报道行已笛卡尔补全为缺失, has_coverage=0); 越高=真实信号越密。
         if 'has_coverage' in panel.columns and _theo > 0:
             _cov_frac = int(panel['has_coverage'].sum()) / _theo
             logger.info(
-                f"  · 真实信号密度: 有报道 bank-year 占完整笛卡尔积 = {_cov_frac:.1%} "
+                f"  · 真实信号密度: 有报道 bank-year 占完整笛卡尔积 = {pct4(_cov_frac)} "
                 f"(越高信号越密; 零报道格已笛卡尔补全为缺失行)"
             )
 
@@ -2385,7 +2508,7 @@ def main():
             _na_mean = float(_na_pos.mean()) if len(_na_pos) > 0 else 0.0
             logger.info(
                 f"  · 新闻覆盖: 有报道 bank-year {_cov_rows:,} / 零报道 {_no_news:,} "
-                f"({_no_news_pct:.1%}); 有报道行均篇数 {_na_mean:.1f}"
+                f"({pct4(_no_news_pct)}); 有报道行均篇数 {sig4(_na_mean)}"
             )
             if 'has_coverage' in panel.columns:
                 _hc = int(panel['has_coverage'].sum())
@@ -2420,8 +2543,8 @@ def main():
             _tm = float(_tone.mean())
             _dir = "整体偏乐观(>0)" if _tm > 0 else ("整体偏悲观(<0)" if _tm < 0 else "中性(≈0)")
             logger.info(
-                f"  · {_tone_lab}: mean={_tm:+.4f} ({_dir}), "
-                f"std={_tone.std():.4f}, 非缺 {len(_tone):,}/{_n_rows:,} 行"
+                f"  · {_tone_lab}: mean={sig4(_tm)} ({_dir}), "
+                f"std={sig4(_tone.std())}, 非缺 {len(_tone):,}/{_n_rows:,} 行"
             )
 
         # (4) 内容属性二元分割 (P4 locus): 底层技术占比偏向
@@ -2432,7 +2555,7 @@ def main():
             else:
                 _tfm = float(_tf.mean())
                 logger.info(
-                    f"  · 底层技术占比 tech_frac: mean={_tfm:.3f} "
+                    f"  · 底层技术占比 tech_frac: mean={sig4(_tfm)} "
                     f"({'偏底层技术' if _tfm > 0.5 else '偏应用场景'}; 0=应用/1=底层), "
                     f"非缺 {len(_tf):,} 行"
                 )
@@ -2444,7 +2567,7 @@ def main():
                 if _tot > 0:
                     logger.info(
                         f"    {_lab} ({_col}): 有该类文章 bank-year = {_has_cat}/{_tot} "
-                        f"({_has_cat / _tot:.1%})"
+                        f"({pct4(_has_cat / _tot)})"
                     )
 
         # (5) P2 注意力指数 (Fang-Peress 2009 extensive 覆盖; 全集脊柱 LEFT-join 零填 0)
@@ -2455,8 +2578,8 @@ def main():
             else:
                 _ai_nz = int((_ai > 0).sum())
                 logger.info(
-                    f"  · 金科注意力指数 attention_index_full: mean={float(_ai.mean()):.4f}, "
-                    f"max={float(_ai.max()):.4f}; >0 的 bank-year {_ai_nz:,}/{len(_ai):,} "
+                    f"  · 金科注意力指数 attention_index_full: mean={sig4(float(_ai.mean()))}, "
+                    f"max={sig4(float(_ai.max()))}; >0 的 bank-year {_ai_nz:,}/{len(_ai):,} "
                     f"(零-fintech 行被刻意填 0, 非 NaN)"
                 )
 
@@ -2489,10 +2612,26 @@ def main():
     except Exception as _e:
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
+    _t_export = time.time()
     log_diagnostics(panel, df_exploded)
 
     # --- 9. 导出 ---
     export_panel(panel, df_exploded)
+    phase_durations['⑥诊断+多格式导出 log_diagnostics/export_panel'] = time.time() - _t_export
+
+    # ── ⏱ per-phase 墙钟计时汇总 (纯日志, golden-safe) ──
+    try:
+        _total_phase = sum(phase_durations.values())
+        logger.info("-" * 72)
+        logger.info("  ⏱ 各子步墙钟耗时 (秒, 4 位有效数字):")
+        for _pname, _pdur in phase_durations.items():
+            _share = (_pdur / _total_phase) if _total_phase > 0 else 0.0
+            logger.info(f"     · {_pname}: {sig4(_pdur)} 秒 ({pct4(_share)})")
+        logger.info(f"     · 计时子步合计: {sig4(_total_phase)} 秒 "
+                    f"(阶段总墙钟见下方 stage summary, 含 banner/方法块/结果分析等未计时段)")
+        logger.info("-" * 72)
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"[计时汇总] 打印异常, 跳过(不影响产物): {_e}")
 
     # --- 阶段摘要 ---
     log_stage_summary(
@@ -2502,7 +2641,7 @@ def main():
         extra_info={
             '唯一银行数': panel['target_bank'].nunique(),
             '年份跨度': f"{panel['year'].min()}-{panel['year'].max()}",
-            '零新闻观测占比': f"{(panel['n_articles'] == 0).mean():.1%}",
+            '零新闻观测占比': pct4((panel['n_articles'] == 0).mean()),
             '面板总列数': panel.shape[1],
             '分类指标': '已生成' if 'n_articles_tech' in panel.columns else '未生成',
         }

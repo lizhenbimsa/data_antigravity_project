@@ -73,6 +73,7 @@ news_process.pipeline.audit.stata_audit — Stata 用面板数据最高标准审
 """
 
 import os
+import platform
 import sys
 import time
 import warnings
@@ -88,7 +89,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging
+from news_process.core.logging import pct4, setup_logging, sig4
 
 warnings.filterwarnings('ignore', category=FutureWarning)
 
@@ -154,11 +155,11 @@ def audit_panel_structure(panel: pd.DataFrame, name: str):
            f'行数={len(panel):,}, 理论行数={expected_rows:,}')
 
     if balance_ratio >= 0.999:
-        record(cat, '面板平衡性', 'PASS', f'平衡率={balance_ratio:.4%} (完全平衡)')
+        record(cat, '面板平衡性', 'PASS', f'平衡率={pct4(balance_ratio)} (完全平衡)')
     elif balance_ratio >= 0.95:
-        record(cat, '面板平衡性', 'WARN', f'平衡率={balance_ratio:.4%} (近似平衡)')
+        record(cat, '面板平衡性', 'WARN', f'平衡率={pct4(balance_ratio)} (近似平衡)')
     else:
-        record(cat, '面板平衡性', 'FAIL', f'平衡率={balance_ratio:.4%} (不平衡!)')
+        record(cat, '面板平衡性', 'FAIL', f'平衡率={pct4(balance_ratio)} (不平衡!)')
 
     # 1c. 银行名一致性 (确保无空值、空字符串)
     blank_banks = panel['target_bank'].isna() | (panel['target_bank'].astype(str).str.strip() == '')
@@ -204,7 +205,7 @@ def audit_variable_quality(panel: pd.DataFrame, name: str):
         # 高缺失率变量
         high_miss = [(c, n, p) for c, n, p in missing_report if p > 0.5]
         if high_miss:
-            detail = '; '.join([f'{c}={p:.1%}' for c, n, p in high_miss[:10]])
+            detail = '; '.join([f'{c}={pct4(p)}' for c, n, p in high_miss[:10]])
             record(cat, '高缺失率变量(>50%)', 'WARN',
                    f'{len(high_miss)} 个变量: {detail}')
 
@@ -222,10 +223,10 @@ def audit_variable_quality(panel: pd.DataFrame, name: str):
                 if expected_miss is not None:
                     if miss_pct > expected_miss + 0.01:
                         record(cat, f'关键变量缺失-{label}', 'FAIL',
-                               f'{var} 缺失率={miss_pct:.1%}, 预期≤{expected_miss:.1%}')
+                               f'{var} 缺失率={pct4(miss_pct)}, 预期≤{pct4(expected_miss)}')
                     else:
                         record(cat, f'关键变量缺失-{label}', 'PASS',
-                               f'{var} 缺失率={miss_pct:.1%}')
+                               f'{var} 缺失率={pct4(miss_pct)}')
                 else:
                     # 情感变量: 在有新闻的行应非缺失
                     # metric-audit 2026-06-02: 用 LLM-valid 篇数(重构后 n_articles=物理),
@@ -235,10 +236,10 @@ def audit_variable_quality(panel: pd.DataFrame, name: str):
                     miss_in_news = panel.loc[has_news, var].isna().mean() if has_news.sum() > 0 else 0
                     if miss_in_news > 0.05:
                         record(cat, f'关键变量缺失-{label}', 'WARN',
-                               f'{var} 在有新闻行的缺失率={miss_in_news:.1%}')
+                               f'{var} 在有新闻行的缺失率={pct4(miss_in_news)}')
                     else:
                         record(cat, f'关键变量缺失-{label}', 'PASS',
-                               f'{var} 在有新闻行缺失率={miss_in_news:.1%}')
+                               f'{var} 在有新闻行缺失率={pct4(miss_in_news)}')
     else:
         record(cat, '缺失率检查', 'PASS', '所有变量均无缺失')
 
@@ -272,10 +273,10 @@ def audit_variable_quality(panel: pd.DataFrame, name: str):
             if len(valid) > 0:
                 if valid.min() < -1.001 or valid.max() > 1.001:
                     record(cat, f'{col}值域', 'FAIL',
-                           f'超出[-1,1]: min={valid.min():.4f}, max={valid.max():.4f}')
+                           f'超出[-1,1]: min={sig4(valid.min())}, max={sig4(valid.max())}')
                 else:
                     record(cat, f'{col}值域', 'PASS',
-                           f'值域=[{valid.min():.4f}, {valid.max():.4f}], mean={valid.mean():.4f}')
+                           f'值域=[{sig4(valid.min())}, {sig4(valid.max())}], mean={sig4(valid.mean())}')
 
     # 哑变量检查 (0/1)
     dummy_vars = [c for c in panel.columns
@@ -304,7 +305,7 @@ def audit_variable_quality(panel: pd.DataFrame, name: str):
                     outliers = ((valid - mean).abs() > 5 * std).sum()
                     if outliers > 0:
                         record(cat, f'异常值-{col}', 'WARN',
-                               f'{outliers} 个观测超出5σ (mean={mean:.4f}, std={std:.4f})')
+                               f'{outliers} 个观测超出5σ (mean={sig4(mean)}, std={sig4(std)})')
 
     # 2e. Inf 检查
     numeric_cols = panel.select_dtypes(include=[np.number]).columns
@@ -355,7 +356,7 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
                        f'{over_one} 行 pos_frac + neg_frac > 1')
             else:
                 record(cat, f'pos+neg<=1 ({track})', 'PASS',
-                       f'所有行满足约束, max_sum={row_sum.max():.4f}')
+                       f'所有行满足约束, max_sum={sig4(row_sum.max())}')
 
     # 3a-bis. 全 *_frac 列值域 ∈ [0,1] (metric-audit 2026-06-02 final 补盲区):
     # 旧 audit 只检 pos/neg_frac 与 full 轨 n_tech+n_app 计数恒等, 不扫 ctx 对角线
@@ -367,7 +368,7 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
     for c in _frac_cols:
         s = pd.to_numeric(p[c], errors='coerce').dropna()
         if len(s) and (s.max() > 1.001 or s.min() < -0.001):
-            _oob_frac.append(f'{c}[{s.min():.3f},{s.max():.3f}]')
+            _oob_frac.append(f'{c}[{sig4(s.min())},{sig4(s.max())}]')
     if _oob_frac:
         record(cat, '分类 frac 值域 ∈[0,1]', 'FAIL',
                f'{len(_oob_frac)}/{len(_frac_cols)} 个 frac 列越界 (轨道不对称除法?): '
@@ -425,10 +426,10 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
                 r = valid[col_a].corr(valid[col_b])
                 if r < 0.5:
                     record(cat, f'{pair_label} 跨轨道相关', 'WARN',
-                           f'Pearson r={r:.4f} < 0.5, 该对轨道分歧较大')
+                           f'Pearson r={sig4(r)} < 0.5, 该对轨道分歧较大')
                 else:
                     record(cat, f'{pair_label} 跨轨道相关', 'PASS',
-                           f'Pearson r={r:.4f}')
+                           f'Pearson r={sig4(r)}')
 
     # 3d. LLM 模型间情感一致性
     llm_models = ['gpt54nano', 'gemini31', 'deepseekv4']  # v3: 真三家族 (OpenAI + Google + DeepSeek)
@@ -439,7 +440,7 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
         upper_tri = corrs.values[np.triu_indices_from(corrs.values, k=1)]
         min_pair_corr = upper_tri.min() if len(upper_tri) > 0 else 1.0
         record(cat, 'LLM模型间一致性', 'PASS' if min_pair_corr > 0.5 else 'WARN',
-               f'最小成对相关={min_pair_corr:.4f} ({len(llm_tone_cols)}个模型)')
+               f'最小成对相关={sig4(min_pair_corr)} ({len(llm_tone_cols)}个模型)')
 
     # 3e. 加权均值恒等式 (VW, MW, HW) — 三轨 (full/ctx/ss)
     # 列名模式 (与 encode.py 实际产出对齐):
@@ -483,7 +484,7 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
                 if len(diff) > 0:
                     max_diff = float(diff.max())
                     record(cat, check, 'FAIL' if max_diff > 1e-8 else 'PASS',
-                           f'最大差异={max_diff:.6e} (分母口径={denom_kind}:{denom_col})')
+                           f'最大差异={sig4(max_diff)} (分母口径={denom_kind}:{denom_col})')
                 else:
                     record(cat, check, 'WARN',
                            f'无可比对行 (tone/expected 全缺失), 分母口径={denom_kind}:{denom_col}')
@@ -544,16 +545,16 @@ def audit_iv_variables(panel: pd.DataFrame, name: str):
                 over_one = (row_sums > 1.01).sum()
                 if over_one > 0:
                     record(cat, f'Bartik份额归一-{prefix}', 'FAIL',
-                           f'{over_one}行份额和>1.01 (溢出!), max={max_sum:.6f}')
+                           f'{over_one}行份额和>1.01 (溢出!), max={sig4(max_sum)}')
                 elif mean_sum < 0.5:
                     # 均值太低可能说明份额计算有问题
                     record(cat, f'Bartik份额归一-{prefix}', 'WARN',
-                           f'份额均值={mean_sum:.4f}偏低, 可能other类占比过高, '
-                           f'{len(share_cols)}个份额列, range=[{min_sum:.4f}, {max_sum:.4f}]')
+                           f'份额均值={sig4(mean_sum)}偏低, 可能other类占比过高, '
+                           f'{len(share_cols)}个份额列, range=[{sig4(min_sum)}, {sig4(max_sum)}]')
                 else:
                     record(cat, f'Bartik份额归一-{prefix}', 'PASS',
-                           f'{len(share_cols)}个份额列, 均值={mean_sum:.4f}, '
-                           f'range=[{min_sum:.4f}, {max_sum:.4f}]')
+                           f'{len(share_cols)}个份额列, 均值={sig4(mean_sum)}, '
+                           f'range=[{sig4(min_sum)}, {sig4(max_sum)}]')
 
     # 4b. Leave-one-out IV 排除己检验
     n_years = panel['year'].nunique()
@@ -575,20 +576,20 @@ def audit_iv_variables(panel: pd.DataFrame, name: str):
                 if n_years <= 1:
                     # 截面数据: 仅报告信息，不判断 PASS/WARN
                     record(cat, f'LOO-IV相关性({geo})', 'PASS',
-                           f'r={r:.4f} (截面数据, 负相关可由LOO数学性质导致)')
+                           f'r={sig4(r)} (截面数据, 负相关可由LOO数学性质导致)')
                 elif abs(r) < 0.05:
                     record(cat, f'LOO-IV相关性({geo})', 'WARN',
-                           f'r={r:.4f}, 相关性极弱 — 可能弱IV风险')
+                           f'r={sig4(r)}, 相关性极弱 — 可能弱IV风险')
                 else:
                     record(cat, f'LOO-IV相关性({geo})', 'PASS',
-                           f'r={r:.4f}')
+                           f'r={sig4(r)}')
 
     # 4c. Zone LOO IV
     zone_col = 'zone_leave1out_tone_full'
     if zone_col in panel.columns:
         valid = panel[zone_col].dropna()
         record(cat, 'Zone LOO IV', 'PASS',
-               f'有效值={len(valid):,}, 缺失率={(panel[zone_col].isna().mean()):.1%}')
+               f'有效值={len(valid):,}, 缺失率={pct4(panel[zone_col].isna().mean())}')
 
     # 4d. Bartik IV 变异性检查 (全零或常数的 IV 无效)
     iv_cols = [c for c in panel.columns if c.startswith('bartik_') and '_iv_' in c]
@@ -751,10 +752,10 @@ def audit_stata_compatibility(panel: pd.DataFrame, dta_path: str, name: str):
                         diff = float(np.abs(dta_vals[both] - pq_vals[both]).max()) if both.any() else 0.0
                         if diff > 0.001:
                             record(cat, f'.dta 精度-{col}', 'WARN',
-                                   f'最大差异={diff:.6e}')
+                                   f'最大差异={sig4(diff)}')
                         else:
                             record(cat, f'.dta 精度-{col}', 'PASS',
-                                   f'精度一致 (max_diff={diff:.6e}, 含 NaN 位置对称校验)')
+                                   f'精度一致 (max_diff={sig4(diff)}, 含 NaN 位置对称校验)')
             else:
                 # 行数不一致已由 6c record FAIL; 逐位比对无意义, 显式 WARN 不静默
                 record(cat, '.dta 精度检查', 'WARN', '行数不一致, 跳过逐位精度比对 (见 6c)')
@@ -813,7 +814,7 @@ def audit_cross_file_consistency(panel_40: pd.DataFrame, panel_51: pd.DataFrame)
             if c40 in m.columns and c51 in m.columns:
                 diff = (m[c40].fillna(-999) - m[c51].fillna(-999)).abs().max()
                 if diff > 1e-6:
-                    record(cat, f'{col} 数值一致', 'FAIL', f'最大差异={diff:.6e}')
+                    record(cat, f'{col} 数值一致', 'FAIL', f'最大差异={sig4(diff)}')
                 else:
                     record(cat, f'{col} 数值一致', 'PASS', f'完全一致')
 
@@ -865,9 +866,9 @@ def audit_descriptive_stats(panel: pd.DataFrame, name: str):
         for var in existing:
             s = stats.loc[var]
             logger.info(f"  {var:40s} | n={int(s['n_valid']):>6,} | "
-                        f"mean={s['mean']:>8.4f} | std={s['std']:>8.4f} | "
-                        f"min={s['min']:>8.4f} | max={s['max']:>8.4f} | "
-                        f"miss={s['missing_pct']:.1%}")
+                        f"mean={sig4(s['mean']):>9} | std={sig4(s['std']):>9} | "
+                        f"min={sig4(s['min']):>9} | max={sig4(s['max']):>9} | "
+                        f"miss={pct4(s['missing_pct'])}")
 
         record(cat, '描述性统计', 'PASS', f'{len(existing)} 个核心变量统计已生成')
 
@@ -875,7 +876,7 @@ def audit_descriptive_stats(panel: pd.DataFrame, name: str):
     if 'n_articles' in panel.columns:
         zero_pct = (panel['n_articles'] == 0).mean()
         record(cat, '零新闻Bank-Year占比', 'PASS' if zero_pct < 0.3 else 'WARN',
-               f'{zero_pct:.1%}')
+               f'{pct4(zero_pct)}')
 
 
 # ============================================================================
@@ -902,7 +903,7 @@ def audit_network_variables(panel: pd.DataFrame, name: str):
         valid = panel[col].dropna()
         if len(valid) > 0:
             if valid.min() < -0.01:
-                record(cat, f'{col}值域', 'WARN', f'存在负值: min={valid.min():.6f}')
+                record(cat, f'{col}值域', 'WARN', f'存在负值: min={sig4(valid.min())}')
 
     # 全局网络指标年度变异
     global_cols = [c for c in panel.columns if c.startswith('net_') and c.endswith('_yr')]
@@ -938,21 +939,79 @@ def audit_geography_variables(panel: pd.DataFrame, name: str):
             else:
                 miss_pct = panel[geo_col].isna().mean()
                 record(cat, f'{geo_col}跨年一致性', 'PASS',
-                       f'一致, 缺失率={miss_pct:.1%}')
+                       f'一致, 缺失率={pct4(miss_pct)}')
 
     # 10b. bank_zone 应与 bank_province 对应
     if 'bank_zone' in panel.columns and 'bank_province' in panel.columns:
         miss_zone = panel['bank_zone'].isna().mean()
         record(cat, 'bank_zone 覆盖率', 'PASS' if miss_zone < 0.1 else 'WARN',
-               f'缺失率={miss_zone:.1%}')
+               f'缺失率={pct4(miss_zone)}')
 
 
 # ============================================================================
 # 主函数
 # ============================================================================
 
+def _log_environment_and_config(panel_40_path: str, panel_51_path: str,
+                                dta_40_path: str, dta_51_path: str) -> None:
+    """打印 项目/环境信息 + 输入输出 + 运行配置 + 方法论依据 (日志富集, 2026-06-24)。
+
+    把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调阈值、依据哪些方法学文献"
+    一次性落进日志, 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 / 控制流
+    (golden-safe)。失败时仅记 warning, 不让本块崩阶段。
+    """
+    try:
+        report_path = os.path.join(OUTPUT_DIR, 'eval_reports', '81_stata_data_audit.csv')
+
+        # ① 🧭 项目 / 环境信息
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (Stata 用面板交付前质检; user-CLI, 不在 DAG)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        logger.info(f"     · numpy={np.__version__} | pandas={pd.__version__}")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "纯 pandas/numpy 只读校验, 无 LLM·Embedding·网络 ($0), 逐位可复现")
+
+        # ② 📂 输入 / 输出文件
+        logger.info("  📂 输入 / 输出文件 (config/paths.yaml::output_dir + filenames)")
+        logger.info(f"     · 输入主面板: {panel_40_path} (+ 同名 .dta: {dta_40_path})")
+        logger.info(f"     · 输入对照面板: {panel_51_path} (+ 同名 .dta: {dta_51_path})")
+        logger.info(f"     · 输出报告: {report_path} (PASS/WARN/FAIL 体检表 CSV)")
+
+        # ③ ⚙ 运行配置 (本阶段的硬编码审核阈值 / 容差)
+        logger.info("  ⚙ 运行配置 (审核阈值 / 容差; 只读校验, 无 YAML 可调参数)")
+        logger.info(f"     · 平衡率判读: 完全平衡≥{sig4(0.999)} / 近似平衡≥{sig4(0.95)} / 否则不平衡")
+        logger.info(f"     · 异常值阈: |x−mean| > {sig4(5.0)}σ (情感指标 5σ 离群)")
+        logger.info(f"     · Bartik 份额溢出阈: 行和 > {sig4(1.01)} (排除 other 类后理应≤1)")
+        logger.info(f"     · 加权恒等式容差: max_diff > {sig4(1e-8)} 即 FAIL")
+        logger.info(f"     · .dta 精度容差: max_diff > {sig4(0.001)} 即 WARN; 跨文件一致 > {sig4(1e-6)} 即 FAIL")
+        logger.info(f"     · 弱 IV 阈: |LOO-IV r| < {sig4(0.05)} (多年面板) | 跨轨相关 r < {sig4(0.5)} 报分歧")
+        logger.info(f"     · 列名合规: ASCII 起首字母/下划线, ≤32 字符 (Stata 标识符规范)")
+
+        # ④ 📖 方法论依据 (参考文献; 仅 emit 经核验注册表中的 DOI)
+        logger.info("  📖 方法论依据 (核心审核准则的学术出处)")
+        logger.info("     · 面板唯一键约束: Wooldridge, J. M. (2010). Econometric Analysis of Cross "
+                    "Section and Panel Data (2nd ed.). MIT Press.")
+        logger.info("       → (target_bank, year) 须唯一, 否则银行年固定效应回归崩坏")
+        logger.info("     · 面板平衡性诊断: Baltagi, B. H. (2021). Econometric Analysis of Panel "
+                    "Data (6th ed.). Springer.")
+        logger.info("       → 实际行/理论行 (n_banks × 年跨度) 判读完全/近似/不平衡")
+        logger.info("     · Bartik 份额归一: Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). "
+                    "Bartik instruments: What, when, why, and how. American Economic Review, "
+                    "110(8), 2586-2624. https://doi.org/10.1257/aer.20181047")
+        logger.info("       → 初始份额 × 全国趋势的 shift-share IV; 排除 other 后份额和理应 ≤1")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法论信息打印失败 (不影响审核): {e}")
+
+
 def main():
     start_time = time.time()
+    # 运行期阶段计时累计 (各主要子阶段墙钟耗时, 末尾汇总打印; 纯日志, golden-safe)
+    phase_durations: dict[str, float] = {}
 
     # ---【功能 banner】交付前面板质检 (黄金范式: 紧随启动日志; 已替换旧短 banner, 不叠加) ---
     logger.info("=" * 72)
@@ -978,9 +1037,13 @@ def main():
     dta_40_path = os.path.splitext(panel_40_path)[0] + '.dta'
     dta_51_path = os.path.splitext(panel_51_path)[0] + '.dta'
 
+    # 项目/环境/输入输出/配置/方法论 富集 banner (日志富集 2026-06-24)
+    _log_environment_and_config(panel_40_path, panel_51_path, dta_40_path, dta_51_path)
+
     panel_40 = None
     panel_51 = None
 
+    _t = time.time()
     if os.path.exists(panel_40_path):
         panel_40 = pd.read_parquet(panel_40_path)
         logger.info(f"已加载 40_panel_yearly: {panel_40.shape}")
@@ -992,8 +1055,10 @@ def main():
         logger.info(f"已加载 51_panel_with_controls: {panel_51.shape}")
     else:
         logger.warning(f"51_panel_with_controls 不存在: {panel_51_path}")
+    phase_durations['①加载面板 parquet'] = time.time() - _t
 
     # --- 审核 40_panel_yearly ---
+    _t = time.time()
     if panel_40 is not None:
         audit_panel_structure(panel_40, '40面板')
         audit_variable_quality(panel_40, '40面板')
@@ -1004,8 +1069,10 @@ def main():
         audit_network_variables(panel_40, '40面板')
         audit_geography_variables(panel_40, '40面板')
         audit_descriptive_stats(panel_40, '40面板')
+    phase_durations['②审核 40 主面板 (9 类)'] = time.time() - _t
 
     # --- 审核 51_panel_with_controls ---
+    _t = time.time()
     if panel_51 is not None:
         audit_panel_structure(panel_51, '51面板')
         audit_variable_quality(panel_51, '51面板')
@@ -1016,10 +1083,13 @@ def main():
         audit_network_variables(panel_51, '51面板')
         audit_geography_variables(panel_51, '51面板')
         audit_descriptive_stats(panel_51, '51面板')
+    phase_durations['③审核 51 对照面板 (9 类)'] = time.time() - _t
 
     # --- 跨文件一致性 ---
+    _t = time.time()
     if panel_40 is not None and panel_51 is not None:
         audit_cross_file_consistency(panel_40, panel_51)
+    phase_durations['④跨文件一致性 (40 vs 51)'] = time.time() - _t
 
     # --- 汇总报告 ---
     logger.info("=" * 70)
@@ -1032,10 +1102,10 @@ def main():
     n_fail = (df_results['status'] == 'FAIL').sum()
     n_total = len(df_results)
 
-    logger.info(f"  总检查项: {n_total}")
-    logger.info(f"  ✅ PASS: {n_pass} ({n_pass/max(n_total,1):.1%})")
-    logger.info(f"  ⚠️ WARN: {n_warn} ({n_warn/max(n_total,1):.1%})")
-    logger.info(f"  ❌ FAIL: {n_fail} ({n_fail/max(n_total,1):.1%})")
+    logger.info(f"  总检查项: {n_total:,}")
+    logger.info(f"  ✅ PASS: {n_pass:,} ({pct4(n_pass/max(n_total,1))})")
+    logger.info(f"  ⚠️ WARN: {n_warn:,} ({pct4(n_warn/max(n_total,1))})")
+    logger.info(f"  ❌ FAIL: {n_fail:,} ({pct4(n_fail/max(n_total,1))})")
 
     if n_fail > 0:
         logger.error("")
@@ -1063,16 +1133,16 @@ def main():
             pass_rate = n_pass / max(n_total, 1)
             if n_fail > 0:
                 logger.info(
-                    f"  · 总体: {n_total} 项检查, PASS {pass_rate:.1%} / WARN {n_warn/max(n_total,1):.1%}"
-                    f" / FAIL {n_fail/max(n_total,1):.1%} → 存在 {n_fail} 项 FAIL [坏], 数据"
+                    f"  · 总体: {n_total:,} 项检查, PASS {pct4(pass_rate)} / WARN {pct4(n_warn/max(n_total,1))}"
+                    f" / FAIL {pct4(n_fail/max(n_total,1))} → 存在 {n_fail:,} 项 FAIL [坏], 数据"
                     "不应直接交付 Stata, 须先按下方失败项修复后重生面板。")
             elif n_warn > 0:
                 logger.info(
-                    f"  · 总体: {n_total} 项检查, 0 FAIL [好], 但有 {n_warn} 项 WARN [临界] —"
+                    f"  · 总体: {n_total:,} 项检查, 0 FAIL [好], 但有 {n_warn:,} 项 WARN [临界] —"
                     "多为已知口径限制/小样本退化/缺列优雅跳过, 须逐条人工复核确认非真错。")
             else:
                 logger.info(
-                    f"  · 总体: {n_total} 项检查全部 PASS [好], 0 WARN/0 FAIL, 面板可放心交付 Stata。")
+                    f"  · 总体: {n_total:,} 项检查全部 PASS [好], 0 WARN/0 FAIL, 面板可放心交付 Stata。")
 
             # (2) CRITICAL 级硬错单列 — record(severity='CRITICAL') 仅用于唯一键重复 (最致命)
             if 'severity' in df_results.columns:
@@ -1155,8 +1225,17 @@ def main():
     df_results.to_csv(report_path, index=False, encoding='utf-8-sig')
     logger.info(f"  审核报告已导出: {report_path}")
 
-    elapsed = time.time() - start_time
-    logger.info(f"  总耗时: {elapsed:.1f}s")
+    # ⏱ 阶段计时 (各主要子阶段墙钟耗时汇总; 纯日志, golden-safe)
+    try:
+        elapsed = time.time() - start_time
+        phase_durations['⑤汇总+写盘 CSV'] = max(elapsed - sum(phase_durations.values()), 0.0)
+        logger.info("  ⏱ 阶段计时 (墙钟秒)")
+        for _phase, _dur in phase_durations.items():
+            _share = _dur / elapsed if elapsed > 0 else 0.0
+            logger.info(f"     · {_phase}: {sig4(_dur)}s ({pct4(_share)})")
+        logger.info(f"     · 合计总耗时: {sig4(elapsed)}s")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  [阶段计时] 日志诊断异常, 跳过 (不影响产物): {_e}")
     logger.info("81_stata_data_audit 完成 ✓")
 
     # 返回状态码

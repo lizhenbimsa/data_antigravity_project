@@ -41,10 +41,15 @@ Firm-Year 级别的结构化特征。通过汇总该年度单家企业的全部�
 """
 
 import os
+import platform
+import sys
+import time
 
 import numpy as np
 import pandas as pd
 
+# sig4/pct4: 日志四位有效数字单一事实源 (golden-safe, 仅渲染日志, 不入产物)。
+from news_process.core.logging import pct4, sig4
 from news_process.pipeline.features.strategic_diff import (  # noqa: E402
     _aggregate_bank_year_texts as _aggregate,
 )
@@ -194,9 +199,42 @@ def compute_authoritative_similarity(df_exploded, panel):
         all_vintage_companion 开启时再并列至多 15 列 `_allv` 全年份锚点孪生 (同结构),
         合计至多 30 列。
     """
+    _t_start = time.time()
     logger.info("=" * 60)
-    logger.info("开始计算: 权威政策战略响应度 (Stage 26)")
+    logger.info("开始计算: 权威政策战略响应度 (Stage 26 · authoritative_similarity)")
     logger.info("=" * 60)
+
+    # ── 子步骤 banner (called-by-runner helper; ENV/CONFIG/方法论/结果判读) ──
+    # 全程 try/except 包裹 — 日志块绝不允许炸 stage (铁律)。数字一律 sig4/pct4。
+    try:
+        logger.info("  🧭 项目/环境  news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板, v3.11.1)")
+        logger.info("     · 子步骤 7h(policy): 银行年度战略画像 vs 宏观权威政策锚点的 ghost-anchor 余弦响应度")
+        logger.info(f"     · Python {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · {platform.platform()} | CPU={os.cpu_count()} | PID={os.getpid()}")
+        logger.info(f"     · RUN_ID={os.environ.get('NEWS_PROCESS_RUN_ID', '(unset)')} | cwd={os.getcwd()}")
+        logger.info(f"     · 模块: {os.path.abspath(__file__)}")
+        logger.info("     · 确定性/成本: 纯 CPU 文本相似度 (TF-IDF/LDA 确定); embedding 主轨经穿透缓存,"
+                    " 冷缓存须付费嵌入 (text-embedding-3-small) — 命中则 $0; t2v twin 本地 GPU $0")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  环境信息打印失败 (不影响计算): {_e}")
+
+    try:
+        logger.info("  📖 方法论依据 (运行期引文; 逐字取自经核验注册表 + DOI 可访问链接)")
+        logger.info("     · 文本锚点向量化 (TF-IDF 相似度矩阵 / 产品空间定位):")
+        logger.info("       Hoberg, G., & Phillips, G. (2016). Text-based network industries and "
+                    "endogenous product differentiation. Journal of Political Economy, 124(5), "
+                    "1423-1465. https://doi.org/10.1086/688176")
+        logger.info("     · 宏观政策文本注入共享向量空间 (测度微观画像与宏观基准收敛性, 概念动因):")
+        logger.info("       Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). "
+                    "Firm-level political risk: Measurement and effects. The Quarterly Journal of "
+                    "Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021")
+        logger.info("     · 企业年度战略画像跨年比对 (先聚合后向量化, 消除文章级特质白噪音):")
+        logger.info("       Brown, S. V., & Tucker, J. W. (2011). Large-sample evidence on firms' "
+                    "year-over-year MD&A modifications. Journal of Accounting Research, 49(2), "
+                    "309-346. https://doi.org/10.1111/j.1475-679X.2010.00396.x")
+        logger.info("     → 为何用: 把国家政策原文当满分标答(虚拟幽灵锚点), 银行年度新闻汇总越贴近 → 战略响应度越高")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  方法论引文打印失败 (不影响计算): {_e}")
 
     # 1. 载入权威政策文本锚点 (Phase 2a: 通过 CONFIG['paths'][...] 解析)
     auth_path = CONFIG['paths'].get(
@@ -231,6 +269,25 @@ def compute_authoritative_similarity(df_exploded, panel):
     if _companion:
         logger.info("  全年份锚点稳健孪生 (_allv): 开启 — 并列产出 auth_sim_*_allv{track} "
                     "(全语料静态锚点, anchor-robustness 对照)")
+
+    # ── ⚙ 运行配置 (CONFIG block; 可调参数 + 输入路径 + 锚点口径) ──
+    try:
+        _n_doc_yr = sum(1 for d in auth_docs if d['year'] is not None)
+        _yrs = sorted({d['year'] for d in auth_docs if d['year'] is not None})
+        logger.info("  ⚙ 运行配置 (config: paths.authoritative_corpus_file / policy_alignment 共享口径)")
+        logger.info(f"     · 权威政策语料: {auth_path}")
+        logger.info(f"     · 政策文档数={len(auth_docs):,d} | 带发布年份 vintage={_n_doc_yr:,d} | "
+                    f"静态全语料字数={len(auth_text_static):,d}")
+        logger.info(f"     · 覆盖发布年份: {_yrs if _yrs else '(全部未知)'}")
+        logger.info(f"     · vintage-aware 前视守卫={use_vintage} (年度 t 只用发布年份 ≤ t 的政策) | "
+                    f"all_vintage_companion(_allv)={_companion}")
+        logger.info("     · 相似度指标: 5 维 (TF-IDF 字符级/词级 · LDA 主题 JSD · embedding 主轨 · "
+                    "embedding text2vec twin)")
+        logger.info(f"     · embedding 主轨={CONFIG.get('embedding_model', '(default)')} | "
+                    f"稳健 twin spec={_ROBUSTNESS_SPEC.get('model', '(unset)') if _ROBUSTNESS_SPEC else '(unset)'}")
+        logger.info("     · 最低银行门槛=3 家/年 (镜像 stage 25 LDA K 值稳定性守卫, 不足则该年跳过)")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  配置信息打印失败 (不影响计算): {_e}")
 
     # 2. 准备 Full / Ctx / Ss 三轨池化数据
     # fix(completeness-04): full 轨读 content_full(含标题, v3.8.0 full/ctx 命名契约), 与 ctx 轨
@@ -329,14 +386,58 @@ def compute_authoritative_similarity(df_exploded, panel):
         res_df = pd.DataFrame(all_results)
         # 多轨道结果会自动产生相同的 (target_bank, year) 行，必须合并
         res_df = res_df.groupby(['target_bank', 'year'], as_index=False).first()
-        
+
         # 挂载到现有 panel
         panel = panel.merge(res_df, on=['target_bank', 'year'], how='left')
-        _n_allv = sum(1 for c in res_df.columns if '_allv' in c)
-        logger.info(f"  ✅ 权威政策相似度: 成功合并 {len(res_df)} 行记录 "
-                    f"({sum(1 for c in res_df.columns if c.startswith('auth_sim_'))} 指标列, "
-                    f"其中 {_n_allv} 列为全年份锚点 _allv 孪生)")
+        _metric_cols = [c for c in res_df.columns if c.startswith('auth_sim_')]
+        _n_allv = sum(1 for c in _metric_cols if '_allv' in c)
+        logger.info(f"  ✅ 权威政策相似度: 成功合并 {len(res_df):,d} 行记录 "
+                    f"({len(_metric_cols):,d} 指标列, 其中 {_n_allv:,d} 列为全年份锚点 _allv 孪生)")
+
+        # ── 📊 关键指标解读 (RESULT-ANALYSIS; 逐指标对照阈值给好/临界/坏判读) ──
+        try:
+            logger.info("  📊 关键指标解读 (权威政策相似度 ∈ [0,1]; 越高=战略步调越贴合国家政策)")
+            for col in _metric_cols:
+                s = pd.to_numeric(res_df[col], errors='coerce')
+                n_valid = int(s.notna().sum())
+                n_tot = len(s)
+                nan_rate = 1.0 - (n_valid / n_tot) if n_tot else 1.0
+                if n_valid < 3:
+                    logger.info(f"     · {col}: 有效 {n_valid:,d}/{n_tot:,d} (前视守卫/小样本, 暂无判读)")
+                    continue
+                mu, sd = float(s.mean()), float(s.std())
+                lo, hi = float(s.min()), float(s.max())
+                # 判读: 余弦相似度族典型在 [0,1]; std 反映银行间区分度, 0 方差 = 退化无信息
+                if sd < 1e-6:
+                    verdict = "⚠ 零方差(全部相同→无横截面区分度)"
+                elif sd < 0.02:
+                    verdict = "⚠ 区分度偏弱"
+                else:
+                    verdict = "✓ 区分度正常"
+                if nan_rate > 0.5:
+                    verdict += f" | ⚠ 缺失偏高 {pct4(nan_rate)}(前视守卫/回退)"
+                logger.info(f"     · {col}: μ={sig4(mu)} σ={sig4(sd)} "
+                            f"范围=[{sig4(lo)}, {sig4(hi)}] 有效={n_valid:,d}/{n_tot:,d} "
+                            f"缺失={pct4(nan_rate)} → {verdict}")
+            # _allv 孪生与 vintage 主轨的相关性 (高度相关=锚点稳健; 用 emb 主轨作代表对)
+            for sfx in ('_full', '_ctx', '_ss'):
+                vin_c, allv_c = f'auth_sim_emb{sfx}', f'auth_sim_emb_allv{sfx}'
+                if vin_c in res_df.columns and allv_c in res_df.columns:
+                    pair = res_df[[vin_c, allv_c]].apply(pd.to_numeric, errors='coerce').dropna()
+                    if len(pair) >= 3 and pair[vin_c].std() > 0 and pair[allv_c].std() > 0:
+                        r = float(pair[vin_c].corr(pair[allv_c]))
+                        rv = "✓ 锚点高度稳健" if r > 0.8 else ("临界" if r > 0.5 else "⚠ 锚点敏感")
+                        logger.info(f"     · 锚点稳健性 corr(vintage, _allv){sfx} (emb 主轨)="
+                                    f"{sig4(r)} (n={len(pair):,d}) → {rv}")
+        except Exception as _e:  # noqa: BLE001
+            logger.warning(f"  结果分析打印失败 (不影响计算): {_e}")
     else:
         logger.warning("  ⚠️ 权威政策相似度: 无任何有效计算结果产出")
+
+    try:
+        logger.info(f"  ⏱ Stage 26 (authoritative_similarity) 墙钟耗时: {sig4(time.time() - _t_start)} 秒 "
+                    f"| 处理轨道={len(tracks):,d} (full/ctx/ss 视 content 列存在性)")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  计时打印失败 (不影响计算): {_e}")
 
     return panel

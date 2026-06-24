@@ -23,13 +23,18 @@ from __future__ import annotations
 import argparse
 import hashlib
 import logging
+import os
+import platform
 import re
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import yaml
+
+from news_process.core.logging import pct4, sig4
 
 logger = logging.getLogger(__name__)
 
@@ -243,6 +248,95 @@ def compute_placebo_projection(
 # ============================================================================
 
 
+def _log_environment_and_config(
+    meta: dict[str, object],
+    business_lines: dict[str, list[str]],
+    neutral_baseline: dict[str, list[str]],
+    *,
+    validate_only: bool,
+) -> None:
+    """打印项目/环境信息 + 运行配置 + 方法论依据 (日志富集, 2026-06-24)。
+
+    目标 (用户要求"在日志文件中提供尽可能多的项目信息、运行期间信息和运行结果信息"):
+    把"谁在跑、跑在什么环境、读哪些配置、用了哪些可调参数、依据哪篇文献"一次性落进日志,
+    便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 / schema / 控制流 (golden-safe)。
+    """
+    try:
+        _run_id = os.environ.get("NEWS_PROCESS_RUN_ID")
+
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(
+            "     · 阶段: benefit_society placebo (业务线安慰剂投影, S1 稳健性; "
+            "audit/library-only, 不写主面板/golden)"
+        )
+        logger.info(
+            "     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); "
+            "版本 v3.11.1"
+        )
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(
+            f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}"
+        )
+        logger.info(
+            f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+            "纯 CPU / 无 LLM·网络·API ($0); 链路无随机步 → 确定性可复现"
+        )
+
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 关键词 yaml: {meta.get('yaml_path')}")
+        logger.info(
+            f"     · yaml SHA-256: {str(meta.get('yaml_sha256', ''))[:16]}… | "
+            f"schema_version={meta.get('schema_version')}"
+        )
+        logger.info(
+            "     · 本 CLI 不写 parquet (audit/library-only); 编排器 "
+            "benefit_society_audit_combined.py 写 80_alt_anchor_and_placebo_panel.parquet"
+        )
+
+        _bl_sizes = {k: len(v) for k, v in business_lines.items()}
+        _nb_sizes = {k: len(v) for k, v in neutral_baseline.items()}
+        logger.info("  ⚙ 运行配置 (config/benefit_society_placebo_keywords.yaml)")
+        logger.info(
+            f"     · 业务线 placebo: {len(business_lines):,d} 条 (非金科) | "
+            f"中性基线: {len(neutral_baseline):,d} 条 | 合计 placebo 规格="
+            f"{len(business_lines) + len(neutral_baseline):,d}/5"
+        )
+        logger.info(f"     · 业务线词数: {_bl_sizes}")
+        logger.info(f"     · 中性基线词数: {_nb_sizes}")
+        logger.info(
+            "     · 匹配口径: 任一关键词命中 标题 或 内容 即判命中 (子串匹配, 大小写不敏感)"
+        )
+        logger.info(
+            "     · 投影方向: 复用主分析金科 10 锚点对方向向量 (track-agnostic, "
+            "col_suffix∈{'','_ctx','_ss'})"
+        )
+        logger.info(
+            f"     · 验收标准 AC-S1: ≥4/5 规格满足 |β_placebo/β_fintech| < {sig4(0.3)} "
+            "→ 主信号非『报道总体语气』驱动 (主测度稳健)"
+        )
+        logger.info(
+            "     · 命中率校验 (计划 §5 R1.A): 单业务线命中 < 500 篇记 warning; "
+            "≥2 条不达标则回退 ≤3 业务线 + 中性基线"
+        )
+        logger.info(f"     · 运行模式: {'validate-only (仅校验 schema)' if validate_only else '完整 (含投影库函数说明)'}")
+
+        logger.info("  📖 方法论依据")
+        logger.info(
+            "     · placebo industries (安慰剂行业) 设计: "
+            "Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit "
+            "society? A language embedding approach. The Review of Financial "
+            "Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012"
+        )
+        logger.info(
+            "       → 把『金科利好经营』方向向量施加到与金科无关的业务线新闻上; "
+            "若无关新闻也量出强信号, 说明尺子量的是普遍语气而非金科 (证伪用对照)"
+        )
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m news_process.pipeline.features.benefit_society_placebo",
@@ -269,7 +363,23 @@ def main(argv: list[str] | None = None) -> int:
         format="%(asctime)s [%(name)s] %(levelname)s %(message)s",
     )
 
+    stage_start = time.time()
+    phase_durations: dict[str, float] = {}
+
+    logger.info("--- 开始执行: benefit_society placebo (业务线安慰剂投影, S1 稳健性) ---")
+
+    _t = time.time()
     business_lines, neutral_baseline, meta = load_placebo_keywords(args.keywords_yaml)
+    phase_durations["①加载并校验关键词 yaml"] = time.time() - _t
+
+    # 项目/环境信息 + 运行配置 + 方法论依据 (日志富集 2026-06-24)
+    _log_environment_and_config(
+        meta,
+        business_lines,
+        neutral_baseline,
+        validate_only=args.validate_only,
+    )
+
     logger.info(
         "Loaded placebo keyword sets: %d business lines + %d neutral. yaml sha=%s",
         len(business_lines),
@@ -281,15 +391,69 @@ def main(argv: list[str] | None = None) -> int:
     for nb_id, kws in neutral_baseline.items():
         logger.info("  Neutral baseline '%s': %d keywords", nb_id, len(kws))
 
+    # 📊 关键指标解读 (运行结果信息): 关键词集规模/均衡度对照预期阈值
+    try:
+        _bl_counts = [len(v) for v in business_lines.values()]
+        _nb_counts = [len(v) for v in neutral_baseline.values()]
+        _all_counts = _bl_counts + _nb_counts
+        _total_kw = sum(_all_counts)
+        _n_specs = len(business_lines) + len(neutral_baseline)
+        _min_kw = min(_all_counts) if _all_counts else 0
+        _mean_kw = (_total_kw / _n_specs) if _n_specs else 0.0
+        # placebo 规格间词表均衡度: 越接近 1 → 各 placebo 过滤力度越可比
+        _balance = (_min_kw / max(_bl_counts + _nb_counts)) if _all_counts else 0.0
+
+        logger.info("  📊 关键指标解读 (placebo 关键词集就绪度)")
+        logger.info(
+            f"     · placebo 规格数: {_n_specs:,d}/5 "
+            f"{'✅ 完整' if _n_specs == 5 else '⚠ 不足 (预期 4 业务线 + 1 中性)'}"
+        )
+        logger.info(
+            f"     · 关键词总量: {_total_kw:,d} 词 | 每规格均值={sig4(_mean_kw)} 词 | "
+            f"最小规格={_min_kw:,d} 词"
+        )
+        logger.info(
+            f"     · 规格间词表均衡度 (min/max)={sig4(_balance)} "
+            f"({pct4(_balance)}) "
+            + (
+                "✅ 较均衡 (各 placebo 过滤力度可比)"
+                if _balance >= 0.5
+                else "⚠ 不均衡 (词表偏少的 placebo 命中率可能不足)"
+            )
+        )
+        if _min_kw < 3:
+            logger.warning(
+                "     · ⚠ 存在词表 < 3 词的 placebo, 命中文章可能过稀 → 投影列易全 NaN"
+            )
+        logger.info(
+            "     · 提示: 真正的命中率/投影区分度判读须在编排 (audit_combined) 携 "
+            "text_embeddings 时给出; 本 CLI 仅校验 schema + 提供库函数"
+        )
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  关键指标解读打印失败 (不影响处理): {e}")
+
     if args.validate_only:
         logger.info("[validate-only] yaml schema OK; exiting.")
+        _log_timing(phase_durations, stage_start)
         return 0
 
     logger.warning(
         "Full projection requires text_embeddings + df_exploded (see plan §3 P1.6); "
         "this CLI provides validation + library functions only."
     )
+    _log_timing(phase_durations, stage_start)
     return 0
+
+
+def _log_timing(phase_durations: dict[str, float], stage_start: float) -> None:
+    """⏱ 阶段计时汇总 (墙钟耗时, 4 位有效数字; golden-safe 纯日志)。"""
+    try:
+        logger.info("  ⏱ 阶段计时 (墙钟)")
+        for name, dur in phase_durations.items():
+            logger.info(f"     · {name}: {sig4(dur)} 秒")
+        logger.info(f"     · 总计: {sig4(time.time() - stage_start)} 秒")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  计时汇总打印失败 (不影响处理): {e}")
 
 
 if __name__ == "__main__":

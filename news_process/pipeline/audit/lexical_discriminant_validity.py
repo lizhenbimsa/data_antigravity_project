@@ -500,10 +500,12 @@ def _write_track_report(report: dict, out_dir: Path, suffix: str) -> None:
     with open(out_dir / name_js, 'w', encoding='utf-8') as f:
         json.dump(report, f, ensure_ascii=False, indent=2, default=str)
 
+    # 日志数值统一 4 位有效数字 (项目规范 2026-06-24; sig4/pct4 单一事实源)。
+    from news_process.core.logging import sig4
     alpha_val = report.get('cronbach_alpha_across')
-    alpha_str = f"{alpha_val:.4f}" if isinstance(alpha_val, (int, float)) else 'N/A'
+    alpha_str = sig4(alpha_val) if isinstance(alpha_val, (int, float)) else 'N/A'
     kappa_val = report.get('cohen_kappa_substance_clarity', {}).get('kappa', float('nan'))
-    kappa_str = f"{kappa_val:.4f}" if isinstance(kappa_val, (int, float)) else 'N/A'
+    kappa_str = sig4(kappa_val) if isinstance(kappa_val, (int, float)) else 'N/A'
     logger.info(f"v3.5.1 stage 39d [{suffix}] 完成: HTMT verdict={report.get('htmt_verdict')}, "
                 f"α_across={alpha_str}, κ_subst_clarity={kappa_str}")
 
@@ -520,7 +522,7 @@ def _write_track_report(report: dict, out_dir: Path, suffix: str) -> None:
     for hk, nk, label in _pairs:
         hv = htmt.get(hk, float('nan'))
         p95 = null.get(nk, {}).get('p95', float('nan'))
-        logger.info(f"    {label}: HTMT={hv:.4f} (null_p95={p95:.4f}) → {verdict.get(hk, 'nan')}")
+        logger.info(f"    {label}: HTMT={sig4(hv)} (null_p95={sig4(p95)}) → {verdict.get(hk, 'nan')}")
     _all_pass = bool(verdict) and all(v == 'strict_pass' for v in verdict.values())
     logger.info("    HTMT 总判读: " + ("三对全部 strict_pass → 三指标判别有效, 各量各的"
                                        if _all_pass else "存在未通过对 (见上)"))
@@ -531,7 +533,7 @@ def _write_track_report(report: dict, out_dir: Path, suffix: str) -> None:
     else:
         logger.info(f"    Cohen κ (象征性↔含糊) = {kappa_str} (方向锁定, 预期正)")
     spear = report.get('spearman_substance_clarity', float('nan'))
-    logger.info(f"    Spearman ρ (实质性 vs 清晰度) = {spear:.4f}")
+    logger.info(f"    Spearman ρ (实质性 vs 清晰度) = {sig4(spear)}")
 
 
 def main():
@@ -541,9 +543,12 @@ def main():
     物化时 run_discriminant_validity 返回 status=missing_columns → 该轨优雅跳过。
     """
     import os
+    import platform
+    import sys
+    import time
 
     from news_process.core.config import load_config
-    from news_process.core.logging import setup_logging
+    from news_process.core.logging import setup_logging, sig4
     config = load_config()
     # 接入项目统一日志: 写 <log_dir>/73_lexical_discriminant_validity.log。
     # 此前本阶段仅 getLogger(__name__) 无 FileHandler, 虽产出 parquet/json 却不落
@@ -561,8 +566,72 @@ def main():
     logger.info("        φ²=共享方差; Cronbach α 跨 3 指标 (此处越低越好=非单一量表/不冗余);")
     logger.info("        Cohen κ 验'象征性↔含糊'方向; permutation null 1000 次 (seed=42) 为参照。")
 
+    _t0 = time.time()
     panel_path = os.path.join(config['paths']['output_dir'], '40_panel_yearly.parquet')
     out_dir = Path(config['paths']['output_dir'])
+
+    # ① 🧭 项目 / 环境信息 + ③ ⚙ 运行配置 (日志富集 2026-06-24, 仿 tone_words.py 金标准)。
+    # 纯日志, 不改任何产物 / schema / 控制流 (golden-safe)。验证阶段 EXPECTED_NO_OUTPUT
+    # 仅产摘要 parquet/JSON, 不进 paper main analysis; 纯 numpy/pandas, 无 LLM/嵌入/网络 ($0)。
+    try:
+        logger.info("")
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (文本指标判别效度; STAGES_VALIDATION 39d; 三轨 full/ctx/ss)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板; v3.11.1)")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "纯 CPU / 无 LLM·嵌入·网络·_llm_cache.db ($0; seed 锁定确定性可复现)")
+
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 输入面板: {panel_path}")
+        logger.info(f"     · 输出目录: {out_dir} (full 轨 canonical: 73_lexical_discriminant.parquet "
+                    "+ 73_htmt_matrix.json; ctx/ss 轨 track-suffixed)")
+
+        logger.info("  ⚙ 运行配置 (v3.5.1 冻结常量, 模块顶部单一事实源)")
+        logger.info(f"     · HTMT 双 cutoff: strict<{sig4(HTMT_CUTOFF_STRICT)} / lenient<{sig4(HTMT_CUTOFF_LENIENT)} "
+                    "(Henseler-Ringle-Sarstedt 2015 HTMT; 越低越判别有效)")
+        logger.info(f"     · permutation: N={N_PERMUTATIONS_DEFAULT:,d} 次 | seed={PERMUTATION_SEED} "
+                    "(与 inter_track_kappa.py 一致, 确定性参照分布)")
+        logger.info("     · 样本 mask: n_articles_llm_valid≥2 (缺列回退 n_articles; 与 39e 同口径); "
+                    "mask 后 <10 obs → 跳过")
+        logger.info("     · 焦点轴: T1=LLM实质性 (substance/locus/collab) | 对照轴: T2=清晰度 T3=数字密集度")
+        logger.info("     · 方法: 单 indicator 构念 → HTMT 退化为 |Pearson r|; AVE=1.0; "
+                    "φ²=r² (Fornell-Larcker 1981); Cronbach α 跨 3 指标; Cohen κ 方向锁定 (象征性↔含糊)")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置信息打印失败 (不影响处理): {e}")
+
+    # 📖 方法论依据 (纯日志, golden-safe): 本阶段判别效度/构念效度锚点的 APA-7 全引 + DOI。
+    # 仅引用经 Crossref 核验注册表中的条目, 逐字照抄 (绝不臆造 DOI); 全部 6 个锚点
+    # (HTMT/AVE/α/MTMM/CFA/κ) 均已 2026-06-24 Crossref 核验并附可访问 DOI 链接。
+    try:
+        logger.info("")
+        logger.info("  📖 方法论依据 (构念/判别效度锚点; APA-7 全引 + 已核验 DOI 链接)")
+        logger.info("     · Henseler, J., Ringle, C. M., & Sarstedt, M. (2015). A new criterion "
+                    "for assessing discriminant validity in variance-based structural equation "
+                    "modeling. Journal of the Academy of Marketing Science, 43(1), 115-135. "
+                    "https://doi.org/10.1007/s11747-014-0403-8  [HTMT 双 cutoff 判别效度准则]")
+        logger.info("     · Fornell, C., & Larcker, D. F. (1981). Evaluating structural equation "
+                    "models with unobservable variables and measurement error. Journal of "
+                    "Marketing Research, 18(1), 39-50. https://doi.org/10.2307/3151312  "
+                    "[AVE / φ² 判别效度]")
+        logger.info("     · Cronbach, L. J. (1951). Coefficient alpha and the internal structure "
+                    "of tests. Psychometrika, 16(3), 297-334. "
+                    "https://doi.org/10.1007/BF02310555  [α 内部一致性信度]")
+        logger.info("     · Campbell, D. T., & Fiske, D. W. (1959). Convergent and discriminant "
+                    "validation by the multitrait-multimethod matrix. Psychological Bulletin, "
+                    "56(2), 81-105. https://doi.org/10.1037/h0046016  [MTMM 异质特质-单方法锚]")
+        logger.info("     · Bagozzi, R. P., & Yi, Y. (1988). On the evaluation of structural "
+                    "equation models. Journal of the Academy of Marketing Science, 16(1), 74-94. "
+                    "https://doi.org/10.1007/BF02723327  [CFA 构念效度框架]")
+        logger.info("     · Cohen, J. (1960). A coefficient of agreement for nominal scales. "
+                    "Educational and Psychological Measurement, 20(1), 37-46. "
+                    "https://doi.org/10.1177/001316446002000104  [κ for nominal agreement]")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  方法论依据打印失败 (不影响处理): {e}")
 
     if not os.path.exists(panel_path):
         logger.warning(f"v3.5.1 39d: panel 缺 ({panel_path}), graceful skip")
@@ -606,7 +675,7 @@ def main():
             logger.info(
                 f"v3.5.1 stage 73 [{dim}/{suffix}] 完成 (无向 |corr| 旁证, 无定向 κ): "
                 f"HTMT verdict={report.get('htmt_verdict')}, "
-                f"abs_corr_focal_clarity={report.get('abs_corr_focal_clarity')}")
+                f"abs_corr_focal_clarity={sig4(report.get('abs_corr_focal_clarity'))}")
 
     # WS-B (F11): 三创新维彼此跨构念 heterotrait-monomethod 块 (三轨各一份)。
     # 弱"非冗余"旁证 (承重判别证据是 stage 72 NMI); 命名例外硬编码。
@@ -616,10 +685,21 @@ def main():
         with open(out_dir / f'73_heterotrait_monomethod_{suffix}.json',
                   'w', encoding='utf-8') as f:
             json.dump(hm, f, ensure_ascii=False, indent=2, default=str)
-        logger.info(f"v3.5.1 stage 73 [跨构念/{suffix}] heterotrait-monomethod: "
-                    f"{ {k: v.get('abs_corr', v.get('status')) for k, v in hm['pairs'].items()} }")
+        # abs_corr 为 float → sig4 渲染 (4 位有效数字); 缺该对时回退 status 字符串原样保留。
+        _hm_disp = {
+            k: (sig4(v['abs_corr']) if 'abs_corr' in v else v.get('status'))
+            for k, v in hm['pairs'].items()
+        }
+        logger.info(f"v3.5.1 stage 73 [跨构念/{suffix}] heterotrait-monomethod: {_hm_disp}")
 
     logger.info("⚠ 盘面 T=2 小样本 (mask 后约数十个 bank-year), 结果仅验证管道正确性, 非全量生产结论。")
+
+    # ⑥ ⏱ 阶段计时 (墙钟; 纯日志)。
+    try:
+        logger.info(f"  ⏱ 阶段总耗时 (读盘+三轨判别效度+locus/collab+heterotrait+写盘): "
+                    f"{sig4(time.time() - _t0)} 秒")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  计时打印失败 (不影响处理): {e}")
 
 
 if __name__ == '__main__':

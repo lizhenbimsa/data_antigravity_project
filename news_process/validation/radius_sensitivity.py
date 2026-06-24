@@ -76,6 +76,7 @@ news_process.validation.radius_sensitivity — 窗口半径敏感性检验
 import json
 import logging
 import os
+import platform
 import sys
 import time
 from collections import Counter
@@ -92,7 +93,13 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import log_memory_usage, log_stage_summary, setup_logging
+from news_process.core.logging import (
+    log_memory_usage,
+    log_stage_summary,
+    pct4,
+    setup_logging,
+    sig4,
+)
 
 try:
     import jieba
@@ -507,12 +514,13 @@ def run_sensitivity_analysis(
         if (i + 1) % report_interval == 0 or (i + 1) == total:
             elapsed = time.time() - process_start
             speed = (i + 1) / elapsed if elapsed > 0 else 0
-            logger.info(f"  进度: {i + 1:,}/{total:,} ({(i+1)/total*100:.1f}%) "
-                        f"| 速度: {speed:.0f} 文章/秒")
+            logger.info(f"  进度: {i + 1:,}/{total:,} ({pct4((i + 1) / total)}) "
+                        f"| 速度: {sig4(speed)} 文章/秒")
 
     total_elapsed = time.time() - process_start
-    logger.info(f"全部文章处理完成。耗时: {total_elapsed:.1f}s, "
-                f"平均速度: {total / total_elapsed:.0f} 文章/秒")
+    _avg_speed = total / total_elapsed if total_elapsed > 0 else 0.0
+    logger.info(f"全部文章处理完成。耗时: {sig4(total_elapsed)}s, "
+                f"平均速度: {sig4(_avg_speed)} 文章/秒")
 
     # ── 汇总统计 ──
     analysis_results = {
@@ -664,11 +672,11 @@ def _log_key_interpretation(results: dict, dict_names: list[str], logger):
         dominant_pcts_per_radius[r] = np.mean(pcts)
 
     avg_dominant = np.mean(list(dominant_pcts_per_radius.values()))
-    logger.info(f"  主导标签「{dominant_label}」平均占比: {avg_dominant:.1f}%")
+    logger.info(f"  主导标签「{dominant_label}」平均占比: {pct4(avg_dominant, fraction=False)}")
 
     kappa_paradox = avg_dominant >= 90.0
     if kappa_paradox:
-        logger.info(f"  检测到高度不平衡（主导标签 ≥ 90%）")
+        logger.info("  检测到高度不平衡（主导标签 ≥ 90%）")
         logger.info(f"    → Kappa 悖论 (Paradox of High Agreement but Low Kappa):")
         logger.info(f"      当分类高度集中于单一类别时，即使一致率很高，")
         logger.info(f"      Kappa 也会因为 P(e) 过大而被严重压低。")
@@ -693,14 +701,14 @@ def _log_key_interpretation(results: dict, dict_names: list[str], logger):
         t_ps = [pair_data[dn]['paired_t_p'] for dn in dict_names]
         sig_count = sum(1 for p in t_ps if p < 0.05)
 
-        logger.info(f"  ── r=1 vs r=0（极端窗口: 仅实体所在句）──")
-        logger.info(f"     Kappa 范围:     {min(kappas):.4f} ~ {max(kappas):.4f}  (均值 {np.mean(kappas):.4f})")
-        logger.info(f"     Pearson 范围:   {np.nanmin(pearsons):.4f} ~ {np.nanmax(pearsons):.4f}  (均值 {np.nanmean(pearsons):.4f})")
-        logger.info(f"     一致率范围:     {min(agrees):.2%} ~ {max(agrees):.2%}")
+        logger.info("  ── r=1 vs r=0（极端窗口: 仅实体所在句）──")
+        logger.info(f"     Kappa 范围:     {sig4(min(kappas))} ~ {sig4(max(kappas))}  (均值 {sig4(np.mean(kappas))})")
+        logger.info(f"     Pearson 范围:   {sig4(np.nanmin(pearsons))} ~ {sig4(np.nanmax(pearsons))}  (均值 {sig4(np.nanmean(pearsons))})")
+        logger.info(f"     一致率范围:     {pct4(min(agrees))} ~ {pct4(max(agrees))}")
         logger.info(f"     t 检验显著 (p<0.05): {sig_count}/{len(dict_names)} 个词典")
         if np.mean(kappas) < 0.60:
-            logger.info(f"     → 解读: r=0 仅保留实体所在句，上下文信息严重不足，")
-            logger.info(f"       与 r=1 差异较大属于预期行为，不影响 r=1 的合理性。")
+            logger.info("     → 解读: r=0 仅保留实体所在句，上下文信息严重不足，")
+            logger.info("       与 r=1 差异较大属于预期行为，不影响 r=1 的合理性。")
 
     # 邻近窗口 (r=2, r=3)
     if adjacent_keys:
@@ -720,13 +728,13 @@ def _log_key_interpretation(results: dict, dict_names: list[str], logger):
         adj_radii_str = ", ".join(k.split("_vs_")[1] for k in adjacent_keys)
 
         logger.info(f"  ── r=1 vs 邻近窗口（{adj_radii_str}）──")
-        logger.info(f"     Kappa 范围:     {min(adj_kappas):.4f} ~ {max(adj_kappas):.4f}  (均值 {np.mean(adj_kappas):.4f})")
-        logger.info(f"     Pearson 范围:   {np.nanmin(adj_pearsons):.4f} ~ {np.nanmax(adj_pearsons):.4f}  (均值 {np.nanmean(adj_pearsons):.4f})")
-        logger.info(f"     一致率范围:     {min(adj_agrees):.2%} ~ {max(adj_agrees):.2%}")
+        logger.info(f"     Kappa 范围:     {sig4(min(adj_kappas))} ~ {sig4(max(adj_kappas))}  (均值 {sig4(np.mean(adj_kappas))})")
+        logger.info(f"     Pearson 范围:   {sig4(np.nanmin(adj_pearsons))} ~ {sig4(np.nanmax(adj_pearsons))}  (均值 {sig4(np.nanmean(adj_pearsons))})")
+        logger.info(f"     一致率范围:     {pct4(min(adj_agrees))} ~ {pct4(max(adj_agrees))}")
         logger.info(f"     t 检验显著 (p<0.05): {adj_sig_count}/{len(adj_t_ps)} 个词典×对比组")
         if np.nanmean(adj_pearsons) >= 0.80:
-            logger.info(f"     → 解读: 邻近半径间得分高度相关 (Pearson ≥ 0.80)，")
-            logger.info(f"       标签变化极少，结果具有良好稳健性。")
+            logger.info("     → 解读: 邻近半径间得分高度相关 (Pearson ≥ 0.80)，")
+            logger.info("       标签变化极少，结果具有良好稳健性。")
 
     # ── 3. t 检验显著性汇总 ──
     logger.info("")
@@ -746,11 +754,11 @@ def _log_key_interpretation(results: dict, dict_names: list[str], logger):
     logger.info(f"  显著 (p < 0.05): {total_sig} 组")
     logger.info(f"  不显著 (p ≥ 0.05): {total_tests - total_sig} 组")
     if sig_pairs:
-        logger.info(f"  显著的对比组:")
+        logger.info("  显著的对比组:")
         for pair_key, dn, p_val in sig_pairs:
-            logger.info(f"    - {pair_key} × {dn}: p = {p_val:.6f}")
+            logger.info(f"    - {pair_key} × {dn}: p = {sig4(p_val)}")
     else:
-        logger.info(f"  → 所有对比组的均值差异均不具有统计显著性。")
+        logger.info("  → 所有对比组的均值差异均不具有统计显著性。")
 
     # ── 4. 综合研判结论 ──
     logger.info("")
@@ -777,8 +785,8 @@ def _log_key_interpretation(results: dict, dict_names: list[str], logger):
             logger.info("  结论: 情感分析结果对窗口半径选择具有实质稳健性。")
             logger.info("")
             logger.info(f"  - 当前生产配置 r={baseline_radius} 是合理的折中选择。")
-            logger.info(f"  - 邻近半径 (r={baseline_radius} vs r=2/r=3) 一致率 ≥ {min(adj_agrees):.1%}，")
-            logger.info(f"    Pearson 相关 ≥ {np.nanmin(adj_pearsons):.3f}，差异统计上不显著。")
+            logger.info(f"  - 邻近半径 (r={baseline_radius} vs r=2/r=3) 一致率 ≥ {pct4(min(adj_agrees))}，")
+            logger.info(f"    Pearson 相关 ≥ {sig4(np.nanmin(adj_pearsons))}，差异统计上不显著。")
             logger.info(f"  - r=0 的 Kappa 较低是由标签高度不平衡导致的 Kappa 悖论，")
             logger.info(f"    以及 r=0 上下文信息不足的双重因素所致，")
             logger.info(f"    不影响 r={baseline_radius} 作为默认值的方法论合理性。")
@@ -832,8 +840,8 @@ def log_report(results: dict):
     logger.info("-" * 60)
     for r in meta['radii_tested']:
         ctx = results['per_radius'][str(r)]['context']
-        logger.info(f"{r:>8} {ctx['mean_char_len']:>12.1f} {ctx['mean_ratio']:>12.2%} "
-                     f"{ctx['mean_token_count']:>12.1f} {ctx['empty_count']:>14,}")
+        logger.info(f"{r:>8} {sig4(ctx['mean_char_len']):>12} {pct4(ctx['mean_ratio']):>12} "
+                     f"{sig4(ctx['mean_token_count']):>12} {ctx['empty_count']:>14,}")
 
     # ── Panel B: 标签分布 ──
     logger.info("")
@@ -846,7 +854,8 @@ def log_report(results: dict):
     for dn in dict_names:
         for r in meta['radii_tested']:
             dist = results['per_radius'][str(r)]['dictionaries'][dn]['label_distribution_pct']
-            logger.info(f"{dn:<12} {r:>8}   {dist['正面']:>7.2f}% {dist['中性']:>7.2f}% {dist['负面']:>7.2f}%")
+            logger.info(f"{dn:<12} {r:>8}   {pct4(dist['正面'], fraction=False):>8} "
+                        f"{pct4(dist['中性'], fraction=False):>8} {pct4(dist['负面'], fraction=False):>8}")
         logger.info("")
 
     # ── Panel C: 跨半径一致性（对比基准 r=1） ──
@@ -862,9 +871,9 @@ def log_report(results: dict):
         for dn in dict_names:
             d = pair_data[dn]
             logger.info(
-                f"{pair_key:>14} {dn:<12} {d['label_agreement']:>7.2%} {d['cohens_kappa']:>8.4f} "
-                f"{d['pearson_r']:>9.4f} {d['spearman_rho']:>9.4f} {d['mean_score_diff']:>8.4f} "
-                f"{d['paired_t_p']:>10.6f}"
+                f"{pair_key:>14} {dn:<12} {pct4(d['label_agreement']):>8} {sig4(d['cohens_kappa']):>8} "
+                f"{sig4(d['pearson_r']):>9} {sig4(d['spearman_rho']):>9} {sig4(d['mean_score_diff']):>8} "
+                f"{sig4(d['paired_t_p']):>10}"
             )
         logger.info("")
 
@@ -903,9 +912,9 @@ def log_report(results: dict):
                 adjacent_agreements.append(dn_data['label_agreement'])
                 adjacent_pearsons.append(dn_data['pearson_r'])
 
-        logger.info(f"  全部对比最低标签一致率: {min_agree:.2%}")
-        logger.info(f"  全部对比最低 Cohen's Kappa: {min_kappa:.4f}")
-        logger.info(f"  全部对比最低 Pearson 相关: {min_pearson:.4f}")
+        logger.info(f"  全部对比最低标签一致率: {pct4(min_agree)}")
+        logger.info(f"  全部对比最低 Cohen's Kappa: {sig4(min_kappa)}")
+        logger.info(f"  全部对比最低 Pearson 相关: {sig4(min_pearson)}")
 
         if adjacent_kappas:
             adj_min_kappa = min(adjacent_kappas)
@@ -913,9 +922,9 @@ def log_report(results: dict):
             # fix(radius-F1, review-closure 2026-06-10): nan-safe — adjacent_pearsons 可含
             # 零方差守卫产生的 NaN, builtin min(含 nan) 不可靠。
             adj_min_pearson = float(np.nanmin(adjacent_pearsons)) if adjacent_pearsons else float('nan')
-            logger.info(f"  邻近窗口最低标签一致率: {adj_min_agree:.2%}")
-            logger.info(f"  邻近窗口最低 Cohen's Kappa: {adj_min_kappa:.4f}")
-            logger.info(f"  邻近窗口最低 Pearson 相关: {adj_min_pearson:.4f}")
+            logger.info(f"  邻近窗口最低标签一致率: {pct4(adj_min_agree)}")
+            logger.info(f"  邻近窗口最低 Cohen's Kappa: {sig4(adj_min_kappa)}")
+            logger.info(f"  邻近窗口最低 Pearson 相关: {sig4(adj_min_pearson)}")
         else:
             adj_min_kappa = min_kappa
             adj_min_agree = min_agree
@@ -1138,12 +1147,67 @@ def generate_visualizations(results: dict, per_radius_data: dict, output_dir: st
 # 7. 主函数
 # ============================================================================
 
+def _log_environment_and_config(input_path: str) -> None:
+    """打印 项目/环境信息 + 输入输出 + 运行配置 + 方法论引用 (日志富集, 2026-06-24)。
+
+    目标 (用户要求"在日志文件中提供尽可能多的项目信息、运行期间信息和运行结果信息"):
+    把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数、方法学出处"一次性落进
+    日志, 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 (golden-safe)。
+    """
+    try:
+        out_dir = CONFIG['paths']['output_dir']
+        json_path = os.path.join(out_dir, '65_radius_sensitivity.json')
+        tex_path = os.path.join(out_dir, '65_radius_sensitivity.tex')
+        bank_file = CONFIG['paths'].get('bank_names_file', '(默认)')
+        fintech_file = CONFIG['paths'].get('fintech_dict_file', '(默认)')
+
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (实体上下文窗口半径敏感性检验, STAGES_VALIDATION; ctx 轨稳健性附录证据)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板), 版本 v3.11.1")
+        logger.info("     · 行为版本: 跨类重叠词『保留并两侧计数』(用户决策 2026-06-24, 逆转双侧剔除; 旁路 loader 已对齐生产 22_tone_words 6 词典 union)")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        logger.info(f"     · jieba:    {getattr(jieba, '__version__', '?')} (冻结锚点 0.42.1; 确定性来源=jieba版本+词典文件) | matplotlib={'可用' if HAS_MATPLOTLIB else '缺失(跳图)'}")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "本阶段纯 CPU 词典 / 无 LLM·Embedding·网络·API / 无缓存 / 不抽样(全量) ($0, 逐位可复现)")
+
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 输入:     {input_path}")
+        logger.info(f"     · 词典文件: {TONE_DICTS_FILE}")
+        logger.info(f"     · 注入词源: 银行名={bank_file} | 金科={fintech_file}")
+        logger.info(f"     · 输出JSON: {json_path}")
+        logger.info(f"     · 输出LaTeX:{tex_path}")
+        logger.info(f"     · 输出图表: {os.path.join(out_dir, '65_radius_label_distribution.png')} / "
+                    f"{os.path.join(out_dir, '65_radius_correlation_heatmap.png')}")
+
+        logger.info("  ⚙ 运行配置 (config/sentiment.yaml::sentiment_analysis.tone_words 等)")
+        logger.info(f"     · 待检验窗口半径 RADII={RADII} | 基准半径=1 (生产配置) | 字符级回退窗口 FALLBACK_CHAR_RADIUS={FALLBACK_CHAR_RADIUS}")
+        logger.info(f"     · 多轨开关 RUN_MULTI_TRACK={RUN_MULTI_TRACK} (占位, 未接线; 当前为 track-agnostic 半径扫描)")
+        logger.info(f"     · 否定窗口 NEGATION_WINDOW={NEGATION_WINDOW} | 转折增强 ADVERSATIVE_BOOST={sig4(ADVERSATIVE_BOOST)}")
+        logger.info(f"     · 标签阈值: 正面>{sig4(POS_THRESHOLD)} / 负面<{sig4(NEG_THRESHOLD)} / 其间=中性 (_score_to_label)")
+        logger.info(f"     · 语言学规则词表: 否定词={len(NEGATION_WORDS):,} | 程度副词={len(DEGREE_WORDS):,} "
+                    f"| 转折连词={len(ADVERSATIVE_WORDS):,} | 句末标点={len(SENTENCE_END_MARKERS):,}")
+
+        logger.info("  📖 方法论依据 (参考文献; 仅引经核验注册表条目, 逐字照抄 APA-7 + DOI)")
+        logger.info("     · 邻近归因参数敏感性 (核心): Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). "
+                    "Firm-level political risk: Measurement and effects. The Quarterly Journal of Economics, "
+                    "134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021")
+        logger.info("       → 本阶段把 ctx 提取窗口 (proximity-based attribution 的句级半径) 当作关键方法论参数, "
+                    "扫描 r∈{0,1,2,3} 做顶刊标准的稳健性检验。")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
+
+
 def main():
     """窗口半径敏感性检验主入口。"""
     stage_start = time.time()
+    phase_durations: dict[str, float] = {}  # 各主要子阶段墙钟耗时 (日志富集, 末尾汇总)
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
     logger.info(f"检验的窗口半径: {RADII}")
-    logger.info(f"基准半径: 1（当前生产配置）")
+    logger.info("基准半径: 1（当前生产配置）")
 
     # ── 阶段功能 banner（黄金范式: 让 <stage>.log 自带说明书）──
     logger.info("=" * 72)
@@ -1185,10 +1249,15 @@ def main():
         logger.error("未找到输入文件。需要阶段 21 或阶段 12 的输出。")
         return
 
+    # 项目/环境信息 + 输入输出 + 运行配置 + 方法论引用 (日志富集 2026-06-24)
+    _log_environment_and_config(input_path)
+
     logger.info(f"加载输入数据: {input_path}")
+    _t = time.time()
     df = pd.read_parquet(input_path)
     input_rows = len(df)
-    logger.info(f"已加载 {input_rows:,} 行数据。")
+    phase_durations['①数据加载'] = time.time() - _t
+    logger.info(f"已加载 {input_rows:,} 行数据。耗时 {sig4(phase_durations['①数据加载'])}s")
     log_memory_usage(logger, "数据加载后")
 
     # 检查必要列
@@ -1205,16 +1274,24 @@ def main():
     logger.info(f"target_bank 非空记录: {df['target_bank'].notna().sum():,}")
 
     # ── 加载词典 ──
+    _t = time.time()
     dictionaries = load_all_dictionaries()
     non_empty = sum(1 for _, d in dictionaries if d)
-    logger.info(f"有效词典数: {non_empty}/{len(dictionaries)}")
+    phase_durations['②词典加载'] = time.time() - _t
+    logger.info(f"有效词典数: {non_empty}/{len(dictionaries)} | 耗时 {sig4(phase_durations['②词典加载'])}s")
 
     # ── 初始化 jieba ──
     logger.info("初始化 jieba 分词器...")
+    _t = time.time()
     _inject_custom_dicts_to_jieba(dictionaries)
+    phase_durations['③jieba注入'] = time.time() - _t
+    logger.info(f"jieba 词汇注入耗时 {sig4(phase_durations['③jieba注入'])}s")
 
     # ── 执行敏感性分析 ──
+    _t = time.time()
     analysis_results, per_radius_data = run_sensitivity_analysis(df, dictionaries)
+    phase_durations['④敏感性分析'] = time.time() - _t
+    logger.info(f"敏感性分析(全量 × {len(RADII)} 半径)耗时 {sig4(phase_durations['④敏感性分析'])}s")
 
     # ── 输出报告 ──
     log_report(analysis_results)
@@ -1267,7 +1344,7 @@ def main():
                 verdict_k = "临界(0.60~0.80 实质稳健, 需配合一致率/Pearson 佐证)"
             else:
                 verdict_k = "偏弱(<0.60: 留意是否 Kappa 悖论或上下文不足所致)"
-            logger.info(f"  邻近窗口(r=1 vs r=2/3) Cohen's κ: min={adj_min_k:.4f} / mean={adj_mean_k:.4f} → {verdict_k}")
+            logger.info(f"  邻近窗口(r=1 vs r=2/3) Cohen's κ: min={sig4(adj_min_k)} / mean={sig4(adj_mean_k)} → {verdict_k}")
         else:
             logger.info("  邻近窗口对比组为空 (RADII 不含 2/3?), 无邻近 κ 可判。")
 
@@ -1276,7 +1353,7 @@ def main():
             adj_min_ag = min(adj_ag)
             verdict_ag = "好(≥95%)" if adj_min_ag >= 0.95 else (
                 "临界(90%~95%)" if adj_min_ag >= 0.90 else "偏低(<90%, 窗口改变明显翻动标签)")
-            logger.info(f"  邻近窗口最低标签一致率: {adj_min_ag:.2%} → {verdict_ag}")
+            logger.info(f"  邻近窗口最低标签一致率: {pct4(adj_min_ag)} → {verdict_ag}")
 
         # (3) 邻近窗口 Pearson 相关 — 阈值 0.80 (nan-guard: 零方差守卫可置 NaN)
         if adj_pe:
@@ -1292,7 +1369,7 @@ def main():
                     verdict_pe = "好(均值≥0.80: 得分随窗口几乎不变)"
                 else:
                     verdict_pe = "偏低(<0.80: 得分对窗口敏感)"
-                logger.info(f"  邻近窗口 Pearson 相关: min={adj_min_pe:.4f} / mean={adj_mean_pe:.4f} → {verdict_pe}")
+                logger.info(f"  邻近窗口 Pearson 相关: min={sig4(adj_min_pe)} / mean={sig4(adj_mean_pe)} → {verdict_pe}")
                 if nan_pe:
                     logger.warning(f"  零方差守卫: 邻近窗口有 {nan_pe} 个词典×对比组的 Pearson 被置 NaN "
                                    f"(常量分数/词典零命中/空窗口/小样本退化 → 相关无定义, 已 nan-safe 聚合)。")
@@ -1303,8 +1380,8 @@ def main():
             ext_ag = [cross[extreme_k][dn]['label_agreement'] for dn in dict_names_ra]
             if ext_k:
                 ext_mean_k = float(np.mean(ext_k))
-                logger.info(f"  极端窗口(r=1 vs r=0, 仅实体所在句) κ: min={min(ext_k):.4f} / mean={ext_mean_k:.4f}, "
-                            f"一致率 min={min(ext_ag):.2%} → "
+                logger.info(f"  极端窗口(r=1 vs r=0, 仅实体所在句) κ: min={sig4(min(ext_k))} / mean={sig4(ext_mean_k)}, "
+                            f"一致率 min={pct4(min(ext_ag))} → "
                             f"{'偏差大属预期(上下文被砍光, 不作主判据)' if ext_mean_k < 0.60 else '意外稳健(r=0 即已足够)'}")
 
         # (5) Kappa 悖论检测 — 主导标签平均占比 ≥90% 时 κ 被数学压低
@@ -1315,10 +1392,10 @@ def main():
                 dom_pcts.append(max(dist_pct.values()))
         avg_dom = float(np.mean(dom_pcts)) if dom_pcts else 0.0
         if avg_dom >= 90.0:
-            logger.info(f"  标签分布: 主导标签平均占比 {avg_dom:.1f}% (≥90%) → 触发 Kappa 悖论, "
+            logger.info(f"  标签分布: 主导标签平均占比 {pct4(avg_dom, fraction=False)} (≥90%) → 触发 Kappa 悖论, "
                         f"κ 偏低应以一致率/Pearson 为准, 勿仅凭 κ 否定稳健性。")
         else:
-            logger.info(f"  标签分布: 主导标签平均占比 {avg_dom:.1f}% (<90%) → 分布较均衡, κ 可作可靠判据。")
+            logger.info(f"  标签分布: 主导标签平均占比 {pct4(avg_dom, fraction=False)} (<90%) → 分布较均衡, κ 可作可靠判据。")
 
         # (6) 配对 t 检验显著比例 — 越低越说明均值差异不显著(稳健)
         #     注: NaN p 值 (退化样本) 不满足 p<0.05 → 不计入显著, 偏保守, 语义正确。
@@ -1327,15 +1404,15 @@ def main():
             sig = sum(1 for p in t_ps if p < 0.05)
             sig_frac = sig / len(t_ps)
             logger.info(f"  配对 t 检验: {sig}/{len(t_ps)} 组均值差异显著(p<0.05) "
-                        f"({sig_frac:.0%}) → {'多数不显著, 窗口改变未系统性移动得分(好)' if sig_frac <= 0.2 else '显著比例偏高, 需讨论参数选择'}")
+                        f"({pct4(sig_frac)}) → {'多数不显著, 窗口改变未系统性移动得分(好)' if sig_frac <= 0.2 else '显著比例偏高, 需讨论参数选择'}")
 
         # (7) 上下文回退(未命中实体)率 — 回退过高会削弱 ctx 与 full 的区分度
         for r in analysis_results['meta']['radii_tested']:
             ctx_stat = analysis_results['per_radius'][str(r)]['context']
             empty_n = ctx_stat['empty_count']
-            empty_pct = empty_n / input_rows * 100 if input_rows > 0 else 0.0
-            logger.info(f"  r={r}: 平均上下文 {ctx_stat['mean_char_len']:.0f} 字 (占全文 {ctx_stat['mean_ratio']:.1%}), "
-                        f"未命中回退 {empty_n:,} 篇 ({empty_pct:.1f}%)")
+            empty_frac = empty_n / input_rows if input_rows > 0 else 0.0
+            logger.info(f"  r={r}: 平均上下文 {sig4(ctx_stat['mean_char_len'])} 字 (占全文 {pct4(ctx_stat['mean_ratio'])}), "
+                        f"未命中回退 {empty_n:,} 篇 ({pct4(empty_frac)})")
 
         # (8) 词典可用性优雅降级警告
         if non_empty < len(dictionaries):
@@ -1351,7 +1428,8 @@ def main():
     except Exception as _e:
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
-    # ── 保存 JSON 结果 ──
+    # ── 保存 JSON / LaTeX / 可视化 ──
+    _t = time.time()
     output_dir = CONFIG['paths']['output_dir']
     json_path = os.path.join(output_dir, '65_radius_sensitivity.json')
     with open(json_path, 'w', encoding='utf-8') as f:
@@ -1367,6 +1445,16 @@ def main():
 
     # ── 生成可视化 ──
     generate_visualizations(analysis_results, per_radius_data, output_dir)
+    phase_durations['⑤报告+图表写盘'] = time.time() - _t
+
+    # ── 各子阶段墙钟耗时汇总 (日志富集) ──
+    try:
+        logger.info("  ⏱ 各子阶段墙钟耗时 (秒, 4 位有效数字)")
+        for _name, _dur in phase_durations.items():
+            logger.info(f"     · {_name}: {sig4(_dur)}s")
+        logger.info(f"     · 合计(已计时子阶段): {sig4(sum(phase_durations.values()))}s")
+    except Exception as _te:  # noqa: BLE001
+        logger.warning(f"  阶段计时汇总打印失败 (不影响产物): {_te}")
 
     # ── 阶段摘要 ──
     log_stage_summary(logger, STAGE_NAME, stage_start,

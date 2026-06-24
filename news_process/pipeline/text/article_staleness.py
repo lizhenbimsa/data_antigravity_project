@@ -30,7 +30,7 @@ dedup.py 的 jaccard 布尔决策 (find_near_duplicate_indices) 互补.
 学术依据
 --------
 Tetlock, P. C. (2011). All the news that's fit to reprint: Do investors
-react to stale information? Review of Financial Studies, 24(5), 1481-1512.
+react to stale information? The Review of Financial Studies, 24(5), 1481-1512.
 → staleness 构念锚点 (return reversal 实证证据)
 
 构念保真披露 — fix(omni-g-embed-02, 2026-06-11)
@@ -103,6 +103,7 @@ surface 与 semantic staleness 相关性 ∈ [0.3, 0.7] (互补 ≠ 冗余).
 from __future__ import annotations
 
 import os
+import platform
 import sys
 import time
 from datetime import timedelta
@@ -117,7 +118,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config  # noqa: E402
-from news_process.core.logging import setup_logging  # noqa: E402
+from news_process.core.logging import pct4, setup_logging, sig4  # noqa: E402
 
 CONFIG = load_config()
 STAGE_NAME = "26_article_staleness"
@@ -181,7 +182,7 @@ def compute_surface_staleness(
         for s in _char_shingles(txt):
             m.update(s.encode('utf-8'))
         hashes.append(m)
-    logger.info(f"  MinHash 完成: {time.time() - t0:.1f}s")
+    logger.info(f"  MinHash 完成: {sig4(time.time() - t0)}s")
 
     # ── 按 unique-day 分组 flush 的滚动 LSH (修 S1.3 O(N²) 灾难, v3.7.1) ──
     # 算法 (核心: 按"今天"分组遍历, forest 仅重建 unique_days 次):
@@ -246,8 +247,8 @@ def compute_surface_staleness(
                 continue
             stale[i] = max(hashes[i].jaccard(hashes[j]) for j in results)
 
-    logger.info(f"  surface staleness 完成: {time.time() - t0:.1f}s "
-                f"({len(unique_days_sorted)} day-buckets)")
+    logger.info(f"  surface staleness 完成: {sig4(time.time() - t0)}s "
+                f"({len(unique_days_sorted):,d} day-buckets)")
     # P0 修复 (metric-audit 2026-06-02): 逆置换还原原始行序, 与 main() 的位置赋值对齐.
     return stale[np.argsort(_sort_idx)]
 
@@ -349,7 +350,7 @@ def compute_semantic_staleness(
         # else: 窗口空 → 当天 [i, j) 文章 stale 保持 NaN (与 surface 轨空窗口口径一致)
         i = j
 
-    logger.info(f"  semantic staleness 完成: {time.time() - t0:.1f}s")
+    logger.info(f"  semantic staleness 完成: {sig4(time.time() - t0)}s")
 
     # 还原原始顺序
     inv_idx = np.argsort(sort_idx)
@@ -557,14 +558,51 @@ def main():
     logger.info("【确定性】纯 CPU (MinHash/Faiss FlatIP 精确内积, 均 stable argsort), 不调 LLM/付费 API, $0;")
     logger.info("          逐位可复现 (P0 修复后两轨均逆置换还原原始行序, 不随输入序漂移)。")
 
+    # ── 🧭 项目 / 环境 + ⚙ 运行配置 + 📖 方法论依据 (日志富集 2026-06-24, 纯日志 golden-safe) ──
+    # 失败用 try/except 兜底: 日志块绝不让阶段非零退出 (playbook §0.5/§1)。
+    try:
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (article-level staleness 双指标, STAGES_MAIN 阶段18, kind=robustness)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "纯 CPU / 无 LLM·网络·API ($0); 复用 30a 嵌入(若有)")
+
+        logger.info("  ⚙ 运行配置 (WINDOW_DAYS/MinHash/shingle 等; config/paths.yaml::output_dir)")
+        logger.info(f"     · 滚动窗口 WINDOW_DAYS={WINDOW_DAYS} (天, 严格排除同日行) | "
+                    f"char-shingle SHINGLE_SIZE={SHINGLE_SIZE}-gram | MinHash num_perm=128")
+        logger.info("     · surface=MinHashLSHForest(jaccard top-10→max); semantic=Faiss IndexFlatIP(cosine top-1)")
+        logger.info("     · 轨道集: surface {full,ctx,ss} + semantic {full,ctx,ss} (emb_ss 缺则 semantic_ss 优雅跳过)")
+        logger.info("     · 聚合: bank-year mean + highstale(>0.9 占比); 平均域=_restrict_to_panel_domain "
+                    "((docid,target_bank) 内连 24_herd_decay/21_tone_llms, 参照窗口仍用全集)")
+
+        logger.info("  📖 方法论依据 (核心构念学术出处, 经 logger 落入 .log)")
+        logger.info("     · staleness 构念锚点 (陈旧信息→return reversal): Tetlock, P. C. (2011). All the news "
+                    "that's fit to reprint: Do investors react to stale information? The Review of "
+                    "Financial Studies, 24(5), 1481-1512. https://doi.org/10.1093/rfs/hhq141 "
+                    "(本实现两点刻意偏离: corpus-level 7d 窗 vs 同公司72h; SBERT 为扩展)")
+        logger.info("     · text-as-data 方法论框架: Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. "
+                    "Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法论信息打印失败 (不影响处理): {_e}")
+
+    # 运行期 per-phase 墙钟计时累计 (各主要子阶段, 末尾汇总打印)
+    phase_durations: dict[str, float] = {}
+
     output_dir = CONFIG['paths']['output_dir']
     src_path = os.path.join(output_dir, '14_news_with_ctx.parquet')
     if not os.path.exists(src_path):
         logger.error(f"  stage 13 未跑: {src_path}")
         sys.exit(1)
 
+    _t_load = time.time()
     art_df = pd.read_parquet(src_path)
-    logger.info(f"  article-level: {len(art_df)} 行")
+    phase_durations['①加载 14_news_with_ctx'] = time.time() - _t_load
+    logger.info(f"  article-level: {len(art_df):,d} 行")
 
     # P0 修复 (metric-audit 2026-06-02): 14_news_with_ctx 仅有 str 型 '日期', 无
     # 'year' 列; 此前 line ~331 (keep_cols 含 'year') 与 ~335 (groupby year) 必崩
@@ -578,6 +616,7 @@ def main():
     # ── D2.a Surface staleness (三轨 full/ctx/ss, v3.9.0 +ss=银行+金科同句共现轨) ──
     # P1 修复 (metric-audit 2026-06-02, 病根A): surface_full 改读 content_full (含标题),
     # 与 semantic_full (emb 含标题) / ctx 轨对称; 缺列回退 '内容'.
+    _t_surface = time.time()
     _full_col = 'content_full' if 'content_full' in art_df.columns else '内容'
     art_df['surface_staleness_full'] = compute_surface_staleness(
         art_df, content_col=_full_col,
@@ -592,12 +631,14 @@ def main():
         art_df['surface_staleness_ss'] = compute_surface_staleness(
             art_df, content_col='content_ss',
         )
+    phase_durations['②surface staleness (三轨)'] = time.time() - _t_surface
 
     # ── D2.b Semantic staleness (依赖 stage 30a; 三轨 full/ctx/ss 全平价 2026-06-21) ──
     # semantic full/ctx/ss 三轨镜像产出: ss 需 stage 30a 为 content_ss 产出 SBERT 嵌入
     # (`emb_ss` 列, 2026-06-21 上线)。emb_ss 缺列 (旧 30a parquet 未重跑 ss 轨) 时
     # _load_aligned_embeddings 返 embs_ss=None → 下方 call-site None 守卫跳过 →
     # aggregate_to_bank_year 按"缺列即跳过"优雅降级 (向后兼容, 不崩)。
+    _t_semantic = time.time()
     emb_path = os.path.join(output_dir, '25_article_embeddings.parquet')
     if os.path.exists(emb_path):
         # fix(omni-g-embed-03/09, 2026-06-11): article_id 显式 join 取代裸位置对齐
@@ -620,8 +661,10 @@ def main():
         logger.warning(
             f"  stage 30a 未跑: {emb_path}; D2.b semantic 跳过 (仅 D2.a surface 输出)"
         )
+    phase_durations['③semantic staleness (三轨)'] = time.time() - _t_semantic
 
     # ── article-level 持久化 ──
+    _t_write = time.time()
     out_path = os.path.join(output_dir, '26_article_staleness.parquet')
     keep_cols = (
         # docid 透传 (provenance 键, 供下游 join / 聚合域审计; 旧 schema 缺则跳过)
@@ -637,13 +680,14 @@ def main():
     panel = aggregate_to_bank_year(_restrict_to_panel_domain(art_df, output_dir))
     panel_path = os.path.join(output_dir, '26_staleness_panel.parquet')
     panel.to_parquet(panel_path, index=False)
-    logger.info(f"  bank-year → {panel_path} ({len(panel)} 行)")
+    logger.info(f"  bank-year → {panel_path} ({len(panel):,d} 行)")
+    phase_durations['④持久化 + bank-year 聚合'] = time.time() - _t_write
 
     # ── G-D2.1 双指标相关性诊断 ──
     if all(c in art_df.columns for c in ['surface_staleness_full', 'semantic_staleness_full']):
         corr = art_df[['surface_staleness_full', 'semantic_staleness_full']].corr().iloc[0, 1]
         logger.info(
-            f"  G-D2.1: surface vs semantic corr = {corr:.4f} "
+            f"  G-D2.1: surface vs semantic corr = {sig4(corr)} "
             f"({'PASS' if 0.3 <= corr <= 0.7 else 'WARN (互补性偏离区间)'})"
         )
 
@@ -674,8 +718,8 @@ def main():
             # 全样本占比 (NaN>0.9=False 被当非高陈旧稀释), 覆盖率低时系统性偏低且与落盘列不一致。
             _highfrac = float((s.dropna() > 0.9).mean())
             logger.info(
-                f"  {col}: 覆盖 {_n_valid:,}/{n_art:,} ({_cov*100:.1f}% 有 7d 前窗) | "
-                f"均值={_mean:.4f} | 高陈旧(>0.9)占有效行={_highfrac*100:.2f}% (分母=valid, 同 panel highstale)"
+                f"  {col}: 覆盖 {_n_valid:,d}/{n_art:,d} ({pct4(_cov)} 有 7d 前窗) | "
+                f"均值={sig4(_mean)} | 高陈旧(>0.9)占有效行={pct4(_highfrac)} (分母=valid, 同 panel highstale)"
             )
             # 判读: 0=窗内无相似旧文(纯新信息), 1=窗内有近乎重复旧文(炒冷饭); 均值方向参考
             if _mean < 0.05:
@@ -687,11 +731,11 @@ def main():
         # 两轨互补性 (G-D2.1) 方向判读 — 'corr' 仅在上方 surface/semantic 双列齐备时才定义
         if 'corr' in dir() and not pd.isna(corr):
             if 0.3 <= corr <= 0.7:
-                logger.info(f"  互补性: surface↔semantic corr={corr:.4f} 落在 [0.3,0.7] → 两把尺子既相关又非冗余 (PASS)")
+                logger.info(f"  互补性: surface↔semantic corr={sig4(corr)} 落在 [0.3,0.7] → 两把尺子既相关又非冗余 (PASS)")
             elif corr > 0.7:
-                logger.info(f"  互补性: corr={corr:.4f} 偏高 → 字面/语义两轨高度重叠, 语义轨增量信息有限 (论文须如实披露)")
+                logger.info(f"  互补性: corr={sig4(corr)} 偏高 → 字面/语义两轨高度重叠, 语义轨增量信息有限 (论文须如实披露)")
             else:
-                logger.info(f"  互补性: corr={corr:.4f} 偏低 → 两轨几乎正交, 度量的是不同侧面 (核查是否同一构念)")
+                logger.info(f"  互补性: corr={sig4(corr)} 偏低 → 两轨几乎正交, 度量的是不同侧面 (核查是否同一构念)")
         # 优雅降级警告: semantic 轨依赖 stage 30a 嵌入
         if not os.path.exists(emb_path):
             logger.warning("  ⚠ stage 30a 嵌入缺失: 本次仅产 surface 轨, semantic_staleness_* 列全部缺席 "
@@ -707,7 +751,15 @@ def main():
     except Exception as _e:
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
-    logger.info(f"  耗时: {time.time() - stage_start:.1f} s")
+    # ── ⏱ per-phase 墙钟计时汇总 (纯日志, golden-safe) ──
+    try:
+        logger.info("  ⏱ 阶段计时 (各子阶段墙钟):")
+        for _name, _dur in phase_durations.items():
+            logger.info(f"     · {_name}: {sig4(_dur)} s")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  计时汇总打印失败 (不影响产物): {_e}")
+
+    logger.info(f"  耗时: {sig4(time.time() - stage_start)} s")
 
 
 if __name__ == '__main__':

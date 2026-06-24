@@ -79,6 +79,7 @@ always-on 执行); 也可单独手动触发 (全量 40 万文章编码 GPU 约 4
 from __future__ import annotations
 
 import os
+import platform
 import sys
 import time
 from typing import Optional
@@ -93,7 +94,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config  # noqa: E402
-from news_process.core.logging import setup_logging  # noqa: E402
+from news_process.core.logging import pct4, setup_logging, sig4  # noqa: E402
 
 CONFIG = load_config()
 STAGE_NAME = "25_article_sbert"
@@ -197,7 +198,7 @@ def encode_articles(
         normalize_embeddings=True,  # D2 cosine 友好 + D1 UMAP cosine metric 等价欧式
         convert_to_numpy=True,
     )
-    logger.info(f"  编码完成: {time.time() - t0:.1f}s, shape={embs.shape}")
+    logger.info(f"  编码完成: {sig4(time.time() - t0)}s, shape={embs.shape}")
     return embs.astype(np.float32)
 
 
@@ -270,6 +271,73 @@ def main():
     )
 
     output_dir = CONFIG['paths']['output_dir']
+
+    # ── 🧭 项目 / 环境信息 (日志富集 2026-06-24; 纯日志, golden-safe) ──
+    # 把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数"一次性落进日志, 便于审计/复现。
+    try:
+        logger.info("-" * 72)
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(
+            "     · 阶段: 30a / 25_article_sbert (STAGES_MAIN, kind=robustness; "
+            "article-level SBERT 语义指纹持久化, D 组前置)"
+        )
+        logger.info(
+            "     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); "
+            "版本 v3.11.1 (rule-ablation-ladder)"
+        )
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        _hf_offline = os.environ.get('HF_HUB_OFFLINE') or os.environ.get('TRANSFORMERS_OFFLINE')
+        logger.info(
+            f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+            f"HF_OFFLINE={_hf_offline or '(未设置)'}"
+        )
+        logger.info(
+            "     · 成本/确定性: 纯本地 SBERT 推理 (无 LLM/Embedding API, $0); "
+            "ensure_torch_determinism 保证本地权重不变下逐位可复现"
+        )
+
+        # ── 📖 方法论依据 (参考文献信息; 把核心方法的学术出处 emit 进日志) ──
+        logger.info("  📖 方法论依据 (经核验注册表, 逐字照抄 APA-7 + DOI)")
+        logger.info(
+            "     · 标题+首段 SBERT 输入策略: Bybee, L., Kelly, B., Manela, A., & Xiu, D. "
+            "(2024). Business news and business cycles. The Journal of Finance, 79(5), "
+            "3105-3147. https://doi.org/10.1111/jofi.13377"
+        )
+        logger.info(
+            "       → 中文新闻中位 ~800 字 ≈ 1200 token > SBERT max_seq_len=512; "
+            "取『标题(≤100字)+首段(≤300字)』避免 512-token 截断丢尾段。"
+        )
+
+        # ── ⚙ 运行配置 (config/features.yaml::embedding_robustness 等) ──
+        logger.info("  ⚙ 运行配置 (config/features.yaml::embedding_robustness)")
+        logger.info(
+            f"     · SBERT 模型: model_id={_SBERT_MODEL_ID} "
+            f"| revision={_SBERT_REVISION or '(未钉死)'} "
+            "(与 stage 15/25 _t2v 轨真单源)"
+        )
+        logger.info(
+            f"     · 输入截断: TITLE_CHARS={TITLE_CHARS:,d} | "
+            f"FIRST_PARA_CHARS={FIRST_PARA_CHARS:,d} | "
+            f"text_pipeline_version={_TEXT_PIPELINE_VERSION}"
+        )
+        logger.info(
+            "     · 嵌入轴: full/ctx/ss 三路平价 (content_full/content_ctx/content_ss "
+            "由 stage 13 prepend 标题恰好一次, title_col=None 关二次前置)"
+        )
+        logger.info(
+            f"     · 输入:   {os.path.join(output_dir, '14_news_with_ctx.parquet')}"
+        )
+        logger.info(
+            f"     · 输出:   {os.path.join(output_dir, '25_article_embeddings.parquet')}"
+        )
+        logger.info("-" * 72)
+    except Exception as _e_env:  # noqa: BLE001
+        logger.warning(f"  环境/方法/配置信息打印失败 (不影响处理): {_e_env}")
+
     src_path = os.path.join(output_dir, '14_news_with_ctx.parquet')
     if not os.path.exists(src_path):
         logger.error(f"  上游 stage 13 未跑: {src_path}")
@@ -319,7 +387,7 @@ def main():
     out_df.to_parquet(out_path, index=False)
 
     size_mb = os.path.getsize(out_path) / 1024 / 1024
-    logger.info(f"  输出: {out_path} ({size_mb:.1f} MB)")
+    logger.info(f"  输出: {out_path} ({sig4(size_mb)} MB)")
 
     # ── 结果分析 (纯增量日志: 下列度量仅用于打印, 不回写 df / 不进任何产物;
     #    且整体在 to_parquet 写盘之后执行, 故崩溃也不丢产物。仍包 try/except 双保险:
@@ -330,7 +398,7 @@ def main():
         _n_art = len(out_df)
         _dim_full = embs_full.shape[1] if embs_full.ndim == 2 else -1
         logger.info(
-            f"  文章篇数 = {_n_art} 篇; emb_full 维度 = {_dim_full} "
+            f"  文章篇数 = {_n_art:,d} 篇; emb_full 维度 = {_dim_full:,d} "
             f"(= 所配 SBERT 隐藏维; 默认 shibing624/text2vec-base-chinese=768。维度与 "
             f"model_id={_SBERT_MODEL_ID} 应自洽 —— 若换稳健性模型须同步确认下游 stage 18 "
             "Faiss/语义陈旧度的维度假设)。"
@@ -355,10 +423,10 @@ def main():
             _full_valid = int(_full_valid_mask.sum())
             _full_rate = _full_valid / _n_art
             logger.info(
-                f"  emb_full 有效行 = {_full_valid}/{_n_art} ({_full_rate:.1%}); "
+                f"  emb_full 有效行 = {_full_valid:,d}/{_n_art:,d} ({pct4(_full_rate)}); "
                 + ("好: full 轨全覆盖 (无 NaN), 符合预期。"
                    if _full_rate >= 0.999
-                   else f"⚠ 临界/坏: {(1 - _full_rate):.1%} 行 emb_full 全 NaN, full 轨编码异常须排查。")
+                   else f"⚠ 临界/坏: {pct4(1 - _full_rate)} 行 emb_full 全 NaN, full 轨编码异常须排查。")
             )
 
             # ctx 轨: 上游缺 content_ctx 时 embs_ctx = np.full_like(.., nan) → 全 NaN 回退。
@@ -375,10 +443,10 @@ def main():
                 _ctx_valid = int(_ctx_valid_mask.sum())
                 _ctx_rate = _ctx_valid / _n_art
                 logger.info(
-                    f"  emb_ctx 有效行 = {_ctx_valid}/{_n_art} ({_ctx_rate:.1%}); "
+                    f"  emb_ctx 有效行 = {_ctx_valid:,d}/{_n_art:,d} ({pct4(_ctx_rate)}); "
                     + ("好: ctx 轨 (实体窗口)语义指纹齐备。"
                        if _ctx_rate >= 0.999
-                       else f"⚠ {(1 - _ctx_rate):.1%} 行 emb_ctx 全 NaN (部分文章无 ctx 文本)。")
+                       else f"⚠ {pct4(1 - _ctx_rate)} 行 emb_ctx 全 NaN (部分文章无 ctx 文本)。")
                 )
 
             # 归一化体检: normalize_embeddings=True → 每行 L2 范数应≈1.0 (随机取首个有效行)
@@ -386,7 +454,7 @@ def main():
                 _first_valid_idx = int(np.argmax(_full_valid_mask))
                 _l2 = float(np.linalg.norm(embs_full[_first_valid_idx]))
                 logger.info(
-                    f"  emb_full 单位归一化抽检 (行 {_first_valid_idx}): L2 范数 = {_l2:.4f}; "
+                    f"  emb_full 单位归一化抽检 (行 {_first_valid_idx:,d}): L2 范数 = {sig4(_l2)}; "
                     + ("好: ≈1.0, normalize_embeddings 生效 (cosine 友好)。"
                        if abs(_l2 - 1.0) < 1e-3
                        else "⚠ 偏离 1.0: 归一化可能未生效, 下游 cosine 度量须复核。")
@@ -402,10 +470,10 @@ def main():
                 _ss_valid = int((~np.isnan(_ss_col0)).sum())
                 _ss_rate = _ss_valid / max(_n_art, 1)
                 logger.info(
-                    f"  emb_ss 有效行 = {_ss_valid}/{_n_art} ({_ss_rate:.1%}); "
+                    f"  emb_ss 有效行 = {_ss_valid:,d}/{_n_art:,d} ({pct4(_ss_rate)}); "
                     + ("好: ss 轨 (银行+金科同句) 语义指纹齐备 (回退行其 emb_ss≡emb_full, 镜像 ctx)。"
                        if _ss_rate >= 0.999
-                       else f"⚠ {(1 - _ss_rate):.1%} 行 emb_ss 全 NaN (部分文章无 content_ss)。")
+                       else f"⚠ {pct4(1 - _ss_rate)} 行 emb_ss 全 NaN (部分文章无 content_ss)。")
                 )
 
             # provenance 自证 (供 stage 18 检测 30a 陈旧, 防位置错位)
@@ -419,14 +487,14 @@ def main():
             # 小样本 (盘面 T=2) 警告
             if _n_art < 2000:
                 logger.info(
-                    f"  ⚠ 小样本 (仅 {_n_art} 篇, 盘面 T=2 验证语料): 上述比率/范数仅验证编码管道正确性, "
+                    f"  ⚠ 小样本 (仅 {_n_art:,d} 篇, 盘面 T=2 验证语料): 上述比率/范数仅验证编码管道正确性, "
                     "全量结论以 17M 文章 / T=18 实测为准。"
                 )
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
     logger.info("-" * 72)
 
-    logger.info(f"  耗时: {time.time() - stage_start:.1f} s")
+    logger.info(f"  耗时: {sig4(time.time() - stage_start)} s")
 
 
 if __name__ == '__main__':

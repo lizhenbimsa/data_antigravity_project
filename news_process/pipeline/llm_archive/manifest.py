@@ -27,14 +27,64 @@ import datetime as dt
 import json
 import logging
 import os
+import platform
+import sys
+import time
 from pathlib import Path
 from typing import Optional
+
+from news_process.core.logging import pct4, sig4
 
 from .archive import _resolve_archive_root, sha256_of_file
 
 logger = logging.getLogger(__name__)
 
 MANIFEST_FILENAME = 'manifest.json'
+
+
+def _log_archive_env_and_config(
+    action: str,
+    root: Path,
+    *,
+    prompt_version_anchor: str = 'v8',
+    archive_frozen_date: str = '2026-05-18',
+    sidecar: Optional[Path] = None,
+) -> None:
+    """日志富集 (2026-06-24, 纯日志 golden-safe): LLM archive manifest 子步骤 banner。
+
+    本模块是 *基础设施* 库 helper (无独立 stage main()/run_stage(), 共享调用方日志),
+    生成 / 校验 ``manifest.json`` (per-file SHA-256 + 全局 metadata), 服务于 stage 21
+    LLM 投票归档的密码学复现锚点 (CLAUDE.md: '勿删 _llm_cache.db' 同源思想 —
+    manifest 把冻结归档的每文件 SHA-256 与 frozen prompt 指纹钉死, 保证 golden 可复现)。
+
+    按富集手册 §0.5: called-by-runner / 无自有 main 的 helper 不重复 ENV/CONFIG 全块
+    (那是 runner 入口职责), 只在被调函数起始处打一个**子步骤 banner**: 项目/环境指纹 +
+    本步读写路径 + 可调锚点。无任何学术方法引用 (纯基础设施, 不适用)。失败 try/except 吞掉,
+    绝不让日志块崩调用阶段。
+    """
+    try:
+        logger.info("  🧭 LLM Archive Manifest — %s", action)
+        logger.info("     · 模块: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) | %s",
+                    "LLM 投票归档完整性 (基础设施, 非编号 stage)")
+        logger.info("     · 模块文件: %s", os.path.abspath(__file__))
+        logger.info("     · 工作目录: %s", os.getcwd())
+        logger.info("     · Python:   %s @ %s", sys.version.split()[0], sys.executable)
+        logger.info("     · 平台:     %s | CPU 逻辑核=%s", platform.platform(), os.cpu_count())
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info("     · PID=%d | RUN_ID=%s | 纯 IO/哈希, 无 LLM·网络·API ($0, 确定性)",
+                    os.getpid(), _run_id or '(未设置)')
+
+        logger.info("  ⚙ 运行配置 (manifest 锚点)")
+        logger.info("     · archive 根:      %s", root)
+        logger.info("     · responses 目录:  %s", root / 'responses')
+        logger.info("     · manifest 输出:   %s", root / MANIFEST_FILENAME)
+        if sidecar is not None:
+            logger.info("     · prompt 指纹 sidecar: %s", sidecar)
+        logger.info("     · prompt_version_anchor=%s | archive_frozen_date=%s | schema_version=v1",
+                    prompt_version_anchor, archive_frozen_date)
+        logger.info("     · 完整性算法: per-file SHA-256 + 字节计数 + 行数(record_count) 单次 IO")
+    except Exception as e:  # noqa: BLE001
+        logger.warning("  环境/配置信息打印失败 (不影响处理): %r", e)
 
 
 def _default_root() -> Path:
@@ -194,8 +244,17 @@ def write_manifest(
     - prompt 的 SHA-256 指纹从 v3.5.1 sidecar 读 (修早期读错 key 的 dead branch),
       记入 manifest['prompt_sha256']; prompt_version_anchor 保留人读 token 'v8'。
     """
+    _t0 = time.time()
     prompt_sha256 = _read_prompt_sha256_from_sidecar()
     root = Path(root) if root else _default_root()
+    # 子步骤 banner (日志富集 2026-06-24, golden-safe): 项目/环境指纹 + 读写路径 + 锚点
+    _log_archive_env_and_config(
+        'write_manifest',
+        root,
+        prompt_version_anchor=prompt_version_anchor,
+        archive_frozen_date=archive_frozen_date,
+        sidecar=_resolve_sidecar_path(),
+    )
     manifest = compute_manifest(
         root,
         prompt_version_anchor=prompt_version_anchor,
@@ -207,8 +266,34 @@ def write_manifest(
         json.dump(manifest, f, ensure_ascii=False, indent=2, sort_keys=True)
     logger.info(
         f"Manifest written: {manifest_path} "
-        f"({manifest['total_records']} records, {manifest['total_bytes']} bytes)"
+        f"({manifest['total_records']:,d} records, {manifest['total_bytes']:,d} bytes)"
     )
+    # 📊 关键指标解读 (日志富集 2026-06-24): 对照阈值给好/临界/坏判读 — 纯日志
+    try:
+        n_files = len(manifest.get('files', {}))
+        total_records = manifest['total_records']
+        total_bytes = manifest['total_bytes']
+        logger.info("  📊 归档完整性快照")
+        logger.info("     · 归档 jsonl 文件数=%s | 总记录=%s | 总字节=%s",
+                    f"{n_files:,d}", f"{total_records:,d}", f"{total_bytes:,d}")
+        if prompt_sha256:
+            logger.info("     · prompt_sha256 密码学指纹: %s… (复现锚点已钉死 ✅)",
+                        prompt_sha256[:16])
+        else:
+            logger.warning("     · prompt_sha256=None ⚠ (sidecar 不可读, 复现锚点降级为人读 token "
+                           "'%s'; 仅 'v8' 锚点弱于哈希指纹)", prompt_version_anchor)
+        if n_files == 0:
+            logger.warning("     · ⚠ responses 目录为空 — manifest 登记 0 文件 (归档尚未播种?)")
+        elif total_records > 0:
+            avg_rec = total_records / n_files
+            avg_kb = (total_bytes / n_files) / 1024.0
+            logger.info("     · 每文件均值: 记录=%s 条 | 体积=%s KB (越均匀=按日切分越规整 ✅)",
+                        sig4(avg_rec), sig4(avg_kb))
+        else:
+            logger.warning("     · ⚠ 文件数=%s 但总记录=0 — 可能存在空 jsonl, 请核查", f"{n_files:,d}")
+        logger.info("  ⏱ write_manifest 墙钟耗时: %s 秒", sig4(time.time() - _t0))
+    except Exception as e:  # noqa: BLE001
+        logger.warning("  完整性快照打印失败 (不影响处理): %r", e)
     return manifest_path
 
 
@@ -224,9 +309,13 @@ def verify_manifest(root: Optional[Path] = None) -> tuple[bool, list[str]]:
         (ok, errors): ok=True 表示完整一致.
                       errors 列出每个不一致 / 多余文件的诊断.
     """
+    _t0 = time.time()
     root = Path(root) if root else _default_root()  # audit S3: 与写入同源
+    # 子步骤 banner (日志富集 2026-06-24, golden-safe): 校验入口环境/路径指纹
+    _log_archive_env_and_config('verify_manifest', root)
     manifest_path = root / MANIFEST_FILENAME
     if not manifest_path.exists():
+        logger.warning("  ❌ manifest 不存在: %s — 校验直接判失败", manifest_path)
         return False, [f"manifest 不存在: {manifest_path}"]
 
     with manifest_path.open('r', encoding='utf-8') as f:
@@ -265,4 +354,25 @@ def verify_manifest(root: Optional[Path] = None) -> tuple[bool, list[str]]:
                 f"可能是恶意篡改或忘 update manifest. 跑 write_manifest() 重新生成."
             )
 
+    # 📊 关键指标解读 (日志富集 2026-06-24): 双向 cross-check 通过率 + verdict — 纯日志
+    try:
+        n_registered = len(manifest_files)
+        n_errors = len(errors)
+        ok = n_errors == 0
+        # 通过率 = (已登记文件数 − 错误数) / 已登记文件数; 分母为 0 时记 100% (空归档无可校验项)
+        pass_rate = 1.0 if n_registered == 0 else max(0.0, (n_registered - n_errors)) / n_registered
+        logger.info("  📊 manifest 双向 cross-check 结果")
+        logger.info("     · 登记文件=%s | 不一致/多余项=%s | 正向通过率≈%s",
+                    f"{n_registered:,d}", f"{n_errors:,d}", pct4(pass_rate))
+        if ok:
+            logger.info("     · ✅ 完整一致: SHA-256/字节/行数全部 match 且无 manifest 外 jsonl "
+                        "(归档冻结完整, 复现锚点可信)")
+        else:
+            logger.error("     · ❌ 校验失败: %s 项不一致 — 归档被改动或 manifest 过期, 须跑 "
+                         "write_manifest() 重生", f"{n_errors:,d}")
+            for _e in errors[:10]:
+                logger.error("       - %s", _e)
+        logger.info("  ⏱ verify_manifest 墙钟耗时: %s 秒", sig4(time.time() - _t0))
+    except Exception as e:  # noqa: BLE001
+        logger.warning("  校验结果解读打印失败 (不影响处理): %r", e)
     return len(errors) == 0, errors

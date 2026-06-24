@@ -11,11 +11,13 @@ Phase 4b 从 ``runner.py`` 提取。包含:
 
 from __future__ import annotations
 
+import os
 import re
 
 import numpy as np
 import pandas as pd
 
+from news_process.core.logging import pct4
 from news_process.pipeline.preprocess._constants import (
     AD_KEYWORD_PATTERNS,
     AD_KEYWORD_PATTERNS_TITLE,
@@ -32,6 +34,66 @@ from news_process.pipeline.preprocess.load import (
     BANK_KW_AUTOMATON,
     _ac_contains_any,
 )
+
+# 进程级守卫: 本模块是 stage 00 预处理 runner 在 ProcessPoolExecutor 中按文件
+# 并行调用的 worker 级过滤层 (无独立 main()/run_stage(), 写入共享
+# logs/00_preprocessing.log)。依手册 §0.6 (called-by-runner helper): 不重复
+# 打 runner 入口的全量 ENV/CONFIG (那由 load.py::_log_worker_banner_once 负责),
+# 仅在被调函数首次执行时补一个**过滤方法论子步骤 banner** (load.py 的 banner
+# 只覆盖长度过滤的测量可靠性引文, 未覆盖本层的"关键词保留=语料样本选择"与
+# "广告词排除=样本选择规则"的学术依据)。用 ``_FILTER_BANNER_EMITTED`` 保证每
+# worker 仅打一次 (避免逐文件刷屏)。纯日志, 不改任何产物 (golden-safe)。
+_FILTER_BANNER_EMITTED = False
+
+
+def _log_filter_methodology_once() -> None:
+    """每 worker 首次过滤时打印一次"过滤方法论"子步骤 banner (引文逐字取自注册表).
+
+    本层两条核心过滤规则均是**语料样本选择规则** (sample-selection rules),
+    写论文 data appendix 时须披露其学术依据:
+      · 银行关键词 (Aho-Corasick) 保留过滤 — 词典/关键词法构建主题相关语料,
+        是金融文本分析的标准做法 (Loughran & McDonald 词典范式)。
+      · 广告关键词排除过滤 — 把付费公告/广告版面剔出语料, 同属样本选择规则,
+        其排除与监管事件强度相关, 须在附录如实披露 (词级命中计数见
+        ``_ad_keyword_hit_counts``)。
+    纯日志, 失败绝不阻断 worker 处理 (golden-safe)。
+    """
+    global _FILTER_BANNER_EMITTED
+    if _FILTER_BANNER_EMITTED:
+        return
+    _FILTER_BANNER_EMITTED = True
+    try:
+        logger.info("  🧭 子步骤: stage 00 预处理 · DataFrame 8 步初步过滤 (filter.py)")
+        logger.info(f"     · 模块: {os.path.abspath(__file__)} | PID={os.getpid()}")
+        # ⚙ 本层过滤配置 (来源 _constants.py; 由 config preprocessing.yaml 驱动)
+        _region_on = "启用" if REGION_PATTERN is not None else "未启用"
+        _ad_on = "启用" if AD_PATTERN is not None else "未启用"
+        _bank_kw_n = len(BANK_KW_AUTOMATON) if BANK_KW_AUTOMATON is not None else 0
+        logger.info(
+            f"     · ⚙ 配置: 地域过滤={_region_on} | "
+            f"保留媒体类型={len(MEDIA_TYPES_INCLUDE_SET):,} 类 | "
+            f"媒体黑名单={len(MEDIA_NAMES_TO_EXCLUDE):,} 家 | "
+            f"广告过滤={_ad_on} | "
+            f"银行关键词 AC 自动机={_bank_kw_n:,} 词 (+繁体/全角括号变体)"
+        )
+        # 📖 方法论依据 (语料样本选择规则; 逐字取自经核验参考文献注册表)
+        logger.info("  📖 方法论依据 (关键词保留=语料样本选择 / 广告词排除=样本选择规则):")
+        logger.info(
+            "     · Loughran, T., & McDonald, B. (2011). When is a liability not a "
+            "liability? Textual analysis, dictionaries, and 10-Ks. The Journal of "
+            "Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x"
+        )
+        logger.info(
+            "     · Loughran, T., & McDonald, B. (2016). Textual analysis in "
+            "accounting and finance: A survey. Journal of Accounting Research, "
+            "54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123"
+        )
+        logger.info(
+            "       → 词典/关键词法 (Aho-Corasick O(n) 匹配) 是金融文本分析构建"
+            "主题相关语料的标准样本选择; 广告版面排除作为附录可披露的样本选择规则。"
+        )
+    except Exception as e:  # noqa: BLE001  纯日志, 失败绝不阻断 worker 过滤
+        logger.warning(f"  filter 方法论 banner 打印失败 (不影响处理): {e}")
 
 
 def _ad_keyword_hit_counts(removed_values: pd.Series, kw_patterns) -> str:
@@ -81,6 +143,12 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """
     if df.empty:
         return df
+
+    # 子步骤 banner (每 worker 仅一次): 过滤层方法论引文 + 本层配置
+    _log_filter_methodology_once()
+
+    # 本层输入行数 (仅服务于末尾保留率结果判读的局部变量; 不入任何产物)
+    _rows_in = len(df)
 
     # 1. 媒体地域过滤: 仅保留中国大陆地区的媒体
     if REGION_PATTERN is not None:
@@ -199,6 +267,28 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
             s_final = s_final.where(s_base != k, v)
 
         df['媒体(中文)'] = s_final
+
+    # 📊 结果判读 (本文件块整体保留率; pct4 四位有效数字, 纯日志):
+    # 8 步过滤是高淘汰链 (地域 ~60-70% + 银行词 ~30-50% 为主力), 单文件整体保留
+    # 率通常落在 5-25%。给一个粗判读门槛, 偏离时提示语料/词典/媒体口径异常。
+    try:
+        _rows_out = len(df)
+        if _rows_in > 0:
+            _keep = _rows_out / _rows_in
+            if _rows_out == 0:
+                _verdict = "❌ 零存留 (本文件被全删, 检查是否地域/类型口径过严或源 schema 异常)"
+            elif _keep < 0.01:
+                _verdict = "⚠ 极低保留 (临界, 多为主题外/外地媒体为主的源文件, 属预期)"
+            elif _keep > 0.60:
+                _verdict = "⚠ 异常高保留 (临界, 检查地域/银行词过滤是否未生效)"
+            else:
+                _verdict = "✅ 保留率落在预期高淘汰链区间"
+            logger.info(
+                f"  📊 [本文件块过滤汇总] {_rows_in:,} → {_rows_out:,} 行, "
+                f"整体保留率={pct4(_keep)} — {_verdict}"
+            )
+    except Exception as e:  # noqa: BLE001  纯日志, 失败绝不阻断过滤返回
+        logger.warning(f"  过滤汇总判读打印失败 (不影响处理): {e}")
 
     return df
 

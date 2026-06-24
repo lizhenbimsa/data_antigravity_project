@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import os
 import re
+import time
 
 # ftfy 是 normalize 专属依赖, 子模块顶部 import 一次即可
 import ftfy
@@ -21,6 +22,7 @@ import opencc
 import pandas as pd
 from selectolax.parser import HTMLParser
 
+from news_process.core.logging import pct4, sig4
 from news_process.pipeline.preprocess._constants import (
     COMBINED_TRANS,
     NORMALIZATION_PARAMS,
@@ -140,6 +142,30 @@ def clean_text_batch(df_batch: pd.DataFrame) -> pd.DataFrame:
 
     batch_size = len(df_batch)
     logger.debug(f"正在处理批次({batch_size} 行)")
+    _t_start = time.time()
+
+    # ── 子步骤 banner (preprocess sub-step; runner 共享日志) ──
+    # 本模块是 stage 00 preprocessing 的清洗子步 (被 load.process_single_file 逐文件调用),
+    # 无独立 main/ENV/CONFIG 块 (那是 runner 入口的职责), 此处只打印子步骤标识 + 方法依据 + 配置摘要 + 结果判读。
+    # 纯 CPU / $0 (无 LLM/嵌入调用); 确定性 = 字节级可复现 (ftfy/OpenCC/selectolax 均纯函数)。
+    try:
+        _opencc_cfg = NORMALIZATION_PARAMS.get('opencc_config', 't2s')
+        _html_thr = NORMALIZATION_PARAMS.get('html_removal_length_threshold', 0.7)
+        logger.info(
+            f"[normalize] 子步骤: 文本标准化清洗 (worker PID={os.getpid()}, 批 {batch_size:,} 行, "
+            f"列={list(TEXT_COLUMNS)})"
+        )
+        logger.info(
+            "[normalize] 方法依据: ftfy(mojibake 编码修复) · OpenCC(繁→简, "
+            f"config={_opencc_cfg}) · selectolax/Modest(HTML 去标签) · 正则噪声/尾部清理; "
+            "习近平→習近平(简→繁, 体现而非删除, 2026-06-22)"
+        )
+        logger.info(
+            f"[normalize] 配置: opencc_config={_opencc_cfg} · "
+            f"html_removal_length_threshold={sig4(_html_thr)} (HTML 去除后缩减率超此值标记疑似代码/结构化文档)"
+        )
+    except Exception as _e:  # noqa: BLE001 — 日志块绝不可中断清洗阶段
+        logger.warning(f"[normalize] 子步骤 banner 输出失败 (不影响清洗): {_e}")
 
     # 延迟初始化 OpenCC(每个工作进程首次调用时创建一次)
     if _worker_cc is None:
@@ -180,8 +206,47 @@ def clean_text_batch(df_batch: pd.DataFrame) -> pd.DataFrame:
         reduction_pct = (1 - stats['total_chars_after'] / stats['total_chars_before']) * 100
         logger.debug(
             f"字符数: {stats['total_chars_before']:,} → "
-            f"{stats['total_chars_after']:,}(减少 {reduction_pct:.1f}%)"
+            f"{stats['total_chars_after']:,}(减少 {pct4(reduction_pct, fraction=False)})"
         )
+
+    # ── 结果判读 + 计时 (纯日志, 读取已算出的真实统计量; 不改任何写盘值/schema/控制流) ──
+    try:
+        _elapsed = time.time() - _t_start
+        # 字符缩减率判读: 报纸语料正常清洗 (去 HTML/噪声/尾部压缩) 缩减率通常 < ~15%;
+        # 整批缩减率异常高 → 可能存量 HTML/结构化文档偏多 (非 bug, 仅提示语料构成)。
+        if stats['total_chars_before'] > 0:
+            _red_frac = 1 - stats['total_chars_after'] / stats['total_chars_before']
+            if _red_frac > 0.30:
+                _red_verdict = "偏高 (语料含较多 HTML/结构化文档?)"
+            elif _red_frac > 0.15:
+                _red_verdict = "临界 (清洗强度略高)"
+            else:
+                _red_verdict = "正常 (常规报纸语料清洗量级)"
+            logger.info(
+                f"[normalize] 结果: 字符数 {stats['total_chars_before']:,d} → "
+                f"{stats['total_chars_after']:,d} | 整批缩减率 {pct4(_red_frac)} → {_red_verdict}"
+            )
+        # 疑似代码/结构化文档占比判读 (缩减率超 html 阈值的记录; 仅记录不过滤)。
+        if 'suspected_code_doc' in df_batch.columns and batch_size > 0:
+            _suspect_n = int(df_batch['suspected_code_doc'].sum())
+            _suspect_frac = _suspect_n / batch_size
+            if _suspect_frac > 0.10:
+                _suspect_verdict = "偏高 (建议人工抽查语料源)"
+            elif _suspect_frac > 0.02:
+                _suspect_verdict = "临界"
+            else:
+                _suspect_verdict = "正常 (清洁报纸文本占主体)"
+            logger.info(
+                f"[normalize] 结果: 疑似代码/结构化文档 {_suspect_n:,d}/{batch_size:,d} 条 "
+                f"(占比 {pct4(_suspect_frac)}) → {_suspect_verdict}"
+            )
+        _rate = (batch_size / _elapsed) if _elapsed > 0 else 0.0
+        logger.info(
+            f"[normalize] ⏱ 子步骤墙钟 {sig4(_elapsed)} 秒 "
+            f"({batch_size:,d} 行, {sig4(_rate)} 行/秒)"
+        )
+    except Exception as _e:  # noqa: BLE001 — 日志/判读块绝不可中断清洗阶段
+        logger.warning(f"[normalize] 结果判读/计时输出失败 (不影响清洗): {_e}")
 
     return df_batch
 

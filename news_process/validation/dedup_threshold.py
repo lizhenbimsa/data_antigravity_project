@@ -93,6 +93,7 @@ news_process.validation.dedup_threshold — 去重阈值参数敏感性分析 (�
 import gc
 import glob
 import os
+import platform
 import sys
 import time
 
@@ -107,7 +108,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging
+from news_process.core.logging import pct4, setup_logging, sig4
 
 # Phase 6a: 00_preprocessing.py 已是 Phase 2c thin shim, ArticleDeduplicator
 # 的 canonical 路径是 news_process.pipeline.preprocess.dedup
@@ -189,9 +190,71 @@ def _annotate_censoring(res_df: pd.DataFrame, input_mode: str,
     return out
 
 
+def _log_environment_and_config(logger, config, output_dir: str,
+                                prod_threshold, thresholds) -> None:
+    """打印项目/环境信息 + 运行配置 + 方法论引文 (日志富集, 2026-06-24)。
+
+    把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数、方法学出处"一次性
+    落进日志, 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 (golden-safe)。
+    日志 emit 只在函数体内调用 (绝不在模块顶层), 避免 import 时截断生产日志。
+    """
+    try:
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (阶段 32a 去重阈值参数敏感性, "
+                    "STAGES_VALIDATION; 纯诊断不写回主链)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) "
+                    "v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "本阶段纯 CPU / 无 LLM·Embedding·网络·API ($0); "
+                    "MinHash 固定 permutation → 结果逐位可复现")
+
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 优先输入: {os.path.join(output_dir, '_cache', '*.parquet')} "
+                    "(stage 00 normalize+filter 后、去重前快照, 仅读 5 列)")
+        _fallback_fn = config.get('filenames', {}).get(
+            'output_21_tone_llms', '21_tone_llms.parquet')
+        logger.info(f"     · 回退输入: {os.path.join(output_dir, _fallback_fn)} "
+                    "(已按生产阈值去重的下游产物; 此口径单侧机械截尾)")
+        logger.info(f"     · 输出:     {os.path.join(output_dir, 'eval_reports', 'dedup_sensitivity_report.csv')} "
+                    "(5 阈值 × 7 列)")
+
+        logger.info("  ⚙ 运行配置 (config/preprocessing.yaml::deduplication; "
+                    "config/validation.yaml::validation.dedup_sensitivity 开关)")
+        logger.info(f"     · 生产去重阈值 = {sig4(prod_threshold)} "
+                    "(deduplication.jaccard_similarity_threshold)")
+        logger.info("     · 扫描阈值网格 = ["
+                    + ", ".join(sig4(t) for t in thresholds) + "]")
+        _dedup_cfg = config.get('deduplication', {})
+        _text_col = _dedup_cfg.get('text_column',
+                                   config.get('preprocessing', {}).get('text_column', '内容'))
+        logger.info(f"     · 文本列 = '{_text_col}' | 去重所需最小列集 = {PRE_DEDUP_REQUIRED_COLS}")
+        logger.info("     · 签名与阈值无关 → 全阈值共用一次 MinHash 签名 "
+                    "(逐阈值仅 find_near_duplicate_indices 判重)")
+
+        logger.info("  📖 方法论依据 (参考文献, 经核验注册表逐字照抄)")
+        logger.info("     · MinHash / Jaccard 相似度理论支撑: Broder, A. Z. (1997). "
+                    "On the resemblance and containment of documents. In Proceedings. "
+                    "Compression and Complexity of SEQUENCES 1997 "
+                    "(Cat. No.97TB100171) (pp. 21-29). IEEE Computer Society. "
+                    "https://doi.org/10.1109/SEQUEN.1997.666900")
+        logger.info("       → 为什么用: MinHash 以固定 permutation 估计文档对 Jaccard "
+                    "相似度, 把 O(N²) 全对比对压成近似近邻查询, 支撑大语料近似去重。")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法论信息打印失败 (不影响处理): {e}")
+
+
 def main():
     config = load_config()
     logger = setup_logging(STAGE_NAME, config["paths"]["log_dir"])
+
+    # 运行期阶段计时 (各主要子阶段墙钟耗时, 末尾汇总; 纯日志)
+    stage_start = time.time()
+    phase_durations: dict[str, float] = {}
 
     logger.info("=" * 72)
     logger.info("阶段 32a: 去重阈值参数敏感性 (Jaccard MinHash LSH, Broder 1997)")
@@ -211,7 +274,13 @@ def main():
     # ── 加载生产阈值 (作为基准参考标注) ──
     prod_threshold = config.get('deduplication', {}).get(
         'jaccard_similarity_threshold', 0.80)
-    logger.info(f"  生产去重阈值 (config/preprocessing.yaml::deduplication.jaccard_similarity_threshold): {prod_threshold}")
+    logger.info(f"  生产去重阈值 (config/preprocessing.yaml::deduplication.jaccard_similarity_threshold): {sig4(prod_threshold)}")
+
+    # 项目/环境信息 + 运行配置 + 方法论引文 (日志富集 2026-06-24)
+    # 阈值网格与下方 thresholds 定义保持一致 (仅供日志披露, 不改控制流)
+    _log_environment_and_config(
+        logger, config, config['paths']['output_dir'],
+        prod_threshold, [0.70, 0.75, 0.80, 0.85, 0.90])
 
     # ── 加载输入数据 ──
     # fix(omni-g-val-robust-01, 2026-06-11): 优先用 stage 00 的 per-file 增量缓存
@@ -221,6 +290,7 @@ def main():
     # 相似度 >=0.80 的对已被删, 0.85/0.90 扫不出新重复, Retained≈100% 是机械
     # 结果, 稳健性单侧截尾。预去重口径下每个阈值真实执行去重, 双向均有信息。
     output_dir = config['paths']['output_dir']
+    _t_load = time.time()
     df = _load_pre_dedup_corpus(output_dir, logger)
 
     if df is not None and not df.empty:
@@ -247,9 +317,9 @@ def main():
         # fix(omni-g-val-robust-01, 2026-06-11): 诚实披露单侧截尾 —
         # 回退输入已按生产阈值去重, >= 生产阈值方向的 Dropped≈0 为机械结果
         logger.warning("⚠ 输入口径: post_dedup_fallback — 数据已按生产阈值 "
-                       f"({prod_threshold}) 去重。阈值 >= {prod_threshold} 方向的 "
+                       f"({sig4(prod_threshold)}) 去重。阈值 >= {sig4(prod_threshold)} 方向的 "
                        "'高保留率' 是机械截尾而非稳健性证据, 仅 < "
-                       f"{prod_threshold} 方向有信息量; 报告列 "
+                       f"{sig4(prod_threshold)} 方向有信息量; 报告列 "
                        "Mechanically_Censored 已逐行标记。")
 
     if df.empty:
@@ -276,11 +346,14 @@ def main():
     # 若 ArticleDeduplicator API 变更，需同步更新。
     # 输入语料行数 (供末尾汇总; df 下面会被释放以省内存)
     n_input_rows = len(df)
+    phase_durations['①加载输入语料'] = time.time() - _t_load
 
+    _t_exact = time.time()
     dedup = ArticleDeduplicator(config, logger)
     df_prep = dedup._prepare_dataframe(df)
     df_exact = dedup._perform_exact_deduplication(df_prep)
     exact_retained = len(df_exact)
+    phase_durations['②预处理+精确去重'] = time.time() - _t_exact
 
     logger.info(f"精确去重完成, 剩余行数: {exact_retained:,} "
                 f"(作为近似去重的基数)")
@@ -308,11 +381,14 @@ def main():
     logger.info("计算 MinHash 签名 (一次, 全部阈值共用; 签名与阈值无关)...")
     mh_start = time.time()
     minhashes = dedup.compute_minhashes(df_exact)
-    logger.info(f"MinHash 签名完成, 耗时 {time.time() - mh_start:.1f}秒 "
+    mh_elapsed = time.time() - mh_start
+    phase_durations['③MinHash签名(一次)'] = mh_elapsed
+    logger.info(f"MinHash 签名完成, 耗时 {sig4(mh_elapsed)}秒 "
                 f"(此前每阈值重算, 现 {len(thresholds)} 阈值共用此一次)")
 
+    _t_scan = time.time()
     for th in thresholds:
-        logger.info(f"\n--- 测试阈值: Jaccard >= {th} "
+        logger.info(f"\n--- 测试阈值: Jaccard >= {sig4(th)} "
                      f"{'← 生产阈值' if th == prod_threshold else ''} ---")
         start_t = time.time()
 
@@ -325,9 +401,9 @@ def main():
         retained_ratio = retained / exact_retained if exact_retained > 0 else 0
 
         elapsed = time.time() - start_t
-        logger.info(f"阈值 {th}: 拦截 {dropped:,} 篇, "
-                    f"剩余 {retained:,} 篇 (占比 {retained_ratio:.2%}), "
-                    f"耗时 {elapsed:.1f}秒")
+        logger.info(f"阈值 {sig4(th)}: 拦截 {dropped:,} 篇, "
+                    f"剩余 {retained:,} 篇 (占比 {pct4(retained_ratio)}), "
+                    f"耗时 {sig4(elapsed)}秒")
 
         results.append({
             'Threshold': th,
@@ -341,6 +417,8 @@ def main():
         del drop_idx
         gc.collect()
 
+    phase_durations['④逐阈值判重扫描'] = time.time() - _t_scan
+
     logger.info("\n" + "=" * 40)
     logger.info("去重阈值敏感性报告 (供附录参考):")
     logger.info("=" * 40)
@@ -348,10 +426,10 @@ def main():
     res_df = pd.DataFrame(results)
     # fix(omni-g-val-robust-01, 2026-06-11): 追加输入口径 + 机械截尾披露列
     res_df = _annotate_censoring(res_df, input_mode, prod_threshold)
-    # 格式化输出百分比
+    # 格式化输出百分比 (仅 res_df_display 用于日志展示, 不写盘; res_df 原值落 CSV)
     res_df_display = res_df.copy()
     res_df_display['Retained_Ratio'] = res_df_display[
-        'Retained_Ratio'].apply(lambda x: f"{x:.2%}")
+        'Retained_Ratio'].apply(lambda x: pct4(x))
     logger.info("\n" + res_df_display.to_string(index=False))
 
     # ── 输出到 eval_reports/ (与其他验证模块输出目录一致) ──
@@ -378,24 +456,24 @@ def main():
             logger.info(f"  · 输入口径 = pre_dedup_cache (去重前快照, {n_input_rows:,} 行) → "
                         "双向阈值敏感性均有效, 全部阈值是真稳健性证据 (好)。")
         else:
-            logger.warning(f"  · 输入口径 = post_dedup_fallback (已按生产阈值 {prod_threshold} 去重的 "
+            logger.warning(f"  · 输入口径 = post_dedup_fallback (已按生产阈值 {sig4(prod_threshold)} 去重的 "
                            f"{input_desc}, {n_input_rows:,} 行)。")
-            logger.warning(f"    Threshold >= {prod_threshold} 的 {n_censored} 行 Dropped≈0 是机械截尾, "
-                           f"仅 < {prod_threshold} 一侧有信息量 (报告列 Mechanically_Censored 已逐行标记)。")
+            logger.warning(f"    Threshold >= {sig4(prod_threshold)} 的 {n_censored} 行 Dropped≈0 是机械截尾, "
+                           f"仅 < {sig4(prod_threshold)} 一侧有信息量 (报告列 Mechanically_Censored 已逐行标记)。")
 
         # 指标②: 精确去重基数 (近似去重的分母)
         # NaN/除零-guard: df.empty 已在上方提前返回 → n_input_rows>0; 仍显式守 >0 防御
         exact_drop = n_input_rows - exact_retained
         if n_input_rows > 0:
             logger.info(f"  · 精确去重基数 = {exact_retained:,} 篇 "
-                        f"(精确剔除 {exact_drop:,} 篇 = {exact_drop / n_input_rows:.2%}, 全字符重复)。")
+                        f"(精确剔除 {exact_drop:,} 篇 = {pct4(exact_drop / n_input_rows)}, 全字符重复)。")
         else:
             logger.info(f"  · 精确去重基数 = {exact_retained:,} 篇 (输入行数为 0, 跳过占比计算)。")
 
         # 指标③: 生产阈值 (0.80) 下的保留率 — 实际投产口径的结果
         prod_row = next((r for r in results if r['Is_Production']), None)
         if prod_row is not None:
-            logger.info(f"  · 生产阈值 {prod_threshold} 保留率 = {prod_row['Retained_Ratio']:.2%} "
+            logger.info(f"  · 生产阈值 {sig4(prod_threshold)} 保留率 = {pct4(prod_row['Retained_Ratio'])} "
                         f"(保留 {prod_row['Retained']:,} / 拦截 {prod_row['Dropped']:,} 篇) "
                         "← 这是实际投产口径。")
 
@@ -416,16 +494,16 @@ def main():
             ratio_span = max(ratios) - min(ratios)
             span_verdict = ("高度稳健" if ratio_span < 0.05
                             else "中等敏感" if ratio_span < 0.15 else "高敏感(需警惕)")
-            logger.info(f"  · 保留率跨度 (max-min) = {ratio_span:.2%} → {span_verdict}; "
-                        f"区间 {min(ratios):.2%} ~ {max(ratios):.2%} "
-                        f"(跨度越小 ⇒ 结论越不依赖 {prod_threshold} 门槛)。")
+            logger.info(f"  · 保留率跨度 (max-min) = {pct4(ratio_span)} → {span_verdict}; "
+                        f"区间 {pct4(min(ratios))} ~ {pct4(max(ratios))} "
+                        f"(跨度越小 ⇒ 结论越不依赖 {sig4(prod_threshold)} 门槛)。")
 
             # 指标⑥: 相邻阈值边际变化 — 0.80 附近最敏感档位
             deltas = [(thresholds[i + 1], ratios[i + 1] - ratios[i])
                       for i in range(len(ratios) - 1)]
             if deltas:
                 max_th, max_delta = max(deltas, key=lambda kv: abs(kv[1]))
-                logger.info(f"  · 最大相邻边际变化 = {abs(max_delta):.2%} (出现在 → {max_th} 档); "
+                logger.info(f"  · 最大相邻边际变化 = {pct4(abs(max_delta))} (出现在 → {sig4(max_th)} 档); "
                             "边际越平滑说明阈值附近无悬崖式样本翻转。")
 
         # 小样本警告 (盘面 T=2 / 极少行只验证管道正确性)
@@ -446,12 +524,23 @@ def main():
     # ── 阶段汇总 ──
     logger.info("=" * 60)
     logger.info(f"阶段 32a 完成: 测试 {len(thresholds)} 个阈值, "
-                f"生产阈值={prod_threshold}")
+                f"生产阈值={sig4(prod_threshold)}")
     logger.info(f"  输入数据: {input_desc} ({n_input_rows:,} 行, 口径={input_mode})")
     logger.info(f"  保留率范围: "
-                f"{min(r['Retained_Ratio'] for r in results):.2%} ~ "
-                f"{max(r['Retained_Ratio'] for r in results):.2%}")
+                f"{pct4(min(r['Retained_Ratio'] for r in results))} ~ "
+                f"{pct4(max(r['Retained_Ratio'] for r in results))}")
     logger.info("=" * 60)
+
+    # ── ⏱ 阶段计时汇总 (各主要子阶段墙钟耗时; 纯日志, golden-safe) ──
+    try:
+        total_elapsed = time.time() - stage_start
+        logger.info("  ⏱ 阶段计时汇总 (秒)")
+        for _phase, _dur in phase_durations.items():
+            _share = (_dur / total_elapsed) if total_elapsed > 0 else 0.0
+            logger.info(f"     · {_phase}: {sig4(_dur)}秒 ({pct4(_share)})")
+        logger.info(f"     · 阶段总墙钟: {sig4(total_elapsed)}秒")
+    except Exception as _te:  # noqa: BLE001
+        logger.warning(f"  阶段计时汇总打印失败 (不影响产物): {_te}")
 
 
 if __name__ == "__main__":

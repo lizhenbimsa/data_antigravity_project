@@ -119,7 +119,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import herd_sensitivity_grid, load_config
-from news_process.core.logging import setup_logging
+from news_process.core.logging import pct4, setup_logging, sig4
 
 # ============================================================================
 # 1. 全局配置
@@ -590,17 +590,17 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  三轨跟风检测完成:")
     logger.info(f"    总新闻数: {n_total:,}")
     logger.info(f"    full 轨跟风: {total_herd_full:,} "
-                f"({total_herd_full/max(n_total,1):.1%})")
+                f"({pct4(total_herd_full/max(n_total,1))})")
     logger.info(f"    ctx  轨跟风: {total_herd_ctx:,} "
-                f"({total_herd_ctx/max(n_total,1):.1%})")
+                f"({pct4(total_herd_ctx/max(n_total,1))})")
     logger.info(f"    ss   轨跟风: {total_herd_ss:,} "
-                f"({total_herd_ss/max(n_total,1):.1%})")
-    logger.info(f"    herd_weight_full mean={df['herd_weight_full'].mean():.4f}, "
-                f"min={df['herd_weight_full'].min():.4f}")
-    logger.info(f"    herd_weight_ctx  mean={df['herd_weight_ctx'].mean():.4f}, "
-                f"min={df['herd_weight_ctx'].min():.4f}")
-    logger.info(f"    herd_weight_ss   mean={df['herd_weight_ss'].mean():.4f}, "
-                f"min={df['herd_weight_ss'].min():.4f}")
+                f"({pct4(total_herd_ss/max(n_total,1))})")
+    logger.info(f"    herd_weight_full mean={sig4(df['herd_weight_full'].mean())}, "
+                f"min={sig4(df['herd_weight_full'].min())}")
+    logger.info(f"    herd_weight_ctx  mean={sig4(df['herd_weight_ctx'].mean())}, "
+                f"min={sig4(df['herd_weight_ctx'].min())}")
+    logger.info(f"    herd_weight_ss   mean={sig4(df['herd_weight_ss'].mean())}, "
+                f"min={sig4(df['herd_weight_ss'].min())}")
 
     # v3.6.0 NON-BREAKING 兼容层 (F-B 修): 保留 herd_weight / n_similar_articles
     # 单列 alias = _full 路径, 让 v3.5.x 既有调用方 (paper Stata 模板 / 测试套件 /
@@ -639,7 +639,7 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
                 rho, _ = spearmanr(
                     df.loc[valid, _col_a], df.loc[valid, _col_b])
                 logger.info(
-                    f"    三轨独立性诊断 [{_pair_name}]: Spearman ρ = {rho:.4f} "
+                    f"    三轨独立性诊断 [{_pair_name}]: Spearman ρ = {sig4(rho)} "
                     f"(n={int(valid.sum()):,}; "
                     f"{'真双/三轨' if abs(rho) < 0.95 else '⚠ 高度相关, 检查 fallback 比例'})")
     except ImportError:
@@ -652,10 +652,74 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
 # 3. 主流程
 # ============================================================================
 
+def _log_environment_and_config(input_file: str, output_file: str) -> None:
+    """打印 ① 项目/环境信息 + ② 输入输出 + ③ 运行配置 + ④ 方法论依据 (日志富集, 2026-06-24)。
+
+    目标 (用户要求"在日志文件中提供尽可能多的项目信息、运行期间信息和运行结果信息"):
+    把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数、方法学出处"一次性落进
+    日志, 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 (golden-safe)。
+    ④ 方法论引文仅 emit 经 Crossref 真值核验的条目, 含 DOI 可访问链接 (Sautner et al. 2023 JF
+    https://doi.org/10.1111/jofi.13219; Tetlock 2011 RFS https://doi.org/10.1093/rfs/hhq141;
+    Edwards 2001 ORM https://doi.org/10.1177/109442810142004), 绝不伪造 DOI (playbook §4 铁律)。
+    """
+    try:
+        import platform
+
+        import sklearn
+
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (跟风/抄袭新闻衰减加权, STAGES_MAIN 阶段24; 三轨 full/ctx/ss)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        logger.info(f"     · scikit-learn: {getattr(sklearn, '__version__', '?')} "
+                    "(TfidfVectorizer + 余弦; 确定性来源=固定 TF-IDF 参数 + as-of vocab fit + 稳定排序)")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "本阶段纯 CPU / 无 LLM·Embedding·网络·API ($0) → 逐位可复现")
+
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 输入:   {input_file} (硬依赖 stage 23; 禁回退读 22/21)")
+        logger.info(f"     · 输出:   {output_file}")
+        logger.info(f"     · 敏感性诊断: {os.path.join(OUTPUT_DIR, 'eval_reports', '24_herd_threshold_sensitivity.csv')}")
+
+        logger.info("  ⚙ 运行配置 (config/*.yaml::herd_detection)")
+        logger.info(f"     · similarity_threshold={sig4(SIMILARITY_THRESHOLD)} (闭边界 >=) "
+                    f"| time_window_days={TIME_WINDOW_DAYS:,d}天")
+        logger.info(f"     · max_features={MAX_FEATURES:,d} (按原始词频截断) "
+                    f"| min_df(cap)={MIN_DF:,d} | max_df={sig4(MAX_DF)} | chunk_size={CHUNK_SIZE:,d}")
+        logger.info(f"     · TF-IDF: analyzer=char_wb, ngram_range=(2,4); "
+                    f"dense pairwise (≤2000篇/前缀) / 7天窗双指针分桶 (>2000篇, 数值逐位等价)")
+        if SENS_TAGS:
+            logger.info(f"     · 阈值敏感性网格 (herd_sensitivity_grid): τ∈{SENS_THRESHOLDS} → 列后缀 {SENS_TAGS} "
+                        f"({len(SENS_TAGS):,d} τ × 3 轨 × 2 列; 同一 TF-IDF/余弦一遍式复算, 基线列不变)")
+        else:
+            logger.info("     · 阈值敏感性网格: (空) — 仅算基线阈值")
+
+        logger.info("  📖 方法论依据 (核心方法/构念学术出处)")
+        logger.info("     · 文本相似度驱动的曝光度度量: "
+                    "Sautner, Z., van Lent, L., Vilkov, G., & Zhang, R. (2023). Firm-level climate "
+                    "change exposure. The Journal of Finance, 78(3), 1449–1498. https://doi.org/10.1111/jofi.13219")
+        logger.info("       → 同一构念在同时段被多家媒体高相似度转抄会重复计数; 据文本相似度衰减加权可还原真实信息量")
+        logger.info("     · 媒体新闻信息冗余/重复效应: Tetlock, P. C. (2011). All the news that's fit to reprint: "
+                    "Do investors react to stale information? The Review of Financial Studies, 24(5), 1481-1512. "
+                    "https://doi.org/10.1093/rfs/hhq141 — 连续 staleness 度量")
+        logger.info("     · 双/三轨化动因 (measurement-treatment matching): Edwards, J. R. (2001). Multidimensional "
+                    "constructs in organizational behavior research: An integrative analytical framework. "
+                    "Organizational Research Methods, 4(2), 144-192. https://doi.org/10.1177/109442810142004 "
+                    "— 全文相似度 ≠ 银行邻域/同句相似度")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
+
+
 def main():
     """主入口: 加载数据 → 跟风检测 → 保存。"""
     import time
     start_time = time.time()
+    # 运行期阶段计时累计 (各主要子阶段墙钟耗时, 末尾汇总打印; 纯日志, golden-safe)
+    phase_durations: dict[str, float] = {}
 
     # ── 【功能】banner (黄金范式, 摘自 PIPELINE_NUMBERED_PY_REFERENCE 白话/详细说明;
     #     替换而非叠加旧的 "="*60 短启动头, 对齐 39c construct_orthogonality 单 banner 范式) ──
@@ -719,6 +783,9 @@ def main():
         # 避免父进程把 'silent return' 误判为 stage 24 成功 (详见 plan c2)。
         raise SystemExit(1)
 
+    # 项目/环境信息 + 输入输出 + 运行配置 + 方法论依据 (日志富集 2026-06-24, 路径确定后打印)
+    _log_environment_and_config(input_file, output_file)
+
     # 记录输入文件修改时间，便于数据溯源审计
     import datetime as _dt
     _mtime = os.path.getmtime(input_file)
@@ -727,15 +794,20 @@ def main():
         f"(修改时间: {_dt.datetime.fromtimestamp(_mtime).strftime('%Y-%m-%d %H:%M:%S')})"
     )
 
+    _t = time.time()
     df = pd.read_parquet(input_file)
+    phase_durations['①加载parquet'] = time.time() - _t
     logger.info(f"  加载 {len(df):,} 条新闻 (来源: {input_filename})")
 
     # 执行跟风检测
+    _t = time.time()
     df = compute_herd_weights(df)
+    phase_durations['②三轨跟风检测+衰减加权'] = time.time() - _t
 
     # ── 阈值敏感性诊断摘要 (2026-06-13): 逐 τ flag 率 / 权重分布 / 对基线相关 ──
     # 生产路径专属 (单测直调 compute_herd_weights 不落盘); 供论文 Appendix
     # 阈值敏感性表引用。Spearman ρ 高 (≥0.9) ⇒ 文章级权重排序对 τ 不敏感。
+    _t = time.time()
     if SENS_TAGS:
         try:
             from scipy.stats import spearmanr
@@ -761,16 +833,17 @@ def main():
                     'spearman_vs_baseline': rho,
                 })
                 logger.info(
-                    f"  [阈值敏感性] track={_tn} τ={_thr}: "
-                    f"flag={diag_rows[-1]['flag_rate']:.1%}, "
-                    f"mean_w={diag_rows[-1]['mean_weight']:.4f}, "
-                    f"ρ_vs_baseline={rho if rho == rho else float('nan'):.4f}")
+                    f"  [阈值敏感性] track={_tn} τ={sig4(_thr)}: "
+                    f"flag={pct4(diag_rows[-1]['flag_rate'])}, "
+                    f"mean_w={sig4(diag_rows[-1]['mean_weight'])}, "
+                    f"ρ_vs_baseline={sig4(rho)}")
         eval_dir = os.path.join(OUTPUT_DIR, 'eval_reports')
         os.makedirs(eval_dir, exist_ok=True)
         diag_path = os.path.join(eval_dir, '24_herd_threshold_sensitivity.csv')
         pd.DataFrame(diag_rows).to_csv(diag_path, index=False,
                                        encoding='utf-8-sig')
         logger.info(f"  阈值敏感性诊断已写出: {diag_path}")
+    phase_durations['③阈值敏感性诊断'] = time.time() - _t
 
     # ── 【结果分析】(黄金范式, 紧随写盘前; 仅读 df 既有列, 不回写任何产物) ──
     # crash-guard: 整块包 try/except — 该块在最终 to_parquet 之前执行, 若因边缘
@@ -812,14 +885,14 @@ def main():
 
         logger.info(f"  样本: 总新闻 {_n_total:,} 篇 (banks × T)")
         logger.info(
-            f"  跟风占比: full={_flag_full:.1%}  ctx={_flag_ctx:.1%}  ss={_flag_ss:.1%} "
+            f"  跟风占比: full={pct4(_flag_full)}  ctx={pct4(_flag_ctx)}  ss={pct4(_flag_ss)} "
             f"— 占比越高=该范围内转抄越普遍; 三轨候选前驱集合相同 (同银行 7 天窗内更早文章), "
             f"占比差异仅反映各轨文本 (全文/实体窗/同句窗) 的余弦重叠差异, 不预设 full/ctx/ss 间"
             f"单调方向 (窄文本既可因内容重叠减少而降 flag, 也可因样板句跨媒体高度相似而升 flag)"
         )
         logger.info(
-            f"  平均降权乘子 herd_weight.mean: full={_mw_full:.4f}  ctx={_mw_ctx:.4f}  ss={_mw_ss:.4f} "
-            f"(min_full={_mn_full:.4f}) — 接近 1.0=信息独立基本不降权; 显著<1=存在密集转抄被打折"
+            f"  平均降权乘子 herd_weight.mean: full={sig4(_mw_full)}  ctx={sig4(_mw_ctx)}  ss={sig4(_mw_ss)} "
+            f"(min_full={sig4(_mn_full)}) — 接近 1.0=信息独立基本不降权; 显著<1=存在密集转抄被打折"
         )
         # 判读 (NaN-guard 优先): full 轨全 NaN/缺列 → 不落进数值方向判断
         if _mw_full != _mw_full:  # NaN
@@ -867,7 +940,7 @@ def main():
             if _rhos:
                 _rho_min = min(_rhos)
                 logger.info(
-                    f"  阈值敏感性 (full 轨, τ∈{SENS_THRESHOLDS}): ρ_vs_baseline 最低={_rho_min:.4f} "
+                    f"  阈值敏感性 (full 轨, τ∈{SENS_THRESHOLDS}): ρ_vs_baseline 最低={sig4(_rho_min)} "
                     f"— {f'≥0.9 权重排序对阈值稳健, 结论不靠 {SIMILARITY_THRESHOLD} 这个具体数' if _rho_min >= 0.9 else '<0.9 权重排序随 τ 漂移, 须在论文披露阈值敏感性'}"
                 )
             else:
@@ -887,6 +960,7 @@ def main():
 
     # 保存 (追加 herd_weight 列后写入独立输出文件)
     # 使用数据版本控制保存
+    _t = time.time()
     from news_process.core.data_versioning import save_parquet_with_metadata
     save_parquet_with_metadata(
         df=df,
@@ -895,10 +969,22 @@ def main():
         config=CONFIG,
         input_files=[input_file],
     )
+    phase_durations['④写盘parquet'] = time.time() - _t
     logger.info(f"  已保存至 {output_file}")
 
-    elapsed = time.time() - start_time
-    logger.info(f"  耗时: {elapsed:.1f}秒")
+    # ── ⏱ 阶段计时汇总 (各主要子阶段墙钟耗时; 纯日志, golden-safe) ──
+    try:
+        elapsed = time.time() - start_time
+        logger.info("  ⏱ 阶段计时 (墙钟秒, 4 位有效数字):")
+        for _pname, _pdur in phase_durations.items():
+            _frac = _pdur / elapsed if elapsed > 0 else 0.0
+            logger.info(f"     · {_pname}: {sig4(_pdur)}s ({pct4(_frac)})")
+        logger.info(f"     · 合计: {sig4(elapsed)}s")
+    except Exception as _te:  # noqa: BLE001
+        logger.warning(f"  阶段计时汇总打印失败 (不影响产物): {_te}")
+        elapsed = time.time() - start_time
+
+    logger.info(f"  耗时: {sig4(elapsed)}秒")
     logger.info(f"阶段 {STAGE_NAME} 完成 ✓")
 
 

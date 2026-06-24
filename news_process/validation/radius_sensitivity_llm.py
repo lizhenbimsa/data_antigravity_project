@@ -37,7 +37,9 @@ from __future__ import annotations
 import json
 import logging
 import os
+import platform
 import sys
+import time
 from typing import Dict, List
 
 import numpy as np
@@ -49,6 +51,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
+from news_process.core.logging import sig4
 
 logger = logging.getLogger(__name__)
 
@@ -356,6 +359,113 @@ def _check_launch_prerequisites() -> dict:
     return checks
 
 
+def _log_environment_and_config(stage_14_path: str, args) -> None:
+    """打印项目/环境信息 + 输入输出 + 运行配置 + 方法论引文 (日志富集, 2026-06-24)。
+
+    目标 (用户要求"在日志文件中提供尽可能多的项目信息、运行期间信息和运行结果信息"):
+    把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数、依据哪些文献"一次性落进
+    日志, 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 / 控制流 (golden-safe)。
+
+    本阶段是 LLM 法 radius 敏感性的 scaffold/dry-run: --dry-run 仅估算 LLM 调用预算;
+    --launch 真实跑路径尚未完整实现 (留 future commit)。故成本注记需如实区分两态。
+    """
+    try:
+        out_dir = ''
+        try:
+            out_dir = load_config()['paths']['output_dir']
+        except Exception:  # noqa: BLE001
+            out_dir = '(未知)'
+        report_path = os.path.join(out_dir, '65_radius_sensitivity_llm.json')
+        cache_path = os.path.join(out_dir, '_llm_cache.db')
+        new_radii = [r for r in RADII_TO_TEST if r != CACHED_RADIUS]
+        is_launch = bool(getattr(args, 'launch', False))
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info("     · 阶段: 65 radius_sensitivity_llm (LLM 法 radius 敏感性, "
+                    "STAGES_VALIDATION; scaffold/dry-run)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) "
+                    "v3.11.1")
+        logger.info("     · 功能: 换不同 ctx 句窗 radius 让 LLM 重判, 比较 情感/创新位点/"
+                    "实质性 三轴标签对 radius 的稳健性 (Cohen's κ vs baseline radius)")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'}")
+        if is_launch:
+            logger.info("     · 成本: LAUNCH 模式将真实调用付费 LLM API "
+                        "(需 YUNWU_API_KEY; 非确定性, 非 $0)")
+        else:
+            logger.info("     · 成本: DRY-RUN 模式纯 CPU / 无 LLM·网络·API ($0); "
+                        "仅估算调用预算与前置检查")
+
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 输入:   {stage_14_path} (stage 14 fintech_intensity, 候选文章集)")
+        logger.info(f"     · LLM缓存: {cache_path} (LLMCache sqlite; 勿删=确定性锚点)")
+        logger.info(f"     · 输出报告: {report_path} (κ robustness JSON; 仅 --launch 真跑时落盘)")
+
+        logger.info("  ⚙ 运行配置 (plan v14 §3.5 P5.2)")
+        logger.info(f"     · Mode: {'LAUNCH (real LLM)' if is_launch else 'DRY-RUN (estimate-only)'}")
+        logger.info(f"     · RADII_TO_TEST={RADII_TO_TEST} | 基线 CACHED_RADIUS={CACHED_RADIUS} "
+                    f"(已缓存, 不重跑) | 新扫描 radii={new_radii}")
+        logger.info(f"     · κ 阈值 KAPPA_THRESHOLD_RADIUS={sig4(KAPPA_THRESHOLD_RADIUS)} "
+                    "(Landis & Koch substantial; 同轨不同 radius 期望高一致)")
+        logger.info(f"     · CLI: --radii={getattr(args, 'radii', '?')} | "
+                    f"--max-concurrency={getattr(args, 'max_concurrency', '?')}")
+        logger.info("     · 评估轨: 仅 ctx 轨 (full 轨缓存命中不受 radius 影响; "
+                    "ss 轨另有独立 ss_sentence_radius 扫描, 见模块头注)")
+
+        logger.info("  📖 方法论依据 (参考文献逐字取自经核验注册表)")
+        logger.info("     · 参数敏感性 (proximity-based attribution): "
+                    "Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). "
+                    "Firm-level political risk: Measurement and effects. "
+                    "The Quarterly Journal of Economics, 134(4), 2135-2202. "
+                    "https://doi.org/10.1093/qje/qjz021")
+        logger.info("     · firm × topic 邻近化 robustness: "
+                    "Sautner, Z., van Lent, L., Vilkov, G., & Zhang, R. (2023). "
+                    "Firm-level climate change exposure. The Journal of Finance, "
+                    "78(3), 1449-1498. https://doi.org/10.1111/jofi.13219")
+        logger.info("     · cheap talk segment-level robustness: "
+                    "Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022). "
+                    "Cheap talk and cherry-picking: What ClimateBert has to say on "
+                    "corporate climate risk disclosures. Finance Research Letters, "
+                    "47, 102776. https://doi.org/10.1016/j.frl.2022.102776")
+        logger.info("     · κ 分级判读: Landis, J. R., & Koch, G. G. (1977). The measurement of observer "
+                    "agreement for categorical data. Biometrics, 33(1), 159-174. https://doi.org/10.2307/2529310 "
+                    "(substantial 区间 κ≥0.61; 本阶段阈值 0.70)")
+        logger.info("     · 白话: 同一篇文章换不同句窗大小让 LLM 重判, 若三轴标签结论"
+                    "基本不变(κ 高), 说明测度不依赖窗口参数的人为选择, 更稳健可信。")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法论信息打印失败 (不影响处理): {e}")
+
+
+def _log_estimate_analysis(n_articles: int, estimates: Dict[str, int]) -> None:
+    """对 LLM 调用量估算做阈值化结果解读 (运行结果信息, 日志富集 2026-06-24)。
+
+    纯日志判读, 不改任何估算值 / 控制流 (golden-safe)。
+    """
+    try:
+        logger.info("  📊 关键指标解读 (LLM 调用预算)")
+        total = int(estimates.get('total_calls', 0))
+        per_radius = int(estimates.get('per_radius_calls', 0))
+        naive = int(estimates.get('naive_full_track_count', 0))
+        savings = estimates.get('savings_factor', 0)
+        logger.info(f"     · 候选文章 N={n_articles:,} 篇 "
+                    f"({'充足' if n_articles >= 100 else '偏小(T=2 试跑?), κ 估计噪声大'})")
+        logger.info(f"     · 优化后总调用={total:,} 次 "
+                    f"(= 每 radius {per_radius:,} × {len(RADII_TO_TEST) - 1} new radii, 仅 ctx 轨)")
+        logger.info(f"     · 朴素误估 (full+ctx 双轨全重跑)={naive:,} 次 → "
+                    f"节省系数 {sig4(savings)}× "
+                    f"({'显著优化' if (isinstance(savings, (int, float)) and savings >= 2) else '优化有限'})")
+        cost_note = ('成本可观, 需 M0 gate 批准方可 --launch'
+                     if total >= 5000 else '成本可控')
+        logger.info(f"     · 预算研判: {cost_note} "
+                    f"(LLM 法 vs 词典法 radius_sensitivity 互为方法学稳健性)")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  估算结果解读打印失败 (不影响处理): {e}")
+
+
 def main():
     """Stage 35 LLM 法主入口 (plan v14 §3.5 P5.2 + R20-A).
 
@@ -368,6 +478,7 @@ def main():
            full 轨缓存命中不受 radius 影响, ss 轨另有独立 radius 扫描, 见模块头注)
            compute_radius_kappa_report + write_radius_llm_report
     """
+    stage_start = time.time()
     args = _parse_args()
     CONFIG = load_config()
     stage_14_filename = CONFIG.get('filenames', {}).get(
@@ -377,31 +488,51 @@ def main():
     logger.info("=== Stage 35 LLM 法升级 (plan v14 §3.5 P5.2) ===")
     logger.info(f"  Mode: {'LAUNCH (real LLM)' if args.launch else 'DRY-RUN (estimate-only)'}")
 
+    # 项目/环境信息 + 输入输出 + 运行配置 + 方法论引文 (日志富集 2026-06-24)
+    _log_environment_and_config(stage_14_path, args)
+
     # 1. 估算 LLM 调用量 (替代 plan v13/v14 早期 180k 误估)
     if not os.path.exists(stage_14_path):
         logger.error(f"  stage 14 输入不存在: {stage_14_path}")
         logger.error("  先跑 pipeline (run_pipeline_function.py) 产 stage 14 输出.")
         return 1
 
+    _t = time.time()
     df_stage14 = pd.read_parquet(stage_14_path)
     n_articles = len(df_stage14)
     estimates = estimate_llm_calls(n_articles=n_articles)
-    logger.info(f"  N (stage 14 输入): {n_articles}")
+    _t_load = time.time() - _t
+    logger.info(f"  N (stage 14 输入): {n_articles:,}")
     logger.info(f"  实际 LLM 调用: {estimates['total_calls']:,} "
                 f"(= {estimates['per_radius_calls']:,} × {len(RADII_TO_TEST) - 1} new radii)")
     logger.info(f"  早前错估 (含 full 轨重跑): {estimates['naive_full_track_count']:,} "
-                f"({estimates['savings_factor']}× 节省)")
+                f"({sig4(estimates['savings_factor'])}× 节省)")
+
+    # 结果解读 (运行结果信息, 日志富集 2026-06-24)
+    _log_estimate_analysis(n_articles, estimates)
 
     # 2. 前置检查
+    _t = time.time()
     checks = _check_launch_prerequisites()
+    _t_checks = time.time() - _t
     logger.info("  Pre-flight checks:")
     for k, v in checks.items():
         logger.info(f"    {k}: {v}")
+
+    # 阶段计时汇总 (墙钟, 日志富集 2026-06-24)
+    try:
+        logger.info("  ⏱ 阶段计时")
+        logger.info(f"     · 读取 stage14 + 估算: {sig4(_t_load)} 秒")
+        logger.info(f"     · 前置检查: {sig4(_t_checks)} 秒")
+        logger.info(f"     · 累计 (至分支前): {sig4(time.time() - stage_start)} 秒")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  阶段计时打印失败 (不影响处理): {e}")
 
     # 3. dry-run / launch 分支
     if not args.launch:
         logger.info("  [DRY-RUN] 不实际调用 LLM. 加 --launch flag 触发真实 launch.")
         logger.info(f"  Required: env YUNWU_API_KEY (current: {'set' if checks['yunwu_api_key_present'] else 'NOT SET'})")
+        logger.info(f"  本阶段总耗时: {sig4(time.time() - stage_start)} 秒")
         return 0
 
     # --launch 真实路径
