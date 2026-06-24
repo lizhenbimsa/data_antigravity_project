@@ -33,12 +33,19 @@ v3.9.0 (第三轨 _ss 同句共现) 三轨化升级:
   - Edwards (2001, ORM): measurement-treatment matching (双轨/三轨化动因)
 
 关键设计:
-  - TF-IDF 向量化 + 维度封锁 (max_features=10000)
-    ⚠ 披露 (fix(omni-g-herd-02, 2026-06-11)): max_features 按**原始词频**截断 top-k —
-    全量语料 (2007-2024) 头部银行单组数十万篇时 char 2-4 gram 词表达百万级, top-10k
-    截断把相似度计算压入高频 boilerplate ngram 子空间 (判别性长尾缺席 → 余弦系统性
-    膨胀, 规模依赖)。截断咬合时运行期记 logger.warning; 共享全语料词表 / 按 IDF 选
-    top-k 的重设计与全量 run 一并处理, 届时应做 max_features 敏感性检验。
+  - TF-IDF 向量化 (max_features=5_000_000, 有效=不截断; 2026-06-24 由 10000 上调以解决 g-herd-02)
+    ⚠ 披露 → 解决 (fix(omni-g-herd-02, 2026-06-11 披露 → 2026-06-24 解决)): max_features 按
+    **原始词频**截断 top-k — 旧默认 10000 把头部大行 (工农中建) char 2-4 gram 词表 (实测 5–7 万)
+    压入高频 boilerplate ngram 子空间, 判别性长尾缺席 → 余弦系统性膨胀, 规模依赖。盘上实测
+    (full 轨, content_full, 55 组): capped 10000 vs uncapped 跟风 flag 篇数 313→268 (+16.8% 伪膨胀),
+    前驱计数 730→555 (+31.5%), 且高度集中在报道量最大的头部行 (建行 flag 47→24 近腰斩、工行计数
+    225→129), 直接破坏 0.35 阈值的跨行可比性 (此前 g-herd-02 误判为 latent 已被实测推翻)。
+    **解决**: 上调至 5e6 (远超任何现实 bank-year char 2-4 gram 词表 → 截断不再咬合, 恢复跨行
+    可比性)。词表真撞 5e6 时运行期仍记 logger.warning (极端规模 tripwire, 届时改 HashingVectorizer
+    或按 IDF 选 top-k)。注: 上调 max_features 几乎无内存代价 — sklearn 无论 cap 多大都先建全量
+    计数词表再截断, cap 仅缩窄输出矩阵列宽, 而 CSR 稀疏存储量随 nnz 不随列宽 → 旧 cap 几乎不省内存
+    却独自歪曲测度。残余 (未由本修复触及): 词表/IDF 仍按 (bank, 年度前缀) 组内拟合的跨组非同质
+    (g-herd-01/05 披露), 0.35 阈值的严格跨行可比性仍不完全成立。
   - df 阈值比例化 (fix(omni-g-herd-01, 2026-06-11)): min_df = min(MIN_DF,
     max(2, ceil(0.01·n))), 消除小组词表塌缩断崖; max_df 守卫 df-band 退化 (详见
     _build_tfidf_vectorizer docstring)。
@@ -227,13 +234,15 @@ def _fit_tfidf_with_fallback(texts: list, *, bank_name=None, track=None):
                 f"bank={bank_name}, track={track}, n_docs={n_docs}, 原因: {exc2}"
             )
             return None
-    # max_features 截断透明化: 词表撞 cap 说明按词频截断已咬合 (大组高频
-    # boilerplate 子空间), 相似度刻度存在规模依赖膨胀 — 全量 run 必触发, 须披露
+    # max_features 截断透明化 (fix(omni-g-herd-02)): 词表撞 cap 说明按原始词频截断已咬合
+    # (高频 boilerplate 子空间, 判别长尾缺席 → 余弦规模依赖膨胀)。2026-06-24 cap 由 10000
+    # 上调至 5e6 (远超现实 bank-year 词表), 故此 warning 现为极端规模 tripwire — 正常 run
+    # 不应触发; 若触发说明该组词表 >5e6, 须改 HashingVectorizer 或按 IDF 选 top-k。
     if MAX_FEATURES and len(vectorizer.vocabulary_) >= MAX_FEATURES:
         logger.warning(
             f"  [herd] max_features={MAX_FEATURES} 截断咬合: bank={bank_name}, "
-            f"track={track}, n_docs={n_docs} — 相似度计算被压入高频 ngram 子空间, "
-            f"大组相似度刻度可能膨胀 (建议全量 run 做 max_features 敏感性检验)"
+            f"track={track}, n_docs={n_docs} — 词表达 cap, 相似度被压入高频 ngram 子空间, "
+            f"刻度可能膨胀 (cap 已=5e6 极端 tripwire; 改 HashingVectorizer/IDF top-k 选词)"
         )
     return tfidf_matrix
 
@@ -688,7 +697,7 @@ def _log_environment_and_config(input_file: str, output_file: str) -> None:
         logger.info("  ⚙ 运行配置 (config/*.yaml::herd_detection)")
         logger.info(f"     · similarity_threshold={sig4(SIMILARITY_THRESHOLD)} (闭边界 >=) "
                     f"| time_window_days={TIME_WINDOW_DAYS:,d}天")
-        logger.info(f"     · max_features={MAX_FEATURES:,d} (按原始词频截断) "
+        logger.info(f"     · max_features={MAX_FEATURES:,d} (有效不截断: 5e6≫现实 bank-year 词表; fix omni-g-herd-02) "
                     f"| min_df(cap)={MIN_DF:,d} | max_df={sig4(MAX_DF)} | chunk_size={CHUNK_SIZE:,d}")
         logger.info(f"     · TF-IDF: analyzer=char_wb, ngram_range=(2,4); "
                     f"dense pairwise (≤2000篇/前缀) / 7天窗双指针分桶 (>2000篇, 数值逐位等价)")
@@ -748,7 +757,7 @@ def main():
     )
     logger.info(
         f"        ≤2000 篇/前缀走 dense pairwise, >2000 篇走 7 天窗双指针分桶 (数值逐位等价); "
-        f"max_features={MAX_FEATURES} 按词频截断。"
+        f"max_features={MAX_FEATURES:,d} (有效不截断, 恢复跨行可比性; fix omni-g-herd-02)。"
     )
     logger.info(
         "【判读】跟风占比/均值: herd_weight mean 越接近 1 = 转抄越少(信息越独立); 越低 = 转抄"
@@ -951,8 +960,8 @@ def main():
         if _n_total < 5000:
             logger.info(
                 f"  ⚠ 小样本提醒: 当前 {_n_total:,} 篇属盘面 T=2 规模, 上述跟风占比/降权强度仅验证"
-                "管道正确性; 全量结论 (转抄密集度/三轨分化) 以 17M/T=18 实测为准 (大组 max_features "
-                "截断咬合时另见运行期 logger.warning)。"
+                "管道正确性; 全量结论 (转抄密集度/三轨分化) 以 17M/T=18 实测为准 (max_features "
+                "已上调至 5e6 不再截断咬合, fix omni-g-herd-02; 词表撞 5e6 才记 warning)。"
             )
         logger.info("-" * 72)
     except Exception as _e:
