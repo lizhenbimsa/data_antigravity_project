@@ -63,6 +63,10 @@ class ToneLLMSchema:
     retry_delay: int = 5
     retry_backoff: str = "exponential"  # 'exponential' | 'linear'
     retry_backoff_cap: int = 600
+    # 用户决策 2026-06-24: verified 轨情感平局/空票在保守降级'中性'前, 绕过缓存
+    # 重新调实时 API 的最多轮数 (默认 80, 温度=0; 逐轮全局 barrier + 每轮内并发);
+    # <=0 关闭 = 直接保守降级。
+    sentiment_tie_retry_rounds: int = 80
     max_concurrency: int = 40
     temperature: float = 0.0
     random_seed: int = 42

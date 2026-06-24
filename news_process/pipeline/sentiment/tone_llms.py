@@ -209,6 +209,22 @@ RETRY_DELAY = LLM_CONFIG.get('retry_delay', 10)
 # v6/N4: 指数退避 — 单 yunwu 账户避免雪崩
 RETRY_BACKOFF = LLM_CONFIG.get('retry_backoff', 'linear')  # 'exponential' or 'linear'
 RETRY_BACKOFF_CAP = LLM_CONFIG.get('retry_backoff_cap', 600)
+
+# 用户决策 (2026-06-24): verified 轨情感**平局/空票**在 _aggregate_track 保守
+# 降级为'中性'**之前**, 先对该 (行×轨) 的 3 个模型票**绕过缓存重新调实时
+# API 最多 N 轮** (温度=0 不变), 试图打破平局 / 补齐缺票; N 轮仍未决再保守
+# 降级。N 默认 **80** (与项目"API 失败统一重试 80 次"同量级, 见 memory
+# api-retry-unified-80-2026-06-23); 设 <=0 关闭重试 = 退回改前直接保守降级行为。
+# 并发结构 (用户决策 2026-06-24, 第三轮回退第二轮的"各轨独立协程"方案):
+# **逐轮全局 barrier + 每轮内并发** —— 每一轮把当前全部待决 (行×轨) × 模型票
+# 一次性铺开并发重调 (as_completed), 本轮全部跑完才统一重判 pending、进下一轮
+# (所有待决轨同步推进); 某轨被打破即从下一轮 pending 剔除。全局并发受
+# MAX_CONCURRENCY 信号量约束 (不会因任务铺开数量暴涨而打爆限流)。
+# ⚠ 仅**在线模式**执行 (离线确定性 NEWS_PROCESS_LLM_OFFLINE=1 严格只读, 跳过
+#   本重试) — 见 _resolve_unresolved_sentiment_tracks。新票经 cache.put
+#   INSERT OR REPLACE **回写**确定性锚点 _llm_cache.db → 下次离线可复现该批
+#   新结果 (须并入既有 DEFERRED 批次受控重生 golden, 用户已选"回写缓存")。
+SENTIMENT_TIE_RETRY_ROUNDS = max(0, int(LLM_CONFIG.get('sentiment_tie_retry_rounds', 80)))
 REQUEST_TIMEOUT_TOTAL = float(LLM_CONFIG.get('timeout', 600))
 REQUEST_TIMEOUT_CONNECT = float(LLM_CONFIG.get('connect_timeout', min(120, REQUEST_TIMEOUT_TOTAL)))
 REQUEST_TIMEOUT_SOCK_CONNECT = float(LLM_CONFIG.get('sock_connect_timeout', REQUEST_TIMEOUT_CONNECT))
@@ -540,7 +556,8 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
                           model_availability: AsyncModelAvailability | None = None,
                           request_timeout: aiohttp.ClientTimeout | None = None,
                           max_retries: int | None = None,
-                          prompt_version: str = "v0") -> tuple:
+                          prompt_version: str = "v0",
+                          force_refresh: bool = False) -> tuple:
     """异步请求单个模型的单篇文章，自带重试保护和缓存。
 
     model_cfg 结构示例：
@@ -553,6 +570,13 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
         prompt_version: prompt 模板版本字符串 (例如 ``"v8-2026-05-17"``),
             传给 ``LLMCache.get/put`` 用作缓存键命名空间。full/ctx/ss 三轨
             统一使用 PROMPT_VERSION。
+        force_refresh: 用户决策 (2026-06-24) verified 轨情感平局/空票重试用 —
+            True 时**跳过缓存读取侧** (含命中坏条目自愈删除), 强制走实时 API
+            重新求一票; 写入侧 ``cache.put`` (INSERT OR REPLACE) 仍照常回写,
+            **覆盖**该 (model, prompt) 的旧缓存条目 → 新票成为确定性锚点。
+            ⚠ 仅应在**在线模式** (非 NEWS_PROCESS_LLM_OFFLINE) 下置 True;
+            离线模式下置 True 会因缓存 miss 直接 raise LLMCacheMissError
+            (调用方 _resolve_unresolved_sentiment_tracks 已用 LLM_OFFLINE 守卫)。
 
     Returns:
         tuple: (row_idx, model_id, result_text, track)
@@ -572,7 +596,12 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
     # audit S2 修复: 传入 temperature/random_seed, 让缓存键反映实际推理参数。
     # temperature=0.0 时键与历史一致 (seed 不进键), 改 config 做温度/种子稳健性
     # 扫描时键随之变化, 避免静默命中旧响应。
-    if cache is not None:
+    #
+    # force_refresh (2026-06-24 平局/空票重试): 跳过整个缓存读取侧 (含命中 +
+    # 命中坏条目自愈删除), 强制落入下方实时 API 重试路径; 温度=0 下命中缓存
+    # 会原样返回首跑那一票 → 平局永不可能被打破, 故重试必须绕过读取。写入侧
+    # cache.put (INSERT OR REPLACE) 不受影响, 新票仍回写覆盖旧条目。
+    if cache is not None and not force_refresh:
         cached_response = cache.get(model_id, prompt, prompt_version=prompt_version,
                                     temperature=TEMPERATURE, random_seed=RANDOM_SEED)
         if cached_response is not None:
@@ -865,8 +894,127 @@ async def run_all_llms(df: pd.DataFrame, models: list, cache: LLMCache = None) -
                 next_report += report_interval
         
         logger.info(f"📡 LLM 三轨逐条请求完成: 共 {total} 个请求全部处理完毕")
-    
+
+        # 用户决策 (2026-06-24): verified 轨情感平局/空票, 在 _aggregate_track
+        # 保守降级'中性'之前, 先绕过缓存重新调 LLM 最多 SENTIMENT_TIE_RETRY_ROUNDS
+        # 轮 (温度=0) 试图打破平局 / 补齐缺票, 仍未决再交保守降级。仅在线模式
+        # 执行 (离线确定性模式严格只读, 不在此重新付费调 API)。session 仍存活,
+        # 复用同一连接池 / semaphore / pacer / 断路器。
+        if not LLM_OFFLINE:
+            await _resolve_unresolved_sentiment_tracks(
+                session, semaphore, df, models, results_map, cache,
+                request_pacers, model_availability,
+            )
+
     return results_map
+
+
+async def _resolve_unresolved_sentiment_tracks(
+    session: aiohttp.ClientSession,
+    semaphore: asyncio.Semaphore,
+    df: pd.DataFrame,
+    models: list,
+    results_map: dict,
+    cache: LLMCache | None,
+    request_pacers: dict,
+    model_availability: "AsyncModelAvailability",
+) -> None:
+    """对 verified 轨情感平局/空票的 (行×轨) 重新调 LLM, 试图打破平局/补齐缺票。
+
+    用户决策 (2026-06-24): 命中 ``_verified_sentiment_unresolved`` 条件
+    (final_v=True 且 verified-only 情感票在 'undefined' 策略下多数决为 None,
+    即平局或空票) 的 (行×轨), 在 ``_aggregate_track`` 保守降级为'中性'**之前**,
+    先对该轨 3 个模型票**绕过缓存** (``force_refresh=True``) 重新调实时 API,
+    最多 ``SENTIMENT_TIE_RETRY_ROUNDS`` 轮 (默认 80, 温度=0 不变); 每轮后重判,
+    一旦某轨不再平局/空票即移出待重试集 (并保留其新票); 耗尽仍未决的轨保持
+    原样, 由 ``_aggregate_track`` 兜底保守降级。
+
+    **逐轮全局 barrier + 每轮内并发** (用户决策 2026-06-24 第三轮, 回退第二轮的
+    "各轨独立协程"方案): 每一轮把**当前全部待决 (行×轨) × 模型票**一次性铺开,
+    经 ``asyncio.as_completed`` **并发**重调 (全局并发受 ``fetch_llm_async`` 内
+    ``MAX_CONCURRENCY`` 信号量约束); 这一轮的全部请求**跑完才**统一重判 pending、
+    进下一轮 (轮与轮之间是 barrier, 所有待决轨同步推进)。某轨某轮被打破即从下
+    一轮的 pending 中剔除 (不再重复重调), 故已解析轨不会白跑后续轮次。
+
+    缓存 / 确定性 (用户选"回写缓存"):
+        新票经 ``fetch_llm_async`` 写入侧 ``cache.put`` (INSERT OR REPLACE)
+        **覆盖**旧条目, 回写确定性锚点 ``_llm_cache.db`` → 下次离线 ($0) 可
+        复现该批新结果。代价 = 须并入既有 DEFERRED 批次受控重生 golden。
+
+    ⚠ 仅**在线模式**调用 (调用方已用 ``if not LLM_OFFLINE`` 守卫); 离线确定性
+      模式严格只读, 绝不在此重新付费调 API (保证缓存全命中场景字节级复现)。
+
+    副作用披露: 重新调 API 拿到的是该 (model, prompt) 的**全新整条响应**
+    (含 verification + sentiment + 创新三维), 温度=0 下通常与首跑近似但 API
+    非严格确定 → 可能微调创新维度标签, 极端情况下甚至翻转该轨 final_v
+    (新票多数改判非金科 → 该轨退化为 Case B 情感 N/A, 视作"已解析"移出待重试)。
+    这是"绕过缓存重新求一票"的固有代价, 与用户意图 (给平局/缺票二次机会) 一致。
+    """
+    if SENTIMENT_TIE_RETRY_ROUNDS <= 0:
+        return
+
+    # prompt 单一事实源: 与首跑 (iter_article_track_prompts) 字节级一致 → 缓存键
+    # 一致 → force_refresh 回写命中并覆盖同一条目 (而非另起新键留下旧坏票)。
+    prompt_lookup = {
+        (idx, track): prompt
+        for idx, track, prompt in iter_article_track_prompts(df)
+    }
+
+    pending = [
+        (idx, track)
+        for idx in df.index
+        for track in ('full', 'ctx', 'ss')
+        if _verified_sentiment_unresolved(results_map[idx][track], models)
+    ]
+    if not pending:
+        logger.info("verified 轨情感平局/空票: 0 个 (行×轨), 无需重试")
+        return
+
+    logger.info(
+        f"⚖️ verified 轨情感平局/空票: {len(pending)} 个 (行×轨) 待重试 "
+        f"(逐轮全局 barrier, 每轮内并发, 最多 {SENTIMENT_TIE_RETRY_ROUNDS} 轮, "
+        f"force_refresh 绕过缓存, 温度={TEMPERATURE}); "
+        "仍未决者交 _aggregate_track 保守降级'中性'"
+    )
+
+    for round_no in range(1, SENTIMENT_TIE_RETRY_ROUNDS + 1):
+        if not pending:
+            break
+        # 这一轮: 当前全部待决 (行×轨) × 模型票一次性铺开, 并发重调 (绕过缓存);
+        # as_completed 让本轮请求并发跑, 信号量限全局并发。
+        retry_tasks = [
+            fetch_llm_async(
+                session, semaphore, prompt_lookup[(idx, track)], m, idx, track,
+                cache=cache,
+                request_pacer=request_pacers.get(m['model_name']),
+                model_availability=model_availability,
+                prompt_version=PROMPT_VERSION,
+                force_refresh=True,
+            )
+            for (idx, track) in pending
+            for m in models
+        ]
+        for coro in asyncio.as_completed(retry_tasks):
+            row_idx, model_id, res_text, track = await coro
+            results_map[row_idx][track][model_id] = res_text
+
+        # barrier: 本轮全部请求跑完后再统一重判, 已解析轨剔除出下一轮 pending
+        still = [
+            (idx, track)
+            for (idx, track) in pending
+            if _verified_sentiment_unresolved(results_map[idx][track], models)
+        ]
+        logger.info(
+            f"  第 {round_no}/{SENTIMENT_TIE_RETRY_ROUNDS} 轮重试后: "
+            f"{len(pending)} → {len(still)} 仍平局/空票"
+        )
+        pending = still
+
+    if pending:
+        logger.info(
+            f"⚖️ 重试 {SENTIMENT_TIE_RETRY_ROUNDS} 轮后仍有 {len(pending)} 个 "
+            "(行×轨) 平局/空票, 保留原票交 _aggregate_track 保守降级为'中性'"
+        )
 
 
 # ============================================================================
@@ -1279,6 +1427,50 @@ def compute_prob_score_binary(label, confidence, positive_class) -> dict:
     if label == positive_class:
         return {"prob_score": c, "prob_source": "P2_BIN"}
     return {"prob_score": 1.0 - c, "prob_source": "P2_BIN"}
+
+
+def _verified_sentiment_unresolved(model_res_dict: dict, models: list) -> bool:
+    """判定某轨是否为「verified 轨情感平局/空票」(平局/空票重试的触发条件)。
+
+    口径与 ``_aggregate_track`` **严格一致** (复用同一 SSOT: ``_VERIFICATION_KEY``
+    / 三类情感标签 ``正面/中性/负面`` / ``majority_vote_bool`` /
+    ``majority_vote_sentiment``), 仅抽取判定平局/空票所需的最小解析, 不构建
+    per_model_parsed / 创新维度 / 置信度 (那些由 ``_aggregate_track`` 负责)。
+    ⚠ 若 ``_aggregate_track`` 的 v/s 解析口径变动, 本谓词须同步 (二者必须对
+       "哪些是 verified-only 情感票"达成一致, 否则重试触发集与最终降级集错位)。
+
+    返回 True ⟺ ``final_v=True`` (整篇被多数判为银行金科) **且** verified-only
+    情感票在 'undefined' 策略下多数决为 None —— 'undefined' 策略对**平局**
+    (无严格多数) 与**空票** (无任一可解析情感票) 均返回 None, 恰好覆盖用户
+    指定的两种待重试态。``final_v=False`` (Case B 非金科) → 情感本就 N/A,
+    返回 False (不触发重试; 用户决策 2026-06-24 范围明确限 verified 轨)。
+    """
+    v_votes = []
+    s_votes_verified_only = []
+    for m in models:
+        raw_text = model_res_dict.get(m['model_name'])
+        # call-failure / 空串: 与 _aggregate_track 同, 按"模型缺席"跳过 (不投票)
+        if raw_text is None or not str(raw_text).strip():
+            continue
+        jd = parse_json_response(raw_text)
+        # 不可解析 / 缺验证键: 同 _aggregate_track 按"模型缺席"跳过
+        if not isinstance(jd, dict) or not jd or _VERIFICATION_KEY not in jd:
+            continue
+        v = jd.get(_VERIFICATION_KEY, False)
+        if isinstance(v, str):
+            v = v.strip().lower() in ('true', '1', 'yes')
+        v = bool(v)
+        v_votes.append(v)
+        s_raw = jd.get('sentiment')
+        s = s_raw.strip() if isinstance(s_raw, str) else None
+        if s not in ('正面', '中性', '负面'):
+            s = None
+        # v6/F2 门控: 仅通过 verification 的模型情感票计入 (镜像 _aggregate_track)
+        if s is not None and v:
+            s_votes_verified_only.append(s)
+    if not majority_vote_bool(v_votes):
+        return False  # Case B (非金科): 情感 N/A, 不重试
+    return majority_vote_sentiment(s_votes_verified_only, tie_strategy='undefined') is None
 
 
 def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
