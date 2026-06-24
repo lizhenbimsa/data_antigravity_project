@@ -178,7 +178,7 @@ try:
         noise_data = json.load(f)
         noise_patterns_list = filter_noise_patterns(noise_data)
         logger.info(
-            f"已加载 {len(noise_patterns_list)} 个噪声模式 "
+            f"已加载 {len(noise_patterns_list):,d} 个噪声模式 "
             f"(网页互动计数族已永久排除 — 报纸语料)"
         )
 except Exception as e:
@@ -189,7 +189,7 @@ except Exception as e:
 try:
     with open(CONFIG['paths']['bank_keywords_file'], 'r', encoding='utf-8') as f:
         BANK_KEYWORDS = json.load(f)
-        logger.info(f"已加载 {len(BANK_KEYWORDS)} 个银行关键词")
+        logger.info(f"已加载 {len(BANK_KEYWORDS):,d} 个银行关键词")
 except Exception as e:
     logger.error(f"无法加载银行关键词文件: {e}")
     BANK_KEYWORDS = []

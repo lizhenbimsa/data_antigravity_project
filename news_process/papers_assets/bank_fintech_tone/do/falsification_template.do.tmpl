@@ -142,7 +142,7 @@ reghdfe Y c.llm_vote_tone_full##c.M X, ///
 * 目的: 以连续概率分数 avg_llm_prob_score_full 替换离散 llm_vote_tone_full
 *       验证核心发现对度量方法的敏感性
 * 方法论:
-*   Törnberg, P. (2024). How to use LLMs for text analysis.
+*   Törnberg, P. (2023). How to use LLMs for text analysis.
 *   arXiv:2307.13106. DOI: 10.48550/arXiv.2307.13106
 *
 *   Score = P(正面) - P(负面) ∈ [-1, +1]
@@ -1710,7 +1710,7 @@ else {
 *
 * v3.2.0 引入 avg_llm_prob_score_full ∈ [-1, +1] 连续分数,
 * 用其替换离散 llm_vote_tone_full, 验证度量方法对确证结果稳健.
-* 对标: Törnberg, P. (2024). arXiv:2307.13106 — LLM 概率映射
+* 对标: Törnberg, P. (2023). arXiv:2307.13106 — LLM 概率映射
 
 reghdfe ln_PAT_citations avg_llm_prob_score_full X, ///
   absorb(target_bank year) vce(cluster target_bank)
@@ -1820,7 +1820,7 @@ esttab prob_cite prob_citewgt top10_lpm ///
 *     (Aghion et al. 2013, AER — Top-citation share quality measure 风格)
 *
 * β(avg_llm_prob_score_full → ...) 与离散投票同号同强
-*   → ✅ 度量方法稳健 (Törnberg 2024)
+*   → ✅ 度量方法稳健 (Törnberg 2023)
 *
 * β_q (引用) 和 β_n (数量) 都显著正
 *   → ℹ️ tone 同时反映质量与数量, Validity 强弱取决于

@@ -29,12 +29,15 @@ from news_process.core.reporting import (
 class TestFormatStat:
     """测试数值格式化工具函数。"""
 
+    # 注 (2026-06-24 sig4 规范): _format_stat 现统一经 sig4 渲染为四位有效数字
+    # (log-only, golden-safe; precision 形参保留向后兼容但不再生效)。下列断言为
+    # sig4 口径: sig4(42)=='42.00' / sig4(3.14159)=='3.142' (恰 4 位有效数字)。
     def test_integer(self):
-        """整数应带小数位。"""
+        """整数应带小数位 (sig4: 4 位有效数字)。"""
         assert _format_stat(42) == '42.00'
 
     def test_float(self):
-        """浮点数应保留指定精度。"""
+        """浮点数 → sig4 四位有效数字。"""
         assert _format_stat(3.14159, precision=3) == '3.142'
 
     def test_nan(self):
@@ -50,12 +53,12 @@ class TestFormatStat:
         assert _format_stat('hello') == 'hello'
 
     def test_zero(self):
-        """0 应返回 0.00。"""
-        assert _format_stat(0) == '0.00'
+        """0 → sig4 '0.000' (四位有效数字补零)。"""
+        assert _format_stat(0) == '0.000'
 
     def test_negative(self):
-        """负数应正常格式化。"""
-        assert _format_stat(-1.5) == '-1.50'
+        """负数 → sig4 四位有效数字。"""
+        assert _format_stat(-1.5) == '-1.500'
 
 
 # ============================================================================

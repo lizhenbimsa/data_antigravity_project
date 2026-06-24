@@ -1,7 +1,7 @@
 """test_prob_score.py — compute_prob_score() 单元测试。
 
 学术依据:
-  Törnberg, P. (2024). arXiv:2307.13106. DOI: 10.48550/arXiv.2307.13106
+  Törnberg, P. (2023). arXiv:2307.13106. DOI: 10.48550/arXiv.2307.13106
   Shapiro, A.H. et al. (2022). JoE, 228(2). DOI: 10.1016/j.jeconom.2020.07.053
   Jaynes, E.T. (1957). Phys Rev, 106(4). DOI: 10.1103/PhysRev.106.620
 

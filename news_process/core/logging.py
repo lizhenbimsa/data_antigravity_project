@@ -285,9 +285,12 @@ def log_and_time(logger):
                     else:
                         output_summary = f"返回一个 {type(result).__name__} 对象"
 
+                # 耗时是运行期结果统计 → sig4 四位有效数字 (项目规范 2026-06-24)。
+                # 内存变化 (mem_delta) 是操作性 housekeeping 显示量, 非论文报告统计量,
+                # 沿用 ±0.1f 直观显示 (与 _format_bytes 同属"内存显示豁免", 不套 sig4)。
                 logger.info(
                     f"--- 执行完毕: {func_name} | "
-                    f"耗时: {duration:.2f}s | "
+                    f"耗时: {sig4(duration)}s | "
                     f"内存变化: {mem_delta:+.1f}MB | "
                     f"结果: {output_summary} ---"
                 )
@@ -361,7 +364,13 @@ def pct4(value, fraction: bool = True, sig: int = 4) -> str:
 
 
 def _format_bytes(b: int) -> str:
-    """将字节数格式化为 GB/MB 字符串 (>=1GB 用 GB, 否则 MB)。"""
+    """将字节数格式化为 GB/MB 字符串 (>=1GB 用 GB, 否则 MB)。
+
+    内存字节量是操作性 housekeeping 显示量 (RSS / 可用内存), 非论文报告的研究统计量,
+    刻意豁免"非整数四位有效数字"规范 (项目规范 2026-06-24): 保留人类友好的 GB=.2f /
+    MB=.1f 显示, 也与 ``tests/test_helpers.py`` 对 ``"500.0 MB"`` / ``"1.0 MB"`` 的
+    精确断言保持一致。运行期/结果统计量 (耗时、比率) 仍一律走 sig4/pct4。
+    """
     if b >= 1024 ** 3:
         return f"{b / (1024 ** 3):.2f} GB"
     return f"{b / (1024 ** 2):.1f} MB"
@@ -389,7 +398,8 @@ def log_stage_summary(logger, stage_name, start_time, input_rows=None,
     logger.info("═" * 50)
     logger.info(f"阶段摘要: {stage_name}")
     logger.info("─" * 50)
-    logger.info(f"  耗时:     {elapsed:.2f} 秒 ({minutes:.2f} 分钟)")
+    # 耗时/保留率为运行期结果统计 → sig4/pct4 四位有效数字 (项目规范 2026-06-24)。
+    logger.info(f"  耗时:     {sig4(elapsed)} 秒 ({sig4(minutes)} 分钟)")
 
     if input_rows is not None:
         logger.info(f"  输入:     {input_rows:,} 行")
@@ -397,7 +407,8 @@ def log_stage_summary(logger, stage_name, start_time, input_rows=None,
         logger.info(f"  输出:     {output_rows:,} 行")
         if input_rows and input_rows > 0:
             retention = output_rows / input_rows * 100
-            logger.info(f"  保留率:   {retention:.1f}%")
+            # retention 已是百分数 (×100) → pct4(..., fraction=False)
+            logger.info(f"  保留率:   {pct4(retention, fraction=False)}")
 
     rss = psutil.Process().memory_info().rss
     logger.info(f"  内存RSS:  {_format_bytes(rss)}")

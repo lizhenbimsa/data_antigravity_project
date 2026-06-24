@@ -2266,7 +2266,7 @@ def main():
 
     # ═══ 8b. 情感意见分歧 (Disagreement Index) ═══
     # 姜富伟, 李梦如, 孟令超 (2024). 调预期、防风险：央行金融稳定沟通效果研究.
-    #   经济学（季刊）, 24(6), 2281-2300. DOI: 10.13821/j.cnki.ceq.2024.06.19
+    #   经济学（季刊）, 24(6), 2025-2040. DOI: 10.13821/j.cnki.ceq.2024.06.19
     # Antweiler, W., & Frank, M. Z. (2004). Is all that talk just noise?
     #   The Journal of Finance, 59(3), 1259-1294. DOI: 10.1111/j.1540-6261.2004.00662.x
     # 公式: disag = sqrt(1 - ((pos - neg) / (pos + neg))²)  ∈ [0, 1]

@@ -1034,7 +1034,7 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
     agg['avg_ft_intensity_ss_std'] = ('fintech_intensity_score_ss', 'std')
 
     # --- P. Logit-to-Score 概率映射情感（稳健性检验）---
-    # Törnberg (2024). arXiv:2307.13106. DOI: 10.48550/arXiv.2307.13106
+    # Törnberg (2023). arXiv:2307.13106. DOI: 10.48550/arXiv.2307.13106
     # Shapiro et al. (2022). JoE, 228(2). DOI: 10.1016/j.jeconom.2020.07.053
     #   → Score = P(正面) - P(负面) ∈ [-1, +1]
     #   → 等权 mean/std/sum + VW/HW/MW 加权辅助 sum

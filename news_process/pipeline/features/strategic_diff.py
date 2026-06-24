@@ -71,7 +71,7 @@
      WebSearch 佐证存在 (欧阳志刚 & 胡雯华 2024 央行沟通研究), 但 DOI 链接待核验]
   - 句向量表征: Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence
     embeddings using Siamese BERT-networks. Proceedings of EMNLP 2019,
-    3982–3992. https://doi.org/10.18653/v1/D19-1410
+    3980-3990. https://doi.org/10.18653/v1/D19-1410
   - LDA 主题模型: Blei, D. M., Ng, A. Y., & Jordan, M. I. (2003). Latent
     Dirichlet allocation. Journal of Machine Learning Research, 3, 993–1022.
     https://www.jmlr.org/papers/v3/blei03a.html

@@ -23,7 +23,7 @@
 
   3. Sentence Embedding 降级方案:
      Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings
-     using Siamese BERT-networks. EMNLP, 3982–3992.
+     using Siamese BERT-networks. EMNLP, 3980-3990.
      https://doi.org/10.18653/v1/D19-1410
 
 【白话说明 (Plain Language)】

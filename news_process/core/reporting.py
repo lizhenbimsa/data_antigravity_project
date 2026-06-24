@@ -18,6 +18,8 @@ import os
 import pandas as pd
 import pyarrow.parquet as pq
 
+from news_process.core.logging import pct4, sig4
+
 # ============================================================================
 # 1. 数据集持久化 (Parquet + CSV 预览)。来源于 utils/helpers.py。
 # ============================================================================
@@ -101,11 +103,16 @@ def save_dataset(
 
 
 def _format_stat(value, precision=2):
-    """格式化数值用于日志输出; NaN 返回 ``"N/A"``。"""
+    """格式化数值用于日志输出; NaN 返回 ``"N/A"``。
+
+    项目规范 (2026-06-24): 日志中所有非整数数字一律经 :func:`sig4` 渲染为四位
+    有效数字。``precision`` 形参保留以维持调用方签名向后兼容, 但实际有效数字位数
+    统一由 sig4 决定。本返回值**只用于 logger 打印**, 绝不写入产物列 (golden-safe)。
+    """
     if pd.isna(value):
         return "N/A"
     if isinstance(value, (int, float)):
-        return f"{value:.{precision}f}"
+        return sig4(value)
     return str(value)
 
 
@@ -142,12 +149,12 @@ def generate_dataframe_report(df: pd.DataFrame, logger: logging.Logger):
         )
 
         duplicate_rows = df.duplicated().sum()
-        duplicate_percentage = (
-            (duplicate_rows / total_rows) * 100 if total_rows > 0 else 0
+        duplicate_fraction = (
+            (duplicate_rows / total_rows) if total_rows > 0 else 0
         )
         logger.info(
             f"重复行数 (Duplicate Rows): {duplicate_rows:,} "
-            f"({duplicate_percentage:.2f}%)"
+            f"({pct4(duplicate_fraction)})"
         )
 
         memory_usage_bytes = df.memory_usage(deep=True).sum()
@@ -157,7 +164,7 @@ def generate_dataframe_report(df: pd.DataFrame, logger: logging.Logger):
             memory_usage, unit = memory_usage_bytes / (1024 ** 2), "MB"
         else:
             memory_usage, unit = memory_usage_bytes / (1024 ** 3), "GB"
-        logger.info(f"内存占用 (Memory Usage): {memory_usage:.2f} {unit}")
+        logger.info(f"内存占用 (Memory Usage): {sig4(memory_usage)} {unit}")
 
         logger.info("数据类型概览 (Data Types Summary):")
         dtype_counts_str = df.dtypes.value_counts().to_string()
@@ -179,10 +186,10 @@ def generate_dataframe_report(df: pd.DataFrame, logger: logging.Logger):
 
             missing_count = col_series.isnull().sum()
             if total_rows > 0:
-                missing_pct = (missing_count / total_rows) * 100
+                missing_fraction = missing_count / total_rows
                 logger.info(
                     f"    - 缺失值 (Missing Values): "
-                    f"{missing_count:,} ({missing_pct:.2f}%)"
+                    f"{missing_count:,} ({pct4(missing_fraction)})"
                 )
             else:
                 logger.info(
@@ -266,6 +273,56 @@ def generate_dataframe_report(df: pd.DataFrame, logger: logging.Logger):
 # ============================================================================
 
 
+def _log_environment_and_config(config, logger, output_dir: str,
+                                n_article_stages: int, n_panel_stages: int) -> None:
+    """打印 ① 项目/环境信息 + ② 输入/输出位置 + ③ 运行配置 + ④ 方法论依据 (日志富集, 2026-06-24)。
+
+    把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数、报告口径的学术出处"一次性
+    落进日志, 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 (golden-safe)。
+    ④ 方法论引文仅 emit 经 Crossref 真值核验的条目, 含 DOI 可访问链接 (Gebru et al. 2021
+    CACM https://doi.org/10.1145/3458723; Mitchell et al. 2019 FAccT
+    https://doi.org/10.1145/3287560.3287596), 绝不伪造 DOI (playbook §4 铁律)。
+    """
+    try:
+        import platform
+        import sys
+
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info("     · 阶段: 流水线收尾摘要 (Pipeline Summary; 全流程数据流转 + 面板尺寸盘点)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "本模块纯读 parquet footer / 全量加载末阶段 → 无 LLM·Embedding·网络·API ($0)")
+
+        logger.info("  📂 输入 / 输出位置")
+        logger.info(f"     · 数据目录: {output_dir} (各阶段 .parquet 产物所在)")
+        logger.info("     · 报告去向: 仅写日志 (不落任何产物文件; 行计数走 pyarrow footer 廉价读)")
+
+        filenames = config.get('filenames', {}) if isinstance(config, dict) else {}
+        logger.info("  ⚙ 运行配置 (盘点对象)")
+        logger.info(f"     · 文章级数据流转阶段数: {n_article_stages:,d} (00 预处理 → 24 跟风衰减)")
+        logger.info(f"     · 面板级盘点阶段数:   {n_panel_stages:,d} (40 主面板 / 40 文章-银行级 / 51 证伪控制)")
+        logger.info(f"     · 已登记输出文件名键: {len(filenames):,d} (config['filenames'])")
+        logger.info("     · 末阶段全量统计: generate_dataframe_report (缺失率/唯一值/数值五数概括, 数字经 sig4)")
+
+        logger.info("  📖 方法论依据 (数据/流水线报告标准)")
+        logger.info("     · 数据集文档化标准: Gebru, T., Morgenstern, J., Vecchione, B., Vaughan, J. W., "
+                    "Wallach, H., Daumé III, H., & Crawford, K. (2021). Datasheets for datasets. "
+                    "Communications of the ACM, 64(12), 86-92. https://doi.org/10.1145/3458723")
+        logger.info("       → 摘要报告逐阶段记录行数/保留率/差值, 是 datasheet 'composition / collection' 维度的运行期实现")
+        logger.info("     · 模型/产物报告卡片: Mitchell, M., Wu, S., Zaldivar, A., Barnes, P., Vasserman, L., "
+                    "Hutchinson, B., Spitzer, E., Raji, I. D., & Gebru, T. (2019). Model cards for model "
+                    "reporting. Proceedings of the Conference on Fairness, Accountability, and Transparency "
+                    "(FAccT '19), 220-229. https://doi.org/10.1145/3287560.3287596")
+        logger.info("       → 末阶段 dtype/缺失率/数值分布报告对应 model card 的 'quantitative analyses' 透明度披露")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
+
+
 def generate_pipeline_summary(config, logger):
     """打印一次完整运行结束后的流水线摘要报告。
 
@@ -278,10 +335,26 @@ def generate_pipeline_summary(config, logger):
     footer, 不全量加载); 然后对最终阶段全量加载, 调用
     ``generate_dataframe_report`` 输出完整统计。
     """
+    import time
+    _t_start = time.time()
+    # 运行期阶段计时累计 (各主要子阶段墙钟耗时, 末尾汇总打印; 纯日志, golden-safe)
+    phase_durations: dict[str, float] = {}
+
     logger.info("\n" + "=" * 70)
     logger.info("===          数据管道执行摘要报告 (Pipeline Summary)         ===")
     logger.info("=" * 70)
+    logger.info("【功能】把一整次流水线跑完后'每个阶段还剩多少条新闻、面板有多大'盘点成一张表,")
+    logger.info("        让人一眼看出数据在哪一步被过滤掉多少 (排错/复现/审计的总览仪表盘)。")
+    logger.info("【方法】对 00→24 各阶段 parquet 只读 footer 取行数 (廉价, 不全量加载), 计算与上一")
+    logger.info("        阶段的差值 + 相对最初阶段的保留率; 末阶段全量加载出完整 dtype/缺失/分布统计;")
+    logger.info("        再盘点 40/51 面板阶段的行数×列数。")
+    logger.info("【判读】保留率逐阶段单调下降属正常 (每步在过滤); 某步骤骤降 = 该阶段过滤过猛, 需复核。")
+    logger.info("        Change(%) 为相对上一阶段的增减 (12b 共现硬过滤会为负)。")
+    logger.info("【确定性】纯读盘 + 计数, 无 LLM/Embedding/网络/API ($0); 输出仅落日志, 不改任何产物 (golden-safe)。")
 
+    output_dir = config['paths']['output_dir']
+
+    # 阶段清单 = 单一事实源 (env banner 计数与下方循环共用 → 计数永不与列表漂移)。
     stages = [
         ("模块一: 00_preprocessing", "output_00_preprocessing"),
         ("模块二: 11_news_bank", "output_11_bank_news"),
@@ -296,13 +369,22 @@ def generate_pipeline_summary(config, logger):
         ("模块三: 23_tone_berts", "output_23_bert_tone"),
         ("模块三: 24_herd_decay", "output_24_herd_decay"),
     ]
+    # 面板级盘点清单 (移至此, 同样作为 banner 计数的单一事实源; 循环在下方复用)。
+    panel_stages = [
+        ("模块五: 40_panel_export_main", "output_40_panel_yearly"),
+        ("模块五: 40_article_bank", "output_40_article_bank"),
+        ("模块六: 51_falsification", "output_51_panel_controls"),
+    ]
+    _log_environment_and_config(
+        config, logger, output_dir, len(stages), len(panel_stages),
+    )
 
     summary_data = []
     previous_count = 0
     initial_count = 0
 
-    output_dir = config['paths']['output_dir']
-
+    import time as _time
+    _t_flow = _time.time()
     for stage_name, filename_key in stages:
         filename = config['filenames'].get(filename_key)
         if not filename:
@@ -324,22 +406,28 @@ def generate_pipeline_summary(config, logger):
 
             # plan m3: initial_count == 0 时分母为零, 旧实现强行返回 0.0%,
             # 容易被运维误读为"全丢光"; 现改为显式 "N/A" 字符串
+            # 注: pct_change_str / retention_str 是**纯展示字符串** (经 sig4/pct4 渲染),
+            # 仅塞进随后用于 to_string() 打印的临时 summary_df, 绝不落 parquet / 不返回
+            # / 不进任何数值计算 → 符合 "sig4 输出只用于日志" 的铁律 (golden-safe)。
             if stage_name == "模块一: 00_preprocessing":
                 change = 0
-                pct_change_str = "+0.00%"
+                # 首阶段约定增量为 0、保留率为 100%; 带符号前缀以与下游阶段口径一致
+                pct_change_str = "+" + pct4(0.0, fraction=False)
                 initial_count = current_count
                 if initial_count > 0:
-                    retention_str = "100.00%"
+                    retention_str = pct4(1.0)
                 else:
                     retention_str = "N/A"
             else:
                 change = current_count - previous_count
                 if previous_count > 0:
-                    pct_change_str = f"{change / previous_count * 100:+.2f}%"
+                    _pct = change / previous_count * 100
+                    # 保留带符号前缀 (增/减一目了然), 量级走 sig4 四位有效数字
+                    pct_change_str = ("+" if _pct >= 0 else "-") + pct4(abs(_pct), fraction=False)
                 else:
                     pct_change_str = "N/A"
                 if initial_count > 0:
-                    retention_str = f"{current_count / initial_count * 100:.2f}%"
+                    retention_str = pct4(current_count / initial_count)
                 else:
                     retention_str = "N/A"
 
@@ -363,6 +451,8 @@ def generate_pipeline_summary(config, logger):
                 "Retention (vs Initial)": "N/A",
             })
 
+    phase_durations['①文章级数据流转盘点'] = _time.time() - _t_flow
+
     summary_df = pd.DataFrame(summary_data)
     logger.info("\n数据流转统计 (Data Flow Summary):")
     logger.info("\n" + summary_df.to_string(index=False))
@@ -376,8 +466,10 @@ def generate_pipeline_summary(config, logger):
                 f"\n正在生成最终数据 ({final_filename}) 的详细统计报告..."
             )
             try:
+                _t_final = _time.time()
                 final_df = pd.read_parquet(final_file_path)
                 generate_dataframe_report(final_df, logger)
+                phase_durations['②末阶段全量统计报告'] = _time.time() - _t_final
             except Exception as e:
                 logger.error(f"生成最终详细报告失败: {e}")
         else:
@@ -385,12 +477,8 @@ def generate_pipeline_summary(config, logger):
                 f"最终输出文件不存在，无法生成详细统计: {final_file_path}"
             )
 
-    panel_stages = [
-        ("模块五: 40_panel_export_main", "output_40_panel_yearly"),
-        ("模块五: 40_article_bank", "output_40_article_bank"),
-        ("模块六: 51_falsification", "output_51_panel_controls"),
-    ]
-
+    _t_panel = _time.time()
+    # panel_stages 已在函数顶部定义 (banner 计数单一事实源), 此处直接复用。
     panel_data = []
     for stage_name, filename_key in panel_stages:
         filename = config['filenames'].get(filename_key)
@@ -427,3 +515,13 @@ def generate_pipeline_summary(config, logger):
             "\n面板构建阶段统计 (Panel Construction Summary, Bank-Year 级):"
         )
         logger.info("\n" + panel_summary_df.to_string(index=False))
+
+    phase_durations['③面板尺寸盘点'] = _time.time() - _t_panel
+
+    # ── ⏱ 阶段计时汇总 (墙钟秒, sig4; 纯日志, golden-safe) ──
+    _total = _time.time() - _t_start
+    logger.info("  ⏱ 阶段计时 (墙钟秒)")
+    for _name, _dur in phase_durations.items():
+        _share = (_dur / _total) if _total > 0 else 0.0
+        logger.info(f"     · {_name}: {sig4(_dur)} s ({pct4(_share)})")
+    logger.info(f"     · 总计: {sig4(_total)} s")

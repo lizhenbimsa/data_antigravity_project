@@ -27,11 +27,14 @@ import json
 import logging
 import os
 import sys
+import time
 from pathlib import Path
 from typing import Sequence
 
 import numpy as np
 import pandas as pd
+
+from news_process.core.logging import sig4
 
 logger = logging.getLogger(__name__)
 
@@ -418,6 +421,62 @@ def merge_dimensions_to_panel(
 # ---------------------------------------------------------------------------
 # 8. CLI 入口
 # ---------------------------------------------------------------------------
+def _log_environment_and_config(args, *, n_pos: int, n_neg: int, tracks: list[str]) -> None:
+    """打印 ① 项目/环境信息 + ② 输入输出 + ③ 运行配置 + ④ 方法论依据 (日志富集, 2026-06-24)。
+
+    把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数、方法学出处"一次性落进
+    日志, 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 (golden-safe)。
+    ④ 方法论引文仅 emit 经 Crossref 真值核验的条目, 含 DOI 可访问链接 (Jha, Liu & Manela
+    2026 RFS https://doi.org/10.1093/rfs/hhaf012; Kozlowski, Taddy & Evans 2019 ASR
+    https://doi.org/10.1177/0003122419877135), 绝不伪造 DOI (playbook §4 铁律)。
+    """
+    try:
+        import platform
+
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info("     · 模块: benefit_society.dimension_analysis "
+                    "(普惠/CSR 4 维度子指数; benefit 嵌入轴 full/ctx, ss 延后)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "锚点/文本 embedding 全经 Stage 27 缓存命中 ($0, 无新 API 调用) → 确定性投影")
+
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 轨次: track={args.track} → 实跑 {tracks} ({len(tracks):,d} 轨)")
+        logger.info(f"     · full embeddings: {args.text_embeddings_full}")
+        logger.info(f"     · ctx  embeddings: {args.text_embeddings_ctx}")
+        logger.info(f"     · df_exploded:     {args.df_exploded or '(未提供 → anchors-only 模式, 不落面板)'}")
+        logger.info(f"     · LLM cache DB:    {args.cache_db or '(默认 Stage 27 路径)'}")
+        logger.info(f"     · 维度面板输出:    {args.output}")
+        logger.info(f"     · 面板桥接副本:    {args.merge_panel_output or '(未启用 Table 9 桥接)'}")
+
+        logger.info("  ⚙ 运行配置")
+        logger.info(f"     · 锚点: 正面={n_pos:,d} 句 / 负面={n_neg:,d} 句 (Stage 27 POSITIVE/NEGATIVE_ANCHORS)")
+        logger.info(f"     · 维度划分 (DIMENSION_INDICES, {len(DIMENSION_INDICES):,d} 维, 与锚点 ①-⑩ 对齐):")
+        for _dim, _idx in DIMENSION_INDICES.items():
+            logger.info(f"        - {_dim:<10} 锚点索引 {_idx} → {DIMENSION_LABELS.get(_dim, _dim)}")
+        logger.info("     · 投影: pos_mean − neg_mean → L2 归一化方向向量; 文本 embedding L2 归一 后 余弦投影")
+        logger.info(f"     · 退化护栏: 方向向量范数 < {sig4(1e-10)} 判为退化 (degenerate) → 跳过该维度")
+
+        logger.info("  📖 方法论依据 (核心方法/构念学术出处)")
+        logger.info("     · 双极锚点投影框架 (本模块直接构念出处): "
+                    "Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? "
+                    "A language embedding approach. The Review of Financial Studies, 39(5), 1227-1266. "
+                    "https://doi.org/10.1093/rfs/hhaf012")
+        logger.info("       → 正/负锚点句 embedding 均值之差定义语义方向, 文本投影到该方向衡量构念态度")
+        logger.info("     · 嵌入空间语义维度 (方向向量 = 反义锚点对均值差, 规范出处): "
+                    "Kozlowski, A. C., Taddy, M., & Evans, J. A. (2019). The geometry of culture: "
+                    "Analyzing the meanings of class through word embeddings. American Sociological "
+                    "Review, 84(5), 905-949. https://doi.org/10.1177/0003122419877135")
+        logger.info("       → 文化/构念维度可表示为 embedding 空间中由对立锚点张成的方向, 投影即得连续度量")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI 入口: 计算 4 维度子指数, 并可选聚合到 bank-year 面板.
 
@@ -493,14 +552,57 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s %(message)s")
 
+    start_time = time.time()
+    # 运行期阶段计时累计 (各主要子阶段墙钟耗时, 末尾汇总打印; 纯日志, golden-safe)
+    phase_durations: dict[str, float] = {}
+
+    # ── 【功能】banner (黄金范式, 对齐 herd_decay main() / 已富集的 63 模块) ──
+    logger.info("=" * 72)
+    logger.info("benefit_society 维度分析: 普惠/CSR 4 维度子指数 "
+                "(双极锚点投影; Jha-Liu-Manela 2026 RFS / Kozlowski et al. 2019 ASR)")
+    logger.info("=" * 72)
+    logger.info(
+        "【功能】把 Stage 27 的普惠/社会效益单维锚点拆成 4 个子维度 "
+        "(core_op 核心经营 / growth 成长 / resource 资源 / compliance 合规),"
+    )
+    logger.info(
+        "        分别给每篇新闻一个'该维度态度有多正面'的连续投影分, 再聚合成 bank-year 面板,"
+    )
+    logger.info(
+        "        供论文 Table 9 / H4 机制分解使用 (并入面板副本, 不改主 40_panel_yearly)。"
+    )
+    logger.info(
+        "【方法】每维取若干正面锚点句与负面锚点句的 embedding 均值, 两均值之差 (再 L2 归一) = 该维语义方向;"
+    )
+    logger.info(
+        "        把文本 embedding (Stage 27 缓存, full/ctx 两轨) L2 归一后对方向向量做余弦投影 → 维度得分;"
+    )
+    logger.info(
+        "        按 (target_bank, year) 等权均值聚合为 benefit_<dim>_<track> 列 (Jha 2026 Eq. 2)。"
+    )
+    logger.info(
+        "【判读】投影分越大 = 该维度态度越正面; 4 维分散度高 = 单维锚点确含多面信息(分解有意义)。"
+    )
+    logger.info(
+        "        某维方向向量范数 ≈ 0 (退化) = 该维正负锚点几乎同向, 该维被跳过(需检查锚点设计)。"
+    )
+    logger.info(
+        "【确定性】锚点与文本 embedding 全经 Stage 27 缓存命中 ($0, 无新 API/网络); "
+        "固定均值差 + L2 归一 + 余弦投影 → 确定性可复现。"
+    )
+
     pos, neg = _import_anchors()
     logger.info(f"Loaded {len(pos)} positive + {len(neg)} negative anchors")
 
-    directions = compute_direction_vectors(pos, neg, cache_db_path=args.cache_db)
-    logger.info(f"Computed {len(directions)} dimensional direction vectors: {list(directions)}")
-
     # no-ss-track: benefit 嵌入轴仍 full/ctx (ss 切片 v1 延后, 无 _ss.npy)
     tracks = ["full", "ctx"] if args.track == "both" else [args.track]
+    # 项目/环境信息 + 输入输出 + 运行配置 + 方法论依据 (日志富集 2026-06-24, 参数解析后打印)
+    _log_environment_and_config(args, n_pos=len(pos), n_neg=len(neg), tracks=tracks)
+
+    _t = time.time()
+    directions = compute_direction_vectors(pos, neg, cache_db_path=args.cache_db)
+    phase_durations['①方向向量计算'] = time.time() - _t
+    logger.info(f"Computed {len(directions)} dimensional direction vectors: {list(directions)}")
     # no-ss-track: 嵌入文件路径同上 — ss 待 30a 嵌入上线后再加 _ss 路径
     track_paths = {
         "full": Path(args.text_embeddings_full),
@@ -509,6 +611,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.df_exploded is None:
         logger.warning("Skipping panel aggregation (df_exploded not provided)")
+        _log_phase_timing(phase_durations, start_time)
         return 0
 
     missing = [t for t in tracks if not track_paths[t].exists()]
@@ -517,32 +620,54 @@ def main(argv: list[str] | None = None) -> int:
         tracks = [t for t in tracks if t not in missing]
     if not tracks:
         logger.warning("No tracks available; aborting panel aggregation")
+        _log_phase_timing(phase_durations, start_time)
         return 0
 
+    _t = time.time()
     track_emb = {t: np.load(str(track_paths[t])) for t in tracks}
     for t, emb in track_emb.items():
         logger.info(f"  [{t}] embeddings shape: {emb.shape}")
 
     df_exploded = pd.read_parquet(args.df_exploded)
+    phase_durations['②加载 embeddings+df_exploded'] = time.time() - _t
+
+    _t = time.time()
     panel = compute_dual_track_dimensions(df_exploded, track_emb, directions)
+    phase_durations['③多轨投影+bank-year聚合'] = time.time() - _t
 
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    _t = time.time()
     panel.to_parquet(output_path, index=False)
+    phase_durations['④写维度面板parquet'] = time.time() - _t
     logger.info(f"Wrote dual-track dimensional panel to {output_path}: {panel.shape}")
     logger.info(f"  Columns: {sorted(panel.columns)}")
 
     # fix(omni-gapfill-10, 2026-06-12): 可选 Table 9 桥接 (面板副本, 不动主面板)。
     # `tracks` 已剔除嵌入缺失轨 — 只并入实际算出的轨, 防 merge 因列缺失 fail-loud。
     if args.merge_panel_output:
+        _t = time.time()
         merge_dimensions_to_panel(
             dimensions=panel,
             track="both" if len(tracks) == 2 else tracks[0],
             panel_path=args.panel,
             output_path=args.merge_panel_output,
         )
+        phase_durations['⑤Table9面板桥接副本'] = time.time() - _t
 
+    _log_phase_timing(phase_durations, start_time)
     return 0
+
+
+def _log_phase_timing(phase_durations: dict[str, float], start_time: float) -> None:
+    """打印 ⏱ 各子阶段墙钟耗时汇总 (秒, sig4; 纯日志, golden-safe)。"""
+    try:
+        logger.info("  ⏱ 阶段计时 (墙钟秒)")
+        for _name, _sec in phase_durations.items():
+            logger.info(f"     · {_name}: {sig4(_sec)} s")
+        logger.info(f"     · 总计 (含日志/导入): {sig4(time.time() - start_time)} s")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  计时汇总打印失败 (不影响处理): {e}")
 
 
 if __name__ == "__main__":

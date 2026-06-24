@@ -187,11 +187,20 @@ def save_parquet_with_metadata(
     pq.write_table(table, output_path)
 
     logger.info(
-        f"已保存 {output_path} with metadata:\n"
-        f"  Git commit: {metadata.git_commit[:8]}\n"
-        f"  Config hash: {metadata.config_hash[:8]}\n"
-        f"  Timestamp: {metadata.timestamp}"
+        f"已保存 {output_path} (附数据血缘元数据 data_version):\n"
+        f"  Git commit (前 8 位): {metadata.git_commit[:8]}\n"
+        f"  Git branch:         {metadata.git_branch}\n"
+        f"  Config hash (前 8 位): {metadata.config_hash[:8]}\n"
+        f"  Python:             {metadata.python_version}\n"
+        f"  输入文件数:          {len(metadata.input_hashes):,d} 个 (已记 SHA-256)\n"
+        f"  Timestamp (UTC):    {metadata.timestamp}"
     )
+    # 📖 方法论依据 (内容寻址 / 可复现计算血缘): 记录 git commit + config hash +
+    #    输入文件 SHA-256 + 依赖版本, 使每个 parquet 产物可溯源、可复现校验。
+    #    Sandve, G. K., Nekrutenko, A., Taylor, J., & Hovig, E. (2013). Ten simple
+    #    rules for reproducible computational research. PLoS Computational Biology,
+    #    9(10), e1003285. https://doi.org/10.1371/journal.pcbi.1003285 (规则 4-6:
+    #    版本/出处追踪)。
 
 
 def read_parquet_metadata(file_path: str | Path) -> Optional[dict]:

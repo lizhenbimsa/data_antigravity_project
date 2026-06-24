@@ -545,7 +545,7 @@ def _log_retryable_transport_issue(
 # ── Logit-to-Score 概率映射法（稳健性检验指标）──────────────────────────
 # 将 LLM 三分类标签 + sentiment_confidence 转化为 [-1, +1] 连续分数。
 # 学术依据:
-#   Törnberg, P. (2024). arXiv:2307.13106. DOI: 10.48550/arXiv.2307.13106
+#   Törnberg, P. (2023). arXiv:2307.13106. DOI: 10.48550/arXiv.2307.13106
 #   Shapiro, A.H. et al. (2022). JoE, 228(2). DOI: 10.1016/j.jeconom.2020.07.053
 LOGIT_SCORE_CFG = LLM_CONFIG.get('logit_to_score', {})
 LOGIT_SCORE_ENABLED = LOGIT_SCORE_CFG.get('enabled', False)
@@ -1257,7 +1257,7 @@ def compute_prob_score(sentiment_label: str, confidence: float) -> dict:
 
     【学术依据】
       概率映射法 (Logit-to-Score):
-        Törnberg, P. (2024). How to use large language models for text analysis.
+        Törnberg, P. (2023). How to use large language models for text analysis.
         arXiv:2307.13106. DOI: 10.48550/arXiv.2307.13106
         → 利用 LLM 分类输出构建连续分析指标的方法论框架
 
@@ -1390,7 +1390,7 @@ def compute_prob_score_binary(label, confidence, positive_class) -> dict:
       - Cover & Thomas (2006) §2 — Bernoulli/binary entropy.
       - Jaynes (1957) — 最大熵的历史框架; 二分类情形退化为直接归一化
         (单一线性约束)。
-      - Törnberg (2024) — LLM verbalized confidence → 连续指标。
+      - Törnberg (2023) — LLM verbalized confidence → 连续指标。
       - Shapiro/Sudhof/Wilson (2022 J.Econometrics) — 连续因变量。
       - Platt 1999 未使用; De Kok 2025 不适用 (仅 3-class)。
 

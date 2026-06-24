@@ -1277,7 +1277,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 **{f'avg_{d}_neg_ratio{s}': f'Avg Neg Ratio: {d} ({t})'
                    for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018', 'loughran']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
-                # ═══ Logit-to-Score 概率映射情感 (Törnberg 2024 / Shapiro 2022) ═══
+                # ═══ Logit-to-Score 概率映射情感 (Törnberg 2023 / Shapiro 2022) ═══
                 **{f'avg_llm_prob_score{s}': f'Avg Prob Score ({t})'
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'avg_llm_prob_score_std{s}': f'Std Prob Score ({t})'

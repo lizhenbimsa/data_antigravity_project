@@ -47,11 +47,14 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+from news_process.core.logging import pct4, sig4
 
 logger = logging.getLogger(__name__)
 
@@ -253,9 +256,12 @@ def apply_shrinkage_to_panel(
         std_arr = pd.to_numeric(df[std_col], errors="coerce").astype(float).values
         with np.errstate(divide="ignore", invalid="ignore"):
             sampling_var = (std_arr ** 2) / np.maximum(n_arr, 1.0)
+        _n_finite = int(np.isfinite(sampling_var).sum())
+        _n_total = int(len(sampling_var))
         logger.info(
             f"  [{value_col}] σ̂²ᵢ 来源: {std_col}²/{n_obs_col} "
-            f"(可用 {int(np.isfinite(sampling_var).sum())}/{len(sampling_var)} 行, "
+            f"(可用 {_n_finite:,d}/{_n_total:,d} 行 = "
+            f"{pct4(_n_finite / _n_total) if _n_total else 'n/a'}, "
             "其余回退 grand_var/n 代理)"
         )
 
@@ -277,11 +283,68 @@ def apply_shrinkage_to_panel(
 # ---------------------------------------------------------------------------
 # 4. CLI
 # ---------------------------------------------------------------------------
+def _log_environment_and_config(args, value_cols, group_cols) -> None:
+    """打印 ① 项目/环境信息 + ② 输入输出 + ③ 运行配置 + ④ 方法论依据 (日志富集, 2026-06-24)。
+
+    把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数、方法学出处"一次性落进
+    日志, 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 (golden-safe)。
+    ④ 方法论引文仅 emit 经 Crossref 真值核验的条目, 含 DOI 可访问链接
+    (Morris 1983 JASA https://doi.org/10.1080/01621459.1983.10477920;
+     Efron & Morris 1975 JASA https://doi.org/10.1080/01621459.1975.10479864),
+    James & Stein 1961 为 Berkeley Symposium 论文 (无 DOI, 仅作者-年-出处), 绝不伪造 DOI。
+    """
+    try:
+        import platform
+
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info("     · 模块: benefit_society.shrinkage (经验贝叶斯分层收缩, benefit_mean 稀疏单元降噪)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1")
+        logger.info(f"     · 模块文件: {Path(__file__).resolve()}")
+        logger.info(f"     · 工作目录: {Path.cwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "纯 CPU NumPy 闭式矩估计 / 无 LLM·Embedding·网络·API ($0) → 逐位可复现")
+
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 输入 panel:  {Path(args.panel).resolve()}")
+        logger.info(f"     · 输出 panel:  {Path(args.output).resolve()}")
+
+        logger.info("  ⚙ 运行配置 (CLI 实参)")
+        logger.info(f"     · 待收缩列 value_cols={value_cols} (--track={args.track}"
+                    f"{', --value-col=' + args.value_col if args.value_col else ''})")
+        logger.info(f"     · 分组列 group_cols={list(group_cols)} (同年截面收缩目标, 含 year 防跨年泄漏)")
+        logger.info(f"     · n_obs_col={args.n_obs_col} (支撑度量值的文章数) | "
+                    f"std_col={args.std_col} ('auto'=由 value_col 推导 benefit_std_*; 'none'=强制 grand_var/n 代理)")
+        logger.info(f"     · τ̂² 下界=1e-8 (=sig4 {sig4(1e-8)}); 权重夹断区间 ∈[{sig4(0.0)}, {sig4(1.0)}]; "
+                    "Morris MoM 噪声扣除 (残差方差 = τ² + E[σ̂²ᵢ]) + 排除单成员组 + N−k 自由度")
+
+        logger.info("  📖 方法论依据 (核心方法/构念学术出处)")
+        logger.info("     · 闭式参数经验贝叶斯 (矩估计 MoM, 本模块 τ̂² 来源): "
+                    "Morris, C. N. (1983). Parametric empirical Bayes inference: Theory and "
+                    "applications. Journal of the American Statistical Association, 78(381), 47-55. "
+                    "https://doi.org/10.1080/01621459.1983.10477920")
+        logger.info("     · Stein/经验贝叶斯收缩的偏差-方差权衡基础: "
+                    "Efron, B., & Morris, C. (1975). Data analysis using Stein's estimator and its "
+                    "generalizations. Journal of the American Statistical Association, 70(350), 311-319. "
+                    "https://doi.org/10.1080/01621459.1975.10479864")
+        logger.info("     · 收缩估计量的原始统计动因 (二次损失下样本均值不可容许): "
+                    "James, W., & Stein, C. (1961). Estimation with quadratic loss. In Proceedings of "
+                    "the Fourth Berkeley Symposium on Mathematical Statistics and Probability "
+                    "(Vol. 1, pp. 361-379). University of California Press. (无 DOI, 仅作者-年-出处)")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI 入口: 对面板 parquet 的 benefit_mean 应用 empirical Bayes 收缩.
 
     成功返回 0; 面板缺必需列时返回 1。
     """
+    import time
+    start_time = time.time()
+    phase_durations: dict[str, float] = {}
     parser = argparse.ArgumentParser(
         prog="python -m news_process.papers.benefit_society.shrinkage",
         description="Hierarchical empirical Bayes shrinkage for benefit_mean (dual-track)",
@@ -332,8 +395,45 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s %(message)s")
 
+    # ── 【功能】banner (黄金范式, 对齐 herd_decay main()) ──
+    logger.info("=" * 72)
+    logger.info("benefit_society 收缩: benefit_mean 稀疏单元经验贝叶斯分层降噪 (Morris 1983 JASA)")
+    logger.info("=" * 72)
+    logger.info(
+        "【功能】有些'银行-年份'单元只有 1-3 篇新闻, 算出的 benefit_mean (新闻有益于社会程度)"
+    )
+    logger.info(
+        "        噪声很大、很'飘'。本模块把这些稀疏单元向'同年同省同类型'的组均值收缩——"
+    )
+    logger.info(
+        "        新闻越少越往组均值靠, 越多越保留原值; 输出 _shrunk 列供 Table 8/8b 回归当 RHS。"
+    )
+    logger.info(
+        "【方法】闭式经验贝叶斯 (Morris 矩估计, 无 MCMC): w_i = σ̂²ᵢ/(σ̂²ᵢ+τ̂²);"
+    )
+    logger.info(
+        "        shrunk_i = w_i·组均值 + (1−w_i)·原值。σ̂²ᵢ=单元抽样方差 (优先 文章级 std²/nᵢ,"
+    )
+    logger.info(
+        "        缺失回退 grand_var/nᵢ 代理); τ̂²=组内真实均值先验方差 (排除单成员组 + N−k 自由度"
+    )
+    logger.info(
+        "        + Efron-Morris 噪声扣除)。可选 statsmodels MixedLM 交叉校验 (ICC)。"
+    )
+    logger.info(
+        "【判读】平均收缩权重 w̄: 越接近 0 = 几乎不收缩 (单元自身证据足); 越接近 1 = 强烈拉向组均值"
+    )
+    logger.info(
+        "        (单元稀疏/噪声大)。MixedLM ICC 与闭式 τ̂²/(τ̂²+σ̄²ᵢ) 应大致一致 (跨方法 sanity)。"
+    )
+    logger.info(
+        "【确定性】纯 CPU NumPy 闭式矩估计, $0, 无 LLM/Embedding/网络 → 逐位可复现。"
+    )
+
+    _t = time.time()
     panel = pd.read_parquet(args.panel)
-    logger.info(f"Loaded panel: {panel.shape}")
+    phase_durations['①加载panel'] = time.time() - _t
+    logger.info(f"  加载面板 panel: 形状 {panel.shape[0]:,d} 行 × {panel.shape[1]:,d} 列 (来源: {args.panel})")
 
     # 由 --track / --value-col 解析待处理列 (--value-col 显式给出时优先)
     if args.value_col is not None:
@@ -345,6 +445,9 @@ def main(argv: list[str] | None = None) -> int:
 
     group_cols = tuple(c.strip() for c in args.group_cols.split(","))
 
+    # 项目/环境信息 + 输入输出 + 运行配置 + 方法论依据 (日志富集 2026-06-24)
+    _log_environment_and_config(args, value_cols, group_cols)
+
     # 一次性校验必需列
     base_required = [args.n_obs_col, *group_cols]
     missing_base = [c for c in base_required if c not in panel.columns]
@@ -355,6 +458,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
+    _t = time.time()
     result = panel.copy()
     for value_col in value_cols:
         if value_col not in panel.columns:
@@ -369,18 +473,35 @@ def main(argv: list[str] | None = None) -> int:
         )
         sanity = mixedlm_sanity_check(panel, value_col, group_cols[0])
         if sanity:
-            logger.info(f"  [{value_col}] MixedLM sanity: ICC={sanity['icc']:.3f}")
+            logger.info(
+                f"  [{value_col}] MixedLM 交叉校验: ICC={sig4(sanity['icc'])} "
+                f"(σ_within={sig4(sanity['sigma_within'])} / σ_between={sig4(sanity['sigma_between'])}; "
+                "ICC≈τ̂²/(τ̂²+σ̄²ᵢ), 与闭式 between_var 一致性参照)"
+            )
         weight_col = f"{value_col}_shrunk_weight"
+        _mean_w = float(result[weight_col].mean())
         logger.info(
-            f"  [{value_col}] mean shrinkage weight = {result[weight_col].mean():.3f}"
+            f"  [{value_col}] 平均收缩权重 w̄ = {sig4(_mean_w)} "
+            "(→0 几乎不收缩/保留原值; →1 强烈拉向同年同省同类型组均值)"
         )
+    phase_durations['②逐轨经验贝叶斯收缩+MixedLM校验'] = time.time() - _t
 
+    _t = time.time()
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     result.to_parquet(output_path, index=False)
+    phase_durations['③写出parquet'] = time.time() - _t
     logger.info(
-        f"Wrote shrunk panel to {output_path}: tracks={value_cols}"
+        f"  写出收缩后面板 → {output_path} (tracks={value_cols})"
     )
+
+    # ── ⏱ 阶段计时摘要 (墙钟秒, sig4; 纯日志, golden-safe) ──
+    _total = time.time() - start_time
+    logger.info("  ⏱ 阶段计时 (墙钟秒)")
+    for _name, _dur in phase_durations.items():
+        _share = _dur / _total if _total > 0 else 0.0
+        logger.info(f"     · {_name}: {sig4(_dur)} s ({pct4(_share)})")
+    logger.info(f"     · 合计: {sig4(_total)} s")
 
     return 0
 

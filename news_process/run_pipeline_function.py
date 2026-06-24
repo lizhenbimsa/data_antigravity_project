@@ -78,7 +78,7 @@ from news_process.core.dag import (
 )
 from news_process.core.dag import filter_enabled
 from news_process.core.locking import PipelineLock
-from news_process.core.logging import log_memory_usage, setup_logging
+from news_process.core.logging import log_memory_usage, pct4, setup_logging, sig4
 from news_process.core.stage import run_stage
 
 # ============================================================================
@@ -352,6 +352,57 @@ def _parse_cli_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def _log_environment_and_config(stages: list, enabled_methods: list) -> None:
+    """打印 ① 项目/环境信息 + ② 输入输出根目录 + ③ 运行配置 + ④ 方法论依据 (日志富集 2026-06-24)。
+
+    目标 (用户要求"在日志文件中提供尽可能多的项目信息、运行期间信息和运行结果信息"):
+    把"谁在跑、跑在什么环境、读写哪些根目录、用了哪些可调参数、复现/溯源出处"一次性
+    落进主调度器日志, 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 (golden-safe)。
+    ④ 方法论引文仅 emit 经 Crossref 真值核验的条目, 含 DOI 可访问链接 (FAIR 原则 Wilkinson
+    et al. 2016 https://doi.org/10.1038/sdata.2016.18; Stodden et al. 2018 PNAS
+    https://doi.org/10.1073/pnas.1708290115; Wilson et al. 2017 PLOS CB
+    https://doi.org/10.1371/journal.pcbi.1005510), 绝不伪造 DOI (playbook §4 铁律)。
+    """
+    try:
+        import platform
+
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (主流水线编排器; 子进程隔离顺序执行 STAGES_MAIN)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    "编排器本身纯 CPU/无网络; LLM 成本由各子阶段决定 "
+                    "(stage 21 离线缓存命中 $0; NEWS_PROCESS_LLM_OFFLINE=1 强制离线)")
+
+        logger.info("  📂 输入 / 输出根目录")
+        logger.info(f"     · 阶段脚本目录: {SCRIPT_DIR} (run_stage base_dir, 定位 NN_*.py thin shim)")
+        logger.info(f"     · 产物输出目录: {CONFIG['paths']['output_dir']} (各阶段 *.parquet 中间产物)")
+        logger.info(f"     · 日志目录:     {CONFIG['paths']['log_dir']} (扁平 <stage>.log; 每次运行覆盖)")
+
+        logger.info("  ⚙ 运行配置")
+        logger.info(f"     · DAG 阶段数: {len(stages):,d} (来源 core/dag.py::STAGES_MAIN, filter_enabled 后)")
+        logger.info(f"     · 启用情感方法: {enabled_methods} (2026-06-13 起 21/22/23/24 全 always-on, 仅作记录)")
+        logger.info("     · 执行策略: 子进程隔离 + fail-fast (任一阶段失败立即中止) + 阶段前输出预清理")
+
+        logger.info("  📖 方法论依据 (可复现计算流水线 / 科研软件 / 数据出处)")
+        logger.info("     · 可复现计算流水线设计: Stodden, V., Seiler, J., & Ma, Z. (2018). An empirical "
+                    "analysis of journal policy effectiveness for computational reproducibility. PNAS, "
+                    "115(11), 2584-2589. https://doi.org/10.1073/pnas.1708290115")
+        logger.info("     · 科研软件工程良好实践 (DAG/隔离/日志溯源): Wilson, G., Bryan, J., Cranston, K., "
+                    "Kitzes, J., Nederbragt, L., & Teal, T. K. (2017). Good enough practices in scientific "
+                    "computing. PLOS Computational Biology, 13(6), e1005510. "
+                    "https://doi.org/10.1371/journal.pcbi.1005510")
+        logger.info("     · 数据可发现/可复用 (FAIR) 原则: Wilkinson, M. D., Dumontier, M., Aalbersberg, "
+                    "I. J., et al. (2016). The FAIR Guiding Principles for scientific data management and "
+                    "stewardship. Scientific Data, 3, 160018. https://doi.org/10.1038/sdata.2016.18")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
+
+
 def run_pipeline(args: argparse.Namespace | None = None):
     """执行完整的数据处理流水线。
 
@@ -374,14 +425,50 @@ def run_pipeline(args: argparse.Namespace | None = None):
         args = argparse.Namespace(skip_21_if_exists=False)
 
     pipeline_start = time.time()
+    # 运行期阶段计时累计 (编排器自身各子阶段墙钟耗时, 末尾汇总打印; 纯日志, golden-safe)。
+    # 注: 各 pipeline stage 的耗时由下方 stage_timings 逐条记录; 此 dict 记编排器框架开销。
+    phase_durations: dict[str, float] = {}
 
     # ── 并发运行保护：确保同一时间只有一个管道实例运行 ──
     with PipelineLock(logger, CONFIG["paths"]["output_dir"]):
-        logger.info("=" * 70)
-        logger.info("===    新闻处理流水线 (News Processing Pipeline)    ===")
-        logger.info("==" * 35)
-        logger.info(f"Python: {sys.version}")
-        logger.info(f"工作目录: {os.path.dirname(os.path.abspath(__file__))}")
+        # ── 【功能】banner (黄金范式, 对齐 herd_decay.main() 单 banner 范式) ──
+        logger.info("=" * 72)
+        logger.info("新闻处理流水线编排器 (News Processing Pipeline Orchestrator, v3.11.1)")
+        logger.info("=" * 72)
+        logger.info(
+            "【功能】把'一堆原始中文银行/金科新闻 Excel'端到端加工成'可做计量回归的"
+        )
+        logger.info(
+            "        银行-年面板 (.parquet/.dta)'。本脚本不亲自算, 而是按依赖顺序逐个"
+        )
+        logger.info(
+            "        把各阶段 (预处理→筛选→情感→面板→伪造检验) 作为独立子进程拉起来跑。"
+        )
+        logger.info(
+            "【方法】声明式 DAG (core/dag.py::STAGES_MAIN) 单一真源驱动; 每阶段子进程隔离"
+        )
+        logger.info(
+            "        (异常不串、内存释放、jieba 等全局态不冲突); fail-fast (任一阶段失败"
+        )
+        logger.info(
+            "        立即中止); 阶段执行前按 OUTPUT_REGISTRY 预清理旧产物防陈旧污染。"
+        )
+        logger.info(
+            "【判读】末尾耗时统计表逐阶段列墙钟秒+占比: ✓=成功 / ✗=失败 / ⏭=已跳过 (如"
+        )
+        logger.info(
+            "        --skip-21-if-exists 命中); 占比最高者即流水线瓶颈 (通常为 LLM 阶段 21)。"
+        )
+        logger.info(
+            "        '✓ 管道全部阶段执行成功' 才表示全链产物齐备, 可进 Stata 复现。"
+        )
+        logger.info(
+            "【确定性】编排器自身纯 CPU/无网络; 全链可复现性取决于各子阶段 (jieba==0.42.1 冻结"
+        )
+        logger.info(
+            "          + stage 21 _llm_cache.db 离线命中 $0 + 固定 HASHSEED/BLAS 线程)。"
+        )
+
         log_memory_usage(logger, "管道启动")
 
         # ── 流水线执行顺序(模块一至三 + 模块五至六) ──
@@ -414,6 +501,10 @@ def run_pipeline(args: argparse.Namespace | None = None):
         for i, (script, name, _to) in enumerate(stages, 1):
             status = "待执行"
             logger.info(f"  {i}. {name} ({script}) [{status}]")
+
+        # 项目/环境信息 + 输入输出根目录 + 运行配置 + 方法论依据 (日志富集 2026-06-24,
+        # DAG/config 解析完成后打印; 纯日志, golden-safe)
+        _log_environment_and_config(stages, enabled_methods)
 
         # ── 逐阶段执行 ──
         # 速败 (fail-fast) 策略: 任一阶段失败则立即中止整条管道。
@@ -509,12 +600,22 @@ def run_pipeline(args: argparse.Namespace | None = None):
             status = "✓" if success else "✗"
             if elapsed == 0.0 and success:
                 status = "⏭"  # 已跳过
-            logger.info(f"  {name:<28} {elapsed:>10.1f}s {pct:>9.1f}% {status:>6}")
+            logger.info(f"  {name:<28} {sig4(elapsed):>10}s {pct4(pct, fraction=False):>10} {status:>6}")
 
         logger.info("-" * 70)
         minutes = total_elapsed / 60
         hours = total_elapsed / 3600
-        logger.info(f"  {'总计':<28} {total_elapsed:>10.1f}s ({minutes:.1f} 分钟 / {hours:.2f} 小时)")
+        logger.info(
+            f"  {'总计':<28} {sig4(total_elapsed):>10}s "
+            f"({sig4(minutes)} 分钟 / {sig4(hours)} 小时)"
+        )
+        # 编排器框架开销 = 总墙钟 − 各阶段子进程墙钟之和 (锁/预清理/摘要/IO 等; 纯日志)
+        _stage_sum = sum(e for _n, e, _s in stage_timings)
+        phase_durations['①编排器框架开销(锁/预清理/摘要)'] = max(total_elapsed - _stage_sum, 0.0)
+        phase_durations['②各阶段子进程合计'] = _stage_sum
+        logger.info("  ⏱ 阶段计时 (墙钟秒, 4 位有效数字)")
+        for _phase, _dur in phase_durations.items():
+            logger.info(f"     · {_phase}: {sig4(_dur)}s")
         logger.info("=" * 70)
 
         log_memory_usage(logger, "管道完成")

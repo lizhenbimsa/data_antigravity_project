@@ -1399,7 +1399,7 @@ def compute_cognitive_proximity(
 #     替代 TF-IDF cosine, 捕获更深层的语义邻近度
 #
 #   Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings
-#   using Siamese BERT-networks. EMNLP-IJCNLP 2019, 3982-3992.
+#   using Siamese BERT-networks. EMNLP-IJCNLP 2019, 3980-3990.
 #   DOI: 10.18653/v1/D19-1410
 #   → Sentence-BERT 为本地降级方案提供学术依据
 #

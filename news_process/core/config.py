@@ -15,6 +15,8 @@ import re
 
 import yaml
 
+from news_process.core.logging import sig4
+
 # ----------------------------------------------------------------------------
 # Phase 4d: split-mode 相关常量
 # ----------------------------------------------------------------------------
@@ -366,14 +368,16 @@ def herd_sensitivity_grid(config: dict) -> tuple[list[float], list[str]]:
             _log.warning("sensitivity_thresholds 含非数值项 %r, 已跳过", item)
             continue
         if not (0.0 < thr < 1.0):
-            _log.warning("sensitivity_thresholds 项 %s 超出 (0,1) 开区间, 已跳过", thr)
+            _log.warning(
+                "sensitivity_thresholds 项 %s 超出 (0,1) 开区间, 已跳过", sig4(thr))
             continue
         if abs(thr - baseline) < 1e-9:
             continue  # 基线已有 herd_weight_{track} 列, 不重复
         scaled = thr * 100
         if abs(scaled - round(scaled)) > 1e-6:
             _log.warning(
-                "sensitivity_thresholds 项 %s 非 0.01 粒度, tag 无法唯一编码, 已跳过", thr)
+                "sensitivity_thresholds 项 %s 非 0.01 粒度, tag 无法唯一编码, 已跳过",
+                sig4(thr))
             continue
         tag = f"thr{int(round(scaled)):02d}"
         if tag in seen_tags:

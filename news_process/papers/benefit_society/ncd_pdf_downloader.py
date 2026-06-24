@@ -19,11 +19,15 @@ import argparse
 import hashlib
 import json
 import logging
+import os
+import platform
 import sys
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
+
+from news_process.core.logging import sig4
 
 logger = logging.getLogger(__name__)
 
@@ -211,12 +215,65 @@ def write_manifest(records: list[DownloadRecord], manifest_path: Path) -> None:
     logger.info(f"Manifest written to {manifest_path}")
 
 
+def _log_environment_and_config(
+    args: argparse.Namespace,
+    n_banks: int,
+    n_years: int,
+    n_agencies: int,
+    *,
+    stub_mode: bool,
+) -> None:
+    """打印 ① 项目/环境信息 + ② 输入输出 + ③ 运行配置 (日志富集, 2026-06-24)。
+
+    目标 (用户要求"在日志文件中提供尽可能多的项目信息、运行期间信息和运行结果信息"):
+    把"谁在跑、跑在什么环境、读写哪些文件/目录、用了哪些可调参数、抓取哪些数据源"一次性
+    落进日志, 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 (golden-safe)。本模块是
+    数据获取脚手架 (非分析), 无方法学构念引文 (refs_added=[])。
+    """
+    try:
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info("     · 模块: NCD 主体评级报告 PDF 批量下载器 (benefit_society 论文数据获取脚手架)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'}")
+        if stub_mode:
+            logger.info("     · 运行模式: stub / dry-run (无 HTTP session) → 零网络、零流量、$0")
+        else:
+            logger.info("     · 运行模式: 真实下载 (HTTP session 已注入) → 会产生网络流量")
+
+        logger.info("  📂 输入 / 输出")
+        logger.info(f"     · 银行清单 CSV:  {os.path.abspath(args.banks)}")
+        logger.info(f"     · PDF 输出目录:  {os.path.abspath(args.output_dir)}")
+        logger.info(f"     · manifest 路径: {os.path.abspath(args.manifest)}")
+
+        logger.info("  ⚙ 运行配置")
+        logger.info(
+            f"     · 抓取网格: {n_banks:,d} 银行 × {n_years:,d} 年份 × {n_agencies:,d} 机构 "
+            f"= {n_banks * n_years * n_agencies:,d} 次尝试"
+        )
+        logger.info(
+            f"     · 速率限制 delay_sec={sig4(DEFAULT_DELAY_SEC)}秒 (礼貌爬取) | "
+            f"timeout={DEFAULT_TIMEOUT:,d}秒 | max_retries={DEFAULT_MAX_RETRIES:,d}"
+        )
+        logger.info(
+            "     · 评级机构数据源: "
+            + " | ".join(f"{k}={v}" for k, v in RATING_AGENCIES.items())
+        )
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置信息打印失败 (不影响下载): {e}")
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI 入口: 批量下载 NCD 评级报告 (Phase 0 stub 模式).
 
     无失败返回 0, 否则返回 1。stub 模式 (无 session) 下所有尝试标记为
     status='stub' 或 status='skip', 不产生 HTTP 流量。
     """
+    _start_time = time.time()
     parser = argparse.ArgumentParser(
         prog="python -m news_process.papers.benefit_society.ncd_pdf_downloader",
         description="NCD 评级报告 PDF 批量下载器 (stub 模式)",
@@ -237,6 +294,19 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s %(message)s")
 
+    # ── 【功能】banner (黄金范式, 对齐 main=4d9333dd 63 模块日志富集风格) ──
+    logger.info("=" * 72)
+    logger.info("NCD 评级报告 PDF 下载器 (benefit_society 论文; Phase 0 数据获取脚手架)")
+    logger.info("=" * 72)
+    logger.info("【功能】把各家评级机构 (中诚信/大公/联合资信) 公开的银行主体评级报告 PDF")
+    logger.info("        批量抓到本地, 供 benefit_society 论文做后续外部财务/评级 outcome 对接。")
+    logger.info("【方法】按 (银行 × 年份 × 机构) 网格逐项抓取; 站内搜索解析下载 URL → 礼貌限速下载")
+    logger.info("        → 落盘 PDF + SHA-256 校验和; 已存在的条目自动跳过 (断点续传)。")
+    logger.info("【判读】末尾 status 汇总: ok=成功落盘 / skip=已存在或无 URL / stub=dry-run 占位")
+    logger.info("        / failed=重试耗尽仍失败。失败>0 → 进程返回码 1, 供编排器感知。")
+    logger.info("【确定性】Phase 0 当前为 stub (无真实 API), 不发任何 HTTP 请求、零流量、$0;")
+    logger.info("          manifest 记录原始 URL + 时间戳 + SHA-256 以保障后续可复现。")
+
     import csv
     with open(args.banks, encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -246,6 +316,12 @@ def main(argv: list[str] | None = None) -> int:
 
     # Phase 0: 无 HTTP session (stub 模式); D4 解阻塞后传入 requests.Session()
     session = None if args.dry_run else None
+
+    # 项目/环境信息 + 输入输出 + 运行配置 (日志富集 2026-06-24, 参数解析后打印)
+    _log_environment_and_config(
+        args, len(banks), len(years), len(("ccxr", "dagong", "lhratings")),
+        stub_mode=(session is None),
+    )
 
     records = batch_download(
         banks,
@@ -258,7 +334,15 @@ def main(argv: list[str] | None = None) -> int:
     ok = sum(1 for r in records if r.status == "ok")
     failed = sum(1 for r in records if r.status == "failed")
     stub = sum(1 for r in records if r.status == "stub")
-    logger.info(f"Summary: ok={ok}, failed={failed}, stub={stub}, total={len(records)}")
+    skip = sum(1 for r in records if r.status == "skip")
+    logger.info(
+        f"  Summary: ok={ok:,d}, skip={skip:,d}, stub={stub:,d}, "
+        f"failed={failed:,d}, total={len(records):,d}"
+    )
+
+    # ⏱ 阶段计时 (墙钟秒, sig4; 纯日志, golden-safe)
+    _elapsed = time.time() - _start_time
+    logger.info(f"  ⏱ 总耗时: {sig4(_elapsed)}秒 (网格 {len(records):,d} 项)")
 
     return 0 if failed == 0 else 1
 

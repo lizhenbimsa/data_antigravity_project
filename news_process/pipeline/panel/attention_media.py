@@ -115,7 +115,7 @@ def detect_defacto_cessation(df, logger, output_dir, threshold_gap=2):
       4. 返回 ceased_media_set (confirmed ∪ suspected)
 
     References:
-      Heese, J., Pérez-Cavazos, G., & Peter, C. D. (2022). JFE, 145(2B),
+      Heese, J., Pérez-Cavazos, G., & Peter, C. D. (2022). JFE, 145(2),
         445-463. https://doi.org/10.1016/j.jfineco.2021.08.015
       Gao, P., Lee, C., & Murphy, D. (2020). JFE, 135(2), 445-467.
         https://doi.org/10.1016/j.jfineco.2019.06.003

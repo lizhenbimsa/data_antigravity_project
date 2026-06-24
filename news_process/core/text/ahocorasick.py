@@ -101,6 +101,18 @@ def load_bank_names(bank_names_file: str) -> tuple:
         # make_automaton(): 构建 failure 链接和 output 函数
         # 调用后自动机进入“只读”状态, 不能再添加新模式
         ac.make_automaton()
+        logger.info(
+            f"银行名称 AC 自动机: 已加载 {len(banks):,d} 家银行 / "
+            f"{len(variant_to_bank):,d} 个名称变体 (Aho-Corasick 多模式 O(n+m) 全文匹配)"
+        )
+        # 📖 方法论依据 (核心算法学术出处, Crossref 真值核验 DOI):
+        #    Aho, A. V., & Corasick, M. J. (1975). Efficient string matching: an aid to
+        #    bibliographic search. Communications of the ACM, 18(6), 333-340.
+        #    https://doi.org/10.1145/360825.360855
+        logger.info(
+            "  📖 多模式匹配算法: Aho & Corasick (1975), Communications of the ACM 18(6), "
+            "333-340. https://doi.org/10.1145/360825.360855"
+        )
     else:
         ac = None
 
@@ -277,6 +289,10 @@ def load_fintech_dict(fintech_dict_file: str) -> tuple:
 
     if all_keywords:
         ac.make_automaton()
+        logger.info(
+            f"金融科技关键词 AC 自动机: 已加载 {len(all_keywords):,d} 个关键词 "
+            "(Aho-Corasick 多模式 O(n+m) 全文匹配; 同一算法见 load_bank_names 的 📖 出处)"
+        )
     else:
         ac = None
 

@@ -27,6 +27,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from news_process.core.logging import pct4, sig4
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -267,12 +269,83 @@ def triangulate_with_annual_report(
     return merged
 
 
+def _log_environment_and_config(
+    extracted_path: Path,
+    output_path: Path,
+    annual_report: str | None,
+    sd_threshold: float = 3.0,
+) -> None:
+    """打印 ① 项目/环境信息 + ② 输入输出 + ③ 运行配置 + ④ 方法论依据 (日志富集, 2026-06-24)。
+
+    把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数、方法学出处"一次性落进
+    日志, 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 (golden-safe)。
+    ④ 方法论引文仅 emit 经 Crossref 真值核验的条目, 含 DOI 可访问链接, 绝不伪造 DOI。
+    """
+    try:
+        import os
+        import platform
+
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info("     · 模块: ncd_field_parser (NCD/普惠披露文本抽取记录 → bank-year 面板字段结构化+校验)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get("NEWS_PROCESS_RUN_ID")
+        logger.info(
+            f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+            "本模块纯 CPU / 无 LLM·Embedding·网络·API ($0; 上游 LLM 抽取已落 JSON) → 逐位可复现"
+        )
+
+        logger.info("  📂 输入 / 输出文件")
+        logger.info(f"     · 输入:   {extracted_path} (ncd_text_extractor.py 输出的 extraction records JSON)")
+        logger.info(f"     · 输出:   {output_path} (bank-year panel parquet)")
+        logger.info(
+            f"     · R11 三角对照源: {annual_report or '(未提供 — 跳过年报互证)'}"
+        )
+
+        logger.info("  ⚙ 运行配置 (字段 schema + 校验阈值)")
+        logger.info(f"     · 抽取字段数: {len(EXPECTED_FIELDS):,d} (含取值域校验; 越界/类型错 → 置 None + warning)")
+        logger.info(
+            f"     · 离群判据: MAD×1.4826 稳健 SD, sd_threshold={sig4(sd_threshold)} "
+            f"(|x−median|/robust_sd > 阈值 → outlier_<col>=True)"
+        )
+        _lo, _hi = EXPECTED_FIELDS["npl_ratio_pct"][1]
+        logger.info(
+            f"     · 单位错启发式 (亿元 vs billion, 10×): 字段 {_UNIT_SUSPECT_FIELDS} 越上界但 ÷10 落回区间 → 标记;"
+            f" 示例域 npl_ratio_pct∈[{sig4(_lo)}, {sig4(_hi)}]%"
+        )
+
+        logger.info("  📖 方法论依据 (核心方法/构念学术出处)")
+        logger.info(
+            "     · 披露文本 → 结构化数据抽取 (text-as-data): Gentzkow, M., Kelly, B., & Taddy, M. "
+            "(2019). Text as data. Journal of Economic Literature, 57(3), 535-574. "
+            "https://doi.org/10.1257/jel.20181020"
+        )
+        logger.info(
+            "     · 会计/金融披露文本分析: Loughran, T., & McDonald, B. (2016). Textual analysis in "
+            "accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. "
+            "https://doi.org/10.1111/1475-679X.12123 — 财报/CSR 披露字段化口径"
+        )
+        logger.info(
+            "     · 稳健离群检测 (MAD 替代样本 SD, 不被离群值自身撑大): Rousseeuw, P. J., & Croux, C. "
+            "(1993). Alternatives to the median absolute deviation. Journal of the American Statistical "
+            "Association, 88(424), 1273-1283. https://doi.org/10.1080/01621459.1993.10476408"
+        )
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI 入口: 把 NCD 抽取记录 JSON 转换为 bank-year panel parquet。
 
     执行 schema 校验、离群值标记, 以及可选的 R11 与年报数据三角互证。
     成功返回 0, 输入 JSON 不存在返回 1。
     """
+    import time
+    _start = time.time()
+    phase_durations: dict[str, float] = {}
     parser = argparse.ArgumentParser(
         prog="python -m news_process.papers.benefit_society.ncd_field_parser",
         description="NCD 抽取结果 → bank-year panel + 字段验证",
@@ -302,14 +375,51 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s %(message)s")
 
+    # ── 【功能】banner (黄金范式; 替换裸启动头, 对齐 herd_decay main() 单 banner 范式) ──
+    logger.info("=" * 72)
+    logger.info("NCD 字段解析器: 普惠/CSR 披露文本抽取记录 → bank-year 面板字段结构化+校验")
+    logger.info("=" * 72)
+    logger.info(
+        "【功能】把上游 LLM 从 NCD/普惠披露 PDF 抽取的字段 JSON, 转成规范的 bank-year 面板"
+    )
+    logger.info(
+        "        (total_assets/npl/car/profit/retail_dep/info_tech), 并做字段校验、稳健离群标记、"
+    )
+    logger.info(
+        "        以及可选的 R11 与年报三角互证, 供 benefit_society 论文 outcome 侧消费。"
+    )
+    logger.info(
+        f"【方法】逐记录按 {len(EXPECTED_FIELDS):,d} 字段 schema 校验类型+取值域 (越界/类型错→置 None+warning);"
+    )
+    logger.info(
+        "        '亿元 vs billion' 10× 单位错启发式标记 (不静默改写); 同 bank-year 去重保留 source_pdf 最末;"
+    )
+    logger.info(
+        "        离群用 MAD×1.4826 稳健 SD (不被离群值自身撑大), 偏离中位数 > 阈值个 SD 即 flag。"
+    )
+    logger.info(
+        "【判读】outlier_<col>=True 即该值离群待核; unit_suspect_fields 非空即疑似 10× 单位错;"
+    )
+    logger.info(
+        "        R11 inconsistent_<f>=True 即 NCD 与年报差异超容差, unit_mismatch_<f> 区分单位错 vs 真不一致。"
+    )
+    logger.info(
+        "【确定性】纯 CPU, $0, 无 LLM/Embedding/网络 (上游抽取已落 JSON) → 逐位可复现。"
+    )
+
     extracted_path = Path(args.extracted_json)
     if not extracted_path.exists():
         logger.error(f"Extracted JSON not found: {extracted_path}")
         return 1
 
+    # 项目/环境信息 + 输入输出 + 运行配置 + 方法论依据 (日志富集 2026-06-24, 路径确定后打印)
+    _log_environment_and_config(extracted_path, Path(args.output), args.annual_report)
+
+    _t = time.time()
     payload = json.loads(extracted_path.read_text(encoding="utf-8"))
     records = payload.get("records", [])
-    logger.info(f"Loaded {len(records)} extraction records")
+    phase_durations["①读抽取JSON"] = time.time() - _t
+    logger.info(f"Loaded {len(records):,d} extraction records")
 
     bank_id_lookup = None
     if args.bank_id_map:
@@ -317,24 +427,47 @@ def main(argv: list[str] | None = None) -> int:
         with open(args.bank_id_map, encoding="utf-8") as f:
             bank_id_lookup = {row["bank_name"]: row["bank_id"] for row in csv.DictReader(f)}
 
+    _t = time.time()
     panel = records_to_panel(records, bank_id_lookup=bank_id_lookup)
+    phase_durations["②记录→bank-year面板"] = time.time() - _t
     logger.info(f"Built panel: {panel.shape}")
 
+    _t = time.time()
     panel = flag_outliers(panel)
+    phase_durations["③稳健离群标记"] = time.time() - _t
     n_outliers = sum(panel[c].sum() for c in panel.columns if c.startswith("outlier_"))
-    logger.info(f"Flagged {n_outliers} outlier cells")
+    _n_cells = len(panel) * sum(1 for c in panel.columns if c.startswith("outlier_"))
+    logger.info(
+        f"Flagged {n_outliers:,d} outlier cells"
+        + (f" ({pct4(n_outliers / _n_cells)} of {_n_cells:,d} checked)" if _n_cells else "")
+    )
 
     if args.annual_report and Path(args.annual_report).exists():
+        _t = time.time()
         ar_panel = pd.read_parquet(args.annual_report)
         triangulation = triangulate_with_annual_report(panel, ar_panel)
         inconsistent_cols = [c for c in triangulation.columns if c.startswith("inconsistent_")]
         n_inconsistent = sum(triangulation[c].sum() for c in inconsistent_cols)
-        logger.info(f"R11 triangulation: {n_inconsistent} inconsistent rows across {len(inconsistent_cols)} fields")
+        phase_durations["④R11年报三角对照"] = time.time() - _t
+        logger.info(
+            f"R11 triangulation: {n_inconsistent:,d} inconsistent rows across "
+            f"{len(inconsistent_cols):,d} fields"
+        )
 
+    _t = time.time()
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     panel.to_parquet(output_path, index=False)
+    phase_durations["⑤写出parquet"] = time.time() - _t
     logger.info(f"Wrote panel to {output_path}")
+
+    # ── ⏱ 阶段计时汇总 (墙钟秒, sig4; 纯日志, golden-safe) ──
+    _total = time.time() - _start
+    logger.info("  ⏱ 阶段计时 (墙钟秒)")
+    for _name, _dur in phase_durations.items():
+        _share = pct4(_dur / _total) if _total > 0 else "—"
+        logger.info(f"     · {_name}: {sig4(_dur)}s ({_share})")
+    logger.info(f"     · 总计: {sig4(_total)}s")
     return 0
 
 

@@ -41,7 +41,7 @@ try:
 except ImportError:  # pragma: no cover - psutil 是运行时必装依赖, 此分支仅防御
     psutil = None
 
-from .logging import get_run_id, log_memory_usage
+from .logging import get_run_id, log_memory_usage, sig4
 
 # 子进程 stdout/stderr 尾部累积上限 (行数); 防止任意大日志撑爆父进程。
 # 2026-06-12 由 1 万行上调为 10 万行 (用户决策): 失败诊断时保留更长尾部。
@@ -113,7 +113,7 @@ def _terminate_process_tree(proc: subprocess.Popen,
             _, alive = psutil.wait_procs(processes, timeout=grace_seconds)
             if alive:
                 logger.warning(
-                    f"  {len(alive)} 个子进程未在 {grace_seconds:.0f}s 内退出，强制结束..."
+                    f"  {len(alive):,d} 个子进程未在 {sig4(grace_seconds)}s 内退出，强制结束..."
                 )
                 for process in alive:
                     try:
@@ -181,7 +181,10 @@ def run_stage(stage_script: str, stage_name: str, logger,
         return False, 0.0
 
     logger.info(f"{'─'*60}")
-    logger.info(f"▶ 开始执行: {stage_name} ({stage_script})")
+    logger.info(
+        f"▶ 开始执行: {stage_name} ({stage_script}) "
+        f"| 子进程隔离 (PID 待分配, timeout={timeout:,d}s, 父PID={os.getpid()})"
+    )
     logger.info(f"{'─'*60}")
     log_memory_usage(logger, f"阶段 {stage_name} 开始前")
 
@@ -300,13 +303,13 @@ def run_stage(stage_script: str, stage_name: str, logger,
 
     if returncode == 0:
         logger.info(
-            f"✓ {stage_name} 执行成功（耗时 {elapsed:.1f}s, "
-            f"stdout {len(stdout_tail)} 行 / stderr {len(stderr_tail)} 行已透传）"
+            f"✓ {stage_name} 执行成功（耗时 {sig4(elapsed)}s, "
+            f"stdout {len(stdout_tail):,d} 行 / stderr {len(stderr_tail):,d} 行已透传）"
         )
         return True, elapsed
     else:
         logger.error(
-            f"✗ {stage_name} 执行失败（返回码 {returncode}, 耗时 {elapsed:.1f}s）"
+            f"✗ {stage_name} 执行失败（返回码 {returncode}, 耗时 {sig4(elapsed)}s）"
         )
         # 完整 stderr 已实时透传到父 logger (前缀 '│⚠'); 此处不再重复打印,
         # 仅给出 tail 提示便于在长日志中快速定位

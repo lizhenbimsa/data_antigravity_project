@@ -54,7 +54,7 @@ from news_process.core.config import load_config
 from news_process.core.dag import STAGES_VALIDATION as STAGES
 from news_process.core.dag import filter_enabled
 from news_process.core.locking import PipelineLock
-from news_process.core.logging import log_memory_usage, setup_logging
+from news_process.core.logging import log_memory_usage, setup_logging, sig4
 from news_process.core.stage import run_stage
 
 # ============================================================================
@@ -78,6 +78,65 @@ logger.info(f"NEWS_PROCESS_RUN_ID = {_RUN_ID}")
 
 # 脚本所在目录（用于定位阶段脚本）
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def _log_environment_and_config(stages: list) -> None:
+    """打印 ① 项目/环境信息 + ② 输入输出 + ③ 运行配置 + ④ 方法论依据 (日志富集, 2026-06-24)。
+
+    目标 (用户要求"在日志文件中提供尽可能多的项目信息、运行期间信息和运行结果信息"):
+    把"谁在跑、跑在什么环境、读写哪些目录、用了哪些可调参数、方法学出处"一次性落进
+    日志, 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物或控制流 (golden-safe)。
+    ④ 方法论引文仅 emit 经 Crossref 真值核验的条目, 含 DOI 可访问链接 (Simonsohn et al. 2020
+    NHB https://doi.org/10.1038/s41562-020-0912-z; Steegen et al. 2016 PPS
+    https://doi.org/10.1177/1745691616658637; Landis & Koch 1977 Biometrics
+    https://doi.org/10.2307/2529310), 绝不伪造 DOI (playbook §4 铁律)。
+    """
+    try:
+        import platform
+
+        paths = CONFIG.get("paths", {})
+        output_dir = paths.get("output_dir", "(未配置)")
+        log_dir = paths.get("log_dir", "(未配置)")
+
+        logger.info("  🧭 项目 / 环境信息")
+        logger.info(f"     · 阶段: {STAGE_NAME} (评估验证编排器; 调度 STAGES_VALIDATION 全部 "
+                    f"{len(STAGES):,d} 个稳健性/规格检验子阶段)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1")
+        logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
+        logger.info(f"     · 工作目录: {os.getcwd()}")
+        logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
+        logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
+        _run_id = os.environ.get('NEWS_PROCESS_RUN_ID') or _RUN_ID
+        _offline = os.environ.get('NEWS_PROCESS_LLM_OFFLINE')
+        logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
+                    f"NEWS_PROCESS_LLM_OFFLINE={_offline or '(未设置)'}")
+        logger.info("     · 成本/确定性: 编排器自身 $0/纯调度; 子阶段中含 LLM 探针的 (66/70) 在 "
+                    "OFFLINE=1 下缓存命中即 $0, 其余纯 CPU 逐位可复现")
+
+        logger.info("  📂 输入 / 输出目录")
+        logger.info(f"     · 产物输出目录: {output_dir} (各子阶段读写 data/processed/*.parquet 与 eval_reports/*.csv)")
+        logger.info(f"     · 日志目录:     {log_dir} (扁平布局, 每子阶段一文件, 覆盖式只留最新一次运行)")
+
+        logger.info("  ⚙ 运行配置 (core/dag.py::STAGES_VALIDATION 为权威真源)")
+        logger.info(f"     · 待执行子阶段数={len(stages):,d} (全部无条件 always-on; "
+                    "filter_enabled 恒返回全集, validation.* flag 仅作启用记录)")
+        logger.info("     · 执行策略: 逐阶段子进程隔离 + 速败 (任一阶段失败即中止后续, "
+                    "因验证阶段间存在隐式依赖)")
+
+        logger.info("  📖 方法论依据 (核心方法/构念学术出处)")
+        logger.info("     · 规格曲线 / 多元宇宙稳健性报告范式: Simonsohn, U., Simmons, J. P., & Nelson, "
+                    "L. D. (2020). Specification curve analysis. Nature Human Behaviour, 4(11), 1208-1214. "
+                    "https://doi.org/10.1038/s41562-020-0912-z")
+        logger.info("       → 把'结论是否依赖某一特定参数/规格选择'物化为一族合理规格上的稳健性分布 (本模块"
+                    "阈值/半径/衰减/prompt 敏感性子阶段即此范式的离散网格实现)")
+        logger.info("     · 透明度多元宇宙分析: Steegen, S., Tuerlinckx, F., Gelman, A., & Vanpaemel, W. "
+                    "(2016). Increasing transparency through a multiverse analysis. Perspectives on "
+                    "Psychological Science, 11(5), 702-712. https://doi.org/10.1177/1745691616658637")
+        logger.info("     · 标注者一致性 (Cohen's κ / Krippendorff's α 量表): Landis, J. R., & Koch, G. G. "
+                    "(1977). The measurement of observer agreement for categorical data. Biometrics, 33(1), "
+                    "159-174. https://doi.org/10.2307/2529310 — 子阶段 63/66/71/75 一致性判读基准")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
 
 
 def run_validation():
@@ -112,9 +171,39 @@ def run_validation():
     # validation 与 main pipeline 都会读写 output_dir/, 共享 logger / 中间 cache;
     # 同时跑两个进程会产生数据竞争与日志互踩, 必须互斥。
     with PipelineLock(logger, CONFIG["paths"]["output_dir"]):
-        logger.info("=" * 70)
-        logger.info("===    模块四：评估验证模块    ===")
-        logger.info("=" * 70)
+        logger.info("=" * 72)
+        logger.info("模块四: 评估验证编排器 (规格曲线/多元宇宙稳健性; Simonsohn 2020 NHB / Steegen 2016 PPS)")
+        logger.info("=" * 72)
+        logger.info(
+            "【功能】对前三模块(预处理→分类→情感分析)的每一个关键人为决策(阈值/窗口半径/"
+        )
+        logger.info(
+            "        去重门槛/衰减形式/prompt 措辞/实体名)逐一做稳健性检验, 输出诊断表证明"
+        )
+        logger.info(
+            "        研究结论不依赖任一特定参数选择, 对应顶刊审稿常见的 robustness 要求。"
+        )
+        logger.info(
+            "【方法】以子进程隔离逐一调度 STAGES_VALIDATION 的全部子阶段 (敏感性网格 / Cohen's κ"
+        )
+        logger.info(
+            "        / Krippendorff's α / NMI 正交性 / HTMT-AVE 判别效度 / 多样性 HHI-Shannon),"
+        )
+        logger.info(
+            "        各阶段独写 eval_reports/*.csv 诊断表; 速败=任一失败即中止 (阶段间隐式依赖)。"
+        )
+        logger.info(
+            "【判读】κ/α 落入 Landis-Koch 量表 (>0.6=substantial) = 一致性达标; 敏感性 ρ_vs_baseline"
+        )
+        logger.info(
+            "        越高(≥0.9) = 排序对该参数门槛越不敏感(结论越稳健); 正交性 NMI 越低 = 构念越独立。"
+        )
+        logger.info(
+            "【确定性】编排器自身纯调度 $0; 子阶段除 66/70 含 LLM 探针(OFFLINE 下缓存命中即 $0)外"
+        )
+        logger.info(
+            "        均纯 CPU; 固定参数 + 稳定排序 → 逐位可复现。"
+        )
         logger.info("")
         logger.info("  📌 模块目的")
         logger.info("     对前三模块(预处理→分类→情感分析)的全部关键决策进行系统性验证,")
@@ -150,6 +239,9 @@ def run_validation():
         active_specs = filter_enabled(STAGES, CONFIG)
         stages = [(s.script, s.name, s.timeout) for s in active_specs]
 
+        # 项目/环境信息 + 目录 + 运行配置 + 方法论依据 (日志富集 2026-06-24, stages 确定后打印)
+        _log_environment_and_config(stages)
+
         logger.info(f"评估验证模块共 {len(stages)} 个阶段")
         for i, (script, name, _to) in enumerate(stages, 1):
             logger.info(f"  {i}. {name} ({script})")
@@ -179,15 +271,15 @@ def run_validation():
         logger.info("-" * 70)
 
         for name, elapsed, success in stage_timings:
-            pct = (elapsed / total_elapsed * 100) if total_elapsed > 0 else 0
+            pct = (elapsed / total_elapsed) if total_elapsed > 0 else 0
             status = "✓" if success else "✗"
             if elapsed == 0.0 and success:
                 status = "⏭"
-            logger.info(f"  {name:<28} {elapsed:>10.1f}s {pct:>9.1f}% {status:>6}")
+            logger.info(f"  {name:<28} {sig4(elapsed):>10}s {sig4(pct * 100):>9}% {status:>6}")
 
         logger.info("-" * 70)
         minutes = total_elapsed / 60
-        logger.info(f"  {'总计':<28} {total_elapsed:>10.1f}s ({minutes:.1f} 分钟)")
+        logger.info(f"  {'总计':<28} {sig4(total_elapsed):>10}s ({sig4(minutes)} 分钟)")
         logger.info("=" * 70)
 
         log_memory_usage(logger, "模块完成")
