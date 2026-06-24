@@ -35,12 +35,14 @@ news_process.pipeline.sentiment.tone_words — 阶段22：基于词典的情感�
 │                                                            │
 │ 6. loughran_mcdonald_zh_2026  L&M 2011 JF 中文主译本          │
 │    │  (列前缀别名 loughran)                                  │
-│    └─ positive(1,310) / negative(3,752); 另含 5 类非极性词类   │
+│    └─ positive(1,295) / negative(3,729); 另含 5 类非极性词类   │
 └────────────────────────────────────────────────────────────┘
 
 词典消歧 (用户决策 2026-06-24「保留并两侧计数」, 逆转 fix omni-g-tonewords-03/-07):
     加载时对每部词典的 positive∩negative 跨类重叠词 (jiang_2021 21 词 / you_2018 5 词 /
-    loughran 61 词) **保留**而非剔除: 登记到 ``_BOTH_SIDED_BY_DICT``, 打分时同时计入
+    loughran 23 词; loughran 原 61 词经 2026-06-24「两侧保留判断」消歧, 38 词已归单侧、
+    余 23 词不可约简而保留, 见 config/tone_dicts.json::loughran 的 _description)
+    **保留**而非剔除: 登记到 ``_BOTH_SIDED_BY_DICT``, 打分时同时计入
     pos/neg (对该词典个体 ``{dict}_score`` 净语调拉向中性、不武断选边), 故运行时词条数
     = 原始 |pos∪neg| (不再 < 上表)。clarity 的 definite∩ambiguous 重叠 ('不可') 同样保留,
     在两集合各自计数 (clarity 口径的两侧计入)。
@@ -419,7 +421,8 @@ def load_all_dictionaries() -> list[tuple[str, dict[str, float]]]:
     _BOTH_SIDED_BY_DICT.clear()
 
     dictionaries = []
-    # v3.10.0: 第 6 部 = L&M 2011 JF 中文主译全本 (positive 1310 / negative 3752;
+    # v3.10.0: 第 6 部 = L&M 2011 JF 中文主译全本 (positive 1295 / negative 3729, 2026-06-24
+    # 极性消歧后; 原 1310/3752 含 61 跨类重叠, 现 38 词归单侧、余 23 词保留两侧并计数;
     # 第二轮同类内最小词元主用版, 另含 uncertainty/litigious/modal/constraining/complexity 非极性类)。
     # 用 JSON 键加载，但列前缀经 DICT_COLUMN_ALIAS 映射为 'loughran' (见上常量注释)。
     dict_keys = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018',
