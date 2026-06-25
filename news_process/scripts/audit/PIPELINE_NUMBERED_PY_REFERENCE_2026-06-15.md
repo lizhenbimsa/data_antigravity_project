@@ -394,9 +394,9 @@
 
 ### 22_tone_words.py
 
-- **注册**: STAGES_MAIN(阶段22: 词典法情感分析)。core/dag.py:223-227 StageSpec; core/schemas.py:68 OUTPUT_REGISTRY + 124 _OUTPUT_FILENAME_KEYS 登记产物。注: config/paths.yaml::output_22_words_tone = 22_words_tone.parquet (与 schemas 一致), 代码字面量 '22_tone_words.parquet' 仅是 config 缺失时的兜底默认 (main():1681 / 输入侧 1679), 实际产物名 = 22_words_tone.parquet。
+- **注册**: STAGES_MAIN(阶段22: 词典法情感分析)。core/dag.py:223-227 StageSpec; core/schemas.py:68 OUTPUT_REGISTRY + 124 _OUTPUT_FILENAME_KEYS 登记产物。注: config/paths.yaml::output_22_words_tone = 22_words_tone.parquet (与 schemas 一致); 代码 config 缺失时的兜底默认现亦为 '22_words_tone.parquet' (2026-06-25 订正前曾误写 '22_tone_words.parquet' 词序颠倒), 与 config/schemas 规范名一致, 实际产物名 = 22_words_tone.parquet。
 - **底层模块**: pipeline/sentiment/tone_words.py
-- **产出**: 22_words_tone.parquet (config 驱动名; 代码默认兜底字符串为 22_tone_words.parquet)。另写 22_idf_weights.json (IDF 权重存档, 可复现性) + 同名 .csv 预览。
+- **产出**: 22_words_tone.parquet (config 驱动名; 代码兜底默认 2026-06-25 订正后亦为 22_words_tone.parquet, 此前曾误写 22_tone_words.parquet)。另写 22_idf_weights.json (IDF 权重存档, 可复现性) + 同名 .csv 预览。
 - **三轨**: 三轨。classify_batch 对 content_full / content_ctx / content_ss 各扫一遍 (内部多处 `for track in ['_full','_ctx','_ss']` 循环), 每部词典产 {dict}_score_{track}、{dict}_zscore_{track}、IDF 加权 {dict}_idf_score/zscore_{track}; content_ss/ctx 缺列时回退全文优雅跳过。
 
 **详细功能说明**

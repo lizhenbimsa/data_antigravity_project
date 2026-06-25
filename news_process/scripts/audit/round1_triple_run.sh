@@ -23,7 +23,7 @@ PATHS = [
     'data/processed/15_fintech_intensity.parquet',
     'data/processed/16_article_alignment.parquet',
     'data/processed/21_tone_llms.parquet',
-    'data/processed/22_tone_words.parquet',
+    'data/processed/22_words_tone.parquet',
     'data/processed/24_herd_decay.parquet',
     'data/processed/40_panel_yearly.parquet',
 ]
