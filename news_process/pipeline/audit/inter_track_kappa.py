@@ -359,7 +359,9 @@ def run_stage(config=None, logger=None):
     logger.info("【确定性】纯 numpy/pandas, 无 LLM/Embedding/BERT 调用, seed=42 + NaN-aware 守卫保证逐位可复现。")
 
     output_dir = config["paths"]["output_dir"]
-    input_path = os.path.join(output_dir, "21_tone_llms.parquet")
+    # fix(stage-input-config-wiring, 2026-06-25): 经 config 单一真值解析 stage 21 输出名
+    # (output_21_tone_llms; 键存在值=默认 → golden-safe), 替代硬编码字面量。
+    input_path = os.path.join(output_dir, config.get("filenames", {}).get("output_21_tone_llms", "21_tone_llms.parquet"))
     eval_dir = os.path.join(output_dir, "eval_reports")
     csv_path = os.path.join(eval_dir, "inter_track_kappa_table.csv")
     tex_path = os.path.join(eval_dir, "inter_track_kappa_table.tex")

@@ -13,7 +13,7 @@ news_process.validation.llms_human — 阶段32：生成人工“金标准”双
     和人类判定情感（Sentiment）的双重联合标注列。
     
 输出：
-    一站式标注工作台 Excel 文件：`61_news_llms_human_samples.xlsx`
+    一站式标注工作台 Excel 文件：`61_human_samples.xlsx`
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
@@ -43,7 +43,7 @@ news_process.validation.llms_human — 阶段32：生成人工“金标准”双
 
 ■ 白话说明
 
-这一步是"出考卷": 从全部新闻里随机抽 500 篇 (固定随机种子, 每次抽的都一样), 做成一张 Excel 表 (默认文件名 61_news_llms_human_samples.xlsx) 发给两位人工编码员, 让他们逐篇判断 ①这条新闻是不是真的银行金融科技新闻 ②它的语气是正面/中性/负面。表格里的判断列被锁成下拉菜单, 防止有人手滑填错格式。
+这一步是"出考卷": 从全部新闻里随机抽 500 篇 (固定随机种子, 每次抽的都一样), 做成一张 Excel 表 (默认文件名 61_human_samples.xlsx) 发给两位人工编码员, 让他们逐篇判断 ①这条新闻是不是真的银行金融科技新闻 ②它的语气是正面/中性/负面。表格里的判断列被锁成下拉菜单, 防止有人手滑填错格式。
 
 为什么需要它: 流水线主要靠 AI 大模型 (LLM) 给每篇新闻打标签, 但我们必须证明"机器打的标签跟人判断的一致", 否则审稿人不信。这张人工答卷就是后面给机器打分用的"标准答案"。编码员填完后, 还有个合并环节把两人的答案对齐 (一致就采纳, 吵架就标"待仲裁")—— 注意这个合并要用模块入口 `python -m news_process.validation.llms_human merge` 触发, 直接跑根脚本带 merge 参数是无效的。
 
@@ -239,7 +239,7 @@ def main():
     sample_df = sample_df[front_cols + other_cols]
     
     # 导出
-    output_filename = CONFIG.get('filenames', {}).get('output_32_human_sample', '61_news_llms_human_samples.xlsx')
+    output_filename = CONFIG.get('filenames', {}).get('output_32_human_sample', '61_human_samples.xlsx')
     output_path = os.path.join(CONFIG["paths"]["output_dir"], output_filename)
         
     logger.info(f"正在保存带有数据校验规则的 Excel: {output_path}")
@@ -354,7 +354,7 @@ def merge_annotations(input_path: str = None, output_path: str = None):
     # 解析路径
     if input_path is None:
         input_filename = CONFIG.get('filenames', {}).get(
-            'output_32_human_sample', '61_news_llms_human_samples.xlsx'
+            'output_32_human_sample', '61_human_samples.xlsx'
         )
         input_path = os.path.join(CONFIG["paths"]["output_dir"], input_filename)
 

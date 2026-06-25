@@ -352,7 +352,9 @@ def main():
     eval_dir = os.path.join(output_dir, 'eval_reports')
     os.makedirs(eval_dir, exist_ok=True)
 
-    panel_path = os.path.join(output_dir, '40_panel_yearly.parquet')
+    # fix(stage-input-config-wiring, 2026-06-25): panel 名经 config 单一真值解析
+    # (output_40_panel_yearly; 键存在值=默认 → golden-safe), 替代硬编码字面量。
+    panel_path = os.path.join(output_dir, CONFIG['filenames'].get('output_40_panel_yearly', '40_panel_yearly.parquet'))
 
     # 项目/环境 + 输入输出 + 运行配置 + 方法论依据 (日志富集 2026-06-24; golden-safe)
     _log_environment_and_config(panel_path, eval_dir)

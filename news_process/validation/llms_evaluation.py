@@ -1094,7 +1094,9 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
         return
 
     # 与 21_tone_llms 的预测 join
-    llms_path = os.path.join(output_dir_cfg, '21_tone_llms.parquet')
+    # fix(stage-input-config-wiring, 2026-06-25): 经 config 解析 stage 21 输出名
+    # (output_21_tone_llms; 键存在值=默认 → golden-safe), 替代硬编码字面量。
+    llms_path = os.path.join(output_dir_cfg, config.get('filenames', {}).get('output_21_tone_llms', '21_tone_llms.parquet'))
     if not os.path.exists(llms_path):
         results['innovation_pending_reason'] = 'file not present'
         logger_inst.warning(
@@ -1653,7 +1655,7 @@ def main():
     # 定义输入输出路径
     verify_path = os.path.join(
         CONFIG['paths']['output_dir'],
-        CONFIG['filenames'].get('output_32_human_sample', '61_news_llms_human_samples.xlsx')
+        CONFIG['filenames'].get('output_32_human_sample', '61_human_samples.xlsx')
     )
     # fix(omni-g-val-eval-03, 2026-06-11): 显式优先读取 merge_annotations 产物
     # (*_merged.xlsx, 含双编码者共识黄金标准 最终_* 列 — llms_human.py 默认命名);

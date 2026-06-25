@@ -1963,7 +1963,7 @@ def main():
     # 定义输入输出 (提前到环境信息块之前, 便于一次性披露读写路径)
     input_path = os.path.join(CONFIG['paths']['output_dir'], CONFIG['filenames'].get('output_21_tone_llms', '21_tone_llms.parquet'))
     output_path = os.path.join(CONFIG['paths']['output_dir'],
-                               CONFIG['filenames'].get('output_22_words_tone', '22_tone_words.parquet'))
+                               CONFIG['filenames'].get('output_22_words_tone', '22_words_tone.parquet'))
 
     # 项目/环境信息 + 运行配置 (日志富集 2026-06-24)
     _log_environment_and_config(input_path, output_path)

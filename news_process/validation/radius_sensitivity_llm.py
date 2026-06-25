@@ -347,7 +347,9 @@ def _check_launch_prerequisites() -> dict:
 
     # 3. Stage 14 输入 N
     try:
-        stage_14 = os.path.join(CONFIG['paths']['output_dir'], '15_fintech_intensity.parquet')
+        # fix(stage-input-config-wiring, 2026-06-25): 经 config 解析 stage 15 输出名
+        # (output_14_fintech_intensity; 与同模块 main() 同口径), 替代硬编码字面量。
+        stage_14 = os.path.join(CONFIG['paths']['output_dir'], CONFIG.get('filenames', {}).get('output_14_fintech_intensity', '15_fintech_intensity.parquet'))
         checks['stage_14_exists'] = os.path.exists(stage_14)
         if checks['stage_14_exists']:
             df = pd.read_parquet(stage_14)

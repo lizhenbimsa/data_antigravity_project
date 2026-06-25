@@ -567,7 +567,9 @@ def main():
     logger.info("        Cohen κ 验'象征性↔含糊'方向; permutation null 1000 次 (seed=42) 为参照。")
 
     _t0 = time.time()
-    panel_path = os.path.join(config['paths']['output_dir'], '40_panel_yearly.parquet')
+    # fix(stage-input-config-wiring, 2026-06-25): panel 名经 config 单一真值解析
+    # (output_40_panel_yearly; 键存在值=默认 → golden-safe), 替代硬编码字面量。
+    panel_path = os.path.join(config['paths']['output_dir'], config.get('filenames', {}).get('output_40_panel_yearly', '40_panel_yearly.parquet'))
     out_dir = Path(config['paths']['output_dir'])
 
     # ① 🧭 项目 / 环境信息 + ③ ⚙ 运行配置 (日志富集 2026-06-24, 仿 tone_words.py 金标准)。
