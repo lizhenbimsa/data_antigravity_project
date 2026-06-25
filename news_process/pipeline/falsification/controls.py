@@ -765,8 +765,11 @@ def aggregate_non_fintech(df_nf: pd.DataFrame) -> pd.DataFrame:
         headline_frac.columns = ['target_bank', 'year', 'nf_headline_frac']
         nf_agg = nf_agg.merge(headline_frac, on=['target_bank', 'year'], how='left')
     else:
-        logger.warning(f"  列 '{headline_col}' 不存在, nf_headline_frac 将为 0")
-        nf_agg['nf_headline_frac'] = 0
+        # fix(nf-headline-frac-ratio-nan, 2026-06-25): nf_headline_frac 是比率 (二元
+        # target_bank_in_title 的组内均值), 标题列缺失时其值未定义 → NaN (非 0); 填 0
+        # 会被回归/相关诊断当作"标题提及率真为 0"误读 (Allison 2001 / Heckman 1979)。
+        logger.warning(f"  列 '{headline_col}' 不存在, nf_headline_frac 将为 NaN (比率未定义)")
+        nf_agg['nf_headline_frac'] = np.nan
 
     # 对数覆盖量 [Fang & Peress 2009]
     nf_agg['nf_ln_coverage'] = np.log1p(nf_agg['nf_n_articles'])
@@ -835,8 +838,16 @@ def merge_to_panel(panel: pd.DataFrame,
     panel = panel.merge(nf_agg, on=['target_bank', 'year'], how='left')
     logger.info(f"  合并方式: left join on (target_bank, year)")
 
-    # 缺失填充为 0 (与 balance_panel 的零新闻逻辑一致)
-    fill_cols = ['nf_n_articles', 'nf_ln_coverage', 'nf_media_breadth', 'nf_headline_frac']
+    # 缺失填充为 0 (与 pipeline/panel/encode.py balance_panel 的零新闻逻辑一致): 仅
+    # 计数 / 对数覆盖量 / 媒体广度等"流量类"列在零 NF 新闻行填 0 (无新闻 = 0 篇 / 0 家
+    # 媒体, 语义正确)。
+    # fix(nf-headline-frac-ratio-nan, 2026-06-25): nf_headline_frac 是【比率】
+    # (mean(target_bank_in_title)), 零 NF 新闻行上为 0/0 未定义, 必须保 NaN — 与
+    # balance_panel 让所有 *_frac 比率列零新闻行保 NaN 的契约一致 (此前误填 0, 致 51
+    # 个零-NF bank-year 的 nf_headline_frac 伪 0, 污染 run_diagnostics 相关系数; F3
+    # 红线: 零报道 ≠ 零比率, Allison 2001 / Heckman 1979)。故移出 fill_cols, 零 NF 行
+    # 随 left join 自然保留 NaN。
+    fill_cols = ['nf_n_articles', 'nf_ln_coverage', 'nf_media_breadth']
     filled_count = 0
     for c in fill_cols:
         if c in panel.columns:
@@ -933,6 +944,19 @@ def merge_to_panel(panel: pd.DataFrame,
             logger.error(f"  ✗ 跨源校验失败: {int(_viol.sum())} 行去重 fintech 计数 > "
                          f"物理 n_articles — merge 键错位或上游计数源分叉, "
                          f"请检查 40_article_bank_level 与 40_panel_yearly 一致性!")
+            # fix(controls-cross-source-fail-loud, 2026-06-25): 该不变量 (去重 fintech
+            # 计数 ≤ 物理 n_articles) 是复合键去重后构造性恒真的硬契约, 违反必为
+            # 40_article_bank_level 与 40_panel_yearly 计数源分叉 / merge 键错位的数据
+            # 损坏。此前仅 logger.error 后 return panel → 退出码 0 → orchestrator 判成功
+            # → 错位面板静默流入 11 篇 falsification 回归。改为与同模块 anti-join (L538)
+            # 及 .dta 导出 (L1227) 的完整性闸门一致, 在写盘 (export_results) 前 fail-loud
+            # raise (golden-safe: 生产正常时 _viol 全 False, 本分支永不进入, 不改写出列)。
+            raise RuntimeError(
+                f"跨源一致性校验失败: {int(_viol.sum())} 行 ft_n_articles_dedup > "
+                f"n_articles — 构造性不可能的不变量被违反, 40_article_bank_level 与 "
+                f"40_panel_yearly 计数源分叉或 (target_bank, year) merge 键错位, "
+                f"必须排查上游后重建面板 (拒绝写出错位 falsification 面板)"
+            )
         else:
             _shrink = float((panel['n_articles'] - panel['ft_n_articles_dedup']).sum())
             logger.info(f"  ✓ 去重计数 ≤ 物理计数 逐行成立 ({len(panel):,} 行); "
@@ -1010,6 +1034,14 @@ def run_diagnostics(panel: pd.DataFrame):
 
     # 仅保留有新闻的行
     mask = panel['all_n_articles'] > 0
+    # 披露 (fix nf-headline-frac-ratio-nan, 2026-06-25): diag_cols 含比率列
+    # nf_headline_frac, 其在【有新闻但零 NF 新闻】(all_n_articles>0 ∧ nf_n_articles==0)
+    # 的行上为 NaN (本次修复将其由伪 0 改回"未定义")。此处沿用 listwise dropna
+    # (complete-case), 故这些行会从【整张】相关矩阵 (含与 nf_headline_frac 无关的
+    # tone×nf_coverage 对) 一并剔除 → 有效 N 略缩。这是诊断层 (log +
+    # 51_falsification_diagnostics.csv) 的【预期副作用】, 非数据错误 (诊断本就只取
+    # complete-case 行); 主回归不消费 nf_headline_frac, 系数不受影响。若需为 nf_coverage
+    # 对保留更多观测, 可改 pairwise (.corr 原生按对处理 NaN, 无需 dropna)。
     diag_df = panel.loc[mask, diag_cols].dropna()
 
     logger.info(f"")

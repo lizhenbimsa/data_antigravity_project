@@ -272,8 +272,14 @@ class TestCrossSourceCheck:
             '同义反复恒等式校验不应回归'
         assert '跨源一致性校验' in src
 
-    def test_violation_triggers_error_log(self, panel_nf_dedup, monkeypatch):
-        """去重计数 > 物理计数 (跨源分叉) → logger.error 报警。"""
+    def test_violation_triggers_fail_loud_raise(self, panel_nf_dedup, monkeypatch):
+        """去重计数 > 物理计数 (跨源分叉, 构造性不可能的不变量违反) → fail-loud raise
+        RuntimeError, 并在 raise 前先 logger.error 报警, 拒绝写出错位 falsification 面板。
+
+        fix(controls-cross-source-fail-loud, 2026-06-25): 此前仅 logger.error 后
+        return panel 静默放行 (退出码 0 → orchestrator 判成功 → 错位面板流入下游回归);
+        现与同模块 anti-join (L538) / .dta 导出 (L1227) 的完整性闸门一致升为硬 raise。
+        """
         panel, nf_agg, _ = panel_nf_dedup
         # 构造违例: 去重计数 12 > 物理 n_articles 10 (merge 键错位才会发生)
         ft_bad = pd.DataFrame({
@@ -281,7 +287,9 @@ class TestCrossSourceCheck:
         })
         fake = MagicMock()
         monkeypatch.setattr(mod, 'logger', fake)
-        mod.merge_to_panel(panel.copy(), nf_agg, ft_dedup_agg=ft_bad)
+        with pytest.raises(RuntimeError, match='跨源一致性校验失败'):
+            mod.merge_to_panel(panel.copy(), nf_agg, ft_dedup_agg=ft_bad)
+        # raise 前仍保留诊断 logger.error 报警 (双重披露)
         err_msgs = ' '.join(str(c.args[0]) for c in fake.error.call_args_list)
         assert '跨源校验失败' in err_msgs
 

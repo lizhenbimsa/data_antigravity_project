@@ -694,6 +694,10 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'bank_type':                           'Bank Type (nfra_type)',
                 'bartik_type_iv_full':                 'Bartik IV: Bank-Type (Full)',
                 'bartik_type_iv_ctx':                  'Bartik IV: Bank-Type (Ctx)',
+                # 主键 bartik_type_iv_ss 标签由本 dict 末尾 _ctx→_ss 机械派生 (循环条件
+                # endswith('_ctx')) 自动产出, 故不手列; 但其【基期变体】_ss_t0/_t1/_t01 键尾
+                # 为 _t0/_t1/_t01 不被该派生命中, 已在下方"基期敏感性"段与 _full/_ctx 孪生并列
+                # 显式列出 (保 .dta variable-label 三轨对称; #3 runner 新补这 3 数据列)。
                 'bartik_type_share_soe':               'Bartik Share: SOE Banks',
                 'bartik_type_share_joint':             'Bartik Share: Joint-Stock',
                 'bartik_type_share_city':              'Bartik Share: City Commercial',
@@ -756,6 +760,11 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'bartik_type_iv_ctx_t0':               'Bartik IV: Type (Ctx, T0)',
                 'bartik_type_iv_ctx_t1':               'Bartik IV: Type (Ctx, T0+1)',
                 'bartik_type_iv_ctx_t01':              'Bartik IV: Type (Ctx, T0&T0+1)',
+                # _ss 基期变体 (#3 runner 补回的数据列): 键尾 _t0/_t1/_t01 不被 _ctx→_ss
+                # 机械派生命中, 故显式列出与 _full/_ctx 基期孪生对称 (见上方主键注释)。
+                'bartik_type_iv_ss_t0':                'Bartik IV: Type (SS, T0)',
+                'bartik_type_iv_ss_t1':                'Bartik IV: Type (SS, T0+1)',
+                'bartik_type_iv_ss_t01':               'Bartik IV: Type (SS, T0&T0+1)',
                 # 经济圈 LOO IV
                 'zone_leave1out_tone_full':            'Econ Zone Leave-1-Out Tone (Full)',
                 'zone_leave1out_tone_ctx':             'Econ Zone Leave-1-Out Tone (Ctx)',

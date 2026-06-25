@@ -289,6 +289,12 @@ def main():
     )
 
     output_dir = CONFIG['paths']['output_dir']
+    # fix(sbert-input-config-wiring, 2026-06-25): 输入文件名经 config 单一真值解析
+    # (output_13_news_with_ctx → 14_news_with_ctx.parquet), 替代历史硬编码字面量, 与
+    # 同链 ctx_materializer / cooccurrence_filter / herd_decay 惯例一致 (用户在 paths.yaml
+    # 改 stage 14 输出名时本阶段输入随之跟随)。golden-safe: 键存在且值=默认字面量。
+    # 输出 25_article_embeddings.parquet 无 config 键 (schemas None), 仍保字面量。
+    src_name = CONFIG['filenames'].get('output_13_news_with_ctx', '14_news_with_ctx.parquet')
 
     # ── 🧭 项目 / 环境信息 (日志富集 2026-06-24; 纯日志, golden-safe) ──
     # 把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数"一次性落进日志, 便于审计/复现。
@@ -347,7 +353,7 @@ def main():
             "由 stage 13 prepend 标题恰好一次, title_col=None 关二次前置)"
         )
         logger.info(
-            f"     · 输入:   {os.path.join(output_dir, '14_news_with_ctx.parquet')}"
+            f"     · 输入:   {os.path.join(output_dir, src_name)}"
         )
         logger.info(
             f"     · 输出:   {os.path.join(output_dir, '25_article_embeddings.parquet')}"
@@ -356,7 +362,7 @@ def main():
     except Exception as _e_env:  # noqa: BLE001
         logger.warning(f"  环境/方法/配置信息打印失败 (不影响处理): {_e_env}")
 
-    src_path = os.path.join(output_dir, '14_news_with_ctx.parquet')
+    src_path = os.path.join(output_dir, src_name)
     if not os.path.exists(src_path):
         logger.error(f"  上游 stage 13 未跑: {src_path}")
         sys.exit(1)

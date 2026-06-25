@@ -452,9 +452,13 @@ def run_stage(
     # env 覆盖 (STAGE_21_PARQUET/OUT_DIR) 保留; 输入文件名仍为 canonical 21_tone_llms.parquet。
     _output_dir = config['paths']['output_dir']
     if stage_21_parquet is None:
+        # fix(stage21-read-config-wiring, 2026-06-25): 默认输入名经 config 单一真值解析
+        # (output_21_tone_llms; 键存在值=默认 → golden-safe), 替代硬编码字面量
+        # (env STAGE_21_PARQUET 覆盖仍优先)。
+        _s21 = config['filenames'].get('output_21_tone_llms', '21_tone_llms.parquet')
         stage_21_parquet = os.environ.get(
             'STAGE_21_PARQUET',
-            os.path.join(_output_dir, '21_tone_llms.parquet'),
+            os.path.join(_output_dir, _s21),
         )
     if out_dir is None:
         out_dir = os.environ.get('OUT_DIR', _output_dir)

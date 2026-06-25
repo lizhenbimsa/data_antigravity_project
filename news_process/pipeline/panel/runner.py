@@ -345,13 +345,26 @@ def _gated_log_sent(panel: pd.DataFrame, track: str) -> pd.Series:
 # fix(omni-g-runner-16, 2026-06-11): 8c opt-in 特征面板的登记上游 (新鲜度守卫用)。
 # 26_staleness 读 14_news_with_ctx + 25_article_embeddings + 24/21 verified 键
 # (article_staleness.py:426-484); 75 读 21_tone_llms[_full] (cross_media_alpha.py:340-347)。
+# fix(optin-upstream-config-wiring, 2026-06-25): 登记上游中【config 可改名】的文件名
+# (output_13_news_with_ctx / output_24_herd_decay / output_21_tone_llms[_full]) 经
+# FILENAMES (= CONFIG['filenames'], encode 导入) 单一真值解析, 默认配置下 == 字面量 →
+# golden-safe; 用户在 paths.yaml 改这些上游名时, 新鲜度守卫随之跟随, 不再因硬编码上游名
+# 失配而静默退化为 no-op (与 #4 让 stage 25/26 生产者 config-aware 的改动对齐, 闭合其
+# 略微扩大的暴露面)。无 config 键者保字面量 = 单一真值: 25_article_embeddings (stage 25,
+# schemas._OUTPUT_FILENAME_KEYS=None) + 本 dict 的 feature-file 键 26_staleness_panel
+# (stage 26, 经 2026-06-25 改 None 后不可经 config 改名) / 75_cross_media_alpha
+# (validation, 不进 OUTPUT_REGISTRY) — 三者恒用默认名。
 _OPTIN_FEATURE_UPSTREAMS = {
-    '26_staleness_panel.parquet': ['14_news_with_ctx.parquet',
-                                   '25_article_embeddings.parquet',
-                                   '24_herd_decay.parquet',
-                                   '21_tone_llms.parquet'],
-    '75_cross_media_alpha.parquet': ['21_tone_llms_full.parquet',
-                                      '21_tone_llms.parquet'],
+    '26_staleness_panel.parquet': [
+        FILENAMES.get('output_13_news_with_ctx', '14_news_with_ctx.parquet'),
+        '25_article_embeddings.parquet',
+        FILENAMES.get('output_24_herd_decay', '24_herd_decay.parquet'),
+        FILENAMES.get('output_21_tone_llms', '21_tone_llms.parquet'),
+    ],
+    '75_cross_media_alpha.parquet': [
+        FILENAMES.get('output_21_tone_llms_full', '21_tone_llms_full.parquet'),
+        FILENAMES.get('output_21_tone_llms', '21_tone_llms.parquet'),
+    ],
 }
 
 
@@ -1236,10 +1249,14 @@ def main():
             src_col = f'bartik_type_iv{track}'
             dst_col = f'bartik_type_iv{track}{suffix}'
             ptmp = ptmp.rename(columns={src_col: dst_col})
+        # fix(bartik-ss-merge-parity, 2026-06-25): merge-select 改为程序化三轨列表,
+        # 补回 _ss 轨。此前只回选 full/ctx → 上面 rename 循环造出的
+        # bartik_type_iv_ss{suffix} 被丢弃 (死计算 + 三轨平价破坏); v3.9.0 引入 _ss
+        # 时漏改 merge-select (git blame 实证)。与上方 rename 循环同序三轨。
+        _bartik_sel = ['target_bank', 'year'] + [
+            f'bartik_type_iv{track}{suffix}' for track in ('_full', '_ctx', '_ss')]
         panel = panel.merge(
-            ptmp[['target_bank', 'year',
-                  f'bartik_type_iv_full{suffix}',
-                  f'bartik_type_iv_ctx{suffix}']],
+            ptmp[_bartik_sel],
             on=['target_bank', 'year'], how='left')
     # fix(omni-g-runner-04, 2026-06-11): 真·池化基期 _t01 — 旧实现把 {T0,T0+1}
     # 年份子集当全量文章传入, 而 compute_bartik_iv 内部 share 仍只取 year==T0
@@ -1261,10 +1278,12 @@ def main():
         for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
             src_col = f'bartik_type_iv{track}'
             ptmp = ptmp.rename(columns={src_col: f'bartik_type_iv{track}_t01'})
+        # fix(bartik-ss-merge-parity, 2026-06-25): 同上, _t01 池化基期 merge-select 补回
+        # _ss 轨 (此前丢弃 bartik_type_iv_ss_t01)。
+        _bartik_sel_t01 = ['target_bank', 'year'] + [
+            f'bartik_type_iv{track}_t01' for track in ('_full', '_ctx', '_ss')]
         panel = panel.merge(
-            ptmp[['target_bank', 'year',
-                  'bartik_type_iv_full_t01',
-                  'bartik_type_iv_ctx_t01']],
+            ptmp[_bartik_sel_t01],
             on=['target_bank', 'year'], how='left')
 
     # --- 稳健性 1: 银行规模 (4类, 3有效IV) — v3: 显式基期 T0 ---

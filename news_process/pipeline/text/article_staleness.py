@@ -514,7 +514,13 @@ def _restrict_to_panel_domain(art_df: pd.DataFrame, output_dir: str) -> pd.DataF
             "(与面板兄弟列聚合域不一致, 勿用于发表对比)"
         )
         return art_df
-    for fname in ('24_herd_decay.parquet', '21_tone_llms.parquet'):
+    # fix(staleness-input-config-wiring, 2026-06-25): verified 域门控源经 config 单一
+    # 真值解析 (output_24_herd_decay / output_21_tone_llms), 替代硬编码字面量 (键均存在
+    # 于 paths.yaml, 值=默认名 → golden-safe)。
+    for fname in (
+        CONFIG['filenames'].get('output_24_herd_decay', '24_herd_decay.parquet'),
+        CONFIG['filenames'].get('output_21_tone_llms', '21_tone_llms.parquet'),
+    ):
         vpath = os.path.join(output_dir, fname)
         if not os.path.exists(vpath):
             continue
@@ -594,7 +600,10 @@ def main():
     phase_durations: dict[str, float] = {}
 
     output_dir = CONFIG['paths']['output_dir']
-    src_path = os.path.join(output_dir, '14_news_with_ctx.parquet')
+    # fix(staleness-input-config-wiring, 2026-06-25): 输入名经 config 单一真值解析
+    # (output_13_news_with_ctx; 键存在值=默认 → golden-safe), 替代硬编码字面量。
+    src_name = CONFIG['filenames'].get('output_13_news_with_ctx', '14_news_with_ctx.parquet')
+    src_path = os.path.join(output_dir, src_name)
     if not os.path.exists(src_path):
         logger.error(f"  stage 13 未跑: {src_path}")
         sys.exit(1)

@@ -400,9 +400,13 @@ def main():
     logger.info("=" * 72)
 
     output_dir = CONFIG['paths']['output_dir']
-    src_path = os.path.join(output_dir, '21_tone_llms_full.parquet')
+    # fix(stage21-read-config-wiring, 2026-06-25): stage 21 输出名经 config 单一真值解析
+    # (output_21_tone_llms[_full]; 键存在值=默认 → golden-safe), 与 runner 新鲜度守卫
+    # (_OPTIN_FEATURE_UPSTREAMS, 同日 config 化) 同口径, 替代硬编码字面量。
+    _fn = CONFIG['filenames']
+    src_path = os.path.join(output_dir, _fn.get('output_21_tone_llms_full', '21_tone_llms_full.parquet'))
     if not os.path.exists(src_path):
-        src_path = os.path.join(output_dir, '21_tone_llms.parquet')
+        src_path = os.path.join(output_dir, _fn.get('output_21_tone_llms', '21_tone_llms.parquet'))
     if not os.path.exists(src_path):
         logger.error(f"  stage 21 tone 未跑")
         sys.exit(1)

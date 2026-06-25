@@ -120,9 +120,18 @@ _OUTPUT_FILENAME_KEYS: Mapping[tuple[str, str], Optional[str]] = {
     ("14_materialize_ctx.py", "14_news_with_ctx.parquet"): "output_13_news_with_ctx",
     ("15_fintech_intensity.py", "15_fintech_intensity.parquet"): "output_14_fintech_intensity",
     ("16_article_policy_alignment.py", "16_article_alignment.parquet"): "output_15_article_alignment",
-    # v3.7.0 PR #11+#11.5 (D2)
-    ("26_article_staleness.py", "26_article_staleness.parquet"): "output_18_article_staleness",
-    ("26_article_staleness.py", "26_staleness_panel.parquet"): "output_18_staleness_panel",
+    # v3.7.0 PR #11+#11.5 (D2). fix(staleness-dangling-key, 2026-06-25): 改 None 对齐
+    # 同族 stage 25 (25_article_sbert → 25_article_embeddings.parquet 亦 None) — 旧键
+    # output_18_article_staleness / output_18_staleness_panel 在 config/paths.yaml::
+    # filenames 中【不存在】(悬空键), 且生产者 article_staleness.py 与消费者 runner.py
+    # (_OPTIN_FEATURE_UPSTREAMS) 历来硬编码字面量 → 契约谎称"config 可改名"实则不可
+    # (footgun)。改 None = 诚实声明"不可经 config 改名, 恒用默认名", 与生产/消费两端字面量
+    # 自洽。golden-safe: get_stage_outputs 内 `key is not None and key in filenames_cfg`
+    # 分支使 None 与"缺键 fallback"殊途同归返回默认名, 行为字节不变; None 亦不参与
+    # _validate_registry_invariant 校验5 (filename_key 跨条目唯一性, 见其 "None 值不参与
+    # 校验" 行内注释)。
+    ("26_article_staleness.py", "26_article_staleness.parquet"): None,
+    ("26_article_staleness.py", "26_staleness_panel.parquet"): None,
     ("21_tone_llms.py", "21_tone_llms.parquet"): "output_21_tone_llms",
     ("21_tone_llms.py", "21_tone_llms_full.parquet"): "output_21_tone_llms_full",
     ("22_tone_words.py", "22_words_tone.parquet"): "output_22_words_tone",
