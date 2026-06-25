@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import subprocess
 import sys
 import threading
@@ -48,6 +49,13 @@ from .logging import get_run_id, log_memory_usage, sig4
 # 此环形缓冲只是父进程内存里的诊断快照 — 完整(超长)日志始终经 reader 线程
 # 实时透传到父 logger, 落盘于 logs/<stage>.log (每次运行覆盖, 只留最新), 不受此上限截断。
 _TAIL_BUFFER_MAXLEN = 100000
+
+# ANSI / VT100 转义序列 (CSI 颜色/样式/光标等 + 双字 Fe 转义)。orchestrator 捕获
+# 子进程 stdout/stderr 后会把每行原样转发进父 logger → 落入 run_pipeline_*.log。
+# 子进程被 PIPE 捕获 (非 TTY) 时本不应再着色 (见 core/logging.py 的 TTY 判定), 但
+# 此处再做一道**防御性剥离**: 任何来源 (第三方库直接写 stdout、tqdm、外部工具) 的
+# 转义码都在转发前剥掉, 保证 orchestrator 落盘日志恒为纯文本 (LOG-COLOR 2026-06-25)。
+_ANSI_ESCAPE_RE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 
 def _stage_popen_isolation_kwargs() -> dict[str, object]:
@@ -72,6 +80,9 @@ def _reader_thread(stream: IO[str],
         for line in iter(stream.readline, ''):
             # 去掉行末换行 / 回车; 保留行内空白以维持原始可读性
             line = line.rstrip('\r\n')
+            # 防御性剥离 ANSI 转义码: 子进程非 TTY 时本不该着色, 但任何残留的转义
+            # 序列 (第三方库直写 stdout 等) 都不得随转发落入 run_pipeline_*.log。
+            line = _ANSI_ESCAPE_RE.sub('', line)
             logger.log(log_level, f"  {prefix} {line}")
             accumulator.append(line)
     except Exception as e:  # pragma: no cover — 防御性兜底

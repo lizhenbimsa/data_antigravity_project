@@ -29,6 +29,13 @@ import psutil
 
 _RUN_ID_ENV = "NEWS_PROCESS_RUN_ID"
 
+# 落盘日志行的**无色**格式 (单一事实源): 文件 handler 恒用它; console handler 在
+# 输出流非 TTY (被管道捕获 / 重定向到文件) 时也退化到它, 以保证两类输出在无色
+# 路径上字节一致, 且 ANSI 转义码绝不进入任何落盘文件 (见 _should_colorize)。
+_PLAIN_LINE_FMT = (
+    '%(asctime)s - %(name)s - PID:%(process)d - %(levelname)s - %(message)s'
+)
+
 
 def _install_warning_filters() -> None:
     """抑制已知的可选加速器警告 (CPU 环境下无害, 如 triton 找不到 CUDA)。"""
@@ -79,8 +86,32 @@ class _MaxLevelFilter(logging.Filter):
         return record.levelno < self.max_level
 
 
+def _should_colorize(stream) -> bool:
+    """判断某输出流是否应启用 ANSI 着色 —— 仅当其连接真实终端且未被显式禁用时。
+
+    ANSI 着色只对人类在**交互式终端**阅读有意义。一旦输出流被重定向 / 管道捕获
+    (阶段子进程的 stdout 被 orchestrator 以 ``subprocess.PIPE`` 捕获, 或
+    ``python x.py > out.log`` 重定向到文件), 着色就会把 ``\\x1b[...m`` 转义码写进
+    落盘文件; 尤其 orchestrator 会把捕获到的子进程 stdout 原样转发进
+    ``run_pipeline_*.log``, 转义码随之污染日志。故此处以 ``isatty()`` 为统一闸门,
+    并遵循 NO_COLOR 事实标准 (https://no-color.org): 任何非空 ``NO_COLOR`` 即禁用着色。
+    """
+    if os.environ.get("NO_COLOR"):
+        return False
+    try:
+        return bool(stream.isatty())
+    except Exception:  # 流无 isatty / 已关闭 / 捕获对象等 → 保守判为非终端
+        return False
+
+
 class _ColoredFormatter(logging.Formatter):
-    """ANSI 着色 console formatter (按日志等级染色)。"""
+    """ANSI 着色 console formatter (按日志等级染色)。
+
+    ``use_color=False`` 时**退化为与文件 handler 完全一致的无色纯文本**
+    (``_PLAIN_LINE_FMT``): 当输出流不是真实终端 (被 PIPE 捕获 / 重定向到文件) 时,
+    一律输出无色文本, 避免 ANSI 转义码污染落盘日志 (是否着色由 ``setup_logging``
+    经 :func:`_should_colorize` 按流逐一判定后注入)。
+    """
 
     _GREY = '\033[38;5;245m'
     _BLUE = '\033[38;5;75m'
@@ -99,11 +130,16 @@ class _ColoredFormatter(logging.Formatter):
         logging.CRITICAL: _BOLD_RED,
     }
 
-    def __init__(self, datefmt=None):
+    def __init__(self, datefmt=None, use_color: bool = True):
         super().__init__(datefmt=datefmt)
         self.default_msec_format = '%s.%03d'
+        self._use_color = use_color
 
     def format(self, record):
+        if not self._use_color:
+            # 无色路径: 与文件 handler 字节一致, 不写入任何 ANSI 转义码。
+            self._style._fmt = _PLAIN_LINE_FMT
+            return super().format(record)
         level_color = self._LEVEL_COLORS.get(record.levelno, self._RESET)
         fmt = (
             f'{self._GREY}%(asctime)s{self._RESET} - '
@@ -192,7 +228,7 @@ def setup_logging(stage_name, log_dir, file_mode='w', console_only=False,
     logger.setLevel(level)
 
     file_formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - PID:%(process)d - %(levelname)s - %(message)s',
+        _PLAIN_LINE_FMT,
         datefmt='%Y-%m-%d %H:%M:%S'
     )
     file_formatter.default_msec_format = '%s.%03d'
@@ -218,17 +254,24 @@ def setup_logging(stage_name, log_dir, file_mode='w', console_only=False,
         fh.setFormatter(file_formatter)
         logger.addHandler(fh)
 
-    console_formatter = _ColoredFormatter(datefmt='%Y-%m-%d %H:%M:%S')
-
+    # ANSI 着色仅在 console 流连接真实终端时启用: 一旦被管道捕获 (阶段子进程的
+    # stdout 被 orchestrator 以 PIPE 捕获) 或重定向到文件, 即退化为无色纯文本 ——
+    # 否则转义码会被 orchestrator 原样转发落入 run_pipeline_*.log, 污染日志
+    # (LOG-COLOR 修复 2026-06-25)。逐流判定 (stdout / stderr 可能一个是 TTY 一个
+    # 被重定向), 故各自构造独立 formatter。
     ch_out = logging.StreamHandler(sys.stdout)
     ch_out.setLevel(level)
     ch_out.addFilter(_MaxLevelFilter(logging.WARNING))
-    ch_out.setFormatter(console_formatter)
+    ch_out.setFormatter(_ColoredFormatter(
+        datefmt='%Y-%m-%d %H:%M:%S',
+        use_color=_should_colorize(ch_out.stream)))
     logger.addHandler(ch_out)
 
     ch_err = logging.StreamHandler(sys.stderr)
     ch_err.setLevel(max(level, logging.WARNING))
-    ch_err.setFormatter(console_formatter)
+    ch_err.setFormatter(_ColoredFormatter(
+        datefmt='%Y-%m-%d %H:%M:%S',
+        use_color=_should_colorize(ch_err.stream)))
     logger.addHandler(ch_err)
 
     logger.propagate = False
