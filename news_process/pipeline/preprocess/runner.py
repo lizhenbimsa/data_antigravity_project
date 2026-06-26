@@ -111,6 +111,7 @@ if __name__ == "__main__":
     if _project_parent not in sys.path:
         sys.path.insert(0, _project_parent)
 
+from news_process.core.data_versioning import save_parquet_with_metadata
 from news_process.core.logging import (
     log_and_time,
     log_memory_usage,
@@ -197,6 +198,22 @@ def compute_preprocess_cache_key(
                          else PREPROCESS_CODE_VERSION),
     }
     return compute_config_hash(payload)
+
+
+def enumerate_raw_xlsx(raw_data_dir: str) -> list[str]:
+    """stage 00 原始输入 (raw_data_dir 下非递归 ``*.xlsx``) 的规范化清单。
+
+    返回**排序后的绝对路径**。供 (a) ``main()`` 写 data_version 的 ``input_files``
+    (→ input_hashes), (b) 编排器 ``--skip-unchanged`` 的语料"新增/删除/内容变"检测
+    共用同一口径。⚠ 刻意**不**用它替换 ``load_and_process_data`` 内的处理 glob
+    (line 224): 那里改成 sorted/abspath 会改变文件处理→流式追加顺序, 可能扰动后续
+    去重的并列 tiebreak → 破坏 golden 字节一致。此函数仅服务"元数据/跳过判据", 顺序
+    无关 (input_hashes 是 dict, 集合比对)。glob 模式须与 line 224 保持一致。
+    """
+    return sorted(
+        os.path.abspath(p)
+        for p in glob.glob(os.path.join(raw_data_dir, '*.xlsx'))
+    )
 
 
 # ============================================================================
@@ -600,9 +617,26 @@ def main() -> None:
             df = deduplicator.run(df)
 
             logger.info(f"写入去重结果 → {output_path}")
-            table = pa.Table.from_pandas(df, preserve_index=False)
-            pq.write_table(
-                table, output_path,
+            # ── W5 (2026-06-26): 经 save_parquet_with_metadata 写盘以激活通用 --skip-unchanged ──
+            # 历史此处是裸 pq.write_table (无 data_version 元数据) → 编排器对根阶段 00 保守不跳
+            # → 前缀守卫令全链不跳 → --skip-unchanged 在全量跑中为 no-op。改走带元数据写盘:
+            #   · 复刻历史列存布局 (preserve_index=False + 同款 compression/row_group_size/
+            #     use_dictionary/write_statistics) → 数据列字节不变 (golden 只哈希数据列 → safe);
+            #   · 额外写 config_file_hashes / resource_hashes / input_hashes (原始 *.xlsx 语料) →
+            #     编排器据此做内容寻址跳过判据。input_files = 全量原始 xlsx (含内容 SHA-256),
+            #     使"改原始语料内容/删文件"被检出; "新增文件"由编排器侧集合门补足 (见
+            #     run_pipeline_function.STAGE_RAW_INPUT_GLOBS)。
+            raw_inputs = enumerate_raw_xlsx(CONFIG['paths']['raw_data_dir'])
+            save_parquet_with_metadata(
+                df,
+                output_path,
+                stage_name=STAGE_NAME,
+                config=CONFIG,
+                input_files=raw_inputs,
+                # W5: 记预处理代码语义版本 → 改 dedup/normalize/filter 逻辑 (须 bump
+                #   PREPROCESS_CODE_VERSION) 后, --skip-unchanged 会失效本阶段跳过, 防代码层 silent-staleness。
+                code_version=PREPROCESS_CODE_VERSION,
+                preserve_index=False,
                 compression='snappy',     # Snappy: 压缩比 ~2:1, 解压缩极快 (~250MB/s)
                 row_group_size=100_000,   # 每组 10 万行: 平衡列存储压缩率与读取粒度
                 use_dictionary=True,      # 字符串列字典编码, 重复值多时显著节省空间

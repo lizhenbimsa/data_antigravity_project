@@ -157,10 +157,15 @@ class DataVersionMetadata:
         config: dict,
         input_files: Optional[list[str]] = None,
         config_dir: str | Path | None = None,
+        code_version: str | None = None,
     ):
         self.stage_name = stage_name
         self.config = config
         self.input_files = input_files or []
+        # W5 (2026-06-26): 该阶段"代码语义版本号" (如 stage 00 的 PREPROCESS_CODE_VERSION)。
+        #   写进 schema metadata (非数据列 → golden-safe), 供 --skip-unchanged 在改了预处理
+        #   代码逻辑 (dedup/normalize/filter) 时失效该阶段的跳过判据 (config/语料未变也重跑)。
+        self.code_version = code_version
 
         # 收集版本信息
         self.git_commit = get_git_commit_hash()
@@ -189,6 +194,7 @@ class DataVersionMetadata:
             "git_commit": self.git_commit,
             "git_branch": self.git_branch,
             "config_hash": self.config_hash,
+            "code_version": self.code_version,
             "config_file_hashes": self.config_file_hashes,
             "resource_hashes": self.resource_hashes,
             "timestamp": self.timestamp,
@@ -210,6 +216,13 @@ def save_parquet_with_metadata(
     config: dict,
     input_files: Optional[list[str]] = None,
     config_dir: str | Path | None = None,
+    *,
+    code_version: str | None = None,
+    preserve_index: bool | None = None,
+    compression: str = "snappy",
+    row_group_size: int | None = None,
+    use_dictionary: bool = True,
+    write_statistics: bool = True,
 ):
     """
     保存 DataFrame 到 parquet 文件，并附加版本元数据。
@@ -220,10 +233,25 @@ def save_parquet_with_metadata(
         stage_name: 阶段名称
         config: 配置字典
         input_files: 依赖的输入文件列表
-    """
-    metadata = DataVersionMetadata(stage_name, config, input_files, config_dir=config_dir)
+        config_dir: split YAML / 资源目录 (默认从 core/config 同源定位)
+        code_version: 该阶段代码语义版本号 (如 PREPROCESS_CODE_VERSION); 入 schema metadata,
+            供 --skip-unchanged 在预处理代码逻辑变化时失效跳过 (默认 None = 不记录, 不参与门控)
+        preserve_index: 透传给 ``pa.Table.from_pandas`` (默认 None = pyarrow 默认行为)
+        compression / row_group_size / use_dictionary / write_statistics:
+            透传给 ``pq.write_table`` 的列存布局参数。
 
-    table = pa.Table.from_pandas(df)
+    ⚠ W5 (2026-06-26): ``preserve_index`` 与四个 write 参数的默认值与
+    ``pa.Table.from_pandas`` / ``pq.write_table`` 的 pyarrow 默认**逐位一致** —— 既有调用方
+    (不传这些 kwargs) 产物字节不变。stage 00 (``pipeline/preprocess/runner.py``) 用它们
+    复刻历史 ``pq.write_table(..., row_group_size=100_000, ...)`` 的列存布局, 仅额外多写
+    ``b'data_version'`` schema metadata (非数据列 → golden 只哈希数据列 → golden-safe),
+    以激活通用 ``--skip-unchanged`` 的根阶段内容寻址判据。
+    """
+    metadata = DataVersionMetadata(
+        stage_name, config, input_files, config_dir=config_dir, code_version=code_version
+    )
+
+    table = pa.Table.from_pandas(df, preserve_index=preserve_index)
 
     existing_metadata = table.schema.metadata or {}
     custom_metadata = {
@@ -234,7 +262,14 @@ def save_parquet_with_metadata(
     new_schema = table.schema.with_metadata(merged_metadata)
     table = table.cast(new_schema)
 
-    pq.write_table(table, output_path)
+    pq.write_table(
+        table,
+        output_path,
+        compression=compression,
+        row_group_size=row_group_size,
+        use_dictionary=use_dictionary,
+        write_statistics=write_statistics,
+    )
 
     # ── 纯日志统计 (log-only, 不参与任何产物计算; 仅喂给下方 logger) ──
     n_rows, n_cols = df.shape  # df.shape 只读, 不改产物

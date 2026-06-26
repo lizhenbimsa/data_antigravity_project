@@ -180,19 +180,53 @@ STAGE_CONFIG_FILES: dict[str, tuple[str, ...]] = {
 # 注: stage 21 (LLM) 故意不在此表 — 它由专用 --skip-21-if-exists (三重指纹安检) 处理, 不走通用 skip。
 
 
+# ── W5: DAG 根阶段的"原始输入"目录 glob (非上游 parquet) ──
+# 仅根阶段 (stage 00) 的输入是 raw_data_dir 下 glob 的原始文件而非上游产物。根阶段没有
+# 上游 → 前缀守卫 (any_stage_ran) 无从保护它 → 必须显式比对"当前 glob 集合 vs 已记
+# input_hashes 集合"以检出**新增**文件 (内容变/删除由通用 input_hashes 循环覆盖)。
+# (key, glob 模式) 须与 pipeline/preprocess/runner.enumerate_raw_xlsx / runner.py 处理 glob 一致。
+STAGE_RAW_INPUT_GLOBS: dict[str, tuple[str, str]] = {
+    "00_preprocessing.py": ("raw_data_dir", "*.xlsx"),
+}
+
+
+# ── W5: 阶段 → 暴露其"代码语义版本号"常量的 (module, attribute) ──
+# --skip-unchanged 默认按 config/资源/输入内容寻址, **不**检测纯代码逻辑变更 —— 这是 opt-in
+# 跳过对全部阶段的固有边界 (gate 在 git_commit 上会因每次提交都变而使跳过近乎失效)。但 DAG 根
+# 阶段 stage 00 有项目既有的 PREPROCESS_CODE_VERSION 纪律 (compute_preprocess_cache_key 已用它
+# 失效 per-file 缓存) → 在此把它接入跳过判据: 改预处理代码逻辑 (dedup/normalize/filter) 并 bump
+# 该版本号后, --skip-unchanged 会正确失效根阶段跳过, 杜绝代码层 silent-staleness 在最关键的根阶段
+# 发生。其余阶段无此类常量, 仍依赖 opt-in 契约 (改阶段代码勿配 --skip-unchanged, 或全量重跑)。
+STAGE_CODE_VERSION: dict[str, tuple[str, str]] = {
+    "00_preprocessing.py": (
+        "news_process.pipeline.preprocess._constants", "PREPROCESS_CODE_VERSION",
+    ),
+}
+
+
 def _stage_skip_unchanged_is_safe(script: str) -> tuple[bool, str]:
     """通用 --skip-unchanged 单阶段跳过判据 (保守, golden-safe; 纯读元数据不产数据)。
 
     全满足才跳: 登记产物全存在 + 元数据含 config_file_hashes/resource_hashes + 该 stage 相关
-    split YAML 未变 + config/ 全部资源 (词典/anchor/prompt) 未变 + 已记 input_hashes 对当前文件全匹配。
-    资源门是全量比对 (任一资源变 → 不跳) 防"改词典却被错跳"。⚠ 主循环另有"前缀守卫"
-    (任一上游阶段本次真跑过 → 下游一律不跳) 作数据依赖的根本安全网, 二者叠加。
+    split YAML 未变 + config/ 全部资源 (词典/anchor/prompt) 未变 + 已记 input_hashes 对当前文件
+    全匹配 (任一被删/不可读/内容变 → 不跳) + (根阶段) 原始语料无新增文件 + (有 code_version 的阶段)
+    代码版本未变。资源门是全量比对防"改词典却被错跳"。⚠ 主循环另有"前缀守卫" (任一上游阶段本次
+    真跑过 → 下游一律不跳) 作数据依赖的根本安全网。判据**只读不抛**: 任一文件无法哈希核验 → 保守
+    返 False (绝不让跳过判据本身 abort 整条 pipeline)。
 
-    ⚠ F1 (2026-06-26) 现状: stage 00 主产物 (runner.py 裸 pq.write_table) 无 data_version
-    元数据 → 本判据对 '00_preprocessing.py' 返 False → 00 必跑 → 前缀守卫令全链不跳, 故
-    --skip-unchanged 在全量生产跑中当前为 no-op。激活需 stage 00 经 save_parquet_with_metadata
-    写元数据 (并把原始输入纳入 input_hashes, 否则改原始数据会被误跳)。本判据逻辑本身已经单测覆盖。
+    ✅ W5 已激活 (2026-06-26): stage 00 主产物现经 save_parquet_with_metadata 写 data_version
+    元数据 (含原始 *.xlsx 语料的 input_hashes + PREPROCESS_CODE_VERSION)。
+
+    覆盖边界 (诚实声明, 勿 overclaim):
+      ✓ 检出 = 语料层 (xlsx 内容变/新增/删除/改名) + config split YAML 内容 + config/ 资源
+        (词典/anchor/prompt) + 上游产物内容 + (stage 00) 预处理代码版本 PREPROCESS_CODE_VERSION。
+      ✗ 不检出 = **非根阶段的纯代码逻辑变更** 与 **依赖/jieba/Python 版本变更** —— 这是 opt-in
+        跳过对全部阶段的固有边界 (gate 在 git_commit 上会因每次提交都变而使跳过失效)。改了流水线
+        代码而 config/语料未变时, **请勿配 --skip-unchanged** (或全量重跑); stage 00 例外已由
+        STAGE_CODE_VERSION 接入版本门保护。
     """
+    import glob as _glob
+
     from news_process.core.data_versioning import (
         compute_config_file_hashes,
         compute_file_hash,
@@ -208,6 +242,19 @@ def _stage_skip_unchanged_is_safe(script: str) -> tuple[bool, str]:
     out_dir = CONFIG['paths']['output_dir']
     cur_cfg = compute_config_file_hashes(CONFIG_DIR)
     cur_res = compute_resource_hashes(CONFIG_DIR)
+    raw_glob = STAGE_RAW_INPUT_GLOBS.get(script)
+    # W5: 该阶段代码版本门 (仅 stage 00; 见 STAGE_CODE_VERSION)。一次性解析当前版本号。
+    code_spec = STAGE_CODE_VERSION.get(script)
+    cur_code_version = None
+    if code_spec is not None:
+        import importlib
+        _mod_name, _attr = code_spec
+        try:
+            cur_code_version = getattr(importlib.import_module(_mod_name), _attr, None)
+        except Exception as _e:  # noqa: BLE001 — 解析失败即保守重跑, 绝不 abort
+            return False, f"{script} 无法解析当前代码版本 {_mod_name}.{_attr} ({_e.__class__.__name__}), 保守重跑"
+    # 单次调用内文件哈希记忆 (多产物阶段避免对同一上游输入重复哈希; 也省 stage00 全语料重算)。
+    _hash_memo: dict[str, str] = {}
     for fn in outputs:
         path = os.path.join(out_dir, fn)
         if not os.path.exists(path):
@@ -220,10 +267,50 @@ def _stage_skip_unchanged_is_safe(script: str) -> tuple[bool, str]:
                 return False, f"config 文件 {wf} 内容已变"
         if meta['resource_hashes'] != cur_res:
             return False, "config/ 下资源文件 (词典/anchor/prompt) 内容已变"
-        for rec_path, rec_hash in (meta.get('input_hashes') or {}).items():
-            if os.path.exists(rec_path) and compute_file_hash(rec_path) != rec_hash:
-                return False, f"上游输入 {os.path.basename(rec_path)} 内容已变"
-    return True, "config/资源/上游输入均未变"
+        # 代码版本门 (仅 STAGE_CODE_VERSION 内阶段; 旧产物无 code_version → None ≠ 当前 → 保守不跳)。
+        if code_spec is not None and meta.get('code_version') != cur_code_version:
+            return False, (
+                f"代码版本变 (记录={meta.get('code_version')} 当前={cur_code_version})"
+            )
+        rec_inputs = meta.get('input_hashes') or {}
+        for rec_path, rec_hash in rec_inputs.items():
+            # 已记输入被删/移动 → 不跳 (旧实现 os.path.exists 为 False 时静默放行, 是 silent-staleness 漏洞)。
+            if not os.path.exists(rec_path):
+                return False, f"已记输入 {os.path.basename(rec_path)} 已不存在 (被删/移动)"
+            if rec_path not in _hash_memo:
+                try:
+                    _hash_memo[rec_path] = compute_file_hash(rec_path)
+                except OSError as _e:
+                    # 文件存在但不可读 (Windows 上被 Excel/杀软/OneDrive 锁) → 无法核验 → 保守重跑;
+                    # 绝不让跳过判据本身抛异常 abort 整条 pipeline (与"保守=跑该阶段"一致)。
+                    return False, (
+                        f"输入 {os.path.basename(rec_path)} 无法读取核验 "
+                        f"({_e.__class__.__name__}), 保守重跑"
+                    )
+            if _hash_memo[rec_path] != rec_hash:
+                return False, f"输入 {os.path.basename(rec_path)} 内容已变"
+        # ── DAG 根阶段专属: 原始语料"集合新增"门 (内容变/删除已由上方 input_hashes 循环覆盖) ──
+        if raw_glob is not None:
+            cfg_key, pattern = raw_glob
+            raw_dir = CONFIG['paths'].get(cfg_key, '') or ''
+            if not raw_dir:
+                return False, f"{script} 原始输入目录 ({cfg_key}) 未配置, 保守重跑"
+            suffix = pattern.lstrip('*').lower()
+            cur_raw = {
+                os.path.abspath(p)
+                for p in _glob.glob(os.path.join(raw_dir, pattern))
+            }
+            rec_raw = {
+                os.path.abspath(k) for k in rec_inputs
+                if str(k).lower().endswith(suffix)
+            }
+            added = cur_raw - rec_raw
+            if added:
+                return False, (
+                    f"原始语料新增 {len(added)} 个 {pattern} "
+                    f"(如 {os.path.basename(sorted(added)[0])})"
+                )
+    return True, "config/资源/代码版本/原始与上游输入均未变"
 
 
 _STAGE21_UPSTREAM_FINGERPRINT_COLUMNS = (
@@ -425,12 +512,13 @@ def _parse_cli_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help=(
             "通用阶段级增量: 跳过'输入未变'的阶段 (登记产物已存在 + 其 split YAML 内容 + "
-            "config/ 资源 + 已记上游 input_hashes 均未变, 且本次无上游阶段真跑过)。默认关 "
-            "(不改生产首跑语义); 纯读 parquet 元数据决定是否 spawn, 不进 stage 内存 = golden 中性。 "
-            "⚠ F1 (2026-06-26): 当前在全量生产跑中为脚手架/暂未生效 —— stage 00 主产物经裸 "
-            "pq.write_table 写出, 无 data_version 元数据 → 判据对 00 保守不跳 → 前缀守卫使全链不跳。"
-            "激活需 stage 00 改经 save_parquet_with_metadata 并记录原始输入哈希 (scoped follow-up); "
-            "机制 + 安全网已就位且经单测 (tests/test_w5_skip_unchanged.py)。"
+            "config/ 资源 + 已记 input_hashes + (根阶段) 原始语料集合 + (stage00) 代码版本 均未变, "
+            "且本次无上游阶段真跑过)。默认关 (不改生产首跑语义); 纯读 parquet 元数据决定是否 spawn, "
+            "不进 stage 内存 = golden 中性。 ✅ 已激活 (2026-06-26): stage 00 经 save_parquet_with_metadata "
+            "写 data_version 元数据 (原始 *.xlsx 语料 input_hashes + PREPROCESS_CODE_VERSION); 命中时其"
+            "上游链 (00–16, stage21 走专用 --skip-21 + 前缀守卫) 可跳。检出: 语料内容变/删除/新增 + config/"
+            "资源 + (stage00) 预处理代码版本。⚠ 不检出: **非根阶段的纯代码逻辑变更**与依赖/jieba 版本变 "
+            "(opt-in 跳过的固有边界) — 改流水线代码请勿配本 flag 或全量重跑。机制经 tests/test_w5_skip_unchanged.py 覆盖。"
         ),
     )
     return parser.parse_args(argv)
