@@ -110,6 +110,28 @@ miss → 重新付费调 LLM/embedding API 重建**, 且破坏 golden 跨-run �
 Carlson & Burbano (2026, SMJ §3.3) — LLM 实验可复现性要求确定性缓存.
 Plan-r3 P3-17 的 prompt_version 维度直接对应 §3.3.2 "version-aware
 provenance" 实践: 任何 prompt 改动必须导致 cache invalidate.
+
+§5 缓存版本门治理规范 (2026-06-25; 新增任何缓存层必遵守)
+========================================================
+全项目缓存的"改了代码但缓存仍命中旧值 (silent staleness)"是头号风险。提炼现有
+5 个版本门 (SCHEMA_VERSION / prompt_version×3 / text_pipeline_version×2 /
+PREPROCESS_CODE_VERSION) 的共性, 立 5 条铁律:
+
+- (A) 新缓存键首字段 = SCHEMA_VERSION (沿用 _make_key 模式), 保留全局一键失效能力.
+- (B) 凡"改代码语义会改输出但不改键内既有字段"的参数, 要么进键 (如 temperature/seed
+      按需进键), 要么绑一个显式 version token, 并在 callsite + config 注释写死 bump 触发条件.
+- (C) FP 敏感超参 (batch_size / device / dtype / 线程数 / torch 版本) 必当版本维度对待 —
+      它们改 batched matmul 舍入路径却不进键 (反例 + 守卫: config/features.yaml::
+      embedding_robustness.batch_size, tests/test_t2v_batch_version_lock.py).
+- (D) version token 优先放可 lint 扫描的位置: config/prompts/*.txt 首行 > config yaml
+      字段 > 模块内联常量. 内联常量是最弱形式, 须配 frozen-hash 单测补强 (反例 + 守卫:
+      llm_peer_iv.py::PEER_PROMPT, tests/test_peer_prompt_frozen.py).
+- (E) 资源文件 (词典 / anchor / MEDIA_NAME_OVERRIDES 等) 应以内容 sha256 入键, 而非靠
+      人工记得 bump (preprocess 已对 noise_patterns / bank_keywords 做).
+
+物理库分治、逻辑接口统一: 本地深度模型推理缓存用独立 sqlite (如 _local_model_cache.db),
+验证阶段变体缓存用 _llm_cache_validation.db, 但都复用本模块 LLMCache 类 + 同款键纪律;
+生产锚点 _llm_cache.db 勿与它们混库 (避免膨胀 + 稀释 verify 统计).
 """
 
 import hashlib

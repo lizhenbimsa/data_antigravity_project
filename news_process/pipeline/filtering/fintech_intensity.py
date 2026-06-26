@@ -111,6 +111,11 @@ import jieba
 import numpy as np
 import pandas as pd
 
+# W12 (2026-06-26, F14): HF 离线 — 模块顶设 (与 tone_berts/article_sbert/embedding_engine 三先例一致;
+# 比函数内更鲁棒)。stage15 词向量走裸 SentenceTransformer (lazy import in _build), 切加载来源不改权重 → golden-safe。
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+
 jieba.setLogLevel(logging.WARNING)
 
 from collections import Counter
@@ -363,6 +368,7 @@ def _build_intensity_weights(keyword_doc_freq: Counter, N_total: int) -> dict:
     # fix(omni-g-fintech-02, 2026-06-11): 原注释 "SIF 加权质心" 名实不符, 见模块
     # docstring Arora et al. (2017) 引用降格说明。
     try:
+        # W12 HF 离线已在模块顶 setdefault (F14, 与三先例一致)。
         from sentence_transformers import SentenceTransformer
         logger.info(f"加载词向量模型: {EMBEDDING_MODEL}")
         model = SentenceTransformer(EMBEDDING_MODEL)

@@ -289,14 +289,23 @@ class ArticleDeduplicator:
         )
         return df_deduped
 
-    def compute_minhashes(self, df: pd.DataFrame) -> pd.Series:
+    def compute_minhashes(self, df: pd.DataFrame, cache_dir: str | None = None) -> pd.Series:
         """Step 1: 并行生成 MinHash 签名 (索引 → MinHash 的 Series).
 
         签名只依赖文本与 (num_perm, ngram_size), **不依赖** Jaccard 阈值/时间窗口
         — 因此去重敏感性检验 (panel/dedup_sensitivity.py) 可对同一批签名按
         多组 (threshold, window) 反复判重而无需重算签名。
         前置: df 须已经 ``_prepare_dataframe`` (依赖 COL_COMBINED 列)。
+
+        W9 (2026-06-25): 传 ``cache_dir`` (默认 None=关) 启用内容寻址 sidecar —
+        键含 datasketch 版本 + num_perm + ngram_size + 语料指纹 (版本门: 换 datasketch
+        版本 banding 阈值漂移 → 强制重算)。签名确定 → 命中逐位等价 = golden-safe; 让
+        敏感性网格 / 跨-run 复用同批 ~385 万签名零重算。
         """
+        if cache_dir is not None:
+            _cached = self._load_minhash_cache(df, cache_dir)
+            if _cached is not None:
+                return _cached
         self.logger.info(
             f"生成 MinHash 签名({self.num_perm} 个置换, "
             f"{nb_workers} 个工作进程)..."
@@ -332,7 +341,74 @@ class ArticleDeduplicator:
                         f"  MinHash 进度: {i + 1:,}/{total_count:,} ({pct4(pct)})"
                     )
 
-        return pd.Series(minhash_results)
+        series = pd.Series(minhash_results)
+        if cache_dir is not None:
+            self._save_minhash_cache(df, series, cache_dir)
+        return series
+
+    # ── W9 (2026-06-25): MinHash 签名内容寻址 sidecar (golden-safe; 签名确定→命中逐位等价) ──
+    # F2 (2026-06-26): 分词代码版本 token — 改 _clean_and_tokenize / CLEANING_TABLE / n-gram 口径
+    # 必 bump (进 _minhash_cache_key, 防陈旧签名掩盖测度变更; 对齐 PREPROCESS_CODE_VERSION 纪律)。
+    _MINHASH_TOKENIZER_VERSION = "v1-2026-06-26"
+
+    def _minhash_cache_key(self, df: pd.DataFrame) -> str:
+        """内容寻址键: datasketch 版本 + num_perm + ngram_size + 分词代码版本 + 语料(index,文本)指纹。
+        datasketch 版本入键 = 版本门 (换版本 banding 阈值漂移, 强制重算); 分词代码版本见 F2 注释。"""
+        import hashlib
+        try:
+            from importlib.metadata import version
+            ds_ver = version("datasketch")
+        except Exception:  # noqa: BLE001
+            ds_ver = "unknown"
+        h = hashlib.sha256()
+        for idx, txt in df[self.COL_COMBINED].items():
+            h.update(repr(idx).encode("utf-8"))
+            h.update(b"\x00")
+            h.update(("" if txt is None else str(txt)).encode("utf-8"))
+            h.update(b"\x01")
+        from news_process.core.data_versioning import compute_config_hash
+        return compute_config_hash({
+            "datasketch": ds_ver,
+            "num_perm": int(self.num_perm),
+            "ngram_size": int(self.ngram_size),
+            # F2 (2026-06-26): 分词代码版本入键 (改清洗/分词逻辑必 bump _MINHASH_TOKENIZER_VERSION),
+            # 否则同语料同 ngram 会命中陈旧签名 → 掩盖测度变更。
+            "tokenizer_code": self._MINHASH_TOKENIZER_VERSION,
+            "corpus": h.hexdigest(),
+        })
+
+    def _minhash_cache_path(self, cache_dir: str, key: str):
+        from pathlib import Path
+        return Path(cache_dir) / f"minhash_{key[:16]}.parquet"
+
+    def _load_minhash_cache(self, df: pd.DataFrame, cache_dir: str):
+        path = self._minhash_cache_path(cache_dir, self._minhash_cache_key(df))
+        if not path.exists():
+            return None
+        try:
+            cached = pd.read_parquet(path)
+            out = {
+                idx: MinHash(num_perm=int(self.num_perm),
+                             hashvalues=np.frombuffer(sig, dtype="<u8").astype(np.uint64))
+                for idx, sig in zip(cached["idx"], cached["sig"])
+            }
+            self.logger.info(f"MinHash 签名缓存命中: {len(out):,} 条 ({path.name})")
+            return pd.Series(out)
+        except Exception as e:  # noqa: BLE001
+            self.logger.warning(f"MinHash 签名缓存读取失败 ({e}), 重算")
+            return None
+
+    def _save_minhash_cache(self, df: pd.DataFrame, series: pd.Series, cache_dir: str) -> None:
+        from pathlib import Path
+        path = self._minhash_cache_path(cache_dir, self._minhash_cache_key(df))
+        try:
+            Path(cache_dir).mkdir(parents=True, exist_ok=True)
+            # ⚠ CF-9: bytes 序列化 (uint64 小端) — 禁 list[int]→parquet int64 (>2^63 符号回绕破签名)。
+            sigs = [m.hashvalues.astype("<u8").tobytes() for m in series.values]
+            pd.DataFrame({"idx": list(series.index), "sig": sigs}).to_parquet(path, index=False)
+            self.logger.info(f"MinHash 签名缓存已落盘: {len(series):,} 条 → {path.name}")
+        except Exception as e:  # noqa: BLE001
+            self.logger.warning(f"MinHash 签名缓存落盘失败 ({e}), 忽略")
 
     def find_near_duplicate_indices(
         self, df: pd.DataFrame, minhashes: pd.Series,

@@ -173,7 +173,6 @@
 #   - cosine_similarity: 计算两个向量的余弦相似度（0=方向完全不同, 1=方向完全相同）
 #   - LDA (Latent Dirichlet Allocation): 主题模型，自动发现文本中隐藏的"话题"
 #   - jensenshannon: Jensen-Shannon 散度，衡量两个概率分布有多不同
-import asyncio
 import logging
 import os
 import re
@@ -185,7 +184,6 @@ import numpy as np
 import pandas as pd
 
 jieba.setLogLevel(logging.WARNING)
-import json
 
 import tiktoken
 from scipy.spatial.distance import jensenshannon
@@ -199,7 +197,6 @@ _PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
 if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
-from news_process.core.caching import LLMCache
 from news_process.pipeline.text import embedding_engine as _eng
 
 # v3.7.0 (DC3 + C1 + M13 修复): LLM raw response archive 集成 (V4 F-P2.1 critical)
@@ -236,8 +233,8 @@ _EMB_ENCODING = tiktoken.get_encoding("cl100k_base")
 _EMB_MAX_TOKENS = 8191
 _EMB_MAX_TOKENS_PER_REQUEST = 250_000
 
-RETRY_DELAY = 5
-MAX_RETRY_DELAY = 60
+# 嵌入重试已集中在 embedding_engine (2026-06-26 全项目统一固定 10s 间隔); 本模块经
+# _eng.embed_texts 委托嵌入, 不再自带重试常量 (原 RETRY_DELAY/MAX_RETRY_DELAY 为死常量)。
 
 
 def _coerce_positive_int(value, default: int) -> int:
@@ -289,18 +286,7 @@ _EMB_MAX_TOKENS_PER_REQUEST = _coerce_positive_int(
     _ALIGN_CFG.get('max_tokens_per_request'), _EMB_MAX_TOKENS_PER_REQUEST)
 _EMB_MAX_TOKENS_PER_REQUEST = max(
     _EMB_MAX_TOKENS, _EMB_MAX_TOKENS_PER_REQUEST)
-_LOCAL_EMBEDDING_MODEL = None
 
-
-def _embedding_config_uses_local(spec=None) -> bool:
-    """spec 是否指向本地模型 (默认主 spec)。委托给 embedding_engine。"""
-    return _eng.spec_uses_local(spec if spec is not None else EMBEDDING_CONFIG)
-
-
-def _encode_embeddings_local(texts, *, spec=None, log_prefix="Embedding") -> np.ndarray:
-    """本地 sentence-transformers 编码 (默认主 spec)。委托给 embedding_engine。"""
-    return _eng.encode_local(
-        texts, spec if spec is not None else EMBEDDING_CONFIG, log_prefix=log_prefix)
 
 # 中文停用词表 (Stopwords) — 排除高频虚词以提高 TF-IDF 区分度
 # 【术语】停用词 (Stopwords) 是 NLP 中被过滤的高频无信息量词汇，
@@ -654,156 +640,6 @@ def _build_lda_jsd_matrix(texts, n_banks):
 #   "移动支付"和"手机银行"意思很像（而 TF-IDF 只能看字面）。
 #   这也是稳健性检验 (robustness check)，看不同方法结果是否一致。
 # ============================================================================
-
-async def _get_embeddings_api(texts, cache=None):
-    """通过 API 获取文本 Embedding 向量 — 穿透式缓存与死战不退容错。"""
-    import aiohttp
-    texts = [] if texts is None else list(texts)
-    if len(texts) == 0:
-        return np.empty((0, 0), dtype=np.float32)
-
-    models = LLM_CONFIG.get('models') or []
-    cfg = models[0] if models else {}
-    if EMBEDDING_CONFIG:
-        base_url = EMBEDDING_CONFIG.get('base_url')
-        api_key = EMBEDDING_CONFIG.get('api_key')
-        embedding_model = EMBEDDING_CONFIG.get('model') or 'text-embedding-3-small'
-    else:
-        base_url = cfg.get('base_url')
-        api_key = cfg.get('api_key')
-        embedding_model = 'text-embedding-3-small'
-    if not base_url or not api_key:
-        raise RuntimeError('Embedding API config missing base_url or api_key')
-    base_url = str(base_url).rstrip('/')
-    # Plan-r3 P3-17 接入: embedding 缓存键的 prompt_version 维度.
-    text_pipeline_version = EMBEDDING_CONFIG.get('text_pipeline_version', 'v0')
-
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {api_key}'
-    }
-
-    cached_results = [
-        cache.get(embedding_model, text, prompt_version=text_pipeline_version)
-        if cache else None
-        for text in texts
-    ]
-    missing_indices = [i for i, res in enumerate(cached_results) if res is None]
-    missing_texts = [texts[i] for i in missing_indices]
-
-    if len(texts) > 1:
-        logger.info(f"    缓存拦截: 命中 {len(texts) - len(missing_texts)} 条, 缺失 {len(missing_texts)} 条")
-
-    missing_embs = []
-    if missing_texts:
-        batches = []
-        current_batch = []
-        current_tokens = 0
-        for text in missing_texts:
-            n_tok = max(1, len(_EMB_ENCODING.encode(text)))
-            if n_tok > _EMB_MAX_TOKENS:
-                raise RuntimeError(f"Embedding 单条输入仍超限: {n_tok} > {_EMB_MAX_TOKENS}")
-
-            if current_batch and (len(current_batch) >= 100 or current_tokens + n_tok > _EMB_MAX_TOKENS_PER_REQUEST):
-                batches.append(current_batch)
-                current_batch = []
-                current_tokens = 0
-
-            current_batch.append(text)
-            current_tokens += n_tok
-
-        if current_batch:
-            batches.append(current_batch)
-
-        if len(batches) > 1:
-            logger.info(f"    网络请求: 动态分批为 {len(batches)} 批")
-
-        async with aiohttp.ClientSession() as session:
-            for batch_idx, batch in enumerate(batches):
-                delay = RETRY_DELAY
-                while True:
-                    try:
-                        async with session.post(
-                            f"{base_url}/embeddings",
-                            json={"model": embedding_model, "input": batch},
-                            headers=headers,
-                            timeout=aiohttp.ClientTimeout(total=180)
-                        ) as resp:
-                            status = resp.status
-                            if status == 200:
-                                data = await resp.json()
-                                if 'data' not in data:
-                                    raise ValueError(f"API 响应格式异常(缺少'data'): {str(data)[:200]}")
-                                sorted_data = sorted(data['data'], key=lambda x: x.get('index', 0))
-                                batch_embs = [d['embedding'] for d in sorted_data]
-                                missing_embs.extend(batch_embs)
-                                if cache:
-                                    cache.put_batch(
-                                        embedding_model,
-                                        batch,
-                                        [json.dumps(emb) for emb in batch_embs],
-                                        prompt_version=text_pipeline_version,
-                                    )
-                                # v3.7.0 (C1 + M15 修复): LLM archive batch API
-                                if _LLM_ARCHIVE_AVAILABLE:
-                                    try:
-                                        actual_version = data.get('model', embedding_model)
-                                        api_endpoint = f"{base_url}/embeddings"
-                                        records = [
-                                            {
-                                                'cache_key': LLMCache.make_key(
-                                                    embedding_model, text,
-                                                    prompt_version=text_pipeline_version,
-                                                ),
-                                                'model_id': embedding_model,
-                                                'model_version': actual_version,
-                                                'prompt': text,
-                                                'response_raw': json.dumps({
-                                                    'embedding': emb,
-                                                    'batch_index': i,
-                                                    'batch_total': len(batch_embs),
-                                                    'batch_id': batch_idx,
-                                                }, ensure_ascii=False),
-                                                'prompt_version': text_pipeline_version,
-                                                'temperature': 0.0,
-                                                'api_endpoint': api_endpoint,
-                                                'http_status': status,
-                                            }
-                                            for i, (text, emb) in enumerate(zip(batch, batch_embs))
-                                        ]
-                                        _get_archive().append_batch(records)
-                                    except Exception as _arch_exc:
-                                        logger.warning(
-                                            f"    LLM archive (strategic_diff batch {batch_idx+1}) "
-                                            f"失败 (不阻塞): {_arch_exc!r}"
-                                        )
-                                break
-                            elif status in (429, 500, 502, 503, 504):
-                                err_text = await resp.text()
-                                logger.warning(f"    HTTP {status} (batch {batch_idx+1}): {err_text[:100]}。休眠 {delay} 秒后重试...")
-                                await asyncio.sleep(delay)
-                                delay = min(delay * 2, MAX_RETRY_DELAY)
-                            else:
-                                err_text = await resp.text()
-                                raise ValueError(f"不可恢复的 API 错误 {status} (batch {batch_idx+1}): {err_text[:200]}")
-                    except ValueError:
-                        raise
-                    except Exception as e:
-                        logger.warning(f"    网络异常 (batch {batch_idx+1}): {type(e).__name__}: {e}。休眠 {delay} 秒后重试...")
-                        await asyncio.sleep(delay)
-                        delay = min(delay * 2, MAX_RETRY_DELAY)
-
-    assert len(missing_embs) == len(missing_texts), f"返回数量异常: expected {len(missing_texts)}, got {len(missing_embs)}"
-    final_embs = []
-    missing_ptr = 0
-    for res in cached_results:
-        if res is not None:
-            final_embs.append(json.loads(res))
-        else:
-            final_embs.append(missing_embs[missing_ptr])
-            missing_ptr += 1
-
-    return np.array(final_embs, dtype=np.float32)
 
 
 def _embed_texts_with_chunk_pooling(texts, *, spec=None, log_prefix="Embedding"):

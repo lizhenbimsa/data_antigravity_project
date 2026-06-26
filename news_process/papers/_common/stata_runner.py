@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
@@ -83,6 +84,41 @@ def discover_stata_bin() -> str | None:
     return None
 
 
+# ── W11 (2026-06-25): run_do 内容寻址跳过 (默认关; 编排层不进 40_panel = golden-safe) ──
+def _rundo_log_path(do_path: Path) -> Path:
+    """Stata ``/b do foo.do`` 写的 log 是 ``foo.log`` (去 .do 扩展, 见 scripts/run_stata.ps1)。
+    ⚠ 历史易错点 (CF-3): 不是 ``foo.do.log``。"""
+    return do_path.with_suffix(".log")
+
+
+def _rundo_sidecar(do_path: Path) -> Path:
+    """跳过 stamp 落 .do 同目录的 ``_rundo_cache/`` 下 (不污染 stata_templates 源树)。"""
+    return do_path.parent / "_rundo_cache" / f"{do_path.stem}.skipstamp.json"
+
+
+def _stata_fingerprint(bin_path: str) -> str:
+    """Stata 可执行的轻量指纹 (name|size|mtime; 不启 GUI 探版本, 符合 CLAUDE.md /b 铁律)。
+    git checkout / 重装改 mtime → 保守失效 (多重跑, 绝不误命中旧结果)。"""
+    try:
+        st = Path(bin_path).stat()
+        return f"{Path(bin_path).name}|{st.st_size}|{int(st.st_mtime)}"
+    except OSError:
+        return f"{Path(bin_path).name}|?"
+
+
+def _rundo_skip_key(do_path: Path, data_deps, bin_path: str, args=None) -> str:
+    """内容寻址键 = sha256(do 内容 + 各 .dta 内容 + Stata 指纹 + 传入 args)。复用 data_versioning 同源 helper。"""
+    from news_process.core.data_versioning import compute_config_hash, compute_file_hash
+    payload = {
+        "do": compute_file_hash(do_path),
+        "dta": {Path(p).name: compute_file_hash(p) for p in (data_deps or []) if Path(p).exists()},
+        "stata": _stata_fingerprint(bin_path),
+        # F9 (2026-06-26): args 入键 — 同 .do+.dta 但不同 args (do 内经 `args` 宏读取) 不应误命中跳过。
+        "args": [str(a) for a in (args or [])],
+    }
+    return compute_config_hash(payload)
+
+
 def run_do(do_path: str | Path,
            args: Sequence[str] | None = None,
            *,
@@ -90,7 +126,9 @@ def run_do(do_path: str | Path,
            cwd: str | Path | None = None,
            timeout: int = 1800,
            batch_mode: bool = True,
-           check: bool = True) -> subprocess.CompletedProcess:
+           check: bool = True,
+           skip_if_unchanged: bool = False,
+           data_deps: Sequence[str | Path] | None = None) -> subprocess.CompletedProcess:
     """执行单个 .do 文件.
 
     Args:
@@ -124,6 +162,22 @@ def run_do(do_path: str | Path,
             f"或将以下任一文件加入 PATH: {_candidates()}"
         )
 
+    # W11: 内容寻址跳过 (默认关; 仅当 skip_if_unchanged 且调用方显式传 data_deps 才生效 —
+    # 没有数据依赖就无法验证, 保守不跳)。命中需 stamp + log 同在且 key 匹配。
+    sidecar = _rundo_sidecar(do_path)
+    if skip_if_unchanged and data_deps is not None:
+        cur_key = _rundo_skip_key(do_path, data_deps, bin_path, args)
+        if sidecar.exists() and _rundo_log_path(do_path).exists():
+            try:
+                rec = json.loads(sidecar.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                rec = {}
+            if rec.get("key") == cur_key:
+                return subprocess.CompletedProcess(
+                    args=["<skipped:rundo-unchanged>", str(do_path)],
+                    returncode=0, stdout="", stderr="",
+                )
+
     if cwd is None:
         cwd = do_path.parent
 
@@ -136,7 +190,7 @@ def run_do(do_path: str | Path,
     if args:
         cmd.extend(str(a) for a in args)
 
-    return subprocess.run(
+    cp = subprocess.run(
         cmd,
         cwd=str(cwd),
         timeout=timeout,
@@ -144,6 +198,17 @@ def run_do(do_path: str | Path,
         capture_output=True,
         text=True,
     )
+    # W11: 成功后写跳过 stamp (供下次 skip_if_unchanged 命中)。
+    if skip_if_unchanged and data_deps is not None and cp.returncode == 0:
+        try:
+            sidecar.parent.mkdir(parents=True, exist_ok=True)
+            sidecar.write_text(
+                json.dumps({"key": _rundo_skip_key(do_path, data_deps, bin_path, args)}),
+                encoding="utf-8",
+            )
+        except OSError:
+            pass
+    return cp
 
 
 # ============================================================================

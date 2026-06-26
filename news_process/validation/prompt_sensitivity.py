@@ -74,7 +74,7 @@ v8 升级（2026-06-11, fix(omni-g-val-prompt-02)）：
 
 **关键算法/公式**: Fleiss' κ = (P̄−P_e)/(1−P_e) 推广到 5 编码者。compute_cohens_kappa / compute_krippendorffs_alpha 复用 `validation.llms_evaluation`。失败行掩码 (fix omni-g-val-prompt-05): 变体 API 全失败行剔除, 不计为'措辞不一致'; 全失败→指标 NaN (fail-loud)。阈值: 验证一致率≥0.85 / 情感≥0.80 / κ≥0.70 / α≥0.667 / substantiveness≥0.75 / locus≥0.80 / collab≥0.70。gate = full/ctx/ss 三轨各自全 criteria AND (fix omni-g-val-prompt-03: 此前仅 full 进 gate, 而 P1 主 spec=ctx 轨, 会误报)。
 
-**外部依赖**: LLM API, 4 变体 × 1000 × 3 模型 × 3 轨 = 最多 36000 请求; aiohttp 异步限流。确定性锚点 = `_llm_cache.db` (LLMCache; 变体 prompt 与生产不同 → 增量付费请求, 冷缓存需线上跑)。PROMPT_MAX_RETRIES 缺省已对齐生产 MAX_RETRIES (validation.yaml 可显式取 1 防长尾卡死, 已披露)。timeout=43200s (12h)。matplotlib κ 热力图 (5 编码者 panel)。
+**外部依赖**: LLM API, 4 变体 × 1000 × 3 模型 × 3 轨 = 最多 36000 请求; aiohttp 异步限流。确定性锚点 = `_llm_cache_validation.db` (验证变体库, LLMCache; 变体 prompt 与生产不同 → 增量付费请求, 冷缓存需线上跑)。PROMPT_MAX_RETRIES 缺省已对齐生产 MAX_RETRIES (validation.yaml 可显式取 1 防长尾卡死, 已披露)。timeout=43200s (12h)。matplotlib κ 热力图 (5 编码者 panel)。
 
 **学术依据**: Carlson & Burbano (2026, SMJ §3.5) generating families of related prompts; 框架引 Westphal & Zajac 1994/1998 ASQ + Gomber 2018 JMIS + Chesbrough 2003 + Laursen & Salter 2006 SMJ。
 
@@ -1440,7 +1440,7 @@ def main():
         _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
         logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'}")
         logger.info("     · 成本/确定性: 调 LLM API (变体 prompt ≠ 生产 → 增量付费请求, 冷缓存需线上跑); "
-                    "确定性锚点 = _llm_cache.db; NEWS_PROCESS_LLM_OFFLINE=1 时缓存 miss 抛错而非偷跑。")
+                    "确定性锚点 = _llm_cache_validation.db; NEWS_PROCESS_LLM_OFFLINE=1 时缓存 miss 抛错而非偷跑。")
         logger.info("     · 全流水线最贵检验 (最多 4 变体 × N × 3 模型 × 3 轨 请求); "
                     "validation-only, 不写 panel/parquet (EXPECTED_NO_OUTPUT)。")
     except Exception as e:  # noqa: BLE001
@@ -1490,7 +1490,7 @@ def main():
         f"collab κ≥{sig4(PASS_THRESHOLD_INNOVATION_COLLAB_MODE)}")
     logger.info("【判读】各指标越高=越稳健 (=好); gate = full/ctx/ss 三轨各自全 criteria AND (P1 主 spec 在 ctx 轨);")
     logger.info("        过线 → 可在论文写'LLM 标注对 prompt 措辞稳健'; 不过线 → AI 派生情感/创新变量恐成'问法的产物'。")
-    logger.info("【确定性】调 LLM API (变体 prompt 与生产不同 → 增量付费请求, 冷缓存需线上跑); 确定性锚点 = _llm_cache.db;")
+    logger.info("【确定性】调 LLM API (变体 prompt 与生产不同 → 增量付费请求, 冷缓存需线上跑); 确定性锚点 = _llm_cache_validation.db;")
     logger.info("          NEWS_PROCESS_LLM_OFFLINE=1 时缓存 miss 抛错而非偷跑 API。全流水线最贵检验, timeout=43200s (12h)。")
     logger.info("=" * 72)
 
@@ -1580,7 +1580,10 @@ def main():
     _t_variants = time.time()
     variant_keys = list(VARIANT_PROMPTS.keys())
 
-    cache_db = os.path.join(CONFIG["paths"]["output_dir"], '_llm_cache.db')
+    # W4 (2026-06-25): 验证变体响应隔离到独立库 (不写生产 golden 锚点 _llm_cache.db) —
+    # hygiene: 生产库 size 日志纯净 + 不因跑验证而膨胀。变体 prompt 与生产键互异, 故不影响
+    # stage21 复现; 隔离仅防膨胀 (CF-14: 非"verify 计数不被稀释", 后者本就由点查免疫)。
+    cache_db = os.path.join(CONFIG["paths"]["output_dir"], '_llm_cache_validation.db')
     with LLMCache(cache_db) as cache:
         logger.info(f"Prompt 敏感度 LLM 缓存: {cache.size()} 条已缓存, 路径: {cache_db}")
         model_availability = AsyncModelAvailability()

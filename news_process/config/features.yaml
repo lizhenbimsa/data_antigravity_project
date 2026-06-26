@@ -36,8 +36,14 @@ embedding_robustness:                            # ROBUSTNESS twin — text2vec 
   # cache 局部性, t2v 块约 1.5~2x 提速。⚠ batch_size 改变会让 batched matmul 的 FP
   # 舍入路径变 → _t2v 列可能出现 ~1e-7 级漂移 (与既有 BLAS-FP 非确定性同量级, 语义
   # 不变); 跑 golden 复现门时如标记 _t2v 列须受控环境重生 (PYTHONHASHSEED=0 + BLAS=1)。
+  # ★ 版本门铁律 (core/caching.py docstring §5-C, FP 敏感超参当版本维度): batch_size
+  #   不进缓存键 (键仅 model_id|chunk文本|text_pipeline_version), 故改 batch_size /
+  #   device / dtype / torch 版本而不 bump 下方 text_pipeline_version → 旧 _t2v 缓存
+  #   静默命中、新批舍入路径的值永不落盘 = silent staleness。⇒ 改 batch_size 必同 diff
+  #   bump text_pipeline_version 末尾标号 (由 tests/test_t2v_batch_version_lock.py 守护)。
   batch_size: 128
   # 稳健轨独立 cache 命名空间 (model_id 已不同, 版本字符串再隔离一层)。
+  # ⚠ bump 触发条件 (§5-C): 改 model / 切片策略 / batch_size / device / dtype / torch 版本任一, 必同 diff 改此标号。
   text_pipeline_version: "v2-2026-05-29-t2v"
 
 # stage 25 战略差异度 (strategic_diff) — fix(omni-g-strategic-09, 2026-06-11)

@@ -96,6 +96,8 @@ from news_process.core.stage import run_stage
 
 CONFIG = load_config()
 STAGE_NAME = "run_pipeline_function"
+# W5 通用 --skip-unchanged: config 目录 (与 core/config.py 同源: news_process/config)。
+CONFIG_DIR = os.path.join(_HERE, 'config')
 
 
 def _generate_run_id() -> str:
@@ -153,6 +155,75 @@ def _get_stage_output_files(stage_script: str) -> list:
                 f"明确登记 (产 parquet) 或加入 EXPECTED_NO_OUTPUT_STAGES (不产)。"
             )
     return files
+
+
+# ── W5 通用 --skip-unchanged: 阶段 → 它消费的 split YAML 文件 (用文件名, 不用 CONFIG dict 键) ──
+# golden-safe: 改某 YAML 内容 → 哈希变 → 相关 stage 失效。未登记 / 多源 fan-in 的 stage 走保守
+# (未登记 → 不跳)。资源 (词典/anchor/prompt) 由 compute_resource_hashes 全量门另管。
+STAGE_CONFIG_FILES: dict[str, tuple[str, ...]] = {
+    "00_preprocessing.py": ("preprocessing.yaml", "paths.yaml"),
+    "11_news_bank.py": ("filtering.yaml", "paths.yaml"),
+    "12_news_fintech.py": ("filtering.yaml", "paths.yaml"),
+    "13_cooccurrence_filter.py": ("filtering.yaml", "paths.yaml"),
+    "14_materialize_ctx.py": ("filtering.yaml", "paths.yaml"),
+    "15_fintech_intensity.py": ("filtering.yaml", "features.yaml", "paths.yaml"),
+    "16_article_policy_alignment.py": ("filtering.yaml", "features.yaml", "paths.yaml"),
+    "22_tone_words.py": ("sentiment.yaml", "paths.yaml"),
+    "23_tone_berts.py": ("sentiment.yaml", "paths.yaml"),
+    "24_herd_decay_processor.py": ("sentiment.yaml", "paths.yaml"),
+    "25_article_sbert.py": ("features.yaml", "paths.yaml"),
+    "26_article_staleness.py": ("features.yaml", "paths.yaml"),
+    "40_panel_export_main.py": ("panel.yaml", "features.yaml", "paths.yaml"),
+    "46_stata_export.py": ("panel.yaml", "paths.yaml"),
+    "51_falsification_test.py": ("panel.yaml", "paths.yaml"),
+}
+# 注: stage 21 (LLM) 故意不在此表 — 它由专用 --skip-21-if-exists (三重指纹安检) 处理, 不走通用 skip。
+
+
+def _stage_skip_unchanged_is_safe(script: str) -> tuple[bool, str]:
+    """通用 --skip-unchanged 单阶段跳过判据 (保守, golden-safe; 纯读元数据不产数据)。
+
+    全满足才跳: 登记产物全存在 + 元数据含 config_file_hashes/resource_hashes + 该 stage 相关
+    split YAML 未变 + config/ 全部资源 (词典/anchor/prompt) 未变 + 已记 input_hashes 对当前文件全匹配。
+    资源门是全量比对 (任一资源变 → 不跳) 防"改词典却被错跳"。⚠ 主循环另有"前缀守卫"
+    (任一上游阶段本次真跑过 → 下游一律不跳) 作数据依赖的根本安全网, 二者叠加。
+
+    ⚠ F1 (2026-06-26) 现状: stage 00 主产物 (runner.py 裸 pq.write_table) 无 data_version
+    元数据 → 本判据对 '00_preprocessing.py' 返 False → 00 必跑 → 前缀守卫令全链不跳, 故
+    --skip-unchanged 在全量生产跑中当前为 no-op。激活需 stage 00 经 save_parquet_with_metadata
+    写元数据 (并把原始输入纳入 input_hashes, 否则改原始数据会被误跳)。本判据逻辑本身已经单测覆盖。
+    """
+    from news_process.core.data_versioning import (
+        compute_config_file_hashes,
+        compute_file_hash,
+        compute_resource_hashes,
+        read_parquet_metadata,
+    )
+    outputs = _get_stage_output_files(script)
+    if not outputs:
+        return False, "无登记 parquet 产物 (validation/audit), 不参与增量跳过"
+    want_yaml = STAGE_CONFIG_FILES.get(script)
+    if want_yaml is None:
+        return False, f"{script} 未登记 STAGE_CONFIG_FILES, 保守重跑"
+    out_dir = CONFIG['paths']['output_dir']
+    cur_cfg = compute_config_file_hashes(CONFIG_DIR)
+    cur_res = compute_resource_hashes(CONFIG_DIR)
+    for fn in outputs:
+        path = os.path.join(out_dir, fn)
+        if not os.path.exists(path):
+            return False, f"产物缺失 {fn}"
+        meta = read_parquet_metadata(path)
+        if not meta or 'config_file_hashes' not in meta or 'resource_hashes' not in meta:
+            return False, f"{fn} 缺 config_file_hashes/resource_hashes 元数据 (旧产物), 保守重跑"
+        for wf in want_yaml:
+            if meta['config_file_hashes'].get(wf) != cur_cfg.get(wf):
+                return False, f"config 文件 {wf} 内容已变"
+        if meta['resource_hashes'] != cur_res:
+            return False, "config/ 下资源文件 (词典/anchor/prompt) 内容已变"
+        for rec_path, rec_hash in (meta.get('input_hashes') or {}).items():
+            if os.path.exists(rec_path) and compute_file_hash(rec_path) != rec_hash:
+                return False, f"上游输入 {os.path.basename(rec_path)} 内容已变"
+    return True, "config/资源/上游输入均未变"
 
 
 _STAGE21_UPSTREAM_FINGERPRINT_COLUMNS = (
@@ -349,6 +420,19 @@ def _parse_cli_args(argv: list[str] | None = None) -> argparse.Namespace:
             "想增量重跑下游 stage 而不重新调用 LLM API。"
         ),
     )
+    parser.add_argument(
+        "--skip-unchanged",
+        action="store_true",
+        help=(
+            "通用阶段级增量: 跳过'输入未变'的阶段 (登记产物已存在 + 其 split YAML 内容 + "
+            "config/ 资源 + 已记上游 input_hashes 均未变, 且本次无上游阶段真跑过)。默认关 "
+            "(不改生产首跑语义); 纯读 parquet 元数据决定是否 spawn, 不进 stage 内存 = golden 中性。 "
+            "⚠ F1 (2026-06-26): 当前在全量生产跑中为脚手架/暂未生效 —— stage 00 主产物经裸 "
+            "pq.write_table 写出, 无 data_version 元数据 → 判据对 00 保守不跳 → 前缀守卫使全链不跳。"
+            "激活需 stage 00 改经 save_parquet_with_metadata 并记录原始输入哈希 (scoped follow-up); "
+            "机制 + 安全网已就位且经单测 (tests/test_w5_skip_unchanged.py)。"
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -422,7 +506,7 @@ def run_pipeline(args: argparse.Namespace | None = None):
               表示按默认全量执行 (向后兼容旧调用方式)。
     """
     if args is None:
-        args = argparse.Namespace(skip_21_if_exists=False)
+        args = argparse.Namespace(skip_21_if_exists=False, skip_unchanged=False)
 
     pipeline_start = time.time()
     # 运行期阶段计时累计 (编排器自身各子阶段墙钟耗时, 末尾汇总打印; 纯日志, golden-safe)。
@@ -511,11 +595,25 @@ def run_pipeline(args: argparse.Namespace | None = None):
         # 避免在错误中间结果上继续执行, 降低级联错误难以溯源的风险。
         stage_timings = []
         all_success = True
+        # W5 前缀守卫: 一旦某阶段本次真跑过, 其后阶段一律不可走 --skip-unchanged
+        # (上游可能改了下游输入)。这是通用 skip 的数据依赖根本安全网。
+        any_stage_ran = False
 
         # Phase 1: 超时现取自 StageSpec (经 core/dag.py 单一真源)。
         # 重构前此处曾有本地 stage_timeouts 字典; 已上收为 StageSpec.timeout。
 
         for script, name, timeout in stages:
+            # W5: 通用 --skip-unchanged (前缀守卫 + 三重哈希门; stage21 走专用 --skip-21, 不在此)
+            if (args.skip_unchanged and not any_stage_ran
+                    and script != '21_tone_llms.py'):
+                can_skip_unchanged, unchanged_reason = _stage_skip_unchanged_is_safe(script)
+                if can_skip_unchanged:
+                    logger.info(
+                        f"  ⏭ {name}: --skip-unchanged 命中, 已跳过 ({unchanged_reason})"
+                    )
+                    stage_timings.append((name, 0.0, True))
+                    continue
+
             # plan m1 方案 C: stage 21 增量跳过开关
             # 若 --skip-21-if-exists 启用, 且 stage 21 主输出 + _full 变体均已存在,
             # 跳过预清理与 run_stage 调用 (视作 success+0s, 与已 skip 的阶段同状态符号)。
@@ -554,6 +652,8 @@ def run_pipeline(args: argparse.Namespace | None = None):
                 SCRIPT_DIR,
                 timeout=timeout,
             )
+            # W5 前缀守卫: 本阶段真跑过 → 其后阶段不可再走 --skip-unchanged。
+            any_stage_ran = True
 
             if success and output_files:
                 missing_outputs = [

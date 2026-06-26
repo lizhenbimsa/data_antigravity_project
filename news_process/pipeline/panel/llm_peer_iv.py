@@ -338,6 +338,12 @@ PEER_PROMPT = """你是一位中国银行业金融科技分析师。以下是 {y
 # 任何对此字符串的修改必须同步 bump 此版本号, 让既有 LLMCache 自动失效.
 PEER_PROMPT_VERSION = "v1-2026-05-13"
 
+# ★ 版本门 §5-D (core/caching.py docstring): 内联常量是最弱版本门形式, 须配 frozen-hash
+#   单测补强. 下行冻结 PEER_PROMPT 的 EOL 归一 (CRLF→LF) 字节. 改 PEER_PROMPT 正文 →
+#   tests/test_peer_prompt_frozen.py 红 → 强制本 diff 同时: (1) bump 上面的
+#   PEER_PROMPT_VERSION (让旧 _llm_cache.db silent miss); (2) 把下值改为测试打印的 actual.
+PEER_PROMPT_SHA256 = "35bb3ec60c3c5678ba0b626bf84d15a641c59182c3466306690b875c8a926c88"
+
 
 # ============================================================================
 # 6. LLM API 调用

@@ -380,6 +380,9 @@ def main():
     # test_default_params_equal_production_method 锚定)。
     logger.info("计算 MinHash 签名 (一次, 全部阈值共用; 签名与阈值无关)...")
     mh_start = time.time()
+    # F8 (2026-06-26): 刻意不传 cache_dir — W9 内容寻址 sidecar 仅接在生产路径 dedup_sensitivity
+    # (runner step 6b-3, 每次 stage40 跑); 本 validation 阶段按需手动跑, 跨-run 重算可接受。
+    # (W9 键内容寻址, 即便接同一 cache_dir 也因语料指纹不同而不碰撞, 此处仅为不增维护面。)
     minhashes = dedup.compute_minhashes(df_exact)
     mh_elapsed = time.time() - mh_start
     phase_durations['③MinHash签名(一次)'] = mh_elapsed

@@ -40,9 +40,18 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 
 import numpy as np
 import tiktoken
+
+# W12 (2026-06-25): HF 离线引擎单点 — 一处覆盖全部经本引擎的本地模型加载 (含 stage16
+# policy_alignment / strategic_diff / network_spillover 的 t2v 轨)。注 (F13): stage25
+# article_sbert 走自有裸 SentenceTransformer + 自有 HF 离线 (article_sbert.py:90-94), 不经本引擎。
+# 切加载来源 (hf.co revision 解析 → 本地快照) 不改权重/输出 → 逐位不变 (golden-safe,
+# 同 tone_berts/article_sbert 既有先例)。须在任何 sentence_transformers 导入前生效。
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 
 logger = logging.getLogger(__name__)
 
@@ -594,6 +603,9 @@ def _encode_local_cached(chunks, spec: dict, *,
     如测试直送 local spec 不带 cache_db_path 的路径)。
     """
     model_id = spec_model(spec, 'shibing624/text2vec-base-chinese')
+    # ★ 版本门 §5-C (core/caching.py docstring): 键 = (model_id, chunk文本, version);
+    #   batch_size/device/dtype 不入键。故改 config/features.yaml::embedding_robustness.batch_size
+    #   必同步 bump text_pipeline_version (tests/test_t2v_batch_version_lock.py 守护), 否则 FP 漂移静默污染。
     version = spec_version(spec)
 
     own_cache = None

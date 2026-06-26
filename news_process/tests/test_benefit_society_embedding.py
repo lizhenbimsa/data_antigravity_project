@@ -33,12 +33,9 @@ def test_local_embedding_config_uses_sentence_transformers(monkeypatch):
             "batch_size": 8,
         },
     )
-    monkeypatch.setattr(bs, "_LOCAL_EMBEDDING_MODEL", None)
-
-    async def _api_should_not_be_used(*args, **kwargs):
-        raise AssertionError("local embedding config should not call HTTP API")
-
-    monkeypatch.setattr(bs, "_get_embeddings_api", _api_should_not_be_used)
+    # W13 (2026-06-26): 删除对 _LOCAL_EMBEDDING_MODEL / _get_embeddings_api (已删死符号) 的
+    # monkeypatch。本地 EMBEDDING_CONFIG 下 _get_embeddings 经 _eng.embed_texts → encode_local
+    # → (fake) sentence_transformers, 不走任何 API → 无需再 patch 死的 API 函数。
 
     emb = bs._get_embeddings(["alpha", "beta"], [1, 1], log_prefix="test")
 

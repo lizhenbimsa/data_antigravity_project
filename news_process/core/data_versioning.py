@@ -74,6 +74,47 @@ def compute_config_hash(config: dict) -> str:
     return hashlib.sha256(config_str.encode()).hexdigest()
 
 
+# ── W5 通用 --skip-unchanged: config/资源内容寻址哈希 (2026-06-25) ──
+# golden-safe: 只读 config/ 下文件内容算 sha256, 不产数据列; 写进 parquet schema
+# metadata (非数据列), 供编排器在 spawn 前比对决定是否跳过"输入未变"的阶段。
+_SPLIT_YAML_FILES = (
+    "paths.yaml", "preprocessing.yaml", "filtering.yaml", "sentiment.yaml",
+    "features.yaml", "panel.yaml", "validation.yaml",
+)
+
+
+def _default_config_dir() -> Path:
+    """core/data_versioning.py → core/ → news_process/ → config/ (与 core/config.py 同源定位)。"""
+    return Path(__file__).resolve().parent.parent / "config"
+
+
+def compute_config_file_hashes(config_dir: str | Path | None = None) -> dict[str, str]:
+    """对 7 个 split YAML 各算内容 sha256。改任一 YAML 内容 → 对应消费它的 stage 失效。"""
+    cdir = Path(config_dir) if config_dir is not None else _default_config_dir()
+    out: dict[str, str] = {}
+    for fn in _SPLIT_YAML_FILES:
+        p = cdir / fn
+        if p.exists():
+            out[fn] = compute_file_hash(p)
+    return out
+
+
+def compute_resource_hashes(config_dir: str | Path | None = None) -> dict[str, str]:
+    """对 config/ 下全部载荷资源 (词典/anchor/prompt 等 .json/.txt) 各算内容 sha256。
+
+    W5 通用 skip 的**保守资源门**: 任一资源变 → 不跳过任何阶段, 防"改词典/anchor 却被
+    错跳" (news_bank.py 自承 input_hashes 不含词典内容会致 verify 失明)。
+    """
+    cdir = Path(config_dir) if config_dir is not None else _default_config_dir()
+    out: dict[str, str] = {}
+    if cdir.exists():
+        for p in sorted(cdir.rglob("*")):
+            if p.is_file() and p.suffix.lower() in (".json", ".txt"):
+                rel = str(p.relative_to(cdir)).replace("\\", "/")
+                out[rel] = compute_file_hash(p)
+    return out
+
+
 def get_python_version() -> str:
     """获取 Python 版本。"""
     import sys
@@ -113,6 +154,7 @@ class DataVersionMetadata:
         stage_name: str,
         config: dict,
         input_files: Optional[list[str]] = None,
+        config_dir: str | Path | None = None,
     ):
         self.stage_name = stage_name
         self.config = config
@@ -122,6 +164,9 @@ class DataVersionMetadata:
         self.git_commit = get_git_commit_hash()
         self.git_branch = get_git_branch()
         self.config_hash = compute_config_hash(config)
+        # W5 通用 --skip-unchanged: config/资源内容寻址哈希 (写进 schema metadata, golden-safe)。
+        self.config_file_hashes = compute_config_file_hashes(config_dir)
+        self.resource_hashes = compute_resource_hashes(config_dir)
         # F-15 (2026-05-16): 带时区的 UTC 时间戳, 保证跨服务器血缘记录可比。
         # naive datetime 的时区歧义是 F-15 全项目唯一命中点 (R25 扫描);
         # core/run_id.py:27 的同类代码用同一写法。
@@ -142,6 +187,8 @@ class DataVersionMetadata:
             "git_commit": self.git_commit,
             "git_branch": self.git_branch,
             "config_hash": self.config_hash,
+            "config_file_hashes": self.config_file_hashes,
+            "resource_hashes": self.resource_hashes,
             "timestamp": self.timestamp,
             "python_version": self.python_version,
             "dependencies": self.dependencies,
@@ -160,6 +207,7 @@ def save_parquet_with_metadata(
     stage_name: str,
     config: dict,
     input_files: Optional[list[str]] = None,
+    config_dir: str | Path | None = None,
 ):
     """
     保存 DataFrame 到 parquet 文件，并附加版本元数据。
@@ -171,7 +219,7 @@ def save_parquet_with_metadata(
         config: 配置字典
         input_files: 依赖的输入文件列表
     """
-    metadata = DataVersionMetadata(stage_name, config, input_files)
+    metadata = DataVersionMetadata(stage_name, config, input_files, config_dir=config_dir)
 
     table = pa.Table.from_pandas(df)
 

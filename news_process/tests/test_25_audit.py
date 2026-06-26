@@ -236,21 +236,17 @@ class TestAggregation:
 class TestComputeStrategicDifferentiation:
     @pytest.fixture(autouse=True)
     def _mock_embedding_api(self, monkeypatch):
-        """CI 上无 .env / 真实 LLM key, mock _get_embeddings_api 返回固定向量.
+        """CI 上无 .env / 真实 LLM key, mock 统一引擎 _eng.embed_texts 返回固定 L2-归一向量.
 
-        `_m25.compute_strategic_differentiation` 通过 `_embed_texts_with_chunk_pooling`
-        间接调 `_get_embeddings_api` (strategic_diff.py L436-437) — 缺 EMBEDDING_CONFIG
-        即 raise. 直接 patch 该 async 函数返回 deterministic L2-normalized 单位向量,
-        既绕过 config 校验, 又避免 outbound network, 还让上层 cosine 相似度计算可走通.
-        向量 dim 取 8 (LLM 真实是 1536, mock 用 8 减小内存; 下游纯几何, dim 大小不影响通路).
-
-        Phase 2c: 此 fixture mocks 远程 API, 但 strategic_diff 在 fallback 路径
-        (`_encode_embeddings_local`, strategic_diff.py:235) 内会 lazy-import
-        ``sentence_transformers``. CI light 矩阵不安装该包 → 5 tests fail.
-        显式 importorskip 让 light job 干净 skip 本 class, 不阻塞其它 7 个 class.
+        W13 (2026-06-26): strategic_diff 已全面迁移到统一引擎, 真实路径 =
+        `compute_strategic_differentiation` → `_embed_texts_with_chunk_pooling` →
+        `_eng.embed_texts` (旧 `_get_embeddings_api` 已作死代码删除, 历史只 patch 它 = 空挡)。
+        故改 patch `_eng.embed_texts` (sync) 返回 deterministic L2-normalized 单位向量:
+        绕过 config/网络, 让上层 cosine 相似度计算可走通. dim 取 8 (下游纯几何, dim 大小不影响通路).
         """
         pytest.importorskip("sentence_transformers")
-        async def _mock_api(texts, cache=None):
+
+        def _mock_embed(texts, *args, **kwargs):
             texts = [] if texts is None else list(texts)
             if len(texts) == 0:
                 return np.empty((0, 0), dtype=np.float32)
@@ -259,7 +255,7 @@ class TestComputeStrategicDifferentiation:
             mat /= np.linalg.norm(mat, axis=1, keepdims=True).clip(min=1e-12)
             return mat
 
-        monkeypatch.setattr(_m25, "_get_embeddings_api", _mock_api, raising=True)
+        monkeypatch.setattr(_m25._eng, "embed_texts", _mock_embed, raising=True)
 
     def _make_test_data(self, n_banks=5, n_years=2):
         """构造最小测试数据集。"""

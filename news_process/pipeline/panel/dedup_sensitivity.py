@@ -243,7 +243,9 @@ def compute_dedup_sensitivity_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     # ── MinHash 签名一次计算 (参数无关), 变体间复用 ──
     dedup = ArticleDeduplicator(CONFIG, logger)
     arts_prep = dedup._prepare_dataframe(arts.copy())
-    minhashes = dedup.compute_minhashes(arts_prep)
+    # W9/CF-10: 内容寻址 sidecar 复用同批 MinHash 签名 (跨-run / 跨敏感性档零重算; 生产路径缓存收益)。
+    _mh_cache_dir = os.path.join(CONFIG['paths']['output_dir'], '_minhash_cache')
+    minhashes = dedup.compute_minhashes(arts_prep, cache_dir=_mh_cache_dir)
 
     all_docids = set(arts_prep['docid'])
     new_cols: list = []

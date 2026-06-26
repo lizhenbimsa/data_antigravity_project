@@ -65,7 +65,6 @@ pos/neg_frac 阈值中心 (KNOWN-OPEN① 修复, fix(omni-g-benefit, 2026-06-11)
 ============================================================================
 """
 
-import asyncio
 import json
 import os
 import platform
@@ -82,7 +81,6 @@ _PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
 if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
-from news_process.core.caching import LLMCache
 from news_process.pipeline.text import embedding_engine as _eng
 
 # v3.7.0 (DC3 + C1 + M13 修复): LLM raw response archive 集成 (V4 F-P2.1 critical)
@@ -122,7 +120,6 @@ LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
 EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})           # MAIN spec → canonical 列
 # v3.7.x 双模型嵌入: ROBUSTNESS twin (shibing624/text2vec, local) → '_t2v' 列
 _ROBUSTNESS_SPEC = CONFIG.get('embedding_robustness', {})
-_LOCAL_EMBEDDING_MODEL = None
 
 # 模块专属配置
 _BENEFIT_CFG = CONFIG.get('benefit_society', {})
@@ -132,8 +129,8 @@ _CACHE_EMBEDDINGS = _BENEFIT_CFG.get('cache_embeddings', True)
 _ANCHOR_SIGN_TOL = float(_BENEFIT_CFG.get('anchor_sign_tolerance', 0.03))
 _ANCHOR_PAIR_MIN_MARGIN = float(_BENEFIT_CFG.get('anchor_pair_min_margin', 0.02))
 
-RETRY_DELAY = 5
-MAX_RETRY_DELAY = 60
+# 嵌入重试已集中在 embedding_engine (2026-06-26 全项目统一固定 10s 间隔); 本模块经
+# _eng.embed_texts 委托嵌入, 不再自带重试常量 (原 RETRY_DELAY/MAX_RETRY_DELAY 为死常量)。
 CACHE_DB_PATH = CONFIG['paths'].get('llm_cache_db', os.path.join(CONFIG['paths']['output_dir'], '_llm_cache.db'))
 
 # tiktoken 工具 — 统一复用 core/text/token_utils (下方 _count_tokens 等为薄包装)
@@ -232,37 +229,6 @@ def _truncate_to_max_tokens(text: str, max_tokens: int = _MAX_TOKENS_PER_INPUT) 
     return truncate_to_max_tokens(text, max_tokens)
 
 
-def _embedding_config_uses_local() -> bool:
-    base_url = str(EMBEDDING_CONFIG.get('base_url') or '').strip().lower()
-    return base_url in {
-        'local',
-        'local://',
-        'sentence-transformers',
-        'sentence_transformers',
-    }
-
-
-def _encode_embeddings_local(texts, *, log_prefix="Embedding") -> np.ndarray:
-    global _LOCAL_EMBEDDING_MODEL
-
-    from sentence_transformers import SentenceTransformer
-
-    local_model_id = (
-        EMBEDDING_CONFIG.get('model')
-        or 'shibing624/text2vec-base-chinese'
-    )
-    if _LOCAL_EMBEDDING_MODEL is None:
-        logger.info(f"    {log_prefix}: 使用本地模型 {local_model_id}")
-        _LOCAL_EMBEDDING_MODEL = SentenceTransformer(local_model_id)
-
-    emb_local = _LOCAL_EMBEDDING_MODEL.encode(
-        list(texts),
-        batch_size=int(EMBEDDING_CONFIG.get('batch_size', 32) or 32),
-        show_progress_bar=False,
-    )
-    return np.asarray(emb_local, dtype=np.float32)
-
-
 def _get_embeddings(texts: list[str],
                     token_counts: list[int] = None,
                     *,
@@ -279,144 +245,6 @@ def _get_embeddings(texts: list[str],
         cache_db_path=CACHE_DB_PATH,
         log_prefix=log_prefix,
     )
-
-
-async def _get_embeddings_api(texts: list[str], token_counts: list[int], cache: LLMCache = None) -> np.ndarray:
-    """通过 API 获取文本 Embedding 向量 — 穿透式缓存与死战不退容错。"""
-    import aiohttp
-    models = LLM_CONFIG.get('models') or []
-    cfg = models[0] if models else {}
-    if EMBEDDING_CONFIG:
-        base_url = EMBEDDING_CONFIG.get('base_url')
-        api_key = EMBEDDING_CONFIG.get('api_key')
-        embedding_model = EMBEDDING_CONFIG.get('model') or "text-embedding-3-small"
-    else:
-        base_url = cfg.get('base_url')
-        api_key = cfg.get('api_key')
-        embedding_model = "text-embedding-3-small"
-    if not base_url or not api_key:
-        raise RuntimeError("Embedding API config missing base_url or api_key")
-    base_url = str(base_url).rstrip("/")
-    # Plan-r3 P3-17 接入: embedding 缓存键的 prompt_version 维度.
-    text_pipeline_version = EMBEDDING_CONFIG.get('text_pipeline_version', 'v0')
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}"
-    }
-
-    cached_results = [
-        cache.get(embedding_model, text, prompt_version=text_pipeline_version)
-        if cache else None
-        for text in texts
-    ]
-    missing_indices = [i for i, res in enumerate(cached_results) if res is None]
-    missing_texts = [texts[i] for i in missing_indices]
-    missing_tokens = [token_counts[i] for i in missing_indices]
-
-    missing_embs = []
-    if missing_texts:
-        batches = []
-        current_batch, current_tokens = [], 0
-        for text, n_tok in zip(missing_texts, missing_tokens):
-            if current_batch and (len(current_batch) >= 2000 or current_tokens + n_tok > _MAX_TOKENS_PER_REQUEST):
-                batches.append(current_batch)
-                current_batch, current_tokens = [], 0
-            current_batch.append(text)
-            current_tokens += n_tok
-        if current_batch:
-            batches.append(current_batch)
-
-        logger.info(f"    Embedding 动态分批: {len(batches)} 批")
-
-        async with aiohttp.ClientSession() as session:
-            for batch_idx, batch in enumerate(batches):
-                delay = RETRY_DELAY
-                while True:
-                    try:
-                        async with session.post(
-                            f"{base_url}/embeddings",
-                            json={"model": embedding_model, "input": batch},
-                            headers=headers,
-                            timeout=aiohttp.ClientTimeout(total=180)
-                        ) as resp:
-                            status = resp.status
-                            if status == 200:
-                                data = await resp.json()
-                                if 'data' not in data:
-                                    raise ValueError(f"API 响应格式异常(缺少'data'): {str(data)[:200]}")
-                                sorted_data = sorted(data['data'], key=lambda x: x.get('index', 0))
-                                batch_embs = [d['embedding'] for d in sorted_data]
-                                missing_embs.extend(batch_embs)
-                                if cache:
-                                    cache.put_batch(
-                                        embedding_model,
-                                        batch,
-                                        [json.dumps(emb) for emb in batch_embs],
-                                        prompt_version=text_pipeline_version,
-                                    )
-                                # v3.7.0 (C1 + M15 修复): LLM archive batch API
-                                # 单次 lock + 单次 file open (vs N 条 lock contention)
-                                if _LLM_ARCHIVE_AVAILABLE:
-                                    try:
-                                        actual_version = data.get('model', embedding_model)
-                                        api_endpoint = f"{base_url}/embeddings"
-                                        records = [
-                                            {
-                                                'cache_key': LLMCache.make_key(
-                                                    embedding_model, text,
-                                                    prompt_version=text_pipeline_version,
-                                                ),
-                                                'model_id': embedding_model,
-                                                'model_version': actual_version,
-                                                'prompt': text,
-                                                'response_raw': json.dumps({
-                                                    'embedding': emb,
-                                                    'batch_index': i,
-                                                    'batch_total': len(batch_embs),
-                                                    'batch_id': batch_idx,
-                                                }, ensure_ascii=False),
-                                                'prompt_version': text_pipeline_version,
-                                                'temperature': 0.0,  # embedding API 无 temperature
-                                                'api_endpoint': api_endpoint,
-                                                'http_status': status,
-                                            }
-                                            for i, (text, emb) in enumerate(zip(batch, batch_embs))
-                                        ]
-                                        _get_archive().append_batch(records)
-                                    except Exception as _arch_exc:
-                                        logger.warning(
-                                            f"    LLM archive (benefit_society batch {batch_idx+1}) "
-                                            f"失败 (不阻塞): {_arch_exc!r}"
-                                        )
-                                break
-                            elif status in (429, 500, 502, 503, 504):
-                                err_text = await resp.text()
-                                logger.warning(f"    HTTP {status} (batch {batch_idx+1}): {err_text[:100]}。休眠 {delay} 秒后重试...")
-                                await asyncio.sleep(delay)
-                                delay = min(delay * 2, MAX_RETRY_DELAY)
-                            else:
-                                err_text = await resp.text()
-                                raise ValueError(f"不可恢复的 API 错误 {status} (batch {batch_idx+1}): {err_text[:200]}")
-                    except ValueError:
-                        raise
-                    except Exception as e:
-                        logger.warning(f"    网络异常 (batch {batch_idx+1}): {type(e).__name__}: {e}。休眠 {delay} 秒后重试...")
-                        await asyncio.sleep(delay)
-                        delay = min(delay * 2, MAX_RETRY_DELAY)
-
-    assert len(missing_embs) == len(missing_texts)
-    final_embs = []
-    missing_ptr = 0
-    for res in cached_results:
-        if res is not None:
-            final_embs.append(json.loads(res))
-        else:
-            final_embs.append(missing_embs[missing_ptr])
-            missing_ptr += 1
-
-    return np.array(final_embs, dtype=np.float32)
-
-
 
 
 # ============================================================================

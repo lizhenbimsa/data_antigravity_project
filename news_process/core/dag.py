@@ -139,8 +139,11 @@ class StageSpec:
         enabled_when: 谓词 ``(cfg) -> bool``, 决定运行时是否纳入该阶段;
                       无条件运行的阶段使用 ``always_enabled``。
 
-    Phase 1 刻意不填充 ``inputs`` / ``outputs`` 字段;
-    Phase 2d 将通过 ``core.schemas.OUTPUT_REGISTRY`` 串接二者。
+    W5/W6 (2026-06-25): 新增可选 ``inputs`` / ``fingerprint_cols`` 字段 (向后兼容
+    默认空, 不破 ``test_dag_consistency``), 作通用 ``--skip-unchanged`` 的声明式依赖
+    元数据。⚠ 当前 W5 skip 的安全网是 ``run_pipeline_function`` 主循环的"前缀守卫"
+    (任一上游阶段本次真跑过 → 下游一律不跳) + config/资源/input_hashes 三重哈希门,
+    **不依赖** ``inputs`` 人工编排的正确性 (规避 CF-7 类误编排); ``inputs`` 仅作文档/未来用。
     """
 
     name: str
@@ -152,6 +155,9 @@ class StageSpec:
     # stage 留 buffer; LLM/embedding 类继续显式设 21600.
     timeout: int = 7200
     enabled_when: Callable[[dict[str, Any]], bool] = always_enabled
+    # W5/W6: 通用 --skip-unchanged 的声明式依赖元数据 (向后兼容默认空; 见类 docstring)。
+    inputs: tuple[str, ...] = ()
+    fingerprint_cols: tuple[str, ...] = ()
 
 
 # ----------------------------------------------------------------------------

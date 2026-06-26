@@ -33,7 +33,8 @@ def test_local_embedding_config_uses_sentence_transformers(monkeypatch):
             "batch_size": 8,
         },
     )
-    monkeypatch.setattr(sd, "_LOCAL_EMBEDDING_MODEL", None)
+    # W13 (2026-06-26): 删除对已删死符号 _LOCAL_EMBEDDING_MODEL 的 monkeypatch
+    # (_embed_texts_with_chunk_pooling 经 _eng → fake sentence_transformers, 不依赖该死变量)。
 
     emb = sd._embed_texts_with_chunk_pooling(["alpha", "beta"], log_prefix="test")
 

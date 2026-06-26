@@ -76,7 +76,7 @@ news_process.validation.entity_masking — 阶段36：Entity Masking 稳健性�
 
 **关键算法/分母双口径**: 主口径 per-protocol (valid 分母, `_call_failure_mask` 剔除掩码重判或 baseline 调用全失败行 — 空票被默认判 False 属测量缺失非翻转); ITT (physical 分母, 含失败行) 以 `*_itt` 键并行披露。混淆矩阵与主口径对齐 (失败行不进图)。`compute_cohens_kappa` 复用 `news_process.validation.llms_evaluation` (返回含 'kappa' 键的 dict)。判定: 三轨各须 验证一致率≥0.90 + 情感一致率≥0.85 + κ≥0.80, 整体 = full/ctx/ss AND; sentiment_consistency is None (n_both_true==0 子集空) 视为'不可判定'不计通过 (degradation F24 修复, 防伪装通过)。三轨两两 pairwise (combinations) 验证一致率/κ 差异 >5pp 则提示文本粒度敏感。
 
-**外部依赖**: LLM API (yunwu, 经 tone_llms.fetch_llm_async), 3 模型 × 3 轨 × 1000 = 最多 9000 请求; aiohttp 异步, ENTITY_MASKING_MAX_CONCURRENCY 限流。确定性锚点 = `_llm_cache.db` (用 LLMCache 命中缓存; 但掩码文本 prompt 与生产不同 → 这些是增量 LLM 请求, 冷缓存需付费跑)。timeout=21600s (6h) 因冷缓存+限流。matplotlib 三轨混淆矩阵。
+**外部依赖**: LLM API (yunwu, 经 tone_llms.fetch_llm_async), 3 模型 × 3 轨 × 1000 = 最多 9000 请求; aiohttp 异步, ENTITY_MASKING_MAX_CONCURRENCY 限流。确定性锚点 = `_llm_cache_validation.db` (验证变体库, 用 LLMCache 命中缓存; 但掩码文本 prompt 与生产不同 → 这些是增量 LLM 请求, 冷缓存需付费跑)。timeout=21600s (6h) 因冷缓存+限流。matplotlib 三轨混淆矩阵。
 
 **学术依据**: SSRN-4558295 §7.2 entity substitution; Landis & Koch (1977, Biometrics) κ 解释阈值。
 
@@ -723,13 +723,13 @@ def _log_environment_and_config(input_path: str) -> None:
         _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
         logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'}")
         logger.info("     · 确定性/成本: 在线付费 LLM 重判 (掩码文本 prompt 与生产不同 → 增量请求, "
-                    "冷缓存需付费; 命中 _llm_cache.db 则 $0); 离线守卫 NEWS_PROCESS_LLM_OFFLINE=1 优雅跳过")
+                    "冷缓存需付费; 命中 _llm_cache_validation.db 则 $0); 离线守卫 NEWS_PROCESS_LLM_OFFLINE=1 优雅跳过")
 
         logger.info("  📂 输入 / 输出文件")
         logger.info(f"     · 输入:   {input_path}")
         logger.info(f"     · 报告目录: {report_dir}")
         logger.info("     · 产物:   entity_masking_results.json / _detail.csv / _table.tex / _confusion.png")
-        logger.info(f"     · LLM缓存: {os.path.join(CONFIG['paths']['output_dir'], '_llm_cache.db')}")
+        logger.info(f"     · LLM缓存(验证库): {os.path.join(CONFIG['paths']['output_dir'], '_llm_cache_validation.db')}")
         logger.info(f"     · 银行名表: {CONFIG['paths'].get('bank_names_file', '(默认)')}")
 
         logger.info("  ⚙ 运行配置 (config::entity_masking_test)")
@@ -798,7 +798,7 @@ def main():
                 f"≥0.81 才 almost-perfect, Landis-Koch 1977);")
     logger.info("        实体残留率应=0%(否则掩码不完整, 稳健性被高估); 三轨两两差异 <5pp 为好")
     logger.info("        (否则提示文本输入粒度敏感)。三轨须全过(full∧ctx∧ss)才算整体通过。")
-    logger.info("【确定性】调 LLM API(yunwu 3 模型 × 3 轨 × 样本量, 经 _llm_cache.db 命中缓存);")
+    logger.info("【确定性】调 LLM API(yunwu 3 模型 × 3 轨 × 样本量, 经 _llm_cache_validation.db 命中缓存);")
     logger.info("          掩码文本 prompt 与生产不同 → 这些是增量请求, 冷缓存需付费跑(timeout 6h)。")
     logger.info("=" * 72)
     logger.info("")
@@ -938,7 +938,9 @@ def main():
 
     # ── Step 5: 调用 LLM（掩码后文本，三轨 full/ctx/ss）──
     _t_llm = time.time()
-    cache_db = os.path.join(CONFIG["paths"]["output_dir"], '_llm_cache.db')
+    # W4 (2026-06-25): 掩码变体响应隔离到独立库 (不写生产 golden 锚点 _llm_cache.db);
+    # 见 prompt_sensitivity 同款注释 (hygiene 隔离, 变体键与生产互异不影响复现)。
+    cache_db = os.path.join(CONFIG["paths"]["output_dir"], '_llm_cache_validation.db')
     with LLMCache(cache_db) as cache:
         logger.info(f"Entity Masking LLM 缓存: {cache.size():,d} 条已缓存, 路径: {cache_db}")
         masked_llm_results = asyncio.run(
