@@ -223,7 +223,8 @@ STAGES_MAIN: list[StageSpec] = [
         group="main", kind="sentiment",
         # v3 / Fix 1: 6h 子进程硬超时. 已知工况 ~7200s (run_pipeline_function
         # CLI help 自承), 留 3x 安全余量覆盖冷缓存 / 全样本 / 单 yunwu 账户雪崩
-        # 后的指数退避. 若全样本冷缓存仍不够, 调高此值即可 (一行修改).
+        # 后的重试累积耗时 (2026-06-26 起重试为固定 10s 间隔, 非指数退避; 单请求最坏
+        # 80×10s=800s). 若全样本冷缓存仍不够, 调高此值即可 (一行修改).
         # 旧值 (StageSpec.timeout=3600 默认) 与已知工况冲突, 会被父端
         # proc.kill() 强杀, 留下 partial parquet.
         timeout=21600,

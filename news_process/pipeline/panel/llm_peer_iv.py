@@ -744,7 +744,7 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
     logger.info(f"  ⚙ 运行配置: temperature={sig4(TEMPERATURE)}, seed={RANDOM_SEED}, "
                 f"force_json={FORCE_JSON}, models_used=1 (仅 MODELS[0], 配置共 {len(MODELS)}), "
                 f"concurrency={MAX_CONCURRENCY}, "
-                f"retries={MAX_RETRIES}, delay={sig4(RETRY_DELAY)}s (flat sleep, 非 stage21 指数退避)")
+                f"retries={MAX_RETRIES}, delay={sig4(RETRY_DELAY)}s (flat sleep; 2026-06-26 全项目统一固定间隔)")
 
     if not HAS_AIOHTTP:
         logger.error("  aiohttp 未安装, 无法进行 LLM-Peer IV 计算")

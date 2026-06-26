@@ -10,10 +10,11 @@ tone_llm_processing:
   sock_read_timeout: 600                            # 响应读取超时（秒）
   ttl_dns_cache: 300                                # DNS 缓存时间，减少高频验证重复解析
   keepalive_timeout: 600                            # TCP keepalive，降低批量请求握手压力
-  max_retries: 80                                   # v6/N4: 最大重试次数（指数退避配合下，80 次足够覆盖瞬时故障）
-  retry_delay: 5                                    # v6/N4: 基础重试间隔（指数退避起点；秒）
-  retry_backoff: exponential                        # v6/N4: 指数退避策略
-  retry_backoff_cap: 600                            # v6/N4: 单次重试 sleep 上限（秒）
+  max_retries: 80                                   # 最大重试次数（瞬时故障重试上限）
+  retry_delay: 10                                   # 2026-06-26 全项目统一: 大模型 API 每次重试固定间隔 10s（flat, 不再指数退避）
+  # retry_backoff / retry_backoff_cap 已于 2026-06-26 退役: 大模型 API 重试改为固定 10s 间隔。
+  # 原指数退避 min(retry_delay*2**attempt, 600) 会使单个持续失败请求耗尽 80 次重试 ≈ 12h,
+  # 且退避期间占住并发槽拖垮整阶段; 见 pipeline/sentiment/tone_llms.py::_compute_retry_sleep。
   sentiment_tie_retry_rounds: 80                    # 用户决策 2026-06-24: verified 轨情感平局/空票在保守降级'中性'前, 绕过缓存重新调实时 API 最多 80 轮(温度=0)打破平局/补齐缺票; 逐轮全局 barrier + 每轮内全部待决(行×轨)×模型票并发; 仅在线模式执行(离线只读), 新票回写缓存; 设 <=0 关闭=直接保守降级
   max_concurrency: 100                              # 2026-05-14 用户决策: 项目统一 100 并发 (原 v6/N4=40); 监控 yunwu 网关 429 抖动, 若雪崩回退至 40
   temperature: 0.0                                  # 推理温度（0 = 确定性输出）

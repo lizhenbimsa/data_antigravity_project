@@ -53,8 +53,8 @@ _EMB_ENCODING = tiktoken.get_encoding("cl100k_base")
 EMB_MAX_TOKENS = 8191
 EMB_MAX_TOKENS_PER_REQUEST = 250_000
 
-RETRY_DELAY = 5
-MAX_RETRY_DELAY = 60
+# 2026-06-26 全项目统一: 嵌入 API 每次重试固定间隔 10s (flat, 不再指数退避)
+RETRY_DELAY = 10
 
 # 单批瞬时失败 (429/5xx/网络异常) 的最大重试次数。2026-06-23 用户决策: 大模型 / 嵌入
 # API 调用失败一律按各自既有方法重试 80 次, 耗尽后走各自现有终态处理 — 与 stage 21
@@ -77,7 +77,7 @@ class EmbeddingRetryExhaustedError(RuntimeError):
 
 # API 嵌入批次最大并发数 (asyncio.gather + Semaphore 上限)。各批次结果按 batch_idx
 # 索引收集再按序重组 (绝不依赖完成顺序), 故并发对产出逐位不变, 仅缩短 wall-clock。
-# ⚠ 若调高需留意上游 API 的 RPS / 并发限流 (429 已由 per-batch 退避重试兜底)。
+# ⚠ 若调高需留意上游 API 的 RPS / 并发限流 (429 已由 per-batch 固定 10s 间隔重试兜底)。
 EMB_API_CONCURRENCY = 100
 
 # local SentenceTransformer 按 model_id 缓存 (允许两个 spec 都是 local 时各持其模型)
@@ -349,7 +349,7 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
     spec 提供 base_url / api_key / model / text_pipeline_version。
     与 LLMCache 配合: cache 命中的文本不重复调用; 写回时按 model_id+version 命名空间。
 
-    可重试的瞬时故障 (429/5xx/网络异常) 按 ``EMB_MAX_RETRIES`` (=80) 次指数退避重试;
+    可重试的瞬时故障 (429/5xx/网络异常) 按 ``EMB_MAX_RETRIES`` (=80) 次固定 ``RETRY_DELAY`` (=10s) 间隔重试 (flat, 2026-06-26 全项目统一, 不再指数退避);
     任一批耗尽仍失败 → 捕获 EmbeddingRetryExhaustedError → 返回 ``None`` (调用方据此把
     该轨列置 NaN, 优雅降级, 对称 tone_llms 80 次后缺席投票)。不可恢复的致命错误 (非 5xx
     状态 / 缺 'data' / 缺 base_url+api_key / 单条超限) 仍立即 raise (现有路径不变)。
@@ -512,7 +512,6 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
                                     f"{attempt + 1}/{EMB_MAX_RETRIES}, 休眠 {delay}s..."
                                 )
                                 await asyncio.sleep(delay)
-                                delay = min(delay * 2, MAX_RETRY_DELAY)
                             else:
                                 err_text = await resp.text()
                                 raise ValueError(
@@ -529,7 +528,6 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
                             f"{attempt + 1}/{EMB_MAX_RETRIES}, 休眠 {delay}s..."
                         )
                         await asyncio.sleep(delay)
-                        delay = min(delay * 2, MAX_RETRY_DELAY)
                 # 瞬时失败 (429/5xx/网络) 重试 EMB_MAX_RETRIES 次仍未成功 → 抛
                 # EmbeddingRetryExhaustedError, 由 get_embeddings_api 捕获 → 返回 None
                 # → 该 spec/轨列置 NaN (优雅降级, 对称 tone_llms 80 次后缺席投票)。

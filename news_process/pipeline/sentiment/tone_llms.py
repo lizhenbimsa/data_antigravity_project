@@ -212,10 +212,11 @@ FORCE_JSON = LLM_CONFIG.get('force_json', True)
 # fallback 对齐生产 config (sentiment.yaml::tone_llm_processing.max_retries=80) —
 # 2026-06-23 统一决策: 大模型 API 调用失败一律重试 80 次; 误删 YAML 键也不再静默降级到旧 5。
 MAX_RETRIES = LLM_CONFIG.get('max_retries', 80)
+# 2026-06-26 全项目统一决策: 大模型 API 每次重试间隔固定 10s (flat), 不再指数退避。
+# 原 v6/N4 的 min(retry_delay * 2**attempt, retry_backoff_cap) 已废除 (见 _compute_retry_sleep):
+# 该指数退避会使约第 8 次重试起每次 sleep 即封顶 600s, 单个持续失败请求耗尽 80 次重试 ≈ 12h,
+# 且退避期间占住并发槽拖垮整阶段。retry_backoff / retry_backoff_cap 配置键一并退役。
 RETRY_DELAY = LLM_CONFIG.get('retry_delay', 10)
-# v6/N4: 指数退避 — 单 yunwu 账户避免雪崩
-RETRY_BACKOFF = LLM_CONFIG.get('retry_backoff', 'linear')  # 'exponential' or 'linear'
-RETRY_BACKOFF_CAP = LLM_CONFIG.get('retry_backoff_cap', 600)
 
 # 用户决策 (2026-06-24): verified 轨情感**平局/空票**在 _aggregate_track 保守
 # 降级为'中性'**之前**, 先对该 (行×轨) 的 3 个模型票**绕过缓存重新调实时
@@ -269,13 +270,13 @@ class LLMCacheMissError(RuntimeError):
 
 
 def _compute_retry_sleep(attempt: int) -> float:
-    """v6/N4: 计算第 attempt 次重试的 sleep 秒数。
+    """计算第 attempt 次重试的 sleep 秒数 — 全项目统一固定间隔。
 
-    指数退避: delay = min(RETRY_DELAY * 2**attempt, RETRY_BACKOFF_CAP)
-    线性回退到原行为: delay = RETRY_DELAY
+    2026-06-26 决策: 大模型 API 每次重试间隔统一固定为 ``RETRY_DELAY`` 秒 (默认 10s),
+    不再执行原 v6/N4 的指数退避 ``min(RETRY_DELAY * 2**attempt, RETRY_BACKOFF_CAP)``
+    (该公式会使第 7 次起每次 sleep 封顶 600s, 单个持续失败请求耗尽 80 次重试 ≈ 12h,
+    并在退避期间占住并发槽拖垮整阶段)。``attempt`` 参数保留 (签名稳定供调用方) 但不再参与计算。
     """
-    if RETRY_BACKOFF == 'exponential':
-        return min(RETRY_DELAY * (2 ** attempt), RETRY_BACKOFF_CAP)
     return RETRY_DELAY
 
 
@@ -1988,8 +1989,7 @@ def _write_run_lineage(stage_start: float):
         "concurrency": MAX_CONCURRENCY,
         "max_retries": MAX_RETRIES,
         "retry_delay": RETRY_DELAY,
-        "retry_backoff": RETRY_BACKOFF,
-        "retry_backoff_cap": RETRY_BACKOFF_CAP,
+        "retry_backoff": "flat",  # 2026-06-26 全项目统一固定间隔, 不再指数退避
         "temperature": TEMPERATURE,
         "random_seed": RANDOM_SEED,
         "force_json": FORCE_JSON,
@@ -2066,8 +2066,8 @@ def _log_environment_and_methodology(input_path: str) -> None:
             "(gpt54nano/gemini31/deepseekv4; Prompt v8 字节冻结)"
         )
         logger.info(
-            f"     · 重试: max_retries={MAX_RETRIES:,d} (API 失败统一 80 次) | retry_delay={sig4(RETRY_DELAY)}s | "
-            f"backoff={RETRY_BACKOFF} (cap={sig4(RETRY_BACKOFF_CAP)}s)"
+            f"     · 重试: max_retries={MAX_RETRIES:,d} (API 失败统一 80 次) | "
+            f"retry_delay={sig4(RETRY_DELAY)}s 固定间隔 (flat, 2026-06-26 全项目统一, 不再指数退避)"
         )
         logger.info(
             f"     · 平局重试: sentiment_tie_retry_rounds={SENTIMENT_TIE_RETRY_ROUNDS:,d} "

@@ -145,8 +145,8 @@ LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
 EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})
 # ROBUSTNESS spec = shibing624/text2vec (local) → _t2v 后缀稳健 twin 列
 _ROBUSTNESS_SPEC = CONFIG.get('embedding_robustness', {})
-RETRY_DELAY = 5
-MAX_RETRY_DELAY = 60
+# 2026-06-26 全项目统一: 嵌入 API 每次重试固定间隔 10s (flat, 不再指数退避)
+RETRY_DELAY = 10
 CACHE_DB_PATH = CONFIG['paths'].get('llm_cache_db', os.path.join(CONFIG['paths']['output_dir'], '_llm_cache.db'))
 
 # 模块专属配置
@@ -401,12 +401,12 @@ async def _get_embeddings_api_dynamic(
 
     【术语】
     引入 LLMCache 穿透查询，未命中则走 API。
-    针对 API 使用"无限退避重试 (Infinite Exponential Backoff)"，
+    针对 API 使用"无限固定间隔重试 (Infinite Flat-Interval Retry, 每次 10s)"，
     只要是网络故障 (429, 500+) 绝不退出，直到取回完美向量为止。
     若是致命错误 (400, 401, 404)，则抛出 ValueError 拦截并中止进程。
 
     【白话】先把文章在缓存库里查一遍。没查到的打包发给大模型。
-    如果网断了或者被限流，就一直等、一直试，绝不报错退出（除非密码错了），
+    如果网断了或者被限流，就每隔 10 秒再试一次、一直试，绝不报错退出（除非密码错了），
     确保拿回来的全是完好无损的数据。
 
     Args:
@@ -509,7 +509,6 @@ async def _get_embeddings_api_dynamic(
                                 err_text = await resp.text()
                                 logger.warning(f"    HTTP {status} (batch {batch_idx+1}): {err_text[:100]}。休眠 {delay} 秒后重试...")
                                 await asyncio.sleep(delay)
-                                delay = min(delay * 2, MAX_RETRY_DELAY)
                             else:
                                 err_text = await resp.text()
                                 raise ValueError(f"不可恢复的 API 错误 {status} (batch {batch_idx+1}): {err_text[:200]}")
@@ -518,7 +517,6 @@ async def _get_embeddings_api_dynamic(
                     except Exception as e:
                         logger.warning(f"    网络异常 (batch {batch_idx+1}): {type(e).__name__}: {e}。休眠 {delay} 秒后重试...")
                         await asyncio.sleep(delay)
-                        delay = min(delay * 2, MAX_RETRY_DELAY)
 
                 if (batch_idx + 1) % 5 == 0:
                     logger.info(f"    API 进度: {batch_idx+1}/{len(batches)} 批完成")
@@ -1285,7 +1283,7 @@ def main():
                     "(text-embedding-3-small, API 1536 维)")
         logger.info(f"  · ROBUSTNESS spec (_t2v twin): {_eng.spec_model(_ROBUSTNESS_SPEC)} "
                     "(shibing624/text2vec-base-chinese, 本地 768 维; 严禁与 MAIN 混算)")
-        logger.info(f"  · 缓存库: {CACHE_DB_PATH} | 重试退避: 起 {sig4(RETRY_DELAY)}s → 封顶 {sig4(MAX_RETRY_DELAY)}s")
+        logger.info(f"  · 缓存库: {CACHE_DB_PATH} | 重试间隔: {sig4(RETRY_DELAY)}s 固定 (flat, 2026-06-26 全项目统一)")
         logger.info("  · 权威语料: config/authoritative_corpus.txt (paths.authoritative_corpus_file, 与 stage 26 共享)")
     except Exception as _e:
         logger.warning(f"[运行配置] 输出异常, 跳过(不影响产物): {_e}")

@@ -60,9 +60,7 @@ class ToneLLMSchema:
     ttl_dns_cache: int = 300
     keepalive_timeout: int = 60
     max_retries: int = 8
-    retry_delay: int = 5
-    retry_backoff: str = "exponential"  # 'exponential' | 'linear'
-    retry_backoff_cap: int = 600
+    retry_delay: int = 10  # 2026-06-26 全项目统一固定间隔重试 (flat); retry_backoff/cap 已退役
     # 用户决策 2026-06-24: verified 轨情感平局/空票在保守降级'中性'前, 绕过缓存
     # 重新调实时 API 的最多轮数 (默认 80, 温度=0; 逐轮全局 barrier + 每轮内并发);
     # <=0 关闭 = 直接保守降级。
