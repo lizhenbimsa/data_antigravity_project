@@ -415,6 +415,18 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
 
     missing_embs: list = []
     if missing_texts:
+        # P1→P3 加固 (2026-06-26): 与 stage 21 (tone_llms.LLMCacheMissError) 对称的离线确定性闸 —
+        # NEWS_PROCESS_LLM_OFFLINE=1 时嵌入缓存 miss 即 raise (在 session.post 之前), 杜绝
+        # 付费/非确定网络调用污染产物列, 兑现"离线 $0/零网络/逐位复现"契约。命中路径与生产
+        # 首跑 (env 未设) 完全不变 → golden-safe。
+        if os.environ.get('NEWS_PROCESS_LLM_OFFLINE', '').strip().lower() in (
+                '1', 'true', 'yes', 'on'):
+            raise RuntimeError(
+                f"离线确定性模式 (NEWS_PROCESS_LLM_OFFLINE=1) 嵌入缓存 miss: "
+                f"model={embedding_model} prompt_version={text_pipeline_version} "
+                f"n_missing={len(missing_texts):,}; 需在线回填嵌入缓存或检查语料/"
+                f"text_pipeline_version 是否相对 golden 漂移"
+            )
         # fix(2026-06-19 run-check F1): API spec 校验 + headers 构造下移至此 —
         # 仅当确有未缓存文本需联网时才要求 base_url/api_key。全命中路径 (含离线
         # 空 key) 由缓存直接返回, 兑现 stage 15 banner "命中即逐位 $0 复现" 契约,

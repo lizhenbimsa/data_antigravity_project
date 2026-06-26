@@ -28,7 +28,7 @@ def test_sentiment_stage_lineage_uses_actual_upstream_paths():
 
 def test_fintech_intensity_lineage_records_both_stage12_inputs():
     fintech_intensity = _source("pipeline/filtering/fintech_intensity.py")
-    assert "input_files=[full_path, input_file]" in fintech_intensity
+    assert "input_files=[full_path, _primary_src]" in fintech_intensity
 
 
 # ── audit-fixes 2026-05-29: 守卫本次新增/修正的三处 fan-in 血缘记录 ──

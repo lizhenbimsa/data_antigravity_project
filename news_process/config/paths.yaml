@@ -63,6 +63,11 @@ paths:
 # 各处理阶段输出的 Parquet 文件名，存放于 paths.output_dir 目录下。
 filenames:
   # 键名格式: output_XX_描述（XX = 生成该文件的脚本前缀编号）
+  # ⚠ (2026-06-26 审核披露) 自 v3.11.0 NN 重编号起, 键号 XX 为【历史稳定抽象句柄】, 可能 ≠ 当前
+  #   生产脚本号/产物文件号 (如 output_12b_cooccurrence→13_*.parquet, output_13_news_with_ctx→14_*,
+  #   output_14_fintech_intensity→15_*, output_15_article_alignment→16_*, output_32_human_sample→61_*)。
+  #   实际路由以 core/schemas.py::_OUTPUT_FILENAME_KEYS 的 (script, filename) 字面量元组为准 (import 期
+  #   _validate_registry_invariant 强制四端一致), 键号本身不参与解析。刻意不重命名以避免 35+ call-site churn。
   output_00_preprocessing: 00_preprocessing.parquet       # 00_preprocessing.py → 数据预处理（加载、过滤、标准化、去重）
   output_11_bank_news: 11_bank_news.parquet               # 11_news_bank.py → 银行新闻分类
   output_12_fintech_news: 12_fintech_news.parquet         # 12_news_fintech.py → 金融科技新闻分类（仅保留金融科技新闻）

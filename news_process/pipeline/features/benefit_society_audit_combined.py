@@ -364,8 +364,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--output",
         type=str,
-        default="news_process/data/processed/80_alt_anchor_and_placebo_panel.parquet",
-        help="Output parquet path",
+        default=None,  # P2 fix (2026-06-26): 默认延后到 main() 经 config output_dir 解析 (cwd 无关)
+        help="Output parquet path (默认: <output_dir>/80_alt_anchor_and_placebo_panel.parquet)",
     )
     parser.add_argument(
         "--validate-only",
@@ -386,6 +386,13 @@ def main(argv: list[str] | None = None) -> int:
         "80_placebo_and_alt_anchor",
         load_config()["paths"].get("log_dir", "logs"),
     )
+
+    # P2 fix (2026-06-26): --output 默认延后到此经 config output_dir 解析 (cwd 无关; audit-only)。
+    if args.output is None:
+        args.output = os.path.join(
+            load_config()['paths']['output_dir'],
+            '80_alt_anchor_and_placebo_panel.parquet',
+        )
 
     # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39c)。
     logger.info("=" * 72)

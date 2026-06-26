@@ -91,6 +91,10 @@ news_process/logs/
 # Phase 8 (2026-05-04): data_processed/ 重命名为 data/processed/
 news_process/data/
 news_process/data_excel/
+# 2026-06-26 (A6 修复): stage 70 prompt_sensitivity 等验证诊断产物的落点已统一对齐到
+# data/processed/eval_reports/ (受 news_process/data/ 整树忽略); 历史误落源码树的
+# validation/eval_reports/ 一律忽略, 杜绝研究产物再泄漏进版本库。
+news_process/validation/eval_reports/
 
 # ============================================================
 # 文档构建输出 (Phase D, 2026-05-04)

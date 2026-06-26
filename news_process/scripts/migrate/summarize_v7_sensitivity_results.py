@@ -10,7 +10,7 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding='utf-8')
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-RESULTS_JSON = PROJECT_ROOT / 'news_process' / 'validation' / 'eval_reports' / 'prompt_sensitivity_results.json'
+RESULTS_JSON = PROJECT_ROOT / 'news_process' / 'data' / 'processed' / 'eval_reports' / 'prompt_sensitivity_results.json'
 OUT_MD = PROJECT_ROOT / 'news_process' / 'data' / 'processed' / 'v7_sensitivity_summary.md'
 
 

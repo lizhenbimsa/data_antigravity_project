@@ -253,7 +253,7 @@ class TestGlobalDFJiebaSameTokenizer:
 
     def test_lineage_contract_string_preserved(self):
         # 既有锁 (test_lineage_input_contract) 依赖的字面量未被重构破坏
-        assert 'input_files=[full_path, input_file]' in _SRC
+        assert 'input_files=[full_path, _primary_src]' in _SRC
 
 
 # ════════════════════════════════════════════════════════════════════════

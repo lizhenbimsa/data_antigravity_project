@@ -1501,7 +1501,7 @@ def main():
         _in_fn = CONFIG.get('filenames', {}).get(
             'output_21_tone_llms_full', '21_tone_llms_full.parquet')
         _in_path = os.path.join(CONFIG['paths']['output_dir'], _in_fn)
-        _report_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'eval_reports')
+        _report_dir = os.path.join(CONFIG['paths']['output_dir'], 'eval_reports')
         logger.info("  ⚙ 运行配置 (config/validation.yaml::prompt_sensitivity_test + paths)")
         logger.info(f"     · 抽样: sample_size={SAMPLE_SIZE:,} | random_seed={RANDOM_SEED}")
         logger.info(f"     · 变体: {len(VARIANT_PROMPTS)} (V1_role/V2_structure/V3_concise/V4_paraphrase) + V0 baseline")
@@ -1679,7 +1679,7 @@ def main():
     # ── Step 8: 生成报告 ──
     logger.info("Step 8: 生成报告 ...")
     _t_report = time.time()
-    report_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'eval_reports')
+    report_dir = os.path.join(CONFIG['paths']['output_dir'], 'eval_reports')
     os.makedirs(report_dir, exist_ok=True)
 
     generate_reports(df_sample, variant_keys, pairwise_results,

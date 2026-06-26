@@ -809,15 +809,18 @@ def main():
 
     # 使用数据版本控制保存
     _t = time.time()
-    input_file = os.path.join(CONFIG['paths']['output_dir'],
-                              CONFIG['filenames']['output_12_fintech_news'])
+    # P1→P2 fix (2026-06-26): 把真实主打分语料纳入血缘 (与 stage 13/14/16 "读=记" 约定一致)。
+    # 上方 df 优先读 ctx_path(=stage13 输出, 真实评分行源), 缺失才 fallback filtered_path;
+    # full_path 仅作 IDF 参考语料。原 input_files 漏掉主源 ctx_path, 致 --skip-unchanged 内容门
+    # 对 14_news_with_ctx 变更失明 (stage15-only 分跑静默陈旧窗口)。
+    _primary_src = ctx_path if os.path.exists(ctx_path) else filtered_path
     save_dataset(
         df=df,
         output_path=output_path,
         logger=logger,
         stage_name="15_fintech_intensity",
         config=CONFIG,
-        input_files=[full_path, input_file],
+        input_files=[full_path, _primary_src],
     )
     phase_durations['⑤写盘(save_dataset)'] = time.time() - _t
 
