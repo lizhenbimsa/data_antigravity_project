@@ -534,6 +534,16 @@ def _log_environment_config_and_methods(input_path: str) -> None:
         logger.info("     · 面板平衡/笛卡尔补全(结构自检): Angrist, J. D., & Pischke, J.-S. (2009). "
                     "Mostly harmless econometrics: An empiricist's companion. Princeton University Press. "
                     "https://doi.org/10.1515/9781400829828")
+        logger.info("     · 移位份额/Bartik IV 识别设计①(步骤 7e; pre-treatment 基期外生性公理): "
+                    "Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik instruments: What, when, "
+                    "why, and how. American Economic Review, 110(8), 2586-2624. "
+                    "https://doi.org/10.1257/aer.20181047")
+        logger.info("     · 移位份额/Bartik IV 识别设计②(准实验份额暴露设计的识别条件): Borusyak, K., Hull, P., "
+                    "& Jaravel, X. (2022). Quasi-experimental shift-share research designs. The Review of "
+                    "Economic Studies, 89(1), 181-213. https://doi.org/10.1093/restud/rdab030")
+        logger.info("     · 移位份额/Bartik IV 识别设计③(冲击外生性的非随机暴露校正): Borusyak, K., & Hull, P. "
+                    "(2023). Nonrandom exposure to exogenous shocks. Econometrica, 91(6), 2155-2185. "
+                    "https://doi.org/10.3982/ECTA19367")
         logger.info("     · 媒体注意力(extensive 覆盖): Fang, L., & Peress, J. (2009). Media coverage and "
                     "the cross-section of stock returns. The Journal of Finance, 64(5), 2023-2052. "
                     "https://doi.org/10.1111/j.1540-6261.2009.01493.x")

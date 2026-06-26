@@ -2087,6 +2087,12 @@ def main():
             "https://doi.org/10.1111/j.1540-6261.2008.01362.x"
         )
         logger.info(
+            "  · LLM 作为文本标注器的效度先例(本阶段把 LLM 投票作为与词典/BERT 并列的独立测量轨参与三角验证): "
+            "Gilardi, F., Alizadeh, M., & Kubli, M. (2023). ChatGPT outperforms crowd workers for "
+            "text-annotation tasks. Proceedings of the National Academy of Sciences, 120(30), e2305016120. "
+            "https://doi.org/10.1073/pnas.2305016120"
+        )
+        logger.info(
             "  · 白话: 用三种机理完全不同的方法(查词典/BERT 神经网络/LLM 大模型)给同一篇新闻判情感, "
             "若彼此趋同则收敛效度强 (但仍≠效标效度=对人工金标准, 须人工回读/stage 33)。"
         )

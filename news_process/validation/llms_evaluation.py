@@ -1641,6 +1641,14 @@ def main():
                     "S. (2008). More than words: Quantifying language to measure firms' fundamentals. The "
                     "Journal of Finance, 63(3), 1437-1467. https://doi.org/10.1111/j.1540-6261.2008.01362.x")
         logger.info("    (白话: 用语言度量企业基本面前须先证度量准确, 故先评分类器精度再下结论。)")
+        logger.info("  · LLM 作为文本标注器(本阶段把 LLM 分类器输出对人工 gold 评估的直接方法学依据): Gilardi, F., "
+                    "Alizadeh, M., & Kubli, M. (2023). ChatGPT outperforms crowd workers for text-annotation "
+                    "tasks. Proceedings of the National Academy of Sciences, 120(30), e2305016120. "
+                    "https://doi.org/10.1073/pnas.2305016120")
+        logger.info("  · 金融领域 LLM 文本分析(finance-domain LLM-as-analyst 对标, arXiv DOI 经 DataCite 核验): "
+                    "Kim, A., Muhn, M., & Nikolaev, V. V. (2024). Financial statement analysis with large "
+                    "language models. arXiv. https://doi.org/10.48550/arXiv.2407.17866")
+        logger.info("    (白话: LLM 作标注器/分析器已有同行评议与顶级工作论文先例, 故本阶段以人工 gold 量化其在中文金融新闻上的精度。)")
         logger.info("  · 选择性样本加权 (Panel E/F 总体后分层 accuracy): Manski, C. F. (1993). Identification "
                     "of endogenous social effects: The reflection problem. The Review of Economic Studies, "
                     "60(3), 531-542. https://doi.org/10.2307/2298123")
