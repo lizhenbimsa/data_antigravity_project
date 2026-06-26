@@ -1523,6 +1523,14 @@ def _log_codebook_environment_and_config(
         logger.info("     · 词典消融-整体词典法: Ding, X., Liu, B., & Yu, P. S. (2008). A holistic "
                     "lexicon-based approach to opinion mining. In Proceedings of WSDM '08 (pp. 231-240). "
                     "ACM. https://doi.org/10.1145/1341531.1341561")
+        logger.info("     · prob_score 族 LLM 置信校准: Geng, J., Cai, F., Wang, Y., Koeppl, H., "
+                    "Nakov, P., & Gurevych, I. (2024). A survey of confidence estimation and calibration "
+                    "in large language models. In Proceedings of the 2024 Conference of the North American "
+                    "Chapter of the Association for Computational Linguistics: Human Language Technologies "
+                    "(Volume 1: Long Papers) (pp. 6577-6595). Association for Computational Linguistics. "
+                    "https://doi.org/10.18653/v1/2024.naacl-long.366")
+        logger.info("       → 为何用: avg_*_prob_score{,_std} 族取自 LLM 输出 confidence (conf), "
+                    "本综述将 ECE 置信校准置于 LLM 时代, 为以 conf 构造 binary prob_score 的做法提供方法学锚点")
         logger.info("     · 实质/象征二元 (W&Z 1994/1998 ASQ) 与底层/应用二元 (Gomber et al. 2018 JMIS) "
                     "构念见列名后缀正名, 注册表无对应 DOI 故此处仅注名。")
     except Exception as e:  # noqa: BLE001

@@ -97,6 +97,24 @@ _GEO_REFERENCES = {
         "adoption. Research Policy, 53(2), 104917. "
         "https://doi.org/10.1016/j.respol.2023.104917"
     ),
+    # 2026-06-26 保守深化: 补 2025 近期文献 — 本模块原本地媒体/聚类锚点 (Gurun-Butler
+    # 2012 / Engelberg-Parsons 2011 / Coval-Moskowitz 1999 / Cameron-Miller 2015) 皆
+    # 偏早, 下列三条提供 2025 本地媒体 home-bias 构念 + 空间自相关推断的当代对标。
+    "conley_kelly_spatial": (
+        "Conley, T. G., & Kelly, M. (2025). The standard errors of "
+        "persistence. Journal of International Economics, 153, Article 104027. "
+        "https://doi.org/10.1016/j.jinteco.2024.104027"
+    ),
+    "kang_nam_local_news": (
+        "Kang, B. U., & Nam, J. S. (2025). Do local newspapers matter to "
+        "institutional investors? Contemporary Accounting Research, 42(3), "
+        "1713-1743. https://doi.org/10.1111/1911-3846.13049"
+    ),
+    "dyer_lang_oh_conglom": (
+        "Dyer, T., Lang, M., & Oh, J. (2025). Media conglomeration, local "
+        "news, and capital market consequences. Management Science, 71(8), "
+        "6602-6626. https://doi.org/10.1287/mnsc.2023.02247"
+    ),
 }
 
 
@@ -634,9 +652,13 @@ def merge_bank_geography(panel: pd.DataFrame) -> pd.DataFrame:
     # 经核验的本地媒体/地理依据 (Gurun & Butler 2012) 见下方 DOI 行。
     _log_geo_substep_env(
         "步骤 7c: 银行注册地省/市映射 (供地理层级递进聚类 + LOO-IV 前置)",
-        ref_keys=("gurun_butler",),
+        ref_keys=("gurun_butler", "conley_kelly_spatial"),
         note=("从 bank_addresses.json 把省/市贴到 bank-year, 支撑 Stata 逐级提升聚类层级 "
               "(银行→城市→省) 检验稳健性; 同地理银行受相同本地媒体生态影响。"))
+    # 📖 空间自相关推断风险 (2026-06-26 深化): Conley & Kelly (2025) 论证地理空间趋势/
+    # 自相关会使常规 t 统计量虚高 — 与本步逐级提升聚类层级 (银行→城市→省) 校正同省
+    # 银行误差正相关的动机直接对标 (白话: 邻近银行的扰动彼此相关, 不校正会高估显著性)。
+    logger.info(f"  📖 空间自相关推断: {_GEO_REFERENCES['conley_kelly_spatial']}")
 
     # ── 加载 bank_addresses.json ──
     # 路径优先从 config.yaml 的 paths.bank_addresses_file 读取,
@@ -1153,6 +1175,13 @@ def compute_geo_proximity_buffers(
         logger.info(f"  ⚙ 距离阈值 (km): {_DISTANCE_THRESHOLDS_KM} | 轨道=full/ctx/ss")
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"  (config 摘要日志失败, 忽略): {_e}")
+    # 📖 本地媒体 home-bias 构念近期对标 (2026-06-26 深化): 经典锚点 (Gurun-Butler 2012 /
+    # Engelberg-Parsons 2011 / Coval-Moskowitz 1999) 偏早, 补两条 2025 文献界定"本地媒体
+    # 偏向"的地理维度 — Kang & Nam (2025) 证本地报纸覆盖与本地机构投资者关联 (home bias),
+    # Dyer et al. (2025) 证媒体集团化经本地新闻强度影响信息环境; 与本步"近处媒体是否更
+    # 捧本地银行"的距离缓冲检验同一构念谱系。
+    logger.info(f"  📖 本地媒体 home-bias: {_GEO_REFERENCES['kang_nam_local_news']}")
+    logger.info(f"  📖 本地新闻地理维度: {_GEO_REFERENCES['dyer_lang_oh_conglom']}")
 
     # ── 加载坐标数据 (Phase 2a: 通过 CONFIG['paths'][...] 解析) ──
     coord_path = CONFIG['paths'].get('city_coordinates_file')

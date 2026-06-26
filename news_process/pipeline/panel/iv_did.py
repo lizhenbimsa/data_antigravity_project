@@ -74,6 +74,19 @@ _IV_DID_REFERENCES = (
     "Callaway, B., & Sant'Anna, P. H. C. (2021). Difference-in-Differences with "
     "multiple time periods. Journal of Econometrics, 225(2), 200-230. "
     "https://doi.org/10.1016/j.jeconom.2020.12.001",
+    # [3] 交错 DiD 整族实践指南 (CS/SA/Borusyak/honestDiD 方法选择统一框架)
+    "Baker, A., Callaway, B., Cunningham, S., Goodman-Bacon, A., & Sant'Anna, "
+    "P. H. C. (2026). Difference-in-differences designs: A practitioner's guide. "
+    "Journal of Economic Literature, 64(2), 498-557. "
+    "https://doi.org/10.1257/jel.20251650",
+    # [4] shift-share 工具最新核对清单 (区分 share/shift 两条识别路径, 锚定本模块所采路径)
+    "Borusyak, K., Hull, P., & Jaravel, X. (2025). A practical guide to "
+    "shift-share instruments. Journal of Economic Perspectives, 39(1), 181-204. "
+    "https://doi.org/10.1257/jep.20231370",
+    # [5] 颗粒工具变量 (大单位特异冲击规模加权和) — leave-one-out 同业 IV 的顶刊源
+    "Gabaix, X., & Koijen, R. S. J. (2024). Granular instrumental variables. "
+    "Journal of Political Economy, 132(7), 2274-2303. "
+    "https://doi.org/10.1086/728743",
 )
 
 
@@ -91,6 +104,15 @@ def _log_iv_did_method_refs(lg=None) -> None:
         _lg.info("    · shift-share (shift 视角=冲击准随机, 仅作对比非双重主张): "
                  + _IV_DID_REFERENCES[1])
         _lg.info("    · 交错 DiD (多期处理时点, ATT 分解): " + _IV_DID_REFERENCES[2])
+        _lg.info("    · 交错 DiD 整族实践指南 (CS/SA/Borusyak/honestDiD 选择框架): "
+                 + _IV_DID_REFERENCES[3])
+        _lg.info("      (白话: 2026 JEL 把各家交错 DiD 估计量与方法选择统一成一份指南)")
+        _lg.info("    · shift-share 最新核对清单 (share/shift 两路径区分): "
+                 + _IV_DID_REFERENCES[4])
+        _lg.info("      (白话: 2025 JEP 列出做 shift-share IV 该核对哪些诊断、走哪条识别路径)")
+        _lg.info("    · 颗粒工具变量 (leave-one-out 同业 IV 顶刊源): "
+                 + _IV_DID_REFERENCES[5])
+        _lg.info("      (白话: 用大机构的特异冲击做工具, 与本模块同组其他银行 LOO shift 同源)")
     except Exception as e:  # noqa: BLE001 — 日志块绝不得让阶段崩溃
         (lg or logger).warning(f"  方法论引用日志块跳过 (非致命): {e}")
 
@@ -397,6 +419,30 @@ def compute_bartik_iv(panel: pd.DataFrame,
     # 诊断
     group_dist = panel.drop_duplicates('target_bank')[f'bank_{group_prefix}'].value_counts()
     logger.info(f"  分组分布: {dict(group_dist)}")
+
+    # 结果统计 (三轨 full/ctx/ss): IV 覆盖率 (一阶段有效 N) + 区分度 (mean/std);
+    # 与 compute_bartik_iv_fintech 同口径, 仅供日志判读 (golden-safe)。
+    for track in ['_full', '_ctx', '_ss']:
+        iv_col = f'bartik_{group_prefix}_iv{track}'
+        if iv_col in panel.columns:
+            n_valid = int(panel[iv_col].notna().sum())
+            n_rows = len(panel)
+            valid_frac = n_valid / n_rows if n_rows else 0.0
+            iv_mean = panel[iv_col].mean()
+            iv_std = panel[iv_col].std()
+            logger.info(f"  [{group_prefix}] {iv_col}: "
+                        f"{n_valid:,d}/{n_rows:,d} 有效 ({pct4(valid_frac)}), "
+                        f"mean={sig4(iv_mean)}, std={sig4(iv_std)}")
+            try:
+                if valid_frac < 0.5:
+                    logger.warning(f"    ⚠ {iv_col} 有效率 {pct4(valid_frac)} < 50% — "
+                                   "基期退化/前视掩码致工具大面积缺失, 一阶段 N 偏低, "
+                                   "相应 2SLS spec 须降权并披露 (T=2 退化, GPSS 2020)")
+                if iv_std is not None and float(np.nan_to_num(iv_std)) == 0.0 and n_valid > 0:
+                    logger.warning(f"    ⚠ {iv_col} std=0 — 工具零方差 (近共线于 bank-type FE), "
+                                   "一阶段弱工具风险高")
+            except Exception as e:  # noqa: BLE001
+                logger.warning(f"    IV 结果判读跳过 (非致命): {e}")
 
     return panel
 

@@ -327,6 +327,21 @@ def _log_environment_config_methods(logger, config, input_path, csv_path, tex_pa
         logger.info("       → fair/moderate/substantial 分级; 项目约定期望 κ∈[0.50, 0.70] (非越高越好)")
         logger.info("     · Holm (1979). step-down FWER 校正, Scandinavian Journal of Statistics")
         logger.info("       → 同维度 3 个 pair 多重检验族错误率控制 (比 Bonferroni 更不保守)")
+        logger.info("     · 现代补充 (经 Crossref 核验, 锚定一致性/判别效度报告标准):")
+        logger.info("     · Rönkkö, M., & Cho, E. (2022). An updated guideline for assessing "
+                    "discriminant validity. Organizational Research Methods, 25(1), 6-14. "
+                    "https://doi.org/10.1177/1094428120968614")
+        logger.info("       → (白话: 判别效度准则现代更新指南; 锚定本阶段 κ>0.70=轨间冗余/不可判别 的判读标准)")
+        logger.info("     · Moons, F., & Vandervieren, E. (2025). Measuring agreement among several "
+                    "raters classifying subjects into one or more (hierarchical) categories: A "
+                    "generalization of Fleiss' kappa. Behavior Research Methods, 57(10), Article 287. "
+                    "https://doi.org/10.3758/s13428-025-02746-8")
+        logger.info("       → (白话: Fleiss κ 向多评分者/多标签/层级类别的现代直接扩展; 三轨 = 多'评分者'一致性的概念依据)")
+        logger.info("     · Marzi, G., Balzano, M., & Marchiori, D. (2024). K-Alpha Calculator-"
+                    "Krippendorff's Alpha Calculator: A user-friendly tool for computing "
+                    "Krippendorff's Alpha inter-rater reliability coefficient. MethodsX, 12, 102545. "
+                    "https://doi.org/10.1016/j.mex.2023.102545")
+        logger.info("       → (白话: Krippendorff α 的 2024 实现工具; 与 Cohen κ 并列的 inter-coder 信度系数对照锚点)")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
 

@@ -1163,6 +1163,17 @@ def _log_environment_and_config(media_weights: dict, default_weight: int,
                     "https://doi.org/10.1002/j.1538-7305.1948.tb01338.x  [熵 H=-Σpᵢlog₂pᵢ]")
         logger.info("       (其余经典指标以作者-年份形式: Herfindahl 1950 / Hirschman 1964 HHI=Σsᵢ²; "
                     "Pielou 1966 均匀度 J'=H/log₂N; Gini 1912 不等系数; Laakso-Taagepera 1979 等效数 ENM=1/HHI)")
+        logger.info("     · Gini 系数正确估计与不确定性推断 ✅ (锚定 compute_gini, 2026 新增):")
+        logger.info("       Muñoz, J. F., Pavía, J. M., & Álvarez-Verdejo, E. (2026). A practical guide to "
+                    "proper estimation and inference of the Gini index by avoiding often encountered "
+                    "methodological pitfalls. Social Indicators Research, 183(1), Article 2. "
+                    "https://doi.org/10.1007/s11205-026-03831-x")
+        logger.info("       (白话: Gini 正确估计与方差推断(jackknife)实用指南, 锚定 Gini 估计与不确定性报告)")
+        logger.info("     · Shannon 熵作大规模语料多样性度量 ✅ (锚定 Shannon 熵, 2025 近期应用):")
+        logger.info("       Rosillo-Rodes, P., San Miguel, M., & Sánchez, D. (2025). Entropy and type-token "
+                    "ratio in gigaword corpora. Physical Review Research, 7(3), 033054. "
+                    "https://doi.org/10.1103/rxxz-lk3n")
+        logger.info("       (白话: 大规模新闻+书+推文用 Shannon 熵作多样性度量, 镜像本审计的媒体/地域分布熵)")
         logger.info("     · 白话: 这些是'分散度体检'的经典量尺 — HHI/Gini 越低=来源越分散(好), "
                     "ENM=相当于几家媒体在均匀供稿, J'/Shannon=报道量摊得匀不匀")
     except Exception as e:  # noqa: BLE001 — 仅日志, 失败不影响审计

@@ -20,6 +20,8 @@ core/text/canonicalization.py - 金融科技主题标准化分类(增强版, 历
 
 import logging
 
+from news_process.core.logging import pct4, sig4
+
 logger = logging.getLogger(__name__)
 
 # ============================================================================
@@ -222,6 +224,88 @@ _TECH_NORMALIZED = [(kw.upper(), weight) for kw, weight in TECHNOLOGY_KEYWORDS]
 _APP_NORMALIZED  = [(kw.upper(), weight) for kw, weight in APPLICATION_KEYWORDS]
 
 
+# ============================================================================
+# 配置/方法论日志摘要 (log-only, golden-safe)
+# 下列三件 (_N_*、_weight_tier_counts、_log_methodology_once) **仅供 logger 使用**,
+# 不参与 canonicalize_topic 的任何返回值/数据计算 — 分类输出字节级不变。
+# ============================================================================
+
+_N_TECH_KW = len(TECHNOLOGY_KEYWORDS)
+_N_APP_KW = len(APPLICATION_KEYWORDS)
+_N_TOTAL_KW = _N_TECH_KW + _N_APP_KW
+
+# 一次性标志: 首次实调 canonicalize_topic 时输出一次方法论/配置摘要
+# (置于函数运行期而非 import 期, 确保此时 logging handler 已配置, 避免 INFO 被 lastResort 丢弃)
+_METHODOLOGY_LOGGED = False
+
+
+def _weight_tier_counts(keywords) -> dict:
+    """统计关键词表各权重档位的词数 (仅供日志, 不参与分类)。"""
+    tiers = {2.0: 0, 1.5: 0, 1.0: 0, 0.5: 0}
+    for _kw, w in keywords:
+        tiers[w] = tiers.get(w, 0) + 1
+    return tiers
+
+
+def _log_methodology_once() -> None:
+    """首次分类时输出一次「📊 配置摘要 + 📖 方法论依据」(log-only, golden-safe)。
+
+    只 emit ``logger.*``, 绝不改变 :func:`canonicalize_topic` 的返回值或任何数据路径。
+    """
+    global _METHODOLOGY_LOGGED
+    if _METHODOLOGY_LOGGED:
+        return
+    _METHODOLOGY_LOGGED = True
+
+    tech_tiers = _weight_tier_counts(TECHNOLOGY_KEYWORDS)
+    app_tiers = _weight_tier_counts(APPLICATION_KEYWORDS)
+    tech_core_frac = tech_tiers[2.0] / _N_TECH_KW if _N_TECH_KW else 0.0
+    app_core_frac = app_tiers[2.0] / _N_APP_KW if _N_APP_KW else 0.0
+
+    logger.info(
+        "📊 fintech-topic 标准化分类器配置 (单一事实源 = canonicalization.py 关键词表):"
+    )
+    logger.info(
+        "  • 关键词总规模: %s 词 (底层技术 %s / 应用场景 %s)",
+        f"{_N_TOTAL_KW:,}", f"{_N_TECH_KW:,}", f"{_N_APP_KW:,}",
+    )
+    logger.info(
+        "  • 权重档位 (sig4): 核心标志词 %s · 第二梯队 %s · 普通长词 %s · 短词/易误匹配 %s",
+        sig4(2.0), sig4(1.5), sig4(1.0), sig4(0.5),
+    )
+    logger.info(
+        "  • 底层技术各档计数: 核心 %s · 二梯队 %s · 长词 %s · 短词 %s",
+        f"{tech_tiers[2.0]:,}", f"{tech_tiers[1.5]:,}",
+        f"{tech_tiers[1.0]:,}", f"{tech_tiers[0.5]:,}",
+    )
+    logger.info(
+        "  • 应用场景各档计数: 核心 %s · 二梯队 %s · 长词 %s · 短词 %s",
+        f"{app_tiers[2.0]:,}", f"{app_tiers[1.5]:,}",
+        f"{app_tiers[1.0]:,}", f"{app_tiers[0.5]:,}",
+    )
+    logger.info(
+        "  • 核心标志词占比: 底层技术 %s · 应用场景 %s",
+        pct4(tech_core_frac), pct4(app_core_frac),
+    )
+    logger.info(
+        "  • 三轮决策: ① 加权关键词最长匹配优先 (longest-match-first, 无重叠计分) "
+        "→ ② rapidfuzz/thefuzz partial_token_set_ratio 模糊匹配 "
+        "(阈值 %s, 置信度折扣 %s) → ③ 兜底基率归 '应用场景' (confidence %s)",
+        f"{60:,}", sig4(0.7), sig4(0.0),
+    )
+    logger.info("📖 方法论依据 (topic canonicalization 方法溯源):")
+    logger.info(
+        "  • Manning, C. D., Raghavan, P., & Schütze, H. (2008). "
+        "Introduction to information retrieval. Cambridge University Press. "
+        "https://doi.org/10.1017/CBO9780511809071"
+    )
+    logger.info(
+        "    (白话: IR 标准教材 — 锚定全角→半角字符归一化与 case-folding 词项归一 (§2.2)、"
+        "基于词典的词项查找与 edit-distance 近似/拼写匹配 (§3) 等检索原语, 即本模块 "
+        "_normalize_text + 加权关键词最长匹配 + partial_token_set_ratio 模糊兜底的方法依据。)"
+    )
+
+
 def canonicalize_topic(raw_topic: str) -> tuple:
     """将 LLM 输出的 fintech_topic 标准化分类。
 
@@ -242,6 +326,8 @@ def canonicalize_topic(raw_topic: str) -> tuple:
         l_bit/cell_id 等) 若不以 category_confidence > 0 门控剔除兜底文章,
         缺失将被静默并入 "应用场景" 实类 (门控属 panel/encode 消费层职责)。
     """
+    _log_methodology_once()  # log-only, 一次性配置/方法论摘要, 不影响下方分类
+
     if not raw_topic or raw_topic.strip().lower() in ('null', 'none', ''):
         return ("应用场景", 0.0)
 

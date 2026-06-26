@@ -185,6 +185,11 @@ def main():
         logger.info("     · 多编码者三角验证: Denzin, N. K. (2017). The research act: A theoretical introduction "
                     "to sociological methods. Routledge. https://doi.org/10.4324/9781315134543")
         logger.info("       → 两位独立编码员交叉复核 (一致采纳 / 分歧标'待仲裁') = 调查者三角化以提升测度可信度。")
+        logger.info("     · LLM 标注的方法学纪律 (误分类偏置 / prompt 敏感性 / 可复现性): Carlson, N. A., & "
+                    "Burbano, V. (2026). The use of LLMs to annotate data in management research: "
+                    "Foundational guidelines and warnings. Strategic Management Journal, 47(3), 699-725. "
+                    "https://doi.org/10.1002/smj.70023")
+        logger.info("       → 凡用 LLM 给文本贴标签均须以人工金标准校准误分类偏置, 正是本阶段抽样产'标准答案'的动因。")
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"  环境/配置/方法论信息打印失败 (不影响结果生成): {_e}")
 
@@ -348,6 +353,11 @@ def merge_annotations(input_path: str = None, output_path: str = None):
         logger.info("     方法依据: Denzin, N. K. (2017). The research act: A theoretical introduction "
                     "to sociological methods. Routledge. https://doi.org/10.4324/9781315134543")
         logger.info("     判读: 一致率越高 → 标注任务越客观、金标准越可信; 待仲裁条目正是 stage 33 须剔除的 attrition。")
+        logger.info("     编码者间信度 (多类别 / 层级一致性): Moons, F., & Vandervieren, E. (2025). Measuring "
+                    "agreement among several raters classifying subjects into one or more (hierarchical) "
+                    "categories: A generalization of Fleiss' kappa. Behavior Research Methods, 57(10), "
+                    "Article 287. https://doi.org/10.3758/s13428-025-02746-8")
+        logger.info("       → 情感三分类 (正面/中性/负面) 的双编码者一致正是 Fleiss κ 家族度量对象; 本步算一致率, κ 在 stage 33/34。")
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"  合并方法论 banner 打印失败 (不影响合并): {_e}")
 
@@ -402,6 +412,10 @@ def merge_annotations(input_path: str = None, output_path: str = None):
 
         logger.info(f"[验证] 合并完成: 一致={n_agree_ver:,}, 分歧={n_disagree_ver:,}, "
                      f"一致率={pct4(agree_rate_ver, fraction=False)}")
+        # log-only: 有效双标注覆盖率 = 两位编码者均给出有效验证判定的占比 (缺失/未填越多覆盖率越低)
+        cover_ver = (n_total_ver / len(df) * 100) if len(df) > 0 else 0.0
+        logger.info(f"[验证] 有效双标注覆盖率 = {pct4(cover_ver, fraction=False)} "
+                     f"({n_total_ver:,}/{len(df):,} 条两位编码者均有效); 覆盖率偏低须披露 attrition 来源。")
     else:
         logger.warning(f"未找到验证判定列（{ver_a_col}, {ver_b_col}），跳过验证合并")
 
@@ -432,6 +446,10 @@ def merge_annotations(input_path: str = None, output_path: str = None):
 
         logger.info(f"[情感] 合并完成: 一致={n_agree_sen:,}, 分歧={n_disagree_sen:,}, "
                      f"一致率={pct4(agree_rate_sen, fraction=False)}")
+        # log-only: 有效双标注覆盖率 = 两位编码者均给出有效情感判定 (非空/非 nan) 的占比
+        cover_sen = (n_total_sen / len(df) * 100) if len(df) > 0 else 0.0
+        logger.info(f"[情感] 有效双标注覆盖率 = {pct4(cover_sen, fraction=False)} "
+                     f"({n_total_sen:,}/{len(df):,} 条两位编码者均有效); 三分类一致率随类别基率漂移须谨慎解读。")
     else:
         logger.warning(f"未找到情感判定列（{sen_a_col}, {sen_b_col}），跳过情感合并")
 

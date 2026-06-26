@@ -648,6 +648,35 @@ class ArticleDeduplicator:
             self.logger.info(
                 "       → MinHash 签名近似 Jaccard 相似度, LSH 分桶 O(1) 召回转载/通稿簇")
             self.logger.info(
+                "     · LSH 分桶奠基 (近邻候选检索亚线性加速, MinHashLSH 理论来源): "
+                "Indyk, P., & Motwani, R. (1998). Approximate nearest neighbors: "
+                "Towards removing the curse of dimensionality. In Proceedings of the "
+                "Thirtieth Annual ACM Symposium on Theory of Computing (STOC '98) "
+                "(pp. 604-613). ACM. https://doi.org/10.1145/276698.276876"
+            )
+            self.logger.info(
+                "       → (白话: LSH 把相似指纹哈希进同一桶, 把 O(n²) 两两比对降到近 O(n) "
+                "候选检索, 是 datasketch MinHashLSH banding 分带的理论根)")
+            self.logger.info(
+                "     · 近重复文本对齐 (MinHash 族 2024 同行评议进展): Peng, Z., "
+                "Zhang, Y., & Deng, D. (2024). Near-duplicate text alignment with one "
+                "permutation hashing. Proceedings of the ACM on Management of Data, "
+                "2(4), Article 222, 1-26. https://doi.org/10.1145/3677136"
+            )
+            self.logger.info(
+                "       → (白话: one-permutation hashing 是 MinHash 族判近重复的 2024 新进展, "
+                "印证本层 char-3gram MinHash 判转载的方法仍是当前主流)")
+            self.logger.info(
+                "     · 商业新闻近重复检测基准 (与本去重任务同构的近期应用): Kumar, A., "
+                "Tumre, S., & Patil, S. (2025). Benchmarking near-duplicate detection "
+                "in the era of pay-walled news. In Companion Proceedings of the ACM on "
+                "Web Conference 2025 (WWW '25 Companion) (pp. 745-748). Association for "
+                "Computing Machinery. https://doi.org/10.1145/3701716.3715303"
+            )
+            self.logger.info(
+                "       → (白话: 商业新闻语料上 SimHash / MinHash-LSH 近重复基准, 任务设定与本层"
+                "镜像新闻通稿/转载去重高度同构, 佐证 MinHash-LSH 路线选型)")
+            self.logger.info(
                 "     · '信息到达' 构念 (去重适配的下游关注度度量): Hassan, T. A., "
                 "Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level political "
                 "risk: Measurement and effects. The Quarterly Journal of Economics, "

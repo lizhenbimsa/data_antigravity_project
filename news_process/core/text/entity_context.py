@@ -39,6 +39,7 @@ import logging
 import re
 from typing import List, Tuple
 
+from news_process.core.logging import sig4
 from news_process.core.text.ahocorasick import (
     has_unexcluded_occurrence,
     is_match_excluded,
@@ -558,6 +559,62 @@ def get_target_aliases(target_bank: str, bank_names_file: str) -> List[str]:
         except Exception as e:
             logger.warning(f"加载银行别名文件失败: {e}")
             _BANK_DATA = []
+
+        # ── 一次性 (首次加载触发, 每进程恰一次) 运行期/方法论日志 ──
+        # 本块仅 emit 进日志, 不参与任何返回值/缓存内容计算 → golden-safe。
+        # entity_context 是实体特异性上下文提取引擎的单一事实源 (ctx/ss 两轨 +
+        # 距离衰减 + stage 12b 共现判据均复用本模块原语); 在其唯一"每进程一次"
+        # 的入口 (银行别名词表加载) 处汇报词表规模与方法论锚点。
+        _n_banks = len(_BANK_DATA)
+        _variant_counts = [len(b.get('variants', [])) for b in _BANK_DATA]
+        _total_variants = sum(_variant_counts)
+        _mean_variants = (_total_variants / _n_banks) if _n_banks else 0.0
+        _max_variants = max(_variant_counts) if _variant_counts else 0
+        logger.info("=" * 60)
+        logger.info("📊 entity_context 运行期参数 (实体特异性上下文提取引擎)")
+        logger.info(f"   ├─ 银行别名词表           : {bank_names_file}")
+        logger.info(f"   ├─ 目标银行实体数         : {_n_banks:,} 家")
+        logger.info(f"   ├─ 名称变体 (别名) 总数   : {_total_variants:,} 条")
+        logger.info(
+            f"   ├─ 每行平均别名数         : {sig4(_mean_variants)} 条/家 "
+            f"(单家最多 {_max_variants:,} 条)"
+        )
+        logger.info(
+            "   └─ 提取原语: 句级窗口 [_split_sentences→hit→±radius 扩窗→"
+            "O(N log N) _merge_intervals]; 三轨 ctx(仅锚银行) / ss(银行∧金科"
+            "同句) / 距离衰减(inverse-distance), 不对称口径(银行侧否定+短名排除"
+            "/金科侧裸 AC)"
+        )
+        logger.info("📖 方法论依据 (本模块所锚定的同行评议文献):")
+        logger.info(
+            "   [1] Sautner, Z., van Lent, L., Vilkov, G., & Zhang, R. (2023). "
+            "Firm-level climate change exposure. The Journal of Finance, 78(3), "
+            "1449–1498. https://doi.org/10.1111/jofi.13219"
+        )
+        logger.info(
+            "       (白话: 以关键词/二元组命中构建 firm-level 文本暴露并按到最近"
+            "关键词的 inverse-distance 加权 — 本模块距离衰减输出与词表锚定的范式来源)"
+        )
+        logger.info(
+            "   [2] Kalyani, A., Bloom, N., Carvalho, M., Hassan, T. A., "
+            "Lerner, J., & Tahoun, A. (2025). The diffusion of new technologies. "
+            "The Quarterly Journal of Economics, 140(2), 1299–1365. "
+            "https://doi.org/10.1093/qje/qjaf002"
+        )
+        logger.info(
+            "       (白话: 用文本 bigram 识别新兴技术并追踪其扩散 — 支撑 ss 轨"
+            "以金科词同句命中度量「银行×金融科技」主题关注的合法性)"
+        )
+        logger.info(
+            "   [3] Wu, D. (A.). (2024). Text-based measure of supply chain risk "
+            "exposure. Management Science, 70(7), 4781–4801. "
+            "https://doi.org/10.1287/mnsc.2023.4927"
+        )
+        logger.info(
+            "       (白话: 种子词+词袋构 firm-level 文本暴露并以波动率外部验证 — "
+            "本模块「实体特异性局部窗口→企业级文本度量」管线的同法近期实例)"
+        )
+        logger.info("=" * 60)
 
     for bank in _BANK_DATA:
         if bank.get('bank_name') == target_bank:

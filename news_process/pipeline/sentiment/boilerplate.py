@@ -196,13 +196,41 @@ def enrich_with_boilerplate(df: pd.DataFrame, text_col: str = 'content_full',
                 dist_verdict = "⚠ 临界 (零方差: 全文同值, 无区分度, 单列对回归无信息)"
             else:
                 dist_verdict = "✅ 好 (比率分布有区分度, 套话集口径有效)"
+            q25, q50, q75 = (float(x) for x in np.percentile(vals, [25, 50, 75]))
             logger.info(
                 f"  ⑤ 套话比率分布: μ={sig4(mean_r)} σ={sig4(std_r)} "
                 f"[min={sig4(min_r)}, max={sig4(max_r)}] 饱和(≥0.99)占比={pct4(sat_frac)} "
                 f"— {dist_verdict}")
+            logger.info(
+                f"  ⑤ 套话比率分位: P25={sig4(q25)} 中位={sig4(q50)} P75={sig4(q75)} "
+                f"(四分位距 IQR={sig4(q75 - q25)})")
         else:
             logger.warning(
                 "  ⑤ 套话比率分布: 全部 nan (无有效值) — ❌ 套话集为空或全文退化, 该列下游无信息")
     except Exception as e:  # noqa: BLE001 — 日志块绝不阻断阶段
         logger.warning(f"boilerplate: 结果分析块打印失败 (忽略, 不影响派生): {e}")
+
+    # ── 📖 方法论依据 (经核验注册表近期顶刊文献; 仅日志 emit, 不参与任何计算) ──
+    try:
+        logger.info("  📖 方法论依据 (boilerplate 跨文档套话比率构念的近期顶刊操作化):")
+        logger.info(
+            "     • Zhu, X., Li, J., & Wang, Y. (2024). Are risk disclosures in financial "
+            "reports informative? A text mining-based perspective. Humanities and Social "
+            "Sciences Communications, 11(1), 1653. https://doi.org/10.1057/s41599-024-04169-w")
+        logger.info(
+            "       (白话: 用文本挖掘评披露含量, 把套话/具体性/相似度操作化为度量, 与本模块同法。)")
+        logger.info(
+            "     • Cao, S., Jiang, W., Yang, B., & Zhang, A. L. (2023). How to talk when a "
+            "machine is listening: Corporate disclosure in the age of AI. The Review of "
+            "Financial Studies, 36(9), 3603-3642. https://doi.org/10.1093/rfs/hhad021")
+        logger.info(
+            "       (白话: 机器读者时代企业为算法调措辞, 正当化用 NLP 机器化测文本特征+策略性写作。)")
+        logger.info(
+            "     • Gietzmann, M., Grossetti, F., & Lewis, C. M. (2026). Investor distraction "
+            "and multi-dimensional financial narrative. Review of Accounting Studies, 31(1), "
+            "334–373. https://doi.org/10.1007/s11142-026-09950-7")
+        logger.info(
+            "       (白话: 多维叙事特征(可读性/数字/套话)联注意力, 套话多维度量的顶刊近用。)")
+    except Exception as e:  # noqa: BLE001 — 日志块绝不阻断阶段
+        logger.warning(f"boilerplate: 方法论依据块打印失败 (忽略, 不影响派生): {e}")
     return df

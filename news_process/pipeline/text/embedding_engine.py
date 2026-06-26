@@ -45,6 +45,11 @@ import os
 import numpy as np
 import tiktoken
 
+# 日志四位有效数字渲染 (项目规范 2026-06-24): 本模块日志中所有非整数 (命中率/
+# 占比/耗时等) 统一经 sig4/pct4, 整数计数仍用千分位。仅供 logger.* 使用, 不参与
+# 任何产物计算 (golden-safe)。
+from news_process.core.logging import pct4, sig4
+
 # W12 (2026-06-25): HF 离线引擎单点 — 一处覆盖全部经本引擎的本地模型加载 (含 stage16
 # policy_alignment / strategic_diff / network_spillover 的 t2v 轨)。注 (F13): stage25
 # article_sbert 走自有裸 SentenceTransformer + 自有 HF 离线 (article_sbert.py:90-94), 不经本引擎。
@@ -152,6 +157,24 @@ def _log_engine_banner(spec: dict | None = None, *, log_prefix: str = "Embedding
         logger.info(
             "       白话: 太长的文本先按 token 切成小段, 各段算完向量后逐块归一+按 "
             "token 数加权平均成一条 (mean pooling), 避免超长文被静默截断。")
+        logger.info("       · 金融域 sentence-transformer 适配 (本地稳健轨模型选型依据):")
+        logger.info(
+            "         Jehnen, S., Villalba-Díez, J., & Ordieres-Meré, J. (2026). "
+            "FinTextSim: A domain-specific sentence-transformer for extracting "
+            "predictive latent topics from financial disclosures. Frontiers in "
+            "Artificial Intelligence, 9, Article 1752103. "
+            "https://doi.org/10.3389/frai.2026.1752103")
+        logger.info(
+            "       白话: 在金融披露文本上微调 sentence-transformer 能更准地抽取语义, "
+            "佐证本引擎为银行/金科语料选用域适配嵌入模型 (text2vec 中文轨) 的取向。")
+        logger.info("       · language embedding 测度范式 (用嵌入向量度量文本语义立场):")
+        logger.info(
+            "         Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit "
+            "society? A language embedding approach. The Review of Financial Studies, "
+            "39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012")
+        logger.info(
+            "       白话: 用 BERT 句嵌入测文本语义立场已成顶刊范式, 本引擎产出的向量即"
+            "服务于 policy/strategic/benefit 等阶段的语义相似度 (余弦) 测度。")
         # ② 关键引擎配置 (本模块可调常量 + 本次 spec; 路径/参数级 CONFIG 由 runner 入口打)
         if spec is not None:
             _model = spec_model(spec)
@@ -383,9 +406,11 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
     missing_texts = [texts[i] for i in missing_indices]
 
     if len(texts) > 1:
+        _n_hit = len(texts) - len(missing_texts)
         logger.info(
-            f"    缓存拦截: 命中 {len(texts) - len(missing_texts)} 条, "
-            f"缺失 {len(missing_texts)} 条 (model={embedding_model})"
+            f"    缓存拦截: 命中 {_n_hit:,} 条, "
+            f"缺失 {len(missing_texts):,} 条 / 共 {len(texts):,} 条 "
+            f"(命中率 {pct4(_n_hit / len(texts))}, model={embedding_model})"
         )
 
     missing_embs: list = []
@@ -619,9 +644,11 @@ def _encode_local_cached(chunks, spec: dict, *,
         ]
         missing_idx = [i for i, res in enumerate(cached) if res is None]
         if len(chunks) > 1:
+            _n_hit_local = len(chunks) - len(missing_idx)
             logger.info(
-                f"    {log_prefix} 本地缓存拦截: 命中 {len(chunks) - len(missing_idx)} "
-                f"条, 缺失 {len(missing_idx)} 条 (model={model_id})"
+                f"    {log_prefix} 本地缓存拦截: 命中 {_n_hit_local:,} "
+                f"条, 缺失 {len(missing_idx):,} 条 / 共 {len(chunks):,} 条 "
+                f"(命中率 {pct4(_n_hit_local / len(chunks))}, model={model_id})"
             )
 
         # 缺失项内部去重 (golden 正确性 + 提速): 同一文本在三轨/回退场景下可重复出现
@@ -636,10 +663,12 @@ def _encode_local_cached(chunks, spec: dict, *,
             missing_chunks = [chunks[i] for i in missing_idx]
             unique_texts = list(dict.fromkeys(missing_chunks))  # 保序去重
             if len(unique_texts) < len(missing_chunks):
+                _n_saved = len(missing_chunks) - len(unique_texts)
                 logger.info(
-                    f"    {log_prefix} 本地去重: 缺失 {len(missing_chunks)} 条 → "
-                    f"唯一 {len(unique_texts)} 条 (省 "
-                    f"{len(missing_chunks) - len(unique_texts)} 次 forward)"
+                    f"    {log_prefix} 本地去重: 缺失 {len(missing_chunks):,} 条 → "
+                    f"唯一 {len(unique_texts):,} 条 (省 "
+                    f"{_n_saved:,} 次 forward, 去重率 "
+                    f"{pct4(_n_saved / len(missing_chunks))})"
                 )
             uniq_emb = np.asarray(
                 encode_local(unique_texts, spec, log_prefix=log_prefix),
@@ -716,8 +745,9 @@ def embed_texts(texts, spec: dict, *,
     n_chunks = len(all_chunks)
     if n_chunks > n_orig:
         logger.info(
-            f"    {log_prefix} 分段: {n_orig} 文本 → {n_chunks} 段 "
-            f"(含 {n_chunks - n_orig} 个超长文本扩展段)"
+            f"    {log_prefix} 分段: {n_orig:,} 文本 → {n_chunks:,} 段 "
+            f"(含 {n_chunks - n_orig:,} 个超长文本扩展段, "
+            f"段/文本扩展因子 {sig4(n_chunks / n_orig)})"
         )
 
     if spec_uses_local(spec):

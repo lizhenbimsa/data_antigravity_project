@@ -493,6 +493,19 @@ def _log_environment_and_methodology(input_path: str, output_path: str) -> None:
         logger.info("       Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal "
                     "of Economic Literature, 57(3), 535-574. "
                     "https://doi.org/10.1257/jel.20181020")
+        logger.info("     · 关键词/词表命中构建 firm-level 文本暴露度的近期 (2023-2024) 同范式实例 "
+                    "(本模块以银行别名命中量化每家银行的媒体暴露, 与下列 firm-level 文本暴露测度"
+                    "同一方法谱系, 均以词表/种子词命中 → 企业级暴露指标):")
+        logger.info("       Sautner, Z., van Lent, L., Vilkov, G., & Zhang, R. (2023). Firm-level "
+                    "climate change exposure. The Journal of Finance, 78(3), 1449-1498. "
+                    "https://doi.org/10.1111/jofi.13219 "
+                    "(白话: ML 关键词发现 + 二元组命中构 firm-level climate attention, 词表"
+                    "构建标准模板)")
+        logger.info("       Wu, D. A. (2024). Text-based measure of supply chain risk exposure. "
+                    "Management Science, 70(7), 4781-4801. "
+                    "https://doi.org/10.1287/mnsc.2023.4927 "
+                    "(白话: 种子词嵌入 + 词袋构 firm-level 文本暴露并以波动率验证, 同法 2024 "
+                    "近期实例)")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  环境/配置/方法论信息打印失败 (不影响处理): {e}")
 

@@ -335,6 +335,39 @@ def main():
             "       → 中文新闻中位 ~800 字 ≈ 1200 token > SBERT max_seq_len=512; "
             "取『标题(≤100字)+首段(≤300字)』避免 512-token 截断丢尾段。"
         )
+        logger.info(
+            "     · language embedding 范式 (BERT 嵌入测文本语义立场, 本阶段 SBERT 轨最新锚): "
+            "Jha, M., Liu, H., & Manela. (2026). Does finance benefit society? A language "
+            "embedding approach. The Review of Financial Studies, 39(5), 1227-1266. "
+            "https://doi.org/10.1093/rfs/hhaf012"
+        )
+        logger.info(
+            "       → (白话: 以 language embedding 命名方法、用 BERT 句嵌入度量文本语义立场, "
+            "为 stage 30a article-level SBERT 持久化提供最新方法学锚点。)"
+        )
+        logger.info(
+            "     · 金融域 sentence-transformer 适配 (对标 SBERT 轨金融领域微调): "
+            "Jehnen, S., Villalba-Díez, J., & Ordieres-Meré, J. (2026). FinTextSim: A "
+            "domain-specific sentence-transformer for extracting predictive latent topics "
+            "from financial disclosures. Frontiers in Artificial Intelligence, 9, Article "
+            "1752103. https://doi.org/10.3389/frai.2026.1752103"
+        )
+        logger.info(
+            "       → (白话: 对金融披露文本微调 sentence-transformer, 直接对标本阶段 "
+            "shibing624/text2vec SBERT 轨在金融语料上的领域适配方向。)"
+        )
+        logger.info(
+            "     · 句嵌入余弦相似度与可解释性 (锚定 normalize_embeddings 后 cosine=语义对齐): "
+            "Opitz, J., Moeller, L., Michail, A., Padó, S., & Clematide, S. (2025). "
+            "Interpretable text embeddings and text similarity explanation: A survey. In "
+            "Proceedings of the 2025 Conference on Empirical Methods in Natural Language "
+            "Processing (pp. 22314-22330). Association for Computational Linguistics. "
+            "https://doi.org/10.18653/v1/2025.emnlp-main.1135"
+        )
+        logger.info(
+            "       → (白话: 句嵌入余弦相似度及其可解释性综述, 锚定本阶段 "
+            "normalize_embeddings=True → 行 L2≈1 → cosine 即语义对齐的方法构念。)"
+        )
 
         # ── ⚙ 运行配置 (config/features.yaml::embedding_robustness 等) ──
         logger.info("  ⚙ 运行配置 (config/features.yaml::embedding_robustness)")

@@ -452,6 +452,13 @@ def main():
         logger.info("     · 跨标注者一致性度量: Krippendorff, K. (2004). Content analysis: An "
                     "introduction to its methodology. SAGE Publications. "
                     "(多评分员+任意测量尺度, 比 Cohen κ 稳健; 专著无 DOI)")
+        logger.info("     · Krippendorff α 计算实现 (近期工具锚, inter-coder reliability): Marzi, G., "
+                    "Balzano, M., & Marchiori, D. (2024). K-Alpha Calculator–Krippendorff's Alpha "
+                    "Calculator: A user-friendly tool for computing Krippendorff's Alpha inter-rater "
+                    "reliability coefficient. MethodsX, 12, 102545. "
+                    "https://doi.org/10.1016/j.mex.2023.102545")
+        logger.info("       (白话: Krippendorff α 2024 计算工具综述, 锚定本模块 outlet×day "
+                    "reliability_data 的 inter-coder 信度计算口径。)")
         logger.info("     · 白话: 把各家媒体当『评分员』, α 衡量它们对同一银行事件的语调打分有多吻合 —— "
                     "越吻合=情感信号越可靠; 分歧本身也是信息 (媒体分歧度)。")
     except Exception as _e:  # noqa: BLE001

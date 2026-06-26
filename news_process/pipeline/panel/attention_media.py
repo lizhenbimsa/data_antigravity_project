@@ -417,6 +417,15 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
             'Firm-level political risk: Measurement and effects. The Quarterly '
             'Journal of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021'
             '  (intensive 归一化份额; 仅限 attention_pct/density)',
+            # 日志富集 (2026-06-26, golden-safe): fintech_intensity_score 以金科词命中
+            # (IDF 加权 term hits) 度量技术关注强度, 与 Kalyani 等用文本 bigram 识别新兴
+            # 技术并追踪扩散的范式同源 → 为 attention_index/density 的"词命中=技术关注"
+            # 操作化提供当代 (2025 QJE) 方法学锚点。
+            'Kalyani, A., Bloom, N., Carvalho, M., Hassan, T. A., Lerner, J., & '
+            'Tahoun, A. (2025). The diffusion of new technologies. The Quarterly '
+            'Journal of Economics, 140(2), 1299-1365. '
+            'https://doi.org/10.1093/qje/qjaf002'
+            '  (白话: 文本 bigram 识别新兴技术追踪扩散, 锚定 fintech 词命中作技术关注强度)',
         ],
     )
     logger.info("  ⚙ 运行配置: _ATTN_MIN_ARTICLES=%d | 三轨={full,ctx,ss} | "

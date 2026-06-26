@@ -440,6 +440,23 @@ def run_stage(
             "Science, 16(1), 74-94. https://doi.org/10.1007/BF02723327"
         )
         logger.info(
+            "     · NMI 有偏须 chance 校正: Mahmoudi, A., & Jemielniak, D. (2024). Proof of biased "
+            "behavior of Normalized Mutual Information. Scientific Reports, 14(1), Article 9021. "
+            "https://doi.org/10.1038/s41598-024-59073-9"
+        )
+        logger.info(
+            "       (白话: 形式证明 NMI 偏好更多簇/更细标签, 故本阶段不用 NMI 绝对值定阈, "
+            "而以同域 permutation null 分位作 chance 校正基准 — 正对应此偏差告诫。)"
+        )
+        logger.info(
+            "     · 判别效度报告准则 (现代更新): Rönkkö, M., & Cho, E. (2022). An updated guideline "
+            "for assessing discriminant validity. Organizational Research Methods, 25(1), 6-14. "
+            "https://doi.org/10.1177/1094428120968614"
+        )
+        logger.info(
+            "       (白话: 判别效度 battery 的现代报告标准, 锚定本阶段'三构念各自独立'声明须有的证据规格。)"
+        )
+        logger.info(
             "     · 白话: 用 NMI 衡量两把'创新尺子'读数互相能猜多少, 再与置换 null 比, "
             "证明三个构念各自独立、无重复计量 (论文 Appendix A.2 构念效度证据)。"
         )

@@ -1288,6 +1288,21 @@ def print_stata_template():
     logger.info(f"    如果 tone 仅仅是 volume 的代理变量,")
     logger.info(f"    控制 volume 后 tone 的系数应变得不显著。")
     logger.info(f"    反之,如果 tone 保持显著,则证明其包含独立的增量信息。")
+    logger.info("")
+    logger.info("  ─── 聚类稳健推断依据 (cluster(bank_id) + absorb(bank_id year) 设定) ───")
+    logger.info("  本检验/placebo 回归在 bank-year 面板上以 cluster(bank_id) 计标准误、")
+    logger.info("  吸收 bank/year 双向固定效应; 该聚类与时间效应推断对标 2023-2026 前沿:")
+    logger.info("    · Hansen, B. E. (2026). Jackknife standard errors for clustered "
+                "regression. The Review of Economic Studies. Advance online "
+                "publication. https://doi.org/10.1093/restud/rdag050")
+    logger.info("      (白话: CV3 cluster-jackknife SE, 锚定 cluster(bank_id) 标准误选择,"
+                "在簇数有限时比经典 CRVE 更稳健。)")
+    logger.info("    · Hounyo, U., & Lin, J. (2026). Wild bootstrap inference with "
+                "multiway clustering and serially correlated time effects. Journal "
+                "of Business & Economic Statistics, 44(2), 601-612. "
+                "https://doi.org/10.1080/07350015.2025.2546454")
+    logger.info("      (白话: 多维聚类 wild cluster bootstrap 允许时间效应序相关, "
+                "锚定本面板赛马回归在 cluster(bank_id) 之外对时间维度的稳健推断。)")
 
     template_path = (
         Path(__file__).resolve().parents[2]

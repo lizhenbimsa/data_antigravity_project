@@ -1951,6 +1951,21 @@ def main():
         logger.info("       Loughran, T., & McDonald, B. (2011). When is a liability not a "
                     "liability? Textual analysis, dictionaries, and 10-Ks. The Journal of "
                     "Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x")
+        # 词典法在 LLM 时代的当代定位与背书 (2023-2026): 证明本阶段保留'查字典版'独立旁证轨
+        # 的方法学正当性 (词典法仍可与 ML/LLM 竞争), 并锚定 aspect-based 逐目标打分 (= _ctx/_ss
+        # 轨) 与中文细粒度否定/程度计数 (= 状态机规则①②) 的最新方法来源。
+        logger.info("     · 词典法当代定位与 LLM 时代背书 (2023-2026, 支撑保留独立词典轨):")
+        logger.info("       Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & "
+                    "Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based "
+                    "approach. Economic Inquiry, 63(1), 125-143. "
+                    "https://doi.org/10.1111/ecin.13264")
+        logger.info("       Barbaglia, L., Consoli, S., & Manzan, S. (2023). Forecasting with "
+                    "economic news. Journal of Business & Economic Statistics, 41(3), 708-719. "
+                    "https://doi.org/10.1080/07350015.2022.2060988")
+        logger.info("       Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese "
+                    "fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) "
+                    "and its application. Expert Systems with Applications, 264, 125739. "
+                    "https://doi.org/10.1016/j.eswa.2024.125739")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  方法论引文打印失败 (不影响处理): {e}")
     logger.info("")

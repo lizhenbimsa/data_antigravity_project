@@ -232,6 +232,22 @@ def compute_authoritative_similarity(df_exploded, panel):
         logger.info("       Brown, S. V., & Tucker, J. W. (2011). Large-sample evidence on firms' "
                     "year-over-year MD&A modifications. Journal of Accounting Research, 49(2), "
                     "309-346. https://doi.org/10.1111/j.1475-679X.2010.00396.x")
+        logger.info("     · 以监管政策原文为参照语料 / 机器文本测度量化进面板 (锚点语料构念, 近期 JF 发展):")
+        logger.info("       Kalmenovitz, J., Lowry, M., & Volkova, E. (2025). Regulatory "
+                    "fragmentation. The Journal of Finance, 80(2), 1081-1126. "
+                    "https://doi.org/10.1111/jofi.13423")
+        logger.info("       (白话: 用监管全文做机器文本测度量化碎片化进面板, 锚定以监管/政策原文为参照语料的范式)")
+        logger.info("     · embedding 主轨 (方法 D) 余弦对锚 — 金融文本嵌入基准 (含中英监管文件 STS):")
+        logger.info("       Tang, Y., & Yang, Y. (2025). FinMTEB: Finance Massive Text Embedding "
+                    "Benchmark. In Proceedings of the 2025 Conference on Empirical Methods in "
+                    "Natural Language Processing (pp. 3620-3638). Association for Computational "
+                    "Linguistics. https://doi.org/10.18653/v1/2025.emnlp-main.179")
+        logger.info("       (白话: 金融文本嵌入基准含中英监管文件 STS, 锚定嵌入余弦做金融/政策相似度)")
+        logger.info("     · 政策文本嵌入向量化 (央行/监管沟通 → 向量, 近期应用):")
+        logger.info("       Araujo, D., Bokan, N., Comazzi, F., & Lenza, M. (2025). Word2Prices: "
+                    "Embedding central bank communications for inflation prediction. SSRN "
+                    "Electronic Journal. https://doi.org/10.2139/ssrn.5201335")
+        logger.info("       (白话: 词嵌入表征央行政策沟通, 政策文本嵌入向量化的最新央行应用)")
         logger.info("     → 为何用: 把国家政策原文当满分标答(虚拟幽灵锚点), 银行年度新闻汇总越贴近 → 战略响应度越高")
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"  方法论引文打印失败 (不影响计算): {_e}")

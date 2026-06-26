@@ -323,6 +323,19 @@ def _log_environment_and_config(panel_path: str, eval_dir: str) -> None:
                     "Educational and Psychological Measurement, 20(1), 37-46.")
         logger.info("       (注: 上述三条均不在本工作流『经核验参考文献注册表』内, 故按手册铁律"
                     "仅 emit 作者-年-期刊卷(期):页, 不附 DOI 链接以避免伪造)")
+        logger.info("     · 近期补充 (经 Crossref 核验注册表; 偏 2023-2026, 附 DOI):")
+        logger.info("       - 词典法度量的当代背书: Barbaglia, L., Consoli, S., Manzan, S., "
+                    "Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic "
+                    "text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. "
+                    "https://doi.org/10.1111/ecin.13264")
+        logger.info("         (白话: 2025 证据表明领域词典法在经济新闻中仍可与机器学习竞争, "
+                    "为本阶段所验证的 LM 6 子词典 frac 测度在 LLM 时代保留词典轨提供外部背书)")
+        logger.info("       - 信度/一致性系数族的现代实现: Marzi, G., Balzano, M., & Marchiori, D. "
+                    "(2024). K-Alpha Calculator–Krippendorff's Alpha Calculator: A user-friendly "
+                    "tool for computing Krippendorff's Alpha inter-rater reliability coefficient. "
+                    "MethodsX, 12, 102545. https://doi.org/10.1016/j.mex.2023.102545")
+        logger.info("         (白话: Krippendorff α 是与本阶段所算 Cronbach α / κ 谱系同族的"
+                    "信度/一致性系数, 其 2024 现代实现工具锚定一致性度量的当代计算口径)")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  环境/配置/方法论信息打印失败 (不影响处理): {e}")
 

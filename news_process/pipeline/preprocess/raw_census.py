@@ -356,6 +356,21 @@ def render_census_to_logger(summary: dict, perfile: list[dict], logger,
         logger.info("  · 新闻媒体覆盖度量 (报纸语料的覆盖广度构念): "
                     "Fang, L., & Peress, J. (2009). Media coverage and the cross-section of stock returns. "
                     "The Journal of Finance, 64(5), 2023-2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x")
+        logger.info("  · 语料来源多样性/构成熵 (媒体·来源·地域分布集中度的度量学依据): "
+                    "Rosillo-Rodes, P., San Miguel, M., & Sánchez, D. (2025). "
+                    "Entropy and type-token ratio in gigaword corpora. "
+                    "Physical Review Research, 7(3), 033054. https://doi.org/10.1103/rxxz-lk3n")
+        logger.info("    (白话: 在大规模新闻/书/推文语料中用 Shannon 熵刻画多样性, "
+                    "镜像本普查对媒体类型/报刊来源/地域分布构成的可审计披露。)")
+        logger.info("  · 文本多样性测量标准化 (大语料多样性/构成度量的方法学规范): "
+                    "Shaib, C., Govindarajan, V. S., Barrow, J., Sun, J., Siu, A., Wallace, B. C., & Nenkova, A. (2025). "
+                    "Standardizing the measurement of text diversity: A tool and comparative analysis. "
+                    "In Proceedings of the 14th International Joint Conference on Natural Language Processing "
+                    "and the 4th Conference of the Asia-Pacific Chapter of the Association for Computational "
+                    "Linguistics: System Demonstrations (pp. 36-46). Association for Computational Linguistics. "
+                    "https://doi.org/10.18653/v1/2025.ijcnlp-demo.5")
+        logger.info("    (白话: 标准化文本多样性测量(熵/n-gram 唯一性), "
+                    "为本普查唯一媒体家数/来源构成的多样性报告提供方法学锚点。)")
         logger.info("  · 本语料数据集 (DOI): "
                     "Li, Z. (2026). Bank FinTech [Data set]. Zenodo. https://doi.org/10.5281/zenodo.20453766")
         logger.info("-" * 78)
@@ -402,9 +417,16 @@ def render_census_to_logger(summary: dict, perfile: list[dict], logger,
 
     logger.info("-" * 78)
     logger.info("六、媒体(报刊) Top15")
-    for k, v in list(d.get("media_top50", {}).items())[:15]:
+    top_media = list(d.get("media_top50", {}).items())
+    for k, v in top_media[:15]:
         logger.info(f"  · {k:<24}: {_f(v):>10}")
     logger.info(f"  (共 {_f(d.get('n_unique_media'))} 家媒体)")
+    # log-only 来源集中度 (媒体来源分布头部占比; 纯展示, 不参与任何产物计算)
+    if top_media and total:
+        top1_share = top_media[0][1] / total
+        top15_share = sum(v for _, v in top_media[:15]) / total
+        logger.info(f"  · 来源集中度: 头部媒体『{top_media[0][0]}』占 {pct4(top1_share)}; "
+                    f"Top15 累计 {pct4(top15_share)} (语料来源构成的头部集中程度; 越低则来源越分散)。")
 
     logger.info("-" * 78)
     logger.info("七、正文长度分布 (内容 总字符数; 注: pipeline 实际过滤用汉字数 100~10000, 此处总字符近似)")

@@ -952,6 +952,10 @@ def _log_environment_config_methods(input_path: str = "") -> None:
         logger.info("  · 距离衰减权重 (倒数距离, 本模块句级适配): "
                     "Sautner, Z., van Lent, L., Vilkov, G., & Zhang, R. (2023). Firm-level climate change "
                     "exposure. The Journal of Finance, 78(3), 1449-1498. https://doi.org/10.1111/jofi.13219")
+        logger.info("  · 衰减核赋权的近因应用 (滞后新闻项刻画价格延迟反应与时变, 锚定'当期 vs 跟进句'按距离衰减计权): "
+                    "Glasserman, P., Li, F., & Mamaysky, H. (2025). Time variation in the news–returns "
+                    "relationship. Journal of Financial and Quantitative Analysis, 60(1), 258-294. "
+                    "https://doi.org/10.1017/S0022109023001369")
         logger.info("  · proximity-based attribution 框架: "
                     "Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level political "
                     "risk: Measurement and effects. The Quarterly Journal of Economics, 134(4), 2135-2202. "

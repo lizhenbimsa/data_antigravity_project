@@ -156,9 +156,20 @@ def _log_network_env_and_config() -> None:
         logger.info("     · 反射问题/滞后识别: Manski, C. F. (1993). Identification of "
                     "endogenous social effects: The reflection problem. The Review of "
                     "Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123")
+        logger.info("     · 同伴效应识别前沿: Boucher, V., Rendall, M., Ushchev, P., & "
+                    "Zenou, Y. (2024). Toward a general theory of peer effects. "
+                    "Econometrica, 92(2), 543-565. https://doi.org/10.3982/ECTA21048")
+        logger.info("       (白话: 把 linear-in-means 同伴模型推广成一般理论, 厘清网络型 IV "
+                    "在何种条件下才真正识别 peer 效应 — 本模块 peer_tone/W×y 规格的当前理论前沿)")
         logger.info("     · 空间权重矩阵 (行随机 W×y): LeSage, J., & Pace, R. K. (2009). "
                     "Introduction to spatial econometrics. Chapman and Hall/CRC. "
                     "https://doi.org/10.1201/9781420064254")
+        logger.info("     · 网络效应/空间识别 (公司金融): Grieser, W., Hadlock, C., LeSage, "
+                    "J., & Zekhnini, M. (2022). Network effects in corporate financial "
+                    "policies. Journal of Financial Economics, 144(1), 247-272. "
+                    "https://doi.org/10.1016/j.jfineco.2021.05.060")
+        logger.info("       (白话: 用空间计量 + 异质不可传递的网络结构识别 peer effects, "
+                    "正当化本模块以中心度/共现权重加权的溢出估计)")
         logger.info("     · 中心度定义: Freeman, L. C. (1978). Centrality in social "
                     "networks conceptual clarification. Social Networks, 1(3), 215-239. "
                     "https://doi.org/10.1016/0378-8733(78)90021-7")

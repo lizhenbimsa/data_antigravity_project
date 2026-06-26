@@ -685,6 +685,10 @@ def _log_environment_and_methodology(panel: pd.DataFrame,
                     "& Roberts, M. R. (2014). Do peer firms affect corporate financial "
                     "policy? The Journal of Finance, 69(1), 139-178. "
                     "https://doi.org/10.1111/jofi.12094")
+        logger.info("     · linear-in-means 同伴效应网络 IV 何时可识别 (本规格识别理论前沿): "
+                    "Boucher, V., Rendall, M., Ushchev, P., & Zenou, Y. (2024). Toward a "
+                    "general theory of peer effects. Econometrica, 92(2), 543-565. "
+                    "https://doi.org/10.3982/ECTA21048")
         logger.info("     → 白话: 用大模型从新闻里认出『谁跟谁是竞争对手』搭出动态同行网, "
                     "再取同行去年的情感均值(剔除共提报道)当工具变量; 滞后+leave-out 是为了"
                     "让这个工具变量满足『只经同行渠道影响焦点银行』的识别假设。")

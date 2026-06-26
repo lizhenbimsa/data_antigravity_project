@@ -473,6 +473,26 @@ def enrich_with_num_intensity_dual_track(df: pd.DataFrame,
                     "(句级) 与 n_numeric / jieba 词数 (词级) 为项目自定义操作化, 互为分母稳健性。")
         logger.info("  · 白话: 一篇报道里出现多少『具体数字』(经中文数字→阿拉伯转换 + 不定数/序数/"
                     "功能词守卫), 除以句子数或词数得到数字密度; 数字越密通常硬信息含量越高。")
+        # ── 📖 方法论依据 (Crossref 三道核验注册表内文献; 仅 logger.* 输出, golden-safe) ──
+        # 构念锚 Davis & Tama-Sweet (2012) 已在上方 banner emit; 下列为"数字占文本比例 →
+        # 信息风险/信息含量"操作化与因果验证的近期顶刊文献, 锚定本模块 num_intensity 测度。
+        logger.info("  · 📖 方法论依据 (本模块 num_intensity = 数字 token / 归一化分母, 测度文献锚):")
+        logger.info("     [1] Campbell, J. L., Zheng, X., & Zhou, D. (2025). Number of numbers: "
+                    "Does a greater proportion of quantitative textual disclosure reduce information "
+                    "risk? Journal of Corporate Finance, 94, 102813. "
+                    "https://doi.org/10.1016/j.jcorpfin.2025.102813")
+        logger.info("         (白话: 把『数字占文本的比例』直接作信息量度量并做因果检验, "
+                    "正是本模块 num_intensity 的近期顶刊操作化母本。)")
+        logger.info("     [2] Gietzmann, M., Grossetti, F., & Lewis, C. M. (2026). Investor "
+                    "distraction and multi-dimensional financial narrative. Review of Accounting "
+                    "Studies, 31(1), 334-373. https://doi.org/10.1007/s11142-026-09950-7")
+        logger.info("         (白话: 把数字密度/可读性/套话当成多维叙事特征联合度量并关联投资者注意力, "
+                    "支撑数字密度作为独立叙事维度入面板。)")
+        logger.info("     [3] Zhu, X., Li, J., & Wang, Y. (2024). Are risk disclosures in financial "
+                    "reports informative? A text mining-based perspective. Humanities and Social "
+                    "Sciences Communications, 11(1), 1653. https://doi.org/10.1057/s41599-024-04169-w")
+        logger.info("         (白话: 用文本挖掘评披露的具体性/信息含量, 与本模块『数字越多越具体硬信息越足』"
+                    "同一测度逻辑。)")
     except Exception as _e_banner:  # 日志块绝不许崩阶段
         logger.warning(f"num_intensity 子步骤 banner 渲染失败 (已跳过, 不影响产物): {_e_banner}")
 

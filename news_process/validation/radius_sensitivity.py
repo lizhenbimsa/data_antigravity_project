@@ -1197,6 +1197,16 @@ def _log_environment_and_config(input_path: str) -> None:
                     "134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021")
         logger.info("       → 本阶段把 ctx 提取窗口 (proximity-based attribution 的句级半径) 当作关键方法论参数, "
                     "扫描 r∈{0,1,2,3} 做顶刊标准的稳健性检验。")
+        logger.info("     · firm-level 文本度量构建范式 (词表/二元组命中): Sautner, Z., van Lent, L., Vilkov, G., "
+                    "& Zhang, R. (2023). Firm-level climate change exposure. The Journal of Finance, 78(3), "
+                    "1449-1498. https://doi.org/10.1111/jofi.13219")
+        logger.info("       → (白话: 用 ML 发现关键词 + 二元组命中构企业级 attention 度量, 是本阶段 ctx 轨"
+                    "词典命中型 firm-level 文本度量的标准模板; 度量对构建参数的稳健性正是顶刊要求的附录证据。)")
+        logger.info("     · bag-of-words 文本暴露度量 + 外部效度验证: Wu, D. (A.). (2024). Text-based measure of "
+                    "supply chain risk exposure. Management Science, 70(7), 4781-4801. "
+                    "https://doi.org/10.1287/mnsc.2023.4927")
+        logger.info("       → (白话: 种子词嵌入 + 词袋构企业级文本暴露并以波动率作外部验证, 与本阶段词袋式"
+                    "词典计分同族; 同样需对窗口/词表等设定做敏感性披露以证度量非任意。)")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
 

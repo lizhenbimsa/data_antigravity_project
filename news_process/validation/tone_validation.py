@@ -2093,11 +2093,30 @@ def main():
             "https://doi.org/10.1073/pnas.2305016120"
         )
         logger.info(
+            "  · LLM 标注的方法学纪律先例(误分类偏置/prompt 敏感性/可复现性, 本阶段对 LLM 轨做偏向+校准诊断的依据): "
+            "Carlson, N. A., & Burbano, V. (2026). The use of LLMs to annotate data in management research: "
+            "Foundational guidelines and warnings. Strategic Management Journal, 47(3), 699-725. "
+            "https://doi.org/10.1002/smj.70023"
+        )
+        logger.info(
+            "    (白话: 管理学顶刊给出的 LLM 标注操作指南 — 要警惕系统性误分类与 prompt 敏感性, 故本阶段额外做类别偏向/置信度校准诊断。)"
+        )
+        logger.info(
+            "  · 多评分者一致性(Fleiss κ 的多标签/层级推广, 锚定本阶段跨 N 方法的标签一致率与 Cohen κ 口径): "
+            "Moons, F., & Vandervieren, E. (2025). Measuring agreement among several raters classifying subjects "
+            "into one or more (hierarchical) categories: A generalization of Fleiss' kappa. Behavior Research Methods, "
+            "57(10), Article 287. https://doi.org/10.3758/s13428-025-02746-8"
+        )
+        logger.info(
+            "    (白话: 把经典 Fleiss κ 推广到多评分者/多标签, 为本阶段「全/多数一致率」这类多方法一致性度量提供现代统计依据。)"
+        )
+        logger.info(
             "  · 白话: 用三种机理完全不同的方法(查词典/BERT 神经网络/LLM 大模型)给同一篇新闻判情感, "
             "若彼此趋同则收敛效度强 (但仍≠效标效度=对人工金标准, 须人工回读/stage 33)。"
         )
-        # 注: Cronbach (1951, Psychometrika) / Chiu & Hung (2025, PBFJ) / Carlson & Burbano (2026, SMJ §4.2)
-        # / Guo et al. (2017, ICML, ECE) 不在经核验注册表内, 按铁律不 emit DOI, 仅保留代码注释/docstring。
+        # 注: Cronbach (1951, Psychometrika) / Chiu & Hung (2025, PBFJ) / Guo et al. (2017, ICML, ECE)
+        # 不在经核验注册表内, 按铁律不 emit DOI, 仅保留代码注释/docstring。
+        # (Carlson & Burbano 2026 SMJ 自 2026-06-26 起经 Crossref 三道核验注册表确认 status=match, 已上移至 emit 区。)
     except Exception as _e_ref:
         logger.warning(f"方法论引用块打印失败 (不影响阶段): {_e_ref}")
 

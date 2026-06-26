@@ -325,6 +325,24 @@ def _log_environment_and_config(input_path: str, output_path: str, full_output_p
                     "https://doi.org/10.1111/j.1540-6261.2010.01625.x")
         logger.info("       → 白话: 词典法做金融文本测度的经典范式 (须多样性/分布门压噪声), "
                     "本阶段以 ≥2 不同词 + 上下半分布门避免'顺嘴一句'误判。")
+        # 近期同法实例 (2023-2026): firm-level 文本暴露/技术关注度的"种子词→关键词命中"测度模板,
+        # 与本阶段'金科词典命中→银行×金科话题暴露'同族, 用作方法时新性锚点 (引文逐字取自核验注册表)。
+        logger.info("     · firm-level 文本暴露模板: Sautner, Z., van Lent, L., Vilkov, G., "
+                    "& Zhang, R. (2023). Firm-level climate change exposure. The Journal of "
+                    "Finance, 78(3), 1449-1498. https://doi.org/10.1111/jofi.13219")
+        logger.info("       → 白话: 以关键词/二元组命中构建企业层面气候关注度, 是'词表→话题暴露'"
+                    "的标准模板; 本阶段同法以金科词典命中度量银行报道的金科话题暴露。")
+        logger.info("     · 文本识别新兴技术: Kalyani, A., Bloom, N., Carvalho, M., Hassan, T. A., "
+                    "Lerner, J., & Tahoun, A. (2025). The diffusion of new technologies. The "
+                    "Quarterly Journal of Economics, 140(2), 1299-1365. "
+                    "https://doi.org/10.1093/qje/qjaf002")
+        logger.info("       → 白话: 用文本 bigram 识别并追踪新兴技术扩散; 印证以关键词命中锚定"
+                    "'技术关注强度'的近期范式, 与本阶段金科词命中作技术关注信号同思路。")
+        logger.info("     · 种子词构企业文本暴露: Wu, D. (A.). (2024). Text-based measure of "
+                    "supply chain risk exposure. Management Science, 70(7), 4781-4801. "
+                    "https://doi.org/10.1287/mnsc.2023.4927")
+        logger.info("       → 白话: 以种子词嵌入+词袋构建 firm-level 文本暴露并以波动率验证, "
+                    "2024 近期实例; 佐证词典/关键词法度量企业级话题暴露的有效性。")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
 

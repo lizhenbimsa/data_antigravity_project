@@ -265,6 +265,18 @@ def _log_environment_and_config(in_path: str, out_path: str) -> None:
                     "https://doi.org/10.1093/qje/qjz021")
         logger.info("       → §III.B 以「距实体的邻近度」加权归因, 本阶段借其思路把"
                     "「距银行」近邻的金科共现作为主题相关性判据")
+        logger.info("     · bigram/关键词命中识别新兴技术: Kalyani, A., Bloom, N., "
+                    "Carvalho, M., Hassan, T. A., Lerner, J., & Tahoun, A. (2025). The "
+                    "diffusion of new technologies. The Quarterly Journal of Economics, "
+                    "140(2), 1299-1365. https://doi.org/10.1093/qje/qjaf002")
+        logger.info("       (白话: 用文本 bigram 识别新兴技术并追踪扩散; 本阶段把金科词在"
+                    "银行近邻窗口的命中作为「技术关注」共现信号, 同族方法的近期 QJE 实例)")
+        logger.info("     · 词表/bigram 构 firm-level 文本暴露: Sautner, Z., van Lent, L., "
+                    "Vilkov, G., & Zhang, R. (2023). Firm-level climate change exposure. "
+                    "The Journal of Finance, 78(3), 1449-1498. "
+                    "https://doi.org/10.1111/jofi.13219")
+        logger.info("       (白话: 以 ML 关键词发现 + 二元组命中构 firm-level 注意力, 是"
+                    "「词表→共现命中→企业级文本度量」的标准模板, 印证本阶段金科词命中口径)")
     except Exception as e:  # noqa: BLE001 — 环境/配置/方法块日志失败绝不阻断阶段
         logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
 

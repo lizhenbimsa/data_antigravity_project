@@ -607,8 +607,9 @@ def main():
         logger.warning(f"  环境/配置信息打印失败 (不影响处理): {e}")
 
     # 📖 方法论依据 (纯日志, golden-safe): 本阶段判别效度/构念效度锚点的 APA-7 全引 + DOI。
-    # 仅引用经 Crossref 核验注册表中的条目, 逐字照抄 (绝不臆造 DOI); 全部 6 个锚点
-    # (HTMT/AVE/α/MTMM/CFA/κ) 均已 2026-06-24 Crossref 核验并附可访问 DOI 链接。
+    # 仅引用经 Crossref 核验注册表中的条目, 逐字照抄 (绝不臆造 DOI); 8 个锚点
+    # (HTMT/AVE/α/MTMM/CFA/κ + 现代信度 Krippendorff α + stage72 NMI chance-校正)
+    # 均经 Crossref 核验并附可访问 DOI 链接 (后两条 2024 期刊, 偏近期方法学)。
     try:
         logger.info("")
         logger.info("  📖 方法论依据 (构念/判别效度锚点; APA-7 全引 + 已核验 DOI 链接)")
@@ -632,6 +633,15 @@ def main():
         logger.info("     · Cohen, J. (1960). A coefficient of agreement for nominal scales. "
                     "Educational and Psychological Measurement, 20(1), 37-46. "
                     "https://doi.org/10.1177/001316446002000104  [κ for nominal agreement]")
+        logger.info("     · Marzi, G., Balzano, M., & Marchiori, D. (2024). K-Alpha "
+                    "Calculator–Krippendorff's Alpha Calculator: A user-friendly tool for "
+                    "computing Krippendorff's Alpha inter-rater reliability coefficient. "
+                    "MethodsX, 12, 102545. https://doi.org/10.1016/j.mex.2023.102545  "
+                    "[Krippendorff α 现代 inter-coder 信度锚, 补充本阶段 Cronbach α / Cohen κ]")
+        logger.info("     · Mahmoudi, A., & Jemielniak, D. (2024). Proof of biased behavior of "
+                    "Normalized Mutual Information. Scientific Reports, 14(1), Article 9021. "
+                    "https://doi.org/10.1038/s41598-024-59073-9  [NMI 有偏(偏好更多簇) → "
+                    "承重判别证据 stage 72 NMI 比较分区须 chance 校正之锚]")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  方法论依据打印失败 (不影响处理): {e}")
 

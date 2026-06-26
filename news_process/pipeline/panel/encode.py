@@ -123,6 +123,18 @@ _PANEL_METHOD_REFS = [
     ("Logit-to-Score 概率映射情感",
      "Törnberg, P. (2023). How to use LLMs for text analysis. arXiv. "
      "https://doi.org/10.48550/arXiv.2307.13106"),
+    # 实质 vs 象征二元属性 (substantive-symbolic decoupling): 本模块聚合 tone_gap_sub_symb /
+    # sub_frac/symb_frac 等"言行脱耦"构念, 锚定银行情境与中国上市公司的 decoupling 近期证据。
+    ("实质/象征脱耦 (银行情境 decoupling)",
+     "Giannetti, M., Jasova, M., Loumioti, M., & Mendicino, C. (2026). \"Glossy green\" "
+     "banks: The disconnect between environmental disclosures and lending activities. "
+     "Management Science. Advance online publication. "
+     "https://doi.org/10.1287/mnsc.2024.07420"),
+    ("言行一致检验 (中国上市公司象征 vs 实质)",
+     "Lai, H., Quan, L., Wu, F., Tang, S., Guo, C., & Lai, X. (2025). Corporate "
+     "environmental publicity and green innovation: Are words consistent with actions? "
+     "Humanities and Social Sciences Communications, 12(1), 514. "
+     "https://doi.org/10.1057/s41599-025-04826-8"),
 ]
 
 
@@ -1632,6 +1644,19 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             panel['tone_gap_sub_symb'] = (
                 panel['llm_vote_tone_sub_full'] - panel['llm_vote_tone_symb_full']
             ).where(_sub_symb_qual, np.nan)
+            # 结果统计 (纯日志, golden-safe): 实质-象征语调差距 = 言行脱耦的 bank-year 测度
+            # (Giannetti et al. 2026 MS / Lai et al. 2025 HSSC; 正值=实质性报道更乐观)。
+            _gap_valid = panel['tone_gap_sub_symb'].notna()
+            _n_gap = int(_gap_valid.sum())
+            if _n_gap > 0:
+                _gap_v = panel.loc[_gap_valid, 'tone_gap_sub_symb']
+                logger.info(
+                    f"  📈 tone_gap_sub_symb (实质−象征脱耦): n_qual={_n_gap:,} "
+                    f"(min-n≥5 cell, 占 bank-year {pct4(_n_gap / len(panel) if len(panel) else 0.0)}), "
+                    f"mean={sig4(_gap_v.mean())}, std={sig4(_gap_v.std())}, "
+                    f"median={sig4(_gap_v.median())}")
+            else:
+                logger.info("  📈 tone_gap_sub_symb: 无满足 min-n≥5 的合格 cell (T=2 小样常态)")
 
         # innovation_substantiveness 恒等式校验（二分类）— fix(omni-g-encode-07,
         # 2026-06-11): 严格 == 统一为 R6 `>=` (与 collab 维度一致)

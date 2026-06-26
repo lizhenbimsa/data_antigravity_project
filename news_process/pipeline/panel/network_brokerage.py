@@ -248,6 +248,13 @@ def _log_env_config_methodology() -> None:
         logger.info("       (白话: 行业负面冲击=同年『其余』银行的负面比率均值, "
                     "排除自身→去自相关; ⚠ 同期 LOO 仍不解反射问题, "
                     "作 IV/treatment 须滞后 t-1)")
+        logger.info("     · 媒体网络中心度 → 语调偏向 (近期同构应用): "
+                    "Xu, G. (2024). News bias in financial journalists' social "
+                    "networks. Journal of Accounting Research, 62(4), 1145–1182. "
+                    "https://doi.org/10.1111/1475-679X.12560")
+        logger.info("       (白话: 在金融新闻语料上建记者社会网络并以中心度解释报道"
+                    "语调偏向, 与本模块『媒体-银行网络→银行端中心度→信息可见度/"
+                    "语调』同构, 佐证媒体网络位置对新闻语调的解释力)")
         logger.info("=" * 60)
     except Exception as e:  # noqa: BLE001 — 日志块绝不崩阶段
         logger.warning(f"  环境/配置/方法论 banner 输出失败 (忽略, 不影响计算): {e}")

@@ -23,6 +23,8 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from news_process.core.logging import pct4
+
 logger = logging.getLogger(__name__)
 
 
@@ -234,21 +236,56 @@ def save_parquet_with_metadata(
 
     pq.write_table(table, output_path)
 
+    # ── 纯日志统计 (log-only, 不参与任何产物计算; 仅喂给下方 logger) ──
+    n_rows, n_cols = df.shape  # df.shape 只读, 不改产物
+    n_input_decl = len(metadata.input_files)        # 声明的依赖输入文件数 (整数)
+    n_input_hashed = len(metadata.input_hashes)     # 实际找到并已记 SHA-256 的输入数
+    n_input_missing = n_input_decl - n_input_hashed  # 声明但盘上缺失 (未记 hash) 的输入数
+    # 输入文件 hash 覆盖率 (盘上找到 / 声明), 0 声明时无意义 → 标注 N/A。
+    hash_cov_str = (
+        pct4(n_input_hashed / n_input_decl) if n_input_decl > 0 else "N/A (无声明输入)"
+    )
+    n_config_yaml = len(metadata.config_file_hashes)  # W5 内容寻址: 已记 split YAML 数
+    n_resources = len(metadata.resource_hashes)       # W5 内容寻址: 已记载荷资源 (.json/.txt) 数
+    n_deps = len(metadata.dependencies)               # 已记关键依赖版本数
+
     logger.info(
         f"已保存 {output_path} (附数据血缘元数据 data_version):\n"
         f"  Git commit (前 8 位): {metadata.git_commit[:8]}\n"
         f"  Git branch:         {metadata.git_branch}\n"
         f"  Config hash (前 8 位): {metadata.config_hash[:8]}\n"
         f"  Python:             {metadata.python_version}\n"
-        f"  输入文件数:          {len(metadata.input_hashes):,d} 个 (已记 SHA-256)\n"
+        f"  输入文件数:          {n_input_hashed:,} 个 (已记 SHA-256)\n"
         f"  Timestamp (UTC):    {metadata.timestamp}"
+    )
+    logger.info(
+        "📊 运行期参数 (data_versioning · 内容寻址血缘):\n"
+        f"  · 阶段 stage_name      : {metadata.stage_name}\n"
+        f"  · 产物 DataFrame 规模  : {n_rows:,} 行 × {n_cols:,} 列\n"
+        f"  · 声明依赖输入文件     : {n_input_decl:,} 个 (盘上找到 {n_input_hashed:,} / 缺失 {n_input_missing:,})\n"
+        f"  · split YAML 内容哈希  : {n_config_yaml:,} 份 (W5 --skip-unchanged 门控)\n"
+        f"  · 载荷资源内容哈希     : {n_resources:,} 份 (.json/.txt; 保守资源门)\n"
+        f"  · 关键依赖版本记录     : {n_deps:,} 个 ({', '.join(metadata.dependencies) or '空'})"
+    )
+    logger.info(
+        "📈 结果统计 (血缘元数据完整性):\n"
+        f"  · 输入文件 SHA-256 覆盖率 : {hash_cov_str} ({n_input_hashed:,}/{n_input_decl:,})\n"
+        f"  · config_hash (全局配置)  : {metadata.config_hash[:12]}…\n"
+        f"  · 元数据键总数            : {len(metadata.to_dict()):,} 个顶层字段\n"
+        f"  · 写入 parquet schema metadata key: b'data_version' (非数据列, golden-safe)"
     )
     # 📖 方法论依据 (内容寻址 / 可复现计算血缘): 记录 git commit + config hash +
     #    输入文件 SHA-256 + 依赖版本, 使每个 parquet 产物可溯源、可复现校验。
-    #    Sandve, G. K., Nekrutenko, A., Taylor, J., & Hovig, E. (2013). Ten simple
-    #    rules for reproducible computational research. PLoS Computational Biology,
-    #    9(10), e1003285. https://doi.org/10.1371/journal.pcbi.1003285 (规则 4-6:
-    #    版本/出处追踪)。
+    #    候选文献 (qreg/PPML/Oster/randomization inference) 均为计量估计方法, 与本模块
+    #    "数据版本/出处追踪" 无方法学锚定关系, 故不 emit; 仅 emit 文件既有的真锚定文献。
+    logger.info(
+        "📖 方法论依据 (可复现计算研究 · 出处与版本追踪):\n"
+        "  Sandve, G. K., Nekrutenko, A., Taylor, J., & Hovig, E. (2013). Ten simple "
+        "rules for reproducible computational research. PLoS Computational Biology, "
+        "9(10), e1003285. https://doi.org/10.1371/journal.pcbi.1003285\n"
+        "  (白话: 可复现计算研究的十条准则; 本模块落实其规则 4-6——记录所有中间结果、"
+        "版本与精确出处, 让每个 parquet 产物都能溯源到 git commit / config / 输入哈希。)"
+    )
 
 
 def read_parquet_metadata(file_path: str | Path) -> Optional[dict]:

@@ -69,6 +69,37 @@ _METHOD_REFS_D4 = (
     "46(2), 202–228. https://doi.org/10.2307/2667086",
 )
 
+# collab 维度 (自主研发 vs 外部协同) 文献锚点 — cell_id 第三 bit (c_bit) 编码的正是
+# innovation_collab_mode 的自研/协同二分, 这是本模块 (encode_collab) 命名所指的核心维度。
+# 仅供 emit 进日志 (golden-safe); 逐字取自项目 Crossref 三道核验注册表, 严禁臆造。
+_METHOD_REFS_COLLAB = (
+    # method-origin: 自研 vs 外部协同二分的开放式创新理论锚点 (Chesbrough 20 年 meta 升级)
+    "Zhang, H., Ma, Z., Liang, X., & Garrett, T. C. (2024). Antecedents and "
+    "outcomes of open innovation over the past 20 years: A framework and "
+    "meta-analysis. Journal of Product Innovation Management, 41(4), 793-815. "
+    "https://doi.org/10.1111/jpim.12710",
+    # 创新来源归属先例: 专利区分金融创新由谁内部产出 (P5 自研 vs 外部协同)
+    "Lerner, J., Seru, A., Short, N., & Sun, Y. (2024). Financial innovation in "
+    "the twenty-first century: Evidence from US patents. Journal of Political "
+    "Economy, 132(5), 1391-1449. https://doi.org/10.1086/727712",
+    # 中国语境近期应用: 银行-fintech 合作库直接区分自研 vs 合作
+    "Wu, M., Shen, L., Wu, T., & Shao, Y. (2025). Does strategic cooperation "
+    "between banks and fintech companies increase bank risk-taking? Evidence "
+    "from China. Applied Economics. Advance online publication. "
+    "https://doi.org/10.1080/00036846.2025.2536881",
+    # 外部协同 (并购) 的金融市场应用: 事件研究度量银行首次 fintech 收购 CAR
+    "Kueschnig, M., & Schertler, A. (2024). Fusing futures: Financial "
+    "institutions' stock price response to fintech acquisitions. Finance "
+    "Research Letters, 59, 104779. https://doi.org/10.1016/j.frl.2023.104779",
+)
+# collab 维度文献白话 (与上元组逐条对应; 仅供日志, 不参与计算)
+_METHOD_REFS_COLLAB_PLAIN = (
+    "Chesbrough 开放式创新 20 年 meta 框架, 升级自研 vs 外部协同二分锚点",
+    "专利区分金融创新由谁内部产出, 自研 vs 外部协同的来源归属先例",
+    "129 家中国银行-fintech 合作库, 直接区分自研 vs 合作, 与中国语境高度契合",
+    "事件研究度量银行首次 fintech 收购 CAR, 外部协同 (并购) 的二元金融市场应用",
+)
+
 # v3.5.0 D2: 8-cell encoding (baseline=cell 1 三维全 0)
 VALID_SUBST = {'实质性', '象征性'}
 VALID_LOCUS = {'底层技术', '应用场景'}
@@ -620,6 +651,14 @@ def apply_v3_5_0(df: pd.DataFrame, panel: pd.DataFrame,
         )
         for _ref in _METHOD_REFS_D4:
             logger.info(f"        - {_ref}")
+        # 📖 方法论依据 (collab 维度专属): cell_id 第三 bit 编码的 innovation_collab_mode
+        # (自主研发 vs 外部协同) 是本模块命名所指的核心维度, 下列文献锚定其二分构念与度量。
+        logger.info(
+            "    · 📖 方法论依据 (collab 维度 = cell_id 第三 bit: 自主研发 vs 外部协同):"
+        )
+        for _ref, _plain in zip(_METHOD_REFS_COLLAB, _METHOD_REFS_COLLAB_PLAIN):
+            logger.info(f"        - {_ref}")
+            logger.info(f"          (白话: {_plain})")
         logger.info(
             "    · 白话: 把每篇文章按三个二选一属性落进 2×2×2=8 格做饱和回归; "
             "D4 看 full/ctx 两口径判得是否一致 (不一致本身即信号)。"
@@ -661,6 +700,32 @@ def apply_v3_5_0(df: pd.DataFrame, panel: pd.DataFrame,
             f"D2 skipped={d2_diag.get('cell_aggregation_skipped')} · "
             f"D4 quality_flag={d4_diag.get('d4_data_quality_flag', 'n/a')}"
         )
+        # 📈 结果统计 (collab 维度 = cell_id 第三 bit): 报 cell_id_full 有效率 +
+        # 8 格分布 + 外部协同占比 (cells 2/4/6/8 = c_bit=1)。纯日志, 不改任何写盘值。
+        _cid = df['cell_id_full']
+        _n_total = len(_cid)
+        _n_valid = int(_cid.notna().sum())
+        _valid_pct = (_n_valid / _n_total) if _n_total else 0.0
+        logger.info(
+            f"  📈 cell_id_full 覆盖: 有效 {_n_valid:,d}/{_n_total:,d} = "
+            f"{pct4(_valid_pct)} (NA = LLM 三维之一标注失败)"
+        )
+        if _n_valid > 0:
+            _collab_cells = {2, 4, 6, 8}  # c_bit=1 → 外部协同
+            _n_collab = int(_cid.isin(_collab_cells).sum())
+            _collab_share = _n_collab / _n_valid
+            logger.info(
+                f"  📈 collab 维度占比 (有效文章中): 外部协同 {_n_collab:,d} = "
+                f"{pct4(_collab_share)} · 自主研发 {_n_valid - _n_collab:,d} = "
+                f"{pct4(1.0 - _collab_share)}"
+            )
+            # 8 格分布逐格计数 (cell_label → n), 供饱和回归前的格内样本量诊断
+            _cnts = _cid.value_counts().to_dict()
+            _cell_brief = " · ".join(
+                f"{_i}:{int(_cnts.get(_i, 0)):,d}({pct4(int(_cnts.get(_i, 0)) / _n_valid)})"
+                for _i in range(1, 9)
+            )
+            logger.info(f"  📈 D2 8 格分布 (cell_id:n(占比)): {_cell_brief}")
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"  ⚠ apply_v3_5_0 计时/汇总日志失败 (graceful): {_e}")
 

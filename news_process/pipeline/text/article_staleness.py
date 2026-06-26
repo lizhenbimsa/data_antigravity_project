@@ -593,6 +593,26 @@ def main():
                     "(本实现两点刻意偏离: corpus-level 7d 窗 vs 同公司72h; SBERT 为扩展)")
         logger.info("     · text-as-data 方法论框架: Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. "
                     "Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020")
+        # 日志富集 (deepen, 2026-06-26): 追加 3 条偏 2023-2026 的核验文献 ——
+        # staleness 构念现代化锚点 (Fedyk-Hodson 2023) + MinHash/LSH 近重复方法学 (Kumar 2025 / Peng 2024)。
+        logger.info("     · staleness 构念现代化 (首发重印 vs 重组旧闻按相似度细分, 与本模块 surface/semantic "
+                    "双相似度同范式): Fedyk, A., & Hodson, J. (2023). When can the market identify old news? "
+                    "Journal of Financial Economics, 149(1), 92-113. https://doi.org/10.1016/j.jfineco.2023.04.008")
+        logger.info("       (白话: 用 1700 万条 Bloomberg 新闻把'旧闻'拆成逐字转载与重组改写两类, "
+                    "正是本模块 surface 字面 + semantic 语义两轨相似度切分的实证范式参照。)")
+        logger.info("     · surface 轨近重复方法基准 (商业/付费墙新闻语料 SimHash/MinHash-LSH near-dup): "
+                    "Kumar, A., Tumre, S., & Patil, S. (2025). Benchmarking near-duplicate detection in the "
+                    "era of pay-walled news. In Companion Proceedings of the ACM on Web Conference 2025 "
+                    "(WWW '25 Companion) (pp. 745-748). Association for Computing Machinery. "
+                    "https://doi.org/10.1145/3701716.3715303")
+        logger.info("       (白话: 与本模块 surface 轨完全同任务 —— 在商业新闻语料上用 MinHash-LSH 做近重复检测, "
+                    "为'按天滚动 LSHForest + jaccard top-10 取 max'的工程选型提供同行评议基准。)")
+        logger.info("     · MinHash 族方法学前沿 (one-permutation hashing 近重复对齐, 2024 同行评议进展): "
+                    "Peng, Z., Zhang, Y., & Deng, D. (2024). Near-duplicate text alignment with one "
+                    "permutation hashing. Proceedings of the ACM on Management of Data, 2(4), Article 222, "
+                    "1-26. https://doi.org/10.1145/3677136")
+        logger.info("       (白话: 本模块 surface 轨用 num_perm=128 的多排列 MinHash; 单排列哈希是其同族 2024 "
+                    "新进展, 标注未来在 17M 全量语料上的潜在提速升级路径。)")
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"  环境/配置/方法论信息打印失败 (不影响处理): {_e}")
 

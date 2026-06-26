@@ -637,6 +637,19 @@ def _log_environment_and_config(full_path: str, ctx_path: str,
                     "中国管理科学, 32(1), 31-41. "
                     "https://doi.org/10.16381/j.cnki.issn1003-207x.2021.1714")
         logger.info("       → 用文本关键词构造银行金科强度, 与本阶段连续型 intensity 测度同源")
+        logger.info("     · 近期 firm-level 文本暴露测度范式 (2023-2026, 关键词命中 + 嵌入加权):")
+        logger.info("       Sautner, Z., van Lent, L., Vilkov, G., & Zhang, R. (2023). Firm-level "
+                    "climate change exposure. The Journal of Finance, 78(3), 1449-1498. "
+                    "https://doi.org/10.1111/jofi.13219")
+        logger.info("       → ML 关键词发现 + 二元组命中构 firm-level exposure, 本阶段金科词表/命中计数同范式模板")
+        logger.info("       Wu, D. (A.). (2024). Text-based measure of supply chain risk exposure. "
+                    "Management Science, 70(7), 4781-4801. https://doi.org/10.1287/mnsc.2023.4927")
+        logger.info("       → 种子词嵌入 + 词袋构 firm-level 文本暴露 (并以波动率验证), 与本阶段"
+                    "IDF 加权关键词质心 + jieba 整词计数同法, 2024 近期实例")
+        logger.info("       Kalyani, A., Bloom, N., Carvalho, M., Hassan, T. A., Lerner, J., & "
+                    "Tahoun, A. (2025). The diffusion of new technologies. The Quarterly Journal "
+                    "of Economics, 140(2), 1299-1365. https://doi.org/10.1093/qje/qjaf002")
+        logger.info("       → 文本 bigram 识别新兴技术并追踪扩散, 支撑'锚定金科技术词命中作技术关注强度'设计")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  环境/配置/方法论信息打印失败 (不影响处理): {e}")
 

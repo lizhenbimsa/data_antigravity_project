@@ -1423,6 +1423,24 @@ def compute_strategic_differentiation(df_exploded, panel):
                     "https://doi.org/10.1257/jel.20181020")
         logger.info("  │   · 相邻期连贯性: 欧阳志刚 & 胡雯华 (2024). 数量经济技术经济研究, 41(10), "
                     "69-88 (DOI 待核验, chndoi.org 未注册, 不作已证事实引用)")
+        logger.info("  │   · 战略差异度近期应用 (TNIC 式技术差异/niche): Arts, S., Cassiman, B., "
+                    "& Hou, J. (2025). Technology differentiation, product market rivalry, and "
+                    "M&A transactions. Strategic Management Journal, 46(4), 837-862. "
+                    "https://doi.org/10.1002/smj.3687")
+        logger.info("  │     (白话: 用文本网络定位企业技术空间组合的唯一性, 把 TNIC 式 niche / "
+                    "战略距离用于并购市场, 是本模块 Guzman-Li / Hoberg-Phillips 构念的近期应用)")
+        logger.info("  │   · Embedding 轨金融语义嵌入近期应用: Jha, M., Liu, H., & Manela. (2026). "
+                    "Does finance benefit society? A language embedding approach. The Review of "
+                    "Financial Studies, 39(5), 1227–1266. https://doi.org/10.1093/rfs/hhaf012")
+        logger.info("  │     (白话: 以 language embedding 用 BERT 嵌入测金融文本语义立场, 与本模块 "
+                    "Embedding 轨 / text2vec 稳健 twin 同范式的最新金融应用)")
+        logger.info("  │   · Embedding 轨金融域适配: Jehnen, S., Villalba-Díez, J., & "
+                    "Ordieres-Meré, J. (2026). FinTextSim: A domain-specific sentence-transformer "
+                    "for extracting predictive latent topics from financial disclosures. Frontiers "
+                    "in Artificial Intelligence, 9, Article 1752103. "
+                    "https://doi.org/10.3389/frai.2026.1752103")
+        logger.info("  │     (白话: 对金融披露文本微调 sentence-transformer, 直接对标本模块 "
+                    "SBERT / Embedding 轨在金融域的适配方向)")
     except Exception as _banner_exc:  # noqa: BLE001
         logger.warning(f"  战略差异度 banner 日志失败 (不阻塞): {_banner_exc!r}")
 

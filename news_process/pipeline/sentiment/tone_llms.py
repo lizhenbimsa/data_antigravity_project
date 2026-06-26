@@ -2130,6 +2130,32 @@ def _log_environment_and_methodology(input_path: str) -> None:
             "     · 最大熵/信息论 (类先验保守降级理据): Jaynes, E. T. (1957). Information theory and "
             "statistical mechanics. Physical Review, 106(4), 620-630. https://doi.org/10.1103/PhysRev.106.620"
         )
+        logger.info(
+            "     · LLM 文本测度最佳实践 (temperature=0 / prompt 冻结 / 缓存确定性): de Kok, T. (2025). "
+            "ChatGPT for textual analysis? How to use generative LLMs in accounting research. Management "
+            "Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253"
+        )
+        logger.info(
+            "       → 顶刊会计/金融 LLM 文本测度规范, 锚定本阶段 temperature=0 + Prompt v8 字节冻结 + "
+            "_llm_cache.db 确定性复现的设计纪律。"
+        )
+        logger.info(
+            "     · LLM 数据标注基础指南 / 误分类偏置与 prompt 敏感性: Carlson, N. A., & Burbano, V. (2026). "
+            "The use of LLMs to annotate data in management research: Foundational guidelines and warnings. "
+            "Strategic Management Journal, 47(3), 699-725. https://doi.org/10.1002/smj.70023"
+        )
+        logger.info(
+            "       → 把 LLM 当标注器须报告并锚定 temperature / prompt 版本、警惕误分类偏置与 prompt 敏感性 "
+            "(本阶段 prompt_version + 三模型投票 + 缓存键四维即此纪律的工程化)。"
+        )
+        logger.info(
+            "     · 生成式 AI 作金融研究测度工具 (领域综述): Eisfeldt, A. L., & Schubert, G. (2025). "
+            "Generative AI and finance. Annual Review of Financial Economics, 17(1), 363-393. "
+            "https://doi.org/10.1146/annurev-financial-112923-020503"
+        )
+        logger.info(
+            "       → 领域级引用锚: 以生成式 AI 从非结构化金融新闻抽取结构化语气/创新属性变量。"
+        )
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  环境/配置/方法论信息打印失败 (不影响处理): {e}")
 

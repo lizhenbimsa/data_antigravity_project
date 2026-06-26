@@ -37,6 +37,8 @@ from collections import defaultdict
 
 import ahocorasick
 
+from news_process.core.logging import pct4, sig4  # 日志四位有效数字/百分比渲染 (golden-safe, 仅供 logger.*)
+
 logger = logging.getLogger(__name__)
 
 
@@ -105,13 +107,39 @@ def load_bank_names(bank_names_file: str) -> tuple:
             f"银行名称 AC 自动机: 已加载 {len(banks):,d} 家银行 / "
             f"{len(variant_to_bank):,d} 个名称变体 (Aho-Corasick 多模式 O(n+m) 全文匹配)"
         )
+        # 📊 结果统计 (词典规模与变体长度分布; 全部 log-only, 不参与产物计算)
+        _v_lens = [len(v) for v in variant_to_bank]
+        _short_n = sum(1 for _l in _v_lens if _l <= 2)  # 短名 (≤2 字, 须短名歧义消解)
+        _mean_var_len = sum(_v_lens) / len(_v_lens)
+        _avg_var_per_bank = len(variant_to_bank) / len(banks)
+        logger.info(
+            f"  📊 变体长度: min={min(_v_lens)} / mean={sig4(_mean_var_len)} / "
+            f"max={max(_v_lens)} 字符; 短名 (≤2 字) {_short_n:,d} 个; "
+            f"平均每家 {sig4(_avg_var_per_bank)} 个变体"
+        )
         # 📖 方法论依据 (核心算法学术出处, Crossref 真值核验 DOI):
+        logger.info("  📖 方法论依据:")
         #    Aho, A. V., & Corasick, M. J. (1975). Efficient string matching: an aid to
         #    bibliographic search. Communications of the ACM, 18(6), 333-340.
-        #    https://doi.org/10.1145/360825.360855
         logger.info(
-            "  📖 多模式匹配算法: Aho & Corasick (1975), Communications of the ACM 18(6), "
+            "    [多模式匹配算法] Aho, A. V., & Corasick, M. J. (1975). Efficient string "
+            "matching: an aid to bibliographic search. Communications of the ACM, 18(6), "
             "333-340. https://doi.org/10.1145/360825.360855"
+        )
+        logger.info(
+            "      (白话: 把数百个银行名变体编成一台有限状态自动机, 全文扫一遍即拿到"
+            "所有命中, O(n+m) 而非逐词正则 O(n*k))"
+        )
+        #    Manning, C. D., Raghavan, P., & Schütze, H. (2008). Introduction to information
+        #    retrieval. Cambridge University Press. https://doi.org/10.1017/CBO9780511809071
+        logger.info(
+            "    [词典查找/检索原语] Manning, C. D., Raghavan, P., & Schütze, H. (2008). "
+            "Introduction to information retrieval. Cambridge University Press. "
+            "https://doi.org/10.1017/CBO9780511809071"
+        )
+        logger.info(
+            "      (白话: 实体/关键词词典查找与文本扫描的标准 IR 教科书依据, 锚定本模块"
+            "的 dictionary-based term spotting 范式)"
         )
     else:
         ac = None
@@ -292,6 +320,14 @@ def load_fintech_dict(fintech_dict_file: str) -> tuple:
         logger.info(
             f"金融科技关键词 AC 自动机: 已加载 {len(all_keywords):,d} 个关键词 "
             "(Aho-Corasick 多模式 O(n+m) 全文匹配; 同一算法见 load_bank_names 的 📖 出处)"
+        )
+        # 📊 结果统计 (关键词长度分布; 全部 log-only, 不参与产物计算)
+        _kw_lens = [len(k) for k in all_keywords]
+        _kw_short = sum(1 for _l in _kw_lens if _l <= 2)
+        logger.info(
+            f"  📊 关键词长度: min={min(_kw_lens)} / mean={sig4(sum(_kw_lens) / len(_kw_lens))} / "
+            f"max={max(_kw_lens)} 字符; 短词 (≤2 字) {_kw_short:,d} 个 "
+            f"({pct4(_kw_short / len(all_keywords))})"
         )
     else:
         ac = None

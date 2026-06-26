@@ -669,7 +669,10 @@ def _log_environment_and_config(input_file: str, output_file: str) -> None:
     日志, 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 (golden-safe)。
     ④ 方法论引文仅 emit 经 Crossref 真值核验的条目, 含 DOI 可访问链接 (Sautner et al. 2023 JF
     https://doi.org/10.1111/jofi.13219; Tetlock 2011 RFS https://doi.org/10.1093/rfs/hhq141;
-    Edwards 2001 ORM https://doi.org/10.1177/109442810142004), 绝不伪造 DOI (playbook §4 铁律)。
+    Edwards 2001 ORM https://doi.org/10.1177/109442810142004; Fedyk & Hodson 2023 JFE
+    https://doi.org/10.1016/j.jfineco.2023.04.008; Cagé et al. 2020 RES
+    https://doi.org/10.1093/restud/rdz061; Glasserman et al. 2025 JFQA
+    https://doi.org/10.1017/S0022109023001369), 绝不伪造 DOI (playbook §4 铁律)。
     """
     try:
         import platform
@@ -719,6 +722,19 @@ def _log_environment_and_config(input_file: str, output_file: str) -> None:
                     "constructs in organizational behavior research: An integrative analytical framework. "
                     "Organizational Research Methods, 4(2), 144-192. https://doi.org/10.1177/109442810142004 "
                     "— 全文相似度 ≠ 银行邻域/同句相似度")
+        logger.info("     · 旧闻识别/转载 vs 重组 (跟风构念直接范式): Fedyk, A., & Hodson, J. (2023). When can the "
+                    "market identify old news? Journal of Financial Economics, 149(1), 92-113. "
+                    "https://doi.org/10.1016/j.jfineco.2023.04.008")
+        logger.info("       → 1700万 Bloomberg 新闻按文本相似度区分 reprints (转载旧闻) 与 recombinations (重组旧闻); "
+                    "本阶段 TF-IDF 余弦 ≥ 阈值即判前驱跟风, 与之同口径区分首发与高相似转抄")
+        logger.info("     · 复制式跟风识别 (copy-paste 检测方法源): Cagé, J., Hervé, N., & Viaud, M.-L. (2020). "
+                    "The production of information in an online world. Review of Economic Studies, 87(5), "
+                    "2126-2164. https://doi.org/10.1093/restud/rdz061")
+        logger.info("       → 全量在线新闻事件检测约 2/3 为复制粘贴; 锚定本阶段'首发-跟进链'与复制式转抄的文本相似度识别")
+        logger.info("     · 滞后新闻项与时变跟进赋权: Glasserman, P., Li, F., & Mamaysky, H. (2025). Time variation "
+                    "in the news-returns relationship. Journal of Financial and Quantitative Analysis, 60(1), "
+                    "258-294. https://doi.org/10.1017/S0022109023001369")
+        logger.info("       → 滞后新闻项刻画价格延迟反应及其时变; 锚定本阶段按 7 天窗内当期/滞后前驱计数施加衰减核赋权")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
 

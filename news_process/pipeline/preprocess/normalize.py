@@ -248,6 +248,36 @@ def clean_text_batch(df_batch: pd.DataFrame) -> pd.DataFrame:
     except Exception as _e:  # noqa: BLE001 — 日志/判读块绝不可中断清洗阶段
         logger.warning(f"[normalize] 结果判读/计时输出失败 (不影响清洗): {_e}")
 
+    # ── 📖 方法论依据 (纯日志; 锚定下游近重复检测对 canonical 文本规范化的依赖) ──
+    # 本标准化层 (ftfy 编码修复 + OpenCC 繁→简统一 + 全角→半角 + HTML 去标签 + 正则噪声/尾部清理)
+    # 产出 canonical 文本, 是下游近重复检测 (SimHash / MinHash-LSH) 与跨文章匹配的前置规范化步骤;
+    # 近重复检测的召回对文本规范化高度敏感, 故此处的统一化直接提升镜像新闻去重的稳健性。
+    # 候选文献中其余各条 (TF-IDF/herd · 文本网络战略距离 · 创始战略 niche · 创新测度) 锚定的是
+    # 下游各阶段方法, 非本清洗层方法, 按"零臆造/拿不准就不写"铁律不予 emit。
+    try:
+        logger.info("[normalize] 📖 方法论依据 (text canonicalization → near-duplicate detection):")
+        logger.info(
+            "  • Kumar, A., Tumre, S., & Patil, S. (2025). Benchmarking near-duplicate "
+            "detection in the era of pay-walled news. In Companion Proceedings of the ACM on "
+            "Web Conference 2025 (WWW '25 Companion) (pp. 745-748). Association for Computing "
+            "Machinery. https://doi.org/10.1145/3701716.3715303"
+        )
+        logger.info(
+            "    (白话: 商业新闻语料的 SimHash/MinHash-LSH 近重复检测基准; 本清洗层产出的 canonical "
+            "文本是其前置规范化输入, 编码修复/繁简统一/全半角统一直接提升镜像新闻去重召回。)"
+        )
+        logger.info(
+            "  • Peng, Z., Zhang, Y., & Deng, D. (2024). Near-duplicate text alignment with one "
+            "permutation hashing. Proceedings of the ACM on Management of Data, 2(4), Article 222, "
+            "1-26. https://doi.org/10.1145/3677136"
+        )
+        logger.info(
+            "    (白话: one-permutation hashing 的近重复文本对齐 (MinHash 族 2024 同行评议进展); "
+            "印证文本规范化是近重复匹配的必要前置, 本模块即承担该 canonicalization 职责。)"
+        )
+    except Exception as _e:  # noqa: BLE001 — 方法论日志块绝不可中断清洗阶段
+        logger.warning(f"[normalize] 方法论依据输出失败 (不影响清洗): {_e}")
+
     return df_batch
 
 

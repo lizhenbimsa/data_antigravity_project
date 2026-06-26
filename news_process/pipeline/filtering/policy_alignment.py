@@ -1249,6 +1249,17 @@ def main():
         logger.info("    Hoberg, G., & Phillips, G. (2016). Text-based network industries and "
                     "endogenous product differentiation. Journal of Political Economy, 124(5), "
                     "1423-1465. https://doi.org/10.1086/688176")
+        logger.info("  · 句嵌入余弦相似度与可解释性 (本阶段 dense-embedding 语义对齐算子的近期方法学锚, 2023-2026):")
+        logger.info("    Opitz, J., Moeller, L., Michail, A., Padó, S., & Clematide, S. (2025). "
+                    "Interpretable text embeddings and text similarity explanation: A survey. In "
+                    "Proceedings of the 2025 Conference on Empirical Methods in Natural Language "
+                    "Processing (pp. 22314-22330). Association for Computational Linguistics. "
+                    "https://doi.org/10.18653/v1/2025.emnlp-main.1135")
+        logger.info("  · 金融文本嵌入基准 (含中英监管文件 STS, 锚定嵌入余弦做金融/政策相似度的构念依据, 2023-2026):")
+        logger.info("    Tang, Y., & Yang, Y. (2025). FinMTEB: Finance Massive Text Embedding "
+                    "Benchmark. In Proceedings of the 2025 Conference on Empirical Methods in "
+                    "Natural Language Processing (pp. 3620-3638). Association for Computational "
+                    "Linguistics. https://doi.org/10.18653/v1/2025.emnlp-main.179")
         logger.info("  · 宏观政策向量注入微观企业文本空间 (锚点注入范式):")
         logger.info("    Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). "
                     "Firm-level political risk: Measurement and effects. The Quarterly Journal "

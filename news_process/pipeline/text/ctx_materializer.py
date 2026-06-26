@@ -498,6 +498,19 @@ def main():
                     "https://doi.org/10.1093/qje/qjz021")
         logger.info("       (白话: 只把'离目标实体最近的那几句'剪出来, 比整篇正文更精准地"
                     "捕捉对该实体的态度, 是 ctx/ss 两轨的方法学锚点)")
+        logger.info("     · 关键词/二元组命中识别新兴技术关注 (ss 轨金科词锚定):")
+        logger.info("       Kalyani, A., Bloom, N., Carvalho, M., Hassan, T. A., "
+                    "Lerner, J., & Tahoun, A. (2025). The diffusion of new "
+                    "technologies. The Quarterly Journal of Economics, 140(2), "
+                    "1299-1365. https://doi.org/10.1093/qje/qjaf002")
+        logger.info("       (白话: 用文本中的技术词/二元组命中来追踪新技术扩散; 与本阶段"
+                    "ss 轨'同句含 ≥1 金科词 (FINTECH_AC 命中)'锚定金科关注同一范式)")
+        logger.info("     · 关键词词表构建 firm-level 文本暴露 (金科词典构造标准模板):")
+        logger.info("       Sautner, Z., van Lent, L., Vilkov, G., & Zhang, R. "
+                    "(2023). Firm-level climate change exposure. The Journal of "
+                    "Finance, 78(3), 1449-1498. https://doi.org/10.1111/jofi.13219")
+        logger.info("       (白话: 用机器学习发现关键词 + 二元组命中构造企业层面文本暴露度, "
+                    "是 FINTECH_AC 金科词典构造 + 同句命中计数的标准方法学模板)")
     except Exception as _e:  # noqa: BLE001 — 仅日志诊断, 绝不阻断处理
         logger.warning(f"[环境/配置/方法论] 日志 banner 打印失败 (不影响处理): {_e}")
 

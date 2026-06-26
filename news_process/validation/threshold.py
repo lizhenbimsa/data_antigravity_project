@@ -814,6 +814,26 @@ def main():
             f"金科 {'✓ 单调非增 (符合预期)' if f_mono else '✗ 出现反单调 (异常, 须排查)'}"
         )
 
+        # 全网格保留率跨度描述性摘要 (max→min/均值/中位, 全 sig4; 仅日志, golden-safe)。
+        b_ratios = [r['ratio'] for r in bank_results]
+        f_ratios = [r['ratio'] for r in fintech_results]
+        if b_ratios:
+            logger.info(
+                f"  · 银行保留率跨度 (阈值 {threshold_range[0]}~{threshold_range[-1]}): "
+                f"max={pct4(max(b_ratios), fraction=False)} → min={pct4(min(b_ratios), fraction=False)}, "
+                f"均值={pct4(float(np.mean(b_ratios)), fraction=False)}, "
+                f"中位={pct4(float(np.median(b_ratios)), fraction=False)}, "
+                f"标准差={pct4(float(np.std(b_ratios)), fraction=False)}"
+            )
+        if f_ratios:
+            logger.info(
+                f"  · 金科保留率跨度 (阈值 {threshold_range[0]}~{threshold_range[-1]}): "
+                f"max={pct4(max(f_ratios), fraction=False)} → min={pct4(min(f_ratios), fraction=False)}, "
+                f"均值={pct4(float(np.mean(f_ratios)), fraction=False)}, "
+                f"中位={pct4(float(np.median(f_ratios)), fraction=False)}, "
+                f"标准差={pct4(float(np.std(f_ratios)), fraction=False)}"
+            )
+
         # 优雅降级 / 边界警告。
         if b_cnt == 0:
             logger.warning("  ⚠ 银行分类在当前阈值正例为 0 — 检查银行名词典/否定模式是否加载成功")
@@ -831,6 +851,37 @@ def main():
         logger.info("-" * 72)
     except Exception as _e:
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
+
+    # ======================================================================
+    # 📖 方法论依据 — 关键词词典/文本度量构造法的近期顶刊同源文献 (仅日志, golden-safe)。
+    # 阈值稳健性范式本身由顶部 banner 的 Loughran-McDonald (2011) / GKT (2019) 锚定;
+    # 此处补充"种子词/二元组关键词命中 → firm-level / 主题级文本度量"这一底层构造法
+    # (本阶段银行名 + 金科词 Aho-Corasick 命中计数 = 该范式的离散计数实例) 的核验前沿。
+    # ======================================================================
+    logger.info("=" * 72)
+    logger.info("📖 方法论依据 (本阶段关键词命中分类 + 阈值稳健性所锚定的核验文献):")
+    logger.info(
+        "  · Kalyani, A., Bloom, N., Carvalho, M., Hassan, T. A., Lerner, J., & "
+        "Tahoun, A. (2025). The diffusion of new technologies. The Quarterly "
+        "Journal of Economics, 140(2), 1299-1365. https://doi.org/10.1093/qje/qjaf002"
+    )
+    logger.info("    (白话: 用文本 bigram 识别新兴技术并追踪扩散; 本阶段以金科关键词命中"
+                "作技术关注强度判据, 同源词表构造法。)")
+    logger.info(
+        "  · Sautner, Z., van Lent, L., Vilkov, G., & Zhang, R. (2023). "
+        "Firm-level climate change exposure. The Journal of Finance, 78(3), "
+        "1449-1498. https://doi.org/10.1111/jofi.13219"
+    )
+    logger.info("    (白话: 机器学习发现关键词 + 二元组命中构 firm-level 关注度, 是关键词"
+                "词表构建的标准模板; 本阶段金科/银行词典命中计数与之同范式。)")
+    logger.info(
+        "  · Wu, D. (A.). (2024). Text-based measure of supply chain risk "
+        "exposure. Management Science, 70(7), 4781-4801. "
+        "https://doi.org/10.1287/mnsc.2023.4927"
+    )
+    logger.info("    (白话: 种子词嵌入 + 词袋构 firm-level 文本暴露并以波动率验证; 本阶段对"
+                "'命中几次才算正例'的阈值敏感性即此类文本度量的稳健性检验。)")
+    logger.info("=" * 72)
 
     log_stage_summary(logger, STAGE_NAME, stage_start,
                       input_rows=len(df_sample),

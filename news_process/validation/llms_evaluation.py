@@ -1628,9 +1628,12 @@ def main():
     logger.info("-" * 72)
 
     # ── ④ 📖 方法论依据 (参考文献 emit 进日志; 仅引经核验注册表 status=match 条目) ──
-    # 仅 emit 注册表中已核验 (Crossref) 的 DOI 串; 本模块另用的 Cohen κ (Landis & Koch
-    # 1977) / Krippendorff α (Krippendorff 2004/2018) / Carlson & Burbano (2026, SMJ)
-    # 在注册表中无对应可核验 DOI 条目, 故仅在判读散文里以 Author-Year 出现, 此处不伪造 DOI。
+    # 仅 emit 注册表中已核验 (Crossref/DataCite) 的 DOI 串; 本模块另用的 Cohen κ
+    # (Landis & Koch 1977) / Krippendorff α (Krippendorff 2004/2018) 在注册表中无对应
+    # 可核验 DOI 条目, 故仅在判读散文里以 Author-Year 出现, 此处不伪造 DOI。
+    # (2026-06-26 深化: Carlson & Burbano 2026 SMJ 已经 Crossref 核验取得 DOI
+    #  10.1002/smj.70023, 故从"仅 Author-Year"升格为带 DOI 正式条目; 同步补
+    #  de Kok 2025 Management Science 生成式 LLM 文本测度最佳实践。)
     try:
         logger.info("④ 📖 方法论依据 (核心构念学术出处; Author (Year). Journal, vol(issue), pages. DOI)")
         logger.info("  · 文本分析/词典效度: Loughran, T., & McDonald, B. (2011). When is a liability not a "
@@ -1653,9 +1656,19 @@ def main():
                     "of endogenous social effects: The reflection problem. The Review of Economic Studies, "
                     "60(3), 531-542. https://doi.org/10.2307/2298123")
         logger.info("    (白话: 人工抽样非简单随机时, 须按总体权重 (Manski-Lerman 修正) 还原无偏 accuracy。)")
-        logger.info("  · 一致度/误分类偏倚依据 (注册表无可核验 DOI, 仅作者-年份): Cohen κ = Landis & Koch (1977, "
-                    "Biometrics 33(1):159-174); Krippendorff α = Krippendorff (2004/2018); 误分类偏倚诊断 = "
-                    "Carlson & Burbano (2026, SMJ 47(3):699-725)。")
+        logger.info("  · LLM 标注误分类偏倚/prompt 敏感性 (本阶段 Panel D 误分类系统相关性诊断的直接方法学依据): "
+                    "Carlson, N. A., & Burbano, V. (2026). The use of LLMs to annotate data in management "
+                    "research: Foundational guidelines and warnings. Strategic Management Journal, 47(3), "
+                    "699-725. https://doi.org/10.1002/smj.70023")
+        logger.info("    (白话: 管理学用 LLM 标注须防误分类偏置与 prompt 敏感性, 本阶段即按此对 LLM 标签做误差方向诊断 "
+                    "(FP/TP·FN/TN 下游情感分数 Welch-t + KS) 与可复现纪律。)")
+        logger.info("  · 生成式 LLM 文本测度最佳实践 (temperature=0 / prompt 冻结 / 缓存确定性, 锚定 stage 21 规范): "
+                    "de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting "
+                    "research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253")
+        logger.info("    (白话: 顶刊给出用生成式 LLM 做文本测度的规范——温度设 0、冻结 prompt、缓存保确定性, "
+                    "本阶段评估的正是按此规范产出的 LLM 标签。)")
+        logger.info("  · 一致度依据 (注册表无可核验 DOI, 仅作者-年份): Cohen κ = Landis & Koch (1977, "
+                    "Biometrics 33(1):159-174); Krippendorff α = Krippendorff (2004/2018)。")
     except Exception as _e:
         logger.warning(f"[METHOD banner] 方法论引用打印异常, 跳过(不影响产物): {_e}")
     logger.info("-" * 72)

@@ -797,8 +797,10 @@ def _log_environment_and_references(llm_full_path: str, ft_full_path: str,
     把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数、核心方法学出处"
     一次性落进 67_dict_coverage_audit.log, 便于复现核对 / 审计 / 排错。
     纯日志, 不改任何产物 (golden-safe)。注: 仅 emit 经核验注册表中存在的 DOI
-    (Sautner et al. 2023 JF = 10.1111/jofi.13219); 趋势检验/Wilson/ENK 的原始
-    文献 (Cochran/Armitage/Wilson/Laakso-Taagepera) 不在注册表 → 仅留方法名, 不伪造 DOI。
+    (Sautner et al. 2023 JF = 10.1111/jofi.13219; Barbaglia et al. 2025 Econ. Inquiry
+    = 10.1111/ecin.13264 词典法竞争力背书; Ma et al. 2025 ESWA = 10.1016/j.eswa.2024.125739
+    中文金融词典构建); 趋势检验/Wilson/ENK 的原始文献 (Cochran/Armitage/Wilson/
+    Laakso-Taagepera) 不在注册表 → 仅留方法名, 不伪造 DOI。
     """
     try:
         coverage_path = os.path.join(EVAL_DIR, '67_coverage_distribution.csv')
@@ -841,6 +843,16 @@ def _log_environment_and_references(llm_full_path: str, ft_full_path: str,
                     "Vilkov, G., & Zhang, R. (2023). Firm-level climate change exposure. "
                     "The Journal of Finance, 78(3), 1449-1498. https://doi.org/10.1111/jofi.13219")
         logger.info("       → 证明静态关键词表会系统性遗漏'利基语言' (niche language), 本审计量化此风险。")
+        logger.info("     · 词典/lexicon 法在经济文本仍具竞争力 (背书保留并审计静态金科词典轨, 而非贸然弃用): "
+                    "Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). "
+                    "Sentiment analysis of economic text: A lexicon-based approach. "
+                    "Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264")
+        logger.info("       → 2025 证据: LLM 时代领域词典法在经济新闻上仍可与 ML 竞争, 故词典值得持续维护与覆盖率体检。")
+        logger.info("     · 中文金融词典构建方法学 (锚定本审计'扩词典'建议的可行路径): "
+                    "Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained "
+                    "sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. "
+                    "Expert Systems with Applications, 264, 125739. https://doi.org/10.1016/j.eswa.2024.125739")
+        logger.info("       → PMI 细分构建中文金融细粒度词典, 为零命中死词清理 / 利基新术语补录提供方法学参照。")
         logger.info("     · 趋势检验: Cochran (1954) Biometrics 10(4):417-451 + "
                     "Armitage (1955) Biometrics 11(3):375-386 (Cochran-Armitage; DOI 未在核验注册表, 仅留方法名)")
         logger.info("     · 区间估计: Wilson (1927) JASA 22(158):209-212 (Wilson score CI; DOI 未在核验注册表)")

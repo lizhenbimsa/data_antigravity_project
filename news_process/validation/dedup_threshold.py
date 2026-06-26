@@ -244,6 +244,21 @@ def _log_environment_and_config(logger, config, output_dir: str,
                     "https://doi.org/10.1109/SEQUEN.1997.666900")
         logger.info("       → 为什么用: MinHash 以固定 permutation 估计文档对 Jaccard "
                     "相似度, 把 O(N²) 全对比对压成近似近邻查询, 支撑大语料近似去重。")
+        logger.info("     · 商业新闻语料近重复检测基准: Kumar, A., Tumre, S., & Patil, S. "
+                    "(2025). Benchmarking near-duplicate detection in the era of "
+                    "pay-walled news. In Companion Proceedings of the ACM on Web "
+                    "Conference 2025 (WWW '25 Companion) (pp. 745-748). Association "
+                    "for Computing Machinery. https://doi.org/10.1145/3701716.3715303")
+        logger.info("       (白话: 在商业新闻语料上系统比较 SimHash / MinHash-LSH 近重复"
+                    "检测, 与本模块'同一新闻多家转载需合并'的去重任务镜像同构, 佐证"
+                    "MinHash-LSH 仍是新闻近重复的当代基线。)")
+        logger.info("     · MinHash 族 2024 同行评议进展: Peng, Z., Zhang, Y., & Deng, D. "
+                    "(2024). Near-duplicate text alignment with one permutation "
+                    "hashing. Proceedings of the ACM on Management of Data, 2(4), "
+                    "Article 222, 1-26. https://doi.org/10.1145/3677136")
+        logger.info("       (白话: one-permutation hashing 把多 permutation MinHash 压成单次"
+                    "置换, 是 MinHash 族近重复对齐的 2024 同行评议新进展, 印证本阶段所用"
+                    "固定 permutation 签名路线的前沿延续性。)")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  环境/配置/方法论信息打印失败 (不影响处理): {e}")
 

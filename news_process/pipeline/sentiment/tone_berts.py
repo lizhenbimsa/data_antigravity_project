@@ -1174,6 +1174,39 @@ def main():
             "是该范式的权威出处 — 不靠关键词硬数, 而整体理解一段话的语气。)"
         )
         logger.info(
+            "  · 本地 finbert2 模型出处: Xu, X., Wen, F., Chu, B., Fu, Z., Lin, Q., "
+            "Liu, J., Fei, B., Li, Y., Zhou, L., & Yang, Z. (2025). FinBERT2: A "
+            "specialized bidirectional encoder for bridging the gap in finance-specific "
+            "deployment of large language models. In Proceedings of the 31st ACM SIGKDD "
+            "Conference on Knowledge Discovery and Data Mining V.2 (KDD '25) "
+            "(pp. 5117-5128). Association for Computing Machinery. "
+            "https://doi.org/10.1145/3711896.3737219"
+        )
+        logger.info(
+            "    (白话: 本阶段第三个模型 finbert2 即同名同源中文金融 BERT, 平均超主流 "
+            "LLM, 直接锚定本地私有 2-class 情感分类器。)"
+        )
+        logger.info(
+            "  · 长文档切块+池化聚合: Xia, B., Rawte, V., Gupta, A., & Zaki, M. J. "
+            "(2024). FETILDA: Evaluation framework for effective representations of "
+            "long financial documents. ACM Transactions on Knowledge Discovery from "
+            "Data, 18(7), 1-27. https://doi.org/10.1145/3657299"
+        )
+        logger.info(
+            "    (白话: 把长金融文档切块过 FinBERT 得表示再注意力池化, 与本阶段"
+            "'滑动窗口切片 + 置信度加权池化各窗 logits'同路数, 最贴近本模块的长文处理。)"
+        )
+        logger.info(
+            "  · 长文档分类设计空间综述: Alva Principe, R., Chiarini, N., & Viviani, M. "
+            "(2025). Long document classification in the transformer era: A survey on "
+            "challenges, advances, and open issues. WIREs Data Mining and Knowledge "
+            "Discovery, 15(2), e70019. https://doi.org/10.1002/widm.70019"
+        )
+        logger.info(
+            "    (白话: 2025 长文档分类综述, 系统梳理切块/滑窗与 chunk 聚合的设计空间, "
+            "为本阶段超长新闻的滑窗 + 池化选型提供方法学定位。)"
+        )
+        logger.info(
             "  · 多方法三角验证: Denzin, N. K. (2017). The research act: A theoretical "
             "introduction to sociological methods. Routledge. "
             "https://doi.org/10.4324/9781315134543"

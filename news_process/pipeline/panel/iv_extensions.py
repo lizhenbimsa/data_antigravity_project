@@ -597,6 +597,11 @@ def compute_iv_extensions(panel: pd.DataFrame,
                     "Identification of peer effects through social networks. "
                     "Journal of Econometrics, 150(1), 41-55. "
                     "https://doi.org/10.1016/j.jeconom.2008.12.021")
+        logger.info("      Gabaix, X., & Koijen, R. S. J. (2024). Granular "
+                    "instrumental variables. Journal of Political Economy, "
+                    "132(7), 2274-2303. https://doi.org/10.1086/728743")
+        logger.info("      (白话: 大单位特异冲击的规模加权和构 GIV — 为"
+                    "leave-one-out 同业均值工具/同伴识别提供顶刊方法论源。)")
         logger.info("  · 广义 Bartik (基期 share × 组×年 LOO shift; 识别靠基期份额外生):")
         logger.info("      Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). "
                     "Bartik instruments: What, when, why, and how. American "
@@ -606,6 +611,12 @@ def compute_iv_extensions(panel: pd.DataFrame,
                     "Quasi-experimental shift-share research designs. The Review "
                     "of Economic Studies, 89(1), 181-213. "
                     "https://doi.org/10.1093/restud/rdab030")
+        logger.info("      Borusyak, K., Hull, P., & Jaravel, X. (2025). A "
+                    "practical guide to shift-share instruments. Journal of "
+                    "Economic Perspectives, 39(1), 181-204. "
+                    "https://doi.org/10.1257/jep.20231370")
+        logger.info("      (白话: 2025 操作清单区分 share-外生 与 shock-外生 两条"
+                    "识别路径 — 本引擎走 GPSS 基期 share 路径, 据此报最新诊断。)")
         logger.info("  · 媒体来源构成 IV (基期 outlet 份额 × outlet house-style LOO):")
         logger.info("      Gentzkow, M., & Shapiro, J. M. (2010). What drives "
                     "media slant? Evidence from U.S. daily newspapers. "
@@ -627,6 +638,12 @@ def compute_iv_extensions(panel: pd.DataFrame,
                     "instruments in instrumental variables regression: Theory "
                     "and practice. Annual Review of Economics, 11(1), 727-753. "
                     "https://doi.org/10.1146/annurev-economics-080218-025643")
+        logger.info("      Lee, D. S., McCrary, J., Moreira, M. J., & Porter, J. "
+                    "(2022). Valid t-ratio inference for IV. American Economic "
+                    "Review, 112(10), 3260-3290. "
+                    "https://doi.org/10.1257/aer.20211063")
+        logger.info("      (白话: tF 程序按一阶段 F 调整 2SLS 的 t 临界值 — 为弱"
+                    "工具下系数提供有效 t/CI, 补强上述 KP rk F + AR 稳健 CI。)")
         logger.info("  ⚠ 铁律: full/ctx/ss 三轨 LOO 严禁拼成同一 Hansen J "
                     "(同篇三窗共同冲击同污染, J 零功效); overid 须用跨族工具。")
     except Exception as _e:  # noqa: BLE001
