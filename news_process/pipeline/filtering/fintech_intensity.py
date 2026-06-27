@@ -26,9 +26,9 @@ news_process.pipeline.filtering.fintech_intensity — 阶段14：金融科技技
       jieba 整词统计 — 与 TF 同分词器, 替换原 AC 子串计数源; 语料列在线物化
       content_full = 标题 + 内容, 与 TF 打分文本同语义。⚠ 参考语料必须是全量:
       14_news_with_ctx 仅含 fintech 子集, 不可用作 IDF 语料; 此 _full 全量语料在
-      stage 12b 上游、不受 12b 邻近共现过滤影响 — 保 IDF 区分度不塌缩）
+      stage 12b 上游、不受 12b 同句共现过滤影响 — 保 IDF 区分度不塌缩）
     打分语料: 优先 `14_news_with_ctx.parquet`（自 2026-06-15 起 stage 13 读 stage 12b
-      输出 = 12_fintech_news 经邻近共现硬过滤后的近邻相关金科子集 → 打分天然继承 12b;
+      输出 = 12_fintech_news 经同句共现硬过滤后的同句相关金科子集 → 打分天然继承 12b;
       含 content_full/ctx/ss 三轨）; 缺失时回退 `12_fintech_news.parquet`（pre-12b, degraded）
 
 输出：
@@ -721,7 +721,7 @@ def main():
     phase_durations['②综合权重构建(IDF×CosSim)'] = time.time() - _t
 
     # 存在性 gate: 校验 stage 12 原始金科子集仍在盘。2026-06-15 插入 stage 12b
-    # (邻近共现硬过滤) 后, 12_fintech_news.parquet 仍由 stage 12 产出 (12b 只读它、
+    # (同句共现硬过滤) 后, 12_fintech_news.parquet 仍由 stage 12 产出 (12b 只读它、
     # 不删) → 本 gate 照常通过; 真正的【打分语料】走下方 stage 13 输出 (已是 12b
     # 过滤后物化的子集, 故评分天然继承 12b)。仅当 stage 13 输出缺失才回退读此文件
     # (degraded 模式, 会绕过 12b; 全量 run 下 stage 13 always-on, 不触发)。
@@ -730,13 +730,13 @@ def main():
         raise SystemExit(1)
 
     # v3.6.0 (Plan E P4 A1/B1): 优先读 stage 13 输出 (含 content_ctx 列; 2026-06-15
-    # 起 stage 13 读 12b 输出 → 此处 df 已是 12b 邻近共现过滤后子集, 评分继承过滤),
+    # 起 stage 13 读 12b 输出 → 此处 df 已是 12b 同句共现过滤后子集, 评分继承过滤),
     # 缺失则 fallback 到 stage 12 输出 (无 ctx, 触发 _ctx 轨回退; 且绕过 12b)
     _t = time.time()
     if os.path.exists(ctx_path):
         logger.info(f"加载 stage 13 输出 (含 content_ctx): {ctx_path}")
         df = pd.read_parquet(ctx_path)
-        # stage 13 现读 stage 12b 输出 (= 12_fintech_news 经邻近共现硬过滤, 本就是
+        # stage 13 现读 stage 12b 输出 (= 12_fintech_news 经同句共现硬过滤, 本就是
         # is_fintech_news==True 金科子集) → 下面这道筛选自 2026-06-15 起为防御性恒真
         # no-op, 保留仅作 schema 兼容 (旧产物可能含非金科行时仍正确)。
         if 'is_fintech_news' in df.columns:

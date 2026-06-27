@@ -1,4 +1,6 @@
-"""test_13_cooccurrence_filter — stage 12b 银行×金科邻近共现硬过滤单测.
+"""test_13_cooccurrence_filter — stage 12b 银行×金科同句共现硬过滤单测.
+
+(生产默认 sentence_radius=0 = 严格同句; 另含 radius≥1 窗口邻近原语单测。)
 
 覆盖:
   - 窗口化原语 has_bank_fintech_cooccurrence_within_radius (同句/邻句/远隔/单侧/
@@ -52,6 +54,37 @@ def test_radius0_requires_same_sentence():
     assert _cooccur(text, [BANK], FT_AC, sentence_radius=1) is True
 
 
+def test_production_default_is_same_sentence():
+    """生产 cooccurrence_filter.sentence_radius == 0 (严格同句) 配置锁。
+
+    用户 2026-06-27 决策 "只保留银行∧金科同句报道": stage 12b 生产默认走严格同句
+    (radius=0)。若有人改回 ≥1 (窗口邻近), 须同步更新本断言 + config/filtering.yaml
+    注释 + cooccurrence_filter.py 日志/docstring + CLAUDE.md 决策记录。
+    """
+    from news_process.core.config import load_config
+    radius = load_config().get('cooccurrence_filter', {}).get('sentence_radius')
+    assert radius == 0, (
+        f"生产 cooccurrence_filter.sentence_radius 应为 0 (严格同句), 实得 {radius!r}; "
+        "见 config/filtering.yaml::cooccurrence_filter 与 CLAUDE.md 同句过滤决策"
+    )
+
+
+def test_production_config_drops_adjacent_only(cf):
+    """端到端: 生产配置下, 银行/金科仅邻句 (非同句) 的文章被 filter_cooccurrence 丢弃。
+
+    锁定 "只保留同句报道" 的实际过滤行为 (而非仅原语层 radius=0)。"""
+    df = pd.DataFrame({
+        "docid": ["same", "adjacent"],
+        "target_bank": [BANK, BANK],
+        "内容": [
+            "工商银行大力发展区块链技术。市场反应平稳。后续观察。",   # 同句 → 保留
+            "工商银行召开发布会。会上推出区块链平台。市场反应平稳。",  # 邻句非同句 → 丢弃
+        ],
+    })
+    out = cf.filter_cooccurrence(df)
+    assert out["docid"].tolist() == ["same"]
+
+
 def test_drop_far_apart_radius1():
     # 银行在 S0, 金科在 S3 (隔 ≥2 句) → radius=1 丢弃
     text = "工商银行发展战略。今天天气很好。空气十分清新。市场推出区块链平台。"
@@ -90,6 +123,27 @@ def test_short_text_charfallback_drop_fintech_far():
     # 同文本放大字符窗 → 银行窗口覆盖到金科 → 保留 (证 fallback_char_radius 确为 load-bearing 参数)
     assert _cooccur(text, [BANK], FT_AC, sentence_radius=1,
                     fallback_char_radius=999) is True
+
+
+def test_short_text_charfallback_ignores_radius():
+    """短文 (<3 句) 走字符回退, 结果【与 sentence_radius 无关】(忽略 radius)。
+
+    锁定 caveat (workflow 复审 2026-06-27): 短文不可分句 → _char_level_fallback 字符窗
+    近似同句, sentence_radius 形同虚设。这是【有意】的既有行为 (radius 1→0 对短文零影响),
+    非 bug; 防未来误把短文的非严格同句当回归。生产 radius=0 同句口径仅严格成立于长文。
+    """
+    # 银行与金科在同一短文内 (字符窗覆盖) → 任何 radius 都保留 (radius 不参与短文判定)
+    short = "工商银行推出区块链钱包"
+    assert all(
+        _cooccur(short, [BANK], FT_AC, sentence_radius=r) is True
+        for r in (0, 1, 2, 9)
+    )
+    # 银行与金科相隔 > 字符窗 → 任何 radius 都丢弃 (radius 不参与短文判定)
+    far = "工商银行" + ("占位文本" * 60) + "区块链"
+    assert all(
+        _cooccur(far, [BANK], FT_AC, sentence_radius=r, fallback_char_radius=10) is False
+        for r in (0, 1, 2, 9)
+    )
 
 
 def test_fintech_ac_none_returns_false():

@@ -20,7 +20,7 @@ run_pipeline_function.py — 新闻处理流水线调度器
     │ → 14_materialize_ctx → 15_fintech_intensity                │
     │ → 16_article_policy_alignment                              │
     └────────────────────────────────────────────────────────────┘
-    (13: 银行×金科邻近共现硬过滤, Andreou et al. 2026; 下游三轨链继承过滤)
+    (13: 银行×金科同句共现硬过滤, Andreou et al. 2026; 下游三轨链继承过滤)
                       ↓
     ┌─ 模块三：新闻情感模块 ──────────────────────────────┐
     │ 21_tone_llms → 22_tone_words → 23_tone_berts               │

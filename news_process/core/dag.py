@@ -187,11 +187,12 @@ STAGES_MAIN: list[StageSpec] = [
         script="12_news_fintech.py",
         group="main", kind="filter",
     ),
-    # 2026-06-15: stage 12b 银行×金科邻近共现硬过滤 (Andreou et al. 2026) — 只保留
-    # 目标银行与 ≥1 金科词在 ±sentence_radius 句窗口内邻近共现的文章行, 降低 stage 12
-    # 关键词判定的虚假相关; 下游 stage 13 改读其输出, 三轨情感/强度链天然继承过滤。
+    # 2026-06-15: stage 12b 银行×金科同句共现硬过滤 (Andreou et al. 2026) — 生产默认
+    # 只保留目标银行与 ≥1 金科词在【同一句话】内共现的文章行 (sentence_radius=0 = 严格
+    # 同句; ≥1 放宽为窗口邻近, 仅稳健性备选), 降低 stage 12 关键词判定的虚假相关; 下游
+    # stage 13 改读其输出, 三轨情感/强度链天然继承过滤。
     StageSpec(
-        name="阶段13: 银行×金科邻近共现预过滤 (Andreou et al. 2026)",
+        name="阶段13: 银行×金科同句共现预过滤 (Andreou et al. 2026)",
         script="13_cooccurrence_filter.py",
         group="main", kind="filter",
     ),

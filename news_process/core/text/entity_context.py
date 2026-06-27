@@ -380,20 +380,25 @@ def has_bank_fintech_cooccurrence_within_radius(
     context_window: int = 5,
     fallback_char_radius: int = 150,
 ) -> bool:
-    """Stage 12b 邻近共现【保留判据】: 目标银行与金科词是否在 ±sentence_radius
-    句窗口内邻近共现。返回 True ⇒ 该 (文章, target_bank) 行保留; False ⇒ 丢弃。
+    """Stage 12b 共现【保留判据】(通用 radius): 目标银行与金科词是否在
+    ±sentence_radius 句窗口内共现。返回 True ⇒ 该 (文章, target_bank) 行保留;
+    False ⇒ 丢弃。生产默认 radius=0 = 严格同句 (银行锚句 i 自身含 ≥1 金科词);
+    radius≥1 = 窗口邻近 (稳健性备选)。
 
     Andreou et al. (2026, Research Policy) core-contextual word-pairing 的【句级
-    窗口】操作化 (比 10-lexical-token span 更宽; 详见 manuscript 披露)。
+    窗口】操作化: radius=0 同句是其零半径最严特例 (比 10-lexical-token span 更紧);
+    radius≥1 比 span 更宽 (详见 manuscript 披露)。
 
     ⚠ 与 extract_bank_fintech_cooccurrence 口径【不同, 禁止互相替代】:
-      - 本函数 (窗口邻近): 命中 = ∃ 银行锚句 i (经否定/短名排除后仍含别名) 且
+      - 本函数 (通用窗口): 命中 = ∃ 银行锚句 i (经否定/短名排除后仍含别名) 且
         闭区间 [i-sentence_radius, i+sentence_radius] 内任一句含 ≥1 金科词。
       - extract_bank_fintech_cooccurrence (严格同句): 命中句须【同一句】内同时
         含银行与金科, 再扩【输出窗】。
-      二者仅在 sentence_radius=0 时于命中检测上等价; radius≥1 时本函数更宽
-      (keep 集 ⊇ 严格同句集 → 下游 _ss 严格同句轨保留独立信号,
-      frac_ss_fallback∈(0,1) — 经验事实, 待全量 gate 实测)。
+      二者在 sentence_radius=0 时于命中检测上等价 (= 生产口径); radius≥1 时本函数更宽
+      (keep 集 ⊇ 严格同句集 → 下游 _ss 严格同句轨保留独立信号, frac_ss_fallback∈(0,1))。
+      ⚠ 生产 stage 12b 默认已切到 radius=0 (2026-06-27 决策, 见 config/filtering.yaml +
+      cooccurrence_filter.py): 此时 keep 集 ≡ 同句集 → 下游 _ss 回退变异坍缩
+      (frac_ss_fallback→≈0); 上述 "radius≥1 _ss 独立信号" 仅适用 radius≥1 稳健性备选。
 
     不对称口径 (与 extract_bank_fintech_cooccurrence / 审计脚本一致):
       银行侧 has_unexcluded_occurrence (否定+短名排除); 金科侧裸 AC

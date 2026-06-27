@@ -1241,7 +1241,7 @@ def main():
          "00_preprocessing (预处理后)"),
         ("output_11_bank_news", "11_bank_news.parquet",
          "11_bank_news (银行新闻)"),
-        # 注 (2026-06-15): 这是 stage 12b 邻近共现硬过滤【之前】的关键词金科阶段
+        # 注 (2026-06-15): 这是 stage 12b 同句共现硬过滤【之前】的关键词金科阶段
         #   视图 (pre-12b); 媒体多样性审计逐阶段看分布, 此处刻意为原始关键词口径,
         #   非 12b 过滤后的分析宇宙 (后者经 stage 13 → 21 链)。
         ("output_12_fintech_news", "12_fintech_news.parquet",
