@@ -757,6 +757,14 @@ def _log_environment_and_config(input_path: str) -> None:
 
 
 def main():
+    # fix(log-clobber-2026-06-27): 本阶段 import 并复用 tone_llms 的 LLM-fetch/聚合
+    # 函数 (fetch_llm_async / AsyncModelAvailability / preflight / _aggregate_track),
+    # 它们默认经 tone_llms 模块级 "21_tone_llms" logger 落盘 → 会截断覆盖真实
+    # stage 21 的 logs/21_tone_llms.log。把 tone_llms 模块 logger 重定向到本阶段
+    # 自己的 logger, 借用函数日志改落 logs/66_entity_masking_test.log (纯日志归属,
+    # golden-safe; 详见 tone_llms.redirect_module_logger 的根因说明)。
+    _tone_llms.redirect_module_logger(logger)
+
     stage_start = time.time()
     phase_durations: dict[str, float] = {}
 

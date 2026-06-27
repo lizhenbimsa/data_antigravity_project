@@ -141,6 +141,44 @@ STAGE_NAME = "21_tone_llms"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 
+def redirect_module_logger(new_logger):
+    """把本模块的模块级 ``logger`` 重定向到 ``new_logger``, 返回**原 logger** (供恢复)。
+
+    根因 (2026-06-27 诊断): 本模块同时充当 (a) stage 21 的入口 与 (b) 可复用的
+    LLM-fetch 库。借用层函数 —— ``fetch_llm_async`` / ``AsyncModelAvailability``
+    (``disable`` / ``note_transient_failure``) / ``preflight_model_availability`` /
+    ``_log_retryable_transport_issue`` / ``_aggregate_track`` —— 全部经**模块级全局**
+    ``logger`` (名为 ``"21_tone_llms"``, 指向 ``logs/21_tone_llms.log``,
+    ``file_mode='w'`` 首写截断) 落盘。当 stage 66 (entity_masking) / stage 70
+    (prompt_sensitivity) 等验证阶段 import 并在自己的子进程里调用这些借用函数时,
+    它们仍按 ``"21_tone_llms"`` logger 写盘 → **第一条 emit 即截断并覆盖真实
+    stage 21 的运行日志** (实测: 验证阶段同进程 PID 把 logs/21_tone_llms.log
+    覆写成几行 transient-failure, 掩盖整次 stage 21 记录)。
+
+    本函数让借用方在跑 LLM 前显式接管该 logger: 借用函数的运行日志改落入调用方
+    自己的日志文件 (如 logs/66_*.log / logs/70_*.log); 真实 ``logs/21_tone_llms.log``
+    不再被波及 —— ``delay=True`` 下原 "21_tone_llms" handler 因本进程零 emit 而
+    **永不打开/截断**该文件, 完整保留上一次真正 stage 21 运行的记录。
+
+    ⚠ 仅应由**借用本模块 fetch/aggregate 函数的阶段**调用; stage 21 自身运行
+    (``main()`` / ``run_all_llms``) **绝不调用** → 其日志一如既往落
+    ``logs/21_tone_llms.log``。各阶段为独立子进程, 进程级全局 logger 重绑定彼此
+    隔离。**纯日志归属变更, 不动任何数据 / 缓存 / 缓存键 / 控制流 (golden-safe)**。
+
+    Args:
+        new_logger: 接管后借用函数使用的 logger (通常是调用方阶段自己的 logger);
+            传 ``None`` 为 no-op (保持当前 logger 不变)。
+
+    Returns:
+        重定向前的原 logger (调用方可在收尾时传回本函数恢复; 子进程一般无需)。
+    """
+    global logger
+    old_logger = logger
+    if new_logger is not None:
+        logger = new_logger
+    return old_logger
+
+
 # v3 / Fix 3: 把顶层 sys.exit(1) 改为 raise RuntimeError 以消除"严重档"
 # 顶层副作用 — sys.exit 会让任何 import 链路 (包括 pytest 测试套件)
 # 被进程级 SystemExit 杀掉, 无法在 pytest 单测粒度被报告; raise RuntimeError

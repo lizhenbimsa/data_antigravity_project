@@ -1412,6 +1412,14 @@ def _setup_chinese_font():
 
 def main():
     """Prompt 措辞敏感度量化测试主流程。"""
+    # fix(log-clobber-2026-06-27): 本阶段 import 并复用 tone_llms 的 LLM-fetch/聚合
+    # 函数 (fetch_llm_async / AsyncModelAvailability / preflight / _aggregate_track),
+    # 它们默认经 tone_llms 模块级 "21_tone_llms" logger 落盘 → 会截断覆盖真实
+    # stage 21 的 logs/21_tone_llms.log。把 tone_llms 模块 logger 重定向到本阶段
+    # 自己的 logger, 借用函数日志改落 logs/70_prompt_sensitivity.log (纯日志归属,
+    # golden-safe; 详见 tone_llms.redirect_module_logger 的根因说明)。
+    _tone_llms.redirect_module_logger(logger)
+
     # fix(2026-06-19 run-check F7): 同阶段 36 — 离线确定性模式下变体 prompt 必为冷缓存,
     # 强行运行会抛大量 LLMCacheMissError + 异步未回收异常噪声。阶段 39 在线付费 only
     # (EXPECTED_NO_OUTPUT, 不写面板) → 离线优雅跳过, 在线行为不变。复用 tone_llms.LLM_OFFLINE。
