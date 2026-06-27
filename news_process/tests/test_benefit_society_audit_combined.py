@@ -133,7 +133,7 @@ def test_repo_root_returns_news_process_parent():
 
 def test_build_audit_panel_happy_path_mocked(tmp_path, monkeypatch):
     """build_audit_panel mock 重依赖跑通完整流程 (lines 92-134)."""
-    from unittest.mock import MagicMock, patch
+    from unittest.mock import patch
 
     import news_process.pipeline.features.benefit_society_audit_combined as mod
 
@@ -149,12 +149,13 @@ def test_build_audit_panel_happy_path_mocked(tmp_path, monkeypatch):
     text_embeddings = np.random.RandomState(42).randn(n, emb_dim).astype(np.float32)
     main_direction = np.random.RandomState(43).randn(emb_dim).astype(np.float32)
 
-    # Mock SentenceTransformer 构造器 + encode
-    fake_st = MagicMock()
-    fake_st.encode = lambda texts, show_progress_bar=False: np.zeros(
-        (len(texts), emb_dim), dtype=np.float32)
-    with patch('sentence_transformers.SentenceTransformer',
-               return_value=fake_st):
+    # v3.14.0 (2026-06-27, all-API): 锚点嵌入改走统一引擎 make_anchor_embedding_fn
+    # (embed_texts API 路径), 不再 mock 本地 SentenceTransformer。此处 mock 闭包工厂
+    # 返回确定性锚点嵌入闭包 (不触网/不读 config), 并 mock resolve_embedding_spec
+    # 避开 config 反查 (与 _alt_direction patch 联用, 闭包实际不被调用)。
+    fake_anchor_fn = lambda texts: np.zeros((len(list(texts)), emb_dim), dtype=np.float32)  # noqa: E731
+    with patch.object(mod, 'resolve_embedding_spec', return_value={'model': 'x'}), \
+         patch.object(mod, 'make_anchor_embedding_fn', return_value=fake_anchor_fn):
         # Mock 各 helper 以跳过 yaml IO (使用伪造锚点/关键词)
         fake_pos = ['pos1', 'pos2']
         fake_neg = ['neg1', 'neg2']
@@ -202,8 +203,12 @@ def test_build_audit_panel_happy_path_mocked(tmp_path, monkeypatch):
     assert meta['embedding_dim'] == emb_dim
 
 
-def _write_emb_with_sidecar(path, emb, model_id='text-embedding-3-small'):
-    """fix(omni-g-benefit-01, 2026-06-11): 测试 helper — 写 .npy + 必备 sidecar."""
+def _write_emb_with_sidecar(path, emb, model_id='gemini-embedding-2-preview'):
+    """fix(omni-g-benefit-01, 2026-06-11): 测试 helper — 写 .npy + 必备 sidecar.
+
+    v3.14.0 (2026-06-27): 默认 model_id 改为 MAIN co-primary gemini-embedding-2-preview
+    (旧本地/小模型已整体移除)。
+    """
     import json
     np.save(path, emb)
     with open(f"{path}.sidecar.json", 'w', encoding='utf-8') as f:

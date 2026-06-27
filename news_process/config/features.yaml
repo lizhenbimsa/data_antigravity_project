@@ -3,69 +3,36 @@
 # 原始段落归属保持不变; 注释在往返转换中可能被重排 (re-flow)。
 
 # ──────────────────────────────────────────────────────────────────────────
-# 双模型嵌入 (2026-05-29): MAIN = text-embedding-3-small (OpenAI-compat, yunwu),
-# ROBUSTNESS = shibing624/text2vec-base-chinese (local sentence-transformers).
-# 每个嵌入特征 (stage 15/25/26/27/network) 在一次运行内用两个 spec 各算一遍,
-# 并排产出 canonical 列 (主, API) + `_t2v` 列 (稳健, text2vec)。
-# 历史: v1 起 base_url=local 让"主"轨退化为 text2vec; 本次恢复"主=API"原始设计
-# 意图并补全稳健 twin。
-# 白话: 每个语义指标都用两套"文本转向量"模型各算一遍 — 主结果用 OpenAI 在线
-#       模型, 稳健性对照用本地开源中文模型 (_t2v 后缀列); 两套结果一致才说明
-#       结论不是某个特定模型的偶然产物。
+# Co-primary 双 API 嵌入 (v3.14.0, 2026-06-27): gemini-embedding-2-preview (Google)
+# 与 text-embedding-3-large (OpenAI) 并列 CO-PRIMARY、对等互证、严格 parity (跨厂商
+# 独立性)。每个嵌入特征 (stage 15/16/25/26/27/46) 在一次运行内用两个 API spec 各算
+# 一遍, 并排产出 canonical 列 (无后缀=gemini) + `_lg` 孪生列 (text-embedding-3-large)。
+# `_lg` 后缀仅为列命名机制 (panel 不能两列同名), 无主次/层级含义。
+# 铁律: 两 co-primary 各自 just-identified 并排报告, 禁混进同一 over-identified Hansen J。
+# 本地嵌入模型 (text2vec `_t2v` / bge-m3 `_bge`) 已于 v3.14.0 整体移除 (全 API、零本地)。
+# 白话: 每个语义指标都用 Google 和 OpenAI 两套在线模型各算一遍, 两套都是主结果、互相
+#       验证; 两套一致才说明结论不是某一个嵌入模型的偶然产物。
 # ──────────────────────────────────────────────────────────────────────────
-embedding_api:                                   # MAIN (canonical) — text-embedding-3-small
-  model: text-embedding-3-small
+embedding_api:                                   # CO-PRIMARY ① (canonical, 无后缀) — gemini-embedding-2-preview (Google)
+  model: gemini-embedding-2-preview
   base_url: https://yunwu.ai/v1
   api_key: ${EMBEDDING_API_KEY}                  # .env 中 = ${YUNWU_API_KEY}
-  # Plan-r3 P3-17 接入: 传给 LLMCache.get/put 的 prompt_version 参数,
-  # 用于 embedding callsite (policy_alignment / benefit_society /
-  # strategic_diff / network_spillover) 的缓存键命名空间。
-  # 任何对 embedding 模型 / 文本预处理 / 切片策略的变更必须 bump 此版本号,
-  # 让既有 cache 自动失效, 防止 silent staleness 污染分析结果。
-  # 白话: 这个字符串是缓存的"批号" — 换了模型或改了切文本的方式, 必须改这个号,
-  #       否则程序会继续用旧模型算出的缓存向量, 数据悄悄过期都没人发现。
-  # BUMP (2026-05-29): 主轨从 text2vec(local) 切到 text-embedding-3-small(API),
-  # 是嵌入模型换代 → 必须 bump (LLMCache 已按 model_id 隔离, 此处再加版本维度防御)。
-  text_pipeline_version: "v2-2026-05-29-api"
+  # (缓存批号) 传给 LLMCache.get/put 的 prompt_version 参数, 用于 embedding callsite
+  # (policy_alignment / strategic_diff / policy_similarity / benefit_society /
+  # network_spillover / fintech_intensity / article_sbert) 的缓存键命名空间。
+  # 任何对嵌入模型 / 文本预处理 / 切片策略的变更必须 bump 此版本号, 让既有 cache
+  # 自动失效, 防止 silent staleness。LLMCache 已按 model_id 隔离, 此处再加版本维度防御。
+  # BUMP (v3.14.0, 2026-06-27): MAIN 槽 text-embedding-3-small → gemini-embedding-2-preview
+  #   (1536→3072 维, 跨厂商换代) → 必须 bump。
+  text_pipeline_version: "v3-2026-06-27-gemini"
 
-embedding_robustness:                            # ROBUSTNESS twin — text2vec (原 main)
-  model: shibing624/text2vec-base-chinese
-  base_url: local
-  api_key: local
-  # 本地 CPU 编码批大小 (2026-06-23: 32→128)。更大批 → 更少 GEMM 调用 + 更好 CPU
-  # cache 局部性, t2v 块约 1.5~2x 提速。⚠ batch_size 改变会让 batched matmul 的 FP
-  # 舍入路径变 → _t2v 列可能出现 ~1e-7 级漂移 (与既有 BLAS-FP 非确定性同量级, 语义
-  # 不变); 跑 golden 复现门时如标记 _t2v 列须受控环境重生 (PYTHONHASHSEED=0 + BLAS=1)。
-  # ★ 版本门铁律 (core/caching.py docstring §5-C, FP 敏感超参当版本维度): batch_size
-  #   不进缓存键 (键仅 model_id|chunk文本|text_pipeline_version), 故改 batch_size /
-  #   device / dtype / torch 版本而不 bump 下方 text_pipeline_version → 旧 _t2v 缓存
-  #   静默命中、新批舍入路径的值永不落盘 = silent staleness。⇒ 改 batch_size 必同 diff
-  #   bump text_pipeline_version 末尾标号 (由 tests/test_t2v_batch_version_lock.py 守护)。
-  batch_size: 128
-  # 稳健轨独立 cache 命名空间 (model_id 已不同, 版本字符串再隔离一层)。
-  # ⚠ bump 触发条件 (§5-C): 改 model / 切片策略 / batch_size / device / dtype / torch 版本任一, 必同 diff 改此标号。
-  text_pipeline_version: "v2-2026-05-29-t2v"
-
-# ──────────────────────────────────────────────────────────────────────────
-# embedding_bge — 第四嵌入模型 (BAAI/bge-m3, 本地 1024 维) → '_bge' 后缀稳健 twin 列。
-# 🔴 休眠门 (golden 安全铁律): 本块**刻意保持注释/不激活** —— 各 producer 读
-#    `CONFIG.get('embedding_bge', {})`, 键不存在 → {} → 完全不产 _bge 列 → 既有列/
-#    行为/golden 字节级不变 (与 embedding_large 同款休眠策略)。
-# 角色: BGE-M3 是 small (主轨) 的**强**跨架构独立稳健轨 (本地 SOTA 多语言, 独立于
-#    OpenAI; 8192 token 上窗), 显著强于 text2vec(`_t2v`) 承担的同一独立性稳健性。
-#    镜像 `_t2v` (本地 spec, base_url=local → encode_local); 与 `_lg` (large API,
-#    同族容量对照) 共同构成四模型嵌入稳健性谱系。1024 维不与 1536/768/3072 混算。
-# 激活 (生产, DEFERRED): ① 首次联网下载 BAAI/bge-m3 (~2.3GB); ② 取消下方注释;
-#    ③ 全量重跑 stage 15/25/26/27/46 产 _bge 列 (本地 GPU $0); ④ golden 加法重生。
-#    铁律: 勿给 BGE-M3 加任何 query instruction 前缀 (dense retrieval 不需要)。
-# embedding_bge:                                  # ROBUSTNESS-C twin — BAAI/bge-m3 (本地; 命名: _t2v=A / _lg=B / _bge=C)
-#   model: BAAI/bge-m3
-#   base_url: local
-#   api_key: local
-#   batch_size: 128
-#   # 第四轨独立 cache 命名空间 (model_id 已不同, 版本字符串再隔离一层)。
-#   # ⚠ bump 触发条件 (§5-C): 改 model / 切片策略 / batch_size / device / dtype / torch 版本任一, 必同 diff 改此标号。
-#   text_pipeline_version: "v1-2026-06-27-bge"
+embedding_large:                                 # CO-PRIMARY ② (`_lg` 孪生槽) — text-embedding-3-large (OpenAI); 与 gemini 对等互证, 跨厂商
+  model: text-embedding-3-large
+  base_url: https://yunwu.ai/v1
+  api_key: ${EMBEDDING_API_KEY}                  # .env 中 = ${YUNWU_API_KEY}
+  # 独立 cache 命名空间 (model_id 已不同, 版本字符串再隔离一层)。
+  # ⚠ bump 触发条件同 embedding_api: 改 model / 切片策略任一, 必同 diff 改此标号。
+  text_pipeline_version: "v1-2026-06-27-emb3large"
 
 # stage 25 战略差异度 (strategic_diff) — fix(omni-g-strategic-09, 2026-06-11)
 strategic_diff:
@@ -82,15 +49,15 @@ benefit_society:
   # fix(omni-g-benefit-04, 2026-06-11): max_tokens_per_input 不再用于文章预截断
   # (统一引擎 embed_texts 自带 naive 分块 (朴素分段) + 加权池化处理超长文本); 保留为
   # 单条 API 输入硬上限的文档值 (engine 内 EMB_MAX_TOKENS=8191 同义)。
-  max_tokens_per_input: 8191        # 单条输入 token 上限 (text-embedding-3-small 硬性上限)
+  max_tokens_per_input: 8191        # 单条输入 token 上限 (嵌入 API 单条硬上限; engine EMB_MAX_TOKENS=8191 同义; cl100k 对 gemini 保守安全)
   max_tokens_per_request: 250000    # 单次 API 请求总 token 上限
   positive_anchors:                 # 预留扩展: 自定义正极句列表 (当前版本未启用, 始终使用模块内置 10 对)
   negative_anchors:                 # 预留扩展: 自定义负极句列表 (当前版本未启用, 始终使用模块内置 10 对)
   # fix(omni-g-benefit-01, 2026-06-11): 旧注释"缓存 Embedding 为 .npy (降低 API
   # 成本)"是虚假声称 — cache_path 曾被函数体忽略, 全仓无生产 np.save; API 成本
   # 实际由 LLMCache (sqlite) 穿透缓存承担。现 true = 落盘审计链路输入产物:
-  #   27_benefit_embeddings{_t2v}_{full,ctx}.npy  (全 df_exploded 行序, 空文本行=NaN)
-  #   27_benefit_direction{_t2v}.npy              (10 对锚点方向向量, 未归一)
+  #   27_benefit_embeddings{_lg}_{full,ctx,ss}.npy  (全 df_exploded 行序, 空文本行=NaN; 无后缀=gemini, _lg=large)
+  #   27_benefit_direction{_lg}.npy                 (10 对锚点方向向量, 未归一)
   # 各带 .sidecar.json (model_id/n_rows/dim) — 供 27c alt-anchor/placebo 同空间消费。
   cache_embeddings: true
 

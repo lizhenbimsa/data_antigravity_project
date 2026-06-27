@@ -82,13 +82,13 @@
     与企业创新边界. 经济研究, (11).
     → 图 1: BERTopic 余弦相似度 → 技术布局引导, 本模块迁移为行业质心距离
 
-输出列 (~50 列; 含 2026-05-29 双模型新增的 text2vec 稳健 twin 列)。
+输出列 (~50 列; 含 co-primary _lg (text-embedding-3-large) 嵌入 twin 列)。
 口径披露 (fix inject-fintech-word-lda, 2026-06-21): **全部 word 级 TF-IDF 列 (*_w) 与全部 LDA 列
 (*_lda) 自 2026-06-21 起改用注入 1506 金科词的独立分词器** (见 _get_diff_tokenizer), 领域复合词
 (金融科技/区块链 等) 整词保留, 与 char 轨 (char_wb)/embedding 轨领域感知口径一致; char/emb 列字节不变。
 值域口径 (fix(omni-g-strategic-02/03), 2026-06-11): TF-IDF/LDA 轨 (非负向量/分布)
 ∈ [0,1]; **Embedding 轨余弦真值域 [-1,1]** → 相似度列 (strat_sim_max_emb*, coh_emb*)
-∈ [-1,1], 距离列 (strat_diff_*_emb*, centroid_diff_emb*, strat_diff_t2v_*) ∈ [0,2]
+∈ [-1,1], 距离列 (strat_diff_*_emb*, centroid_diff_emb*, strat_diff_lg_*) ∈ [0,2]
 (此前对 emb 轨统一 clip [0,1] 属值域删失, 负余弦被地板到 0):
   --- N-最近邻 Full 轨 (18 列) ---
   strat_diff_n{3..7}       TF-IDF char N-近邻差异度 (Ŝ_i, N=3~7)
@@ -128,19 +128,15 @@
   coh_tfidf_w_{full|ctx|ss}   TF-IDF jieba 相邻期文本连贯性 (稳健性检验)
   coh_lda_{full|ctx|ss}       LDA+JSD 相邻期文本连贯性 (稳健性检验)
   coh_emb_{full|ctx|ss}       Embedding 相邻期文本连贯性 (稳健性检验)
-  --- text2vec 稳健 twin 列 (2026-05-29 双模型重构; stage 30 退役后由本 stage 内联产出) ---
-  strat_diff_n5_emb_t2v{,_ctx,_ss}    text2vec N=5 Embedding 差异度
-  strat_sim_max_emb_t2v{,_ctx,_ss}    text2vec Embedding 最大同行相似度
-  centroid_diff_emb_t2v{,_ctx,_ss}    text2vec Embedding centroid 距离
-  strat_diff_t2v_{full,ctx,ss}    契约别名 (full/ctx 为 export REQUIRED_PANEL_COLUMNS 硬要求)
-                                  披露(omni-g-strategic-07): = centroid_diff_emb_t2v
-                                  的逐值别名 (**centroid 构念**, 谢佳松 2025), 非
-                                  Guzman-Li N-NN 构念 — N-NN 的 t2v 孪生是
-                                  strat_diff_n5_emb_t2v, 稳健配对勿错配; 且与退役
-                                  stage 30 同名列构造域已变 (旧=文章级 emb 对年度
-                                  文章质心距离按银行年均值, 新=银行年聚合文档对
-                                  行业质心距离), 跨版本结果不可比
-  coh_emb_t2v_{full,ctx,ss}       text2vec Embedding 相邻期连贯性
+  --- co-primary _lg 嵌入 twin 列 (text-embedding-3-large API; v3.14.0 起 ACTIVE) ---
+  strat_diff_n5_emb_lg{,_ctx,_ss}     _lg N=5 Embedding 差异度
+  strat_sim_max_emb_lg{,_ctx,_ss}     _lg Embedding 最大同行相似度
+  centroid_diff_emb_lg{,_ctx,_ss}     _lg Embedding centroid 距离
+  strat_diff_lg_{full,ctx,ss}     契约别名: = centroid_diff_emb_lg 的逐值别名
+                                  (**centroid 构念**, 谢佳松 2025), 非 Guzman-Li
+                                  N-NN 构念 — N-NN 的 _lg 孪生是 strat_diff_n5_emb_lg,
+                                  稳健配对勿错配
+  coh_emb_lg_{full,ctx,ss}        _lg Embedding 相邻期连贯性
 
 注意: 连贯性变量 (coh_*) 对首年及年份间隙返回 NaN (与 strat_fluidity 一致),
       严格定义"相邻期"为连续年度 (year_t 与 year_{t-1})。
@@ -151,9 +147,7 @@
   2. 银行样本量 (~54 家/年) 远小于 TNIC 数据集 (~5000 家/年),
      N=5 近邻占样本比例 ~10%, 需注意小样本偏差
   3. Embedding 长文本采用 token 分段 + 均值池化, 避免超长文本尾部语义被截断。
-     本地 t2v 稳健轨的二次分块 (模型 max_seq_length=128, 此前被模型静默截断为
-     文档前缀) 已由 embedding_engine.encode_local 修复
-     (fix(omni-g-embed-04), 见 g-strategic-08 同病根)
+     主轨 (gemini) 与 co-primary _lg (text-embedding-3-large) 均走 API 分段池化。
   4. 共提及文章机械相似 (披露, omni-g-strategic-01/09, 2026-06-11): full 轨中
      一篇共提 n 家银行的文章会逐字进入每家被提银行的年度聚合文档 (HP2016/GL2023
      的企业自撰文本互斥, 无此问题) → 共同被报道的银行对之间产生与战略无关的
@@ -277,10 +271,8 @@ from news_process.core.logging import pct4, sig4  # noqa: E402  # 日志四位�
 from news_process.pipeline.panel.encode import CONFIG, logger  # noqa: E402
 
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
-EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})            # MAIN spec (text-embedding-3-small)
-_ROBUSTNESS_SPEC = CONFIG.get('embedding_robustness', {})    # 稳健 twin spec (text2vec, 2026-05-29 双模型)
-_LARGE_SPEC = CONFIG.get('embedding_large', {})              # 第三嵌入模型 twin spec (_lg, 默认休眠; config 无 embedding_large 块时 = {} → 不产任何 _lg 列, 既有行为字节级不变)
-_BGE_SPEC = CONFIG.get('embedding_bge', {})                  # 第四嵌入模型 twin spec (_bge=BAAI/bge-m3 本地 1024 维, 镜像 _t2v; 默认休眠; config 无 embedding_bge 块时 = {} → 不产任何 _bge 列, 字节级不变)
+EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})            # MAIN spec (gemini-embedding-2-preview, 无后缀)
+_LARGE_SPEC = CONFIG.get('embedding_large', {})              # co-primary 嵌入 twin spec (_lg=text-embedding-3-large API; v3.14.0 起 ACTIVE 协同主轨)
 _ALIGN_CFG = CONFIG.get('article_alignment', {})
 _EMB_MAX_TOKENS = _coerce_positive_int(
     _ALIGN_CFG.get('max_tokens_per_input'), _EMB_MAX_TOKENS)
@@ -645,10 +637,11 @@ def _build_lda_jsd_matrix(texts, n_banks):
 
 
 def _embed_texts_with_chunk_pooling(texts, *, spec=None, log_prefix="Embedding"):
-    """将任意长度文本嵌入为文本级向量 (2026-05-29: 委托 embedding_engine, spec 参数化)。
+    """将任意长度文本嵌入为文本级向量 (委托 embedding_engine, spec 参数化)。
 
-    超长文本走朴素分段 (naive chunking) + Mean Pooling。spec 默认主轨 (text-embedding-3-small);
-    传 _ROBUSTNESS_SPEC 则走 text2vec 本地稳健轨。失败/形状异常 → None。
+    超长文本走朴素分段 (naive chunking) + Mean Pooling。spec 默认主轨
+    (EMBEDDING_CONFIG, gemini-embedding-2-preview); 传 _LARGE_SPEC 则走
+    co-primary _lg (text-embedding-3-large API)。失败/形状异常 → None。
 
     Returns:
         np.ndarray | None: 文本级 Embedding 向量 (n_texts, dim)
@@ -658,12 +651,12 @@ def _embed_texts_with_chunk_pooling(texts, *, spec=None, log_prefix="Embedding")
         os.path.join(CONFIG['paths']['output_dir'], '_llm_cache.db'),
     )
     _eff_spec = spec if spec is not None else EMBEDDING_CONFIG
-    # P0-1 (API-fatal 守卫, 2026-06-27 _lg 接入): _eng.embed_texts 对 API spec
-    # (网络/认证致命错) 无兜底直接 raise。对本地 spec (_t2v / SBERT) 保持原样
-    # (本地失败应显式暴露, 行为字节不变); 仅对 API spec (如 _lg 的 embedding_large
-    # 指向 text-embedding-3-large) 把致命异常降级 None + warning, 防止单个稳健性
-    # twin 嵌入炸掉整个 stage (与 _ROBUSTNESS_SPEC / policy_alignment 的 NaN 降级
-    # 哲学一致 — twin 是软诊断, 不应 fail-fast 整条流水线)。
+    # API-fatal 守卫: _eng.embed_texts 对 API spec (网络/认证致命错) 无兜底直接 raise。
+    # MAIN canonical (EMBEDDING_CONFIG=gemini) 与本地 spec (如 SBERT) 一律 fail-fast
+    # (保留 MAIN 既有失败语义 + 不吞离线确定性闸 RuntimeError); 仅 _lg twin (API 且非
+    # MAIN) 把致命异常降级 None + warning (twin 是软诊断, 不应 fail-fast 整条流水线;
+    # 与 policy_alignment 的 NaN 降级哲学一致)。⚠ both-or-neither: 调用方须保证一旦
+    # 任一 spec (MAIN 或 _lg) 返回 None, 同族无后缀与 _lg 列一并置 NaN, 见 §5 编排。
     try:
         return _eng.embed_texts(
             texts,
@@ -672,11 +665,8 @@ def _embed_texts_with_chunk_pooling(texts, *, spec=None, log_prefix="Embedding")
             log_prefix=log_prefix,
         )
     except Exception as e:
-        # 守卫范围铁律 (postimpl-audit 2026-06-27 P1 修): MAIN canonical
-        # (EMBEDDING_CONFIG) 与 local (_t2v) 一律 fail-fast (保留 MAIN 既有失败语义 +
-        # 不吞离线确定性闸 RuntimeError); 仅 _lg twin (API 且非 MAIN) 软降级。
         if _eng.spec_uses_local(_eff_spec) or _eff_spec is EMBEDDING_CONFIG:
-            raise  # local (_t2v) 与 MAIN canonical 致命错显式暴露 (行为字节不变)
+            raise  # MAIN canonical 与本地 spec 致命错显式暴露 (行为不变)
         logger.warning(
             f"    {log_prefix}: _lg twin API 嵌入致命异常 "
             f"({type(e).__name__}: {e}), 降级 None (twin 软诊断, 不中断 stage)")
@@ -1245,7 +1235,7 @@ def _compute_lda_coherence(agg_df):
 def _compute_emb_coherence(agg_df, spec=None):
     """稠密语义嵌入的相邻期文本连贯性 (spec 参数化, 逐轨复用于三轨 full/ctx/ss; 默认主轨)。
 
-    【学术】使用预训练语言模型 (text2vec / OpenAI Embedding) 将文本映射到
+    【学术】使用预训练语言模型 (gemini / OpenAI Embedding) 将文本映射到
     高维语义空间, 计算 cosine similarity。与 TF-IDF 的词袋假设不同,
     Embedding 捕获词序和上下文语义 (Guzman & Li 2023, Management Science)。
 
@@ -1392,7 +1382,7 @@ def compute_strategic_differentiation(df_exploded, panel):
     Returns:
         panel: 新增 ~50 列战略差异度指标的面板 DataFrame
           (含 N-NN Full/Ctx/Ss, centroid Full/Ctx/Ss, fluidity, 连贯性,
-           及 text2vec 稳健 twin 列 strat_diff_*_t2v / centroid_diff_emb_t2v / coh_emb_t2v / strat_diff_t2v_{full,ctx,ss})
+           及 co-primary _lg 嵌入 twin 列 strat_diff_*_lg / centroid_diff_emb_lg / coh_emb_lg / strat_diff_lg_{full,ctx,ss})
     """
     logger.info("=" * 60)
     logger.info("战略差异度指数 (Guzman & Li 2023; Hoberg & Phillips 2016)")
@@ -1408,8 +1398,8 @@ def compute_strategic_differentiation(df_exploded, panel):
         logger.info("  │  功能: (银行,年) 聚合新闻文档 → 4 法文本距离矩阵 → N-最近邻聚合 Ŝ_i")
         logger.info("  │        + 全行业质心距离 + Fluidity + 相邻期连贯性; 三轨 full/ctx/ss 互为稳健性")
         logger.info("  │  确定性/成本: 本地 TF-IDF/LDA $0 确定 (LDA n_jobs=1+seed=42 逐位可复现);")
-        logger.info("  │        Embedding 主轨 (text-embedding-3-small) 缓存命中 $0, 缺失才付费;")
-        logger.info("  │        text2vec 稳健 twin 走本地 sentence-transformers ($0)")
+        logger.info("  │        Embedding 主轨 (gemini-embedding-2-preview) 缓存命中 $0, 缺失才付费;")
+        logger.info("  │        co-primary _lg (text-embedding-3-large API) 缓存命中 $0, 缺失才付费")
         logger.info("  │  📖 方法论依据 (核心构念 → 学术出处, emit 进日志):")
         logger.info("  │   · N-最近邻战略差异度 Ŝ_i=(1/N)Σδ_ij: Guzman, J., & Li, A. (2023). "
                     "Measuring founding strategy. Management Science, 69(1), 101-118. "
@@ -1453,7 +1443,7 @@ def compute_strategic_differentiation(df_exploded, panel):
                     "Does finance benefit society? A language embedding approach. The Review of "
                     "Financial Studies, 39(5), 1227–1266. https://doi.org/10.1093/rfs/hhaf012")
         logger.info("  │     (白话: 以 language embedding 用 BERT 嵌入测金融文本语义立场, 与本模块 "
-                    "Embedding 轨 / text2vec 稳健 twin 同范式的最新金融应用)")
+                    "Embedding 轨 / _lg co-primary twin 同范式的最新金融应用)")
         logger.info("  │   · Embedding 轨金融域适配: Jehnen, S., Villalba-Díez, J., & "
                     "Ordieres-Meré, J. (2026). FinTextSim: A domain-specific sentence-transformer "
                     "for extracting predictive latent topics from financial disclosures. Frontiers "
@@ -1478,11 +1468,11 @@ def compute_strategic_differentiation(df_exploded, panel):
     _full_text_col = 'content_full' if 'content_full' in df_exploded.columns else '内容'
     # ── 本步配置快照 (helper 读取的可调参数; 输入/输出路径由 runner 入口已打) ──
     try:
-        _emb_main = (EMBEDDING_CONFIG.get('model') or 'text-embedding-3-small') if EMBEDDING_CONFIG else 'text-embedding-3-small'
-        _emb_t2v = _ROBUSTNESS_SPEC.get('model') or _ROBUSTNESS_SPEC.get('model_dir') or '(text2vec local)'
+        _emb_main = (EMBEDDING_CONFIG.get('model') or 'gemini-embedding-2-preview') if EMBEDDING_CONFIG else 'gemini-embedding-2-preview'
+        _emb_lg = (_LARGE_SPEC.get('model') or '(text-embedding-3-large)') if _LARGE_SPEC else '(未启用)'
         logger.info(
             f"  │  ⚙ 配置: N_LIST={N_LIST} (基准 N=5) · co_mention_downweight={_co_dw} · "
-            f"full轨文本列='{_full_text_col}' · 主嵌入='{_emb_main}' · 稳健twin='{_emb_t2v}' · "
+            f"full轨文本列='{_full_text_col}' · 主嵌入='{_emb_main}' · co-primary _lg='{_emb_lg}' · "
             f"emb单条上限={_EMB_MAX_TOKENS:,d} tok · 批上限={_EMB_MAX_TOKENS_PER_REQUEST:,d} tok")
         logger.info(
             "  └─ 值域口径: TF-IDF/LDA 距离∈[0,1]; Embedding 相似度∈[-1,1], 距离δ=1−cos∈[0,2]; "
@@ -1533,17 +1523,7 @@ def compute_strategic_differentiation(df_exploded, panel):
                                               dist_bounds=(0.0, 2.0))
         else:
             se, cd_emb = None, None
-        # 方法 D-t2v: 稳健 twin — text2vec 本地模型 (2026-05-29 双模型, 同算法只换模型)
-        se_mat_t2v, se_emb_t2v = _build_embedding_sim_matrix(
-            texts, spec=_ROBUSTNESS_SPEC)
-        if se_mat_t2v is not None:
-            se_t2v = _compute_nn_scores(se_mat_t2v, banks, [5],
-                                        sim_bounds=(-1.0, 1.0))
-            cd_emb_t2v = _compute_centroid_scores(se_emb_t2v, banks,
-                                                  dist_bounds=(0.0, 2.0))
-        else:
-            se_t2v, cd_emb_t2v = None, None
-        # 方法 D-lg: 第三嵌入 twin (镜像 _t2v; 默认休眠, 仅 _LARGE_SPEC 非空才算)
+        # 方法 D-lg: co-primary 嵌入 (_lg=text-embedding-3-large API; v3.14.0 起 ACTIVE)
         se_lg, cd_emb_lg = None, None
         if _LARGE_SPEC:
             se_mat_lg, se_emb_lg = _build_embedding_sim_matrix(
@@ -1553,16 +1533,11 @@ def compute_strategic_differentiation(df_exploded, panel):
                                            sim_bounds=(-1.0, 1.0))
                 cd_emb_lg = _compute_centroid_scores(se_emb_lg, banks,
                                                      dist_bounds=(0.0, 2.0))
-        # 方法 D-bge: 第四嵌入 twin (BAAI/bge-m3 本地, 镜像 _t2v; 默认休眠, 仅 _BGE_SPEC 非空才算)
-        se_bge, cd_emb_bge = None, None
-        if _BGE_SPEC:
-            se_mat_bge, se_emb_bge = _build_embedding_sim_matrix(
-                texts, spec=_BGE_SPEC)
-            if se_mat_bge is not None:
-                se_bge = _compute_nn_scores(se_mat_bge, banks, [5],
-                                            sim_bounds=(-1.0, 1.0))
-                cd_emb_bge = _compute_centroid_scores(se_emb_bge, banks,
-                                                      dist_bounds=(0.0, 2.0))
+            # both-or-neither parity (v3.14.0): MAIN 与 _lg 是 co-primary, 任一嵌入
+            # 失败 → 两者同族列一并 NaN (无单边孤儿列, parity test 守门)。
+            if se is None or se_lg is None:
+                se, cd_emb = None, None
+                se_lg, cd_emb_lg = None, None
 
         # 【白话】把这一年每家银行的计算结果打包成一行行数据
         #   每一行 = 一家银行在这一年的所有差异度分数
@@ -1579,18 +1554,12 @@ def compute_strategic_differentiation(df_exploded, panel):
             if sl:  # LDA 方法成功时才有
                 row['strat_diff_n5_lda'] = sl['n5'].get(bank, np.nan)
                 row['strat_sim_max_lda'] = sl['sim_max'].get(bank, np.nan)
-            if se:  # Embedding 方法成功时才有
+            if se:  # Embedding 主轨 (gemini) 成功时才有
                 row['strat_diff_n5_emb'] = se['n5'].get(bank, np.nan)
                 row['strat_sim_max_emb'] = se['sim_max'].get(bank, np.nan)
-            if se_t2v:  # 稳健 twin (text2vec)
-                row['strat_diff_n5_emb_t2v'] = se_t2v['n5'].get(bank, np.nan)
-                row['strat_sim_max_emb_t2v'] = se_t2v['sim_max'].get(bank, np.nan)
-            if se_lg:  # 第三嵌入 twin (_lg, 软诊断; 镜像 _t2v)
+            if se_lg:  # co-primary 嵌入 (_lg=text-embedding-3-large)
                 row['strat_diff_n5_emb_lg'] = se_lg['n5'].get(bank, np.nan)
                 row['strat_sim_max_emb_lg'] = se_lg['sim_max'].get(bank, np.nan)
-            if se_bge:  # 第四嵌入 twin (_bge=BAAI/bge-m3 本地, 软诊断; 镜像 _t2v)
-                row['strat_diff_n5_emb_bge'] = se_bge['n5'].get(bank, np.nan)
-                row['strat_sim_max_emb_bge'] = se_bge['sim_max'].get(bank, np.nan)
             # 全行业向量法 Full 轨 (谢佳松 2025, 经济研究, 图1/表2)
             row['centroid_diff_tfidf_c'] = cd_c[bank]
             row['centroid_diff_tfidf_w'] = cd_w[bank]
@@ -1598,15 +1567,12 @@ def compute_strategic_differentiation(df_exploded, panel):
                 row['centroid_diff_lda'] = cd_lda.get(bank, np.nan)
             if cd_emb:
                 row['centroid_diff_emb'] = cd_emb.get(bank, np.nan)
-            if cd_emb_t2v:  # 稳健 twin + 契约别名 strat_diff_t2v_full (保留 stage 30 旧列名)
-                row['centroid_diff_emb_t2v'] = cd_emb_t2v.get(bank, np.nan)
-                row['strat_diff_t2v_full'] = cd_emb_t2v.get(bank, np.nan)
-            if cd_emb_lg:  # 第三嵌入 twin + 契约别名镜像 strat_diff_lg_full (软诊断, 不入硬契约)
+                # code-review P1-3: MAIN 契约别名 strat_diff_full (= centroid_diff_emb 逐值别名),
+                # 与 _lg 的 strat_diff_lg_full 对称 → co-primary 列名双射 (无孤儿 _lg)。
+                row['strat_diff_full'] = cd_emb.get(bank, np.nan)
+            if cd_emb_lg:  # co-primary 嵌入 + 契约别名 strat_diff_lg_full
                 row['centroid_diff_emb_lg'] = cd_emb_lg.get(bank, np.nan)
                 row['strat_diff_lg_full'] = cd_emb_lg.get(bank, np.nan)
-            if cd_emb_bge:  # 第四嵌入 twin + 契约别名镜像 strat_diff_bge_full (软诊断, 不入硬契约)
-                row['centroid_diff_emb_bge'] = cd_emb_bge.get(bank, np.nan)
-                row['strat_diff_bge_full'] = cd_emb_bge.get(bank, np.nan)
             all_results.append(row)
 
     # 【白话】Fluidity: 衡量竞争者是否在向你的"领地"移动
@@ -1672,23 +1638,22 @@ def compute_strategic_differentiation(df_exploded, panel):
         coh_tc  = _compute_tfidf_coherence(agg_track, 'char')
         coh_tw  = _compute_tfidf_coherence(agg_track, 'word')
         coh_lda = _compute_lda_coherence(agg_track)
-        coh_emb = _compute_emb_coherence(agg_track)
-        coh_emb_t2v = _compute_emb_coherence(agg_track, spec=_ROBUSTNESS_SPEC)  # 稳健 twin
-        # 第三嵌入 twin coh_emb_lg (镜像 _t2v; 默认休眠, 仅 _LARGE_SPEC 非空才算/落列)
+        coh_emb = _compute_emb_coherence(agg_track)            # 主轨 (gemini)
         _coh_pairs = [
             (f'coh_tfidf_c{track_suffix}', coh_tc),
             (f'coh_tfidf_w{track_suffix}', coh_tw),
             (f'coh_lda{track_suffix}',     coh_lda),
             (f'coh_emb{track_suffix}',     coh_emb),
-            (f'coh_emb_t2v{track_suffix}', coh_emb_t2v),
         ]
+        # co-primary 嵌入 coh_emb_lg (_lg=text-embedding-3-large; v3.14.0 起 ACTIVE)
         if _LARGE_SPEC:
             coh_emb_lg = _compute_emb_coherence(agg_track, spec=_LARGE_SPEC)
+            # both-or-neither parity: MAIN 与 _lg coherence 任一嵌入失败 (空 dict)
+            # → 两者同族 coh 列一并空, 不留单边孤儿列。
+            if not coh_emb or not coh_emb_lg:
+                coh_emb, coh_emb_lg = {}, {}
+                _coh_pairs[-1] = (f'coh_emb{track_suffix}', coh_emb)
             _coh_pairs.append((f'coh_emb_lg{track_suffix}', coh_emb_lg))
-        # 第四嵌入 twin coh_emb_bge (BAAI/bge-m3 本地, 镜像 _t2v; 默认休眠, 仅 _BGE_SPEC 非空才算/落列)
-        if _BGE_SPEC:
-            coh_emb_bge = _compute_emb_coherence(agg_track, spec=_BGE_SPEC)
-            _coh_pairs.append((f'coh_emb_bge{track_suffix}', coh_emb_bge))
 
         for name, coh_dict in _coh_pairs:
             # d=coh_dict: 默认参数绑定避免 Python 闭包延迟绑定陷阱 (审阅问题 9)
@@ -1722,7 +1687,7 @@ def compute_strategic_differentiation(df_exploded, panel):
     #   Ss 轨只用"银行和金融科技出现在同一句话"的文本。
     #   N-NN 仅跑 N=5 (不展开 N=3~7, N 敏感性已由 Full 轨覆盖)。
     # 注: 此处把原 ctx 内联块参数化为 (track_suffix, text_col) 循环, ss 复用
-    #   完全相同的四方法 (TF-IDF char/word + LDA + Embedding + t2v) 逻辑;
+    #   完全相同的方法 (TF-IDF char/word + LDA + Embedding 主轨 + co-primary _lg) 逻辑;
     #   每轨守卫 text_col 存在 (缺失 → graceful skip), 列名机械 _ctx/_ss 后缀。
     logger.info("=" * 60)
     logger.info("Ctx / Ss 轨: N-最近邻 + 全行业向量法 (三轨)")
@@ -1777,17 +1742,7 @@ def compute_strategic_differentiation(df_exploded, panel):
                                                   dist_bounds=(0.0, 2.0))
             else:
                 se, cd_emb = None, None
-            # 稳健 twin (text2vec, 2026-05-29 双模型)
-            se_mat_t2v, se_emb_t2v = _build_embedding_sim_matrix(
-                texts, spec=_ROBUSTNESS_SPEC)
-            if se_mat_t2v is not None:
-                se_t2v = _compute_nn_scores(se_mat_t2v, banks, [5],
-                                            sim_bounds=(-1.0, 1.0))
-                cd_emb_t2v = _compute_centroid_scores(se_emb_t2v, banks,
-                                                      dist_bounds=(0.0, 2.0))
-            else:
-                se_t2v, cd_emb_t2v = None, None
-            # 第三嵌入 twin (_lg, 镜像 _t2v; 默认休眠, 仅 _LARGE_SPEC 非空才算)
+            # co-primary 嵌入 (_lg=text-embedding-3-large API; v3.14.0 起 ACTIVE)
             se_lg, cd_emb_lg = None, None
             if _LARGE_SPEC:
                 se_mat_lg, se_emb_lg = _build_embedding_sim_matrix(
@@ -1797,16 +1752,11 @@ def compute_strategic_differentiation(df_exploded, panel):
                                                sim_bounds=(-1.0, 1.0))
                     cd_emb_lg = _compute_centroid_scores(se_emb_lg, banks,
                                                          dist_bounds=(0.0, 2.0))
-            # 第四嵌入 twin (_bge=BAAI/bge-m3 本地, 镜像 _t2v; 默认休眠, 仅 _BGE_SPEC 非空才算)
-            se_bge, cd_emb_bge = None, None
-            if _BGE_SPEC:
-                se_mat_bge, se_emb_bge = _build_embedding_sim_matrix(
-                    texts, spec=_BGE_SPEC)
-                if se_mat_bge is not None:
-                    se_bge = _compute_nn_scores(se_mat_bge, banks, [5],
-                                                sim_bounds=(-1.0, 1.0))
-                    cd_emb_bge = _compute_centroid_scores(se_emb_bge, banks,
-                                                          dist_bounds=(0.0, 2.0))
+                # both-or-neither parity (v3.14.0): MAIN 与 _lg co-primary, 任一
+                # 嵌入失败 → 两者同族列一并 NaN (无单边孤儿列)。
+                if se is None or se_lg is None:
+                    se, cd_emb = None, None
+                    se_lg, cd_emb_lg = None, None
 
             for bank in banks:
                 row = {'target_bank': bank, 'year': year}
@@ -1821,15 +1771,9 @@ def compute_strategic_differentiation(df_exploded, panel):
                 if se:
                     row[f'strat_diff_n5_emb{_tsfx}'] = se['n5'].get(bank, np.nan)
                     row[f'strat_sim_max_emb{_tsfx}'] = se['sim_max'].get(bank, np.nan)
-                if se_t2v:  # 稳健 twin (text2vec)
-                    row[f'strat_diff_n5_emb_t2v{_tsfx}'] = se_t2v['n5'].get(bank, np.nan)
-                    row[f'strat_sim_max_emb_t2v{_tsfx}'] = se_t2v['sim_max'].get(bank, np.nan)
-                if se_lg:  # 第三嵌入 twin (_lg, 软诊断; 镜像 _t2v)
+                if se_lg:  # co-primary 嵌入 (_lg=text-embedding-3-large)
                     row[f'strat_diff_n5_emb_lg{_tsfx}'] = se_lg['n5'].get(bank, np.nan)
                     row[f'strat_sim_max_emb_lg{_tsfx}'] = se_lg['sim_max'].get(bank, np.nan)
-                if se_bge:  # 第四嵌入 twin (_bge=BAAI/bge-m3 本地, 软诊断; 镜像 _t2v)
-                    row[f'strat_diff_n5_emb_bge{_tsfx}'] = se_bge['n5'].get(bank, np.nan)
-                    row[f'strat_sim_max_emb_bge{_tsfx}'] = se_bge['sim_max'].get(bank, np.nan)
                 # Centroid 本轨
                 row[f'centroid_diff_tfidf_c{_tsfx}'] = cd_c[bank]
                 row[f'centroid_diff_tfidf_w{_tsfx}'] = cd_w[bank]
@@ -1837,15 +1781,11 @@ def compute_strategic_differentiation(df_exploded, panel):
                     row[f'centroid_diff_lda{_tsfx}'] = cd_lda.get(bank, np.nan)
                 if cd_emb:
                     row[f'centroid_diff_emb{_tsfx}'] = cd_emb.get(bank, np.nan)
-                if cd_emb_t2v:  # 稳健 twin + 契约别名 strat_diff_t2v_{ctx,ss}
-                    row[f'centroid_diff_emb_t2v{_tsfx}'] = cd_emb_t2v.get(bank, np.nan)
-                    row[f'strat_diff_t2v{_tsfx}'] = cd_emb_t2v.get(bank, np.nan)
-                if cd_emb_lg:  # 第三嵌入 twin + 契约别名镜像 strat_diff_lg_{ctx,ss} (软诊断, 不入硬契约)
+                    # code-review P1-3: MAIN 契约别名 strat_diff_{ctx,ss} 与 _lg strat_diff_lg_{ctx,ss} 对称
+                    row[f'strat_diff{_tsfx}'] = cd_emb.get(bank, np.nan)
+                if cd_emb_lg:  # co-primary 嵌入 + 契约别名 strat_diff_lg_{ctx,ss}
                     row[f'centroid_diff_emb_lg{_tsfx}'] = cd_emb_lg.get(bank, np.nan)
                     row[f'strat_diff_lg{_tsfx}'] = cd_emb_lg.get(bank, np.nan)
-                if cd_emb_bge:  # 第四嵌入 twin + 契约别名镜像 strat_diff_bge_{ctx,ss} (软诊断, 不入硬契约)
-                    row[f'centroid_diff_emb_bge{_tsfx}'] = cd_emb_bge.get(bank, np.nan)
-                    row[f'strat_diff_bge{_tsfx}'] = cd_emb_bge.get(bank, np.nan)
                 sub_results.append(row)
 
         if sub_results:
@@ -1865,19 +1805,6 @@ def compute_strategic_differentiation(df_exploded, panel):
         panel[f'strat_fluidity_w{_tsfx}'] = panel.apply(
             lambda r, d=flu_w_sub: d.get((r['target_bank'], r['year']), np.nan),
             axis=1)
-
-    # ── 双模型契约保证 (F2 fix 2026-05-30; 三轨扩展 2026-06-14) ──
-    # strat_diff_t2v_{full,ctx} 是 export.py::REQUIRED_PANEL_COLUMNS 硬要求列
-    # (stage 30 退役后 stage 25 是其唯一来源); strat_diff_t2v_ss 为同句共现轨孪生
-    # (银行+金科同句), 与 ctx 同口径兜底。上面 `if cd_emb_t2v` 仅在 ROBUSTNESS
-    # (text2vec) 嵌入成功时建列; 若本地模型加载失败 / 某年银行不足 /
-    # content_{ctx,ss} 缺失, 该列不会出现 → 下游 export_panel 抛 RuntimeError。与
-    # stage 15 (policy_alignment) / stage 26 (policy_similarity) 的 NaN 降级对称,
-    # 这里兜底保证三列恒存在 (失败即全 NaN, 不破坏 canonical 主轨)。
-    for _contract_col in ('strat_diff_t2v_full', 'strat_diff_t2v_ctx',
-                          'strat_diff_t2v_ss'):
-        if _contract_col not in panel.columns:
-            panel[_contract_col] = np.nan
 
     # ── 关键指标解读 (运行结果信息) + 子步骤墙钟 ──
     try:
@@ -1930,7 +1857,7 @@ def _log_robustness_diagnostics(panel):
          算出来的分数是否大致一致 — 如果都说某银行很独特，说明结果可靠
       2. 分族值域检查 (fix(omni-g-strategic-02/10), 2026-06-11):
          - emb 轨相似度 (strat_sim_max*emb*) ∈ [-1,1] (余弦真值域)
-         - emb 轨距离 (strat_diff_*emb* / centroid_diff_emb* / strat_diff_t2v_*)
+         - emb 轨距离 (strat_diff_*emb* / centroid_diff_emb* / strat_diff_lg_*)
            ∈ [0,2] (δ = 1 − cos)
          - 其余 (TF-IDF/LDA 非负向量/分布 + fluidity) ∈ [0,1]
          原对全族统一断言 [0,1], 与 emb 轨去删失后的真值域不符
@@ -1950,8 +1877,8 @@ def _log_robustness_diagnostics(panel):
             continue
         if col.startswith('strat_sim_max') and '_emb' in col:
             lo, hi = -1.0, 1.0       # emb 余弦相似度
-        elif '_emb' in col or col.startswith('strat_diff_t2v'):
-            lo, hi = 0.0, 2.0        # emb 距离 δ = 1 − cos
+        elif '_emb' in col or col.startswith('strat_diff_lg'):
+            lo, hi = 0.0, 2.0        # emb 距离 δ = 1 − cos (含 _lg 别名)
         else:
             lo, hi = 0.0, 1.0        # TF-IDF / LDA / fluidity
         assert (v >= lo - 1e-10).all() and (v <= hi + 1e-10).all(), \

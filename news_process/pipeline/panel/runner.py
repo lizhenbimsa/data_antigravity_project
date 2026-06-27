@@ -281,7 +281,7 @@ def _filter_to_verified_universe(df_align: pd.DataFrame,
     (含 LLM 验证未通过文章), 而面板其余全部文本测度都在 stage 21 语义精筛后的
     verified 集 (df_exploded=24_herd_decay) 上聚合 — 26.8% 假阳性文章曾污染政策
     对齐族 bank-year 均值/分位阈值/象限分母并制造 phantom bank-year。本函数把
-    7h-token 全族 (article_sim_*/fintech_intensity_mean/policy_cosine_sim_t2v_*/
+    7h-token 全族 (article_sim_*/fintech_intensity_mean/policy_cosine_sim_lg_*/
     四象限) 的输入收敛到同一 verified 聚合域。
     """
     keys = ['docid', 'target_bank']
@@ -1808,7 +1808,7 @@ def main():
             logger.info(f"  从 '日期' 列派生 year: {df_align['year'].nunique()} 个年份")
 
         # fix(omni-g-runner-02, 2026-06-11): 聚合域对齐 — 7h-token 全族 (article_sim_*/
-        # fintech_intensity_mean/policy_cosine_sim_t2v_*/四象限) 此前在 stage 14 规则
+        # fintech_intensity_mean/policy_cosine_sim_lg_*/四象限) 此前在 stage 14 规则
         # 预筛全集 (含 LLM 验证未通过文章) 上聚合, 与全仓其余面板测度的 verified 聚合域
         # (df_exploded=24_herd_decay) 结构性不一致 (盘上孪生对 60/118 取值不同,
         # max|Δ|=0.437, 4 个 phantom bank-year)。semi-join 收敛到 verified 子集。
@@ -1823,8 +1823,8 @@ def main():
         if 'target_bank' in df_align.columns and 'year' in df_align.columns:
             # multi-track parity (2026-06-08 ctx; v3.9.0 ss): MAIN/API spec 的
             # policy_cosine_sim_ctx/_ss 在文章级产出 (stage 15 与 _full 对称), 须聚合进
-            # 面板 (只聚合 _full alias policy_cosine_sim 会让面板层 API 模型单边缺 ctx/ss,
-            # 而 _t2v 稳健轨三轨聚合, 见下方)。三轨 (full/ctx/ss): ss=银行+金科同句轨,
+            # 面板 (只聚合 _full alias policy_cosine_sim 会让面板层 MAIN 模型单边缺 ctx/ss,
+            # 而 co-primary _lg 轨三轨聚合, 见下方)。三轨 (full/ctx/ss): ss=银行+金科同句轨,
             # 缺列 (旧 schema / ss 未上线) 优雅跳过。
             _agg_spec = {
                 'article_sim_mean': ('policy_cosine_sim', 'mean'),
@@ -1861,64 +1861,35 @@ def main():
             logger.info(f"  连续聚合: article_sim_mean/std, "
                         f"fintech_intensity_mean 已合并")
 
-            # 双模型稳健轨 (2026-05-29): stage 15 现额外产出 article 级
-            # policy_cosine_sim_t2v_{full,ctx,ss} (text2vec)。此处按 (bank, year)
-            # 取均值聚合为 bank-year 同名列, 取代已退役的 stage 30 (30_text2vec_indicators)
-            # 的 policy_cosine_sim_t2v_* 来源 (REQUIRED_PANEL_COLUMNS 契约名不变)。
-            # 三轨 (full/ctx/ss): ss=银行+金科同句轨, 缺列优雅跳过 (列表推导自动过滤)。
-            # 主轨 _t2v + 全年份锚点 _t2v_allv 孪生 (2026-06-21): 列表推导自动按存在性
-            # 过滤 → companion 关闭 / 旧 schema 时 _allv 列不在 df_align, 优雅跳过。
-            _t2v_src = [c for c in ('policy_cosine_sim_t2v_full',
-                                    'policy_cosine_sim_t2v_ctx',
-                                    'policy_cosine_sim_t2v_ss',
-                                    'policy_cosine_sim_t2v_allv_full',
-                                    'policy_cosine_sim_t2v_allv_ctx',
-                                    'policy_cosine_sim_t2v_allv_ss')
-                        if c in df_align.columns]
-            if _t2v_src:
-                _t2v_agg = (df_align.groupby(['target_bank', 'year'])[_t2v_src]
-                            .mean().reset_index())
-                panel = panel.merge(_t2v_agg, on=['target_bank', 'year'], how='left')
-                logger.info(f"  双模型: policy_cosine_sim_t2v 聚合 {_t2v_src} 已合并")
-            else:
-                logger.warning("  双模型: stage 15 未含 policy_cosine_sim_t2v_* 列, "
-                               "稳健轨政策对齐缺失 (检查 embedding_robustness 配置)")
-
-            # 第三模型休眠轨 (embedding_large, 3072 维): stage 15 在 _LARGE_SPEC
-            # 非空时额外产出 article 级 policy_cosine_sim_lg_{full,ctx,ss} 及其全年份
-            # 锚点孪生 _lg_allv_*。此处与 _t2v 块完全平行: 按 (bank, year) 取均值聚合为
-            # bank-year 同名列。_lg 为软诊断/可未播种 → 未配置 embedding_large 时上游
-            # 不产 _lg 列, 列表推导 _lg_src 自动为空 → 优雅跳过 (无 else 警告, 休眠安全)。
-            _lg_src = [c for c in ('policy_cosine_sim_lg_full',
-                                   'policy_cosine_sim_lg_ctx',
-                                   'policy_cosine_sim_lg_ss',
-                                   'policy_cosine_sim_lg_allv_full',
-                                   'policy_cosine_sim_lg_allv_ctx',
-                                   'policy_cosine_sim_lg_allv_ss')
-                       if c in df_align.columns]
-            if _lg_src:
-                _lg_agg = (df_align.groupby(['target_bank', 'year'])[_lg_src]
-                           .mean().reset_index())
+            # co-primary ② (embedding_large, text-embedding-3-large, 3072 维): stage 15
+            # 在 _LARGE_SPEC 非空时额外产出 article 级 policy_cosine_sim_lg_{full,ctx,ss}
+            # 及其全年份锚点孪生 _lg_allv_*。v3.14.0 起 gemini(MAIN, 无后缀) 与 large(_lg)
+            # 为对等 co-primary 双轨 (跨厂商互证); 此处按 (bank, year) 取均值聚合为 bank-year
+            # 同名列。MAIN(无后缀) policy_cosine_sim_* 已在上方连续聚合块合并 (article_sim_*
+            # 同源), _lg 孪生在此并列。_lg 为软诊断/可 NaN → producer both-or-neither 保证
+            # 列名双射 (有 gemini 处必有 large); 列表推导自动按存在性过滤, 缺则优雅跳过。
+            # code-review P1-1: _lg 聚合必须按 MAIN 同名约定 **rename** 为 article_sim_*_lg
+            # (而非 raw policy_cosine_sim_lg_*), 否则面板层 MAIN=article_sim_mean 与 _lg=
+            # policy_cosine_sim_lg 名不对称 → co-primary 列名双射破 (parity 门红)。mean+std
+            # 双统计与 MAIN 对称; 缺源列优雅跳过 (producer both-or-neither 保双射)。
+            _lg_map = [
+                ('policy_cosine_sim_lg_full', 'article_sim_mean_lg', 'article_sim_std_lg'),
+                ('policy_cosine_sim_lg_ctx', 'article_sim_mean_lg_ctx', 'article_sim_std_lg_ctx'),
+                ('policy_cosine_sim_lg_ss', 'article_sim_mean_lg_ss', 'article_sim_std_lg_ss'),
+                ('policy_cosine_sim_lg_allv_full', 'article_sim_mean_lg_allv', 'article_sim_std_lg_allv'),
+                ('policy_cosine_sim_lg_allv_ctx', 'article_sim_mean_lg_allv_ctx', 'article_sim_std_lg_allv_ctx'),
+                ('policy_cosine_sim_lg_allv_ss', 'article_sim_mean_lg_allv_ss', 'article_sim_std_lg_allv_ss'),
+            ]
+            _lg_agg_spec = {}
+            for _src, _mean_name, _std_name in _lg_map:
+                if _src in df_align.columns:
+                    _lg_agg_spec[_mean_name] = (_src, 'mean')
+                    _lg_agg_spec[_std_name] = (_src, 'std')
+            if _lg_agg_spec:
+                _lg_agg = (df_align.groupby(['target_bank', 'year'])
+                           .agg(**_lg_agg_spec).reset_index())
                 panel = panel.merge(_lg_agg, on=['target_bank', 'year'], how='left')
-                logger.info(f"  三模型: policy_cosine_sim_lg 聚合 {_lg_src} 已合并")
-
-            # 第四模型休眠轨 (embedding_bge, BAAI/bge-m3 本地 1024 维): stage 15 在
-            # _BGE_SPEC 非空时额外产出 article 级 policy_cosine_sim_bge_{full,ctx,ss} 及其
-            # 全年份锚点孪生 _bge_allv_*。此处与 _t2v/_lg 块完全平行: 按 (bank, year) 取均值
-            # 聚合为 bank-year 同名列。_bge 为软诊断/可未播种 → 未配置 embedding_bge 时上游
-            # 不产 _bge 列, 列表推导 _bge_src 自动为空 → 优雅跳过 (无 else 警告, 休眠安全)。
-            _bge_src = [c for c in ('policy_cosine_sim_bge_full',
-                                    'policy_cosine_sim_bge_ctx',
-                                    'policy_cosine_sim_bge_ss',
-                                    'policy_cosine_sim_bge_allv_full',
-                                    'policy_cosine_sim_bge_allv_ctx',
-                                    'policy_cosine_sim_bge_allv_ss')
-                        if c in df_align.columns]
-            if _bge_src:
-                _bge_agg = (df_align.groupby(['target_bank', 'year'])[_bge_src]
-                            .mean().reset_index())
-                panel = panel.merge(_bge_agg, on=['target_bank', 'year'], how='left')
-                logger.info(f"  四模型: policy_cosine_sim_bge 聚合 {_bge_src} 已合并")
+                logger.info(f"  co-primary: article_sim_*_lg 聚合 ({len(_lg_agg_spec)} 列) 已合并")
 
             # --- 逻辑 B: 四象限离散分类 (机制检验 / 稳健性) ---
             # 【术语】
@@ -2441,38 +2412,42 @@ def main():
                     _cater_count += 1
     logger.info(f"  algo_cater 指标计算完成 ({_cater_count} 变量)")
 
-    # ═══ 8e. 嵌入双模型 (Embedding Dual-Model) 稳健性特征 — 内联双模型 (2026-05-29) ═══
-    # ⚠ 此处"双模型"= API/t2v 两个嵌入模型 (非 full/ctx/ss 文本情感轨)。
-    # 【学术机制】稳健性联合检验 (Robustness Joint Testing): LLM/API 主轨 (text-embedding-3-small)
-    # 对照 text2vec 本地稳健轨, 应对单一嵌入模型潜在的"幻觉偏移"(Hallucination Bias)。
+    # ═══ 8e. 嵌入 co-primary 双轨 (Embedding Co-Primary) 存在性诊断 (v3.14.0) ═══
+    # ⚠ 此处"双轨"= gemini ⟂ text-embedding-3-large 两个 API 嵌入模型 (非 full/ctx/ss
+    # 文本情感轨)。v3.14.0 (2026-06-27, all-API-embedding): 本地 text2vec(_t2v)/bge(_bge)
+    # 整体移除, 嵌入主轨改为 gemini(MAIN, 无后缀) ⟂ text-embedding-3-large(_lg) 跨厂商对等
+    # CO-PRIMARY 双轨 (跨厂商互证, 应对单一嵌入模型潜在的"幻觉偏移" Hallucination Bias)。
     #
-    # 架构变更: 原 stage 30 (30_text2vec_indicators.parquet) 已退役。其稳健 twin 改由
-    # 主阶段内联双模型计算直接产出 (Plan 2026-05-29 in-feature dual compute);
-    # 文本侧三轨 (full/ctx/ss): ss=银行+金科同句轨 (缺列优雅诊断, 不强报错):
-    #   - strat_diff_t2v_{full,ctx,ss}        ← stage 25 strategic_diff (centroid_diff_emb_t2v 别名)
-    #   - policy_cosine_sim_t2v_{full,ctx,ss} ← stage 15 article 级 → 上方 _t2v_agg 聚合 bank-year
-    # 因此此处不再读取/merge 外部 parquet; 仅做存在性诊断 (保留自然缺失 NaN, 不 0 填充 —
+    # 这些列由 stage 15 (policy_cosine_sim_*) / stage 25 (strat_diff_*) 主流程直接产出;
+    # 此处不读取/merge 外部 parquet, 仅做存在性诊断 (保留自然缺失 NaN, 不 0 填充 —
     # Allison 2001 / Heckman 1979 listwise deletion 原则)。
-    # full/ctx 为硬契约 (REQUIRED_PANEL_COLUMNS); _ss twin 仅在 stage 15/25 ss 上线后出现,
-    # 故按存在性软诊断 (列在则进 present, 不在则不计入 missing 硬警告)。
-    t2v_cols = [
-        'strat_diff_t2v_full', 'strat_diff_t2v_ctx',
-        'policy_cosine_sim_t2v_full', 'policy_cosine_sim_t2v_ctx'
+    # parity (gemini ⟂ _lg 列名双射) 由 test_embedding_coprimary_parity 测试门 +
+    # producer both-or-neither 强制, *不*由本诊断或 export 运行期 raise; 故此处任何列缺失
+    # 仅记 WARNING (软诊断, 不报错; _ss 同句轨与 _lg 孪生在上线/播种前可能整体缺失)。
+    emb_main_cols = [
+        'strat_diff_full', 'strat_diff_ctx',
+        'policy_cosine_sim_full', 'policy_cosine_sim_ctx'
     ]
-    t2v_cols_ss = ['strat_diff_t2v_ss', 'policy_cosine_sim_t2v_ss']  # 软诊断, 缺则不报错
-    # 全年份锚点 _t2v_allv 孪生 (2026-06-21): 纯软诊断 (companion 开启时出现; 非
-    # REQUIRED_PANEL_COLUMNS 硬契约, 缺则不报错 — 与 _ss 同级)。
-    t2v_cols_allv = ['policy_cosine_sim_t2v_allv_full', 'policy_cosine_sim_t2v_allv_ctx',
-                     'policy_cosine_sim_t2v_allv_ss']
-    _present = [c for c in t2v_cols + t2v_cols_ss + t2v_cols_allv if c in panel.columns]
-    _missing = [c for c in t2v_cols if c not in panel.columns]  # 仅 full/ctx 硬契约入 missing
+    emb_lg_cols = [
+        'strat_diff_lg_full', 'strat_diff_lg_ctx',
+        'policy_cosine_sim_lg_full', 'policy_cosine_sim_lg_ctx'
+    ]
+    emb_cols_ss = ['strat_diff_ss', 'policy_cosine_sim_ss',
+                   'strat_diff_lg_ss', 'policy_cosine_sim_lg_ss']  # 软诊断, 缺则不报错
+    # 全年份锚点 _allv 孪生 (2026-06-21): 纯软诊断 (companion 开启时出现)。
+    emb_cols_allv = ['policy_cosine_sim_allv_full', 'policy_cosine_sim_allv_ctx',
+                     'policy_cosine_sim_allv_ss',
+                     'policy_cosine_sim_lg_allv_full', 'policy_cosine_sim_lg_allv_ctx',
+                     'policy_cosine_sim_lg_allv_ss']
+    _all_emb_cols = emb_main_cols + emb_lg_cols + emb_cols_ss + emb_cols_allv
+    _present = [c for c in _all_emb_cols if c in panel.columns]
+    _missing = [c for c in emb_main_cols + emb_lg_cols if c not in panel.columns]
     if _missing:
         logger.warning(
-            f"  ⚠️ 嵌入双模型稳健性: 以下内联 t2v 列缺失 {_missing} "
-            f"(检查 stage 15/25 embedding_robustness 配置与运行); "
-            f"export.py::REQUIRED_PANEL_COLUMNS 将据此 fail-loud。"
+            f"  ⚠️ 嵌入 co-primary 双轨: 以下内联 gemini/_lg 列缺失 {_missing} "
+            f"(检查 stage 15/25 embedding_api/embedding_large 配置与运行)。"
         )
-    logger.info(f"  ✅ 内联双模型稳健性特征 (保留自然缺失值 NaN): present={_present}")
+    logger.info(f"  ✅ 嵌入 co-primary 双轨存在性特征 (保留自然缺失值 NaN): present={_present}")
 
     # --- 8c. Opt-in 特征面板 merge (stage 18; orphan-panel fix 2026-05-30) ---
     # 这些 opt-in stage 产出 bank-year FEATURE 面板, 其列为下游 Stata/codebook

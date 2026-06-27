@@ -17,9 +17,10 @@
   词典查找之前切开, add_word 注入技术不可行) 走 "剔除 + 披露" — 从 IDF/质心/
   CosSim 权重宇宙剔除并 WARNING 披露
 
-外部依赖处理: 无网络; sentence_transformers 用 sys.modules fake 注入 (质心宇宙
-测试) 或 None 注入强制 ImportError 路径 (权重宇宙测试); 词典/配置用仓库真实文件
-(模块 import 时加载)。
+外部依赖处理: 无网络; v3.14.0 (all-API-embedding) 起本地 sentence_transformers
+路径已彻底移除, 关键词语义编码改走统一引擎 _eng.embed_texts(spec) 纯 API 路径 →
+质心宇宙/权重宇宙测试改 monkeypatch fi._eng.embed_texts 返回确定性 fake 向量
+(3072 维), 隔离网络/缓存依赖; 词典/配置用仓库真实文件 (模块 import 时加载)。
 
 # 白话: 这组测试管"金融科技强度分"的统计口径: 算关键词稀有度(IDF)时,
 # 同一篇稿被转载/配多家银行只算一篇; 数词频和算稀有度必须用同一把"切词刀"
@@ -30,8 +31,6 @@
 from __future__ import annotations
 
 import math
-import sys
-import types
 from collections import Counter
 from pathlib import Path
 
@@ -121,18 +120,24 @@ class TestUnmatchableKeywordExclusion:
 
     def test_weight_universe_excludes_unmatchable(self, monkeypatch):
         _require_kws('区块链')
-        # 注入 None 强制 `from sentence_transformers import ...` 走 ImportError
-        # 降级支 (CosSim=1.0), 隔离网络/模型依赖, 只验权重宇宙
-        monkeypatch.setitem(sys.modules, 'sentence_transformers', None)
+        # v3.14.0 (all-API-embedding): 本地 sentence_transformers 路径已彻底移除,
+        # 关键词语义编码改走统一引擎 _eng.embed_texts(spec) 纯 API 路径。mock 该
+        # 函数返回确定性 fake 向量 (3072 维) 以隔离网络/缓存依赖, 只验权重宇宙。
+        def _fake_embed(kw_list, spec, **kwargs):
+            kw_list = list(kw_list)
+            rng = np.random.default_rng(0)
+            return rng.normal(size=(len(kw_list), 3072)).astype(np.float32)
+
+        monkeypatch.setattr(fi._eng, 'embed_texts', _fake_embed)
         matchable, unmatchable = fi._ensure_keywords_injected()
         weights = fi._build_intensity_weights(Counter({'区块链': 5}), 10)
         assert set(weights) == set(matchable)
         for kw in unmatchable:
             assert kw not in weights
 
-    def test_degraded_fallback_universe_also_matchable_only(self, monkeypatch):
+    def test_degraded_fallback_universe_also_matchable_only(self):
         # DF 为空降级支: 全 1.0 权重宇宙同样不含不可匹配词
-        monkeypatch.setitem(sys.modules, 'sentence_transformers', None)
+        # (DF 为空 → 提前 return, 不触发任何嵌入路径, 无需 mock embed_texts)
         matchable, _ = fi._ensure_keywords_injected()
         weights = fi._build_intensity_weights(Counter(), 0)
         assert set(weights) == set(matchable)
@@ -141,18 +146,14 @@ class TestUnmatchableKeywordExclusion:
         _require_kws('区块链', '云计算')
         recorded = {}
 
-        class _FakeST:
-            def __init__(self, *a, **k):
-                pass
+        # v3.14.0: 关键词嵌入宇宙现经 _eng.embed_texts(kw_list, spec) 传入 (零本地模型);
+        # mock 该函数记录实际传入的 kw_list, 验证幻影 (不可匹配) 词不进质心嵌入宇宙。
+        def _fake_embed(kw_list, spec, **kwargs):
+            recorded['kws'] = list(kw_list)
+            rng = np.random.default_rng(0)
+            return rng.normal(size=(len(kw_list), 3072)).astype(np.float32)
 
-            def encode(self, kw_list, show_progress_bar=False):
-                recorded['kws'] = list(kw_list)
-                rng = np.random.default_rng(0)
-                return rng.normal(size=(len(kw_list), 8)).astype(np.float32)
-
-        monkeypatch.setitem(
-            sys.modules, 'sentence_transformers',
-            types.SimpleNamespace(SentenceTransformer=_FakeST))
+        monkeypatch.setattr(fi._eng, 'embed_texts', _fake_embed)
         matchable, unmatchable = fi._ensure_keywords_injected()
         weights = fi._build_intensity_weights(
             Counter({'区块链': 3, '云计算': 1}), 10)

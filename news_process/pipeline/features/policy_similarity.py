@@ -28,8 +28,8 @@ Firm-Year 级别的结构化特征。通过汇总该年度单家企业的全部�
 3. 为了保证比对的绝对公平，把这份“标准答案”当成一个虚拟的“幽灵银行”，和所有真实的银行
    放在一模一样的算法标准（同构的字典、相同的主题抽取、超长文本同走 token 分段 +
    均值池化 — 旧注释所称“相同的 8000 字截断”已随 embedding_engine 统一而不存在）下比对。
-4. 最终得出 5 个相似度指标（TF-IDF 字符级 / TF-IDF 词级 / LDA 主题 / Embedding 主轨
-   / Embedding text2vec 稳健 twin）× Full/Ctx/Ss 三轨：分数越高，说明这家银行的战略
+4. 最终得出至多 5 个相似度指标（TF-IDF 字符级 / TF-IDF 词级 / LDA 主题 / Embedding 主轨
+   gemini / Embedding large `_lg` 活跃 co-primary）× Full/Ctx/Ss 三轨：分数越高，说明这家银行的战略
    步调与（截至当年已发布的）国家政策跟得越紧密。
    注: ss 轨 = content_ss (银行+金科同句共现窗, stage 13 物化; 无共现回退全文,
    镜像 ctx); content_ss 缺失时退回 Full/Ctx 两路 (优雅跳过, 不产 _ss 指标列)。
@@ -78,18 +78,14 @@ from news_process.pipeline.filtering.policy_alignment import (  # noqa: E402
 # 共享配置来自 panel/encode (原 41); Stage 25 算法底层来自 features/strategic_diff (原 25)。
 from news_process.pipeline.panel.encode import CONFIG, logger  # noqa: E402
 
-# 2026-05-29 双模型: 稳健 twin spec (text2vec local), 经 _build_emb(spec=...) 复用 stage 25 同算法
-_ROBUSTNESS_SPEC = CONFIG.get('embedding_robustness', {})
-# 第三嵌入模型 (large, 镜像 _t2v): 仅 _LARGE_SPEC 非空 (config 配 embedding_large) 时才产 _lg 列;
-# 休眠门铁律 — 无配置 → {} → 完全不产 _lg → 既有行为字节级不变 (golden-safe)。
+# v3.14.0: 移除两条本地嵌入稳健轨 (_t2v text2vec / _bge bge-m3); 保留 API 轨 _lg。
+# 第三嵌入模型 (large, text-embedding-3-large): _LARGE_SPEC 非空 (config 配 embedding_large)
+# 时产 _lg 列, 现为活跃 co-primary (与无后缀 MAIN gemini 并列)。
 _LARGE_SPEC = CONFIG.get('embedding_large', {})
-# 第四嵌入模型 (BAAI/bge-m3 本地 1024 维, 镜像 _t2v): 仅 _BGE_SPEC 非空 (config 配 embedding_bge)
-# 时才产 _bge 列; 同款休眠门 — 无配置 → {} → 完全不产 _bge → 既有行为字节级不变 (golden-safe)。
-_BGE_SPEC = CONFIG.get('embedding_bge', {})
 
 
 def _ghost_anchor_metrics(texts, n_banks, year, anchor_text, track_suffix):
-    """对单一锚点文本计算 5 个 ghost-anchor 相似度指标 (TF-IDF c/w · LDA · emb · emb_t2v)。
+    """对单一锚点文本计算 ghost-anchor 相似度指标 (TF-IDF c/w · LDA · emb · 可选 emb_lg)。
 
     幽灵锚点 (Ghost Anchor): 将 anchor_text 作为 (N+1)-th 元素挂载至银行文本列表末尾,
     送入与 stage 25 绝对同构的 _build_* 矩阵提取器, 取对称矩阵最后一列 sim[:-1, -1]
@@ -107,21 +103,19 @@ def _ghost_anchor_metrics(texts, n_banks, year, anchor_text, track_suffix):
         track_suffix: 日志标签 (如 '_full' / '_full/allv')。
 
     Returns:
-        dict[str, Sequence[float]]: 键 ∈ {tfidf_c, tfidf_w, lda, emb, emb_t2v},
+        dict[str, Sequence[float]]: 键 ∈ {tfidf_c, tfidf_w, lda, emb},
         各值为长 n_banks 的相似度序列 (anchor_text=None 时全 NaN)。
-        ⚠ _LARGE_SPEC 非空 (休眠门开) 时**额外**带 'emb_lg' 键 (镜像 emb_t2v);
-        ⚠ _BGE_SPEC 非空 (休眠门开) 时**额外**带 'emb_bge' 键 (镜像 emb_t2v);
-        键存在性由 _LARGE_SPEC / _BGE_SPEC 单点决定 → 全 nan 早退分支与正常分支一致, 防 KeyError。
+        ⚠ _LARGE_SPEC 非空 (config 配 embedding_large) 时**额外**带 'emb_lg' 键
+        (活跃 co-primary, 与 MAIN emb 同结构); 键存在性由 _LARGE_SPEC 单点决定 →
+        全 nan 早退分支与正常分支一致, 防 KeyError。
+        both-or-neither: emb 与 emb_lg 任一 None 则两者同置 NaN (无单边孤儿列)。
     """
     nan_vec = [np.nan] * n_banks
     if anchor_text is None:
         _d = {'tfidf_c': list(nan_vec), 'tfidf_w': list(nan_vec),
-              'lda': list(nan_vec), 'emb': list(nan_vec),
-              'emb_t2v': list(nan_vec)}
+              'lda': list(nan_vec), 'emb': list(nan_vec)}
         if _LARGE_SPEC:
             _d['emb_lg'] = list(nan_vec)
-        if _BGE_SPEC:
-            _d['emb_bge'] = list(nan_vec)
         return _d
 
     texts_with_auth = texts + [anchor_text]
@@ -141,25 +135,12 @@ def _ghost_anchor_metrics(texts, n_banks, year, anchor_text, track_suffix):
         logger.warning(f"    LDA ({year}{track_suffix}) 失败: {type(e).__name__}")
         auth_lda = list(nan_vec)
 
-    # --- 方法 D: Semantic Embedding (主轨 text-embedding-3-small) ---
+    # --- 方法 D: Semantic Embedding (主轨 MAIN — gemini-embedding-2-preview, 无后缀) ---
     se_mat, _ = _build_emb(texts_with_auth)
-    auth_emb = se_mat[:-1, -1] if se_mat is not None else list(nan_vec)
 
-    # --- 方法 D-t2v: 稳健 twin (text2vec, 同 ghost-anchor 算法只换模型) ---
-    # g-policy-05 契约: 稳健轨 raise 不炸 stage, 仅 emb_t2v 置 NaN。
-    try:
-        se_mat_t2v, _ = _build_emb(texts_with_auth, spec=_ROBUSTNESS_SPEC)
-    except Exception as _t2v_exc:
-        logger.warning(f"    Embedding t2v ({year}{track_suffix}) 异常: "
-                       f"{type(_t2v_exc).__name__}: {_t2v_exc} → emb_t2v 置 NaN")
-        se_mat_t2v = None
-    auth_emb_t2v = se_mat_t2v[:-1, -1] if se_mat_t2v is not None else list(nan_vec)
-
-    _out = {'tfidf_c': auth_c, 'tfidf_w': auth_w, 'lda': auth_lda,
-            'emb': auth_emb, 'emb_t2v': auth_emb_t2v}
-
-    # --- 方法 D-lg: 第三嵌入 twin (large, 同 ghost-anchor 算法只换模型; 休眠门 _LARGE_SPEC 开才算) ---
-    # 与 emb_t2v 同款契约: 稳健轨 raise 不炸 stage, 仅 emb_lg 置 NaN; 维度无关 (emb.shape[1] 驱动)。
+    # --- 方法 D-lg: 第三嵌入 twin (large, text-embedding-3-large; 活跃 co-primary, _LARGE_SPEC 开才算) ---
+    # 稳健轨 raise 不炸 stage, 仅置 NaN; 维度无关 (emb.shape[1] 驱动)。
+    se_mat_lg = None
     if _LARGE_SPEC:
         try:
             se_mat_lg, _ = _build_emb(texts_with_auth, spec=_LARGE_SPEC)
@@ -167,18 +148,20 @@ def _ghost_anchor_metrics(texts, n_banks, year, anchor_text, track_suffix):
             logger.warning(f"    Embedding lg ({year}{track_suffix}) 异常: "
                            f"{type(_lg_exc).__name__}: {_lg_exc} → emb_lg 置 NaN")
             se_mat_lg = None
-        _out['emb_lg'] = se_mat_lg[:-1, -1] if se_mat_lg is not None else list(nan_vec)
 
-    # --- 方法 D-bge: 第四嵌入 twin (BAAI/bge-m3 本地, 同 ghost-anchor 算法只换模型; 休眠门 _BGE_SPEC 开才算) ---
-    # 与 emb_t2v 同款契约: 稳健轨 raise 不炸 stage, 仅 emb_bge 置 NaN; 维度无关 (emb.shape[1] 驱动)。
-    if _BGE_SPEC:
-        try:
-            se_mat_bge, _ = _build_emb(texts_with_auth, spec=_BGE_SPEC)
-        except Exception as _bge_exc:
-            logger.warning(f"    Embedding bge ({year}{track_suffix}) 异常: "
-                           f"{type(_bge_exc).__name__}: {_bge_exc} → emb_bge 置 NaN")
-            se_mat_bge = None
-        _out['emb_bge'] = se_mat_bge[:-1, -1] if se_mat_bge is not None else list(nan_vec)
+    # both-or-neither parity (家族内 MAIN/_lg 同生共死): 若 _LARGE_SPEC 开 且 MAIN(emb)
+    # 或 _lg 任一返回 None, 则两者同置 NaN — 杜绝单边孤儿列 (parity test 会捕获)。
+    if _LARGE_SPEC and (se_mat is None or se_mat_lg is None):
+        se_mat = None
+        se_mat_lg = None
+
+    auth_emb = se_mat[:-1, -1] if se_mat is not None else list(nan_vec)
+
+    _out = {'tfidf_c': auth_c, 'tfidf_w': auth_w, 'lda': auth_lda,
+            'emb': auth_emb}
+
+    if _LARGE_SPEC:
+        _out['emb_lg'] = se_mat_lg[:-1, -1] if se_mat_lg is not None else list(nan_vec)
 
     return _out
 
@@ -232,10 +215,10 @@ def compute_authoritative_similarity(df_exploded, panel):
     _ghost_anchor_metrics 助手, vintage / 全年份 各调一次 → 下游构造完全一致, 唯锚点不同。
 
     Returns:
-        pd.DataFrame: 合并了至多 15 列 vintage 主轨 权威政策相似度指标的最新 panel
-        (5 指标 × Full/Ctx/Ss 三轨; content_ss 缺失时退回 10 列 = 5 指标 × Full/Ctx)。
-        all_vintage_companion 开启时再并列至多 15 列 `_allv` 全年份锚点孪生 (同结构),
-        合计至多 30 列。
+        pd.DataFrame: 合并了 vintage 主轨 权威政策相似度指标的最新 panel
+        (指标 = TF-IDF c/w · LDA · emb 主轨 [+ emb_lg 当 _LARGE_SPEC 开] × Full/Ctx/Ss 三轨;
+        content_ss 缺失时退回 Full/Ctx 两轨)。all_vintage_companion 开启时再并列同结构的
+        `_allv` 全年份锚点孪生。
     """
     _t_start = time.time()
     logger.info("=" * 60)
@@ -251,8 +234,8 @@ def compute_authoritative_similarity(df_exploded, panel):
         logger.info(f"     · {platform.platform()} | CPU={os.cpu_count()} | PID={os.getpid()}")
         logger.info(f"     · RUN_ID={os.environ.get('NEWS_PROCESS_RUN_ID', '(unset)')} | cwd={os.getcwd()}")
         logger.info(f"     · 模块: {os.path.abspath(__file__)}")
-        logger.info("     · 确定性/成本: 纯 CPU 文本相似度 (TF-IDF/LDA 确定); embedding 主轨经穿透缓存,"
-                    " 冷缓存须付费嵌入 (text-embedding-3-small) — 命中则 $0; t2v twin 本地 GPU $0")
+        logger.info("     · 确定性/成本: 纯 CPU 文本相似度 (TF-IDF/LDA 确定); embedding 主轨/(_lg) 经穿透缓存,"
+                    " 冷缓存须付费嵌入 (gemini / text-embedding-3-large) — 命中则 $0")
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"  环境信息打印失败 (不影响计算): {_e}")
 
@@ -335,10 +318,10 @@ def compute_authoritative_similarity(df_exploded, panel):
         logger.info(f"     · 覆盖发布年份: {_yrs if _yrs else '(全部未知)'}")
         logger.info(f"     · vintage-aware 前视守卫={use_vintage} (年度 t 只用发布年份 ≤ t 的政策) | "
                     f"all_vintage_companion(_allv)={_companion}")
-        logger.info("     · 相似度指标: 5 维 (TF-IDF 字符级/词级 · LDA 主题 JSD · embedding 主轨 · "
-                    "embedding text2vec twin)")
+        logger.info("     · 相似度指标: 至多 5 维 (TF-IDF 字符级/词级 · LDA 主题 JSD · embedding 主轨 · "
+                    "embedding large _lg co-primary)")
         logger.info(f"     · embedding 主轨={CONFIG.get('embedding_model', '(default)')} | "
-                    f"稳健 twin spec={_ROBUSTNESS_SPEC.get('model', '(unset)') if _ROBUSTNESS_SPEC else '(unset)'}")
+                    f"large _lg spec={_LARGE_SPEC.get('model', '(unset)') if _LARGE_SPEC else '(unset)'}")
         logger.info("     · 最低银行门槛=3 家/年 (镜像 stage 25 LDA K 值稳定性守卫, 不足则该年跳过)")
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"  配置信息打印失败 (不影响计算): {_e}")
@@ -423,28 +406,20 @@ def compute_authoritative_similarity(df_exploded, panel):
                     f'auth_sim_tfidf_w{track_suffix}': float(vin['tfidf_w'][i]),
                     f'auth_sim_lda{track_suffix}': float(vin['lda'][i]),
                     f'auth_sim_emb{track_suffix}': float(vin['emb'][i]),
-                    f'auth_sim_emb_t2v{track_suffix}': float(vin['emb_t2v'][i]),
                 }
-                # 第三嵌入 _lg (休眠门; 键存在性由 _LARGE_SPEC 经助手单点决定 → 与早退分支一致)
+                # 第三嵌入 _lg (活跃 co-primary; 键存在性由 _LARGE_SPEC 经助手单点决定 → 与早退分支一致)
                 if 'emb_lg' in vin:
                     rec[f'auth_sim_emb_lg{track_suffix}'] = float(vin['emb_lg'][i])
-                # 第四嵌入 _bge (休眠门; 键存在性由 _BGE_SPEC 经助手单点决定 → 与早退分支一致)
-                if 'emb_bge' in vin:
-                    rec[f'auth_sim_emb_bge{track_suffix}'] = float(vin['emb_bge'][i])
                 if allv is not None:
                     rec.update({
                         f'auth_sim_tfidf_c_allv{track_suffix}': float(allv['tfidf_c'][i]),
                         f'auth_sim_tfidf_w_allv{track_suffix}': float(allv['tfidf_w'][i]),
                         f'auth_sim_lda_allv{track_suffix}': float(allv['lda'][i]),
                         f'auth_sim_emb_allv{track_suffix}': float(allv['emb'][i]),
-                        f'auth_sim_emb_t2v_allv{track_suffix}': float(allv['emb_t2v'][i]),
                     })
                     # _allv 是 vin 整 dict copy (@374) 或同助手再算 → emb_lg 自动随 _LARGE_SPEC 传播
                     if 'emb_lg' in allv:
                         rec[f'auth_sim_emb_lg_allv{track_suffix}'] = float(allv['emb_lg'][i])
-                    # 同理 → emb_bge 自动随 _BGE_SPEC 传播 (镜像 _lg_allv)
-                    if 'emb_bge' in allv:
-                        rec[f'auth_sim_emb_bge_allv{track_suffix}'] = float(allv['emb_bge'][i])
                 all_results.append(rec)
 
     # 4. 汇总挂载至 Panel

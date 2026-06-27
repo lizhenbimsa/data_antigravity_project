@@ -11,7 +11,8 @@ revert。全部使用合成 DataFrame / 源码静态解析, 不依赖盘上大�
   -04 leave1out_dict 列名压缩 (33 字符 → dict_tone 词干, full/ctx 对称 ≤32)
   -05 low_conf_flag 物化移出 log_diagnostics (诊断纯只读 + schema 不随数据漂移)
   -06 .dta 变量标签覆盖率兜底 (_apply_label_fallback, 100% 覆盖)
-  -07 t2v 标签与 stata_export HEURISTIC_LABELS 逐字对齐 (2 对漂移修正)
+  -07 [v3.14.0 删除] 原 t2v 标签 40/46-path 同步锁 — 本地 text2vec(_t2v) 整体移除,
+      export.py STATA_LABELS 不再含任何嵌入 anchor 标签 (单一源收敛到 stata_export)
   -08 ai_reg_* 构念勘误 (AI Imitation Rate → Peer FinTech Coverage Penetration)
 
 # 白话: 面板导出给 Stata 时, 每个变量都带一个英文标签当"名牌"。这组测试守住:
@@ -344,43 +345,19 @@ class TestLabelFallback:
 
 
 # ============================================================================
-# fix-07: t2v 标签与 46-path (stata_export) 逐字对齐
+# fix-07: t2v 标签同步 — v3.14.0 (2026-06-27, all-API-embedding) 整体删除
+# ----------------------------------------------------------------------------
+# 原 TestT2vLabelSync 锁定 export.py::STATA_LABELS (40-path) 与 stata_export.py
+# (46-path) 的 _t2v 嵌入标签逐字同步。v3.14.0 彻底移除本地 text2vec(_t2v) 轨:
+#   · export.py::STATA_LABELS 中 *所有* 嵌入 anchor 标签 (_t2v/_lg) 均已删除
+#     (实测 0 个 _t2v 键 / 0 个 _lg 键) → 嵌入标签的单一事实源收敛到 stata_export.py
+#     ::HEURISTIC_LABELS, 不再有 40-path/46-path 双写需要同步的 _t2v 标签。
+#   · co-primary _lg (text-embedding-3-large) 标签由 stata_export.py 机械派生,
+#     其派生正确性由 tests/test_omni_fix_policy.py::
+#     test_allv_labels_mechanically_derived_in_both_label_dicts 等覆盖。
+# 故本整组测试 (test_drifted_pairs / test_ctx_twin_present_in_40_path /
+# test_verbatim_sync_with_stata_export_source) 测的功能已不存在, 整组删除。
 # ============================================================================
-
-class TestT2vLabelSync:
-    # 漂移已修正的 2 对 (统一到 46-path 文本)
-    CORRECTED = {
-        'strat_diff_t2v_full': 'Strat Diff (T2V robust=text2vec, full)',
-        'strat_diff_t2v_ctx': 'Strat Diff (T2V robust=text2vec, ctx)',
-        'policy_cosine_sim_t2v_full': 'Policy Cosine Sim (T2V robust, full)',
-        'policy_cosine_sim_t2v_ctx': 'Policy Cosine Sim (T2V robust, ctx)',
-    }
-
-    def test_drifted_pairs_now_match_46_path_text(self, stata_labels):
-        for k, expected in self.CORRECTED.items():
-            assert stata_labels[k] == expected
-
-    def test_ctx_twin_present_in_40_path(self, stata_labels):
-        # 40-path 双轨齐备 (46-path 的单侧缺失是 stata_export 组的待修项)
-        assert 'emb_peer_tone_lag1_t2v_full' in stata_labels
-        assert 'emb_peer_tone_lag1_t2v_ctx' in stata_labels
-
-    def test_verbatim_sync_with_stata_export_source(self, stata_labels):
-        """对 stata_export.py 源码中能定位到的每个 t2v 键, 文本必须逐字一致."""
-        from news_process.pipeline.panel import stata_export as _se
-        src46 = Path(_se.__file__).read_text(encoding='utf-8')
-        t2v_keys = [k for k in stata_labels if '_t2v' in k]
-        assert len(t2v_keys) >= 24
-        matched = 0
-        mismatches = []
-        for k in t2v_keys:
-            m = re.search(rf"'{re.escape(k)}'\s*:\s*([\"'])(.*?)\1", src46)
-            if m:
-                matched += 1
-                if stata_labels[k] != m.group(2):
-                    mismatches.append((k, stata_labels[k], m.group(2)))
-        assert matched >= 20, f"stata_export 源码中仅定位到 {matched} 个 t2v 键"
-        assert not mismatches, f"40/46-path t2v 标签漂移回潮: {mismatches}"
 
 
 # ============================================================================

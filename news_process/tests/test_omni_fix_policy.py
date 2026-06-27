@@ -6,7 +6,8 @@
   - g-policy-03: stage 15 文章侧 8191-token 预截断 (后于 2026-06-12 选项 B 移除 —
     引擎 chunk+pool 接管, 两侧对称; 本组测试改锁 "无预截断" 行为)
   - g-policy-04: 注释/docstring 漂移修复 (8000 字截断 / 4 种算法 / 0~1 / legacy 标注)
-  - g-policy-05: 降级透明 (<3 银行 warning; t2v 稳健轨 raise 不炸 canonical)
+  - g-policy-05: 降级透明 (<3 银行 warning; v3.14.0 起嵌入轨改 co-primary both-or-neither:
+    gemini MAIN 与 _lg(text-embedding-3-large) 任一失败 → 两族同置 NaN, 见各测试)
 
 # 白话: "政策契合度"是看文章和官方政策文件像不像。这组测试守住: 政策文件和
 # 新闻要用同一套清洗规则(领导人姓名两边都简→繁, 体现而非删除); 算某年文章的契合度只能用该年
@@ -192,9 +193,10 @@ def test_stage15_vintage_lookahead_guard(tmp_path, monkeypatch):
         "2022 应对 2015+2021 池化锚点"
     assert np.isnan(got[2]), "2014 早于全部政策文档应 NaN (前视守卫)"
     assert np.isnan(got[3]), "年份未知应 NaN (前视守卫)"
-    # t2v 轨同步 vintage (mock 对两 spec 同返回)
-    assert out['policy_cosine_sim_t2v_full'].iloc[0] == pytest.approx(1.0, abs=1e-6)
-    assert np.isnan(out['policy_cosine_sim_t2v_full'].iloc[2])
+    # co-primary _lg 轨同步 vintage (mock 对两 spec 同返回; v3.14.0: 本地 _t2v 已删,
+    # _lg=text-embedding-3-large 是与 gemini MAIN 全平价的 co-primary)
+    assert out['policy_cosine_sim_lg_full'].iloc[0] == pytest.approx(1.0, abs=1e-6)
+    assert np.isnan(out['policy_cosine_sim_lg_full'].iloc[2])
     # legacy alias 仍 = _full
     assert out['policy_cosine_sim'].equals(out['policy_cosine_sim_full'])
 
@@ -253,31 +255,40 @@ def test_stage15_vintage_optout_uses_static_anchor(tmp_path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# g-policy-05 (b): t2v 稳健轨 raise 不炸 canonical
+# g-policy-05 (b) → v3.14.0 both-or-neither co-primary parity:
+#   MAIN (gemini) 与 _lg (text-embedding-3-large) 是双射孪生 — 任一 co-primary
+#   嵌入返回 None → 两族同时置 NaN (绝不留单边孤儿列, D-4a parity 不变量)。
+#   旧"_t2v 稳健轨失败只把自己置空、canonical 照常"语义已被 co-primary 对等取代。
 # ---------------------------------------------------------------------------
 
-def test_stage15_t2v_raise_keeps_canonical(tmp_path, monkeypatch):
-    """ROBUSTNESS spec 嵌入 raise (如 embedding_robustness 缺配 → RuntimeError):
-    stage 不崩, canonical 列照常产出, 仅 _t2v 置 NaN (契约: 失败不破坏 canonical)。"""
+def test_stage15_coprimary_both_or_neither_nan(tmp_path, monkeypatch):
+    """co-primary both-or-neither: _lg (text-embedding-3-large) 嵌入返回 None →
+    canonical (gemini) 与 _lg 两族**同时**置 NaN (无单边孤儿列)。"""
     from news_process.pipeline.filtering import policy_alignment as pa
     monkeypatch.setitem(pa.CONFIG['paths'], 'authoritative_corpus_file',
                         _write_corpus(tmp_path))
     _patch_stage15_tokenizers(monkeypatch, pa)
 
-    def _embed_raise_on_t2v(texts, spec, **kwargs):
-        if 'text2vec' in str((spec or {}).get('model', '')):
-            raise RuntimeError("Embedding API spec missing base_url or api_key")
+    def _embed_none_on_lg(texts, spec, **kwargs):
+        if 'large' in str((spec or {}).get('model', '')):
+            return None   # _lg co-primary 嵌入失败 → 联动降级两族全 NaN
         return _fake_embed_axis(texts, spec, **kwargs)
 
-    monkeypatch.setattr(pa._eng, 'embed_texts', _embed_raise_on_t2v)
+    monkeypatch.setattr(pa._eng, 'embed_texts', _embed_none_on_lg)
     out = pa.compute_article_policy_alignment(_toy_articles([2016, 2022]))
-    assert out['policy_cosine_sim_full'].notna().all(), "canonical 被稳健轨失败误伤"
-    assert out['policy_cosine_sim_t2v_full'].isna().all()
-    assert out['policy_cosine_sim_t2v_ctx'].isna().all()
+    # both-or-neither: MAIN (canonical) 与 _lg 全列联动置 NaN
+    assert out['policy_cosine_sim_full'].isna().all(), \
+        "_lg 失败时 canonical 必须联动置 NaN (both-or-neither parity)"
+    assert out['policy_cosine_sim_lg_full'].isna().all()
+    assert out['policy_cosine_sim_lg_ctx'].isna().all()
+    # 列契约仍完整 (双射列名都在, 仅值为 NaN)
+    for c in ('policy_cosine_sim_full', 'policy_cosine_sim_ctx',
+              'policy_cosine_sim_lg_full', 'policy_cosine_sim_lg_ctx'):
+        assert c in out.columns, f"both-or-neither 不得删列契约, 缺 {c}"
 
 
 # ---------------------------------------------------------------------------
-# stage 26: vintage 锚点 + <3 银行 warning + t2v raise 守卫
+# stage 26: vintage 锚点 + <3 银行 warning + co-primary both-or-neither (_lg raise) 守卫
 # ---------------------------------------------------------------------------
 
 def _toy_df_exploded(years, banks_per_year=3):
@@ -368,9 +379,11 @@ def test_stage26_lt3_banks_warning(tmp_path, monkeypatch):
         panel['auth_sim_tfidf_c_full'].isna().all()
 
 
-def test_stage26_t2v_build_emb_raise_guard(tmp_path, monkeypatch):
-    """稳健轨 _build_emb raise → 整 stage 不崩; canonical auth_sim_emb_full 有值,
-    auth_sim_emb_t2v_full 置 NaN (g-policy-05 契约)。"""
+def test_stage26_coprimary_both_or_neither_nan(tmp_path, monkeypatch):
+    """v3.14.0 co-primary both-or-neither (stage 26): _lg (text-embedding-3-large)
+    的 _build_emb raise → 整 stage 不崩; canonical auth_sim_emb_full 与 _lg 孪生
+    auth_sim_emb_lg_full **同时**置 NaN (家族内 MAIN/_lg 同生共死, 无单边孤儿列)。
+    旧"_t2v 失败只把自己置空、canonical 照常"语义已被 co-primary 对等取代。"""
     from news_process.pipeline.features import policy_similarity as ps
     monkeypatch.setitem(ps.CONFIG['paths'], 'authoritative_corpus_file',
                         _write_corpus(tmp_path))
@@ -379,16 +392,21 @@ def test_stage26_t2v_build_emb_raise_guard(tmp_path, monkeypatch):
 
     orig_emb = ps._build_emb
 
-    def _emb_raise_on_spec(texts, spec=None):
-        if spec is not None:
+    def _emb_raise_on_lg(texts, spec=None):
+        if spec is not None:   # _lg co-primary spec → raise
             raise RuntimeError("Embedding API spec missing base_url or api_key")
         return orig_emb(texts)
 
-    monkeypatch.setattr(ps, '_build_emb', _emb_raise_on_spec)
+    monkeypatch.setattr(ps, '_build_emb', _emb_raise_on_lg)
     panel = ps.compute_authoritative_similarity(
         _toy_df_exploded([2020]), _toy_panel([2020]))
-    assert panel['auth_sim_emb_full'].notna().all(), "canonical 被 t2v 失败误伤"
-    assert panel['auth_sim_emb_t2v_full'].isna().all(), "t2v 失败应置 NaN"
+    # both-or-neither: _lg 失败 → MAIN(emb) 与 _lg 两族同置 NaN
+    assert panel['auth_sim_emb_full'].isna().all(), \
+        "_lg 失败时 canonical emb 必须联动置 NaN (both-or-neither)"
+    assert panel['auth_sim_emb_lg_full'].isna().all(), "_lg 失败应置 NaN"
+    # 列契约完整 (双射列名都在)
+    assert 'auth_sim_emb_full' in panel.columns
+    assert 'auth_sim_emb_lg_full' in panel.columns
 
 
 # ---------------------------------------------------------------------------
@@ -523,10 +541,11 @@ def test_stage15_allv_companion_columns_and_lookahead_diff(tmp_path, monkeypatch
 
     out = pa.compute_article_policy_alignment(
         _toy_articles([2016, 2022, 2014, np.nan]))
-    # _allv 孪生列 (主轨 + _t2v 各一族) 全部就绪
+    # _allv 孪生列 (主轨 gemini + co-primary _lg 各一族) 全部就绪
+    # (v3.14.0: 本地 _t2v 已删, _lg=text-embedding-3-large)
     for col in ['policy_cosine_sim_allv', 'policy_cosine_sim_allv_full',
-                'policy_cosine_sim_allv_ctx', 'policy_cosine_sim_t2v_allv_full',
-                'policy_cosine_sim_t2v_allv_ctx']:
+                'policy_cosine_sim_allv_ctx', 'policy_cosine_sim_lg_allv_full',
+                'policy_cosine_sim_lg_allv_ctx']:
         assert col in out.columns, f"缺 _allv 孪生列 {col}"
     # alias = _allv_full
     assert (out['policy_cosine_sim_allv'] == out['policy_cosine_sim_allv_full']).all()
@@ -573,9 +592,10 @@ def test_stage26_allv_companion_columns_and_lookahead(tmp_path, monkeypatch):
     panel = ps.compute_authoritative_similarity(
         _toy_df_exploded([2014, 2016, 2022]), _toy_panel([2014, 2016, 2022]))
     # _allv 孪生列就绪 (5 指标 × full/ctx 轨; content_ctx 在 toy 中存在)
+    # (v3.14.0: 本地 emb_t2v 已删, emb_lg=text-embedding-3-large co-primary)
     for col in ['auth_sim_tfidf_c_allv_full', 'auth_sim_tfidf_w_allv_full',
                 'auth_sim_lda_allv_full', 'auth_sim_emb_allv_full',
-                'auth_sim_emb_t2v_allv_full', 'auth_sim_tfidf_c_allv_ctx']:
+                'auth_sim_emb_lg_allv_full', 'auth_sim_tfidf_c_allv_ctx']:
         assert col in panel.columns, f"缺 _allv 孪生列 {col}"
     # 2014: vintage 主轨整年 NaN (前视守卫), 但 _allv 全年份锚点有值
     y2014 = panel[panel['year'] == 2014]
@@ -616,7 +636,7 @@ def test_stage26_allv_equals_vintage_when_anchors_coincide(tmp_path, monkeypatch
     panel = ps.compute_authoritative_similarity(
         _toy_df_exploded([2022]), _toy_panel([2022]))
     y = panel[panel['year'] == 2022]
-    for m in ('tfidf_c', 'tfidf_w', 'lda', 'emb', 'emb_t2v'):
+    for m in ('tfidf_c', 'tfidf_w', 'lda', 'emb', 'emb_lg'):
         vin = y[f'auth_sim_{m}_full'].to_numpy(dtype=float)
         allv = y[f'auth_sim_{m}_allv_full'].to_numpy(dtype=float)
         assert np.allclose(vin, allv, equal_nan=True), \
@@ -626,11 +646,12 @@ def test_stage26_allv_equals_vintage_when_anchors_coincide(tmp_path, monkeypatch
 def test_allv_panel_column_names_within_stata_32():
     """穷举全部 _allv 面板/文章列名, 断言 ≤32 字符 (Stata 变量名硬上限)。
 
-    防御性: _allv 后缀插在 track 后缀前, 与既有 _t2v/_ss 叠加后最长组合须仍合规
-    (CLAUDE.md Stata 段铁律; 镜像 _ss 三元组唯一性断言精神)。"""
+    防御性: _allv 后缀插在 track 后缀前, 与 co-primary _lg/_ss 叠加后最长组合须仍合规
+    (CLAUDE.md Stata 段铁律; 镜像 _ss 三元组唯一性断言精神)。
+    v3.14.0: 本地 _t2v(4 字符) 已删, co-primary _lg(3 字符) 是唯一嵌入孪生后缀, 更短 → 更安全。"""
     names = []
-    # stage 15 文章级
-    for base in ['policy_cosine_sim', 'policy_cosine_sim_t2v']:
+    # stage 15 文章级 (主轨 gemini 无后缀 + co-primary _lg)
+    for base in ['policy_cosine_sim', 'policy_cosine_sim_lg']:
         for t in ['', '_full', '_ctx', '_ss']:
             names.append(f'{base}_allv{t}')
     # runner 连续聚合
@@ -643,8 +664,8 @@ def test_allv_panel_column_names_within_stata_32():
             for p in (25, 50, 75):
                 for t in ['', '_ctx', '_ss']:
                     names.append(f'{q}_{kw}_p{p}_allv{t}')
-    # stage 26 银行年
-    for m in ['tfidf_c', 'tfidf_w', 'lda', 'emb', 'emb_t2v']:
+    # stage 26 银行年 (emb_lg = text-embedding-3-large co-primary)
+    for m in ['tfidf_c', 'tfidf_w', 'lda', 'emb', 'emb_lg']:
         for t in ['_full', '_ctx', '_ss']:
             names.append(f'auth_sim_{m}_allv{t}')
     over = [(n, len(n)) for n in names if len(n) > 32]
@@ -736,17 +757,24 @@ def test_allv_labels_mechanically_derived_in_both_label_dicts():
         assert '_ALLV_PREFIXES' in src, f"{mod.__name__} 缺 _allv 前缀白名单"
 
     # 行为级: stata_export.build_variable_labels 对其 HEURISTIC_LABELS 内有基标签的
-    # _allv 政策列 (如 _t2v 族) 产出含 anchor 标识的派生标签 (canonical auth_sim/
+    # _allv 政策列 (含 co-primary _lg 族) 产出含 anchor 标识的派生标签 (canonical auth_sim/
     # article_sim 基标签在 export.py STATA_LABELS, 走 .dta 路径; 此处只验 stata_export 源)。
+    # v3.14.0: 本地 _t2v 族整体移除, _lg=text-embedding-3-large 是活跃 co-primary 孪生;
+    # _lg KEY 与其 _allv 标签均由 stata_export 从 MAIN(无后缀) 基键机械派生。
     df = pd.DataFrame({
         'target_bank': ['工行'], 'year': [2020],
-        'policy_cosine_sim_t2v_full': [0.5],
-        'policy_cosine_sim_t2v_allv_full': [0.5],
-        'auth_sim_emb_t2v_full': [0.4],
-        'auth_sim_emb_t2v_allv_full': [0.4],
+        'policy_cosine_sim_lg_full': [0.5],
+        'policy_cosine_sim_lg_allv_full': [0.5],
+        'auth_sim_emb_lg_full': [0.4],
+        'auth_sim_emb_lg_allv_full': [0.4],
     })
     labels = stata_export.build_variable_labels(df)
-    assert '(All-Vintage anchor)' in labels['policy_cosine_sim_t2v_allv_full'], \
-        "policy_cosine_sim_t2v_allv_full 应得 All-Vintage anchor 派生标签"
-    assert '(All-Vintage anchor)' in labels['auth_sim_emb_t2v_allv_full'], \
-        "auth_sim_emb_t2v_allv_full 应得 All-Vintage anchor 派生标签"
+    # _lg base 标签带 "(co-primary: text-embedding-3-large)" 较长, 追加 "(All-Vintage anchor)"
+    # 后超 80 字节被尾截 → 仅断言可识别前缀 "(All-Vintage" (派生已生效, 截断是 to_stata 硬约束)。
+    assert '(All-Vintage' in labels['policy_cosine_sim_lg_allv_full'], \
+        "policy_cosine_sim_lg_allv_full 应得 All-Vintage anchor 派生标签"
+    assert '(All-Vintage' in labels['auth_sim_emb_lg_allv_full'], \
+        "auth_sim_emb_lg_allv_full 应得 All-Vintage anchor 派生标签"
+    # 标签仍满足 to_stata 80 字节硬约束
+    assert len(labels['policy_cosine_sim_lg_allv_full']) <= 80
+    assert len(labels['auth_sim_emb_lg_allv_full']) <= 80

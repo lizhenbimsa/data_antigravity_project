@@ -65,7 +65,7 @@ def _patch_engine(monkeypatch, dim: int = 4, capture: dict | None = None):
     monkeypatch.setattr(eng, 'embed_texts', fake_embed)
 
 
-def _write_emb_with_sidecar(path, emb, model_id='text-embedding-3-small'):
+def _write_emb_with_sidecar(path, emb, model_id='gemini-embedding-2-preview'):
     np.save(path, emb)
     with open(f"{path}.sidecar.json", 'w', encoding='utf-8') as f:
         json.dump({'model_id': model_id,
@@ -108,7 +108,7 @@ class TestFrozenCenter:
         assert c2 == pytest.approx(0.25)
 
     def test_per_key_isolation(self, monkeypatch, tmp_path):
-        """full/ctx/_t2v 各 score 列独立冻结条目。"""
+        """full/ctx/_lg 各 score 列独立冻结条目。"""
         monkeypatch.setattr(bs, 'OUTPUT_DIR', str(tmp_path))
         c_full = bs._get_frozen_center('benefit_score_full',
                                        pd.Series([0.0, 1.0]), 'm1')
@@ -334,12 +334,13 @@ class TestAltAnchorRewire:
         assert emb.shape == (2, 3)
         assert meta['model_id'] == 'm'
 
-    def test_resolve_spec_main_and_robustness(self):
-        """config/features.yaml 双 spec 反查; 未知 model → fail-loud。"""
-        spec_main = alt.resolve_embedding_spec('text-embedding-3-small')
-        assert spec_main['model'] == 'text-embedding-3-small'
-        spec_t2v = alt.resolve_embedding_spec('shibing624/text2vec-base-chinese')
-        assert spec_t2v['model'] == 'shibing624/text2vec-base-chinese'
+    def test_resolve_spec_main_and_coprimary(self):
+        """config/features.yaml 双 co-primary spec 反查 (v3.14.0: gemini MAIN +
+        text-embedding-3-large _lg; 已删本地 text2vec/_t2v); 未知 model → fail-loud。"""
+        spec_main = alt.resolve_embedding_spec('gemini-embedding-2-preview')
+        assert spec_main['model'] == 'gemini-embedding-2-preview'
+        spec_lg = alt.resolve_embedding_spec('text-embedding-3-large')
+        assert spec_lg['model'] == 'text-embedding-3-large'
         with pytest.raises(ValueError, match='未知嵌入模型'):
             alt.resolve_embedding_spec('gpt-7-nonexistent')
 

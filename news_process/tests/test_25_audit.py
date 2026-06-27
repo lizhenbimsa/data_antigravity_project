@@ -243,8 +243,13 @@ class TestComputeStrategicDifferentiation:
         `_eng.embed_texts` (旧 `_get_embeddings_api` 已作死代码删除, 历史只 patch 它 = 空挡)。
         故改 patch `_eng.embed_texts` (sync) 返回 deterministic L2-normalized 单位向量:
         绕过 config/网络, 让上层 cosine 相似度计算可走通. dim 取 8 (下游纯几何, dim 大小不影响通路).
+
+        v3.14.0 (2026-06-27, all-API-embedding): 项目已彻底移除本地嵌入模型
+        (text2vec `_t2v` / bge-m3 `_bge`), strategic_diff 不再 import sentence_transformers
+        —— 嵌入全经 `_eng.embed_texts` (gemini MAIN + `_lg`=text-embedding-3-large 双 API)。
+        故删去旧 `pytest.importorskip("sentence_transformers")` 守卫 (该依赖已与本测试无关,
+        否则在无该包的纯 API 机器上会错误跳过)。
         """
-        pytest.importorskip("sentence_transformers")
 
         def _mock_embed(texts, *args, **kwargs):
             texts = [] if texts is None else list(texts)
@@ -313,7 +318,7 @@ class TestComputeStrategicDifferentiation:
         result = _m25.compute_strategic_differentiation(df_exp, panel)
         # NN 族确实未产 (闸门 <3 银行)
         assert 'strat_diff_n5' not in result.columns
-        # 非 fluidity 的 strat_* 列 (契约别名 strat_diff_t2v_*) 应全 NaN
+        # 非 fluidity 的 strat_* 列 (含 co-primary 嵌入契约别名 strat_diff_lg_*) 应全 NaN
         strat_cols = [c for c in result.columns if c.startswith('strat_')]
         for col in strat_cols:
             if col.startswith('strat_fluidity'):

@@ -64,13 +64,13 @@
 
 输出:
   16_article_alignment.parquet (= 原数据 + 新增 7 列: policy_cosine_sim
-  (legacy alias = _full) + policy_cosine_sim_{full,ctx,ss} 三轨
-  + policy_cosine_sim_t2v_{full,ctx,ss} 双模型稳健 twin)
+  (legacy alias = _full) + policy_cosine_sim_{full,ctx,ss} 三轨 (MAIN, 无后缀)
+  + policy_cosine_sim_lg_{full,ctx,ss} 双 co-primary 孪生 (large))
   注: ss 轨 = content_ss (标题 + 银行∧金科同句共现窗), 上游 stage 13 物化;
       回退 (无共现) → 全文 body (镜像 ctx 回退公理, ss_is_fallback=True)。
   全年份锚点稳健孪生 (2026-06-21, article_alignment.all_vintage_companion=true 默认):
   并列再新增 `_allv` (all-vintage) 一族 policy_cosine_sim_allv[_full/_ctx/_ss] +
-  alias + policy_cosine_sim_t2v_allv_*——年度 t 文章与**所有年份**政策文档拼成的
+  alias + policy_cosine_sim_lg_allv_*——年度 t 文章与**所有年份**政策文档拼成的
   静态全语料锚点算余弦 (口径 = vintage 关闭时的旧静态锚点), 用**完全一致的下游构造**
   作 anchor-robustness 对照。⚠ `_allv` 含未来政策文本, 仅稳健性对照, 绝不替换 vintage
   主轨, 两轨禁混进同一 over-identified 检验 (见 all_vintage_companion_enabled docstring)。
@@ -94,8 +94,8 @@
 **处理步骤**:
 1. **语料加载** `load_policy_corpus_docs`: 按 `# [VINTAGE YYYY]` 标注行 / 落款日期行(YYYY年M月)/ 文号〔YYYY〕N号 解析各政策文档发布年份(vintage); 经 `_strip_leader_names` 镜像新闻侧 normalize 步骤2.5 做敏感词('习近平'简→繁'習近平')对称归一化; 无 VINTAGE 标注时按 ≥3 连续空行切文档。
 2. **Vintage-aware 前视守卫**(默认开, config: article_alignment.vintage_aware, 函数 vintage_aware_enabled): 年度 t 的文章只与 **发布年份 ≤ t** 的政策文档段拼成锚点算余弦(消除'2017年新闻比2022年才发布的政策'前视构造)。文章年份从 year 列或 日期 列派生; 年份未知或早于全部政策文档 → 该篇置 NaN。无年份信息或 opt-out 时降级为静态全语料锚点并 WARNING 披露。
-3. **嵌入与池化** `_cosine_for_spec`: 政策语料按文档朴素分段 (naive chunking)(_split_into_chunks, token 上限切不重叠段)→ 各段独立嵌入 → 对该年度允许的段做 mean pooling + L2 归一化 = 年度锚点; 文章侧无预截断(2026-06-12 选项 B 移除 8191-token 预截断), 超长文章由引擎 chunk+pool。文章与锚点算 cosine_similarity。每个 spec 用自己的模型独立嵌(API 1536维 vs text2vec 768维, 严禁混算)。
-4. **双模型**: MAIN = text-embedding-3-small(config embedding_api, yunwu OpenAI-compat API)→ canonical `policy_cosine_sim_{full,ctx,ss}` + 无后缀别名; ROBUSTNESS = shibing624/text2vec-base-chinese(本地, config embedding_robustness)→ `policy_cosine_sim_t2v_{full,ctx,ss}`。_t2v 失败(try/except 守卫)仅置 NaN 不破坏 canonical。
+3. **嵌入与池化** `_cosine_for_spec`: 政策语料按文档朴素分段 (naive chunking)(_split_into_chunks, token 上限切不重叠段)→ 各段独立嵌入 → 对该年度允许的段做 mean pooling + L2 归一化 = 年度锚点; 文章侧无预截断(2026-06-12 选项 B 移除 8191-token 预截断), 超长文章由引擎 chunk+pool。文章与锚点算 cosine_similarity。每个 spec 用自己的模型独立嵌(MAIN gemini vs large 3072维, 维度不同, 严禁混算)。
+4. **双 co-primary (v3.14.0, 全平价)**: MAIN = gemini-embedding(config embedding_api, API)→ canonical `policy_cosine_sim_{full,ctx,ss}` + 无后缀别名; LARGE = text-embedding-3-large(API 3072 维, config embedding_large)→ `policy_cosine_sim_lg_{full,ctx,ss}`。both-or-neither parity: MAIN 或 _lg 任一族嵌入失败 → 两族同时置 NaN(无单边孤儿列)。
 5. 统计/断言全部 NaN-安全(nanmin/nanmax/nanmean); full↔ctx Spearman ρ 轨间独立性诊断。
 
 **外部依赖/缓存**: 生产嵌入统一走 `pipeline/text/embedding_engine.embed_texts`(LLMCache 穿透 + 动态分批 + chunk-pool); 缓存键含逐字文本(故三轨 content_full/ctx/ss 文本不同字节天然隔离缓存项), 缓存库 = _llm_cache.db。content_full 与 stage 27(benefit_society)逐篇嵌入同源, 同篇文章 API 向量只付费一次。模块内 `_get_embeddings_api_dynamic` 是 legacy(仅 tests/test_pipeline_robustness.py 与 tests/test_omni_fix_policy.py 引用, 生产0调用)。**API 离线守卫**: 嵌入 miss 即付费调 API(不受 NEWS_PROCESS_LLM_OFFLINE 的 stage 21 守卫保护; 裸环境须设 SSL_CERT_FILE=certifi 修 yunwu.ai 证书)。timeout=7200。
@@ -141,18 +141,12 @@ from news_process.pipeline.text import embedding_engine as _eng
 
 # LLM API 配置（复用 tone_llm_processing 节中的 base_url 和 api_key）
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
-# MAIN spec = text-embedding-3-small (API) → canonical policy_cosine_sim* 列
+# MAIN spec = 无后缀主嵌入模型 (config embedding_api, gemini-embedding) → canonical
+# policy_cosine_sim* 列。
 EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})
-# ROBUSTNESS spec = shibing624/text2vec (local) → _t2v 后缀稳健 twin 列
-_ROBUSTNESS_SPEC = CONFIG.get('embedding_robustness', {})
-# LARGE spec = 第三嵌入模型 (如 text-embedding-3-large, 3072 维) → _lg 后缀稳健 twin 列。
-# 休眠门 (golden 安全铁律): 仅当 config 显式配置 `embedding_large` 块 (dict 非空) 才计算/落
-# `_lg` 列; 未配置时 _LARGE_SPEC={} → 完全不产 _lg 列 → 既有行为字节级不变。
+# LARGE spec = co-primary 嵌入模型 (text-embedding-3-large, 3072 维) → _lg 后缀孪生列,
+# 与 MAIN(无后缀) 全平价并列 (v3.14.0 起为 ACTIVE co-primary, 非休眠)。
 _LARGE_SPEC = CONFIG.get('embedding_large', {})
-# BGE spec = 第四嵌入模型 (BAAI/bge-m3, 本地 1024 维) → _bge 后缀稳健 twin 列。镜像 _t2v
-# (本地 spec, base_url=local → encode_local), 强跨架构独立稳健轨。同款休眠门: 仅当 config
-# 配置非空 `embedding_bge` 块才计算/落 _bge 列; 未配置时 {} → 不产 _bge 列 → 字节级不变。
-_BGE_SPEC = CONFIG.get('embedding_bge', {})
 # 2026-06-26 全项目统一: 嵌入 API 每次重试固定间隔 10s (flat, 不再指数退避)
 RETRY_DELAY = 10
 CACHE_DB_PATH = CONFIG['paths'].get('llm_cache_db', os.path.join(CONFIG['paths']['output_dir'], '_llm_cache.db'))
@@ -544,7 +538,7 @@ async def _get_embeddings_api_dynamic(
 
 
 # ============================================================================
-# 3b. 三轨 (full/ctx/ss) 嵌入 + 余弦相似度公共算子 (v3.7.5: 双模型 dual-model)
+# 3b. 三轨 (full/ctx/ss) 嵌入 + 余弦相似度公共算子 (v3.14.0: 双 co-primary, 按 spec 调用)
 # ============================================================================
 
 def _cosine_for_spec(
@@ -570,7 +564,7 @@ def _cosine_for_spec(
     并列产出 `_allv` 稳健列。静态三元组复用同一批 article embeddings → **零额外 API**。
 
     【关键约束】每个 spec 用**自己的**模型独立嵌入自己的 anchors/texts,
-    绝不复用另一 spec 的向量 (API 1536 维 vs text2vec 768 维, 严禁混算)。
+    绝不复用另一 spec 的向量 (MAIN gemini 维度 vs large 3072 维, 严禁混算)。
     ⚠ 嵌入缓存键含逐字文本 (非轨标签) → content_ss 文本与 full/ctx 不同字节自然
     隔离独立缓存项, 三轨复用同一 spec 无键碰撞。
 
@@ -591,7 +585,7 @@ def _cosine_for_spec(
         full_texts: full 轨文本 (不截断; 超长由引擎分段池化)
         ctx_texts:  ctx 轨文本
         doc_chunks: 权威政策语料分段, 按文档分组 (list per 文档)
-        spec: embedding spec (MAIN=API / ROBUSTNESS=local)
+        spec: embedding spec (MAIN=gemini API / LARGE=text-embedding-3-large API)
         ss_texts:   ss 轨文本 (银行+金科同句); None → 不算 ss, cos_ss 返回 None
         doc_years: 各文档 vintage 年份 (与 doc_chunks 对齐); None → 静态锚点
         article_years: (N,) 文章年份 float 数组 (NaN=未知); None → 静态锚点
@@ -621,9 +615,8 @@ def _cosine_for_spec(
 
     # 单连接复用 (2026-06-23 零风险小优化): 本函数 ≤4 次 embed_texts 调用此前各开一个
     # LLMCache (≤4 次 sqlite connect/WAL/建表); 改为本函数开一个共享连接传入, 省去重复
-    # 打开 (产出逐位不变)。
-    # 2026-06-23: local spec (text2vec) 也改走缓存 (_encode_local_cached) → 同样传入
-    # 共享连接 (此前 local 不缓存故传 None), 让本地嵌入跨 run/跨 stage 命中即 $0 复现。
+    # 打开 (产出逐位不变)。两 co-primary (MAIN/large) 均经 API embed 走 LLMCache 穿透,
+    # 命中即 $0 跨 run/跨 stage 复现。
     has_ss = ss_texts is not None
     shared_cache = LLMCache(CACHE_DB_PATH)
     try:
@@ -752,7 +745,7 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
         policy_cosine_sim_i = cos(emb(article_i), emb(auth_text))
 
     其中:
-      - emb() 为稠密语义编码: MAIN spec = text-embedding-3-small (API, 1536 维); ROBUSTNESS spec = shibing624/text2vec-base-chinese (本地, 768 维); 两 spec 各自独立编码, 严禁混算 (见 L92/L513)。
+      - emb() 为稠密语义编码: MAIN spec = gemini-embedding (API, 无后缀 canonical); LARGE spec = text-embedding-3-large (API, 3072 维, _lg co-primary); 两 spec 各自独立编码, 全平价并列, 严禁混算。
       - auth_text 为权威政策语料库 (config/authoritative_corpus.txt) 中发布年份
         ≤ 文章年份的文档段拼接 (vintage-aware, fix(omni-g-policy-02, 2026-06-11):
         旧静态全语料锚点含未来政策文本, 构成前视; 现按政策发布年份切分,
@@ -783,12 +776,13 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
             stage 13 物化; 缺列时优雅跳过, 不产出 _ss 列)。
 
     Returns:
-        DataFrame: 新增 'policy_cosine_sim' (legacy alias) + _full/_ctx/_ss 三轨
-        + _t2v_full/_t2v_ctx/_t2v_ss 稳健 twin, 共 7 列 (content_ss 缺失时退回 5 列;
-        见模块 docstring 输出段)。
+        DataFrame: 新增 'policy_cosine_sim' (legacy alias) + _full/_ctx/_ss 三轨 (MAIN)
+        + _lg_full/_lg_ctx/_lg_ss 双 co-primary 孪生 (large), 共 7 列 (content_ss 缺失时
+        退回 5 列; 见模块 docstring 输出段)。MAIN 与 _lg both-or-neither: 任一族嵌入失败
+        两族同时置 NaN。
         全年份锚点稳健孪生 (2026-06-21, article_alignment.all_vintage_companion=true 默认):
         再并列新增 `_allv` 一族 (policy_cosine_sim_allv[_full/_ctx/_ss] + alias +
-        _t2v_allv_*), 用全语料(所有年份)静态锚点 + 完全一致下游构造, 作 anchor-robustness
+        _lg_allv_*), 用全语料(所有年份)静态锚点 + 完全一致下游构造, 作 anchor-robustness
         对照 (绝不替换 vintage 主轨, 详见 all_vintage_companion_enabled docstring)。
     """
     # 旧短 banner ("=" * 60 + "开始计算...") 已删: 与 main() 新【功能】黄金范式 banner
@@ -811,59 +805,28 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     # 全年份锚点稳健孪生开关 (2026-06-21): true → 并列产出 `_allv` 一族 (全语料静态锚点)。
     _companion = all_vintage_companion_enabled()
 
-    # 双模型 full/ctx → 三轨 (full/ctx/ss) 列契约 (2026-05-29 起; ss 2026-06-14 加): 早退路径也须产出全部
-    # 列 (全 NaN), 否则下游 runner 聚合缺 policy_cosine_sim_t2v_* → export.py
-    # REQUIRED_PANEL_COLUMNS 抛 RuntimeError (原 stage 30 退役后 stage 15 是 _t2v
-    # 唯一来源)。content_ss 缺失时 _ss/_t2v_ss 不进契约 (退回 5 列), 与 ctx 守卫一致。
+    # 双 co-primary (MAIN 无后缀 + _lg) full/ctx → 三轨 (full/ctx/ss) 列契约: 早退路径也须
+    # 产出全部列 (全 NaN), 否则下游 runner 聚合缺列 → export.py REQUIRED_PANEL_COLUMNS 抛
+    # RuntimeError。content_ss 缺失时 _ss 不进契约 (退回 5 列), 与 ctx 守卫一致。
+    # 🔴 both-or-neither parity (D-4a): MAIN(无后缀) 与 _lg 列同进同出 — 早退路径两族同时
+    #   置 NaN, 计算成功路径若任一 embed 返回 None 则两族同时置 NaN (见下方 _main_res 守卫)。
     _ALIGN_NAN_COLS = [
         'policy_cosine_sim', 'policy_cosine_sim_full', 'policy_cosine_sim_ctx',
-        'policy_cosine_sim_t2v_full', 'policy_cosine_sim_t2v_ctx',
+        'policy_cosine_sim_lg_full', 'policy_cosine_sim_lg_ctx',
     ]
     if has_ss:
-        _ALIGN_NAN_COLS += ['policy_cosine_sim_ss', 'policy_cosine_sim_t2v_ss']
+        _ALIGN_NAN_COLS += ['policy_cosine_sim_ss', 'policy_cosine_sim_lg_ss']
     # `_allv` 全年份锚点孪生 (companion 开启时): 早退路径同样须产全 NaN 占位列, 与主轨
     # 列契约对称 (下游 runner 按存在性优雅聚合; _allv 非 REQUIRED_PANEL_COLUMNS 硬契约)。
     if _companion:
         _ALIGN_NAN_COLS += [
             'policy_cosine_sim_allv', 'policy_cosine_sim_allv_full',
             'policy_cosine_sim_allv_ctx',
-            'policy_cosine_sim_t2v_allv_full', 'policy_cosine_sim_t2v_allv_ctx',
+            'policy_cosine_sim_lg_allv_full', 'policy_cosine_sim_lg_allv_ctx',
         ]
         if has_ss:
             _ALIGN_NAN_COLS += ['policy_cosine_sim_allv_ss',
-                                'policy_cosine_sim_t2v_allv_ss']
-
-    # LARGE (_lg) 第三嵌入模型轨: 仅当 config 配置 embedding_large (休眠门) 才进列契约,
-    # 占位列与 _t2v 同条件对称 (has_ss / _companion), 保证三处早退路径 _lg/_t2v 占位对齐。
-    if _LARGE_SPEC:
-        _ALIGN_NAN_COLS += [
-            'policy_cosine_sim_lg_full', 'policy_cosine_sim_lg_ctx',
-        ]
-        if has_ss:
-            _ALIGN_NAN_COLS += ['policy_cosine_sim_lg_ss']
-        if _companion:
-            _ALIGN_NAN_COLS += [
-                'policy_cosine_sim_lg_allv_full',
-                'policy_cosine_sim_lg_allv_ctx',
-            ]
-            if has_ss:
-                _ALIGN_NAN_COLS += ['policy_cosine_sim_lg_allv_ss']
-
-    # BGE (_bge) 第四嵌入模型轨: 仅当 config 配置 embedding_bge (休眠门) 才进列契约,
-    # 占位列与 _t2v/_lg 同条件对称 (has_ss / _companion), 保证早退路径 _bge 占位对齐。
-    if _BGE_SPEC:
-        _ALIGN_NAN_COLS += [
-            'policy_cosine_sim_bge_full', 'policy_cosine_sim_bge_ctx',
-        ]
-        if has_ss:
-            _ALIGN_NAN_COLS += ['policy_cosine_sim_bge_ss']
-        if _companion:
-            _ALIGN_NAN_COLS += [
-                'policy_cosine_sim_bge_allv_full',
-                'policy_cosine_sim_bge_allv_ctx',
-            ]
-            if has_ss:
-                _ALIGN_NAN_COLS += ['policy_cosine_sim_bge_allv_ss']
+                                'policy_cosine_sim_lg_allv_ss']
 
     if not os.path.exists(auth_path):
         logger.warning(f"  找不到权威政策语料: {auth_path}。"
@@ -941,7 +904,7 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     else:
         logger.warning(
             "  content_ss 列缺失 (stage 13 未物化同句共现轨?), 跳过 ss 轨 — "
-            "不产出 policy_cosine_sim_ss / _t2v_ss 列 (镜像 ctx 缺列优雅跳过)")
+            "不产出 policy_cosine_sim_ss / _lg_ss 列 (镜像 ctx 缺列优雅跳过)")
         ss_texts = None
 
     # 处理 full 轨 raw_texts (与下游保持兼容名)
@@ -1022,21 +985,23 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
         logger.info(f"  ss 轨 token: 超长 (引擎 chunk+pool) "
                     f"{n_long_ss}/{len(ss_texts)} 篇")
 
-    # ---- 4.5 双模型嵌入 + 余弦相似度 (v3.7.5: dual-model) ----
+    # ---- 4.5 双 co-primary 嵌入 + 余弦相似度 (MAIN 无后缀 + _lg 全平价) ----
     # 【术语】Hoberg & Phillips (2016, JPE, §III) 余弦相似度;
     #   v3.6.0 Plan E P3 B2 full/ctx → 2026-06-14 加 ss 同句共现轨成 full/ctx/ss
-    #   三轨; v3.7.5 在其上叠加 MAIN/ROBUSTNESS
-    #   双模型: MAIN = text-embedding-3-small (API, 1536 维) → canonical 列,
-    #   ROBUSTNESS = shibing624/text2vec (local, 768 维) → _t2v 列。
+    #   三轨; v3.14.0 双 co-primary:
+    #   MAIN = gemini-embedding (API) → canonical 无后缀列,
+    #   LARGE = text-embedding-3-large (API, 3072 维) → _lg 列 (ACTIVE co-primary)。
     # 【关键】两个模型各嵌各的 anchors/texts, 绝不混算 (维度不同 + 语义空间不同)。
     #   embedding 取得统一经 _eng (本地 vs API 由 spec 内部分派, 不再 inline if)。
-    # 【白话】同一批新闻用两个不同模型各算一遍政策对齐分, text2vec 那遍是
-    #   稳健性对照, 列名加 _t2v 后缀; 主轨 (API) 列名保持不变。
+    # 🔴 both-or-neither parity (D-4a): MAIN 与 _lg 是双射孪生 — 任一族 embed 返回 None
+    #   则两族同时置 NaN, 绝不留单边孤儿列。故先各自算结果, 再统一判 None 联动降级。
+    # 【白话】同一批新闻用两个 API 模型各算一遍政策对齐分, 两套结果全平价并列;
+    #   主轨无后缀, large 那遍列名加 _lg 后缀; 任一套算不出来则两套一起置空。
     df = df.copy()
 
-    # --- MAIN (canonical) 轨: 列名 byte-for-byte 不变 ---
+    # --- 先算 MAIN 与 _lg 两 co-primary 结果 (尚未落列), 供下方 both-or-neither 联动判定 ---
     # 选项 B: 直送**全文** full_texts / ctx_texts / ss_texts (非预截断版), 超长由引擎
-    # chunk+pool。ss_texts=None (content_ss 缺失) 时 sim_scores_ss 返回 None, 跳过 _ss 列。
+    # chunk+pool。ss_texts=None (content_ss 缺失) 时 *_ss 返回 None, 跳过 _ss 列。
     # return_static=_companion: companion 开启时同步取"全年份(静态全语料)锚点"孪生
     # (av_* = all-vintage; 复用同一批 article embeddings → 零额外 API)。
     _main_res = _cosine_for_spec(
@@ -1049,14 +1014,29 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     else:
         sim_scores_full, sim_scores_ctx, sim_scores_ss = _main_res
         av_full = av_ctx = av_ss = None
-    if sim_scores_full is None or sim_scores_ctx is None:
-        # F1 fix (2026-05-30): MAIN 失败也须产出全部列 (含 _t2v[/_ss]/_allv, 全 NaN), 与
-        # 上面两个 auth 早退路径对称。否则缺 policy_cosine_sim_t2v_* → 下游
-        # export.py::REQUIRED_PANEL_COLUMNS 抛 RuntimeError (stage 30 退役后
-        # stage 15 是 policy_cosine_sim_t2v 的唯一来源)。_ALIGN_NAN_COLS 已含
-        # _ss/_t2v_ss (当 has_ss) 与 _allv 族 (当 _companion)。
-        logger.error("  ⚠️ MAIN spec 嵌入失败, canonical + _t2v[+_ss][+_allv] 全列置 NaN "
-                     "(保持双模型多轨列契约)")
+
+    # --- LARGE (_lg) co-primary 轨: 与 MAIN 全平价 (ACTIVE, 非休眠) ---
+    # 选项 B: 同 MAIN, 直送全文 full_texts / ctx_texts / ss_texts, 超长引擎 chunk+pool。
+    # return_static=_companion: 同步取 _lg 轨的全年份(静态)锚点孪生 (lg_av_*)。
+    _lg_res = _cosine_for_spec(
+        full_texts, ctx_texts, doc_chunks, _LARGE_SPEC,
+        ss_texts=ss_texts, doc_years=doc_years, article_years=article_years,
+        return_static=_companion)
+    if _companion:
+        (lg_full, lg_ctx, lg_ss), (lg_av_full, lg_av_ctx, lg_av_ss) = _lg_res
+    else:
+        lg_full, lg_ctx, lg_ss = _lg_res
+        lg_av_full = lg_av_ctx = lg_av_ss = None
+
+    # 🔴 both-or-neither 联动降级: MAIN 或 _lg 任一族 full/ctx 嵌入返回 None → 两族全列
+    # 置 NaN (含 _ss/_allv), 绝不留单边孤儿列 (D-4a parity 不变量)。
+    _main_failed = sim_scores_full is None or sim_scores_ctx is None
+    _lg_failed = lg_full is None or lg_ctx is None
+    if _main_failed or _lg_failed:
+        logger.error(
+            f"  ⚠️ 嵌入失败 (MAIN_failed={_main_failed}, _lg_failed={_lg_failed}): "
+            "canonical 与 _lg 两 co-primary 全列联动置 NaN (both-or-neither parity, "
+            "保持双射列契约)")
         for _c in _ALIGN_NAN_COLS:
             df[_c] = np.nan
         return df
@@ -1089,164 +1069,28 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
                 df['policy_cosine_sim_allv_ss'] = np.nan
             df['policy_cosine_sim_allv'] = np.nan
 
-    # --- ROBUSTNESS (_t2v) 轨: 失败不破坏 canonical, 仅 _t2v 列置 NaN ---
-    # fix(omni-g-policy-05, 2026-06-11): try/except 守卫 raise 路径 — 此前仅拦
-    # embed_texts 返回 None; embedding_robustness 配置缺失 ({} → spec_uses_local
-    # 为 False → API 分支 get_embeddings_api raise RuntimeError) 或本地模型加载
-    # 抛错会沿调用链炸掉整个 stage (canonical 列一并丢失), 与本契约注释矛盾。
-    try:
-        # 选项 B: 同 MAIN, 直送全文 full_texts / ctx_texts / ss_texts, 超长引擎 chunk+pool。
-        # return_static=_companion: 同步取 _t2v 轨的全年份(静态)锚点孪生 (t2v_av_*)。
-        _t2v_res = _cosine_for_spec(
-            full_texts, ctx_texts, doc_chunks, _ROBUSTNESS_SPEC,
-            ss_texts=ss_texts, doc_years=doc_years, article_years=article_years,
-            return_static=_companion)
-        if _companion:
-            (t2v_full, t2v_ctx, t2v_ss), \
-                (t2v_av_full, t2v_av_ctx, t2v_av_ss) = _t2v_res
-        else:
-            t2v_full, t2v_ctx, t2v_ss = _t2v_res
-            t2v_av_full = t2v_av_ctx = t2v_av_ss = None
-    except Exception as _t2v_exc:
-        logger.warning(f"  ROBUSTNESS (text2vec) 嵌入异常: "
-                       f"{type(_t2v_exc).__name__}: {_t2v_exc} → _t2v 轨置 NaN "
-                       f"(canonical 不受影响, omni-g-policy-05)")
-        t2v_full = t2v_ctx = t2v_ss = None
-        t2v_av_full = t2v_av_ctx = t2v_av_ss = None
-    if t2v_full is None or t2v_ctx is None:
-        logger.warning(
-            "  ROBUSTNESS (text2vec) 嵌入失败, "
-            "policy_cosine_sim_t2v_{full,ctx[,ss]} 置 NaN (canonical 不受影响)")
-        df['policy_cosine_sim_t2v_full'] = np.nan
-        df['policy_cosine_sim_t2v_ctx'] = np.nan
-        # ss 轨 _t2v: 仅当上游有 content_ss (has_ss) 才占位 NaN, 维持列契约对齐
-        if has_ss:
-            df['policy_cosine_sim_t2v_ss'] = np.nan
-    else:
-        df['policy_cosine_sim_t2v_full'] = t2v_full.astype(np.float32)
-        df['policy_cosine_sim_t2v_ctx'] = t2v_ctx.astype(np.float32)
-        # ss 轨 _t2v (银行+金科同句): t2v_ss=None (ss_texts=None) 时跳过, 不产 _ss 列
-        if t2v_ss is not None:
-            df['policy_cosine_sim_t2v_ss'] = t2v_ss.astype(np.float32)
+    # --- LARGE (_lg) co-primary 轨落列: 与 MAIN 全平价 (ACTIVE) ---
+    # lg_* 已在上方与 MAIN 一并算好; both-or-neither 守卫已保证此处 lg_full/lg_ctx 必非
+    # None (任一 co-primary full/ctx 失败已联动早退置 NaN)。故主列无条件落盘。
+    df['policy_cosine_sim_lg_full'] = lg_full.astype(np.float32)
+    df['policy_cosine_sim_lg_ctx'] = lg_ctx.astype(np.float32)
+    # ss 轨 _lg (银行+金科同句): lg_ss=None (ss_texts=None) 时跳过, 不产 _ss 列 (镜像 MAIN)
+    if lg_ss is not None:
+        df['policy_cosine_sim_lg_ss'] = lg_ss.astype(np.float32)
 
-    # 全年份锚点 _t2v_allv 稳健孪生 (companion 开启时): 镜像 _t2v 主轨, 仅换静态锚点。
-    # t2v 主轨失败 (t2v_av_full=None) → 占位 NaN; ss 缺列时不产 _allv_ss (与上对齐)。
+    # 全年份锚点 _lg_allv 孪生 (companion 开启时): 镜像 _lg 主轨, 仅换静态锚点。
+    # lg 静态锚点退化 (lg_av_full=None) → 占位 NaN; ss 缺列时不产 _allv_ss (与 MAIN 对齐)。
     if _companion:
-        if t2v_av_full is not None and t2v_av_ctx is not None:
-            df['policy_cosine_sim_t2v_allv_full'] = t2v_av_full.astype(np.float32)
-            df['policy_cosine_sim_t2v_allv_ctx'] = t2v_av_ctx.astype(np.float32)
-            if t2v_av_ss is not None:
-                df['policy_cosine_sim_t2v_allv_ss'] = t2v_av_ss.astype(np.float32)
+        if lg_av_full is not None and lg_av_ctx is not None:
+            df['policy_cosine_sim_lg_allv_full'] = lg_av_full.astype(np.float32)
+            df['policy_cosine_sim_lg_allv_ctx'] = lg_av_ctx.astype(np.float32)
+            if lg_av_ss is not None:
+                df['policy_cosine_sim_lg_allv_ss'] = lg_av_ss.astype(np.float32)
         else:
-            df['policy_cosine_sim_t2v_allv_full'] = np.nan
-            df['policy_cosine_sim_t2v_allv_ctx'] = np.nan
+            df['policy_cosine_sim_lg_allv_full'] = np.nan
+            df['policy_cosine_sim_lg_allv_ctx'] = np.nan
             if has_ss:
-                df['policy_cosine_sim_t2v_allv_ss'] = np.nan
-
-    # --- LARGE (_lg) 第三嵌入模型轨 (休眠门: 仅 _LARGE_SPEC 非空时计算/落列) ---
-    # 镜像 _t2v 轨: 把 spec=_ROBUSTNESS_SPEC/suffix=_t2v 那一份复制成 spec=_LARGE_SPEC/
-    # suffix=_lg, 维度无关 (emb.shape[1] 驱动, 3072 维不与 1536/768 混算)。同款 try/except
-    # 守卫 → LARGE API/模型失败仅 _lg 列置 NaN (canonical 与 _t2v 不受影响)。
-    if _LARGE_SPEC:
-        try:
-            # 选项 B: 同 MAIN, 直送全文 full_texts / ctx_texts / ss_texts, 超长引擎 chunk+pool。
-            # return_static=_companion: 同步取 _lg 轨的全年份(静态)锚点孪生 (lg_av_*)。
-            _lg_res = _cosine_for_spec(
-                full_texts, ctx_texts, doc_chunks, _LARGE_SPEC,
-                ss_texts=ss_texts, doc_years=doc_years, article_years=article_years,
-                return_static=_companion)
-            if _companion:
-                (lg_full, lg_ctx, lg_ss), \
-                    (lg_av_full, lg_av_ctx, lg_av_ss) = _lg_res
-            else:
-                lg_full, lg_ctx, lg_ss = _lg_res
-                lg_av_full = lg_av_ctx = lg_av_ss = None
-        except Exception as _lg_exc:
-            logger.warning(f"  LARGE (embedding_large) 嵌入异常: "
-                           f"{type(_lg_exc).__name__}: {_lg_exc} → _lg 轨置 NaN "
-                           f"(canonical 与 _t2v 不受影响)")
-            lg_full = lg_ctx = lg_ss = None
-            lg_av_full = lg_av_ctx = lg_av_ss = None
-        if lg_full is None or lg_ctx is None:
-            logger.warning(
-                "  LARGE (embedding_large) 嵌入失败, "
-                "policy_cosine_sim_lg_{full,ctx[,ss]} 置 NaN (canonical 不受影响)")
-            df['policy_cosine_sim_lg_full'] = np.nan
-            df['policy_cosine_sim_lg_ctx'] = np.nan
-            # ss 轨 _lg: 仅当上游有 content_ss (has_ss) 才占位 NaN, 维持列契约对齐
-            if has_ss:
-                df['policy_cosine_sim_lg_ss'] = np.nan
-        else:
-            df['policy_cosine_sim_lg_full'] = lg_full.astype(np.float32)
-            df['policy_cosine_sim_lg_ctx'] = lg_ctx.astype(np.float32)
-            # ss 轨 _lg (银行+金科同句): lg_ss=None (ss_texts=None) 时跳过, 不产 _ss 列
-            if lg_ss is not None:
-                df['policy_cosine_sim_lg_ss'] = lg_ss.astype(np.float32)
-
-        # 全年份锚点 _lg_allv 稳健孪生 (companion 开启时): 镜像 _lg 主轨, 仅换静态锚点。
-        # lg 主轨失败 (lg_av_full=None) → 占位 NaN; ss 缺列时不产 _allv_ss (与上对齐)。
-        if _companion:
-            if lg_av_full is not None and lg_av_ctx is not None:
-                df['policy_cosine_sim_lg_allv_full'] = lg_av_full.astype(np.float32)
-                df['policy_cosine_sim_lg_allv_ctx'] = lg_av_ctx.astype(np.float32)
-                if lg_av_ss is not None:
-                    df['policy_cosine_sim_lg_allv_ss'] = lg_av_ss.astype(np.float32)
-            else:
-                df['policy_cosine_sim_lg_allv_full'] = np.nan
-                df['policy_cosine_sim_lg_allv_ctx'] = np.nan
-                if has_ss:
-                    df['policy_cosine_sim_lg_allv_ss'] = np.nan
-
-    # --- BGE (_bge) 第四嵌入模型轨 (休眠门: 仅 _BGE_SPEC 非空时计算/落列) ---
-    # 镜像 _t2v 轨 (BGE-M3 是本地 spec, base_url=local → encode_local, 与 text2vec 同路径):
-    # spec=_BGE_SPEC/suffix=_bge, 维度无关 (emb.shape[1] 驱动, 1024 维不与 1536/768/3072 混算)。
-    # 同款 try/except 守卫 → BGE 本地模型失败仅 _bge 列置 NaN (canonical/_t2v/_lg 不受影响)。
-    if _BGE_SPEC:
-        try:
-            # 选项 B: 同 MAIN, 直送全文 full_texts / ctx_texts / ss_texts, 超长引擎 chunk+pool。
-            # return_static=_companion: 同步取 _bge 轨的全年份(静态)锚点孪生 (bge_av_*)。
-            _bge_res = _cosine_for_spec(
-                full_texts, ctx_texts, doc_chunks, _BGE_SPEC,
-                ss_texts=ss_texts, doc_years=doc_years, article_years=article_years,
-                return_static=_companion)
-            if _companion:
-                (bge_full, bge_ctx, bge_ss), \
-                    (bge_av_full, bge_av_ctx, bge_av_ss) = _bge_res
-            else:
-                bge_full, bge_ctx, bge_ss = _bge_res
-                bge_av_full = bge_av_ctx = bge_av_ss = None
-        except Exception as _bge_exc:
-            logger.warning(f"  BGE (embedding_bge) 嵌入异常: "
-                           f"{type(_bge_exc).__name__}: {_bge_exc} → _bge 轨置 NaN "
-                           f"(canonical 与 _t2v/_lg 不受影响)")
-            bge_full = bge_ctx = bge_ss = None
-            bge_av_full = bge_av_ctx = bge_av_ss = None
-        if bge_full is None or bge_ctx is None:
-            logger.warning(
-                "  BGE (embedding_bge) 嵌入失败, "
-                "policy_cosine_sim_bge_{full,ctx[,ss]} 置 NaN (canonical 不受影响)")
-            df['policy_cosine_sim_bge_full'] = np.nan
-            df['policy_cosine_sim_bge_ctx'] = np.nan
-            if has_ss:
-                df['policy_cosine_sim_bge_ss'] = np.nan
-        else:
-            df['policy_cosine_sim_bge_full'] = bge_full.astype(np.float32)
-            df['policy_cosine_sim_bge_ctx'] = bge_ctx.astype(np.float32)
-            if bge_ss is not None:
-                df['policy_cosine_sim_bge_ss'] = bge_ss.astype(np.float32)
-
-        # 全年份锚点 _bge_allv 稳健孪生 (companion 开启时): 镜像 _bge 主轨, 仅换静态锚点。
-        if _companion:
-            if bge_av_full is not None and bge_av_ctx is not None:
-                df['policy_cosine_sim_bge_allv_full'] = bge_av_full.astype(np.float32)
-                df['policy_cosine_sim_bge_allv_ctx'] = bge_av_ctx.astype(np.float32)
-                if bge_av_ss is not None:
-                    df['policy_cosine_sim_bge_allv_ss'] = bge_av_ss.astype(np.float32)
-            else:
-                df['policy_cosine_sim_bge_allv_full'] = np.nan
-                df['policy_cosine_sim_bge_allv_ctx'] = np.nan
-                if has_ss:
-                    df['policy_cosine_sim_bge_allv_ss'] = np.nan
+                df['policy_cosine_sim_lg_allv_ss'] = np.nan
 
     # ---- 4.7 统计报告 ----
     # fix(omni-g-policy-02, 2026-06-11): 统计/诊断/断言全部改 NaN-安全 —
@@ -1330,7 +1174,7 @@ def main():
 
     数据流: 15_fintech_intensity.parquet → 16_article_alignment.parquet
     新增列: policy_cosine_sim 族共 7 列 (float32, 值域 [-1, 1];
-    含 _full/_ctx/_ss 三轨 + _t2v_* 双模型稳健 twin; content_ss 缺失时退回 5 列)。
+    含 _full/_ctx/_ss 三轨 (MAIN) + _lg_* 双 co-primary 孪生; content_ss 缺失时退回 5 列)。
     全年份锚点稳健孪生 (all_vintage_companion=true 默认): 再并列 `_allv` 一族 (同列数,
     全语料静态锚点; anchor-robustness 对照, 不替换 vintage 主轨)。
     """
@@ -1352,17 +1196,17 @@ def main():
     logger.info("=" * 72)
     logger.info("【功能】给每篇金科新闻打一个『政策对齐分』(余弦相似度 ∈ [-1,1], 实务多落 0~1): 把国家重磅金科政策文件浓缩成")
     logger.info("        一份『标准答案向量』, 再算每篇新闻向量与它的夹角余弦; 产出 policy_cosine_sim")
-    logger.info("        族列 (full/ctx/ss 三轨 + _t2v 双模型 twin), 供 stage 45 四象限分类消费。")
+    logger.info("        族列 (full/ctx/ss 三轨 + _lg 双 co-primary twin), 供 stage 45 四象限分类消费。")
     logger.info("【方法】policy_cosine_sim_i = cos(emb(article_i), emb(auth_anchor)), 值域 [-1,1] 实务多落 0~1。")
     logger.info("        anchor = 权威语料按文档朴素分段 → mean pooling + L2 归一化; vintage-aware 前视守卫:")
     logger.info("        年度 t 文章只与发布年份 ≤ t 的政策段算锚 (article_alignment.vintage_aware)。")
-    logger.info("        双模型: MAIN=text-embedding-3-small(API,1536维) → canonical; ROBUSTNESS=text2vec(本地,768维) → _t2v。")
+    logger.info("        双 co-primary (全平价): MAIN=gemini-embedding(API) → canonical 无后缀; LARGE=text-embedding-3-large(API,3072维) → _lg。")
     logger.info("        全年份锚点稳健孪生 (_allv, all_vintage_companion): 并列再用『所有年份』政策段拼静态锚点算一套")
     logger.info("        policy_cosine_sim_allv* (anchor-robustness 对照, 含未来政策文本, 绝不替换 vintage 主轨)。")
     logger.info("【判读】分数越高 = 这篇新闻越贴政策方向 (实质性); 越低 = 越不沾边 (象征性/无关)。")
     logger.info("        full↔ctx Spearman ρ < 0.95 = 轨道真独立 (期望); 三轨值域须 ⊆ [-1,1]。")
-    logger.info("【确定性】调 Embedding API (MAIN 轨, miss 即付费; 不受 NEWS_PROCESS_LLM_OFFLINE 守卫保护) +")
-    logger.info("          本地 text2vec (_t2v, $0)。API 向量经 _llm_cache.db 缓存, 命中即逐位可复现。")
+    logger.info("【确定性】调 Embedding API (MAIN + _lg 两 co-primary 轨, miss 即付费; 不受 NEWS_PROCESS_LLM_OFFLINE 守卫保护)。")
+    logger.info("          API 向量经 _llm_cache.db 缓存, 命中即逐位可复现。")
 
     # ---- 🧭 项目 / 环境信息 (golden 范式 ①: 运行环境指纹, 纯日志) ----
     # crash-guard: 整块包 try/except, 任何环境探针异常仅降级 warning, 绝不让纯日志块崩阶段。
@@ -1378,7 +1222,7 @@ def main():
         logger.info(f"  · RUN_ID={os.environ.get('NEWS_PROCESS_RUN_ID', '(未设)')} | "
                     f"LLM_OFFLINE={os.environ.get('NEWS_PROCESS_LLM_OFFLINE', '0')} "
                     "(⚠ 本阶段嵌入 miss 不受该守卫保护, 仍付费调 API)")
-        logger.info("  · 成本/确定性: MAIN-API 嵌入 miss 即付费 (yunwu OpenAI-compat); _t2v 本地 $0; "
+        logger.info("  · 成本/确定性: MAIN + _lg 两 API co-primary 嵌入 miss 即付费 (yunwu OpenAI-compat); "
                     "缓存命中即逐位可复现")
         logger.info(f"  · 模块: {os.path.abspath(__file__)}")
         logger.info(f"  · 工作目录: {os.getcwd()}")
@@ -1435,10 +1279,11 @@ def main():
                     "(article_alignment.all_vintage_companion; 仅稳健性对照, 不替换主轨)")
         logger.info(f"  · 单条输入 token 上限 max_tokens_per_input: {_MAX_TOKENS_PER_INPUT:,d} | "
                     f"单次请求 token 上限 max_tokens_per_request: {_MAX_TOKENS_PER_REQUEST:,d}")
-        logger.info(f"  · MAIN spec (canonical): {_eng.spec_model(EMBEDDING_CONFIG)} "
-                    "(text-embedding-3-small, API 1536 维)")
-        logger.info(f"  · ROBUSTNESS spec (_t2v twin): {_eng.spec_model(_ROBUSTNESS_SPEC)} "
-                    "(shibing624/text2vec-base-chinese, 本地 768 维; 严禁与 MAIN 混算)")
+        logger.info(f"  · MAIN spec (canonical, 无后缀): {_eng.spec_model(EMBEDDING_CONFIG)} "
+                    "(gemini-embedding, API)")
+        if _LARGE_SPEC:
+            logger.info(f"  · LARGE spec (_lg co-primary): {_eng.spec_model(_LARGE_SPEC)} "
+                        "(text-embedding-3-large, API 3072 维; 与 MAIN 全平价, 严禁混算)")
         logger.info(f"  · 缓存库: {CACHE_DB_PATH} | 重试间隔: {sig4(RETRY_DELAY)}s 固定 (flat, 2026-06-26 全项目统一)")
         logger.info("  · 权威语料: config/authoritative_corpus.txt (paths.authoritative_corpus_file, 与 stage 26 共享)")
     except Exception as _e:
@@ -1463,7 +1308,7 @@ def main():
     _phase_t['加载输入parquet'] = time.time() - _t0
     logger.info(f"输入数据: {len(df):,d} 篇文档, {len(df.columns):,d} 列")
 
-    # 执行计算 (含语料加载 + 双模型三轨嵌入 + 余弦 + 统计诊断)
+    # 执行计算 (含语料加载 + 双 co-primary 三轨嵌入 + 余弦 + 统计诊断)
     _t0 = time.time()
     df = compute_article_policy_alignment(df)
     _phase_t['嵌入+余弦计算'] = time.time() - _t0
@@ -1527,16 +1372,16 @@ def main():
             ('full ', 'policy_cosine_sim_full'),
             ('ctx  ', 'policy_cosine_sim_ctx'),
             ('ss   ', 'policy_cosine_sim_ss'),
-            ('t2v_f', 'policy_cosine_sim_t2v_full'),
-            ('t2v_c', 'policy_cosine_sim_t2v_ctx'),
-            ('t2v_s', 'policy_cosine_sim_t2v_ss'),
+            ('lg_f ', 'policy_cosine_sim_lg_full'),
+            ('lg_c ', 'policy_cosine_sim_lg_ctx'),
+            ('lg_s ', 'policy_cosine_sim_lg_ss'),
             # 全年份锚点 _allv 孪生 (缺列 = companion 关闭, 自动跳过)
             ('avf  ', 'policy_cosine_sim_allv_full'),
             ('avc  ', 'policy_cosine_sim_allv_ctx'),
             ('avs  ', 'policy_cosine_sim_allv_ss'),
-            ('av_t2vf', 'policy_cosine_sim_t2v_allv_full'),
-            ('av_t2vc', 'policy_cosine_sim_t2v_allv_ctx'),
-            ('av_t2vs', 'policy_cosine_sim_t2v_allv_ss'),
+            ('av_lgf', 'policy_cosine_sim_lg_allv_full'),
+            ('av_lgc', 'policy_cosine_sim_lg_allv_ctx'),
+            ('av_lgs', 'policy_cosine_sim_lg_allv_ss'),
         ]
         for _nm, _col in _track_cols:
             if _col not in df.columns:
@@ -1578,24 +1423,24 @@ def main():
                 except ImportError:
                     logger.info("  · 轨间独立性 full↔ctx: scipy 缺失, 跳过相关性诊断")
 
-        # (4) 主轨 vs 稳健 twin 一致性 (MAIN-API 与 text2vec 同向则结论更可信)。
+        # (4) 双 co-primary 一致性 (MAIN(gemini) 与 _lg(large) 同向则结论更可信)。
         if ('policy_cosine_sim_full' in df.columns
-                and 'policy_cosine_sim_t2v_full' in df.columns):
+                and 'policy_cosine_sim_lg_full' in df.columns):
             _m = df['policy_cosine_sim_full'].to_numpy(dtype=float)
-            _t = df['policy_cosine_sim_t2v_full'].to_numpy(dtype=float)
+            _t = df['policy_cosine_sim_lg_full'].to_numpy(dtype=float)
             _mt = ~np.isnan(_m) & ~np.isnan(_t)
             _n_mt = int(_mt.sum())
             if _n_mt < 3:
-                logger.info(f"  · 双模型一致性 MAIN↔t2v(full): 共同有效样本 {_n_mt} <3, 跳过 (t2v 轨可能全 NaN/未跑)")
+                logger.info(f"  · 双模型一致性 MAIN↔lg(full): 共同有效样本 {_n_mt} <3, 跳过 (_lg 轨可能全 NaN/未跑)")
             elif _m[_mt].min() == _m[_mt].max() or _t[_mt].min() == _t[_mt].max():
-                logger.info("  · 双模型一致性 MAIN↔t2v(full): 某轨零方差, 相关性无定义, 跳过")
+                logger.info("  · 双模型一致性 MAIN↔lg(full): 某轨零方差, 相关性无定义, 跳过")
             else:
                 try:
                     from scipy.stats import spearmanr
                     _rho_mt, _ = spearmanr(_m[_mt], _t[_mt])
                     _mt_judge = ("好 (两套嵌入同向, 对齐分稳健)" if _rho_mt >= 0.3
                                  else "临界/弱 (两套嵌入结论分歧, 稳健性对照偏弱, 披露即可)")
-                    logger.info(f"  · 双模型一致性 MAIN↔t2v(full): Spearman ρ={sig4(_rho_mt)} (n={_n_mt:,d}) → {_mt_judge}")
+                    logger.info(f"  · 双模型一致性 MAIN↔lg(full): Spearman ρ={sig4(_rho_mt)} (n={_n_mt:,d}) → {_mt_judge}")
                 except ImportError:
                     pass
 
@@ -1604,11 +1449,11 @@ def main():
             logger.info(f"  · ⚠ 小样本: 本次仅 {_n_total:,d} 篇 (盘面 T=2 演示规模) → 上述判读仅验证管道正确性, "
                         f"全量结论以 17M/T=18 实测为准。")
         if 'policy_cosine_sim_ss' not in df.columns:
-            logger.warning("  · content_ss 未物化 → ss 三轨 (policy_cosine_sim_ss / _t2v_ss) 未产出, "
+            logger.warning("  · content_ss 未物化 → ss 三轨 (policy_cosine_sim_ss / _lg_ss) 未产出, "
                            "下游 ss 轨对齐信号缺失 (镜像 ctx 缺列优雅降级)。")
-        if 'policy_cosine_sim_t2v_full' in df.columns and df['policy_cosine_sim_t2v_full'].isna().all():
-            logger.warning("  · 稳健 twin (_t2v) 全 NaN → text2vec 本地模型加载/嵌入失败, "
-                           "仅余 MAIN-API 单模型 (canonical 不受影响, 但失去双模型稳健性对照)。")
+        if 'policy_cosine_sim_lg_full' in df.columns and df['policy_cosine_sim_lg_full'].isna().all():
+            logger.warning("  · co-primary (_lg) 全 NaN → large 嵌入失败 → both-or-neither 联动应同时使 "
+                           "canonical 置 NaN (须核查 parity 守卫)。")
         logger.info("-" * 72)
     except Exception as _e:
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")

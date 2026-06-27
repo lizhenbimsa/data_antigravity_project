@@ -323,9 +323,10 @@ class TestQuadrantClassification:
         assert "('_allv', 'policy_cosine_sim_allv')" in src, "缺 _allv 全年份锚点变体"
         # 占比列名键须含 anchor 后缀 (_anc_sfx) → token_adopt_kw_p25_allv_ctx 等
         assert "{_anc_sfx}{_sim_sfx}" in src, "四象限列名键须插入 anchor 后缀"
-        # 连续聚合 + t2v 聚合的 _allv 孪生
+        # 连续聚合 + co-primary _lg 聚合的 _allv 孪生 (v3.14.0: 本地 _t2v 已删,
+        # _lg=text-embedding-3-large 是 runner 的嵌入 co-primary 源)
         assert "article_sim_mean_allv" in src
-        assert "policy_cosine_sim_t2v_allv_full" in src
+        assert "policy_cosine_sim_lg_allv_full" in src
 
 
 # ============================================================================

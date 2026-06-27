@@ -1044,6 +1044,18 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
     agg['avg_ft_intensity_ctx_std'] = ('fintech_intensity_score_ctx', 'std')
     agg['avg_ft_intensity_ss'] = ('fintech_intensity_score_ss', 'mean')
     agg['avg_ft_intensity_ss_std'] = ('fintech_intensity_score_ss', 'std')
+    #   → v3.14.0 co-primary: text-embedding-3-large (_lg) 孪生聚合 (gemini⟂large 严格 parity,
+    #     D-4a; 防 P1-A "付 2× 成本却把 _lg 测度在面板层丢弃")。源列 fintech_intensity_score_lg_{full,
+    #     ctx,ss} 由 stage 15 dual-track 产出; 缺源列 (单轨旧 parquet / _lg 未播种) 由 valid_agg
+    #     自动跳过, 不引发 KeyError。legacy 无后缀 _lg alias = _lg_full (与 MAIN avg_ft_intensity 对称)。
+    agg['avg_ft_intensity_lg'] = ('fintech_intensity_score_lg_full', 'mean')  # legacy alias (_lg)
+    agg['avg_ft_intensity_lg_std'] = ('fintech_intensity_score_lg_full', 'std')
+    agg['avg_ft_intensity_lg_full'] = ('fintech_intensity_score_lg_full', 'mean')
+    agg['avg_ft_intensity_lg_full_std'] = ('fintech_intensity_score_lg_full', 'std')
+    agg['avg_ft_intensity_lg_ctx'] = ('fintech_intensity_score_lg_ctx', 'mean')
+    agg['avg_ft_intensity_lg_ctx_std'] = ('fintech_intensity_score_lg_ctx', 'std')
+    agg['avg_ft_intensity_lg_ss'] = ('fintech_intensity_score_lg_ss', 'mean')
+    agg['avg_ft_intensity_lg_ss_std'] = ('fintech_intensity_score_lg_ss', 'std')
 
     # --- P. Logit-to-Score 概率映射情感（稳健性检验）---
     # Törnberg (2023). arXiv:2307.13106. DOI: 10.48550/arXiv.2307.13106

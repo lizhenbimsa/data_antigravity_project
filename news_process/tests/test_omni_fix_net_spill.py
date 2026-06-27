@@ -11,7 +11,7 @@ embedding 引擎, 不依赖盘上大数据、不调外部 API。
       退化兜底保留并告警
   -02 Embedding 超级文档去 8000 字符前缀截断 (全文交 embedding_engine 分块) +
       docid 升序确定性拼接 (行序漂移免疫)
-  -03 sim 列重命名 bank_emb_sim_mean → bank_emb_sim_mean_lag1 (_t2v 同步),
+  -03 sim 列重命名 bank_emb_sim_mean → bank_emb_sim_mean_lag1 (_lg co-primary 同步),
       显式披露 t-1 文本口径
   -04 sim_mean 按索引去对角 (np.delete) 取真实 cosine 全均值 (域 [-1,1]),
       不再 sim_row>0 符号筛选; W_emb 构造前负 cosine clip 为 0 (告警披露)
@@ -287,15 +287,16 @@ class TestSimMeanRenameAndTrueCosine:
         ])
 
     def test_renamed_lag1_columns_and_old_names_absent(self, monkeypatch):
-        """-03: 输出列为 bank_emb_sim_mean_lag1(_t2v); 旧无 lag 名不得再产出。"""
+        """-03: 输出列为 bank_emb_sim_mean_lag1(_lg co-primary); 旧无 lag 名 + 已删
+        本地稳健轨 _t2v 名不得再产出 (v3.14.0: gemini MAIN + text-embedding-3-large _lg)。"""
         monkeypatch.setattr(eng, 'embed_texts', _marker_vector_fake)
         panel = _panel_2yr({'A银行': 0.4, 'B银行': -0.5, 'C银行': 0.9})
         out = ns.compute_embedding_peer_network(self._df_marker_banks(), panel)
 
         assert 'bank_emb_sim_mean_lag1' in out.columns
-        assert 'bank_emb_sim_mean_lag1_t2v' in out.columns
+        assert 'bank_emb_sim_mean_lag1_lg' in out.columns
         assert 'bank_emb_sim_mean' not in out.columns, "旧无-lag 列名回归"
-        assert 'bank_emb_sim_mean_t2v' not in out.columns, "旧无-lag 列名回归"
+        assert 'bank_emb_sim_mean_t2v' not in out.columns, "已删除的本地 _t2v 轨不得回归"
 
     def test_sim_mean_true_offdiagonal_mean_allows_negative(self, monkeypatch):
         """-04: sim_mean = 按索引去对角的全同行 cosine 均值 (可为负),

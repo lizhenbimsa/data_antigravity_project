@@ -261,7 +261,7 @@ class TestCoherenceValueDomain:
 
     def test_diagnostics_accept_negative_coh_emb(self):
         panel = pd.DataFrame({'coh_emb_full': [-0.5, 0.3],
-                              'coh_emb_t2v_ctx': [-0.99, 0.94]})
+                              'coh_emb_lg_ctx': [-0.99, 0.94]})
         sd._log_coherence_diagnostics(panel)  # 不应 raise
 
     def test_diagnostics_reject_negative_tfidf_coh(self):
@@ -292,9 +292,9 @@ class TestRobustnessDiagnosticsFamilies:
         panel = pd.DataFrame({
             'strat_sim_max_emb': [-0.3, 0.9],          # emb 相似度 ∈ [-1,1]
             'strat_diff_n5_emb': [1.7, 0.4],           # emb 距离 ∈ [0,2]
-            'strat_diff_n5_emb_t2v_ctx': [1.95, 0.2],
-            'centroid_diff_emb_t2v': [1.9, 0.1],
-            'strat_diff_t2v_full': [1.9, 0.1],         # 契约别名 (centroid emb)
+            'strat_diff_n5_emb_lg_ctx': [1.95, 0.2],   # co-primary _lg 孪生 (text-embedding-3-large)
+            'centroid_diff_emb_lg': [1.9, 0.1],
+            'strat_diff_lg_full': [1.9, 0.1],          # 契约别名 (centroid emb, _lg)
             'strat_diff_n5': [0.5, 0.7],               # TF-IDF ∈ [0,1]
             'strat_fluidity': [0.2, 0.8],
         })
@@ -405,8 +405,10 @@ class TestFluidityGateDecoupled:
             "2 银行年份的 fluidity 不应再被静默丢弃 (omni-g-strategic-13)"
         a2017 = out[(out['target_bank'] == 'A') & (out['year'] == 2017)]
         assert np.isnan(a2017['strat_fluidity'].iloc[0])  # 首年无 t-1 → NaN
-        # 契约列兜底仍在 (emb 轨失败 → 全 NaN)
-        for col in ('strat_diff_t2v_full', 'strat_diff_t2v_ctx'):
+        # co-primary _lg 嵌入轨契约列兜底仍在 (emb 轨失败 → 全 NaN; v3.14.0: _t2v 已删,
+        # _lg=text-embedding-3-large 是唯一稳健嵌入孪生; coh_emb_lg_* 与 fluidity 同以
+        # panel 为骨架附着, 独立于 NN ≥3 银行闸门)。
+        for col in ('coh_emb_lg_full', 'coh_emb_lg_ctx'):
             assert col in out.columns
             assert out[col].isna().all()
 
@@ -421,14 +423,15 @@ class TestDisclosures:
         doc = sd.__doc__
         # 02/03: emb 值域口径
         assert '[-1,1]' in doc and '[0,2]' in doc
-        # 07: 契约别名 = centroid 构念, 非 N-NN; 真 t2v 孪生 = strat_diff_n5_emb_t2v
-        assert 'centroid_diff_emb_t2v' in doc
-        assert 'strat_diff_n5_emb_t2v' in doc
+        # 07: 契约别名 = centroid 构念, 非 N-NN; 真 _lg 孪生 = strat_diff_n5_emb_lg
+        # (v3.14.0: 本地 _t2v 已删, co-primary _lg=text-embedding-3-large)
+        assert 'centroid_diff_emb_lg' in doc
+        assert 'strat_diff_n5_emb_lg' in doc
         # 01/09: 共提及机械相似披露 + 开关
         assert '共提及' in doc
         assert 'co_mention_downweight' in doc
-        # 08: t2v 截断已由 embedding_engine 修复的指引
-        assert 'encode_local' in doc
+        # 08: 超长文本 token 分段 + 均值池化 (引擎接管, 不再本地截断)
+        assert 'token 分段' in doc and '均值池化' in doc
 
     def test_lda_k_disclosure(self):
         # 06: K=max(10, n//30) 实为固定常数 10 的伪自适应 + 两处基数不一致披露

@@ -15,34 +15,34 @@ https://doi.org/10.1111/jofi.13377
 
 设计决策
 --------
-1. **SBERT 模型**: 读 ``config/features.yaml::embedding_robustness.model``
-   (默认 ``shibing624/text2vec-base-chinese``, 与 stage 15 / strategic_diff t2v 轨
-   真单源, 零下载 + 零 (full/ctx) 嵌入轨配置漂移; fix(omni-g-embed-05, 2026-06-11) —
-   此前读不存在的 'embedding' 键恒走硬编码默认)
-2. **输入策略**: 标题 + 首段 300 字 (实际新闻中位 800 字 ≈ 1200 token, SBERT
-   max_seq_len=512 截断会丢失末段)
-3. **嵌入轴 full/ctx/ss 三路平价** (ss 嵌入 2026-06-21 上线, 镜像 ctx; 计划见
-   scripts/audit/SEMANTIC_STALENESS_SS_EXECUTION_PLAN_2026-06-21.md):
+1. **嵌入模型 (v3.14.0, 2026-06-27 — all-API co-primary 双轨, 零本地模型)**: 每轨用
+   两个 API spec 各嵌一遍 —— MAIN (canonical 无后缀) = ``config/features.yaml::embedding_api``
+   (gemini-embedding-2-preview, Google) + ``_lg`` (孪生) = ``embedding_large``
+   (text-embedding-3-large, OpenAI)。两者地位对等、互为稳健性 (跨厂商独立性), ``_lg``
+   后缀仅命名机制无层级。统一经 ``embedding_engine.embed_texts(spec=…)`` (API 路径,
+   经 ``_llm_cache.db`` 穿透缓存); 本地 SentenceTransformer (text2vec/bge-m3) 已整体移除。
+2. **输入策略**: 标题 + 首段 300 字 (Bybee 2024; ~100-150 token/篇 远未触嵌入 8191
+   token 上限 → 引擎不分块、直送 API)。
+3. **嵌入轴 full/ctx/ss 三路平价 × co-primary 双 spec**:
    full 读 content_full / ctx 读 content_ctx / ss 读 content_ss (三者均由 stage 13
-   prepend 标题【恰好一次】), 编码时 title_col=None 关闭二次前置 → 三轨同型构造、标题各一次
-   (修 ctx 标题×2 反向病根); 仅输入文本范围不同 (全文 vs 实体窗口 vs 银行+金科同句窗口)。
-   缺 content_full 时回退裸 '内容'+'标题' (走 _truncate_for_sbert Bybee 前置, 标题一次)。
-   **三轨说明 (v3.9.0 + 2026-06-21)**: ss SBERT embedding 孪生 (emb_ss → 下游
-   semantic_staleness_ss) 现与 emb_ctx 平价产出; content_ss 缺列 (旧 schema) 时 embs_ss=None
-   不写该列, 下游 stage 18 优雅缺席 semantic_staleness_ss (向后兼容)。情感轨与嵌入轴的
-   full/ctx/ss 三轨现全平价。
-4. **存储**: parquet (article_id, target_bank, year, emb_full[768], emb_ctx[768], emb_ss[768])
-   预估 400k × 768 × 4 byte × 3 轨 = ~3.5 GB (ss 第三轨 +~1.2 GB; 回退行 emb_ss≡emb_full)
+   prepend 标题【恰好一次】), 编码时 title_col=None 关闭二次前置 → 三轨同型构造、标题各一次;
+   仅输入文本范围不同 (全文 vs 实体窗口 vs 银行+金科同句窗口)。缺 content_full 时回退裸
+   '内容'+'标题' (走 _truncate_for_sbert Bybee 前置, 标题一次)。
+   **🔴 both-or-neither parity (D-4a)**: 每轨 MAIN 或 _lg 任一 embed_texts 返回 None →
+   该轨两列 (emb_X / emb_X_lg) 同缺 (不留单边孤儿列)。content_ss/content_ctx 缺列 (旧 schema)
+   时该轨两列均不写, 下游 stage 26 优雅缺席对应 semantic_staleness (向后兼容)。
+4. **存储**: parquet (article_id, target_bank, year, emb_{full,ctx,ss}[3072] (gemini MAIN) +
+   emb_{full,ctx,ss}_lg[3072] (large) + 双套 provenance)。回退行其 emb_ss≡emb_full。
 
 D-0 实测项
 ----------
-- HF cache 是否含 shibing624/text2vec-base-chinese (validate via SentenceTransformer init)
-- GPU vs CPU 速度 (项目本机有 CUDA 时 < 2 h, CPU 4-6 h)
+- gemini / text-embedding-3-large 经 yunwu 可达性 + corr(gemini, large) 跨厂商互证一致性
+- API 缓存命中率 (NEWS_PROCESS_LLM_OFFLINE=1 离线 $0 复现的前提是 _llm_cache.db 0-miss)
 
 运行方式
 ---------
 本 stage 已注册于 core/dag.py::STAGES_MAIN (无 enabled_when 条件, 随主管道
-always-on 执行); 也可单独手动触发 (全量 40 万文章编码 GPU 约 4-6 h):
+always-on 执行); 也可单独手动触发:
     python news_process/25_article_sbert.py
 
 ========================================================================
@@ -56,13 +56,13 @@ always-on 执行); 也可单独手动触发 (全量 40 万文章编码 GPU 约 4
 
 **输入**: `14_news_with_ctx.parquet`(article 级; 优先用 content_full / content_ctx / content_ss, 缺则回退 内容 + 标题)。
 
-**处理步骤**:
-1. `_resolve_sbert_model` 从 `config/features.yaml::embedding_robustness.model`(默认 shibing624/text2vec-base-chinese, 与 stage 15/25 t2v 轨真单源) 解析 model_id + 可选 revision(钉死 HF commit 防权重漂移)。
-2. `encode_articles`: 推理前 `ensure_torch_determinism()`(seed 四源 + deterministic algorithms + cuDNN 策略, 对齐 stage 23)。文本构造 = Bybee 2024 风格'标题(≤100字, TITLE_CHARS) + 首段(≤300字, FIRST_PARA_CHARS)'(避免 SBERT 512-token 截断丢尾段)。**关键对称性**: content_full/content_ctx 已由 stage 13 prepend 标题恰好一次, 故 `title_col=None` 关闭二次前置(否则 ctx 轨标题被注入两次, 与 full 轨不对称)。`model.encode(normalize_embeddings=True, convert_to_numpy=True)` → (N,768) float32; show_progress_bar 仅交互式 TTY 显示。
-3. emb_full 读 content_full(缺则裸 内容+标题, title_col='标题'), emb_ctx 读 content_ctx(缺则 np.full_like NaN), emb_ss 读 content_ss(缺列则 None, 2026-06-21 三轨平价上线, title_col=None)。
-4. `_build_output_frame`: 组装 article_id(= stage 13 的 df.index, 供 stage 18 显式 join 对齐键)+ docid 透传 + target_bank/year/日期 + emb_full/emb_ctx/emb_ss(parquet 兼容的 list-of-1D-array; emb_ss 在 embs_ss=None 时不写, 向后兼容)+ 三列 provenance(model_id / model_revision / text_pipeline_version='v2-2026-06-08-dualtrack-prepend')。
+**处理步骤** (v3.14.0, 2026-06-27 all-API co-primary 双轨):
+1. 嵌入 spec 从 `config/features.yaml` 取两套: MAIN=`embedding_api` (gemini-embedding-2-preview) + `_lg`=`embedding_large` (text-embedding-3-large); 各带 text_pipeline_version 作缓存命名空间。
+2. `encode_articles(df, content_col, spec, …)`: 文本构造 = Bybee 2024 风格'标题(≤100字, TITLE_CHARS) + 首段(≤300字, FIRST_PARA_CHARS)'。**关键对称性**: content_full/content_ctx/content_ss 已由 stage 13 prepend 标题恰好一次, 故 `title_col=None` 关闭二次前置。经 `embedding_engine.embed_texts(spec=…)` 走 API 路径 (穿透 _llm_cache.db); 返回单位归一向量 (N, 3072) float32; embed_texts 返回 None (API 重试耗尽) 时该轨置 None。
+3. 每轨 (full/ctx/ss) 用 MAIN + _lg 两 spec 各嵌一遍 (`_embed_track_dual`); both-or-neither: 任一 None 则该轨两列同缺。emb_full 读 content_full(缺则裸 内容+标题), emb_ctx 读 content_ctx(缺列则不产), emb_ss 读 content_ss(缺列则不产)。
+4. `_build_output_frame`: 组装 article_id(= stage 13 的 df.index, 供 stage 26 显式 join 对齐键)+ docid 透传 + target_bank/year/日期 + emb_{full,ctx,ss}(gemini) + emb_{full,ctx,ss}_lg(large)(parquet 兼容的 list-of-1D-array; 缺轨不写)+ 双套 provenance(MAIN model_id/model_revision/text_pipeline_version + _lg 镜像三元组)。
 
-**外部依赖/确定性**: sentence-transformers + 本地 SBERT 模型(shibing624/text2vec, 与 stage 15 _t2v 同源)。**无 LLM/Embedding API、$0**(本地模型); 本地重跑须设 HF_HUB_OFFLINE=1 / TRANSFORMERS_OFFLINE=1(连不上 hf.co 但有本地缓存)。确定性由 ensure_torch_determinism 保证(本地权重不变前提下逐位可复现; ⚠ revision 当前未钉死, 见 provenance 列, 上游权重更新风险靠本地缓存兜底)。无 _llm_cache.db 参与(本地编码每跑重算)。timeout=21600。
+**外部依赖/确定性**: 统一引擎 `embed_texts` 两 API spec (gemini + text-embedding-3-large, 经 yunwu)。需 EMBEDDING_API_KEY; 经 _llm_cache.db 穿透缓存命中即 $0 逐位复现 (NEWS_PROCESS_LLM_OFFLINE=1 强制离线, 须 0-miss)。无本地模型加载。timeout=21600。
 
 ■ 白话说明
 
@@ -87,11 +87,10 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-# fix(perf, golden-safe): 强制 HF 离线 (镜像 stage 23) — 本地已有 text2vec 快照, 跳过 hf.co
-# revision 网络解析 (实测 stage 25 联网三轨加载 ~107s, 离线 ~14s; 只切换加载来源、不改权重
-# → 嵌入数值逐位不变, golden-safe)。setdefault 保留生产首跑显式 HF_HUB_OFFLINE=0 的逃生口。
-os.environ.setdefault("HF_HUB_OFFLINE", "1")
-os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+# v3.14.0 (2026-06-27, all-API-embedding): stage 25 弃本地 SentenceTransformer,
+# 改走统一引擎 embed_texts 的两 API spec (gemini MAIN + text-embedding-3-large _lg)
+# co-primary 双轨。本地嵌入模型 (text2vec/bge-m3) 已整体移除, 故不再设 HF 离线 env
+# (无任何本地模型加载) — title+300char 短文本经 API 嵌入, 维度 3072。
 
 # 路径注入: 让 ``news_process.core.*`` 在任意 cwd 下可解析
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -99,35 +98,38 @@ _PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
 if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
+from news_process.core.caching import LLMCache  # noqa: E402
 from news_process.core.config import load_config  # noqa: E402
 from news_process.core.logging import pct4, setup_logging, sig4  # noqa: E402
+from news_process.pipeline.text import embedding_engine as _eng  # noqa: E402
 
 CONFIG = load_config()
 STAGE_NAME = "25_article_sbert"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
-def _resolve_sbert_model(config: dict) -> tuple[str, str | None]:
-    """从 config/features.yaml::embedding_robustness 解析 (model_id, revision).
+# ── v3.14.0 (2026-06-27): co-primary 双 API 嵌入 spec (零本地模型) ──
+# MAIN (canonical, 无后缀) = gemini-embedding-2-preview (config embedding_api)
+# _lg (孪生槽)            = text-embedding-3-large (config embedding_large)
+# 两者地位对等、互为稳健性 (跨厂商 Google⟂OpenAI), `_lg` 后缀仅命名机制无层级。
+# title+300char 短文本远未触 8191 token → 引擎不分块、直送 API; 维度 3072。
+_MAIN_SPEC = CONFIG.get('embedding_api', {})
+_LARGE_SPEC = CONFIG.get('embedding_large', {})
 
-    fix(omni-g-embed-05, 2026-06-11): 此前读不存在的 'embedding' 顶级键 (features.yaml
-    仅有 embedding_api / embedding_robustness 两键) → 恒走硬编码默认, "单源对齐"声称
-    失实; 改 embedding_robustness.model 时 stage 30a 静默不跟随, 与 stage 15/25 t2v
-    轨配置漂移。现真单源 = embedding_robustness.model (+ 可选 revision 键钉死 HF
-    commit, 防上游模型权重更新静默改变全部嵌入派生测度)。
-    """
-    rob = (config or {}).get('embedding_robustness', {}) or {}
-    model_id = rob.get('model') or 'shibing624/text2vec-base-chinese'
-    revision = rob.get('revision') or None
-    return model_id, revision
+# LLMCache 路径 (穿透式缓存, 跨 run/跨 stage 命中即 $0 复现; 与 5 cosine producer 同源)。
+CACHE_DB_PATH = CONFIG['paths'].get(
+    'llm_cache_db', os.path.join(CONFIG['paths']['output_dir'], '_llm_cache.db')
+)
 
-
-# 与 config/features.yaml::embedding_robustness.model 真单源对齐 (stage 15/25 t2v 同源)
-_SBERT_MODEL_ID, _SBERT_REVISION = _resolve_sbert_model(CONFIG)
+# provenance: MAIN (gemini) + _lg (large) 两套 (model_id, text_pipeline_version),
+# 供 stage 26 对两套嵌入各自独立 fail-loud 校验 (镜像 5 cosine producer 缓存键维度)。
+_SBERT_MODEL_ID = _eng.spec_model(_MAIN_SPEC, default='gemini-embedding-2-preview')
+_SBERT_MODEL_ID_LG = _eng.spec_model(_LARGE_SPEC, default='text-embedding-3-large')
 
 # 30a 输入文本构造版本 (provenance, 与 LLMCache 的 prompt_version 维度同哲学):
-# v2 = 2026-06-08 dual-track parity (content_full/content_ctx 已 prepend 标题一次,
-# title_col=None 关闭二次前置)。任何对输入构造/截断策略的变更必须 bump。
-_TEXT_PIPELINE_VERSION = 'v2-2026-06-08-dualtrack-prepend'
+# v3 = 2026-06-27 all-API co-primary dual (gemini MAIN + large _lg; content_full/ctx/ss
+# 已 prepend 标题一次, title_col=None 关二次前置)。任何对输入构造/截断策略的变更必须 bump。
+_TEXT_PIPELINE_VERSION = _eng.spec_version(_MAIN_SPEC)
+_TEXT_PIPELINE_VERSION_LG = _eng.spec_version(_LARGE_SPEC)
 
 # Bybee 2024 风格 "标题 + 首段 300 字" 截断
 TITLE_CHARS = 100
@@ -143,97 +145,95 @@ def _truncate_for_sbert(title: str, content: str) -> str:
     return t or c
 
 
-def _load_sbert_model():
-    """加载 SBERT 模型一次 (含确定性硬化); 供 main 三轨复用, 避免重复加载同一权重。
-
-    fix(perf, golden-safe): 原 encode_articles 内每轨各 new 一次 SentenceTransformer
-    (full/ctx/ss 三次从磁盘重载同一权重, ~85s 浪费); 提取为单次加载供三轨复用。SBERT
-    encode 在 eval/no_grad 下不消费 RNG → 复用同一实例与每轨各自重建逐位等价 (实测
-    max|d|=0)。ensure_torch_determinism() 幂等 (进程内只设一次), 此处调一次即可。
-    """
-    try:
-        from sentence_transformers import SentenceTransformer  # noqa: E402
-    except ImportError:
-        logger.error("sentence-transformers 未安装; pip install sentence-transformers")
-        raise
-
-    # 推理前确定性硬化 (共享 helper, 对齐 stage 23 — seed 四源 + deterministic algorithms)
-    from news_process.pipeline.text.embedding_engine import ensure_torch_determinism
-    ensure_torch_determinism()
-
-    logger.info(
-        f"  加载 SBERT: {_SBERT_MODEL_ID}"
-        + (f" @ revision={_SBERT_REVISION}" if _SBERT_REVISION else "")
-    )
-    if _SBERT_REVISION:
-        return SentenceTransformer(_SBERT_MODEL_ID, revision=_SBERT_REVISION)
-    return SentenceTransformer(_SBERT_MODEL_ID)
+def _build_track_docs(
+    df: pd.DataFrame,
+    content_col: str,
+    title_col: Optional[str] = '标题',
+) -> list[str]:
+    """构造一轨的 Bybee 2024 风格输入文本 list (标题+首段 300 字; title_col=None 跳过二次前置)."""
+    if title_col and title_col in df.columns:
+        return [
+            _truncate_for_sbert(t, c)
+            for t, c in zip(df[title_col].fillna(''), df[content_col].fillna(''))
+        ]
+    return [
+        (c or '')[:TITLE_CHARS + FIRST_PARA_CHARS]
+        for c in df[content_col].fillna('')
+    ]
 
 
 def encode_articles(
     df: pd.DataFrame,
     content_col: str,
+    spec: dict,
     title_col: Optional[str] = '标题',
-    batch_size: int = 64,
-    model=None,
-) -> np.ndarray:
-    """SBERT batch 编码; 输出 (N, 768) numpy 数组.
+    *,
+    cache=None,
+    log_prefix: str = "ArticleSBERT",
+) -> np.ndarray | None:
+    """经统一引擎 (embed_texts) 对一轨文本做 API 嵌入; 输出 (N, dim) numpy 数组.
+
+    v3.14.0 (2026-06-27): 弃本地 SentenceTransformer, 改走 embed_texts(spec=…) 的
+    API 路径 (gemini MAIN 或 large _lg)。title+300char 短文本远未触 8191 token →
+    引擎不分块、直送 API; 返回单位归一向量 (norm=1 → cosine=点积)。
 
     Args:
         df: article-level DataFrame.
-        content_col: '内容' or 'content_ctx'.
-        title_col: '标题' (可选, 用于 Bybee 2024 截断策略).
-        batch_size: 默认 64; GPU 可上调 128/256.
+        content_col: 'content_full' / 'content_ctx' / 'content_ss' / '内容'.
+        spec: 嵌入 spec (CONFIG['embedding_api'] 或 CONFIG['embedding_large']).
+        title_col: '标题' (仅旧 schema 回退时用; content_* 已 prepend 标题恰好一次).
+        cache: 已打开的 LLMCache 共享连接 (跨轨/跨 spec 复用)。
 
     Returns:
-        (N, 768) float32 embeddings.
+        (N, dim) float32 embeddings, 或 embed_texts 返回 None (API 重试耗尽/形状异常)
+        时返回 None (该轨置 NaN, 由 main both-or-neither 联动降级)。
     """
-    # fix(perf, golden-safe): model=None 时内部加载一次 (兼容直接调用/测试 monkeypatch
-    # sentence_transformers.SentenceTransformer); main 三轨传入预加载实例复用避免重复加载。
-    # 确定性硬化 (ensure_torch_determinism) 在 _load_sbert_model 内完成。
-    if model is None:
-        model = _load_sbert_model()
+    docs = _build_track_docs(df, content_col, title_col)
 
-    if title_col and title_col in df.columns:
-        docs = [
-            _truncate_for_sbert(t, c)
-            for t, c in zip(df[title_col].fillna(''), df[content_col].fillna(''))
-        ]
-    else:
-        docs = [
-            (c or '')[:TITLE_CHARS + FIRST_PARA_CHARS]
-            for c in df[content_col].fillna('')
-        ]
-
-    logger.info(f"  编码 {len(docs)} 篇文章, batch_size={batch_size}")
-    t0 = time.time()
-    embs = model.encode(
-        docs,
-        batch_size=batch_size,
-        # 仅在交互式 (stderr 为 TTY) 时显示 tqdm 进度条; 在 run_pipeline_function
-        # 子进程 (stderr 为管道) 下静默, 避免向 stderr 输出进度条噪声 (不影响编码结果)。
-        show_progress_bar=sys.stderr.isatty(),
-        normalize_embeddings=True,  # D2 cosine 友好 + D1 UMAP cosine metric 等价欧式
-        convert_to_numpy=True,
+    logger.info(
+        f"  编码 {len(docs)} 篇文章 (spec={_eng.spec_model(spec)}, content_col={content_col})"
     )
+    t0 = time.time()
+    embs = _eng.embed_texts(
+        docs, spec, cache=cache, cache_db_path=CACHE_DB_PATH, log_prefix=log_prefix,
+    )
+    if embs is None:
+        logger.warning(
+            f"  编码失败: embed_texts({_eng.spec_model(spec)}) 返回 None "
+            f"(API 重试耗尽/形状异常) → 该轨置 NaN"
+        )
+        return None
+    embs = np.asarray(embs, dtype=np.float32)
     logger.info(f"  编码完成: {sig4(time.time() - t0)}s, shape={embs.shape}")
-    return embs.astype(np.float32)
+    return embs
 
 
 def _build_output_frame(
-    df: pd.DataFrame, embs_full: np.ndarray, embs_ctx: np.ndarray,
+    df: pd.DataFrame,
+    embs_full: np.ndarray | None, embs_ctx: np.ndarray | None,
     embs_ss: np.ndarray | None = None,
+    *,
+    embs_full_lg: np.ndarray | None = None,
+    embs_ctx_lg: np.ndarray | None = None,
+    embs_ss_lg: np.ndarray | None = None,
 ) -> pd.DataFrame:
-    """组装 30a 输出 frame (对齐键 + provenance + full/ctx/ss 三路向量).
+    """组装 30a 输出 frame (对齐键 + 双套 provenance + co-primary 6 嵌入列).
 
-    嵌入轴 full/ctx/ss 三路平价 (v3.9.0 第三轨 ss 嵌入上线 2026-06-21, 镜像 emb_ctx)。
-    ``embs_ss=None`` (旧 schema 无 content_ss) 时不写 emb_ss 列, 向后兼容 — 下游
-    stage 18 据 emb_ss 列是否存在决定产/不产 semantic_staleness_ss (优雅降级)。
+    v3.14.0 (2026-06-27, all-API co-primary 双轨): 每轨 (full/ctx/ss) 各产两个
+    嵌入列 —— ``emb_{full,ctx,ss}`` (MAIN/gemini, canonical 无后缀) +
+    ``emb_{full,ctx,ss}_lg`` (large, _lg 孪生)。两套互为稳健性、地位对等。
 
-    fix(omni-g-embed-03, 2026-06-11): 新增 model_id / model_revision /
-    text_pipeline_version provenance 列 (与 LLMCache 键维度对齐) + docid 透传 —
-    供 stage 18 消费端按 article_id 显式 join 并检测 30a 陈旧 (此前消费端纯位置
-    对齐, 行数恰相等的陈旧 30a 会静默整列错位)。
+    嵌入轴 full/ctx/ss 三路平价。``embs_ss=None`` (旧 schema 无 content_ss) 时不写
+    emb_ss/emb_ss_lg 列, 向后兼容 — 下游 stage 26 据列是否存在决定产/不产
+    semantic_staleness_ss(_lg) (优雅降级)。
+
+    🔴 both-or-neither (D-4a parity): 某轨 MAIN 或 _lg 任一 embed_texts 返回 None →
+    该轨两列 (emb_X / emb_X_lg) 均跳过 (由 main 联动判定后传入 None) → 不留单边孤儿列。
+
+    provenance 双套 (与 LLMCache 键维度对齐): MAIN (model_id/model_revision/
+    text_pipeline_version) + _lg 镜像 (model_id_lg/model_revision_lg/
+    text_pipeline_version_lg) — 供 stage 26 对两套嵌入各自独立 fail-loud 校验
+    (按 article_id 显式 join, 防 30a 陈旧静默错位)。
     """
     out: dict = {
         'article_id': df.index if 'article_id' not in df.columns else df['article_id'],
@@ -244,14 +244,30 @@ def _build_output_frame(
         'target_bank': df['target_bank'] if 'target_bank' in df.columns else pd.NA,
         'year': df['year'] if 'year' in df.columns else pd.NA,
         '日期': df['日期'] if '日期' in df.columns else pd.NA,
-        'emb_full': list(embs_full),   # list of 1D arrays (parquet-compatible)
-        'emb_ctx': list(embs_ctx),
-        # 三轨 ss (2026-06-21): embs_ss=None (旧 schema 无 content_ss) 时不写该列,
-        # 向后兼容 — 旧消费端按列存在性优雅降级 (镜像 emb_ctx)。
-        **({'emb_ss': list(embs_ss)} if embs_ss is not None else {}),
+    })
+    # MAIN (gemini) 三轨; None (both-or-neither 联动失败) 时跳过该列。
+    if embs_full is not None:
+        out['emb_full'] = list(embs_full)   # list of 1D arrays (parquet-compatible)
+    if embs_ctx is not None:
+        out['emb_ctx'] = list(embs_ctx)
+    if embs_ss is not None:
+        out['emb_ss'] = list(embs_ss)
+    # _lg (large) 三轨孪生; 与 MAIN both-or-neither 双射 (同轨同存/同缺)。
+    if embs_full_lg is not None:
+        out['emb_full_lg'] = list(embs_full_lg)
+    if embs_ctx_lg is not None:
+        out['emb_ctx_lg'] = list(embs_ctx_lg)
+    if embs_ss_lg is not None:
+        out['emb_ss_lg'] = list(embs_ss_lg)
+    out.update({
+        # MAIN (gemini) provenance
         'model_id': _SBERT_MODEL_ID,
-        'model_revision': _SBERT_REVISION or '',
+        'model_revision': '',          # API spec 无 HF revision 概念 (保留列供向后兼容)
         'text_pipeline_version': _TEXT_PIPELINE_VERSION,
+        # _lg (large) provenance 镜像三元组
+        'model_id_lg': _SBERT_MODEL_ID_LG,
+        'model_revision_lg': '',
+        'text_pipeline_version_lg': _TEXT_PIPELINE_VERSION_LG,
     })
     return pd.DataFrame(out)
 
@@ -265,27 +281,26 @@ def main():
     )
     logger.info("=" * 72)
     logger.info(
-        "【功能】把每篇新闻'翻译'成一串语义向量 (意思指纹, 默认 768 维, 随所配 SBERT 隐藏维), 一次性持久化成 "
-        "25_article_embeddings.parquet 备用; 是 D 组前置 (stage 18 语义陈旧度 / D3 "
-        "Krippendorff α 等)的共享地基, 算一次大家共用, 省 ~12-15h 重复编码。"
+        "【功能】把每篇新闻'翻译'成一串语义向量 (意思指纹, 3072 维), 一次性持久化成 "
+        "25_article_embeddings.parquet 备用; 是 D 组前置 (stage 26 语义陈旧度 / D3 "
+        "Krippendorff α 等)的共享地基, 算一次大家共用, 省重复编码。"
     )
     logger.info(
-        "【方法】SBERT 模型 = config/features.yaml::embedding_robustness.model "
-        f"(实解析={_SBERT_MODEL_ID}" + (f"@{_SBERT_REVISION}" if _SBERT_REVISION else "")
-        + "); 输入构造 = 标题(≤"
-        f"{TITLE_CHARS}字) + 首段(≤{FIRST_PARA_CHARS}字) 防 512-token 截断丢尾; "
+        "【方法】v3.14.0 co-primary 双 API 嵌入 (零本地模型): 每轨用两个 API spec 各嵌一遍 —— "
+        f"MAIN(canonical 无后缀)={_SBERT_MODEL_ID} + _lg(孪生)={_SBERT_MODEL_ID_LG} "
+        "(跨厂商 Google⟂OpenAI 对等互证); 输入构造 = 标题(≤"
+        f"{TITLE_CHARS}字) + 首段(≤{FIRST_PARA_CHARS}字, Bybee 2024); "
         "嵌入轴 full/ctx/ss 三路 (content_full/content_ctx/content_ss 已由 stage 13 prepend 标题恰好一次, "
-        "title_col=None 关二次前置; ss=银行+金科同句轨 2026-06-21 上线, content_ss 缺则不产 emb_ss); "
-        "model.encode(normalize_embeddings=True) → (N, hidden_dim) float32 (默认 768)。"
+        "title_col=None 关二次前置; ss=银行+金科同句轨, content_ss 缺则不产 emb_ss); "
+        "embed_texts 返回单位归一向量 → (N, 3072) float32。"
     )
     logger.info(
         "【判读】嵌入有效率越高(NaN 行越少)越好; emb_full 单位归一化 → L2 范数应≈1.0 "
         "(偏离=归一化失效); emb_ctx 全 NaN = 上游缺 content_ctx 回退 (ctx 语义陈旧度将不可用)。"
     )
     logger.info(
-        "【确定性】纯本地 CPU/GPU 推理, 无 LLM/Embedding API、$0; ensure_torch_determinism 保证"
-        "本地权重不变前提下逐位可复现; ⚠ revision 当前未钉死 (见下方 provenance), 上游 hf.co 权重"
-        "若更新须靠本地缓存稳定性兜底; 无 _llm_cache.db 参与 (每跑重算)。"
+        "【确定性】纯 API 嵌入 (gemini MAIN + large _lg), 经 _llm_cache.db 穿透缓存命中即 $0 "
+        "逐位复现; both-or-neither parity: 某轨 MAIN 或 _lg 任一失败则该轨两列同缺 (不留单边孤儿列)。"
     )
 
     output_dir = CONFIG['paths']['output_dir']
@@ -314,14 +329,13 @@ def main():
         logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
         logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
         _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
-        _hf_offline = os.environ.get('HF_HUB_OFFLINE') or os.environ.get('TRANSFORMERS_OFFLINE')
         logger.info(
             f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
-            f"HF_OFFLINE={_hf_offline or '(未设置)'}"
+            f"LLM_OFFLINE={os.environ.get('NEWS_PROCESS_LLM_OFFLINE') or '(未设置)'}"
         )
         logger.info(
-            "     · 成本/确定性: 纯本地 SBERT 推理 (无 LLM/Embedding API, $0); "
-            "ensure_torch_determinism 保证本地权重不变下逐位可复现"
+            "     · 成本/确定性: co-primary 双 API 嵌入 (gemini MAIN + large _lg); "
+            "经 _llm_cache.db 穿透缓存命中即 $0 逐位复现"
         )
 
         # ── 📖 方法论依据 (参考文献信息; 把核心方法的学术出处 emit 进日志) ──
@@ -353,8 +367,8 @@ def main():
             "1752103. https://doi.org/10.3389/frai.2026.1752103"
         )
         logger.info(
-            "       → (白话: 对金融披露文本微调 sentence-transformer, 直接对标本阶段 "
-            "shibing624/text2vec SBERT 轨在金融语料上的领域适配方向。)"
+            "       → (白话: 对金融披露文本微调 sentence-transformer 的领域适配范式, "
+            "为本阶段在中文银行/金科语料上做文章级语义嵌入提供方法学方向参照。)"
         )
         logger.info(
             "     · 句嵌入余弦相似度与可解释性 (锚定 normalize_embeddings 后 cosine=语义对齐): "
@@ -369,17 +383,17 @@ def main():
             "normalize_embeddings=True → 行 L2≈1 → cosine 即语义对齐的方法构念。)"
         )
 
-        # ── ⚙ 运行配置 (config/features.yaml::embedding_robustness 等) ──
-        logger.info("  ⚙ 运行配置 (config/features.yaml::embedding_robustness)")
+        # ── ⚙ 运行配置 (config/features.yaml::embedding_api + embedding_large) ──
+        logger.info("  ⚙ 运行配置 (config/features.yaml::embedding_api + embedding_large)")
         logger.info(
-            f"     · SBERT 模型: model_id={_SBERT_MODEL_ID} "
-            f"| revision={_SBERT_REVISION or '(未钉死)'} "
-            "(与 stage 15/25 _t2v 轨真单源)"
+            f"     · 嵌入模型 (co-primary 双轨): MAIN={_SBERT_MODEL_ID} (canonical 无后缀) "
+            f"+ _lg={_SBERT_MODEL_ID_LG} (跨厂商对等互证)"
         )
         logger.info(
             f"     · 输入截断: TITLE_CHARS={TITLE_CHARS:,d} | "
             f"FIRST_PARA_CHARS={FIRST_PARA_CHARS:,d} | "
-            f"text_pipeline_version={_TEXT_PIPELINE_VERSION}"
+            f"text_pipeline_version={_TEXT_PIPELINE_VERSION} | "
+            f"_lg version={_TEXT_PIPELINE_VERSION_LG}"
         )
         logger.info(
             "     · 嵌入轴: full/ctx/ss 三路平价 (content_full/content_ctx/content_ss "
@@ -403,49 +417,64 @@ def main():
     df = pd.read_parquet(src_path)
     logger.info(f"  article-level: {len(df)} 行")
 
-    # ── 嵌入轴 full/ctx/ss 三路编码 (full/ctx parity 2026-06-08; ss 嵌入轨 2026-06-21 平价上线) ──
-    # content_full / content_ctx / content_ss 均已由 stage 13 (ctx_materializer) prepend 标题【恰好一次】。
-    # 故 title_col=None 关闭 encode_articles 内 _truncate_for_sbert 的二次标题前置 —— 否则
-    # ctx 轨 (读已含标题的 content_ctx) 会重复注入标题 (标题×2), 与 full 轨 (标题×1) 不对称,
-    # 致 emb_full/emb_ctx 语义权重不可比 (下传 stage 18 semantic_staleness;
-    # 原 stage 17 topic emb 消费端已于 2026-06-09 随 BERTopic 阶段整体移除)。
-    # full/ctx/ss 同型构造: 各取 content_*[:TITLE+PARA] (标题在串首恰好一次), 仅输入文本范围不同
-    # (full=标题+全文 / ctx=标题+实体窗口 / ss=标题+银行∧金科同句窗口)。与同源 content_full/content_ctx 消费者 (stage 15
-    # policy_alignment / stage 27 benefit_society) 读同一含标题串、标题注入一次的口径对齐
-    # (注: 各模块下游截断方式不同——sbert 取字符 [:400], stage 15 走 token 截断——此处仅指
-    #  "读含标题串、标题恰好一次"这一点对齐, 非截断算法相同)。
+    # ── 嵌入轴 full/ctx/ss 三路 × co-primary 双 spec (gemini MAIN + large _lg) 编码 ──
+    # v3.14.0 (2026-06-27): 弃本地 SentenceTransformer, 每轨用两个 API spec 各嵌一遍。
+    # content_full / content_ctx / content_ss 均已由 stage 13 (ctx_materializer) prepend 标题【恰好一次】,
+    # 故 title_col=None 关闭 _truncate_for_sbert 二次前置 (否则 ctx/ss 轨标题×2 与 full 轨不对称)。
+    # full/ctx/ss 同型构造, 仅输入文本范围不同 (full=标题+全文 / ctx=标题+实体窗口 / ss=标题+银行∧金科同句窗口)。
     # 缺 content_full 时回退裸 '内容'+'标题' (旧 schema; _truncate_for_sbert 注入标题一次)。
-    # fix(perf, golden-safe): 加载一次 SBERT 模型, 三轨 (full/ctx/ss) 复用同一实例,
-    # 替代原每轨各 new 一次 (~85s 重复加载浪费)。复用与重建逐位等价 (encode 不消费 RNG)。
-    _sbert_model = _load_sbert_model()
+    # 🔴 both-or-neither parity (D-4a): 每轨 MAIN 或 _lg 任一 embed_texts 返回 None →
+    #    该轨两列 (emb_X / emb_X_lg) 同置 None (不产, 不留单边孤儿列)。
+    # 单连接复用: 一个共享 LLMCache 传入全部 ≤6 次 embed_texts (省重复 open; 产出逐位不变)。
+    _shared_cache = LLMCache(CACHE_DB_PATH)
 
-    _has_cfull = 'content_full' in df.columns
-    embs_full = encode_articles(
-        df,
-        content_col='content_full' if _has_cfull else '内容',
-        title_col=None if _has_cfull else '标题',
-        model=_sbert_model,
-    )
-    embs_ctx = (
-        encode_articles(df, content_col='content_ctx', title_col=None, model=_sbert_model)
-        if 'content_ctx' in df.columns
-        else np.full_like(embs_full, np.nan)
-    )
+    def _embed_track_dual(content_col: str, title_col):
+        """对一轨用 MAIN + _lg 两 spec 各嵌一遍; both-or-neither → 任一 None 则返 (None, None)."""
+        _m = encode_articles(
+            df, content_col=content_col, spec=_MAIN_SPEC, title_col=title_col,
+            cache=_shared_cache, log_prefix="ArticleSBERT-MAIN",
+        )
+        _l = encode_articles(
+            df, content_col=content_col, spec=_LARGE_SPEC, title_col=title_col,
+            cache=_shared_cache, log_prefix="ArticleSBERT-LARGE",
+        )
+        if _m is None or _l is None:
+            logger.error(
+                f"  ⚠️ 轨 {content_col} 嵌入失败 (MAIN={'None' if _m is None else 'OK'}, "
+                f"_lg={'None' if _l is None else 'OK'}): both-or-neither → 该轨两列同置 None "
+                "(不留单边孤儿列, 保持 co-primary 列双射契约)"
+            )
+            return None, None
+        return _m, _l
 
-    # 三轨 ss 嵌入 (2026-06-21 上线, 镜像 emb_ctx): content_ss 由 stage 13 v3.9.0
-    # 恒物化 (零共现亦回退全文 body + ss_is_fallback=True), 故生产数据恒走 encode 分支;
-    # `else None` 仅为后向兼容旧 schema (无 content_ss 列) —— 此时不产 emb_ss, 下游
-    # stage 18 的 semantic_staleness_ss 优雅缺席 (镜像 DEFER, 不崩)。title_col=None:
-    # content_ss 已 prepend 标题一次 (ctx_materializer), 同 full/ctx 关二次前置。
-    embs_ss = (
-        encode_articles(df, content_col='content_ss', title_col=None, model=_sbert_model)
-        if 'content_ss' in df.columns
-        else None
-    )
+    try:
+        _has_cfull = 'content_full' in df.columns
+        embs_full, embs_full_lg = _embed_track_dual(
+            content_col='content_full' if _has_cfull else '内容',
+            title_col=None if _has_cfull else '标题',
+        )
+        embs_ctx, embs_ctx_lg = (
+            _embed_track_dual(content_col='content_ctx', title_col=None)
+            if 'content_ctx' in df.columns
+            else (None, None)
+        )
+        # 三轨 ss (镜像 ctx): content_ss 由 stage 13 v3.9.0 恒物化 (零共现亦回退全文 body),
+        # 故生产数据恒走 encode 分支; `else (None, None)` 仅为后向兼容旧 schema (无 content_ss),
+        # 此时不产 emb_ss/emb_ss_lg, 下游 stage 26 的 semantic_staleness_ss(_lg) 优雅缺席。
+        embs_ss, embs_ss_lg = (
+            _embed_track_dual(content_col='content_ss', title_col=None)
+            if 'content_ss' in df.columns
+            else (None, None)
+        )
+    finally:
+        _shared_cache.close()
 
-    # ── 持久化 (fix(omni-g-embed-03, 2026-06-11): 含 provenance 列) ──
+    # ── 持久化 (co-primary 6 嵌入列 + 双套 provenance) ──
     out_path = os.path.join(output_dir, '25_article_embeddings.parquet')
-    out_df = _build_output_frame(df, embs_full, embs_ctx, embs_ss)
+    out_df = _build_output_frame(
+        df, embs_full, embs_ctx, embs_ss,
+        embs_full_lg=embs_full_lg, embs_ctx_lg=embs_ctx_lg, embs_ss_lg=embs_ss_lg,
+    )
     out_df.to_parquet(out_path, index=False)
 
     size_mb = os.path.getsize(out_path) / 1024 / 1024
@@ -458,15 +487,22 @@ def main():
     logger.info("【结果分析】SBERT 嵌入持久化产出体检 (语义指纹的完整性 / 归一化 / 双轨覆盖):")
     try:
         _n_art = len(out_df)
-        _dim_full = embs_full.shape[1] if embs_full.ndim == 2 else -1
+        # both-or-neither: embs_full=None 表示 full 轨 MAIN/_lg 任一失败 → 全列联动缺席。
+        _full_ok = embs_full is not None and getattr(embs_full, 'ndim', 0) == 2
+        _dim_full = embs_full.shape[1] if _full_ok else -1
         logger.info(
             f"  文章篇数 = {_n_art:,d} 篇; emb_full 维度 = {_dim_full:,d} "
-            f"(= 所配 SBERT 隐藏维; 默认 shibing624/text2vec-base-chinese=768。维度与 "
-            f"model_id={_SBERT_MODEL_ID} 应自洽 —— 若换稳健性模型须同步确认下游 stage 18 "
-            "Faiss/语义陈旧度的维度假设)。"
+            f"(= 嵌入模型维度; co-primary 双轨 gemini/large 均 3072。维度与 "
+            f"model_id={_SBERT_MODEL_ID} (MAIN) / {_SBERT_MODEL_ID_LG} (_lg) 应自洽 —— "
+            "下游 stage 26 Faiss IndexFlatIP(dim) 已维度无关)。"
         )
 
-        if _n_art == 0:
+        if not _full_ok:
+            logger.warning(
+                "  emb_full 缺席 (full 轨 MAIN 或 _lg 嵌入失败, both-or-neither 联动置 None); "
+                "跳过有效率/归一化/双轨覆盖判读。"
+            )
+        elif _n_art == 0:
             # 空 frame 守卫: 无任何文章 → 不进比率/方向判读 (否则 _full_rate=0.0 会误报
             # "100% 行全 NaN")。走"无有效数据"分支, 后续判读整体短路 (不抛异常)。
             logger.warning(
@@ -474,14 +510,9 @@ def main():
                 "跳过有效率/归一化/双轨覆盖判读。"
             )
         else:
-            # full 轨有效率: 整行全 NaN 视为编码失败 (正常 full 轨应 100% 有效, 无回退 NaN 路径)。
-            # 性能: 唯一 NaN 路径是整数组 np.full_like(.., nan) 回退 → 行级全 NaN ⟺ 首列 NaN,
-            # 故用 (N,) 首列判定替换满 (N,768) bool 矩阵, 全量 17M 时内存/算力降一个数量级。
-            _full_valid_mask = (
-                ~np.isnan(embs_full[:, 0])
-                if embs_full.ndim == 2
-                else np.zeros(0, dtype=bool)
-            )
+            # full 轨有效率: 整行全 NaN 视为编码失败 (正常 full 轨应 100% 有效)。
+            # 用 (N,) 首列判定替换满 (N,3072) bool 矩阵, 全量 17M 时内存/算力降一个数量级。
+            _full_valid_mask = ~np.isnan(embs_full[:, 0])
             _full_valid = int(_full_valid_mask.sum())
             _full_rate = _full_valid / _n_art
             logger.info(
@@ -491,16 +522,14 @@ def main():
                    else f"⚠ 临界/坏: {pct4(1 - _full_rate)} 行 emb_full 全 NaN, full 轨编码异常须排查。")
             )
 
-            # ctx 轨: 上游缺 content_ctx 时 embs_ctx = np.full_like(.., nan) → 全 NaN 回退。
-            # 同 full 轨, 用 (N,) 首列判定替换满矩阵 isnan (唯一 NaN 路径是整数组级回退)。
-            _ctx_col0 = embs_ctx[:, 0] if embs_ctx.ndim == 2 else embs_ctx
-            _ctx_all_nan = bool(np.isnan(_ctx_col0).all())
-            if _ctx_all_nan:
+            # ctx 轨: content_ctx 缺列时 embs_ctx=None (both-or-neither 不产 emb_ctx 列)。
+            if embs_ctx is None or getattr(embs_ctx, 'ndim', 0) != 2:
                 logger.warning(
-                    "  emb_ctx 全 NaN: 上游 stage 13 缺 content_ctx 列, ctx 轨已优雅回退占位; "
-                    "下游 stage 18 的 ctx 语义陈旧度 (semantic_staleness_ctx) 将不可用。"
+                    "  emb_ctx 缺席: 上游 stage 13 缺 content_ctx 列 (或 ctx 轨嵌入失败); "
+                    "下游 stage 26 的 ctx 语义陈旧度 (semantic_staleness_ctx) 将不可用。"
                 )
             else:
+                _ctx_col0 = embs_ctx[:, 0]
                 _ctx_valid_mask = ~np.isnan(_ctx_col0)
                 _ctx_valid = int(_ctx_valid_mask.sum())
                 _ctx_rate = _ctx_valid / _n_art
@@ -538,12 +567,13 @@ def main():
                        else f"⚠ {pct4(1 - _ss_rate)} 行 emb_ss 全 NaN (部分文章无 content_ss)。")
                 )
 
-            # provenance 自证 (供 stage 18 检测 30a 陈旧, 防位置错位)
+            # provenance 自证 (供 stage 26 检测 30a 陈旧, 防位置错位; 双套 MAIN + _lg)
             logger.info(
-                f"  provenance: model_id={_SBERT_MODEL_ID} / "
-                f"model_revision={_SBERT_REVISION or '(未钉死)'} / "
-                f"text_pipeline_version={_TEXT_PIPELINE_VERSION}; "
-                "下游 stage 18 按 article_id 显式 join 并核对这三列, 不匹配即报错强制重算 (防错位语义信号)。"
+                f"  provenance: MAIN model_id={_SBERT_MODEL_ID} / "
+                f"text_pipeline_version={_TEXT_PIPELINE_VERSION} | "
+                f"_lg model_id={_SBERT_MODEL_ID_LG} / "
+                f"text_pipeline_version={_TEXT_PIPELINE_VERSION_LG}; "
+                "下游 stage 26 按 article_id 显式 join 并核对两套 provenance, 不匹配即报错强制重算。"
             )
 
             # 小样本 (盘面 T=2) 警告

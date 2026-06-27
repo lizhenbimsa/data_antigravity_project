@@ -6,7 +6,9 @@
 ==============================================================================*/
 
 * ============================================================================
-* 26. 战略差异度指标 (阶段25: strategic_diff, 主体为 TF-IDF/LDA/Embedding 同行差异度; 26.8 的 *_t2v 为 text2vec 稳健 twin, stage 30 已于 2026-05-29 退役, 现由 stage 15/25 内联产出)
+* 26. 战略差异度指标 (阶段25: strategic_diff, 主体为 TF-IDF/LDA/Embedding 同行差异度;
+*     v3.14.0 起本地 text2vec 稳健轨 *_t2v 已整体移除; gemini⟂large co-primary 双轨的 *_lg
+*     列标签由 pipeline/panel/stata_export.py::HEURISTIC_LABELS 自动派生, 不在此手工 .do 重复)
 * ============================================================================
 
 * 26.1 TF-IDF战略差异度 (全文轨道)
@@ -68,10 +70,6 @@ label variable coh_tfidf_w_ctx "文本连贯性(TF-IDF词,上下文)"
 label variable coh_lda_ctx "文本连贯性(LDA,上下文)"
 label variable coh_emb_ctx "文本连贯性(Embedding,上下文)"
 
-* 26.8 Text2Vec战略差异度 (稳健性)
-label variable strat_diff_t2v_full "战略差异度(Text2Vec,全文)"
-label variable strat_diff_t2v_ctx "战略差异度(Text2Vec,上下文)"
-
 * ============================================================================
 * 27. 政策对齐度指标 (阶段15: 文章级政策语义对齐度)
 * ============================================================================
@@ -87,8 +85,4 @@ label variable auth_sim_tfidf_c_ctx "权威政策相似度(TF-IDF字符,上下�
 label variable auth_sim_tfidf_w_ctx "权威政策相似度(TF-IDF词,上下文)"
 label variable auth_sim_lda_ctx "权威政策相似度(LDA,上下文)"
 label variable auth_sim_emb_ctx "权威政策相似度(Embedding,上下文)"
-
-* 27.3 Text2Vec政策相似度 (稳健性)
-label variable policy_cosine_sim_t2v_full "政策余弦相似度(Text2Vec,全文)"
-label variable policy_cosine_sim_t2v_ctx "政策余弦相似度(Text2Vec,上下文)"
 

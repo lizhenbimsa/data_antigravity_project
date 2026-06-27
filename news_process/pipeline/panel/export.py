@@ -355,23 +355,21 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     # 在写出任何 .parquet / .dta / .csv 之前先验列, 缺列即 raise RuntimeError,
     # 杜绝"新 .parquet 写成功但 .dta 异常"导致 .parquet 与 .dta 语义错位的隐性
     # 灾难 (此前 40_panel_yearly.parquet=5月5日 而 .dta=5月1日 的真实事故).
-    # 校验集对应 Step 4 硬化保证存在的 4 个上游契约 (2026-05-29 双模型重构后,
-    # 原独立 stage 30 已退役, _t2v 契约列改由 stage 15/25 主流程内联双模型产出):
-    #   stage 15 (政策对齐)  → 7h-token 四象限分类列 + policy_cosine_sim_t2v_* (runner 聚合)
-    #   stage 25 (战略差异)  → strat_diff_t2v_* (内联 text2vec twin)
-    #   stage 25/26/27 (硬import) → strat_diff_full / auth_sim_* / benefit_sim_*
+    # v3.14.0 (2026-06-27, all-API-embedding): 原 _t2v 嵌入硬契约 4 列已删 (本地
+    # text2vec 整体移除); 嵌入 co-primary parity (gemini ⟂ _lg) 改由 parity 测试门
+    # 强制而非 export 运行期 raise (见 REQUIRED_PANEL_COLUMNS 注释)。当前 hard 契约
+    # 仅余 bank-year 主键; 其余列存在性由下游 .get()/`if col in` 软守卫优雅处理。
     # 使用 raise 而非 assert (assert 在 python -O 优化模式下会被剥离).
     REQUIRED_PANEL_COLUMNS = [
         # bank-year 主键
         'target_bank', 'year',
-        # t2v 稳健性 twin (4 列) — 2026-05-29 双模型重构后由 stage 15/25 内联双模型产出
-        # (原 stage 30 已退役): strat_diff_t2v_* ← stage 25; policy_cosine_sim_t2v_* ← stage 15 聚合
-        # 三轨说明 (third-track _ss, 2026-06-14): 第三轨 "_ss" (银行+金科同句共现) 的列
-        # *刻意不进* REQUIRED_PANEL_COLUMNS — _ss 列在 stage 21 付费 ss 跑落盘前可能整体缺失,
-        # 硬要求会让首跑前的 export 直接 raise。ss 列的存在性由下游 .get()/`if col in`
-        # 守卫优雅处理 (STATA_LABELS 仅给实际落盘的 _ss 列贴标签, 缺则跳过), 不在此强制。
-        'strat_diff_t2v_full', 'strat_diff_t2v_ctx',
-        'policy_cosine_sim_t2v_full', 'policy_cosine_sim_t2v_ctx',
+        # v3.14.0 (2026-06-27, all-API-embedding): 删除原 _t2v 硬契约 4 列
+        # (strat_diff_t2v_*/policy_cosine_sim_t2v_*) —— 本地 text2vec 嵌入轨整体移除。
+        # 嵌入主轨改为 gemini(MAIN, 无后缀) ⟂ text-embedding-3-large(_lg) 跨厂商对等
+        # co-primary 双轨。co-primary parity (有 gemini 列必有 _lg 孪生, 反之亦然) 由
+        # parity 测试门 (test_embedding_coprimary_parity) + producer both-or-neither
+        # 强制, *不*由 export 运行期 raise (避免与 _lg 软降级 NaN 守卫打架; 故此处
+        # 刻意不把 _lg 列加入硬契约)。第三轨 "_ss" 同样不进硬契约 (首跑前可能整体缺失)。
     ]
     _missing = [c for c in REQUIRED_PANEL_COLUMNS if c not in panel.columns]
     if _missing:
@@ -379,8 +377,6 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
             f"[export_panel] panel 缺失必填列 {_missing}; "
             f"现有 {len(panel.columns)} 列前 30 个: {list(panel.columns)[:30]}; "
             f"拒绝写出避免 .parquet/.dta 语义错位。"
-            f" 请检查上游 stage 15 (policy_cosine_sim_t2v) + stage 25 (strat_diff_t2v) "
-            f"内联双模型输出是否存在 (stage 30 已于 2026-05-29 退役)."
         )
     logger.info(
         f"[export_panel] REQUIRED_PANEL_COLUMNS 校验通过 "
@@ -410,7 +406,8 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
         logger.info(f"     · 导出 Stata .dta: {_export_stata} (.dta 格式 spec=118; "
                     "列名 Stata 32 字符纪律 + 哈希防撞 + 100% 变量标签覆盖)")
         logger.info(f"     · 必填列校验: {len(REQUIRED_PANEL_COLUMNS)} 列 "
-                    "(主键 + t2v 稳健性 twin; 缺即 raise, 杜绝 .parquet/.dta 语义错位)")
+                    "(仅主键 target_bank/year; v3.14.0 co-primary _lg 双轨对等由 "
+                    "test_embedding_coprimary_parity 列名双射门强制, 不入 export 硬契约)")
         logger.info(f"     · 当前 panel: {len(panel):,} 行 × {len(panel.columns):,} 列")
         logger.info("  📖 方法依据: pandas→Stata 边界适配 (Float64/Int64 nullable → strict "
                     "float/double; object→float64 防御性转换, 避免 to_stata 误判全空列)")
@@ -785,41 +782,12 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'auth_sim_tfidf_w_ctx':                'Auth Alignment TF-IDF word (Ctx)',
                 'auth_sim_lda_ctx':                    'Auth Alignment LDA (Ctx)',
                 'auth_sim_emb_ctx':                    'Auth Alignment Embedding (Ctx)',
-                # 双模型嵌入: text2vec 稳健 twin (2026-05-29 双模型重构; 主轨=
-                # text-embedding-3-small, _t2v=shibing624/text2vec 同算法只换模型)。
-                # 原 stage 30 退役后, 这些列由 stage 15/25/26/27/network 内联产出。
-                # fix(omni-g-panel-export-07, 2026-06-11): 原注释声称"与
-                # stata_export.py::HEURISTIC_LABELS 同源"不实 — 实为手抄副本且
-                # 2 对文本已漂移 (strat_diff_t2v_*/policy_cosine_sim_t2v_*); 现
-                # 逐字对齐 46-path 文本 (verbatim sync, 由
-                # tests/test_omni_fix_panel_export.py 锁定)。真单一常量化需
-                # stata_export 侧将 HEURISTIC_LABELS 提升为模块级配合 (另组负责);
-                # 46-path 缺 emb_peer_tone_lag1_t2v_ctx 键亦待该侧补齐。
-                'strat_diff_t2v_full':                 'Strat Diff (T2V robust=text2vec, full)',
-                'strat_diff_t2v_ctx':                  'Strat Diff (T2V robust=text2vec, ctx)',
-                'policy_cosine_sim_t2v_full':          'Policy Cosine Sim (T2V robust, full)',
-                'policy_cosine_sim_t2v_ctx':           'Policy Cosine Sim (T2V robust, ctx)',
-                'strat_diff_n5_emb_t2v':               'Strat Diff N5 Emb (T2V robust, full)',
-                'strat_diff_n5_emb_t2v_ctx':           'Strat Diff N5 Emb (T2V robust, ctx)',
-                'strat_sim_max_emb_t2v':               'Strat Max Sim Emb (T2V robust, full)',
-                'strat_sim_max_emb_t2v_ctx':           'Strat Max Sim Emb (T2V robust, ctx)',
-                'centroid_diff_emb_t2v':               'Centroid Diff Emb (T2V robust, full)',
-                'centroid_diff_emb_t2v_ctx':           'Centroid Diff Emb (T2V robust, ctx)',
-                'coh_emb_t2v_full':                    'Temporal Coherence Emb (T2V robust, full)',
-                'coh_emb_t2v_ctx':                     'Temporal Coherence Emb (T2V robust, ctx)',
-                'auth_sim_emb_t2v_full':               'Auth Policy Sim Emb (T2V robust, full)',
-                'auth_sim_emb_t2v_ctx':                'Auth Policy Sim Emb (T2V robust, ctx)',
-                'benefit_mean_t2v_full':               'Benefit Attitude Mean (T2V robust, full)',
-                'benefit_mean_t2v_ctx':                'Benefit Attitude Mean (T2V robust, ctx)',
-                'benefit_std_t2v_full':                'Benefit Attitude SD (T2V robust, full)',
-                'benefit_std_t2v_ctx':                 'Benefit Attitude SD (T2V robust, ctx)',
-                'benefit_pos_frac_t2v_full':           'Benefit Pos Frac (T2V robust, full)',
-                'benefit_pos_frac_t2v_ctx':            'Benefit Pos Frac (T2V robust, ctx)',
-                'benefit_neg_frac_t2v_full':           'Benefit Neg Frac (T2V robust, full)',
-                'benefit_neg_frac_t2v_ctx':            'Benefit Neg Frac (T2V robust, ctx)',
-                'emb_peer_tone_lag1_t2v_full':         'Emb Peer Tone Lag1 (T2V robust, full)',
-                'emb_peer_tone_lag1_t2v_ctx':          'Emb Peer Tone Lag1 (T2V robust, ctx)',
-                'bank_emb_sim_mean_lag1_t2v':          'Bank Emb Sim Mean (L1, T2V robust)',
+                # v3.14.0 (2026-06-27, all-API-embedding): 删除原 _t2v 嵌入稳健 twin
+                # 标签 (~25 条) —— 本地 text2vec 嵌入轨整体移除。嵌入主轨改为
+                # gemini(MAIN, 无后缀) ⟂ text-embedding-3-large(_lg) 跨厂商对等 co-primary
+                # 双轨。MAIN/_lg/_allv 标签由 stata_export.py::HEURISTIC_LABELS 派生
+                # (46-path .dta 标签权威源, 见该侧 _MAIN_ANCHOR_KEYS); 此 export.py 兜底
+                # dict 不再镜像嵌入标签 (codebook 走 stata_export 派生)。
                 # Event Study 动态效应 (Callaway & Sant'Anna 2021, JoE)
                 'dcep_rel_year':                       'DCEP Relative Year to Treatment',
                 'dcep_lead3':                          'DCEP Lead 3 Periods (k=-3)',
@@ -1315,9 +1283,9 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 # 连续型聚合 (主回归用)
                 'article_sim_mean':       'Avg Article-Policy Cosine Sim',
                 'article_sim_std':        'Std Article-Policy Cosine Sim',
-                # 三轨 (full/ctx/ss) parity (2026-06-08): MAIN/API spec 政策对齐 _ctx 孪生 (runner.py
-                # 新增聚合; 与 _t2v 轨 policy_cosine_sim_t2v_full/_ctx 面板 full/ctx 对称;
-                # _ss 同句轨标签由下方第三轨机械派生循环自动补全)。
+                # 三轨 (full/ctx/ss) parity (2026-06-08): MAIN (gemini, 无后缀) 政策对齐 _ctx
+                # 孪生 (runner.py 聚合; co-primary _lg 孪生 policy_cosine_sim_lg_* 面板 full/ctx
+                # 对称; _ss 同句轨标签由下方第三轨机械派生循环自动补全)。
                 'article_sim_mean_ctx':   'Avg Article-Policy Cosine Sim (Ctx)',
                 'article_sim_std_ctx':    'Std Article-Policy Cosine Sim (Ctx)',
                 'fintech_intensity_mean': 'Avg FinTech Intensity Score',
@@ -1389,7 +1357,8 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
             # 置于 _ss 派生之后 → full/ctx/ss 三轨政策键均已就绪, 一并派生其 _allv 孪生。
             # 仅对 **anchor-dependent** 政策族派生 (余弦/相似度/四象限阈值依赖政策锚点):
             # article_sim_ (mean/std) / auth_sim_ (5 法) / token|hidden|subst_adopt_ /
-            # policy_cosine_sim(_t2v_) — fintech_intensity_mean 等词频列不依赖锚点, 不派生。
+            # policy_cosine_sim (MAIN + co-primary _lg) — fintech_intensity_mean 等词频列
+            # 不依赖锚点, 不派生。
             # _allv 后缀插在 track 后缀 (_full/_ctx/_ss) 之前 (无 track 则 append), 与
             # stage 15/26/runner 实产列名严格对齐; 标签 = 主轨标签 + " (All-Vintage anchor)"。
             _ALLV_PREFIXES = ('article_sim_', 'auth_sim_', 'token_adopt_',

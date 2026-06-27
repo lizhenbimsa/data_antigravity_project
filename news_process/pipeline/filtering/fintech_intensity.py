@@ -34,7 +34,10 @@ news_process.pipeline.filtering.fintech_intensity — 阶段14：金融科技技
 输出：
     `15_fintech_intensity.parquet`（= 12 filtered + fintech_intensity_score + intensity_verified
       + 三轨列 fintech_intensity_score_{full,ctx,ss} / intensity_verified_{full,ctx,ss};
-      无后缀列 = _full alias 向后兼容。ss 轨 = 银行+金科同句共现, 回退镜像 ctx→全文 body）
+      无后缀列 = _full alias 向后兼容。ss 轨 = 银行+金科同句共现, 回退镜像 ctx→全文 body。
+      v3.14.0 起关键词语义权重走 co-primary 双 API 模型 → 另产 _lg 孪生族
+      fintech_intensity_score_lg_{full,ctx,ss} / intensity_verified_lg_{full,ctx,ss}
+      (text-embedding-3-large; 与无后缀 gemini 族严格 parity, both-or-neither 同损同有)）
 
 学术依据：
     Li, K., Mai, F., Shen, R., & Yan, X. (2021). Measuring corporate culture using
@@ -76,17 +79,17 @@ news_process.pipeline.filtering.fintech_intensity — 阶段14：金融科技技
 1. **全局 DF (Module A)** `_compute_global_df_jieba`: 把词典全部关键词 `jieba.add_word` 注入, `_ensure_keywords_injected` 划分 matchable / unmatchable(代码注释记 6/1506 含空格顿号的词 jieba 整词永不可命中, 实际剔除数由 `len(unmatchable)` 运行期计算 → 从权重宇宙剔除并 WARNING 披露)。在全量参考语料上按 **(标题,日期) 去重的唯一文档** 用 jieba 整词统计每个关键词的文档频率 DF 与 N_total(joblib `prefer='threads'` 并行, 分批 2000)。DF 语料列经 `_materialize_df_corpus_column` 在线物化 content_full(prepend_title) 与 TF 端同口径。
 2. **综合权重 (Module B)** `_build_intensity_weights`:
    - 步骤A IDF: `raw_idf = log10(N_total/(1+df))` → 均值归一化 → Winsorize(默认 [1,99] 分位)。
-   - 步骤B 语义纯度: 用 SentenceTransformer(默认 shibing624/text2vec-base-chinese) 编码每个关键词 → IDF 加权普通质心 `np.average(embeddings, axis=0, weights=idf)`(代码注释明确订正: 名为 "SIF" 实非 SIF, 无 a/(a+p(w)) 平滑与首主成分去除) → 各关键词对质心余弦 → min-max + floor(anisotropy_floor 默认 0.1) 重标定。
+   - 步骤B 语义纯度 (v3.14.0: 零本地模型, 走统一引擎 `_eng.embed_texts(spec)`): 用 co-primary spec(MAIN=gemini-embedding-2-preview 无后缀 / `_lg`=text-embedding-3-large) 各编码一遍关键词表(词表级一次性 ~1506 词, LLMCache 穿透) → IDF 加权普通质心 `np.average(embeddings, axis=0, weights=idf)`(维度无关, 由 `emb.shape[1]` 驱动; 名为 "SIF" 实非 SIF, 无 a/(a+p(w)) 平滑与首主成分去除) → 各关键词对质心余弦 → min-max + floor(anisotropy_floor 默认 0.1) 重标定。
    - 步骤C: `W_i = IDF_i × CosSim_scaled_i` 预乘。
-   - 多处降级守卫(DF 空 / IDF 均值≤0 / CosSim 全相同 / sentence_transformers ImportError 或运行期 Exception)统一 logger.error 披露口径降级为纯词频或纯 IDF, 防同名列静默漂移。
+   - 数据退化守卫(DF 空 / IDF 均值≤0 / CosSim 全相同)统一 logger.error 披露降级为纯词频或纯 IDF, 防同名列静默漂移; **嵌入 API 硬失败(embed_texts 返回 None)不降级而回传 None** → main() 走 both-or-neither: 该 spec 三轨 score 全置 NaN(parity: 无后缀族 ⟺ `_lg` 族同损同有, 绝不留单边孤儿列)。
 3. **逐文档打分 (Module C)** `_compute_intensity_scores`, 双重对数核公式:
    `Score_d = Σ_{i:TF>0} [(1 + ln(TF_{d,i})) / (1 + ln(L_d))] × W_i`
    - 防长文偏差(分母 1+ln(L_d))、防复读机刷分(对 TF 取对数)。
    - **二次熔断**: distinct 关键词数 < min_distinct_keywords_jieba(默认 2) → score=NaN, verified=False(NaN 在下游 bank-year 均值中自动剔除, 避免把未验证文章当零强度系统性拉低均值)。
 
-**输出列**: `fintech_intensity_score_{full,ctx,ss}` + `intensity_verified_{full,ctx,ss}`, 加无后缀 `fintech_intensity_score` / `intensity_verified`(= _full 别名)。
+**输出列**: `fintech_intensity_score_{full,ctx,ss}` + `intensity_verified_{full,ctx,ss}`, 加无后缀 `fintech_intensity_score` / `intensity_verified`(= _full 别名); v3.14.0 起另加 `_lg` co-primary 孪生族 `fintech_intensity_score_lg_{full,ctx,ss}` + `intensity_verified_lg_{full,ctx,ss}`(text-embedding-3-large, 与无后缀 gemini 族严格 parity)。
 
-**外部依赖/确定性**: jieba(整词分词, 注入态单源, 锁 jieba==0.42.1)、joblib 线程并行、sentence-transformers + text2vec 本地模型(仅用于关键词级语义权重, 非文章嵌入, 不调任何 API, 不进 _llm_cache.db)。**无 LLM/Embedding API、无网络付费**, 本阶段 $0, 确定性取决于 jieba 版本与本地词向量模型。配置节 = config/filtering.yaml::fintech_intensity (代码 CONFIG.get('fintech_intensity'))。
+**外部依赖/确定性**: jieba(整词分词, 注入态单源, 锁 jieba==0.42.1)、joblib 线程并行、统一引擎 `pipeline/text/embedding_engine.py::embed_texts`(关键词级语义权重经 co-primary 双 API 模型 gemini + text-embedding-3-large 各算一遍, 词表级一次性 ~1506 词, 经 LLMCache(_llm_cache.db) 穿透缓存; v3.14.0 起**零本地嵌入模型**, text2vec 已整体移除)。嵌入 miss 才付费调 API、命中即 $0(嵌入不受 NEWS_PROCESS_LLM_OFFLINE 的 stage 21 守卫保护; 裸环境须设 SSL_CERT_FILE=certifi 修 yunwu.ai 证书); 确定性取决于 jieba 版本与嵌入 API 返回。配置节 = config/filtering.yaml::fintech_intensity + config/features.yaml::embedding_api / embedding_large (代码 CONFIG.get('fintech_intensity') / CONFIG.get('embedding_api') / CONFIG.get('embedding_large'))。
 
 ■ 白话说明
 
@@ -111,10 +114,9 @@ import jieba
 import numpy as np
 import pandas as pd
 
-# W12 (2026-06-26, F14): HF 离线 — 模块顶设 (与 tone_berts/article_sbert/embedding_engine 三先例一致;
-# 比函数内更鲁棒)。stage15 词向量走裸 SentenceTransformer (lazy import in _build), 切加载来源不改权重 → golden-safe。
-os.environ.setdefault("HF_HUB_OFFLINE", "1")
-os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+# v3.14.0 (2026-06-27): 移除 HF 离线 env (HF_HUB_OFFLINE/TRANSFORMERS_OFFLINE) —— 本阶段
+# 已彻底拔掉本地 SentenceTransformer(text2vec) 词向量, 关键词语义权重改走统一引擎
+# _eng.embed_texts(co-primary 双 API 模型), 不再加载任何本地 HF 模型 → 该离线 env 失效。
 
 jieba.setLogLevel(logging.WARNING)
 
@@ -138,6 +140,7 @@ from news_process.core.logging import (
 )
 from news_process.core.reporting import save_dataset
 from news_process.core.text.ahocorasick import load_fintech_dict
+from news_process.pipeline.text import embedding_engine as _eng
 
 # ============================================================================
 # 1. 全局配置和初始化
@@ -147,12 +150,25 @@ CONFIG = load_config()
 STAGE_NAME = "15_fintech_intensity"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
-# 读取技术重度评分配置 (config.yaml → fintech_intensity 节)
+# 读取技术重度评分配置 (config/filtering.yaml → fintech_intensity 节)
 INTENSITY_CONFIG = CONFIG.get('fintech_intensity', {})
-EMBEDDING_MODEL = INTENSITY_CONFIG.get('embedding_model', 'shibing624/text2vec-base-chinese')
 MIN_DISTINCT_KEYWORDS_JIEBA = INTENSITY_CONFIG.get('min_distinct_keywords_jieba', 2)
 WINSORIZE_PERCENTILES = INTENSITY_CONFIG.get('winsorize_percentiles', [1, 99])
 ANISOTROPY_FLOOR = INTENSITY_CONFIG.get('anisotropy_floor', 0.1)
+
+# ── 嵌入 spec (v3.14.0: 零本地模型, 统一引擎 co-primary 双 API 模型) ──────────────
+# 关键词级语义纯度权重 CosSim_scaled_i 改走统一引擎 _eng.embed_texts(spec=…), 不再用
+# 本地 SentenceTransformer(text2vec)。两 spec 各嵌一遍 ~1506 金科词表 (词表级一次性,
+# 非逐文档), 互为 co-primary:
+#   MAIN  = embedding_api    (gemini-embedding-2-preview, 无后缀) → fintech_intensity_score
+#   _lg   = embedding_large  (text-embedding-3-large)             → fintech_intensity_score_lg
+# both-or-neither: 任一 spec embed_texts 返回 None → 两个 score 族同置 NaN (不留单边孤儿列)。
+# 质心/余弦数学全程维度无关 (np.average(emb, axis=0) 由 emb.shape[1] 驱动), 不假设 768/1536/3072。
+EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})           # CO-PRIMARY ① (canonical, gemini)
+_LARGE_SPEC = CONFIG.get('embedding_large', {})              # CO-PRIMARY ② (_lg, text-embedding-3-large)
+# 缓存库路径 (与 policy_alignment/benefit_society 同口径: 缺 llm_cache_db 键时回退 output_dir/_llm_cache.db)
+CACHE_DB_PATH = CONFIG['paths'].get(
+    'llm_cache_db', os.path.join(CONFIG['paths']['output_dir'], '_llm_cache.db'))
 
 # 加载金融科技词典（与阶段 12 共享同一份词典）
 FINTECH_KEYWORDS, _ = load_fintech_dict(CONFIG['paths'].get('fintech_dict_file', ''))
@@ -302,11 +318,16 @@ def _compute_global_df_jieba(df_full: pd.DataFrame, text_col: str = '内容') ->
 # 3. 综合权重构建 (Module B)
 # ============================================================================
 
-def _build_intensity_weights(keyword_doc_freq: Counter, N_total: int) -> dict:
-    """构建 IDF × CosSim 综合权重。
+def _build_intensity_weights(
+    keyword_doc_freq: Counter,
+    N_total: int,
+    spec: dict | None = None,
+) -> dict | None:
+    """构建 IDF × CosSim 综合权重 (v3.14.0: 关键词语义编码改走统一引擎 spec)。
 
     步骤 A: 全局 IDF 计算 + 均值归一化 + Winsorization
-    步骤 B: IDF 加权质心 + 各向异性重标定
+    步骤 B: IDF 加权质心 + 各向异性重标定 —— 用 spec 经 _eng.embed_texts 嵌入关键词表
+      (词表级一次性 ~1506 词; 维度无关, np.average(emb, axis=0) 由 emb.shape[1] 驱动)
       (fix omni-g-fintech-02, 2026-06-11: 原称 "SIF 加权质心" 名实不符 — 无
       a/(a+p(w)) 频率权重、无首主成分去除, 实为 IDF 加权普通质心, 措辞已修正)
     步骤 C: 预乘综合权重
@@ -319,10 +340,16 @@ def _build_intensity_weights(keyword_doc_freq: Counter, N_total: int) -> dict:
     Args:
         keyword_doc_freq: {关键词: 出现该词的文档数} (jieba 整词口径)。
         N_total: 全量唯一文档总数。
+        spec: 嵌入模型 spec (默认 EMBEDDING_CONFIG = gemini MAIN); 传 _LARGE_SPEC
+            可构造 _lg co-primary 孪生权重。
 
     Returns:
-        dict: {关键词: 综合权重 (float)}
+        dict {关键词: 综合权重 (float)}; 当 embed_texts 硬失败返回 None 时回传 None
+        (供 main() 走 both-or-neither: 任一 spec 失败则两族 score 同置 NaN)。
+        DF 空 / IDF 均值≤0 / 余弦全相同等数据退化路径仍返回有效权重字典 (非 None),
+        与 API 硬失败 (None) 语义区分。
     """
+    spec = spec if spec is not None else EMBEDDING_CONFIG
     matchable, _ = _ensure_keywords_injected()
     if not keyword_doc_freq or N_total == 0:
         # 审计修复 (degradation F11): 升 ERROR — 同名 fintech_intensity_score
@@ -367,58 +394,63 @@ def _build_intensity_weights(keyword_doc_freq: Counter, N_total: int) -> dict:
     # ── 步骤 B: IDF 加权质心 + 各向异性重标定 ──
     # fix(omni-g-fintech-02, 2026-06-11): 原注释 "SIF 加权质心" 名实不符, 见模块
     # docstring Arora et al. (2017) 引用降格说明。
-    try:
-        # W12 HF 离线已在模块顶 setdefault (F14, 与三先例一致)。
-        from sentence_transformers import SentenceTransformer
-        logger.info(f"加载词向量模型: {EMBEDDING_MODEL}")
-        model = SentenceTransformer(EMBEDDING_MODEL)
+    # v3.14.0: 关键词语义编码改走统一引擎 _eng.embed_texts(spec) (零本地模型);
+    # 词表级一次性嵌 ~1506 金科词, 由 LLMCache 穿透 (model_id+文本+version 为键),
+    # 跨 run 命中即 $0; 维度无关 (centroid/cosine 由 emb.shape[1] 驱动)。
+    _kw_model = _eng.spec_model(spec) if spec else '(未配置)'
+    kw_list = list(idf_weights.keys())
+    logger.info(f"关键词语义编码: 统一引擎 embed_texts, model={_kw_model}, "
+                f"{len(kw_list):,} 词 (词表级一次性, co-primary spec)")
+    embeddings = _eng.embed_texts(
+        kw_list, spec, cache_db_path=CACHE_DB_PATH,
+        log_prefix=f"FintechIntensityKW[{_kw_model}]")
 
-        kw_list = list(idf_weights.keys())
-        embeddings = model.encode(kw_list, show_progress_bar=False)
+    if embeddings is None:
+        # both-or-neither (v3.14.0): API 硬失败 (embed_texts 返回 None) — 不静默退化为
+        # 纯 IDF (那会留下与另一 co-primary 不对称的口径), 而是回传 None 让 main()
+        # 把本 spec 的全部 score 列置 NaN (parity: 两 co-primary 同损/同有)。
+        logger.error(
+            f"⚠ 嵌入硬失败[fintech_intensity]: embed_texts 返回 None "
+            f"(model={_kw_model}) → 本 spec 权重不可构, 回传 None (main 将置该族 score=NaN, "
+            "both-or-neither 保 co-primary parity, 勿降级为纯 IDF)")
+        return None
+    if embeddings.shape[0] != len(kw_list):
+        # 形状契约失配 (引擎理应等长返回) — 同样按硬失败处理, 防错位质心。
+        logger.error(
+            f"⚠ 嵌入形状失配[fintech_intensity]: embed_texts 返回 {embeddings.shape[0]} 行, "
+            f"期望 {len(kw_list)} (model={_kw_model}) → 回传 None (both-or-neither)")
+        return None
+    logger.info(f"  关键词嵌入形状: {embeddings.shape} (dim={embeddings.shape[1]}, 维度无关)")
 
-        weights_arr = np.array([idf_weights[kw] for kw in kw_list])
-        centroid = np.average(embeddings, axis=0, weights=weights_arr)
+    weights_arr = np.array([idf_weights[kw] for kw in kw_list])
+    centroid = np.average(embeddings, axis=0, weights=weights_arr)
 
-        centroid_norm = centroid / (np.linalg.norm(centroid) + 1e-10)
-        emb_norms = embeddings / (np.linalg.norm(embeddings, axis=1, keepdims=True) + 1e-10)
-        cos_sims = emb_norms @ centroid_norm
+    centroid_norm = centroid / (np.linalg.norm(centroid) + 1e-10)
+    emb_norms = embeddings / (np.linalg.norm(embeddings, axis=1, keepdims=True) + 1e-10)
+    cos_sims = emb_norms @ centroid_norm
 
-        # ── 各向异性重标定 (min-max + floor; fix omni-g-fintech-02: 工程化 ad hoc
-        #    处理, Ethayarajh 2019 仅为现象动机引用, 非该文提出的校准方法) ──
-        min_sim, max_sim = float(cos_sims.min()), float(cos_sims.max())
+    # ── 各向异性重标定 (min-max + floor; fix omni-g-fintech-02: 工程化 ad hoc
+    #    处理, Ethayarajh 2019 仅为现象动机引用, 非该文提出的校准方法) ──
+    min_sim, max_sim = float(cos_sims.min()), float(cos_sims.max())
 
-        cos_sim_scaled = {}
-        if max_sim > min_sim:
-            for i, kw in enumerate(kw_list):
-                scaled = ANISOTROPY_FLOOR + (1.0 - ANISOTROPY_FLOOR) * \
-                         (cos_sims[i] - min_sim) / (max_sim - min_sim)
-                cos_sim_scaled[kw] = float(scaled)
-        else:
-            # 审计修复 (degradation F11, 复核补全): 第 4 个同型降级支 — 全部关键词
-            # 余弦相似度相同时 CosSim 亦塌缩为 1.0 (评分退化为纯 IDF), 升 ERROR 闭合。
-            logger.error("⚠ 口径降级[fintech_intensity]: 所有关键词余弦相似度相同，"
-                         "CosSim 权重回退为 1.0 → 评分退化为纯 IDF, 与语义加权设计不一致, "
-                         "勿用于发表/跨样本对比")
-            cos_sim_scaled = {kw: 1.0 for kw in kw_list}
+    cos_sim_scaled = {}
+    if max_sim > min_sim:
+        for i, kw in enumerate(kw_list):
+            scaled = ANISOTROPY_FLOOR + (1.0 - ANISOTROPY_FLOOR) * \
+                     (cos_sims[i] - min_sim) / (max_sim - min_sim)
+            cos_sim_scaled[kw] = float(scaled)
+    else:
+        # 审计修复 (degradation F11, 复核补全): 第 4 个同型降级支 — 全部关键词
+        # 余弦相似度相同时 CosSim 亦塌缩为 1.0 (评分退化为纯 IDF), 升 ERROR 闭合。
+        # 注: 此为数据退化 (非 API 硬失败) → 仍返回有效权重 (不走 both-or-neither None)。
+        logger.error("⚠ 口径降级[fintech_intensity]: 所有关键词余弦相似度相同，"
+                     "CosSim 权重回退为 1.0 → 评分退化为纯 IDF, 与语义加权设计不一致, "
+                     "勿用于发表/跨样本对比")
+        cos_sim_scaled = {kw: 1.0 for kw in kw_list}
 
-        logger.info(f"CosSim 校准: min={sig4(min_sim)}, max={sig4(max_sim)}, "
-                    f"floor={sig4(ANISOTROPY_FLOOR)}")
-        del model, embeddings
-
-    except ImportError:
-        # 审计修复 (degradation F11): 升 ERROR — CosSim 维度静默失效会让
-        # fintech_intensity_score 由语义加权退化为纯 IDF (列名不变, R7 口径漂移)。
-        logger.error("⚠ 口径降级[fintech_intensity]: sentence_transformers 未安装，"
-                     "CosSim 权重降级为 1.0（评分退化为纯 IDF, 与语义加权设计不一致, "
-                     "勿用于发表/跨样本对比）")
-        cos_sim_scaled = {kw: 1.0 for kw in idf_weights}
-    except Exception as e:
-        # 审计修复 (degradation F11/补漏): 装了库但运行期失败 (模型连不上/OOM 等)
-        # 是更危险的同型触发 — 同样静默退化为纯 IDF, 升 ERROR。
-        logger.error(f"⚠ 口径降级[fintech_intensity]: 词向量计算异常 "
-                     f"({type(e).__name__}: {e})，CosSim 降级为 1.0 → 评分退化为纯 IDF, "
-                     f"与语义加权设计不一致, 勿用于发表/跨样本对比")
-        cos_sim_scaled = {kw: 1.0 for kw in idf_weights}
+    logger.info(f"CosSim 校准: min={sig4(min_sim)}, max={sig4(max_sim)}, "
+                f"floor={sig4(ANISOTROPY_FLOOR)}")
+    del embeddings
 
     # ── 步骤 C: 预乘综合权重 ──
     # fix(omni-g-fintech-03 组级): 宇宙限 matchable — 不可匹配词 TF 恒 0, 无需权重
@@ -577,10 +609,11 @@ def _log_environment_and_config(full_path: str, ctx_path: str,
         logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
         logger.info(f"     · 平台:     {platform.platform()} | CPU 逻辑核={os.cpu_count()}")
         logger.info(f"     · jieba:    {getattr(jieba, '__version__', '?')} (冻结锚点 0.42.1; "
-                    "确定性来源=jieba版本+本地词向量模型)")
+                    "确定性来源=jieba版本 + 关键词嵌入 API 向量)")
         _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
         logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
-                    "本阶段纯 CPU (jieba+joblib线程+本地text2vec) / 无 LLM·网络·API ($0)")
+                    "本阶段 jieba+joblib 线程 + 关键词级 co-primary 双 API 嵌入 "
+                    "(gemini + text-embedding-3-large; LLMCache 命中即 $0)")
 
         logger.info("  📂 输入 / 输出文件")
         logger.info(f"     · IDF 参考语料 (stage 12 全量): {full_path}")
@@ -589,8 +622,11 @@ def _log_environment_and_config(full_path: str, ctx_path: str,
         logger.info(f"     · 输出: {output_path}")
         logger.info("     · 金科词典: core.text.ahocorasick.load_fintech_dict (与 stage 12 共享同一份)")
 
-        logger.info("  ⚙ 运行配置 (config/filtering.yaml::fintech_intensity)")
-        logger.info(f"     · 词向量模型 EMBEDDING_MODEL={EMBEDDING_MODEL} (本地, 仅用于关键词级语义权重, 非文章嵌入)")
+        logger.info("  ⚙ 运行配置 (config/filtering.yaml::fintech_intensity + config/features.yaml::embedding_api/embedding_large)")
+        _main_kw_model = _eng.spec_model(EMBEDDING_CONFIG) if EMBEDDING_CONFIG else '(未配置)'
+        _lg_kw_model = _eng.spec_model(_LARGE_SPEC) if _LARGE_SPEC else '(未配置)'
+        logger.info(f"     · 关键词嵌入 co-primary 双 API 模型 (词表级语义纯度权重, 非文章嵌入): "
+                    f"MAIN(无后缀)={_main_kw_model} | _lg={_lg_kw_model}")
         logger.info(f"     · 二次熔断阈值 MIN_DISTINCT_KEYWORDS_JIEBA={MIN_DISTINCT_KEYWORDS_JIEBA:,} "
                     "(distinct 金科词 < 此值 → score=NaN, verified=False)")
         logger.info(f"     · Winsorize 分位 WINSORIZE_PERCENTILES={WINSORIZE_PERCENTILES} "
@@ -625,13 +661,14 @@ def _log_environment_and_config(full_path: str, ctx_path: str,
                     "disclosures. Finance Research Letters, 47, 102776. "
                     "https://doi.org/10.1016/j.frl.2022.102776")
         logger.info("       → 翻来覆去喊口号不应线性加分, 对 TF 取对数压制注水稿件")
-        logger.info("     · 关键词级语义编码 (SentenceTransformer 本地模型):")
+        logger.info("     · 关键词级语义编码 (统一引擎 co-primary 双 API 嵌入, v3.14.0 起零本地模型):")
         logger.info("       Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using "
                     "Siamese BERT-networks. In Proceedings of the 2019 Conference on Empirical Methods "
                     "in Natural Language Processing and the 9th International Joint Conference on Natural "
                     "Language Processing (EMNLP-IJCNLP) (pp. 3980-3990). Association for Computational "
                     "Linguistics. https://doi.org/10.18653/v1/D19-1410")
-        logger.info("       → 用句向量模型给每个金科词取语义向量, 对质心余弦度量其'语义纯度'")
+        logger.info("       → 用句向量模型给每个金科词取语义向量, 对质心余弦度量其'语义纯度' "
+                    "(现走 gemini + text-embedding-3-large 两 API 模型各算一遍, 互为 co-primary)")
         logger.info("     · 银行金融科技测度 (本任务直接对标的中文研究):")
         logger.info("       胡俊, 李强, 戴嘉诚, & 曾勇. (2024). 基于文本分析的商业银行金融科技测度及赋能效果检验. "
                     "中国管理科学, 32(1), 31-41. "
@@ -673,8 +710,9 @@ def main():
                 f"< {MIN_DISTINCT_KEYWORDS_JIEBA} → 二次熔断 score=NaN(不计入下游均值)。")
     logger.info("【判读】分数越高 = 技术含金量越硬核; verified=True 占比越高 = 越多文章通过验证门槛。")
     logger.info("        三轨分歧(full vs ctx vs ss)越大 = ss/ctx 带来越独立的聚焦信号(支撑三轨稳健性)。")
-    logger.info("【确定性】纯 CPU (jieba 整词 + joblib 线程并行 + 本地 text2vec 词向量), "
-                "不调任何 LLM/Embedding API, 本阶段 $0, 确定性取决于 jieba==0.42.1 与本地词向量模型。")
+    logger.info("【确定性】jieba 整词 + joblib 线程并行 (CPU) + 关键词级 co-primary 双 API 嵌入 "
+                "(gemini 无后缀 + text-embedding-3-large _lg; 词表级一次性 ~1506 词, LLMCache 穿透)。"
+                "嵌入 miss 才付费, 命中即 $0; 确定性取决于 jieba==0.42.1 与嵌入 API 返回。")
 
     # 运行期阶段计时累计 (各主要子阶段墙钟耗时, 末尾汇总打印; 仅服务于日志)
     phase_durations: dict[str, float] = {}
@@ -716,9 +754,30 @@ def main():
     phase_durations['①全局DF解析(jieba整词)'] = time.time() - _t
     log_memory_usage(logger, "全量 DF 解析后(已释放)")
 
+    # ── ② 综合权重构建 (IDF×CosSim) — co-primary 双 API 模型 (v3.14.0) ──
+    # MAIN (gemini, 无后缀) + _lg (text-embedding-3-large) 各构一套权重 (词表级一次性嵌)。
+    # both-or-neither (parity 铁律): 任一 spec 的 embed_texts 硬失败 (_build 返回 None)
+    # → 两族 score 列全置 NaN, 绝不留单边孤儿列。_LARGE_SPEC 缺失 (config 未配 embedding_large)
+    # 时退化为单 MAIN (与其余 producer "config 缺块退化" 同口径)。
     _t = time.time()
-    combined_weights = _build_intensity_weights(keyword_doc_freq, N_total)
-    phase_durations['②综合权重构建(IDF×CosSim)'] = time.time() - _t
+    combined_weights = _build_intensity_weights(keyword_doc_freq, N_total, spec=EMBEDDING_CONFIG)
+    combined_weights_lg = (
+        _build_intensity_weights(keyword_doc_freq, N_total, spec=_LARGE_SPEC)
+        if _LARGE_SPEC else None)
+
+    # both-or-neither: MAIN 或 _lg 任一硬失败 (None) → 两族同时作废 (置 NaN)。
+    # (_LARGE_SPEC 未配置时 combined_weights_lg=None 是"无 _lg 轨"语义, 不触发 both-or-neither;
+    #  仅当 _LARGE_SPEC 已配置但 embed_texts 硬失败才连坐 MAIN。)
+    _lg_enabled = bool(_LARGE_SPEC)
+    if combined_weights is None or (_lg_enabled and combined_weights_lg is None):
+        logger.error(
+            "⚠ both-or-neither[fintech_intensity]: co-primary 至少一轨嵌入硬失败 "
+            f"(MAIN={'OK' if combined_weights is not None else 'FAIL'}, "
+            f"_lg={'OK' if combined_weights_lg is not None else ('FAIL' if _lg_enabled else 'N/A')}) "
+            "→ 两族 fintech_intensity_score 列全置 NaN (parity 保护, 勿单边落列)")
+        combined_weights = None
+        combined_weights_lg = None
+    phase_durations['②综合权重构建(IDF×CosSim, co-primary 双 API)'] = time.time() - _t
 
     # 存在性 gate: 校验 stage 12 原始金科子集仍在盘。2026-06-15 插入 stage 12b
     # (同句共现硬过滤) 后, 12_fintech_news.parquet 仍由 stage 12 产出 (12b 只读它、
@@ -753,52 +812,75 @@ def main():
     _t = time.time()
     # v3.6.0 (Plan E P4 B1): 三轨计算 — full 用 content_full (回退 '内容'),
     # ctx 用 'content_ctx', ss 用 'content_ss' (银行+金科同句共现, 回退镜像 ctx→全文 body)
-    # 输出列: fintech_intensity_score_{full,ctx,ss} + intensity_verified_{full,ctx,ss}
-    # 向后兼容: 同时保留无后缀 fintech_intensity_score = _full alias
+    # 输出列: fintech_intensity_score{suffix}_{full,ctx,ss} + intensity_verified{suffix}_{full,ctx,ss}
+    #   suffix='' → MAIN(gemini, canonical 无后缀); suffix='_lg' → co-primary text-embedding-3-large
+    # 向后兼容: MAIN 同时保留无后缀 fintech_intensity_score = _full alias
     # P1 修复 (metric-audit 2026-06-02, 病根A): full 轨改读 content_full (含标题), 与
     # ctx 轨 (content_ctx) 对称; 缺列回退 '内容' (_compute_intensity_scores 内亦有兜底).
     _full_col = 'content_full' if 'content_full' in df.columns else '内容'
-    scores_full, verified_full = _compute_intensity_scores(df, combined_weights, text_col=_full_col)
-    df['fintech_intensity_score_full'] = scores_full
-    df['intensity_verified_full'] = verified_full
-    # legacy alias (历史无后缀别名, 待各论文迁移到 _full/_ctx 列后弃用)
-    df['fintech_intensity_score'] = scores_full
-    df['intensity_verified'] = verified_full
+    _n_rows = len(df)
+    _nan_scores = [float('nan')] * _n_rows
+    _false_verified = [False] * _n_rows
 
-    if 'content_ctx' in df.columns:
-        logger.info("=" * 60)
-        logger.info("v3.6.0 三轨: 对 content_ctx 计算 fintech_intensity_score_ctx")
-        logger.info("=" * 60)
-        scores_ctx, verified_ctx = _compute_intensity_scores(
-            df, combined_weights, text_col='content_ctx')
-        df['fintech_intensity_score_ctx'] = scores_ctx
-        df['intensity_verified_ctx'] = verified_ctx
-    else:
-        logger.warning(
-            "  content_ctx 列缺失 (stage 13 _materialize_ctx 未跑?), "
-            "ctx 轨回退 = full — 此时 fintech_intensity_score_ctx ≡ _full")
-        df['fintech_intensity_score_ctx'] = scores_full
-        df['intensity_verified_ctx'] = verified_full
+    def _score_one_track(weights, text_col: str):
+        """对单轨算分; weights=None (both-or-neither 失败) → 全 NaN/False。"""
+        if weights is None:
+            return list(_nan_scores), list(_false_verified)
+        return _compute_intensity_scores(df, weights, text_col=text_col)
 
-    # 第三轨 ss (银行+金科同句共现): 镜像 ctx 路径, 对 content_ss 计算
-    # (content_ss = 标题 + 同句内同时含 目标银行∧金科词 的句 ±N 句窗;
-    #  无共现时 stage 13 已回退全文 body, ss_is_fallback=True, 镜像 ctx 回退公理)。
-    # 缺列优雅跳过 (stage 13 ss 物化未跑) → ss 轨回退 = full, 与 ctx 缺列分支同口径。
-    if 'content_ss' in df.columns:
+    def _emit_spec_three_tracks(weights, suffix: str) -> None:
+        """对一个 co-primary spec 算三轨并落列 (suffix='' = MAIN; '_lg' = large)。
+
+        weights=None (该 spec 嵌入硬失败 / both-or-neither 连坐) → 三轨全 NaN/False,
+        但**列仍落齐** (parity: schema 层无后缀族 ⟺ _lg 族列名双射, 值可 NaN)。
+        """
+        _tag = "MAIN(gemini, 无后缀)" if suffix == '' else f"CO-PRIMARY(text-embedding-3-large, {suffix})"
         logger.info("=" * 60)
-        logger.info("v3.6.0 三轨: 对 content_ss 计算 fintech_intensity_score_ss")
+        logger.info(f"co-primary 三轨打分 [{_tag}]: fintech_intensity_score{suffix}_{{full,ctx,ss}}")
         logger.info("=" * 60)
-        scores_ss, verified_ss = _compute_intensity_scores(
-            df, combined_weights, text_col='content_ss')
-        df['fintech_intensity_score_ss'] = scores_ss
-        df['intensity_verified_ss'] = verified_ss
-    else:
-        logger.warning(
-            "  content_ss 列缺失 (stage 13 ss 物化未跑?), "
-            "ss 轨回退 = full — 此时 fintech_intensity_score_ss ≡ _full")
-        df['fintech_intensity_score_ss'] = scores_full
-        df['intensity_verified_ss'] = verified_full
-    phase_durations['④三轨逐文档打分(full/ctx/ss)'] = time.time() - _t
+
+        # full 轨 (content_full, 回退 '内容')
+        s_full, v_full = _score_one_track(weights, _full_col)
+        df[f'fintech_intensity_score{suffix}_full'] = s_full
+        df[f'intensity_verified{suffix}_full'] = v_full
+
+        # ctx 轨 (content_ctx; 缺列回退 = full)
+        if 'content_ctx' in df.columns:
+            s_ctx, v_ctx = _score_one_track(weights, 'content_ctx')
+        else:
+            logger.warning(
+                f"  [{_tag}] content_ctx 列缺失 (stage 13 _materialize_ctx 未跑?), "
+                f"ctx 轨回退 = full — fintech_intensity_score{suffix}_ctx ≡ _full")
+            s_ctx, v_ctx = s_full, v_full
+        df[f'fintech_intensity_score{suffix}_ctx'] = s_ctx
+        df[f'intensity_verified{suffix}_ctx'] = v_ctx
+
+        # ss 轨 (content_ss, 银行+金科同句共现; 缺列回退 = full)
+        if 'content_ss' in df.columns:
+            s_ss, v_ss = _score_one_track(weights, 'content_ss')
+        else:
+            logger.warning(
+                f"  [{_tag}] content_ss 列缺失 (stage 13 ss 物化未跑?), "
+                f"ss 轨回退 = full — fintech_intensity_score{suffix}_ss ≡ _full")
+            s_ss, v_ss = s_full, v_full
+        df[f'fintech_intensity_score{suffix}_ss'] = s_ss
+        df[f'intensity_verified{suffix}_ss'] = v_ss
+
+        # MAIN 历史无后缀别名 (= _full; 待各论文迁移到 _full/_ctx 列后弃用)。仅 MAIN 落别名。
+        if suffix == '':
+            df['fintech_intensity_score'] = s_full
+            df['intensity_verified'] = v_full
+
+    # MAIN (gemini) — 必落 (无后缀 canonical 族 + 别名)
+    _emit_spec_three_tracks(combined_weights, '')
+    # _lg co-primary (text-embedding-3-large) — 仅当 config 配了 embedding_large 才落列。
+    # both-or-neither 已保证: 若 MAIN 与 _lg 任一硬失败, 两套 weights 均为 None → 两族全 NaN。
+    if _lg_enabled:
+        _emit_spec_three_tracks(combined_weights_lg, '_lg')
+    phase_durations['④三轨逐文档打分(full/ctx/ss × co-primary)'] = time.time() - _t
+
+    # 取 MAIN full 轨 verified 标志供下方诊断计数 (历史变量名沿用)
+    verified_full = df['intensity_verified_full'].tolist()
 
     assert 'is_fintech_news' in df.columns, "原有列 is_fintech_news 丢失!"
     assert 'fintech_intensity_score' in df.columns
@@ -806,6 +888,12 @@ def main():
     assert 'fintech_intensity_score_ctx' in df.columns
     assert 'fintech_intensity_score_ss' in df.columns
     assert 'intensity_verified' in df.columns
+    if _lg_enabled:
+        # parity 自检: _lg 三轨列必与无后缀族双射落齐 (值可 NaN, 列名不可缺)
+        for _trk in ('full', 'ctx', 'ss'):
+            assert f'fintech_intensity_score_lg_{_trk}' in df.columns, \
+                f"co-primary parity 破: 缺 fintech_intensity_score_lg_{_trk} 孪生列"
+            assert f'intensity_verified_lg_{_trk}' in df.columns
 
     # 使用数据版本控制保存
     _t = time.time()
@@ -875,7 +963,9 @@ def main():
         logger.info("【结果分析】技术重度评分质量解读:")
         logger.info(f"  IDF 参考语料: N_total={N_total:,} 篇唯一文档, "
                     f"命中 {len(keyword_doc_freq):,} 个不同金科关键词 (jieba 整词口径)")
-        logger.info(f"  综合权重宇宙: {len(combined_weights):,} 个可匹配关键词, "
+        # both-or-neither: combined_weights 可能为 None (co-primary 嵌入硬失败 → 全 NaN)
+        _n_weights = len(combined_weights) if combined_weights else 0
+        logger.info(f"  综合权重宇宙: {_n_weights:,} 个可匹配关键词, "
                     f"W mean={sig4(_w_mean)}, std={sig4(_w_std)}")
         # NaN-guard: _w_std 为 NaN (空权重) 时不进 ">0" 方向判读, 单列降级提示
         if not np.isfinite(_w_std):

@@ -147,7 +147,7 @@ def _log_network_env_and_config() -> None:
         logger.info(f"     · 依赖: scikit-learn={_has_sk} | networkx={_has_nx}")
         logger.info(f"     · 嵌入主轨 spec: model={EMBEDDING_CONFIG.get('model', '(默认)')} "
                     f"| base_url={EMBEDDING_CONFIG.get('base_url', '(默认)')}")
-        logger.info(f"     · 嵌入稳健轨 (_t2v): {'已配置' if _ROBUSTNESS_SPEC else '未配置(跳过)'}")
+        logger.info(f"     · 嵌入协主轨 (_lg, large 3072 维): {'已配置' if _LARGE_SPEC else '未配置(跳过)'}")
 
         logger.info("  📖 方法论依据 (经核验注册表; DOI 可访问)")
         logger.info("     · 同行效应范式: Leary, M. T., & Roberts, M. R. (2014). Do peer "
@@ -1435,25 +1435,20 @@ def compute_cognitive_proximity(
 
 # 读取 LLM 配置 (与 21_tone_llms.py 共享同一份 config.yaml 配置)
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
-EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})          # MAIN spec → canonical 列
-# v3.7.x 双模型嵌入: ROBUSTNESS twin (shibing624/text2vec, local) → '_t2v' 列
-_ROBUSTNESS_SPEC = CONFIG.get('embedding_robustness', {})
-# 第三嵌入模型 (large, 3072 维) → '_lg' 列; 默认休眠 (config 无 embedding_large
-# 块 → {} → 完全不产 _lg 列, 既有行为字节级不变, golden-safe)。维度无关:
-# emb.shape[1] 驱动, 3072 维不与 1536/768 混算。
+EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})          # MAIN spec → canonical 列 (gemini)
+# v3.14.0: 删除两本地稳健轨 (_t2v text2vec / _bge bge-m3); 仅保留 API 第二嵌入模型
+# large (text-embedding-3-large, 3072 维) → '_lg' 列, 现为 ACTIVE 协主轨 (与无后缀
+# MAIN gemini 并列)。维度无关: emb.shape[1] 驱动。
 _LARGE_SPEC = CONFIG.get('embedding_large', {})
-# 第四嵌入模型 (BAAI/bge-m3 本地 1024 维) → '_bge' 列; 默认休眠 (config 无 embedding_bge
-# 块 → {} → 完全不产 _bge 列, 字节级不变, golden-safe)。镜像 _t2v (本地 spec)。
-_BGE_SPEC = CONFIG.get('embedding_bge', {})
 _EMB_MODELS = LLM_CONFIG.get('models', [])
 
 
 def _embed_peer_texts(texts, *, year, spec=None) -> np.ndarray | None:
     """Encode peer texts via the shared dual-model engine (_eng.embed_texts).
 
-    spec 决定模型与路径 (MAIN=text-embedding-3-small / ROBUSTNESS=text2vec);
-    默认 EMBEDDING_CONFIG (canonical 主轨)。本地 spec 走 sentence-transformers,
-    API spec 经 LLMCache 穿透 (cache db 路径与历史实现一致)。失败/形状异常 → None。
+    spec 决定模型与路径 (MAIN=gemini-embedding-2-preview / large=text-embedding-3-large);
+    默认 EMBEDDING_CONFIG (canonical 主轨)。两轨均为 API spec,
+    经 LLMCache 穿透 (cache db 路径与历史实现一致)。失败/形状异常 → None。
     """
     cache_db = os.path.join(CONFIG["paths"]["output_dir"], '_llm_cache.db')
     try:
@@ -1482,12 +1477,12 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
                                          suffix: str = "") -> dict:
     """单 spec 的 Embedding 同业网络构建 (一遍), 返回 (bank, year) → 指标 dict。
 
-    suffix 在指标名上注入轨道标识 (canonical 主轨 = ""; ROBUSTNESS 稳健轨 = "_t2v"),
+    suffix 在指标名上注入轨道标识 (canonical 主轨 = ""; large 协主轨 = "_lg"),
     插在 ``_full``/``_ctx``/``_ss`` 之类的轨道后缀之前 (无轨道后缀时直接追加在末尾):
       emb_peer_tone_lag1_full  →  emb_peer_tone_lag1{suffix}_full
       bank_emb_sim_mean_lag1   →  bank_emb_sim_mean_lag1{suffix}
 
-    每遍用 **自己的 spec 独立嵌入** 自己的文本, 绝不混用 API(1536d)/text2vec(768d) 向量。
+    每遍用 **自己的 spec 独立嵌入** 自己的文本, 绝不混用不同模型向量。
     维度无关 (cosine 在任意维度上都成立)。
 
     fix(omni-g-net-spill-02, 2026-06-11): 移除 8000 字符前缀截断 — 旧实现只嵌入
@@ -1498,7 +1493,7 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
     缓存键变, 下次 production run 将对超长 bank-year 触发新 embedding 调用。
 
     fix(omni-g-net-spill-03, 2026-06-11): sim 列重命名 bank_emb_sim_mean →
-    bank_emb_sim_mean_lag1 (及 _t2v) — 该值由 t-1 超级文档算出 (与 emb_peer_tone_lag1
+    bank_emb_sim_mean_lag1 (及 _lg) — 该值由 t-1 超级文档算出 (与 emb_peer_tone_lag1
     同一 sim_matrix), 旧名无 lag 标记, 与 bank_cogn_mean (当年文本) 口径混淆。
     """
     text_col = '内容'
@@ -1575,7 +1570,7 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
         # fix(omni-g-net-spill-04, 2026-06-11): W_emb 构造前 clip 负 cosine —
         # row_stochastic_normalize 对含负项的行做行和归一会产生负"权重"
         # (加权均值语义破坏, 行和分母可被负项侵蚀至 ≤0 → 静默 NaN/符号翻转)。
-        # cosine 非负性无保证 (text2vec/768d 轨与异质语料下负值可发生), 显式告警披露。
+        # cosine 非负性无保证 (异质语料下负值可发生), 显式告警披露。
         _n_neg_sim = int((sim_matrix < 0).sum())
         if _n_neg_sim:
             logger.warning(
@@ -1639,21 +1634,21 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
 
 def compute_embedding_peer_network(df_exploded: pd.DataFrame,
                                     panel: pd.DataFrame) -> pd.DataFrame:
-    """基于 Embedding 向量相似度的同业网络控制变量 (双模型嵌入)。
+    """基于 Embedding 向量相似度的同业网络控制变量 (双 API 模型嵌入)。
 
     使用 Sentence Embedding 将每家银行每年的新闻文本编码为向量,
     通过余弦相似度构建动态同业网络权重矩阵, 计算加权同行情感
     作为内生性处理的控制变量。
 
-    嵌入双模型 (v3.7.x, 与情感三轨正交的另一维): 主轨 (MAIN spec =
-    text-embedding-3-small) 写 canonical 列 (emb_peer_tone_lag1_full /
-    bank_emb_sim_mean_lag1); 稳健轨 (ROBUSTNESS spec = shibing624/text2vec) 用
-    **各自独立的 spec 嵌入各自的文本** 写同名 + '_t2v' 列
-    (emb_peer_tone_lag1_t2v_full / bank_emb_sim_mean_lag1_t2v)。稳健轨失败时其
-    '_t2v' 列填 NaN 并记日志, 不影响 canonical 主轨。
-    ⚠ 区分两个独立轴: ① 嵌入模型轴 (canonical / _t2v); ② 情感三轨 (full/ctx/ss,
+    嵌入双 API 模型 (v3.14.0, 与情感三轨正交的另一维): 主轨 (MAIN spec =
+    gemini-embedding-2-preview) 写 canonical 列 (emb_peer_tone_lag1_full /
+    bank_emb_sim_mean_lag1); 协主轨 (large spec = text-embedding-3-large) 用
+    **各自独立的 spec 嵌入各自的文本** 写同名 + '_lg' 列
+    (emb_peer_tone_lag1_lg_full / bank_emb_sim_mean_lag1_lg)。两轨 both-or-neither:
+    任一 spec 嵌入失败 → 两族列同时填 NaN (无单边孤儿列)。
+    ⚠ 区分两个独立轴: ① 嵌入模型轴 (canonical / _lg); ② 情感三轨 (full/ctx/ss,
     ss=银行+金科同句共现)。每个嵌入模型轴下, emb_peer_tone 对全部存在的情感轨
-    (llm_vote_tone_full/ctx/ss) 各产一列 → emb_peer_tone_lag1{_t2v?}{_full|_ctx|_ss};
+    (llm_vote_tone_full/ctx/ss) 各产一列 → emb_peer_tone_lag1{_lg?}{_full|_ctx|_ss};
     sim_mean 是文本相似度均值, track-agnostic, 不分情感轨。
 
     fix(omni-g-net-spill-02/03/04, 2026-06-11): 完整超级文档分块嵌入 (去 8000 字符
@@ -1663,7 +1658,7 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
     方法论:
       - 权重矩阵 W_emb 基于 Embedding 余弦相似度 (负值 clip 为 0), 非二值共现
       - 滞后一期 (t-1) 避免 Manski (1993) 反射问题
-      - 双模型独立嵌入 (API 1536d / text2vec 768d 绝不混用; 维度无关)
+      - 双 API 模型独立嵌入 (gemini / text-embedding-3-large 各 3072 维; 维度无关绝不混用)
 
     Args:
         df_exploded: 文章级 DataFrame, 含 target_bank/year/标题/内容
@@ -1671,7 +1666,7 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
 
     Returns:
         panel: 追加 emb_peer_tone_lag1_full, bank_emb_sim_mean_lag1
-               + 稳健 twin emb_peer_tone_lag1_t2v_full, bank_emb_sim_mean_lag1_t2v
+               + 协主 twin emb_peer_tone_lag1_lg_full, bank_emb_sim_mean_lag1_lg
                列的面板
 
     References:
@@ -1694,10 +1689,52 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
         logger.warning(f"  {tone_col} 不存在, 跳过 Embedding 同业网络")
         return panel
 
-    # ── 主轨 (canonical): MAIN spec → emb_peer_tone_lag1_full / bank_emb_sim_mean_lag1 ──
+    # 两轨 canonical 列清单 (track-agnostic sim + 各情感轨 tone), 用于 both-or-neither
+    # 降级时的 NaN 填充。情感 ss 列在缺 llm_vote_tone_ss 时不追加 (与 pass 的轨守卫同口径)。
+    main_tone_cols = ['emb_peer_tone_lag1_full']
+    if 'llm_vote_tone_ctx' in panel.columns:
+        main_tone_cols.append('emb_peer_tone_lag1_ctx')
+    if 'llm_vote_tone_ss' in panel.columns:
+        main_tone_cols.append('emb_peer_tone_lag1_ss')
+    main_sim_col = 'bank_emb_sim_mean_lag1'
+
+    # ── 主轨 (canonical): MAIN spec (gemini) → emb_peer_tone_lag1_full / bank_emb_sim_mean_lag1 ──
     emb_results = _compute_embedding_peer_network_pass(
         df_exploded, panel, spec=EMBEDDING_CONFIG, suffix="")
 
+    # ── 协主轨 (LARGE twin): text-embedding-3-large (3072 维) → *_lg* 列 ──────────
+    # v3.14.0: 两本地稳健轨 (_t2v/_bge) 已整体删除; _lg 现为 ACTIVE 协主轨 (与 MAIN 并列),
+    # **无条件可达** (无早退守卫拦在前)。仅 _LARGE_SPEC (dict 非空) 时才计算/落 _lg 列。
+    # 镜像主轨: 同一 pass 自动产 _full + _ctx + _ss 孪生, 维度无关 (emb.shape[1] 驱动)。
+    lg_results = None  # None = _lg 轨未启用 (区别于 {} = 启用但无结果)
+    lg_tone_cols, lg_sim_col = [], None
+    if _LARGE_SPEC:
+        lg_tone_cols = ['emb_peer_tone_lag1_lg_full']
+        if 'llm_vote_tone_ctx' in panel.columns:
+            lg_tone_cols.append('emb_peer_tone_lag1_lg_ctx')
+        if 'llm_vote_tone_ss' in panel.columns:
+            lg_tone_cols.append('emb_peer_tone_lag1_lg_ss')
+        lg_sim_col = 'bank_emb_sim_mean_lag1_lg'
+        logger.info("-" * 60)
+        logger.info("  large twin: 协主嵌入模型 (text-embedding-3-large, 3072 维) → _lg 列")
+        try:
+            lg_results = _compute_embedding_peer_network_pass(
+                df_exploded, panel, spec=_LARGE_SPEC, suffix="_lg")
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(f"  _lg 轨整体失败 ({exc}), 相关列填 NaN")
+            lg_results = {}
+
+    # ── both-or-neither parity (P5): _lg 启用时, MAIN 与 _lg 须同生同灭, 无单边孤儿列。
+    # 任一 spec 返回空 (None/无结果) → 两族列全填 NaN (维持降级对称, 防 parity 测试红)。
+    main_ok = bool(emb_results)
+    if _LARGE_SPEC and not (main_ok and lg_results):
+        logger.warning("  both-or-neither: MAIN 或 _lg 嵌入轨缺结果, 两族列同时填 NaN")
+        for _c in (*main_tone_cols, main_sim_col, *lg_tone_cols, lg_sim_col):
+            panel[_c] = np.nan
+        logger.info(f"  ⏱ 步骤 7h-emb (嵌入同业网) 耗时: {sig4(time.time() - _t0)} 秒")
+        return panel
+
+    # ── 合并主轨 (canonical) 结果 ──
     if emb_results:
         emb_df = pd.DataFrame([
             {'target_bank': k[0], 'year': k[1], **v}
@@ -1731,40 +1768,8 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
     else:
         logger.warning("  未生成任何 Embedding 同业网络变量")
 
-    # ── 稳健轨 (ROBUSTNESS twin): text2vec → *_t2v* 列 (失败仅填 NaN, 不阻塞主轨) ──
-    # 三轨 parity (full/ctx/ss, 原 dual-track 2026-06-08): _t2v 轨复用同一 pass → 自动产
-    # _full + _ctx + _ss 孪生; 失败兜底亦需对三轨同时 NaN 填充, 保持降级对称。ss 列在缺
-    # llm_vote_tone_ss 时不追加 (与 _compute_embedding_peer_network_pass 的轨守卫同口径)。
-    t2v_tone_cols = ['emb_peer_tone_lag1_t2v_full']
-    if 'llm_vote_tone_ctx' in panel.columns:
-        t2v_tone_cols.append('emb_peer_tone_lag1_t2v_ctx')
-    if 'llm_vote_tone_ss' in panel.columns:
-        t2v_tone_cols.append('emb_peer_tone_lag1_t2v_ss')
-    t2v_sim_col = 'bank_emb_sim_mean_lag1_t2v'  # fix(omni-g-net-spill-03, 2026-06-11)
-
-    # ── 第三嵌入轨 (LARGE twin): large (3072 维) → *_lg* 列 ──────────────────
-    # 🔴 P1-1 死代码陷阱: 本块必须放在下方 `if not _ROBUSTNESS_SPEC: ... return`
-    # 早退之前, 否则 embedding_robustness 为空时该 return 会让 _lg 块永不执行。
-    # 休眠门 (golden 安全铁律): 仅 _LARGE_SPEC (dict 非空) 为真时才计算/落 _lg 列;
-    # config 无 embedding_large 块 → _LARGE_SPEC={} → 完全不产 _lg 列 → 字节级不变。
-    # 镜像 _t2v: 同一 pass 自动产 _full + _ctx + _ss 孪生, 维度无关 (emb.shape[1]
-    # 驱动, 3072 维不与 1536/768 混算)。失败仅填 NaN, 不阻塞主轨与 _t2v 轨。
+    # ── 合并协主轨 (_lg) 结果 ──
     if _LARGE_SPEC:
-        lg_tone_cols = ['emb_peer_tone_lag1_lg_full']
-        if 'llm_vote_tone_ctx' in panel.columns:
-            lg_tone_cols.append('emb_peer_tone_lag1_lg_ctx')
-        if 'llm_vote_tone_ss' in panel.columns:
-            lg_tone_cols.append('emb_peer_tone_lag1_lg_ss')
-        lg_sim_col = 'bank_emb_sim_mean_lag1_lg'
-        logger.info("-" * 60)
-        logger.info("  large twin: 第三嵌入模型 (3072 维) → _lg 列")
-        try:
-            lg_results = _compute_embedding_peer_network_pass(
-                df_exploded, panel, spec=_LARGE_SPEC, suffix="_lg")
-        except Exception as exc:  # noqa: BLE001
-            logger.warning(f"  _lg 轨整体失败 ({exc}), 相关列填 NaN")
-            lg_results = {}
-
         if lg_results:
             lg_df = pd.DataFrame([
                 {'target_bank': k[0], 'year': k[1], **v}
@@ -1779,81 +1784,10 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
                 logger.info(f"  _lg 轨已合并: {len(valid_lg_sim):,} 有效值, "
                             f"sim_mean={sig4(valid_lg_sim.mean())}")
         else:
+            # 理论上不可达 (上方 both-or-neither 已拦空结果), 留作防御性兜底。
             logger.warning("  _lg 轨未生成任何变量, 相关列填 NaN")
             for _c in (*lg_tone_cols, lg_sim_col):
                 panel[_c] = np.nan
-
-    # ── 第四嵌入轨 (BGE twin): BAAI/bge-m3 (本地 1024 维) → *_bge* 列 ──────────
-    # 🔴 同 _lg P1-1: 本块同样须放在下方 `if not _ROBUSTNESS_SPEC: ... return` 早退之前。
-    # 休眠门: 仅 _BGE_SPEC 非空才计算/落 _bge 列 (config 无 embedding_bge → {} → 不产)。
-    # 镜像 _t2v (本地 spec): 同一 pass 自动产 _full + _ctx + _ss 孪生, 维度无关。
-    if _BGE_SPEC:
-        bge_tone_cols = ['emb_peer_tone_lag1_bge_full']
-        if 'llm_vote_tone_ctx' in panel.columns:
-            bge_tone_cols.append('emb_peer_tone_lag1_bge_ctx')
-        if 'llm_vote_tone_ss' in panel.columns:
-            bge_tone_cols.append('emb_peer_tone_lag1_bge_ss')
-        bge_sim_col = 'bank_emb_sim_mean_lag1_bge'
-        logger.info("-" * 60)
-        logger.info("  bge twin: 第四嵌入模型 (BAAI/bge-m3 本地 1024 维) → _bge 列")
-        try:
-            bge_results = _compute_embedding_peer_network_pass(
-                df_exploded, panel, spec=_BGE_SPEC, suffix="_bge")
-        except Exception as exc:  # noqa: BLE001
-            logger.warning(f"  _bge 轨整体失败 ({exc}), 相关列填 NaN")
-            bge_results = {}
-
-        if bge_results:
-            bge_df = pd.DataFrame([
-                {'target_bank': k[0], 'year': k[1], **v}
-                for k, v in bge_results.items()
-            ])
-            panel = panel.merge(bge_df, on=['target_bank', 'year'], how='left')
-            for col in (*bge_tone_cols, bge_sim_col):
-                if col not in panel.columns:
-                    panel[col] = np.nan
-            valid_bge_sim = panel[bge_sim_col].dropna()
-            if len(valid_bge_sim) > 0:
-                logger.info(f"  _bge 轨已合并: {len(valid_bge_sim):,} 有效值, "
-                            f"sim_mean={sig4(valid_bge_sim.mean())}")
-        else:
-            logger.warning("  _bge 轨未生成任何变量, 相关列填 NaN")
-            for _c in (*bge_tone_cols, bge_sim_col):
-                panel[_c] = np.nan
-
-    if not _ROBUSTNESS_SPEC:
-        logger.info("  无 embedding_robustness spec, 跳过 _t2v 稳健轨")
-        for _c in (*t2v_tone_cols, t2v_sim_col):
-            panel[_c] = np.nan
-        return panel
-
-    logger.info("-" * 60)
-    logger.info("  稳健 twin: text2vec (shibing624) → _t2v 列")
-    try:
-        t2v_results = _compute_embedding_peer_network_pass(
-            df_exploded, panel, spec=_ROBUSTNESS_SPEC, suffix="_t2v")
-    except Exception as exc:
-        logger.warning(f"  _t2v 稳健轨整体失败 ({exc}), 相关列填 NaN")
-        t2v_results = {}
-
-    if t2v_results:
-        t2v_df = pd.DataFrame([
-            {'target_bank': k[0], 'year': k[1], **v}
-            for k, v in t2v_results.items()
-        ])
-        panel = panel.merge(t2v_df, on=['target_bank', 'year'], how='left')
-        # 缺失轨道列补齐 (graceful: 某些 (bank, year) 未生成时)
-        for col in (*t2v_tone_cols, t2v_sim_col):
-            if col not in panel.columns:
-                panel[col] = np.nan
-        valid_t2v_sim = panel[t2v_sim_col].dropna()
-        if len(valid_t2v_sim) > 0:
-            logger.info(f"  _t2v 稳健轨已合并: {len(valid_t2v_sim):,} 有效值, "
-                        f"sim_mean={sig4(valid_t2v_sim.mean())}")
-    else:
-        logger.warning("  _t2v 稳健轨未生成任何变量, 相关列填 NaN")
-        for _c in (*t2v_tone_cols, t2v_sim_col):
-            panel[_c] = np.nan
 
     logger.info(f"  ⏱ 步骤 7h-emb (嵌入同业网) 耗时: {sig4(time.time() - _t0)} 秒")
     return panel

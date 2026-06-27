@@ -1,43 +1,41 @@
-"""news_process.pipeline.text.embedding_engine — 双模型嵌入统一引擎 (2026-05-29).
+"""news_process.pipeline.text.embedding_engine — 双 API 模型嵌入统一引擎 (v3.14.0, all-API).
 
 设计目标
 --------
-让任意 callsite (stage 15 policy_alignment / 25 strategic_diff / 26 policy_similarity
-/ 27 benefit_society / network embedding peer) 用 **显式 spec** 嵌入文本, 从而在
-一次运行内对同一批文本用两个模型各算一遍:
+让任意 callsite (stage 15 policy_alignment / fintech_intensity / 25 article_sbert /
+26 policy_similarity / 27 benefit_society / network embedding peer) 用 **显式 spec**
+嵌入文本, 从而在一次运行内对同一批文本用两个 co-primary API 模型各算一遍:
 
-  - MAIN (canonical):       text-embedding-3-small (OpenAI-compat, yunwu) — 主轨
-  - ROBUSTNESS-A (`_t2v`):  shibing624/text2vec-base-chinese (local) — 跨架构稳健 twin
-  - ROBUSTNESS-B (`_lg`):   text-embedding-3-large (OpenAI-compat, yunwu) — 同族容量稳健对照
-  - ROBUSTNESS-C (`_bge`):  BAAI/bge-m3 (local, 1024 维) — 强跨架构独立稳健 twin
+  - CO-PRIMARY ① (canonical, 无后缀):  gemini-embedding-2-preview (Google, OpenAI-compat / yunwu, 3072 维)
+  - CO-PRIMARY ② (`_lg`):              text-embedding-3-large (OpenAI, OpenAI-compat / yunwu, 3072 维)
 
-四模型互为稳健性: text2vec (`_t2v`) 与 small 是**异架构、异语言专训** (本地中文专训
-sentence-transformer vs OpenAI 通用 API), 提供**跨架构独立性**稳健性维度; BGE-M3
-(`_bge`) 同为本地、跨架构 (BAAI SOTA 多语言, 独立于 OpenAI, 8192 token 上窗), 但
-质量显著强于 text2vec → 提供**强跨架构独立性** (预期与 small 相关性低于 `_lg` 同族);
-large (`_lg`) 与 small 同 OpenAI 同族 (同 Matryoshka 训练), 仅在嵌入**容量/维度**
-(3072 vs 1536) 上拉开, 提供**同族容量对照** (预期高度相关, 先验工程预期非实测;
-激活后须以实测 corr 为准, 验证维度而非架构敏感性)。
+两者 **co-primary 对等互证** (非"主轨 + 稳健性附录"): gemini (Google) ⟂ large (OpenAI)
+是 **跨厂商 / 跨训练数据独立性** —— 审稿人质疑"结论是否只是某厂商模型的偶然产物"时,
+两个对等主测度并排互证一致性作答。后缀 `_lg` **仅为列命名机制** (panel 不能两列同名),
+**不表达任何主次/优劣**; 无后缀 = canonical 列槽、`_lg` = 孪生列槽。两者 **严格 parity**
+(每个无后缀嵌入派生列 ⟺ 恰一个 `_lg` 孪生列, 反之亦然)。**铁律**: 两 co-primary 各自
+just-identified 并排报告, **禁混进同一 over-identified Hansen J**。
 
-spec 是一个 dict (来自 ``config/features.yaml::embedding_api`` / ``embedding_robustness``
-/ ``embedding_large`` / ``embedding_bge``):
+> v3.14.0 BREAKING: 本引擎**零本地嵌入模型** —— 此前的本地 sentence-transformers 轨
+> (text2vec `_t2v` / BAAI/bge-m3 `_bge`) 及其全部本地推理机器 (encode_local /
+> torch determinism / HF offline) 已整体移除。所有 spec 均为 API spec, embed_texts
+> 收为纯 API 路径 (经 LLMCache 穿透)。
+
+spec 是一个 dict (来自 ``config/features.yaml::embedding_api`` / ``embedding_large``):
 
     {model, base_url, api_key, text_pipeline_version, batch_size}
 
 本模块**不** import ``pipeline.panel.encode`` (避免循环导入); spec 由 callsite 从其
 自有的 CONFIG 传入。LLMCache 键以 ``model_id`` 为首字段 (见 core/caching.py),
-故主轨 (text-embedding-3-small) 与稳健轨 (text2vec) 的缓存天然隔离不串。
+故 gemini (无后缀) 与 large (`_lg`) 两 co-primary 的缓存天然按 model_id 隔离不串。
 
-历史: 本引擎把原先散落在 4 个 feature 模块里近重复的
-``_get_embeddings_api`` / ``_encode_embeddings_local`` / ``_embed_texts_with_chunk_pooling``
-统一为 spec 参数化的公共函数 (DRY + 让 MAIN/ROBUSTNESS-A/B/C 多个嵌入模型成为一等公民)。
-注: 此处 "多个模型" 指 text-embedding-3-small 主轨 vs text2vec ``_t2v`` 稳健轨 vs
-text-embedding-3-large ``_lg`` 容量轨 vs BAAI/bge-m3 ``_bge`` 强跨架构轨这一 **模型**
-维度, 与情感文本的 full/ctx/ss 三轨是两个独立维度。``_lg`` 与 ``_bge`` 均为 config-gated
-休眠列: 仅当配置分别存在 ``embedding_large`` / ``embedding_bge`` 块时才产出, 缺配置则完全
-不产对应 ``_lg`` / ``_bge`` 列 (既有行为字节级不变, golden 安全)。``_bge`` 为本地 spec
-(base_url=local), 经 ``spec_uses_local`` 走 ``encode_local`` fail-fast (镜像 ``_t2v``, 非
-``_lg`` API 软降级); 按 ``model_id`` 隔离本地模型实例与缓存, 与 text2vec 不串。
+历史: 本引擎把原先散落在多个 feature 模块里近重复的
+``_get_embeddings_api`` / ``_embed_texts_with_chunk_pooling`` 统一为 spec 参数化的
+公共函数 (DRY + 让两个 co-primary 嵌入模型成为一等公民)。注: 此处 "多个模型" 指
+gemini 无后缀 vs text-embedding-3-large ``_lg`` 这一 **模型** 维度, 与情感文本的
+full/ctx/ss 三轨是两个独立维度。``_lg`` 为 config-gated 列: 仅当配置存在
+``embedding_large`` 块时才产出 (缺配置则不产 `_lg` 列); v3.14.0 下两 co-primary
+均为活动 config, parity 双射由测试门 + producer both-or-neither 强制。
 
 学术依据 (沿用 strategic_diff/policy_alignment 既有锚点):
   - Reimers & Gurevych (2019, EMNLP) Sentence-BERT mean pooling, DOI 10.18653/v1/D19-1410
@@ -46,12 +44,10 @@ text-embedding-3-large ``_lg`` 容量轨 vs BAAI/bge-m3 ``_bge`` 强跨架构轨
 
 白话:
     全项目所有"把文本变成向量"的需求都走这一个模块: 调用方传一份 spec
-    (写明用哪个模型、走 API 还是本地), 同一批文本就能分别用主模型、跨架构
-    稳健模型 (text2vec)、同族大容量对照模型 (text-embedding-3-large) 和强跨架构
-    本地模型 (BAAI/bge-m3) 各算一遍向量。后两个 (large / bge) 默认休眠 (没配
-    embedding_large / embedding_bge 就不算、不产 `_lg` / `_bge` 列), 既有结果一字
-    不变。算过的结果存在缓存里, 下次同样的文本不再花钱重算; 太长的文本先切成
-    小段、各段算完再加权平均成一条向量。
+    (写明用哪个 API 模型), 同一批文本就能分别用 gemini 和 text-embedding-3-large
+    两个对等主模型 (跨 Google/OpenAI 两厂商) 各算一遍向量, 互相印证。两者地位
+    对等, `_lg` 后缀只是为了避免列名撞车, 没有主次之分。算过的结果存在缓存里,
+    下次同样的文本不再花钱重算; 太长的文本先切成小段、各段算完再加权平均成一条向量。
 """
 
 from __future__ import annotations
@@ -69,19 +65,12 @@ import tiktoken
 # 任何产物计算 (golden-safe)。
 from news_process.core.logging import pct4, sig4
 
-# W12 (2026-06-25): HF 离线引擎单点 — 一处覆盖全部经本引擎的本地模型加载 (含 stage16
-# policy_alignment / strategic_diff / network_spillover 的 t2v 轨)。注 (F13): stage25
-# article_sbert 走自有裸 SentenceTransformer + 自有 HF 离线 (article_sbert.py:90-94), 不经本引擎。
-# 切加载来源 (hf.co revision 解析 → 本地快照) 不改权重/输出 → 逐位不变 (golden-safe,
-# 同 tone_berts/article_sbert 既有先例)。须在任何 sentence_transformers 导入前生效。
-os.environ.setdefault("HF_HUB_OFFLINE", "1")
-os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
-
 logger = logging.getLogger(__name__)
 
 # ── Embedding token 级精确截断 (统一 stage 15 标准) ──
-# text-embedding-3-small 用 cl100k_base 编码, 单条上限 8,191 tokens;
-# 超长文本 (如权威政策语料) 走朴素分段 (naive chunking) + Mean Pooling。
+# cl100k_base 编码, 单条上限 8,191 tokens; 此上限对 gemini-embedding-2-preview 是
+# **保守高估** (8191 cl100k ≈ 4707 gemini-token, 2026-06-27 yunwu 实测全区间无报错) →
+# 批次偏小、永不超限。超长文本 (如权威政策语料) 走朴素分段 (naive chunking) + Mean Pooling。
 _EMB_ENCODING = tiktoken.get_encoding("cl100k_base")
 EMB_MAX_TOKENS = 8191
 EMB_MAX_TOKENS_PER_REQUEST = 250_000
@@ -105,23 +94,13 @@ class EmbeddingRetryExhaustedError(RuntimeError):
       - 本异常 (瞬时耗尽): 由 ``get_embeddings_api`` 捕获 → 返回 ``None`` → 上游列置 NaN
         (优雅降级, 与 stage 21 tone_llms 80 次后缺席投票对称)。
       - ``ValueError`` (致命: 401/403/400 等非 5xx 状态 / 缺 'data' 字段): **不**在
-        ``get_embeddings_api`` 捕获, 仍按现有路径 raise 冒泡 (MAIN spec 崩 / _t2v 轨置 NaN)。
+        ``get_embeddings_api`` 捕获, 仍按现有路径 raise 冒泡 (该 spec/轨 crash)。
     """
 
 # API 嵌入批次最大并发数 (asyncio.gather + Semaphore 上限)。各批次结果按 batch_idx
 # 索引收集再按序重组 (绝不依赖完成顺序), 故并发对产出逐位不变, 仅缩短 wall-clock。
 # ⚠ 若调高需留意上游 API 的 RPS / 并发限流 (429 已由 per-batch 固定 10s 间隔重试兜底)。
 EMB_API_CONCURRENCY = 100
-
-# local SentenceTransformer 按 model_id 缓存 (允许两个 spec 都是 local 时各持其模型)
-_LOCAL_MODELS: dict[str, object] = {}
-
-_LOCAL_BASE_URLS = {
-    'local',
-    'local://',
-    'sentence-transformers',
-    'sentence_transformers',
-}
 
 # LLM raw response archive (顶刊 reproducibility; 不可用时静默降级, 不阻塞)
 try:  # pragma: no cover - import 形态依赖可选包
@@ -135,9 +114,6 @@ except ImportError:  # pragma: no cover
     _get_archive = None
     _LLM_ARCHIVE_AVAILABLE = False
 
-
-# 进程级幂等标志: 确定性硬化只设一次 (torch 全局开关, 重复设置无害但避免日志噪声)
-_TORCH_DETERMINISM_DONE = False
 
 # 进程级幂等标志: 引擎方法学/配置 banner 只 emit 一次 (本模块是无独立 main 的共享
 # 嵌入引擎, 被 stage 15/25/26/27/network 的 runner 调用, 复用调用方阶段日志; banner
@@ -176,16 +152,6 @@ def _log_engine_banner(spec: dict | None = None, *, log_prefix: str = "Embedding
         logger.info(
             "       白话: 太长的文本先按 token 切成小段, 各段算完向量后逐块归一+按 "
             "token 数加权平均成一条 (mean pooling), 避免超长文被静默截断。")
-        logger.info("       · 金融域 sentence-transformer 适配 (本地稳健轨模型选型依据):")
-        logger.info(
-            "         Jehnen, S., Villalba-Díez, J., & Ordieres-Meré, J. (2026). "
-            "FinTextSim: A domain-specific sentence-transformer for extracting "
-            "predictive latent topics from financial disclosures. Frontiers in "
-            "Artificial Intelligence, 9, Article 1752103. "
-            "https://doi.org/10.3389/frai.2026.1752103")
-        logger.info(
-            "       白话: 在金融披露文本上微调 sentence-transformer 能更准地抽取语义, "
-            "佐证本引擎为银行/金科语料选用域适配嵌入模型 (text2vec 中文轨) 的取向。")
         logger.info("       · language embedding 测度范式 (用嵌入向量度量文本语义立场):")
         logger.info(
             "         Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit "
@@ -195,10 +161,10 @@ def _log_engine_banner(spec: dict | None = None, *, log_prefix: str = "Embedding
             "       白话: 用 BERT 句嵌入测文本语义立场已成顶刊范式, 本引擎产出的向量即"
             "服务于 policy/strategic/benefit 等阶段的语义相似度 (余弦) 测度。")
         # ② 关键引擎配置 (本模块可调常量 + 本次 spec; 路径/参数级 CONFIG 由 runner 入口打)
+        # v3.14.0: 全 spec 均为 API spec (零本地模型) → 路径恒为 API (穿透 LLMCache)。
         if spec is not None:
             _model = spec_model(spec)
-            _is_local = spec_uses_local(spec)
-            _route = "本地 sentence-transformers" if _is_local else "API (穿透 LLMCache)"
+            _route = "API (穿透 LLMCache)"
             _bs = int((spec or {}).get('batch_size', 32) or 32)
             logger.info(
                 f"     ⚙ 本次 spec: model={_model} · 路径={_route} · "
@@ -208,59 +174,28 @@ def _log_engine_banner(spec: dict | None = None, *, log_prefix: str = "Embedding
             f"单请求 token 上限={EMB_MAX_TOKENS_PER_REQUEST:,d} · "
             f"API 并发上限={EMB_API_CONCURRENCY:,d} · 瞬时失败重试={EMB_MAX_RETRIES:,d} 次")
         logger.info(
-            "     ⚙ 确定性/成本: API 主轨 (text-embedding-3-small) miss 即付费, 命中 $0; "
-            "本地稳健轨 (text2vec) 纯 GPU/CPU $0; 两轨缓存按 model_id 隔离 → 命中逐位复现。")
+            "     ⚙ 确定性/成本: 两 co-primary API 模型 (gemini 无后缀 ⟂ "
+            "text-embedding-3-large `_lg`) miss 即付费, 命中 $0; 两轨缓存按 model_id "
+            "隔离 → 命中逐位复现。")
     except Exception as _banner_exc:  # pragma: no cover - banner 绝不拖垮阶段
         logger.warning(f"    嵌入引擎 banner 输出失败 (不阻塞): {_banner_exc!r}")
 
 
-def ensure_torch_determinism(seed: int = 42) -> None:
-    """本地 torch 推理确定性硬化 (对齐 stage 23 tone_berts.py V4 T1.1a 块).
-
-    fix(omni-g-embed-07, 2026-06-11): article_sbert.encode_articles 与本模块
-    encode_local 此前裸调 model.encode, 无 seed/deterministic/cudnn 设置 — CPU 单机
-    通常逐位稳定, 但 CUDA 机上 cudnn.benchmark 自动调优可致 run-to-run kernel 选择
-    漂移, 跨机必有 FP 级漂移; 下游 argsort top-k 近邻 (strat_sim) 与 staleness 阈值
-    化 (surface_highstale) 会把 FP 漂移放大为离散值翻转。本 helper 抽取 tone_berts
-    确定性块为共享入口: seed 四源 (random/numpy/torch/transformers) +
-    use_deterministic_algorithms(warn_only=True) + cuDNN deterministic/benchmark。
-    幂等 (进程内只设一次); torch 缺失时静默 no-op (本地编码路径必有 torch, 纯防御)。
-    """
-    global _TORCH_DETERMINISM_DONE
-    if _TORCH_DETERMINISM_DONE:
-        return
-    try:
-        import torch
-    except ImportError:  # pragma: no cover - 本地编码环境必有 torch
-        return
-    import random as _stdlib_random
-
-    _stdlib_random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    try:
-        from transformers import set_seed as _hf_set_seed
-        _hf_set_seed(seed)
-    except ImportError:  # pragma: no cover - transformers 旧版无 set_seed
-        pass
-    # warn_only=True: CPU 上几乎不抛错; GPU 个别 op 输出 warning 但继续 (同 tone_berts)
-    torch.use_deterministic_algorithms(True, warn_only=True)
-    if torch.cuda.is_available():  # pragma: no cover - 本机 CPU-only, GPU 机生效
-        torch.cuda.manual_seed_all(seed)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-    _TORCH_DETERMINISM_DONE = True
-    logger.info(f"    本地嵌入确定性硬化: seed={seed}, deterministic_algorithms=on")
+# 纯 base_url 谓词 (v3.14.0): 本地推理机器已整体删除, 全部 spec 为 API → 此谓词对任何
+# API spec 恒 False。保留为纯函数, 让各 producer 的 fail-fast 守卫
+# `if _eng.spec_uses_local(s) or s is EMBEDDING_CONFIG: raise` 语义稳定 (MAIN 崩 / _lg 软降级),
+# 且未来若再引入本地 spec 可即生效。不再有任何本地编码路径消费它。
+_LOCAL_BASE_URLS = {'local', 'local://', 'sentence-transformers', 'sentence_transformers'}
 
 
 def spec_uses_local(spec: dict | None) -> bool:
-    """spec 是否指向本地 sentence-transformers (而非 API 端点)。"""
+    """spec 是否指向本地端点 (非 API)。v3.14.0 全 API → 对生产 spec 恒 False; 保留为纯谓词。"""
     base_url = str((spec or {}).get('base_url') or '').strip().lower()
     return base_url in _LOCAL_BASE_URLS
 
 
-def spec_model(spec: dict | None, default: str = 'text-embedding-3-small') -> str:
-    """取 spec 的 model 名; 缺失时回退到 default。"""
+def spec_model(spec: dict | None, default: str = 'gemini-embedding-2-preview') -> str:
+    """取 spec 的 model 名; 缺失时回退到 default (co-primary ① canonical)。"""
     return (spec or {}).get('model') or default
 
 
@@ -290,107 +225,6 @@ def split_text_for_embedding(text) -> list[str]:
         _EMB_ENCODING.decode(tokens[i:i + EMB_MAX_TOKENS])
         for i in range(0, len(tokens), EMB_MAX_TOKENS)
     ]
-
-
-def _select_torch_device() -> str:
-    """显式选择本地嵌入设备 (2026-06-23 加固): 有 CUDA → 'cuda', 否则 'cpu'。
-
-    此前 ``SentenceTransformer(model_id)`` 不传 device, 依赖 ST 当前默认 (新版
-    自动探测 → 有 GPU 取 'cuda:0')。写成显式契约防未来 ST 改默认把本应跑 GPU 的
-    嵌入 stage 静默拖回 CPU (本机 RTX 3090 上会从 ~65s 暴涨到 ~100min)。
-    与既有自动探测**同设备** → 数值 byte-for-byte 不变, golden-safe。
-    """
-    try:
-        import torch
-        return 'cuda' if torch.cuda.is_available() else 'cpu'
-    except ImportError:  # pragma: no cover - 本地编码环境必有 torch
-        return 'cpu'
-
-
-def encode_local(texts, spec: dict, *, log_prefix: str = "Embedding") -> np.ndarray:
-    """用本地 sentence-transformers 模型 (spec['model']) 编码文本。
-
-    模型按 model_id 进程级缓存; 默认 shibing624/text2vec-base-chinese (768 维)。
-
-    fix(omni-g-embed-04/07, 2026-06-11) 两处语义变更:
-    1. 超出模型 max_seq_length (t2v=128 token) 的文本此前被模型**静默截断**到首段
-       (split_text_for_embedding 的 8191 cl100k 上限远大于本地模型上限, 拦不住);
-       现按模型自身 tokenizer 分块后 mean-pool (逐块 L2 归一 + token 数加权, 与
-       embed_texts 池化口径一致); 不超长文本原样直送, 输出与旧实现逐位一致。
-    2. 推理前调 ensure_torch_determinism() (对齐 stage 23 tone_berts 硬化)。
-    """
-    from sentence_transformers import SentenceTransformer
-
-    ensure_torch_determinism()  # fix(omni-g-embed-07, 2026-06-11)
-    # called-by-runner 子步骤 banner (本地直调 encode_local 的 callsite 也覆盖到); 只 emit 一次。
-    _log_engine_banner(spec, log_prefix=log_prefix)
-
-    model_id = spec_model(spec, 'shibing624/text2vec-base-chinese')
-    if model_id not in _LOCAL_MODELS:
-        device = _select_torch_device()
-        logger.info(f"    {log_prefix}: 加载本地嵌入模型 {model_id} (device={device})")
-        _LOCAL_MODELS[model_id] = SentenceTransformer(model_id, device=device)
-    model = _LOCAL_MODELS[model_id]
-    batch_size = int((spec or {}).get('batch_size', 32) or 32)
-    texts = list(texts)
-
-    # ── fix(omni-g-embed-04, 2026-06-11): 按模型 max_seq_length 分块, 防静默截断 ──
-    max_seq = int(getattr(model, 'max_seq_length', 0) or 0)
-    tokenizer = getattr(model, 'tokenizer', None)
-    if max_seq <= 0 or tokenizer is None:
-        # 无 tokenizer/max_seq 元数据 (如测试 fake 模型) → 旧行为直送
-        emb_local = model.encode(
-            texts, batch_size=batch_size, show_progress_bar=False,
-        )
-        return np.asarray(emb_local, dtype=np.float32)
-
-    effective_max = max(1, max_seq - 2)  # 留 [CLS]/[SEP] 特殊 token 位
-    chunks: list = []
-    chunk_map: list[tuple[int, int]] = []
-    chunk_weights: list[int] = []  # 与 chunks 等长, 单位 = 本地模型 token 数
-    for text in texts:
-        t = str(text) if text is not None else ''
-        ids = tokenizer.encode(t, add_special_tokens=False) if t else []
-        start = len(chunks)
-        if len(ids) <= effective_max:
-            chunks.append(text)  # 不超长 → 原样直送 (与旧实现逐位一致)
-            chunk_weights.append(max(1, len(ids)))
-        else:
-            for s in range(0, len(ids), effective_max):
-                seg = ids[s:s + effective_max]
-                chunks.append(tokenizer.decode(seg, skip_special_tokens=True))
-                chunk_weights.append(max(1, len(seg)))
-        chunk_map.append((start, len(chunks)))
-
-    if len(chunks) > len(texts):
-        logger.info(
-            f"    {log_prefix}: 本地模型 max_seq_length={max_seq} 分块: "
-            f"{len(texts)} 文本 → {len(chunks)} 段 (防静默截断)"
-        )
-
-    raw = np.asarray(
-        model.encode(chunks, batch_size=batch_size, show_progress_bar=False),
-        dtype=np.float32,
-    )
-    if len(chunks) == len(texts):
-        return raw  # 无超长文本 → 与旧实现逐位一致
-
-    out = np.zeros((len(texts), raw.shape[1]), dtype=np.float32)
-    for i, (start, end) in enumerate(chunk_map):
-        if end - start == 1:
-            out[i] = raw[start]
-            continue
-        # 逐块 L2 归一 + token 数加权 mean-pool (KNOWN-OPEN⑧: 未归一向量的等权 mean
-        # 隐含按块范数加权; 等权下尾段碎片块与整块同权 → 双重权重失真)
-        block = raw[start:end].astype(np.float64)
-        norms = np.linalg.norm(block, axis=1, keepdims=True)
-        norms[norms == 0.0] = 1.0
-        unit = block / norms
-        w = np.asarray(chunk_weights[start:end], dtype=np.float64)
-        pooled = (unit * w[:, None]).sum(axis=0) / w.sum()
-        nrm = np.linalg.norm(pooled)
-        out[i] = (pooled / nrm if nrm > 0 else pooled).astype(np.float32)
-    return out
 
 
 async def get_embeddings_api(texts, spec: dict, cache=None, *,
@@ -636,119 +470,19 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
     return np.array(final_embs, dtype=np.float32)
 
 
-def _encode_local_cached(chunks, spec: dict, *,
-                         cache=None,
-                         cache_db_path: str | None = None,
-                         log_prefix: str = "Embedding") -> np.ndarray:
-    """``encode_local`` 的穿透式缓存封装 (2026-06-23)。
-
-    本地 sentence-transformers (text2vec) 此前是全项目**唯一不走缓存**的嵌入路径
-    → 每次重跑 / 每个 stage (16/26/27/network 都嵌同一批 content_full) 都从头
-    forward 一遍。本封装按 ``(model_id, 完整 chunk 文本, text_pipeline_version)``
-    查 LLMCache: 命中即读 (反序列化), 仅未命中的 chunk 真正 ``encode_local`` 一次
-    并回写。键以 ``model_id`` 为首字段 → 与 API 主轨缓存天然隔离不串。
-
-    golden 语义 (与 API 轨 / stage 21 ``_llm_cache.db`` 锚点同源): 缓存冻结**首次
-    计算值** → 此后重跑逐位复现, 反而比"每 run 重算 (BLAS/CUDA-FP 漂移)"更稳。
-    首次播种须受控环境 (PYTHONHASHSEED=0 + BLAS 线程=1 + 保留 GPU + HF offline),
-    之后离线 $0 字节级复现。值经 ``json.dumps(float32.tolist())`` 往返**字节级无损**
-    (float32 ⊂ float64; repr 最短可逆 → 读回 ``np.float32`` 与原值逐位相等)。
-
-    cache 解析: 传入已打开的 ``cache`` → 复用 (跨多次调用省重复 open); 否则按
-    ``cache_db_path`` 自开自关; 两者皆缺 → 退化为无缓存裸 ``encode_local`` (向后兼容,
-    如测试直送 local spec 不带 cache_db_path 的路径)。
-    """
-    model_id = spec_model(spec, 'shibing624/text2vec-base-chinese')
-    # ★ 版本门 §5-C (core/caching.py docstring): 键 = (model_id, chunk文本, version);
-    #   batch_size/device/dtype 不入键。故改 config/features.yaml::embedding_robustness.batch_size
-    #   必同步 bump text_pipeline_version (tests/test_t2v_batch_version_lock.py 守护), 否则 FP 漂移静默污染。
-    version = spec_version(spec)
-
-    own_cache = None
-    if cache is None and cache_db_path:
-        own_cache = LLMCache(cache_db_path)
-        cache = own_cache
-    try:
-        cached = [
-            cache.get(model_id, c, prompt_version=version) if cache is not None else None
-            for c in chunks
-        ]
-        missing_idx = [i for i, res in enumerate(cached) if res is None]
-        if len(chunks) > 1:
-            _n_hit_local = len(chunks) - len(missing_idx)
-            logger.info(
-                f"    {log_prefix} 本地缓存拦截: 命中 {_n_hit_local:,} "
-                f"条, 缺失 {len(missing_idx):,} 条 / 共 {len(chunks):,} 条 "
-                f"(命中率 {pct4(_n_hit_local / len(chunks))}, model={model_id})"
-            )
-
-        # 缺失项内部去重 (golden 正确性 + 提速): 同一文本在三轨/回退场景下可重复出现
-        # (实测 content_full nunique 1329/1542)。GPU 批 forward 对"同文本不同批位"会给
-        # 1-ULP 级 FP 漂移 → 若不去重, 同文本两次出现可取不同值, 而 put_batch 同键后写
-        # 覆盖前 → 冷跑(各取各值)与暖跑(同读一值)不一致, 破坏 golden 逐位复现。去重后每个
-        # 唯一文本只 forward 一次 (取值唯一确定) → 冷暖逐位一致 + 更快。(跨 full/ctx/ss 三
-        # 轨的去重则由共享 cache 连接天然达成: 先嵌的轨写入后, 后续轨同文本即缓存命中。)
-        computed_map: dict = {}
-        uniq_dim = None
-        if missing_idx:
-            missing_chunks = [chunks[i] for i in missing_idx]
-            unique_texts = list(dict.fromkeys(missing_chunks))  # 保序去重
-            if len(unique_texts) < len(missing_chunks):
-                _n_saved = len(missing_chunks) - len(unique_texts)
-                logger.info(
-                    f"    {log_prefix} 本地去重: 缺失 {len(missing_chunks):,} 条 → "
-                    f"唯一 {len(unique_texts):,} 条 (省 "
-                    f"{_n_saved:,} 次 forward, 去重率 "
-                    f"{pct4(_n_saved / len(missing_chunks))})"
-                )
-            uniq_emb = np.asarray(
-                encode_local(unique_texts, spec, log_prefix=log_prefix),
-                dtype=np.float32,
-            )
-            uniq_dim = int(uniq_emb.shape[1])
-            computed_map = {t: uniq_emb[k] for k, t in enumerate(unique_texts)}
-            if cache is not None:
-                cache.put_batch(
-                    model_id, unique_texts,
-                    [json.dumps(uniq_emb[k].tolist()) for k in range(len(unique_texts))],
-                    prompt_version=version,
-                )
-
-        # 按 chunks 原序复原 (命中条目反序列化 + 新算唯一向量按文本映射回各位置)
-        if uniq_dim is not None:
-            dim = uniq_dim
-        elif cached and cached[0] is not None:
-            dim = len(json.loads(cached[0]))
-        else:  # 空输入防御 (上游 embed_texts 已挡空 texts, 纯兜底)
-            return np.empty((0, 0), dtype=np.float32)
-        out = np.empty((len(chunks), dim), dtype=np.float32)
-        for i, res in enumerate(cached):
-            if res is None:
-                out[i] = computed_map[chunks[i]]
-            else:
-                out[i] = np.asarray(json.loads(res), dtype=np.float32)
-        return out
-    finally:
-        if own_cache is not None:
-            own_cache.close()
-
-
 def embed_texts(texts, spec: dict, *,
                 cache_db_path: str | None = None,
                 cache=None,
                 log_prefix: str = "Embedding",
                 enable_archive: bool = True) -> np.ndarray | None:
-    """文本 → 文本级 Embedding 向量 (n_texts, dim), spec 决定模型与路径。
+    """文本 → 文本级 Embedding 向量 (n_texts, dim), spec 决定 API 模型。
 
-    超长文本走朴素分段 (naive chunking) + Mean Pooling。local spec 走 sentence-transformers,
-    API spec 走 get_embeddings_api (经 LLMCache 穿透)。失败/形状异常 → None。
+    超长文本走朴素分段 (naive chunking) + Mean Pooling。v3.14.0 起所有 spec 均为 API
+    spec → 一律走 get_embeddings_api (经 LLMCache 穿透)。失败/形状异常 → None。
 
     传入已打开的 ``cache`` (LLMCache 实例) 可跨多次 embed_texts 调用复用同一
     sqlite 连接, 省去重复 open/WAL/建表 (2026-06-23 零风险小优化); 未传时按
-    ``cache_db_path`` 自动 open/close (向后兼容)。
-    local spec (2026-06-23 起) 同样穿透缓存 (经 _encode_local_cached, 键
-    = model_id+文本+text_pipeline_version) — 命中即读, 跨 run/跨 stage $0 复现;
-    两参数皆缺时退化为无缓存裸 encode_local (向后兼容)。
+    ``cache_db_path`` 自动 open/close (向后兼容); 两者皆缺则无缓存裸调 API。
 
     fix(omni-g-embed-04, 2026-06-11): 多块池化改为"逐块 L2 归一 + token 数加权"
     (此前等权 mean — 8191+1 token 切分的 1-token 尾段碎片占 50% 方向权重)。切分
@@ -781,36 +515,30 @@ def embed_texts(texts, spec: dict, *,
             f"段/文本扩展因子 {sig4(n_chunks / n_orig)})"
         )
 
-    if spec_uses_local(spec):
-        # 2026-06-23: 本地嵌入改走穿透式缓存 (_encode_local_cached) — 此前每 run
-        # 全量重算 (text2vec 是唯一不缓存的嵌入路径)。命中即读 → 跨 run/跨 stage $0。
-        raw_emb = _encode_local_cached(
-            all_chunks, spec, cache=cache, cache_db_path=cache_db_path,
-            log_prefix=log_prefix)
+    # v3.14.0: 全 spec 均为 API spec (零本地模型) → 一律走 get_embeddings_api (LLMCache 穿透)。
+    if cache is not None:
+        # 调用方传入已打开的共享连接 → 跨多次 embed_texts 复用, 省重复 open
+        raw_emb = asyncio.run(
+            get_embeddings_api(all_chunks, spec, cache,
+                               enable_archive=enable_archive))
+    elif cache_db_path:
+        with LLMCache(cache_db_path) as _cache:
+            raw_emb = asyncio.run(
+                get_embeddings_api(all_chunks, spec, _cache,
+                                   enable_archive=enable_archive))
     else:
-        if cache is not None:
-            # 调用方传入已打开的共享连接 → 跨多次 embed_texts 复用, 省重复 open
-            raw_emb = asyncio.run(
-                get_embeddings_api(all_chunks, spec, cache,
-                                   enable_archive=enable_archive))
-        elif cache_db_path:
-            with LLMCache(cache_db_path) as _cache:
-                raw_emb = asyncio.run(
-                    get_embeddings_api(all_chunks, spec, _cache,
-                                       enable_archive=enable_archive))
-        else:
-            raw_emb = asyncio.run(
-                get_embeddings_api(all_chunks, spec, None,
-                                   enable_archive=enable_archive))
-        # get_embeddings_api 在瞬时失败重试 EMB_MAX_RETRIES 次耗尽时返回 None →
-        # 该轨整体置 NaN (优雅降级, 对称 tone_llms 80 次后缺席投票)。
-        if raw_emb is None:
-            logger.warning(
-                f"    {log_prefix}: API ({spec_model(spec)}) 重试耗尽返回 None "
-                f"→ 该轨置 NaN"
-            )
-            return None
-        logger.info(f"    {log_prefix}: API ({spec_model(spec)}) 成功")
+        raw_emb = asyncio.run(
+            get_embeddings_api(all_chunks, spec, None,
+                               enable_archive=enable_archive))
+    # get_embeddings_api 在瞬时失败重试 EMB_MAX_RETRIES 次耗尽时返回 None →
+    # 该轨整体置 NaN (优雅降级, 对称 tone_llms 80 次后缺席投票)。
+    if raw_emb is None:
+        logger.warning(
+            f"    {log_prefix}: API ({spec_model(spec)}) 重试耗尽返回 None "
+            f"→ 该轨置 NaN"
+        )
+        return None
+    logger.info(f"    {log_prefix}: API ({spec_model(spec)}) 成功")
 
     raw_emb = np.asarray(raw_emb)
     if raw_emb.ndim != 2 or raw_emb.shape[0] != n_chunks:

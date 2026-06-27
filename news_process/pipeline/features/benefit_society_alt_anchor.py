@@ -175,22 +175,21 @@ def resolve_embedding_spec(model_id: str) -> dict:
 
     fix(omni-g-benefit-01, 2026-06-11): 锚点嵌入必须与文章嵌入同空间 —
     spec 不再硬编码 shibing624, 而是由文章 .npy sidecar 的 model_id 反查
-    ``embedding_api`` (MAIN) / ``embedding_robustness`` (_t2v) /
-    ``embedding_large`` (_lg, 2026-06-27 第三模型) /
-    ``embedding_bge`` (_bge, 2026-06-27 第四模型 BAAI/bge-m3)。未知 model
-    → fail-loud (无法保证同空间)。
+    ``embedding_api`` (MAIN, gemini) / ``embedding_large`` (_lg, co-primary,
+    text-embedding-3-large)。未知 model → fail-loud (无法保证同空间)。
+    (v3.14.0 已整体移除本地稳健轨 embedding_robustness/_t2v 与 embedding_bge/_bge,
+    故反查元组只剩双 API 模型。)
     """
     from news_process.core.config import load_config
 
     cfg = load_config()
-    for section in ("embedding_api", "embedding_robustness",
-                    "embedding_large", "embedding_bge"):
+    for section in ("embedding_api", "embedding_large"):
         spec = cfg.get(section) or {}
         if str(spec.get("model") or "") == str(model_id):
             return spec
     raise ValueError(
         f"未知嵌入模型 {model_id!r}: 不匹配 config/features.yaml 的 "
-        "embedding_api / embedding_robustness / embedding_large / embedding_bge — "
+        "embedding_api / embedding_large — "
         "锚点与文章无法保证同嵌入空间"
     )
 
@@ -366,16 +365,16 @@ def write_sidecar_json(
     n_articles: int,
     n_bank_years: int,
     *,
-    embedding_model: str = "shibing624/text2vec-base-chinese",
-    embedding_dim: int = 768,
+    embedding_model: str = "(unknown — pass actual model_id)",
+    embedding_dim: int = -1,
     tracks: tuple[str, ...] = ("full",),
 ) -> Path:
     """在 parquet 输出旁写入可复现性 sidecar JSON.
 
     fix(omni-g-benefit-01, 2026-06-11): embedding_model / embedding_dim 改为
-    参数 (main() 传入文章 .npy sidecar 实际值) — 此前硬编码 shibing624/768,
-    与 CLI help 声称的主管线 API 嵌入 (1536 维) 自相矛盾。keyword 默认值仅为
-    旧调用方兼容保留, 生产路径必须传实际值。
+    参数 (main() 传入文章 .npy sidecar 实际值)。keyword 默认值仅为旧调用方兼容
+    保留 (中性占位, 不再硬编码具体模型), 生产路径必须传实际值。
+    (v3.14.0: 原默认 shibing624/text2vec-base-chinese / 768 维已随本地稳健轨整体移除。)
     """
     sidecar = {
         "schema_version": "1.1",

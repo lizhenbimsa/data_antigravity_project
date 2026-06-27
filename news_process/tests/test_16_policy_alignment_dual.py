@@ -17,26 +17,43 @@ def test_policy_alignment_module_imports():
     assert hasattr(pa, 'main')
 
 
-def test_dual_model_cosine_for_spec_main_and_robustness():
-    """2026-05-29 双模型重构: compute 用 _cosine_for_spec 对主 spec (text-embedding-3-small)
-    与稳健 spec (_ROBUSTNESS_SPEC=text2vec) 各算一遍, 缓存命名空间由 model_id (engine) 隔离,
-    不再 mutate 全局 EMBEDDING_CONFIG (旧 '-ctx' 微优化已随版本 bump 退役)。"""
+def test_coprimary_cosine_for_spec_main_and_large():
+    """v3.14.0 co-primary 双 API 模型: compute 用 _cosine_for_spec 对 MAIN spec
+    (EMBEDDING_CONFIG=gemini-embedding-2-preview, 无后缀) 与 co-primary spec
+    (_LARGE_SPEC=text-embedding-3-large, `_lg`) 各算一遍, 缓存命名空间由 model_id (engine)
+    隔离, 不 mutate 全局 EMBEDDING_CONFIG。
+
+    v3.14.0 已硬删本地稳健轨 `_t2v` (text2vec) / `_bge` (bge-m3) → `_ROBUSTNESS_SPEC`/
+    `_BGE_SPEC` 不复存在; 现仅余两 API co-primary (gemini 无后缀 + large `_lg`)。"""
     import inspect
 
     from news_process.pipeline.filtering import policy_alignment as pa
     src_compute = inspect.getsource(pa.compute_article_policy_alignment)
-    # 双 spec 双算: 主 + 稳健
+    # 双 spec 双算: MAIN (gemini) + co-primary (large)
     assert '_cosine_for_spec' in src_compute, "compute 应用 _cosine_for_spec 助手"
-    assert '_ROBUSTNESS_SPEC' in src_compute, "compute 应对稳健 spec 再算一遍"
-    # 产出稳健 twin 列
-    assert 'policy_cosine_sim_t2v_full' in src_compute
-    assert 'policy_cosine_sim_t2v_ctx' in src_compute
+    assert '_LARGE_SPEC' in src_compute, "compute 应对 co-primary _lg spec (_LARGE_SPEC) 再算一遍"
+    # 产出 co-primary _lg twin 列
+    assert 'policy_cosine_sim_lg_full' in src_compute
+    assert 'policy_cosine_sim_lg_ctx' in src_compute
+    # 已硬删本地稳健轨 → 源码不应再出现 _t2v / _bge / 旧 spec 句柄
+    assert '_ROBUSTNESS_SPEC' not in src_compute, "v3.14.0 已删 _t2v 稳健轨 (_ROBUSTNESS_SPEC)"
+    assert 'policy_cosine_sim_t2v' not in src_compute, "v3.14.0 已删 _t2v 列"
+    assert 'policy_cosine_sim_bge' not in src_compute, "v3.14.0 已删 _bge 列"
     # 仍不 mutate 全局 EMBEDDING_CONFIG (无全局副作用)
     assert "EMBEDDING_CONFIG['text_pipeline_version'] = " not in src_compute, \
         "禁止 mutate EMBEDDING_CONFIG (cache 命名空间由 model_id 隔离)"
-    # _cosine_for_spec 经 engine 嵌入 (主/稳健共用同算法只换 spec)
+    # _cosine_for_spec 经 engine 嵌入 (MAIN/co-primary 共用同算法只换 spec)
     src_spec = inspect.getsource(pa._cosine_for_spec)
     assert '_eng.embed_texts' in src_spec, "_cosine_for_spec 应经 embedding_engine 嵌入"
+
+
+def test_large_spec_active_co_primary():
+    """v3.14.0: config 已激活 embedding_large → _LARGE_SPEC 非空 (co-primary _lg ACTIVE)。"""
+    from news_process.pipeline.filtering import policy_alignment as pa
+    assert pa._LARGE_SPEC, "config 已激活 embedding_large → _LARGE_SPEC 应非空 (co-primary)"
+    # 已硬删本地稳健 spec 句柄
+    assert not hasattr(pa, '_ROBUSTNESS_SPEC'), "v3.14.0 已删 _ROBUSTNESS_SPEC 模块级句柄"
+    assert not hasattr(pa, '_BGE_SPEC'), "v3.14.0 已删 _BGE_SPEC 模块级句柄"
 
 
 def test_cache_isolation_from_other_callsites():
@@ -57,7 +74,8 @@ def test_cache_isolation_from_other_callsites():
 
 # ── Cases 4-7: 双轨列输出 ──
 def test_dual_track_columns_present_after_run(monkeypatch):
-    """模拟 engine 嵌入返回固定单位向量, 验证输出含双模型双轨列 (主 + _t2v)."""
+    """模拟 engine 嵌入返回固定单位向量, 验证输出含 co-primary 双 API 模型双轨列
+    (MAIN gemini 无后缀 + co-primary large `_lg`)."""
     from news_process.pipeline.filtering import policy_alignment as pa
 
     # 构造 3 篇 mock 文章
@@ -68,9 +86,10 @@ def test_dual_track_columns_present_after_run(monkeypatch):
     })
 
     # Mock embedding_engine.embed_texts: 任意 spec 都返回 [1,0,0,...] 单位向量 → cosine = 1.0
-    # (主 spec 与稳健 spec 各调一遍, 均走此 mock → canonical 与 _t2v 列都满列。)
+    # (MAIN gemini spec 与 co-primary large spec 各调一遍, 均走此 mock → canonical 与 _lg
+    # 列都满列。dim=3072 = gemini/large 两 co-primary 实际维度。)
     def _fake_embed(texts, spec, **kwargs):
-        return np.array([[1.0] + [0.0] * 1535] * len(list(texts)), dtype=np.float32)
+        return np.array([[1.0] + [0.0] * 3071] * len(list(texts)), dtype=np.float32)
 
     monkeypatch.setattr(pa._eng, 'embed_texts', _fake_embed)
     # 关掉 token 截断的真实计算 (避免 tiktoken 加载)
@@ -86,19 +105,20 @@ def test_dual_track_columns_present_after_run(monkeypatch):
 
     out = pa.compute_article_policy_alignment(df)
     for col in ['policy_cosine_sim_full', 'policy_cosine_sim_ctx', 'policy_cosine_sim',
-                'policy_cosine_sim_t2v_full', 'policy_cosine_sim_t2v_ctx']:
-        assert col in out.columns, f"缺双模型双轨列 {col}"
+                'policy_cosine_sim_lg_full', 'policy_cosine_sim_lg_ctx']:
+        assert col in out.columns, f"缺 co-primary 双 API 模型双轨列 {col}"
     # legacy alias = full
     assert (out['policy_cosine_sim'] == out['policy_cosine_sim_full']).all()
-    # 稳健 twin 应满列 (mock 单位向量 → cosine=1.0)
-    assert out['policy_cosine_sim_t2v_full'].notna().all()
+    # co-primary _lg twin 应满列 (mock 单位向量 → cosine=1.0)
+    assert out['policy_cosine_sim_lg_full'].notna().all()
 
 
-def test_early_exit_missing_auth_corpus_emits_full_t2v_contract(monkeypatch, tmp_path):
-    """auth 语料缺失/为空的早退路径仍须产出双模型双轨 5 列契约 (全 NaN)。
+def test_early_exit_missing_auth_corpus_emits_full_lg_contract(monkeypatch, tmp_path):
+    """auth 语料缺失/为空的早退路径仍须产出 co-primary 双 API 模型双轨 5 列契约 (全 NaN)。
 
-    回归门 (audit 2026-05-29 P1): 否则 stage 30 退役后, runner 聚合缺
-    policy_cosine_sim_t2v_* → export.py REQUIRED_PANEL_COLUMNS 抛 RuntimeError。
+    回归门 (both-or-neither parity, D-4a): 否则 runner 聚合缺
+    policy_cosine_sim_lg_* → export.py REQUIRED_PANEL_COLUMNS 抛 RuntimeError。
+    早退路径同样须产 MAIN(无后缀) + co-primary `_lg` 占位列 (both-or-neither 对称)。
     """
     from news_process.pipeline.filtering import policy_alignment as pa
     df = pd.DataFrame({
@@ -109,8 +129,8 @@ def test_early_exit_missing_auth_corpus_emits_full_t2v_contract(monkeypatch, tmp
                         str(tmp_path / 'nonexistent_auth_corpus.txt'))
     out = pa.compute_article_policy_alignment(df)
     for col in ['policy_cosine_sim', 'policy_cosine_sim_full', 'policy_cosine_sim_ctx',
-                'policy_cosine_sim_t2v_full', 'policy_cosine_sim_t2v_ctx']:
-        assert col in out.columns, f"早退路径缺双模型双轨列 {col}"
+                'policy_cosine_sim_lg_full', 'policy_cosine_sim_lg_ctx']:
+        assert col in out.columns, f"早退路径缺 co-primary 双 API 模型双轨列 {col}"
         assert out[col].isna().all(), f"{col} 早退应全 NaN"
 
 

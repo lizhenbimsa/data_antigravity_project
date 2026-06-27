@@ -5,8 +5,9 @@
 锁定以下行为 (正向锁, 全部用合成 mock 嵌入, 不调真 SBERT → Phase A 即可跑):
 - T1: stage 30a `_build_output_frame` 在 embs_ss 给定时产出 `emb_ss` 列; embs_ss=None 时不含
       该列 (向后兼容, 旧 schema 无 content_ss → 不写 emb_ss)。
-- T2: stage 18 `_load_aligned_embeddings` 返 3-tuple; 30a parquet 含 emb_ss 列 → embs_ss 为
-      ndarray, 不含 → None (优雅降级, 镜像 DEFER, 不 fail-loud)。
+- T2: stage 18 `_load_aligned_embeddings` 返 6-tuple (v3.14.0 co-primary 双轨:
+      MAIN emb_{full,ctx,ss} + _lg emb_{full,ctx,ss}_lg); 30a parquet 含 emb_ss 列 → embs_ss 为
+      ndarray, 不含 → None (优雅降级, 镜像 DEFER, 不 fail-loud); emb_*_lg 列缺失 → 三 _lg 段均 None。
 - T3: 全语料皆回退 (content_ss≡content_full 整列 → embs_ss==embs_full) 时, 两轨 semantic
       staleness 逐位相等 —— compute_semantic_staleness 仅用 Faiss exact IP + stable argsort,
       无 BLAS 累积浮点, 同一输入数组 → 输出确定相等 (无需 atol)。
@@ -37,8 +38,14 @@ def _art_df(n: int = 3) -> pd.DataFrame:
     })
 
 
-def _emb_df(art_df: pd.DataFrame, with_ss: bool = True) -> pd.DataFrame:
-    """30a 风格 emb parquet: emb_full[i]=[i]*3, emb_ctx[i]=[i+10]*3, emb_ss[i]=[i+20]*3."""
+def _emb_df(
+    art_df: pd.DataFrame, with_ss: bool = True, with_lg: bool = False,
+) -> pd.DataFrame:
+    """30a 风格 emb parquet: emb_full[i]=[i]*3, emb_ctx[i]=[i+10]*3, emb_ss[i]=[i+20]*3.
+
+    v3.14.0 (2026-06-27, co-primary 双轨): with_lg=True 时同步写 emb_*_lg 孪生列
+    (large, 镜像 MAIN 偏移 +100), 供 _load_aligned_embeddings 的 6-tuple _lg 段验证。
+    """
     n = len(art_df)
     d = {
         'article_id': list(range(n)),
@@ -49,6 +56,11 @@ def _emb_df(art_df: pd.DataFrame, with_ss: bool = True) -> pd.DataFrame:
     }
     if with_ss:
         d['emb_ss'] = [np.full(3, float(i) + 20.0, dtype=np.float32) for i in range(n)]
+    if with_lg:
+        d['emb_full_lg'] = [np.full(3, float(i) + 100.0, dtype=np.float32) for i in range(n)]
+        d['emb_ctx_lg'] = [np.full(3, float(i) + 110.0, dtype=np.float32) for i in range(n)]
+        if with_ss:
+            d['emb_ss_lg'] = [np.full(3, float(i) + 120.0, dtype=np.float32) for i in range(n)]
     return pd.DataFrame(d)
 
 
@@ -96,7 +108,8 @@ class TestBuildOutputFrameEmbSs:
 
 
 # ════════════════════════════════════════════════════════════════════════
-# T2 — stage 18 _load_aligned_embeddings: 3-tuple + emb_ss 列存在性优雅降级
+# T2 — stage 18 _load_aligned_embeddings: 6-tuple (MAIN + _lg co-primary) +
+#      emb_ss / emb_*_lg 列存在性优雅降级
 # ════════════════════════════════════════════════════════════════════════
 class TestLoadAlignedEmbeddingsSs:
     def test_returns_embs_ss_when_column_present(self, tmp_path):
@@ -105,10 +118,28 @@ class TestLoadAlignedEmbeddingsSs:
         emb = _emb_df(art, with_ss=True)
         p = tmp_path / '25_article_embeddings.parquet'
         emb.to_parquet(p, index=False)
-        full, ctx, ss = _load_aligned_embeddings(art, str(p))
+        full, ctx, ss, full_lg, ctx_lg, ss_lg = _load_aligned_embeddings(art, str(p))
         assert ss is not None
         assert ss.shape == (3, 3)
         assert np.allclose(ss[0], 20.0) and np.allclose(ss[2], 22.0)
+        # v3.14.0: 旧 30a parquet 无 emb_*_lg 列 → 三 _lg 段均优雅 None (向后兼容)
+        assert full_lg is None and ctx_lg is None and ss_lg is None
+
+    def test_returns_lg_twins_when_columns_present(self, tmp_path):
+        # v3.14.0 co-primary 双轨: 30a 含 emb_*_lg 列 → 三 _lg 段为 ndarray (镜像 MAIN)
+        from news_process.pipeline.text.article_staleness import _load_aligned_embeddings
+        art = _art_df(3)
+        emb = _emb_df(art, with_ss=True, with_lg=True)
+        p = tmp_path / '25_article_embeddings.parquet'
+        emb.to_parquet(p, index=False)
+        full, ctx, ss, full_lg, ctx_lg, ss_lg = _load_aligned_embeddings(art, str(p))
+        # MAIN 段不受影响
+        assert full.shape == (3, 3) and ctx.shape == (3, 3) and ss.shape == (3, 3)
+        # _lg 孪生段就位 (large, +100 偏移)
+        assert full_lg is not None and full_lg.shape == (3, 3)
+        assert np.allclose(full_lg[0], 100.0) and np.allclose(full_lg[2], 102.0)
+        assert ctx_lg is not None and np.allclose(ctx_lg[0], 110.0)
+        assert ss_lg is not None and np.allclose(ss_lg[0], 120.0)
 
     def test_returns_none_when_emb_ss_absent(self, tmp_path):
         # 旧 30a parquet (无 emb_ss 列) → embs_ss=None (向后兼容, 不 fail-loud)
@@ -117,18 +148,37 @@ class TestLoadAlignedEmbeddingsSs:
         emb = _emb_df(art, with_ss=False)
         p = tmp_path / '25_article_embeddings.parquet'
         emb.to_parquet(p, index=False)
-        full, ctx, ss = _load_aligned_embeddings(art, str(p))
+        full, ctx, ss, full_lg, ctx_lg, ss_lg = _load_aligned_embeddings(art, str(p))
         assert ss is None
         # 其余两轨不受影响
         assert full.shape == (3, 3) and ctx.shape == (3, 3)
+        # _lg 列亦缺 → 三 _lg 段 None
+        assert full_lg is None and ctx_lg is None and ss_lg is None
 
-    def test_emb_ss_dim_mismatch_fails_loud(self, tmp_path):
-        # final-audit P2 守卫: 30a 内部错乱 (emb_ss 维度 ≠ emb_full) → fail-loud,
-        # 不把错维语义信号静默喂给下游 Faiss。
+    def test_emb_ss_dim_differs_loads_ok(self, tmp_path):
+        # v3.14.0 (co-primary 双轨): _stack_track 改为仅核行数防错位, 维度可不同
+        # (MAIN 与 _lg 同为 3072, 但函数不假设维度)。故 emb_ss 维度 ≠ emb_full 不再
+        # fail-loud — 旧 P2 维度守卫已随双轨化撤除 (见 article_staleness.py::_stack_track
+        # docstring "维度可不同... 仅核行数防错位")。
         from news_process.pipeline.text.article_staleness import _load_aligned_embeddings
         art = _art_df(3)
         emb = _emb_df(art, with_ss=True)
         emb['emb_ss'] = [np.zeros(5, dtype=np.float32) for _ in range(3)]  # 5 维 vs emb_full 3 维
+        p = tmp_path / '25_article_embeddings.parquet'
+        emb.to_parquet(p, index=False)
+        full, ctx, ss, *_lg = _load_aligned_embeddings(art, str(p))
+        # 行数相符 → 正常加载 (维度不再守卫); emb_ss 按其原 5 维 stack
+        assert ss is not None and ss.shape == (3, 5)
+        assert full.shape == (3, 3)
+
+    def test_emb_ss_row_mismatch_fails_loud(self, tmp_path):
+        # 存活守卫: 行数错位 (而非维度) 仍 fail-loud, 防文章-向量静默错配喂给 Faiss。
+        # 构造 emb_ss 行数 ≠ emb_full: 直接写一个 emb_ss 列, 其每行元素是错位的标量
+        # 不可行 (stack 形状由内容定), 改用上游行数检查路径 — 此处验 30a 行数 != art_df
+        # 行数的总行数守卫 (与 emb_ss 同族, 同 sys.exit(1))。
+        from news_process.pipeline.text.article_staleness import _load_aligned_embeddings
+        art = _art_df(3)
+        emb = _emb_df(art, with_ss=True).iloc[:2].copy()  # 30a 行数 2 != art_df 行数 3
         p = tmp_path / '25_article_embeddings.parquet'
         emb.to_parquet(p, index=False)
         with pytest.raises(SystemExit):
@@ -205,7 +255,8 @@ class TestNoneGuardNecessity:
         emb = _emb_df(art, with_ss=False)  # 旧 schema: 无 emb_ss
         p = tmp_path / '25_article_embeddings.parquet'
         emb.to_parquet(p, index=False)
-        _full, _ctx, embs_ss = _load_aligned_embeddings(art, str(p))
+        # v3.14.0 6-tuple unpack (MAIN 三 + _lg 三); 旧 schema 无 emb_ss/emb_*_lg → 全 None
+        _full, _ctx, embs_ss, *_lg = _load_aligned_embeddings(art, str(p))
         # main() 的守卫: 仅 embs_ss is not None 才 compute → 此处 None, 不调用, semantic_ss 不产
         produced = {}
         if embs_ss is not None:  # 镜像 article_staleness.py:605

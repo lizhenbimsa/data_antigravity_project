@@ -1,27 +1,31 @@
-"""回归测试: omni-fix g-embed 组修复 (2026-06-11).
+"""回归测试: omni-fix g-embed 组修复 (2026-06-11; v3.14.0 all-API 改造后存活子集).
 
 锁定以下修复行为 (权威裁决: scripts/audit/_omni_fix/g-embed.json):
 - g-embed-01: compute_semantic_staleness 窗口改日粒度 [d-7d, d) 且严格排除同日行
   (对齐 surface 轨 `day < d` 语义; 同 docid 跨行复制行不再机械得 1.0)
 - g-embed-02: Tetlock 2011 构念保真披露 — '原文 cosine 范式' 误称清除 (源码文本锁)
 - g-embed-03/09: stage 18 消费 30a 改 article_id 显式 join (长度/键/辅键不一致
-  fail-loud); 30a 产出端新增 model_id/model_revision/text_pipeline_version provenance
-- g-embed-04 (+KNOWN-OPEN⑧): embed_texts / encode_local 多块池化改 "逐块 L2 归一 +
-  token 数加权" (尾段碎片不再获整段同权); encode_local 超模型 max_seq_length 文本
-  按自身 tokenizer 分块防静默截断 (不超长直送, 与旧实现逐位一致)
-- g-embed-05: article_sbert 模型真单源 = config embedding_robustness.model
-  (+ 可选 revision 钉死); 不再读不存在的 'embedding' 顶级键
+  fail-loud); 30a 产出端新增 model_id/model_revision/text_pipeline_version provenance.
+  v3.14.0: _load_aligned_embeddings 返回 6-tuple (MAIN gemini emb_{full,ctx,ss}
+  + _lg large emb_{full,ctx,ss}_lg 两 co-primary 套)。
+- g-embed-04 (+KNOWN-OPEN⑧): embed_texts 多块池化改 "逐块 L2 归一 + token 数加权"
+  (尾段碎片不再获整段同权)。v3.14.0: embed_texts 为纯 API 路径 (零本地模型) →
+  经 get_embeddings_api 取每块向量后做同一池化数学。
 - g-embed-06/08: bank-year 聚合 *平均域* 收缩到 verified 面板语料
   (_restrict_to_panel_domain; 参照窗口仍用 stage-13 全集)
-- g-embed-07: ensure_torch_determinism 共享硬化 (encode_local / encode_articles 接线)
 
-外部依赖处理: 无网络调用; SBERT 模型用 fake (注入 _LOCAL_MODELS); faiss/datasketch/
-tiktoken 为已装本地包; torch 测试 importorskip。
+v3.14.0 删除 (本文件随之移除的局部机器测试): encode_local 分块 / _LOCAL_MODELS 注入 /
+ensure_torch_determinism (g-embed-07) / _resolve_sbert_model 读 embedding_robustness
+(g-embed-05) — 引擎已零本地嵌入模型, article_sbert 改走 embed_texts(spec=…) 双 API spec。
+
+外部依赖处理: 无网络调用; embed_texts 的 API 路径用 fake monkeypatch get_embeddings_api;
+faiss/datasketch/tiktoken 为已装本地包。
 
 # 白话: 这组测试守住向量化(embedding)相关修复: "新闻陈旧度"只跟前几天的
 # 文章比、不跟当天的自己比; 两个文件拼接必须按文章 ID 对齐, 不能靠"行序碰巧
 # 一样"; 超长文章切块后, 大块说话权重大、尾巴小碎块不能喧宾夺主; 聚合求平均
-# 时只算经过核验的文章; 推理前固定随机种子保证每次结果一样。
+# 时只算经过核验的文章。v3.14.0 起项目零本地嵌入模型, 全部走两个 API 模型
+# (gemini + text-embedding-3-large), 故本地推理相关测试已删。
 """
 from __future__ import annotations
 
@@ -158,11 +162,15 @@ class TestLoadAlignedEmbeddings:
         emb_df = _make_emb_df(art_df, order=[2, 0, 3, 1])  # 行序与 art_df 不同
         p = tmp_path / '25_article_embeddings.parquet'
         emb_df.to_parquet(p, index=False)
-        embs_full, embs_ctx, _ = _load_aligned_embeddings(art_df, str(p))
+        # v3.14.0: 6-tuple (MAIN gemini 3 + _lg large 3); 旧 30a 单轨 → _lg 全 None
+        (embs_full, embs_ctx, embs_ss,
+         embs_full_lg, embs_ctx_lg, embs_ss_lg) = _load_aligned_embeddings(art_df, str(p))
         for i in range(4):
             # 旧位置对齐: embs_full[0] 会是 [2,2,2] (错配); join 后必须按 id 还原
             assert np.allclose(embs_full[i], float(i)), f"row {i} 错配: {embs_full[i]}"
             assert np.allclose(embs_ctx[i], float(i) + 10.0)
+        # 此 fixture 无 emb_*_lg 列 → _lg 三轨均 None (旧单轨 30a 向后兼容)
+        assert embs_full_lg is None and embs_ctx_lg is None and embs_ss_lg is None
 
     def test_length_mismatch_fails_loud(self, tmp_path):
         from news_process.pipeline.text.article_staleness import (
@@ -213,15 +221,39 @@ class TestLoadAlignedEmbeddings:
 
     def test_model_id_provenance_column_tolerated(self, tmp_path):
         # 新版 30a 带 provenance 列时正常读 (不混入向量, 不崩溃)
+        # v3.14.0: MAIN provenance 现为 gemini-embedding-2-preview
         from news_process.pipeline.text.article_staleness import (
             _load_aligned_embeddings,
         )
         art_df = _make_art_df(2)
-        emb_df = _make_emb_df(art_df, model_id='shibing624/text2vec-base-chinese')
+        emb_df = _make_emb_df(art_df, model_id='gemini-embedding-2-preview')
         p = tmp_path / '30a.parquet'
         emb_df.to_parquet(p, index=False)
-        embs_full, _, _ = _load_aligned_embeddings(art_df, str(p))
+        embs_full = _load_aligned_embeddings(art_df, str(p))[0]
         assert embs_full.shape == (2, 3)
+
+    def test_lg_twin_columns_loaded_when_present(self, tmp_path):
+        # v3.14.0 co-primary 双轨: 30a 带 emb_*_lg 孪生列时, 6-tuple 后三位非 None
+        from news_process.pipeline.text.article_staleness import (
+            _load_aligned_embeddings,
+        )
+        art_df = _make_art_df(3)
+        emb_df = _make_emb_df(art_df)
+        # 加 _lg 孪生列 (large; emb_full_lg[id]=[id+100]*3, emb_ctx_lg[id]=[id+110]*3)
+        emb_df['emb_full_lg'] = [np.full(3, float(i) + 100.0, dtype=np.float32)
+                                 for i in range(3)]
+        emb_df['emb_ctx_lg'] = [np.full(3, float(i) + 110.0, dtype=np.float32)
+                                for i in range(3)]
+        p = tmp_path / '30a.parquet'
+        emb_df.to_parquet(p, index=False)
+        (embs_full, embs_ctx, _,
+         embs_full_lg, embs_ctx_lg, embs_ss_lg) = _load_aligned_embeddings(art_df, str(p))
+        assert embs_full_lg is not None and embs_full_lg.shape == (3, 3)
+        for i in range(3):
+            assert np.allclose(embs_full_lg[i], float(i) + 100.0)
+            assert np.allclose(embs_ctx_lg[i], float(i) + 110.0)
+        # emb_ss_lg 列缺失 → None (优雅降级)
+        assert embs_ss_lg is None
 
     def test_main_wiring_uses_explicit_join(self):
         src = _read_src('pipeline', 'text', 'article_staleness.py')
@@ -238,6 +270,8 @@ class TestLoadAlignedEmbeddings:
 
 class TestSbertProvenanceAndConfig:
     def test_build_output_frame_has_provenance_columns(self):
+        # v3.14.0: _build_output_frame 扩为 6 嵌入参数 (MAIN gemini emb_{full,ctx,ss}
+        # + _lg large emb_{full,ctx,ss}_lg); 双套 provenance 三元组。
         from news_process.pipeline.text import article_sbert as sbert
         df = pd.DataFrame({
             'docid': ['x', 'y'],
@@ -246,40 +280,56 @@ class TestSbertProvenanceAndConfig:
             '日期': pd.to_datetime(['2020-01-01', '2021-01-01']),
         })
         embs = np.ones((2, 3), dtype=np.float32)
-        out = sbert._build_output_frame(df, embs, embs)
+        out = sbert._build_output_frame(
+            df, embs, embs, embs,
+            embs_full_lg=embs, embs_ctx_lg=embs, embs_ss_lg=embs)
+        # MAIN provenance + 键列
         for col in ('article_id', 'docid', 'model_id', 'model_revision',
                     'text_pipeline_version'):
-            assert col in out.columns, f"30a 输出缺 provenance/键列: {col}"
+            assert col in out.columns, f"30a 输出缺 MAIN provenance/键列: {col}"
+        # v3.14.0 _lg co-primary 孪生 provenance 三元组
+        for col in ('model_id_lg', 'model_revision_lg', 'text_pipeline_version_lg'):
+            assert col in out.columns, f"30a 输出缺 _lg provenance 列: {col}"
+        # 嵌入列双套 (MAIN + _lg)
+        for col in ('emb_full', 'emb_ctx', 'emb_ss',
+                    'emb_full_lg', 'emb_ctx_lg', 'emb_ss_lg'):
+            assert col in out.columns, f"30a 输出缺嵌入列: {col}"
         assert list(out['article_id']) == [0, 1]  # = stage-13 df.index
         assert out['model_id'].iloc[0] == sbert._SBERT_MODEL_ID
         assert out['text_pipeline_version'].iloc[0] == sbert._TEXT_PIPELINE_VERSION
+        assert out['model_id_lg'].iloc[0] == sbert._SBERT_MODEL_ID_LG
+        assert out['text_pipeline_version_lg'].iloc[0] == sbert._TEXT_PIPELINE_VERSION_LG
 
-    def test_resolve_model_reads_embedding_robustness(self):
-        from news_process.pipeline.text.article_sbert import _resolve_sbert_model
-        m, r = _resolve_sbert_model(
-            {'embedding_robustness': {'model': 'org/custom-zh', 'revision': 'abc123'}})
-        assert (m, r) == ('org/custom-zh', 'abc123')
+    def test_both_or_neither_lg_columns_skipped_when_lg_none(self):
+        # v3.14.0 both-or-neither (D-4a): _lg 嵌入为 None → 不写 emb_*_lg 列 (无单边孤儿)
+        from news_process.pipeline.text import article_sbert as sbert
+        df = pd.DataFrame({
+            'docid': ['x', 'y'],
+            'target_bank': ['A', 'B'],
+            'year': [2020, 2021],
+            '日期': pd.to_datetime(['2020-01-01', '2021-01-01']),
+        })
+        embs = np.ones((2, 3), dtype=np.float32)
+        out = sbert._build_output_frame(df, embs, embs)  # _lg 全缺省 (None)
+        assert 'emb_full' in out.columns
+        for col in ('emb_full_lg', 'emb_ctx_lg', 'emb_ss_lg'):
+            assert col not in out.columns, f"_lg 嵌入为 None 时不得写 {col} 孤儿列"
 
-    def test_resolve_model_default_fallback(self):
-        from news_process.pipeline.text.article_sbert import _resolve_sbert_model
-        m, r = _resolve_sbert_model({})
-        assert m == 'shibing624/text2vec-base-chinese'
-        assert r is None
-
-    def test_resolve_model_ignores_phantom_embedding_key(self):
-        # 旧 bug: 读不存在的 'embedding' 顶级键 — 修后该键不再被消费
-        from news_process.pipeline.text.article_sbert import _resolve_sbert_model
-        m, _ = _resolve_sbert_model({'embedding': {'model': 'org/phantom'}})
-        assert m == 'shibing624/text2vec-base-chinese'
-
-    def test_source_lock_no_phantom_key_and_determinism_wired(self):
+    def test_source_lock_no_phantom_key_and_api_path(self):
+        # v3.14.0: article_sbert 改走 embed_texts(spec=…) 双 API spec; 不再有
+        # _resolve_sbert_model / 本地 SentenceTransformer / ensure_torch_determinism。
         src = _read_src('pipeline', 'text', 'article_sbert.py')
         assert "get('embedding', {})" not in src, (
-            "g-embed-05 revert: 不得再读不存在的 'embedding' 顶级键"
+            "g-embed-05 revert: 不得读不存在的 'embedding' 顶级键"
         )
-        assert 'embedding_robustness' in src
-        assert 'ensure_torch_determinism()' in src, (
-            "g-embed-07 revert: encode_articles 推理前须确定性硬化"
+        assert 'embed_texts' in src, (
+            "v3.14.0: article_sbert 须经统一引擎 embed_texts 走 API 路径"
+        )
+        assert 'ensure_torch_determinism' not in src, (
+            "v3.14.0: API-only 后不得再 import/调用 ensure_torch_determinism (本地 torch 机器已删)"
+        )
+        assert '_resolve_sbert_model' not in src, (
+            "v3.14.0: _resolve_sbert_model (读 embedding_robustness) 已删除"
         )
 
 
@@ -362,7 +412,27 @@ class TestRestrictToPanelDomain:
 
 # ════════════════════════════════════════════════════════════════════════
 # g-embed-04 (+KNOWN-OPEN⑧): embed_texts 多块池化 — 逐块 L2 归一 + token 数加权
+# v3.14.0: embed_texts 为纯 API 路径 → mock get_embeddings_api (异步) 取每块向量。
+# 池化数学 (逐块 L2 归一 + token 数加权) 不变, 仅 raw-embedding 源由 encode_local
+# 改为 get_embeddings_api。
 # ════════════════════════════════════════════════════════════════════════
+
+def _patch_api_chunk_vectors(monkeypatch, eng, vec_for_chunk):
+    """把 eng.get_embeddings_api 替换为返回 vec_for_chunk(chunk_text) 的 fake (异步).
+
+    embed_texts 内部 ``asyncio.run(get_embeddings_api(all_chunks, spec, ...))`` →
+    fake 须为 async 函数, 按 all_chunks 顺序返回 (n_chunks, D) ndarray。
+    """
+    async def _fake_get_embeddings_api(texts, spec, cache=None, *,
+                                       enable_archive=True):
+        return np.asarray([vec_for_chunk(t) for t in texts], dtype=np.float32)
+
+    monkeypatch.setattr(eng, 'get_embeddings_api', _fake_get_embeddings_api)
+
+
+# API spec (无后缀 = canonical / base_url 非 local → spec_uses_local 返 False)
+_API_SPEC = {'base_url': 'https://yunwu.ai/v1', 'model': 'gemini-embedding-2-preview'}
+
 
 class TestEmbedTextsChunkPooling:
     def test_tail_fragment_chunk_downweighted(self, monkeypatch):
@@ -376,15 +446,10 @@ class TestEmbedTextsChunkPooling:
         assert len(chunks) == 2
 
         # chunk0 (≈8191 tok) → [1,0]; chunk1 (尾段) → [0,100] (大范数, 老 bug 双重放大源)
-        def _fake_encode_local(texts, spec, *, log_prefix='Embedding'):
-            out = []
-            for t in texts:
-                out.append([1.0, 0.0] if t == chunks[0] else [0.0, 100.0])
-            return np.asarray(out, dtype=np.float32)
-
-        monkeypatch.setattr(eng, 'encode_local', _fake_encode_local)
-        spec = {'base_url': 'local', 'model': 'fake-t2v'}
-        emb = eng.embed_texts([long_text], spec)
+        _patch_api_chunk_vectors(
+            monkeypatch, eng,
+            lambda t: [1.0, 0.0] if t == chunks[0] else [0.0, 100.0])
+        emb = eng.embed_texts([long_text], _API_SPEC)
         assert emb is not None and emb.shape == (1, 2)
         # 旧等权 mean: [0.5, 50] → 归一后尾段方向 ≈ 1.0 (碎片+大范数双重主导)。
         # 修后: 逐块 L2 归一 + token 数加权 → 主段方向主导。
@@ -394,126 +459,32 @@ class TestEmbedTextsChunkPooling:
     def test_short_text_passthrough_bitwise_unchanged(self, monkeypatch):
         from news_process.pipeline.text import embedding_engine as eng
 
-        def _fake_encode_local(texts, spec, *, log_prefix='Embedding'):
-            return np.asarray([[3.0, 4.0]] * len(texts), dtype=np.float32)
-
-        monkeypatch.setattr(eng, 'encode_local', _fake_encode_local)
-        emb = eng.embed_texts(['短文本'], {'base_url': 'local', 'model': 'fake'})
+        _patch_api_chunk_vectors(monkeypatch, eng, lambda t: [3.0, 4.0])
+        emb = eng.embed_texts(['短文本'], _API_SPEC)
         # 单块直通: 不归一不加权, 与旧实现逐位一致 (缓存键/已存向量不受影响)
         assert np.array_equal(emb, np.asarray([[3.0, 4.0]], dtype=np.float32))
 
-
-# ════════════════════════════════════════════════════════════════════════
-# g-embed-04 (local 轨) + g-embed-07: encode_local 按模型 max_seq_length 分块
-# ════════════════════════════════════════════════════════════════════════
-
-class _FakeTokenizer:
-    def encode(self, text, add_special_tokens=False):
-        return text.split()
-
-    def decode(self, ids, skip_special_tokens=True):
-        return ' '.join(ids)
-
-
-class _FakeLocalModel:
-    max_seq_length = 8  # effective_max = 6 (留 [CLS]/[SEP])
-    tokenizer = _FakeTokenizer()
-
-    def __init__(self, vec_map):
-        self._vec_map = vec_map
-
-    def encode(self, chunks, batch_size=32, show_progress_bar=False):
-        return np.asarray([self._vec_map[c] for c in chunks], dtype=np.float32)
-
-
-class TestEncodeLocalChunking:
-    _LONG = 'w0 w1 w2 w3 w4 w5 w6 w7 w8 w9'   # 10 词 → 块 (6 词) + (4 词)
-    _C0 = 'w0 w1 w2 w3 w4 w5'
-    _C1 = 'w6 w7 w8 w9'
-    _SHORT = 'w0 w1'
-
-    def _spec_and_model(self, monkeypatch):
+    def test_multi_text_chunk_ordering_preserved(self, monkeypatch):
+        # 并发批序保真: 多文本各自单块 → 输出行序须与输入文本序一致 (chunk_map 对齐)
         from news_process.pipeline.text import embedding_engine as eng
-        calls = []
-        monkeypatch.setattr(
-            eng, 'ensure_torch_determinism', lambda *a, **k: calls.append(1))
-        model = _FakeLocalModel({
-            self._C0: [2.0, 0.0],     # 非单位范数 → 验证逐块 L2 归一
-            self._C1: [0.0, 8.0],
-            self._SHORT: [3.0, 4.0],
-        })
-        monkeypatch.setitem(eng._LOCAL_MODELS, 'fake-pool-model', model)
-        spec = {'base_url': 'local', 'model': 'fake-pool-model', 'batch_size': 4}
-        return eng, spec, calls
+        vmap = {'t0': [1.0, 0.0], 't1': [0.0, 1.0], 't2': [0.6, 0.8]}
+        _patch_api_chunk_vectors(monkeypatch, eng, lambda t: vmap[t])
+        emb = eng.embed_texts(['t0', 't1', 't2'], _API_SPEC)
+        assert emb.shape == (3, 2)
+        assert np.allclose(emb[0], [1.0, 0.0])
+        assert np.allclose(emb[1], [0.0, 1.0])
+        assert np.allclose(emb[2], [0.6, 0.8])
 
-    def test_overlength_text_chunked_and_weighted(self, monkeypatch):
-        pytest.importorskip('sentence_transformers')
-        eng, spec, calls = self._spec_and_model(monkeypatch)
-        out = eng.encode_local([self._LONG], spec)
-        # 期望: 单位向量 [1,0]/[0,1], 权重 6/4 → pooled [0.6,0.4] → L2 归一
-        expected = np.array([0.6, 0.4]) / np.linalg.norm([0.6, 0.4])
-        assert out.shape == (1, 2)
-        assert np.allclose(out[0], expected, atol=1e-5), (
-            f"分块加权池化错误: {out[0]} vs {expected} "
-            "(旧 bug: 超长文本被模型静默截断到首段)"
-        )
-        assert calls, "g-embed-07 revert: encode_local 须先调 ensure_torch_determinism"
-
-    def test_short_text_direct_passthrough(self, monkeypatch):
-        pytest.importorskip('sentence_transformers')
-        eng, spec, _ = self._spec_and_model(monkeypatch)
-        out = eng.encode_local([self._SHORT], spec)
-        # 不超长 → 原样直送, 与旧实现逐位一致 (不归一)
-        assert np.array_equal(out, np.asarray([[3.0, 4.0]], dtype=np.float32))
-
-    def test_mixed_batch_short_rows_unscaled(self, monkeypatch):
-        pytest.importorskip('sentence_transformers')
-        eng, spec, _ = self._spec_and_model(monkeypatch)
-        out = eng.encode_local([self._SHORT, self._LONG], spec)
-        assert out.shape == (2, 2)
-        assert np.allclose(out[0], [3.0, 4.0])  # 单块行不被归一/加权
-        expected = np.array([0.6, 0.4]) / np.linalg.norm([0.6, 0.4])
-        assert np.allclose(out[1], expected, atol=1e-5)
-
-    def test_model_without_tokenizer_falls_back_to_direct(self, monkeypatch):
-        # 测试 fake / 旧模型无 tokenizer 元数据 → 旧行为直送 (防过度击杀)
-        pytest.importorskip('sentence_transformers')
+    def test_api_returns_none_propagates_none(self, monkeypatch):
+        # API 重试耗尽 → get_embeddings_api 返回 None → embed_texts 返回 None (优雅降级)
         from news_process.pipeline.text import embedding_engine as eng
-        monkeypatch.setattr(eng, 'ensure_torch_determinism', lambda *a, **k: None)
 
-        class _NoTok:
-            max_seq_length = 8
-            tokenizer = None
+        async def _fake_none(texts, spec, cache=None, *, enable_archive=True):
+            return None
 
-            def encode(self, chunks, batch_size=32, show_progress_bar=False):
-                return np.asarray([[1.0, 2.0]] * len(chunks), dtype=np.float32)
-
-        monkeypatch.setitem(eng._LOCAL_MODELS, 'fake-notok-model', _NoTok())
-        out = eng.encode_local(
-            ['任意 文本'], {'base_url': 'local', 'model': 'fake-notok-model'})
-        assert np.array_equal(out, np.asarray([[1.0, 2.0]], dtype=np.float32))
-
-
-# ════════════════════════════════════════════════════════════════════════
-# g-embed-07: ensure_torch_determinism 行为
-# ════════════════════════════════════════════════════════════════════════
-
-class TestTorchDeterminism:
-    def test_sets_torch_deterministic_flags(self, monkeypatch):
-        torch = pytest.importorskip('torch')
-        from news_process.pipeline.text import embedding_engine as eng
-        monkeypatch.setattr(eng, '_TORCH_DETERMINISM_DONE', False)
-        eng.ensure_torch_determinism(seed=123)
-        assert torch.are_deterministic_algorithms_enabled(), (
-            "g-embed-07: use_deterministic_algorithms 须开启"
-        )
-        assert eng._TORCH_DETERMINISM_DONE is True
-
-    def test_idempotent_second_call_noop(self, monkeypatch):
-        pytest.importorskip('torch')
-        from news_process.pipeline.text import embedding_engine as eng
-        monkeypatch.setattr(eng, '_TORCH_DETERMINISM_DONE', True)
-        eng.ensure_torch_determinism(seed=999)  # 已设过 → 直接返回, 不重播种
+        monkeypatch.setattr(eng, 'get_embeddings_api', _fake_none)
+        emb = eng.embed_texts(['短文本'], _API_SPEC)
+        assert emb is None
 
 
 # ════════════════════════════════════════════════════════════════════════

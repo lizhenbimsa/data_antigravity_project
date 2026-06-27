@@ -1,25 +1,21 @@
-"""test_dual_compute_coverage — 双/三模型嵌入列覆盖回归门.
+"""test_dual_compute_coverage — co-primary 双 API 嵌入列覆盖回归门 (v3.14.0).
 
-锁定"主阶段内联多算"契约: 每个嵌入特征在一次运行内用主 spec (text-embedding-3-small,
-MAIN/canonical) + 稳健 spec (text2vec, ROBUSTNESS-A → `_t2v`) 各算一遍, 并排产出
-canonical 列 + `_t2v` 列。
+锁定"主阶段内联多算"契约: 每个嵌入特征在一次运行内用两个 **API** co-primary spec
+各算一遍, 并排产出 canonical 列 (无后缀 = gemini-embedding-2-preview, MAIN slot) +
+`_lg` 孪生列 (text-embedding-3-large, LARGE slot), 二者**对等互证**、跨厂商
+(Google ⟂ OpenAI)、严格 parity (有无后缀列必有 `_lg`, 反之亦然)。
 
-三模型扩展 (2026-06-27, `_lg` 镜像): 第三嵌入模型 (text-embedding-3-large, 3072 维,
-ROBUSTNESS-B → `_lg`) 经各 producer 模块级 `_LARGE_SPEC` **休眠门** 控制 —— 仅当 config
-显式提供非空 `embedding_large` 块时才产 `_lg` 列, 缺配置时 `_LARGE_SPEC={}` → 完全不产
-`_lg` 列 → 既有行为字节级不变 (golden-safe)。本测试用 monkeypatch 把各 producer 的
-`_LARGE_SPEC` 注入为非空假 dict, 模拟休眠门"开"以验证 `_lg` 三族列与 canonical/`_t2v`
-并存。生产 config 不配 `embedding_large` 块 (保持休眠), 故本注入仅影响测试进程。
+v3.14.0 架构转向 (2026-06-27, all-API-embedding): 项目此后**不加载任何本地嵌入模型**。
+旧本地稳健轨 `_t2v` (shibing624/text2vec) 与 `_bge` (BAAI/bge-m3) 及其全部本地推理机器
+(encode_local / _LOCAL_MODELS / ensure_torch_determinism / _select_torch_device) **硬删除**。
+现仅余双 API 模型: gemini (无后缀 MAIN) + large (`_lg`)。两者经各 producer 模块级
+`_LARGE_SPEC = CONFIG.get('embedding_large', {})` 门控; 因 config/features.yaml 现已激活
+`embedding_large` 块 → `_LARGE_SPEC` 非空 → `_lg` 列**实际产出** (ACTIVE, 非休眠)。
 
-四模型扩展 (2026-06-27, `_bge` 镜像): 第四嵌入模型 (BAAI/bge-m3, 本地 1024 维,
-ROBUSTNESS-C → `_bge`) 经各 producer 模块级 `_BGE_SPEC` **休眠门** 控制 (同 `_lg`)。
-关键差异: BGE-M3 是**本地** spec (base_url=local) → 镜像 `_t2v` (本地 fail-fast),
-**不是** `_lg` (API 软降级)。本测试用 `_enable_bge` 注入非空假 `_BGE_SPEC` (base_url=local)
-验证 `_bge` 第四族列与 canonical/`_t2v`/`_lg` 并存, 并锁 BGE 本地致命错 fail-fast 上抛。
-
-策略: monkeypatch ``embedding_engine.embed_texts`` (所有 feature 模块都经
-``_eng.embed_texts`` 走它), 返回按 spec.model 确定性区分的向量 → canonical / `_t2v` /
-`_lg` / `_bge` 四族列都满列且数值不同 (非退化)。不触网、不调真实模型。
+策略: monkeypatch ``embedding_engine.embed_texts`` (所有 feature 模块都经 ``_eng.embed_texts``
+走它的 **API 路径**), 返回按 spec.model 确定性区分的向量 → canonical / `_lg` 两族列都满列
+且数值不同 (非退化)。不触网、不调真实 API。`spec_uses_local` 仍存在 (纯 base_url 谓词),
+对所有 API spec 恒返回 False。
 """
 from __future__ import annotations
 
@@ -29,24 +25,14 @@ import pytest
 
 pytestmark = pytest.mark.fast
 
-# 注入用假 LARGE spec (休眠门"开"): model 名含 'large' → 经下方 mock 走 ROBUSTNESS-B 轨。
-# 维度无关 (mock 恒返 16 维, emb.shape[1] 驱动); 生产侧勿在 config 配此块 (保持休眠)。
-_FAKE_LARGE_SPEC = {'model': 'text-embedding-3-large', 'base_url': 'https://x',
-                    'api_key': 'k', 'text_pipeline_version': 'tlg'}
-# 注入用假 BGE spec (休眠门"开"): model 名含 'bge' → 经 _track_of 走 ROBUSTNESS-C 轨。
-# 🔴 base_url='local' (BGE-M3 是本地模型) → spec_uses_local()=True → 镜像 _t2v fail-fast,
-# 非 _lg API 软降级。生产侧勿在 config 配此块 (保持休眠)。
-_FAKE_BGE_SPEC = {'model': 'BAAI/bge-m3', 'base_url': 'local',
-                  'api_key': 'local', 'text_pipeline_version': 'tbge'}
-
 
 def _seed_for(spec) -> int:
-    # 主/稳健/large spec 的 model 名各不同 → 不同随机种子 → 不同向量 (验证真多算非别名复制)
+    # MAIN/large spec 的 model 名各不同 → 不同随机种子 → 不同向量 (验证真双算非别名复制)
     return sum(ord(c) for c in str((spec or {}).get('model', 'x'))) % 9973
 
 
 def _fake_embed(texts, spec, **kwargs):
-    """确定性 mock: (n, 16) 随机前向量, 按 spec.model 区分 (small/text2vec/large 各异)。"""
+    """确定性 mock (API 路径): (n, 16) 随机向量, 按 spec.model 区分 (gemini/large 各异)。"""
     items = list(texts)
     n = len(items)
     if n == 0:
@@ -58,25 +44,6 @@ def _fake_embed(texts, spec, **kwargs):
 def _patch_engine(monkeypatch):
     from news_process.pipeline.text import embedding_engine as eng
     monkeypatch.setattr(eng, 'embed_texts', _fake_embed)
-
-
-def _enable_large(monkeypatch, module):
-    """注入假 `_LARGE_SPEC` 到 producer 模块, 打开 `_lg` 休眠门 (镜像既有 `_t2v` 轨)。
-
-    各 producer 在 import 时把模块级 `_LARGE_SPEC = CONFIG.get('embedding_large', {})`
-    固化为 {} (生产 config 无该块, 保持休眠)。此处 setattr 为非空 dict → 休眠门"开"。
-    """
-    monkeypatch.setattr(module, '_LARGE_SPEC', _FAKE_LARGE_SPEC)
-
-
-def _enable_bge(monkeypatch, module):
-    """注入假 `_BGE_SPEC` 到 producer 模块, 打开 `_bge` 休眠门 (镜像既有 `_t2v` 轨)。
-
-    各 producer 在 import 时把模块级 `_BGE_SPEC = CONFIG.get('embedding_bge', {})`
-    固化为 {} (生产 config 无该块, 保持休眠)。此处 setattr 为非空 dict → 休眠门"开"。
-    BGE-M3 是本地 spec (base_url=local) → 走 fail-fast 裸路径 (与 _t2v 同, 非 _lg 软降级)。
-    """
-    monkeypatch.setattr(module, '_BGE_SPEC', _FAKE_BGE_SPEC)
 
 
 def _toy_df_exploded():
@@ -104,49 +71,33 @@ def _toy_panel():
     return pd.DataFrame({'target_bank': banks, 'year': [2020] * 4})
 
 
-def test_strategic_diff_emits_canonical_and_t2v(monkeypatch):
-    """stage 25: 嵌入派生列须同时含 canonical / _t2v / _lg / _bge 四族 (休眠门开)。"""
+def test_strategic_diff_emits_canonical_and_lg(monkeypatch):
+    """stage 25: 嵌入派生列须同时含 canonical (gemini) / `_lg` (large) co-primary 双族。"""
     _patch_engine(monkeypatch)
     from news_process.pipeline.features import strategic_diff as sd
 
-    _enable_large(monkeypatch, sd)  # 注入假 _LARGE_SPEC → 打开 _lg 休眠门
-    _enable_bge(monkeypatch, sd)    # 注入假 _BGE_SPEC → 打开 _bge 休眠门
+    # _LARGE_SPEC 现由 config (embedding_large 已激活) 注入非空 → co-primary _lg ACTIVE
+    assert sd._LARGE_SPEC, "config 已激活 embedding_large → _LARGE_SPEC 应非空 (co-primary _lg ACTIVE)"
     panel = sd.compute_strategic_differentiation(_toy_df_exploded(), _toy_panel())
 
-    # canonical (主轨 text-embedding-3-small)
+    # canonical (无后缀 = gemini, MAIN slot)
     for col in ['strat_diff_n5_emb', 'strat_sim_max_emb', 'centroid_diff_emb']:
         assert col in panel.columns, f"缺 canonical 嵌入列 {col}"
-    # 稳健 twin (text2vec) + 契约别名
-    for col in ['strat_diff_n5_emb_t2v', 'strat_sim_max_emb_t2v',
-                'centroid_diff_emb_t2v', 'strat_diff_t2v_full']:
-        assert col in panel.columns, f"缺稳健 twin 列 {col}"
-    # 第三嵌入 twin (large) + 契约别名镜像 (与上面 _t2v 断言对称)
+    # co-primary twin (_lg = text-embedding-3-large) + 契约别名 (与无后缀对称)
     for col in ['strat_diff_n5_emb_lg', 'strat_sim_max_emb_lg',
                 'centroid_diff_emb_lg', 'strat_diff_lg_full']:
-        assert col in panel.columns, f"缺 large twin 列 {col}"
-    # 第四嵌入 twin (bge) + 契约别名镜像 (与上面 _t2v/_lg 断言对称)
-    for col in ['strat_diff_n5_emb_bge', 'strat_sim_max_emb_bge',
-                'centroid_diff_emb_bge', 'strat_diff_bge_full']:
-        assert col in panel.columns, f"缺 bge twin 列 {col}"
-    # 四族都应有非空值 (真四算)
+        assert col in panel.columns, f"缺 large co-primary twin 列 {col}"
+    # 两族都应有非空值 (真双算)
     assert panel['centroid_diff_emb'].notna().any()
-    assert panel['centroid_diff_emb_t2v'].notna().any()
     assert panel['centroid_diff_emb_lg'].notna().any()
-    assert panel['centroid_diff_emb_bge'].notna().any()
-    # ctx 轨 twin (_t2v / _lg / _bge 对称)
-    for col in ['strat_diff_n5_emb_t2v_ctx', 'centroid_diff_emb_t2v_ctx',
-                'strat_diff_t2v_ctx']:
-        assert col in panel.columns, f"缺 ctx 稳健 twin 列 {col}"
+    # ctx 轨 twin (_lg 对称)
     for col in ['strat_diff_n5_emb_lg_ctx', 'centroid_diff_emb_lg_ctx',
                 'strat_diff_lg_ctx']:
         assert col in panel.columns, f"缺 ctx large twin 列 {col}"
-    for col in ['strat_diff_n5_emb_bge_ctx', 'centroid_diff_emb_bge_ctx',
-                'strat_diff_bge_ctx']:
-        assert col in panel.columns, f"缺 ctx bge twin 列 {col}"
 
 
-def test_benefit_society_emits_canonical_and_t2v(monkeypatch, tmp_path):
-    """stage 27: benefit_* 须同时含 canonical / _t2v / _lg / _bge 四族 (4×4, 休眠门开)。"""
+def test_benefit_society_emits_canonical_and_lg(monkeypatch, tmp_path):
+    """stage 27: benefit_* 须同时含 canonical (gemini) / `_lg` (large) co-primary 双族。"""
     _patch_engine(monkeypatch)
     from news_process.pipeline.features import benefit_society as bs
 
@@ -155,77 +106,61 @@ def test_benefit_society_emits_canonical_and_t2v(monkeypatch, tmp_path):
     # toy 数据污染真实 data/processed (尤其 _benefit_center_sidecar.json 的
     # 首跑冻结值)。
     monkeypatch.setattr(bs, 'OUTPUT_DIR', str(tmp_path))
-    _enable_large(monkeypatch, bs)  # 注入假 _LARGE_SPEC → 打开 _lg 休眠门
-    _enable_bge(monkeypatch, bs)    # 注入假 _BGE_SPEC → 打开 _bge 休眠门
+    assert bs._LARGE_SPEC, "config 已激活 embedding_large → _LARGE_SPEC 应非空"
 
     panel = bs.compute_benefit_society_panel(_toy_panel(), _toy_df_exploded())
 
     canonical = ['benefit_mean_full', 'benefit_std_full',
                  'benefit_pos_frac_full', 'benefit_neg_frac_full']
-    t2v = ['benefit_mean_t2v_full', 'benefit_std_t2v_full',
-           'benefit_pos_frac_t2v_full', 'benefit_neg_frac_t2v_full']
     lg = ['benefit_mean_lg_full', 'benefit_std_lg_full',
           'benefit_pos_frac_lg_full', 'benefit_neg_frac_lg_full']
-    bge = ['benefit_mean_bge_full', 'benefit_std_bge_full',
-           'benefit_pos_frac_bge_full', 'benefit_neg_frac_bge_full']
     for col in canonical:
         assert col in panel.columns, f"缺 canonical benefit 列 {col}"
-    for col in t2v:
-        assert col in panel.columns, f"缺稳健 twin benefit 列 {col}"
     for col in lg:
-        assert col in panel.columns, f"缺 large twin benefit 列 {col}"
-    for col in bge:
-        assert col in panel.columns, f"缺 bge twin benefit 列 {col}"
+        assert col in panel.columns, f"缺 large co-primary twin benefit 列 {col}"
     assert panel['benefit_mean_full'].notna().any()
-    assert panel['benefit_mean_t2v_full'].notna().any()
     assert panel['benefit_mean_lg_full'].notna().any()
-    assert panel['benefit_mean_bge_full'].notna().any()
 
 
 # ---------------------------------------------------------------------------
-# postimpl-audit (2026-06-27) 回归锁: (1) 休眠门铁律 (未配置 embedding_large 时
-# 绝不产 _lg 列 — golden 加法安全核心); (2) 守卫范围铁律 (MAIN canonical 致命错
-# 须 fail-fast 上抛, 不被 _lg twin 守卫静默吞为 NaN 主结果列 + 不吞离线确定性闸)。
+# co-primary parity 回归锁 (v3.14.0): config 激活 embedding_large 时 `_lg` 列**实际产出**
+# (非休眠)。这是 D-4a"gemini⟂large 严格 parity (有无后缀列必有 _lg)"不变量的 producer
+# 侧锚点。同时锁守卫范围铁律 (MAIN canonical 致命错须 fail-fast 上抛, 不被 _lg twin 守卫
+# 静默吞为 NaN 主结果列 + 不吞离线确定性闸)。
 # ---------------------------------------------------------------------------
 
 
-def test_dormant_no_lg_columns_when_large_unconfigured(monkeypatch, tmp_path):
-    """休眠门回归锁 (golden 加法安全核心不变量): 未配置 embedding_large / embedding_bge
-    (_LARGE_SPEC=={}, _BGE_SPEC=={}, 生产默认态) 时, producer 绝不产任何 _lg / _bge 列;
-    _t2v/canonical 照常。**刻意不调** _enable_large / _enable_bge。覆盖 strategic_diff /
-    benefit_society / network_spillover 三个有 toy fixture 的 producer (policy_alignment/
-    policy_similarity 同 `if _LARGE_SPEC:`/`if _BGE_SPEC:` 门控但需 auth 语料, 不另测)。"""
+def test_lg_columns_produced_when_large_configured(monkeypatch, tmp_path):
+    """co-primary parity 回归锁 (v3.14.0): config 已激活 embedding_large
+    (_LARGE_SPEC 非空, 生产默认态) → producer **必产** `_lg` 列 (与无后缀 canonical 对称)。
+    覆盖 strategic_diff / benefit_society / network_spillover 三个有 toy fixture 的 producer
+    (policy_alignment/policy_similarity 同 `if _LARGE_SPEC:` 门控但需 auth 语料, 不另测)。"""
     _patch_engine(monkeypatch)
     from news_process.pipeline.features import benefit_society as bs
     from news_process.pipeline.features import strategic_diff as sd
     from news_process.pipeline.panel import network_spillover as ns
 
-    # 三 producer 模块级 _LARGE_SPEC / _BGE_SPEC 在生产 config (无 embedding_large/bge 块) 下均应为 {}
-    assert sd._LARGE_SPEC == {} and bs._LARGE_SPEC == {} and ns._LARGE_SPEC == {}, \
-        "生产态 _LARGE_SPEC 应为空 dict (休眠)"
-    assert sd._BGE_SPEC == {} and bs._BGE_SPEC == {} and ns._BGE_SPEC == {}, \
-        "生产态 _BGE_SPEC 应为空 dict (休眠)"
+    # 三 producer 模块级 _LARGE_SPEC 在生产 config (embedding_large 已激活) 下均应非空
+    assert sd._LARGE_SPEC and bs._LARGE_SPEC and ns._LARGE_SPEC, \
+        "生产态 _LARGE_SPEC 应非空 (embedding_large 已激活, co-primary _lg ACTIVE)"
 
     p_sd = sd.compute_strategic_differentiation(_toy_df_exploded(), _toy_panel())
-    assert [c for c in p_sd.columns if '_lg' in c] == [], "strategic_diff 休眠态不应产 _lg 列"
-    assert [c for c in p_sd.columns if '_bge' in c] == [], "strategic_diff 休眠态不应产 _bge 列"
-    assert 'centroid_diff_emb' in p_sd.columns and 'centroid_diff_emb_t2v' in p_sd.columns
+    assert 'centroid_diff_emb' in p_sd.columns and 'centroid_diff_emb_lg' in p_sd.columns, \
+        "strategic_diff co-primary: 无后缀与 _lg 列须并存"
 
     monkeypatch.setattr(bs, 'OUTPUT_DIR', str(tmp_path))
     p_bs = bs.compute_benefit_society_panel(_toy_panel(), _toy_df_exploded())
-    assert [c for c in p_bs.columns if '_lg' in c] == [], "benefit_society 休眠态不应产 _lg 列"
-    assert [c for c in p_bs.columns if '_bge' in c] == [], "benefit_society 休眠态不应产 _bge 列"
-    assert 'benefit_mean_full' in p_bs.columns and 'benefit_mean_t2v_full' in p_bs.columns
+    assert 'benefit_mean_full' in p_bs.columns and 'benefit_mean_lg_full' in p_bs.columns, \
+        "benefit_society co-primary: 无后缀与 _lg 列须并存"
 
     p_ns = ns.compute_embedding_peer_network(_toy_df_exploded_2yr(), _toy_panel_2yr())
-    assert [c for c in p_ns.columns if '_lg' in c] == [], "network_spillover 休眠态不应产 _lg 列"
-    assert [c for c in p_ns.columns if '_bge' in c] == [], "network_spillover 休眠态不应产 _bge 列"
-    assert 'bank_emb_sim_mean_lag1' in p_ns.columns and 'bank_emb_sim_mean_lag1_t2v' in p_ns.columns
+    assert 'bank_emb_sim_mean_lag1' in p_ns.columns and 'bank_emb_sim_mean_lag1_lg' in p_ns.columns, \
+        "network_spillover co-primary: 无后缀与 _lg 列须并存"
 
 
 def _fake_embed_raise_main(texts, spec, **kwargs):
     """mock: 对 MAIN canonical spec **raise** 致命错 (模拟离线确定性闸 miss / 鉴权失败);
-    稳健 twin (_t2v/_lg) 返回正常向量 → 验证守卫只软降级 twin、MAIN 仍 fail-fast。"""
+    co-primary twin (_lg) 返回正常向量 → 验证守卫只软降级 twin、MAIN 仍 fail-fast。"""
     if _track_of(spec) == 'main':
         raise RuntimeError("simulated MAIN canonical fatal (offline-gate cache miss)")
     items = list(texts)
@@ -235,61 +170,31 @@ def _fake_embed_raise_main(texts, spec, **kwargs):
 
 
 def test_main_canonical_fatal_raises_not_swallowed_strategic(monkeypatch):
-    """守卫范围回归锁 (postimpl-audit P1): strategic_diff 的 MAIN canonical 致命错
-    必须 fail-fast 上抛, 不被新 _lg 守卫静默吞为 NaN 主结果列。"""
+    """守卫范围回归锁: strategic_diff 的 MAIN canonical (gemini) 致命错
+    必须 fail-fast 上抛, 不被 _lg co-primary 守卫静默吞为 NaN 主结果列。"""
     from news_process.pipeline.text import embedding_engine as eng
     monkeypatch.setattr(eng, 'embed_texts', _fake_embed_raise_main)
     from news_process.pipeline.features import strategic_diff as sd
 
-    _enable_large(monkeypatch, sd)  # _lg 休眠门开, 但 MAIN raise 仍须冒泡
     with pytest.raises(RuntimeError):
         sd.compute_strategic_differentiation(_toy_df_exploded(), _toy_panel())
 
 
 def test_main_canonical_fatal_raises_not_swallowed_benefit(monkeypatch, tmp_path):
-    """守卫范围回归锁 (postimpl-audit P1): benefit_society 的 MAIN canonical 致命错
-    (含离线确定性闸) 必须 fail-fast 上抛, 不被 _lg 守卫静默降级。"""
+    """守卫范围回归锁: benefit_society 的 MAIN canonical (gemini) 致命错
+    (含离线确定性闸) 必须 fail-fast 上抛, 不被 _lg co-primary 守卫静默降级。"""
     from news_process.pipeline.text import embedding_engine as eng
     monkeypatch.setattr(eng, 'embed_texts', _fake_embed_raise_main)
     from news_process.pipeline.features import benefit_society as bs
 
     monkeypatch.setattr(bs, 'OUTPUT_DIR', str(tmp_path))  # 防 toy 污染真实产物
-    _enable_large(monkeypatch, bs)
     with pytest.raises(RuntimeError):
         bs.compute_benefit_society_panel(_toy_panel(), _toy_df_exploded())
 
 
-def _fake_embed_raise_bge(texts, spec, **kwargs):
-    """mock: 对 BGE 本地 twin spec **raise** 致命错 (模拟本地模型加载/编码失败);
-    MAIN/`_t2v` 返回正常向量 → 验证 BGE 本地 twin **fail-fast 上抛** (镜像 `_t2v`,
-    非 `_lg` 的 API 软降级)。"""
-    if _track_of(spec) == 'bge':
-        raise RuntimeError("simulated BGE local fatal (model load / encode failure)")
-    items = list(texts)
-    if not items:
-        return None
-    return np.random.RandomState(_seed_for(spec)).rand(len(items), 16).astype(np.float32)
-
-
-def test_bge_local_fatal_raises_not_swallowed_benefit(monkeypatch, tmp_path):
-    """🔴 _bge 核心语义锁 (2026-06-27): BGE-M3 是**本地** spec (base_url=local) → 致命错
-    必须 fail-fast 上抛 (镜像 `_t2v` 本地裸路径), **不**被 `_lg` 的 API 软降级守卫吞为
-    NaN/None。这是"BGE 镜像 _t2v 而非 _lg"这一加法式设计决策的关键不变量。
-    benefit_society 的 _get_embeddings/_compute_direction_vector 守卫
-    `if spec_uses_local(_spec) or _spec is EMBEDDING_CONFIG: raise` 对本地 _bge 应取
-    fail-fast 分支 (与 _t2v 同), 故 BGE 致命错冒泡。"""
-    from news_process.pipeline.text import embedding_engine as eng
-    monkeypatch.setattr(eng, 'embed_texts', _fake_embed_raise_bge)
-    from news_process.pipeline.features import benefit_society as bs
-
-    monkeypatch.setattr(bs, 'OUTPUT_DIR', str(tmp_path))  # 防 toy 污染真实产物
-    _enable_bge(monkeypatch, bs)  # _bge 休眠门开 (base_url=local) → 本地 fail-fast
-    with pytest.raises(RuntimeError):
-        bs.compute_benefit_society_panel(_toy_panel(), _toy_df_exploded())
-
-
-def test_policy_similarity_emits_canonical_and_t2v(monkeypatch):
-    """stage 26: auth_sim_emb 须同时含 canonical / _t2v / _lg 三族 (需 auth 语料, 休眠门开)。"""
+def test_policy_similarity_emits_canonical_and_lg(monkeypatch):
+    """stage 26: auth_sim_emb 须同时含 canonical (gemini) / `_lg` (large) co-primary 双族
+    (需 auth 语料)。"""
     import os
 
     _patch_engine(monkeypatch)
@@ -299,62 +204,48 @@ def test_policy_similarity_emits_canonical_and_t2v(monkeypatch):
     if not auth_path or not os.path.exists(auth_path):
         pytest.skip(f"auth corpus 不存在: {auth_path}")
 
-    _enable_large(monkeypatch, ps)  # 注入假 _LARGE_SPEC → 打开 _lg 休眠门
-    _enable_bge(monkeypatch, ps)    # 注入假 _BGE_SPEC → 打开 _bge 休眠门
+    assert ps._LARGE_SPEC, "config 已激活 embedding_large → _LARGE_SPEC 应非空"
     panel = ps.compute_authoritative_similarity(_toy_df_exploded(), _toy_panel())
     assert 'auth_sim_emb_full' in panel.columns, "缺 canonical auth_sim_emb_full"
-    assert 'auth_sim_emb_t2v_full' in panel.columns, "缺稳健 twin auth_sim_emb_t2v_full"
-    assert 'auth_sim_emb_lg_full' in panel.columns, "缺 large twin auth_sim_emb_lg_full"
-    assert 'auth_sim_emb_bge_full' in panel.columns, "缺 bge twin auth_sim_emb_bge_full"
+    assert 'auth_sim_emb_lg_full' in panel.columns, "缺 large co-primary twin auth_sim_emb_lg_full"
 
 
 def test_engine_namespaces_cache_by_model(monkeypatch):
-    """主/稳健 spec 经 LLMCache 时以 model_id 隔离, 不串。"""
+    """主/co-primary spec 经 LLMCache 时以 model_id 隔离, 不串。"""
     from news_process.core.caching import LLMCache
-    k_main = LLMCache._make_key('text-embedding-3-small', 'foo', prompt_version='v2-api')
-    k_t2v = LLMCache._make_key('shibing624/text2vec-base-chinese', 'foo',
-                               prompt_version='v2-t2v')
-    assert k_main != k_t2v, "主/稳健 spec 缓存键必须隔离 (model_id 维度)"
+    k_main = LLMCache._make_key('gemini-embedding-2-preview', 'foo', prompt_version='v3-gemini')
+    k_lg = LLMCache._make_key('text-embedding-3-large', 'foo', prompt_version='v1-emb3large')
+    assert k_main != k_lg, "MAIN/co-primary spec 缓存键必须隔离 (model_id 维度)"
 
 
 # ---------------------------------------------------------------------------
-# F5 (2026-05-30): 补 network_spillover _t2v 覆盖 + 失败路径回归锁。
+# F5 (2026-05-30): network_spillover co-primary 覆盖 + 失败路径回归锁。
 # 此前本门只覆盖 stage 25/26/27 happy-path; 既漏掉第 5 个 callsite (network),
 # 也没有任何"嵌入失败时 REQUIRED 契约列仍存在"的断言 (正是 F1/F2 漏网原因)。
 # ---------------------------------------------------------------------------
 
 
 def _track_of(spec) -> str:
-    """🔴 P1-6 (2026-06-27): 按 spec.model 名做**四分** (二/三分会把 large/bge 误判 MAIN)。
+    """按 spec.model 名做**二分** (v3.14.0 双 API co-primary)。
 
-    - 'text2vec' 在 model 名中 → ROBUSTNESS-A (`_t2v`);
-    - 'large'    在 model 名中 → ROBUSTNESS-B (`_lg`);   # 如 text-embedding-3-large
-    - 'bge'      在 model 名中 → ROBUSTNESS-C (`_bge`);  # 如 BAAI/bge-m3 (本地)
-    - 否则 (text-embedding-3-small / 本地 t2v config 等) → MAIN (canonical)。
+    - 'large' 在 model 名中 → co-primary ② (`_lg`);  # 如 text-embedding-3-large
+    - 否则 (gemini-embedding-2-preview 等) → MAIN canonical (无后缀)。
 
-    旧二/三分下, bge 名 (BAAI/bge-m3) 不含 'text2vec'/'large' 会落入 MAIN 早退/失败开关
-    误伤; 四分使 `_bge` 失败可独立模拟 (与 `_lg` 正交)。
+    (v3.14.0 已硬删 `_t2v`/`_bge` 本地轨, 二分足够区分两 API co-primary。)
     """
     model = str((spec or {}).get('model', '')).lower()
-    if 'text2vec' in model:
-        return 'robust'
     if 'large' in model:
         return 'large'
-    if 'bge' in model:
-        return 'bge'
     return 'main'
 
 
-def _fake_embed_spec_aware(*, main_returns_none=False, robust_returns_none=False,
-                           large_returns_none=False, bge_returns_none=False):
-    """工厂: 确定性 mock, 可按 spec.model **四分** 独立强制某一轨返回 None。
+def _fake_embed_spec_aware(*, main_returns_none=False, large_returns_none=False):
+    """工厂: 确定性 mock, 可按 spec.model **二分** 独立强制某一轨返回 None。
 
-    四分 (MAIN / ROBUSTNESS-A `_t2v` / ROBUSTNESS-B `_lg` / ROBUSTNESS-C `_bge`) 经
-    ``_track_of``; ``large_returns_none`` / ``bge_returns_none`` 独立模拟 `_lg` / `_bge`
-    嵌入失败 (与 `_t2v` 失败正交)。
+    二分 (MAIN / co-primary `_lg`) 经 ``_track_of``; ``large_returns_none`` 独立模拟
+    `_lg` 嵌入失败 (与 MAIN 失败正交)。
     """
-    _none_for = {'main': main_returns_none, 'robust': robust_returns_none,
-                 'large': large_returns_none, 'bge': bge_returns_none}
+    _none_for = {'main': main_returns_none, 'large': large_returns_none}
 
     def _inner(texts, spec, **kwargs):
         items = list(texts)
@@ -398,106 +289,77 @@ def _toy_panel_2yr():
     return pd.DataFrame(rows)
 
 
-def test_network_embedding_peer_emits_canonical_and_t2v(monkeypatch):
+def test_network_embedding_peer_emits_canonical_and_lg(monkeypatch):
     """第 5 个 callsite (network embedding peer): emb_peer_tone_lag1 +
-    bank_emb_sim_mean_lag1 须同时含 canonical 与 _t2v 双族 (闭合此前覆盖缺口)。
+    bank_emb_sim_mean_lag1 须同时含 canonical (gemini) 与 `_lg` (large) co-primary 双族。
 
     fix(omni-g-net-spill-03, 2026-06-11): sim 列重命名披露 t-1 文本口径
-    (bank_emb_sim_mean → bank_emb_sim_mean_lag1, _t2v 同步), 断言随更新。"""
+    (bank_emb_sim_mean → bank_emb_sim_mean_lag1, co-primary 同步), 断言随更新。"""
     from news_process.pipeline.text import embedding_engine as eng
     monkeypatch.setattr(eng, 'embed_texts', _fake_embed_spec_aware())
     from news_process.pipeline.panel import network_spillover as ns
 
-    _enable_large(monkeypatch, ns)  # 注入假 _LARGE_SPEC → 打开 _lg 休眠门
-    _enable_bge(monkeypatch, ns)    # 注入假 _BGE_SPEC → 打开 _bge 休眠门
+    assert ns._LARGE_SPEC, "config 已激活 embedding_large → _LARGE_SPEC 应非空"
     panel = ns.compute_embedding_peer_network(
         _toy_df_exploded_2yr(), _toy_panel_2yr())
 
     for col in ['emb_peer_tone_lag1_full', 'bank_emb_sim_mean_lag1',
-                'emb_peer_tone_lag1_t2v_full', 'bank_emb_sim_mean_lag1_t2v',
-                'emb_peer_tone_lag1_lg_full', 'bank_emb_sim_mean_lag1_lg',
-                'emb_peer_tone_lag1_bge_full', 'bank_emb_sim_mean_lag1_bge']:
+                'emb_peer_tone_lag1_lg_full', 'bank_emb_sim_mean_lag1_lg']:
         assert col in panel.columns, f"缺 network 嵌入列 {col}"
     # 2020 行 (其 lag 年 2019 有数据) canonical 主轨应算出真值
     y2020 = panel[panel['year'] == 2020]
     assert y2020['bank_emb_sim_mean_lag1'].notna().any(), "canonical 主轨未算出值"
-    # 配置含 embedding_robustness 时, _t2v 稳健轨也应算出真值 (真双算)
-    if ns._ROBUSTNESS_SPEC:
-        assert y2020['bank_emb_sim_mean_lag1_t2v'].notna().any(), "稳健 _t2v 轨未算出值"
-    # 休眠门开 (_LARGE_SPEC 注入非空) 时, _lg 第三轨也应算出真值 (真三算; 与 _t2v 对称)
-    assert y2020['bank_emb_sim_mean_lag1_lg'].notna().any(), "large _lg 轨未算出值"
-    # 休眠门开 (_BGE_SPEC 注入非空) 时, _bge 第四轨也应算出真值 (真四算; 与 _t2v 对称)
-    assert y2020['bank_emb_sim_mean_lag1_bge'].notna().any(), "bge _bge 轨未算出值"
+    # config 激活 embedding_large 时, _lg co-primary 轨也应算出真值 (真双算; 与无后缀对称)
+    assert y2020['bank_emb_sim_mean_lag1_lg'].notna().any(), "large _lg co-primary 轨未算出值"
 
 
-def test_policy_alignment_main_fail_keeps_t2v_contract(monkeypatch):
-    """F1 回归锁: stage 15 MAIN(API)嵌入失败时, 契约列 (含
-    policy_cosine_sim_t2v_{full,ctx} 及休眠门开时的 _lg_{full,ctx}) 必须全部存在,
-    否则下游 export.py::REQUIRED_PANEL_COLUMNS 抛 RuntimeError。"""
+def test_policy_alignment_main_fail_keeps_lg_contract(monkeypatch):
+    """F1 回归锁: stage 15 MAIN(gemini API)嵌入失败时, 契约列 (含 co-primary
+    policy_cosine_sim_lg_{full,ctx}) 必须全部存在, 否则下游
+    export.py::REQUIRED_PANEL_COLUMNS 抛 RuntimeError。"""
     from news_process.pipeline.text import embedding_engine as eng
     monkeypatch.setattr(eng, 'embed_texts',
                         _fake_embed_spec_aware(main_returns_none=True))
     from news_process.pipeline.filtering import policy_alignment as pa
 
-    _enable_large(monkeypatch, pa)  # 注入假 _LARGE_SPEC → 打开 _lg 休眠门
-    _enable_bge(monkeypatch, pa)    # 注入假 _BGE_SPEC → 打开 _bge 休眠门
+    assert pa._LARGE_SPEC, "config 已激活 embedding_large → _LARGE_SPEC 应非空"
     out = pa.compute_article_policy_alignment(_toy_df_exploded())
     for col in ['policy_cosine_sim', 'policy_cosine_sim_full',
-                'policy_cosine_sim_ctx', 'policy_cosine_sim_t2v_full',
-                'policy_cosine_sim_t2v_ctx']:
+                'policy_cosine_sim_ctx']:
         assert col in out.columns, f"MAIN 失败后缺契约中的 {col}"
-    # 休眠门开 → MAIN 失败早返回时, _lg / _bge 占位契约列也须存在 (与 _t2v 对称)
-    for col in ['policy_cosine_sim_lg_full', 'policy_cosine_sim_lg_ctx',
-                'policy_cosine_sim_bge_full', 'policy_cosine_sim_bge_ctx']:
-        assert col in out.columns, f"MAIN 失败后缺 _lg/_bge 占位契约列 {col}"
-    # MAIN 失败 → 早返回, 契约列全 NaN (含 _t2v / _lg / _bge, 因主轨失败时稳健轨不再计算)
-    assert out['policy_cosine_sim_t2v_full'].isna().all()
+    # co-primary parity: MAIN 失败早返回时, _lg 占位契约列也须存在 (both-or-neither, 与无后缀对称)
+    for col in ['policy_cosine_sim_lg_full', 'policy_cosine_sim_lg_ctx']:
+        assert col in out.columns, f"MAIN 失败后缺 _lg 占位契约列 {col}"
+    # MAIN 失败 → 早返回, 契约列全 NaN (含 _lg, 因主轨失败时 both-or-neither 同置 NaN)
     assert out['policy_cosine_sim_lg_full'].isna().all()
-    assert out['policy_cosine_sim_bge_full'].isna().all()
 
 
-def test_strategic_diff_robust_fail_keeps_t2v_contract(monkeypatch):
-    """F2 回归锁: stage 25 ROBUSTNESS(text2vec)嵌入失败时, 契约别名
-    strat_diff_t2v_{full,ctx} 必须仍存在 (置 NaN); canonical 主轨不受影响。"""
-    from news_process.pipeline.text import embedding_engine as eng
-    monkeypatch.setattr(eng, 'embed_texts',
-                        _fake_embed_spec_aware(robust_returns_none=True))
-    from news_process.pipeline.features import strategic_diff as sd
+def test_strategic_diff_large_fail_both_or_neither_with_main(monkeypatch):
+    """co-primary both-or-neither parity 锁 (v3.14.0): `_lg` 轨嵌入失败
+    (large_returns_none) → MAIN 与 `_lg` 同族嵌入列**一并不产** (无单边孤儿列)。
 
-    panel = sd.compute_strategic_differentiation(_toy_df_exploded(), _toy_panel())
+    v3.14.0 架构转向: gemini(无后缀) 与 large(`_lg`) 是**对等 co-primary、严格 parity**
+    (D-4a)。strategic_diff 在 Full/ctx/ss 三轨均加 both-or-neither 守卫 (源
+    `if se is None or se_lg is None: se=cd_emb=se_lg=cd_emb_lg=None`) → 任一 co-primary
+    嵌入失败, 两族同族列 (`centroid_diff_emb*` 与 `centroid_diff_emb_lg*`) 一并缺失。
+    这与旧 `_t2v` 稳健轨"失败仅置自身 NaN、不误伤 MAIN"的非对称语义**根本不同**
+    —— co-primary 是对等双射, 同生共死。
 
-    for col in ['strat_diff_t2v_full', 'strat_diff_t2v_ctx']:
-        assert col in panel.columns, f"ROBUSTNESS 失败后缺契约列 {col}"
-    # canonical 主轨 (MAIN spec 成功) 仍应算出值
-    assert panel['centroid_diff_emb'].notna().any(), "canonical 主轨被稳健失败误伤"
-    # 稳健 twin 失败 → 兜底全 NaN (不破坏 canonical)
-    assert panel['strat_diff_t2v_full'].isna().all(), "稳健失败时 _t2v 应为 NaN"
-
-
-def test_strategic_diff_large_fail_isolated_from_main_and_t2v(monkeypatch):
-    """🔴 P1-6 (2026-06-27): `_lg` 轨独立失败 (large_returns_none) 不得误伤 MAIN/`_t2v`。
-
-    验证三分 (``_track_of``) 的隔离性: 旧二分 `is_robust = 'text2vec' in model` 下,
-    large 名 (text-embedding-3-large) 不含 'text2vec' → 落 `not is_robust` → 会被
-    MAIN 早退/失败开关误判。三分后 ``large_returns_none=True`` 仅作用 `_lg` 轨。
-
-    `_lg` 在 strategic_diff 为**软诊断** (注释"不入硬契约", 无兜底块) → 轨失败时
-    `strat_diff_lg_*` / `centroid_diff_emb_lg` 列**缺失** (非 NaN); 而 canonical 与
-    `_t2v` (含硬契约 strat_diff_t2v_full) 完全不受影响。"""
+    非嵌入派生列 (centroid_diff_tfidf_c 等 TF-IDF/LDA 距离) 不受影响, 照常产出。"""
     from news_process.pipeline.text import embedding_engine as eng
     monkeypatch.setattr(eng, 'embed_texts',
                         _fake_embed_spec_aware(large_returns_none=True))
     from news_process.pipeline.features import strategic_diff as sd
 
-    _enable_large(monkeypatch, sd)  # 注入假 _LARGE_SPEC → 打开 _lg 休眠门
     panel = sd.compute_strategic_differentiation(_toy_df_exploded(), _toy_panel())
 
-    # canonical 主轨成功 → 有非空值 (未被 _lg 失败误伤; 这正是旧二分会破的不变量)
-    assert panel['centroid_diff_emb'].notna().any(), "canonical 主轨被 _lg 失败误伤"
-    # _t2v 稳健轨成功 → 有非空值 (与 _lg 正交, 未被误伤)
-    assert panel['centroid_diff_emb_t2v'].notna().any(), "_t2v 轨被 _lg 失败误伤"
-    # _t2v 硬契约列恒存在
-    assert 'strat_diff_t2v_full' in panel.columns, "缺 _t2v 硬契约列"
-    # _lg 软诊断列在轨失败时不建 (无兜底; 与 _t2v 硬契约的差异点)
-    assert 'centroid_diff_emb_lg' not in panel.columns, "_lg 软诊断列在轨失败时不应出现"
-    assert 'strat_diff_lg_full' not in panel.columns, "_lg 软诊断契约别名在轨失败时不应出现"
+    # both-or-neither: _lg 失败 → MAIN 嵌入列与 _lg 嵌入列**一并不产** (对等同生共死)
+    assert 'centroid_diff_emb' not in panel.columns, \
+        "both-or-neither: _lg 失败时 MAIN centroid_diff_emb 应一并缺失 (无单边孤儿)"
+    assert 'centroid_diff_emb_lg' not in panel.columns, \
+        "both-or-neither: _lg 失败时 _lg 嵌入列应缺失"
+    assert 'strat_diff_lg_full' not in panel.columns, \
+        "both-or-neither: _lg 失败时契约别名应缺失"
+    # 非嵌入派生列 (TF-IDF 质心距离) 不受嵌入失败影响, 照常产出 (验证未误伤非嵌入族)
+    assert 'centroid_diff_tfidf_c' in panel.columns and \
+        panel['centroid_diff_tfidf_c'].notna().any(), "非嵌入 TF-IDF 列被嵌入失败误伤"

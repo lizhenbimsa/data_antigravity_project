@@ -120,9 +120,11 @@ PREPROCESS_CODE_VERSION) 的共性, 立 5 条铁律:
 - (A) 新缓存键首字段 = SCHEMA_VERSION (沿用 _make_key 模式), 保留全局一键失效能力.
 - (B) 凡"改代码语义会改输出但不改键内既有字段"的参数, 要么进键 (如 temperature/seed
       按需进键), 要么绑一个显式 version token, 并在 callsite + config 注释写死 bump 触发条件.
-- (C) FP 敏感超参 (batch_size / device / dtype / 线程数 / torch 版本) 必当版本维度对待 —
-      它们改 batched matmul 舍入路径却不进键 (反例 + 守卫: config/features.yaml::
-      embedding_robustness.batch_size, tests/test_t2v_batch_version_lock.py).
+- (C) 嵌入/FP 敏感超参 (model / 切片策略 / dtype / 线程数 等) 必当版本维度对待 — 改语义
+      却不进键 (键仅 model_id|chunk文本|text_pipeline_version) → silent staleness; 必同 diff
+      bump 对应 text_pipeline_version (例: v3.14.0 MAIN 槽 text-embedding-3-small→
+      gemini-embedding-2-preview, 同步 bump config/features.yaml::embedding_api.text_pipeline_version
+      → "v3-2026-06-27-gemini"; v3.14.0 起全 API、无本地 batch_size 维度).
 - (D) version token 优先放可 lint 扫描的位置: config/prompts/*.txt 首行 > config yaml
       字段 > 模块内联常量. 内联常量是最弱形式, 须配 frozen-hash 单测补强 (反例 + 守卫:
       llm_peer_iv.py::PEER_PROMPT, tests/test_peer_prompt_frozen.py).

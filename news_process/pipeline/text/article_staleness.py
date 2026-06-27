@@ -10,14 +10,18 @@ dedup.py 的 jaccard 布尔决策 (find_near_duplicate_indices) 互补.
     与现有 dedup.py jaccard_similarity_threshold=0.80 (生产值) 同源, 升级为连续 score.
 
 **semantic_staleness** (D2.b, PR #11.5):
-    Faiss IndexFlatIP (normalized inner-product = cosine) + SBERT cosine
+    Faiss IndexFlatIP (normalized inner-product = cosine) + 文章嵌入 cosine
     (stage 30a article embeddings); 大样本可换 IVFFlat (见实现 _compute_semantic).
     捕捉语义相似度 (词面不同但含义近似), 与 surface 互补.
+    v3.14.0 (2026-06-27): 嵌入改 co-primary 双 API 轨 (gemini MAIN + text-embedding-3-large
+    `_lg`, 各 3072 维; 本地 text2vec 已移除) → semantic_staleness 各算两遍 (MAIN 无后缀 +
+    `_lg` 孪生), 跨厂商对等互证。IndexFlatIP(dim) 维度无关, 768→3072 直接流过。
 
-双指标 panel 列 (G-S7 设计; v3.9.0 + 2026-06-21 三轨 full/ctx/ss 全平价):
-    ``surface_staleness_{full,ctx,ss}``  (与 MinHash jaccard 相关性 ≥ 80%; ss=银行+金科同句共现轨)
-    ``semantic_staleness_{full,ctx,ss}`` (SBERT cosine 扩展轨, Tetlock 2011 RFS 启发)
-    ``staleness_corr``                  panel-level surface vs semantic 相关性
+双指标 panel 列 (G-S7 设计; 三轨 full/ctx/ss × semantic co-primary 双轨):
+    ``surface_staleness_{full,ctx,ss}``     (MinHash jaccard; 无 `_lg` 孪生 — carve-out, 非嵌入派生)
+    ``semantic_staleness_{full,ctx,ss}``    (MAIN/gemini cosine, canonical 无后缀)
+    ``semantic_staleness_{full,ctx,ss}_lg`` (`_lg`/large cosine 孪生, v3.14.0 co-primary 互证)
+    ``staleness_corr``                      panel-level surface vs semantic 相关性
 
 第三轨 ss (2026-06-21 全平价上线; 计划 scripts/audit/SEMANTIC_STALENESS_SS_EXECUTION_PLAN_2026-06-21.md):
   - **surface_staleness_ss** ($0, 仅依赖 content_ss 文本的 MinHash, 与 surface_full/ctx 同源)。
@@ -80,13 +84,13 @@ surface 与 semantic staleness 相关性 ∈ [0.3, 0.7] (互补 ≠ 冗余).
 
 **双指标算法**(对每篇文章求'过去7天内最相似旧文章'的最大相似度):
 1. **surface_staleness** `compute_surface_staleness`: 字符级 3-gram shingle(_char_shingles, 中文友好不依赖分词)→ MinHash(num_perm=128) → MinHashLSHForest。按 unique-day 分组的滚动 LSH(每个'天'重建一次 forest, 窗口 = [d-7d, d) **严格排除同日行**), 把原 O(N²) 降到约 7N。返回前按 stable argsort 的逆置换还原原始行序(P0 修复, 防整列错位)。第一周/空窗口 → NaN; 有窗口但 LSH 查询无命中 → 0.0。
-2. **semantic_staleness** `compute_semantic_staleness`: Faiss IndexFlatIP(归一化内积 = cosine), 复用 stage 30a 的 SBERT 768维嵌入, 同样日粒度7天滚动窗口、严格排除同日行(修同 docid 跨 bank 复制行 cosine=1.0 的 artifact), 取窗内 top-1 相似度。stable argsort 保证可复现。
+2. **semantic_staleness** `compute_semantic_staleness`: Faiss IndexFlatIP(归一化内积 = cosine), 复用 stage 30a 的文章嵌入(v3.14.0 co-primary 双轨: gemini MAIN 3072 维 + text-embedding-3-large `_lg` 3072 维 各算一遍 → semantic_staleness_* + semantic_staleness_*_lg; IndexFlatIP(dim) 维度无关), 同样日粒度7天滚动窗口、严格排除同日行(修同 docid 跨 bank 复制行 cosine=1.0 的 artifact), 取窗内 top-1 相似度。stable argsort 保证可复现。
 
 **嵌入对齐** `_load_aligned_embeddings`: 按 article_id 显式 join(非裸位置对齐), 行数不等/键缺失/键重复/辅键(target_bank/日期)逐行不一致时 fail-loud sys.exit(1) 提示重跑 30a(防 30a 陈旧静默错位)。
 
 **聚合** `aggregate_to_bank_year`: 每轨 staleness 列 → bank-year mean + highstale(>0.9 占比) 列, `if col in df.columns` 守卫(缺列即跳过, 故 semantic_staleness_ss 在旧 30a parquet 无 emb_ss 时不会误产空列; 2026-06-21 起 30a 产 emb_ss → semantic_ss 三轨平价)。聚合前 `_restrict_to_panel_domain` 把 **平均域** 收缩到 verified 面板语料((docid,target_bank) 内连 24_herd_decay, 缺则 21_tone_llms; 都缺则 ERROR 披露并退回全集)——与面板兄弟列(tone/herd/intensity 聚合自 verified-union ~857篇)口径一致; 但 **参照窗口**(过去7天信息环境)刻意保留全集。
 
-**外部依赖**: faiss-cpu + datasketch(always-on 后缺包会真崩, ImportError raise)。无 LLM/Embedding API、$0。**构念保真披露**: 与 Tetlock 2011 两点刻意偏离——匹配域是 corpus-level 全银行混池7天窗(非同公司72h最近10篇), semantic 轨 SBERT cosine 是扩展(2011年无 SBERT)。G-D2.1 诊断: surface vs semantic corr 期望 [0.3,0.7](互补≠冗余)。
+**外部依赖**: faiss-cpu + datasketch(always-on 后缺包会真崩, ImportError raise)。本阶段自身不调 API、$0(纯 CPU MinHash/Faiss); 但其消费的 stage 30a 嵌入 v3.14.0 起为 co-primary 双 API 轨(gemini + text-embedding-3-large, 经 yunwu, 由 30a 付费产出, 经 _llm_cache.db 缓存)。**构念保真披露**: 与 Tetlock 2011 两点刻意偏离——匹配域是 corpus-level 全银行混池7天窗(非同公司72h最近10篇), semantic 轨嵌入 cosine 是扩展(2011年无此类嵌入)。G-D2.1 诊断: surface vs semantic corr 期望 [0.3,0.7](互补≠冗余)。
 
 ■ 白话说明
 
@@ -258,6 +262,7 @@ def compute_semantic_staleness(
     df: pd.DataFrame,
     embeddings: np.ndarray,
     date_col: str = '日期',
+    col_suffix: str = '',
 ) -> np.ndarray:
     """每篇文章 semantic staleness = max cosine sim in past 7d (Faiss-accelerated).
 
@@ -268,10 +273,16 @@ def compute_semantic_staleness(
     155/155 同日 dup 行全 =1.0, semantic_highstale 信号几乎纯由该 artifact 驱动),
     且哪一行得 1.0 取决于任意输入行序。修后 surface 与 semantic 两族窗口/NaN 口径一致。
 
+    v3.14.0 (2026-06-27): ``embeddings`` 可来自 MAIN (gemini) 或 _lg (large) 任一
+    co-primary 嵌入套 (Faiss IndexFlatIP(dim) 维度无关, 3072 维直接流过); ``col_suffix``
+    (''/'_lg') 仅用于日志区分两轨, 不影响计算。调用方据此发射 semantic_staleness_X
+    (MAIN) 或 semantic_staleness_X_lg (large) 镜像列。
+
     Args:
         df: article-level DataFrame (按 date_col 升序对齐 embeddings 行).
-        embeddings: (N, 768) SBERT embeddings (normalize_embeddings=True 假设).
+        embeddings: (N, dim) embeddings (normalize_embeddings=True / 单位归一假设; dim=3072).
         date_col: 日期列名.
+        col_suffix: '' (MAIN/gemini) 或 '_lg' (large) — 仅日志标识, 不改计算。
 
     Returns:
         np.ndarray of shape (N,); 窗口空 (含首周/仅同日邻居) 的文章为 NaN.
@@ -350,7 +361,8 @@ def compute_semantic_staleness(
         # else: 窗口空 → 当天 [i, j) 文章 stale 保持 NaN (与 surface 轨空窗口口径一致)
         i = j
 
-    logger.info(f"  semantic staleness 完成: {sig4(time.time() - t0)}s")
+    _track_tag = col_suffix or '(MAIN)'
+    logger.info(f"  semantic staleness {_track_tag} 完成: {sig4(time.time() - t0)}s (dim={dim})")
 
     # 还原原始顺序
     inv_idx = np.argsort(sort_idx)
@@ -376,14 +388,16 @@ def aggregate_to_bank_year(article_df: pd.DataFrame) -> pd.DataFrame:
 
     df = article_df.copy()
     agg_cols = {}
-    # 三轨 (v3.9.0 surface + 2026-06-21 semantic ss 全平价): 加 surface_staleness_ss +
-    # semantic_staleness_ss。两 ss 列均由下方 `if stale_col in df.columns` 守卫 —— 缺列即
-    # 跳过, 故 semantic_staleness_ss 在旧 30a parquet (无 emb_ss) 时不会误产空列 (优雅降级,
-    # 镜像 ctx 守卫范式)。
+    # 三轨 surface (full/ctx/ss, MinHash, 无 _lg 孪生 — carve-out) + semantic 三轨 ×
+    # co-primary 双轨 (MAIN 无后缀 + _lg, v3.14.0)。全部由下方 `if stale_col in df.columns`
+    # 守卫 —— 缺列即跳过 (旧 30a parquet 单轨/无 emb_ss 时不误产空列, 优雅降级)。
+    # ⚠ surface_staleness_*_lg 刻意不在此列表 (surface 是 MinHash 字符 shingle, 无嵌入 → 无 _lg 概念)。
     for stale_col in ['surface_staleness_full', 'surface_staleness_ctx',
                       'surface_staleness_ss',
                       'semantic_staleness_full', 'semantic_staleness_ctx',
-                      'semantic_staleness_ss']:
+                      'semantic_staleness_ss',
+                      'semantic_staleness_full_lg', 'semantic_staleness_ctx_lg',
+                      'semantic_staleness_ss_lg']:
         if stale_col in df.columns:
             agg_cols[stale_col] = (stale_col, 'mean')
             # 加 binary high-stale 列 (NaN propagates, mean 自动 skip NA)
@@ -401,20 +415,26 @@ def aggregate_to_bank_year(article_df: pd.DataFrame) -> pd.DataFrame:
 
 def _load_aligned_embeddings(
     art_df: pd.DataFrame, emb_path: str,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
+) -> tuple[
+    np.ndarray, np.ndarray, np.ndarray | None,
+    np.ndarray | None, np.ndarray | None, np.ndarray | None,
+]:
     """读取 stage 30a embeddings 并按 article_id 显式 join 对齐到 art_df 行序.
 
     fix(omni-g-embed-03/09, 2026-06-11): 此前 `np.stack(emb_df['emb_full'])` 纯位置
-    对齐, 与 14_news_with_ctx 的对应完全靠隐式行序 — stage 13 重生而 30a (4-6h
-    手动重负载 stage) 陈旧时, 行数恰相等会**静默整列错位** (semantic staleness 全为
-    噪声且不可见)。现按 article_id 键 reindex (30a 写出 article_id = stage 13 的
-    df.index, 见 article_sbert.py::_build_output_frame), 长度不等/键缺失/键重复或
-    辅键 (target_bank/日期) 逐行不一致时 fail-loud 退出, 提示重跑 30a。
+    对齐, 与 14_news_with_ctx 的对应完全靠隐式行序 — stage 13 重生而 30a 陈旧时,
+    行数恰相等会**静默整列错位**。现按 article_id 键 reindex (30a 写出 article_id =
+    stage 13 的 df.index, 见 article_sbert.py::_build_output_frame), 长度不等/键缺失/
+    键重复或辅键 (target_bank/日期) 逐行不一致时 fail-loud 退出, 提示重跑 30a。
+
+    v3.14.0 (2026-06-27, co-primary 双轨): 30a 现产 MAIN (gemini, emb_{full,ctx,ss})
+    + _lg (large, emb_{full,ctx,ss}_lg) 两套嵌入。本函数 unpack 6 个矩阵; _lg 列缺失
+    (旧 30a parquet 未重跑双轨) → 三个 _lg 矩阵均 None, 下游优雅跳过 semantic_staleness_*_lg。
 
     Returns:
-        (embs_full, embs_ctx, embs_ss): 前两者为 (N, dim) ndarray, 行序与 art_df 一致;
-        embs_ss 在 30a 含 emb_ss 列 (ss 轨上线) 时为 (N, dim) ndarray, 否则为 None
-        (旧 30a parquet 无 emb_ss → 下游优雅跳过 semantic_staleness_ss, 不 fail-loud)。
+        (embs_full, embs_ctx, embs_ss, embs_full_lg, embs_ctx_lg, embs_ss_lg):
+        MAIN 前三者 embs_full/embs_ctx 为 (N, dim) ndarray, embs_ss 在 30a 含 emb_ss 列
+        时为 ndarray 否则 None; _lg 后三者镜像 (emb_*_lg 列缺失则 None)。
     """
     emb_df = pd.read_parquet(emb_path)
 
@@ -466,33 +486,46 @@ def _load_aligned_embeddings(
                 sys.exit(1)
 
     # 模型 provenance (g-embed-03 产出端新增列; 旧版 parquet 无 → 仅 WARN 不阻塞)
+    # v3.14.0: 双套 provenance (MAIN model_id + _lg model_id_lg) 各自校验。
     if 'model_id' in emb_aligned.columns:
-        logger.info(f"  30a 模型 provenance: {emb_aligned['model_id'].iloc[0]}")
+        logger.info(f"  30a MAIN provenance: model_id={emb_aligned['model_id'].iloc[0]}")
     else:
         logger.warning(
             "  30a 无 model_id provenance 列 (旧版 parquet); 建议重跑 30a 落 provenance"
         )
+    if 'model_id_lg' in emb_aligned.columns:
+        logger.info(f"  30a _lg provenance: model_id_lg={emb_aligned['model_id_lg'].iloc[0]}")
 
-    embs_full = np.stack(emb_aligned['emb_full'].tolist())
-    embs_ctx = np.stack(emb_aligned['emb_ctx'].tolist())
+    def _stack_track(col: str) -> np.ndarray | None:
+        """缺列 → None (下游优雅跳过); 在列存在时 shape 须与 emb_full 全等否则 fail-loud."""
+        if col not in emb_aligned.columns:
+            return None
+        arr = np.stack(emb_aligned[col].tolist())
+        # 防御 (final-audit P2): 经同一 emb_aligned reindex, 行序/长度须与 emb_full 全等;
+        # 维度可不同 (MAIN 与 _lg 同为 3072, 但函数不假设 — 仅核行数防错位)。emb_full
+        # 自身的维度由其首列 stack 决定。不等 = 30a parquet 内部错乱, fail-loud 防错位语义信号。
+        if arr.shape[0] != len(emb_aligned):
+            logger.error(
+                f"  30a {col} 行数 {arr.shape[0]} != emb_full {len(emb_aligned)} — "
+                f"30a 内部错乱 (行数不一致), 请重跑 30a"
+            )
+            sys.exit(1)
+        return arr
+
+    # code-review P2-A: emb_full/emb_ctx 改走 _stack_track (缺列 → None, 不再 KeyError 崩溃)。
+    # 防"article_sbert 跨轨失败 (如 full 轨整批 embed 返 None → emb_full 列未落盘) 时,
+    # 本读点 np.stack(emb_aligned['emb_full']) 直接 KeyError 崩 stage 26"。缺则下游优雅跳过。
+    embs_full = _stack_track('emb_full')
+    embs_ctx = _stack_track('emb_ctx')
     # 三轨 ss (2026-06-21): emb_ss 列缺失 (旧 30a 未重跑 ss 轨) → None, 下游优雅跳过
-    # semantic_staleness_ss (镜像 DEFER 行为, 不 fail-loud)。emb_ss 经同一 emb_aligned
-    # reindex, 行序/长度与 embs_full 一致。
-    embs_ss = (
-        np.stack(emb_aligned['emb_ss'].tolist())
-        if 'emb_ss' in emb_aligned.columns else None
-    )
-    # 防御 (final-audit P2): emb_ss 经同一 emb_aligned reindex, shape 须与 emb_full 全等
-    # (行数 + 维度)。不等 = 30a parquet 内部错乱 (如 emb_ss 维度 ≠ emb_full 的 SBERT 隐藏维,
-    # 或 list 元素长度参差致 np.stack 退化)。fail-loud (镜像本函数其它 30a-陈旧守卫的
-    # logger.error+sys.exit), 而非把错维/错位语义信号静默喂给下游 Faiss IndexFlatIP。
-    if embs_ss is not None and embs_ss.shape != embs_full.shape:
-        logger.error(
-            f"  30a emb_ss shape {embs_ss.shape} != emb_full {embs_full.shape} — "
-            f"30a 内部错乱 (维度/行数不一致), 请重跑 30a"
-        )
-        sys.exit(1)
-    return embs_full, embs_ctx, embs_ss
+    # semantic_staleness_ss (镜像 DEFER 行为, 不 fail-loud)。
+    embs_ss = _stack_track('emb_ss')
+    # v3.14.0 _lg (large) co-primary 孪生三轨: emb_*_lg 列缺失 (旧 30a 单轨) → None,
+    # 下游优雅跳过 semantic_staleness_*_lg。经同一 emb_aligned reindex, 行序与 MAIN 一致。
+    embs_full_lg = _stack_track('emb_full_lg')
+    embs_ctx_lg = _stack_track('emb_ctx_lg')
+    embs_ss_lg = _stack_track('emb_ss_lg')
+    return embs_full, embs_ctx, embs_ss, embs_full_lg, embs_ctx_lg, embs_ss_lg
 
 
 def _restrict_to_panel_domain(art_df: pd.DataFrame, output_dir: str) -> pd.DataFrame:
@@ -551,11 +584,11 @@ def main():
     logger.info("        (新瓶装旧酒/通稿转载)? 雷同度越高 = 信息含量越低。聚合成 bank-year 指标后")
     logger.info("        主要用作稳健性检验: 验证主结论不是被'重复报道的噪音'驱动的。")
     logger.info("        产出两族列 (三轨 full/ctx/ss): surface_staleness_* (字面像) + semantic_staleness_*")
-    logger.info("        (语义像; 依赖 stage 30a 嵌入, 缺则仅出 surface)。")
+    logger.info("        (语义像; v3.14.0 co-primary 双轨 = 无后缀/gemini + _lg/large 各一遍; 依赖 stage 30a 嵌入, 缺则仅出 surface)。")
     logger.info("【方法】对每篇文章求'过去 7 天窗口内最相似旧文章'的最大相似度 (严格排除同日行):")
     logger.info("          · surface = 字符 3-gram shingle → MinHash(num_perm=128) → 按天滚动的 LSHForest")
-    logger.info("                      jaccard top-10 取 max; 有窗无命中→0.0; 第一周/空窗口→NaN; O(N²)→~7N 加速。")
-    logger.info("          · semantic = 复用 30a SBERT 768维嵌入 → Faiss IndexFlatIP(归一化内积=cosine)")
+    logger.info("                      jaccard top-10 取 max; 有窗无命中→0.0; 第一周/空窗口→NaN; O(N²)→~7N 加速 (无 _lg 孪生 — 非嵌入派生)。")
+    logger.info("          · semantic = 复用 30a 文章嵌入 (gemini MAIN + large _lg, 各 3072 维) → Faiss IndexFlatIP(归一化内积=cosine)")
     logger.info("                      同 7 天日粒度滚动窗口取 top-1。第一周/空窗口→NaN (窗非空必有 top-1, 无 0.0 哨兵)。")
     logger.info("        bank-year 聚合: 每轨 mean + highstale(>0.9 占比); 平均域收缩到 verified 面板语料")
     logger.info("        ((docid,target_bank) 内连 24_herd_decay/21_tone_llms), 参照窗口仍用全集。")
@@ -662,30 +695,49 @@ def main():
         )
     phase_durations['②surface staleness (三轨)'] = time.time() - _t_surface
 
-    # ── D2.b Semantic staleness (依赖 stage 30a; 三轨 full/ctx/ss 全平价 2026-06-21) ──
-    # semantic full/ctx/ss 三轨镜像产出: ss 需 stage 30a 为 content_ss 产出 SBERT 嵌入
-    # (`emb_ss` 列, 2026-06-21 上线)。emb_ss 缺列 (旧 30a parquet 未重跑 ss 轨) 时
-    # _load_aligned_embeddings 返 embs_ss=None → 下方 call-site None 守卫跳过 →
-    # aggregate_to_bank_year 按"缺列即跳过"优雅降级 (向后兼容, 不崩)。
+    # ── D2.b Semantic staleness (依赖 stage 30a; 三轨 full/ctx/ss × co-primary 双轨) ──
+    # semantic full/ctx/ss 三轨镜像产出: ss 需 stage 30a 为 content_ss 产出 SBERT 嵌入。
+    # v3.14.0 (2026-06-27): 30a 现产 MAIN (gemini, emb_{full,ctx,ss}) + _lg (large,
+    # emb_{full,ctx,ss}_lg) 两 co-primary 套 → 本阶段对两套各算一遍 semantic_staleness:
+    #   MAIN → semantic_staleness_{full,ctx,ss} (无后缀, canonical)
+    #   _lg  → semantic_staleness_{full,ctx,ss}_lg (孪生; 跨厂商对等互证)
+    # ⚠ carve-out: surface_staleness_* / surface_highstale 是 MinHash (无嵌入) → 不产 _lg 孪生 (上方已算, 不动)。
+    # emb_ss / emb_*_lg 缺列 (旧 30a parquet 单轨) 时 _load_aligned_embeddings 返对应 None →
+    # 下方 call-site None 守卫跳过 → aggregate_to_bank_year 按"缺列即跳过"优雅降级 (向后兼容, 不崩)。
     _t_semantic = time.time()
     emb_path = os.path.join(output_dir, '25_article_embeddings.parquet')
     if os.path.exists(emb_path):
         # fix(omni-g-embed-03/09, 2026-06-11): article_id 显式 join 取代裸位置对齐
-        embs_full, embs_ctx, embs_ss = _load_aligned_embeddings(art_df, emb_path)
-        art_df['semantic_staleness_full'] = compute_semantic_staleness(
-            art_df, embs_full,
-        )
-        art_df['semantic_staleness_ctx'] = compute_semantic_staleness(
-            art_df, embs_ctx,
-        )
-        # 三轨 ss (2026-06-21, 镜像 ctx): emb_ss 存在 (30a 已上线 ss 轨) 才算。
-        # ⚠ call-site None 守卫不可删/内移: compute_semantic_staleness 期待
-        # embeddings: np.ndarray (无 None 守卫, 传 None 会在 .shape 处崩); 旧 30a
-        # parquet (无 emb_ss) → embs_ss=None → 跳过, 保 DEFER 向后兼容。
-        if embs_ss is not None:
-            art_df['semantic_staleness_ss'] = compute_semantic_staleness(
-                art_df, embs_ss,
-            )
+        (embs_full, embs_ctx, embs_ss,
+         embs_full_lg, embs_ctx_lg, embs_ss_lg) = _load_aligned_embeddings(art_df, emb_path)
+
+        # code-review P2-A/P2-B: 每轨 MAIN+_lg **原子 both-or-neither 发射** (列名双射)。
+        #   · compute_semantic_staleness 无 None 守卫 (传 None 会在 .shape 崩) → 任一轨 MAIN
+        #     embeddings 为 None (P2-A 后缺列即 None) 必须在此跳过, 不可无条件调用。
+        #   · 双轨 parquet (任一 emb_*_lg 在) 下若某轨 MAIN 在而该轨 _lg 缺 → 单边孤儿
+        #     semantic_staleness_{track} 无 _lg 孪生 → both-or-neither: 两列均不发射。
+        #   · 单轨旧 parquet (全无 emb_*_lg) → 仅发 MAIN (无 _lg 可孪生; parity 测试对旧
+        #     schema DEFERRED skip)。⚠ carve-out: surface_* (MinHash) 不在此, 不产 _lg。
+        _dual = any(x is not None for x in (embs_full_lg, embs_ctx_lg, embs_ss_lg))
+
+        def _emit_staleness_pair(track: str, e_main, e_lg) -> None:
+            if e_main is None:
+                return  # MAIN 嵌入缺 → 该轨两列均不发射
+            if _dual and e_lg is None:
+                logger.warning(
+                    f"  co-primary parity [{track}]: MAIN 嵌入在但 _lg 缺 (双轨 parquet 内不对称) "
+                    f"→ semantic_staleness_{track}(+_lg) 均跳过 (无单边孤儿; 须 30a 双轨重跑)"
+                )
+                return
+            art_df[f'semantic_staleness_{track}'] = compute_semantic_staleness(art_df, e_main)
+            if e_lg is not None:
+                art_df[f'semantic_staleness_{track}_lg'] = compute_semantic_staleness(
+                    art_df, e_lg, col_suffix='_lg',
+                )
+
+        _emit_staleness_pair('full', embs_full, embs_full_lg)
+        _emit_staleness_pair('ctx', embs_ctx, embs_ctx_lg)
+        _emit_staleness_pair('ss', embs_ss, embs_ss_lg)
     else:
         logger.warning(
             f"  stage 30a 未跑: {emb_path}; D2.b semantic 跳过 (仅 D2.a surface 输出)"

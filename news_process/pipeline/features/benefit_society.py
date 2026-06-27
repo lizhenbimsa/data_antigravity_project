@@ -48,8 +48,9 @@
                               与 '多篇完全一致' 在统计上不可区分, 与核心 tone std 族对齐)
   benefit_pos_frac_full/ctx/ss:  正态度文章占比 ∈ [0, 1]
   benefit_neg_frac_full/ctx/ss:  负态度文章占比 ∈ [0, 1]
-  (上述 4 指标 × full/ctx/ss 三轨另各有 _t2v 稳健 twin 列:
-   benefit_mean_t2v_full/ctx/ss 等; MAIN=API 1536 维 / ROBUSTNESS=text2vec 768 维, 共 24 列)
+  (上述 4 指标 × full/ctx/ss 三轨另各有 _lg co-primary twin 列:
+   benefit_mean_lg_full/ctx/ss 等; MAIN=gemini API / LARGE=text-embedding-3-large API,
+   共 24 列; v3.14.0 已移除本地 _t2v/_bge 稳健轨, 仅余双 API 模型)
   ss 轨 (银行+金科同句, content_ss): 仅取"同句内同时含 目标银行∧金科词"的句 ±N 句窗,
    回退=无共现→镜像 ctx 回退全文 body (ss_is_fallback=True); 与 full/ctx 并列第三主轨。
 
@@ -59,8 +60,8 @@ pos/neg_frac 阈值中心 (KNOWN-OPEN① 修复, fix(omni-g-benefit, 2026-06-11)
   披露: 冻结值仍是首跑 in-sample median, P(>center)≈0.5 仅对首跑语料成立)。
 
 审计链路落盘 (fix(omni-g-benefit-01, 2026-06-11)):
-  cache_embeddings=true 时落盘全长文章嵌入 27_benefit_embeddings{_t2v}_{full,ctx}.npy
-  + 方向向量 27_benefit_direction{_t2v}.npy (各带 .sidecar.json: model_id/n_rows/dim),
+  cache_embeddings=true 时落盘全长文章嵌入 27_benefit_embeddings{_lg}_{full,ctx,ss}.npy
+  + 方向向量 27_benefit_direction{_lg}.npy (各带 .sidecar.json: model_id/n_rows/dim),
   供 27c alt-anchor / placebo 审计链路同嵌入空间消费。
 ============================================================================
 """
@@ -117,17 +118,11 @@ STAGE_NAME = "27_fintech_benefit_society"
 
 # LLM API 配置（复用 tone_llm_processing 节中的 base_url 和 api_key）
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
-EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})           # MAIN spec → canonical 列
-# v3.7.x 双模型嵌入: ROBUSTNESS twin (shibing624/text2vec, local) → '_t2v' 列
-_ROBUSTNESS_SPEC = CONFIG.get('embedding_robustness', {})
-# 休眠门 (golden 安全铁律): 第三嵌入模型 LARGE twin (API, 镜像 _t2v) → '_lg' 列。
-# 仅当 config 显式提供非空 embedding_large 块时才激活; 缺配置 → {} → 完全不产 _lg 列
-# → 既有行为字节级不变 (不要在 config/features.yaml 加活动块, 保持休眠)。
+EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})           # MAIN spec → canonical 列 (gemini)
+# v3.14.0 双 API 模型嵌入: LARGE twin (text-embedding-3-large, API) → '_lg' 列。
+# co-primary 活动轨 (与 MAIN 并列, 非休眠): config/features.yaml 已激活 embedding_large 块。
+# (v3.14.0 已整体移除本地稳健轨 _t2v(text2vec) / _bge(bge-m3); 仅余双 API 模型)
 _LARGE_SPEC = CONFIG.get('embedding_large', {})
-# 休眠门 (golden 安全铁律): 第四嵌入模型 BGE twin (BAAI/bge-m3, 本地 1024 维, 镜像 _t2v)
-# → '_bge' 列。BGE-M3 是本地 spec (base_url=local) → spec_uses_local()=True → 与 _t2v 同
-# 走 fail-fast 裸路径 (不进 _lg 的 API 软降级分支)。仅 config 非空 embedding_bge 时激活。
-_BGE_SPEC = CONFIG.get('embedding_bge', {})
 
 # 模块专属配置
 _BENEFIT_CFG = CONFIG.get('benefit_society', {})
@@ -244,23 +239,26 @@ def _get_embeddings(texts: list[str],
                     log_prefix: str = "Embedding") -> np.ndarray:
     """文本 → Embedding 向量, 委托给统一引擎 _eng.embed_texts。
 
-    spec 决定模型与路径 (MAIN=text-embedding-3-small / ROBUSTNESS=text2vec)。
+    spec 决定模型与路径 (MAIN=gemini-embedding-2-preview / LARGE=text-embedding-3-large, 均 API)。
     token_counts 已不再需要 (引擎内部按 token 自行分批), 保留参数仅为签名兼容。
 
-    P0-1 (API-fatal 守卫, 范围收窄于 postimpl-audit 2026-06-27): 仅对稳健 twin `_lg`
-    (API 且**非** MAIN canonical) 的致命错 (鉴权/网络/配额/离线闸) 兜底降级 None +
-    logger.warning, 使该 twin 仅跳过 (其轨列 NaN), 不连带炸 stage。**MAIN canonical**
-    (EMBEDDING_CONFIG) 与 **local** (_t2v) 一律 fail-fast (走裸路径, 异常照常上抛) —
-    既保留 MAIN 既有失败语义, 又不吞 embedding_engine 离线确定性闸 RuntimeError (防主
-    结果列被静默置 NaN bless 进 golden)。对齐 policy_alignment/policy_similarity 范本。
+    P0-1 (API-fatal 守卫): 仅对 co-primary twin `_lg` (API 且**非** MAIN canonical) 的
+    致命错 (鉴权/网络/配额/离线闸) 兜底降级 None + logger.warning, 使该 twin 仅跳过
+    (其轨列 NaN), 不连带炸 stage。**MAIN canonical** (EMBEDDING_CONFIG) 一律 fail-fast
+    (走裸路径, 异常照常上抛) — 既保留 MAIN 既有失败语义, 又不吞 embedding_engine 离线
+    确定性闸 RuntimeError (防主结果列被静默置 NaN bless 进 golden)。对齐
+    policy_alignment/policy_similarity 范本。
+    ⚠ 双 API 模型 (v3.14.0) 下 _lg 单边降级会留单边孤儿列 (MAIN 列在但 _lg 列全 NaN);
+    both-or-neither 同生同灭由 compute_benefit_society_panel 的 spec 循环**之后**的
+    family-level parity 守卫 (§6.5b, code-review P1-B) 统一处理。本函数保持单 spec 语义不变。
     """
     _spec = spec or EMBEDDING_CONFIG
-    # 守卫范围铁律 (postimpl-audit 2026-06-27 P1 修): MAIN canonical (EMBEDDING_CONFIG)
-    # 与 local (_t2v) 一律走 fail-fast 裸路径 (保留 MAIN 既有失败语义 + 不吞 embedding_engine
-    # 离线确定性闸 RuntimeError, 防主结果列被静默置 NaN bless 进 golden); 仅 _lg twin
-    # (API 且非 MAIN) 进下方 try/except 软降级。对齐 policy_alignment/policy_similarity 范本。
+    # 守卫范围铁律: MAIN canonical (EMBEDDING_CONFIG) 走 fail-fast 裸路径 (保留 MAIN 既有失败
+    # 语义 + 不吞 embedding_engine 离线确定性闸 RuntimeError, 防主结果列被静默置 NaN bless 进
+    # golden); 仅 _lg twin (API 且非 MAIN) 进下方 try/except 软降级。spec_uses_local 在
+    # v3.14.0 双 API 模型下恒 False (已移除本地 _t2v/_bge), 保留仅为防御 (未来本地 spec 复用)。
     if _eng.spec_uses_local(_spec) or _spec is EMBEDDING_CONFIG:
-        # local (_t2v) 或 MAIN canonical: 行为字节级不变, 不兜底 (fail-fast)。
+        # MAIN canonical (或未来本地 spec): 不兜底 (fail-fast)。
         return _eng.embed_texts(
             texts,
             _spec,
@@ -301,7 +299,7 @@ def _compute_direction_vector(spec: dict | None = None) -> np.ndarray | None:
         )
     except Exception as exc:  # noqa: BLE001
         if _eng.spec_uses_local(_spec) or _spec is EMBEDDING_CONFIG:
-            raise  # local (_t2v) 与 MAIN canonical: fail-fast, 异常照常上抛 (不吞离线闸)
+            raise  # MAIN canonical (或未来本地 spec): fail-fast, 异常照常上抛 (不吞离线闸)
         logger.warning(
             f"    [API spec] 锚点方向向量嵌入失败 (model={_eng.spec_model(_spec)}), "
             f"该 spec 跳过 (返回 None): {exc!r}"
@@ -486,7 +484,7 @@ def _project_texts(texts: list[str], direction: np.ndarray,
         )
     except Exception as exc:  # noqa: BLE001
         if _eng.spec_uses_local(_spec) or _spec is EMBEDDING_CONFIG:
-            raise  # local (_t2v) 与 MAIN canonical: fail-fast, 异常照常上抛 (不吞离线闸)
+            raise  # MAIN canonical (或未来本地 spec): fail-fast, 异常照常上抛 (不吞离线闸)
         logger.warning(
             f"    [API spec] 文章文本嵌入失败 (model={_eng.spec_model(_spec)}), "
             f"该 spec 跳过 (返回全 NaN 得分): {exc!r}"
@@ -528,7 +526,7 @@ def _get_frozen_center(score_key: str, scores: pd.Series, model_id: str) -> floa
     纯 in-sample 阈值)。现改为:
       - 首跑: 以当期全样本投影 median 计算, 持久化到
         ``data/processed/_benefit_center_sidecar.json`` (键 = score 列名,
-        如 ``benefit_score_full`` / ``benefit_score_t2v_ctx``);
+        如 ``benefit_score_full`` / ``benefit_score_lg_ctx``);
       - 后续 run: 直接读冻结值, 不随语料漂移;
       - sidecar 记录 model_id, 与当前 spec 不匹配 → fail-loud (嵌入模型换代须
         显式删除过期条目重冻结, 防跨嵌入空间阈值误用)。
@@ -604,7 +602,7 @@ def _log_benefit_env_config_methods(panel: pd.DataFrame,
     """
     try:
         _main_model = _eng.spec_model(EMBEDDING_CONFIG)
-        _t2v_model = _eng.spec_model(_ROBUSTNESS_SPEC) if _ROBUSTNESS_SPEC else '(未配置)'
+        _lg_model = _eng.spec_model(_LARGE_SPEC) if _LARGE_SPEC else '(未配置)'
         _offline = os.environ.get('NEWS_PROCESS_LLM_OFFLINE', '') in ('1', 'true', 'True')
 
         logger.info("  🧭 项目 / 环境信息")
@@ -618,7 +616,7 @@ def _log_benefit_env_config_methods(panel: pd.DataFrame,
         logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
                     f"LLM_OFFLINE={'是' if _offline else '否'}")
         logger.info("     · 成本/确定性: 嵌入 API 缓存命中=$0; 冷缓存=付费嵌入调用 "
-                    "(text-embedding-3-small); 本地 text2vec twin 纯算力 $0")
+                    "(MAIN gemini + _lg text-embedding-3-large 双 API 模型)")
 
         logger.info("  📂 输入 / 输出")
         logger.info(f"     · 输入 panel: {len(panel):,d} 行 × {panel.shape[1]:,d} 列 "
@@ -630,9 +628,9 @@ def _log_benefit_env_config_methods(panel: pd.DataFrame,
         logger.info(f"     · center sidecar: "
                     f"{os.path.join(OUTPUT_DIR, _CENTER_SIDECAR_FILENAME)}")
 
-        logger.info("  ⚙ 运行配置 (config::benefit_society / embedding_api / embedding_robustness)")
+        logger.info("  ⚙ 运行配置 (config::benefit_society / embedding_api / embedding_large)")
         logger.info(f"     · MAIN 嵌入模型: {_main_model} (canonical 列) | "
-                    f"ROBUSTNESS twin: {_t2v_model} (_t2v 列)")
+                    f"LARGE co-primary: {_lg_model} (_lg 列)")
         logger.info(f"     · 锚点对数: {len(POSITIVE_ANCHORS):,d} (正/负极严格对偶, "
                     "single-word-change)")
         logger.info(f"     · 锚点符号容差 anchor_sign_tolerance={sig4(_ANCHOR_SIGN_TOL)} | "
@@ -654,12 +652,12 @@ def _log_benefit_env_config_methods(panel: pd.DataFrame,
                     "of culture: Analyzing the meanings of class through word embeddings. "
                     "American Sociological Review, 84(5), 905-949. "
                     "https://doi.org/10.1177/0003122419877135")
-        logger.info("     · 句向量降级方案 (本地 text2vec twin 同族):")
+        logger.info("     · 句向量方法 (sentence embedding 上游):")
         logger.info("       Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence "
                     "embeddings using Siamese BERT-networks. In Proceedings of EMNLP-IJCNLP "
                     "(pp. 3980-3990). ACL. https://doi.org/10.18653/v1/D19-1410")
         logger.info("     · 白话: 给每篇金科新闻打『利好/损害银行经营』连续态度分 "
-                    "(>0 利好, <0 损害), 双模型 × 三轨交叉验证。")
+                    "(>0 利好, <0 损害), 双 API 模型 × 三轨交叉验证。")
     except Exception as exc:  # noqa: BLE001
         logger.warning(f"  环境/配置/方法块打印失败 (不影响处理): {exc!r}")
 
@@ -682,7 +680,7 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
         df_exploded: 包含新闻原文的文章-银行级数据集
 
     Returns:
-        pd.DataFrame: 合并了 24 列 benefit_* 指标的面板 (MAIN + _t2v 双模型 × Full/Ctx/SS 三轨 × 4 指标)
+        pd.DataFrame: 合并了 24 列 benefit_* 指标的面板 (MAIN + _lg 双 API 模型 × Full/Ctx/SS 三轨 × 4 指标)
     """
     _step_start = time.time()
     logger.info("=" * 60)
@@ -699,24 +697,19 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
     cache_filename = FILENAMES.get('output_27_benefit_cache',
                                    '27_benefit_embeddings.npy')
 
-    # ---- 6.1 双模型外层循环 (Dual-Model Embedding) ----
-    # suffix='' → MAIN spec (text-embedding-3-small, API) → 既有 canonical 列
-    #             (benefit_mean_full / benefit_std_full / ... 字节级不变)
-    # suffix='_t2v' → ROBUSTNESS spec (shibing624/text2vec, local) → 平行稳健列
-    #             (benefit_mean_t2v_full / ...; 768 维独立计算, 绝不与 API 1536 维混算)
-    # 每个 spec 用自己的锚点 + 文本 + 方向向量, 全程维度无关 (emb.shape[1] 驱动)。
-    # suffix='_lg' → LARGE spec (API, 镜像 _t2v); 仅当 _LARGE_SPEC 非空 (config 显式
-    #             提供 embedding_large 块) 时追加, 否则休眠 → 完全不产 _lg 列 (golden 安全)。
-    # suffix='_bge' → BGE spec (BAAI/bge-m3, 本地, 镜像 _t2v); 仅当 _BGE_SPEC 非空 (config
-    #             显式提供 embedding_bge 块) 时追加; 本地 spec → _get_embeddings 内
-    #             spec_uses_local 守卫自动走 fail-fast (与 _t2v 同, 非 _lg 软降级)。
-    _specs = [('', EMBEDDING_CONFIG), ('_t2v', _ROBUSTNESS_SPEC)]
+    # ---- 6.1 双 API 模型外层循环 (Dual-API-Model Embedding, v3.14.0) ----
+    # suffix='' → MAIN spec (gemini-embedding-2-preview, API) → 既有 canonical 列
+    #             (benefit_mean_full / benefit_std_full / ...)
+    # suffix='_lg' → LARGE spec (text-embedding-3-large, API) → 平行 co-primary 稳健列
+    #             (benefit_mean_lg_full / ...; 维度独立计算, 由 emb.shape[1] 驱动)。
+    # 每个 spec 用自己的锚点 + 文本 + 方向向量, 全程维度无关。_lg 为活动 co-primary
+    # (config/features.yaml 已激活 embedding_large), 仅当 config 缺该块时才退化为单 MAIN。
+    # (v3.14.0 已整体移除本地稳健轨 _t2v / _bge; 仅余双 API 模型)
+    _specs = [('', EMBEDDING_CONFIG)]
     if _LARGE_SPEC:
         _specs.append(('_lg', _LARGE_SPEC))
-    if _BGE_SPEC:
-        _specs.append(('_bge', _BGE_SPEC))
     for suffix, spec in _specs:
-        spec_tag = "MAIN" if suffix == '' else f"ROBUSTNESS({suffix})"
+        spec_tag = "MAIN" if suffix == '' else f"CO-PRIMARY({suffix})"
 
         # ---- 6.2 计算方向向量 (per spec) ----
         direction = _compute_direction_vector(spec=spec)
@@ -843,7 +836,7 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
 
             # 重命名: 添加 (模型 suffix +) 轨后缀
             #   suffix='' → benefit_mean_full 等 (canonical, 字节级不变)
-            #   suffix='_t2v' → benefit_mean_t2v_full 等 (robustness twin)
+            #   suffix='_lg' → benefit_mean_lg_full 等 (co-primary twin, text-embedding-3-large)
             rename_map = {
                 'benefit_mean': f'benefit_mean{suffix}_{track}',
                 'benefit_std': f'benefit_std{suffix}_{track}',
@@ -873,6 +866,26 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
             logger.info(f"  [{spec_tag}] {track.upper()} 轨聚合完成: "
                         f"{_mean_col} 非空率 {pct4(_notna_rate)} → {_cov_verdict}")
 
+    # ---- 6.5b co-primary both-or-neither parity 守卫 (D-4a, code-review P1-B) ----
+    # benefit_society 的 spec 循环对 MAIN / _lg 各自 direction-None 时 `continue` 整体跳过,
+    # 会留单边孤儿列 (MAIN 有 benefit_*_{track}, _lg 缺 benefit_*_lg_{track}, 或反之)。
+    # 此处对每轨检查两 co-primary 覆盖: 若恰一侧有效 (列存在且有非空值) → 两族 (MAIN + _lg)
+    # 该轨全部列均**建并置 NaN** (列名双射成立、值 NaN), 杜绝单边孤儿。仅 _lg 激活时生效。
+    if _LARGE_SPEC and len(_specs) == 2:
+        _BENEFIT_BASES = ['benefit_mean', 'benefit_std', 'benefit_pos_frac', 'benefit_neg_frac']
+        for track in ['full', 'ctx', 'ss']:
+            _mc, _lc = f'benefit_mean_{track}', f'benefit_mean_lg_{track}'
+            _m_ok = _mc in panel.columns and bool(panel[_mc].notna().any())
+            _l_ok = _lc in panel.columns and bool(panel[_lc].notna().any())
+            if _m_ok != _l_ok:  # 恰一侧有效 = 单边孤儿 (列缺失或全空)
+                logger.error(
+                    f"  ⚠ co-primary parity 违例 [{track}]: MAIN 有效={_m_ok} / _lg 有效={_l_ok}; "
+                    f"both-or-neither → 两族 {track} 列均建并置 NaN (无单边孤儿)"
+                )
+                for _base in _BENEFIT_BASES:
+                    for _sfx in ('', '_lg'):
+                        panel[f'{_base}{_sfx}_{track}'] = np.nan
+
     # ---- 6.6 结果分析 + 阶段计时 (日志富集, golden-safe) ----
     try:
         logger.info("  📊 关键指标解读 (benefit 面板覆盖率, sig4)")
@@ -884,7 +897,7 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
             _rates = {c: float(panel[c].notna().mean()) for c in _emitted_cols}
             _best = max(_rates.values())
             _worst = min(_rates.values())
-            logger.info(f"     · 产出 benefit_mean 列数={_n_emitted:,d} (含 _t2v twin × 三轨) | "
+            logger.info(f"     · 产出 benefit_mean 列数={_n_emitted:,d} (含 _lg co-primary twin × 三轨) | "
                         f"覆盖率区间 [{pct4(_worst)}, {pct4(_best)}]")
             for _c, _r in _rates.items():
                 logger.info(f"       - {_c}: 非空率 {pct4(_r)}")
