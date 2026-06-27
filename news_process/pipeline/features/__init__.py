@@ -7,7 +7,7 @@
 Stage 25/26/27 为 library-only (历史上无 `__main__`); Phase 2a 计划随
 importlib 反射清理一并迁移到本包 (历史规划陈述)。
 
-注: 原 text2vec_robust (stage 30 / 30_robustness_text2vec) 已于 2026-05-29
-双模型重构时退役; _t2v 稳健 twin 列现由 stage 15 (policy_alignment) + stage 25
-(strategic_diff) 主流程内联产出 (见 core/dag.py:264-272 退役注释)。
+注: v3.14.0 (2026-06-27, all-API-co-primary) 整体移除本地嵌入稳健轨 text2vec (`_t2v`)
+与 bge-m3 (`_bge`); 嵌入改为 gemini (MAIN, 无后缀) ⟂ text-embedding-3-large (`_lg`)
+跨厂商对等 co-primary 双轨, 各 producer 内联并列产出 (无后缀 + `_lg`)。
 """
