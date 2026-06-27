@@ -149,6 +149,10 @@ _ROBUSTNESS_SPEC = CONFIG.get('embedding_robustness', {})
 # 休眠门 (golden 安全铁律): 仅当 config 显式配置 `embedding_large` 块 (dict 非空) 才计算/落
 # `_lg` 列; 未配置时 _LARGE_SPEC={} → 完全不产 _lg 列 → 既有行为字节级不变。
 _LARGE_SPEC = CONFIG.get('embedding_large', {})
+# BGE spec = 第四嵌入模型 (BAAI/bge-m3, 本地 1024 维) → _bge 后缀稳健 twin 列。镜像 _t2v
+# (本地 spec, base_url=local → encode_local), 强跨架构独立稳健轨。同款休眠门: 仅当 config
+# 配置非空 `embedding_bge` 块才计算/落 _bge 列; 未配置时 {} → 不产 _bge 列 → 字节级不变。
+_BGE_SPEC = CONFIG.get('embedding_bge', {})
 # 2026-06-26 全项目统一: 嵌入 API 每次重试固定间隔 10s (flat, 不再指数退避)
 RETRY_DELAY = 10
 CACHE_DB_PATH = CONFIG['paths'].get('llm_cache_db', os.path.join(CONFIG['paths']['output_dir'], '_llm_cache.db'))
@@ -845,6 +849,22 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
             if has_ss:
                 _ALIGN_NAN_COLS += ['policy_cosine_sim_lg_allv_ss']
 
+    # BGE (_bge) 第四嵌入模型轨: 仅当 config 配置 embedding_bge (休眠门) 才进列契约,
+    # 占位列与 _t2v/_lg 同条件对称 (has_ss / _companion), 保证早退路径 _bge 占位对齐。
+    if _BGE_SPEC:
+        _ALIGN_NAN_COLS += [
+            'policy_cosine_sim_bge_full', 'policy_cosine_sim_bge_ctx',
+        ]
+        if has_ss:
+            _ALIGN_NAN_COLS += ['policy_cosine_sim_bge_ss']
+        if _companion:
+            _ALIGN_NAN_COLS += [
+                'policy_cosine_sim_bge_allv_full',
+                'policy_cosine_sim_bge_allv_ctx',
+            ]
+            if has_ss:
+                _ALIGN_NAN_COLS += ['policy_cosine_sim_bge_allv_ss']
+
     if not os.path.exists(auth_path):
         logger.warning(f"  找不到权威政策语料: {auth_path}。"
                        f"跳过 Stage 15 计算。")
@@ -1176,6 +1196,57 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
                 df['policy_cosine_sim_lg_allv_ctx'] = np.nan
                 if has_ss:
                     df['policy_cosine_sim_lg_allv_ss'] = np.nan
+
+    # --- BGE (_bge) 第四嵌入模型轨 (休眠门: 仅 _BGE_SPEC 非空时计算/落列) ---
+    # 镜像 _t2v 轨 (BGE-M3 是本地 spec, base_url=local → encode_local, 与 text2vec 同路径):
+    # spec=_BGE_SPEC/suffix=_bge, 维度无关 (emb.shape[1] 驱动, 1024 维不与 1536/768/3072 混算)。
+    # 同款 try/except 守卫 → BGE 本地模型失败仅 _bge 列置 NaN (canonical/_t2v/_lg 不受影响)。
+    if _BGE_SPEC:
+        try:
+            # 选项 B: 同 MAIN, 直送全文 full_texts / ctx_texts / ss_texts, 超长引擎 chunk+pool。
+            # return_static=_companion: 同步取 _bge 轨的全年份(静态)锚点孪生 (bge_av_*)。
+            _bge_res = _cosine_for_spec(
+                full_texts, ctx_texts, doc_chunks, _BGE_SPEC,
+                ss_texts=ss_texts, doc_years=doc_years, article_years=article_years,
+                return_static=_companion)
+            if _companion:
+                (bge_full, bge_ctx, bge_ss), \
+                    (bge_av_full, bge_av_ctx, bge_av_ss) = _bge_res
+            else:
+                bge_full, bge_ctx, bge_ss = _bge_res
+                bge_av_full = bge_av_ctx = bge_av_ss = None
+        except Exception as _bge_exc:
+            logger.warning(f"  BGE (embedding_bge) 嵌入异常: "
+                           f"{type(_bge_exc).__name__}: {_bge_exc} → _bge 轨置 NaN "
+                           f"(canonical 与 _t2v/_lg 不受影响)")
+            bge_full = bge_ctx = bge_ss = None
+            bge_av_full = bge_av_ctx = bge_av_ss = None
+        if bge_full is None or bge_ctx is None:
+            logger.warning(
+                "  BGE (embedding_bge) 嵌入失败, "
+                "policy_cosine_sim_bge_{full,ctx[,ss]} 置 NaN (canonical 不受影响)")
+            df['policy_cosine_sim_bge_full'] = np.nan
+            df['policy_cosine_sim_bge_ctx'] = np.nan
+            if has_ss:
+                df['policy_cosine_sim_bge_ss'] = np.nan
+        else:
+            df['policy_cosine_sim_bge_full'] = bge_full.astype(np.float32)
+            df['policy_cosine_sim_bge_ctx'] = bge_ctx.astype(np.float32)
+            if bge_ss is not None:
+                df['policy_cosine_sim_bge_ss'] = bge_ss.astype(np.float32)
+
+        # 全年份锚点 _bge_allv 稳健孪生 (companion 开启时): 镜像 _bge 主轨, 仅换静态锚点。
+        if _companion:
+            if bge_av_full is not None and bge_av_ctx is not None:
+                df['policy_cosine_sim_bge_allv_full'] = bge_av_full.astype(np.float32)
+                df['policy_cosine_sim_bge_allv_ctx'] = bge_av_ctx.astype(np.float32)
+                if bge_av_ss is not None:
+                    df['policy_cosine_sim_bge_allv_ss'] = bge_av_ss.astype(np.float32)
+            else:
+                df['policy_cosine_sim_bge_allv_full'] = np.nan
+                df['policy_cosine_sim_bge_allv_ctx'] = np.nan
+                if has_ss:
+                    df['policy_cosine_sim_bge_allv_ss'] = np.nan
 
     # ---- 4.7 统计报告 ----
     # fix(omni-g-policy-02, 2026-06-11): 统计/诊断/断言全部改 NaN-安全 —

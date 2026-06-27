@@ -6,18 +6,21 @@
 / 27 benefit_society / network embedding peer) 用 **显式 spec** 嵌入文本, 从而在
 一次运行内对同一批文本用两个模型各算一遍:
 
-  - MAIN (canonical):     text-embedding-3-small (OpenAI-compat, yunwu) — 主轨
-  - ROBUSTNESS (`_t2v`):  shibing624/text2vec-base-chinese (local) — 跨架构稳健 twin
-  - CAPACITY (`_lg`):     text-embedding-3-large (OpenAI-compat, yunwu) — 同族容量稳健对照
+  - MAIN (canonical):       text-embedding-3-small (OpenAI-compat, yunwu) — 主轨
+  - ROBUSTNESS-A (`_t2v`):  shibing624/text2vec-base-chinese (local) — 跨架构稳健 twin
+  - ROBUSTNESS-B (`_lg`):   text-embedding-3-large (OpenAI-compat, yunwu) — 同族容量稳健对照
+  - ROBUSTNESS-C (`_bge`):  BAAI/bge-m3 (local, 1024 维) — 强跨架构独立稳健 twin
 
-三模型互为稳健性: text2vec (`_t2v`) 与 small 是**异架构、异语言专训** (本地中文专训
-sentence-transformer vs OpenAI 通用 API), 提供**跨架构独立性**这一最强稳健性维度;
+四模型互为稳健性: text2vec (`_t2v`) 与 small 是**异架构、异语言专训** (本地中文专训
+sentence-transformer vs OpenAI 通用 API), 提供**跨架构独立性**稳健性维度; BGE-M3
+(`_bge`) 同为本地、跨架构 (BAAI SOTA 多语言, 独立于 OpenAI, 8192 token 上窗), 但
+质量显著强于 text2vec → 提供**强跨架构独立性** (预期与 small 相关性低于 `_lg` 同族);
 large (`_lg`) 与 small 同 OpenAI 同族 (同 Matryoshka 训练), 仅在嵌入**容量/维度**
 (3072 vs 1536) 上拉开, 提供**同族容量对照** (预期高度相关, 先验工程预期非实测;
 激活后须以实测 corr 为准, 验证维度而非架构敏感性)。
 
 spec 是一个 dict (来自 ``config/features.yaml::embedding_api`` / ``embedding_robustness``
-/ ``embedding_large``):
+/ ``embedding_large`` / ``embedding_bge``):
 
     {model, base_url, api_key, text_pipeline_version, batch_size}
 
@@ -27,11 +30,14 @@ spec 是一个 dict (来自 ``config/features.yaml::embedding_api`` / ``embeddin
 
 历史: 本引擎把原先散落在 4 个 feature 模块里近重复的
 ``_get_embeddings_api`` / ``_encode_embeddings_local`` / ``_embed_texts_with_chunk_pooling``
-统一为 spec 参数化的公共函数 (DRY + 让 MAIN/ROBUSTNESS/CAPACITY 多个嵌入模型成为一等公民)。
+统一为 spec 参数化的公共函数 (DRY + 让 MAIN/ROBUSTNESS-A/B/C 多个嵌入模型成为一等公民)。
 注: 此处 "多个模型" 指 text-embedding-3-small 主轨 vs text2vec ``_t2v`` 稳健轨 vs
-text-embedding-3-large ``_lg`` 容量轨这一 **模型** 维度, 与情感文本的 full/ctx/ss
-三轨是两个独立维度。``_lg`` 为 config-gated 休眠列: 仅当配置存在 ``embedding_large``
-块时才产出, 缺配置则完全不产 ``_lg`` 列 (既有行为字节级不变, golden 安全)。
+text-embedding-3-large ``_lg`` 容量轨 vs BAAI/bge-m3 ``_bge`` 强跨架构轨这一 **模型**
+维度, 与情感文本的 full/ctx/ss 三轨是两个独立维度。``_lg`` 与 ``_bge`` 均为 config-gated
+休眠列: 仅当配置分别存在 ``embedding_large`` / ``embedding_bge`` 块时才产出, 缺配置则完全
+不产对应 ``_lg`` / ``_bge`` 列 (既有行为字节级不变, golden 安全)。``_bge`` 为本地 spec
+(base_url=local), 经 ``spec_uses_local`` 走 ``encode_local`` fail-fast (镜像 ``_t2v``, 非
+``_lg`` API 软降级); 按 ``model_id`` 隔离本地模型实例与缓存, 与 text2vec 不串。
 
 学术依据 (沿用 strategic_diff/policy_alignment 既有锚点):
   - Reimers & Gurevych (2019, EMNLP) Sentence-BERT mean pooling, DOI 10.18653/v1/D19-1410
@@ -41,10 +47,11 @@ text-embedding-3-large ``_lg`` 容量轨这一 **模型** 维度, 与情感文�
 白话:
     全项目所有"把文本变成向量"的需求都走这一个模块: 调用方传一份 spec
     (写明用哪个模型、走 API 还是本地), 同一批文本就能分别用主模型、跨架构
-    稳健模型 (text2vec) 和同族大容量对照模型 (text-embedding-3-large) 各算一遍
-    向量。大容量对照默认休眠 (没配 embedding_large 就不算、不产 `_lg` 列), 既有
-    结果一字不变。算过的结果存在缓存里, 下次同样的文本不再花钱重算; 太长的
-    文本先切成小段、各段算完再加权平均成一条向量。
+    稳健模型 (text2vec)、同族大容量对照模型 (text-embedding-3-large) 和强跨架构
+    本地模型 (BAAI/bge-m3) 各算一遍向量。后两个 (large / bge) 默认休眠 (没配
+    embedding_large / embedding_bge 就不算、不产 `_lg` / `_bge` 列), 既有结果一字
+    不变。算过的结果存在缓存里, 下次同样的文本不再花钱重算; 太长的文本先切成
+    小段、各段算完再加权平均成一条向量。
 """
 
 from __future__ import annotations

@@ -466,6 +466,21 @@ def build_variable_labels(
                            .replace('T2V robust', 'Large robust'))
             HEURISTIC_LABELS[_lg_key] = _lg_label[:80]
 
+    # ═══ 第四嵌入模型 "_bge" 标签机械派生 (BAAI/bge-m3 本地稳健 twin, 休眠) ═══
+    # 与上方 _lg 派生平行, 同样从 _t2v 字面键派生 (非从新加的 _lg 键): 键里 `_t2v`→`_bge`,
+    # 标签文案 "T2V robust=text2vec"→"BGE robust=BAAI/bge-m3" (强跨架构独立稳健轨, 本地 1024
+    # 维, 不与 1536/768/3072 混算)。仅当同名 _bge 键尚不存在时写入 (幂等); 位置在 _lg 派生之后、
+    # _allv 派生循环之前, 故下方 _allv 循环可自动为 _bge 补 _bge_allv (anchor-dependent 政策族)。
+    # 🔴 休眠门: _bge 列仅在 producer 的 _BGE_SPEC 非空 (config 启用 embedding_bge) 时才落,
+    # config 休眠时这些标签恒不命中任何列 (标签缺失不崩) → golden 字节级不变。
+    for _k, _v in [(k, v) for k, v in HEURISTIC_LABELS.items() if '_t2v' in k]:
+        _bge_key = _k.replace('_t2v', '_bge')
+        if _bge_key not in HEURISTIC_LABELS:
+            _bge_label = (_v.replace('T2V robust=text2vec',
+                                     'BGE robust=BAAI/bge-m3')
+                            .replace('T2V robust', 'BGE robust'))
+            HEURISTIC_LABELS[_bge_key] = _bge_label[:80]
+
     # ═══ 全年份锚点 "_allv" 标签机械派生 (all-vintage anchor robustness, 2026-06-21) ═══
     # 与 export.py STATA_LABELS 的 _allv 派生同逻辑 (codebook + .dta 标签兜底共用此源)。
     # 仅对 anchor-dependent 政策族 (article_sim_/auth_sim_/token|hidden|subst_adopt_/

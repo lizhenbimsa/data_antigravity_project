@@ -176,19 +176,21 @@ def resolve_embedding_spec(model_id: str) -> dict:
     fix(omni-g-benefit-01, 2026-06-11): 锚点嵌入必须与文章嵌入同空间 —
     spec 不再硬编码 shibing624, 而是由文章 .npy sidecar 的 model_id 反查
     ``embedding_api`` (MAIN) / ``embedding_robustness`` (_t2v) /
-    ``embedding_large`` (_lg, 2026-06-27 第三模型)。未知 model
+    ``embedding_large`` (_lg, 2026-06-27 第三模型) /
+    ``embedding_bge`` (_bge, 2026-06-27 第四模型 BAAI/bge-m3)。未知 model
     → fail-loud (无法保证同空间)。
     """
     from news_process.core.config import load_config
 
     cfg = load_config()
-    for section in ("embedding_api", "embedding_robustness", "embedding_large"):
+    for section in ("embedding_api", "embedding_robustness",
+                    "embedding_large", "embedding_bge"):
         spec = cfg.get(section) or {}
         if str(spec.get("model") or "") == str(model_id):
             return spec
     raise ValueError(
         f"未知嵌入模型 {model_id!r}: 不匹配 config/features.yaml 的 "
-        "embedding_api / embedding_robustness / embedding_large — "
+        "embedding_api / embedding_robustness / embedding_large / embedding_bge — "
         "锚点与文章无法保证同嵌入空间"
     )
 

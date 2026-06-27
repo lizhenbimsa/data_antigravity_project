@@ -83,6 +83,9 @@ _ROBUSTNESS_SPEC = CONFIG.get('embedding_robustness', {})
 # 第三嵌入模型 (large, 镜像 _t2v): 仅 _LARGE_SPEC 非空 (config 配 embedding_large) 时才产 _lg 列;
 # 休眠门铁律 — 无配置 → {} → 完全不产 _lg → 既有行为字节级不变 (golden-safe)。
 _LARGE_SPEC = CONFIG.get('embedding_large', {})
+# 第四嵌入模型 (BAAI/bge-m3 本地 1024 维, 镜像 _t2v): 仅 _BGE_SPEC 非空 (config 配 embedding_bge)
+# 时才产 _bge 列; 同款休眠门 — 无配置 → {} → 完全不产 _bge → 既有行为字节级不变 (golden-safe)。
+_BGE_SPEC = CONFIG.get('embedding_bge', {})
 
 
 def _ghost_anchor_metrics(texts, n_banks, year, anchor_text, track_suffix):
@@ -107,7 +110,8 @@ def _ghost_anchor_metrics(texts, n_banks, year, anchor_text, track_suffix):
         dict[str, Sequence[float]]: 键 ∈ {tfidf_c, tfidf_w, lda, emb, emb_t2v},
         各值为长 n_banks 的相似度序列 (anchor_text=None 时全 NaN)。
         ⚠ _LARGE_SPEC 非空 (休眠门开) 时**额外**带 'emb_lg' 键 (镜像 emb_t2v);
-        键存在性由 _LARGE_SPEC 单点决定 → 全 nan 早退分支与正常分支一致, 防 KeyError。
+        ⚠ _BGE_SPEC 非空 (休眠门开) 时**额外**带 'emb_bge' 键 (镜像 emb_t2v);
+        键存在性由 _LARGE_SPEC / _BGE_SPEC 单点决定 → 全 nan 早退分支与正常分支一致, 防 KeyError。
     """
     nan_vec = [np.nan] * n_banks
     if anchor_text is None:
@@ -116,6 +120,8 @@ def _ghost_anchor_metrics(texts, n_banks, year, anchor_text, track_suffix):
               'emb_t2v': list(nan_vec)}
         if _LARGE_SPEC:
             _d['emb_lg'] = list(nan_vec)
+        if _BGE_SPEC:
+            _d['emb_bge'] = list(nan_vec)
         return _d
 
     texts_with_auth = texts + [anchor_text]
@@ -162,6 +168,17 @@ def _ghost_anchor_metrics(texts, n_banks, year, anchor_text, track_suffix):
                            f"{type(_lg_exc).__name__}: {_lg_exc} → emb_lg 置 NaN")
             se_mat_lg = None
         _out['emb_lg'] = se_mat_lg[:-1, -1] if se_mat_lg is not None else list(nan_vec)
+
+    # --- 方法 D-bge: 第四嵌入 twin (BAAI/bge-m3 本地, 同 ghost-anchor 算法只换模型; 休眠门 _BGE_SPEC 开才算) ---
+    # 与 emb_t2v 同款契约: 稳健轨 raise 不炸 stage, 仅 emb_bge 置 NaN; 维度无关 (emb.shape[1] 驱动)。
+    if _BGE_SPEC:
+        try:
+            se_mat_bge, _ = _build_emb(texts_with_auth, spec=_BGE_SPEC)
+        except Exception as _bge_exc:
+            logger.warning(f"    Embedding bge ({year}{track_suffix}) 异常: "
+                           f"{type(_bge_exc).__name__}: {_bge_exc} → emb_bge 置 NaN")
+            se_mat_bge = None
+        _out['emb_bge'] = se_mat_bge[:-1, -1] if se_mat_bge is not None else list(nan_vec)
 
     return _out
 
@@ -411,6 +428,9 @@ def compute_authoritative_similarity(df_exploded, panel):
                 # 第三嵌入 _lg (休眠门; 键存在性由 _LARGE_SPEC 经助手单点决定 → 与早退分支一致)
                 if 'emb_lg' in vin:
                     rec[f'auth_sim_emb_lg{track_suffix}'] = float(vin['emb_lg'][i])
+                # 第四嵌入 _bge (休眠门; 键存在性由 _BGE_SPEC 经助手单点决定 → 与早退分支一致)
+                if 'emb_bge' in vin:
+                    rec[f'auth_sim_emb_bge{track_suffix}'] = float(vin['emb_bge'][i])
                 if allv is not None:
                     rec.update({
                         f'auth_sim_tfidf_c_allv{track_suffix}': float(allv['tfidf_c'][i]),
@@ -422,6 +442,9 @@ def compute_authoritative_similarity(df_exploded, panel):
                     # _allv 是 vin 整 dict copy (@374) 或同助手再算 → emb_lg 自动随 _LARGE_SPEC 传播
                     if 'emb_lg' in allv:
                         rec[f'auth_sim_emb_lg_allv{track_suffix}'] = float(allv['emb_lg'][i])
+                    # 同理 → emb_bge 自动随 _BGE_SPEC 传播 (镜像 _lg_allv)
+                    if 'emb_bge' in allv:
+                        rec[f'auth_sim_emb_bge_allv{track_suffix}'] = float(allv['emb_bge'][i])
                 all_results.append(rec)
 
     # 4. 汇总挂载至 Panel

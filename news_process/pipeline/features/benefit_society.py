@@ -124,6 +124,10 @@ _ROBUSTNESS_SPEC = CONFIG.get('embedding_robustness', {})
 # 仅当 config 显式提供非空 embedding_large 块时才激活; 缺配置 → {} → 完全不产 _lg 列
 # → 既有行为字节级不变 (不要在 config/features.yaml 加活动块, 保持休眠)。
 _LARGE_SPEC = CONFIG.get('embedding_large', {})
+# 休眠门 (golden 安全铁律): 第四嵌入模型 BGE twin (BAAI/bge-m3, 本地 1024 维, 镜像 _t2v)
+# → '_bge' 列。BGE-M3 是本地 spec (base_url=local) → spec_uses_local()=True → 与 _t2v 同
+# 走 fail-fast 裸路径 (不进 _lg 的 API 软降级分支)。仅 config 非空 embedding_bge 时激活。
+_BGE_SPEC = CONFIG.get('embedding_bge', {})
 
 # 模块专属配置
 _BENEFIT_CFG = CONFIG.get('benefit_society', {})
@@ -703,9 +707,14 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
     # 每个 spec 用自己的锚点 + 文本 + 方向向量, 全程维度无关 (emb.shape[1] 驱动)。
     # suffix='_lg' → LARGE spec (API, 镜像 _t2v); 仅当 _LARGE_SPEC 非空 (config 显式
     #             提供 embedding_large 块) 时追加, 否则休眠 → 完全不产 _lg 列 (golden 安全)。
+    # suffix='_bge' → BGE spec (BAAI/bge-m3, 本地, 镜像 _t2v); 仅当 _BGE_SPEC 非空 (config
+    #             显式提供 embedding_bge 块) 时追加; 本地 spec → _get_embeddings 内
+    #             spec_uses_local 守卫自动走 fail-fast (与 _t2v 同, 非 _lg 软降级)。
     _specs = [('', EMBEDDING_CONFIG), ('_t2v', _ROBUSTNESS_SPEC)]
     if _LARGE_SPEC:
         _specs.append(('_lg', _LARGE_SPEC))
+    if _BGE_SPEC:
+        _specs.append(('_bge', _BGE_SPEC))
     for suffix, spec in _specs:
         spec_tag = "MAIN" if suffix == '' else f"ROBUSTNESS({suffix})"
 

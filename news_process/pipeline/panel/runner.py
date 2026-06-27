@@ -1902,6 +1902,24 @@ def main():
                 panel = panel.merge(_lg_agg, on=['target_bank', 'year'], how='left')
                 logger.info(f"  三模型: policy_cosine_sim_lg 聚合 {_lg_src} 已合并")
 
+            # 第四模型休眠轨 (embedding_bge, BAAI/bge-m3 本地 1024 维): stage 15 在
+            # _BGE_SPEC 非空时额外产出 article 级 policy_cosine_sim_bge_{full,ctx,ss} 及其
+            # 全年份锚点孪生 _bge_allv_*。此处与 _t2v/_lg 块完全平行: 按 (bank, year) 取均值
+            # 聚合为 bank-year 同名列。_bge 为软诊断/可未播种 → 未配置 embedding_bge 时上游
+            # 不产 _bge 列, 列表推导 _bge_src 自动为空 → 优雅跳过 (无 else 警告, 休眠安全)。
+            _bge_src = [c for c in ('policy_cosine_sim_bge_full',
+                                    'policy_cosine_sim_bge_ctx',
+                                    'policy_cosine_sim_bge_ss',
+                                    'policy_cosine_sim_bge_allv_full',
+                                    'policy_cosine_sim_bge_allv_ctx',
+                                    'policy_cosine_sim_bge_allv_ss')
+                        if c in df_align.columns]
+            if _bge_src:
+                _bge_agg = (df_align.groupby(['target_bank', 'year'])[_bge_src]
+                            .mean().reset_index())
+                panel = panel.merge(_bge_agg, on=['target_bank', 'year'], how='left')
+                logger.info(f"  四模型: policy_cosine_sim_bge 聚合 {_bge_src} 已合并")
+
             # --- 逻辑 B: 四象限离散分类 (机制检验 / 稳健性) ---
             # 【术语】
             #   两条词频轨 (此处指 kw/int 词频测度, 非 full/ctx/ss 情感轨):

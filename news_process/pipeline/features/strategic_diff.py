@@ -280,6 +280,7 @@ LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
 EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})            # MAIN spec (text-embedding-3-small)
 _ROBUSTNESS_SPEC = CONFIG.get('embedding_robustness', {})    # 稳健 twin spec (text2vec, 2026-05-29 双模型)
 _LARGE_SPEC = CONFIG.get('embedding_large', {})              # 第三嵌入模型 twin spec (_lg, 默认休眠; config 无 embedding_large 块时 = {} → 不产任何 _lg 列, 既有行为字节级不变)
+_BGE_SPEC = CONFIG.get('embedding_bge', {})                  # 第四嵌入模型 twin spec (_bge=BAAI/bge-m3 本地 1024 维, 镜像 _t2v; 默认休眠; config 无 embedding_bge 块时 = {} → 不产任何 _bge 列, 字节级不变)
 _ALIGN_CFG = CONFIG.get('article_alignment', {})
 _EMB_MAX_TOKENS = _coerce_positive_int(
     _ALIGN_CFG.get('max_tokens_per_input'), _EMB_MAX_TOKENS)
@@ -1552,6 +1553,16 @@ def compute_strategic_differentiation(df_exploded, panel):
                                            sim_bounds=(-1.0, 1.0))
                 cd_emb_lg = _compute_centroid_scores(se_emb_lg, banks,
                                                      dist_bounds=(0.0, 2.0))
+        # 方法 D-bge: 第四嵌入 twin (BAAI/bge-m3 本地, 镜像 _t2v; 默认休眠, 仅 _BGE_SPEC 非空才算)
+        se_bge, cd_emb_bge = None, None
+        if _BGE_SPEC:
+            se_mat_bge, se_emb_bge = _build_embedding_sim_matrix(
+                texts, spec=_BGE_SPEC)
+            if se_mat_bge is not None:
+                se_bge = _compute_nn_scores(se_mat_bge, banks, [5],
+                                            sim_bounds=(-1.0, 1.0))
+                cd_emb_bge = _compute_centroid_scores(se_emb_bge, banks,
+                                                      dist_bounds=(0.0, 2.0))
 
         # 【白话】把这一年每家银行的计算结果打包成一行行数据
         #   每一行 = 一家银行在这一年的所有差异度分数
@@ -1577,6 +1588,9 @@ def compute_strategic_differentiation(df_exploded, panel):
             if se_lg:  # 第三嵌入 twin (_lg, 软诊断; 镜像 _t2v)
                 row['strat_diff_n5_emb_lg'] = se_lg['n5'].get(bank, np.nan)
                 row['strat_sim_max_emb_lg'] = se_lg['sim_max'].get(bank, np.nan)
+            if se_bge:  # 第四嵌入 twin (_bge=BAAI/bge-m3 本地, 软诊断; 镜像 _t2v)
+                row['strat_diff_n5_emb_bge'] = se_bge['n5'].get(bank, np.nan)
+                row['strat_sim_max_emb_bge'] = se_bge['sim_max'].get(bank, np.nan)
             # 全行业向量法 Full 轨 (谢佳松 2025, 经济研究, 图1/表2)
             row['centroid_diff_tfidf_c'] = cd_c[bank]
             row['centroid_diff_tfidf_w'] = cd_w[bank]
@@ -1590,6 +1604,9 @@ def compute_strategic_differentiation(df_exploded, panel):
             if cd_emb_lg:  # 第三嵌入 twin + 契约别名镜像 strat_diff_lg_full (软诊断, 不入硬契约)
                 row['centroid_diff_emb_lg'] = cd_emb_lg.get(bank, np.nan)
                 row['strat_diff_lg_full'] = cd_emb_lg.get(bank, np.nan)
+            if cd_emb_bge:  # 第四嵌入 twin + 契约别名镜像 strat_diff_bge_full (软诊断, 不入硬契约)
+                row['centroid_diff_emb_bge'] = cd_emb_bge.get(bank, np.nan)
+                row['strat_diff_bge_full'] = cd_emb_bge.get(bank, np.nan)
             all_results.append(row)
 
     # 【白话】Fluidity: 衡量竞争者是否在向你的"领地"移动
@@ -1668,6 +1685,10 @@ def compute_strategic_differentiation(df_exploded, panel):
         if _LARGE_SPEC:
             coh_emb_lg = _compute_emb_coherence(agg_track, spec=_LARGE_SPEC)
             _coh_pairs.append((f'coh_emb_lg{track_suffix}', coh_emb_lg))
+        # 第四嵌入 twin coh_emb_bge (BAAI/bge-m3 本地, 镜像 _t2v; 默认休眠, 仅 _BGE_SPEC 非空才算/落列)
+        if _BGE_SPEC:
+            coh_emb_bge = _compute_emb_coherence(agg_track, spec=_BGE_SPEC)
+            _coh_pairs.append((f'coh_emb_bge{track_suffix}', coh_emb_bge))
 
         for name, coh_dict in _coh_pairs:
             # d=coh_dict: 默认参数绑定避免 Python 闭包延迟绑定陷阱 (审阅问题 9)
@@ -1776,6 +1797,16 @@ def compute_strategic_differentiation(df_exploded, panel):
                                                sim_bounds=(-1.0, 1.0))
                     cd_emb_lg = _compute_centroid_scores(se_emb_lg, banks,
                                                          dist_bounds=(0.0, 2.0))
+            # 第四嵌入 twin (_bge=BAAI/bge-m3 本地, 镜像 _t2v; 默认休眠, 仅 _BGE_SPEC 非空才算)
+            se_bge, cd_emb_bge = None, None
+            if _BGE_SPEC:
+                se_mat_bge, se_emb_bge = _build_embedding_sim_matrix(
+                    texts, spec=_BGE_SPEC)
+                if se_mat_bge is not None:
+                    se_bge = _compute_nn_scores(se_mat_bge, banks, [5],
+                                                sim_bounds=(-1.0, 1.0))
+                    cd_emb_bge = _compute_centroid_scores(se_emb_bge, banks,
+                                                          dist_bounds=(0.0, 2.0))
 
             for bank in banks:
                 row = {'target_bank': bank, 'year': year}
@@ -1796,6 +1827,9 @@ def compute_strategic_differentiation(df_exploded, panel):
                 if se_lg:  # 第三嵌入 twin (_lg, 软诊断; 镜像 _t2v)
                     row[f'strat_diff_n5_emb_lg{_tsfx}'] = se_lg['n5'].get(bank, np.nan)
                     row[f'strat_sim_max_emb_lg{_tsfx}'] = se_lg['sim_max'].get(bank, np.nan)
+                if se_bge:  # 第四嵌入 twin (_bge=BAAI/bge-m3 本地, 软诊断; 镜像 _t2v)
+                    row[f'strat_diff_n5_emb_bge{_tsfx}'] = se_bge['n5'].get(bank, np.nan)
+                    row[f'strat_sim_max_emb_bge{_tsfx}'] = se_bge['sim_max'].get(bank, np.nan)
                 # Centroid 本轨
                 row[f'centroid_diff_tfidf_c{_tsfx}'] = cd_c[bank]
                 row[f'centroid_diff_tfidf_w{_tsfx}'] = cd_w[bank]
@@ -1809,6 +1843,9 @@ def compute_strategic_differentiation(df_exploded, panel):
                 if cd_emb_lg:  # 第三嵌入 twin + 契约别名镜像 strat_diff_lg_{ctx,ss} (软诊断, 不入硬契约)
                     row[f'centroid_diff_emb_lg{_tsfx}'] = cd_emb_lg.get(bank, np.nan)
                     row[f'strat_diff_lg{_tsfx}'] = cd_emb_lg.get(bank, np.nan)
+                if cd_emb_bge:  # 第四嵌入 twin + 契约别名镜像 strat_diff_bge_{ctx,ss} (软诊断, 不入硬契约)
+                    row[f'centroid_diff_emb_bge{_tsfx}'] = cd_emb_bge.get(bank, np.nan)
+                    row[f'strat_diff_bge{_tsfx}'] = cd_emb_bge.get(bank, np.nan)
                 sub_results.append(row)
 
         if sub_results:

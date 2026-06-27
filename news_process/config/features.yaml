@@ -46,6 +46,27 @@ embedding_robustness:                            # ROBUSTNESS twin — text2vec 
   # ⚠ bump 触发条件 (§5-C): 改 model / 切片策略 / batch_size / device / dtype / torch 版本任一, 必同 diff 改此标号。
   text_pipeline_version: "v2-2026-05-29-t2v"
 
+# ──────────────────────────────────────────────────────────────────────────
+# embedding_bge — 第四嵌入模型 (BAAI/bge-m3, 本地 1024 维) → '_bge' 后缀稳健 twin 列。
+# 🔴 休眠门 (golden 安全铁律): 本块**刻意保持注释/不激活** —— 各 producer 读
+#    `CONFIG.get('embedding_bge', {})`, 键不存在 → {} → 完全不产 _bge 列 → 既有列/
+#    行为/golden 字节级不变 (与 embedding_large 同款休眠策略)。
+# 角色: BGE-M3 是 small (主轨) 的**强**跨架构独立稳健轨 (本地 SOTA 多语言, 独立于
+#    OpenAI; 8192 token 上窗), 显著强于 text2vec(`_t2v`) 承担的同一独立性稳健性。
+#    镜像 `_t2v` (本地 spec, base_url=local → encode_local); 与 `_lg` (large API,
+#    同族容量对照) 共同构成四模型嵌入稳健性谱系。1024 维不与 1536/768/3072 混算。
+# 激活 (生产, DEFERRED): ① 首次联网下载 BAAI/bge-m3 (~2.3GB); ② 取消下方注释;
+#    ③ 全量重跑 stage 15/25/26/27/46 产 _bge 列 (本地 GPU $0); ④ golden 加法重生。
+#    铁律: 勿给 BGE-M3 加任何 query instruction 前缀 (dense retrieval 不需要)。
+# embedding_bge:                                  # ROBUSTNESS-C twin — BAAI/bge-m3 (本地; 命名: _t2v=A / _lg=B / _bge=C)
+#   model: BAAI/bge-m3
+#   base_url: local
+#   api_key: local
+#   batch_size: 128
+#   # 第四轨独立 cache 命名空间 (model_id 已不同, 版本字符串再隔离一层)。
+#   # ⚠ bump 触发条件 (§5-C): 改 model / 切片策略 / batch_size / device / dtype / torch 版本任一, 必同 diff 改此标号。
+#   text_pipeline_version: "v1-2026-06-27-bge"
+
 # stage 25 战略差异度 (strategic_diff) — fix(omni-g-strategic-09, 2026-06-11)
 strategic_diff:
   # 共提及文章 1/n_banks 降权稳健开关 (默认 false = 维持原口径):

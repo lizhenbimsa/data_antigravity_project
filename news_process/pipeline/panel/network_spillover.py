@@ -1442,6 +1442,9 @@ _ROBUSTNESS_SPEC = CONFIG.get('embedding_robustness', {})
 # 块 → {} → 完全不产 _lg 列, 既有行为字节级不变, golden-safe)。维度无关:
 # emb.shape[1] 驱动, 3072 维不与 1536/768 混算。
 _LARGE_SPEC = CONFIG.get('embedding_large', {})
+# 第四嵌入模型 (BAAI/bge-m3 本地 1024 维) → '_bge' 列; 默认休眠 (config 无 embedding_bge
+# 块 → {} → 完全不产 _bge 列, 字节级不变, golden-safe)。镜像 _t2v (本地 spec)。
+_BGE_SPEC = CONFIG.get('embedding_bge', {})
 _EMB_MODELS = LLM_CONFIG.get('models', [])
 
 
@@ -1778,6 +1781,44 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
         else:
             logger.warning("  _lg 轨未生成任何变量, 相关列填 NaN")
             for _c in (*lg_tone_cols, lg_sim_col):
+                panel[_c] = np.nan
+
+    # ── 第四嵌入轨 (BGE twin): BAAI/bge-m3 (本地 1024 维) → *_bge* 列 ──────────
+    # 🔴 同 _lg P1-1: 本块同样须放在下方 `if not _ROBUSTNESS_SPEC: ... return` 早退之前。
+    # 休眠门: 仅 _BGE_SPEC 非空才计算/落 _bge 列 (config 无 embedding_bge → {} → 不产)。
+    # 镜像 _t2v (本地 spec): 同一 pass 自动产 _full + _ctx + _ss 孪生, 维度无关。
+    if _BGE_SPEC:
+        bge_tone_cols = ['emb_peer_tone_lag1_bge_full']
+        if 'llm_vote_tone_ctx' in panel.columns:
+            bge_tone_cols.append('emb_peer_tone_lag1_bge_ctx')
+        if 'llm_vote_tone_ss' in panel.columns:
+            bge_tone_cols.append('emb_peer_tone_lag1_bge_ss')
+        bge_sim_col = 'bank_emb_sim_mean_lag1_bge'
+        logger.info("-" * 60)
+        logger.info("  bge twin: 第四嵌入模型 (BAAI/bge-m3 本地 1024 维) → _bge 列")
+        try:
+            bge_results = _compute_embedding_peer_network_pass(
+                df_exploded, panel, spec=_BGE_SPEC, suffix="_bge")
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(f"  _bge 轨整体失败 ({exc}), 相关列填 NaN")
+            bge_results = {}
+
+        if bge_results:
+            bge_df = pd.DataFrame([
+                {'target_bank': k[0], 'year': k[1], **v}
+                for k, v in bge_results.items()
+            ])
+            panel = panel.merge(bge_df, on=['target_bank', 'year'], how='left')
+            for col in (*bge_tone_cols, bge_sim_col):
+                if col not in panel.columns:
+                    panel[col] = np.nan
+            valid_bge_sim = panel[bge_sim_col].dropna()
+            if len(valid_bge_sim) > 0:
+                logger.info(f"  _bge 轨已合并: {len(valid_bge_sim):,} 有效值, "
+                            f"sim_mean={sig4(valid_bge_sim.mean())}")
+        else:
+            logger.warning("  _bge 轨未生成任何变量, 相关列填 NaN")
+            for _c in (*bge_tone_cols, bge_sim_col):
                 panel[_c] = np.nan
 
     if not _ROBUSTNESS_SPEC:
