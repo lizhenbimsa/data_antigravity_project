@@ -120,6 +120,10 @@ LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
 EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})           # MAIN spec → canonical 列
 # v3.7.x 双模型嵌入: ROBUSTNESS twin (shibing624/text2vec, local) → '_t2v' 列
 _ROBUSTNESS_SPEC = CONFIG.get('embedding_robustness', {})
+# 休眠门 (golden 安全铁律): 第三嵌入模型 LARGE twin (API, 镜像 _t2v) → '_lg' 列。
+# 仅当 config 显式提供非空 embedding_large 块时才激活; 缺配置 → {} → 完全不产 _lg 列
+# → 既有行为字节级不变 (不要在 config/features.yaml 加活动块, 保持休眠)。
+_LARGE_SPEC = CONFIG.get('embedding_large', {})
 
 # 模块专属配置
 _BENEFIT_CFG = CONFIG.get('benefit_society', {})
@@ -238,13 +242,40 @@ def _get_embeddings(texts: list[str],
 
     spec 决定模型与路径 (MAIN=text-embedding-3-small / ROBUSTNESS=text2vec)。
     token_counts 已不再需要 (引擎内部按 token 自行分批), 保留参数仅为签名兼容。
+
+    P0-1 (API-fatal 守卫, 范围收窄于 postimpl-audit 2026-06-27): 仅对稳健 twin `_lg`
+    (API 且**非** MAIN canonical) 的致命错 (鉴权/网络/配额/离线闸) 兜底降级 None +
+    logger.warning, 使该 twin 仅跳过 (其轨列 NaN), 不连带炸 stage。**MAIN canonical**
+    (EMBEDDING_CONFIG) 与 **local** (_t2v) 一律 fail-fast (走裸路径, 异常照常上抛) —
+    既保留 MAIN 既有失败语义, 又不吞 embedding_engine 离线确定性闸 RuntimeError (防主
+    结果列被静默置 NaN bless 进 golden)。对齐 policy_alignment/policy_similarity 范本。
     """
-    return _eng.embed_texts(
-        texts,
-        spec or EMBEDDING_CONFIG,
-        cache_db_path=CACHE_DB_PATH,
-        log_prefix=log_prefix,
-    )
+    _spec = spec or EMBEDDING_CONFIG
+    # 守卫范围铁律 (postimpl-audit 2026-06-27 P1 修): MAIN canonical (EMBEDDING_CONFIG)
+    # 与 local (_t2v) 一律走 fail-fast 裸路径 (保留 MAIN 既有失败语义 + 不吞 embedding_engine
+    # 离线确定性闸 RuntimeError, 防主结果列被静默置 NaN bless 进 golden); 仅 _lg twin
+    # (API 且非 MAIN) 进下方 try/except 软降级。对齐 policy_alignment/policy_similarity 范本。
+    if _eng.spec_uses_local(_spec) or _spec is EMBEDDING_CONFIG:
+        # local (_t2v) 或 MAIN canonical: 行为字节级不变, 不兜底 (fail-fast)。
+        return _eng.embed_texts(
+            texts,
+            _spec,
+            cache_db_path=CACHE_DB_PATH,
+            log_prefix=log_prefix,
+        )
+    try:
+        return _eng.embed_texts(
+            texts,
+            _spec,
+            cache_db_path=CACHE_DB_PATH,
+            log_prefix=log_prefix,
+        )
+    except Exception as exc:  # noqa: BLE001 — 仅 _lg twin API 致命错降级, 防连带炸 stage
+        logger.warning(
+            f"    [API spec] {log_prefix} 嵌入失败 (model={_eng.spec_model(_spec)}), "
+            f"该 spec 降级为 None (其轨列 NaN, 不影响其他 spec): {exc!r}"
+        )
+        return None
 
 
 # ============================================================================
@@ -252,14 +283,26 @@ def _get_embeddings(texts: list[str],
 # ============================================================================
 
 def _compute_direction_vector(spec: dict | None = None) -> np.ndarray | None:
+    _spec = spec or EMBEDDING_CONFIG
     all_anchors = POSITIVE_ANCHORS + NEGATIVE_ANCHORS
     token_counts = [_count_tokens(s) for s in all_anchors]
-    emb = _get_embeddings(
-        all_anchors,
-        token_counts,
-        spec=spec or EMBEDDING_CONFIG,
-        log_prefix="Benefit anchor embedding",
-    )
+    # P0-1 (API-fatal 守卫): _get_embeddings 已对 API spec 兜底为 None; 此处再包一层
+    # 防御性 except (仅 API spec 兜底, local 不变) 以防未来绕过 _get_embeddings 直调引擎。
+    try:
+        emb = _get_embeddings(
+            all_anchors,
+            token_counts,
+            spec=_spec,
+            log_prefix="Benefit anchor embedding",
+        )
+    except Exception as exc:  # noqa: BLE001
+        if _eng.spec_uses_local(_spec) or _spec is EMBEDDING_CONFIG:
+            raise  # local (_t2v) 与 MAIN canonical: fail-fast, 异常照常上抛 (不吞离线闸)
+        logger.warning(
+            f"    [API spec] 锚点方向向量嵌入失败 (model={_eng.spec_model(_spec)}), "
+            f"该 spec 跳过 (返回 None): {exc!r}"
+        )
+        return None
     if emb is None or len(emb) == 0:
         return None
 
@@ -427,19 +470,31 @@ def _project_texts(texts: list[str], direction: np.ndarray,
     if not valid_texts:
         return scores
 
-    emb = _get_embeddings(
-        valid_texts,
-        None,
-        spec=spec or EMBEDDING_CONFIG,
-        log_prefix="Benefit text embedding",
-    )
+    _spec = spec or EMBEDDING_CONFIG
+    # P0-1 (API-fatal 守卫): _get_embeddings 已对 API spec 兜底为 None; 此处再包一层
+    # 防御性 except (仅 API spec 兜底, local 不变) 以防未来绕过 _get_embeddings 直调引擎。
+    try:
+        emb = _get_embeddings(
+            valid_texts,
+            None,
+            spec=_spec,
+            log_prefix="Benefit text embedding",
+        )
+    except Exception as exc:  # noqa: BLE001
+        if _eng.spec_uses_local(_spec) or _spec is EMBEDDING_CONFIG:
+            raise  # local (_t2v) 与 MAIN canonical: fail-fast, 异常照常上抛 (不吞离线闸)
+        logger.warning(
+            f"    [API spec] 文章文本嵌入失败 (model={_eng.spec_model(_spec)}), "
+            f"该 spec 跳过 (返回全 NaN 得分): {exc!r}"
+        )
+        return scores
 
     if emb is None or len(emb) == 0:
         return scores
 
     if cache_path and _CACHE_EMBEDDINGS:
         _persist_article_embeddings(cache_path, emb, valid_mask,
-                                    spec=spec or EMBEDDING_CONFIG)
+                                    spec=_spec)
 
     dir_norm = direction / np.linalg.norm(direction)
     norms = np.linalg.norm(emb, axis=1, keepdims=True)
@@ -646,8 +701,13 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
     # suffix='_t2v' → ROBUSTNESS spec (shibing624/text2vec, local) → 平行稳健列
     #             (benefit_mean_t2v_full / ...; 768 维独立计算, 绝不与 API 1536 维混算)
     # 每个 spec 用自己的锚点 + 文本 + 方向向量, 全程维度无关 (emb.shape[1] 驱动)。
-    for suffix, spec in [('', EMBEDDING_CONFIG), ('_t2v', _ROBUSTNESS_SPEC)]:
-        spec_tag = "MAIN" if suffix == '' else "ROBUSTNESS(_t2v)"
+    # suffix='_lg' → LARGE spec (API, 镜像 _t2v); 仅当 _LARGE_SPEC 非空 (config 显式
+    #             提供 embedding_large 块) 时追加, 否则休眠 → 完全不产 _lg 列 (golden 安全)。
+    _specs = [('', EMBEDDING_CONFIG), ('_t2v', _ROBUSTNESS_SPEC)]
+    if _LARGE_SPEC:
+        _specs.append(('_lg', _LARGE_SPEC))
+    for suffix, spec in _specs:
+        spec_tag = "MAIN" if suffix == '' else f"ROBUSTNESS({suffix})"
 
         # ---- 6.2 计算方向向量 (per spec) ----
         direction = _compute_direction_vector(spec=spec)

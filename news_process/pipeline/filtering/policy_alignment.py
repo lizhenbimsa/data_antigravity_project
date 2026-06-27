@@ -145,6 +145,10 @@ LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
 EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})
 # ROBUSTNESS spec = shibing624/text2vec (local) → _t2v 后缀稳健 twin 列
 _ROBUSTNESS_SPEC = CONFIG.get('embedding_robustness', {})
+# LARGE spec = 第三嵌入模型 (如 text-embedding-3-large, 3072 维) → _lg 后缀稳健 twin 列。
+# 休眠门 (golden 安全铁律): 仅当 config 显式配置 `embedding_large` 块 (dict 非空) 才计算/落
+# `_lg` 列; 未配置时 _LARGE_SPEC={} → 完全不产 _lg 列 → 既有行为字节级不变。
+_LARGE_SPEC = CONFIG.get('embedding_large', {})
 # 2026-06-26 全项目统一: 嵌入 API 每次重试固定间隔 10s (flat, 不再指数退避)
 RETRY_DELAY = 10
 CACHE_DB_PATH = CONFIG['paths'].get('llm_cache_db', os.path.join(CONFIG['paths']['output_dir'], '_llm_cache.db'))
@@ -825,6 +829,22 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
             _ALIGN_NAN_COLS += ['policy_cosine_sim_allv_ss',
                                 'policy_cosine_sim_t2v_allv_ss']
 
+    # LARGE (_lg) 第三嵌入模型轨: 仅当 config 配置 embedding_large (休眠门) 才进列契约,
+    # 占位列与 _t2v 同条件对称 (has_ss / _companion), 保证三处早退路径 _lg/_t2v 占位对齐。
+    if _LARGE_SPEC:
+        _ALIGN_NAN_COLS += [
+            'policy_cosine_sim_lg_full', 'policy_cosine_sim_lg_ctx',
+        ]
+        if has_ss:
+            _ALIGN_NAN_COLS += ['policy_cosine_sim_lg_ss']
+        if _companion:
+            _ALIGN_NAN_COLS += [
+                'policy_cosine_sim_lg_allv_full',
+                'policy_cosine_sim_lg_allv_ctx',
+            ]
+            if has_ss:
+                _ALIGN_NAN_COLS += ['policy_cosine_sim_lg_allv_ss']
+
     if not os.path.exists(auth_path):
         logger.warning(f"  找不到权威政策语料: {auth_path}。"
                        f"跳过 Stage 15 计算。")
@@ -1102,6 +1122,60 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
             df['policy_cosine_sim_t2v_allv_ctx'] = np.nan
             if has_ss:
                 df['policy_cosine_sim_t2v_allv_ss'] = np.nan
+
+    # --- LARGE (_lg) 第三嵌入模型轨 (休眠门: 仅 _LARGE_SPEC 非空时计算/落列) ---
+    # 镜像 _t2v 轨: 把 spec=_ROBUSTNESS_SPEC/suffix=_t2v 那一份复制成 spec=_LARGE_SPEC/
+    # suffix=_lg, 维度无关 (emb.shape[1] 驱动, 3072 维不与 1536/768 混算)。同款 try/except
+    # 守卫 → LARGE API/模型失败仅 _lg 列置 NaN (canonical 与 _t2v 不受影响)。
+    if _LARGE_SPEC:
+        try:
+            # 选项 B: 同 MAIN, 直送全文 full_texts / ctx_texts / ss_texts, 超长引擎 chunk+pool。
+            # return_static=_companion: 同步取 _lg 轨的全年份(静态)锚点孪生 (lg_av_*)。
+            _lg_res = _cosine_for_spec(
+                full_texts, ctx_texts, doc_chunks, _LARGE_SPEC,
+                ss_texts=ss_texts, doc_years=doc_years, article_years=article_years,
+                return_static=_companion)
+            if _companion:
+                (lg_full, lg_ctx, lg_ss), \
+                    (lg_av_full, lg_av_ctx, lg_av_ss) = _lg_res
+            else:
+                lg_full, lg_ctx, lg_ss = _lg_res
+                lg_av_full = lg_av_ctx = lg_av_ss = None
+        except Exception as _lg_exc:
+            logger.warning(f"  LARGE (embedding_large) 嵌入异常: "
+                           f"{type(_lg_exc).__name__}: {_lg_exc} → _lg 轨置 NaN "
+                           f"(canonical 与 _t2v 不受影响)")
+            lg_full = lg_ctx = lg_ss = None
+            lg_av_full = lg_av_ctx = lg_av_ss = None
+        if lg_full is None or lg_ctx is None:
+            logger.warning(
+                "  LARGE (embedding_large) 嵌入失败, "
+                "policy_cosine_sim_lg_{full,ctx[,ss]} 置 NaN (canonical 不受影响)")
+            df['policy_cosine_sim_lg_full'] = np.nan
+            df['policy_cosine_sim_lg_ctx'] = np.nan
+            # ss 轨 _lg: 仅当上游有 content_ss (has_ss) 才占位 NaN, 维持列契约对齐
+            if has_ss:
+                df['policy_cosine_sim_lg_ss'] = np.nan
+        else:
+            df['policy_cosine_sim_lg_full'] = lg_full.astype(np.float32)
+            df['policy_cosine_sim_lg_ctx'] = lg_ctx.astype(np.float32)
+            # ss 轨 _lg (银行+金科同句): lg_ss=None (ss_texts=None) 时跳过, 不产 _ss 列
+            if lg_ss is not None:
+                df['policy_cosine_sim_lg_ss'] = lg_ss.astype(np.float32)
+
+        # 全年份锚点 _lg_allv 稳健孪生 (companion 开启时): 镜像 _lg 主轨, 仅换静态锚点。
+        # lg 主轨失败 (lg_av_full=None) → 占位 NaN; ss 缺列时不产 _allv_ss (与上对齐)。
+        if _companion:
+            if lg_av_full is not None and lg_av_ctx is not None:
+                df['policy_cosine_sim_lg_allv_full'] = lg_av_full.astype(np.float32)
+                df['policy_cosine_sim_lg_allv_ctx'] = lg_av_ctx.astype(np.float32)
+                if lg_av_ss is not None:
+                    df['policy_cosine_sim_lg_allv_ss'] = lg_av_ss.astype(np.float32)
+            else:
+                df['policy_cosine_sim_lg_allv_full'] = np.nan
+                df['policy_cosine_sim_lg_allv_ctx'] = np.nan
+                if has_ss:
+                    df['policy_cosine_sim_lg_allv_ss'] = np.nan
 
     # ---- 4.7 统计报告 ----
     # fix(omni-g-policy-02, 2026-06-11): 统计/诊断/断言全部改 NaN-安全 —

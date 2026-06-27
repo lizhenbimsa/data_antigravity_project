@@ -1438,6 +1438,10 @@ LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
 EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})          # MAIN spec → canonical 列
 # v3.7.x 双模型嵌入: ROBUSTNESS twin (shibing624/text2vec, local) → '_t2v' 列
 _ROBUSTNESS_SPEC = CONFIG.get('embedding_robustness', {})
+# 第三嵌入模型 (large, 3072 维) → '_lg' 列; 默认休眠 (config 无 embedding_large
+# 块 → {} → 完全不产 _lg 列, 既有行为字节级不变, golden-safe)。维度无关:
+# emb.shape[1] 驱动, 3072 维不与 1536/768 混算。
+_LARGE_SPEC = CONFIG.get('embedding_large', {})
 _EMB_MODELS = LLM_CONFIG.get('models', [])
 
 
@@ -1734,6 +1738,48 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
     if 'llm_vote_tone_ss' in panel.columns:
         t2v_tone_cols.append('emb_peer_tone_lag1_t2v_ss')
     t2v_sim_col = 'bank_emb_sim_mean_lag1_t2v'  # fix(omni-g-net-spill-03, 2026-06-11)
+
+    # ── 第三嵌入轨 (LARGE twin): large (3072 维) → *_lg* 列 ──────────────────
+    # 🔴 P1-1 死代码陷阱: 本块必须放在下方 `if not _ROBUSTNESS_SPEC: ... return`
+    # 早退之前, 否则 embedding_robustness 为空时该 return 会让 _lg 块永不执行。
+    # 休眠门 (golden 安全铁律): 仅 _LARGE_SPEC (dict 非空) 为真时才计算/落 _lg 列;
+    # config 无 embedding_large 块 → _LARGE_SPEC={} → 完全不产 _lg 列 → 字节级不变。
+    # 镜像 _t2v: 同一 pass 自动产 _full + _ctx + _ss 孪生, 维度无关 (emb.shape[1]
+    # 驱动, 3072 维不与 1536/768 混算)。失败仅填 NaN, 不阻塞主轨与 _t2v 轨。
+    if _LARGE_SPEC:
+        lg_tone_cols = ['emb_peer_tone_lag1_lg_full']
+        if 'llm_vote_tone_ctx' in panel.columns:
+            lg_tone_cols.append('emb_peer_tone_lag1_lg_ctx')
+        if 'llm_vote_tone_ss' in panel.columns:
+            lg_tone_cols.append('emb_peer_tone_lag1_lg_ss')
+        lg_sim_col = 'bank_emb_sim_mean_lag1_lg'
+        logger.info("-" * 60)
+        logger.info("  large twin: 第三嵌入模型 (3072 维) → _lg 列")
+        try:
+            lg_results = _compute_embedding_peer_network_pass(
+                df_exploded, panel, spec=_LARGE_SPEC, suffix="_lg")
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(f"  _lg 轨整体失败 ({exc}), 相关列填 NaN")
+            lg_results = {}
+
+        if lg_results:
+            lg_df = pd.DataFrame([
+                {'target_bank': k[0], 'year': k[1], **v}
+                for k, v in lg_results.items()
+            ])
+            panel = panel.merge(lg_df, on=['target_bank', 'year'], how='left')
+            for col in (*lg_tone_cols, lg_sim_col):
+                if col not in panel.columns:
+                    panel[col] = np.nan
+            valid_lg_sim = panel[lg_sim_col].dropna()
+            if len(valid_lg_sim) > 0:
+                logger.info(f"  _lg 轨已合并: {len(valid_lg_sim):,} 有效值, "
+                            f"sim_mean={sig4(valid_lg_sim.mean())}")
+        else:
+            logger.warning("  _lg 轨未生成任何变量, 相关列填 NaN")
+            for _c in (*lg_tone_cols, lg_sim_col):
+                panel[_c] = np.nan
+
     if not _ROBUSTNESS_SPEC:
         logger.info("  无 embedding_robustness spec, 跳过 _t2v 稳健轨")
         for _c in (*t2v_tone_cols, t2v_sim_col):

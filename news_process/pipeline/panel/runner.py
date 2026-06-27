@@ -1884,6 +1884,24 @@ def main():
                 logger.warning("  双模型: stage 15 未含 policy_cosine_sim_t2v_* 列, "
                                "稳健轨政策对齐缺失 (检查 embedding_robustness 配置)")
 
+            # 第三模型休眠轨 (embedding_large, 3072 维): stage 15 在 _LARGE_SPEC
+            # 非空时额外产出 article 级 policy_cosine_sim_lg_{full,ctx,ss} 及其全年份
+            # 锚点孪生 _lg_allv_*。此处与 _t2v 块完全平行: 按 (bank, year) 取均值聚合为
+            # bank-year 同名列。_lg 为软诊断/可未播种 → 未配置 embedding_large 时上游
+            # 不产 _lg 列, 列表推导 _lg_src 自动为空 → 优雅跳过 (无 else 警告, 休眠安全)。
+            _lg_src = [c for c in ('policy_cosine_sim_lg_full',
+                                   'policy_cosine_sim_lg_ctx',
+                                   'policy_cosine_sim_lg_ss',
+                                   'policy_cosine_sim_lg_allv_full',
+                                   'policy_cosine_sim_lg_allv_ctx',
+                                   'policy_cosine_sim_lg_allv_ss')
+                       if c in df_align.columns]
+            if _lg_src:
+                _lg_agg = (df_align.groupby(['target_bank', 'year'])[_lg_src]
+                           .mean().reset_index())
+                panel = panel.merge(_lg_agg, on=['target_bank', 'year'], how='left')
+                logger.info(f"  三模型: policy_cosine_sim_lg 聚合 {_lg_src} 已合并")
+
             # --- 逻辑 B: 四象限离散分类 (机制检验 / 稳健性) ---
             # 【术语】
             #   两条词频轨 (此处指 kw/int 词频测度, 非 full/ctx/ss 情感轨):

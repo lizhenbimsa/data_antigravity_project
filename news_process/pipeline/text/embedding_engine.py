@@ -7,9 +7,17 @@
 一次运行内对同一批文本用两个模型各算一遍:
 
   - MAIN (canonical):     text-embedding-3-small (OpenAI-compat, yunwu) — 主轨
-  - ROBUSTNESS (`_t2v`):  shibing624/text2vec-base-chinese (local) — 稳健 twin
+  - ROBUSTNESS (`_t2v`):  shibing624/text2vec-base-chinese (local) — 跨架构稳健 twin
+  - CAPACITY (`_lg`):     text-embedding-3-large (OpenAI-compat, yunwu) — 同族容量稳健对照
 
-spec 是一个 dict (来自 ``config/features.yaml::embedding_api`` 或 ``embedding_robustness``):
+三模型互为稳健性: text2vec (`_t2v`) 与 small 是**异架构、异语言专训** (本地中文专训
+sentence-transformer vs OpenAI 通用 API), 提供**跨架构独立性**这一最强稳健性维度;
+large (`_lg`) 与 small 同 OpenAI 同族 (同 Matryoshka 训练), 仅在嵌入**容量/维度**
+(3072 vs 1536) 上拉开, 提供**同族容量对照** (预期高度相关, 先验工程预期非实测;
+激活后须以实测 corr 为准, 验证维度而非架构敏感性)。
+
+spec 是一个 dict (来自 ``config/features.yaml::embedding_api`` / ``embedding_robustness``
+/ ``embedding_large``):
 
     {model, base_url, api_key, text_pipeline_version, batch_size}
 
@@ -19,9 +27,11 @@ spec 是一个 dict (来自 ``config/features.yaml::embedding_api`` 或 ``embedd
 
 历史: 本引擎把原先散落在 4 个 feature 模块里近重复的
 ``_get_embeddings_api`` / ``_encode_embeddings_local`` / ``_embed_texts_with_chunk_pooling``
-统一为 spec 参数化的公共函数 (DRY + 让 MAIN/ROBUSTNESS 两个嵌入模型成为一等公民)。
-注: 此处 "两个模型" 指 text-embedding-3-small 主轨 vs text2vec ``_t2v`` 稳健轨这一
-**模型** 维度, 与情感文本的 full/ctx/ss 三轨是两个独立维度。
+统一为 spec 参数化的公共函数 (DRY + 让 MAIN/ROBUSTNESS/CAPACITY 多个嵌入模型成为一等公民)。
+注: 此处 "多个模型" 指 text-embedding-3-small 主轨 vs text2vec ``_t2v`` 稳健轨 vs
+text-embedding-3-large ``_lg`` 容量轨这一 **模型** 维度, 与情感文本的 full/ctx/ss
+三轨是两个独立维度。``_lg`` 为 config-gated 休眠列: 仅当配置存在 ``embedding_large``
+块时才产出, 缺配置则完全不产 ``_lg`` 列 (既有行为字节级不变, golden 安全)。
 
 学术依据 (沿用 strategic_diff/policy_alignment 既有锚点):
   - Reimers & Gurevych (2019, EMNLP) Sentence-BERT mean pooling, DOI 10.18653/v1/D19-1410
@@ -30,9 +40,11 @@ spec 是一个 dict (来自 ``config/features.yaml::embedding_api`` 或 ``embedd
 
 白话:
     全项目所有"把文本变成向量"的需求都走这一个模块: 调用方传一份 spec
-    (写明用哪个模型、走 API 还是本地), 同一批文本就能分别用主模型和稳健
-    模型各算一遍向量。算过的结果存在缓存里, 下次同样的文本不再花钱重算;
-    太长的文本先切成小段、各段算完再加权平均成一条向量。
+    (写明用哪个模型、走 API 还是本地), 同一批文本就能分别用主模型、跨架构
+    稳健模型 (text2vec) 和同族大容量对照模型 (text-embedding-3-large) 各算一遍
+    向量。大容量对照默认休眠 (没配 embedding_large 就不算、不产 `_lg` 列), 既有
+    结果一字不变。算过的结果存在缓存里, 下次同样的文本不再花钱重算; 太长的
+    文本先切成小段、各段算完再加权平均成一条向量。
 """
 
 from __future__ import annotations

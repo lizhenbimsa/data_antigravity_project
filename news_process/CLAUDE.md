@@ -12,7 +12,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **news_process** is a research data pipeline that transforms raw Chinese news articles into panel datasets for econometric analysis. It processes bank and fintech news through multiple stages: preprocessing, classification, sentiment analysis (LLM/dictionary/BERT), and panel construction.
 
-**Current version**: v3.11.1 (2026-06-22, rule-ablation-ladder, **词典法逐 token 状态机三规则全 powerset 中间变量稳健性梯度**)。
+**Current version**: v3.12.0 (2026-06-27, tri-model-embedding, **新增 `text-embedding-3-large` 作第三嵌入模型 `_lg`，与 small(主)/text2vec(`_t2v`) 三模型并列互为稳健性检验；config-gated 休眠，无 `embedding_large` 配置则不产 `_lg` 列、golden 字节级不变**)。
+
+**v3.12.0** (2026-06-27, tri-model-embedding, **新增 text-embedding-3-large 作第三嵌入模型 `_lg`**) — `pipeline/text/embedding_engine.py` 三模型并列互为稳健性: small (主, 无后缀) / text2vec (`_t2v`, 跨架构稳健) / **text-embedding-3-large (`_lg`, 同族容量对照)**。每个 producer 在既有 `_ROBUSTNESS_SPEC = CONFIG.get('embedding_robustness', {})` 之后加模块级 `_LARGE_SPEC = CONFIG.get('embedding_large', {})`, 镜像既有 `_t2v` 那一份 (spec 换为 `_LARGE_SPEC`、suffix 换为 `_lg`; 维度无关, 由 `emb.shape[1]` 驱动, 3072 维不与 1536/768 混算)。
+- **🔴 config-gated 休眠 (golden 安全铁律)**: 只在 `if _LARGE_SPEC:` (dict 非空) 为真时才计算/落 `_lg` 列。`config/features.yaml` **刻意不加**任何活动 `embedding_large` 块 → 无配置时 `_LARGE_SPEC={}` → 完全不产 `_lg` 列 → 既有行为**字节级不变** (golden 安全)。`_t2v` 与 MAIN(无后缀) 任何逻辑/列**严禁改动**。
+- **同族 caveat**: large 与 small 同 OpenAI 同族 (同 Matryoshka 训练), 仅嵌入容量/维度 (3072 vs 1536) 拉开 → **预期高度相关** (先验工程预期, **非本仓实测** — 休眠态从未真跑 `_lg`; 论文如启用须报**实测 corr**, 不沿用先验阈值) (容量对照, 验证维度敏感性而非架构敏感性); 主**独立性**稳健性仍由 `_t2v` 跨架构 (本地中文专训) 承担。论文如启用 `_lg`, 须如实定位为同族容量对照, 不与 `_t2v` 混为一谈。
+- **计数不变** (纯休眠扩展, 无阶段增删, 无活动配置): STAGES_MAIN=16 / STAGES_VALIDATION=16 / thin shim=35 / OUTPUT_REGISTRY=16 全不变。
 
 **v3.11.1** — `pipeline/sentiment/tone_words.py::_compute_sentiment_with_rules` 新增 `apply_negation` 参数 (只 gate 翻号, **保留**否定词识别/continue/窗口递减骨架, 与 degree/adversative 同款铁律), 把状态机三语言学规则 (① 否定翻转 / ② 程度副词六级权重 / ③ 转折增强) 的**全 powerset** 组合物化为独立自归一化的稳健性消融变体梯度 ("每经过一个步骤留存中间变量")。单一事实源 = `_RULE_ABLATION_VARIANTS` (7 项 = 2³ powerset − full; negonly 折入, 相同 flag → 物化**字节不变** → golden-safe)。6 新变体 `{dict}_score_{raw,degonly,advonly,negdeg,negadv,degadv}` × 6 词典 × 3 轨 = **108 article 列**; encode 聚合同名 panel `{d}_{sfx}_tone{track}` (mean-only, ≤32 字符) **108 列**; geography 跨词典 `dict_avg_{sfx}_tone{track}` (镜像既有 `dict_avg_negonly_tone` 三点谱 → 全 powerset) **18 列**。
 - **计数口径 msent 不入梯度**: 程度②/转折③ 是严格正乘子、永不翻号 → `sign(final)=sign(base)×sign(flip)` 对计数不变 → `msent_raw≡msent_score` / `msent_negdeg≡msent_negonly` 退化; 已由 `msent_score`(零规则) + `msent_negonly`(仅否定) 完整覆盖, **不新增任何 msent_\* 列**。

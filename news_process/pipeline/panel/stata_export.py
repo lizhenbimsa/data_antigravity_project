@@ -447,6 +447,25 @@ def build_variable_labels(
         'lpeer_benefit_iv_ss':              "Same-type peer LOO benefit-attitude IV (ss 银行+金科同句)",
     }
 
+    # ═══ 第三嵌入模型 "_lg" 标签机械派生 (text-embedding-3-large 稳健 twin, 休眠) ═══
+    # 镜像既有 _t2v 那一份 (full/ctx 块 + ss 块): 把键里的 `_t2v`→`_lg`, 标签文案里的
+    # "T2V robust=text2vec"→"Large robust=text-embedding-3-large" (与 _t2v=text2vec /
+    # 主轨=text-embedding-3-small 三模型嵌入稳健性谱系并列, 维度 3072 不与 1536/768 混算)。
+    # 仅当同名 _lg 键尚不存在时写入 (幂等); 位置在 _t2v 字面 dict 之后、_allv 派生循环之前,
+    # 故下方 _allv 循环可自动为 _lg 补 _lg_allv (anchor-dependent 政策族, 如 policy_cosine_sim)。
+    # 🔴 休眠门: _lg 列仅在 producer 的 _LARGE_SPEC 非空 (config 启用 embedding_large) 时才落,
+    # config 休眠时这些标签恒不命中任何列 (标签覆盖率仅 log.info, 标签缺失不崩) → golden 字节级不变。
+    for _k, _v in [(k, v) for k, v in HEURISTIC_LABELS.items() if '_t2v' in k]:
+        _lg_key = _k.replace('_t2v', '_lg')
+        if _lg_key not in HEURISTIC_LABELS:
+            # 先替完整串 "T2V robust=text2vec", 再兜底替简写 "T2V robust"
+            # (部分 _t2v 标签如 strat_diff_n5_emb_t2v 文案只写 "T2V robust"),
+            # 使 _lg 标签不残留任何 "T2V" 字样 (与 large 模型自洽)。
+            _lg_label = (_v.replace('T2V robust=text2vec',
+                                    'Large robust=text-embedding-3-large')
+                           .replace('T2V robust', 'Large robust'))
+            HEURISTIC_LABELS[_lg_key] = _lg_label[:80]
+
     # ═══ 全年份锚点 "_allv" 标签机械派生 (all-vintage anchor robustness, 2026-06-21) ═══
     # 与 export.py STATA_LABELS 的 _allv 派生同逻辑 (codebook + .dta 标签兜底共用此源)。
     # 仅对 anchor-dependent 政策族 (article_sim_/auth_sim_/token|hidden|subst_adopt_/
