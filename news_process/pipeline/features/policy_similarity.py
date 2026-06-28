@@ -29,7 +29,7 @@ Firm-Year 级别的结构化特征。通过汇总该年度单家企业的全部�
    放在一模一样的算法标准（同构的字典、相同的主题抽取、超长文本同走 token 分段 +
    均值池化 — 旧注释所称“相同的 8000 字截断”已随 embedding_engine 统一而不存在）下比对。
 4. 最终得出至多 5 个相似度指标（TF-IDF 字符级 / TF-IDF 词级 / LDA 主题 / Embedding 主轨
-   gemini / Embedding large `_lg` 活跃 co-primary）× Full/Ctx/Ss 三轨：分数越高，说明这家银行的战略
+   Qwen / Embedding large `_lg` 活跃 co-primary）× Full/Ctx/Ss 三轨：分数越高，说明这家银行的战略
    步调与（截至当年已发布的）国家政策跟得越紧密。
    注: ss 轨 = content_ss (银行+金科同句共现窗, stage 13 物化; 无共现回退全文,
    镜像 ctx); content_ss 缺失时退回 Full/Ctx 两路 (优雅跳过, 不产 _ss 指标列)。
@@ -80,7 +80,7 @@ from news_process.pipeline.panel.encode import CONFIG, logger  # noqa: E402
 
 # v3.14.0: 移除两条本地嵌入稳健轨 (_t2v text2vec / _bge bge-m3); 保留 API 轨 _lg。
 # 第三嵌入模型 (large, text-embedding-3-large): _LARGE_SPEC 非空 (config 配 embedding_large)
-# 时产 _lg 列, 现为活跃 co-primary (与无后缀 MAIN gemini 并列)。
+# 时产 _lg 列, 现为活跃 co-primary (与无后缀 MAIN Qwen 并列)。
 _LARGE_SPEC = CONFIG.get('embedding_large', {})
 
 
@@ -135,7 +135,7 @@ def _ghost_anchor_metrics(texts, n_banks, year, anchor_text, track_suffix):
         logger.warning(f"    LDA ({year}{track_suffix}) 失败: {type(e).__name__}")
         auth_lda = list(nan_vec)
 
-    # --- 方法 D: Semantic Embedding (主轨 MAIN — gemini-embedding-2-preview, 无后缀) ---
+    # --- 方法 D: Semantic Embedding (主轨 MAIN — Qwen/Qwen3-Embedding-8B, 无后缀) ---
     se_mat, _ = _build_emb(texts_with_auth)
 
     # --- 方法 D-lg: 第三嵌入 twin (large, text-embedding-3-large; 活跃 co-primary, _LARGE_SPEC 开才算) ---
@@ -235,7 +235,7 @@ def compute_authoritative_similarity(df_exploded, panel):
         logger.info(f"     · RUN_ID={os.environ.get('NEWS_PROCESS_RUN_ID', '(unset)')} | cwd={os.getcwd()}")
         logger.info(f"     · 模块: {os.path.abspath(__file__)}")
         logger.info("     · 确定性/成本: 纯 CPU 文本相似度 (TF-IDF/LDA 确定); embedding 主轨/(_lg) 经穿透缓存,"
-                    " 冷缓存须付费嵌入 (gemini / text-embedding-3-large) — 命中则 $0")
+                    " 冷缓存须付费嵌入 (Qwen / text-embedding-3-large) — 命中则 $0")
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"  环境信息打印失败 (不影响计算): {_e}")
 

@@ -65,7 +65,7 @@ def _patch_engine(monkeypatch, dim: int = 4, capture: dict | None = None):
     monkeypatch.setattr(eng, 'embed_texts', fake_embed)
 
 
-def _write_emb_with_sidecar(path, emb, model_id='gemini-embedding-2-preview'):
+def _write_emb_with_sidecar(path, emb, model_id='Qwen/Qwen3-Embedding-8B'):
     np.save(path, emb)
     with open(f"{path}.sidecar.json", 'w', encoding='utf-8') as f:
         json.dump({'model_id': model_id,
@@ -335,10 +335,10 @@ class TestAltAnchorRewire:
         assert meta['model_id'] == 'm'
 
     def test_resolve_spec_main_and_coprimary(self):
-        """config/features.yaml 双 co-primary spec 反查 (v3.14.0: gemini MAIN +
+        """config/features.yaml 双 co-primary spec 反查 (v3.14.0: Qwen MAIN +
         text-embedding-3-large _lg; 已删本地 text2vec/_t2v); 未知 model → fail-loud。"""
-        spec_main = alt.resolve_embedding_spec('gemini-embedding-2-preview')
-        assert spec_main['model'] == 'gemini-embedding-2-preview'
+        spec_main = alt.resolve_embedding_spec('Qwen/Qwen3-Embedding-8B')
+        assert spec_main['model'] == 'Qwen/Qwen3-Embedding-8B'
         spec_lg = alt.resolve_embedding_spec('text-embedding-3-large')
         assert spec_lg['model'] == 'text-embedding-3-large'
         with pytest.raises(ValueError, match='未知嵌入模型'):

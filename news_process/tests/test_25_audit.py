@@ -246,7 +246,7 @@ class TestComputeStrategicDifferentiation:
 
         v3.14.0 (2026-06-27, all-API-embedding): 项目已彻底移除本地嵌入模型
         (text2vec `_t2v` / bge-m3 `_bge`), strategic_diff 不再 import sentence_transformers
-        —— 嵌入全经 `_eng.embed_texts` (gemini MAIN + `_lg`=text-embedding-3-large 双 API)。
+        —— 嵌入全经 `_eng.embed_texts` (Qwen MAIN + `_lg`=text-embedding-3-large 双 API)。
         故删去旧 `pytest.importorskip("sentence_transformers")` 守卫 (该依赖已与本测试无关,
         否则在无该包的纯 API 机器上会错误跳过)。
         """

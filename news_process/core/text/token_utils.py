@@ -1,8 +1,10 @@
 """news_process.core.text.token_utils — tiktoken 文本切分工具。
 
-统一提供 cl100k_base 编码器 (OpenAI text-embedding-3-small 底层编码器) 的
-token 计数、截断、分段函数,供 Stage 15 (policy_alignment) 与
-Stage 27 (benefit_society) 等需要精确 token 切分的场景复用。
+统一提供 cl100k_base 编码器 (作为嵌入切块的保守 token 代理; 历史上是 OpenAI
+text-embedding-3-small 底层编码器) 的 token 计数、截断、分段函数,供 Stage 15
+(policy_alignment) 与 Stage 27 (benefit_society) 等需要精确 token 切分的场景复用。
+(v3.15.0 起嵌入主轨 = Qwen/Qwen3-Embedding-8B(32K)/co-primary text-embedding-3-large(8191);
+cl100k 8191 切块对两者均保守安全, 故沿用此编码器, 不随嵌入模型换厂商而改。)
 
 设计动机
 --------
@@ -12,7 +14,7 @@ Stage 27 (benefit_society) 等需要精确 token 切分的场景复用。
 
 常量
 ----
-- ``MAX_TOKENS_PER_INPUT`` 默认 8191 (OpenAI text-embedding-3-small 上限)
+- ``MAX_TOKENS_PER_INPUT`` 默认 8191 (cl100k 保守切块上限; 对 Qwen3-Embedding-8B 32K / text-embedding-3-large 8191 均安全)
 - ``MAX_TOKENS_PER_REQUEST`` 默认 250_000 (单次请求经验上限)
 
 调用方可通过参数覆盖这些默认值, 模块级常量仅作 fallback。
@@ -22,10 +24,11 @@ from __future__ import annotations
 
 import tiktoken
 
-# cl100k_base 是 text-embedding-3-small 的底层编码器
+# cl100k_base 作嵌入切块的保守 token 代理 (历史上是 text-embedding-3-small 底层编码器;
+# 对当前嵌入模型 Qwen3-Embedding-8B / text-embedding-3-large 的切块均保守安全)
 _ENCODING = tiktoken.get_encoding("cl100k_base")
 
-# OpenAI text-embedding-3-small 的硬性约束
+# cl100k 保守切块约束 (对 Qwen3-Embedding-8B 32K / text-embedding-3-large 8191 上限均安全)
 MAX_TOKENS_PER_INPUT = 8191
 MAX_TOKENS_PER_REQUEST = 250_000
 

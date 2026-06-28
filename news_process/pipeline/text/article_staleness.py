@@ -13,13 +13,13 @@ dedup.py 的 jaccard 布尔决策 (find_near_duplicate_indices) 互补.
     Faiss IndexFlatIP (normalized inner-product = cosine) + 文章嵌入 cosine
     (stage 30a article embeddings); 大样本可换 IVFFlat (见实现 _compute_semantic).
     捕捉语义相似度 (词面不同但含义近似), 与 surface 互补.
-    v3.14.0 (2026-06-27): 嵌入改 co-primary 双 API 轨 (gemini MAIN + text-embedding-3-large
-    `_lg`, 各 3072 维; 本地 text2vec 已移除) → semantic_staleness 各算两遍 (MAIN 无后缀 +
-    `_lg` 孪生), 跨厂商对等互证。IndexFlatIP(dim) 维度无关, 768→3072 直接流过。
+    v3.14.0 (2026-06-27): 嵌入改 co-primary 双 API 轨 (Qwen MAIN 4096 维 + text-embedding-3-large
+    `_lg` 3072 维; 维度不同, 余弦维度无关绝不混算; 本地 text2vec 已移除) → semantic_staleness 各算两遍 (MAIN 无后缀 +
+    `_lg` 孪生), 跨厂商对等互证。IndexFlatIP(dim) 维度无关, 4096/3072 直接流过。
 
 双指标 panel 列 (G-S7 设计; 三轨 full/ctx/ss × semantic co-primary 双轨):
     ``surface_staleness_{full,ctx,ss}``     (MinHash jaccard; 无 `_lg` 孪生 — carve-out, 非嵌入派生)
-    ``semantic_staleness_{full,ctx,ss}``    (MAIN/gemini cosine, canonical 无后缀)
+    ``semantic_staleness_{full,ctx,ss}``    (MAIN/Qwen cosine, canonical 无后缀)
     ``semantic_staleness_{full,ctx,ss}_lg`` (`_lg`/large cosine 孪生, v3.14.0 co-primary 互证)
     ``staleness_corr``                      panel-level surface vs semantic 相关性
 
@@ -84,13 +84,13 @@ surface 与 semantic staleness 相关性 ∈ [0.3, 0.7] (互补 ≠ 冗余).
 
 **双指标算法**(对每篇文章求'过去7天内最相似旧文章'的最大相似度):
 1. **surface_staleness** `compute_surface_staleness`: 字符级 3-gram shingle(_char_shingles, 中文友好不依赖分词)→ MinHash(num_perm=128) → MinHashLSHForest。按 unique-day 分组的滚动 LSH(每个'天'重建一次 forest, 窗口 = [d-7d, d) **严格排除同日行**), 把原 O(N²) 降到约 7N。返回前按 stable argsort 的逆置换还原原始行序(P0 修复, 防整列错位)。第一周/空窗口 → NaN; 有窗口但 LSH 查询无命中 → 0.0。
-2. **semantic_staleness** `compute_semantic_staleness`: Faiss IndexFlatIP(归一化内积 = cosine), 复用 stage 30a 的文章嵌入(v3.14.0 co-primary 双轨: gemini MAIN 3072 维 + text-embedding-3-large `_lg` 3072 维 各算一遍 → semantic_staleness_* + semantic_staleness_*_lg; IndexFlatIP(dim) 维度无关), 同样日粒度7天滚动窗口、严格排除同日行(修同 docid 跨 bank 复制行 cosine=1.0 的 artifact), 取窗内 top-1 相似度。stable argsort 保证可复现。
+2. **semantic_staleness** `compute_semantic_staleness`: Faiss IndexFlatIP(归一化内积 = cosine), 复用 stage 30a 的文章嵌入(v3.14.0 co-primary 双轨: Qwen MAIN 4096 维 + text-embedding-3-large `_lg` 3072 维 各算一遍 → semantic_staleness_* + semantic_staleness_*_lg; 维度不同, 余弦维度无关绝不混算; IndexFlatIP(dim) 维度无关), 同样日粒度7天滚动窗口、严格排除同日行(修同 docid 跨 bank 复制行 cosine=1.0 的 artifact), 取窗内 top-1 相似度。stable argsort 保证可复现。
 
 **嵌入对齐** `_load_aligned_embeddings`: 按 article_id 显式 join(非裸位置对齐), 行数不等/键缺失/键重复/辅键(target_bank/日期)逐行不一致时 fail-loud sys.exit(1) 提示重跑 30a(防 30a 陈旧静默错位)。
 
 **聚合** `aggregate_to_bank_year`: 每轨 staleness 列 → bank-year mean + highstale(>0.9 占比) 列, `if col in df.columns` 守卫(缺列即跳过, 故 semantic_staleness_ss 在旧 30a parquet 无 emb_ss 时不会误产空列; 2026-06-21 起 30a 产 emb_ss → semantic_ss 三轨平价)。聚合前 `_restrict_to_panel_domain` 把 **平均域** 收缩到 verified 面板语料((docid,target_bank) 内连 24_herd_decay, 缺则 21_tone_llms; 都缺则 ERROR 披露并退回全集)——与面板兄弟列(tone/herd/intensity 聚合自 verified-union ~857篇)口径一致; 但 **参照窗口**(过去7天信息环境)刻意保留全集。
 
-**外部依赖**: faiss-cpu + datasketch(always-on 后缺包会真崩, ImportError raise)。本阶段自身不调 API、$0(纯 CPU MinHash/Faiss); 但其消费的 stage 30a 嵌入 v3.14.0 起为 co-primary 双 API 轨(gemini + text-embedding-3-large, 经 yunwu, 由 30a 付费产出, 经 _llm_cache.db 缓存)。**构念保真披露**: 与 Tetlock 2011 两点刻意偏离——匹配域是 corpus-level 全银行混池7天窗(非同公司72h最近10篇), semantic 轨嵌入 cosine 是扩展(2011年无此类嵌入)。G-D2.1 诊断: surface vs semantic corr 期望 [0.3,0.7](互补≠冗余)。
+**外部依赖**: faiss-cpu + datasketch(always-on 后缺包会真崩, ImportError raise)。本阶段自身不调 API、$0(纯 CPU MinHash/Faiss); 但其消费的 stage 30a 嵌入 v3.14.0 起为 co-primary 双 API 轨(Qwen 经硅基流动 + text-embedding-3-large 经 yunwu, 由 30a 付费产出, 经 _llm_cache.db 缓存)。**构念保真披露**: 与 Tetlock 2011 两点刻意偏离——匹配域是 corpus-level 全银行混池7天窗(非同公司72h最近10篇), semantic 轨嵌入 cosine 是扩展(2011年无此类嵌入)。G-D2.1 诊断: surface vs semantic corr 期望 [0.3,0.7](互补≠冗余)。
 
 ■ 白话说明
 
@@ -273,16 +273,16 @@ def compute_semantic_staleness(
     155/155 同日 dup 行全 =1.0, semantic_highstale 信号几乎纯由该 artifact 驱动),
     且哪一行得 1.0 取决于任意输入行序。修后 surface 与 semantic 两族窗口/NaN 口径一致。
 
-    v3.14.0 (2026-06-27): ``embeddings`` 可来自 MAIN (gemini) 或 _lg (large) 任一
-    co-primary 嵌入套 (Faiss IndexFlatIP(dim) 维度无关, 3072 维直接流过); ``col_suffix``
+    v3.14.0 (2026-06-27): ``embeddings`` 可来自 MAIN (Qwen) 或 _lg (large) 任一
+    co-primary 嵌入套 (Faiss IndexFlatIP(dim) 维度无关, Qwen 4096 / large 3072 维直接流过); ``col_suffix``
     (''/'_lg') 仅用于日志区分两轨, 不影响计算。调用方据此发射 semantic_staleness_X
     (MAIN) 或 semantic_staleness_X_lg (large) 镜像列。
 
     Args:
         df: article-level DataFrame (按 date_col 升序对齐 embeddings 行).
-        embeddings: (N, dim) embeddings (normalize_embeddings=True / 单位归一假设; dim=3072).
+        embeddings: (N, dim) embeddings (normalize_embeddings=True / 单位归一假设; Qwen dim=4096 / large dim=3072).
         date_col: 日期列名.
-        col_suffix: '' (MAIN/gemini) 或 '_lg' (large) — 仅日志标识, 不改计算。
+        col_suffix: '' (MAIN/Qwen) 或 '_lg' (large) — 仅日志标识, 不改计算。
 
     Returns:
         np.ndarray of shape (N,); 窗口空 (含首周/仅同日邻居) 的文章为 NaN.
@@ -427,7 +427,7 @@ def _load_aligned_embeddings(
     stage 13 的 df.index, 见 article_sbert.py::_build_output_frame), 长度不等/键缺失/
     键重复或辅键 (target_bank/日期) 逐行不一致时 fail-loud 退出, 提示重跑 30a。
 
-    v3.14.0 (2026-06-27, co-primary 双轨): 30a 现产 MAIN (gemini, emb_{full,ctx,ss})
+    v3.14.0 (2026-06-27, co-primary 双轨): 30a 现产 MAIN (Qwen, emb_{full,ctx,ss})
     + _lg (large, emb_{full,ctx,ss}_lg) 两套嵌入。本函数 unpack 6 个矩阵; _lg 列缺失
     (旧 30a parquet 未重跑双轨) → 三个 _lg 矩阵均 None, 下游优雅跳过 semantic_staleness_*_lg。
 
@@ -502,7 +502,7 @@ def _load_aligned_embeddings(
             return None
         arr = np.stack(emb_aligned[col].tolist())
         # 防御 (final-audit P2): 经同一 emb_aligned reindex, 行序/长度须与 emb_full 全等;
-        # 维度可不同 (MAIN 与 _lg 同为 3072, 但函数不假设 — 仅核行数防错位)。emb_full
+        # 维度可不同 (MAIN/Qwen 4096 与 _lg/large 3072, 函数不假设 — 仅核行数防错位)。emb_full
         # 自身的维度由其首列 stack 决定。不等 = 30a parquet 内部错乱, fail-loud 防错位语义信号。
         if arr.shape[0] != len(emb_aligned):
             logger.error(
@@ -584,11 +584,11 @@ def main():
     logger.info("        (新瓶装旧酒/通稿转载)? 雷同度越高 = 信息含量越低。聚合成 bank-year 指标后")
     logger.info("        主要用作稳健性检验: 验证主结论不是被'重复报道的噪音'驱动的。")
     logger.info("        产出两族列 (三轨 full/ctx/ss): surface_staleness_* (字面像) + semantic_staleness_*")
-    logger.info("        (语义像; v3.14.0 co-primary 双轨 = 无后缀/gemini + _lg/large 各一遍; 依赖 stage 30a 嵌入, 缺则仅出 surface)。")
+    logger.info("        (语义像; v3.14.0 co-primary 双轨 = 无后缀/Qwen + _lg/large 各一遍; 依赖 stage 30a 嵌入, 缺则仅出 surface)。")
     logger.info("【方法】对每篇文章求'过去 7 天窗口内最相似旧文章'的最大相似度 (严格排除同日行):")
     logger.info("          · surface = 字符 3-gram shingle → MinHash(num_perm=128) → 按天滚动的 LSHForest")
     logger.info("                      jaccard top-10 取 max; 有窗无命中→0.0; 第一周/空窗口→NaN; O(N²)→~7N 加速 (无 _lg 孪生 — 非嵌入派生)。")
-    logger.info("          · semantic = 复用 30a 文章嵌入 (gemini MAIN + large _lg, 各 3072 维) → Faiss IndexFlatIP(归一化内积=cosine)")
+    logger.info("          · semantic = 复用 30a 文章嵌入 (Qwen MAIN 4096 维 + large _lg 3072 维) → Faiss IndexFlatIP(归一化内积=cosine)")
     logger.info("                      同 7 天日粒度滚动窗口取 top-1。第一周/空窗口→NaN (窗非空必有 top-1, 无 0.0 哨兵)。")
     logger.info("        bank-year 聚合: 每轨 mean + highstale(>0.9 占比); 平均域收缩到 verified 面板语料")
     logger.info("        ((docid,target_bank) 内连 24_herd_decay/21_tone_llms), 参照窗口仍用全集。")
@@ -697,7 +697,7 @@ def main():
 
     # ── D2.b Semantic staleness (依赖 stage 30a; 三轨 full/ctx/ss × co-primary 双轨) ──
     # semantic full/ctx/ss 三轨镜像产出: ss 需 stage 30a 为 content_ss 产出 SBERT 嵌入。
-    # v3.14.0 (2026-06-27): 30a 现产 MAIN (gemini, emb_{full,ctx,ss}) + _lg (large,
+    # v3.14.0 (2026-06-27): 30a 现产 MAIN (Qwen, emb_{full,ctx,ss}) + _lg (large,
     # emb_{full,ctx,ss}_lg) 两 co-primary 套 → 本阶段对两套各算一遍 semantic_staleness:
     #   MAIN → semantic_staleness_{full,ctx,ss} (无后缀, canonical)
     #   _lg  → semantic_staleness_{full,ctx,ss}_lg (孪生; 跨厂商对等互证)

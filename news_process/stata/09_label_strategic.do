@@ -7,7 +7,7 @@
 
 * ============================================================================
 * 26. 战略差异度指标 (阶段25: strategic_diff, 主体为 TF-IDF/LDA/Embedding 同行差异度;
-*     v3.14.0 起本地 text2vec 稳健轨 *_t2v 已整体移除; gemini⟂large co-primary 双轨的 *_lg
+*     v3.14.0 起本地 text2vec 稳健轨 *_t2v 已整体移除; Qwen⟂large co-primary 双轨的 *_lg
 *     列标签由 pipeline/panel/stata_export.py::HEURISTIC_LABELS 自动派生, 不在此手工 .do 重复)
 * ============================================================================
 

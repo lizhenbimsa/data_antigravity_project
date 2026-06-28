@@ -1,4 +1,4 @@
-"""test_embedding_coprimary_parity — gemini ⟂ large co-primary parity 不变量门 (v3.14.0, D-4a)。
+"""test_embedding_coprimary_parity — Qwen ⟂ large co-primary parity 不变量门 (v3.14.0, D-4a)。
 
 铁律 (执行计划 §11): panel + producer 产物中, **每一个无后缀嵌入派生列 ⟺ 恰存在一个 `_lg`
 孪生列, 反之亦然** (schema 层列名双射, 值可 NaN)。carve-out: `surface_staleness`/
@@ -179,7 +179,7 @@ def test_real_panel_coprimary_parity():
     if not has_lg_emb:
         pytest.skip(
             "DEFERRED: 盘上 panel 仍为 v3.14.0 前 schema (无 _lg 嵌入列); "
-            "须在生产语料机重生为 gemini⟂large co-primary 双轨后此门方生效"
+            "须在生产语料机重生为 Qwen⟂large co-primary 双轨后此门方生效"
         )
     violations = check_coprimary_parity(cols)
     assert not violations, "co-primary parity 违例:\n" + "\n".join(violations)

@@ -94,11 +94,11 @@
 **处理步骤**:
 1. **语料加载** `load_policy_corpus_docs`: 按 `# [VINTAGE YYYY]` 标注行 / 落款日期行(YYYY年M月)/ 文号〔YYYY〕N号 解析各政策文档发布年份(vintage); 经 `_strip_leader_names` 镜像新闻侧 normalize 步骤2.5 做敏感词('习近平'简→繁'習近平')对称归一化; 无 VINTAGE 标注时按 ≥3 连续空行切文档。
 2. **Vintage-aware 前视守卫**(默认开, config: article_alignment.vintage_aware, 函数 vintage_aware_enabled): 年度 t 的文章只与 **发布年份 ≤ t** 的政策文档段拼成锚点算余弦(消除'2017年新闻比2022年才发布的政策'前视构造)。文章年份从 year 列或 日期 列派生; 年份未知或早于全部政策文档 → 该篇置 NaN。无年份信息或 opt-out 时降级为静态全语料锚点并 WARNING 披露。
-3. **嵌入与池化** `_cosine_for_spec`: 政策语料按文档朴素分段 (naive chunking)(_split_into_chunks, token 上限切不重叠段)→ 各段独立嵌入 → 对该年度允许的段做 mean pooling + L2 归一化 = 年度锚点; 文章侧无预截断(2026-06-12 选项 B 移除 8191-token 预截断), 超长文章由引擎 chunk+pool。文章与锚点算 cosine_similarity。每个 spec 用自己的模型独立嵌(MAIN gemini vs large 3072维, 维度不同, 严禁混算)。
-4. **双 co-primary (v3.14.0, 全平价)**: MAIN = gemini-embedding(config embedding_api, API)→ canonical `policy_cosine_sim_{full,ctx,ss}` + 无后缀别名; LARGE = text-embedding-3-large(API 3072 维, config embedding_large)→ `policy_cosine_sim_lg_{full,ctx,ss}`。both-or-neither parity: MAIN 或 _lg 任一族嵌入失败 → 两族同时置 NaN(无单边孤儿列)。
+3. **嵌入与池化** `_cosine_for_spec`: 政策语料按文档朴素分段 (naive chunking)(_split_into_chunks, token 上限切不重叠段)→ 各段独立嵌入 → 对该年度允许的段做 mean pooling + L2 归一化 = 年度锚点; 文章侧无预截断(2026-06-12 选项 B 移除 8191-token 预截断), 超长文章由引擎 chunk+pool。文章与锚点算 cosine_similarity。每个 spec 用自己的模型独立嵌(MAIN Qwen 4096维 vs large 3072维, 维度不同, 余弦维度无关绝不混算)。
+4. **双 co-primary (v3.14.0, 全平价)**: MAIN = Qwen-embedding(config embedding_api, API, 4096 维)→ canonical `policy_cosine_sim_{full,ctx,ss}` + 无后缀别名; LARGE = text-embedding-3-large(API 3072 维, config embedding_large)→ `policy_cosine_sim_lg_{full,ctx,ss}`。both-or-neither parity: MAIN 或 _lg 任一族嵌入失败 → 两族同时置 NaN(无单边孤儿列)。
 5. 统计/断言全部 NaN-安全(nanmin/nanmax/nanmean); full↔ctx Spearman ρ 轨间独立性诊断。
 
-**外部依赖/缓存**: 生产嵌入统一走 `pipeline/text/embedding_engine.embed_texts`(LLMCache 穿透 + 动态分批 + chunk-pool); 缓存键含逐字文本(故三轨 content_full/ctx/ss 文本不同字节天然隔离缓存项), 缓存库 = _llm_cache.db。content_full 与 stage 27(benefit_society)逐篇嵌入同源, 同篇文章 API 向量只付费一次。模块内 `_get_embeddings_api_dynamic` 是 legacy(仅 tests/test_pipeline_robustness.py 与 tests/test_omni_fix_policy.py 引用, 生产0调用)。**API 离线守卫**: 嵌入 miss 即付费调 API(不受 NEWS_PROCESS_LLM_OFFLINE 的 stage 21 守卫保护; 裸环境须设 SSL_CERT_FILE=certifi 修 yunwu.ai 证书)。timeout=7200。
+**外部依赖/缓存**: 生产嵌入统一走 `pipeline/text/embedding_engine.embed_texts`(LLMCache 穿透 + 动态分批 + chunk-pool); 缓存键含逐字文本(故三轨 content_full/ctx/ss 文本不同字节天然隔离缓存项), 缓存库 = _llm_cache.db。content_full 与 stage 27(benefit_society)逐篇嵌入同源, 同篇文章 API 向量只付费一次。模块内 `_get_embeddings_api_dynamic` 是 legacy(仅 tests/test_pipeline_robustness.py 与 tests/test_omni_fix_policy.py 引用, 生产0调用)。**API 离线守卫**: 嵌入 miss 即付费调 API(不受 NEWS_PROCESS_LLM_OFFLINE 的 stage 21 守卫保护; 裸环境须设 SSL_CERT_FILE=certifi 修 api.siliconflow.cn / yunwu.ai 证书)。timeout=7200。
 
 ■ 白话说明
 
@@ -106,7 +106,7 @@
 
 打个比方: 先把国家发布的一摞重磅金科政策文件读进来, 浓缩成一份'标准答案'; 再把每篇新闻也变成一串数字(向量), 算它跟'标准答案'的夹角余弦——越接近1说明这篇新闻越贴政策方向, 越低说明越不沾边。这里有个很讲究的细节: 算2017年的新闻时, 只拿'2017年(含)之前已经发布'的政策当标准答案, 绝不拿几年后才出台的政策来比——否则就成了'用未来的信息预测过去', 是学术大忌(叫前视偏误)。
 
-它还同时用两套不同的'翻译机'(一套联网的大模型 API, 一套本地小模型)各算一遍, 互为稳健性对照: 如果两套都给出类似结论, 结果就更可信。
+它还同时用两套不同的'翻译机'(都是联网大模型 API: 一套阿里 Qwen, 一套 OpenAI large)各算一遍, 互为稳健性对照: 如果两套都给出类似结论, 结果就更可信。
 
 为什么需要它: 后面要把每篇新闻分到四个格子里——'关键词刷得多但其实不贴政策'(洗科技/喊口号)、'关键词不多但很贴政策'(闷声干事)、'又多又贴'(言行一致)、'又少又不贴'(无关)。要分格子, 就必须先有这个'贴不贴政策'的对齐分(配合 stage 14 的'关键词强度')。
 
@@ -141,7 +141,7 @@ from news_process.pipeline.text import embedding_engine as _eng
 
 # LLM API 配置（复用 tone_llm_processing 节中的 base_url 和 api_key）
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
-# MAIN spec = 无后缀主嵌入模型 (config embedding_api, gemini-embedding) → canonical
+# MAIN spec = 无后缀主嵌入模型 (config embedding_api, Qwen/Qwen3-Embedding-8B) → canonical
 # policy_cosine_sim* 列。
 EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})
 # LARGE spec = co-primary 嵌入模型 (text-embedding-3-large, 3072 维) → _lg 后缀孪生列,
@@ -174,7 +174,7 @@ def _coerce_positive_int(value, default: int) -> int:
     return value if value > 0 else default
 
 
-# 【术语】OpenAI text-embedding-3-small 的硬性约束:
+# 【术语】嵌入切块的保守 token 约束 (cl100k_base; 历史源自 text-embedding-3-small, 现作 Qwen/large 嵌入的保守代理):
 #   单条输入上限 8,191 tokens (cl100k_base 编码)
 #   单次请求总 token 上限 ~300,000 tokens (经验值, 官方文档未精确公布)
 # 【白话】每篇文章最多约 4,000 中文字, 每次 API 调用最多装约 125,000 中文字
@@ -417,7 +417,7 @@ async def _get_embeddings_api_dynamic(
         cache: LLMCache 实例
 
     Returns:
-        np.ndarray: Embedding 矩阵 (N × d)，d = 1536
+        np.ndarray: Embedding 矩阵 (N × d)，d = 嵌入模型维度 (API 驱动; Qwen=4096 / large=3072)
     """
     import aiohttp
     models = LLM_CONFIG.get('models') or []
@@ -425,11 +425,11 @@ async def _get_embeddings_api_dynamic(
     if EMBEDDING_CONFIG:
         base_url = EMBEDDING_CONFIG.get('base_url')
         api_key = EMBEDDING_CONFIG.get('api_key')
-        embedding_model = (EMBEDDING_CONFIG.get('model') or "text-embedding-3-small")
+        embedding_model = (EMBEDDING_CONFIG.get('model') or "Qwen/Qwen3-Embedding-8B")
     else:
         base_url = cfg.get('base_url')
         api_key = cfg.get('api_key')
-        embedding_model = "text-embedding-3-small"
+        embedding_model = "Qwen/Qwen3-Embedding-8B"
     if not base_url or not api_key:
         raise RuntimeError("Embedding API config missing base_url or api_key")
     base_url = str(base_url).rstrip("/")
@@ -564,7 +564,7 @@ def _cosine_for_spec(
     并列产出 `_allv` 稳健列。静态三元组复用同一批 article embeddings → **零额外 API**。
 
     【关键约束】每个 spec 用**自己的**模型独立嵌入自己的 anchors/texts,
-    绝不复用另一 spec 的向量 (MAIN gemini 维度 vs large 3072 维, 严禁混算)。
+    绝不复用另一 spec 的向量 (MAIN Qwen 4096 维 vs large 3072 维, 维度不同, 严禁混算)。
     ⚠ 嵌入缓存键含逐字文本 (非轨标签) → content_ss 文本与 full/ctx 不同字节自然
     隔离独立缓存项, 三轨复用同一 spec 无键碰撞。
 
@@ -585,7 +585,7 @@ def _cosine_for_spec(
         full_texts: full 轨文本 (不截断; 超长由引擎分段池化)
         ctx_texts:  ctx 轨文本
         doc_chunks: 权威政策语料分段, 按文档分组 (list per 文档)
-        spec: embedding spec (MAIN=gemini API / LARGE=text-embedding-3-large API)
+        spec: embedding spec (MAIN=Qwen API / LARGE=text-embedding-3-large API)
         ss_texts:   ss 轨文本 (银行+金科同句); None → 不算 ss, cos_ss 返回 None
         doc_years: 各文档 vintage 年份 (与 doc_chunks 对齐); None → 静态锚点
         article_years: (N,) 文章年份 float 数组 (NaN=未知); None → 静态锚点
@@ -745,7 +745,7 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
         policy_cosine_sim_i = cos(emb(article_i), emb(auth_text))
 
     其中:
-      - emb() 为稠密语义编码: MAIN spec = gemini-embedding (API, 无后缀 canonical); LARGE spec = text-embedding-3-large (API, 3072 维, _lg co-primary); 两 spec 各自独立编码, 全平价并列, 严禁混算。
+      - emb() 为稠密语义编码: MAIN spec = Qwen-embedding (API, 4096 维, 无后缀 canonical); LARGE spec = text-embedding-3-large (API, 3072 维, _lg co-primary); 两 spec 各自独立编码, 全平价并列, 严禁混算。
       - auth_text 为权威政策语料库 (config/authoritative_corpus.txt) 中发布年份
         ≤ 文章年份的文档段拼接 (vintage-aware, fix(omni-g-policy-02, 2026-06-11):
         旧静态全语料锚点含未来政策文本, 构成前视; 现按政策发布年份切分,
@@ -865,7 +865,7 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     # 两个动机:
     #   (1) embedding 缓存复用: content_full 是逐字节固定的文章级串, 与 **stage 27
     #       (benefit_society) 逐篇嵌入的 content_full 同源** → 同篇文章的
-    #       text-embedding-3-small 向量经 LLMCache (键含逐字文本) 只付费一次; 旧空格
+    #       嵌入向量经 LLMCache (键含逐字文本) 只付费一次; 旧空格
     #       口径与 content_full 不同字节 → 互为 cache miss, 各付一次。
     #       ⚠ 复用范围仅限 stage 27: stage 25 (strategic_diff) 嵌的是 (bank,year)
     #       聚合超级文档 (非文章级), 粒度错配不可能共享缓存; tone_words/tone_berts
@@ -989,7 +989,7 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     # 【术语】Hoberg & Phillips (2016, JPE, §III) 余弦相似度;
     #   v3.6.0 Plan E P3 B2 full/ctx → 2026-06-14 加 ss 同句共现轨成 full/ctx/ss
     #   三轨; v3.14.0 双 co-primary:
-    #   MAIN = gemini-embedding (API) → canonical 无后缀列,
+    #   MAIN = Qwen-embedding (API, 4096 维) → canonical 无后缀列,
     #   LARGE = text-embedding-3-large (API, 3072 维) → _lg 列 (ACTIVE co-primary)。
     # 【关键】两个模型各嵌各的 anchors/texts, 绝不混算 (维度不同 + 语义空间不同)。
     #   embedding 取得统一经 _eng (本地 vs API 由 spec 内部分派, 不再 inline if)。
@@ -1200,7 +1200,7 @@ def main():
     logger.info("【方法】policy_cosine_sim_i = cos(emb(article_i), emb(auth_anchor)), 值域 [-1,1] 实务多落 0~1。")
     logger.info("        anchor = 权威语料按文档朴素分段 → mean pooling + L2 归一化; vintage-aware 前视守卫:")
     logger.info("        年度 t 文章只与发布年份 ≤ t 的政策段算锚 (article_alignment.vintage_aware)。")
-    logger.info("        双 co-primary (全平价): MAIN=gemini-embedding(API) → canonical 无后缀; LARGE=text-embedding-3-large(API,3072维) → _lg。")
+    logger.info("        双 co-primary (全平价): MAIN=Qwen-embedding(API,4096维) → canonical 无后缀; LARGE=text-embedding-3-large(API,3072维) → _lg。")
     logger.info("        全年份锚点稳健孪生 (_allv, all_vintage_companion): 并列再用『所有年份』政策段拼静态锚点算一套")
     logger.info("        policy_cosine_sim_allv* (anchor-robustness 对照, 含未来政策文本, 绝不替换 vintage 主轨)。")
     logger.info("【判读】分数越高 = 这篇新闻越贴政策方向 (实质性); 越低 = 越不沾边 (象征性/无关)。")
@@ -1222,7 +1222,8 @@ def main():
         logger.info(f"  · RUN_ID={os.environ.get('NEWS_PROCESS_RUN_ID', '(未设)')} | "
                     f"LLM_OFFLINE={os.environ.get('NEWS_PROCESS_LLM_OFFLINE', '0')} "
                     "(⚠ 本阶段嵌入 miss 不受该守卫保护, 仍付费调 API)")
-        logger.info("  · 成本/确定性: MAIN + _lg 两 API co-primary 嵌入 miss 即付费 (yunwu OpenAI-compat); "
+        logger.info("  · 成本/确定性: MAIN + _lg 两 API co-primary 嵌入 miss 即付费 "
+                    "(MAIN/Qwen 经硅基流动, _lg/large 经 yunwu, 均 OpenAI-compat); "
                     "缓存命中即逐位可复现")
         logger.info(f"  · 模块: {os.path.abspath(__file__)}")
         logger.info(f"  · 工作目录: {os.getcwd()}")
@@ -1280,10 +1281,10 @@ def main():
         logger.info(f"  · 单条输入 token 上限 max_tokens_per_input: {_MAX_TOKENS_PER_INPUT:,d} | "
                     f"单次请求 token 上限 max_tokens_per_request: {_MAX_TOKENS_PER_REQUEST:,d}")
         logger.info(f"  · MAIN spec (canonical, 无后缀): {_eng.spec_model(EMBEDDING_CONFIG)} "
-                    "(gemini-embedding, API)")
+                    "(Qwen-embedding, API 4096 维)")
         if _LARGE_SPEC:
             logger.info(f"  · LARGE spec (_lg co-primary): {_eng.spec_model(_LARGE_SPEC)} "
-                        "(text-embedding-3-large, API 3072 维; 与 MAIN 全平价, 严禁混算)")
+                        "(text-embedding-3-large, API 3072 维; 与 MAIN 全平价, 维度不同严禁混算)")
         logger.info(f"  · 缓存库: {CACHE_DB_PATH} | 重试间隔: {sig4(RETRY_DELAY)}s 固定 (flat, 2026-06-26 全项目统一)")
         logger.info("  · 权威语料: config/authoritative_corpus.txt (paths.authoritative_corpus_file, 与 stage 26 共享)")
     except Exception as _e:
@@ -1423,7 +1424,7 @@ def main():
                 except ImportError:
                     logger.info("  · 轨间独立性 full↔ctx: scipy 缺失, 跳过相关性诊断")
 
-        # (4) 双 co-primary 一致性 (MAIN(gemini) 与 _lg(large) 同向则结论更可信)。
+        # (4) 双 co-primary 一致性 (MAIN(Qwen) 与 _lg(large) 同向则结论更可信)。
         if ('policy_cosine_sim_full' in df.columns
                 and 'policy_cosine_sim_lg_full' in df.columns):
             _m = df['policy_cosine_sim_full'].to_numpy(dtype=float)

@@ -357,4 +357,4 @@ herd_detection:
 #     DOI: 10.1177/0003122419877135
 # 白话: 用"利好经营 vs 损害经营"方向轴给每篇新闻打态度分
 # (Phase 4d split 注释残留: benefit_society 段配置实际位于 features.yaml, 本文件中此处无对应键。)
-# 共享 Embedding API — text-embedding-3-small (供阶段 15/25/27 共用; 该 embedding_api 段同样位于 features.yaml)。
+# 共享 Embedding API — CO-PRIMARY: Qwen/Qwen3-Embedding-8B (硅基流动, embedding_api) + text-embedding-3-large (yunwu, embedding_large/_lg) (供阶段 15/25/27 共用; 两段均位于 features.yaml)。

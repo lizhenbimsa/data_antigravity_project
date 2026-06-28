@@ -1,4 +1,4 @@
-"""news_process.pipeline.text.embedding_engine — 双 API 模型嵌入统一引擎 (v3.14.0, all-API).
+"""news_process.pipeline.text.embedding_engine — 双 API 模型嵌入统一引擎 (v3.15.0, all-API; Qwen ⟂ large co-primary).
 
 设计目标
 --------
@@ -6,10 +6,10 @@
 26 policy_similarity / 27 benefit_society / network embedding peer) 用 **显式 spec**
 嵌入文本, 从而在一次运行内对同一批文本用两个 co-primary API 模型各算一遍:
 
-  - CO-PRIMARY ① (canonical, 无后缀):  gemini-embedding-2-preview (Google, OpenAI-compat / yunwu, 3072 维)
+  - CO-PRIMARY ① (canonical, 无后缀):  Qwen/Qwen3-Embedding-8B (阿里, OpenAI-compat / 硅基流动, 4096 维)
   - CO-PRIMARY ② (`_lg`):              text-embedding-3-large (OpenAI, OpenAI-compat / yunwu, 3072 维)
 
-两者 **co-primary 对等互证** (非"主轨 + 稳健性附录"): gemini (Google) ⟂ large (OpenAI)
+两者 **co-primary 对等互证** (非"主轨 + 稳健性附录"): Qwen (阿里/硅基流动) ⟂ large (OpenAI)
 是 **跨厂商 / 跨训练数据独立性** —— 审稿人质疑"结论是否只是某厂商模型的偶然产物"时,
 两个对等主测度并排互证一致性作答。后缀 `_lg` **仅为列命名机制** (panel 不能两列同名),
 **不表达任何主次/优劣**; 无后缀 = canonical 列槽、`_lg` = 孪生列槽。两者 **严格 parity**
@@ -27,12 +27,12 @@ spec 是一个 dict (来自 ``config/features.yaml::embedding_api`` / ``embeddin
 
 本模块**不** import ``pipeline.panel.encode`` (避免循环导入); spec 由 callsite 从其
 自有的 CONFIG 传入。LLMCache 键以 ``model_id`` 为首字段 (见 core/caching.py),
-故 gemini (无后缀) 与 large (`_lg`) 两 co-primary 的缓存天然按 model_id 隔离不串。
+故 Qwen (无后缀) 与 large (`_lg`) 两 co-primary 的缓存天然按 model_id 隔离不串。
 
 历史: 本引擎把原先散落在多个 feature 模块里近重复的
 ``_get_embeddings_api`` / ``_embed_texts_with_chunk_pooling`` 统一为 spec 参数化的
 公共函数 (DRY + 让两个 co-primary 嵌入模型成为一等公民)。注: 此处 "多个模型" 指
-gemini 无后缀 vs text-embedding-3-large ``_lg`` 这一 **模型** 维度, 与情感文本的
+Qwen3-Embedding-8B 无后缀 vs text-embedding-3-large ``_lg`` 这一 **模型** 维度, 与情感文本的
 full/ctx/ss 三轨是两个独立维度。``_lg`` 为 config-gated 列: 仅当配置存在
 ``embedding_large`` 块时才产出 (缺配置则不产 `_lg` 列); v3.14.0 下两 co-primary
 均为活动 config, parity 双射由测试门 + producer both-or-neither 强制。
@@ -44,8 +44,8 @@ full/ctx/ss 三轨是两个独立维度。``_lg`` 为 config-gated 列: 仅当�
 
 白话:
     全项目所有"把文本变成向量"的需求都走这一个模块: 调用方传一份 spec
-    (写明用哪个 API 模型), 同一批文本就能分别用 gemini 和 text-embedding-3-large
-    两个对等主模型 (跨 Google/OpenAI 两厂商) 各算一遍向量, 互相印证。两者地位
+    (写明用哪个 API 模型), 同一批文本就能分别用 Qwen3-Embedding-8B 和 text-embedding-3-large
+    两个对等主模型 (跨 阿里/硅基流动 与 OpenAI 两厂商) 各算一遍向量, 互相印证。两者地位
     对等, `_lg` 后缀只是为了避免列名撞车, 没有主次之分。算过的结果存在缓存里,
     下次同样的文本不再花钱重算; 太长的文本先切成小段、各段算完再加权平均成一条向量。
 """
@@ -68,8 +68,8 @@ from news_process.core.logging import pct4, sig4
 logger = logging.getLogger(__name__)
 
 # ── Embedding token 级精确截断 (统一 stage 15 标准) ──
-# cl100k_base 编码, 单条上限 8,191 tokens; 此上限对 gemini-embedding-2-preview 是
-# **保守高估** (8191 cl100k ≈ 4707 gemini-token, 2026-06-27 yunwu 实测全区间无报错) →
+# cl100k_base 编码, 单条上限 8,191 tokens; 此上限对 Qwen/Qwen3-Embedding-8B (32K 上限) 是
+# **保守高估** (cl100k 8191 远低于 Qwen 32K-token 上限 → 数学上恒保守安全; 2026-06-28 硅基流动短文探针正常, 长文全区间留上线实测验证) →
 # 批次偏小、永不超限。超长文本 (如权威政策语料) 走朴素分段 (naive chunking) + Mean Pooling。
 _EMB_ENCODING = tiktoken.get_encoding("cl100k_base")
 EMB_MAX_TOKENS = 8191
@@ -174,7 +174,7 @@ def _log_engine_banner(spec: dict | None = None, *, log_prefix: str = "Embedding
             f"单请求 token 上限={EMB_MAX_TOKENS_PER_REQUEST:,d} · "
             f"API 并发上限={EMB_API_CONCURRENCY:,d} · 瞬时失败重试={EMB_MAX_RETRIES:,d} 次")
         logger.info(
-            "     ⚙ 确定性/成本: 两 co-primary API 模型 (gemini 无后缀 ⟂ "
+            "     ⚙ 确定性/成本: 两 co-primary API 模型 (Qwen3-Embedding-8B 无后缀 ⟂ "
             "text-embedding-3-large `_lg`) miss 即付费, 命中 $0; 两轨缓存按 model_id "
             "隔离 → 命中逐位复现。")
     except Exception as _banner_exc:  # pragma: no cover - banner 绝不拖垮阶段
@@ -194,7 +194,7 @@ def spec_uses_local(spec: dict | None) -> bool:
     return base_url in _LOCAL_BASE_URLS
 
 
-def spec_model(spec: dict | None, default: str = 'gemini-embedding-2-preview') -> str:
+def spec_model(spec: dict | None, default: str = 'Qwen/Qwen3-Embedding-8B') -> str:
     """取 spec 的 model 名; 缺失时回退到 default (co-primary ① canonical)。"""
     return (spec or {}).get('model') or default
 

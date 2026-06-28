@@ -102,7 +102,7 @@ def test_sbert_title_injected_exactly_once_both_tracks(monkeypatch):
     v3.14.0 (2026-06-27, all-API co-primary): encode_articles 弃本地 SentenceTransformer,
     改走统一引擎 embed_texts(spec=…) (API 路径)。故此处 mock embedding_engine.embed_texts
     捕获送入引擎的 docs (而非 mock SentenceTransformer.encode), 并显式传 spec 参数。
-    维度 768→3072 (gemini/large co-primary)。
+    维度 768→4096 (Qwen MAIN; co-primary large 仍 3072, 维度不同绝不混算)。
     """
     captured = {}
 
@@ -110,11 +110,11 @@ def test_sbert_title_injected_exactly_once_both_tracks(monkeypatch):
 
     def _fake_embed_texts(docs, spec, **k):
         captured['docs'] = list(docs)
-        return np.zeros((len(docs), 3072), dtype='float32')
+        return np.zeros((len(docs), 4096), dtype='float32')
 
     monkeypatch.setattr(article_sbert._eng, 'embed_texts', _fake_embed_texts)
     # 任意非空 spec (encode_articles 仅把 spec 透传给 embed_texts; mock 不读其内容)
-    spec = {'model': 'gemini-embedding-2-preview', 'base_url': 'https://yunwu.ai/v1'}
+    spec = {'model': 'Qwen/Qwen3-Embedding-8B', 'base_url': 'https://api.siliconflow.cn/v1'}
 
     title = '某银行推出数字人民币试点'
     df = pd.DataFrame({

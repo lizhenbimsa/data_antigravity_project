@@ -20,7 +20,7 @@
 外部依赖处理: 无网络; v3.14.0 (all-API-embedding) 起本地 sentence_transformers
 路径已彻底移除, 关键词语义编码改走统一引擎 _eng.embed_texts(spec) 纯 API 路径 →
 质心宇宙/权重宇宙测试改 monkeypatch fi._eng.embed_texts 返回确定性 fake 向量
-(3072 维), 隔离网络/缓存依赖; 词典/配置用仓库真实文件 (模块 import 时加载)。
+(4096 维), 隔离网络/缓存依赖; 词典/配置用仓库真实文件 (模块 import 时加载)。
 
 # 白话: 这组测试管"金融科技强度分"的统计口径: 算关键词稀有度(IDF)时,
 # 同一篇稿被转载/配多家银行只算一篇; 数词频和算稀有度必须用同一把"切词刀"
@@ -122,11 +122,11 @@ class TestUnmatchableKeywordExclusion:
         _require_kws('区块链')
         # v3.14.0 (all-API-embedding): 本地 sentence_transformers 路径已彻底移除,
         # 关键词语义编码改走统一引擎 _eng.embed_texts(spec) 纯 API 路径。mock 该
-        # 函数返回确定性 fake 向量 (3072 维) 以隔离网络/缓存依赖, 只验权重宇宙。
+        # 函数返回确定性 fake 向量 (4096 维) 以隔离网络/缓存依赖, 只验权重宇宙。
         def _fake_embed(kw_list, spec, **kwargs):
             kw_list = list(kw_list)
             rng = np.random.default_rng(0)
-            return rng.normal(size=(len(kw_list), 3072)).astype(np.float32)
+            return rng.normal(size=(len(kw_list), 4096)).astype(np.float32)
 
         monkeypatch.setattr(fi._eng, 'embed_texts', _fake_embed)
         matchable, unmatchable = fi._ensure_keywords_injected()
@@ -151,7 +151,7 @@ class TestUnmatchableKeywordExclusion:
         def _fake_embed(kw_list, spec, **kwargs):
             recorded['kws'] = list(kw_list)
             rng = np.random.default_rng(0)
-            return rng.normal(size=(len(kw_list), 3072)).astype(np.float32)
+            return rng.normal(size=(len(kw_list), 4096)).astype(np.float32)
 
         monkeypatch.setattr(fi._eng, 'embed_texts', _fake_embed)
         matchable, unmatchable = fi._ensure_keywords_injected()

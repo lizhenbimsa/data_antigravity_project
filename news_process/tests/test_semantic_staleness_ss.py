@@ -157,7 +157,7 @@ class TestLoadAlignedEmbeddingsSs:
 
     def test_emb_ss_dim_differs_loads_ok(self, tmp_path):
         # v3.14.0 (co-primary 双轨): _stack_track 改为仅核行数防错位, 维度可不同
-        # (MAIN 与 _lg 同为 3072, 但函数不假设维度)。故 emb_ss 维度 ≠ emb_full 不再
+        # (v3.15.0: MAIN/Qwen=4096 ≠ _lg/large=3072, 函数不假设维度)。故 emb_ss 维度 ≠ emb_full 不再
         # fail-loud — 旧 P2 维度守卫已随双轨化撤除 (见 article_staleness.py::_stack_track
         # docstring "维度可不同... 仅核行数防错位")。
         from news_process.pipeline.text.article_staleness import _load_aligned_embeddings

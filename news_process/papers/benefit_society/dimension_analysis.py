@@ -95,7 +95,7 @@ def _get_anchor_embeddings(
     anchors: Sequence[str],
     *,
     cache_db_path: str | None = None,
-    model_id: str = "text-embedding-3-small",
+    model_id: str | None = None,
     prompt_version: str | None = None,
 ) -> np.ndarray:
     """经 LLMCache 取锚点句子的 embedding.
@@ -108,7 +108,18 @@ def _get_anchor_embeddings(
     prompt_version : optional
         None (默认) 时经 [_resolve_prompt_version] 自动解析为 Stage 27 的值;
         显式传入则按传入值。
+    model_id : optional
+        None (默认) 时动态解析为 config/features.yaml::embedding_api.model
+        (v3.15.0 = Qwen/Qwen3-Embedding-8B), 与 Stage 27 锚点缓存键同源 (SSOT);
+        显式传入则按传入值。
     """
+    if model_id is None:
+        from news_process.core.config import load_config
+
+        model_id = str(
+            (load_config().get("embedding_api") or {}).get("model")
+            or "Qwen/Qwen3-Embedding-8B"
+        )
     if prompt_version is None:
         prompt_version = _resolve_prompt_version()
     try:
@@ -158,7 +169,7 @@ def compute_direction_vectors(
     neg_anchors: Sequence[str],
     *,
     cache_db_path: str | None = None,
-    model_id: str = "text-embedding-3-small",
+    model_id: str | None = None,
     prompt_version: str | None = None,  # F7: None 时自动解析为 Stage 27 的值
 ) -> dict[str, np.ndarray]:
     """计算 4 个维度的方向向量.

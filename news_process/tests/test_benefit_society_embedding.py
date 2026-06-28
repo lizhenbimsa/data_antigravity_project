@@ -5,12 +5,12 @@ import numpy as np
 from news_process.pipeline.features import benefit_society as bs
 
 # v3.14.0 (all-API-embedding): 本地嵌入模型与本地推理机器已彻底移除。
-# _get_embeddings 现统一经 _eng.embed_texts(texts, spec) 纯 API 路径 (gemini MAIN
-# 3072 维 / text-embedding-3-large _lg 3072 维 co-primary)。本测试 mock _eng.embed_texts
-# (API 路径), 不再注入 fake sentence_transformers。
+# _get_embeddings 现统一经 _eng.embed_texts(texts, spec) 纯 API 路径 (Qwen MAIN
+# 4096 维 / text-embedding-3-large _lg 3072 维 co-primary; 维度不同, 余弦维度无关绝不混算)。
+# 本测试 mock _eng.embed_texts (API 路径), 不再注入 fake sentence_transformers。
 
 
-def _fake_embed(dim: int = 3072):
+def _fake_embed(dim: int = 4096):
     def _embed(texts, spec, **kwargs):
         texts = list(texts)
         out = np.zeros((len(texts), dim), dtype=np.float32)
@@ -23,23 +23,23 @@ def _fake_embed(dim: int = 3072):
 
 
 def test_get_embeddings_uses_api_embed_texts(monkeypatch):
-    """MAIN (无后缀, gemini) spec 走 _eng.embed_texts → 3072 维 API 嵌入。"""
+    """MAIN (无后缀, Qwen) spec 走 _eng.embed_texts → 4096 维 API 嵌入。"""
     monkeypatch.setattr(
         bs,
         "EMBEDDING_CONFIG",
         {
-            "base_url": "https://yunwu.ai/v1",
+            "base_url": "https://api.siliconflow.cn/v1",
             "api_key": "fake-key",
-            "model": "gemini-embedding-2-preview",
-            "text_pipeline_version": "v3-2026-06-27-gemini",
+            "model": "Qwen/Qwen3-Embedding-8B",
+            "text_pipeline_version": "v4-2026-06-28-qwen3-8b",
         },
     )
-    monkeypatch.setattr(bs._eng, "embed_texts", _fake_embed(dim=3072))
+    monkeypatch.setattr(bs._eng, "embed_texts", _fake_embed(dim=4096))
 
     emb = bs._get_embeddings(["alpha", "beta"], [1, 1], log_prefix="test")
 
     assert emb is not None
-    assert emb.shape == (2, 3072)
+    assert emb.shape == (2, 4096)
     assert np.allclose(emb[:, 0], [0.0, 1.0])
 
 

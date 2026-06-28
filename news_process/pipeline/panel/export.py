@@ -356,7 +356,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     # 杜绝"新 .parquet 写成功但 .dta 异常"导致 .parquet 与 .dta 语义错位的隐性
     # 灾难 (此前 40_panel_yearly.parquet=5月5日 而 .dta=5月1日 的真实事故).
     # v3.14.0 (2026-06-27, all-API-embedding): 原 _t2v 嵌入硬契约 4 列已删 (本地
-    # text2vec 整体移除); 嵌入 co-primary parity (gemini ⟂ _lg) 改由 parity 测试门
+    # text2vec 整体移除); 嵌入 co-primary parity (Qwen ⟂ _lg) 改由 parity 测试门
     # 强制而非 export 运行期 raise (见 REQUIRED_PANEL_COLUMNS 注释)。当前 hard 契约
     # 仅余 bank-year 主键; 其余列存在性由下游 .get()/`if col in` 软守卫优雅处理。
     # 使用 raise 而非 assert (assert 在 python -O 优化模式下会被剥离).
@@ -365,8 +365,8 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
         'target_bank', 'year',
         # v3.14.0 (2026-06-27, all-API-embedding): 删除原 _t2v 硬契约 4 列
         # (strat_diff_t2v_*/policy_cosine_sim_t2v_*) —— 本地 text2vec 嵌入轨整体移除。
-        # 嵌入主轨改为 gemini(MAIN, 无后缀) ⟂ text-embedding-3-large(_lg) 跨厂商对等
-        # co-primary 双轨。co-primary parity (有 gemini 列必有 _lg 孪生, 反之亦然) 由
+        # 嵌入主轨改为 Qwen3-Embedding-8B(MAIN, 无后缀) ⟂ text-embedding-3-large(_lg) 跨厂商对等
+        # co-primary 双轨。co-primary parity (有 Qwen 列必有 _lg 孪生, 反之亦然) 由
         # parity 测试门 (test_embedding_coprimary_parity) + producer both-or-neither
         # 强制, *不*由 export 运行期 raise (避免与 _lg 软降级 NaN 守卫打架; 故此处
         # 刻意不把 _lg 列加入硬契约)。第三轨 "_ss" 同样不进硬契约 (首跑前可能整体缺失)。
@@ -784,7 +784,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'auth_sim_emb_ctx':                    'Auth Alignment Embedding (Ctx)',
                 # v3.14.0 (2026-06-27, all-API-embedding): 删除原 _t2v 嵌入稳健 twin
                 # 标签 (~25 条) —— 本地 text2vec 嵌入轨整体移除。嵌入主轨改为
-                # gemini(MAIN, 无后缀) ⟂ text-embedding-3-large(_lg) 跨厂商对等 co-primary
+                # Qwen3-Embedding-8B(MAIN, 无后缀) ⟂ text-embedding-3-large(_lg) 跨厂商对等 co-primary
                 # 双轨。MAIN/_lg/_allv 标签由 stata_export.py::HEURISTIC_LABELS 派生
                 # (46-path .dta 标签权威源, 见该侧 _MAIN_ANCHOR_KEYS); 此 export.py 兜底
                 # dict 不再镜像嵌入标签 (codebook 走 stata_export 派生)。
@@ -1283,7 +1283,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 # 连续型聚合 (主回归用)
                 'article_sim_mean':       'Avg Article-Policy Cosine Sim',
                 'article_sim_std':        'Std Article-Policy Cosine Sim',
-                # 三轨 (full/ctx/ss) parity (2026-06-08): MAIN (gemini, 无后缀) 政策对齐 _ctx
+                # 三轨 (full/ctx/ss) parity (2026-06-08): MAIN (Qwen, 无后缀) 政策对齐 _ctx
                 # 孪生 (runner.py 聚合; co-primary _lg 孪生 policy_cosine_sim_lg_* 面板 full/ctx
                 # 对称; _ss 同句轨标签由下方第三轨机械派生循环自动补全)。
                 'article_sim_mean_ctx':   'Avg Article-Policy Cosine Sim (Ctx)',

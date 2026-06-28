@@ -49,7 +49,7 @@
   benefit_pos_frac_full/ctx/ss:  正态度文章占比 ∈ [0, 1]
   benefit_neg_frac_full/ctx/ss:  负态度文章占比 ∈ [0, 1]
   (上述 4 指标 × full/ctx/ss 三轨另各有 _lg co-primary twin 列:
-   benefit_mean_lg_full/ctx/ss 等; MAIN=gemini API / LARGE=text-embedding-3-large API,
+   benefit_mean_lg_full/ctx/ss 等; MAIN=Qwen/Qwen3-Embedding-8B API / LARGE=text-embedding-3-large API,
    共 24 列; v3.14.0 已移除本地 _t2v/_bge 稳健轨, 仅余双 API 模型)
   ss 轨 (银行+金科同句, content_ss): 仅取"同句内同时含 目标银行∧金科词"的句 ±N 句窗,
    回退=无共现→镜像 ctx 回退全文 body (ss_is_fallback=True); 与 full/ctx 并列第三主轨。
@@ -118,7 +118,7 @@ STAGE_NAME = "27_fintech_benefit_society"
 
 # LLM API 配置（复用 tone_llm_processing 节中的 base_url 和 api_key）
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
-EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})           # MAIN spec → canonical 列 (gemini)
+EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})           # MAIN spec → canonical 列 (Qwen)
 # v3.14.0 双 API 模型嵌入: LARGE twin (text-embedding-3-large, API) → '_lg' 列。
 # co-primary 活动轨 (与 MAIN 并列, 非休眠): config/features.yaml 已激活 embedding_large 块。
 # (v3.14.0 已整体移除本地稳健轨 _t2v(text2vec) / _bge(bge-m3); 仅余双 API 模型)
@@ -239,7 +239,7 @@ def _get_embeddings(texts: list[str],
                     log_prefix: str = "Embedding") -> np.ndarray:
     """文本 → Embedding 向量, 委托给统一引擎 _eng.embed_texts。
 
-    spec 决定模型与路径 (MAIN=gemini-embedding-2-preview / LARGE=text-embedding-3-large, 均 API)。
+    spec 决定模型与路径 (MAIN=Qwen/Qwen3-Embedding-8B / LARGE=text-embedding-3-large, 均 API)。
     token_counts 已不再需要 (引擎内部按 token 自行分批), 保留参数仅为签名兼容。
 
     P0-1 (API-fatal 守卫): 仅对 co-primary twin `_lg` (API 且**非** MAIN canonical) 的
@@ -616,7 +616,7 @@ def _log_benefit_env_config_methods(panel: pd.DataFrame,
         logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
                     f"LLM_OFFLINE={'是' if _offline else '否'}")
         logger.info("     · 成本/确定性: 嵌入 API 缓存命中=$0; 冷缓存=付费嵌入调用 "
-                    "(MAIN gemini + _lg text-embedding-3-large 双 API 模型)")
+                    "(MAIN Qwen + _lg text-embedding-3-large 双 API 模型)")
 
         logger.info("  📂 输入 / 输出")
         logger.info(f"     · 输入 panel: {len(panel):,d} 行 × {panel.shape[1]:,d} 列 "
@@ -698,7 +698,7 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
                                    '27_benefit_embeddings.npy')
 
     # ---- 6.1 双 API 模型外层循环 (Dual-API-Model Embedding, v3.14.0) ----
-    # suffix='' → MAIN spec (gemini-embedding-2-preview, API) → 既有 canonical 列
+    # suffix='' → MAIN spec (Qwen/Qwen3-Embedding-8B, API) → 既有 canonical 列
     #             (benefit_mean_full / benefit_std_full / ...)
     # suffix='_lg' → LARGE spec (text-embedding-3-large, API) → 平行 co-primary 稳健列
     #             (benefit_mean_lg_full / ...; 维度独立计算, 由 emb.shape[1] 驱动)。

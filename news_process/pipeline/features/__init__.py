@@ -8,6 +8,6 @@ Stage 25/26/27 为 library-only (历史上无 `__main__`); Phase 2a 计划随
 importlib 反射清理一并迁移到本包 (历史规划陈述)。
 
 注: v3.14.0 (2026-06-27, all-API-co-primary) 整体移除本地嵌入稳健轨 text2vec (`_t2v`)
-与 bge-m3 (`_bge`); 嵌入改为 gemini (MAIN, 无后缀) ⟂ text-embedding-3-large (`_lg`)
-跨厂商对等 co-primary 双轨, 各 producer 内联并列产出 (无后缀 + `_lg`)。
+与 bge-m3 (`_bge`); 嵌入改为 Qwen/Qwen3-Embedding-8B (MAIN, 无后缀) ⟂ text-embedding-3-large (`_lg`)
+跨 阿里(硅基流动)/OpenAI 对等 co-primary 双轨, 各 producer 内联并列产出 (无后缀 + `_lg`)。
 """

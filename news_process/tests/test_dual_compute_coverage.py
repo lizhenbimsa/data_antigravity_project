@@ -1,14 +1,14 @@
 """test_dual_compute_coverage — co-primary 双 API 嵌入列覆盖回归门 (v3.14.0).
 
 锁定"主阶段内联多算"契约: 每个嵌入特征在一次运行内用两个 **API** co-primary spec
-各算一遍, 并排产出 canonical 列 (无后缀 = gemini-embedding-2-preview, MAIN slot) +
+各算一遍, 并排产出 canonical 列 (无后缀 = Qwen/Qwen3-Embedding-8B, MAIN slot) +
 `_lg` 孪生列 (text-embedding-3-large, LARGE slot), 二者**对等互证**、跨厂商
-(Google ⟂ OpenAI)、严格 parity (有无后缀列必有 `_lg`, 反之亦然)。
+(阿里 Qwen ⟂ OpenAI)、严格 parity (有无后缀列必有 `_lg`, 反之亦然)。
 
 v3.14.0 架构转向 (2026-06-27, all-API-embedding): 项目此后**不加载任何本地嵌入模型**。
 旧本地稳健轨 `_t2v` (shibing624/text2vec) 与 `_bge` (BAAI/bge-m3) 及其全部本地推理机器
 (encode_local / _LOCAL_MODELS / ensure_torch_determinism / _select_torch_device) **硬删除**。
-现仅余双 API 模型: gemini (无后缀 MAIN) + large (`_lg`)。两者经各 producer 模块级
+现仅余双 API 模型: Qwen (无后缀 MAIN) + large (`_lg`)。两者经各 producer 模块级
 `_LARGE_SPEC = CONFIG.get('embedding_large', {})` 门控; 因 config/features.yaml 现已激活
 `embedding_large` 块 → `_LARGE_SPEC` 非空 → `_lg` 列**实际产出** (ACTIVE, 非休眠)。
 
@@ -32,7 +32,7 @@ def _seed_for(spec) -> int:
 
 
 def _fake_embed(texts, spec, **kwargs):
-    """确定性 mock (API 路径): (n, 16) 随机向量, 按 spec.model 区分 (gemini/large 各异)。"""
+    """确定性 mock (API 路径): (n, 16) 随机向量, 按 spec.model 区分 (Qwen/large 各异)。"""
     items = list(texts)
     n = len(items)
     if n == 0:
@@ -72,7 +72,7 @@ def _toy_panel():
 
 
 def test_strategic_diff_emits_canonical_and_lg(monkeypatch):
-    """stage 25: 嵌入派生列须同时含 canonical (gemini) / `_lg` (large) co-primary 双族。"""
+    """stage 25: 嵌入派生列须同时含 canonical (Qwen) / `_lg` (large) co-primary 双族。"""
     _patch_engine(monkeypatch)
     from news_process.pipeline.features import strategic_diff as sd
 
@@ -80,7 +80,7 @@ def test_strategic_diff_emits_canonical_and_lg(monkeypatch):
     assert sd._LARGE_SPEC, "config 已激活 embedding_large → _LARGE_SPEC 应非空 (co-primary _lg ACTIVE)"
     panel = sd.compute_strategic_differentiation(_toy_df_exploded(), _toy_panel())
 
-    # canonical (无后缀 = gemini, MAIN slot)
+    # canonical (无后缀 = Qwen, MAIN slot)
     for col in ['strat_diff_n5_emb', 'strat_sim_max_emb', 'centroid_diff_emb']:
         assert col in panel.columns, f"缺 canonical 嵌入列 {col}"
     # co-primary twin (_lg = text-embedding-3-large) + 契约别名 (与无后缀对称)
@@ -97,7 +97,7 @@ def test_strategic_diff_emits_canonical_and_lg(monkeypatch):
 
 
 def test_benefit_society_emits_canonical_and_lg(monkeypatch, tmp_path):
-    """stage 27: benefit_* 须同时含 canonical (gemini) / `_lg` (large) co-primary 双族。"""
+    """stage 27: benefit_* 须同时含 canonical (Qwen) / `_lg` (large) co-primary 双族。"""
     _patch_engine(monkeypatch)
     from news_process.pipeline.features import benefit_society as bs
 
@@ -124,7 +124,7 @@ def test_benefit_society_emits_canonical_and_lg(monkeypatch, tmp_path):
 
 # ---------------------------------------------------------------------------
 # co-primary parity 回归锁 (v3.14.0): config 激活 embedding_large 时 `_lg` 列**实际产出**
-# (非休眠)。这是 D-4a"gemini⟂large 严格 parity (有无后缀列必有 _lg)"不变量的 producer
+# (非休眠)。这是 D-4a"Qwen⟂large 严格 parity (有无后缀列必有 _lg)"不变量的 producer
 # 侧锚点。同时锁守卫范围铁律 (MAIN canonical 致命错须 fail-fast 上抛, 不被 _lg twin 守卫
 # 静默吞为 NaN 主结果列 + 不吞离线确定性闸)。
 # ---------------------------------------------------------------------------
@@ -160,7 +160,9 @@ def test_lg_columns_produced_when_large_configured(monkeypatch, tmp_path):
 
 def _fake_embed_raise_main(texts, spec, **kwargs):
     """mock: 对 MAIN canonical spec **raise** 致命错 (模拟离线确定性闸 miss / 鉴权失败);
-    co-primary twin (_lg) 返回正常向量 → 验证守卫只软降级 twin、MAIN 仍 fail-fast。"""
+    co-primary twin (_lg) 返回正常向量 → 验证守卫只软降级 twin、MAIN 仍 fail-fast。
+
+    (二分 _track_of 仅认 model 名是否含 'large': MAIN = Qwen 等非 large 模型。)"""
     if _track_of(spec) == 'main':
         raise RuntimeError("simulated MAIN canonical fatal (offline-gate cache miss)")
     items = list(texts)
@@ -170,7 +172,7 @@ def _fake_embed_raise_main(texts, spec, **kwargs):
 
 
 def test_main_canonical_fatal_raises_not_swallowed_strategic(monkeypatch):
-    """守卫范围回归锁: strategic_diff 的 MAIN canonical (gemini) 致命错
+    """守卫范围回归锁: strategic_diff 的 MAIN canonical (Qwen) 致命错
     必须 fail-fast 上抛, 不被 _lg co-primary 守卫静默吞为 NaN 主结果列。"""
     from news_process.pipeline.text import embedding_engine as eng
     monkeypatch.setattr(eng, 'embed_texts', _fake_embed_raise_main)
@@ -181,7 +183,7 @@ def test_main_canonical_fatal_raises_not_swallowed_strategic(monkeypatch):
 
 
 def test_main_canonical_fatal_raises_not_swallowed_benefit(monkeypatch, tmp_path):
-    """守卫范围回归锁: benefit_society 的 MAIN canonical (gemini) 致命错
+    """守卫范围回归锁: benefit_society 的 MAIN canonical (Qwen) 致命错
     (含离线确定性闸) 必须 fail-fast 上抛, 不被 _lg co-primary 守卫静默降级。"""
     from news_process.pipeline.text import embedding_engine as eng
     monkeypatch.setattr(eng, 'embed_texts', _fake_embed_raise_main)
@@ -193,7 +195,7 @@ def test_main_canonical_fatal_raises_not_swallowed_benefit(monkeypatch, tmp_path
 
 
 def test_policy_similarity_emits_canonical_and_lg(monkeypatch):
-    """stage 26: auth_sim_emb 须同时含 canonical (gemini) / `_lg` (large) co-primary 双族
+    """stage 26: auth_sim_emb 须同时含 canonical (Qwen) / `_lg` (large) co-primary 双族
     (需 auth 语料)。"""
     import os
 
@@ -213,7 +215,7 @@ def test_policy_similarity_emits_canonical_and_lg(monkeypatch):
 def test_engine_namespaces_cache_by_model(monkeypatch):
     """主/co-primary spec 经 LLMCache 时以 model_id 隔离, 不串。"""
     from news_process.core.caching import LLMCache
-    k_main = LLMCache._make_key('gemini-embedding-2-preview', 'foo', prompt_version='v3-gemini')
+    k_main = LLMCache._make_key('Qwen/Qwen3-Embedding-8B', 'foo', prompt_version='v4-qwen')
     k_lg = LLMCache._make_key('text-embedding-3-large', 'foo', prompt_version='v1-emb3large')
     assert k_main != k_lg, "MAIN/co-primary spec 缓存键必须隔离 (model_id 维度)"
 
@@ -229,7 +231,7 @@ def _track_of(spec) -> str:
     """按 spec.model 名做**二分** (v3.14.0 双 API co-primary)。
 
     - 'large' 在 model 名中 → co-primary ② (`_lg`);  # 如 text-embedding-3-large
-    - 否则 (gemini-embedding-2-preview 等) → MAIN canonical (无后缀)。
+    - 否则 (Qwen/Qwen3-Embedding-8B 等) → MAIN canonical (无后缀)。
 
     (v3.14.0 已硬删 `_t2v`/`_bge` 本地轨, 二分足够区分两 API co-primary。)
     """
@@ -291,7 +293,7 @@ def _toy_panel_2yr():
 
 def test_network_embedding_peer_emits_canonical_and_lg(monkeypatch):
     """第 5 个 callsite (network embedding peer): emb_peer_tone_lag1 +
-    bank_emb_sim_mean_lag1 须同时含 canonical (gemini) 与 `_lg` (large) co-primary 双族。
+    bank_emb_sim_mean_lag1 须同时含 canonical (Qwen) 与 `_lg` (large) co-primary 双族。
 
     fix(omni-g-net-spill-03, 2026-06-11): sim 列重命名披露 t-1 文本口径
     (bank_emb_sim_mean → bank_emb_sim_mean_lag1, co-primary 同步), 断言随更新。"""
@@ -314,7 +316,7 @@ def test_network_embedding_peer_emits_canonical_and_lg(monkeypatch):
 
 
 def test_policy_alignment_main_fail_keeps_lg_contract(monkeypatch):
-    """F1 回归锁: stage 15 MAIN(gemini API)嵌入失败时, 契约列 (含 co-primary
+    """F1 回归锁: stage 15 MAIN(Qwen API)嵌入失败时, 契约列 (含 co-primary
     policy_cosine_sim_lg_{full,ctx}) 必须全部存在, 否则下游
     export.py::REQUIRED_PANEL_COLUMNS 抛 RuntimeError。"""
     from news_process.pipeline.text import embedding_engine as eng
@@ -338,7 +340,7 @@ def test_strategic_diff_large_fail_both_or_neither_with_main(monkeypatch):
     """co-primary both-or-neither parity 锁 (v3.14.0): `_lg` 轨嵌入失败
     (large_returns_none) → MAIN 与 `_lg` 同族嵌入列**一并不产** (无单边孤儿列)。
 
-    v3.14.0 架构转向: gemini(无后缀) 与 large(`_lg`) 是**对等 co-primary、严格 parity**
+    v3.14.0 架构转向: Qwen(无后缀) 与 large(`_lg`) 是**对等 co-primary、严格 parity**
     (D-4a)。strategic_diff 在 Full/ctx/ss 三轨均加 both-or-neither 守卫 (源
     `if se is None or se_lg is None: se=cd_emb=se_lg=cd_emb_lg=None`) → 任一 co-primary
     嵌入失败, 两族同族列 (`centroid_diff_emb*` 与 `centroid_diff_emb_lg*`) 一并缺失。

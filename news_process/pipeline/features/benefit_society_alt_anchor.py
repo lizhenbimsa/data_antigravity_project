@@ -129,8 +129,8 @@ def load_jlm_zh_anchors(
 def load_article_embeddings(npy_path: Path | str) -> tuple[np.ndarray, dict]:
     """加载 stage 27 落盘的文章嵌入 .npy, 强制 sidecar 一致性断言。
 
-    fix(omni-g-benefit-01, 2026-06-11): 2026-05-29 主轨换模 (text2vec 768 维 →
-    text-embedding-3-small 1536 维) 后, 盘上无 sidecar 的 .npy 一律视为陈旧
+    fix(omni-g-benefit-01, 2026-06-11): 历次主轨换模 (2026-05-29 text2vec 768 维 →
+    text-embedding-3-small 1536 维; v3.15.0 起 Qwen/Qwen3-Embedding-8B 4096 维) 后, 盘上无 sidecar 的 .npy 一律视为陈旧
     产物 fail-loud, 不静默消费 (历史 2026-05-09 npy 曾以 584 行 / 1536 维与
     857 行 df_exploded 错配)。sidecar 由 benefit_society._persist_article_embeddings
     产出, 含 model_id / n_rows / dim。
@@ -175,7 +175,7 @@ def resolve_embedding_spec(model_id: str) -> dict:
 
     fix(omni-g-benefit-01, 2026-06-11): 锚点嵌入必须与文章嵌入同空间 —
     spec 不再硬编码 shibing624, 而是由文章 .npy sidecar 的 model_id 反查
-    ``embedding_api`` (MAIN, gemini) / ``embedding_large`` (_lg, co-primary,
+    ``embedding_api`` (MAIN, Qwen) / ``embedding_large`` (_lg, co-primary,
     text-embedding-3-large)。未知 model → fail-loud (无法保证同空间)。
     (v3.14.0 已整体移除本地稳健轨 embedding_robustness/_t2v 与 embedding_bge/_bge,
     故反查元组只剩双 API 模型。)

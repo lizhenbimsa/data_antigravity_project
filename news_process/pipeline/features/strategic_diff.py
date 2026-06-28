@@ -147,7 +147,7 @@
   2. 银行样本量 (~54 家/年) 远小于 TNIC 数据集 (~5000 家/年),
      N=5 近邻占样本比例 ~10%, 需注意小样本偏差
   3. Embedding 长文本采用 token 分段 + 均值池化, 避免超长文本尾部语义被截断。
-     主轨 (gemini) 与 co-primary _lg (text-embedding-3-large) 均走 API 分段池化。
+     主轨 (Qwen) 与 co-primary _lg (text-embedding-3-large) 均走 API 分段池化。
   4. 共提及文章机械相似 (披露, omni-g-strategic-01/09, 2026-06-11): full 轨中
      一篇共提 n 家银行的文章会逐字进入每家被提银行的年度聚合文档 (HP2016/GL2023
      的企业自撰文本互斥, 无此问题) → 共同被报道的银行对之间产生与战略无关的
@@ -212,12 +212,12 @@ except ImportError as _archive_import_exc:
     import logging as _logging_for_archive_error
     _logging_for_archive_error.getLogger(__name__).warning(
         "v3.7.0: llm_archive 不可用 (%s). strategic_diff 当前未调用 archive_record "
-        "(stage 27c 使用本地 sentence-transformers, 无 LLM raw response 需归档).",
+        "(经统一引擎 API 嵌入, 无 LLM raw response 需归档).",
         _archive_import_exc,
     )
 
 # Embedding Token 级精确截断与分段 (统一 Stage 15 标准)
-# 【术语】text-embedding-3-small 使用 cl100k_base 编码，单条上限 8,191 tokens
+# 【术语】cl100k_base 编码 (历史上是 text-embedding-3-small 编码器, 现作 Qwen/large 嵌入的保守 token 代理)，单条上限 8,191 tokens
 #   对超过上限的文本 (如权威政策语料)，采用朴素分段 (naive / independent
 #   chunking) + Mean Pooling 策略 (Reimers & Gurevych, 2019,
 #   EMNLP, DOI: 10.18653/v1/D19-1410)，分段嵌入后均值池化为单个向量。
@@ -271,7 +271,7 @@ from news_process.core.logging import pct4, sig4  # noqa: E402  # 日志四位�
 from news_process.pipeline.panel.encode import CONFIG, logger  # noqa: E402
 
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
-EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})            # MAIN spec (gemini-embedding-2-preview, 无后缀)
+EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})            # MAIN spec (Qwen/Qwen3-Embedding-8B, 无后缀)
 _LARGE_SPEC = CONFIG.get('embedding_large', {})              # co-primary 嵌入 twin spec (_lg=text-embedding-3-large API; v3.14.0 起 ACTIVE 协同主轨)
 _ALIGN_CFG = CONFIG.get('article_alignment', {})
 _EMB_MAX_TOKENS = _coerce_positive_int(
@@ -640,7 +640,7 @@ def _embed_texts_with_chunk_pooling(texts, *, spec=None, log_prefix="Embedding")
     """将任意长度文本嵌入为文本级向量 (委托 embedding_engine, spec 参数化)。
 
     超长文本走朴素分段 (naive chunking) + Mean Pooling。spec 默认主轨
-    (EMBEDDING_CONFIG, gemini-embedding-2-preview); 传 _LARGE_SPEC 则走
+    (EMBEDDING_CONFIG, Qwen/Qwen3-Embedding-8B); 传 _LARGE_SPEC 则走
     co-primary _lg (text-embedding-3-large API)。失败/形状异常 → None。
 
     Returns:
@@ -652,7 +652,7 @@ def _embed_texts_with_chunk_pooling(texts, *, spec=None, log_prefix="Embedding")
     )
     _eff_spec = spec if spec is not None else EMBEDDING_CONFIG
     # API-fatal 守卫: _eng.embed_texts 对 API spec (网络/认证致命错) 无兜底直接 raise。
-    # MAIN canonical (EMBEDDING_CONFIG=gemini) 与本地 spec (如 SBERT) 一律 fail-fast
+    # MAIN canonical (EMBEDDING_CONFIG=Qwen) 与本地 spec (如 SBERT) 一律 fail-fast
     # (保留 MAIN 既有失败语义 + 不吞离线确定性闸 RuntimeError); 仅 _lg twin (API 且非
     # MAIN) 把致命异常降级 None + warning (twin 是软诊断, 不应 fail-fast 整条流水线;
     # 与 policy_alignment 的 NaN 降级哲学一致)。⚠ both-or-neither: 调用方须保证一旦
@@ -1235,7 +1235,7 @@ def _compute_lda_coherence(agg_df):
 def _compute_emb_coherence(agg_df, spec=None):
     """稠密语义嵌入的相邻期文本连贯性 (spec 参数化, 逐轨复用于三轨 full/ctx/ss; 默认主轨)。
 
-    【学术】使用预训练语言模型 (gemini / OpenAI Embedding) 将文本映射到
+    【学术】使用预训练语言模型 (Qwen / OpenAI Embedding) 将文本映射到
     高维语义空间, 计算 cosine similarity。与 TF-IDF 的词袋假设不同,
     Embedding 捕获词序和上下文语义 (Guzman & Li 2023, Management Science)。
 
@@ -1398,7 +1398,7 @@ def compute_strategic_differentiation(df_exploded, panel):
         logger.info("  │  功能: (银行,年) 聚合新闻文档 → 4 法文本距离矩阵 → N-最近邻聚合 Ŝ_i")
         logger.info("  │        + 全行业质心距离 + Fluidity + 相邻期连贯性; 三轨 full/ctx/ss 互为稳健性")
         logger.info("  │  确定性/成本: 本地 TF-IDF/LDA $0 确定 (LDA n_jobs=1+seed=42 逐位可复现);")
-        logger.info("  │        Embedding 主轨 (gemini-embedding-2-preview) 缓存命中 $0, 缺失才付费;")
+        logger.info("  │        Embedding 主轨 (Qwen/Qwen3-Embedding-8B) 缓存命中 $0, 缺失才付费;")
         logger.info("  │        co-primary _lg (text-embedding-3-large API) 缓存命中 $0, 缺失才付费")
         logger.info("  │  📖 方法论依据 (核心构念 → 学术出处, emit 进日志):")
         logger.info("  │   · N-最近邻战略差异度 Ŝ_i=(1/N)Σδ_ij: Guzman, J., & Li, A. (2023). "
@@ -1468,7 +1468,7 @@ def compute_strategic_differentiation(df_exploded, panel):
     _full_text_col = 'content_full' if 'content_full' in df_exploded.columns else '内容'
     # ── 本步配置快照 (helper 读取的可调参数; 输入/输出路径由 runner 入口已打) ──
     try:
-        _emb_main = (EMBEDDING_CONFIG.get('model') or 'gemini-embedding-2-preview') if EMBEDDING_CONFIG else 'gemini-embedding-2-preview'
+        _emb_main = (EMBEDDING_CONFIG.get('model') or 'Qwen/Qwen3-Embedding-8B') if EMBEDDING_CONFIG else 'Qwen/Qwen3-Embedding-8B'
         _emb_lg = (_LARGE_SPEC.get('model') or '(text-embedding-3-large)') if _LARGE_SPEC else '(未启用)'
         logger.info(
             f"  │  ⚙ 配置: N_LIST={N_LIST} (基准 N=5) · co_mention_downweight={_co_dw} · "
@@ -1513,7 +1513,7 @@ def compute_strategic_differentiation(df_exploded, panel):
             logger.warning(f"    LDA+JSD 失败 ({type(e).__name__}), 跳过")
             sl = None
             cd_lda = None
-        # 方法 D: Embedding (主轨) — text-embedding-3-small 语义距离
+        # 方法 D: Embedding (主轨) — Qwen/Qwen3-Embedding-8B 语义距离
         # fix(omni-g-strategic-02/10, 2026-06-11): emb 余弦真值域 [-1,1] /
         # 距离 [0,2] — 显式传 bounds, 防按 TF-IDF [0,1] 默认值删失负余弦
         se_mat, se_emb = _build_embedding_sim_matrix(texts)
@@ -1554,7 +1554,7 @@ def compute_strategic_differentiation(df_exploded, panel):
             if sl:  # LDA 方法成功时才有
                 row['strat_diff_n5_lda'] = sl['n5'].get(bank, np.nan)
                 row['strat_sim_max_lda'] = sl['sim_max'].get(bank, np.nan)
-            if se:  # Embedding 主轨 (gemini) 成功时才有
+            if se:  # Embedding 主轨 (Qwen) 成功时才有
                 row['strat_diff_n5_emb'] = se['n5'].get(bank, np.nan)
                 row['strat_sim_max_emb'] = se['sim_max'].get(bank, np.nan)
             if se_lg:  # co-primary 嵌入 (_lg=text-embedding-3-large)
@@ -1638,7 +1638,7 @@ def compute_strategic_differentiation(df_exploded, panel):
         coh_tc  = _compute_tfidf_coherence(agg_track, 'char')
         coh_tw  = _compute_tfidf_coherence(agg_track, 'word')
         coh_lda = _compute_lda_coherence(agg_track)
-        coh_emb = _compute_emb_coherence(agg_track)            # 主轨 (gemini)
+        coh_emb = _compute_emb_coherence(agg_track)            # 主轨 (Qwen)
         _coh_pairs = [
             (f'coh_tfidf_c{track_suffix}', coh_tc),
             (f'coh_tfidf_w{track_suffix}', coh_tw),

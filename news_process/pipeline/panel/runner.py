@@ -1863,11 +1863,11 @@ def main():
 
             # co-primary ② (embedding_large, text-embedding-3-large, 3072 维): stage 15
             # 在 _LARGE_SPEC 非空时额外产出 article 级 policy_cosine_sim_lg_{full,ctx,ss}
-            # 及其全年份锚点孪生 _lg_allv_*。v3.14.0 起 gemini(MAIN, 无后缀) 与 large(_lg)
+            # 及其全年份锚点孪生 _lg_allv_*。v3.14.0 起 Qwen(MAIN, 无后缀) 与 large(_lg)
             # 为对等 co-primary 双轨 (跨厂商互证); 此处按 (bank, year) 取均值聚合为 bank-year
             # 同名列。MAIN(无后缀) policy_cosine_sim_* 已在上方连续聚合块合并 (article_sim_*
             # 同源), _lg 孪生在此并列。_lg 为软诊断/可 NaN → producer both-or-neither 保证
-            # 列名双射 (有 gemini 处必有 large); 列表推导自动按存在性过滤, 缺则优雅跳过。
+            # 列名双射 (有 Qwen 处必有 large); 列表推导自动按存在性过滤, 缺则优雅跳过。
             # code-review P1-1: _lg 聚合必须按 MAIN 同名约定 **rename** 为 article_sim_*_lg
             # (而非 raw policy_cosine_sim_lg_*), 否则面板层 MAIN=article_sim_mean 与 _lg=
             # policy_cosine_sim_lg 名不对称 → co-primary 列名双射破 (parity 门红)。mean+std
@@ -2413,15 +2413,15 @@ def main():
     logger.info(f"  algo_cater 指标计算完成 ({_cater_count} 变量)")
 
     # ═══ 8e. 嵌入 co-primary 双轨 (Embedding Co-Primary) 存在性诊断 (v3.14.0) ═══
-    # ⚠ 此处"双轨"= gemini ⟂ text-embedding-3-large 两个 API 嵌入模型 (非 full/ctx/ss
+    # ⚠ 此处"双轨"= Qwen ⟂ text-embedding-3-large 两个 API 嵌入模型 (非 full/ctx/ss
     # 文本情感轨)。v3.14.0 (2026-06-27, all-API-embedding): 本地 text2vec(_t2v)/bge(_bge)
-    # 整体移除, 嵌入主轨改为 gemini(MAIN, 无后缀) ⟂ text-embedding-3-large(_lg) 跨厂商对等
+    # 整体移除, 嵌入主轨改为 Qwen(MAIN, 无后缀) ⟂ text-embedding-3-large(_lg) 跨厂商对等
     # CO-PRIMARY 双轨 (跨厂商互证, 应对单一嵌入模型潜在的"幻觉偏移" Hallucination Bias)。
     #
     # 这些列由 stage 15 (policy_cosine_sim_*) / stage 25 (strat_diff_*) 主流程直接产出;
     # 此处不读取/merge 外部 parquet, 仅做存在性诊断 (保留自然缺失 NaN, 不 0 填充 —
     # Allison 2001 / Heckman 1979 listwise deletion 原则)。
-    # parity (gemini ⟂ _lg 列名双射) 由 test_embedding_coprimary_parity 测试门 +
+    # parity (Qwen ⟂ _lg 列名双射) 由 test_embedding_coprimary_parity 测试门 +
     # producer both-or-neither 强制, *不*由本诊断或 export 运行期 raise; 故此处任何列缺失
     # 仅记 WARNING (软诊断, 不报错; _ss 同句轨与 _lg 孪生在上线/播种前可能整体缺失)。
     emb_main_cols = [
@@ -2444,7 +2444,7 @@ def main():
     _missing = [c for c in emb_main_cols + emb_lg_cols if c not in panel.columns]
     if _missing:
         logger.warning(
-            f"  ⚠️ 嵌入 co-primary 双轨: 以下内联 gemini/_lg 列缺失 {_missing} "
+            f"  ⚠️ 嵌入 co-primary 双轨: 以下内联 Qwen/_lg 列缺失 {_missing} "
             f"(检查 stage 15/25 embedding_api/embedding_large 配置与运行)。"
         )
     logger.info(f"  ✅ 嵌入 co-primary 双轨存在性特征 (保留自然缺失值 NaN): present={_present}")

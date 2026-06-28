@@ -288,7 +288,7 @@ class TestSimMeanRenameAndTrueCosine:
 
     def test_renamed_lag1_columns_and_old_names_absent(self, monkeypatch):
         """-03: 输出列为 bank_emb_sim_mean_lag1(_lg co-primary); 旧无 lag 名 + 已删
-        本地稳健轨 _t2v 名不得再产出 (v3.14.0: gemini MAIN + text-embedding-3-large _lg)。"""
+        本地稳健轨 _t2v 名不得再产出 (v3.14.0: Qwen MAIN + text-embedding-3-large _lg)。"""
         monkeypatch.setattr(eng, 'embed_texts', _marker_vector_fake)
         panel = _panel_2yr({'A银行': 0.4, 'B银行': -0.5, 'C银行': 0.9})
         out = ns.compute_embedding_peer_network(self._df_marker_banks(), panel)

@@ -23,7 +23,7 @@ from news_process.core.text.token_utils import (
 
 
 def test_constants_match_openai_specs():
-    """两个 token 上限常量符合 OpenAI text-embedding-3-small 约束."""
+    """两个 token 上限常量 = cl100k_base 保守切块约束 (历史源自 text-embedding-3-small; 现作 Qwen/large 嵌入的保守 token 代理)."""
     assert MAX_TOKENS_PER_INPUT == 8191
     assert MAX_TOKENS_PER_REQUEST == 250_000
 

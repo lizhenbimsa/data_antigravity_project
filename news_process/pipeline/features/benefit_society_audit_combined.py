@@ -192,7 +192,7 @@ def build_audit_panel(
 
         embedding_model_id = str(
             (load_config().get("embedding_api") or {}).get("model")
-            or "text-embedding-3-small"
+            or "Qwen/Qwen3-Embedding-8B"
         )
     if anchor_embedding_fn is None:
         anchor_embedding_fn = make_anchor_embedding_fn(

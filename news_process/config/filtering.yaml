@@ -34,8 +34,8 @@ fintech_news_classification:
 #     Cambridge University Press. Ch 6.2.1 (smooth IDF), Ch 6.4.3 (sublinear TF).
 fintech_intensity:
   # (v3.14.0) 嵌入模型不再由此配置 —— 改走统一引擎 co-primary 双轨 spec
-  # (CONFIG['embedding_api']=gemini 无后缀 + CONFIG['embedding_large']=_lg), 产
-  # fintech_intensity_score (gemini) + fintech_intensity_score_lg。本地 text2vec 已移除。
+  # (CONFIG['embedding_api']=Qwen 无后缀 + CONFIG['embedding_large']=_lg), 产
+  # fintech_intensity_score (Qwen) + fintech_intensity_score_lg。本地 text2vec 已移除。
   min_distinct_keywords_jieba: 2                         # Jieba 精算后去重关键词最低数量（二次熔断阈值）
                                                          # 白话: 用更准的 jieba 分词重数一遍, 不同的金融科技词不足 2 个就判定不算金融科技新闻 (防 AC 粗匹配误报)。
   winsorize_percentiles: [1, 99]                         # IDF Winsorization 分位数 (P1/P99)

@@ -1044,7 +1044,7 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
     agg['avg_ft_intensity_ctx_std'] = ('fintech_intensity_score_ctx', 'std')
     agg['avg_ft_intensity_ss'] = ('fintech_intensity_score_ss', 'mean')
     agg['avg_ft_intensity_ss_std'] = ('fintech_intensity_score_ss', 'std')
-    #   → v3.14.0 co-primary: text-embedding-3-large (_lg) 孪生聚合 (gemini⟂large 严格 parity,
+    #   → v3.14.0 co-primary: text-embedding-3-large (_lg) 孪生聚合 (Qwen⟂large 严格 parity,
     #     D-4a; 防 P1-A "付 2× 成本却把 _lg 测度在面板层丢弃")。源列 fintech_intensity_score_lg_{full,
     #     ctx,ss} 由 stage 15 dual-track 产出; 缺源列 (单轨旧 parquet / _lg 未播种) 由 valid_agg
     #     自动跳过, 不引发 KeyError。legacy 无后缀 _lg alias = _lg_full (与 MAIN avg_ft_intensity 对称)。

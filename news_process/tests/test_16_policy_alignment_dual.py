@@ -19,17 +19,17 @@ def test_policy_alignment_module_imports():
 
 def test_coprimary_cosine_for_spec_main_and_large():
     """v3.14.0 co-primary 双 API 模型: compute 用 _cosine_for_spec 对 MAIN spec
-    (EMBEDDING_CONFIG=gemini-embedding-2-preview, 无后缀) 与 co-primary spec
+    (EMBEDDING_CONFIG=Qwen/Qwen3-Embedding-8B, 无后缀) 与 co-primary spec
     (_LARGE_SPEC=text-embedding-3-large, `_lg`) 各算一遍, 缓存命名空间由 model_id (engine)
     隔离, 不 mutate 全局 EMBEDDING_CONFIG。
 
     v3.14.0 已硬删本地稳健轨 `_t2v` (text2vec) / `_bge` (bge-m3) → `_ROBUSTNESS_SPEC`/
-    `_BGE_SPEC` 不复存在; 现仅余两 API co-primary (gemini 无后缀 + large `_lg`)。"""
+    `_BGE_SPEC` 不复存在; 现仅余两 API co-primary (Qwen 无后缀 + large `_lg`)。"""
     import inspect
 
     from news_process.pipeline.filtering import policy_alignment as pa
     src_compute = inspect.getsource(pa.compute_article_policy_alignment)
-    # 双 spec 双算: MAIN (gemini) + co-primary (large)
+    # 双 spec 双算: MAIN (Qwen) + co-primary (large)
     assert '_cosine_for_spec' in src_compute, "compute 应用 _cosine_for_spec 助手"
     assert '_LARGE_SPEC' in src_compute, "compute 应对 co-primary _lg spec (_LARGE_SPEC) 再算一遍"
     # 产出 co-primary _lg twin 列
@@ -75,7 +75,7 @@ def test_cache_isolation_from_other_callsites():
 # ── Cases 4-7: 双轨列输出 ──
 def test_dual_track_columns_present_after_run(monkeypatch):
     """模拟 engine 嵌入返回固定单位向量, 验证输出含 co-primary 双 API 模型双轨列
-    (MAIN gemini 无后缀 + co-primary large `_lg`)."""
+    (MAIN Qwen 无后缀 + co-primary large `_lg`)."""
     from news_process.pipeline.filtering import policy_alignment as pa
 
     # 构造 3 篇 mock 文章
@@ -86,10 +86,11 @@ def test_dual_track_columns_present_after_run(monkeypatch):
     })
 
     # Mock embedding_engine.embed_texts: 任意 spec 都返回 [1,0,0,...] 单位向量 → cosine = 1.0
-    # (MAIN gemini spec 与 co-primary large spec 各调一遍, 均走此 mock → canonical 与 _lg
-    # 列都满列。dim=3072 = gemini/large 两 co-primary 实际维度。)
+    # (MAIN Qwen spec 与 co-primary large spec 各调一遍, 均走此 mock → canonical 与 _lg
+    # 列都满列。dim 取 4096 = Qwen MAIN 实际维度 (large 实际 3072, 维度不同, 余弦维度无关
+    # 绝不混算; 此 mock 单数组服务两 spec, 几何走通即可, dim 大小不影响通路。)
     def _fake_embed(texts, spec, **kwargs):
-        return np.array([[1.0] + [0.0] * 3071] * len(list(texts)), dtype=np.float32)
+        return np.array([[1.0] + [0.0] * 4095] * len(list(texts)), dtype=np.float32)
 
     monkeypatch.setattr(pa._eng, 'embed_texts', _fake_embed)
     # 关掉 token 截断的真实计算 (避免 tiktoken 加载)

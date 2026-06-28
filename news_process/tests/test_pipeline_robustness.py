@@ -33,7 +33,7 @@ def _mock_embedding_config(monkeypatch):
     monkeypatch.setattr(
         mod15, "EMBEDDING_CONFIG",
         {"base_url": "https://mock.invalid", "api_key": "mock-key-ci-only",
-         "model": "text-embedding-3-small"},
+         "model": "Qwen/Qwen3-Embedding-8B"},
         raising=False,
     )
 

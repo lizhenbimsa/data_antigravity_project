@@ -6,7 +6,7 @@
 - g-embed-02: Tetlock 2011 构念保真披露 — '原文 cosine 范式' 误称清除 (源码文本锁)
 - g-embed-03/09: stage 18 消费 30a 改 article_id 显式 join (长度/键/辅键不一致
   fail-loud); 30a 产出端新增 model_id/model_revision/text_pipeline_version provenance.
-  v3.14.0: _load_aligned_embeddings 返回 6-tuple (MAIN gemini emb_{full,ctx,ss}
+  v3.14.0: _load_aligned_embeddings 返回 6-tuple (MAIN Qwen emb_{full,ctx,ss}
   + _lg large emb_{full,ctx,ss}_lg 两 co-primary 套)。
 - g-embed-04 (+KNOWN-OPEN⑧): embed_texts 多块池化改 "逐块 L2 归一 + token 数加权"
   (尾段碎片不再获整段同权)。v3.14.0: embed_texts 为纯 API 路径 (零本地模型) →
@@ -25,7 +25,7 @@ faiss/datasketch/tiktoken 为已装本地包。
 # 文章比、不跟当天的自己比; 两个文件拼接必须按文章 ID 对齐, 不能靠"行序碰巧
 # 一样"; 超长文章切块后, 大块说话权重大、尾巴小碎块不能喧宾夺主; 聚合求平均
 # 时只算经过核验的文章。v3.14.0 起项目零本地嵌入模型, 全部走两个 API 模型
-# (gemini + text-embedding-3-large), 故本地推理相关测试已删。
+# (Qwen + text-embedding-3-large), 故本地推理相关测试已删。
 """
 from __future__ import annotations
 
@@ -162,7 +162,7 @@ class TestLoadAlignedEmbeddings:
         emb_df = _make_emb_df(art_df, order=[2, 0, 3, 1])  # 行序与 art_df 不同
         p = tmp_path / '25_article_embeddings.parquet'
         emb_df.to_parquet(p, index=False)
-        # v3.14.0: 6-tuple (MAIN gemini 3 + _lg large 3); 旧 30a 单轨 → _lg 全 None
+        # v3.14.0: 6-tuple (MAIN Qwen 3 + _lg large 3); 旧 30a 单轨 → _lg 全 None
         (embs_full, embs_ctx, embs_ss,
          embs_full_lg, embs_ctx_lg, embs_ss_lg) = _load_aligned_embeddings(art_df, str(p))
         for i in range(4):
@@ -221,12 +221,12 @@ class TestLoadAlignedEmbeddings:
 
     def test_model_id_provenance_column_tolerated(self, tmp_path):
         # 新版 30a 带 provenance 列时正常读 (不混入向量, 不崩溃)
-        # v3.14.0: MAIN provenance 现为 gemini-embedding-2-preview
+        # v3.14.0: MAIN provenance 现为 Qwen/Qwen3-Embedding-8B
         from news_process.pipeline.text.article_staleness import (
             _load_aligned_embeddings,
         )
         art_df = _make_art_df(2)
-        emb_df = _make_emb_df(art_df, model_id='gemini-embedding-2-preview')
+        emb_df = _make_emb_df(art_df, model_id='Qwen/Qwen3-Embedding-8B')
         p = tmp_path / '30a.parquet'
         emb_df.to_parquet(p, index=False)
         embs_full = _load_aligned_embeddings(art_df, str(p))[0]
@@ -270,7 +270,7 @@ class TestLoadAlignedEmbeddings:
 
 class TestSbertProvenanceAndConfig:
     def test_build_output_frame_has_provenance_columns(self):
-        # v3.14.0: _build_output_frame 扩为 6 嵌入参数 (MAIN gemini emb_{full,ctx,ss}
+        # v3.14.0: _build_output_frame 扩为 6 嵌入参数 (MAIN Qwen emb_{full,ctx,ss}
         # + _lg large emb_{full,ctx,ss}_lg); 双套 provenance 三元组。
         from news_process.pipeline.text import article_sbert as sbert
         df = pd.DataFrame({
@@ -431,7 +431,7 @@ def _patch_api_chunk_vectors(monkeypatch, eng, vec_for_chunk):
 
 
 # API spec (无后缀 = canonical / base_url 非 local → spec_uses_local 返 False)
-_API_SPEC = {'base_url': 'https://yunwu.ai/v1', 'model': 'gemini-embedding-2-preview'}
+_API_SPEC = {'base_url': 'https://api.siliconflow.cn/v1', 'model': 'Qwen/Qwen3-Embedding-8B'}
 
 
 class TestEmbedTextsChunkPooling:

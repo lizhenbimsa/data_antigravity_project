@@ -7,7 +7,7 @@
     引擎 chunk+pool 接管, 两侧对称; 本组测试改锁 "无预截断" 行为)
   - g-policy-04: 注释/docstring 漂移修复 (8000 字截断 / 4 种算法 / 0~1 / legacy 标注)
   - g-policy-05: 降级透明 (<3 银行 warning; v3.14.0 起嵌入轨改 co-primary both-or-neither:
-    gemini MAIN 与 _lg(text-embedding-3-large) 任一失败 → 两族同置 NaN, 见各测试)
+    Qwen MAIN 与 _lg(text-embedding-3-large) 任一失败 → 两族同置 NaN, 见各测试)
 
 # 白话: "政策契合度"是看文章和官方政策文件像不像。这组测试守住: 政策文件和
 # 新闻要用同一套清洗规则(领导人姓名两边都简→繁, 体现而非删除); 算某年文章的契合度只能用该年
@@ -194,7 +194,7 @@ def test_stage15_vintage_lookahead_guard(tmp_path, monkeypatch):
     assert np.isnan(got[2]), "2014 早于全部政策文档应 NaN (前视守卫)"
     assert np.isnan(got[3]), "年份未知应 NaN (前视守卫)"
     # co-primary _lg 轨同步 vintage (mock 对两 spec 同返回; v3.14.0: 本地 _t2v 已删,
-    # _lg=text-embedding-3-large 是与 gemini MAIN 全平价的 co-primary)
+    # _lg=text-embedding-3-large 是与 Qwen MAIN 全平价的 co-primary)
     assert out['policy_cosine_sim_lg_full'].iloc[0] == pytest.approx(1.0, abs=1e-6)
     assert np.isnan(out['policy_cosine_sim_lg_full'].iloc[2])
     # legacy alias 仍 = _full
@@ -256,14 +256,14 @@ def test_stage15_vintage_optout_uses_static_anchor(tmp_path, monkeypatch):
 
 # ---------------------------------------------------------------------------
 # g-policy-05 (b) → v3.14.0 both-or-neither co-primary parity:
-#   MAIN (gemini) 与 _lg (text-embedding-3-large) 是双射孪生 — 任一 co-primary
+#   MAIN (Qwen) 与 _lg (text-embedding-3-large) 是双射孪生 — 任一 co-primary
 #   嵌入返回 None → 两族同时置 NaN (绝不留单边孤儿列, D-4a parity 不变量)。
 #   旧"_t2v 稳健轨失败只把自己置空、canonical 照常"语义已被 co-primary 对等取代。
 # ---------------------------------------------------------------------------
 
 def test_stage15_coprimary_both_or_neither_nan(tmp_path, monkeypatch):
     """co-primary both-or-neither: _lg (text-embedding-3-large) 嵌入返回 None →
-    canonical (gemini) 与 _lg 两族**同时**置 NaN (无单边孤儿列)。"""
+    canonical (Qwen) 与 _lg 两族**同时**置 NaN (无单边孤儿列)。"""
     from news_process.pipeline.filtering import policy_alignment as pa
     monkeypatch.setitem(pa.CONFIG['paths'], 'authoritative_corpus_file',
                         _write_corpus(tmp_path))
@@ -541,7 +541,7 @@ def test_stage15_allv_companion_columns_and_lookahead_diff(tmp_path, monkeypatch
 
     out = pa.compute_article_policy_alignment(
         _toy_articles([2016, 2022, 2014, np.nan]))
-    # _allv 孪生列 (主轨 gemini + co-primary _lg 各一族) 全部就绪
+    # _allv 孪生列 (主轨 Qwen + co-primary _lg 各一族) 全部就绪
     # (v3.14.0: 本地 _t2v 已删, _lg=text-embedding-3-large)
     for col in ['policy_cosine_sim_allv', 'policy_cosine_sim_allv_full',
                 'policy_cosine_sim_allv_ctx', 'policy_cosine_sim_lg_allv_full',
@@ -650,7 +650,7 @@ def test_allv_panel_column_names_within_stata_32():
     (CLAUDE.md Stata 段铁律; 镜像 _ss 三元组唯一性断言精神)。
     v3.14.0: 本地 _t2v(4 字符) 已删, co-primary _lg(3 字符) 是唯一嵌入孪生后缀, 更短 → 更安全。"""
     names = []
-    # stage 15 文章级 (主轨 gemini 无后缀 + co-primary _lg)
+    # stage 15 文章级 (主轨 Qwen 无后缀 + co-primary _lg)
     for base in ['policy_cosine_sim', 'policy_cosine_sim_lg']:
         for t in ['', '_full', '_ctx', '_ss']:
             names.append(f'{base}_allv{t}')

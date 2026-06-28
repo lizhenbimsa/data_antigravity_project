@@ -332,40 +332,40 @@ def build_variable_labels(
         'avg_boilerplate_full':             "Boilerplate Phrase Ratio Full (跨文档套话; LSL 2015)",
         # remove-title-track: title-indicator labels 已移除
         # ─────────────────────────────────────────────────────────────
-        # v3.14.0 (2026-06-27, all-API-embedding): 嵌入主轨改为 gemini(MAIN, 无后缀)
+        # v3.15.0 (2026-06-28): 嵌入主轨 = Qwen3-Embedding-8B(MAIN, 无后缀, 硅基流动)
         # ⟂ text-embedding-3-large(_lg) 跨厂商对等 CO-PRIMARY 双轨 (本地 text2vec/_t2v
         # 与 _bge 整体移除)。这批 MAIN (无后缀) anchor 嵌入族标签是 _lg 派生循环 (下方
         # _MAIN_ANCHOR_KEYS) 与 _allv 派生循环的输入源 —— 删 _t2v 后必须存在, 否则两循环
         # 输入归零、_lg/_allv 标签全失。每条 base 文案恰带一个 "(co-primary:
-        # gemini-embedding-2-preview)" 对称标注 (_lg 派生时整体 replace 为
+        # Qwen/Qwen3-Embedding-8B)" 对称标注 (_lg 派生时整体 replace 为
         # text-embedding-3-large; 严禁 "robust/robustness check" 措辞 —— 二者对等互证)。
         # full 轨命名遵循 producer 列约定: n5_emb/sim_max_emb/centroid_diff_emb 的 full
         # 为裸名 (无 _full 后缀), 其余族 full 带 _full。≤80 UTF-8 bytes。
         # ─────────────────────────────────────────────────────────────
-        'strat_diff_full':                  "Strat Diff (full) (co-primary: gemini-embedding-2-preview)",
-        'strat_diff_ctx':                   "Strat Diff (ctx) (co-primary: gemini-embedding-2-preview)",
-        'strat_diff_n5_emb':                "Strat Diff N5 Emb (full) (co-primary: gemini-embedding-2-preview)",
-        'strat_diff_n5_emb_ctx':            "Strat Diff N5 Emb (ctx) (co-primary: gemini-embedding-2-preview)",
-        'strat_sim_max_emb':                "Strat Max Sim Emb (full) (co-primary: gemini-embedding-2-preview)",
-        'strat_sim_max_emb_ctx':            "Strat Max Sim Emb (ctx) (co-primary: gemini-embedding-2-preview)",
-        'centroid_diff_emb':                "Centroid Diff Emb (full) (co-primary: gemini-embedding-2-preview)",
-        'centroid_diff_emb_ctx':            "Centroid Diff Emb (ctx) (co-primary: gemini-embedding-2-preview)",
-        'coh_emb_full':                     "Temporal Coherence Emb (full) (co-primary: gemini-embedding-2-preview)",
-        'coh_emb_ctx':                      "Temporal Coherence Emb (ctx) (co-primary: gemini-embedding-2-preview)",
-        'policy_cosine_sim_full':           "Policy Cosine Sim (full) (co-primary: gemini-embedding-2-preview)",
-        'policy_cosine_sim_ctx':            "Policy Cosine Sim (ctx) (co-primary: gemini-embedding-2-preview)",
-        'auth_sim_emb_full':                "Auth Policy Sim Emb (full) (co-primary: gemini-embedding-2-preview)",
-        'auth_sim_emb_ctx':                 "Auth Policy Sim Emb (ctx) (co-primary: gemini-embedding-2-preview)",
-        'benefit_mean_full':                "Benefit Attitude Mean (full) (co-primary: gemini-embedding-2-preview)",
-        'benefit_mean_ctx':                 "Benefit Attitude Mean (ctx) (co-primary: gemini-embedding-2-preview)",
-        'benefit_std_full':                 "Benefit Attitude SD (full) (co-primary: gemini-embedding-2-preview)",
-        'benefit_std_ctx':                  "Benefit Attitude SD (ctx) (co-primary: gemini-embedding-2-preview)",
-        'benefit_pos_frac_full':            "Benefit Pos Frac (full) (co-primary: gemini-embedding-2-preview)",
-        'benefit_pos_frac_ctx':             "Benefit Pos Frac (ctx) (co-primary: gemini-embedding-2-preview)",
-        'benefit_neg_frac_full':            "Benefit Neg Frac (full) (co-primary: gemini-embedding-2-preview)",
-        'benefit_neg_frac_ctx':             "Benefit Neg Frac (ctx) (co-primary: gemini-embedding-2-preview)",
-        'emb_peer_tone_lag1_full':          "Emb Peer Tone Lag1 (full) (co-primary: gemini-embedding-2-preview)",
-        'bank_emb_sim_mean_lag1':           "Bank Emb Sim Mean (L1) (co-primary: gemini-embedding-2-preview)",
+        'strat_diff_full':                  "Strat Diff (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_diff_ctx':                   "Strat Diff (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_diff_n5_emb':                "Strat Diff N5 Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_diff_n5_emb_ctx':            "Strat Diff N5 Emb (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_sim_max_emb':                "Strat Max Sim Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_sim_max_emb_ctx':            "Strat Max Sim Emb (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'centroid_diff_emb':                "Centroid Diff Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'centroid_diff_emb_ctx':            "Centroid Diff Emb (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'coh_emb_full':                     "Temporal Coherence Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'coh_emb_ctx':                      "Temporal Coherence Emb (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'policy_cosine_sim_full':           "Policy Cosine Sim (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'policy_cosine_sim_ctx':            "Policy Cosine Sim (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'auth_sim_emb_full':                "Auth Policy Sim Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'auth_sim_emb_ctx':                 "Auth Policy Sim Emb (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'benefit_mean_full':                "Benefit Attitude Mean (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'benefit_mean_ctx':                 "Benefit Attitude Mean (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'benefit_std_full':                 "Benefit Attitude SD (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'benefit_std_ctx':                  "Benefit Attitude SD (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'benefit_pos_frac_full':            "Benefit Pos Frac (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'benefit_pos_frac_ctx':             "Benefit Pos Frac (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'benefit_neg_frac_full':            "Benefit Neg Frac (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'benefit_neg_frac_ctx':             "Benefit Neg Frac (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'emb_peer_tone_lag1_full':          "Emb Peer Tone Lag1 (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'bank_emb_sim_mean_lag1':           "Bank Emb Sim Mean (L1) (co-primary: Qwen/Qwen3-Embedding-8B)",
         'industry_neg_shock_lag1':          "Industry Neg Shock LOO (L1, year-FE-safe)",
         # 网络指标扩展 2026-06-21 (WS-A net 级 6 / WS-C GF 5 / WS-B 二分图 5);
         # .dta 标签经此 HEURISTIC_LABELS (build_variable_labels 优先级 2) 命中,
@@ -431,20 +431,20 @@ def build_variable_labels(
         'frac_amb_articles_ss':             "Frac Articles Ambiguous SS (银行+金科同句, >=D0 median, You 2018)",
         # A3 Numerical Intensity ss 轨
         'mean_num_intensity_ss':            "Mean Numerical Intensity SS (三轨 full/ctx/ss; 银行+金科同句)",
-        # MAIN (无后缀) anchor 嵌入族 ss 轨 (gemini-embedding-2-preview; v3.14.0
+        # MAIN (无后缀) anchor 嵌入族 ss 轨 (Qwen/Qwen3-Embedding-8B; v3.15.0
         # 起 _lg 派生循环 + _allv 循环的 ss-轨输入源, 镜像上方 full/ctx MAIN 块)。
-        # 每条恰带一个 "(co-primary: gemini-embedding-2-preview)" 对称标注。
-        'strat_diff_ss':                    "Strat Diff (ss) (co-primary: gemini-embedding-2-preview)",
-        'strat_diff_n5_emb_ss':             "Strat Diff N5 Emb (ss) (co-primary: gemini-embedding-2-preview)",
-        'strat_sim_max_emb_ss':             "Strat Max Sim Emb (ss) (co-primary: gemini-embedding-2-preview)",
-        'centroid_diff_emb_ss':             "Centroid Diff Emb (ss) (co-primary: gemini-embedding-2-preview)",
-        'coh_emb_ss':                       "Temporal Coherence Emb (ss) (co-primary: gemini-embedding-2-preview)",
-        'policy_cosine_sim_ss':             "Policy Cosine Sim (ss) (co-primary: gemini-embedding-2-preview)",
-        'auth_sim_emb_ss':                  "Auth Policy Sim Emb (ss) (co-primary: gemini-embedding-2-preview)",
-        'benefit_mean_ss':                  "Benefit Attitude Mean (ss) (co-primary: gemini-embedding-2-preview)",
-        'benefit_std_ss':                   "Benefit Attitude SD (ss) (co-primary: gemini-embedding-2-preview)",
-        'benefit_pos_frac_ss':              "Benefit Pos Frac (ss) (co-primary: gemini-embedding-2-preview)",
-        'benefit_neg_frac_ss':              "Benefit Neg Frac (ss) (co-primary: gemini-embedding-2-preview)",
+        # 每条恰带一个 "(co-primary: Qwen/Qwen3-Embedding-8B)" 对称标注。
+        'strat_diff_ss':                    "Strat Diff (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_diff_n5_emb_ss':             "Strat Diff N5 Emb (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_sim_max_emb_ss':             "Strat Max Sim Emb (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'centroid_diff_emb_ss':             "Centroid Diff Emb (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'coh_emb_ss':                       "Temporal Coherence Emb (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'policy_cosine_sim_ss':             "Policy Cosine Sim (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'auth_sim_emb_ss':                  "Auth Policy Sim Emb (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'benefit_mean_ss':                  "Benefit Attitude Mean (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'benefit_std_ss':                   "Benefit Attitude SD (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'benefit_pos_frac_ss':              "Benefit Pos Frac (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'benefit_neg_frac_ss':              "Benefit Neg Frac (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
         # IV 扩展族 ss 轨镜像 lpeer_*_ss / zone_leave1out_benefit_iv_ss
         # (各自 just-identified 并排, 禁与 full/ctx 混 over-id Hansen J)
         'zone_leave1out_benefit_iv_ss':     "Same-zone (cross-prov) LOO benefit-attitude IV (ss 银行+金科同句)",
@@ -457,13 +457,13 @@ def build_variable_labels(
 
     # ═══ co-primary ② "_lg" 标签机械派生 (text-embedding-3-large; v3.14.0 起 ACTIVE) ═══
     # v3.14.0 (2026-06-27, all-API-embedding): 本地 text2vec(_t2v)/bge(_bge) 整体移除,
-    # 嵌入主轨改为 gemini(MAIN, 无后缀) ⟂ text-embedding-3-large(_lg) 跨厂商对等 CO-PRIMARY
+    # 嵌入主轨改为 Qwen3-Embedding-8B(MAIN, 无后缀) ⟂ text-embedding-3-large(_lg) 跨厂商对等 CO-PRIMARY
     # 双轨。删 _t2v 字面键后, 旧"从 _t2v 派生 _lg"机制输入归零 → 改从上方手写的 MAIN (无后缀)
     # anchor 嵌入族键集 _MAIN_ANCHOR_KEYS 派生 _lg 孪生标签 (对等命名机制, 后缀无主次含义)。
     #   · _lg KEY: 在 track 后缀 (_full/_ctx/_ss) 之前插 `_lg`; 无 track 后缀的裸名 (如
     #     strat_diff_n5_emb / bank_emb_sim_mean_lag1) 则 append `_lg` —— 与 producer 列名
     #     (strat_diff_n5_emb_lg / bank_emb_sim_mean_lag1_lg) 1:1 对齐。
-    #   · _lg LABEL: 把 MAIN base 文案里的 "(co-primary: gemini-embedding-2-preview)"
+    #   · _lg LABEL: 把 MAIN base 文案里的 "(co-primary: Qwen/Qwen3-Embedding-8B)"
     #     整体 REPLACE 为 "(co-primary: text-embedding-3-large)" (replacive 非 append →
     #     MAIN 与 _lg 各带恰一个对称 co-primary 标注; 严禁 "robust/robustness check" 措辞)。
     # 位置在 MAIN 字面 dict 之后、_allv 派生循环之前 → 下方 _allv 循环可自动为 MAIN+_lg
@@ -489,14 +489,14 @@ def build_variable_labels(
         'coh_emb_ss', 'policy_cosine_sim_ss', 'auth_sim_emb_ss',
         'benefit_mean_ss', 'benefit_std_ss', 'benefit_pos_frac_ss', 'benefit_neg_frac_ss',
     })
-    _GEMINI_ANNOT = '(co-primary: gemini-embedding-2-preview)'
+    _QWEN_ANNOT = '(co-primary: Qwen/Qwen3-Embedding-8B)'
     _LARGE_ANNOT = '(co-primary: text-embedding-3-large)'
-    # P2-D 防御 (code-review): 每个 _MAIN_ANCHOR_KEYS 须存在于 HEURISTIC_LABELS 且含 gemini
+    # P2-D 防御 (code-review): 每个 _MAIN_ANCHOR_KEYS 须存在于 HEURISTIC_LABELS 且含 Qwen
     # 标注, 否则下方 replacive 派生会 0-迭代 / 产未替换标签 → 整族 _lg 标签静默丢失。手写键
     # typo 时立即 fail-loud (而非到生产才发现 .dta 缺标签)。
-    _missing_annot = [k for k in _MAIN_ANCHOR_KEYS if _GEMINI_ANNOT not in HEURISTIC_LABELS.get(k, '')]
+    _missing_annot = [k for k in _MAIN_ANCHOR_KEYS if _QWEN_ANNOT not in HEURISTIC_LABELS.get(k, '')]
     assert not _missing_annot, (
-        f"_MAIN_ANCHOR_KEYS 中 {_missing_annot} 缺失或无 '{_GEMINI_ANNOT}' 标注 → _lg 派生会漏整族; "
+        f"_MAIN_ANCHOR_KEYS 中 {_missing_annot} 缺失或无 '{_QWEN_ANNOT}' 标注 → _lg 派生会漏整族; "
         f"检查 _MAIN_ANCHOR_KEYS 与手写 HEURISTIC_LABELS 是否 1:1"
     )
     for _k, _v in [(k, v) for k, v in HEURISTIC_LABELS.items() if k in _MAIN_ANCHOR_KEYS]:
@@ -507,7 +507,7 @@ def build_variable_labels(
         else:
             _lg_key = f'{_k}_lg'
         if _lg_key not in HEURISTIC_LABELS:
-            _lg_label = _v.replace(_GEMINI_ANNOT, _LARGE_ANNOT)
+            _lg_label = _v.replace(_QWEN_ANNOT, _LARGE_ANNOT)
             HEURISTIC_LABELS[_lg_key] = _lg_label[:80]
 
     # ═══ 全年份锚点 "_allv" 标签机械派生 (all-vintage anchor robustness, 2026-06-21) ═══

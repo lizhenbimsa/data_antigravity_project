@@ -203,10 +203,10 @@ def test_build_audit_panel_happy_path_mocked(tmp_path, monkeypatch):
     assert meta['embedding_dim'] == emb_dim
 
 
-def _write_emb_with_sidecar(path, emb, model_id='gemini-embedding-2-preview'):
+def _write_emb_with_sidecar(path, emb, model_id='Qwen/Qwen3-Embedding-8B'):
     """fix(omni-g-benefit-01, 2026-06-11): 测试 helper — 写 .npy + 必备 sidecar.
 
-    v3.14.0 (2026-06-27): 默认 model_id 改为 MAIN co-primary gemini-embedding-2-preview
+    v3.14.0 (2026-06-27): 默认 model_id 改为 MAIN co-primary Qwen/Qwen3-Embedding-8B
     (旧本地/小模型已整体移除)。
     """
     import json

@@ -320,13 +320,14 @@ def test_write_sidecar_json(tmp_path):
     panel_path = tmp_path / 'panel.parquet'
     fake_meta = {'yaml_sha256': 'abc', 'anchor_family': 'jlm_zh_v1'}
     # v3.14.0 (2026-06-27): embedding_dim 改由调用方传入文章 .npy sidecar 实际值
-    # (原硬编码 768 随本地 text2vec 稳健轨整体移除); co-primary 双 API 模型均 3072 维。
+    # (原硬编码 768 随本地 text2vec 稳健轨整体移除); co-primary 双 API 模型维度不同
+    # (Qwen MAIN 4096 / large 3072, 余弦维度无关绝不混算)。
     out = write_sidecar_json(
         panel_path, fake_meta,
         direction_sha='dir_sha_xyz',
         n_articles=100,
         n_bank_years=50,
-        embedding_dim=3072,
+        embedding_dim=4096,
     )
     assert out.exists()
     assert out.name == 'panel.sidecar.json'
@@ -336,7 +337,7 @@ def test_write_sidecar_json(tmp_path):
     assert data['direction_vector_sha256'] == 'dir_sha_xyz'
     assert data['n_articles_scored'] == 100
     assert data['n_bank_year_obs'] == 50
-    assert data['embedding_dim'] == 3072
+    assert data['embedding_dim'] == 4096
 
 
 def test_main_missing_inputs_warns_and_exits_clean():
@@ -347,11 +348,11 @@ def test_main_missing_inputs_warns_and_exits_clean():
     assert rc == 0
 
 
-def _write_emb_with_sidecar(path, emb, model_id='gemini-embedding-2-preview'):
+def _write_emb_with_sidecar(path, emb, model_id='Qwen/Qwen3-Embedding-8B'):
     """fix(omni-g-benefit-01, 2026-06-11): 测试 helper — 写 .npy + 必备 sidecar.
 
     v3.14.0 (2026-06-27): 默认 model_id 由 text-embedding-3-small 改为 MAIN
-    co-primary gemini-embedding-2-preview (旧本地/小模型已整体移除)。
+    co-primary Qwen/Qwen3-Embedding-8B (旧本地/小模型已整体移除)。
     """
     import json
     np.save(path, emb)
@@ -416,8 +417,8 @@ def test_main_full_projection_path(tmp_path, monkeypatch):
     assert sidecar.exists()
     import json
     meta = json.loads(sidecar.read_text(encoding='utf-8'))
-    # sidecar 不再硬编码 shibing624/768 — 反映实际输入 (v3.14.0 MAIN=gemini)
-    assert meta['embedding_model'] == 'gemini-embedding-2-preview'
+    # sidecar 不再硬编码 shibing624/768 — 反映实际输入 (v3.14.0 MAIN=Qwen)
+    assert meta['embedding_model'] == 'Qwen/Qwen3-Embedding-8B'
     assert meta['embedding_dim'] == emb_dim
     assert meta['tracks'] == ['full', 'ctx']
 

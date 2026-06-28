@@ -3,30 +3,33 @@
 # 原始段落归属保持不变; 注释在往返转换中可能被重排 (re-flow)。
 
 # ──────────────────────────────────────────────────────────────────────────
-# Co-primary 双 API 嵌入 (v3.14.0, 2026-06-27): gemini-embedding-2-preview (Google)
-# 与 text-embedding-3-large (OpenAI) 并列 CO-PRIMARY、对等互证、严格 parity (跨厂商
+# Co-primary 双 API 嵌入 (v3.15.0, 2026-06-28): Qwen/Qwen3-Embedding-8B (阿里, 硅基流动)
+# 与 text-embedding-3-large (OpenAI, yunwu) 并列 CO-PRIMARY、对等互证、严格 parity (跨厂商
 # 独立性)。每个嵌入特征 (stage 15/16/25/26/27/46) 在一次运行内用两个 API spec 各算
-# 一遍, 并排产出 canonical 列 (无后缀=gemini) + `_lg` 孪生列 (text-embedding-3-large)。
+# 一遍, 并排产出 canonical 列 (无后缀=Qwen3-Embedding-8B) + `_lg` 孪生列 (text-embedding-3-large)。
 # `_lg` 后缀仅为列命名机制 (panel 不能两列同名), 无主次/层级含义。
 # 铁律: 两 co-primary 各自 just-identified 并排报告, 禁混进同一 over-identified Hansen J。
 # 本地嵌入模型 (text2vec `_t2v` / bge-m3 `_bge`) 已于 v3.14.0 整体移除 (全 API、零本地)。
-# 白话: 每个语义指标都用 Google 和 OpenAI 两套在线模型各算一遍, 两套都是主结果、互相
-#       验证; 两套一致才说明结论不是某一个嵌入模型的偶然产物。
+# v3.15.0 (2026-06-28): canonical 槽由 gemini-embedding-2-preview (Google/yunwu, 3072 维)
+#   换为 Qwen/Qwen3-Embedding-8B (阿里/硅基流动, 4096 维); `_lg` 孪生 (text-embedding-3-large) 不动。
+#   维度不同 (4096 vs 3072) 与稳健性无关 — 余弦本就维度无关, 两 co-primary 各自独立编码绝不混算。
+# 白话: 每个语义指标都用 Qwen (阿里, 中文专训) 和 OpenAI 两套在线模型各算一遍, 两套都是
+#       主结果、互相验证; 两套一致才说明结论不是某一个嵌入模型的偶然产物 (跨厂商互证更可信)。
 # ──────────────────────────────────────────────────────────────────────────
-embedding_api:                                   # CO-PRIMARY ① (canonical, 无后缀) — gemini-embedding-2-preview (Google)
-  model: gemini-embedding-2-preview
-  base_url: https://yunwu.ai/v1
-  api_key: ${EMBEDDING_API_KEY}                  # .env 中 = ${YUNWU_API_KEY}
+embedding_api:                                   # CO-PRIMARY ① (canonical, 无后缀) — Qwen/Qwen3-Embedding-8B (阿里, 硅基流动)
+  model: Qwen/Qwen3-Embedding-8B
+  base_url: https://api.siliconflow.cn/v1        # 硅基流动 (SiliconFlow) OpenAI-compat 端点
+  api_key: ${SILICONFLOW_API_KEY}                # .env 中独立填硅基流动密钥 (与 yunwu 不同源)
   # (缓存批号) 传给 LLMCache.get/put 的 prompt_version 参数, 用于 embedding callsite
   # (policy_alignment / strategic_diff / policy_similarity / benefit_society /
   # network_spillover / fintech_intensity / article_sbert) 的缓存键命名空间。
   # 任何对嵌入模型 / 文本预处理 / 切片策略的变更必须 bump 此版本号, 让既有 cache
   # 自动失效, 防止 silent staleness。LLMCache 已按 model_id 隔离, 此处再加版本维度防御。
-  # BUMP (v3.14.0, 2026-06-27): MAIN 槽 text-embedding-3-small → gemini-embedding-2-preview
-  #   (1536→3072 维, 跨厂商换代) → 必须 bump。
-  text_pipeline_version: "v3-2026-06-27-gemini"
+  # BUMP (v3.15.0, 2026-06-28): MAIN 槽 gemini-embedding-2-preview → Qwen/Qwen3-Embedding-8B
+  #   (3072→4096 维, 云雾→硅基流动 跨厂商换代) → 必须 bump。
+  text_pipeline_version: "v4-2026-06-28-qwen3-8b"
 
-embedding_large:                                 # CO-PRIMARY ② (`_lg` 孪生槽) — text-embedding-3-large (OpenAI); 与 gemini 对等互证, 跨厂商
+embedding_large:                                 # CO-PRIMARY ② (`_lg` 孪生槽) — text-embedding-3-large (OpenAI); 与 Qwen3-Embedding-8B 对等互证, 跨厂商
   model: text-embedding-3-large
   base_url: https://yunwu.ai/v1
   api_key: ${EMBEDDING_API_KEY}                  # .env 中 = ${YUNWU_API_KEY}
@@ -49,14 +52,14 @@ benefit_society:
   # fix(omni-g-benefit-04, 2026-06-11): max_tokens_per_input 不再用于文章预截断
   # (统一引擎 embed_texts 自带 naive 分块 (朴素分段) + 加权池化处理超长文本); 保留为
   # 单条 API 输入硬上限的文档值 (engine 内 EMB_MAX_TOKENS=8191 同义)。
-  max_tokens_per_input: 8191        # 单条输入 token 上限 (嵌入 API 单条硬上限; engine EMB_MAX_TOKENS=8191 同义; cl100k 对 gemini 保守安全)
+  max_tokens_per_input: 8191        # 单条输入 token 上限 (嵌入 API 单条硬上限; engine EMB_MAX_TOKENS=8191 同义; cl100k 8191 对 Qwen3-Embedding-8B 的 32K 上限保守安全)
   max_tokens_per_request: 250000    # 单次 API 请求总 token 上限
   positive_anchors:                 # 预留扩展: 自定义正极句列表 (当前版本未启用, 始终使用模块内置 10 对)
   negative_anchors:                 # 预留扩展: 自定义负极句列表 (当前版本未启用, 始终使用模块内置 10 对)
   # fix(omni-g-benefit-01, 2026-06-11): 旧注释"缓存 Embedding 为 .npy (降低 API
   # 成本)"是虚假声称 — cache_path 曾被函数体忽略, 全仓无生产 np.save; API 成本
   # 实际由 LLMCache (sqlite) 穿透缓存承担。现 true = 落盘审计链路输入产物:
-  #   27_benefit_embeddings{_lg}_{full,ctx,ss}.npy  (全 df_exploded 行序, 空文本行=NaN; 无后缀=gemini, _lg=large)
+  #   27_benefit_embeddings{_lg}_{full,ctx,ss}.npy  (全 df_exploded 行序, 空文本行=NaN; 无后缀=Qwen3-Embedding-8B, _lg=large)
   #   27_benefit_direction{_lg}.npy                 (10 对锚点方向向量, 未归一)
   # 各带 .sidecar.json (model_id/n_rows/dim) — 供 27c alt-anchor/placebo 同空间消费。
   cache_embeddings: true

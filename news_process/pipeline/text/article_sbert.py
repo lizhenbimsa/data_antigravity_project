@@ -17,7 +17,7 @@ https://doi.org/10.1111/jofi.13377
 --------
 1. **嵌入模型 (v3.14.0, 2026-06-27 — all-API co-primary 双轨, 零本地模型)**: 每轨用
    两个 API spec 各嵌一遍 —— MAIN (canonical 无后缀) = ``config/features.yaml::embedding_api``
-   (gemini-embedding-2-preview, Google) + ``_lg`` (孪生) = ``embedding_large``
+   (Qwen/Qwen3-Embedding-8B, 阿里/硅基流动) + ``_lg`` (孪生) = ``embedding_large``
    (text-embedding-3-large, OpenAI)。两者地位对等、互为稳健性 (跨厂商独立性), ``_lg``
    后缀仅命名机制无层级。统一经 ``embedding_engine.embed_texts(spec=…)`` (API 路径,
    经 ``_llm_cache.db`` 穿透缓存); 本地 SentenceTransformer (text2vec/bge-m3) 已整体移除。
@@ -31,12 +31,12 @@ https://doi.org/10.1111/jofi.13377
    **🔴 both-or-neither parity (D-4a)**: 每轨 MAIN 或 _lg 任一 embed_texts 返回 None →
    该轨两列 (emb_X / emb_X_lg) 同缺 (不留单边孤儿列)。content_ss/content_ctx 缺列 (旧 schema)
    时该轨两列均不写, 下游 stage 26 优雅缺席对应 semantic_staleness (向后兼容)。
-4. **存储**: parquet (article_id, target_bank, year, emb_{full,ctx,ss}[3072] (gemini MAIN) +
+4. **存储**: parquet (article_id, target_bank, year, emb_{full,ctx,ss}[4096] (Qwen MAIN) +
    emb_{full,ctx,ss}_lg[3072] (large) + 双套 provenance)。回退行其 emb_ss≡emb_full。
 
 D-0 实测项
 ----------
-- gemini / text-embedding-3-large 经 yunwu 可达性 + corr(gemini, large) 跨厂商互证一致性
+- Qwen / text-embedding-3-large 经各自端点可达性 + corr(Qwen, large) 跨厂商互证一致性
 - API 缓存命中率 (NEWS_PROCESS_LLM_OFFLINE=1 离线 $0 复现的前提是 _llm_cache.db 0-miss)
 
 运行方式
@@ -57,16 +57,16 @@ always-on 执行); 也可单独手动触发:
 **输入**: `14_news_with_ctx.parquet`(article 级; 优先用 content_full / content_ctx / content_ss, 缺则回退 内容 + 标题)。
 
 **处理步骤** (v3.14.0, 2026-06-27 all-API co-primary 双轨):
-1. 嵌入 spec 从 `config/features.yaml` 取两套: MAIN=`embedding_api` (gemini-embedding-2-preview) + `_lg`=`embedding_large` (text-embedding-3-large); 各带 text_pipeline_version 作缓存命名空间。
-2. `encode_articles(df, content_col, spec, …)`: 文本构造 = Bybee 2024 风格'标题(≤100字, TITLE_CHARS) + 首段(≤300字, FIRST_PARA_CHARS)'。**关键对称性**: content_full/content_ctx/content_ss 已由 stage 13 prepend 标题恰好一次, 故 `title_col=None` 关闭二次前置。经 `embedding_engine.embed_texts(spec=…)` 走 API 路径 (穿透 _llm_cache.db); 返回单位归一向量 (N, 3072) float32; embed_texts 返回 None (API 重试耗尽) 时该轨置 None。
+1. 嵌入 spec 从 `config/features.yaml` 取两套: MAIN=`embedding_api` (Qwen/Qwen3-Embedding-8B) + `_lg`=`embedding_large` (text-embedding-3-large); 各带 text_pipeline_version 作缓存命名空间。
+2. `encode_articles(df, content_col, spec, …)`: 文本构造 = Bybee 2024 风格'标题(≤100字, TITLE_CHARS) + 首段(≤300字, FIRST_PARA_CHARS)'。**关键对称性**: content_full/content_ctx/content_ss 已由 stage 13 prepend 标题恰好一次, 故 `title_col=None` 关闭二次前置。经 `embedding_engine.embed_texts(spec=…)` 走 API 路径 (穿透 _llm_cache.db); 返回单位归一向量 (N, 4096) (Qwen) / (N, 3072) (large) float32; embed_texts 返回 None (API 重试耗尽) 时该轨置 None。
 3. 每轨 (full/ctx/ss) 用 MAIN + _lg 两 spec 各嵌一遍 (`_embed_track_dual`); both-or-neither: 任一 None 则该轨两列同缺。emb_full 读 content_full(缺则裸 内容+标题), emb_ctx 读 content_ctx(缺列则不产), emb_ss 读 content_ss(缺列则不产)。
-4. `_build_output_frame`: 组装 article_id(= stage 13 的 df.index, 供 stage 26 显式 join 对齐键)+ docid 透传 + target_bank/year/日期 + emb_{full,ctx,ss}(gemini) + emb_{full,ctx,ss}_lg(large)(parquet 兼容的 list-of-1D-array; 缺轨不写)+ 双套 provenance(MAIN model_id/model_revision/text_pipeline_version + _lg 镜像三元组)。
+4. `_build_output_frame`: 组装 article_id(= stage 13 的 df.index, 供 stage 26 显式 join 对齐键)+ docid 透传 + target_bank/year/日期 + emb_{full,ctx,ss}(Qwen) + emb_{full,ctx,ss}_lg(large)(parquet 兼容的 list-of-1D-array; 缺轨不写)+ 双套 provenance(MAIN model_id/model_revision/text_pipeline_version + _lg 镜像三元组)。
 
-**外部依赖/确定性**: 统一引擎 `embed_texts` 两 API spec (gemini + text-embedding-3-large, 经 yunwu)。需 EMBEDDING_API_KEY; 经 _llm_cache.db 穿透缓存命中即 $0 逐位复现 (NEWS_PROCESS_LLM_OFFLINE=1 强制离线, 须 0-miss)。无本地模型加载。timeout=21600。
+**外部依赖/确定性**: 统一引擎 `embed_texts` 两 API spec (Qwen 经硅基流动 + text-embedding-3-large 经 yunwu)。需 EMBEDDING_API_KEY; 经 _llm_cache.db 穿透缓存命中即 $0 逐位复现 (NEWS_PROCESS_LLM_OFFLINE=1 强制离线, 须 0-miss)。无本地模型加载。timeout=21600。
 
 ■ 白话说明
 
-这一步把每篇新闻'翻译'成一串数字(768个数的向量), 让计算机能比较'两篇新闻意思像不像', 然后把这些向量存成文件备用。
+这一步把每篇新闻'翻译'成一串数字(语义向量; Qwen 主轨 4096 个数), 让计算机能比较'两篇新闻意思像不像', 然后把这些向量存成文件备用。
 
 打个比方: 它像一个一次性的'语义指纹采集站'——把40万篇新闻挨个扫一遍, 给每篇生成一个'意思指纹', 存进一个大文件。为了省时间和保证一致, 它只读每篇的'标题 + 开头300字'(中文新闻中位数约800字, 模型一次读不完整篇, 而开头通常已含核心信息), 而且特意保证标题只被算进去一次(否则带标题的窗口会把标题权重算重)。
 
@@ -88,9 +88,9 @@ import numpy as np
 import pandas as pd
 
 # v3.14.0 (2026-06-27, all-API-embedding): stage 25 弃本地 SentenceTransformer,
-# 改走统一引擎 embed_texts 的两 API spec (gemini MAIN + text-embedding-3-large _lg)
+# 改走统一引擎 embed_texts 的两 API spec (Qwen MAIN + text-embedding-3-large _lg)
 # co-primary 双轨。本地嵌入模型 (text2vec/bge-m3) 已整体移除, 故不再设 HF 离线 env
-# (无任何本地模型加载) — title+300char 短文本经 API 嵌入, 维度 3072。
+# (无任何本地模型加载) — title+300char 短文本经 API 嵌入, 维度 Qwen 4096 / large 3072。
 
 # 路径注入: 让 ``news_process.core.*`` 在任意 cwd 下可解析
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -108,10 +108,10 @@ STAGE_NAME = "25_article_sbert"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 # ── v3.14.0 (2026-06-27): co-primary 双 API 嵌入 spec (零本地模型) ──
-# MAIN (canonical, 无后缀) = gemini-embedding-2-preview (config embedding_api)
+# MAIN (canonical, 无后缀) = Qwen/Qwen3-Embedding-8B (config embedding_api)
 # _lg (孪生槽)            = text-embedding-3-large (config embedding_large)
-# 两者地位对等、互为稳健性 (跨厂商 Google⟂OpenAI), `_lg` 后缀仅命名机制无层级。
-# title+300char 短文本远未触 8191 token → 引擎不分块、直送 API; 维度 3072。
+# 两者地位对等、互为稳健性 (跨厂商 阿里 Qwen ⟂ OpenAI), `_lg` 后缀仅命名机制无层级。
+# title+300char 短文本远未触 8191 token → 引擎不分块、直送 API; 维度 Qwen 4096 / large 3072 (不同, 余弦维度无关绝不混算)。
 _MAIN_SPEC = CONFIG.get('embedding_api', {})
 _LARGE_SPEC = CONFIG.get('embedding_large', {})
 
@@ -120,13 +120,13 @@ CACHE_DB_PATH = CONFIG['paths'].get(
     'llm_cache_db', os.path.join(CONFIG['paths']['output_dir'], '_llm_cache.db')
 )
 
-# provenance: MAIN (gemini) + _lg (large) 两套 (model_id, text_pipeline_version),
+# provenance: MAIN (Qwen) + _lg (large) 两套 (model_id, text_pipeline_version),
 # 供 stage 26 对两套嵌入各自独立 fail-loud 校验 (镜像 5 cosine producer 缓存键维度)。
-_SBERT_MODEL_ID = _eng.spec_model(_MAIN_SPEC, default='gemini-embedding-2-preview')
+_SBERT_MODEL_ID = _eng.spec_model(_MAIN_SPEC, default='Qwen/Qwen3-Embedding-8B')
 _SBERT_MODEL_ID_LG = _eng.spec_model(_LARGE_SPEC, default='text-embedding-3-large')
 
 # 30a 输入文本构造版本 (provenance, 与 LLMCache 的 prompt_version 维度同哲学):
-# v3 = 2026-06-27 all-API co-primary dual (gemini MAIN + large _lg; content_full/ctx/ss
+# v4 = 2026-06-28 all-API co-primary dual (Qwen MAIN + large _lg; content_full/ctx/ss
 # 已 prepend 标题一次, title_col=None 关二次前置)。任何对输入构造/截断策略的变更必须 bump。
 _TEXT_PIPELINE_VERSION = _eng.spec_version(_MAIN_SPEC)
 _TEXT_PIPELINE_VERSION_LG = _eng.spec_version(_LARGE_SPEC)
@@ -174,7 +174,7 @@ def encode_articles(
     """经统一引擎 (embed_texts) 对一轨文本做 API 嵌入; 输出 (N, dim) numpy 数组.
 
     v3.14.0 (2026-06-27): 弃本地 SentenceTransformer, 改走 embed_texts(spec=…) 的
-    API 路径 (gemini MAIN 或 large _lg)。title+300char 短文本远未触 8191 token →
+    API 路径 (Qwen MAIN 或 large _lg)。title+300char 短文本远未触 8191 token →
     引擎不分块、直送 API; 返回单位归一向量 (norm=1 → cosine=点积)。
 
     Args:
@@ -220,7 +220,7 @@ def _build_output_frame(
     """组装 30a 输出 frame (对齐键 + 双套 provenance + co-primary 6 嵌入列).
 
     v3.14.0 (2026-06-27, all-API co-primary 双轨): 每轨 (full/ctx/ss) 各产两个
-    嵌入列 —— ``emb_{full,ctx,ss}`` (MAIN/gemini, canonical 无后缀) +
+    嵌入列 —— ``emb_{full,ctx,ss}`` (MAIN/Qwen, canonical 无后缀) +
     ``emb_{full,ctx,ss}_lg`` (large, _lg 孪生)。两套互为稳健性、地位对等。
 
     嵌入轴 full/ctx/ss 三路平价。``embs_ss=None`` (旧 schema 无 content_ss) 时不写
@@ -245,7 +245,7 @@ def _build_output_frame(
         'year': df['year'] if 'year' in df.columns else pd.NA,
         '日期': df['日期'] if '日期' in df.columns else pd.NA,
     })
-    # MAIN (gemini) 三轨; None (both-or-neither 联动失败) 时跳过该列。
+    # MAIN (Qwen) 三轨; None (both-or-neither 联动失败) 时跳过该列。
     if embs_full is not None:
         out['emb_full'] = list(embs_full)   # list of 1D arrays (parquet-compatible)
     if embs_ctx is not None:
@@ -260,7 +260,7 @@ def _build_output_frame(
     if embs_ss_lg is not None:
         out['emb_ss_lg'] = list(embs_ss_lg)
     out.update({
-        # MAIN (gemini) provenance
+        # MAIN (Qwen) provenance
         'model_id': _SBERT_MODEL_ID,
         'model_revision': '',          # API spec 无 HF revision 概念 (保留列供向后兼容)
         'text_pipeline_version': _TEXT_PIPELINE_VERSION,
@@ -281,25 +281,25 @@ def main():
     )
     logger.info("=" * 72)
     logger.info(
-        "【功能】把每篇新闻'翻译'成一串语义向量 (意思指纹, 3072 维), 一次性持久化成 "
+        "【功能】把每篇新闻'翻译'成一串语义向量 (意思指纹, Qwen 4096 维 / large 3072 维), 一次性持久化成 "
         "25_article_embeddings.parquet 备用; 是 D 组前置 (stage 26 语义陈旧度 / D3 "
         "Krippendorff α 等)的共享地基, 算一次大家共用, 省重复编码。"
     )
     logger.info(
         "【方法】v3.14.0 co-primary 双 API 嵌入 (零本地模型): 每轨用两个 API spec 各嵌一遍 —— "
         f"MAIN(canonical 无后缀)={_SBERT_MODEL_ID} + _lg(孪生)={_SBERT_MODEL_ID_LG} "
-        "(跨厂商 Google⟂OpenAI 对等互证); 输入构造 = 标题(≤"
+        "(跨厂商 阿里 Qwen ⟂ OpenAI 对等互证); 输入构造 = 标题(≤"
         f"{TITLE_CHARS}字) + 首段(≤{FIRST_PARA_CHARS}字, Bybee 2024); "
         "嵌入轴 full/ctx/ss 三路 (content_full/content_ctx/content_ss 已由 stage 13 prepend 标题恰好一次, "
         "title_col=None 关二次前置; ss=银行+金科同句轨, content_ss 缺则不产 emb_ss); "
-        "embed_texts 返回单位归一向量 → (N, 3072) float32。"
+        "embed_texts 返回单位归一向量 → (N, 4096) (Qwen) / (N, 3072) (large) float32。"
     )
     logger.info(
         "【判读】嵌入有效率越高(NaN 行越少)越好; emb_full 单位归一化 → L2 范数应≈1.0 "
         "(偏离=归一化失效); emb_ctx 全 NaN = 上游缺 content_ctx 回退 (ctx 语义陈旧度将不可用)。"
     )
     logger.info(
-        "【确定性】纯 API 嵌入 (gemini MAIN + large _lg), 经 _llm_cache.db 穿透缓存命中即 $0 "
+        "【确定性】纯 API 嵌入 (Qwen MAIN + large _lg), 经 _llm_cache.db 穿透缓存命中即 $0 "
         "逐位复现; both-or-neither parity: 某轨 MAIN 或 _lg 任一失败则该轨两列同缺 (不留单边孤儿列)。"
     )
 
@@ -334,7 +334,7 @@ def main():
             f"LLM_OFFLINE={os.environ.get('NEWS_PROCESS_LLM_OFFLINE') or '(未设置)'}"
         )
         logger.info(
-            "     · 成本/确定性: co-primary 双 API 嵌入 (gemini MAIN + large _lg); "
+            "     · 成本/确定性: co-primary 双 API 嵌入 (Qwen MAIN + large _lg); "
             "经 _llm_cache.db 穿透缓存命中即 $0 逐位复现"
         )
 
@@ -417,7 +417,7 @@ def main():
     df = pd.read_parquet(src_path)
     logger.info(f"  article-level: {len(df)} 行")
 
-    # ── 嵌入轴 full/ctx/ss 三路 × co-primary 双 spec (gemini MAIN + large _lg) 编码 ──
+    # ── 嵌入轴 full/ctx/ss 三路 × co-primary 双 spec (Qwen MAIN + large _lg) 编码 ──
     # v3.14.0 (2026-06-27): 弃本地 SentenceTransformer, 每轨用两个 API spec 各嵌一遍。
     # content_full / content_ctx / content_ss 均已由 stage 13 (ctx_materializer) prepend 标题【恰好一次】,
     # 故 title_col=None 关闭 _truncate_for_sbert 二次前置 (否则 ctx/ss 轨标题×2 与 full 轨不对称)。
@@ -492,7 +492,7 @@ def main():
         _dim_full = embs_full.shape[1] if _full_ok else -1
         logger.info(
             f"  文章篇数 = {_n_art:,d} 篇; emb_full 维度 = {_dim_full:,d} "
-            f"(= 嵌入模型维度; co-primary 双轨 gemini/large 均 3072。维度与 "
+            f"(= 嵌入模型维度; co-primary 双轨 Qwen 4096 / large 3072 (维度不同, 余弦维度无关绝不混算)。维度与 "
             f"model_id={_SBERT_MODEL_ID} (MAIN) / {_SBERT_MODEL_ID_LG} (_lg) 应自洽 —— "
             "下游 stage 26 Faiss IndexFlatIP(dim) 已维度无关)。"
         )
@@ -511,7 +511,7 @@ def main():
             )
         else:
             # full 轨有效率: 整行全 NaN 视为编码失败 (正常 full 轨应 100% 有效)。
-            # 用 (N,) 首列判定替换满 (N,3072) bool 矩阵, 全量 17M 时内存/算力降一个数量级。
+            # 用 (N,) 首列判定替换满 (N,4096) bool 矩阵, 全量 17M 时内存/算力降一个数量级。
             _full_valid_mask = ~np.isnan(embs_full[:, 0])
             _full_valid = int(_full_valid_mask.sum())
             _full_rate = _full_valid / _n_art

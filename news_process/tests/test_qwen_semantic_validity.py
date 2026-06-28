@@ -1,13 +1,13 @@
-"""test_gemini_semantic_validity — gemini 余弦语义有效性绑定门 (v3.14.0, 执行计划 §6/§13)。
+"""test_qwen_semantic_validity — Qwen 余弦语义有效性绑定门 (v3.15.0, 执行计划 §6/§13)。
 
-背景: gemini-embedding-2-preview 经 yunwu OpenAI-compat 路径**无法指定** `SEMANTIC_SIMILARITY`
-task_type (实测返回单位归一向量, 余弦=点积形式可用), 故不能假设其余弦语义 = text-embedding-3-small。
-本门用**两 co-primary 的跨厂商一致性**作语义有效性证据: 若 gemini(无后缀) 与 large(`_lg`) 在同一批
-文本上的余弦测度高度一致 (Spearman ρ ≥ 0.80, ≥500 对), 则 gemini 余弦语义有效。
+背景: Qwen/Qwen3-Embedding-8B 经硅基流动 OpenAI-compat 路径返回单位归一向量 (实测 norm=1.0,
+余弦=点积形式可用), 但无法假设其余弦语义 = text-embedding-3-large。本门用**两 co-primary 的
+跨厂商一致性**作语义有效性证据: 若 Qwen(无后缀) 与 large(`_lg`) 在同一批文本上的余弦测度
+高度一致 (Spearman ρ ≥ 0.80, ≥500 对), 则 Qwen 余弦语义有效。
 
 ⚠ 绑定阈值 (替代不可证伪的"抽检"): ρ ≥ 0.80 / n ≥ 500。
-⚠ DEFERRED: 本机无生产语料 + gemini/large 缓存空 → 盘上 panel 无非 NaN 的 co-primary 余弦对时
-   skip; 须在生产语料机播种 gemini+large 缓存、重生 panel 后此门方生效。
+⚠ DEFERRED: 本机无生产语料 + Qwen/large 缓存空 → 盘上 panel 无非 NaN 的 co-primary 余弦对时
+   skip; 须在生产语料机播种 Qwen+large 缓存、重生 panel 后此门方生效。
 """
 from __future__ import annotations
 
@@ -44,7 +44,7 @@ def _load_panel():
     return None
 
 
-def test_gemini_large_cosine_agreement():
+def test_qwen_large_cosine_agreement():
     df = _load_panel()
     if df is None:
         pytest.skip("DEFERRED: 盘上无 panel 产物")
@@ -73,9 +73,9 @@ def test_gemini_large_cosine_agreement():
     if checked == 0:
         pytest.skip(
             "DEFERRED: 盘上 panel 无任何含 ≥500 非 NaN 值的 co-primary 余弦对 "
-            "(gemini/large 缓存未播种或 panel 未重生); 须生产语料机播种+重生后此门方生效"
+            "(Qwen/large 缓存未播种或 panel 未重生); 须生产语料机播种+重生后此门方生效"
         )
     assert not failures, (
-        "gemini⟂large 跨厂商余弦一致性低于阈值 (gemini 余弦语义有效性存疑):\n"
+        "Qwen⟂large 跨厂商余弦一致性低于阈值 (Qwen 余弦语义有效性存疑):\n"
         + "\n".join(failures)
     )

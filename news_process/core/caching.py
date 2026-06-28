@@ -122,9 +122,9 @@ PREPROCESS_CODE_VERSION) 的共性, 立 5 条铁律:
       按需进键), 要么绑一个显式 version token, 并在 callsite + config 注释写死 bump 触发条件.
 - (C) 嵌入/FP 敏感超参 (model / 切片策略 / dtype / 线程数 等) 必当版本维度对待 — 改语义
       却不进键 (键仅 model_id|chunk文本|text_pipeline_version) → silent staleness; 必同 diff
-      bump 对应 text_pipeline_version (例: v3.14.0 MAIN 槽 text-embedding-3-small→
-      gemini-embedding-2-preview, 同步 bump config/features.yaml::embedding_api.text_pipeline_version
-      → "v3-2026-06-27-gemini"; v3.14.0 起全 API、无本地 batch_size 维度).
+      bump 对应 text_pipeline_version (例: v3.15.0 MAIN 槽 gemini-embedding-2-preview→
+      Qwen/Qwen3-Embedding-8B, 同步 bump config/features.yaml::embedding_api.text_pipeline_version
+      → "v4-2026-06-28-qwen3-8b"; v3.14.0 起全 API、无本地 batch_size 维度).
 - (D) version token 优先放可 lint 扫描的位置: config/prompts/*.txt 首行 > config yaml
       字段 > 模块内联常量. 内联常量是最弱形式, 须配 frozen-hash 单测补强 (反例 + 守卫:
       llm_peer_iv.py::PEER_PROMPT, tests/test_peer_prompt_frozen.py).

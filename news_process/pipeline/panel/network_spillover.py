@@ -1435,10 +1435,10 @@ def compute_cognitive_proximity(
 
 # 读取 LLM 配置 (与 21_tone_llms.py 共享同一份 config.yaml 配置)
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
-EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})          # MAIN spec → canonical 列 (gemini)
+EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})          # MAIN spec → canonical 列 (Qwen)
 # v3.14.0: 删除两本地稳健轨 (_t2v text2vec / _bge bge-m3); 仅保留 API 第二嵌入模型
 # large (text-embedding-3-large, 3072 维) → '_lg' 列, 现为 ACTIVE 协主轨 (与无后缀
-# MAIN gemini 并列)。维度无关: emb.shape[1] 驱动。
+# MAIN Qwen 并列)。维度无关: emb.shape[1] 驱动 (Qwen 4096 / large 3072, 余弦维度无关绝不混算)。
 _LARGE_SPEC = CONFIG.get('embedding_large', {})
 _EMB_MODELS = LLM_CONFIG.get('models', [])
 
@@ -1446,7 +1446,7 @@ _EMB_MODELS = LLM_CONFIG.get('models', [])
 def _embed_peer_texts(texts, *, year, spec=None) -> np.ndarray | None:
     """Encode peer texts via the shared dual-model engine (_eng.embed_texts).
 
-    spec 决定模型与路径 (MAIN=gemini-embedding-2-preview / large=text-embedding-3-large);
+    spec 决定模型与路径 (MAIN=Qwen/Qwen3-Embedding-8B / large=text-embedding-3-large);
     默认 EMBEDDING_CONFIG (canonical 主轨)。两轨均为 API spec,
     经 LLMCache 穿透 (cache db 路径与历史实现一致)。失败/形状异常 → None。
     """
@@ -1641,7 +1641,7 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
     作为内生性处理的控制变量。
 
     嵌入双 API 模型 (v3.14.0, 与情感三轨正交的另一维): 主轨 (MAIN spec =
-    gemini-embedding-2-preview) 写 canonical 列 (emb_peer_tone_lag1_full /
+    Qwen/Qwen3-Embedding-8B) 写 canonical 列 (emb_peer_tone_lag1_full /
     bank_emb_sim_mean_lag1); 协主轨 (large spec = text-embedding-3-large) 用
     **各自独立的 spec 嵌入各自的文本** 写同名 + '_lg' 列
     (emb_peer_tone_lag1_lg_full / bank_emb_sim_mean_lag1_lg)。两轨 both-or-neither:
@@ -1658,7 +1658,7 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
     方法论:
       - 权重矩阵 W_emb 基于 Embedding 余弦相似度 (负值 clip 为 0), 非二值共现
       - 滞后一期 (t-1) 避免 Manski (1993) 反射问题
-      - 双 API 模型独立嵌入 (gemini / text-embedding-3-large 各 3072 维; 维度无关绝不混用)
+      - 双 API 模型独立嵌入 (Qwen 4096 维 / text-embedding-3-large 3072 维; 维度不同, 余弦维度无关绝不混算)
 
     Args:
         df_exploded: 文章级 DataFrame, 含 target_bank/year/标题/内容
@@ -1698,7 +1698,7 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
         main_tone_cols.append('emb_peer_tone_lag1_ss')
     main_sim_col = 'bank_emb_sim_mean_lag1'
 
-    # ── 主轨 (canonical): MAIN spec (gemini) → emb_peer_tone_lag1_full / bank_emb_sim_mean_lag1 ──
+    # ── 主轨 (canonical): MAIN spec (Qwen) → emb_peer_tone_lag1_full / bank_emb_sim_mean_lag1 ──
     emb_results = _compute_embedding_peer_network_pass(
         df_exploded, panel, spec=EMBEDDING_CONFIG, suffix="")
 
