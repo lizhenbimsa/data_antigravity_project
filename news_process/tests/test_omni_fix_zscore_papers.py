@@ -271,5 +271,5 @@ def test_all_11_specs_still_load_via_registry() -> None:
         'cross_outlet_tone_variance_full'
     )
     assert specs['bank_news_clarity'].raw['treatment']['primary'] == (
-        'mean_clarity_score_ctx'
+        'mean_clarity_score_full'  # full-only gating (2026-06-29): main_track _ctx→_full
     )

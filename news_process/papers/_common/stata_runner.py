@@ -237,7 +237,7 @@ _KNOWN_PLACEHOLDERS_PAPER_LEVEL = {
     'HET_VAR',            # 异质性交互变量
     # v3.7.3 Plan A v1.0: paper 级主 treatment 占位符 (供 B-route
     # paper-specific 模板使用)。
-    'MAIN_TREAT',         # 主 treatment 变量 (随 paper 而异, 如 P1 = llm_vote_tone_ctx)
+    'MAIN_TREAT',         # 主 treatment 变量 (随 paper 而异, 如 P1 = llm_vote_tone_full)
 }
 
 # Tier 3: paper-specific (稀疏占位符, 仅需要它的 paper 使用)
@@ -323,8 +323,8 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         # 不引用这两个 placeholder (原引用它们的根级 _title 稳健性模板 25_tableA8_title_robustness.do.tmpl
         # 已随 remove-title-track 删除), 故对 P1 为无害默认值; 该 placeholder 机制仍被
         # attention/locus/substance/collab 等子目录模板消费。
-        # P1 G3 main = _ctx (v3.6.0 Plan E P4 G3 锁定).
-        'MAIN_TREAT': 'llm_vote_tone_ctx',
+        # P1 main = _full (full-only gating 2026-06-29; _ctx 降为 robustness 孪生).
+        'MAIN_TREAT': 'llm_vote_tone_full',
         'RANDOM_SEED': '20260516',
     },
     **_DERIVATIVE_PAPER_DEFAULTS,

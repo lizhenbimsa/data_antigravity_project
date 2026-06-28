@@ -43,10 +43,11 @@ def test_stage21_skip_is_compatible_accepts_current_outputs(monkeypatch, tmp_pat
     stage14.to_parquet(tmp_path / "15_fintech_intensity.parquet", index=False)
     full = stage14.copy()
     full["llm_verified_full"] = [True, False]
-    # O2.5 修复 (2026-05-25): _stage21_skip_is_compatible 改 OR-filter 语义对齐
-    # tone_llms.py:1744-1746 实际行为 (verified_full | verified_ctx since v3.2.0 R1-A).
-    # Test mock 须含 llm_verified_ctx 列. row 0 verified_full=True, row 1 verified_ctx=True
-    # → OR 后两行都进 main, 与原 AND-only test 期待 1 row 差异.
+    # full-only gating (用户决策 2026-06-29; 逆转 v3.2.0 R1-A 并集): _stage21_skip_is_compatible
+    # 留篇判据 = (verified_full == True) only, 与 tone_llms.py 的 df_filtered 留篇门控 producer 同步。
+    # Test mock 保留 llm_verified_ctx 列且令 row 1 = ctx-only (full=False) —— full-only
+    # 下 row 1 **被排除**, 故 main 只含 row 0 (full=True), 用以守卫 "ctx-only 行不再进
+    # 下游样本" 的回归 (此前并集门会把 row 1 也纳入)。
     full["llm_verified_ctx"] = [False, True]
     # v3.7.1 (test drift fix): v3.2.0 dual-track BREAKING 后, _stage21_skip_is_compatible
     # 加 schema 漂移防护 (run_pipeline_function.py:289-306) — _STAGE21_REQUIRED_OUTPUT_COLUMNS
@@ -54,8 +55,10 @@ def test_stage21_skip_is_compatible_accepts_current_outputs(monkeypatch, tmp_pat
     for col in rpf._STAGE21_REQUIRED_OUTPUT_COLUMNS:
         full[col] = "symbolic"
     full.to_parquet(tmp_path / "21_tone_llms_full.parquet", index=False)
-    # OR-filter: 两行都满足 (row 0 full=T, row 1 ctx=T) → main 含全部 2 行
-    full[list(rpf._STAGE21_FILTERED_FINGERPRINT_COLUMNS) + list(rpf._STAGE21_REQUIRED_OUTPUT_COLUMNS)].to_parquet(
+    # full-only: 只 row 0 (full=T) 进 main; row 1 (ctx-only, full=F) 被排除 → main 含 1 行。
+    # (reason 里的 "N rows" 报的是 *上游 stage14* 行数 = 2, 非过滤后 main 行数。)
+    main_keep = full[full["llm_verified_full"] == True]  # noqa: E712 - pandas boolean mask
+    main_keep[list(rpf._STAGE21_FILTERED_FINGERPRINT_COLUMNS) + list(rpf._STAGE21_REQUIRED_OUTPUT_COLUMNS)].to_parquet(
         tmp_path / "21_tone_llms.parquet",
         index=False,
     )

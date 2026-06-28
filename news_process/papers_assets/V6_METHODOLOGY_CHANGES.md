@@ -4,6 +4,8 @@
 > 锁定时间：2026-05-05
 > 与 v5 之前的 panel 不可直接对比；以下四项为根本性方法学变更，**必须**在论文方法章节如实声明。
 
+> **⚠ 2026-06-29 修订 (verified gate 改 full-only)**: stage 21 文章留篇 (进入 21_tone_llms.parquet / 下游 panel) 的判据由"任一轨 (full/ctx/ss) verified"的**并集**改为**仅全文轨 `llm_verified_full`** (用户决策; ctx/ss 窗口截断可能漏信息)。Methods 章节须如实改写为: **是否纳入分析由全文轨 3-LLM 多数决 (verified_full) 决定**; ctx/ss 的 per-track verified 仅控制该轨情感分在已纳入文章内是否缺失 (conditional-on-full), 不再独立决定纳入。P1 (bank_fintech_tone) 与 bank_news_clarity 的 headline 主轨同步由 `_ctx` 切 `_full`; `_ctx` (entity-attributed, Tetlock 2007/L&M 2016) 降为首要 robustness 孪生。三轨"各自 just-identified、禁混同一 Hansen J"不变。
+
 ---
 
 ## 1. F1：LLM 三家族真三角验证（取代 v5 单家族 / v3 错位）

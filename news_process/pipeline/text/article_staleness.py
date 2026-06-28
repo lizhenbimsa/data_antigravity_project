@@ -51,7 +51,7 @@ react to stale information? The Review of Financial Studies, 24(5), 1481-1512.
 ------------------------------------------------
 staleness 的 *参照窗口* (过去 7d 信息环境基准) 用 stage 13 预筛全集; bank-year
 *平均域* 则收缩到 verified 面板语料 ((docid, target_bank) 内连 24_herd_decay /
-21_tone_llms), 与面板兄弟列 (tone/herd/intensity, 聚合自 verified-union) 口径
+21_tone_llms), 与面板兄弟列 (tone/herd/intensity, 聚合自 verified full-only 留篇集) 口径
 一致。见 ``_restrict_to_panel_domain``。
 
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of
@@ -88,7 +88,7 @@ surface 与 semantic staleness 相关性 ∈ [0.3, 0.7] (互补 ≠ 冗余).
 
 **嵌入对齐** `_load_aligned_embeddings`: 按 article_id 显式 join(非裸位置对齐), 行数不等/键缺失/键重复/辅键(target_bank/日期)逐行不一致时 fail-loud sys.exit(1) 提示重跑 30a(防 30a 陈旧静默错位)。
 
-**聚合** `aggregate_to_bank_year`: 每轨 staleness 列 → bank-year mean + highstale(>0.9 占比) 列, `if col in df.columns` 守卫(缺列即跳过, 故 semantic_staleness_ss 在旧 30a parquet 无 emb_ss 时不会误产空列; 2026-06-21 起 30a 产 emb_ss → semantic_ss 三轨平价)。聚合前 `_restrict_to_panel_domain` 把 **平均域** 收缩到 verified 面板语料((docid,target_bank) 内连 24_herd_decay, 缺则 21_tone_llms; 都缺则 ERROR 披露并退回全集)——与面板兄弟列(tone/herd/intensity 聚合自 verified-union ~857篇)口径一致; 但 **参照窗口**(过去7天信息环境)刻意保留全集。
+**聚合** `aggregate_to_bank_year`: 每轨 staleness 列 → bank-year mean + highstale(>0.9 占比) 列, `if col in df.columns` 守卫(缺列即跳过, 故 semantic_staleness_ss 在旧 30a parquet 无 emb_ss 时不会误产空列; 2026-06-21 起 30a 产 emb_ss → semantic_ss 三轨平价)。聚合前 `_restrict_to_panel_domain` 把 **平均域** 收缩到 verified 面板语料((docid,target_bank) 内连 24_herd_decay, 缺则 21_tone_llms; 都缺则 ERROR 披露并退回全集)——与面板兄弟列(tone/herd/intensity 聚合自 verified full-only 留篇集; full-only gating 2026-06-29, 此前为三轨并集)口径一致; 但 **参照窗口**(过去7天信息环境)刻意保留全集。
 
 **外部依赖**: faiss-cpu + datasketch(always-on 后缺包会真崩, ImportError raise)。本阶段自身不调 API、$0(纯 CPU MinHash/Faiss); 但其消费的 stage 30a 嵌入 v3.14.0 起为 co-primary 双 API 轨(Qwen 经硅基流动 + text-embedding-3-large 经 yunwu, 由 30a 付费产出, 经 _llm_cache.db 缓存)。**构念保真披露**: 与 Tetlock 2011 两点刻意偏离——匹配域是 corpus-level 全银行混池7天窗(非同公司72h最近10篇), semantic 轨嵌入 cosine 是扩展(2011年无此类嵌入)。G-D2.1 诊断: surface vs semantic corr 期望 [0.3,0.7](互补≠冗余)。
 
@@ -533,7 +533,7 @@ def _restrict_to_panel_domain(art_df: pd.DataFrame, output_dir: str) -> pd.DataF
 
     fix(omni-g-embed-06/08, 2026-06-11): 此前聚合域 = stage 13 预筛全集 (盘上 1170
     篇), 而面板全部兄弟文章级测度 (tone/herd/intensity/salience) 聚合自 24_herd_decay
-    (= stage 21 LLM 三轨验证并集 full|ctx|ss, v3.9.0 +ss; 盘上 857 篇): 26.8% 被 LLM 判定并非真正关于该银行
+    (= stage 21 LLM 留篇集; full-only 门控自 2026-06-29 起 = verified_full 全文轨, 此前为三轨并集 full|ctx|ss): 26.8% 被 LLM 判定并非真正关于该银行
     的文章混入 staleness 均值 (27% bank-year 偏移 >0.01, 最大 ≈10.6% 量程), 并产生
     n_articles==0 却带非缺 staleness 的幻影 bank-year 行。staleness 的 *参照窗口*
     (过去 7d 信息环境) 刻意保留全集 — compute_* 已在全集上算完, 本函数仅过滤进入
@@ -568,7 +568,7 @@ def _restrict_to_panel_domain(art_df: pd.DataFrame, output_dir: str) -> pd.DataF
         return art_df[mask]
     logger.error(
         "⚠ 口径降级[staleness]: 24_herd_decay/21_tone_llms 均缺失, bank-year 聚合域"
-        "退化为 stage-13 预筛全集 → 与面板兄弟列 (verified-union) 聚合域不一致, "
+        "退化为 stage-13 预筛全集 → 与面板兄弟列 (verified full-only) 聚合域不一致, "
         "勿用于发表对比"
     )
     return art_df

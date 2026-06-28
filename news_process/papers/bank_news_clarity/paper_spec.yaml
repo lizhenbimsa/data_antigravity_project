@@ -81,15 +81,21 @@ outcome:
     p_hacking_guard: "四 confirmatory 方向不一致即视为 null (pre-registration commitment)"
 
 treatment:
-  # DC1 决策 (2026-05-18): path C — No-SSRN + _ctx G3 严谨路线 (paper 11)
+  # DC1 决策 (2026-05-18): path C — No-SSRN G3 严谨路线 (paper 11)。
+  # main_track 由 _ctx 切 _full (2026-06-29, full-only gating): stage 21 留篇门控改为
+  # 仅全文轨 verified_full → ctx 降为 conditional-on-full, headline 同步切 _full 使
+  # 处理轨与决定留篇的轨一致; entity-attributed _ctx 变体留作首要 robustness 孪生。
   governance:
     ssrn_release: false
     g3_unlock: true            # 单作者 + No SSRN + 数据授权 三条件解锁
-    main_track: _ctx           # entity-context, Tetlock 2007 JF + L&M 2016 JAR 现代标准
-    rationale: "JAE accounting audience 严谨度优先 + entity-attributed sentiment 现代标准; 牺牲早期传播换顶刊接收概率"
+    main_track: _full          # full-only gating (2026-06-29); _ctx entity-context 降为 robustness 孪生
+    rationale: "full-only gating (留篇仅 verified_full) → headline 处理轨 = 决定留篇的全文轨; entity-attributed _ctx (Tetlock 2007 JF / L&M 2016 JAR) 降为首要 robustness 孪生"
 
-  primary: mean_clarity_score_ctx  # ctx 轨 (G3 严谨路线, V4 reframe 后 main)
+  primary: mean_clarity_score_full  # full 轨 (full-only gating 2026-06-29 后 main; _ctx 作 robustness)
   primary_construction: |
+    注 (full-only gating 2026-06-29): main 轨现为 _full → 下述 _ctx 构造步骤机械
+    同构于 _full (仅文本域 content_ctx→content_full, 列后缀 _ctx→_full); _ctx 留作
+    首要 robustness 孪生。以下保留 _ctx 表述记录构造逻辑, headline 用其 _full 孪生。
     Step 1 (现成, stage 22 tone_words.py): 文章级 clarity_score_ctx 独立扫描
         Step 1a: jieba 分词 (v0.42.1 frozen) → tokens
         Step 1b: n_definite_ctx = #(tokens ∩ you_2018 Panel C 388 词)
@@ -109,7 +115,7 @@ treatment:
          后续跑读冻结值, 防 look-ahead 泄漏; fix(omni-known-open-2, 2026-06-11))
 
   alternative:
-    - mean_clarity_score_full       # _full 轨 dual-track robustness
+    - mean_clarity_score_ctx        # _ctx 轨 (entity-context; full-only 2026-06-29 后由 main 降为首要 robustness 孪生)
     - mean_clarity_score_ss         # ss 轨 (银行+金科同句共现轨; 三轨 full/ctx/ss 互为稳健性)
     - mean_frac_definite_ctx        # 分母只看确定性词 (You 2018 Panel C 388 词)
     - mean_frac_definite_full
@@ -186,8 +192,8 @@ identification:
   #   与否, 却不直接进入你的风险结果方程。
   # accounting_standard_switch_did 等候选保留, M5 first-stage 后赛马。
   iv:
-    primary: outlet_style_clarity_iv_ctx     # main_track=_ctx (governance 同步)
-    fallback: outlet_style_clarity_iv_full
+    primary: outlet_style_clarity_iv_full    # main_track=_full (governance 同步, full-only 2026-06-29)
+    fallback: outlet_style_clarity_iv_ctx
     # ss 轨稳健性镜像 (三轨第三主轨, 2026-06-14; ss = 银行+金科同句共现轨): 内生孪生
     # mean_clarity_score_ss 配同句 outlet 笔法工具 outlet_style_clarity_iv_ss, 与
     # full/ctx 轨各自 just-identified 并排; 严禁 full×ctx×ss 合成 Hansen J overid
@@ -227,7 +233,7 @@ identification:
 # 故此处为内部 confirmatory/exploratory 声明 + family 定义, 非外部预注册承诺。
 inference:
   confirmatory:
-    primary_treatment: mean_clarity_score_ctx  # 单一主处理 (main_track=_ctx, G3 严谨路线)
+    primary_treatment: mean_clarity_score_full  # 单一主处理 (main_track=_full, full-only gating 2026-06-29)
     primary_outcome: z_score                    # 单一主因变量 (hierarchy.main)
     primary_spec: long_panel_within_bank_within_year + bank_fe + year_fe + two-way cluster(bank, year)
     single_hypothesis: "媒体报道清晰度 (外部信息环境质量) → 银行风险承担 (方向 ambiguous ex ante, sample split 揭示)"
@@ -354,13 +360,13 @@ portfolio_framing:
 
 governance:  # DC1 path C 路线
   ssrn_release: false
-  ssrn_release_rationale: "No-SSRN 解锁 v3.6.0 G3 三条件 → main = _ctx 现代标准"
+  ssrn_release_rationale: "No-SSRN 解锁 v3.6.0 G3 三条件; main = _full (full-only gating 2026-06-29; _ctx 现代标准变体降为 robustness)"
   g3_unlock: true
   g3_conditions:
     - 单作者: true
     - no_ssrn_preprint: true
     - 数据授权: required  # M0 内必须完成数据授权 sign-off
-  main_track: _ctx
+  main_track: _full
   ai_disclosure_template: "JAE (per AI_DISCLOSURE_TEMPLATES.md)"
   pre_registration: "OSF required pre-M5 (V4 F9.3)"
   llm_response_archive: "required (DC3 deliverable, V4 F-P2.1)"

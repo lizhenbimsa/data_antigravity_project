@@ -5,7 +5,8 @@ CLI: ``python -m news_process.papers.bank_news_clarity.analysis [--stage ...] [-
 
 状态 (provisional): paper_spec.yaml 已 frozen + 通过 schema 校验, 本 analysis 入口
 符合 Phase-3 契约 (main(argv) + STAGES), 故可被 run_paper 调度。main treatment
-``mean_clarity_score_ctx`` 为 ctx 轨 (G3 严谨路线); tables/figures 为占位骨架,
+``mean_clarity_score_full`` 为 full 轨 (full-only gating 2026-06-29; _ctx 降为
+robustness 孪生); tables/figures 为占位骨架,
 主回归 (Bushman-Williams 2012 JAE external info environment) 待 M7 填实。
 """
 

@@ -5,7 +5,10 @@ Plan v2.x §5.2.2 M0.3 + §5.2.4 G0 (历史计划原文, 当时为 8 篇):
 
 红线不变式
 ----------
-1. 各 paper 的 ``treatment.primary`` 必须互不重复 (paper-specific signal column).
+1. 各 paper 的 ``treatment.primary`` 必须互不重复 (paper-specific signal column),
+   **除非**该列显式列入下方 ``SHARED_CONTROLS`` 白名单作刻意跨篇共享 (如
+   ``llm_vote_tone_full``: P1 直接处理 ⟂ llm_peer 内生工具化, 同一底层变量两种识别;
+   镜像 ``z_score`` 跨篇共享 outcome 先例)。
 2. 各 paper 的 ``mediator.primary`` (P2/P4 有 mediator) 互不重复.
 3. 各 paper 的 paper-specific derived outcome 名 (如 car_3day_window_tone_shock,
    long_run_roa_change_3yr, car_5day_window) 互不重复.
@@ -45,6 +48,12 @@ SHARED_CONTROLS: frozenset[str] = frozenset({
     # (两篇 spec 均注明 "与第 10/11 篇共享, Laeven-Levine 2009 标准"; provisional 2026-06-01)。
     'z_score',
     'sigma_roa_5y_rolling',  # z_score 分母, 同属共享 risk-taking 量
+    # llm_vote_tone_full = 媒体语调 (全文轨), 由 bank_fintech_tone (P1, 直接处理) 与
+    # llm_peer (内生自身语调, 被同业 peer-network IV 工具化) *刻意共享* 作 treatment.primary
+    # —— 同一底层变量、两种识别策略 (P1: 地理 LOO / Bartik IV; llm_peer: 同业网络 IV);
+    # 镜像上面 z_score 跨篇共享 outcome 的先例。full-only gating (2026-06-29) 后 P1 主轨
+    # 由 _ctx 切回 _full 才显现此共享 (此前 P1 primary=llm_vote_tone_ctx, 无碰撞)。
+    'llm_vote_tone_full',
 })
 
 
@@ -102,6 +111,8 @@ def test_treatment_primary_columns_are_unique() -> None:
         names.extend(_flatten(t.get('primary')))
         names.extend(_flatten(t.get('primary_pair')))
         for col in names:
+            if col in SHARED_CONTROLS:
+                continue  # 刻意跨篇共享的 treatment (如 llm_vote_tone_full: P1 ⟂ llm_peer), 见 SHARED_CONTROLS
             if col in primaries:
                 pytest.fail(
                     f"treatment.primary collision: column {col!r} "

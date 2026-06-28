@@ -356,20 +356,20 @@ class TestTable1Inventories:
         raw = csv_path.read_text(encoding='utf-8-sig')
         assert '# ' in raw and 'M0.5.11' in raw
 
-    def test_tone_table1_includes_ctx_main_track(self):
-        """fix(omni-g-papers-misc-06): spec main=ctx 轨 — 连续分与 IV 须列 ctx."""
+    def test_tone_table1_includes_full_main_track(self):
+        """full-only gating (2026-06-29): spec main=full 轨 — 连续分与 IV 须列 full 在前 (ctx 降为 robustness 孪生)."""
         from news_process.papers.bank_fintech_tone.tables import _TABLE1_VARIABLES
 
         v = list(_TABLE1_VARIABLES)
-        for ctx_col, full_col in [
-            ('llm_vote_cont_ctx', 'llm_vote_cont_full'),
-            ('prov_leave1out_tone_ctx', 'prov_leave1out_tone_full'),
-            ('bartik_type_iv_ctx', 'bartik_type_iv_full'),
+        for full_col, ctx_col in [
+            ('llm_vote_cont_full', 'llm_vote_cont_ctx'),
+            ('prov_leave1out_tone_full', 'prov_leave1out_tone_ctx'),
+            ('bartik_type_iv_full', 'bartik_type_iv_ctx'),
         ]:
-            assert ctx_col in v, f"缺主轨列 {ctx_col}"
-            assert full_col in v
-            assert v.index(ctx_col) < v.index(full_col), (
-                f"main-ctx 应排在 {full_col} 之前")
+            assert full_col in v, f"缺主轨列 {full_col}"
+            assert ctx_col in v
+            assert v.index(full_col) < v.index(ctx_col), (
+                f"main-full 应排在 {ctx_col} 之前")
 
 
 # ============================================================================
@@ -627,9 +627,10 @@ class TestSpecIVIdentifiers:
             (_PAPERS_ROOT / 'bank_fintech_tone' / 'paper_spec.yaml'
              ).read_text(encoding='utf-8'))
         iv = spec['identification']['iv']
-        # 旧 primary=leave_one_out_industry_tone 全管线零实现 → 改实存地理 LOO
-        assert iv['primary'] == 'prov_leave1out_tone_ctx'
-        assert iv['fallback'] == 'bartik_type_iv_ctx'
+        # 旧 primary=leave_one_out_industry_tone 全管线零实现 → 改实存地理 LOO。
+        # full-only gating (2026-06-29): main 轨由 _ctx 切 _full → IV primary/fallback 同步切 _full 孪生。
+        assert iv['primary'] == 'prov_leave1out_tone_full'
+        assert iv['fallback'] == 'bartik_type_iv_full'
         raw = (_PAPERS_ROOT / 'bank_fintech_tone' / 'paper_spec.yaml'
                ).read_text(encoding='utf-8')
         # 已知缺口披露 (22_tableA3 工具化 LOCUS 非 tone) 必须在 spec 中可见

@@ -25,8 +25,8 @@ PAPER_ID = 'bank_news_clarity'
 # 三轨互为稳健性 (full=正文全文 / ctx=实体窗口 / ss=银行+金科同句共现, v3.9.0);
 # summary builder 对缺列优雅跳过 → ss 值在 P4 付费 run 落盘前为 NaN 不影响表生成。
 _TABLE1_VARIABLES: list[str] = [
-    'mean_clarity_score_full', # treatment full 轨 (正文全文; 三轨 parity)
-    'mean_clarity_score_ctx',  # treatment.primary (ctx 轨, G3 严谨路线)
+    'mean_clarity_score_full', # treatment.primary (full 轨, full-only gating 2026-06-29)
+    'mean_clarity_score_ctx',  # treatment _ctx 轨 (entity-context; 降为首要 robustness 孪生)
     'mean_clarity_score_ss',   # treatment ss 轨 (银行+金科同句共现; P4 前 NaN, 防御保留)
     'z_score',                 # outcome.primary (CAR-based Z-score 变体, cf. Laeven-Levine 2009; 与第10篇共享)
     'sigma_roa_5y_rolling',

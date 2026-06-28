@@ -27,10 +27,10 @@ if TYPE_CHECKING:
 
 # Bank-FinTech-Tone 主线论文的 Table 1 核心变量集.
 # 历史上沿用 50_robustness_text2vec_stata.do ``ds`` 变量集 (v3.6.0 主轨切换前);
-# fix(omni-g-papers-misc-06, 2026-06-11): paper_spec.yaml 主回归 = ctx 轨
-# (treatment.primary=llm_vote_tone_ctx), 但连续分与 IV 原仅列 full 轨 —
-# 增补 llm_vote_cont_ctx / prov_leave1out_tone_ctx / bartik_type_iv_ctx
-# (盘上已存在且非空), main-ctx 在前排序。outcome (2026-06-13 重定位后主因变量 =
+# fix(omni-g-papers-misc-06, 2026-06-11): 连续分与 IV 三轨 (full/ctx/ss) 全列出。
+# full-only gating (2026-06-29): paper_spec.yaml 主回归由 _ctx 切 _full
+# (treatment.primary=llm_vote_tone_full), main-full 在前排序; _ctx 降为首要
+# robustness 孪生 (仍列出, 盘上已存在且非空)。outcome (2026-06-13 重定位后主因变量 =
 # funding_cost 资金成本; car_3day_window_tone_shock 降级上市行扩展) 与金融
 # controls 仍待 M0.5.11 enrichment 落盘后增补 (届时在此列表加 funding_cost)。
 # 三轨 (full/ctx/ss) 平价 (third-track-ss 2026-06-14): _ss = 银行+金科同句共现轨
@@ -39,12 +39,12 @@ if TYPE_CHECKING:
 # (golden-safe, 同 ft_vol_* 惯例)。⚠ full×ctx×ss 三轨各自 just-identified 并排,
 # 严禁混进同一 over-id Hansen J (三轨互为稳健性, 非穷尽工具集)。
 _TABLE1_VARIABLES: list[str] = [
-    # 主关键解释变量 — 媒体语调 (main = ctx 轨, per spec v3.6.0; +ss 同句共现轨)
-    'llm_vote_tone_ctx',
+    # 主关键解释变量 — 媒体语调 (main = full 轨, full-only gating 2026-06-29; +ss 同句共现轨)
     'llm_vote_tone_full',
+    'llm_vote_tone_ctx',
     'llm_vote_tone_ss',
-    'llm_vote_cont_ctx',
     'llm_vote_cont_full',
+    'llm_vote_cont_ctx',
     'llm_vote_cont_ss',
     # 信息环境
     'n_articles',
@@ -68,12 +68,12 @@ _TABLE1_VARIABLES: list[str] = [
     'benefit_mean_full',
     'benefit_mean_ctx',
     'benefit_mean_ss',
-    # IV (LOO + Bartik; main-ctx 在前, fix(omni-g-papers-misc-06); ss 同句工具镜像)
-    'prov_leave1out_tone_ctx',
+    # IV (LOO + Bartik; main-full 在前, full-only gating 2026-06-29; ss 同句工具镜像)
     'prov_leave1out_tone_full',
+    'prov_leave1out_tone_ctx',
     'prov_leave1out_tone_ss',
-    'bartik_type_iv_ctx',
     'bartik_type_iv_full',
+    'bartik_type_iv_ctx',
     'bartik_type_iv_ss',
 ]
 

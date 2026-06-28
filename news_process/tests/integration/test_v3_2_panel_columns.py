@@ -120,9 +120,10 @@ def test_panel_bartik_iv_dual_set(panel_or_skip):
 def test_panel_dual_subset_identity(panel_or_skip):
     """plan v14 §3.2 R3-C 恒等式: tech_lc + app_lc 应是 ctx-verified 子集划分.
 
-    v3.7.2 R8-H1 之后 ctx 轨与 full 轨独立 (OR-filter, 见 tone_llms.py:1744),
-    `n_articles`(=count of llm_vote_score_full) 不再是 ctx-locus 计数的上界 ——
-    ctx 可验证 full 未验证的文章 (实测 fallback 率 10.4%, 见 CLAUDE.md v3.7.2)。
+    full-only gating (2026-06-29; 逆转 v3.2.0 R1-A 并集): 留篇仅由 verified_full 决定,
+    ctx-only 行被排除 → ctx 轨成为 full 留篇集的子集 (conditional-on-full), 故
+    `n_articles`(=count of llm_vote_score_full) 重新成为 ctx-locus 计数的上界。
+    本恒等式 (tech_lc + app_lc 桶互斥) 与门控无关, 仍成立 (两侧同源于 full-only parquet)。
 
     新不变式: tech_lc/app_lc 桶互斥 (locus 字段 1-of-K), 故 tech_lc + app_lc 是
     ctx-verified 中 locus∈{底层技术,应用场景} 的总数。从 14_news_with_ctx.parquet

@@ -6,6 +6,8 @@
 > **适用版本**: v3.9.0 (`_ss` 第三主轨) + v3.10.0 (stage 12b)。盘面状态以 2026-06-18 实读为准。
 > **历史订正**: 已不是旧版 full/ctx/**title** —— title 情感轨 v3.8.0 已删 (标题改 prepend 进三轨), `_ss` (银行+金科同句) 起作并列第三主轨。
 > **关联**: `scripts/audit/THIRD_TRACK_SAME_SENTENCE_PLAN_2026-06-14.md` (ss 轨执行计划) · `scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md` (编号阶段参考)。
+>
+> **⚠ 2026-06-29 修订 (stage 21 留篇门控 full-only)**: stage 21 决定"是否属于银行金科媒体报道"的留篇门控由三轨**并集** (`verified_full|verified_ctx|verified_ss`) 改为**仅全文轨** `verified_full` (用户决策; ctx/ss 窗口截断可能漏信息)。后果: **ctx/ss 由"并列主轨"降为 conditional-on-full 测度/稳健性轨** —— 下表"P1 主轨"(ctx)/"第三主轨"(ss) 标注随之降级 (ctx/ss 仍各自跑全套列, 但行宇宙变为 full 留篇集子集); P1 与 bank_news_clarity 主轨同步切 `_full`。**§6 计量铁律 "三轨各自 just-identified、禁混同一 over-identified Hansen J" 不变** (三轨仍各自分开报)。详见 `CLAUDE.md` "2026-06-29 后续" 段。
 
 ---
 

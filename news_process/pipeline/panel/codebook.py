@@ -1345,29 +1345,30 @@ def get_article_level_metadata_dict() -> Dict[str, VariableMetadata]:
         )
 
     # ═══ v3.2.0 Dual gate 三互斥指示列 (plan v14 §3.1 Action #6; article 级 bool) ═══
-    # 三轨说明 (third-track _ss, 2026-06-14): 第三轨 _ss 上线后 verified 门改三轨并集
-    #   (verified_full | verified_ctx | verified_ss; "任一轨过即过", 非 AND — 每轨各自
-    #   是合法独立归因窗口, 取并集最大化 verified 样本)。tone_llms 同时把该 dual-gate
-    #   分解扩为 7 互斥态 (full_only/ctx_only/ss_only/full_ctx/full_ss/ctx_ss/all_three);
-    #   下列 3 个 dual_* 列名由 tone_llms 产出, 本处只保留既有 curate (新 7 态列走 _infer_*
-    #   兜底), 不在此凭空注册 7 态列名 (列名单一事实源 = tone_llms)。
+    # 门控口径 (full-only, 用户决策 2026-06-29; 逆转 v3.2.0 R1-A + v3.9.0 三轨并集门):
+    #   是否留篇 (21_tone_llms.parquet 行集) 现**仅由全文轨 verified_full** 决定 —— ctx/ss
+    #   窗口截断可能漏信息, 降为 conditional-on-full 测度/稳健性轨。下列 dual_* 与 tone_llms
+    #   产的 7 互斥态 (full_only/ctx_only/ss_only/full_ctx/full_ss/ctx_ss/all_three) 仍**全量
+    #   计算并落盘作诊断**, 但 full-only 下凡 full 未过的态 (dual_ctx_only / triple_ctx_only /
+    #   ss_only / ctx_ss) 因对应行已被排除而**结构性恒 False (近零方差)**; 真正进输出的只有
+    #   含-full 的态。列名单一事实源 = tone_llms (新 7 态列走 _infer_* 兜底, 此处不凭空注册)。
     for _gate_var, _gate_zh, _gate_en in [
         ('llm_verified_dual_full_only',  '只 full 通过',  'Full-track only'),
-        ('llm_verified_dual_ctx_only',   '只 ctx 通过',   'Ctx-track only'),
+        ('llm_verified_dual_ctx_only',   '只 ctx 通过 (full-only 下恒 False)',   'Ctx-track only (empty under full-only)'),
         ('llm_verified_dual_both',       'full 与 ctx 都通过',    'Both full & ctx tracks'),
     ]:
         metadata[_gate_var] = VariableMetadata(
             var_name=_gate_var,
             label=f'Dual Gate: {_gate_en} verified',
-            description=f'三互斥指示 ({_gate_zh}): R1-A 致命修复, ctx 轨独立可作 main spec',
+            description=f'三互斥诊断指示 ({_gate_zh}): full-only 门控下留篇仅看 verified_full, ctx 仅作 conditional-on-full 测度',
             data_type='bool',
             unit='二元',
             value_range='True | False',
-            formula='derived from llm_verified_full / llm_verified_ctx (三轨并集见上注)',
+            formula='derived from llm_verified_full / llm_verified_ctx (诊断列; 留篇门控仅 verified_full, 见上注)',
             source_stage='Stage 21 (article-level, 21_tone_llms.parquet)',
             reference='Hassan et al. (2019, QJE) entity-proximity independence',
-            notes='plan v14 §3.1 P1 R1-A: 改并集 verified_full | verified_ctx 修复; '
-                  '三轨上线后扩为 verified_full|verified_ctx|verified_ss (任一过即过)',
+            notes='full-only gating (用户决策 2026-06-29, 逆转 v3.2.0 R1-A 并集): 留篇仅 verified_full; '
+                  'dual_ctx_only / triple_ctx_only / ss_only / ctx_ss 因 full 未过而结构性恒 False (诊断保留)',
             category='Stage 1 gate',
             track='dual',
         )

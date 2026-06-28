@@ -243,7 +243,7 @@ def build_variable_labels(
         'category_confidence_full':         "Locus Confidence (Full-text, hybrid LLM+keyword)",
         'category_confidence_ctx':          "Locus Confidence (Entity-ctx, hybrid LLM+keyword)",
         'llm_verified_dual_full_only':      "Dual Gate: Full-track only verified",
-        'llm_verified_dual_ctx_only':       "Dual Gate: Ctx-track only verified",
+        'llm_verified_dual_ctx_only':       "Dual Gate: Ctx-track only verified (empty under full-only)",
         'llm_verified_dual_both':           "Dual Gate: Both tracks verified",
         'tone_gap_tech_app_lc_ctx':         "Tone Gap: Tech-App (Loc=Ctx, ctx sentiment)",
         'tone_gap_sub_symb_sc_ctx':         "Tone Gap: Sub-Symb (Subst=Ctx, ctx sentiment)",

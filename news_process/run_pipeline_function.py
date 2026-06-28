@@ -425,20 +425,21 @@ def _stage21_skip_is_compatible(stage21_outputs: list[str]) -> tuple[bool, str]:
         return False, "stage 14 fingerprint differs from 21_tone_llms_full"
 
     try:
-        # O2.5 修复 (2026-05-25): orchestrator skip-check 与实际 stage 21 OR-filter
-        # 语义对齐. 自 v3.2.0 R1-A 致命修复 (tone_llms.py:1744-1746) 起,
-        # stage 21 main parquet filter = (verified_full == True) | (verified_ctx == True),
-        # 让 ctx 轨独立可作 main spec (Hassan 2019 QJE entity-proximity). 旧 skip-check
-        # 用 AND-only (verified_full=True) 会把 ctx-only 行排除 → fingerprint mismatch
-        # (实测 ctx-only 15 行覆盖 2 cohort 银行 → n_banks 82 vs 84 test fail).
+        # orchestrator skip-check 必须与实际 stage 21 留篇门控**逐字节同步**
+        # (tone_llms.py 的 `df_filtered = df[df['llm_verified_full'] == True]` 留篇门控).
+        # full-only 门控 (用户决策 2026-06-29; 逆转 v3.2.0 R1-A + v3.9.0 三轨并集):
+        # main parquet filter = (verified_full == True) only —— ctx/ss 截断可能漏信息,
+        # 不参与留篇 (降为 conditional-on-full)。⚠ 此处与 producer 是门控的**两份副本**,
+        # 必须同改: 若 producer 改 full-only 而此处仍用并集, expected_rows(并集) !=
+        # main_rows(full-only) → reject skip 永久, 每次重跑付费 stage 21。
+        # (注: 旧并集副本本就漏 verified_ss, full-only 后该不一致一并消失。)
         full_cols = list(_STAGE21_FILTERED_FINGERPRINT_COLUMNS) + [
-            'llm_verified_full', 'llm_verified_ctx',
+            'llm_verified_full',
         ]
         full_verify_df = pd.read_parquet(full_path, columns=full_cols)
         expected_main_df = full_verify_df[
-            (full_verify_df['llm_verified_full'] == True)  # noqa: E712 - pandas boolean mask
-            | (full_verify_df['llm_verified_ctx'] == True)
-        ].drop(columns=['llm_verified_full', 'llm_verified_ctx'])
+            full_verify_df['llm_verified_full'] == True  # noqa: E712 - pandas boolean mask
+        ].drop(columns=['llm_verified_full'])
         main_df = pd.read_parquet(
             main_path,
             columns=list(_STAGE21_FILTERED_FINGERPRINT_COLUMNS),

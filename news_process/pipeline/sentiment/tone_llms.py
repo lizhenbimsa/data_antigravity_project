@@ -60,9 +60,9 @@ news_process.pipeline.sentiment.tone_llms — 阶段21：统一 LLM 语义精筛
 
 **输入**: 读 stage 14 输出 `15_fintech_intensity.parquet` (硬依赖, 缺失即报错终止, 不再静默回退 stage 12; main() Step 4(a) 硬化; 因 LLM 需 stage 14 的 `fintech_intensity_score`/`intensity_verified` 列)。关键输入列: `内容`(全文)、`标题`、`content_ctx`(stage 13 物化, 缺则 main() 调 `_materialize_content_ctx` 兜底)、`content_ss`(stage 13 单一事实源物化, 缺则 `iter_article_track_prompts` 优雅回退 content_full)、`target_bank`、`co_mentioned_banks`。
 
-**处理步骤**: ①`main()` 加载 parquet + schema 守护; ②`LLMCache(_llm_cache.db)` 打开 SQLite 缓存; ③`asyncio.run(run_all_llms(...))` 对每篇文章 × 三轨 × 三个 LLM 家族异步并发请求 (信号量 MAX_CONCURRENCY 控并发); ④`_aggregate_track` 对每轨返回 18 元组聚合 (verified 三角验证投票 + sentiment 投票 + locus/substantiveness/collab_mode 三维分类投票 + logit-to-score 概率分数); ⑤逐模型存档列 + 轨级聚合列写回 DataFrame; ⑥verified 并集过滤后写 `21_tone_llms.parquet`, 全量写 `21_tone_llms_full.parquet`。
+**处理步骤**: ①`main()` 加载 parquet + schema 守护; ②`LLMCache(_llm_cache.db)` 打开 SQLite 缓存; ③`asyncio.run(run_all_llms(...))` 对每篇文章 × 三轨 × 三个 LLM 家族异步并发请求 (信号量 MAX_CONCURRENCY 控并发); ④`_aggregate_track` 对每轨返回 18 元组聚合 (verified 三角验证投票 + sentiment 投票 + locus/substantiveness/collab_mode 三维分类投票 + logit-to-score 概率分数); ⑤逐模型存档列 + 轨级聚合列写回 DataFrame; ⑥verified_full 全文轨过滤 (full-only) 后写 `21_tone_llms.parquet`, 全量写 `21_tone_llms_full.parquet`。
 
-**关键算法/公式**: 三模型 ensemble 多数决 (`majority_vote_bool` 严格多数 >50%; `majority_vote_sentiment`/`majority_vote_categorical` 分类决); 平局策略可配 (sentiment **verified 轨**平局/空票 tie_default='中性' [用户决策 2026-06-23 保守降级, 不产 None; **逆转** v6/F2 '平局→None 防中性污染'; final_v=False 非金科轨情感仍 None=N/A]; substantiveness 平局 tie_default='象征性'; locus 平局 tie_default='应用场景'; collab_mode 平局 tie_default='自主研发', 均 conservative=uniform-prior MAP 保守降级); `compute_prob_score(label, confidence)` 把 3 类情感标签+置信度映射到 [-1,+1] 连续分 (logit-to-score, config `logit_to_score.enabled=true`; NaN/越界 confidence→P3_INV 拒绝); `compute_prob_score_binary` 对三维创新标签产 [0,1] 二分类分 (P2_BIN/P3_BIN)。verified gate 用并集 `verified_full | verified_ctx | verified_ss` (非交集), 并产 triple-gate 7 互斥态诊断列 (`llm_verified_triple_*`)。
+**关键算法/公式**: 三模型 ensemble 多数决 (`majority_vote_bool` 严格多数 >50%; `majority_vote_sentiment`/`majority_vote_categorical` 分类决); 平局策略可配 (sentiment **verified 轨**平局/空票 tie_default='中性' [用户决策 2026-06-23 保守降级, 不产 None; **逆转** v6/F2 '平局→None 防中性污染'; final_v=False 非金科轨情感仍 None=N/A]; substantiveness 平局 tie_default='象征性'; locus 平局 tie_default='应用场景'; collab_mode 平局 tie_default='自主研发', 均 conservative=uniform-prior MAP 保守降级); `compute_prob_score(label, confidence)` 把 3 类情感标签+置信度映射到 [-1,+1] 连续分 (logit-to-score, config `logit_to_score.enabled=true`; NaN/越界 confidence→P3_INV 拒绝); `compute_prob_score_binary` 对三维创新标签产 [0,1] 二分类分 (P2_BIN/P3_BIN)。verified gate 仅用 `verified_full` (full-only, 用户决策 2026-06-29; ctx/ss 截断可能漏信息, 不参与留篇决定, 降为 conditional-on-full 测度/稳健性轨), 仍产 triple-gate 7 互斥态诊断列 (`llm_verified_triple_*`; 其中含 full 的 4 态闭合输出样本)。
 
 **输出列** (每轨 _full/_ctx/_ss 各一套): `llm_verified_*`、`llm_sentiment_*`、`llm_agreement_rate_v/s_*`、`n_valid_votes_*`/`n_verifying_votes_*`、`innovation_locus_*`(Gomber 2018 JMIS)、`innovation_substantiveness_*`(W&Z 1994/1998 ASQ)、`innovation_collab_mode_*`(Chesbrough 2003 + L&S 2006 SMJ)、各维度 `*_confidence_*`、`llm_prob_score`(avg_prob_score, 轨级聚合主列)、per-model `{short}_prob_score_*`、`avg_subst/locus/collab_prob_score_*`、逐模型 `{short}_verified/sentiment_*` 存档列; 另产 `llm_verified_dual_*`(3 态) / `llm_verified_triple_*`(7 态) 互斥指示列。
 
@@ -2092,7 +2092,7 @@ def _log_environment_and_methodology(input_path: str) -> None:
         logger.info(f"     · 输入:     {input_path} (stage 14 fintech_intensity, 硬依赖)")
         logger.info(f"     · 缓存:     {cache_db} (确定性锚点, 勿删铁律)")
         logger.info(f"     · 输出全量: {out_full} (含 verified True/False, 供验证模块)")
-        logger.info(f"     · 输出主表: {out_main} (verified 并集过滤, 下游 stage 22/24/45 消费)")
+        logger.info(f"     · 输出主表: {out_main} (verified_full 全文轨过滤 full-only, 下游 stage 22/24/45 消费)")
 
         logger.info("  ⚙ 运行配置 (config/sentiment.yaml::tone_llm_processing)")
         logger.info(
@@ -2232,9 +2232,9 @@ def main():
     logger.info("【方法】三模型 ensemble 多数决 (>50% 严格多数); sentiment(verified 轨) 平局/空票→保守'中性'(不产未定; 非金科轨 None=N/A),")
     logger.info("        创新三维平局→保守 MAP 降级(象征性/应用场景/自主研发); logit-to-score 把"
                 f"(标签×置信度) 映射到 [-1,+1] 连续分 (enabled={LOGIT_SCORE_ENABLED})。")
-    logger.info("        verified gate = 并集 verified_full|verified_ctx|verified_ss (任一轨过即留, 非交集)。")
+    logger.info("        verified gate = 仅全文轨 verified_full (full-only; ctx/ss 截断可能漏信息, 故只由全文 3-LLM 多数决定留篇)。")
     logger.info("【判读】verified 率高=语料金科相关度高; 情绪三类占比看方向; 三轨样本各自 just-identified")
-    logger.info("        不混同一 Hansen J。Triple-gate 7 互斥态之和 == 并集样本数 (恒等校验)。")
+    logger.info("        不混同一 Hansen J。Triple-gate 含 full 的 4 态之和 == 输出样本数 (恒等校验); 7 态全和 = 任一轨 verified 的诊断并集。")
     logger.info(f"【确定性】核心付费阶段, 但确定性锚点 = _llm_cache.db (temperature={sig4(TEMPERATURE)}, prompt {PROMPT_VERSION});")
     logger.info(f"          缓存全命中 ⟺ 零 API 调用 ⟺ golden 字节级可复现 (并发 MAX_CONCURRENCY={MAX_CONCURRENCY};"
                 + ("  OFFLINE 离线守卫 ON" if LLM_OFFLINE else "  在线模式") + ")。")
@@ -2754,24 +2754,25 @@ def main():
                     input_files=[input_file])
         logger.info(f"全量 LLM 结果已保存: {full_output_path} ({len(df)} 行)")
 
-        # v3.2.0 R1-A (致命修复, plan v14 §3.1 P1 Action #6) + v3.9.0 三轨化:
-        # 改并集 verified_full | verified_ctx | verified_ss, 让 ctx / ss 轨各自
-        # 独立可作为 main spec (Hassan 2019 QJE entity-proximity / 银行+金科同句
-        # 共现 独立判定; 原单 full 轨过滤使 ctx/ss 轨永远 conditional on full)。
+        # full-only 留篇门控 (用户决策 2026-06-29; 逆转 v3.2.0 R1-A + v3.9.0 三轨并集门):
+        #   是否属于"目标银行×金融科技"媒体报道, **仅由全文轨 3-LLM 多数决
+        #   `llm_verified_full` 决定**。理由: ctx 轨 (银行邻近句) 与 ss 轨 (银行∧金科
+        #   同句) 都对正文做窗口截断, 可能漏掉决定金科相关性的信息 → 窄窗口的
+        #   verified 不足以单独把一篇文章拉进样本。ctx/ss 由此从"各自独立识别的
+        #   并列主轨"降为 conditional-on-full 的测度/稳健性轨: 其 per-track 列照常
+        #   计算 (本行只筛行, 不动列), 仅在 full 已留篇的行内、各自经 encode 的
+        #   per-track 掩码 (llm_vote_score_{ctx,ss} 在该轨 verified=False 处置 NaN)
+        #   进 ctx/ss 聚合。
         #
-        # 为何并集 (任一轨过即过) 而非交集 (AND, 三轨全过才过):
-        #   三轨是同一篇文章的三种归因窗口 (全文 / 实体邻近句 / 同句共现), 互为
-        #   稳健性而非穷尽对——某轨判 verified 即说明该窗口内有金科证据, 应保留
-        #   供该轨自己的回归消费。若用 AND, ss 轨 (最窄窗口, 回退前覆盖最少) 会
-        #   把样本砍到三轨交集, 抹掉 full/ctx 各自独立可识别的样本, 与"三轨各自
-        #   just-identified 并排、不混同一 Hansen J"的铁律相悖。
-        df_filtered = df[
-            (df['llm_verified_full'] == True)
-            | (df['llm_verified_ctx'] == True)
-            | (df['llm_verified_ss'] == True)
-        ].copy()
-        # Triple gate 7 互斥态诊断 (full/ctx/ss verified 的 7 种非空组合;
-        # 互斥且穷尽并集样本, 7 计数之和 == union total)。
+        # ⚠ 这恢复了 v3.2.0 R1-A 之前的 conditional-on-full 状态 (该 R1-A 注释原是
+        #   为消除此状态而写, 现按用户口径回退)。"三轨各自 just-identified 并排、
+        #   不混同一 over-identified Hansen J"的铁律**不受影响** —— 三轨仍各自分开
+        #   报回归, 改变的只是 ctx/ss 的样本宇宙变为 full 留篇集的子集。
+        df_filtered = df[df['llm_verified_full'] == True].copy()  # noqa: E712 - pandas boolean mask
+        # Triple gate 7 互斥态诊断 (full/ctx/ss verified 的 7 种非空组合; 互斥且穷尽
+        # "任一轨 verified"的诊断并集)。注: full-only 门控下真正进入输出样本的只是
+        # **含 full 的 4 态** (full_only/full_ctx/full_ss/all_three); ctx_only/ss_only/
+        # ctx_ss 三态 (full 未过) 是被排除的篇, 仅作诊断 (见下方含-full 恒等校验)。
         _n_full_only = int(df['llm_verified_triple_full_only'].sum())
         _n_ctx_only  = int(df['llm_verified_triple_ctx_only'].sum())
         _n_ss_only   = int(df['llm_verified_triple_ss_only'].sum())
@@ -2779,15 +2780,18 @@ def main():
         _n_full_ss   = int(df['llm_verified_triple_full_ss'].sum())
         _n_ctx_ss    = int(df['llm_verified_triple_ctx_ss'].sum())
         _n_all_three = int(df['llm_verified_triple_all_three'].sum())
-        logger.info("  Triple gate (并集; 7 互斥态分解):")
+        logger.info("  Triple gate (7 互斥态分解; full-only 下仅含-full 4 态进入输出):")
         logger.info(f"    full-only  = {_n_full_only}")
-        logger.info(f"    ctx-only   = {_n_ctx_only}")
-        logger.info(f"    ss-only    = {_n_ss_only}")
+        logger.info(f"    ctx-only   = {_n_ctx_only}   (full 未过 → full-only 下排除)")
+        logger.info(f"    ss-only    = {_n_ss_only}   (full 未过 → full-only 下排除)")
         logger.info(f"    full+ctx   = {_n_full_ctx}")
         logger.info(f"    full+ss    = {_n_full_ss}")
-        logger.info(f"    ctx+ss     = {_n_ctx_ss}")
+        logger.info(f"    ctx+ss     = {_n_ctx_ss}   (full 未过 → full-only 下排除)")
         logger.info(f"    all-three  = {_n_all_three}")
-        logger.info(f"  Triple gate union total = {len(df_filtered)}")
+        _gate_full_states = _n_full_only + _n_full_ctx + _n_full_ss + _n_all_three
+        _gate_all_states = _gate_full_states + _n_ctx_only + _n_ss_only + _n_ctx_ss
+        logger.info(f"  含-full 4 态之和 = 输出样本 = {len(df_filtered)} (= full verified {_gate_full_states})")
+        logger.info(f"  7 态全和 (任一轨 verified 的诊断并集, ≥ 输出) = {_gate_all_states}")
 
         # remove-title-track (v3.8.0): 独立标题情感轨已移除, 标题改 prepend 进
         # full/ctx/ss 三轨 (v3.9.0); 原 B1-2 标题批量提取块在 TITLE_PROMPT_TEMPLATE=''
@@ -2838,11 +2842,11 @@ def main():
                     "对应 verified/sentiment 多数决会退化为双模型决, 建议核查网络/限流后重跑。"
                 )
 
-            # ② verified 精筛闸门 — 三轨各自通过率 + 并集 (下游主消费样本)
-            _n_union = len(df_filtered)
+            # ② verified 精筛闸门 — 三轨各自通过率 + full-only 输出 (下游主消费样本)
+            _n_output = len(df_filtered)
             logger.info(
-                f"  · verified 并集 (任一轨过即留): {_n_union:,d}/{_total:,d} "
-                f"({pct4(_n_union / _total) if _total else 'n/a'}) → 即 21_tone_llms.parquet 下游样本。"
+                f"  · verified 输出 (仅全文轨 verified_full 过即留, full-only): {_n_output:,d}/{_total:,d} "
+                f"({pct4(_n_output / _total) if _total else 'n/a'}) → 即 21_tone_llms.parquet 下游样本。"
             )
             for _trk, _vcol in [('_full', 'llm_verified_full'),
                                 ('_ctx', 'llm_verified_ctx'),
@@ -2857,29 +2861,38 @@ def main():
                 "    判读: verified 率越高=语料越聚焦'银行×金科', 率过低(经验上 <10%)再结合金科词典缺失/语料漂移排查; "
                 "三轨取材窗口不同(全文 / 银行邻近句 / 银行∧金科同句)且回退比例各异 — ss 无共现时回退全文(镜像 ctx), "
                 "故三轨 verified 率互为稳健性印证、不存在固定大小关系(ss 可能高于或低于 full)。"
+                "注: 自 2026-06-29 full-only gating 起, 是否留篇仅由全文轨 verified_full 决定 — "
+                "ctx/ss verified 率仅作测度稳健性参考, 不再独立决定下游样本 (其行宇宙现为 full 留篇集的子集)。"
             )
 
-            # ③ Triple-gate 7 互斥态恒等校验 (7 计数之和应 == 并集样本数)
+            # ③ Triple-gate 恒等校验 (full-only): 含 full 的 4 态之和应 == 输出样本数;
+            #    7 态全和 = "任一轨 verified"的诊断并集 (≥ 输出, 含被 full-only 排除的
+            #    ctx-only / ss-only / ctx+ss 篇)。
+            _gate_full = _n_full_only + _n_full_ctx + _n_full_ss + _n_all_three
             _gate_sum = (_n_full_only + _n_ctx_only + _n_ss_only + _n_full_ctx
                          + _n_full_ss + _n_ctx_ss + _n_all_three)
             logger.info(
-                f"  · Triple-gate 7 态之和={_gate_sum:,d}, 并集样本={_n_union:,d} → "
-                + ("一致(恒等校验通过, 好)。" if _gate_sum == _n_union
-                   else "不一致(异常! 互斥态分解与并集不闭合, 须排查 verified 列对齐)。")
+                f"  · Triple-gate 含-full 4 态之和={_gate_full:,d}, 输出样本={_n_output:,d} → "
+                + ("一致(full-only 恒等校验通过, 好)。" if _gate_full == _n_output
+                   else "不一致(异常! 含-full 态分解与输出不闭合, 须排查 verified_full 列对齐)。")
             )
-            if _gate_sum != _n_union:
+            logger.info(
+                f"  · (诊断) 7 互斥态全和={_gate_sum:,d} = 任一轨 verified 的并集 "
+                f"(含被 full-only 排除的 {_gate_sum - _n_output:,d} 篇 ctx-only/ss-only/ctx+ss)。"
+            )
+            if _gate_full != _n_output:
                 logger.warning(
-                    f"    ⚠ Triple-gate 恒等校验失败: 7 态和 {_gate_sum:,d} != 并集 {_n_union:,d}; "
+                    f"    ⚠ Triple-gate 恒等校验失败: 含-full 4 态和 {_gate_full:,d} != 输出 {_n_output:,d}; "
                     "互斥/穷尽假设被破坏, 下游 triple-gate 诊断列不可信。"
                 )
             _n_three_track = _n_all_three
-            if _n_union > 0:
+            if _n_output > 0:
                 logger.info(
                     f"    三轨全 verified (all-three) {_n_three_track:,d} 篇 "
-                    f"({pct4(_n_three_track / _n_union)} of 并集); 占比越高=三种归因窗口判定越一致, 测度越稳。"
+                    f"({pct4(_n_three_track / _n_output)} of 输出样本); 占比越高=三种归因窗口判定越一致, 测度越稳。"
                 )
 
-            # ④ 情绪极性方向 — 并集样本各轨情绪占比 (主变量信号)
+            # ④ 情绪极性方向 — full-only 输出样本各轨情绪占比 (主变量信号)
             for _trk, _vcol, _scol in [('_full', 'llm_verified_full', 'llm_sentiment_full'),
                                        ('_ctx', 'llm_verified_ctx', 'llm_sentiment_ctx'),
                                        ('_ss', 'llm_verified_ss', 'llm_sentiment_ss')]:
@@ -2907,7 +2920,7 @@ def main():
                 "正负面方向跨轨一致=测度收敛(好)。"
             )
 
-            # ⑤ logit-to-score 连续分 — verified 并集样本的轨级分布 (均值 + 离散度 + 极性桶)
+            # ⑤ logit-to-score 连续分 — full-only 输出样本的轨级分布 (均值 + 离散度 + 极性桶)
             if LOGIT_SCORE_ENABLED:
                 for _trk, _pcol in [('_full', 'llm_prob_score_full'),
                                     ('_ctx', 'llm_prob_score_ctx'),
@@ -2924,7 +2937,7 @@ def main():
                             _neg = int((_ser < 0).sum())
                             _zero = _nn - _pos - _neg
                             logger.info(
-                                f"    · llm_prob_score{_trk} 并集 mean={sig4(_mean)} sd={sig4(_std)} "
+                                f"    · llm_prob_score{_trk} 输出(full-only) mean={sig4(_mean)} sd={sig4(_std)} "
                                 f"范围[{sig4(_ser.min())},{sig4(_ser.max())}] (非空 {_nn:,d}); "
                                 f"极性桶 >0 {pct4(_pos / _nn)} / <0 {pct4(_neg / _nn)} / "
                                 f"≈0 {pct4(_zero / _nn)}。"
