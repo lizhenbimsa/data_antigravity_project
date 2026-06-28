@@ -242,6 +242,16 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
     ctx_body_list = []   # ctx 的纯 body 部分 (无标题前缀), 仅用于 fallback 判定
     ss_list = []         # ss 轨: 标题 + 银行∧金科同句窗口 (或 fallback)
     ss_body_list = []    # ss 的纯 body 部分 (无标题前缀), 仅用于 fallback 判定
+    # 回退归因 (2026-06-28): 把"回退至全文"拆成两类本质不同的来源, 让日志自解释
+    # (此前日志只报合并计数, 易被误读为"X% 文章没找到银行")。逐行记录"抽取是否真
+    # 返回空"作 tri-state 标记: True = 抽取真返回空 (全文无目标银行 / 正文为空 / 被否定·
+    # 短名排除全部弹掉) → 真·实体未命中 (真信号缺失); False = 抽取已命中非空 (若该行仍判
+    # 回退, 则属【巧合性全覆盖】= 抽取文与全文逐字相等: ≥3 句文走命中句 ±radius 句窗口
+    # 合并盖满全篇, 或 <3 句短文走字符级 ±fallback_char_radius 回退盖满全文 → 短文 / 命中
+    # 密集的几何假象, 非信号缺失); None = 无有效 target_bank (三轨退化为全文=全文);
+    # 'nodict' = 金科词典缺失 (仅 ss 轨)。供下方日志据此细分回退原因。纯统计, 不改产物/列/控制流。
+    ctx_raw_empty_list = []
+    ss_raw_empty_list = []
     # perf(accel-stage13-01): iterrows → 列式 tolist/zip, 去 per-row Series 物化开销。
     # 逐位等价: 仅访问 str 列 (内容/标题/target_bank) 且统一 str() 包裹, 不受 iterrows
     # 跨列 dtype 上溯影响; pd.isna 标题守卫原样保留 (omni-g-misc-04)。主成本仍是下方
@@ -272,6 +282,9 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
                 short_name_exclusions=SHORT_NAME_EXCLUSIONS,
                 context_window=CONTEXT_WINDOW,
             )
+            # 回退归因: 先记"抽取是否真返回空" (= 实体未命中信号); 再据下方
+            # ctx_body 是否 ≡ 全文区分 miss(真空) / fullcov(命中但盖满全篇)。
+            ctx_raw_empty_list.append(not ctx_body)
             if not ctx_body:
                 ctx_body = body_full  # 回退公理: 无匹配时保留全文 body
             # 三轨 ss: 银行∧金科同句窗口。FINTECH_AC=None (词典加载失败) 时直接
@@ -285,13 +298,17 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
                     short_name_exclusions=SHORT_NAME_EXCLUSIONS,
                     context_window=CONTEXT_WINDOW,
                 )
+                ss_raw_empty_list.append(not ss_body)
                 if not ss_body:
                     ss_body = body_full  # 回退公理 (镜像 ctx): 无共现→全文 body
             else:
                 ss_body = body_full
+                ss_raw_empty_list.append('nodict')  # 词典缺失→全回退 (非真未命中)
         else:
             ctx_body = body_full
             ss_body = body_full
+            ctx_raw_empty_list.append(None)  # 无有效 target_bank
+            ss_raw_empty_list.append(None)
         ctx_body_list.append(ctx_body)
         ss_body_list.append(ss_body)
         full_list.append(prepend_title(title, body_full))
@@ -312,33 +329,86 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
     # fix(three-track-verify, 2026-06-18): 与 body_full 同口径 pd.isna→'' (而非 astype(str)
     # 把 NaN 变 'nan'), 保 is_fallback 比较两侧一致 (NaN 正文行: body_full='' vs _bodies='')。
     _bodies = ['' if pd.isna(v) else str(v) for v in df['内容'].tolist()]
-    df['ctx_is_fallback'] = pd.Series(
-        [cb == fb for cb, fb in zip(ctx_body_list, _bodies)],
-        index=df.index,
-    ).astype('bool')
-    df['ss_is_fallback'] = pd.Series(
-        [sb == fb for sb, fb in zip(ss_body_list, _bodies)],
-        index=df.index,
-    ).astype('bool')
-    n_fallback = sum(1 for cb, fb in zip(ctx_body_list, _bodies) if cb == fb)
-    n_ss_fallback = sum(1 for sb, fb in zip(ss_body_list, _bodies) if sb == fb)
+    ctx_fb_flags = [cb == fb for cb, fb in zip(ctx_body_list, _bodies)]
+    ss_fb_flags = [sb == fb for sb, fb in zip(ss_body_list, _bodies)]
+    df['ctx_is_fallback'] = pd.Series(ctx_fb_flags, index=df.index).astype('bool')
+    df['ss_is_fallback'] = pd.Series(ss_fb_flags, index=df.index).astype('bool')
+    n_fallback = sum(ctx_fb_flags)
+    n_ss_fallback = sum(ss_fb_flags)
+
+    # 健壮性 (评审 defense-in-depth): zip 对长度不一会【静默截断】→ 下方按类求和的
+    # assert 反而抓不到 list 失同步。先硬断言两 raw_empty 列与 *_fb_flags 等长 (==len df),
+    # 让未来若误加 continue/break 漏一次 append 立即暴露, 而非静默错算回退归因。
+    assert len(ctx_raw_empty_list) == len(ctx_fb_flags) == len(df), \
+        (f"ctx_raw_empty_list 长度 ({len(ctx_raw_empty_list)}) 与 "
+         f"ctx_fb_flags/df ({len(ctx_fb_flags)}/{len(df)}) 失同步")
+    assert len(ss_raw_empty_list) == len(ss_fb_flags) == len(df), \
+        (f"ss_raw_empty_list 长度 ({len(ss_raw_empty_list)}) 与 "
+         f"ss_fb_flags/df ({len(ss_fb_flags)}/{len(df)}) 失同步")
+
+    # ── 回退归因细分 (2026-06-28): 把"回退至全文"拆成本质不同的来源 ──
+    # *_is_fallback 标志 = (抽取文 ≡ 全文 内容), 它把两类合并计数, 易被误读:
+    #   · miss    (真·实体未命中) = 抽取真返回空被全文兜底 (含空正文) → **真信号缺失** (须警惕);
+    #   · fullcov (巧合性全覆盖)  = 抽取已命中, 但抽取文与全文逐字相等 (≥3 句文走句窗
+    #                               盖满 / <3 句短文走字符回退盖满) → **非**信号缺失;
+    #   · nobank  = 该行无有效 target_bank (三轨退化为全文); nodict = 金科词典缺失 (仅 ss)。
+    # 三/四类之和恒 == n_fallback (无有效 bank 行 ctx/ss 同时回退)。纯统计, 不改产物。
+    # 据 ctx_raw_empty_list (tri-state) × ctx_fb_flags 归类: 仅对判回退的行细分。
+    n_ctx_miss = n_ctx_cov = n_ctx_nobank = 0
+    for _fb, _re in zip(ctx_fb_flags, ctx_raw_empty_list):
+        if not _fb:
+            continue
+        if _re is None:
+            n_ctx_nobank += 1
+        elif _re:
+            n_ctx_miss += 1
+        else:
+            n_ctx_cov += 1
+    n_ss_miss = n_ss_cov = n_ss_nobank = n_ss_nodict = 0
+    for _fb, _re in zip(ss_fb_flags, ss_raw_empty_list):
+        if not _fb:
+            continue
+        if _re is None:
+            n_ss_nobank += 1
+        elif _re == 'nodict':
+            n_ss_nodict += 1
+        elif _re:
+            n_ss_miss += 1
+        else:
+            n_ss_cov += 1
     assert int(df['ctx_is_fallback'].sum()) == n_fallback, \
         f"ctx_is_fallback 列计数 ({int(df['ctx_is_fallback'].sum())}) " \
         f"与 batch 统计 ({n_fallback}) 不一致"
     assert int(df['ss_is_fallback'].sum()) == n_ss_fallback, \
         f"ss_is_fallback 列计数 ({int(df['ss_is_fallback'].sum())}) " \
         f"与 batch 统计 ({n_ss_fallback}) 不一致"
+    # 回退归因细分须穷尽划分 n_fallback (miss ⊎ fullcov ⊎ nobank / +nodict), 否则
+    # 漏归类会让日志原因数对不上总数 → 硬断言守护 (与上方两条列计数 assert 同级)。
+    assert n_ctx_miss + n_ctx_cov + n_ctx_nobank == n_fallback, \
+        f"ctx 回退归因之和 ({n_ctx_miss}+{n_ctx_cov}+{n_ctx_nobank}) ≠ n_fallback ({n_fallback})"
+    assert n_ss_miss + n_ss_cov + n_ss_nobank + n_ss_nodict == n_ss_fallback, \
+        f"ss 回退归因之和 ({n_ss_miss}+{n_ss_cov}+{n_ss_nobank}+{n_ss_nodict}) ≠ n_ss_fallback ({n_ss_fallback})"
     _bank_strs = df['target_bank'].astype(str).str.strip()
     n_with_bank = ((_bank_strs != '') & (_bank_strs != 'nan') &
                    (_bank_strs != 'None')).sum()
     logger.info(f"  content_ctx 物化完成: {len(df)} 行, "
                 f"回退至全文: {n_fallback}/{n_with_bank} 条 "
                 f"({pct4(n_fallback / max(n_with_bank, 1))})")
+    # 回退归因 (让"回退至全文"一行不被误读为"X 条没找到银行"): 拆真未命中 vs 巧合全覆盖。
+    logger.info(f"    └─ 回退归因: 真·实体未命中 {n_ctx_miss} 条 (全文无目标银行 / 正文为空 / "
+                f"被否定·短名排除全部弹掉 → 真信号缺失) | 巧合性全覆盖 {n_ctx_cov} 条 (银行已命中, "
+                f"但抽取文与全文逐字相等: ≥3 句文走命中句 ±{_sentence_radius} 句窗口盖满 / <3 句短文"
+                f"走字符级回退盖满 → 短文或命中密集的几何假象, 非信号缺失) | 无有效 target_bank "
+                f"{n_ctx_nobank} 条")
     logger.info(f"  ctx_is_fallback 列已写入 (bool): "
                 f"{int(df['ctx_is_fallback'].sum())}/{len(df)} True")
     logger.info(f"  content_ss 物化完成 (银行+金科同句): {len(df)} 行, "
                 f"回退至全文: {n_ss_fallback}/{n_with_bank} 条 "
                 f"({pct4(n_ss_fallback / max(n_with_bank, 1))})")
+    logger.info(f"    └─ 回退归因: 真·无同句共现 {n_ss_miss} 条 (银行与金科从不在同一句 / 正文为空 → "
+                f"真信号缺失) | 巧合性全覆盖 {n_ss_cov} 条 (已命中, 但抽取文与全文逐字相等: ±"
+                f"{_ss_sentence_radius} 句窗口或字符回退盖满全文 → 短文几何假象) | 无有效 target_bank "
+                f"{n_ss_nobank} 条 | 金科词典缺失 {n_ss_nodict} 条")
     logger.info(f"  ss_is_fallback 列已写入 (bool): "
                 f"{int(df['ss_is_fallback'].sum())}/{len(df)} True")
 
@@ -378,11 +448,17 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
             logger.info(f"  平均文本长度: full={sig4(_mean_full)} 字 | "
                         f"ctx={sig4(_mean_ctx)} 字 ({pct4(_mean_ctx / max(_mean_full, 1))} of full) | "
                         f"ss={sig4(_mean_ss)} 字 ({pct4(_mean_ss / max(_mean_full, 1))} of full)")
-            logger.info(f"  ctx 轨: {_ctx_hit:,}/{n_with_bank:,} 条截到银行相关句, "
-                        f"{n_fallback:,} 条无命中→回退全文 (回退率 {pct4(_ctx_fb_rate)})")
-            logger.info("    → " + ("回退率低, 多数文章成功聚焦到银行相关句, ctx 轨信号有效"
-                                    if _ctx_fb_rate < 0.30 else
-                                    "回退率偏高, 较多文章 ctx≈full 聚焦信号弱 (核查别名表/分句口径/语料是否离题)"))
+            logger.info(f"  ctx 轨: {_ctx_hit:,}/{n_with_bank:,} 条截到银行相关句 (窗口窄于全文), "
+                        f"{n_fallback:,} 条 ctx≡全文 (回退率 {pct4(_ctx_fb_rate)}); 拆解 = 真·未命中 "
+                        f"{n_ctx_miss:,} + 巧合全覆盖 {n_ctx_cov:,} + 无 bank {n_ctx_nobank:,}")
+            # 判读须按"真·未命中率"而非合并回退率: 巧合全覆盖是短文窗口盖满全篇的几何假象,
+            # 银行其实已命中, 不代表 ctx 信号弱。把判读门槛从 _ctx_fb_rate 改为 _ctx_miss_rate。
+            _ctx_miss_rate = n_ctx_miss / max(n_with_bank, 1)
+            logger.info("    → " + ("真·未命中率低, 绝大多数文章都能定位到目标银行 "
+                                    "(回退多由短文/命中密集致窗口盖满全篇所致, 属几何假象, ctx 信号有效)"
+                                    if _ctx_miss_rate < 0.30 else
+                                    "真·实体未命中率偏高, 较多文章全文无目标银行/被否定·短名"
+                                    "排除弹掉 (核查别名表/分句口径/语料是否离题)"))
             # P2 fix: ss 轨命中判读 + ctx↔ss 分歧判读必须置于 FINTECH_AC is not None 守卫下。
             # 词典缺失时 ss 全回退全文 (回退率=100%、分歧率≡ctx 回退率), 此时打"ss 回退率天然
             # 高于 ctx 属预期 / 分歧明显支撑三轨稳健性"会与紧随其后的 loud warning (词典未加载、
@@ -390,13 +466,58 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
             # 守卫外只打原始计数并明示分歧全部来自 ss 退化为全文 body, 非 ss 独立信号。
             if FINTECH_AC is not None:
                 logger.info(f"  ss 轨: {_ss_hit:,}/{n_with_bank:,} 条截到'银行∧金科同句', "
-                            f"{n_ss_fallback:,} 条无共现→回退全文 (回退率 {pct4(_ss_fb_rate)})")
-                logger.info("    → ss 回退率天然高于 ctx 属预期 (大量银行新闻讲罚款/坏账, 与金科无关); "
-                            "回退即按镜像 ctx 的公理退回全文 body")
+                            f"{n_ss_fallback:,} 条 ss≡全文 (回退率 {pct4(_ss_fb_rate)}); 拆解 = 真·无同句"
+                            f"共现 {n_ss_miss:,} + 巧合全覆盖 {n_ss_cov:,} + 无 bank {n_ss_nobank:,}")
+                # 注 (2026-06-28 修正旧判读): stage 12b 同句共现硬过滤 (生产 radius=0) 的 keep 集
+                # ⊆ ss radius≥0 共现集 (entity_context.py:398), 此包含关系【仅当 12b radius ≤
+                # ss_sentence_radius 成立】→ 存活行多含"银行∧金科同句" → ss 真·无共现≈0; 残余回退
+                # 主由短文/字符回退全覆盖贡献。故旧注释 "ss 回退率天然高于 ctx 属预期" 仅是 12b 之前
+                # 的结论 (彼时 ss 真·未命中多)。12b 后 ss 真·未命中坍缩; 又因 ss 命中句 ⊆ ctx 命中句
+                # (ss 须银行∧金科同句, ctx 只须银行) → 同 radius 下 ss 全覆盖必致 ctx 全覆盖 → ss 合并
+                # 回退计数 ≤ ctx (本批 56 ≤ 162; 机制可证, 非"通常"外推)。
+                logger.info("    → ss 回退按镜像 ctx 的公理退回全文 body; stage 12b 同句过滤后 "
+                            "(仅当 12b radius ≤ ss_sentence_radius) 真·无共现≈0, 残余回退多为短文/"
+                            "字符回退全覆盖几何假象 (非 ss 信号缺失)")
                 logger.info(f"  ctx↔ss 分歧率: {n_div:,}/{n_with_bank:,} ({pct4(_div_rate)}) 两轨截到不同句子")
                 logger.info("    → " + ("分歧明显, ss 带来独立于 ctx 的新信息, 支撑三轨稳健性设计"
                                         if _div_rate > 0.40 else
                                         "分歧较小, ss 与 ctx 高度重叠, 作为独立信号的增量有限 (论文须如实披露)"))
+                # ── 回退原因详解 (短文几何假象的句数实证): 让日志自带"为何会出现回退至全文"的
+                # 答案。巧合全覆盖行普遍是短文 (命中句 ±radius 句窗口必然盖满全篇), 用正文句数
+                # 均值/短文占比印证。仅读 in-memory 列表, 纯日志, golden-safe。
+                try:
+                    from news_process.core.text.entity_context import (
+                        _split_sentences,
+                    )
+                    _cov_sc = [len(_split_sentences(_bodies[i]))
+                               for i, (_fb, _re) in enumerate(
+                                   zip(ctx_fb_flags, ctx_raw_empty_list))
+                               if _fb and _re is False]
+                    logger.info("  ── 回退原因详解 (核心: 回退≠没找到银行) ──")
+                    logger.info("    · *_is_fallback 标志 = (抽取文 ≡ 全文 内容), 混合两类来源: "
+                                "真·未命中 (信号缺失) + 巧合全覆盖 (句窗或字符回退盖满全文, 非缺失)")
+                    if _cov_sc:
+                        _mean_sc = sum(_cov_sc) / len(_cov_sc)
+                        # 按机制分三档: <3 句走【字符级回退】(±fallback_char_radius 字, 与 sentence_radius
+                        # 无关); 3-6 句多为单/少命中句即可盖满的短文 (句窗); >6 句须命中密集才能 merged
+                        # ==[0,n-1]。≤6 仅是经验性短文界, 非句窗盖满的机制临界 (临界 = 命中句密度)。
+                        _n = len(_cov_sc)
+                        _lt3 = sum(1 for s in _cov_sc if s < 3)
+                        _s36 = sum(1 for s in _cov_sc if 3 <= s <= 6)
+                        _gt6 = sum(1 for s in _cov_sc if s > 6)
+                        logger.info(f"    · ctx 巧合全覆盖 {_n:,} 条正文句数: 均值 {sig4(_mean_sc)} 句; "
+                                    f"按机制分档 <3 句(字符回退) {_lt3:,} ({pct4(_lt3 / _n)}) | "
+                                    f"3-6 句(短文句窗) {_s36:,} ({pct4(_s36 / _n)}) | "
+                                    f">6 句(命中密集) {_gt6:,} ({pct4(_gt6 / _n)})")
+                        logger.info("    · 解读: <3 / 3-6 档是'短文几何假象'; >6 档是'银行高频出现→命中"
+                                    "句密集→合并窗口盖满全篇', 二者均非信号缺失 (银行已命中)")
+                    logger.info(f"    · 据此: 本批真正的信号缺失 = 真·未命中 (ctx {n_ctx_miss:,} / "
+                                f"ss {n_ss_miss:,} 条); 其余回退为几何假象, 银行/共现均已命中")
+                    logger.info("    · ss 全覆盖 ≤ ctx 全覆盖 (机制可证, 非经验外推): ss 命中句 ⊆ ctx "
+                                "命中句 (ss 须银行∧金科同句, ctx 只须银行), 同 radius 下 ss 覆盖全文必致 "
+                                f"ctx 也覆盖 → ss fullcov {n_ss_cov:,} ≤ ctx fullcov {n_ctx_cov:,}")
+                except Exception as _e2:  # noqa: BLE001 — 句数证据仅辅助, 失败不阻断主日志
+                    logger.debug(f"    · (回退句数证据计算失败, 跳过此块: {_e2})")
             else:
                 # FINTECH_AC is None: ss 全回退全文 → _ss_hit=0、回退率=100%、分歧率纯由 ss
                 # 退化为全文 body 与 ctx 不同所致, 与"ss 独立信号"无关。只打原始计数 + 明确禁判读。
