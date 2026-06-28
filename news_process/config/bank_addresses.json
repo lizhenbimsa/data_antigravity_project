@@ -1,14 +1,4 @@
 {
-  "中国人民银行": {
-    "province": "北京",
-    "city": "北京",
-    "district": "西城区",
-    "address": "北京市西城区成方街32号",
-    "institution_code": "99999999999999",
-    "uscc": "111000000000132071",
-    "wind_code": "CN00100A",
-    "nfra_type": "中央银行"
-  },
   "中国工商银行": {
     "province": "北京",
     "city": "北京",

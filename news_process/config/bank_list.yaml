@@ -73,9 +73,6 @@ banks:
   - {target_bank: 中国邮政储蓄银行, is_soe: true, is_commercial_bank: true, bank_type_id: 1, implicit_guarantee_tier: 5, wind_code: "F0100206", listed: true, province: 北京, nfra_type: 国有大型商业银行}
   - {target_bank: 中国银行, is_soe: true, is_commercial_bank: true, bank_type_id: 1, implicit_guarantee_tier: 5, wind_code: "F0100204", listed: true, province: 北京, nfra_type: 国有大型商业银行}
   - {target_bank: 交通银行, is_soe: true, is_commercial_bank: true, bank_type_id: 1, implicit_guarantee_tier: 5, wind_code: "F0100205", listed: true, province: 上海, nfra_type: 国有大型商业银行}
-  - {target_bank: 中国农业发展银行, is_soe: true, is_commercial_bank: true, bank_type_id: 7, implicit_guarantee_tier: 5, wind_code: null, listed: false, province: 北京, nfra_type: 政策性银行}
-  - {target_bank: 中国进出口银行, is_soe: true, is_commercial_bank: true, bank_type_id: 7, implicit_guarantee_tier: 5, wind_code: null, listed: false, province: 北京, nfra_type: 政策性银行}
-  - {target_bank: 国家开发银行, is_soe: true, is_commercial_bank: true, bank_type_id: 7, implicit_guarantee_tier: 5, wind_code: null, listed: false, province: 北京, nfra_type: 政策性银行}
   - {target_bank: 上海浦东发展银行, is_soe: false, is_commercial_bank: true, bank_type_id: 2, implicit_guarantee_tier: 4, wind_code: "F0100212", listed: true, province: 上海, nfra_type: 股份制商业银行}
   - {target_bank: 中信银行, is_soe: false, is_commercial_bank: true, bank_type_id: 2, implicit_guarantee_tier: 4, wind_code: "F0100207", listed: true, province: 北京, nfra_type: 股份制商业银行}
   - {target_bank: 中国民生银行, is_soe: false, is_commercial_bank: true, bank_type_id: 2, implicit_guarantee_tier: 4, wind_code: "F0100214", listed: true, province: 北京, nfra_type: 股份制商业银行}
@@ -1836,5 +1833,4 @@ banks:
   - {target_bank: 韩亚银行(中国), is_soe: false, is_commercial_bank: true, bank_type_id: 6, implicit_guarantee_tier: 1, wind_code: "F0500206", listed: false, province: 北京, nfra_type: 外资法人银行}
   - {target_bank: 首都银行(中国), is_soe: false, is_commercial_bank: true, bank_type_id: 6, implicit_guarantee_tier: 1, wind_code: "F0201164", listed: false, province: 江苏, nfra_type: 外资法人银行}
   - {target_bank: 中信百信银行, is_soe: false, is_commercial_bank: true, bank_type_id: 8, implicit_guarantee_tier: 1, wind_code: "F0100880", listed: false, province: 北京, nfra_type: 直销银行}
-  - {target_bank: 中国人民银行, is_soe: true, is_commercial_bank: false, bank_type_id: 8, implicit_guarantee_tier: 5, wind_code: "CN00100A", listed: false, province: 北京, nfra_type: 中央银行}
   - {target_bank: 中邮邮惠万家银行, is_soe: false, is_commercial_bank: true, bank_type_id: 8, implicit_guarantee_tier: 1, wind_code: "F0203968", listed: false, province: 上海, nfra_type: 直销银行}
