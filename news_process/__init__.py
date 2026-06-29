@@ -78,4 +78,4 @@ import os as _os
 # canonical 解 (见各 audit runbook); 确定性由线程钉死=1 单独保证, 与本 flag 正交.
 _os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
-__version__ = "3.8.0"
+__version__ = "3.15.0"

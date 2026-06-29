@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "news-process"
-version = "3.8.0"
-description = "Bank-fintech news -> bank-year panel data pipeline (v3.8.0 — 取消标题情感轨, 标题并入 full/ctx 两轨; built on v3.7.0 D-group + v2.3 implementation: 9 papers + DC3 LLM archive + staleness stage; W&Z 1994/1998 ASQ + Gomber 2018 JMIS + Hassan 2019 QJE 双框架)."
+version = "3.15.0"
+description = "Bank-fintech news -> bank-year panel data pipeline (v3.15.0 — 嵌入 co-primary 双轨切 Qwen/Qwen3-Embedding-8B (硅基流动, 4096 维) ⟂ text-embedding-3-large (3072 维), 零本地模型; built on v3.8.0 取消标题情感轨 (标题并入 full/ctx) + v3.7.0 D-group + v2.3 implementation: papers 组合 + DC3 LLM archive + staleness stage; W&Z 1994/1998 ASQ + Gomber 2018 JMIS + Hassan 2019 QJE 双框架)."
 requires-python = ">=3.10"
 readme = "README.md"
 license = { text = "Proprietary" }
