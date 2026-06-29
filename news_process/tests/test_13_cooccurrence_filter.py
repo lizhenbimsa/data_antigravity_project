@@ -279,3 +279,84 @@ def test_min_keep_guard_raises(cf, monkeypatch, tmp_path):
     with pytest.raises(SystemExit) as ei:
         cf.main()
     assert ei.value.code == 1  # 确认是 min-N 守卫的 exit(1), 而非其它更早退出
+
+
+# ── match_in_title: 同句判据纳入标题 (2026-06-29) ─────────────────────────────
+# 权威计划: scripts/audit/STAGE13_COOCCURRENCE_MATCH_IN_TITLE_EXECUTION_PLAN_2026-06-29.md
+
+
+def test_production_match_in_title_default_true():
+    """生产 cooccurrence_filter.match_in_title == True 配置锁 (镜像 radius 配置锁)。
+
+    若有人改回 false (仅正文旧口径), 须同步更新本断言 + config/filtering.yaml 注释 +
+    cooccurrence_filter.py docstring/日志 + CLAUDE.md 决策记录。
+    """
+    from news_process.core.config import load_config
+    val = load_config().get('cooccurrence_filter', {}).get('match_in_title')
+    assert val is True, (
+        f"生产 cooccurrence_filter.match_in_title 应为 True (判据纳入标题, 与 stage 21 "
+        f"full 轨口径一致), 实得 {val!r}; 见 config/filtering.yaml 与执行计划"
+    )
+
+
+def test_title_pairs_kept_when_body_anaphora_only(cf, monkeypatch):
+    """标题已点明 银行∧金科、正文跨句 (指代/承前省略主语): match_in_title=True 保留, False 丢弃。
+
+    锁定本改动核心收益: 堵上"只读正文看不到标题"的单向假阴性。"""
+    df = pd.DataFrame({
+        "docid": ["t1"],
+        "target_bank": [BANK],
+        "标题": ["工商银行加码区块链应用"],          # 标题句内 工商银行∧区块链 配对
+        "内容": [
+            # 正文: 银行名只在句1(无金科); 区块链在句3(主语承前省, 无银行名) → 正文无同句配对
+            "工商银行昨日举行开放日活动。该行相关负责人介绍最新进展。据介绍区块链已应用于多个场景。"
+        ],
+    })
+    monkeypatch.setitem(cf.CONFIG['cooccurrence_filter'], 'match_in_title', True)
+    assert cf.filter_cooccurrence(df)["docid"].tolist() == ["t1"]   # 标题救回
+    monkeypatch.setitem(cf.CONFIG['cooccurrence_filter'], 'match_in_title', False)
+    assert cf.filter_cooccurrence(df)["docid"].tolist() == []       # 仅正文 → 误删
+
+
+def test_neither_title_nor_body_pairs_dropped(cf, monkeypatch):
+    """标题与正文均未在单句内配对 → 即便纳入标题仍丢弃 (证标题不引入假阳性)。"""
+    monkeypatch.setitem(cf.CONFIG['cooccurrence_filter'], 'match_in_title', True)
+    df = pd.DataFrame({
+        "docid": ["n1"],
+        "target_bank": [BANK],
+        "标题": ["工商银行发布半年报"],              # 标题有银行无金科
+        "内容": ["工商银行业绩稳健。该行持续推进数字化转型。区块链项目进展顺利。"],
+        # 句1 银行无金科; 句2 无银行(该行)且'数字化'不在测试词典; 句3 区块链无银行 → 无配对
+    })
+    assert cf.filter_cooccurrence(df)["docid"].tolist() == []
+
+
+def test_match_in_title_false_is_body_only_identical(cf, monkeypatch):
+    """match_in_title=False → 严格等于纯正文旧行为 (能救回的标题被忽略; 正文配对照常留)。"""
+    monkeypatch.setitem(cf.CONFIG['cooccurrence_filter'], 'match_in_title', False)
+    df = pd.DataFrame({
+        "docid": ["a", "b"],
+        "target_bank": [BANK, BANK],
+        "标题": ["工商银行加码区块链", "无关标题"],   # a 标题本可救回, 但 flag 关
+        "内容": [
+            # ≥3 句 → 走严格同句路径 (非短文字符窗回退); 银行在句1、区块链在句3 → 正文无同句配对
+            "工商银行召开会议。今天天气晴朗。该行推进区块链。",   # flag 关 → 丢
+            "工商银行大力发展区块链技术。市场平稳。后续观察。",   # 正文同句配对 → 照常留
+        ],
+    })
+    assert cf.filter_cooccurrence(df)["docid"].tolist() == ["b"]
+
+
+def test_empty_or_missing_title_no_regression(cf, monkeypatch):
+    """标题为空/缺失 → match_in_title=True 也退化为纯正文判据 (旧行为字节一致)。"""
+    monkeypatch.setitem(cf.CONFIG['cooccurrence_filter'], 'match_in_title', True)
+    df = pd.DataFrame({
+        "docid": ["e1", "e2"],
+        "target_bank": [BANK, BANK],
+        "标题": ["", None],                          # 空 / 缺失标题
+        "内容": [
+            "工商银行大力发展区块链技术。市场平稳。",  # 正文配对 → 留
+            "工商银行召开会议。市场平稳。",            # 正文无金科 → 丢
+        ],
+    })
+    assert cf.filter_cooccurrence(df)["docid"].tolist() == ["e1"]

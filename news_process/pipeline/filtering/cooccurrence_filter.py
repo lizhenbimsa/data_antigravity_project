@@ -10,6 +10,15 @@
 出现在【同一句】内"。radius≥1 放宽为 "银行锚句 ±radius 邻句窗口邻近" (更宽, 仅作
 稳健性备选, 非生产默认)。
 
+标题口径 (``match_in_title``, 默认 True, 2026-06-29): 同句判据在【标题 + 正文】并集上
+评估 (``prepend_title`` 把标题拼到正文前再切句)。动机: stage 21 full 轨读的是
+``content_full = 标题+正文``, 而本阶段旧实现只读正文 → 一篇"标题已点明 银行∧金科、正文
+用指代/承前省略主语 (银行别名与金科词跨正文句)"的真报道会被本阶段误删, 且 stage 21 在
+上游被删后无法回补 (单向假阴性)。纳入标题使两阶段口径对齐, 且精度近乎不降 (标题字面配对
+即真报道)。``match_in_title=False`` 回到纯正文旧行为 (供消融 / 复现旧 golden 宇宙);
+标题缺失 / 无 '标题' 列时判据自动退化为纯正文 (旧行为字节一致)。权威计划 =
+``scripts/audit/STAGE13_COOCCURRENCE_MATCH_IN_TITLE_EXECUTION_PLAN_2026-06-29.md``。
+
 ⚠ 短文 caveat: 上述"同句"严格成立于长文 (≥3 句可分句); 短文 (<3 句无法分句) 走
 ``_char_level_fallback`` 字符窗 (±fallback_char_radius=150 字, 【忽略 sentence_radius】),
 以"银行出现位 ±150 字内含金科"近似同句 (与 _ss 轨同款近似)。keep 率 gate 须分长/短文本
@@ -79,6 +88,7 @@ from news_process.core.text.ahocorasick import (  # noqa: E402
 from news_process.core.text.entity_context import (  # noqa: E402
     get_target_aliases,
     has_bank_fintech_cooccurrence_within_radius,
+    prepend_title,
 )
 
 CONFIG = load_config()
@@ -137,6 +147,13 @@ def filter_cooccurrence(df: pd.DataFrame) -> pd.DataFrame:
 
     _cfg = CONFIG.get('cooccurrence_filter', {})
     _sentence_radius = _cfg.get('sentence_radius', 0)
+    # match_in_title (2026-06-29): 同句判据是否纳入标题 (标题+正文一起切句判共现)。
+    # True (默认) = 与下游 stage 21 full 轨 (读 content_full=标题+正文) 口径一致 → 让"标题已
+    # 点明 银行∧金科"的报道即便正文用指代/承前省略主语 (银行别名与金科词被分到不同正文句) 也
+    # 保留; 堵上 stage 13 "只读正文、看不到标题"造成的单向假阴性 (错删真报道, 而 stage 21 在
+    # 上游被删后无法回补)。False = 旧行为 (仅正文), 供消融 / 复现旧 golden 宇宙。
+    # 权威计划: scripts/audit/STAGE13_COOCCURRENCE_MATCH_IN_TITLE_EXECUTION_PLAN_2026-06-29.md
+    _match_in_title = _cfg.get('match_in_title', True)
     _fallback_char_radius = CONFIG.get('context_window', {}).get(
         'fallback_char_radius', 150
     )
@@ -148,11 +165,13 @@ def filter_cooccurrence(df: pd.DataFrame) -> pd.DataFrame:
     logger.info(
         f"  12b {_mode}过滤: sentence_radius={_sentence_radius} "
         f"({'银行与金科须在同一句' if _sentence_radius == 0 else '银行锚句±radius 邻句窗口'}), "
+        f"match_in_title={_match_in_title} "
+        f"({'判据纳入标题(标题+正文)' if _match_in_title else '仅正文(旧口径)'}), "
         f"fallback_char_radius={_fallback_char_radius}, "
         f"金科词典={len(_FINTECH_KEYWORDS)} 词"
     )
 
-    # 性能 (CF-01): 先 tolist 取出两列再纯 Python 列表 zip 循环, 避开 df.iterrows()
+    # 性能 (CF-01): 先 tolist 取出列再纯 Python 列表 zip 循环, 避开 df.iterrows()
     # 每行构造 Series 的开销 (全量 17M 语料下显著); 语义与逐行等价 (同序、同 mask)。
     _banks = (
         df['target_bank'].tolist() if 'target_bank' in df.columns
@@ -162,17 +181,28 @@ def filter_cooccurrence(df: pd.DataFrame) -> pd.DataFrame:
         df['内容'].astype(str).tolist() if '内容' in df.columns
         else [''] * len(df)
     )
+    # match_in_title=True 且有 '标题' 列时取标题; 否则全空串 → 判据退化为纯正文。
+    # 三种无标题情形 (flag 关 / 无 '标题' 列 / 标题缺失) 均与旧行为字节一致。
+    _titles = (
+        df['标题'].fillna('').astype(str).tolist()
+        if (_match_in_title and '标题' in df.columns)
+        else [''] * len(df)
+    )
     keep = []
-    for target_bank, body_full in zip(_banks, _bodies):
+    for target_bank, body_full, title in zip(_banks, _bodies, _titles):
         if not _is_valid_bank(target_bank):
             keep.append(False)
             continue
         tb = str(target_bank).strip()
         if tb not in _alias_cache:
             _alias_cache[tb] = get_target_aliases(tb, _bnf)
+        # 标题非空时拼到正文前再判同句 (prepend_title: 正文已以标题开头则不重复拼接,
+        # 无双标题伪命中; 标题非句末标点则插中文句号使其自成一句)。title='' 时 _text==正文,
+        # 与旧纯正文判据字节一致。
+        _text = prepend_title(title, body_full) if title else body_full
         keep.append(
             has_bank_fintech_cooccurrence_within_radius(
-                body_full, _alias_cache[tb], FINTECH_AC,
+                _text, _alias_cache[tb], FINTECH_AC,
                 sentence_radius=_sentence_radius,
                 negation_ac=NEGATION_AC,
                 short_name_exclusions=SHORT_NAME_EXCLUSIONS,
@@ -193,10 +223,12 @@ def _write_sidecar_meta(out_path: str, n_in: int, n_out: int) -> None:
     """
     _cfg = CONFIG.get('cooccurrence_filter', {})
     _radius = _cfg.get('sentence_radius', 0)
+    _match_in_title = _cfg.get('match_in_title', True)
     # radius=0 → same_sentence (生产默认严格同句); radius≥1 → windowed_cooccurrence。
     _mode = "same_sentence" if _radius == 0 else "windowed_cooccurrence"
     criterion = (
         f"{_mode}|radius={_radius}"
+        f"|match_in_title={_match_in_title}"
         f"|fallback_char_radius="
         f"{CONFIG.get('context_window', {}).get('fallback_char_radius', 150)}"
         f"|fintech_dict={os.path.basename(_FINTECH_DICT_FILE)}"
@@ -207,6 +239,7 @@ def _write_sidecar_meta(out_path: str, n_in: int, n_out: int) -> None:
         "criterion": criterion,
         "criterion_sha256": hashlib.sha256(criterion.encode("utf-8")).hexdigest(),
         "sentence_radius": _radius,
+        "match_in_title": _match_in_title,
         "fintech_dict_file": _FINTECH_DICT_FILE,
         "n_fintech_keywords": len(_FINTECH_KEYWORDS),
         "fintech_ac_loaded": FINTECH_AC is not None,
@@ -232,6 +265,7 @@ def _log_environment_and_config(in_path: str, out_path: str) -> None:
     try:
         _cfg = CONFIG.get('cooccurrence_filter', {})
         _sentence_radius = _cfg.get('sentence_radius', 0)
+        _match_in_title = _cfg.get('match_in_title', True)
         _min_keep_frac = _cfg.get('min_keep_frac', 0.001)
         _fallback_char_radius = CONFIG.get('context_window', {}).get(
             'fallback_char_radius', 150
@@ -267,6 +301,8 @@ def _log_environment_and_config(in_path: str, out_path: str) -> None:
         logger.info("  ⚙ 运行配置 (config/filtering.yaml::cooccurrence_filter 等)")
         logger.info(f"     · sentence_radius={_sentence_radius:,d} 句 "
                     f"({'生产默认 0 = 严格同句 (银行与金科须在同一句)' if _sentence_radius == 0 else '银行锚句 ±radius 邻句窗口 (稳健性备选, 比同句更宽)'})")
+        logger.info(f"     · match_in_title={_match_in_title} "
+                    f"({'同句判据纳入标题 (标题+正文), 与 stage 21 full 轨口径一致 — 保住标题已点明银行∧金科的报道' if _match_in_title else '仅正文 (旧口径, 看不到标题)'})")
         logger.info(f"     · min_keep_frac={sig4(_min_keep_frac)} (keep 率下界; 低于即 "
                     "SystemExit(1) 防全库误删)")
         logger.info(f"     · fallback_char_radius={_fallback_char_radius:,d} 字 "

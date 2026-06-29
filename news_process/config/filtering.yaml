@@ -126,10 +126,20 @@ context_window:
 #   12b 同句过滤后, 存活行均已含 "银行∧金科同句共现" → 下游 stage 13 _ss 轨
 #   (ctx_materializer) 对长文几乎恒 ss_is_fallback=False → frac_ss_fallback→≈0
 #   (_ss 回退变异坍缩)。content_ss 文本信号仍有效且与 full/ctx 文本不同, 但其
-#   ss_is_fallback 指示列近常量 (零方差, 不再适合当控制变量)。如需保留 _ss 回退
-#   变异, 须把 12b 过滤口径与 _ss 轨解耦 (本次未做, 留作另议)。
+#   ss_is_fallback 指示列近常量 (零方差, 不再适合当控制变量)。
+#   ⚠ 更新 (2026-06-29 match_in_title=true 后部分缓解): 纳入标题后, "标题点明银行∧金科、
+#   正文跨句"的回补行其正文无同句共现 → ss_is_fallback=True → 回补一部分 _ss 回退变异。
+# ⚠ 标题盲区披露 (match_in_title, 2026-06-29): 旧实现同句判据【只读正文 内容、看不到标题】,
+#   而下游 stage 21 full 轨读 content_full=标题+正文 → 口径不一致: 一篇"标题已点明 X银行∧
+#   金科、正文用指代/承前省略主语 (银行别名与金科词跨正文句)"的真报道被本阶段误删, 且
+#   stage 21 在上游被删后无法回补 (单向假阴性)。match_in_title=true 把同句判据评估到【标题+
+#   正文】并集 (prepend_title), 使两阶段口径对齐; 精度近乎不降 (标题字面配对即真报道)。残余
+#   保守召回损失 (标题与正文均未在单句配对、相关性仅由跨句指代承载) 经 65_radius_sensitivity
+#   的标题×半径网格量化并如实披露 (方向偏保守 against-H1)。权威计划 =
+#   scripts/audit/STAGE13_COOCCURRENCE_MATCH_IN_TITLE_EXECUTION_PLAN_2026-06-29.md
 cooccurrence_filter:
   sentence_radius: 0                                    # 生产默认 0 = 严格同句 (用户 2026-06-27 决策: 只保留银行∧金科同句报道); ≥1 放宽为窗口邻近, 仅作稳健性备选
+  match_in_title: true                                  # 2026-06-29: 同句判据纳入标题 (标题+正文一起切句判共现); true=与 stage 21 full 轨口径一致, 保住"标题点明银行∧金科"的报道; false=旧行为(仅正文), 供消融/复现旧 golden 宇宙
   min_keep_frac: 0.001                                  # 保留率下限守卫 (仅防全库误删; 真实阈值由生产 keep 率 gate 实测后回写)
 
 # ------------------------------------------------------------------------------
