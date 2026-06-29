@@ -288,6 +288,20 @@ sentiment_analysis:
     # false: 容忍缺席 (失败记入 engine.failed_models, 仅日志)。
     strict_models: true
 
+    # W8 (2026-06-29) BERT 推理缓存开关 (default-off, golden 安全铁律; LLM/嵌入/BERT 三族统一缓存收口)。
+    # false (默认): run_all_models 走逐字旧路径, stage 23 产物字节级不变 (无任何缓存读写)。
+    # true: 仅在生产受控播种窗口启用 (PYTHONHASHSEED=0 + 全 BLAS 线程钉 1 + 固定 inference_batch_size/
+    #   articles_per_batch + 首选纯 CPU 播种 + HF 离线); 逐 (文章×模型) 缓存推理结果到
+    #   _local_model_cache.db (复用 core/caching.py::LLMCache, 与大模型/嵌入同一套缓存类), 命中即免重算
+    #   (只前向 miss 文章)。
+    #   ⚠ 须 deterministic_mode ∈ {cpu_strict, gpu_strict} (否则 load_all fail-fast raise; AMP-on 会产 NaN/非确定)。
+    #   ⚠ 编辑任一模型 label_map / max_length / inference_batch_size / articles_per_batch 等会自动改复合键
+    #     (cache miss, 安全); 改 BERT 推理数学层 (窗口/池化/argmax) 须 bump 代码内 _BERT_CACHE_VERSION。
+    #   ⚠ 启用后须受控 golden 重生 (始终在空缓存冷全量上重生; 详见 scripts/audit/UNIFIED_MODEL_CACHE_BERT_W8_EXECUTION_PLAN_2026-06-29.md §5)。
+    # 白话: 这是 BERT 版的"账本缓存", 和大模型/嵌入用同一套缓存类; 平时关着不影响任何结果,
+    #   只有专门重跑全量时才开, 让算过的文章不必再过一遍神经网络。
+    inference_cache: false
+
     # BERT 模型列表（从代码迁移至此，便于统一管理）
     models:
       - model_id: yiyanghkust/finbert-tone-chinese

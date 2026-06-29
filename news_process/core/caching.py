@@ -131,9 +131,17 @@ PREPROCESS_CODE_VERSION) 的共性, 立 5 条铁律:
 - (E) 资源文件 (词典 / anchor / MEDIA_NAME_OVERRIDES 等) 应以内容 sha256 入键, 而非靠
       人工记得 bump (preprocess 已对 noise_patterns / bank_keywords 做).
 
-物理库分治、逻辑接口统一: 本地深度模型推理缓存用独立 sqlite (如 _local_model_cache.db),
-验证阶段变体缓存用 _llm_cache_validation.db, 但都复用本模块 LLMCache 类 + 同款键纪律;
-生产锚点 _llm_cache.db 勿与它们混库 (避免膨胀 + 稀释 verify 统计).
+物理库分治、逻辑接口统一 (三族缓存收口完成, 2026-06-29 W8 落地): 全项目"模型推理"缓存
+统一复用本模块 LLMCache 类 + 同款键纪律, 物理库按用途分治、由 ``resolve_cache_db_path``
+单点解析:
+- 生产锚点 ``_llm_cache.db`` (kind='production') — LLM 情感 (stage 21 / llm_peer) +
+  嵌入 (stage 15/25/26/27/network, 经 embedding_engine 穿透);
+- 验证变体 ``_llm_cache_validation.db`` (kind='validation', W4) — prompt_sensitivity /
+  entity_masking 的变体 prompt, 与生产库隔离 (不膨胀生产锚点、不稀释 verify 统计);
+- 本地深度模型 ``_local_model_cache.db`` (kind='local_model', W8) — stage 23 BERT 推理
+  (默认 off, 见 config/sentiment.yaml::tone_berts.inference_cache; 启用时逐 (文章×模型)
+  缓存 label/概率/窗口数, 命中即免重算)。
+生产锚点 ``_llm_cache.db`` 勿与后两者混库。
 """
 
 import hashlib
@@ -555,3 +563,34 @@ class LLMCache:
         """上下文管理器退出，自动关闭连接。"""
         self.close()
         return False
+
+
+# ── 三族缓存物理库统一解析 (§5 物理库分治、逻辑接口统一; 2026-06-29 W8) ──
+# 全项目模型推理缓存均复用上面的 LLMCache 类, 物理库按用途分治。新增缓存 callsite
+# 应走本 helper 取库路径, 不再裸拼字面量 (既有 ~10 处 _llm_cache.db 字面量 callsite
+# 工作正常, 不在本次迁移范围 — 迁移=纯 churn)。
+_CACHE_DB_FILENAMES = {
+    'production': '_llm_cache.db',             # LLM (stage 21 / llm_peer) + 嵌入 (stage 15/25/26/27/network) 生产锚点
+    'validation': '_llm_cache_validation.db',  # 验证变体 LLM (W4: prompt_sensitivity / entity_masking)
+    'local_model': '_local_model_cache.db',    # 本地深度模型推理 (W8: stage 23 BERT, 默认 off)
+}
+
+
+def resolve_cache_db_path(output_dir: str, kind: str = 'production') -> str:
+    """解析三大缓存物理库的绝对路径 (统一接口, 物理库分治)。
+
+    Args:
+        output_dir: 产物目录 (通常 CONFIG['paths']['output_dir'])。
+        kind:       缓存用途, ∈ {'production','validation','local_model'}。
+
+    Returns:
+        str: ``os.path.join(output_dir, <对应文件名>)``。
+
+    Raises:
+        ValueError: 未知 kind (fail-fast, 防静默落错库)。
+    """
+    if kind not in _CACHE_DB_FILENAMES:
+        raise ValueError(
+            f"未知缓存库 kind={kind!r}; 合法值: {sorted(_CACHE_DB_FILENAMES)}"
+        )
+    return os.path.join(output_dir, _CACHE_DB_FILENAMES[kind])

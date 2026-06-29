@@ -82,7 +82,7 @@ config.yaml 已是 legacy stub, 配置拆分后单一真值在 7 域 split YAML�
 
 **输出列**: 每模型 (finbert_cn/fin_sent_zh/finbert2) × 三轨的 `{sn}_label` + 各标签概率列 (含 2-class 模型补 `{sn}_中性`=NaN)、`{sn}_infer_failed_{track}` 哨兵、`bert_num_windows_{full/ctx/ss}`。
 
-**外部依赖与降级**: 3 模型 = (1) yiyanghkust/finbert-tone-chinese (finbert_cn, HF, 3-class 中性/正面/负面), (2) bardsai/finance-sentiment-zh-base (fin_sent_zh, HF, 基于 Financial PhraseBank 微调, 3-class), (3) FinBERT2 (finbert2, 本地私有, 2-class 负面/正面, 经 .env `FINBERT2_MODEL_DIR` 解析; 留空或路径不存在则**优雅跳过该模型**, 另两个 HF 模型照跑)。`strict_models=true` 默认下两个 HF 模型非预期加载失败会 fail-loud raise; FINBERT2_MODEL_DIR 未配是预期 graceful skip。**须 HF_HUB_OFFLINE=1 / TRANSFORMERS_OFFLINE=1** 本地重跑 (两 HF 模型连不上 hf.co 但有本地缓存; 见 memory)。依赖 torch/transformers + GPU; 无 LLM API、无 _llm_cache.db (确定性来自模型权重 + AMP argmax 对分类结果无影响)。
+**外部依赖与降级**: 3 模型 = (1) yiyanghkust/finbert-tone-chinese (finbert_cn, HF, 3-class 中性/正面/负面), (2) bardsai/finance-sentiment-zh-base (fin_sent_zh, HF, 基于 Financial PhraseBank 微调, 3-class), (3) FinBERT2 (finbert2, 本地私有, 2-class 负面/正面, 经 .env `FINBERT2_MODEL_DIR` 解析; 留空或路径不存在则**优雅跳过该模型**, 另两个 HF 模型照跑)。`strict_models=true` 默认下两个 HF 模型非预期加载失败会 fail-loud raise; FINBERT2_MODEL_DIR 未配是预期 graceful skip。**须 HF_HUB_OFFLINE=1 / TRANSFORMERS_OFFLINE=1** 本地重跑 (两 HF 模型连不上 hf.co 但有本地缓存; 见 memory)。依赖 torch/transformers + GPU; 无 LLM API; 默认无缓存 (纯本地推理), 启用 inference_cache 时经 _local_model_cache.db 穿透 (W8, 默认 off → 字节中性); 确定性来自模型权重 + argmax (AMP 对分类结果无影响)。
 
 **DAG 位置**: 上游 stage 22 (`22_words_tone.parquet`); 下游 stage 24 (herd_decay 硬依赖 23_bert_tone.parquet)。STAGES_MAIN 阶段23, always-on。
 
@@ -94,6 +94,7 @@ config.yaml 已是 legacy stub, 配置拆分后单一真值在 7 域 split YAML�
 
 import gc
 import hashlib
+import json
 import os
 import sys
 import time
@@ -110,6 +111,7 @@ _PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
 if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
+from news_process.core.caching import LLMCache, resolve_cache_db_path
 from news_process.core.config import load_config
 from news_process.core.logging import (
     log_memory_usage,
@@ -408,6 +410,64 @@ INFERENCE_BATCH_SIZE = BERT_PARAMS.get('inference_batch_size', 128)
 # 每次调用 engine.run_all_models 的文章批次数
 ARTICLES_PER_BATCH = BERT_PARAMS.get('articles_per_batch', 200)
 
+# ── W8 (2026-06-29) BERT 推理缓存 (默认 off; LLM/嵌入/BERT 三族统一缓存收口) ──
+# §5-D 版本门: 改 BERT 推理数学层 (窗口切分/置信度池化/argmax/label_map 推导/分窗 batch)
+# 须 bump 此号, 让旧 _local_model_cache.db 静默失效。
+_BERT_CACHE_VERSION = "bert-v1-2026-06-29"
+# default-off: false 时 run_all_models 走逐字旧路径 (_run_all_models_uncached), stage 23
+# 产物字节级不变 (golden-safe); true 仅在生产受控播种窗口启用 (见 config/sentiment.yaml 注释)。
+_BERT_INFERENCE_CACHE = bool(BERT_PARAMS.get('inference_cache', False))
+
+
+def _checkpoint_fingerprint(model_path: str) -> str:
+    """模型权重身份指纹 (W8 复合键的 ckpt 维; 仅 inference_cache 启用时调用)。
+
+    本地目录: ``sha256(config.json 内容字节 + sorted([(文件名, 文件大小) for *.safetensors/
+    *.bin/*.pt]))`` —— cheap (只 stat 不读权重内容; 再微调几乎必改权重文件大小或 config)。
+    非本地 (HF hub id, 无本地副本): 退化为 ``no-ckpt:<id>`` —— 失去纯权重换版保护 (由 vocab/
+    label_map 内容入键 + 加载期 ``_label_order_consistent`` fail-loud + 手动 bump
+    ``_BERT_CACHE_VERSION`` + ``HF_HUB_OFFLINE`` 冻结快照 部分补偿; 已在执行计划 §5.5 披露)。
+    """
+    try:
+        if model_path and os.path.isdir(model_path):
+            h = hashlib.sha256()
+            cfg_json = os.path.join(model_path, 'config.json')
+            if os.path.isfile(cfg_json):
+                with open(cfg_json, 'rb') as f:
+                    h.update(f.read())
+            weights = []
+            for fn in sorted(os.listdir(model_path)):
+                if fn.endswith(('.safetensors', '.bin', '.pt')):
+                    try:
+                        weights.append((fn, os.path.getsize(os.path.join(model_path, fn))))
+                    except OSError:
+                        weights.append((fn, -1))
+            h.update(repr(weights).encode('utf-8'))
+            return f"local:{h.hexdigest()[:16]}"
+    except (OSError, ValueError):
+        # 文件系统类瞬时错误 (listdir/open/getsize) 绝不拖垮阶段; 退化为 path 常量
+        # (保守: 同 path 永命中, 须手动 bump 版本)。非文件系统的意外异常照常冒泡 (fail-loud)。
+        return f"err-ckpt:{model_path}"
+    return f"no-ckpt:{model_path}"
+
+
+def _compute_composite(*, short_name, max_length, num_labels, label_map,
+                       vocab_fp, det_mode, amp, stride, inf_batch, art_batch, ckpt) -> str:
+    """BERT 推理缓存复合身份串 (塞 LLMCache 的 model_id 槽; content 塞 prompt 槽)。
+
+    刻入模型身份 (short_name) + config 定义的全部计算决定量 (共 11 维); 刻意不刻运行期
+    DEVICE (freeze-anchor 语义, 见执行计划 §1.7)。label_map 以内容哈希入键 → 极性重排/标签
+    改动自动失效缓存 (不靠人工记忆)。纯函数: 测试可直接调, 无需加载真实模型。
+
+    注: ``amp`` 维在缓存可启用时恒为 0 (fail-fast 强制 deterministic_mode∈strict → USE_AMP=False),
+    保留作 defense-in-depth (若未来放宽门控仍能区分); 第 12 维 (推理数学层) 由调用方经
+    LLMCache 的 ``prompt_version=_BERT_CACHE_VERSION`` 承担。
+    """
+    lmap = hashlib.sha256(repr(sorted(label_map.items())).encode('utf-8')).hexdigest()[:16]
+    return (f"{short_name}|maxlen={max_length}|labels={num_labels}|lmap={lmap}"
+            f"|vocab={vocab_fp}|det={det_mode}|amp={int(amp)}|stride={stride}"
+            f"|ibs={inf_batch}|apb={art_batch}|ckpt={ckpt}")
+
 
 # ============================================================================
 # 3. 多模型推理引擎（v5 — AMP 动态混合精度 + 动态填充 + 长度排序）
@@ -445,6 +505,13 @@ class MultiModelSentimentEngine:
         # fix(omni-g-berts-01, 2026-06-11): 分组键 max_length → (max_length, 词表指纹)
         self._groups = {}  # (max_length, vocab_fingerprint) -> [short_name, ...]
 
+        # W8 (2026-06-29): BERT 推理缓存 (默认 off; LLM/嵌入/BERT 三族统一缓存收口)。
+        # off 路径下 self._cache 恒 None、_cache_enabled 恒 False → 全 inert (golden-safe)。
+        self._cache = None              # LLMCache 实例 (仅 enabled 时 load_all 打开)
+        self._cache_enabled = _BERT_INFERENCE_CACHE
+        self._composites = {}           # short_name -> 复合身份串 (仅 enabled 时填)
+        self._model_paths = {}          # short_name -> 加载时 model_path (供 ckpt 指纹)
+
     def load_all(self) -> list:
         """一次性加载全部模型到 DEVICE（FP32 权重; AMP 仅在 USE_AMP 时启用, 严格确定性下禁用）。
 
@@ -463,6 +530,15 @@ class MultiModelSentimentEngine:
         load_start = time.time()
         loaded_names = []
         strict_models = bool(BERT_PARAMS.get('strict_models', True))
+
+        # W8 fail-fast (置于模型加载**之前**, 误配即省去昂贵 GPU 加载): 缓存即跨机复现锚,
+        # 必须确定性 (strict 模式 → USE_AMP=False + use_deterministic_algorithms 生效, no-NaN 前提成立)。
+        if self._cache_enabled and _DETERMINISTIC_MODE not in ('cpu_strict', 'gpu_strict'):
+            raise RuntimeError(
+                "inference_cache=true 须 deterministic_mode ∈ {cpu_strict, gpu_strict} "
+                f"(当前 {_DETERMINISTIC_MODE!r}): 非确定模式 (AMP / 非确定算法) 会让缓存值与重算值"
+                "漂移, 污染 _local_model_cache.db 复现锚。请改 config 或关闭 inference_cache。"
+            )
 
         for mc in self.model_configs:
             short_name = mc['short_name']
@@ -556,6 +632,7 @@ class MultiModelSentimentEngine:
 
                 self.models[short_name] = model
                 self.tokenizers[short_name] = tokenizer
+                self._model_paths[short_name] = model_path  # W8: ckpt 指纹用 (单字典赋值, off 无影响)
                 self.loaded_configs[short_name] = {
                     **mc,
                     'label_map': label_map,
@@ -586,6 +663,17 @@ class MultiModelSentimentEngine:
                     )
                     raise
 
+        # ── W8: 启用 BERT 推理缓存 (仅 self._cache_enabled 为真; 默认 off 时整块跳过 → 字节中性) ──
+        # (fail-fast 已在 load_all 顶部前置; 此处只在确有模型加载成功后建库 + 算复合键。)
+        if self._cache_enabled and loaded_names:
+            self._cache = LLMCache(
+                resolve_cache_db_path(CONFIG['paths']['output_dir'], 'local_model'))
+            self._build_composites(loaded_names)
+            logger.info(
+                f"  W8 BERT 推理缓存: 已启用 (_local_model_cache.db, 现 {self._cache.size():,} 条; "
+                f"逐 (文章×模型) 缓存 label/概率/窗口数, 命中即免重算; 复合键含 11 维身份)。"
+            )
+
         load_elapsed = time.time() - load_start
         # fix(omni-g-berts-04): stage summary 显式记录 loaded/expected/skipped/failed
         logger.info(
@@ -603,8 +691,27 @@ class MultiModelSentimentEngine:
 
         return loaded_names
 
+    def _build_composites(self, loaded_names: list) -> None:
+        """W8: 为每个已加载模型算复合身份串 (load_all enabled 块调用; 抽出供测试直接验证字段接线)。
+
+        把 loaded_configs/tokenizers/_model_paths 的运行期值喂进纯函数 _compute_composite
+        (关键字必填 → 漏维即 TypeError, 不会静默漏)。仅 enabled 时被调, off 路径不触及。
+        """
+        for sn in loaded_names:
+            cfg = self.loaded_configs[sn]
+            self._composites[sn] = _compute_composite(
+                short_name=sn, max_length=cfg['max_length'], num_labels=cfg['num_labels'],
+                label_map=cfg['label_map'], vocab_fp=_tokenizer_fingerprint(self.tokenizers[sn]),
+                det_mode=_DETERMINISTIC_MODE, amp=USE_AMP, stride=WINDOW_STRIDE_RATIO,
+                inf_batch=INFERENCE_BATCH_SIZE, art_batch=ARTICLES_PER_BATCH,
+                ckpt=_checkpoint_fingerprint(self._model_paths.get(sn, '')),
+            )
+
     def unload_all(self):
-        """释放全部模型和 GPU 显存。"""
+        """释放全部模型和 GPU 显存 (W8: 同时关闭推理缓存连接; off 路径 _cache 恒 None=no-op)。"""
+        if self._cache is not None:
+            self._cache.close()
+            self._cache = None
         self.models.clear()
         self.tokenizers.clear()
         self.loaded_configs.clear()
@@ -614,7 +721,19 @@ class MultiModelSentimentEngine:
 
     @torch.inference_mode()
     def run_all_models(self, texts: list) -> dict:
-        """对一批文本执行全部模型的推理。
+        """对一批文本推理 (W8 dispatch)。
+
+        默认 off (``_cache_enabled is False``) → 直调 ``_run_all_models_uncached``
+        (原实现逐字重命名) → stage 23 产物字节级不变 (golden-safe); 启用 inference_cache →
+        ``_run_all_models_cached`` (逐 文章×模型 缓存, 只前向 miss 子集)。两路返回形状/语义一致。
+        """
+        if not self._cache_enabled or self._cache is None:
+            return self._run_all_models_uncached(texts)
+        return self._run_all_models_cached(texts)
+
+    @torch.inference_mode()
+    def _run_all_models_uncached(self, texts: list) -> dict:
+        """对一批文本执行全部模型的推理 (W8 前原始实现, 逐字未改)。
 
         v5 核心优化：
           - 共享分词 + 窗口构造
@@ -797,6 +916,66 @@ class MultiModelSentimentEngine:
                 all_model_results[short_name] = results
 
         return all_model_results
+
+    def _run_all_models_cached(self, texts: list) -> dict:
+        """W8 启用路径: 逐 (文章×模型) 缓存 run_all_models 结果, 只前向 miss 子集。
+
+        返回形状/语义与 ``_run_all_models_uncached`` 严格一致 ({short_name: [result_per_text]})。
+        content 口径与 uncached 空文本判定 (isinstance str and strip) 严格对齐: 空/空白/非 str
+        全归一为 '' → 同键去重。失败哨兵 (_failure_result, NaN/-1) 由下游 process_all_models 异常
+        兜底产生, 不在本方法内 → 绝不进缓存 (写边界 allow_nan=False 再加 fail-loud)。
+
+        逐模型部分命中 (文章 X 对模型 A 命中、对 B miss): X 入 miss_idx 后被整文重算全部模型
+        (A 命中算力丢弃, 确定性下逐字段相等, 可接受)。miss_idx 为有序 list, 子集构建与回填同序。
+        """
+        n_texts = len(texts)
+        loaded = [mc['short_name'] for mc in self.model_configs
+                  if mc['short_name'] in self.models]
+        results = {sn: [None] * n_texts for sn in loaded}
+
+        def _content_of(t):
+            return t if (isinstance(t, str) and t.strip()) else ""
+
+        # ── 逐 (text, model) 查缓存; 任一模型 miss 即该文入 miss_idx (有序) ──
+        # 轨身份 (full/ctx/ss) 由 content 文本携带 (process_all_models 每轨各调一次, 同 engine/composites);
+        # 不同轨内容相同时 (如 ctx 回退全文) 合法共用同一条目 (同模型同文本→同推理, 非泄漏)。
+        miss_idx = []
+        for i in range(n_texts):
+            content = _content_of(texts[i])
+            any_miss = False
+            for sn in loaded:
+                hit = self._cache.get(self._composites[sn], content,
+                                      prompt_version=_BERT_CACHE_VERSION)
+                if hit is None:
+                    any_miss = True
+                else:
+                    results[sn][i] = json.loads(hit)
+            if any_miss:
+                miss_idx.append(i)
+
+        # ── 只前向 miss 子集 (兑现"只算 miss 文章"; 空守卫防空子集触发 no-op) ──
+        if miss_idx:
+            fresh = self._run_all_models_uncached([texts[i] for i in miss_idx])
+            # 先全部回填 + 序列化 (allow_nan=False 在此对任一 NaN/inf fail-loud → 此前零 put → 全批零写);
+            # 全部序列化成功后再 put_batch 落库 (每模型一次 commit, 取代逐 (文章×模型) put 的海量单提交)。
+            # 注: all-or-nothing 仅指**序列化**层 (NaN 即整批零写); 落库为每模型独立原子 commit, 极端 I/O
+            #   中断致跨模型部分写也安全 —— 缓存是纯重算避免层, 缺失条目下次 miss 重算自愈, 绝不返脏值。
+            pending = []  # [(composite, [content...], [payload...]) per model]
+            for sn in loaded:
+                sn_fresh = fresh[sn]  # 直取: 漏模型立刻 KeyError (清晰), 而非 sn_fresh[local_i] 的 IndexError
+                contents, payloads = [], []
+                for local_i, global_i in enumerate(miss_idx):
+                    r = sn_fresh[local_i]
+                    results[sn][global_i] = r
+                    contents.append(_content_of(texts[global_i]))
+                    # allow_nan=False: §1.4 no-NaN 不变量的写边界硬门 (run_all_models 输出本全有限;
+                    # 万一未来漏出 NaN/inf 则 json.dumps 直接 raise, 而非静默写 token 污染 golden)。
+                    payloads.append(json.dumps(r, ensure_ascii=False, allow_nan=False))
+                pending.append((self._composites[sn], contents, payloads))
+            for composite, contents, payloads in pending:
+                self._cache.put_batch(composite, contents, payloads,
+                                      prompt_version=_BERT_CACHE_VERSION)
+        return results
 
     def _empty_result(self, short_name: str) -> dict:
         """返回空文本结果 (num_windows=0)。
@@ -1112,7 +1291,8 @@ def main():
     logger.info("        三角验证中重点关注。num_windows: ≥1 正常 / 0 空文本 / -1 推理失败哨兵。")
     logger.info("        (注: 此处仅比对全语料聚合极性占比; 文章级一致性/收敛效度须看 stage 39a")
     logger.info("        pipeline/audit/inter_track_kappa.py 的跨模型 kappa。)")
-    logger.info("【确定性】纯本地 torch/transformers 推理, 无 LLM API、无 _llm_cache.db; 确定性来自模型")
+    logger.info("【确定性】纯本地 torch/transformers 推理, 无 LLM API; 默认无缓存, 启用 inference_cache 时")
+    logger.info("          经 _local_model_cache.db 穿透 (W8, 默认 off → 字节中性); 确定性来自模型")
     logger.info(f"          权重 + argmax (deterministic_mode={_DETERMINISTIC_MODE}; "
                 "AMP 对 argmax 分类结果无影响)。")
     logger.info("=" * 72)
@@ -1147,8 +1327,9 @@ def main():
             f"随机种子: {_SEED:,}; AMP: {'启用' if USE_AMP else '禁用'}。"
         )
         logger.info(
-            "  · 成本/确定性: 纯本地 torch/transformers 推理 ($0, 无 LLM API、无 "
-            "_llm_cache.db); 确定性来自模型权重 + argmax 分类 (AMP 对 argmax 结果无影响)。"
+            "  · 成本/确定性: 纯本地 torch/transformers 推理 ($0, 无 LLM API); 默认无缓存, "
+            "启用 inference_cache 时经 _local_model_cache.db 穿透 (W8, 默认 off → 字节中性); "
+            "确定性来自模型权重 + argmax 分类 (AMP 对 argmax 结果无影响)。"
         )
         logger.info(
             "  · 本地重跑须设 HF_HUB_OFFLINE=1 / TRANSFORMERS_OFFLINE=1 "
@@ -1415,8 +1596,19 @@ def main():
         logger.warning(f"[输出 schema 指纹] 日志诊断异常, 跳过(不影响产物): {_e}")
 
     # ── Step 5: 释放全部模型 ──
+    # W8: unload_all 会关库并置 self._cache=None, 故须在其**之前**捕获命中摘要 (与 stage 21/嵌入对齐)。
+    _bert_cache_stats = engine._cache.stats() if engine._cache is not None else None
+    _bert_cache_size = engine._cache.size() if engine._cache is not None else None
     engine.unload_all()
     log_memory_usage(logger, "模型释放后")
+    if _bert_cache_stats is not None:
+        logger.info(
+            f"  W8 BERT 推理缓存命中摘要: lookups={_bert_cache_stats['lookups']:,} "
+            f"hits={_bert_cache_stats['hits']:,} misses={_bert_cache_stats['misses']:,} "
+            f"writes={_bert_cache_stats['writes']:,} "
+            f"hit_rate={pct4(_bert_cache_stats['hit_rate'])} "
+            f"(_local_model_cache.db 现 {_bert_cache_size:,} 条)"
+        )
 
     # ── 打印统计报告（三轨分别打印; ss 缺列时跳过第三份） ──
     logger.info("=== [_ctx] 轨道统计 ===")
