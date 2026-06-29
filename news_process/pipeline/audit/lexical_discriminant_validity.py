@@ -414,7 +414,7 @@ def run_discriminant_validity(
     if _mask_col in panel.columns:
         mask = panel[_mask_col] >= min_n_articles
         panel = panel.loc[mask].copy()
-        logger.info(f"v3.5.1 39d: {_mask_col} ≥ {min_n_articles} mask 后 {len(panel)} obs")
+        logger.info(f"v3.5.1 73: {_mask_col} ≥ {min_n_articles} mask 后 {len(panel)} obs")
 
     if len(panel) < 10:
         return {'status': 'insufficient_obs', 'n_obs': len(panel),
@@ -506,7 +506,7 @@ def _write_track_report(report: dict, out_dir: Path, suffix: str) -> None:
     alpha_str = sig4(alpha_val) if isinstance(alpha_val, (int, float)) else 'N/A'
     kappa_val = report.get('cohen_kappa_substance_clarity', {}).get('kappa', float('nan'))
     kappa_str = sig4(kappa_val) if isinstance(kappa_val, (int, float)) else 'N/A'
-    logger.info(f"v3.5.1 stage 39d [{suffix}] 完成: HTMT verdict={report.get('htmt_verdict')}, "
+    logger.info(f"v3.5.1 stage 73 [{suffix}] 完成: HTMT verdict={report.get('htmt_verdict')}, "
                 f"α_across={alpha_str}, κ_subst_clarity={kappa_str}")
 
     # 结果分析 — 写入日志: 逐对 HTMT vs null + α / κ / ρ 人话判读。
@@ -605,7 +605,7 @@ def main():
 
     # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39e)。
     logger.info("=" * 72)
-    logger.info("阶段 39d: 文本指标判别效度 (HTMT + AVE + Cronbach α + Cohen κ; v3.5.1)")
+    logger.info("阶段 73: 文本指标判别效度 (HTMT + AVE + Cronbach α + Cohen κ; v3.5.1)")
     logger.info("=" * 72)
     logger.info("【功能】检验 T1=LLM实质性 / T2=词典清晰度 / T3=数字密集度 三把文本尺子是否各量各的")
     logger.info("        (论文 §3.4 判别效度披露; 三轨 full/ctx/ss 各跑一次)。")
@@ -625,7 +625,7 @@ def main():
     try:
         logger.info("")
         logger.info("  🧭 项目 / 环境信息")
-        logger.info(f"     · 阶段: {STAGE_NAME} (文本指标判别效度; STAGES_VALIDATION 39d; 三轨 full/ctx/ss)")
+        logger.info(f"     · 阶段: {STAGE_NAME} (文本指标判别效度; STAGES_VALIDATION 73; 三轨 full/ctx/ss)")
         logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板; v3.11.1)")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
@@ -702,7 +702,7 @@ def main():
         logger.warning(f"  方法论依据打印失败 (不影响处理): {e}")
 
     if not os.path.exists(panel_path):
-        logger.warning(f"v3.5.1 39d: panel 缺 ({panel_path}), graceful skip")
+        logger.warning(f"v3.5.1 73: panel 缺 ({panel_path}), graceful skip")
         return
 
     panel = pd.read_parquet(panel_path)

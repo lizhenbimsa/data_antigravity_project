@@ -914,7 +914,7 @@ def _log_environment_config_methods(input_path: str = "") -> None:
     try:
         import platform
         logger.info("🧭 项目 / 环境")
-        logger.info("  · 阶段: 38b decay_sensitivity (shim 69_decay_sensitivity) — 距离衰减权重敏感性检验 (G-14)")
+        logger.info("  · 阶段: 69 decay_sensitivity (shim 69_decay_sensitivity) — 距离衰减权重敏感性检验 (G-14)")
         logger.info("  · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.11.1")
         logger.info(f"  · Python {sys.version.split()[0]} @ {sys.executable}")
         logger.info(f"  · 平台 {platform.platform()}; CPU {os.cpu_count()} 核; PID {os.getpid()}")
@@ -1007,7 +1007,7 @@ def main():
     # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39c)。
     # 去重: 删除旧的短 banner (===  69_decay_sensitivity ===), 只留本黄金范式单 banner。
     logger.info("=" * 72)
-    logger.info("阶段 38b: 距离衰减权重敏感性检验 (Sautner et al. 2023 JF §2.2; G-14)")
+    logger.info("阶段 69: 距离衰减权重敏感性检验 (Sautner et al. 2023 JF §2.2; G-14)")
     logger.info("=" * 72)
     logger.info("【功能】算银行情感分时, 离银行名越远的句子是否该按距离'打折'计权? 本阶段对")
     logger.info("        6 套词典各用 3 种衰减权重 (不打折/倒数/指数) 算一遍句级加权情感分,")

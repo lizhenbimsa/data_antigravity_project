@@ -382,7 +382,7 @@ def main():
     stage_start = time.time()
     # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39c)。
     logger.info("=" * 72)
-    logger.info("阶段 39f: 跨媒体源 tone 一致性 (Krippendorff α + 事件窗方差; v3.7.0 PR #12, D3)")
+    logger.info("阶段 75: 跨媒体源 tone 一致性 (Krippendorff α + 事件窗方差; v3.7.0 PR #12, D3)")
     logger.info("=" * 72)
     logger.info("【功能】同一家银行出大新闻的那几天, 不同媒体打出来的语调一致吗? 找出每家银行的")
     logger.info("        报道高峰日 (event episode), 在事件窗内度量各媒体语调的分歧度与一致性,")
@@ -416,7 +416,7 @@ def main():
     # 🧭 项目 / 环境信息 + ⚙ 运行配置 + 📖 方法论依据 (仿 tone_words.py 金标准; 纯日志, golden-safe)。
     try:
         logger.info("  🧭 项目 / 环境信息")
-        logger.info(f"     · 阶段: {STAGE_NAME} (跨媒体源 tone 一致性 Krippendorff α; 验证支线 39f)")
+        logger.info(f"     · 阶段: {STAGE_NAME} (跨媒体源 tone 一致性 Krippendorff α; 验证支线 75)")
         logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.11.1")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
@@ -582,7 +582,7 @@ def main():
         # graceful skip: stage 21 article-level parquet 早期版本 schema 缺
         # llm_vote_tone_full / ctx / ss (该列名为 panel 聚合阶段加上). 此时三轨
         # 都无法计算 cross-media variance, 返回 exit 0 而非中断 validation.
-        logger.warning("  三轨均无有效输出 (article-level tone 列缺失); 跳过 stage 39f")
+        logger.warning("  三轨均无有效输出 (article-level tone 列缺失); 跳过 stage 75")
         return
 
     panel = panels[0]

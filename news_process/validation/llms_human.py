@@ -141,7 +141,7 @@ def main():
 
     # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39c)。
     logger.info("=" * 72)
-    logger.info("阶段 32: LLM×人工金标准采样器 (人工抽样验证样本生成; criterion validity 上游)")
+    logger.info("阶段 61: LLM×人工金标准采样器 (人工抽样验证样本生成; criterion validity 上游)")
     logger.info("=" * 72)
     logger.info(f"【功能】从全部新闻里随机抽一批文章 (本次 SAMPLE_SIZE={SAMPLE_SIZE} 篇, 受 config 控制), 做成可直接")
     logger.info("        填写的 Excel 标注工作台 (sheet=验证数据), 发给两位人工编码员逐篇判定")
@@ -163,7 +163,7 @@ def main():
         _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
         logger.info("  🧭 项目 / 环境信息")
         logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.11.1")
-        logger.info(f"     · 阶段: {STAGE_NAME} (人工金标准采样器, 验证支线 stage 32; criterion validity 上游)")
+        logger.info(f"     · 阶段: {STAGE_NAME} (人工金标准采样器, 验证支线 stage 61; criterion validity 上游)")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
         logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")

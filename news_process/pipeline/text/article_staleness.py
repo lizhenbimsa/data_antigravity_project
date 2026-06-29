@@ -577,7 +577,7 @@ def _restrict_to_panel_domain(art_df: pd.DataFrame, output_dir: str) -> pd.DataF
 def main():
     stage_start = time.time()
     logger.info("=" * 60)
-    logger.info("阶段 18: Article-level staleness 双指标 (v3.7.0 PR #11+#11.5, D2; Tetlock 2011 RFS)")
+    logger.info("阶段 26: Article-level staleness 双指标 (v3.7.0 PR #11+#11.5, D2; Tetlock 2011 RFS)")
     logger.info("=" * 60)
     # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39c/13)。
     logger.info("【功能】给每篇新闻打一个'陈旧度'分: 它发表前 7 天内, 有没有一篇更早的旧新闻和它高度雷同")
@@ -602,7 +602,7 @@ def main():
     try:
         _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
         logger.info("  🧭 项目 / 环境信息")
-        logger.info(f"     · 阶段: {STAGE_NAME} (article-level staleness 双指标, STAGES_MAIN 阶段18, kind=robustness)")
+        logger.info(f"     · 阶段: {STAGE_NAME} (article-level staleness 双指标, STAGES_MAIN 阶段26, kind=robustness)")
         logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")

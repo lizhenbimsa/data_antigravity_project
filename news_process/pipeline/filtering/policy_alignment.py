@@ -787,7 +787,7 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     """
     # 旧短 banner ("=" * 60 + "开始计算...") 已删: 与 main() 新【功能】黄金范式 banner
     # 重复 (替换而非叠加, 对齐 39c construct_orthogonality.py); 此处仅留计算起点标记。
-    logger.info("开始计算: 文章级政策语义对齐度 (Stage 15)")
+    logger.info("开始计算: 文章级政策语义对齐度 (Stage 16)")
 
     # ---- 4.1 加载权威政策文本 ----
     # 【术语】权威政策语料 = 国家级金融科技宏观政策文件的拼接文本
@@ -830,7 +830,7 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
 
     if not os.path.exists(auth_path):
         logger.warning(f"  找不到权威政策语料: {auth_path}。"
-                       f"跳过 Stage 15 计算。")
+                       f"跳过 Stage 16 计算。")
         for _c in _ALIGN_NAN_COLS:
             df[_c] = np.nan
         return df
@@ -841,7 +841,7 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     auth_docs = load_policy_corpus_docs(auth_path)
 
     if not auth_docs:
-        logger.warning("  权威政策语料为空。跳过 Stage 15 计算。")
+        logger.warning("  权威政策语料为空。跳过 Stage 16 计算。")
         for _c in _ALIGN_NAN_COLS:
             df[_c] = np.nan
         return df
@@ -1191,7 +1191,7 @@ def main():
 
     # ---- 【功能】banner (golden 范式: 紧随"开始执行阶段"之后) ----
     logger.info("=" * 72)
-    logger.info("阶段 15: 文章级政策语义对齐度 (Distel/Grimpe/Poetz 2026 RP §3.2.1; "
+    logger.info("阶段 16: 文章级政策语义对齐度 (Distel/Grimpe/Poetz 2026 RP §3.2.1; "
                 "余弦相似度 Hoberg & Phillips 2016 JPE)")
     logger.info("=" * 72)
     logger.info("【功能】给每篇金科新闻打一个『政策对齐分』(余弦相似度 ∈ [-1,1], 实务多落 0~1): 把国家重磅金科政策文件浓缩成")

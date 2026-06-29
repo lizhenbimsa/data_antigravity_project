@@ -1251,7 +1251,7 @@ def main():
 
     # ── 阶段功能 banner（黄金范式: 让 <stage>.log 自带说明书）──
     logger.info("=" * 72)
-    logger.info("阶段 35: 实体上下文窗口半径敏感性检验 (Hassan et al. 2019 QJE, proximity-based attribution)")
+    logger.info("阶段 65: 实体上下文窗口半径敏感性检验 (Hassan et al. 2019 QJE, proximity-based attribution)")
     logger.info("=" * 72)
     logger.info("【功能】ctx 轨只截取'银行名所在句 ± N 句'这一小段文本来打情感分, '几句'(sentence_radius,")
     logger.info("        生产 = 前后 1 句) 是人为参数。本阶段把窗口改成 radius ∈ {0,1,2,3} 各重提一遍、用")

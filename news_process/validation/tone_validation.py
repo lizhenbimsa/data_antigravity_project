@@ -2030,7 +2030,7 @@ def main():
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} (三轨模式) ---")
     # ── 黄金范式【功能】banner (canonical markers; 详细方法论见下方 📌 段) ──
     logger.info("=" * 72)
-    logger.info("阶段 34: 情感验证 (三轨主控) — 词典法/BERT/LLM 三角交叉验证 (Loughran-McDonald 2016 收敛效度)")
+    logger.info("阶段 64: 情感验证 (三轨主控) — 词典法/BERT/LLM 三角交叉验证 (Loughran-McDonald 2016 收敛效度)")
     logger.info("=" * 72)
     logger.info(
         "【功能】对三种独立机理的情感测量(查情感词典/BERT 神经网络/LLM 大模型)做系统交叉验证, "
@@ -2078,7 +2078,7 @@ def main():
         logger.info("=" * 72)
         logger.info("🧭 项目 / 环境信息")
         logger.info("  · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.11.1")
-        logger.info("  · 阶段: 34 tone_validation (验证支线; thin shim 64_tone_validation.py) — 词典/BERT/LLM 三角交叉验证")
+        logger.info("  · 阶段: 64 tone_validation (验证支线; thin shim 64_tone_validation.py) — 词典/BERT/LLM 三角交叉验证")
         logger.info(f"  · Python {sys.version.split()[0]} @ {sys.executable}")
         logger.info(f"  · 平台: {platform.platform()}; CPU 逻辑核心={os.cpu_count()}; PID={os.getpid()}")
         logger.info(f"  · NEWS_PROCESS_RUN_ID={os.environ.get('NEWS_PROCESS_RUN_ID', '(未设)')}")

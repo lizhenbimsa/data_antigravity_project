@@ -561,7 +561,7 @@ def main():
 
     # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39c/39d/39e)。
     logger.info("=" * 72)
-    logger.info("阶段 13: 三轨文本物化 (content_full / content_ctx / content_ss; v3.6.0 + v3.9.0)")
+    logger.info("阶段 14: 三轨文本物化 (content_full / content_ctx / content_ss; v3.6.0 + v3.9.0)")
     logger.info("=" * 72)
     logger.info("【功能】给每篇新闻造三段可供下游'分别阅读'同一篇文章的文本, 供 stage 14/15/21")
     logger.info("        在三个口径下各算一遍情感/金科强度/政策契合度, 互相印证 (互为稳健性)。")
@@ -596,7 +596,7 @@ def main():
         _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
 
         logger.info("  🧭 项目 / 环境信息")
-        logger.info(f"     · 阶段: {STAGE_NAME} (stage 13 三轨文本物化; STAGES_MAIN)")
+        logger.info(f"     · 阶段: {STAGE_NAME} (stage 14 三轨文本物化; STAGES_MAIN)")
         logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) "
                     "| 版本 v3.11.1")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")

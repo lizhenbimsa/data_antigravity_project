@@ -511,7 +511,7 @@ def main():
 
     # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段说明书 (仿 39c 黄金范式)。
     logger.info("=" * 72)
-    logger.info("阶段 31: 银行×金科分类阈值敏感性 (Loughran-McDonald 2011 / GKT 2019 稳健性范式)")
+    logger.info("阶段 60: 银行×金科分类阈值敏感性 (Loughran-McDonald 2011 / GKT 2019 稳健性范式)")
     logger.info("=" * 72)
     logger.info("【功能】把银行分类阈值 min_name_occurrences 与金科分类阈值 min_distinct_keywords")
     logger.info("        各从 1 扫到 10, 统计每个阈值下被判为正例的文章数/保留率, 验证当前生产")

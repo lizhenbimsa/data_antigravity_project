@@ -276,7 +276,7 @@ def main():
     stage_start = time.time()
     logger.info("=" * 72)
     logger.info(
-        "阶段 30a: Article-level SBERT 嵌入持久化 "
+        "阶段 25: Article-level SBERT 嵌入持久化 "
         "(v3.7.0 PR #9; Bybee et al. 2024 JF 标题+首段策略)"
     )
     logger.info("=" * 72)
@@ -317,7 +317,7 @@ def main():
         logger.info("-" * 72)
         logger.info("  🧭 项目 / 环境信息")
         logger.info(
-            "     · 阶段: 30a / 25_article_sbert (STAGES_MAIN, kind=robustness; "
+            "     · 阶段: 25 / 25_article_sbert (STAGES_MAIN, kind=robustness; "
             "article-level SBERT 语义指纹持久化, D 组前置)"
         )
         logger.info(
@@ -357,7 +357,7 @@ def main():
         )
         logger.info(
             "       → (白话: 以 language embedding 命名方法、用 BERT 句嵌入度量文本语义立场, "
-            "为 stage 30a article-level SBERT 持久化提供最新方法学锚点。)"
+            "为 stage 25 article-level SBERT 持久化提供最新方法学锚点。)"
         )
         logger.info(
             "     · 金融域 sentence-transformer 适配 (对标 SBERT 轨金融领域微调): "

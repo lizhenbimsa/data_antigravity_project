@@ -1593,7 +1593,7 @@ def main():
 
     # ── 【功能】banner (黄金范式; 让 63_news_llms_evaluation.log 自带说明书) ──
     logger.info("=" * 72)
-    logger.info("阶段 33: 新闻分类模型评估 (Cohen κ/Krippendorff α: Landis-Koch 1977 / Krippendorff 2018; 误分类偏倚: Carlson & Burbano 2026 SMJ)")
+    logger.info("阶段 63: 新闻分类模型评估 (Cohen κ/Krippendorff α: Landis-Koch 1977 / Krippendorff 2018; 误分类偏倚: Carlson & Burbano 2026 SMJ)")
     logger.info("=" * 72)
     logger.info("【功能】拿 stage 32 人工填好的答卷当标准答案, 给 LLM 分类器逐项打分:")
     logger.info("        真伪验证(二分类) + 情感(三分类正/中/负) + 创新二元属性(实质性/象征性、底层/应用);")
@@ -1615,7 +1615,7 @@ def main():
     try:
         import platform as _platform
         logger.info("① 🧭 项目 / 环境信息")
-        logger.info("  · 阶段: 33 news_llms_evaluation (验证支线; 拿人工金标准给 LLM 分类器开'体检报告' = 测量效度成绩单)")
+        logger.info("  · 阶段: 63 news_llms_evaluation (验证支线; 拿人工金标准给 LLM 分类器开'体检报告' = 测量效度成绩单)")
         logger.info("  · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.11.1 (rule-ablation-ladder)")
         logger.info(f"  · Python: {sys.version.split()[0]} @ {sys.executable}")
         logger.info(f"  · 平台: {_platform.platform()}; CPU 逻辑核数={os.cpu_count()}; PID={os.getpid()}")

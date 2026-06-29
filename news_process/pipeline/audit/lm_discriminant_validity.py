@@ -157,11 +157,11 @@ def _apply_llm_valid_mask(panel: pd.DataFrame,
                 if 'n_articles_llm_valid' in panel.columns else 'n_articles')
     if mask_col not in panel.columns:
         logger.warning(
-            f"  39e mask: panel 缺 n_articles_llm_valid / n_articles 列, "
+            f"  74 mask: panel 缺 n_articles_llm_valid / n_articles 列, "
             f"不过滤 (与 39d 口径对齐失败, 结果与 39d 不可比)")
         return panel
     masked = panel.loc[panel[mask_col] >= min_n_articles].copy()
-    logger.info(f"  39e: {mask_col} ≥ {min_n_articles} mask 后 {len(masked)} obs "
+    logger.info(f"  74: {mask_col} ≥ {min_n_articles} mask 后 {len(masked)} obs "
                 f"(原 {len(panel)}; 与 39d R8-H2 口径统一)")
     return masked
 
@@ -283,7 +283,7 @@ def _log_environment_and_config(panel_path: str, eval_dir: str) -> None:
         _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
         logger.info("  🧭 项目 / 环境信息")
         logger.info(f"     · 阶段: {STAGE_NAME} (LM 8 维判别效度 / 验证轨 STAGES_VALIDATION; "
-                    "DAG stage 39e)")
+                    "DAG stage 74)")
         logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) "
                     "| 版本 v3.11.1")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
@@ -359,7 +359,7 @@ def _log_environment_and_config(panel_path: str, eval_dir: str) -> None:
 def main():
     stage_start = time.time()
     logger.info("=" * 72)
-    logger.info("阶段 39e: LM 词典 8 维判别效度 (v3.5.2 PR #4; Henseler-Ringle-Sarstedt 2015 HTMT)")
+    logger.info("阶段 74: LM 词典 8 维判别效度 (v3.5.2 PR #4; Henseler-Ringle-Sarstedt 2015 HTMT)")
     logger.info("=" * 72)
     logger.info("【功能】给 8 个非情感文本测度 (LM 6 子词典频率 uncert/litig/constr/modal_strong/modal_weak/complexity +")
     logger.info("        清晰度 mean_clarity_score + 数字密集度 mean_num_intensity) 做判别效度安检:")
@@ -389,7 +389,7 @@ def main():
     _log_environment_and_config(panel_path, eval_dir)
 
     if not os.path.exists(panel_path):
-        logger.error(f"  panel 未找到: {panel_path}; 跳过 39e")
+        logger.error(f"  panel 未找到: {panel_path}; 跳过 74")
         sys.exit(0)
 
     _t_load = time.time()

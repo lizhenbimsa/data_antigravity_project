@@ -383,7 +383,7 @@ def run_stage(
 
     # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39e)。
     logger.info("=" * 72)
-    logger.info("阶段 39c: 创新构念正交性检验 (NMI + permutation null; v3.5.0 D3)")
+    logger.info("阶段 72: 创新构念正交性检验 (NMI + permutation null; v3.5.0 D3)")
     logger.info("=" * 72)
     logger.info("【功能】检验 substantiveness / locus / collab_mode 三个创新构念是否各自独立、")
     logger.info("        无重复计量 (论文 Appendix A.2 构念效度证据)。")
@@ -396,7 +396,7 @@ def run_stage(
         logger.info("-" * 72)
         logger.info("① 🧭 项目 / 环境信息")
         logger.info(
-            "     · 阶段 39c construct_orthogonality (验证支线; thin shim 72_construct_orthogonality.py)"
+            "     · 阶段 72 construct_orthogonality (验证支线; thin shim 72_construct_orthogonality.py)"
         )
         logger.info(
             "     · 项目:     news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1"
@@ -514,7 +514,7 @@ def run_stage(
     _phase_t: dict[str, float] = {}
     _t0 = time.time()
 
-    logger.info(f"v3.5.0 D3 stage 39c reading: {stage_21_parquet}")
+    logger.info(f"v3.5.0 D3 stage 72 reading: {stage_21_parquet}")
     df = pd.read_parquet(stage_21_parquet)
     logger.info(f"  loaded {len(df):,} article rows")
     # ②📂 IO 溯源富集 (2026-06-29 Round-8): 列数 (schema 宽度) + 9 个构念维列逐列非空覆盖。
@@ -723,7 +723,7 @@ def run_stage(
         logger.warning(f"  (TIMING banner 跳过: {_e})")
 
     logger.info(
-        f"  ✓ v3.5.0 D3 stage 39c done; max off-diag NMI = {sig4(max_off_diag)}; "
+        f"  ✓ v3.5.0 D3 stage 72 done; max off-diag NMI = {sig4(max_off_diag)}; "
         f"interpretation = {summary['interpretation']}"
     )
     return summary

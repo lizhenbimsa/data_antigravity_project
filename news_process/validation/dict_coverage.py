@@ -812,7 +812,7 @@ def _log_environment_and_references(llm_full_path: str, ft_full_path: str,
         _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
 
         logger.info("  🧭 项目 / 环境信息")
-        logger.info(f"     · 阶段: {STAGE_NAME} (金融科技词典覆盖率审计, 验证支线 stage 37; "
+        logger.info(f"     · 阶段: {STAGE_NAME} (金融科技词典覆盖率审计, 验证支线 stage 67; "
                     "Precision/Coverage/Stability 三维)")
         logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板)"
                     " | 版本 v3.11.1 (rule-ablation-ladder)")
@@ -883,7 +883,7 @@ def main():
     # 【功能】banner (黄金范式: 让 67_dict_coverage_audit.log 自带说明书)
     # ================================================================
     logger.info("=" * 72)
-    logger.info("阶段 37: 金融科技词典覆盖率审计 (Precision/Coverage/Stability 三维, Sautner et al. 2023 JF)")
+    logger.info("阶段 67: 金融科技词典覆盖率审计 (Precision/Coverage/Stability 三维, Sautner et al. 2023 JF)")
     logger.info("=" * 72)
     logger.info("【功能】给静态金融科技词典 (fintech_dict.json, ~1500 词) 做体检: 判断一篇")
     logger.info("        新闻是不是金科新闻, 靠的是这本人工编的关键词词典。本阶段量化诊断它")

@@ -291,7 +291,7 @@ def _log_environment_config_methods(logger, config, input_path, csv_path, tex_pa
         _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
 
         logger.info("  🧭 项目 / 环境信息")
-        logger.info(f"     · 阶段: {STAGE_NAME} (轨间一致性 Cohen's κ; STAGES_VALIDATION 39a)")
+        logger.info(f"     · 阶段: {STAGE_NAME} (轨间一致性 Cohen's κ; STAGES_VALIDATION 71)")
         logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
@@ -360,7 +360,7 @@ def run_stage(config=None, logger=None):
 
     # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39c)。
     logger.info("=" * 72)
-    logger.info("阶段 39a: 轨间一致性 Cohen's κ (inter-track kappa; Plan v1.37 P1)")
+    logger.info("阶段 71: 轨间一致性 Cohen's κ (inter-track kappa; Plan v1.37 P1)")
     logger.info("=" * 72)
     logger.info("【功能】同一篇文章用三种文本口径 (full=全文 / ctx=银行实体上下文窗口 /")
     logger.info("        ss=银行+金科同句共现窗口) 各打一次创新标签, 对 locus / substantiveness /")

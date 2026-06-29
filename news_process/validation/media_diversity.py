@@ -1138,7 +1138,7 @@ def _log_environment_and_config(media_weights: dict, default_weight: int,
         # ① 🧭 项目 / 环境信息
         _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
         logger.info("  🧭 项目 / 环境信息")
-        logger.info(f"     · 阶段: {STAGE_NAME} (媒体名称与地域多样性审计, STAGES_VALIDATION 支线 stage 38)")
+        logger.info(f"     · 阶段: {STAGE_NAME} (媒体名称与地域多样性审计, STAGES_VALIDATION 支线 stage 68)")
         logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1")
         logger.info("     · 功能: 逐道流水线筛子量化媒体来源/地域覆盖多样性, 为论文'样本代表性'辩护")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
@@ -1228,7 +1228,7 @@ def main():
 
     # --- 【功能】banner (golden 范式: 让 <stage>.log 自带说明书) ---
     logger.info("=" * 72)
-    logger.info("阶段 38: 媒体名称与地域多样性审计 (经典集中度/多样性指标族)")
+    logger.info("阶段 68: 媒体名称与地域多样性审计 (经典集中度/多样性指标族)")
     logger.info("=" * 72)
     logger.info("【功能】查新闻来源的'家底': 逐道流水线筛子 (00→11→12→21→23→40) 量化")
     logger.info("        '媒体来源'与'地域覆盖'的多样性, 回答审稿人'你的新闻是不是都来自")

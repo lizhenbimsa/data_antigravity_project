@@ -814,7 +814,7 @@ def main():
     # 在线 (生产) 行为完全不变。复用 tone_llms.LLM_OFFLINE 单一事实源 (勿重解析 env)。
     if _tone_llms.LLM_OFFLINE:
         logger.warning(
-            "阶段 36 (Entity Masking) 需在线 LLM 重判掩码文本 (变体 prompt 冷缓存); "
+            "阶段 66 (Entity Masking) 需在线 LLM 重判掩码文本 (变体 prompt 冷缓存); "
             "NEWS_PROCESS_LLM_OFFLINE=1 离线守卫下优雅跳过 — 在线运行不受影响。"
         )
         return
@@ -830,7 +830,7 @@ def main():
     thresholds_preview_ver = EM_CFG.get('pass_threshold_verification', 0.90)
     thresholds_preview_kappa = EM_CFG.get('pass_threshold_kappa', 0.80)
     logger.info("=" * 72)
-    logger.info("阶段 36: Entity Masking 实体掩码稳健性测试 (SSRN-4558295 §7.2 / 三轨)")
+    logger.info("阶段 66: Entity Masking 实体掩码稳健性测试 (SSRN-4558295 §7.2 / 三轨)")
     logger.info("=" * 72)
     logger.info("【功能】把每篇新闻里的目标银行名和共提银行名全部涂掉换成匿名代号")
     logger.info("        ('工商银行'→'目标银行A'、共提行→'同业银行B/C/D'), 再让同一批 3 个")

@@ -455,7 +455,7 @@ def main(argv: list[str] | None = None) -> int:
     # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39c)。
     logger.info("=" * 72)
     logger.info(
-        "阶段 27c: benefit_society 替代锚点 + 安慰剂审计 "
+        "阶段 80: benefit_society 替代锚点 + 安慰剂审计 "
         "(audit-only; V2.0 J-L-M 2026 §3 P1.6)"
     )
     logger.info("=" * 72)
@@ -474,7 +474,7 @@ def main(argv: list[str] | None = None) -> int:
     _t_start = time.time()
     try:
         logger.info("  🧭 项目 / 环境信息")
-        logger.info("     · 阶段: 27c benefit_society 替代锚点 + 安慰剂审计 (audit-only 旁支, shim 80_placebo_and_alt_anchor)")
+        logger.info("     · 阶段: 80 benefit_society 替代锚点 + 安慰剂审计 (audit-only 旁支, shim 80_placebo_and_alt_anchor)")
         logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.11.1")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
@@ -810,7 +810,7 @@ def main(argv: list[str] | None = None) -> int:
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
     try:
-        logger.info("  ⏱ [phase] 阶段 27c 总墙钟 (加载→build→写盘→分析): %s 秒", sig4(time.time() - _t_start))
+        logger.info("  ⏱ [phase] 阶段 80 总墙钟 (加载→build→写盘→分析): %s 秒", sig4(time.time() - _t_start))
     except Exception as _e:
         logger.warning(f"[计时汇总] 日志诊断异常, 跳过(不影响产物): {_e}")
     return 0

@@ -1425,7 +1425,7 @@ def main():
     # (EXPECTED_NO_OUTPUT, 不写面板) → 离线优雅跳过, 在线行为不变。复用 tone_llms.LLM_OFFLINE。
     if _tone_llms.LLM_OFFLINE:
         logger.warning(
-            "阶段 39 (Prompt 敏感度) 需在线 LLM 重判变体 prompt (冷缓存); "
+            "阶段 70 (Prompt 敏感度) 需在线 LLM 重判变体 prompt (冷缓存); "
             "NEWS_PROCESS_LLM_OFFLINE=1 离线守卫下优雅跳过 — 在线运行不受影响。"
         )
         return
@@ -1437,7 +1437,7 @@ def main():
     # ── ① 🧭 项目 / 环境信息 (日志富集 2026-06-24; 纯日志, 不改任何产物) ──
     try:
         logger.info("  🧭 项目 / 环境信息")
-        logger.info("     · 阶段: 70_prompt_sensitivity / 阶段 39 (Prompt 措辞敏感度量化测试, "
+        logger.info("     · 阶段: 70_prompt_sensitivity / 阶段 70 (Prompt 措辞敏感度量化测试, "
                     "STAGES_VALIDATION; thin shim 70_prompt_sensitivity.py)")
         logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) "
                     "| 版本 v3.11.1")
@@ -1455,7 +1455,7 @@ def main():
         logger.warning(f"  环境信息打印失败 (不影响处理): {e}")
 
     logger.info("=" * 70)
-    logger.info("=== 阶段 39: Prompt 措辞敏感度量化测试 (Prompt Wording Sensitivity) ===")
+    logger.info("=== 阶段 70: Prompt 措辞敏感度量化测试 (Prompt Wording Sensitivity) ===")
     logger.info("=" * 70)
     logger.info("")
     logger.info("  📌 方法论依据 (核心方法/构念学术出处)")
@@ -1522,7 +1522,7 @@ def main():
 
     # ── 黄金范式【功能】banner (自带说明书; 取自 PIPELINE_NUMBERED_PY_REFERENCE 白话/详细说明) ──
     logger.info("=" * 72)
-    logger.info("阶段 39: Prompt 措辞敏感度量化测试 (Carlson & Burbano 2026 SMJ §3.5)")
+    logger.info("阶段 70: Prompt 措辞敏感度量化测试 (Carlson & Burbano 2026 SMJ §3.5)")
     logger.info("=" * 72)
     logger.info("【功能】同一道判断题, 用 5 种问法 (原版 V0 + 4 变体 V1-V4) 重问 AI, 意思一字不差:")
     logger.info("        V1 换角色口吻 / V2 调段落顺序+Markdown / V3 大幅精简 / V4 整句改写+XML 标签;")

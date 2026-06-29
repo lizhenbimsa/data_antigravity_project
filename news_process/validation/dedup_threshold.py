@@ -209,7 +209,7 @@ def _log_environment_and_config(logger, config, output_dir: str,
     """
     try:
         logger.info("  🧭 项目 / 环境信息")
-        logger.info(f"     · 阶段: {STAGE_NAME} (阶段 32a 去重阈值参数敏感性, "
+        logger.info(f"     · 阶段: {STAGE_NAME} (阶段 62 去重阈值参数敏感性, "
                     "STAGES_VALIDATION; 纯诊断不写回主链)")
         logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) "
                     "v3.11.1")
@@ -292,7 +292,7 @@ def main():
     phase_durations: dict[str, float] = {}
 
     logger.info("=" * 72)
-    logger.info("阶段 32a: 去重阈值参数敏感性 (Jaccard MinHash LSH, Broder 1997)")
+    logger.info("阶段 62: 去重阈值参数敏感性 (Jaccard MinHash LSH, Broder 1997)")
     logger.info("=" * 72)
     logger.info("【功能】把 stage 00 的近似去重阈值换成 [0.70/0.75/0.80/0.85/0.90] 各跑一遍,")
     logger.info("        统计每个阈值下保留/拦截的文章数与保留率, 产出 dedup_sensitivity_report.csv,")
@@ -570,7 +570,7 @@ def main():
 
     # ── 阶段汇总 ──
     logger.info("=" * 60)
-    logger.info(f"阶段 32a 完成: 测试 {len(thresholds)} 个阈值, "
+    logger.info(f"阶段 62 完成: 测试 {len(thresholds)} 个阈值, "
                 f"生产阈值={sig4(prod_threshold)}")
     logger.info(f"  输入数据: {input_desc} ({n_input_rows:,} 行, 口径={input_mode})")
     logger.info(f"  保留率范围: "

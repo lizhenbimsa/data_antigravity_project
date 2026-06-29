@@ -638,7 +638,7 @@ def main():
 
     # ── 阶段功能 banner (黄金范式: 让 <stage>.log 自带说明书) ──
     logger.info("=" * 72)
-    logger.info("阶段 45: 面板导出 (主, 三轨承载) — Bank-Year 面板总装 (41+42+43+44+46+47→45)")
+    logger.info("阶段 40: 面板导出 (主, 三轨承载) — Bank-Year 面板总装 (41+42+43+44+46+47→45)")
     logger.info("=" * 72)
     logger.info("【功能】整条流水线的'总装车间': 把 stage 21 语义精筛后的 article×bank 级")
     logger.info("        记录 (24_herd_decay) 按 (银行, 年份) 归拢压缩成 bank-year 面板,")

@@ -602,7 +602,7 @@ def _log_environment_and_config(full_path: str, ctx_path: str,
         intensity_cfg_keys = sorted(INTENSITY_CONFIG.keys()) if INTENSITY_CONFIG else []
 
         logger.info("  🧭 项目 / 环境信息")
-        logger.info(f"     · 阶段: {STAGE_NAME} (金融科技技术重度评分, STAGES_MAIN 阶段14; 三轨 full/ctx/ss)")
+        logger.info(f"     · 阶段: {STAGE_NAME} (金融科技技术重度评分, STAGES_MAIN 阶段15; 三轨 full/ctx/ss)")
         logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
@@ -698,7 +698,7 @@ def main():
 
     # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39c/13)。
     logger.info("=" * 72)
-    logger.info("阶段 14: 金融科技技术重度评分 (TF-IDF + IDF 加权关键词质心, 三轨 full/ctx/ss)")
+    logger.info("阶段 15: 金融科技技术重度评分 (TF-IDF + IDF 加权关键词质心, 三轨 full/ctx/ss)")
     logger.info("=" * 72)
     logger.info("【功能】给每篇'金融科技'新闻打一个连续的'技术含金量分数' fintech_intensity_score —")
     logger.info("        在 stage 12 二元'是不是金科'判定之上, 进一步衡量它谈得'有多硬核'。")
