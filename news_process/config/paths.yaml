@@ -72,7 +72,7 @@ filenames:
   output_11_bank_news: 11_bank_news.parquet               # 11_news_bank.py → 银行新闻分类
   output_12_fintech_news: 12_fintech_news.parquet         # 12_news_fintech.py → 金融科技新闻分类（仅保留金融科技新闻）
   output_12_fintech_full: 12_fintech_news_full.parquet    # 12_news_fintech.py → 全量分类结果（含非金融科技，用于人工验证抽样）
-  output_12b_cooccurrence: 13_cooccurrence_filtered.parquet  # 13_cooccurrence_filter.py → 银行×金科同句共现硬过滤（12 的同句相关子集，丢行；Andreou et al. 2026）
+  output_12b_cooccurrence: 13_cooccurrence_filtered.parquet  # 13_cooccurrence_filter.py → 银行×金科邻近共现硬过滤（12 的邻近相关子集，丢行；Andreou et al. 2026）
   output_13_news_with_ctx: 14_news_with_ctx.parquet       # 14_materialize_ctx.py → stage 13 子集 + content_ctx 物化 (v3.6.0 Plan E P4 A1; 2026-06-15 改读 13_cooccurrence_filter)
   output_14_fintech_intensity: 15_fintech_intensity.parquet  # 15_fintech_intensity.py → TF-IDF 技术重度评分（在 12 基础上追加 intensity 列）
   output_15_article_alignment: 16_article_alignment.parquet  # 16_article_policy_alignment.py → 文章级政策语义对齐度 (Distel et al. 2026)

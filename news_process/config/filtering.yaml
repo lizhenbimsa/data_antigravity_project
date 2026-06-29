@@ -89,10 +89,10 @@ article_alignment:
 #     Measuring R&D activity through 10-K narrative disclosures.
 #     Research Policy, 55(3), 105409. DOI: 10.1016/j.respol.2025.105409
 #     → Core-contextual word-pairing within a span (思想锚点)。
-#     ⚠ 本项目 stage 12b 生产默认操作化 = 【严格同句】(sentence_radius=0, 银行锚句自身
-#       即含 ≥1 金科词), 是 Andreou "10 lexical tokens span" 的零半径/最严特例
-#       (更紧/narrower, 非逐字复刻); 仅 radius≥1 才放宽为更宽的句级窗口邻近 (稳健性备选)。
-#       须在 manuscript 如实披露此生产同句口径 (见 cooccurrence_filter 下方)。
+#     ⚠ 本项目 stage 12b 生产默认操作化 = 【±1 句窗口邻近共现】(sentence_radius=1, 命中句
+#       前后各 1 句、共 3 句窗口内含 ≥1 金科词), 是 Andreou "10 lexical tokens span" 的句级
+#       窗口操作化 (非逐字复刻); radius=0 严格同句为其零半径/最严特例 (稳健性备选)。
+#       须在 manuscript 如实披露此生产邻近共现口径 (见 cooccurrence_filter 下方)。
 # 敏感性检验: 65_radius_sensitivity.py 对 radius ∈ {0,1,2,3} 执行完整稳健性检验
 #
 # 三轨 (ss 银行+金科同句共现轨, 2026-06-14): content_ss 由同一阶段 13 物化,
@@ -105,41 +105,40 @@ context_window:
   ss_sentence_radius: 1                                 # ss 轨(银行+金科同句)命中句前后扩窗半径（默认同 sentence_radius）
 
 # ------------------------------------------------------------------------------
-# [模块二：stage 12b] 银行×金科【同句】共现硬过滤 (Andreou et al. 2026 的最严特例)
+# [模块二：stage 12b] 银行×金科【±1 句窗口】邻近共现硬过滤 (Andreou et al. 2026 句级窗口操作化)
 # ------------------------------------------------------------------------------
-# 只保留 "目标银行与 ≥1 金科词在【同一句话】内共现" 的文章行 (生产默认
-# sentence_radius=0 = 严格同句), 丢弃其余, 降低 stage 12 关键词判定的虚假相关
-# (False Positives)。判据 = core/text/entity_context.has_bank_fintech_cooccurrence_within_radius:
-# radius=0 时其窗口闭区间 [i, i] 坍缩到银行锚句自身 → 要求银行与金科【同句】共现;
-# radius≥1 放宽为 "银行锚句 ±radius 邻句窗口邻近" (更宽, 仅作稳健性备选, 非生产默认)。
-# 同句 (radius=0) 是 Andreou 邻近配对 / Hassan 邻近归因谱系的最严特例。
-# ⚠ 短文 caveat: "同句"严格成立于长文 (≥3 句可分句); 短文 (<3 句无法分句) 走
+# 只保留 "目标银行与 ≥1 金科词在【±1 句窗口】(命中句前后各 1 句, 共 3 句) 内邻近共现" 的
+# 文章行 (生产默认 sentence_radius=1 = ±1 句窗口邻近), 丢弃其余, 降低 stage 12 关键词判定的
+# 虚假相关 (False Positives)。判据 = core/text/entity_context.has_bank_fintech_cooccurrence_within_radius:
+# radius=1 时窗口闭区间 [i-1, i+1] → 要求银行锚句 i 或其前后邻句含 ≥1 金科词 (邻近共现);
+# radius=0 收窄为 [i, i] 坍缩到银行锚句自身 = 严格同句 (最严零半径特例, 仅作稳健性备选)。
+# ±1 句窗口邻近是 Andreou 邻近配对 / Hassan 邻近归因谱系的句级窗口操作化; radius=0 同句为其最严特例。
+# ⚠ 短文 caveat: "±1 句窗口邻近"严格成立于长文 (≥3 句可分句); 短文 (<3 句无法分句) 走
 #   _char_level_fallback 字符窗 (±fallback_char_radius=150 字), 该路径【忽略 sentence_radius】、
-#   以"银行出现位 ±150 字内含金科"近似同句 (与 _ss 轨同款近似), 既可能过保留 (相邻句 <150 字)
-#   也可能过丢弃 (同句但银行金科相隔 >150 字)。keep 率 gate 须分长/短文本两层披露。
+#   以"银行出现位 ±150 字内含金科"近似窗口共现 (与 _ss 轨同款字符窗近似), 既可能过保留 (相邻句 <150 字)
+#   也可能过丢弃 (窗口内但银行金科相隔 >150 字)。keep 率 gate 须分长/短文本两层披露。
 # 路线 A (纯接受-披露): 12b 仅丢行, 下游 controls.py/encode.py 零改动; 派生量
-# (n_articles/fintech_share/attention 族①(firm-level)/NF) 统计宇宙平移为 "同句相关金科"
+# (n_articles/fintech_share/attention 族①(firm-level)/NF) 统计宇宙平移为 "邻近相关金科"
 # 口径, 在 manuscript/codebook 披露。⚠ 地理 attention 族 (ft_attn_*/ft_vol_*) 直读
 # 12_fintech_news_full、不经 12b → 仍原始关键词口径 (与 12b 正交, 须单独披露)。
 # fallback_char_radius 复用上方 context_window 同名键。
-# ⚠ _ss 轨交互 (用户 2026-06-27 决策"只保留银行∧金科同句报道"的已知下游后果):
-#   12b 同句过滤后, 存活行均已含 "银行∧金科同句共现" → 下游 stage 13 _ss 轨
-#   (ctx_materializer) 对长文几乎恒 ss_is_fallback=False → frac_ss_fallback→≈0
-#   (_ss 回退变异坍缩)。content_ss 文本信号仍有效且与 full/ctx 文本不同, 但其
-#   ss_is_fallback 指示列近常量 (零方差, 不再适合当控制变量)。
-#   ⚠ 更新 (2026-06-29 match_in_title=true 后部分缓解): 纳入标题后, "标题点明银行∧金科、
-#   正文跨句"的回补行其正文无同句共现 → ss_is_fallback=True → 回补一部分 _ss 回退变异。
-# ⚠ 标题盲区披露 (match_in_title, 2026-06-29): 旧实现同句判据【只读正文 内容、看不到标题】,
+# ⚠ _ss 轨交互 (frac_ss_fallback 三态恢复, 用户 2026-06-29 决策"改回 ±1 句窗口邻近"的下游后果):
+#   _ss 轨命中判据恒为【严格同句】(extract_bank_fintech_cooccurrence)。三态: ① radius=0 +
+#   match_in_title=False (最旧) → 存活行均含银行∧金科同句 → frac_ss_fallback→≈0 (零方差坍缩);
+#   ② radius=0 + match_in_title=true (前态) → 标题回补行正文无同句 → 已部分恢复 ∈(0,1);
+#   ③ radius=1 + match_in_title=true (本态) → 再新增"仅邻句非同句"存活行 (正文无银行∧金科同句)
+#   → frac_ss_fallback 进一步恢复。content_ss 文本信号仍有效且与 full/ctx 文本不同。
+# ⚠ 标题盲区披露 (match_in_title, 2026-06-29): 旧实现共现判据【只读正文 内容、看不到标题】,
 #   而下游 stage 21 full 轨读 content_full=标题+正文 → 口径不一致: 一篇"标题已点明 X银行∧
 #   金科、正文用指代/承前省略主语 (银行别名与金科词跨正文句)"的真报道被本阶段误删, 且
-#   stage 21 在上游被删后无法回补 (单向假阴性)。match_in_title=true 把同句判据评估到【标题+
+#   stage 21 在上游被删后无法回补 (单向假阴性)。match_in_title=true 把共现判据评估到【标题+
 #   正文】并集 (prepend_title), 使两阶段口径对齐; 精度近乎不降 (标题字面配对即真报道)。残余
 #   保守召回损失 (标题与正文均未在单句配对、相关性仅由跨句指代承载) 经 65_radius_sensitivity
 #   的标题×半径网格量化并如实披露 (方向偏保守 against-H1)。权威计划 =
 #   scripts/audit/STAGE13_COOCCURRENCE_MATCH_IN_TITLE_EXECUTION_PLAN_2026-06-29.md
 cooccurrence_filter:
-  sentence_radius: 0                                    # 生产默认 0 = 严格同句 (用户 2026-06-27 决策: 只保留银行∧金科同句报道); ≥1 放宽为窗口邻近, 仅作稳健性备选
-  match_in_title: true                                  # 2026-06-29: 同句判据纳入标题 (标题+正文一起切句判共现); true=与 stage 21 full 轨口径一致, 保住"标题点明银行∧金科"的报道; false=旧行为(仅正文), 供消融/复现旧 golden 宇宙
+  sentence_radius: 1                                    # 生产默认 1 = ±1 句窗口邻近共现 (命中句前后各 1 句, 共 3 句; 用户 2026-06-29 决策: 改回邻近共现, 取代 2026-06-27 的 radius=0 严格同句); 0 = 严格同句最严特例, 仅作稳健性备选
+  match_in_title: true                                  # 2026-06-29: 共现判据纳入标题 (标题+正文一起切句判共现); true=与 stage 21 full 轨口径一致, 保住"标题点明银行∧金科"的报道; false=旧行为(仅正文), 供消融/复现旧 golden 宇宙
   min_keep_frac: 0.001                                  # 保留率下限守卫 (仅防全库误删; 真实阈值由生产 keep 率 gate 实测后回写)
 
 # ------------------------------------------------------------------------------

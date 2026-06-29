@@ -52,7 +52,7 @@ OUTPUT_REGISTRY: Mapping[str, list[str]] = {
         "12_fintech_news.parquet",
         "12_fintech_news_full.parquet",
     ],
-    # 2026-06-15: stage 12b 银行×金科同句共现硬过滤 (= 12 的同句相关子集, 丢行)
+    # 2026-06-15: stage 12b 银行×金科邻近共现硬过滤 (= 12 的邻近相关子集, 丢行)
     "13_cooccurrence_filter.py": ["13_cooccurrence_filtered.parquet"],
     # v3.6.0 (Plan E P4 A1): stage 13 = 12b + content_ctx 列, 供 stage 14/15 双轨化
     "14_materialize_ctx.py": ["14_news_with_ctx.parquet"],
@@ -117,7 +117,7 @@ _OUTPUT_FILENAME_KEYS: Mapping[tuple[str, str], Optional[str]] = {
     ("11_news_bank.py", "11_bank_news.parquet"): "output_11_bank_news",
     ("12_news_fintech.py", "12_fintech_news.parquet"): "output_12_fintech_news",
     ("12_news_fintech.py", "12_fintech_news_full.parquet"): "output_12_fintech_full",
-    # 2026-06-15: stage 12b 银行×金科同句共现硬过滤
+    # 2026-06-15: stage 12b 银行×金科邻近共现硬过滤
     ("13_cooccurrence_filter.py", "13_cooccurrence_filtered.parquet"): "output_12b_cooccurrence",
     # v3.6.0 (Plan E P4 A1)
     ("14_materialize_ctx.py", "14_news_with_ctx.parquet"): "output_13_news_with_ctx",

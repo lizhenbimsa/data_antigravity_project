@@ -2,7 +2,7 @@
 
 - news_bank (11): 银行名称关键词过滤
 - news_fintech (12): fintech 关键词过滤 (full 全量 + filtered 子集双输出)
-- cooccurrence_filter (12b): 银行×金科同句共现硬过滤 (Andreou et al. 2026; 仅丢行, 路线 A)
+- cooccurrence_filter (12b): 银行×金科邻近共现硬过滤 (Andreou et al. 2026; 仅丢行, 路线 A)
 - fintech_intensity (14): TF-IDF + IDF 加权关键词向量质心的连续强度评分
   (fix omni-g-fintech-02: 非 SIF 实现, 详见该模块 docstring)
 - policy_alignment (15): 文章级政策语义对齐

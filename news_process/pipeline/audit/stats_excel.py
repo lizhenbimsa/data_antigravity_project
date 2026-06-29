@@ -134,7 +134,7 @@ def main():
          'filename': config['filenames'].get('output_00_preprocessing', '00_preprocessing.parquet')},
         {'label': '11_news_bank',
          'filename': config['filenames'].get('output_11_bank_news', '11_bank_news.parquet')},
-        # 注 (2026-06-15): 读 stage 12b 同句共现硬过滤【之前】的关键词金科阶段 (pre-12b);
+        # 注 (2026-06-15): 读 stage 12b 邻近共现硬过滤【之前】的关键词金科阶段 (pre-12b);
         #   本审计逐阶段统计原始关键词口径, 非 12b 过滤后的分析宇宙 (后者经 13→21 链)。
         {'label': '12_news_fintech',
          'filename': config['filenames'].get('output_12_fintech_news', '12_fintech_news.parquet')},

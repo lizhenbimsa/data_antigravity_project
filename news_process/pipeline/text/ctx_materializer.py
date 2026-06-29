@@ -8,7 +8,7 @@ Plan E P4 A1 (v3.6.0):
 
 工作流:
     stage 12 (news_fintech)  → 12_fintech_news.parquet
-    stage 12b (cooccurrence) → 13_cooccurrence_filtered.parquet (同句共现硬过滤后子集; 2026-06-15)
+    stage 12b (cooccurrence) → 13_cooccurrence_filtered.parquet (邻近共现硬过滤后子集; 2026-06-15)
     stage 13 (本模块)        → 14_news_with_ctx.parquet  (= 12b + content_ctx 列)
     stage 14 (fintech_intensity) → 读 13, 三轨产 fintech_intensity_score_{full,ctx,ss}
     stage 15 (policy_alignment)  → 读 14, 三轨产 policy_cosine_sim_{full,ctx,ss}
@@ -46,7 +46,7 @@ Plan E P4 A1 (v3.6.0):
 
 ■ 详细功能说明
 
-**输入**: `13_cooccurrence_filtered.parquet` (config 键 output_12b_cooccurrence; 自 2026-06-15 起 = stage 12b 银行×金科同句共现硬过滤后的同句相关子集, 上游来自 stage 12 金科子集) 的 '内容'/'标题'/'target_bank' 等列。模块导入时全局加载: 银行否定/短名排除配置 (`load_exclusion_patterns` → NEGATION_AC/SHORT_NAME_EXCLUSIONS/CONTEXT_WINDOW) 与金科 AC 自动机 (`load_fintech_dict` → FINTECH_AC; 加载失败 try/except 兜底为 None → content_ss 全回退)。
+**输入**: `13_cooccurrence_filtered.parquet` (config 键 output_12b_cooccurrence; 自 2026-06-15 起 = stage 12b 银行×金科邻近共现硬过滤后的邻近相关子集, 上游来自 stage 12 金科子集) 的 '内容'/'标题'/'target_bank' 等列。模块导入时全局加载: 银行否定/短名排除配置 (`load_exclusion_patterns` → NEGATION_AC/SHORT_NAME_EXCLUSIONS/CONTEXT_WINDOW) 与金科 AC 自动机 (`load_fintech_dict` → FINTECH_AC; 加载失败 try/except 兜底为 None → content_ss 全回退)。
 
 **处理步骤** (`main` → `materialize_content_ctx`, idempotent):
 1. 幂等短路: 若五列俱全直接返回; 旧 schema (仅有 content_ctx) 走兼容回填路径——补 content_full/ctx_is_fallback, 并以**哨兵**填 content_ss=content_full、ss_is_fallback=True (保幂等, 不重算 ss; 删 content_ctx 可触发全量重算)。
@@ -63,7 +63,7 @@ Plan E P4 A1 (v3.6.0):
 
 **外部依赖/确定性**: 纯 CPU (pandas + ahocorasick + 正则分句), **不调 LLM/Embedding/BERT**, 无网络, 逐位可复现。ss 词典加载失败优雅降级 (FINTECH_AC=None → ss 全回退, 不崩管道)。
 
-**DAG 位置**: 上游 stage 12b (同句共现硬过滤; 其上游为 stage 12 金科子集), 下游 stage 14 (fintech_intensity 三轨)/15 (policy_alignment 三轨)/21 (tone_llms 三轨) 全部消费三列文本。实测 (disk 1170 篇): ss 零共现回退 ~14.27%, 主题漂移 65.76% (银行句仅 34% 同时提金科 → ss 与 ctx 是独立信号)。
+**DAG 位置**: 上游 stage 12b (邻近共现硬过滤; 其上游为 stage 12 金科子集), 下游 stage 14 (fintech_intensity 三轨)/15 (policy_alignment 三轨)/21 (tone_llms 三轨) 全部消费三列文本。实测 (disk 1170 篇): ss 零共现回退 ~14.27%, 主题漂移 65.76% (银行句仅 34% 同时提金科 → ss 与 ctx 是独立信号)。
 
 ■ 白话说明
 
@@ -478,16 +478,18 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
                 logger.info(f"  ss 轨: {_ss_hit:,}/{n_with_bank:,} 条截到'银行∧金科同句', "
                             f"{n_ss_fallback:,} 条 ss≡全文 (回退率 {pct4(_ss_fb_rate)}); 拆解 = 真·无同句"
                             f"共现 {n_ss_miss:,} + 巧合全覆盖 {n_ss_cov:,} + 无 bank {n_ss_nobank:,}")
-                # 注 (2026-06-28 修正旧判读): stage 12b 同句共现硬过滤 (生产 radius=0) 的 keep 集
-                # ⊆ ss radius≥0 共现集 (entity_context.py:398), 此包含关系【仅当 12b radius ≤
-                # ss_sentence_radius 成立】→ 存活行多含"银行∧金科同句" → ss 真·无共现≈0; 残余回退
-                # 主由短文/字符回退全覆盖贡献。故旧注释 "ss 回退率天然高于 ctx 属预期" 仅是 12b 之前
-                # 的结论 (彼时 ss 真·未命中多)。12b 后 ss 真·未命中坍缩; 又因 ss 命中句 ⊆ ctx 命中句
-                # (ss 须银行∧金科同句, ctx 只须银行) → 同 radius 下 ss 全覆盖必致 ctx 全覆盖 → ss 合并
-                # 回退计数 ≤ ctx (本批 56 ≤ 162; 机制可证, 非"通常"外推)。
-                logger.info("    → ss 回退按镜像 ctx 的公理退回全文 body; stage 12b 同句过滤后 "
-                            "(仅当 12b radius ≤ ss_sentence_radius) 真·无共现≈0, 残余回退多为短文/"
-                            "字符回退全覆盖几何假象 (非 ss 信号缺失)")
+                # 注 (2026-06-29 修正): stage 12b 邻近共现硬过滤生产默认 radius=1 (±1 句窗口邻近)。
+                # keep 集 ⊆ ss 同句共现集【仅当 12b radius=0 严格同句【且 match_in_title=False】时严格
+                # 成立】(ss 命中判据恒严格同句, 与 ss_sentence_radius 无关——后者只控输出扩窗; 又因 ss
+                # 提取只读正文 body, title=true 时"标题同句、正文跨句"行会被 12b 留下却落 ss 回退 → 已破
+                # 子集, 即下文三态②); radius=1 时 keep 集 ⊋ ss 同句集 →
+                # 存活行新增"仅邻句非同句"行 (正文无银行∧金科同句) → 这些行 ss 真·无共现回退 → ss
+                # 真·未命中【不坍缩】, frac_ss_fallback∈(0,1) (在 match_in_title=true 部分恢复基础上
+                # 进一步恢复)。又因 ss 命中句 ⊆ ctx 命中句 (ss 须银行∧金科同句, ctx 只须银行) → 同
+                # radius 下 ss 全覆盖必致 ctx 全覆盖 → ss 合并回退计数 ≤ ctx (本批 56 ≤ 162; 机制可证)。
+                logger.info("    → ss 回退按镜像 ctx 的公理退回全文 body; stage 12b 邻近共现过滤 "
+                            "(生产 radius=1) 后存活含非同句邻句行 → ss 真·无共现回退恢复 ∈(0,1), 另有"
+                            "短文/字符回退全覆盖几何假象 (非 ss 信号缺失)")
                 logger.info(f"  ctx↔ss 分歧率: {n_div:,}/{n_with_bank:,} ({pct4(_div_rate)}) 两轨截到不同句子")
                 logger.info("    → " + ("分歧明显, ss 带来独立于 ctx 的新信息, 支撑三轨稳健性设计"
                                         if _div_rate > 0.40 else
@@ -550,7 +552,7 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
 def main():
     """Stage 13 入口: 读 13_cooccurrence_filtered.parquet → 写 14_news_with_ctx.parquet.
 
-    输入自 2026-06-15 起改为 stage 12b (银行×金科同句共现硬过滤) 的输出, 而非
+    输入自 2026-06-15 起改为 stage 12b (银行×金科邻近共现硬过滤) 的输出, 而非
     stage 12 直出 —— 下游三轨情感/强度链由此天然继承 12b 过滤 (路线 A; 见
     cooccurrence_filter.py)。回滚 = 把 in_name 改回 output_12_fintech_news + 全量重跑。
     """
@@ -660,7 +662,7 @@ def main():
     _t_load = time.time()
     df = pd.read_parquet(in_path)
     _load_elapsed = time.time() - _t_load
-    logger.info(f"加载 stage 12b 输出 (同句共现过滤后): {len(df)} 行 "
+    logger.info(f"加载 stage 12b 输出 (邻近共现过滤后): {len(df)} 行 "
                 f"(⏱ 读盘 {sig4(_load_elapsed)} 秒)")
 
     _t_mat = time.time()

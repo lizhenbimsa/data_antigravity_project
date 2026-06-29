@@ -88,7 +88,7 @@ def test_validation_orchestrator_uses_canonical_stages(rpv, core_dag):
 
 
 def test_main_stage_count(core_dag):
-    """``STAGES_MAIN`` 阶段数须等于 16 (15 + 2026-06-15 stage 12b 同句共现硬过滤)。"""
+    """``STAGES_MAIN`` 阶段数须等于 16 (15 + 2026-06-15 stage 12b 邻近共现硬过滤)。"""
     # baseline 14: 00 + 11 + 12 + 13 + 14 + 15 + 21 + 22 + 23 + 24 + 45 + 46 + 51 (+30 历史)
     # v3.2.0 M6: + stage 46 Stata 导出
     # v3.6.0 (Plan E P4 A1): + stage 13 content_ctx 物化, 让 14/15 双轨化前置可用
@@ -99,9 +99,9 @@ def test_main_stage_count(core_dag):
     # 2026-06-05: stage 16 (宏观控制 merge) 整体移除 → 19 − 1 = 18
     # 2026-06-09: stage 17 (D1 BERTopic 叙事主题) + stage 19 (D4 LLM CEO NER) 整体移除 → 18 − 2 = 16
     # 2026-06-12: stage 49 (risk_taking_outcomes) 整体移除 (无财务数据无法计算) → 16 − 1 = 15
-    # 2026-06-15: stage 12b (银行×金科同句共现硬过滤, Andreou et al. 2026) 新增 → 15 + 1 = 16
+    # 2026-06-15: stage 12b (银行×金科邻近共现硬过滤, Andreou et al. 2026) 新增 → 15 + 1 = 16
     assert len(core_dag.STAGES_MAIN) == 16, (
-        f"STAGES_MAIN 数量漂移: 期望 16 (15 + stage 12b 同句共现硬过滤), "
+        f"STAGES_MAIN 数量漂移: 期望 16 (15 + stage 12b 邻近共现硬过滤), "
         f"实际 {len(core_dag.STAGES_MAIN)}. 若有意增删阶段, 请同步更新本测试。"
     )
 
@@ -203,7 +203,7 @@ def test_filter_enabled_respects_predicate(core_dag):
     article_staleness.enabled 启停。因此无论 cfg 如何配置, filter_enabled 都返回
     全部 main stage。(历史上 21/22 随 enabled_methods、18 随 opt-in 条件启停,
     计数曾随 cfg 在不同配置下漂移; 全 always-on 后统一。)
-    2026-06-15: 新增 stage 12b (同句共现硬过滤, always-on) → 全集 15 → 16。
+    2026-06-15: 新增 stage 12b (邻近共现硬过滤, always-on) → 全集 15 → 16。
     """
     # STAGES_MAIN 当前 16 个 stage, 全部 always_enabled → 任何 cfg 下都恒选中全集。
     cfg_full = {

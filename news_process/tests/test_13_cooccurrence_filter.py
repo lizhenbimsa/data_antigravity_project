@@ -1,6 +1,6 @@
-"""test_13_cooccurrence_filter — stage 12b 银行×金科同句共现硬过滤单测.
+"""test_13_cooccurrence_filter — stage 12b 银行×金科邻近共现硬过滤单测.
 
-(生产默认 sentence_radius=0 = 严格同句; 另含 radius≥1 窗口邻近原语单测。)
+(生产默认 sentence_radius=1 = ±1 句窗口邻近; radius=0 严格同句为最严特例稳健性备选。)
 
 覆盖:
   - 窗口化原语 has_bank_fintech_cooccurrence_within_radius (同句/邻句/远隔/单侧/
@@ -54,35 +54,51 @@ def test_radius0_requires_same_sentence():
     assert _cooccur(text, [BANK], FT_AC, sentence_radius=1) is True
 
 
-def test_production_default_is_same_sentence():
-    """生产 cooccurrence_filter.sentence_radius == 0 (严格同句) 配置锁。
+def test_production_default_is_window_radius1():
+    """生产 cooccurrence_filter.sentence_radius == 1 (±1 句窗口邻近) 配置锁。
 
-    用户 2026-06-27 决策 "只保留银行∧金科同句报道": stage 12b 生产默认走严格同句
-    (radius=0)。若有人改回 ≥1 (窗口邻近), 须同步更新本断言 + config/filtering.yaml
-    注释 + cooccurrence_filter.py 日志/docstring + CLAUDE.md 决策记录。
+    用户 2026-06-29 决策 "改回 ±1 句窗口邻近共现" (取代 2026-06-27 的 radius=0 严格同句):
+    stage 12b 生产默认走 ±1 句窗口邻近 (radius=1)。若有人改回 0 (严格同句), 须同步更新
+    本断言 + config/filtering.yaml 注释 + cooccurrence_filter.py 日志/docstring + CLAUDE.md 决策记录。
     """
     from news_process.core.config import load_config
     radius = load_config().get('cooccurrence_filter', {}).get('sentence_radius')
-    assert radius == 0, (
-        f"生产 cooccurrence_filter.sentence_radius 应为 0 (严格同句), 实得 {radius!r}; "
-        "见 config/filtering.yaml::cooccurrence_filter 与 CLAUDE.md 同句过滤决策"
+    assert radius == 1, (
+        f"生产 cooccurrence_filter.sentence_radius 应为 1 (±1 句窗口邻近), 实得 {radius!r}; "
+        "见 config/filtering.yaml::cooccurrence_filter 与 CLAUDE.md 邻近共现过滤决策"
     )
 
 
-def test_production_config_drops_adjacent_only(cf):
-    """端到端: 生产配置下, 银行/金科仅邻句 (非同句) 的文章被 filter_cooccurrence 丢弃。
+def test_production_config_keeps_adjacent(cf):
+    """端到端: 生产配置 (radius=1) 下, 银行/金科同句【或】仅邻句的文章均被保留。
 
-    锁定 "只保留同句报道" 的实际过滤行为 (而非仅原语层 radius=0)。"""
+    锁定 "±1 句窗口邻近共现" 的实际过滤行为 (radius=1 时邻句共现亦保留, 与 radius=0 同句相反)。"""
     df = pd.DataFrame({
         "docid": ["same", "adjacent"],
         "target_bank": [BANK, BANK],
         "内容": [
             "工商银行大力发展区块链技术。市场反应平稳。后续观察。",   # 同句 → 保留
-            "工商银行召开发布会。会上推出区块链平台。市场反应平稳。",  # 邻句非同句 → 丢弃
+            "工商银行召开发布会。会上推出区块链平台。市场反应平稳。",  # 邻句 (±1 窗口内) → radius=1 保留
         ],
     })
     out = cf.filter_cooccurrence(df)
-    assert out["docid"].tolist() == ["same"]
+    assert out["docid"].tolist() == ["same", "adjacent"]
+
+
+def test_production_config_drops_far_apart(cf):
+    """端到端: 生产配置 (radius=1) 下, 银行/金科相隔 ≥2 句 (超 ±1 窗口) 的文章仍被丢弃。
+
+    锁定 radius=1 不退化为"全保留": 银行 S0、金科 S3 (距 3 > radius 1) → 丢弃。
+    ⚠ 刻意不含 '标题' 列 (避免 cf 读真 config 的 match_in_title=True 把标题 prepend 进句序列、
+    改变句距而干扰本测试) → 纯正文远隔判据。"""
+    df = pd.DataFrame({
+        "docid": ["far"],
+        "target_bank": [BANK],
+        # 银行 S0、金科 S3, 距 3 句 > radius 1 → 丢弃 (无 '标题' 列)
+        "内容": ["工商银行发展战略。今天天气很好。空气十分清新。市场推出区块链平台。"],
+    })
+    out = cf.filter_cooccurrence(df)
+    assert out["docid"].tolist() == []
 
 
 def test_drop_far_apart_radius1():
@@ -128,9 +144,9 @@ def test_short_text_charfallback_drop_fintech_far():
 def test_short_text_charfallback_ignores_radius():
     """短文 (<3 句) 走字符回退, 结果【与 sentence_radius 无关】(忽略 radius)。
 
-    锁定 caveat (workflow 复审 2026-06-27): 短文不可分句 → _char_level_fallback 字符窗
-    近似同句, sentence_radius 形同虚设。这是【有意】的既有行为 (radius 1→0 对短文零影响),
-    非 bug; 防未来误把短文的非严格同句当回归。生产 radius=0 同句口径仅严格成立于长文。
+    锁定 caveat: 短文不可分句 → _char_level_fallback 字符窗近似窗口共现, sentence_radius
+    形同虚设。这是【有意】的既有行为 (radius 0↔1 切换对短文零影响), 非 bug; 防未来误把
+    短文的非邻近共现当回归。生产 radius=1 ±1 句窗口邻近口径仅严格成立于长文。
     """
     # 银行与金科在同一短文内 (字符窗覆盖) → 任何 radius 都保留 (radius 不参与短文判定)
     short = "工商银行推出区块链钱包"
@@ -281,7 +297,7 @@ def test_min_keep_guard_raises(cf, monkeypatch, tmp_path):
     assert ei.value.code == 1  # 确认是 min-N 守卫的 exit(1), 而非其它更早退出
 
 
-# ── match_in_title: 同句判据纳入标题 (2026-06-29) ─────────────────────────────
+# ── match_in_title: 共现判据纳入标题 (2026-06-29) ─────────────────────────────
 # 权威计划: scripts/audit/STAGE13_COOCCURRENCE_MATCH_IN_TITLE_EXECUTION_PLAN_2026-06-29.md
 
 
@@ -308,7 +324,7 @@ def test_title_pairs_kept_when_body_anaphora_only(cf, monkeypatch):
         "target_bank": [BANK],
         "标题": ["工商银行加码区块链应用"],          # 标题句内 工商银行∧区块链 配对
         "内容": [
-            # 正文: 银行名只在句1(无金科); 区块链在句3(主语承前省, 无银行名) → 正文无同句配对
+            # 正文: 银行名只在 S0(无金科); 区块链在 S2(主语承前省, 无银行名; 距 2 > radius 1) → 正文无邻近共现配对
             "工商银行昨日举行开放日活动。该行相关负责人介绍最新进展。据介绍区块链已应用于多个场景。"
         ],
     })
@@ -339,9 +355,9 @@ def test_match_in_title_false_is_body_only_identical(cf, monkeypatch):
         "target_bank": [BANK, BANK],
         "标题": ["工商银行加码区块链", "无关标题"],   # a 标题本可救回, 但 flag 关
         "内容": [
-            # ≥3 句 → 走严格同句路径 (非短文字符窗回退); 银行在句1、区块链在句3 → 正文无同句配对
+            # ≥3 句 → 走句级窗口共现路径 (非短文字符窗回退); 银行 S0、区块链 S2 (距 2 > radius 1) → 正文无邻近共现配对
             "工商银行召开会议。今天天气晴朗。该行推进区块链。",   # flag 关 → 丢
-            "工商银行大力发展区块链技术。市场平稳。后续观察。",   # 正文同句配对 → 照常留
+            "工商银行大力发展区块链技术。市场平稳。后续观察。",   # 正文同句配对 (radius=1 窗口内) → 照常留
         ],
     })
     assert cf.filter_cooccurrence(df)["docid"].tolist() == ["b"]
