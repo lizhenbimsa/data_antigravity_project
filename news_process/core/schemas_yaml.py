@@ -226,12 +226,29 @@ def validate_config_schema(config: Mapping[str, Any]) -> None:
     在 ``load_config()`` 末尾被调用. 不阻塞 pipeline (类型错误 raise; 未知字段
     仅 warning).
     """
+    # 追踪本次实际进入校验的域 (仅供 LOG-ENRICH round 7 的 DEBUG 汇报使用,
+    # 不参与任何返回/数据流, golden-safe)。
+    _validated_domains: list[str] = []
     if "tone_llm_processing" in config:
         _validate_domain(config["tone_llm_processing"], ToneLLMSchema, "tone_llm_processing")
+        _validated_domains.append("tone_llm_processing")
     if "panel_building" in config:
         _validate_domain(config["panel_building"], PanelBuildingSchema, "panel_building")
+        _validated_domains.append("panel_building")
     if "herd_detection" in config:
         _validate_domain(config["herd_detection"], HerdDetectionSchema, "herd_detection")
+        _validated_domains.append("herd_detection")
+
+    # 操作性可观测 (LOG-ENRICH round 7): 汇报本次 load_config 末尾实际校验了哪些 YAML 域。
+    # 未出现的域 = 该节在 config 中整节缺失 → 被跳过校验 (回答审计常见疑问 "为何某 typo
+    # 字段没被 warn": 因其所属域整节不存在)。DEBUG 级, 生产零打扰; 计数为整数。
+    if _LOGGER.isEnabledFor(logging.DEBUG):
+        _LOGGER.debug(
+            "validate_config_schema 完成: 已校验 %d/3 个已登记 YAML 域 (%s); "
+            "未列出的域表示该节在 config 中整节缺失, 已跳过 schema 校验",
+            len(_validated_domains),
+            ", ".join(_validated_domains) if _validated_domains else "无",
+        )
 
 
 __all__ = [

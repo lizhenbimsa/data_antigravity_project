@@ -500,6 +500,13 @@ def load_all_dictionaries() -> list[tuple[str, dict[str, float]]]:
     logger.info(f"词典加载完成: {non_empty}/{len(dict_keys)} 个词典有效, 共 {total_loaded} 个词汇条目"
                 f" (含 {_both_total} 个跨类重叠词保留并两侧计数, "
                 f"分布于 {len(_BOTH_SIDED_BY_DICT)} 部词典)")
+    # 词表规模富集 (运行期信息; 整数计数用千分位, 跨类重叠占比用 pct4 — golden-safe 纯日志)
+    try:
+        _xlist_frac = (_both_total / total_loaded) if total_loaded else 0.0
+        logger.info(f"  └─ 词表规模: 总词条={total_loaded:,d}, 跨类重叠保留={_both_total:,d} "
+                    f"({pct4(_xlist_frac)} 双侧计数), 有效词典={non_empty:,d}/{len(dict_keys):,d}")
+    except Exception as e:  # noqa: BLE001
+        logger.debug(f"词表规模富集日志失败 (不影响处理): {e}")
 
     return dictionaries
 
@@ -1832,7 +1839,7 @@ def _zscore_or_nan(series: pd.Series, col_label: str) -> pd.Series:
         logger.info(f"  {col_label}: Z-score 标准化完成 (μ={sig4(mean_val)}, σ={sig4(std_val)})")
         return (series - mean_val) / std_val
     logger.error(
-        f"  {col_label}: Z-score 退化 (μ={mean_val!r}, σ={std_val!r}) → 整列置 NaN "
+        f"  {col_label}: Z-score 退化 (μ={sig4(mean_val)}, σ={sig4(std_val)}) → 整列置 NaN "
         f"(fix omni-g-tonewords-13; 旧行为整列回填 0.0 伪零分, 缺失被抹成'恰均值')")
     return pd.Series(np.nan, index=series.index)
 
@@ -1951,6 +1958,12 @@ def main():
         logger.info("       Loughran, T., & McDonald, B. (2011). When is a liability not a "
                     "liability? Textual analysis, dictionaries, and 10-Ks. The Journal of "
                     "Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x")
+        # 金融词正/负『色彩』的大规模标注实证 (近期 dict-sentiment 基底, 锚定六部词典极性集合)
+        logger.info("       García, D., Hu, X., & Rohrer, M. (2023). The colour of finance "
+                    "words. Journal of Financial Economics, 147(3), 525-549. "
+                    "https://doi.org/10.1016/j.jfineco.2022.11.006")
+        logger.info("       → 用大规模人工标注给金融词的正/负『色彩』定量, 锚定本阶段六部词典 "
+                    "(jiang/yao/bian/du/you/loughran) 正负极性集合在金融语域的构念有效性")
         # 词典法在 LLM 时代的当代定位与背书 (2023-2026): 证明本阶段保留'查字典版'独立旁证轨
         # 的方法学正当性 (词典法仍可与 ML/LLM 竞争), 并锚定 aspect-based 逐目标打分 (= _ctx/_ss
         # 轨) 与中文细粒度否定/程度计数 (= 状态机规则①②) 的最新方法来源。
@@ -1966,6 +1979,21 @@ def main():
                     "fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) "
                     "and its application. Expert Systems with Applications, 264, 125739. "
                     "https://doi.org/10.1016/j.eswa.2024.125739")
+        logger.info("       Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment "
+                    "analysis in finance: Synthesising the existing literature and exploring "
+                    "future directions. Intelligent Systems in Accounting, Finance and "
+                    "Management, 31(1), e1549. https://doi.org/10.1002/isaf.1549")
+        logger.info("       → 金融文本情感测度文献综述, 把本阶段词典法定位于『词典 vs ML/LLM』"
+                    "方法谱; 兑现保留独立可解释词典轨作 LLM (stage 21) 旁证的方法学正当性")
+        # 词汇多样性/复杂度辅助测度 (本阶段 _compute_readability + compute_lexical_complexity
+        # 旁路产出 type_token_ratio 等列, 非情感主轨; 见 lexical_complexity 模块)
+        logger.info("     · 词汇多样性/复杂度辅助测度 (type-token ratio):")
+        logger.info("       Bestgen, Y. (2025). Estimating lexical diversity using the moving "
+                    "average type-token ratio (MATTR): Pros and cons. Research Methods in "
+                    "Applied Linguistics, 4(1), 100168. "
+                    "https://doi.org/10.1016/j.rmal.2024.100168")
+        logger.info("       → TTR 受文本长度影响的近期评估; 锚定本阶段 type_token_ratio 列 "
+                    "(词汇丰富度代理) 的测度局限与 MATTR 式长度稳健替代方向")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  方法论引文打印失败 (不影响处理): {e}")
     logger.info("")
@@ -2355,6 +2383,20 @@ def main():
         }
         logger.info(f"  · 指标⑧ 产物列族盘点 (总列数 {len(_cols):,}): "
                     + ", ".join(f"{k}={v}" for k, v in _fam.items()))
+
+        # ── 指标⑨: 各词典主分 {dict}_score 分布 (全文轨, 均值/标准差) — 运行结果信息 ──
+        # 判读: 主分 ∈ [-1,+1] self-normalized; 均值符号=该词典整体语调倾向 (>0 偏正 / <0 偏负),
+        # 标准差=区分度。σ≈0 → 该词典在本样本几乎无区分力 (T=2 盘面常见, 全量 T=18 应展开)。
+        _score_dist = []
+        for dn, _ in ALL_DICTIONARIES:
+            col = f"{dn}_score_full"
+            if col in processed_df.columns:
+                s = pd.to_numeric(processed_df[col], errors='coerce')
+                if s.notna().any():
+                    _score_dist.append(f"{dn}: μ={sig4(s.mean())}/σ={sig4(s.std())}")
+        if _score_dist:
+            logger.info(f"  · 指标⑨ 各词典主分 score 分布 (全文轨, ∈[-1,+1] self-normalized): "
+                        + "; ".join(_score_dist))
 
         # ── 小样本 / 确定性提示 ──
         if input_rows < 1000:

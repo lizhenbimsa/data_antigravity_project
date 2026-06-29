@@ -523,6 +523,16 @@ def _write_track_report(report: dict, out_dir: Path, suffix: str) -> None:
         hv = htmt.get(hk, float('nan'))
         p95 = null.get(nk, {}).get('p95', float('nan'))
         logger.info(f"    {label}: HTMT={sig4(hv)} (null_p95={sig4(p95)}) → {verdict.get(hk, 'nan')}")
+    # HTMT 最大离对角值诊断 (log-only, sig4): 三对中最高者决定整体判别效度成败,
+    # 低于 strict cutoff (Roemer 2021 HTMT2 / Henseler 2015) 则三指标全体各量各的。
+    try:
+        _htmt_vals = [htmt.get(hk, float('nan')) for hk, _, _ in _pairs]
+        _finite = [v for v in _htmt_vals if isinstance(v, (int, float)) and not np.isnan(v)]
+        if _finite:
+            logger.info(f"    HTMT 最大离对角值 = {sig4(max(_finite))} "
+                        f"(三对中最高; < {sig4(HTMT_CUTOFF_STRICT)}=strict 则全体判别有效)")
+    except Exception:  # noqa: BLE001
+        pass
     _all_pass = bool(verdict) and all(v == 'strict_pass' for v in verdict.values())
     logger.info("    HTMT 总判读: " + ("三对全部 strict_pass → 三指标判别有效, 各量各的"
                                        if _all_pass else "存在未通过对 (见上)"))
@@ -617,6 +627,15 @@ def main():
                     "for assessing discriminant validity in variance-based structural equation "
                     "modeling. Journal of the Academy of Marketing Science, 43(1), 115-135. "
                     "https://doi.org/10.1007/s11747-014-0403-8  [HTMT 双 cutoff 判别效度准则]")
+        logger.info("     · Roemer, E., Schuberth, F., & Henseler, J. (2021). HTMT2–an improved "
+                    "criterion for assessing discriminant validity in structural equation "
+                    "modeling. Industrial Management & Data Systems, 121(12), 2637–2650. "
+                    "https://doi.org/10.1108/IMDS-02-2021-0082  [HTMT2 改进准则, 锚定本阶段单 "
+                    "indicator HTMT 退化为 |Pearson r| 的口径]")
+        logger.info("     · Rönkkö, M., & Cho, E. (2022). An updated guideline for assessing "
+                    "discriminant validity. Organizational Research Methods, 25(1), 6–14. "
+                    "https://doi.org/10.1177/1094428120968614  [现代判别效度评估指南, 补充 "
+                    "strict<0.85 / lenient<0.90 cutoff 与 permutation null 的取舍依据]")
         logger.info("     · Fornell, C., & Larcker, D. F. (1981). Evaluating structural equation "
                     "models with unobservable variables and measurement error. Journal of "
                     "Marketing Research, 18(1), 39-50. https://doi.org/10.2307/3151312  "

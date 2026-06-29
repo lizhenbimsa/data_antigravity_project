@@ -91,6 +91,15 @@ _METHOD_REFS_COLLAB = (
     "Kueschnig, M., & Schertler, A. (2024). Fusing futures: Financial "
     "institutions' stock price response to fintech acquisitions. Finance "
     "Research Letters, 59, 104779. https://doi.org/10.1016/j.frl.2023.104779",
+    # 自研(内部 R&D) vs 外部协同(M&A/技术获取) 的差异化战略锚点 (cell_id 第三 bit 直接)
+    "Arts, S., Cassiman, B., & Hou, J. (2025). Technology differentiation, "
+    "product market rivalry, and M&A transactions. Strategic Management "
+    "Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687",
+    # 生态联盟 vs 自主成长: 联盟战略与技术互依的近期管理学证据 (外部协同维度)
+    "Chen, X., Yang, Y., & Wei, J. (2025). How do new ventures thrive in "
+    "ecosystem venturing: The impacts of alliance strategy and technology "
+    "interdependence. Journal of Management Studies, 62(2), 565-596. "
+    "https://doi.org/10.1111/joms.13063",
 )
 # collab 维度文献白话 (与上元组逐条对应; 仅供日志, 不参与计算)
 _METHOD_REFS_COLLAB_PLAIN = (
@@ -98,6 +107,23 @@ _METHOD_REFS_COLLAB_PLAIN = (
     "专利区分金融创新由谁内部产出, 自研 vs 外部协同的来源归属先例",
     "129 家中国银行-fintech 合作库, 直接区分自研 vs 合作, 与中国语境高度契合",
     "事件研究度量银行首次 fintech 收购 CAR, 外部协同 (并购) 的二元金融市场应用",
+    "技术差异化 × 并购: 自研内部 R&D 与外部 M&A 技术获取的战略权衡 (collab bit 直接锚)",
+    "生态联盟战略与技术互依: 外部协同(联盟) vs 自主成长路径的近期证据",
+)
+
+# substantiveness (实质性 vs 象征性, cell_id 第一 bit) + D4 say-do 解耦 (freerider/
+# quietworker) 的近期 decoupling 测度文献锚点 — 与 D4 既有 Westphal & Zajac (2001)
+# 解耦锚同族, 升级到 2025 系统综述/实证。仅供 emit 进日志 (golden-safe), 逐字取自
+# Crossref 核验注册表, 严禁臆造。
+_METHOD_REFS_SUBST = (
+    "Cepeda, C., Monteiro, A. P., & Aibar-Guzmán, B. (2025). Decoupling in "
+    "sustainability reporting: A systematic literature review. Corporate Social "
+    "Responsibility and Environmental Management, 32(3), 2988-3007. "
+    "https://doi.org/10.1002/csr.3114",
+    "Velte, P. (2025). Corporate social responsibility (CSR) decoupling and tax "
+    "avoidance: Symbolic use of sustainable boards in the European Union? "
+    "Corporate Social Responsibility and Environmental Management, 32(3), "
+    "4179-4193. https://doi.org/10.1002/csr.3172",
 )
 
 # v3.5.0 D2: 8-cell encoding (baseline=cell 1 三维全 0)
@@ -650,6 +676,13 @@ def apply_v3_5_0(df: pd.DataFrame, panel: pd.DataFrame,
             "    · 方法 D4 (full vs ctx 标签一致性残差 = disagree/freerider/quietworker):"
         )
         for _ref in _METHOD_REFS_D4:
+            logger.info(f"        - {_ref}")
+        # 📖 substantiveness 二分 (cell_id 第一 bit: 实质性 vs 象征性) + D4 say-do
+        # 解耦 (freerider/quietworker = 说一套做一套) 的近期 decoupling 测度依据。
+        logger.info(
+            "    · 📖 substantiveness 二分 + D4 say-do 解耦 (decoupling) 近期测度依据:"
+        )
+        for _ref in _METHOD_REFS_SUBST:
             logger.info(f"        - {_ref}")
         # 📖 方法论依据 (collab 维度专属): cell_id 第三 bit 编码的 innovation_collab_mode
         # (自主研发 vs 外部协同) 是本模块命名所指的核心维度, 下列文献锚定其二分构念与度量。

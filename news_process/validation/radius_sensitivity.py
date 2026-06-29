@@ -623,6 +623,23 @@ def run_sensitivity_analysis(
 
         analysis_results['cross_radius'][f'r{baseline_radius}_vs_r{r}'] = comparison
 
+        # 日志富集 (round 7): 逐对比组速览 — 计算完成即落 4 位有效数字汇总, 让 65_*.log
+        # 在分析推进时实时反馈"窗口从 r=1 改到 r={r}"对各词典得分的撼动幅度 (纯日志,
+        # 只读已算好的 comparison, 局部变量不回写任何产物 → golden-safe)。
+        try:
+            _ks = [comparison[dn]['cohens_kappa'] for dn in dict_names]
+            _pes = [comparison[dn]['pearson_r'] for dn in dict_names]
+            _ags = [comparison[dn]['label_agreement'] for dn in dict_names]
+            _nan_pe = sum(1 for v in _pes if np.isnan(v))
+            _pe_mean = float(np.nanmean(_pes)) if _nan_pe < len(_pes) else float('nan')
+            logger.info(
+                f"  [基准 r={baseline_radius} vs r={r}] 跨 {len(dict_names)} 词典汇总: "
+                f"κ 均值={sig4(float(np.mean(_ks)))} (min={sig4(float(min(_ks)))}) | "
+                f"Pearson 均值={sig4(_pe_mean)} | 标签一致率 均值={pct4(float(np.mean(_ags)))}"
+                + (f" | ⚠ {_nan_pe} 词典零方差→Pearson 置 NaN" if _nan_pe else ""))
+        except Exception:  # noqa: BLE001
+            pass
+
     return analysis_results, per_radius_data
 
 
@@ -1207,6 +1224,19 @@ def _log_environment_and_config(input_path: str) -> None:
                     "https://doi.org/10.1287/mnsc.2023.4927")
         logger.info("       → (白话: 种子词嵌入 + 词袋构企业级文本暴露并以波动率作外部验证, 与本阶段词袋式"
                     "词典计分同族; 同样需对窗口/词表等设定做敏感性披露以证度量非任意。)")
+        logger.info("     · 词典法情感测度的方法学基底 (lexicon-based, 6 套中文金融词典逐句计分): "
+                    "Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). "
+                    "Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, "
+                    "63(1), 125-143. https://doi.org/10.1111/ecin.13264")
+        logger.info("       → 本阶段在每个 radius 下复用生产 22_tone_words 的词典逐句规则 (否定翻转/程度缩放/"
+                    "转折增强) 重算情感分, 属经济文本 lexicon-based 情感分析谱系; 对截取窗口的稳健性即该测度"
+                    "可信度的附录证据。")
+        logger.info("     · κ 分级判读阈值 + 'Kappa 悖论' 判据来源: "
+                    "Landis, J. R., & Koch, G. G. (1977). The measurement of observer agreement for "
+                    "categorical data. Biometrics, 33(1), 159-174. https://doi.org/10.2307/2529310")
+        logger.info("       → 本阶段邻近窗口稳健性判定 (min κ≥0.80 强稳健 / ≥0.60 且一致率≥95%·Pearson≥0.80 "
+                    "实质稳健) 锚定其 substantial(κ≥0.61) 区间; 主导标签 ≥90% 集中时 κ 被 P(e) 数学压低的"
+                    "'Kappa 悖论'亦本框架推论, 故配一致率/Pearson 佐证。")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
 

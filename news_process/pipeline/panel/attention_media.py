@@ -574,6 +574,26 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  attention 处理变量: 匹配 {matched:,}/{len(panel):,} bank-year "
                 f"({pct4(matched / len(panel))}); 全集脊柱 {len(universe):,} bank-year")
     _validate_attention_treatments(panel)
+    # 日志富集 (golden-safe): attention_index_full 分布形态 + 强度/份额两测度同向性诊断 —
+    # 供审稿判断曝光的右偏/重尾程度 (媒体关注典型重尾) 及 index(强度) 与 pct(份额) 是否
+    # 高度共线。纯读已算列, 不改任何产物。
+    try:
+        _ai = panel['attention_index_full'].dropna()
+        if len(_ai) >= 2:
+            logger.info(f"  📊 attention_index_full 分布: mean={sig4(_ai.mean())}, "
+                        f"std={sig4(_ai.std())}, skew={sig4(_ai.skew())}, "
+                        f"[{sig4(_ai.min())}, {sig4(_ai.max())}]; 有曝光(>0) "
+                        f"{int((_ai > 0).sum()):,d}/{len(_ai):,d} ({pct4((_ai > 0).mean())})")
+        if 'attention_pct_full' in panel.columns:
+            _pp = panel['attention_index_full'].notna() & panel['attention_pct_full'].notna()
+            if int(_pp.sum()) >= 3:
+                _r = panel.loc[_pp, 'attention_index_full'].corr(
+                    panel.loc[_pp, 'attention_pct_full'])
+                logger.info(f"  📊 corr(attention_index_full, attention_pct_full) = "
+                            f"{sig4(_r)} (强度 vs 份额两测度同向性; n={int(_pp.sum()):,d}; "
+                            f"两者各进自回归、不同进一 RHS)")
+    except Exception as _e:  # noqa: BLE001 — 分布诊断块绝不阻断面板主流程
+        logger.warning(f"  attention 处理变量分布诊断跳过: {_e}")
     logger.info(f"  ⏱ 步骤 6b-2 (attention 处理变量) 墙钟耗时: {sig4(time.time() - _t0_treat)} 秒")
     return panel
 
@@ -664,6 +684,12 @@ def compute_fintech_attention_index(panel: pd.DataFrame) -> pd.DataFrame:
             'Gurun, U. G., & Butler, A. W. (2012). Don\'t believe the hype: Local '
             'media slant, local advertising, and firm value. The Journal of Finance, '
             '67(2), 561-598. https://doi.org/10.1111/j.1540-6261.2012.01725.x  (地理本地媒体偏斜)',
+            # 当代锚 (2024 JF): 以新闻文本度量经济/企业关注的范式延续, 印证本指数以"新闻
+            # 覆盖篇数"操作化 fintech 公众注意力的合法性。
+            'Bybee, L., Kelly, B., Manela, A., & Xiu, D. (2024). Business news and '
+            'business cycles. The Journal of Finance, 79(5), 3105–3147. '
+            'https://doi.org/10.1111/jofi.13377  (当代锚: 商业新闻覆盖作宏观/企业关注度量, '
+            '印证以新闻覆盖构造 fintech 公众注意力)',
         ],
     )
 

@@ -398,7 +398,7 @@ def log_classification_report(stats: dict, logger):
         logger.info(f"  - 仅靠正文匹配: {no_title:,} 篇 ({pct4(no_title / true_count)})")
     logger.info(f"判定为非银行新闻: {stats['is_bank_news_false']:,} ({pct4(100 - pct, fraction=False)})")
     logger.info(
-        f"判定参数: 内容分割比例={SPLIT_RATIO}, "
+        f"判定参数: 内容分割比例={sig4(SPLIT_RATIO)}, "
         f"上半最低出现={MIN_UPPER}次, 下半最低出现={MIN_LOWER}次, "
         f"前置最少出现={MIN_NAME_OCCURRENCES}次, 标题出现时全文最少={MIN_UPPER}次即可"
     )
@@ -506,6 +506,13 @@ def _log_environment_and_methodology(input_path: str, output_path: str) -> None:
                     "https://doi.org/10.1287/mnsc.2023.4927 "
                     "(白话: 种子词嵌入 + 词袋构 firm-level 文本暴露并以波动率验证, 同法 2024 "
                     "近期实例)")
+        logger.info("       Hassan, T. A., Hollander, S., van Lent, L., Schwedeler, M., & "
+                    "Tahoun, A. (2023). Firm-level exposure to epidemic diseases: COVID-19, "
+                    "SARS, and H1N1. The Review of Financial Studies, 36(12), 4919-4964. "
+                    "https://doi.org/10.1093/rfs/hhad044 "
+                    "(白话: Hassan firm-level 文本暴露框架的 2023 顶刊扩展 — 同以关键词频次"
+                    "构企业级文本暴露; 印证本阶段以银行别名命中频次 (mention_density) 量化"
+                    "每行媒体暴露的测度谱系仍属近期 SOTA)")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  环境/配置/方法论信息打印失败 (不影响处理): {e}")
 
@@ -529,7 +536,7 @@ def main():
     logger.info("        合计>=MIN_UPPER); 另设两道假阳性闸门: 否定模式排除('务农行列'误中")
     logger.info("        '农行') + 短名歧义消解(<=2字简称查前后 context_window 字符)。")
     logger.info(
-        f"        当前阈值: split_ratio={SPLIT_RATIO}, MIN_UPPER={MIN_UPPER}, "
+        f"        当前阈值: split_ratio={sig4(SPLIT_RATIO)}, MIN_UPPER={MIN_UPPER}, "
         f"MIN_LOWER={MIN_LOWER}, MIN_NAME_OCCURRENCES={MIN_NAME_OCCURRENCES}。"
     )
     logger.info("【判读】银行新闻占比偏高=判定可能过松(噪声稿件混入, 污染情感/注意力);")
@@ -553,7 +560,7 @@ def main():
         logger.info(f"  前5家银行: {[b['bank_name'] for b in BANKS[:5]]}...")
         logger.info(f"  AC 自动机状态: {'已构建' if BANK_AC_AUTOMATON else '未构建'}")
     logger.info(
-        f"分割比例: {SPLIT_RATIO}, "
+        f"分割比例: {sig4(SPLIT_RATIO)}, "
         f"上半最低出现次数: {MIN_UPPER}, 下半最低出现次数: {MIN_LOWER}, "
         f"最少出现次数: {MIN_NAME_OCCURRENCES}"
     )
@@ -670,6 +677,27 @@ def main():
             f" 次 = 合计 {_total_excl:,} 次。判读: >0 说明两道防误判闸门在生效(拦下'务农行列'"
             f"误中'农行'之类); 恒为 0 时若语料含大量银行简称, 需复核排除词典是否真正加载。"
         )
+
+        # mention_density 分布 (deepen_result): value-weighted exposure 的离散程度,
+        # 右偏越重 = 越多文章把目标银行当核心主题 (高占比报道, Hassan 2019 QJE)。纯日志,
+        # 仅读已落列 mention_density, 不回写任何列 (golden-safe), 自带 try/except 防拖垮。
+        try:
+            if 'mention_density' in processed_df.columns and after_count > 0:
+                _md = pd.to_numeric(
+                    processed_df['mention_density'], errors='coerce').dropna()
+                if len(_md) > 0:
+                    logger.info(
+                        f"  · 提及密度 mention_density 分布 (= 提及次数/文档字数, "
+                        f"value-weighted exposure): 均值={sig4(_md.mean())} "
+                        f"σ={sig4(_md.std()) if len(_md) > 1 else 'n/a'} | "
+                        f"中位={sig4(_md.median())} p25={sig4(_md.quantile(0.25))} "
+                        f"p75={sig4(_md.quantile(0.75))} | "
+                        f"min={sig4(_md.min())} max={sig4(_md.max())} (n={len(_md):,})。"
+                        f"判读: 中位越高=报道越聚焦目标银行; 长右尾 (max≫p75)=少数文章高度"
+                        f"聚焦, 下游加权情感的高权重源。"
+                    )
+        except Exception as _mde:  # noqa: BLE001 — 分布诊断绝不阻断产物
+            logger.info(f"  · [mention_density 分布] 计算跳过 (不影响产物): {_mde}")
 
         # 优雅降级警告: 假阳性排除词典缺失 → 两道闸门失效
         if NEGATION_AC is None and not SHORT_NAME_EXCLUSIONS:

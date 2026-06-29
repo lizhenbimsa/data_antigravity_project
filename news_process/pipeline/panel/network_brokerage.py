@@ -255,6 +255,20 @@ def _log_env_config_methodology() -> None:
         logger.info("       (白话: 在金融新闻语料上建记者社会网络并以中心度解释报道"
                     "语调偏向, 与本模块『媒体-银行网络→银行端中心度→信息可见度/"
                     "语调』同构, 佐证媒体网络位置对新闻语调的解释力)")
+        logger.info("     · WS-B 二分图银行端原生中心度 (度/介数/接近/聚类/冗余) 方法源①: "
+                    "Freeman, L. C. (1978). Centrality in social networks conceptual "
+                    "clarification. Social Networks, 1(3), 215–239. "
+                    "https://doi.org/10.1016/0378-8733(78)90021-7")
+        logger.info("       (白话: 中心度的概念厘清母锚 — degree/betweenness/closeness "
+                    "三族的规范定义; 其中 betweenness 操作化『信息经纪』, 即银行桥接否则"
+                    "不相连的媒体渠道)")
+        logger.info("     · WS-B 二分图银行端原生中心度 方法源② (2-mode/双模网络专用): "
+                    "Borgatti, S. P., & Everett, M. G. (1997). Network analysis of "
+                    "2-mode data. Social Networks, 19(3), 243–269. "
+                    "https://doi.org/10.1016/S0378-8733(96)00301-2")
+        logger.info("       (白话: 媒体-银行是天然双模网络, 本文给出 2-mode 网络上度/介数/"
+                    "接近/聚类/冗余的正确算法; 项目据此对银行端 5 指标做 LCC 限制 + "
+                    "degree≥2 守卫, 避免单模投影丢信息)")
         logger.info("=" * 60)
     except Exception as e:  # noqa: BLE001 — 日志块绝不崩阶段
         logger.warning(f"  环境/配置/方法论 banner 输出失败 (忽略, 不影响计算): {e}")
@@ -490,6 +504,13 @@ def compute_brokerage_centrality(
                         f"({valid:,}/{_n_rows:,}); "
                         f"σ={sig4(_ec.std())} | min={sig4(_ec.min())} | "
                         f"max={sig4(_ec.max())}")
+            # 分位数 (纯日志, golden-safe): 特征向量中心度通常右偏 (少数枢纽垄断渠道)
+            _ecv = _ec.dropna()
+            if len(_ecv) >= 4:
+                _q = _ecv.quantile([0.25, 0.50, 0.75])
+                logger.info(f"     · 分位 (有效值 n={len(_ecv):,}): p25={sig4(_q.loc[0.25])} | "
+                            f"p50={sig4(_q.loc[0.50])} | p75={sig4(_q.loc[0.75])} "
+                            "(右偏→少数信息枢纽银行垄断异质媒体分发渠道)")
             if valid == 0:
                 logger.warning("     · ⚠ 坏: 零有效值 — 全部年份节点不足/分量过小, "
                                "下游该列无识别力 (T=2 盘面常见, 生产 T=18 应复核)")
@@ -786,6 +807,18 @@ def compute_fire_sale_interaction(panel: pd.DataFrame) -> pd.DataFrame:
         logger.info(
             f"     · ✅ 好: 交乘项随 i×t 变异 (唯一值数={_fs.nunique():,d}, "
             f"σ={sig4(_fs.std())}); 正系数 → 信息枢纽银行在行业负面冲击下遭更大损失")
+
+    # 混淆诊断 (纯日志, golden-safe): cent(t-1) 与 shock(t) 的相关性 — 交乘模型须报告
+    # 两主效应分量的共线性以避免交互系数误读 (Brambor, Clark & Golder 2006, Polit Anal)
+    try:
+        _lag_cs = panel.groupby('target_bank')['brokerage_eigen_cent'].shift(1)
+        _corr_cs = _lag_cs.corr(panel['industry_neg_shock'])
+        if pd.notna(_corr_cs):
+            logger.info(
+                f"     · 混淆诊断 corr(cent_t-1, shock_t)={sig4(float(_corr_cs))} "
+                "(|ρ|→0 利于交乘项独立识别; 高 |ρ| 提示两主效应分量共线, 交互系数解读须谨慎)")
+    except Exception as _e:  # noqa: BLE001 — 诊断块绝不崩阶段
+        logger.warning(f"  火灾甩卖混淆诊断失败 (忽略): {_e}")
 
     try:
         logger.info(f"  ⏱ 火灾甩卖交乘子步骤耗时 {sig4(time.time() - _t0)} 秒")

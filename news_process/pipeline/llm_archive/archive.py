@@ -18,7 +18,16 @@ import uuid
 from pathlib import Path
 from typing import Optional
 
+from news_process.core.logging import sig4
+
 logger = logging.getLogger(__name__)
+
+# 运行期日志富集 (infrastructure-richer-runtime-only, round 7):
+# 本模块是 V4 F-P2.1 reproducibility ledger (append-only raw-response 归档), 非
+# 研究测度模块, 故不挂学术 📖 方法论依据块; 富集集中在 *操作性* 运行期可观测性 —
+# 批写吞吐 (KB / 平均字节-每-record, 经 sig4 渲染至四位有效数字)、进程级累计写入量、
+# 跨 UTC 日切分的文件滚动事件。所有新增 logger.* 仅打印已算出的值, 不触碰
+# append-only 不变量 (写入字节 / record 内容 / request_id / return 值零改动)。
 
 
 def _resolve_archive_root() -> Path:
@@ -108,6 +117,10 @@ class LLMArchive:
         # 进程级计数器 (与 LLMCache 风格一致)
         self._writes = 0
         self._bytes_written = 0
+        # 仅日志用: 上次写入命中的 UTC 日切分文件 (用于在 append/append_batch 内
+        # 侦测跨午夜文件滚动并 emit 一条 info; 不进 stats()/不进任何 record/return,
+        # golden-safe 纯可观测性状态)。
+        self._last_file: Optional[Path] = None
 
     def _current_file(self) -> Path:
         """当前应写入的 JSONL 文件 (按 UTC 日切分).
@@ -120,6 +133,28 @@ class LLMArchive:
         """
         today = dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%d')
         return self.responses_dir / f'{today}.jsonl'
+
+    def _note_file(self, fp: Path) -> None:
+        """仅日志 — 侦测并记录 UTC 日切分文件滚动事件 (调用方须已持 self._lock)。
+
+        首次写入 emit 落点文件; 此后仅当 ``fp`` 与上次不同 (跨 UTC 午夜 → 切到次日
+        ``YYYY-MM-DD.jsonl``) 时 emit 一条 info, 让 append-only ledger 的按日分卷在
+        运行期日志里自解释 (M2 跨午夜竞态保护的可观测对照)。最多每 UTC 日一条,
+        零热路径噪声。任何异常吞掉 — 日志绝不阻断 append 写入路径。
+        """
+        try:
+            if self._last_file is None:
+                logger.info("LLMArchive 落点 (首条): %s", fp.name)
+            elif fp != self._last_file:
+                logger.info(
+                    "LLMArchive 跨 UTC 日切分文件滚动: %s → %s "
+                    "(进程级累计 writes=%s 条, bytes=%s KB)",
+                    self._last_file.name, fp.name,
+                    f"{self._writes:,d}", sig4(self._bytes_written / 1024.0),
+                )
+            self._last_file = fp
+        except Exception:  # pragma: no cover - 纯日志, 永不影响写入
+            pass
 
     def _prepare_record(self, record: dict) -> tuple[dict, str]:
         """填充 request_id / timestamp_utc + 校验必填. 返回 (record, line)."""
@@ -156,6 +191,7 @@ class LLMArchive:
         # _current_file() 在 lock 内调用以避免跨午夜 race (M2 修复)
         with self._lock:
             fp = self._current_file()
+            self._note_file(fp)  # 仅日志: 跨午夜文件滚动
             with fp.open('a', encoding='utf-8') as f:
                 f.write(line)
             self._writes += 1
@@ -180,13 +216,24 @@ class LLMArchive:
         rids = [r['request_id'] for r, _ in prepared]
         lines = ''.join(line for _, line in prepared)
         bytes_total = len(lines.encode('utf-8'))
+        n_records = len(records)
 
         with self._lock:
             fp = self._current_file()
+            self._note_file(fp)  # 仅日志: 跨午夜文件滚动
             with fp.open('a', encoding='utf-8') as f:
                 f.write(lines)
-            self._writes += len(records)
+            self._writes += n_records
             self._bytes_written += bytes_total
+        # 批写吞吐可观测性 (embedding API N≤100/批 的性能关键路径; M15 单 lock/单 open)。
+        # debug 级 — 全语料 stage 15/25 嵌入会触发数十万次 batch, 避免淹没 INFO 轨。
+        avg_bytes = bytes_total / n_records if n_records else 0.0
+        logger.debug(
+            "LLMArchive.append_batch: %s 条 record 单次 append "
+            "(~%s KB, 平均 %s B/record) → %s; 进程级累计 writes=%s",
+            f"{n_records:,d}", sig4(bytes_total / 1024.0), sig4(avg_bytes),
+            fp.name, f"{self._writes:,d}",
+        )
         return rids
 
     def stats(self) -> dict:
@@ -197,11 +244,20 @@ class LLMArchive:
         """
         with self._lock:
             current = str(self._current_file())
-            return {
+            snapshot = {
                 'writes': self._writes,
                 'bytes_written': self._bytes_written,
                 'current_file': current,
             }
+        # 仅日志: 进程级写入快照 (人类可读, KB 经 sig4 渲染至四位有效数字)。
+        # debug 级 — stats() 是诊断查询, 不喧哗 INFO 轨; return 值字节不变。
+        logger.debug(
+            "LLMArchive.stats: writes=%s 条, bytes=%s KB, 当前 UTC 日切分文件=%s",
+            f"{snapshot['writes']:,d}",
+            sig4(snapshot['bytes_written'] / 1024.0),
+            Path(current).name,
+        )
+        return snapshot
 
 
 def archive_record(

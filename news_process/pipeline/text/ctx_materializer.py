@@ -400,6 +400,11 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
                 f"但抽取文与全文逐字相等: ≥3 句文走命中句 ±{_sentence_radius} 句窗口盖满 / <3 句短文"
                 f"走字符级回退盖满 → 短文或命中密集的几何假象, 非信号缺失) | 无有效 target_bank "
                 f"{n_ctx_nobank} 条")
+    logger.info(f"       (占带 bank 行 {n_with_bank} 之比, 4 位有效数字: 真·未命中 "
+                f"{pct4(n_ctx_miss / max(n_with_bank, 1))} | 巧合全覆盖 "
+                f"{pct4(n_ctx_cov / max(n_with_bank, 1))} | 无有效 bank "
+                f"{pct4(n_ctx_nobank / max(n_with_bank, 1))} — 判读以'真·未命中率'为准, "
+                f"巧合全覆盖系几何假象非信号缺失)")
     logger.info(f"  ctx_is_fallback 列已写入 (bool): "
                 f"{int(df['ctx_is_fallback'].sum())}/{len(df)} True")
     logger.info(f"  content_ss 物化完成 (银行+金科同句): {len(df)} 行, "
@@ -409,6 +414,11 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
                 f"真信号缺失) | 巧合性全覆盖 {n_ss_cov} 条 (已命中, 但抽取文与全文逐字相等: ±"
                 f"{_ss_sentence_radius} 句窗口或字符回退盖满全文 → 短文几何假象) | 无有效 target_bank "
                 f"{n_ss_nobank} 条 | 金科词典缺失 {n_ss_nodict} 条")
+    logger.info(f"       (占带 bank 行 {n_with_bank} 之比, 4 位有效数字: 真·无共现 "
+                f"{pct4(n_ss_miss / max(n_with_bank, 1))} | 巧合全覆盖 "
+                f"{pct4(n_ss_cov / max(n_with_bank, 1))} | 无有效 bank "
+                f"{pct4(n_ss_nobank / max(n_with_bank, 1))} | 词典缺失 "
+                f"{pct4(n_ss_nodict / max(n_with_bank, 1))})")
     logger.info(f"  ss_is_fallback 列已写入 (bool): "
                 f"{int(df['ss_is_fallback'].sum())}/{len(df)} True")
 
@@ -632,6 +642,14 @@ def main():
                     "Finance, 78(3), 1449-1498. https://doi.org/10.1111/jofi.13219")
         logger.info("       (白话: 用机器学习发现关键词 + 二元组命中构造企业层面文本暴露度, "
                     "是 FINTECH_AC 金科词典构造 + 同句命中计数的标准方法学模板)")
+        logger.info("     · 三轨 = 同一银行-报道的多重'处理'测度 (multiple treatments 计量动因):")
+        logger.info("       de Chaisemartin, C., & D'Haultfœuille, X. (2023). "
+                    "Two-way fixed effects and differences-in-differences estimators "
+                    "with several treatments. Journal of Econometrics, 236(2), 105480. "
+                    "https://doi.org/10.1016/j.jeconom.2023.105480")
+        logger.info("       (白话: 把 full/ctx/ss 视作同一银行-报道的三种并列'处理'定义; "
+                    "据'多重处理须各自识别、不可混入同一过度识别式'之诫, 三轨各自 just-identified "
+                    "并排互证, 严禁混进同一 over-identified Hansen J — 此即本阶段产三轨而非单轨的计量动因)")
     except Exception as _e:  # noqa: BLE001 — 仅日志诊断, 绝不阻断处理
         logger.warning(f"[环境/配置/方法论] 日志 banner 打印失败 (不影响处理): {_e}")
 

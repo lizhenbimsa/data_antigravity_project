@@ -1532,6 +1532,16 @@ def _log_codebook_environment_and_config(
                     "https://doi.org/10.18653/v1/2024.naacl-long.366")
         logger.info("       → 为何用: avg_*_prob_score{,_std} 族取自 LLM 输出 confidence (conf), "
                     "本综述将 ECE 置信校准置于 LLM 时代, 为以 conf 构造 binary prob_score 的做法提供方法学锚点")
+        logger.info("     · LLM 标注最佳实践 (llm_vote_tone 族标注效度): Törnberg, P. (2024). "
+                    "Best practices for text annotation with large language models. "
+                    "Sociologica, 18(2), 67–85. https://doi.org/10.6092/issn.1971-8853/19461")
+        logger.info("     · LLM 文本标注风险导航 (社科语境): Lin, H., & Zhang, Y. (2026). "
+                    "Navigating the risks of using large language models for text annotation "
+                    "in social science research. Social Science Computer Review, 44(3), "
+                    "403–427. https://doi.org/10.1177/08944393251366243")
+        logger.info("       → 为何用: 本手册 llm_vote_tone_{full,ctx,ss} 等列由三家 LLM 多模型"
+                    "合票标注而成, 上两篇为'LLM 作标注器'的效度/风险/可复现提供当代 (2024/2026) "
+                    "方法学锚点, 亦支撑 CV-1 负向类近退化 (情感呈单极偏好而非双极) 的诚实披露")
         logger.info("     · 实质/象征二元 (W&Z 1994/1998 ASQ) 与底层/应用二元 (Gomber et al. 2018 JMIS) "
                     "构念见列名后缀正名, 注册表无对应 DOI 故此处仅注名。")
     except Exception as e:  # noqa: BLE001

@@ -197,6 +197,29 @@ def compute_dedup_sensitivity_treatments(panel: pd.DataFrame) -> pd.DataFrame:
                     "The role of the business press as an information intermediary. "
                     "Journal of Accounting Research, 48(1), 1-19. "
                     "https://doi.org/10.1111/j.1475-679X.2009.00357.x")
+        # 近似重复检测算法依据 (MinHash LSH 近重判定的当代基准, 2024-2025): 本模块的去重
+        # 扰动核心 = ArticleDeduplicator 的 MinHash 签名 + LSH 分桶近重判定, 其计算方法学
+        # 锚点直接 emit 进日志 (补足上方四篇"为何去重"的经济计量动机, 此处给"如何近重检测")。
+        logger.info("    · 近似重复检测算法依据 (付费墙新闻语料近重基准): "
+                    "Kumar, A., Tumre, S., & Patil, S. (2025). Benchmarking "
+                    "near-duplicate detection in the era of pay-walled news. In Companion "
+                    "Proceedings of the ACM on Web Conference 2025 (WWW '25 Companion) "
+                    "(pp. 745–748). Association for Computing Machinery. "
+                    "https://doi.org/10.1145/3701716.3715303")
+        logger.info("    · 聚合/付费墙新闻流近重检测: "
+                    "Tumre, S., Patil, S., & Kumar, A. (2025). Improved near-duplicate "
+                    "detection for aggregated and paywalled news-feeds. In Proceedings of "
+                    "the 2025 Conference of the Nations of the Americas Chapter of the "
+                    "Association for Computational Linguistics: Human Language Technologies "
+                    "(Vol. 3: Industry Track) (pp. 979–987). Association for Computational "
+                    "Linguistics. https://doi.org/10.18653/v1/2025.naacl-industry.73")
+        logger.info("    · 单置换哈希近重文本对齐 (MinHash 变体, 印证签名一次复用): "
+                    "Peng, Z., Zhang, Y., & Deng, D. (2024). Near-duplicate text alignment "
+                    "with one permutation hashing. Proceedings of the ACM on Management of "
+                    "Data, 2(4), Article 222, 1–26. https://doi.org/10.1145/3677136")
+        logger.info("       → 锚定本模块 MinHash 签名 + LSH 分桶近重判定: 前两篇直接对应"
+                    "付费墙/聚合新闻语料的去重稳健性设定, Peng 2024 单置换哈希印证'签名一次"
+                    "计算、参数无关、变体间复用'的工程取舍")
         logger.info("  · 成本/确定性: 纯本地 MinHash 重判重, $0 (不调 LLM/嵌入); "
                     "签名一次计算、参数无关 → 变体间确定可复现")
     except Exception as _e:  # noqa: BLE001 — 日志块绝不阻断面板主流程

@@ -459,6 +459,15 @@ def main():
                     "https://doi.org/10.1016/j.mex.2023.102545")
         logger.info("       (白话: Krippendorff α 2024 计算工具综述, 锚定本模块 outlet×day "
                     "reliability_data 的 inter-coder 信度计算口径。)")
+        logger.info("     · 跨源 tone 方差作媒体分歧度测度: Li, S. Z., & Luan, Z. (2025). "
+                    "News-based investor disagreement and stock returns. Review of Accounting "
+                    "Studies, 30(3), 2312-2375. https://doi.org/10.1007/s11142-025-09897-1")
+        logger.info("       → 本模块 cross_outlet_tone_variance 即新闻级『媒体分歧度』的事件窗操作化 "
+                    "(第 10 篇 bank_media_disagreement 核心变量), 分歧本身即定价信息。")
+        logger.info("     · 多 outlet 媒体结构对覆盖的影响: Dyer, T., Lang, M., & Oh, J. (2025). "
+                    "Media conglomeration, local news, and capital market consequences. "
+                    "Management Science, 71(8), 6602-6626. https://doi.org/10.1287/mnsc.2023.02247")
+        logger.info("       → 锚定跨媒体源 (多 outlet) 一致性/分歧作为信号质量与覆盖结构的代理。")
         logger.info("     · 白话: 把各家媒体当『评分员』, α 衡量它们对同一银行事件的语调打分有多吻合 —— "
                     "越吻合=情感信号越可靠; 分歧本身也是信息 (媒体分歧度)。")
     except Exception as _e:  # noqa: BLE001
@@ -571,6 +580,12 @@ def main():
                     f"中位={sig4(_var_s.median())} [min={sig4(_var_s.min())}, max={sig4(_var_s.max())}]  "
                     "(越高=各媒体语调分歧越大; 0=完全一致)"
                 )
+                # 分布展宽诊断 (log-only, sig4): std 越大 = 各事件的分歧程度本身差异越大。
+                _v_std = float(_var_s.std()) if len(_var_s) > 1 else 0.0
+                logger.info(
+                    f"      └ 标准差={sig4(_v_std)} (n={len(_var_s):,d} 个有效 bank-year; "
+                    "分布展宽, 越大=事件间分歧程度异质性越高)"
+                )
             else:
                 logger.info(f"    cross_outlet_tone_variance: 全 NaN (无 ≥{MIN_OUTLETS_PER_EVENT} 媒体的事件)")
             # α: 越高(→1)=越一致, 越好。常用门槛 α≥0.667 可接受 / ≥0.80 良好 (Krippendorff 2004)
@@ -586,6 +601,12 @@ def main():
                 logger.info(
                     f"    cross_media_alpha: 均值={sig4(_a_mean)} 中位={sig4(_alpha_s.median())} "
                     f"(非空 {len(_alpha_s):,d}/{_n_units:,d})  → {_verdict}"
+                )
+                # 一致性稳定度诊断 (log-only, sig4): α 标准差越小 = 跨事件一致性越稳定。
+                _a_std = float(_alpha_s.std()) if len(_alpha_s) > 1 else 0.0
+                logger.info(
+                    f"      └ α 标准差={sig4(_a_std)} [min={sig4(_alpha_s.min())}, "
+                    f"max={sig4(_alpha_s.max())}] (越小=媒体一致性跨事件越平稳)"
                 )
             elif _krip_ok:
                 logger.info(

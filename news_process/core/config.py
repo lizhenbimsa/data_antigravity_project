@@ -106,6 +106,14 @@ def _inline_external_prompts(config: dict, project_root: str) -> None:
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
+                # 📖 prompt 版本化纪律 (可复现 LLM 标注): 从 prompt 文件首行
+                #    ``# version: <token>`` 派生 ``<key>_version`` 作为 LLMCache 失效键,
+                #    是"改 prompt → cache miss → 重新标注"可见性的根基 (无版本头则 fallback
+                #    'v0' 并 warning, 见下方)。该纪律的方法学依据:
+                #    Carlson, N. A., & Burbano, V. (2026). The use of LLMs to annotate data
+                #    in management research: Foundational guidelines and warnings. Strategic
+                #    Management Journal, 47(3), 699–725. https://doi.org/10.1002/smj.70023
+                #    (§ prompt/温度 的版本登记与可复现纪律)。
                 m = _PROMPT_VERSION_HEADER.match(content)
                 if m is not None:
                     config[target_key + '_version'] = m.group(1)
@@ -387,7 +395,20 @@ def herd_sensitivity_grid(config: dict) -> tuple[list[float], list[str]]:
         tags.append(tag)
 
     order = sorted(range(len(thresholds)), key=lambda i: thresholds[i])
-    return [thresholds[i] for i in order], [tags[i] for i in order]
+    sorted_thr = [thresholds[i] for i in order]
+    sorted_tags = [tags[i] for i in order]
+    # 纯日志富集 (golden-safe): 汇总最终解析出的稳健性阈值网格, 让"回归结论不依赖
+    # 基线 τ 这一具体取值"的稳健性列覆盖范围在日志中自解释 (基线 τ 已剔除, 复用
+    # 既有 herd_weight_{track} 列; 此处仅另登记备选门槛与其列名后缀)。所有非整数
+    # 阈值经 sig4 渲染为四位有效数字 (项目规范 2026-06-24); 仅打印, 不改返回值。
+    _log.info(
+        "herd 相似度阈值敏感性网格已解析: 基线 τ=%s (已剔除/复用既有列), "
+        "另登记 %d 个备选阈值 [%s] → 列名后缀 [%s]",
+        sig4(baseline), len(sorted_thr),
+        ", ".join(sig4(t) for t in sorted_thr) or "无",
+        ", ".join(sorted_tags) or "无",
+    )
+    return sorted_thr, sorted_tags
 
 
 # P0-3 (cleanup/2026-05-13): 决定"panel 构建是否启用"的 compute_* 标识集合.

@@ -1174,6 +1174,18 @@ def main():
             "是该范式的权威出处 — 不靠关键词硬数, 而整体理解一段话的语气。)"
         )
         logger.info(
+            "  · BERT 双向编码架构基座: Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. "
+            "(2019). BERT: Pre-training of deep bidirectional transformers for language "
+            "understanding. In Proceedings of the 2019 Conference of the North American "
+            "Chapter of the Association for Computational Linguistics: Human Language "
+            "Technologies, Volume 1 (Long and Short Papers) (pp. 4171-4186). Association "
+            "for Computational Linguistics. https://doi.org/10.18653/v1/N19-1423"
+        )
+        logger.info(
+            "    (白话: finbert_cn / fin_sent_zh 均建于此双向 Transformer 架构 — 本阶段"
+            "情感分类的底层模型基座出处。)"
+        )
+        logger.info(
             "  · 本地 finbert2 模型出处: Xu, X., Wen, F., Chu, B., Fu, Z., Lin, Q., "
             "Liu, J., Fei, B., Li, Y., Zhou, L., & Yang, Z. (2025). FinBERT2: A "
             "specialized bidirectional encoder for bridging the gap in finance-specific "
@@ -1195,6 +1207,30 @@ def main():
         logger.info(
             "    (白话: 把长金融文档切块过 FinBERT 得表示再注意力池化, 与本阶段"
             "'滑动窗口切片 + 置信度加权池化各窗 logits'同路数, 最贴近本模块的长文处理。)"
+        )
+        logger.info(
+            "  · BERT 文本分类可训练加权池化: Yamato, H., Okada, M., & Mori, N. (2023). "
+            "Trainable weighted pooling method for text classification with BERT. In 2023 "
+            "15th International Congress on Advanced Applied Informatics Winter "
+            "(IIAI-AAI-Winter) (pp. 266-271). IEEE. "
+            "https://doi.org/10.1109/iiai-aai-winter61682.2023.00056"
+        )
+        logger.info(
+            "    (白话: 直接锚定本阶段 Step 3 的窗口加权池化 logits*=Σ(conf_k·logits_k)/Σconf_k — "
+            "以加权而非简单平均聚合多窗 BERT 输出的方法学出处。)"
+        )
+        logger.info(
+            "  · 置信度估计与校准 (加权权重来源): Geng, J., Cai, F., Wang, Y., Koeppl, H., "
+            "Nakov, P., & Gurevych, I. (2024). A survey of confidence estimation and "
+            "calibration in large language models. In Proceedings of the 2024 Conference of "
+            "the North American Chapter of the Association for Computational Linguistics: "
+            "Human Language Technologies (Volume 1: Long Papers) (pp. 6577-6595). "
+            "Association for Computational Linguistics. "
+            "https://doi.org/10.18653/v1/2024.naacl-long.366"
+        )
+        logger.info(
+            "    (白话: 本阶段以 softmax 最大概率作各窗置信度并据此加权 — 此为置信度估计/"
+            "校准的方法学综述锚, 支撑'高置信窗口话语权更大'的池化设计。)"
         )
         logger.info(
             "  · 长文档分类设计空间综述: Alva Principe, R., Chiarini, N., & Viviani, M. "

@@ -656,6 +656,12 @@ def _log_benefit_env_config_methods(panel: pd.DataFrame,
         logger.info("       Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence "
                     "embeddings using Siamese BERT-networks. In Proceedings of EMNLP-IJCNLP "
                     "(pp. 3980-3990). ACL. https://doi.org/10.18653/v1/D19-1410")
+        logger.info("     · 嵌入派生测度作『生成式回归量』的计量推断框架 (benefit_mean 进面板回归的依据):")
+        logger.info("       Ludwig, J., Mullainathan, S., & Rambachan, A. (2025). Large language "
+                    "models: An applied econometric framework (NBER Working Paper No. 33344). "
+                    "National Bureau of Economic Research. https://doi.org/10.3386/w33344")
+        logger.info("       → benefit_score = 嵌入×锚点方向余弦投影的 generated regressor; 下游以 "
+                    "bank/year FE 吸收其固定偏移、listwise 处理 NaN, 对齐该框架对测度误差的告诫")
         logger.info("     · 白话: 给每篇金科新闻打『利好/损害银行经营』连续态度分 "
                     "(>0 利好, <0 损害), 双 API 模型 × 三轨交叉验证。")
     except Exception as exc:  # noqa: BLE001
@@ -897,8 +903,12 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
             _rates = {c: float(panel[c].notna().mean()) for c in _emitted_cols}
             _best = max(_rates.values())
             _worst = min(_rates.values())
+            _mean_cov = sum(_rates.values()) / len(_rates)
+            _n_lg = sum(1 for _c in _emitted_cols if '_lg_' in _c)
             logger.info(f"     · 产出 benefit_mean 列数={_n_emitted:,d} (含 _lg co-primary twin × 三轨) | "
                         f"覆盖率区间 [{pct4(_worst)}, {pct4(_best)}]")
+            logger.info(f"       (均值覆盖率={pct4(_mean_cov)} | _lg co-primary twin 列数={_n_lg:,d} / "
+                        f"MAIN canonical 列数={_n_emitted - _n_lg:,d}; 双 API 模型 both-or-neither parity)")
             for _c, _r in _rates.items():
                 logger.info(f"       - {_c}: 非空率 {pct4(_r)}")
             # 连续主测度 benefit_mean 的整体数值健康 (取首个非全空列做快速诊断)

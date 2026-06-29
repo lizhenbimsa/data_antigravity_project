@@ -68,6 +68,19 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
         logger.info("     · 不平衡面板 (unbalanced panel) 的银行进入/退出诊断 = "
                     "面板计量经济学标准做法 (Wooldridge 2010; Baltagi 2021; "
                     "DOI 不在核验注册表, 仅列注释依据, 不 emit 为已证文献)")
+        logger.info("     · 现代交错 DiD/TWFE 实践指南 (面板平衡性 + 处理时点异质性 "
+                    "对估计量的影响; 经 Crossref 核验注册表逐字取):")
+        logger.info("         - Baker, A., Callaway, B., Cunningham, S., "
+                    "Goodman-Bacon, A., & Sant'Anna, P. H. C. (2026). "
+                    "Difference-in-differences designs: A practitioner's guide. "
+                    "Journal of Economic Literature, 64(2), 498–557. "
+                    "https://doi.org/10.1257/jel.20251650")
+        logger.info("         - Dube, A., Girardi, D., Jordà, Ò., & Taylor, A. M. "
+                    "(2025). A local projections approach to difference-in-"
+                    "differences. Journal of Applied Econometrics, 40(7), "
+                    "741–758. https://doi.org/10.1002/jae.70000")
+        logger.info("       (→ 本面板的平衡率/逐年银行数/有效覆盖诊断是下游交错 DiD "
+                    "的结构性前提: 不平衡 + 处理时点异质易致 TWFE 负权重, 故须先验。)")
         logger.info("     · 白话: 算清每家银行覆盖几年、每年有几家银行、有效新闻覆盖率, "
                     "判面板是否'方正'到能直接跑固定效应回归。")
     except Exception as _e:
@@ -175,6 +188,13 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 logger.info(f"  G-14 距离衰减: Pearson(uniform, inverse) = "
                             f"{sig4(_avg_p)} (avg), "
                             f"{sig4(_min_p)} (min)")
+                logger.info("    📖 距离衰减/暴露加权方法依据 (经核验): Borusyak, K., "
+                            "Hull, P., & Jaravel, X. (2025). A practical guide to "
+                            "shift-share instruments. Journal of Economic "
+                            "Perspectives, 39(1), 181–204. "
+                            "https://doi.org/10.1257/jep.20231370")
+                logger.info("       (→ uniform vs inverse-distance 暴露加权的稳健性 = "
+                            "shift-share 暴露设计中 share 权重设定敏感性的同源关切。)")
                 # 研判: uniform vs inverse 高相关 = 距离衰减权重对结果不敏感 (稳健)
                 try:
                     if _min_p >= 0.95:
@@ -220,6 +240,13 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     if partial > 0:
         min_years = bank_year_counts.min()
         logger.info(f"  部分覆盖银行: {partial} 家, 最少仅覆盖 {min_years} 年")
+    # 每银行年份覆盖深度分布 (sig4): 不平衡严重度 = 1 − 平衡率 (越接近满覆盖越方正)
+    try:
+        logger.info(f"  每银行年份覆盖: mean={sig4(bank_year_counts.mean())}, "
+                    f"median={sig4(bank_year_counts.median())} "
+                    f"(满覆盖={max_years} 年; 不平衡严重度={sig4(1.0 - balance_ratio)})")
+    except Exception as _e:
+        logger.warning(f"    [diag] 覆盖深度分布跳过: {_e}")
 
     # (c) 每年的银行数
     year_bank_counts = panel.groupby('year')['target_bank'].nunique()

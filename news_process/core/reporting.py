@@ -319,6 +319,11 @@ def _log_environment_and_config(config, logger, output_dir: str,
                     "reporting. Proceedings of the Conference on Fairness, Accountability, and Transparency "
                     "(FAccT '19), 220-229. https://doi.org/10.1145/3287560.3287596")
         logger.info("       → 末阶段 dtype/缺失率/数值分布报告对应 model card 的 'quantitative analyses' 透明度披露")
+        logger.info("     · LLM 标注可复现性: Cheng, X., Mayya, R., & Sedoc, J. (2024). To err is "
+                    "human; to annotate, SILICON? Toward robust reproducibility in LLM annotation "
+                    "(arXiv:2412.14461). arXiv. https://doi.org/10.48550/arXiv.2412.14461")
+        logger.info("       → 摘要表逐阶段披露 LLM 标注列 (stage 21 tone_llms) 经过的留篇/聚合行集, "
+                    "为'LLM 生成的情感分数如何被记录与离线复现'提供运行期审计轨迹")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
 

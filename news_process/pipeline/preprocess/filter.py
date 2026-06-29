@@ -89,8 +89,17 @@ def _log_filter_methodology_once() -> None:
             "54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123"
         )
         logger.info(
+            "     · Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based "
+            "sentiment analysis in finance: Synthesising the existing literature "
+            "and exploring future directions. Intelligent Systems in Accounting, "
+            "Finance and Management, 31(1), e1549. "
+            "https://doi.org/10.1002/isaf.1549"
+        )
+        logger.info(
             "       → 词典/关键词法 (Aho-Corasick O(n) 匹配) 是金融文本分析构建"
             "主题相关语料的标准样本选择; 广告版面排除作为附录可披露的样本选择规则。"
+            " Todd et al. (2024) 近期综述印证: 词典/关键词法在 2020s 仍是金融文本"
+            "语料构建与情感分析的基础层 (与 LLM/嵌入法互补, 而非被取代)。"
         )
     except Exception as e:  # noqa: BLE001  纯日志, 失败绝不阻断 worker 过滤
         logger.warning(f"  filter 方法论 banner 打印失败 (不影响处理): {e}")
@@ -149,6 +158,9 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
     # 本层输入行数 (仅服务于末尾保留率结果判读的局部变量; 不入任何产物)
     _rows_in = len(df)
+    # 纯日志局部累加器: [(步骤标签, 该步移除行数, 该步后剩余行数)] — 仅供末尾
+    # "逐步淘汰构成" 汇总日志消费, 绝不入任何产物/返回/控制流 (golden-safe)。
+    _step_removed = []
 
     # 1. 媒体地域过滤: 仅保留中国大陆地区的媒体
     if REGION_PATTERN is not None:
@@ -156,11 +168,13 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         region_cleaned = df['国家地区/省份'].astype(str).str.replace(r'\s+', '', regex=True)
         df = df[region_cleaned.str.contains(REGION_PATTERN, na=False, regex=True)]
         logger.info(f"  [1/8 地域过滤] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
+        _step_removed.append(('地域', rows_before - len(df), len(df)))
 
     # 2. 媒体类型过滤: 仅保留指定类型(如"报纸")
     rows_before = len(df)
     df = df[df['媒体类型(中文)'].isin(MEDIA_TYPES_INCLUDE_SET)]
     logger.info(f"  [2/8 类型过滤] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
+    _step_removed.append(('类型', rows_before - len(df), len(df)))
 
     # 3. 媒体名称黑名单过滤: 排除剪报服务机构等非原始新闻来源
     if MEDIA_NAMES_TO_EXCLUDE:
@@ -168,6 +182,7 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         df = df[~df['媒体(中文)'].astype(str).isin(MEDIA_NAMES_TO_EXCLUDE)]
         if rows_before - len(df) > 0:
             logger.info(f"  [3/8 媒体名称黑名单] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
+            _step_removed.append(('黑名单', rows_before - len(df), len(df)))
 
     # 4. 关键字段缺失值过滤(标题、内容、媒体名、日期任一为空则移除)
     rows_before = len(df)
@@ -180,6 +195,7 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         if _col in df.columns:
             df = df[df[_col].astype(str).str.strip() != '']
     logger.info(f"  [4/8 缺失值过滤] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
+    _step_removed.append(('缺失', rows_before - len(df), len(df)))
 
     # 5. 广告关键词过滤(检查标题、版面、栏名三个字段)
     # fix(omni-g-preprocess-05, 2026-06-11): 标题字段改用 AD_PATTERN_TITLE —
@@ -209,6 +225,7 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
                 f"移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,} "
                 f"(词级命中, 可重叠: {kw_detail})"
             )
+            _step_removed.append((f'广告·{field_name}', rows_before - len(df), len(df)))
 
     # 6. 银行关键词保留过滤(Aho-Corasick O(n) 复杂度)
     # 只保留内容中提及至少一个银行关键词的新闻
@@ -223,6 +240,7 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         )
         df = df[mask]
         logger.info(f"  [6/8 银行关键词过滤] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
+        _step_removed.append(('银行词', rows_before - len(df), len(df)))
 
     # 7. Schema 统一: object 列 → string, 确保后续 Parquet 序列化安全
     for col in df.columns:
@@ -287,6 +305,16 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
                 f"  📊 [本文件块过滤汇总] {_rows_in:,} → {_rows_out:,} 行, "
                 f"整体保留率={pct4(_keep)} — {_verdict}"
             )
+            # 逐步淘汰构成 (各步移除占原始行数; 主力通常=地域 ~60-70% + 银行词
+            # ~30-50%, 其余为卫生型过滤), 供论文 data appendix 排除瀑布表素材。
+            if _step_removed:
+                _breakdown = ', '.join(
+                    f"{lbl} -{rmv:,} ({pct4(rmv / _rows_in)})"
+                    for lbl, rmv, _rem in _step_removed
+                )
+                logger.info(
+                    f"  📊 [逐步淘汰构成 占原始 {_rows_in:,} 行] {_breakdown}"
+                )
     except Exception as e:  # noqa: BLE001  纯日志, 失败绝不阻断过滤返回
         logger.warning(f"  过滤汇总判读打印失败 (不影响处理): {e}")
 

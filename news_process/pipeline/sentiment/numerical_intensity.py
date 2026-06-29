@@ -493,6 +493,16 @@ def enrich_with_num_intensity_dual_track(df: pd.DataFrame,
                     "Sciences Communications, 11(1), 1653. https://doi.org/10.1057/s41599-024-04169-w")
         logger.info("         (白话: 用文本挖掘评披露的具体性/信息含量, 与本模块『数字越多越具体硬信息越足』"
                     "同一测度逻辑。)")
+        logger.info("     [4] Taraj, I., & Wahlström, R. R. (2026). Narratives contextualizing numeric "
+                    "disclosures: Insights from earnings calls. Journal of Business Finance & Accounting, "
+                    "53(3), 1263-1286. https://doi.org/10.1111/jbfa.70056")
+        logger.info("         (白话: 数字披露须与叙事窗口联动解读 — 数字密度必须放进句/段粒度的语境里看, "
+                    "正是本模块 full/ctx/ss 三轨 (全文 / 银行邻近句 / 银行∧金科同句) 设计的理论依据。)")
+        logger.info("     [5] Lan, Y., Wu, Y., Xu, W., Feng, W., & Zhang, Y. (2025). Chinese fine-grained "
+                    "financial sentiment analysis with large language models. Neural Computing and "
+                    "Applications, 37(30), 24883-24892. https://doi.org/10.1007/s00521-024-10603-6")
+        logger.info("         (白话: 中文金融文本细粒度处理的近期实证 — 作为本模块在中文金融语料上做词级 "
+                    "(jieba) 与句级多粒度数字密度测度的领域旁证 (domain-adjacent), 而非分词算法本身的依据。)")
     except Exception as _e_banner:  # 日志块绝不许崩阶段
         logger.warning(f"num_intensity 子步骤 banner 渲染失败 (已跳过, 不影响产物): {_e_banner}")
 

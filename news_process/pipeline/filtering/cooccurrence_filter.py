@@ -480,6 +480,39 @@ def main():
             "零改动; 被丢的中间集从 ft 端移到 nf 端代数和守恒 → fintech_share 分母恒不变, "
             "仅分子(同句相关金科篇数) 随过滤变小, 已在 manuscript/codebook 如实披露。"
         )
+        # 年份分层 keep 率 (deepen_runtime): 把聚合 keep 率拆到各年, 验证 0.1427 严格同句
+        # 零共现基线 (disk 1170 篇实测) 是否跨年稳定 (全量 T=18 时单一硬编码基线可能掩盖
+        # 年度构成漂移)。纯日志, 仅读 df/df_kept 年份分布对账, 不回写任何列 (golden-safe)。
+        try:
+            _year_col = next(
+                (c for c in ('year', '年份', '日期') if c in df.columns), None
+            )
+            if _year_col is not None and n_in > 0:
+                if _year_col == '日期':
+                    _yin = pd.to_datetime(df['日期'], errors='coerce').dt.year
+                    _yout = pd.to_datetime(
+                        df_kept['日期'], errors='coerce').dt.year
+                else:
+                    _yin = pd.to_numeric(df[_year_col], errors='coerce')
+                    _yout = pd.to_numeric(df_kept[_year_col], errors='coerce')
+                _cin = _yin.dropna().astype(int).value_counts().sort_index()
+                _cout = _yout.dropna().astype(int).value_counts()
+                if len(_cin) > 0:
+                    logger.info(
+                        f"  [年份分层 keep 率] 逐年同句共现保留率 (来源列 '{_year_col}'; "
+                        f"对照 0.1427 严格同句零共现基线 = 预期 drop):"
+                    )
+                    for _yr, _ni in _cin.items():
+                        _no = int(_cout.get(_yr, 0))
+                        _kf_y = (_no / int(_ni)) if _ni else 0.0
+                        _zero_y = 1.0 - _kf_y  # 该年零共现 (被丢) 率
+                        logger.info(
+                            f"     · {int(_yr)}: 保留 {_no:,d}/{int(_ni):,d} "
+                            f"(keep={sig4(_kf_y)} = {pct4(_kf_y)}, "
+                            f"零共现 drop={pct4(_zero_y)})"
+                        )
+        except Exception as _ye:  # noqa: BLE001 — 年份分层诊断绝不阻断产物
+            logger.info(f"  [年份分层 keep 率] 计算跳过 (不影响产物): {_ye}")
         # 小样本警告 (盘面 T=2)
         if n_banks_out <= 2 or n_in < 5000:
             logger.warning(

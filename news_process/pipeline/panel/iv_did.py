@@ -87,6 +87,15 @@ _IV_DID_REFERENCES = (
     "Gabaix, X., & Koijen, R. S. J. (2024). Granular instrumental variables. "
     "Journal of Political Economy, 132(7), 2274-2303. "
     "https://doi.org/10.1086/728743",
+    # [6] 聚类稳健 jackknife 标准误 — 少簇 (T=2/银行数少) bank-year 聚类下 2SLS·DiD 推断
+    "Hansen, B. E. (2026). Jackknife standard errors for clustered regression. "
+    "The Review of Economic Studies. Advance online publication. "
+    "https://doi.org/10.1093/restud/rdag050",
+    # [7] 多向聚类 + 序列相关时间效应 wild bootstrap — bank×year 面板少簇稳健 p 值
+    "Hounyo, U., & Lin, J. (2026). Wild bootstrap inference with multiway "
+    "clustering and serially correlated time effects. Journal of Business & "
+    "Economic Statistics, 44(2), 601–612. "
+    "https://doi.org/10.1080/07350015.2025.2546454",
 )
 
 
@@ -113,6 +122,12 @@ def _log_iv_did_method_refs(lg=None) -> None:
         _lg.info("    · 颗粒工具变量 (leave-one-out 同业 IV 顶刊源): "
                  + _IV_DID_REFERENCES[5])
         _lg.info("      (白话: 用大机构的特异冲击做工具, 与本模块同组其他银行 LOO shift 同源)")
+        _lg.info("    · 聚类稳健 jackknife 标准误 (少簇 bank-year 聚类下 2SLS/DiD 推断): "
+                 + _IV_DID_REFERENCES[6])
+        _lg.info("      (白话: T=2/银行数少时常规聚类 SE 失真, 刀切 SE 给少簇稳健推断)")
+        _lg.info("    · 多向聚类 + 序列相关时间效应 wild bootstrap (bank×year 面板): "
+                 + _IV_DID_REFERENCES[7])
+        _lg.info("      (白话: 对 bank 与 year 两维同时聚类、时间效应序列相关时的稳健 p 值)")
     except Exception as e:  # noqa: BLE001 — 日志块绝不得让阶段崩溃
         (lg or logger).warning(f"  方法论引用日志块跳过 (非致命): {e}")
 
@@ -444,6 +459,30 @@ def compute_bartik_iv(panel: pd.DataFrame,
             except Exception as e:  # noqa: BLE001
                 logger.warning(f"    IV 结果判读跳过 (非致命): {e}")
 
+    # ── 一阶段强度诊断 (纯日志, golden-safe): 基期 share one-hot 退化率 ──
+    # T=2 试跑下基期 share 大面积退化为 own-type one-hot (模块头第 3 条, 实测
+    # 64% bank-year), 一阶段近共线于 bank-type FE → 弱工具。此处报 share≈1.0 行
+    # 占比, 让"工具弱在哪"自记入日志 (Hansen 2026/Hounyo-Lin 2026 少簇推断语境)。
+    try:
+        _share_cols = [f'bartik_{group_prefix}_share_{g}' for g in groups
+                       if f'bartik_{group_prefix}_share_{g}' in panel.columns]
+        if _share_cols:
+            _smax = panel[_share_cols].max(axis=1)
+            _n_share = int(_smax.notna().sum())
+            if _n_share > 0:
+                _onehot = int((_smax >= 0.9999).sum())
+                _onehot_frac = _onehot / _n_share
+                logger.info(
+                    f"  [{group_prefix}] 一阶段 share 退化诊断: "
+                    f"{_onehot:,d}/{_n_share:,d} bank-year 基期 share≈1.0 one-hot "
+                    f"({pct4(_onehot_frac)}); 退化行工具近共线于 bank-type FE")
+                if _onehot_frac >= 0.5:
+                    logger.warning(
+                        f"    ⚠ [{group_prefix}] {pct4(_onehot_frac)} 基期 share one-hot "
+                        "退化 — 一阶段弱工具风险高, 相应 2SLS 须报 KP rk F 并降权 (T=2 预期)")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  [{group_prefix}] 一阶段 share 退化诊断跳过 (非致命): {e}")
+
     return panel
 
 
@@ -620,6 +659,29 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
                                    "一阶段弱工具风险高")
             except Exception as e:  # noqa: BLE001
                 logger.warning(f"    IV 结果判读跳过 (非致命): {e}")
+
+    # ── 一阶段强度诊断 (纯日志, golden-safe): 基期 share one-hot 退化率 ──
+    # 文章属性维度 (fintech 基期类别 96.7% app vs 3.3% tech, 模块头第 3 条) 同样
+    # 易退化为 one-hot, 一阶段弱。报 share≈1.0 行占比让弱工具自记入日志。
+    try:
+        _share_cols = [f'bartik_{group_prefix}_share_{g}' for g in groups
+                       if f'bartik_{group_prefix}_share_{g}' in panel.columns]
+        if _share_cols:
+            _smax = panel[_share_cols].max(axis=1)
+            _n_share = int(_smax.notna().sum())
+            if _n_share > 0:
+                _onehot = int((_smax >= 0.9999).sum())
+                _onehot_frac = _onehot / _n_share
+                logger.info(
+                    f"  [{group_prefix}] 一阶段 share 退化诊断: "
+                    f"{_onehot:,d}/{_n_share:,d} bank-year 基期 share≈1.0 one-hot "
+                    f"({pct4(_onehot_frac)}); 退化行工具近共线于类别 FE")
+                if _onehot_frac >= 0.5:
+                    logger.warning(
+                        f"    ⚠ [{group_prefix}] {pct4(_onehot_frac)} 基期 share one-hot "
+                        "退化 — 一阶段弱工具风险高, 相应 2SLS 须报 KP rk F 并降权 (T=2 预期)")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  [{group_prefix}] 一阶段 share 退化诊断跳过 (非致命): {e}")
 
     return panel
 
@@ -917,6 +979,16 @@ def merge_policy_shocks(panel: pd.DataFrame) -> pd.DataFrame:
                      .to_dict())
         logger.info(f"  {policy_name}: 处理组 {n_treated} 家, "
                     f"控制组 {n_control} 家, 年份分布 {year_dist}")
+        # never-treated 占比 (纯日志): 覆盖面广时该组结构性趋空 → 改用 csdid notyet
+        try:
+            _n_banks_tot = n_treated + n_control
+            if _n_banks_tot > 0:
+                logger.info(
+                    f"  {policy_name}: never-treated 控制组占比 = "
+                    f"{n_control}/{_n_banks_tot} ({pct4(n_control / _n_banks_tot)}); "
+                    "覆盖面广时该组趋空, csdid 须改 notyet (not-yet-treated) baseline")
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"  {policy_name}: never-treated 占比日志跳过 (非致命): {e}")
 
         # fix(omni-g-ivdid-05, 2026-06-11): never-treated 控制组规模守卫 — 政策
         # 覆盖面广 (sandbox 2022 后 23 省级辖区) 时 never-treated 组结构性趋空

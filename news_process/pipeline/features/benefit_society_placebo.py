@@ -333,6 +333,17 @@ def _log_environment_and_config(
             "       → 把『金科利好经营』方向向量施加到与金科无关的业务线新闻上; "
             "若无关新闻也量出强信号, 说明尺子量的是普遍语气而非金科 (证伪用对照)"
         )
+        logger.info(
+            "     · 文本测度构念效度的证伪/中性化范式 (同源 Manela, 方法论近邻):"
+        )
+        logger.info(
+            "       Engelberg, J., Manela, A., Mullins, W., & Vulicevic, L. (2025). "
+            "Entity neutering [Working paper]. SSRN. https://doi.org/10.2139/ssrn.5182756"
+        )
+        logger.info(
+            "       → entity neutering 测实体特异性, 本安慰剂测主题(金科)特异性 — 二者同属"
+            "『嵌入测度是否真捕捉声称构念而非普遍语气/实体泄漏』的证伪检验 (不同特异性维度, 同一证伪哲学)"
+        )
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
 
@@ -408,9 +419,10 @@ def main(argv: list[str] | None = None) -> int:
             f"     · placebo 规格数: {_n_specs:,d}/5 "
             f"{'✅ 完整' if _n_specs == 5 else '⚠ 不足 (预期 4 业务线 + 1 中性)'}"
         )
+        _max_kw = max(_all_counts) if _all_counts else 0
         logger.info(
             f"     · 关键词总量: {_total_kw:,d} 词 | 每规格均值={sig4(_mean_kw)} 词 | "
-            f"最小规格={_min_kw:,d} 词"
+            f"规格词数 [min, max]=[{_min_kw:,d}, {_max_kw:,d}]"
         )
         logger.info(
             f"     · 规格间词表均衡度 (min/max)={sig4(_balance)} "

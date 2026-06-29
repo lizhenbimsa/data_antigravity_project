@@ -900,9 +900,9 @@ def _safe_ttest(group_a, group_b, label_a, label_b, var_name, logger_inst):
         sig = '显著' if result['significant'] else '不显著'
         _diff_txt = f"{'+' if diff >= 0 else '-'}{sig4(abs(diff))}"  # 保留 ± 号 + 4 有效数字
         logger_inst.info(
-            f"    {var_name}: {label_a}均值={result['mean_a']}(n={n_a}), "
-            f"{label_b}均值={result['mean_b']}(n={n_b}), "
-            f"差值={_diff_txt}, t={result['statistic']}, p={result['p_value']} {sig}"
+            f"    {var_name}: {label_a}均值={sig4(result['mean_a'])}(n={n_a}), "
+            f"{label_b}均值={sig4(result['mean_b'])}(n={n_b}), "
+            f"差值={_diff_txt}, t={sig4(result['statistic'])}, p={sig4(result['p_value'])} {sig}"
         )
     return result
 
@@ -939,7 +939,7 @@ def _safe_kstest(group_a, group_b, label_a, label_b, var_name, logger_inst):
     if logger_inst and not result['skipped']:
         sig = '显著' if result['significant'] else '不显著'
         logger_inst.info(
-            f"    {var_name} KS: D={result['statistic']}, p={result['p_value']} {sig}"
+            f"    {var_name} KS: D={sig4(result['statistic'])}, p={sig4(result['p_value'])} {sig}"
         )
     return result
 
@@ -1667,8 +1667,33 @@ def main():
                     "research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253")
         logger.info("    (白话: 顶刊给出用生成式 LLM 做文本测度的规范——温度设 0、冻结 prompt、缓存保确定性, "
                     "本阶段评估的正是按此规范产出的 LLM 标签。)")
-        logger.info("  · 一致度依据 (注册表无可核验 DOI, 仅作者-年份): Cohen κ = Landis & Koch (1977, "
-                    "Biometrics 33(1):159-174); Krippendorff α = Krippendorff (2004/2018)。")
+        # round-7 富集 (2026-06-29): 一致度系数与不确定性量化已可补经核验 DOI (前述
+        # "注册表无可核验 DOI" 表述就此作废 — Cohen/Landis-Koch/Hayes-Krippendorff/Wilson
+        # 均已 Crossref 核验)。
+        logger.info("  · κ 解释带 (本模块判读 κ≥0.80 的阈值出处): Landis, J. R., & Koch, G. G. (1977). The "
+                    "measurement of observer agreement for categorical data. Biometrics, 33(1), 159-174. "
+                    "https://doi.org/10.2307/2529310")
+        logger.info("  · Cohen κ 原始定义 (compute_cohens_kappa 的 (p_o−p_e)/(1−p_e) 出处): Cohen, J. (1960). "
+                    "A coefficient of agreement for nominal scales. Educational and Psychological "
+                    "Measurement, 20(1), 37-46. https://doi.org/10.1177/001316446002000104")
+        logger.info("  · Krippendorff α 标准信度度量 (compute_krippendorffs_alpha 多编码者扩展依据): Hayes, A. F., "
+                    "& Krippendorff, K. (2007). Answering the call for a standard reliability measure for "
+                    "coding data. Communication Methods and Measures, 1(1), 77-89. "
+                    "https://doi.org/10.1080/19312450709336664")
+        logger.info("  · accuracy 的 Wilson 95% CI (compute_classification_metrics 不确定性量化出处): Wilson, "
+                    "E. B. (1927). Probable inference, the law of succession, and statistical inference. "
+                    "Journal of the American Statistical Association, 22(158), 209-212. "
+                    "https://doi.org/10.1080/01621459.1927.10502953")
+        logger.info("  · LLM 标注可复现性 (SILICON; 锚定缓存/温度=0 确定性纪律): Cheng, X., Mayya, R., & Sedoc, J. "
+                    "(2024). To err is human; to annotate, SILICON? Toward robust reproducibility in LLM "
+                    "annotation. arXiv. https://doi.org/10.48550/arXiv.2412.14461")
+        logger.info("  · LLM hacking / 标注配置隐藏风险量化 (Panel D 误分类偏倚诊断的当代动机): Baumann, J., "
+                    "Röttger, P., Urman, A., Wendsjö, A., Plaza-del-Arco, F. M., Gruber, J. B., & Hovy, D. "
+                    "(2025). Large language model hacking: Quantifying the hidden risks of using LLMs for "
+                    "text annotation. arXiv. https://doi.org/10.48550/arXiv.2509.08825")
+        logger.info("  · 社会科学 LLM 标注风险指南: Lin, H., & Zhang, Y. (2026). Navigating the risks of using "
+                    "large language models for text annotation in social science research. Social Science "
+                    "Computer Review, 44(3), 403-427. https://doi.org/10.1177/08944393251366243")
     except Exception as _e:
         logger.warning(f"[METHOD banner] 方法论引用打印异常, 跳过(不影响产物): {_e}")
     logger.info("-" * 72)
@@ -2379,7 +2404,7 @@ def main():
             std_report['验证任务_κ_95%CI'] = f"[{ci_low}, {ci_high}]"
             std_report['验证任务_κ_CI方法'] = '渐近近似(Fleiss简化SE,截断至[-1,1]);建议bootstrap'
             logger.info(f"  验证任务: κ = {sig4(kappa_val)}, 95% CI = [{sig4(ci_low)}, {sig4(ci_high)}]")
-            logger.info(f"  验证任务: α = {alpha_ver}, N = {n_s}")
+            logger.info(f"  验证任务: α = {sig4(alpha_ver)}, N = {n_s}")
 
     icr_sen = results.get('inter_coder_reliability', {}).get('sentiment', {})
     if icr_sen:
@@ -2402,7 +2427,7 @@ def main():
             std_report['情感任务_κ_95%CI'] = f"[{ci_low_s}, {ci_high_s}]"
             std_report['情感任务_κ_CI方法'] = '渐近近似(Fleiss简化SE,截断至[-1,1]);建议bootstrap'
             logger.info(f"  情感任务: κ = {sig4(kappa_val_s)}, 95% CI = [{sig4(ci_low_s)}, {sig4(ci_high_s)}]")
-            logger.info(f"  情感任务: α = {alpha_sen}, N = {n_s_s}")
+            logger.info(f"  情感任务: α = {sig4(alpha_sen)}, N = {n_s_s}")
 
     # 输出标准化报告 CSV (fix(omni-g-val-eval-02, 2026-06-11): demo 产物加 _DEMO 后缀)
     std_report_path = _demo_marked_path(

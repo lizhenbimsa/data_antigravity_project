@@ -195,6 +195,31 @@ def encode_categorical_columns(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str
             df[col] = _map_categorical_failloud(df[col], COLLAB_MODE_ENCODING, col)
             value_labels[col] = COLLAB_MODE_VALUE_LABELS
 
+    # 运行期诊断 (纯日志, golden-safe): 报告本次 str→byte 类别编码命中列数。
+    # 当前 bank-year 面板通常无文章级 innovation_* str 列 (encode.py 聚合期已消费),
+    # 故 n_enc=0 为预期 no-op (诚实披露 fix omni-g-stata-export-14, 非异常)。
+    try:
+        _n_enc = len(value_labels)
+        _n_cand = sum(
+            1 for _c in df.columns
+            if _c.startswith('innovation_locus_')
+            or _c.startswith('innovation_substantiveness_')
+            or _c.startswith('innovation_collab_mode_')
+        )
+        if _n_enc:
+            logger.info(
+                f"  [stata-encode] 类别 str→byte 编码命中 {_n_enc:,d} 列 "
+                f"(LOCUS/SUBSTANTIVENESS/COLLAB_MODE × full/ctx/ss; 候选 {_n_cand:,d}): "
+                f"{sorted(value_labels.keys())}"
+            )
+        else:
+            logger.info(
+                "  [stata-encode] 0 列编码 (no-op): bank-year 面板无文章级 innovation_* "
+                "str 列 → value_labels={} (encode.py 聚合期已消费, 诚实披露非异常)"
+            )
+    except Exception as _e:  # noqa: BLE001 — 诊断块绝不崩导出
+        logger.warning(f"  [stata-encode] 诊断日志跳过 (不影响产物): {_e}")
+
     return df, value_labels
 
 
@@ -715,6 +740,33 @@ def shorten_long_column_names(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str,
     # plan §0/§7.1/M1: 三轨 (full/ctx/ss) 写前唯一性断言 — 同一 base 的轨家族
     # sanitize 后绝不可坍缩到同名 (前瞻护栏; _ss 短于 _ctx, 正常路径恒通过)
     _assert_track_triplet_unique(list(df.columns), new_cols)
+
+    # 运行期诊断 (纯日志, golden-safe): 缩名规模 + md5 去重率 + 平均字符缩减。
+    # md5 后缀保证跨 run 确定性 (同列恒产同 hash, 见 docstring §3); _n_md5 为基于
+    # 短名形态 (尾 7 位 = '_' + 6 hex) 的估计, 仅供审计参考, 不参与任何产物决策。
+    try:
+        _n_over = sum(1 for _c in df.columns if len(_c) > STATA_VAR_NAME_MAXLEN)
+        _n_renamed = len(rename_map)
+        if _n_renamed:
+            _reds = [len(_orig) - len(_short) for _short, _orig in rename_map.items()]
+            _avg_red = sum(_reds) / len(_reds)
+            _n_md5 = sum(
+                1 for _s in rename_map
+                if len(_s) >= 7 and _s[-7] == '_'
+                and all(_ch in '0123456789abcdef' for _ch in _s[-6:])
+            )
+            logger.info(
+                f"  [stata-shorten] 超 {STATA_VAR_NAME_MAXLEN} 字符列 {_n_over:,d} → "
+                f"缩名 {_n_renamed:,d} 列; md5 去重后缀 ~{_n_md5:,d} 列 "
+                f"({pct4(_n_md5 / _n_renamed)}, 形态估计); 平均缩减 {sig4(_avg_red)} 字符 "
+                "(md5 跨 run 确定性, 见 docstring §3)"
+            )
+        else:
+            logger.info(
+                f"  [stata-shorten] 0 列超 {STATA_VAR_NAME_MAXLEN} 字符上限, 无缩名 (no-op)"
+            )
+    except Exception as _e:  # noqa: BLE001 — 诊断块绝不崩导出
+        logger.warning(f"  [stata-shorten] 诊断日志跳过 (不影响产物): {_e}")
 
     df_renamed = df.copy()
     df_renamed.columns = new_cols

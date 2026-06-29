@@ -2111,6 +2111,27 @@ def main():
             "    (白话: 把经典 Fleiss κ 推广到多评分者/多标签, 为本阶段「全/多数一致率」这类多方法一致性度量提供现代统计依据。)"
         )
         logger.info(
+            "  · 收敛/区分效度的奠基范式(多特质-多方法矩阵 MTMM, 本阶段「方法间趋同=收敛效度」的原始构念来源): "
+            "Campbell, D. T., & Fiske, D. W. (1959). Convergent and discriminant validation by the "
+            "multitrait-multimethod matrix. Psychological Bulletin, 56(2), 81-105. "
+            "https://doi.org/10.1037/h0046016"
+        )
+        logger.info(
+            "    (白话: 同一构念用多种独立方法测量、彼此相关即收敛效度——本阶段反复强调的 convergent-vs-criterion 区分正本于此。)"
+        )
+        logger.info(
+            "  · 经济文本词典法情感分析的现代基底(锚定被验证的三轨之一·词典法): "
+            "Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). "
+            "Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), "
+            "125-143. https://doi.org/10.1111/ecin.13264"
+        )
+        logger.info(
+            "  · 多标签分类的 micro/macro/weighted F1 度量学(锚定人工回读端 evaluate_human_verification 的 macro-P/R/F1 口径): "
+            "Hinojosa Lee, M. C., Braet, J., & Springael, J. (2024). Performance metrics for multilabel "
+            "emotion classification: Comparing micro, macro, and weighted F1-scores. Applied Sciences, "
+            "14(21), Article 9863. https://doi.org/10.3390/app14219863"
+        )
+        logger.info(
             "  · 白话: 用三种机理完全不同的方法(查词典/BERT 神经网络/LLM 大模型)给同一篇新闻判情感, "
             "若彼此趋同则收敛效度强 (但仍≠效标效度=对人工金标准, 须人工回读/stage 33)。"
         )

@@ -184,6 +184,25 @@ def encode_sentiment(df: pd.DataFrame) -> pd.DataFrame:
     logger.info("步骤 2: 篇章级情感数值编码（三轨 full/ctx/ss, v6/F2 nullable Int8 版本）")
     logger.info("=" * 60)
 
+    # ── 📖 方法论依据 (LLM 标注→数值编码的可靠性锚点; emit 进日志, 逐字取自经核验注册表) ──
+    # 白话: 本步把三家 LLM 对每篇文章的情感投票映射成 +1/0/-1 数值, 其有效性前提 =
+    # "LLM 作为标注器"本身可靠且可复现。故把该方法学的当代 (2026) 指南/风险评估直接 emit
+    # 进日志, 供审计追溯 (纯日志, golden-safe; 不参与任何产物计算)。
+    try:
+        logger.info("  📖 LLM 标注可靠性依据 (篇章级情感投票 → nullable Int8 编码):")
+        logger.info("    · LLM 标注管理学指南/警示: Carlson, N. A., & Burbano, V. (2026). "
+                    "The use of LLMs to annotate data in management research: Foundational "
+                    "guidelines and warnings. Strategic Management Journal, 47(3), 699–725. "
+                    "https://doi.org/10.1002/smj.70023")
+        logger.info("    · 社科 LLM 文本标注风险导航: Lin, H., & Zhang, Y. (2026). Navigating "
+                    "the risks of using large language models for text annotation in social "
+                    "science research. Social Science Computer Review, 44(3), 403–427. "
+                    "https://doi.org/10.1177/08944393251366243")
+        logger.info("       → 锚定本函数 'LLM 投票→数值 vote_score' 的标注效度: verified/undefined/"
+                    "call_failure 三掩码置 NaN + 多模型合票, 正是上两篇所倡的标注质量/可复现守卫")
+    except Exception as _e:  # noqa: BLE001 — 方法论日志块绝不阻断编码主流程
+        logger.warning(f"  encode_sentiment 方法论日志块异常 (不影响编码): {_e}")
+
     encoded_cols = []
     # 三轨 (full/ctx/ss): _ss = 银行+金科同句共现轨 (content_ss; 回退=镜像 ctx→全文 body)。
     # remove-title-track: 标题情感轨已永久停产, 仅遍历 _full / _ctx / _ss 三轨;
@@ -301,6 +320,16 @@ def encode_sentiment(df: pd.DataFrame) -> pd.DataFrame:
             else:
                 logger.warning(f"  avg_llm_conf{track}: 缺 {vote_col}, 退化为物理全集口径")
             df[f'avg_llm_conf{track}'] = _conf_macro
+            # 日志富集 (golden-safe): valid-vote 域内合成置信度的分布形态, 供审稿判断
+            # 该轨情感测度的信噪比 (Shapiro 2022 衰减偏误: conf 越低 → 测量误差越大)。
+            try:
+                _cm = _conf_macro.dropna()
+                if len(_cm):
+                    logger.info(f"  📊 avg_llm_conf{track} 分布 (valid-vote 域): "
+                                f"mean={sig4(_cm.mean())}, std={sig4(_cm.std())}, "
+                                f"[{sig4(_cm.min())}, {sig4(_cm.max())}], n={len(_cm):,d}")
+            except Exception as _e:  # noqa: BLE001
+                logger.warning(f"  avg_llm_conf{track} 分布诊断跳过: {_e}")
         else:
             logger.warning(f"  未找到 LLM 置信度列, 跳过 avg_llm_conf{track}")
 

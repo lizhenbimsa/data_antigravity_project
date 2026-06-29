@@ -39,6 +39,8 @@ import os
 
 import pandas as pd
 
+from news_process.core.logging import pct4
+
 _MODULE_LOGGER = logging.getLogger(__name__)
 
 # fail-open 时的统一响亮告警 (%s 占位: label / 原因)。门控被跳过即意味着该测度
@@ -101,9 +103,30 @@ def restrict_to_verified(
         return df
 
     n_before = len(df)
+    n_verified_keys = len(verified)
     out = df.merge(verified, on=keys, how='inner')
     log.info("  verified 域门控 [%s]: %d → %d 行 (semi-join 24_herd_decay on %s)",
              label, n_before, len(out), keys)
+    # 富集日志 (纯 logger, 不改任何数据/返回值; 富集失败绝不影响门控): 通过率 / 剔除量
+    # + 项目语境。verified 脊柱源自 24_herd_decay.parquet (stage-21 LLM 语义精筛产物);
+    # panel-universe-consistency-audit 2026-06-13 (ATT-1/DEDUP-1) 实测 stage-14 规则预筛
+    # 候选集约 26.8% 被 stage-21 判伪 (非真实银行-金融科技报道) → 本门控把 attention /
+    # dedup-sensitivity 处理变量与面板其余文本测度收敛到同一 verified 聚合域。
+    try:
+        n_after = len(out)
+        n_removed = n_before - n_after
+        log.info(
+            "    └─ 门控通过率 %s · 剔除 %d 行 (%s) · verified 脊柱键 %s 条 "
+            "(%s 唯一键) — stage-21 LLM 语义门控 (24_herd_decay) 对齐聚合域, "
+            "守恒分母语义 (attention_pct=已验证 fintech / 全部银行新闻)",
+            pct4((n_after / n_before) if n_before else float('nan')),
+            n_removed,
+            pct4((n_removed / n_before) if n_before else float('nan')),
+            f"{n_verified_keys:,d}",
+            ' × '.join(keys),
+        )
+    except Exception:  # noqa: BLE001 — 富集日志失败绝不影响门控数据返回
+        pass
     return out
 
 

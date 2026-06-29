@@ -251,6 +251,17 @@ def run_stage(stage_script: str, stage_name: str, logger,
         logger.error(f"✗ {stage_name} 启动子进程失败: {e}")
         return False, elapsed
 
+    # LOG-ENRICH round 7: 兑现上方启动横幅的 "PID 待分配" — 子进程真正 spawn 后回填
+    # 实际 PID + 进程组隔离方式 + 确定性锚点, 让父端日志可直接定位/追踪/复现这一 stage
+    # 子进程 (纯打印已算就的值, golden-safe; 计数皆整数, 无需 sig4)。
+    _isolation_mode = (
+        "CREATE_NEW_PROCESS_GROUP" if os.name == "nt" else "start_new_session"
+    )
+    logger.info(
+        f"  ├─ 子进程已启动: PID={proc.pid} | 进程组隔离={_isolation_mode} "
+        f"| PYTHONHASHSEED=0 (确定性已锁定) | KMP_DUPLICATE_LIB_OK=TRUE (OMP 双运行时防御)"
+    )
+
     stdout_tail: Deque[str] = deque(maxlen=_TAIL_BUFFER_MAXLEN)
     stderr_tail: Deque[str] = deque(maxlen=_TAIL_BUFFER_MAXLEN)
 
@@ -317,6 +328,19 @@ def run_stage(stage_script: str, stage_name: str, logger,
             f"✓ {stage_name} 执行成功（耗时 {sig4(elapsed)}s, "
             f"stdout {len(stdout_tail):,d} 行 / stderr {len(stderr_tail):,d} 行已透传）"
         )
+        # LOG-ENRICH round 7: 尾部环形缓冲是否饱和的诚实诊断 — deque(maxlen) 仅保留末
+        # _TAIL_BUFFER_MAXLEN 行快照, 饱和时上文早期行已被挤出快照 (完整日志仍经 reader
+        # 线程实时落盘 logs/<stage>.log, 不受此上限截断)。仅饱和时打印, 平时零噪声。
+        if (len(stdout_tail) >= _TAIL_BUFFER_MAXLEN
+                or len(stderr_tail) >= _TAIL_BUFFER_MAXLEN):
+            logger.info(
+                f"  └─ 尾部快照已饱和 (≥{_TAIL_BUFFER_MAXLEN:,d} 行/流): "
+                f"父端诊断快照仅保留末 {_TAIL_BUFFER_MAXLEN:,d} 行; "
+                f"完整日志见 logs/<stage>.log (实时透传, 不截断)"
+            )
+        # LOG-ENRICH round 7: 与开始前的 log_memory_usage 对称收口 — 给出本 stage 子进程
+        # 退出后父进程 RSS, 便于读者从一对 "开始前/结束后" 估算该 stage 的内存足迹。
+        log_memory_usage(logger, f"阶段 {stage_name} 结束后")
         return True, elapsed
     else:
         logger.error(

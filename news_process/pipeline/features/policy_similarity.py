@@ -269,6 +269,13 @@ def compute_authoritative_similarity(df_exploded, panel):
                     "Embedding central bank communications for inflation prediction. SSRN "
                     "Electronic Journal. https://doi.org/10.2139/ssrn.5201335")
         logger.info("       (白话: 词嵌入表征央行政策沟通, 政策文本嵌入向量化的最新央行应用)")
+        logger.info("     · 嵌入主轨金融域适配 (domain-specific SBERT, 锚点政策/披露文本嵌入):")
+        logger.info("       Jehnen, S., Villalba-Díez, J., & Ordieres-Meré, J. (2026). FinTextSim: A "
+                    "domain-specific sentence-transformer for extracting predictive latent topics from "
+                    "financial disclosures. Frontiers in Artificial Intelligence, 9, Article 1752103. "
+                    "https://doi.org/10.3389/frai.2026.1752103")
+        logger.info("       (白话: 对金融披露/政策文本微调 sentence-transformer, 锚定本模块方法 D 嵌入轨"
+                    "把权威政策与银行画像嵌入同构语义空间做余弦对锚的域适配依据)")
         logger.info("     → 为何用: 把国家政策原文当满分标答(虚拟幽灵锚点), 银行年度新闻汇总越贴近 → 战略响应度越高")
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"  方法论引文打印失败 (不影响计算): {_e}")

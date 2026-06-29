@@ -86,6 +86,8 @@ def main():
     logger.info("【功能】把流水线四个关键阶段 (00 预处理 / 11 银行新闻 / 12 金科新闻 / 21 LLM 打分后)")
     logger.info("        的新闻, 按发文媒体、来源省份、来源城市分别数频次, 写成多 sheet Excel,")
     logger.info("        供论文样本描述/数据来源说明/覆盖范围附录使用 (纯描述性, 不进面板/回归)。")
+    logger.info("【链条】00(文章级全量) → 11(银行 firm-doc) → 12(金科关键词 firm-doc) → 21(LLM 验证后)")
+    logger.info("        是一条样本衰减漏斗; 各阶段同字段的频次分布揭示逐级筛选如何重塑媒体/地区覆盖。")
     logger.info("【方法】每阶段 × 每字段做 df[col].fillna('(空值)').value_counts(); 一个 sheet 一个分布;")
     logger.info("        无回归/聚合公式。外部依赖仅 pandas + openpyxl, 无 LLM/Embedding/网络, 确定性强。")
     logger.info("【判读】看 ① 各阶段行数的逐级漏斗 (筛选强度); ② 头部媒体/地区集中度 (代表性偏倚预警);")

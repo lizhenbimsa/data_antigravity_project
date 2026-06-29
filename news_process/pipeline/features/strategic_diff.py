@@ -1313,7 +1313,23 @@ def _log_coherence_diagnostics(panel):
                 if c in panel.columns]
     if len(coh_cols) >= 2:
         logger.info(f"  连贯性四方法相关矩阵:\n"
-                    f"{panel[coh_cols].corr().round(3).to_string()}")
+                    f"{panel[coh_cols].corr().round(4).to_string()}")
+        # 多方法一致性摘要 (round 7 富集): 相关矩阵上三角 |r| 的中位/极差 sig4 量化收敛效度;
+        # 纯日志诊断 (throwaway 局部变量, 不入 panel/产物), golden-safe。
+        try:
+            _cm = panel[coh_cols].corr().to_numpy()
+            _iu = np.triu_indices_from(_cm, k=1)
+            _offdiag = np.abs(_cm[_iu])
+            _offdiag = _offdiag[~np.isnan(_offdiag)]
+            if _offdiag.size:
+                _med_r = float(np.median(_offdiag))
+                _cv = ("✅ 多法高度收敛" if _med_r >= 0.7
+                       else ("中度收敛" if _med_r >= 0.4 else "⚠ 多法弱收敛(测度信号分歧)"))
+                logger.info(f"    四方法收敛效度: |r| 中位={sig4(_med_r)} "
+                            f"范围=[{sig4(float(_offdiag.min()))}, {sig4(float(_offdiag.max()))}] "
+                            f"(n_pair={_offdiag.size:,d}) → {_cv}")
+        except Exception as _cv_exc:  # noqa: BLE001
+            logger.warning(f"  连贯性收敛效度摘要失败 (不阻塞): {_cv_exc!r}")
 
     # 正交性验证: 与情感变量的相关系数 (期望 |r| < 0.3)
     tone_col = 'llm_vote_tone_full'
@@ -1439,6 +1455,18 @@ def compute_strategic_differentiation(df_exploded, panel):
                     "https://doi.org/10.1002/smj.3687")
         logger.info("  │     (白话: 用文本网络定位企业技术空间组合的唯一性, 把 TNIC 式 niche / "
                     "战略距离用于并购市场, 是本模块 Guzman-Li / Hoberg-Phillips 构念的近期应用)")
+        logger.info("  │   · 最优独特性 / 战略生态位定位 (niche positioning): Su, J., Gao, X., & Tan, J. "
+                    "(2024). Positioning for optimal distinctiveness: How firms manage competitive and "
+                    "institutional pressures under dynamic and complex environment. Strategic Management "
+                    "Journal, 45(2), 333-361. https://doi.org/10.1002/smj.3549")
+        logger.info("  │     (白话: 企业如何在竞争与制度压力下定位'最优独特性', 直接锚定本模块 Ŝ_i "
+                    "战略生态位 (strategic niche) 距离的构念)")
+        logger.info("  │   · 数字化驱动的差异化战略变迁 (text-based 差异化测度): Miller, C. D., & "
+                    "Wang, R. D. (2024). Product digitization and differentiation strategy change: "
+                    "Evidence from the book publishing industry. Strategic Management Journal, 45(7), "
+                    "1241-1272. https://doi.org/10.1002/smj.3586")
+        logger.info("  │     (白话: 用文本测度数字化如何改变企业差异化战略, 与本模块以金科(数字化)新闻 "
+                    "文本测度银行战略差异度同范式的近期应用)")
         logger.info("  │   · Embedding 轨金融语义嵌入近期应用: Jha, M., Liu, H., & Manela. (2026). "
                     "Does finance benefit society? A language embedding approach. The Review of "
                     "Financial Studies, 39(5), 1227–1266. https://doi.org/10.1093/rfs/hhaf012")
@@ -1451,6 +1479,13 @@ def compute_strategic_differentiation(df_exploded, panel):
                     "https://doi.org/10.3389/frai.2026.1752103")
         logger.info("  │     (白话: 对金融披露文本微调 sentence-transformer, 直接对标本模块 "
                     "SBERT / Embedding 轨在金融域的适配方向)")
+        logger.info("  │   · Embedding co-primary 双模型互证依据 (金融文本嵌入横向基准): Tang, Y., & "
+                    "Yang, Y. (2025). FinMTEB: Finance Massive Text Embedding Benchmark. In Proceedings "
+                    "of the 2025 Conference on Empirical Methods in Natural Language Processing "
+                    "(pp. 3620-3638). Association for Computational Linguistics. "
+                    "https://doi.org/10.18653/v1/2025.emnlp-main.179")
+        logger.info("  │     (白话: 金融文本嵌入基准对多模型横向评测, 锚定本模块 MAIN(Qwen) ⟂ _lg(large) "
+                    "co-primary 跨厂商双模型 both-or-neither parity 稳健性设计)")
     except Exception as _banner_exc:  # noqa: BLE001
         logger.warning(f"  战略差异度 banner 日志失败 (不阻塞): {_banner_exc!r}")
 
@@ -1586,8 +1621,8 @@ def compute_strategic_differentiation(df_exploded, panel):
         res = pd.DataFrame(all_results)
         # 用银行名+年份做"钥匙"，把新列合并到面板
         panel = panel.merge(res, on=['target_bank', 'year'], how='left')
-        logger.info(f"  ✅ 战略差异度: 成功合并 {len(res)} 行, "
-                    f"新增 {len(res.columns) - 2} 列")
+        logger.info(f"  ✅ 战略差异度: 成功合并 {len(res):,d} 行, "
+                    f"新增 {len(res.columns) - 2:,d} 列")
     else:
         logger.warning("  无有效结果 (所有年度银行数不足 3)")
     # fix(omni-g-strategic-13, 2026-06-11): fluidity 落列独立于 NN ≥3 银行闸门 —
@@ -1633,7 +1668,7 @@ def compute_strategic_differentiation(df_exploded, panel):
     for track_suffix, agg_track in tracks:
         if agg_track.empty:
             continue
-        logger.info(f"  轨道{track_suffix}: {len(agg_track)} 个 Bank-Year 文档")
+        logger.info(f"  轨道{track_suffix}: {len(agg_track):,d} 个 Bank-Year 文档")
 
         coh_tc  = _compute_tfidf_coherence(agg_track, 'char')
         coh_tw  = _compute_tfidf_coherence(agg_track, 'word')
@@ -1674,7 +1709,7 @@ def compute_strategic_differentiation(df_exploded, panel):
 
     _log_coherence_diagnostics(panel)
     coh_count = sum(1 for c in panel.columns if c.startswith('coh_'))
-    logger.info(f"  ✅ 文本连贯性: 新增 {coh_count} 列")
+    logger.info(f"  ✅ 文本连贯性: 新增 {coh_count:,d} 列")
 
     # ══════════════════════════════════════════════════════════════════
     # 改进 C: Ctx / Ss 轨 N-最近邻差异度 + 全行业向量法 (三轨 full/ctx/ss)
@@ -1867,7 +1902,7 @@ def _log_robustness_diagnostics(panel):
                         'centroid_diff_tfidf_c', 'centroid_diff_emb']
             if c in panel.columns]
     if len(cols) >= 2:
-        logger.info(f"  六方法相关矩阵:\n{panel[cols].corr().round(3).to_string()}")
+        logger.info(f"  六方法相关矩阵:\n{panel[cols].corr().round(4).to_string()}")
 
     # 分族值域断言 (含浮点误差容忍)
     for col in [c for c in panel.columns

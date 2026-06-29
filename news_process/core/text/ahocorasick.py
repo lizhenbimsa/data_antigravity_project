@@ -141,6 +141,17 @@ def load_bank_names(bank_names_file: str) -> tuple:
             "      (白话: 实体/关键词词典查找与文本扫描的标准 IR 教科书依据, 锚定本模块"
             "的 dictionary-based term spotting 范式)"
         )
+        #    Ash, E., & Hansen, S. (2023). Text algorithms in economics.
+        #    Annual Review of Economics, 15, 659-688.
+        logger.info(
+            "    [经济学文本算法] Ash, E., & Hansen, S. (2023). Text algorithms in "
+            "economics. Annual Review of Economics, 15, 659-688. "
+            "https://doi.org/10.1146/annurev-economics-082222-074352"
+        )
+        logger.info(
+            "      (白话: 把字符串匹配/词典算法纳入经济学实证工具箱的近期综述, 锚定本模块"
+            "以 AC 自动机做大规模银行实体/金科主题 term-spotting 以构建银行-金科年度面板)"
+        )
     else:
         ac = None
 
@@ -178,6 +189,14 @@ def load_exclusion_patterns(exclusion_file: str) -> tuple:
                 neg_ac.add_word(pattern, pattern)
         neg_ac.make_automaton()
         logger.info(f"否定模式: 已加载 {len(neg_patterns)} 个模式")
+        # 📊 否定模式字面长度分布 (log-only, 不参与匹配; 审计否定窗口的字面跨度)
+        _neg_lens = [len(p.strip()) for p in neg_patterns if p.strip()]
+        if _neg_lens:
+            logger.info(
+                f"  📊 否定模式字面长度: min={min(_neg_lens)} / "
+                f"mean={sig4(sum(_neg_lens) / len(_neg_lens))} / max={max(_neg_lens)} 字符 "
+                "(匹配位置前后各取 10 字符上下文做包含/交叉判定)"
+            )
 
     # 加载短名歧义消解配置
     short_cfg = raw.get('short_name_context_exclusions', {})
@@ -188,6 +207,17 @@ def load_exclusion_patterns(exclusion_file: str) -> tuple:
             f"短名歧义消解: 已加载 {len(short_exclusions)} 个短名称的排除规则，"
             f"上下文窗口: {context_window} 字符"
         )
+        # 📊 短名排除上下文规模 (log-only): 每个短名映射若干歧义上下文词
+        _excl_ctx_counts = [len(v) for v in short_exclusions.values()
+                            if isinstance(v, (list, tuple))]
+        if _excl_ctx_counts:
+            _total_ctx = sum(_excl_ctx_counts)
+            logger.info(
+                f"  📊 排除上下文词总数 {_total_ctx:,d} 条; "
+                f"平均每短名 {sig4(_total_ctx / len(_excl_ctx_counts))} 条 "
+                f"(min={min(_excl_ctx_counts)} / max={max(_excl_ctx_counts)}; "
+                "短名 ≤2 字时才触发上下文歧义消解)"
+            )
 
     return neg_ac, short_exclusions, context_window
 

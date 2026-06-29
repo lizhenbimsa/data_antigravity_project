@@ -614,6 +614,16 @@ def main(argv: list[str] | None = None) -> int:
             "阈值 0.5/1.0 为 ad-hoc 日志启发式, 非 alt_anchor.py:10 文档的回归 β 比值判据。"
         )
         placebo_hits = meta.get("placebo_match_counts", {}) or {}
+        # (命中率校验, 计划 §5 R1.A): 汇总 placebo 规格命中分布 (单业务线命中 < 500 篇为风险信号,
+        # ≥2 条不达标则回退 ≤3 业务线 + 中性基线)。纯日志, 不改 combined/meta。
+        _hit_vals = [int(_n) for _n in placebo_hits.values()]
+        _n_ge500 = sum(1 for _n in _hit_vals if _n >= 500)
+        _n_zero = sum(1 for _n in _hit_vals if _n == 0)
+        _med_hit = float(np.median(_hit_vals)) if _hit_vals else float("nan")
+        logger.info(
+            "  (命中率校验 R1.A) placebo 规格 %d 个: 命中 ≥500 篇 %d 个 | 命中 0 篇 %d 个 | 命中数中位=%s 篇",
+            len(_hit_vals), _n_ge500, _n_zero, sig4(_med_hit),
+        )
         leak_lines: list[str] = []
         for pid, n_hit in placebo_hits.items():
             col = f"benefit_placebo_{pid}_mean"

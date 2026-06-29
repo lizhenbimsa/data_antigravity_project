@@ -35,6 +35,8 @@ import os
 import sys
 import time
 
+from news_process.core.logging import sig4
+
 # Sidecar 文件名后缀常量, 与主锁文件后缀对齐 (.pipeline.lock + .info)
 _SIDECAR_SUFFIX = '.info'
 
@@ -66,6 +68,8 @@ class PipelineLock:
         self.lock_file = None
         self.pid = os.getpid()
         self._locked = False
+        # 持锁起始墙钟时间戳 (仅供 __exit__ 日志报告持锁时长; 不参与任何产物, golden-safe)
+        self._t_acquired = None
 
     def __enter__(self):
         """获取锁。"""
@@ -105,8 +109,21 @@ class PipelineLock:
                     f"sidecar 写入失败 (主锁仍有效, 诊断信息将不可用): {e}"
                 )
 
+            self._t_acquired = time.time()
+            _lock_mech = (
+                'msvcrt.locking (Windows 独占字节锁)' if sys.platform == 'win32'
+                else 'fcntl.flock (Unix 建议性独占锁)'
+            )
             self.logger.info(
                 f"已获取管道锁: {self.lock_file_path} (PID: {self.pid})"
+            )
+            # 运行期操作上下文 (纯日志富集, golden-safe): 把"用哪套 OS 锁机制、锁/诊断
+            # 文件落在哪、为何需要串行"一次性写进日志, 便于排查并发实例被拒/占锁阻塞。
+            self.logger.info(
+                f"  锁运行期上下文: 机制={_lock_mech} | 锁目录="
+                f"{os.path.dirname(self.lock_file_path)} | sidecar 诊断文件="
+                f"{os.path.basename(self.sidecar_path)} | 持锁期间拒绝并发实例 "
+                "(防多进程同写 data/processed/*.parquet 造成产物损坏)"
             )
             return self
 
@@ -197,6 +214,16 @@ class PipelineLock:
                 self.lock_file.close()
                 self.lock_file = None
                 self._locked = False
+
+                # 纯日志富集 (golden-safe): 报告本次持锁墙钟时长, 便于审计"流水线串行
+                # 段实际占锁多久" / 排查长时间占锁阻塞并发实例的情形。时长经 sig4 渲染为
+                # 四位有效数字 (项目规范 2026-06-24)。
+                if self._t_acquired is not None:
+                    _hold_s = time.time() - self._t_acquired
+                    self.logger.info(
+                        f"管道锁持锁时长: {sig4(_hold_s)} 秒 (PID: {self.pid}; "
+                        "自获取至释放的墙钟耗时)"
+                    )
 
                 # 删除主锁文件
                 if os.path.exists(self.lock_file_path):

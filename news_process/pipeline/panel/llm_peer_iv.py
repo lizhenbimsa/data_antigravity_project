@@ -689,6 +689,19 @@ def _log_environment_and_methodology(panel: pd.DataFrame,
                     "Boucher, V., Rendall, M., Ushchev, P., & Zenou, Y. (2024). Toward a "
                     "general theory of peer effects. Econometrica, 92(2), 543-565. "
                     "https://doi.org/10.3982/ECTA21048")
+        logger.info("     · LLM 标注数据的基础准则与警示 (本模块用 LLM 认竞争同行, 标注质量"
+                    "直接决定 IV 第一阶段信号): Carlson, N. A., & Burbano, V. (2026). The use "
+                    "of LLMs to annotate data in management research: Foundational "
+                    "guidelines and warnings. Strategic Management Journal, 47(3), 699-725. "
+                    "https://doi.org/10.1002/smj.70023")
+        logger.info("     · LLM 文本标注的社会科学风险导航 (peer 识别的偏误/失效模式): Lin, H., "
+                    "& Zhang, Y. (2026). Navigating the risks of using large language models "
+                    "for text annotation in social science research. Social Science Computer "
+                    "Review, 44(3), 403-427. https://doi.org/10.1177/08944393251366243")
+        logger.info("     · LLM 标注的稳健可复现性 (锚定本模块 _llm_cache.db 0-miss 离线复现): "
+                    "Cheng, X., Mayya, R., & Sedoc, J. (2024). To err is human; to annotate, "
+                    "SILICON? Toward robust reproducibility in LLM annotation "
+                    "(arXiv:2412.14461). arXiv. https://doi.org/10.48550/arXiv.2412.14461")
         logger.info("     → 白话: 用大模型从新闻里认出『谁跟谁是竞争对手』搭出动态同行网, "
                     "再取同行去年的情感均值(剔除共提报道)当工具变量; 滞后+leave-out 是为了"
                     "让这个工具变量满足『只经同行渠道影响焦点银行』的识别假设。")
@@ -1156,12 +1169,26 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
                       f"⚠ 仅 {len(present_tracks)}/3 轨 (ss 轨依赖 llm_vote_score_ss)")
         logger.info(f"     · 三轨在场: {present_tracks} → {tr_verdict} "
                     "(⚠ 三轨禁混进同一 over-id Hansen J)")
-        # ④ 同行网络规模 (诊断: 平均连通度)
+        # ④ 同行网络规模 (诊断: 平均连通度 + 分位)
         if 'llm_peer_count_80' in panel.columns:
             pc = panel['llm_peer_count_80'].dropna()
             if len(pc):
                 logger.info(f"     · 同行连通度 llm_peer_count: 均值={sig4(pc.mean())} "
                             f"(TNIC 上限=10; >10 提示归一化异常)")
+                if len(pc) >= 4:
+                    _pcq = pc.quantile([0.50, 0.90])
+                    logger.info(f"       连通度分位: p50={sig4(_pcq.loc[0.50])} | "
+                                f"p90={sig4(_pcq.loc[0.90])} | max={sig4(float(pc.max()))} "
+                                "(右尾→少数银行同行网络稠密)")
+        # ④b tone IV 的文章级 leave-out 数据源在场性 (Leary-Roberts 2014 排除约束修复)
+        _n_art_idx = len(art_index) if isinstance(art_index, dict) else 0
+        if art_tone_cols:
+            logger.info(f"     · 文章级 leave-out: {len(art_tone_cols):,d} 轨有文章级情感列, "
+                        f"已索引 {_n_art_idx:,} 个 (peer,year) 条目 → tone IV 走真 leave-out "
+                        "(剔除焦点银行共提报道, 修复 IV 排除约束的机械违背)")
+        else:
+            logger.info("     · 文章级 leave-out: df_exploded 无文章级情感列 → tone IV 回退 "
+                        "panel 级均值 (含共提机械相关, 见模块头 g-llm-peer-01 披露)")
         # ⑤ 小样本/确定性警告
         if n_panel < 100:
             logger.warning(f"     · ⚠ 小样本: panel 仅 {n_panel:,} 行 — "

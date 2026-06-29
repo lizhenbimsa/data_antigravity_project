@@ -644,6 +644,17 @@ def compute_iv_extensions(panel: pd.DataFrame,
                     "https://doi.org/10.1257/aer.20211063")
         logger.info("      (白话: tF 程序按一阶段 F 调整 2SLS 的 t 临界值 — 为弱"
                     "工具下系数提供有效 t/CI, 补强上述 KP rk F + AR 稳健 CI。)")
+        logger.info("  · 少簇/两维聚类稳健推断 (bank×year 面板 2SLS 标准误, 经核验):")
+        logger.info("      Hansen, B. E. (2026). Jackknife standard errors for "
+                    "clustered regression. The Review of Economic Studies. "
+                    "Advance online publication. "
+                    "https://doi.org/10.1093/restud/rdag050")
+        logger.info("      Chiang, H. D., Hansen, B. E., & Sasaki, Y. (2024). "
+                    "Standard errors for two-way clustering with serially "
+                    "correlated time effects. The Review of Economics and "
+                    "Statistics, 1–40. https://doi.org/10.1162/rest_a_01507")
+        logger.info("      (白话: bank 与 year 两维聚类 + 时间序列相关时, 刀切/两维聚类 "
+                    "SE 给少簇稳健的 2SLS 推断 — 补强上方 KP rk F + AR CI 弱工具诊断。)")
         logger.info("  ⚠ 铁律: full/ctx/ss 三轨 LOO 严禁拼成同一 Hansen J "
                     "(同篇三窗共同冲击同污染, J 零功效); overid 须用跨族工具。")
     except Exception as _e:  # noqa: BLE001
@@ -801,8 +812,16 @@ def compute_iv_extensions(panel: pd.DataFrame,
             else:
                 verdict = "✅ 可用"
                 n_good += 1
+            # 横向区分度/识别力: std>0 才有一阶段相关变异; std≈0 = 工具退化近共线
+            _std_note = ""
+            if n_valid > 10:
+                try:
+                    _iv_std = panel[c].std()
+                    _std_note = f" | std={sig4(_iv_std)} (横向区分度/识别力)"
+                except Exception:  # noqa: BLE001
+                    _std_note = ""
             logger.info(f"    {c}: {n_valid:,d}/{n_panel:,d} "
-                        f"({pct4(frac)}) {verdict}")
+                        f"({pct4(frac)}) {verdict}{_std_note}")
         logger.info(f"  汇总: IV 列 {len(_iv_cols):,d} 个 | "
                     f"可用 {n_good:,d} / 临界 {n_borderline:,d} / "
                     f"空 {n_empty:,d}")

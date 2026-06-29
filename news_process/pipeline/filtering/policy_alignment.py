@@ -1267,6 +1267,22 @@ def main():
                     "Cheap talk and cherry-picking: What ClimateBert has to say on corporate "
                     "climate risk disclosures. Finance Research Letters, 47, 102776. "
                     "https://doi.org/10.1016/j.frl.2022.102776")
+        logger.info("  · Vintage-aware 前视守卫 / look-ahead 偏误的近期方法学依据 "
+                    "(本阶段『年度 t 仅用发布年份 ≤ t 的政策段构锚』前视守卫的学术锚, 2024-2025):")
+        logger.info("    He, S., Lv, L., Manela, A., & Wu, J. (2025). Chronologically "
+                    "consistent large language models (SSRN Working Paper No. 5159615; "
+                    "arXiv:2502.21206). https://doi.org/10.2139/ssrn.5159615")
+        logger.info("    Sarkar, S. K., & Vafa, K. (2024). Lookahead bias in pretrained "
+                    "language models (SSRN Working Paper No. 4754678). "
+                    "https://doi.org/10.2139/ssrn.4754678")
+        logger.info("    Lopez-Lira, A., Tang, Y., & Zhu, M. (2025). The memorization "
+                    "problem: Can we trust LLMs' economic forecasts? (SSRN Working Paper "
+                    "No. 5217505; arXiv:2504.14765). https://doi.org/10.2139/ssrn.5217505")
+        logger.info("    → 白话: 前两篇证明预训练语言模型会『偷看未来』(把发布日之后的语料"
+                    "学进参数), 第三篇证明这种记忆会污染经济预测; 故本阶段除按政策发布年份 "
+                    "(vintage) 裁剪锚点构造外, 须如实披露嵌入模型预训练期是残留前视通道 "
+                    "—— vintage 守卫消除锚点构造层前视, 但不能消除嵌入模型参数级记忆 "
+                    "(co-primary 双模型对照 + 静态 _allv 孪生为此提供稳健性边界)。")
     except Exception as _e:
         logger.warning(f"[方法论] 引文输出异常, 跳过(不影响产物): {_e}")
 
@@ -1398,6 +1414,34 @@ def main():
             _range_ok = (_lo >= -1.0 - 1e-6) and (_hi <= 1.0 + 1e-6)
             _range_judge = "值域合法 ⊆[-1,1]" if _range_ok else "⚠ 值域越界! 嵌入/池化异常"
             logger.info(f"  · {_nm} 轨 {_col}: 范围=[{sig4(_lo)}, {sig4(_hi)}] 均值={sig4(_mu)} σ={sig4(_sd)} → {_range_judge}")
+
+        # (2b) 年份分层主轨均值 (deepen_runtime): 把 policy_cosine_sim_full 按文章年份聚均值,
+        #      看 vintage 前视守卫下早年 (≤t 政策段少) 与晚年的对齐水平差异 — 早年均值系统性
+        #      偏低/NaN 多即守卫在生效。纯日志, 仅读已落列, 不回写 df (golden-safe)。
+        try:
+            _yc = next((c for c in ('year', '年份', '日期') if c in df.columns), None)
+            if _yc is not None and 'policy_cosine_sim_full' in df.columns:
+                if _yc == '日期':
+                    _yr_s = pd.to_datetime(df['日期'], errors='coerce').dt.year
+                else:
+                    _yr_s = pd.to_numeric(df[_yc], errors='coerce')
+                _tmp = pd.DataFrame(
+                    {'_yr': _yr_s, '_sim': df['policy_cosine_sim_full']}
+                ).dropna()
+                if len(_tmp) > 0:
+                    logger.info(
+                        f"  · 年份分层主轨均值 policy_cosine_sim_full (来源列 '{_yc}'; "
+                        f"vintage 守卫下逐年对齐水平):"
+                    )
+                    for _yr, _g in _tmp.groupby(_tmp['_yr'].astype(int)):
+                        _nv = len(_g)
+                        logger.info(
+                            f"     · {int(_yr)}: n={_nv:,d} 均值={sig4(_g['_sim'].mean())} "
+                            f"σ={sig4(_g['_sim'].std()) if _nv > 1 else 'n/a'} "
+                            f"范围=[{sig4(_g['_sim'].min())}, {sig4(_g['_sim'].max())}]"
+                        )
+        except Exception as _ye:  # noqa: BLE001 — 年份分层诊断绝不阻断阶段
+            logger.info(f"  · [年份分层均值] 计算跳过 (不影响产物): {_ye}")
 
         # (3) 轨间独立性 (full vs ctx): ρ 过高说明 ctx 局部窗口未带来增量信号 (退化为 full)。
         if ('policy_cosine_sim_full' in df.columns

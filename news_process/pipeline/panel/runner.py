@@ -544,6 +544,14 @@ def _log_environment_config_and_methods(input_path: str) -> None:
         logger.info("     · 移位份额/Bartik IV 识别设计③(冲击外生性的非随机暴露校正): Borusyak, K., & Hull, P. "
                     "(2023). Nonrandom exposure to exogenous shocks. Econometrica, 91(6), 2155-2185. "
                     "https://doi.org/10.3982/ECTA19367")
+        logger.info("     · 交错 DID 实操准则(步骤 44 政策冲击 merge_policy_shocks 的处理效应解释): "
+                    "Baker, A., Callaway, B., Cunningham, S., Goodman-Bacon, A., & Sant'Anna, P. H. C. "
+                    "(2026). Difference-in-differences designs: A practitioner's guide. Journal of "
+                    "Economic Literature, 64(2), 498-557. https://doi.org/10.1257/jel.20251650")
+        logger.info("     · 双向固定效应/Mundlak 与 DID 估计量等价性(异质处理效应下 TWFE 偏误修正): "
+                    "Wooldridge, J. M. (2025). Two-way fixed effects, the two-way Mundlak regression, "
+                    "and difference-in-differences estimators. Empirical Economics, 69(5), 2545-2587. "
+                    "https://doi.org/10.1007/s00181-025-02807-z")
         logger.info("     · 媒体注意力(extensive 覆盖): Fang, L., & Peress, J. (2009). Media coverage and "
                     "the cross-section of stock returns. The Journal of Finance, 64(5), 2023-2052. "
                     "https://doi.org/10.1111/j.1540-6261.2009.01493.x")
@@ -2418,27 +2426,32 @@ def main():
     # 整体移除, 嵌入主轨改为 Qwen(MAIN, 无后缀) ⟂ text-embedding-3-large(_lg) 跨厂商对等
     # CO-PRIMARY 双轨 (跨厂商互证, 应对单一嵌入模型潜在的"幻觉偏移" Hallucination Bias)。
     #
-    # 这些列由 stage 15 (policy_cosine_sim_*) / stage 25 (strat_diff_*) 主流程直接产出;
+    # 这些列由 stage 15 (policy alignment, 面板聚合后名 article_sim_mean*) / stage 25 (strat_diff_*) 主流程直接产出;
     # 此处不读取/merge 外部 parquet, 仅做存在性诊断 (保留自然缺失 NaN, 不 0 填充 —
     # Allison 2001 / Heckman 1979 listwise deletion 原则)。
     # parity (Qwen ⟂ _lg 列名双射) 由 test_embedding_coprimary_parity 测试门 +
     # producer both-or-neither 强制, *不*由本诊断或 export 运行期 raise; 故此处任何列缺失
     # 仅记 WARNING (软诊断, 不报错; _ss 同句轨与 _lg 孪生在上线/播种前可能整体缺失)。
+    # ⚠ 命名注记 (fix 2026-06-28): policy alignment 的文章级 policy_cosine_sim* 在上方
+    # "逻辑 A 连续聚合"块已按 (bank, year) 聚合并 **重命名** 为面板列 article_sim_mean*
+    # (MAIN) / article_sim_mean_lg* (co-primary _lg); 故本诊断须按 **面板层** 实名核查,
+    # 不能再找文章级旧名 policy_cosine_sim_*(永不在面板 → 历史每跑必误报"列缺失")。
+    # strat_diff* 由 stage 25 inline 以原名落面板, 不改。
     emb_main_cols = [
         'strat_diff_full', 'strat_diff_ctx',
-        'policy_cosine_sim_full', 'policy_cosine_sim_ctx'
+        'article_sim_mean', 'article_sim_mean_ctx'
     ]
     emb_lg_cols = [
         'strat_diff_lg_full', 'strat_diff_lg_ctx',
-        'policy_cosine_sim_lg_full', 'policy_cosine_sim_lg_ctx'
+        'article_sim_mean_lg', 'article_sim_mean_lg_ctx'
     ]
-    emb_cols_ss = ['strat_diff_ss', 'policy_cosine_sim_ss',
-                   'strat_diff_lg_ss', 'policy_cosine_sim_lg_ss']  # 软诊断, 缺则不报错
+    emb_cols_ss = ['strat_diff_ss', 'article_sim_mean_ss',
+                   'strat_diff_lg_ss', 'article_sim_mean_lg_ss']  # 软诊断, 缺则不报错
     # 全年份锚点 _allv 孪生 (2026-06-21): 纯软诊断 (companion 开启时出现)。
-    emb_cols_allv = ['policy_cosine_sim_allv_full', 'policy_cosine_sim_allv_ctx',
-                     'policy_cosine_sim_allv_ss',
-                     'policy_cosine_sim_lg_allv_full', 'policy_cosine_sim_lg_allv_ctx',
-                     'policy_cosine_sim_lg_allv_ss']
+    emb_cols_allv = ['article_sim_mean_allv', 'article_sim_mean_allv_ctx',
+                     'article_sim_mean_allv_ss',
+                     'article_sim_mean_lg_allv', 'article_sim_mean_lg_allv_ctx',
+                     'article_sim_mean_lg_allv_ss']
     _all_emb_cols = emb_main_cols + emb_lg_cols + emb_cols_ss + emb_cols_allv
     _present = [c for c in _all_emb_cols if c in panel.columns]
     _missing = [c for c in emb_main_cols + emb_lg_cols if c not in panel.columns]
@@ -2641,6 +2654,28 @@ def main():
                 f"    ⚠️ _ss({_track_counts['_ss']}) 远少于 _ctx({_track_counts['_ctx']}): "
                 "ss 轨可能部分缺列, 检查 stage 21 ss 缓存覆盖率。"
             )
+
+        # (6b) IV 家族列承载诊断 (Bartik/LOO/LLM-peer; 纯计数+平均有效率, golden-safe)
+        #   IV 列多由 LLM/嵌入派生 → 第一阶段识别力随生产 T=18 才充分 (盘面 T=2 偏弱)。
+        try:
+            _iv_fams = {
+                'Bartik 移位份额': [c for c in panel.columns if 'bartik' in c.lower()],
+                'LOO 同组留一': [c for c in panel.columns
+                               if 'leave_one_out' in c.lower() or 'leave1out' in c.lower()
+                               or 'l1o' in c.lower() or 'leave1' in c.lower()],
+                'LLM-peer 工具': [c for c in panel.columns
+                                if c.startswith('llm_peer_tone_iv')
+                                or c.startswith('llm_peer_coverage_iv')],
+            }
+            for _fam, _cols in _iv_fams.items():
+                if _cols:
+                    _vfrac = sum(float(panel[c].notna().mean()) for c in _cols) / len(_cols)
+                    logger.info(
+                        f"  · IV 家族 {_fam}: {len(_cols):,} 列, 平均有效率 {pct4(_vfrac)} "
+                        "(第一阶段识别力诊断; 盘面 T=2 偏弱, 生产 T=18 方充分)"
+                    )
+        except Exception as _eiv:  # noqa: BLE001 — IV 诊断块绝不崩阶段
+            logger.info(f"  · IV 家族诊断跳过 (不影响产物): {_eiv}")
 
         # (7) 小样本(盘面 T=2)守卫: 提醒结论以全量 17M/T=18 为准
         if 0 < _n_years <= 3 or _n_rows < 300:

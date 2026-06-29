@@ -1019,6 +1019,23 @@ def log_comprehensive_summary(final_metrics: dict,
     for key, ref in REFERENCES.items():
         logger.info(f"    [{key}] {ref}")
 
+    # round-7 富集 (2026-06-29): 当代媒体多样性 / 集中度文献 (经 Crossref 核验 DOI) —
+    # 把"样本代表性 → 外部效度"主张锚定到近期顶刊。纯日志, 不改 REFERENCES dict
+    # 与任何产物 (golden-safe)。(注: Gini 估计指南 Muñoz et al. 2026 已在 main() 📖
+    # 块单列, 此处不重复以免冗余。)
+    logger.info("")
+    logger.info("  近期文献补充 (round-7; 经 Crossref 核验 DOI):")
+    logger.info("    · 媒体集中/整合 → 资本市场后果 (本审计'多样性→外部效度'主张的当代锚): "
+                "Dyer, T., Lang, M., & Oh, J. (2025). Media conglomeration, local news, and capital "
+                "market consequences. Management Science, 71(8), 6602-6626. "
+                "https://doi.org/10.1287/mnsc.2023.02247")
+    logger.info("    · 中国媒体偏向 (本项目中文语料的本土媒体多样性/偏向锚): Qin, B., Strömberg, D., & Wu, Y. "
+                "(2018). Media bias in China. American Economic Review, 108(9), 2442-2476. "
+                "https://doi.org/10.1257/aer.20170947")
+    logger.info("    · 金融新闻的政治极化 (媒体层级偏向 > 简单多样性计数的依据): Goldman, E., Gupta, N., & "
+                "Israelsen, R. (2024). Political polarization in financial news. Journal of Financial "
+                "Economics, 155, 103816. https://doi.org/10.1016/j.jfineco.2024.103816")
+
 
 # ============================================================================
 # 11. 数据加载

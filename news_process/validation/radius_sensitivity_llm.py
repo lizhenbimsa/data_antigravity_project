@@ -543,6 +543,15 @@ def main():
         logger.error("  $env:YUNWU_API_KEY = '<your-key>'; 然后重试.")
         return 1
 
+    # richer_project_context (round 7): --launch 路径仍是 scaffold — 在任何 cache lookup /
+    # LLM 调用之前就 loud 声明实现不完整, 防"以为真跑了一次付费 launch"的静默误解
+    # (本模块尾部另有收尾 warning, 此处提前到 gate 通过即刻, 让 65_*_llm.log 第一时间自证)。
+    logger.warning(
+        "  [LAUNCH] ⚠ SCAFFOLD 状态: 真实 radius 重抽 ctx + LLM 重判 + cache 解析路径尚未完整实现 — "
+        "本次不会执行任何付费 LLM 调用 (parse_track_results_from_cache 对真实 lookup 刻意 "
+        "fail-loud, 拒绝返回伪数据); 完整 launch 需再扩展 ~150 行异步框架 (复用 tone_llms.py "
+        "run_all_llms + LLMCache)。当前仅 --dry-run 的预算估算与前置检查可信。")
+
     # 实际 LLM 重抽 ctx + 调用 + cache 写入 (复用 tone_llms.py 异步 LLM 框架)
     # 实施细节: 此处需调 stage 21 的 _aggregate_track 等异步 LLM 框架.
     # 由于 stage 21 LLM 调用层在 tone_llms.py main() 中, 复用其异步框架需要:

@@ -368,6 +368,21 @@ async def run_masked_llms(
                     f"timeout={sig4(ENTITY_MASKING_REQUEST_TIMEOUT_SECONDS)}s, "
                     f"retries={ENTITY_MASKING_MAX_RETRIES}")
 
+        # round-7 富集 (2026-06-29): 掩码质量 sig4 概览 — 纯日志, 仅只读 main() 已物化的
+        # n_replacements_{track} 列, 不改任何产物/控制流 (golden-safe)。零替换的篇本就被
+        # Step 7 排除出一致性分母, 此处提前暴露其占比便于审计涂名有效性。
+        try:
+            for _trk in TRACKS:
+                _col = f'n_replacements_{_trk}'
+                if _col in df_masked.columns:
+                    _nr = pd.to_numeric(df_masked[_col], errors='coerce').fillna(0)
+                    _mx = int(_nr.max()) if len(_nr) else 0
+                    _zero_share = float((_nr == 0).mean()) if len(_nr) else 0.0
+                    logger.info(f"   掩码替换量 [{_trk}]: 均值={sig4(_nr.mean())} / 中位={sig4(_nr.median())} / "
+                                f"最大={_mx:,d} 处每篇 | 零替换占比={pct4(_zero_share)}")
+        except Exception as _e:  # noqa: BLE001
+            logger.warning(f"   掩码质量概览打印异常 (不影响处理): {_e}")
+
         completed = 0
         total = len(tasks)
         report_interval = max(1, total // 20)
@@ -744,14 +759,32 @@ def _log_environment_and_config(input_path: str) -> None:
                     f"情感一致率≥{pct4(EM_CFG.get('pass_threshold_sentiment', 0.85))} | "
                     f"κ≥{sig4(EM_CFG.get('pass_threshold_kappa', 0.80))}")
 
-        logger.info("  📖 方法论依据 (参考文献; 注: 以下两条 DOI 未在经核验注册表内, 仅 emit 题录不 emit DOI)")
+        logger.info("  📖 方法论依据 (参考文献; 注: SSRN-4558295 裸编号无可核验 DOI 仅 emit 题录, 其余条目附经核验 DOI)")
         logger.info("     · 实体替换稳健性: SSRN-4558295 §7.2 (entity substitution robustness check) "
                     "→ 把银行名换匿名代号, 检验 LLM 是否靠'读懂文本'而非'银行身份先验'下判定")
         logger.info("       可发表锚点: Robustness of Named-Entity Replacements for In-Context Learning "
                     "(Findings of EMNLP 2023, 2023.findings-emnlp.728)")
         logger.info("     · κ 解释阈值: Landis, J. R., & Koch, G. G. (1977). The measurement of observer "
-                    "agreement for categorical data. Biometrics, 33(1), 159-174.")
+                    "agreement for categorical data. Biometrics, 33(1), 159-174. "
+                    "https://doi.org/10.2307/2529310")
         logger.info("       → κ≥0.81 almost-perfect / 0.61-0.80 substantial / 0.41-0.60 moderate")
+        # round-7 富集 (2026-06-29): 当代 LLM-标注安全 / 实体中性化文献 (经 Crossref 核验 DOI),
+        # 锚定本阶段"涂名→检验 LLM 是否靠身份先验走捷径"的方法学正当性。
+        logger.info("     · LLM 标注的实体先验风险 (本检验直接动机): Carlson, N. A., & Burbano, V. (2026). "
+                    "The use of LLMs to annotate data in management research: Foundational guidelines and "
+                    "warnings. Strategic Management Journal, 47(3), 699-725. https://doi.org/10.1002/smj.70023")
+        logger.info("       → 管理学用 LLM 标注须防模型借实体身份('国有大行→稳健')走捷径; 实体掩码即此防线。")
+        logger.info("     · 实体中性化 (entity neutering, 与本掩码同构的因果识别手段): Engelberg, J., Manela, A., "
+                    "Mullins, W., & Vulicevic, L. (2025). Entity neutering [Working paper]. SSRN. "
+                    "https://doi.org/10.2139/ssrn.5182756")
+        logger.info("       → 把实体名替换为占位符以隔离'文本语义'与'实体先验'两条信息通道, 与本阶段三轨掩码同源。")
+        logger.info("     · 社会科学 LLM 标注风险指南: Lin, H., & Zhang, Y. (2026). Navigating the risks of "
+                    "using large language models for text annotation in social science research. Social "
+                    "Science Computer Review, 44(3), 403-427. https://doi.org/10.1177/08944393251366243")
+        logger.info("     · LLM hacking / prompt 配置隐藏风险量化: Baumann, J., Röttger, P., Urman, A., "
+                    "Wendsjö, A., Plaza-del-Arco, F. M., Gruber, J. B., & Hovy, D. (2025). Large language "
+                    "model hacking: Quantifying the hidden risks of using LLMs for text annotation. arXiv. "
+                    "https://doi.org/10.48550/arXiv.2509.08825")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
 

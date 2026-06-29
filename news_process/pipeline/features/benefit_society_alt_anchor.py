@@ -530,8 +530,12 @@ def _log_result_analysis(
             s_mean = float(sc.mean())
             s_std = float(sc.std(ddof=1)) if sc.size > 1 else float("nan")
             s_pos = float((sc > 0).mean())
+            s_med = float(np.median(sc))
+            s_min = float(sc.min())
+            s_max = float(sc.max())
             logger.info(
                 f"     ② 文章级投影 (n={sc.size:,d}): μ={sig4(s_mean)} | σ={sig4(s_std)} | "
+                f"中位={sig4(s_med)} | [min, max]=[{sig4(s_min)}, {sig4(s_max)}] | "
                 f"投影>0 占比={pct4(s_pos)} (理论范围 [−1,1])"
             )
             if s_pos > 0.95 or s_pos < 0.05:

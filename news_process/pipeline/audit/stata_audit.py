@@ -161,6 +161,26 @@ def audit_panel_structure(panel: pd.DataFrame, name: str):
     else:
         record(cat, '面板平衡性', 'FAIL', f'平衡率={pct4(balance_ratio)} (不平衡!)')
 
+    # 缺年诊断 (log-only, 不进 record/CSV → golden-safe): 平衡率 <1 时列出年份覆盖
+    # 不全的银行样本, 便于定位"哪些 bank 缺哪些年", 比单一 balance_ratio 更可操作。
+    try:
+        if 0 < balance_ratio < 0.999 and n_years > 1:
+            _full_years = set(range(int(y_min), int(y_max) + 1))
+            _gaps = []
+            for _bk, _g in panel.groupby('target_bank'):
+                _have = {int(y) for y in _g['year'].dropna().unique()}
+                _missing = sorted(_full_years - _have)
+                if _missing:
+                    _gaps.append((_bk, _missing))
+            if _gaps:
+                logger.info(f"  缺年诊断: {len(_gaps):,} 家银行年份覆盖不全 "
+                            f"(占 {pct4(len(_gaps) / max(n_banks, 1))}); 样本前 5 家:")
+                for _bk, _missing in _gaps[:5]:
+                    _disp = f"{_missing[:6]}…" if len(_missing) > 6 else f"{_missing}"
+                    logger.info(f"      {_bk}: 缺 {len(_missing):,} 年 {_disp}")
+    except Exception as _e:  # noqa: BLE001
+        logger.debug(f"  缺年诊断跳过 (不影响审核): {_e}")
+
     # 1c. 银行名一致性 (确保无空值、空字符串)
     blank_banks = panel['target_bank'].isna() | (panel['target_bank'].astype(str).str.strip() == '')
     if blank_banks.sum() > 0:
@@ -1004,6 +1024,11 @@ def _log_environment_and_config(panel_40_path: str, panel_51_path: str,
                     "Bartik instruments: What, when, why, and how. American Economic Review, "
                     "110(8), 2586-2624. https://doi.org/10.1257/aer.20181047")
         logger.info("       → 初始份额 × 全国趋势的 shift-share IV; 排除 other 后份额和理应 ≤1")
+        logger.info("     · 面板 TWFE/DiD 适用性 (本审计存在的目的): Wooldridge, J. M. (2025). "
+                    "Two-way fixed effects, the two-way Mundlak regression, and "
+                    "difference-in-differences estimators. Empirical Economics, 69(5), "
+                    "2545–2587. https://doi.org/10.1007/s00181-025-02807-z")
+        logger.info("       → (bank, year) 唯一键 + 平衡率审计正是为银行年 TWFE/Mundlak/DiD 估计交付合规面板")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  环境/配置/方法论信息打印失败 (不影响审核): {e}")
 

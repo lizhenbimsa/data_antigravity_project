@@ -455,7 +455,7 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
     logger.info("=" * 60)
     logger.info("步骤 1: 跟风/抄袭新闻检测与衰减加权 (三轨 v3.9.0)")
     logger.info("=" * 60)
-    logger.info(f"  参数: similarity_threshold={SIMILARITY_THRESHOLD}, "
+    logger.info(f"  参数: similarity_threshold={sig4(SIMILARITY_THRESHOLD)}, "
                 f"time_window={TIME_WINDOW_DAYS}天, "
                 f"max_features={MAX_FEATURES}, chunk_size={CHUNK_SIZE}")
     if SENS_TAGS:
@@ -611,6 +611,32 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"    herd_weight_ss   mean={sig4(df['herd_weight_ss'].mean())}, "
                 f"min={sig4(df['herd_weight_ss'].min())}")
 
+    # 前驱计数分布画像 (deepen_runtime, 2026-06-29 round7): 三轨各报 n_similar_articles
+    # 的分位 (p50/p75/p90/max) + 命中前驱 (>0) 篇占比, 让"每篇前面压着几篇相似旧文"
+    # 自文档化。纯只读日志局部量 (绝不回写 df/产物), 整块 try/except 防边缘数据崩。
+    try:
+        for _tn in ('full', 'ctx', 'ss'):
+            _ncol = f'n_similar_articles_{_tn}'
+            if _ncol not in df.columns:
+                continue
+            _ns = pd.to_numeric(df[_ncol], errors='coerce').dropna()
+            if _ns.empty:
+                continue
+            _herd_ns = _ns[_ns > 0]  # 仅被判跟风 (有前驱) 的篇
+            _p50 = float(_ns.quantile(0.50))
+            _p75 = float(_ns.quantile(0.75))
+            _p90 = float(_ns.quantile(0.90))
+            _mx = int(_ns.max())
+            _flag_frac = float((_ns > 0).mean())
+            _herd_mean = float(_herd_ns.mean()) if not _herd_ns.empty else float('nan')
+            logger.info(
+                f"    前驱计数分布 [{_tn}]: p50={sig4(_p50)} p75={sig4(_p75)} p90={sig4(_p90)} "
+                f"max={_mx:,d}; 跟风篇(>0)占比={pct4(_flag_frac)}, 其前驱计数均值={sig4(_herd_mean)} "
+                f"(越大=该轨转抄链越长, 头篇相对降权越重)"
+            )
+    except Exception as _e_dist:  # noqa: BLE001  纯日志, 绝不影响产物
+        logger.warning(f"    前驱计数分布画像打印失败 (不影响产物): {_e_dist}")
+
     # v3.6.0 NON-BREAKING 兼容层 (F-B 修): 保留 herd_weight / n_similar_articles
     # 单列 alias = _full 路径, 让 v3.5.x 既有调用方 (paper Stata 模板 / 测试套件 /
     # legacy panel reader) 不破坏. 下游若想用 ctx 路径必须显式引用 _ctx 后缀列.
@@ -672,7 +698,10 @@ def _log_environment_and_config(input_file: str, output_file: str) -> None:
     Edwards 2001 ORM https://doi.org/10.1177/109442810142004; Fedyk & Hodson 2023 JFE
     https://doi.org/10.1016/j.jfineco.2023.04.008; Cagé et al. 2020 RES
     https://doi.org/10.1093/restud/rdz061; Glasserman et al. 2025 JFQA
-    https://doi.org/10.1017/S0022109023001369), 绝不伪造 DOI (playbook §4 铁律)。
+    https://doi.org/10.1017/S0022109023001369; Liu et al. 2024 Econ.Lett.
+    https://doi.org/10.1016/j.econlet.2024.111823; Kumar et al. 2025 WWW
+    https://doi.org/10.1145/3701716.3715303; Tumre et al. 2025 NAACL
+    https://doi.org/10.18653/v1/2025.naacl-industry.73), 绝不伪造 DOI (playbook §4 铁律)。
     """
     try:
         import platform
@@ -735,6 +764,21 @@ def _log_environment_and_config(input_file: str, output_file: str) -> None:
                     "in the news-returns relationship. Journal of Financial and Quantitative Analysis, 60(1), "
                     "258-294. https://doi.org/10.1017/S0022109023001369")
         logger.info("       → 滞后新闻项刻画价格延迟反应及其时变; 锚定本阶段按 7 天窗内当期/滞后前驱计数施加衰减核赋权")
+        logger.info("     · 文本相似度测度与定价 (TF-IDF/余弦操作化锚): Liu, Y., Cao, Z., & Wen, F. (2024). "
+                    "Textual similarity between firm and government: Measurement and pricing. Economics Letters, "
+                    "241, 111823. https://doi.org/10.1016/j.econlet.2024.111823")
+        logger.info("       → 以文本相似度作可定价的计量度量; 锚定本阶段用 TF-IDF + 余弦距离判定'跟风'转抄的操作化选择")
+        logger.info("     · 大规模新闻流近似重复检测 (基准): Kumar, A., Tumre, S., & Patil, S. (2025). "
+                    "Benchmarking near-duplicate detection in the era of pay-walled news. In Companion "
+                    "Proceedings of the ACM on Web Conference 2025 (WWW '25 Companion) (pp. 745-748). "
+                    "Association for Computing Machinery. https://doi.org/10.1145/3701716.3715303")
+        logger.info("     · 聚合新闻近似重复检测改进: Tumre, S., Patil, S., & Kumar, A. (2025). Improved "
+                    "near-duplicate detection for aggregated and paywalled news-feeds. In Proceedings of the "
+                    "2025 Conference of the Nations of the Americas Chapter of the ACL: Human Language "
+                    "Technologies (Vol. 3: Industry Track) (pp. 979-987). Association for Computational "
+                    "Linguistics. https://doi.org/10.18653/v1/2025.naacl-industry.73")
+        logger.info("       → 大规模新闻聚合流的近似重复检测算法; 锚定本阶段 7 天窗双指针分桶 O(N·window) "
+                    "的工程学/计算复杂度依据 (>2000 篇/前缀的可扩展去重)")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
 

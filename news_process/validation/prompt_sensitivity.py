@@ -1467,7 +1467,38 @@ def main():
     logger.info("     · 创新位点维度:   Gomber et al. (2018, JMIS) enabling-technology vs business-function")
     logger.info("     · 创新协作模式:   Chesbrough (2003) Open Innovation; Laursen & Salter (2006, SMJ 27(2):131-150)")
     logger.info("     · 一致性度量:     Cohen's κ / Krippendorff's α / Fleiss' κ (扣除碰巧一致后的真实一致度)")
-    logger.info("     (注: 上述框架文献 DOI 不在本工作流的经核验注册表中, 故仅 emit 作者-年-期刊, 不 emit DOI)")
+    logger.info("     (注: 上述框架文献的经核验 DOI 见下方独立 📖 块; 前述'不 emit DOI'表述就此作废)")
+    logger.info("")
+    # round-7 富集 (2026-06-29): 把 📌 块的框架文献从作者-年-期刊升格为带经核验 DOI 的
+    # 正式条目, 并补当代 prompt-敏感度 / LLM-标注稳健性锚点 (纯日志, golden-safe)。
+    logger.info("  📖 方法论依据 (经 Crossref 核验 DOI; round-7 富集)")
+    logger.info("     · 措辞敏感度框架 (本阶段'生成相关 prompt 家族'的直接出处): Carlson, N. A., & Burbano, V. "
+                "(2026). The use of LLMs to annotate data in management research: Foundational guidelines "
+                "and warnings. Strategic Management Journal, 47(3), 699-725. https://doi.org/10.1002/smj.70023")
+    logger.info("     · 创新实质性 (substantiveness 二分类构念): Westphal, J. D., & Zajac, E. J. (1994). "
+                "Substance and symbolism in CEOs' long-term incentive plans. Administrative Science "
+                "Quarterly, 39(3), 367-390. https://doi.org/10.2307/2393295")
+    logger.info("     · 实质/象征管理 (substantive-vs-symbolic): Westphal, J. D., & Zajac, E. J. (1998). The "
+                "symbolic management of stockholders: Corporate governance reforms and shareholder "
+                "reactions. Administrative Science Quarterly, 43(1), 127-153. https://doi.org/10.2307/2393593")
+    logger.info("     · 创新位点 (locus = 使能技术 vs 业务功能): Gomber, P., Kauffman, R. J., Parker, C., & "
+                "Weber, B. W. (2018). On the fintech revolution: Interpreting the forces of innovation, "
+                "disruption, and transformation in financial services. Journal of Management Information "
+                "Systems, 35(1), 220-265. https://doi.org/10.1080/07421222.2018.1440766")
+    logger.info("     · 创新协作模式 (collab = 自主 vs 外部协同): Laursen, K., & Salter, A. (2006). Open for "
+                "innovation: The role of openness in explaining innovation performance among U.K. "
+                "manufacturing firms. Strategic Management Journal, 27(2), 131-150. "
+                "https://doi.org/10.1002/smj.507")
+    logger.info("     · 多编码者一致性 (5 编码者 V0+V1-V4 的 Fleiss' κ 出处): Fleiss, J. L. (1971). Measuring "
+                "nominal scale agreement among many raters. Psychological Bulletin, 76(5), 378-382. "
+                "https://doi.org/10.1037/h0031619")
+    logger.info("     · LLM hacking / prompt 配置敏感性风险量化 (本检验当代动机): Baumann, J., Röttger, P., "
+                "Urman, A., Wendsjö, A., Plaza-del-Arco, F. M., Gruber, J. B., & Hovy, D. (2025). Large "
+                "language model hacking: Quantifying the hidden risks of using LLMs for text annotation. "
+                "arXiv. https://doi.org/10.48550/arXiv.2509.08825")
+    logger.info("     · LLM 标注跨 prompt 可复现性 (SILICON): Cheng, X., Mayya, R., & Sedoc, J. (2024). To err "
+                "is human; to annotate, SILICON? Toward robust reproducibility in LLM annotation. arXiv. "
+                "https://doi.org/10.48550/arXiv.2412.14461")
     logger.info("")
     logger.info("  📖 测试设计")
     logger.info(f"     变体数量: {len(VARIANT_PROMPTS)} (V1-V4) + V0 Baseline")

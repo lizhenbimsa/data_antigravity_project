@@ -541,6 +541,25 @@ def main():
         )
         if top_kw is not None:
             logger.info(f"     最高频触发词: '{top_kw[0]}' ({top_kw[1]:,} 篇)")
+        # ④b 命中分布集中度 (deepen_runtime): 在 top_share 之外补归一化 Shannon 熵 +
+        #    Simpson 多样性 (1−Σp²), 量化触发词命中是均匀铺开 (熵→1) 还是少数词主导
+        #    (熵→0)。纯日志, 仅读已算的 kw_hit 计数, 不回写 df (golden-safe)。
+        try:
+            import math
+            _counts = [c for c in kw_hit.values() if c > 0]
+            if len(_counts) > 1 and total_kw_hits > 0:
+                _probs = [c / total_kw_hits for c in _counts]
+                _entropy = -sum(p * math.log(p) for p in _probs)
+                _entropy_norm = _entropy / math.log(len(_counts))  # 归一化到 [0,1]
+                _simpson = 1.0 - sum(p * p for p in _probs)  # Simpson 多样性
+                logger.info(
+                    f"  ④b 命中分布集中度: 触发词 {len(_counts):,d} 个 / 触发次数合计 "
+                    f"{total_kw_hits:,d}; 归一化 Shannon 熵={sig4(_entropy_norm)} "
+                    f"(1=完全均匀, 0=单点主导) | Simpson 多样性 1−Σp²={sig4(_simpson)} → "
+                    f"{'分散健康 (好)' if _entropy_norm >= 0.5 else '偏集中 (关注单点关键词驱动)'}"
+                )
+        except Exception as _he:  # noqa: BLE001 — 集中度诊断绝不阻断产物
+            logger.info(f"  ④b [命中集中度] 计算跳过 (不影响产物): {_he}")
         # ⑤ 下游交付量: filtered 子集是 stage 13+ 全部三轨/强度/情感的原料
         logger.info(
             f"  ⑤ 下游交付 (filtered 子集): {after_count:,} 篇交 stage 13 (ctx 物化)"

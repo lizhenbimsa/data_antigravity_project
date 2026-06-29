@@ -275,6 +275,12 @@ VERIFIED_REFS_FOR_LOG = (
      "of the business press as an information intermediary. Journal of "
      "Accounting Research, 48(1), 1-19. "
      "https://doi.org/10.1111/j.1475-679X.2009.00357.x"),
+    # 伪造检验 = 现代 DiD 范式的互补划分 (anti-join 构造互斥处理/对照组 + placebo 时点检验)
+    ("伪造检验 = DiD 范式互补划分 (anti-join 互斥处理/对照组; placebo 时点检验对标)",
+     "Baker, A., Callaway, B., Cunningham, S., Goodman-Bacon, A., & Sant'Anna, "
+     "P. H. C. (2026). Difference-in-differences designs: A practitioner's "
+     "guide. Journal of Economic Literature, 64(2), 498–557. "
+     "https://doi.org/10.1257/jel.20251650"),
     # 治理约束型合约控制变量 (GOV_* 列)
     ("治理约束型合约控制变量 (GOV_* 系列)",
      "Zhou, Y., Chen, L., Zhou, F., & Ye, M. (2026). Contractual arrangements "
@@ -395,6 +401,19 @@ def load_data():
     logger.info(f"      说明: 这些是关键词匹配 + LLM 验证通过的金融科技新闻")
     logger.info(f"      唯一银行数: {df_art['target_bank'].nunique()}")
     logger.info(f"      日期列类型: {df_art['日期'].dtype}")
+    # 对照组边界的 LLM 标注前提 (日志富集 round 7): df_art = LLM 语义验证通过的
+    # 金融科技文章, 是 anti-join 的"被减项" → LLM 标注质量直接决定处理/对照组划界
+    # (is_fintech_news=True 但 LLM 拒绝者刻意归入对照组, 见 build_non_fintech)。
+    logger.info("      📖 对照组划界的 LLM 标注质量依据 "
+                "(temperature=0 锁定 + _llm_cache.db 0-miss 复现锚):")
+    logger.info("         · Carlson, N. A., & Burbano, V. (2026). The use of LLMs to "
+                "annotate data in management research: Foundational guidelines and "
+                "warnings. Strategic Management Journal, 47(3), 699–725. "
+                "https://doi.org/10.1002/smj.70023")
+    logger.info("         · Lin, H., & Zhang, Y. (2026). Navigating the risks of using "
+                "large language models for text annotation in social science research. "
+                "Social Science Computer Review, 44(3), 403–427. "
+                "https://doi.org/10.1177/08944393251366243")
 
     # --- (c) 已有面板 ---
     panel_path = os.path.join(
@@ -518,6 +537,16 @@ def build_non_fintech(df_full: pd.DataFrame,
         f"    12_fintech_news_full:  {_df_full_before:,} → {len(df_full):,} "
         f"(去重 {_df_full_dropped:,} 行, "
         f"{pct4(_df_full_dropped / max(_df_full_before, 1))})"
+    )
+    # 去重影响对 Hassan PRisk/(PRisk+NPRisk) 互补划分的结构性诊断 (日志富集 round 7):
+    # 两侧去重率若显著不同, 提示"同稿件"集合语义在处理/对照侧不对称 → 须警惕划分偏移。
+    # 局部变量仅服务日志, 绝不回写 df / 任何产物 (golden-safe)。
+    _art_dr = _df_art_dropped / max(_df_art_before, 1)
+    _full_dr = _df_full_dropped / max(_df_full_before, 1)
+    logger.info(
+        f"    去重率口径对比: fintech 面板侧 {pct4(_art_dr)} vs 全量底库侧 {pct4(_full_dr)} "
+        f"(差 {sig4(_art_dr - _full_dr)}); 两侧同按 (target_bank,标题,日期) 折叠'同稿件', "
+        f"口径对称 → 不破坏互斥处理/对照组划分。"
     )
     if _df_art_dropped > 0 or _df_full_dropped > 0:
         logger.info(
@@ -1098,6 +1127,9 @@ def run_diagnostics(panel: pd.DataFrame):
             logger.info("")
             logger.info("  ─── 挤出弹性校验 ───")
             logger.info(f"  r(ln_ft, ln_nf) = {sig4(r_elast)}")
+            logger.info("    机理: fintech% + nf% ≡ 100% 的单位和约束会让对数弹性对趋于 "
+                        "r→-1 的机械负关联; r 远离 -1 表明对数变换已解除该恒等约束 "
+                        "(此为测量层诊断, 非因果效应)。")
             if r_elast < -0.95:
                 logger.error("  ✗ r < -0.95: 疑似机械关联, "
                              "百分比约束未被对数变换消除!")

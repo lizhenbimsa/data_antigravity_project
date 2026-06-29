@@ -2178,6 +2178,33 @@ def _log_environment_and_methodology(input_path: str) -> None:
             "_llm_cache.db 确定性复现的设计纪律。"
         )
         logger.info(
+            "     · 前视偏误检验 (lookahead / 复现性威胁): Gao, Z., Jiang, W., & Yan, Y. (2026). "
+            "A test of lookahead bias in LLM forecasts (SSRN Working Paper No. 5985277; arXiv:2512.23847). "
+            "https://doi.org/10.2139/ssrn.5985277"
+        )
+        logger.info(
+            "       → 直接锚定本阶段 _llm_cache.db 离线确定性守卫 (NEWS_PROCESS_LLM_OFFLINE=1) 的动因: "
+            "用缓存固定历史响应以杜绝模型版本漂移/前视污染, 保证 golden 字节级可复现。"
+        )
+        logger.info(
+            "     · LLM 记忆/数据污染 (验证门动因): Lopez-Lira, A., Tang, Y., & Zhu, M. (2025). "
+            "The memorization problem: Can we trust LLMs' economic forecasts? (SSRN Working Paper "
+            "No. 5217505; arXiv:2504.14765). https://doi.org/10.2139/ssrn.5217505"
+        )
+        logger.info(
+            "       → 锚定本阶段缓存键四维 (模型名+prompt 文本+prompt_version+temperature) 与严格响应"
+            "校验 (_is_cacheable_llm_response) 的必要性: 防止 LLM 记忆/泄漏污染情感标注。"
+        )
+        logger.info(
+            "     · LLM 作计量框架 (生成式回归元/generated regressor): Ludwig, J., Mullainathan, S., & "
+            "Rambachan, A. (2025). Large language models: An applied econometric framework (NBER "
+            "Working Paper No. 33344). National Bureau of Economic Research. https://doi.org/10.3386/w33344"
+        )
+        logger.info(
+            "       → 框定本阶段角色: 三模型投票产出的 verified/sentiment/创新三维标签是下游面板的"
+            "'生成式回归元', 须按 LLM 计量框架审慎对待其测量误差与下游推断有效性。"
+        )
+        logger.info(
             "     · LLM 数据标注基础指南 / 误分类偏置与 prompt 敏感性: Carlson, N. A., & Burbano, V. (2026). "
             "The use of LLMs to annotate data in management research: Foundational guidelines and warnings. "
             "Strategic Management Journal, 47(3), 699-725. https://doi.org/10.1002/smj.70023"

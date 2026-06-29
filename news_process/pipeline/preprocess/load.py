@@ -181,6 +181,12 @@ def _log_worker_banner_once() -> None:
             "       → 每篇 ≥50 词以保证语调测度可靠 (排除表格/列表残片); "
             "本阶段以汉字数近似 (50 词≈75-100 字), 取 100 汉字为更宽松边界"
         )
+        logger.info(
+            "       → 标题 ≥2 汉字属**数据完整性过滤** (剔空/损坏标题), 非样本选择: "
+            "被删项以 0 字 (空/损坏) 为主而非 1 字真标题 (删除构成诊断见 "
+            "_log_title_filter_diagnostics); 内容上限 10000 汉字排除超长文体噪声, "
+            "长文语调影响由按年标准化压制 (TSM 2008 实际不设上限, 故上限仅作稳健性边界)。"
+        )
     except Exception as e:  # noqa: BLE001  纯日志, 失败绝不阻断 worker 处理
         logger.warning(f"  worker banner 打印失败 (不影响处理): {e}")
 
@@ -282,6 +288,11 @@ def _log_length_filter_diagnostics(content_len: pd.Series) -> None:
                 f"  [长度诊断] 生产阈值 {lo_prod:,}~{hi_prod:,} 保留率="
                 f"{pct4(keep_frac)} (其中上限剔除占 {pct4(upper_drop)}) → {verdict}"
             )
+            # 判读阈值显式化 (审计可见性): 保留率判读门槛随结果落日志, 免回查源码。
+            logger.info(
+                f"  [长度诊断] 保留率判读阈值: ≥{pct4(0.70)} 温和 | "
+                f"≥{pct4(0.40)} 临界 | <{pct4(0.40)} 过激 (须核查阈值/语料)"
+            )
     except Exception as e:  # noqa: BLE001  纯日志, 失败绝不阻断处理
         logger.warning(f"  [长度诊断] 保留率判读失败 (不影响处理): {e}")
 
@@ -341,6 +352,12 @@ def _log_title_filter_diagnostics(title_len: pd.Series) -> None:
             )
             logger.info(
                 f"  [长度诊断] 标题 ≥2 删除构成: 0字占 {pct4(zero_share)} → {verdict}"
+            )
+            # 判读阈值显式化 (审计可见性): 把硬编码门槛随结果一并落日志, 便于
+            # 复核"本批 0 字占比落在哪一档"而无需回查源码常量 (纯日志, 不改判读)。
+            logger.info(
+                f"  [长度诊断] 0字占比判读阈值: ≥{pct4(0.80)} 数据完整性过滤 | "
+                f"≥{pct4(0.50)} 临界(含 1 字真标题) | <{pct4(0.50)} 样本选择风险"
             )
     except Exception as e:  # noqa: BLE001  纯日志, 失败绝不阻断处理
         logger.warning(f"  [长度诊断] 标题删除构成判读失败 (不影响处理): {e}")

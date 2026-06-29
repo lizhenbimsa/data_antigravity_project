@@ -34,7 +34,10 @@ filename_key | None``, 以彻底消除 "改一处忘改另一处导致 40_attn_i
 
 from __future__ import annotations
 
+import logging
 from typing import Mapping, Optional
+
+_LOGGER = logging.getLogger(__name__)
 
 # 阶段脚本名 (历史 root 文件名, 保留以做向后兼容) → 该阶段产出的 parquet
 # 文件名列表。runner main() 不写 parquet 的阶段 (例如只产 eval_reports/*.csv
@@ -286,6 +289,24 @@ def _validate_registry_invariant() -> None:
             f"{key_dups}; 涉及 (script, filename): {sharers}; "
             f"用户在 paths.yaml::filenames 改名会让两个 stage 写到同一文件 "
             f"→ 数据竞争 + 互相覆盖. 请给每个条目取唯一 filename_key."
+        )
+
+    # ── 操作性可观测 (LOG-ENRICH round 7) ──
+    # 五项不变式全过后, 在 DEBUG 级落一行 import-time 注册表健康快照, 供审计/诊断
+    # (生产 INFO 级零打扰; 计数皆整数, 用 logging 惰性 %d 占位, 整数无需 sig4 四舍五入)。isEnabledFor
+    # 守卫使 DEBUG 关闭时连 sum() 也不计算 → 对热 import 路径零开销。golden-safe:
+    # 不触碰任何注册表内容, 仅汇报已校验完毕的结构。
+    if _LOGGER.isEnabledFor(logging.DEBUG):
+        _n_keyed = sum(1 for k in _OUTPUT_FILENAME_KEYS.values() if k is not None)
+        _LOGGER.debug(
+            "OUTPUT_REGISTRY 不变式五项校验通过: %d 个产 parquet 阶段 / "
+            "%d 个唯一 parquet 文件名 / %d 个可经 paths.yaml::filenames 改名 + "
+            "%d 个内部副产物恒用默认名 / %d 个 EXPECTED_NO_OUTPUT_STAGES 验证阶段",
+            len(OUTPUT_REGISTRY),
+            len(all_files),
+            _n_keyed,
+            len(_OUTPUT_FILENAME_KEYS) - _n_keyed,
+            len(EXPECTED_NO_OUTPUT_STAGES),
         )
 
 

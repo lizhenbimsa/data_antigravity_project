@@ -311,15 +311,23 @@ def save_parquet_with_metadata(
     )
     # 📖 方法论依据 (内容寻址 / 可复现计算血缘): 记录 git commit + config hash +
     #    输入文件 SHA-256 + 依赖版本, 使每个 parquet 产物可溯源、可复现校验。
-    #    候选文献 (qreg/PPML/Oster/randomization inference) 均为计量估计方法, 与本模块
-    #    "数据版本/出处追踪" 无方法学锚定关系, 故不 emit; 仅 emit 文件既有的真锚定文献。
+    #    候选文献中的计量估计方法 (qreg/PPML/Oster/randomization inference) 与本模块
+    #    "数据版本/出处追踪" 无方法学锚定关系, 故不 emit; 仅 emit 两条真锚定的"可复现"
+    #    方法学文献 —— Sandve 2013 (通用可复现计算) + Cheng 2024 (LLM 标注可复现, 对应
+    #    本模块为 stage 21 等 LLM 标注 parquet 记录 code_version / config_hash 的机制)。
     logger.info(
         "📖 方法论依据 (可复现计算研究 · 出处与版本追踪):\n"
         "  Sandve, G. K., Nekrutenko, A., Taylor, J., & Hovig, E. (2013). Ten simple "
         "rules for reproducible computational research. PLoS Computational Biology, "
         "9(10), e1003285. https://doi.org/10.1371/journal.pcbi.1003285\n"
         "  (白话: 可复现计算研究的十条准则; 本模块落实其规则 4-6——记录所有中间结果、"
-        "版本与精确出处, 让每个 parquet 产物都能溯源到 git commit / config / 输入哈希。)"
+        "版本与精确出处, 让每个 parquet 产物都能溯源到 git commit / config / 输入哈希。)\n"
+        "  Cheng, X., Mayya, R., & Sedoc, J. (2024). To err is human; to annotate, "
+        "SILICON? Toward robust reproducibility in LLM annotation (arXiv:2412.14461). "
+        "arXiv. https://doi.org/10.48550/arXiv.2412.14461\n"
+        "       → 本模块把 code_version (如 PREPROCESS_CODE_VERSION) 与 config_hash "
+        "(含 prompt_version) 一并写入 schema metadata, 正是该文倡导的'记录 prompt/配置/"
+        "代码版本以使 LLM 标注产物可复现'纪律在数据版本层的落地。"
     )
 
 

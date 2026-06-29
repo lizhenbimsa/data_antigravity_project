@@ -160,6 +160,17 @@ def _log_engine_banner(spec: dict | None = None, *, log_prefix: str = "Embedding
         logger.info(
             "       白话: 用 BERT 句嵌入测文本语义立场已成顶刊范式, 本引擎产出的向量即"
             "服务于 policy/strategic/benefit 等阶段的语义相似度 (余弦) 测度。")
+        logger.info("       · 嵌入相似度的可解释性 (为何归一化向量余弦 = 语义相似度):")
+        logger.info(
+            "         Opitz, J., Moeller, L., Michail, A., Padó, S., & Clematide, S. "
+            "(2025). Interpretable text embeddings and text similarity explanation: A "
+            "survey. In Proceedings of the 2025 Conference on Empirical Methods in "
+            "Natural Language Processing (pp. 22314-22330). Association for Computational "
+            "Linguistics. https://doi.org/10.18653/v1/2025.emnlp-main.1135")
+        logger.info(
+            "       白话: 本引擎对每条向量逐块 L2 归一后再加权池化 (输出单位向量), 故下游"
+            "余弦 ≡ 点积 = 标准语义相似度; 该综述系统梳理嵌入相似度的可解释性与适用边界, "
+            "为本引擎'归一→余弦'的测度链提供方法学依据。")
         # ② 关键引擎配置 (本模块可调常量 + 本次 spec; 路径/参数级 CONFIG 由 runner 入口打)
         # v3.14.0: 全 spec 均为 API spec (零本地模型) → 路径恒为 API (穿透 LLMCache)。
         if spec is not None:
@@ -265,6 +276,28 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
             f"缺失 {len(missing_texts):,} 条 / 共 {len(texts):,} 条 "
             f"(命中率 {pct4(_n_hit / len(texts))}, model={embedding_model})"
         )
+        # 命中分桶诊断 (按字符长度: 短/中/长) — 揭示是否长文系统性更易 miss (长文走
+        # 朴素分段 → 子块更多 → 任一子块 miss 即整文需联网回填)。按 len(str) 廉价分桶,
+        # 不触 tiktoken / 不上热路径成本; 仅读已算好的 cached_results, 失败静默跳过 (golden-safe)。
+        try:
+            _buckets = {'短 (<2000 字)': [0, 0], '中 (2000-20000 字)': [0, 0],
+                        '长 (>20000 字, 多走分段)': [0, 0]}
+            for _t, _res in zip(texts, cached_results):
+                _ln = len(str(_t))
+                _key = ('短 (<2000 字)' if _ln < 2000
+                        else '中 (2000-20000 字)' if _ln <= 20000
+                        else '长 (>20000 字, 多走分段)')
+                _buckets[_key][0] += 1                    # 该桶总条数
+                if _res is not None:
+                    _buckets[_key][1] += 1                # 该桶命中条数
+            _parts = [
+                f"{_k} {_v[1]:,}/{_v[0]:,} ({pct4(_v[1] / _v[0])})"
+                for _k, _v in _buckets.items() if _v[0] > 0
+            ]
+            if _parts:
+                logger.info("      └─ 命中分桶 (字符长度): " + " | ".join(_parts))
+        except Exception as _bkt_exc:  # noqa: BLE001 — 诊断分桶, 失败不阻塞嵌入
+            logger.debug(f"      └─ 命中分桶诊断跳过 (不影响产物): {_bkt_exc!r}")
 
     missing_embs: list = []
     if missing_texts:

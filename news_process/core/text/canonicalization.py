@@ -293,6 +293,11 @@ def _log_methodology_once() -> None:
         "(阈值 %s, 置信度折扣 %s) → ③ 兜底基率归 '应用场景' (confidence %s)",
         f"{60:,}", sig4(0.7), sig4(0.0),
     )
+    logger.info(
+        "  • 流水线位置: 接收 stage 21 (tone_llms) LLM 自由文本 fintech_topic 输出, "
+        "标准化为 (底层技术|应用场景, confidence) 二元类供下游 encode 面板聚合 "
+        "(_tech/_app 分组、collab 的 l_bit/cell_id); confidence>0 兜底门控属 encode 消费层职责"
+    )
     logger.info("📖 方法论依据 (topic canonicalization 方法溯源):")
     logger.info(
         "  • Manning, C. D., Raghavan, P., & Schütze, H. (2008). "
@@ -303,6 +308,35 @@ def _log_methodology_once() -> None:
         "    (白话: IR 标准教材 — 锚定全角→半角字符归一化与 case-folding 词项归一 (§2.2)、"
         "基于词典的词项查找与 edit-distance 近似/拼写匹配 (§3) 等检索原语, 即本模块 "
         "_normalize_text + 加权关键词最长匹配 + partial_token_set_ratio 模糊兜底的方法依据。)"
+    )
+    logger.info(
+        "  • Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese "
+        "fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) "
+        "and its application. Expert Systems with Applications, 264, 125739. "
+        "https://doi.org/10.1016/j.eswa.2024.125739"
+    )
+    logger.info(
+        "    (白话: 近期中文细粒度领域词典工程范例 — 印证本模块以人工赋权 (核心 2.0 / "
+        "二梯队 1.5 / 长词 1.0 / 短词 0.5) 构建 fintech 主题中文关键词表的方法可信度; "
+        "构念为主题归类而非情感, 仅借鉴其加权词典构造方法。)"
+    )
+    logger.info(
+        "  • Carlson, N. A., & Burbano, V. (2026). The use of LLMs to annotate data "
+        "in management research: Foundational guidelines and warnings. Strategic "
+        "Management Journal, 47(3), 699-725. https://doi.org/10.1002/smj.70023"
+    )
+    logger.info(
+        "    (白话: LLM 数据标注的治理准则 — 本模块把 LLM 自由文本 fintech_topic 收敛为"
+        "受控二元类目, 正是对 LLM 标注输出做确定性后处理/规整的工程实现。)"
+    )
+    logger.info(
+        "  • Cheng, X., Mayya, R., & Sedoc, J. (2024). To err is human; to annotate, "
+        "SILICON? Toward robust reproducibility in LLM annotation (arXiv:2412.14461). "
+        "arXiv. https://doi.org/10.48550/arXiv.2412.14461"
+    )
+    logger.info(
+        "    (白话: LLM 标注可复现性 — 规则化关键词映射 + 确定性兜底使同一 fintech_topic "
+        "字符串恒映射到同一 (类目, confidence), 把 LLM 标注的随机性收敛为可字节级复现的派生类。)"
     )
 
 
