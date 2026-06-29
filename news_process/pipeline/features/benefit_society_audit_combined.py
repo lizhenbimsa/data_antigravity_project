@@ -51,7 +51,7 @@ fix(omni-g-benefit-01, 2026-06-11) 链路重接线 (2026-05-29 主轨换模后�
 
 **关键算法**: 句嵌入余弦/方向投影 (锚点对方向向量 + 文章嵌入点积投影) + bank-year 聚合 (mean/std/正负分数比例, pos/neg_frac 默认以 in-sample median 为 center)。
 
-**外部依赖**: 统一 embedding 引擎 (`embedding_engine.embed_texts`, 经 make_anchor_embedding_fn 闭包穿透 LLMCache; 锚点仅 ~10 句, 嵌入成本 ≈$0, 真重算 deferred 到生产 run); 文章嵌入须 stage 27 预先落盘 (本脚本不调嵌入 API 跑全量文章, 只嵌锚点)。读 yaml (锚点/placebo 关键词)。
+**外部依赖**: 统一 embedding 引擎 (`embedding_engine.embed_texts`, 经 make_anchor_embedding_fn 闭包穿透 LLMCache; 锚点仅 ~10 句, **cache 命中时 ≈$0**; ⚠ 嵌入族**不受** `NEWS_PROCESS_LLM_OFFLINE` 离线闸的"miss→raise"豁免成本约束 —— 换嵌入模型后首跑锚点 cache miss 会真发一次极小付费嵌入调用 (~10 句, ≈分钱级), 命中后离线 $0); 文章嵌入须 stage 27 预先落盘 (本脚本不调嵌入 API 跑全量文章, 只嵌锚点)。读 yaml (锚点/placebo 关键词)。
 
 **DAG 位置**: stage 27 (benefit 嵌入) 的审计旁支, 上游 = stage 27 的 .npy + sidecar; 下游 = benefit_society 论文 Stata 模板 (P2.S1/P2.A2)。shim 仅 `from ...benefit_society_audit_combined import main; sys.exit(main())`, 零逻辑。
 
@@ -111,6 +111,57 @@ logger = logging.getLogger(__name__)
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
+
+
+def _resolve_default_inputs(args, config: dict) -> None:
+    """把省略的输入路径自动接线到 stage 27/40 规范产物 (in-place 填充 args 的 None 槽)。
+
+    fix(2026-06-29): audit-only stage 80 此前裸跑 (不带 5 个输入 CLI 路径) 仅校验 yaml
+    即空转 warn 退出, 不产审计面板 (logs/80_placebo_and_alt_anchor.log 的根问题)。本
+    helper 让省略的输入回退到 config 声明的上游规范产物 ——
+
+    - ``--text-embeddings-full`` → ``<output_dir>/27_benefit_embeddings_full.npy``
+      (镜像 benefit_society._persist_article_embeddings 的 ``cache_filename
+      .replace('.npy', f'{suffix}_{track}.npy')``, MAIN suffix='');
+    - ``--main-direction-npy``   → ``<output_dir>/27_benefit_direction.npy``
+      (benefit_society._persist_direction_vector 硬编码 ``27_benefit_direction{suffix}.npy``);
+    - ``--df-exploded``          → ``<output_dir>/40_article_bank_level.parquet``
+      (stage 40 export_panel 落盘的同一 df_exploded; 行序与 .npy 1:1 对齐,
+      benefit 投影(runner:1759)→export(runner:2694) 之间 df_exploded 不重排)。
+
+    使裸跑在上游 (stage 27/40) 已落盘时即可消费、产出面板; 解析后文件仍缺 (CI/无数据机)
+    则由 main() 的存在性检查 warn 回退 (原 no-op 语义)。
+
+    必需三件套 (full/df/direction) 无条件填默认路径 (存在性由 main() 校验)。可选 ctx/ss
+    twin **仅当默认路径文件实际存在时**才接线 —— 上游未产 ctx/ss 时不强填, 避免 main()
+    把缺失的可选轨误当必需输入而错误 warn 回退。显式传入的 CLI 路径 (非 None) 一律保留不覆盖。
+    """
+    paths = config.get("paths") or {}
+    filenames = config.get("filenames") or {}
+    out_dir = paths.get("output_dir", "data/processed")
+    emb_base = filenames.get("output_27_benefit_cache", "27_benefit_embeddings.npy")
+
+    def _emb_track(track: str) -> str:
+        return os.path.join(out_dir, emb_base.replace(".npy", f"_{track}.npy"))
+
+    if args.text_embeddings_full is None:
+        args.text_embeddings_full = _emb_track("full")
+    if args.main_direction_npy is None:
+        args.main_direction_npy = os.path.join(out_dir, "27_benefit_direction.npy")
+    if args.df_exploded is None:
+        args.df_exploded = os.path.join(
+            out_dir,
+            filenames.get("output_40_article_bank", "40_article_bank_level.parquet"),
+        )
+    # 可选 ctx/ss twin: 默认路径文件存在才接线 (上游未产则保持 None)
+    if args.text_embeddings_ctx is None:
+        _cand_ctx = _emb_track("ctx")
+        if os.path.exists(_cand_ctx):
+            args.text_embeddings_ctx = _cand_ctx
+    if args.text_embeddings_ss is None:
+        _cand_ss = _emb_track("ss")
+        if os.path.exists(_cand_ss):
+            args.text_embeddings_ss = _cand_ss
 
 
 def build_audit_panel(
@@ -382,17 +433,24 @@ def main(argv: list[str] | None = None) -> int:
     global logger
     from news_process.core.config import load_config
     from news_process.core.logging import setup_logging
+    config = load_config()
     logger = setup_logging(
         "80_placebo_and_alt_anchor",
-        load_config()["paths"].get("log_dir", "logs"),
+        config["paths"].get("log_dir", "logs"),
     )
 
     # P2 fix (2026-06-26): --output 默认延后到此经 config output_dir 解析 (cwd 无关; audit-only)。
     if args.output is None:
         args.output = os.path.join(
-            load_config()['paths']['output_dir'],
+            config['paths']['output_dir'],
             '80_alt_anchor_and_placebo_panel.parquet',
         )
+
+    # fix(2026-06-29): 省略的输入路径自动接线到 stage 27/40 规范产物 (见 _resolve_default_inputs)。
+    # 让 audit-only stage 80 裸跑即可消费上游已落盘的 .npy/df, 不再因缺 5 个 CLI 路径而空转 warn;
+    # 解析后文件仍缺 (CI/无数据机) 则由下方存在性检查 warn 回退 (保持原 no-op 语义)。须在输入/输出
+    # 日志块 (下方 banner) 之前接线, 让日志打印的是真实解析后路径而非 "(未提供)"。
+    _resolve_default_inputs(args, config)
 
     # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39c)。
     logger.info("=" * 72)
@@ -409,7 +467,7 @@ def main(argv: list[str] | None = None) -> int:
     logger.info("【判读】替代锚点: 与主测度方向一致、量级相近=稳健(好); 翻盘/塌缩=锚点敏感(不利)。")
     logger.info("        安慰剂: 业务线信号量级 *远小于* 替代锚点 (|均值|占比 ratio<0.5)=干净(好); 接近/超过=主测度乱抓相关(伪相关,不利)。")
     logger.info("        注: RAW 余弦投影均值在各向异性嵌入空间 (sign-at-0 实测 ~97% 投影>0, 见 alt_anchor 饱和退化披露) 下系统性非零, 无绝对 ≈0 基线, 故只作 *相对* 量级判读。")
-    logger.info("【确定性】不调 LLM; 仅嵌 ~10 句锚点 (≈$0, 经 LLMCache); 文章嵌入读 stage 27 预落盘 .npy; 显式 seed。")
+    logger.info("【确定性】不调 LLM; 仅嵌 ~10 句锚点 (cache 命中时 ≈$0; ⚠ 换模首跑锚点 miss 会发一次极小付费嵌入, 非 OFFLINE 闸豁免); 文章嵌入读 stage 27 预落盘 .npy; 显式 seed。")
 
     # ① 🧭 项目 / 环境信息 + ② 输入/输出 + ③ 运行配置 + ④ 方法论依据 (日志富集 2026-06-24, 纯增量 golden-safe)。
     # 全块 try/except 兜底: 纯日志诊断绝不让 audit 阶段返回非 0。emit 只在函数体内 (避免 import-time 截断)。
@@ -429,11 +487,13 @@ def main(argv: list[str] | None = None) -> int:
         )
 
         logger.info("  📂 输入 / 输出文件")
-        logger.info(f"     · 文章嵌入 full: {args.text_embeddings_full or '(未提供 → 仅 yaml 校验)'}")
+        # full/df/direction 三槽已由 _resolve_default_inputs 无条件接线 (恒非 None), 直接打印解析后路径;
+        # ctx/ss 是可选 twin (仅默认文件存在才接线) → 仍可能为 None, 保留 '(未提供)' 占位。
+        logger.info(f"     · 文章嵌入 full: {args.text_embeddings_full}")
         logger.info(f"     · 文章嵌入 ctx:  {args.text_embeddings_ctx or '(未提供)'}")
         logger.info(f"     · 文章嵌入 ss:   {args.text_embeddings_ss or '(未提供)'}")
-        logger.info(f"     · 文章-银行 df:  {args.df_exploded or '(未提供)'}")
-        logger.info(f"     · 主方向 .npy:   {args.main_direction_npy or '(未提供)'} (stage 27 27_benefit_direction.npy)")
+        logger.info(f"     · 文章-银行 df:  {args.df_exploded}")
+        logger.info(f"     · 主方向 .npy:   {args.main_direction_npy} (stage 27 27_benefit_direction.npy)")
         logger.info(f"     · 输出 parquet:  {args.output}")
 
         logger.info("  ⚙ 运行配置 (CLI argv + 默认值)")
@@ -478,13 +538,31 @@ def main(argv: list[str] | None = None) -> int:
         logger.info("[validate-only] yaml schemas OK; exiting.")
         return 0
 
-    if not all([args.text_embeddings_full, args.df_exploded, args.main_direction_npy]):
+    # fix(2026-06-29): 必需输入 (full/df/direction) 现已由 _resolve_default_inputs 自动接线到
+    # stage 27/40 规范产物; 故 warn 回退判据由 "CLI 是否传参" 改为 "解析后文件是否实际存在"。
+    # 三件套齐备 → 跑 full projection; 任一缺失 (上游未跑/CI 无数据) → warn 回退 (yaml 已校验, no-op)。
+    _required = {
+        "--text-embeddings-full": args.text_embeddings_full,
+        "--df-exploded": args.df_exploded,
+        "--main-direction-npy": args.main_direction_npy,
+    }
+    _missing = [f"{k}={v!r}" for k, v in _required.items() if not (v and os.path.exists(v))]
+    if _missing:
         logger.warning(
-            "Full projection requires --text-embeddings-full + --df-exploded + "
-            "--main-direction-npy. Yaml schemas validated; rerun with inputs to "
-            "produce audit panel."
+            "Full projection 需要 stage 27/40 产物 (已尝试从 config 自动接线), 但以下缺失: %s. "
+            "Yaml schemas validated; 先跑 stage 27 (config benefit_society.cache_embeddings=true) 产出 "
+            "27_benefit_embeddings_full.npy + 27_benefit_direction.npy, 跑 stage 40 产出 "
+            "40_article_bank_level.parquet, 或显式传 --text-embeddings-full/--df-exploded/"
+            "--main-direction-npy 后重跑, 即可产出审计面板。",
+            "; ".join(_missing),
         )
         return 0
+
+    logger.info(
+        "✓ 输入已就绪 (auto-wired from config 或显式 CLI): full=%s | df=%s | direction=%s | ctx=%s | ss=%s",
+        args.text_embeddings_full, args.df_exploded, args.main_direction_npy,
+        args.text_embeddings_ctx or "(无)", args.text_embeddings_ss or "(无)",
+    )
 
     # fix(omni-g-benefit-01, 2026-06-11): sidecar 强制 (fail-loud on stale npy)
     # + model_id 反查 spec → 锚点与文章同嵌入空间。

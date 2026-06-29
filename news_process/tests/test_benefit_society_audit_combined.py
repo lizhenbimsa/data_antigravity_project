@@ -25,8 +25,23 @@ class TestCLIValidate:
         rc = benefit_society_audit_combined.main(["--validate-only"])
         assert rc == 0
 
-    def test_no_args_warns_and_exits_clean(self) -> None:
-        """不带输入参数时仅校验 yaml schema; CLI 发警告并退出码 0。"""
+    def test_no_args_warns_and_exits_clean(self, tmp_path, monkeypatch) -> None:
+        """不带输入参数 + 上游产物缺失时: 自动接线后存在性检查发现缺失 → 仅校验 yaml,
+        CLI 发警告并退出码 0 (warn 回退路径)。
+
+        fix(2026-06-29): main() 现默认经 _resolve_default_inputs 从 config 自动接线
+        stage 27/40 规范输入。故 no-args 的 warn 回退须在"上游产物不存在"的隔离环境下
+        验证 (否则会接到真实 data/processed 产物并尝试付费嵌入 + 写真实面板)。
+        monkeypatch load_config 使 output_dir/log_dir 指向空 tmp 目录 → 解析后文件不存在
+        → 命中 warn 回退。
+        """
+        import news_process.core.config as _cfg
+
+        fake_cfg = {
+            "paths": {"output_dir": str(tmp_path), "log_dir": str(tmp_path)},
+            "filenames": {},
+        }
+        monkeypatch.setattr(_cfg, "load_config", lambda *a, **k: fake_cfg)
         rc = benefit_society_audit_combined.main([])
         assert rc == 0
 
@@ -34,6 +49,85 @@ class TestCLIValidate:
 # ============================================================================
 # build_audit_panel (mock embedding 路径) — 纯 Python, 不依赖 sentence_transformers
 # ============================================================================
+
+
+# ============================================================================
+# _resolve_default_inputs — fix(2026-06-29) 自动接线 stage 27/40 规范输入
+# ============================================================================
+
+
+class TestResolveDefaultInputs:
+    def _bare_args(self):
+        import argparse
+
+        return argparse.Namespace(
+            text_embeddings_full=None,
+            text_embeddings_ctx=None,
+            text_embeddings_ss=None,
+            df_exploded=None,
+            main_direction_npy=None,
+        )
+
+    def test_fills_required_canonical_paths(self, tmp_path) -> None:
+        """必需三件套 (full/df/direction) 无条件接线到 config output_dir 下规范文件名。"""
+        import os
+
+        args = self._bare_args()
+        cfg = {"paths": {"output_dir": str(tmp_path)}, "filenames": {}}
+        benefit_society_audit_combined._resolve_default_inputs(args, cfg)
+        assert args.text_embeddings_full == os.path.join(
+            str(tmp_path), "27_benefit_embeddings_full.npy"
+        )
+        assert args.main_direction_npy == os.path.join(
+            str(tmp_path), "27_benefit_direction.npy"
+        )
+        assert args.df_exploded == os.path.join(
+            str(tmp_path), "40_article_bank_level.parquet"
+        )
+
+    def test_optional_twins_wired_only_when_present(self, tmp_path) -> None:
+        """ctx/ss 可选 twin: 默认路径文件存在才接线; 不存在则保持 None。"""
+        import os
+
+        # 只造 ctx 默认文件, 不造 ss
+        (tmp_path / "27_benefit_embeddings_ctx.npy").write_bytes(b"x")
+        args = self._bare_args()
+        cfg = {"paths": {"output_dir": str(tmp_path)}, "filenames": {}}
+        benefit_society_audit_combined._resolve_default_inputs(args, cfg)
+        assert args.text_embeddings_ctx == os.path.join(
+            str(tmp_path), "27_benefit_embeddings_ctx.npy"
+        )
+        assert args.text_embeddings_ss is None  # ss 默认文件不存在 → 不接线
+
+    def test_explicit_paths_preserved(self, tmp_path) -> None:
+        """显式传入的 CLI 路径 (非 None) 一律保留, 不被默认值覆盖。"""
+        args = self._bare_args()
+        args.text_embeddings_full = "EXPLICIT_full.npy"
+        args.df_exploded = "EXPLICIT_df.parquet"
+        args.main_direction_npy = "EXPLICIT_dir.npy"
+        cfg = {"paths": {"output_dir": str(tmp_path)}, "filenames": {}}
+        benefit_society_audit_combined._resolve_default_inputs(args, cfg)
+        assert args.text_embeddings_full == "EXPLICIT_full.npy"
+        assert args.df_exploded == "EXPLICIT_df.parquet"
+        assert args.main_direction_npy == "EXPLICIT_dir.npy"
+
+    def test_respects_config_filename_overrides(self, tmp_path) -> None:
+        """嵌入基名/df 文件名从 config filenames 派生 (非硬编码)。"""
+        import os
+
+        args = self._bare_args()
+        cfg = {
+            "paths": {"output_dir": str(tmp_path)},
+            "filenames": {
+                "output_27_benefit_cache": "CUSTOM_emb.npy",
+                "output_40_article_bank": "CUSTOM_df.parquet",
+            },
+        }
+        benefit_society_audit_combined._resolve_default_inputs(args, cfg)
+        assert args.text_embeddings_full == os.path.join(
+            str(tmp_path), "CUSTOM_emb_full.npy"
+        )
+        assert args.df_exploded == os.path.join(str(tmp_path), "CUSTOM_df.parquet")
 
 
 class TestBuildAuditPanelMock:
@@ -228,7 +322,18 @@ def test_main_full_args_writes_panel_and_sidecar(tmp_path, monkeypatch):
     """
     from unittest.mock import patch
 
+    import news_process.core.config as _cfg
     import news_process.pipeline.features.benefit_society_audit_combined as mod
+
+    # fix(2026-06-29): main() 现无条件调 _resolve_default_inputs(args, config) 自动接线省略输入。
+    # 本测试只显式传 full/df/direction, 把 ctx/ss 留 None → 若 config.output_dir 指向真实
+    # data/processed (含生产 27_benefit_embeddings_ctx/ss.npy), resolver 会接到那两个真实文件,
+    # 令测试经 model_id 巧合 green、换模即伪失败 (非 hermetic)。monkeypatch load_config 使
+    # output_dir/log_dir 指向 tmp_path (无 canonical ctx/ss 文件) → ctx/ss 保持 None → 恢复隔离。
+    monkeypatch.setattr(
+        _cfg, "load_config",
+        lambda *a, **k: {"paths": {"output_dir": str(tmp_path), "log_dir": str(tmp_path)}, "filenames": {}},
+    )
 
     # 写 fixture files (.npy + sidecar)
     emb = np.zeros((2, 8), dtype=np.float32)
@@ -269,3 +374,115 @@ def test_main_full_args_writes_panel_and_sidecar(tmp_path, monkeypatch):
     assert out_path.exists()
     sidecar = out_path.with_suffix('.sidecar.json')
     assert sidecar.exists()
+
+
+def test_no_args_auto_wires_canonical_inputs_and_writes_panel(tmp_path, monkeypatch):
+    """fix(2026-06-29) success-path 回归锁: 裸跑 main([]) 在 config output_dir 下
+    canonical 输入就绪时, 经 _resolve_default_inputs 自动接线 → 进入投影分支 → 写出
+    默认输出面板 (而非命中 warn 回退)。
+
+    这是本次修复的核心行为 (堵住"裸跑空转 warn-exit"原 bug); 隔离地放在 tmp output_dir
+    里放 canonical full/df/direction fixture, mock build_audit_panel, 断言裸跑产面板。
+    若未来有人写反存在性判据或改坏 resolver, 本锁会失败 (而 warn-回退单测仍绿)。
+    """
+    from unittest.mock import patch
+
+    import news_process.core.config as _cfg
+    import news_process.pipeline.features.benefit_society_audit_combined as mod
+
+    monkeypatch.setattr(
+        _cfg, "load_config",
+        lambda *a, **k: {"paths": {"output_dir": str(tmp_path), "log_dir": str(tmp_path)}, "filenames": {}},
+    )
+
+    # canonical 文件名 (镜像 _resolve_default_inputs 默认): 只放必需三件套, 不放 ctx/ss
+    _write_emb_with_sidecar(tmp_path / "27_benefit_embeddings_full.npy", np.zeros((2, 8), dtype=np.float32))
+    pd.DataFrame({
+        "target_bank": ["A", "B"], "year": [2018, 2018],
+        "标题": ["x", "y"], "内容": ["x", "y"],
+    }).to_parquet(tmp_path / "40_article_bank_level.parquet")
+    np.save(tmp_path / "27_benefit_direction.npy", np.zeros(8, dtype=np.float32))
+
+    fake_panel = pd.DataFrame({"target_bank": ["A"], "year": [2018], "metric": [0.1]})
+    fake_meta = {"alt_anchor_yaml_sha256": "a", "placebo_keyword_yaml_sha256": "b",
+                 "placebo_match_counts": {}, "n_articles_total": 2}
+    with patch.object(mod, "build_audit_panel", return_value=(fake_panel, fake_meta)):
+        rc = mod.main([])  # 裸跑 — 无任何 CLI 输入路径
+
+    assert rc == 0
+    # 默认输出 = <output_dir>/80_alt_anchor_and_placebo_panel.parquet (未命中 warn 回退)
+    default_out = tmp_path / "80_alt_anchor_and_placebo_panel.parquet"
+    assert default_out.exists(), "裸跑应自动接线 canonical 输入并写出面板, 而非 warn 空转"
+    assert default_out.with_suffix(".sidecar.json").exists()
+
+
+def test_no_args_auto_wires_ctx_ss_twins_passed_through(tmp_path, monkeypatch):
+    """fix(2026-06-29) ctx/ss 端到端锁: canonical full+ctx+ss (同 model_id) 就绪时, 裸跑
+    main([]) 经 _resolve_default_inputs 接线三轨 → load_article_embeddings 校验同空间 →
+    build_audit_panel 收到**非 None 的 ctx/ss ndarray** (三轨 twin 真端到端透传, 非仅 full)。
+
+    补 Pass-1 评审建议: 此前 ctx/ss 自动接线仅在 _resolve_default_inputs 单测 (路径级) 覆盖,
+    main()→load→透传 整条链未锁。
+    """
+    from unittest.mock import patch
+
+    import news_process.core.config as _cfg
+    import news_process.pipeline.features.benefit_society_audit_combined as mod
+
+    monkeypatch.setattr(
+        _cfg, "load_config",
+        lambda *a, **k: {"paths": {"output_dir": str(tmp_path), "log_dir": str(tmp_path)}, "filenames": {}},
+    )
+
+    emb = np.zeros((2, 8), dtype=np.float32)
+    # 三轨 fixture 同 model_id (默认 Qwen) → 通过 main() 的同空间校验
+    _write_emb_with_sidecar(tmp_path / "27_benefit_embeddings_full.npy", emb)
+    _write_emb_with_sidecar(tmp_path / "27_benefit_embeddings_ctx.npy", emb)
+    _write_emb_with_sidecar(tmp_path / "27_benefit_embeddings_ss.npy", emb)
+    pd.DataFrame({
+        "target_bank": ["A", "B"], "year": [2018, 2018],
+        "标题": ["x", "y"], "内容": ["x", "y"],
+    }).to_parquet(tmp_path / "40_article_bank_level.parquet")
+    np.save(tmp_path / "27_benefit_direction.npy", np.zeros(8, dtype=np.float32))
+
+    captured = {}
+
+    def _recording_build(df_exploded, text_embeddings, main_direction, **kwargs):
+        captured["ctx"] = kwargs.get("text_embeddings_ctx")
+        captured["ss"] = kwargs.get("text_embeddings_ss")
+        return (
+            pd.DataFrame({"target_bank": ["A"], "year": [2018], "m": [0.1]}),
+            {"alt_anchor_yaml_sha256": "a", "placebo_keyword_yaml_sha256": "b",
+             "placebo_match_counts": {}, "n_articles_total": 2},
+        )
+
+    with patch.object(mod, "build_audit_panel", side_effect=_recording_build):
+        rc = mod.main([])
+
+    assert rc == 0
+    assert captured["ctx"] is not None and captured["ctx"].shape == (2, 8), "ctx twin 未端到端透传"
+    assert captured["ss"] is not None and captured["ss"].shape == (2, 8), "ss twin 未端到端透传"
+
+
+def test_auto_wired_ctx_model_mismatch_raises(tmp_path, monkeypatch):
+    """fix(2026-06-29) 负例锁: auto-wired ctx 轨 model_id 与 full 轨不一致 → main() fail-loud
+    ValueError (三轨须同嵌入空间; 镜像 stage 27 落盘陈旧 twin 的半迁移态防护)。"""
+    import news_process.core.config as _cfg
+    import news_process.pipeline.features.benefit_society_audit_combined as mod
+
+    monkeypatch.setattr(
+        _cfg, "load_config",
+        lambda *a, **k: {"paths": {"output_dir": str(tmp_path), "log_dir": str(tmp_path)}, "filenames": {}},
+    )
+
+    emb = np.zeros((2, 8), dtype=np.float32)
+    _write_emb_with_sidecar(tmp_path / "27_benefit_embeddings_full.npy", emb, model_id="Qwen/Qwen3-Embedding-8B")
+    _write_emb_with_sidecar(tmp_path / "27_benefit_embeddings_ctx.npy", emb, model_id="STALE-OTHER-MODEL")
+    pd.DataFrame({
+        "target_bank": ["A", "B"], "year": [2018, 2018],
+        "标题": ["x", "y"], "内容": ["x", "y"],
+    }).to_parquet(tmp_path / "40_article_bank_level.parquet")
+    np.save(tmp_path / "27_benefit_direction.npy", np.zeros(8, dtype=np.float32))
+
+    with pytest.raises(ValueError, match="ctx embeddings model"):
+        mod.main([])
