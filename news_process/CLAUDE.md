@@ -10,144 +10,68 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**news_process** is a research data pipeline that transforms raw Chinese news articles into panel datasets for econometric analysis. It processes bank and fintech news through multiple stages: preprocessing, classification, sentiment analysis (LLM/dictionary/BERT), and panel construction.
+**news_process** transforms raw Chinese bank/fintech news into bank-year panel datasets for econometrics: preprocessing → classification → sentiment (LLM/dictionary/BERT) → panel construction.
 
-**Current version**: v3.15.0 (2026-06-28, **BREAKING · 嵌入主轨换厂商**, **CO-PRIMARY ① canonical 槽 `gemini-embedding-2-preview`(云雾/yunwu, 3072 维) → `Qwen/Qwen3-Embedding-8B`(硅基流动/SiliconFlow, 4096 维); `_lg`=`text-embedding-3-large` co-primary ② 不变 → 跨厂商对等双轨变为 阿里 Qwen ⟂ OpenAI large**)。⚠ **代码/config/测试/标签/文档已全仓清扫 (引擎数学层维度无关零改动, 列 schema 零改动, 计数 16/16/35/16 不变); golden 重生 + 生产付费全量重嵌 (Qwen 主轨 + staleness/intensity 逐文章 ×2) + 真数据验证 DEFERRED 到生产语料机** (本机无生产语料, 不可逆付费)。
+**Current version**: v3.15.0 (2026-06-28)。逐版 changelog 见 git history; 本段 + 下方"当前状态铁律"是版本变更的权威源 (CHANGELOG.md 未维护)。每次大改的权威执行计划在 `scripts/audit/*_EXECUTION_PLAN_*.md`。
 
-**v3.15.0** (2026-06-28, **BREAKING · embedding-vendor-swap**, **MAIN/canonical 嵌入槽 gemini→Qwen3-Embedding-8B, 云雾→硅基流动**) — 按用户指令把 CO-PRIMARY ① (canonical 无后缀槽) 的嵌入模型从 `gemini-embedding-2-preview` (Google, 经云雾/yunwu, 3072 维) 整体替换为 `Qwen/Qwen3-Embedding-8B` (阿里, 经硅基流动/SiliconFlow `https://api.siliconflow.cn/v1`, **4096 维**); CO-PRIMARY ② (`_lg` = `text-embedding-3-large`, OpenAI/yunwu, 3072 维) **不动** → 跨厂商对等 co-primary 双轨由 "Google ⟂ OpenAI" 变为 "**阿里 Qwen (硅基流动) ⟂ OpenAI large**" (Qwen 中文专训 → 跨厂商/跨语言专训独立性更强)。权威计划 = `scripts/audit/SWAP_GEMINI_TO_QWEN3_SILICONFLOW_EXECUTION_PLAN_2026-06-28.md`。
-- **实测探针 (2026-06-28)**: `POST https://api.siliconflow.cn/v1/embeddings` OpenAI-compat `{"model","input"}` + Bearer; model echo=`Qwen/Qwen3-Embedding-8B`; **dim=4096**; 向量单位归一 (norm=1.0 → 余弦=点积, 与 gemini/large 同); `index` 字段有序 (引擎并发批次重组正确); 批量 n∈{2,16,64,256} 全 200。
-- **功能改动 (4 类, 引擎数学层零改)**: ① `.env` 加 `SILICONFLOW_API_KEY` + `.env.example` 声明; ② `config/features.yaml::embedding_api` model/base_url/api_key(`${SILICONFLOW_API_KEY}`)/`text_pipeline_version`(`v3-2026-06-27-gemini`→`v4-2026-06-28-qwen3-8b`); ③ 4 处硬编码默认回退 `'gemini-embedding-2-preview'`→`'Qwen/Qwen3-Embedding-8B'` (`embedding_engine.spec_model` / `article_sbert._SBERT_MODEL_ID` / `strategic_diff._emb_main` / `stata_export._GEMINI_ANNOT`→`_QWEN_ANNOT`); ④ `stata_export.py` ~40 条 co-primary 标签 `(co-primary: gemini-embedding-2-preview)`→`(co-primary: Qwen/Qwen3-Embedding-8B)`。引擎 `emb.shape[1]` 驱动 → 4096 自然流过; token 切块 cl100k/8191 对 Qwen 32K 上限保守安全 (不动)。
-- **全仓注释/docstring/测试清扫**: pipeline/core/config 嵌入语境 gemini→Qwen + 维度 canonical 3072→4096 (`_lg`/large 仍 3072); 测试 mock 模型名/维度/版本同步; `test_gemini_semantic_validity.py`→`test_qwen_semantic_validity.py`。
-- **🚫 LLM gemini 不动**: stage 21 情感 LLM `gemini-3.1-flash-lite`/`gemini31` (及 `*_gemini31_*` panel 列 / stata `.do` 标签 / `scripts/generate_*_labels.py`) 与嵌入模型无关, 全仓零误改。
-- **列 schema 零改动** (canonical 仍无后缀, `_lg` 仍 text-embedding-3-large) → 无任何列改名; **计数不变** STAGES_MAIN=16 / STAGES_VALIDATION=16 / thin shim=35 / OUTPUT_REGISTRY=16。
-- **🔴 DEFERRED (生产语料机, 本机无生产语料且付费不可逆)**: 换模 → 4096 维新嵌入空间, 每个嵌入派生值变 → golden **零字节安全** 须受控全量重生 + 付费全量重嵌 (Qwen 主轨 + staleness/intensity 逐文章 ×2); `test_qwen_semantic_validity`/`test_real_panel_coprimary_parity`/`test_panel_reproducibility` 重生前 DEFERRED-skip; manuscript 须改稿披露稳健性厂商维度 Google→阿里 Qwen (中文专训独立性回归)。⚠ 生产播种须验硅基流动更大批 (>256) 是否限流; **勿删 `_llm_cache.db`** (复现锚)。
+## 当前状态铁律 (load-bearing, 改动前必读)
 
-**2026-06-29 后续 (stage 21 留篇门控 union→full-only, 非 v3.15.0 嵌入内容)** — 按用户指令把 stage 21 (`tone_llms`) 决定"是否属于一篇银行金融科技媒体报道"的留篇门控由**三轨并集** (`verified_full | verified_ctx | verified_ss`, 任一轨过即留) 改为**仅全文轨** (`llm_verified_full == True`, full-only)。理由 (用户): ctx 轨 (银行邻近句) 与 ss 轨 (银行∧金科同句) 都对正文做窗口截断, 可能漏掉决定金科相关性的信息 → 窄窗口的 verified 不足以单独把一篇文章拉进样本。盘上小样实测 963 (并集) → 927 (full-only), 丢 36 篇 = `ctx-only 8 + ss-only 14 + ctx+ss 14`。
-- **功能改动 = 2 处门控副本必须同步翻** (否则隐性 bug): ① producer `pipeline/sentiment/tone_llms.py` 的 `df_filtered = df[df['llm_verified_full'] == True]` 留篇门控; ② orchestrator skip-check `run_pipeline_function.py::_stage21_skip_is_compatible` 的并集副本同改 full-only (不同改则 expected≠main → 永久 reject skip → 每次重跑付费 stage 21)。另 ③ stage 21 in-file Triple-gate 恒等校验改"含 full 的 4 态之和 == 输出"(否则每跑误报 WARNING; 7 态全和保留作"任一轨 verified 的诊断并集"); ④ 唯一锁 union 行数的测试 `test_run_pipeline_function.py::test_stage21_skip_is_compatible_accepts_current_outputs` 同步 (改为守卫 ctx-only 行被排除)。
-- **下游零聚合改动** (membership-driven): stage 22→23→24→panel 只继承行集; `encode.py` 已对 ctx/ss 各自 per-track 掩码 (`llm_vote_score_{ctx,ss}` 在该轨 verified=False 处置 NaN) → 删 ctx-only/ss-only 行后 ctx/ss 聚合自动自洽。
-- **方法学 = 回退 v3.2.0 R1-A**: ctx/ss 从"各自独立识别的并列主轨"降为 **conditional-on-full** 测度/稳健性轨 (per-track 列照常计算, 行宇宙变为 full 留篇集子集)。"三轨各自 just-identified 并排、禁混同一 over-identified Hansen J"**铁律不破** (三轨仍各自分开报)。`llm_verified_triple_{ctx_only,ss_only,ctx_ss}` / `dual_ctx_only` 因 full 未过而**结构性恒 False (近零方差, 列保留作诊断, 无 schema 漂移)**。
-- **主轨口径 (用户决策)**: P1 `bank_fintech_tone` (主变量 `llm_vote_tone_ctx`→`llm_vote_tone_full`, IV `prov_leave1out_tone_full`/`bartik_type_iv_full`, confirmatory `funding_cost ~ llm_vote_tone_full`) 与 provisional `bank_news_clarity` (`main_track` `_ctx`→`_full`, primary `mean_clarity_score_full`, IV `outlet_style_clarity_iv_full`) 主轨切到 `_full` 孪生, 使主规格处理轨与决定留篇的全文轨一致; `_ctx` (entity-attributed, Tetlock 2007/L&M 2016) 降为首要 robustness 孪生 (仍在 alternative/ss_mirror 报告)。⚠ `llm_vote_tone_full` 现由 P1 与 llm_peer **刻意共享**作 treatment.primary (同一底层变量两种识别: P1 直接/地理 LOO IV, llm_peer 同业网络 IV), 已在 `test_paper_namespace_isolation.py::SHARED_CONTROLS` 显式白名单 (镜像 z_score 跨篇共享 outcome 先例)。其余 9 篇 spec 主轨各自独立 (多以 `_full` 或 track-agnostic 变量为 primary, 如 collab_frac/sub_frac/locus), 不受本次 _ctx→_full 切换影响。⚠ **M7-deferred**: provisional `bank_news_clarity` 的 5 个 hand-frozen Stata 模板 (`11/12/13/14/15_*.do.tmpl`) 仍以 `_ctx` 作 headline local (`TX`/`IV1`) 与 caption — 与新 `_full` primary 暂不一致; 该 paper 现 M7-deferred (stage 49 缺失 → exit 198, 不运行), 留 M7 onboarding 时随主回归 esttab 填实一并切 `_full` (spec/分析入口/tables.py 已切 `_full`, 仅 .do 模板待 M7; 非静默, 此处显式登记)。
-- **计数不变**: STAGES_MAIN=16 / STAGES_VALIDATION=16 / thin shim=35 / OUTPUT_REGISTRY=16 (纯门控谓词 + 标签/spec 改动, 无阶段/列增删; `21_tone_llms_full.parquet` 全量输出**不受门控影响**)。
-- **🔴 数值副作用 + golden DEFERRED (生产语料机)**: full-only 后 `n_articles`/媒体覆盖分母收缩、`attention_pct`/`fintech_share` 对"只有 ctx/ss 报道"的银行下降、falsification 非金科对照组 NF 吸收被剔出文章 (分区守恒, 镜像 v3.10.0 望远镜坍缩) → 均非 bug, 须披露并随生产全量重生 (链 21→22→23→24→26→40→46→51; stage 26 semantic_staleness 的平均域内连收缩后的 verified 集, 故须重跑; stage 25 article_sbert 只读 stage-13 全集、不受门控影响; stage 21 缓存 100% 命中 → 重跑 $0)。盘上 committed golden 本就陈旧 → 本机 (T=2 dev) 不新增红灯; golden 重生须在生产机带 `PYTHONHASHSEED=0` + BLAS 线程钉 1 (3 网络中心度列 BLAS-FP 排除)。**勿删 `_llm_cache.db`**。
+**计数不变量**: STAGES_MAIN=16 / STAGES_VALIDATION=16 / thin shim=35 / OUTPUT_REGISTRY=16。注册=32 (16+16); 3 个不注册 shim: 80 (audit-only, 原 27c) / 81、82 (user-CLI, 原 52/53; `schemas.py` 显式排除)。阶段增删必同步 `core/dag.py` + `core/schemas.py::OUTPUT_REGISTRY`，并跑 `tests/integration/test_dag_consistency.py`。
 
-**v3.14.0** (2026-06-27, **BREAKING · all-API-co-primary-embedding**, **移除本地嵌入 + MAIN 换 gemini + 激活 large 作 co-primary 双轨**) — 项目嵌入架构从"四模型 (small 主 + 本地 t2v/bge + 休眠 large)"**整体转向"双 API 模型、零本地模型、gemini ⟂ large 跨厂商 co-primary 对等双轨"**。`gemini-embedding-2-preview`(Google, 无后缀 canonical 槽) 与 `text-embedding-3-large`(OpenAI, `_lg` 槽) **同为主测度、互为稳健性、严格 parity** (有 gemini 列处必有 `_lg` 孪生, 反之亦然; `_lg` 后缀仅列命名机制、无层级)。四轮多智能体对抗评审收敛 (34+44+28+4 agent, 零 P0/P1)。权威计划 = `scripts/audit/REMOVE_LOCAL_EMBEDDINGS_SWAP_GEMINI_MAIN_EXECUTION_PLAN_2026-06-27.md`。
-- **删两本地轨 (硬删非休眠)**: 5 cosine producer (policy_alignment/strategic_diff/policy_similarity/benefit_society/network_spillover) + alt_anchor 删 `_ROBUSTNESS_SPEC`/`_BGE_SPEC` 及全部 `_t2v`/`_bge` 计算/列, 保留并激活 `_LARGE_SPEC`/`_lg`; runner 删 `_t2v_src`/`_bge_src` 聚合 (留 `_lg_src`); export 删 `REQUIRED_PANEL_COLUMNS` 的 `_t2v` 硬契约 + `STATA_LABELS` 的 `_t2v` 项; `embedding_engine.py` 删全部本地推理机器 (`encode_local`/`_encode_local_cached`/`_LOCAL_MODELS`/`_select_torch_device`/`ensure_torch_determinism`) — `embed_texts` 收为纯 API; `spec_uses_local` 保留为纯谓词 (恒 False, 供 producer fail-fast 守卫)。
-- **MAIN 槽换 gemini** (⚠ v3.15.0 已再换 `Qwen/Qwen3-Embedding-8B`/硅基流动, 见顶部 Current version): `config/features.yaml::embedding_api` model `text-embedding-3-small`→`gemini-embedding-2-preview` (1536→3072 维), bump `text_pipeline_version`→`v3-2026-06-27-gemini`; 引擎数学层 `emb.shape[1]` 驱动维度无关、token 机制 (cl100k/8191) 保留 (实测对 gemini 保守安全)。`spec_model` 默认改 gemini。
-- **stata `_lg` 标签 re-base**: `stata_export.py` 先手写 10 个 anchor 族 MAIN(无后缀) `HEURISTIC_LABELS` 条目 + `_MAIN_ANCHOR_KEYS` frozenset, `_lg` 派生由 replacive 替换 co-primary 标注 (gemini↔large 对称单标注, 禁 "robust" 措辞)。
-- **彻底拔 text2vec (功能骨干也改双轨)**: stage 15 `fintech_intensity` (关键词质心) + stage 25 `article_sbert`→stage 26 `semantic_staleness` 弃本地 SentenceTransformer, 改 gemini+large **co-primary 双轨 API**; `article_sbert` dual-emit 6 列 (`emb_{full,ctx,ss}` + `_lg`) + 双 provenance; stage 26 双算 `semantic_staleness_*` (+`_lg`)。⚠ **carve-out**: `surface_staleness`/`surface_highstale` 是 MinHash (非嵌入) → **无 `_lg` 孪生, 完全不动**。
-- **parity 强制 = schema 列名双射** (非值非空): producer both-or-neither (任一 spec embed None→同族无后缀与 `_lg` 列同置 NaN, 无单边孤儿); 新增 `test_embedding_coprimary_parity` (列双射 + carve-out) + `test_gemini_semantic_validity` (Spearman ρ≥0.80/≥500 对)。
-- **计数不变**: STAGES_MAIN=16 / STAGES_VALIDATION=16 / thin shim=35 / OUTPUT_REGISTRY=16 (纯列内, 无阶段增删)。
-- **🔴 DEFERRED (生产语料机做, 本机无生产语料且不可逆付费)**: golden **零字节安全**须受控全量重生 (换模+缩列+增列+双轨测度变); 生产首跑须**付费全量重嵌主轨 (gemini) + 逐文章双模型嵌入 (staleness/intensity ×2)**; gemini 余弦语义有效性 + co-primary corr 实测; manuscript 须改稿披露稳健性维度从"本地/中文专训独立性"→"跨厂商 co-primary 对等互证"。
-- **⚠ 预览版复现风险 (D-5)**: `gemini-embedding-2-preview` 是预览端点 (yunwu 无 GA `gemini-embedding-001`), Google/yunwu 可能改版/下线 → golden 复现锚点依赖 `_llm_cache.db` 0-miss; **勿删 `_llm_cache.db`**。两 co-primary 各自 just-identified 并排, **禁混进同一 over-identified Hansen J**。
+**嵌入架构 (co-primary 双轨, 零本地模型)**: canonical 无后缀槽 = `Qwen/Qwen3-Embedding-8B` (硅基流动 `https://api.siliconflow.cn/v1`, **4096 维**); `_lg` 槽 = `text-embedding-3-large` (OpenAI/yunwu, **3072 维**)。两轨**同为主测度、互为稳健性、严格 parity** (列名双射 both-or-neither; 任一 embed None → 同族两列同置 NaN, 无单边孤儿)。引擎 `embed_texts` 纯 API, 维度由 `emb.shape[1]` 驱动 (维度无关), token 切块 cl100k/8191。stage 15 (fintech_intensity) / 25 (`article_sbert`, dual-emit `emb_{full,ctx,ss}`+`_lg`) / 26 (`semantic_staleness_*`+`_lg`) 产 co-primary 双轨嵌入列。**carve-out**: `surface_staleness`/`surface_highstale` 是 MinHash (非嵌入), **无 `_lg` 孪生**, 不动。
+- ⚠ **铁律**: 两 co-primary 各自 just-identified 并排, **禁混进同一 over-identified Hansen J**。
+- 🚫 **嵌入 ≠ LLM**: stage 21 情感 LLM 是三家投票 (`gpt-5.4-nano`/gpt54nano · `gemini-3.1-flash-lite`/gemini31 两家走 yunwu · `deepseek-v4-flash`/deepseekv4 直连 api.deepseek.com; panel 列含 `*_gemini31_*`), 与嵌入模型**无关** — 换嵌入时全仓零误改。
+- **换嵌入模型的入口**: config 键 `config/features.yaml::embedding_api` (model/base_url/api_key/text_pipeline_version) + **散落的硬编码默认回退须同步改** (核心 4 处 `embedding_engine.spec_model` / `article_sbert._SBERT_MODEL_ID` / `strategic_diff._emb_main` / `stata_export._QWEN_ANNOT`; 另有 `policy_alignment` / `benefit_society_audit_combined` / `dimension_analysis` 等 producer 内兜底 — 以 `grep 'Qwen/Qwen3-Embedding-8B'` 全仓非测试文件逐处改), 否则 config 改了回退仍指旧模型 → 静默不一致。`spec_uses_local` 保留为恒 False 纯谓词作 producer fail-fast 守卫 (勿删)。完整清单见 `SWAP_GEMINI_TO_QWEN3_SILICONFLOW_EXECUTION_PLAN`。
+- ⚠ 换嵌入前必先删盘上冻结阈值文件 (如 `data/processed/_benefit_center_sidecar.json`): 跨嵌入空间的阈值守卫会 fail-loud, 否则 stage 40 benefit 崩。
+- gate 测试: `test_embedding_coprimary_parity` (列双射+carve-out) + `test_qwen_semantic_validity` (Spearman ρ≥0.80 / ≥500 对)。⚠ 生产首次播种须验硅基流动 >256 的批是否限流 (探针仅验到 n≤256)。
 
-**v3.13.0** (2026-06-27, quad-model-embedding, **新增 BAAI/bge-m3 作第四嵌入模型 `_bge`**) — 在 v3.12.0 三模型基础上加第四个**本地** SOTA 多语言模型 `BAAI/bge-m3` (1024 维, `_bge` 后缀)。**⚠ 注: v3.13.0 的 `_bge`/`_t2v` 本地轨及四模型架构已被 v3.14.0 整体移除, 以下为历史记录。****关键: `_bge` 完全镜像 `_t2v` (本地 spec, base_url=local → `encode_local`), 不是 `_lg` (API)** —— 故天然走 `spec_uses_local()` fail-fast 分支, **不需要** `_lg` 那套 MAIN-fail-fast/API 软降级守卫; 引擎层零改动 (`SentenceTransformer(model_id)` 同路径加载, 按 model_id 隔离 `_LOCAL_MODELS`+穿透缓存命名空间, 分块自适应 `model.max_seq_length`=8192)。5 producer 各加模块级 `_BGE_SPEC = CONFIG.get('embedding_bge', {})` 镜像 `_t2v` 那一份 (suffix `_bge`; 维度无关, `emb.shape[1]` 驱动, 1024 维不与 1536/768/3072 混算) + runner `_bge_src` 聚合 (6 列白名单) + stata `_bge` 标签机械派生 (镜像 `_lg` 派生循环, `T2V robust`→`BGE robust`) + alt_anchor section 加 `embedding_bge` + test 四分 `_track_of`/`_enable_bge`/休眠锁/本地 fail-fast 锁。
-- **🔴 config-gated 休眠 (golden 安全铁律)**: 只在 `if _BGE_SPEC:` (dict 非空) 为真时才计算/落 `_bge` 列。`config/features.yaml` 仅放**注释模板** `embedding_bge` (刻意不激活) → 无配置时 `_BGE_SPEC={}` → 完全不产 `_bge` 列 → 既有行为**字节级不变** (golden 安全)。`_t2v`/`_lg`/MAIN(无后缀) 任何逻辑/列**严禁改动**。
-- **跨架构 caveat (与 `_lg` 同族 caveat 相反)**: BGE-M3 与 small **跨架构独立** (本地 BAAI 多语言, 独立于 OpenAI) → 把 `_t2v` 承担的"独立性"稳健性**显著加强** (现有弱 text2vec + 强 BGE-M3 两个本地独立模型); 预期相关性低于 `_lg` (同族), 是更有力的独立性证据。论文如启用须报**实测 corr** (休眠态从未真跑)。**铁律**: 四轨各自 just-identified 并排, 禁混进同一 over-identified Hansen J; 勿给 BGE-M3 加任何 query instruction 前缀 (dense retrieval 不需要)。
-- **计数不变** (纯休眠扩展, 无阶段增删, 无活动配置): STAGES_MAIN=16 / STAGES_VALIDATION=16 / thin shim=35 / OUTPUT_REGISTRY=16 全不变。
-- **DEFERRED (生产激活, 本机无生产语料)**: ① 首次联网下载 `BAAI/bge-m3` (~2.3GB); ② 取消 `config/features.yaml::embedding_bge` 注释; ③ 全量重跑 stage 15/25/26/27/46 产 `_bge` 列 (本地 GPU $0); ④ golden 加法重生。权威计划 = `scripts/audit/ADD_BGE_M3_AS_FOURTH_MODEL_EXECUTION_PLAN_2026-06-27.md`。
+**三轨 `_full` / `_ctx` / `_ss`**: full=标题+正文; ctx=标题+实体窗口; ss=标题+银行∧金科同句±N窗 (`config/filtering.yaml::context_window.ss_sentence_radius`, 默认1; 与下方 `cooccurrence_filter.sentence_radius` 是**两个不同键**)。三轨文本 (`content_full`/`content_ctx`/`content_ss` + `*_is_fallback`) 在 stage 14 `ctx_materializer` 物化 (`prepend_title`, 原始`内容`列不动; stage 13 是上游共现硬过滤, 不物化文本列); 情感 21/22/23/24 均跑三轨。判定不对称口径: 银行侧=否定+短名过滤, 金科侧=裸 AC 1506 词。
+- **回退语义** (`_ss` 镜像 `_ctx`): 无银行∧金科同句共现 → `content_ss`=全文 body, `ss_is_fallback`=True (共享 `n_articles` 分母); `FINTECH_AC=None` → `*_is_fallback` 全 True 优雅降级。
+- 无 `_title` 独立轨 (v3.8.0 删, 标题改 prepend); 保留非情感信号 `target_bank_in_title`(news_bank.py) / `fintech_in_title`+`in_title`(news_fintech.py) / `headline_frac`(controls.py) — 勿连带删。
+- ⚠ 三轨禁混同一 over-identified Hansen J。
+- **留篇门控 = full-only** (2026-06-29): stage 21 是否判为"一篇银行金科报道"只看 `llm_verified_full == True`。ctx/ss 降为 **conditional-on-full** 测度/稳健性轨 (行宇宙 = full 留篇集子集, per-track 列照算)。**2 处门控副本必须同步翻**: ① `tone_llms.py::df_filtered`; ② `run_pipeline_function.py::_stage21_skip_is_compatible` (不同改 → 永久 reject skip → 每跑付费 stage 21)。
+- P1 `bank_fintech_tone` + provisional `bank_news_clarity` 主轨已切 `_ctx→_full`。`llm_vote_tone_full` 由 P1 与 llm_peer 刻意共享 (`test_paper_namespace_isolation.py::SHARED_CONTROLS` 白名单, 镜像 z_score 跨篇共享先例)。clarity 的 5 个 `.do` 模板仍以 `_ctx` 为 headline (M7-deferred)。
 
-**2026-06-29 后续 (stage 12b 口径改回 ±1 句窗口邻近共现, radius 0→1; 取代 2026-06-27)** — 按用户指令把 stage 12b (`13_cooccurrence_filter.py`) 共现保留判据由**严格同句** (sentence_radius=0) 改回 **±1 句窗口邻近共现** (sentence_radius=1, 命中句前后各 1 句、共 3 句窗口内含 ≥1 金科词): `config/filtering.yaml::cooccurrence_filter.sentence_radius` **0→1**, 在 `match_in_title=true` (标题+正文, 2026-06-29 `d78a4503`) 基础上。判据 `has_bank_fintech_cooccurrence_within_radius` 在 radius=1 时窗口闭区间 `[i-1, i+1]` → 银行锚句 i 或其前后邻句含 ≥1 金科词即命中; radius=0 同句为最严零半径特例 (稳健性备选)。**取代 2026-06-27 的 radius=0 决策** (见下条)。
-- **唯一功能改动 = config 一个值**: 引擎 `has_bank_fintech_cooccurrence_within_radius` 通用 radius 形参驱动、运行期 `_mode` 标签 radius 动态 → 控制流/schema/阶段计数零改。其余为全仓口径散文反转 (`cooccurrence_filter`/`entity_context`/`dag`/`schemas`/`paths`/`ctx_materializer`/`reporting`/`fintech_intensity`/`stats_excel`/`media_diversity`/`radius_sensitivity`/shim 等) + 测试同步 (`test_production_default_is_window_radius1` 断言 radius==1 / `test_production_config_keeps_adjacent` / `test_production_config_drops_far_apart`)。**保留 `match_in_title=true` 不动**。
-- ⚠ **下游 `_ss` 轨交互 (frac_ss_fallback 三态进一步恢复, 正向副作用)**: `_ss` 命中判据恒严格同句。① radius=0 + `match_in_title=False` (最旧) → `frac_ss_fallback→≈0` 零方差坍缩; ② radius=0 + `match_in_title=true` (前态) → 标题回补行正文无同句 → 已部分恢复 ∈(0,1); ③ radius=1 + `match_in_title=true` (本态) → 再新增"仅邻句非同句"存活行 (正文无银行∧金科同句) → 进一步恢复。即本次是"部分恢复→进一步恢复"的**增量**, 非"≈0→恢复"的全量。
-- **测度变更 → golden DEFERRED**: 仅改 config + 文档 + 测试, **不动任何 parquet** (本机 0 新增失败, baseline 29 == 29); 生效须生产全量重跑 stage 13→14 (ctx 重物化)→15/16/21/22/23/24/**25 (article_sbert, ⚠ 与 full-only 相反, radius 改在 stage 13 上游 → stage 25 本次受影响)**/26→40/46/51 + golden 受控重生 + radius=1 keep 率 gate 实测 (14.27% 仅 radius=0 丢行上界, radius=1 keep ≥ 85.73%)。计数不变 (STAGES_MAIN=16 / 35 shim 等)。权威计划 = `scripts/audit/STAGE13_COOCCURRENCE_RADIUS0_TO_1_EXECUTION_PLAN_2026-06-29.md`。
+**stage 13 共现硬过滤** (`13_cooccurrence_filter.py`, 原 stage 12b): 硬过滤丢行, 只保留"目标银行与 ≥1 金科词邻近共现"的文章。生产口径 = `sentence_radius=1` (±1 句窗口) + `match_in_title=true` (标题+正文), 见 `config/filtering.yaml::cooccurrence_filter`; 输出路径键仍是 `config/paths.yaml::output_12b_cooccurrence` (重编号未改 config 键)。判据原语 `core/text/entity_context.py::has_bank_fintech_cooccurrence_within_radius` (与 `_ss` 严格同句的 `extract_bank_fintech_cooccurrence` 不同口径, **禁互相复用**)。**安全**: `FINTECH_AC=None` → 保留全部行 + loud WARNING (绝不静默清空); keep 率 < `min_keep_frac` 或 0 行 → `SystemExit(1)`。
 
-**2026-06-27 后续 (stage 12b 同句过滤, 非 v3.13.0 嵌入内容; ⚠ 已被 2026-06-29 取代, 见上条)** — stage 12b (`13_cooccurrence_filter.py`) 生产默认口径由"窗口邻近 (±1 句)"改为**严格同句**: `config/filtering.yaml::cooccurrence_filter.sentence_radius` **1→0** (用户决策"只保留银行∧金科同句报道")。判据 `has_bank_fintech_cooccurrence_within_radius` 在 radius=0 时窗口闭区间 `[i,i]` 坍缩到银行锚句自身 → 要求银行与 ≥1 金科词**同句**共现 (与 `_ss` 轨命中判据等价但仍不复用函数; radius≥1 = 窗口邻近, 保留为稳健性备选)。短文 (<3 句) 走字符窗近似 (忽略 radius, 与 `_ss` 同近似)。**⚠ 此 radius=0 决策已于 2026-06-29 反转回 radius=1 (见上条), 以下为历史记录。**
-- ⚠ **下游 `_ss` 轨交互 (历史, radius=0 时)**: 12b 同句过滤后存活行均含同句共现 → 下游 stage 13 `_ss` 轨 `frac_ss_fallback→≈0` (回退变异坍缩; `content_ss` 文本信号仍有效, 仅 `ss_is_fallback` 指示列近零方差); `match_in_title=true` 后部分缓解。**2026-06-29 改回 radius=1 后此坍缩进一步恢复 ∈(0,1) (见上条三态)。**
-- **测度变更 → golden DEFERRED**: 仅改 config + 文档 + 测试, **不动任何 parquet** → 盘上 panel/golden 仍为旧 radius=1 宇宙, 既有 golden 测试照常 (本次 **0 新增失败**); 生效须生产全量重跑 stage 12b→下游 + golden 受控重生 + radius=0 keep 率 gate 实测 (14.27% 仅 1170 篇 disk 小样同句零共现估计)。计数不变 (STAGES_MAIN=16 等)。全仓文档口径曾统一为"同句共现" (`cooccurrence_filter`/`dag`/`schemas`/`paths`/`ctx_materializer`/`reporting`/`fintech_intensity` 等), **该口径已于 2026-06-29 反转回"邻近共现", 见顶部 2026-06-29 条目**; 加 2 锁测试 (config=0 / 端到端丢邻句) + 短文忽略-radius 锁。
+**always-on**: 情感 21/22/23/24 + 全部 14 验证阶段无条件启用 (StageSpec 默认 `always_enabled`, 无 `enabled_when`; `METHOD_TO_PREDICATE={}`)。谓词函数 / `filter_enabled` / `get_script_for_method` 保留为纯函数供测试 (勿删)。⚠ stage 26 staleness always-on 后须装 `faiss-cpu`/`datasketch` (缺则真崩, 不再优雅跳过)。
 
-**v3.12.0** (2026-06-27, tri-model-embedding, **新增 text-embedding-3-large 作第三嵌入模型 `_lg`**) — `pipeline/text/embedding_engine.py` 三模型并列互为稳健性: small (主, 无后缀) / text2vec (`_t2v`, 跨架构稳健) / **text-embedding-3-large (`_lg`, 同族容量对照)**。每个 producer 在既有 `_ROBUSTNESS_SPEC = CONFIG.get('embedding_robustness', {})` 之后加模块级 `_LARGE_SPEC = CONFIG.get('embedding_large', {})`, 镜像既有 `_t2v` 那一份 (spec 换为 `_LARGE_SPEC`、suffix 换为 `_lg`; 维度无关, 由 `emb.shape[1]` 驱动, 3072 维不与 1536/768 混算)。
-- **🔴 config-gated 休眠 (golden 安全铁律)**: 只在 `if _LARGE_SPEC:` (dict 非空) 为真时才计算/落 `_lg` 列。`config/features.yaml` **刻意不加**任何活动 `embedding_large` 块 → 无配置时 `_LARGE_SPEC={}` → 完全不产 `_lg` 列 → 既有行为**字节级不变** (golden 安全)。`_t2v` 与 MAIN(无后缀) 任何逻辑/列**严禁改动**。
-- **同族 caveat**: large 与 small 同 OpenAI 同族 (同 Matryoshka 训练), 仅嵌入容量/维度 (3072 vs 1536) 拉开 → **预期高度相关** (先验工程预期, **非本仓实测** — 休眠态从未真跑 `_lg`; 论文如启用须报**实测 corr**, 不沿用先验阈值) (容量对照, 验证维度敏感性而非架构敏感性); 主**独立性**稳健性仍由 `_t2v` 跨架构 (本地中文专训) 承担。论文如启用 `_lg`, 须如实定位为同族容量对照, 不与 `_t2v` 混为一谈。
-- **计数不变** (纯休眠扩展, 无阶段增删, 无活动配置): STAGES_MAIN=16 / STAGES_VALIDATION=16 / thin shim=35 / OUTPUT_REGISTRY=16 全不变。
+**IV 扩展** (`pipeline/panel/iv_extensions.py`, runner 步骤 8z, `config/panel.yaml::compute_iv_extensions` 默认 true): 三引擎 (同组 LOO 均值 / 广义 Bartik / 媒体来源 house-style 暴露) → 面板 IV 列族 (`leave_one_out_peer_*_iv` / `bartik_*_iv` / `outlet_*_iv`) + 7 篇 paper_spec `identification.iv` + 7 个 2SLS 模板。
 
-**v3.11.1** — `pipeline/sentiment/tone_words.py::_compute_sentiment_with_rules` 新增 `apply_negation` 参数 (只 gate 翻号, **保留**否定词识别/continue/窗口递减骨架, 与 degree/adversative 同款铁律), 把状态机三语言学规则 (① 否定翻转 / ② 程度副词六级权重 / ③ 转折增强) 的**全 powerset** 组合物化为独立自归一化的稳健性消融变体梯度 ("每经过一个步骤留存中间变量")。单一事实源 = `_RULE_ABLATION_VARIANTS` (7 项 = 2³ powerset − full; negonly 折入, 相同 flag → 物化**字节不变** → golden-safe)。6 新变体 `{dict}_score_{raw,degonly,advonly,negdeg,negadv,degadv}` × 6 词典 × 3 轨 = **108 article 列**; encode 聚合同名 panel `{d}_{sfx}_tone{track}` (mean-only, ≤32 字符) **108 列**; geography 跨词典 `dict_avg_{sfx}_tone{track}` (镜像既有 `dict_avg_negonly_tone` 三点谱 → 全 powerset) **18 列**。
-- **计数口径 msent 不入梯度**: 程度②/转折③ 是严格正乘子、永不翻号 → `sign(final)=sign(base)×sign(flip)` 对计数不变 → `msent_raw≡msent_score` / `msent_negdeg≡msent_negonly` 退化; 已由 `msent_score`(零规则) + `msent_negonly`(仅否定) 完整覆盖, **不新增任何 msent_\* 列**。
-- **非可加分解 (audit MATH-1)**: 各变体各自 `Σ|final|` 自归一化 (分母随启用规则变) + 含 negation×degree 交互 → 相邻级差**非**"某规则纯贡献", 仅作稳健性对照 (论文表述"定性不变", 报 corr + 逐级变号占比, **禁同式并入 — corr≈0.99 高度共线**)。codebook 逐 `{d}_{sfx}_tone`/`dict_avg_{sfx}_tone` 列注入 MATH-1 披露 + rule-specific 标签/描述/source-stage; stata `_ABL_*` 程序化生成 .dta 标签 (≤80 字节)。实测 corr(full,变体)≈0.990–0.999 / 变号 0.3–1.3% (loughran full, 300 文)。
-- **计数不变** (纯列内扩展, 无阶段增删): STAGES_MAIN=16 / STAGES_VALIDATION=16 / thin shim=35 / OUTPUT_REGISTRY=16。门禁: 204 passed / 3 skip (pre-existing 缺盘) · ruff clean · dag_consistency 不变 · repro gate 绿。审计: 52-agent + 8-agent + 8-agent 顶刊对抗复审 → **0 confirmed real-bug** (含 SSOT 四副本同步加固 + 否定×程度交互锁)。权威计划 = `scripts/audit/RULE_ABLATION_LADDER_EXECUTION_PLAN_2026-06-21.md`。
-- **golden DEFERRED**: 新列 (108+108+18) 进 golden 需 panel 重建, 但本分支 committed golden 比代码陈旧 (`_allv`/inject-fintech 重生亦 deferred) + `_allv` strategic_diff 嵌入缓存未命中需付费 → golden 重生留与该三项**统一消费**时一次合并 (计划 §5.0/§11; 引擎+聚合确定性, 重生 golden-safe)。
+**词典消融梯度** (v3.11.1): tone_words 三语言学规则 (否定翻转 / 程度副词 / 转折) 全 powerset 物化为消融变体 `{dict}_score_{raw,degonly,advonly,negdeg,negadv,degadv}` × 6 词典 × 3 轨 + 同名 panel 聚合 + geography `dict_avg_{sfx}_tone{track}`。各变体自归一化、非可加分解 (audit MATH-1: 高度共线 corr≈0.99, 报 corr 而非并入同式)。SSOT = `_RULE_ABLATION_VARIANTS`。
 
-**v3.11.0** (2026-06-21, nn-stage-renumber, **全量 NN_*.py shim 重编号以反映执行先后顺序**)。
+**已移除阶段** (勿引用, 详见 git history): EPU 宏观控制(原16) / BERTopic 主题(17) / 高管 NER(19) / risk_taking_outcomes(49) / llm_contamination_test(39h) / temporal_mask(38a) / track_discriminant(39g) / 独立 text2vec(30)+bge 本地嵌入轨。⚠ 勿误删仍活跃的 staleness/`article_sbert`/`news_salience`/`ceo_turnover_2yr`; provisional `.do` 模板里的 `z_score`/NPL/RWA 是占位变量名 (保留); `config/bank_list.yaml`、`fetch_llm_archive.py` 刻意保留。
 
-**v3.11.0** — 根目录 35 个 `NN_*.py` thin shim 全量重编号 (Scope-Full: shim 文件名 + 产物名 + golden + config 值四方对齐)。主线 `12b→13 · 13→14 · 14→15 · 15→16 · 30a→25 (去后缀+修执行倒挂) · 18→26 · 45→40 (panel shim 对齐其 40_* 产物)`; 验证 `31..39f → 60–75` (去全部字母后缀 32a/38b/39a/c/d/e/f, 且号 > 主线末号 51, 忠于"验证 pipeline 在主线之后跑"); 未注册 `27c→80 · 52→81 · 53→82`。**config 键 `output_NN_*` 保号不变** (稳定抽象句柄, 仅 .parquet VALUE + 注释随号迁移; 避免 35 处 call-site churn + KeyError 风险); golden 走**外科 re-key** (产物内容字节不变 → 列哈希不变 → **0 重算、不跑付费阶段、不触本机 BLAS/HASHSEED 非确定性**)。Stata 表号文件 (`13_table4`/`25_tableA6` 等) 与 `27_benefit_*`/`42_cessation`/`40_*`/`46_*`/`51_*` 产物**刻意保留** (异 namespace)。权威执行计划 = `scripts/audit/RENUMBER_SHIMS_PLAN_2026-06-20.md` (4 轮对抗审计收敛 **0 P0** + 执行后 R1/R2/R3 多智能体复审全 **PASS**)。
-- **计数不变** (纯重标号, 无阶段增删): STAGES_MAIN=16 / STAGES_VALIDATION=16 / thin shim=35 / 注册=32 / OUTPUT_REGISTRY=16。门禁全绿: import-fail-fast + physical-file + dag_consistency + repro (改名产物列哈希对 golden 匹配, 1 skip=已退役 30_text2vec 孤儿) + 全量 sweep **0 新增失败** (13 失败经 baseline stash 证实全 pre-existing) + ruff clean。
-- ⚠ **广义注释/docstring 内的 `stage NN`/`阶段NN` 散文按计划 §17.2 为接受的 P3**: 机械替换会因旧/新号空间重叠 (旧 stage-13=ctx→14, 新 stage-13=cooccurrence) 致 mangle, 故留诚实旧号; **载荷 token (文件名/STAGE_NAME/dag-label/test 断言/golden 键) 已全迁并经 R1 POSITIVE-grep 验证**。R1 残留检验改 POSITIVE-grep (载荷类全迁) 而非"全旧 token=0"。
+## 确定性 / golden (铁律)
 
-**v3.10.0** (2026-06-15, stage-12b-cooccurrence-prefilter, 新增 **stage 12b→现 stage 13 银行×金科邻近共现硬过滤**)。
+- **勿删 `data/processed/_llm_cache.db`** (~2.1GB, 随缓存播种增长; ⚠ `data/processed/_cache/_llm_cache.db` 是 0 字节空壳, 勿认错) — golden 跨-run 可复现锚。三轨 (full/ctx/ss) 在缓存 **0 miss** 即可 `NEWS_PROCESS_LLM_OFFLINE=1` 离线 $0 字节级复现 (miss → raise `LLMCacheMissError`, 不调 API, 跳过 preflight 探针)。缓存命中键 = `prompt_version='v8-2026-05-17'` / `temperature=0.0`; prompt 构造 SSOT = `tone_llms.iter_article_track_prompts` (生产/审计共用 → 缓存键一致)。验证: `python -m news_process.scripts.audit.verify_stage21_cache_coverage`。⚠ 嵌入族**不受** `LLM_OFFLINE` 守卫 — miss 即付费。
+- **冻结锚点**: Prompt v8 字节级冻结 + `jieba == 0.42.1` (不重跑 stage 21, $0 LLM)。
+- **golden 重生 DEFERRED 到生产语料机** (本机 data/raw 空、T=2、无生产语料、付费不可逆); 完整付费 LLM 重处理 (stage 21 全量重跑) 须先过 **M0 审批门**。重生须 `PYTHONHASHSEED=0` + 全 BLAS 线程钉 1 (`MKL_NUM_THREADS`/`OPENBLAS_NUM_THREADS`/`NUMEXPR`/`OMP_NUM_THREADS`=1)。3 个网络中心度列 (`bank_clustering` / `bank_cfbetween_cent` / `bank_harmonic_cent`) BLAS-FP 非确定 → 验零漂移须排除。换模/改测度类改动 golden **零字节安全**须受控全量重生; manuscript 须披露厂商维度 Google→阿里 Qwen 与 full-only 数值副作用 (`n_articles`/`fintech_share`/`attention_pct` 收缩, 均非 bug)。
+- **本机验证套路**: 改测度类改动本机不动 parquet → 用 baseline-stash A/B 差分证"0 新增失败"(committed golden 本就陈旧, T=2 dev 不新增红灯)。
+- **Disk 状态**: ~172 行 (86 banks × 2 years 2017–2018, T=2 dev); 最宽 dta ≈ 2782 列 (随重生漂移, 以实读为准)。真实全量 = 1700 万条 / 2007–2024 / T=18。
 
-**v3.10.0** — 在 stage 12 (news_fintech) 与 stage 13 (materialize_ctx) 之间**新增 stage 12b** (`13_cooccurrence_filter.py` + `pipeline/filtering/cooccurrence_filter.py`): **硬过滤丢行**, 只保留"目标银行与 ≥1 金科词在 ±sentence_radius 句窗口内邻近共现"的文章 (Andreou et al. 2026, core-contextual word-pairing 的**句级窗口**操作化, 比 10-token span 更宽), 降低 stage 12 关键词判定的虚假相关。判据原语 = `core/text/entity_context.py::has_bank_fintech_cooccurrence_within_radius` (窗口邻近双层循环; 与 _ss 轨严格同句 `extract_bank_fintech_cooccurrence` **不同口径**, 后者是 radius=0 子集, **禁互相复用**)。**唯一 load-bearing 重指针** = stage 13 输入改读 `output_12b_cooccurrence` (ctx_materializer.py main)。
-- **路线 A (纯接受-披露, 经四轮 238-agent 对抗审计定稿)**: 12b 仅丢行, 下游 `controls.py`/`encode.py` **零改动**; `n_articles`/`fintech_share`(分子)/`attention 族①`/NF 对照组的统计宇宙统一平移为"近邻相关金科"口径, 在 manuscript/codebook **如实披露** (非代码修复)。fintech_share 分母经"望远镜式坍缩" `all_n_articles = ft_dedup + (|df_full|−ft_dedup) ≡ |df_full|` **恒不变** (12b 只把中间集 C 从 ft 端移到 nf 端, 代数和守恒); Hassan 互斥划分完整; 被丢的"关键词金科但非近邻"中间集 C 留在 NF (弱噪声, 偏保守 against-H1, 披露+附录可选排除)。
-- **安全铁律**: `FINTECH_AC=None` (词典缺失) → **保留全部行 + loud WARNING** (绝不静默清空整库, SAFE-1); keep 率低于 `cooccurrence_filter.min_keep_frac` 或 0 行 → `SystemExit(1)`。
-- **计数变更**: STAGES_MAIN **15→16**, 注册阶段 31→32 (16 + 16 validation), thin shim **34→35**, OUTPUT_REGISTRY +1 (`13_cooccurrence_filtered.parquet`)。`config/filtering.yaml::cooccurrence_filter` (sentence_radius 沿革: 引入时=1 窗口邻近 → **2026-06-27=0 严格同句** → **2026-06-29 改回=1 ±1 句窗口邻近共现** (现行生产默认, 见顶部 "2026-06-29 后续" 段) / min_keep_frac); `config/paths.yaml::output_12b_cooccurrence`。
-- **生产层待办** (本机 data/raw 空、T=2 跑不了): keep 率硬 gate (须读 **pre-12b** `12_fintech_news.parquet` 作候选集, 否则自证假~100%) + 全量重跑 (30a 4-6h → 18) + golden 受控重生 (排除 3 个 BLAS-FP 网络列) + radius∈{0,1,2,3} 稳健性网格 (与 65_radius_sensitivity / config/filtering.yaml:80 一致)。**stage 21 缓存命中 $0** (12b 只删行, 存活行 content 不变)。⚠ "disk 1170 篇零共现 14.27%" 是**严格同句 (radius=0) 上界**, 12b 窗口 (radius≥1) 实际丢行率更低, 须 gate 实测。
+## CLI 子命令 (`python -m news_process.papers._common.stata_runner <cmd>`)
 
-**v3.9.0** — 新增 `_ss` 银行+金科同句共现情感轨 (2026-06-14, third-track-same-sentence)。
-
-**v3.9.0** — 新增**第三主轨 `_ss` (银行+金科同句, bank+fintech same-sentence co-occurrence)**, 与 `_full` / `_ctx` 全平价并列 (非附录稳健性, 进全部阶段/IV/校验/Stata 模板/11 篇 paper_spec)。权威执行计划 = `scripts/audit/THIRD_TRACK_SAME_SENTENCE_PLAN_2026-06-14.md` (§1-8 + §⑬)。
-- **第三轨定义**: 文本列 `content_ss` = 标题 + **同句内同时含 目标银行∧金科词** 的句 ±N 句窗 (`config/filtering.yaml::context_window.ss_sentence_radius`, 默认 1); 判定复用 `scripts/audit/measure_bank_fintech_cooccurrence.py` 同口径 (银行侧=否定+短名过滤 / 金科侧=裸 AC 1506 词, **不对称口径**)。提取原语 = `core/text/entity_context.py::extract_bank_fintech_cooccurrence()`; stage 13 `ctx_materializer` 物化 `content_ss` + `ss_is_fallback`, 与 `content_ctx` + `ctx_is_fallback` 完全平行 (基础三件套已落地, 勿动)。
-- **回退语义 = 镜像 ctx**: 无"银行∧金科同句"共现 → `content_ss = 全文 body`, `ss_is_fallback=True` (与 ctx 回退公理完全一致, 共享 `n_articles` 分母, 不需独立计数列)。`load_fintech_dict` 失败 ⇒ `FINTECH_AC=None` ⇒ `ss_is_fallback` 全 True (优雅降级)。实测 disk 1170 篇: 零共现 14.27% (回退全文, 少数) / 主题漂移 65.76% (银行句仅 34% 提金科 → ss≠ctx, 独立信号成立)。
-- **机械命名规则**: 每个 ss 列 = 其 ctx 孪生的 `_ctx`→`_ss` (如 `llm_vote_tone_ctx→_ss` / `fintech_intensity_score_ctx→_ss` / `policy_cosine_sim_ctx→_ss` / `lpeer_attention_iv_ctx→_ss` / `bartik_X_iv_ctx→_ss`); 标签 = ctx 标签 + 后缀 **"(银行+金科同句)"** (英文 "(Bank+FinTech same-sentence)"), track-label 助手加 "(同句共现)"。`_ss`(3) **短于** `_ctx`(4) → 任何 ctx 列截断后 ss 必也合规, **无需新增缩写规则** (取消原 `_cooc`→`_co` 工作项); 仅保留 Stata 写前**三元组唯一性断言** (full/ctx/ss 截断后不撞名)。
-- **4 锁定决策** (用户 2026-06-14 拍板): ① 回退语义 = 回退全文 (镜像 ctx); ② 覆盖范围 = 全平价 (作并列第三主轨); ③ LLM 成本 = 现在批准线上付费跑 (stage 21 ss 首跑线上, 缓存现 0 条 ss, golden 随之重生); ④ 命名后缀 = `_ss` (同句, 3 字符)。
-- **冻结 prompt v8 字节级**: LLM (stage 21) 仅交换 `content` 实参 (`content_ss`), **绝不改任何 prompt 模板文本**。⚠ **铁律**: full×ctx×ss **禁混进同一 over-identified Hansen J**; 三轨各自 just-identified 并排 (重申既有 ctx 红线)。
-- **付费 / golden**: 免费 ~90% (核心提取/物化/词典-BERT/herd/特征/面板聚合/IV/校验/标签-codebook/Stata 模板/测试码); 付费 = stage 21 ss LLM (主) + stage 15 ss 嵌入 (低) + golden 重生那次线上跑 (受 **M0 gate**)。`NEWS_PROCESS_LLM_OFFLINE=1` 防偷跑; 批准后线上播种 ~3510 ss 缓存 → `generate_golden_snapshot.py` → **golden schema_version 2→3** (版本感知 loader, 单一 golden, schema_version==2 时丢 `_ss` 列), 重生 codebook.{csv,json,md,xlsx} + `46_*_labels.do`; 此后离线 $0 字节稳定复现。
-- **计数不变**: STAGES_MAIN=15 / STAGES_VALIDATION=16 **不变** (三轨为列内扩展, 无阶段增删; OUTPUT_REGISTRY=15 keys 不变, 列就地加在既有 parquet)。⚠ 上线前用 `measure_bank_fintech_cooccurrence` 逐年实测全量 17M/T=18 的 ss 非空率与 min-N (14.27%/65.76% 来自 1170 篇 disk 小样)。
-
-**v3.8.0 BREAKING** — 删除独立 `_title` 情感轨及全部产物, 标题改 prepend 进 full/ctx 两轨：
-- 删 stage 39g (`track_discriminant_validity`) → STAGES_VALIDATION 18→17, 注册阶段共 **36** (STAGES_MAIN 19 + STAGES_VALIDATION 17), thin shim 40→**39**。
-- 删 9 个 title 稳健性 Stata 模板 (`25_tableA8` / `26_bs`) → Stata 模板 104→**95**, replication 包 .do 15→**14**。
-- 删 `core/text/title_indicators.py` + stage 13 `_add_title_indicators` + title-only migrate/audit 脚本与测试。
-- 删所有 `*_title` 情感 panel 列 (`tone_gap_title_full` / `frac_title_*` / `hw_title` / `llm_peer_tone_iv_title` 等) 及 LLM/BERT/词典 title 路径; 下游多轨循环 `['_full','_ctx','_title']` 收为 `['_full','_ctx']`。
-- 新增 `core/text/entity_context.py::prepend_title()`; stage 13 `ctx_materializer` 物化 `content_full`(=标题+正文) / `content_ctx`(=标题+实体窗口), 原始 `内容` 列不动; tone_words/tone_berts 改读 prepend 后文本。
-- **保留** (非情感轨, 分类/β 显著性信号, 仍活跃, 勿连带删除): `target_bank_in_title` (`news_bank.py`) / `fintech_in_title`+`in_title` (`news_fintech.py`) / `headline_frac` (`controls.py`)。
-
-**2026-06-05 后续结构移除** (post-v3.8.0, 非 v3.8.0 内容):
-- 整体移除 **stage 16 EPU 中国版宏观控制** (Baker-Bloom-Davis 2016 QJE): 删 `16_epu_merge.py` shim + `pipeline/external/` 子包 + `data/external/` 数据 + DAG/OUTPUT_REGISTRY 注册 + runner `8b` merge + `stata_export.py` 的 `epu_*` 标签/core_patterns; panel/.dta/.csv/codebook 去 4 列 `epu_*`, golden snapshot 同步重生。→ **STAGES_MAIN 19→18, 注册阶段 36→35 (18 + 17), thin shim 39→38** (Stata 模板数不变, 无模板引用 epu)。
-- 清除已退役死代码 `validation/text2vec.py` (stage 30 早于 2026-05-29 退役, 无 shim、不在 DAG) + 其 2 处测试引用 (`test_stage_smoke` / `test_lineage_input_contract`); 已退役模块清理, 不改计数。⚠ 活跃的 `shibing624/text2vec-base-chinese` 稳健双轨 (`*_t2v` 列, stage 15/25 内联) 完好无损, 勿混淆。
-- 接线 **stage 39h `llm_contamination_test`** (DC4 LLM 训练数据污染留出检验, V4 F-Adv.2): 此前 `pipeline/audit/llm_contamination_test.py` 是同族 6 个 audit 中唯一缺 shim+注册者, 但已是 bank_news_clarity / bank_media_disagreement 两篇 frozen spec 承诺的 DC4 必修项。补 `run_stage()` (config 驱动, 缺 stage 49 z_score / 未配官方 cutoff / 样本不足时优雅跳过) + 根 shim `39h_*.py` + `STAGES_VALIDATION` 注册 (opt-in `validation.llm_contamination=false`) + `EXPECTED_NO_OUTPUT_STAGES`。→ **STAGES_VALIDATION 17→18, 注册阶段 35→36 (18 + 18), thin shim 38→39**。配套修 `codebook.py` xlsx 列宽 nullable-dtype `len(float)` 崩溃 + 重生 variable_codebook (去 `*_title` 幻影行) + 守卫 `falsification_template.do.tmpl` 的 `prob_gap_title_full` 陈旧回归 (capture confirm 防 r(111))。
-- 整体移除 **stage 17 (D1 BERTopic 叙事主题族) + stage 19 (D4 LLM CEO/Chairman NER 高管聚焦族)** (2026-06-09): 删两模块 (`pipeline/text/article_topic.py` / `pipeline/sentiment/executive_ner.py`) + 两 shim (`17_article_topic.py` / `19_executive_ner.py`) + DAG StageSpec/谓词 (`article_topic_enabled` / `executive_ner_enabled`) + OUTPUT_REGISTRY/_OUTPUT_FILENAME_KEYS 4 产物 + `config/sentiment.yaml` 两 opt-in 块 + runner `8c` merge 两元组 + `stata_export.py` core_patterns (`topic_hhi` / `n_ceo_mentions` / `n_unique_execs` / `exec_hhi`) + `export.py` `topic_entropy` 标签 + `requirements.txt` `bertopic`/`umap-learn`/`hdbscan`; 两族下游零回归消费 (variable-farm), golden `missing_stages` 去 4 项 (expected 27→23)。→ **STAGES_MAIN 18→16, 注册阶段 36→34 (16 + 18), thin shim 39→37** (Stata 模板数 95 不变, 无模板引用)。⚠ 刻意保留 stage 18 staleness / stage 30a SBERT (共享前置) / `news_salience` / `ceo_turnover_2yr` (不同功能, 勿混淆)。
-- 整体移除 **stage 49 (`risk_taking_outcomes` 风险承担结果三件套: Z-score / NPL formation / RWA ratio) + stage 39h (`llm_contamination_test` DC4 LLM 训练数据污染留出检验)** (2026-06-12, 无财务数据无法计算): stage 49 的结果变量依赖银行财务面板 (ROA/CAR/NPL/RWA), 该数据始终未获取 → stage 49 长期只优雅跳过写空 panel; 三件套仅作为**变量名**残留在 `bank_news_clarity` / `bank_media_disagreement` 两篇 provisional 论文的 Stata `.do` 模板中 (刻意保留为指标占位, 不删)。stage 39h 唯一 outcome 源即 stage 49 的 `z_score` (audit-local join), 随之一并删除。删: 两 shim (`49_risk_taking_outcomes.py` / `39h_llm_contamination_test.py`) + 两实现 (`pipeline/panel/risk_taking_outcomes.py` / `pipeline/audit/llm_contamination_test.py`) + DAG StageSpec/谓词 (`risk_taking_outcomes_enabled` / `_VALIDATION_PREDS['llm_contamination']`) + `OUTPUT_REGISTRY`/`_OUTPUT_FILENAME_KEYS` (`49_*.parquet`) + `EXPECTED_NO_OUTPUT_STAGES` (`39h`) + `config/panel.yaml::risk_taking_outcomes` + `config/validation.yaml` 的 `llm_contamination` 开关与 `llm_contamination_test` 块 + 3 个唯一为 stage 49 供数的 DC2 抓取脚本 (`scripts/data_acquisition/banking_outcome_dry_run.py` / `outcome_schema_validator.py` / `fallback_decision.py`) + 配套测试 (`test_49_risk_taking_outcomes.py` / `test_omni_fix_risk.py` / `test_llm_contamination_test.py` 整文件, 及 `test_omni_fix_audit_family.py` 的 4 个 39h 类 / `test_metric_audit_p0_fixes.py::TestRiskBankListPath` / `test_panel_orphan_merges.py` 的 stage49 排除断言 / `test_dag_predicates.py` 谓词项, + `test_dag_consistency.py` / `test_71_inter_track_kappa.py` 计数)。stage 49/39h 均**不并入** 40_panel → panel 列与下游 .dta/codebook 不受影响; golden snapshot 仅需去掉它单独追踪的 `49_risk_taking_outcomes.parquet` 空占位条目 (n_rows=0 / 全 0 哈希) + `counts` (expected 23→22, present 22→21), 已手工剪除 (无需重生全量哈希, 避免在本机裸环境误 bless stage 21 等无关漂移)。⚠ 刻意保留 `config/bank_list.yaml` (`network_spillover` + `strategic_diff` 共享) / `scripts/data_acquisition/fetch_llm_archive.py` (与 outcome 无关) / 两 provisional 论文 Stata 模板与 `paper_spec.yaml` (`z_score` 等仅作指标名)。→ **STAGES_MAIN 16→15, STAGES_VALIDATION 18→17, 注册阶段 34→32 (15 + 17), thin shim 37→35** (Stata 模板数 95 不变)。
-- **11 论文 outcome 顶刊重定位** (2026-06-13, spec 层, 与同日 IV 补全协同): 全项目统一**年度 bank-year 面板** → 事件窗 CAR 族 (需日频) 降级各 spec `listed_subsample_extension`, ΔCoVaR 同。主因变量定稿: P1 `funding_cost` (储户纪律) / P2 `ln_fintech_investment` (不变) / P3 `cost_income_ratio_change_3yr` (W&Z 效率试金石, long_run_roa 降 secondary) / P4 `citation_weighted_patent` (Kogan) / P5 `m_and_a_fintech` (不变) / benefit `roa` (**PAP v1.0-final 锁定**) / brokerage `roa` / llm_peer `avg_ft_intensity_full` (**主规格重构**, panel 实存列 $0 可跑) / strategic_diff `tobin_q` (特许权价值) / 第 10/11 篇 `z_score` (测试锁死)。配套: `derivative_replication.py` 4 处 MAIN_DV 同步 + 测试锁拆分 (`ROA_SENTINEL_2`={benefit,brokerage} vs `SPEC_ALIGNED`=B-route 3+llm_peer+strategic) + `pipeline_v34_rerun.yaml` derived_columns 扩年度财务 outcome 族 + 7 个 IV 模板第二阶段 DV 与 4 篇 tables.py Table 1 清单同步。⚠ 新主因变量多为外部财务哨兵列 (capture confirm 优雅跳过), 财务面板接入时须构造列 + 重指剩余 ROA 哨兵 (注意 'ROA' 大写 vs 未来小写 roa 列) + 模板 LHS 接线 + golden 重生; 详见 memory `outcome-redesign-2026-06-13`。
-- **11 论文 IV 补全** (2026-06-13, $0 纯既有数据): 新模块 `pipeline/panel/iv_extensions.py` (三引擎: 同组 LOO 均值 / 广义 Bartik 任意 shift / 媒体来源构成 house-style 暴露) + runner 步骤 8z 接线 (`config/panel.yaml::compute_iv_extensions`, 默认 true) → 面板新增 IV 列族: P2 `leave_one_out_peer_attention_iv(+_lag1)`+`bartik_attention_iv(_full/_ctx)`, P3 `leave_one_out_peer_subst_iv`+`bartik_subst_iv_*`, P4 `leave_one_out_peer_locus_iv`, P5 `leave_one_out_peer_collab_iv`+`bartik_collab_iv_*`, benefit_society `leave_one_out_peer_benefit_iv`+`zone_leave1out_benefit_iv`, P10 `outlet_disp_exposure_iv_*`, P11 `outlet_style_clarity_iv_*` (P1/llm_peer/brokerage/strategic_diff 沿用既有 IV)。配套: 7 篇 paper_spec `identification.iv` 落地 + 7 个 2SLS 模板 (主线 `25_tableA6_tone_iv_2sls` 双工具 Hansen J + substance/22 + locus/20 + collab/21 + benefit_society/25 + 两 provisional `12_table3_iv_2sls`; 全部 capture-confirm 守卫, KP rk F + Stock-Yogo + AR CI 脚注) + 各 00_master 挂接。→ **Stata 模板 95→100** (provisional 2 个不计数), replication 包 .do 14→15。引用锚点: Bartik 1991 / GPSS 2020 AER / BHJ 2022 REStud (仅对比) / Manski 1993 / Leary-Roberts 2014 JF / Bramoullé 2009 JoE / Gentzkow-Shapiro 2010 ECMA / Dougal et al. 2012 RFS / Gurun-Butler 2012 JF / KP 2006 JoE / Stock-Yogo 2005 / Andrews-Stock-Sun 2019 ARE。⚠ 新列落盘需重跑 stage 45/46 + golden 重生。
-- 整体移除 **stage 38a (`temporal_mask_test` 时间掩码前视偏误检验, B2-1; Tetlock et al. 2008 JF)** (2026-06-12): validation-only 稳健性阶段, 仅写 `temporal_mask_diagnostics*.csv` 诊断表 (`EXPECTED_NO_OUTPUT_STAGES`, 不进 panel/OUTPUT_REGISTRY)。删: shim `38a_temporal_mask_test.py` + 实现 `validation/temporal_mask.py` + DAG `temporal_mask_enabled` 谓词与 StageSpec + `EXPECTED_NO_OUTPUT_STAGES` (`38a`) + `config/panel.yaml::temporal_mask_test` 块 + `config/{validation,config}.yaml` 注释 + `run_pipeline_validation.py` 阶段清单/计数 + `validation/__init__.py` 示例 + 测试 (`test_stage_smoke.py` UNTESTED_STAGES 项 / `test_dag_predicates.py` 谓词参数 / `test_dag_consistency.py` 谓词 identity 集 + 计数 / `test_71_inter_track_kappa.py` 计数)。validation-only → golden snapshot 不受影响, 无需重生。⚠ 刻意保留 stage 38b decay_sensitivity (不同功能, 勿混淆)。→ **STAGES_VALIDATION 17→16, 注册阶段 32→31 (15 + 16), thin shim 35→34** (Stata 模板数 95 不变)。
-- **全部 opt-in / 条件启用阶段 → 无条件 always-on** (2026-06-13, 用户决策"全部启用而非条件启用", 对齐 2026-06-12 的 stage 23/24 先例; **纯 DAG/配置/注释层重构, 行为不变, $0, 不重跑 stage 21, golden 不变** — 所有 flag 现值本就是启用值): `core/dag.py` 移除全部 **17** 个 `enabled_when` 谓词挂载 — 主线 21 (`llm_method_enabled`) / 22 (`words_method_enabled`) / 18 (`article_staleness_enabled`) + 全部 **14** 个验证阶段 (`_VALIDATION_PREDS`) 一律改取 StageSpec 默认 `always_enabled` (现 STAGES_MAIN/STAGES_VALIDATION 中已无任何 `enabled_when`); `METHOD_TO_PREDICATE` 清空为 `{}` (`get_script_for_method` 恒返回 None); `run_pipeline_function.py` 删"未启用 method 陈旧文件清理"循环 + 其 `METHOD_TO_PREDICATE`/`get_script_for_method` import。移除 3 个阶段内 `enabled` 二级门早退: stage 21 (`tone_llm_processing.enabled`, 删整个禁用透传块 ~104 行) / stage 36 (`entity_masking_test.enabled`) / stage 39 (`prompt_sensitivity_test.enabled`)。移除 `runner.py` 全部 **9** 个 `if PANEL_CFG.get('compute_*')` 运行期守卫 (展平为顶层无条件调用; 含 6b/6b-2/6b-3/6c/7e Bartik/7f/7g/8z IV/3c 媒体权威)。**配置 flag 全部保留为已启用值** (同 23/24 先例, 注释统一改标 "[已 always-on] 仅作记录, 改 false 不再停掉"): `enabled_methods` 三项 / `validation.*` 九项 / `article_staleness.enabled` / `tone_llm_processing.enabled` / `compute_*` 八项 / 两 `*_test.enabled`。**唯一删除的 config flag = `preprocessing.yaml::interaction_noise_patterns_enabled`** (本项目无网页语料, 它门控的纯网页互动计数清洗是死代码): 同步删 `_constants.py::INTERACTION_NOISE_ENABLED` + `filter_noise_patterns` 去 `interaction_enabled` 参数 (互动计数族 + pagination 裸分数支改无条件永久排除, 等价旧 `False` 路径 = 报纸语料清洗输出字节不变) + `__all__` + 测试 (`test_omni_fix_preprocess.py` 删 2 个绑定已删符号的用例)。测试同步: `test_dag_consistency.py::test_filter_enabled_respects_predicate` 4 个 filter_enabled 计数全改 **15** (全 always-on 后恒返回全集)。⚠ 谓词函数 (`llm_method_enabled` / `words_method_enabled` / `berts_method_enabled` / `article_staleness_enabled` / `_VALIDATION_PREDS`) + `filter_enabled` / `get_script_for_method` 机制**保留**为纯函数供测试/未来扩展 (勿删, 删则破多个测试)。⚠ stage 18 always-on 后若 faiss-cpu/datasketch 缺失会真崩 (不再优雅跳过), 运行环境须确保两包已装。**计数不变** (STAGES_MAIN 15 / STAGES_VALIDATION 16 / 模板 100); 详见 memory `optin-to-alwayson-2026-06-13`。
-
-**Disk 状态** (2026-06-03 实测): panel/.dta 已重生为 v3.8.0 两轨 schema (full/ctx), 无任何 `*_title` 情感列, golden snapshot 同步重生; ~172 行 (86 banks × 2 years 2017–2018, T=2; 2026-06-19 实测 172×2771)。列数详见 Stata 段, 随每次 panel 重生漂移, 以实读 .dta 为准。完整 LLM 重处理 (stage 21 等付费阶段) 仍受 M0 gate (见 memory `paper_portfolio_decision_gates`)。
-
-**冻结锚点**: Prompt v8 字节级冻结 + `jieba == 0.42.1` (不重跑 stage 21, $0 LLM)。
-
-**Stage 21 确定性锚点 = `data/processed/_llm_cache.db`** (2026-06-06 落地, 问题3): golden 的跨-run 可复现性取决于 stage 21 LLM 投票是否确定。唯一不确定源是 **缓存 miss → 重调付费 API → 同篇文章投票可能翻转** (实测曾致某边缘银行整行掉出, panel 176→174 行漂移)。
-- **充要条件**: 当前语料 × 全部启用模型 × 三轨 (full/ctx/ss) 在 `_llm_cache.db` 中 **0 miss**。已验证 (full+ctx 两轨): 7020/7020 命中 (1170 文 × 3 模型 × 2 轨, `prompt_version='v8-2026-05-17'` / `temperature=0.0`); 离线真跑 stage 21 输出与原盘 **content-sha256 字节级一致**。⚠ v3.9.0 引入第三轨 `_ss` 时 ss 缓存初始为 0 条, 曾需线上付费首跑播种 (1170 文 × 3 模型 × 1 轨)。**更新 (2026-06-19 实测): `_ss` 缓存已全播种** — `scripts/audit/_runcheck_20260619/21_tone_llms.log` 实证 stage 21 离线跑 `lookups=10125 hits=10125 misses=0 hit_rate=1.0000 [OFFLINE]` (现盘 1125 文 × 3 模型 × **3 轨**), 即三轨现均可 `NEWS_PROCESS_LLM_OFFLINE=1` 离线 $0 字节级复现, 不再需付费首跑 (顶部 v3.9.0 段的"须付费首跑"为引入时点历史状态)。
-- **强制机制 (新)**: 设 `NEWS_PROCESS_LLM_OFFLINE=1` → stage 21 缓存 miss 时 **raise `LLMCacheMissError` 而非调 API** (`pipeline/sentiment/tone_llms.py`, 默认关闭, 不改生产首跑); 离线模式同时跳过 preflight 探针 → 零网络、$0。
-- **验证工具**: `python -m news_process.scripts.audit.verify_stage21_cache_coverage` (纯缓存读, 报 hit/miss; misses=0 即可 $0 确定性复现)。
-- **铁律**: **勿删 `_llm_cache.db`** (~453MB / ~140.6k 条, 随 _ss 轨缓存播种继续增长) — 删则 golden 不再可复现, 须重跑付费 stage 21。prompt 构造单一事实源 = `tone_llms.iter_article_track_prompts` (生产与审计共用 → 缓存键一致)。
-
-**Test baseline** (v3.8.0 实测 2026-05-31): 全量 sweep **2581 passed / 3 skipped / 0 failed** (ruff clean)。精确 collect 数随 production run 漂移, 以 `pytest --collect-only` 为准; 历史逐版计数已失效, 不再维护。
-
-> 历史版本 (v3.5.x–v3.7.5) 的完整 changelog 与 audit 记录见 git history。本文件顶部 "Current version" 段是版本变更的权威源 (CHANGELOG.md 暂未维护)。
-
-**CLI 子命令** (`python -m news_process.papers._common.stata_runner <cmd>`):
-- `build-replication`: 一键 instantiate 19 个根级 .do 模板 + spec 替换 (2026-06-14 +32/33/34 FE饱和/子样本时序/era 稳定性)
-- `list-templates [--verbose]`: 模板清单 + 占位符 inventory
-- `doctor [--verbose]`: 6 段诊断 (Python 依赖 + pipeline 数据 + LLM cache + LLM API + Stata bin + Stata ado 包)
-- `verify-replication <path>`: 5 段验证 replication 包结构
-
-**v3.1.1 → v3.2.0 panel 迁移**: `python -m news_process.scripts.migrate.v3_1_to_v3_2_panel_upgrade`
+- `build-replication`: 一键 instantiate 19 个根级 `.do` 模板 + spec 替换 (构建复现包的规范入口)。
+- `list-templates [--verbose]`: 模板清单 + 占位符 inventory。
+- `doctor [--verbose]`: 6 段诊断 (Python 依赖 / pipeline 数据 / LLM cache / LLM API / Stata bin / Stata ado 包)。
+- `verify-replication <path>`: 5 段验证 replication 包结构。
+- panel 迁移: `python -m news_process.scripts.migrate.v3_1_to_v3_2_panel_upgrade`。
 
 ## Architecture
 
 ### Pipeline Structure
 
-The pipeline is a **declarative DAG** defined in `news_process/core/dag.py`. All stages are registered in `STAGES_MAIN` (production) or `STAGES_VALIDATION` (evaluation). The orchestrator (`run_pipeline_function.py`) executes stages as isolated subprocesses.
+声明式 DAG 定义在 `core/dag.py`，阶段注册于 `STAGES_MAIN` (生产) / `STAGES_VALIDATION` (评估)。orchestrator `run_pipeline_function.py` 把每阶段当独立子进程跑。
 
 **Stage flow** (illustrative; authoritative set in `core/dag.py`):
 ```
-00_preprocessing → 11_news_bank → 12_news_fintech → 14_materialize_ctx
-→ 15_fintech_intensity → 16_article_policy_alignment
+00_preprocessing → 11_news_bank → 12_news_fintech → 13_cooccurrence_filter
+→ 14_materialize_ctx → 15_fintech_intensity → 16_article_policy_alignment
 → 21_tone_llms / 22_tone_words / 23_tone_berts → 24_herd_decay_processor
 → 40_panel_export_main → 46_stata_export → 51_falsification_test
 ```
-`14_materialize_ctx` 物化 `content_ctx` 列 (v3.9.0 起同步物化 `content_ss`), 让下游 15/16 在 stage 21 之前即可消费 ctx/ss, 实现 fintech_intensity / policy_alignment 真**三轨** (`*_full` / `*_ctx` / `*_ss`)。stage 30 (`robustness_text2vec`) 已于 2026-05-29 退役 — `_t2v` 列改由 stage 15/25 inline 产出, 仅余 `25_article_sbert`。
-
-Sentiment methods **21 (LLM) / 22 (词典) / 23 (BERT) / 24 (跟风衰减) 自 2026-06-13 起全部为无条件 always-on** (用户决策"全部启用而非条件启用", 在 2026-06-12 的 23/24 先例基础上扩展到 21/22 + 全部 14 个验证阶段): 所有 StageSpec 均取默认 `enabled_when=always_enabled`, 不再随 `config/sentiment.yaml::sentiment_analysis.enabled_methods` / `config/validation.yaml::validation.*` 启停; `METHOD_TO_PREDICATE` 已清空 `{}`, 各方法/验证谓词函数保留供测试。决策动机: 把全部阶段提升为结构性 always-on 后, 无论配置如何, 下游输入 (如 `24_herd_decay.parquet`) 始终生成 → 消除了 stage 45 因缺输入而 `sys.exit(1)` 的脆弱耦合。详见顶部 "全部 opt-in / 条件启用阶段 → 无条件 always-on (2026-06-13)" 段。**v3.9.0 起每个情感方法均跑三轨** `['_full', '_ctx', '_ss']` (原双轨循环 `['_full', '_ctx']` 加入第三轨 `_ss` 银行+金科同句; 详见顶部 v3.9.0 段)。
+`14_materialize_ctx` 物化 `content_ctx`/`content_ss`, 让下游 15/16 在 stage 21 前即可消费 → fintech_intensity / policy_alignment 真三轨。`25_article_sbert` 仍活跃 (产 co-primary `_lg` 双轨嵌入喂 stage 26 `article_staleness`; `_t2v`/`_bge` 本地轨已于 v3.14.0 整体移除)。
 
 ### Directory Layout
 
@@ -155,19 +79,16 @@ Sentiment methods **21 (LLM) / 22 (词典) / 23 (BERT) / 24 (跟风衰减) 自 2
 news_process/
 ├── core/           # Kernel: config, logging, caching, DAG, stage runner
 ├── pipeline/       # Stage implementations (filtering, sentiment, panel, etc.)
-├── papers/         # Multi-paper module dirs (11: 8 fully-coded + 3 provisional)
+├── papers/         # 11 paper module dirs (8 fully-coded + 3 provisional)
 ├── validation/     # Robustness tests (threshold sensitivity, entity masking, etc.)
 ├── config/         # Split YAML configs + prompt templates (config.yaml is a legacy stub)
 ├── data/           # Input (raw/) + output (processed/*.parquet)
-├── tests/          # full sweep 2581 passed / 3 skipped / 0 failed (collect 数以 --collect-only 为准)
-└── NN_*.py         # 35 thin shim scripts under news_process/ (≤30 lines each; 含 2026-06-15 新增 13, 原 12b);
-                    # 32 registered in core/dag.py (16 STAGES_MAIN + 16 STAGES_VALIDATION);
-                    # 3 unregistered by design: 80 (audit-only sibling, 原 27c),
-                    # 81/82 (user-CLI wrappers, 原 52/53; schemas.py:160-162 显式排除).
-                    # planned retirement Plan-r3 P3-18 (拆分约束见 pipeline/panel/runner.py).
+├── tests/          # full sweep ≈2581 passed / 3 skipped (collect 数以 --collect-only 为准)
+└── NN_*.py         # 35 thin shims (≤30 lines); 32 registered (16 MAIN + 16 VALIDATION);
+                    # 3 unregistered by design: 80 / 81 / 82。shim 号已重编号反映执行先后。
 ```
 
-**Key invariant**: `news_process/NN_*.py` scripts are thin shims. All logic lives in `news_process.pipeline.*`. Never add business logic to shims.
+**Key invariant**: `news_process/NN_*.py` 是 thin shim, 所有逻辑在 `news_process.pipeline.*` / `news_process.validation.*`。**绝不**往 shim 加业务逻辑。
 
 ### Single Sources of Truth
 
@@ -179,67 +100,35 @@ news_process/
 ### Data Flow
 
 - **Input**: `data/raw/*.xlsx` (raw news articles)
-- **Intermediate**: `data/processed/*.parquet` (one per stage, e.g., `21_tone_llms.parquet`)
+- **Intermediate**: `data/processed/*.parquet` (one per stage, e.g. `21_tone_llms.parquet`)
 - **Final**: `data/processed/40_panel_yearly.parquet` (bank-year panel for Stata)
-- **Logs**: `logs/<stage>.log` (扁平布局, 每阶段一个文件; 每次运行覆盖同名日志 — 只保留最新一次运行, 不再累积历次运行日志。2026-06-15 决策)
+- **Logs**: `logs/<stage>.log` (扁平布局, 每阶段一文件; 每次运行覆盖, 只留最新一次)
 
 ## Development Commands
 
-### Environment Setup
-
 ```bash
-# From repository root — create + activate virtual environment
-python -m venv venv
-source venv/bin/activate            # Linux/macOS
-venv\Scripts\Activate.ps1           # Windows PowerShell (本项目主环境)
+# 环境 (本项目主环境 = Windows PowerShell venv; 解释器走 conda base python 3.13)
+python -m venv venv && venv\Scripts\Activate.ps1
+pip install -e ".[dev]"                                          # runtime + pytest/pre-commit/ruff
+# 或精确锁定: pip install -r news_process/requirements.lock && pip install -e . --no-deps
+cp news_process/.env.example news_process/.env                   # 然后填 YUNWU_API_KEY / DEEPSEEK_API_KEY / SILICONFLOW_API_KEY
+pre-commit install                                               # 一次性: 提交自动跑 check-prompt-headers + ruff
 
-# Install dependencies (choose one)
-pip install -e .                                  # Runtime deps only
-pip install -e ".[dev]"                           # + dev tools (pytest, pre-commit, pytest-cov)
-pip install -r news_process/requirements.lock && pip install -e . --no-deps  # Exact deps + editable
-pip install -r news_process/requirements.txt  && pip install -e . --no-deps  # Fallback for pip-only users
+# 跑 pipeline (从 repo 根 f:\WiseSearch\data_antigravity_project\)
+python run_pipeline_function.py     # 全主线
+python run_pipeline_validation.py   # 验证 pipeline
+python 21_tone_llms.py              # 单阶段调试
 
-# Configure environment
-cp news_process/.env.example news_process/.env    # then set YUNWU_API_KEY (required for LLM stages)
+# 测试 (必须从 repo 根跑, 否则绕过 pyproject testpaths)
+pytest                              # 全量 sweep
+pytest -m fast                      # 快测 (~30s, 每次 commit 前)
+pytest -m integration               # 集成 (parquet IO + mocked LLM, ~5min)
+pytest -k "test_golden"             # 按 pattern
 
-# Enable local pre-commit hooks (one-time per dev machine)
-pre-commit install                  # git commit auto-runs check-prompt-headers + ruff check
-pre-commit run --all-files          # manual run against full repo
-```
+# Lint
+ruff check . ; ruff check --fix .
 
-### Running the Pipeline
-
-```bash
-python run_pipeline_function.py     # Full pipeline (all enabled stages)
-python run_pipeline_validation.py   # Validation pipeline (robustness tests)
-python 21_tone_llms.py              # Single stage (for debugging)
-```
-
-### Testing
-
-> **Run pytest from the repository root** (`f:\WiseSearch\data_antigravity_project\`). Running from the
-> `news_process/` subdir may bypass the parent `pyproject.toml::testpaths`; root-level invocation is consistent.
-
-```bash
-pytest                              # full sweep (2581 passed / 3 skipped / 0 failed)
-pytest -m fast                      # fast tests (~30s, run before every commit)
-pytest -m integration               # integration tests (parquet IO, mocked LLM, ~5min)
-pytest news_process/tests/test_21_tone_llms.py            # specific file
-pytest -k "test_golden"             # tests matching pattern
-```
-
-### Linting & Formatting
-
-```bash
-ruff check .                        # Lint (configured in pyproject.toml)
-ruff check --fix .                  # Auto-fix
-```
-
-### Regenerating Golden Baseline
-
-After schema changes that add/remove columns:
-
-```bash
+# Golden 重生 (列 schema 变更后)
 python scripts/migrate/generate_golden_snapshot.py
 pytest tests/integration/test_panel_reproducibility.py
 ```
@@ -247,135 +136,73 @@ pytest tests/integration/test_panel_reproducibility.py
 ## Critical Constraints
 
 ### Git Commit Protocol
-
-1. **Never amend commits** unless explicitly requested. After pre-commit hook failures, create a NEW commit.
-2. **Stage specific files** by name. Avoid `git add .` / `git add -A` (risk of committing `.env` or secrets).
-3. **Commit message format**: HEREDOC with `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>` trailer.
-4. **Never skip hooks** (`--no-verify`) unless explicitly requested.
+1. **绝不 amend** (除非显式要求); pre-commit hook 失败后创建**新** commit。
+2. **按文件名 stage** (`git add <file>`); 避免 `git add .`/`-A` (防误提 `.env`/secrets)。共享树并发会话尤须 by-name (排除 `*constants.json`/`eval_reports` 等并发产物)。
+3. **Commit message**: HEREDOC + `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>` trailer。
+4. **绝不 `--no-verify`** (除非显式要求)。
 
 ### Code Modification Rules
-
-1. **Stage shims are frozen**: The 35 `news_process/NN_*.py` scripts are thin shims (≤30 lines). All logic belongs in `news_process.pipeline.*` or `news_process.validation.*`.
-2. **DAG consistency**: Any stage added/removed must update `core/dag.py::STAGES_MAIN`/`STAGES_VALIDATION` and `core/schemas.py::OUTPUT_REGISTRY` (if it produces parquet). Verify with `pytest tests/integration/test_dag_consistency.py`.
-3. **Config split is active**: `core/config.py::load_config()` prefers the 7-domain YAML split and falls back to legacy single-file mode only when all split files are absent. Keep split files semantically equivalent to the legacy config contract.
-4. **Golden baseline**: After column schema changes, regenerate `tests/fixtures/golden_panel_v0.json` via `scripts/migrate/generate_golden_snapshot.py`.
+1. **Shim 冻结**: 35 个 `NN_*.py` 是 thin shim (≤30 行), 逻辑归 `pipeline.*`/`validation.*`。
+2. **DAG consistency**: 阶段增删同步 `STAGES_MAIN`/`STAGES_VALIDATION` + `OUTPUT_REGISTRY` (产 parquet 时), 跑 `test_dag_consistency.py`。
+3. **Config split active**: `load_config()` 优先 7-domain 拆分 YAML, 全缺时才回退 legacy 单文件; 拆分文件须语义等价 legacy 契约。
+4. **Golden**: 列 schema 变更后经 `generate_golden_snapshot.py` 重生 `tests/fixtures/golden_panel_v0.json`。
 
 ### Testing Requirements
-
-- **Integration gate**: `tests/integration/test_panel_reproducibility.py` must pass (validates column hashes against golden baseline).
-- **DAG consistency**: `tests/integration/test_dag_consistency.py` enforces STAGES_MAIN ⊆ OUTPUT_REGISTRY ∪ EXPECTED_NO_OUTPUT_STAGES, no duplicate stage names, and orchestrator imports matching `core/dag.py` (identity check via `is`).
-- **Mock external APIs**: Tests must mock LLM/embedding APIs (see `tests/test_25_audit.py` for fixture examples).
+- **Integration gate**: `tests/integration/test_panel_reproducibility.py` 必过 (列哈希对 golden)。
+- **DAG consistency**: `test_dag_consistency.py` 强制 STAGES_MAIN ⊆ OUTPUT_REGISTRY ∪ EXPECTED_NO_OUTPUT_STAGES, 无重名, orchestrator import 与 `core/dag.py` identity (`is`) 一致。
+- **Mock 外部 API**: 测试必 mock LLM/embedding API (范例 `tests/test_25_audit.py`)。
 
 ## Common Patterns
 
-### Adding a New Stage
+- **加阶段**: 实现 `pipeline/<module>/<stage>.py` → thin shim `NN_<stage>.py` (≤30 行) → 注册 `STAGES_MAIN` (验证阶段注册 `STAGES_VALIDATION`) → 产 parquet 则加 `OUTPUT_REGISTRY`, 不产则加 `EXPECTED_NO_OUTPUT_STAGES` (否则 `test_dag_consistency` 失败) → 测试 → 跑 `test_dag_consistency.py`。
+- **改 config schema**: 改对应拆分 YAML → 仅 loader 语义变时改 `load_config()` → 列 schema 变则重生 golden → 全量测试。
+- **调试失败阶段**: 看 `logs/<stage>.log` → 单跑 `python news_process/NN_<stage>.py` → `pytest tests/test_XX_<stage>.py -v` → 查 `data/processed/`。
 
-1. Create implementation in `news_process/pipeline/<module>/<stage>.py`
-2. Create thin shim `NN_<stage>.py` under `news_process/` (≤30 lines, imports and calls pipeline function)
-3. Register in `core/dag.py::STAGES_MAIN` with `StageSpec(...)`
-4. If it produces parquet, add to `core/schemas.py::OUTPUT_REGISTRY`
-5. Add tests in `tests/test_XX_<stage>.py`
-6. Run `pytest tests/integration/test_dag_consistency.py` to verify
+## Environment Variables (`.env`)
 
-### Modifying Config Schema
-
-1. Edit the owning split YAML under `config/`
-2. Update `core/config.py::load_config()` only if loader semantics change
-3. Regenerate golden baseline if column schema changes
-4. Run full test suite to catch downstream breakage
-
-### Debugging Pipeline Failures
-
-1. Check `logs/<stage>.log` for the failed stage (只保留最新一次运行的日志, 新运行会覆盖)
-2. Run the stage in isolation: `python news_process/NN_<stage>.py`
-3. Use `pytest tests/test_XX_<stage>.py -v` to reproduce in test environment
-4. Check `data/processed/` for intermediate outputs
-
-## Environment Variables
-
-Required in `.env`:
-
-- `YUNWU_API_KEY`: Unified API key for LLM sentiment analysis (stages 21, 33, 34, 36, 39) and embedding (stage 15, 27)
-- `EMBEDDING_API_KEY`: Defaults to `${YUNWU_API_KEY}` (can override for separate endpoint)
-- `FINBERT2_MODEL_DIR`: Optional local BERT model path (stage 23 gracefully skips if missing)
+- `YUNWU_API_KEY`: stage 21 情感 LLM (gpt54nano/gemini31 走 yunwu) + 若干 LLM 验证阶段 (如 66/70) + `_lg`/yunwu 嵌入。
+- `DEEPSEEK_API_KEY`: stage 21 第三家 LLM `deepseek-v4-flash` (直连 `api.deepseek.com`, 与 yunwu 不同源)。离线缓存命中时不需; 生产首跑/播种须填。
+- `SILICONFLOW_API_KEY`: canonical Qwen 嵌入轨 (硅基流动)。
+- `EMBEDDING_API_KEY`: 默认 `${YUNWU_API_KEY}` (可覆盖独立端点)。
+- `FINBERT2_MODEL_DIR`: 可选本地 BERT (stage 23 缺失时优雅跳过)。
+- ⚠ 裸环境嵌入 SSL 报错 → 设 `SSL_CERT_FILE=$(python -c "import certifi;print(certifi.where())")`; 重跑 stage 23 BERT 设 `HF_HUB_OFFLINE=1`/`TRANSFORMERS_OFFLINE=1`。
 
 ## Multi-Paper Support
 
-`papers/` contains 11 paper-specific module dirs (**8 fully-coded + 3 provisional**)。自 2026-06-01 全功能打开后, 全部 11 篇均具备 `analysis.py` (Stata runner, main+STAGES, --dry-run 可调度) + `figures.py` + `tables.py` 三件套, 并纳入 `paper_registry.PAPER_IDS_ALL` → `run_paper` 可调度全部 11 篇。provisional 三篇的表/图为 `build_table1`/`plot_*` 占位骨架 (主回归 esttab + manuscript/refs.bib 待 onboarding 填实)。
+`papers/` 含 11 个 paper 模块 (8 fully-coded + 3 provisional); 全部具备 `analysis.py`/`figures.py`/`tables.py` 三件套, 纳入 `paper_registry.PAPER_IDS_ALL`。
 
-**P1–P5 Bank-FinTech 主线五篇** (统一 `bank_fintech_*` 命名):
-- `bank_fintech_tone/` (P1, 主线): 媒体语调; 三轨化 spec, main = `llm_vote_tone_ctx`
-- `bank_fintech_attention/` (P2): firm-level fintech attention intensity; main = `attention_index_full` (Fang-Peress 2009 JF extensive coverage, intensity-weighted; Hassan 2019 QJE 仅作归一化稳健性度量 attention_pct/attention_intensity_density 与"测度→企业响应" outcome 范式的对标)
-- `bank_fintech_substance/` (P3): W&Z 实质/象征二元属性
-- `bank_fintech_locus/` (P4): Gomber 底层/应用二元属性
-- `bank_fintech_collab/` (P5, provisional): Chesbrough 自主研发 vs 外部协同
-
-**衍生 / provisional**: `benefit_society/` · `brokerage_network/` · `llm_peer/` (方法学) · `strategic_diff/` · `bank_media_disagreement/` (provisional) · `bank_news_clarity/` (provisional)。
-
-Common utilities in `papers/_common/` (含 `AI_DISCLOSURE_TEMPLATES.md` 6 系列: Nature/AER/JF/ASQ/RP/CSSCI)。
-
-> 注: 顶部 "Current version" 段中的 `P1/P2/P4/P7` 等指 **Plan E 内部步骤**, 与本段 paper-portfolio 的 `P1..P5` paper ID 是两个独立编号空间。
+- **P1–P5 主线** (`bank_fintech_*`): tone (P1) / attention (P2) / substance (P3, W&Z) / locus (P4, Gomber) / collab (P5, provisional, Chesbrough)。
+- **衍生/provisional**: `benefit_society` · `brokerage_network` · `llm_peer` (方法学) · `strategic_diff` · `bank_media_disagreement` (prov) · `bank_news_clarity` (prov)。
+- **处理变量 (treatment) vs outcome (DV) 是两套**: 各 paper 主轨 treatment 多为 `*_full` 情感/属性变量 (P1=`llm_vote_tone_full`); outcome/DV 另定 (P1 `funding_cost` / P2 `ln_fintech_investment` / P3 `cost_income_ratio_change_3yr` / P4 `citation_weighted_patent` / P5 `m_and_a_fintech` / benefit&brokerage `roa` / llm_peer `avg_ft_intensity_full` / strategic_diff `tobin_q` / prov `z_score`)。多为外部财务哨兵列, 财务面板接入时构造; 详见 memory `outcome-redesign-2026-06-13`。
+- 公用工具 `papers/_common/` (含 `AI_DISCLOSURE_TEMPLATES.md` 6 系列: Nature/AER/JF/ASQ/RP/CSSCI)。
+> 注: 本段 paper ID `P1..P5` 是 paper-portfolio 的本地编号, 与其它文档/计划里的 `P1/P2/..` 步骤编号是两个独立空间。
 
 ## Stata Environment
 
-**本机 Stata：StataNow/MP 19.5** (2026-05-16 经 `about` 实测)。
-- 路径 `C:\Program Files\StataNow19\StataMP-64.exe`; Build 14 Jan 2026; Windows 64-bit
-- 许可 **64-core lab perpetual**; 物理内存 128 GB; 默认 `set maxvar = 5,000` (可上调到 MP 上限 120,000)
-- **项目策略 (2026-05-16 起): Stata 19+ only, 无需向下兼容**
+**本机 StataNow/MP 19.5** (`C:\Program Files\StataNow19\StataMP-64.exe`, 64-core perpetual, 128GB)。**项目策略: Stata 19+ only, 无需向下兼容**。
 
-### 启动 Stata 的命令约定 (自动化必读 — 防「已完成」弹框)
-
-**Windows 上跑 `.do` 一律用 `/b` 批处理 flag，禁用 `/e` 与裸 GUI 启动。** 弹「已完成」模态框需手动点确定的根因是启动模式不对：
-
-- `StataMP-64.exe /b do x.do` — 真·批处理: 后台、跑完自动退出、不弹框 (本机实测退出码 0)。✅ 唯一推荐。**⚠ 修正 (2026-06-14 实测): `/b` 的"不弹框"前提是 do-file **跑到干净收尾**(走到 `exit` / 正常结束)。若 do-file **中途未捕获报错中断 (没走到终端 `exit`)** 或**根本没有终端 `exit`**, 本机 StataNow 19.5 的 `/b` 同样弹「Done」完成框并卡住 (实测 PID 23164 `/b` 起 `inst_collab.do` 卡在「Done」窗, `-Wait` 循环随之挂起 → 连环弹)。故"`/b` 永不弹"是**错的**; `/b` 万无一失需配合「body 全程 `capture` 防中途 abort + 末尾 `exit, clear`」。**
-- `StataMP-64.exe /e do x.do` — 跑完弹模态完成框并阻塞等待点击, 卡死自动化。❌ 禁用。
-- 无 flag / 双击 — GUI 交互模式, 同样卡。❌ 禁用。
-- Windows 用斜杠 `/b` (不是 Unix 的 `-b`; `-b` 在 Windows 上不可靠)。Unix/Mac 才用 `stata-mp -b do x.do`。
-
-**两层防御 (铁律, 二选一即可, 都做最稳)**: ① **起动走 `/b`** (上面四条) 或项目封装 `papers/_common/stata_runner.py::run_do` / `scripts/run_stata.ps1` (都硬编码 `/b`); ② **任何 ad-hoc / 一次性 probe `.do` 末尾必须加 `exit, clear`** —— 完成框是 do-file 跑完后由启动器弹的, `exit` 直接终结进程绕过它, 故**即便被 `/e` 或双击起动也不弹** (本机实测)。子代理写临时 probe 时尤其注意: **要么走 `run_stata.ps1`, 要么末尾 `exit, clear`**, 否则裸 Stata 命令起动会复弹 (2026-06-14 `build/fix_verify_mc/attention_oster_probe.do` 即此坑: 子代理裸起动 + 无 exit → 两防全绕过)。⚠ **终端 `exit` 只加在 standalone / `00_master.do` 末尾**, 绝不能加进被 master `do` 调用的子 `.do` (会让 master 提前退出, 中断编排链)。全部 11 个 `00_master.do.tmpl` + 2 个实例化复现包 `00_master.do` 已加终端 `exit, clear` 守卫 (2026-06-14), 外部研究者双击复现包不再弹框。
-
-推荐写法 (`StataMP-64.exe` 是 GUI 子系统程序, PowerShell `&` 调用会立即返回 → 必须 `Start-Process -Wait`):
-
+### 启动约定 (自动化必读 — 防「已完成」弹框)
+- **一律 `/b` 批处理** (Windows 用斜杠 `/b` 不是 `-b`); **禁** `/e` 与裸 GUI/双击 (弹模态完成框卡死自动化)。
+- ⚠ `/b` 的"不弹框"前提是 do-file 跑到干净收尾。**两层防御 (二选一, 都做最稳)**: ① 走 `/b` 或封装 `papers/_common/stata_runner.py::run_do` / `scripts/run_stata.ps1` (硬编码 `/b`); ② 任何 ad-hoc/probe `.do` 末尾加 `exit, clear` (直接终结进程绕过完成框)。⚠ 终端 `exit` **只**加在 standalone/`00_master.do` 末尾, **绝不**加进被 master 调用的子 `.do` (会让 master 提前退出)。
+- `StataMP-64.exe` 是 GUI 子系统 → PowerShell `&` 会立即返回, 必须 `Start-Process -Wait`:
 ```powershell
 $exe = "C:\Program Files\StataNow19\StataMP-64.exe"
 Start-Process -FilePath $exe -ArgumentList '/b','do','"<绝对路径\x.do>"' `
-  -WorkingDirectory "<.do 所在目录>" -Wait -PassThru |
-  ForEach-Object { "Stata 退出码=$($_.ExitCode)" }
-# 跑完读同名 .log / .smcl 取结果
+  -WorkingDirectory "<.do 所在目录>" -Wait -PassThru | ForEach-Object { "退出码=$($_.ExitCode)" }
+# 退出码不完全可信 → 跑完扫同名 .log 的 r(###) 取真实结果
 ```
 
-或用项目封装 `papers/_common/stata_runner.py::run_do(...)` (默认 `batch_mode=True` → 跨平台自动选 `/b`(Win) / `-b`(Unix), 从根上不弹框):
-
-```python
-from news_process.papers._common.stata_runner import run_do
-cp = run_do(r"build\stata_verify\verify.do"); print(cp.returncode)
-```
-
-### 容量与列数 (MP 远未触顶)
-
-MP 硬上限: max obs ≈ 1.1 兆 · maxvar 120,000 · RHS 65,532 · matsize 65,534 · macro 15,480,200 字符
-(来源: https://www.stata.com/products/detailed-size-limits/)。当前 panel 最大 `51_panel_with_controls.dta` ≈ 2782 列 (2026-06-19 实测最宽 dta; 列数随每次重生漂移, 以实读为准), 距 MP 上限裕度 > 11.7 万列, 可放心继续加特征。
-
-对本项目的含义:
-- **core/aux IC 双切分已整体移除** (2026-06-12 stage 46 改单一全列 `46_panel_yearly_full.dta`; 2026-06-13 清除 `01_data_prep.do.tmpl` IC 回退分支等最后残留)。**2026-06-21 进一步整体退役 `STATA_IC_MAX_VARS` / `assign_core_columns` / `core_patterns` 与 codebook `is_core` 列** —— codebook 取消"分析核心列 vs 辅助列"区分, 所有列均为分析列 (`46_panel_yearly_codebook.xlsx` 不再含 `is_core` 列; 本机 StataNow/MP 19.5 直读全列, 无 IC 列数约束)。权威执行计划 = `scripts/audit/CODEBOOK_ALL_CORE_COLUMNS_EXECUTION_PLAN_2026-06-21.md` (A2+β, golden-safe)。
-- 不要在通用模板里硬编码 "前 2048 列" 之类的 IC 截断逻辑; IC 协作者如需运行, 自行 `keep` 变量子集或升级 SE/MP。
-- **行数瓶颈在面板深度 (T=2, ~172 行 = 86 banks × 2 years 2017–2018)**, 不在 Stata 容量; panel 扩展瓶颈在上游数据 / stage 41。
-- **64 核并行**: 跑 `bootstrap`/`permute`/`rwolf`/`ritest`/`csdid` wild bootstrap 时按 license 上限自动拉满 (`set processors 64`)。
-- **matsize 在 Stata 19 已自动管理** (16+ deprecated); `reghdfe`/`ivreg2` 走 Mata 不受约束。仅原生 `regress` + 极多 RHS 才需显式 `set matsize`。
-
-### Stata 模板约定
-
-- **142 个 `.do.tmpl`** (2026-06-13 IV 补全 +5, network-metrics-elevation +6, agg-audit +7, 2026-06-14 顶刊稳健性扩充 +20: FE-SAT/ROBUST-EST/OSTER/SUBSAMPLE/TIMING/PPML 六族, **2026-06-14 T18 顶刊重审 +9**: era-stability 时代稳定性族 8 篇各 1 + brokerage 选择性稳健性 1, 防 2007-2024 跨年构成漂移) = 主线 19 (直接在 `stata_templates/` 下, 含 `25_tableA6_tone_iv_2sls` + `26_tableA7_aggregation_robustness` + `32_tableA8_fe_saturation_robust_est` + `33_tableA9_subsample_timing` + `34_tableA11_era_stability`) + 8 个 paper-specific 子目录 120 (attention 10 / collab 14 / locus 14 / substance 14 / benefit_society 26 / **brokerage_network 18** / **llm_peer 12** / strategic_diff 12) + 历史归档 `v3_5_0/` 2 + `v3_5_1/` 1。另有 provisional 两篇 (`papers/bank_media_disagreement|bank_news_clarity/stata_templates/`) 共 15 个 (MD 7 / NC 8, 各含 `12_table3_iv_2sls` + 2026-06-14 FE饱和/Oster/子样本扩充), **不计入** 142 (计数口径 = `papers/_common/stata_templates/` rglob, 见 `test_papers_b_route.py::test_total_template_count_77`, 现锁定 142)。全部统一头部 `version 19` + `clear all` + `set maxvar 32767` + `set linesize 120` (见 `00_master.do.tmpl:13-16`)。新增模板复用此头部。
-  - **网络位置五角色化** (network-metrics-elevation 2026-06-13, 蓝图 `scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md`): brokerage_network 子目录 8→14, 新增 `15_table6_centrality_outcome` (解释/描述性条件关联 + 火灾甩卖机制) / `16_table7_mediation` (中介, 探索性附录) / `17_table8_overid_iv` (跨族 over-id 工具, 破解 P1-6 恰好识别) / `18_table9_moderation` (2SLS 交乘调节) / `19_table10_network_het` (within-year 分位 + pooled 交乘 2SLS 异质性) / `20_table11_fwer_battery` (22 中心度 FWER, wyoung 非 rwolf-iv)。全部消费 panel 实存列 → golden-safe; 角色 production T=18 才有功效, 盘面 T=2 退化时 capture-confirm/N-守卫优雅跳过。`paper_spec.yaml` 加 `network_roles` 块 + `identification.primary_centrality=bank_between_cent`/`centrality_battery`(22)。
-- `version 19` 锁定最低版本: Stata 18 及更老会报 "version 19 is not a valid version" 拒跑 (这正是 "19+ only" 的执行机制), 可放心使用 `xtdidregress`/`frames`/`pystata`/新版 `meta` 等无需 `version` 守卫。
-- `set maxvar 32767` 是防御性保留 (SE 上限); 若未来列数突破 32,767 需上调到 `set maxvar 120000`。
-- **pyreadstat 写出的 `.dta` 用 format version 118** (`stata_export.py::_write_dta_pyreadstat` 走 pyreadstat 默认 118; pandas fallback `_write_dta_pandas_fallback` / `tables.py::export_dta` 显式 `version=118`; 实读 4 个 .dta header 均 release=118) — 这是 **.dta 文件格式 spec 编号**, 不是 Stata 应用版本; Stata 19 读取无限制。勿与 `version 19` 混为一谈。
+### 容量 / 模板
+- MP 硬上限远未触顶 (maxvar 120,000; 当前最宽 panel ≈2782 列)。**core/aux IC 双切分已整体退役** (2026-06-21: 单一全列 `.dta`, codebook 无 `is_core`) — **勿**在模板硬编码"前 N 列"截断。行数瓶颈在面板深度 (T=2), 不在 Stata 容量。
+- 跑稳健性 battery (`bootstrap`/`rwolf`/`ritest`/`csdid` wild bootstrap) 本机按 license 自动拉满 (`set processors 64`); `matsize` 在 Stata 19 已自动管理 (`reghdfe`/`ivreg2` 走 Mata 不受约束)。
+- **142 个 `.do.tmpl`** (计数口径 = `papers/_common/stata_templates/` rglob, 见 `test_papers_b_route.py`) = 主线 19 + 8 个 paper 子目录 120 + 历史归档 3; provisional 两篇另 15 不计入。统一头部 `version 19` + `clear all` + `set maxvar 32767` + `set linesize 120`。
+- pyreadstat 写 `.dta` 用 **format version 118** (文件格式 spec 编号, 非 Stata 应用版本; Stata 19 读取无限制, 勿与 `version 19` 混淆)。
 
 ## Known Issues & Workarounds
 
-1. **Windows line endings**: Git may warn about CRLF (expected on Windows). The repo-root `.gitattributes` marks `*.parquet`/`*.xlsx`/`*.db` as binary; source files keep their on-disk EOL.
-2. **FinBERT2 model**: Stage 23 requires a private fine-tuned model. If `FINBERT2_MODEL_DIR` is unset or invalid, the stage gracefully skips that model (other BERT models still run).
+1. **Windows line endings**: Git 可能 warn CRLF (Windows 预期)。repo 根 `.gitattributes` 标 `*.parquet`/`*.xlsx`/`*.db` 为 binary; 源文件保持磁盘上的 EOL (不强制 LF 归一, CRLF warning 无害)。
+2. **FinBERT2 model**: stage 23 需私有微调模型; `FINBERT2_MODEL_DIR` 未设/无效时优雅跳过该模型 (其余 BERT 照跑)。
 
 ## Phase History
 
-The project underwent 9 restructuring phases (v1.x → v2.1.0): package skeleton + DAG single-source (0-1) → split monoliths + OUTPUT_REGISTRY + acceptance gate (2) → multi-paper productization + 7-domain config split (3-7) → data layout normalization `data_processed/` → `data/processed/` (8) → cleanup (9). 后续版本演进见 git history; 当前 HEAD baseline 见顶部 "Current version" 段。
+项目历经 9 次重构 (v1.x → v2.1.0): package skeleton + DAG 单源 → 拆分巨石 + OUTPUT_REGISTRY + acceptance gate → 多论文产品化 + 7-domain config 拆分 → 数据布局规范化 → 清理。后续版本演进 (v3.x) 见 git history; 当前 HEAD baseline 见顶部 "Current version" + "当前状态铁律"。
