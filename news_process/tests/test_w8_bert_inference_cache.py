@@ -74,22 +74,37 @@ def test_resolve_cache_db_path():
         resolve_cache_db_path("/d", "nope")
 
 
-# ── default-off 字节中性 (golden-safe 的承重) ──
+# ── disabled 字节中性 (golden-safe 的承重) ──
+# 注: 2026-06-29 按用户指令把 config 默认翻转为 inference_cache=on (见 config/sentiment.yaml
+#   + 执行计划 §5)。off/disabled 路径的字节中性承重不变, 故本测试改为**显式禁用**缓存来验
+#   delegation (不再依赖 config 默认); config 默认值由 test_config_default_is_on 单独守护。
 
-def test_default_off_delegates_to_uncached():
+def test_disabled_delegates_to_uncached():
     Mod = _berts()
     eng = Mod.MultiModelSentimentEngine(
         [{"short_name": "m1", "model_id": "/x/m1", "max_length": 512,
           "label_map": {0: "负面", 1: "正面"}, "description": "m1"}])
-    # 无 config inference_cache → 默认关
-    assert eng._cache_enabled is False
-    assert eng._cache is None
+    # 显式禁用 (不依赖 config 默认), 验 disabled 路径字节级转发 _run_all_models_uncached
+    eng._cache_enabled = False
+    eng._cache = None
     calls = []
     sentinel = {"m1": [_result()]}
     eng._run_all_models_uncached = lambda texts: (calls.append(list(texts)) or sentinel)
     out = eng.run_all_models(["a", "b"])
-    assert out is sentinel, "off 路径必须原样转发 _run_all_models_uncached 的返回"
-    assert calls == [["a", "b"]], "off 路径每次都直调 uncached, 无缓存介入"
+    assert out is sentinel, "disabled 路径必须原样转发 _run_all_models_uncached 的返回"
+    assert calls == [["a", "b"]], "disabled 路径每次都直调 uncached, 无缓存介入"
+
+
+def test_config_default_is_on():
+    """config-默认护栏: 2026-06-29 按用户指令翻转 W8 原 default-off → 默认 inference_cache=on。
+
+    保留作 tripwire 防默认再次静默漂移; 启用后跑 stage 23 须受控播种 + 受控 golden 重生
+    (执行计划 §5)。若有意改回 default-off, 须同步翻本断言并恢复 default-off delegation 测试。
+    """
+    Mod = _berts()
+    assert Mod._BERT_INFERENCE_CACHE is True, (
+        "config/sentiment.yaml::tone_berts.inference_cache 应为 true (2026-06-29 翻转); "
+        "若有意改回 off, 同步翻本断言")
 
 
 # ── 启用路径: 命中免重算 ──

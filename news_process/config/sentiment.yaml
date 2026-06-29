@@ -300,7 +300,10 @@ sentiment_analysis:
     #   ⚠ 启用后须受控 golden 重生 (始终在空缓存冷全量上重生; 详见 scripts/audit/UNIFIED_MODEL_CACHE_BERT_W8_EXECUTION_PLAN_2026-06-29.md §5)。
     # 白话: 这是 BERT 版的"账本缓存", 和大模型/嵌入用同一套缓存类; 平时关着不影响任何结果,
     #   只有专门重跑全量时才开, 让算过的文章不必再过一遍神经网络。
-    inference_cache: false
+    # ⚠ 2026-06-29 用户指令开启 (true)。生效前提: deterministic_mode 须 ∈ {cpu_strict, gpu_strict}
+    #   (当前 = cpu_strict, 满足); 启用后跑 stage 23 须受控环境播种 (见上方注释 + 执行计划 §5),
+    #   否则裸环境冻结漂移 argmax 进 _local_model_cache.db 会污染未来 golden。
+    inference_cache: true
 
     # BERT 模型列表（从代码迁移至此，便于统一管理）
     models:

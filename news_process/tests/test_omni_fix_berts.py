@@ -236,6 +236,9 @@ class TestGroupingByFingerprint:
         engine = berts.MultiModelSentimentEngine(
             [_mc('fake_a', 'org/fake-a'), _mc('fake_b', 'org/fake-b')]
         )
+        # 本测试验未缓存前向的逐 token-id 路由 (跨词表回归锁); 显式禁用 W8 推理缓存
+        # (config 默认 2026-06-29 已翻转为 on) 以确定性走 _run_all_models_uncached。
+        engine._cache_enabled = False
         engine.load_all()
         results = engine.run_all_models(['银行不错'])
 
