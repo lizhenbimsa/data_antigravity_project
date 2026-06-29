@@ -98,6 +98,16 @@ _IV_DID_REFERENCES = (
     "https://doi.org/10.1080/07350015.2025.2546454",
 )
 
+# [事件研究] 异质性稳健交互加权估计量 (Sun-Abraham): 处理时点异质时, 朴素 TWFE 的
+# 事件研究系数被"坏对照"(已处理单位充当对照) 污染; SA 用 cohort×relative-period 交互
+# 加权恢复无污染的逐期 ATT。本模块手工 lead/lag 哑变量 (k=-3..+3 + 端点 binning) + csdid
+# 推荐实现的正是该方法, 故与 CS 2021 配对作交错 DiD 事件研究的并列基准 (仅日志, 不计算)。
+_SUN_ABRAHAM_REF = (
+    "Sun, L., & Abraham, S. (2021). Estimating dynamic treatment effects in event "
+    "studies with heterogeneous treatment effects. Journal of Econometrics, 225(2), "
+    "175-199. https://doi.org/10.1016/j.jeconom.2020.09.006"
+)
+
 
 def _log_iv_did_method_refs(lg=None) -> None:
     """把本模块核心方法 (Bartik shift-share IV / 交错 DiD) 的学术出处 emit 进日志。
@@ -166,6 +176,25 @@ def load_bank_group_maps() -> tuple:
     for bank_name, info in addresses.items():
         type_map[bank_name] = NFRA_TO_SHORT.get(info.get('nfra_type', ''), 'other')
         scale_map[bank_name] = SCALE_TO_SHORT.get(info.get('enterprise_scale', ''), 'other')
+
+    # ── I/O 溯源 (Round 8, log-only, golden-safe): bank_addresses.json 驱动全部
+    #    Bartik type/scale 分组, 进而决定被"冻结"的基期 share (GPSS 2020 share 外生性
+    #    识别路径的实证根)。记下读了哪个文件、共多少家银行地址、其中多少家落到真实
+    #    NFRA 类型/规模组 (而非 'other' 兜底)。白话: 每个工具背后到底有多少家银行撑着。
+    #    locals (addresses/type_map/scale_map) 已算好, 此处仅喂日志后丢弃, 不参与返回。
+    try:
+        _n_addr = len(addresses)
+        _n_type_real = sum(1 for v in type_map.values() if v != 'other')
+        _n_scale_real = sum(1 for v in scale_map.values() if v != 'other')
+        _type_pct = pct4(_n_type_real / _n_addr) if _n_addr else 'n/a'
+        _scale_pct = pct4(_n_scale_real / _n_addr) if _n_addr else 'n/a'
+        logger.info(
+            f"  [I/O] bank_addresses.json: {os.path.abspath(addr_path)} — "
+            f"载入 {_n_addr:,d} 家银行地址; 映射到真实 NFRA 类型组 {_n_type_real:,d} 家 "
+            f"({_type_pct}), 真实规模组 {_n_scale_real:,d} 家 ({_scale_pct}); "
+            "余者落 'other' (不进 Bartik 分组工具的份额支撑集)")
+    except Exception as e:  # noqa: BLE001 — I/O 溯源日志绝不得让阶段崩溃
+        logger.warning(f"  bank_addresses.json I/O 溯源日志跳过 (非致命): {e}")
 
     return type_map, scale_map
 
@@ -255,6 +284,20 @@ def compute_bartik_iv(panel: pd.DataFrame,
         for track in ['_full', '_ctx', '_ss']:
             panel[f'bartik_{group_prefix}_iv{track}'] = np.nan
         return panel
+
+    # ── I/O 溯源 (Round 8, log-only, golden-safe): 冻结基期 share 完全由这 len(base)
+    #    篇基期文章决定 (GPSS 2020 "基期 share 外生性"识别路径的实证根)。记下基期文章数
+    #    与 df_exploded 全量, 让 .log 自证"工具的份额测自多少篇基期报道"。len(base)/
+    #    len(df_exploded) 均为已算好的 local, 仅喂日志后丢弃, 不参与 share/IV 计算。
+    try:
+        _m_total = len(df_exploded)
+        _base_pct = pct4(len(base) / _m_total) if _m_total else 'n/a'
+        logger.info(
+            f"  [I/O] Bartik [{group_prefix}] 基期 T0={resolved_base_years} "
+            f"文章数 N={len(base):,d} (用于冻结 share); df_exploded 全量 "
+            f"M={_m_total:,d} 篇 (基期占比 {_base_pct})")
+    except Exception as e:  # noqa: BLE001 — I/O 溯源日志绝不得让阶段崩溃
+        logger.warning(f"  [{group_prefix}] 基期文章数 I/O 日志跳过 (非致命): {e}")
 
     # perf(accel-ivdid-01): explode + map + groupby 替代 apply(get_co_groups) + 逐 bank
     # O(|base|) 布尔重扫 (base[base['target_bank']==bank]) + 嵌套 python 计数。跨组共现
@@ -525,6 +568,18 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
 
     # Step 1: 基期份额 (直接从文章的分类列计算)
     base = df_exploded[df_exploded['year'].isin(resolved_base_years)].copy()
+    # ── I/O 溯源 (Round 8, log-only, golden-safe): 文章属性维度 Bartik 的冻结基期 share
+    #    由这 len(base) 篇基期文章按 category_col 分类得到 (与 compute_bartik_iv 同口径的
+    #    GPSS 基期份额外生性根)。记下基期文章数 + df_exploded 全量, 仅喂日志后丢弃。
+    try:
+        _m_total = len(df_exploded)
+        _base_pct = pct4(len(base) / _m_total) if _m_total else 'n/a'
+        logger.info(
+            f"  [I/O] Bartik [{group_prefix}] (属性={category_col}) 基期 "
+            f"T0={resolved_base_years} 文章数 N={len(base):,d} (用于冻结 share); "
+            f"df_exploded 全量 M={_m_total:,d} 篇 (基期占比 {_base_pct})")
+    except Exception as e:  # noqa: BLE001 — I/O 溯源日志绝不得让阶段崩溃
+        logger.warning(f"  [{group_prefix}] 基期文章数 I/O 日志跳过 (非致命): {e}")
     base['_cat_short'] = base[category_col].map(category_map)
 
     shares = (base.groupby(['target_bank', '_cat_short']).size()
@@ -849,6 +904,17 @@ def merge_policy_shocks(panel: pd.DataFrame) -> pd.DataFrame:
     with open(shock_path, 'r', encoding='utf-8') as f:
         shocks = json.load(f)
 
+    # ── I/O 溯源 (Round 8, log-only, golden-safe): policy_shocks.json 是驱动全部 DiD
+    #    处理分配 (treated/post/treat_year) 的唯一输入。记下解析到的文件路径与政策条目数
+    #    (排除以 '_' 开头的注释/元数据键)。shocks dict 已在手, 仅喂日志后丢弃, 不改流程。
+    try:
+        _policy_keys = [k for k in shocks if not str(k).startswith('_')]
+        logger.info(
+            f"  [I/O] policy_shocks.json: {os.path.abspath(shock_path)} — "
+            f"解析到 {len(_policy_keys):,d} 项政策冲击 {_policy_keys} (驱动 DiD 处理分配)")
+    except Exception as e:  # noqa: BLE001 — I/O 溯源日志绝不得让阶段崩溃
+        logger.warning(f"  policy_shocks.json I/O 溯源日志跳过 (非致命): {e}")
+
     # ── 子步骤 banner: 交错 DiD 政策冲击合并 (DCEP / 监管沙盒) ──
     try:
         logger.info("=" * 60)
@@ -1017,6 +1083,11 @@ def merge_policy_shocks(panel: pd.DataFrame) -> pd.DataFrame:
                         f"组过小时勿用默认 baseline")
             logger.info(f"    * estat event  // 绘制 Event Study Plot")
             logger.info(f"    * estat pretrend  // 平行趋势检验")
+            # 📖 异质性稳健事件研究法 (Round 8 runtime emission): 上面手工 lead/lag 哑变量
+            #    (k=-3..+3 + 端点 binning) + csdid 推荐, 实现的正是 Sun-Abraham 交互加权
+            #    估计量 — 处理时点异质时修正 TWFE 的"坏对照"污染, 与已 emit 的 CS 2021 配对
+            #    构成交错 DiD 事件研究的并列基准。把这条方法学锚点写进 .log 而非仅留注释。
+            logger.info(f"    📖 事件研究 (异质性稳健, 与 CS 2021 配对): {_SUN_ABRAHAM_REF}")
 
     # ── G-05: 多政策处理组正交性诊断 ──
     # 学术依据: Callaway & Sant'Anna (2021, JoE, §6.1):

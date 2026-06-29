@@ -112,6 +112,14 @@ _PANEL_METHOD_REFS = [
     ("单词典 pos/neg_ratio 词级聚合",
      "姜富伟, 李梦如, & 孟令超. (2024). 调预期、防风险：央行金融稳定沟通效果研究——基于文本分析的视角. "
      "经济学（季刊）, 24(6), 2025–2040. https://doi.org/10.13821/j.cnki.ceq.2024.06.19"),
+    # IDF 词级加权词典语调: {d}_idf_tone{track} 及其 VW/MW/HW 变体 (build_aggregation_dict
+    # C2/F2 + Section M)。与上面"等权 pos/neg_ratio"互为稳健性, 用 tf-idf 词权压低高频词噪声。
+    # 白话: 把词典命中按"该词有多稀有(信息量)"加权, 而非简单计数。'Text as data' 是
+    # text-as-data 中 tf-idf 词加权的经典综述, 正是 {d}_idf_tone 家族的方法学锚点
+    # (此前仅在 4 处代码注释存在, 从未运行期 emit → 与其等权姊妹的不对称缺口)。
+    ("IDF 词级加权词典语调 (tf-idf term weighting)",
+     "Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of "
+     "Economic Literature, 57(3), 535–574. https://doi.org/10.1257/jel.20181020"),
     ("相对披露密度 (ft_word_ratio)",
      "Abraham, J., Olbert, M., & Vasvari, F. P. (2024). ESG disclosures in the private "
      "equity industry. Journal of Accounting Research, 62(5), 1611–1660. "
@@ -1546,6 +1554,23 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         # 文献: Adner & Kapoor (2010 SMJ); Gomber et al. (2018 JMIS)
         if 'llm_vote_tone_tech_full' in panel.columns and 'llm_vote_tone_app_full' in panel.columns:
             panel['tone_gap_tech_app'] = _compute_tone_gap_tech_app(panel)
+            # 结果统计 (纯日志, golden-safe; 镜像 tone_gap_sub_symb 块): 底层技术−应用场景
+            # 语调差距 = P4 'locus' headline DV 的 bank-year 测度 (正值=底层技术报道更乐观)。
+            # 仅读已算列, 临时 locals 喂 logger 后丢弃, 不参与任何下游计算。
+            try:
+                _tech_app_valid = panel['tone_gap_tech_app'].notna()
+                _n_ta = int(_tech_app_valid.sum())
+                if _n_ta > 0:
+                    _ta_v = panel.loc[_tech_app_valid, 'tone_gap_tech_app']
+                    logger.info(
+                        f"  📈 tone_gap_tech_app (底层技术−应用场景, P4 locus): n_qual={_n_ta:,} "
+                        f"(min-n≥5 cell, 占 bank-year {pct4(_n_ta / len(panel) if len(panel) else 0.0)}), "
+                        f"mean={sig4(_ta_v.mean())}, std={sig4(_ta_v.std())}, "
+                        f"median={sig4(_ta_v.median())}")
+                else:
+                    logger.info("  📈 tone_gap_tech_app: 无满足 min-n≥5 的合格 cell (T=2 小样常态)")
+            except Exception as _e:  # noqa: BLE001
+                logger.warning(f"  tone_gap_tech_app 分布统计跳过 (不影响聚合): {_e}")
 
         # ── v3.2.0 M2 P2 (plan v14 §2.2): _lc × _ctx 对角线追加 ──
         # Hassan 2019 QJE entity-proximity locus classification + ctx 轨情感
@@ -1843,6 +1868,23 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             panel['tone_gap_indep_collab'] = (
                 panel['llm_vote_tone_indep_full'] - panel['llm_vote_tone_collab_full']
             ).where(_indep_collab_qual, np.nan)
+            # 结果统计 (纯日志, golden-safe; 镜像 tone_gap_sub_symb 块): 自主研发−外部协同
+            # 语调差距 = P5 'collab' headline DV 的 bank-year 测度 (正值=自主研发报道更乐观)。
+            # 仅读已算列, 临时 locals 喂 logger 后丢弃, 不参与任何下游计算。
+            try:
+                _ic_valid = panel['tone_gap_indep_collab'].notna()
+                _n_ic = int(_ic_valid.sum())
+                if _n_ic > 0:
+                    _ic_v = panel.loc[_ic_valid, 'tone_gap_indep_collab']
+                    logger.info(
+                        f"  📈 tone_gap_indep_collab (自主研发−外部协同, P5 collab): n_qual={_n_ic:,} "
+                        f"(min-n≥5 cell, 占 bank-year {pct4(_n_ic / len(panel) if len(panel) else 0.0)}), "
+                        f"mean={sig4(_ic_v.mean())}, std={sig4(_ic_v.std())}, "
+                        f"median={sig4(_ic_v.median())}")
+                else:
+                    logger.info("  📈 tone_gap_indep_collab: 无满足 min-n≥5 的合格 cell (T=2 小样常态)")
+            except Exception as _e:  # noqa: BLE001
+                logger.warning(f"  tone_gap_indep_collab 分布统计跳过 (不影响聚合): {_e}")
 
         # innovation_collab_mode 恒等式校验（二分类）— F-CR-cell-NA (R6 fix):
         # 旧严格 `n_articles == n_articles_indep + n_articles_collab` 在 LLM 对 collab_mode
@@ -2161,7 +2203,9 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             axis=1,
         ).copy()
 
-    logger.info(f"  聚合后面板行数: {panel.shape[0]:,}")
+    # io-provenance: 输出端补 produced 列数, 与入口 "N 行 × M 列" 对称记录聚合产物宽度
+    # (面板宽度高度依赖 full/ctx/ss × LLM/词典/BERT 家族的 schema, 故对 referee 有信息量)。
+    logger.info(f"  聚合后面板: {panel.shape[0]:,d} bank-year 行 × {panel.shape[1]:,d} 列")
     logger.info(f"  唯一银行数: {panel['target_bank'].nunique()}")
     logger.info(f"  年份范围: {panel['year'].min()} - {panel['year'].max()}")
 

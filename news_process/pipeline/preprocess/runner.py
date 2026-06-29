@@ -431,6 +431,36 @@ def load_and_process_data(raw_data_dir: str, output_path: str) -> int:
     else:
         logger.info(f"源文件对账: 发现={recon['n_found']} 源, 全部贡献 (>0 行)。")
 
+    # ── 逐源贡献行数分布摘要 (golden-safe: 仅读已构建的 source_rows, 派生统计只喂日志后丢弃) ──
+    # 上方对账仅报"发现/贡献/零贡献"三个聚合标量, 看不出语料的来源集中度。此处对**正贡献源**
+    # 的逐源行数做分布摘要 (均值/中位数/p25/p75/min/max + 最大单源占比), 揭示样本框是
+    # "单一源主导"还是"大量源各贡献极少" — 直接回应 data appendix / 样本框 referee 问题。
+    # 纯诊断: 复用既有 source_rows 局部, 算完即弃, 不回写任何产物、不改任何返回值。
+    try:
+        import statistics as _stats
+        _pos = sorted(v for v in source_rows.values() if v > 0)
+        if _pos:
+            _n_pos = len(_pos)
+            _mean = sum(_pos) / _n_pos
+            _median = _stats.median(_pos)
+            if _n_pos >= 2:
+                _q = _stats.quantiles(_pos, n=4, method='inclusive')
+                _p25, _p75 = _q[0], _q[2]
+            else:
+                _p25 = _p75 = float(_pos[0])
+            _max_share = (max(_pos) / total_rows) if total_rows else float('nan')
+            logger.info(f"  · 逐源贡献行数分布 (正贡献源 n={_n_pos:,d}):")
+            logger.info(
+                f"      均值 = {sig4(_mean)} 行/源, 中位数 = {sig4(_median)} 行/源, "
+                f"p25 = {sig4(_p25)} 行/源, p75 = {sig4(_p75)} 行/源"
+            )
+            logger.info(
+                f"      最小 = {min(_pos):,d} 行/源, 最大 = {max(_pos):,d} 行/源 "
+                f"(最大单源占总行 = {pct4(_max_share)}); 该分布揭示来源集中度/样本框透明度。"
+            )
+    except Exception as _e:  # noqa: BLE001 — 逐源分布仅诊断, 绝不阻断预处理
+        logger.warning(f"[逐源分布] 统计诊断异常, 跳过 (不影响产物): {_e}")
+
     log_memory_usage(logger, "并行处理完成后")
     return total_rows
 
@@ -546,6 +576,32 @@ def main() -> None:
         logger.info(
             "    (白话: 用 MinHash 签名近似估计两稿的 Jaccard 相似度, 把'同一新闻被多家"
             "媒体转载'的重复稿删到只剩最早一份, 避免媒体关注度被转载灌水虚高。)"
+        )
+        # 当代 (2024–2026) 同基元同领域锚点: 在新闻语料上基准测试 SimHash + MinHash-LSH,
+        # 论证阈值/参数 (本阶段 Jaccard=0.8、128 置换) 的取值依据 — 同基元 (MinHash-LSH)
+        # + 同领域 (新闻去重), 直接为上方 Broder 1997 起源工作补一条当代经核验证据。
+        logger.info(
+            "  · 近似去重当代基准 (新闻域, MinHash-LSH 阈值/参数): Kumar, A., Tumre, S., "
+            "& Patil, S. (2025). Benchmarking near-duplicate detection in the era of "
+            "pay-walled news. In Companion Proceedings of the ACM on Web Conference 2025 "
+            "(WWW '25 Companion) (pp. 745-748). Association for Computing Machinery. "
+            "https://doi.org/10.1145/3701716.3715303"
+        )
+        logger.info(
+            "    (白话: 在真实新闻语料上实测 MinHash-LSH 的近重复识别效果, 为'相似度门槛设"
+            "多高、用多少个置换'这类参数选择提供基准, 印证本阶段 Jaccard 0.8 / 128 置换的取值。)"
+        )
+        # 第 6 步银行关键词保留过滤的核心算法出处 (上方【方法】banner 已点名 Aho-Corasick):
+        # 多模式串匹配自动机, 一次线性扫描即可同时匹配上千个银行关键词。
+        logger.info(
+            "  · 银行关键词保留 (多模式串匹配, O(n) 一次扫描): Aho, A. V., & Corasick, "
+            "M. J. (1975). Efficient string matching: An aid to bibliographic search. "
+            "Communications of the ACM, 18(6), 333-340. "
+            "https://doi.org/10.1145/360825.360855"
+        )
+        logger.info(
+            "    (白话: 把上千个银行关键词预编译成一台多模式区配自动机, 对每篇正文只需"
+            "O(n) 一次线性扫描即可命中全部关键词, 替代逐词重复扫描, 是第 6 步保留过滤的引擎。)"
         )
     except Exception as _e:  # noqa: BLE001 — 环境/配置/方法日志块, 绝不阻断预处理
         logger.warning(f"[环境/配置/方法] 日志 banner 异常, 跳过(不影响处理): {_e}")

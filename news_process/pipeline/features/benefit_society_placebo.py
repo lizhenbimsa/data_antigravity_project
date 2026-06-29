@@ -38,6 +38,22 @@ from news_process.core.logging import pct4, sig4
 
 logger = logging.getLogger(__name__)
 
+# ── 经核验参考文献 (VERIFIED_REFERENCES 注册表, 逐字照抄 APA-7 + DOI; 仅日志用) ──
+# emit 进运行期日志的方法学锚点。关键: 生产路径 compute_placebo_projection 由
+# benefit_society_audit_combined.py 三轨各调一次 (full/ctx/ss), 绕过 main() /
+# _log_environment_and_config (那里才有引文) → 编排 .log 此前 0 条方法学依据。
+# 把 placebo industries 设计本体的引文搬到模块级, 让编排路径入口 banner 也自证依据。
+_REFERENCES = {
+    # 白话: placebo industries (安慰剂行业) 设计 —— 把"金科利好经营"方向向量施加到与
+    # 金科无关的业务线新闻 (住房贷款/信用卡/中间业务/网点渠道) 上; 若无关新闻也量出强
+    # 信号, 说明尺子量的是普遍语气而非金科 (本模块的 S1 反向对照实验直接操作化此法)。
+    "jlm_placebo_industries": (
+        "Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit "
+        "society? A language embedding approach. The Review of Financial "
+        "Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012"
+    ),
+}
+
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
@@ -204,6 +220,34 @@ def compute_placebo_projection(
     norms = np.where(norms == 0, 1.0, norms)
     all_scores = (text_embeddings / norms) @ direction_unit  # shape (n,)
 
+    # ── 入口 banner (日志富集 Round 8, 2026-06-29; guarded 纯日志, golden-safe) ──
+    # 生产/编排路径 (本函数由 benefit_society_audit_combined.py 三轨各调一次) 绕过
+    # main()/_log_environment_and_config → 此前 .log 仅有 0-match warning, 无任何
+    # I/O provenance / 运行期参数 / 方法学引文。补一条入口块自证: 输入规模、嵌入维度、
+    # 方向向量 L2 范数 (= 上面单位化分母)、placebo 规格数、活动轨与聚合键 (唯一可调旋钮)。
+    try:
+        _emb_dim = int(text_embeddings.shape[1]) if text_embeddings.ndim == 2 else -1
+        _dir_norm = float(np.linalg.norm(direction))  # 已在 direction_unit 单位化处算过
+        _track = col_suffix or "(canonical/full)"
+        logger.info("  🧭 placebo 投影入口 (业务线安慰剂, S1 稳健性; 生产/编排路径)")
+        logger.info(
+            f"     · 输入: 文章 n={len(text_embeddings):,d} 篇 | 嵌入维 d={_emb_dim:,d} | "
+            f"方向向量 L2 范数={sig4(_dir_norm)} (>0 即可单位化, 余弦投影成立)"
+        )
+        logger.info(
+            f"     · placebo 规格数={len(keyword_sets):,d}/5 (4 业务线 + 1 中性基线) | "
+            f"活动轨 col_suffix='{col_suffix}' → {_track} | "
+            f"聚合键 bank_col='{bank_col}' year_col='{year_col}'"
+        )
+        logger.info(f"  📖 {_REFERENCES['jlm_placebo_industries']}")
+        logger.info(
+            "     → placebo industries: 同一金科方向向量施于非金科业务线新闻; 无关新闻"
+            f"不应预测 ROA (AC-S1: ≥4/5 规格 |β_placebo/β_fintech| < {sig4(0.3)} → 主"
+            "测度非『报道总体语气』驱动, 构念效度成立)"
+        )
+    except Exception as _e:  # noqa: BLE001 — 日志块绝不让计算崩 (golden-safe)
+        logger.warning(f"  (placebo 入口 banner 日志失败, 忽略不影响计算): {_e}")
+
     panel_pieces: list[pd.DataFrame] = []
     match_counts: dict[str, int] = {}
     base = df_articles[[bank_col, year_col]].reset_index(drop=True).copy()
@@ -232,6 +276,46 @@ def compute_placebo_projection(
                 "_score": f"benefit_placebo_{placebo_id}_mean{col_suffix}",
             })
         )
+
+        # ── 逐 placebo 结果分布 (日志富集 Round 8, 2026-06-29; guarded 纯日志, 弃用) ──
+        # 这是 S1 核心安慰剂测度。审稿人核 AC-S1 (|β_placebo/β_fintech| < 0.3) 时, 期望
+        # 日志逐条给出: 命中保留率 + 文章级余弦投影分布 + bank-year 聚合分布 (从已算好
+        # 的 sub/agg 局部量直接读, 只喂 logger 不回流)。镜像 geography.py L358-372 的
+        # sig4 fintech_exposure 分布日志。同时把 _log_environment_and_config(L319-322)
+        # 仅"描述"、却从不在测量处实检的 R1.A 风险阈值 (单业务线命中 < 500 篇 → warning)
+        # 在此对真实 n_matched 落地检查 (描述 → 实测)。
+        try:
+            _n_art = len(df_articles)
+            _retain = (n_matched / _n_art) if _n_art else float("nan")
+            logger.info(
+                f"  📊 placebo '{placebo_id}'{col_suffix}: 命中 n={n_matched:,d} 篇 | "
+                f"关键词保留率={pct4(_retain)} (占文章宇宙 {_n_art:,d} 篇)"
+            )
+            if n_matched > 0:
+                _sc = sub["_score"]
+                _col = f"benefit_placebo_{placebo_id}_mean{col_suffix}"
+                _ag = agg[_col]
+                logger.info(
+                    f"     · 文章级余弦投影 (matched): mean={sig4(_sc.mean())} "
+                    f"median={sig4(_sc.median())} std={sig4(_sc.std())} "
+                    f"[min={sig4(_sc.min())}, max={sig4(_sc.max())}]"
+                )
+                logger.info(
+                    f"     · bank-year 聚合 ({len(_ag):,d} 行): "
+                    f"mean={sig4(_ag.mean())} std={sig4(_ag.std())}"
+                )
+            # R1.A 风险监控 (计划 §5): 单业务线命中 < 500 篇记 warning (此前仅描述未实检)
+            if 0 < n_matched < 500:
+                logger.warning(
+                    f"     · ⚠ R1.A 风险监控: placebo '{placebo_id}'{col_suffix} 命中 "
+                    f"{n_matched:,d} < 500 篇 → 投影统计功效弱 "
+                    "(≥2 条不达标须回退 ≤3 业务线 + 中性基线)"
+                )
+        except Exception as _e:  # noqa: BLE001 — 日志块绝不让计算崩 (golden-safe)
+            logger.warning(
+                f"  (placebo '{placebo_id}' 结果分布日志失败, 忽略不影响计算): {_e}"
+            )
+
         panel_pieces.append(agg)
 
     if not panel_pieces:

@@ -112,6 +112,27 @@ CONFIG = load_config()
 STAGE_NAME = "60_bank_fintech_threshold"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
+# ── 经核验参考文献 (逐字照抄 APA-7 + DOI; 仅运行期日志用, DOI 见 pool.json) ──
+# 把模块 docstring 已声明的方法学锚点 emit 进 .log, 让阈值敏感性扫描自证依据,
+# 而非仅停留在源码注释 (镜像 pipeline/panel/geography.py 的 📖 运行期引文范式)。
+_REFERENCES = {
+    # 白话: "文本分类里所有人为选定的门槛 (如出现几次算数) 都必须做稳健性并报告" —
+    # 这正是本阶段把 min_name_occurrences / min_distinct_keywords 从 1 扫到 10 的依据。
+    "gentzkow_text_as_data": (
+        "Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. "
+        "Journal of Economic Literature, 57(3), 535-574. "
+        "https://doi.org/10.1257/jel.20181020"
+    ),
+    # 白话: 用"词典关键词计数过门槛"来判定文本类别的经典范式 (10-K 文本分析) —
+    # 金融科技轨用 1506 词金科词典数 distinct 命中过阈, 与此同源。
+    "loughran_mcdonald_dict": (
+        "Loughran, T., & McDonald, B. (2011). When is a liability not a "
+        "liability? Textual analysis, dictionaries, and 10-Ks. The Journal "
+        "of Finance, 66(1), 35-65. "
+        "https://doi.org/10.1111/j.1540-6261.2010.01625.x"
+    ),
+}
+
 
 # ============================================================================
 # 2. 银行名称匹配核心逻辑（委托至 utils.aho_corasick 共享模块）
@@ -563,6 +584,20 @@ def main():
     total_rows = len(df)
     logger.info(f"总样本量: {total_rows:,}")
 
+    # [io_provenance] 输入 parquet 的 schema 出处: 列数 + 两个被消费文本字段
+    # (内容/标题) 的非空占比, 确认 stage-00 预处理输出的文本字段在模拟分类前已填充。
+    # 纯日志诊断 (try/except 内, 结果只喂 logger 不参与任何下游计算)。
+    try:
+        _ncols = df.shape[1]
+        _content_nonnull = df['内容'].notna().mean() if '内容' in df.columns else float('nan')
+        _title_nonnull = df['标题'].notna().mean() if '标题' in df.columns else float('nan')
+        logger.info(
+            f"  [输入溯源] 列数={_ncols:,}; 文本字段非空占比: "
+            f"内容={pct4(_content_nonnull)}, 标题={pct4(_title_nonnull)}"
+        )
+    except Exception as _e:  # noqa: BLE001 — 诊断兜底, 不可影响主流程
+        logger.debug(f"输入 schema 溯源诊断跳过: {_e}")
+
     # 抽样加速（保留全量结果比例计算的参考点）
     sample_n = min(sample_max, max(1000, int(total_rows * sample_frac)))
     if sample_n < total_rows:
@@ -588,6 +623,17 @@ def main():
     min_lower = bank_params.get('min_occurrences_lower', 1)
     current_threshold = bank_params.get('min_name_occurrences', 2)
 
+    # [runtime_params] 回显驱动 cond_a/cond_b 的上/下半区分布门控参数, 让审稿人能精确
+    # 复现阈值网格背后的分布条件 (split_ratio = 上/下半区切分比例; min_upper/min_lower =
+    # 各半区最低命中次数)。仅 headline min_name_occurrences 入日志会丢失这三个支撑参数。
+    logger.info(
+        f"  分布条件参数: split_ratio={sig4(split_ratio)} (上/下半区切分比例), "
+        f"min_occurrences_upper={min_upper:,}, min_occurrences_lower={min_lower:,}, "
+        f"当前 min_name_occurrences={current_threshold:,}"
+    )
+    # 白话: 阈值这种"人为选定的门槛"必须做敏感性并报告, 否则审稿人会质疑是凑结果。
+    logger.info(f"  📖 文本分类阈值稳健性: {_REFERENCES['gentzkow_text_as_data']}")
+
     banks_list, bank_ac, _ = load_bank_names(bank_names_file)
     logger.info(f"已加载 {len(banks_list)} 家银行名称信息")
 
@@ -608,6 +654,25 @@ def main():
         context_window=context_window,
     )
     logger.info(f"银行匹配预计算完成，耗时 {sig4(time.time() - t_precompute)}s")
+
+    # [result_distribution] 阈值网格只报"过门槛后"计数, 这里刻画"过门槛前"的原始信号密度:
+    # 每篇文章命中最强的那家银行的 total(含标题) 命中次数分布。它解释了为何 1~10 的网格
+    # 是有信息量的 (信号集中在低位 → 阈值在 2 附近能有效区分)。纯诊断, 复用已算 locals。
+    try:
+        _bm = np.array(
+            [max((_c['total'] for _c in _m['bank_counts'].values()), default=0)
+             for _m in bank_article_matches],
+            dtype=float,
+        )
+        if _bm.size:
+            logger.info(
+                f"  [信号密度·银行] 每文最大银行 total(含标题) 命中分布 (n={_bm.size:,}): "
+                f"均值={sig4(_bm.mean())}, 中位数={sig4(np.median(_bm))}, "
+                f"Q25={sig4(np.percentile(_bm, 25))}, Q75={sig4(np.percentile(_bm, 75))}, "
+                f"最大={int(_bm.max()):,}; 无银行命中占比={pct4(float((_bm == 0).mean()))}"
+            )
+    except Exception as _e:  # noqa: BLE001 — 诊断兜底, 不可影响主流程
+        logger.debug(f"银行信号密度分布诊断跳过: {_e}")
 
     bank_results = []
     for threshold in threshold_range:
@@ -649,6 +714,16 @@ def main():
     ft_min_lower = fintech_params.get('min_occurrences_lower', 1)
     ft_current_threshold = fintech_params.get('min_distinct_keywords', 2)
 
+    # [runtime_params] 回显驱动 cond_a/cond_b 的上/下半区分布门控参数 (与银行轨对称),
+    # 让审稿人能精确复现 min_distinct_keywords 网格背后的分布条件。
+    logger.info(
+        f"  分布条件参数: split_ratio={sig4(ft_split_ratio)} (上/下半区切分比例), "
+        f"min_occurrences_upper={ft_min_upper:,}, min_occurrences_lower={ft_min_lower:,}, "
+        f"当前 min_distinct_keywords={ft_current_threshold:,}"
+    )
+    # 白话: 金科轨用"金融科技词典里命中几个不同关键词"过门槛来判类, 是词典计数分类范式。
+    logger.info(f"  📖 词典计数文本分类: {_REFERENCES['loughran_mcdonald_dict']}")
+
     keywords_list, fintech_ac = load_fintech_dict(fintech_dict_file)
     logger.info(f"已加载 {len(keywords_list)} 个金融科技关键词")
 
@@ -656,6 +731,21 @@ def main():
     logger.info("预计算文章关键词匹配数据...")
     fintech_matches = _precompute_fintech_matches(df_sample, fintech_ac, ft_split_ratio)
     logger.info(f"预计算完成，共 {len(fintech_matches)} 篇文章")
+
+    # [result_distribution] 阈值网格在 distinct_count 上切割; 这里刻画"过门槛前"的原始信号:
+    # 每文不同金科关键词命中数 (distinct_count) 分布 + 零命中文章占比, 给审稿人交代为何
+    # min_distinct_keywords 网格有区分力。纯诊断, 复用已算 fintech_matches。
+    try:
+        _dc = np.array([_m['distinct_count'] for _m in fintech_matches], dtype=float)
+        if _dc.size:
+            logger.info(
+                f"  [信号密度·金科] distinct_count 分布 (n={_dc.size:,}): "
+                f"均值={sig4(_dc.mean())}, 中位数={sig4(np.median(_dc))}, "
+                f"Q25={sig4(np.percentile(_dc, 25))}, Q75={sig4(np.percentile(_dc, 75))}, "
+                f"最大={int(_dc.max()):,}; 零命中占比={pct4(float((_dc == 0).mean()))}"
+            )
+    except Exception as _e:  # noqa: BLE001 — 诊断兜底, 不可影响主流程
+        logger.debug(f"金科信号密度分布诊断跳过: {_e}")
 
     fintech_results = []
     for threshold in threshold_range:

@@ -535,6 +535,28 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
     n_banks = len(bank_groups)
     logger.info(f"  共 {n_banks} 家银行待处理 (三轨)")
 
+    # 规模画像 (deepen_runtime, round8 2026-06-29): articles-per-bank 分布 (p50/p90/max) +
+    # 触发 >2000 篇分支 (7 天窗双指针分桶 O(N·window)) 而非 dense pairwise (O(N^2)) 的银行数,
+    # 让"本次实际走哪条计算路径主导"自文档化, 便于全量 run 审计计算复杂度 regime。盘面 T=2
+    # 小样下全部走 dense; 全量 17M/T=18 头部大行 (工农中建招) 才进分桶分支。⚠ 注: 真正的
+    # dense/bucketed 切换在 _compute_similar_counts_for_track 按**年度前缀** (prefix_end<=2000)
+    # 逐年判定, 故 bank 级篇数是其上界代理 (年度切分后实际更小)。纯只读 groupby 规模, 整块
+    # try/except, 绝不回写 df/产物 (golden-safe)。
+    try:
+        _grp_sizes = bank_groups.size()
+        if not _grp_sizes.empty:
+            _n_over = int((_grp_sizes > 2000).sum())
+            _n_calc = int((_grp_sizes >= 2).sum())  # <2 篇组直接 continue, 不算 herd
+            logger.info(
+                f"  规模画像: articles/bank 分布 p50={sig4(float(_grp_sizes.quantile(0.50)))} "
+                f"p90={sig4(float(_grp_sizes.quantile(0.90)))} max={int(_grp_sizes.max()):,d}; "
+                f"可算银行 (≥2 篇)={_n_calc:,d}/{n_banks:,d}; "
+                f"超 2000 篇 (→7天窗双指针分桶分支, bank 级上界代理) 银行={_n_over:,d} "
+                f"({'全部走 dense pairwise (O(N^2))' if _n_over == 0 else '部分进分桶分支 (O(N·window))'})"
+            )
+    except Exception as _e_sz:  # noqa: BLE001  纯日志, 绝不影响产物
+        logger.warning(f"  规模画像打印失败 (不影响产物): {_e_sz}")
+
     total_herd_full = 0
     total_herd_ctx = 0
     total_herd_ss = 0  # v3.9.0 第三轨 (银行+金科同句) 跟风篇数累计
@@ -659,6 +681,29 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
             _ss_real = ~df['ss_is_fallback'].fillna(False).astype(bool)
         else:
             _ss_real = pd.Series(True, index=df.index)
+        # ss 轨回退率画像 (deepen_runtime, round8 2026-06-29): content_ss 因"无银行∧金科
+        # 同句共现"而镜像回退到全文 body 的篇占比 (= frac_ss_fallback)。CLAUDE.md 把该回退率
+        # 的坍缩 (stage 13 radius / match_in_title 交互) 列为一阶可披露现象 — 它直接决定 ss 是否
+        # 真第三轨: 回退率越高, content_ss≡全文 → herd_weight_ss≡herd_weight_full 的行越多,
+        # 下方 full-ss/ctx-ss Spearman 的门控有效 n (= ss_real 篇数) 越小、第三轨独立性信号越弱。
+        # 该列虽已在上方为 _ss_real 门控读取, 其磁盘值却从未 emit; 此处直接 emit 以量化 ss 真三轨
+        # 程度。纯只读既有列, 仅喂日志、绝不回写 df/产物 (自带 try/except, golden-safe)。
+        try:
+            if 'ss_is_fallback' in df.columns:
+                _ss_fb_rate = float(df['ss_is_fallback'].fillna(False).astype(bool).mean())
+                logger.info(
+                    f"    ss 轨回退率: {pct4(_ss_fb_rate)} 的篇 content_ss 回退全文 body "
+                    f"(无银行∧金科同句共现); ss 真共现篇 n={int(_ss_real.sum()):,} "
+                    f"(= 下方 full-ss/ctx-ss Spearman 的门控有效集; 回退率越高 → ss 越退化为 "
+                    f"full 同值、第三轨独立性越弱)"
+                )
+            else:
+                logger.info(
+                    "    ss 轨回退率: (ss_is_fallback 列缺失 → 全部行按非回退宽松处理; "
+                    "无法量化 content_ss 回退占比, 建议先执行 stage 14 物化 ss_is_fallback)"
+                )
+        except Exception as _e_ssfb:  # noqa: BLE001  纯日志, 绝不影响产物
+            logger.warning(f"    ss 轨回退率画像打印失败 (不影响产物): {_e_ssfb}")
         # (轨对名, 列 a, 列 b, 该对是否门控 ss 非回退)
         _pairs = [
             ('full-ctx', 'herd_weight_full', 'herd_weight_ctx', False),

@@ -964,6 +964,15 @@ def _log_environment_config_methods(input_path: str = "") -> None:
                     "Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A "
                     "survey. Journal of Accounting Research, 54(4), 1187-1230. "
                     "https://doi.org/10.1111/1475-679X.12123")
+        # 白话: 把衰减形式预先钉死为 3 种 (uniform/inverse/exponential) 且不做超参搜索,
+        # 等于从这道稳健性检验里拿掉一个"调参自由度", 防止事后挑权重凑显著 (researcher
+        # degrees of freedom)。这正是本模块固定 3 种 decay 形式 (见 docstring 衰减函数节、
+        # 第 2 节注释) 的核心设计依据 — 也是本模块至今唯一未在运行期 emit 的方法学锚点。
+        logger.info("  · 固定 3 种衰减形式、不做超参搜索以消除研究者自由度 (预承诺权重形式, 避免事后挑权重凑显著): "
+                    "Simmons, J. P., Nelson, L. D., & Simonsohn, U. (2011). False-positive psychology: "
+                    "Undisclosed flexibility in data collection and analysis allows presenting anything as "
+                    "significant. Psychological Science, 22(11), 1359-1366. "
+                    "https://doi.org/10.1177/0956797611417632")
         logger.info("  · 否定词极性翻转: "
                     "Jia, L., Yu, C., & Meng, W. (2009). The effect of negation on sentiment analysis and "
                     "retrieval effectiveness. In Proceedings of the 18th ACM Conference on Information and "
@@ -1059,16 +1068,66 @@ def main():
     df = pd.read_parquet(input_path)
     logger.info(f"数据量: {len(df):,} 行")
 
+    # ── 📂 输入 schema 契约自述 (仅日志, golden-safe) ──
+    # 把输入 parquet 的形状与三个 load-bearing 列 (target_bank / 内容 / llm_verified_full)
+    # 的在位 / 缺位记进 .log, 让日志自带输入契约 (审稿可复核, 缺列即诊断信号)。
+    # 只读 df.shape / df.columns、喂 logger 后丢弃, 不改控制流 (IRON RULE 1)。
+    try:
+        _required = ['target_bank', '内容', 'llm_verified_full']
+        _present = [c for c in _required if c in df.columns]
+        _missing = [c for c in _required if c not in df.columns]
+        logger.info(
+            f"  · 输入形状: {df.shape[0]:,d} 行 × {df.shape[1]:,d} 列; "
+            f"load-bearing 列在位 {len(_present)}/{len(_required)} "
+            f"[present={_present}; missing={_missing or '无'}]"
+        )
+    except Exception as _e:
+        logger.warning(f"[IO] 输入 schema 自述日志块异常, 跳过: {_e}")
+
     # ── 步骤 4: 过滤 — 仅处理已验证的金融科技新闻 ──
+    _n_before_filter = len(df)  # log-only: 过滤前行数, 仅服务留存率诊断 (不参与控制流)
     if 'llm_verified_full' in df.columns:
         df = df[df['llm_verified_full'] == True].copy()
-        logger.info(f"LLM 验证后: {len(df):,} 行")
+        # 留存率 = 过滤后 / 过滤前 (现有日志原仅两个绝对计数, 此处补比率供审稿判读)
+        _ret = (len(df) / _n_before_filter) if _n_before_filter > 0 else 0.0
+        logger.info(f"LLM 验证后: {len(df):,} 行 "
+                    f"(llm_verified_full==True 留存率 {pct4(_ret)}, 过滤前 {_n_before_filter:,d} 行)")
     _phase_t['3_load_filter'] = time.time() - _t
 
     # ── 步骤 5: 运行分析 ──
     _t = time.time()
     score_df = run_analysis(df, dictionaries)
     _phase_t['5_run_analysis'] = time.time() - _t
+
+    # ── 步骤 5.5: 底层情感得分分布诊断 (仅日志, golden-safe) ──
+    # 现有报告 (步骤 6) 只记 uniform vs 衰减的 Pearson 相关, 从不暴露原始得分本身的分布。
+    # 审稿人需要"零分占比"判断: uniform/decay 的高相关是真一致, 还是被大量退化的全零文章
+    # (radius=2 窗口内无情感命中 → 得分恒 0) 拉高。本块只读 score_df、喂 logger 后丢弃,
+    # 绝不回写 score_df / 不改 schema / 不参与下游 (IRON RULE 1: log-only, 计入 try/except)。
+    try:
+        logger.info("-" * 72)
+        logger.info("【得分分布】uniform 权重 (radius=2) 原始情感得分诊断 (零分占比越高 → 可测信号越少):")
+        for _dn in dict_names:
+            _ucol = f'{_dn}_uniform'
+            if _ucol not in score_df.columns:
+                continue
+            _us = score_df[_ucol]
+            _n_u = int(_us.notna().sum())
+            if _n_u == 0:
+                continue
+            # 零分占比 = radius=2 窗口内无情感命中的文章份额 (越高 = 该词典可测信号越稀疏)
+            _zero_frac = float((_us == 0).mean())
+            logger.info(
+                f"  {_dn:<14} 零分占比={pct4(_zero_frac)}  均值={sig4(float(_us.mean()))}  "
+                f"标准差={sig4(float(_us.std()))}  (n={_n_u:,d})"
+            )
+        logger.info(
+            "  ⚠ 判读: 零分占比高 → uniform/decay 的高相关可能由大量全零文章驱动而非真实一致, "
+            "审稿时须结合非零样本上的相关性看。"
+        )
+        logger.info("-" * 72)
+    except Exception as _e:
+        logger.warning(f"[得分分布] 诊断日志块异常, 跳过(不影响产物): {_e}")
 
     # ── 步骤 6: 输出报告 ──
     _t = time.time()

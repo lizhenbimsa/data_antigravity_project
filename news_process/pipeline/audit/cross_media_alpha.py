@@ -459,6 +459,12 @@ def main():
                     "https://doi.org/10.1016/j.mex.2023.102545")
         logger.info("       (白话: Krippendorff α 2024 计算工具综述, 锚定本模块 outlet×day "
                     "reliability_data 的 inter-coder 信度计算口径。)")
+        logger.info("     · reliability-data 结构 (raters × items, 缺失数据自然处理 → α 可估性): "
+                    "Hayes, A. F., & Krippendorff, K. (2007). Answering the call for a standard "
+                    "reliability measure for coding data. Communication Methods and Measures, "
+                    "1(1), 77-89. https://doi.org/10.1080/19312450709336664")
+        logger.info("       (白话: α 究竟在『平均多少 outlet × 多少 day』的可靠性矩阵上算出 —— "
+                    "raters-per-item 密度直接决定 α 能否稳健估计, 故逐轨记录该密度分布。)")
         logger.info("     · 跨源 tone 方差作媒体分歧度测度: Li, S. Z., & Luan, Z. (2025). "
                     "News-based investor disagreement and stock returns. Review of Accounting "
                     "Studies, 30(3), 2312-2375. https://doi.org/10.1007/s11142-025-09897-1")
@@ -476,6 +482,30 @@ def main():
     _t_load = time.time()
     art_df = pd.read_parquet(src_path)
     logger.info(f"  article-level tone: {len(art_df):,d} 行 (加载耗时 {sig4(time.time() - _t_load)} s)")
+
+    # 📂 输入 schema / 关键列命中 provenance (log-only, golden-safe): 本模块控制流分支于
+    # llm_vote_tone_{full,ctx,ss} 是否存在 (存在=直接用; 否则尝试 llm_sentiment_{trk}
+    # → _SENT_TO_TONE 派生)。在加载点记录列数与关键列存在性, 文档化本次将走哪条派生
+    # 路径 (stage-boundary 复现性 provenance)。仅读 columns/shape, 不改任何数据。
+    try:
+        _expect_cols = [
+            'target_bank', '日期', '媒体(中文)',
+            'llm_vote_tone_full', 'llm_vote_tone_ctx', 'llm_vote_tone_ss',
+            'llm_sentiment_full', 'llm_sentiment_ctx', 'llm_sentiment_ss',
+        ]
+        _present = [c for c in _expect_cols if c in art_df.columns]
+        _missing = [c for c in _expect_cols if c not in art_df.columns]
+        logger.info(
+            f"    📂 输入 schema: {art_df.shape[1]:,d} 列 × {len(art_df):,d} 行; "
+            f"stage-21 关键列命中 {len(_present)}/{len(_expect_cols)} → 存在 {_present}"
+        )
+        if _missing:
+            logger.info(
+                f"      └ 缺失关键列 {_missing} "
+                "(缺 llm_vote_tone_* 但有 llm_sentiment_* 时走确定性 _SENT_TO_TONE 派生)"
+            )
+    except Exception as _se:  # noqa: BLE001
+        logger.debug(f"    输入 schema provenance 跳过 (不影响处理): {_se}")
 
     _t_events = time.time()
     events = detect_bank_events(art_df)
@@ -516,6 +546,26 @@ def main():
         if events_metrics.empty:
             logger.info(f"    轨道 {suffix} 无有效事件指标 (耗时 {sig4(time.time() - _t_trk)} s); 跳过")
             continue
+        # 📊 reliability-data 密度分布 (log-only, golden-safe; Hayes & Krippendorff 2007):
+        # Krippendorff α 的可估性临界依赖"每个 item 有几个 rater"——这里 outlet=rater /
+        # day=item / article=底层标注。逐轨报每事件 raters(outlets)/items(days)/articles 的
+        # 中位与极值, 让审稿人知道该轨 α 究竟"在平均多少 outlet × 多少 day 上算出来"
+        # (顶刊 α 报告必备的密度诊断, 此前仅落 n_units/total_events 聚合数, 中间矩阵密度未暴露)。
+        try:
+            _dn_out = events_metrics['n_outlets']
+            _dn_day = events_metrics['n_days']
+            _dn_art = events_metrics['n_articles']
+            logger.info(
+                f"    📊 reliability-data 密度 (n={len(events_metrics):,d} events): "
+                f"raters/event(outlets) 中位={sig4(_dn_out.median())} "
+                f"[min={int(_dn_out.min()):,d}, max={int(_dn_out.max()):,d}]; "
+                f"items/event(days) 中位={sig4(_dn_day.median())} "
+                f"[min={int(_dn_day.min()):,d}, max={int(_dn_day.max()):,d}]; "
+                f"articles/event 中位={sig4(_dn_art.median())} "
+                f"[min={int(_dn_art.min()):,d}, max={int(_dn_art.max()):,d}]"
+            )
+        except Exception as _de:  # noqa: BLE001
+            logger.debug(f"    reliability-data 密度诊断跳过 (不影响产物): {_de}")
         panel_s = aggregate_to_bank_year(events_metrics, suffix)
         panels.append(panel_s)
 

@@ -1350,6 +1350,37 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
 # 9.5 LLM 概率诊断 (Chiu & Hung 2025 M3 降级适配)
 # ============================================================================
 
+# ── 经核验参考文献 (LLM 诊断子族; 逐字照抄 APA-7 + DOI, 仅运行期日志用) ──
+# 黄金范式 (mirrors pipeline/panel/geography.py::_GEO_REFERENCES): 让本节诊断的
+# logs/64_tone_validation.log 自证方法学锚点 (非仅留注释)。三条 DOI 均经 Crossref/
+# DataCite 核验注册表确认 status=match, 各自与所记录的具体方法严格对位:
+#   · chiu_hung_2025  = 本节 LLM 类别偏向诊断的奠基思路 (Neutral 偏好 / 类别不确定性)
+#   · lin_1991_jsd    = 模型间分布散度所用 Jensen-Shannon 散度 (_compute_jsd) 的原始出处
+#   · geng_2024_calib = LLM 自报置信度校准 (ECE) 诊断的当代综述对标
+_LLM_DIAG_REFERENCES = {
+    "chiu_hung_2025": (
+        "Chiu, I.-C., & Hung, M.-W. (2025). Finance-specific large language "
+        "models: Advancing sentiment analysis and return prediction with "
+        "LLaMA 2. Pacific-Basin Finance Journal, 90, 102632. "
+        "https://doi.org/10.1016/j.pacfin.2024.102632"
+    ),
+    "lin_1991_jsd": (
+        "Lin, J. (1991). Divergence measures based on the Shannon entropy. "
+        "IEEE Transactions on Information Theory, 37(1), 145–151. "
+        "https://doi.org/10.1109/18.61115"
+    ),
+    "geng_2024_calib": (
+        "Geng, J., Cai, F., Wang, Y., Koeppl, H., Nakov, P., & Gurevych, I. "
+        "(2024). A survey of confidence estimation and calibration in large "
+        "language models. In Proceedings of the 2024 Conference of the North "
+        "American Chapter of the Association for Computational Linguistics: "
+        "Human Language Technologies (Volume 1: Long Papers) (pp. 6577–6595). "
+        "Association for Computational Linguistics. "
+        "https://doi.org/10.18653/v1/2024.naacl-long.366"
+    ),
+}
+
+
 def _compute_jsd(p: np.ndarray, q: np.ndarray) -> float:
     """计算 Jensen-Shannon 散度（以 bit 为单位）。
 
@@ -1444,9 +1475,14 @@ def diagnose_llm_category_bias(df: pd.DataFrame, llm_cols: dict,
     logger_inst.info(f"===    4.5a LLM 类别偏向诊断 [{track_label}]    ===")
     logger_inst.info("=" * 70)
     # 子步骤方法依据 (called-by 主控的诊断 helper): 类别比例 + 模型间 chi-square 同质性 +
-    # Jensen-Shannon 散度。方法源 Chiu & Hung (2025, PBFJ) Fig.2 Neutral 偏好诊断思路 +
-    # Carlson & Burbano (2026, SMJ §4.2) 报告 model certainty (二者均不在经核验注册表,
-    # 按铁律不 emit DOI; 仅判读: JSD>0.1=偏向差异大→多数投票有效, JSD<0.01=高度同质化→投票退化风险)。
+    # Jensen-Shannon 散度。方法源 Chiu & Hung (2025, PBFJ) Fig.2 Neutral 偏好诊断思路 ——
+    # 该 DOI 经 Crossref 核验注册表确认 status=match (在 pool 内), 故运行期 emit (修正旧注释
+    # "不在注册表→不 emit" 的误判); Carlson & Burbano (2026, SMJ §4.2) 报告 model certainty
+    # 已由主控 main() 的方法论块 emit, 此处不重复。判读: JSD>0.1=偏向差异大→多数投票有效,
+    # JSD<0.01=高度同质化→投票退化风险。
+    # 白话: 多个 LLM 若都偏爱"中性"且彼此判读高度雷同, 多数投票就退化成"一个模型说了算";
+    # 故先量化每个模型的类别偏向与模型间分布差异, 作为多数投票有效性的前置体检。
+    logger_inst.info(f"  📖 类别偏向诊断方法源: {_LLM_DIAG_REFERENCES['chiu_hung_2025']}")
 
     # ── 0. 过滤聚合列，仅保留独立模型 ──
     independent_models = {
@@ -1554,7 +1590,12 @@ def diagnose_llm_category_bias(df: pd.DataFrame, llm_cols: dict,
             )
 
     # ── 3. 模型间 Jensen-Shannon 散度 ──
+    # JSD = 0.5·KLD(P‖M) + 0.5·KLD(Q‖M), M = 0.5·(P+Q) — 对称、有界 [0,1] (log2 底) 的
+    # 分布距离, 由 _compute_jsd 直接实现; 原始出处 Lin (1991) 论证基于 Shannon 熵的散度族,
+    # 是本节模型间类别分布差异度量的方法学锚点 (squarely-on-method, 非装饰性引用)。
+    # 白话: 用一个对称、不会发散到无穷的"分布差异分数"量化两模型的类别判读有多不一样。
     logger_inst.info("  --- 模型间 Jensen-Shannon 散度 ---")
+    logger_inst.info(f"  📖 JSD 度量出处: {_LLM_DIAG_REFERENCES['lin_1991_jsd']}")
     js_results = []
     for i in range(len(model_names)):
         for j in range(i + 1, len(model_names)):
@@ -1674,8 +1715,12 @@ def diagnose_confidence_calibration(df: pd.DataFrame, llm_cols: dict,
     logger_inst.info(f"===    4.5b 置信度校准诊断 [{track_label}]    ===")
     logger_inst.info("=" * 70)
     # 子步骤方法依据 (called-by 主控的诊断 helper): 等宽分箱 Expected Calibration Error (ECE)。
-    # 方法源 Guo et al. (2017, ICML, On calibration of modern neural networks) — 不在经核验注册表,
-    # 按铁律不 emit DOI; 判读: ECE<0.05=校准良好 / 0.05-0.10=一般 / 0.10-0.15=偏差 / ≥0.15=校准不良。
+    # ECE 公式出处 Guo et al. (2017, ICML, On calibration of modern neural networks) — 不在经核验
+    # 注册表, 按铁律不 emit 其 DOI; 但 LLM 自报置信度校准的当代综述 Geng et al. (2024, NAACL)
+    # 已经 Crossref 核验 (status=match, 在 pool 内), 作为本诊断的方法对标在运行期 emit。
+    # 判读: ECE<0.05=校准良好 / 0.05-0.10=一般 / 0.10-0.15=偏差 / ≥0.15=校准不良。
+    # 白话: 检验"模型自称有 90% 把握时, 实际是否约 90% 答对" — 自信度与真实正确率的吻合程度。
+    logger_inst.info(f"  📖 LLM 置信度校准综述: {_LLM_DIAG_REFERENCES['geng_2024_calib']}")
 
     # ── 0. 过滤聚合列 ──
     independent_models = {

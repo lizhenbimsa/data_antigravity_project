@@ -167,6 +167,41 @@ def empirical_bayes_shrinkage(
         values,
     )
 
+    # ── 📊 EB 方差分解 + 组结构 + 权重分布 (纯日志, try/except; golden-safe, 不回流下游) ──
+    # 白话: 把"组间真实差异 τ̂²、单元内抽样噪声 σ̄²ᵢ、二者隐含的全局合并比"以及收缩权重
+    # 的整张分布落进日志。此前本函数除"观测不足"告警外不打任何日志, 而 main() 虽命名了
+    # 闭式 ICC≈τ̂²/(τ̂²+σ̄²ᵢ) 却从未 emit → 跨方法 (闭式 vs MixedLM ICC) 一致性无法从 .log
+    # 核对。全部取已算好的 locals (between_var/within_var/grand_var/valid_mask/unique_groups/
+    # n_multi/k_multi/weights), 结果仅喂 logger、用后即弃, 绝不改任何返回值/计算 (golden-safe)。
+    try:
+        _mean_samp = float(np.mean(within_var[valid_mask]))
+        _pool_ratio = (
+            between_var / (between_var + _mean_samp)
+            if (between_var + _mean_samp) > 0 else float("nan")
+        )
+        _w_valid = weights[valid_mask]
+        logger.info(
+            f"  📊 EB 方差分解: τ̂²(组间先验 between_var)={sig4(between_var)} | "
+            f"grand_var(截面总方差)={sig4(grand_var)} | "
+            f"σ̄²ᵢ(单元内抽样方差均值)={sig4(_mean_samp)} | "
+            f"全局合并比 τ̂²/(τ̂²+σ̄²ᵢ)={sig4(_pool_ratio)} "
+            "(=闭式 ICC, 与 MixedLM ICC 跨方法应一致)"
+        )
+        logger.info(
+            f"  📊 组结构: valid 观测={int(valid_mask.sum()):,d} 行 | "
+            f"组数={len(unique_groups):,d} | "
+            f"≥2 成员行 n_multi={n_multi:,d} / 组 k_multi={k_multi:,d} "
+            "(仅多成员组以 N−k 离差贡献 τ̂²; 单成员组离差恒 0 已排除)"
+        )
+        logger.info(
+            f"  📊 收缩权重 w 分布 (valid 行): 均值={sig4(float(_w_valid.mean()))} | "
+            f"中位={sig4(float(np.median(_w_valid)))} | "
+            f"min={sig4(float(_w_valid.min()))} | max={sig4(float(_w_valid.max()))} "
+            "(w→1 强收缩至组均值 / w→0 保留原值)"
+        )
+    except Exception as _e:  # noqa: BLE001 — 日志块绝不让收缩计算崩 (golden-safe)
+        logger.warning(f"  (EB 方差分解日志失败, 忽略不影响收缩结果): {_e}")
+
     return shrunk, weights
 
 
@@ -484,6 +519,32 @@ def main(argv: list[str] | None = None) -> int:
             f"  [{value_col}] 平均收缩权重 w̄ = {sig4(_mean_w)} "
             "(→0 几乎不收缩/保留原值; →1 强烈拉向同年同省同类型组均值)"
         )
+        # ── 📊 收缩权重全分布 + 偏差-方差位移影响 (纯日志, try/except; golden-safe) ──
+        # 白话: 不只看平均权重, 还看权重的中位/分位/极值, 以及"部分合并 (partial pooling)
+        # 究竟把 benefit_mean 推动了多远" (|shrunk−原值| 的均值/最大值 + 被实质移动的行占比)。
+        # 这正是审稿人衡量"引入的 bias 是否值回 variance 下降"所需的量级证据。仅用既有列
+        # (output_col / value_col / weight_col), 结果用后即弃, 不改任何产物 (golden-safe)。
+        try:
+            _w = pd.to_numeric(result[weight_col], errors="coerce")
+            _out_col = f"{value_col}_shrunk"
+            _disp = (
+                pd.to_numeric(result[_out_col], errors="coerce")
+                - pd.to_numeric(result[value_col], errors="coerce")
+            ).abs()
+            _moved_frac = float((_w > 0.5).mean())
+            logger.info(
+                f"  [{value_col}] 收缩权重 w 分布: 中位={sig4(float(_w.median()))} | "
+                f"std={sig4(float(_w.std()))} | min={sig4(float(_w.min()))} | "
+                f"max={sig4(float(_w.max()))} | Q25={sig4(float(_w.quantile(0.25)))} | "
+                f"Q75={sig4(float(_w.quantile(0.75)))}"
+            )
+            logger.info(
+                f"  [{value_col}] 偏差-方差位移: |shrunk−原值| 均值={sig4(float(_disp.mean()))} | "
+                f"最大={sig4(float(_disp.max()))} | 被实质移动 (w>0.5) 行占比={pct4(_moved_frac)} "
+                "(量化部分合并对 benefit_mean 的实际推动幅度, 供 bias↔variance 权衡核对)"
+            )
+        except Exception as _e:  # noqa: BLE001 — 日志块绝不让阶段崩 (golden-safe)
+            logger.warning(f"  ({value_col} 权重分布/位移日志失败, 忽略): {_e}")
     phase_durations['②逐轨经验贝叶斯收缩+MixedLM校验'] = time.time() - _t
 
     _t = time.time()
@@ -494,6 +555,19 @@ def main(argv: list[str] | None = None) -> int:
     logger.info(
         f"  写出收缩后面板 → {output_path} (tracks={value_cols})"
     )
+    # ── 📤 输出维度血缘 (闭合 输入→输出; 纯日志, try/except; golden-safe) ──
+    # 白话: 此前只记了"加载面板"的形状, 没记写出的形状 → 血缘在阶段边界断开。这里补上
+    # 输出面板的行×列, 以及相对输入新增了几列 (每处理一轨 +2 列: 收缩值 + 收缩权重),
+    # 把 输入→输出 的维度对账落进日志。仅读 result/panel 已有形状, 不改任何产物。
+    try:
+        _cols_added = int(result.shape[1] - panel.shape[1])
+        logger.info(
+            f"     输出面板形状: {result.shape[0]:,d} 行 × {result.shape[1]:,d} 列 "
+            f"(输入 {panel.shape[0]:,d} 行 × {panel.shape[1]:,d} 列; 新增 {_cols_added:,d} 列 "
+            "= 每处理轨 +2 列: 收缩值 _shrunk + 收缩权重 _shrunk_weight) → 闭合 输入→输出 血缘"
+        )
+    except Exception as _e:  # noqa: BLE001 — 维度日志失败不影响已写出的产物
+        logger.warning(f"  (输出维度血缘日志失败, 忽略): {_e}")
 
     # ── ⏱ 阶段计时摘要 (墙钟秒, sig4; 纯日志, golden-safe) ──
     _total = time.time() - start_time

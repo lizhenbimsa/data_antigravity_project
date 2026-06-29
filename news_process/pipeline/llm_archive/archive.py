@@ -22,12 +22,44 @@ from news_process.core.logging import sig4
 
 logger = logging.getLogger(__name__)
 
-# 运行期日志富集 (infrastructure-richer-runtime-only, round 7):
-# 本模块是 V4 F-P2.1 reproducibility ledger (append-only raw-response 归档), 非
-# 研究测度模块, 故不挂学术 📖 方法论依据块; 富集集中在 *操作性* 运行期可观测性 —
-# 批写吞吐 (KB / 平均字节-每-record, 经 sig4 渲染至四位有效数字)、进程级累计写入量、
-# 跨 UTC 日切分的文件滚动事件。所有新增 logger.* 仅打印已算出的值, 不触碰
-# append-only 不变量 (写入字节 / record 内容 / request_id / return 值零改动)。
+# 运行期日志富集 (infrastructure-richer-runtime-only, round 7 → round 8 修订):
+# 本模块是 V4 F-P2.1 reproducibility ledger (append-only raw-response 归档)。
+# 富集集中在 *操作性* 运行期可观测性 — 批写吞吐 (KB / 平均字节-每-record, 经 sig4
+# 渲染至四位有效数字)、进程级累计写入量、跨 UTC 日切分的文件滚动事件、归档落点的
+# 绝对根目录 IO 出处。所有新增 logger.* 仅打印已算出的值, 不触碰 append-only
+# 不变量 (写入字节 / record 内容 / request_id / return 值零改动)。
+#
+# round-8 修订 (2026-06-29): round-7 注释曾以"非研究测度模块"为由拒挂学术 📖 块,
+# 但姊妹模块 core/data_versioning.py 已确立先例 —— "可复现基础设施" (出处/版本追踪)
+# 本身即可复现计算研究的方法学对象, 并在运行期 emit Sandve (2013) 同款锚点。本
+# append-only ledger 逐条记录每个 raw LLM response 的 cache_key / model_version /
+# prompt_version / temperature / api_endpoint / timestamp_utc 出处且不可修改, 正是
+# Sandve 规则 4-6 (记录所有中间结果 + 精确版本 + 出处) 在 LLM 响应层的工程落地,
+# 故此处以一条 *真锚定* (非装饰性) 的 📖 方法论块温和覆盖原先的笼统排除。
+
+# ── 经核验参考文献 (逐字照抄 APA-7 + DOI; 仅日志用, golden-safe) ──
+# emit 进首条写入时的运行期日志, 让归档落点的 .log 自证可复现基础设施的学术依据。
+# 与 core/data_versioning.py 同款配对锚点: Sandve 2013 (通用可复现计算) 主锚 +
+# Cheng 2024 SILICON (LLM 标注可复现) companion 软对标。
+_ARCHIVE_REFERENCES = {
+    # 主锚 (强对标): 可复现计算研究十准则。白话: 把每一条原始结果都记录下来, 让整个
+    # 分析可被重新推导。本 append-only ledger 永久存档每个 raw LLM response 的完整
+    # 出处与精确版本, 即其规则 4-6 (记录所有中间结果 + 精确版本 + 出处) 的落地。
+    "sandve_reproducible": (
+        "Sandve, G. K., Nekrutenko, A., Taylor, J., & Hovig, E. (2013). Ten simple "
+        "rules for reproducible computational research. PLoS Computational Biology, "
+        "9(10), e1003285. https://doi.org/10.1371/journal.pcbi.1003285"
+    ),
+    # companion (较软对标, 仅与 Sandve 并列出现): LLM 标注可复现。白话: 本归档存储的
+    # 正是 stage 21 LLM 的原始响应 —— "重新推导 LLM 投票" 的底层依据。SILICON 的核心
+    # 议题是标注测量误差分解与工作流, 处于本模块 (存原始响应, 标注上游) 的下游, 故仅
+    # 作 LLM 专属 companion 列于 Sandve 之侧, 不单独成立。
+    "cheng_silicon_llm": (
+        "Cheng, X., Mayya, R., & Sedoc, J. (2024). To err is human; to annotate, "
+        "SILICON? Toward robust reproducibility in LLM annotation (arXiv:2412.14461). "
+        "arXiv. https://doi.org/10.48550/arXiv.2412.14461"
+    ),
+}
 
 
 def _resolve_archive_root() -> Path:
@@ -145,6 +177,29 @@ class LLMArchive:
         try:
             if self._last_file is None:
                 logger.info("LLMArchive 落点 (首条): %s", fp.name)
+                # IO 出处 (round 8): 首条写入时 emit 归档 ledger 的*绝对*根目录与
+                # responses_dir — 此前仅 emit 按日文件 basename (如 2026-06-29.jsonl),
+                # 原始 LLM 响应物理落盘的目录从未进 INFO 轨, 而这正是可复现审稿人最关心
+                # 的出处 ("raw LLM responses 到底归档到哪")。纯 logger.* 已解析 locals,
+                # 单行以避免并行 (singleton) 构造时刷屏。
+                logger.info(
+                    "LLMArchive 根目录 (append-only reproducibility ledger): %s | "
+                    "responses_dir=%s", self.root, self.responses_dir,
+                )
+                # 📖 方法论依据 (可复现计算基础设施 · 出处与版本追踪): 见模块顶部
+                # round-8 注释 — 本 append-only ledger 是 Sandve 规则 4-6 在 LLM 响应层
+                # 的工程落地; Cheng 2024 SILICON 作 LLM 标注可复现的 companion 软对标。
+                # 与 core/data_versioning.py 运行期 emit 同款锚点 (镜像在项目内的先例)。
+                logger.info(
+                    "📖 方法论依据 (可复现计算研究 · raw LLM 响应永久归档):\n"
+                    f"  {_ARCHIVE_REFERENCES['sandve_reproducible']}\n"
+                    "  (白话: 记录每一条原始结果使分析可被重新推导; 本 ledger 逐条永久存档"
+                    " raw LLM response 的 cache_key/model_version/prompt_version/temperature/"
+                    "api_endpoint/timestamp_utc 出处且不可修改, 落实其规则 4-6。)\n"
+                    f"  {_ARCHIVE_REFERENCES['cheng_silicon_llm']}\n"
+                    "       → companion: 本归档存储的正是 stage 21 LLM 原始响应, 是'重新推导"
+                    " LLM 投票'的底层依据 (SILICON 议题为标注测量误差, 处归档下游, 故作软对标)。"
+                )
             elif fp != self._last_file:
                 logger.info(
                     "LLMArchive 跨 UTC 日切分文件滚动: %s → %s "

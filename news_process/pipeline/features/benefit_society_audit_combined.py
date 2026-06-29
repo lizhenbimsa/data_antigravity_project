@@ -560,6 +560,21 @@ def main(argv: list[str] | None = None) -> int:
     combined.to_parquet(output_path, index=False)
     logger.info("Wrote audit panel: %s (%d bank-year obs)", output_path, len(combined))
 
+    # io-provenance (golden-safe 纯日志): 写盘边界补面板"宽度"维度的来源溯源 —— 行数已由上方
+    # "Wrote audit panel" 打出, 这里补 总列数 + 替代锚点 (benefit_jlm_zh_*) / 安慰剂 (benefit_placebo_*)
+    # 列族计数, 让审计面板的 schema 宽度在阶段输出边界处可追溯。仅打印整数 (%d, 不引入 float), 不回写 combined/meta。
+    # 白话: 除了"多少行 (bank-year)", 也记下"多少列、其中替代锚点几列/安慰剂几列", 方便复现时核对 schema 完整。
+    try:
+        _n_cols = len(combined.columns)
+        _n_altanchor_cols = sum(1 for _c in combined.columns if str(_c).startswith("benefit_jlm_zh_"))
+        _n_placebo_cols = sum(1 for _c in combined.columns if str(_c).startswith("benefit_placebo_"))
+        logger.info(
+            "  [schema] 审计面板宽度: 共 %d 列 (替代锚点 benefit_jlm_zh_* %d 列 + 安慰剂 benefit_placebo_* %d 列)",
+            _n_cols, _n_altanchor_cols, _n_placebo_cols,
+        )
+    except Exception as _e:
+        logger.warning(f"[schema 溯源] 日志诊断异常, 跳过(不影响产物): {_e}")
+
     sidecar_path = write_sidecar_json(output_path, meta)
     logger.info("Wrote sidecar JSON: %s", sidecar_path)
     logger.info("  ⏱ [phase] 写盘 (parquet + sidecar): %s 秒", sig4(time.time() - _t_write))
@@ -598,6 +613,29 @@ def main(argv: list[str] | None = None) -> int:
             )
         else:
             logger.warning("  ① 替代锚点列缺失 (benefit_jlm_zh_*) — 上游嵌入/锚点链路异常, 替代锚点检验未生效")
+
+        # ①′ 替代锚点 ctx/ss 孪生轨 — 三轨 (full/ctx/ss) 稳健性报告补全。fix(omni-g-benefit-01) 后 ctx/ss
+        # twin 列已由 aggregate_to_bank_year col_suffix='_ctx'/'_ss' 落进 combined, 但此前仅 full 轨打印
+        # 信号强度; 此处对称补 ctx/ss, NaN-guard 镜像上方 full 轨。纯日志, 用 combined 既有列, 不回写产物。
+        # 白话: full 轨看全文, ctx 轨只看银行实体邻近窗口, ss 轨只看银行+金科同句窗口 —— 三轨方向一致才算锚点稳健。
+        for _trk, _trk_label in (("_ctx", "ctx(实体邻近)"), ("_ss", "ss(银行+金科同句)")):
+            _mean_col = f"benefit_jlm_zh_mean{_trk}"
+            _pos_col = f"benefit_jlm_zh_pos_frac{_trk}"
+            _neg_col = f"benefit_jlm_zh_neg_frac{_trk}"
+            if _mean_col not in combined or _pos_col not in combined or _neg_col not in combined:
+                continue
+            if combined[_mean_col].notna().sum() == 0:
+                logger.warning("  ①′ 替代锚点 %s: %s 全 NaN — 该轨无有效数据, 替代锚点信号无法评估", _trk_label, _mean_col)
+                continue
+            _t_mean = float(combined[_mean_col].mean())
+            _t_abs = float(combined[_mean_col].abs().mean())
+            _t_pos = float(combined[_pos_col].mean())
+            _t_neg = float(combined[_neg_col].mean())
+            logger.info(
+                "  ①′ 替代锚点 %s: 均值=%s  |均值|=%s  pos_frac=%s  neg_frac=%s "
+                "(pos_frac 以批内 median 为 center → ~0.5 属预期; 与 full 轨方向一致即三轨稳健)",
+                _trk_label, sig4(_t_mean), sig4(_t_abs), sig4(_t_pos), sig4(_t_neg),
+            )
 
         # ② 安慰剂 (4 业务线 + 1 中性) — 命中数 + 均值; 期望"业务线信号量级 *远小于* 替代锚点 (相对判读, 非绝对 ≈0)"。
         # 各向异性嵌入空间下 RAW |均值| 系统性非零 (alt_anchor.py:317 实测 ~97% 投影>0), 故不存在绝对 ≈0 基线, 只看相对占比。

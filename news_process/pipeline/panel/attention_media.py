@@ -88,6 +88,24 @@ def _log_attention_substep_banner(step_tag: str, title: str, refs: list) -> None
         logger.warning(f"  子步骤 banner 打印失败 (不影响处理): {e}")
 
 
+# ── 停刊代理 (cessation proxy) 检测的方法论锚点 (日志富集 2026-06-29, golden-safe) ──
+# detect_defacto_cessation 检测的正是"报纸退出本地覆盖", 与下两篇报纸关停效应实证
+# method-fit 直接吻合: 报纸关停 → 地方监督真空 → 公司违规上升 (Heese 2022) / 公共财政
+# 成本上升 (Gao 2020)。逐字取自经核验注册表 (pool.json), 仅供 logger 运行期回显, 不参与
+# 任何计算。白话: 报纸一关, 当地就没人盯着公司, 坏事更容易发生 —— 这正是把"覆盖退出"
+# 当停刊代理、并把疑似退出媒体保守剔出样本的因果依据。
+_CESSATION_REFERENCES = [
+    'Heese, J., Pérez-Cavazos, G., & Peter, C. D. (2022). When the local '
+    'newspaper leaves town: The effects of local newspaper closures on '
+    'corporate misconduct. Journal of Financial Economics, 145(2), 445-463. '
+    'https://doi.org/10.1016/j.jfineco.2021.08.015  (报纸关停 → 公司违规上升)',
+    'Gao, P., Lee, C., & Murphy, D. (2020). Financing dies in darkness? The '
+    'impact of newspaper closures on public finance. Journal of Financial '
+    'Economics, 135(2), 445-467. https://doi.org/10.1016/j.jfineco.2019.06.003'
+    '  (报纸关停 → 公共财政成本上升)',
+]
+
+
 def detect_defacto_cessation(df, logger, output_dir, threshold_gap=2):
     """数据驱动 + NPPA 交叉验证的隐性覆盖退出 (de-facto coverage cessation) 检测。
 
@@ -160,6 +178,11 @@ def detect_defacto_cessation(df, logger, output_dir, threshold_gap=2):
                 f"suspected={len(suspected)} (未证实, 仍入排除集), "
                 f"nppa_only={len(nppa_only)}, "
                 f"active={len(set(media_span.index) - data_ceased)}")
+    # 日志富集 (2026-06-29, golden-safe): 停刊代理测度自带方法论锚点 —— 在
+    # 40_panel_export_main.log 中自证"覆盖退出=停刊代理"的因果依据 (报纸关停效应实证)。
+    logger.info("  📖 方法论依据 (停刊代理, Author (Year). Journal, vol(issue), pages. DOI):")
+    for _ref in _CESSATION_REFERENCES:
+        logger.info(f"  📖 {_ref}")
 
     df['_is_ceased_media'] = df['媒体(中文)'].isin(ceased_all).astype(int)
 
@@ -256,6 +279,19 @@ def compute_balanced_media_robustness(df, panel, logger, score_patterns):
         panel[col_n] = len(balanced)
         logger.info(f"  窗口 {suffix}: {len(balanced)} 家平衡媒体, "
                     f"3 轨道 (full/ctx/ss) + {len(_bal_cols)} 全方法列")
+        # 日志富集 (2026-06-29, golden-safe): 该窗口平衡子集 full 轨语调分布 (仅读已并入
+        # panel 的列, 结果丢弃) —— 供审稿与非平衡基准对照, 判断幸存者偏差 (survivorship)
+        # 是否驱动结论。白话: 只看"全程一直在报道"的媒体, 看语调会不会和全样本不一样。
+        try:
+            _bcol = f'bal_{suffix}_tone_full'
+            if _bcol in panel.columns:
+                _bv = panel[_bcol].dropna()
+                if len(_bv) >= 2:
+                    logger.info(f"  📊 窗口 {suffix} 平衡 full 轨语调: n={len(_bv):,d}, "
+                                f"mean={sig4(_bv.mean())}, std={sig4(_bv.std())}, "
+                                f"[{sig4(_bv.min())}, {sig4(_bv.max())}]")
+        except Exception as _e:  # noqa: BLE001 — 平衡语调诊断绝不阻断稳健性主流程
+            logger.warning(f"  窗口 {suffix} 平衡语调分布诊断跳过: {_e}")
 
     return panel
 
@@ -713,6 +749,9 @@ def compute_fintech_attention_index(panel: pd.DataFrame) -> pd.DataFrame:
     df_all = df_all.dropna(subset=['year'])
     df_all['year'] = df_all['year'].astype(int)
     logger.info(f"  加载: {len(df_all):,} 行 (article × bank)")
+    # 日志富集 (2026-06-29, golden-safe): 在加载边界回显输入 parquet 全路径 + 实际加载列集,
+    # 对齐姊妹函数 compute_attention_treatments (6b-2) 的 '📂 输入' IO-provenance 约定 (便于复现核对)。
+    logger.info(f"  📂 输入: {full_path} | 加载列={need_cols}")
 
     # 标准化地理列
     _GEO_NAN_VALUES = frozenset({'', 'nan', 'None', '未知', 'NaN', '<NA>'})
@@ -1184,6 +1223,9 @@ def compute_media_heterogeneity(df, panel):
 
     with open(cls_path, 'r', encoding='utf-8') as f:
         media_cls = json.load(f)
+    # 日志富集 (2026-06-29, golden-safe): 在阶段边界回显输入 DataFrame 形状 + 媒体分类配置
+    # 全路径 (对齐姊妹函数 6b/6b-2 的 '📂 输入' IO-provenance 约定, 便于复现核对)。
+    logger.info(f"  📂 输入: df={len(df):,} 行 × {df.shape[1]} 列 | 媒体分类={cls_path}")
     FIN = set(media_cls.get('financial_media', []))
     COMP = set(media_cls.get('comprehensive_media', []))
     CENTRAL = set(media_cls.get('central_media', []))
@@ -1759,6 +1801,31 @@ def compute_media_heterogeneity(df, panel):
                     _hvd = '中等集中'
                 logger.info(f"     · media_hhi (媒体来源集中度): 均值={sig4(_hm)} "
                             f"[{sig4(_h.min())}, {sig4(_h.max())}] → {_hvd}")
+        # 日志富集 (2026-06-29, golden-safe): 九维度媒体分歧 TREATMENT 变量 tone_gap_* 的
+        # 分布形态 (full 轨, 仅读已算列, 结果丢弃)。这些 gap = 两类媒体对同一银行的语调差
+        # (如中央级−地方级、官方−非官方), 是 bank_media_disagreement 篇的真实分析对象, 此前
+        # 本"解读"块仅覆盖 *_media_frac 占比、未覆盖 gap 本身。保守仅打 full 轨, 避免 ×3 轨冗余。
+        # 白话: gap>0 = 这类媒体对该行更偏正面; gap 越偏离 0, 两类媒体分歧越大。
+        logger.info("  📊 媒体分歧缺口 tone_gap_* (full 轨, treatment 变量分布)")
+        for _gcol, _glbl in [
+            ('tone_gap_fin_other_full', '财经−其他'),
+            ('tone_gap_comp_other_full', '综合−其他'),
+            ('tone_gap_central_local_full', '中央−地方'),
+            ('tone_gap_official_nonoff_full', '官方−非官方'),
+            ('tone_gap_market_nonmkt_full', '市场化−非市场化'),
+            ('tone_gap_deepdive_nondeep_full', '深度−非深度'),
+            ('tone_gap_daily_nondaily_full', '日报−非日报'),
+            ('tone_gap_homeprov_nonprov_full', '同省−非同省'),
+            ('tone_gap_homecity_noncity_full', '同城−非同城'),
+        ]:
+            if _gcol not in panel.columns:
+                continue
+            _gv = panel[_gcol].dropna()
+            if len(_gv) == 0:
+                continue
+            logger.info(f"     · {_gcol} ({_glbl}): n={len(_gv):,d}, "
+                        f"mean={sig4(_gv.mean())}, std={sig4(_gv.std())}, "
+                        f"[{sig4(_gv.min())}, {sig4(_gv.max())}]")
         logger.info(f"  ⏱ 步骤 6c (媒体异质性九维度) 墙钟耗时: {sig4(time.time() - _t0_het)} 秒")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  媒体异质性结果解读打印失败 (不影响处理): {e}")

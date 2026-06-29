@@ -31,9 +31,35 @@ import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-from news_process.core.logging import sig4
+from news_process.core.logging import pct4, sig4
 
 logger = logging.getLogger(__name__)
+
+# ── 经核验参考文献 (VERIFIED_REFERENCES 注册表, 逐字照抄 APA-7 + DOI; 仅日志用) ──
+# emit 进运行期日志的学术依据, 让 .log 自证方法学锚点 (非仅留注释); 镜像
+# pipeline/panel/geography.py::_GEO_REFERENCES 黄金范式。DOI 均取自经 Crossref/DataCite
+# 真值核验的注册表 (scripts/audit/LITERATURE_ANCHORS_*.md), 绝不伪造 (playbook §4 铁律)。
+_NCD_REFERENCES = {
+    # 白话: 本模块的可复现设计 (锁模型版本 + temperature=0 + seed=42 + 每次原始响应落盘
+    # raw_responses/ + 内容哈希缓存键 (model_id, pdf_sha256, prompt_version)) 几乎逐条
+    # 照搬这篇"可复现计算研究十诫"——版本锁定、归档每一次原始输出、记录 provenance, 正是
+    # 此文开出的处方; 故在 Reproducibility 锁定配置行旁 emit 作该套设计的方法学蓝图出处。
+    "sandve_reproducible": (
+        "Sandve, G. K., Nekrutenko, A., Taylor, J., & Hovig, E. (2013). Ten "
+        "simple rules for reproducible computational research. PLoS "
+        "Computational Biology, 9(10), e1003285. "
+        "https://doi.org/10.1371/journal.pcbi.1003285"
+    ),
+    # 白话: 本抽取器的真实方法是"生成式/视觉 LLM 当抽取器"——让 gpt4o/claude/gemini 直接
+    # 读扫描版 NCD 评级 PDF, 吐出 8 个结构化银行财务字段。这篇 Management Science 顶刊
+    # 专讲"如何在会计/财务研究中用生成式 LLM 处理文档", 直接为 LLM-as-extractor 取代
+    # 手工录入的设计背书 (与通用 Gentzkow-Kelly-Taddy 文本即数据范式互补, 更贴具体方法)。
+    "dekok_generative_llm": (
+        "de Kok, T. (2025). ChatGPT for textual analysis? How to use "
+        "generative LLMs in accounting research. Management Science, 71(9), "
+        "7888-7906. https://doi.org/10.1287/mnsc.2023.03253"
+    ),
+}
 
 # Reproducibility 锁定
 DEFAULT_MODELS = {
@@ -370,6 +396,9 @@ def _log_environment_and_config(args, pdf_dir: Path, output_path: Path) -> None:
             "     · Reproducibility 锁定: 固定模型版本 + temperature=0 + seed=42 "
             "(真接 API 时); 缓存键=(model_id, pdf_sha256, prompt_version, temperature)"
         )
+        # 📖 可复现计算研究方法学蓝图 (版本锁定 + 归档每次原始输出 + 记录 provenance):
+        # 本行的整套 repro 装置即此文"十诫"的工程化落地, 故在锁定配置行旁 emit 出处。
+        logger.info(f"     📖 {_NCD_REFERENCES['sandve_reproducible']}")
         logger.info(
             "     · 抽取字段: 8 项 (bank_name/report_year/total_assets/npl_ratio/car_ratio/"
             "net_profit/retail_deposit/info_tech_invest); JSON-only, 缺失置 null"
@@ -388,6 +417,14 @@ def _log_environment_and_config(args, pdf_dir: Path, output_path: Path) -> None:
         logger.info(
             "       → 本抽取器把 NCD 评级报告 (扫描 PDF) 经 vision LLM 转为 8 个银行财务字段, "
             "是该范式在中文银行监管文本上的工程化实现 (LLM-as-extractor 取代手工录入)"
+        )
+        logger.info(
+            f"     · 生成式 LLM 处理会计/财务文档 (LLM-as-extractor 方法学): "
+            f"{_NCD_REFERENCES['dekok_generative_llm']}"
+        )
+        logger.info(
+            "       → 直接对标本模块「读扫描 PDF→结构化财务字段」的生成式抽取设计, "
+            "为以 vision LLM 取代逐页手工录入的可行性与规范提供顶刊背书"
         )
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  环境/配置/方法信息打印失败 (不影响处理): {e}")
@@ -508,6 +545,45 @@ def main(argv: list[str] | None = None) -> int:
         for _st in sorted(_by_status):
             _cnt = _by_status[_st]
             logger.info(f"     · status={_st}: {_cnt:,d} ({sig4(_cnt / _n * 100)}%)")
+
+    # ── 抽取完整度 (extraction yield) 摘要: 对 status=='ok' 且 response_parsed 为 dict
+    # 的记录, 统计 8 个目标字段的非空填充率 (per-record 平均填充率 via pct4 + 逐字段非空
+    # 计数)。response_parsed 已在 ExtractionRecord 上算好, 此处纯读后即丢弃、不回流下游 →
+    # golden-safe。Phase 0 stub 路径全部 parsed=None → 无 ok 记录 → 本块不打印任何字段统
+    # 计; D4 解禁真接 vision API 后才产出真实 extraction-yield 报告。──
+    try:
+        _EXPECTED_FIELDS = (
+            "bank_name", "report_year", "total_assets_billion_rmb", "npl_ratio_pct",
+            "car_ratio_pct", "net_profit_million_rmb", "retail_deposit_billion_rmb",
+            "info_tech_invest_million_rmb",
+        )
+        _ok_parsed = [
+            r.response_parsed for r in records
+            if r.status == "ok" and isinstance(r.response_parsed, dict)
+        ]
+        if _ok_parsed:
+            _field_nonnull = {_f: 0 for _f in _EXPECTED_FIELDS}
+            _per_rec_rates: list[float] = []
+            for _p in _ok_parsed:
+                _hit = 0
+                for _f in _EXPECTED_FIELDS:
+                    if _p.get(_f) is not None:
+                        _field_nonnull[_f] += 1
+                        _hit += 1
+                _per_rec_rates.append(_hit / len(_EXPECTED_FIELDS))
+            _mean_fill = sum(_per_rec_rates) / len(_per_rec_rates)
+            logger.info(
+                f"  📊 抽取完整度 (extraction yield; status=ok 且可解析 JSON 的 "
+                f"{len(_ok_parsed):,d} 条 × 8 字段): 平均逐记录填充率={pct4(_mean_fill)}"
+            )
+            for _f in _EXPECTED_FIELDS:
+                _c = _field_nonnull[_f]
+                logger.info(
+                    f"     · {_f}: 非空 {_c:,d}/{len(_ok_parsed):,d} "
+                    f"({pct4(_c / len(_ok_parsed))})"
+                )
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  抽取完整度摘要打印失败 (不影响处理): {_e}")
 
     # ── ⏱ 阶段计时汇总 (墙钟秒, sig4; 纯日志, golden-safe) ──
     _total = time.time() - _t_start

@@ -123,6 +123,35 @@ def compute_boilerplate_ratios(texts: list[str],
         f"(占全词表 {pct4(n_boiler / X.shape[1]) if X.shape[1] else 'n/a'}, "
         f"DF≥{pct4(df_ratio_threshold)} of {n_docs:,d} 文); 第二遍算逐文命中率")
 
+    # ── 构念效度: 套话集示例 + DF 占比谱 (log-only, 全程 discarded, 不参与第二遍计算) ──
+    # referee 常要求"展示文本测度到底抓到了什么"(qualitative construct validation): 本模块
+    # 此前只记套话集的 *数量*, 从不示其 *内容*。此处补 ① top-k 高 DF 套话短语示例 (按文档频率
+    # 降序), ② 选中套话集 DF 占比的 [min/中位/max] 谱 — 表征 DF≥阈值 截断的 selectivity
+    # (套话集是紧贴阈值, 还是含近乎全语料皆现的极高频短语)。两输入 (feats / df_counts) 均已存在,
+    # 派生量用后即弃, 与 golden 输出无关。
+    try:
+        feats = vec.get_feature_names_out()             # 全词表 char_wb-gram 字面 (与列序一致)
+        masked_pos = np.flatnonzero(boiler_mask)        # 套话 n-gram 在全词表中的列位
+        # 在 masked 子集上按 DF 降序排序后映射回全词表列位, 取前 10; 纯展示, discarded。
+        topk = masked_pos[np.argsort(df_counts[masked_pos])[::-1][:10]]
+        logger.info(
+            f"  · 套话集 top-{min(10, n_boiler):,d} 高 DF char_wb-gram (按文档频率降序, "
+            f"构念效度示例 — 这些跨文档高频公式化短语即被判为'套话'):")
+        for rank, j in enumerate(topk, 1):
+            phrase = feats[j]                           # repr 化以显形 char_wb 边界空格
+            logger.info(
+                f"     #{rank:>2d} {phrase!r:<16} DF={int(df_counts[j]):,d}/{n_docs:,d} "
+                f"= {pct4(df_counts[j] / n_docs)}")
+        # 选中套话集的 DF 占比谱 (用后即弃): min 贴阈值=截断起约束; max 趋近 1.0=含近乎全语料短语。
+        sel = df_counts[boiler_mask] / n_docs
+        logger.info(
+            f"  · 套话集 DF 占比谱: [min={pct4(float(sel.min()))} "
+            f"中位={pct4(float(np.median(sel)))} max={pct4(float(sel.max()))}] "
+            f"(min 贴近阈值 {pct4(df_ratio_threshold)} → DF 截断起约束; "
+            f"max 趋近 1.0 → 套话集含近乎全语料皆现的极高频公式化短语)")
+    except Exception as e:  # noqa: BLE001 — 日志块绝不阻断派生
+        logger.warning(f"boilerplate: 套话集示例/DF 谱打印失败 (忽略, 不影响派生): {e}")
+
     # 第二遍: 逐文 命中套话 n-gram 出现数 / 全部 n-gram 出现数 (occurrence-weighted)。
     total = np.asarray(X.sum(axis=1)).ravel().astype(float)
     boiler = np.asarray(X[:, boiler_mask].sum(axis=1)).ravel().astype(float)

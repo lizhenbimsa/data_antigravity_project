@@ -245,6 +245,13 @@ def compute_authoritative_similarity(df_exploded, panel):
         logger.info("       Hoberg, G., & Phillips, G. (2016). Text-based network industries and "
                     "endogenous product differentiation. Journal of Political Economy, 124(5), "
                     "1423-1465. https://doi.org/10.1086/688176")
+        logger.info("     · LDA 主题空间分布相似度 (方法 C; 财务披露文本主题建模 → 主题分布散度):")
+        logger.info("       Dyer, T., Lang, M., & Stice-Lawrence, L. (2017). The evolution of "
+                    "10-K textual disclosure: Evidence from Latent Dirichlet Allocation. Journal "
+                    "of Accounting and Economics, 64(2-3), 221-245. "
+                    "https://doi.org/10.1016/j.jacceco.2017.07.002")
+        logger.info("       (白话: 把银行年度披露/新闻汇总投到 LDA 主题分布上, 用主题分布间的 JSD "
+                    "散度度量与政策锚点的主题贴合度 — auth_sim_lda 的算法出处)")
         logger.info("     · 宏观政策文本注入共享向量空间 (测度微观画像与宏观基准收敛性, 概念动因):")
         logger.info("       Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). "
                     "Firm-level political risk: Measurement and effects. The Quarterly Journal of "
@@ -330,6 +337,14 @@ def compute_authoritative_similarity(df_exploded, panel):
         logger.info(f"     · embedding 主轨={CONFIG.get('embedding_model', '(default)')} | "
                     f"large _lg spec={_LARGE_SPEC.get('model', '(unset)') if _LARGE_SPEC else '(unset)'}")
         logger.info("     · 最低银行门槛=3 家/年 (镜像 stage 25 LDA K 值稳定性守卫, 不足则该年跳过)")
+        # 输入文章级数据 provenance (仅日志; _ftc/_has_* 为本地副本, 与 @341 真正决策列各算各不复用)
+        _ftc = 'content_full' if 'content_full' in df_exploded.columns else '内容'
+        _has_ctx = 'content_ctx' in df_exploded.columns
+        _has_ss = 'content_ss' in df_exploded.columns
+        logger.info(f"     · 输入文章级数据集 df_exploded: {df_exploded.shape[0]:,d} 行 × "
+                    f"{df_exploded.shape[1]:,d} 列")
+        logger.info(f"     · full 轨文本列={_ftc} (content_ctx 存在={_has_ctx}, "
+                    f"content_ss 存在={_has_ss}; 缺 content_ctx/ss 则该轨优雅跳过)")
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"  配置信息打印失败 (不影响计算): {_e}")
 
@@ -358,7 +373,17 @@ def compute_authoritative_similarity(df_exploded, panel):
             continue
             
         logger.info(f"  正在处理轨道 {track_suffix}...")
-        
+
+        # 该轨喂入 ghost-anchor 计算的数据规模 (仅日志, 整数计数 :,d, 算完即弃)
+        try:
+            _n_units = len(agg_df)
+            _n_years = int(agg_df['year'].nunique())
+            _y_lo, _y_hi = int(agg_df['year'].min()), int(agg_df['year'].max())
+            logger.info(f"  轨 {track_suffix}: {_n_units:,d} 个 bank-year 聚合单元 "
+                        f"跨 {_n_years:,d} 年 (年范围 {_y_lo}-{_y_hi}) 喂入 ghost-anchor 余弦对锚")
+        except Exception as _e:  # noqa: BLE001
+            logger.warning(f"  轨 {track_suffix} 聚合统计打印失败 (不影响计算): {_e}")
+
         for year in sorted(agg_df['year'].unique()):
             dy = agg_df[agg_df['year'] == year]
             banks = dy['target_bank'].tolist()

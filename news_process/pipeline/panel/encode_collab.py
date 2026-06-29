@@ -126,6 +126,35 @@ _METHOD_REFS_SUBST = (
     "4179-4193. https://doi.org/10.1002/csr.3172",
 )
 
+# FLS (前瞻陈述 forward-looking statements) 专属锚点 — apply_v3_5_2 聚合的
+# frac_fls_{full,ctx,ss} 是 FLS 词表占比构念 (tone_dicts.json 的 FLS 词表操作化),
+# 其源文献是下列 FLS 测度专论, 而非 LM (2011) 情感词典 (banner 此前仅 emit L&M, 与
+# 'FLS' 命名错配)。仅供 emit 进日志 (golden-safe), 逐字取自项目 Crossref 三道核验
+# 注册表 (LITERATURE_ANCHORS_SUPPLEMENT_2026-06-21.md), 严禁臆造。
+_METHOD_REFS_FLS = (
+    # FLS 词表操作化先例: 管理层盈余预测与其他前瞻性陈述的文本测度 (frac_fls 正是其占比)
+    "Bozanic, Z., Roulstone, D. T., & Van Buskirk, A. (2018). Management "
+    "earnings forecasts and other forward-looking statements. Journal of "
+    "Accounting and Economics, 65(1), 1–20. "
+    "https://doi.org/10.1016/j.jacceco.2017.11.008",
+    # FLS 比例度量奠基: 公司文件中前瞻性陈述比例的朴素贝叶斯机器学习度量 (frac_fls 同型)
+    "Li, F. (2010). The information content of forward-looking statements in "
+    "corporate filings: A naïve Bayesian machine learning approach. Journal of "
+    "Accounting Research, 48(5), 1049–1102. "
+    "https://doi.org/10.1111/j.1475-679X.2010.00382.x",
+)
+
+# num_intensity (数字密度) 专属锚点 — aggregate_num_intensity_panel 产出的
+# mean_num_intensity_{full,ctx,ss} (+ 词级孪生) 度量新闻叙事的数字披露密集度, 其直接
+# 源文献是下列"数字披露的叙事语境"专论, 而非 LM (2011) 情感词典。仅供 emit 进日志
+# (golden-safe), 逐字取自项目 Crossref 三道核验注册表, 严禁臆造。
+_METHOD_REFS_NUMINT = (
+    # 数字披露密度的近期应用: 数字披露的叙事语境 (呼应 num_intensity 数字密集度构念)
+    "Taraj, I., & Wahlström, R. R. (2026). Narratives contextualizing numeric "
+    "disclosures: Insights from earnings calls. Journal of Business Finance & "
+    "Accounting, 53(3), 1263–1286. https://doi.org/10.1111/jbfa.70056",
+)
+
 # v3.5.0 D2: 8-cell encoding (baseline=cell 1 三维全 0)
 VALID_SUBST = {'实质性', '象征性'}
 VALID_LOCUS = {'底层技术', '应用场景'}
@@ -759,6 +788,32 @@ def apply_v3_5_0(df: pd.DataFrame, panel: pd.DataFrame,
                 for _i in range(1, 9)
             )
             logger.info(f"  📈 D2 8 格分布 (cell_id:n(占比)): {_cell_brief}")
+        # 📈 D4 say-do 解耦率 (per-dimension): 文章级 disagree/freerider/quietworker
+        # 在 both_valid 子集 (full/ctx 两路 canonical 标签) 中的占比 — 这才是 D4 的实质
+        # 发现 (full vs ctx 说做不一的横截面普遍程度), 此前 summary 只报残差列数 (len),
+        # 把它藏在列计数后。仅日志, both_valid/标签归一化均复用模块函数得 discarded local,
+        # 不改任何写盘值/schema/控制流。
+        for _short, _base, _bl, _ct in DIMS_D4:
+            _dcol = f'{_short}_disagree'
+            _fcol = f'{_short}_freerider'
+            _qcol = f'{_short}_quietworker'
+            _fc, _cc = f'{_base}_full', f'{_base}_ctx'
+            if not all(_c in df.columns for _c in (_dcol, _fcol, _qcol, _fc, _cc)):
+                continue
+            _bv = _both_valid_mask(_normalize_label(df[_fc]),
+                                   _normalize_label(df[_cc]), _bl, _ct)
+            _n_bv = int(_bv.sum())
+            if _n_bv == 0:
+                continue
+            _n_dis = int(df[_dcol].sum())
+            _n_free = int(df[_fcol].sum())
+            _n_quiet = int(df[_qcol].sum())
+            logger.info(
+                f"  📈 D4 解耦率 ({_short}, both_valid={_n_bv:,d}): "
+                f"disagree {pct4(_n_dis / _n_bv)} · "
+                f"freerider {pct4(_n_free / _n_bv)} · "
+                f"quietworker {pct4(_n_quiet / _n_bv)}"
+            )
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"  ⚠ apply_v3_5_0 计时/汇总日志失败 (graceful): {_e}")
 
@@ -1121,6 +1176,25 @@ def aggregate_num_intensity_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict
         if tmp in df.columns:
             del df[tmp]
 
+    # 📊 结果分布 (产出 headline 测度 mean_num_intensity_{full,ctx,ss} 的 bank-year 横截面
+    # 分布): 此前本函数对其输出零日志 (仅 graceful-skip 行), 审稿人需要实测的数字密度分布。
+    # 仅日志, 读已聚合进 panel 的列 (discarded local), 不改任何写盘值/schema/控制流。
+    try:
+        for _nm in ('mean_num_intensity_full', 'mean_num_intensity_ctx',
+                    'mean_num_intensity_ss'):
+            if _nm not in panel.columns:
+                continue
+            _v_ni = panel[_nm].dropna()
+            if len(_v_ni) == 0:
+                continue
+            logger.info(
+                f"  📊 {_nm} 分布 (bank-year): 非空 {len(_v_ni):,d} · "
+                f"mean={sig4(_v_ni.mean())} · std={sig4(_v_ni.std())} · "
+                f"min={sig4(_v_ni.min())} · max={sig4(_v_ni.max())}"
+            )
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  ⚠ A3 num_intensity 分布日志失败 (graceful): {_e}")
+
     return {'v3_5_1_num_intensity_added': out_cols}
 
 
@@ -1168,6 +1242,13 @@ def apply_v3_5_1(df: pd.DataFrame, panel: pd.DataFrame,
             "    · 方法 (词典法文本测度族, D0-frozen median 二值化防全样本中位数泄漏):"
         )
         for _ref in _METHOD_REFS_D4[:1]:  # Loughran & McDonald (2011) 词典文本分析锚点
+            logger.info(f"        - {_ref}")
+        # 📖 方法论依据 (A3 num_intensity 数字密度专属): mean_num_intensity_* 度量新闻
+        # 叙事的数字披露密集度, 直接源文献为"数字披露的叙事语境"专论 (非情感词典)。
+        logger.info(
+            "    · 📖 数字密度 (num_intensity) 测度依据 (数字披露的叙事语境):"
+        )
+        for _ref in _METHOD_REFS_NUMINT:
             logger.info(f"        - {_ref}")
         logger.info(
             "    · 白话: 把每篇文章的措辞清晰度/数字密集度按媒体权威×跟风权重加权, "
@@ -1286,6 +1367,25 @@ def apply_v3_5_1(df: pd.DataFrame, panel: pd.DataFrame,
             f"  📊 A1 clarity 判读: 产出 {_n_clar:,d} 列 → {_v}; "
             f"frozen median_amb(full)={sig4(_med)}"
         )
+        # 📊 结果分布 (headline 测度 mean_clarity_score_{full,ctx,ss} 的 bank-year 横截面
+        # 分布): 此前 summary 只报"列数 + frozen median", 从不报分布 — 审稿人要看的是
+        # 实测分布。仅日志, 读已聚合进 panel 的列 (discarded local), 不改任何写盘值/schema。
+        try:
+            for _cm in ('mean_clarity_score_full', 'mean_clarity_score_ctx',
+                        'mean_clarity_score_ss'):
+                if _cm not in panel.columns:
+                    continue
+                _v_clar = panel[_cm].dropna()
+                if len(_v_clar) == 0:
+                    continue
+                logger.info(
+                    f"  📊 {_cm} 分布 (bank-year): 非空 {len(_v_clar):,d} · "
+                    f"mean={sig4(_v_clar.mean())} · median={sig4(_v_clar.median())} · "
+                    f"std={sig4(_v_clar.std())} · min={sig4(_v_clar.min())} · "
+                    f"max={sig4(_v_clar.max())}"
+                )
+        except Exception as _e2:  # noqa: BLE001
+            logger.warning(f"  ⚠ A1 clarity 分布日志失败 (graceful): {_e2}")
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"  ⚠ apply_v3_5_1 计时/判读日志失败 (graceful): {_e}")
 
@@ -1336,6 +1436,13 @@ def apply_v3_5_2(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
         )
         logger.info("    · 方法 (LM 子词典文本分析, 不确定/诉讼/约束/语气/复杂度 + 前瞻陈述 FLS):")
         for _ref in _METHOD_REFS_D4[:1]:  # Loughran & McDonald (2011) 词典文本分析锚点
+            logger.info(f"        - {_ref}")
+        # 📖 方法论依据 (FLS 前瞻陈述专属): frac_fls_* 是 FLS 词表占比构念 (tone_dicts.json
+        # FLS 词表操作化), 源文献为下列 FLS 测度专论, 而非 LM (2011) 情感词典。
+        logger.info(
+            "    · 📖 前瞻陈述 (FLS) frac_fls 测度依据 (FLS 词表操作化 + 比例度量奠基):"
+        )
+        for _ref in _METHOD_REFS_FLS:
             logger.info(f"        - {_ref}")
         logger.info(
             "    · 白话: 把每篇文章在 6 个语言学子词典 + 前瞻陈述上的词频占比, "

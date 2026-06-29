@@ -1272,6 +1272,25 @@ def main():
     df = pd.read_parquet(input_path)
     input_rows = len(df)
     logger.info(f"已加载 {input_rows:,} 行数据。")
+    # ── [IO 来源溯源 · 输入边界 schema 指纹] 仅日志, golden-safe ──
+    # 入口处只记录行数 (input_rows) 不够: 顶刊复现要求阶段边界可追溯输入列宽与 schema。
+    # 这里补打 df.shape[1] 总列数 + 4 个被本阶段消费的文本列 (标题/内容/content_ctx/
+    # content_ss) 的在/缺, 作为 stage 22→23 边界的 schema 指纹 (输入血缘可审计)。
+    # _n_cols_in = 入口列宽, 是"只喂日志、绝不下游复用"的丢弃式 local, 供 Step 4 写盘处
+    # 计算派生列增量 (golden-safe: 纯 df.shape 读取, 不改任何控制流/列/数值)。
+    _n_cols_in = df.shape[1]
+    try:
+        _consumed_text_cols = ['标题', '内容', 'content_ctx', 'content_ss']
+        _present = [c for c in _consumed_text_cols if c in df.columns]
+        _absent = [c for c in _consumed_text_cols if c not in df.columns]
+        logger.info(
+            f"  📥 输入 schema 指纹: {input_rows:,} 行 × {_n_cols_in:,} 列 | "
+            f"消费文本列 在={_present} 缺={_absent if _absent else '无'} "
+            f"(覆盖率 {pct4(len(_present) / len(_consumed_text_cols))}; "
+            f"来源 stage 22 {os.path.basename(input_path)})"
+        )
+    except Exception as _e:  # noqa: BLE001  仅日志, 绝不影响产物
+        logger.warning(f"[输入 schema 指纹] 日志诊断异常, 跳过(不影响产物): {_e}")
     log_memory_usage(logger, "数据加载后")
 
     # ── Step 1: 一次性加载全部模型到 DEVICE (FP32; AMP 仅在 USE_AMP 时启用) ──
@@ -1377,6 +1396,23 @@ def main():
         input_files=[input_path],
     )
     logger.info(f"已保存输出文件: {output_path} ({len(df):,} 行)")
+    # ── [IO 来源溯源 · 输出边界派生列增量] 仅日志, golden-safe ──
+    # 本阶段为宽扇出: 3 模型 × ≤3 轨 × {label + 各标签概率 + (2-class 模型补)中性 +
+    # infer_failed} + ≤3 个 bert_num_windows_{track}。出口只打行数无法体现"加了多少列",
+    # 这里用载入时的丢弃式 _n_cols_in 对照写盘后 df.shape[1], 给出 BERT 派生产物的列增量
+    # 溯源 (纯 shape 读取, 不改任何控制流/列/数值 → golden-safe)。
+    try:
+        _n_cols_out = df.shape[1]
+        _n_added = _n_cols_out - _n_cols_in
+        _add_frac = _n_added / _n_cols_out if _n_cols_out > 0 else 0.0
+        logger.info(
+            f"  📤 输出 schema 指纹: {len(df):,} 行 × {_n_cols_out:,} 列 "
+            f"(入口 {_n_cols_in:,} 列 → 新增 BERT 派生列 {_n_added:,} 列, "
+            f"占出口列宽 {pct4(_add_frac)}; 扇出 = {len(MODEL_CONFIGS)} 模型 × "
+            f"{len(_track_outputs)} 轨)"
+        )
+    except Exception as _e:  # noqa: BLE001  仅日志, 绝不影响产物
+        logger.warning(f"[输出 schema 指纹] 日志诊断异常, 跳过(不影响产物): {_e}")
 
     # ── Step 5: 释放全部模型 ──
     engine.unload_all()

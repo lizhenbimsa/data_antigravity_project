@@ -885,8 +885,14 @@ def audit_descriptive_stats(panel: pd.DataFrame, name: str):
         logger.info("  核心变量描述性统计:")
         for var in existing:
             s = stats.loc[var]
+            # describe() 已算出 25%/50%/75% 三分位 (此前仅用 mean/std 而丢弃)。
+            # 白话: 情感/覆盖度多为右偏分布, 均值易被极端值拉偏; 补报
+            # median (50%) 作 outlier-robust 位置量 + 四分位区间 [Q1, Q3]
+            # (IQR=Q3−Q1) 作稳健离散量, 与 mean/std 互证分布形状。log-only。
             logger.info(f"  {var:40s} | n={int(s['n_valid']):>6,} | "
                         f"mean={sig4(s['mean']):>9} | std={sig4(s['std']):>9} | "
+                        f"median={sig4(s['50%']):>9} | "
+                        f"IQR=[{sig4(s['25%'])}, {sig4(s['75%'])}] | "
                         f"min={sig4(s['min']):>9} | max={sig4(s['max']):>9} | "
                         f"miss={pct4(s['missing_pct'])}")
 

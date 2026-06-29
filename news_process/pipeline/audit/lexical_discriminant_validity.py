@@ -521,8 +521,18 @@ def _write_track_report(report: dict, out_dir: Path, suffix: str) -> None:
     )
     for hk, nk, label in _pairs:
         hv = htmt.get(hk, float('nan'))
-        p95 = null.get(nk, {}).get('p95', float('nan'))
-        logger.info(f"    {label}: HTMT={sig4(hv)} (null_p95={sig4(p95)}) → {verdict.get(hk, 'nan')}")
+        # 日志富集 Round 8 (log-only, sig4): compute_permutation_null 已算完整 shuffle
+        # 参照分布 (mean/std/p95/p99, seed=42), 但此前只落 p95。改为同时记录 mean/sd/p95/p99,
+        # 让裁判看清观测 HTMT 是否连打乱 null 的 p99 都超越 (而非仅 p95) — 更严的"真相关
+        # 非偶然"证据。全部取自 report['permutation_null'][nk] 既算值, 不新增任何计算。
+        _nd = null.get(nk, {})
+        p95 = _nd.get('p95', float('nan'))
+        p99 = _nd.get('p99', float('nan'))
+        n_mean = _nd.get('mean', float('nan'))
+        n_sd = _nd.get('std', float('nan'))
+        logger.info(f"    {label}: HTMT={sig4(hv)} "
+                    f"(null mean={sig4(n_mean)} sd={sig4(n_sd)} p95={sig4(p95)} p99={sig4(p99)}) "
+                    f"→ {verdict.get(hk, 'nan')}")
     # HTMT 最大离对角值诊断 (log-only, sig4): 三对中最高者决定整体判别效度成败,
     # 低于 strict cutoff (Roemer 2021 HTMT2 / Henseler 2015) 则三指标全体各量各的。
     try:
@@ -531,6 +541,33 @@ def _write_track_report(report: dict, out_dir: Path, suffix: str) -> None:
         if _finite:
             logger.info(f"    HTMT 最大离对角值 = {sig4(max(_finite))} "
                         f"(三对中最高; < {sig4(HTMT_CUTOFF_STRICT)}=strict 则全体判别有效)")
+    except Exception:  # noqa: BLE001
+        pass
+    # Fornell-Larcker φ² (共享方差/对) 诊断 (日志富集 Round 8, log-only sig4):
+    # report['ave_phi_squared'] 早已算出 (compute_ave_and_phi_squared), 但此前从未落日志
+    # (.log 只记 HTMT=|r|, 漏掉 φ²=r² 这一"两构念共享方差幅度"与 √AVE>max(φ) 准则)。
+    # ⚠ 诚实披露单 item 退化: 单 indicator 构念 → AVE=1.0 → √AVE=1.0 平凡 > max|r|,
+    # 故 √AVE>max(φ) 准则在本退化下**恒平凡通过**, φ² 不作 pass/fail 判据, 仅作两两
+    # 共享方差幅度的诚实参考 (Fornell & Larcker 1981 准则, 已于上方 📖 块运行期引出)。
+    try:
+        _ave_phi = report.get('ave_phi_squared', {})
+        _phi2_items = ({k: v for k, v in _ave_phi.items() if k.startswith('phi2_')}
+                       if isinstance(_ave_phi, dict) else {})
+        if _phi2_items:
+            logger.info(f"    [{suffix}] Fornell-Larcker φ² 共享方差/对 "
+                        "(=r²; 单 item AVE=1.0 → √AVE 平凡通过, φ² 作幅度披露非判据):")
+            _phi2_finite = []
+            for _pk, _pv in _phi2_items.items():
+                if isinstance(_pv, (int, float)) and not np.isnan(_pv):
+                    _phi2_finite.append(_pv)
+                    logger.info(f"      {_pk} = {sig4(_pv)} (越小越判别有效, 两构念共享方差越少)")
+                else:
+                    logger.info(f"      {_pk} = nan (缺值/零方差)")
+            if _phi2_finite:
+                _max_phi2 = max(_phi2_finite)
+                logger.info(f"      φ² 最大共享方差 = {sig4(_max_phi2)} (三对中最高); "
+                            f"√AVE=1.000 > max(φ)=√max(φ²)={sig4(_max_phi2 ** 0.5)} "
+                            "→ Fornell-Larcker 准则平凡成立 (单 item 退化, 仅作幅度参考)")
     except Exception:  # noqa: BLE001
         pass
     _all_pass = bool(verdict) and all(v == 'strict_pass' for v in verdict.values())
@@ -669,6 +706,12 @@ def main():
         return
 
     panel = pd.read_parquet(panel_path)
+    # 📥 io-provenance (日志富集 Round 8, log-only golden-safe): 上方 '📂 输入/输出文件'
+    # 块在 read **之前**仅回显文件路径; 此处在 read **之后**立即记录真正读入的面板维度,
+    # 让 .log 自证本次判别效度检验实际吃进的 40_panel_yearly 快照 bank-year 行数 × 列数
+    # (仿 geography.py 在数据边界处记录 row/col 计数的金标准)。整数走 :,d, 无需 sig4。
+    logger.info(f"  📥 输入面板已读入: {len(panel):,d} bank-year 行 × {panel.shape[1]:,d} 列 "
+                f"(来自 {panel_path})")
 
     # substance 三轨各跑一次 (有 W&Z 理论符号锚 → 定向 κ; INDICATORS_SS 列缺失优雅跳过)
     for suffix, cols in (

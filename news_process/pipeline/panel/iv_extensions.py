@@ -814,14 +814,32 @@ def compute_iv_extensions(panel: pd.DataFrame,
                 n_good += 1
             # 横向区分度/识别力: std>0 才有一阶段相关变异; std≈0 = 工具退化近共线
             _std_note = ""
+            _dist_note = ""
             if n_valid > 10:
                 try:
                     _iv_std = panel[c].std()
                     _std_note = f" | std={sig4(_iv_std)} (横向区分度/识别力)"
                 except Exception:  # noqa: BLE001
                     _std_note = ""
+                # 工具完整经验分布: 中心 (mean/median) + 离散 (IQR) + 量程 (range)。
+                # 白话: std 只给一个"摊开程度"标量, 看不出工具是不是被几个极端值
+                # 撑大方差、是否区间坍缩成近常数、或重尾偏态 → 把均值/中位数/四分位
+                # /极值都打出来, 审稿人一眼能判工具刻度与退化情形。复用已物化的
+                # panel[c], 结果仅喂 logger 后丢弃, 不回写 panel/不改 dtype → golden-safe。
+                try:
+                    _d = panel[c].dropna()
+                    _dist_note = (
+                        f"        ↳ 分布: mean={sig4(_d.mean())} | "
+                        f"med={sig4(_d.median())} | "
+                        f"IQR=[{sig4(_d.quantile(.25))},{sig4(_d.quantile(.75))}] | "
+                        f"range=[{sig4(_d.min())},{sig4(_d.max())}]"
+                    )
+                except Exception:  # noqa: BLE001
+                    _dist_note = ""
             logger.info(f"    {c}: {n_valid:,d}/{n_panel:,d} "
                         f"({pct4(frac)}) {verdict}{_std_note}")
+            if _dist_note:
+                logger.info(_dist_note)
         logger.info(f"  汇总: IV 列 {len(_iv_cols):,d} 个 | "
                     f"可用 {n_good:,d} / 临界 {n_borderline:,d} / "
                     f"空 {n_empty:,d}")

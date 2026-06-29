@@ -52,6 +52,23 @@ EXPECTED_FIELDS = {
 _UNIT_SUSPECT_FIELDS = ("total_assets_billion_rmb", "retail_deposit_billion_rmb")
 
 
+# ── 经核验参考文献 (VERIFIED_REFERENCES; 逐字照抄 APA-7 + DOI, 仅运行期日志 emit 用) ──
+# 镜像 pipeline/panel/geography.py 的 _GEO_REFERENCES 范式: 把方法学锚点 emit 进 .log,
+# 让日志自证学术依据 (而非仅留在注释)。⚠ 仅放经 Crossref/DataCite 真值核验的 DOI。
+_REFERENCES = {
+    # R11 跨源构念效度 (construct validity): 用年报 ground-truth 反向核验 LLM 抽取的
+    # 会计/披露字段 — 与本模块 triangulate_with_annual_report 的 "NCD vs 年报差异 +
+    # 10× 单位错标记" 直接对标。白话: LLM 抽出来的数字不能只看抽得快不快, 还得拿权威
+    # 年报对一遍才算可信; 这篇正是讲生成式 LLM 在会计研究中如何对照基准做抽取效度验证。
+    # ⚠ pinned 在 R11/验证点 (非顶 banner): 本模块仅"校验"而不"运行"LLM 抽取, 避免装饰式引用。
+    "dekok_llm_validation": (
+        "de Kok, T. (2025). ChatGPT for textual analysis? How to use generative "
+        "LLMs in accounting research. Management Science, 71(9), 7888-7906. "
+        "https://doi.org/10.1287/mnsc.2023.03253"
+    ),
+}
+
+
 def detect_unit_mismatch(field_name: str, value: Any) -> bool:
     """10× 单位错误启发式 (亿元 vs billion): 越上界但 ÷10 在区间内 → True。"""
     if field_name not in _UNIT_SUSPECT_FIELDS or not isinstance(value, (int, float)):
@@ -183,13 +200,78 @@ def records_to_panel(records: list[dict], bank_id_lookup: dict[str, str] | None 
             "unit_suspect_fields": ";".join(cleaned.get("_unit_suspect_fields", [])),
         })
 
+    # ── 日志富集 (Round 8, log-only): 记录→面板抽取漏斗 + 字段校验质量摘要 ──
+    # 上游 LLM 抽取的银行财务字段 (含取值域核验) 的 attrition/质量是审稿核心关切。
+    # 纯只读重算: re-iterate records + 重调纯函数 validate_record (无副作用/不写全局),
+    # 结果仅 feed logger 后丢弃, 绝不参与 rows/df 构建 → 控制流与产物字节不变 (golden-safe)。
+    try:
+        _total_recs = len(records)
+        _n_parsed = sum(1 for _r in records if _r.get("response_parsed") is not None)
+        _n_rows = len(rows)  # parsed 且 bank_name 非空 → 追加成行 (已是上方既算 local)
+        _n_field_warn = 0     # ≥1 字段告警的记录数
+        _n_coerced = 0        # 类型/范围失败被置 None 的字段数 (排除 10× 单位疑似子集)
+        _n_unit_suspect = 0   # 10× 单位疑似 (亿元 vs billion) 标记总数
+        _n_fields_checked = 0  # 累计校验字段数 (分母)
+        for _r in records:
+            _p = _r.get("response_parsed")
+            if _p is None:
+                continue
+            _cl, _w = validate_record(_p)  # 纯函数, 仅取计数 (此处不重复 emit warning)
+            _n_fields_checked += len(EXPECTED_FIELDS)
+            if _w:
+                _n_field_warn += 1
+            _us = set(_cl.get("_unit_suspect_fields", []))
+            _n_unit_suspect += len(_us)
+            # input 非空但 cleaned 置 None 且非 10× 单位疑似 → 纯类型/范围失败 (干净分区)
+            _n_coerced += sum(
+                1 for _f in EXPECTED_FIELDS
+                if _cl.get(_f) is None and _p.get(_f) is not None and _f not in _us
+            )
+        logger.info("  🔎 记录→面板抽取漏斗 (provenance)")
+        logger.info(
+            f"     · 总抽取记录: {_total_recs:,d} → 含 response_parsed: {_n_parsed:,d} "
+            f"({pct4(_n_parsed / _total_recs) if _total_recs else '—'} of 总记录)"
+        )
+        logger.info(
+            f"     · 含非空 bank_name (追加成行): {_n_rows:,d} "
+            f"({pct4(_n_rows / _total_recs) if _total_recs else '—'} of 总记录; "
+            f"{pct4(_n_rows / _n_parsed) if _n_parsed else '—'} of parsed)"
+        )
+        logger.info("  🔬 字段校验质量摘要 (LLM 抽取数值的范围/类型核验)")
+        logger.info(
+            f"     · ≥1 字段告警的记录: {_n_field_warn:,d} "
+            f"({pct4(_n_field_warn / _n_parsed) if _n_parsed else '—'} of parsed)"
+        )
+        logger.info(
+            f"     · 类型/范围失败置 None 的字段: {_n_coerced:,d} / 累计校验 "
+            f"{_n_fields_checked:,d} 字段 "
+            f"({pct4(_n_coerced / _n_fields_checked) if _n_fields_checked else '—'})"
+        )
+        logger.info(
+            f"     · 10× 单位疑似 (亿元 vs billion) 标记: {_n_unit_suspect:,d} "
+            f"({pct4(_n_unit_suspect / _n_fields_checked) if _n_fields_checked else '—'} of 字段)"
+        )
+    except Exception as _e:  # noqa: BLE001 — 日志块绝不让转换崩 (golden-safe)
+        logger.warning(f"  (记录→面板漏斗/校验质量日志失败, 忽略不影响产物): {_e}")
+
     df = pd.DataFrame(rows)
     if df.empty:
         return df
 
     # 去重 (每个 bank-year 保留 source_pdf 排序最后的一条)
     df = df.sort_values(["bank_id", "year", "source_pdf"])
+    _n_pre_dedup = len(df)  # log-only: 去重前行数 (== len(rows), sort 不丢行)
     df = df.drop_duplicates(subset=["bank_id", "year"], keep="last").reset_index(drop=True)
+    # 日志富集 (Round 8, log-only): bank-year 去重折叠量 (纯 len 读, 不改 df)
+    try:
+        _n_collapsed = _n_pre_dedup - len(df)
+        logger.info(
+            f"  🧹 bank-year 去重: {_n_pre_dedup:,d} → {len(df):,d} 行 "
+            f"(折叠重复 bank-year {_n_collapsed:,d} 条, 保留 source_pdf 排序最末; "
+            f"保留率 {pct4(len(df) / _n_pre_dedup) if _n_pre_dedup else '—'})"
+        )
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  (去重计数日志失败, 忽略): {_e}")
     return df
 
 
@@ -442,6 +524,32 @@ def main(argv: list[str] | None = None) -> int:
         + (f" ({pct4(n_outliers / _n_cells)} of {_n_cells:,d} checked)" if _n_cells else "")
     )
 
+    # ── 📊 抽取 outcome 字段分布 (Round 8, log-only): 6 个核心财务字段的描述统计 ──
+    # 模块的核心产物 = bank-year 面板的抽取财务字段; 上方仅 logged shape + 离群计数,
+    # 缺字段层分布。逐列 emit n/均值/中位/标准差/四分位/极值 (非整数一律 sig4), 供审稿
+    # 核验 LLM 抽取数值的量纲与离散合理性 (审稿评估抽取数据质量的最高价值缺口)。
+    # 纯只读 panel, 结果仅 feed logger 后丢弃, 不回写/不参与计算 → golden-safe。
+    try:
+        _outcome_cols = ("total_assets", "npl", "car", "profit", "retail_dep", "info_tech")
+        logger.info("  📊 抽取 outcome 字段分布 (bank-year panel; 非整数均 sig4)")
+        for _col in _outcome_cols:
+            if _col not in panel.columns:
+                continue
+            _s = pd.to_numeric(panel[_col], errors="coerce").dropna()
+            _n = len(_s)
+            if _n == 0:
+                logger.info(f"     · {_col}: n=0 (全空, 无有效抽取值)")
+                continue
+            _q25, _q75 = _s.quantile(0.25), _s.quantile(0.75)
+            logger.info(
+                f"     · {_col}: n={_n:,d} mean={sig4(_s.mean())} "
+                f"median={sig4(_s.median())} std={sig4(_s.std())} "
+                f"p25/p75={sig4(_q25)}/{sig4(_q75)} "
+                f"[min,max]=[{sig4(_s.min())},{sig4(_s.max())}]"
+            )
+    except Exception as _e:  # noqa: BLE001 — 分布日志块绝不让阶段崩 (golden-safe)
+        logger.warning(f"  (outcome 字段分布日志失败, 忽略不影响产物): {_e}")
+
     if args.annual_report and Path(args.annual_report).exists():
         _t = time.time()
         ar_panel = pd.read_parquet(args.annual_report)
@@ -453,6 +561,24 @@ def main(argv: list[str] | None = None) -> int:
             f"R11 triangulation: {n_inconsistent:,d} inconsistent rows across "
             f"{len(inconsistent_cols):,d} fields"
         )
+        # 📖 构念效度锚点 (Round 8): R11 = 用年报 ground-truth 反向核验 LLM 抽取的会计
+        # 字段 (差异 + 10× 单位错标记), 正是"对照基准验证生成式 LLM 抽取结果"的方法学步骤。
+        # 锚点 pinned 在 R11 验证点 (非顶 banner) — 本模块仅校验、不运行 LLM 抽取 (避免装饰式引用)。
+        logger.info(f"  📖 {_REFERENCES['dekok_llm_validation']}")
+        # 📊 单位错 vs 真不一致区分 (log-only): unit_mismatch_<f>=True 可机械 ÷10 修复,
+        # 余为须人工裁决的真数值不一致; 纯只读 triangulation 列求和, 结果仅 feed logger。
+        try:
+            _um_cols = [c for c in triangulation.columns if c.startswith("unit_mismatch_")]
+            if _um_cols:
+                _n_unit_mismatch = int(sum(int(triangulation[c].sum()) for c in _um_cols))
+                _n_rows_tri = len(triangulation)
+                logger.info(
+                    f"     · 其中 10× 单位错 (亿元/billion) 标记: {_n_unit_mismatch:,d} "
+                    f"({pct4(_n_unit_mismatch / _n_rows_tri) if _n_rows_tri else '—'} of "
+                    f"{_n_rows_tri:,d} 三角对照行; 可机械 ÷10 修复)"
+                )
+        except Exception as _e:  # noqa: BLE001 — 单位错统计日志块绝不让阶段崩
+            logger.warning(f"  (R11 单位错统计日志失败, 忽略): {_e}")
 
     _t = time.time()
     output_path = Path(args.output)
@@ -460,6 +586,23 @@ def main(argv: list[str] | None = None) -> int:
     panel.to_parquet(output_path, index=False)
     phase_durations["⑤写出parquet"] = time.time() - _t
     logger.info(f"Wrote panel to {output_path}")
+
+    # ── 📦 落盘 schema provenance (Round 8, log-only): 写出 parquet 的列/类型契约 ──
+    # shape 已在上方 logged; 此处补列清单 + dtype 直方图, 完成 stage-boundary I/O 契约
+    # (per-column 非空计数已在上方 outcome 分布块逐列 emit, 此处刻意不重复以避免冗余)。
+    # 纯只读 panel.dtypes/columns, 结果仅 feed logger → golden-safe。
+    try:
+        _dtype_hist: dict[str, int] = {}
+        for _dt in panel.dtypes.astype(str):
+            _dtype_hist[_dt] = _dtype_hist.get(_dt, 0) + 1
+        logger.info(
+            f"  📦 落盘 schema: {panel.shape[0]:,d} 行 × {panel.shape[1]:,d} 列 "
+            f"→ {output_path.name}"
+        )
+        logger.info(f"     · dtype 直方图: {_dtype_hist}")
+        logger.info(f"     · 列清单: {list(panel.columns)}")
+    except Exception as _e:  # noqa: BLE001 — 落盘 schema 日志块绝不让阶段崩
+        logger.warning(f"  (落盘 schema 日志失败, 忽略): {_e}")
 
     # ── ⏱ 阶段计时汇总 (墙钟秒, sig4; 纯日志, golden-safe) ──
     _total = time.time() - _start

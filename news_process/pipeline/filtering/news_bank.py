@@ -483,6 +483,15 @@ def _log_environment_and_methodology(input_path: str, output_path: str) -> None:
                     f"| n_jobs={parallel_cfg.get('n_jobs', -1)} (joblib)")
 
         logger.info("  📖 方法论依据 (核心方法/构念学术出处; 逐字取自经核验参考文献注册表)")
+        # 核心匹配引擎的算法原语出处: 本阶段全部银行别名命中 + 否定模式排除均由 Aho-Corasick
+        # 多模式自动机一次线性扫描完成 (见 BANK_AC_AUTOMATON / NEGATION_AC 构建 + 上文 docstring
+        # '性能优化' 段), 复杂度从 O(文本长度×银行数×变体数) 降至 O(文本长度); 此为该算法原始文献。
+        # 白话: 把成百上千个银行名编进一张'状态机', 读一遍文章即同时查出所有名字命中, 不必逐名重扫。
+        logger.info("     · 核心匹配引擎 (Aho-Corasick 多模式自动机一次线性扫描全部银行别名 + "
+                    "否定模式, 复杂度 O(文本长度) — 见 BANK_AC_AUTOMATON / NEGATION_AC; 原始算法文献):")
+        logger.info("       Aho, A. V., & Corasick, M. J. (1975). Efficient string matching: An "
+                    "aid to bibliographic search. Communications of the ACM, 18(6), 333-340. "
+                    "https://doi.org/10.1145/360825.360855")
         logger.info("     · 企业级文本暴露度 (article×bank 展开 + mention_density value-weighted "
                     "exposure 对标 firm-level exposure 框架):")
         logger.info("       Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). "
@@ -582,6 +591,20 @@ def main():
     input_rows = len(df)
     _t_load = time.time() - _t_load0
     logger.info(f"已加载 {input_rows:,} 行数据。(⏱ 加载耗时 {sig4(_t_load)} 秒)")
+    # ── io provenance (日志富集, golden-safe; 只读 df.shape/dtypes, 不改任何产物) ──
+    # 现状只记录输入行数; 这里补输入列宽 + classify_batch / compute_news_salience 真正消费的
+    # 承载性源列 (内容/标题/版面/页号/作者) 的存在性与 dtype, 让 11_news_bank.log 自证读到的
+    # schema (复现核对 / 排错上游缺列 — 如 '标题' 缺失会静默退化为空标题轨)。
+    try:
+        _src_cols = ['内容', '标题', '版面', '页号', '作者']
+        _src_schema = {
+            c: (str(df[c].dtype) if c in df.columns else '缺失')
+            for c in _src_cols
+        }
+        logger.info(f"  📥 输入 schema: {df.shape[1]:,} 列 × {input_rows:,} 行 | "
+                    f"承载源列 dtype: {_src_schema}")
+    except Exception as _e:  # noqa: BLE001 — schema 诊断绝不阻断处理
+        logger.info(f"  📥 [输入 schema 诊断] 跳过 (不影响处理): {_e}")
     log_memory_usage(logger, "数据加载后")
 
     # --- 执行并行分类 ---
@@ -633,6 +656,22 @@ def main():
     after_count = len(processed_df)
     logger.info(f"展开后 Firm-Document 对总数: {after_count:,} 行")
 
+    # ── io provenance (输出端, golden-safe; 只读 shape, 不改任何产物) ──
+    # 现状只记录输出行数; 补输出列宽 + 相对输入新增列数。合格行常态追加 9 个 firm-doc 列
+    # (is_bank_news/target_bank/.../mention_density) + len(NEWS_SALIENCE_KEYS) 个体裁显著性列;
+    # 仅当全部批次均无银行新闻的全空回退路径才退化为 is_bank_news/matched_banks_info 两列。
+    try:
+        _out_w = processed_df.shape[1]
+        _in_w = df.shape[1]
+        _appended = _out_w - _in_w
+        _canonical_appended = 9 + len(NEWS_SALIENCE_KEYS)
+        logger.info(f"  📤 输出 schema: {_out_w:,} 列 × {after_count:,} 行 | "
+                    f"相对输入 {_in_w:,} 列新增 {_appended:,} 列 "
+                    f"(常态追加 9 firm-doc 列 + {len(NEWS_SALIENCE_KEYS)} 体裁显著性列 "
+                    f"= {_canonical_appended:,}; 全空回退仅 2 列)")
+    except Exception as _e:  # noqa: BLE001 — schema 诊断绝不阻断产物
+        logger.info(f"  📤 [输出 schema 诊断] 跳过 (不影响产物): {_e}")
+
     # ── 黄金范式【结果分析】: 取真实产出指标 + 对照阈值/预期方向给判读 ────────
     # 注: 下述变量均为只服务于日志的局部计算, 不回写 df / 不改任何产物。
     # crash-guard: 整个分析块在最终写盘 (save_parquet_with_metadata) 之前执行,
@@ -678,6 +717,29 @@ def main():
             f"误中'农行'之类); 恒为 0 时若语料含大量银行简称, 需复核排除词典是否真正加载。"
         )
 
+        # 银行集中度 (deepen_result): log_classification_report 已按篇数排序输出全榜单 +
+        # 涉及不同银行数, 但缺一个一眼可读的集中度数 — 此处补 Top-5 份额 (前 5 大行占全部
+        # firm-document 行比例) + HHI (= Σ 份额², Herfindahl-Hirschman), 刻画银行-年度面板
+        # 样本是被少数大行主导还是均匀铺开 (样本均衡/代表性, 与上文'覆盖面越广越不偏'判读互补)。
+        # 纯读已建 Counter merged_stats['bank_article_counts'], 不改产物 (golden-safe)。
+        try:
+            _bac = merged_stats.get('bank_article_counts', Counter())
+            _bac_total = sum(_bac.values())
+            if _bac_total > 0:
+                _top5 = sum(c for _, c in _bac.most_common(5))
+                _top5_share = _top5 / _bac_total
+                _hhi = sum((c / _bac_total) ** 2 for c in _bac.values())
+                _even_base = (1.0 / _unique_banks) if _unique_banks > 0 else float('nan')
+                logger.info(
+                    f"  · 银行集中度: Top-5 大行占 {_top5:,}/{_bac_total:,} firm-document 行 "
+                    f"= {pct4(_top5_share)} | HHI={sig4(_hhi)} "
+                    f"(= Σ 份额², 完全均匀基准 1/{_unique_banks}≈{sig4(_even_base)})。判读: Top-5 "
+                    f"份额 / HHI 越高 = 样本越被少数大行主导 (系数受大行驱动, 银行-年度面板偏集中); "
+                    f"越接近均匀基准 = 覆盖越均衡、代表性越好。"
+                )
+        except Exception as _bce:  # noqa: BLE001 — 集中度诊断绝不阻断产物
+            logger.info(f"  · [银行集中度] 计算跳过 (不影响产物): {_bce}")
+
         # mention_density 分布 (deepen_result): value-weighted exposure 的离散程度,
         # 右偏越重 = 越多文章把目标银行当核心主题 (高占比报道, Hassan 2019 QJE)。纯日志,
         # 仅读已落列 mention_density, 不回写任何列 (golden-safe), 自带 try/except 防拖垮。
@@ -698,6 +760,28 @@ def main():
                     )
         except Exception as _mde:  # noqa: BLE001 — 分布诊断绝不阻断产物
             logger.info(f"  · [mention_density 分布] 计算跳过 (不影响产物): {_mde}")
+
+        # doc_length 分布 (deepen_result): 文章字符长度 = len(str(内容)), 在本阶段逐
+        # firm-document 行物化 (作 mention_density 分母), 但此前仅 geography 记录 bank-year
+        # 均值 avg_doc_length — 此处补语料级 7 数概览 (文章长度是 text-as-data 语料的标准
+        # 描述统计, 审稿人常要)。纯读已落列 doc_length, 不回写 (golden-safe), 自带 try/except。
+        try:
+            if 'doc_length' in processed_df.columns and after_count > 0:
+                _dl = pd.to_numeric(
+                    processed_df['doc_length'], errors='coerce').dropna()
+                if len(_dl) > 0:
+                    logger.info(
+                        f"  · 文档长度 doc_length 分布 (= len(str(内容)) 字符数, "
+                        f"mention_density 分母): 均值={sig4(_dl.mean())} "
+                        f"σ={sig4(_dl.std()) if len(_dl) > 1 else 'n/a'} | "
+                        f"中位={sig4(_dl.median())} p25={sig4(_dl.quantile(0.25))} "
+                        f"p75={sig4(_dl.quantile(0.75))} | "
+                        f"min={sig4(_dl.min())} max={sig4(_dl.max())} (n={len(_dl):,})。"
+                        f"判读: 中位反映语料典型篇幅; 长右尾 (max≫p75) = 少数长篇深度报道, "
+                        f"其 mention_density 分母更大、单次提及权重被摊薄。"
+                    )
+        except Exception as _dle:  # noqa: BLE001 — 分布诊断绝不阻断产物
+            logger.info(f"  · [doc_length 分布] 计算跳过 (不影响产物): {_dle}")
 
         # 优雅降级警告: 假阳性排除词典缺失 → 两道闸门失效
         if NEGATION_AC is None and not SHORT_NAME_EXCLUSIONS:

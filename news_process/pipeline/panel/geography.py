@@ -115,6 +115,17 @@ _GEO_REFERENCES = {
         "news, and capital market consequences. Management Science, 71(8), "
         "6602-6626. https://doi.org/10.1287/mnsc.2023.02247"
     ),
+    # 2026-06-29 (Round 8): 少聚类数 (few-cluster) 聚类稳健推断的 2023 权威实操综述
+    # — 取代步骤 7c 原仅以短名 emit 的 Cameron & Miller (2015, JHR, 不在经核验注册表)。
+    # 白话: 当聚类组只有几十个 (本项目省级=31<50), 常规聚类标准误会系统性偏小、t 值
+    # 虚高; 此文是 wild cluster bootstrap (boottest) 等少聚类校正的当代方法学总锚, 与
+    # 下方 n_prov<50→建议 boottest 的日志推荐直接对标 (DOI verbatim 取自经核验注册表)。
+    "mackinnon_cluster_robust": (
+        "MacKinnon, J. G., Nielsen, M. Ø., & Webb, M. D. (2023). "
+        "Cluster-robust inference: A guide to empirical practice. Journal of "
+        "Econometrics, 232(2), 272-299. "
+        "https://doi.org/10.1016/j.jeconom.2022.04.001"
+    ),
 }
 
 
@@ -732,9 +743,15 @@ def merge_bank_geography(panel: pd.DataFrame) -> pd.DataFrame:
     n_prov = panel[panel['bank_province'] != '']['bank_province'].nunique()
     n_city = panel[panel['bank_city'] != '']['bank_city'].nunique()
     logger.info(f"  省份聚类数: {n_prov} "
-                f"{'< 50, 建议补充 wild cluster bootstrap' if n_prov < 50 else '✓ ≥ 50'}")
+                f"{'< 50, 建议补充 wild cluster bootstrap (boottest)' if n_prov < 50 else '✓ ≥ 50'}")
     logger.info(f"  城市聚类数: {n_city} "
                 f"{'< 50' if n_city < 50 else '✓ ≥ 50'}")
+    # 📖 少聚类数推断锚点 (2026-06-29, Round 8): 当省级聚类数 31<50, 上面建议的 wild
+    # cluster bootstrap (boottest) 由此 2023 权威实操综述直接背书 — 论证少聚类下常规
+    # 聚类标准误偏小、t 值虚高, 须用 wild cluster bootstrap 校正 (verbatim, 经核验)。
+    # 与 conley_kelly_spatial (空间自相关 SE, 不同方法) 并列、非重复; 取代旧短名引用。
+    if n_prov < 50 or n_city < 50:
+        logger.info(f"  📖 {_GEO_REFERENCES['mackinnon_cluster_robust']}")
 
     # ── 分布摘要 (供审查地理覆盖合理性) ──
     prov_dist = panel[panel['bank_province'] != '']['bank_province'].value_counts()

@@ -1250,6 +1250,16 @@ def main():
                     "Benchmark. In Proceedings of the 2025 Conference on Empirical Methods in "
                     "Natural Language Processing (pp. 3620-3638). Association for Computational "
                     "Linguistics. https://doi.org/10.18653/v1/2025.emnlp-main.179")
+        # 白话: 超长政策文本被切成多段、各段独立嵌入后取均值 (mean pooling) 合成单一锚点向量
+        #   (_pooled_anchor: sub.mean(axis=0)+L2 归一; _split_into_chunks 朴素分段) —— 这一
+        #   "分段→池化" 聚合范式即出自 Sentence-BERT, 是本阶段构造政策锚点向量的核心算子。
+        logger.info("  · 朴素分段 + Mean Pooling 合成锚点向量 (本阶段超长文本 chunk-then-pool 聚合算子):")
+        logger.info("    Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings "
+                    "using Siamese BERT-networks. In Proceedings of the 2019 Conference on "
+                    "Empirical Methods in Natural Language Processing and the 9th International "
+                    "Joint Conference on Natural Language Processing (EMNLP-IJCNLP) (pp. "
+                    "3980-3990). Association for Computational Linguistics. "
+                    "https://doi.org/10.18653/v1/D19-1410")
         logger.info("  · 宏观政策向量注入微观企业文本空间 (锚点注入范式):")
         logger.info("    Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). "
                     "Firm-level political risk: Measurement and effects. The Quarterly Journal "

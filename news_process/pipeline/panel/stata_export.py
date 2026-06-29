@@ -1389,6 +1389,25 @@ def _log_environment_and_config(log, stage_name: str, panel_path: str, output_di
 
         # ④ 📖 方法论依据 (参考文献 emit 进日志; 仅引经核验注册表条目, 逐字照抄 DOI)
         log.info("  📖 方法论依据 (本阶段类别编码 / 三轨归因 / 词典-清晰度标签的学术出处)")
+        # —— 类别编码三维度学术锚点 (与 HEURISTIC_LABELS / 模块顶部「锚定文献」docstring 同源,
+        #    逐字照抄 APA-7 + 经核验 DOI; 把 encode_categorical_columns 的 0/1 映射方向锚到原始构念)。
+        log.info("     · 实质-象征二元编码 (SUBSTANTIVENESS): Westphal, J. D., & Zajac, E. J. (1998). "
+                 "The symbolic management of stockholders: Corporate governance reforms and shareholder "
+                 "reactions. Administrative Science Quarterly, 43(1), 127-153. https://doi.org/10.2307/2393593")
+        log.info("       → 白话: 把金科创新分成「真做事 (实质性=0)」与「只表态做样子 (象征性=1)」, "
+                 "编码方向 0=实质/1=象征即沿 W&Z 的实质 vs 象征性公司治理改革之分。")
+        log.info("     · 底层技术-应用场景二元编码 (LOCUS): Gomber, P., Kauffman, R. J., Parker, C., & "
+                 "Weber, B. W. (2018). On the fintech revolution: Interpreting the forces of innovation, "
+                 "disruption, and transformation in financial services. Journal of Management Information "
+                 "Systems, 35(1), 220-265. https://doi.org/10.1080/07421222.2018.1440766")
+        log.info("       → 白话: 把创新落点分成「底层使能技术 (locus=0)」与「面向客户的应用业务 (locus=1)」, "
+                 "对应 Gomber 等对 enabling technology vs business function 的二分。")
+        log.info("     · 自主研发-外部协同二元编码 (COLLAB_MODE, 开放式创新): Laursen, K., & Salter, A. "
+                 "(2006). Open for innovation: The role of openness in explaining innovation performance "
+                 "among U.K. manufacturing firms. Strategic Management Journal, 27(2), 131-150. "
+                 "https://doi.org/10.1002/smj.507")
+        log.info("       → 白话: 把研发模式分成「闭门自研 (collab_mode=0)」与「对外开放协同 (collab_mode=1)」, "
+                 "即 Chesbrough 开放式创新 / Laursen & Salter 的 external search breadth 之分。")
         log.info("     · 实体邻近归因 (ctx 轨): Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). "
                  "Firm-level political risk: Measurement and effects. The Quarterly Journal of Economics, "
                  "134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021")

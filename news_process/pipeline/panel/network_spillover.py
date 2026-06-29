@@ -105,6 +105,18 @@ _CMNT_MIN_COMPONENT_SIZE = 3
 # ⚠ 铁律: 该 flag 仅服务日志去重, 绝不进入任何产物/控制流; banner emit 只在函数体内执行。
 _ENV_BANNER_EMITTED = False
 
+# ── 经核验参考文献 (逐字照抄 APA-7 + DOI; 仅日志用; DOI 在经核验注册表内) ──
+# 与 _log_network_env_and_config banner 的 11 条**互补**: 此条专门服务 compute_network_spillovers
+# 步骤 7f 的二阶 W² 去对角排他性识别 (网络型 peer-effects IV), 故不放进通用 banner、而在 W²
+# 排他点就地 emit (geography.py 以 _GEO_REFERENCES['bramoulle_peer'] 同条 verbatim emit, 对齐口径)。
+_NSP_REFERENCES = {
+    "bramoulle_peer": (
+        "Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of "
+        "peer effects through social networks. Journal of Econometrics, "
+        "150(1), 41-55. https://doi.org/10.1016/j.jeconom.2008.12.021"
+    ),
+}
+
 
 def _log_network_env_and_config() -> None:
     """打印一次性 项目/环境/配置/方法论依据 banner (日志富集, 2026-06-24)。
@@ -378,7 +390,19 @@ def compute_network_spillovers(
     logger.info("步骤 7f: 同行网络传染/溢出效应计算 (row-stochastic 空间滞后 W×tone)")
     logger.info("  · 方法: LeSage & Pace (2009) 行随机 W + Leary-Roberts (2014) 同行均值 "
                 "+ Lag(Y-1) 规避 Manski (1993) 反射问题")
+    # 📖 二阶 W² 去对角的排他性识别依据 (网络型 peer-effects IV): 下方 :458-482 排除 W² 对角
+    # (本行自身滞后 tone)、并以 peer_tone_2nd 作 brokerage 2SLS 工具, 正是 Bramoullé-Djebbari-
+    # Fortin (2009) 通过社会网络识别 peer 效应所要求的排他约束 (二阶邻居作工具须剔除经 W² 回流
+    # 的自身信息)。白话: 拿"朋友的朋友的舆论"当推力, 要先扣掉绕一圈又回到自己头上的部分, 工具才干净。
+    logger.info(f"  📖 {_NSP_REFERENCES['bramoulle_peer']}")
     logger.info("=" * 60)
+
+    # 📥 输入数据来源/规模指纹 (复现 provenance, 纯日志): 篇章级展开帧 × 银行-年面板维度。
+    try:
+        logger.info(f"  📥 输入: df_exploded {len(df_exploded):,d}×{df_exploded.shape[1]:,d} 行×列 "
+                    f"| panel {len(panel):,d}×{panel.shape[1]:,d} 行×列")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  (输入维度日志失败, 忽略): {_e}")
 
     # fix(omni-g-net-spill-01, 2026-06-11): docid 是 both-verified 主路径键;
     # co_mentioned_banks 仅作降级兜底 — 两者皆缺才跳过。
@@ -569,6 +593,16 @@ def compute_network_spillovers(
                     logger.info(f"     · peer_tone_lag1_full 分布: mean={sig4(_vals.mean())} "
                                 f"std={sig4(_vals.std())} "
                                 f"min={sig4(_vals.min())} max={sig4(_vals.max())}")
+                # IV 孪生分布 (peer_tone_2nd_lag1_full = brokerage 2SLS 显式工具, 见 :462):
+                # 其横截面离散度 (std/min/max) 直接是弱工具诊断 — 工具的截面变异越大, 第一阶段
+                # F 越可能强。镜像上方一阶分布块, 共享同一 try/except + dropna 长度检查。
+                _iv2 = 'peer_tone_2nd_lag1_full'
+                if _iv2 in panel.columns:
+                    _vals2 = panel[_iv2].dropna()
+                    if len(_vals2):
+                        logger.info(f"     · peer_tone_2nd_lag1_full 分布 (brokerage IV 工具): "
+                                    f"mean={sig4(_vals2.mean())} std={sig4(_vals2.std())} "
+                                    f"min={sig4(_vals2.min())} max={sig4(_vals2.max())}")
         except Exception as _e:  # noqa: BLE001
             logger.warning(f"  溢出结果分析失败 (不影响产物): {_e}")
     else:
@@ -805,6 +839,13 @@ def compute_bank_network_centrality(
     logger.info("  · 方法: Freeman (1978) 中心度 + Billio et al. (2012, JFE) 网络连通 "
                 "+ Gould-Fernandez (1989) 经纪角色")
     logger.info("=" * 60)
+
+    # 📥 输入数据来源/规模指纹 (复现 provenance, 纯日志): 篇章级展开帧 × 银行-年面板维度。
+    try:
+        logger.info(f"  📥 输入: df_exploded {len(df_exploded):,d}×{df_exploded.shape[1]:,d} 行×列 "
+                    f"| panel {len(panel):,d}×{panel.shape[1]:,d} 行×列")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  (输入维度日志失败, 忽略): {_e}")
 
     years = sorted(panel['year'].unique())
     logger.info(f"  面板年份范围: {min(years)}-{max(years)}, 共 {len(years):,d} 年")
@@ -1272,6 +1313,13 @@ def compute_cognitive_proximity(
                 "https://doi.org/10.1080/0034340052000320887 — 认知邻近度 = 知识基础相似度")
     logger.info("=" * 60)
 
+    # 📥 输入数据来源/规模指纹 (复现 provenance, 纯日志): 篇章级展开帧 × 银行-年面板维度。
+    try:
+        logger.info(f"  📥 输入: df_exploded {len(df_exploded):,d}×{df_exploded.shape[1]:,d} 行×列 "
+                    f"| panel {len(panel):,d}×{panel.shape[1]:,d} 行×列")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  (输入维度日志失败, 忽略): {_e}")
+
     # 文本列发现 (复用 24_herd_decay_processor.py L86-87 逻辑)
     text_col = ('内容' if '内容' in df_exploded.columns else
                 '正文' if '正文' in df_exploded.columns else 'content')
@@ -1683,6 +1731,13 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
                 "构建动态同行网; Manski (1993) Lag(Y-1) 规避反射问题")
     logger.info("  · ⚠ 成本: 嵌入 miss 时付费 yunwu /embeddings; 命中 _llm_cache.db 即 $0")
     logger.info("=" * 60)
+
+    # 📥 输入数据来源/规模指纹 (复现 provenance, 纯日志): 篇章级展开帧 × 银行-年面板维度。
+    try:
+        logger.info(f"  📥 输入: df_exploded {len(df_exploded):,d}×{df_exploded.shape[1]:,d} 行×列 "
+                    f"| panel {len(panel):,d}×{panel.shape[1]:,d} 行×列")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  (输入维度日志失败, 忽略): {_e}")
 
     tone_col = 'llm_vote_tone_full'
     if tone_col not in panel.columns:

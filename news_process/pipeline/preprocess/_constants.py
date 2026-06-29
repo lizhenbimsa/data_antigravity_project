@@ -25,8 +25,11 @@ _project_parent = os.path.dirname(
 if _project_parent not in sys.path:
     sys.path.insert(0, _project_parent)
 
+# 日志富集 (Round 8, 2026-06-29): pct4 = 项目"日志非整数一律四位有效数字"规范的单一事实源
+# (core/logging.py)。本模块 import 期溯源横幅/过滤旋钮清单中唯一的非整数 (锚定占比) 经 pct4
+# 渲染; 其余均为整数计数 (:,d)。
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging
+from news_process.core.logging import pct4, setup_logging
 
 # ============================================================================
 # 1. 配置 + logger
@@ -44,6 +47,28 @@ logger = setup_logging(STAGE_NAME, CONFIG['paths']['log_dir'], console_only=_is_
 # 去重相关配置
 DEDUP_PARAMS = CONFIG.get('deduplication', {})
 nb_workers = DEDUP_PARAMS.get("parallel_workers", os.cpu_count() or 1)
+
+# ── 经核验参考文献 (逐字照抄 APA-7 + DOI; 仅运行期日志用, 不参与任何计算/产物) ──
+# 让 logs/00_preprocessing.log 自证预处理阶段的方法学锚点 (而非只留代码注释)。
+_PREPROCESS_REFERENCES = {
+    # 白话: PREPROCESS_CODE_VERSION 是"清洗代码版本号", 任何改清洗语义都须 bump 它使旧
+    #   per-file 缓存失效重算 (见 runner.py::compute_preprocess_cache_key) → 正是"可复现计算
+    #   研究"所要求"记录每步代码版本/产物来源, 使结果可追溯重建"这条规则的工程落地。
+    "reproducible_compute": (
+        "Sandve, G. K., Nekrutenko, A., Taylor, J., & Hovig, E. (2013). Ten "
+        "simple rules for reproducible computational research. PLoS "
+        "Computational Biology, 9(10), e1003285. "
+        "https://doi.org/10.1371/journal.pcbi.1003285"
+    ),
+    # 白话: 把"原始报刊文本→可计算样本"的过滤/归一/取舍旋钮 (广告词表/媒体正名/纳入排除
+    #   清单) 全部写进日志, 即 Text-as-Data 范式所强调的"语料预处理/特征构造决策须可追溯
+    #   披露"实践 —— 不同的清洗/筛选口径会实质改变文本测度。
+    "text_as_data": (
+        "Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal "
+        "of Economic Literature, 57(3), 535-574. "
+        "https://doi.org/10.1257/jel.20181020"
+    ),
+}
 
 
 # ============================================================================
@@ -129,6 +154,19 @@ NORMALIZATION_PARAMS = CONFIG.get('normalization', {})
 # v3 (2026-06-25): MEDIA_NAME_OVERRIDES 新增 24 个媒体名归一 (改名/typo/省名前缀/后缀报/
 #   地方版; 媒体权重覆盖率补全) → 旧缓存须失效重算以应用归一。
 PREPROCESS_CODE_VERSION = 'v3-2026-06-25-media-canon'
+
+# 可复现性/溯源横幅 (Round 8): import 时一次性回显 per-file 缓存失效键
+# PREPROCESS_CODE_VERSION (改变清洗语义必 bump → 旧缓存失效重算, 防盘上语料成为不同清洗
+# 规则的混合体) 与去重并行度 workers。这是预处理阶段最关键的复现性常量, 此前从未入日志。
+# 纯字符串/整数, golden-safe (只读已算模块局部量, 不参与任何计算)。
+try:
+    logger.info(
+        f"清洗代码版本 PREPROCESS_CODE_VERSION={PREPROCESS_CODE_VERSION} | "
+        f"去重并行 workers={nb_workers:,d}"
+    )
+    logger.info(f"  📖 {_PREPROCESS_REFERENCES['reproducible_compute']}")
+except Exception as _e:  # noqa: BLE001 — 日志块绝不让 import 崩
+    logger.warning(f"(版本溯源横幅日志失败, 忽略不影响处理): {_e}")
 
 
 # ============================================================================
@@ -222,6 +260,22 @@ try:
             f"已加载 {len(noise_patterns_list):,d} 个噪声模式 "
             f"(网页互动计数族已永久排除 — 报纸语料)"
         )
+        # io 溯源 (Round 8): 把语料级永久排除规则记账写进日志 —— 原始键总数、被整键剔除的
+        # 网页互动计数族 (INTERACTION_NOISE_KEYS: view/like/comment/share/collect/count_suffix)、
+        # 被跳过的 `_`-注释键; 让 .log 自证"哪些噪声家族被删、哪些键是文档注释"。
+        # 纯整数计数, golden-safe (只读已加载的 noise_data, 不改任何值)。
+        try:
+            _n_raw_keys = len(noise_data)
+            _n_interaction = sum(1 for k in noise_data if k in INTERACTION_NOISE_KEYS)
+            _n_comment = sum(1 for k in noise_data if str(k).startswith('_'))
+            logger.info(
+                f"  噪声键溯源: 原始键={_n_raw_keys:,d} | "
+                f"互动计数族永久排除={_n_interaction:,d} | "
+                f"注释键(_*) 跳过={_n_comment:,d} | "
+                f"生效模式={len(noise_patterns_list):,d}"
+            )
+        except Exception as _e:  # noqa: BLE001 — 日志块绝不让 import 崩
+            logger.warning(f"(噪声键溯源日志失败, 忽略不影响处理): {_e}")
 except Exception as e:
     logger.error(f"无法加载噪声模式文件: {e}")
     noise_patterns_list = []
@@ -367,6 +421,28 @@ if AD_KEYWORDS:
             ),
         ))
     del _kw, _flex  # 防模块命名空间泄漏 (循环变量仅构表用)
+
+# 过滤旋钮清单溯源 (Round 8): 把决定语料"删什么/留什么"的 config 驱动旋钮规模写进日志,
+# 供以复现为重的审稿人核对取舍 —— 广告关键词总量、其中标题字段"行尾锚定"的高误伤子集
+# 及占比 (锚定=只在标题以该词结尾才删, 防"央行公告降准"类真新闻整篇误删)、媒体正名规则数、
+# 纳入/排除的媒体口径。除锚定占比 (pct4) 外全为整数计数, golden-safe (只读模块常量)。
+# 白话: 这些数字交代了"我们用多少条规则、按什么口径把原始报刊新闻筛成可分析样本", 让别人能复核。
+try:
+    _n_ad_kw = len(AD_KEYWORDS)
+    _anchored_kw_set = set(AD_KEYWORDS_TITLE_ANCHORED)
+    _n_anchored = sum(1 for kw in AD_KEYWORDS if kw in _anchored_kw_set)
+    _anchored_frac = pct4(_n_anchored / _n_ad_kw) if _n_ad_kw else "n/a"
+    logger.info(
+        f"过滤旋钮清单: 广告关键词={_n_ad_kw:,d} "
+        f"(标题行尾锚定子集={_n_anchored:,d}, 占比={_anchored_frac}) | "
+        f"媒体正名规则={len(MEDIA_NAME_OVERRIDES):,d} | "
+        f"大陆地区={len(MAINLAND_CHINA_REGIONS):,d} | "
+        f"纳入媒体类型={len(MEDIA_TYPES_TO_INCLUDE):,d} | "
+        f"排除报刊={len(MEDIA_NAMES_TO_EXCLUDE):,d}"
+    )
+    logger.info(f"  📖 {_PREPROCESS_REFERENCES['text_as_data']}")
+except Exception as _e:  # noqa: BLE001 — 日志块绝不让 import 崩
+    logger.warning(f"(过滤旋钮清单日志失败, 忽略不影响处理): {_e}")
 
 # 中国大陆地区名匹配
 REGION_PATTERN = (

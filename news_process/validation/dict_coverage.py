@@ -34,11 +34,11 @@ news_process.validation.dict_coverage — 金融科技词典覆盖率审计
       → 以上两篇为 Cochran-Armitage 趋势检验的原始文献。
     - Wilson, E. B. (1927). Probable Inference, the Law of Succession,
       and Statistical Inference. Journal of the American Statistical
-      Association, 22(158), 209–212.
+      Association, 22(158), 209–212. https://doi.org/10.1080/01621459.1927.10502953
       → Wilson score interval 的原始文献, 用于比例的置信区间估计。
     - Laakso, M. & Taagepera, R. (1979). "Effective" Number of Parties:
       A Measure with Application to West Europe. Comparative Political
-      Studies, 12(1), 3–27.
+      Studies, 12(1), 3–27. https://doi.org/10.1177/001041407901200101
       → 有效数量指标 (ENK = 1/HHI) 的方法论来源。
 
 设计原则:
@@ -799,8 +799,9 @@ def _log_environment_and_references(llm_full_path: str, ft_full_path: str,
     纯日志, 不改任何产物 (golden-safe)。注: 仅 emit 经核验注册表中存在的 DOI
     (Sautner et al. 2023 JF = 10.1111/jofi.13219; Barbaglia et al. 2025 Econ. Inquiry
     = 10.1111/ecin.13264 词典法竞争力背书; Ma et al. 2025 ESWA = 10.1016/j.eswa.2024.125739
-    中文金融词典构建); 趋势检验/Wilson/ENK 的原始文献 (Cochran/Armitage/Wilson/
-    Laakso-Taagepera) 不在注册表 → 仅留方法名, 不伪造 DOI。
+    中文金融词典构建; Wilson 1927 JASA = 10.1080/01621459.1927.10502953 区间估计 (Wilson
+    score CI); Laakso & Taagepera 1979 = 10.1177/001041407901200101 有效数量 ENK=1/HHI);
+    趋势检验 Cochran (1954)/Armitage (1955) 仍不在核验注册表 → 仅留方法名, 不伪造 DOI。
     """
     try:
         coverage_path = os.path.join(EVAL_DIR, '67_coverage_distribution.csv')
@@ -855,9 +856,16 @@ def _log_environment_and_references(llm_full_path: str, ft_full_path: str,
         logger.info("       → PMI 细分构建中文金融细粒度词典, 为零命中死词清理 / 利基新术语补录提供方法学参照。")
         logger.info("     · 趋势检验: Cochran (1954) Biometrics 10(4):417-451 + "
                     "Armitage (1955) Biometrics 11(3):375-386 (Cochran-Armitage; DOI 未在核验注册表, 仅留方法名)")
-        logger.info("     · 区间估计: Wilson (1927) JASA 22(158):209-212 (Wilson score CI; DOI 未在核验注册表)")
-        logger.info("     · 有效数量: Laakso & Taagepera (1979) Comparative Political Studies 12(1):3-27 "
-                    "(ENK=1/HHI; DOI 未在核验注册表)")
+        logger.info("     · 区间估计 (分析 2 各组 LLM 验证率的 95% Wilson score CI, wilson_ci()): "
+                    "Wilson, E. B. (1927). Probable inference, the law of succession, and statistical "
+                    "inference. Journal of the American Statistical Association, 22(158), 209-212. "
+                    "https://doi.org/10.1080/01621459.1927.10502953")
+        logger.info("       → 小样本 / 近边界比例 (验证率趋近 0 或 1) 时 Wilson 区间比 Wald 正态近似覆盖更准, 故各组验证率报 CI 用它。")
+        logger.info("     · 有效数量 (分析 3 Coverage 维核心集中度 ENK=1/HHI, compute_hhi()): "
+                    "Laakso, M., & Taagepera, R. (1979). \"Effective\" number of parties: A measure "
+                    "with application to West Europe. Comparative Political Studies, 12(1), 3-27. "
+                    "https://doi.org/10.1177/001041407901200101")
+        logger.info("       → 把 HHI 倒数解读为'等效关键词数'(等权下相当于多少个词在干活), 即政治学'有效政党数'构念移植到词典覆盖面诊断。")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  环境/配置/文献信息打印失败 (不影响审计): {e}")
 

@@ -169,6 +169,15 @@ def _load_pre_dedup_corpus(output_dir: str, logger) -> "pd.DataFrame | None":
     df = pd.concat(frames, ignore_index=True)
     logger.info(f"预去重语料加载完成: {len(cache_files)} 个缓存文件, "
                 f"{len(df):,} 行 (去重前口径)")
+    # IO provenance (日志富集, 2026-06-29): 列数物化口径 (此处固定为 5 列必需子集) +
+    # 驻留内存, 便于审计"读了多少列 vs 去重实际所需列"。纯日志, 不改任何产物 (golden-safe)。
+    try:
+        _mem_gib = df.memory_usage(deep=True).sum() / (1024 ** 3)
+        logger.info(f"     · 列数 = {df.shape[1]:,} (= 去重所需最小列集 "
+                    f"{PRE_DEDUP_REQUIRED_COLS}, 仅按需读列控内存) | "
+                    f"驻留内存 ≈ {sig4(_mem_gib)} GiB")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  预去重语料列数/内存 provenance 打印失败 (不影响处理): {_e}")
     return df
 
 
@@ -244,6 +253,17 @@ def _log_environment_and_config(logger, config, output_dir: str,
                     "https://doi.org/10.1109/SEQUEN.1997.666900")
         logger.info("       → 为什么用: MinHash 以固定 permutation 估计文档对 Jaccard "
                     "相似度, 把 O(N²) 全对比对压成近似近邻查询, 支撑大语料近似去重。")
+        logger.info("     · LSH / 近似近邻 (ANN) 候选查询基元 (把 MinHash 签名分桶为候选对): "
+                    "Indyk, P., & Motwani, R. (1998). Approximate nearest neighbors: "
+                    "Towards removing the curse of dimensionality. In Proceedings of "
+                    "the Thirtieth Annual ACM Symposium on Theory of Computing "
+                    "(STOC '98) (pp. 604-613). ACM. "
+                    "https://doi.org/10.1145/276698.276876")
+        logger.info("       (白话: Broder 1997 只给出 MinHash 签名/Jaccard 估计这一原语, "
+                    "真正把 O(N²) 全对比对压成近似近邻候选查询的是 LSH banding 分桶 — "
+                    "datasketch 的 find_near_duplicate_indices 正依赖它把近似重复文档"
+                    "落进同桶后才逐桶判重; Indyk-Motwani 1998 是该 LSH/ANN 框架的奠基工作, "
+                    "补齐本模块 docstring 已断言却未引的 'O(N²)→近邻查询' 压缩原语。)")
         logger.info("     · 商业新闻语料近重复检测基准: Kumar, A., Tumre, S., & Patil, S. "
                     "(2025). Benchmarking near-duplicate detection in the era of "
                     "pay-walled news. In Companion Proceedings of the ACM on Web "
@@ -328,6 +348,15 @@ def main():
         logger.info(f"正在加载回退分析数据集: {input_path}")
         df = pd.read_parquet(input_path)
         logger.info(f"成功加载数据, 行数: {len(df):,}")
+        # IO provenance (日志富集, 2026-06-29): 回退口径 read_parquet 物化了全部 ~2771 列,
+        # 但本阶段下游仅消费单一文本列 (text_col) → 显式记录"物化列数 vs 实际所需 1 列"的
+        # 冗余 IO 差距, 便于审计宽表读取代价。纯日志, 不改任何产物 (golden-safe)。
+        try:
+            _mem_gib = df.memory_usage(deep=True).sum() / (1024 ** 3)
+            logger.info(f"     · 列数 = {df.shape[1]:,} (全量物化; 本阶段下游仅消费单一文本列, "
+                        f"余列未用 → 冗余 IO 已知可接受) | 驻留内存 ≈ {sig4(_mem_gib)} GiB")
+        except Exception as _e:  # noqa: BLE001
+            logger.warning(f"  回退数据集列数/内存 provenance 打印失败 (不影响处理): {_e}")
 
         # fix(omni-g-val-robust-01, 2026-06-11): 诚实披露单侧截尾 —
         # 回退输入已按生产阈值去重, >= 生产阈值方向的 Dropped≈0 为机械结果

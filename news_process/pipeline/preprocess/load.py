@@ -39,6 +39,21 @@ from news_process.pipeline.preprocess._constants import (
 # 纯日志状态, 不入任何产物 / schema / 控制流 (golden-safe)。
 _WORKER_BANNER_EMITTED = False
 
+# ── 经核验参考文献 (VERIFIED_REFERENCES 注册表, 逐字照抄 APA-7 + DOI; 仅日志用) ──
+# 白话: 本模块的核心机器就是 Aho-Corasick 多模式匹配自动机 (_build_ac_automaton /
+# _ac_contains_any / BANK_KW_AUTOMATON 单例) —— 把数百个银行关键词预编成一张"查词地图",
+# 文章只读一遍就同时知道命中了哪些词。此处登记该算法的**原始出处**文献, 运行期随
+# 自动机构建与 worker banner 落日志 (溯源到方法本源, 非装饰性"相邻"引用; 纯日志, golden-safe)。
+_REFERENCES = {
+    # Aho-Corasick 多模式匹配自动机原始算法文献 (本模块 _build_ac_automaton /
+    # _ac_contains_any / BANK_KW_AUTOMATON 即其直接实现): 一次 O(n) 线性扫描同时匹配全部模式串。
+    'aho_corasick': (
+        "Aho, A. V., & Corasick, M. J. (1975). Efficient string matching: "
+        "An aid to bibliographic search. Communications of the ACM, 18(6), "
+        "333-340. https://doi.org/10.1145/360825.360855"
+    ),
+}
+
 # ============================================================================
 # 1. Aho-Corasick 自动机 (多模式匹配, O(n) 时间复杂度)
 # ============================================================================
@@ -127,6 +142,8 @@ if BANK_KW_AUTOMATON is not None:
         f"Aho-Corasick 自动机构建完成({len(BANK_KEYWORDS)} 个关键词 "
         f"+ 繁体/全角括号变体, fix omni-g-preprocess-07)"
     )
+    # 📖 算法本源 (本模块核心匹配机器的原始文献): O(n) 多模式匹配自动机
+    logger.info(f"  📖 {_REFERENCES['aho_corasick']}")
 
 
 # ============================================================================
@@ -186,6 +203,14 @@ def _log_worker_banner_once() -> None:
             "被删项以 0 字 (空/损坏) 为主而非 1 字真标题 (删除构成诊断见 "
             "_log_title_filter_diagnostics); 内容上限 10000 汉字排除超长文体噪声, "
             "长文语调影响由按年标准化压制 (TSM 2008 实际不设上限, 故上限仅作稳健性边界)。"
+        )
+
+        # 📖 方法论依据 (多模式匹配机器): 银行关键词保留过滤由 Aho-Corasick 自动机驱动
+        logger.info("  📖 方法论依据 (多模式匹配自动机):")
+        logger.info(f"     · {_REFERENCES['aho_corasick']}")
+        logger.info(
+            "       → 一次 O(n) 线性扫描同时匹配全部银行关键词 (含繁体/全角括号变体), "
+            "取代逐关键词 O(n×k) 正则; 本模块 _build_ac_automaton / _ac_contains_any 即其直接实现"
         )
     except Exception as e:  # noqa: BLE001  纯日志, 失败绝不阻断 worker 处理
         logger.warning(f"  worker banner 打印失败 (不影响处理): {e}")
@@ -398,9 +423,22 @@ def _process_single_file(file_path: str) -> pd.DataFrame | None:
             )
 
         logger.info(f"  加载 {len(df_chunk):,} 行, 开始过滤...")
+        # 📥 输入溯源 (I/O provenance): 实读 sheet / 列 schema / 列数 / 绝对路径 —
+        # 给审计一条 "输入文件 → 行×列 → schema" 完整入口痕迹 (纯日志, 失败绝不阻断)。
+        try:
+            _cols = list(df_chunk.columns)
+            logger.info(
+                f"     📥 输入: sheet='{SHEET_NAME}' | "
+                f"{len(df_chunk):,} 行 × {len(_cols):,} 列 | "
+                f"列 schema={_cols} | usecols 要求列={list(REQUIRED_COLUMNS)}"
+            )
+            logger.info(f"     📂 源文件绝对路径: {os.path.abspath(file_path)}")
+        except Exception as _e_io:  # noqa: BLE001  纯日志, 失败绝不阻断 worker 处理
+            logger.warning(f"     输入溯源日志失败 (不影响处理): {_e_io}")
 
         # ── 初步过滤 ──
         df_cleaned = _clean_and_filter_dataframe(df_chunk)
+        n_loaded = len(df_chunk)  # log-only: 入口装载行数 (供完成时整体保留率, 不参与任何计算)
         del df_chunk  # 及早释放原始数据内存
 
         if df_cleaned.empty:
@@ -415,7 +453,15 @@ def _process_single_file(file_path: str) -> pd.DataFrame | None:
         if 'suspected_code_doc' in df_cleaned.columns:
             suspect_count = df_cleaned['suspected_code_doc'].sum()
             if suspect_count > 0:
-                logger.info(f"  疑似代码/结构化文档: {suspect_count} 条")
+                # 占比 (result statistic): 给裸计数补上分母 → 数据质量份额 (纯日志, 失败回退裸计数)
+                try:
+                    _suspect_share = suspect_count / len(df_cleaned)
+                    logger.info(
+                        f"  疑似代码/结构化文档: {suspect_count:,} 条 "
+                        f"(占清洗后 {len(df_cleaned):,} 行的 {pct4(_suspect_share)})"
+                    )
+                except Exception as _e_sc:  # noqa: BLE001  纯日志, 失败不阻断
+                    logger.info(f"  疑似代码/结构化文档: {suspect_count:,} 条")
             df_cleaned.drop(columns=['suspected_code_doc'], inplace=True)
 
         if df_cleaned.empty:
@@ -461,6 +507,17 @@ def _process_single_file(file_path: str) -> pd.DataFrame | None:
             return None
 
         logger.info(f"--- 完成: {file_name} → 保留 {len(df_cleaned):,} 行 ---")
+        # 📊 端到端保留率 (result statistic): 出口保留行 / 入口装载行 = 单文件全链净留存
+        # (Excel 装载 → 初步过滤 → 文本标准化 → 长度过滤); 纯日志, 失败绝不阻断。
+        try:
+            if n_loaded > 0:
+                logger.info(
+                    f"  📊 端到端保留率: {len(df_cleaned):,}/{n_loaded:,} "
+                    f"= {pct4(len(df_cleaned) / n_loaded)} "
+                    f"(Excel 装载 → 过滤·标准化·长度过滤 全链净留存)"
+                )
+        except Exception as _e_ret:  # noqa: BLE001  纯日志, 失败不阻断
+            logger.warning(f"  端到端保留率日志失败 (不影响处理): {_e_ret}")
         return df_cleaned
 
     except Exception as e:

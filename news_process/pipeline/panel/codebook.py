@@ -1438,6 +1438,20 @@ def extract_variable_stats(
 _DEFAULT_CODEBOOK_FORMATS: tuple[str, ...] = ('excel', 'csv', 'markdown', 'json')
 
 
+def _artifact_size_note(path: str) -> str:
+    """读落盘产物字节大小, 返回 ' (xx,xxx B / yy.yy KB)' 文案 (纯日志, golden-safe)。
+
+    白话: 确认 4 个复现产物真的非空、体量符合预期, 供 replication-package 审计核对。
+    完全包在 try/except 中, 结果只喂日志、不参与任何计算/返回/产物 (失败则返回空串,
+    不影响生成)。整数字节用 :,d, KB 为浮点须经 sig4。
+    """
+    try:
+        _bytes = os.path.getsize(path)
+        return f" ({_bytes:,d} B / {sig4(_bytes / 1024.0)} KB)"
+    except Exception:  # noqa: BLE001
+        return ""
+
+
 def _apply_dynamic_value_ranges(
     row: Dict[str, Any],
     col: str,
@@ -1504,6 +1518,14 @@ def _log_codebook_environment_and_config(
                     "6-词典 union 5→6 披露 / L&M 第6部 provenance / 规则消融 MATH-1 非可加披露")
 
         logger.info("  📖 方法论依据 (codebook 内嵌的学术 provenance, emit 进日志)")
+        # 白话: 本步生成的"变量代码手册"= 数据字典 = 可复现研究的文档化产物 —— 每列都带
+        # source_stage/计算公式/学术引用 provenance (VariableMetadata 字段), 自动落 4 格式
+        # data dictionary。Sandve et al. (2013) 的"记录每个结果如何产生 + 把陈述连回产生它
+        # 的数据/代码"诸规则, 正是本自动文档化行为本身 (而非被记录变量的测度法) 的方法学锚点。
+        logger.info("     · 可复现研究文档化 (codebook 生成行为本身的依据): Sandve, G. K., "
+                    "Nekrutenko, A., Taylor, J., & Hovig, E. (2013). Ten simple rules for "
+                    "reproducible computational research. PLoS Computational Biology, 9(10), "
+                    "e1003285. https://doi.org/10.1371/journal.pcbi.1003285")
         logger.info("     · 金融情感词典 (第6部主词典): Loughran, T., & McDonald, B. (2011). "
                     "When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. "
                     "The Journal of Finance, 66(1), 35-65. "
@@ -1752,14 +1774,14 @@ def generate_codebook(
                 )
                 worksheet.column_dimensions[get_column_letter(idx)].width = min(max_length + 2, 50)
         output_files['excel'] = excel_path
-        logger.info(f"  ✓ Excel 格式: {excel_path}")
+        logger.info(f"  ✓ Excel 格式: {excel_path}{_artifact_size_note(excel_path)}")
 
     # CSV 格式
     if 'csv' in formats:
         csv_path = os.path.join(output_dir, 'variable_codebook.csv')
         codebook_df.to_csv(csv_path, index=False, encoding='utf-8-sig')
         output_files['csv'] = csv_path
-        logger.info(f"  ✓ CSV 格式: {csv_path}")
+        logger.info(f"  ✓ CSV 格式: {csv_path}{_artifact_size_note(csv_path)}")
 
     # Markdown 格式
     if 'markdown' in formats:
@@ -1772,7 +1794,7 @@ def generate_codebook(
             f.write("---\n\n")
             f.write(codebook_df.to_markdown(index=False))
         output_files['markdown'] = md_path
-        logger.info(f"  ✓ Markdown 格式: {md_path}")
+        logger.info(f"  ✓ Markdown 格式: {md_path}{_artifact_size_note(md_path)}")
 
     # JSON 格式
     if 'json' in formats:
@@ -1781,7 +1803,7 @@ def generate_codebook(
         with open(json_path, 'w', encoding='utf-8') as f:
             json.dump(codebook_dict, f, ensure_ascii=False, indent=2)
         output_files['json'] = json_path
-        logger.info(f"  ✓ JSON 格式: {json_path}")
+        logger.info(f"  ✓ JSON 格式: {json_path}{_artifact_size_note(json_path)}")
 
     _phase_durations['③多格式落盘'] = time.time() - _t
 

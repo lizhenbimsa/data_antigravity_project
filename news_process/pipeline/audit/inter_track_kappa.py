@@ -411,6 +411,42 @@ def run_stage(config=None, logger=None):
             df_subset = df[df['llm_verified_dual_both'] == True].copy()
             if len(df_subset) == 0:
                 logger.warning("dual_both subset empty; emitting NaN rows.")
+        # 📥 I/O 溯源 (日志富集 Round 8, log-only golden-safe): 读盘形状 + dual_both
+        # 门留存率 + 9 个三轨创新列在场审计。把"读进来多少行列、dual_both 门过了多大
+        # 比例、哪几个 ss/创新轨列缺失 (= 下游若干行 κ=NaN 退化的直接成因)"一次性落日志,
+        # 供复现核对 / 审计 / 排错。所有局部量仅喂 logger 后丢弃, 不参与任何计算。
+        try:
+            logger.info("  📥 I/O 溯源 (读盘形状 / dual_both 留存 / 三轨创新列在场)")
+            logger.info(
+                f"     · 读入 parquet: {df.shape[0]:,d} 行 × {df.shape[1]:,d} 列 "
+                f"({os.path.basename(input_path)})"
+            )
+            _n_total = len(df)
+            _n_sub = len(df_subset)
+            logger.info(
+                f"     · llm_verified_dual_both 门: {_n_total:,d} → {_n_sub:,d} 行留存 "
+                f"(留存率 {pct4(_n_sub / max(_n_total, 1))}; 双向验证 both 子集占全语料比例)"
+            )
+            _innov_cols = [
+                f"innovation_{_dim}_{_trk}"
+                for _dim in ('locus', 'substantiveness', 'collab_mode')
+                for _trk in ('full', 'ctx', 'ss')
+            ]
+            _present = [c for c in _innov_cols if c in df.columns]
+            _absent = [c for c in _innov_cols if c not in df.columns]
+            logger.info(
+                f"     · 三轨创新列在场: {len(_present):,d}/{len(_innov_cols):,d} 存在"
+                + (f" | 缺失 {len(_absent):,d}: {', '.join(_absent)}"
+                   if _absent else " (9 列全部齐备)")
+            )
+            if _absent:
+                logger.info(
+                    "       → 缺失列 (典型: ss 轨尚未付费播种物化) 对应的 pair 行将优雅退化为 "
+                    "NaN κ (本阶段 compute_inter_track_kappa 已内建该守卫); 这正是下游若干行 "
+                    "κ=NaN 的成因, 非异常。"
+                )
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"  I/O 溯源打印失败 (不影响处理): {e}")
     phase_durations['①读取+dual_both过滤'] = time.perf_counter() - _t
 
     # ② κ 点估计 + bootstrap CI + Holm FWER (本阶段计算主体)
@@ -493,6 +529,19 @@ def run_stage(config=None, logger=None):
         f"  汇总: 有效行 {n_valid}/{len(table)} | 达阈值(好) {n_pass} (占有效行 {pass_str}) | "
         f"冗余 κ>0.70 {n_redundant} | 噪声 κ<0.30 {n_noise}"
     )
+    # κ 点估计分布速览 (日志富集 Round 8, log-only golden-safe): 跨 ≤9 行有效 κ 的
+    # mean/median/min/max, 给审稿人"三轨整体落在哨兵区间 [0.30,0.70] 哪个位置"的一眼
+    # 概览 (诚实次要 — 每行 κ 已逐行单独打印; 本行仅作单瞥汇总, 局部量喂 logger 后丢弃)。
+    try:
+        _kv = [float(x) for x in table['kappa_point'].dropna().tolist()]
+        if _kv:
+            logger.info(
+                f"  κ 点估计分布 (n={len(_kv):,d} 有效行): "
+                f"mean={sig4(sum(_kv) / len(_kv))} median={sig4(float(np.median(_kv)))} "
+                f"min={sig4(min(_kv))} max={sig4(max(_kv))} (对照哨兵区间 [0.30, 0.70])"
+            )
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  κ 分布速览打印失败 (不影响处理): {e}")
     if n_valid == 0:
         logger.warning(
             "  ⚠ 全部 9 行 κ 均为 NaN — 上游 21_tone_llms 缺失 / 缺 llm_verified_dual_both 列 / "

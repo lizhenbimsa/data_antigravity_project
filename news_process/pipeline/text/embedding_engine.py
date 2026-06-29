@@ -40,7 +40,8 @@ full/ctx/ss 三轨是两个独立维度。``_lg`` 为 config-gated 列: 仅当�
 学术依据 (沿用 strategic_diff/policy_alignment 既有锚点):
   - Reimers & Gurevych (2019, EMNLP) Sentence-BERT mean pooling, DOI 10.18653/v1/D19-1410
   - 朴素分段 (naive / independent chunking) 超长文本分段
-  - Carlson & Burbano (2026, SMJ §3.3) version-aware provenance (cache 版本维度)
+  - Sandve et al. (2013, PLoS Comput Biol) 可复现计算研究: 版本化/provenance 留痕
+    (text_pipeline_version 作 cache 版本维度), DOI 10.1371/journal.pcbi.1003285
 
 白话:
     全项目所有"把文本变成向量"的需求都走这一个模块: 调用方传一份 spec
@@ -188,6 +189,18 @@ def _log_engine_banner(spec: dict | None = None, *, log_prefix: str = "Embedding
             "     ⚙ 确定性/成本: 两 co-primary API 模型 (Qwen3-Embedding-8B 无后缀 ⟂ "
             "text-embedding-3-large `_lg`) miss 即付费, 命中 $0; 两轨缓存按 model_id "
             "隔离 → 命中逐位复现。")
+        # 📖 version-aware provenance 运行期出处 (docstring §40 早已声明, 此处兑现到 .log):
+        # 本引擎以 text_pipeline_version 作 LLMCache 命名空间 + preview/可换端点的模型漂移
+        # caveat, 正是"可复现计算研究"对版本化、provenance 留痕规约的具体落地。
+        # 白话: 嵌入是模型产出的"数据", 换模型/换端点结论可能变, 故每条缓存都带模型版本号,
+        # 重跑时按版本对齐, 这一可复现做法的方法学出处即下文 (引文逐字取自经核验注册表)。
+        logger.info(
+            "     📖 版本感知 provenance (cache 版本维度 / 模型生成数据可复现):")
+        logger.info(
+            "         Sandve, G. K., Nekrutenko, A., Taylor, J., & Hovig, E. (2013). "
+            "Ten simple rules for reproducible computational research. "
+            "PLoS Computational Biology, 9(10), e1003285. "
+            "https://doi.org/10.1371/journal.pcbi.1003285")
     except Exception as _banner_exc:  # pragma: no cover - banner 绝不拖垮阶段
         logger.warning(f"    嵌入引擎 banner 输出失败 (不阻塞): {_banner_exc!r}")
 
@@ -607,4 +620,28 @@ def embed_texts(texts, spec: dict, *,
         pooled = (unit * w[:, None]).sum(axis=0) / w.sum()
         norm = np.linalg.norm(pooled)
         emb[i] = (pooled / norm if norm > 0 else pooled).astype(raw_emb.dtype)
+
+    # ── 输出产物 provenance + 单位向量不变量自检 (纯日志, 读已构好的 emb, 绝不复用下游) ──
+    # 维度 (dim) 是区分两 co-primary 来源的"指纹": Qwen3-Embedding-8B (canonical 无后缀)
+    # = 4096 维, text-embedding-3-large (`_lg`) = 3072 维 → 落 .log 即可从日志反查某面板列
+    # 由哪个 co-primary 产出 (此前每条日志均缺该维度信息)。norm 自检验证 banner (Opitz et al.
+    # 2025) 所断言的"输出单位向量 → 下游余弦 ≡ 点积"不变量: 单块行直透 API 原始向量
+    # (API 返回 norm=1.0), 多块行在上面显式归一 (line 609) → 全体应 ≈ 1.0000; 任何偏离都
+    # 提示上游 (policy_alignment/strategic_diff/benefit_society/fintech_intensity 的余弦测度)
+    # 结构性依赖被破坏。任何异常被吞 (golden-safe), 不影响返回的 emb。
+    try:
+        logger.info(
+            f"    {log_prefix}: 输出 {n_orig:,} 文本 → 向量矩阵 "
+            f"{emb.shape[0]:,}×{emb.shape[1]:,} (dim={emb.shape[1]:,d}, "
+            f"model={spec_model(spec)})"
+        )
+        _norms = np.linalg.norm(emb, axis=1)
+        if _norms.size:
+            logger.info(
+                f"      └─ 单位向量自检 (应 ≈1.0000 → 余弦≡点积): "
+                f"mean={sig4(float(_norms.mean()))} · std={sig4(float(_norms.std()))} · "
+                f"min={sig4(float(_norms.min()))} · max={sig4(float(_norms.max()))}"
+            )
+    except Exception as _prov_exc:  # noqa: BLE001 — 输出 provenance/自检诊断, 失败不阻塞
+        logger.debug(f"      └─ 输出 provenance/单位向量自检跳过 (不影响产物): {_prov_exc!r}")
     return emb

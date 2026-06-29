@@ -921,11 +921,58 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
                         f"min={sig4(float(_ser.min()))} / max={sig4(float(_ser.max()))} "
                         f"(理论域 [-1, 1])"
                     )
+                    # 中位数 + 四分位距 (median + Q1/Q3/IQR): benefit_mean 是双极余弦投影头号
+                    # 连续测度, §6.5 注披露其左偏 (skew≈-1.23) 却仅 log 了 μ/σ — 单点矩不足以
+                    # 刻画偏态。补 median/IQR 让 .log 自证分布形状: 负偏 (skew<0) 时通常 median>μ
+                    # (均值被左尾拉低)。read-only, _q 喂 logger 后即弃, 不回流下游 (golden-safe)。
+                    _q = _ser.quantile([0.25, 0.5, 0.75])
+                    logger.info(
+                        f"       (median={sig4(float(_q.loc[0.5]))} / "
+                        f"Q1={sig4(float(_q.loc[0.25]))} / Q3={sig4(float(_q.loc[0.75]))} / "
+                        f"IQR={sig4(float(_q.loc[0.75] - _q.loc[0.25]))}; "
+                        f"median 与 μ 之差刻画偏态方向, 左偏投影时通常 median>μ)"
+                    )
                     break
         _elapsed = time.time() - _step_start
         logger.info(f"  ⏱ 步骤 7h-benefit 墙钟耗时: {sig4(_elapsed)} 秒")
     except Exception as _ra_exc:  # noqa: BLE001
         logger.warning(f"  结果分析/计时块打印失败 (不影响产物): {_ra_exc!r}")
+
+    # ---- 6.6b 其余三输出族分布 (pos/neg_frac + std, 日志富集, golden-safe) ----
+    # §6.6 仅追踪 benefit_mean (_emitted_cols 只 append _mean_col); pos_frac / neg_frac /
+    # std 三族虽全部并入面板 (rename_map) 却无任何运行期分布报告。此块仅**只读**既有面板列、
+    # 由 _emitted_cols 机械派生同名孪生列, 结果喂 logger 后即弃 (不回流下游); 控制流 / 写盘 /
+    # schema / 返回值全不变 (golden-safe; 镜像 §6.6 的 try/except 骨架)。
+    try:
+        # (a) benefit_pos_frac 面板级均值 → 运行期自证 §6.5 注 (correctness-01) 的已披露
+        #     经验陈述: 文章级 P(>median)≈0.5, 但面板列 benefit_pos_frac 经 mean-of-fractions
+        #     聚合 (各 bank-year 文章数不均的 Jensen 效应) 实测 bank-year 简单均值 ~0.45 (≠0.5)。
+        #     让 .log 把这个论文级披露数字当场复核, 而非只留注释。
+        _pos_cols = [c.replace('benefit_mean', 'benefit_pos_frac') for c in _emitted_cols]
+        _pos_cols = [c for c in _pos_cols if c in panel.columns]
+        if _pos_cols:
+            _pos_pool = pd.concat([panel[c].dropna() for c in _pos_cols], ignore_index=True)
+            if len(_pos_pool) > 0:
+                logger.info(
+                    f"     · benefit_pos_frac 面板级均值={pct4(float(_pos_pool.mean()))} "
+                    f"(n={len(_pos_pool):,d} bank-year×族; 披露基线 ~0.45 ≠ 0.5 → "
+                    f"mean-of-fractions Jensen 效应自证)"
+                )
+        # (b) benefit_std 族 (within-bank-year 态度分歧度, 已发布输出测度; 单观测 ddof=1 std
+        #     未定义→NaN): 报 notna 覆盖率 (= 多观测 bank-year 占比) + 中位离散度。
+        _std_cols = [c.replace('benefit_mean', 'benefit_std') for c in _emitted_cols]
+        _std_cols = [c for c in _std_cols if c in panel.columns]
+        if _std_cols:
+            _std_all = pd.concat([panel[c] for c in _std_cols], ignore_index=True)
+            _std_pool = _std_all.dropna()
+            _std_med = float(_std_pool.median()) if len(_std_pool) > 0 else float('nan')
+            logger.info(
+                f"     · benefit_std 族 (内部分歧度) notna 覆盖率={pct4(float(_std_all.notna().mean()))} "
+                f"(多观测 bank-year 占比; 单篇报道 std 未定义→NaN) | "
+                f"中位离散度 median={sig4(_std_med)} (理论域 [0, 1])"
+            )
+    except Exception as _frac_exc:  # noqa: BLE001
+        logger.warning(f"  pos_frac/std 分布打印失败 (不影响产物): {_frac_exc!r}")
 
     logger.info("=" * 60)
     return panel

@@ -11,6 +11,9 @@ NCD 主体评级报告 PDF 批量下载器 (中诚信 / 大公 / 联合资信)
 【Reproducibility】
 - 保存原始 URL + 下载时间戳 + SHA-256 校验和
 - 失败日志单独保存供后续重试
+- 方法学锚点: 内容寻址 (content-addressed) 出处与版本追踪, 对应
+  Sandve et al. (2013) 可复现计算研究规则 4-6 (记录所有中间结果/版本/精确出处);
+  详见 main() / write_manifest() 运行期 emit 的 📖 引文 (refs_added=[10.1371/journal.pcbi.1003285])。
 """
 
 from __future__ import annotations
@@ -27,9 +30,25 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
 
-from news_process.core.logging import sig4
+from news_process.core.logging import pct4, sig4
 
 logger = logging.getLogger(__name__)
+
+# ── 经核验参考文献 (VERIFIED_REFERENCES 注册表, 逐字照抄 APA-7 + DOI; 仅日志用) ──
+# emit 进运行期日志的方法学依据, 让 .log 自证可复现性锚点 (非仅留注释)。
+# 本下载器的设计原则 (保存原始 URL + 下载时间戳 + SHA-256 校验和 + manifest 记
+# schema_version / per-record sha256 / timestamp_iso 以支持断点续传与复现) 正是
+# 内容寻址 (content-addressed) 的出处与版本追踪, 与 core/data_versioning.py 锚定同源。
+_REFERENCES = {
+    # 白话: 可复现计算研究的十条准则; 本模块落实其规则 4-6——记录所有中间结果 (PDF)、
+    #       版本 (schema_version) 与精确出处 (原始 URL + SHA-256 校验和 + 下载时间戳),
+    #       让每份抓取的评级报告都能溯源、可复现校验、断点续传。
+    "reproducible_provenance": (
+        "Sandve, G. K., Nekrutenko, A., Taylor, J., & Hovig, E. (2013). Ten simple "
+        "rules for reproducible computational research. PLoS Computational Biology, "
+        "9(10), e1003285. https://doi.org/10.1371/journal.pcbi.1003285"
+    ),
+}
 
 # 速率限制 — 礼貌爬取
 DEFAULT_DELAY_SEC = 2.0
@@ -213,6 +232,18 @@ def write_manifest(records: list[DownloadRecord], manifest_path: Path) -> None:
     }
     manifest_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     logger.info(f"Manifest written to {manifest_path}")
+    # 📊 manifest status_summary 占比 (pct4; 纯日志 try/except, 复现 payload 已算的份额)
+    try:
+        _n = payload["total_records"]
+        if _n > 0:
+            _ss = payload["status_summary"]
+            logger.info(
+                "  📊 manifest status_summary 占比: "
+                + ", ".join(f"{k}={pct4(v / _n)}" for k, v in _ss.items())
+                + f" (schema_version={payload['schema_version']}, total={_n:,d})"
+            )
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  manifest status 占比统计失败 (不影响落盘): {e}")
 
 
 def _log_environment_and_config(
@@ -228,7 +259,9 @@ def _log_environment_and_config(
     目标 (用户要求"在日志文件中提供尽可能多的项目信息、运行期间信息和运行结果信息"):
     把"谁在跑、跑在什么环境、读写哪些文件/目录、用了哪些可调参数、抓取哪些数据源"一次性
     落进日志, 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 (golden-safe)。本模块是
-    数据获取脚手架 (非分析), 无方法学构念引文 (refs_added=[])。
+    数据获取脚手架 (非分析), 但其内容寻址出处/版本追踪 (URL + SHA-256 + manifest) 直接
+    锚定 Sandve et al. (2013) 可复现计算准则, 故 refs_added=[10.1371/journal.pcbi.1003285]
+    (运行期由 main() / write_manifest() emit 📖 引文)。
     """
     try:
         logger.info("  🧭 项目 / 环境信息")
@@ -306,11 +339,21 @@ def main(argv: list[str] | None = None) -> int:
     logger.info("        / failed=重试耗尽仍失败。失败>0 → 进程返回码 1, 供编排器感知。")
     logger.info("【确定性】Phase 0 当前为 stub (无真实 API), 不发任何 HTTP 请求、零流量、$0;")
     logger.info("          manifest 记录原始 URL + 时间戳 + SHA-256 以保障后续可复现。")
+    # 📖 方法论依据 (内容寻址 · 可复现出处与版本追踪): 本下载器以原始 URL + SHA-256 校验和
+    #    + manifest (schema_version / per-record sha256 / timestamp_iso) 落盘, 正是该文规则
+    #    4-6 (记录所有中间结果/版本/精确出处) 在数据获取层的落地。emit 进 .log 自证锚点。
+    logger.info("【方法论依据】可复现计算研究 · 出处与版本追踪:")
+    logger.info(f"  📖 {_REFERENCES['reproducible_provenance']}")
+    logger.info("     (白话: 可复现计算研究十准则; 本模块落实规则 4-6——记录每份 PDF 的精确出处")
+    logger.info("      [原始 URL + SHA-256 + 下载时间戳] 与 manifest 版本, 使抓取可溯源、可复现。)")
 
     import csv
     with open(args.banks, encoding="utf-8") as f:
         reader = csv.DictReader(f)
         banks = [(row["bank_id"], row["bank_name"]) for row in reader]
+
+    # 📂 输入出处 (CSV 读取边界, 纯日志, 不改 comprehension/数据): 行数 + 列 schema, 便于审计
+    logger.info(f"  读取银行清单 CSV: {len(banks):,d} 行, 列=[bank_id, bank_name]")
 
     years = [int(y) for y in args.years.split(",")]
 
@@ -339,6 +382,17 @@ def main(argv: list[str] | None = None) -> int:
         f"  Summary: ok={ok:,d}, skip={skip:,d}, stub={stub:,d}, "
         f"failed={failed:,d}, total={len(records):,d}"
     )
+    # 📊 结果分布 (status 占比, pct4; 纯日志 try/except, total=0 空网格时优雅跳过)
+    try:
+        _total = len(records)
+        if _total > 0:
+            logger.info(
+                f"  📊 status 占比: ok={pct4(ok / _total)}, skip={pct4(skip / _total)}, "
+                f"stub={pct4(stub / _total)}, failed={pct4(failed / _total)} "
+                f"(成功落盘率={pct4(ok / _total)}, 失败率={pct4(failed / _total)})"
+            )
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  status 占比统计失败 (不影响返回码): {e}")
 
     # ⏱ 阶段计时 (墙钟秒, sig4; 纯日志, golden-safe)
     _elapsed = time.time() - _start_time

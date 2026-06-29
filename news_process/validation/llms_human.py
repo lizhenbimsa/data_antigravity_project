@@ -275,6 +275,12 @@ def main():
         logger.info(
             f"  抽样源 = {input_filename} (三级回退取第一存在者: 21_full → 23_bert → 21_tone_llms)"
         )
+        # 📥 IO provenance (此前仅记行数, 无 schema 宽度 / 工作台维度): 输入 parquet 全宽列数 +
+        # 抽样工作台 (含 +4 空标注列) 最终维度, 让 .log 自证"抽样前后的数据形状"。整数 :,d 无须 sig4。
+        logger.info(
+            f"  源 schema = {n_total:,} 行 × {df.shape[1]:,} 列 (parquet 全宽); "
+            f"输出工作台 = {n_sample:,} 行 × {sample_df.shape[1]:,} 列 (Excel, 已并入 4 空标注列 + 关键展示列前置)"
+        )
         logger.info(
             f"  总语料 N = {n_total:,} 篇; 目标抽样量 = {target_sample_size} (config SAMPLE_SIZE={SAMPLE_SIZE})"
         )
@@ -322,6 +328,66 @@ def main():
         logger.info("-" * 72)
     except Exception as _e:
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
+
+    # 抽样代表性 sanity 自检 (log-only, golden-safe) — 在抽到的 sample_df 上看
+    # 媒体类型/年份 的边际分布, 实证上文已披露的"抽偏 (全抽易判篇/单一来源) 会高估机器水平"
+    # 识别威胁 (substantiate-at-runtime)。⚠ 仅边际分布诊断, **非**正式代表性检验: 样本对总体
+    # 在银行/年份/媒体维度的代表性仍由 stage 33/34 实测; 本块全部计算只喂 logger 即抛弃,
+    # 绝不回流下游 (铁律: log-only, 单独 try/except 包住, 异常绝不冒泡崩阶段)。
+    try:
+        logger.info("-" * 72)
+        logger.info("【抽样代表性自检 (诊断, 非正式检验; 代表性正式判定见 stage 33/34)】")
+        n_drawn = len(sample_df)
+        # (a) 媒体类型(中文) top-k 份额: 单一媒体占比过高 → 抽样向某来源倾斜 (against 代表性)
+        media_col = '媒体类型(中文)'
+        if media_col in sample_df.columns:
+            vc_media = sample_df[media_col].value_counts(dropna=True)
+            n_outlet = int(vc_media.shape[0])
+            n_media_valid = int(vc_media.sum())
+            if n_media_valid > 0:
+                topk = vc_media.head(5)
+                shares = ", ".join(
+                    f"{name}={pct4(cnt / n_media_valid * 100, fraction=False)}"
+                    for name, cnt in topk.items()
+                )
+                logger.info(
+                    f"  媒体类型覆盖 = {n_outlet:,} 类 (有效 {n_media_valid:,} 篇); "
+                    f"top-{len(topk)} 份额: {shares}"
+                )
+                top1_share = vc_media.iloc[0] / n_media_valid * 100
+                if top1_share > 50:
+                    logger.warning(
+                        f"  ⚠ 最大媒体单类占比 {pct4(top1_share, fraction=False)} (>50%): "
+                        "抽样向单一来源倾斜, 须在 stage 33/34 代表性检验中如实披露。"
+                    )
+            else:
+                logger.info(f"  ({media_col} 列全缺失, 跳过媒体类型代表性自检)")
+        else:
+            logger.info(f"  (无 {media_col} 列, 跳过媒体类型代表性自检)")
+        # (b) 年份覆盖/跨度: 优先 year 数值列, 退回 日期 派生; 抽样若塌缩到单一年度 → T 维不代表性
+        year_series = None
+        if 'year' in sample_df.columns:
+            year_series = pd.to_numeric(sample_df['year'], errors='coerce').dropna()
+        elif '日期' in sample_df.columns:
+            year_series = pd.to_datetime(sample_df['日期'], errors='coerce').dt.year.dropna()
+        if year_series is not None and len(year_series) > 0:
+            y_min, y_max = int(year_series.min()), int(year_series.max())
+            n_years = int(year_series.nunique())
+            logger.info(
+                f"  年份覆盖 = {n_years:,} 个年度 (跨度 {y_min}–{y_max}); "
+                f"年份可解析 {len(year_series):,}/{n_drawn:,} 篇"
+            )
+            if n_years <= 1:
+                logger.warning(
+                    "  ⚠ 抽样仅覆盖 ≤1 个年度: 盘面 T=2 小样本下属预期, "
+                    "全量 17M/T=18 须确认逐年覆盖均衡 (代表性以 stage 33/34 为准)。"
+                )
+        else:
+            logger.info("  (无 year/日期 可派生年份, 跳过年份覆盖代表性自检)")
+        logger.info("  判读: 上述仅边际分布诊断, 正式代表性 (银行/年份/媒体对总体) 仍是 stage 33 之责。")
+        logger.info("-" * 72)
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"[抽样代表性自检] 诊断计算异常, 跳过(不影响产物): {_e}")
 
     log_stage_summary(logger, STAGE_NAME, stage_start, len(df), len(sample_df))
     logger.info(f"--- 阶段执行完毕: {STAGE_NAME} ---")

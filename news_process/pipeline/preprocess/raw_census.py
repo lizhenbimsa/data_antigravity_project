@@ -434,7 +434,7 @@ def render_census_to_logger(summary: dict, perfile: list[dict], logger,
     for i, h in enumerate(hist):
         hi = "∞" if bins[i+1] >= 10**11 else _f(bins[i+1])
         logger.info(f"  · [{_f(bins[i]):>6}, {hi:>6}) : {_f(h):>12} ({_pct(h,total)})")
-    logger.info(f"  · 平均正文字符数: {_f(cl.get('mean_chars'))}; "
+    logger.info(f"  · 平均正文字符数: {sig4(cl.get('mean_chars'))}; "
                 f"落在 [100,10000] (总字符近似): {_f(in_range)} ({_pct(in_range,total)})")
 
     logger.info("-" * 78)

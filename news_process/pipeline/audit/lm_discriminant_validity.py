@@ -274,9 +274,10 @@ def _log_environment_and_config(panel_path: str, eval_dir: str) -> None:
     把"谁在跑、跑在什么环境、读写哪些文件、用了哪些可调参数、依据哪些方法学文献"一次性
     落进日志, 便于复现核对 / 审计 / 排错。纯日志, 不改任何产物 / schema / 控制流 (golden-safe)。
 
-    方法学引文按手册铁律仅 emit 已核验事实: 本阶段三处依据 (Henseler-Ringle-Sarstedt 2015
-    JAMS / Cohen 1960 EPM / Cronbach 1951 Psychometrika) 均**不在**经核验参考文献注册表内,
-    故只 emit 作者-年-期刊卷(期):页 (与顶部 docstring 逐字一致), **不**附 DOI 链接 (避免伪造)。
+    方法学引文按手册铁律仅 emit 已核验事实: 本阶段 Henseler-Ringle-Sarstedt (2015) JAMS、
+    Cronbach (1951) Psychometrika 与置换检验锚点 Young (2019) QJE 三条经复核**已收录**于经
+    核验参考文献注册表 (pool.json), emit 时**附**其 DOI 链接; 仅 Cohen (1960) EPM 尚未核验,
+    故只 emit 作者-年-期刊卷(期):页, **不**附 DOI 链接 (避免伪造)。
     """
     try:
         _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
@@ -312,17 +313,32 @@ def _log_environment_and_config(panel_path: str, eval_dir: str) -> None:
                     "(LM 6 子词典 frac + clarity + num_intensity)")
 
         logger.info("  📖 方法论依据 (本阶段核心构念/方法的学术出处)")
+        # (2026-06-29 DOI 升级) Henseler 与 Cronbach 两条经复核已收录于本工作流『经核验参考
+        # 文献注册表』(pool.json: 10.1007/s11747-014-0403-8 / 10.1007/bf02310555), 故补回各自
+        # DOI 链接; 旧『三条均无 DOI』免责声明随之收窄到唯一仍未核验的 Cohen 1960。
         logger.info("     · HTMT 判别效度判据: Henseler, J., Ringle, C. M., & Sarstedt, M. (2015). "
-                    "Journal of the Academy of Marketing Science, 43(1), 115-135.")
+                    "A new criterion for assessing discriminant validity in variance-based "
+                    "structural equation modeling. Journal of the Academy of Marketing Science, "
+                    "43(1), 115-135. https://doi.org/10.1007/s11747-014-0403-8")
         logger.info("       → 异质-同质相关比 (HTMT) 双 cutoff 0.85 strict / 0.90 lenient; "
                     "低=两构念各测各的、未重复造轮子")
-        logger.info("     · Cronbach α (内部一致性): Cronbach, L. J. (1951). "
-                    "Psychometrika, 16(3), 297-334.")
+        logger.info("     · Cronbach α (内部一致性): Cronbach, L. J. (1951). Coefficient alpha "
+                    "and the internal structure of tests. Psychometrika, 16(3), 297-334. "
+                    "https://doi.org/10.1007/bf02310555")
         logger.info("       → α=(k/(k-1))(1-Σσ²_i/σ²_total); 8 维本应低耦合, α 高反提示构念不纯")
+        # (2026-06-29 新增) permutation_null() 的 1000-rep 逐列洗牌经验 p 值 = Fisher 随机化
+        # 推断 (randomization inference) 的实现; Young (2019 QJE) 是其规范锚点 (白话: 把"观测
+        # 相关能否由随机重排复现"当作显著性判据, 不依赖参数分布假设)。
+        logger.info("     · 置换/随机化推断 (permutation_null 经验 p 值): Young, A. (2019). "
+                    "Channeling Fisher: Randomization tests and the statistical insignificance of "
+                    "seemingly significant experimental results. The Quarterly Journal of "
+                    "Economics, 134(2), 557-598. https://doi.org/10.1093/qje/qjy029")
+        logger.info("       → 对 HTMT 上限统计量逐列洗牌 1000 次得经验 null, p_empirical 即随机化"
+                    "检验 p 值 (无参数分布假设; seed=42 逐位可复现)")
         logger.info("     · 名义一致性系数 (κ 谱系): Cohen, J. (1960). "
                     "Educational and Psychological Measurement, 20(1), 37-46.")
-        logger.info("       (注: 上述三条均不在本工作流『经核验参考文献注册表』内, 故按手册铁律"
-                    "仅 emit 作者-年-期刊卷(期):页, 不附 DOI 链接以避免伪造)")
+        logger.info("       (注: 仅上述 Cohen (1960) 一条尚不在本工作流『经核验参考文献注册表』内, "
+                    "故按手册铁律仅 emit 作者-年-期刊卷(期):页, 不附 DOI 链接以避免伪造)")
         logger.info("     · 近期补充 (经 Crossref 核验注册表; 偏 2023-2026, 附 DOI):")
         logger.info("       - 词典法度量的当代背书: Barbaglia, L., Consoli, S., Manzan, S., "
                     "Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic "
@@ -399,6 +415,18 @@ def main():
         ('ss', INDICATORS_SS),
     ):
         logger.info(f"  ── 轨道 {suffix} ──")
+        # (IO provenance 2026-06-29) 算 HTMT 前先把本轨 8 维 indicator 的"入表/缺失"明细落日志:
+        # compute_htmt_matrix 内部对缺列静默丢弃 (仅 present<2 时才 warn), 读者无从得知究竟哪几个
+        # 构念真正进了矩阵。此处用与函数体内**完全相同**的成员判定 (纯读 panel.columns, 不改数据),
+        # 让"优雅跳过缺列"的降级行为在轨边界可审计 (golden-safe)。
+        try:
+            _present = [c for c in indicators if c in panel.columns]
+            _missing = [c for c in indicators if c not in panel.columns]
+            logger.info(
+                f"    schema: present {len(_present):,d}/{len(indicators):,d} "
+                f"→ {_present}; missing {len(_missing):,d} → {_missing or '(无)'}")
+        except Exception as _e:  # noqa: BLE001
+            logger.warning(f"    [schema provenance] 打印异常, 跳过(不影响产物): {_e}")
         _t_track = time.time()
         htmt = compute_htmt_matrix(panel, indicators)
         if htmt.empty:
@@ -425,6 +453,24 @@ def main():
             f"    G-A1.2 判定: max HTMT = {sig4(max_htmt)} "
             f"({'PASS' if max_htmt < HTMT_STRICT else 'FAIL (need expert audit)'})"
         )
+        # (result distribution 2026-06-29) 纯读已算出的 htmt 矩阵, 把"哪一对构念顶到 max_htmt"
+        # 与 off-diagonal 相关谱 (mean/median/min) 落日志: 仅标量 max 入日志时审稿人无从得知是哪
+        # 两个测度在驱动 FAIL。argmax pair 与 spread 正是一张判别效度表应报的结果统计量。纯读 +
+        # try/except 兜底, 任何异常只 warning, 不回写矩阵 / 不改产物 (golden-safe)。
+        try:
+            _off = htmt.where(~np.eye(htmt.shape[0], dtype=bool))  # 对角置 NaN 的只读副本
+            _stacked = _off.stack()  # MultiIndex (行 indicator, 列 indicator) → |corr|; 默认丢 NaN
+            if not _stacked.empty:
+                _i_max, _j_max = _stacked.idxmax()
+                logger.info(
+                    f"    最大 off-diag HTMT 对: 「{_i_max}」×「{_j_max}」= {sig4(_stacked.max())} "
+                    f"(该对最接近冗余; FAIL 时即此对触门)")
+                logger.info(
+                    f"    off-diag HTMT 谱: mean={sig4(_stacked.mean())} / "
+                    f"median={sig4(_stacked.median())} / min={sig4(_stacked.min())} "
+                    f"(n_pairs={_stacked.shape[0] // 2:,d} 个无序构念对; 越低=判别效度越强)")
+        except Exception as _e:  # noqa: BLE001
+            logger.warning(f"    [HTMT 谱] 诊断打印异常, 跳过(不影响产物): {_e}")
         # 记录本轨汇总供【结果分析】(纯日志, 不影响产物)
         _track_summaries.append({
             'suffix': suffix,

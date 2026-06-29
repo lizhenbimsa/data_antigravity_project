@@ -243,6 +243,19 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         _step_removed.append(('银行词', rows_before - len(df), len(df)))
 
     # 7. Schema 统一: object 列 → string, 确保后续 Parquet 序列化安全
+    # 📊 schema-boundary breadcrumb (io_provenance; 纯日志, try/except 守卫, 结果即弃,
+    # golden-safe): 在归一循环 *之前* 数一下有多少 object-dtype 列将被强制
+    # fillna('').astype(str), 作为 Parquet 序列化边界的可复现性面包屑。
+    # 白话: 记录这一步把几列"杂类型 (object)"统一成了字符串, 方便复现时核对 schema 边界。
+    try:
+        _n_obj_cols = len([c for c in df.columns if df[c].dtype == 'object'])
+        if _n_obj_cols:
+            logger.info(
+                f"  [7/8 Schema 统一] object→string 归一 {_n_obj_cols:,} 列 "
+                f"(Parquet 序列化安全边界, 不改行数)"
+            )
+    except Exception as e:  # noqa: BLE001  纯日志, 失败绝不阻断过滤
+        logger.warning(f"  Schema 统一统计打印失败 (不影响处理): {e}")
     for col in df.columns:
         if df[col].dtype == 'object':
             df[col] = df[col].fillna('').astype(str)
@@ -285,6 +298,30 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
             s_final = s_final.where(s_base != k, v)
 
         df['媒体(中文)'] = s_final
+
+        # 📊 媒体名称规范化产出统计 (outlet-identity canonicalization yield;
+        # result_distribution; 纯日志, try/except 守卫, 结果即弃, golden-safe)。
+        # 媒体名是下游媒体多样性 (HHI) 与 outlet 固定效应的实体键 —— 同一报纸若残留
+        # 多个变体名会虚增 outlet 计数、稀释固定效应; 故规范化命中率是论文 data
+        # appendix 的实体清洗 (outlet-identity normalization rate) provenance 统计。
+        # 白话: 这一步把 "人民日报·海外版"/"人民日报 since 2008" 收敛回 "人民日报",
+        # 这里数一数改写了多少行、把多少个不同报名合并掉、几条特例规则真的命中。
+        try:
+            if len(df) > 0:
+                _n_changed = int((s_final != orig_media).sum())
+                _uniq_before = int(orig_media.nunique())
+                _uniq_after = int(s_final.nunique())
+                _n_override_fired = sum(
+                    1 for _k in MEDIA_NAME_OVERRIDES if bool((s_base == _k).any())
+                )
+                logger.info(
+                    f"  📊 [8/8 媒体名称规范化] 改写 {_n_changed:,} 行 "
+                    f"({pct4(_n_changed / len(df))}) | "
+                    f"去重后唯一报名 {_uniq_before:,} → {_uniq_after:,} 家 | "
+                    f"特例覆盖规则命中 {_n_override_fired:,}/{len(MEDIA_NAME_OVERRIDES):,} 条"
+                )
+        except Exception as e:  # noqa: BLE001  纯日志, 失败绝不阻断过滤返回
+            logger.warning(f"  媒体名称规范化统计打印失败 (不影响处理): {e}")
 
     # 📊 结果判读 (本文件块整体保留率; pct4 四位有效数字, 纯日志):
     # 8 步过滤是高淘汰链 (地域 ~60-70% + 银行词 ~30-50% 为主力), 单文件整体保留

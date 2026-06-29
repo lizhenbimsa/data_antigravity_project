@@ -2045,6 +2045,40 @@ def _write_run_lineage(stage_start: float):
         logger.warning(f"  [N8 lineage] 写入失败 (非阻塞): {e}")
 
 
+# ── 创新三维构念出处 (VERIFIED_REFERENCES 注册表; 逐字照抄 APA-7 + DOI, 仅日志用) ──
+# 把下游 P3/P4/P5 三篇论文主因变量(实质性/创新位点/协同模式)的二元构念出处 emit
+# 进运行期日志 (main() 块 ⑥ 标签分布旁), 让 21_tone_llms.log 自证测度的理论锚点,
+# 而非只把出处留在 docstring 注释里。键 = 面板列基名 (innovation_*), 便于在分布
+# 日志循环里按维度直接索引。镜像 pipeline/panel/geography.py::_GEO_REFERENCES 的
+# house idiom (模块级 verbatim 注册表 + logger.info(f"  📖 {...}") 运行期 emit)。
+_INNOV_CONSTRUCT_REFERENCES = {
+    # 实质性 (substantiveness, P3): 实质 vs 象征二分的原始构念 — 白话: 一项金科举措
+    # 是真投入(改流程/上系统/真砸钱)还是只挂个名作姿态, 正对应 W&Z 的"实质 vs 象征"区分。
+    "innovation_substantiveness": (
+        "Westphal, J. D., & Zajac, E. J. (1994). Substance and symbolism in "
+        "CEOs' long-term incentive plans. Administrative Science Quarterly, "
+        "39(3), 367–390. https://doi.org/10.2307/2393295"
+    ),
+    # 创新位点 (locus, P4): 底层技术 vs 应用场景二分 — 白话: 这条金科新闻讲的是银行
+    # 在搭底层技术(算法/架构/中台)还是在落地某个应用(某 App/某业务场景), 即 Gomber
+    # 等"数字金融立方体"按技术层 vs 业务功能层的切分。
+    "innovation_locus": (
+        "Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital finance and "
+        "FinTech: Current research and future research directions. Journal of "
+        "Business Economics, 87(5), 537–580. https://doi.org/10.1007/s11573-017-0852-x"
+    ),
+    # 协同模式 (collab, P5): 自主研发 vs 外部协同二分 — 白话: 银行是自己闷头做还是
+    # 拉外部伙伴(科技公司/平台)一起做金科, 对应开放式创新的"外部搜索广度"。Chesbrough
+    # 2003 是书无 DOI 不可引, 此处锚到其可核验 DOI 的实证半边 Laursen & Salter (2006)。
+    "innovation_collab_mode": (
+        "Laursen, K., & Salter, A. (2006). Open for innovation: The role of "
+        "openness in explaining innovation performance among U.K. manufacturing "
+        "firms. Strategic Management Journal, 27(2), 131–150. "
+        "https://doi.org/10.1002/smj.507"
+    ),
+}
+
+
 def _log_environment_and_methodology(input_path: str) -> None:
     """打印项目/环境信息 + 运行配置 + 方法论依据 (含 DOI) — 日志富集 (2026-06-24)。
 
@@ -2298,6 +2332,39 @@ def main():
     logger.info(f"加载预筛数据: {input_path}")
     df = pd.read_parquet(input_path)
     logger.info(f"总计候选新闻: {len(df):,d}")
+    # 输入边界 provenance (io 富集 2026-06-29, golden-safe 纯日志): 落 shape + 关键
+    # 输入列在位情况。⚠ content_ss 缺失会让 ss(银行+金科同句)稳健性轨在
+    # iter_article_track_prompts 静默回退 content_full (见 :845-847) → 三轨退化为
+    # 双轨, 审稿人须能从日志判断 ss 轨是真同句轨还是 full 的副本。content_ctx 在位
+    # 已在下方物化分支记录, 此处补 content_ss 的在位/非空诊断。整体 try/except 包裹,
+    # 任何诊断异常绝不拖垮阶段; 计数用 :,d, 非整数经 pct4 (四位有效数字)。
+    try:
+        _nrow_in, _ncol_in = df.shape
+        _key_in_cols = ['内容', 'content_ctx', 'content_ss', 'target_bank', '标题',
+                        'fintech_intensity_score']
+        _present_in = {c: (c in df.columns) for c in _key_in_cols}
+        logger.info(f"  · 输入 DataFrame 形状: {_nrow_in:,d} 行 × {_ncol_in:,d} 列")
+        logger.info(
+            "  · 关键输入列在位: "
+            + ", ".join(f"{c}={'✓' if _present_in[c] else '✗缺失'}" for c in _key_in_cols)
+        )
+        if not _present_in['content_ss']:
+            logger.warning(
+                "  ⚠ content_ss 列缺失 → ss(银行+金科同句)稳健性轨将由 "
+                "iter_article_track_prompts 回退 content_full (:845-847), ss 轨退化为 "
+                "full 副本而非真同句轨; 复现/审稿前须确认 stage 13 已物化 content_ss。"
+            )
+        else:
+            # ss 轨真实性诊断: content_ss 非空率 (ss_is_fallback=True 行回退全文 body, 虽非空
+            # 但非真同句窗口); 纯日志, 结果只喂 logger 后丢弃, 不参与任何下游计算。
+            _ss_nonempty = int(df['content_ss'].notna().sum())
+            logger.info(
+                f"  · content_ss 非空 {_ss_nonempty:,d} 行 "
+                f"({pct4(_ss_nonempty / _nrow_in) if _nrow_in else 'N/A'}); "
+                "ss_is_fallback=True 行虽有值但回退全文 (见 stage 13 物化)。"
+            )
+    except Exception as _e_io:
+        logger.debug(f"  · 输入 provenance 诊断跳过 (非阻塞): {_e_io}")
     log_memory_usage(logger, "数据加载完成")
     phase_durations['①加载+ctx物化'] = time.time() - _t
     
@@ -3009,6 +3076,11 @@ def main():
                         continue
                     _parts.append(f"{_trk} {_lab_a}{pct4(_na / _den)}/{_lab_b}{pct4(_nb / _den)}")
                 logger.info(f"    - {_dname} ({_dlab} → {_paper}): " + " | ".join(_parts))
+                # 📖 该维度二元构念的学术出处 (runtime emit; 逐字取自经核验注册表 pool):
+                # substantiveness→W&Z 1994 实质 vs 象征 / locus→Gomber 等 2017 数字金融立方体
+                # 底层 vs 应用 / collab→Laursen & Salter 2006 开放式创新外部搜索广度。
+                if _base in _INNOV_CONSTRUCT_REFERENCES:
+                    logger.info(f"      📖 {_dname}构念源: {_INNOV_CONSTRUCT_REFERENCES[_base]}")
             logger.info(
                 "    判读: 二元构成是下游 P3/P4/P5 论文主因变量之源; 因平局/低置信票按保守 MAP 降级到"
                 "基类(应用场景/象征性/自主研发), 该方向占比天然偏高 — 极端单边(如某类>99%)在 T=2 小样本"

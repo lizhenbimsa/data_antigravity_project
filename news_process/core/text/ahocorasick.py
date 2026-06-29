@@ -105,8 +105,16 @@ def load_bank_names(bank_names_file: str) -> tuple:
         ac.make_automaton()
         logger.info(
             f"银行名称 AC 自动机: 已加载 {len(banks):,d} 家银行 / "
-            f"{len(variant_to_bank):,d} 个名称变体 (Aho-Corasick 多模式 O(n+m) 全文匹配)"
+            f"{len(variant_to_bank):,d} 个名称变体 (Aho-Corasick 多模式 O(n+m) 全文匹配) "
+            f"(源: {os.path.abspath(bank_names_file)})"
         )
+        # 📋 词典版本指纹 (字节规模; log-only try/except, 供复现审计锚定具体 bank_names.json 版本 —
+        # 词典 provenance 对一个 dictionary-based 银行实体分类器 load-bearing: 整套 term-spotting
+        # 由该文件驱动, 审稿人须能溯源到底是哪一份银行名变体表)
+        try:
+            logger.info(f"  📋 词典文件: {os.path.getsize(bank_names_file):,d} 字节")
+        except OSError:
+            pass
         # 📊 结果统计 (词典规模与变体长度分布; 全部 log-only, 不参与产物计算)
         _v_lens = [len(v) for v in variant_to_bank]
         _short_n = sum(1 for _l in _v_lens if _l <= 2)  # 短名 (≤2 字, 须短名歧义消解)
@@ -114,9 +122,13 @@ def load_bank_names(bank_names_file: str) -> tuple:
         _avg_var_per_bank = len(variant_to_bank) / len(banks)
         logger.info(
             f"  📊 变体长度: min={min(_v_lens)} / mean={sig4(_mean_var_len)} / "
-            f"max={max(_v_lens)} 字符; 短名 (≤2 字) {_short_n:,d} 个; "
+            f"max={max(_v_lens)} 字符; 短名 (≤2 字) {_short_n:,d} 个 "
+            f"({pct4(_short_n / len(variant_to_bank))}); "
             f"平均每家 {sig4(_avg_var_per_bank)} 个变体"
         )
+        # 白话: 短名占比直接决定短名歧义消解 (short_name disambiguation) 的成本 —
+        # is_match_excluded 仅在 variant_len<=2 时才触发上下文排除, 故该比例越高,
+        # 短名误匹配的潜在风险面越大, 报告为分数比裸计数更具诊断价值。
         # 📖 方法论依据 (核心算法学术出处, Crossref 真值核验 DOI):
         logger.info("  📖 方法论依据:")
         #    Aho, A. V., & Corasick, M. J. (1975). Efficient string matching: an aid to
@@ -188,7 +200,10 @@ def load_exclusion_patterns(exclusion_file: str) -> tuple:
             if pattern:
                 neg_ac.add_word(pattern, pattern)
         neg_ac.make_automaton()
-        logger.info(f"否定模式: 已加载 {len(neg_patterns)} 个模式")
+        logger.info(
+            f"否定模式: 已加载 {len(neg_patterns)} 个模式 "
+            f"(源: {os.path.abspath(exclusion_file)})"
+        )
         # 📊 否定模式字面长度分布 (log-only, 不参与匹配; 审计否定窗口的字面跨度)
         _neg_lens = [len(p.strip()) for p in neg_patterns if p.strip()]
         if _neg_lens:
@@ -349,8 +364,15 @@ def load_fintech_dict(fintech_dict_file: str) -> tuple:
         ac.make_automaton()
         logger.info(
             f"金融科技关键词 AC 自动机: 已加载 {len(all_keywords):,d} 个关键词 "
-            "(Aho-Corasick 多模式 O(n+m) 全文匹配; 同一算法见 load_bank_names 的 📖 出处)"
+            "(Aho-Corasick 多模式 O(n+m) 全文匹配; 同一算法见 load_bank_names 的 📖 出处) "
+            f"(源: {os.path.abspath(fintech_dict_file)})"
         )
+        # 📋 词典版本指纹 (字节规模; log-only try/except, 供复现审计锚定具体 fintech_dict.json 版本 —
+        # 金科主题判定的全部关键词由该文件驱动, provenance 同属 load-bearing)
+        try:
+            logger.info(f"  📋 词典文件: {os.path.getsize(fintech_dict_file):,d} 字节")
+        except OSError:
+            pass
         # 📊 结果统计 (关键词长度分布; 全部 log-only, 不参与产物计算)
         _kw_lens = [len(k) for k in all_keywords]
         _kw_short = sum(1 for _l in _kw_lens if _l <= 2)

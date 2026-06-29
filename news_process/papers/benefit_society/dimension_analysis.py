@@ -34,7 +34,7 @@ from typing import Sequence
 import numpy as np
 import pandas as pd
 
-from news_process.core.logging import sig4
+from news_process.core.logging import pct4, sig4
 
 logger = logging.getLogger(__name__)
 
@@ -212,6 +212,17 @@ def compute_direction_vectors(
         if norm < 1e-10:
             logger.error(f"Dimension {dim_name}: direction vector norm < 1e-10; degenerate")
             continue
+        # 📊 方向向量预归一化范数 = ‖pos_mean − neg_mean‖ = 正/负锚点均值的欧氏距离
+        # (语义轴锐利度诊断)。白话: 范数越大 = 该维正面锚点与负面锚点在 embedding
+        # 空间分得越开 = 语义轴越锐利 → 直接印证 banner 前提"4 维各载独立信息、
+        # 分解有意义"; 范数 ≈ 0 才是上面的退化分支。纯日志、值已算好 (复用既有
+        # `norm`)、仅喂 logger 后丢弃, golden-safe (镜像 geometry-of-culture 反义
+        # 锚点对均值差的轴有效性诊断, 该构念出处 Kozlowski et al. 2019 ASR 已于
+        # _log_environment_and_config 的 📖 块 emit)。
+        logger.info(
+            f"  [{dim_name}] direction norm (pre-normalize, ‖pos_mean − neg_mean‖) "
+            f"= {sig4(norm)}"
+        )
         directions[dim_name] = direction / norm
 
     return directions
@@ -640,11 +651,57 @@ def main(argv: list[str] | None = None) -> int:
         logger.info(f"  [{t}] embeddings shape: {emb.shape}")
 
     df_exploded = pd.read_parquet(args.df_exploded)
+    # 📂 df_exploded 来源信息 (article-bank 展开表, 驱动 bank-year 聚合的逐文章观测)。
+    # 其行数须与各轨文本 embedding 行数严格相等 (见 aggregate_to_bank_year L266-269 /
+    # compute_dual_track_dimensions L320-324 的长度匹配断言) —— 该不变量此前被断言却
+    # 从未落日志, 此处补 provenance。纯日志、try/except 守卫、结果仅喂 logger 后丢弃,
+    # golden-safe。
+    try:
+        _de_rows, _de_cols = df_exploded.shape
+        logger.info(f"  📂 df_exploded 来源: {args.df_exploded}")
+        logger.info(f"     · 形状: {_de_rows:,d} 行 × {_de_cols:,d} 列 "
+                    "(行数须 == 各轨 embedding 行数, 否则聚合断言 fail-loud)")
+        if 'target_bank' in df_exploded.columns:
+            logger.info(f"     · 目标银行数 (target_bank.nunique): "
+                        f"{df_exploded['target_bank'].nunique():,d}")
+        if 'year' in df_exploded.columns:
+            _yr = df_exploded['year'].dropna()
+            if len(_yr):
+                logger.info(f"     · 年份覆盖: {df_exploded['year'].nunique():,d} 个年度 "
+                            f"(范围 {int(_yr.min())}–{int(_yr.max())})")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  (df_exploded 来源信息打印失败, 忽略): {_e}")
     phase_durations['②加载 embeddings+df_exploded'] = time.time() - _t
 
     _t = time.time()
     panel = compute_dual_track_dimensions(df_exploded, track_emb, directions)
     phase_durations['③多轨投影+bank-year聚合'] = time.time() - _t
+
+    # 📊 维度子指数横截面分布 (本模块的存在理由 = benefit_<dim>_<track> 这组测度;
+    # 此前仅 log panel.shape + 列名, 零分布信息)。给审稿人维度分解测度的分布画像:
+    # 逐列非空计数 + 均值/中位数/标准差/极值/四分位。纯日志、try/except 守卫、
+    # describe/quantile 结果仅喂 logger 后丢弃, golden-safe (镜像 geography.py
+    # fintech_exposure 的 mean/std/非空 范式)。
+    try:
+        _bcols = [c for c in panel.columns if c.startswith('benefit_')]
+        _n_rows = len(panel)
+        logger.info(f"  📊 维度子指数分布 ({len(_bcols):,d} 列, bank-year 行 n={_n_rows:,d})")
+        for _c in _bcols:
+            _s = panel[_c].dropna()
+            if len(_s) == 0:
+                logger.info(f"     · {_c}: 全空 (无非空观测)")
+                continue
+            _q = _s.quantile([0.25, 0.5, 0.75])
+            logger.info(
+                f"     · {_c}: 非空={len(_s):,d} "
+                f"({pct4(len(_s) / _n_rows) if _n_rows else 'n/a'}), "
+                f"mean={sig4(_s.mean())}, median={sig4(_q.loc[0.5])}, "
+                f"std={sig4(_s.std())}, min={sig4(_s.min())}, "
+                f"Q1={sig4(_q.loc[0.25])}, Q3={sig4(_q.loc[0.75])}, "
+                f"max={sig4(_s.max())}"
+            )
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  (维度子指数分布打印失败, 忽略): {_e}")
 
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)

@@ -436,6 +436,11 @@ def _log_environment_and_config(stage_14_path: str, args) -> None:
         logger.info("     · κ 分级判读: Landis, J. R., & Koch, G. G. (1977). The measurement of observer "
                     "agreement for categorical data. Biometrics, 33(1), 159-174. https://doi.org/10.2307/2529310 "
                     "(substantial 区间 κ≥0.61; 本阶段阈值 0.70)")
+        # 本模块区别于词典版姊妹 (radius_sensitivity.py) 的本质: 被测稳健性的标签由 LLM
+        # 生成, 而 LLM 文本标注本身对提示/窗口等设计选择高度敏感 → 正因此才需要对 LLM
+        # 标注做 radius 稳健性探针。白话: 既然换个机器、换个窗口让 AI 重打标可能给出不同
+        # 结论, 我们就得先量一量"换窗口"这一项到底动不动结论 (κ), 否则标注不可信。
+        logger.info("     · LLM 标注稳健性动机: Lin, H., & Zhang, Y. (2026). Navigating the risks of using large language models for text annotation in social science research. Social Science Computer Review, 44(3), 403-427. https://doi.org/10.1177/08944393251366243")
         logger.info("     · 白话: 同一篇文章换不同句窗大小让 LLM 重判, 若三轴标签结论"
                     "基本不变(κ 高), 说明测度不依赖窗口参数的人为选择, 更稳健可信。")
     except Exception as e:  # noqa: BLE001
@@ -505,6 +510,21 @@ def main():
     estimates = estimate_llm_calls(n_articles=n_articles)
     _t_load = time.time() - _t
     logger.info(f"  N (stage 14 输入): {n_articles:,}")
+    # 输入 schema provenance (日志富集 round 8, golden-safe log-only): main() 此前仅
+    # 落行数 N, 从不落列数与"下游 parse_track_results_from_cache 声明消费的 4 个关键列
+    # (article_idx/target_bank/content_ctx/content_ss) 在不在", 复现审计在 stage 边界
+    # 需要这条 schema 凭证。下列局部量仅喂 logger 后即弃, 绝不下游复用 (整数计数 → 无需 sig4)。
+    try:
+        _n_cols_in = int(df_stage14.shape[1])
+        _expected_cols = ['article_idx', 'target_bank', 'content_ctx', 'content_ss']
+        _col_presence = {c: bool(c in df_stage14.columns) for c in _expected_cols}
+        logger.info(
+            f"  📂 输入 schema: 列数={_n_cols_in:,} | "
+            f"关键列 article_idx/target_bank/content_ctx/content_ss 在否="
+            f"{[_col_presence[c] for c in _expected_cols]}")
+        del _n_cols_in, _expected_cols, _col_presence
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  输入 schema provenance 打印失败 (不影响处理): {e}")
     logger.info(f"  实际 LLM 调用: {estimates['total_calls']:,} "
                 f"(= {estimates['per_radius_calls']:,} × {len(RADII_TO_TEST) - 1} new radii)")
     logger.info(f"  早前错估 (含 full 轨重跑): {estimates['naive_full_track_count']:,} "

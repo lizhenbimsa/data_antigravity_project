@@ -104,6 +104,12 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
         desc = panel['n_articles'].describe()
         logger.info(f"    mean={sig4(desc['mean'])}, median={sig4(desc['50%'])}, "
                     f"max={sig4(desc['max'])}, std={sig4(desc['std'])}")
+        # 补全六数概括 (min/Q1/Q3, 复用已算 desc, golden-safe 只读 — 不新增计算):
+        # 与上行 mean/median/std/max 合为 mean·median·std·quartiles·min·max 全分布,
+        # 白话: 加上最小值与上下四分位即可判断覆盖量的右偏厚尾 (多数银行覆盖稀疏,
+        # 少数高曝光银行拉出长尾), 单看均值/中位会掩盖这一离散结构。
+        logger.info(f"    min={sig4(desc['min'])}, q1={sig4(desc['25%'])}, "
+                    f"q3={sig4(desc['75%'])}")
 
     if 'llm_vote_tone_full' in panel.columns:
         valid_tone = panel['llm_vote_tone_full'].dropna()
@@ -507,6 +513,38 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
             # 确保数值列没有 nullable dtypes（Stata 不支持）
             for col in panel_stata.select_dtypes(include=['Float64', 'Int64']).columns:
                 panel_stata[col] = panel_stata[col].astype(float)
+            # io-provenance 取证 (golden-safe, log-only): 量化上述四组 Stata 边界
+            # dtype 适配规模。这些强制转换实际改写了落盘 .dta 的列类型 (object→
+            # float64 语义数值列 / nullable Int{8,16,32,64}→Float64 / boolean→
+            # Float64 / Float64·Int64→float), 但此前完全静默无痕。此处从未变异的
+            # 原 panel 只读重算各类候选/被转列数, 仅供日志取证 — 计数结果不回流任何
+            # 下游 (符合 golden-safe 铁律), 直接自证 docstring 所述 "nullable →
+            # 严格 float/double 边界" 这一对发布 .dta 的真实变换。
+            try:
+                _obj_cols = panel.select_dtypes(include=['object']).columns
+                _n_obj_coerced = sum(
+                    1 for _c in _obj_cols
+                    if not (
+                        len(panel[_c].dropna()) > 0
+                        and panel[_c].dropna().map(lambda x: isinstance(x, str)).any()
+                    )
+                )
+                _n_int_nullable = len(
+                    panel.select_dtypes(include=['Int8', 'Int16', 'Int32', 'Int64']).columns
+                )
+                _n_bool_nullable = len(panel.select_dtypes(include=['boolean']).columns)
+                logger.info("  🧮 Stata 边界 dtype 适配 (golden-safe 只读取证, "
+                            "仅改 .dta 列类型不改任何值):")
+                logger.info(f"     · object→float64 (语义数值列, 跳过真字符串列): "
+                            f"{_n_obj_coerced:,d} 列")
+                logger.info(f"     · nullable Int{{8,16,32,64}}→Float64: "
+                            f"{_n_int_nullable:,d} 列")
+                logger.info(f"     · boolean→Float64: {_n_bool_nullable:,d} 列")
+                logger.info("     · 说明: nullable 整型/布尔的 <NA> 经 Float64 转 NaN, "
+                            "Stata 端 mvdecode 复原缺失语义; .parquet 路径 dtype 自动保留, "
+                            "两路径互证。")
+            except Exception as _e:
+                logger.warning(f"  [dta-dtype] 边界 dtype 适配取证跳过 (不影响导出): {_e}")
             # 学术级变量标签 (Stata variable labels, ≤80 字符)
             STATA_LABELS = {
                 # 注意力指数 (Da et al. 2011; Fang & Peress 2009)

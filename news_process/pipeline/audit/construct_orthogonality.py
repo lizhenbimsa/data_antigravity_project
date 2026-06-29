@@ -517,6 +517,26 @@ def run_stage(
     logger.info(f"v3.5.0 D3 stage 39c reading: {stage_21_parquet}")
     df = pd.read_parquet(stage_21_parquet)
     logger.info(f"  loaded {len(df):,} article rows")
+    # ②📂 IO 溯源富集 (2026-06-29 Round-8): 列数 (schema 宽度) + 9 个构念维列逐列非空覆盖。
+    # 这些覆盖篇数直接决定下游 listwise-complete 样本 (每个 NMI 格子的可比样本量), 故是
+    # 真·输入溯源记录 — 尤其暴露 ss 轨 (银行+金科同句) 在未物化时的零覆盖, 让审稿人一眼
+    # 看出每条正交性结论背后的有效样本来源。compute-and-discard, 仅喂 logger, 不回流下游。
+    try:
+        logger.info(f"  · 列数 (schema 宽度) = {df.shape[1]:,d} 列")
+        logger.info("  · 构念维列逐列覆盖 (非空篇数 / 全样本 = 占比; 驱动 listwise 完整样本):")
+        for _d in DIMS_FULL + DIMS_CTX + DIMS_SS:
+            if _d in df.columns:
+                _nn = int(df[_d].notna().sum())
+                _cov = _nn / len(df) if len(df) else float('nan')
+                logger.info(
+                    f"      {_d:<38} 非空 {_nn:>7,d} / {len(df):>7,d} = {pct4(_cov)}"
+                )
+            else:
+                logger.info(
+                    f"      {_d:<38} (列未物化 → coverage=0; ss 轨未跑或 stage21 早于 v3.4.0)"
+                )
+    except Exception as _e:  # noqa: BLE001 — 日志块绝不阻断阶段
+        logger.warning(f"  (IO-provenance 覆盖块跳过: {_e})")
     _phase_t['load_parquet'] = time.time() - _t0
 
     # CR-13: SeedSequence.spawn(2) 派生 2 个独立子序列, 避免 `seed + 1` 的耦合
@@ -639,11 +659,51 @@ def run_stage(
         v1 = classify.get(f'{d1}__{d2}', 'undefined')
         v2 = classify.get(f'{d2}__{d1}', 'undefined')
         verdict = v1 if v1 == v2 else f'{v1}/{v2} (临界)'
+        # [富集 2026-06-29 Round-8] 追加 bootstrap 95% 百分位 CI — headline 不确定性
+        # 量化 (此前已逐对落 parquet, 但日志只见点估计)。lo_f/hi_f 均为已算 locals。
         logger.info(
             f"  {s1} × {s2}: NMI={sig4(point_f.iloc[i, j])}  "
+            f"CI=[{sig4(lo_f.iloc[i, j])}, {sig4(hi_f.iloc[i, j])}]  "
             f"null_p95={sig4(null_p95_f.iloc[i, j])}  null_p99={sig4(null_p99_f.iloc[i, j])}  → {verdict}"
         )
+    # [富集 2026-06-29 Round-8] ctx 3×3 与 ss 3×3 三对非对角 NMI — 与 full 平行的构念
+    # 正交性证据 (此前只落 72_nmi_matrix_{ctx,ss}.parquet、日志完全不可见)。ss 列未物化时
+    # compute_nmi_matrix 返回全 NaN 矩阵 → sig4(NaN) 良性。仅用已算 locals point_c/n_c/point_s/n_s。
+    try:
+        _n_ctx = int(n_c.iloc[0, 1])
+        logger.info(f"  [ctx 轨] 3×3 非对角 NMI (listwise n={_n_ctx:,d}):")
+        for i, j in ((0, 1), (0, 2), (1, 2)):
+            s1 = DIMS_CTX[i].replace('innovation_', '').replace('_ctx', '')
+            s2 = DIMS_CTX[j].replace('innovation_', '').replace('_ctx', '')
+            logger.info(f"      {s1} × {s2}: NMI={sig4(point_c.iloc[i, j])}")
+    except Exception as _e:  # noqa: BLE001 — 日志块绝不阻断阶段
+        logger.warning(f"  (ctx 3×3 NMI 块跳过: {_e})")
+    try:
+        _n_ss = int(n_s.iloc[0, 1])
+        logger.info(
+            f"  [ss 轨/银行+金科同句] 3×3 非对角 NMI (listwise n={_n_ss:,d}; 0=ss 列未物化):"
+        )
+        for i, j in ((0, 1), (0, 2), (1, 2)):
+            s1 = DIMS_SS[i].replace('innovation_', '').replace('_ss', '')
+            s2 = DIMS_SS[j].replace('innovation_', '').replace('_ss', '')
+            logger.info(f"      {s1} × {s2}: NMI={sig4(point_s.iloc[i, j])}")
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  (ss 3×3 NMI 块跳过: {_e})")
     logger.info(f"  cross 6×6 非对角最大 NMI = {sig4(max_off_diag)}")
+    # [富集 2026-06-29 Round-8] cross 6×6 全 30 个非对角格的 NMI 分布 (均值/中位/标准差) —
+    # 只报 binding max 会掩盖整体跨轨正交性水平; 报全分布给审稿人完整画像。off_diag_vals
+    # 为上文已算 local (line ~593), 此处只读取派生统计后丢弃, 不回流下游。
+    try:
+        _od_valid = off_diag_vals[~np.isnan(off_diag_vals)]
+        if _od_valid.size:
+            logger.info(
+                f"  cross 6×6 非对角 NMI 分布 (有效 {_od_valid.size:,d}/30 格): "
+                f"均值={sig4(np.nanmean(off_diag_vals))}  "
+                f"中位={sig4(np.nanmedian(off_diag_vals))}  "
+                f"标准差={sig4(np.nanstd(off_diag_vals))}"
+            )
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"  (cross 6×6 分布块跳过: {_e})")
     logger.info(
         f"  总判读 interpretation = {interpretation} "
         "(strong=全对正交; moderate=无 weak 但非全 strong; mixed=至少一对 weak; undefined=不可判)"

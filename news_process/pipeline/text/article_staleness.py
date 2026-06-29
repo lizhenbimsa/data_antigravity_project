@@ -665,6 +665,19 @@ def main():
     art_df = pd.read_parquet(src_path)
     phase_durations['①加载 14_news_with_ctx'] = time.time() - _t_load
     logger.info(f"  article-level: {len(art_df):,d} 行")
+    # io_provenance (Round 8, log-only): 在行数之外补 输入 schema 指纹 —— 列数 + 各
+    # load-bearing 列在位标志 (三轨文本 content_full/ctx/ss + docid/target_bank/日期/year),
+    # 让 .log 自证本次预计算"之前"哪些轨/键在输入 parquet 里可用 (如 year=✗ 即原始输入无
+    # year 列、须由 '日期' 派生)。纯 logger.*, try/except 包裹, 结果仅喂日志、绝不回写 df (golden-safe)。
+    try:
+        logger.info(f"  📥 输入 provenance: {os.path.basename(src_path)} | "
+                    f"{len(art_df):,d} 行 × {art_df.shape[1]:,d} 列")
+        _schema_keys = ('content_full', 'content_ctx', 'content_ss',
+                        'docid', 'target_bank', '日期', 'year')
+        logger.info("     load-bearing 列在位: " + " | ".join(
+            f"{k}={'✓' if k in art_df.columns else '✗'}" for k in _schema_keys))
+    except Exception as _e:  # noqa: BLE001 — 日志块绝不让阶段崩
+        logger.warning(f"  (输入 schema provenance 日志失败, 忽略不影响处理): {_e}")
 
     # P0 修复 (metric-audit 2026-06-02): 14_news_with_ctx 仅有 str 型 '日期', 无
     # 'year' 列; 此前 line ~331 (keep_cols 含 'year') 与 ~335 (groupby year) 必崩
@@ -755,6 +768,18 @@ def main():
     )
     art_df[keep_cols].to_parquet(out_path, index=False)
     logger.info(f"  article-level → {out_path}")
+    # io_provenance (Round 8, log-only): 落盘后补 输出 schema 指纹 —— keep_cols 总数 +
+    # 实际落盘的全部 staleness 列清单 (surface/semantic × full/ctx/ss × MAIN/_lg co-primary),
+    # 让读者一眼看清哪几列真正产出、哪几列因缺嵌入 (stage 30a 未跑/旧 parquet 缺 emb_ss/emb_*_lg)
+    # 而优雅跳过。复用既算的 keep_cols / art_df.columns, 纯 logger.*, try/except, golden-safe。
+    try:
+        _landed_stale = [c for c in art_df.columns if 'staleness' in c]
+        logger.info(f"  📤 输出 provenance: {os.path.basename(out_path)} | "
+                    f"keep_cols={len(keep_cols):,d} 列 | staleness 列={len(_landed_stale):,d} 个")
+        logger.info("     已落盘 staleness 列: " + (
+            ", ".join(_landed_stale) if _landed_stale else "(无 — surface/semantic 均缺席)"))
+    except Exception as _e:  # noqa: BLE001 — 日志块绝不让阶段崩
+        logger.warning(f"  (输出 schema provenance 日志失败, 忽略不影响处理): {_e}")
 
     # ── bank-year 聚合 ──
     # fix(omni-g-embed-06/08, 2026-06-11): 平均域收缩到 verified 面板语料
@@ -802,6 +827,21 @@ def main():
                 f"  {col}: 覆盖 {_n_valid:,d}/{n_art:,d} ({pct4(_cov)} 有 7d 前窗) | "
                 f"均值={sig4(_mean)} | 高陈旧(>0.9)占有效行={pct4(_highfrac)} (分母=valid, 同 panel highstale)"
             )
+            # result_distribution (Round 8, log-only): [0,1] 有界相似度只报均值不足以让顶刊
+            # 读者判读形态 → 补 中位数/标准差/四分位距(IQR p25–p75)/极值 全分布摘要, 供核对
+            # G-D2.1 [0.3,0.7] 互补性主张所依赖的实际离散程度 (右偏长尾 vs 集中)。复用上方已取的
+            # s.dropna() (_n_valid≥1 必非空; 单观测时 std=NaN, sig4 安全降级); 计算结果仅喂日志、
+            # 绝不回写 df, 嵌在既有 try/except 内再加一层 try/except 防单列异常打断整列循环 (golden-safe)。
+            try:
+                _sd = s.dropna()
+                _q = _sd.quantile([0.25, 0.5, 0.75])
+                logger.info(
+                    f"    分布: 中位数={sig4(_q.loc[0.5])} | 标准差={sig4(_sd.std())} | "
+                    f"IQR[p25,p75]=[{sig4(_q.loc[0.25])}, {sig4(_q.loc[0.75])}] | "
+                    f"min={sig4(_sd.min())} | max={sig4(_sd.max())}"
+                )
+            except Exception as _de:  # noqa: BLE001 — 分布摘要日志绝不让阶段崩
+                logger.warning(f"    (分布摘要计算失败, 忽略不影响产物): {_de}")
             # 判读: 0=窗内无相似旧文(纯新信息), 1=窗内有近乎重复旧文(炒冷饭); 均值方向参考
             if _mean < 0.05:
                 logger.info("    → 均值很低: 该轨语料整体'新信息'为主, 重复报道少 (信息环境健康, against 旧闻噪音)")

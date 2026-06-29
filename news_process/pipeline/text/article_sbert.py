@@ -417,6 +417,62 @@ def main():
     df = pd.read_parquet(src_path)
     logger.info(f"  article-level: {len(df)} 行")
 
+    # ── 📥 输入 schema provenance (日志富集 Round8 2026-06-29; 纯日志, golden-safe) ──
+    # 在 stage 读入边界一次性落: 行×列计数 + 三轨源列 (content_full/content_ctx/content_ss)
+    # 在输入 schema 中的存在性 → 审计者在读入点即可看出本输入能支持哪几条嵌入轨 (此前仅靠
+    # 下游散落的 per-track warning 间接透露)。结果仅喂日志, 不回写 df / 不进任何产物。
+    try:
+        logger.info(f"  输入 schema: {len(df):,d} 行 × {df.shape[1]:,d} 列")
+        _track_src_cols = [
+            c for c in ('content_full', 'content_ctx', 'content_ss') if c in df.columns
+        ]
+        logger.info(
+            "  输入可支持嵌入轨源列 (present): "
+            f"{_track_src_cols or '(无 content_* — 回退裸 内容+标题, 仅 full 轨)'}"
+        )
+    except Exception as _e_io:  # noqa: BLE001
+        logger.warning(f"  输入 schema provenance 打印失败 (不影响处理): {_e_io}")
+
+    # ── 📏 截断决策的语料实证 (日志富集 Round8 2026-06-29; 纯日志, golden-safe) ──
+    # docstring/日志把"中文新闻中位 ~800 字 > SBERT 512 token"作为 Bybee 2024『标题+首段
+    # 300 字』截断策略的依据 (本文件 L349-351 / L71), 但此前从未在真实语料上 MEASURE。此处在
+    # 嵌入源文本列 (content_full 优先, 缺则裸 内容) 上实测字符长度分布 (中位/均值/标准差/四分位
+    # via sig4 + min/max 整数) + 截断率 [pct4(正文 > FIRST_PARA_CHARS=300 的占比) = 被首段
+    # 截断丢尾的文章比例; pct4(标题 > TITLE_CHARS=100 的占比)], 把"~800 字"从断言升级为带语料
+    # 证据的运行期度量 (量化丢弃了多少正文)。整块在 try/except 内, 结果仅喂 logger, 不回写 df。
+    try:
+        _len_src_col = 'content_full' if 'content_full' in df.columns else '内容'
+        if _len_src_col in df.columns and len(df) > 0:
+            _body_len = df[_len_src_col].fillna('').astype(str).str.len()
+            _q = _body_len.quantile([0.25, 0.5, 0.75])
+            logger.info(
+                f"  📏 嵌入源正文字符长度分布 (列={_len_src_col}, n={len(df):,d}): "
+                f"中位={sig4(_q.loc[0.5])} 均值={sig4(_body_len.mean())} "
+                f"标准差={sig4(_body_len.std())} | Q1={sig4(_q.loc[0.25])} "
+                f"Q3={sig4(_q.loc[0.75])} | min={int(_body_len.min()):,d} "
+                f"max={int(_body_len.max()):,d} 字"
+            )
+            _trunc_body = float((_body_len > FIRST_PARA_CHARS).mean())
+            logger.info(
+                f"     · 首段截断率: {pct4(_trunc_body)} 文章正文 > FIRST_PARA_CHARS="
+                f"{FIRST_PARA_CHARS:,d} 字 (= Bybee 2024 取首段后被丢尾的文章占比; "
+                "截断越多说明『取首段而非全文』省下越多嵌入算力)"
+            )
+            if '标题' in df.columns:
+                _title_len = df['标题'].fillna('').astype(str).str.len()
+                _trunc_title = float((_title_len > TITLE_CHARS).mean())
+                logger.info(
+                    f"     · 标题截断率: {pct4(_trunc_title)} 文章标题 > TITLE_CHARS="
+                    f"{TITLE_CHARS:,d} 字 (标题中位={sig4(_title_len.median())} 字)"
+                )
+            logger.info(
+                "       → (白话: 把 docstring 断言的『中文新闻中位 ~800 字』在本语料上实测一遍, "
+                "用实际字符长度分布与截断率印证『标题+首段 300 字』的取舍丢弃了多少正文 —— "
+                "让截断决策从断言变为有语料证据的运行期度量。)"
+            )
+    except Exception as _e_len:  # noqa: BLE001
+        logger.warning(f"  截断决策语料实证打印失败 (不影响处理): {_e_len}")
+
     # ── 嵌入轴 full/ctx/ss 三路 × co-primary 双 spec (Qwen MAIN + large _lg) 编码 ──
     # v3.14.0 (2026-06-27): 弃本地 SentenceTransformer, 每轨用两个 API spec 各嵌一遍。
     # content_full / content_ctx / content_ss 均已由 stage 13 (ctx_materializer) prepend 标题【恰好一次】,

@@ -543,6 +543,24 @@ def enrich_with_num_intensity_dual_track(df: pd.DataFrame,
     else:
         logger.info(f"num_intensity: '{ss_col}' 缺失, ss 轨 (同句共现) 跳过 (镜像 ctx 守卫优雅降级)")
 
+    # ── 输入/输出列血缘 (io provenance; 仅 logger.* 读 df.columns 成员关系, 无行为改动) ──
+    # 富集铁律: 纯 provenance, 不改任何写盘值/schema/控制流 (golden-safe)。
+    # 白话: 把"每条轨实际读了哪一列原始文本 + 这一步写出了哪几列数字密度"如实记进日志,
+    # 复现/审计时一眼可见 full/ctx 是否触发了回退、ss 轨是否因缺列被跳过。
+    try:
+        _ss_present = ss_col in df.columns
+        _ss_in = ss_col if _ss_present else f"{ss_col}|缺列跳过"
+        logger.info(f"  · 输入列血缘 (各轨实读物理文本列): full←{full_col} / "
+                    f"ctx←{ctx_col} / ss←{_ss_in}")
+        _out_cols = ['num_intensity_full', 'num_intensity_ctx',
+                     'num_intensity_word_full', 'num_intensity_word_ctx']
+        if _ss_present:
+            _out_cols += ['num_intensity_ss', 'num_intensity_word_ss']
+        logger.info(f"  · 输出列清单 ({len(_out_cols)} 列, 句级 + 词级两口径): "
+                    f"{', '.join(_out_cols)}")
+    except Exception as _e_prov:  # 血缘块绝不许崩阶段
+        logger.warning(f"num_intensity 输入/输出血缘渲染失败 (已跳过, 不影响产物): {_e_prov}")
+
     # ── 关键指标解读 (运行结果信息): 对**真实算出的**列逐轨给阈值判读 (sig4/pct4) ──
     # 仅读取已写入的列, 不改任何值; 全块 try/except 保护, 失败仅 warning 不崩阶段。
     try:
@@ -571,6 +589,30 @@ def enrich_with_num_intensity_dual_track(df: pd.DataFrame,
                 f"     - {_label} ({_col}): 非空 {_notna:,d}/{_n:,d} = "
                 f"{pct4(_rate)} [{_verdict}]; 均值={sig4(_mean)} 标准差={sig4(_std)}"
             )
+            # 分布分位 (result_distribution): num_intensity = 数字 token / 归一化分母 比率,
+            # 重度右偏 (多数文章数字稀疏、少数数字极密) → 仅 均值±标准差 会误导; 补 中位数 +
+            # 四分位 (p25/p75) + 极值给出右偏全貌。纯读 _s (已 coerce), 值/schema 不变 (golden-safe)。
+            if _notna:
+                _median = float(_s.median())
+                _p25 = float(_s.quantile(0.25))
+                _p75 = float(_s.quantile(0.75))
+                _vmin = float(_s.min())
+                _vmax = float(_s.max())
+                logger.info(
+                    f"         分布 (右偏稳健画像): 中位数={sig4(_median)} "
+                    f"p25={sig4(_p25)} p75={sig4(_p75)} 极值=[{sig4(_vmin)}, {sig4(_vmax)}]"
+                )
+            # 词级越界自检 (result_distribution): word 版分母排除纯数字 token、分子仍计数字
+            # token → 数字极密文本理论上比值可 > 1 (非 [0,1] 比率, 见 _count_word_tokens
+            # docstring "口径披露")。此处用真实数据量化这一文档化的 caveat (>1.0 占比),
+            # log-only 取证 — 既不裁剪也不改任何值, 只把"理论可越界"落成"实测越界率"。
+            if _col.startswith('num_intensity_word') and _notna:
+                _gt1 = int((_s > 1.0).sum())
+                _gt1_rate = (_gt1 / _notna) if _notna else 0.0
+                logger.info(
+                    f"         词级 >1.0 越界占比 (非 [0,1] 比率, codebook/论文已披露): "
+                    f"{_gt1:,d}/{_notna:,d} = {pct4(_gt1_rate)}"
+                )
         # 三轨独立性自检: full vs ctx 句级数字密度相关 (过高 → ctx 窗口未带来增量信号)
         if {'num_intensity_full', 'num_intensity_ctx'}.issubset(df.columns):
             _ff = pd.to_numeric(df['num_intensity_full'], errors='coerce')

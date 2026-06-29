@@ -41,6 +41,21 @@ logger = logging.getLogger(__name__)
 
 MANIFEST_FILENAME = 'manifest.json'
 
+# ── 经核验参考文献 (逐字照抄 APA-7 + DOI; 仅运行期日志用, 让 .log 自证方法学锚点) ──
+# 白话: 本模块给冻结归档的每个 jsonl 文件算 SHA-256 + 把 frozen prompt 的哈希指纹
+# 钉进 manifest.json (内容寻址 content-addressed 复现锚点)。Sandve 等 (2013) 的
+# "可复现计算研究十条简单规则" 第 4-6 条 (记录所有中间结果 / 版本 / 精确出处) 正是
+# 这套 per-file SHA-256 + prompt 指纹完整性清单的方法学依据 (同一 DOI 亦锚定姊妹的
+# 内容寻址/SHA-256 模块 core/data_versioning.py, 见 LITERATURE_ANCHORS_SUPPLEMENT_IV)。
+_MANIFEST_REFERENCES = {
+    "reproducible_research": (
+        "Sandve, G. K., Nekrutenko, A., Taylor, J., & Hovig, E. (2013). Ten "
+        "simple rules for reproducible computational research. PLoS "
+        "Computational Biology, 9(10), e1003285. "
+        "https://doi.org/10.1371/journal.pcbi.1003285"
+    ),
+}
+
 
 def _log_archive_env_and_config(
     action: str,
@@ -59,8 +74,10 @@ def _log_archive_env_and_config(
 
     按富集手册 §0.5: called-by-runner / 无自有 main 的 helper 不重复 ENV/CONFIG 全块
     (那是 runner 入口职责), 只在被调函数起始处打一个**子步骤 banner**: 项目/环境指纹 +
-    本步读写路径 + 可调锚点。无任何学术方法引用 (纯基础设施, 不适用)。失败 try/except 吞掉,
-    绝不让日志块崩调用阶段。
+    本步读写路径 + 可调锚点。基础设施虽非编号 stage, 但 per-file SHA-256 + frozen prompt
+    指纹的内容寻址完整性清单本身即一项可引用的可复现方法 (Sandve et al. 2013 规则 4-6),
+    故运行期附 📖 方法学引文 (见 _MANIFEST_REFERENCES)。失败 try/except 吞掉, 绝不让日志块
+    崩调用阶段。
     """
     try:
         logger.info("  🧭 LLM Archive Manifest — %s", action)
@@ -83,6 +100,10 @@ def _log_archive_env_and_config(
         logger.info("     · prompt_version_anchor=%s | archive_frozen_date=%s | schema_version=v1",
                     prompt_version_anchor, archive_frozen_date)
         logger.info("     · 完整性算法: per-file SHA-256 + 字节计数 + 行数(record_count) 单次 IO")
+        # 📖 方法学依据 (运行期 emit, 让 .log 自证锚点): 可复现计算研究规则 4-6 (记录
+        # 所有中间结果/版本/精确出处) 正是 per-file SHA-256 + prompt 指纹完整性清单的依据
+        logger.info("  📖 完整性清单方法学依据:")
+        logger.info("     📖 %s", _MANIFEST_REFERENCES["reproducible_research"])
     except Exception as e:  # noqa: BLE001
         logger.warning("  环境/配置信息打印失败 (不影响处理): %r", e)
 
@@ -289,6 +310,29 @@ def write_manifest(
             avg_kb = (total_bytes / n_files) / 1024.0
             logger.info("     · 每文件均值: 记录=%s 条 | 体积=%s KB (越均匀=按日切分越规整 ✅)",
                         sig4(avg_rec), sig4(avg_kb))
+            # 📊 每文件五数概括 (日志富集 2026-06-29, 纯日志 golden-safe): record_count 与
+            # 字节体积本已逐文件存于 manifest['files'], 此处只读不改 — min/Q1/中位/Q3/max
+            # 揭示按日切分的离散度, 用以发现异常巨大或近空 (空 jsonl) 的归档文件 (均值线看不出)。
+            # 结果仅喂 logger, 绝不回流下游, 失败被内层 try/except 吞掉。
+            try:
+                import statistics as _stats
+                _recs = sorted(f['record_count'] for f in manifest['files'].values())
+                _kbs = sorted((f['bytes'] / 1024.0) for f in manifest['files'].values())
+                if len(_recs) >= 2:
+                    _rq = _stats.quantiles(_recs, n=4, method='inclusive')  # [Q1, 中位, Q3]
+                    _kq = _stats.quantiles(_kbs, n=4, method='inclusive')
+                    logger.info("     · 每文件记录分布: min=%s | Q1=%s | 中位=%s | Q3=%s | max=%s 条",
+                                f"{_recs[0]:,d}", sig4(_rq[0]), sig4(_rq[1]), sig4(_rq[2]),
+                                f"{_recs[-1]:,d}")
+                    logger.info("     · 每文件体积分布: min=%s | Q1=%s | 中位=%s | Q3=%s | max=%s KB",
+                                sig4(_kbs[0]), sig4(_kq[0]), sig4(_kq[1]), sig4(_kq[2]),
+                                sig4(_kbs[-1]))
+                    if _recs[0] == 0:
+                        logger.warning("     · ⚠ 存在 record_count=0 的空 jsonl — 请核查该日归档是否漏播种")
+                else:
+                    logger.info("     · 每文件分布: 仅 %s 个文件, 五数概括从略 (n<2)", f"{n_files:,d}")
+            except Exception as _de:  # noqa: BLE001
+                logger.warning("     · 每文件分布打印失败 (不影响处理): %r", _de)
         else:
             logger.warning("     · ⚠ 文件数=%s 但总记录=0 — 可能存在空 jsonl, 请核查", f"{n_files:,d}")
         logger.info("  ⏱ write_manifest 墙钟耗时: %s 秒", sig4(time.time() - _t0))

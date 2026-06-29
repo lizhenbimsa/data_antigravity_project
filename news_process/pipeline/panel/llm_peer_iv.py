@@ -840,6 +840,20 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
 
     logger.info(f"  需调用 LLM: {len(tasks_to_call):,} 对 (银行×年份), "
                 f"全集 {len(banks):,} 银行 × {len(years):,} 年")
+    # io_provenance(日志富集 R8, 2026-06-29): 记录每次 bank-year 查询喂给 LLM 的
+    # 句子负载 (sentence count) 分布 — 上方仅打 tasks_to_call 的"对数", 未披露每次
+    # LLM 调用底层的证据深度/体量。该深度是 IV 第一阶段的信号质量诊断 (审稿人评估
+    # 同行识别 IV 时关注每个 peer 关系背后究竟有多少句证据)。纯日志, _lens 即算即
+    # 弃、绝不回流任何下游计算 → golden-safe。
+    try:
+        if tasks_to_call:
+            _lens = pd.Series([len(s) for _, _, s in tasks_to_call])
+            logger.info(
+                f"  句子负载/查询: 均值={sig4(_lens.mean())} 中位={sig4(_lens.median())} "
+                f"p90={sig4(_lens.quantile(0.90))} max={int(_lens.max()):,d} "
+                "(LLM 输入深度→IV 第一阶段信号量; 右尾→少数 bank-year 证据稠密)")
+    except Exception as _e:  # noqa: BLE001 — 日志块绝不让阶段崩
+        logger.warning(f"  (句子负载分布日志失败, 忽略不影响计算): {_e}")
     _phase_durations['②句子双重筛选'] = time.time() - _t_extract
 
     # ── 4. 异步并发调用 ──
@@ -1108,6 +1122,25 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
         compete_df = pd.DataFrame(compete_records)
         panel = panel.merge(compete_df, on=['target_bank', 'year'], how='left')
         logger.info(f"  peer_compete_idx 生成完毕 (多阈值, {len(compete_records):,} bank-year 有记录)")
+        # result_distribution(日志富集 R8, 2026-06-29): peer_compete_idx ∈ [0,1] 同年
+        # 同业竞争共现比例 (与 LLM 识别同行共现的文章占比) 的描述性分布。§8 关键指标
+        # 解读块覆盖 tone IV / count / queried 但漏掉本主输出列, 故在此补 mean/σ + 四分
+        # 位 + 近零方差裁决 (镜像核心 IV / fintech_exposure 的判读惯用法)。测度方法学
+        # 见上方 §7b 内联引文 (Cao 2025 LLM 同行识别 / Hoberg-Phillips 2016 TNIC 文本
+        # 网络)。只读已落盘列、结果即弃 → golden-safe。
+        try:
+            _pci = panel['peer_compete_idx'].dropna()
+            if len(_pci):
+                _pq = _pci.quantile([0.25, 0.50, 0.75])
+                _pci_std = float(_pci.std()) if len(_pci) >= 2 else 0.0
+                _pci_verdict = ("✅ 有横截面变异" if _pci_std > 1e-6 else
+                                "❌ 近零方差 (竞争指标无识别力, 全样本同值)")
+                logger.info(
+                    f"  peer_compete_idx 分布: 均值={sig4(_pci.mean())} σ={sig4(_pci_std)} "
+                    f"[p25={sig4(_pq.loc[0.25])} p50={sig4(_pq.loc[0.50])} "
+                    f"p75={sig4(_pq.loc[0.75])} max={sig4(float(_pci.max()))}] → {_pci_verdict}")
+        except Exception as _e:  # noqa: BLE001 — 日志块绝不让阶段崩
+            logger.warning(f"  (peer_compete_idx 分布日志失败, 忽略不影响计算): {_e}")
     else:
         logger.info("  peer_compete_idx: 无 peer_map 记录, 跳过")
 

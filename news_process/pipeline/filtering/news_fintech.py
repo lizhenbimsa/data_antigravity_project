@@ -408,6 +408,18 @@ def main():
     input_rows = len(df)
     phase_durations['①加载输入'] = time.time() - _t
     logger.info(f"已加载 {input_rows:,} 行数据。")
+    # io_provenance (日志富集 Round 8): 除行数外, 补录入 parquet 的 schema 宽度 (列数) +
+    # 列 dtype 构成, 让 .log 自证"读进来的是什么形状的数据" (输入 = stage 11 银行新闻全列)。
+    # 纯日志读 df.shape / df.dtypes.value_counts(), 不改任何列/值/产物 (golden-safe)。
+    try:
+        _dtype_vc = df.dtypes.value_counts()
+        _dtype_brief = ", ".join(f"{str(_k)}×{int(_v):,d}" for _k, _v in _dtype_vc.items())
+        logger.info(
+            f"  📐 输入 schema: 行数={input_rows:,d} | 列数={df.shape[1]:,d} | "
+            f"dtype 构成: {_dtype_brief}"
+        )
+    except Exception as _pe:  # noqa: BLE001 — 输入 schema 诊断绝不阻断产物
+        logger.info(f"  📐 [输入 schema] 诊断跳过 (不影响产物): {_pe}")
     log_memory_usage(logger, "数据加载后")
 
     logger.info("开始执行金融科技新闻判断（Aho-Corasick + 并行）...")
@@ -440,6 +452,24 @@ def main():
                 'fintech_keyword_details'
             ]
         )
+
+    # io_provenance (日志富集 Round 8): 7 个新追加分类列此前仅写在 docstring, 运行期从未自述。
+    # 在此 emit 一次输出 schema (列名 + 实际 dtype), 让 .log 自文档化本阶段 append 于 stage 11
+    # 全列之后的产物列 (纯日志读 processed_df.dtypes, 不改任何列/值/写盘, golden-safe)。
+    try:
+        _new_cols = [
+            'is_fintech_news', 'fintech_total_count', 'fintech_upper_count',
+            'fintech_lower_count', 'fintech_in_title', 'fintech_distinct_keywords',
+            'fintech_keyword_details',
+        ]
+        _present = [c for c in _new_cols if c in processed_df.columns]
+        _schema_brief = ", ".join(f"{c}:{str(processed_df[c].dtype)}" for c in _present)
+        logger.info(
+            f"  📑 输出新增列 schema ({len(_present):,d}/7 列, 追加于 stage 11 全列之后): "
+            f"{_schema_brief}"
+        )
+    except Exception as _se:  # noqa: BLE001 — 输出 schema 诊断绝不阻断产物
+        logger.info(f"  📑 [输出 schema] 诊断跳过 (不影响产物): {_se}")
 
     merged_stats = merge_stats(all_stats)
     log_classification_report(merged_stats, logger)
@@ -565,6 +595,29 @@ def main():
             f"  ⑤ 下游交付 (filtered 子集): {after_count:,} 篇交 stage 13 (ctx 物化)"
             f" → {'有可消费样本 (好)' if after_count > 0 else '⚠ 零金科篇, 下游三轨链将空跑'}"
         )
+        # ⑥ 文本测度逐篇分布 (result_distribution, 日志富集 Round 8): ②-④ 报的是判定率 /
+        #    corpus 级命中 / 触发词集中度, 但从未刻画"每篇金科稿件里到底命中多少金科词"。对
+        #    filtered 子集的 fintech_total_count / fintech_distinct_keywords (及上下半计数) 补
+        #    五数概括 (mean/median/p25/p75/max), 这正是顶刊审稿人验证'构造的文本测度'分布形态
+        #    时期望的标准描述统计 (LM 2011 / Sautner 等 2023 词典-命中测度族, 引文已在 ENV 块)。
+        #    纯日志读已存在列的 describe(), 不回写 df / 不改任何值 (golden-safe)。
+        try:
+            if after_count > 0:
+                for _col, _mlabel in (
+                    ('fintech_total_count', '金科词命中总次数/篇'),
+                    ('fintech_distinct_keywords', '不同金科词数/篇'),
+                    ('fintech_upper_count', '上半命中次数/篇'),
+                    ('fintech_lower_count', '下半命中次数/篇'),
+                ):
+                    if _col in processed_df.columns:
+                        _d = processed_df[_col].describe()
+                        logger.info(
+                            f"  ⑥ 文本测度分布 — {_mlabel} ({_col}): mean={sig4(_d['mean'])} "
+                            f"median={sig4(_d['50%'])} p25={sig4(_d['25%'])} "
+                            f"p75={sig4(_d['75%'])} max={sig4(_d['max'])} (n={after_count:,d} 篇)"
+                        )
+        except Exception as _de:  # noqa: BLE001 — 文本测度分布诊断绝不阻断产物
+            logger.info(f"  ⑥ [文本测度分布] 计算跳过 (不影响产物): {_de}")
         # 优雅降级 / 边界警告
         if not FINTECH_AC_AUTOMATON:
             logger.warning(

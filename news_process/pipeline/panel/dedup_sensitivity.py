@@ -242,6 +242,18 @@ def compute_dedup_sensitivity_treatments(panel: pd.DataFrame) -> pd.DataFrame:
                     "去重敏感性 ss 变体优雅跳过 (旧 schema)")
     s14 = pd.read_parquet(s14_path, columns=_s14_cols)
 
+    # io_provenance: 输入 parquet 在 stage 边界的维度回显 (rows × cols at read boundary)。
+    # 白话: 把两个输入文件各读了多少行/列写进日志, 让审计能复核"这次跑用的是哪份盘、多大",
+    # 仅 emit 已有的 len()/shape, 不改任何数据 (log-only)。f12=article×bank 行 (docid 去重前),
+    # s14=fintech 强度分子 (verified 限制由 restrict_to_verified 在下方另行 emit)。
+    try:
+        logger.info(
+            f"  读 {os.path.basename(f12_path)}: {len(f12):,} 行 × {f12.shape[1]} 列 | "
+            f"{os.path.basename(s14_path)}: {len(s14):,} 行 × {s14.shape[1]} 列 "
+            f"(ss schema {'有' if _has_ss else '无'})")
+    except Exception as _e:  # noqa: BLE001 — io 溯源日志块绝不阻断面板主流程
+        logger.warning(f"  dedup_sensitivity io 溯源日志块异常 (不影响计算): {_e}")
+
     GK = ['target_bank', 'year']
     for df in (s14, f12):  # year 派生 (镜像 attention_media.py compute_attention_treatments)
         df['year'] = pd.to_datetime(df['日期'], errors='coerce').dt.year
@@ -366,6 +378,16 @@ def compute_dedup_sensitivity_treatments(panel: pd.DataFrame) -> pd.DataFrame:
                         f"[低剔除率下接近平凡, 非充分稳健性证据 — 见 docstring METHOD-3]; "
                         f"Δ: {int((delta[_pair] > 1e-9).sum())} bank-year 变化, "
                         f"max|Δ|={sig4(float(delta[_pair].max()) if _pair.any() else 0)}")
+            # result_distribution: mean|Δ| 与 p90|Δ| 此前仅落 sidecar JSON, 未进日志。
+            # 白话: 上一行只报了"最多偏多少", 这里补上"平均偏多少 + 90% 的 bank-year 偏多少
+            # 以内" —— 它们才是审稿人评估"去重拧更狠把 attention_index_full 推走多远"这一
+            # 稳健性扰动量级的中央趋势与 90 分位 (复用上方已算好的 delta_index_full, 不新算)。
+            _d = summary[sfx]['delta_index_full']
+            logger.info(
+                f"    {sfx} 扰动幅度分布 (|Δ attention_index_full|, n_pairs="
+                f"{_d['n_pairs']:,}): mean|Δ|="
+                f"{sig4(_d['mean_abs']) if _d['mean_abs'] is not None else 'NA'}, "
+                f"p90|Δ|={sig4(_d['p90_abs']) if _d['p90_abs'] is not None else 'NA'}")
 
     _validate(merged, new_cols)
     _write_summary_sidecar(summary)

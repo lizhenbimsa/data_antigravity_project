@@ -1492,6 +1492,16 @@ def main():
     logger.info("     · 多编码者一致性 (5 编码者 V0+V1-V4 的 Fleiss' κ 出处): Fleiss, J. L. (1971). Measuring "
                 "nominal scale agreement among many raters. Psychological Bulletin, 76(5), 378-382. "
                 "https://doi.org/10.1037/h0031619")
+    # round-8 富集 (2026-06-29): κ 三元组 (Cohen/Krippendorff/Fleiss) 此前仅 emit Fleiss DOI;
+    # Cohen κ 是本检验对 验证/情感/3 创新维度 的主要两两一致量, Krippendorff α 是 5 编码者 gate
+    # 阈值量 → 补两个出处级 DOI, 凑齐第 1469 行命名的系数三元组 (纯日志, golden-safe)。
+    logger.info("     · 两两名义一致 (Cohen's κ 的出处, 本检验 验证/情感/substantiveness·locus·collab 三维度成对一致度量): "
+                "Cohen, J. (1960). A coefficient of agreement for nominal scales. Educational and "
+                "Psychological Measurement, 20(1), 37–46. https://doi.org/10.1177/001316446002000104")
+    logger.info("     · 多评分者/缺失数据信度 α (Krippendorff's α 的标准实现, 本检验 5 编码者 α≥阈值 gate 度量): "
+                "Hayes, A. F., & Krippendorff, K. (2007). Answering the call for a standard reliability "
+                "measure for coding data. Communication Methods and Measures, 1(1), 77–89. "
+                "https://doi.org/10.1080/19312450709336664")
     logger.info("     · LLM hacking / prompt 配置敏感性风险量化 (本检验当代动机): Baumann, J., Röttger, P., "
                 "Urman, A., Wendsjö, A., Plaza-del-Arco, F. M., Gruber, J. B., & Hovy, D. (2025). Large "
                 "language model hacking: Quantifying the hidden risks of using LLMs for text annotation. "
@@ -1577,7 +1587,20 @@ def main():
         return
 
     df_full = pd.read_parquet(input_path)
-    logger.info(f"  加载 {len(df_full):,} 条记录")
+    logger.info(f"  加载 {len(df_full):,} 条记录 × {df_full.shape[1]:,} 列")
+    # ── io-provenance (round-8 富集): 在阶段边界自记录三轨情感列 schema 广度,
+    #    让 .log 自证输入 schema (full/ctx/ss 各 verified+sentiment); 纯日志, golden-safe ──
+    try:
+        _track_cols = [c for c in (
+            'llm_verified_full', 'llm_verified_ctx', 'llm_verified_ss',
+            'llm_sentiment_full', 'llm_sentiment_ctx', 'llm_sentiment_ss')
+            if c in df_full.columns]
+        logger.info(
+            f"     · 三轨情感列就位: {len(_track_cols)}/6 [{', '.join(_track_cols)}]"
+            if _track_cols else
+            "     · 三轨情感列: 未检出 (下游 required_cols 守卫将处理)")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  输入 schema 自记录失败 (不影响处理): {e}")
     phase_durations['①加载+抽样+baseline'] = time.time() - _t_load
 
     # ── Step 2: 随机抽样 ──
@@ -1599,6 +1622,14 @@ def main():
     df_sample = extract_baseline(df_sample)
     baseline_true_rate = df_sample['V0_baseline_verified_full'].astype(int).mean()
     logger.info(f"  Baseline true_rate (full): {pct4(baseline_true_rate)}")
+    # ── 样本基率特征 (round-8 富集): V0 baseline 情感三分类 (正面/中性/负面) 占比,
+    #    审稿人常需的 base-rate 统计; 结果只喂 logger, 不参与任何下游计算 (golden-safe) ──
+    try:
+        _v0_sent = df_sample['V0_baseline_sentiment_full'].value_counts(normalize=True)
+        _shares = " / ".join(f"{k}={pct4(v)}" for k, v in _v0_sent.items())
+        logger.info(f"  Baseline (V0) 情感类占比 (full): {_shares}")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"  baseline 情感占比打印失败 (不影响处理): {e}")
 
     # ── Step 4: 物化 content_ctx（安全后备） ──
     if 'content_ctx' not in df_sample.columns:

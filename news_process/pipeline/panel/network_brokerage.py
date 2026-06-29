@@ -445,6 +445,26 @@ def compute_brokerage_centrality(
                 "RFS 37(9):2903-2935; https://doi.org/10.1093/rfs/hhae026)")
     logger.info("=" * 60)
 
+    # 📥 输入数据 provenance (纯日志, golden-safe): 在阶段边界回显篇章级 df_exploded
+    # 的形态 / 唯一年份 / 唯一媒体源 / 唯一目标银行 + 3 必需列存在性。只读已传入的
+    # df_exploded, 不改任何产物 / schema / 控制流 (统计仅喂 logger, 用后即弃)。
+    try:
+        _need_cols = ['媒体(中文)', 'target_bank', 'year']
+        _have_cols = {col: (col in df_exploded.columns) for col in _need_cols}
+        _n_year = (df_exploded['year'].nunique()
+                   if 'year' in df_exploded.columns else 0)
+        _n_media = (df_exploded['媒体(中文)'].nunique()
+                    if '媒体(中文)' in df_exploded.columns else 0)
+        _n_bank = (df_exploded['target_bank'].nunique()
+                   if 'target_bank' in df_exploded.columns else 0)
+        logger.info(
+            f"  📥 输入 df_exploded: {df_exploded.shape[0]:,d} 行 × "
+            f"{df_exploded.shape[1]:,d} 列 | 唯一年份={_n_year:,d} | "
+            f"唯一媒体源={_n_media:,d} | 唯一目标银行={_n_bank:,d}")
+        logger.info(f"     · 必需列存在性 {{媒体(中文), target_bank, year}}: {_have_cols}")
+    except Exception as _e:  # noqa: BLE001 — provenance 块绝不崩阶段
+        logger.warning(f"  输入 provenance 输出失败 (忽略): {_e}")
+
     years = sorted(panel['year'].unique())
     results = {}
     bip_results = {}   # WS-B: {(bank, year): {brok_bip_*: value}}
@@ -543,6 +563,36 @@ def compute_brokerage_centrality(
             if c in panel.columns:
                 v = int(panel[c].notna().sum())
                 logger.info(f"    {c}: {v:,} 有效值, mean={sig4(panel[c].mean())}")
+                # 结果分布 (纯日志, golden-safe): 与 brokerage_eigen_cent 同口径补
+                # σ/min/p50/max; brok_bip_between_cent 直接操作化『信息经纪』(银行
+                # 桥接否则不相连的媒体渠道), 其离散度尤其值得核验。仅喂 logger 后弃。
+                try:
+                    _cv = panel[c].dropna()
+                    if len(_cv) >= 2:
+                        logger.info(
+                            f"      · 分布 (n={len(_cv):,}): σ={sig4(_cv.std())} | "
+                            f"min={sig4(_cv.min())} | p50={sig4(_cv.median())} | "
+                            f"max={sig4(_cv.max())}")
+                except Exception as _e:  # noqa: BLE001 — 分布块绝不崩阶段
+                    logger.warning(f"      {c} 分布统计失败 (忽略): {_e}")
+                # 📖 二分图点积聚类系数 mode='dot' 的精确方法源 (white-box 可核验):
+                # brok_bip_clustering_ra 由 nx.bipartite.clustering(G, mode='dot') 计算 —
+                # NetworkX 该函数的 dot/min/max 模式实现的是 Latapy, Magnien & Del Vecchio
+                # (2008) 的成对邻域重叠 (pairwise-overlap) 二分图聚类系数; Robins-Alexander
+                # (2004) 的四环 (four-cycle) 二分图系数是 NetworkX 另一独立函数
+                # robins_alexander_clustering (本处未调用)。列名后缀 _ra 为项目历史命名,
+                # 实际估计量以本处实际调用的 Latapy (2008) dot-overlap 为准。
+                # 上面横幅的 Freeman/Borgatti-Everett 仅覆盖 degree/between/closeness 母锚。
+                if c == 'brok_bip_clustering_ra':
+                    logger.info(
+                        "      📖 Latapy, M., Magnien, C., & Del Vecchio, N. (2008). "
+                        "Basic notions for the analysis of large two-mode networks. "
+                        "Social Networks, 30(1), 31-48. "
+                        "https://doi.org/10.1016/j.socnet.2007.04.006")
+                    logger.info(
+                        "         (白话: 二分图『点积』聚类系数 mode='dot' 的定义母文 — "
+                        "衡量某银行的两个媒体邻居是否还共同报道其他银行, 刻画局部抱团; "
+                        "列名 _ra 为历史命名, 实际算法即此 Latapy dot-overlap)")
 
     try:
         logger.info(f"  ⏱ 经纪中心度子步骤耗时 {sig4(time.time() - _t0)} 秒")
@@ -697,6 +747,14 @@ def compute_industry_neg_shock(panel: pd.DataFrame,
             logger.info(f"     · 分布: σ={sig4(_sh.std())} | "
                         f"min={sig4(_smin)} | max={sig4(_smax)} | "
                         f"取值域应 ∈ [0,1]")
+            # 分位数 (纯日志, golden-safe): industry_neg_shock 的 within-year 分布
+            # 决定识别变异, 与 brokerage_eigen_cent 同口径补 p25/p50/p75 (仅喂 logger)
+            _shv = _sh.dropna()
+            if len(_shv) >= 4:
+                _shq = _shv.quantile([0.25, 0.50, 0.75])
+                logger.info(f"     · 分位 (有效值 n={len(_shv):,}): "
+                            f"p25={sig4(_shq.loc[0.25])} | p50={sig4(_shq.loc[0.50])} | "
+                            f"p75={sig4(_shq.loc[0.75])} (within-year 离散度决定 LOO 识别变异)")
             if _sh.nunique(dropna=True) <= 1:
                 logger.warning("     · ⚠ 坏: industry_neg_shock 退化为常量 (零方差), "
                                "下游回归无识别力 (某年全 0 → 全 LOO 同值, T=2 常见)")
@@ -765,6 +823,15 @@ def compute_fire_sale_interaction(panel: pd.DataFrame) -> pd.DataFrame:
     logger.info("=" * 60)
     logger.info("步骤 7h-fire: 火灾甩卖交乘项 cent(t-1) × shock(t) (Han, Kim & "
                 "Nanda 2024, RFS 37(9):2903-2935; https://doi.org/10.1093/rfs/hhae026)")
+    # 📖 火灾甩卖-网络放大 的规范文献 (white-box 可核验): brokerage_fire_sale =
+    # 中心度(t-1) × 行业负面冲击(t), 操作化『信息枢纽(网络中心)机构放大全行业负面
+    # 冲击』; 这一火灾甩卖溢出经由网络位置传导/放大系统性风险的机制正源自 Duarte-
+    # Eisenbach (2021, JF) — 变量字面即 fire_sale, 故为精确方法对位而非装饰性引用。
+    logger.info("  📖 Duarte, F., & Eisenbach, T. M. (2021). Fire-sale spillovers "
+                "and systemic risk. The Journal of Finance, 76(3), 1251–1294. "
+                "https://doi.org/10.1111/jofi.13010")
+    logger.info("     (白话: 中心机构在系统性负面冲击下经由网络位置放大火灾甩卖溢出 — "
+                "与本交乘项『枢纽银行 × 行业负冲击 → 更大声誉/价值损失』机制同构)")
     logger.info("=" * 60)
 
     if 'brokerage_eigen_cent' not in panel.columns:

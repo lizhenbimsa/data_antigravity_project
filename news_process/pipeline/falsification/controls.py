@@ -306,6 +306,31 @@ VERIFIED_REFS_FOR_LOG = (
      "https://doi.org/10.1086/467037"),
 )
 
+# ============================================================================
+# G-族诊断函数运行期引文 (逐字照抄 APA-7 + DOI; 仅日志用, golden-safe)
+# 日志富集 2026-06-29 (Round 8): G-13/G-09 两个 G-族诊断函数原 banner 仅以短名
+# (Author Year, Journal §x) 标注方法学锚点, 此处补 emit 完整 APA-7 + DOI, 让 .log
+# 自证而非仅留注释 (镜像 pipeline/panel/geography.py::_GEO_REFERENCES 的 📖 习语)。
+# 仅引用经核验注册表 (pool.json) 中 byte-identical 的 DOI, 绝不自创/猜测。
+# ============================================================================
+_G_RUNTIME_REFS = {
+    # G-13 placebo-in-time DID: [ty-k, ty) 处理前窗口安慰剂检验 = 交错 DID 平行
+    # 趋势 placebo 的正典操作化 (白话: 把政策时间往前挪 k 年再跑一遍, 真政策之前
+    # 不该有效应; Callaway & Sant'Anna 2021 §4.3 pre-treatment placebo)。
+    "callaway_santanna_did": (
+        "Callaway, B., & Sant'Anna, P. H. C. (2021). Difference-in-differences "
+        "with multiple time periods. Journal of Econometrics, 225(2), 200-230. "
+        "https://doi.org/10.1016/j.jeconom.2020.12.001"),
+    # G-09 收敛有效性 (convergent validity): 把文本派生的金科分类测度与面板内部
+    # 指标 (n_articles / LLM 情感 / 年度趋势) 互相关, 检验测度是否反映同一构念
+    # (白话: 同一概念的多个测度应彼此一致; Gentzkow-Kelly-Taddy 2019 text-as-data
+    # 测度有效性范式, 与本仓 geography.py per-dict IDF 引用同一锚点)。
+    "gentzkow_text_as_data": (
+        "Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of "
+        "Economic Literature, 57(3), 535-574. "
+        "https://doi.org/10.1257/jel.20181020"),
+}
+
 
 def _log_environment_and_config(df_full_path: str, art_path: str,
                                 panel_path: str, output_path: str) -> None:
@@ -1423,6 +1448,7 @@ def generate_placebo_did_variables(panel: pd.DataFrame,
     lg.info("=" * 70)
     lg.info("G-13: Placebo 时点检验变量生成")
     lg.info("  对标: Callaway & Sant'Anna (2021, JoE, §4.3) pre-treatment placebo")
+    lg.info(f"  📖 {_G_RUNTIME_REFS['callaway_santanna_did']}")
     lg.info("  对标: La Ferrara, Chong & Duryea (2012, AEJ:Applied) placebo-in-time")
     lg.info(f"  Placebo shifts: {placebo_shifts} (提前 k 年, 窗口截断于真实处理年)")
     lg.info("=" * 70)
@@ -1511,6 +1537,7 @@ def diagnose_fintech_classification_consistency(panel: pd.DataFrame,
     lg.info("=" * 70)
     lg.info("G-09: 金融科技分类内部一致性诊断")
     lg.info("  对标: Gentzkow et al. (2019, JEL §3): 测度收敛有效性")
+    lg.info(f"  📖 {_G_RUNTIME_REFS['gentzkow_text_as_data']}")
     lg.info("=" * 70)
 
     result = {}

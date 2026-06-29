@@ -57,6 +57,20 @@ _TAIL_BUFFER_MAXLEN = 100000
 # 转义码都在转发前剥掉, 保证 orchestrator 落盘日志恒为纯文本 (LOG-COLOR 2026-06-25)。
 _ANSI_ESCAPE_RE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
+# ── 经核验参考文献 (VERIFIED_REFERENCES 注册表, 逐字照抄 APA-7 + DOI; 仅日志用) ──
+# 白话: 本执行器对每个 stage 子进程强制 ``env["PYTHONHASHSEED"]="0"`` (见下方注入逻辑),
+# 让带随机性的链路 (stage 22 jieba+frozenset 边界 token / golden snapshot 复现) 可逐位
+# 重放 —— 这正是 Sandve 等 (2013) "可复现计算研究十诫" 之 Rule 6「凡含随机性的分析须记录
+# 其底层随机种子」的直接落地。emit 进运行期日志, 让 .log 自证这一方法学锚点 (非仅留注释)。
+_STAGE_REFERENCES = {
+    "sandve_reproducible_seed": (
+        "Sandve, G. K., Nekrutenko, A., Taylor, J., & Hovig, E. (2013). Ten "
+        "simple rules for reproducible computational research. PLoS "
+        "Computational Biology, 9(10), e1003285. "
+        "https://doi.org/10.1371/journal.pcbi.1003285"
+    ),
+}
+
 
 def _stage_popen_isolation_kwargs() -> dict[str, object]:
     """返回隔离控制台信号的平台特定 Popen kwargs (Windows 新进程组 / Unix 新会话)。"""
@@ -197,6 +211,19 @@ def run_stage(stage_script: str, stage_name: str, logger,
         f"| 子进程隔离 (PID 待分配, timeout={timeout:,d}s, 父PID={os.getpid()})"
     )
     logger.info(f"{'─'*60}")
+    # LOG-ENRICH round 8 (io_provenance): 代码出处 — 把第 ~188 行解析出的**绝对**脚本路径
+    # 与其磁盘字节数 surface 到成功路径起始横幅 (此前该绝对路径仅在 not-found 错误分支才打印)。
+    # 审稿人复现一次 run 时想精确知道每个 stage 实际执行的是磁盘上哪个文件 / 多大, 而非仅看
+    # 横幅里裸的 shim 文件名。getsize 整段包在 try/except 内, 结果只喂 logger 旋即丢弃 (绝不
+    # 下游复用), 严格 log-only / golden-safe; 字节整数 → :,d, KiB → sig4 (四位有效数字)。
+    try:
+        _script_bytes = os.path.getsize(script_path)
+        logger.info(
+            f"  ├─ 代码出处: {script_path} "
+            f"({_script_bytes:,d} B / {sig4(_script_bytes / 1024)} KiB)"
+        )
+    except OSError as _exc:  # pragma: no cover — 防御性; script_path 上方已做 exists 校验
+        logger.debug(f"  代码出处 getsize 失败 (不影响执行): {_exc}")
     log_memory_usage(logger, f"阶段 {stage_name} 开始前")
 
     # 显式传播 run_id (防御性写法 — Popen 默认已继承 env,
@@ -261,6 +288,21 @@ def run_stage(stage_script: str, stage_name: str, logger,
         f"  ├─ 子进程已启动: PID={proc.pid} | 进程组隔离={_isolation_mode} "
         f"| PYTHONHASHSEED=0 (确定性已锁定) | KMP_DUPLICATE_LIB_OK=TRUE (OMP 双运行时防御)"
     )
+    # LOG-ENRICH round 8 (runtime_params): 补全确定性 + 编码契约 echo — 上方横幅已 surface
+    # PYTHONHASHSEED=0 与 KMP_DUPLICATE_LIB_OK, 但执行器还向每个 stage 子进程注入了
+    # PYTHONUNBUFFERED / PYTHONIOENCODING / PYTHONUTF8 (见上方 env.setdefault)。一并 echo,
+    # 让 .log 完整自证「本 stage 子进程在何种可复现 + 编码契约下运行」(纯读 env dict, 值未改,
+    # golden-safe; 皆字符串, 无需 sig4)。
+    logger.info(
+        f"  ├─ 子进程编码/缓冲契约: PYTHONUNBUFFERED={env.get('PYTHONUNBUFFERED')} "
+        f"| PYTHONIOENCODING={env.get('PYTHONIOENCODING')} "
+        f"| PYTHONUTF8={env.get('PYTHONUTF8')}"
+    )
+    # LOG-ENRICH round 8 (📖 new_citation): 可复现计算研究锚点 — 上方对每个 stage 子进程强制
+    # PYTHONHASHSEED=0 (消除 jieba+frozenset 边界 token 非确定性 / 锁定 golden snapshot 复现)
+    # 正是 Sandve 等 (2013) Rule 6「凡含随机性的分析须记录随机种子」的直接落地; runtime emit
+    # 让 .log 自证该方法学锚点 (纯 logger 字符串, golden-safe)。
+    logger.info(f"  📖 {_STAGE_REFERENCES['sandve_reproducible_seed']}")
 
     stdout_tail: Deque[str] = deque(maxlen=_TAIL_BUFFER_MAXLEN)
     stderr_tail: Deque[str] = deque(maxlen=_TAIL_BUFFER_MAXLEN)

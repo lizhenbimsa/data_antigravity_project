@@ -390,5 +390,37 @@ def verify_data_integrity(file_path: str | Path) -> bool:
                 )
                 return False
 
+    # ── 纯日志统计 (log-only, 不参与任何产物计算/返回值; 仅喂给下方 logger) ──
+    # 上方校验循环一旦遇 hash 不匹配即 early-return False; 能走到这里 ⇒ 盘上仍存在的
+    # 声明输入文件已全部 re-hash-and-matched。此处对 metadata['input_hashes'] 做一次
+    # 只读盘点, 把"空 input_hashes 字典的空洞通过"与"对 N 个真实输入文件的再校验"区分
+    # 开来 —— IO 出处量化, 让一条 "验证通过" 不再含糊 (空集通过 vs 实质再校验)。
+    # try/except 守卫: 统计失败绝不影响校验返回值 (纯日志, 异常仅 debug 落盘后丢弃)。
+    try:
+        _input_hashes = metadata.get("input_hashes", {})
+        n_declared = len(_input_hashes)                                    # 声明的依赖输入文件数
+        n_matched = sum(1 for f in _input_hashes if Path(f).exists())      # 盘上仍在 ⇒ 已 re-hash 且匹配
+        n_skipped = n_declared - n_matched                                 # 盘上已不在 ⇒ 跳过校验
+        # 校验覆盖率 = 实际再校验 / 声明; 0 声明时无意义 → 标注 N/A (空洞通过)。
+        cov_str = (
+            pct4(n_matched / n_declared) if n_declared > 0 else "N/A (空声明 → 空洞通过)"
+        )
+        logger.info(
+            "📈 结果统计 (数据完整性再校验 · IO 出处量化):\n"
+            f"  · 声明输入文件 (input_hashes)    : {n_declared:,} 个\n"
+            f"  · 盘上仍在并 re-hash 匹配         : {n_matched:,} 个\n"
+            f"  · 盘上已删除 (跳过校验)          : {n_skipped:,} 个\n"
+            f"  · 校验覆盖率 (匹配/声明)         : {cov_str} ({n_matched:,}/{n_declared:,})\n"
+            f"  · 判读: "
+            + (
+                f"上方校验循环已对 {n_matched:,} 个仍存在的输入文件逐一 compute_file_hash "
+                f"再校验且全部匹配 (不匹配会 early-return False, 不会到此)"
+                if n_declared > 0
+                else "input_hashes 为空 — 本次为空洞通过 (无声明输入可核, 非实质再校验)"
+            )
+        )
+    except Exception as _stat_e:  # 纯日志, 任何异常都不得影响校验语义
+        logger.debug(f"完整性校验统计日志生成失败 (忽略, 不影响校验结果): {_stat_e}")
+
     logger.info(f"数据完整性验证通过: {file_path}")
     return True

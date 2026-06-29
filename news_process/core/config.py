@@ -26,6 +26,22 @@ _SPLIT_DOMAINS: tuple[str, ...] = (
     'features', 'panel', 'validation',
 )
 
+# ── 经核验参考文献 (VERIFIED_REFERENCES 注册表, 逐字照抄 APA-7 + DOI; 仅日志用) ──
+# 运行期 emit 进配置加载日志, 让 .log 自证"prompt 版本登记纪律"的方法学锚点 (非仅
+# 留注释)。白话: prompt 文件首行 ``# version: <token>`` 派生 ``<key>_version`` 作为
+# LLMCache 失效键 ("改 prompt → cache miss → 重新标注"的可见性根基, 见
+# ``_inline_external_prompts``); 这套"LLM 标注前登记 prompt/温度版本以保可复现"的
+# 纪律出处即下文 Carlson & Burbano (2026, SMJ) —— 与本文件 L113-116 已埋的注释锚点
+# 同源, 此处把它升格为运行期可 emit 的依据。
+_CONFIG_REFERENCES = {
+    "carlson_burbano_llm_annotation": (
+        "Carlson, N. A., & Burbano, V. (2026). The use of LLMs to annotate "
+        "data in management research: Foundational guidelines and warnings. "
+        "Strategic Management Journal, 47(3), 699–725. "
+        "https://doi.org/10.1002/smj.70023"
+    ),
+}
+
 
 def _detect_split_mode(config_dir: str) -> tuple[bool, list[str]]:
     """检查 split-mode 7 个域 YAML 的存在情况。
@@ -317,6 +333,51 @@ def load_config(config_path=None):
     # Phase 4d: 把任何外部 prompt 模板文件内联到 config dict 中
     _inline_external_prompts(config, project_root)
 
+    # ── 纯日志富集 (golden-safe, log-only): prompt 版本登记可复现性自证 ──
+    # ``_inline_external_prompts`` 已为每个外部 prompt 写入 ``<key>_template_version``
+    # (LLMCache 失效键)。此处 ONCE-per-load 汇总: emit 每个已内联 prompt 键及其解析出的
+    # 版本号 + 该纪律的方法学依据 (Carlson & Burbano 2026, SMJ), 把 L113-116 仅注释的
+    # 锚点升格为"本次加载注册了哪些 prompt 版本作为缓存失效键"的自文档化复现日志。
+    # 键/版本均为字符串 → 无裸 float, 无需 sig4/pct4。
+    # ⚠ 仅 logger.* 输出, 不改 config / 不改控制流; 在 load_config 非递归调用点 emit,
+    #   天然保证"每次加载只打一次", 不随 ``_inline_external_prompts`` 递归逐文件重复。
+    # 注意 (caveat): 这发生在 import 时 (``CONFIG = load_config()`` 为模块级), 主要落在
+    #   import-期日志, 未必进入某 stage ``setup_logging`` 的文件 handler; 价值因此有限,
+    #   但 golden-safe 不受影响。
+    try:
+        _cfg_log = logging.getLogger(__name__)
+
+        def _collect_prompt_versions(d, prefix, acc):
+            """递归收集 ``<...>_template_version`` 键 → (dotted-path 去 _version, 版本值)。"""
+            if isinstance(d, dict):
+                for _k, _v in d.items():
+                    _path = f"{prefix}.{_k}" if prefix else str(_k)
+                    if isinstance(_k, str) and _k.endswith('_template_version'):
+                        # 去掉 ``_version`` 后缀还原对应 prompt 模板键; 其值即解析出的版本号
+                        acc.append((_path[:-len('_version')], _v))
+                    elif isinstance(_v, (dict, list)):
+                        _collect_prompt_versions(_v, _path, acc)
+            elif isinstance(d, list):
+                for _i, _v in enumerate(d):
+                    if isinstance(_v, (dict, list)):
+                        _collect_prompt_versions(_v, f"{prefix}[{_i}]", acc)
+
+        _prompt_versions = []
+        _collect_prompt_versions(config, "", _prompt_versions)
+        if _prompt_versions:
+            _cfg_log.info(
+                "prompt 模板内联完成: 已注册 %d 个 prompt 版本作为 LLMCache 失效键 "
+                "(改 prompt → cache miss → 重新标注)",
+                len(_prompt_versions))
+            for _pk, _pv in sorted(_prompt_versions):
+                _cfg_log.info(f"  prompt 模板内联: {_pk} → {_pv}")
+            # 📖 prompt/温度 版本登记的可复现纪律 (LLM 标注数据的基础指南与告警)
+            _cfg_log.info(
+                f"  📖 {_CONFIG_REFERENCES['carlson_burbano_llm_annotation']}")
+    except Exception as _e:  # noqa: BLE001 — 日志块绝不让配置加载崩
+        logging.getLogger(__name__).debug(
+            f"(prompt 版本登记日志失败, 忽略不影响配置加载): {_e}")
+
     # Plan-r3 P1-4: 校验 yaml 引用的 ${VAR} 是否都在 .env.example 中声明
     # (落地 .env.example 头部第 7-12 行原本承诺但未实现的"Phase 1 校验").
     _validate_env_placeholders(project_root)
@@ -332,6 +393,41 @@ def load_config(config_path=None):
     # 类型错误 raise; 未知字段 warning (防 typo silent fallback).
     from .schemas_yaml import validate_config_schema
     validate_config_schema(config)
+
+    # ── 纯日志富集 (golden-safe, log-only): 配置加载面 (configuration surface) 复现摘要 ──
+    # load_config 成功路径原本静默 (仅失败时 warning)。此处在 return 前补一行可复现性
+    # provenance: 实际走的加载模式 (split-mode 7 域 deep-merge / legacy 单文件)、合并的
+    # 域 YAML 数 (present ``_SPLIT_DOMAINS`` 计数)、产出的顶层 config 键数、已内联外部
+    # prompt 模板数。全为整数计数 → :,d 打印 (无裸 float, 故无需 sig4/pct4)。记录"本次到底
+    # 加载了怎样一张配置面", 是真正可复现 provenance。
+    # ⚠ 仅 logger.* 输出, 不改 config / 控制流; split-mode 下 ``config_path`` 保持 None,
+    #   据此判别模式。import-期 emit 未必进某 stage 文件 handler, 但 golden-safe 不受影响。
+    try:
+        _cfg_log = logging.getLogger(__name__)
+        _is_split = config_path is None  # split-mode 下 config_path 始终保持 None
+        _n_domains_merged = len(_SPLIT_DOMAINS) if _is_split else 0
+        _n_prompts_inlined = 0
+        _stk = [config]
+        while _stk:
+            _cur = _stk.pop()
+            if isinstance(_cur, dict):
+                for _k, _v in _cur.items():
+                    if isinstance(_k, str) and _k.endswith('_template_version'):
+                        _n_prompts_inlined += 1
+                    if isinstance(_v, (dict, list)):
+                        _stk.append(_v)
+            elif isinstance(_cur, list):
+                for _v in _cur:
+                    if isinstance(_v, (dict, list)):
+                        _stk.append(_v)
+        _cfg_log.info(
+            "配置加载完成 (复现 provenance): 模式=%s | 合并域 YAML=%d/%d | "
+            "顶层 config 键=%d | 内联 prompt 模板=%d",
+            "split-mode 7 域 deep-merge" if _is_split else "legacy 单文件",
+            _n_domains_merged, len(_SPLIT_DOMAINS), len(config), _n_prompts_inlined)
+    except Exception as _e:  # noqa: BLE001 — 日志块绝不让配置加载崩
+        logging.getLogger(__name__).debug(
+            f"(配置加载 provenance 日志失败, 忽略不影响配置): {_e}")
 
     return config
 

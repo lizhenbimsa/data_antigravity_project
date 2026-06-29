@@ -764,6 +764,13 @@ def _log_environment_and_config(input_path: str) -> None:
                     "→ 把银行名换匿名代号, 检验 LLM 是否靠'读懂文本'而非'银行身份先验'下判定")
         logger.info("       可发表锚点: Robustness of Named-Entity Replacements for In-Context Learning "
                     "(Findings of EMNLP 2023, 2023.findings-emnlp.728)")
+        # round-8 富集 (2026-06-29): 补 κ 统计量本体的奠基定义文献 (Cohen 1960), 与下行
+        # Landis-Koch (1977) 解释带配对 = 'κ 统计量定义 (Cohen 1960) + κ 解释带 (Landis-Koch 1977)'。
+        # 白话: 本模块 compute_cohens_kappa 算的就是 Cohen 这个名义尺度一致性系数本身, 故引其定义原文。
+        logger.info("     · κ 统计量定义 (本模块 compute_cohens_kappa 所算统计量之原始定义): "
+                    "Cohen, J. (1960). A coefficient of agreement for nominal scales. "
+                    "Educational and Psychological Measurement, 20(1), 37-46. "
+                    "https://doi.org/10.1177/001316446002000104")
         logger.info("     · κ 解释阈值: Landis, J. R., & Koch, G. G. (1977). The measurement of observer "
                     "agreement for categorical data. Biometrics, 33(1), 159-174. "
                     "https://doi.org/10.2307/2529310")
