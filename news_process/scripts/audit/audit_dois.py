@@ -36,6 +36,7 @@ FILES = [
     os.path.join(_HERE, "LITERATURE_ANCHORS_EXPANSION_2026-06-22.md"),
     os.path.join(_HERE, "LITERATURE_ANCHORS_SUPPLEMENT_III_2026-06-24.md"),
     os.path.join(_HERE, "LITERATURE_ANCHORS_SUPPLEMENT_IV_2026-06-26.md"),
+    os.path.join(_HERE, "LITERATURE_ANCHORS_SUPPLEMENT_V_2026-07-01.md"),
 ]
 
 DOIORG_RE = re.compile(r"doi\.org/(10\.\S+)")
