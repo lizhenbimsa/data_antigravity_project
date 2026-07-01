@@ -51,7 +51,7 @@ fix(omni-g-benefit-01, 2026-06-11) 链路重接线 (2026-05-29 主轨换模后�
 
 **关键算法**: 句嵌入余弦/方向投影 (锚点对方向向量 + 文章嵌入点积投影) + bank-year 聚合 (mean/std/正负分数比例, pos/neg_frac 默认以 in-sample median 为 center)。
 
-**外部依赖**: 统一 embedding 引擎 (`embedding_engine.embed_texts`, 经 make_anchor_embedding_fn 闭包穿透 LLMCache; 锚点仅 ~10 句, **cache 命中时 ≈$0**; ⚠ 嵌入族**不受** `NEWS_PROCESS_LLM_OFFLINE` 离线闸的"miss→raise"豁免成本约束 —— 换嵌入模型后首跑锚点 cache miss 会真发一次极小付费嵌入调用 (~10 句, ≈分钱级), 命中后离线 $0); 文章嵌入须 stage 27 预先落盘 (本脚本不调嵌入 API 跑全量文章, 只嵌锚点)。读 yaml (锚点/placebo 关键词)。
+**外部依赖**: 统一 embedding 引擎 (`embedding_engine.embed_texts`, 经 make_anchor_embedding_fn 闭包穿透 LLMCache; 锚点仅 ~10 句, **cache 命中时 ≈$0**; ⚠ 嵌入族**受** `NEWS_PROCESS_LLM_OFFLINE` 离线闸约束 (离线 miss→raise RuntimeError 零网络/$0): 在线换嵌入模型后首跑锚点 cache miss 会真发一次极小付费嵌入调用 (~10 句, ≈分钱级), 命中后 $0); 文章嵌入须 stage 27 预先落盘 (本脚本不调嵌入 API 跑全量文章, 只嵌锚点)。读 yaml (锚点/placebo 关键词)。
 
 **DAG 位置**: stage 27 (benefit 嵌入) 的审计旁支, 上游 = stage 27 的 .npy + sidecar; 下游 = benefit_society 论文 Stata 模板 (P2.S1/P2.A2)。shim 仅 `from ...benefit_society_audit_combined import main; sys.exit(main())`, 零逻辑。
 
@@ -467,7 +467,7 @@ def main(argv: list[str] | None = None) -> int:
     logger.info("【判读】替代锚点: 与主测度方向一致、量级相近=稳健(好); 翻盘/塌缩=锚点敏感(不利)。")
     logger.info("        安慰剂: 业务线信号量级 *远小于* 替代锚点 (|均值|占比 ratio<0.5)=干净(好); 接近/超过=主测度乱抓相关(伪相关,不利)。")
     logger.info("        注: RAW 余弦投影均值在各向异性嵌入空间 (sign-at-0 实测 ~97% 投影>0, 见 alt_anchor 饱和退化披露) 下系统性非零, 无绝对 ≈0 基线, 故只作 *相对* 量级判读。")
-    logger.info("【确定性】不调 LLM; 仅嵌 ~10 句锚点 (cache 命中时 ≈$0; ⚠ 换模首跑锚点 miss 会发一次极小付费嵌入, 非 OFFLINE 闸豁免); 文章嵌入读 stage 27 预落盘 .npy; 显式 seed。")
+    logger.info("【确定性】不调 LLM; 仅嵌 ~10 句锚点 (cache 命中时 ≈$0; ⚠ 在线换模首跑锚点 miss 会发一次极小付费嵌入, 离线 NEWS_PROCESS_LLM_OFFLINE=1 时 miss→raise RuntimeError 零网络); 文章嵌入读 stage 27 预落盘 .npy; 显式 seed。")
 
     # ① 🧭 项目 / 环境信息 + ② 输入/输出 + ③ 运行配置 + ④ 方法论依据 (日志富集 2026-06-24, 纯增量 golden-safe)。
     # 全块 try/except 兜底: 纯日志诊断绝不让 audit 阶段返回非 0。emit 只在函数体内 (避免 import-time 截断)。

@@ -49,7 +49,7 @@
 
 **关键公式**: J-F: P>N → (P²−PN)/t², N>P → (PN−N²)/t², P=N → 0 (t = n_articles_llm_valid = 正+负+中性有效投票数, 旧 schema 缺该列时回退 t=P+N); disag=√(1−((P−N)/(P+N))²); concern_score=ln_news_coverage×(senti_ratio+1)/2, 其中 senti_ratio=(neg−pos)/(neg+pos); Bartik=Σ_k(base-period share × year-shift)。
 
-**外部依赖**: 本阶段不直接调 LLM (消费 stage 21 缓存产物); 7h-emb/llmpeer + 内联 stage 25/27 含 Sentence-Embedding 相似度 (可能触发 embedding API, 故 timeout=7200 留 buffer)。无 NEWS_PROCESS_LLM_OFFLINE 守卫 (那是 stage 21 的)。
+**外部依赖**: 本阶段不直接调 LLM (消费 stage 21 缓存产物); 7h-emb/llmpeer + 内联 stage 25/27 含 Sentence-Embedding 相似度 (可能触发 embedding API, 故 timeout=7200 留 buffer)。其 7h-emb/内联 25/27 嵌入子步骤与 7h-llmpeer (stage 48) 均受 NEWS_PROCESS_LLM_OFFLINE 守卫 (embedding_engine miss→raise RuntimeError; llm_peer_iv miss→raise LLMCacheMissError); 仅"消费 stage 21 缓存产物"这一步本身无需守卫。
 
 **DAG 位置**: 上游 24_herd_decay(主)+15(硬)+12_full+18/39f(条件); 下游 46_stata_export (读 40_panel_yearly) + 51_falsification (读 40_panel_yearly + 40_article_bank_level + 12_fintech_news_full)。是流水线的扇入汇聚点 (fan-in)。
 

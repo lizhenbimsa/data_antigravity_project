@@ -615,7 +615,8 @@ def _log_benefit_env_config_methods(panel: pd.DataFrame,
         _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
         logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'} | "
                     f"LLM_OFFLINE={'是' if _offline else '否'}")
-        logger.info("     · 成本/确定性: 嵌入 API 缓存命中=$0; 冷缓存=付费嵌入调用 "
+        logger.info("     · 成本/确定性: 嵌入 API 缓存命中=$0; 冷缓存 = 在线付费嵌入调用 / "
+                    "离线 NEWS_PROCESS_LLM_OFFLINE=1 时 miss→raise 零网络 "
                     "(MAIN Qwen + _lg text-embedding-3-large 双 API 模型)")
 
         logger.info("  📂 输入 / 输出")

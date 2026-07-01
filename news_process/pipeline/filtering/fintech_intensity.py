@@ -89,7 +89,7 @@ news_process.pipeline.filtering.fintech_intensity — 阶段14：金融科技技
 
 **输出列**: `fintech_intensity_score_{full,ctx,ss}` + `intensity_verified_{full,ctx,ss}`, 加无后缀 `fintech_intensity_score` / `intensity_verified`(= _full 别名); v3.14.0 起另加 `_lg` co-primary 孪生族 `fintech_intensity_score_lg_{full,ctx,ss}` + `intensity_verified_lg_{full,ctx,ss}`(text-embedding-3-large, 与无后缀 Qwen 族严格 parity)。
 
-**外部依赖/确定性**: jieba(整词分词, 注入态单源, 锁 jieba==0.42.1)、joblib 线程并行、统一引擎 `pipeline/text/embedding_engine.py::embed_texts`(关键词级语义权重经 co-primary 双 API 模型 Qwen + text-embedding-3-large 各算一遍, 词表级一次性 ~1506 词, 经 LLMCache(_llm_cache.db) 穿透缓存; v3.14.0 起**零本地嵌入模型**, text2vec 已整体移除)。嵌入 miss 才付费调 API、命中即 $0(嵌入不受 NEWS_PROCESS_LLM_OFFLINE 的 stage 21 守卫保护; 裸环境须设 SSL_CERT_FILE=certifi 修 api.siliconflow.cn / yunwu.ai 证书); 确定性取决于 jieba 版本与嵌入 API 返回。配置节 = config/filtering.yaml::fintech_intensity + config/features.yaml::embedding_api / embedding_large (代码 CONFIG.get('fintech_intensity') / CONFIG.get('embedding_api') / CONFIG.get('embedding_large'))。
+**外部依赖/确定性**: jieba(整词分词, 注入态单源, 锁 jieba==0.42.1)、joblib 线程并行、统一引擎 `pipeline/text/embedding_engine.py::embed_texts`(关键词级语义权重经 co-primary 双 API 模型 Qwen + text-embedding-3-large 各算一遍, 词表级一次性 ~1506 词, 经 LLMCache(_llm_cache.db) 穿透缓存; v3.14.0 起**零本地嵌入模型**, text2vec 已整体移除)。嵌入在线 miss 才付费调 API、命中即 $0(嵌入亦受 NEWS_PROCESS_LLM_OFFLINE 离线守卫: 设=1 时 miss 即 raise RuntimeError 零网络/$0, 与 stage 21 LLMCacheMissError 对称但异常类型不同; 裸环境须设 SSL_CERT_FILE=certifi 修 api.siliconflow.cn / yunwu.ai 证书); 确定性取决于 jieba 版本与嵌入 API 返回。配置节 = config/filtering.yaml::fintech_intensity + config/features.yaml::embedding_api / embedding_large (代码 CONFIG.get('fintech_intensity') / CONFIG.get('embedding_api') / CONFIG.get('embedding_large'))。
 
 ■ 白话说明
 
@@ -712,7 +712,8 @@ def main():
     logger.info("        三轨分歧(full vs ctx vs ss)越大 = ss/ctx 带来越独立的聚焦信号(支撑三轨稳健性)。")
     logger.info("【确定性】jieba 整词 + joblib 线程并行 (CPU) + 关键词级 co-primary 双 API 嵌入 "
                 "(Qwen 无后缀 + text-embedding-3-large _lg; 词表级一次性 ~1506 词, LLMCache 穿透)。"
-                "嵌入 miss 才付费, 命中即 $0; 确定性取决于 jieba==0.42.1 与嵌入 API 返回。")
+                "嵌入在线 miss 才付费, 命中即 $0; 离线(NEWS_PROCESS_LLM_OFFLINE=1) miss 即 "
+                "raise RuntimeError 零网络; 确定性取决于 jieba==0.42.1 与嵌入 API 返回。")
 
     # 运行期阶段计时累计 (各主要子阶段墙钟耗时, 末尾汇总打印; 仅服务于日志)
     phase_durations: dict[str, float] = {}

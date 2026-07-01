@@ -197,7 +197,8 @@ from news_process.pipeline.text import embedding_engine as _eng
 # R1-R5 audit fix A5 (2026-05-27): V4 F-P2.1 仅承诺 stage 21 (tone_llms) + stage 48
 # (llm_peer_iv) 接入, 此 import 是 strategic_diff stage 27c embedding LLM 调用的
 # **前瞻性留位**, 当前 0 call site 是已知设计 (并非虚假声明). 未来若 stage 27c
-# 真接入 LLM-based embedding (vs 当前 sentence-transformers 本地) 时再补 call.
+# 真接入 LLM-based embedding archive (当前 embedding 经统一 API 引擎 _eng.embed_texts,
+# v3.14.0 起已无 sentence-transformers 本地轨) 时再补 call.
 # 保留 import 而非删除, 以维持模块层 archive 可用性检测稳定接口.
 try:
     from news_process.pipeline.llm_archive import (
@@ -1244,7 +1245,8 @@ def _compute_emb_coherence(agg_df, spec=None):
     能理解同义词和上下文, 但计算更慢(需要调用 API)。
 
     效率: 一次性获取所有 Bank-Year 嵌入，长文本复用分段池化逻辑；
-    避免逐对调用。三层降级: API → sentence-transformers → 返回空 dict。
+    避免逐对调用。降级: 统一 API 引擎 (MAIN 致命错 fail-fast raise / _lg twin 异常降 None)
+    → 返回空 dict (v3.14.0 起已无 sentence-transformers 本地轨)。
 
     值域 (fix(omni-g-strategic-03/12), 2026-06-11): embedding 余弦真值域
     **[-1,1]** (非 TF-IDF/LDA 的 [0,1]) — 落值 clip 至 [-1,1] 仅作浮点容忍
@@ -1415,7 +1417,8 @@ def compute_strategic_differentiation(df_exploded, panel):
         logger.info("  │        + 全行业质心距离 + Fluidity + 相邻期连贯性; 三轨 full/ctx/ss 互为稳健性")
         logger.info("  │  确定性/成本: 本地 TF-IDF/LDA $0 确定 (LDA n_jobs=1+seed=42 逐位可复现);")
         logger.info("  │        Embedding 主轨 (Qwen/Qwen3-Embedding-8B) 缓存命中 $0, 缺失才付费;")
-        logger.info("  │        co-primary _lg (text-embedding-3-large API) 缓存命中 $0, 缺失才付费")
+        logger.info("  │        co-primary _lg (text-embedding-3-large API) 缓存命中 $0, 缺失才付费;")
+        logger.info("  │        离线 NEWS_PROCESS_LLM_OFFLINE=1 时 miss→raise 零网络 (受统一引擎离线闸约束)")
         logger.info("  │  📖 方法论依据 (核心构念 → 学术出处, emit 进日志):")
         logger.info("  │   · N-最近邻战略差异度 Ŝ_i=(1/N)Σδ_ij: Guzman, J., & Li, A. (2023). "
                     "Measuring founding strategy. Management Science, 69(1), 101-118. "

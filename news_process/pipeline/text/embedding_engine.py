@@ -187,8 +187,9 @@ def _log_engine_banner(spec: dict | None = None, *, log_prefix: str = "Embedding
             f"API 并发上限={EMB_API_CONCURRENCY:,d} · 瞬时失败重试={EMB_MAX_RETRIES:,d} 次")
         logger.info(
             "     ⚙ 确定性/成本: 两 co-primary API 模型 (Qwen3-Embedding-8B 无后缀 ⟂ "
-            "text-embedding-3-large `_lg`) miss 即付费, 命中 $0; 两轨缓存按 model_id "
-            "隔离 → 命中逐位复现。")
+            "text-embedding-3-large `_lg`) 在线 miss 即付费, 命中 $0 (离线 "
+            "NEWS_PROCESS_LLM_OFFLINE=1 时 miss→raise RuntimeError 零网络); 两轨缓存按 "
+            "model_id 隔离 → 命中逐位复现。")
         # 📖 version-aware provenance 运行期出处 (docstring §40 早已声明, 此处兑现到 .log):
         # 本引擎以 text_pipeline_version 作 LLMCache 命名空间 + preview/可换端点的模型漂移
         # caveat, 正是"可复现计算研究"对版本化、provenance 留痕规约的具体落地。

@@ -235,7 +235,8 @@ def compute_authoritative_similarity(df_exploded, panel):
         logger.info(f"     · RUN_ID={os.environ.get('NEWS_PROCESS_RUN_ID', '(unset)')} | cwd={os.getcwd()}")
         logger.info(f"     · 模块: {os.path.abspath(__file__)}")
         logger.info("     · 确定性/成本: 纯 CPU 文本相似度 (TF-IDF/LDA 确定); embedding 主轨/(_lg) 经穿透缓存,"
-                    " 冷缓存须付费嵌入 (Qwen / text-embedding-3-large) — 命中则 $0")
+                    " 在线冷缓存须付费嵌入 (Qwen / text-embedding-3-large) — 命中则 $0; "
+                    "离线 NEWS_PROCESS_LLM_OFFLINE=1 时 miss→raise 零网络")
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"  环境信息打印失败 (不影响计算): {_e}")
 
