@@ -1,0 +1,172 @@
+* ============================================================================
+* 27_substance_anchor_robustness.do — 跨测度佐证 + 全语料锚点稳健性 (P3 bank_fintech_substance)
+* Paper: {{PAPER_ID}}
+*
+* ⚠⚠ 性质声明 (与 benefit_society/strategic_diff 的纯 anchor-robustness 不同):
+*   P3 headline treatment = {{MAIN_TREAT}} (sub_frac, 由 stage 21 LLM 三家投票分类聚合),
+*   **不依赖政策对齐锚点**, 故无 `_allv` 孪生 —— 纯 anchor-robustness 对 headline 不适用。
+*   本表做两件互补的事:
+*     (1) 跨测度佐证 (cross-measure corroboration): 用一个**独立于 LLM** 的实质性操作化
+*         —— stage 16 政策四象限实质性采纳率 subst_adopt_{int,kw}_p50 (高词频 ∧ 高政策对齐)
+*         —— 佐证 headline sub_frac 结论 (两条独立测度同号 = W&Z 实质性构念的三角验证)。
+*     (2) 锚点稳健性 (anchor-robustness): 证明该佐证量本身对锚点口径 (vintage-aware ≤t
+*         vs all-vintage 全语料) 不敏感 —— 即 subst_adopt vs subst_adopt_allv 系数一致。
+*   ⚠ subst_adopt_* 系**佐证/探索**量, 非 P3 预注册 confirmatory headline; 论文须如实
+*     标注 (spec inference.confirmatory = sub_frac→CIR, 单一主假设)。
+*
+* 【口径铁律】`_allv` 含未来政策文本, 仅作 anchor-robustness 对照, 绝不替换 vintage
+*   主轨; 两轨绝不混进同一 over-identified 检验。
+*
+* 【方法论】W&Z (1994 ASQ) substantive vs symbolic decoupling; Distel et al. (2026 RP)
+*   Token/Hidden; Hassan et al. (2019 QJE) 政策锚点注入; Hoberg & Phillips (2016 JPE)。
+*
+* 【白话】P3 主结果用的是"大模型读全文判定实质/象征"的占比 (sub_frac), 跟政策对齐没关系,
+*   所以没有"换锚点"的版本。这张表换个角度: 用另一套完全独立的算法 (关键词多 且 跟政策像
+*   = 实质性采纳) 再验一次结论稳不稳 (第 1 件事); 再证明这套算法用"当年前政策" 还是
+*   "所有年份政策"当尺子结果都一样 (第 2 件事)。
+*
+* ⚠ wire-ahead: DV (cost_income_ratio_change_3yr 系财务哨兵) 与部分测度列 enrichment
+*   pending 时经 capture confirm 守卫优雅跳过 → golden-safe, 不触 panel。
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+* ----------------------------------------------------------------------------
+* helper: 主轨列名 → all-vintage (_allv) 孪生 (轨后缀前插 _allv; 无轨后缀则追加)。
+* subst_adopt_int_p50 → subst_adopt_int_p50_allv。
+* ----------------------------------------------------------------------------
+capture program drop allvtwin
+program define allvtwin, rclass
+    args base
+    local twin ""
+    foreach trk in _full _ctx _ss {
+        local L = strlen("`trk'")
+        if "`twin'" == "" & substr("`base'", -`L', `L') == "`trk'" {
+            local stem = substr("`base'", 1, strlen("`base'") - `L')
+            local twin "`stem'_allv`trk'"
+        }
+    }
+    if "`twin'" == "" local twin "`base'_allv"
+    return local twin "`twin'"
+end
+
+* ----------------------------------------------------------------------------
+* DV 解析: 优先 {{MAIN_DV}}_w, 回退 {{MAIN_DV}}; 皆缺 → 整表跳过。
+* ----------------------------------------------------------------------------
+local DV ""
+capture confirm variable {{MAIN_DV}}_w
+if !_rc local DV {{MAIN_DV}}_w
+if "`DV'" == "" {
+    capture confirm variable {{MAIN_DV}}
+    if !_rc local DV {{MAIN_DV}}
+}
+if "`DV'" == "" {
+    display as error "[WARN] 既无 {{MAIN_DV}}_w 亦无 {{MAIN_DV}} (财务哨兵 enrichment pending); 锚点稳健性表跳过"
+}
+
+if "`DV'" != "" {
+    * --- (0) headline 参照列: LLM sub_frac (无 _allv, 单列) ---
+    capture confirm variable {{MAIN_TREAT}}
+    if !_rc {
+        capture drop _mv
+        qui gen double _mv = {{MAIN_TREAT}}
+        capture reghdfe `DV' _mv $controls, ///
+            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        if !_rc eststo H_llm
+        capture drop _mv
+    }
+    else {
+        display "  [SKIP] {{MAIN_TREAT}} 不在面板 (headline sub_frac 缺失)"
+    }
+
+    * --- (1)+(2) 政策四象限实质性采纳: vintage vs _allv (int / kw 两词频轨) ---
+    local qvars subst_adopt_int_p50 subst_adopt_kw_p50
+    local qtags SubInt SubKw
+    local nq : word count `qvars'
+    forvalues i = 1/`nq' {
+        local v  : word `i' of `qvars'
+        local tg : word `i' of `qtags'
+        allvtwin `v'
+        local va `r(twin)'
+
+        * vintage 主轨 (≤t 政策锚点)
+        capture confirm variable `v'
+        if !_rc {
+            capture drop _mv
+            qui gen double _mv = `v'
+            capture reghdfe `DV' _mv $controls, ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+            if !_rc eststo V_`tg'
+            capture drop _mv
+        }
+        else {
+            display "  [SKIP] `v' 不在面板 (vintage 主轨列缺失)"
+        }
+
+        * all-vintage 孪生 (全语料静态锚点)
+        capture confirm variable `va'
+        if !_rc {
+            capture drop _mv
+            qui gen double _mv = `va'
+            capture reghdfe `DV' _mv $controls, ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+            if !_rc eststo A_`tg'
+            capture drop _mv
+        }
+        else {
+            display "  [SKIP] `va' 不在面板 (_allv 孪生列缺失; companion 关闭/旧 schema)"
+        }
+    }
+}
+
+* ----------------------------------------------------------------------------
+* 动态 esttab: 仅引用已存储估计 (缺列守卫跳过 → 防 r(111))。
+* 列序 = LLM headline 参照 → 每政策四象限测度 [vintage, allv]。
+* ----------------------------------------------------------------------------
+qui estimates dir
+local stored `r(names)'
+local models ""
+local mtitles `""'
+if `: list posof "H_llm" in stored' {
+    local models `models' H_llm
+    local mtitles `"`mtitles' "sub_frac (LLM headline)""'
+}
+foreach tg in SubInt SubKw {
+    if `: list posof "V_`tg'" in stored' {
+        local models `models' V_`tg'
+        local mtitles `"`mtitles' "`tg' (Vintage)""'
+    }
+    if `: list posof "A_`tg'" in stored' {
+        local models `models' A_`tg'
+        local mtitles `"`mtitles' "`tg' (All-Vintage)""'
+    }
+}
+
+if "`models'" != "" {
+    esttab `models' using "$tables_dir/table_substance_anchor_robustness.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        coeflabels(_mv "Substantiveness measure") ///
+        title("Anchor Robustness + Cross-measure Corroboration (P3 bank_fintech_substance)") ///
+        mtitles(`mtitles') ///
+        addnotes("Col 1: headline sub_frac (LLM, no policy anchor → no _allv twin)." ///
+                 "Cols 2+: policy-quadrant subst_adopt (independent operationalization)," ///
+                 "each under vintage-aware (<=t) vs all-vintage anchor (stage 16 companion)." ///
+                 "subst_adopt_* is corroborating/exploratory, NOT the pre-registered headline." ///
+                 "Bank+year FE; SE clustered at {{CLUSTER_VAR}}. _allv is ex-post robustness only.")
+    estout `models' using "$tables_dir/table_substance_anchor_robustness.csv", replace ///
+        delimiter(",") cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01) mlabels(`mtitles')
+    display "[OK] substance anchor robustness → $tables_dir/table_substance_anchor_robustness.tex (+ .csv)"
+}
+else {
+    display as error "[WARN] 无任何锚点稳健性估计 (DV/测度列全缺, enrichment pending); 表跳过"
+}

@@ -1,0 +1,155 @@
+* ============================================================================
+* 29_tableA16_anchor_robustness.do — 全语料锚点稳健性 (benefit_society)
+* Paper: {{PAPER_ID}}
+*
+* 【构念】anchor-robustness (vintage-aware 前视守卫锚点 vs 全语料 all-vintage 锚点)
+*   主轨政策对齐/采纳测度 (token/hidden/subst_adopt_kw_p50 + article_sim_mean) 用
+*   "年度 t 只拼 ≤t 政策文档" 的 vintage-aware 锚点 (stage 16, 消除 look-ahead)。
+*   审稿人常问: 结论是否被 vintage 裁剪本身驱动? 本表把每个主轨测度与其 `_allv`
+*   孪生 (全语料/所有年份静态锚点, stage 16 all_vintage_companion 并列产出) 并排回归,
+*   证明系数对锚点口径不敏感。
+*
+* 【口径铁律】`_allv` 含未来政策文本, 仅作 anchor-robustness 对照, 绝不替换 vintage
+*   主轨; 两轨绝不混进同一 over-identified 检验 (镜像 policy_alignment.py
+*   all_vintage_companion_enabled docstring)。
+*
+* 【方法论】
+*   Distel-Grimpe-Poetz (2026, Research Policy §3.2.1) Token/Hidden decoupling;
+*   Hassan et al. (2019, QJE) 宏观政策文本注入微观企业向量空间锚点范式;
+*   Hoberg & Phillips (2016, JPE) 余弦相似度文本距离。
+*
+* 【白话】给每篇新闻算"跟政策像不像"时, 主结果只用"当年之前已发布"的政策当尺子
+*   (防用未来政策比过去新闻)。这张表额外用"所有年份政策"当尺子再算一遍, 把两把尺子
+*   的回归系数并排放, 看结论稳不稳 —— 稳, 说明结论不是被"裁掉未来政策"这个动作制造的。
+*
+* ⚠ wire-ahead: DV (ROA 系财务哨兵) 与部分测度列 enrichment pending 时经
+*   capture confirm 守卫优雅跳过 → golden-safe, 不触 panel。
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+* ----------------------------------------------------------------------------
+* helper: 由主轨列名派生其 all-vintage (_allv) 孪生列名。
+* 规则 (镜像 stata_export.py): 若以 _full/_ctx/_ss 轨后缀结尾 → 在轨后缀前插 `_allv`;
+* 否则 (无轨后缀, 如 token_adopt_kw_p50 / article_sim_mean) → 追加 `_allv`。
+* ----------------------------------------------------------------------------
+capture program drop allvtwin
+program define allvtwin, rclass
+    args base
+    local twin ""
+    foreach trk in _full _ctx _ss {
+        local L = strlen("`trk'")
+        if "`twin'" == "" & substr("`base'", -`L', `L') == "`trk'" {
+            local stem = substr("`base'", 1, strlen("`base'") - `L')
+            local twin "`stem'_allv`trk'"
+        }
+    }
+    if "`twin'" == "" local twin "`base'_allv"
+    return local twin "`twin'"
+end
+
+* ----------------------------------------------------------------------------
+* DV 解析: 优先缩尾 {{MAIN_DV}}_w, 回退裸 {{MAIN_DV}}; 皆缺 → 整表跳过。
+* ----------------------------------------------------------------------------
+local DV ""
+capture confirm variable {{MAIN_DV}}_w
+if !_rc local DV {{MAIN_DV}}_w
+if "`DV'" == "" {
+    capture confirm variable {{MAIN_DV}}
+    if !_rc local DV {{MAIN_DV}}
+}
+if "`DV'" == "" {
+    display as error "[WARN] 既无 {{MAIN_DV}}_w 亦无 {{MAIN_DV}} (财务哨兵 enrichment pending); 锚点稳健性表跳过"
+}
+
+* ----------------------------------------------------------------------------
+* 逐测度: vintage 主轨 vs _allv 全语料锚点孪生, 收进共享系数行 _mv 便于并排对读。
+* 测度清单 = token_hidden_regression.do 主轨用到的锚点派生量。
+* ----------------------------------------------------------------------------
+local vars {{MECHANISM_TOKEN}} {{MECHANISM_HIDDEN}} {{MECHANISM_SUBST}} article_sim_mean
+local tags Token Hidden Subst ArtSim
+
+if "`DV'" != "" {
+    local ncol : word count `vars'
+    forvalues i = 1/`ncol' {
+        local v  : word `i' of `vars'
+        local tg : word `i' of `tags'
+        allvtwin `v'
+        local va `r(twin)'
+
+        * --- vintage 主轨 (≤t 政策锚点) ---
+        capture confirm variable `v'
+        if !_rc {
+            capture drop _mv
+            qui gen double _mv = `v'
+            capture reghdfe `DV' _mv $controls, ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+            if !_rc eststo V_`tg'
+            capture drop _mv
+        }
+        else {
+            display "  [SKIP] `v' 不在面板 (vintage 主轨列缺失)"
+        }
+
+        * --- all-vintage 孪生 (全语料静态锚点) ---
+        capture confirm variable `va'
+        if !_rc {
+            capture drop _mv
+            qui gen double _mv = `va'
+            capture reghdfe `DV' _mv $controls, ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+            if !_rc eststo A_`tg'
+            capture drop _mv
+        }
+        else {
+            display "  [SKIP] `va' 不在面板 (_allv 孪生列缺失; companion 关闭/旧 schema)"
+        }
+    }
+}
+
+* ----------------------------------------------------------------------------
+* 动态 esttab: 仅引用实际已存储估计 (任一列缺失被守卫跳过 → 防 r(111) 整表丢失)。
+* 列顺序 = 每测度 [vintage, allv] 交错, mtitle 标注锚点口径。
+* ----------------------------------------------------------------------------
+qui estimates dir
+local stored `r(names)'
+local models ""
+local mtitles `""'
+foreach tg in Token Hidden Subst ArtSim {
+    if `: list posof "V_`tg'" in stored' {
+        local models `models' V_`tg'
+        local mtitles `"`mtitles' "`tg' (Vintage)""'
+    }
+    if `: list posof "A_`tg'" in stored' {
+        local models `models' A_`tg'
+        local mtitles `"`mtitles' "`tg' (All-Vintage)""'
+    }
+}
+
+if "`models'" != "" {
+    esttab `models' using "$tables_dir/tableA16_anchor_robustness.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        coeflabels(_mv "Policy-anchor measure") ///
+        title("Table A16 --- Anchor Robustness: Vintage-aware vs All-Vintage (benefit_society)") ///
+        mtitles(`mtitles') ///
+        addnotes("Each pair: same DV/spec, policy-anchor measure under vintage-aware (<=t docs)" ///
+                 "vs all-vintage (full-corpus) anchor (stage 16 all_vintage_companion)." ///
+                 "Bank+year FE; SE clustered at {{CLUSTER_VAR}}. _allv is ex-post robustness," ///
+                 "never a headline replacement; never mixed into one over-identified test.")
+    estout `models' using "$tables_dir/tableA16_anchor_robustness.csv", replace ///
+        delimiter(",") cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01) mlabels(`mtitles')
+    display "[OK] Table A16 → $tables_dir/tableA16_anchor_robustness.tex (+ .csv)"
+}
+else {
+    display as error "[WARN] tableA16 无任何锚点稳健性估计 (DV/测度列全缺, enrichment pending); 表跳过"
+}

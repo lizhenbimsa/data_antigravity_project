@@ -52,6 +52,9 @@ if _rc display as error "[WARN] 17_table8_subsample.do failed (rc=`=_rc'); Table
 * 2026-06-14 CY-2 跨年稳定性: 三时代分段 + treatment×era 交乘 + Wald (Table 9)
 capture noisily do 18_table9_era_stability.do
 if _rc display as error "[WARN] 18_table9_era_stability.do failed (rc=`=_rc'); Table 9 skipped"
+* 2026-07-02 _allv 全语料锚点稳健性: auth_sim_*_full vintage vs all-vintage 对照 (Table 10)
+capture noisily do 19_table10_anchor_robustness.do
+if _rc display as error "[WARN] 19_table10_anchor_robustness.do failed (rc=`=_rc'); Table 10 skipped"
 capture noisily do 30_figure1_n_sensitivity.do
 if _rc display as error "[WARN] 30_figure1_n_sensitivity.do failed (rc=`=_rc'); Figure 1 skipped"
 

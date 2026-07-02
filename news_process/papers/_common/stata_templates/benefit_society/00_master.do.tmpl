@@ -83,6 +83,9 @@ if _rc display as error "[WARN] 27_tableA14_subsample_composition.do failed (rc=
 * 2026-06-14 顶刊重审 CY-2: 分时代稳定性 (三时代分段 + treatment×era 交乘 + Wald) (Table A15)
 capture noisily do 28_tableA15_era_stability.do
 if _rc display as error "[WARN] 28_tableA15_era_stability.do failed (rc=`=_rc'); Table A15 skipped"
+* 2026-07-02 _allv 全语料锚点稳健性: vintage-aware vs all-vintage 锚点对照 (Table A16)
+capture noisily do 29_tableA16_anchor_robustness.do
+if _rc display as error "[WARN] 29_tableA16_anchor_robustness.do failed (rc=`=_rc'); Table A16 skipped"
 do 30_figure1_attitude_distribution.do
 capture noisily do 31_figure2_coefplot_dual.do
 if _rc display as error "[WARN] 31_figure2_coefplot_dual.do failed (rc=`=_rc'); Figure 2 skipped"

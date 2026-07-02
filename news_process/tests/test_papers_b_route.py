@@ -167,13 +167,20 @@ def test_total_template_count_77() -> None:
     #   collab +1 (26) / benefit_society +1 (28) / brokerage_network +2 (22_selection / 24_era) /
     #   llm_peer +1 (18) / strategic_diff +1 (18)。全部 capture confirm/which 守卫 (wire-ahead) →
     #   golden-safe, 不触 panel。→ 共 142。
-    expected_count = 142  # 133 + 9 (2026-06-14 T18 重审 era-stability/selection 族)
+    # 2026-07-02 _allv 全语料锚点稳健性 (anchor-robustness) 落地: +3 个 _common 模板 —
+    #   benefit_society +1 (29_tableA16_anchor_robustness: token/hidden/subst_adopt + article_sim_mean
+    #   vintage vs _allv) / strategic_diff +1 (19_table10_anchor_robustness: auth_sim_*_full vs _allv,
+    #   4+1 文本表征) / bank_fintech_substance +1 (27_substance_anchor_robustness: 跨测度佐证 —
+    #   headline sub_frac(LLM,无_allv) 参照 + 政策四象限 subst_adopt vintage vs _allv)。全部
+    #   capture confirm 守卫 (wire-ahead, DV=财务哨兵) → golden-safe, 不触 panel。→ 共 145。
+    expected_count = 145  # 142 + 3 (2026-07-02 _allv anchor-robustness: benefit/strategic/substance)
     assert len(templates) == expected_count, (
         f"Expected {expected_count} total templates, found {len(templates)}: "
         f"= 95 (baseline) + 5 (IV 2SLS) + 6 (网络五角色化) + 2 (聚合审计 P1/llm_peer A+B+C) "
         f"+ 5 (聚合审计 B+C wire-ahead 桩) "
         f"+ 20 (顶刊稳健性扩充: FE-SAT/ROBUST-EST/OSTER/SUBSAMPLE/TIMING/PPML) "
-        f"+ 9 (T18 重审: era-stability/selection 族)"
+        f"+ 9 (T18 重审: era-stability/selection 族) "
+        f"+ 3 (_allv anchor-robustness: benefit/strategic/substance)"
     )
 
 

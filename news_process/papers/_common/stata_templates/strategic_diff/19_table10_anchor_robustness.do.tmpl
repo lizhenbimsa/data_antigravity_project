@@ -1,0 +1,146 @@
+* ============================================================================
+* 19_table10_anchor_robustness.do — 全语料锚点稳健性 (strategic_diff)
+* Paper: {{PAPER_ID}}
+*
+* 【构念】权威政策战略响应度 auth_sim_*_full (stage 26, bank-year 聚合政策相似度)
+*   主轨用 vintage-aware 锚点 (年度 t 只拼 ≤t 政策文档, 消除 look-ahead)。本表把 4+1
+*   文本表征方法 (tfidf_c / tfidf_w / lda / emb / emb_lg co-primary) 各自的 vintage
+*   主轨与其 `_allv` 全语料静态锚点孪生并排回归 (stage 26 all_vintage_companion 并列
+*   产出), 证明战略响应度系数对锚点口径不敏感。
+*
+* 【口径铁律】`_allv` 含未来政策文本, 仅作 anchor-robustness 对照, 绝不替换 vintage
+*   主轨; 两轨绝不混进同一 over-identified Hansen J (镜像 stage 26 companion docstring)。
+*
+* 【方法论】Hassan et al. (2019, QJE) 宏观政策文本注入企业向量空间锚点范式;
+*   Hoberg & Phillips (2016, JPE) 余弦相似度; 4 文本表征收敛效度 (多方法一致性)。
+*
+* 【白话】把国家政策当"满分标准答案", 看银行当年新闻跟标答多像 (越像=越紧跟战略)。
+*   主结果只用"当年之前的政策"当标答 (防用未来政策比过去)。这张表额外用"所有年份的
+*   政策"当标答再算一遍, 四种(+1)文本算法各并排一对, 看系数稳不稳。
+*
+* ⚠ wire-ahead: DV (tobin_q 系上市行财务哨兵) 与部分 auth_sim 列 enrichment pending
+*   时经 capture confirm 守卫优雅跳过 → golden-safe, 不触 panel。
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+* ----------------------------------------------------------------------------
+* helper: 主轨列名 → all-vintage (_allv) 孪生 (轨后缀 _full/_ctx/_ss 前插 _allv)。
+* auth_sim_emb_full → auth_sim_emb_allv_full。
+* ----------------------------------------------------------------------------
+capture program drop allvtwin
+program define allvtwin, rclass
+    args base
+    local twin ""
+    foreach trk in _full _ctx _ss {
+        local L = strlen("`trk'")
+        if "`twin'" == "" & substr("`base'", -`L', `L') == "`trk'" {
+            local stem = substr("`base'", 1, strlen("`base'") - `L')
+            local twin "`stem'_allv`trk'"
+        }
+    }
+    if "`twin'" == "" local twin "`base'_allv"
+    return local twin "`twin'"
+end
+
+* ----------------------------------------------------------------------------
+* DV 解析: 优先 {{MAIN_DV}}_w, 回退 {{MAIN_DV}}; 皆缺 → 整表跳过。
+* ----------------------------------------------------------------------------
+local DV ""
+capture confirm variable {{MAIN_DV}}_w
+if !_rc local DV {{MAIN_DV}}_w
+if "`DV'" == "" {
+    capture confirm variable {{MAIN_DV}}
+    if !_rc local DV {{MAIN_DV}}
+}
+if "`DV'" == "" {
+    display as error "[WARN] 既无 {{MAIN_DV}}_w 亦无 {{MAIN_DV}} (上市行财务哨兵 enrichment pending); 锚点稳健性表跳过"
+}
+
+* ----------------------------------------------------------------------------
+* 逐文本表征方法: vintage auth_sim_`m'_full vs _allv 孪生, 共享系数行 _mv 并排对读。
+* ----------------------------------------------------------------------------
+local methods tfidf_c tfidf_w lda emb emb_lg
+
+if "`DV'" != "" {
+    foreach m of local methods {
+        local v auth_sim_`m'_full
+        allvtwin `v'
+        local va `r(twin)'
+
+        * --- vintage 主轨 (≤t 政策锚点) ---
+        capture confirm variable `v'
+        if !_rc {
+            capture drop _mv
+            qui gen double _mv = `v'
+            capture reghdfe `DV' _mv $controls, ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+            if !_rc eststo V_`m'
+            capture drop _mv
+        }
+        else {
+            display "  [SKIP] `v' 不在面板 (vintage 主轨列缺失)"
+        }
+
+        * --- all-vintage 孪生 (全语料静态锚点) ---
+        capture confirm variable `va'
+        if !_rc {
+            capture drop _mv
+            qui gen double _mv = `va'
+            capture reghdfe `DV' _mv $controls, ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+            if !_rc eststo A_`m'
+            capture drop _mv
+        }
+        else {
+            display "  [SKIP] `va' 不在面板 (_allv 孪生列缺失; companion 关闭/旧 schema)"
+        }
+    }
+}
+
+* ----------------------------------------------------------------------------
+* 动态 esttab: 仅引用已存储估计 (缺列守卫跳过 → 防 r(111))。列 = 每方法 [vintage, allv]。
+* ----------------------------------------------------------------------------
+qui estimates dir
+local stored `r(names)'
+local models ""
+local mtitles `""'
+foreach m of local methods {
+    if `: list posof "V_`m'" in stored' {
+        local models `models' V_`m'
+        local mtitles `"`mtitles' "`m' (V)""'
+    }
+    if `: list posof "A_`m'" in stored' {
+        local models `models' A_`m'
+        local mtitles `"`mtitles' "`m' (AllV)""'
+    }
+}
+
+if "`models'" != "" {
+    esttab `models' using "$tables_dir/table10_anchor_robustness.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        coeflabels(_mv "Authoritative policy alignment") ///
+        title("Table 10 --- Anchor Robustness: Vintage-aware vs All-Vintage (strategic_diff)") ///
+        mtitles(`mtitles') ///
+        addnotes("Each pair: same DV/spec, auth_sim_<method>_full under vintage-aware (<=t docs)" ///
+                 "vs all-vintage (full-corpus) anchor (stage 26 all_vintage_companion)." ///
+                 "V=vintage, AllV=all-vintage; methods tfidf_c/w, LDA, emb (Qwen), emb_lg (large)." ///
+                 "Bank+year FE; SE clustered at {{CLUSTER_VAR}}. _allv is ex-post robustness only," ///
+                 "never a headline replacement; never mixed into one over-identified Hansen J.")
+    estout `models' using "$tables_dir/table10_anchor_robustness.csv", replace ///
+        delimiter(",") cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01) mlabels(`mtitles')
+    display "[OK] Table 10 → $tables_dir/table10_anchor_robustness.tex (+ .csv)"
+}
+else {
+    display as error "[WARN] table10 无任何锚点稳健性估计 (DV/auth_sim 列全缺, enrichment pending); 表跳过"
+}
