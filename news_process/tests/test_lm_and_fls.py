@@ -261,11 +261,31 @@ class TestForwardLooking:
         assert math.isnan(v) or (0.0 <= v <= 1.0)
 
     def test_get_panel_columns(self):
+        # 2026-07-03 §5 D2: +单门稳健臂 frac_fls_fonly (双门 canonical 的互为稳健对照)
         from news_process.pipeline.sentiment.forward_looking import (
             get_panel_columns,
         )
         cols = get_panel_columns('_full')
-        assert cols == ['frac_fls_full']
+        assert cols == ['frac_fls_full', 'frac_fls_fonly_full']
+
+    def test_fonly_superset_invariant(self):
+        # 单门 ⊇ 双门 (逐文天然不变量): frac_fls_fonly ≥ frac_fls
+        from news_process.pipeline.sentiment.forward_looking import (
+            compute_fls_for_text,
+        )
+        r = compute_fls_for_text("银行计划未来三年扩大投入。银行拟扩大投入。今天照常营业。")
+        assert r['frac_fls_fonly'] >= r['frac_fls']
+        # 第二句含 future 词 (拟) 无 time 词 → 单门计、双门不计 (严格大于的判别例)
+        assert r['n_fls_fonly_sentences'] > r['n_fls_sentences']
+
+    def test_dual_gate_canonical_unchanged(self):
+        # canonical 双门列不受 fonly 扩展扰动 (与旧实现同语义: future∧time)
+        from news_process.pipeline.sentiment.forward_looking import (
+            compute_fls_for_text,
+        )
+        r = compute_fls_for_text("银行业务规模达 100 亿。计划未来三年达 500 亿。")
+        assert r['n_sentences'] == 2 and r['n_fls_sentences'] == 1
+        assert r['frac_fls'] == 0.5
 
 
 # ── stage 22 集成验证 (P0.2 修复后, 真接入) ──────────────────────────

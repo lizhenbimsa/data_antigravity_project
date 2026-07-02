@@ -43,9 +43,10 @@ def test_build_replication_8spec_matrix(tmp_path, locus, subst, sent):
     # +25_tableA6_tone_iv_2sls → 15; agg-toptier-audit +26_tableA7_aggregation_robustness → 16;
     # 2026-06-14 顶刊稳健性扩充 +32_tableA8_fe_saturation_robust_est +33_tableA9_subsample_timing → 18;
     # 2026-06-14 T18 重审 +34_tableA11_era_stability → 19
-    # 2026-07-02 互为稳健性 option B +27_tableA12_cross_model_fwer (根级 rwolf) → 20)
+    # 2026-07-02 互为稳健性 option B +27_tableA12_cross_model_fwer (根级 rwolf) → 20
+    # 2026-07-03 稳健性缺口补齐 §6 +28_tableA13_policy_family_robustness → 21)
     do_files = list((pkg / 'code').glob('*.do'))
-    assert len(do_files) == 20, f"spec {locus}_{subst}_{sent}: 应 20 .do, 实际 {len(do_files)}"
+    assert len(do_files) == 21, f"spec {locus}_{subst}_{sent}: 应 21 .do, 实际 {len(do_files)}"
     # README.md 含 spec 信息
     readme = (pkg / 'README.md').read_text(encoding='utf-8')
     assert locus in readme
@@ -86,9 +87,9 @@ def test_no_placeholder_residue_across_specs(tmp_path, locus, subst, sent):
 
 
 def test_master_do_references_all_17_subdo(tmp_path):
-    """plan v14 §9.2: 00_master.do.tmpl 引用全部 19 子模板 (除 master 自己;
+    """plan v14 §9.2: 00_master.do.tmpl 引用全部 20 子模板 (除 master 自己;
     2026-06-13 IV +25_tableA6 / agg +26_tableA7; 2026-06-14 顶刊稳健性扩充 +32_tableA8 +33_tableA9;
-    2026-06-14 T18 重审 +34_tableA11_era_stability; 2026-07-02 互为稳健性 +27_tableA12_cross_model_fwer)."""
+    2026-06-14 T18 重审 +34_tableA11_era_stability; 2026-07-02 互为稳健性 +27_tableA12_cross_model_fwer; 2026-07-03 稳健性缺口补齐 +28_tableA13_policy_family_robustness)."""
     from news_process.papers._common.stata_runner import build_replication_package
     pkg = build_replication_package({
         'MAIN_LOCUS_TRACK': 'lc', 'MAIN_SUBST_TRACK': 'sf',
@@ -104,6 +105,7 @@ def test_master_do_references_all_17_subdo(tmp_path):
         '24_tableA5_dictionary_method.do', '25_tableA6_tone_iv_2sls.do',
         '26_tableA7_aggregation_robustness.do',
         '27_tableA12_cross_model_fwer.do',
+        '28_tableA13_policy_family_robustness.do',
         '32_tableA8_fe_saturation_robust_est.do', '33_tableA9_subsample_timing.do',
         '34_tableA11_era_stability.do',
         '30_figure1_event_study.do', '31_figure_coefplot_dual.do',

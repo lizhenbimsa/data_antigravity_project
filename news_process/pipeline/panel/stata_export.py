@@ -354,7 +354,24 @@ def build_variable_labels(
         'avg_named_entity_ctx':             "Named-Entity Density Ctx (specificity 实体子集; Hope 2016)",
         'avg_named_entity_ss':              "Named-Entity Density same-sentence (specificity 实体子集; Hope 2016)",
         # nonpolarity-dims WS-B2 (2026-06-20): Boilerplate Phrase Ratio 单轨 (Lang-Stice-Lawrence 2015 JAE)
+        # D2 FLS 双门/单门二臂 (2026-07-03; 全族补录, 此前 fallback 列名):
+        'frac_fls_full':                    "FLS Frac Full (dual-gate; Li 2010 JAR)",
+        'frac_fls_ctx':                     "FLS Frac Ctx (dual-gate; Li 2010 JAR)",
+        'frac_fls_ss':                      "FLS Frac SS (dual-gate; Li 2010 JAR)",
+        'frac_fls_fonly_full':              "FLS Frac Full (future-only 稳健臂)",
+        'frac_fls_fonly_ctx':               "FLS Frac Ctx (future-only 稳健臂)",
+        'frac_fls_fonly_ss':                "FLS Frac SS (future-only 稳健臂)",
+        # D1 罕见词频次 cutoff 梯子 (2026-07-03): c2/c5 互为稳健臂 (canonical=avg_rare_word_*)
+        'avg_rare_word_c2_full':            "Rare-Word Ratio c2 Full (cutoff=2 稳健臂)",
+        'avg_rare_word_c2_ctx':             "Rare-Word Ratio c2 Ctx (cutoff=2 稳健臂)",
+        'avg_rare_word_c2_ss':              "Rare-Word Ratio c2 SS (cutoff=2 稳健臂)",
+        'avg_rare_word_c5_full':            "Rare-Word Ratio c5 Full (cutoff=5 稳健臂)",
+        'avg_rare_word_c5_ctx':             "Rare-Word Ratio c5 Ctx (cutoff=5 稳健臂)",
+        'avg_rare_word_c5_ss':              "Rare-Word Ratio c5 SS (cutoff=5 稳健臂)",
         'avg_boilerplate_full':             "Boilerplate Phrase Ratio Full (跨文档套话; LSL 2015)",
+        # WP-C 三轨化 (2026-07-03): ctx/ss 互为稳健轨 (full=headline)
+        'avg_boilerplate_ctx':              "Boilerplate Phrase Ratio Ctx (跨文档套话稳健轨; LSL 2015)",
+        'avg_boilerplate_ss':               "Boilerplate Phrase Ratio SS (跨文档套话稳健轨; LSL 2015)",
         # remove-title-track: title-indicator labels 已移除
         # ─────────────────────────────────────────────────────────────
         # v3.15.0 (2026-06-28): 嵌入主轨 = Qwen3-Embedding-8B(MAIN, 无后缀, 硅基流动)
@@ -631,7 +648,12 @@ def build_variable_labels(
     _PM_WEIGHT_EN = {'': '', '_vw': ' [value-wt]', '_mw': ' [media-wt]', '_hw': ' [herd-wt]'}
     _PM_LLM_METRIC_EN = {
         'tone': 'tone', 'tone_sum': 'tone sum', 'tone_std': 'tone SD',
-        'cont_mean': 'continuous mean', 'cont_sum': 'continuous sum'}
+        'cont_mean': 'continuous mean', 'cont_sum': 'continuous sum',
+        # per-model 分类维度 frac (2026-07-03, ROBUSTNESS_GAP_BACKFILL §2 A4): 与
+        # encode.LLM_CLASS_SPEC 值[0] byte-sync; 英文用 share 措辞 (非 tone), 沿用既有
+        # metric×weight×track 全积生成 — 面板不产加权分类列, 多余加权键无害 (仅列存在时被查)。
+        'sub_frac': 'share substantive', 'tech_frac': 'share tech-layer',
+        'collab_frac': 'share collaborative'}
     _PM_BERT_METRIC_EN = {
         'net_tone': 'net-tone(pos-neg)', 'pos': 'P(pos)', 'neg': 'P(neg)', 'neu': 'P(neu)',
         'pos_sum': 'P(pos) sum', 'neg_sum': 'P(neg) sum', 'neu_sum': 'P(neu) sum',

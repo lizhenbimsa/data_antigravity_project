@@ -10,8 +10,13 @@
   = "套话集"; 第二遍逐文算 命中套话 n-gram 出现数 / 全部 n-gram 出现数。
 - ⚠ 语料 = stage 22 输入 (21_tone_llms gated 子集, 非真全量) → 套话集建在该子集上,
   非 Lang-Stice-Lawrence 英文 10-K 真全量做法 (中文新闻落地, 概念同源, 如实披露)。
-- **单轨 (full only)**: 套话集口径在 ctx/ss 子窗口意义弱, ctx/ss 延后 (by-design,
-  镜像 semantic_staleness_ss DEFER 先例); 列名 boilerplate_phrase_ratio_full。
+- **三轨 (2026-07-03, ROBUSTNESS_GAP_BACKFILL 计划 §4 WP-C)**: full = canonical headline,
+  ctx/ss = 互为稳健性轨 (不分主次; 各轨独立建各自语料上的套话集)。列名
+  boilerplate_phrase_ratio_{full,ctx,ss}。解释性限定 (原 by-design DEFER 的理由, 转为
+  codebook 披露): 套话集口径在 ctx/ss 子窗口文本上信号较弱, ctx/ss 轨作稳健性对照解读。
+  ⚠ 三轨各自 just-identified 并排, 禁混同一 over-identified Hansen J。
+  ⚠ 三轨使峰值内存 ×3 (逐轨顺序跑, 词表不叠加; 生产 T=18 前仍须先做分块改造, 见下 P1)。
+  非嵌入族 (char n-gram DF 统计) → 无 `_lg` 孪生 (carve-out, 同 surface_staleness)。
 - **确定性**: CountVectorizer 固定参数 + sklearn 内部 vocab 字典序 → 无 HASHSEED 依赖。
 - **SAFE**: 套话集为空 (无 n-gram ≥ 阈值) → 全 nan + loud WARNING (镜像 FINTECH_AC=None,
   绝不静默清空); 空/哨兵/退化(实字< n-gram 下界)文本 → nan (_clean 守卫)。
@@ -44,6 +49,9 @@ logger = logging.getLogger(__name__)
 DF_RATIO_THRESHOLD = 0.10
 NGRAM_RANGE = (4, 6)
 OUT_COL = 'boilerplate_phrase_ratio_full'
+# 三轨 (2026-07-03 §4 WP-C): full = headline (OUT_COL 保留为 canonical 锚, 勿改名);
+# ctx/ss = 稳健性轨, 由 enrich_with_boilerplate 在 canonical 轨之外追加。
+TRACKS = ('full', 'ctx', 'ss')
 _SENTINELS = frozenset({'', 'nan', 'none', '<na>'})
 # 单遍全语料 fit 的安全规模上界; 超过则 loud WARNING (生产须改分块, 见 docstring P1)。
 _MAX_SAFE_DOCS = 50_000
@@ -162,14 +170,17 @@ def compute_boilerplate_ratios(texts: list[str],
 
 def enrich_with_boilerplate(df: pd.DataFrame, text_col: str = 'content_full',
                             out_col: str = OUT_COL) -> pd.DataFrame:
-    """在 df 上加单轨 boilerplate_phrase_ratio_full 列 (in-place 安全, 返回同 df)。
+    """在 df 上加三轨 boilerplate_phrase_ratio_{full,ctx,ss} 列 (in-place 安全, 返回同 df)。
 
-    缺 text_col → 加全 nan 列 + WARNING (graceful, 不阻断 stage 22)。"""
+    2026-07-03 §4 WP-C 三轨化: (text_col, out_col) 形参对 = canonical full 轨
+    (向后兼容既有调用方的 '内容' 回退与自定义列名); ctx/ss 稳健轨固定读
+    content_{ctx,ss} 写 boilerplate_phrase_ratio_{ctx,ss}, 各轨独立两遍建集。
+    任一轨缺文本列 → 该轨全 nan 列 + WARNING (graceful, 不阻断 stage 22)。"""
     # ── 子步骤 banner (called-by-runner helper, 共享 stage 22 tone_words 日志) ──
     # 不重打 ENV/CONFIG (那是 stage 22 入口 main 的职责), 仅打本步骤名+方法依据+本步配置。
     try:
         logger.info("─" * 70)
-        logger.info("[stage 22 子步骤] boilerplate_phrase_ratio_full — 跨文档套话比率派生")
+        logger.info("[stage 22 子步骤] boilerplate_phrase_ratio_{full,ctx,ss} — 跨文档套话比率派生 (三轨)")
         logger.info(
             "  · 功能: 语料级两遍统计 char_wb%s-gram 的 document-frequency, "
             "DF/N ≥ 阈值者为'套话集', 逐文算 命中套话 n-gram 数 / 全部 n-gram 数 (占比越高=越公式化套话)",
@@ -181,20 +192,31 @@ def enrich_with_boilerplate(df: pd.DataFrame, text_col: str = 'content_full',
             "(DOI 不在经核验注册表, 仅注释保留, 未 emit)")
         logger.info(
             "  · 本步配置: text_col=%s | out_col=%s | DF 阈值=%s | n-gram=char_wb%s | "
-            "单遍安全规模上界 _MAX_SAFE_DOCS=%s | 单轨(full only, ctx/ss by-design DEFER) | "
+            "单遍安全规模上界 _MAX_SAFE_DOCS=%s | 三轨(full=headline, ctx/ss=稳健轨, 2026-07-03) | "
             "$0 纯 CPU/确定性(CountVectorizer 固定参数, 无 HASHSEED 依赖)",
             text_col, out_col, pct4(DF_RATIO_THRESHOLD), NGRAM_RANGE, f"{_MAX_SAFE_DOCS:,d}")
     except Exception as e:  # noqa: BLE001 — 日志块绝不阻断阶段
         logger.warning(f"boilerplate: 子步骤 banner 打印失败 (忽略, 不影响派生): {e}")
 
-    if text_col not in df.columns:
-        logger.warning(f"boilerplate: 缺文本列 {text_col} → {out_col} 全 nan (graceful)")
-        df[out_col] = float('nan')
-        return df
-    ratios = compute_boilerplate_ratios(df[text_col].tolist())
-    df[out_col] = ratios
+    # 三轨槽位: canonical full 用形参对 (向后兼容 '内容' 回退/自定义列), ctx/ss 固定列名
+    _slots = [(text_col, out_col)] + [
+        (f'content_{trk}', f'boilerplate_phrase_ratio_{trk}') for trk in TRACKS[1:]
+    ]
+    ratios = None  # canonical 轨结果 (供下方结果分析块, 保持既有判读语义)
+    for _tc, _oc in _slots:
+        if _tc not in df.columns:
+            logger.warning(f"boilerplate: 缺文本列 {_tc} → {_oc} 全 nan (graceful)")
+            df[_oc] = float('nan')
+            if _oc == out_col:
+                ratios = [float('nan')] * len(df)
+            continue
+        _r = compute_boilerplate_ratios(df[_tc].tolist())
+        df[_oc] = _r
+        if _oc == out_col:
+            ratios = _r
+        _nv = sum(1 for v in _r if not (isinstance(v, float) and math.isnan(v)))
+        logger.info(f"boilerplate: {_oc} 派生完成 ({_nv:,d}/{len(_r):,d} 非空)")
     n_valid = sum(1 for v in ratios if not (isinstance(v, float) and math.isnan(v)))
-    logger.info(f"boilerplate: {out_col} 派生完成 ({n_valid:,d}/{len(ratios):,d} 非空, 单轨 full)")
 
     # ── 结果分析 (阈值判读: 有效率 / 套话占比分布 / 饱和退化告警) ──
     try:

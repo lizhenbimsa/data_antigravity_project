@@ -52,3 +52,68 @@ def test_enrich_missing_text_col_graceful():
     out = enrich_with_boilerplate(df)
     assert OUT_COL in out.columns
     assert out[OUT_COL].isna().all()  # 缺列 → 全 nan graceful
+
+
+# ── 三轨化 (2026-07-03, ROBUSTNESS_GAP_BACKFILL §4 WP-C) ──
+
+
+def test_enrich_adds_ctx_ss_robustness_tracks():
+    texts = _corpus()
+    df = pd.DataFrame({
+        'content_full': texts,
+        'content_ctx': texts[::-1],
+        'content_ss': texts,
+    })
+    out = enrich_with_boilerplate(df)
+    for trk in ('full', 'ctx', 'ss'):
+        col = f'boilerplate_phrase_ratio_{trk}'
+        assert col in out.columns, f'缺三轨列 {col}'
+        assert all(math.isnan(v) or 0.0 <= v <= 1.0 for v in out[col])
+    # ss 文本 == full 文本 → 独立建集结果逐值相等 (各轨独立两遍的可复现性)
+    assert all(
+        (math.isnan(a) and math.isnan(b)) or a == b
+        for a, b in zip(out['boilerplate_phrase_ratio_full'],
+                        out['boilerplate_phrase_ratio_ss']))
+
+
+def test_full_canonical_unchanged_by_track_extension():
+    # canonical 锚: 三轨化后 full 轨数值与直接单轨计算逐字节一致
+    texts = _corpus()
+    direct = compute_boilerplate_ratios(texts)
+    df = pd.DataFrame({'content_full': texts, 'content_ctx': texts, 'content_ss': texts})
+    out = enrich_with_boilerplate(df)
+    assert all(
+        (math.isnan(a) and math.isnan(b)) or a == b
+        for a, b in zip(direct, out[OUT_COL]))
+
+
+def test_missing_ctx_ss_graceful_per_track():
+    # ctx/ss 缺文本列 → 该轨全 nan, full 轨照常 (逐轨独立降级)
+    df = pd.DataFrame({'content_full': _corpus()})
+    out = enrich_with_boilerplate(df)
+    assert not out['boilerplate_phrase_ratio_full'].isna().all()
+    assert out['boilerplate_phrase_ratio_ctx'].isna().all()
+    assert out['boilerplate_phrase_ratio_ss'].isna().all()
+
+
+def test_panel_agg_three_tracks():
+    from news_process.pipeline.panel.encode import build_aggregation_dict
+    agg = build_aggregation_dict()
+    for trk in ('full', 'ctx', 'ss'):
+        assert agg[f'avg_boilerplate_{trk}'] == (f'boilerplate_phrase_ratio_{trk}', 'mean')
+        assert len(f'avg_boilerplate_{trk}') <= 32
+
+
+def test_codebook_and_stata_labels_three_tracks():
+    from news_process.pipeline.panel import stata_export as se
+    from news_process.pipeline.panel.codebook import get_variable_metadata_dict
+    meta = get_variable_metadata_dict()
+    # 迁移不变量: full 条目 label 与旧单轨条目逐字节同
+    assert meta['avg_boilerplate_full'].label == 'Boilerplate Phrase Ratio (full)'
+    for trk in ('ctx', 'ss'):
+        assert f'avg_boilerplate_{trk}' in meta
+    import pandas as pd_
+    cols = [f'avg_boilerplate_{t}' for t in ('full', 'ctx', 'ss')]
+    labels = se.build_variable_labels(pd_.DataFrame({c: [0.0] for c in cols}))
+    for c in cols:
+        assert labels[c] != c and len(labels[c].encode('utf-8')) <= 80

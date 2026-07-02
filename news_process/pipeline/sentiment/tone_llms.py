@@ -132,6 +132,22 @@ except ImportError as _archive_import_exc:
         _archive_import_exc,
     )
 
+# per-model 分类维度梯子 SSOT (2026-07-03, ROBUSTNESS_GAP_BACKFILL 计划 §2 A1):
+# 由 encode.LLM_CLASS_SPEC 单源派生文章级发列基名 (键 subst/locus/collab) 与
+# per_model_parsed 解析键 (值[2] innovation_*)。encode 不可导入的极端环境用具名
+# fallback 常量兜底 (镜像 llm_peer_iv 的 LLMCacheMissError fallback 先例);
+# ⚠ fallback 是字面副本 — gate 测试对 _LLM_CLASS_SPEC_FALLBACK 与 encode.LLM_CLASS_SPEC
+# 做逐字节断言 (具名常量无论 import 成败都运行时可达, 字面漂移本机即红; 终审 #11)。
+_LLM_CLASS_SPEC_FALLBACK = {
+    'subst':  ('sub_frac',    '实质性',   'innovation_substantiveness'),
+    'locus':  ('tech_frac',   '底层技术', 'innovation_locus'),
+    'collab': ('collab_frac', '外部协同', 'innovation_collab_mode'),
+}
+try:
+    from news_process.pipeline.panel.encode import LLM_CLASS_SPEC as _LLM_CLASS_SPEC
+except Exception:  # noqa: BLE001 — encode 携带面板级依赖, 极端环境下允许降级
+    _LLM_CLASS_SPEC = dict(_LLM_CLASS_SPEC_FALLBACK)
+
 # ============================================================================
 # 1. 全局配置和初始化
 # ============================================================================
@@ -2466,6 +2482,13 @@ def main():
                 per_model_cols[f"{short}_sentiment{track}"] = []
                 per_model_cols[f"{short}_verification_confidence{track}"] = []
                 per_model_cols[f"{short}_sentiment_confidence{track}"] = []
+                # per-model 分类维度存档列 (2026-07-03, ROBUSTNESS_GAP_BACKFILL §2 A1):
+                # 基名 = _LLM_CLASS_SPEC 键 (subst/locus/collab)。**不门控**审计存档
+                # (镜像 {short}_sentiment 先例, 见 _aggregate_track L1684 注释); verified
+                # 门控延迟到 encode 层聚合 (encode_sentiment 指示列)。⚠ 与共识列口径差:
+                # 共识票池只纳 verified=True 标签且 final_v=False 清票, 存档列保留原始输出。
+                for _dim in _LLM_CLASS_SPEC:
+                    per_model_cols[f"{short}_{_dim}{track}"] = []
                 if LOGIT_SCORE_ENABLED:
                     per_model_cols[f"{short}_prob_score{track}"] = []
                     per_model_cols[f"{short}_prob_source{track}"] = []
@@ -2518,6 +2541,9 @@ def main():
                 per_model_cols[f"{short}_sentiment_full"].append(parsed_full.get(f"{short}_sentiment"))
                 per_model_cols[f"{short}_verification_confidence_full"].append(parsed_full.get(f"{short}_verification_confidence", 0.0))
                 per_model_cols[f"{short}_sentiment_confidence_full"].append(parsed_full.get(f"{short}_sentiment_confidence", 0.0))
+                # per-model 分类维度存档 (2026-07-03 §2 A1; ⚠ full/ctx/ss 三块手抄副本须成对改)
+                for _dim, _cspec in _LLM_CLASS_SPEC.items():
+                    per_model_cols[f"{short}_{_dim}_full"].append(parsed_full.get(f"{short}_{_cspec[2]}"))
                 if LOGIT_SCORE_ENABLED:
                     # fix(omni-g-tonellms-12, 2026-06-11): 失败/解析失败模型的逐模型
                     # 存档列 default 从 (0.0, 'P3') 改 (NaN, 'MISSING') — 0.0+'P3'
@@ -2557,6 +2583,9 @@ def main():
                 per_model_cols[f"{short}_sentiment_ctx"].append(parsed_ctx.get(f"{short}_sentiment"))
                 per_model_cols[f"{short}_verification_confidence_ctx"].append(parsed_ctx.get(f"{short}_verification_confidence", 0.0))
                 per_model_cols[f"{short}_sentiment_confidence_ctx"].append(parsed_ctx.get(f"{short}_sentiment_confidence", 0.0))
+                # per-model 分类维度存档 (2026-07-03 §2 A1; 三块手抄副本之二, 与 full/ss 成对)
+                for _dim, _cspec in _LLM_CLASS_SPEC.items():
+                    per_model_cols[f"{short}_{_dim}_ctx"].append(parsed_ctx.get(f"{short}_{_cspec[2]}"))
                 if LOGIT_SCORE_ENABLED:
                     # fix(omni-g-tonellms-12, 2026-06-11): 同上 full 轨 — 缺席模型
                     # 存档列 (NaN, 'MISSING'), 与真实 P3 零置信中性可区分。
@@ -2594,6 +2623,9 @@ def main():
                 per_model_cols[f"{short}_sentiment_ss"].append(parsed_ss.get(f"{short}_sentiment"))
                 per_model_cols[f"{short}_verification_confidence_ss"].append(parsed_ss.get(f"{short}_verification_confidence", 0.0))
                 per_model_cols[f"{short}_sentiment_confidence_ss"].append(parsed_ss.get(f"{short}_sentiment_confidence", 0.0))
+                # per-model 分类维度存档 (2026-07-03 §2 A1; 三块手抄副本之三, 与 full/ctx 成对)
+                for _dim, _cspec in _LLM_CLASS_SPEC.items():
+                    per_model_cols[f"{short}_{_dim}_ss"].append(parsed_ss.get(f"{short}_{_cspec[2]}"))
                 if LOGIT_SCORE_ENABLED:
                     # fix(omni-g-tonellms-12, 2026-06-11): 同上 full/ctx 轨 — 缺席模型
                     # 存档列 (NaN, 'MISSING'), 与真实 P3 零置信中性可区分。

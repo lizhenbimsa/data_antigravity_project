@@ -95,6 +95,27 @@ from news_process.core.text.cn_text_utils import is_cjk
 # OOV freq=0 升至约 70%), 即度量"非高频词率"而非紧致的最稀有 20% 尾部。论文/spec 须如实
 # 表述, 勿声称"低频 20% 阈值" (审核 2026-06-05 P2)。
 RARE_WORD_PERCENTILE = 20
+# ── 罕见词频次 cutoff 梯子 (2026-07-03, ROBUSTNESS_GAP_BACKFILL 计划 §5 D1) ──
+# 两句话依据 (SSOT = RARE_WORD_CUTOFF_RATIONALE; comments/codebook/stata 同源):
+# ① 罕见词频次阈值 3 为研究者选择 (≡ 分位 RARE_WORD_PERCENTILE=20 在 jieba 0.42.1 冻结
+#    词典上的实测 cutoff, gate 锚死 _rare_word_cutoff()==3.0 防词典漂移);
+# ② 令 cutoff ∈ {2, 3, 5} 三者互为稳健性、不分主次, 证明可读性结论不被该截断阈值驱动。
+# ⚠ 为何按频次而非分位: 冻结词典低频侧巨量并列 (freq=2 约 4 万词、freq=3 约 16 万词,
+#   cutoff=3 覆盖分位 (11.6%, 57.25%] 整段) → 分位梯子 {10,20,30} 数学退化 (p30≡p20 逐字节
+#   恒等 = 假稳健臂); 实测覆盖 c2≈11.6% / c3≈57.2% / c5≈63.4% distinct 词, 三臂真互异。
+# canonical = 3.0 (中值) ≡ 既有无后缀 rare_word_ratio 列 (不另发重复列, 无后缀为历史命名
+# 产物非"主"; 镜像 polw05≡canonical 口径); 变体 = rare_word_ratio_c{2,5}{track} (文章级) /
+# avg_rare_word_c{2,5}{track} (面板, 镜像 encode avg_ 前缀契约)。
+# ⚠ 铁律: 三臂各自 just-identified 并排, 禁混同一 over-identified Hansen J; 与规则消融/
+#   政治词权重梯子正交不交叉。gate = tests/test_rare_word_cutoff_ladder.py。
+RARE_WORD_FREQ_CUTOFFS = (2.0, 3.0, 5.0)
+RARE_WORD_CUTOFF_RATIONALE = (
+    '罕见词频次阈值 3 为研究者选择 (≡分位 20 在冻结词典的实测 cutoff); '
+    '令 cutoff∈{2,3,5} 三者互为稳健性、不分主次, 证明可读性结论不被该截断阈值驱动 '
+    '(冻结词典低频 tie 使分位梯子退化, 故按频次参数化)。'
+)
+# 变体臂 → 文章级列基名 (canonical 3.0 刻意不在此 dict — 沿用无后缀 rare_word_ratio)
+_RARE_CUTOFF_VARIANT_KEYS = {2.0: 'rare_word_ratio_c2', 5.0: 'rare_word_ratio_c5'}
 # 常用字覆盖率: 累计到该比例的字频质量定义"常用字" (越大常用字集越大、难字率越低)
 COMMON_CHAR_COVERAGE = 0.995
 # 难字率分母最小 Han 字数 (过短文本难字率不稳, 低于此返回 nan)
@@ -243,6 +264,8 @@ def _empty_result() -> dict[str, float]:
     """空/无效文本的统一返回 (所有键 → nan, 保证跨行 dict 结构一致)。"""
     return {
         'rare_word_ratio': float('nan'),
+        'rare_word_ratio_c2': float('nan'),
+        'rare_word_ratio_c5': float('nan'),
         'hard_char_ratio': float('nan'),
         'nominalization_ratio': float('nan'),
         'function_word_ratio': float('nan'),
@@ -277,7 +300,9 @@ def _empty_result() -> dict[str, float]:
 # 中高相关非别名 (信息量充分), 但因子集机械相关不与 specificity 同进同一回归式, 须披露;
 # 经 LEXICAL_COMPLEXITY_KEYS 自动物化为 *_full/*_ctx/*_ss (tone_words 三轨)。
 LEXICAL_COMPLEXITY_KEYS = (
-    'rare_word_ratio', 'hard_char_ratio', 'nominalization_ratio',
+    # D1 频次 cutoff 梯子 (2026-07-03): c2/c5 = canonical (无后缀, cutoff=3) 的互为稳健臂
+    'rare_word_ratio', 'rare_word_ratio_c2', 'rare_word_ratio_c5',
+    'hard_char_ratio', 'nominalization_ratio',
     'function_word_ratio', 'specificity_index', 'named_entity_ratio',
     'within_doc_redundancy',
     'redundancy_log_length', 'within_doc_redundancy_han',
@@ -380,7 +405,8 @@ def compute_lexical_complexity(content: str) -> dict[str, float]:
     common_chars = _common_char_set()
     freq = _get_pristine_tokenizer().FREQ  # fix(omni-g-numlex jieba-isolation)
 
-    n_rare = 0          # 低频/难词数
+    n_rare = 0          # 低频/难词数 (canonical cutoff=3)
+    n_rare_var = {c: 0 for c in _RARE_CUTOFF_VARIANT_KEYS}  # D1 变体臂 (c2/c5) 分子
     n_nominal = 0       # 名词化 token 数
     n_function = 0      # 功能词 token 数
     n_entity = 0        # 具名实体 + 数词 token 数 (specificity 分子)
@@ -392,6 +418,12 @@ def compute_lexical_complexity(content: str) -> dict[str, float]:
         # 修前实测分子 26.4% 纯数字 + 3.7% 拉丁, 与词汇难度构念无关 (分母不变)。
         if freq.get(w, 0) <= cutoff and not _NON_LEXICAL_TOKEN_RE.fullmatch(w):
             n_rare += 1
+        # D1 变体臂 (2026-07-03): 同一排除谓词, 仅 cutoff 不同 (canonical 分支不动保逐字节)
+        if not _NON_LEXICAL_TOKEN_RE.fullmatch(w):
+            _fw = freq.get(w, 0)
+            for _c in n_rare_var:
+                if _fw <= _c:
+                    n_rare_var[_c] += 1
         # 3) nominalization: vn/an 词性 或 名词且以名词化后缀结尾
         if f in _NOMINAL_FLAGS or (f and f[0] == 'n' and w[-1] in _NOMINAL_SUFFIX):
             n_nominal += 1
@@ -425,6 +457,9 @@ def compute_lexical_complexity(content: str) -> dict[str, float]:
 
     return {
         'rare_word_ratio': _safe_div(n_rare, n_real),
+        # D1 频次 cutoff 梯子变体臂 (2026-07-03; canonical = 上行无后缀列, cutoff=3)
+        'rare_word_ratio_c2': _safe_div(n_rare_var[2.0], n_real),
+        'rare_word_ratio_c5': _safe_div(n_rare_var[5.0], n_real),
         'hard_char_ratio': hard_char_ratio,
         'nominalization_ratio': _safe_div(n_nominal, n_real),
         'function_word_ratio': _safe_div(n_function, n_real),

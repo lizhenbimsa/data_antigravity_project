@@ -62,6 +62,22 @@ PANEL_CFG = CONFIG.get("panel_building", {})
 _llm_cfg = CONFIG.get('tone_llm_processing', {}).get('models', [])
 LLM_MODELS = [m['short_name'] for m in _llm_cfg] if _llm_cfg else ['gpt54nano', 'gemini31', 'deepseekv4']
 
+# per-model 分类维度梯子 (2026-07-03, ROBUSTNESS_GAP_BACKFILL 计划 §2): P3/P4/P5 treatment
+# 来源维度 (共识列 sub_frac/tech_frac/collab_frac) 的跨厂商稳健臂 SSOT。
+# 键 = 文章级维度基名 (stage 21 per-model 存档列 {short}_{dim}{track});
+# 值 = (面板 metric 基名, frac 分子目标类, stage 21 per_model_parsed 解析键)。
+# ⚠ 文章级基名与面板 metric 基名**无字符串变换可达** (subst↛sub_frac, locus↛tech_frac),
+#   本映射是唯一互锁点: tone_llms 发列 + run_pipeline_function 守卫代表列由**键**派生,
+#   面板聚合 (build_aggregation_dict) 与 codebook 正则由**值[0]** 派生, frac 分子目标类由
+#   **值[1]** 派生, tone_llms 解析键由**值[2]** 派生 (gate=test_llm_classification_robustness)。
+# ⚠ 铁律: 共识列 = canonical headline; 三家 per-model co-equal 互为稳健、不分主次,
+#   各自 just-identified 并排, 禁混同一 over-identified Hansen J (同 tone 梯子)。
+LLM_CLASS_SPEC = {
+    'subst':  ('sub_frac',    '实质性',   'innovation_substantiveness'),
+    'locus':  ('tech_frac',   '底层技术', 'innovation_locus'),
+    'collab': ('collab_frac', '外部协同', 'innovation_collab_mode'),
+}
+
 # 词典名列表 — 对应阶段 22 产出的情感词典列前缀。
 # v3.10.0: +第 6 部 'loughran' (= L&M 2011 JF 中文主译, 别名; 对应 stage 22 产的
 # loughran_*_score 列。别名权威 = tone_words.DICT_COLUMN_ALIAS, 此处须 byte-for-byte 一致，
@@ -304,6 +320,24 @@ def encode_sentiment(df: pd.DataFrame) -> pd.DataFrame:
                     )
                 else:
                     df[f'{short}_cont{track}'] = df[f'{short}_score{track}'].astype('Float32')
+
+            # ── per-model 分类维度门控指示列 (2026-07-03, ROBUSTNESS_GAP_BACKFILL §2 A2) ──
+            # 分子 = 该模型自身 verified=True 且该维标签==目标类; 分母 = 该模型 verified=True
+            # 篇数 (per-model 版 n_articles_llm_valid) — 经 groupby mean 聚合即恰为 分子/分母,
+            # 允许缺标残差 (sub+symb≤1, 与共识 frac 同构)。门控在 encode 层一次完成 (镜像上方
+            # {short}_score 的 verified 置 NA 先例); 文章级 {short}_{dim} 存档列本身不门控
+            # (审计保留原始输出)。源列缺失 (未回填机器) → 跳过, 面板列由 valid_agg 过滤优雅缺席
+            # (真防线 = run_pipeline_function._STAGE21_REQUIRED_OUTPUT_COLUMNS 守卫)。
+            for _dim, (_metric, _target, _pk) in LLM_CLASS_SPEC.items():
+                d_col = f'{short}_{_dim}{track}'
+                if d_col not in df.columns:
+                    continue
+                _ind = pd.Series(pd.NA, index=df.index, dtype='Int8')
+                if m_ver in df.columns:
+                    _vmask = df[m_ver].fillna(False).astype(bool)
+                    _ind[_vmask] = (df.loc[_vmask, d_col] == _target).astype('int8')
+                df[f'{short}_{_metric}_src{track}'] = _ind
+                encoded_cols.append(f'{short}_{_metric}_src{track}')
 
         encoded_cols.extend([
             f'llm_vote_score{track}', f'is_positive{track}', f'is_negative{track}',
@@ -705,6 +739,13 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
             agg[f'{short}_cont_mean{track}'] = (f'{short}_cont{track}', 'mean')
             agg[f'{short}_cont_sum{track}'] = (f'{short}_cont{track}', 'sum')
             agg[f'{short}_tone_std{track}'] = (f'{short}_score{track}', 'std')
+            # per-model 分类维度 frac (2026-07-03, ROBUSTNESS_GAP_BACKFILL §2 A2): 源列 =
+            # encode_sentiment 产的门控指示列 {short}_{metric}_src{track}; mean ≡
+            # (verified ∧ 标签==目标类) / verified 篇数。缺源列由 valid_agg 过滤优雅跳过。
+            # ⚠ 铁律: 与共识 sub_frac/tech_frac/collab_frac co-equal 互为稳健、不分主次,
+            # 禁混同一 over-identified Hansen J; 不产 _vw/_mw/_hw 加权与 _sc/_cm 对角变体。
+            for _metric, _target, _pk in LLM_CLASS_SPEC.values():
+                agg[f'{short}_{_metric}{track}'] = (f'{short}_{_metric}_src{track}', 'mean')
 
         # --- B. LLM 投票结果 ---
         agg[f'llm_vote_tone{track}'] = (f'llm_vote_score{track}', 'mean')
@@ -777,6 +818,10 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
         # 报道硬信息密度 (Hope-Hu-Lu 2016 RAS); within_doc_redund=篇内冗余 (Dyer 2017 JAE);
         # adversative=逆接连词密度 (探索性, 徐巍 2021). 'mean' 自动跳过 NaN (短/空文本不污染)。
         agg[f'avg_rare_word{track}'] = (f'rare_word_ratio{track}', 'mean')
+        # D1 罕见词频次 cutoff 梯子 (2026-07-03 §5): c2/c5 与 canonical (cutoff=3, 上行)
+        # 互为稳健、不分主次; 禁混同一 over-identified Hansen J。短名 avg_rare_word_c2_full=21 ✓
+        agg[f'avg_rare_word_c2{track}'] = (f'rare_word_ratio_c2{track}', 'mean')
+        agg[f'avg_rare_word_c5{track}'] = (f'rare_word_ratio_c5{track}', 'mean')
         agg[f'avg_hard_char{track}'] = (f'hard_char_ratio{track}', 'mean')
         agg[f'avg_nominalization{track}'] = (f'nominalization_ratio{track}', 'mean')
         agg[f'avg_function_word{track}'] = (f'function_word_ratio{track}', 'mean')
@@ -785,10 +830,10 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
         # Hope-Hu-Lu 2016 RAS. ⚠ 与 avg_specificity 高共线 (真子集), 回归不同进一式。
         agg[f'avg_named_entity{track}'] = (f'named_entity_ratio{track}', 'mean')
         agg[f'avg_within_doc_redund{track}'] = (f'within_doc_redundancy{track}', 'mean')
-        # nonpolarity-dims WS-B2: 跨文档套话比率 (Lang-Stice-Lawrence 2015 JAE) — **单轨 full**
-        # (套话集口径在 ctx/ss 子窗口意义弱, by-design); 仅 track=='_full' 登记一次, 短名 ≤32。
-        if track == '_full':
-            agg['avg_boilerplate_full'] = ('boilerplate_phrase_ratio_full', 'mean')
+        # nonpolarity-dims WS-B2: 跨文档套话比率 (Lang-Stice-Lawrence 2015 JAE) — 三轨
+        # (2026-07-03 §4 WP-C: full=headline, ctx/ss=互为稳健轨; 缺源列 valid_agg 过滤,
+        # 旧 parquet 未回填 ctx/ss 时优雅缺席); 短名 ≤32 (avg_boilerplate_full=20)。
+        agg[f'avg_boilerplate{track}'] = (f'boilerplate_phrase_ratio{track}', 'mean')
         # fix(hanzi-char-dual, 2026-06-13): 汉字口径篇内冗余 (剔数字/标点/拉丁后切3-gram),
         # 与上方字符口径 avg_within_doc_redund 互为"字符 vs 汉字"双口径稳健性。
         agg[f'avg_within_doc_redund_han{track}'] = (f'within_doc_redundancy_han{track}', 'mean')

@@ -1,0 +1,82 @@
+* ============================================================================
+* 28_tableA13_policy_family_robustness.do — Table A13: policy 列族回归稳健性
+* Paper: bank_fintech_tone (P1 effective_choices 实例化)  ·  2026-07-03 (ROBUSTNESS_GAP_BACKFILL §6 WP-E)
+*
+* policy_alignment 列族 (article_sim_mean 代表测度) 的 [vintage vs _allv 全年份锚点]
+* × [MAIN Qwen vs _lg large 双嵌入] × [full/ctx/ss 三轨] = 12 臂并列回归:
+*   · 每臂各自 just-identified 单独入回归 (treatment 侧), DV = {{MAIN_DV}} (财务哨兵 wire-ahead)。
+* ⚠ 铁律: 12 臂互为稳健性、不分主次, **禁混进同一 over-identified Hansen J**
+*   (同三轨 / co-primary 嵌入 / _allv 锚点 / per-model 梯子铁律)。
+* ⚠ 列名规约 (镜像 29_tableA16 无后缀=full 约定; runner.py 聚合实名):
+*   中缀次序 = article_sim_mean + [_lg] + [_allv] + [轨后缀 ""/_ctx/_ss] —
+*   full 轨**无后缀** (禁给 full 臂加轨后缀); 次序铁律 lg 先、allv 后
+*   (禁把 allv 拼在 lg 前)。错拼会被 capture confirm 静默吞臂,
+*   gate = test_stata_templates 的字面量断言; 生产机首次出表须核对 12 臂齐全。
+* ⚠ wire-ahead: DV 财务哨兵盘上缺席 → capture confirm 守卫优雅跳过 (T=2 预期 [SKIP])。
+* ⚠ 本 .do 由 00_master 以 capture noisily do 调用 → **绝不用 exit**; 全程 if/else 守卫。
+* ⚠ 根级路径约定 (镜像 26_tableA7/27_tableA12): data/processed + capture confirm 回退 full.dta。
+* ============================================================================
+
+version 19
+* ⚠ 无 clear all (镜像根级 26_tableA7/27_tableA12/34_tableA11): 保留 01_data_prep 经 master
+*   设的 $bank_controls 全局 (clear all 会抹掉它); 下方 use 自会清当前数据。
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$tables_dir" == ""  global tables_dir "output/tables"
+
+* 载入与主表同口径的缩尾面板 (_prepared_panel; 缺失回退未缩尾 full.dta) — 根级路径约定
+capture confirm file "data/processed/_prepared_panel.dta"
+if !_rc {
+    use "data/processed/_prepared_panel.dta", clear
+}
+else {
+    display "  ⚠️ _prepared_panel.dta 不存在 (应先跑 01_data_prep); 回退未缩尾 full.dta"
+    capture confirm file "data/processed/46_panel_yearly_full.dta"
+    if !_rc use "data/processed/46_panel_yearly_full.dta", clear
+}
+
+local DV {{MAIN_DV}}
+
+capture confirm variable `DV'
+local has_dv = (_rc == 0)
+capture which reghdfe
+local has_reghdfe = (_rc == 0)
+
+if `=_N' == 0 | !`has_dv' | !`has_reghdfe' {
+    display as text "  [SKIP] Table A13 policy 列族稳健性: 面板空 / reghdfe 未装 / DV `DV' 不在面板 " ///
+        "(财务 sentinel wire-ahead); T=18 财务数据到位后运行。"
+}
+else {
+    eststo clear
+    local narm = 0
+    * 12 臂: (stem = MAIN vintage / MAIN _allv / _lg vintage / _lg _allv) × (sfx = ""/_ctx/_ss);
+    * 空后缀模式 = full 轨 (无 _full 后缀); 实名与 runner.py:1838-1889 聚合重命名一致。
+    foreach stem in "article_sim_mean" "article_sim_mean_allv" "article_sim_mean_lg" "article_sim_mean_lg_allv" {
+        foreach sfx in "" "_ctx" "_ss" {
+            local arm `stem'`sfx'
+            capture confirm variable `arm'
+            if !_rc {
+                capture noisily eststo A13_`=`narm'+1': reghdfe `DV' `arm' $bank_controls, ///
+                    absorb(bank_id year) cluster({{CLUSTER_VAR}})
+                if !_rc local ++narm
+                else display as text "  [WARN] 臂 `arm' 回归失败 (rc=`=_rc'; 多为 T=2 退化); 跳过"
+            }
+            else display as text "  [INFO] 臂 `arm' 不在面板 (回填/allv companion 未产, wire-ahead 休眠)"
+        }
+    }
+
+    if `narm' == 0 {
+        display as text "  [SKIP] Table A13: 12 臂全缺席或全退化, 无可出表估计。"
+    }
+    else {
+        capture noisily esttab using "$tables_dir/tableA13_policy_family_robustness.tex", ///
+            replace booktabs se star(* 0.10 ** 0.05 *** 0.01) ///
+            keep(article_sim_mean*) ///
+            title("Table A13: Policy-Alignment Family Robustness (vintage vs all-vintage anchors x dual co-primary embeddings x full/ctx/ss)") ///
+            note("DV = `DV' (financial outcome, wire-ahead). Each of the 12 arms (anchor vintage x embedding slot x text track) enters its own just-identified regression side-by-side as mutual robustness, never pooled into one over-identified Hansen J. Column naming: no suffix = full track; _lg = text-embedding-3-large co-primary; _allv = all-vintage anchor twin.")
+        if !_rc display as result "  [OK] Table A13 written (`narm' arms)"
+        else display as text "  [WARN] Table A13 esttab 失败 (rc=`=_rc'); 估计已跑, 表输出跳过"
+    }
+}

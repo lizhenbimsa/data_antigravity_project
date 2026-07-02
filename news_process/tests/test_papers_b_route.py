@@ -173,7 +173,7 @@ def test_total_template_count_77() -> None:
     #   4+1 文本表征) / bank_fintech_substance +1 (27_substance_anchor_robustness: 跨测度佐证 —
     #   headline sub_frac(LLM,无_allv) 参照 + 政策四象限 subst_adopt vintage vs _allv)。全部
     #   capture confirm 守卫 (wire-ahead, DV=财务哨兵) → golden-safe, 不触 panel。→ 共 145。
-    expected_count = 146  # 145 + 1 (2026-07-02 互为稳健性 option B: 27_tableA12_cross_model_fwer 根级 rwolf)
+    expected_count = 147  # 146 + 1 (2026-07-03 ROBUSTNESS_GAP_BACKFILL §6: 28_tableA13_policy_family_robustness 根级)
     assert len(templates) == expected_count, (
         f"Expected {expected_count} total templates, found {len(templates)}: "
         f"= 95 (baseline) + 5 (IV 2SLS) + 6 (网络五角色化) + 2 (聚合审计 P1/llm_peer A+B+C) "
@@ -181,7 +181,8 @@ def test_total_template_count_77() -> None:
         f"+ 20 (顶刊稳健性扩充: FE-SAT/ROBUST-EST/OSTER/SUBSAMPLE/TIMING/PPML) "
         f"+ 9 (T18 重审: era-stability/selection 族) "
         f"+ 3 (_allv anchor-robustness: benefit/strategic/substance) "
-        f"+ 1 (互为稳健性 option B: 27_tableA12_cross_model_fwer 根级 rwolf)"
+        f"+ 1 (互为稳健性 option B: 27_tableA12_cross_model_fwer 根级 rwolf) "
+        f"+ 1 (2026-07-03 稳健性缺口补齐: 28_tableA13_policy_family_robustness 根级)"
     )
 
 

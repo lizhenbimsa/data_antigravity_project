@@ -677,8 +677,9 @@ def _cli_verify_replication(args) -> int:
     #    agg-toptier-audit 2026-06-13 +26_tableA7_aggregation_robustness → 16;
     #    2026-06-14 顶刊稳健性扩充 +32_tableA8_fe_saturation_robust_est +33_tableA9_subsample_timing → 18;
     #    2026-06-14 T18 重审 era-stability 族 +34_tableA11_era_stability → 19
-    #    2026-07-02 互为稳健性 option B: +27_tableA12_cross_model_fwer (根级 rwolf) → 20)
-    _EXPECTED_ROOT_DO = 20
+    #    2026-07-02 互为稳健性 option B: +27_tableA12_cross_model_fwer (根级 rwolf) → 20
+    #    2026-07-03 稳健性缺口补齐 §6: +28_tableA13_policy_family_robustness → 21)
+    _EXPECTED_ROOT_DO = 21
     print(f"\n[2/5] Stata .do 文件 ({_EXPECTED_ROOT_DO} expected)")
     code_dir = pkg_dir / 'code'
     if code_dir.is_dir():
@@ -722,8 +723,9 @@ def _cli_verify_replication(args) -> int:
         print("   [ERR] README.md 不存在")
         n_err += 1
 
-    # 5. master.do 引用 19 子 .do (2026-07-02 +27_tableA12 → 19; remove-title-track 后 13; 2026-06-13 IV 补全
-    #    +25_tableA6_tone_iv_2sls → 14; agg-toptier-audit +26_tableA7_aggregation_robustness → 15;
+    # 5. master.do 引用 20 子 .do (2026-07-03 +28_tableA13 → 20; 2026-07-02 +27_tableA12 → 19;
+    #    remove-title-track 后 13; 2026-06-13 IV 补全 +25_tableA6_tone_iv_2sls → 14;
+    #    agg-toptier-audit +26_tableA7_aggregation_robustness → 15;
     #    2026-06-14 顶刊稳健性扩充 +32_tableA8 +33_tableA9 → 17;
     #    2026-06-14 T18 重审 era-stability +34_tableA11_era_stability → 18)
     print("\n[5/5] master.do 引用子 .do")
@@ -739,6 +741,7 @@ def _cli_verify_replication(args) -> int:
             '24_tableA5_dictionary_method.do', '25_tableA6_tone_iv_2sls.do',
             '26_tableA7_aggregation_robustness.do',
             '27_tableA12_cross_model_fwer.do',
+            '28_tableA13_policy_family_robustness.do',
             '32_tableA8_fe_saturation_robust_est.do',
             '33_tableA9_subsample_timing.do',
             '34_tableA11_era_stability.do',

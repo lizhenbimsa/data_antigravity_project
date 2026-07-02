@@ -1405,7 +1405,7 @@ def apply_v3_5_2(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
         LM 6 子词典 × 3 轨 (full, ctx, ss) = 18 个 panel 列:
             uncert_frac / litig_frac / constr_frac / modal_strong_frac /
             modal_weak_frac / complexity_frac  各 × {full,ctx,ss} (mean)
-        FLS × 3 轨 = 3 个 panel 列: frac_fls_{full,ctx,ss} (mean)
+        FLS 双基名 (frac_fls 双门 canonical + frac_fls_fonly 单门稳健臂, 2026-07-03 D2) × 3 轨 = 6 个 panel 列 (mean)
 
     这些 panel 列为下游 Stata/codebook 既有契约
     (即下游 Stata 已期待这些列存在)。
@@ -1417,7 +1417,7 @@ def apply_v3_5_2(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
 
     Args:
         df: article 级 DataFrame (含 LM 6 子集 + FLS article 列, 三轨)。
-        panel: bank-year panel DataFrame (原地新增 21 列)。
+        panel: bank-year panel DataFrame (原地新增 24 列; 2026-07-03 D2 +fonly 3 列)。
 
     Returns:
         dict: {v3_5_2_lm_added, v3_5_2_fls_added, v3_5_2_skipped_reason}。
@@ -1428,7 +1428,7 @@ def apply_v3_5_2(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
         logger.info("=" * 72)
         logger.info(
             "  步骤 v3.5.2 (encode_collab.apply_v3_5_2): LM 6 子词典 + FLS 文章级 frac "
-            "→ bank-year 简单均值聚合 (三轨 full/ctx/ss, 21 列)"
+            "→ bank-year 简单均值聚合 (三轨 full/ctx/ss, 24 列; D2 +frac_fls_fonly)"
         )
         logger.info(
             f"    · 输入: article df={df.shape[0]:,d} 行 × {df.shape[1]:,d} 列, "
@@ -1483,15 +1483,18 @@ def apply_v3_5_2(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
             else:
                 skipped_cols.append(src_col)
 
-    # FLS × 3 tracks (v3.10.0: TRACKS=full/ctx/ss)
-    for track in TRACKS:
-        src_col = f'frac_fls_{track}'
-        dst_col = src_col
-        if src_col in df.columns:
-            agg_dict[dst_col] = (src_col, 'mean')
-            added_cols.append(dst_col)
-        else:
-            skipped_cols.append(src_col)
+    # FLS × 3 tracks (v3.10.0: TRACKS=full/ctx/ss); 2026-07-03 §5 D2 双基名:
+    # frac_fls (双门 canonical) + frac_fls_fonly (单门稳健臂, 互为稳健、不分主次;
+    # 禁混同一 over-identified Hansen J)。同名直聚合 (dst=src, 非 avg_ 前缀范式)。
+    for base in ('frac_fls', 'frac_fls_fonly'):
+        for track in TRACKS:
+            src_col = f'{base}_{track}'
+            dst_col = src_col
+            if src_col in df.columns:
+                agg_dict[dst_col] = (src_col, 'mean')
+                added_cols.append(dst_col)
+            else:
+                skipped_cols.append(src_col)
 
     if not agg_dict:
         return {
@@ -1527,11 +1530,14 @@ def apply_v3_5_2(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
 
     # ---- 阶段计时 + 结果判读 (纯日志) ----
     try:
-        # 期望满产: LM 6 子集 × 3 轨 = 18 + FLS 3 轨 = 3 → 共 21 列。
+        # 期望满产: LM 6 子集 × 3 轨 = 18 + FLS 双基名 (canonical + fonly, 2026-07-03 D2)
+        # × 3 轨 = 6 → 共 24 列。
         _n_lm, _n_fls = len(lm_added), len(fls_added)
         _n_total = _n_lm + _n_fls
-        if _n_total >= 21:
-            _v = "好 (LM 18 + FLS 3 三轨满产)"
+        if _n_total >= 24:
+            _v = "好 (LM 18 + FLS 6 三轨满产)"
+        elif _n_total >= 21:
+            _v = "临界 (fonly 稳健臂缺失, 多半旧 parquet 未回填 D2 列)"
         elif _n_total >= 14:
             _v = "临界 (部分轨缺失, 多半旧 parquet 无 _ss 第三轨)"
         else:
@@ -1541,7 +1547,7 @@ def apply_v3_5_2(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
         )
         logger.info(
             f"  📊 v3.5.2 LM+FLS 判读: LM {_n_lm:,d} 列 + FLS {_n_fls:,d} 列 = "
-            f"{_n_total:,d}/21 → {_v}; 跳过源列 {len(skipped_cols):,d} 个"
+            f"{_n_total:,d}/24 → {_v}; 跳过源列 {len(skipped_cols):,d} 个"
         )
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"  ⚠ apply_v3_5_2 计时/判读日志失败 (graceful): {_e}")

@@ -101,14 +101,16 @@ def _load_fls_wordlists() -> tuple[frozenset[str], frozenset[str]]:
 _FUTURE_WORDS, _TIME_FUTURE_MARKERS = _load_fls_wordlists()
 
 
-def _is_fls_sentence(sentence: str) -> bool:
-    """双门控判定: 句中同时含 future 词与 time 词.
+def _fls_gates(sentence: str) -> tuple[bool, bool]:
+    """返回 (has_future, has_time) 两个门控 (2026-07-03 §5 D2 自 _is_fls_sentence 拆出).
 
-    P-038 修复 (v3.7.1): 改 jieba 精确 token 匹配, 避免单字 "望/盼/将"
+    双门 (future∧time) = canonical ``frac_fls``; 单门 (仅 future) = 稳健臂
+    ``frac_fls_fonly`` — 单门是双门的**超集** (逐句蕴含, gate 断言逐行 ≥)。
+    P-038 修复 (v3.7.1): jieba 精确 token 匹配, 避免单字 "望/盼/将"
     substring 误命中 "希望/绝望/瞭望/将其/将该" 等非 forward-looking 上下文.
     """
     if not sentence:
-        return False
+        return False, False
     tokens = set(jieba.cut(sentence))
     has_future = bool(tokens & _FUTURE_WORDS)
     has_time = bool(tokens & _TIME_FUTURE_MARKERS)
@@ -125,6 +127,12 @@ def _is_fls_sentence(sentence: str) -> bool:
         has_future = any(len(w) >= 3 and w.replace(' ', '') in _s for w in _FUTURE_WORDS)
     if not has_time:
         has_time = any(len(w) >= 3 and w.replace(' ', '') in _s for w in _TIME_FUTURE_MARKERS)
+    return has_future, has_time
+
+
+def _is_fls_sentence(sentence: str) -> bool:
+    """双门控判定 (canonical): 句中同时含 future 词与 time 词 (门控逻辑见 _fls_gates)。"""
+    has_future, has_time = _fls_gates(sentence)
     return has_future and has_time
 
 
@@ -155,6 +163,8 @@ def compute_fls_for_text(text: str) -> dict[str, float]:
             'n_sentences': 0,
             'n_fls_sentences': 0,
             'frac_fls': float('nan'),
+            'n_fls_fonly_sentences': 0,
+            'frac_fls_fonly': float('nan'),
         }
     sents = cn_split_sentence(text)
     n = len(sents)
@@ -163,17 +173,32 @@ def compute_fls_for_text(text: str) -> dict[str, float]:
             'n_sentences': 0,
             'n_fls_sentences': 0,
             'frac_fls': float('nan'),
+            'n_fls_fonly_sentences': 0,
+            'frac_fls_fonly': float('nan'),
         }
-    fls_n = sum(1 for s in sents if _is_fls_sentence(s))
+    # 2026-07-03 §5 D2: 单次门控扫描同时产双门 (canonical) 与单门 (fonly 稳健臂) 计数。
+    # 依据 (两句话): 双门 (future∧time) 是防"时间词缺失的弱前瞻句"误报的研究者选择;
+    # 单门变体证明 FLS 结论不被该门控驱动 (单门 ⊇ 双门, 逐句蕴含)。
+    # ⚠ 二臂互为稳健、不分主次; 禁混同一 over-identified Hansen J。
+    fls_n = 0
+    fonly_n = 0
+    for s in sents:
+        has_future, has_time = _fls_gates(s)
+        if has_future:
+            fonly_n += 1
+            if has_time:
+                fls_n += 1
     return {
         'n_sentences': n,
         'n_fls_sentences': fls_n,
         'frac_fls': fls_n / n,
+        'n_fls_fonly_sentences': fonly_n,
+        'frac_fls_fonly': fonly_n / n,
     }
 
 
 def get_panel_columns(suffix: str) -> list[str]:
-    """返回 panel 应追加的 1 列名 (按指定后缀; 三轨各 1 列, 共 3 列, v3.9.0 +ss).
+    """返回 panel 应追加的 2 列名 (按指定后缀; 三轨各 2 列, 共 6 列; 2026-07-03 +fonly).
 
     suffix-parameterized → 本函数 track-agnostic, 调用方传 '_ss' 即得同句共现轨列名。
 
@@ -181,9 +206,9 @@ def get_panel_columns(suffix: str) -> list[str]:
         suffix: '_full' / '_ctx' / '_ss' (ss = 银行+金科同句共现轨).
 
     Returns:
-        [f'frac_fls{suffix}']
+        [f'frac_fls{suffix}', f'frac_fls_fonly{suffix}']
     """
-    return [f'frac_fls{suffix}']
+    return [f'frac_fls{suffix}', f'frac_fls_fonly{suffix}']
 
 
 __all__ = [

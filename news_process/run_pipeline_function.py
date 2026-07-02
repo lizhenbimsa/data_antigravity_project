@@ -345,6 +345,13 @@ _STAGE21_REQUIRED_OUTPUT_COLUMNS = (
     'innovation_locus_ctx',
     'innovation_substantiveness_full',
     'innovation_substantiveness_ctx',
+    # 2026-07-03 per-model 分类维度梯子 (ROBUSTNESS_GAP_BACKFILL 计划 §2 A1): 代表列
+    # 覆盖三模型×三维度×三轨。基名 = encode.LLM_CLASS_SPEC 键 (subst/locus/collab,
+    # gate=test_llm_classification_robustness byte-sync)。旧 parquet 缺列 → reject skip
+    # → 触发 NEWS_PROCESS_LLM_OFFLINE=1 离线重放回填 ($0, 缓存全命中; 属预期非故障)。
+    'gpt54nano_subst_full',
+    'gemini31_locus_ctx',
+    'deepseekv4_collab_ss',
 )
 
 
@@ -480,8 +487,10 @@ def _stage21_skip_is_compatible(stage21_outputs: list[str]) -> tuple[bool, str]:
     ]
     if missing_required:
         return False, (
-            f"stage 21 outputs missing v3.2.0 required columns: {missing_required}; "
-            f"prompt/aggregator schema has changed, must re-run"
+            f"stage 21 outputs missing required columns: {missing_required} "
+            f"(v3.2.0 innovation_* / 2026-07-03 per-model 分类维度); "
+            f"prompt/aggregator schema has changed, must re-run "
+            f"(离线缓存全命中时 NEWS_PROCESS_LLM_OFFLINE=1 重放为 $0)"
         )
 
     return True, f"stage 21 outputs match current stage 14 input ({upstream_rows} rows)"

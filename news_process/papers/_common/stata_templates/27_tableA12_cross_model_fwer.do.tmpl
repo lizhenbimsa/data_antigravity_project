@@ -6,7 +6,9 @@
 *   · 情感量是**处理变量 (indepvar)**, DV = outcome.primary (ROA 默认; funding_cost 待接入)。
 *   · LLM 族: {gpt54nano,gemini31,deepseekv4}_tone_<track> (三家 co-equal, llm_vote=共识 headline)
 *   · BERT 族: {finbert_cn,fin_sent_zh,finbert2}_net_tone_<track> (三模型 co-equal, 无 ensemble headline)
-*   两族**分别** rwolf (各自 family), 禁并入同一族。
+*   · CLS 族 (2026-07-03, ROBUSTNESS_GAP_BACKFILL §2 A5): {gpt54nano,gemini31,deepseekv4}_sub_frac_<track>
+*     — per-model 分类维度 (实质创新占比; 共识 sub_frac = canonical headline; 生产机回填前休眠)
+*   三族**分别** rwolf (各自 family), 禁并入同一族。
 * ⚠ 铁律: 各家/各模型各自 just-identified 并排, 禁混同一 over-identified Hansen J (这是 FWER 校正 p, 非 IV)。
 * ⚠ wire-ahead: DV (ROA/funding_cost 财务哨兵) 盘上缺席 → capture confirm 守卫, 当前 T=2 优雅跳过,
 *    T=18 财务数据到位才产校正 p (与仓库 wire-ahead 惯例一致)。
@@ -55,7 +57,7 @@ if `=_N' == 0 | !`has_dv' | !`has_rwolf' {
 }
 else {
     tempname RES
-    matrix `RES' = J(6, 1, .)      // 至多 6 模型 (3 LLM + 3 BERT) 的 RW 校正 p
+    matrix `RES' = J(9, 1, .)      // 至多 9 模型 (3 LLM tone + 3 BERT net_tone + 3 LLM sub_frac) 的 RW 校正 p
     local rown ""
     local ri = 0
 
@@ -113,6 +115,34 @@ else {
     }
     else display as text "  [INFO] BERT net_tone 族未落盘 (Phase 2 前休眠); 仅报 LLM 族。"
 
+    * ===== CLS 族: per-model 分类维度 sub_frac (2026-07-03 §2 A5; 生产机回填前 capture confirm 自动休眠) =====
+    * ⚠ 本族 rwolf 覆盖 e() → 校正 p 已在上方各族内紧邻提取, 此处再跑第三族安全 (同款紧邻提取)。
+    local cls_fam ""
+    foreach m in gpt54nano gemini31 deepseekv4 {
+        capture confirm variable `m'_sub_frac_`SENT'
+        if !_rc local cls_fam `cls_fam' `m'_sub_frac_`SENT'
+    }
+    if "`cls_fam'" != "" {
+        capture noisily rwolf `DV', indepvar(`cls_fam') controls($bank_controls) ///
+            reps(1000) seed({{RANDOM_SEED}}) ///
+            method(reghdfe) abs(bank_id year) cluster({{CLUSTER_VAR}})
+        if !_rc {
+            foreach iv of local cls_fam {
+                tempname _mc
+                capture matrix `_mc' = e(RW_`iv')
+                if !_rc {
+                    if rowsof(`_mc') >= 1 & colsof(`_mc') >= 3 {
+                        local ++ri
+                        matrix `RES'[`ri', 1] = `_mc'[1, 3]
+                        local rown `rown' CLS:`iv'
+                    }
+                }
+            }
+        }
+        else display as text "  [WARN] CLS 族 rwolf 失败 (rc=`=_rc'); 校正 p 缺"
+    }
+    else display as text "  [INFO] per-model 分类 frac 族未落盘 (生产机离线重放回填前休眠); 不报 CLS 族。"
+
     if `ri' == 0 {
         display as text "  [SKIP] 跨模型 rwolf 无任何校正 p (T=2 退化 / DV 缺 / net_tone 未产)。"
     }
@@ -124,7 +154,7 @@ else {
             using "$tables_dir/tableA12_cross_model_fwer.tex", replace booktabs ///
             title("Table A12: Cross-Model FWER (LLM/BERT per-model, Romano-Wolf)") ///
             nomtitles collabels("Romano-Wolf p") ///
-            note("DV = `DV' (financial outcome, wire-ahead). Each family (3 LLM tone / 3 BERT net-tone) is Romano-Wolf step-down corrected across its member models (Clarke, Romano and Wolf 2020, Stata Journal). Per-model measures are co-equal robustness, each just-identified side-by-side, not pooled into one over-identified Hansen J. Reps=1000, seed={{RANDOM_SEED}}.")
+            note("DV = `DV' (financial outcome, wire-ahead). Each family (3 LLM tone / 3 BERT net-tone / 3 LLM substantive-share) is Romano-Wolf step-down corrected across its member models (Clarke, Romano and Wolf 2020, Stata Journal). Families are corrected separately, never pooled. Per-model measures are co-equal robustness, each just-identified side-by-side, not pooled into one over-identified Hansen J. Reps=1000, seed={{RANDOM_SEED}}.")
         if !_rc display as result "  [OK] Table A12 written (rows: `rown')"
         else display as text "  [WARN] Table A12 esttab 失败 (rc=`=_rc'); 校正 p 已算, 表输出跳过"
     }

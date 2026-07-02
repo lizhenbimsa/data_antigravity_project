@@ -29,6 +29,7 @@ import sys
 
 import numpy as np
 import pandas as pd
+import pytest
 
 # 注入 news_process 父目录, 解析 ``news_process.*`` (与既有测试一致)
 _PROJECT_PARENT = os.path.dirname(
@@ -256,8 +257,10 @@ def _mk_v352_df():
     for k in ('uncert', 'litig', 'constr', 'modal_strong', 'modal_weak', 'complexity'):
         for t in ('full', 'ctx', 'ss'):
             df[f'{k}_frac_{t}'] = [0.1, 0.3, 0.5]
-    for t in ('full', 'ctx', 'ss'):
-        df[f'frac_fls_{t}'] = [0.2, 0.4, 0.6]
+    # 2026-07-03 §5 D2: FLS 双基名 (frac_fls 双门 canonical + frac_fls_fonly 单门稳健臂)
+    for base in ('frac_fls', 'frac_fls_fonly'):
+        for t in ('full', 'ctx', 'ss'):
+            df[f'{base}_{t}'] = [0.2, 0.4, 0.6]
     return df
 
 
@@ -283,6 +286,20 @@ class TestApplyV352Idempotent:
         assert list(panel.columns) == cols_first
         assert panel['frac_fls_full'].tolist() == vals_first
         assert diag2['v3_5_2_skipped_reason'] is None
+
+    def test_fls_dual_basename_six_cols(self):
+        # 2026-07-03 §5 D2 gate (终审 #7: 聚合环 graceful skip 使基名错拼/回退时面板列
+        # 无声缺席 — fls_added 计数 3→6 断言把静默吞列固化为红灯)
+        df = _mk_v352_df()
+        panel = _mk_panel([('A', 2017), ('B', 2017)])
+        diag = ec.apply_v3_5_2(df, panel)
+        fls_added = diag['v3_5_2_fls_added']
+        assert len(fls_added) == 6, f'FLS 双基名应产 6 面板列, 实际 {sorted(fls_added)}'
+        for t in ('full', 'ctx', 'ss'):
+            assert f'frac_fls_fonly_{t}' in panel.columns
+        # 数值锚: A 银行 mean(0.2, 0.4) = 0.3 (同名直聚合语义)
+        assert panel.loc[panel['target_bank'] == 'A', 'frac_fls_fonly_full'].iloc[0] == \
+            pytest.approx(0.3)
 
 
 # ============================================================================

@@ -116,6 +116,7 @@ inference:
     - "ctx 轨孪生 sub_frac_sc (互为稳健性高相关孪生, 非独立假设)"
     - "ss 轨孪生 sub_frac_ss (银行+金科同句共现轨; 三轨 full/ctx/ss 互为稳健性高相关孪生, 非独立假设)"
     - "sub-symb gap (full/ctx) 差值测度"
+    - "per-model 跨厂商孪生 {gpt54nano,gemini31,deepseekv4}_sub_frac_full (co-equal 互为稳健、不分主次; 2026-07-03 分类维度梯子)"
     - "异质性 (bank_type×SOE / fintech wave / capital quartile / pre-2013 交互)"
     - "子样本切分 (hub / size / SOE; 25_substance_subsamples)"
     - "IV 交叉验证 (peer-LOO + Bartik + lag1 + ctx; 22_substance_iv_2sls) + alt outcomes (long_run_roa_change_3yr / misconduct_penalty_count)"
@@ -127,6 +128,9 @@ inference:
       - name: heterogeneity_subsamples
         members: "网络位置 / 规模 / 产权 三维子样本 + 异质性维度"
         correction: "Westfall-Young / wyoung battery (镜像 brokerage/20; wire-ahead)"
+      - name: cross_model_classification
+        members: "{gpt54nano,gemini31,deepseekv4}_sub_frac_full (per-model 跨厂商族; 共识 sub_frac = canonical headline)"
+        correction: "⚠ 声明式文档, 运行时无消费者; 真 FWER 由根级 rwolf 模板 27_tableA12 Panel C 计算 (family 硬编码)。各家 just-identified 并排, 禁混同一 over-identified Hansen J"
     fwer_method: romano_wolf_or_westfall_young
     references: ["Romano-Wolf 2005 ECMA", "Westfall-Young 1993", "List-Shaikh-Xu 2019 EE (RCT 范式, 仅参照)", "Anderson 2008 JASA"]
   weak_iv_inference:  # IV-2 修复: 弱工具稳健推断 (22_substance_iv_2sls weakiv AR-CI)

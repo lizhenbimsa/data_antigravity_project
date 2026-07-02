@@ -296,48 +296,108 @@ def aggregate_to_bank_year(
 # 7. 多轨辅助函数 (plan v2.12, F-B2 / F-M3 / F-V2-B2 — 回写到
 #    pipeline/features 层, 而非共享的 panel runner)
 #
-# 说明: benefit 维度子指数走 SBERT **嵌入轴**, 该轴仍 full/ctx 两轨 —— ss
-# (银行+金科同句) 情感轨在情感阶段 (21/22/23/24) 已三轨化, 但 benefit 嵌入
-# (Stage 27 27_benefit_embeddings_*.npy) 的 ss 切片在 v1 延后 (plan §④/§7.5),
-# 暂无 27_benefit_embeddings_ss.npy → 本文件刻意保持 full/ctx。下方 dict/枚举
-# 的 '# no-ss-track' 即声明此处有意两轨 (非遗漏)。
-# legacy (full/ctx) 示例 — 本文件 prose 豁免标记 (benefit 嵌入轴 ss 待 30a 上线)
+# 2026-07-03 (ROBUSTNESS_GAP_BACKFILL 计划 §3 B1): 维度分解扩到六轨 =
+# {full, ctx, ss} × {MAIN Qwen, '_lg' text-embedding-3-large}。旧版 "ss 切片
+# v1 延后 / 暂无 _ss.npy" 的豁免声明已被盘面证伪 (stage 27 主循环
+# track×suffix 双循环全量产 .npy, 见 benefit_society.py:715-744), 故删除。
+# ⚠ 两轴分工: `--track` 只控文本轨集 ('both'={full,ctx} 向后兼容,
+# 'all'={full,ctx,ss}); `_lg` 后缀由独立 `--include-lg` 控制; 六轨 =
+# track='all' AND include_lg。⚠ 铁律: MAIN 与 _lg co-primary 互为稳健性,
+# both-or-neither (单边缺失 → 同族两列同置 NaN); 各轨 just-identified 并排,
+# 禁混同一 over-identified Hansen J。
 # ---------------------------------------------------------------------------
 
-# no-ss-track: benefit SBERT 嵌入轴 ss 切片 v1 延后 (plan §④/§7.5), 无 _ss.npy
+# 六键路径 SSOT: (suffix, track) → stage 27 落盘 .npy 路径 (文件名 = base{suffix}_{track},
+# 与 benefit_society._persist_article_embeddings 拼接规则一致; suffix ∈ {'', '_lg'})。
+_EMB_SUFFIXES = ("", "_lg")
+_EMB_TRACKS = ("full", "ctx", "ss")
 _DEFAULT_EMBEDDINGS = {
-    "full": "news_process/data/processed/27_benefit_embeddings_full.npy",
-    "ctx":  "news_process/data/processed/27_benefit_embeddings_ctx.npy",
+    (sfx, trk): f"news_process/data/processed/27_benefit_embeddings{sfx}_{trk}.npy"
+    for sfx in _EMB_SUFFIXES for trk in _EMB_TRACKS
 }
+
+
+def _dim_col(dim: str, suffix: str, track: str) -> str:
+    """维度列名 SSOT: benefit_{dim}{suffix}_{track} (**lg 中置**, 对齐 benefit_mean_lg_full).
+
+    生成端 / both-or-neither 守卫 / merge wanted 白名单 / Table 9 模板变量名
+    四方一律经本函数 (或其字面输出) 派生, 防任一侧手写漂移
+    (gate = tests/test_benefit_dimension_tracks.py 三方同源断言)。
+    """
+    return f"benefit_{dim}{suffix}_{track}"
+
+
+def _resolve_large_spec() -> dict:
+    """取 config/features.yaml::embedding_large spec (dict; 缺失/空 → {})。
+
+    ⚠ 空 spec 时调用方必须把整个 '_lg' suffix 从 specs 集剔除 (镜像
+    benefit_society.py `if _LARGE_SPEC:` 优雅降级), **禁**把空 dict 传入
+    spec_model 走 Qwen 默认回退 — 那会让 _lg 方向向量以错键
+    ('Qwen/…', 'v0') 查缓存 → miss → RuntimeError 崩整个 CLI 含 MAIN 轨。
+    """
+    from news_process.core.config import load_config
+    return load_config().get("embedding_large") or {}
+
+
+def _spec_cache_keys(spec: dict) -> tuple[str, str]:
+    """spec → (model_id, prompt_version) 缓存键二元组 (经 embedding_engine 取键 SSOT).
+
+    _lg 期望值 = ('text-embedding-3-large', 'v1-2026-06-27-emb3large')。
+    ⚠ 禁沿用 _resolve_prompt_version() — 它硬绑 MAIN 的 text_pipeline_version
+    ('v4-2026-06-28-qwen3-8b'), 用在 _lg 锚点上 100% miss → RuntimeError。
+    """
+    from news_process.pipeline.text.embedding_engine import spec_model, spec_version
+    return spec_model(spec, default="text-embedding-3-large"), spec_version(spec)
 
 
 def compute_dual_track_dimensions(
     df_exploded: pd.DataFrame,
-    track_to_embedding: dict[str, np.ndarray],
+    track_to_embedding: dict,
     directions: dict[str, np.ndarray],
     *,
     bank_col: str = "target_bank",
     year_col: str = "year",
+    directions_by_suffix: dict[str, dict[str, np.ndarray]] | None = None,
 ) -> pd.DataFrame:
     """把各轨子指数得分聚合进同一张 bank-year 面板.
 
-    对 ``track_to_embedding`` 中的每个轨键 (通常为 ``{'full', 'ctx'}``),
-    产出以 (bank_col, year_col) 为键的 ``benefit_<dim>_<track>`` 列。
+    ``track_to_embedding`` 键两种形式 (向后兼容):
+      - str 轨名 (``'full'``/``'ctx'``/``'ss'``) → MAIN spec (suffix ''), 用 ``directions``;
+      - (track, suffix) 元组 → suffix ∈ {'', '_lg'}, ``'_lg'`` 用
+        ``directions_by_suffix['_lg']`` (per-spec 方向向量, 2026-07-03 §3 B1)。
 
-    返回合并后的 bank-year DataFrame。
+    ⚠ 投影配对铁律: 每 (track, suffix) 槽位的文本嵌入必须与**同 spec** 的方向
+    向量配对 — MAIN Qwen 4096 维 vs _lg 3072 维, 跨 spec 混投影必崩 shape;
+    此处显式断言 fail-loud (带 spec 名), 禁被优雅 skip 吞成静默 NaN。
+
+    产出列名经 :func:`_dim_col` (``benefit_<dim><suffix>_<track>``, lg 中置)。
     """
     merged: pd.DataFrame | None = None
-    for track, text_emb in track_to_embedding.items():
+    for key, text_emb in track_to_embedding.items():
+        track, suffix = (key, "") if isinstance(key, str) else key
+        dirs = directions if suffix == "" else (directions_by_suffix or {}).get(suffix)
+        if dirs is None:
+            raise ValueError(
+                f"track_to_embedding[{key!r}] 要求 suffix={suffix!r} 的方向向量, "
+                f"但 directions_by_suffix 未提供该 spec (per-spec 配对铁律)"
+            )
         if len(df_exploded) != len(text_emb):
             raise ValueError(
-                f"df_exploded ({len(df_exploded)}) and text_embeddings[{track!r}] "
+                f"df_exploded ({len(df_exploded)}) and text_embeddings[{key!r}] "
                 f"({len(text_emb)}) length mismatch"
             )
+        _dir_dim = len(next(iter(dirs.values())))
+        if text_emb.ndim != 2 or text_emb.shape[1] != _dir_dim:
+            raise ValueError(
+                f"[{key!r}] embedding dim {text_emb.shape[1] if text_emb.ndim == 2 else text_emb.shape} "
+                f"!= direction dim {_dir_dim} (spec={suffix or 'MAIN'}); "
+                f"跨 spec 混投影禁止 — 检查 .npy 与方向向量是否同一嵌入空间"
+            )
         track_panel = aggregate_to_bank_year(
-            df_exploded, text_emb, directions, bank_col=bank_col, year_col=year_col,
+            df_exploded, text_emb, dirs, bank_col=bank_col, year_col=year_col,
         )
         track_panel = track_panel.rename(columns={
-            f"benefit_{dim}": f"benefit_{dim}_{track}" for dim in directions
+            f"benefit_{dim}": _dim_col(dim, suffix, track) for dim in dirs
         })
         merged = (
             track_panel if merged is None
@@ -345,6 +405,27 @@ def compute_dual_track_dimensions(
         )
     assert merged is not None
     return merged
+
+
+def _apply_both_or_neither(panel: pd.DataFrame, tracks: list[str]) -> pd.DataFrame:
+    """co-primary both-or-neither 族级守卫 (2026-07-03 §3 B2, 镜像 benefit_society.py §6.5b).
+
+    对每 (dim, track): ``benefit_{dim}_{track}`` 与 ``benefit_{dim}_lg_{track}``
+    恰一侧有效 (另一侧缺列或全 NaN) → 两侧同置 NaN (缺列则补全-NaN 列),
+    保证无单边孤儿。仅在 _lg spec 激活 (调用方判断) 时调用。
+    """
+    for dim in _DIMENSION_NAMES:
+        for trk in tracks:
+            main_c, lg_c = _dim_col(dim, "", trk), _dim_col(dim, "_lg", trk)
+            main_ok = main_c in panel.columns and panel[main_c].notna().any()
+            lg_ok = lg_c in panel.columns and panel[lg_c].notna().any()
+            if main_ok != lg_ok:  # 恰一侧有效 → 同族两列同置 NaN
+                logger.warning(
+                    f"  ⚠ both-or-neither: ({dim}, {trk}) 单边有效 "
+                    f"(MAIN={main_ok}, _lg={lg_ok}) → 两侧同置 NaN (无单边孤儿)")
+                for c in (main_c, lg_c):
+                    panel[c] = float("nan")
+    return panel
 
 
 _DIMENSION_NAMES = tuple(DIMENSION_INDICES)  # core_op / growth / resource / compliance
@@ -355,6 +436,8 @@ def merge_dimensions_to_panel(
     dimensions: pd.DataFrame | None = None,
     *,
     track: str = "both",
+    tracks: list[str] | None = None,
+    include_lg: bool = False,
     panel_path: str | Path = "news_process/data/processed/40_panel_yearly.parquet",
     dimensions_path: str | Path = "news_process/data/processed/27_benefit_dimensions_panel.parquet",
     bank_col: str = "target_bank",
@@ -378,20 +461,32 @@ def merge_dimensions_to_panel(
         panel:       面板 DataFrame; None 时读 ``panel_path``。
         dimensions:  dimension_analysis CLI 产物 DataFrame; None 时读
                      ``dimensions_path``。
-        track:       'full' | 'ctx' | 'both'。
+        track:       'full' | 'ctx' | 'ss' | 'both' (={full,ctx} 向后兼容) |
+                     'all' (={full,ctx,ss}, 2026-07-03 §3 B1)。
+        tracks:      可选显式轨列表, 覆盖 ``track`` (承载缺 .npy 剪枝后的
+                     任意轨组合, 如 ['full','ss']; main() 直接透传实跑轨)。
+        include_lg:  并入 ``benefit_{dim}_lg_{track}`` 孪生列 (2026-07-03;
+                     _lg 列缺失时按既有 fail-loud 契约报 lacks columns)。
         output_path: 可选 parquet 落盘路径 (副本, 禁与 panel_path 同路径)。
 
     Returns:
-        合并后的面板副本 (含 4×track 个 ``benefit_<dim>_<track>`` 列)。
+        合并后的面板副本 (含 4 × track × suffix 个 ``benefit_<dim>[<_lg>]_<track>`` 列)。
 
     Raises:
         ValueError: track 非法 / 维度列缺失 / output_path 指向主面板。
         FileNotFoundError: panel/dimensions parquet 缺失。
     """
-    if track not in ("full", "ctx", "both"):
-        raise ValueError(f"track must be 'full' | 'ctx' | 'both', got {track!r}")
-    # no-ss-track: benefit 嵌入轴仍 full/ctx (ss 切片 v1 延后, 无 _ss.npy)
-    tracks = ["full", "ctx"] if track == "both" else [track]
+    if tracks is None:
+        if track not in ("full", "ctx", "ss", "both", "all"):
+            raise ValueError(
+                f"track must be 'full' | 'ctx' | 'ss' | 'both' | 'all', got {track!r}")
+        tracks = (["full", "ctx"] if track == "both"
+                  else ["full", "ctx", "ss"] if track == "all"
+                  else [track])
+    else:
+        _bad = [t for t in tracks if t not in _EMB_TRACKS]
+        if _bad:
+            raise ValueError(f"tracks 含非法轨 {_bad}; 合法 = {_EMB_TRACKS}")
 
     if panel is None:
         panel_p = Path(panel_path)
@@ -408,7 +503,9 @@ def merge_dimensions_to_panel(
             )
         dimensions = pd.read_parquet(dim_p)
 
-    wanted = [f"benefit_{dim}_{t}" for t in tracks for dim in _DIMENSION_NAMES]
+    _suffixes = ("", "_lg") if include_lg else ("",)
+    wanted = [_dim_col(dim, sfx, t)
+              for sfx in _suffixes for t in tracks for dim in _DIMENSION_NAMES]
     missing = [c for c in wanted if c not in dimensions.columns]
     if missing:
         raise ValueError(
@@ -458,7 +555,7 @@ def _log_environment_and_config(args, *, n_pos: int, n_neg: int, tracks: list[st
         _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
         logger.info("  🧭 项目 / 环境信息")
         logger.info("     · 模块: benefit_society.dimension_analysis "
-                    "(普惠/CSR 4 维度子指数; benefit 嵌入轴 full/ctx, ss 延后)")
+                    "(普惠/CSR 4 维度子指数; 六轨 = full/ctx/ss × MAIN/_lg, 2026-07-03 §3 B1)")
         logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
@@ -469,8 +566,11 @@ def _log_environment_and_config(args, *, n_pos: int, n_neg: int, tracks: list[st
 
         logger.info("  📂 输入 / 输出文件")
         logger.info(f"     · 轨次: track={args.track} → 实跑 {tracks} ({len(tracks):,d} 轨)")
-        logger.info(f"     · full embeddings: {args.text_embeddings_full}")
-        logger.info(f"     · ctx  embeddings: {args.text_embeddings_ctx}")
+        logger.info(f"     · full embeddings: {args.text_embeddings_full or '(dir/SSOT 派生)'}")
+        logger.info(f"     · ctx  embeddings: {args.text_embeddings_ctx or '(dir/SSOT 派生)'}")
+        logger.info(f"     · ss   embeddings: {getattr(args, 'text_embeddings_ss', None) or '(dir/SSOT 派生)'}")
+        logger.info(f"     · _lg 孪生: include_lg={getattr(args, 'include_lg', False)} | "
+                    f"embeddings-dir={getattr(args, 'embeddings_dir', None) or '(SSOT 默认)'}")
         logger.info(f"     · df_exploded:     {args.df_exploded or '(未提供 → anchors-only 模式, 不落面板)'}")
         logger.info(f"     · LLM cache DB:    {args.cache_db or '(默认 Stage 27 路径)'}")
         logger.info(f"     · 维度面板输出:    {args.output}")
@@ -503,39 +603,65 @@ def main(argv: list[str] | None = None) -> int:
     """CLI 入口: 计算 4 维度子指数, 并可选聚合到 bank-year 面板.
 
     Plan v2.12: ``--track {full,ctx,both}`` (默认 both) 产出 benefit 嵌入轴
-    的 full/ctx 两轨输出 ``benefit_{core_op,growth,resource,compliance}_{full,ctx}``
-    (ss 情感轨已三轨化, 但 benefit SBERT 嵌入轴 ss 切片 v1 延后, 暂无 _ss)。
+    (2026-07-03 §3 B1 扩 'ss'/'all') 产出 ``benefit_{core_op,growth,resource,compliance}``
+    的 full/ctx/ss 轨输出; ``--include-lg`` 并算 ``benefit_<dim>_lg_<track>`` co-primary
+    孪生 (both-or-neither 守卫, 无单边孤儿)。
 
     成功或优雅跳过 (可选输入缺失) 时返回 0; 硬错误直接 raise。
     """
     parser = argparse.ArgumentParser(
         prog="python -m news_process.papers.benefit_society.dimension_analysis",
         description="4 维度子指数计算 (core_op / growth / resource / compliance; "
-                    "benefit 嵌入轴 full/ctx, ss 延后)",
+                    "六轨 full/ctx/ss × MAIN/_lg, 2026-07-03)",
         # F-V2-H2 向后兼容: 关闭前缀缩写匹配, 使旧版 --text-embeddings
         # (Phase 0) 与新版 --text-embeddings-full (v2.12) 不产生歧义。
         allow_abbrev=False,
     )
     parser.add_argument(
         "--track",
-        choices=["full", "ctx", "both"],
+        # ⚠ 字面列表锁定 (test_benefit_society_dual_track 对 main 源码做双引号字面断言),
+        # 禁改为纯 SSOT 表达式派生; 'both'={full,ctx} 向后兼容, 'all'={full,ctx,ss} (2026-07-03)
+        choices=["full", "ctx", "ss", "both", "all"],
         default="both",
-        help="Sentiment track(s) to compute (plan v2.12)",
+        help="Sentiment track(s) to compute (plan v2.12; 'all' = full+ctx+ss, 2026-07-03 §3 B1)",
     )
     parser.add_argument(
+        "--include-lg",
+        action="store_true",
+        help="并算 _lg (text-embedding-3-large) co-primary 孪生 (2026-07-03 §3 B1; "
+             "六轨 = --track all + --include-lg; embedding_large spec 缺失时优雅降级单 MAIN)",
+    )
+    # ⚠ 三参数 default=None 哨兵 (终审 #1, 2026-07-03): argparse 无法区分"用户显式传入"
+    # 与"默认回填", 若带 SSOT 默认值则 --embeddings-dir 对 MAIN 三槽永不生效 →
+    # 可静默产出 MAIN/_lg 跨目录混源面板。三级优先见 _slot_path: 真显式 > dir 派生 > SSOT 默认。
+    parser.add_argument(
         "--text-embeddings-full",
-        "--text-embeddings",  # legacy 别名 (Phase 0 脚手架时期的默认参数名)
+        "--text-embeddings",  # legacy 别名 (Phase 0 脚手架时期的默认参数名; F-V2-H2 契约, 勿删)
         type=str,
-        default=_DEFAULT_EMBEDDINGS["full"],
+        default=None,
         dest="text_embeddings_full",
         help="Path to Stage 27 full-track text embeddings (.npy). "
-             "Legacy alias: --text-embeddings",
+             "Legacy alias: --text-embeddings. 缺省时按 --embeddings-dir/SSOT 派生",
     )
     parser.add_argument(
         "--text-embeddings-ctx",
         type=str,
-        default=_DEFAULT_EMBEDDINGS["ctx"],
-        help="Path to Stage 27 ctx-track text embeddings (.npy)",
+        default=None,
+        help="Path to Stage 27 ctx-track text embeddings (.npy); 缺省时按 --embeddings-dir/SSOT 派生",
+    )
+    parser.add_argument(
+        "--text-embeddings-ss",
+        type=str,
+        default=None,
+        help="Path to Stage 27 ss-track text embeddings (.npy; 2026-07-03 §3 B1); 缺省时按 --embeddings-dir/SSOT 派生",
+    )
+    parser.add_argument(
+        "--embeddings-dir",
+        type=str,
+        default=None,
+        help="可选: stage 27 嵌入 .npy 所在目录 — _lg 系与未显式覆盖的路径按 "
+             "27_benefit_embeddings{suffix}_{track}.npy 模式从此目录派生 "
+             "(显式 --text-embeddings-* 优先; 2026-07-03 §3 B1)",
     )
     parser.add_argument(
         "--df-exploded",
@@ -597,7 +723,7 @@ def main(argv: list[str] | None = None) -> int:
         "【方法】每维取若干正面锚点句与负面锚点句的 embedding 均值, 两均值之差 (再 L2 归一) = 该维语义方向;"
     )
     logger.info(
-        "        把文本 embedding (Stage 27 缓存, full/ctx 两轨) L2 归一后对方向向量做余弦投影 → 维度得分;"
+        "        把文本 embedding (Stage 27 缓存, full/ctx/ss × MAIN/_lg) L2 归一后对同 spec 方向向量做余弦投影 → 维度得分;"
     )
     logger.info(
         "        按 (target_bank, year) 等权均值聚合为 benefit_<dim>_<track> 列 (Jha 2026 Eq. 2)。"
@@ -616,39 +742,80 @@ def main(argv: list[str] | None = None) -> int:
     pos, neg = _import_anchors()
     logger.info(f"Loaded {len(pos)} positive + {len(neg)} negative anchors")
 
-    # no-ss-track: benefit 嵌入轴仍 full/ctx (ss 切片 v1 延后, 无 _ss.npy)
-    tracks = ["full", "ctx"] if args.track == "both" else [args.track]
+    # 轨集派生 (2026-07-03 §3 B1): 'both'={full,ctx} 向后兼容; 'all'={full,ctx,ss}
+    tracks = (["full", "ctx"] if args.track == "both"
+              else ["full", "ctx", "ss"] if args.track == "all"
+              else [args.track])
+    # _lg spec 门控: 空/缺失 → 整个 '_lg' suffix 剔除 + WARNING 退化单 MAIN
+    # (禁把空 dict 传 spec_model 走 Qwen 默认回退 → 错键 miss → RuntimeError 崩 MAIN 轨)
+    suffixes = [""]
+    _lg_spec = _resolve_large_spec() if args.include_lg else {}
+    if args.include_lg:
+        if _lg_spec:
+            suffixes.append("_lg")
+        else:
+            logger.warning(
+                "--include-lg 已指定但 config embedding_large spec 缺失/空 → "
+                "剔除 _lg suffix, 退化单 MAIN (both-or-neither: _lg 列不产出)")
     # 项目/环境信息 + 输入输出 + 运行配置 + 方法论依据 (日志富集 2026-06-24, 参数解析后打印)
     _log_environment_and_config(args, n_pos=len(pos), n_neg=len(neg), tracks=tracks)
 
+    # per-spec 方向向量 (2026-07-03 §3 B1 铁律): MAIN 与 _lg 各算一遍 —
+    # _lg 用 embedding_large 的缓存键二元组 (text-embedding-3-large, v1-2026-06-27-emb3large);
+    # 跨 spec 混投影 (4096 vs 3072 维) 必崩, compute_dual_track_dimensions 内亦有 shape 守卫。
     _t = time.time()
     directions = compute_direction_vectors(pos, neg, cache_db_path=args.cache_db)
+    directions_by_suffix: dict[str, dict] = {}
+    if "_lg" in suffixes:
+        _lg_model, _lg_ver = _spec_cache_keys(_lg_spec)
+        directions_by_suffix["_lg"] = compute_direction_vectors(
+            pos, neg, cache_db_path=args.cache_db,
+            model_id=_lg_model, prompt_version=_lg_ver,
+        )
     phase_durations['①方向向量计算'] = time.time() - _t
-    logger.info(f"Computed {len(directions)} dimensional direction vectors: {list(directions)}")
-    # no-ss-track: 嵌入文件路径同上 — ss 待 30a 嵌入上线后再加 _ss 路径
-    track_paths = {
-        "full": Path(args.text_embeddings_full),
-        "ctx":  Path(args.text_embeddings_ctx),
+    logger.info(f"Computed {len(directions)} dimensional direction vectors: {list(directions)}"
+                + (" (+_lg spec 同维数)" if "_lg" in suffixes else ""))
+    # 六槽路径三级优先 (终审 #1 修正): ① 用户真显式 --text-embeddings-* (default=None 哨兵,
+    # 非 None 即显式) → ② --embeddings-dir 按 27_benefit_embeddings{suffix}_{track}.npy 模式
+    # 派生 (MAIN 与 _lg 六槽**同源**, 防跨目录混源) → ③ _DEFAULT_EMBEDDINGS SSOT 默认。
+    _explicit = {
+        ("", "full"): args.text_embeddings_full,
+        ("", "ctx"): args.text_embeddings_ctx,
+        ("", "ss"): args.text_embeddings_ss,
     }
+    def _slot_path(sfx: str, trk: str) -> Path:
+        _v = _explicit.get((sfx, trk))
+        if _v is not None:
+            return Path(_v)
+        if args.embeddings_dir:
+            return Path(args.embeddings_dir) / f"27_benefit_embeddings{sfx}_{trk}.npy"
+        return Path(_DEFAULT_EMBEDDINGS[(sfx, trk)])
+    track_paths = {(sfx, trk): _slot_path(sfx, trk)
+                   for sfx in suffixes for trk in tracks}
 
     if args.df_exploded is None:
         logger.warning("Skipping panel aggregation (df_exploded not provided)")
         _log_phase_timing(phase_durations, start_time)
         return 0
 
-    missing = [t for t in tracks if not track_paths[t].exists()]
-    if missing:
-        logger.warning(f"Skipping tracks (embedding files missing): {missing}")
-        tracks = [t for t in tracks if t not in missing]
+    missing_slots = [k for k, p in track_paths.items() if not p.exists()]
+    if missing_slots:
+        logger.warning(f"Skipping slots (embedding files missing): {missing_slots}")
+        for k in missing_slots:
+            track_paths.pop(k)
+    # 文本轨集按 MAIN 侧存活剪枝 (与旧语义一致: MAIN 轨缺 .npy → 该轨整体跳过)
+    tracks = [t for t in tracks if ("", t) in track_paths]
     if not tracks:
         logger.warning("No tracks available; aborting panel aggregation")
         _log_phase_timing(phase_durations, start_time)
         return 0
 
     _t = time.time()
-    track_emb = {t: np.load(str(track_paths[t])) for t in tracks}
-    for t, emb in track_emb.items():
-        logger.info(f"  [{t}] embeddings shape: {emb.shape}")
+    # ⚠ 键序契约: compute_dual_track_dimensions 解包 (track, suffix); 路径 SSOT 键是 (suffix, track)
+    track_emb = {(trk, sfx): np.load(str(p))
+                 for (sfx, trk), p in track_paths.items() if trk in tracks}
+    for k, emb in track_emb.items():
+        logger.info(f"  [{k}] embeddings shape: {emb.shape}")
 
     df_exploded = pd.read_parquet(args.df_exploded)
     # 📂 df_exploded 来源信息 (article-bank 展开表, 驱动 bank-year 聚合的逐文章观测)。
@@ -674,7 +841,12 @@ def main(argv: list[str] | None = None) -> int:
     phase_durations['②加载 embeddings+df_exploded'] = time.time() - _t
 
     _t = time.time()
-    panel = compute_dual_track_dimensions(df_exploded, track_emb, directions)
+    panel = compute_dual_track_dimensions(
+        df_exploded, track_emb, directions,
+        directions_by_suffix=directions_by_suffix or None,
+    )
+    if "_lg" in suffixes:
+        panel = _apply_both_or_neither(panel, tracks)
     phase_durations['③多轨投影+bank-year聚合'] = time.time() - _t
 
     # 📊 维度子指数横截面分布 (本模块的存在理由 = benefit_<dim>_<track> 这组测度;
@@ -712,12 +884,15 @@ def main(argv: list[str] | None = None) -> int:
     logger.info(f"  Columns: {sorted(panel.columns)}")
 
     # fix(omni-gapfill-10, 2026-06-12): 可选 Table 9 桥接 (面板副本, 不动主面板)。
-    # `tracks` 已剔除嵌入缺失轨 — 只并入实际算出的轨, 防 merge 因列缺失 fail-loud。
+    # 2026-07-03 §3 B1: 直接透传实跑轨列表 (剪枝安全, 取代 len(tracks)==2 → 'both'
+    # 启发式 — 剪枝后剩 {full,ss} 组合时旧启发式会误判 'both' 致 merge 崩);
+    # include_lg 跟随 _lg spec 实跑状态, 使 _lg 孪生列有真实桥接路径 (B4 Panel D 前置)。
     if args.merge_panel_output:
         _t = time.time()
         merge_dimensions_to_panel(
             dimensions=panel,
-            track="both" if len(tracks) == 2 else tracks[0],
+            tracks=tracks,
+            include_lg=("_lg" in suffixes),
             panel_path=args.panel,
             output_path=args.merge_panel_output,
         )

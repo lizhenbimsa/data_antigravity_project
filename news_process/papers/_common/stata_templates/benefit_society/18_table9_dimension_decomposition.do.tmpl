@@ -2,21 +2,30 @@
 * 18_table9_dimension_decomposition.do — H4 机制: 四维度双轨分解
 * Paper: {{PAPER_ID}}
 *
-* PAP v1.0-final §7 (审计冻结):
-*   Panel A: full 轨 4 个子指数
-*   Panel B: ctx  轨 4 个子指数
+* PAP v1.0-final §7 (审计冻结) + robustness gap backfill B4 (2026-07-03):
+*   Panel A: full 轨 4 个子指数 (PAP 冻结)
+*   Panel B: ctx  轨 4 个子指数 (PAP 冻结)
+*   Panel C: ss   轨 4 个子指数 (B4 扩; wire-ahead)
+*   Panel D: _lg co-primary 嵌入轨 (text-embedding-3-large) × 全三轨
+*            full/ctx/ss (B4 扩; wire-ahead; 列名 lg 中置, 如 benefit_core_op_lg_ss)
 *
 * 把主 beta 分解到 4 个维度子指数 (core_op / growth /
 * resource / compliance), 按 dimension_analysis.py 产出。
+* ⚠ 铁律: MAIN(Qwen) / _lg 两 co-primary 嵌入轨与 full/ctx/ss 三文本轨
+*   均各自 just-identified 并排回归, 禁混进同一 over-identified Hansen J。
 *
 * 前置条件: 面板须含
-*   benefit_{core_op,growth,resource,compliance}_{full,ctx}
+*   benefit_{core_op,growth,resource,compliance}{,_lg}_{full,ctx,ss}
+*   (+ Panel C/D 主测度对照列 benefit_mean_ss / benefit_mean_lg_{full,ctx,ss};
+*    ss/_lg 列在 _prepared_panel.dta 副本回填前缺席 → 对应回归块
+*    capture confirm variable 优雅跳过 = wire-ahead 休眠, 非错误)
 * fix(omni-gapfill-10, 2026-06-12): 此前注释指向不存在的
 * pipeline/features/benefit_society.py::merge_dimensions_to_panel (全仓无此函数,
 * 幻影前置)。真实产出链:
 *   (1) python -m news_process.papers.benefit_society.dimension_analysis
 *       --df-exploded <24_herd_decay.parquet> --track both
 *       → 27_benefit_dimensions_panel.parquet
+*       (Panel C/D 的 ss/_lg 列须 --track all + --include-lg 六轨口径, B1 桥接)
 *   (2) papers/benefit_society/dimension_analysis.py::merge_dimensions_to_panel
 *       把维度列并进面板副本 (不改写主 40_panel_yearly.parquet) 后再 export .dta。
 *
@@ -68,17 +77,75 @@ if !_rc {
     }
 }
 
+* ----- Panel C: ss 轨 (B4, 2026-07-03; wire-ahead) -----
+* 主测度用字面列名 benefit_mean_ss (即 {{ATTITUDE_FULL}}/{{ATTITUDE_CTX}} 同族
+* 的 ss 轨解析值); 刻意不引入新占位符, 本模板占位符集合冻结。ss 维度列
+* 回填前缺席 → capture confirm 优雅跳过 (镜像 Panel B 守卫写法)。
+capture confirm variable benefit_mean_ss
+if !_rc {
+    reghdfe {{MAIN_DV}}_w benefit_mean_ss $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo D_main_ss
+
+    foreach dim in core_op growth resource compliance {
+        capture confirm variable benefit_`dim'_ss
+        if _rc == 0 {
+            reghdfe {{MAIN_DV}}_w benefit_`dim'_ss $controls, ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+            eststo D_`dim'_ss
+        }
+    }
+}
+
+* ----- Panel D: _lg co-primary 嵌入轨 × 全三轨 (B4, 2026-07-03; wire-ahead) -----
+* text-embedding-3-large 轨, 列名 lg 中置 (benefit_{dim}_lg_{track},
+* 对齐 benefit_mean_lg_full 先例)。与 MAIN(Qwen) 轨互为稳健性、并排回归,
+* 禁混同一 over-identified Hansen J。列缺席 → capture confirm 优雅跳过。
+foreach trk in full ctx ss {
+    capture confirm variable benefit_mean_lg_`trk'
+    if !_rc {
+        reghdfe {{MAIN_DV}}_w benefit_mean_lg_`trk' $controls, ///
+            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        eststo D_main_lg_`trk'
+
+        foreach dim in core_op growth resource compliance {
+            capture confirm variable benefit_`dim'_lg_`trk'
+            if _rc == 0 {
+                reghdfe {{MAIN_DV}}_w benefit_`dim'_lg_`trk' $controls, ///
+                    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+                eststo D_`dim'_lg_`trk'
+            }
+        }
+    }
+}
+
 * ----- 合并输出 -----
-* fix(omni-gapfill-14, 2026-06-12): esttab 名单动态化 — 8 个维度估计全部在
+* fix(omni-gapfill-14, 2026-06-12): esttab 名单动态化 — 维度估计全部在
 * capture confirm 守卫块内, 旧版硬点名 10 个 eststo 名 → 维度列缺失时 r(111)
 * (再被 00_master 的 capture do 吞掉, H4 机制表无声缺失零报错)。现按
 * estimates dir 实际存在名单拼装 + mtitle 同步, 全缺时显式 as error 告警。
+* ⚠ (B4, 2026-07-03) "动态化"仅指按存在性过滤: 候选侧 cand_models/cand_titles
+*   仍是硬编码白名单 (第四同步点), Panel 增删时必须原子成对追加/删除估计名与
+*   标题, 两 local 词数恒等 (cand_titles 引号组数 == cand_models 词数);
+*   漏加不报错、新估计静默不出表。现 30 对 = Panel A/B/C 各 5 + Panel D 15。
 qui estimates dir
 local stored `r(names)'
 local cand_models D_main_full D_core_op_full D_growth_full D_resource_full ///
                   D_compliance_full D_main_ctx D_core_op_ctx D_growth_ctx ///
-                  D_resource_ctx D_compliance_ctx
+                  D_resource_ctx D_compliance_ctx ///
+                  D_main_ss D_core_op_ss D_growth_ss D_resource_ss ///
+                  D_compliance_ss ///
+                  D_main_lg_full D_core_op_lg_full D_growth_lg_full ///
+                  D_resource_lg_full D_compliance_lg_full ///
+                  D_main_lg_ctx D_core_op_lg_ctx D_growth_lg_ctx ///
+                  D_resource_lg_ctx D_compliance_lg_ctx ///
+                  D_main_lg_ss D_core_op_lg_ss D_growth_lg_ss ///
+                  D_resource_lg_ss D_compliance_lg_ss
 local cand_titles `""Main-F" "Core-Op-F" "Growth-F" "Resource-F" "Compliance-F" "Main-C" "Core-Op-C" "Growth-C" "Resource-C" "Compliance-C""'
+local cand_titles `"`cand_titles' "Main-S" "Core-Op-S" "Growth-S" "Resource-S" "Compliance-S""'
+local cand_titles `"`cand_titles' "Main-LgF" "Core-Op-LgF" "Growth-LgF" "Resource-LgF" "Compliance-LgF""'
+local cand_titles `"`cand_titles' "Main-LgC" "Core-Op-LgC" "Growth-LgC" "Resource-LgC" "Compliance-LgC""'
+local cand_titles `"`cand_titles' "Main-LgS" "Core-Op-LgS" "Growth-LgS" "Resource-LgS" "Compliance-LgS""'
 local models ""
 local mtitles `""'
 local nmod : word count `cand_models'
@@ -97,10 +164,11 @@ else {
     esttab `models' ///
         using "$tables_dir/table9_dimension.tex", replace ///
         star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-        title("Mechanism: 4-Dimension Decomposition (full + ctx, PAP §7)") ///
+        title("Mechanism: 4-Dimension Decomposition (Panels A-D: full/ctx/ss + lg co-primary, PAP §7 + B4)") ///
         mtitles(`mtitles') ///
         addnotes("Bank (bank_id) + year FE; cluster {{CLUSTER_VAR}}; dimensions per stage 27 anchors." ///
-                 "Columns suffixed -F (full track) / -C (ctx track); missing dimensions omitted." ///
+                 "Columns suffixed -F/-C/-S = full/ctx/ss tracks (main Qwen embedding);" ///
+                 "-LgF/-LgC/-LgS = text-embedding-3-large co-primary track; missing dimensions omitted." ///
                  "H4 acceptance: >=2/4 sub-indices share sign at p<0.10 (full track primary)." ///
                  "Dual-track convergent validity: cross-panel sign concordance reported separately.")
 }

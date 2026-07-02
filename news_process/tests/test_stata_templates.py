@@ -294,9 +294,59 @@ def test_cli_verify_replication_on_valid_package(tmp_path, capsys):
     # remove-title-track 后 14; IV 补全 (+25_tableA6) → 15; agg-audit (+26_tableA7) → 16;
     # 2026-06-14 顶刊稳健性扩充 (+32_tableA8 +33_tableA9) → 18 .do / 17 子 .do;
     # 2026-06-14 T18 重审 era-stability (+34_tableA11) → 19 .do / 18 子 .do
-    assert '20/20 完整' in out  # 20 .do (+2026-07-02 互为稳健性 27_tableA12_cross_model_fwer 根级 rwolf)
-    assert '19/19 子 .do' in out  # master.do 引用 19 个子 .do (+27_tableA12)
+    assert '21/21 完整' in out  # 21 .do (+2026-07-03 稳健性缺口补齐 28_tableA13_policy_family_robustness)
+    assert '20/20 子 .do' in out  # master.do 引用 20 个子 .do (+28_tableA13)
     assert 'Summary: 8 OK' in out
+
+
+def test_tableA13_policy_family_column_naming():
+    """28_tableA13 列名规约 gate (2026-07-03 ROBUSTNESS_GAP_BACKFILL §6 WP-E):
+    policy 面板列 full 轨**无 _full 后缀**, 中缀次序 lg 先 allv 后 —
+    错拼会被 capture confirm 静默吞臂 (本机 wire-ahead 休眠不可见, 生产机才暴露)。"""
+    text = _load_template('28_tableA13_policy_family_robustness.do.tmpl')
+    # 代表字面量 (最短臂 + 最长臂) 必在
+    assert '"article_sim_mean"' in text
+    assert 'article_sim_mean_lg_allv' in text
+    # 禁错拼: full 轨带 _full 后缀 / allv 在 lg 前
+    assert 'article_sim_mean_full' not in text
+    assert 'article_sim_mean_allv_lg' not in text
+    # 12 臂 = 4 stem × 3 sfx (空后缀模式)
+    assert text.count('foreach') >= 2 and '"" "_ctx" "_ss"' in text
+    # 统一头部 + 子 .do 铁律 (无终端 exit; 'exit' 只允许出现在注释里)
+    assert 'version 19' in text and 'set maxvar 32767' in text and 'set linesize 120' in text
+    for line in text.splitlines():
+        stripped = line.strip()
+        assert not stripped.startswith('exit'), '子 .do 禁终端 exit (会让 master 提前退出)'
+
+
+def test_table9_cand_models_titles_paired():
+    """18_table9 第四同步点 gate (2026-07-03 §3 B4, 终审 #2): esttab 硬编码候选名单
+    cand_models/cand_titles 词数恒等且含 ss/_lg 系 — 漏加不报错、新估计静默不出表。"""
+    import re
+    text = _load_template('benefit_society/18_table9_dimension_decomposition.do.tmpl')
+    # 提取 local cand_models 定义 (含 /// 续行)
+    m = re.search(r'local cand_models(.*?)(?=\n\s*local cand_titles)', text, re.S)
+    assert m, '18_table9 缺 local cand_models 定义'
+    models_blob = m.group(1).replace('///', ' ')
+    models = [w for w in models_blob.split() if w and not w.startswith('*')]
+    assert len(models) == 30, f'cand_models 应 30 个估计名, 实际 {len(models)}'
+    assert any('_ss' in w for w in models) and any('_lg' in w for w in models)
+    assert len(set(models)) == 30, 'cand_models 含重复估计名'
+    # cand_titles 引号组数 == 30 (compound quote 内层 "..." 计数; 多行 append 全收)
+    t = re.search(r'local cand_titles(.*?)\n\s*local nmod', text, re.S)
+    assert t, '18_table9 缺 local cand_titles 定义 (或其后无 local nmod 锚)'
+    titles = re.findall(r'"([^"`\']+)"', t.group(1))
+    assert len(titles) == 30, f'cand_titles 应 30 个引号组, 实际 {len(titles)}'
+    assert len(titles) == len(models), 'cand_models 与 cand_titles 词数不恒等 (第四同步点破)'
+
+
+def test_tableA12_panel_c_capacity():
+    """27_tableA12 Panel C 扩展 gate (2026-07-03 §2 A5): RES 矩阵扩容 J(9,1) +
+    CLS 族块存在 (三族各自 rwolf, 逐族紧邻提取防 e() 覆写)。"""
+    text = _load_template('27_tableA12_cross_model_fwer.do.tmpl')
+    assert 'J(9, 1, .)' in text and 'J(6, 1, .)' not in text
+    assert 'cls_fam' in text and 'CLS:' in text
+    assert text.count('capture noisily rwolf') == 3
 
 
 def test_cli_verify_replication_on_nonexistent_dir(tmp_path, capsys):

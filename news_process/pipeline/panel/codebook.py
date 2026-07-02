@@ -47,7 +47,7 @@ from news_process.core.logging import pct4, sig4
 # _LLM_MODEL_RE/_BERT_MODEL_RE matcher 与 _infer_source_stage 宽前缀路由用; encode↔codebook
 # 无循环导入)。⚠ 勿依赖 get_variable_metadata_dict 内 :~684 的函数级局部别名导入
 # (_ISS_LLM_MODELS) — 那对模块级 matcher / _infer_source_stage 不可见 → NameError。
-from news_process.pipeline.panel.encode import BERT_MODELS, LLM_MODELS
+from news_process.pipeline.panel.encode import BERT_MODELS, LLM_CLASS_SPEC, LLM_MODELS
 
 # 初始化配置和日志
 CONFIG = load_config()
@@ -261,7 +261,14 @@ def _political_weight_match(col: str):
 # Hansen J。metric 按 longest-first 排列避免 alternation 短匹配截断。
 _LLM_MODEL_RE = re.compile(
     r'^(' + '|'.join(re.escape(m) for m in LLM_MODELS)
-    + r')_(cont_mean|cont_sum|tone_sum|tone_std|tone)((?:_(?:vw|mw|hw))?)(?:_(?:full|ctx|ss))?$')
+    + r')_(cont_mean|cont_sum|tone_sum|tone_std|tone|'
+    # per-model 分类维度 frac (2026-07-03, ROBUSTNESS_GAP_BACKFILL §2 A4): metric 由
+    # encode.LLM_CLASS_SPEC 值[0] 派生 (sub_frac/tech_frac/collab_frac), 与 tone 族同 matcher
+    # (weight 可选组保持同一覆盖域; 面板不产加权分类列, 多余覆盖无害)。
+    + '|'.join(re.escape(v[0]) for v in LLM_CLASS_SPEC.values())
+    + r')((?:_(?:vw|mw|hw))?)(?:_(?:full|ctx|ss))?$')
+# per-model 分类 frac metric 集 (文案分流用: tone/cont 族 → 「语调」, frac 族 → 「分类占比」)
+_LLM_CLASS_METRICS = frozenset(v[0] for v in LLM_CLASS_SPEC.values())
 _BERT_MODEL_RE = re.compile(
     r'^(' + '|'.join(re.escape(m) for m in BERT_MODELS)
     + r')_(net_tone|pos_sum|pos_std|neg_sum|neu_sum|pos|neg|neu)((?:_(?:vw|mw|hw))?)(?:_(?:full|ctx|ss))?$')
@@ -284,7 +291,15 @@ _PER_MODEL_METRIC_ZH = {
     'cont_sum': '连续分总和', 'net_tone': 'net-tone (正−负)', 'pos': '正面概率', 'neg': '负面概率',
     'neu': '中性概率', 'pos_sum': '正面概率和', 'neg_sum': '负面概率和', 'neu_sum': '中性概率和',
     'pos_std': '正面概率离散',
+    # per-model 分类维度 frac (2026-07-03 §2 A4; 与 LLM_CLASS_SPEC 值[0] byte-sync)
+    'sub_frac': '实质创新占比', 'tech_frac': '底层技术占比', 'collab_frac': '外部协同占比',
 }
+_LLM_CLASS_NOTE = (
+    'LLM 逐模型分类占比 (per-model robustness, 2026-07-03): 三家大模型各自的分类维度 frac '
+    '(分母=该模型自身 verified 篇数, 非共识 n_articles_llm_valid; 文章级存档不门控、门控在 encode 层), '
+    '与共识 sub_frac/tech_frac/collab_frac (canonical headline) co-equal 互为稳健性、不分主次, '
+    '证明分类结论不被任一厂商模型驱动。⚠ 三家' + _PER_MODEL_HANSEN_NOTE + '。'
+)
 _PER_MODEL_WEIGHT_ZH = {'': '', '_vw': ' [市值加权]', '_mw': ' [媒体加权]', '_hw': ' [羊群加权]'}
 
 
@@ -1225,8 +1240,30 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     _CAT_NEW = 'Text Complexity/Disclosure (2026-06-05)'
     # (col_base, label, unit, value_range, formula, reference, source_stage)
     _DUAL_TEXT_SPECS = [
+        # D2 FLS 全族补录 (2026-07-03 §5: 此前 frac_fls 族 codebook 零条目, 顺手偿还欠账;
+        # 同名直聚合 dst=src, 非 avg_ 前缀范式):
+        ('frac_fls', 'Forward-Looking Statements Frac (dual-gate)', '[0,1]', '[0,1] ∪ NaN',
+         'bank-year mean of (FLS 句数/总句数); 双门=句含 future 词∧time 词 (canonical headline); 与单门 frac_fls_fonly 互为稳健、不分主次, 禁混同一 Hansen J',
+         'Li (2010) JAR 48(5); Bozanic-Roulstone-Van Buskirk (2018) JAE 65(1); Muslu et al. (2015) MS', 'Stage 22 (forward_looking) + Stage 40'),
+        ('frac_fls_fonly', 'Forward-Looking Statements Frac (future-only)', '[0,1]', '[0,1] ∪ NaN',
+         'bank-year mean of (单门 FLS 句数/总句数); 单门=句含 future 词即计 (双门的超集, 逐句蕴含); 证明 FLS 结论不被 time 门控驱动 (2026-07-03 D2 稳健臂)',
+         'Li (2010) JAR 48(5); Bozanic-Roulstone-Van Buskirk (2018) JAE 65(1)', 'Stage 22 (forward_looking) + Stage 40'),
+        # WP-C 三轨化 (2026-07-03, 自 _SINGLE_TEXT_SPECS 的 'avg_boilerplate_full' 迁入;
+        # base label 已去 '(full)' 后缀 → 发射 label 'Boilerplate Phrase Ratio (full)' 与旧
+        # 单轨条目逐字节同; full=headline, ctx/ss=互为稳健轨):
+        ('avg_boilerplate', 'Boilerplate Phrase Ratio', '[0,1]', '[0,1] ∪ NaN',
+         'bank-year mean of (命中跨语料高频 char_wb(4,6)-gram 套话集出现数/全部 n-gram 出现数); 解释性限定: 套话集口径在 ctx/ss 子窗信号较弱, ctx/ss 作稳健对照. ⚠ 套话集建在 stage22 输入子集(非真全量), 中文新闻落地非英文 10-K 原做法; 与 within_doc_redundancy(篇内)/staleness(整篇相似度)正交; 非嵌入族无 _lg 孪生',
+         'Lang-Stice-Lawrence (2015) JAE 60(2-3):110; Dyer-Lang-Stice-Lawrence (2017) JAE 64(2-3)', 'Stage 22 (boilerplate) + Stage 40'),
         ('avg_rare_word', 'Rare-Word Ratio', 'token fraction', '[0,1] ∪ NaN',
          'bank-year mean of (低频词 token / 总 token); 低频=jieba 冻结词典词频≤P20 cutoff(实测覆盖~57% distinct词, 实为"非高频词率")',
+         'You & Zhang (2009) RAS 14(4); Gentzkow-Kelly-Taddy (2019) JEL 57(3)', 'Stage 22 (lexical_complexity) + Stage 40'),
+        # D1 频次 cutoff 梯子 (2026-07-03 §5): c2/c5 与 canonical (cutoff=3, 上行) 互为稳健、
+        # 不分主次; 频次而非分位参数化 (冻结词典低频 tie 使分位梯子退化), 禁混同一 Hansen J
+        ('avg_rare_word_c2', 'Rare-Word Ratio (cutoff=2)', 'token fraction', '[0,1] ∪ NaN',
+         'bank-year mean; 低频=词频≤2 (≈实测 P10, 覆盖~11.6% distinct 词); canonical(≤3) 的敏感性臂, SSOT=lexical_complexity.RARE_WORD_FREQ_CUTOFFS',
+         'You & Zhang (2009) RAS 14(4); Gentzkow-Kelly-Taddy (2019) JEL 57(3)', 'Stage 22 (lexical_complexity) + Stage 40'),
+        ('avg_rare_word_c5', 'Rare-Word Ratio (cutoff=5)', 'token fraction', '[0,1] ∪ NaN',
+         'bank-year mean; 低频=词频≤5 (≈实测 P63, 覆盖~63.4% distinct 词); canonical(≤3) 的敏感性臂, SSOT=lexical_complexity.RARE_WORD_FREQ_CUTOFFS',
          'You & Zhang (2009) RAS 14(4); Gentzkow-Kelly-Taddy (2019) JEL 57(3)', 'Stage 22 (lexical_complexity) + Stage 40'),
         ('avg_hard_char', 'Hard-Char Ratio', 'char fraction', '[0,1] ∪ NaN',
          'bank-year mean of (非常用汉字 / 全部汉字); 常用字=jieba 词典字频累计 99.5% 派生集',
@@ -1309,10 +1346,6 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
          'bank-year 内有报道的不同日历天数(nunique 日期)', 'Hillert-Jacobs-Müller (2014) RFS', 'Stage 40 (encode)'),
         ('coverage_continuity', 'Coverage Continuity (active/span)', '[0,1] ∪ NaN',
          'coverage_active_days / (报道跨度天数); 1=天天有, 低=爆发式 (节奏, 与 staleness 内容重复正交)', 'Hillert-Jacobs-Müller (2014) RFS', 'Stage 40 (encode)'),
-        # nonpolarity-dims WS-B2 (2026-06-20): 跨文档套话比率 (单轨 full)
-        ('avg_boilerplate_full', 'Boilerplate Phrase Ratio (full)', '[0,1] ∪ NaN',
-         'bank-year mean of (命中跨语料高频 char_wb(4,6)-gram 套话集出现数/全部 n-gram 出现数); 单轨 full(套话集口径在 ctx/ss 子窗弱, by-design). ⚠ 套话集建在 stage22 输入子集(非真全量), 中文新闻落地非英文 10-K 原做法; 与 within_doc_redundancy(篇内)/staleness(整篇相似度)正交',
-         'Lang-Stice-Lawrence (2015) JAE 60(2-3):110; Dyer-Lang-Stice-Lawrence (2017) JAE 64(2-3)', 'Stage 22 (boilerplate) + Stage 40'),
     ]
     for _name, _label, _vr, _formula, _ref, _src in _SINGLE_TEXT_SPECS:
         metadata[_name] = VariableMetadata(
@@ -1943,7 +1976,9 @@ def _infer_label(var_name: str) -> str:
     # {short}_tone / {short}_pos / {short}_net_tone 退化为泛型标签。
     _lm = _llm_model_match(var_name)
     if _lm:
-        return (f'LLM 逐模型语调 {_lm[0]} · {_PER_MODEL_METRIC_ZH.get(_lm[1], _lm[1])}'
+        # 文案按 metric 族分流 (2026-07-03 §2 A4): frac 族是分类占比非语调, 勿顶「语调」字样
+        _lm_kind = 'LLM 逐模型分类占比' if _lm[1] in _LLM_CLASS_METRICS else 'LLM 逐模型语调'
+        return (f'{_lm_kind} {_lm[0]} · {_PER_MODEL_METRIC_ZH.get(_lm[1], _lm[1])}'
                 f'{_PER_MODEL_WEIGHT_ZH.get(_lm[2], _lm[2])}{track_suffix}')
     _bm = _bert_model_match(var_name)
     if _bm:
@@ -1985,8 +2020,10 @@ def _infer_description(var_name: str) -> str:
                 f'政治正面词权重在 bank-year 的均值。{_POLITICAL_WEIGHT_NOTE}')
     _lm = _llm_model_match(var_name)
     if _lm:
+        # NOTE 按 metric 族分流 (2026-07-03 §2 A4): frac 族用分类占比专用 NOTE (含分母口径披露)
+        _lm_note = _LLM_CLASS_NOTE if _lm[1] in _LLM_CLASS_METRICS else _LLM_MODEL_NOTE
         return (f'LLM 模型 {_lm[0]} 的 {_PER_MODEL_METRIC_ZH.get(_lm[1], _lm[1])}'
-                f'{_PER_MODEL_WEIGHT_ZH.get(_lm[2], _lm[2])} 在 bank-year 的聚合。{_LLM_MODEL_NOTE}')
+                f'{_PER_MODEL_WEIGHT_ZH.get(_lm[2], _lm[2])} 在 bank-year 的聚合。{_lm_note}')
     _bm = _bert_model_match(var_name)
     if _bm:
         return (f'BERT 模型 {_bm[0]} 的 {_PER_MODEL_METRIC_ZH.get(_bm[1], _bm[1])}'

@@ -2314,6 +2314,177 @@ def compute_cross_model_kappa(df: pd.DataFrame, sentiment_cols: dict, track: str
     logger_inst.info(f"  跨模型 κ (Krippendorff α + Cohen κ) 写入 {out_path} ({len(rows)} 行)")
 
 
+# ============================================================================
+# 跨模型分类维度一致性 (2026-07-03, ROBUSTNESS_GAP_BACKFILL §2 A3)
+# ============================================================================
+# 三 LLM 分类维度 (subst/locus/collab) 的 per-model 存档列跨厂商一致性 — 镜像上方
+# tone 版 compute_cross_model_kappa (2026-07-02) 的结构/产物落点/铁律。
+# SSOT = encode.LLM_CLASS_SPEC / encode.LLM_MODELS (try-import + 本地 fallback:
+# 常量由 §2 A1 并行落地, 尚不存在或 import 失败时回退, 不阻断 stage 64)。
+
+#: encode.LLM_CLASS_SPEC 本地 fallback 副本 (键=文章级维度基名; 值=(面板 metric 基名,
+#: frac 分子目标类, stage 21 per_model_parsed 解析键)) — 仅 import 失败时使用。
+_LLM_CLASS_SPEC_FALLBACK = {
+    'subst': ('sub_frac', '实质性', 'innovation_substantiveness'),
+    'locus': ('tech_frac', '底层技术', 'innovation_locus'),
+    'collab': ('collab_frac', '外部协同', 'innovation_collab_mode'),
+}
+
+#: encode.LLM_MODELS 本地 fallback 副本 (三家 LLM short_name, 与 CLAUDE.md 铁律一致)。
+_LLM_SHORTS_FALLBACK = ('gpt54nano', 'gemini31', 'deepseekv4')
+
+
+def _resolve_llm_class_spec() -> tuple[dict, list]:
+    """解析 (LLM_CLASS_SPEC, LLM_MODELS) — 优先 encode SSOT, 失败回退本地副本。
+
+    lazy import (镜像本文件 evaluate_human_verification 对 llms_evaluation 的
+    lazy import 先例, 避免 import 期连带 encode 模块初始化); encode 侧常量由
+    ROBUSTNESS_GAP_BACKFILL §2 A1 并行落地, 尚不存在时 ImportError → fallback
+    (两侧容忍, 测试 gate = tests/test_cross_model_kappa.py)。
+    """
+    try:
+        from news_process.pipeline.panel.encode import LLM_CLASS_SPEC, LLM_MODELS
+        return dict(LLM_CLASS_SPEC), list(LLM_MODELS)
+    except Exception:  # noqa: BLE001 — encode 缺常量/环境不完整均容忍, 回退本地副本
+        return dict(_LLM_CLASS_SPEC_FALLBACK), list(_LLM_SHORTS_FALLBACK)
+
+
+def _classification_code_map(label_values) -> dict:
+    """中文分类标签 → 非负整数码 (排序去重后 0..k-1, 确定性因子化)。
+
+    ⚠ 非负码铁律 (镜像 _KAPPA_LABEL_CODE 教训): compute_krippendorffs_alpha 以
+    -1 为缺标哨兵, 任何负码标签都会被静默当缺失丢弃 → α 虚高。分类维度标签词表
+    逐维互异 ('实质性'/'象征性' vs '底层技术'/'应用场景' vs '外部协同'/'自主研发'),
+    不能共用情感三分类的固定映射, 故逐维独立因子化。
+    """
+    return {lab: i for i, lab in enumerate(sorted(str(v) for v in set(label_values)))}
+
+
+def compute_cross_model_classification_kappa(df: pd.DataFrame, track: str,
+                                             output_dir: str, logger_inst) -> dict:
+    """三 LLM 分类维度的跨模型 chance-corrected 一致性 (2026-07-03, §2 A3)。
+
+    对文章级 per-model 分类存档列 ``{short}_{dim}{track}`` (short ∈ encode.LLM_MODELS
+    三家, dim ∈ encode.LLM_CLASS_SPEC 键 subst/locus/collab) 逐维计算:
+      · Krippendorff α — 复用 llms_evaluation canonical 实现 (名义尺度, 缺标感知,
+        天然容 2-vs-3 类词表失配, 无需二值化/丢类);
+      · 两两 Cohen κ — 在两模型均有标签的行子集上算 (缺标感知)。
+
+    ⚠ 中文标签**逐维独立因子化为非负整数码** (见 _classification_code_map);
+      None/NaN 缺标 → -1 哨兵, 由 Krippendorff/pairwise 掩码正确排除。
+    ⚠ 缺列优雅跳过 (镜像本文件缺列处理惯例): 本机盘上 21_tone_llms.parquet 尚无
+      per-model 分类列 (§2 A1 生产机离线重放回填后才有), 逐维 <2 有效列时 INFO
+      跳过, 不红不崩不落盘空产物。
+    ⚠ per-model 存档列 = 不门控原始输出 (≠共识门控票池, 计划 F16 口径差): 本统计
+      度量"三家原始输出彼此的一致性", 与共识列无复现关系; 三家 per-model co-equal
+      互为稳健、不分主次, 共识列 = canonical headline (镜像 tone 梯子铁律)。
+
+    产物 (golden-safe, 仅 eval_reports, 不入面板):
+      · CSV ``classification_model_kappa{track}.csv`` (镜像 sentiment_model_kappa
+        行结构 + 'dim'/'key' 列);
+      · 返回 dict ``{dim: {trk: {'alpha':…, 'n_units_alpha':…, 'labels':…,
+        'members':…, 'kappa_{a}_vs_{b}':…, 'n_units_kappa_{a}_vs_{b}':…}}}``,
+        由 _run_validation_for_track 并入 sentiment_validation_results{track}.json
+        的 'cross_model_classification' 键 — 完整键路径即
+        ``cross_model_classification.{dim}.{track}.{alpha|kappa_gpt54nano_vs_gemini31|…}``。
+
+    方法依据: Cohen (1960, Educational and Psychological Measurement 20(1):37-46)
+    chance-corrected κ + Krippendorff α (名义尺度多评分者、缺标感知推广), 口径对齐
+    上方 tone 版跨模型统计与 manuscript 承诺 (Cohen κ + Krippendorff α)。
+    """
+    from news_process.validation.llms_evaluation import (
+        compute_cohens_kappa,
+        compute_krippendorffs_alpha,
+    )
+
+    spec, shorts = _resolve_llm_class_spec()
+    trk = track.lstrip('_') or 'full'
+    rows = []
+    nested = {}
+    for dim in spec:
+        cols = {s: f'{s}_{dim}{track}' for s in shorts}
+        members = [(s, c) for s, c in cols.items() if c in df.columns]
+        if len(members) < 2:
+            missing = [c for c in cols.values() if c not in df.columns]
+            logger_inst.info(
+                f"  跨模型分类一致性 [{dim}{track}]: 有效 per-model 列 "
+                f"{len(members)}/{len(shorts)} (<2), 优雅跳过 — 缺列 {missing} 属预期 "
+                f"(本机 parquet 尚无 per-model 分类存档列, 生产机离线重放 stage 21 "
+                f"回填后自动纳入)")
+            continue
+        # 逐维独立因子化: 观测标签排序去重 → 0..k-1 非负码; 缺标 (None/NaN/空串) → -1
+        observed = pd.concat(
+            [df[c].dropna().astype(str).str.strip() for _, c in members],
+            ignore_index=True)
+        label_values = sorted(observed[observed != ''].unique().tolist())
+        if not label_values:
+            logger_inst.info(
+                f"  跨模型分类一致性 [{dim}{track}]: 全部 per-model 列均无有效标签, "
+                f"优雅跳过 (n={len(df):,} 行全缺标)")
+            continue
+        code_map = _classification_code_map(label_values)
+        mat = np.full((len(members), len(df)), -1, dtype=int)
+        for j, (_, c) in enumerate(members):
+            codes = df[c].map(
+                lambda v, _m=code_map: _m.get(str(v).strip(), -1) if pd.notna(v) else -1)
+            mat[j, :] = codes.astype(int).to_numpy()
+        n_units_alpha = int(((mat >= 0).sum(axis=0) >= 2).sum())
+        try:
+            alpha = (compute_krippendorffs_alpha(mat)
+                     if n_units_alpha > 0 else float('nan'))
+        except Exception as _e:  # noqa: BLE001 — 诊断性
+            logger_inst.warning(f"  跨模型分类一致性 [{dim}{track}] Krippendorff 失败: {_e}")
+            alpha = float('nan')
+        dim_res = {
+            'alpha': alpha,
+            'n_units_alpha': n_units_alpha,
+            'labels': label_values,
+            'members': [s for s, _ in members],
+        }
+        rows.append({'track': trk, 'dim': dim, 'metric': 'krippendorff_alpha',
+                     'pair': f'{dim} (all {len(members)} models)', 'value': alpha,
+                     'n_units': n_units_alpha,
+                     'key': f'cross_model_classification.{dim}.{trk}.alpha'})
+        for a in range(len(members)):
+            for b in range(a + 1, len(members)):
+                pair_key = f'kappa_{members[a][0]}_vs_{members[b][0]}'
+                m = (mat[a] >= 0) & (mat[b] >= 0)
+                n_pair = int(m.sum())
+                if n_pair < 2:
+                    # 一侧全缺标/交集不足 → 优雅 NaN (键仍产出, 锁 eval_report 契约稳定;
+                    # CSV 侧镜像 tone 版惯例不落无效行)
+                    dim_res[pair_key] = float('nan')
+                    dim_res[f'n_units_{pair_key}'] = n_pair
+                    continue
+                try:
+                    ck = compute_cohens_kappa(mat[a][m], mat[b][m])
+                    kv = ck.get('kappa') if isinstance(ck, dict) else ck
+                except Exception:  # noqa: BLE001
+                    kv = float('nan')
+                dim_res[pair_key] = kv
+                dim_res[f'n_units_{pair_key}'] = n_pair
+                rows.append({'track': trk, 'dim': dim, 'metric': 'cohen_kappa',
+                             'pair': f'{members[a][0]} vs {members[b][0]}', 'value': kv,
+                             'n_units': n_pair,
+                             'key': f'cross_model_classification.{dim}.{trk}.{pair_key}'})
+        nested[dim] = {trk: dim_res}
+        logger_inst.info(
+            f"  跨模型分类一致性 [{dim}{track}]: Krippendorff α={sig4(alpha)} "
+            f"(n_units={n_units_alpha:,}, 标签集={label_values}, "
+            f"成员={dim_res['members']})")
+    if not rows:
+        logger_inst.info(
+            "  跨模型分类一致性: 本轨无可算维度 (per-model 分类存档列缺席或 <2 有效"
+            "模型) — 优雅跳过, 不落盘 (生产机回填后自动产出)")
+        return nested
+    out_path = os.path.join(output_dir, f'classification_model_kappa{track}.csv')
+    pd.DataFrame(rows).to_csv(out_path, index=False, encoding='utf-8-sig')
+    logger_inst.info(
+        f"  跨模型分类一致性 (Krippendorff α + pairwise Cohen κ) 写入 {out_path} "
+        f"({len(rows)} 行)")
+    return nested
+
+
 def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
     """对指定轨道执行完整的三角验证流水线 (Plan-r3 P3-16 docstring 扩充)。
 
@@ -2383,6 +2554,17 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"跨模型 κ 计算跳过 (非致命): {_e}")
 
+    # 跨模型分类维度一致性 (2026-07-03, ROBUSTNESS_GAP_BACKFILL §2 A3): 三 LLM 分类维度
+    # (subst/locus/collab) 的 per-model 存档列逐维 Krippendorff α + pairwise Cohen κ
+    # (镜像上方 tone 版结构)。本机缺列优雅跳过 (INFO), 生产机回填后自动纳入; 诊断性,
+    # 不阻断主验证。返回 dict 稍后并入本轨 results JSON 的 'cross_model_classification' 键。
+    try:
+        cls_cross_model = compute_cross_model_classification_kappa(
+            df, track, output_dir, logger)
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"跨模型分类一致性计算跳过 (非致命): {_e}")
+        cls_cross_model = {}
+
     n_words = len(sentiment_cols['words'])
     n_bert = len(sentiment_cols['bert'])
     n_llm = len(llm_independent)
@@ -2443,6 +2625,12 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
         'within_method': {},
         'cross_method': {},
     }
+
+    # 跨模型分类维度一致性并入 eval_report JSON (2026-07-03, §2 A3) — 完整键路径:
+    # cross_model_classification.{dim}.{track}.{alpha|kappa_gpt54nano_vs_gemini31|...}。
+    # 缺列跳过时 (本机盘上无 per-model 分类列) 不写空键, 既有 JSON 结构零扰动; 不入面板。
+    if cls_cross_model:
+        results['cross_model_classification'] = cls_cross_model
 
     # 聚合投票列仅作对比基准单独报告 (不进入 α / 一致率 / 方法均值)
     if llm_aggregate_info is not None:

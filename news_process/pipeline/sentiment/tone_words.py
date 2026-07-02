@@ -1755,6 +1755,10 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
         merged['frac_fls_full'] = fls_full.get('frac_fls', float('nan'))
         merged['frac_fls_ctx'] = fls_ctx.get('frac_fls', float('nan'))
         merged['frac_fls_ss'] = fls_ss.get('frac_fls', float('nan'))
+        # 2026-07-03 §5 D2: 单门 (仅 future 词) 稳健臂 — 双门 canonical 的互为稳健性对照
+        merged['frac_fls_fonly_full'] = fls_full.get('frac_fls_fonly', float('nan'))
+        merged['frac_fls_fonly_ctx'] = fls_ctx.get('frac_fls_fonly', float('nan'))
+        merged['frac_fls_fonly_ss'] = fls_ss.get('frac_fls_fonly', float('nan'))
 
         return merged
 
@@ -1849,9 +1853,9 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     # ── v3.5.2 PR #3 (A1 LM 6 子词典 + A2 FLS) 三轨列提取 ──
     # A1: uncert_frac_{full,ctx,ss} / litig_frac_{full,ctx,ss} / constr_frac_{full,ctx,ss}
     #     / modal_strong_frac_{full,ctx,ss}
-    # A2: frac_fls_{full,ctx,ss}
+    # A2: frac_fls_{full,ctx,ss} + frac_fls_fonly_{full,ctx,ss} (2026-07-03 D2 单门稳健臂)
     # title 轨不纳入 (与 clarity 同款决策, R3-H1 锁定 — title 文本 < 50 字符); ss=银行+金科同句.
-    lm_a2_metric_cols = [f'{p}_frac' for p in SUBSET_PREFIXES] + ['frac_fls']
+    lm_a2_metric_cols = [f'{p}_frac' for p in SUBSET_PREFIXES] + ['frac_fls', 'frac_fls_fonly']
     for col in lm_a2_metric_cols:
         for track in ['_full', '_ctx', '_ss']:
             col_key = f'{col}{track}'
@@ -2327,15 +2331,16 @@ def main():
     except Exception as e:  # noqa: BLE001
         logger.warning(f"v3.5.1 A3 num_intensity enrich 失败 (graceful skip): {e}")
 
-    # nonpolarity-dims WS-B2: boilerplate_phrase_ratio_full 单轨 post-processor (语料级两遍).
-    # 跨文档高频套话短语命中率 (Lang-Stice-Lawrence 2015 JAE; Dyer-LSL 2017 JAE); 单轨 full
-    # (套话集口径在 ctx/ss 子窗口意义弱, by-design 延后); 语料=本 stage 输入子集 (如实披露)。
-    # 确定性纯 jieba/sklearn $0; 缺列/空套话集 graceful → 全 nan + WARNING (boilerplate 模块内)。
+    # nonpolarity-dims WS-B2: boilerplate_phrase_ratio_{full,ctx,ss} 三轨 post-processor
+    # (语料级两遍/轨; 2026-07-03 ROBUSTNESS_GAP_BACKFILL §4 WP-C 三轨化: full=headline,
+    # ctx/ss=互为稳健轨)。跨文档高频套话短语命中率 (Lang-Stice-Lawrence 2015 JAE; Dyer-LSL
+    # 2017 JAE); 语料=本 stage 输入子集 (如实披露)。确定性纯 sklearn $0;
+    # 缺列/空套话集 graceful → 该轨全 nan + WARNING (boilerplate 模块内, 逐轨独立)。
     try:
         from news_process.pipeline.sentiment.boilerplate import enrich_with_boilerplate
         _bp_col = 'content_full' if 'content_full' in processed_df.columns else '内容'
         processed_df = enrich_with_boilerplate(processed_df, text_col=_bp_col)
-        logger.info(f"nonpolarity-dims WS-B2: boilerplate 单轨派生完成 (语料={_bp_col})")
+        logger.info(f"nonpolarity-dims WS-B2: boilerplate 三轨派生完成 (full 轨语料={_bp_col} + ctx + ss)")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"WS-B2 boilerplate enrich 失败 (graceful skip): {e}")
     phase_durations['⑤派生增强(num_intensity+boilerplate)'] = time.time() - _t
