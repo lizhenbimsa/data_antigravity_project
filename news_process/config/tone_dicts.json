@@ -24486,6 +24486,7 @@
       "https://doi.org/10.1093/rof/rfab036",
       "数据下载地址：https://sites.google.com/site/alanguominghuang/research"
     ],
+    "_political_weight_note": "政治正面词(political_positive, 1,434个)以 0.5 权重计入正侧的两句话依据: ① 依据 Du et al. (2022, Review of Finance) 政治正面词信号弱于普通正面词的发现, 对该类词赋予降低的权重; ② 权重取 0.5 为研究者选择, 并做敏感性检验: 令政治词权重 ∈ {0.0, 0.5, 1.0} 三者互为稳健性、不分主次, 证明主结论不被这一取值驱动。落地见 pipeline/sentiment/tone_words.py::POLITICAL_WEIGHT_VARIANTS → 产 du_2022_score_polw{00,05,10} 三列 (polw05 ≡ canonical du_2022_score); 与规则消融梯度正交不交叉; 三权重禁混同一 over-identified Hansen J。本键为文档字段, loader 不消费。",
     "positive": [
       "TOP",
       "一专多能",

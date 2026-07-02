@@ -38,6 +38,13 @@ news_process.pipeline.sentiment.tone_words — 阶段22：基于词典的情感�
 │    └─ positive(1,295) / negative(3,729); 另含 5 类非极性词类   │
 └────────────────────────────────────────────────────────────┘
 
+政治词权重 0.5 的依据与敏感性检验 (du_2022 特有 political_positive 1,434 词, 计入正侧):
+    ① 依据 Du et al. (2022, Review of Finance) 政治正面词信号弱于普通正面词的发现, 对该类词
+       赋予降低的权重; ② 权重取 0.5 为研究者选择, 并做敏感性检验: 令政治词权重 ∈ {0.0, 0.5,
+       1.0} 三者互为稳健性、不分主次, 证明主结论不被这一取值驱动。落地 = §4B
+       ``POLITICAL_WEIGHT_VARIANTS`` → 三列 ``du_2022_score_polw{00,05,10}`` (polw05 ≡ canonical
+       ``du_2022_score``); 与规则消融梯度正交不交叉; ⚠ 三权重禁混同一 over-identified Hansen J。
+
 词典消歧 (用户决策 2026-06-24「保留并两侧计数」, 逆转 fix omni-g-tonewords-03/-07):
     加载时对每部词典的 positive∩negative 跨类重叠词 (jiang_2021 21 词 / you_2018 5 词 /
     loughran 23 词; loughran 原 61 词经 2026-06-24「两侧保留判断」消歧, 38 词已归单侧、
@@ -87,7 +94,7 @@ news_process.pipeline.sentiment.tone_words — 阶段22：基于词典的情感�
 
 **关键算法/公式**: 核心是 `_compute_sentiment_with_rules(tokens, dict, apply_negation, apply_degree, apply_adversative)` —— 逐 token 状态机施加语言学规则: 否定词翻转极性 (窗口 NEGATION_WINDOW=2 个分词单元)、程度副词六级权重缩放 (HowNet 六级体系 + Liu 2012, DEGREE_WORDS 由 config 注入)、转折连词后权重 ×ADVERSATIVE_BOOST(默认 1.5)、句末标点重置作用域 (Ding 2008 从句级)。最终分 = self-normalized Σ(final)/Σ|final| ∈ [-1,+1]。**negonly 消融变体**: `apply_degree=False & apply_adversative=False` 只保留否定翻转, 产 `{dict}_score_negonly`/`msent_negonly`, 用作'主结果对去掉程度/转折两条规则是否敏感'的稳健性 (实测 corr(full,negonly)≈0.998-0.999 高度共线, 是稳健性对照非独立信号)。另产 `pos_ratio`/`neg_ratio` (固定 union 词典计数 / word-token 数)、`msent_score`=(raw_neg−raw_pos)/(raw_pos+raw_neg) 原始极性计数 (零规则; framing ≈ Tetlock 2007/Garcia 2013/Henry 2008; 代码注 He et al. 2024 IRFA Eq.1)、clarity/可读性/词汇复杂度等 $0 测度族。
 
-**输出列**: 每部词典 × 三轨的 `{dict}_score/zscore/idf_score/idf_zscore`、**规则消融梯度 `{dict}_score_{raw,negonly,degonly,advonly,negdeg,negadv,degadv}`** (v3.11.1 全 powerset, 见 `_RULE_ABLATION_VARIANTS`)、跨词典 `pos_ratio/neg_ratio/msent_score/msent_negonly` (计数口径不入梯度: 程度/转折不翻号)、`num_intensity_{full,ctx,ss}`、可读性/复杂度列。
+**输出列**: 每部词典 × 三轨的 `{dict}_score/zscore/idf_score/idf_zscore`、**规则消融梯度 `{dict}_score_{raw,negonly,degonly,advonly,negdeg,negadv,degadv}`** (v3.11.1 全 powerset, 见 `_RULE_ABLATION_VARIANTS`)、**政治词权重敏感性梯度 `du_2022_score_{polw00,polw05,polw10}`** (du_2022 独有, 政治词权重 ∈ {0.0,0.5,1.0} 三者互为稳健性、不分主次, 见 §4B `POLITICAL_WEIGHT_VARIANTS`; polw05 ≡ canonical `du_2022_score`; 与规则消融正交不交叉)、跨词典 `pos_ratio/neg_ratio/msent_score/msent_negonly` (计数口径不入梯度: 程度/转折不翻号)、`num_intensity_{full,ctx,ss}`、可读性/复杂度列。
 
 **外部依赖**: jieba (`==0.42.1` 冻结); 纯 CPU, 无 LLM/网络/API, $0; 无缓存锚点 (确定性来自 jieba 版本 + 词典文件)。
 
@@ -426,6 +433,9 @@ def load_all_dictionaries() -> list[tuple[str, dict[str, float]]]:
 
     # 每次加载重建跨类重叠词注册表 (单一事实源; 防跨调用陈旧残留)。
     _BOTH_SIDED_BY_DICT.clear()
+    # 政治词权重变体缓存每加载失效 (镜像 both_sided / _UNION_DICT_CACHE 口径): 重载 → 词典
+    # 对象可能重建, 清缓存防 id 复用致陈旧变体 (生产单次加载亦无害; 关闭 id-reuse 理论风险)。
+    _POLW_DICT_CACHE.clear()
 
     dictionaries = []
     # v3.10.0: 第 6 部 = L&M 2011 JF 中文主译全本 (positive 1295 / negative 3729, 2026-06-24
@@ -469,7 +479,13 @@ def load_all_dictionaries() -> list[tuple[str, dict[str, float]]]:
         assert len(d) == len(pos_words | neg_words), (
             f"{dict_key}: 跨类重叠词保留后词条数不等于 |pos∪neg| (存在残余覆盖/漏词)")
 
-        # Du et al. (2022) 特有：政治正面词以较低权重 0.5 加入
+        # Du et al. (2022) 特有：政治正面词以较低权重 0.5 加入。
+        # ── 稳妥的两句话依据 (与 POLITICAL_WEIGHT_RATIONALE 同源; 论文/审稿披露照此表述) ──
+        #   ① 依据 Du et al. (2022, Review of Finance) 政治正面词信号弱于普通正面词的发现,
+        #      对该类词赋予降低的权重;
+        #   ② 权重取 0.5 为研究者选择, 并做敏感性检验: 令政治词权重 ∈ {0.0, 0.5, 1.0} 三者
+        #      互为稳健性、不分主次, 证明主结论不被这一取值驱动 (见 §4B POLITICAL_WEIGHT_VARIANTS;
+        #      产 du_2022_score_polw{00,05,10} 三列; 0.5 权重的语义唯一标识 = score==0.5)。
         for word in entry.get('political_positive', []):
             word = str(word).strip()
             if word and word not in d:  # 避免覆盖已有正面/负面/重叠词
@@ -491,7 +507,12 @@ def load_all_dictionaries() -> list[tuple[str, dict[str, float]]]:
                         f"(正面={pos_cnt}, 负面={neg_cnt}{_both_str})")
             # 各词典子类别详细统计
             if dict_key == 'du_2022' and pol_cnt > 0:
-                logger.info(f"    └─ political_positive: {pol_cnt} 词 (权重=0.5)")
+                logger.info(f"    └─ political_positive: {pol_cnt} 词 (权重=0.5, 计入正侧)")
+                # 两句话依据 + 敏感性检验说明 (运行期可审计; 单一事实源 = POLITICAL_WEIGHT_RATIONALE)
+                logger.info(f"    └─ 政治词权重依据: {POLITICAL_WEIGHT_RATIONALE}")
+                logger.info(f"    └─ 敏感性检验列: du_2022_score_{{{','.join(POLITICAL_WEIGHT_SUFFIXES)}}}"
+                            f" (权重 {[w for _, w in POLITICAL_WEIGHT_VARIANTS]}; 互为稳健性、不分主次;"
+                            f" polw05 ≡ canonical du_2022_score; ⚠ 禁混同一 over-identified Hansen J)")
         else:
             logger.info(f"  {dict_key} ({dict_name}): 空（待填充）")
 
@@ -820,6 +841,79 @@ _RULE_ABLATION_VARIANTS: list[tuple[str, bool, bool, bool]] = [
 
 # panel 聚合 / 标签 / 测试跨模块复用的 suffix 列 (单一事实源派生)。
 RULE_ABLATION_SUFFIXES: list[str] = [v[0] for v in _RULE_ABLATION_VARIANTS]
+
+
+# ============================================================================
+# 4B. 政治词权重敏感性梯度 (political-weight sensitivity) — du_2022 独有, 单一事实源
+# ============================================================================
+# Du et al. (2022) 把 political_positive (政治正面词) 单列为第三类, 生产口径以 0.5 权重
+# 计入正侧 (见 load_all_dictionaries)。本梯度把该权重作为一条**独立的稳健性轴**物化。
+#
+# ── 稳妥的两句话依据 (comments/logs 单一事实源; 论文/审稿披露照此表述) ──
+#   ① 依据 Du et al. (2022, Review of Finance) 政治正面词信号弱于普通正面词的发现,
+#      对该类词赋予降低的权重;
+#   ② 权重取 0.5 为研究者选择, 并做敏感性检验: 令政治词权重 ∈ {0.0, 0.5, 1.0} 三者
+#      **互为稳健性、不分主次**, 证明主结论不被这一取值驱动。
+POLITICAL_WEIGHT_RATIONALE: str = (
+    "依据 Du et al. (2022, Review of Finance) 政治正面词信号弱于普通正面词的发现, 对该类词"
+    "赋予降低的权重; 权重取 0.5 为研究者选择, 并做敏感性检验 (政治词权重 ∈ {0.0, 0.5, 1.0} "
+    "三者互为稳健性、不分主次), 证明主结论不被这一取值驱动。"
+)
+
+# 唯一含 political_positive 类的词典 (列前缀别名口径, 与 ALL_DICTIONARIES 元组 name 一致)。
+# 未来若新增含政治正面词的词典, 在此登记即自动获得三权重梯度 (无需改发射/聚合逻辑)。
+POLITICAL_WEIGHT_DICTS: frozenset[str] = frozenset({'du_2022'})
+
+# 三权重**co-equal**变体谱 (不分主次): 每项 = (suffix, political_weight)。
+#   article 列名 = ``du_2022_score_{suffix}{track}``  (写入 22_words_tone.parquet)
+#   panel  列名 = ``du_2022_{suffix}_tone{track}``     (encode.py bank-year mean)
+# polw05 (0.5) 与既有 canonical ``du_2022_score`` **字节一致** (同词典同规则), 显式并列
+# 物化只为"三权重同名对齐、robustness 表可无特判 loop"——canonical 无后缀列是历史命名
+# 产物, 不代表其为主 (镜像 co-primary 嵌入双轨: 无后缀槽 ≠ 主槽)。
+# ⚠ 本轴与 rule-ablation ladder **正交、不交叉** (避免 3×8 列爆炸): 三权重均在**全语言学
+#   规则** (否定/程度/转折) 下计算, 只变政治词权重这一个自由度。
+# ⚠ 铁律: 三权重互为稳健性, 各自 just-identified 并排, **禁混进同一 over-identified
+#   Hansen J** (与三轨 full/ctx/ss、co-primary 嵌入双轨同款铁律)。
+POLITICAL_WEIGHT_VARIANTS: list[tuple[str, float]] = [
+    # (suffix,  political_weight)
+    ('polw00', 0.0),   # 政治正面词剔除 (as-if-absent; 视作非情感词, 不进任何计数/幅度)
+    ('polw05', 0.5),   # Du et al. (2022, RoF) 弱信号折中 (≡ canonical du_2022_score)
+    ('polw10', 1.0),   # 政治正面词等同普通正面词 (全权正侧)
+]
+POLITICAL_WEIGHT_SUFFIXES: list[str] = [v[0] for v in POLITICAL_WEIGHT_VARIANTS]
+
+# 政治词权重变体词典缓存 (键 = (id(base_dict), suffix))。base 词典 (ALL_DICTIONARIES 里的
+# du_2022) 是进程级长生命对象 → id 稳定不复用; 每 (词典对象, 权重) 只构造一次, 避免逐篇
+# 重建 ~7k 词典 (生产千万级语料下的性能铁律)。monkeypatch 的测试词典亦按对象缓存。
+_POLW_DICT_CACHE: dict[tuple[int, str], dict[str, float]] = {}
+
+
+def _political_variant_dict(
+    base_dict: dict[str, float], suffix: str, weight: float
+) -> dict[str, float]:
+    """从 base 情感词典派生指定**政治词权重**的变体词典 (du_2022 政治正面词 = 0.5)。
+
+    政治正面词以 ``score == 0.5`` 唯一标识 (load_all_dictionaries 中正面=1.0/负面=−1.0/
+    跨类重叠占位=1.0/政治=0.5, 仅政治词取 0.5)。变体规则:
+      · weight == 0.0 → **剔除**政治词 (变体词典不含它们 → token 落非情感分支, 等同"该词
+        不在词典中"; 与保留 0.0 分同分同计数, 但剔除语义更干净, 见 4B 注释)。
+      · weight == 0.5 → 恒等于 base (canonical; 调用方通常已 short-circuit, 不会走到这)。
+      · 其它 (如 1.0) → 政治词 score 改写为 weight, 其余词条原样保留。
+
+    非政治词典 (无 0.5 词) → 三权重变体全恒等 base (无害)。结果按 (id(base), suffix) 缓存。
+    """
+    key = (id(base_dict), suffix)
+    cached = _POLW_DICT_CACHE.get(key)
+    if cached is not None:
+        return cached
+    if weight == 0.0:
+        variant = {w: s for w, s in base_dict.items() if s != 0.5}
+    elif weight == 0.5:
+        variant = dict(base_dict)
+    else:
+        variant = {w: (weight if s == 0.5 else s) for w, s in base_dict.items()}
+    _POLW_DICT_CACHE[key] = variant
+    return variant
 
 
 def _score_to_label(normalized_score: float, pos_threshold=0.1, neg_threshold=-0.1) -> str:
@@ -1320,6 +1414,10 @@ def _empty_article_result() -> dict:
         # rule-ablation 梯度 (v3.11.1, 全 powerset): 空文本 → NaN (缺失语义, 与 _score 对称)
         for _abl_sfx in RULE_ABLATION_SUFFIXES:
             result[f'{dict_name}_score_{_abl_sfx}'] = float('nan')
+        # 政治词权重梯度 (du_2022 only): 空文本 → NaN (与 ablation 对称)
+        if dict_name in POLITICAL_WEIGHT_DICTS:
+            for _polw_sfx in POLITICAL_WEIGHT_SUFFIXES:
+                result[f'{dict_name}_score_{_polw_sfx}'] = float('nan')
     result['sentiment_details'] = ''
 
     result['avg_sentence_len'] = 0.0
@@ -1390,6 +1488,10 @@ def _analyze_single_article(content: str, _precut: list | None = None) -> dict:
             # rule-ablation 梯度: 词典缺失时与 _score 一致回填 0.0 (本分支语义)
             for _abl_sfx in RULE_ABLATION_SUFFIXES:
                 result[f'{dict_name}_score_{_abl_sfx}'] = 0.0
+            # 政治词权重梯度 (du_2022 only): 词典缺失同回填 0.0 (与 ablation 同分支语义)
+            if dict_name in POLITICAL_WEIGHT_DICTS:
+                for _polw_sfx in POLITICAL_WEIGHT_SUFFIXES:
+                    result[f'{dict_name}_score_{_polw_sfx}'] = 0.0
             continue
 
         # 该词典的跨类重叠词集 (两侧计数; 用户决策 2026-06-24)。非重叠词典 → 空集 → 旧行为。
@@ -1417,6 +1519,22 @@ def _analyze_single_article(content: str, _precut: list | None = None) -> dict:
                 apply_negation=_abl_neg, apply_degree=_abl_deg, apply_adversative=_abl_adv,
                 both_sided_words=_bs)
             result[f'{dict_name}_score_{_abl_sfx}'] = round(_abl_norm, 4)
+
+        # ── 政治词权重敏感性 (du_2022 only) — 三权重互为稳健性、不分主次 ──
+        # ① 依据 Du et al. (2022, Review of Finance) 政治正面词信号弱于普通正面词的发现,
+        #    对该类词赋予降低的权重; ② 权重取 0.5 为研究者选择, 并做敏感性检验 (政治词权重
+        #    ∈ {0.0, 0.5, 1.0} 三者互为稳健性、不分主次), 证明主结论不被这一取值驱动。
+        # 三权重均在**全语言学规则**下计算 (与 rule-ablation 正交); polw05 ≡ 上方 {dict}_score
+        # (同词典同规则 → 字节一致, 不重算)。⚠ 三权重禁混同一 over-identified Hansen J。
+        if dict_name in POLITICAL_WEIGHT_DICTS:
+            for _polw_sfx, _polw_w in POLITICAL_WEIGHT_VARIANTS:
+                if _polw_w == 0.5:
+                    result[f'{dict_name}_score_{_polw_sfx}'] = round(norm_score, 4)
+                    continue
+                _polw_dict = _political_variant_dict(sentiment_dict, _polw_sfx, _polw_w)
+                _, _polw_norm, _, _, _ = _compute_sentiment_with_rules(
+                    tokens, _polw_dict, both_sided_words=_bs)
+                result[f'{dict_name}_score_{_polw_sfx}'] = round(_polw_norm, 4)
 
         # --- 单词典正/负面词频分离 ---
         # 学术依据: Garcia, D. (2013). Sentiment during recessions.
@@ -1684,6 +1802,12 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
             for _abl_sfx in RULE_ABLATION_SUFFIXES:
                 _abl_key = f'{dict_name}_score_{_abl_sfx}{track}'
                 new_columns[_abl_key] = _col(_abl_key, float('nan'))
+
+            # 政治词权重敏感性 score 提取 (du_2022 only; 三权重互为稳健性、不分主次; 缺则 NaN)
+            if dict_name in POLITICAL_WEIGHT_DICTS:
+                for _polw_sfx in POLITICAL_WEIGHT_SUFFIXES:
+                    _polw_key = f'{dict_name}_score_{_polw_sfx}{track}'
+                    new_columns[_polw_key] = _col(_polw_key, float('nan'))
 
     # sentiment_details 三轨提取 (full/ctx/ss); ss = 银行+金科同句轨
     new_columns['sentiment_details_full'] = _col('sentiment_details_full', '')

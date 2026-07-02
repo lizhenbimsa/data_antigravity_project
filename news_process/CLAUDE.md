@@ -40,6 +40,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **词典消融梯度** (v3.11.1): tone_words 三语言学规则 (否定翻转 / 程度副词 / 转折) 全 powerset 物化为消融变体 `{dict}_score_{raw,degonly,advonly,negdeg,negadv,degadv}` × 6 词典 × 3 轨 + 同名 panel 聚合 + geography `dict_avg_{sfx}_tone{track}`。各变体自归一化、非可加分解 (audit MATH-1: 高度共线 corr≈0.99, 报 corr 而非并入同式)。SSOT = `_RULE_ABLATION_VARIANTS`。
 
+**政治词权重敏感性** (du_2022 独有): `du_2022` 的 `political_positive`(1,434 词) 生产口径以 **0.5** 权重计入正侧。**两句话依据** (comments/logs/codebook/stata/tone_dicts.json 同源, SSOT=`tone_words.POLITICAL_WEIGHT_RATIONALE`): ① 依据 Du et al. (2022, *Review of Finance*, doi:10.1093/rof/rfab036) 政治正面词信号弱于普通正面词的发现, 对该类词赋予降低的权重; ② 权重取 0.5 为研究者选择, 并做敏感性检验: 令政治词权重 ∈ **{0.0, 0.5, 1.0}** 三者**互为稳健性、不分主次**, 证明主结论不被这一取值驱动。落地: `article: du_2022_score_polw{00,05,10}` / `panel: du_2022_polw{00,05,10}_tone{track}` (polw05 ≡ canonical `du_2022_score`/`du_2022_tone`, 无后缀为历史命名产物非"主"; 镜像 co-primary 嵌入双轨口径)。SSOT = `tone_words.POLITICAL_WEIGHT_VARIANTS` (byte-sync `encode.POLITICAL_WEIGHT_SUFFIXES`)。⚠ 与规则消融梯度**正交、不交叉** (三权重均在全语言学规则下算, 避免 3×8 列爆炸); ⚠ **铁律**: 三权重各自 just-identified 并排, **禁混进同一 over-identified Hansen J** (同三轨 / co-primary 嵌入铁律)。gate 测试 `tests/test_political_weight_ladder.py`。
+
 **已移除阶段** (勿引用, 详见 git history): EPU 宏观控制(原16) / BERTopic 主题(17) / 高管 NER(19) / risk_taking_outcomes(49) / llm_contamination_test(39h) / temporal_mask(38a) / track_discriminant(39g) / 独立 text2vec(30)+bge 本地嵌入轨。⚠ 勿误删仍活跃的 staleness/`article_sbert`/`news_salience`/`ceo_turnover_2yr`; provisional `.do` 模板里的 `z_score`/NPL/RWA 是占位变量名 (保留); `config/bank_list.yaml`、`fetch_llm_archive.py` 刻意保留。
 
 ## 确定性 / golden (铁律)

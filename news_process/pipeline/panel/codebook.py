@@ -220,6 +220,33 @@ def _rule_ablation_match(col: str):
     return (m.group(1), m.group(2)) if m else None
 
 
+# panel 列 du_2022_{polw*}_tone{track}: 政治词权重敏感性 (political-weight sensitivity, v3.15.x)。
+# Du et al. (2022, RoF) political_positive 生产口径 0.5 权重计入正侧; 0.5 为研究者选择, 故并排
+# 物化权重 ∈ {0.0,0.5,1.0} 三者互为稳健性、不分主次 (polw05 ≡ canonical du_2022_tone)。变体语义
+# 单一事实源 = tone_words.POLITICAL_WEIGHT_VARIANTS。⚠ 三权重禁混同一 over-identified Hansen J。
+_POLITICAL_WEIGHT_SFX_DESC = {
+    'polw00': '政治词权重 0.0 (剔除政治正面词)',
+    'polw05': '政治词权重 0.5 (Du et al. 2022 弱信号折中; ≡ canonical)',
+    'polw10': '政治词权重 1.0 (政治正面词全权正侧)',
+}
+_POLITICAL_WEIGHT_RE = re.compile(
+    r'^(du_2022)_(polw00|polw05|polw10)_tone(?:_(?:full|ctx|ss))?$')
+_POLITICAL_WEIGHT_CITATION = ('Du, Huang, Wermers & Wu (2022, Review of Finance, '
+                              'doi:10.1093/rof/rfab036)')
+_POLITICAL_WEIGHT_NOTE = (
+    '政治词权重敏感性 (du_2022 特有 political_positive): 依据 Du et al. (2022, RoF) 政治正面词'
+    '信号弱于普通正面词, 生产口径以 0.5 权重计入正侧; 0.5 为研究者选择, 故做敏感性检验 — 权重 '
+    '∈ {0.0, 0.5, 1.0} 的 bank-year 均值三者互为稳健性、不分主次 (polw05 ≡ du_2022_tone), 证明主'
+    '结论不被这一取值驱动。与规则消融梯度正交不交叉。⚠ 三权重禁混同一 over-identified Hansen J。'
+)
+
+
+def _political_weight_match(col: str):
+    """返回 (dict_name, suffix) 若 col 为政治词权重敏感性 panel 列 (du_2022_{polw*}_tone{track}), 否则 None。"""
+    m = _POLITICAL_WEIGHT_RE.match(col)
+    return (m.group(1), m.group(2)) if m else None
+
+
 # ============================================================================
 # 2. 变量元数据字典（完整版）
 # ============================================================================
@@ -1717,6 +1744,16 @@ def generate_codebook(
                                if (not _rn.strip() or _AUTO_INFER_NOTE in _rn)
                                else f'{_rn} {_RULE_ABLATION_NOTE}')
 
+        # 政治词权重敏感性 (du_2022 only): Du et al. (2022, RoF) 依据 + 不分主次披露 (独立 if)。
+        if _political_weight_match(col):
+            if not (row.get('学术引用', '') or '').strip():
+                row['学术引用'] = _POLITICAL_WEIGHT_CITATION
+            _pwn = row.get('备注', '') or ''
+            if '政治词权重敏感性' not in _pwn:
+                row['备注'] = (_POLITICAL_WEIGHT_NOTE
+                               if (not _pwn.strip() or _AUTO_INFER_NOTE in _pwn)
+                               else f'{_pwn} {_POLITICAL_WEIGHT_NOTE}')
+
         # fix(omni-g-codebook-06/-14/-01, 2026-06-11): 主键取值范围动态实测覆盖
         row = _apply_dynamic_value_ranges(row, col, panel)
 
@@ -1844,6 +1881,10 @@ def _infer_label(var_name: str) -> str:
     if _abl:
         _d = '跨词典均值' if _abl[0] == 'dict_avg' else _abl[0]
         return f'词典语调 {_d} · 规则消融:{_RULE_ABLATION_SFX_DESC[_abl[1]]}{track_suffix}'
+    # 政治词权重敏感性 (du_2022 only): rule-specific 标签, 亦须早于泛型 'tone' 分支
+    _polw = _political_weight_match(var_name)
+    if _polw:
+        return f'词典语调 {_polw[0]} · {_POLITICAL_WEIGHT_SFX_DESC[_polw[1]]}{track_suffix}'
     if 'tone' in var_name:
         return f'Sentiment Tone{track_suffix}'
     elif 'attn' in var_name or var_name.startswith('ft_vol'):
@@ -1874,6 +1915,10 @@ def _infer_description(var_name: str) -> str:
         return (f'{_d} 的规则消融梯度变体「{_RULE_ABLATION_SFX_DESC[_abl[1]]}」: '
                 f'状态机 Σ|final| 自归一化语调在 bank-year 的均值, 作语言学规则稳健性对照 '
                 f'(详见备注 audit MATH-1 非可加披露)。')
+    _polw = _political_weight_match(var_name)
+    if _polw:
+        return (f'词典 {_polw[0]} 的政治词权重敏感性变体「{_POLITICAL_WEIGHT_SFX_DESC[_polw[1]]}」: '
+                f'政治正面词权重在 bank-year 的均值。{_POLITICAL_WEIGHT_NOTE}')
     return f'变量 {var_name} 的详细描述（需要人工补充）'
 
 
@@ -1893,7 +1938,8 @@ def _infer_source_stage(var_name: str) -> str:
         return 'Stage 21'
     elif 'bert' in var_name:
         return 'Stage 23'
-    elif (_rule_ablation_match(var_name) or 'dict' in var_name or 'jiang' in var_name
+    elif (_rule_ablation_match(var_name) or _political_weight_match(var_name)
+          or 'dict' in var_name or 'jiang' in var_name
           or 'yao' in var_name or 'loughran' in var_name or 'modal_weak' in var_name
           or 'complexity' in var_name):
         # v3.10.0: loughran (L&M 第 6 部主词典) + LM 新非情感子集 modal_weak/complexity

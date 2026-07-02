@@ -576,6 +576,22 @@ def build_variable_labels(
                     HEURISTIC_LABELS[_abl_key] = (
                         f'Avg Tone {_abl_ref} ({_abl_desc}, {_abl_trk})')[:80]
 
+    # ═══ 政治词权重敏感性 "du_2022_{polw*}_tone{track}" 标签机械生成 (du_2022 only) ═══
+    # Du et al. (2022, RoF) political_positive 生产口径 0.5 权重; 敏感性检验并排三权重 {0,0.5,1.0}
+    # 互为稳健性、不分主次 (polw05 ≡ du_2022_tone canonical)。3 权重 × 3 轨 = 9 标签, ≤80 字节。
+    # 列名最长 du_2022_polw00_tone_full=24 ≤32 → 不被 shorten。⚠ 三权重禁混同一 over-identified Hansen J。
+    _POLW_VARIANT_DESC = {
+        'polw00': 'political-word wt=0.0, dropped',
+        'polw05': 'political-word wt=0.5, Du et al. 2022 default',
+        'polw10': 'political-word wt=1.0, full-positive',
+    }
+    for _polw_sfx, _polw_desc in _POLW_VARIANT_DESC.items():
+        for _polw_trk in ('full', 'ctx', 'ss'):
+            _polw_key = f'du_2022_{_polw_sfx}_tone_{_polw_trk}'
+            if _polw_key not in HEURISTIC_LABELS:
+                HEURISTIC_LABELS[_polw_key] = (
+                    f'Avg Tone Du et al. 2022 ({_polw_desc}, {_polw_trk})')[:80]
+
     for col in df.columns:
         # fix(omni-g-stata-export-05/09, 2026-06-11): 改名列先按原名查
         # (meta/HEURISTIC 以原始 panel 名为键), 短名兜底, fallback 用原名

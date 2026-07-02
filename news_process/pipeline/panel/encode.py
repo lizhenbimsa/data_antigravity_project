@@ -69,6 +69,16 @@ DICT_NAMES = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018', 'lou
 # 不翻号 → msent 退化, 见 tone_words._RULE_ABLATION_VARIANTS 注释)。
 RULE_ABLATION_SUFFIXES = ['raw', 'negonly', 'degonly', 'advonly', 'negdeg', 'negadv', 'degadv']
 
+# 政治词权重敏感性后缀 (byte-sync with tone_words.POLITICAL_WEIGHT_SUFFIXES; 测试
+# test_political_weight_ladder 强制一致, 否则聚合静默漏列→全 NaN)。du_2022 独有
+# (唯一含 political_positive 类的词典; 见 tone_words.POLITICAL_WEIGHT_DICTS); 三权重
+# {0.0,0.5,1.0} 互为稳健性、不分主次, polw05 ≡ canonical du_2022_tone。与规则消融正交
+# 不交叉 (避免列爆炸)。⚠ 三权重禁混同一 over-identified Hansen J。
+POLITICAL_WEIGHT_SUFFIXES = ['polw00', 'polw05', 'polw10']
+# 含 political_positive 类的词典 (set-equal tone_words.POLITICAL_WEIGHT_DICTS; 列表口径镜像
+# DICT_NAMES, 可迭代 → 未来新增第二部政治词典时聚合自动覆盖, 无漏列)。
+POLITICAL_WEIGHT_DICTS = ['du_2022']
+
 # BERT 模型 short_name 列表与分类数（从 sentiment_analysis.tone_berts.models 读取）
 _bert_cfg = CONFIG.get('sentiment_analysis', {}).get('tone_berts', {}).get('models', [])
 BERT_MODELS = [m['short_name'] for m in _bert_cfg] if _bert_cfg else ['finbert_cn', 'fin_sent_zh', 'finbert2']
@@ -722,6 +732,17 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
         for _abl_sfx in RULE_ABLATION_SUFFIXES:
             for d in DICT_NAMES:
                 agg[f'{d}_{_abl_sfx}_tone{track}'] = (f'{d}_score_{_abl_sfx}{track}', 'mean')
+
+        # --- C4. 词典法政治词权重敏感性 (political-weight sensitivity, du_2022 only) ---
+        # Du et al. (2022, RoF) 政治正面词信号弱于普通正面词 → 生产口径 0.5 权重计入正侧;
+        # 0.5 为研究者选择, 故做敏感性检验: 政治词权重 ∈ {0.0,0.5,1.0} 的 bank-year 均值三者
+        # **互为稳健性、不分主次** (polw05 ≡ du_2022_tone canonical, 历史命名产物非"主")。三权重
+        # 均在全语言学规则下算, 与 rule-ablation 正交、**不交叉** (避免 3×8 列爆炸)。列名最长
+        # du_2022_polw00_tone_full=24 ≤32。⚠ 三权重禁混同一 over-identified Hansen J。
+        for _polw_d in POLITICAL_WEIGHT_DICTS:
+            for _polw_sfx in POLITICAL_WEIGHT_SUFFIXES:
+                agg[f'{_polw_d}_{_polw_sfx}_tone{track}'] = (
+                    f'{_polw_d}_score_{_polw_sfx}{track}', 'mean')
 
         # --- D. BERT 逐模型 ---
         for short in BERT_MODELS:
