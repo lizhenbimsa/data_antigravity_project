@@ -97,13 +97,17 @@ inference:
     # 三轨 (full/ctx/ss) 互为稳健性, 高相关孪生; ss = 银行+金科同句共现轨 (content_ss, 标签 "(银行+金科同句)")。
     sentiment_tracks: [llm_vote_tone_full, llm_vote_tone_ctx, llm_vote_tone_ss]   # full(主)×ctx×ss 三轨 (互为稳健性, 高相关孪生; full-only 2026-06-29 后 full 为主轨)
     sentiment_methods: [llm, dictionary, bert]                  # 三法三角 robustness battery (L&M 2011)
-    cross_model: [gpt54nano, gemini31, deepseekv4]           # LLM 跨模型 robustness
+    cross_model: [gpt54nano, gemini31, deepseekv4]           # LLM 跨模型 robustness (co-equal 互为稳健, 不分主次; llm_vote=共识 headline)
+    cross_bert_model: [finbert_cn, fin_sent_zh, finbert2]    # BERT 跨模型 robustness (co-equal 互为稳健, 不分主次)
+    # ⚠ documentation-only (2026-07-02): cross_model/cross_bert_model 记录受校正族; 运行时无消费者,
+    #    真 FWER 由根级 rwolf 模板 27_tableA12_cross_model_fwer 计算 (family 硬编码)。⚠ 各家/各模型
+    #    just-identified 并排, 禁混同一 over-identified Hansen J (同三轨 / co-primary 嵌入 / 政治词权重)。
     weighting: [equal, value, media, herd]                      # EW vs VW/MW/HW 加权聚合
     outcomes: [funding_cost, loan_growth, roa, tobin_q]         # primary + secondary (secondary 标 exploratory)
   fwer:
     method: romano_wolf                 # Romano-Wolf 2005 ECMA stepdown (rwolf / wyoung 实现)
-    apply_to: [sentiment_methods, weighting, outcomes]   # 跨族多检验报校正后 p
-    note: "异质性 / 替代测度 / 多 outcome 族报 FWER 校正后 p; 主 confirmatory 系数不校正 (单一假设)"
+    apply_to: [sentiment_methods, cross_model, cross_bert_model, weighting, outcomes]   # 记录受校正族 (documentation)
+    note: "异质性 / 替代测度 / 多 outcome / 跨模型族报 FWER 校正后 p (rwolf); 主 confirmatory 系数不校正 (单一假设)。⚠ cross_model/cross_bert_model 为声明式文档, 运行时无消费者, 真 FWER 由根级模板 27_tableA12_cross_model_fwer 计算 (family 硬编码)"
   cluster:
     primary: bank_id                    # headline 聚类层级 (firm-level)
     robustness: [bank_city, bank_province]   # 地理层级递进 (检验 10); 省级 G<50 须 wild bootstrap

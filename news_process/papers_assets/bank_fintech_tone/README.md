@@ -33,7 +33,7 @@ papers_assets/bank_fintech_tone/
 
 | 层 | 交付 |
 |---|---|
-| Stata | **19 .do.tmpl @ `_common/stata_templates/`** (主线 root-level; v3.2.0 M7 原 14, 后经 IV 补全/agg-audit/FE-saturation/era-stability 扩至 19) + 1874 行 falsification template (论文专属) |
+| Stata | **20 .do.tmpl @ `_common/stata_templates/`** (主线 root-level; v3.2.0 M7 原 14, 后经 IV 补全/agg-audit/FE-saturation/era-stability 扩至 19, 2026-07-02 +27_tableA12 跨模型 FWER → 20) + 1874 行 falsification template (论文专属) |
 | Python | `tables.py` Table 1 + `figures.py` Figure 1 |
 | 复现包 | `python -m news_process.papers._common.stata_runner build-replication --locus lc --subst sf --sent ctx` |
 | Manuscript | en (114 行 / 12 处 \NoteThis{} 占位) + zh 双语骨架 + refs.bib |

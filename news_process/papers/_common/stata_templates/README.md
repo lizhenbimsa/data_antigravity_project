@@ -83,8 +83,9 @@ This directory hosts `.do.tmpl` Stata script templates with placeholder substitu
 | `32_tableA8_fe_saturation_robust_est.do.tmpl` | Table A8: FE Saturation + Est-Robust | FE 饱和阶梯 + qreg / rreg |
 | `33_tableA9_subsample_timing.do.tmpl` | Table A9: Subsample + Timing | 子样本 + L1/lead 安慰剂时序 |
 | `34_tableA11_era_stability.do.tmpl` | Table A11: Era Stability | 2007-2024 跨年代稳定性 |
+| `27_tableA12_cross_model_fwer.do.tmpl` | Table A12: Cross-Model FWER | LLM 三家 tone / BERT 三模型 net_tone 各族 Romano-Wolf (互为稳健性; wire-ahead) |
 
-**总计**: **19/19 模板完整交付** ✓ (v3.2.0 基线 14; v3.7.3 曾新增的 `25_tableA8_title_robustness` 已随 remove-title-track 删除; 2026-06-13/06-14 +5 = IV-2SLS / aggregation / FE-saturation+est-robust / subsample-timing / era-stability)
+**总计**: **20/20 模板完整交付** ✓ (v3.2.0 基线 14; v3.7.3 曾新增的 `25_tableA8_title_robustness` 已随 remove-title-track 删除; 2026-06-13/06-14 +5 = IV-2SLS / aggregation / FE-saturation+est-robust / subsample-timing / era-stability; 2026-07-02 +1 = `27_tableA12_cross_model_fwer` 跨模型 FWER)
 
 ## CLI 命令 (v3.2.0 M7 + M4/7)
 

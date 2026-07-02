@@ -619,6 +619,45 @@ def build_variable_labels(
                 HEURISTIC_LABELS[_polw_key] = (
                     f'Avg Tone Du et al. 2022 ({_polw_desc}, {_polw_trk})')[:80]
 
+    # ═══ per-model 逐模型语调标签机械生成 (互为稳健性, 2026-07-02) ═══
+    # LLM 三家 {short}_tone/... 与 BERT 三模型 {short}_pos/neg/neu/net_tone (+加权 _vw/_mw/_hw),
+    # SSOT = encode.LLM_MODELS/BERT_MODELS (函数级局部 import, 免模块级循环导入)。不加此块则
+    # build_variable_labels 对 per-model 列落 fallback(列名) → test_{llm,bert}_model_robustness 的
+    # "非 fallback"断言会红。覆盖 = matcher 域 (metric×weight×track); 多余键无害(仅列存在时被查)。
+    # ⚠ per-model co-equal 互为稳健、不分主次; llm_vote_tone = 共识 headline; 禁混同一 over-identified Hansen J。
+    from news_process.pipeline.panel.encode import BERT_MODELS as _PM_BERT
+    from news_process.pipeline.panel.encode import LLM_MODELS as _PM_LLM
+    _PM_TRACKS = ('full', 'ctx', 'ss')
+    _PM_WEIGHT_EN = {'': '', '_vw': ' [value-wt]', '_mw': ' [media-wt]', '_hw': ' [herd-wt]'}
+    _PM_LLM_METRIC_EN = {
+        'tone': 'tone', 'tone_sum': 'tone sum', 'tone_std': 'tone SD',
+        'cont_mean': 'continuous mean', 'cont_sum': 'continuous sum'}
+    _PM_BERT_METRIC_EN = {
+        'net_tone': 'net-tone(pos-neg)', 'pos': 'P(pos)', 'neg': 'P(neg)', 'neu': 'P(neu)',
+        'pos_sum': 'P(pos) sum', 'neg_sum': 'P(neg) sum', 'neu_sum': 'P(neu) sum',
+        'pos_std': 'P(pos) SD'}
+    for _pm_model in _PM_LLM:
+        for _pm_metric, _pm_en in _PM_LLM_METRIC_EN.items():
+            for _pm_w, _pm_wen in _PM_WEIGHT_EN.items():
+                for _pm_trk in _PM_TRACKS:
+                    _pm_key = f'{_pm_model}_{_pm_metric}{_pm_w}_{_pm_trk}'
+                    if _pm_key not in HEURISTIC_LABELS:
+                        HEURISTIC_LABELS[_pm_key] = (
+                            f'LLM {_pm_model} per-model {_pm_en}{_pm_wen} ({_pm_trk})')[:80]
+    for _pm_model in _PM_BERT:
+        for _pm_metric, _pm_en in _PM_BERT_METRIC_EN.items():
+            for _pm_w, _pm_wen in _PM_WEIGHT_EN.items():
+                for _pm_trk in _PM_TRACKS:
+                    _pm_key = f'{_pm_model}_{_pm_metric}{_pm_w}_{_pm_trk}'
+                    if _pm_key not in HEURISTIC_LABELS:
+                        HEURISTIC_LABELS[_pm_key] = (
+                            f'BERT {_pm_model} per-model {_pm_en}{_pm_wen} ({_pm_trk})')[:80]
+    # G2: llm_vote_tone_{track} 共识 headline (full/ctx 另有 codebook metadata 优先; _ss 现缺 → 补)
+    for _vt in _PM_TRACKS:
+        _vk = f'llm_vote_tone_{_vt}'
+        if _vk not in HEURISTIC_LABELS:
+            HEURISTIC_LABELS[_vk] = f'LLM ensemble vote tone (canonical headline, {_vt})'[:80]
+
     for col in df.columns:
         # fix(omni-g-stata-export-05/09, 2026-06-11): 改名列先按原名查
         # (meta/HEURISTIC 以原始 panel 名为键), 短名兜底, fallback 用原名

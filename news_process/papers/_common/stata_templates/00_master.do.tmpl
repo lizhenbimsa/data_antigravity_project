@@ -58,6 +58,9 @@ if _rc display as error "[WARN] 25_tableA6_tone_iv_2sls.do failed (rc=`=_rc'); T
 * 2026-06-13 聚合层审计补全: 加权聚合(EW vs VW/MW/HW) + 推断(双向聚类/boottest) + 覆盖筛选
 capture noisily do "code/26_tableA7_aggregation_robustness.do"
 if _rc display as error "[WARN] 26_tableA7_aggregation_robustness.do failed (rc=`=_rc'); Table A7 skipped"
+* 2026-07-02 互为稳健性 option B: 跨模型 FWER (LLM 三家 tone / BERT 三模型 net_tone 各族 Romano-Wolf; wire-ahead)
+capture noisily do "code/27_tableA12_cross_model_fwer.do"
+if _rc display as error "[WARN] 27_tableA12_cross_model_fwer.do failed (rc=`=_rc'); Table A12 skipped"
 * 2026-06-14 顶刊稳健性扩充: FE 饱和阶梯 + 离群稳健估计 (Table A8) / 网络·类型子样本 + 时序-lead 安慰剂 (Table A9)
 capture noisily do "code/32_tableA8_fe_saturation_robust_est.do"
 if _rc display as error "[WARN] 32_tableA8_fe_saturation_robust_est.do failed (rc=`=_rc'); Table A8 skipped"

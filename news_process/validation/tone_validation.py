@@ -2245,6 +2245,75 @@ def main():
     logger.info(f"--- 阶段执行完毕: {STAGE_NAME} (三轨模式) ---")
 
 
+_KAPPA_LABEL_CODE = {'负面': 0, '中性': 1, '正面': 2}  # 非负码 (避 Krippendorff -1 缺标哨兵与负面=-1 冲突)
+
+
+def compute_cross_model_kappa(df: pd.DataFrame, sentiment_cols: dict, track: str,
+                              output_dir: str, logger_inst) -> None:
+    """跨模型 chance-corrected 一致性 (2026-07-02, 互为稳健性 Phase 3)。
+
+    LLM 三家 (独立模型, 剔除 'llm' 投票聚合) 一组 + BERT 三模型一组, 各算 Krippendorff α
+    (名义尺度, 缺标感知 → 天然容 finbert2 2-vs-3 分类失配, 无需二值化/丢中性) + pairwise
+    Cohen κ。复用 llms_evaluation 既有 canonical 函数; 对齐 manuscript.tex (Cohen κ + Krippendorff α)。
+
+    ⚠ 标签重映射**非负码** (负面=0/中性=1/正面=2): compute_krippendorffs_alpha 以 -1 为缺标哨兵,
+      与 encode.SENTIMENT_MAP 负面=-1 冲突, 直接传原码会静默把所有负面当缺失丢弃 → α 虚高。
+    ⚠ ratings_matrix 形状 = (n_coders, n_items) (raters × items, 非 items × raters)。
+    golden-safe (仅产 eval_reports/sentiment_model_kappa{track}.csv, 不改 panel)。
+    """
+    from news_process.validation.llms_evaluation import (
+        compute_cohens_kappa,
+        compute_krippendorffs_alpha,
+    )
+
+    groups = {
+        'LLM': [(n, info['sentiment']) for n, info in sentiment_cols.get('llm', {}).items()
+                if n != 'llm'],  # 剔除投票聚合 'llm' — 它是三家的确定性合成, 非独立评分员
+        'BERT': [(n, info['label']) for n, info in sentiment_cols.get('bert', {}).items()],
+    }
+    trk = track.lstrip('_') or 'full'
+    rows = []
+    for gname, members in groups.items():
+        members = [(n, c) for n, c in members if c in df.columns]
+        if len(members) < 2:
+            logger_inst.info(f"  跨模型 κ [{gname}]: 有效成员 <2, 跳过")
+            continue
+        # (n_coders, n_items) 非负码矩阵; -1 = 该模型对该文章缺标 (finbert2 无中性=类别子集,
+        # 由 Krippendorff 名义尺度天然处理, 非缺标)。
+        mat = np.full((len(members), len(df)), -1, dtype=int)
+        for j, (_, col) in enumerate(members):
+            codes = df[col].map(_KAPPA_LABEL_CODE)
+            mat[j, :] = codes.fillna(-1).astype(int).to_numpy()
+        n_units = int(((mat >= 0).sum(axis=0) >= 2).sum())
+        try:
+            alpha = compute_krippendorffs_alpha(mat)
+        except Exception as _e:  # noqa: BLE001 — 诊断性
+            logger_inst.warning(f"  跨模型 κ [{gname}] Krippendorff 失败: {_e}")
+            alpha = float('nan')
+        rows.append({'track': trk, 'group': gname, 'metric': 'krippendorff_alpha',
+                     'pair': f'{gname} (all {len(members)} models)', 'value': alpha,
+                     'n_units': n_units})
+        for a in range(len(members)):
+            for b in range(a + 1, len(members)):
+                m = (mat[a] >= 0) & (mat[b] >= 0)
+                if int(m.sum()) < 2:
+                    continue
+                try:
+                    ck = compute_cohens_kappa(mat[a][m], mat[b][m])
+                    kv = ck.get('kappa') if isinstance(ck, dict) else ck
+                except Exception:  # noqa: BLE001
+                    kv = float('nan')
+                rows.append({'track': trk, 'group': gname, 'metric': 'cohen_kappa',
+                             'pair': f'{members[a][0]} vs {members[b][0]}', 'value': kv,
+                             'n_units': int(m.sum())})
+    if not rows:
+        logger_inst.info("  跨模型 κ: 无可算组 (每组需 ≥2 有效模型), 跳过")
+        return
+    out_path = os.path.join(output_dir, f'sentiment_model_kappa{track}.csv')
+    pd.DataFrame(rows).to_csv(out_path, index=False, encoding='utf-8-sig')
+    logger_inst.info(f"  跨模型 κ (Krippendorff α + Cohen κ) 写入 {out_path} ({len(rows)} 行)")
+
+
 def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
     """对指定轨道执行完整的三角验证流水线 (Plan-r3 P3-16 docstring 扩充)。
 
@@ -2306,6 +2375,13 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
     llm_independent = {name: info for name, info in sentiment_cols['llm'].items()
                        if name != 'llm'}
     llm_aggregate_info = sentiment_cols['llm'].get('llm')
+
+    # 跨模型 chance-corrected 一致性 (2026-07-02, 互为稳健性 Phase 3): Krippendorff α + Cohen κ
+    # (LLM 三家独立 / BERT 三模型各一组), 对齐 manuscript.tex。golden-safe; 诊断性, 不阻断主验证。
+    try:
+        compute_cross_model_kappa(df, sentiment_cols, track, output_dir, logger)
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"跨模型 κ 计算跳过 (非致命): {_e}")
 
     n_words = len(sentiment_cols['words'])
     n_bert = len(sentiment_cols['bert'])

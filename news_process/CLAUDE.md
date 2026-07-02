@@ -40,6 +40,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **词典消融梯度** (v3.11.1): tone_words 三语言学规则 (否定翻转 / 程度副词 / 转折) 全 powerset 物化为消融变体 `{dict}_score_{raw,degonly,advonly,negdeg,negadv,degadv}` × 6 词典 × 3 轨 + 同名 panel 聚合 + geography `dict_avg_{sfx}_tone{track}`。各变体自归一化、非可加分解 (audit MATH-1: 高度共线 corr≈0.99, 报 corr 而非并入同式)。SSOT = `_RULE_ABLATION_VARIANTS`。
 
+**LLM 三家 / BERT 三模型互为稳健性** (2026-07-02): 情感三法各自的 per-model 子测度并排为「互为稳健性、不分主次」轨 (镜像政治词权重梯度)。**LLM**: `llm_vote_tone` (三家多数投票共识) = canonical headline (P1 `treatment.primary`); 三 per-model `{gpt54nano,gemini31,deepseekv4}_tone{track}` = co-equal 跨厂商稳健 (另有均值-ensemble `llm_models_avg_tone`, `geography.py`)。**BERT**: 三 per-model `{finbert_cn,fin_sent_zh,finbert2}` co-equal, 无 ensemble headline; Phase 2 加 signed `{short}_net_tone{track}` = mean(pos)−mean(neg) ∈ [−1,1] (`encode.py` post-agg, +9 列, golden 重生 DEFERRED)。**per-model 独立降级** (finbert2 缺席仅掉自身族, **非** co-primary 嵌入的 both-or-neither)。SSOT = `encode.LLM_MODELS`/`BERT_MODELS` (codebook 模块级 import 复用防漂移); `_infer_source_stage` 用**宽前缀** (`deepseekv4_*`/`fin_sent_zh_*` 无 llm/bert 子串)。⚠ **铁律**: 各家/各模型各自 just-identified 并排, **禁混同一 over-identified Hansen J** (同三轨 / co-primary 嵌入 / 政治词权重)。真 FWER = 根级 rwolf 模板 `27_tableA12_cross_model_fwer` (paper_spec 的 `cross_model`/`cross_bert_model` 是**声明式文档**, 运行时无消费者); Table A5 跨模型 β 须 z-score 标准化 (2/3 分类 net_tone 原始方差不同)。模型间一致性 = `tone_validation.py` 复用 `llms_evaluation.compute_krippendorffs_alpha` (名义+缺标感知, 容 2-vs-3 分类) + Cohen κ (⚠ 须先重映射非负码, `-1` 缺标哨兵与负面标签冲突)。gate: `tests/test_{llm,bert}_model_robustness.py`。执行计划 = `scripts/audit/LLM_BERT_MUTUAL_ROBUSTNESS_EXECUTION_PLAN_2026-07-02.md`。
+
 **政治词权重敏感性** (du_2022 独有): `du_2022` 的 `political_positive`(1,434 词) 生产口径以 **0.5** 权重计入正侧。**两句话依据** (comments/logs/codebook/stata/tone_dicts.json 同源, SSOT=`tone_words.POLITICAL_WEIGHT_RATIONALE`): ① 依据 Du et al. (2022, *Review of Finance*, doi:10.1093/rof/rfab036) 政治正面词信号弱于普通正面词的发现, 对该类词赋予降低的权重; ② 权重取 0.5 为研究者选择, 并做敏感性检验: 令政治词权重 ∈ **{0.0, 0.5, 1.0}** 三者**互为稳健性、不分主次**, 证明主结论不被这一取值驱动。落地: `article: du_2022_score_polw{00,05,10}` / `panel: du_2022_polw{00,05,10}_tone{track}` (polw05 ≡ canonical `du_2022_score`/`du_2022_tone`, 无后缀为历史命名产物非"主"; 镜像 co-primary 嵌入双轨口径)。SSOT = `tone_words.POLITICAL_WEIGHT_VARIANTS` (byte-sync `encode.POLITICAL_WEIGHT_SUFFIXES`)。⚠ 与规则消融梯度**正交、不交叉** (三权重均在全语言学规则下算, 避免 3×8 列爆炸); ⚠ **铁律**: 三权重各自 just-identified 并排, **禁混进同一 over-identified Hansen J** (同三轨 / co-primary 嵌入铁律)。gate 测试 `tests/test_political_weight_ladder.py`。
 
 **已移除阶段** (勿引用, 详见 git history): EPU 宏观控制(原16) / BERTopic 主题(17) / 高管 NER(19) / risk_taking_outcomes(49) / llm_contamination_test(39h) / temporal_mask(38a) / track_discriminant(39g) / 独立 text2vec(30)+bge 本地嵌入轨。⚠ 勿误删仍活跃的 staleness/`article_sbert`/`news_salience`/`ceo_turnover_2yr`; provisional `.do` 模板里的 `z_score`/NPL/RWA 是占位变量名 (保留); `config/bank_list.yaml`、`fetch_llm_archive.py` 刻意保留。
@@ -51,10 +53,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **golden 重生 DEFERRED 到生产语料机** (本机 data/raw 空、T=2、无生产语料、付费不可逆); 完整付费 LLM 重处理 (stage 21 全量重跑) 须先过 **M0 审批门**。重生须 `PYTHONHASHSEED=0` + 全 BLAS 线程钉 1 (`MKL_NUM_THREADS`/`OPENBLAS_NUM_THREADS`/`NUMEXPR`/`OMP_NUM_THREADS`=1)。3 个网络中心度列 (`bank_clustering` / `bank_cfbetween_cent` / `bank_harmonic_cent`) BLAS-FP 非确定 → 验零漂移须排除。换模/改测度类改动 golden **零字节安全**须受控全量重生; manuscript 须披露厂商维度 Google→阿里 Qwen 与 full-only 数值副作用 (`n_articles`/`fintech_share`/`attention_pct` 收缩, 均非 bug)。
 - **本机验证套路**: 改测度类改动本机不动 parquet → 用 baseline-stash A/B 差分证"0 新增失败"(committed golden 本就陈旧, T=2 dev 不新增红灯)。
 - **Disk 状态**: ~172 行 (86 banks × 2 years 2017–2018, T=2 dev); 最宽 dta ≈ 2782 列 (随重生漂移, 以实读为准)。真实全量 = 1700 万条 / 2007–2024 / T=18。
+- **原始语料普查** (stage 00 `raw_census`, 2026-06-29, 过滤·去重**之前**全量): 183 去重源文件 / **18,198,978 条**媒体报道 / 2007-01-01 ~ 2025-12-31 / **3,740 家媒体来源** (outlet count, 全类型未过滤); 媒体类型=报纸的报道**占全部行 92.93%** (16,912,361 行) 保留、其余类型 (通讯社/杂志/政府/网页等) 按行剔除; 精确唯一 18,177,370 (重复率 0.12%)。⚠ 递归全量口径 (供论文 data appendix), **≠** stage 00 非递归 `data_excel/*.xlsx` 实处理量, 也 **≠** 上行"1700 万目标语料"(过滤后 / 2007–2024, 两套口径不可混用)。全表见 `build/manual_facts/key_stats.md`。
 
 ## CLI 子命令 (`python -m news_process.papers._common.stata_runner <cmd>`)
 
-- `build-replication`: 一键 instantiate 19 个根级 `.do` 模板 + spec 替换 (构建复现包的规范入口)。
+- `build-replication`: 一键 instantiate 20 个根级 `.do` 模板 + spec 替换 (构建复现包的规范入口; 2026-07-02 +27_tableA12_cross_model_fwer)。
 - `list-templates [--verbose]`: 模板清单 + 占位符 inventory。
 - `doctor [--verbose]`: 6 段诊断 (Python 依赖 / pipeline 数据 / LLM cache / LLM API / Stata bin / Stata ado 包)。
 - `verify-replication <path>`: 5 段验证 replication 包结构。
@@ -197,7 +200,7 @@ Start-Process -FilePath $exe -ArgumentList '/b','do','"<绝对路径\x.do>"' `
 ### 容量 / 模板
 - MP 硬上限远未触顶 (maxvar 120,000; 当前最宽 panel ≈2782 列)。**core/aux IC 双切分已整体退役** (2026-06-21: 单一全列 `.dta`, codebook 无 `is_core`) — **勿**在模板硬编码"前 N 列"截断。行数瓶颈在面板深度 (T=2), 不在 Stata 容量。
 - 跑稳健性 battery (`bootstrap`/`rwolf`/`ritest`/`csdid` wild bootstrap) 本机按 license 自动拉满 (`set processors 64`); `matsize` 在 Stata 19 已自动管理 (`reghdfe`/`ivreg2` 走 Mata 不受约束)。
-- **142 个 `.do.tmpl`** (计数口径 = `papers/_common/stata_templates/` rglob, 见 `test_papers_b_route.py`) = 主线 19 + 8 个 paper 子目录 120 + 历史归档 3; provisional 两篇另 15 不计入。统一头部 `version 19` + `clear all` + `set maxvar 32767` + `set linesize 120`。
+- **146 个 `.do.tmpl`** (计数口径 = `papers/_common/stata_templates/` rglob, 见 `test_papers_b_route.py`) = 主线 20 (含 2026-07-02 cross-model FWER `27_tableA12`) + 8 个 paper 子目录 123 (含 _allv 3: benefit/strategic/substance) + 历史归档 3; provisional 两篇另 15 不计入。统一头部 `version 19` + `clear all` + `set maxvar 32767` + `set linesize 120`。
 - pyreadstat 写 `.dta` 用 **format version 118** (文件格式 spec 编号, 非 Stata 应用版本; Stata 19 读取无限制, 勿与 `version 19` 混淆)。
 
 ## Known Issues & Workarounds

@@ -43,6 +43,12 @@ import pandas as pd
 from news_process.core.config import load_config
 from news_process.core.logging import pct4, sig4
 
+# 互为稳健性 (2026-07-02): per-model SSOT 从 encode 单一事实源**模块级**导入 (供
+# _LLM_MODEL_RE/_BERT_MODEL_RE matcher 与 _infer_source_stage 宽前缀路由用; encode↔codebook
+# 无循环导入)。⚠ 勿依赖 get_variable_metadata_dict 内 :~684 的函数级局部别名导入
+# (_ISS_LLM_MODELS) — 那对模块级 matcher / _infer_source_stage 不可见 → NameError。
+from news_process.pipeline.panel.encode import BERT_MODELS, LLM_MODELS
+
 # 初始化配置和日志
 CONFIG = load_config()
 logger = logging.getLogger(__name__)
@@ -245,6 +251,54 @@ def _political_weight_match(col: str):
     """返回 (dict_name, suffix) 若 col 为政治词权重敏感性 panel 列 (du_2022_{polw*}_tone{track}), 否则 None。"""
     m = _POLITICAL_WEIGHT_RE.match(col)
     return (m.group(1), m.group(2)) if m else None
+
+
+# panel 列 per-model 语调 (per-model robustness, 2026-07-02): LLM 三家 / BERT 三模型 co-equal
+# 互为稳健、不分主次 (llm_vote_tone = 共识 canonical headline; BERT 无 ensemble headline)。
+# SSOT = encode.LLM_MODELS / BERT_MODELS (模块顶部导入)。metric 全集 + 可选加权臂 (_vw/_mw/_hw)
+# + 可选轨; 锚定 (^model_) 天然排除 llm_vote_* (不以模型名开头) 与 {short}_tone_sub/_symb
+# (metric alternation 不含 tone_sub/tone_symb)。⚠ 各自 just-identified 并排, 禁混同一 over-identified
+# Hansen J。metric 按 longest-first 排列避免 alternation 短匹配截断。
+_LLM_MODEL_RE = re.compile(
+    r'^(' + '|'.join(re.escape(m) for m in LLM_MODELS)
+    + r')_(cont_mean|cont_sum|tone_sum|tone_std|tone)((?:_(?:vw|mw|hw))?)(?:_(?:full|ctx|ss))?$')
+_BERT_MODEL_RE = re.compile(
+    r'^(' + '|'.join(re.escape(m) for m in BERT_MODELS)
+    + r')_(net_tone|pos_sum|pos_std|neg_sum|neu_sum|pos|neg|neu)((?:_(?:vw|mw|hw))?)(?:_(?:full|ctx|ss))?$')
+_PER_MODEL_HANSEN_NOTE = ('各自 just-identified 并排, 禁混同一 over-identified Hansen J '
+                          '(与三轨 / co-primary 嵌入 / 政治词权重梯度同款铁律)')
+_LLM_MODEL_NOTE = (
+    'LLM 逐模型语调 (per-model robustness): 三家大模型 (gpt54nano/gemini31/deepseekv4) 的 bank-year '
+    '语调, 与投票共识 llm_vote_tone (canonical headline) co-equal 互为稳健性、不分主次, 证明主结论'
+    '不被任一厂商模型驱动 (Wang et al. 2023 self-consistency 多模型三角验证)。⚠ 三家' + _PER_MODEL_HANSEN_NOTE + '。'
+)
+_BERT_MODEL_NOTE = (
+    'BERT 逐模型情感 (per-model robustness): 三个中文金融 BERT (finbert_cn/fin_sent_zh/finbert2) 的 '
+    'bank-year 概率/net_tone, co-equal 互为稳健性、不分主次 (无 ensemble headline); per-model 独立降级 '
+    '(finbert2 缺席仅掉自身族)。⚠ 三模型' + _PER_MODEL_HANSEN_NOTE + '。'
+)
+_LLM_MODEL_CITATION = 'Wang et al. (2023) LLM self-consistency; 多模型三角验证 (Denzin 2017)'
+_BERT_MODEL_CITATION = 'Araci (2019) FinBERT; 多模型三角验证 (Denzin 2017)'
+_PER_MODEL_METRIC_ZH = {
+    'tone': '语调均值', 'tone_sum': '语调总和', 'tone_std': '语调离散', 'cont_mean': '连续分均值',
+    'cont_sum': '连续分总和', 'net_tone': 'net-tone (正−负)', 'pos': '正面概率', 'neg': '负面概率',
+    'neu': '中性概率', 'pos_sum': '正面概率和', 'neg_sum': '负面概率和', 'neu_sum': '中性概率和',
+    'pos_std': '正面概率离散',
+}
+_PER_MODEL_WEIGHT_ZH = {'': '', '_vw': ' [市值加权]', '_mw': ' [媒体加权]', '_hw': ' [羊群加权]'}
+
+
+def _llm_model_match(col: str):
+    """返回 (model, metric, weight_tail) 若 col 为 LLM 逐模型 panel 列, 否则 None。
+    锚定 ^model_ 排除 llm_vote_* (不以模型名开头) 与 {short}_tone_sub/_symb (metric 不含)。"""
+    m = _LLM_MODEL_RE.match(col)
+    return (m.group(1), m.group(2), m.group(3)) if m else None
+
+
+def _bert_model_match(col: str):
+    """返回 (model, metric, weight_tail) 若 col 为 BERT 逐模型 panel 列, 否则 None。"""
+    m = _BERT_MODEL_RE.match(col)
+    return (m.group(1), m.group(2), m.group(3)) if m else None
 
 
 # ============================================================================
@@ -1885,6 +1939,16 @@ def _infer_label(var_name: str) -> str:
     _polw = _political_weight_match(var_name)
     if _polw:
         return f'词典语调 {_polw[0]} · {_POLITICAL_WEIGHT_SFX_DESC[_polw[1]]}{track_suffix}'
+    # per-model 语调 (互为稳健性, 2026-07-02): 须早于泛型 'tone'/Title-case 分支, 否则裸
+    # {short}_tone / {short}_pos / {short}_net_tone 退化为泛型标签。
+    _lm = _llm_model_match(var_name)
+    if _lm:
+        return (f'LLM 逐模型语调 {_lm[0]} · {_PER_MODEL_METRIC_ZH.get(_lm[1], _lm[1])}'
+                f'{_PER_MODEL_WEIGHT_ZH.get(_lm[2], _lm[2])}{track_suffix}')
+    _bm = _bert_model_match(var_name)
+    if _bm:
+        return (f'BERT 逐模型 {_bm[0]} · {_PER_MODEL_METRIC_ZH.get(_bm[1], _bm[1])}'
+                f'{_PER_MODEL_WEIGHT_ZH.get(_bm[2], _bm[2])}{track_suffix}')
     if 'tone' in var_name:
         return f'Sentiment Tone{track_suffix}'
     elif 'attn' in var_name or var_name.startswith('ft_vol'):
@@ -1919,6 +1983,14 @@ def _infer_description(var_name: str) -> str:
     if _polw:
         return (f'词典 {_polw[0]} 的政治词权重敏感性变体「{_POLITICAL_WEIGHT_SFX_DESC[_polw[1]]}」: '
                 f'政治正面词权重在 bank-year 的均值。{_POLITICAL_WEIGHT_NOTE}')
+    _lm = _llm_model_match(var_name)
+    if _lm:
+        return (f'LLM 模型 {_lm[0]} 的 {_PER_MODEL_METRIC_ZH.get(_lm[1], _lm[1])}'
+                f'{_PER_MODEL_WEIGHT_ZH.get(_lm[2], _lm[2])} 在 bank-year 的聚合。{_LLM_MODEL_NOTE}')
+    _bm = _bert_model_match(var_name)
+    if _bm:
+        return (f'BERT 模型 {_bm[0]} 的 {_PER_MODEL_METRIC_ZH.get(_bm[1], _bm[1])}'
+                f'{_PER_MODEL_WEIGHT_ZH.get(_bm[2], _bm[2])} 在 bank-year 的聚合。{_BERT_MODEL_NOTE}')
     return f'变量 {var_name} 的详细描述（需要人工补充）'
 
 
@@ -1934,6 +2006,14 @@ def _infer_source_stage(var_name: str) -> str:
     指标): 实际在 stage 45 panel 构建 Step 7f/7g 内由 network_spillover.py 计算
     (模块历史名 46_network_spillovers 系遗留编号)。
     """
+    # per-model 宽前缀 (2026-07-02, 互为稳健性): 覆盖 deepseekv4_* / fin_sent_zh_* 等
+    # 无 llm/gpt/gemini/bert 子串的 per-model 列 (含加权 _vw/_mw/_hw / 计数 / 和变体),
+    # 否则窄子串判据漏 → 落 '未知'。llm_vote_* 不以模型名开头故不误命中; 模型名与
+    # 词典/网络列名无碰撞 (前置早返回安全)。
+    if any(var_name.startswith(m + '_') for m in LLM_MODELS):
+        return 'Stage 21'
+    if any(var_name.startswith(m + '_') for m in BERT_MODELS):
+        return 'Stage 23'
     if 'llm' in var_name or 'gpt' in var_name or 'gemini' in var_name:
         return 'Stage 21'
     elif 'bert' in var_name:

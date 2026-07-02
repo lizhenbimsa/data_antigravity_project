@@ -642,7 +642,7 @@ def _cli_verify_replication(args) -> int:
 
     检查:
         1. 目录结构 (code/ data/ output/{tables,figures}/)
-        2. 19 .do 文件全部存在
+        2. 20 .do 文件全部存在
         3. 各 .do 无占位符残留 ({{ / }})
         4. README.md 含 spec 信息 + commit hash
         5. master.do 引用所有子 .do
@@ -676,8 +676,9 @@ def _cli_verify_replication(args) -> int:
     # 2. 19 .do 文件 (remove-title-track 后 14; 2026-06-13 IV 补全 +25_tableA6 → 15;
     #    agg-toptier-audit 2026-06-13 +26_tableA7_aggregation_robustness → 16;
     #    2026-06-14 顶刊稳健性扩充 +32_tableA8_fe_saturation_robust_est +33_tableA9_subsample_timing → 18;
-    #    2026-06-14 T18 重审 era-stability 族 +34_tableA11_era_stability → 19)
-    _EXPECTED_ROOT_DO = 19
+    #    2026-06-14 T18 重审 era-stability 族 +34_tableA11_era_stability → 19
+    #    2026-07-02 互为稳健性 option B: +27_tableA12_cross_model_fwer (根级 rwolf) → 20)
+    _EXPECTED_ROOT_DO = 20
     print(f"\n[2/5] Stata .do 文件 ({_EXPECTED_ROOT_DO} expected)")
     code_dir = pkg_dir / 'code'
     if code_dir.is_dir():
@@ -721,11 +722,11 @@ def _cli_verify_replication(args) -> int:
         print("   [ERR] README.md 不存在")
         n_err += 1
 
-    # 5. master.do 引用 18 子 .do (remove-title-track 后 13; 2026-06-13 IV 补全
+    # 5. master.do 引用 19 子 .do (2026-07-02 +27_tableA12 → 19; remove-title-track 后 13; 2026-06-13 IV 补全
     #    +25_tableA6_tone_iv_2sls → 14; agg-toptier-audit +26_tableA7_aggregation_robustness → 15;
     #    2026-06-14 顶刊稳健性扩充 +32_tableA8 +33_tableA9 → 17;
     #    2026-06-14 T18 重审 era-stability +34_tableA11_era_stability → 18)
-    print("\n[5/5] master.do 引用 18 子 .do")
+    print("\n[5/5] master.do 引用子 .do")
     master = code_dir / '00_master.do'
     if master.exists():
         content = master.read_text(encoding='utf-8')
@@ -737,6 +738,7 @@ def _cli_verify_replication(args) -> int:
             '22_tableA3_bartik_iv.do', '23_tableA4_radius_sensitivity.do',
             '24_tableA5_dictionary_method.do', '25_tableA6_tone_iv_2sls.do',
             '26_tableA7_aggregation_robustness.do',
+            '27_tableA12_cross_model_fwer.do',
             '32_tableA8_fe_saturation_robust_est.do',
             '33_tableA9_subsample_timing.do',
             '34_tableA11_era_stability.do',
@@ -744,7 +746,7 @@ def _cli_verify_replication(args) -> int:
         ]
         missing = [s for s in expected if s not in content]
         if not missing:
-            print(f"   [OK] master.do 引用 18/18 子 .do")
+            print(f"   [OK] master.do 引用 {len(expected)}/{len(expected)} 子 .do")
             n_ok += 1
         else:
             print(f"   [ERR] master.do 缺引用: {missing}")

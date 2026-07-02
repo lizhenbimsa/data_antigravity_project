@@ -1,0 +1,131 @@
+* ============================================================================
+* 27_tableA12_cross_model_fwer.do — Table A12: 跨模型 FWER (LLM 三家 / BERT 三模型互为稳健性)
+* Paper: bank_fintech_tone (P1)  ·  2026-07-02 (option B, 互为稳健性执行计划)
+*
+* 情感三法各自的 per-model 子测度作 Romano-Wolf 族内 step-down 校正, 证主效应不被任一模型驱动:
+*   · 情感量是**处理变量 (indepvar)**, DV = outcome.primary (ROA 默认; funding_cost 待接入)。
+*   · LLM 族: {gpt54nano,gemini31,deepseekv4}_tone_<track> (三家 co-equal, llm_vote=共识 headline)
+*   · BERT 族: {finbert_cn,fin_sent_zh,finbert2}_net_tone_<track> (三模型 co-equal, 无 ensemble headline)
+*   两族**分别** rwolf (各自 family), 禁并入同一族。
+* ⚠ 铁律: 各家/各模型各自 just-identified 并排, 禁混同一 over-identified Hansen J (这是 FWER 校正 p, 非 IV)。
+* ⚠ wire-ahead: DV (ROA/funding_cost 财务哨兵) 盘上缺席 → capture confirm 守卫, 当前 T=2 优雅跳过,
+*    T=18 财务数据到位才产校正 p (与仓库 wire-ahead 惯例一致)。
+* ⚠ BERT net_tone 是 Phase 2 (encode post-agg) 列; Phase 1 前未落盘 → capture confirm 自动休眠。
+* ⚠ 本 .do 由 00_master 以 capture noisily do 调用 → **绝不用 exit** (会让 master 提前退出); 全程 if/else 守卫。
+* ⚠ 继承性 (repo-wide, 非本表引入): rwolf method(reghdfe) 在部分 reghdfe 版本 (本机 6.13.1) 下 reghdfe
+*   成功估计后遗留非零 _rc → rwolf 误判 abort rc=111 (与 18_substance/locus/attention 同模式); 被
+*   capture noisily 优雅吞掉不崩 master。生产机依赖本表前须核 reghdfe/rwolf 交互 (或全仓统一改 method(areg)/wyoung)。
+* ⚠ 根级路径约定 (镜像 26_tableA7/34_tableA11/21_tableA2): data/processed + capture confirm 回退 full.dta;
+*    output/tables (非子目录的 ../data / ../output)。
+* ⚠ 多-indepvar rwolf 的 RW p 在矩阵 e(RW_<iv>)[1,3] (镜像 18_substance_robustness:60-104);
+*    两族顺序跑 → 本族 rwolf 后【立即】抽取 (下一族 rwolf 覆盖 e())。
+* ============================================================================
+
+version 19
+* ⚠ 无 clear all (镜像根级 26_tableA7/34_tableA11): 保留 01_data_prep 经 master 设的 $bank_controls
+*   全局 (clear all 会抹掉它 → rwolf controls($bank_controls) 恒空); 下方 use 自会清当前数据。
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$tables_dir" == ""  global tables_dir "output/tables"
+
+* 载入与主表同口径的缩尾面板 (_prepared_panel; 缺失回退未缩尾 full.dta) — 根级路径约定
+capture confirm file "data/processed/_prepared_panel.dta"
+if !_rc {
+    use "data/processed/_prepared_panel.dta", clear
+}
+else {
+    display "  ⚠️ _prepared_panel.dta 不存在 (应先跑 01_data_prep); 回退未缩尾 full.dta"
+    capture confirm file "data/processed/46_panel_yearly_full.dta"
+    if !_rc use "data/processed/46_panel_yearly_full.dta", clear
+}
+
+local SENT {{MAIN_SENT_TRACK}}
+local DV   {{MAIN_DV}}
+
+capture confirm variable `DV'
+local has_dv = (_rc == 0)
+capture which rwolf
+local has_rwolf = (_rc == 0)
+
+if `=_N' == 0 | !`has_dv' | !`has_rwolf' {
+    display as text "  [SKIP] Table A12 跨模型 FWER: 面板空 / rwolf 未装 / DV `DV' 不在面板 " ///
+        "(财务 sentinel wire-ahead); T=18 财务数据到位 + rwolf 安装后运行。"
+}
+else {
+    tempname RES
+    matrix `RES' = J(6, 1, .)      // 至多 6 模型 (3 LLM + 3 BERT) 的 RW 校正 p
+    local rown ""
+    local ri = 0
+
+    * ===== LLM 族: 逐列 capture confirm 拼在盘 indepvar, 再一次 rwolf (族内 step-down) =====
+    local llm_fam ""
+    foreach m in gpt54nano gemini31 deepseekv4 {
+        capture confirm variable `m'_tone_`SENT'
+        if !_rc local llm_fam `llm_fam' `m'_tone_`SENT'
+    }
+    if "`llm_fam'" != "" {
+        capture noisily rwolf `DV', indepvar(`llm_fam') controls($bank_controls) ///
+            reps(1000) seed({{RANDOM_SEED}}) ///
+            method(reghdfe) abs(bank_id year) cluster({{CLUSTER_VAR}})
+        if !_rc {
+            foreach iv of local llm_fam {
+                tempname _m
+                capture matrix `_m' = e(RW_`iv')
+                * ⚠ Stata & 不短路 → rowsof 须在 matrix 确存在时才求值 (嵌套 if, 非 & 单行)
+                if !_rc {
+                    if rowsof(`_m') >= 1 & colsof(`_m') >= 3 {
+                        local ++ri
+                        matrix `RES'[`ri', 1] = `_m'[1, 3]
+                        local rown `rown' LLM:`iv'
+                    }
+                }
+            }
+        }
+        else display as text "  [WARN] LLM 族 rwolf 失败 (rc=`=_rc'; 多为 T=2 退化/单测度); 校正 p 缺"
+    }
+
+    * ===== BERT 族: net_tone (Phase 2 post-agg 列; Phase 1 前 capture confirm 自动休眠) =====
+    local bert_fam ""
+    foreach m in finbert_cn fin_sent_zh finbert2 {
+        capture confirm variable `m'_net_tone_`SENT'
+        if !_rc local bert_fam `bert_fam' `m'_net_tone_`SENT'
+    }
+    if "`bert_fam'" != "" {
+        capture noisily rwolf `DV', indepvar(`bert_fam') controls($bank_controls) ///
+            reps(1000) seed({{RANDOM_SEED}}) ///
+            method(reghdfe) abs(bank_id year) cluster({{CLUSTER_VAR}})
+        if !_rc {
+            foreach iv of local bert_fam {
+                tempname _mb
+                capture matrix `_mb' = e(RW_`iv')
+                if !_rc {
+                    if rowsof(`_mb') >= 1 & colsof(`_mb') >= 3 {
+                        local ++ri
+                        matrix `RES'[`ri', 1] = `_mb'[1, 3]
+                        local rown `rown' BERT:`iv'
+                    }
+                }
+            }
+        }
+        else display as text "  [WARN] BERT 族 rwolf 失败 (rc=`=_rc'); 校正 p 缺"
+    }
+    else display as text "  [INFO] BERT net_tone 族未落盘 (Phase 2 前休眠); 仅报 LLM 族。"
+
+    if `ri' == 0 {
+        display as text "  [SKIP] 跨模型 rwolf 无任何校正 p (T=2 退化 / DV 缺 / net_tone 未产)。"
+    }
+    else {
+        matrix `RES' = `RES'[1..`ri', 1...]
+        matrix rownames `RES' = `rown'
+        matrix colnames `RES' = RW_p
+        capture noisily esttab matrix(`RES', fmt(4)) ///
+            using "$tables_dir/tableA12_cross_model_fwer.tex", replace booktabs ///
+            title("Table A12: Cross-Model FWER (LLM/BERT per-model, Romano-Wolf)") ///
+            nomtitles collabels("Romano-Wolf p") ///
+            note("DV = `DV' (financial outcome, wire-ahead). Each family (3 LLM tone / 3 BERT net-tone) is Romano-Wolf step-down corrected across its member models (Clarke, Romano and Wolf 2020, Stata Journal). Per-model measures are co-equal robustness, each just-identified side-by-side, not pooled into one over-identified Hansen J. Reps=1000, seed={{RANDOM_SEED}}.")
+        if !_rc display as result "  [OK] Table A12 written (rows: `rown')"
+        else display as text "  [WARN] Table A12 esttab 失败 (rc=`=_rc'); 校正 p 已算, 表输出跳过"
+    }
+}

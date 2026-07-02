@@ -118,11 +118,16 @@ inference:
     alternative_outcomes: [m_and_a_fintech, patent_fintech_count, employee_growth_it,
       noninterest_income_share, cost_income_ratio]   # outcome.secondary
     sentiment_methods: [llm, dict, bert]    # 三法 triangulation = L&M 2011 robustness battery
+    cross_model: [gpt54nano, gemini31, deepseekv4]        # LLM 跨模型 robustness (co-equal 互为稳健, 不分主次)
+    cross_bert_model: [finbert_cn, fin_sent_zh, finbert2] # BERT 跨模型 robustness (co-equal 互为稳健, 不分主次)
     weighting_schemes: [EW, VW, MW, HW]     # 加权聚合稳健性
   fwer:                        # 多重检验 family-wise error 校正 (INFER IV-1)
     method: romano_wolf        # 18_attention_robustness rwolf stepdown (alt-measure family)
     families:
       - alternative_attention_measures   # {index_full, index_ctx, index_ss, disp, pct} — 三轨 (full/ctx/ss)
+      - cross_model_llm                  # LLM 三家跨模型稳健族 (documentation; 真 FWER 见根级 rwolf 模板)
+      - cross_model_bert                 # BERT 三模型跨模型稳健族 (documentation)
+      # ⚠ cross_model_* 为声明式文档, 运行时无消费者; 各家/各模型 just-identified 并排, 禁混同一 over-identified Hansen J。
     lit: [Romano-Wolf 2005 ECMA, List-Shaikh-Xu 2019 EE, Anderson 2008 JASA]
   cluster: [bank]              # 主规格 firm-level 聚类 (= CLUSTER_VAR bank_id; T=18 G≈200 大 G 充足)
   cluster_robustness:          # small-G / 多维聚类对比 (Cameron-Miller 2015 JHR; T=2 试跑帧退化时优雅跳过)

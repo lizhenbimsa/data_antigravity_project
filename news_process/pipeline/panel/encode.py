@@ -54,6 +54,11 @@ PANEL_CFG = CONFIG.get("panel_building", {})
 # LLM 模型 short_name 列表(从 tone_llm_processing.models 读取)
 # 这些名称用于定位阶段 21 输出中各模型对应的情感结果列
 # v3 锁定: gpt54nano (OpenAI) / gemini31 (Google) / deepseekv4 (DeepSeek)
+# ⚠ 互为稳健性铁律 (2026-07-02): llm_vote_tone (多数投票共识) = canonical headline
+#   (paper_spec.primary); 三 per-model {short}_tone = co-equal 跨厂商稳健性、不分主次
+#   (镜像政治词权重梯度 / co-primary 嵌入双轨)。另有均值-ensemble llm_models_avg_tone
+#   (geography.py)。⚠ 三家各自 just-identified 并排, 禁混进同一 over-identified Hansen J
+#   (与三轨 full/ctx/ss、co-primary 嵌入同款铁律)。SSOT=本列表; gate=test_llm_model_robustness。
 _llm_cfg = CONFIG.get('tone_llm_processing', {}).get('models', [])
 LLM_MODELS = [m['short_name'] for m in _llm_cfg] if _llm_cfg else ['gpt54nano', 'gemini31', 'deepseekv4']
 
@@ -80,6 +85,11 @@ POLITICAL_WEIGHT_SUFFIXES = ['polw00', 'polw05', 'polw10']
 POLITICAL_WEIGHT_DICTS = ['du_2022']
 
 # BERT 模型 short_name 列表与分类数（从 sentiment_analysis.tone_berts.models 读取）
+# ⚠ 互为稳健性铁律 (2026-07-02): 三 per-model (finbert_cn/fin_sent_zh/finbert2) = co-equal
+#   互为稳健、不分主次, 无 ensemble headline (BERT 整体是相对 LLM 的 cross-method 稳健臂)。
+#   per-model 独立降级 (非 co-primary 嵌入的 both-or-neither): 某模型缺席仅掉其自身族
+#   (valid_agg 按源列存在性过滤), 兄弟不受影响。⚠ 三模型各自 just-identified 并排, 禁混进
+#   同一 over-identified Hansen J。SSOT=本列表; gate=test_bert_model_robustness。
 _bert_cfg = CONFIG.get('sentiment_analysis', {}).get('tone_berts', {}).get('models', [])
 BERT_MODELS = [m['short_name'] for m in _bert_cfg] if _bert_cfg else ['finbert_cn', 'fin_sent_zh', 'finbert2']
 
@@ -1357,6 +1367,20 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     for _pin_col in valid_agg:
         if str(panel[_pin_col].dtype) in _narrow_int_dtypes:
             panel[_pin_col] = panel[_pin_col].astype('Int64')
+
+    # BERT signed net-tone (Phase 2, 2026-07-02, 互为稳健性): {short}_net_tone{track} =
+    # 平均正面概率 − 平均负面概率 ∈ [−1,1], 与 LLM {short}_tone 同尺度 (Table A5/rwolf β 可比)。
+    # post-agg 差值 (= mean(pos) − mean(neg)); 不重跑 stage 23。因 BERT 逐篇原子失败 (pos/neg
+    # 同置 NaN) → 篇级掩码一致, 面板差 = 篇均 signed net-tone。per-model 独立降级: 缺席模型
+    # (valid_agg 未产 pos/neg) 由 if 守卫跳过, 兄弟不受影响。⚠ 三模型 co-equal 互为稳健, 禁混
+    # 同一 over-identified Hansen J。只产 mean (不产 _std: std(pos−neg)≠std(pos)−std(neg); 亦不产
+    # _sum/_vw/_mw/_hw 加权孪生, 见执行计划 §1c 取舍)。
+    for _nt_track in ['_full', '_ctx', '_ss']:
+        for _nt_short in BERT_MODELS:
+            _nt_pos = f'{_nt_short}_pos{_nt_track}'
+            _nt_neg = f'{_nt_short}_neg{_nt_track}'
+            if _nt_pos in panel.columns and _nt_neg in panel.columns:
+                panel[f'{_nt_short}_net_tone{_nt_track}'] = panel[_nt_pos] - panel[_nt_neg]
 
     # v3.7.2 R8-H1: 由 _ctx_fallback_count (sum) 派生 n_articles_for_ctx_independence
     # 之所以不在 agg_dict 用 lambda: pandas.groupby.NamedAgg 协议不支持闭包稳定 hash

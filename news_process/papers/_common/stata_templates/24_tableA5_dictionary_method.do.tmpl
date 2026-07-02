@@ -8,17 +8,24 @@
 *   jiang_2021, yao_2021, bian_2021, du_2022, you_2018, loughran (L&M 2011 中文全译)
 *
 * 方法学红线 (L&M 规则版 vs 纯计数版): 本管道对所有词典施加否定/程度/转折三条语言学
-*   规则; 而 Loughran & McDonald (2011) 原版是**纯计数**。故额外列出 loughran_negonly_tone
+*   规则; 而 Loughran & McDonald (2011) 原版是**纯计数**. 故额外列出 loughran_negonly_tone
 *   (仅否定翻转, 去程度/转折 ≈ L&M-faithful 计数版) 与全规则 loughran_tone 并排, 读者可验
-*   两者 β 一致性 (预期高度相关 ≈0.998); 若符号翻转/幅度差 >10% 须在正文披露为数据质量信号。
+*   两者 β 一致性 (预期高度相关 ≈0.998); 若符号翻转/幅度差 >10% 须在正文披露为数据质量信号.
 *
 * 政治词权重敏感性 (du_2022 政治正面词, 与其他词典法并列; 三权重互为稳健性、不分主次):
 *   ① 依据 Du et al. (2022, Review of Finance) 政治正面词信号弱于普通正面词的发现, 对该类词
 *      赋予降低的权重; ② 权重取 0.5 为研究者选择, 并做敏感性检验: 令政治词权重 ∈ {0.0, 0.5,
-*      1.0} 三者互为稳健性、不分主次, 证明主结论不被这一取值驱动。落地: du_2022 在本表以三列
+*      1.0} 三者互为稳健性、不分主次, 证明主结论不被这一取值驱动. 落地: du_2022 在本表以三列
 *      并排 (pw=0 剔除政治词 / pw=.5 = 既有 du_2022_tone / pw=1 全权正侧), 与其余 5 部词典单列
-*      并列。⚠ 三权重各自 just-identified 独立列, 禁混同一 over-identified Hansen J (逐列并排
-*      即正确呈现, 不并入同一 GMM 工具集)。
+*      并列. ⚠ 三权重各自 just-identified 独立列, 禁混同一 over-identified Hansen J (逐列并排
+*      即正确呈现, 不并入同一 GMM 工具集).
+*
+* LLM/BERT 逐模型互为稳健性 (2026-07-02, option B): llm_vote = 三家多数投票共识 (canonical
+*   headline); gpt54nano/gemini31/deepseekv4 三家 + finbert_cn/fin_sent_zh/finbert2 三 BERT 各自
+*   并排列, co-equal 互为稳健性、不分主次, 证主效应不被任一模型驱动. ⚠ 各家/各模型各自
+*   just-identified 独立列, 禁混同一 over-identified Hansen J; 真 FWER 校正见 27_tableA12.
+*   ⚠ 全部情感 DV 经 z-score 标准化 (egen std): 2/3 分类 BERT 与 LLM/词典原始方差不同, 原始 β
+*   不可比; 标准化后 β = 每 1 单位 X 引致的 DV 标准差数, 跨测度/跨模型可比 (镜像 benefit/15_table6).
 *
 * Main spec: locus={{MAIN_LOCUS_TRACK}} subst={{MAIN_SUBST_TRACK}} sent={{MAIN_SENT_TRACK}}
 
@@ -39,12 +46,28 @@ if _rc {
     local SUBST
 }
 
-* --- Main LLM (主对照) ---
+* --- Main LLM 投票共识 (canonical headline) + 三家 per-model (co-equal 互为稳健, 不分主次) ---
+* 2026-07-02 互为稳健性: 全部情感 DV 经 egen std 标准化 → 跨模型/跨测度 β 可比 (共用临时列 _sdv).
 local LLM_DV  llm_vote_tone_{{MAIN_SENT_TRACK}}
 capture confirm variable `LLM_DV'
 if !_rc {
-    eststo LLM_main: reghdfe `LLM_DV' `EXPL' `LOCUS' `SUBST', ///
+    capture drop _sdv
+    egen _sdv = std(`LLM_DV')
+    eststo LLM_main: reghdfe _sdv `EXPL' `LOCUS' `SUBST', ///
         absorb(bank_id year) vce(cluster bank_id)
+}
+* 三家 LLM 逐模型 (co-equal 互为稳健, 不分主次; llm_vote 为共识 headline)
+* ⚠ 三家各自 just-identified 并排, 禁混同一 over-identified Hansen J (FWER 见 27_tableA12).
+foreach lm in gpt54nano gemini31 deepseekv4 {
+    local LLM_M `lm'_tone_{{MAIN_SENT_TRACK}}
+    capture confirm variable `LLM_M'
+    if !_rc {
+        capture drop _sdv
+        egen _sdv = std(`LLM_M')
+        eststo LLM_`lm': reghdfe _sdv `EXPL' `LOCUS' `SUBST', ///
+            absorb(bank_id year) vce(cluster bank_id)
+    }
+    else display "  Skip LLM `lm': var `LLM_M' not in panel"
 }
 
 * --- 词典法 Dictionary methods (6 个词典, v3.10.0 +loughran) ---
@@ -53,7 +76,9 @@ foreach d of local dicts {
     local DICT_DV `d'_tone_{{MAIN_SENT_TRACK}}
     capture confirm variable `DICT_DV'
     if !_rc {
-        eststo DICT_`d': reghdfe `DICT_DV' `EXPL' `LOCUS' `SUBST', ///
+        capture drop _sdv
+        egen _sdv = std(`DICT_DV')
+        eststo DICT_`d': reghdfe _sdv `EXPL' `LOCUS' `SUBST', ///
             absorb(bank_id year) vce(cluster bank_id)
     }
     else {
@@ -67,7 +92,9 @@ foreach d of local dicts {
 local LM_NEGONLY loughran_negonly_tone_{{MAIN_SENT_TRACK}}
 capture confirm variable `LM_NEGONLY'
 if !_rc {
-    eststo LM_negonly: reghdfe `LM_NEGONLY' `EXPL' `LOCUS' `SUBST', ///
+    capture drop _sdv
+    egen _sdv = std(`LM_NEGONLY')
+    eststo LM_negonly: reghdfe _sdv `EXPL' `LOCUS' `SUBST', ///
         absorb(bank_id year) vce(cluster bank_id)
 }
 else {
@@ -82,7 +109,9 @@ else {
 local DU_PW0 du_2022_polw00_tone_{{MAIN_SENT_TRACK}}
 capture confirm variable `DU_PW0'
 if !_rc {
-    eststo DU_pw0: reghdfe `DU_PW0' `EXPL' `LOCUS' `SUBST', ///
+    capture drop _sdv
+    egen _sdv = std(`DU_PW0')
+    eststo DU_pw0: reghdfe _sdv `EXPL' `LOCUS' `SUBST', ///
         absorb(bank_id year) vce(cluster bank_id)
 }
 else {
@@ -91,21 +120,29 @@ else {
 local DU_PW1 du_2022_polw10_tone_{{MAIN_SENT_TRACK}}
 capture confirm variable `DU_PW1'
 if !_rc {
-    eststo DU_pw1: reghdfe `DU_PW1' `EXPL' `LOCUS' `SUBST', ///
+    capture drop _sdv
+    egen _sdv = std(`DU_PW1')
+    eststo DU_pw1: reghdfe _sdv `EXPL' `LOCUS' `SUBST', ///
         absorb(bank_id year) vce(cluster bank_id)
 }
 else {
     display "  Skip DU_pw1: var `DU_PW1' not in panel"
 }
 
-* --- BERT methods (对照) ---
-local berts finbert2_pos fin_sent_zh_pos
+* --- BERT methods (三模型对照, co-equal 互为稳健; Phase 2 起可切 signed net_tone) ---
+* 2026-07-02: 补齐三 BERT 并纳入 cand_models 展示 (原仅算不展示). ⚠ 三模型各自 just-identified 并排.
+local berts finbert_cn_pos fin_sent_zh_pos finbert2_pos
 foreach b of local berts {
     local BERT_DV `b'_{{MAIN_SENT_TRACK}}
     capture confirm variable `BERT_DV'
     if !_rc {
-        eststo BERT_`b': reghdfe `BERT_DV' `EXPL' `LOCUS' `SUBST', ///
+        capture drop _sdv
+        egen _sdv = std(`BERT_DV')
+        eststo BERT_`b': reghdfe _sdv `EXPL' `LOCUS' `SUBST', ///
             absorb(bank_id year) vce(cluster bank_id)
+    }
+    else {
+        display "  Skip BERT `b': var `BERT_DV' not in panel"
     }
 }
 
@@ -115,10 +152,10 @@ foreach b of local berts {
 * 仅引用实际已存储的估计, mtitle 同步删列防错位, 任一词典列缺失时优雅降级不再整表崩。
 qui estimates dir
 local stored `r(names)'
-* du_2022 以政治词权重三元组 (pw=0 / pw=.5 / pw=1) 并排, 中列 DICT_du_2022 即 pw=.5 (du_2022_tone);
-* 三权重不分主次, 与其余 5 部词典单列同排。缺列由上方 capture-confirm 守卫 → 动态名单化优雅降级。
-local cand_models LLM_main DICT_jiang_2021 DICT_yao_2021 DICT_bian_2021 DU_pw0 DICT_du_2022 DU_pw1 DICT_you_2018 DICT_loughran LM_negonly
-local cand_titles `""LLM ensemble" "Jiang 2021" "Yao 2021" "Bian 2021" "Du22 pw=0" "Du22 pw=.5" "Du22 pw=1" "You 2018" "L-M 2026" "L-M counts""'
+* 列序 (2026-07-02): LLM 共识 + 三家 per-model / 6 词典 (du_2022 以 pw=0/.5/1 三元组) / L-M 计数 / 三 BERT.
+* 三家不分主次, 与其余测度单列同排; 缺列由 capture-confirm 守卫 → 动态名单化优雅降级.
+local cand_models LLM_main LLM_gpt54nano LLM_gemini31 LLM_deepseekv4 DICT_jiang_2021 DICT_yao_2021 DICT_bian_2021 DU_pw0 DICT_du_2022 DU_pw1 DICT_you_2018 DICT_loughran LM_negonly BERT_finbert_cn_pos BERT_fin_sent_zh_pos BERT_finbert2_pos
+local cand_titles `""LLM vote" "GPT" "Gemini" "DeepSeek" "Jiang 2021" "Yao 2021" "Bian 2021" "Du22 pw=0" "Du22 pw=.5" "Du22 pw=1" "You 2018" "L-M 2026" "L-M counts" "FinBERT-cn" "FinSent-zh" "FinBERT2""'
 local models ""
 local mtitles `""'
 local nmod : word count `cand_models'
@@ -137,12 +174,15 @@ else {
     esttab `models' using "output/tables/tableA5_dictionary_method.tex", ///
         se star(* 0.10 ** 0.05 *** 0.01) ///
         booktabs replace fragment ///
-        title("Table A5: LLM vs Dictionary-Based Sentiment (Robustness)") ///
+        title("Table A5: LLM vs Dictionary vs BERT Sentiment (Robustness, standardized)") ///
         mtitles(`mtitles') ///
-        note("DV: 情感分数. LLM = 3 模型多数投票. Dict = 6 个中文金融词典 (含 Loughran-McDonald 2011 JF 中文全译 L-M 2026). " ///
+        note("DV: 情感分数 (z-standardized, egen std → 跨测度/跨模型 β 可比: 每 1 单位 X 引致的 DV 标准差数). " ///
+             "LLM vote = 3 模型多数投票共识 (headline); GPT/Gemini/DeepSeek = 三家 per-model (co-equal 互为稳健). " ///
+             "Dict = 6 个中文金融词典 (含 Loughran-McDonald 2011 JF 中文全译 L-M 2026). " ///
              "L-M counts = loughran negonly (仅否定, 去程度/转折), 最接近 L&M 原版纯计数; 与 L-M 2026 (全规则) 并排验稳健性. " ///
              "Du22 pw={0,.5,1} = 政治词权重敏感性 (Du et al. 2022, Review of Finance): 政治正面词信号弱于普通正面词, 故以降低权重计入; " ///
              "0.5 为研究者选择, 三权重互为稳健性、不分主次 (pw=.5 = 主口径 du_2022_tone), 证明结论不被该取值驱动; 三列各自 just-identified. " ///
+             "FinBERT-cn/FinSent-zh/FinBERT2 = 三个中文金融 BERT per-model (co-equal 互为稳健). 每列各自 just-identified 并排; 跨模型 FWER 校正见 Table A12. " ///
              "IDENTIFICATION NOTE: digital_frontier is a base-year within-bank time-invariant 0/1 classifier; every " ///
              "column here uses absorb(bank_id year), so it is collinear with the bank FE and silently dropped — " ///
              "beta(digital_frontier) is identified only in a no-absorb column (see 11_table2 M1). These columns identify " ///
@@ -151,3 +191,4 @@ else {
 
     display "✅ Table A5 written to output/tables/tableA5_dictionary_method.tex"
 }
+capture drop _sdv
