@@ -65,7 +65,10 @@ def plot_main_coefplot(paper_config: PaperConfig | None = None,
 
 def plot_n_sensitivity_coefplot(paper_config: PaperConfig | None = None,
                                 *, filename: str = 'fig3_n_sensitivity_coefplot.pdf') -> Path:
-    """Figure 3: N=3..7 邻居数敏感性系数图 (读 Table 5a esttab CSV)."""
+    """Figure 3: 邻居数敏感性系数图 N∈{3,4,5,6,7,10,20,30,40,50} (读 Table 5a esttab CSV).
+
+    fix(topk-n-expansion, 2026-07-02): 纳入大邻域 N∈{10,20,30,40,50} (与 n3..n7 互为稳健性)。
+    """
     from news_process.papers._common.paper_figures_ext import coefplot_from_esttab_df
     from news_process.papers.strategic_diff.tables import build_table5_robustness
 
@@ -73,10 +76,11 @@ def plot_n_sensitivity_coefplot(paper_config: PaperConfig | None = None,
     df = build_table5_robustness(pc)
     out = pc.output_dir / 'figures' / filename
     out.parent.mkdir(parents=True, exist_ok=True)
-    vars_present = [f'strat_diff_n{n}' for n in range(3, 8)
+    _n_grid = [3, 4, 5, 6, 7, 10, 20, 30, 40, 50]
+    vars_present = [f'strat_diff_n{n}' for n in _n_grid
                     if f'strat_diff_n{n}' in df.index]
     if not vars_present:
-        raise KeyError("No strat_diff_n3..n7 found in df.index")
+        raise KeyError("No strat_diff_n{3..7,10,20,30,40,50} found in df.index")
     return coefplot_from_esttab_df(
         df, variables=vars_present, output_path=out,
         title='N-Neighbor Sensitivity --- strategic_diff (Bresnahan-Reiss 1991)',

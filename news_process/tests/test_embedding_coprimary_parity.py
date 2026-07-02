@@ -25,6 +25,11 @@ import pytest
 #   fintech_intensity_score→avg_ft_intensity)。本表同列两套名 (panel + article), 在对应产物上
 #   各自匹配, 另一套在该产物缺席即无害。strat_diff 契约别名走 _EMB_EXACT_BASES 精确匹配
 #   (防误吞非嵌入 TF-IDF/LDA 列 strat_diff_n3/n4/n5/n5_w/n5_lda/n5_ctx, code-review P1-2)。
+# fix(topk-n-expansion, 2026-07-02): strat_diff 的 N-最近邻 embedding 族 (strat_diff_n{N}_emb,
+#   全 N∈{5}∪{10,20,30,40,50}) 改由 _is_emb_family 内**正则** `^strat_diff_n\d+_emb` 统一判定,
+#   不再靠下方元组前缀 (前缀只认 n5)。TF-IDF/word/LDA 的各 N 列 (strat_diff_n{N} / _w / _lda)
+#   一律**非嵌入族、无 _lg 孪生** (正则要求 digits 后紧跟 _emb, 不误吞)。元组内保留的
+#   'strat_diff_n5_emb' 条目已被该正则涵盖 (冗余但无害)。
 _EMB_FAMILY_PREFIXES = (
     # panel 级 (runner/encode 聚合时重命名)
     "article_sim_mean", "article_sim_std",   # ← policy_cosine_sim (runner rename)
@@ -65,6 +70,13 @@ def _is_lg(col: str) -> bool:
 def _is_emb_family(col: str) -> bool:
     base = _strip_lg(col)  # 位置无关: 对 _lg 与无后缀两形式同判
     if base in _EMB_EXACT_BASES:
+        return True
+    # fix(topk-n-expansion, 2026-07-02): strat_diff N-最近邻 embedding 族 (strat_diff_n{N}_emb,
+    #   全 N∈{5}∪{10,20,30,40,50}, 含 _ctx/_ss 及经 _strip_lg 归一的 _lg 形式) 用**正则**族判。
+    #   起因: _EMB_FAMILY_PREFIXES 的前缀 startswith 只认 n5 ('strat_diff_n10_emb'.startswith(
+    #   'strat_diff_n5_emb')=False), top-k 扩 N 后新 emb 列会静默逃逸 parity。^ 锚定 + 要求
+    #   digits 后紧跟 '_emb', 故绝不误吞 TF-IDF/word/LDA 的 strat_diff_n{N} / _w / _lda (无 _lg 孪生)。
+    if re.match(r"^strat_diff_n\d+_emb", base):
         return True
     return any(base.startswith(p) for p in _EMB_FAMILY_PREFIXES)
 
@@ -131,9 +143,65 @@ def test_parity_balanced_passes():
 
 
 def test_parity_non_embedding_strat_diff_not_required_lg():
-    """P1-2 锁: 非嵌入 strat_diff_n5/n3/lda 不得被当作嵌入族要求 _lg 孪生。"""
-    cols = ["strat_diff_n5", "strat_diff_n5_w", "strat_diff_n5_lda", "strat_diff_n3"]
+    """P1-2 锁: 非嵌入 strat_diff (TF-IDF char/word/LDA) 不得被当作嵌入族要求 _lg 孪生。
+    fix(topk-n-expansion): 纳入大 N (n10/n20/n50) 的非嵌入列, 证正则 ^strat_diff_n\\d+_emb 不误吞。
+    """
+    cols = [
+        # 基准 n5 系
+        "strat_diff_n5", "strat_diff_n5_w", "strat_diff_n5_lda", "strat_diff_n3",
+        # top-k 大 N 的 TF-IDF char/word/LDA (无 _emb → 非嵌入 → 无需 _lg)
+        "strat_diff_n10", "strat_diff_n20", "strat_diff_n50",
+        "strat_diff_n10_w", "strat_diff_n30_w",
+        "strat_diff_n10_lda", "strat_diff_n40_lda",
+        # 大 N 的 ctx/ss 非嵌入
+        "strat_diff_n10_ctx", "strat_diff_n20_w_ss", "strat_diff_n50_lda_ctx",
+    ]
     assert check_coprimary_parity(cols) == []
+
+
+def test_parity_topk_emb_bijection_full():
+    """fix(topk-n-expansion): 大 N 的 emb 列须与 _lg 孪生双射 (full 轨)。"""
+    cols = [
+        "strat_diff_n10_emb", "strat_diff_n10_emb_lg",
+        "strat_diff_n50_emb", "strat_diff_n50_emb_lg",
+    ]
+    assert check_coprimary_parity(cols) == []
+
+
+def test_parity_topk_emb_bijection_ctx_ss():
+    """fix(topk-n-expansion): ⚠ 最非平凡路径 — ctx/ss 的 _lg 在 track 后缀**之前**
+    (strat_diff_n10_emb_lg_ctx), 须靠 _strip_lg 位置无关剥离才与 base strat_diff_n10_emb_ctx 对齐。
+    """
+    cols = [
+        "strat_diff_n10_emb_ctx", "strat_diff_n10_emb_lg_ctx",
+        "strat_diff_n10_emb_ss", "strat_diff_n10_emb_lg_ss",
+        "strat_diff_n30_emb_ctx", "strat_diff_n30_emb_lg_ctx",
+    ]
+    assert check_coprimary_parity(cols) == []
+
+
+def test_parity_topk_emb_orphan_fails():
+    """fix(topk-n-expansion): 大 N 的 emb 单边孤儿 (缺 _lg 或缺无后缀本体) 必须被抓。"""
+    # 缺 _lg 孪生
+    v1 = check_coprimary_parity(["strat_diff_n10_emb"])
+    assert any("孤儿无后缀" in x for x in v1), v1
+    # 缺无后缀本体 (孤儿 _lg)
+    v2 = check_coprimary_parity(["strat_diff_n20_emb_lg"])
+    assert any("孤儿 _lg" in x for x in v2), v2
+    # ctx 轨大 N 单边缺失
+    v3 = check_coprimary_parity(["strat_diff_n50_emb_lg_ctx"])
+    assert any("孤儿 _lg" in x for x in v3), v3
+
+
+def test_parity_regression_n5_emb_still_enforced():
+    """回归锁: 既有 strat_diff_n5_emb 的双射强制不得被本次正则改动削弱。
+    (n5_emb 由 _EMB_FAMILY_PREFIXES 元组前缀 + 新正则 ^strat_diff_n\\d+_emb 双重覆盖;
+    此测试锁定其 "缺 _lg 孪生即违例" 语义, 防未来任一路径回归。)"""
+    v = check_coprimary_parity(["strat_diff_n5_emb"])
+    assert any("孤儿无后缀" in x for x in v), v
+    # 完整双射通过
+    assert check_coprimary_parity(
+        ["strat_diff_n5_emb", "strat_diff_n5_emb_lg"]) == []
 
 
 def test_parity_orphan_no_suffix_fails():

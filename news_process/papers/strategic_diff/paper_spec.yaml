@@ -7,7 +7,7 @@ spec_version: 2.0.0
 status: existing
 differentiation_claim: |
   strategic_diff 用多文本表征方法 (TF-IDF char / TF-IDF jieba / LDA+JSD /
-  Embedding / Centroid) 测度银行金融科技战略差异度, 检验 N-邻 (N=3..7) 敏感性、
+  Embedding / Centroid) 测度银行金融科技战略差异度, 检验 N-邻 (N=3..7,10,20,30,40,50) 敏感性、
   与产品市场流动性的关系、SOE 异质性、Bartik IV 因果识别。
   锚定: Guzman-Li 2023 MS + Hoberg-Phillips 2016 JPE + Hoberg-Phillips-Prabhala 2014 JF + 谢佳松 2025 经济研究。
   跨 paper 区分:
@@ -27,12 +27,14 @@ outcome:
   # 方向预测与 P1 的语调通道相反, 互为交叉验证)。
   primary: tobin_q  # 特许权价值 (上市行子样本主表)
   secondary: [roa, funding_cost, strat_fluidity, noninterest_income_share]
-  enrichment_source: pipeline strat_diff_n{3..7} + Wind 市值 → tobin_q + 财务面板
+  enrichment_source: pipeline strat_diff_n{3..7,10,20,30,40,50} + Wind 市值 → tobin_q + 财务面板
     ROA/利息支出/非利息收入 (M0.5.11)
 
 treatment:
   primary: strat_diff_n5   # N=5 TF-IDF char 默认
-  alternative: [strat_diff_n3, strat_diff_n4, strat_diff_n6, strat_diff_n7, strat_sim_max,
+  # fix(topk-n-expansion, 2026-07-02): 追加大邻域 N∈{10,20,30,40,50} (与 n3..n7 同为 N-邻敏感性替代测度)
+  alternative: [strat_diff_n3, strat_diff_n4, strat_diff_n6, strat_diff_n7,
+    strat_diff_n10, strat_diff_n20, strat_diff_n30, strat_diff_n40, strat_diff_n50, strat_sim_max,
     centroid_diff_tfidf_c, coh_tfidf_c_full]
 
 controls:
@@ -75,14 +77,22 @@ inference:
     spec: "reghdfe tobin_q_w strat_diff_n5 $controls, absorb(bank_id year) vce(cluster bank_id)"
     one_sided_prediction: "差异化 → 市场势力 → 特许权价值上升 (β > 0); 全样本通道 funding_cost β < 0"
   exploratory:  # 标 robustness/exploratory, 不与 confirmatory 同权 (减弱 LPU/p-hacking 暴露)
-    - "N-邻敏感性 strat_diff_n{3,4,6,7} (14_table5a; Bresnahan-Reiss 1991)"
+    - "N-邻敏感性 strat_diff_n{3,4,6,7,10,20,30,40,50} (14_table5a; Bresnahan-Reiss 1991; 小/大邻域互为稳健性、不分主次)"
     - "alternative treatment strat_sim_max / centroid_diff_* / coherence (各自单跑, 非同时规格)"
+    # fix(topk-n-expansion, 2026-07-02): word/lda/emb/_lg 及 ctx/ss 轨的大 N 列 (~60 列) 仅作
+    #   point-estimate 探索性稳健 (各自单跑, 不组建独立 FWER 族); headline FWER 族保持 char-only。
+    #   "不分主次" 指同方法内 N 梯度同权, 非跨方法/跨轨合族 (跨方法/轨是既有 method/track-robustness 维度)。
     - "ctx 轨 strat_diff_n5_ctx (full/ctx 双轨互为稳健性, 高相关孪生非独立假设)"
     - "ss 轨 strat_diff_n5_ss (银行+金科同句共现轨; full/ctx/ss 三轨互为稳健性, 高相关孪生非独立假设)"
     - "SOE/hub/size/bank_type 子样本异质性 (13_table4 / 17_table8)"
     - "era-stability 分时代稳定性 (18_table9; CY-2)"
   families:  # FWER 校正族 (rwolf/wyoung 在族内校正后 p 进 esttab)
-    n_neighbor: [strat_diff_n3, strat_diff_n4, strat_diff_n5, strat_diff_n6, strat_diff_n7]
+    # fix(topk-n-expansion, 2026-07-02): headline char N-邻族纳入大邻域 {10,20,30,40,50} (Q4=并入同族,
+    #   兑现"不分主次" 同权)。⚠ 族 5→10 成员使 Romano-Wolf 校正**单调变严** → 拉高既有 n3..n7/n5
+    #   校正后 p 值 (审稿可见, 手稿须披露); 且 n5 双角色 (confirmatory 未校正单假设 vs 本族 RW 校正
+    #   成员) 是两个正交口径, 手稿须落地统计正当性 prose (非 double-counting)。
+    n_neighbor: [strat_diff_n3, strat_diff_n4, strat_diff_n5, strat_diff_n6, strat_diff_n7,
+      strat_diff_n10, strat_diff_n20, strat_diff_n30, strat_diff_n40, strat_diff_n50]
     centroid: [centroid_diff_tfidf_c, centroid_diff_tfidf_w, centroid_diff_lda, centroid_diff_emb]
   fwer: romano_wolf   # Romano-Wolf 2005 ECMA (族内多测度同时显著性校正)
 

@@ -371,6 +371,24 @@ def build_variable_labels(
         'strat_diff_ctx':                   "Strat Diff (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
         'strat_diff_n5_emb':                "Strat Diff N5 Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
         'strat_diff_n5_emb_ctx':            "Strat Diff N5 Emb (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        # top-k N 扩展 (2026-07-02): 大邻域 emb N∈{10,20,30,40,50} × 3 轨 (full/ctx/ss) = 15 条;
+        #   _lg 孪生 15 条由下方 _lg 派生循环自动生成 (无需手写)。⚠ 须与 _MAIN_ANCHOR_KEYS 原子同增
+        #   (P2-D 守卫断言每 anchor key ∈ 带 Qwen 标注的 HEURISTIC_LABELS)。
+        'strat_diff_n10_emb':               "Strat Diff N10 Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_diff_n20_emb':               "Strat Diff N20 Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_diff_n30_emb':               "Strat Diff N30 Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_diff_n40_emb':               "Strat Diff N40 Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_diff_n50_emb':               "Strat Diff N50 Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_diff_n10_emb_ctx':           "Strat Diff N10 Emb (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_diff_n20_emb_ctx':           "Strat Diff N20 Emb (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_diff_n30_emb_ctx':           "Strat Diff N30 Emb (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_diff_n40_emb_ctx':           "Strat Diff N40 Emb (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_diff_n50_emb_ctx':           "Strat Diff N50 Emb (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_diff_n10_emb_ss':            "Strat Diff N10 Emb (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_diff_n20_emb_ss':            "Strat Diff N20 Emb (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_diff_n30_emb_ss':            "Strat Diff N30 Emb (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_diff_n40_emb_ss':            "Strat Diff N40 Emb (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_diff_n50_emb_ss':            "Strat Diff N50 Emb (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
         'strat_sim_max_emb':                "Strat Max Sim Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
         'strat_sim_max_emb_ctx':            "Strat Max Sim Emb (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
         'centroid_diff_emb':                "Centroid Diff Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
@@ -497,6 +515,15 @@ def build_variable_labels(
         # full/ctx (full 命名遵循 producer: n5_emb/sim_max_emb/centroid_diff_emb 裸名)
         'strat_diff_full', 'strat_diff_ctx',
         'strat_diff_n5_emb', 'strat_diff_n5_emb_ctx',
+        # top-k N 扩展 (2026-07-02): 大邻域 emb N∈{10,20,30,40,50} × 3 轨 = 15 anchor;
+        #   _lg 孪生自动派生 (bare→append _lg = strat_diff_n10_emb_lg; _ctx/_ss→插 = strat_diff_n10_emb_lg_ctx)。
+        #   与上方 HEURISTIC_LABELS 15 条原子同增 (P2-D 守卫)。
+        'strat_diff_n10_emb', 'strat_diff_n20_emb', 'strat_diff_n30_emb',
+        'strat_diff_n40_emb', 'strat_diff_n50_emb',
+        'strat_diff_n10_emb_ctx', 'strat_diff_n20_emb_ctx', 'strat_diff_n30_emb_ctx',
+        'strat_diff_n40_emb_ctx', 'strat_diff_n50_emb_ctx',
+        'strat_diff_n10_emb_ss', 'strat_diff_n20_emb_ss', 'strat_diff_n30_emb_ss',
+        'strat_diff_n40_emb_ss', 'strat_diff_n50_emb_ss',
         'strat_sim_max_emb', 'strat_sim_max_emb_ctx',
         'centroid_diff_emb', 'centroid_diff_emb_ctx',
         'coh_emb_full', 'coh_emb_ctx',

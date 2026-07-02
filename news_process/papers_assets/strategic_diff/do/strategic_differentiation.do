@@ -23,8 +23,8 @@
 *
 * 变量说明:
 *   --- N-最近邻 Full 轨 ---
-*   strat_diff_n{3..7}    TF-IDF char N-最近邻差异度, 值域 [0,1]
-*   strat_diff_n{3..7}_w  TF-IDF jieba 词级差异度, 值域 [0,1]
+*   strat_diff_n{3..7,10,20,30,40,50}    TF-IDF char N-最近邻差异度, 值域 [0,1]
+*   strat_diff_n{3..7,10,20,30,40,50}_w  TF-IDF jieba 词级差异度, 值域 [0,1]
 *   strat_sim_max{_w}     最大同行相似度
 *   strat_fluidity{_w}    市场流动性 (Hoberg et al. 2014)
 *   strat_diff_n5_lda     LDA+JSD N=5 差异度
@@ -101,15 +101,29 @@ eststo m3
 * =========================================================================
 * 4. N 值敏感性 (Bresnahan & Reiss 1991, JPE)
 *    验证结果对近邻数 N 的选取不敏感
+*    fix(topk-n-expansion, 2026-07-02): N∈{3,4,5,6,7,10,20,30,40,50} (小/大邻域互为稳健性);
+*      reghdfe 加 capture 防某 N 列全 NaN → r(2000) 崩; esttab 动态点名防引用未建立估计 r(111)。
 * =========================================================================
-foreach n of numlist 3/7 {
-    reghdfe Y strat_diff_n`n' $controls, ///
+foreach n of numlist 3/7 10(10)50 {
+    capture reghdfe Y strat_diff_n`n' $controls, ///
         absorb(bank_id year) vce(cluster bank_id)
-    eststo n`n'
+    if !_rc eststo n`n'
 }
-esttab n3 n4 n5 n6 n7 using "$out_dir/strat_n_sensitivity.tex", ///
-    star(* .10 ** .05 *** .01) se replace ///
-    mtitles("N=3" "N=4" "N=5" "N=6" "N=7")
+qui estimates dir
+local stored `r(names)'
+local nmodels ""
+local ntitles `""'
+foreach n of numlist 3/7 10(10)50 {
+    if `: list posof "n`n'" in stored' {
+        local nmodels `nmodels' n`n'
+        local ntitles `"`ntitles' "N=`n'""'
+    }
+}
+if "`nmodels'" != "" {
+    esttab `nmodels' using "$out_dir/strat_n_sensitivity.tex", ///
+        star(* .10 ** .05 *** .01) se replace ///
+        mtitles(`ntitles')
+}
 
 * =========================================================================
 * 5. 稳健性: 替换文本表征方法

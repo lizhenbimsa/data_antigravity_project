@@ -1138,6 +1138,19 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'strat_diff_n5_w':     'Strat Diff N=5 (TF-IDF jieba)',
                 'strat_diff_n6_w':     'Strat Diff N=6 (TF-IDF jieba)',
                 'strat_diff_n7_w':     'Strat Diff N=7 (TF-IDF jieba)',
+                # top-k N 扩展 (2026-07-02): 大邻域 N∈{10,20,30,40,50} char/word (full 轨);
+                #   emb 的大 N 走 stata_export.py::HEURISTIC_LABELS (Qwen/_lg 标签); lda 的大 N 走
+                #   build_variable_labels 列名自兜底 (与既有 n5_lda 一致); 此处仅显式补 char/word。
+                'strat_diff_n10':      'Strat Diff N=10 (TF-IDF char)',
+                'strat_diff_n20':      'Strat Diff N=20 (TF-IDF char)',
+                'strat_diff_n30':      'Strat Diff N=30 (TF-IDF char)',
+                'strat_diff_n40':      'Strat Diff N=40 (TF-IDF char)',
+                'strat_diff_n50':      'Strat Diff N=50 (TF-IDF char)',
+                'strat_diff_n10_w':    'Strat Diff N=10 (TF-IDF jieba)',
+                'strat_diff_n20_w':    'Strat Diff N=20 (TF-IDF jieba)',
+                'strat_diff_n30_w':    'Strat Diff N=30 (TF-IDF jieba)',
+                'strat_diff_n40_w':    'Strat Diff N=40 (TF-IDF jieba)',
+                'strat_diff_n50_w':    'Strat Diff N=50 (TF-IDF jieba)',
                 'strat_sim_max':       'Max Peer Similarity (TF-IDF char)',
                 'strat_sim_max_w':     'Max Peer Similarity (TF-IDF jieba)',
                 'strat_fluidity':      'Product Mkt Fluidity (TF-IDF char)',

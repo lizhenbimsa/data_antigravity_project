@@ -13,12 +13,17 @@ if TYPE_CHECKING:
 
 
 _TABLE1_VARIABLES: list[str] = [
-    # N-最近邻 (Guzman & Li 2023)
+    # N-最近邻 (Guzman & Li 2023); fix(topk-n-expansion 2026-07-02): 加大邻域 N∈{10,20,30,40,50}
     'strat_diff_n3',
     'strat_diff_n4',
     'strat_diff_n5',
     'strat_diff_n6',
     'strat_diff_n7',
+    'strat_diff_n10',
+    'strat_diff_n20',
+    'strat_diff_n30',
+    'strat_diff_n40',
+    'strat_diff_n50',
     # 最大同业相似度
     'strat_sim_max',
     'strat_sim_max_w',

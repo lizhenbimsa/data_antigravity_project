@@ -179,6 +179,58 @@ class TestNNScoresEmbBounds:
 
 
 # ---------------------------------------------------------------------------
+# topk-n-expansion (2026-07-02): 大 N∈{10,20,30,40,50} 的 N-最近邻扩展
+#   验非连续大 N 正确计算 + |peers|<N→NaN 优雅降级 + sim/dist/emb 三路径同构 + 单调性。
+# ---------------------------------------------------------------------------
+
+def _symmetric_nan_diag(n, seed):
+    rng = np.random.default_rng(seed)
+    base = rng.random((n, n))
+    m = (base + base.T) / 2.0
+    np.fill_diagonal(m, np.nan)
+    return m, [f'b{i}' for i in range(n)]
+
+
+class TestTopKNExpansion:
+
+    def test_topk_constant_is_ssot(self):
+        assert sd._TOPK_NN == [10, 20, 30, 40, 50]
+
+    def test_large_n_nan_when_insufficient_peers(self):
+        # 6 银行 → 每行 5 peer: n5 有值; n10..n50 因 |peers|=5<N → NaN (优雅降级)
+        m, banks = _symmetric_nan_diag(6, 0)
+        res = sd._compute_nn_scores(m, banks, [5] + sd._TOPK_NN)
+        assert np.isfinite(res['n5']['b0'])
+        for N in sd._TOPK_NN:
+            assert np.isnan(res[f'n{N}']['b0']), f"|peers|=5 < N={N} 应 NaN"
+
+    def test_large_n_measurable_with_enough_peers(self):
+        # 51 银行 → 每行 50 peer: n5..n50 全可测, TF-IDF 距离 δ=1-sim ∈ [0,1]
+        m, banks = _symmetric_nan_diag(51, 1)
+        res = sd._compute_nn_scores(m, banks, [5] + sd._TOPK_NN)
+        for N in [5, 10, 20, 30, 40, 50]:
+            v = res[f'n{N}']['b0']
+            assert np.isfinite(v), f"n{N} 应可测 (peers=50≥{N})"
+            assert 0.0 <= v <= 1.0, f"n{N}={v} 越界 [0,1]"
+
+    def test_large_n_monotone_distance_branch(self):
+        # 越大邻域纳入越远 peer → mean(dist_topN) 单调不减 (LDA is_distance 路径)
+        d, banks = _symmetric_nan_diag(21, 2)
+        res = sd._compute_nn_scores(d, banks, [5, 10, 20], is_distance=True)
+        assert res['n5']['b0'] <= res['n10']['b0'] + 1e-9
+        assert res['n10']['b0'] <= res['n20']['b0'] + 1e-9
+
+    def test_large_n_emb_negative_cosine_not_floored(self):
+        # emb 轨大 N: 负余弦不地板, δ=1-(-0.5)=1.5 ∈ [0,2]
+        n = 12
+        m = np.full((n, n), -0.5)
+        np.fill_diagonal(m, np.nan)
+        banks = [f'b{i}' for i in range(n)]
+        res = sd._compute_nn_scores(m, banks, [5, 10], sim_bounds=(-1.0, 1.0))
+        assert res['n10']['b0'] == pytest.approx(1.5)
+
+
+# ---------------------------------------------------------------------------
 # g-strategic-10 / 02: leave-one-out 质心 + emb 距离 [0,2]
 # ---------------------------------------------------------------------------
 

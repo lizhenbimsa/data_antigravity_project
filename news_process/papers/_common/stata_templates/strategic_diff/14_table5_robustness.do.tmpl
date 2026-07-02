@@ -2,7 +2,7 @@
 * 14_table5_robustness.do — 稳健性 (strategic_diff)
 * Paper: {{PAPER_ID}}
 *
-* R1-R5: 邻居数 N=3, 4, 5, 6, 7 敏感性 (Bresnahan-Reiss 1991)
+* R1-R5: 邻居数 N=3,4,5,6,7,10,20,30,40,50 敏感性 (Bresnahan-Reiss 1991; 小/大邻域互为稳健性)
 * R6: 质心距离 (centroid distance) (谢佳松 2025, 经济研究)
 * R7: 换用 ctx 轨度量 (full/ctx 双轨互为稳健性)
 * ============================================================================
@@ -16,23 +16,26 @@ if "$tables_dir" == ""  global tables_dir "../output/tables"
 
 use "$data_dir/_prepared_panel.dta", clear
 
-* R1-R5: 邻居数 N=3..7 敏感性
-forvalues n = 3/7 {
+* R1-R5: 邻居数 N∈{3,4,5,6,7,10,20,30,40,50} 敏感性
+* fix(topk-n-expansion, 2026-07-02): forvalues 3/7 (连续) → foreach numlist (非连续含大 N);
+*   reghdfe 加 capture 防某 N 列跨全 panel 皆 NaN → r(2000) 无观测直接崩 (仅当列存在但全 NaN;
+*   confirm variable 挡不住此情形)。eststo 仅在 reghdfe 成功 (_rc==0) 时建立。
+foreach n of numlist 3/7 10(10)50 {
     capture confirm variable strat_diff_n`n'
     if !_rc {
-        reghdfe {{MAIN_DV}}_w strat_diff_n`n' $controls, ///
+        capture reghdfe {{MAIN_DV}}_w strat_diff_n`n' $controls, ///
             absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
-        eststo N`n'
+        if !_rc eststo N`n'
     }
 }
 
-* fix(omni-g-templates-04, 2026-06-11): esttab 名单动态化 — strat_diff_n3..n7 任一列
-* 缺失被 continue 跳过后, 旧版硬点名 N3..N7 → r(111) 整表丢失; mtitle 同步删列防错位。
+* fix(omni-g-templates-04, 2026-06-11): esttab 名单动态化 — strat_diff_n{3..7,10,20,30,40,50}
+* 任一列缺失被跳过后, 旧版硬点名 → r(111) 整表丢失; mtitle 同步删列防错位。
 qui estimates dir
 local stored `r(names)'
 local n_models ""
 local n_titles `""'
-forvalues n = 3/7 {
+foreach n of numlist 3/7 10(10)50 {
     if `: list posof "N`n'" in stored' {
         local n_models `n_models' N`n'
         local n_titles `"`n_titles' "N=`n'""'

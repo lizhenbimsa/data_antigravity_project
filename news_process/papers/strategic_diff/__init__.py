@@ -9,7 +9,7 @@ Strategic-Diff — 银行金融科技战略差异度 (Strategic Differentiation)
 
 核心被解释变量
 --------------
-- ``strat_diff_n3..n7``    : N-邻 TF-IDF 字符差异度
+- ``strat_diff_n{3..7,10,20,30,40,50}`` : N-邻 TF-IDF 字符差异度 (小/大邻域, 互为稳健性)
 - ``strat_sim_max``         : 最大同业相似度
 - ``strat_fluidity``        : 产品市场流动性 (Hoberg-Phillips fluidity)
 - ``strat_diff_n5_lda``     : LDA + JSD 主题差异度

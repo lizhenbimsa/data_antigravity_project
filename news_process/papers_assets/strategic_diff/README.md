@@ -4,13 +4,13 @@
 
 ## 主题
 
-Strategic-Diff (Guzman & Li 2023 MS + Hoberg & Phillips 2016 JPE + Hoberg-Phillips-Prabhala 2014 JF + 谢佳松 2025 经济研究): **多文本表征方法** (TF-IDF char / TF-IDF jieba / LDA+JSD / Embedding / Centroid) 测度银行金融科技战略差异度, 检验 N-邻 (N=3..7) 敏感性、与产品市场流动性的关系、SOE 异质性、Bartik IV 因果识别.
+Strategic-Diff (Guzman & Li 2023 MS + Hoberg & Phillips 2016 JPE + Hoberg-Phillips-Prabhala 2014 JF + 谢佳松 2025 经济研究): **多文本表征方法** (TF-IDF char / TF-IDF jieba / LDA+JSD / Embedding / Centroid) 测度银行金融科技战略差异度, 检验 N-邻 (N=3..7,10,20,30,40,50) 敏感性 (小/大邻域互为稳健性、不分主次)、与产品市场流动性的关系、SOE 异质性、Bartik IV 因果识别.
 
 ## 与 pipeline 的对应关系
 
 | 子模块 | 行数 | 责任 |
 |---|---|---|
-| `news_process.pipeline.features.strategic_diff` | ~ | 计算 `strat_diff_n{3..7}` / `strat_fluidity` / `centroid_diff_*` 等 |
+| `news_process.pipeline.features.strategic_diff` | ~ | 计算 `strat_diff_n{3..7,10,20,30,40,50}` / `strat_fluidity` / `centroid_diff_*` 等 |
 | `news_process.papers.strategic_diff.analysis` | 68 | CLI 入口 |
 | `news_process.papers.strategic_diff.tables` | 88 | Table 1-5 (描述 + 主回归 + Bartik IV + SOE 异质性 + N/方法/Ctx 稳健性) |
 | `news_process.papers.strategic_diff.figures` | 91 | Figure 1 (n5 分布) + Figure 2 (main coefplot) + Figure 3 (N-sens coefplot) |

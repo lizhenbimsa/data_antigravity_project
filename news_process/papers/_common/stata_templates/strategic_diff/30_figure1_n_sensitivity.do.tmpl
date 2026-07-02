@@ -1,5 +1,5 @@
 * ============================================================================
-* 30_figure1_n_sensitivity.do — 邻居数 N=3..7 系数敏感性图 (coefficient plot)
+* 30_figure1_n_sensitivity.do — 邻居数 N∈{3,4,5,6,7,10,20,30,40,50} 系数敏感性图 (coefficient plot)
 * Paper: {{PAPER_ID}}
 * ============================================================================
 
@@ -12,19 +12,30 @@ if "$figures_dir" == ""  global figures_dir "../output/figures"
 
 use "$data_dir/_prepared_panel.dta", clear
 
-forvalues n = 3/7 {
+* fix(topk-n-expansion, 2026-07-02): forvalues 3/7 → foreach numlist (非连续含大 N 10..50);
+*   reghdfe 加 capture 防某 N 列全 panel NaN → r(2000) 崩; eststo 仅 _rc==0 建立。
+foreach n of numlist 3/7 10(10)50 {
     capture confirm variable strat_diff_n`n'
     if !_rc {
-        reghdfe {{MAIN_DV}}_w strat_diff_n`n' $controls, ///
+        capture reghdfe {{MAIN_DV}}_w strat_diff_n`n' $controls, ///
             absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
-        eststo N`n'
+        if !_rc eststo N`n'
     }
 }
 
+* fix(topk-n-expansion): coefplot 括号组**动态构建** (原写死 N3..N7 → 若某 N 估计未建立会
+*   引用不存在估计崩 r(198)/r(111))。仿 14_table5 用 estimates dir + list posof 只纳入已建立的 N。
+qui estimates dir
+local stored `r(names)'
+local plotspec ""
+foreach n of numlist 3/7 10(10)50 {
+    if `: list posof "N`n'" in stored' {
+        local plotspec `plotspec' (N`n', label("N=`n'"))
+    }
+}
 capture which coefplot
-if !_rc {
-    coefplot (N3, label("N=3")) (N4, label("N=4")) (N5, label("N=5")) ///
-             (N6, label("N=6")) (N7, label("N=7")), ///
+if !_rc & `"`plotspec'"' != "" {
+    coefplot `plotspec', ///
         keep(strat_diff_n*) ///
         xline(0, lcolor(black) lpattern(dash)) ///
         title("Coefficient sensitivity to N choice (strategic_diff)") ///
@@ -32,7 +43,7 @@ if !_rc {
     graph export "$figures_dir/figure1_n_sensitivity.pdf", replace
 }
 else {
-    display "[INFO] coefplot not installed; figure skipped"
+    display "[INFO] coefplot not installed or no N estimates; figure skipped"
 }
 
 display "[OK] Figure 1 → $figures_dir/figure1_n_sensitivity.pdf"

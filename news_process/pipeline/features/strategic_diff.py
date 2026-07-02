@@ -10,7 +10,7 @@
   strategy" 中关于计算企业文本表述的余弦相似度并聚合至最近竞争者的规则:
 
       Ŝ_i = (1/N) Σ_{j ∈ J_i^N} δ_ij
-      (Guzman & Li 2023, MS, Eq. in §3; 本模块 N=5 为基准, N=3~7 为敏感性检验)
+      (Guzman & Li 2023, MS, Eq. in §3; 本模块 N=5 为基准, N∈{3,4,6,7}∪{10,20,30,40,50} 为敏感性检验)
 
   其中:
     - δ_ij = 1 - cosine_similarity(TF-IDF_i, TF-IDF_j) 为银行 i 与银行 j
@@ -36,7 +36,7 @@
 本模块实现基于新闻文本的银行战略差异度量化框架, 核心思路是:
   1. 按 (银行, 年度) 聚合新闻文本 → 构建 "企业-年" 文档
   2. 使用多种文本表征方法 (TF-IDF / LDA / Embedding) 计算银行间文本距离
-  3. 对每家银行取 N-最近邻 (N=3~7) 的平均距离作为差异度指标 → Ŝ_i
+  3. 对每家银行取 N-最近邻 (N∈{3,4,5,6,7,10,20,30,40,50}) 的平均距离作为差异度指标 → Ŝ_i
   4. 计算全行业向量法 (centroid distance) 度量与行业平均的差异
   5. 计算 Fluidity (市场流动性) 衡量竞争环境变化速度
   6. Full/Ctx/Ss 三轨对比: 检验全文 vs 上下文窗口 vs 银行+金科同句共现文本的
@@ -82,7 +82,11 @@
     与企业创新边界. 经济研究, (11).
     → 图 1: BERTopic 余弦相似度 → 技术布局引导, 本模块迁移为行业质心距离
 
-输出列 (~50 列; 含 co-primary _lg (text-embedding-3-large) 嵌入 twin 列)。
+输出列 (~125 列; 含 co-primary _lg (text-embedding-3-large) 嵌入 twin 列)。
+top-k N 扩展 (fix topk-n-expansion, 2026-07-02): 下列所有 N-最近邻差异度列 (strat_diff_n5*)
+  自 2026-07-02 起**均另有 N∈{10,20,30,40,50} 大邻域孪生** (_TOPK_NN, 全方法 TF-IDF char/word ·
+  LDA · Embedding Qwen · Embedding large _lg × 全轨 full/ctx/ss; 净增 ~75 列), 与 n5 互为稳健性、
+  不分主次。下方列清单为省略计仍以 n5/n{3..7} 示例, 实际含各 N。
 口径披露 (fix inject-fintech-word-lda, 2026-06-21): **全部 word 级 TF-IDF 列 (*_w) 与全部 LDA 列
 (*_lda) 自 2026-06-21 起改用注入 1506 金科词的独立分词器** (见 _get_diff_tokenizer), 领域复合词
 (金融科技/区块链 等) 整词保留, 与 char 轨 (char_wb)/embedding 轨领域感知口径一致; char/emb 列字节不变。
@@ -90,23 +94,23 @@
 ∈ [0,1]; **Embedding 轨余弦真值域 [-1,1]** → 相似度列 (strat_sim_max_emb*, coh_emb*)
 ∈ [-1,1], 距离列 (strat_diff_*_emb*, centroid_diff_emb*, strat_diff_lg_*) ∈ [0,2]
 (此前对 emb 轨统一 clip [0,1] 属值域删失, 负余弦被地板到 0):
-  --- N-最近邻 Full 轨 (18 列) ---
-  strat_diff_n{3..7}       TF-IDF char N-近邻差异度 (Ŝ_i, N=3~7)
-  strat_diff_n{3..7}_w     TF-IDF jieba 词级 N-近邻差异度 (稳健性检验)
+  --- N-最近邻 Full 轨 (~43 列; N∈{3,4,5,6,7}∪_TOPK_NN for char/word, {5}∪_TOPK_NN for lda/emb/lg) ---
+  strat_diff_n{3..7,10..50}       TF-IDF char N-近邻差异度 (Ŝ_i)
+  strat_diff_n{3..7,10..50}_w     TF-IDF jieba 词级 N-近邻差异度 (稳健性检验)
   strat_sim_max / _w       最大同行相似度 (max cosine sim to any peer)
   strat_fluidity / _w      市场流动性 (Hoberg et al. 2014, Eq. 2)
   strat_diff_n5_lda        LDA+JSD N=5 差异度 (主题分布距离, 稳健性检验)
   strat_sim_max_lda        LDA+JSD 最大同行相似度
   strat_diff_n5_emb        Embedding N=5 差异度 (稠密语义距离, 稳健性检验)
   strat_sim_max_emb        Embedding 最大同行相似度
-  --- N-最近邻 Ctx 轨 (8 列, N=5 only) ---
+  --- N-最近邻 Ctx 轨 (~48 列; 五方法各 N∈{5}∪_TOPK_NN) ---
   strat_diff_n5_ctx / _w_ctx    TF-IDF char/word Ctx 轨 N=5 差异度
   strat_sim_max_ctx / _w_ctx    TF-IDF char/word Ctx 轨最大同行相似度
   strat_diff_n5_lda_ctx         LDA+JSD Ctx 轨 N=5 差异度
   strat_sim_max_lda_ctx         LDA+JSD Ctx 轨最大同行相似度
   strat_diff_n5_emb_ctx         Embedding Ctx 轨 N=5 差异度
   strat_sim_max_emb_ctx         Embedding Ctx 轨最大同行相似度
-  --- N-最近邻 Ss 轨 (8 列, N=5 only; 银行+金科同句共现, 镜像 Ctx 轨) ---
+  --- N-最近邻 Ss 轨 (~48 列; 五方法各 N∈{5}∪_TOPK_NN; 银行+金科同句共现, 镜像 Ctx 轨) ---
   strat_diff_n5_ss / _w_ss      TF-IDF char/word Ss 轨 N=5 差异度
   strat_sim_max_ss / _w_ss      TF-IDF char/word Ss 轨最大同行相似度
   strat_diff_n5_lda_ss          LDA+JSD Ss 轨 N=5 差异度
@@ -281,6 +285,21 @@ _EMB_MAX_TOKENS_PER_REQUEST = _coerce_positive_int(
     _ALIGN_CFG.get('max_tokens_per_request'), _EMB_MAX_TOKENS_PER_REQUEST)
 _EMB_MAX_TOKENS_PER_REQUEST = max(
     _EMB_MAX_TOKENS, _EMB_MAX_TOKENS_PER_REQUEST)
+
+
+# ── top-k N-最近邻扩展 (2026-07-02) ──────────────────────────────────────────
+# 【术语】在既有 N-邻敏感性梯度基础上追加大邻域半径 N∈{10,20,30,40,50}, 与既有
+#   N (基准 5 + 稳健 3,4,6,7) **互为稳健性、不分主次** (同族 N-邻敏感性梯度)。
+# 【白话】除了看"最像的 5 家同行", 再看"最像的 10/20/30/40/50 家", 换邻居数看结论稳不稳。
+# 该常量是全方法 (TF-IDF char/word · LDA · Embedding Qwen · Embedding large _lg) ×
+#   全轨 (full/ctx/ss) 追加 N 的**单一事实源** (SSOT): 各方法的 N 列表 = 既有 ∪ _TOPK_NN。
+#   emb 主轨与 _lg 孪生**必须共用同一 N 列表**以维持 co-primary both-or-neither parity。
+# 成本: 扩 N 是对已算好相似度/距离矩阵的纯后处理 (见 _compute_nn_scores), **零额外
+#   嵌入 API 调用** (_build_embedding_sim_matrix 每轨仅调一次, 与 N 无关)。
+# 值域: 大 N 时 top-N 近邻趋近"与几乎全部同业的平均距离" (N→n_banks−1 时 ≡ 全 peer
+#   均距), 与 centroid 构念趋同但仍为 Guzman-Li N-NN 口径 — 互为稳健性连续谱, 非冗余。
+# 覆盖: 年内可比银行 < N+1 → 该 (bank, year) 的 N 列 NaN (|peers|<N→NaN 优雅降级)。
+_TOPK_NN = [10, 20, 30, 40, 50]
 
 
 # 中文停用词表 (Stopwords) — 排除高频虚词以提高 TF-IDF 区分度
@@ -729,7 +748,7 @@ def _compute_nn_scores(matrix, bank_list, N_list, is_distance=False,
       - similarity 矩阵: 取最大 N 个, 差异度 = mean(1 - sim_topN) → Ŝ_i
       - distance 矩阵: 取最小 N 个, 差异度 = mean(dist_topN) → Ŝ_i
 
-    N=5 为基准 (与论文一致), N=3,4,6,7 为敏感性检验。
+    N=5 为基准 (与论文一致), N∈{3,4,6,7}∪{10,20,30,40,50} 为敏感性检验 (小/大邻域半径, 互为稳健性)。
     N 值敏感性检验的理论基础:
       Bresnahan, T. F., & Reiss, P. C. (1991). Entry and competition in
       concentrated markets. Journal of Political Economy, 99(5), 977–1009.
@@ -1371,7 +1390,7 @@ def compute_strategic_differentiation(df_exploded, panel):
       strategy" 中关于计算企业文本表述的余弦相似度并聚合至最近竞争者的规则:
 
           Ŝ_i = (1/N) Σ_{j ∈ J_i^N} δ_ij
-          (N=5 为基准, N=3~7 为敏感性检验)
+          (N=5 为基准, N∈{3,4,6,7}∪{10,20,30,40,50} 为敏感性检验)
 
     边际贡献 / 解决的内生性问题:
       将所有银行当年的金融科技新闻文本聚合, 计算其与其他所有银行的
@@ -1386,7 +1405,7 @@ def compute_strategic_differentiation(df_exploded, panel):
       1. 按 (银行, 年度) 聚合新闻文本 → "企业产品描述"代理变量
       2. 逐年计算 4 种文本距离矩阵 (TF-IDF char/word, LDA+JSD, Embedding)
          → Hoberg & Phillips (2016, JPE, §III) 逐年重建方法
-      3. N-最近邻聚合 → Ŝ_i (N=3,4,5,6,7 for TF-IDF; N=5 for LDA/Embedding)
+      3. N-最近邻聚合 → Ŝ_i (N∈{3,4,5,6,7}∪_TOPK_NN for TF-IDF char/word; {5}∪_TOPK_NN for LDA/Embedding; _TOPK_NN={10,20,30,40,50})
       4. 全行业向量法 → 1 - cos(vec_i, centroid) (谢佳松 2025, 经济研究)
       5. 计算 Fluidity → Hoberg et al. (2014, JF, Eq. 2)
       6. Ctx / Ss 轨三轨对比 → 上下文窗口 (content_ctx) / 银行+金科同句共现
@@ -1492,9 +1511,16 @@ def compute_strategic_differentiation(df_exploded, panel):
     except Exception as _banner_exc:  # noqa: BLE001
         logger.warning(f"  战略差异度 banner 日志失败 (不阻塞): {_banner_exc!r}")
 
-    # 【白话】N_LIST = [3,4,5,6,7] 表示分别看最像的 3/4/5/6/7 家同行
-    #   N=5 是论文推荐的基准值，其他是"换个数字看结果是否稳定"
-    N_LIST = [3, 4, 5, 6, 7]
+    # 【白话】N_LIST 表示分别看最像的 3/4/5/6/7 家同行, 外加 10/20/30/40/50 家 (大邻域)
+    #   N=5 是论文推荐的基准值，其余 (含 _TOPK_NN 大 N) 是"换个数字看结果是否稳定" (互为稳健性、不分主次)
+    # fix(topk-n-expansion, 2026-07-02): 追加 _TOPK_NN=[10,20,30,40,50] (SSOT, 见模块顶部常量);
+    #   TF-IDF char/word full 轨的 N 集 = 既有 {3,4,5,6,7} ∪ _TOPK_NN。LDA/emb/lg 及 ctx/ss 轨
+    #   同步扩 (各自 {5} ∪ _TOPK_NN), 见下方各方法 compute 调用与 emit 循环。
+    N_LIST = [3, 4, 5, 6, 7] + _TOPK_NN
+    # fix(topk-n-expansion, 2026-07-02): LDA/Embedding(Qwen)/Embedding(large _lg) 三方法的 N 集
+    #   = 既有基准 {5} ∪ _TOPK_NN (这些方法历史上只跑 n5, 现追加大 N)。emb 与 _lg **共用此列表**
+    #   以保 co-primary both-or-neither 列名双射 (见 _compute_nn_scores 调用与 emit 循环)。
+    LDA_EMB_N_LIST = [5] + _TOPK_NN
     # fix(omni-g-strategic-09, 2026-06-11): 共提及文章 1/n_banks 降权稳健开关
     # (config strategic_diff.co_mention_downweight, 默认 False = 维持原口径;
     # 详见 _aggregate_bank_year_texts / 模块 docstring 局限性 4)
@@ -1545,7 +1571,7 @@ def compute_strategic_differentiation(df_exploded, panel):
         # 方法 C: LDA + JSD — 比较"主题分布"的差异（稳健性检验）
         try:
             jsd_mat, theta = _build_lda_jsd_matrix(texts, len(banks))
-            sl = _compute_nn_scores(jsd_mat, banks, [5], is_distance=True)
+            sl = _compute_nn_scores(jsd_mat, banks, LDA_EMB_N_LIST, is_distance=True)
             cd_lda = _compute_centroid_scores(theta, banks)
         except Exception as e:
             logger.warning(f"    LDA+JSD 失败 ({type(e).__name__}), 跳过")
@@ -1556,7 +1582,7 @@ def compute_strategic_differentiation(df_exploded, panel):
         # 距离 [0,2] — 显式传 bounds, 防按 TF-IDF [0,1] 默认值删失负余弦
         se_mat, se_emb = _build_embedding_sim_matrix(texts)
         if se_mat is not None:
-            se = _compute_nn_scores(se_mat, banks, [5], sim_bounds=(-1.0, 1.0))
+            se = _compute_nn_scores(se_mat, banks, LDA_EMB_N_LIST, sim_bounds=(-1.0, 1.0))
             cd_emb = _compute_centroid_scores(se_emb, banks,
                                               dist_bounds=(0.0, 2.0))
         else:
@@ -1567,7 +1593,7 @@ def compute_strategic_differentiation(df_exploded, panel):
             se_mat_lg, se_emb_lg = _build_embedding_sim_matrix(
                 texts, spec=_LARGE_SPEC)
             if se_mat_lg is not None:
-                se_lg = _compute_nn_scores(se_mat_lg, banks, [5],
+                se_lg = _compute_nn_scores(se_mat_lg, banks, LDA_EMB_N_LIST,
                                            sim_bounds=(-1.0, 1.0))
                 cd_emb_lg = _compute_centroid_scores(se_emb_lg, banks,
                                                      dist_bounds=(0.0, 2.0))
@@ -1589,14 +1615,19 @@ def compute_strategic_differentiation(df_exploded, panel):
             # strat_sim_max = 和最像的那一家同行的相似度
             row['strat_sim_max'] = sc['sim_max'][bank]
             row['strat_sim_max_w'] = sw['sim_max'][bank]
+            # fix(topk-n-expansion, 2026-07-02): LDA/emb/lg 由单 n5 改 for-N 多列写出
+            #   (N∈LDA_EMB_N_LIST={5}∪_TOPK_NN); sim_max N-independent 仍每方法一列。
             if sl:  # LDA 方法成功时才有
-                row['strat_diff_n5_lda'] = sl['n5'].get(bank, np.nan)
+                for N in LDA_EMB_N_LIST:
+                    row[f'strat_diff_n{N}_lda'] = sl[f'n{N}'].get(bank, np.nan)
                 row['strat_sim_max_lda'] = sl['sim_max'].get(bank, np.nan)
             if se:  # Embedding 主轨 (Qwen) 成功时才有
-                row['strat_diff_n5_emb'] = se['n5'].get(bank, np.nan)
+                for N in LDA_EMB_N_LIST:
+                    row[f'strat_diff_n{N}_emb'] = se[f'n{N}'].get(bank, np.nan)
                 row['strat_sim_max_emb'] = se['sim_max'].get(bank, np.nan)
-            if se_lg:  # co-primary 嵌入 (_lg=text-embedding-3-large)
-                row['strat_diff_n5_emb_lg'] = se_lg['n5'].get(bank, np.nan)
+            if se_lg:  # co-primary 嵌入 (_lg=text-embedding-3-large); 与 emb 严格同 N 列表保 parity
+                for N in LDA_EMB_N_LIST:
+                    row[f'strat_diff_n{N}_emb_lg'] = se_lg[f'n{N}'].get(bank, np.nan)
                 row['strat_sim_max_emb_lg'] = se_lg['sim_max'].get(bank, np.nan)
             # 全行业向量法 Full 轨 (谢佳松 2025, 经济研究, 图1/表2)
             row['centroid_diff_tfidf_c'] = cd_c[bank]
@@ -1735,7 +1766,8 @@ def compute_strategic_differentiation(df_exploded, panel):
     #   三轨 (full/ctx/ss) 互为稳健性, 检验归因窗口收紧对差异度指标的影响。
     # 【白话】Full 轨用完整新闻, Ctx 轨只用提到银行名字附近的段落,
     #   Ss 轨只用"银行和金融科技出现在同一句话"的文本。
-    #   N-NN 仅跑 N=5 (不展开 N=3~7, N 敏感性已由 Full 轨覆盖)。
+    # fix(topk-n-expansion, 2026-07-02): ctx/ss 五方法均展开 N∈LDA_EMB_N_LIST={5}∪_TOPK_NN
+    #   (原仅 n5; 现与 Full 轨大 N 对称, 互为稳健性、不分主次)。
     # 注: 此处把原 ctx 内联块参数化为 (track_suffix, text_col) 循环, ss 复用
     #   完全相同的方法 (TF-IDF char/word + LDA + Embedding 主轨 + co-primary _lg) 逻辑;
     #   每轨守卫 text_col 存在 (缺失 → graceful skip), 列名机械 _ctx/_ss 后缀。
@@ -1766,18 +1798,18 @@ def compute_strategic_differentiation(df_exploded, panel):
             if len(banks) < 3:
                 continue
 
-            # N-NN (N=5 only) + centroid, 四方法
+            # N-NN + centroid, 五方法; fix(topk-n-expansion): N∈LDA_EMB_N_LIST={5}∪_TOPK_NN
             sim_c, vec_c = _build_tfidf_sim_matrix(texts, 'char')
-            sc = _compute_nn_scores(sim_c, banks, [5])
+            sc = _compute_nn_scores(sim_c, banks, LDA_EMB_N_LIST)
             cd_c = _compute_centroid_scores(vec_c, banks, is_sparse=True)
 
             sim_w, vec_w = _build_tfidf_sim_matrix(texts, 'word')
-            sw = _compute_nn_scores(sim_w, banks, [5])
+            sw = _compute_nn_scores(sim_w, banks, LDA_EMB_N_LIST)
             cd_w = _compute_centroid_scores(vec_w, banks, is_sparse=True)
 
             try:
                 jsd_mat, theta = _build_lda_jsd_matrix(texts, len(banks))
-                sl = _compute_nn_scores(jsd_mat, banks, [5],
+                sl = _compute_nn_scores(jsd_mat, banks, LDA_EMB_N_LIST,
                                          is_distance=True)
                 cd_lda = _compute_centroid_scores(theta, banks)
             except Exception:
@@ -1786,7 +1818,7 @@ def compute_strategic_differentiation(df_exploded, panel):
             # fix(omni-g-strategic-02/10): emb 轨显式 bounds (同 Full 轨)
             se_mat, se_emb = _build_embedding_sim_matrix(texts)
             if se_mat is not None:
-                se = _compute_nn_scores(se_mat, banks, [5],
+                se = _compute_nn_scores(se_mat, banks, LDA_EMB_N_LIST,
                                         sim_bounds=(-1.0, 1.0))
                 cd_emb = _compute_centroid_scores(se_emb, banks,
                                                   dist_bounds=(0.0, 2.0))
@@ -1798,7 +1830,7 @@ def compute_strategic_differentiation(df_exploded, panel):
                 se_mat_lg, se_emb_lg = _build_embedding_sim_matrix(
                     texts, spec=_LARGE_SPEC)
                 if se_mat_lg is not None:
-                    se_lg = _compute_nn_scores(se_mat_lg, banks, [5],
+                    se_lg = _compute_nn_scores(se_mat_lg, banks, LDA_EMB_N_LIST,
                                                sim_bounds=(-1.0, 1.0))
                     cd_emb_lg = _compute_centroid_scores(se_emb_lg, banks,
                                                          dist_bounds=(0.0, 2.0))
@@ -1810,19 +1842,26 @@ def compute_strategic_differentiation(df_exploded, panel):
 
             for bank in banks:
                 row = {'target_bank': bank, 'year': year}
-                # N-NN 本轨 (N=5), 列名机械 _ctx/_ss 后缀
-                row[f'strat_diff_n5{_tsfx}'] = sc['n5'][bank]
-                row[f'strat_diff_n5_w{_tsfx}'] = sw['n5'][bank]
+                # N-NN 本轨, 列名机械 _ctx/_ss 后缀
+                # fix(topk-n-expansion, 2026-07-02): 五方法均由单 n5 改 for-N 多列写出
+                #   (N∈LDA_EMB_N_LIST); ⚠ char/word 的 emit 原为循环外单 n5 硬写, 此处已改循环。
+                #   sim_max 保持 N-independent 每方法一列。
+                for N in LDA_EMB_N_LIST:
+                    row[f'strat_diff_n{N}{_tsfx}'] = sc[f'n{N}'][bank]
+                    row[f'strat_diff_n{N}_w{_tsfx}'] = sw[f'n{N}'][bank]
                 row[f'strat_sim_max{_tsfx}'] = sc['sim_max'][bank]
                 row[f'strat_sim_max_w{_tsfx}'] = sw['sim_max'][bank]
                 if sl:
-                    row[f'strat_diff_n5_lda{_tsfx}'] = sl['n5'].get(bank, np.nan)
+                    for N in LDA_EMB_N_LIST:
+                        row[f'strat_diff_n{N}_lda{_tsfx}'] = sl[f'n{N}'].get(bank, np.nan)
                     row[f'strat_sim_max_lda{_tsfx}'] = sl['sim_max'].get(bank, np.nan)
                 if se:
-                    row[f'strat_diff_n5_emb{_tsfx}'] = se['n5'].get(bank, np.nan)
+                    for N in LDA_EMB_N_LIST:
+                        row[f'strat_diff_n{N}_emb{_tsfx}'] = se[f'n{N}'].get(bank, np.nan)
                     row[f'strat_sim_max_emb{_tsfx}'] = se['sim_max'].get(bank, np.nan)
-                if se_lg:  # co-primary 嵌入 (_lg=text-embedding-3-large)
-                    row[f'strat_diff_n5_emb_lg{_tsfx}'] = se_lg['n5'].get(bank, np.nan)
+                if se_lg:  # co-primary 嵌入 (_lg); 与 emb 严格同 N 列表保 parity
+                    for N in LDA_EMB_N_LIST:
+                        row[f'strat_diff_n{N}_emb_lg{_tsfx}'] = se_lg[f'n{N}'].get(bank, np.nan)
                     row[f'strat_sim_max_emb_lg{_tsfx}'] = se_lg['sim_max'].get(bank, np.nan)
                 # Centroid 本轨
                 row[f'centroid_diff_tfidf_c{_tsfx}'] = cd_c[bank]

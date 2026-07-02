@@ -60,6 +60,20 @@ label variable strat_sim_max_lda_ctx "战略最大相似度(LDA,上下文)"
 label variable strat_diff_n5_emb_ctx "战略差异度N5(Embedding,上下文)"
 label variable strat_sim_max_emb_ctx "战略最大相似度(Embedding,上下文)"
 
+* 26.7b top-k N 扩展 (2026-07-02): 大邻域 N∈{10,20,30,40,50} 中文标签 (full + ctx 轨)
+*   用 capture 防某列缺失时 r(111) 中止 99_master; 仅补 full+ctx (与本文件既有两轨一致;
+*   ss 轨与 _lg 孪生标签由 46 侧 stata_export.py::HEURISTIC_LABELS 自动派生, 此处不重复)。
+foreach n in 10 20 30 40 50 {
+    capture label variable strat_diff_n`n'         "战略差异度N`n'(TF-IDF字符)"
+    capture label variable strat_diff_n`n'_w       "战略差异度N`n'加权(TF-IDF字符)"
+    capture label variable strat_diff_n`n'_lda     "战略差异度N`n'(LDA)"
+    capture label variable strat_diff_n`n'_emb     "战略差异度N`n'(Embedding)"
+    capture label variable strat_diff_n`n'_ctx     "战略差异度N`n'(TF-IDF字符,上下文)"
+    capture label variable strat_diff_n`n'_w_ctx   "战略差异度N`n'加权(TF-IDF字符,上下文)"
+    capture label variable strat_diff_n`n'_lda_ctx "战略差异度N`n'(LDA,上下文)"
+    capture label variable strat_diff_n`n'_emb_ctx "战略差异度N`n'(Embedding,上下文)"
+}
+
 label variable centroid_diff_tfidf_c_ctx "质心差异度(TF-IDF字符,上下文)"
 label variable centroid_diff_tfidf_w_ctx "质心差异度(TF-IDF词,上下文)"
 label variable centroid_diff_lda_ctx "质心差异度(LDA,上下文)"
