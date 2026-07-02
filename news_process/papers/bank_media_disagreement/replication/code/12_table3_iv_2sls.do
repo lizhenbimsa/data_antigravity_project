@@ -1,0 +1,225 @@
+* news_process — 第 10 篇 Table 3: 跨媒体分歧 IV 2SLS (2026-06-13 IV 补全)
+*
+* v3.9.0 三轨 ss: 新增第三主轨 _ss (银行+金科同句共现轨) — 内生孪生
+*   cross_outlet_tone_variance_ss 配同句 outlet 构成工具 outlet_disp_exposure_iv_ss,
+*   与 full/ctx 轨各自 just-identified 并排 (机械镜像现有 ctx/full eststo 块;
+*   每个 ss 列引用前 capture confirm variable 守卫, ss 列缺失时优雅跳过整块 —
+*   盘上面板在 P4 付费 run 前无 ss 列)。严禁 full×ctx×ss 合成 Hansen J overid。
+*
+* 内生变量: cross_outlet_tone_variance_full (跨媒体语调分歧, stage 39f;
+*           paper_spec treatment.primary, main_track=_full)
+* IV (paper_spec identification.iv, iv_extensions.py 物化):
+*   primary  = outlet_disp_exposure_iv_full
+*   fallback = outlet_disp_exposure_iv_ctx
+*   ss 镜像 = outlet_disp_exposure_iv_ss (paper_spec ss_mirror)
+*   构造: 基期 outlet 报道份额 (冻结, GPSS 2020 AER share 外生性) ×
+*         各 outlet 当年 house-style 立场极端度 |tone − 年均| 的 LOO 均值
+*         (剔除焦点银行自身报道)。
+* 学术依据:
+*   Gentzkow & Shapiro (2010, Econometrica 78(1):35-71) — outlet slant 持久且
+*     由需求端决定, 外生于单家被报道企业
+*   Dougal, Engelberg, García & Parsons (2012, RFS 25(3):639-679) — 写作风格
+*     作为外生变异源的经典先例
+*   Goldsmith-Pinkham, Sorkin & Swift (2020, AER) — 基期份额外生性视角
+* 白话: 一家银行基期碰巧被哪些"火药味重 / 四平八稳"的媒体盯上, 决定了它
+* 后来被吵得凶不凶; 这套媒体组合是历史存量, 与银行当期基本面无关。
+*
+* 第二阶段 DV: z_score (指标占位, 外部财务面板待接入 — 见 CLAUDE.md
+* 2026-06-12 stage 49 移除记录; 缺列时 2SLS 优雅跳过, 第一阶段照常输出)。
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+* 数据: 优先 working dataset (01_data_prep 产出), 缺则直接用全量面板导出
+capture confirm file "data/processed/_paper10_working.dta"
+if !_rc {
+    use "data/processed/_paper10_working.dta", clear
+}
+else {
+    use "data/processed/46_panel_yearly_full.dta", clear
+}
+capture confirm variable bank_id
+if _rc {
+    encode target_bank, gen(bank_id)
+}
+xtset bank_id year
+
+* 主轨 _full (paper_spec treatment.main_track=_full; 与 11_table2 OLS 一致)
+local TX    cross_outlet_tone_variance_full
+local IV1   outlet_disp_exposure_iv_full
+* ctx 轨 (dual-track 测量窗口稳健性; 内生孪生 cross_outlet_tone_variance_ctx + ctx 工具)
+local TXC   cross_outlet_tone_variance_ctx
+local IV2   outlet_disp_exposure_iv_ctx
+* ss 轨 (银行+金科同句共现轨; 内生孪生 + 同句 outlet 工具)
+local TXSS  cross_outlet_tone_variance_ss
+local IVSS  outlet_disp_exposure_iv_ss
+local DV    z_score
+
+capture confirm variable `TX'
+if _rc {
+    display "  [WARN] 内生变量 `TX' 不在面板 (stage 39f validation 未先行); 表跳过"
+    exit 0
+}
+capture which ivreg2
+if _rc {
+    display "  [WARN] ivreg2 not installed (ssc install ivreg2); 表跳过"
+    exit 0
+}
+* weakiv (Finlay-Magnusson-Schaffer) — 弱工具稳健 Anderson-Rubin 推断 (兑现脚注承诺)
+capture which weakiv
+local has_weakiv = (_rc == 0)
+if !`has_weakiv' {
+    display "  [INFO] weakiv 未安装 (ssc install weakiv); AR 弱工具稳健 CI 跳过, 仅报 KP F"
+}
+
+* 第一阶段 (各轨各用本轨内生变量 + 本轨 IV, treatment + IV 已物化即可运行)
+* full 主轨第一阶段 (headline; `TX'=_full 已在上方 confirm 通过 + IV1=_full)
+capture confirm variable `IV1'
+if !_rc {
+    eststo first_full: reghdfe `TX' `IV1', absorb(bank_id year) vce(cluster bank_id)
+}
+* ctx 轨第一阶段 (dual-track 稳健性; ctx 内生变量 `TXC' + ctx 工具 `IV2', 各自须物化)
+capture confirm variable `TXC'
+local _has_txc = (_rc == 0)
+capture confirm variable `IV2'
+local _has_iv2 = (_rc == 0)
+if `_has_txc' & `_has_iv2' {
+    eststo first_ctx: reghdfe `TXC' `IV2', absorb(bank_id year) vce(cluster bank_id)
+}
+* ss 轨第一阶段 (v3.9.0 三轨; ss treatment + ss IV 均须物化, P4 付费 run 前盘上缺 → 跳过)
+capture confirm variable `TXSS'
+local _has_txss = (_rc == 0)
+capture confirm variable `IVSS'
+local _has_ivss = (_rc == 0)
+if `_has_txss' & `_has_ivss' {
+    eststo first_ss: reghdfe `TXSS' `IVSS', absorb(bank_id year) vce(cluster bank_id)
+}
+
+* 2SLS (DV=z_score 指标占位; 缺列优雅跳过)
+capture confirm variable `DV'
+if _rc {
+    display "  [WARN] 第二阶段 DV `DV' 未物化 (外部财务面板未接入); 仅输出第一阶段"
+}
+else {
+    * ── weakiv 短名别名 (smoke-reaudit3 2026-06-15 修复 IV-2 weakiv claimed-but-not-run) ──
+    * 根因: weakiv 内部建临时变量 `_vhat_'+内生变量名; 内生变量 cross_outlet_tone_variance_full
+    * (29 字符) → `_vhat_'(6)+29=35 > Stata 32 字符变量名上限 → weakiv r(198)
+    * "_vhat_... invalid name", 被 capture noisily 吞掉 → AR p 静默不落 (claimed-but-not-run)。
+    * 实测: 同一内生变量改短名别名后 weakiv rc=0, e(ar_p) 与 e(ar_cset) 正常返回。
+    * 修法: 为 2SLS 的内生变量造 ≤26 字符别名 (`_txd' full / `_txc' ctx / `_txs' ss),
+    *   ivreg2/weakiv 跑别名; IV 名无需缩短 (weakiv 只前缀内生变量名)。
+    * IRON RULE: full × ctx × ss 各自 just-identified 单列并排, 各列只用本轨内生变量 +
+    *   本轨匹配 outlet 工具, 严禁三轨合成 over-identified Hansen J (同文窗口共同冲击使
+    *   overid 检验无信息量, Parente & Santos Silva 2012)。
+
+    * ── full 主轨 2SLS (headline; paper_spec treatment.primary, main_track=_full) ──
+    * 内生 cross_outlet_tone_variance_full 由 full 窗 outlet 工具 outlet_disp_exposure_iv_full 识别。
+    capture drop _txd
+    gen double _txd = `TX'
+    label variable _txd "cross-outlet tone variance (full)"
+    capture confirm variable `IV1'
+    if !_rc {
+        eststo tsls_full: ivreg2 `DV' (_txd = `IV1') i.bank_id i.year, ///
+            cluster(bank_id) first
+        * 弱工具稳健 AR 推断 (KP F < Stock-Yogo 时脚注指定改读此处): AR test p-value
+        * (H0: beta=0), 对弱工具有效 (Andrews-Stock-Sun 2019 ARE; Finlay-Magnusson-Schaffer)
+        if `has_weakiv' {
+            capture noisily weakiv, level(95)
+            if !_rc {
+                * AR p 返回名跨 weakiv 版本可能不同 (e(ar_p) / r(ar_p)); 双取兜底, 缺则留空
+                local _arp = .
+                capture local _arp = e(ar_p)
+                if missing(`_arp') capture local _arp = r(ar_p)
+                capture estadd scalar ar_p = `_arp': tsls_full
+            }
+        }
+    }
+    * ── ctx 轨 2SLS (dual-track 稳健性; 各自 just-identified, 不与 full 合成 overid) ──
+    * 内生孪生 cross_outlet_tone_variance_ctx 由 ctx 窗 outlet 工具 outlet_disp_exposure_iv_ctx 识别;
+    * 与 full 列作"全文 vs 实体窗口"测量稳健性对比, 而非同一内生变量换 IV (Parente & Santos Silva 2012)。
+    capture confirm variable `TXC'
+    local _has_txc = (_rc == 0)
+    capture confirm variable `IV2'
+    local _has_iv2 = (_rc == 0)
+    if `_has_txc' & `_has_iv2' {
+        * ctx 内生变量同样过长 (cross_outlet_tone_variance_ctx, 28 字符) → 别名 `_txc' 供 weakiv。
+        capture drop _txc
+        gen double _txc = `TXC'
+        label variable _txc "cross-outlet tone variance (ctx)"
+        eststo tsls_ctx: ivreg2 `DV' (_txc = `IV2') i.bank_id i.year, ///
+            cluster(bank_id) first
+        if `has_weakiv' {
+            capture noisily weakiv, level(95)
+            if !_rc {
+                * AR p 返回名跨 weakiv 版本可能不同 (e(ar_p) / r(ar_p)); 双取兜底, 缺则留空
+                local _arp = .
+                capture local _arp = e(ar_p)
+                if missing(`_arp') capture local _arp = r(ar_p)
+                capture estadd scalar ar_p = `_arp': tsls_ctx
+            }
+        }
+    }
+    * ── ss 轨 2SLS (v3.9.0 三轨; ss 内生变量 + ss IV 均须物化, 否则跳过整块 —
+    * 与 full/ctx 各自 just-identified 并排, 不与之合成 overid) ──
+    capture confirm variable `TXSS'
+    local _has_txss = (_rc == 0)
+    capture confirm variable `IVSS'
+    local _has_ivss = (_rc == 0)
+    if `_has_txss' & `_has_ivss' {
+        * ss 内生变量同样过长 (cross_outlet_tone_variance_ss, 29 字符) → 别名 `_txs' 供 weakiv。
+        capture drop _txs
+        gen double _txs = `TXSS'
+        label variable _txs "cross-outlet tone variance (ss)"
+        eststo tsls_ss: ivreg2 `DV' (_txs = `IVSS') i.bank_id i.year, ///
+            cluster(bank_id) first
+        if `has_weakiv' {
+            capture noisily weakiv, level(95)
+            if !_rc {
+                * AR p 返回名跨 weakiv 版本可能不同 (e(ar_p) / r(ar_p)); 双取兜底, 缺则留空
+                local _arp = .
+                capture local _arp = e(ar_p)
+                if missing(`_arp') capture local _arp = r(ar_p)
+                capture estadd scalar ar_p = `_arp': tsls_ss
+            }
+        }
+    }
+}
+
+* esttab 名单动态化 (缺估计不点名, 防 r(111) 丢整表)
+qui estimates dir
+local stored `r(names)'
+* full = headline (paper_spec main_track=_full) 排首列; ctx/ss 为并排稳健性轨
+local cand_models first_full first_ctx first_ss tsls_full tsls_ctx tsls_ss
+local cand_titles `""1st (full)" "1st (ctx)" "1st (ss)" "2SLS (full)" "2SLS (ctx)" "2SLS (ss)""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+if "`models'" == "" {
+    display as error "  [WARN] IV 表无任何已存储估计 (IV 列全缺), 表跳过"
+}
+else {
+    esttab `models' ///
+        using "output/tables/table3_disagreement_iv_2sls.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        stats(N r2 widstat ar_p, fmt(0 3 3 3) labels("N" "R²" "KP F" "AR weak-IV p")) ///
+        title("Table 3: Cross-Outlet Disagreement IV — Outlet-Composition Dispersion Exposure") ///
+        mtitles(`mtitles') ///
+        addnotes("IV = base-period outlet portfolio shares x outlet-year leave-one-out tone extremeness |tone - year mean| (focal bank's own articles excluded)." ///
+                 "Identification: outlet house-style persistence (Gentzkow-Shapiro 2010 Econometrica); writer-style exogeneity precedent (Dougal et al. 2012 RFS); base-period share exogeneity (Goldsmith-Pinkham et al. 2020 AER)." ///
+                 "2SLS (full) is the headline specification (paper_spec main_track=_full); (ctx) and (ss) are dual/triple-track robustness columns. Each column is its OWN just-identified 2SLS, endogenizing the full-text / entity-context-window / bank+fintech same-sentence (ss) version of cross-outlet tone variance with its matching outlet-style instrument — side by side, NOT an overidentified set. The (ss) column appears only when its columns are materialized (P4 paid run)." ///
+                 "No Hansen J is reported: full, ctx and ss are never combined into one over-identified set; same-text-window instruments share common shocks, making any pooled overID test uninformative (Parente & Santos Silva 2012). KP F = Kleibergen-Paap rk Wald F; if < 16.38 (Stock-Yogo 2005, 5% maximal bias; 13.91 for 10%), instruments are weak — read the weak-IV-robust Anderson-Rubin test instead (Andrews-Stock-Sun 2019)." ///
+                 "AR weak-IV p = Anderson-Rubin weak-instrument-robust p-value for H0: beta=0 (weakiv, Finlay-Magnusson-Schaffer); valid regardless of instrument strength. Blank if weakiv ado is not installed.")
+
+    display "[OK] 12_table3_iv_2sls → output/tables/table3_disagreement_iv_2sls.tex"
+}

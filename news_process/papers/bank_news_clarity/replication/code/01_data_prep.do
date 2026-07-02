@@ -23,15 +23,43 @@ xtset bank_id year
 capture merge m:1 target_bank using "data/processed/bank_metadata.dta", ///
     keep(master match) nogen
 
-* Merge clarity treatment from main panel (v3.5.1 已 frozen mean_clarity_score)
-capture merge 1:1 target_bank year using "data/processed/40_panel_yearly.dta", ///
-    keep(master match) nogen ///
-    keepusing(mean_clarity_score_full mean_clarity_score_ctx ///
-              mean_frac_definite_full mean_frac_definite_ctx ///
-              frac_amb_articles_full frac_amb_articles_ctx ///
-              mean_num_intensity_full mean_num_intensity_ctx)
-if _rc != 0 {
-    display "WARNING: 40_panel_yearly.dta 不可读 — main treatment 不可用"
+* 从主 panel merge clarity treatment 列 (v3.5.1 已 frozen mean_clarity_score)
+* fix(omni-g-replication-03, 2026-06-11): 拆为逐列 merge — Stata keepusing 中任一
+* 变量缺失会令整条 merge r(111) 失败 (all-or-nothing), 其余面板中实际存在的列
+* 一并丢失; 旧诊断把列缺失误报为 "文件不可读"。现按 _rc 区分 601 (文件缺失)
+* 与 111 (列缺失)。(bank_type / is_soe 一并拉取, 供 spec controls 的 bank_type_id
+* 派生 — fix(omni-g-replication-07): 主 panel 实际列为字符串 bank_type。)
+* 白话: 一列一列单独 merge, 哪列缺就跳过哪列并明说, 不让一列缺失连累其他列全部丢失。
+capture confirm file "data/processed/40_panel_yearly.dta"
+if _rc {
+    display "WARNING: 40_panel_yearly.dta 不存在 (rc=601) — main treatment 不可用"
+}
+else {
+    foreach v in mean_clarity_score_full mean_clarity_score_ctx ///
+                 mean_frac_definite_full mean_frac_definite_ctx ///
+                 frac_amb_articles_full frac_amb_articles_ctx ///
+                 mean_num_intensity_full mean_num_intensity_ctx ///
+                 bank_type is_soe {
+        capture merge 1:1 target_bank year using "data/processed/40_panel_yearly.dta", ///
+            keep(master match) nogen keepusing(`v')
+        local _mrc = _rc
+        if `_mrc' == 111 {
+            display "WARNING: 列 `v' 不在 40_panel_yearly.dta — 跳过该列"
+        }
+        else if `_mrc' {
+            display as error "WARNING: merge `v' 失败 (rc=`_mrc')"
+        }
+    }
+}
+
+* fix(omni-g-replication-07, 2026-06-11): spec controls 声明 bank_type_id, 但
+* bank_metadata.dta 缺位时不可得; 由主 panel 字符串列 bank_type encode 派生.
+capture confirm variable bank_type_id
+if _rc {
+    capture confirm string variable bank_type
+    if !_rc {
+        encode bank_type, gen(bank_type_id)
+    }
 }
 
 * fix(omni-g-replication-08, 2026-06-11): 原条件 `"total_assets" != ""` 是两个字符串

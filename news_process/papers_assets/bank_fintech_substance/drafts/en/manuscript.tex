@@ -58,6 +58,24 @@ binary indicator (W\&Z substantive vs symbolic); cross-validate with full vs ctx
 \NoteThis{Long\_run\_roa\_change\_3yr (within-bank 3-year forward) + car\_3day\_window
 \_fintech\_announcement (short-run); within-bank within-year FE; cluster at bank level.}
 
+\subsection{Embedding-Based Measures (Co-Primary Dual Track; F5)}
+All embedding-derived features are computed under two co-primary
+embedding models from independent vendors, reported side by side as
+mutual robustness: Alibaba \code{Qwen3-Embedding-8B} (4{,}096-d,
+accessed via the SiliconFlow API; canonical unsuffixed columns) and
+OpenAI \code{text-embedding-3-large} (3{,}072-d; \code{\_lg}-suffixed
+columns), under strict column parity (each feature exists in both
+tracks or in neither). Each track enters its own just-identified
+specification; the two are never pooled into one over-identified
+system. Earlier pipeline vintages used a Google Gemini embedding in
+the canonical slot; as of pipeline v3.15.0 (June 2026) the canonical
+slot is Alibaba \code{Qwen3-Embedding-8B}, with all embedding-derived
+features regenerated under a controlled full re-embedding and
+embedding-space semantic validity gated by a Spearman
+rank-correlation check ($\rho \geq 0.80$). The sentiment-annotation
+LLM ensemble (F1) is unaffected by this change: embedding models and
+sentiment LLMs are disjoint pipeline components.
+
 \section{Data}\label{sec:data}
 \NoteThis{Data sources, sample selection, descriptive statistics (Table 1).}
 

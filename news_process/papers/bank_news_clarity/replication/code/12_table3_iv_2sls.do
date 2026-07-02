@@ -1,0 +1,191 @@
+* news_process — 第 11 篇 Table 3: 清晰度 IV 2SLS (2026-06-13 IV 补全;
+*                v3.9.0 三轨 ss — 银行+金科同句共现轨稳健性镜像)
+*
+* 内生变量: mean_clarity_score_full (You 2018 词典清晰度, paper_spec
+*           treatment.primary, main_track=_full — full-only gating 2026-06-29
+*           后 headline 处理轨 = 决定留篇的全文轨; _ctx 降为首要 robustness 孪生)
+* IV (paper_spec identification.iv, iv_extensions.py 物化):
+*   primary  = outlet_style_clarity_iv_full
+*   fallback = outlet_style_clarity_iv_ctx
+*   ss_mirror= outlet_style_clarity_iv_ss (v3.9.0 三轨第三主轨; 同句共现窗口)
+*   构造: 基期 outlet 报道份额 (冻结, GPSS 2020 AER share 外生性) ×
+*         各 outlet 当年文章级 clarity_score 的 LOO 均值 (剔除焦点银行
+*         自身报道)。
+* 三轨 (full / ctx / ss) 各自 just-identified 并排, 互为测量窗口稳健性;
+* 严禁 full×ctx×ss 合成 Hansen J overid (同文多窗共同冲击, overID 无信息量)。
+* ss 列在 P4 付费 run 落盘前盘上缺失 → 全部 ss 引用经 capture confirm 守门,
+* 列不在则该轨优雅跳过 (不丢整表)。
+* 学术依据:
+*   Dougal, Engelberg, García & Parsons (2012, RFS 25(3):639-679) — 记者/媒体
+*     写作风格的准随机变异对市场结果有因果力
+*   Gentzkow & Shapiro (2010, Econometrica 78(1):35-71) — outlet 风格持久性
+*   Goldsmith-Pinkham, Sorkin & Swift (2020, AER) — 基期份额外生性视角
+* 白话: 报道你的媒体爱不爱用模糊词是媒体自己的文风, 不由你这家银行当年
+* 经营好坏决定; 基期媒体组合的"平均文风"推动你被写得清楚与否, 却不直接
+* 进入你的风险结果方程。
+*
+* 第二阶段 DV: z_score (指标占位, 外部财务面板待接入 — 见 CLAUDE.md
+* 2026-06-12 stage 49 移除记录; 缺列时 2SLS 优雅跳过, 第一阶段照常输出)。
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+* 数据: 优先 working dataset (01_data_prep 产出), 缺则直接用全量面板导出
+capture confirm file "data/processed/_paper11_working.dta"
+if !_rc {
+    use "data/processed/_paper11_working.dta", clear
+}
+else {
+    use "data/processed/46_panel_yearly_full.dta", clear
+}
+capture confirm variable bank_id
+if _rc {
+    encode target_bank, gen(bank_id)
+}
+xtset bank_id year
+
+local TX   mean_clarity_score_full
+local TXSS mean_clarity_score_ss
+local IV1  outlet_style_clarity_iv_full
+local IV2  outlet_style_clarity_iv_ctx
+local IV3  outlet_style_clarity_iv_ss
+local DV   z_score
+
+capture confirm variable `TX'
+if _rc {
+    display "  [WARN] 内生变量 `TX' 不在面板; 表跳过"
+    exit 0
+}
+capture which ivreg2
+if _rc {
+    display "  [WARN] ivreg2 not installed (ssc install ivreg2); 表跳过"
+    exit 0
+}
+* weakiv (Finlay-Magnusson-Schaffer) — 弱工具稳健 Anderson-Rubin 推断 (兑现脚注承诺)
+capture which weakiv
+local has_weakiv = (_rc == 0)
+if !`has_weakiv' {
+    display "  [INFO] weakiv 未安装 (ssc install weakiv); AR 弱工具稳健 CI 跳过, 仅报 KP F"
+}
+
+* 第一阶段 (treatment + IV 已物化即可运行; full = headline 主轨, ctx = robustness)
+capture confirm variable `IV1'
+if !_rc {
+    eststo first_full: reghdfe `TX' `IV1', absorb(bank_id year) vce(cluster bank_id)
+}
+capture confirm variable `IV2'
+if !_rc {
+    eststo first_ctx: reghdfe `TX' `IV2', absorb(bank_id year) vce(cluster bank_id)
+}
+* ss 轨 (v3.9.0 三轨): 内生孪生 `TXSS' 对同句 outlet 笔法工具 `IV3' 第一阶段;
+* ss 列 (treatment + IV) 在 P4 付费 run 落盘前缺失 → 双重 capture confirm 守门
+capture confirm variable `TXSS'
+local has_ss_tx = (_rc == 0)
+capture confirm variable `IV3'
+local has_ss_iv = (_rc == 0)
+if `has_ss_tx' & `has_ss_iv' {
+    eststo first_ss: reghdfe `TXSS' `IV3', absorb(bank_id year) vce(cluster bank_id)
+}
+
+* 2SLS (DV=z_score 指标占位; 缺列优雅跳过)
+capture confirm variable `DV'
+if _rc {
+    display "  [WARN] 第二阶段 DV `DV' 未物化 (外部财务面板未接入); 仅输出第一阶段"
+}
+else {
+    capture confirm variable `IV1'
+    if !_rc {
+        eststo tsls_full: ivreg2 `DV' (`TX' = `IV1') i.bank_id i.year, ///
+            cluster(bank_id) first
+        * 弱工具稳健 AR 推断 (KP F < Stock-Yogo 时脚注指定改读此处): AR test p-value
+        * (H0: beta=0), 对弱工具有效 (Andrews-Stock-Sun 2019 ARE; Finlay-Magnusson-Schaffer)
+        if `has_weakiv' {
+            capture noisily weakiv, level(95)
+            if !_rc {
+                * AR p 返回名跨 weakiv 版本可能不同 (e(ar_p) / r(ar_p)); 双取兜底, 缺则留空
+                local _arp = .
+                capture local _arp = e(ar_p)
+                if missing(`_arp') capture local _arp = r(ar_p)
+                capture estadd scalar ar_p = `_arp': tsls_full
+            }
+        }
+    }
+    * full 与 ctx 轨各自 just-identified 并排 (终审裁决 2026-06-13; full-only
+    * 2026-06-29 后 full 为 headline、ctx 为首要 robustness): 同一内生变量
+    * 分别用 full 文本窗口 / ctx 窗口的 outlet 工具, 作测量窗口稳健性对比; 不合成
+    * overid — 同文双窗共同冲击使 Hansen J 无信息量 (Parente & Santos Silva 2012)。
+    capture confirm variable `IV2'
+    if !_rc {
+        eststo tsls_ctx: ivreg2 `DV' (`TX' = `IV2') i.bank_id i.year, ///
+            cluster(bank_id) first
+        if `has_weakiv' {
+            capture noisily weakiv, level(95)
+            if !_rc {
+                * AR p 返回名跨 weakiv 版本可能不同 (e(ar_p) / r(ar_p)); 双取兜底, 缺则留空
+                local _arp = .
+                capture local _arp = e(ar_p)
+                if missing(`_arp') capture local _arp = r(ar_p)
+                capture estadd scalar ar_p = `_arp': tsls_ctx
+            }
+        }
+    }
+    * ss 轨 2SLS (v3.9.0 三轨第三主轨): 内生孪生 `TXSS' 用同句 outlet 笔法工具 `IV3',
+    * 与 ctx / full 轨各自 just-identified 并排 (机械 _ctx→_ss 镜像); 双重 capture confirm
+    * 守门, ss 列 (treatment + IV) 在 P4 付费 run 落盘前缺失则该轨优雅跳过, 不丢整表。
+    capture confirm variable `TXSS'
+    local has_ss_tx = (_rc == 0)
+    capture confirm variable `IV3'
+    local has_ss_iv = (_rc == 0)
+    if `has_ss_tx' & `has_ss_iv' {
+        eststo tsls_ss: ivreg2 `DV' (`TXSS' = `IV3') i.bank_id i.year, ///
+            cluster(bank_id) first
+        if `has_weakiv' {
+            capture noisily weakiv, level(95)
+            if !_rc {
+                * AR p 返回名跨 weakiv 版本可能不同 (e(ar_p) / r(ar_p)); 双取兜底, 缺则留空
+                local _arp = .
+                capture local _arp = e(ar_p)
+                if missing(`_arp') capture local _arp = r(ar_p)
+                capture estadd scalar ar_p = `_arp': tsls_ss
+            }
+        }
+    }
+}
+
+* esttab 名单动态化 (缺估计不点名, 防 r(111) 丢整表)
+qui estimates dir
+local stored `r(names)'
+local cand_models first_full first_ctx first_ss tsls_full tsls_ctx tsls_ss
+local cand_titles `""1st (full)" "1st (ctx)" "1st (ss)" "2SLS (full)" "2SLS (ctx)" "2SLS (ss)""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+if "`models'" == "" {
+    display as error "  [WARN] IV 表无任何已存储估计 (IV 列全缺), 表跳过"
+}
+else {
+    esttab `models' ///
+        using "output/tables/table3_clarity_iv_2sls.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        stats(N r2 widstat ar_p, fmt(0 3 3 3) labels("N" "R²" "KP F" "AR weak-IV p")) ///
+        title("Table 3: News Clarity IV — Outlet-Composition Writing-Style Exposure") ///
+        mtitles(`mtitles') ///
+        addnotes("IV = base-period outlet portfolio shares x outlet-year leave-one-out mean clarity score (focal bank's own articles excluded)." ///
+                 "Identification: journalist/outlet writing-style exogeneity (Dougal et al. 2012 RFS); outlet style persistence (Gentzkow-Shapiro 2010 Econometrica); base-period share exogeneity (Goldsmith-Pinkham et al. 2020 AER)." ///
+                 "2SLS (full), 2SLS (ctx) and 2SLS (ss) are each just-identified, using the full-text-window (headline; full-only gating 2026-06-29) / ctx-window (primary robustness) / same-sentence-cooccurrence (bank+fintech) version of the outlet-style instrument for the corresponding endogenous variable — a three-track (v3.9.0) measurement-window robustness comparison, side by side, NOT an overidentified pair. The ss columns are blank when ss treatment/IV are not yet materialized on disk (pre-P4 run)." ///
+                 "No Hansen J is reported: same-text-window instruments share common shocks, making the overID test uninformative (Parente & Santos Silva 2012). KP F = Kleibergen-Paap rk Wald F; each column is just-identified (1 instrument), so the relevant weak-IV threshold is the Stock-Yogo (2005) 10% maximal-IV-size critical value (1 instrument) = 16.38 (the maximal-relative-bias thresholds apply only to over-identified models with >=3 instruments). If KP F is below it, read the weak-IV-robust Anderson-Rubin test instead (Andrews-Stock-Sun 2019)." ///
+                 "AR weak-IV p = Anderson-Rubin weak-instrument-robust p-value for H0: beta=0 (weakiv, Finlay-Magnusson-Schaffer); valid regardless of instrument strength. Blank if weakiv ado is not installed.")
+
+    display "[OK] 12_table3_iv_2sls → output/tables/table3_clarity_iv_2sls.tex"
+}

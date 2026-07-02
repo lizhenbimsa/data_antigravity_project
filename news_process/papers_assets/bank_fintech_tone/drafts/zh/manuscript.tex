@@ -43,23 +43,50 @@
 
 \subsection{语调标注 (F1: 三家族 LLM 真三角验证)}
 我们采用三个独立的 LLM 家族进行情感标注:
-\code{gpt-5.4-nano} (OpenAI)\,、\code{gemini-3.1-flash-lite-preview} (Google)
-和 \code{deepseek-v4-flash} (DeepSeek\,/\,Grok)。
-三个模型均通过 yunwu.ai 聚合器使用 OpenAI 兼容的
-\code{/v1/chat/completions} API 调用 (单账户、同一 schema),
-设置 \code{temperature=0}、\code{seed=42} 以确保输出确定性。
-家族间一致性以 Cohen's $\kappa$ 与 Krippendorff's $\alpha$ 报告;
-最终情感标签为家族多数投票, 平局标记为 \code{undefined}
-(而非 \code{neutral})。
+\code{gpt-5.4-nano} (OpenAI)\,、\code{gemini-3.1-flash-lite} (Google)
+和 \code{deepseek-v4-flash} (DeepSeek)。
+其中 OpenAI 与 Google 两家通过 yunwu.ai 聚合器以 OpenAI 兼容的
+\code{/v1/chat/completions} API 调用; DeepSeek 直连
+\code{api.deepseek.com}。所有调用设置 \code{temperature=0} 与
+\code{seed=42}, 并使用字节级冻结的 prompt (版本 v8),
+保证输出确定且可经缓存复现。
+家族间一致性以 Cohen's $\kappa$ (计算前先把标签重映射为非负码)
+与 Krippendorff's $\alpha$ (名义尺度、缺标感知、兼容二分类与三分类
+标签集) 报告; 最终情感标签为家族多数投票, 平局标记为
+\code{undefined} (而非 \code{neutral})。
+
+除多数投票共识 (\code{llm\_vote\_tone\_full}, 即 spec 规定的
+headline 处理变量) 外,
+我们保留三家各自的语调序列 (\code{gpt54nano\_tone}、
+\code{gemini31\_tone}、\code{deepseekv4\_tone}) 作为
+\emph{互为稳健性、不分主次}的并列测度: 三个 per-model 序列并排报告,
+各自进入恰好识别 (just-identified) 的独立设定, 绝不合并进同一个
+过度识别系统 (同一批文章派生的工具共享共同冲击, 联合 Hansen $J$
+检验无信息量)。由于各家序列的原始方差不同, 跨模型系数比较一律先做
+$z$-score 标准化。per-model 设定族的族错误率 (family-wise error)
+由 Romano--Wolf step-down 重抽样控制 (\code{rwolf}; 见
+Table~A12), 而非以"三家都显著"的叙述性说法代替正式检验。
 
 \subsection{篇章级编码 (F2: 中性标签去污染)}
 若某文章 (a)~三家族 LLM 全部调用失败 (\code{llm\_call\_failure=1})
 或 (b)~三票分裂为三方互不一致 (\code{llm\_undefined=1}),
 则该文章情感编码为\emph{缺失}, 而非 \code{neutral}。
-若银行—金融科技相关性多数验证未通过
-(\code{llm\_verified=False}), 情感同样视为缺失。
+若银行—金融科技相关性在全文轨上的多数验证未通过
+(\code{llm\_verified\_full=False}), 情感同样视为缺失。
 此设定相比早期版本是有意调整: 旧版强制兜底为"中性",
 导致 81.7\,\% 的中性标签实际是测量失败或验证拒绝。
+
+\paragraph{全文轨独占的留篇门控。}
+一篇文章是否被计为银行—金融科技报道, 仅由全文轨的验证结果
+(\code{llm\_verified\_full}) 决定。实体上下文轨 (\code{ctx}) 与
+银行—金科同句共现轨 (\code{ss}) 为\emph{以全文轨为条件}
+(conditional-on-full) 的测度: 其行宇宙是全文轨留篇集的子集,
+仅作为测量窗口稳健性轨, 不构成独立的留篇门控。相较早期
+"任一轨验证通过即保留"的版本, 这一更严格的门控会机械性地压缩
+文章计数及其派生份额 (\code{n\_articles}、\code{fintech\_share}、
+\code{attention\_pct})。这些水平位移是"留篇门控与 headline
+处理轨对齐"的定义性后果, 并非数据错误; 且方向偏保守
+(剔除的是仅有更窄窗口才能验证的边缘文章)。
 
 \subsection{零观测语义 (F3: NaN 主路径)}
 对于无金融科技新闻覆盖的银行—年 (\code{n\_articles=0}),
@@ -77,6 +104,26 @@
 原因是它们违反 Goldsmith-Pinkham et al.\ (2020, AER) 所要求的外生性。
 保留的工具变量为 \code{bartik\_type\_iv\_full} 与
 \code{prov\_leave1out\_tone\_full}。
+
+\subsection{嵌入类语义测度 (双主轨、互为稳健性; F5)}
+所有基于嵌入的特征 (金融科技强度、政策一致性、语义陈旧度及相关
+相似度测度) 均在\emph{来自独立厂商的两个同为主测度的嵌入模型}下
+并行计算、并排报告、互为稳健性: 阿里
+\code{Qwen3-Embedding-8B} (4{,}096 维, 经硅基流动 API;
+canonical 无后缀列) 与 OpenAI \code{text-embedding-3-large}
+(3{,}072 维; \code{\_lg} 后缀列)。两轨遵循严格的列对偶
+(任一嵌入特征要么两轨齐备、要么两轨皆无), 各轨进入各自恰好识别的
+独立设定, 绝不合并进同一个过度识别系统。跨厂商独立性
+(阿里 vs.\ OpenAI) 可防范单一厂商的表示偏差驱动任何结论。
+
+\emph{换模披露。}早期管线版本的 canonical 槽使用 Google Gemini
+嵌入模型; 自管线 v3.15.0 (2026 年 6 月) 起 canonical 槽换为阿里
+\code{Qwen3-Embedding-8B}, 全部嵌入派生特征经受控全量重嵌再生,
+且嵌入空间的语义效度由测试套件中的跨厂商 Spearman 秩相关闸把关
+(两条 co-primary 嵌入空间两两相关 $\rho \geq 0.80$、$\geq 500$ 对)。
+情感标注的 LLM 集成
+(见方法节) 不受此变更影响: 嵌入模型与情感 LLM
+是管线中互不相交的两类组件。
 
 \section{数据描述}\label{sec:data}
 \NoteThis{Table~1 描述统计参见
@@ -98,6 +145,13 @@
 \NoteThis{Table 5 (安慰剂、留一法、wild bootstrap) 加上 1016 行
 falsification 模板
 (\code{papers\_assets/bank\_fintech\_tone/do/falsification\_template.do.tmpl})。}
+
+跨模型稳健性: headline 设定分别以三家 LLM 各自的语调测度重估
+(BERT 侧同理, 以三个中文金融域 BERT 模型各自的有符号净语调
+net\_tone 重估), per-model 系数一律 $z$-score 标准化,
+族错误率由 Romano--Wolf step-down 重抽样控制 (Table~A12)。
+模型间一致性诊断 (Cohen's $\kappa$, 非负码重映射后计算;
+Krippendorff's $\alpha$, 缺标感知) 随表一并报告。
 
 \section{结论}\label{sec:concl}
 \NoteThis{最终讨论与政策含义。}

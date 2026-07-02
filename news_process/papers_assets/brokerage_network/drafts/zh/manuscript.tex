@@ -33,9 +33,11 @@
 
 \subsection{语调标注 (F1: 三家族 LLM 真三角验证)}
 采用三个独立 LLM 家族: \code{gpt-5.4-nano} (OpenAI)、
-\code{gemini-3.1-flash-lite-preview} (Google)、\code{deepseek-v4-flash}
-(DeepSeek\,/\,Grok)。统一通过 yunwu.ai (\code{/v1/chat/completions},
-OpenAI 兼容) 调用, \code{temperature=0}, \code{seed=42}。
+\code{gemini-3.1-flash-lite} (Google)、\code{deepseek-v4-flash}
+(DeepSeek)。OpenAI 与 Google 两家通过 yunwu.ai
+(\code{/v1/chat/completions}, OpenAI 兼容) 调用, DeepSeek 直连
+\code{api.deepseek.com}; 所有调用 \code{temperature=0}、\code{seed=42},
+并使用字节级冻结 prompt (版本 v8)。
 家族间一致性以 Cohen's $\kappa$ 与 Krippendorff's $\alpha$ 报告;
 多数投票得最终标签, 平局标 \code{undefined} (非 \code{neutral})。
 
@@ -43,6 +45,14 @@ OpenAI 兼容) 调用, \code{temperature=0}, \code{seed=42}。
 三家族全部失败 / 三方分裂者编为\emph{缺失} (非 \code{neutral});
 银行--金融科技相关性未通过多数验证者亦视为缺失。
 此举消除了 v6 之前 81.7\,\% ``中性'' 标签的污染。
+
+留篇门控仅取全文轨 (\code{llm\_verified\_full}); 实体上下文轨
+(\code{ctx}) 与银行—金科同句共现轨 (\code{ss}) 为以全文轨为条件
+(conditional-on-full) 的稳健性轨, 其行宇宙是全文轨留篇集的子集。
+相较早期"任一轨验证通过即保留"的版本, 更严格的门控会机械性压缩
+\code{n\_articles} 及派生份额 (\code{fintech\_share}、
+\code{attention\_pct}) --- 这是定义性、方向偏保守的水平位移,
+并非数据错误。
 
 \subsection{零观测语义 (F3: NaN 主路径)}
 对 \code{n\_articles=0} 的银行—年, 相似度类特征
@@ -55,6 +65,19 @@ OpenAI 兼容) 调用, \code{temperature=0}, \code{seed=42}。
 约 30 个候选 Bartik 工具变量中, 28 个在 v6 中因违反
 Goldsmith-Pinkham \emph{et~al.}\ (2020, \emph{AER}) 外生性被删除。
 保留: \code{bartik\_type\_iv\_full} 与 \code{prov\_leave1out\_tone\_full}。
+
+\subsection{嵌入类测度 (双主轨、互为稳健性; F5)}
+所有嵌入派生特征均在来自独立厂商的两个同为主测度的嵌入模型下并行
+计算、并排报告、互为稳健性: 阿里 \code{Qwen3-Embedding-8B}
+(4{,}096 维, 经硅基流动 API; canonical 无后缀列) 与 OpenAI
+\code{text-embedding-3-large} (3{,}072 维; \code{\_lg} 后缀列),
+遵循严格列对偶 (任一特征两轨齐备或皆无)。各轨进入各自恰好识别的
+独立设定, 绝不合并进同一过度识别系统。早期管线版本 canonical 槽为
+Google Gemini 嵌入; 自管线 v3.15.0 (2026 年 6 月) 起换为阿里
+\code{Qwen3-Embedding-8B}, 全部嵌入派生特征经受控全量重嵌再生,
+嵌入空间语义效度以 Spearman 秩相关闸把关 ($\rho \geq 0.80$)。
+情感标注 LLM 集成 (F1) 不受此变更影响: 嵌入模型与情感 LLM
+是互不相交的管线组件。
 
 \section{数据描述}\label{sec:data}
 \NoteThis{Table 1 描述统计参见 \code{papers/brokerage_network/tables.py:build\_table1}。}

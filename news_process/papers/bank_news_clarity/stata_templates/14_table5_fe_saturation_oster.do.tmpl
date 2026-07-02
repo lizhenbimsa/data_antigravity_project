@@ -42,7 +42,8 @@
 *     and evidence. Journal of Business & Economic Statistics, 37(2), 187-204.
 *     doi:10.1080/07350015.2016.1227711
 *
-* 处理 (treatment): mean_clarity_score_ctx (You 2018 词典, _ctx 轨 G3 严谨路线)
+* 处理 (treatment): mean_clarity_score_full (You 2018 词典, _full 主轨; full-only
+*   gating 2026-06-29 后 headline 处理轨 = 决定留篇的全文轨, _ctx 降为 robustness)
 * 结果 (outcome):  z_score (CAR-based Z-score 变体, sentinel → wire-ahead 守卫)
 * ============================================================================
 
@@ -68,7 +69,7 @@ if _rc {
 xtset bank_id year
 
 * ── 主变量 (与 11_table2 / 13_table4 共享口径) ───────────────────────────
-local TX     mean_clarity_score_ctx
+local TX     mean_clarity_score_full
 local DV     z_score
 local CTRL_B ln_assets leverage capital_ratio npl_ratio deposit_growth
 local CTRL_Y gdp_growth m2_growth shibor
@@ -217,7 +218,7 @@ if `DV_OK' {
             mtitles(`mtitles') ///
             keep(`TX') ///
             addnotes("Progressive high-dimensional FE absorbed via reghdfe; cluster-robust SE (bank+year two-way)." ///
-                     "Treatment = mean_clarity_score_ctx (You 2018 dictionary, _ctx track)." ///
+                     "Treatment = mean_clarity_score_full (You 2018 dictionary, _full main track; full-only gating 2026-06-29, _ctx twin = primary robustness)." ///
                      "M1 absorbs province x year; M2 bank-type x year; M3 zone x year; M4 adds bank-specific linear trend (needs T>=3)." ///
                      "Two-way cluster on (bank, year): year clusters = `_nyr_cl' (current panel); few-cluster caveat applies when year clusters are small (T=2 trial / production T~18). With <~30 clusters in a dimension, asymptotic cluster-robust SE are unreliable; production should report wild-cluster-bootstrap (boottest) p-values for the year dimension." ///
                      "Controls (CTRL_B+CTRL_Y) listwise-deleted; columns with post-estimation e(N) < `MINEST' are dropped as degenerate." ///
@@ -319,7 +320,7 @@ else {
                 * (restore/重跑清空 r()); 对齐 substance/24:193 范式。
                 local oster_d = r(delta)
                 local oster_b = r(beta)
-                display "  [Oster δ] mean_clarity_score_ctx delta = `oster_d' (beta@δ=1 = `oster_b')"
+                display "  [Oster δ] mean_clarity_score_full delta = `oster_d' (beta@δ=1 = `oster_b')"
                 display "  解读: δ 由 substantive 财务/宏观控制相对 bank+year FE 基线的" ///
                         " R²-movement 界定; δ >= 1 = 主系数对未观测选择性偏误稳健 (Oster 2019)。"
 
@@ -328,7 +329,7 @@ else {
                 file open _ofh using "output/tables/table5_panelB_oster_delta.csv", ///
                     write replace
                 file write _ofh "metric,value" _n
-                file write _ofh "treatment,mean_clarity_score_ctx" _n
+                file write _ofh "treatment,mean_clarity_score_full" _n
                 file write _ofh "oster_delta,`oster_d'" _n
                 file write _ofh "oster_beta_at_delta1,`oster_b'" _n
                 file write _ofh "r2_controlled,`r2c'" _n

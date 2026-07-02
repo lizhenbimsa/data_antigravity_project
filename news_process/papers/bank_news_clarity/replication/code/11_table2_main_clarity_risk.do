@@ -6,7 +6,9 @@
 *         L&L 原版账面 equity/assets, 见 paper_spec.yaml outcome 更正)
 *         白话: Z-score 越高表示银行离资不抵债越远、风险越低; 此处资本项用监管
 *         资本充足率 (CAR), 与原版账面口径不同, 故称"变体"。
-*   TX  = mean_clarity_score_ctx   (You 2018 词典, _ctx 轨 G3 严谨路线)
+*   TX  = mean_clarity_score_full  (You 2018 词典, _full 主轨; full-only gating
+*         2026-06-29 后 headline 处理轨 = 决定留篇的全文轨, paper_spec
+*         treatment.primary; entity-attributed _ctx 降为首要 robustness 孪生)
 *
 * M1-M6 渐进设定 (progressive):
 *   M1: 主解释 only
@@ -42,7 +44,7 @@ merge m:1 target_bank using "data/processed/bank_metadata.dta", keep(match maste
 
 * 主变量 (与第 10 篇 outcome 共享, treatment 完全不同 → 学术独立)
 local DV     z_score
-local TX     mean_clarity_score_ctx
+local TX     mean_clarity_score_full
 local CTRL_B ln_assets leverage capital_ratio npl_ratio deposit_growth credit_rating
 local CTRL_Y gdp_growth m2_growth shibor term_spread
 
@@ -150,7 +152,7 @@ esttab M1 M2 M3 M4 M5 M6 M_BW ///
     mtitles("OLS" "Bank FE" "Bank+Year FE" "+Bank Ctrl" "+Year Ctrl" "+SOE Int." "LLP Ratio") ///
     keep(`TX' 1.is_soe#c.`TX') ///
     addnotes("Cluster-robust SE (bank+year two-way)." ///
-             "Treatment = mean_clarity_score_ctx (You 2018 词典 _ctx 轨)." ///
+             "Treatment = mean_clarity_score_full (You 2018 dict, _full main track; full-only gating 2026-06-29 — the headline treatment track coincides with the track that determines article retention; the entity-attributed _ctx twin is the primary robustness variant)." ///
              "Z-score: CAR-based variant (capital term = regulatory CAR, not book equity/assets); cf. Laeven-Levine 2009 JFE." ///
              "LLP outcome = raw LLP/loans ratio, not the Bushman-Williams 2012 JAE residual-based discretion measure." ///
              "Reframe: clarity = external info env quality (Bushee 2010 JAR), not bank disclosure transparency." ///

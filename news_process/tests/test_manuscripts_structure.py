@@ -138,26 +138,38 @@ def test_manuscript_has_at_least_7_sections(paper_id, lang):
 # 4. V6 方法论 F1-F4 声明
 # ============================================================================
 
+# 2026-07-02 事实刷新: ①gemini 模型名去 "-preview" (config/sentiment.yaml
+# v3 锁定串无 -preview); ②补 DeepSeek 直连端点标记 (seed=42 仍真实在
+# _build_llm_request 请求体, 保留); ③新增 F5 嵌入双主轨小节 +
+# Qwen3-Embedding-8B canonical 槽披露 + full-only 门控列名。
 _V6_MARKERS_EN = (
-    'F1', 'F2', 'F3', 'F4',
+    'F1', 'F2', 'F3', 'F4', 'F5',
     'three independent LLM families',
     'gpt-5.4-nano',
-    'gemini-3.1-flash-lite-preview',
+    'gemini-3.1-flash-lite',
     'deepseek-v4-flash',
     'temperature=0',
     'seed=42',
+    'api.deepseek.com',
+    'llm\\_verified\\_full',  # tex 源内下划线带转义反斜杠
+    'Qwen3-Embedding-8B',
+    'text-embedding-3-large',
     '81.7',
     'Goldsmith-Pinkham',
 )
 
 _V6_MARKERS_ZH = (
-    'F1', 'F2', 'F3', 'F4',
+    'F1', 'F2', 'F3', 'F4', 'F5',
     '三个独立',
     'gpt-5.4-nano',
-    'gemini-3.1-flash-lite-preview',
+    'gemini-3.1-flash-lite',
     'deepseek-v4-flash',
     'temperature=0',
     'seed=42',
+    'api.deepseek.com',
+    'llm\\_verified\\_full',  # tex 源内下划线带转义反斜杠
+    'Qwen3-Embedding-8B',
+    'text-embedding-3-large',
     '81.7',
     'Goldsmith-Pinkham',
 )

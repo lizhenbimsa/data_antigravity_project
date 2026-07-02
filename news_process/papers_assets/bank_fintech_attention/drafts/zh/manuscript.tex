@@ -45,6 +45,19 @@
 \NoteThis{错位 DiD (Callaway-Sant'Anna 2021) + leave-one-out peer 工具变量;
 Bartik shift-share 作 fallback。}
 
+\subsection{嵌入类测度 (双主轨、互为稳健性; F5)}
+所有嵌入派生特征均在来自独立厂商的两个同为主测度的嵌入模型下并行
+计算、并排报告、互为稳健性: 阿里 \code{Qwen3-Embedding-8B}
+(4{,}096 维, 经硅基流动 API; canonical 无后缀列) 与 OpenAI
+\code{text-embedding-3-large} (3{,}072 维; \code{\_lg} 后缀列),
+遵循严格列对偶 (任一特征两轨齐备或皆无)。各轨进入各自恰好识别的
+独立设定, 绝不合并进同一过度识别系统。早期管线版本 canonical 槽为
+Google Gemini 嵌入; 自管线 v3.15.0 (2026 年 6 月) 起换为阿里
+\code{Qwen3-Embedding-8B}, 全部嵌入派生特征经受控全量重嵌再生,
+嵌入空间语义效度以 Spearman 秩相关闸把关 ($\rho \geq 0.80$)。
+情感标注 LLM 集成不受此变更影响: 嵌入模型与情感 LLM
+是互不相交的管线组件。
+
 \section{数据}\label{sec:data}
 \NoteThis{数据来源、样本选择、描述统计 (Table 1)。}
 

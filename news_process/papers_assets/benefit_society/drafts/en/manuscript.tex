@@ -34,10 +34,12 @@ The bank--year panel covers approximately 164 bank--years
 
 \subsection{Tone Annotation (F1: Three-Family LLM Validation)}
 We employ three independent LLM families for sentiment annotation:
-\code{gpt-5.4-nano} (OpenAI), \code{gemini-3.1-flash-lite-preview}
-(Google), and \code{deepseek-v4-flash} (DeepSeek\,/\,Grok). All three
-routed through yunwu.ai (\code{/v1/chat/completions}, OpenAI-compatible),
-\code{temperature=0}, \code{seed=42}. Inter-family agreement reported as
+\code{gpt-5.4-nano} (OpenAI), \code{gemini-3.1-flash-lite}
+(Google), and \code{deepseek-v4-flash} (DeepSeek). The OpenAI and
+Google models are routed through yunwu.ai (\code{/v1/chat/completions},
+OpenAI-compatible); DeepSeek is called directly at
+\code{api.deepseek.com}. All calls use \code{temperature=0} and
+\code{seed=42} with a byte-frozen prompt (version v8). Inter-family agreement reported as
 Cohen's $\kappa$ and Krippendorff's $\alpha$; majority vote with ties marked
 \code{undefined} (not \code{neutral}).
 
@@ -46,6 +48,15 @@ Articles where all three families fail or split three ways are coded
 \emph{missing}, not \code{neutral}. Bank--FinTech relevance failing
 majority verification is also missing. This eliminates the 81.7\,\%
 contamination in pre-v6 ``neutral'' labels.
+
+Article retention is gated on the full-text track only
+(\code{llm\_verified\_full}); the entity-context (\code{ctx}) and
+same-sentence co-occurrence (\code{ss}) tracks are conditional-on-full
+robustness tracks whose row universe is a subset of the full-track
+retained set. Relative to earlier any-track-verified vintages, this
+stricter gate mechanically shrinks \code{n\_articles} and derived
+shares (\code{fintech\_share}, \code{attention\_pct})---a
+definitional, conservative level shift, not a data error.
 
 \subsection{Zero-Observation Semantics (F3: NaN Main Path)}
 For bank--years with \code{n\_articles=0}, similarity-based features
@@ -60,6 +71,36 @@ Of approximately 30 candidate Bartik instruments, 28 are removed in v6
 for violating Goldsmith-Pinkham \emph{et~al.}\ (2020, \emph{AER})
 exogeneity. Retained: \code{bartik\_type\_iv\_full} and
 \code{prov\_leave1out\_tone\_full}.
+
+\subsection{Embedding Backbone (Co-Primary Dual Track; F5)}
+The bipolar anchor projection underlying
+\code{benefit\_mean\_full}---and every other embedding-derived
+feature---is computed under two co-primary embedding models from
+independent vendors, reported side by side as mutual robustness:
+Alibaba \code{Qwen3-Embedding-8B} (4{,}096-d, accessed via the
+SiliconFlow API; canonical unsuffixed columns) and OpenAI
+\code{text-embedding-3-large} (3{,}072-d; \code{\_lg}-suffixed
+columns), under strict column parity (each feature exists in both
+tracks or in neither). Each track enters its own just-identified
+specification; the two are never pooled into one over-identified
+system. Earlier pipeline vintages used a Google Gemini embedding in
+the canonical slot; as of pipeline v3.15.0 (June 2026) the canonical
+slot is Alibaba \code{Qwen3-Embedding-8B}, with all embedding-derived
+features regenerated under a controlled full re-embedding and
+embedding-space semantic validity gated by a Spearman
+rank-correlation check ($\rho \geq 0.80$). The sentiment-annotation
+LLM ensemble (F1) is unaffected by this change: embedding models and
+sentiment LLMs are disjoint pipeline components.
+
+The dual-track design is not decorative: in the Qwen embedding space
+the negative pole of one of the ten frozen anchor pairs (anchor
+pair~9) projects with an inverted sign relative to the \code{\_lg}
+space, while the axis-sharpness diagnostic still passes. Rather than
+re-tuning the frozen anchors post hoc, we keep both co-primary tracks
+exactly as specified and read the affected measure jointly across the
+two vendor spaces---precisely the failure mode the cross-vendor
+dual-track architecture is designed to absorb, and we disclose it
+here.
 
 \section{Data}\label{sec:data}
 \NoteThis{Descriptive statistics in Table 1 (see \code{papers/benefit_society/tables.py:build\_table1}).}
@@ -128,11 +169,14 @@ we acknowledge five limitations:
         projection method is unchanged; the unit of measurement differs.
         \code{core/text/cn\_text\_utils.py} (v3.5.2) provides sentence
         splitter infrastructure for future sentence-level robustness.
-  \item \textbf{Embedding model capacity}: we use
-        \texttt{shibing624/text2vec-base-chinese} (768-d HuggingFace
-        sentence-transformer), publicly reproducible. Sensitivity to
-        embedding model choice is acknowledged but not exhausted in current
-        version.
+  \item \textbf{Embedding model choice}: measures are computed under
+        two co-primary API embedding models from independent vendors
+        (Alibaba \texttt{Qwen3-Embedding-8B}, 4{,}096-d;
+        OpenAI \texttt{text-embedding-3-large}, 3{,}072-d) reported
+        side by side as mutual robustness (earlier vintages variously
+        used a local \texttt{text2vec} model and a Google Gemini
+        embedding; both retired). Sensitivity beyond these two vendors
+        is acknowledged but not exhausted in the current version.
   \item \textbf{Cohort scope}: analysis restricted to the PAP v1.0-final
         84-bank cohort (Big-5 + joint-stock + city-commercial); full
         1839-bank universe is not analyzed. Generalization to non-cohort

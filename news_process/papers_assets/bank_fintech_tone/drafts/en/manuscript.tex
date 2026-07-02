@@ -47,25 +47,63 @@ pipeline (Phase~9b baseline).
 
 \subsection{Tone Annotation (F1: Three-Family LLM Validation)}
 We employ three independent LLM families for sentiment annotation:
-\code{gpt-5.4-nano} (OpenAI), \code{gemini-3.1-flash-lite-preview}
-(Google), and \code{deepseek-v4-flash} (DeepSeek\,/\,Grok). All three are
-routed through the yunwu.ai aggregator using the OpenAI-compatible
-\code{/v1/chat/completions} API (single account, identical schema), with
-\code{temperature=0} and \code{seed=42} for deterministic outputs.
-Inter-family agreement is reported as Cohen's $\kappa$ and Krippendorff's
-$\alpha$; majority vote across families produces the final sentiment
-label, with ties marked as \code{undefined} (not \code{neutral}).
+\code{gpt-5.4-nano} (OpenAI), \code{gemini-3.1-flash-lite}
+(Google), and \code{deepseek-v4-flash} (DeepSeek). The OpenAI and
+Google models are routed through the yunwu.ai aggregator using the
+OpenAI-compatible \code{/v1/chat/completions} API; the DeepSeek model
+is called directly at \code{api.deepseek.com}. All calls use
+\code{temperature=0} and \code{seed=42} with a byte-frozen prompt
+(version~v8) so that outputs are deterministic and cache-reproducible.
+Inter-family agreement is reported as Cohen's $\kappa$ (labels
+remapped to non-negative codes before computation) and Krippendorff's
+$\alpha$ (nominal, missing-label-aware, tolerant of two- vs.\
+three-class label sets); majority vote across families produces the
+final sentiment label, with ties marked as \code{undefined} (not
+\code{neutral}).
+
+Beyond the majority-vote consensus (\code{llm\_vote\_tone\_full}, the
+headline treatment per the paper specification), we retain each
+family's own tone series
+(\code{gpt54nano\_tone}, \code{gemini31\_tone},
+\code{deepseekv4\_tone}) as \emph{co-equal mutual-robustness}
+measures: the three per-model series are reported side by side, each
+in its own just-identified specification, and are never pooled into a
+single over-identified system (instruments derived from the same
+articles share common shocks, rendering a joint Hansen $J$
+uninformative). Because the per-model series differ in raw variance,
+cross-model coefficient comparisons standardize each tone measure to
+$z$-scores. Family-wise error across the per-model specifications is
+controlled by Romano--Wolf step-down resampling
+(\code{rwolf}; Table~A12), rather than by informal
+``all-three-significant'' narration.
 
 \subsection{Article-Level Coding (F2: Decontamination)}
 Articles where (a)~all three LLM families fail to return a valid response
 (\code{llm\_call\_failure=1}) or (b)~the three sentiment votes split
 three ways with no majority (\code{llm\_undefined=1}) are coded as
 \emph{missing} rather than neutral. Articles where the bank--FinTech
-relevance fails majority verification (\code{llm\_verified=False})
+relevance fails majority verification on the full-text track
+(\code{llm\_verified\_full=False})
 likewise have their sentiment treated as missing. This is a deliberate
 departure from prior versions of the panel which coerced these to
 ``neutral'' and conflated 81.7\,\% of the neutral labels with measurement
 failure or verification rejection.
+
+\paragraph{Full-text-only retention gate.}
+Whether an article counts as bank--FinTech coverage at all is decided
+solely on the full-text track (\code{llm\_verified\_full}). The
+entity-context (\code{ctx}) and same-sentence co-occurrence
+(\code{ss}) tracks are \emph{conditional-on-full} measures: their row
+universe is a subset of the full-track retained set, and they serve as
+measurement-window robustness tracks rather than independent retention
+gates. Relative to earlier panel vintages that retained an article if
+\emph{any} track verified it, this stricter gate mechanically shrinks
+article counts and derived shares (\code{n\_articles},
+\code{fintech\_share}, \code{attention\_pct}). These level shifts are
+definitional consequences of aligning the retention gate with the
+headline treatment track---not data errors---and the direction of the
+change is conservative (it removes marginal articles that only a
+narrower window verified).
 
 \subsection{Zero-Observation Semantics (F3: NaN Main Path)}
 For bank--years with zero FinTech news coverage (\code{n\_articles=0}),
@@ -84,6 +122,32 @@ Of approximately 30 candidate Bartik instruments in earlier panel
 vintages, 28 are removed in v6 for violating Goldsmith-Pinkham et al.\
 (2020, AER) exogeneity. The retained instruments are
 \code{bartik\_type\_iv\_full} and \code{prov\_leave1out\_tone\_full}.
+
+\subsection{Embedding-Based Semantic Measures (Co-Primary Dual Track; F5)}
+All embedding-derived features (FinTech intensity, policy alignment,
+semantic staleness, and related similarity measures) are computed
+under \emph{two co-primary embedding models from independent vendors},
+reported side by side as mutual robustness: Alibaba
+\code{Qwen3-Embedding-8B} (4{,}096 dimensions, accessed via the
+SiliconFlow API; canonical, unsuffixed columns) and OpenAI
+\code{text-embedding-3-large} (3{,}072 dimensions; \code{\_lg}-suffixed
+columns). The two tracks obey strict column parity (every embedding
+feature exists in both tracks or in neither), each track enters its
+own just-identified specification, and the two are never combined into
+a single over-identified system. Cross-vendor independence
+(Alibaba vs.\ OpenAI) guards against vendor-specific representation
+artifacts driving any single result.
+
+\emph{Vendor-change disclosure.} Earlier pipeline vintages used a
+Google Gemini embedding model in the canonical slot. As of pipeline
+v3.15.0 (June 2026) the canonical slot is Alibaba
+\code{Qwen3-Embedding-8B}; all embedding-derived features were
+regenerated under a controlled full re-embedding, and embedding-space
+semantic validity is gated in the test suite by a cross-vendor
+Spearman rank-correlation check between the two co-primary embedding
+spaces ($\rho \geq 0.80$, $\geq 500$ pairs). The sentiment-annotation LLM ensemble
+(Section~\ref{sec:method}) is unaffected by this change: embedding
+models and sentiment LLMs are disjoint components of the pipeline.
 
 \section{Data}\label{sec:data}
 \NoteThis{Descriptive statistics in Table~1
@@ -105,6 +169,15 @@ symbolic gap) from \code{output/tables/table3\_mechanism.csv}.}
 \NoteThis{Table 5 (placebo, leave-one-out, wild bootstrap) plus the
 1016-line falsification template
 (\code{papers\_assets/bank\_fintech\_tone/do/falsification\_template.do.tmpl}).}
+
+Cross-model robustness: the headline specification is re-estimated
+separately with each LLM family's own tone measure (and, analogously,
+with each of the three Chinese financial-domain BERT models'
+signed net-tone measures), with per-model coefficients standardized to
+$z$-scores and family-wise error controlled by Romano--Wolf step-down
+resampling (Table~A12). Inter-model agreement diagnostics
+(Cohen's $\kappa$ on remapped non-negative codes; Krippendorff's
+$\alpha$, missing-label-aware) accompany the table.
 
 \section{Conclusion}\label{sec:concl}
 \NoteThis{Final discussion and policy implications.}

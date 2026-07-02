@@ -1,7 +1,8 @@
 * news_process v3.7.0 — 第 11 篇 bank_news_clarity Master orchestrator
 *
 * 设计依据: V4 audit reframe (clarity = external info env quality, Bushee 2010 JAR)
-* DC1 path C: No-SSRN + _ctx G3 严谨路线.
+* DC1 path C: No-SSRN + G3 严谨路线; main_track=_full (full-only gating 2026-06-29,
+*   headline 处理轨 = 决定留篇的全文轨; entity-attributed _ctx 降为首要 robustness 孪生).
 * Stata 版本要求: ≥ 19. 必需包: reghdfe estout coefplot asdoc ivreg2.
 
 version 19
@@ -10,18 +11,37 @@ set maxvar 32767
 set linesize 120
 set more off
 
-* Project root: 默认相对当前工作目录 (cwd); 外部协作者无需改路径,
-* 只需 cd 到 data_antigravity_project 根再运行 do code/00_master.do.
-* (P-017 修复: 不再硬编码本机绝对路径.)
-local project_root "`c(pwd)'"
-di as txt "Project root: `project_root'"
+* 项目根目录 (由 stata_runner::_substitute_placeholders 替换;
+* 占位符未被替换时回退为当前工作目录 cwd。)
+local project_root "{{PROJECT_ROOT}}"
+if "`project_root'" == "{{PROJECT_ROOT}}" {
+    di as txt "(P-017) PROJECT_ROOT placeholder not substituted; using cwd."
+}
+else {
+    cd "`project_root'"
+}
 
 do "news_process/papers/bank_news_clarity/replication/code/00_install_packages.do"
 do "news_process/papers/bank_news_clarity/replication/code/01_data_prep.do"
 
 * === Tables ===
-do "news_process/papers/bank_news_clarity/replication/code/11_table2_main_clarity_risk.do"
-do "news_process/papers/bank_news_clarity/replication/code/13_table4_heterogeneity.do"
+* fix(master-resilience, 2026-06-14 顶刊重审主链可达性): 分析子模板一律 capture noisily
+*   + [WARN] (镜像 brokerage_network/00_master 既有范式)。单表失败仅 WARN 跳过, master 必
+*   走到末尾 exit, clear (绝不再 abort/挂 Done 框)。此前 11_table2 esttab r(111) 致 master
+*   中途崩溃 + 无法到终端 exit → /b 弹 Done 框挂起, 后续 12-15 (含本轮新增稳健性块) 永不可达。
+*   仅 wrap 分析/图表子模板; 01_data_prep 的 fail-loud 不在本 master (无显式 01 中止设计)。golden-safe / 列值不动。
+capture noisily do "news_process/papers/bank_news_clarity/replication/code/11_table2_main_clarity_risk.do"
+if _rc display as error "[WARN] 11_table2_main_clarity_risk.do failed (rc=`=_rc'); Table 2 skipped"
+* 2026-06-13 IV 补全: outlet-composition 笔法清晰度 IV (capture-graceful)
+capture noisily do "news_process/papers/bank_news_clarity/replication/code/12_table3_iv_2sls.do"
+if _rc display as error "[WARN] 12_table3_iv_2sls.do failed (rc=`=_rc'); Table 3 IV skipped"
+capture noisily do "news_process/papers/bank_news_clarity/replication/code/13_table4_heterogeneity.do"
+if _rc display as error "[WARN] 13_table4_heterogeneity.do failed (rc=`=_rc'); Table 4 skipped"
+* 2026-06-14 顶刊稳健性扩充: FE 饱和阶梯 + Oster δ (Table 5) / 结构子样本外部效度 (Table 6); z_score 财务哨兵 wire-ahead
+capture noisily do "news_process/papers/bank_news_clarity/replication/code/14_table5_fe_saturation_oster.do"
+if _rc display as error "[WARN] 14_table5_fe_saturation_oster.do failed (rc=`=_rc'); Table 5 skipped"
+capture noisily do "news_process/papers/bank_news_clarity/replication/code/15_table6_structural_subsamples.do"
+if _rc display as error "[WARN] 15_table6_structural_subsamples.do failed (rc=`=_rc'); Table 6 skipped"
 
 display ""
 display "=========================================="

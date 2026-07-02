@@ -28,7 +28,7 @@ xtset bank_id year
 merge m:1 target_bank using "data/processed/bank_metadata.dta", keep(match master) nogen
 
 local DV     z_score
-local TX     mean_clarity_score_ctx
+local TX     mean_clarity_score_full
 local CTRL_B ln_assets leverage capital_ratio npl_ratio deposit_growth
 local CTRL_Y gdp_growth m2_growth shibor
 

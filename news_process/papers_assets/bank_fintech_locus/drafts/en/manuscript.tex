@@ -45,6 +45,24 @@ $N \times T \approx 3000\text{--}9000$ bank--years, 2007--2024.
 \NoteThis{Layer $\times$ event study with leave-one-out peer-locus IV;
 4 events $\times$ 5-day CAR + patent + Kogan 2017 market-value weighted.}
 
+\subsection{Embedding-Based Measures (Co-Primary Dual Track; F5)}
+All embedding-derived features are computed under two co-primary
+embedding models from independent vendors, reported side by side as
+mutual robustness: Alibaba \code{Qwen3-Embedding-8B} (4{,}096-d,
+accessed via the SiliconFlow API; canonical unsuffixed columns) and
+OpenAI \code{text-embedding-3-large} (3{,}072-d; \code{\_lg}-suffixed
+columns), under strict column parity (each feature exists in both
+tracks or in neither). Each track enters its own just-identified
+specification; the two are never pooled into one over-identified
+system. Earlier pipeline vintages used a Google Gemini embedding in
+the canonical slot; as of pipeline v3.15.0 (June 2026) the canonical
+slot is Alibaba \code{Qwen3-Embedding-8B}, with all embedding-derived
+features regenerated under a controlled full re-embedding and
+embedding-space semantic validity gated by a Spearman
+rank-correlation check ($\rho \geq 0.80$). The sentiment-annotation
+LLM ensemble (F1) is unaffected by this change: embedding models and
+sentiment LLMs are disjoint pipeline components.
+
 \section{Data}\label{sec:data}
 \NoteThis{Data sources (CSMAR daily returns, IncoPat patents, Kogan 2017 algorithm);
 descriptive statistics (Table 1).}

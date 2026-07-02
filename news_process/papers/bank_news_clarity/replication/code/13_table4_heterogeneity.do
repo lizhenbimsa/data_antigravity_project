@@ -1,10 +1,11 @@
-* news_process v3.7.0 — 第 11 篇 Table 4: 异质性分析 (本模板实际落地 Panel A-D 四维度)
+* news_process v3.7.0 — 第 11 篇 Table 4: 异质性分析 (本模板实际落地 Panel A-E 五维度)
 *
 * V4 F2.2 边界条件 (boundary condition):
 * Panel A: implicit_guarantee_tier 隐性担保层级 (Acharya, Anginer & Warburton 2016 working paper, 5 档)
 * Panel B: 上市 vs 非上市 (listed; V4 F-P1.3)
 * Panel C: 分时段 regime 切换 (V4 F-Comp.3)
 * Panel D: 剔除 top 6 国有大行 (V4 F-P1.2)
+* Panel E: 正式分时代稳定性 (era×treatment 交乘 + Wald 跨时代相等检验; CY-2)
 
 version 19
 clear all
@@ -27,7 +28,7 @@ xtset bank_id year
 merge m:1 target_bank using "data/processed/bank_metadata.dta", keep(match master) nogen
 
 local DV     z_score
-local TX     mean_clarity_score_ctx
+local TX     mean_clarity_score_full
 local CTRL_B ln_assets leverage capital_ratio npl_ratio deposit_growth
 local CTRL_Y gdp_growth m2_growth shibor
 
@@ -130,3 +131,40 @@ esttab D_full D_drop6 ///
     keep(`TX')
 
 eststo clear
+
+* ── Panel E: 正式分时代稳定性 (era×treatment 交乘 + Wald 跨时代相等检验; CY-2-PARTIAL 修复 2026-06-15) ──
+* 3 时代 (2007-2012 / 2013-2018 / 2019-2024, 与 8 篇 fully-coded era-stability 一致), 镜像
+* 34_tableA11: Panel C 已分段回归, 此处补【正式跨时代斜率相等 Wald 检验】(clarity 主效应在
+* 三时代间是否稳定 = 跨年制度变迁稳健性)。capture 守卫: 单一时代 (T<3 试跑盘) 优雅跳过, T=18 激活。
+capture {
+    gen byte era = .
+    replace era = 1 if year >= 2007 & year <= 2012
+    replace era = 2 if year >= 2013 & year <= 2018
+    replace era = 3 if year >= 2019 & year <= 2024
+    quietly levelsof era if !missing(`DV', `TX'), local(eras_present)
+    local n_eras : word count `eras_present'
+    if `n_eras' >= 2 {
+        eststo E_era: reghdfe `DV' c.`TX'##i.era `CTRL_B' `CTRL_Y', ///
+            absorb(bank_id year) vce(cluster bank_id year)
+        capture testparm c.`TX'#i.era
+        if !_rc {
+            scalar era_wald_F = r(F)
+            scalar era_wald_p = r(p)
+            display "  [era-stability] Wald 跨时代斜率相等 F=" r(F) " p=" r(p)
+            estadd scalar era_wald_p = r(p)
+        }
+        esttab E_era ///
+            using "papers/bank_news_clarity/output/table4_panel_E_era_stability.tex", ///
+            replace booktabs label se star(* 0.10 ** 0.05 *** 0.01) b(%9.4f) se(%9.4f) ///
+            title("Table 4 Panel E: Era-Stability (clarity-by-era interaction; CY-2)") ///
+            stats(N r2 era_wald_p, fmt(0 3 3) labels("N" "R2" "Wald cross-era p")) ///
+            addnotes("Eras: 2007-2012 / 2013-2018 / 2019-2024, chosen ex ante to align with China FinTech policy phases (2013 互联网金融元年/余额宝; 2019 DCEP 强监管), NOT data-driven breaks; cross-era stability assessed via Wald slope-equality, cf. Hansen 2001 JEP on structural-change inference; for data-driven break dates see Bai-Perron 1998 ECMA / optional xtbreak diagnostic." ///
+                     "Wald cross-era p tests equal clarity slopes across eras; pooled era-by-treatment interaction on the full bank-year panel.")
+        eststo clear
+    }
+    else {
+        display "  [era-stability] 单一时代在场 (T<3 试跑盘), Panel E 优雅跳过 (全量 T=18 自动激活)"
+    }
+    drop era
+}
+if _rc display as error "  [WARN] Panel E era-stability 跳过 (rc=`=_rc'); 续跑"

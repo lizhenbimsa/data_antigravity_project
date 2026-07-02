@@ -28,7 +28,8 @@
 *   Angrist, J. D., & Pischke, J.-S. (2009). Mostly Harmless Econometrics.
 *     Princeton University Press. (subsample / heterogeneity 外部效度讨论)
 *
-* 处理 (treatment): mean_clarity_score_ctx (You 2018 词典, _ctx 轨 G3 严谨路线)
+* 处理 (treatment): mean_clarity_score_full (You 2018 词典, _full 主轨; full-only
+*   gating 2026-06-29 后 headline 处理轨 = 决定留篇的全文轨, _ctx 降为 robustness)
 * 结果 (outcome):  z_score (CAR-based Z-score 变体, sentinel → wire-ahead 守卫)
 * ============================================================================
 
@@ -54,7 +55,7 @@ if _rc {
 xtset bank_id year
 
 * ── 主变量 (与 11_table2 / 13_table4 共享口径) ───────────────────────────
-local TX     mean_clarity_score_ctx
+local TX     mean_clarity_score_full
 local DV     z_score
 local CTRL_B ln_assets leverage capital_ratio npl_ratio deposit_growth
 local CTRL_Y gdp_growth m2_growth shibor
@@ -145,7 +146,7 @@ else {
             title("Table 6 Panel A: Clarity Effect by Bank Type (split sample)") ///
             keep(`TX') ///
             addnotes("Each column = one bank-type subsample; cluster-robust SE (bank+year)." ///
-                     "Treatment = mean_clarity_score_ctx (You 2018 dict, _ctx track)." ///
+                     "Treatment = mean_clarity_score_full (You 2018 dict, _full main track; full-only gating 2026-06-29, _ctx twin = primary robustness)." ///
                      "Two-way cluster on (bank, year): year clusters = `NYR_CL'; few-cluster caveat (asymptotic cluster-robust SE unreliable with small year-cluster count; production T~18 should report wild-cluster-bootstrap)." ///
                      "Subsamples with <`MINOBS' obs (or post-est e(N)<`MINEST' after control listwise deletion) skipped (degenerate SE).")
         esttab `models' ///
@@ -215,7 +216,7 @@ else {
             addnotes("Split on bank_is_hub (media-attention network hub status, 0/1)." ///
                      "Hub is defined as the within-year top-10% of media attention; membership therefore drifts year to year (a bank can be a hub in one year and not another), so these subsamples are NOT time-invariant. With production T~18, prefer a pooled clarity#hub interaction (or re-evaluate hub within each bank-year)." ///
                      "Two-way cluster on (bank, year): year clusters = `NYR_CL'; few-cluster caveat applies (small year-cluster count; production should report wild-cluster-bootstrap)." ///
-                     "Treatment = mean_clarity_score_ctx; cluster-robust SE (bank+year). Columns with post-est e(N)<`MINEST' (control listwise) dropped.")
+                     "Treatment = mean_clarity_score_full; cluster-robust SE (bank+year). Columns with post-est e(N)<`MINEST' (control listwise) dropped.")
         esttab `models' ///
             using "output/tables/table6_panelB_hub.csv", replace ///
             plain b(%9.4f) se(%9.4f) stats(N r2, fmt(0 3)) keep(`TX')
@@ -289,7 +290,7 @@ else {
                 mtitles(`mtitles') keep(`TX') ///
                 addnotes("Median split on bank_effective_size (non-missing sample, median=`med')." ///
                          "Two-way cluster on (bank, year): year clusters = `NYR_CL'; few-cluster caveat applies (small year-cluster count; production should report wild-cluster-bootstrap)." ///
-                         "Treatment = mean_clarity_score_ctx; cluster-robust SE (bank+year). Columns with post-est e(N)<`MINEST' (control listwise) dropped.")
+                         "Treatment = mean_clarity_score_full; cluster-robust SE (bank+year). Columns with post-est e(N)<`MINEST' (control listwise) dropped.")
             esttab `models' ///
                 using "output/tables/table6_panelC_size.csv", replace ///
                 plain b(%9.4f) se(%9.4f) stats(N r2, fmt(0 3)) keep(`TX')

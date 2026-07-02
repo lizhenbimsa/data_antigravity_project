@@ -5,7 +5,7 @@
 *   data/processed/bank_metadata.dta           (bank_list.yaml 派生)
 *   (可选) data/processed/40_panel_yearly.dta  (stage 45 主面板, 含 treatment)
 *
-* 输出 (内存中):
+* 输出 (落盘 data/processed/_paper10_working.dta):
 *   working dataset 含 z_score / npl_formation / rwa_to_ta + treatment +
 *   bank metadata (is_soe / bank_type_id / tier).
 *
@@ -40,13 +40,41 @@ if _rc != 0 {
 }
 
 * Treatment 列: cross_outlet_tone_variance (V4 R3 critical 修复)
-* 注: 主 panel 中暂无此列, M2-M3 创建后启用.
-* 当前 placeholder: 用现有 llm_vote_tone_std 作为 fallback.
-capture merge 1:1 target_bank year using "data/processed/40_panel_yearly.dta", ///
-    keep(master match) nogen keepusing(llm_vote_tone_std_full ///
-    cross_outlet_tone_variance_full)
-if _rc != 0 {
-    display "WARNING: 40_panel_yearly.dta 不可读 — main treatment 不可用"
+* 注: cross_outlet_tone_variance_* 仅当 validation 39f 先于面板重建跑过才在 .dta 中;
+* llm_vote_tone_std_full 为面板必有的 fallback.
+* fix(omni-g-replication-03, 2026-06-11): 拆为逐列 merge — Stata keepusing 中任一
+* 变量缺失会令整条 merge r(111) 失败 (all-or-nothing), 连同面板中实际存在的
+* fallback 列一并丢失; 旧诊断把列缺失误报为 "文件不可读"。现按 _rc 区分
+* 601 (文件缺失) 与 111 (列缺失), fallback 列独立存活。
+* (bank_type / is_soe 一并拉取, 供 spec controls 的 bank_type_id 派生 —
+*  fix(omni-g-replication-07): 主 panel 实际列为字符串 bank_type, 无 bank_type_id。)
+* 白话: 一列一列单独 merge, 哪列缺就跳过哪列并明说, 不让一列缺失连累 fallback 列全部丢失。
+capture confirm file "data/processed/40_panel_yearly.dta"
+if _rc {
+    display "WARNING: 40_panel_yearly.dta 不存在 (rc=601) — main treatment 不可用"
+}
+else {
+    foreach v in llm_vote_tone_std_full cross_outlet_tone_variance_full bank_type is_soe {
+        capture merge 1:1 target_bank year using "data/processed/40_panel_yearly.dta", ///
+            keep(master match) nogen keepusing(`v')
+        local _mrc = _rc
+        if `_mrc' == 111 {
+            display "WARNING: 列 `v' 不在 40_panel_yearly.dta (39f validation 未跑?) — 跳过该列"
+        }
+        else if `_mrc' {
+            display as error "WARNING: merge `v' 失败 (rc=`_mrc')"
+        }
+    }
+}
+
+* fix(omni-g-replication-07, 2026-06-11): spec controls 声明 bank_type_id, 但
+* bank_metadata.dta 缺位时不可得; 由主 panel 字符串列 bank_type encode 派生.
+capture confirm variable bank_type_id
+if _rc {
+    capture confirm string variable bank_type
+    if !_rc {
+        encode bank_type, gen(bank_type_id)
+    }
 }
 
 * 派生 controls (V4 F-P1.1)
@@ -67,7 +95,7 @@ if _rc {
 * 排序保证 xtset 顺序
 sort bank_id year
 
-* Save instrumented dataset
+* 保存 working dataset (供 11/13 表脚本改指向后使用)
 save "data/processed/_paper10_working.dta", replace
 display "  Working dataset saved: data/processed/_paper10_working.dta"
 display "  N = " _N ", banks = " _N / (2024 - 2007 + 1)

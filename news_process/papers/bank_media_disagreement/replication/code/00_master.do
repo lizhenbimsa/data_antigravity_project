@@ -10,11 +10,15 @@ set maxvar 32767
 set linesize 120
 set more off
 
-* Project root: 默认相对当前工作目录 (cwd); 外部协作者无需改路径,
-* 只需 cd 到 data_antigravity_project 根再运行 do code/00_master.do.
-* (P-017 修复: 不再硬编码本机绝对路径.)
-local project_root "`c(pwd)'"
-di as txt "Project root: `project_root'"
+* 项目根目录 (由 stata_runner::_substitute_placeholders 替换;
+* 占位符未被替换时回退为当前工作目录 cwd。)
+local project_root "{{PROJECT_ROOT}}"
+if "`project_root'" == "{{PROJECT_ROOT}}" {
+    di as txt "(P-017) PROJECT_ROOT placeholder not substituted; using cwd."
+}
+else {
+    cd "`project_root'"
+}
 
 * 检查必要包安装
 do "news_process/papers/bank_media_disagreement/replication/code/00_install_packages.do"
@@ -23,8 +27,17 @@ do "news_process/papers/bank_media_disagreement/replication/code/00_install_pack
 do "news_process/papers/bank_media_disagreement/replication/code/01_data_prep.do"
 
 * === Tables (论文主体) ===
-do "news_process/papers/bank_media_disagreement/replication/code/11_table2_main_disagreement_risk.do"
-do "news_process/papers/bank_media_disagreement/replication/code/13_table4_heterogeneity.do"
+* 2026-06-15 主链可达性: 单表失败仅 WARN 跳过, master 必走到末尾 exit (镜像 brokerage_network 范式)
+capture noisily do "news_process/papers/bank_media_disagreement/replication/code/11_table2_main_disagreement_risk.do"
+if _rc display as error "[WARN] 11_table2_main_disagreement_risk.do failed (rc=`=_rc'); Table 2 skipped, 续跑后续表"
+* 2026-06-13 IV 补全: outlet-composition 离散度暴露 IV (capture-graceful)
+capture noisily do "news_process/papers/bank_media_disagreement/replication/code/12_table3_iv_2sls.do"
+if _rc display as error "[WARN] 12_table3_iv_2sls.do failed (rc=`=_rc'); Table 3 IV skipped"
+capture noisily do "news_process/papers/bank_media_disagreement/replication/code/13_table4_heterogeneity.do"
+if _rc display as error "[WARN] 13_table4_heterogeneity.do failed (rc=`=_rc'); Table 4 skipped, 续跑后续表"
+* 2026-06-14 顶刊稳健性扩充: FE 饱和阶梯 + Oster δ (Table A1; z_score 财务哨兵 wire-ahead)
+capture noisily do "news_process/papers/bank_media_disagreement/replication/code/14_tableA1_fe_saturation_oster.do"
+if _rc display as error "[WARN] 14_tableA1_fe_saturation_oster.do failed (rc=`=_rc'); Table A1 skipped"
 
 display ""
 display "=========================================="
