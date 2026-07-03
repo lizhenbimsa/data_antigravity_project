@@ -5,7 +5,8 @@ sync / agg 精确元组闭环 / stata 标签 / codebook 正负例+铁律短语+�
 geography 反卷入) + 本族专属 (熵构念锁 ρ==−1 / 梯子单调 / 恒等式 / WP-E 合同)。
 全部合成数据纯计算, $0 无外部 API。
 
-fixture 最小 schema = 27 列: 3 模型×3 轨×(正/负)=18 + 2 三分类×3 轨×中性=6 +
+fixture 实体 = 30 列: 3 模型×3 轨×(正/负)=18 + 2 三分类×3 轨×中性=6 +
+finbert2×3 轨全 NaN 中性占位=3 (镜像磁盘态, test_finbert2_allnan 依赖) +
 target_bank/year/日期=3 (闭环/标签/codebook 项必须全源, 否则合法缺席假红)。
 ⚠ finbert2 构造用**互异 |nt| 的精确小数对** — neg=1−pos 的浮点构造会产生
 "|nt| 恰并列而熵差 1e-17"的秩镜像破坏 (实施冒烟实证), 真实数据为 4 位小数
@@ -110,6 +111,14 @@ class TestEntropy:
         df = _synth_df(n_extra_nan_row=False)
         out = bd.compute_article_distribution_cols(df, M3, THREE_CLASS_MODELS)
         assert out['_ent_finbert2_full'].notna().all()
+
+    def test_three_class_missing_neutral_no_silent_k2(self):
+        """终审 F1 封死: 真三分类缺中性列 → `_ent_` 键不产 (禁静默 K=2 降级,
+        否则 pos+neg<1 的"熵" >1 值域越界); nt/xneg 不依赖中性列照产。"""
+        df = pd.DataFrame({'m_正面_full': [0.4], 'm_负面_full': [0.4]})
+        out = bd.compute_article_distribution_cols(df, ['m'], {'m'})
+        assert '_ent_m_full' not in out
+        assert '_nt_art_m_full' in out and '_xneg_ind_m_full' in out
 
     def test_nan_propagation(self):
         """np.where 反模式回归锁: NaN 概率行 → 熵/nt/xneg 全 NaN (非 0)。"""
@@ -217,6 +226,15 @@ class TestXModel:
         df = pd.DataFrame({'a_正面_full': [0.7], 'a_负面_full': [0.2]})
         out = bd.compute_xmodel_dispersion(df, ['a', 'b', 'c'])
         assert '_lblhet_art_full' not in out and '_xmd_art_full' not in out
+
+    def test_disp_ddof1_handcalc_and_lblhet_one_endpoint(self):
+        """终审 D2 补: disp ddof=1 精确手算 (nt=[±1] 镜像 → z=±1/√2, 行 SD
+        ddof=1 = |z1−z2|/√2 ≡ 1.0) + 2-模型 lblhet 支撑 {0,1} 的 1 端。"""
+        df = pd.DataFrame({'a_正面_full': [1.0, 0.0], 'a_负面_full': [0.0, 1.0],
+                           'b_正面_full': [0.0, 1.0], 'b_负面_full': [1.0, 0.0]})
+        out = bd.compute_xmodel_dispersion(df, ['a', 'b'])
+        assert np.allclose(out['_xmd_art_full'], [1.0, 1.0], rtol=0, atol=1e-12)
+        assert (out['_lblhet_art_full'] == 1.0).all()
 
 
 class TestIntrayear:

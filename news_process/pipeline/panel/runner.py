@@ -1139,8 +1139,9 @@ def main():
     # 由叶模块 bert_distribution 计算 (模型清单参数注入, 防循环导入), 一次性
     # concat 并入 (防 fragmentation)。聚合条目由 encode.build_aggregation_dict
     # 经 iter_agg_entries 无条件注册, 缺源 valid_agg 过滤。中间列 (非 `_is_`
-    # 前缀, 不被 6c sweep 清理) 存活至步骤 9 前统一 drop — WP-E (7h 后) 仍要
-    # 消费 `_nt_art_*`, 勿提前清。
+    # 前缀, 不被 6c sweep 清理) **仅被步骤 5 aggregate_panel 消费** (WP-E 从
+    # 概率列重算 nt, 不依赖 `_nt_art_*`, 终审 F2 勘误); 存活至步骤 9 前统一
+    # drop 是单点挂载取舍 (省的内存 < 双 call site 维护漂移风险)。
     _bd_cols = bert_distribution.compute_article_distribution_cols(
         df, BERT_MODELS, THREE_CLASS_MODELS)
     _bd_cols.update(bert_distribution.compute_xmodel_dispersion(df, BERT_MODELS))
@@ -1765,8 +1766,9 @@ def main():
         panel = panel.drop(columns=_bd_iy_existing)
     _bd_rows_before = len(panel)
     panel = panel.merge(_bd_iy, on=['target_bank', 'year'], how='left')
-    assert len(panel) == _bd_rows_before, (
-        f"WP-E merge 行数漂移 {_bd_rows_before}→{len(panel)} (键重复?)")
+    if len(panel) != _bd_rows_before:  # fail-loud (裸 assert 在 -O 下被剥, 终审 F3)
+        raise RuntimeError(
+            f"WP-E merge 行数漂移 {_bd_rows_before}→{len(panel)} (键重复?)")
     logger.info(f"  BERT 年内时序 merge: {len(_bd_iy_cols)} 列 "
                 f"(源 {len(_bd_iy):,} 个 bank-year 格, 行数不变 {_bd_rows_before:,})")
 

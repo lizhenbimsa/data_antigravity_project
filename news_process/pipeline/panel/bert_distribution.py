@@ -176,11 +176,16 @@ def compute_article_distribution_cols(df: pd.DataFrame, models, three_class) -> 
                 ind[neg.isna()] = np.nan
                 out[f'_xneg_ind_{b}{_xneg_tag(tau)}{trk}'] = ind
 
-            # --- WP-A 归一化熵 ---
-            if b in three_class and u_col in df.columns:
-                probs = [pos, neg, pd.to_numeric(df[u_col], errors='coerce')]
-            else:
-                probs = [pos, neg]  # finbert2: 显式只读两列, K=2 Bernoulli 熵
+            # --- WP-A 归一化熵 (循环体末块, continue 仅跳过本键) ---
+            if b in three_class and u_col not in df.columns:
+                # 真三分类缺中性列 = 违约态: `_ent_` 键不产 (镜像合法缺席语义),
+                # **禁静默降级 K=2** — pos+neg<1 的"熵"值域越界 >1 且构念破坏
+                # (终审 F1 实测 0.4/0.4 → 1.0575)。nt/xneg 不依赖中性列已照产;
+                # finbert2 的全 NaN 中性占位列不走此支 (列在场且非 three_class)。
+                continue
+            probs = ([pos, neg, pd.to_numeric(df[u_col], errors='coerce')]
+                     if b in three_class
+                     else [pos, neg])  # finbert2: 显式只读两列, K=2 Bernoulli 熵
             k = len(probs)
             valid = probs[0].notna()
             for p in probs[1:]:

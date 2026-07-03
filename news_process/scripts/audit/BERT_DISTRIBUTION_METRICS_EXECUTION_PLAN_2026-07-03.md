@@ -256,3 +256,12 @@ dta 宽度: **以 P0-0 后实读为准** ([R2] v2 "→3326" 预测数字已删�
 - **Phase 5**: P5-1 单 shim 40→46 真跑 (NEWS_PROCESS_LLM_OFFLINE=1, $0) exit 0, 三条新日志行在位 (51/51 中间列、年内 merge 18 列 143 格 220 行不变、导出前 51 列清理); 面板实读 **3395 列** (3326+69 恰合), 69/69 在位, `_nt_n_`/文章级中间列**零残留**, sanity 全过, skew 26/220 格 (n≥10 门槛真实生效), iyvol/iytrend dev 全 NaN (R5 预期退化)。46 dta = **3395 = 面板恰等**。P5-1b: 无一对 |corr|>0.95 (finbert2 熵×|net_tone| 面板级 −0.88 — v3 降格"必中"的裁定被实证)。P5-5: 熵/xneg 手算对拍精确到 1e-10 (上海银行 2017, n=4); 斜率 dev 无 ≥6 月格 → gate #7 合成覆盖。P5-2 A/B: 只 stash 本计划 4 tracked 文件 (finally pop 保还原), 双侧同选择集 (--ignore 新 gate), **FAILED 集 23↔23 恰同、差集双向为空、0 新增失败、无需仲裁**。
 - **Phase 6**: CLAUDE.md 新增"BERT 分布形状五族"铁律段 + 最宽 dta 行 3308→**3395** (实读); memory 更新; 本节回填。
 - **DEFERRED (不变)**: golden 生产机重生 (diff_golden `_ABL_RE` 将报 +69 NON-ablation ADDED 属预期) + manuscript 三处构念边界披露 + 生产 T=18 覆盖率/截断率/per-格模型数/corr 复测。
+
+## §12 实现级终审 (2026-07-04, 发布前三路 + 小修收口)
+
+三路只读终审 (计划保真度逐合同 / 代码 break-it 含合成实测 / 集成面+推送安全):
+- **保真度**: 通过 (高保真), **0 MAJOR** — 六条叶模块合同/五族公式逐项验算与计划精确一致 (含 iyvol 门槛 `w_sum==0 ⟺ ≥1月n_t≥2` 精确等价、sign(0) 双向锁、`fillna(0)` 判定为不可达防御分支无害); gate 15 项 14.5/15 对号。
+- **break-it**: **0 BLOCKER/0 MAJOR** — 13 项合成实测探针全过 (乱序/重复 index 对齐、-0.0 语义、跨 piece concat 外连接、groupby var/skew/count NaN 行为、真跑 aggregate_panel 掩码链路含"12 篇仅 3 非 NaN 按 3 掩"、zero-fill 四正则对 69 列零误伤、merge dtype 容错)。
+- **集成面**: GO — 六类下游消费者 (standardize 白名单/iv_did/iv_extensions/6c/7h 族/stage 51/export/`.do` 模板通配) 全为显式清单或限定前缀, 零误卷入; 推送清单仅本计划提交, 无外来 hunk/大文件/秘密/amend 痕迹。
+- **小修收口** (合并 1 commit, 全部落地): F1 [MINOR] 真三分类缺中性列的静默 K=2 降级通道封死 (`continue` 键不产 + 新 gate `test_three_class_missing_neutral_no_silent_k2`; 生产不可达但值域可越 1 至 1.0575); D2 补 disp ddof=1 精确手算 gate (nt=±1 镜像 → 行 SD≡1.0) + lblhet 2-模型支撑 1 端; F2 runner 4z 注释事实勘误 (WP-E 从概率列重算 nt, 不消费 `_nt_art_*`); F3 裸 assert → RuntimeError (-O 剥除风险); D4 fixture 计数 docstring 27→30。gate 33→35 用例全绿, ruff 全过。
+- 记账不修项: F4 恒等式依赖上游 pos/neg 原子 NaN 契约 (encode 注释已记账, 上游违约时静默破裂无实数据 gate — 剩余风险); D5 encode 掩码循环硬编码轨字面 (与全仓惯例一致)。
