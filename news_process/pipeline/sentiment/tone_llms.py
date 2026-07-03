@@ -2484,7 +2484,8 @@ def main():
                 per_model_cols[f"{short}_sentiment_confidence{track}"] = []
                 # per-model 分类维度存档列 (2026-07-03, ROBUSTNESS_GAP_BACKFILL §2 A1):
                 # 基名 = _LLM_CLASS_SPEC 键 (subst/locus/collab)。**不门控**审计存档
-                # (镜像 {short}_sentiment 先例, 见 _aggregate_track L1684 注释); verified
+                # (镜像 {short}_sentiment 先例, 见 _aggregate_track 内 "per-model 存档列
+                # 不门控 (审计保留原始输出)" 注释 — 符号引用免疫行号漂移); verified
                 # 门控延迟到 encode 层聚合 (encode_sentiment 指示列)。⚠ 与共识列口径差:
                 # 共识票池只纳 verified=True 标签且 final_v=False 清票, 存档列保留原始输出。
                 for _dim in _LLM_CLASS_SPEC:

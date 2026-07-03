@@ -281,12 +281,28 @@
 ## §11 实施记录 (2026-07-03 回填)
 
 - [x] **Phase 0**: 六个 benefit `.npy` 全在盘 (1005×4096 / 1005×3072); D1 三臂 cutoff 实测互异 (2.0→11.6% / 3.0→57.2% / 5.0→63.4%, canonical==_rare_word_cutoff()==3.0); A 侧基线 = 27 个既有失败 (golden 分叉 + cohort CSV + locus/substance output 目录 + val_mask/_TABLE1 契约债 + jieba isolation, 全部与 memory 记载一致)。
-- [x] **Phase 1 (WP-A)**: A1 发列 (三份逐轨块+init, `_LLM_CLASS_SPEC` try-import encode + fallback) / A2 **实现偏差 (更优)**: 门控指示列在 `encode_sentiment` (`{short}_{metric}_src{track}`, 镜像 per-model tone 门控先例) + `build_aggregation_dict` mean, 语义 ≡ 计划的分子/分母口径 / A3 tone_validation 扩展 + `test_cross_model_kappa` +14 用例 (agent 实施) / A4 codebook 正则+文案分流+`_LLM_CLASS_NOTE`, stata_export `share` 措辞 / A5 Panel C + `J(9,1)` + `CLS:` 前缀 + note 三族句 / A6 `test_llm_classification_robustness` 26 用例 (含条件式一致性锚两类反例 fixture、跨常量交叉断言、三副本文本锁、A12 文本 gate)。skip 守卫 +3 代表列。paper_spec P3/P4/P5 +cross_model 声明。**本机未重放 stage 21** (级联纪律)。
-- [x] **Phase 2 (WP-B)**: B1 六处硬编码 + `_dim_col` SSOT + per-spec 方向向量 (`_spec_cache_keys`) + 空 `_lg` spec 剔除降级 + CLI 兼容 (legacy 别名/字面 choices 保留, +`--track ss/all` +`--include-lg` +`--text-embeddings-ss` +`--embeddings-dir`) + `# no-ss-track` 豁免全清 / B2 `_apply_both_or_neither` / B3 `test_benefit_dimension_tracks` 17 用例 (MAIN=8 维 vs _lg=6 维 fixture) / B4 18_table9 Panel C/D + cand_models/titles 30/30 + benefit README (gitignored 本地文件)。**超计划**: 本机真实回填孤儿 parquet (24 列 × 143 bank-year, `_lg` 锚点离线全命中 $0)。check_static_enums 本文件 0 命中 (其它文件既有命中非本次)。
+- [x] **Phase 1 (WP-A)**: A1 发列 (三份逐轨块+init, `_LLM_CLASS_SPEC` try-import encode + fallback) / A2 **实现偏差 (更优)**: 门控指示列在 `encode_sentiment` (`{short}_{metric}_src{track}`, 镜像 per-model tone 门控先例) + `build_aggregation_dict` mean, 语义 ≡ 计划的分子/分母口径 / A3 tone_validation 扩展 + `test_cross_model_kappa` +14 用例 (agent 实施) / A4 codebook 正则+文案分流+`_LLM_CLASS_NOTE`, stata_export `share` 措辞 / A5 Panel C + `J(9,1)` + `CLS:` 前缀 + note 三族句 / A6 `test_llm_classification_robustness` 27 用例 (含条件式一致性锚两类反例 fixture、跨常量交叉断言、三副本 LHS+RHS 全片段文本锁、共识 call-site tie 参数锁、A12 文本 gate; ⚠ 勘误: commit 41886246 message 中的 "(30 用例)" 系笔误, 实收集 27 — 无 parametrize, `def test_` 计数即收集数)。skip 守卫 +3 代表列。paper_spec P3/P4/P5 +cross_model 声明。**本机未重放 stage 21** (级联纪律)。
+- [x] **Phase 2 (WP-B)**: B1 六处硬编码 + `_dim_col` SSOT + per-spec 方向向量 (`_spec_cache_keys`) + 空 `_lg` spec 剔除降级 + CLI 兼容 (legacy 别名/字面 choices 保留, +`--track ss/all` +`--include-lg` +`--text-embeddings-ss` +`--embeddings-dir`) + `# no-ss-track` 豁免全清 / B2 `_apply_both_or_neither` / B3 `test_benefit_dimension_tracks` 18 用例 (MAIN=8 维 vs _lg=6 维 fixture; 含终审 #1 的 dir-同源不变量用例) / B4 18_table9 Panel C/D + cand_models/titles 30/30 + benefit README (gitignored 本地文件)。**超计划**: 本机真实回填孤儿 parquet (24 列 × 143 bank-year, `_lg` 锚点离线全命中 $0)。check_static_enums 本文件 0 命中 (其它文件既有命中非本次)。
 - [x] **Phase 3 (WP-C/D, 串行)**: C boilerplate 三轨 (canonical 形参对回兼 + ctx/ss 固定槽) + tone_words 调用点 + encode 三轨聚合 + codebook 迁 `_DUAL_TEXT_SPECS` (full label 逐字节同) + stata 标签; D1 `RARE_WORD_FREQ_CUTOFFS=(2,3,5)` + 变体列/聚合/codebook/标签 + `test_rare_word_cutoff_ladder` 12 用例 (真实词典判别性断言); D2 `_fls_gates` 拆分 (canonical 语义逐字节保持) + 四接线点 + 阈值 21→24 + FLS 全族标签补录 + 超集不变量测试。
 - [x] **Phase 4 (WP-E)**: 28_tableA13 (空后缀轨循环, 12 臂实名, `$bank_controls` 省略 clear all, 无终端 exit) + **七联动** (papers_b_route 147 / _EXPECTED_ROOT_DO 21 / verify expected 名单 / matrix 21+expected_subdo / test_stata_templates '21/21'+'20/20' / 00_master 接线) + **三文档** (CLAUDE.md CLI 段+Stata 段 / templates README 21/21) + 两个模板文本 gate。冒烟: build-replication P1 (21 .do) + benefit derivative (27 .do, Panel D 列实例化) + verify-replication 8 OK + 占位符/计数 0 残留。
 - [x] **Phase 5**: 全部改动 py 文件 ruff 干净; **A/B 差分 = 27↔27 逐条相同, 0 新增失败 0 转绿**; CLAUDE.md 铁律段 +"稳健性缺口补齐"块; 终审 break-it 工作流 (6 视角 + 对抗核实) 见 §12c。
 - **生产机 DEFER 清单最终版**: ① `verify_stage21_cache_coverage` 0 miss → `NEWS_PROCESS_LLM_OFFLINE=1` 重放 stage 21 (双 parquet 成对备份+还原含 mtime; 守卫收紧后 `--skip-21-if-exists` 首跑 reject 属预期) → 完整级联 21→22→23→24→(26/75 validation)→40→46 (stage 23 前提 HF_HUB_OFFLINE=1/TRANSFORMERS_OFFLINE=1; `_local_model_cache.db` 未播种首跑为全量推理); ② boilerplate ctx/ss + D1 c2/c5 + D2 fonly 列随级联物化 (boilerplate T=18 前须分块改造, 见模块 P1 TODO); ③ golden 重生 (PYTHONHASHSEED=0 + BLAS 钉 1, 排除 3 网络列); ④ manuscript prose: per-model 分类分母口径两句披露 + D1 频次参数化披露 + FLS 单/双门披露; ⑤ Table A12 Panel C / A13 12 臂在 T=18 财务数据到位后首跑核对臂数齐全 (R4/R11)。
+
+## §12c 终审 break-it 记录 (2026-07-03, 实施后·实现结果评审)
+
+- 工作流: 6 视角 (WP-A/B/C-D 数据正确性 × 3 / gate 有效性 / 联动完整性 / break-it 综合) 21 agents, 每条 finding 独立对抗核实。结果: 15 findings → **12 确认 / 3 驳回** (0 blocker; 3 major), 全部落地于 commit 41886246 内:
+  1. [major] `--embeddings-dir` 对 MAIN 三槽永不生效 (argparse 默认值伪装显式 → 跨目录混源风险) → `--text-embeddings-*` default=None 哨兵 + `_slot_path` 三级优先 (真显式>dir 派生>SSOT) + dir-同源不变量 gate (dimension_analysis.py / test_benefit_dimension_tracks)。
+  2. [major] WP-A 发列块 RHS 值接线零覆盖 (串轨 parsed_ctx→parsed_full / 错索引 _cspec[2]→[1] 时全绿) → test_three_emission_blocks_locked 升级为 LHS+RHS 全片段字面锁 (test_llm_classification_robustness.py:~119)。
+  3. [major] D2 面板聚合环无 gate (graceful skip 使基名错拼时 fonly 列无声缺席) → test_omni_fix_encode_collab 扩双基名 fixture + `fls_added==6` + 数值锚断言。
+  4. [minor] 18_table9 cand_models/titles 第四同步点无守卫 → test_stata_templates::test_table9_cand_models_titles_paired (30/30 词数恒等 + _ss/_lg 子串)。
+  5. [minor] tone_llms/tone_validation fallback 字面副本 byte-sync 断言恒真 → 提升具名常量 `_LLM_CLASS_SPEC_FALLBACK` + 双侧逐字节 gate (test_llm_classification_robustness / test_cross_model_kappa)。
+  6. [minor] F16 一致性锚未锁生产共识 call-site 的 tie 参数 → test_consensus_callsite_tie_params_locked (tie_default 字面量 3/3/1 计数, ',\n' 尾模式区分 docstring 散文)。
+  7. [minor] encode_collab :1408 docstring "3 列" 旧口径 → 改 6 列/24 列一致。
+  8. [minor] boilerplate banner 单轨旧名 + forward_looking Returns 缺新键 → 散文同步。
+  9. [minor] replication_matrix docstring "19 子模板" 第八处旧计数 → 20 + 日期链。
+  (其余 3 条为同题多视角重复计入上述; 3 条驳回: WP-C/D 既有测试硬冲突等经核实不成立。)
+- 修复后 C 侧全量 pytest 复核: **27↔27 与 A 侧基线逐条相同 (0 新增失败 0 转绿)**。
+- 提交后最终验收 (第五轮, 5 视角 14 agents): 0 功能缺陷; 3 项文档记账修正 (行号自引用/用例计数勘误/本 §12c 补录) 以 follow-up commit 落地。
 
 ## §12b 终审记录 (2026-07-03, v2→v3)
 
