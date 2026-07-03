@@ -298,7 +298,7 @@
   5. [minor] tone_llms/tone_validation fallback 字面副本 byte-sync 断言恒真 → 提升具名常量 `_LLM_CLASS_SPEC_FALLBACK` + 双侧逐字节 gate (test_llm_classification_robustness / test_cross_model_kappa)。
   6. [minor] F16 一致性锚未锁生产共识 call-site 的 tie 参数 → test_consensus_callsite_tie_params_locked (tie_default 字面量 3/3/1 计数, ',\n' 尾模式区分 docstring 散文)。
   7. [minor] encode_collab :1408 docstring "3 列" 旧口径 → 改 6 列/24 列一致。
-  8. [minor] boilerplate banner 单轨旧名 + forward_looking Returns 缺新键 → 散文同步。
+  8. [minor] boilerplate banner 单轨旧名 + forward_looking Returns 缺新键 → 散文同步。⚠ 勘误 (第六轮收官审计, 2026-07-03): 本条 forward_looking Returns 补键半边在 41886246 实际漏落 (批量替换静默未命中), 已于收官 follow-up commit 补齐; boilerplate 半边当时已真实落地。
   9. [minor] replication_matrix docstring "19 子模板" 第八处旧计数 → 20 + 日期链。
   (其余 3 条为同题多视角重复计入上述; 3 条驳回: WP-C/D 既有测试硬冲突等经核实不成立。)
 - 修复后 C 侧全量 pytest 复核: **27↔27 与 A 侧基线逐条相同 (0 新增失败 0 转绿)**。

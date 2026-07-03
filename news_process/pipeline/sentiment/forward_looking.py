@@ -147,6 +147,8 @@ def compute_fls_for_text(text: str) -> dict[str, float]:
             'n_sentences': int,
             'n_fls_sentences': int,
             'frac_fls': float | nan,
+            'n_fls_fonly_sentences': int,   # 单门稳健臂 (仅 future 词; 见 _fls_gates)
+            'frac_fls_fonly': float | nan,  # 2026-07-03 D2
         }
 
     Examples:
