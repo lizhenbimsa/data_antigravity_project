@@ -263,8 +263,14 @@ class TestCallFailureMaskHelper:
         assert not mask.any()
 
     def test_confusion_matrix_uses_same_filter(self):
-        """接线锁: 混淆矩阵图与主口径共用 _call_failure_mask。"""
-        src = inspect.getsource(em._generate_confusion_matrix_dual)
+        """接线锁: 混淆矩阵图与主口径共用 _call_failure_mask。
+
+        fix(contract-drift, 2026-07-03): 生产函数已于三轨化 (v3.9.0) 由
+        _generate_confusion_matrix_dual 更名 _generate_confusion_matrix_per_track,
+        本锁当时未同步 → 引用旧名 AttributeError 长红; 行为契约本身未破
+        (per_track 版内部仍以 ~_call_failure_mask 过滤)。
+        """
+        src = inspect.getsource(em._generate_confusion_matrix_per_track)
         assert '_call_failure_mask(' in src
 
 

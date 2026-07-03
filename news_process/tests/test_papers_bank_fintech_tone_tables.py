@@ -89,6 +89,10 @@ def test_table1_variables_inventory_stable():
     旧契约只列 full 轨, 与 spec main=ctx 不对齐。
     fix(geo-attention-volume-twin, 2026-06-13): 19 → 21 — 注意力指数加总量孪生
     (ft_vol_yr / ft_vol_prov), 与既有比值 ft_attn_yr / ft_attn_prov 互为稳健性。
+    fix(contract-drift, 2026-07-03): 21 → 27 — 第三主轨 _ss (v3.9.0, 104e8859)
+    进 _TABLE1_VARIABLES 时本契约未同步, 长红至今; 六个 _ss 孪生
+    (llm_vote_tone/llm_vote_cont/auth_sim_emb/benefit_mean/prov_leave1out_tone/
+    bartik_type_iv 各 +_ss) 纳入锚定。
     """
     from news_process.papers.bank_fintech_tone.tables import _TABLE1_VARIABLES
 
@@ -96,16 +100,23 @@ def test_table1_variables_inventory_stable():
     must_have = {
         'llm_vote_tone_full',
         'llm_vote_tone_ctx',
+        'llm_vote_tone_ss',
+        'llm_vote_cont_full',
         'llm_vote_cont_ctx',
+        'llm_vote_cont_ss',
         'n_articles',
         'auth_sim_emb_full',
         'auth_sim_emb_ctx',
+        'auth_sim_emb_ss',
         'benefit_mean_full',
         'benefit_mean_ctx',
-        'prov_leave1out_tone_ctx',
+        'benefit_mean_ss',
         'prov_leave1out_tone_full',
-        'bartik_type_iv_ctx',
+        'prov_leave1out_tone_ctx',
+        'prov_leave1out_tone_ss',
         'bartik_type_iv_full',
+        'bartik_type_iv_ctx',
+        'bartik_type_iv_ss',
         # 注意力指数: 比值 + 总量孪生 (geo-attention-volume-twin, 2026-06-13)
         'ft_attn_yr',
         'ft_attn_prov',
@@ -115,8 +126,8 @@ def test_table1_variables_inventory_stable():
     actual = set(_TABLE1_VARIABLES)
     missing = must_have - actual
     assert not missing, f"_TABLE1_VARIABLES 丢失锚定变量: {missing}"
-    # 总数 == 21 (19 + ft_vol_yr / ft_vol_prov 总量孪生, 2026-06-13)
-    assert len(_TABLE1_VARIABLES) == 21
+    # 总数 == 27 (21 + 六个 _ss 三轨孪生, v3.9.0; 契约 2026-07-03 补同步)
+    assert len(_TABLE1_VARIABLES) == 27
 
 
 def test_module_exports_only_two_public_names():
