@@ -596,6 +596,30 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         track='ctx',
     )
 
+    # fix(dta-coverage-audit, 2026-07-03): avg_agreement_rate_s_* 情感票一致率手工
+    # 条目 (三轨), 与同批 redund 配对控制列同待遇 — 否则泛型推断无 llm 子串,
+    # source_stage 落 '未知'。兄弟验证票一致率 avg_agreement_rate_* 由下方
+    # _infer_source_stage 的 agreement_rate 规则承接 (同批补), 不另设手工条目。
+    for _tk, _tn in (('_full', 'full'), ('_ctx', 'ctx'), ('_ss', 'ss')):
+        metadata[f'avg_agreement_rate_s{_tk}'] = VariableMetadata(
+            var_name=f'avg_agreement_rate_s{_tk}',
+            label=f'LLM Sentiment-Vote Agreement Rate ({_tn})',
+            description=f'三家 LLM 情感票与最终情感一致占比 (verified 子集, {_tn} 轨) 的 '
+                        f'bank-year 均值; 与验证票一致率 avg_agreement_rate{_tk} 并排的'
+                        f'第二质量维度 (票=情感方向而非验证判定)',
+            data_type='float',
+            unit='比例',
+            value_range='[0,1] ∪ NaN',
+            formula=f'bank-year mean of llm_agreement_rate_s{_tk} '
+                    f'(文章级 NaN=无有效情感票, 自编码域, 直 mean 无掩码)',
+            source_stage='Stage 21 (tone_llms) + Stage 40 (panel/encode)',
+            reference='Gilardi, Alizadeh & Kubli (2023, PNAS) LLM annotation agreement',
+            notes='本列域 = LLM verified 留篇 (逐轨收缩); 低值=三家情感分歧大, '
+                  '可作 bank-year 层 LLM 测量不确定性诊断',
+            category='LLM 质量诊断',
+            track=_tn,
+        )
+
     # ═══ LLM 情感指标 ═══
     # fix(omni-g-codebook-02/-09, 2026-06-11): 投票阵容从 config 动态拼接 (原硬编码
     # 'GPT-5-nano、Gemini-3、Grok-4.1' 三名全错且 Grok 从未在阵容中)。
@@ -1387,7 +1411,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         ('avg_redund_log_length', 'Redundancy Paired Length Control (ln chars)', 'ln(chars)', '[0, +∞) ∪ NaN',
          'bank-year mean of ln(去空白字符数); 回归用 avg_within_doc_redund 时的配对长度控制 (redundancy 与长度机械相关, Cazier & Pfeiffer 2016), 与其同定义域',
          'Dyer-Lang-Stice-Lawrence (2017) JAE 64(2-3); Cazier & Pfeiffer (2016)', 'Stage 22 (lexical_complexity) + Stage 40'),
-        ('avg_redund_han_log_length', 'Redundancy Paired Length Control (ln Han chars)', 'ln(chars)', '[0, +∞) ∪ NaN',
+        ('avg_redund_han_log_length', 'Redundancy Paired Length Control (ln Han chars)', 'ln han chars', '[0, +∞) ∪ NaN',
          'bank-year mean of ln(汉字数); 回归用 avg_within_doc_redund_han 时的配对长度控制, 与其同定义域 (hanzi-char-dual 汉字口径)',
          'Dyer-Lang-Stice-Lawrence (2017) JAE 64(2-3); Cazier & Pfeiffer (2016)', 'Stage 22 (lexical_complexity) + Stage 40'),
         ('avg_adversative', 'Adversative-Conjunction Ratio', 'token fraction', '[0,1] ∪ NaN',
@@ -2191,7 +2215,10 @@ def _infer_source_stage(var_name: str) -> str:
         return 'Stage 21'
     if any(var_name.startswith(m + '_') for m in BERT_MODELS):
         return 'Stage 23'
-    if 'llm' in var_name or 'gpt' in var_name or 'gemini' in var_name:
+    # agreement_rate (2026-07-03 dta-coverage-audit): avg_agreement_rate{,_s}_* 无
+    # llm 子串, 否则落 '未知'; 该族全部源于 stage 21 llm_agreement_rate(_s) 聚合。
+    if ('llm' in var_name or 'gpt' in var_name or 'gemini' in var_name
+            or 'agreement_rate' in var_name):
         return 'Stage 21'
     elif 'bert' in var_name:
         return 'Stage 23'

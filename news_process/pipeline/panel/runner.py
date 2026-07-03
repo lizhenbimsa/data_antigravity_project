@@ -119,6 +119,7 @@ from news_process.pipeline.panel.encode import (
     OUTPUT_DIR,
     PANEL_CFG,
     STAGE_NAME,
+    THREE_CLASS_MODELS,
     aggregate_panel,
     balance_panel,
     compute_media_authority_weights,
@@ -210,9 +211,12 @@ def _bert_argmax_pos_neg(frame: pd.DataFrame, model: str, track: str):
     # fix(dta-coverage-audit, 2026-07-03): 2-class 模型 (finbert2) 的 `_中性` 列是
     # 全 NaN 占位 (tone_berts.py:1144, 刻意非 0), 仅凭列存在判 3-class 会使
     # (p>n)&(p>u) 与全 NaN 比较恒 False → 判正 0 篇, 违背上方 2-class P>0.5 设计。
-    # 须同时要求中性列真有值才走 3-class argmax。
-    if u_col in frame.columns and frame[u_col].notna().any():  # 3-class: 全类 argmax
-        u = frame[u_col]
+    # 类数判据双锚: SSOT 身份 (encode.THREE_CLASS_MODELS) 优先 — 注册的 3-class 模型
+    # 只要中性列在场就恒走 argmax (中性列损坏为全 NaN 时输出全 False 双元组, 与
+    # docstring 的 NaN 行契约一致, 绝不静默退到 P>0.5 尺度混用); SSOT 外模型
+    # (占位 2-class / 测试合成模型) 按中性列是否真有值数据驱动兜底。
+    if u_col in frame.columns and (model in THREE_CLASS_MODELS or frame[u_col].notna().any()):
+        u = frame[u_col]  # 3-class: 全类 argmax
         return ((p > n) & (p > u)), ((n > p) & (n > u))
     return (p > 0.5), (n > 0.5)  # 2-class: P>0.5 ⇔ argmax
 

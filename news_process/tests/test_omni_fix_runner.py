@@ -105,6 +105,40 @@ class TestBertArgmax:
         pos, neg = _bert_argmax_pos_neg(df, 'm', '_full')
         assert not pos.iloc[0] and not neg.iloc[0]
 
+    # fix(dta-coverage-audit, 2026-07-03) 回归护栏: 生产 finbert2 parquet 形态是
+    # "2-class + 全 NaN `_中性` 占位列" (tone_berts 刻意补列), 与上方 m2 用例的
+    # "无中性列"不同。曾因仅凭列存在判 3-class 致 finbert2 判正 0/1005 篇、
+    # washing_ratio_finbert2 三轨全 NaN。以下用例锚死修复语义, 防"等价清理"复发。
+    def test_two_class_all_nan_neutral_placeholder_uses_half_threshold(self):
+        """finbert2 实况: 中性列在场但全 NaN 占位 → 必须走 2-class P>0.5."""
+        df = pd.DataFrame({
+            'finbert2_正面_full': [0.8, 0.3, 0.6],
+            'finbert2_负面_full': [0.2, 0.7, 0.4],
+            'finbert2_中性_full': [np.nan, np.nan, np.nan],
+        })
+        pos, neg = _bert_argmax_pos_neg(df, 'finbert2', '_full')
+        assert pos.tolist() == [True, False, True]
+        assert neg.tolist() == [False, True, False]
+
+    def test_three_class_ssot_model_never_falls_to_half_threshold(self):
+        """SSOT 注册的 3-class 模型 (finbert_cn) 中性列即便损坏为全 NaN, 也须
+        留在 argmax 分支输出全 False (NaN 行契约), 绝不退到 P>0.5 尺度混用
+        (P(正)=0.55>0.5 若走 2-class 路径会误判 True)."""
+        df = pd.DataFrame({
+            'finbert_cn_正面_full': [0.55],
+            'finbert_cn_负面_full': [0.45],
+            'finbert_cn_中性_full': [np.nan],
+        })
+        pos, neg = _bert_argmax_pos_neg(df, 'finbert_cn', '_full')
+        assert not pos.iloc[0] and not neg.iloc[0]
+
+    def test_unknown_model_with_real_neutral_values_uses_argmax(self):
+        """SSOT 外模型但中性列真有值 → 数据驱动兜底走 argmax."""
+        df = pd.DataFrame({
+            'mx_正面_full': [0.40], 'mx_负面_full': [0.30], 'mx_中性_full': [0.30]})
+        pos, neg = _bert_argmax_pos_neg(df, 'mx', '_full')
+        assert pos.iloc[0] and not neg.iloc[0]
+
 
 # ============================================================================
 # g-runner-05/-09 — 方法 F 高置信阈值
