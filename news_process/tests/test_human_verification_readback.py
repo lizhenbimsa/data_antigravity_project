@@ -390,25 +390,35 @@ class TestOverwriteGuardWired:
         lg.propagate = False
         out = str(tmp_path)
         df = _make_track_df()
-        # 第一跑: 生成空白工作台 (应含 LLM_投票 回灌列)
+        # 第一跑: 生成空白盲标三件套 (WP-A2, 2026-07-03: 盲表A/B + 对账表;
+        # LLM_投票 回灌列按盲标协议只进对账表, 不得进编码员盲表)
         _run_validation_for_track(df, '_full', out, lg, {})
-        wb_path = os.path.join(out, '09_sentiment_verify_full.xlsx')
-        assert os.path.isfile(wb_path)
-        wb = openpyxl.load_workbook(wb_path)
-        ws = wb['验证数据']
-        header = [c.value for c in ws[1]]
-        assert 'LLM_投票' in header, '聚合票回灌列缺失 (T3-06)'
-        # 模拟编码者填入 40 条标注 (原位写, 不动其它 sheet)
-        col_idx = header.index('人工判定_情感') + 1
+        blind_a = os.path.join(out, '09_sentiment_verify_full_blind_A.xlsx')
+        blind_b = os.path.join(out, '09_sentiment_verify_full_blind_B.xlsx')
+        recon_p = os.path.join(out, '09_sentiment_verify_full_reconciliation.xlsx')
+        for _p in (blind_a, blind_b, recon_p):
+            assert os.path.isfile(_p), _p
+        recon_header = [c.value for c in openpyxl.load_workbook(recon_p)['验证数据'][1]]
+        assert 'LLM_投票' in recon_header, '聚合票回灌列缺失 (T3-06, 现居对账表)'
+        # 模拟两位编码者各自在盲表填入 40 条一致标注 (双编码共识协议)
         labels = ['正面', '中性', '负面']
-        n_fill = min(40, ws.max_row - 1)
-        for i in range(n_fill):
-            ws.cell(row=2 + i, column=col_idx, value=labels[i % 3])
-        wb.save(wb_path)
-        bytes_before = open(wb_path, 'rb').read()
-        # 第二跑: 守卫必须拦截重生
+        n_fill = None
+        for bp in (blind_a, blind_b):
+            wb = openpyxl.load_workbook(bp)
+            ws = wb['验证数据']
+            header = [c.value for c in ws[1]]
+            assert not any(str(h).startswith(('词典_', 'BERT_', 'LLM_'))
+                           for h in header), '盲表泄露机器列'
+            col_idx = header.index('人工判定_情感') + 1
+            if n_fill is None:
+                n_fill = min(40, ws.max_row - 1)
+            for i in range(n_fill):
+                ws.cell(row=2 + i, column=col_idx, value=labels[i % 3])
+            wb.save(bp)
+        bytes_before = open(blind_a, 'rb').read()
+        # 第二跑: 守卫必须拦截重生 (人工痕迹在盲表, 守卫覆盖双盲表)
         _run_validation_for_track(df, '_full', out, lg, {})
-        assert open(wb_path, 'rb').read() == bytes_before, \
+        assert open(blind_a, 'rb').read() == bytes_before, \
             '已标注工作台被整轨重跑覆盖 — 守卫失效!'
         # 回读指标如实产出
         with open(os.path.join(out, 'sentiment_validation_results_full.json'),

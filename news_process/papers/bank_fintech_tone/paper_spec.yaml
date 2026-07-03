@@ -168,4 +168,4 @@ validation:
   evidence_status: pending_human_annotation
   validity_claim_gate:
     requires_real_human_kappa_for: tone
-  note: "G0 tone real kappa is non-deferred (currently-disk startable via 61_human_samples + 09_sentiment_verify); unlocks ONLY tone paper"
+  note: "G0 tone real kappa is non-deferred (startable via regenerated BLIND workbenches: 61_human_samples_blind_{A,B} + 09_sentiment_verify*_blind_{A,B}, 2026-07-03 blind two-file protocol; legacy single-file workbooks expose machine labels and must NOT be distributed); unlocks ONLY tone paper"

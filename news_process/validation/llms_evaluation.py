@@ -1766,6 +1766,50 @@ def main():
             df_verify = _generate_demo_data()
             demo_mode = True
 
+    # ── WP-A3 盲标协议 loader join (2026-07-03) ──
+    # 盲标化后 merged/盲表帧只含人工列 (机器列在 reconciliation 对账表), 而下游
+    # 机器 vs 人工对比从同帧取机器列 (本函数 L1998/2050/2122/2180 一带) → 不 join
+    # 则机器指标**静默消失** (R4-P0 实证)。检测: 帧含 _row_uid 且无机器判定列 →
+    # 读对账表按 _row_uid ⋈ 成单帧 (下游单帧契约不变); 旧版单文件帧无 _row_uid, 走原路径。
+    if not demo_mode and '_row_uid' in df_verify.columns:
+        _machine_probe = [c for c in df_verify.columns
+                          if c.startswith(('llm_', 'gpt54nano_', 'gemini31_', 'deepseekv4_'))]
+        if not _machine_probe:
+            _recon_path = f"{_vp_base}_reconciliation{_vp_ext}"
+            if not os.path.exists(_recon_path):
+                raise SystemExit(
+                    f"[盲标协议] 人工帧无机器列且缺对账表 {_recon_path} — 机器 vs 人工指标将"
+                    "全部静默消失; 请先用新版 stage 61 重生盲表+对账表")
+            _recon = pd.read_excel(_recon_path, sheet_name='验证数据')
+            if ('_row_uid' not in _recon.columns
+                    or len(_recon) != len(df_verify)
+                    or set(_recon['_row_uid']) != set(df_verify['_row_uid'])):
+                raise SystemExit(
+                    f"[盲标协议] 对账表与人工帧 _row_uid 不一致/行数漂移, 拒绝评估: {_recon_path}")
+            _recon_cols = ['_row_uid'] + [c for c in _recon.columns if c not in df_verify.columns]
+            df_verify = df_verify.merge(_recon[_recon_cols], on='_row_uid',
+                                        how='inner', validate='one_to_one')
+            logger.info(f"  [盲标协议] 已按 _row_uid 拼接对账表机器列 (+{len(_recon_cols) - 1} 列): {_recon_path}")
+
+    # ── WP-C 双口径披露 (仲裁 vs strict 剔除) ──
+    if not demo_mode and '最终_验证_strict' in df_verify.columns and '最终_验证' in df_verify.columns:
+        try:
+            _fv = pd.to_numeric(df_verify['最终_验证'], errors='coerce')
+            _sv = pd.to_numeric(df_verify['最终_验证_strict'], errors='coerce')
+            _n_adj_v = int(((_sv == -1) & (_fv != -1) & _fv.notna()).sum())
+            _n_adj_s = 0
+            if '最终_情感_strict' in df_verify.columns and '最终_情感' in df_verify.columns:
+                _fs = df_verify['最终_情感'].astype(str)
+                _ss_ = df_verify['最终_情感_strict'].astype(str)
+                _n_adj_s = int(((_ss_ == '待仲裁') & (_fs != '待仲裁')
+                                & _fs.isin(['正面', '中性', '负面'])).sum())
+            logger.info(
+                f"  [仲裁口径] 第三编码员裁决并入主口径: 验证 {_n_adj_v} 条 / 情感 {_n_adj_s} 条; "
+                "strict 剔除口径保留于 最终_*_strict (主指标以仲裁后口径计; "
+                "strict 双口径全指标表在真标注回填后由本阶段补产, wire-ahead)")
+        except Exception as _e:  # noqa: BLE001
+            logger.warning(f"[仲裁口径] 披露计算异常, 跳过(不影响评估): {_e}")
+
     logger.info(f"验证样本数: {len(df_verify):,} ({'模拟数据' if demo_mode else '真实数据'})")
     _phase_marks.append(("Step1 加载人工验证数据", time.time() - _t_load))
     _t_eval = time.time()

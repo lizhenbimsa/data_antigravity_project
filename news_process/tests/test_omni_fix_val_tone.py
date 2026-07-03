@@ -321,10 +321,15 @@ class TestRunValidationForTrackAggregateExclusion:
         assert int(alpha_df.loc['BERT', 'N Models']) == 2
 
     def test_verify_xlsx_has_track_suffix(self, track_run):
-        """fix(omni-g-val-tone-04a): 双轨各写独立文件, 不再互相覆盖。"""
+        """fix(omni-g-val-tone-04a): 双轨各写独立文件, 不再互相覆盖。
+        WP-A2 (2026-07-03): 产物 = 盲表A/B + 对账表 (带 track 后缀), 旧单文件不再产出。"""
         out_dir, _ = track_run
-        assert os.path.isfile(os.path.join(out_dir, '09_sentiment_verify_full.xlsx'))
+        assert os.path.isfile(os.path.join(out_dir, '09_sentiment_verify_full_blind_A.xlsx'))
+        assert os.path.isfile(os.path.join(out_dir, '09_sentiment_verify_full_blind_B.xlsx'))
+        assert os.path.isfile(os.path.join(out_dir, '09_sentiment_verify_full_reconciliation.xlsx'))
         assert not os.path.exists(os.path.join(out_dir, '09_sentiment_verify.xlsx'))
+        assert not os.path.exists(os.path.join(out_dir, '09_sentiment_verify_full.xlsx')), \
+            '旧单文件 (机器列+人工列同帧, 反盲标) 不应再产出'
 
 
 # ============================================================================
@@ -356,9 +361,13 @@ class TestValidationSampleTrackAlignment:
             df, labels, vote, str(out), test_logger,
             n_agree=5, n_disagree=5, seed=42, track=track,
         )
-        assert out.is_file()
-        guide = pd.read_excel(out, sheet_name='编码指南').set_index('项目')
-        data = pd.read_excel(out, sheet_name='验证数据')
+        # WP-A2 盲标协议 (2026-07-03): 生成端不再写旧单文件, 产物 = 盲表A/B + 对账表;
+        # 编码指南/机器输入文本 均在盲表 (编码员可见面), 从盲表A 断言。
+        blind = tmp_path / f'09_sentiment_verify{track}_blind_A.xlsx'
+        assert blind.is_file()
+        assert not out.is_file(), "旧单文件 (机器列+人工列同帧, 反盲标) 不应再产出"
+        guide = pd.read_excel(blind, sheet_name='编码指南').set_index('项目')
+        data = pd.read_excel(blind, sheet_name='验证数据')
         return guide, data
 
     def test_ctx_guide_uses_window_instructions(self, tmp_path, test_logger):
@@ -388,7 +397,7 @@ class TestValidationSampleTrackAlignment:
             df, labels, vote, str(out), test_logger,
             n_agree=5, n_disagree=5, seed=42, track='_ctx',
         )
-        data = pd.read_excel(out, sheet_name='验证数据')
+        data = pd.read_excel(tmp_path / 'verify_no_ctx_blind_A.xlsx', sheet_name='验证数据')
         assert '机器输入文本' not in data.columns
 
 

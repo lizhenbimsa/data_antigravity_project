@@ -601,8 +601,53 @@ def generate_validation_sample(df: pd.DataFrame,
 
     sample_idx = np.concatenate([agree_sample, disagree_sample])
 
+    # WP-B3 (2026-07-03): predicted-negative 第三层过采样 — 负类基率低,
+    # 简单一致/分歧两层下 per-class recall CI 过宽。config 键
+    # human_validation.oversample_negative (⚠ 该键作用于 09/tone 侧, 见 yaml 注释)。
+    _hv_cfg = CONFIG.get('human_validation', {}) or {}
+    _neg_opt = _hv_cfg.get('oversample_negative', True)
+    neg_sample = np.array([], dtype=int)
+    vote_valid = vote_labels.loc[valid.index].astype(str)
+    if _neg_opt:
+        n_neg_target = int(_neg_opt) if not isinstance(_neg_opt, bool) else 100
+        neg_pool = valid.index[(vote_valid == '负面')
+                               & (~valid.index.isin(sample_idx))]
+        n_neg = min(n_neg_target, len(neg_pool))
+        if n_neg > 0:
+            neg_sample = rng.choice(neg_pool, size=n_neg, replace=False)
+            sample_idx = np.concatenate([sample_idx, neg_sample])
+        logger_inst.info(f"  [B3] predicted-negative 增样: 目标 {n_neg_target}, "
+                         f"池 {len(neg_pool)}, 实抽 {n_neg}")
+
+    # WP-B2: Manski-Lerman 总体后分层权重 — 层 = {一致,分歧}×{预测负面,非负面}
+    # 四格 (负面增样跨切一致/分歧, 用交叉格 poststratify 才严格无偏;
+    # 格内各路抽取均为 SRS → 格内入样概率均匀)。总体域 = valid (dropna 后)。
+    n_pop_total = len(valid)
+    _cell_pop = {}
+    _cell_smp = {}
+    _smp_agree = pd.Series(False, index=valid.index)
+    _smp_agree.loc[agree_idx] = True
+    _is_neg = (vote_valid == '负面')
+    for a_flag in (True, False):
+        for g_flag in (True, False):
+            _cell_pop[(a_flag, g_flag)] = int(((is_agree == a_flag) & (_is_neg == g_flag)).sum())
+    _si = pd.Index(sample_idx)
+    for a_flag in (True, False):
+        for g_flag in (True, False):
+            _cell_smp[(a_flag, g_flag)] = int(
+                ((is_agree.loc[_si] == a_flag) & (_is_neg.loc[_si] == g_flag)).sum())
+    n_smp_total = len(sample_idx)
+
+    def _row_weight(idx):
+        cell = (bool(is_agree.loc[idx]), bool(_is_neg.loc[idx]))
+        n_c = _cell_smp.get(cell, 0)
+        if n_c <= 0 or n_pop_total <= 0 or n_smp_total <= 0:
+            return float('nan')
+        return (_cell_pop[cell] / n_pop_total) / (n_c / n_smp_total)
+
     # 构建输出 DataFrame
     sample_df = df.loc[sample_idx].copy()
+    sample_df['population_weight'] = [_row_weight(i) for i in sample_idx]
 
     # 添加各方法标签列
     for col in all_labels_df.columns:
@@ -618,6 +663,8 @@ def generate_validation_sample(df: pd.DataFrame,
     # 添加抽样来源标记
     sample_df['样本类型'] = '一致'
     sample_df.loc[sample_df.index.isin(disagree_sample), '样本类型'] = '分歧'
+    if len(neg_sample) > 0:
+        sample_df.loc[sample_df.index.isin(neg_sample), '样本类型'] = '负面增样'
 
     # 添加人工编码列
     sample_df['人工判定_情感'] = ''
@@ -638,19 +685,28 @@ def generate_validation_sample(df: pd.DataFrame,
             f" 标题/内容 列, 人工口径与机器口径可能存在差异 (需 stage 13 物化)"
         )
 
-    # 保留核心列
-    keep_cols = []
-    for col in ['标题', '内容', '机器输入文本', '日期', '媒体(中文)']:
-        if col in sample_df.columns:
-            keep_cols.append(col)
+    # WP-A2/B1 盲标双文件协议 (2026-07-03): 一次 shuffle (防层界锚定 — 原
+    # 一致在前分歧在后的行序本身泄露抽样层) + 铸造合成行键 _row_uid
+    # (docid 为 文章×银行 粒度非唯一, R4 实证; join/断言一律用 _row_uid)。
+    sample_df = sample_df.sample(frac=1, random_state=seed).reset_index(drop=True)
+    sample_df['_row_uid'] = range(len(sample_df))
 
+    # 盲表列 (编码员可见, 零机器判定/零抽样层标记): 标注列前置
+    blind_cols = [c for c in ['人工判定_情感', '人工判定_理由', '_row_uid', 'docid',
+                              '标题', '内容', '机器输入文本', '日期', '媒体(中文)']
+                  if c in sample_df.columns]
+    blind_output = sample_df[blind_cols].copy()
+
+    # 对账表列 (reconciliation, 共识冻结后解锁): 键 + 抽样层 + 权重 + 全部方法列
     method_cols = [c for c in sample_df.columns
                    if c.startswith(('词典_', 'BERT_', 'LLM_'))
-                   or c in ('多数投票标签', '样本类型',
-                            '人工判定_情感', '人工判定_理由')]
-    keep_cols.extend(method_cols)
+                   or c == '多数投票标签']
+    recon_cols = [c for c in ['_row_uid', 'docid', '样本类型', 'population_weight',
+                              '机器输入文本'] if c in sample_df.columns] + method_cols
+    recon_output = sample_df[recon_cols].copy()
 
-    sample_output = sample_df[keep_cols].copy()
+    # 向后兼容变量 (下方统计概览/日志沿用)
+    sample_output = sample_df[blind_cols + [c for c in recon_cols if c not in blind_cols]].copy()
 
     # fix(omni-g-val-tone-04, 2026-06-11): 编码指南与机器文本口径对齐 —
     # v3.8.0 起 full=标题+正文 / ctx=标题+实体上下文窗口 (均 prepend_title),
@@ -674,57 +730,83 @@ def generate_validation_sample(df: pd.DataFrame,
         coding_note = ('基于"标题+正文"整体语调判断, 标题计入判断; '
                        '客观报道标为中性')
 
+    # 编码指南 (盲表内嵌; ⚠ 刻意无 '样本来源说明' 行 — 一致/分歧抽样设计对
+    # 编码员保密, 防锚定; 抽样层信息只进 reconciliation 的 样本类型 列)
+    guide_data = pd.DataFrame({
+        '项目': [
+            '目的',
+            '验证轨道',
+            '情感标签定义',
+            '编码规则',
+            '注意事项',
+            '独立性',
+        ],
+        '说明': [
+            '对情感分析方法进行人工验证，评估自动化方法的准确性',
+            track_desc,
+            '正面: 积极/利好; 中性: 客观描述; 负面: 消极/风险',
+            '在"人工判定_情感"列填写: 正面/中性/负面; 在"人工判定_理由"列简述原因',
+            coding_note,
+            '禁止与另一位编码员就任何篇目交流; 禁止使用任何 LLM/翻译工具; '
+            '完整协议见 scripts/audit/HUMAN_ANNOTATION_PROTOCOL_2026-07-03.md',
+        ],
+    })
+
+    _base, _ext = os.path.splitext(output_path)
     try:
-        with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
-            # 编码指南
-            guide_data = pd.DataFrame({
-                '项目': [
-                    '目的',
-                    '验证轨道',
-                    '情感标签定义',
-                    '编码规则',
-                    '注意事项',
-                    '样本来源说明',
-                ],
-                '说明': [
-                    '对情感分析方法进行人工验证，评估自动化方法的准确性',
-                    track_desc,
-                    '正面: 积极/利好; 中性: 客观描述; 负面: 消极/风险',
-                    '在"人工判定_情感"列填写: 正面/中性/负面; 在"人工判定_理由"列简述原因',
-                    coding_note,
-                    '"一致"=各方法结果一致的样本; "分歧"=各方法结果不一致的样本',
-                ],
-            })
-            guide_data.to_excel(writer, sheet_name='编码指南', index=False)
+        # 盲表 A/B (per-coder 独立副本, 同内容同行序; 人工判定_情感 锁下拉)
+        for _coder in ('A', 'B'):
+            _bp = f"{_base}_blind_{_coder}{_ext}"
+            with pd.ExcelWriter(_bp, engine='xlsxwriter') as writer:
+                blind_output.to_excel(writer, sheet_name='验证数据', index=False)
+                guide_data.to_excel(writer, sheet_name='编码指南', index=False)
+                if '人工判定_情感' in blind_output.columns:
+                    _ci = list(blind_output.columns).index('人工判定_情感')
+                    writer.sheets['验证数据'].data_validation(
+                        1, _ci, len(blind_output), _ci,
+                        {'validate': 'list', 'source': ['正面', '中性', '负面']})
+            logger_inst.info(f"盲表{_coder} 已保存: {_bp} ({len(blind_output)} 条, 零机器列)")
 
-            # 验证数据
-            sample_output.to_excel(writer, sheet_name='验证数据', index=False)
-
-            # 统计概览
-            # fix(final-audit HV-P2-03, 2026-06-13): 生成时点锚点 — 工作台
-            # 内的机器标签是本时点快照, 防覆盖守卫生效后上游再迭代时,
-            # 回读指标可经此字段追溯其对应的方法版本时点
+        # reconciliation (对账表: 方法列 + 抽样层 + 权重 + 统计概览; 不发编码员)
+        _rp = f"{_base}_reconciliation{_ext}"
+        with pd.ExcelWriter(_rp, engine='xlsxwriter') as writer:
+            recon_output.to_excel(writer, sheet_name='验证数据', index=False)
+            # 统计概览: 样本层 + 总体层计数双记 (WP-B2 — 层权可从成品恢复,
+            # 不再依赖每 run 覆盖的日志; 生成时点锚点语义沿袭 HV-P2-03)
             overview = pd.DataFrame({
                 '统计项': [
                     '总验证样本数',
                     '一致样本数',
                     '分歧样本数',
+                    '负面增样数',
+                    '总体有效行数',
+                    '总体一致数',
+                    '总体分歧数',
+                    '总体预测负面数',
                     '参与方法数',
                     '生成时间',
                     '源数据行数',
                 ],
                 '值': [
-                    len(sample_output),
+                    len(recon_output),
                     n_a,
                     n_d,
+                    int(len(neg_sample)),
+                    n_pop_total,
+                    int(len(agree_idx)),
+                    int(len(disagree_idx)),
+                    int(_is_neg.sum()),
                     all_labels_df.shape[1] + len(extra_labels or {}),
                     time.strftime('%Y-%m-%d %H:%M:%S'),
                     len(df),
                 ],
             })
             overview.to_excel(writer, sheet_name='统计概览', index=False)
-
-        logger_inst.info(f"人工验证样本已保存: {output_path} ({len(sample_output)} 条)")
+        logger_inst.info(f"对账表已保存: {_rp} (共识冻结后解锁, 不发编码员)")
+        if os.path.exists(output_path):
+            logger_inst.warning(
+                f"⚠ 检测到旧版单文件工作台 {output_path} (机器列+人工列同帧, 反盲标) — "
+                "已弃用, 绝不可发编码员; 确认无已填标注后可手动删除。")
     except Exception as e:
         logger_inst.warning(f"保存人工验证样本失败: {e}")
 
@@ -806,17 +888,112 @@ def count_human_annotations(verify_path: str) -> int:
     返回: 0=确认空白(允许重生) / >0=有人工痕迹 / -1=读取失败或结构异常。
     白话: 这张表只要有人写过一个字、或者打不开看不清, 都一律不准重印。
     """
-    if not os.path.isfile(verify_path):
+    # WP-B (2026-07-03) 盲标协议: 人工痕迹可能落在 A/B 任一盲表; legacy 单文件
+    # 同样受保护。守卫语义不变 (任一文件有痕迹/不可读 → 不许重生)。
+    base, ext = os.path.splitext(verify_path)
+    candidates = [verify_path, f"{base}_blind_A{ext}", f"{base}_blind_B{ext}"]
+    total = 0
+    if not any(os.path.isfile(p) for p in candidates):
         return 0
+    for p in candidates:
+        if not os.path.isfile(p):
+            continue
+        try:
+            verify_df = pd.read_excel(p, sheet_name='验证数据')
+        except Exception:
+            return -1
+        human_cols = [c for c in ('人工判定_情感', '人工判定_理由')
+                      if c in verify_df.columns]
+        if not human_cols:
+            return -1
+        total += sum(_count_nonempty(verify_df[c]) for c in human_cols)
+    return total
+
+
+def _load_blind_consensus(verify_path: str, logger_inst):
+    """盲标协议读入 (WP-B1, 2026-07-03): A/B 盲表 + reconciliation → 单帧。
+
+    返回 (verify_df, icr, overview_path) 或 (None, reason, None)。
+    共识规则镜像 llms_human.merge_annotations: A=B (双合法) → gold;
+    分歧/缺失 → '' (不进评估域, 数量记 icr 供 attrition 披露)。
+    ICR = Cohen κ (双合法行) + Krippendorff α (缺标感知全行)。
+    join 键 = _row_uid (docid 非唯一禁作键, R4)。
+    """
+    base, ext = os.path.splitext(verify_path)
+    ba, bb, rp = (f"{base}_blind_A{ext}", f"{base}_blind_B{ext}",
+                  f"{base}_reconciliation{ext}")
+    if not (os.path.isfile(ba) and os.path.isfile(bb) and os.path.isfile(rp)):
+        return None, '盲标三文件不齐 (blind_A/blind_B/reconciliation)', None
     try:
-        verify_df = pd.read_excel(verify_path, sheet_name='验证数据')
-    except Exception:
-        return -1
-    human_cols = [c for c in ('人工判定_情感', '人工判定_理由')
-                  if c in verify_df.columns]
-    if not human_cols:
-        return -1
-    return sum(_count_nonempty(verify_df[c]) for c in human_cols)
+        df_a = pd.read_excel(ba, sheet_name='验证数据')
+        df_b = pd.read_excel(bb, sheet_name='验证数据')
+        recon = pd.read_excel(rp, sheet_name='验证数据')
+    except Exception as e:
+        return None, f'盲标文件读取失败: {e}', None
+    for name, d in (('盲表A', df_a), ('盲表B', df_b), ('对账表', recon)):
+        if '_row_uid' not in d.columns:
+            return None, f'{name} 缺 _row_uid 键列', None
+    if (not (len(df_a) == len(df_b) == len(recon))
+            or set(df_a['_row_uid']) != set(df_b['_row_uid'])
+            or set(df_a['_row_uid']) != set(recon['_row_uid'])):
+        return None, '_row_uid 三侧不一致/行数漂移, 拒绝合并', None
+    # R5-P2-1: 列存在性守卫 — 缺人工判定列走优雅 error 返回, 不许 KeyError
+    # 冒泡中断三轨循环 (镜像原单文件实现的 status=error 契约)
+    for _name, _d in (('盲表A', df_a), ('盲表B', df_b)):
+        if '人工判定_情感' not in _d.columns:
+            return None, f"{_name} 缺'人工判定_情感'列 (结构异常)", None
+
+    labels = list(HUMAN_VERIFY_LABELS)
+
+    def _clean(s: pd.Series) -> pd.Series:
+        obj = s.astype('object')
+        return obj.where(obj.notna(), '').astype(str).str.strip()
+
+    a = _clean(df_a.set_index('_row_uid')['人工判定_情感'])
+    b = _clean(df_b.set_index('_row_uid')['人工判定_情感'])
+    b = b.reindex(a.index)
+    both_valid = a.isin(labels) & b.isin(labels)
+    agree = both_valid & (a == b)
+    n_both = int(both_valid.sum())
+    n_agree = int(agree.sum())
+
+    icr = {'n_both_valid': n_both, 'n_agree': n_agree,
+           'n_disagree': n_both - n_agree,
+           'cohen_kappa': None, 'krippendorff_alpha': None}
+    try:
+        from news_process.validation.llms_evaluation import compute_cohens_kappa, compute_krippendorffs_alpha
+        code = {lab: i for i, lab in enumerate(labels)}
+        if n_both > 0:
+            k = compute_cohens_kappa(
+                np.array([code[v] for v in a[both_valid]]),
+                np.array([code[v] for v in b[both_valid]]))
+            icr['cohen_kappa'] = k['kappa']
+        mat = np.full((2, len(a)), np.nan)
+        for j, (va, vb) in enumerate(zip(a, b)):
+            if va in code:
+                mat[0, j] = code[va]
+            if vb in code:
+                mat[1, j] = code[vb]
+        icr['krippendorff_alpha'] = compute_krippendorffs_alpha(mat)
+    except Exception as e:  # noqa: BLE001
+        logger_inst.warning(f"  [盲标] ICR 计算异常 (不阻断评估): {e}")
+
+    consensus = df_a.copy()
+    a_aligned = a.reindex(consensus['_row_uid']).to_numpy()
+    agree_aligned = agree.reindex(consensus['_row_uid']).to_numpy()
+    consensus['人工判定_情感'] = np.where(agree_aligned, a_aligned, '')
+    if '人工判定_理由' in df_a.columns and '人工判定_理由' in df_b.columns:
+        ra = _clean(df_a.set_index('_row_uid')['人工判定_理由']).reindex(consensus['_row_uid']).to_numpy()
+        rb = _clean(df_b.set_index('_row_uid')['人工判定_理由']).reindex(consensus['_row_uid']).to_numpy()
+        consensus['人工判定_理由'] = np.where(ra != '', ra, rb)
+    recon_extra = ['_row_uid'] + [c for c in recon.columns if c not in consensus.columns]
+    verify_df = consensus.merge(recon[recon_extra], on='_row_uid',
+                                how='inner', validate='one_to_one')
+    logger_inst.info(
+        f"  [盲标] 双编码共识合并完成: 双合法 {n_both} / 一致 {n_agree} / "
+        f"分歧 {n_both - n_agree} (分歧不进评估域); κ={icr['cohen_kappa']} "
+        f"α={icr['krippendorff_alpha']}")
+    return verify_df, icr, rp
 
 
 def evaluate_human_verification(verify_path: str, track: str,
@@ -863,17 +1040,39 @@ def evaluate_human_verification(verify_path: str, track: str,
             except OSError as e:
                 logger_inst.warning(f"  陈旧指标文件清除失败: {e}")
 
-    if not os.path.isfile(verify_path):
-        result['reason'] = f'工作台不存在: {verify_path}'
+    # WP-B1 盲标协议优先 (2026-07-03): A/B 盲表+对账表 → 双编码共识单帧
+    # (inter_coder κ/α 出键); legacy 单文件保留为回读兼容路径 (历史工作台 +
+    # 既有单帧 fixture 直调, R3-P2-A)。
+    _overview_path = verify_path
+    _blind_df, _blind_info, _blind_ov = _load_blind_consensus(verify_path, logger_inst)
+    if (_blind_df is None and isinstance(_blind_info, str)
+            and (_blind_info.startswith('盲标文件读取失败') or '结构异常' in _blind_info)):
+        # R5-P2-2: 盲表存在但不可读/结构异常 = 不可判定 (可能藏有标注) → error
+        # 且保留旧指标 CSV (与 legacy 读失败路径的刻意不对称语义一致, 绝不当 pending 清盘)
+        result['status'] = 'error'
+        result['reason'] = _blind_info
+        logger_inst.warning(f"  人工标注回读: {result['reason']}")
+        return result
+    if _blind_df is not None:
+        verify_df = _blind_df
+        result['inter_coder'] = _blind_info
+        result['gold_source'] = 'two_coder_consensus_blind'
+        _overview_path = _blind_ov
+    elif os.path.isfile(verify_path):
+        logger_inst.info(f"  [盲标] 未走盲标协议 ({_blind_info}), 回退 legacy 单文件: {verify_path}")
+        try:
+            verify_df = pd.read_excel(verify_path, sheet_name='验证数据')
+            result['gold_source'] = 'single_coder_legacy'
+        except Exception as e:
+            result['status'] = 'error'
+            result['reason'] = f'工作台读取失败: {e}'
+            logger_inst.warning(f"  人工标注回读: {result['reason']}")
+            return result
+    else:
+        result['reason'] = (f'工作台不存在: {verify_path} '
+                            f'(盲标协议亦不可用: {_blind_info})')
         logger_inst.info(f"  人工标注回读: {result['reason']}")
         _cleanup_stale_csv('工作台不存在')
-        return result
-    try:
-        verify_df = pd.read_excel(verify_path, sheet_name='验证数据')
-    except Exception as e:
-        result['status'] = 'error'
-        result['reason'] = f'工作台读取失败: {e}'
-        logger_inst.warning(f"  人工标注回读: {result['reason']}")
         return result
     if '人工判定_情感' not in verify_df.columns:
         result['status'] = 'error'
@@ -908,6 +1107,7 @@ def evaluate_human_verification(verify_path: str, track: str,
     from news_process.validation.llms_evaluation import (
         compute_classification_metrics,
         compute_cohens_kappa,
+        compute_cohens_kappa_weighted,
     )
 
     label_to_int = {lab: i for i, lab in enumerate(labels)}
@@ -936,7 +1136,7 @@ def evaluate_human_verification(verify_path: str, track: str,
     # 时点的机器预测快照, 落盘供 staleness 追溯; 旧版工作台无此字段则空
     workbook_ts = ''
     try:
-        ov = pd.read_excel(verify_path, sheet_name='统计概览')
+        ov = pd.read_excel(_overview_path, sheet_name='统计概览')
         ts_rows = ov[ov['统计项'] == '生成时间']
         if not ts_rows.empty:
             workbook_ts = str(ts_rows['值'].iloc[0])
@@ -965,6 +1165,24 @@ def evaluate_human_verification(verify_path: str, track: str,
         kappa = compute_cohens_kappa(
             np.array([label_to_int[v] for v in y_true]),
             np.array([label_to_int[v] for v in y_pred]))
+        # WP-B2: Manski-Lerman 总体后分层加权口径 (population_weight 由生成端
+        # 落盘于 reconciliation; 分层 oversample 下加权 accuracy/κ 才可外推总体)
+        acc_w = kappa_w = None
+        if 'population_weight' in verify_df.columns:
+            _w_all = pd.to_numeric(verify_df['population_weight'], errors='coerce')
+            _wv = valid & _w_all.notna() & (_w_all >= 0)
+            if int(_wv.sum()) > 0 and float(_w_all[_wv].sum()) > 0:
+                _yt, _yp = gold[_wv], pred[_wv]
+                _wn = _w_all[_wv].to_numpy(dtype=float)
+                acc_w = round(float(((_yt == _yp).to_numpy(dtype=float) * _wn).sum()
+                                    / _wn.sum()), 4)
+                try:
+                    kappa_w = compute_cohens_kappa_weighted(
+                        np.array([label_to_int[v] for v in _yt]),
+                        np.array([label_to_int[v] for v in _yp]),
+                        _wn)['kappa']
+                except Exception:  # noqa: BLE001
+                    kappa_w = None
         # fix(final-audit HV-P2-04): 样本量状态按方法级 n_valid 判定,
         # 不再沿用全表 n_annotated (各方法预测缺失程度不同)
         method_status = ('正常' if n_valid >= HUMAN_VERIFY_MIN_N
@@ -986,10 +1204,12 @@ def evaluate_human_verification(verify_path: str, track: str,
             'Accuracy': m['accuracy'],
             'Accuracy_一致': strat_acc.get('一致', ''),
             'Accuracy_分歧': strat_acc.get('分歧', ''),
+            'Accuracy_加权总体': acc_w if acc_w is not None else '',
             'Macro_Precision': m['macro']['precision'],
             'Macro_Recall': m['macro']['recall'],
             'Macro_F1': m['macro']['f1'],
             'Cohens_κ_vs_人工': kappa['kappa'],
+            'Cohens_κ_加权总体': kappa_w if kappa_w is not None else '',
             '状态': method_status,
             '工作台生成时间': workbook_ts,
             '口径说明': note,
@@ -997,10 +1217,12 @@ def evaluate_human_verification(verify_path: str, track: str,
         per_method[col] = {'n_valid': n_valid,
                            'coverage': round(n_valid / n_annotated, 4),
                            'accuracy': m['accuracy'],
+                           'accuracy_weighted_corpus': acc_w,
                            'accuracy_by_stratum': strat_acc,
                            'macro': m['macro'],
                            'per_class': m['per_class'],
                            'kappa_vs_human': kappa['kappa'],
+                           'kappa_weighted_corpus': kappa_w,
                            'status': method_status}
         logger_inst.info(
             f"  [{track}] {col}: Acc={sig4(m['accuracy'])} "

@@ -135,6 +135,74 @@ def set_excel_data_validation(writer, sheet_name, df, start_row=1):
     except Exception as e:
         logger.warning(f"设置 Excel 数据验证失败，但不影响结果生成: {e}")
 
+
+# ============================================================================
+# 盲标双文件协议 (WP-A1, 2026-07-03; 协议=scripts/audit/HUMAN_ANNOTATION_PROTOCOL_2026-07-03.md)
+# 盲表 (编码员表, 零机器判定列) 与 reconciliation (对账表, 全列) 分离, 防锚定偏差;
+# join 键 = 合成行键 _row_uid (docid 为 文章×银行 粒度非唯一, 仅作展示/溯源列)。
+# ============================================================================
+
+#: 盲表允许的上下文列 (白名单): 键/元数据/原文 + target_bank (任务定义所需 —
+#: 编码员须知道"目标银行"是谁才能判 T1; 它是实体匹配产物非模型预测, 不构成锚定)
+_BLIND_CONTEXT_COLS = ['_row_uid', 'docid', '日期', '媒体类型(中文)', '标题', '内容', 'target_bank']
+
+#: 4 个人工标注列 (A/B 各 2 列; 保留 编码者{A,B}_ 前缀命名 —
+#: set_excel_data_validation 按该命名定位下拉, 各盲表天然只命中本编码员两列)
+_ANNOTATION_COLS = ['编码者A_验证', '编码者B_验证', '编码者A_情感', '编码者B_情感']
+
+
+def derive_blind_paths(output_path: str) -> dict:
+    """从 config 单键 base (61_human_samples.xlsx) 派生盲标协议四文件路径
+    (镜像 merge_annotations 的 `_merged` 派生法, 不新增 config 键)。"""
+    base, ext = os.path.splitext(output_path)
+    return {
+        'blind_A': f"{base}_blind_A{ext}",
+        'blind_B': f"{base}_blind_B{ext}",
+        'reconciliation': f"{base}_reconciliation{ext}",
+        'pending': f"{base}_pending_adjudication{ext}",
+    }
+
+
+def _build_coder_guide(coder: str) -> pd.DataFrame:
+    """盲表内嵌编码指南 sheet (WP-E; 摘自协议文档的编码员可见部分)。"""
+    rows = [
+        ('任务', f'编码者{coder} 独立完成两列: 编码者{coder}_验证 ∈ {{1,0}} — 1=该文确为目标银行'
+                 '(target_bank 列) 的金融科技相关新闻, 0=不是; '
+                 f'编码者{coder}_情感 ∈ {{正面,中性,负面}} — 基于标题+内容整体语调。'),
+        ('判断依据', '阅读"标题"+"内容"全文判断; 客观描述标中性; 标题计入判断但以正文为主。'),
+        ('独立性', '禁止与另一位编码员就任何篇目交流; 禁止使用任何 LLM/翻译/摘要工具辅助判定; '
+                   '按表内行序标注, 不得自选顺序。'),
+        ('边界规则', '混合情感按主导语调、势均力敌标中性; 引用他行负面不传染; 目标银行被处罚/通报=负面, '
+                     '银行主动风险提示/合规声明默认中性; 文本异常(乱码/截断)时 验证=0、情感=中性。'),
+        ('完整协议', 'scripts/audit/HUMAN_ANNOTATION_PROTOCOL_2026-07-03.md '
+                     '(试标资格门 κ≥0.667 / 仲裁规则 / 全部边界先例见该文档)'),
+    ]
+    return pd.DataFrame(rows, columns=['项目', '说明'])
+
+
+def _write_blind_workbook(sample_df: pd.DataFrame, coder: str, out_path: str) -> pd.DataFrame:
+    """写单编码员盲表: 本编码员 2 标注列前置 + 白名单上下文列, 零机器判定列。"""
+    ann_cols = [f'编码者{coder}_验证', f'编码者{coder}_情感']
+    cols = [c for c in ann_cols + _BLIND_CONTEXT_COLS if c in sample_df.columns]
+    blind_df = sample_df[cols].copy()
+    try:
+        with pd.ExcelWriter(out_path, engine='xlsxwriter') as writer:
+            blind_df.to_excel(writer, sheet_name='验证数据', index=False)
+            set_excel_data_validation(writer, '验证数据', blind_df)
+            _build_coder_guide(coder).to_excel(writer, sheet_name='编码指南', index=False)
+    except Exception as e:
+        logger.warning(f"写入盲表 {out_path} (xlsxwriter) 失败 ({e}), 回退普通写入")
+        blind_df.to_excel(out_path, index=False)
+    return blind_df
+
+
+def _write_reconciliation(sample_df: pd.DataFrame, out_path: str) -> None:
+    """写对账表: 全部机器/上下文列 + _row_uid, 剔除人工标注列; 共识冻结后才解锁对账, 不发编码员。"""
+    recon_df = sample_df.drop(
+        columns=[c for c in _ANNOTATION_COLS if c in sample_df.columns])
+    recon_df.to_excel(out_path, sheet_name='验证数据', index=False)
+
+
 def main():
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
@@ -230,15 +298,18 @@ def main():
 
     # 追加人工标注“一站式”作业台的四列
     # 新规定：用 1/0 代表真假，直接用中文表示情感
-    col_names = [
-        '编码者A_验证', '编码者B_验证', '编码者A_情感', '编码者B_情感'
-    ]
+    col_names = list(_ANNOTATION_COLS)
     sample_df = sample_df.copy()
+    # WP-A1: 抽样后一次 shuffle (镜像 manual_validation_sampling.py 防层界锚定;
+    # A/B 盲表与对账表共用同一行序) + 铸造合成行键 _row_uid (R4 实证 docid 为
+    # 文章×银行 粒度非唯一 1331u/1544 → 全部 join/断言用 _row_uid, docid 仅展示)。
+    sample_df = sample_df.sample(frac=1, random_state=RANDOM_SEED).reset_index(drop=True)
+    sample_df['_row_uid'] = range(len(sample_df))
     for col in col_names:
         sample_df[col] = ''
     
     # 重排列表将验证列放在标题与内容之前，让标注者第一眼就能填
-    desired_front = col_names + ['日期', '媒体类型(中文)', '标题', '内容', 'target_bank', 'co_mentioned_banks', 'fintech_keyword_details']
+    desired_front = col_names + ['_row_uid', 'docid', '日期', '媒体类型(中文)', '标题', '内容', 'target_bank', 'co_mentioned_banks', 'fintech_keyword_details']
     front_cols = [c for c in desired_front if c in sample_df.columns]
     other_cols = [c for c in sample_df.columns if c not in front_cols]
     sample_df = sample_df[front_cols + other_cols]
@@ -247,15 +318,20 @@ def main():
     output_filename = CONFIG.get('filenames', {}).get('output_32_human_sample', '61_human_samples.xlsx')
     output_path = os.path.join(CONFIG["paths"]["output_dir"], output_filename)
         
-    logger.info(f"正在保存带有数据校验规则的 Excel: {output_path}")
-    
-    try:
-        with pd.ExcelWriter(output_path, engine='xlsxwriter') as writer:
-            sample_df.to_excel(writer, sheet_name='验证数据', index=False)
-            set_excel_data_validation(writer, '验证数据', sample_df)
-    except Exception as e:
-        logger.warning(f"写入 xlsxwriter 带验证失败 ({e}), 回退到普通 Excel 写入")
-        sample_df.to_excel(output_path, index=False)
+    # WP-A1 盲标双文件协议: 不再产出旧单文件工作台 (机器列+人工列同帧 = 反盲标);
+    # 产物 = 盲表A + 盲表B (零机器列, per-coder 独立副本) + reconciliation (全列对账)。
+    blind_paths = derive_blind_paths(output_path)
+    logger.info(f"正在保存盲标双文件协议产物 (base = {output_path}):")
+    for coder in ('A', 'B'):
+        bp = blind_paths[f'blind_{coder}']
+        _write_blind_workbook(sample_df, coder, bp)
+        logger.info(f"  盲表{coder} = {bp} (仅键/元数据/原文/target_bank + 编码者{coder} 两标注列, 已锁下拉)")
+    _write_reconciliation(sample_df, blind_paths['reconciliation'])
+    logger.info(f"  对账表 = {blind_paths['reconciliation']} (全部机器列, 共识冻结后解锁, 不发编码员)")
+    if os.path.exists(output_path):
+        logger.warning(
+            f"  ⚠ 检测到旧版单文件工作台 {output_path} (含机器判定列, 反盲标) — "
+            "已弃用, 绝不可发编码员; 确认无已填标注后可手动删除。")
 
     # 结果分析 — 写入日志: 抽样源/抽样率/标注列就绪情况 + 判读 (仿 39c)。
     # crash-guard: 本块仅"读数据算计数+打日志", 不写盘/不改产物 (Excel 已于上方落盘);
@@ -268,7 +344,7 @@ def main():
         # 展示列就绪度: desired_front 里真正落入 Excel 的关键列 (供编码员判读用)
         display_present = [c for c in front_cols if c not in col_names]
         n_display = len(display_present)
-        n_display_expected = 7  # 日期/媒体类型(中文)/标题/内容/target_bank/co_mentioned_banks/fintech_keyword_details
+        n_display_expected = 9  # _row_uid/docid/日期/媒体类型(中文)/标题/内容/target_bank/co_mentioned_banks/fintech_keyword_details
 
         logger.info("-" * 72)
         logger.info("【结果分析】人工金标准考卷已生成 (抽样代表性 → 下游 stage 33/34 结论可信度):")
@@ -316,7 +392,9 @@ def main():
             logger.info(
                 f"  展示列 {n_display}/{n_display_expected} 就绪 ({display_present}) → 编码员上下文充分。"
             )
-        logger.info(f"  产出 Excel = {output_path} (sheet=验证数据, 验证/情感列已锁下拉; 不进面板, golden 无关)")
+        logger.info(
+            f"  产出 = 盲表A/B + 对账表 (base={output_path}; sheet=验证数据, 标注列已锁下拉; "
+            "join 键=_row_uid; 不进面板, golden 无关)")
         logger.info(
             "  ⚠ 本阶段只产'考卷'不算指标: 精度/κ 在 stage 33 评; 抽样若偏 (全抽易判篇) 会高估机器水平。"
         )
@@ -397,7 +475,8 @@ def main():
 # 3. 人工标注合并（编码完成后使用）
 # ============================================================================
 
-def merge_annotations(input_path: str = None, output_path: str = None):
+def merge_annotations(input_path: str = None, output_path: str = None,
+                      with_adjudication: bool = False):
     """合并两位编码者的人工判定，生成黄金标准列。
 
     合并规则：
@@ -434,24 +513,58 @@ def merge_annotations(input_path: str = None, output_path: str = None):
         )
         input_path = os.path.join(CONFIG["paths"]["output_dir"], input_filename)
 
-    if not os.path.exists(input_path):
-        logger.error(f"标注文件未找到: {input_path}")
+    # WP-A1: base 单文件与双盲表任一存在即可继续 (盲标协议下 base 本体不再产出,
+    # 存在性判定须覆盖派生盲表, 否则新协议恒被此处提前拦截)
+    _bp_probe = derive_blind_paths(input_path)
+    if not (os.path.exists(input_path)
+            or (os.path.exists(_bp_probe['blind_A']) and os.path.exists(_bp_probe['blind_B']))):
+        logger.error(f"标注文件未找到 (单文件与双盲表均缺): {input_path}")
         return
 
     if output_path is None:
         base, ext = os.path.splitext(input_path)
         output_path = f"{base}_merged{ext}"
 
-    # 读取已标注数据
-    logger.info(f"读取标注文件: {input_path}")
-    try:
-        # fix(2026-06-19 run-check F5 兄弟泄漏): with 上下文确保 ExcelFile 句柄关闭 (消除 ResourceWarning)
-        with pd.ExcelFile(input_path) as xl:
-            sheet_name = '验证数据' if '验证数据' in xl.sheet_names else xl.sheet_names[0]
-            df = pd.read_excel(xl, sheet_name=sheet_name)
-    except Exception as e:
-        logger.error(f"读取标注文件失败: {e}")
-        return
+    # 读取已标注数据 — WP-A1 盲标协议: 优先双盲表 (blind_A + blind_B, 按 _row_uid 合并);
+    # 旧单文件路径保留为 fallback (loud WARNING, 兼容历史工作台)。
+    blind_paths = derive_blind_paths(input_path)
+    ba_path, bb_path = blind_paths['blind_A'], blind_paths['blind_B']
+    if os.path.exists(ba_path) and os.path.exists(bb_path):
+        logger.info(f"读取双盲表标注: {ba_path} + {bb_path}")
+        try:
+            with pd.ExcelFile(ba_path) as xa:
+                df_a = pd.read_excel(xa, sheet_name='验证数据')
+            with pd.ExcelFile(bb_path) as xb:
+                df_b = pd.read_excel(xb, sheet_name='验证数据')
+        except Exception as e:
+            logger.error(f"读取盲表失败: {e}")
+            return
+        # fail-loud 键断言: 行数 + _row_uid 集合双侧一致 (docid 非唯一, 禁作键)
+        if '_row_uid' not in df_a.columns or '_row_uid' not in df_b.columns:
+            logger.error("盲表缺 _row_uid 键列 — 请用新版生成端重生盲表")
+            return
+        if len(df_a) != len(df_b) or set(df_a['_row_uid']) != set(df_b['_row_uid']):
+            logger.error(
+                f"双盲表 _row_uid 不一致 (A={len(df_a)} 行 / B={len(df_b)} 行) — "
+                "行被增删或来自不同批次, 拒绝合并")
+            return
+        b_cols = ['_row_uid'] + [c for c in ('编码者B_验证', '编码者B_情感') if c in df_b.columns]
+        df = df_a.merge(df_b[b_cols], on='_row_uid', how='inner', validate='one_to_one')
+        if len(df) != len(df_a):
+            logger.error(f"盲表合并后行数漂移 ({len(df_a)}→{len(df)}), 拒绝继续")
+            return
+    else:
+        logger.warning(
+            f"⚠ 未找到双盲表 ({ba_path}), 回退旧版单文件路径 {input_path} — "
+            "单文件工作台机器列与人工列同帧 (反盲标), 仅供历史数据兼容")
+        try:
+            # fix(2026-06-19 run-check F5 兄弟泄漏): with 上下文确保 ExcelFile 句柄关闭 (消除 ResourceWarning)
+            with pd.ExcelFile(input_path) as xl:
+                sheet_name = '验证数据' if '验证数据' in xl.sheet_names else xl.sheet_names[0]
+                df = pd.read_excel(xl, sheet_name=sheet_name)
+        except Exception as e:
+            logger.error(f"读取标注文件失败: {e}")
+            return
 
     logger.info(f"共 {len(df)} 条标注记录")
 
@@ -519,6 +632,89 @@ def merge_annotations(input_path: str = None, output_path: str = None):
     else:
         logger.warning(f"未找到情感判定列（{sen_a_col}, {sen_b_col}），跳过情感合并")
 
+    # --- WP-C 仲裁工作流 (双口径, 2026-07-03) ---
+    # strict 口径 = 剔除分歧 (原行为) 永远保留为 *_strict 列; 主口径 最终_* 在
+    # --with-adjudication 且第三编码员 C 已填时被 C 裁决覆盖 (A=B→共识;
+    # A≠B∧C 有值→C; A≠B∧C 空→保持哨兵 -1/'待仲裁' = 下限回退, stage 63 语义不变)。
+    if final_ver_col in df.columns:
+        df['最终_验证_strict'] = df[final_ver_col]
+    if final_sen_col in df.columns:
+        df['最终_情感_strict'] = df[final_sen_col]
+
+    pending_path = derive_blind_paths(input_path)['pending']
+    if with_adjudication:
+        if not os.path.exists(pending_path):
+            logger.warning(f"--with-adjudication 指定但仲裁工作台不存在: {pending_path}, 跳过仲裁")
+        elif '_row_uid' not in df.columns:
+            logger.warning("--with-adjudication 需要 _row_uid 键 (旧版单文件工作台不支持仲裁), 跳过")
+        else:
+            adj = pd.read_excel(pending_path, sheet_name=0)
+            n_adj_ver = n_adj_sen = 0
+            if '_row_uid' in adj.columns:
+                if final_ver_col in df.columns and '编码者C_验证' in adj.columns:
+                    c_ver = pd.to_numeric(adj['编码者C_验证'], errors='coerce')
+                    ver_map = dict(zip(adj['_row_uid'], c_ver))
+                    mapped = df['_row_uid'].map(ver_map)
+                    m = df[final_ver_col].eq(-1).fillna(False) & mapped.isin([0, 1])
+                    df.loc[m, final_ver_col] = mapped[m]
+                    n_adj_ver = int(m.sum())
+                if final_sen_col in df.columns and '编码者C_情感' in adj.columns:
+                    c_sen = adj['编码者C_情感'].astype(str).str.strip()
+                    sen_map = dict(zip(adj['_row_uid'], c_sen))
+                    mapped = df['_row_uid'].map(sen_map)
+                    m = df[final_sen_col].eq('待仲裁').fillna(False) & mapped.isin(['正面', '中性', '负面'])
+                    df.loc[m, final_sen_col] = mapped[m]
+                    n_adj_sen = int(m.sum())
+                logger.info(f"[仲裁] C 裁决已并入主口径: 验证 {n_adj_ver} 条 / 情感 {n_adj_sen} 条 "
+                            "(strict 剔除口径保留于 最终_*_strict 供并排报告)")
+            else:
+                logger.warning(f"仲裁工作台缺 _row_uid 列, 跳过仲裁: {pending_path}")
+
+    # 剩余未决分歧 → 仲裁工作台 (仅键/文本/A-B 判定, 不含机器列; 编码员 C 填 编码者C_* 两列)
+    dis_mask = pd.Series(False, index=df.index)
+    if final_ver_col in df.columns:
+        dis_mask |= df[final_ver_col].eq(-1).fillna(False)
+    if final_sen_col in df.columns:
+        dis_mask |= df[final_sen_col].eq('待仲裁').fillna(False)
+    if int(dis_mask.sum()) > 0:
+        _skip_pending = False
+        if os.path.exists(pending_path):
+            try:
+                old_adj = pd.read_excel(pending_path, sheet_name=0)
+                for c in ('编码者C_验证', '编码者C_情感'):
+                    if c in old_adj.columns and old_adj[c].notna().any():
+                        logger.warning(
+                            f"⚠ 既有仲裁工作台已含 C 判定 ({pending_path}), 拒绝覆盖 — "
+                            "先跑 --with-adjudication 并入后再重生")
+                        _skip_pending = True
+                        break
+            except Exception as e:
+                logger.warning(f"读取既有仲裁工作台失败 ({e}), 为安全起见不覆盖: {pending_path}")
+                _skip_pending = True
+        if not _skip_pending:
+            pend_cols = [c for c in ('_row_uid', 'docid', '标题', '内容',
+                                     ver_a_col, ver_b_col, sen_a_col, sen_b_col)
+                         if c in df.columns]
+            pending_df = df.loc[dis_mask, pend_cols].copy()
+            pending_df['编码者C_验证'] = ''
+            pending_df['编码者C_情感'] = ''
+            try:
+                with pd.ExcelWriter(pending_path, engine='xlsxwriter') as writer:
+                    pending_df.to_excel(writer, sheet_name='验证数据', index=False)
+                    # C 列下拉直接按列号施加 (勿走 set_excel_data_validation 的
+                    # 编码者A/B 命名定位 — 表内已有同名 A/B 原判定列, 会命中错列)
+                    ws = writer.sheets['验证数据']
+                    cols = list(pending_df.columns)
+                    civ = cols.index('编码者C_验证')
+                    cis = cols.index('编码者C_情感')
+                    n = len(pending_df)
+                    ws.data_validation(1, civ, n, civ, {'validate': 'list', 'source': ['1', '0']})
+                    ws.data_validation(1, cis, n, cis, {'validate': 'list', 'source': ['正面', '中性', '负面']})
+            except Exception:
+                pending_df.to_excel(pending_path, index=False)
+            logger.info(f"[仲裁] 待仲裁工作台已生成: {pending_path} ({len(pending_df)} 行, "
+                        "仲裁人不见机器列; 填毕后 merge --with-adjudication 二次合并)")
+
     # --- 添加裁定备注列（如不存在） ---
     if '裁定备注' not in df.columns:
         df['裁定备注'] = ''
@@ -547,9 +743,11 @@ def merge_annotations(input_path: str = None, output_path: str = None):
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1 and sys.argv[1] == 'merge':
-        # 用法: python 61_news_llms_human.py merge [input.xlsx] [output.xlsx]
-        inp = sys.argv[2] if len(sys.argv) > 2 else None
-        out = sys.argv[3] if len(sys.argv) > 3 else None
-        merge_annotations(inp, out)
+        # 用法: python 61_news_llms_human.py merge [input.xlsx] [output.xlsx] [--with-adjudication]
+        args = [a for a in sys.argv[2:] if a != '--with-adjudication']
+        adj = '--with-adjudication' in sys.argv[2:]
+        inp = args[0] if len(args) > 0 else None
+        out = args[1] if len(args) > 1 else None
+        merge_annotations(inp, out, with_adjudication=adj)
     else:
         main()

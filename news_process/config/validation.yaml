@@ -5,6 +5,7 @@
 human_validation:
   sample_size: 1000                                 # 目标抽样数量
   random_seed: 42                                   # 随机种子（保证可复现）
+  oversample_negative: true                         # ⚠ 作用于 09/tone 侧 (stage 64 generate_validation_sample) 的 predicted-negative 第三层过采样, 非 61 侧; true=默认 100 篇, 整数=自定目标量, false=关 (WP-B3, 2026-07-03; 层权四格 poststratify 落盘 reconciliation)
 
 # ------------------------------------------------------------------------------
 # [模块四：评估验证模块] 验证与评估配置 (Validation & Evaluation) - 阶段 31-39 (含38b)
