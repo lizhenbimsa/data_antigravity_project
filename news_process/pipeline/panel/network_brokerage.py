@@ -615,10 +615,13 @@ def compute_industry_neg_shock(panel: pd.DataFrame,
       即同行银行的平均负面报道占比。高值表明整个行业处于
       负面舆论环境中 (如监管风暴、金融危机期间)。
 
-    公式:
-      neg_ratio_i,t = neg_count_full_i,t / n_valid_i,t   (n_valid >= min_count 守门)
-      industry_neg_shock_i,t = mean_{j≠i}(neg_ratio_j,t)
-      industry_neg_shock_lag1_i,t = industry_neg_shock_i,t-1
+    公式 (三轨, 2026-07-03; track ∈ {full=无后缀 canonical, _ctx, _ss}):
+      neg_ratio_i,t = neg_count_{track}_i,t / n_valid_{track}_i,t
+                      (n_valid >= min_count 守门, 分子分母严格逐轨)
+      industry_neg_shock{sfx}_i,t = mean_{j≠i}(neg_ratio_j,t)
+      industry_neg_shock_lag1{sfx}_i,t = industry_neg_shock{sfx}_i,t-1
+      三轨互为稳健性、不分主次 (无后缀=历史命名产物非"主"; 镜像 du_2022
+      polw05≡canonical 先例); 各自 just-identified, 禁混同一 Hansen J。
 
     LOO 设计动机:
       Manski, C. F. (1993). Identification of endogenous social effects:
@@ -664,8 +667,9 @@ def compute_industry_neg_shock(panel: pd.DataFrame,
         min_count: neg_ratio 的最小有效篇数守门 (默认 5)
 
     Returns:
-        panel: 追加 industry_neg_shock + industry_neg_shock_lag1 列
-               (∈ [0,1], NaN 表示无法计算)
+        panel: 追加 industry_neg_shock{,_ctx,_ss} + industry_neg_shock_lag1
+               {,_ctx,_ss} 共 6 列 (∈ [0,1], NaN 表示无法计算; ctx/ss 轨
+               缺原料列时该轨整体跳过)
     """
     _log_env_config_methodology()
     _t0 = time.time()
@@ -675,11 +679,21 @@ def compute_industry_neg_shock(panel: pd.DataFrame,
     logger.info(f"  · 配置: min_count={min_count:,d} (neg_ratio 最小有效篇数守门)")
     logger.info("=" * 60)
 
-    # no-ss-track (三轨重定位 2026-06-14, 静态枚举护栏): industry_neg_shock 是
-    # **full 轨独有**的行业负面冲击 LOO — neg_count_full 自始无 ctx/ss 孪生
-    # (encode 仅产 neg_count_full), 故无 _ctx 路径可镜像 → 本模块刻意不产
-    # industry_neg_shock_ss / neg_count_ss。brokerage_eigen_cent / fire_sale /
-    # 二分图中心度均 track-agnostic (按媒体-银行边数, 与情感轨无关), 同样无 ss 派生。
+    # tri-track (2026-07-03, 取代 2026-06-14 no-ss-track 护栏; 计划
+    # NETWORK_TRITRACK_AND_CRITERIA §D1/D2): industry_neg_shock 三轨已实现 —
+    # 旧护栏「encode 仅产 neg_count_full」的事实前提已失效 (encode.py 逐轨产
+    # neg_count_{full,ctx,ss} + n_articles_llm_valid{,_ctx,_ss}, 盘上俱在)。
+    # 分子/分母逐轨严格对齐 (防 c8a70ac5 轨道不对称复刻):
+    #     ''(canonical=full): neg_count_full / n_articles_llm_valid
+    #                          (旧 panel 缺列时回退 n_articles, 历史兼容)
+    #     '_ctx':              neg_count_ctx / n_articles_llm_valid_ctx (无回退)
+    #     '_ss':               neg_count_ss  / n_articles_llm_valid_ss  (无回退)
+    # ctx/ss 缺任一列 → 跳过该轨 (WARN), 绝不借 full/物理分母。三轨互为稳健性、
+    # 不分主次, 各自 just-identified, 禁混同一 over-identified Hansen J。
+    # ⚠ dev T=2 基线 (Phase 0 实测): ctx (唯一负例分母 2<min_count) 与 ss
+    # (零负例) 均零方差 ≡0, 属预期退化非 bug; 数值验证 DEFERRED 生产机。
+    # brokerage_eigen_cent / 二分图中心度仍 track-agnostic (按媒体-银行边数,
+    # 与情感轨无关), 无轨派生; fire_sale 交乘刻意保持 canonical-only (D3)。
     if 'neg_count_full' not in panel.columns:
         logger.warning("  neg_count_full 不存在, 跳过行业负面冲击")
         return panel
@@ -688,48 +702,63 @@ def compute_industry_neg_shock(panel: pd.DataFrame,
         logger.warning("  n_articles 不存在, 跳过行业负面冲击")
         return panel
 
-    # 第一步: 计算每家银行的负面报道比例
-    # replace(0, np.nan) 确保零文章银行不产生 Inf, 而是 NaN
-    # metric-audit 2026-06-02 (encode-02 重构对齐): neg_count_full 是 LLM-count
-    # (encode.py is_negative_full sum), 分母须同口径 = LLM-valid 篇数; 重构后
-    # n_articles=物理 size, 用 n_articles_llm_valid (旧 panel 缺列回退 n_articles, 其即 count).
-    _nac = 'n_articles_llm_valid' if 'n_articles_llm_valid' in panel.columns else 'n_articles'
-    # fix(omni-g-net-brok-03, 2026-06-11): 最小篇数守门 — 有效篇数 < min_count
-    # 的银行 neg_ratio 置 NaN, 不进入行业指数 (防单篇 {0,1} 极值独家设定水平)
-    _valid_n = panel[_nac].replace(0, np.nan).astype(float)
-    _valid_n = _valid_n.where(_valid_n >= min_count)
-    panel['_neg_ratio'] = panel['neg_count_full'] / _valid_n
+    def _loo_shock_from_ratio(ratio: pd.Series) -> pd.Series:
+        """逐年 Leave-One-Out 内核 (三轨共用, 语义与 2026-06-11 版逐字节一致)。
 
-    # 第二步: 逐年 Leave-One-Out 计算
-    # 对于年份 t 中的银行 i: shock_i = (Σ_{j≠i} ratio_j) / (N_valid - 1)
-    # 其中 N_valid = 该年有有效 ratio 的银行数量
-    shock_vals = pd.Series(np.nan, index=panel.index)
-    for year in panel['year'].unique():
-        mask = panel['year'] == year
-        ratios = panel.loc[mask, '_neg_ratio']
-        total_sum = ratios.sum()    # Σ ratio_j (NaN 被 .sum() 自动忽略)
-        total_n = ratios.notna().sum()  # 有效银行数
+        shock_i,t = (Σ_{j≠i} ratio_j,t) / (N_t − 1); 自身缺失 → 同行均值
+        (天然 leave-out, omni-g-net-brok-05); 单银行年 → NaN。
+        """
+        vals = pd.Series(np.nan, index=panel.index)
+        for year in panel['year'].unique():
+            mask = panel['year'] == year
+            ratios = ratio.loc[mask]
+            total_sum = ratios.sum()        # NaN 被 .sum() 自动忽略
+            total_n = ratios.notna().sum()  # 有效银行数
+            for idx in panel.loc[mask].index:
+                own = ratio.at[idx]
+                if pd.notna(own) and total_n > 1:
+                    vals.at[idx] = (total_sum - own) / (total_n - 1)
+                elif pd.isna(own) and total_n >= 1:
+                    vals.at[idx] = total_sum / total_n
+        return vals
 
-        for idx in panel.loc[mask].index:
-            own = panel.at[idx, '_neg_ratio']
-            if pd.notna(own) and total_n > 1:
-                # 标准 LOO: 自身有效且至少 2 家有效银行 → 排除自身取均值
-                shock_vals.at[idx] = (total_sum - own) / (total_n - 1)
-            elif pd.isna(own) and total_n >= 1:
-                # fix(omni-g-net-brok-05, 2026-06-11): 自身 ratio 缺失时,
-                # 同行均值天然 leave-out (求和本就不含自身), 行业级变量
-                # 不再因自身覆盖缺失被无谓置 NaN → 避免回归 listwise 剔除
-                shock_vals.at[idx] = total_sum / total_n
-
-    panel['industry_neg_shock'] = shock_vals
-    panel.drop('_neg_ratio', axis=1, inplace=True, errors='ignore')
-
-    # fix(omni-g-net-brok-01, 2026-06-11): t-1 滞后变体 — 同期水平项在年 FE
-    # 下与自身 neg_ratio 精确共线 (见 docstring), lag1 保留跨期识别变异,
-    # 是含年 FE 规格的唯一可用形态。组内 shift(1) 按 index 对齐写回原行序。
-    _sorted = panel.sort_values(['target_bank', 'year'])
-    panel['industry_neg_shock_lag1'] = (
-        _sorted.groupby('target_bank')['industry_neg_shock'].shift(1))
+    # canonical 分母: LLM-valid 篇数 (metric-audit 2026-06-02 encode-02 对齐;
+    # 旧 panel 缺列回退 n_articles — 该回退仅限 canonical 轨)
+    _nac = ('n_articles_llm_valid'
+            if 'n_articles_llm_valid' in panel.columns else 'n_articles')
+    _track_specs = [
+        ('', 'neg_count_full', _nac),
+        ('_ctx', 'neg_count_ctx', 'n_articles_llm_valid_ctx'),
+        ('_ss', 'neg_count_ss', 'n_articles_llm_valid_ss'),
+    ]
+    for _sfx, _num_col, _den_col in _track_specs:
+        if _num_col not in panel.columns or _den_col not in panel.columns:
+            if _sfx:  # ctx/ss 严格逐轨: 缺列跳过该轨, 不借分母 (D2)
+                logger.warning(
+                    f"  轨 {_sfx or 'canonical'}: 缺 {_num_col}/{_den_col}, "
+                    f"跳过该轨 (严格逐轨分母, 不回退)")
+                continue
+            logger.warning(f"  {_num_col} 不存在, 跳过行业负面冲击")
+            return panel
+        # fix(omni-g-net-brok-03): 最小篇数守门 — 有效篇数 < min_count 的银行
+        # neg_ratio 置 NaN (防单篇 {0,1} 极值独家设定行业水平); 逐轨同 min_count。
+        _valid_n = panel[_den_col].replace(0, np.nan).astype(float)
+        _valid_n = _valid_n.where(_valid_n >= min_count)
+        _ratio = panel[_num_col].astype(float) / _valid_n
+        panel[f'industry_neg_shock{_sfx}'] = _loo_shock_from_ratio(_ratio)
+        # fix(omni-g-net-brok-01): t-1 滞后变体 — 同期水平项在年 FE 下与自身
+        # neg_ratio 精确共线 (见 docstring), 含年 FE 规格只可用 lag1 (逐轨同理)。
+        _sorted = panel.sort_values(['target_bank', 'year'])
+        panel[f'industry_neg_shock_lag1{_sfx}'] = (
+            _sorted.groupby('target_bank')[f'industry_neg_shock{_sfx}']
+            .shift(1))
+        if _sfx:
+            _tv = panel[f'industry_neg_shock{_sfx}']
+            _n_valid = int(_tv.notna().sum())
+            _degen = ('⚠ 零方差 (dev 预期退化)'
+                      if _tv.nunique(dropna=True) <= 1 else '有方差')
+            logger.info(f"  轨 {_sfx}: {_n_valid:,} 有效值, "
+                        f"mean={sig4(_tv.mean())} — {_degen}")
 
     valid = int(panel['industry_neg_shock'].notna().sum())
     valid_lag = int(panel['industry_neg_shock_lag1'].notna().sum())
@@ -838,6 +867,9 @@ def compute_fire_sale_interaction(panel: pd.DataFrame) -> pd.DataFrame:
         logger.warning("  brokerage_eigen_cent 不存在, 跳过")
         return panel
 
+    # canonical-only (2026-07-03, 计划 D3): shock 已三轨 (industry_neg_shock
+    # {,_ctx,_ss}), 但 fire_sale 交乘刻意只用 canonical 轨 — 判据=范围控制
+    # 非遗漏 (交乘另一因子 brokerage_eigen_cent 本就 track-agnostic)。
     if 'industry_neg_shock' not in panel.columns:
         logger.warning("  industry_neg_shock 不存在, 跳过")
         return panel

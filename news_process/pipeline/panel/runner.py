@@ -1727,6 +1727,14 @@ def main():
     # --- 7h-cent. 银行共现网络中心度 (Freeman 1979; Billio et al. 2012) ---
     if compute_bank_network_centrality is not None:
         panel = compute_bank_network_centrality(panel, df_exploded)
+        # 网络构造判据敏感性 (2026-07-03, 计划 NETWORK_TRITRACK_AND_CRITERIA):
+        # 同一 33 指标按银行∧银行共现判据分轨 — _win1 (±1 句窗) / _sent
+        # (严格同句), 与无后缀 canonical (同篇) 互为稳健性、不分主次;
+        # 三判据各自 just-identified, 禁混同一 over-identified Hansen J。
+        panel = compute_bank_network_centrality(
+            panel, df_exploded, criterion='win1', suffix='_win1')
+        panel = compute_bank_network_centrality(
+            panel, df_exploded, criterion='sent', suffix='_sent')
     else:
         logger.info("  compute_bank_network_centrality 不可用, 跳过")
 

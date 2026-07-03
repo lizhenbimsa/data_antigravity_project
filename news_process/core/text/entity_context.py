@@ -37,7 +37,7 @@ core/text/entity_context.py - 实体特异性上下文提取引擎 (历史来源
 import json
 import logging
 import re
-from typing import List, Tuple
+from typing import Dict, List, Set, Tuple
 
 from news_process.core.logging import sig4
 from news_process.core.text.ahocorasick import (
@@ -443,6 +443,104 @@ def has_bank_fintech_cooccurrence_within_radius(
             if _sent_has_fintech(sentences[j], fintech_ac):
                 return True
     return False
+
+
+# ============================================================================
+# 银行∧银行 句级共现原语 (network criteria sensitivity, 2026-07-03)
+# ============================================================================
+# ② 类"网络构造判据敏感性"专用: 结构网络指标按 {同篇(无后缀)/±1句窗 _win1/
+# 严格同句 _sent} 三种银行∧银行共现判据分轨。本节两个原语是其唯一事实源
+# (panel 生产 network_spillover.build_adjacency_matrix 与审计脚本
+# scripts/audit/measure_bank_bank_cooccurrence.py 共用, 审计==生产)。
+#
+# ⚠ 与上方银行∧金科原语 (has_bank_fintech_cooccurrence_within_radius /
+#   extract_bank_fintech_cooccurrence) 并列且【互不复用】— 判据主体不同
+#   (银行∧银行 vs 银行∧金科), 口径铁律禁互代。
+# ⚠ 实现口径 (计划 §8 实施偏差记录): 逐句 has_unexcluded_occurrence 判定
+#   (与 ctx/ss 轨锚句判定字节级同款原语), 【不做】字符位置→句索引映射 —
+#   _split_sentences 对每段 strip 且丢空段, 无法还原原文偏移, naive 累计
+#   长度二分会把命中系统性映射到错误句索引 (评审 sparsity-numeric-1 实证)。
+#   逐句判定从根上无此问题, 且与三轨文本的句窗语义共用同一 _split_sentences。
+# ⚠ 文本口径 (D19, 镜像 stage 13 match_in_title=true): text =
+#   prepend_title(标题, 正文) — 标题自成第 0 句, 参与 _sent 同句判定
+#   (标题双银行 → 成边) 与 _win1 距离 (与正文首句相邻)。依据: stage 13 曾
+#   实证修复"只读正文 → 标题点明实体的单向假阴性" (config/filtering.yaml)。
+# ⚠ 短文本不设字符回退: 单句文章两银行必同句, 语义自洽 (D10)。
+# ============================================================================
+
+def map_bank_sentence_positions(
+    title: str,
+    body: str,
+    banks_aliases: Dict[str, List[str]],
+    negation_ac=None,
+    short_name_exclusions: dict = None,
+    context_window: int = 5,
+) -> Dict[str, Set[int]]:
+    """定位一组银行在 (标题+正文) 中各自出现的句子索引集合。
+
+    银行∧银行共现判据 (_win1/_sent) 的定位原语。调用方 (network_spillover
+    B1) 须只传入该 docid 组的【幸存 target_bank】别名字典 — 非幸存银行
+    不在输入即不可能成边 (phantom 边防线, omni-g-net-spill-01)。
+
+    Args:
+        title:          文章标题 ('标题' 列; 空串安全)。
+        body:           文章正文 ('内容' 列)。
+        banks_aliases:  {标准银行名: [别名列表]} — 仅幸存 target_bank。
+        negation_ac:    否定模式 AC 自动机 (与 stage 11/13/ctx/ss 共用)。
+        short_name_exclusions: 短名歧义排除规则 (同上)。
+        context_window: 短名上下文检查窗口。
+
+    Returns:
+        dict[str, set[int]]: {银行名: 命中句索引集}; 无有效命中的银行不出现。
+        句索引基于 prepend_title 后的 _split_sentences 口径 (标题=第 0 句)。
+    """
+    text = prepend_title(title, body)
+    if not text or not banks_aliases:
+        return {}
+    sentences = _split_sentences(text)
+    if not sentences:
+        return {}
+    out: Dict[str, Set[int]] = {}
+    for bank, aliases in banks_aliases.items():
+        if not aliases:
+            continue
+        hits: Set[int] = set()
+        for i, sent in enumerate(sentences):
+            for alias in aliases:
+                if has_unexcluded_occurrence(sent, alias, negation_ac,
+                                             short_name_exclusions,
+                                             context_window):
+                    hits.add(i)
+                    break  # 一个别名命中即可
+        if hits:
+            out[bank] = hits
+    return out
+
+
+def bank_pairs_within_sentence_window(
+    bank_sent_idx: Dict[str, Set[int]],
+    win_radius: int = 0,
+) -> Set[Tuple[str, str]]:
+    """由句索引集判定银行无序对是否按句窗判据成边。
+
+    判据 (D11 对称化): 无序对 {A, B} 成边 ⇔ min |i - j| ≤ win_radius
+    (i ∈ A 的句集, j ∈ B 的句集)。|i-j| 天然对称, 等价于 "A 锚句 ±radius
+    内含 B 或反之" 的 OR 口径。win_radius=0 = 严格同句 (_sent);
+    win_radius=1 = ±1 句窗 (_win1)。
+
+    Returns:
+        set[tuple[str, str]]: canonical 名序 (sorted) 的成边无序对集合。
+    """
+    banks = sorted(b for b, idx in bank_sent_idx.items() if idx)
+    edges: Set[Tuple[str, str]] = set()
+    for a_pos, bank_a in enumerate(banks):
+        idx_a = bank_sent_idx[bank_a]
+        for bank_b in banks[a_pos + 1:]:
+            idx_b = bank_sent_idx[bank_b]
+            hit = any(abs(i - j) <= win_radius for i in idx_a for j in idx_b)
+            if hit:
+                edges.add((bank_a, bank_b))
+    return edges
 
 
 # ============================================================================

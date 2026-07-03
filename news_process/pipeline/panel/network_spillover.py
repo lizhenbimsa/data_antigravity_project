@@ -98,6 +98,44 @@ logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 # network_brokerage._MIN_COMPONENT_SIZE 语义一致 (3 = 最小三角)。
 _CMNT_MIN_COMPONENT_SIZE = 3
 
+# ── 网络构造判据敏感性 (② criteria, 2026-07-03) ──
+# 结构网络指标按银行∧银行共现判据分轨: 同篇 (无后缀 canonical, 现行口径) /
+# ±win_radius 句窗 (_win1) / 严格同句 (_sent)。判据后缀 ≠ 三轨文本后缀
+# (_full/_ctx/_ss, 银行∧金科口径) — 两个正交概念空间, 禁混同一 Hansen J。
+# 判据原语 = core/text/entity_context.map_bank_sentence_positions +
+# bank_pairs_within_sentence_window (审计脚本共用, 审计==生产)。
+# 执行计划 = scripts/audit/NETWORK_TRITRACK_AND_CRITERIA_EXECUTION_PLAN_2026-07-02.md
+_ADJ_CRITERIA = ('article', 'win1', 'sent')
+_BANK_SCAN_CTX = None
+
+
+def _get_bank_scan_ctx():
+    """惰性加载 _win1/_sent 判据的银行扫描上下文 (进程级单例)。
+
+    Returns:
+        (bank_names_file, negation_ac, short_name_exclusions,
+         context_window, win_radius)
+    镜像 cooccurrence_filter.py 的加载方式 — 与 stage 11/13/ctx/ss 共用
+    同一否定/短名排除事实源 (禁裸 AC, '涉农行业'→'农行' 假阳性防线)。
+    win_radius 取 config/panel.yaml::network_criteria.win_radius (默认 1);
+    ⚠ 与 filtering.yaml::cooccurrence_filter.sentence_radius (stage 13
+    银行∧金科) 是不同键, 互不联动。
+    """
+    global _BANK_SCAN_CTX
+    if _BANK_SCAN_CTX is None:
+        from news_process.core.text.ahocorasick import load_exclusion_patterns
+        bank_names_file = CONFIG['paths'].get('bank_names_file', '')
+        excl_file = CONFIG['paths'].get(
+            'bank_name_exclusions_file',
+            os.path.join(os.path.dirname(bank_names_file or '.'),
+                         'bank_name_exclusions.json'))
+        neg_ac, short_excl, cw = load_exclusion_patterns(excl_file)
+        win_radius = int(
+            (CONFIG.get('panel', {}) or {})
+            .get('network_criteria', {}).get('win_radius', 1))
+        _BANK_SCAN_CTX = (bank_names_file, neg_ac, short_excl, cw, win_radius)
+    return _BANK_SCAN_CTX
+
 # 日志富集 (2026-06-24): 本模块是 runner 在 panel 步骤 7f/7g/7h-cogn/7h-emb 调用的
 # **函数库** (无独立 main()/run_stage()), 复用同一 logger 写 logs/46_network_spillovers.log。
 # 入口级 ENV/CONFIG/方法论 banner 只需打印一次 (首个被调函数触发), 由此模块级 flag 守卫;
@@ -228,6 +266,7 @@ def build_adjacency_matrix(
     year: int,
     *,
     hyperedge_normalize: bool = False,
+    criterion: str = 'article',
 ) -> tuple[pd.DataFrame, list[str]]:
     """构建年度银行共现邻接矩阵 (both-verified, 每篇文章每对 +1)。
 
@@ -249,11 +288,20 @@ def build_adjacency_matrix(
         df_exploded: 篇章级 DataFrame, 须含 docid 列 (both-verified 主路径);
             缺 docid 时按 co_mentioned_banks 旧口径降级 (见下方警告)
         year: 目标年份
+        criterion: 银行∧银行共现判据 — 'article' (同篇, 现行 canonical) /
+            'win1' (±win_radius 句窗) / 'sent' (严格同句)。'win1'/'sent'
+            走 docid 组内文本重扫 (标题+正文 prepend_title, 标题=第 0 句,
+            镜像 stage 13 match_in_title 口径); 节点全集与 'article' 一致
+            (同 df_year 幸存银行), 仅边集更严。
 
     Returns:
         adj_df: 对称邻接矩阵 DataFrame (index=columns=银行列表)
         bank_list: 银行名称列表
     """
+    if criterion not in _ADJ_CRITERIA:
+        raise ValueError(f"未知共现判据 criterion={criterion!r} "
+                         f"(须为 {_ADJ_CRITERIA})")
+
     df_year = df_exploded[df_exploded['year'] == year]
 
     if df_year.empty:
@@ -269,6 +317,64 @@ def build_adjacency_matrix(
 
     # 构建稀疏邻接矩阵
     adj = lil_matrix((n, n), dtype=np.float64)
+
+    if criterion != 'article':
+        # ── 判据分轨路径 (_win1/_sent): docid 组内句级重扫 ──
+        # 仅 ≥2 家幸存银行的组可能成边; 层 A 原语输入 = 该组幸存
+        # target_bank 的别名字典 → 非幸存银行不入参、不可能成边
+        # (phantom 边防线, omni-g-net-spill-01)。
+        from news_process.core.text.entity_context import (
+            bank_pairs_within_sentence_window,
+            get_target_aliases,
+            map_bank_sentence_positions,
+        )
+        if 'docid' not in df_year.columns or '内容' not in df_year.columns:
+            logger.warning(
+                f"  年份 {year}: criterion={criterion} 需 docid+'内容' 列, "
+                f"缺失 → 该年判据邻接为全零 (节点保留, 无边)")
+            adj_df = pd.DataFrame(adj.tocsr().toarray(),
+                                  index=all_banks, columns=all_banks)
+            return adj_df, all_banks
+
+        bank_names_file, neg_ac, short_excl, cw, win_radius = \
+            _get_bank_scan_ctx()
+        radius = 0 if criterion == 'sent' else win_radius
+        has_title = '标题' in df_year.columns
+        n_inconsistent = 0
+        n_multi = 0
+        for _docid, grp in df_year.groupby('docid'):
+            uniq = sorted(set(grp['target_bank']))
+            if len(uniq) < 2:
+                continue  # 单银行文章不产边
+            n_multi += 1
+            bodies = grp['内容'].fillna('').astype(str)
+            if bodies.nunique() > 1:
+                # F0.18 实测 0 组; 出现即 loud WARN + 取组首行 (fail-soft,
+                # 镜像 FINTECH_AC=None 先例, 不让单条脏数据崩整个 stage)。
+                n_inconsistent += 1
+            body = bodies.iloc[0]
+            title = ''
+            if has_title:
+                _t = grp['标题'].iloc[0]
+                title = '' if pd.isna(_t) else str(_t)
+            banks_aliases = {
+                b: get_target_aliases(b, bank_names_file) for b in uniq}
+            pos = map_bank_sentence_positions(
+                title, body, banks_aliases,
+                negation_ac=neg_ac, short_name_exclusions=short_excl,
+                context_window=cw)
+            for bank_a, bank_b in bank_pairs_within_sentence_window(
+                    pos, win_radius=radius):
+                i, j = bank_to_idx[bank_a], bank_to_idx[bank_b]
+                adj[i, j] += 1
+                adj[j, i] += 1  # 对称, 每篇每对 +1 (与 article 口径同权)
+        if n_inconsistent:
+            logger.warning(
+                f"  年份 {year}: ⚠ {n_inconsistent}/{n_multi} 个多银行 docid "
+                f"组内 '内容' 不一致 (取组首行; F0.18 实测应为 0, 请核数据)")
+        adj_df = pd.DataFrame(adj.tocsr().toarray(),
+                              index=all_banks, columns=all_banks)
+        return adj_df, all_banks
 
     if 'docid' in df_year.columns:
         # fix(omni-g-net-spill-01, 2026-06-11): both-verified 主路径 —
@@ -782,7 +888,10 @@ def _net_level_extra_metrics(G: 'nx.Graph', G_lcc: 'nx.Graph',
 
 def compute_bank_network_centrality(
     panel: pd.DataFrame,
-    df_exploded: pd.DataFrame
+    df_exploded: pd.DataFrame,
+    *,
+    criterion: str = 'article',
+    suffix: str = '',
 ) -> pd.DataFrame:
     """计算银行共现网络指标 (33 种) 并合并至面板。
 
@@ -824,10 +933,22 @@ def compute_bank_network_centrality(
     Args:
         panel: Bank-Year 面板 DataFrame
         df_exploded: 篇章级 DataFrame
+        criterion: 银行∧银行共现判据 (透传 build_adjacency_matrix):
+            'article' (无后缀 canonical) / 'win1' / 'sent'。
+        suffix: 落列后缀 ('' / '_win1' / '_sent'); 须与 criterion 配套
+            (article↔'', win1↔'_win1', sent↔'_sent'), 错配即 raise。
+            ⚠ 判据后缀 ≠ 三轨文本后缀 (_full/_ctx/_ss); 三判据各自
+            just-identified 并排, 禁混同一 over-identified Hansen J。
 
     Returns:
         panel: 追加 33 列的面板 (18 节点级 + 10 网络级 + 5 GF 经纪角色)
     """
+    _expected_suffix = {'article': '', 'win1': '_win1', 'sent': '_sent'}
+    if _expected_suffix.get(criterion) != suffix:
+        raise ValueError(
+            f"criterion={criterion!r} 与 suffix={suffix!r} 错配 "
+            f"(期望 {_expected_suffix.get(criterion)!r})")
+
     if not HAS_NETWORKX:
         logger.warning("  networkx 未安装, 跳过网络中心度计算。"
                        " 请运行: pip install networkx")
@@ -836,7 +957,8 @@ def compute_bank_network_centrality(
     _log_network_env_and_config()
     _t0 = time.time()
     logger.info("=" * 60)
-    logger.info("步骤 7g: 银行共现网络指标计算 (33: 18 节点 + 10 网络级 + 5 GF)")
+    logger.info(f"步骤 7g{suffix if suffix else ''}: 银行共现网络指标计算 "
+                f"(33: 18 节点 + 10 网络级 + 5 GF; 判据={criterion})")
     logger.info("  · 方法: Freeman (1978) 中心度 + Billio et al. (2012, JFE) 网络连通 "
                 "+ Gould-Fernandez (1989) 经纪角色")
     logger.info("=" * 60)
@@ -867,8 +989,9 @@ def compute_bank_network_centrality(
         _gf_type_map = {}
 
     for year in years:
-        # 1. 构建年度邻接矩阵
-        adj_df, bank_list = build_adjacency_matrix(df_exploded, year)
+        # 1. 构建年度邻接矩阵 (按 criterion 判据; 'article' 走现行 canonical 路径)
+        adj_df, bank_list = build_adjacency_matrix(
+            df_exploded, year, criterion=criterion)
 
         if adj_df.empty or len(bank_list) < 2:
             logger.info(f"  年份 {year}: 共现数据不足, 跳过")
@@ -1205,6 +1328,16 @@ def compute_bank_network_centrality(
         net_records.append(row)
     net_df = pd.DataFrame(net_records)
 
+    # 判据后缀落列 (suffix='' 时零改动, canonical 路径列名逐字节不变):
+    # 33 指标 × {_win1,_sent} 的列名 = 基名 + 判据后缀 (bank_degree_cent_win1 /
+    # net_density_yr_sent ...), 与无后缀 canonical 并排、互为稳健性。
+    if suffix:
+        node_df = node_df.rename(columns={
+            c: f"{c}{suffix}" for c in node_df.columns
+            if c not in ('target_bank', 'year')})
+        net_df = net_df.rename(columns={
+            c: f"{c}{suffix}" for c in net_df.columns if c != 'year'})
+
     # 合并
     panel = panel.merge(node_df, on=['target_bank', 'year'], how='left')
     panel = panel.merge(net_df, on='year', how='left')
@@ -1299,7 +1432,9 @@ def compute_cognitive_proximity(
         panel: Bank-Year 面板 DataFrame
 
     Returns:
-        panel: 追加 bank_cogn_mean 列的面板
+        panel: 追加 bank_cogn_mean 列 + 三轨孪生 bank_cogn_mean_{ctx,ss}
+               (2026-07-03; ctx/ss = content_{ctx,ss} 原样拼接、剔 fallback、
+               禁 title 通道; 缺 content 列时该轨跳过) 的面板
     """
     if not HAS_SKLEARN:
         logger.warning("  scikit-learn 未安装, 跳过认知邻近度计算。"
@@ -1443,6 +1578,71 @@ def compute_cognitive_proximity(
     else:
         logger.warning("  未生成任何认知邻近度变量")
 
+    # ── 三轨扩展 (2026-07-03, 计划 D5/D6): bank_cogn_mean_{ctx,ss} ──
+    # canonical (无后缀) = 历史口径 原始'内容'+'标题' 拼接 (上方路径, 不动);
+    # ctx/ss 轨 = 逐篇 content_{ctx,ss} **原样拼接** — 剔 *_is_fallback==True
+    # 行 (纯轨文本) + **禁 title 通道** (stage 14 prepend_title 已内嵌标题,
+    # 再拼即双标题) + 既有 100 字符守卫逐轨。三轨互为稳健性、不分主次,
+    # 禁混同一 Hansen J。full 与 ctx/ss 文本口径不同源属刻意 (codebook 披露)。
+    for _trk in ('ctx', 'ss'):
+        _ccol = f'content_{_trk}'
+        _fbcol = f'{_trk}_is_fallback'
+        _out_col = f'bank_cogn_mean_{_trk}'
+        if _ccol not in df_exploded.columns:
+            logger.info(f"  cogn 轨 {_trk}: 缺 {_ccol} 列, 跳过该轨")
+            continue
+        _trk_results = {}
+        for year in years:
+            df_year = df_exploded[df_exploded['year'] == year]
+            if _fbcol in df_year.columns:
+                df_year = df_year[~df_year[_fbcol].fillna(False).astype(bool)]
+            if df_year.empty:
+                continue
+            bank_texts = df_year.groupby('target_bank')[_ccol].apply(
+                lambda s: ' '.join(s.fillna('').astype(str)))
+            bank_list = bank_texts.index.tolist()
+            if len(bank_list) < 2:
+                continue
+            valid_banks = bank_texts[bank_texts.str.len() >= 100]
+            if len(valid_banks) < 2:
+                for bank in bank_list:
+                    _trk_results[(bank, year)] = np.nan
+                continue
+            try:
+                _vec = TfidfVectorizer(
+                    max_features=5000, min_df=min(2, len(valid_banks)),
+                    max_df=0.95, analyzer='char_wb', ngram_range=(2, 4),
+                    dtype=np.float32)
+                _tfidf = _vec.fit_transform(valid_banks.values)
+            except ValueError as e:
+                logger.warning(f"  cogn 轨 {_trk} 年份 {year}: TF-IDF 失败 ({e})")
+                for bank in bank_list:
+                    _trk_results[(bank, year)] = np.nan
+                continue
+            _sim = _cosine_sim(_tfidf)
+            np.fill_diagonal(_sim, np.nan)
+            for i, bank in enumerate(valid_banks.index.tolist()):
+                _trk_results[(bank, year)] = float(np.nanmean(_sim[i]))
+            for bank in bank_list:
+                _trk_results.setdefault((bank, year), np.nan)
+        if _trk_results:
+            _trk_df = pd.DataFrame([
+                {'target_bank': k[0], 'year': k[1], _out_col: v}
+                for k, v in _trk_results.items()
+            ])
+            panel = panel.merge(_trk_df, on=['target_bank', 'year'],
+                                how='left')
+            _vv = panel[_out_col].dropna()
+            if len(_vv) > 0:
+                if not ((_vv >= -1e-6).all() and (_vv <= 1 + 1e-6).all()):
+                    raise ValueError(
+                        f"{_out_col} 超出 [0,1]: "
+                        f"[{_vv.min():.6f}, {_vv.max():.6f}]")
+            logger.info(f"  cogn 轨 {_trk}: {len(_vv):,} 有效值, "
+                        f"mean={sig4(_vv.mean()) if len(_vv) else 'n/a'}")
+        else:
+            logger.info(f"  cogn 轨 {_trk}: 无结果 (全年退化/剔后空)")
+
     logger.info(f"  ⏱ 步骤 7h-cogn (认知邻近度) 耗时: {sig4(time.time() - _t0)} 秒")
     return panel
 
@@ -1477,9 +1677,12 @@ def compute_cognitive_proximity(
 #   5. emb_peer_tone = W_emb(t-1) × tone(t-1) (滞后一期)
 #
 # 输出:
-#   emb_peer_tone_lag1_full:  Embedding 加权同行情感 (控制变量)
-#   bank_emb_sim_mean_lag1:   银行 Embedding 平均相似度 (基于 t-1 文本, 控制变量;
-#                             fix omni-g-net-spill-03: 列名显式披露 lag)
+#   emb_peer_tone_lag1_{full,ctx,ss}: W_full × 三轨 tone (历史列, W 来源恒 full)
+#   bank_emb_sim_mean_lag1:           full-W 平均相似度 (t-1 文本, track-agnostic;
+#                                     fix omni-g-net-spill-03: 列名显式披露 lag)
+#   emb_peer_tone_diag_lag1_{ctx,ss}: diag 新轨 (2026-07-03) — W 与 tone 同轨对角
+#   bank_emb_sim_mean_lag1_{ctx,ss}:  ctx/ss-W 平均相似度 (后缀 = W 来源轨)
+#   以上均有 _lg 协主孪生 (suffix 插在轨后缀之前); per-W-轨独立降级 (D8)。
 # ============================================================================
 
 # 读取 LLM 配置 (与 21_tone_llms.py 共享同一份 config.yaml 配置)
@@ -1523,13 +1726,29 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
                                          panel: pd.DataFrame,
                                          *,
                                          spec=None,
-                                         suffix: str = "") -> dict:
-    """单 spec 的 Embedding 同业网络构建 (一遍), 返回 (bank, year) → 指标 dict。
+                                         suffix: str = "",
+                                         w_track: str = 'full') -> dict:
+    """单 spec × 单 W-轨 的 Embedding 同业网络构建 (一遍)。
 
-    suffix 在指标名上注入轨道标识 (canonical 主轨 = ""; large 协主轨 = "_lg"),
+    suffix 在指标名上注入嵌入模型标识 (canonical 主轨 = ""; large 协主轨 = "_lg"),
     插在 ``_full``/``_ctx``/``_ss`` 之类的轨道后缀之前 (无轨道后缀时直接追加在末尾):
       emb_peer_tone_lag1_full  →  emb_peer_tone_lag1{suffix}_full
       bank_emb_sim_mean_lag1   →  bank_emb_sim_mean_lag1{suffix}
+
+    w_track (2026-07-03, 计划 NETWORK_TRITRACK_AND_CRITERIA D5-D8): W_emb
+    超级文档的文本来源轨 —
+      'full' (canonical, 现行口径): 原始 '内容'+'标题' 拼接 (缓存键不变, $0);
+        同一 W_full 传播 full/ctx/ss 三轨 tone → emb_peer_tone_lag1{suffix}{_trk}
+        (历史列, 语义 = W_full × tone_trk) + track-agnostic sim。
+      'ctx'/'ss' (diag 新轨): 逐篇 content_{ctx,ss} **原样拼接** — 剔
+        *_is_fallback==True 行 (纯轨文本, 防 ss-W 趋同 full-W) + **禁 title
+        通道** (stage 14 prepend_title 已内嵌标题, 再拼即双标题) + strip 后
+        为空的 bank 从该轨节点集剔除 (防空串进付费 API; 与 cogn 的 100 字符
+        守卫刻意不同 — 本路径短文本照嵌, 兜底 = groupby 缺席 → merge NaN)。
+        仅产**对角**列 (W 与 tone 同轨): emb_peer_tone_diag_lag1{suffix}_{trk}
+        + bank_emb_sim_mean_lag1{suffix}_{trk} (后缀语义 = W 来源轨)。
+      ⚠ 不做 3×3 交叉 (W轨×tone轨), 正交不交叉先例; full 与 ctx/ss 文本口径
+        不同源 (原始拼接 vs stage 14 物化) 属刻意, codebook 披露。
 
     每遍用 **自己的 spec 独立嵌入** 自己的文本, 绝不混用不同模型向量。
     维度无关 (cosine 在任意维度上都成立)。
@@ -1545,23 +1764,44 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
     bank_emb_sim_mean_lag1 (及 _lg) — 该值由 t-1 超级文档算出 (与 emb_peer_tone_lag1
     同一 sim_matrix), 旧名无 lag 标记, 与 bank_cogn_mean (当年文本) 口径混淆。
     """
+    if w_track not in ('full', 'ctx', 'ss'):
+        raise ValueError(f"未知 W-轨 w_track={w_track!r}")
     text_col = '内容'
     title_col = '标题'
 
-    # 三轨 parity (full/ctx/ss, 原 dual-track 2026-06-08): W_emb 同业网基于文本相似度
-    # (track-agnostic), 与被传播的 tone 无关 → 用同一 W_emb 同时传播 full / ctx / ss 三轨
-    # tone, 零额外嵌入 ($0)。ss = 银行+金科同句共现轨 (llm_vote_tone_ss; 回退=镜像 ctx→全文
-    # body)。panel 已有 llm_vote_tone_ctx/ss 可直接喂入; 缺列时各自 `in panel.columns` 守卫
-    # 优雅跳过。sim_key (bank_emb_sim_mean_lag1) 是文本相似度均值, track-agnostic, 不分轨。
-    _tone_tracks = [('_full', 'llm_vote_tone_full')]
-    if 'llm_vote_tone_ctx' in panel.columns:
-        _tone_tracks.append(('_ctx', 'llm_vote_tone_ctx'))
-    if 'llm_vote_tone_ss' in panel.columns:
-        _tone_tracks.append(('_ss', 'llm_vote_tone_ss'))
-    sim_key = f'bank_emb_sim_mean_lag1{suffix}'  # fix(omni-g-net-spill-03, 2026-06-11)
+    # 双口径说明 (2026-07-03 改写, 原"同一 W_emb 传三轨 tone $0"注释):
+    # ① w_track='full' (历史列): W_full 同时传播 full/ctx/ss 三轨 tone —
+    #    emb_peer_tone_lag1{suffix}{_trk} 的语义是 **W_full × tone_trk**
+    #    (W 来源恒为 full 文本), 零额外嵌入; sim (bank_emb_sim_mean_lag1)
+    #    track-agnostic。② w_track='ctx'/'ss' (diag 新轨): W 来源轨 = tone 轨
+    #    (对角), 列名带 'diag' + W-轨后缀。缺 tone 列时各自守卫优雅跳过。
+    if w_track == 'full':
+        _tone_outputs = [(f'emb_peer_tone_lag1{suffix}_full',
+                          'llm_vote_tone_full')]
+        if 'llm_vote_tone_ctx' in panel.columns:
+            _tone_outputs.append((f'emb_peer_tone_lag1{suffix}_ctx',
+                                  'llm_vote_tone_ctx'))
+        if 'llm_vote_tone_ss' in panel.columns:
+            _tone_outputs.append((f'emb_peer_tone_lag1{suffix}_ss',
+                                  'llm_vote_tone_ss'))
+        sim_key = f'bank_emb_sim_mean_lag1{suffix}'  # fix(omni-g-net-spill-03)
+    else:
+        _tone_outputs = []
+        _diag_tone_col = f'llm_vote_tone_{w_track}'
+        if _diag_tone_col in panel.columns:
+            _tone_outputs.append(
+                (f'emb_peer_tone_diag_lag1{suffix}_{w_track}',
+                 _diag_tone_col))
+        sim_key = f'bank_emb_sim_mean_lag1{suffix}_{w_track}'
+        _content_col = f'content_{w_track}'
+        _fb_col = f'{w_track}_is_fallback'
+        if _content_col not in df_exploded.columns:
+            logger.warning(f"  W-轨 {w_track}: 缺 {_content_col} 列, 跳过该轨")
+            return {}
 
     years = sorted(panel['year'].unique())
     emb_results = {}  # key: (bank, year), value: dict
+    _miss_years = 0  # R12: 轨级嵌入 miss/失败年份计数 (吞异常路径的显式回声)
 
     for year in years:
         lag_year = year - 1
@@ -1579,16 +1819,30 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
         if _sort_keys:
             df_lag = df_lag.sort_values(_sort_keys, kind='mergesort')
 
-        # ── 1. 按银行聚合文本 (复用 _concat_text 模式) ──
-        def _concat_text_emb(group):
-            bodies = group[text_col].fillna('').astype(str)
-            if title_col in group.columns:
-                titles = group[title_col].fillna('').astype(str)
-                return ' '.join(titles + ' ' + bodies)
-            return ' '.join(bodies)
+        if w_track == 'full':
+            # ── 1. 按银行聚合文本 (canonical 口径, 逐字节保留: 原始 内容+标题) ──
+            def _concat_text_emb(group):
+                bodies = group[text_col].fillna('').astype(str)
+                if title_col in group.columns:
+                    titles = group[title_col].fillna('').astype(str)
+                    return ' '.join(titles + ' ' + bodies)
+                return ' '.join(bodies)
 
-        bank_texts = df_lag.groupby('target_bank').apply(
-            _concat_text_emb, include_groups=False)
+            bank_texts = df_lag.groupby('target_bank').apply(
+                _concat_text_emb, include_groups=False)
+        else:
+            # ── 1'. diag 轨聚合: content_{ctx,ss} 原样拼接 (D6) ──
+            #   剔 fallback 行 (纯轨文本) + 禁 title 通道 (标题已内嵌) +
+            #   空超级文档 bank 剔出该轨节点集 (防空串进付费 API)。
+            if _fb_col in df_lag.columns:
+                df_lag = df_lag[~df_lag[_fb_col].fillna(False).astype(bool)]
+            if df_lag.empty:
+                logger.info(f"  年份 {year}: W-轨 {w_track} 剔 fallback 后无行, 跳过")
+                continue
+            bank_texts = df_lag.groupby('target_bank')[_content_col].apply(
+                lambda s: ' '.join(s.fillna('').astype(str)))
+            bank_texts = bank_texts[bank_texts.str.strip() != '']
+
         bank_list = bank_texts.index.tolist()
         n_banks = len(bank_list)
 
@@ -1603,6 +1857,7 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
         # ── 3. 获取 Embedding (本 spec 独立嵌入; 经统一引擎 _eng) ──
         emb_matrix = _embed_peer_texts(texts, year=year, spec=spec)
         if emb_matrix is None:
+            _miss_years += 1
             continue
 
         # ── 4. cosine_similarity → 对角线置零 → 行随机标准化 ──
@@ -1640,9 +1895,9 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
         # pass, 故盘上 emb_peer_tone 仍是旧 fillna 值、golden 暂未反映本修(repro 仍绿因二者同陈旧)。
         # T=2 上本修为近-no-op (15 个缺 tone 银行 ln_news_coverage=0 → W_emb 权重~0, 旧≈新,
         # 盘上 [0.953,0.969] 即正确值); 真实差异仅现于 T=18。落盘待带 embeddings 的 production run。
-        _track_tone_vecs = {}  # track_suffix -> emb_peer_tone ndarray (按 bank_list 对齐)
+        _track_tone_vecs = {}  # 输出列名 -> emb_peer_tone ndarray (按 bank_list 对齐)
         _Wemb = W_emb.values
-        for _track, _tcol in _tone_tracks:
+        for _out_col, _tcol in _tone_outputs:
             if _tcol not in panel_lag.columns:
                 continue
             tone_vec = pd.Series(np.nan, index=bank_list)
@@ -1658,7 +1913,7 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
             denom = _Wemb[:, obs_mask].sum(axis=1)
             with np.errstate(invalid='ignore', divide='ignore'):
                 _ept = (_Wemb @ tone_obs) / denom
-            _track_tone_vecs[_track] = np.where(denom > 0, _ept, np.nan)
+            _track_tone_vecs[_out_col] = np.where(denom > 0, _ept, np.nan)
 
         for idx, bank in enumerate(bank_list):
             # 平均相似度: 该银行与所有其他银行的 Embedding 余弦相似度均值。
@@ -1668,17 +1923,90 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
             # 结构性不可触发。基于未 clip 的真实 cosine (n_banks >= 2 已守卫)。
             sim_mean = float(np.mean(np.delete(sim_matrix[idx], idx)))
             _entry = {sim_key: sim_mean}
-            for _track, _ept in _track_tone_vecs.items():
-                _entry[f'emb_peer_tone_lag1{suffix}{_track}'] = _ept[idx]
+            for _out_col, _ept in _track_tone_vecs.items():
+                _entry[_out_col] = _ept[idx]
             emb_results[(bank, year)] = _entry
 
-        _log_tone = _track_tone_vecs.get('_full')
+        _log_tone = next(iter(_track_tone_vecs.values()), None)
         _mean_str = (sig4(np.nanmean(_log_tone))
                      if _log_tone is not None and len(_log_tone) else "n/a")
-        logger.info(f"  年份 {year}: {n_banks:,d} 家银行, "
-                    f"Embedding 同行情感均值(full)={_mean_str}")
+        logger.info(f"  年份 {year}: {n_banks:,d} 家银行 (W-轨={w_track}), "
+                    f"Embedding 同行情感均值={_mean_str}")
+
+    if _miss_years:
+        # R12 (计划 traceability-2): 吞 miss 的显式回声 — 未播种/离线 miss 的
+        # 年份不再只留 per-year error, 轨级汇总一条 loud WARN。
+        logger.warning(
+            f"  ⚠ W-轨 {w_track}{suffix or ''}: {_miss_years} 个年份嵌入 "
+            f"miss/失败被跳过 (未播种或离线 miss → 该年该轨列 NaN; "
+            f"播种后应为 0)")
 
     return emb_results
+
+
+def _merge_diag_w_track_units(df_exploded: pd.DataFrame,
+                              panel: pd.DataFrame) -> pd.DataFrame:
+    """ctx/ss diag W-轨单元编排 (2026-07-03, 计划 D7/D8)。
+
+    每个 W-轨 (ctx/ss) 是**独立降级单元**: 单元内 canonical+_lg 严格
+    both-or-neither (无单边孤儿); 单元间及与 full 族**互不连坐** — ctx/ss
+    未播种/离线 miss 绝不抹掉 full 族既有产出 (修复 F0.11 全族连坐), 镜像
+    BERT per-model 独立降级先例。缺 content_{w} 列 → 该单元列不产 (家族级
+    both-or-neither, parity 双射保持)。
+    """
+    for w in ('ctx', 'ss'):
+        if f'content_{w}' not in df_exploded.columns:
+            logger.info(f"  diag W-轨 {w}: df_exploded 缺 content_{w}, "
+                        f"跳过 (该单元列不产)")
+            continue
+        has_tone = f'llm_vote_tone_{w}' in panel.columns
+        main_cols = [f'bank_emb_sim_mean_lag1_{w}']
+        if has_tone:
+            main_cols.append(f'emb_peer_tone_diag_lag1_{w}')
+        lg_cols = []
+        if _LARGE_SPEC:
+            lg_cols = [f'bank_emb_sim_mean_lag1_lg_{w}']
+            if has_tone:
+                lg_cols.append(f'emb_peer_tone_diag_lag1_lg_{w}')
+        logger.info("-" * 60)
+        logger.info(f"  diag W-轨 {w}: content_{w} 超级文档 (剔 fallback, "
+                    f"禁 title 通道) → 对角列 (W 与 tone 同轨)")
+        main_r = _compute_embedding_peer_network_pass(
+            df_exploded, panel, spec=EMBEDDING_CONFIG, suffix="", w_track=w)
+        lg_r = None
+        if _LARGE_SPEC:
+            try:
+                lg_r = _compute_embedding_peer_network_pass(
+                    df_exploded, panel, spec=_LARGE_SPEC, suffix="_lg",
+                    w_track=w)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(f"  diag W-轨 {w} _lg pass 失败 ({exc})")
+                lg_r = {}
+        if _LARGE_SPEC and not (main_r and lg_r):
+            logger.warning(
+                f"  diag W-轨 {w}: both-or-neither — 本单元 canonical+_lg "
+                f"两族列同置 NaN (per-W-轨独立降级, 不连坐其他轨)")
+            for _c in (*main_cols, *lg_cols):
+                panel[_c] = np.nan
+            continue
+        if not main_r:
+            for _c in main_cols:
+                panel[_c] = np.nan
+            continue
+        for _res in ((main_r, lg_r) if lg_r else (main_r,)):
+            _df_r = pd.DataFrame([
+                {'target_bank': k[0], 'year': k[1], **v}
+                for k, v in _res.items()
+            ])
+            panel = panel.merge(_df_r, on=['target_bank', 'year'], how='left')
+        # merge 可能缺列 (某族全年跳过): 声明列补 NaN, 维持单元内双射
+        for _c in (*main_cols, *lg_cols):
+            if _c not in panel.columns:
+                panel[_c] = np.nan
+        _sim_c = f'bank_emb_sim_mean_lag1_{w}'
+        _n_v = int(panel[_sim_c].notna().sum())
+        logger.info(f"  diag W-轨 {w} 已合并: sim 有效值 {_n_v:,}")
+    return panel
 
 
 def compute_embedding_peer_network(df_exploded: pd.DataFrame,
@@ -1716,7 +2044,9 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
     Returns:
         panel: 追加 emb_peer_tone_lag1_full, bank_emb_sim_mean_lag1
                + 协主 twin emb_peer_tone_lag1_lg_full, bank_emb_sim_mean_lag1_lg
-               列的面板
+               + diag W-轨单元 (2026-07-03): emb_peer_tone_diag_lag1_{ctx,ss}
+               / bank_emb_sim_mean_lag1_{ctx,ss} 及各自 _lg 孪生
+               (per-W-轨独立降级, 见 _merge_diag_w_track_units)
 
     References:
         Hoberg, G., & Phillips, G. (2016). JPE, 124(5), 1423-1465.
@@ -1785,9 +2115,12 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
     # 任一 spec 返回空 (None/无结果) → 两族列全填 NaN (维持降级对称, 防 parity 测试红)。
     main_ok = bool(emb_results)
     if _LARGE_SPEC and not (main_ok and lg_results):
-        logger.warning("  both-or-neither: MAIN 或 _lg 嵌入轨缺结果, 两族列同时填 NaN")
+        logger.warning("  both-or-neither: full-W 单元 MAIN 或 _lg 缺结果, "
+                       "本单元两族列同置 NaN (per-W-轨独立降级 D8, 不连坐 diag 轨)")
         for _c in (*main_tone_cols, main_sim_col, *lg_tone_cols, lg_sim_col):
             panel[_c] = np.nan
+        # D8: full 族失败不连坐 ctx/ss diag 单元 — 各单元独立尝试
+        panel = _merge_diag_w_track_units(df_exploded, panel)
         logger.info(f"  ⏱ 步骤 7h-emb (嵌入同业网) 耗时: {sig4(time.time() - _t0)} 秒")
         return panel
 
@@ -1845,6 +2178,9 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
             logger.warning("  _lg 轨未生成任何变量, 相关列填 NaN")
             for _c in (*lg_tone_cols, lg_sim_col):
                 panel[_c] = np.nan
+
+    # ── diag W-轨单元 (ctx/ss, 2026-07-03 计划 D7/D8): 独立于 full 族 ──
+    panel = _merge_diag_w_track_units(df_exploded, panel)
 
     logger.info(f"  ⏱ 步骤 7h-emb (嵌入同业网) 耗时: {sig4(time.time() - _t0)} 秒")
     return panel
