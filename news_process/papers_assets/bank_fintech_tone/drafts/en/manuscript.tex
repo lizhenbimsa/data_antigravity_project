@@ -1,13 +1,15 @@
 % bank_fintech_tone/drafts/en/manuscript.tex
 % P4.2 manuscript skeleton (plan-r3 derivative-paper extension, 2026-05-15)
+% 2026-07-03 enrichment: depositor-discipline rewrite (intro/lit/hypotheses/
+% identification/data/results scaffolding/conclusion)
 % Compile: xelatex + biber + xelatex × 2
 
 \input{../../../_shared/preamble_en.tex}
 
 \addbibresource{refs.bib}
 
-\title{Media Tone, FinTech Strategy, and Bank Performance:\\
-       Evidence from Chinese Bank--Year News Coverage}
+\title{Media Tone and Bank Funding Costs: A Depositor-Discipline View\\
+       {\large Bank--Year Evidence from Chinese FinTech News Coverage}}
 \author{\NoteThis{Author names}}
 \date{\today}
 
@@ -16,27 +18,293 @@
 
 \begin{abstract}
 \NoteThis{Final abstract pending.}
-We construct a bank--year panel from approximately 37~GB of Chinese
-media reports on financial technology (FinTech) and study the
-relationship between media tone toward bank FinTech strategy and bank
-outcomes. Using a three-family large language model (LLM) ensemble for
-sentiment annotation, we measure both the locus (full-text vs.\
-entity-context) and the substantiveness (full-text vs.\ entity-context)
-of FinTech coverage. We find \NoteThis{key result placeholder}\@.
+The tone of media coverage about a bank is a public risk signal that
+depositors and creditors can acquire at low cost. Building on a full
+census of Chinese media coverage of bank--FinTech activity (raw census:
+18{,}198{,}978 reports from 3{,}740 media outlets, of which newspaper
+reports---92.93\,\%---are retained; filtered production target corpus of
+roughly 17~million reports covering 110 banks over 2007--2024), we
+construct a bank--year media-tone panel and test the depositor-discipline
+hypothesis: more negative tone raises depositors' and creditors'
+perceived bank risk and thereby the pricing of interest-bearing
+liabilities, observed as higher funding costs
+(\code{funding\_cost} = interest expense over the average balance of
+interest-bearing liabilities). Tone is measured as the majority-vote
+consensus of three independent-vendor large language models
+(\code{llm\_vote\_tone\_full}), with the three per-model series, six
+Chinese financial dictionaries, and three financial-domain BERT models
+serving as co-equal mutual-robustness measures. We find
+\NoteThis{key result placeholder: confirmatory coefficient, economic
+magnitude, and robustness summary pending production-panel
+regressions}\@.
 \end{abstract}
 
 \section{Introduction}\label{sec:intro}
-\NoteThis{Motivate the puzzle: media coverage of bank FinTech strategy
-matters for institutional theory (Westphal \& Zajac 1994) and for digital
-transformation outcomes (Gomber et al.\ 2018, \emph{JMIS}). Reference
-Hassan et al.\ (2019, \emph{QJE}) firm-level political-risk methodology
-as our text-measurement template.}
+
+Since the failure of Silicon Valley Bank in 2023, how public media
+signals act on the liability side of banks has become a central question
+in top finance journals: social-media exposure has been shown to
+catalyze bank runs \parencite{cookson2026runcatalyst}, the scale of
+uninsured deposits determines how fragile a bank is to shifts in
+depositor sentiment \parencite{jiang2024fragility}, and the deposit
+franchise itself can become the object of a run
+\parencite{drechsler2026franchise}. This literature points to a more
+general mechanism: public information changes depositors' and
+creditors' risk perceptions and thereby has real effects on banks
+through liability pricing and deposit flows
+\parencite{goldstein2023information}. Yet the existing evidence is
+heavily concentrated on listed U.S.\ banks and daily-frequency or
+event-window settings; systematic liability-side pricing evidence for
+the unlisted small and mid-sized banks that make up most banking
+systems remains scarce.
+
+We exploit two institutional advantages of the Chinese setting to fill
+this gap. First, we conduct a full census of Chinese media coverage of
+banks' FinTech activity---a raw census of 18{,}198{,}978 reports from
+3{,}740 media outlets, with a filtered production target corpus of
+roughly 17~million reports covering 110 banks over 2007--2024
+(T=18)---so that the resulting bank--year panel includes a large number
+of \emph{unlisted} small and mid-sized banks, exactly the population
+that stock-price-based CAR studies cannot reach. Second, China's dual
+structure of official versus commercialized media
+\parencite{qin2018mediabias, you2018pen} provides an institutional
+stratification of the information content of tone, which we exploit for
+heterogeneity tests of the depositor-discipline mechanism. The FinTech
+competition era is precisely a period of rapid change in banks'
+liability-side information environment, supplying rich time-series and
+cross-sectional variation in the tone--funding-cost relationship.
+
+Our research question is whether bank--year media tone affects a bank's
+funding cost. For identification, the baseline specification uses
+two-way bank and year fixed effects with standard errors clustered at
+the bank level; on top of this, three instrumental-variable
+engines---within-province leave-one-out peer tone, a generalized Bartik
+instrument, and media-outlet house-style exposure---each enter their own
+just-identified 2SLS specification
+\parencite{goldsmith2020bartik, wang2024wildiv}, and few-cluster
+settings use wild cluster bootstrap inference
+\parencite{mackinnon2017wild}. The paper commits to a single
+confirmatory hypothesis (tone $\to$ funding cost); everything else is
+labeled exploratory and enters Romano--Wolf family-wise error
+correction \parencite{romanowolf2005stepwise}.
+
+The paper makes four contributions. First, it provides new
+liability-side pricing evidence for the depositor-discipline literature
+from an annual, full-sample panel dominated by unlisted banks,
+complementing studies focused on listed banks and crisis windows
+\parencite{cookson2026runcatalyst, fang2024mediadeposit,
+marchetti2025tone}. Second, methodologically, it proposes a tone
+measure based on the majority vote of three independent-vendor LLMs,
+triangulated against dictionary and BERT baselines
+\parencite{gilardi2023chatgpt, huang2023finbert, loughran2011liability},
+with every measure reproducible under a deterministic configuration
+(temperature=0, byte-frozen prompt). Third, it implements a
+``multiple-ladder mutual-robustness'' design: co-equal alternative
+measures along each dimension---text window, model vendor, dictionary
+rule, political-word weight---each enter their own just-identified
+specification, disciplining researcher degrees of freedom through
+side-by-side replication rather than pooled testing. Fourth, within the
+broader research portfolio, this paper measures the \emph{direction and
+magnitude} of coverage sentiment (a continuous signed tone), as distinct
+from unsigned exposure intensity and from binary
+substantive--symbolic or technology-locus attributes; it uses only
+firm-level tone and does not rely on interbank network structure for
+its main identification.
+
+The remainder of the paper proceeds as follows.
+Section~\ref{sec:inst} describes the institutional background;
+Section~\ref{sec:lit} reviews the literature; Section~\ref{sec:hypo}
+develops hypotheses; Section~\ref{sec:method} presents measurement and
+identification; Section~\ref{sec:data} describes the data;
+Sections~\ref{sec:main}--\ref{sec:robust} report baseline results,
+mechanisms, heterogeneity, and robustness; Section~\ref{sec:concl}
+concludes.
+
+\section{Institutional Background}\label{sec:inst}
+
+\subsection{FinTech Competition in Chinese Banking}
+Since the 2010s, financial technology---third-party payments,
+money-market funds, and online lending---has competed directly with the
+deposit base of Chinese banks, and banks have responded by building
+FinTech capabilities at scale; bank-level FinTech adoption has been
+linked to credit-risk outcomes \parencite{cheng2020bankfintech}, and
+the rise of FinTech lending has reshaped the competitive boundary of
+traditional banking \parencite{berg2022fintechlending}. For
+depositors, news about a bank's ``FinTech front'' reports both the
+progress of its technological transformation and its position in the
+contest for deposits, and thus constitutes a public signal stream about
+the bank's prospects and soundness. Against the backdrop of gradual
+deposit-rate liberalization, the reactions of depositors and wholesale
+funding providers to these signals can show up directly in the pricing
+of interest-bearing liabilities.
+
+\subsection{The Dual Structure of Official and Commercialized Media}
+Chinese newspapers exhibit a systematic stratification of political
+bias: party organs carry propaganda functions while commercialized
+outlets are closer to market-driven news production
+\parencite{qin2018mediabias}; political incentives can also delay or
+suppress negative information \parencite{piotroski2015political}.
+Research on Chinese financial news shows that only negative coverage by
+commercialized media exerts a real governance-monitoring effect,
+whereas official-media coverage does not \parencite{you2018pen}. This
+institutional stratification implies predictable heterogeneity in the
+information content of tone across outlet types, which we exploit
+explicitly in the heterogeneity analysis (Section~\ref{sec:het}) and in
+the outlet house-style instrument (Section~\ref{sec:method}).
 
 \section{Literature Review}\label{sec:lit}
-\NoteThis{Three strands: (1)~media-as-information-intermediary
-(Tetlock 2007); (2)~symbolic vs.\ substantive corporate response
-(Westphal--Zajac 1994/1998 \emph{ASQ}); (3)~Bartik instrument design
-(Goldsmith-Pinkham et al.\ 2020, \emph{AER}).}
+
+\subsection{Media as an Information Intermediary in Asset and
+Liability Pricing}
+Since \textcite{tetlock2007giving}, media tone has been established as
+an independent information channel: the breadth of media coverage
+affects the cross-section of stock returns
+\parencite{fangperess2009media}, and natural experiments based on local
+media and newspaper strikes have separated the causal effect of
+\emph{reporting itself} from that of the reported events
+\parencite{engelberg2011causal, peress2014media}---establishing the key
+premise that media tone is not a redundant proxy for fundamentals, and
+providing identification templates for the ``coverage $\ne$
+fundamentals'' endogeneity problem. The closest frontier counterpart to
+our study is \textcite{marchetti2025tone}, which measures shifts in
+newspaper tone at the individual-bank level and validates their
+predictive power for bank financing conditions. We push this paradigm
+to an annual, full-sample setting dominated by unlisted banks on the
+liability side.
+
+\subsection{Depositor Discipline, Runs, and Liability-Side Fragility}
+\textcite{goldstein2023information} provides the general framework of
+``information in financial markets $\to$ real effects'';
+\textcite{chen2022transparency} shows that depositors do respond to
+public information about banks---deposit flows at more transparent
+banks are more sensitive to performance---which is the behavioral
+premise for tone to pass through into liability pricing. After SVB,
+\textcite{cookson2026runcatalyst} shows that social-media exposure
+catalyzes runs, \textcite{jiang2024fragility} quantifies bank fragility
+under uninsured-deposit leverage, and \textcite{drechsler2026franchise}
+develops the theory that the deposit franchise itself can be run upon.
+In the Chinese setting, \textcite{fang2024mediadeposit} documents the
+chain ``negative media sentiment $\to$ deposit instability $\to$ higher
+liability costs $\to$ systemic risk,'' which maps directly onto our
+outcome construct. In addition, \textcite{cookson2024socialsignal}
+shows that attention and sentiment are two separable text signals,
+providing the methodological basis for our focus on signed tone rather
+than unsigned exposure.
+
+\subsection{Chinese Media Institutions and the Bank-FinTech Setting}
+The top-journal benchmark for Chinese financial-news tone research is
+\textcite{you2018pen} (only commercialized media's negative coverage
+has monitoring effects); \textcite{qin2018mediabias} characterizes the
+political-bias structure of Chinese newspapers, and
+\textcite{piotroski2015political} documents political incentives to
+suppress negative information---together the institutional basis for
+interpreting tone's information content by outlet type. On
+measurement, \textcite{du2022dictionary} provides the most
+authoritative Chinese financial sentiment dictionary in the English
+top-journal literature (and is also the anchoring reference for our
+political-word-weight sensitivity ladder). On setting,
+\textcite{cheng2020bankfintech} is the most direct benchmark for
+building a bank FinTech index from Chinese text into a bank--year
+panel, and \textcite{berg2022fintechlending} anchors the motivation at
+the survey level.
+
+\subsection{Financial-Text Sentiment Measurement: The
+Dictionary/BERT/LLM Triangle}
+\textcite{loughran2011liability} established the domain-specific
+dictionary paradigm, and \textcite{loughran2016survey} systematized its
+implementation pitfalls (negation handling, weighting choices);
+\textcite{huang2023finbert} shows that finance-domain pre-trained BERT
+significantly outperforms dictionaries in extracting information from
+financial text; \textcite{frankel2022disclosure} systematically
+compares machine-learning and dictionary methods and supports running
+multiple methods in parallel as cross-validation;
+\textcite{gilardi2023chatgpt} provides evidence that LLM annotation
+quality exceeds that of crowd workers. These results converge on our
+``three-method triangle, mutual robustness'' measurement architecture:
+the LLM vote consensus serves as the headline, with the dictionary and
+BERT tracks as transparent and deep-learning baselines, run side by
+side and never pooled.
+
+\subsection{Identification and Inference Discipline}
+\textcite{romanowolf2005stepwise}'s step-down resampling procedure is
+the methodological source for all our exploratory family-wise error
+corrections; \textcite{mackinnon2017wild} underpins wild cluster
+bootstrap inference with few and wildly different cluster sizes;
+\textcite{wang2024wildiv} provides wild bootstrap inference for IV
+regressions with weak identification and few clusters, directly
+supporting cluster-robust 2SLS for our LOO/Bartik instrument families;
+and \textcite{goldsmith2020bartik} is the basis for the exogeneity
+reasoning and pruning of Bartik instruments (F4 in the methodology).
+
+\paragraph{Positioning.}
+In sum, three literatures respectively establish that media tone is an
+independent information channel, that depositors respond to public
+information, and that Chinese media tone can be credibly measured; but
+their intersection---systematic annual evidence on how media tone
+affects the liability costs of \emph{unlisted} small and mid-sized
+banks---remains open. This paper fills that gap with a full-census
+corpus and a depositor-discipline framework.
+
+\section{Theory and Hypotheses}\label{sec:hypo}
+
+We situate the paper in the depositor/market-discipline paradigm: the
+tone of media coverage of a bank's FinTech front is a public
+information signal that depositors and creditors can acquire at low
+cost; tone changes their perception of bank risk, which is reflected in
+the pricing of interest-bearing liabilities---demanding higher or lower
+interest compensation---and hence in the bank's funding cost. The
+signs stated below are \emph{theoretical predictions}, not empirical
+results; all coefficients and significance levels await
+production-panel regressions \NoteThis{backfill after production
+regressions}.
+
+\paragraph{H1 (confirmatory primary hypothesis).}
+There is direct evidence that depositors respond to public information
+about banks \parencite{chen2022transparency}; in China, negative media
+sentiment has been linked to deposit instability and higher liability
+costs \parencite{fang2024mediadeposit}. If media tone shifts
+depositors' and creditors' risk perceptions, more positive tone should
+lower the interest compensation they demand.
+\emph{H1: bank--year media tone (\code{llm\_vote\_tone\_full}) has a
+negative effect on funding cost (\code{funding\_cost})---the more
+positive the tone, the lower the funding cost.} This is the paper's
+only confirmatory hypothesis, matching the direction of the
+inference.confirmatory primary specification in the paper spec.
+
+\paragraph{H2 (exploratory, mechanism extension).}
+If positive tone lowers liability-side costs, the relaxation of the
+funding constraint should support asset-side expansion and improved
+profitability \parencite{goldstein2023information}.
+\emph{H2: tone has a positive effect on loan growth
+(\code{loan\_growth}) and on return on assets (\code{roa}).} Both are
+secondary outcomes, tested only as exploratory and entered into the
+Romano--Wolf outcomes family; they are not elevated alongside H1.
+
+\paragraph{H3 (exploratory, franchise-value channel, listed
+subsample).}
+Deposit-franchise theory implies that the expectation of a stable
+liability base is itself a component of bank value
+\parencite{drechsler2026franchise}; if positive tone supports franchise
+value, it should be reflected in market valuation. \emph{H3: in the
+listed-bank subsample, tone has a positive effect on Tobin's Q
+(\code{tobin\_q}).} \code{tobin\_q} is only a secondary outcome in
+this paper (it shares a column name with a sister paper but plays a
+different role).
+
+\paragraph{H4 (heterogeneity, theoretical prediction).}
+The strength of depositor discipline depends on depositors'
+information sensitivity: the transparency--deposit-flow-sensitivity
+evidence \parencite{chen2022transparency} and the finding that only
+commercialized media exert monitoring effects \parencite{you2018pen}
+jointly predict stronger tone effects at banks whose depositors are
+more information-sensitive. \emph{H4: the negative effect in H1 is
+stronger for small/unlisted banks and for banks with a higher share of
+commercialized-media coverage.} Operationalized as interactions of
+\code{llm\_vote\_tone\_full} with stratification indicators, using
+within-year quantiles rather than absolute thresholds; interaction
+results \NoteThis{pending production regressions}, and hub-bank
+heterogeneity (\code{bank\_is\_hub}) requires the production T=18
+panel.
 
 \section{Methodology}\label{sec:method}
 \subsection{Sample and Data}
@@ -44,6 +312,11 @@ The bank--year panel covers \NoteThis{N=164 bank--years over the
 2017--2018 period (extend after additional vintages merged)}. Raw text
 inputs are XLSX media reports processed via the \code{news\_process}
 pipeline (Phase~9b baseline).
+\NoteThis{Sample-size bookkeeping: the on-disk development panel is
+T=2 (2017--2018, 110 banks $\times$ 2 years $\approx$ 220 bank--year
+slots), which is inconsistent with the historical N=164 snapshot
+above; the official sample size will be finalized on the production
+panel (2007--2024, T=18) and backfilled consistently.}
 
 \subsection{Tone Annotation (F1: Three-Family LLM Validation)}
 We employ three independent LLM families for sentiment annotation:
@@ -112,8 +385,9 @@ cosine-similarity-based features (\code{auth\_sim\_*},
 (\code{token\_adopt\_*}, \code{hidden\_adopt\_*},
 \code{subst\_adopt\_*}), and continuous intensity scores
 (\code{fintech\_intensity\_mean}) are coded as undefined (\code{NaN})
-rather than zero. We follow Allison (2001) and Heckman (1979) in treating
-these as missing-by-design and use listwise deletion in regressions.
+rather than zero. Following the standard practice of the missing-data
+and sample-selection literatures, we treat these as missing-by-design
+and use listwise deletion in regressions.
 Count and sum-type variables remain at~$0$ as the mathematically correct
 zero-observation value.
 
@@ -149,26 +423,278 @@ spaces ($\rho \geq 0.80$, $\geq 500$ pairs). The sentiment-annotation LLM ensemb
 (Section~\ref{sec:method}) is unaffected by this change: embedding
 models and sentiment LLMs are disjoint components of the pipeline.
 
+\subsection{Identification Strategy}\label{sec:ident}
+The baseline specification uses two-way bank and year fixed effects:
+bank fixed effects absorb all time-invariant bank characteristics
+(business model, ownership, geographic endowment), year fixed effects
+absorb macro and industry-wide shocks (interest-rate and regulatory
+cycles), and identification comes from \emph{within-bank} annual
+variation in tone; standard errors are clustered at the bank level.
+
+On top of this, three instrumental-variable engines address the
+remaining endogeneity from reverse causality between coverage tone and
+bank fundamentals. The three engines \emph{each enter their own
+just-identified 2SLS specification, are reported side by side as
+mutual robustness, and are never pooled into a single over-identified
+system} (a joint Hansen $J$ is uninformative across instruments that
+share common shocks): (i)~the within-province leave-one-out peer-tone
+instrument \code{prov\_leave1out\_tone\_full} (primary engine: the
+average tone of other banks in the same province shifts the local
+media environment a bank faces, while excluding the bank's own
+coverage); (ii)~the generalized Bartik instrument
+\code{bartik\_type\_iv\_full} (backup engine; exogeneity reasoning and
+pruning in subsection~F4 and \textcite{goldsmith2020bartik}); and
+(iii)~media-outlet house-style exposure instruments (the
+\code{outlet\_*\_iv} column family: banks' passive exposure to
+outlets' stable writing styles). The ss track carries mirror
+instruments (\code{prov\_leave1out\_tone\_ss},
+\code{bartik\_type\_iv\_ss}), so the window-robustness track also
+holds under IV. Few-cluster IV inference (province level,
+$G \approx 31 < 50$) uses the wild cluster bootstrap
+\parencite{mackinnon2017wild, wang2024wildiv}.
+
+\NoteThis{Honest disclosure (a gap declared in the spec): the only IV
+template currently in the replication package
+(22\_tableA3\_bartik\_iv.do) instruments \code{tech\_frac}, not tone;
+the tone-IV .do templates await wiring at milestone M5. Until then,
+the tone-IV results described above are design statements, not
+produced estimates.}
+
+\subsection{Measurement Validity: The Human-Annotation Gate}
+\label{sec:validity}
+Under the project's validity claim gate, any validity claim for the
+tone measure must rest on \emph{real human annotation} $\kappa$
+agreement: human-annotation samples are drawn via
+\code{61\_human\_samples}, blind-labeled by independent annotators,
+and their agreement with the LLM consensus labels is computed through
+the \code{09\_sentiment\_verify} path. As of this draft, human
+annotation is pending; human--LLM agreement
+$\kappa$ = \NoteThis{backfill once human annotation completes}. Until
+that gate passes, we do not claim that the tone measure has been
+human-validated, and rely only on cross-model/cross-method agreement
+diagnostics (subsection~F1) as machine-side validity evidence.
+
 \section{Data}\label{sec:data}
-\NoteThis{Descriptive statistics in Table~1
-(\code{news\_process/papers/bank\_fintech\_tone/tables.py:build\_table1}).}
+
+\subsection{Corpus Census and Accounting Chain}
+The raw corpus census is taken \emph{before} any filtering and
+deduplication (full recursive scope): 183 deduplicated source files
+and 18{,}198{,}978 media reports spanning 2007-01-01 to 2025-12-31,
+from 3{,}740 media outlets (all types, unfiltered); reports whose
+outlet type is newspaper account for 92.93\,\% of all rows
+(16{,}912{,}361 rows) and are retained, while other types (wire
+services, magazines, government bulletins, web pages, etc.)\ are
+dropped row-wise; exactly unique entries number 18{,}177{,}370
+(duplication rate 0.12\,\%). Two accounting scopes must not be
+conflated: the recursive full-census scope above serves the data
+appendix and is distinct from the filtered production target corpus
+that enters the pipeline (roughly 17~million reports, 2007--2024).
+
+\subsection{Panel Structure and Outcome Variable}
+The production panel is a bank--year structure of 110 banks $\times$
+2007--2024 (T=18). At the time of writing, the available panel is the
+development snapshot (T=2, 2017--2018), used only for pipeline and
+template integration; all descriptive statistics and regressions will
+be finalized on the production panel
+\NoteThis{Table~1 descriptives pending the production panel; see
+\code{news\_process/papers/bank\_fintech\_tone/tables.py:build\_table1}}.
+The outcome, funding cost, is defined as \code{funding\_cost} =
+interest expense over the average annual balance of interest-bearing
+liabilities (annual frequency, full sample including unlisted banks).
+The treatment is the bank--year aggregated LLM vote tone
+\code{llm\_vote\_tone\_full}; article-to-bank--year aggregation uses
+equal weights as the headline, with the other weighting families in
+the robustness section. Bank-level financial controls (size, capital
+adequacy, liquidity, etc.)\ arrive with the financial-panel
+enrichment; the replication package self-checks via
+\code{capture confirm} and uses only columns that actually exist.
+
+\subsection{Descriptive Statistics}
+\NoteThis{All means/standard deviations/quantiles/correlation
+matrices pending the production panel, including the tone
+distribution, the \code{n\_articles} distribution, and the time-series
+profile of funding\_cost.}
 
 \section{Main Results}\label{sec:main}
-\NoteThis{Table 2 (M1--M6 progressive controls) and Figure 2 (coefplot)
-from \code{output/tables/table2\_main\_m1m6.csv}.}
+
+The confirmatory baseline is a two-way fixed-effects model:
+\begin{equation}\label{eq:main}
+\mathit{FundingCost}_{i,t}
+  = \beta\, \mathit{Tone}_{i,t}
+  + \mathbf{X}_{i,t}'\boldsymbol{\gamma}
+  + \alpha_i + \lambda_t + \varepsilon_{i,t},
+\end{equation}
+where $\mathit{Tone}_{i,t}$ is bank $i$'s
+\code{llm\_vote\_tone\_full} in year $t$, $\alpha_i$ and $\lambda_t$
+are bank and year fixed effects, $\mathbf{X}_{i,t}$ is the bank-level
+control vector, and standard errors are clustered at the bank level.
+H1 predicts $\beta < 0$.
+
+Table~2 presents M1--M6 progressive controls: M1 includes tone and
+year fixed effects only; M2 adds bank fixed effects (the two-way FE
+baseline); M3 adds bank size and capital-structure controls; M4 adds
+liquidity and business-mix controls; M5 adds a coverage-volume control
+(log \code{n\_articles}) to separate the signed tone signal from
+unsigned exposure \parencite{cookson2024socialsignal}; and M6 is the
+fully saturated specification. Coefficient stability across M1--M6
+provides indirect evidence of bounded selection bias. Because H1 is
+the paper's only confirmatory hypothesis, the headline coefficient
+receives no multiple-testing correction (a single hypothesis); all
+coefficients other than H1 are exploratory and enter Romano--Wolf
+corrections by family (Section~\ref{sec:robust}).
+\NoteThis{All Table~2 coefficients, standard errors, significance, and
+economic-magnitude interpretation pending production regressions;
+likewise the coefficient plot in Figure~2.}
+
+The 2SLS specifications treat $\mathit{Tone}_{i,t}$ in
+equation~\eqref{eq:main} as endogenous under each of the three
+instrument engines of Section~\ref{sec:ident}, each forming its own
+just-identified specification reported side by side.
+\NoteThis{First-stage F statistics, weak-instrument diagnostics, and
+2SLS coefficients pending the tone-IV template wiring (see the gap
+disclosure in the identification subsection).}
 
 \section{Mechanism}\label{sec:mech}
-\NoteThis{Table 3 (mechanism: technology-application vs.\ substantive--
-symbolic gap) from \code{output/tables/table3\_mechanism.csv}.}
+
+The depositor-discipline chain is: tone $\to$ depositor/creditor risk
+perception $\to$ quantity and price adjustment on the deposit side
+$\to$ funding cost. Per the paper spec, the deposit-quantity link at
+the top of the chain (\code{deposit\_growth}) is deliberately kept in
+the control vector and never used as a dependent variable (avoiding a
+dual role for the same column as a control in the main regression and
+an outcome in the mechanism regression), so we do not run a regression
+on it; the deposit-side link is instead argued from the existing
+evidence---deposit flows respond to public information about banks
+\parencite{chen2022transparency}, and in the Chinese setting the chain
+``negative media sentiment $\to$ deposit instability $\to$ higher
+liability costs'' has been documented
+\parencite{fang2024mediadeposit}. Table~3 presents two testable pieces
+of corroborating evidence further down the chain: (i)~the effects of
+tone on loan growth and ROA (H2, the funding-constraint-relaxation
+channel); and (ii)~the effect of tone on Tobin's Q in the listed
+subsample (H3, the franchise-value channel
+\parencite{drechsler2026franchise}). The dependent variables of both
+steps (\code{loan\_growth}, \code{roa}, \code{tobin\_q}) are the
+spec-defined secondary outcomes; both steps are labeled exploratory
+and enter the Romano--Wolf outcomes correction family.
+\NoteThis{All Table~3 coefficients and interpretation pending
+production regressions.}
 
 \section{Heterogeneity}\label{sec:het}
-\NoteThis{Table 4 (bank size $\times$ frontier $\times$ geography) from
-\code{output/tables/table4\_heterogeneity.csv}.}
+
+H4 predicts that the tone effect strengthens with depositors'
+information sensitivity. Table~4 stratifies along three theoretical
+dimensions: (i)~bank size and listing status---depositors of small and
+unlisted banks rely more on public media signals (lacking analyst
+coverage and mandatory disclosure), so the
+transparency--deposit-flow-sensitivity framework of
+\textcite{chen2022transparency} predicts stronger tone effects there;
+(ii)~the share of commercialized-media coverage---following
+\textcite{you2018pen}, only commercialized-media tone is expected to
+carry real information content, with official-media tone expected to
+be weaker (this dimension is an exploratory design statement outside
+the paper spec's heterogeneity block; the operational panel column for
+the stratification must be finalized before production regressions);and (iii)~network hub status (\code{bank\_is\_hub})---banks
+with high interbank connectedness may face stronger discipline from
+wholesale funding providers. All stratifications use within-year
+quantiles (deciles) rather than absolute thresholds to avoid
+contamination by scale trends; hub heterogeneity requires the
+production T=18 panel for sufficient within variation.
+\NoteThis{Table~4 interaction coefficients and stratified results
+pending production regressions.}
 
 \section{Robustness}\label{sec:robust}
-\NoteThis{Table 5 (placebo, leave-one-out, wild bootstrap) plus the
-1016-line falsification template
-(\code{papers\_assets/bank\_fintech\_tone/do/falsification\_template.do.tmpl}).}
+
+All robustness exercises in this section follow one uniform
+discipline: within each ladder, the co-equal alternative measures are
+\emph{mutual robustness with no primacy ranking}, each entering its
+own just-identified specification reported side by side, and never
+pooled into a single over-identified system (a joint Hansen $J$ is
+uninformative across measures/instruments sharing common shocks);
+across ladders, the ladders are orthogonal and are not crossed.
+\NoteThis{All values in Table~5 and the appendix tables pending
+production regressions.}
+
+\paragraph{Three text-window tracks (treatment measurement window).}
+The headline treatment is defined on the full-text track
+(\code{llm\_vote\_tone\_full}); the entity-context and same-sentence
+co-occurrence tracks provide two narrower measurement windows
+(\code{llm\_vote\_tone\_ctx}, \code{llm\_vote\_tone\_ss}), both
+conditional-on-full measures (see the retention-gate paragraph in F2).
+The main specification is re-estimated on each track, the three
+per-model series each have three-track twins, and the IV engines carry
+ss mirror instruments. The three tracks are just-identified side by
+side; pooling full$\times$ctx$\times$ss into one over-identified
+system is strictly prohibited.
+
+\paragraph{Three-method triangle (LLM/dictionary/BERT).}
+Beyond the LLM vote, the main specification is re-estimated with the
+tone aggregates of six Chinese financial sentiment dictionaries
+(\code{\{dict\}\_tone}, including \textcite{du2022dictionary} and
+Loughran--McDonald-paradigm dictionaries
+\parencite{loughran2011liability}) and with the signed net tone of
+three Chinese financial-domain BERT models
+(\code{\{finbert\_cn, fin\_sent\_zh, finbert2\}\_net\_tone}): the
+dictionary track is the fully transparent, auditable traditional
+baseline and the BERT track the supervised deep-learning baseline
+\parencite{huang2023finbert, frankel2022disclosure}, triangulated
+against the LLM track.
+
+\paragraph{Dictionary ablation gradient (linguistic-rule powerset).}
+The three linguistic rules of dictionary tone (negation flipping,
+degree-adverb weighting, contrast handling) are ablated over the full
+powerset into co-equal variants
+(\code{\{dict\}\_score\_\{raw,degonly,advonly,negdeg,negadv,degadv\}}),
+showing that dictionary conclusions are not driven by any single rule.
+The variants are individually normalized and highly collinear
+(correlations of roughly 0.99), so by design we report cross-variant
+correlations rather than entering them in one equation.
+
+\paragraph{Political-word-weight sensitivity (specific to
+du\_2022).}
+Following \textcite{du2022dictionary}'s finding that political
+positive words carry weaker signals than ordinary positive words, the
+1{,}434 political positive words in that dictionary enter the positive
+side with weight 0.5 in the production configuration (a researcher
+choice). The sensitivity ladder sets this weight
+$\in \{0.0, 0.5, 1.0\}$
+(\code{du\_2022\_polw\{00,05,10\}\_tone}; polw05 is the canonical
+column); the three weights are mutual robustness with no primacy,
+each just-identified side by side, showing that conclusions are not
+driven by this choice. This ladder is orthogonal to---and never
+crossed with---the rule-ablation gradient.
+
+\paragraph{Aggregation weighting family.}
+Beyond the equal-weighted headline, article-to-bank--year aggregation
+is re-estimated under value weighting, media-tier weighting, and
+herding-adjusted weighting (the panel \code{\_vw/\_mw/\_hw} suffix
+families); the four weighting schemes are cross-validated side by side
+and enter the rwolf weighting correction family.
+
+\paragraph{Clustering-level progression and wild bootstrap.}
+Headline inference clusters at the bank level; robustness moves up to
+the city and province levels. Province-level clustering is a
+few-cluster setting ($G \approx 31 < 50$) and uses the wild cluster
+bootstrap \parencite{mackinnon2017wild}; few-cluster IV inference uses
+the wild bootstrap procedure of \textcite{wang2024wildiv}.
+
+\paragraph{Network centrality: bad-control dual versions.}
+Media visibility may mediate tone (tone $\to$ visibility $\to$ funding
+cost; for the visibility--pricing link see
+\textcite{fangperess2009media}), so controlling for network centrality
+by default would constitute a post-treatment bad control that absorbs
+the main effect. Per the spec, \code{bank\_between\_cent} and
+\code{bank\_degree\_cent} appear only in robustness appendix tables:
+the headline coefficient is benchmarked \emph{without} network
+controls, with the network-controlled version reported side by side to
+bound the mediation absorption.
+
+\paragraph{Numerical intensity (Table~A9).}
+Robustness of the tone conclusions to the density of numerical
+information in coverage is tested with the dual-track numerical
+intensity variable (\code{num\_intensity}), per template
+27\_tableA9\_num\_intensity (located under
+\code{papers/\_common/stata\_templates/v3\_5\_1/}).
 
 Cross-model robustness: the headline specification is re-estimated
 separately with each LLM family's own tone measure (and, analogously,
@@ -179,8 +705,69 @@ resampling (Table~A12). Inter-model agreement diagnostics
 (Cohen's $\kappa$ on remapped non-negative codes; Krippendorff's
 $\alpha$, missing-label-aware) accompany the table.
 
+\subsection{Event Studies (E1--E4)}
+Four industry-level exogenous events provide quasi-experimental
+corroboration for tone shocks, with event windows designed as
+before/after comparisons of the tone--funding-cost relationship around
+each event year: E1, the launch of Yu'ebao (2013-06-13; a direct
+money-market-fund shock to deposit competition); E2, the P2P
+online-lending regulation (2016-08-24; the start of the online-lending
+shakeout); E3, the asset-management new rules consultation
+(2017-04-27; shadow-banking contraction); and E4, the suspension of
+the Ant Group IPO (2020-11-03; the regulatory turn on platform
+finance). The four events form independent specifications reported
+side by side. The daily-frequency extension for the listed subsample
+(\code{car\_3day\_window\_tone\_shock}, three-day cumulative abnormal
+returns around event dates) is an appendix table, to be activated once
+daily data are available.
+\NoteThis{E1--E4 event-window estimates pending the production panel
+(only T=18 covers all four event years).}
+
 \section{Conclusion}\label{sec:concl}
-\NoteThis{Final discussion and policy implications.}
+
+Based on a full-census corpus of Chinese media coverage of
+bank--FinTech activity, this paper tests the effect of media tone on
+bank funding costs from a depositor-discipline perspective. The
+theoretical prediction is that more positive tone lowers depositors'
+and creditors' perceived risk and hence the pricing of
+interest-bearing liabilities (H1, $\beta<0$).
+\NoteThis{Summary of core findings, economic magnitudes, and
+mechanism/heterogeneity conclusions pending production regressions.}
+
+\paragraph{Contributions revisited.}
+The paper extends depositor-discipline evidence from listed U.S.\
+banks and crisis windows to an annual full sample of Chinese unlisted
+small and mid-sized banks; proposes a reproducible tone measure
+triangulating a three-LLM vote with dictionary and BERT baselines; and
+demonstrates the design discipline of multiple mutual-robustness
+ladders, each just-identified.
+
+\paragraph{Theoretical and policy implications.}
+If H1 holds, the media environment constitutes a ``quasi-regulatory
+force'': beyond formal supervisory metrics, public coverage tone
+exerts continuous market discipline on banks through liability
+pricing. This has direct implications for deposit-insurance
+pricing---the strength of depositor discipline determines the share of
+risk pricing borne by the market---and for supervisory communication:
+tone-driven fluctuations in liability costs imply that disclosure
+policy is itself a prudential tool. \NoteThis{Quantitative statements
+of policy implications pending production regressions.}
+
+\paragraph{Limitations.}
+First, the panel is annual, so within-month or within-week
+transmission of tone shocks cannot be traced, and run-type
+high-frequency dynamics are only indirectly approximated by the event
+studies. Second, media coverage is itself endogenous to bank behavior
+and fundamentals: although two-way fixed effects and three instrument
+engines mitigate this, an observational design cannot fully rule out
+unobserved shocks driving both coverage and funding costs; moreover,
+the tone-IV templates in the current replication package remain to be
+wired (see the disclosure in the identification subsection). Third,
+China's media institutions (the official/commercialized dual
+structure) and its deposit-rate liberalization path are distinctive,
+so extrapolation to other markets requires caution. Fourth, the fully
+saturated specification awaits the financial-panel enrichment of
+bank-level controls.
 
 \printbibliography
 

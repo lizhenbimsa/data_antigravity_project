@@ -1,12 +1,13 @@
 % bank_fintech_substance/drafts/zh/manuscript.tex
 % P3 中文 manuscript 骨架 — M0 G0 scaffolded per B-route plan v2.55 (2026-05-17)
+% 2026-07-03 富集: 引言/文献/假设/方法/数据/结果/结论 + F1-F2 披露段 (对齐 paper_spec 2.0.0)
 % 编译: xelatex + biber + xelatex × 2
 
 \input{../../../_shared/preamble_zh.tex}
 
 \addbibresource{refs.bib}
 
-\title{实质性 vs 象征性金融科技战略：\\来自中国银行业长期 ROA 反转的证据}
+\title{实质性 vs 象征性金融科技战略：\\来自中国银行业成本收入比``效率试金石''的证据}
 \author{\NoteThis{作者姓名}}
 \date{\today}
 
@@ -14,37 +15,364 @@
 \maketitle
 
 \begin{abstract}
-\NoteThis{最终摘要待定 — 目标约 300 中文字。}
-本文将 Westphal--Zajac (1994, 1998 \emph{ASQ}) 的实质性 vs 象征性管理框架应用于
-2007--2024 年间的银行 fintech 战略宣告。通过大语言模型对每个银行—年度的 fintech
-公告进行二元 substantiveness 分类 (\code{innovation\_substantiveness\_full}), 检验
-W\&Z 隐含的 dual outcome 预测: 象征性宣告应产生正向短期市场反应但长期 ROA 反转
-(within-bank 3 年前向变化), 实质性宣告则不应。识别策略利用 4 个外生政策冲击
-(余额宝上线 / 网络借贷整顿 / 资管新规 / 蚂蚁 IPO 暂停) 做截面强度 DiD。研究发现
-\NoteThis{核心结论}\@。
+\NoteThis{最终摘要待定 — 目标约 300 中文字; 核心结论数字待生产面板回填。}
+本文将 Westphal--Zajac (1994, 1998 \emph{ASQ}) 的实质性 vs 象征性管理
+(decoupling) 框架应用于 2007--2024 年中国银行业的金融科技战略。基于约
+1{,}700 万条中文媒体报道构建的银行—年度面板, 我们用三家独立大语言模型
+对每篇银行—金融科技报道做 W\&Z 二元实质性分类, 聚合为银行—年度实质性
+新闻占比 \code{sub\_frac} (分母为 \code{n\_articles\_llm\_valid})。核心检验是
+decoupling 框架最锐利的可证伪含义 —— ``效率试金石'': 实质性采纳应带来
+3 年前向成本收入比下降 (\code{cost\_income\_ratio\_change\_3yr} $=
+\mathrm{CIR}_{t+3}-\mathrm{CIR}_{t}$), 象征性宣告则应无真实效率后果;
+伴随检验长期 ROA 前向变化 (\code{long\_run\_roa\_change\_3yr})。识别策略以
+银行与年份双向固定效应加银行层面聚类为基线, 以同组 leave-one-out
+同业工具变量为主识别通道 (Bartik 份额移位工具为后备), 四个外生政策冲击
+(余额宝上线、网络借贷整顿、资管新规、蚂蚁 IPO 暂停) 的截面强度 DiD
+降为辅助证据。研究发现 \NoteThis{核心结论: sub\_frac 对 3 年前向 CIR
+变化的系数、显著性与经济量级待生产面板估计}\@。
 \end{abstract}
 
 \section{引言}\label{sec:intro}
-\NoteThis{研究问题动机与贡献。}
+
+过去十余年, 中国银行业经历了一场由移动支付、线上信贷与大数据风控驱动的
+数字化转型竞赛。从 2013 年余额宝上线引发的``存款搬家''恐慌, 到 2020 年
+蚂蚁集团 IPO 暂停后的监管重构, 几乎每一家银行都在年报、发布会与媒体
+报道中宣告自己的``金融科技战略''。然而, 宣告不等于实施。组织理论早已
+指出, 企业可以采纳一项制度化实践的\emph{形式}而与其\emph{运营实质}
+脱钩 (decoupling), 借宣告收获合法性与市场好感, 却不承担真实变革的成本
+\parencite{westphal1998sym,westphal2001decoupling}。在银行金融科技语境下,
+这一``真做 vs 装样子''的区分具有直接的审慎监管含义: 若相当比例的
+金科宣告是象征性的, 则以宣告强度为基础的政策评估与投资者定价都会
+系统性失真。
+
+本文提出并检验一个可证伪性最强的区分标准 —— ``效率试金石''
+(efficiency litmus test): \emph{实质性}金融科技采纳 (真实的系统投产、
+流程再造、产品落地) 应在中期内压低银行的成本收入比 (CIR), 而
+\emph{象征性}宣告 (口号、仪式性签约、概念展示) 不应产生任何真实
+效率后果。我们以约 1{,}700 万条 2007--2024 年中文媒体报道为底层语料,
+用三家相互独立的大语言模型对每篇银行—金融科技报道做 Westphal--Zajac
+二元实质性分类, 聚合为银行—年度实质性新闻占比 \code{sub\_frac},
+检验其对 3 年前向 CIR 变化 (\code{cost\_income\_ratio\_change\_3yr}) 的
+效应, 并以长期 ROA 前向变化 (\code{long\_run\_roa\_change\_3yr}) 作
+伴随结果。
+
+识别面临的核心威胁是媒体报道的内生性: 经营改善预期本身可能同时驱动
+实质性报道与后续效率变化。我们的应对分三层。第一, 基线设定使用长面板
+银行与年份双向固定效应, 标准误在银行层面聚类, 吸收银行恒定异质性与
+系统性年度冲击。第二, 主识别通道为同组 leave-one-out 同业工具变量
+(\code{leave\_one\_out\_peer\_subst\_iv}): 以同类型同业 (剔除自身) 的
+实质性占比作为本行实质性暴露的工具, 并以 Bartik 份额移位工具
+(\code{bartik\_subst\_iv\_full}) 为后备通道; 我们如实披露 Manski 反射
+问题与排他性约束的局限 \parencite{manski1993reflection,learyroberts2014peer},
+报告 Kleibergen--Paap rk $F$, 弱工具情形改读 Anderson--Rubin 置信区间。
+第三, 四个外生政策冲击 (余额宝上线 2013-06-13、网络借贷整顿 2016-08-24、
+资管新规 2017-04-27、蚂蚁 IPO 暂停 2020-11-03) 的截面强度 DiD 作为
+辅助证据而非主识别。全部推断遵守事先声明的纪律: 单一 confirmatory
+主规格, 其余测度族用 Romano--Wolf step-down 控制族错误率
+\parencite{romanowolf2005stepwise}。
+
+本文的贡献有四。其一, 我们把 Westphal--Zajac 的实质/象征二分在
+金融科技语境下做了首次大规模文本操作化: 相比既有问卷与案例证据,
+LLM 标注使 W\&Z 构念可以在千万级语料上一致地度量
+\parencite{gilardi2023chatgpt,carlsonburbano2026llm}。其二, 我们用
+18 年银行面板对 decoupling 框架做 dual-outcome 检验: 效率试金石
+(CIR) 与长期绩效 (ROA) 联合识别``宣告—实施''缺口的真实后果, 而非
+停留在披露行为本身。其三, 我们与并行的银行金科 tone (情感) 与
+attention (曝光量) 研究做了明确的构念区分与反 salami-slicing 审计:
+本文独占 W\&Z 实质/象征维度, 底层/应用 locus 与自研/协同
+collab\_mode 仅作替代规格控制, 并以八格分解表证明主效应不被邻维度
+构念驱动。其四, 我们把 washing 实证文献 (绿色、ESG、AI) 扩展到
+银行金融科技领域, 提供来自全球最大银行体系之一的系统证据
+\parencite{giannetti2026glossy,song2026aiwashing}。
+
+下文结构如下: 第~\ref{sec:lit} 节梳理文献; 第~\ref{sec:theory} 节
+发展假设; 第~\ref{sec:method} 节介绍样本、测度与识别策略;
+第~\ref{sec:data} 节描述数据; 第~\ref{sec:results} 节报告实证结果;
+第~\ref{sec:conclusion} 节总结并讨论局限。
 
 \section{文献综述}\label{sec:lit}
-\NoteThis{三条文献: (1) Westphal--Zajac 实质性/象征性
-\autocite{westphal1994substance,westphal1998sym,westphal2001decoupling};
-(2) 战略变革的象征管理 \autocite{fisszajac2006symbolic};
-(3) Practice-based view \autocite{bromiley2014practice}。}
+
+\subsection{象征管理与 decoupling 理论谱系}
+
+本文的理论奠基是 Westphal--Zajac 的象征管理研究计划: CEO 长期激励
+计划的``宣告而不实施'' \parencite{westphal1994substance}、公司治理改革
+宣告收获股东正面反应而与实质变革脱钩 \parencite{westphal1998sym},
+以及股票回购计划``政策与实践脱钩''的直接证据
+\parencite{westphal2001decoupling}。\textcite{fisszajac2006symbolic} 把
+框架化 (framing) 与脱钩纳入战略变革的象征管理, 说明企业如何通过
+话语建构管理利益相关者感知。近年该谱系继续扩展:
+\textcite{westphal2023systemic} 将象征管理体系化延伸到企业社会责任
+与 corporate purpose 语境, 提示象征管理可以是系统性而非孤立行为;
+\textcite{kimlyon2015greenwash} 把披露—绩效偏差形式化为夸大
+(greenwash) 与低调 (brownwash) 两类, 为``宣告—实施''缺口的双向
+测度提供概念工具; \textcite{velte2023decoupling} 与
+\textcite{cepeda2025decoupling} 的系统综述则梳理了 decoupling 的
+测度代理与实证流派。practice-based 视角
+\parencite{bromiley2014practice} 进一步强调: 战略研究应关注可观察
+的实践本身而非宣告。这些工作共同支撑本文把``金科采用的象征 vs
+实质''操作化为银行—年度占比与缺口变量。
+
+\subsection{Washing 实证: 披露—行动脱钩的市场与银行业证据}
+
+一支快速增长的实证文献度量``说的''与``做的''的脱钩。
+\textcite{giannetti2026glossy} 提供了银行情境的直接锚点: 环境披露
+亮眼 (``glossy green'') 的银行放贷组合反而更棕, 话语与资产端行为
+系统性背离。\textcite{duchin2025greenwash} 证明企业可通过资产市场
+交易在形式上``洗绿''而不减排; \textcite{kimyoon2023pri} 发现签署
+联合国责任投资原则的基金经理并未相应改变投资行为, 口头承诺可独立
+于实质行动收获资金流。与本文技术路线最接近的是
+\textcite{song2026aiwashing}: 用 BERT 分类识别 AI-washing 并以专利
+数据交叉验证, 发现策略性 AI 披露短期吸引注意、长期反噬。
+\textcite{flammer2021greenbonds} 示范了用可验证承诺工具区分真实
+信号与 washing; \textcite{bingler2024cheaptalk} 用 ClimateBERT 度量
+气候披露中的 cheap talk 并将其与减排行动、声誉风险相联;
+\textcite{cai2025cheaptalk} 检验战略披露强度与风险承担、绩效的关系;
+\textcite{chen2024esgdecoupling} 则在中国情境用缺口变量度量 ESG
+decoupling 并考察数字化转型的抑制作用。相对这支文献, 本文把 washing
+问题带入银行金融科技领域, 并用效率试金石而非市场反应作主要判据。
+
+\subsection{LLM 标注与文本测度方法学}
+
+本文的测度依托 text-as-data 方法学总纲 \parencite{gentzkow2019text}。
+\textcite{gilardi2023chatgpt} 证明 LLM 在文本标注任务上可超越众包
+标注者, 为大规模 LLM 分类提供外部效度基准;
+\textcite{carlsonburbano2026llm} 面向管理学研究给出 LLM 标注的基础
+指南与偏置告警 —— 其对模型异质性与提示敏感性的警示直接对应本文的
+per-model 跨厂商稳健性设计与 prompt 字节级冻结。
+\textcite{babina2024ai} 示范以可验证的实质投入 (简历刻画的 AI 人力
+资本) 锚定技术采纳测度, 是``实质性''操作化的近邻先例;
+\textcite{loughranmcdonald2011liability} 的金融文本词典传统则作为
+本文词汇清晰度稳健性检验 (Table~A7) 的方法锚。相对这支文献, 本文
+的增量在于: 用三家相互独立的 LLM 对同一构念产出可并排检验的
+分类序列, 并以冻结提示、零温度与确定性缓存保证全链路可复现。
+
+\subsection{识别、推断与中国银行金融科技情境}
+
+工具变量通道的谱系是: \textcite{manski1993reflection} 的反射问题
+界定了同业效应识别的根本困难; \textcite{learyroberts2014peer} 提供
+了同业 leave-one-out 工具的公司金融先例及其排他性讨论;
+\textcite{goldsmithpinkham2020bartik} 把 Bartik 工具的识别假设
+形式化为份额外生并给出 Rotemberg 权重诊断。推断纪律方面,
+\textcite{romanowolf2005stepwise} 的 step-down 程序控制测度族的
+族错误率; \textcite{roodman2019boottest} 的 wild-cluster bootstrap
+则应对双向聚类下年份维度组数偏小 ($G\approx18$) 的问题; 事件式
+设定的现代 DiD 与平行趋势敏感性工具
+\parencite{callaway2021difference,rambachan2023more} 及系数稳定性
+界 \parencite{oster2019unobservable} 补足辅助证据的稳健性。情境
+方面, \textcite{chengqu2020fintech} 是中文语料银行金科文本指数进入
+银行—年度面板的直接对标 (其发现银行金科降低信用风险);
+\textcite{berg2022fintechlending} 综述了金融科技信贷对银行业的
+冲击; \textcite{heese2022newspaper} 证明地方媒体退出后企业不当
+行为增加, 支撑本文以监管处罚作 decoupling 延伸结果、以媒体覆盖
+作信息中介的设定。
+
+综合来看, 既有文献要么在非银行情境度量 washing, 要么在银行情境
+度量金科强度而不区分实质与象征; 把 W\&Z 二分大规模操作化到银行
+金融科技、并用效率试金石直接检验 decoupling 可证伪含义的研究,
+据我们所知尚付阙如。本文填补这一缺口。
+
+\section{理论与假设}\label{sec:theory}
+
+Decoupling 理论的核心命题是: 组织可以宣告采纳一项制度化实践而不
+实际实施, 从而在不承担变革成本的情况下收获合法性
+\parencite{westphal1998sym,westphal2001decoupling}。将其应用于银行
+金融科技转型, 可推出四条理论预期。以下均为\emph{理论预期}而非
+实证结果; 全部系数与显著性待生产面板估计。
+
+\paragraph{H1 (效率试金石)。}
+实质性金融科技采纳意味着真实的系统投产、流程自动化与获客渠道
+再造, 其最直接的运营后果是中期成本效率改善: 单位营业收入所需的
+业务及管理费下降。若媒体报道刻画的实质性占比 \code{sub\_frac}
+确实捕捉真实实施, 它应预测 3 年前向成本收入比的\emph{下降}。
+伴随地, 按 W\&Z 的长期绩效含义, 实质性采纳应预测长期 ROA 前向
+变化的\emph{上升}。
+\emph{H1: \code{sub\_frac} 对 \code{cost\_income\_ratio\_change\_3yr}
+的效应为负; 伴随检验中 \code{sub\_frac} 对
+\code{long\_run\_roa\_change\_3yr} 的效应为正。}
+
+\paragraph{H2 (象征无效性)。}
+Decoupling 的定义性含义是``宣告而不实施'': 象征性宣告不改变运营
+流程, 因而不应产生任何真实效率后果。若象征性新闻占比
+\code{symb\_frac} 对前向 CIR 变化存在显著效应, 反而构成对
+decoupling 解释的证伪。由二者之差构造的缺口变量
+(\code{substantive\_minus\_symbolic\_gap} $=$ \code{sub\_frac} $-$
+\code{symb\_frac}, 于 Stata 数据准备步骤衍生) 则应汇总两侧信息。
+\emph{H2: \code{symb\_frac} 对 \code{cost\_income\_ratio\_change\_3yr}
+的效应约为零; 缺口变量的效应为负。}
+
+\paragraph{H3 (decoupling 的不当行为延伸)。}
+若象征性披露反映管理层以话语替代实质合规与内控投入, 则象征性
+占比应与后续外部监管处罚正相关。处罚频次
+(\code{misconduct\_penalty\_count}) 来自独立的监管数据源, 与媒体
+语料无共同来源偏误 \parencite{heese2022newspaper}。
+\emph{H3: \code{symb\_frac} 对后续监管处罚频次的效应为正。}
+
+\paragraph{H4 (网络可见度调节)。}
+机构理论指出, 可见度越高的组织面临越强的合法性审视: 处于新闻
+共现网络中心位置的银行, 其象征性宣告更容易被媒体与同业识破,
+象征管理的收益—风险比更差, 因而实质性采纳的效率效应应在高中心度
+银行被放大。我们以交互项 \code{sub\_x\_btwn} $=$ \code{sub\_frac}
+$\times$ \code{L.bank\_between\_cent} 检验之, 并以
+\code{bank\_degree\_cent} 控制``被报道多则更易显得实质''的可见度
+混淆; 该调节框架依托生产面板 ($T=18$) 估计。
+\emph{H4: 交互项 \code{sub\_x\_btwn} 的效应为负 (放大 CIR 下降)。}
 
 \section{方法}\label{sec:method}
+
 \subsection{样本与数据}
-银行—年度面板覆盖 $N \times T \approx 3000\text{--}9000$ 银行—年, 2007--2024
-(per spec.sample), 经 \code{news\_process} 流水线 (stage 32a innovation\_substantiveness)。
+银行—年度面板覆盖 2007--2024 年 ($T=18$) 的 110 家中国银行,
+底层为生产目标语料约 1{,}700 万条中文媒体报道 (报纸筛选后、
+共现硬过滤前口径)。
+文章级 W\&Z 实质性分类由 \code{news\_process} 流水线 stage 21 的
+三家 LLM 标注产出, 银行—年度聚合在面板编码层 (encode) 完成; 早期
+文档所称``stage 32a innovation\_substantiveness''为已退役的旧阶段
+编号, 本文全部测度以现行流水线为准。原始语料普查 (过滤与去重
+之前的全量口径, 仅供数据附录): 183 个去重源文件、18{,}198{,}978 条
+媒体报道 (2007-01-01 至 2025-12-31)、3{,}740 家媒体来源; 精确唯一
+18{,}177{,}370 条 (重复率 0.12\%); 媒体类型为报纸的报道占全部行
+92.93\% (16{,}912{,}361 行) 予以保留, 其余类型按行剔除。普查口径
+与处理量口径为两套口径, 不可混用。回归样本规模
+\NoteThis{$N\times T$ 实读数字待生产面板回填; spec 目标为
+n\_bank\_min $=200$、观测数 $\geq 3000$}。
 
 \subsection{实质性度量}
-\NoteThis{LLM 标注流水线 (innovation\_substantiveness\_full 二元指示); full vs ctx
-双轨交叉验证。}
+每篇通过留篇门控的银行—金融科技报道, 由大语言模型按
+Westphal--Zajac 二分标注为\emph{实质性} (报道可验证的系统投产、
+产品落地、技术投入) 或\emph{象征性} (口号宣示、仪式性签约、概念
+展示)。银行—年度处理变量为实质性新闻占比:
+\begin{equation}
+\code{sub\_frac}_{i,t}
+  = \frac{\#\{\text{实质性文章}\}_{i,t}}{\code{n\_articles\_llm\_valid}_{i,t}},
+\label{eq:subfrac}
+\end{equation}
+分母为该银行—年度通过 LLM 验证的有效文章数。测度沿三条文本轨
+并行构造: 全文轨 (canonical, \code{sub\_frac})、实体上下文轨
+(\code{sub\_frac\_sc}, 分母为 \code{n\_articles\_llm\_valid\_ctx})
+与银行—金科同句共现轨 (\code{sub\_frac\_ss})。三轨是同一构念在
+不同测量窗口下的高相关孪生, 互为稳健性、不分主次: 各轨进入各自
+恰好识别的独立设定并排报告, 绝不合并进同一过度识别系统 (ctx/ss
+轨为 conditional-on-full 测度, 其行宇宙是全文轨留篇集的子集)。
+跨厂商维度, 三家模型各自的分类序列物化为 per-model 孪生列
+(\code{gpt54nano\_sub\_frac\_full}、\code{gemini31\_sub\_frac\_full}、
+\code{deepseekv4\_sub\_frac\_full}, 各配指示列以该模型自身验证
+篇数为分母), 与共识测度并排, 同样各自恰好识别。效度披露:
+实质性分类的人工 gold 标注 Cohen's $\kappa$ 效度闸尚待生产语料
+($T=18$) 人工标注回填 (状态: pending\_T18\_human\_annotation),
+本文如实披露而非宣称已验证。
+
+\subsection{LLM 路由与确定性 (F1)}
+分类标注采用三个相互独立的 LLM 家族: \code{gpt-5.4-nano}
+(OpenAI)、\code{gemini-3.1-flash-lite} (Google) 与
+\code{deepseek-v4-flash} (DeepSeek)。其中 OpenAI 与 Google 两家
+经 yunwu.ai 聚合器以 OpenAI 兼容 API 调用, DeepSeek 直连
+\code{api.deepseek.com}。所有调用设置 \code{temperature=0} 与
+\code{seed=42}, 并使用字节级冻结的 prompt (版本 v8), 保证输出
+确定且可经缓存离线复现。共识标签由三家多数投票产生; 共识构造
+含验证门控与清票规则, 不等于对存档原始票的裸多数。三家各自的
+per-model 序列作为互为稳健性、不分主次的并列测度保留, 各自进入
+恰好识别的独立设定, 绝不合并进同一过度识别系统; 跨厂商测度族的
+族错误率由 Romano--Wolf step-down 重抽样控制 (Table~A12,
+Panel~C), 而非以``三家都显著''的叙述性说法代替正式检验。
+
+\subsection{留篇门控与数值副作用 (F2)}
+一篇文章是否被计为银行—金融科技报道, 仅由全文轨的验证结果
+(\code{llm\_verified\_full}) 决定 (full-only 留篇门控)。实体上下文轨
+(\code{ctx}) 与同句共现轨 (\code{ss}) 为以全文轨为条件
+(conditional-on-full) 的测度: 其行宇宙是全文轨留篇集的子集, 仅作
+测量窗口稳健性轨, 不构成独立留篇门控。相较早期``任一轨验证通过
+即保留''的版本, 这一更严格门控会机械性压缩文章计数及其派生份额
+(\code{n\_articles}、\code{fintech\_share}、\code{attention\_pct})。
+这些水平位移是留篇门控与 headline 处理轨对齐的定义性后果, 并非
+数据错误; 方向偏保守 (剔除的是仅更窄窗口才能验证的边缘文章)。
+
+\subsection{零观测语义 (F3: NaN 主路径)}
+对于无金融科技新闻覆盖或无 LLM 验证有效文章的银行—年
+(\code{n\_articles=0} 或 \code{n\_articles\_llm\_valid=0}),
+份额类测度 —— 包括本文处理变量 \code{sub\_frac}、
+\code{symb\_frac} 及三个 per-model 孪生列 —— 的分母为零, 一律
+编码为未定义 (\code{NaN}) 而非零: ``零篇有效文章''与``有文章但
+实质性占比为零''是两种不同状态, 只有后者才是真实的 $0$。同理,
+基于余弦相似度的特征 (\code{auth\_sim\_*}、\code{benefit\_*}、
+\code{article\_sim\_*})、比例变量与连续强度分
+(\code{fintech\_intensity\_mean}) 在零观测时亦编码为 \code{NaN}。
+我们遵循 Allison (2001) 与 Heckman (1979) 把这类设计性缺失视为
+缺失值, 回归中采用列删除处理; 计数与求和型变量在零观测时保留
+$0$, 作为数学上正确的零观测值。
+
+\subsection{Bartik IV 修剪 (F4)}
+早期版本面板含约 30 个候选 Bartik 工具变量, 其中 28 个于 v6 因
+违反 \textcite{goldsmithpinkham2020bartik} 所要求的份额外生性被
+删除。现行流水线的 IV 扩展层在同一外生性纪律下重建实质性测度族
+的 Bartik 份额移位工具 \code{bartik\_subst\_iv\_full} (及其
+ctx/ss 轨镜像 \code{bartik\_subst\_iv\_ctx}/\code{\_ss}), 在本文
+中仅作后备识别通道; 主通道为非 Bartik 的同组 leave-one-out 同业
+工具 (\code{leave\_one\_out\_peer\_subst\_iv})。每一工具各自进入
+恰好识别的 2SLS 并排报告, 绝不合并为过度识别系统。
 
 \subsection{Dual Outcome 识别策略}
-\NoteThis{Long\_run\_roa\_change\_3yr (within-bank 3 年前向) + car\_3day\_window
-\_fintech\_announcement (短期 CAR); within-bank within-year FE; bank-level cluster。}
+主结果变量为效率试金石: 3 年前向成本收入比变化
+\code{cost\_income\_ratio\_change\_3yr} $= \mathrm{CIR}_{i,t+3} -
+\mathrm{CIR}_{i,t}$, 其中 $\mathrm{CIR} = $ 业务及管理费 $/$ 营业
+收入; 在 $T=18$ 面板上 $t\in\{2007,\dots,2021\}$ 有对应的 $t+3$。
+伴随结果为 \code{long\_run\_roa\_change\_3yr}。基线设定为长面板
+双向固定效应:
+\begin{equation}
+\Delta \mathrm{CIR}_{i,t+3}
+ = \beta\,\code{sub\_frac}_{i,t}
+ + \gamma' X_{i,t} + \alpha_i + \lambda_t + \varepsilon_{i,t},
+\label{eq:baseline}
+\end{equation}
+其中 $\alpha_i$、$\lambda_t$ 为银行与年份固定效应, $X_{i,t}$ 为
+财务与宏观控制 (资产规模、杠杆、资本充足率、不良率、存款增速与
+GDP、M2 增速; 财务面板 enrichment 即将接入), 标准误在银行层面
+聚类 (主口径 $G_{\text{bank}}\approx 110$, 与本文面板的银行宇宙
+一致; \NoteThis{实读聚类组数待生产面板回填; spec 所载
+n\_bank\_min $=200$ 仅为目标值, 若坚持须先在 spec 层面澄清银行
+宇宙扩容依据})。H1 预期
+$\beta<0$。
+
+内生性应对的主通道为工具变量。第一阶段与第二阶段为
+\begin{equation}
+\code{sub\_frac}_{i,t} = \pi\, Z_{i,t} + \phi' X_{i,t}
+ + \alpha_i + \lambda_t + u_{i,t}, \qquad
+\Delta \mathrm{CIR}_{i,t+3} = \beta^{IV}\,
+ \widehat{\code{sub\_frac}}_{i,t} + \gamma' X_{i,t}
+ + \alpha_i + \lambda_t + \varepsilon_{i,t},
+\label{eq:iv}
+\end{equation}
+其中主工具 $Z$ 为同组 leave-one-out 同业实质性占比
+(\code{leave\_one\_out\_peer\_subst\_iv}), 后备工具为 Bartik 份额
+移位工具 (\code{bartik\_subst\_iv\_full})
+\parencite{learyroberts2014peer,goldsmithpinkham2020bartik}。我们
+如实披露两类工具的局限: 同业工具面临 Manski 反射问题与``同业
+冲击直接影响本行效率''的排他性威胁
+\parencite{manski1993reflection}; Bartik 工具的识别依赖初始份额
+外生。每一工具各自进入恰好识别的 2SLS (含 \code{\_lag1} 变体与
+ctx/ss 轨镜像 \code{lpeer\_subst\_iv\_ctx}/\code{\_ss}), 并排报告
+而绝不合并为过度识别系统; 报告 Kleibergen--Paap rk $F$ 与
+Stock--Yogo 临界值, 弱工具情形改读 Anderson--Rubin 置信区间。
+
+四个外生政策冲击 (E1 余额宝上线 2013-06-13; E2 网络借贷整顿
+2016-08-24; E3 资管新规 2017-04-27; E4 蚂蚁 IPO 暂停 2020-11-03)
+的截面强度 DiD 作为辅助证据:
+\begin{equation}
+y_{i,t} = \sum_{e}\delta_e\,
+ \bigl(\mathrm{Post}_{e,t}\times \mathrm{Exposure}_{i,e}\bigr)
+ + \gamma' X_{i,t} + \alpha_i + \lambda_t + \varepsilon_{i,t},
+\label{eq:did}
+\end{equation}
+并以现代 DiD 工具与平行趋势敏感性分析补强
+\parencite{callaway2021difference,rambachan2023more}。
+
+推断纪律: 我们事先区分 confirmatory 与 exploratory 检验。
+confirmatory 检验为单一主处理 (\code{sub\_frac}) $\times$ 单一主
+结果 (3 年前向 CIR 变化) $\times$ 单一主规格 (式
+\eqref{eq:baseline}); 实质性测度族 (\code{sub\_frac} 三轨与缺口
+变量) 的族错误率以 Romano--Wolf step-down 校正
+\parencite{romanowolf2005stepwise}, 异质性子样本族以
+Westfall--Young 型 battery 处理; 双向聚类下年份维度组数偏小
+($G_{\text{year}}\approx18$) 时以 wild-cluster bootstrap 补救
+\parencite{roodman2019boottest}。
 
 \subsection{嵌入类测度 (双主轨、互为稳健性; F5)}
 所有嵌入派生特征均在来自独立厂商的两个同为主测度的嵌入模型下并行
@@ -59,16 +387,142 @@ Google Gemini 嵌入; 自管线 v3.15.0 (2026 年 6 月) 起换为阿里
 情感标注 LLM 集成不受此变更影响: 嵌入模型与情感 LLM
 是互不相交的管线组件。
 
+\subsection{稳健性梯子总览}
+除上述 IV 多引擎与聚类梯子外, 本文的稳健性检验按下列并列梯子
+组织; 每一梯子内的各变体均为\emph{互为稳健性、不分主次}的并列
+测度, 各自进入恰好识别的独立设定并排报告, 绝不合并进同一过度
+识别的 Hansen $J$ 系统。第一, 三轨文本梯子: \code{sub\_frac}
+(全文, canonical)、\code{sub\_frac\_sc} (实体上下文) 与
+\code{sub\_frac\_ss} (同句共现), 各配自身轨 IV 镜像; 留篇门控为
+full-only, ctx/ss 为 conditional-on-full。第二, 跨厂商 per-model
+梯子: 三家 LLM 各自的 \code{\{gpt54nano,gemini31,deepseekv4\}\_sub\_frac\_full}
+与共识测度并排, 族错误率由根级 Romano--Wolf 模板统一计算
+(Table~A12, Panel~C)。第三, 构念正交性: 以 collab\_mode (自研/
+协同) 作替代规格控制, 并以实质性 $\times$ locus $\times$ collab
+的八格分解 (Table~6) 证明主效应不被邻维度构念驱动。第四, 词汇
+清晰度稳健性 (Table~A7): 排除``实质性分类只是捕捉语言清晰度/
+具体性''的替代解释 \parencite{loughranmcdonald2011liability}。
+第五, 网络判据敏感性 (调节与控制变量侧): H4 所用中心度列
+(\code{bank\_between\_cent}、\code{bank\_degree\_cent}) 在三种
+银行—银行共现判据 (同篇 / $\pm1$ 句窗 / 严格同句) 下重估, 三判据
+属规格稳健性并排, 不设族错误率模板。政治词权重梯子、词典消融
+梯度与 BERT 三模型等属于词典/BERT 语调测度族, 与本文的 LLM
+分类处理变量构念不同, 不纳入本文稳健性族。
+
 \section{数据}\label{sec:data}
-\NoteThis{数据来源、样本选择、描述统计 (Table 1)。}
+
+\paragraph{数据来源与样本漏斗。}
+底层语料为 2007--2024 年中文媒体对银行与金融科技的报道。样本
+构造遵循如下漏斗: (i) 原始语料普查 (过滤与去重之前, 仅供数据
+附录口径): 183 个去重源文件、18{,}198{,}978 条媒体报道、3{,}740
+家媒体来源; (ii) 仅保留媒体类型为报纸的报道 (占全部行 92.93\%,
+16{,}912{,}361 行), 其余类型 (通讯社、杂志、政府公报、网页等)
+按行剔除 --- 限定 2007--2024 日期窗后, 该报纸保留口径即为约
+1{,}700 万条的生产目标语料 ($\approx 16.9$M $\to$ $\sim$17M;
+报纸筛选后、共现硬过滤前口径, 与 (i) 的普查口径不可混用);
+(iii) 银行—金融科技邻近共现硬过滤, 仅保留目标银行与
+至少一个金融科技词在 $\pm1$ 句窗口内 (含标题) 共现的文章;
+(iv) full-only 留篇门控 (\code{llm\_verified\_full}), 产生
+最终文章宇宙 (\NoteThis{(iii)/(iv) 之后的最终文章宇宙计数远小于
+报纸保留口径的约 1{,}700 万条, 实读数字待生产回填}); 聚合后为
+110 家银行 $\times$ 2007--2024 的银行—年度面板。财务结果与控制变量 (CIR、ROA、资产、资本充足率、
+不良率等) 由银行财务面板 enrichment 接入。
+
+\paragraph{描述统计。}
+Table~1 报告主要变量的均值、标准差与分位数。
+\NoteThis{Table~1 全部描述统计数字 (含 \code{sub\_frac} 与
+\code{symb\_frac} 的分布、留篇后文章数、银行覆盖) 待生产面板
+回填。}
 
 \section{实证结果}\label{sec:results}
-\NoteThis{Table 2 (M1$\to$M6 渐进主回归); Table 3 (dual outcome 短期 CAR + 长期 ROA
-反转联合); Table 4 (异质性 4 银行类型 $\times$ SOE $\times$ wave $\times$ 资本充足率
-quartile); Table 5 (稳健性 alternative substantiveness track full vs ctx)。}
+
+\paragraph{Table 2: 主回归 (M1$\to$M6 渐进)。}
+Table~2 按 M1$\to$M6 渐进呈现式 \eqref{eq:baseline} 的估计:
+M1 无控制、无固定效应; M2 加银行固定效应; M3 加年份固定效应;
+M4 加财务控制; M5 加宏观控制; M6 全规格。若 H1 成立, 应观察到
+\code{sub\_frac} 系数为负、在加入双向固定效应与控制后保持稳定
+(系数稳定性以 \parencite{oster2019unobservable} 界评估)。
+\NoteThis{Table~2 全部系数、标准误与显著性待生产面板估计。}
+
+\paragraph{2SLS 估计。}
+IV 表呈现式 \eqref{eq:iv} 的两阶段估计: 同业 leave-one-out 工具
+为主通道, Bartik 工具为后备通道, 另报 \code{\_lag1} 变体与
+ctx/ss 轨镜像; 每列为一个恰好识别设定, 附第一阶段系数、
+Kleibergen--Paap rk $F$ 与 (弱工具时) Anderson--Rubin 置信区间。
+\NoteThis{IV 估计结果待生产面板回填。}
+
+\paragraph{Table 3: Dual outcome。}
+Table~3 并排呈现效率试金石与长期绩效两个结果: 左半为
+\code{cost\_income\_ratio\_change\_3yr}, 右半为
+\code{long\_run\_roa\_change\_3yr}; H1 预期前者系数为负、后者为
+正; H2 预期 \code{symb\_frac} 两侧均不显著, 缺口变量
+(\code{substantive\_minus\_symbolic\_gap}) 系数为负。短期市场
+反应 (公告窗 CAR) 扩展需日频股价数据, 留待后续版本。
+\NoteThis{Table~3 系数与联合检验结果待回填。}
+
+\paragraph{Table 4: 异质性。}
+Table~4 按银行类型 (国有大行/股份制/城商行/农商行) $\times$
+国有属性 $\times$ 金科浪潮时期 $\times$ 资本充足率 quartile 分层
+估计, 并报告 H4 的网络可见度调节 (交互项 \code{sub\_x\_btwn},
+控制 \code{bank\_degree\_cent}):
+\begin{equation}
+\Delta \mathrm{CIR}_{i,t+3}
+ = \beta\,\code{sub\_frac}_{i,t}
+ + \theta\,\bigl(\code{sub\_frac}_{i,t}\times
+   \code{bank\_between\_cent}_{i,t-1}\bigr)
+ + \gamma' X_{i,t} + \alpha_i + \lambda_t + \varepsilon_{i,t}.
+\label{eq:mod}
+\end{equation}
+异质性子样本族的多重检验以 Westfall--Young 型 battery 校正。
+\NoteThis{Table~4 分层系数与调节效应待生产面板 ($T=18$) 估计。}
+
+\paragraph{Table 5: 稳健性。}
+Table~5 呈现三轨替代测度 (\code{sub\_frac\_sc}、
+\code{sub\_frac\_ss}) 与加入 collab\_mode 替代规格控制后的主
+回归; 各列各自恰好识别、并排报告。
+\NoteThis{Table~5 结果待回填。}
+
+\paragraph{Table 6: 八格分解。}
+Table~6 (模板 19\_table6\_cell\_decomposition) 把文章宇宙按
+实质性 $\times$ locus $\times$ collab 三个二元维度交叉为八格,
+证明 W\&Z 实质/象征维度与 P4 locus、P5 collab 概念正交、主效应
+不被邻维度构念驱动 (反 salami-slicing 证据)。
+\NoteThis{Table~6 分格频数与分格效应待回填。}
+
+\paragraph{附表。}
+Table~A7 (模板 21\_substance\_clarity\_robustness) 报告词汇清晰度
+稳健性; Table~A12 Panel~C 报告跨厂商分类测度族 (\code{CLS:} 族)
+的 Romano--Wolf 族错误率校正 $p$ 值。
+\NoteThis{附表结果待回填。}
 
 \section{结论}\label{sec:conclusion}
-\NoteThis{总结发现与战略管理理论启示。}
+
+本文把 Westphal--Zajac 的实质性 vs 象征性管理框架操作化到中国
+银行业金融科技转型, 用三家独立 LLM 对千万级媒体语料做 W\&Z 二元
+分类, 并以``效率试金石''—— 3 年前向成本收入比变化 —— 检验
+decoupling 框架最锐利的可证伪含义。
+\NoteThis{核心发现总结 (系数方向、量级与稳健性) 待生产面板估计
+后撰写。}
+
+理论上, 本文为 decoupling 研究提供了数字化转型语境下的边界条件
+证据: 当采纳对象是可由运营数据验证的技术实践时, 象征管理的
+可持续性取决于外部观察者 (媒体、同业、监管) 的可见度约束 ——
+这把 W\&Z 框架从治理仪式扩展到技术战略。方法上, 本文示范了
+以多厂商 LLM 并排分类、冻结提示与确定性缓存构建可复现文本测度
+的完整流程。政策上, 若象征性宣告被证实无效率后果甚至与后续处罚
+正相关, 则以宣告强度为基础的金科监管评估与投资者定价需要
+系统性修正; 监管者可借助文本测度区分``真做''与``装样子''。
+\NoteThis{政策含义的强度措辞依结果方向回填。}
+
+本文的局限有五。第一, 面板为年度频率, 无法刻画季度内的战略
+调整与短期市场反应; 公告窗 CAR 检验待日频股价数据接入。第二,
+媒体报道本身是内生的信息中介: 报道什么、如何措辞受媒体选择
+影响, 我们的 IV 与固定效应设计缓解但不能完全排除这一层内生性;
+测度亦是对实施行为的间接观察。第三, 样本为中国单一市场, 其
+银行业结构、监管体制与媒体生态的特殊性限制向其它制度环境的
+外推。第四, 实质性分类的人工 gold 标注效度闸尚待生产语料人工
+标注回填, 当前效度证据以跨厂商一致性为主。第五, 部分结果
+(如 H4 调节) 依赖生产面板的网络测度, 本文如实以占位披露。
 
 \printbibliography
 

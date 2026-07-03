@@ -1,12 +1,13 @@
 % bank_fintech_substance/drafts/en/manuscript.tex
 % P3 manuscript skeleton — M0 G0 scaffolded per B-route plan v2.55 (2026-05-17)
+% 2026-07-03 enrichment: intro/lit/hypotheses/method/data/results/conclusion + F1-F2 disclosures (aligned to paper_spec 2.0.0)
 % Compile: xelatex + biber + xelatex × 2
 
 \input{../../../_shared/preamble_en.tex}
 
 \addbibresource{refs.bib}
 
-\title{Substantive vs Symbolic Fintech Strategies:\\Long-Run ROA Reversal Evidence from Chinese Banking}
+\title{Substantive versus Symbolic Fintech Strategies:\\Cost-to-Income ``Efficiency Litmus Test'' Evidence from Chinese Banking}
 \author{\NoteThis{Author names}}
 \date{\today}
 
@@ -14,49 +15,461 @@
 \maketitle
 
 \begin{abstract}
-\NoteThis{Final abstract pending — target $\approx$ 200 English words.}
-This paper applies Westphal--Zajac's (1994, 1998 \emph{ASQ}) substantive vs symbolic
-management framework to bank fintech strategic announcements during 2007--2024. We
-classify each bank-year fintech announcement using a binary substantiveness measure
-(\code{innovation\_substantiveness\_full}) derived from large-language-model annotation,
-and test the dual-outcome prediction: symbolic announcements should produce positive
-short-run market reactions but long-run ROA reversal (within-bank 3-year forward change),
-whereas substantive announcements should not. Identification leverages four exogenous
-policy shocks (余额宝 launch, P2P regulation, asset-management reform, Ant IPO pause) for
-cross-sectional intensity DiD. We find \NoteThis{key result}\@.
+\NoteThis{Final abstract pending — target $\approx$ 200 English words; headline numbers await the production panel.}
+This paper applies Westphal--Zajac's (1994, 1998 \emph{ASQ}) substantive versus
+symbolic management (decoupling) framework to Chinese banks' fintech strategies
+over 2007--2024. Using a bank--year panel built from roughly 17~million Chinese
+media reports, three independent large language models classify each
+bank--fintech article into the W\&Z substantive/symbolic dichotomy, aggregated
+to the bank--year substantive news share \code{sub\_frac} (denominator
+\code{n\_articles\_llm\_valid}). Our central test is the sharpest falsifiable
+implication of decoupling---an ``efficiency litmus test'': substantive adoption
+should reduce the three-year forward cost-to-income ratio
+(\code{cost\_income\_ratio\_change\_3yr} $= \mathrm{CIR}_{t+3}-\mathrm{CIR}_{t}$),
+whereas symbolic announcements should have no real efficiency consequences; a
+companion test uses the long-run forward ROA change
+(\code{long\_run\_roa\_change\_3yr}). Identification combines bank and year
+fixed effects with bank-clustered standard errors, a leave-one-out peer
+instrument as the primary channel (a Bartik shift-share instrument as
+fallback), and four exogenous policy shocks (Yu'ebao launch, P2P rectification,
+asset-management reform, Ant IPO suspension) in auxiliary cross-sectional
+intensity DiD designs. We find \NoteThis{key result: sign, significance, and
+economic magnitude of sub\_frac on the 3-year forward CIR change await
+production-panel estimation}\@.
 \end{abstract}
 
 \section{Introduction}\label{sec:intro}
-\NoteThis{Motivate the research question.}
 
-This study makes three contributions. First, we operationalize Westphal--Zajac's
-substantive/symbolic dichotomy in the fintech-strategy context using large-scale media
-text and LLM annotation, complementing prior survey-based and case-based evidence.
-Second, we exploit an 18-year Chinese banking panel that contains complete short-run
-event windows and long-run ROA evolution, allowing dual-outcome testing of the W\&Z
-implicit mechanism. Third, we differentiate measurement constructs from concurrent
-fintech-tone and fintech-attention studies, with explicit anti-salami-slicing audit
-(per replication package).
+Over the past decade and a half, Chinese banking has undergone a digital
+transformation race driven by mobile payments, online credit, and big-data risk
+management. From the deposit-flight scare triggered by the 2013 launch of
+Yu'ebao to the regulatory reconstruction that followed the 2020 suspension of
+Ant Group's IPO, virtually every bank has proclaimed a ``fintech strategy'' in
+annual reports, press events, and media coverage. Yet proclamation is not
+implementation. Organization theory has long recognized that firms can adopt
+the \emph{form} of an institutionalized practice while decoupling it from
+\emph{operational substance}, harvesting legitimacy and market goodwill without
+bearing the costs of real change
+\parencite{westphal1998sym,westphal2001decoupling}. In the bank-fintech
+context, this ``walking the walk versus talking the talk'' distinction has
+direct prudential implications: if a sizable share of fintech announcements is
+symbolic, policy evaluations and investor pricing based on announcement
+intensity are systematically distorted.
+
+We propose and test the framework's most falsifiable dividing line---an
+\emph{efficiency litmus test}: \emph{substantive} fintech adoption (verifiable
+system deployment, process re-engineering, product rollout) should lower a
+bank's cost-to-income ratio (CIR) over the medium run, whereas \emph{symbolic}
+announcements (slogans, ceremonial signings, concept showcases) should have no
+real efficiency consequences. Building on a production corpus of roughly
+17~million Chinese media reports over 2007--2024, three mutually independent
+large language models classify each bank--fintech article into the
+Westphal--Zajac dichotomy; the classifications aggregate to the bank--year
+substantive news share \code{sub\_frac}, whose effect we estimate on the
+three-year forward CIR change (\code{cost\_income\_ratio\_change\_3yr}), with
+the long-run forward ROA change (\code{long\_run\_roa\_change\_3yr}) as a
+companion outcome.
+
+The central identification threat is the endogeneity of media coverage:
+expected operational improvement may simultaneously drive substantive coverage
+and subsequent efficiency changes. Our response has three layers. First, the
+baseline specification uses long-panel bank and year fixed effects with
+standard errors clustered at the bank level, absorbing time-invariant bank
+heterogeneity and system-wide annual shocks. Second, the primary
+identification channel is a leave-one-out peer instrument
+(\code{leave\_one\_out\_peer\_subst\_iv}): the substantive share of same-group
+peers (excluding the focal bank) instruments the bank's own substantive
+exposure, with a Bartik shift-share instrument
+(\code{bartik\_subst\_iv\_full}) as fallback. We disclose the Manski
+reflection problem and the exclusion-restriction caveats candidly
+\parencite{manski1993reflection,learyroberts2014peer}, report
+Kleibergen--Paap rk $F$ statistics, and switch to Anderson--Rubin confidence
+intervals under weak instruments. Third, four exogenous policy shocks (the
+Yu'ebao launch on 2013-06-13, the P2P lending rectification on 2016-08-24, the
+asset-management reform on 2017-04-27, and the Ant IPO suspension on
+2020-11-03) support auxiliary cross-sectional intensity DiD designs rather
+than the main identification. All inference follows a pre-declared
+discipline: a single confirmatory main specification, with measurement
+families corrected by Romano--Wolf step-down resampling
+\parencite{romanowolf2005stepwise}.
+
+This study makes four contributions. First, we operationalize
+Westphal--Zajac's substantive/symbolic dichotomy at scale in the
+fintech-strategy context: relative to prior survey- and case-based evidence,
+LLM annotation renders the W\&Z construct consistently measurable over a
+corpus of tens of millions of articles
+\parencite{gilardi2023chatgpt,carlsonburbano2026llm}. Second, we subject the
+decoupling framework to a dual-outcome test on an 18-year banking panel: the
+efficiency litmus test (CIR) and long-run performance (ROA) jointly identify
+the real consequences of the announcement--implementation gap, rather than
+stopping at disclosure behavior itself. Third, we explicitly differentiate
+measurement constructs from concurrent bank-fintech tone (sentiment) and
+attention (exposure) studies, with an anti-salami-slicing audit: this paper
+exclusively owns the W\&Z substantive/symbolic dimension, treats the
+infrastructure/application locus and make/collaborate collab\_mode dimensions
+only as alternative-specification controls, and demonstrates via an
+eight-cell decomposition that the main effect is not driven by neighboring
+constructs. Fourth, we extend the empirical washing literature (green, ESG,
+AI) to bank fintech, providing systematic evidence from one of the world's
+largest banking systems \parencite{giannetti2026glossy,song2026aiwashing}.
+
+The remainder of the paper proceeds as follows. Section~\ref{sec:lit} reviews
+the literature; Section~\ref{sec:theory} develops hypotheses;
+Section~\ref{sec:method} presents the sample, measurement, and identification
+strategy; Section~\ref{sec:data} describes the data;
+Section~\ref{sec:results} reports the empirical results; and
+Section~\ref{sec:conclusion} concludes and discusses limitations.
 
 \section{Literature Review}\label{sec:lit}
-\NoteThis{Three strands: (1) Westphal--Zajac substantive/symbolic
-\autocite{westphal1994substance,westphal1998sym,westphal2001decoupling};
-(2) Symbolic management of strategic change \autocite{fisszajac2006symbolic};
-(3) Practice-based view of strategy \autocite{bromiley2014practice}.}
+
+\subsection{Symbolic Management and the Decoupling Lineage}
+
+Our theoretical foundation is the Westphal--Zajac symbolic-management research
+program: CEO long-term incentive plans that are announced but not implemented
+\parencite{westphal1994substance}, governance reforms whose announcement earns
+positive shareholder reactions while decoupled from substantive change
+\parencite{westphal1998sym}, and direct evidence of policy--practice
+decoupling in stock repurchase programs \parencite{westphal2001decoupling}.
+\textcite{fisszajac2006symbolic} bring framing and decoupling into the
+symbolic management of strategic change, showing how firms manage stakeholder
+perceptions through discourse. The lineage has since expanded:
+\textcite{westphal2023systemic} extends symbolic management systemically to
+corporate social responsibility and corporate purpose, suggesting symbolic
+management can be systemic rather than isolated;
+\textcite{kimlyon2015greenwash} formalizes disclosure--performance deviations
+into exaggeration (greenwash) and undue modesty (brownwash), providing
+conceptual tools for two-sided measurement of the
+announcement--implementation gap; and the systematic reviews of
+\textcite{velte2023decoupling} and \textcite{cepeda2025decoupling} map the
+measurement proxies and empirical streams of decoupling research. The
+practice-based view \parencite{bromiley2014practice} further insists that
+strategy research attend to observable practices rather than announcements.
+Together these works support operationalizing ``symbolic versus substantive
+fintech adoption'' as bank--year share and gap variables.
+
+\subsection{Washing Empirics: Market and Banking Evidence on Disclosure--Action Decoupling}
+
+A fast-growing empirical literature measures the decoupling of ``saying'' from
+``doing.'' \textcite{giannetti2026glossy} provides the direct banking anchor:
+banks with glossy environmental disclosures hold browner lending portfolios,
+with discourse systematically diverging from asset-side behavior.
+\textcite{duchin2025greenwash} shows that firms can formally ``greenwash''
+through asset-market transactions without abating pollution;
+\textcite{kimyoon2023pri} finds that fund managers signing the UN Principles
+for Responsible Investment do not correspondingly change investment behavior,
+so verbal commitments attract flows independently of substantive action.
+Closest to our technical route, \textcite{song2026aiwashing} identifies
+AI-washing with BERT classification cross-validated against patents, finding
+that strategic AI disclosure attracts short-run attention and long-run
+backlash. \textcite{flammer2021greenbonds} demonstrates the use of verifiable
+commitment devices to separate credible signals from washing;
+\textcite{bingler2024cheaptalk} measures cheap talk in climate disclosures
+with ClimateBERT and links it to climate initiatives, emissions, and
+reputation risk; \textcite{cai2025cheaptalk} examines strategy-disclosure
+intensity, risk taking, and performance; and \textcite{chen2024esgdecoupling}
+measures ESG decoupling with gap variables in the Chinese context and studies
+whether digital transformation restrains it. Relative to this literature, we
+bring the washing question into bank fintech and adopt an efficiency litmus
+test rather than market reactions as the primary criterion.
+
+\subsection{LLM Annotation and Text-Based Measurement}
+
+Our measurement rests on the text-as-data framework
+\parencite{gentzkow2019text}. \textcite{gilardi2023chatgpt} shows that LLMs
+can outperform crowd workers in text-annotation tasks, providing an external
+validity benchmark for large-scale LLM classification;
+\textcite{carlsonburbano2026llm} offers foundational guidelines and bias
+warnings for LLM annotation in management research---their cautions on model
+heterogeneity and prompt sensitivity map directly onto our per-model
+cross-vendor robustness design and byte-frozen prompt.
+\textcite{babina2024ai} exemplifies anchoring technology-adoption measures in
+verifiable substantive inputs (resume-based AI human capital), a close
+precedent for operationalizing ``substantiveness'';
+\textcite{loughranmcdonald2011liability} anchors the lexical-clarity
+robustness check (Table~A7) in the financial-text dictionary tradition.
+Relative to this strand, our increment is to have three mutually independent
+LLMs produce classification series for the same construct that can be tested
+side by side, with frozen prompts, zero temperature, and deterministic caching
+guaranteeing end-to-end reproducibility.
+
+\subsection{Identification, Inference, and the Chinese Bank-Fintech Context}
+
+The instrumental-variable lineage runs from \textcite{manski1993reflection},
+whose reflection problem defines the fundamental difficulty of identifying
+peer effects, through \textcite{learyroberts2014peer}, the corporate-finance
+precedent for leave-one-out peer instruments and their exclusion caveats, to
+\textcite{goldsmithpinkham2020bartik}, which formalizes Bartik identification
+as share exogeneity with Rotemberg-weight diagnostics. On inference,
+\textcite{romanowolf2005stepwise} controls the family-wise error rate of
+measurement families via step-down resampling;
+\textcite{roodman2019boottest} addresses the small number of year clusters
+($G\approx18$) under two-way clustering with wild-cluster bootstrap; and
+modern DiD tools and parallel-trends sensitivity analyses
+\parencite{callaway2021difference,rambachan2023more}, together with
+coefficient-stability bounds \parencite{oster2019unobservable}, buttress the
+auxiliary evidence. On context, \textcite{chengqu2020fintech} is the direct
+benchmark for Chinese-corpus bank-fintech text indices entering bank--year
+panels (finding that bank fintech reduces credit risk);
+\textcite{berg2022fintechlending} surveys fintech lending's impact on
+banking; and \textcite{heese2022newspaper} shows that corporate misconduct
+increases after local newspapers exit, supporting our use of regulatory
+penalties as a decoupling extension and of media coverage as an information
+intermediary.
+
+In sum, prior work either measures washing outside banking or measures
+fintech intensity inside banking without separating substance from symbolism.
+To our knowledge, no study operationalizes the W\&Z dichotomy at scale for
+bank fintech and directly tests decoupling's falsifiable implication with an
+efficiency litmus test. This paper fills that gap.
+
+\section{Theory and Hypotheses}\label{sec:theory}
+
+The core proposition of decoupling theory is that organizations can announce
+the adoption of an institutionalized practice without implementing it,
+harvesting legitimacy without bearing the costs of change
+\parencite{westphal1998sym,westphal2001decoupling}. Applied to bank fintech
+transformation, four theoretical predictions follow. All are \emph{ex-ante
+theoretical expectations}, not results; all coefficients and significance
+levels await production-panel estimation.
+
+\paragraph{H1 (Efficiency litmus test).}
+Substantive fintech adoption entails real system deployment, process
+automation, and customer-acquisition re-engineering, whose most direct
+operational consequence is medium-run cost-efficiency improvement: lower
+operating and administrative expenses per unit of operating income. If the
+media-based substantive share \code{sub\_frac} indeed captures real
+implementation, it should predict a \emph{decline} in the three-year forward
+cost-to-income ratio. As a companion, under W\&Z's long-run performance
+implication, substantive adoption should predict an \emph{increase} in the
+long-run forward ROA change.
+\emph{H1: the effect of \code{sub\_frac} on
+\code{cost\_income\_ratio\_change\_3yr} is negative; in the companion test,
+its effect on \code{long\_run\_roa\_change\_3yr} is positive.}
+
+\paragraph{H2 (Symbolic ineffectiveness).}
+Decoupling's definitional implication is ``announce without implementing'':
+symbolic announcements change no operating processes and hence should have no
+real efficiency consequences. A significant effect of the symbolic news share
+\code{symb\_frac} on the forward CIR change would instead falsify the
+decoupling interpretation. The gap variable
+(\code{substantive\_minus\_symbolic\_gap} $=$ \code{sub\_frac} $-$
+\code{symb\_frac}, derived in the Stata data-preparation step) summarizes
+both sides.
+\emph{H2: the effect of \code{symb\_frac} on
+\code{cost\_income\_ratio\_change\_3yr} is approximately zero; the gap
+variable's effect is negative.}
+
+\paragraph{H3 (Misconduct extension of decoupling).}
+If symbolic disclosure reflects managers substituting discourse for
+substantive compliance and internal-control investment, the symbolic share
+should correlate positively with subsequent external regulatory penalties.
+Penalty counts (\code{misconduct\_penalty\_count}) come from an independent
+regulatory source, free of common-source bias with the media corpus
+\parencite{heese2022newspaper}.
+\emph{H3: the effect of \code{symb\_frac} on subsequent regulatory penalty
+counts is positive.}
+
+\paragraph{H4 (Network-visibility moderation).}
+Institutional theory implies that more visible organizations face stronger
+legitimacy scrutiny: banks central in the news co-occurrence network find
+their symbolic announcements more easily exposed by media and peers, worsening
+the benefit--risk ratio of symbolic management, so the efficiency effect of
+substantive adoption should be amplified for high-centrality banks. We test
+this with the interaction \code{sub\_x\_btwn} $=$ \code{sub\_frac} $\times$
+\code{L.bank\_between\_cent}, controlling for \code{bank\_degree\_cent} to
+absorb the ``more coverage mechanically looks more substantive'' visibility
+confound; this moderation framework is estimated on the production panel
+($T=18$).
+\emph{H4: the interaction effect of \code{sub\_x\_btwn} is negative
+(amplifying the CIR decline).}
 
 \section{Methodology}\label{sec:method}
+
 \subsection{Sample and Data}
-Bank--year panel covers $N \times T \approx 3000\text{--}9000$ bank--years across
-2007--2024 (per spec.sample). All bank--year observations are processed through the
-\code{news\_process} pipeline (stage 32a innovation\_substantiveness).
+The bank--year panel covers 110 Chinese banks over 2007--2024 ($T=18$), built
+from a production target corpus of roughly 17~million Chinese media reports
+(the post-newspaper-filter, pre-co-occurrence-hard-filter scope). Article-level W\&Z substantiveness classifications
+are produced by the three-LLM annotation in stage~21 of the
+\code{news\_process} pipeline, with bank--year aggregation performed in the
+panel encode layer; the ``stage 32a innovation\_substantiveness'' label in
+earlier documentation refers to a retired stage number, and all measures in
+this paper follow the current pipeline. The raw-corpus census (the
+pre-filtering, pre-deduplication universe, reported for the data appendix
+only): 183 deduplicated source files, 18{,}198{,}978 media reports
+(2007-01-01 through 2025-12-31), and 3{,}740 media outlets; exact-unique
+count 18{,}177{,}370 (duplication rate 0.12\%); newspaper-type reports
+account for 92.93\% of all rows (16{,}912{,}361 rows) and are retained, with
+all other outlet types dropped row-wise. The census scope and the processing
+scope are distinct accounting bases and must not be conflated. Regression
+sample size: \NoteThis{realized $N\times T$ awaits the production panel; the
+spec targets are n\_bank\_min $=200$ and $\geq 3000$ observations}.
 
 \subsection{Substantiveness Measurement}
-\NoteThis{Describe LLM annotation pipeline producing innovation\_substantiveness\_full
-binary indicator (W\&Z substantive vs symbolic); cross-validate with full vs ctx tracks.}
+Each bank--fintech article passing the retention gate is annotated by large
+language models into the Westphal--Zajac dichotomy: \emph{substantive}
+(reporting verifiable system deployment, product rollout, technology
+investment) versus \emph{symbolic} (slogans, ceremonial signings, concept
+showcases). The bank--year treatment is the substantive news share:
+\begin{equation}
+\code{sub\_frac}_{i,t}
+  = \frac{\#\{\text{substantive articles}\}_{i,t}}{\code{n\_articles\_llm\_valid}_{i,t}},
+\label{eq:subfrac}
+\end{equation}
+with the denominator equal to the bank--year count of LLM-validated
+articles. The measure is constructed in parallel along three text tracks:
+the full-text track (canonical, \code{sub\_frac}), the entity-context track
+(\code{sub\_frac\_sc}, denominator \code{n\_articles\_llm\_valid\_ctx}), and
+the bank--fintech same-sentence co-occurrence track (\code{sub\_frac\_ss}).
+The three tracks are highly correlated twins of the same construct under
+different measurement windows---mutually robust, with no primacy ranking:
+each track enters its own just-identified specification and is reported side
+by side, never pooled into a single over-identified system (the ctx/ss
+tracks are conditional-on-full measures whose row universe is a subset of
+the full-track retained set). Along the vendor dimension, each model's
+classification series is materialized as per-model twin columns
+(\code{gpt54nano\_sub\_frac\_full}, \code{gemini31\_sub\_frac\_full},
+\code{deepseekv4\_sub\_frac\_full}, each with an indicator column and a
+denominator equal to that model's own verified article count), reported
+alongside the consensus measure and likewise just-identified. Validity
+disclosure: the human gold-standard Cohen's $\kappa$ validity gate for the
+substantiveness classification awaits human annotation on the production
+corpus ($T=18$; status: pending\_T18\_human\_annotation); we disclose this
+candidly rather than claim completed validation.
+
+\subsection{LLM Routing and Determinism (F1)}
+Classification annotation employs three mutually independent LLM families:
+\code{gpt-5.4-nano} (OpenAI), \code{gemini-3.1-flash-lite} (Google), and
+\code{deepseek-v4-flash} (DeepSeek). The OpenAI and Google models are routed
+through the yunwu.ai aggregator using an OpenAI-compatible API; the DeepSeek
+model is called directly at \code{api.deepseek.com}. All calls use
+\code{temperature=0} and \code{seed=42} with a byte-frozen prompt
+(version~v8), so that outputs are deterministic and reproducible offline from
+cache. The consensus label is produced by majority vote across the three
+families; consensus construction includes verification gating and vote
+cleaning, and is not a naive majority over archived raw votes. The three
+per-model series are retained as co-equal mutual-robustness measures with no
+primacy ranking, each entering its own just-identified specification and
+never pooled into a single over-identified system; family-wise error across
+the cross-vendor measurement family is controlled by Romano--Wolf step-down
+resampling (Table~A12, Panel~C) rather than by informal
+``all-three-significant'' narration.
+
+\subsection{Retention Gate and Numerical Side Effects (F2)}
+Whether an article counts as bank--fintech coverage at all is decided solely
+by the full-text track's verification (\code{llm\_verified\_full}; the
+full-only retention gate). The entity-context (\code{ctx}) and same-sentence
+co-occurrence (\code{ss}) tracks are \emph{conditional-on-full} measures:
+their row universe is a subset of the full-track retained set, and they serve
+as measurement-window robustness tracks rather than independent retention
+gates. Relative to earlier vintages that retained an article if \emph{any}
+track verified it, this stricter gate mechanically shrinks article counts and
+derived shares (\code{n\_articles}, \code{fintech\_share},
+\code{attention\_pct}). These level shifts are definitional consequences of
+aligning the retention gate with the headline treatment track---not data
+errors---and the direction of the change is conservative (it removes marginal
+articles that only a narrower window verified).
+
+\subsection{Zero-Observation Semantics (F3: NaN Main Path)}
+For bank--years with zero fintech news coverage or zero LLM-validated
+articles (\code{n\_articles=0} or \code{n\_articles\_llm\_valid=0}),
+share-type measures---including this paper's treatment \code{sub\_frac},
+\code{symb\_frac}, and the three per-model twin columns---have a zero
+denominator and are coded as undefined (\code{NaN}) rather than zero:
+``no valid articles'' and ``valid articles with a zero substantive
+share'' are distinct states, and only the latter is a true~$0$.
+Likewise, cosine-similarity-based features (\code{auth\_sim\_*},
+\code{benefit\_*}, \code{article\_sim\_*}), ratio variables, and
+continuous intensity scores (\code{fintech\_intensity\_mean}) are coded
+as \code{NaN} at zero observations. We follow Allison (2001) and
+Heckman (1979) in treating these as missing-by-design and use listwise
+deletion in regressions; count and sum-type variables remain at~$0$ as
+the mathematically correct zero-observation value.
+
+\subsection{Bartik IV Pruning (F4)}
+Of approximately 30 candidate Bartik instruments in earlier panel
+vintages, 28 were removed in v6 for violating the share-exogeneity
+requirement of \textcite{goldsmithpinkham2020bartik}. Under the same
+exogeneity discipline, the current pipeline's IV-extension layer
+rebuilds the substantiveness family's Bartik shift-share instrument
+\code{bartik\_subst\_iv\_full} (with its ctx/ss track mirrors
+\code{bartik\_subst\_iv\_ctx}/\code{\_ss}), used in this paper strictly
+as the fallback identification channel; the primary channel is the
+non-Bartik leave-one-out peer instrument
+(\code{leave\_one\_out\_peer\_subst\_iv}). Each instrument enters its
+own just-identified 2SLS reported side by side, never pooled into an
+over-identified system.
 
 \subsection{Dual-Outcome Identification}
-\NoteThis{Long\_run\_roa\_change\_3yr (within-bank 3-year forward) + car\_3day\_window
-\_fintech\_announcement (short-run); within-bank within-year FE; cluster at bank level.}
+The primary outcome is the efficiency litmus test: the three-year forward
+cost-to-income ratio change \code{cost\_income\_ratio\_change\_3yr}
+$= \mathrm{CIR}_{i,t+3} - \mathrm{CIR}_{i,t}$, where $\mathrm{CIR}$ equals
+operating and administrative expenses over operating income; on the $T=18$
+panel, $t\in\{2007,\dots,2021\}$ has a matching $t+3$. The companion outcome
+is \code{long\_run\_roa\_change\_3yr}. The baseline is a long-panel two-way
+fixed-effects specification:
+\begin{equation}
+\Delta \mathrm{CIR}_{i,t+3}
+ = \beta\,\code{sub\_frac}_{i,t}
+ + \gamma' X_{i,t} + \alpha_i + \lambda_t + \varepsilon_{i,t},
+\label{eq:baseline}
+\end{equation}
+where $\alpha_i$ and $\lambda_t$ are bank and year fixed effects, $X_{i,t}$
+collects financial and macro controls (asset size, leverage, capital ratio,
+NPL ratio, deposit growth, and GDP and M2 growth; the financial-panel
+enrichment is forthcoming), and standard errors are clustered at the bank
+level (primary scheme, $G_{\text{bank}}\approx 110$, matching this paper's
+panel bank universe; \NoteThis{the realized cluster count awaits the
+production panel; the spec's n\_bank\_min $=200$ is a target only, and any
+larger bank universe must first be clarified at the spec level}). H1
+predicts $\beta<0$.
+
+The primary endogeneity remedy is instrumental variables. The first and
+second stages are
+\begin{equation}
+\code{sub\_frac}_{i,t} = \pi\, Z_{i,t} + \phi' X_{i,t}
+ + \alpha_i + \lambda_t + u_{i,t}, \qquad
+\Delta \mathrm{CIR}_{i,t+3} = \beta^{IV}\,
+ \widehat{\code{sub\_frac}}_{i,t} + \gamma' X_{i,t}
+ + \alpha_i + \lambda_t + \varepsilon_{i,t},
+\label{eq:iv}
+\end{equation}
+where the primary instrument $Z$ is the same-group leave-one-out peer
+substantive share (\code{leave\_one\_out\_peer\_subst\_iv}) and the fallback
+is the Bartik shift-share instrument (\code{bartik\_subst\_iv\_full})
+\parencite{learyroberts2014peer,goldsmithpinkham2020bartik}. We disclose the
+limitations of both candidly: the peer instrument faces the Manski reflection
+problem and the exclusion threat that peer shocks may affect own-bank
+efficiency directly \parencite{manski1993reflection}; Bartik identification
+relies on initial-share exogeneity. Each instrument enters its own
+just-identified 2SLS (including \code{\_lag1} variants and the ctx/ss track
+mirrors \code{lpeer\_subst\_iv\_ctx}/\code{\_ss}), reported side by side and
+never pooled into an over-identified system; we report Kleibergen--Paap rk
+$F$ statistics against Stock--Yogo critical values and switch to
+Anderson--Rubin confidence intervals under weak instruments.
+
+Four exogenous policy shocks (E1: Yu'ebao launch, 2013-06-13; E2: P2P lending
+rectification, 2016-08-24; E3: asset-management reform, 2017-04-27; E4: Ant
+IPO suspension, 2020-11-03) support auxiliary cross-sectional intensity DiD
+designs:
+\begin{equation}
+y_{i,t} = \sum_{e}\delta_e\,
+ \bigl(\mathrm{Post}_{e,t}\times \mathrm{Exposure}_{i,e}\bigr)
+ + \gamma' X_{i,t} + \alpha_i + \lambda_t + \varepsilon_{i,t},
+\label{eq:did}
+\end{equation}
+buttressed by modern DiD estimators and parallel-trends sensitivity analysis
+\parencite{callaway2021difference,rambachan2023more}.
+
+Inference discipline: we pre-distinguish confirmatory from exploratory tests.
+The confirmatory test is the single primary treatment (\code{sub\_frac})
+$\times$ single primary outcome (3-year forward CIR change) $\times$ single
+primary specification (Eq.~\eqref{eq:baseline}); the substantiveness
+measurement family (the three \code{sub\_frac} tracks and the gap variable)
+is corrected by Romano--Wolf step-down resampling
+\parencite{romanowolf2005stepwise}; heterogeneity subsample families use a
+Westfall--Young-type battery; and the small number of year clusters under
+two-way clustering ($G_{\text{year}}\approx18$) is remedied by wild-cluster
+bootstrap \parencite{roodman2019boottest}.
 
 \subsection{Embedding-Based Measures (Co-Primary Dual Track; F5)}
 All embedding-derived features are computed under two co-primary
@@ -76,17 +489,187 @@ rank-correlation check ($\rho \geq 0.80$). The sentiment-annotation
 LLM ensemble (F1) is unaffected by this change: embedding models and
 sentiment LLMs are disjoint pipeline components.
 
+\subsection{Overview of Robustness Ladders}
+Beyond the multi-engine IV and clustering ladders above, robustness checks
+are organized along the following parallel ladders; within each ladder, all
+variants are \emph{mutually robust with no primacy ranking}, each entering
+its own just-identified specification and reported side by side, never
+pooled into a single over-identified Hansen-$J$ system. First, the
+three-track text ladder: \code{sub\_frac} (full text, canonical),
+\code{sub\_frac\_sc} (entity context), and \code{sub\_frac\_ss}
+(same-sentence co-occurrence), each paired with its own-track IV mirror; the
+retention gate is full-only, with ctx/ss conditional-on-full. Second, the
+cross-vendor per-model ladder: the three LLM families'
+\code{\{gpt54nano,gemini31,deepseekv4\}\_sub\_frac\_full} series alongside
+the consensus measure, with family-wise error computed by the root-level
+Romano--Wolf template (Table~A12, Panel~C). Third, construct orthogonality:
+collab\_mode (make/collaborate) as an alternative-specification control, and
+the substantive $\times$ locus $\times$ collab eight-cell decomposition
+(Table~6) demonstrating that the main effect is not driven by neighboring
+constructs. Fourth, lexical-clarity robustness (Table~A7): ruling out the
+alternative interpretation that the substantiveness classification merely
+captures linguistic clarity or concreteness
+\parencite{loughranmcdonald2011liability}. Fifth, network-criteria
+sensitivity (on the moderator/control side): the centrality columns used in
+H4 (\code{bank\_between\_cent}, \code{bank\_degree\_cent}) are re-estimated
+under three bank--bank co-occurrence criteria (same article / $\pm1$-sentence
+window / strict same sentence); the three criteria stand as parallel
+specification robustness, without a family-wise error template. The
+political-word weight ladder, the dictionary ablation gradient, and the
+three-BERT-model ladder belong to the dictionary/BERT tone measurement
+families---constructs distinct from this paper's LLM classification
+treatment---and are not part of this paper's robustness family.
+
 \section{Data}\label{sec:data}
-\NoteThis{Data sources, sample selection, descriptive statistics (Table 1).}
+
+\paragraph{Data sources and sample funnel.}
+The underlying corpus consists of Chinese media reports on banks and fintech
+over 2007--2024. Sample construction follows this funnel: (i) the raw-corpus
+census (pre-filtering, pre-deduplication; data-appendix scope only): 183
+deduplicated source files, 18{,}198{,}978 media reports, 3{,}740 media
+outlets; (ii) retention of newspaper-type reports only (92.93\% of all rows,
+16{,}912{,}361 rows), with all other outlet types (wire services, magazines,
+government bulletins, web pages, etc.) dropped row-wise---after restricting
+to the 2007--2024 date window, this newspaper-retention output constitutes
+the production target corpus of roughly 17~million reports
+($\approx 16.9$M $\to$ $\sim$17M; the post-newspaper-filter,
+pre-co-occurrence-hard-filter scope, not to be conflated with the census
+scope in (i)); (iii) a
+bank--fintech proximity co-occurrence hard filter, retaining only articles
+in which the focal bank co-occurs with at least one fintech term within a
+$\pm1$-sentence window (title included); and (iv) the full-only retention
+gate (\code{llm\_verified\_full}), yielding the final article universe
+(\NoteThis{the final post-(iii)/(iv) article-universe count is far smaller
+than the roughly 17~million newspaper-retention scope; the realized count
+awaits production backfill});
+aggregation produces the bank--year panel of 110 banks $\times$ 2007--2024.
+Financial outcomes and
+controls (CIR, ROA, assets, capital ratio, NPL ratio, etc.) are merged in
+via the bank financial-panel enrichment.
+
+\paragraph{Descriptive statistics.}
+Table~1 reports means, standard deviations, and quantiles of the main
+variables.
+\NoteThis{All Table~1 descriptive statistics (including the distributions of
+\code{sub\_frac} and \code{symb\_frac}, post-gate article counts, and bank
+coverage) await the production panel.}
 
 \section{Results}\label{sec:results}
-\NoteThis{Table 2 (M1$\to$M6 progressive main regression); Table 3 (dual outcome:
-short-run CAR + long-run ROA reversal jointly); Table 4 (heterogeneity 4 bank types
-$\times$ SOE $\times$ fintech wave $\times$ capital\_ratio quartile); Table 5
-(robustness: alternative substantiveness track full vs ctx).}
+
+\paragraph{Table 2: Main regression (M1$\to$M6 progressive).}
+Table~2 presents Eq.~\eqref{eq:baseline} progressively from M1 to M6: M1
+without controls or fixed effects; M2 adding bank fixed effects; M3 adding
+year fixed effects; M4 adding financial controls; M5 adding macro controls;
+M6 the full specification. If H1 holds, the \code{sub\_frac} coefficient
+should be negative and stable as two-way fixed effects and controls are
+added (coefficient stability assessed with the bounds of
+\parencite{oster2019unobservable}).
+\NoteThis{All Table~2 coefficients, standard errors, and significance levels
+await production-panel estimation.}
+
+\paragraph{2SLS estimates.}
+The IV table presents the two-stage estimates of Eq.~\eqref{eq:iv}: the
+leave-one-out peer instrument as the primary channel and the Bartik
+instrument as fallback, plus \code{\_lag1} variants and the ctx/ss track
+mirrors; each column is one just-identified specification, reported with
+first-stage coefficients, Kleibergen--Paap rk $F$, and (under weak
+instruments) Anderson--Rubin confidence intervals.
+\NoteThis{IV estimates await the production panel.}
+
+\paragraph{Table 3: Dual outcome.}
+Table~3 presents the efficiency litmus test and long-run performance side by
+side: the left panel uses \code{cost\_income\_ratio\_change\_3yr}, the right
+panel \code{long\_run\_roa\_change\_3yr}; H1 predicts a negative coefficient
+in the former and positive in the latter; H2 predicts \code{symb\_frac} is
+insignificant on both sides while the gap variable
+(\code{substantive\_minus\_symbolic\_gap}) is negative. The short-run
+market-reaction (announcement-window CAR) extension requires daily price
+data and is deferred to a later vintage.
+\NoteThis{Table~3 coefficients and joint tests await backfill.}
+
+\paragraph{Table 4: Heterogeneity.}
+Table~4 stratifies by bank type (state-owned / joint-stock / city commercial
+/ rural commercial) $\times$ SOE status $\times$ fintech wave $\times$
+capital-ratio quartile, and reports the H4 network-visibility moderation
+(interaction \code{sub\_x\_btwn}, controlling for
+\code{bank\_degree\_cent}):
+\begin{equation}
+\Delta \mathrm{CIR}_{i,t+3}
+ = \beta\,\code{sub\_frac}_{i,t}
+ + \theta\,\bigl(\code{sub\_frac}_{i,t}\times
+   \code{bank\_between\_cent}_{i,t-1}\bigr)
+ + \gamma' X_{i,t} + \alpha_i + \lambda_t + \varepsilon_{i,t}.
+\label{eq:mod}
+\end{equation}
+Multiple testing across heterogeneity subsamples is corrected with a
+Westfall--Young-type battery.
+\NoteThis{Table~4 stratified coefficients and moderation effects await
+production-panel ($T=18$) estimation.}
+
+\paragraph{Table 5: Robustness.}
+Table~5 presents the alternative-track measures (\code{sub\_frac\_sc},
+\code{sub\_frac\_ss}) and the main regression with the collab\_mode
+alternative-specification control; each column is its own just-identified
+specification, reported side by side.
+\NoteThis{Table~5 results await backfill.}
+
+\paragraph{Table 6: Eight-cell decomposition.}
+Table~6 (template 19\_table6\_cell\_decomposition) cross-tabulates the
+article universe into eight cells along the substantive $\times$ locus
+$\times$ collab binary dimensions, demonstrating that the W\&Z
+substantive/symbolic dimension is conceptually orthogonal to the P4 locus
+and P5 collab dimensions and that the main effect is not driven by
+neighboring constructs (anti-salami-slicing evidence).
+\NoteThis{Table~6 cell frequencies and cell effects await backfill.}
+
+\paragraph{Appendix tables.}
+Table~A7 (template 21\_substance\_clarity\_robustness) reports the
+lexical-clarity robustness; Table~A12, Panel~C reports Romano--Wolf
+family-wise-error-corrected $p$-values for the cross-vendor classification
+family (the \code{CLS:} family).
+\NoteThis{Appendix-table results await backfill.}
 
 \section{Conclusion}\label{sec:conclusion}
-\NoteThis{Summarize findings and implications for strategic management theory.}
+
+This paper operationalizes Westphal--Zajac's substantive versus symbolic
+management framework for Chinese banks' fintech transformation, using three
+independent LLMs to apply the W\&Z binary classification to a corpus of tens
+of millions of media reports, and tests decoupling's sharpest falsifiable
+implication with an ``efficiency litmus test''---the three-year forward
+cost-to-income ratio change.
+\NoteThis{Summary of headline findings (sign, magnitude, robustness) to be
+written after production-panel estimation.}
+
+Theoretically, the paper provides boundary-condition evidence for decoupling
+research in the digital-transformation context: when the adopted practice is
+verifiable from operating data, the sustainability of symbolic management
+depends on the visibility constraints imposed by external observers (media,
+peers, regulators)---extending the W\&Z framework from governance rituals to
+technology strategy. Methodologically, it demonstrates a complete workflow
+for reproducible text-based measurement with multi-vendor LLM classification
+reported side by side, frozen prompts, and deterministic caching. For
+policy, if symbolic announcements are confirmed to have no efficiency
+consequences---or to correlate positively with subsequent penalties---then
+fintech-policy evaluation and investor pricing based on announcement
+intensity require systematic correction; regulators can use text-based
+measures to separate ``walking the walk'' from ``talking the talk.''
+\NoteThis{The strength of the policy-implication wording depends on the
+direction of the results and will be backfilled.}
+
+Five limitations apply. First, the panel is annual, so within-quarter
+strategic adjustments and short-run market reactions are not captured; the
+announcement-window CAR test awaits daily price data. Second, media coverage
+is itself an endogenous information intermediary: what gets covered and how
+it is phrased reflect media choices, which our IV and fixed-effects designs
+mitigate but cannot fully eliminate; the measure is also an indirect
+observation of implementation behavior. Third, the sample is the single
+Chinese market, whose banking structure, regulatory regime, and media
+ecosystem limit extrapolation to other institutional environments. Fourth,
+the human gold-standard validity gate for the substantiveness classification
+awaits human annotation on the production corpus; current validity evidence
+rests mainly on cross-vendor agreement. Fifth, some results (e.g., the H4
+moderation) depend on production-panel network measures and are disclosed
+candidly as placeholders.
 
 \printbibliography
 

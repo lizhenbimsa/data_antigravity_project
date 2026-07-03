@@ -1,5 +1,6 @@
 % brokerage_network/drafts/zh/manuscript.tex
 % P4.2 中文 manuscript 骨架 (plan-r3 衍生论文扩展, 2026-05-15)
+% 2026-07-03 扩写: 引言/文献/假设/方法(网络构造+推断计划)/数据/结果脚手架/稳健性/结论
 % 编译: xelatex + biber + xelatex × 2
 
 \input{../../../_shared/preamble_zh.tex}
@@ -14,22 +15,227 @@
 \maketitle
 
 \begin{abstract}
-\NoteThis{最终摘要待定。}
-本文基于银行—年度金融科技媒体报道, 采用网络 2SLS (Bramoull\'e--Djebbari--Fortin 2009),
-度量中国上市银行的一阶同业语调 (\code{peer\_tone\_lag1\_full}), 以二阶同业语调作为工具变量。我们发现 \NoteThis{核心结论}\@。
+本文考察中国银行业金融科技媒体报道所内生形成的银行—银行共现网络中,
+同业媒体语调向焦点银行绩效的传染效应, 以及银行\emph{经纪}
+(brokerage) 位置在传染中的结构性角色。基于覆盖 2007--2024 年
+(生产目标语料约 1{,}700 万条报道、110 家银行) 的银行—年度面板,
+我们以行归一化共现矩阵 $W$ 定义一阶同业语调
+(\code{peer\_tone\_lag1\_full}), 并利用非传递三元组的排他性约束
+\parencite{bramoulle2009identification}, 以二阶同业语调
+($W^{2}\cdot\text{tone}$, 即``同业的同业''的语调) 为工具变量估计网络
+2SLS, 从而绕开 Manski 反射问题 \parencite{manski1993reflection}。
+我们发现 \NoteThis{核心结论: 一阶同业语调溢出对 ROA 的 2SLS
+系数、显著性与经济量级, 待生产面板回归回填}。经纪位置 (Freeman
+介数、Bonacich 特征向量、Burt 结构洞约束) 作为解释、调节与异质性载体的
+证据表明 \NoteThis{网络位置异质性结论占位}。本文首次把媒体共现网络中的
+经纪位置与二阶溢出工具结合, 识别中国银行同业舆情传染, 并为宏观审慎
+视角下``舆情传染放大器''银行的监测提供测度框架。
 \end{abstract}
 
 \section{引言}\label{sec:intro}
-\NoteThis{阐释研究问题与贡献。}
+
+过去十余年, 中国银行业经历了深刻的数字化转型: 金融科技从支付、信贷
+到财富管理全面重塑银行业务边界, 而媒体则是这场转型中最重要的信息中介
+之一。银行的金融科技战略、风险事件与监管动态经由海量新闻报道进入
+存款人、投资者与监管者的信息集; 媒体情感已被证明能够影响存款稳定性
+并放大银行系统性风险 \parencite{fang2024media}, 社交与新闻媒体的
+放大机制甚至可以成为银行挤兑的催化剂 \parencite{cookson2026social}。
+然而, 现有文献几乎全部聚焦于\emph{单家银行自身}的媒体暴露与语调,
+忽视了一个基本事实: 银行从不孤立地出现在新闻里。当一篇金融科技报道
+同时提及多家银行, 它就在这些银行之间搭建了一条信息通道; 千万量级的
+报道叠加起来, 便内生出一张银行—银行共现网络。同业的负面舆情能否
+沿着这张网络传染到焦点银行的经营绩效? 占据网络``经纪''位置——跨越
+群落、桥接信息的银行——是被放大冲击还是从信息优势中获益? 这是本文
+要回答的问题。
+
+识别同业舆情溢出面临经典的反射问题
+\parencite{manski1993reflection}: 同业语调与自身语调同时由共同冲击
+决定, 简单把同业均值放入右端得到的系数混合了内生同伴效应、外生情境
+效应与相关效应。本文的识别策略建立在
+\textcite{bramoulle2009identification} 的网络计量结果之上: 只要共现
+网络存在非传递三元组 (``朋友的朋友不是朋友''), 二阶同业语调
+$W^{2}\cdot\text{tone}$ 便只能经由直接同业影响焦点银行, 构成一阶
+溢出 $W\cdot\text{tone}$ 的有效工具变量。我们据此估计网络 2SLS:
+处理变量为滞后一期的一阶同业语调 (\code{peer\_tone\_lag1\_full}),
+工具为同期构造的二阶同业语调
+(\code{peer\_tone\_2nd\_lag1\_full}), 结果变量为 ROA, 全程控制银行
+与年份固定效应, 标准误在省级聚类并辅以 wild cluster bootstrap。
+
+本文与本项目组合中的相邻论文明确分工: 与 P1 (firm-level tone) 不同,
+本文识别的是\emph{网络传导的同业溢出}而非银行自身语调的绩效效应;
+与 llm\_peer 不同, 本文的权重矩阵 $W$ 来自\emph{报道共现}这一可观测
+的物理事件, 而非 LLM 判定的语义同业关系; 与 strategic\_diff 不同,
+本文的解释变量是网络位置与溢出量, 而非多文本表征差异。中心度本身
+不是溢出引擎, 而是解释、调节与异质性三重载体——这一区分贯穿全文的
+计量设定。
+
+本文的贡献有四。其一, 据我们所知, 本文首次在千万量级中文银行新闻
+语料上构建银行—银行媒体共现网络, 并以二阶溢出工具识别同业舆情传染
+对银行绩效的因果效应, 把网络同伴效应识别谱系
+\parencite{bramoulle2009identification,bramoulle2020peer,boucher2024general}
+落地到媒体—银行场景。其二, 本文把经纪位置——Freeman 介数
+\parencite{freeman1978centrality}、Bonacich 特征向量
+\parencite{bonacich1972factoring} 与 Burt 结构洞约束
+\parencite{burt1992structural}——从描述统计提升为传染机制的可检验
+载体, 呼应机构经纪网络的金融学构念 \parencite{han2024brokerage}。
+其三, 方法上, 本文示范了一套预注册纪律: 单一验证性主规格
+(confirmatory)、22 项中心度电池中除预注册三项外整体降为探索性附录并施加
+Romano--Wolf 族错误率校正 \parencite{romano2005stepwise}, 以及
+多测度梯子``互为稳健性、各自恰好识别''的并排报告准则。其四,
+政策上, 本文为宏观审慎当局提供一个低成本的舆情传染监测维度:
+识别在媒体网络中占据放大器位置的银行。
+
+下文结构如下: 第 \ref{sec:lit} 节梳理文献; 第 \ref{sec:theory}
+节发展假设; 第 \ref{sec:method} 节给出数据管线、网络构造与识别
+设定; 第 \ref{sec:data} 节描述变量与描述统计; 第 \ref{sec:main}
+节报告基准结果; 第 \ref{sec:mech} 与第 \ref{sec:het} 节分别考察
+机制与异质性; 第 \ref{sec:robust} 节报告稳健性; 第 \ref{sec:concl}
+节结论。
 
 \section{文献综述}\label{sec:lit}
-(1)~同业效应识别 (Manski 1993 \emph{RES}); (2)~利用非传递三元组的网络 2SLS (Bramoull\'e \emph{et~al.}\ 2009 \emph{JoE}); (3)~机构经纪网络 (Han \emph{et~al.}\ 2024 \emph{RFS})。
+
+\subsection{同业效应识别与网络计量}
+
+自 \textcite{manski1993reflection} 提出反射问题以来, 同伴效应识别
+的核心难点在于内生同伴效应、外生情境效应与相关效应的分离。
+\textcite{bramoulle2009identification} 证明, 当社会网络存在非传递
+三元组时, 同伴的同伴之结果 ($W^{2}y$) 可作为同伴结果 ($Wy$) 的
+工具变量, 令模型在网络结构上可识别;
+\textcite{bramoulle2020peer} 与 \textcite{boucher2024general}
+分别给出该谱系的权威综述与最新理论一般化。在金融学中,
+\textcite{leary2014peer} 以同业特质冲击为工具识别公司财务政策的
+同伴效应, 是排除自身信息的同业工具的经典范式;
+\textcite{grieser2022network} 则以空间计量框架把网络权重矩阵设定
+本身作为识别来源, 是公司金融网络效应的现代标杆。近年的工具变量
+文献进一步拓宽了可用工具族: \textcite{gabaix2024granular} 的粒度
+工具变量与 \textcite{borusyak2025practical} 的 shift-share 实操
+指南, 为本文跨族过度识别检验中的地理族留一工具与广义 Bartik 工具
+提供识别正当性。本文的 $W^{2}\cdot\text{tone}$ 工具与跨族
+over-identification 设计直接落在这条谱系上。
+
+\subsection{经纪、结构洞与中心度测度}
+
+经纪位置的信息优势构念由 \textcite{burt1992structural} 的结构洞
+理论确立, 并在 \textcite{burt2004structural} 中获得经典实证支持:
+跨越结构洞的行动者接触更异质的信息并享有中介租金。测度层面,
+\textcite{freeman1978centrality} 奠定了度、介数与接近中心度的概念
+基础, \textcite{bonacich1972factoring} 给出特征向量中心度的原始
+出处; \textcite{gould1989structures} 把经纪形式化为五种角色
+(协调者、巡回经纪、守门人、代表、联络人), 本文面板中的
+\code{gf\_*} 列直接实现该框架 (无向网络下守门人与代表两种角色
+合并为单一列), \textcite{zador2022weighted} 将其
+扩展到加权网络。媒体—银行二分图上的两模中心度方法出自
+\textcite{borgatti1997network}。在金融语境中,
+\textcite{han2024brokerage} 为``机构经纪网络''提供了顶刊构念锚——
+需要强调, 本文引用其构念与解读而非算法出处;
+\textcite{nezami2025network} 的元分析则给出中心度—企业绩效关系的
+跨研究基准。本文以 Freeman 介数为预注册主中心度、Bonacich 特征
+向量与 Burt 约束为辅, 正是沿这条构念—算法双线取材。
+
+\subsection{金融网络传染与系统性风险}
+
+\textcite{jackson2021systemic} 的综述确立了金融网络传染的理论
+谱系: 中心位置的银行既是冲击的放大器也是接收器, 网络结构决定
+局部冲击能否演化为系统性事件。\textcite{duarte2021firesale}
+把银行级抛售溢出暴露聚合成前瞻性系统性风险指数, 为本文
+\code{brokerage\_fire\_sale} 的加总逻辑提供顶刊范例。
+\textcite{yu2024centrality} 把网络中心度、信息扩散与资产定价显式
+连通, 支持本文``信息枢纽位置放大溢出传导''的调节设定。在中国银行
+语境中, \textcite{fang2024media} 证明负面媒体情感通过存款不稳定
+推高银行负债成本与系统性风险, 构成本文``同业舆情 $\to$ 绩效''
+传导链的直接机制锚。
+
+\subsection{媒体、银行与中国制度语境}
+
+\textcite{you2018power} 证明中国媒体市场的国有/市场化双轨结构导致
+对同一企业的报道语调系统性分化, 正当化了中文银行新闻语料中语调
+变异的可识别性。\textcite{cookson2026social} 给出银行层面媒体暴露
+放大挤兑风险的最新证据, 是``银行新闻情感经网络渠道溢出至同业''
+因果叙事的机制锚。\textcite{xu2024news} 在金融新闻语料上构建记者
+社会网络并以网络位置解释报道语调偏向, 与本文``新闻文本 $\to$
+网络位置 $\to$ 语调传导''的范式高度同构。
+
+\subsection{本文定位}
+
+综上, 三条缺口尚未被填补: 其一, 同伴效应识别文献很少把\emph{媒体
+共现}这一可大规模观测的物理事件作为网络生成机制; 其二, 结构洞/
+经纪文献集中于个体与创新结果, 缺少银行绩效与舆情传染语境下的
+因果证据; 其三, 金融网络传染文献多依赖同业资产负债敞口或市场
+收益率, 信息层面的传染通道 (尤其在年度会计绩效上的落点) 证据
+稀缺。本文以千万量级中文语料、二阶溢出工具与预注册中心度纪律,
+同时回应这三条缺口。
+
+\section{理论与假设}\label{sec:theory}
+
+本节从信息传染与经纪位置两条理论线索推导可检验假设。需要预先
+声明: 以下各条均为\emph{理论预期}而非已获得的实证结果; 全部
+系数与显著性以生产面板回归为准。
+
+\textbf{同业舆情溢出。} 媒体情感影响存款人与交易对手对银行的
+信念; 负面同业舆情一方面通过``类别传染''让存款人与投资者下调对
+同类银行的评价, 另一方面通过共同敞口与同业业务把信念冲击转化为
+真实的资金成本与业务收缩 \parencite{fang2024media,jackson2021systemic}。
+反之, 同业舆情改善会经由同一渠道抬升焦点银行的经营环境。据此:
+
+\textbf{H1 (主识别, confirmatory).} 一阶同业语调
+\code{peer\_tone\_lag1\_full} (以 \code{peer\_tone\_2nd\_lag1\_full}
+为工具的网络 2SLS) 对 ROA 的效应为正: 同业舆情改善提升自身绩效,
+等价地, 负面同业舆情经信息传染压低 ROA。理论预期 $\beta>0$。
+
+\textbf{枢纽位置的放大作用。} 信息扩散模型预言, 处于特征向量意义
+上枢纽位置的节点接收并再传播更多信息流
+\parencite{bonacich1972factoring,yu2024centrality}; 对承接舆情
+冲击的银行而言, 枢纽位置意味着更大的暴露剂量。据此:
+
+\textbf{H2 (调节, exploratory 家族).} 交乘项
+\code{pt\_x\_brkr} $=$ \code{peer\_tone\_lag1\_full} $\times$
+L.\code{brokerage\_eigen\_cent} 对 ROA 的交乘系数与 H1 主效应
+同号: 信息枢纽位置放大溢出传导。估计采用交乘 2SLS
+(\code{ivreghdfe}), 交乘项配工具 $W^{2}\cdot\text{tone}\times$
+L.cent, 而非 OLS \parencite{brambor2006understanding}。
+
+\textbf{经纪位置的双刃性。} Burt 的结构洞理论指出, 跨群经纪位置
+既带来信息优势也带来更广的暴露面
+\parencite{burt1992structural,burt2004structural}; 在舆情传染
+语境中, 桥接多个群落的银行同时暴露于多个群落的舆情冲击。据此:
+
+\textbf{H3 (异质性, exploratory 家族).} 溢出效应的绝对值在
+within-year 十分位定义的枢纽组 (\code{bank\_is\_hub}=1) 与结构洞
+富集组 (低 \code{bank\_constraint}) 中更大; 组间差异以 pooled
+交乘 2SLS 的交乘项 $t$ 检验判定, 而非两列并排目测。此为理论推测
+而非结果。
+
+\textbf{抛售式溢出机制。} 行业层面的负面冲击经共同敞口与经纪位置
+加总后落在个体银行 \parencite{duarte2021firesale,han2024brokerage}。
+据此:
+
+\textbf{H4 (机制, exploratory 附录).} 滞后行业负面冲击
+\code{industry\_neg\_shock\_lag1} 对 ROA 的效应为负, 且
+\code{brokerage\_fire\_sale} 暴露度高 (经纪位置更中心) 的银行
+受损更深。同期 \code{industry\_neg\_shock} 在年份固定效应下与
+自身负面率精确共线, 予以禁用, 仅使用滞后一期。此为理论预期
+而非结果。
 
 \section{方法}\label{sec:method}
 \subsection{样本与数据}
-银行—年度面板覆盖约 164 个银行—年观测 (2017--2018)。
-所有数据由 \code{news\_process} 管线 (Phase 9b 基线) 处理,
-详见 \code{papers\_assets/V6\_METHODOLOGY\_CHANGES.md}。
+样本期为 2007--2024 年 ($T=18$), 覆盖 110 家中国银行。原始语料
+普查 (过滤、去重之前的全量递归口径) 计 183 个去重源文件、
+18{,}198{,}978 条媒体报道 (2007-01-01 至 2025-12-31)、3{,}740 家
+媒体来源; 其中媒体类型为报纸的报道占全部行的 92.93\%
+(16{,}912{,}361 行) 予以保留, 其余类型 (通讯社、杂志、政府公报、
+网页等) 按行剔除; 精确唯一 18{,}177{,}370 条 (重复率 0.12\%)。
+经报纸筛选与去重、限定 2007--2024 后的生产目标语料约 1{,}700
+万条; 银行—金融科技共现硬过滤 (第 \ref{subsec:network} 小节)
+在其后进一步大幅缩减实际回归语料, 最终留存篇数为
+\NoteThis{待生产机回填}。注意两套口径不可混用: 普查口径服务
+数据附录, 硬过滤后的更小口径才是回归所用语料。最终银行—年度面板观测数为
+\NoteThis{待生产机回填 (paper\_spec 目标: $\geq 3{,}000$
+银行—年观测)}。%
+\footnote{开发阶段快照仅覆盖 2017--2018 两年 (v3.3.0 baseline
+$=84$ 家银行 $\times$ 2 年 $=168$ 观测; 与正文 110 家为不同口径),
+仅用于管线联调, 不产生任何正文结果。}
+所有数据由 \code{news\_process} 管线处理, 详见
+\code{papers\_assets/V6\_METHODOLOGY\_CHANGES.md}。
 
 \subsection{语调标注 (F1: 三家族 LLM 真三角验证)}
 采用三个独立 LLM 家族: \code{gpt-5.4-nano} (OpenAI)、
@@ -79,25 +285,325 @@ Google Gemini 嵌入; 自管线 v3.15.0 (2026 年 6 月) 起换为阿里
 情感标注 LLM 集成 (F1) 不受此变更影响: 嵌入模型与情感 LLM
 是互不相交的管线组件。
 
+\subsection{网络构造与识别设定}\label{subsec:network}
+
+\textbf{共现网络 $W$。} 上游语料先经银行—金融科技共现硬过滤
+(生产口径: 句窗半径 $\pm 1$ 句且标题与正文一并纳入判定,
+\code{sentence\_radius=1} + \code{match\_in\_title=true}), 仅保留
+目标银行与至少一个金融科技词邻近共现的报道。在留存报道上, 若一篇
+报道同时提及银行 $i$ 与银行 $j$, 则记一次共现; 年度加总得共现
+计数矩阵, 行归一化后得权重矩阵 $W_{t}$ (对角线为零,
+$\sum_{j} w_{ij,t}=1$)。作为网络构造判据的敏感性设计, 银行—银行
+共现判据在三档从宽到严的口径下分别重建网络并重算全部结构指标:
+同篇共现 (无后缀, canonical)、$\pm 1$ 句窗 (\code{\_win1} 后缀)、
+严格同句 (\code{\_sent} 后缀); 标题作为第 0 句纳入扫描。三档判据
+属规格稳健性并排、各自恰好识别, 详见第 \ref{sec:robust} 节。
+
+\textbf{一阶与二阶同业语调。} 令 $\text{tone}_{j,t}$ 为银行 $j$
+年度 $t$ 的媒体语调 (F1 三家 LLM 多数投票共识, 全文轨), 则
+\begin{equation}
+\text{PeerTone}_{i,t} \equiv (W_{t}\,\text{tone})_{i}
+= \sum_{j \neq i} w_{ij,t}\,\text{tone}_{j,t},
+\qquad
+\text{PeerTone}^{(2)}_{i,t} \equiv (W_{t}^{2}\,\text{tone})_{i}.
+\label{eq:peertone}
+\end{equation}
+面板列分别为 \code{peer\_tone\_lag1\_full} (滞后一期一阶溢出,
+内生处理) 与 \code{peer\_tone\_2nd\_lag1\_full} (滞后一期二阶溢出,
+工具)。
+
+\textbf{2SLS 方程。} 主识别为如下网络 2SLS
+(\code{ivreghdfe}):
+\begin{equation}
+\text{roa}_{i,t} = \beta\,\widehat{\text{PeerTone}}_{i,t-1}
+ + X_{i,t}'\gamma + \mu_{i} + \lambda_{t} + \varepsilon_{i,t},
+\label{eq:secondstage}
+\end{equation}
+\begin{equation}
+\text{PeerTone}_{i,t-1} = \pi\,\text{PeerTone}^{(2)}_{i,t-1}
+ + X_{i,t}'\delta + \mu_{i} + \lambda_{t} + \nu_{i,t},
+\label{eq:firststage}
+\end{equation}
+其中 $\mu_{i}$、$\lambda_{t}$ 为银行与年份固定效应, $X_{i,t}$ 为
+控制向量, 标准误在省级 (\code{prov\_id}) 聚类。排他性来自非传递
+三元组: ``同业的同业''的舆情只能经由直接同业传导至焦点银行
+\parencite{bramoulle2009identification}。控制变量当前采用覆盖度
+代理集 (\code{ln\_news\_coverage}、\code{media\_hhi}、
+\code{bank\_scale\_ord}); 银行财务控制 (资产规模、杠杆、资本
+充足率、不良率、存款增速) 与宏观控制 (GDP 增速、M2 增速) 待财务
+面板接入后补充。
+
+\textbf{中心度: 预注册纪律。} 网络位置度量层与溢出引擎层严格
+区分: 主识别引擎是式 (\ref{eq:secondstage})--(\ref{eq:firststage})
+的 $W\cdot\text{tone}$/$W^{2}\cdot\text{tone}$ 谱滞后; 中心度
+本身\emph{不是}溢出引擎, 而是解释、调节与异质性的载体。为防
+``22 选 3''式事后择优, 我们预注册: 主中心度为 Freeman 介数
+\code{bank\_between\_cent} \parencite{freeman1978centrality}
+——唯一直接量化``跨群信息中介''的中心度; 次中心度为 Bonacich
+特征向量 \code{brokerage\_eigen\_cent}
+\parencite{bonacich1972factoring}, 作为二分图信息枢纽对照
+\parencite{borgatti1997network,han2024brokerage}; 结构洞对照为
+Burt 约束 \code{bank\_constraint} \parencite{burt1992structural}。
+其余 19 项中心度整体降为附录探索集, 任何附录使用均报告
+Romano--Wolf 族错误率校正 \parencite{romano2005stepwise}。
+
+\textbf{网络位置的五重角色。} (i) \emph{解释变量}
+(\code{bank\_between\_cent} 直接进入 \code{reghdfe}): 网络位置
+内生于媒体覆盖, 该组结果仅作条件关联解读, 不主张因果;
+(ii) \emph{中介}: 探索性附录, 采用关联分解而非因果中介表述,
+且必报 \textcite{imai2010identification} 的 $\rho$ 敏感性分析;
+(iii) \emph{工具}: 跨族过度识别检验 (共现族 $W^{2}$ + 地理族
+同省留一), 见第 \ref{sec:robust} 节; (iv) \emph{调节}: 交乘 2SLS
+(H2); (v) \emph{异质性}: within-year 十分位分组 (H3)。
+
+\textbf{缺失约定与样本披露。} 中心度族两类缺失约定不同:
+\code{bank\_*\_cent} 系不在网银行兜底 0.0, 而
+\code{brokerage\_eigen\_cent} 兜底 \code{NaN}; 二者同入一回归会
+因列删除造成样本漂移。全部模板统一采用``离网零填充 + 显式披露
+各表 $N$''约定 (\code{zero\_fill\_offnetwork\_disclose\_N}),
+各回归表逐列报告观测数。
+
+\subsection{推断计划}\label{subsec:inference}
+
+\textbf{聚类与小 $G$ 校正。} 基准标准误在省级
+(\code{prov\_id}) 聚类 \parencite{cameron2015practitioner}; 因
+$G \approx 31 < 50$ 属小聚类数情形, 全部主表并行报告 wild
+cluster bootstrap $p$ 值 (\code{boottest},
+\code{bootcluster(prov\_id)}, \code{reps(9999)};
+\parencite{roodman2019fast})。双向聚类 (银行 $\times$ 年份)
+作为对照在稳健性表报告。
+
+\textbf{弱工具规则。} 各 IV 表报告 Kleibergen--Paap rk Wald $F$;
+当其低于 Stock--Yogo 10\% 临界值 (单工具 16.38, 双工具 19.93)
+时, 推断改读 Anderson--Rubin 弱工具稳健置信区间
+(\code{weakiv}; \parencite{andrews2019weak}), 各 IV 表均落有
+AR-CI 旁路输出。
+
+\textbf{验证性与探索性的纪律。} 本文遵循单一预注册主规格纪律:
+verification 性 (confirmatory) 检验有且仅有一个——式
+(\ref{eq:secondstage}) 的
+\code{peer\_tone\_lag1\_full} $\to$ \code{roa} 网络 2SLS
+(主表 Table 2)。中心度电池、网络位置五重角色与政策冲击均属
+探索性家族, 其 $p$ 值仅在族错误率校正
+\parencite{romano2005stepwise} 后解读。多测度梯子 (三轨、双嵌入、
+三家 LLM、判据三档等) 属``互为稳健性、不分主次''的并排测度:
+每一档各自进入恰好识别的独立设定, 绝不把同族多档拼入同一过度
+识别系统做 Hansen $J$ 检验 (同源污染令 $J$ 零功效); 唯一刻意
+设计的例外是跨族工具检验, 见第 \ref{sec:robust} 节。
+
 \section{数据描述}\label{sec:data}
-\NoteThis{Table 1 描述统计参见 \code{papers/brokerage_network/tables.py:build\_table1}。}
+
+Table 1 报告主要变量的定义与描述统计, 分四个变量族:
+(i) \emph{同业溢出族}: 一阶溢出 \code{peer\_tone\_lag1\_full}
+及其 ctx/ss 轨孪生 (\code{peer\_tone\_lag1\_ctx}、
+\code{peer\_tone\_lag1\_ss}), 工具 \code{peer\_tone\_2nd\_lag1\_full}
+及其轨孪生;
+(ii) \emph{网络位置族}: 预注册三中心度 \code{bank\_between\_cent}、
+\code{brokerage\_eigen\_cent}、\code{bank\_constraint}, 以及
+枢纽指示 \code{bank\_is\_hub} (within-year 十分位);
+(iii) \emph{结果族}: 主结果 \code{roa}, 次级结果
+\code{loan\_growth}、\code{sigma\_roa\_5y\_rolling} (盈余波动
+共变)、\code{interbank\_liability\_share} (同业负债依存度);
+市场法系统性风险测度 (\code{car\_3day}、\code{delta\_covar})
+需日频收益, 不纳入年度主线, 留作上市行扩展;
+(iv) \emph{网络年度特征族}: \code{net\_density\_yr}、
+\code{net\_avg\_cluster\_yr}、\code{net\_avg\_path\_yr}、
+\code{net\_degree\_gini\_yr} 等年度网络结构量, 用于刻画共现网络
+随数字化转型的演化。
+
+全部描述统计值 (均值、标准差、分位数、组内变异占比) 为
+\NoteThis{待生产面板回填; 生成入口
+\code{papers/brokerage\_network/tables.py:build\_table1}}。
+样本量披露遵循 \ref{subsec:network} 小节的缺失约定: 各变量列
+逐一报告非缺失 $N$; 语调族的行宇宙由全文轨留篇门控决定 (F2),
+ctx/ss 轨为其子集。
 
 \section{基准回归}\label{sec:main}
-\NoteThis{Table 2 源自 \code{output/tables/table2\_*.csv}; Figure 2 系数图。}
+
+Table 2 报告主识别结果, 五列结构: (1) OLS (含银行、年份固定
+效应) 作为朴素基准; (2) 2SLS 第一阶段——工具
+\code{peer\_tone\_2nd\_lag1\_full} 对内生处理
+\code{peer\_tone\_lag1\_full} 的解释力, 报告 Kleibergen--Paap
+rk Wald $F$; (3) 2SLS 第二阶段 (主规格, 式
+(\ref{eq:secondstage})); (4) 加入覆盖度代理控制集;
+(5) 双向聚类对照。OLS 与 2SLS 系数之差指示反射问题与共同冲击
+造成的偏误方向; H1 预期 2SLS 系数 $\beta > 0$。
+
+\NoteThis{Table 2 系数、标准误、$F$ 统计量与 AR-CI 全部待生产
+回归回填; 表源 \code{output/tables/table2\_*.csv}; Figure 2
+系数图。} 若第一阶段 $F$ 低于 Stock--Yogo 临界 16.38, 正文推断
+改读 Anderson--Rubin 置信区间 (\ref{subsec:inference} 小节规则)。
+经济量级解读 (一个标准差同业语调改善对应的 ROA 变动) 为
+\NoteThis{占位}。
 
 \section{机制检验}\label{sec:mech}
-\NoteThis{Table 3 源自 \code{output/tables/table3\_*.csv}; Figure 3。}
+
+\textbf{抛售式溢出通道 (H4)。} Table 6b 以 \code{reghdfe} 检验
+滞后行业负面冲击 \code{industry\_neg\_shock\_lag1} 对 ROA 的
+效应, 并考察 \code{brokerage\_fire\_sale} 暴露度的调节: 经纪位置
+越中心, 行业冲击的落点越深
+\parencite{duarte2021firesale,han2024brokerage}。同期
+\code{industry\_neg\_shock} 在年份固定效应下与自身负面率精确
+共线, 予以禁用。\NoteThis{Table 6b 结果占位。}
+
+\textbf{中介分解 (探索性附录)。} Table 7 以三步回归考察
+``同业溢出 $\to$ 网络位置 $\to$ 绩效''的关联分解。因中介变量
+(网络位置) 本身内生, 该表仅作\emph{关联分解}而非因果中介解读,
+并按 \textcite{imai2010identification} 报告序列可忽略性违反的
+$\rho$ 敏感性曲线。\NoteThis{Table 7 结果占位。}
+
+\textbf{政策冲击下的网络位置异质性 (探索性)。} Table 3 利用
+数字人民币 (DCEP) 试点扩围 (\code{dcep\_post}) 与金融科技创新
+监管沙盒 (\code{sandbox\_post}) 两类政策事件, 检验高经纪位置
+银行对政策冲击的差异响应。该组结果定位为探索性机制证据而非主
+识别: 政策试点城市选择可能与银行网络位置相关, 事件研究系数仅
+作机制佐证。\NoteThis{Table 3 结果占位。}
 
 \section{异质性}\label{sec:het}
-\NoteThis{Table 4 (SOE × 论文专属交互) 源自
-\code{output/tables/table4\_heterogeneity.csv}。}
+
+\textbf{调节: 信息枢纽放大 (H2)。} Table 9 估计交乘 2SLS:
+\begin{equation}
+\text{roa}_{i,t} = \beta_{1}\,\widehat{\text{PeerTone}}_{i,t-1}
+ + \beta_{2}\,\widehat{(\text{PeerTone} \times
+ \text{L.Cent})}_{i,t-1}
+ + \beta_{3}\,\text{L.Cent}_{i,t-1}
+ + X_{i,t}'\gamma + \mu_{i} + \lambda_{t} + \varepsilon_{i,t},
+\label{eq:moderation}
+\end{equation}
+其中 $\text{Cent} = $ \code{brokerage\_eigen\_cent}, 交乘项
+\code{pt\_x\_brkr} 与主项各配工具
+($W^{2}\cdot\text{tone}$ 及 $W^{2}\cdot\text{tone} \times$
+L.cent), 以 \code{ivreghdfe} 估计而非 OLS
+\parencite{brambor2006understanding}。H2 预期
+$\beta_{2}$ 与 $\beta_{1}$ 同号。\NoteThis{Table 9 结果占位。}
+
+\textbf{分组异质性 (H3)。} Table 10 按 within-year 十分位定义的
+枢纽指示 \code{bank\_is\_hub} 分组 (避免绝对阈值随网络规模漂移),
+并以低 \code{bank\_constraint} (结构洞富集) 分位作替代分组。
+组间系数差一律以 pooled 交乘 2SLS 的交乘项 $t$ 检验判定, 而非
+两列并排目测。\NoteThis{Table 10 结果占位。} 早期模板默认的
+SOE 交互不属于本文预注册设定, 不进入正文。
 
 \section{稳健性}\label{sec:robust}
-\NoteThis{Table 5 (论文专属稳健性矩阵) 源自
-\code{output/tables/table5\_*.csv}。}
+
+本节的组织原则先行声明: 以下各梯子内的多档测度均为``互为稳健性、
+不分主次''的并排测度, 每一档各自进入\emph{恰好识别}的独立设定;
+严禁把同族多档 (任意两条文本轨、两个嵌入槽、两家 LLM、两档判据)
+拼入同一过度识别系统做 Hansen $J$ 检验——同源测量污染在族内高度
+相关, 令 $J$ 对无效工具零功效。唯一刻意设计的例外是跨族工具检验
+(下述第七项)。
+
+\textbf{(一) 三轨同业语调。} 主表处理与工具在实体上下文轨与
+银行—金科同句轨下重构:
+\code{peer\_tone\_lag1\_\{full,ctx,ss\}} 各配同轨工具
+\code{peer\_tone\_2nd\_lag1\_\{full,ctx,ss\}}, 三条 2SLS 并排
+报告。留篇门控为 full-only, ctx/ss 是 conditional-on-full 稳健
+轨 (F2); 三轨绝不拼同一 Hansen $J$。
+
+\textbf{(二) 网络构造判据梯子。} 银行—银行共现判据从宽到严三档
+(同篇/无后缀、$\pm 1$ 句窗 \code{\_win1}、严格同句 \code{\_sent})
+重建网络后重算全部 33 项结构指标基名 (如
+\code{bank\_between\_cent\{,\_win1,\_sent\}}、
+\code{bank\_constraint\{,\_win1,\_sent\}}), 主表在三档判据下
+逐档重估。三档属规格稳健性并排、各自恰好识别; 因非同一构念的
+替代 headline 测量, 不设族错误率模板。注意判据后缀与文本三轨
+后缀是两个正交维度, 不可混同。
+
+\textbf{(三) 溢出量三轨与 $W$-轨。} 行业负面冲击
+\code{industry\_neg\_shock\{,\_ctx,\_ss\}} (及其 lag1) 分子分母
+严格逐轨构造 (不借用全文轨分母); 嵌入相似度权重下的同业语调
+(\code{bank\_emb\_sim\_mean\_lag1\_\{ctx,ss\}} 及对角轨
+\code{emb\_peer\_tone\_diag\_lag1\_\{ctx,ss\}}) 按 $W$-轨独立
+降级、并排报告; 各轨禁混同一 Hansen $J$。
+
+\textbf{(四) co-primary 双嵌入。} 全部嵌入派生网络列在两家独立
+厂商嵌入下成对存在 (F5): canonical 无后缀槽
+(\code{Qwen3-Embedding-8B}, 4{,}096 维) 与 \code{\_lg} 槽
+(\code{text-embedding-3-large}, 3{,}072 维), 严格列对偶
+both-or-neither。两槽同为主测度, 各进各自恰好识别设定;
+嵌入派生的 $W$-轨稳健性结果按两槽并排报告。
+
+\textbf{(五) 三家 LLM per-model 重构。} 共识语调
+(\code{llm\_vote\_tone}) 之外, 以三家单模型语调
+\code{\{gpt54nano,gemini31,deepseekv4\}\_tone\_full} 逐家重构
+同业溢出, 证明结果不被单一厂商标注驱动; 三家 co-equal 并排、
+per-model 独立降级、各自恰好识别; 真族错误率校正由跨模型
+Romano--Wolf 模板承担 \parencite{romano2005stepwise}。
+
+\textbf{(六) 跨方法语调替代。} 以三个中文金融 BERT 模型
+(\code{finbert\_cn}、\code{fin\_sent\_zh}、\code{finbert2} 的
+signed net-tone) 与六部情感词典重构同业语调; 词典族含语言学规则
+消融变体与 \textcite{du2022language} 政治正面词权重梯子
+$\{0.0, 0.5, 1.0\}$ (canonical 取 0.5; 三档互为稳健性、不分
+主次)。两梯子正交不交叉; 跨模型系数比较一律 $z$-score 标准化
+后进行; 全部各自恰好识别并排。
+
+\textbf{(七) 跨族过度识别 (唯一允许的 over-id)。} 同族多轨严禁
+拼 Hansen $J$, 但\emph{跨族}两条独立识别通道——共现族
+$W^{2}\cdot\text{tone}$ (\code{peer\_tone\_2nd\_lag1\_full}) 与
+地理族同省留一语调 (\code{prov\_leave1out\_tone\_full})——的
+联合工具检验是刻意设计的例外 (Table 8, \code{ivreghdfe}):
+两族工具的测量误差来源正交, Hansen $J$ 具备真实功效, 借此破解
+恰好识别设定排他性不可检验的困境
+\parencite{leary2014peer,goldsmith2020bartik,gabaix2024granular,borusyak2025practical}。
+
+\textbf{(八) 22 项中心度电池的族错误率纪律。} 主文只报预注册三
+中心度 (介数/特征向量/约束); 其余 19 项 (度、强度、Katz、子图、
+当前流介数、调和、核数等) 整体降为附录探索集 (Table 11), 任何
+使用均报 \code{wyoung}/\code{rwolf2}/sharpened-FDR 校正后 $p$
+值 \parencite{romano2005stepwise}。
+
+\textbf{(九) 推断层稳健。} 省级聚类 ($G \approx 31$) 全表并行
+wild cluster bootstrap \parencite{roodman2019fast}; 双向聚类
+(银行 $\times$ 年份) 对照 (Table 12 Panel B); 弱工具情形改读
+Anderson--Rubin CI \parencite{andrews2019weak}。
+
+\textbf{(十) 政策冲击探索性检验。} DCEP/沙盒事件研究 (Table 3)
+作为机制层佐证纳入稳健性解读, 不改变主识别地位。
+
+\textbf{(十一) 缺失约定敏感性。} 离网银行零填充约定
+(\code{zero\_fill\_offnetwork\_disclose\_N}) 与列删除两种处理下
+主系数的稳定性, 以及各表 $N$ 的逐列披露。
+
+\NoteThis{Table 5 (稳健性矩阵汇总) 与上述各梯子的系数矩阵待生产
+回归回填; 表源 \code{output/tables/table5\_*.csv}。}
 
 \section{结论}\label{sec:concl}
-\NoteThis{最终讨论与政策含义。}
+
+本文在千万量级中文银行/金融科技新闻语料上构建银行—银行媒体共现
+网络, 以 Bramoullé--Djebbari--Fortin 非传递三元组的二阶同业语调
+为工具, 识别同业舆情经网络结构向银行绩效的传染效应, 并考察经纪
+位置 (介数、特征向量、结构洞约束) 作为解释、调节与异质性载体的
+角色。我们发现 \NoteThis{核心发现总结: H1 主效应方向与量级、
+H2--H4 的证据格局, 待生产回归回填}。
+
+理论上, 本文把结构洞/经纪文献的信息优势构念与金融网络传染文献的
+放大器—接收器谱系对接到媒体信息层: 经纪位置的``双刃''性质——
+信息优势与暴露面并存——在舆情传染语境中获得了可检验的表达。
+方法上, 本文示范了多测度梯子时代的预注册纪律: 单一验证性主规格、
+探索性家族的族错误率校正、以及``各梯子并排恰好识别、严禁同族拼
+过度识别''的报告准则, 对文本测度日益丰富的实证金融研究具有一般
+参考价值。
+
+政策含义方面, 若同业舆情传染效应成立
+(\NoteThis{结果依赖句占位}), 则占据媒体网络中心位置的银行构成
+舆情传染的放大器节点: 宏观审慎当局可将银行的媒体网络经纪位置
+纳入系统性风险监测仪表盘, 作为传统资产负债表关联度量
+\parencite{jackson2021systemic,duarte2021firesale} 的低成本信息
+层补充; 对负面舆情事件的处置亦应优先关注高介数银行的二次传播
+风险 \parencite{fang2024media,cookson2026social}。
+
+本文的局限有四。其一, 年度频率: 会计绩效按年观测, 无法刻画舆情
+传染的高频动态, 亦不能对接需要日频收益的市场法系统性风险测度
+($\Delta$CoVaR 等); 上市银行子样本的日频扩展留待后续。其二,
+媒体报道内生性: 报道对象与共现结构由编辑选择内生决定, 尽管固定
+效应、工具变量与政策冲击缓解了该顾虑, 剩余的选择性仍不可完全
+排除。其三, 共现网络与真实同业关系的对应 (共现 $\approx$ 同业)
+是外部效度假设, 我们在共享附录 (QAP/dyadic 检验,
+\code{\_shared/A\_network\_robustness}) 中评估其稳健性, 但共现
+网络终究是真实业务网络的信息层投影。其四, 单一市场外推: 中国
+媒体市场的国有/市场化双轨结构 \parencite{you2018power} 既是识别
+的有利变异来源, 也限制结论向其他制度环境的外推。
 
 \printbibliography
 

@@ -1,5 +1,7 @@
 % bank_fintech_locus/drafts/en/manuscript.tex
 % P4 manuscript skeleton — M0 G0 scaffolded per B-route plan v2.55 (2026-05-17)
+% M1 enrichment (2026-07-03): intro/lit/hypotheses/methods/data/results/conclusion
+%   + validity-commitment appendix + network-roles appendix
 % Compile: xelatex + biber + xelatex × 2
 
 \input{../../../_shared/preamble_en.tex}
@@ -14,38 +16,391 @@
 \maketitle
 
 \begin{abstract}
-\NoteThis{Final abstract pending — target $\approx$ 200 English words.}
-We classify bank fintech announcements into two locus categories — underlying technology
+\NoteThis{Final abstract pending — target $\approx$ 200 English words; headline numbers
+await production-corpus (T=18) regressions.}
+Following the Digital Finance Cube of Gomber, Koch, and Siering (2017), we classify
+Chinese banks' fintech media discourse into two locus categories — underlying technology
 (blockchain / AI / cloud) versus business-function scenario (payments / lending / wealth
-management) — following Gomber et al.'s (2018, \emph{JMIS}) fintech taxonomy. Using an
-18-year Chinese banking panel (2007--2024), we test how this binary locus shapes
-event-window CAR (5-day), patent output (Kogan et al.\ 2017 market-value weighted), and
-IT capex / R\&D mediation channels. Identification leverages four exogenous policy shocks
-(余额宝, Ant IPO pause, two data-export rules) and three fintech waves (互联网金融 /
-区块链 / 大模型) with consolidation period as control. We find \NoteThis{key result}\@.
+management) — and test a structurally paired set of theoretical predictions:
+technology-layer discourse should map into technological innovation (citation-weighted
+patents, in the Kogan et al.\ 2017 lineage; citation-count weighting for unlisted banks),
+whereas scenario-layer discourse should map into product innovation and fee-based
+business (noninterest income share). We build a bank--year panel from a production corpus
+of roughly 17 million Chinese media reports (a basis after newspaper-type screening but
+\emph{before} the bank--fintech co-occurrence hard filter; 2007--2024, 110 banks,
+$T=18$); article-level locus labels
+come from a majority vote across three independent-vendor LLMs. Identification combines
+bank and year fixed effects, layer $\times$ event studies around four policy shocks (the
+Yu'ebao launch, the Ant IPO suspension, and two data-export regulations), and a
+leave-one-out peer-locus instrument within bank-type--year cells. Event-window CARs for
+the listed-bank subsample serve only as an extension. We find \NoteThis{key result}\@.
 \end{abstract}
 
 \section{Introduction}\label{sec:intro}
-\NoteThis{Motivate the research question and contribution.}
+
+Over the past decade and a half, Chinese banking has undergone a digital transformation
+of rare scale: from the 2013 Yu'ebao launch that ignited the internet-finance era (wave
+1, 2013--2015), through the blockchain and early-AI technology race (wave 2, 2016--2018),
+to the large-language-model wave since 2022 (wave 3, 2022--2024), with a regulatory
+consolidation period (2019--2021) following the suspension of Ant Group's IPO in November
+2020. Throughout, the media has been the most important information intermediary for
+banks' technology strategies: what a bank talks about — underlying technologies such as
+blockchain, AI, and cloud computing, or application scenarios such as payments, lending,
+and wealth management — constitutes a high-frequency public signal of its innovation
+locus. Yet most existing work treats bank fintech activity as a homogeneous scalar,
+ignoring the orthogonal distinction between a technology dimension and a
+business-function dimension long established in the digital-finance taxonomy
+\parencite{gomber2017cube,gomber2018fintech}.
+
+The core question of this paper is whether the locus of a bank's fintech media discourse
+— dominated by underlying technology or by application scenarios — differentially
+predicts the \emph{form} of its innovation output. Following the Digital Finance Cube of
+\textcite{gomber2017cube}, we aggregate article-level locus labels into two mutually
+exclusive dominance indicators at the bank--year level (technology-layer dominance,
+\code{locus\_layer\_full}, and scenario dominance, \code{locus\_scenario\_full}) and
+derive structurally paired predictions: technology-layer investment alters a bank's
+information production function and should yield patentable technological innovation
+(citation-weighted patents), whereas scenario-layer investment alters distribution and
+product interfaces and should yield fee-based business (noninterest income share)
+\parencite{yoo2010layered,boot2021fintech}.
+
+On the data side, we start from a raw census of 18{,}198{,}978 media reports (2007--2025,
+3{,}740 outlets), retain newspaper-type reports, and restrict to the 2007--2024 window to
+obtain a production corpus targeting roughly 17 million articles covering 110 banks over
+2007--2024 ($T=18$) — a basis that sits \emph{before} the bank--fintech co-occurrence
+hard filter, which, together with the full-track retention gate, substantially shrinks
+the set of articles entering the analysis. Article-level locus is classified by a
+majority vote across three independent-vendor large language models (temperature $=0$,
+byte-frozen prompt), under a full offline-cache reproducibility protocol
+\parencite{ludwig2025llmecon,carlson2026llmannotation}. On the identification side, the
+baseline uses bank and year fixed effects with bank-level clustering, complemented by
+layer $\times$ event studies around four policy shocks (E1 Yu'ebao launch, 2013-06-13;
+E4 Ant IPO suspension, 2020-11-03; E5a/E5b data-export regulations, 2022-09-01 /
+2023-09-30) estimated with heterogeneity-robust estimators
+\parencite{sunabraham2021eventstudy,borusyak2024revisiting,callaway2021difference}, and
+a leave-one-out peer-locus mean instrument within bank-type--year cells
+\parencite{manski1993reflection,leary2014peereffects}. Our inference discipline
+pre-declares a single confirmatory hypothesis, labels everything else exploratory, and
+controls the family-wise error rate with Romano--Wolf stepdown
+\parencite{romanowolf2005stepdown}.
+
+The paper makes four contributions. First, measurement: we operationalize the Digital
+Finance Cube's technology $\times$ business-function taxonomy as a bank--year locus panel
+measure on a large media corpus, with fully disclosed LLM-annotation validity commitments
+and a reproducibility protocol. Second, design: the binary-treatment-to-binary-outcome
+structural pairing distinguishes this paper from sibling studies on the same corpus
+family that measure continuous tone, exposure intensity (attention), the
+substantive-versus-symbolic dimension, or the in-house-versus-open collaboration
+dimension — locus measures the technology-layer attribute of the announcement itself,
+not its sentiment, salience, or organizational source. Third, identification: within an
+annual panel we combine leave-one-out peer instruments, partial-identification
+sensitivity for event studies \parencite{rambachan2023honestdid}, and a multi-ladder
+robustness architecture in which every ladder enters its own just-identified
+specification. Fourth, context: we bring systematic evidence from China — the world's
+largest digital-finance market, including many unlisted banks — to a bank-technology
+literature dominated by U.S. patents and listed firms
+\parencite{chen2019fintechvalue,lerner2024finpatents}.
+
+We preview the main findings as follows: \NoteThis{results preview — direction and
+magnitude for H1/H2/H3/H4, to be backfilled from production regressions}.
+
+The remainder proceeds as follows. Section \ref{sec:lit} reviews four strands of
+literature; Section \ref{sec:hypo} develops the hypotheses; Section \ref{sec:method}
+presents the sample, locus measurement, and identification strategy; Section
+\ref{sec:data} describes data sources; Section \ref{sec:results} reports results; and
+Section \ref{sec:conclusion} concludes. Appendices contain the measurement-validity
+commitments and the exploratory network-roles analysis.
 
 \section{Literature Review}\label{sec:lit}
-\NoteThis{Three strands: (1) Fintech taxonomy and locus \autocite{gomber2018fintech,goldstein2019fintech};
-(2) Innovation market-value weighting \autocite{kogan2017technological};
-(3) Blockchain and tokenization \autocite{conghe2019blockchain,cong2021tokenomics}.}
+
+\subsection{Fintech taxonomy and the layered architecture of digital innovation}
+
+The direct conceptual source of our locus construct is the Digital Finance Cube of
+\textcite{gomber2017cube}: digital-finance innovation can be characterized along three
+orthogonal dimensions — technologies, business functions, and institutions — of which
+the first two are the theoretical prototype of our underlying-technology versus
+application-scenario dichotomy; \textcite{gomber2018fintech} provide the functional map
+of the fintech revolution. Information-systems theory supplies the architectural
+foundation: \textcite{yoo2010layered} show that digital products consist of device,
+network, service, and contents layers, and that where the locus of control sits
+determines the organizing logic of innovation. In finance,
+\textcite{boot2021fintech} decompose fintech into an information axis and a
+communication axis, isomorphic to our layer (information production) / scenario
+(distribution and communication) split; \textcite{vives2019digital} surveys incumbent
+banks' strategy space under digital disruption; \textcite{parlour2022payments} and
+\textcite{berg2022fintechlending} model competition at the payments layer and the
+lending application layer, respectively; the underlying-technology character of
+blockchain and tokenomics is analyzed in
+\parencite{conghe2019blockchain,cong2021tokenomics}. Finally,
+\textcite{adner2010ecosystem} show that upstream (component) versus downstream
+(complement) technological interdependence affects firm performance through
+fundamentally different channels — the layer-versus-scenario split is thus an
+economically grounded distinction, not an arbitrary label.
+
+\subsection{Bank technology adoption and innovation output}
+
+A second strand links banks' technology investment to measurable innovation output.
+\textcite{kogan2017technological} establish the classic lineage of valuing patents by
+market reactions; \textcite{chen2019fintechvalue} use machine learning to classify
+patent text into fintech technology categories and show that private value differs
+sharply across categories — the direct top-journal precedent for ``different technology
+loci carry different economic value''; \textcite{lerner2024finpatents} characterize who
+produces financial-innovation patents. On the IT-input side, \textcite{he2026lendingit}
+decompose bank IT spending into distinct technology loci; \textcite{vivesye2025itcompetition}
+provide a theory of information technology and lender competition;
+\textcite{pierri2022techbanking} show that technology adoption shaped lending
+performance in a crisis; and \textcite{kwan2024digitalcapability} offer a bank-level
+digital-capability index as a measurement precedent. External validity in the Chinese
+context comes from \textcite{hau2024fintechcredit} (fintech credit evidence based on Ant
+Group data) and \textcite{alfhaili2026fintechequity} (banks' fintech equity investment
+and bank innovation); on big data in finance generally, see
+\parencite{goldstein2021bigdata,goldstein2019fintech}.
+
+\subsection{LLM-based text measures as econometric variables}
+
+A third strand concerns the measurement method itself. \textcite{ludwig2025llmecon}
+develop an applied econometric framework for LLM-generated variables entering downstream
+analysis, distinguishing prediction from estimation uses and emphasizing how annotation
+error propagates into inference; \textcite{carlson2026llmannotation} provide
+foundational guidelines for LLM annotation in management research, warning about
+systematic bias and prompt sensitivity. Our design responds directly to these warnings:
+a majority vote across three independent vendors hedges single-vendor systematic bias;
+a byte-frozen prompt and zero temperature remove stochasticity; an offline cache
+guarantees byte-level reproducibility; and Appendix \ref{app:validity} pre-commits to
+human gold-standard validity checks.
+
+\subsection{Identification and inference}
+
+A fourth strand underpins the identification design. The identification roots of peer
+instruments are \textcite{manski1993reflection}'s reflection problem and
+\textcite{leary2014peereffects}'s leave-one-out peer construction in finance; the two
+identification routes for generalized Bartik-type instruments are given by
+\textcite{goldsmithpinkham2020bartik} (exogenous shares) and
+\textcite{borusyak2022shiftshare} (exogenous shocks). Event-study estimation under
+staggered treatment and heterogeneous effects follows
+\parencite{sunabraham2021eventstudy,callaway2021difference,borusyak2024revisiting};
+partial-identification sensitivity to local parallel-trends violations follows
+\textcite{rambachan2023honestdid}; family-wise error control follows
+\textcite{romanowolf2005stepdown}; and few-cluster inference follows
+\textcite{roodman2019boottest}'s wild cluster bootstrap.
+
+\subsection{Positioning}
+
+In sum, the taxonomy literature establishes the layer-versus-scenario distinction but
+lacks large-sample bank-panel evidence; the bank-technology literature measures IT
+spending or patent output but does not directly observe the technology positioning of
+banks' public discourse; and the LLM-measurement literature provides tools but few
+applications embedded in a full identification framework. This paper sits at the
+intersection: it converts a taxonomic construct into a panel variable using a
+discipline-constrained LLM measure and tests its structurally paired predictions about
+the form of innovation output with modern causal-inference tools.
+
+\section{Theory and Hypotheses}\label{sec:hypo}
+
+Our theoretical skeleton is that the locus of a bank's fintech media discourse reflects
+where its digital investment sits in the layered architecture
+\parencite{gomber2017cube,yoo2010layered}, and that investment at different layers maps
+into different forms of innovation output through different economic mechanisms
+\parencite{boot2021fintech,adner2010ecosystem}. All hypotheses below are theoretical
+predictions, not results; only H1 is the pre-declared confirmatory hypothesis, while
+H2--H4 are exploratory.
+
+\paragraph{H1 (confirmatory primary hypothesis: technology layer $\to$ technological
+innovation).}
+Discourse about underlying technologies (blockchain / AI / cloud) reflects a bank's
+genuine investment orientation toward general-purpose technologies. Such investment
+alters the bank's information production function, and its output naturally crystallizes
+as patentable technological solutions: \textcite{chen2019fintechvalue} show that patents
+in different fintech technology categories carry significant and heterogeneous private
+value, and \textcite{he2026lendingit} show that competitive pressure induces banks to
+scale up software-type IT investment. \emph{Theoretical prediction}: the
+technology-layer dominance indicator \code{locus\_layer\_full} (derived from
+\code{tech\_frac} $>$ \code{app\_frac}) carries a positive coefficient on
+citation-weighted patent output (\code{citation\_weighted\_patent}), with bank and year
+fixed effects and bank-level clustering.
+
+\paragraph{H2 (exploratory paired hypothesis: application scenario $\to$ fee business).}
+Payments, lending, and wealth management are business-function-layer innovations; their
+investment changes distribution channels and product interfaces rather than the
+underlying technology stack \parencite{parlour2022payments,boot2021fintech}, and their
+output takes the form of fee and commission business rather than patents.
+\emph{Theoretical prediction}: the scenario dominance indicator
+\code{locus\_scenario\_full} carries a positive coefficient on noninterest income share
+(\code{noninterest\_income\_share}); at the same time its effect on citation-weighted
+patents should be markedly weaker than H1 — the placebo side of the structural pairing.
+If scenario discourse predicted patents just as strongly, the locus distinction would
+lack discriminant validity.
+
+\paragraph{H3 (exploratory mediation: IT capex and R\&D intensity channels).}
+If technology-layer discourse reflects real investment, its association with patent
+output should partly run through observable input variables: IT capital expenditure
+(\code{capex\_it}, primary mediator) and R\&D intensity (\code{r\_and\_d\_intensity},
+secondary mediator). \emph{Theoretical prediction}: the indirect path
+\code{locus\_layer\_full} $\to$ mediator $\to$ \code{citation\_weighted\_patent} is
+positive. We estimate a Baron--Kenny decomposition \parencite{baron1986moderator} and
+report the sensitivity parameter $\rho$ for violations of sequential ignorability
+following \textcite{imai2010general}; because the mediators are endogenous, this
+analysis is explicitly labeled an association decomposition, not causal mediation.
+
+\paragraph{H4 (exploratory heterogeneity: three waves).}
+The strength of locus effects should vary with the technological content of each wave:
+wave 2 (2016--2018, blockchain / early AI) and wave 3 (2022--2024, large models) are
+dominated by underlying technology, whereas wave 1 (2013--2015, internet finance) is
+dominated by payments and wealth-management scenarios. \emph{Theoretical prediction}:
+the effect of \code{locus\_layer\_full} on citation-weighted patents is stronger in
+wave\_2 and wave\_3; the effect of \code{locus\_scenario\_full} on noninterest income
+share is stronger in wave\_1; the consolidation period (2019--2021) serves as the
+comparison period (three waves of exactly three years each, strictly symmetric).
 
 \section{Methodology}\label{sec:method}
-\subsection{Sample and Data}
-$N \times T \approx 3000\text{--}9000$ bank--years, 2007--2024.
 
-\subsection{Locus Measurement (Stage 32a)}
-\NoteThis{innovation\_locus\_full binary indicator $\to$ derived primary\_pair
-(locus\_layer\_full, locus\_scenario\_full) and locus\_gap.}
+\subsection{Sample and Data}
+
+$N \times T \approx 3000\text{--}9000$ bank--years, 2007--2024 (per spec.sample).
+\NoteThis{paper\_spec.sample (n\_bank\_min=200 / obs\_target\_min=3000) is a
+bank-universe expansion target and conflicts with the current production count of 110
+banks $\times$ $T=18$ (at most 1980 bank--years); sample sizes to be reconciled and
+backfilled after sample-frame enrichment and production-panel finalization.}
+
+Corpus construction follows two explicitly separated accounting bases. The \emph{raw
+census basis} (before filtering and deduplication; for the data appendix): 183
+deduplicated source files containing 18{,}198{,}978 media reports spanning 2007-01-01 to
+2025-12-31 across 3{,}740 outlets; newspaper-type reports account for 92.93\% of all
+rows (16{,}912{,}361 rows) and are retained, while wire-service, magazine, government,
+and web types are dropped row-wise; exactly unique records number 18{,}177{,}370
+(duplication rate 0.12\%). The \emph{production target basis} (after newspaper screening
+and deduplication, \emph{before} the bank--fintech co-occurrence hard filter): roughly
+17 million articles, 2007--2024, $T=18$, 110 banks. The retained universe entering the
+regressions (after the co-occurrence hard filter $+$ the \code{full}-track retention
+gate) is far smaller than this basis; its size \NoteThis{to be backfilled once the
+production pipeline has run}. The two bases must not be conflated.
+
+The filtering chain comprises target-bank entity recognition (an asymmetric criterion
+with negation and short-name filters), fintech lexicon matching, and — critically — a
+co-occurrence hard filter that retains only articles in which the target bank and at
+least one fintech term co-occur within a $\pm 1$-sentence window
+(\code{sentence\_radius}$=1$), with the co-occurrence test covering both headline and
+body (\code{match\_in\_title}$=$\code{true}). Each retained article is then materialized
+into three parallel text tracks: \code{full} (headline $+$ full body), \code{ctx}
+(headline $+$ entity context window), and \code{ss} (headline $+$ strict same-sentence
+bank--fintech window $\pm 1$ sentence). The three tracks are mutually robust with no
+ordering of primacy.
+
+\subsection{Locus Measurement (article-level annotation at pipeline stage 21 $\to$ panel aggregation at stage 40)}
+
+\paragraph{F1: LLM ensemble annotation.}
+Article-level annotation is performed by an ensemble of large language models from three
+independent vendors — \code{gpt-5.4-nano}, \code{gemini-3.1-flash-lite}, and
+\code{deepseek-v4-flash} — whose outputs are combined by majority vote into a consensus
+label. All calls are made with temperature $=0.0$ and seed $=42$ passed explicitly; the
+prompt (v8, v8-2026-05-17) is byte-frozen. Every request--response pair is written to an
+offline cache; with zero cache misses, the entire annotation can be reproduced
+byte-for-byte fully offline at zero API cost
+\parencite{ludwig2025llmecon,carlson2026llmannotation}. Chinese segmentation is anchored
+at \code{jieba==0.42.1}.
+
+\paragraph{F2: three text tracks.}
+Each LLM dimension is annotated independently on the \code{full} / \code{ctx} /
+\code{ss} tracks, yielding three track versions of \code{innovation\_locus}. The three
+tracks are mutually robust with no ordering of primacy; each track enters its own
+just-identified specification and is never pooled into one over-identified system (see
+Section \ref{subsec:robust}).
+
+\paragraph{F3: article-retention gate.}
+Whether an article is judged a bank--fintech report and enters the analysis universe is
+determined solely by the full-track verification flag
+\code{llm\_verified\_full}$=$\code{true} (full-only gating); the \code{ctx} and
+\code{ss} tracks are conditional-on-full robustness measurement tracks whose row
+universe is a subset of the full-track retention set.
+
+\paragraph{F4: locus labels and panel aggregation.}
+The article-level locus label is a HYBRID construction: LLM majority voting as the
+backbone, complemented by keyword-based confidence adjustment and an empty-vote
+fallback; its validity numbers therefore inherit a keyword circularity and are not
+directly comparable to pure-LLM dimensions (see Appendix \ref{app:validity}). Bank--year
+aggregation (pipeline stage 40) yields the technology-layer article share
+\code{tech\_frac} and the scenario article share \code{app\_frac}. The treatment pair
+(\code{locus\_layer\_full}, \code{locus\_scenario\_full}) is derived in the replication
+package's Stata \code{01\_data\_prep.do} (sole producer; never written to parquet):
+\code{locus\_layer\_full}$=\mathbf{1}[\code{tech\_frac}>\code{app\_frac}]$ and
+\code{locus\_scenario\_full}$=\mathbf{1}[\code{app\_frac}>\code{tech\_frac}]$, coded
+missing if either share is missing; ties (including double zeros) set both dummies to 0,
+forming the reference group; the secondary measure
+\code{locus\_gap}$=$\code{locus\_layer\_full}$-$\code{locus\_scenario\_full}
+$\in\{-1,0,+1\}$.
 
 \subsection{Identification Strategy}
-\NoteThis{Layer $\times$ event study with leave-one-out peer-locus IV;
-4 events $\times$ 5-day CAR + patent + Kogan 2017 market-value weighted.}
+
+\paragraph{Baseline two-way fixed effects.}
+The baseline specification is
+\begin{equation}\label{eq:baseline}
+Y_{i,t} = \beta_1\,\mathrm{Layer}_{i,t} + \beta_2\,\mathrm{Scenario}_{i,t}
+ + \mathbf{X}_{i,t}'\boldsymbol{\gamma} + \alpha_i + \lambda_t + \varepsilon_{i,t},
+\end{equation}
+where $Y_{i,t}$ is bank $i$'s citation-weighted patents (primary outcome) or noninterest
+income share (paired outcome) in year $t$; $\mathrm{Layer}$ and $\mathrm{Scenario}$ are
+the binary treatment pair derived above; $\alpha_i$ and $\lambda_t$ are bank and year
+fixed effects; and $\mathbf{X}_{i,t}$ collects bank-level and year-level controls (see
+Section \ref{sec:data} for their current enrichment status). The main specification
+clusters standard errors at the bank level (within-bank serial correlation in a $T=18$
+panel); the clustering ladder and few-cluster corrections appear in the robustness
+subsection.
+
+\paragraph{Layer $\times$ event studies.}
+Four policy events (E1 Yu'ebao launch, 2013-06-13; E4 Ant IPO suspension, 2020-11-03;
+E5a Data-Export Security Assessment Measures, 2022-09-01; E5b Data-Export Management
+Measures, 2023-09-30) provide exogenous shocks to the fintech environment. We estimate
+\begin{equation}\label{eq:eventstudy}
+Y_{i,t} = \sum_{k \neq -1} \delta_k\, \mathbf{1}[t - t_e = k] \times
+\mathrm{Layer}^{\mathrm{pre}}_{i} + \alpha_i + \lambda_t + \varepsilon_{i,t},
+\end{equation}
+where $t_e$ is the event year, $\mathrm{Layer}^{\mathrm{pre}}_i$ is pre-event
+technology-layer exposure, and $k=-1$ is the omitted base period. Under staggered and
+heterogeneous effects we report the \textcite{sunabraham2021eventstudy}
+interaction-weighted estimator and the \textcite{borusyak2024revisiting} imputation
+estimator side by side, together with a joint pre-trend test (leads $-3/-2/-1=0$) and a
+\textcite{rambachan2023honestdid} relative-magnitudes partial-identification sensitivity
+band (run on E1, the longest window; $M$ grid $\{0,0.5,1,1.5,2\}$).
+
+\paragraph{Leave-one-out peer instrument.}
+Locus discourse may be co-determined with unobserved innovation endowments. We
+instrument with the leave-one-out peer mean of \code{tech\_frac} within bank-type
+$\times$ year cells:
+\begin{equation}\label{eq:iv}
+\code{tech\_frac}_{i,t} = \pi\, \overline{\code{tech\_frac}}^{\,\mathrm{LOO}}_{-i,g(i),t}
+ + \mathbf{X}_{i,t}'\boldsymbol{\phi} + \alpha_i + \lambda_t + u_{i,t},
+\end{equation}
+where $g(i)$ is bank $i$'s type group. The identification logic follows the peer-effects
+literature: peers' discourse orientation shifts the focal bank's strategic language
+choice but, conditional on two-way fixed effects and controls, does not directly enter
+its patent production function
+\parencite{manski1993reflection,leary2014peereffects}. The primary instrument is the
+contemporaneous LOO mean (\code{leave\_one\_out\_peer\_locus\_iv}); the fallback is its
+one-year lag (\code{leave\_one\_out\_peer\_locus\_iv\_lag1}, sidestepping contemporaneous
+reflection); the \code{ctx} / \code{ss} tracks receive their own same-track LOO
+instruments (\code{lpeer\_locus\_iv\_ctx\{,\_lag1\}} /
+\code{lpeer\_locus\_iv\_ss\{,\_lag1\}}). Each endogenous-variable--instrument pair
+enters its own just-identified 2SLS specification; we never stack multiple instruments
+into one over-identified system, and hence report no Hansen J — consistency across
+variants is itself the robustness evidence. In weak-instrument scenarios
+(Kleibergen--Paap F below conventional thresholds) we read Anderson--Rubin confidence
+sets instead. At the project level, generalized Bartik and media-outlet house-style
+instrument engines are available as extensions
+\parencite{goldsmithpinkham2020bartik,borusyak2022shiftshare}.
+
+\paragraph{Inference discipline.}
+The single pre-declared confirmatory hypothesis is H1 (\code{locus\_layer\_full} $\to$
+\code{citation\_weighted\_patent}, two-way fixed effects); all remaining specifications
+(H2--H4, track twins, cross-vendor twins, secondary outcomes, heterogeneity splits,
+network roles) are explicitly labeled exploratory. The family-wise error rate of the
+$\{\code{locus\_layer\_full}, \code{locus\_scenario\_full}\}$ treatment family is
+controlled by Romano--Wolf stepdown with 1{,}000 replications
+\parencite{romanowolf2005stepdown}; with few clusters or few-treated event studies we
+fall back on the wild cluster bootstrap with 9{,}999 replications
+\parencite{roodman2019boottest}.
 
 \subsection{Embedding-Based Measures (Co-Primary Dual Track; F5)}
+
 All embedding-derived features are computed under two co-primary
 embedding models from independent vendors, reported side by side as
 mutual robustness: Alibaba \code{Qwen3-Embedding-8B} (4{,}096-d,
@@ -63,19 +418,261 @@ rank-correlation check ($\rho \geq 0.80$). The sentiment-annotation
 LLM ensemble (F1) is unaffected by this change: embedding models and
 sentiment LLMs are disjoint pipeline components.
 
+We stress that the locus treatment itself is an LLM classification, not an
+embedding-derived measure; the dual-embedding ladder applies to embedding-derived
+auxiliary measures and control features.
+
+\subsection{Robustness Design}\label{subsec:robust}
+
+Our robustness architecture consists of several non-crossing ladders under one unified
+discipline: within each ladder, all variants are \emph{mutually robust with no ordering
+of primacy}, each enters its \emph{own just-identified} specification, and variants of
+the same construct are \emph{never} pooled into one over-identified Hansen J system.
+
+\paragraph{Three-track alternative classifiers with per-track IV mirrors.}
+The same locus construct is recomputed under the \code{full} / \code{ctx} / \code{ss}
+text bases, yielding the ctx twin (\code{tech\_frac\_lc}) and the ss twin
+(\code{tech\_frac\_ls}) of \code{tech\_frac}; each track's endogenous variable is paired
+with its same-track LOO instrument, just-identified track by track, and full $\times$
+ctx $\times$ ss must never be composed into an over-identified system. Row-universe
+discipline: the retention gate is full-only; ctx / ss are conditional-on-full.
+
+\paragraph{Cross-vendor per-model classification ladder.}
+Cross-vendor robustness of the treatment: the individually classified
+$\{\code{gpt54nano},\code{gemini31},\code{deepseekv4}\}$\code{\_tech\_frac\_full}
+variants stand side by side with the consensus-vote version as co-equal mutual
+robustness arms; each per-model variant's denominator is that model's own count of
+verified articles. The consensus label is not a bare majority vote (it includes the
+verification gate, vote cleaning, and a keyword fallback), so the per-model ladder is a
+genuinely independent measurement arm. True family-wise error control for the
+cross-model family is carried by the project's root-level Romano--Wolf template
+(Table A12, Panel C); each vendor is just-identified on its own, with no pooled Hansen J.
+
+\paragraph{IV variant ladder and weak-instrument inference.}
+The primary instrument, its lagged fallback, and the per-track mirrors form six
+endogenous-variable--instrument pairs reported one by one, each just-identified (see
+the identification subsection); when the KP F is low we read Anderson--Rubin confidence
+sets; no over-identification test is ever constructed.
+
+\paragraph{Clustering ladder and wild bootstrap.}
+Beyond bank-level clustering in the main specification, we report bank-only, bank
+$\times$ year two-way, and bank-type $\times$ year two-way clustering side by side; with
+$G<50$ clusters or few-treated event studies we recheck with the boottest wild cluster
+bootstrap (9{,}999 replications) \parencite{roodman2019boottest}.
+
+\paragraph{Honest-DiD parallel-trends sensitivity.}
+Sensitivity of event-study conclusions to local parallel-trends violations is presented
+as \textcite{rambachan2023honestdid} relative-magnitudes partial-identification bands
+(E1, $M \in \{0,0.5,1,1.5,2\}$), reported alongside the heterogeneity-robust estimators.
+
+\paragraph{Cell decomposition and clarity robustness table.}
+A $2^2$ cross-construct cell decomposition of locus against the adjacent collab\_mode
+construct (from the sibling collaboration paper) establishes dimensional independence
+(Table 6); collab\_mode serves only as an alternative-specification control in Table 5,
+not a parallel treatment. The language-clarity robustness table (Table A7) is reported
+dual-track. The cancelled title-track table does not reappear.
+
+\paragraph{Scope statement.}
+Other measurement ladders in the project's corpus family (political-word weights and
+linguistic-rule ablations for dictionary tone, rare-word frequency cutoffs, the
+forward-looking-statement two-arm design, BERT per-model sentiment families, etc.)
+belong to sibling papers' construct families, are unrelated to this paper's
+LLM-classified locus, and do not enter this paper's robustness architecture.
+
 \section{Data}\label{sec:data}
-\NoteThis{Data sources (CSMAR daily returns, IncoPat patents, Kogan 2017 algorithm);
-descriptive statistics (Table 1).}
+
+\paragraph{Media corpus.}
+The text-side data are the bank--fintech media corpus described in Section
+\ref{sec:method} (raw census of 18{,}198{,}978 reports / 3{,}740 outlets / newspapers
+92.93\% retained; production target roughly 17 million articles, a pre-co-occurrence-filter
+basis, 2007--2024, 110 banks).
+
+\paragraph{Patent data.}
+The innovation-output side is planned to link IncoPat and China National Intellectual
+Property Administration patent data (enrichment M0.5.11): the primary outcome is
+citation-weighted patents (\code{citation\_weighted\_patent}); patent-quality weighting
+is reported on two parallel bases — \textcite{kogan2017technological} market-value
+weighting for listed banks (requires stock prices, feasible only for listed banks) and
+citation-count weighting in the Hall--Jaffe--Trajtenberg lineage for unlisted banks;
+the secondary outcome is the fintech patent count (\code{patent\_fintech\_count}).
+
+\paragraph{Financial and mediator data.}
+The scenario-track paired outcome is noninterest income share
+(\code{noninterest\_income\_share}) from the financial panel; the mediators are IT
+capital expenditure (\code{capex\_it}) from CSMAR and R\&D intensity
+(\code{r\_and\_d\_intensity}); the listed-bank extension (5-day CAR) requires CSMAR/Wind
+daily returns and is not part of the annual mainline. Enrichment of bank-level financial
+controls (log assets, leverage, capital ratio, NPL ratio, deposit growth) and year-level
+macro controls (GDP growth, M2 growth) is in progress; the replication package
+self-checks with \code{capture confirm} at the data-preparation step and assembles only
+the columns that actually exist, so the controls are incorporated automatically once the
+financial panel arrives.
+
+\paragraph{Descriptive statistics.}
+\NoteThis{Table 1 descriptive statistics (means / SDs / quantiles / bank coverage) to be
+backfilled once the production-corpus (T=18) panel is generated.}
 
 \section{Results}\label{sec:results}
-\NoteThis{Table 2 (main: layer $\times$ event study); Table 3 (Baron-Kenny mediation
-locus $\to$ R\&D / IT capex $\to$ patent + CAR); Table 4 (heterogeneity 三波 fintech
-浪潮 wave\_1/2/3 + consolidation + SOE); Table 5 (robustness: alternative locus
-classifier + Borusyak DiD).}
+
+\subsection{Main regressions: layer $\times$ event study (Table 2)}
+
+Table 2 reports estimates of equations \eqref{eq:baseline} and \eqref{eq:eventstudy}:
+the left panel presents the two-way fixed-effects baseline (columns 1--2:
+\code{citation\_weighted\_patent}; columns 3--4: \code{noninterest\_income\_share}),
+and the right panel the four-event layer $\times$ event studies. Reading frame: H1
+predicts $\beta_1>0$ in columns 1--2; H2 predicts $\beta_2>0$ in columns 3--4 with
+$\beta_2^{(patent)}$ markedly weaker than $\beta_1^{(patent)}$ (the placebo side of the
+structural pairing); the event studies predict differential dynamics for
+technology-layer-exposed banks after E1 (and after E4/E5a/E5b depending on regulatory
+direction). \NoteThis{Table 2 coefficients, standard errors, joint pre-trend F, and
+rwolf-adjusted p-values await production regressions.}
+
+\subsection{Mediation decomposition (Table 3)}
+
+Table 3 reports the Baron--Kenny three-step association decomposition of
+\code{locus\_layer\_full} $\to$ \code{capex\_it} (primary mediator) /
+\code{r\_and\_d\_intensity} (secondary mediator) $\to$
+\code{citation\_weighted\_patent} \parencite{baron1986moderator}, with the
+\textcite{imai2010general} sensitivity parameter $\rho$ (the threshold at which the
+indirect effect changes sign under sequential-ignorability violations). The table is
+explicitly labeled an exploratory association decomposition, not causal mediation.
+\NoteThis{Table 3 direct/indirect decomposition and $\rho$ thresholds to be backfilled.}
+
+\subsection{Heterogeneity: three waves and ownership (Table 4)}
+
+Table 4 reports H4 by wave splits (pre 2007--2012 / wave\_1 2013--2015 / wave\_2
+2016--2018 / consolidation 2019--2021 / wave\_3 2022--2024) and ownership (state-owned
+vs.\ non-state): we expect the patent effect of \code{locus\_layer\_full} to concentrate
+in wave\_2 and wave\_3, the noninterest-income effect of \code{locus\_scenario\_full}
+to concentrate in wave\_1, with the consolidation period as comparison. All splits are
+labeled exploratory. \NoteThis{Table 4 subgroup coefficients and between-group tests to
+be backfilled.}
+
+\subsection{Alternative classifiers and alternative estimators (Table 5)}
+
+Table 5 reports side by side: (i) ctx / ss track alternative classifiers
+(\code{tech\_frac\_lc} / \code{tech\_frac\_ls} and their derived indicators), each track
+just-identified on its own; (ii) cross-vendor per-model classifiers; (iii) the
+\textcite{borusyak2024revisiting} imputation DiD and the
+\textcite{callaway2021difference} group-time estimator; (iv) the sibling paper's
+collab\_mode as an alternative-specification control (control only, not a parallel
+treatment). \NoteThis{Table 5 arm-by-arm coefficients and the cross-arm consistency
+narrative to be backfilled.}
+
+\subsection{IV estimates (2SLS)}
+
+Following equation \eqref{eq:iv}, the six just-identified
+endogenous-variable--instrument pairs are reported column by column with first-stage F,
+second-stage coefficients, and (when instruments are weak) Anderson--Rubin confidence
+sets. \NoteThis{IV table coefficients and KP F statistics to be backfilled.}
+
+\subsection{Cell decomposition (Table 6)}
+
+Table 6 reports the $2^2$ (4-cell) locus $\times$ collab\_mode cross-construct
+decomposition, testing that the locus effect is not a shadow of the collaboration
+dimension. \NoteThis{Table 6 cell means and decomposition shares to be backfilled;
+paper\_spec states both ``$2^2$ cross-tab cells'' and ``8-cell decomposition'' — this
+draft standardizes on the $2^2$ basis, with the cell count to be verified against the
+production implementation.}
 
 \section{Conclusion}\label{sec:conclusion}
-\NoteThis{Summarize findings; implications for fintech regulation and bank innovation
-strategy.}
+
+This paper operationalizes the technology $\times$ business-function distinction of the
+digital-finance taxonomy \parencite{gomber2017cube} as a binary locus measure on an
+18-year media-discourse panel of 110 Chinese banks, and tests a
+binary-treatment-to-binary-outcome structural pairing: technology-layer discourse
+$\to$ citation-weighted patents (H1, confirmatory) and scenario discourse $\to$
+noninterest income share (H2, exploratory pairing). \NoteThis{Concluding summary of
+results (support for H1--H4) awaits production regressions.}
+
+Theoretically, the results will speak to whether the layered-modular architecture
+\parencite{yoo2010layered} and the information-versus-communication dichotomy
+\parencite{boot2021fintech} leave an observable fingerprint on the form of bank
+innovation output; if the structural pairing holds, ``doing fintech'' is not a
+homogeneous scalar, and ignoring a bank's technology-layer positioning systematically
+mismeasures the innovation returns to digital transformation. For policy, the results
+will offer a layered perspective on fintech regulation: shocks targeting application
+scenarios (payments / lending / wealth management) and shocks targeting data or
+underlying technology (such as the two data-export regulations) may act on entirely
+different margins of bank innovation; for bank strategy, the results will map the
+correspondence between technology-discourse positioning and the form of innovation
+output. \NoteThis{Directional policy statements to be tightened after results are
+confirmed.}
+
+Three limitations must be acknowledged. First, annual frequency: the panel is at the
+bank--year level, so within-year discourse--investment dynamics are invisible and the
+temporal resolution of the event studies is limited. Second, endogeneity of media
+coverage: media discourse is jointly generated by banks' disclosure strategies and
+media selection; although the leave-one-out peer instruments and event studies mitigate
+part of the concern, the discourse measure is not randomly assigned, and the mediation
+analysis is only an association decomposition. Third, external validity: China is a
+single and distinctive digital-finance market (concentrated regulation, platform
+dominance, a high share of state-owned banks), so extrapolation to other institutional
+environments requires caution. In addition, the locus machine label is a hybrid of LLM
+voting and keyword adjustment; its validity evidence is delivered through the
+pre-committed human gold-standard checks (Appendix \ref{app:validity}), and until that
+evidence arrives, the discussion of measurement-error direction remains open.
+
+\appendix
+
+\section{Measurement-Validity Commitments}\label{app:validity}
+
+This appendix pre-registers the validity-checking protocol for the locus measure
+(commitment status: new\_2026-06-22; evidence status: pending\_T18\_human\_annotation).
+All validity numbers await human annotation on the production corpus ($T=18$); until
+then, this paper claims no validity number as delivered.
+
+\paragraph{Criterion validity.}
+Three independent coders label locus on a stratified article sample; the majority gold
+standard is compared against the LLM three-track machine labels, reporting Cohen's
+$\kappa$, Gwet's AC1, and Krippendorff's $\alpha$ (pipeline stage 63, Panel F).
+\NoteThis{$\kappa$ / AC1 / $\alpha$ values to be backfilled after T=18 human
+annotation.} Disclosure: the locus machine label is a HYBRID construction (LLM majority
+vote $+$ keyword confidence adjustment $+$ empty-vote fallback); its
+criterion/discriminant $\kappa$ inherits a keyword circularity absent from the pure-LLM
+dimensions (substance / collab), so locus validity numbers are not directly comparable
+to the pure-LLM dimensions.
+
+\paragraph{Inter-track reliability.}
+Machine--machine agreement across the full / ctx / ss tracks is reported as Cohen's
+$\kappa$ (stage 71). \NoteThis{Inter-track $\kappa$ to be backfilled.}
+
+\paragraph{Construct orthogonality and discriminant validity.}
+Article-level construct orthogonality uses normalized mutual information (NMI) as the
+main evidence (stage 72); auxiliary discriminant evidence is the non-redundancy check of
+$|corr|$ between the focal share and adjacent measures such as language clarity and
+numerical intensity (stage 73; within-single-LLM-method non-redundancy evidence, not
+interpreted as directional $\kappa$). \NoteThis{NMI and $|corr|$ values to be
+backfilled.}
+
+\section{Network Roles: Exploratory Appendix}\label{app:network}
+
+This appendix is exploratory, not part of the main regressions. First, a mediation
+channel: we take betweenness centrality in the bank co-occurrence network
+(\code{bank\_between\_cent}) as a candidate mediator and ask whether technology-layer
+discourse is associated with patent output through a cross-group knowledge-brokerage
+position (a structural-holes logic) — a channel (knowledge brokerage $\to$ innovation)
+explicitly distinguished from the risk-contagion channel ($\to$ profitability) studied
+in a sibling paper. Because the mediator is endogenous, we estimate within the
+association-decomposition framework and report \textcite{imai2010general} $\rho$
+sensitivity. Second, heterogeneity: locus effects are split by the within-year hub
+decile indicator (\code{bank\_is\_hub}). \NoteThis{Network mediation and hub
+heterogeneity estimates await the production panel.}
+
+Two disclosures. First, criterion sensitivity: as of 2026-07, network metrics come in
+three bank--bank co-occurrence criterion variants — same article (unsuffixed),
+$\pm 1$-sentence window (\code{\_win1}), and strict same sentence (\code{\_sent}); the
+three criteria are mutually robust, each just-identified on its own, forming a
+specification-robustness family side by side with no family-wise error correction and
+no pooled over-identification. Second, reproducibility: the current-flow betweenness
+centrality (\code{bank\_cfbetween\_cent}), clustering coefficient
+(\code{bank\_clustering}), and harmonic centrality (\code{bank\_harmonic\_cent}) column
+families (including their criterion-suffix variants) are BLAS floating-point
+nondeterministic; cross-machine reproduction verifies zero drift after excluding these
+columns by exact name. The Freeman betweenness centrality used in this paper
+(\code{bank\_between\_cent}) is deterministic and is not on the exclusion list. The
+network missingness convention is zero-filling off-network banks while disclosing the
+on-network count $N$.
 
 \printbibliography
 

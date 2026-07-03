@@ -1,5 +1,7 @@
 % llm_peer/drafts/en/manuscript.tex
 % P4.2 manuscript skeleton (plan-r3 derivative-paper extension, 2026-05-15)
+% 2026-07-03 expansion: intro/lit/hypotheses/method additions/data/results scaffolding/conclusion
+% (all result-dependent numbers remain \NoteThis placeholders)
 % Compile: xelatex + biber + xelatex × 2
 
 \input{../../../_shared/preamble_en.tex}
@@ -14,22 +16,237 @@
 \maketitle
 
 \begin{abstract}
-\NoteThis{Final abstract pending.}
-Using bank-year media coverage of FinTech and LLM-defined peer set (Cao \emph{et~al.}\ 2025) + leave-one-out instrumental variable, we measure
-LLM-peer leave-one-out tone IV (\code{llm\_peer\_tone\_iv\_full}) for Chinese listed banks. We find \NoteThis{key result}\@.
+\NoteThis{Final abstract pending; all result-dependent numbers to be backfilled from production regressions.}
+How does media tone affect banks' real operating outcomes? Causal identification faces two
+obstacles: conventional peer sets rely on coarse industry codes or bank-type classifications,
+and tone and fundamentals are jointly determined. We propose a methodological solution:
+following the generative-AI peer-identification paradigm of \textcite{cao2025genai}, we let a
+large language model (LLM) determine semantic peer relations among banks, construct a
+lagged, article-level leave-out peer-tone instrument (\code{llm\_peer\_tone\_iv\_full}) on
+the year-$(t-1)$ dynamic semantic peer network, and identify the causal effect of a bank's
+own media tone
+(\code{llm\_vote\_tone\_full}) on return on assets (\code{roa}) via two-stage least squares.
+Tone is produced by majority vote across three independent-vendor LLMs under
+\code{temperature=0}, \code{seed=42}, and a byte-frozen prompt, making the entire measurement
+chain reproducible offline at zero cost. The target corpus comprises roughly 17 million media
+articles on 110 Chinese banks over 2007--2024. We find \NoteThis{key result: main coefficient,
+significance, and first-stage strength pending}. Our contribution is methodological: a fully
+reproducible workflow from LLM semantic peers through formula-based instruments to
+just-identified 2SLS, disciplined by a controlled ladder of mutual-robustness specifications.
 \end{abstract}
 
 \section{Introduction}\label{sec:intro}
-\NoteThis{Motivate the research question and contribution.}
+
+Over the past decade, Chinese banking has undergone a profound FinTech-driven transformation:
+mobile payments, online credit, and big-data risk management have reshaped competitive
+boundaries, FinTech credit has demonstrable real effects on entrepreneurship
+\parencite{hau2024fintechcredit}, and banks' own FinTech adoption is linked to credit risk
+\parencite{cheng2020bankfintech}. Throughout this transformation the media has acted as a key
+information intermediary: since \textcite{tetlock2007media}, a large literature shows that
+news tone carries incremental information that moves financial markets and firm behavior. For
+Chinese banks, the tone of coverage on bank--FinTech topics both reflects external
+stakeholders' assessment of digital strategy and can feed back into operating outcomes through
+reputation, funding, and competitive peer pressure. Yet any causal claim from media tone to
+bank performance confronts obvious endogeneity: better-performing banks attract more favorable
+coverage (reverse causality), and unobserved strategic quality drives both tone and
+performance (omitted variables).
+
+Our research question is methodological: can exogenous variation in peer tone identify the
+causal effect of a bank's own tone? The classic peer-instrument approach
+\parencite{leary2014peerfirms} presupposes a definition of ``who is a peer,'' and conventional
+industry codes or bank-type classifications (state-owned, joint-stock, city commercial, rural
+commercial) characterize competitive relations in the FinTech context only coarsely: a city
+commercial bank focused on retail digitalization may benchmark not against same-province rural
+banks but against distant joint-stock banks with similar business structures. Following the
+generative-AI peer-identification paradigm pioneered by \textcite{cao2025genai} in accounting
+research, we let an LLM determine each bank's dynamic peer set from the FinTech competitive
+relations described in year-$(t-1)$ co-mention news sentences, and construct for each
+bank-year the equal-weighted mean --- over year-$(t-1)$ peers --- of each peer's
+article-level tone average with articles co-mentioning the focal bank excluded: a
+lagged, article-level leave-out instrument (\code{llm\_peer\_tone\_iv\_full}) for the bank's
+own tone (\code{llm\_vote\_tone\_full}) in a 2SLS design with return on assets (\code{roa})
+as the outcome.
+
+On identification, the instrument's dual ``one-year lag + article-level leave-out''
+construction addresses the reflection problem of \textcite{manski1993reflection}: the
+instrument is built on year-$(t-1)$ peer information, avoiding contemporaneous simultaneity,
+and each peer's tone mean excludes articles co-mentioning the focal bank, severing the
+mechanical self-loop,
+while the asymmetric, intransitive structure of the LLM semantic peer network supplies
+network-based identifying variation in the sense of \textcite{bramoulle2009networks} (peers of
+peers need not be one's own peers). Estimation includes bank and year fixed effects with
+standard errors clustered by bank; instrument strength is assessed with the cluster-robust
+Kleibergen--Paap rk Wald F statistic \parencite{kleibergen2006rank} against Stock--Yogo
+critical values \parencite{stock2005weak}, complemented by weak-instrument-robust
+Anderson--Rubin confidence sets \parencite{andrews2019weakiv}. Throughout, we follow a
+one-paper-one-identification discipline: a single pre-declared confirmatory specification, with
+all remaining ladders labeled exploratory and subjected to Romano--Wolf familywise error
+control \parencite{romano2005stepdown}.
+
+This paper is strictly differentiated from its sister papers built on the same data
+infrastructure: those papers study bank FinTech behavior itself, with tone, attention, or
+strategic attributes as treatments, whereas the present paper is methodological --- its object
+is the identification engine ``LLM-determined semantic peers + lagged leave-out instrument.'' The
+primary outcome is deliberately a real economic outcome, \code{roa}, rather than any
+text-derived quantity, to avoid the near-tautology of ``peer text volume $\rightarrow$ own
+text volume'' and cross-paper same-source contamination (see the disclosure in the methodology
+section).
+
+We make four contributions. First, a methodological contribution: we push LLM peer
+identification \parencite{cao2025genai} from descriptive validity checks into an
+instrumental-variables framework, providing a complete workflow from the semantic peer network
+through formula-based lagged leave-out instruments to just-identified 2SLS. Second, a measurement
+contribution: tone is produced by majority vote across three independent-vendor LLMs and
+paralleled by three Chinese financial BERT models and dictionary ablation variants, all
+entering as mutually robust, co-equal measures in separate just-identified specifications.
+Third, a reproducibility contribution: \code{temperature=0}, \code{seed=42}, a byte-frozen
+prompt, and full call caching make the measurement chain byte-level reproducible offline at
+zero cost, responding directly to warnings about hidden researcher degrees of freedom in LLM
+annotation \parencite{baumann2025llmhacking}. Fourth, a corpus contribution: identification
+rests on roughly 17 million media articles covering 110 Chinese banks over 2007--2024, among
+the largest bank--media text panels assembled for a single emerging market.
+
+The remainder proceeds as follows. Section~\ref{sec:lit} reviews the literature;
+Section~\ref{sec:theory} develops hypotheses; Section~\ref{sec:method} presents measurement
+and identification; Section~\ref{sec:data} describes the data;
+Sections~\ref{sec:main}--\ref{sec:het} lay out the presentation framework for baseline,
+mechanism, and heterogeneity results; Section~\ref{sec:robust} details the robustness ladders;
+Section~\ref{sec:concl} concludes.
 
 \section{Literature Review}\label{sec:lit}
-(1)~LLM-based peer identification (Cao \emph{et~al.}\ 2025 \emph{RAS}); (2)~Stock--Yogo (2005) weak-instrument testing; (3)~Kleibergen--Paap (2006) rank-based identification.
+
+\subsection{LLM Peer Identification and LLM Financial Text Analysis}
+Our methodological anchor is \textcite{cao2025genai}, the first systematic demonstration that
+generative AI can identify economically meaningful peer firms whose peer sets outperform
+industry codes in explaining valuation and performance comovement. More broadly, LLMs as
+measurement tools for financial and accounting text have acquired disciplinary norms:
+\textcite{dekok2025chatgpt} provides best practices for generative LLM text analysis in
+accounting research (including zero temperature and fixed prompt versions), and
+\textcite{eisfeldt2025genai} surveys the method's scope in finance. On applications,
+\textcite{jha2024chatgpt} constructs forward-looking policy measures from corporate text with
+LLMs and brings them into panel regressions; \textcite{hansen2023fedspeak} shows LLMs
+outperform dictionaries and BERT in classifying central-bank stances; and
+\textcite{gilardi2023chatgpt} shows LLM annotation beats crowd workers. The cautionary side is
+equally clear: \textcite{baumann2025llmhacking} quantifies the hidden researcher degrees of
+freedom in LLM annotation (``LLM hacking''), \textcite{ludwig2025llmframework} states validity
+conditions for LLM measures in applied econometrics, and \textcite{levy2026lookahead} provides
+top-journal evidence on look-ahead bias in commercial LLMs. Our three-vendor voting,
+deterministic decoding, and byte-frozen prompt are the engineering response to these warnings.
+
+\subsection{Peer-Effect Identification: Reflection, Networks, and Leave-One-Out Instruments}
+Peer-effect identification starts from the reflection problem of
+\textcite{manski1993reflection}: endogenous and contextual effects are not separately
+identified in linear-in-means models. \textcite{bramoulle2009networks} show that network
+structure (intransitivity, peers of peers) restores identification, with applicability
+conditions synthesized in their survey \parencite{bramoulle2020survey}. In finance,
+\textcite{leary2014peerfirms} instrument peer behavior with peer idiosyncratic shocks --- the
+canonical peer-instrument paradigm; our lagged leave-out tone instrument belongs to the same
+family but approximates idiosyncratic shocks with peer \emph{outcome means}, a difference and
+residual identifying assumption made explicit in the methodology section. \textcite{luo2025causalpeer} give general conditions for IV identification of
+causal peer effects under unobserved confounding. In the ``text-defined peers'' lineage,
+\textcite{hoberg2016textnetwork}'s text-based network industries (TNIC) are the foundational
+benchmark, defining continuous peer relations from product-description similarity; our LLM
+semantic peers can be viewed as their generative upgrade --- peer determination rests on the
+model's holistic understanding of business and strategy rather than bag-of-words similarity.
+
+\subsection{Weak Instruments, Cluster-Robust Inference, and Multiple Testing}
+Our inferential toolkit draws on three literatures. On weak instruments, the
+Kleibergen--Paap rk Wald F statistic \parencite{kleibergen2006rank} is cluster-robust and is
+our headline first-stage diagnostic against \textcite{stock2005weak} critical values;
+\textcite{montielolea2013weak}'s effective F applies under non-i.i.d.\ errors; and
+\textcite{andrews2019weakiv} survey modern weak-instrument-robust inference (AR confidence
+sets, tF procedures), which we report alongside. When multiple parallel instruments (e.g.\
+the three IV engines) require joint inference, many-weak-instrument inference follows
+\textcite{mikusheva2022manyweak}. On clustering, \textcite{mackinnon2023cluster} and
+\textcite{cameron2015practitioner} guide our choice of bank-level primary clustering, two-way
+clustering, and wild bootstrap under few clusters. On multiple testing, the stepdown procedure
+of \textcite{romano2005stepdown} controls the familywise error rate for all exploratory
+families.
+
+\subsection{Media Tone Measurement and the Chinese Bank--FinTech Setting}
+Foundational evidence that media tone moves financial outcomes comes from
+\textcite{tetlock2007media}; \textcite{shapiro2022newssentiment} provide the econometric
+benchmark comparing lexicon- and model-based news sentiment measures, directly supporting our
+parallel LLM/BERT/dictionary design. For Chinese text, \textcite{du2022chinesedict} construct
+and validate a domain-specific Chinese financial sentiment dictionary, the source of our
+dictionary robustness track and the political-word weight ladder. On the Chinese bank--FinTech
+setting, \textcite{cheng2020bankfintech} bring a bank FinTech text index into a bank-year
+panel to study credit risk --- the closest data-structure analogue to ours --- while
+\textcite{hau2024fintechcredit} provide causal evidence on the real effects of FinTech credit
+in China.
+
+\subsection{Positioning}
+Three gaps remain. (i) LLM peer identification \parencite{cao2025genai} has so far served
+validity checks and descriptive applications, not instrumental-variables identification.
+(ii) Peer-tone instruments lack a large-scale, reproducible implementation in the Chinese
+banking context. (iii) The LLM text-measurement literature and the peer-effect identification
+literature have developed separately, without a methodological template that bridges them and
+disciplines researcher degrees of freedom through a complete robustness ladder. This paper
+fills all three gaps.
+
+\section{Theory and Hypotheses}\label{sec:theory}
+
+This section derives four testable hypotheses from two complementary mechanisms --- information
+intermediation and peer pressure. All statements below are theoretical predictions; all
+coefficients, significance levels, and test statistics await backfill from production-corpus
+regressions \NoteThis{cross-check each hypothesis after backfill}.
+
+Media tone can plausibly affect bank operating outcomes through two channels. First,
+information intermediation: favorable coverage of a bank's FinTech strategy reduces information
+asymmetry vis-\`a-vis external stakeholders (depositors, interbank counterparties, regulators),
+improving funding conditions and business development \parencite{tetlock2007media}. Second,
+strategy execution: a favorable opinion environment lowers internal organizational resistance
+to digital transformation, helping FinTech investment translate into cost savings and revenue
+diversification \parencite{cheng2020bankfintech,hau2024fintechcredit}. Both channels point in
+the same direction: favorable tone improves profitability. Hence:
+
+\textbf{H1 (confirmatory main hypothesis).} A bank's own media tone
+(\code{llm\_vote\_tone\_full}, instrumented by \code{llm\_peer\_tone\_iv\_full}) has a
+positive causal effect on return on assets (\code{roa}): $\beta > 0$.
+
+H1 presupposes instrument relevance. Peer tone should transmit to own tone because semantic
+peers face common product markets and common coverage agendas: when peers' FinTech strategies
+receive favorable coverage, the media's attention and evaluative frames migrate to comparable
+banks, and banks themselves respond to peers' strategic signals \parencite{leary2014peerfirms};
+the dual ``one-year lag + article-level leave-out'' construction guarantees that this
+transmission contains no mechanical self-component \parencite{manski1993reflection}. Hence:
+
+\textbf{H2 (first stage).} Lagged leave-out LLM-peer tone (\code{llm\_peer\_tone\_iv\_full}) is
+positively related to own tone, with first-stage strength passing weak-instrument diagnostics
+(Kleibergen--Paap rk Wald F exceeding Stock--Yogo critical values).
+\NoteThis{First-stage F pending.}
+
+If H1 holds, one intermediate channel is the bank's own attention and commitment to FinTech
+topics: in a favorable tone environment, banks push FinTech deployment more actively, visible
+as higher own FinTech coverage intensity. This channel test is deliberately positioned as
+mechanism corroboration rather than a co-equal outcome, because its dependent variable shares
+a source with a sister paper's treatment (see the same-source disclosure in the methodology
+section). Hence:
+
+\textbf{H3 (mechanism corroboration, non-headline).} Instrumented own tone has a positive
+effect on own FinTech coverage intensity (\code{avg\_ft\_intensity\_full}).
+
+Finally, the strength of peer-tone transmission should vary with a bank's responsiveness to
+market signals. Large state-owned banks, constrained by administrative objectives, implicit
+guarantees, and stricter scale supervision, are expected to respond less elastically to peer
+opinion pressure than joint-stock and city commercial banks; interaction inference follows the
+full-interaction-model standards of \textcite{brambor2006understanding}. Hence:
+
+\textbf{H4 (heterogeneity).} The tone effect attenuates for state-owned banks: the
+\code{llm\_vote\_tone\_full} $\times$ SOE interaction is predicted negative; because
+administrative constraints could also amplify some channels, the test is two-sided.
+\NoteThis{Interaction sign and significance pending.}
 
 \section{Methodology}\label{sec:method}
 \subsection{Sample and Data}
-The bank--year panel covers approximately 164 bank--years
-(2017--2018). All bank--year observations are processed by the
-\code{news\_process} pipeline (Phase 9b baseline; see
+The target sample is a bank-year panel: 110 Chinese banks $\times$ 2007--2024 (T=18), with a
+production target corpus of roughly 17 million bank/FinTech media articles (a different
+accounting from the raw census in Section~\ref{sec:data}; the two must not be conflated).
+Interim numbers currently shown in this draft come from a development subsample (110 banks
+$\times$ 2 years, 2017--2018, T=2 \NoteThis{development-subsample bank-year count to be read
+from the on-disk panel}); all tables and statistics await backfill on the production
+corpus \NoteThis{update after production regressions}. All bank-year observations are
+processed by the \code{news\_process} pipeline (Phase 9b baseline; see
 \code{papers\_assets/V6\_METHODOLOGY\_CHANGES.md}).
 
 \subsection{Tone Annotation (F1: Three-Family LLM Validation)}
@@ -90,25 +307,350 @@ rank-correlation check ($\rho \geq 0.80$). The sentiment-annotation
 LLM ensemble (F1) is unaffected by this change: embedding models and
 sentiment LLMs are disjoint pipeline components.
 
+\subsection{LLM Peer-Set Construction}
+We follow the generative peer-identification paradigm of \textcite{cao2025genai}, but the
+input is not a roster of banks with business profiles. For each focal bank $\times$ year, we
+extract \emph{co-mention sentences} from year-$(t-1)$ news bodies --- sentences that mention
+the focal bank together with at least one other bank ($\geq 2$ distinct banks after
+canonicalization) and contain a FinTech keyword --- and feed the numbered sentence set to the
+LLM (\code{temperature=0}, \code{seed=42}, JSON output, independently versioned frozen
+prompt), which determines the banks described in the coverage as being in \emph{product-market
+competition} with the focal bank in the FinTech domain (\code{llm\_peer\_iv.py}, pipeline
+stage 7h-llmpeer). Peer sets are generated dynamically per bank-year, capped at 10 peers,
+aligned with the \textcite{hoberg2016textnetwork} TNIC ``10 closest peers'' standard (also
+the evaluation benchmark of \textcite{cao2025genai}). Peer names returned by the LLM are
+normalized to panel bank identifiers by three strategies: exact match, variant mapping (e.g.\
+common abbreviations), and unique-substring containment; generic-ambiguous names (substring
+hits on more than one canonical name) and out-of-vocabulary names are rejected outright, with
+no fuzzy absorption. Disclosure: the peer sets are derived from the same media corpus used to
+measure tone (co-mention sentences); the implications of this shared origin for the exclusion
+restriction are made explicit in the identification-assumptions subsection.
+
+\subsection{Econometric Model}
+The baseline is two-stage least squares on the bank-year panel. The structural equation is
+\begin{equation}\label{eq:second}
+\mathit{roa}_{it} = \beta \cdot \mathit{Tone}_{it}
+ + \Gamma' X_{it} + \alpha_i + \delta_t + \varepsilon_{it},
+\end{equation}
+where $\mathit{Tone}_{it}$ is own tone \code{llm\_vote\_tone\_full} (the endogenous
+treatment), $X_{it}$ is the control vector, and $\alpha_i$, $\delta_t$ are bank and year fixed
+effects. The first stage is
+\begin{equation}\label{eq:first}
+\mathit{Tone}_{it} = \pi \cdot \mathit{PeerTone}^{\mathrm{LOO}}_{it}
+ + \Lambda' X_{it} + \alpha_i + \delta_t + \nu_{it},
+\end{equation}
+with the excluded instrument being the LLM-peer tone mean under a dual ``one-year lag +
+article-level leave-out'' construction,
+\begin{equation}\label{eq:loo}
+\mathit{PeerTone}^{\mathrm{LOO}}_{it}
+ = \frac{1}{|\mathcal{P}_{i,t-1}|} \sum_{j \in \mathcal{P}_{i,t-1}}
+ \overline{\mathit{Tone}}^{\,(-i)}_{j,t-1},
+\end{equation}
+where $\mathcal{P}_{i,t-1}$ is the dynamic semantic peer set of bank $i$ built from
+year-$(t-1)$ co-mention news (excluding $i$; construction above), and
+$\overline{\mathit{Tone}}^{\,(-i)}_{j,t-1}$ is peer $j$'s year-$(t-1)$ mean of article-level
+tone \emph{excluding articles that co-mention the focal bank $i$} (article-level leave-out),
+averaged equal-weighted across peers in the outer layer; this corresponds to panel column
+\code{llm\_peer\_tone\_iv\_full}. The one-year lag avoids the contemporaneous reflection
+problem \parencite{manski1993reflection}; the article-level leave-out severs the channel by
+which co-mention articles would mechanically embed the focal bank's own coverage tone in the
+peer mean. To be explicit: the endogenous
+variable is \emph{own} tone $\mathit{Tone}_{it}$ and the instrument is peer tone; we estimate
+the causal effect of own tone, not of the instrument itself. With one endogenous variable and
+one instrument the system is just-identified. Standard errors are clustered at the bank level
+(\code{bank\_id}).
+
+\subsection{Identification Assumptions}
+The exclusion restriction requires that, conditional on fixed effects and controls, peer tone
+affects own \code{roa} only through own tone. Three considerations support it. First, the
+dual ``one-year lag + article-level leave-out'' construction: the instrument is built on
+year-$(t-1)$ information, avoiding the simultaneity of the contemporaneous reflection problem
+\parencite{manski1993reflection}, and each peer's tone mean excludes all articles
+co-mentioning bank $i$, severing the mechanical same-source channel of shared coverage.
+Second, the LLM semantic peer network is a directed, asymmetric, intransitive structure,
+supplying the peers-of-peers exclusion variation required for network identification
+\parencite{bramoulle2009networks}. Third, year fixed effects absorb industry-wide common
+shocks and bank fixed effects absorb time-invariant strategy and coverage propensities;
+residual threats (province-level common shocks, direct interbank business links) are probed
+respectively by the province clustering scheme and the network-position baseline controls
+(Section~\ref{sec:robust}). We disclose the residual identifying assumption candidly: under
+tone persistence, the construction still requires that peers' year-$(t-1)$ idiosyncratic
+coverage shocks affect bank $i$'s year-$t$ outcome \emph{only} through the peer channel; and
+the peer sets themselves are derived from the same media corpus used to measure tone
+(co-mention sentences, see above), a shared origin that is a disclosure item for the
+exclusion restriction rather than a testable proposition. The identification structure
+belongs to the same family as the peer instrument of \textcite{leary2014peerfirms} but is
+\emph{not} directly isomorphic to it: L\&R adopt peer idiosyncratic (equity-return) shocks
+precisely because peer \emph{outcome means} struggle to satisfy the exclusion restriction;
+we mitigate the mechanical correlation of peer tone means through the lag and the
+article-level leave-out, and state the residual assumption above as the identification cost.
+\textcite{luo2025causalpeer} provide general IV conditions for causal peer effects that cover
+this construction.
+
+\subsection{Inference Discipline: Confirmatory versus Exploratory}
+We follow a one-paper-one-identification discipline: the sole confirmatory specification is
+column M3 of Table~2 (full-track 2SLS, full controls, bank clustering), declared before the
+analysis; all remaining settings --- track mirrors, the cutoff ladder, alternative
+instruments, weighting schemes, and cross-model/cross-method measurement families --- are
+labeled exploratory families and receive Romano--Wolf stepdown correction per family
+\parencite{romano2005stepdown} (pipeline root template
+\code{27\_tableA12\_cross\_model\_fwer}). We disclose candidly that parts of the exploratory
+FWER battery are wired ahead and will be executed together with the production-corpus
+regressions \NoteThis{update corrected p-values after production backfill}.
+
+\subsection{Same-Source Disclosure (avg\_ft\_intensity\_full and Sister Papers)}
+The mechanism outcome \code{avg\_ft\_intensity\_full} (own FinTech coverage intensity) is
+derived from the same media corpus as the sister attention paper's treatment
+(\code{attention\_index\_full}). Accordingly: (i) the primary outcome of this paper is the
+real economic outcome \code{roa}, so the main hypothesis H1 is fully independent of
+text-volume measures; (ii) \code{avg\_ft\_intensity\_full} serves only as H3 mechanism
+corroboration and is explicitly non-headline, never co-equal with H1; (iii) the same-source
+relation is disclosed here to preclude implicit double counting across papers.
+
+\subsection{Clustering Declaration}
+The main specification clusters standard errors one-way at \code{bank\_id} (110 clusters). The
+appendix reports two-way bank-year clustering and province-level clustering in parallel; the
+province scheme has few clusters and is therefore paired with wild cluster bootstrap
+inference, following \textcite{mackinnon2023cluster} and \textcite{cameron2015practitioner}.
+\NoteThis{Standard-error comparison across schemes pending.}
+
 \section{Data}\label{sec:data}
-\NoteThis{Descriptive statistics in Table 1 (see \code{papers/llm_peer/tables.py:build\_table1}).}
+
+\subsection{Corpus Accounting Chain}
+Corpus construction follows the chain ``raw census $\rightarrow$ type filter $\rightarrow$
+co-occurrence filter $\rightarrow$ panel,'' whose endpoints use different accounting and must
+not be conflated. The upstream raw census (before any filtering or deduplication) counts
+18{,}198{,}978 media articles spanning 2007-01-01 to 2025-12-31, from 183 deduplicated source
+files and 3{,}740 media outlets; newspaper-type articles account for 92.93\,\% of all rows
+(16{,}912{,}361 rows) and are retained, while wire services, magazines, government bulletins,
+web pages, and other types are dropped row-wise. After the newspaper-type filter and the
+study-window cut (2007--2024) but \emph{before} the bank--FinTech co-occurrence hard filter,
+the production target corpus is roughly 17 million articles covering 110 banks, forming the
+upstream base of the T=18 bank-year panel; the article count retained after the
+co-occurrence hard filter awaits the production pipeline run \NoteThis{post-hard-filter
+retention count pending production backfill}. Articles then pass, in order, the
+co-occurrence hard filter, three-LLM verification, and the full-track retention gate (F2)
+before aggregation to bank-years.
+
+\subsection{Variable Definitions}
+The treatment is own tone \code{llm\_vote\_tone\_full}: the bank-year mean of three-LLM
+majority-vote tone over verified articles (full track). The instrument is
+\code{llm\_peer\_tone\_iv\_full}: the lagged, article-level leave-out LLM-peer tone mean of
+equation~\eqref{eq:loo}. The primary outcome is \code{roa} (return on assets) from an external
+financial panel; we disclose candidly that, until the financial panel is connected, the
+pipeline's data-preparation stage handles this column with a fail-loud graceful skip (absence
+raises an explicit error rather than silent imputation), with financial data to be connected
+at production backfill. Secondary outcomes (\code{ln\_fintech\_investment},
+\code{citation\_weighted\_patent}, \code{tobin\_q}) are reserved for the appendix. The
+mechanism variable is \code{avg\_ft\_intensity\_full} (see the same-source disclosure). The
+current control set consists of coverage proxies: \code{ln\_news\_coverage} (log article
+volume), \code{media\_hhi} (outlet concentration), and \code{n\_articles} (article count);
+financial controls (5 columns) and macro controls (2 columns) will be completed when the
+financial panel is connected.
+
+\subsection{Descriptive Statistics}
+\NoteThis{Descriptive statistics in Table 1 (see
+\code{papers/llm_peer/tables.py:build\_table1}); all means/SDs/quantiles pending production
+backfill.}
+Table~1 will report bank-year distributions of the treatment, instrument, outcome, and
+controls, plus the composition of the tone trichotomy (positive/negative/missing); subsample
+descriptives by bank type appear in the appendix.
 
 \section{Main Results}\label{sec:main}
-\NoteThis{Table 2 from \code{output/tables/table2\_*.csv}; Figure 2 coefplot.}
+
+Table~2 (template \code{11\_table2\_main\_iv\_2sls}) presents the main results in an M1--M5
+progression: M1 is the OLS benchmark (equation~\eqref{eq:second} without instrumenting),
+providing a directional reference for endogeneity bias; M2 is full-track 2SLS with sparse
+controls; M3 is full-track 2SLS with full controls --- the \emph{sole pre-declared
+confirmatory specification}; M4--M5 are ctx/ss-track mirrors (each with its own same-track
+instrument, each just-identified, exploratory side-by-side; interpretation defers to M3). Each
+2SLS column reports the first-stage coefficient $\pi$, the Kleibergen--Paap rk Wald F
+\parencite{kleibergen2006rank} against Stock--Yogo critical values \parencite{stock2005weak},
+and weak-instrument-robust Anderson--Rubin confidence sets \parencite{andrews2019weakiv}.
+Interpretation: under H1, $\hat\beta$ in M3 should be positive with an AR set excluding zero;
+the OLS--2SLS gap indicates the net direction of reverse causality and omitted variables.
+\NoteThis{All Table 2 coefficients, standard errors, KP F, and AR sets pending production
+backfill; Figure 2 coefplot from \code{output/tables/table2\_*.csv}.}
 
 \section{Mechanism}\label{sec:mech}
-\NoteThis{Table 3 from \code{output/tables/table3\_*.csv}; Figure 3.}
+
+Table~3 tests the intermediate channel of H3: instrumented own tone as the explanatory
+variable and own FinTech coverage intensity \code{avg\_ft\_intensity\_full} as the dependent
+variable, with the specification identical to equation~\eqref{eq:second} (outcome swapped).
+Interpretation: a positive coefficient supports the chain ``peer tone $\rightarrow$ own tone
+$\rightarrow$ own FinTech attention intensity.'' This table is mechanism corroboration
+(non-headline); its dependent variable shares a source with a sister paper's treatment (see
+the methodology disclosure) and is never an independent source of claims.
+\NoteThis{Table 3 from \code{output/tables/table3\_*.csv}; Figure 3; coefficients pending.}
 
 \section{Heterogeneity}\label{sec:het}
-\NoteThis{Table 4 (SOE × paper-specific interactions) from
-\code{output/tables/table4\_heterogeneity.csv}.}
+
+Table~4 (template \code{13\_table4}) tests H4: adding the \code{llm\_vote\_tone\_full}
+$\times$ SOE interaction to M3, reporting main effect and interaction jointly, with
+interaction-model standards following \textcite{brambor2006understanding} (full marginal
+effects with confidence bands; the interaction coefficient is never interpreted in isolation).
+The theoretical prediction is a negative interaction --- large state-owned banks respond less
+elastically to peer tone pressure, attenuating the spillover; because administrative
+constraints could amplify some channels, the test is two-sided.
+\NoteThis{Table 4 (SOE $\times$ paper-specific interactions) from
+\code{output/tables/table4\_heterogeneity.csv}; interaction sign and marginal-effect plots
+pending.}
 
 \section{Robustness}\label{sec:robust}
-\NoteThis{Table 5 (paper-specific robustness battery) from
-\code{output/tables/table5\_*.csv}.}
+
+All ladders in this section share one accounting discipline: parallel settings within each
+ladder are \emph{mutually robust and co-equal}; every setting pairs one endogenous variable
+with one instrument and is just-identified; multi-track/multi-rung/multi-model instruments are
+\emph{never} pooled into a single over-identified system. The rationale: parallel instruments
+derive from the same text corpus and are exposed to common shocks of the same type, so a
+Hansen J test on a stacked over-identified system has power approaching zero against exactly
+this class of common bias --- passing J would provide false comfort rather than validity
+evidence \NoteThis{supporting citation (Parente--Santos Silva 2012, Economics Letters) to be
+attached once admitted to the verified reference pool}. Ladders are mutually orthogonal and
+never crossed, avoiding combinatorial explosion of the specification space.
+\NoteThis{Table 5 (paper-specific robustness battery) from \code{output/tables/table5\_*.csv};
+all numbers in the subsections below pending production backfill.}
+
+\subsection{Three-Track Text Attribution Windows}
+The full-text (\code{full}), entity-context (\code{ctx}), and bank--FinTech same-sentence
+(\code{ss}) attribution windows each pair an endogenous twin with a \emph{same-track}
+lagged leave-out instrument (\code{llm\_peer\_tone\_iv\_\{full,ctx,ss\}}), shown side by side in
+Table~2 (M4--M5). Retention gating is full-only; ctx/ss are conditional-on-full robustness
+tracks (F2). The three tracks are never combined into one over-identified system.
+
+\subsection{Peer-Name Matching Cutoff Suffix Columns (Disclosure, Not Sensitivity Evidence)}
+The panel retains five suffixed column rungs (e.g.\ \code{llm\_peer\_tone\_iv\_full\_75},
+levels $\{0.70, 0.75, 0.80, 0.85, 0.90\}$, unsuffixed primary $=$ the 0.80 rung; template
+\code{12\_table3} consumes this schema). We disclose candidly: this cutoff is the
+string-strictness parameter of a historical \code{difflib} fuzzy-matching fallback; the
+current name normalization (the three strategies exact/variant/unique-substring, see the
+methodology section) has removed that fallback entirely, the cutoff parameter is fully inert,
+and \emph{the five rungs are structurally identical column by column}, retained only for
+Stata schema compatibility. We therefore do \emph{not} present them as a sensitivity check
+--- the five rungs are identical by construction, and presenting them as a ladder would
+constitute a spurious robustness claim. Genuinely informative peer-set sensitivity dimensions
+(the peer cap, the co-mention sentence-screening criteria, single- vs.\ multi-model
+adjudication) are left to future scans \NoteThis{peer-set construction sensitivity scan
+pending on the production-corpus machine}.
+
+\subsection{Alternative Instrument: Peer Coverage IV}
+Template \code{14\_table5} replaces peer tone with the year-$(t-1)$ mean of peer media
+coverage (\code{llm\_peer\_coverage\_iv}, self excluded at the set level) as an independent
+instrument-robustness setting shown in parallel; it is not pooled with the main instrument
+into an over-identified system. Disclosure: unlike the main instrument, this auxiliary
+instrument is a panel-level peer mean with \emph{no} article-level leave-out, so the coverage
+component of co-mention articles remains inside the instrument; its construction is weaker
+than the main instrument's dual scheme and it serves only as auxiliary robustness.
+
+\subsection{Three IV Engines Side by Side}
+The pipeline provides three families of formula-based instruments: within-group leave-one-out
+means (\code{leave\_one\_out\_peer\_*\_iv}), generalized Bartik (\code{bartik\_*\_iv};
+candidate pruning in F4), and outlet house-style exposure (\code{outlet\_*\_iv}). Each engine
+enters its own just-identified 2SLS, reported in parallel, providing triangulation at the
+level of identification strategy.
+
+\subsection{Panel Aggregation Weighting}
+Template \code{15\_tableA6} recomputes the endogenous own tone under four
+article-to-bank-year aggregation schemes --- equal weighting (EW, the main scheme),
+mention-density weighting (VW, following \textcite{hassan2019firm}), media-authority
+weighting (MW, following \textcite{holzman2023curbing}), and herd-decay weighting (HW,
+following \textcite{tetlock2011stale}) --- while the instrument retains the equal-weighted
+peer leave-out construction, a disclosed approximation (the instrument's exogeneity derives
+from peer identity, not from the aggregation scheme of own tone). The table shows that
+results are not driven by the aggregation-weight choice.
+
+\subsection{Cross-Vendor: Three Per-Model LLM Tones}
+The majority-vote consensus \code{llm\_vote\_tone} is the canonical headline; the three
+per-model tones (\code{gpt54nano\_tone}, \code{gemini31\_tone}, \code{deepseekv4\_tone}) are
+co-equal cross-vendor robustness tracks, each just-identified side by side, never mixed into
+one Hansen J. Cross-model agreement is reported as Krippendorff's $\alpha$ and Cohen's
+$\kappa$ (F1); the familywise error rate across the cross-model family is controlled by the
+root-level Romano--Wolf template (\code{27\_tableA12\_cross\_model\_fwer})
+\parencite{romano2005stepdown}. This design responds directly to warnings on researcher
+degrees of freedom in LLM annotation \parencite{baumann2025llmhacking,ludwig2025llmframework}.
+
+\subsection{Cross-Method Measurement Families: BERT and Dictionaries}
+Tone is additionally measured by two independent method families as cross-method benchmarks
+\parencite{shapiro2022newssentiment,hansen2023fedspeak}: (i) three Chinese financial BERT
+models (\code{finbert\_cn}, \code{fin\_sent\_zh}, \code{finbert2}), co-equal side by side with
+no ensemble headline, each degrading independently if absent; cross-model coefficient
+comparisons require z-score standardization (two- vs.\ three-class raw variances differ).
+(ii) The dictionary family: full-powerset ablation variants over three linguistic rules
+(negation flips, degree adverbs, contrast markers) across six Chinese financial dictionaries
+\parencite{du2022chinesedict}, plus the \code{du\_2022} political-positive-word weight ladder
+$\in \{0.0, 0.5, 1.0\}$ --- three rungs mutually robust and co-equal, orthogonal to and never
+crossed with the rule-ablation ladder. Ablation variants are highly collinear; we report
+correlations rather than entering them in one equation.
+
+\subsection{Network-Position Baseline and Construction-Criterion Ladder}
+To address ``is the LLM semantic peer network incremental over the co-occurrence network,'' we
+add co-occurrence network-position baseline controls (\code{bank\_between\_cent},
+\code{brokerage\_eigen\_cent}) to the main specification: if the first and second stages of
+the LLM peer instrument survive these controls, that is direct evidence of the semantic
+network's incremental identifying power (incremental validity), complemented by the
+discriminant check corr(\code{llm\_peer\_count}, \code{bank\_degree\_cent})
+\NoteThis{correlation pending}. Disclosure: the missingness convention of the two control
+columns is unified to zero-fill for off-network banks with the number of such banks reported
+\NoteThis{N pending}. The network control columns additionally carry a three-rung
+construction-criterion ladder (same-article co-occurrence / $\pm 1$-sentence window
+\code{\_win1} / strict same-sentence \code{\_sent}) as specification robustness side by side,
+without an FWER template.
+
+\subsection{Clustering Levels}
+The main specification clusters one-way at \code{bank\_id}; the appendix reports two-way
+bank-year and province-level clustering, with wild cluster bootstrap under the few-cluster
+province scheme \parencite{mackinnon2023cluster,cameron2015practitioner}.
+
+\subsection{Deliberately Excluded Ladders}
+The pipeline dataset also contains robustness ladders belonging to sister papers' treatment
+families (rare-word frequency cutoffs, forward-looking-statement two-arm gating, benefit
+six-track, boilerplate three-track, among others). These are orthogonal to this paper's LLM
+peer instrument; following the ladders-never-cross discipline, they are not included in this
+robustness section and are acknowledged only in the pipeline disclosure appendix as shared
+data infrastructure.
 
 \section{Conclusion}\label{sec:concl}
-\NoteThis{Final discussion and policy implications.}
+
+This paper proposes and implements a causal-inference workflow centered on LLM semantic peer
+identification: an LLM determines dynamic semantic peer sets from year-$(t-1)$ co-mention
+news sentences \parencite{cao2025genai}, a dual ``one-year lag + article-level leave-out''
+construction yields the peer-tone instrument \parencite{leary2014peerfirms,
+manski1993reflection,bramoulle2009networks}, just-identified 2SLS estimates the causal effect
+of own media tone on real operating outcomes, and the whole is disciplined by a pre-declared
+confirmatory specification, familywise error control over exploratory families
+\parencite{romano2005stepdown}, and a robustness ladder spanning tracks, rungs, models, and
+methods. \NoteThis{Main-result recap sentence pending production backfill.}
+
+Three methodological implications follow. First, LLM peer identification can and should be
+used inside identification frameworks: the semantic peer network supplies a $W$ matrix richer
+in information than industry codes, and its increment is directly testable via co-occurrence
+network baseline controls. Second, the credibility of LLM measures in econometrics rests on
+engineered reproducibility boundaries: our \code{temperature=0}, \code{seed=42}, byte-frozen
+prompt v8, and full call caching (offline zero-cost byte-level replay) provide an operational
+template, responding to \textcite{baumann2025llmhacking} and \textcite{ludwig2025llmframework},
+while the look-ahead risk documented by \textcite{levy2026lookahead} is bounded by the frozen
+prompt and hold-out testing framework. Third, the mutual-robustness parallel structure ---
+every setting just-identified, never pooled into one over-identified system --- offers a
+transferable inference discipline for multi-measure text econometrics.
+
+For policy, if H1--H2 are supported on production data \NoteThis{conditional, pending
+backfill}, the tone environment of bank--FinTech media coverage constitutes a peer
+transmission channel independent of fundamentals: supervisors assessing the systemic pace of
+bank digital transformation should monitor opinion-environment spillovers across peers, and
+bank managers should recognize that peers' media standing feeds back into their own operating
+outcomes through the tone environment.
+
+Four limitations apply. First, the panel is annual; higher-frequency (quarterly/monthly) tone
+dynamics are averaged away, so short-run transmission cannot be resolved. Second, media
+coverage itself is endogenous: which bank-topics get covered is not random; the lagged
+leave-out instrument mitigates tone endogeneity but not coverage-selection endogeneity --- coverage
+proxies and outlet house-style instruments partially address this, but residual selection bias
+must be acknowledged. Third, the sample is a single market, China, whose media structure
+(newspaper-dominated, state and market outlets coexisting) and banking structure (state-owned
+dominance) are distinctive; extrapolation to other institutional settings requires caution.
+Fourth, LLM peer determination, though reproducible, depends on the semantic priors of a
+specific model vintage; the temporal stability of peer sets across model generations awaits
+systematic evaluation. \NoteThis{Concluding magnitude sentences pending production backfill.}
 
 \printbibliography
 

@@ -15,18 +15,94 @@
 
 \begin{abstract}
 \NoteThis{Final abstract pending — target $\approx$ 200 English words.}
-Using bank-year media coverage of Chinese fintech and a firm-level attention-intensity
-construct (\code{attention\_index\_full}) analogous to Hassan et~al.\ (2019, \emph{QJE}) on
-political risk exposure, we study how cumulative fintech-topic exposure shapes bank-level
-fintech investment, M\&A, patent output, and IT-staff growth across 18 years (2007--2024)
-covering 500 Chinese commercial banks. We exploit five exogenous policy shocks (余额宝
-launch / P2P regulation / Ant IPO pause / two data-export rules) for staggered DiD
-identification, and instrument firm-level attention with a leave-one-out peer mean within
-bank-type strata (with Bartik shift-share as fallback). We find \NoteThis{key result}\@.
+Using bank-year media coverage of Chinese fintech, we construct a firm-level
+attention-intensity index (\code{attention\_index\_full}). Conceptually, the
+index is an intensity-weighted extension of the Fang--Peress extensive
+media-coverage construct---each article is weighted by log-damped term
+frequency $\times$ inverse document frequency $\times$ embedding semantic
+similarity, then summed and log-transformed---measuring the cumulative
+intensity of a bank's exposure to fintech topics, independent of sentiment
+direction; the Hassan et~al.\ (2019, \emph{QJE}) intensive normalized-share
+benchmark applies only to auxiliary share-type measures such as
+\code{attention\_pct}. The sample is a bank-year panel of 110 Chinese
+commercial banks \NoteThis{bank and observation counts to be backfilled once
+the production panel is finalized (paper\_spec states n\_bank\_min=200,
+conflicting with the production count of 110 banks)} over 2007--2024 (T=18).
+Identification uses a cross-sectional intensity DiD (five policy shocks that
+take effect simultaneously for all banks; treatment = pre-event exposure
+$\times$ Post; csdid retained only as a sub-cohort robustness check), with a
+leave-one-out peer mean within bank-type strata as the instrument (generalized
+Bartik shift-share as fallback). We find \NoteThis{key result}\@.
 \end{abstract}
 
 \section{Introduction}\label{sec:intro}
-\NoteThis{Motivate the research question and contribution.}
+
+Over the past fifteen years, fintech has reshaped the competitive landscape of
+banking across payments, credit, and wealth management: the rise of fintech
+lending has changed the structure of credit supply \parencite{berg2022fintechlending},
+fintech innovation carries substantial value implications for financial
+institutions \parencite{chen2019fintechvalue}, and fintech platforms competing
+for payment flows directly squeeze banks' customer interface and information
+rents \parencite{parlour2022payment}. In China this shock has been especially
+acute: the credit expansion of large technology platforms and successive
+regulatory tightening-and-loosening cycles kept commercial banks under
+sustained fintech competitive pressure throughout 2007--2024
+\parencite{hau2024fintechcredit}. Yet ``competitive pressure'' itself is hard
+to observe directly. We propose that the cumulative media exposure of a given
+bank to fintech topics is a measurable salience channel through which this
+pressure reaches bank decision-makers and stakeholders---evidence that media
+coverage affects asset prices and corporate behavior is long-standing
+\parencite{fang2009media,da2011attention}, and classic identification shows
+that media reporting itself (rather than the events it reports) exerts an
+independent causal effect \parencite{engelberg2011causal,peress2014strikes}.
+
+Our research question is whether, and how, bank-level fintech media attention
+intensity induces banks to respond with real resource allocation---greater
+fintech investment, M\&A, patent output, and IT staffing. To this end, we
+build a bank-year attention index, \code{attention\_index\_full}, on top of
+roughly 17~million Chinese media articles (2007--2024, the production target
+corpus): for each pipeline-verified bank--fintech article, an intensity score
+is computed as the weighted product of log-damped term frequency, inverse
+document frequency, and embedding-based semantic similarity, then summed
+within bank-year and log-transformed. The index measures the cumulative
+intensity of exposure rather than sentiment direction; attention and sentiment
+are two separable text signals \parencite{cookson2024social}.
+
+Identification proceeds in three layers. First, the main specification is a
+cross-sectional intensity DiD: five Chinese fintech policy shocks (the Yu'ebao
+launch, the P2P lending crackdown, the Ant IPO suspension, and two data-export
+regulations) take effect simultaneously for all banks, so the treatment is
+``pre-event exposure $\times$ Post'' with bank and year two-way fixed effects
+and standard errors clustered by bank; the modern DiD literature's diagnostics
+for staggered designs \parencite{baker2022staggered} are precisely why we do
+not adopt a staggered DiD as the main specification, and the
+Callaway--Sant'Anna estimator serves only as a sub-cohort robustness check
+\parencite{callaway2021difference}. Second, we instrument bank-level attention
+with the leave-one-out peer attention mean within bank-type $\times$ year
+strata, with explicit disclosure of the Manski reflection problem
+\parencite{manski1993reflection,bramoulle2009peer}; a generalized Bartik
+shift-share instrument serves as fallback
+\parencite{goldsmith2020bartik,borusyak2022shiftshare}. Third, inference
+discipline: we pre-commit to a single confirmatory main hypothesis, label all
+other measures and outcomes exploratory, and apply Romano--Wolf stepdown
+corrections to the family of alternative attention measures
+\parencite{romanowolf2005snooping}.
+
+This paper makes four contributions. First, measurement: within the Hassan
+paradigm of firm-level text-based exposure
+\parencite{hassan2019firm,sautner2023climate,hassan2023epidemic}, we provide
+the first intensity-weighted exposure index for the ``bank $\times$ fintech''
+topic, distinct from unweighted article counts and pure share measures.
+Second, identification: we combine five China-specific fintech policy shocks
+with a two-engine LOO-peer / Bartik instrument architecture to deliver
+quasi-experimental evidence on the real effects of media exposure. Third,
+mechanism: we use the length of fintech discussion in annual-report MD\&A
+(\code{ln\_fintech\_mdna\_length}) as an observable mediator, estimating the
+``exposure $\to$ narrative $\to$ investment'' chain within a unified IV
+framework \parencite{dippel2020ivmediate}. Fourth, corpus: the full sample
+builds on a census of 18{,}198{,}978 raw media articles (2007--2025,
+pre-filter) from 3{,}740 media outlets---to our knowledge one of the largest
+Chinese banking media-text panels to date.
 
 This paper differs from concurrent text-in-banking work along three margins.
 First, attention is measured without polarity sign (cumulative exposure intensity
@@ -34,24 +110,299 @@ rather than tone direction). Second, identification exploits five China-specific
 fintech policy shocks at high resolution. Third, the mediator is observable
 (\code{ln\_fintech\_mdna\_length}, MD\&A textual length on fintech) rather than latent.
 
+The remainder proceeds as follows. Section~\ref{sec:lit} reviews the
+literature and positions the paper; Section~\ref{sec:theory} develops the
+hypotheses; Section~\ref{sec:method} presents measurement and identification;
+Section~\ref{sec:data} describes the corpus and sample construction;
+Section~\ref{sec:results} reports the empirical results;
+Section~\ref{sec:conclusion} concludes.
+
 \section{Literature Review}\label{sec:lit}
 Three strands: (1)~firm-level text-based exposure measurement
 \autocite{hassan2019firm,florackis2023cybersecurity};
 (2)~fintech taxonomy and innovation \autocite{gomber2018fintech,goldstein2019fintech};
 (3)~text-in-banking exemplar \autocite{engelberg2018short}.
+We develop four strands in detail below.
+
+\subsection{Firm-Level Text-Based Exposure: The Hassan Paradigm}
+Hassan et~al.\ construct firm-level political-risk shares from earnings-call
+text, establishing the ``text $\to$ firm-level exposure $\to$ firm response''
+measurement paradigm \parencite{hassan2019firm}. The paradigm has since
+migrated to climate exposure \parencite{sautner2023climate}, epidemic exposure
+\parencite{hassan2023epidemic}, cybersecurity risk
+\parencite{florackis2023cybersecurity}, and the diffusion of new technologies
+\parencite{kalyani2025diffusion}---the latter's technology list includes
+fintech-type technologies, providing this paper's most recent top-journal
+anchor. Building exposure indices from news media (rather than earnings calls)
+also has AER-level precedent: the geopolitical risk index is constructed from
+news corpora with human audit \parencite{caldara2022geopolitical}, and climate
+news indices build time-varying topic exposure from media text
+\parencite{engle2020hedging}. The general ``text $\to$ numbers $\to$
+regression input'' methodology is surveyed by \textcite{gentzkow2019text}.
+This paper layers IDF and embedding-based semantic weighting (intensity
+weighting) onto the term-share skeleton---a localized extension of the
+paradigm to Chinese media corpora; the measurement section
+(\ref{subsec:attention}) makes the boundary with Hassan-style share measures
+explicit.
+
+\subsection{Media Coverage, Investor Attention, and Real Consequences}
+The primary construct anchor for our attention index is the Fang--Peress
+extensive media-coverage construct: cross-sectional differences in media
+coverage price stock returns \parencite{fang2009media}. Search-volume-based
+direct attention proxies \parencite{da2011attention} serve only as a contrast
+anchor---our measure captures supply-side media exposure, not investor search
+behavior. The media text-measurement paradigm was founded by
+\textcite{tetlock2007content}; \textcite{engelberg2011causal} and
+\textcite{peress2014strikes} provide the classic identification templates for
+``media reporting itself has causal effects'' via local-coverage cutoffs and
+newspaper strikes, respectively---the prior support for our ``exposure $\to$
+firm response'' causal chain. Recent evidence shows that attention and
+sentiment are two separable text signals \parencite{cookson2024social},
+directly supporting our design in which exposure intensity (this paper) and
+sentiment direction (companion work) run as parallel, non-substitutable
+measures. In addition, our outlet-concentration measure
+\code{attention\_disp\_full} takes the HHI form, whose statistical origin is
+Simpson's diversity index \parencite{simpson1949diversity}.
+
+\subsection{Fintech and Bank Competition (Including the Chinese Context)}
+The fintech shock to banking has systematic surveys and multi-dimensional
+evidence: fintech lending \parencite{berg2022fintechlending}, the valuation of
+fintech innovation \parencite{chen2019fintechvalue}, the mechanism by which
+fintech competes for payment flows \parencite{parlour2022payment}, and Chinese
+micro-evidence on fintech credit and entrepreneurial growth
+\parencite{hau2024fintechcredit}. Taxonomy and field surveys are provided by
+\parencite{gomber2018fintech,goldstein2019fintech}. The most direct benchmark
+is the keyword-based bank FinTech index entering a bank-year panel for China
+\parencite{cheng2020bankfintech}; our advance is to replace simple keyword
+counts with a 17-million-scale media corpus, intensity weighting, and a
+three-track text protocol. The institutional features of Chinese media---the
+political-bias gap between official and commercialized outlets
+\parencite{qin2018mediabias}---support our inclusion of media-type composition
+in controls and heterogeneity designs.
+
+\subsection{Identification and Inference Methods}
+On DiD, the modern literature systematically diagnoses the biases of TWFE
+estimators under staggered treatment
+\parencite{baker2022staggered,callaway2021difference,sun2021estimating}; our
+main specification therefore adopts a cross-sectional intensity DiD (the
+policies take effect simultaneously for all banks), with
+heterogeneity-robust estimators used only for robustness. On IV, the
+identification foundation of LOO peer instruments is the reflection problem
+\parencite{manski1993reflection} and its network-structure resolution
+\parencite{bramoulle2009peer}; the two justification routes for Bartik
+instruments---share exogeneity \parencite{goldsmith2020bartik} and shift
+exogeneity \parencite{borusyak2022shiftshare}---map onto our diagnostics and
+construction, respectively. Multiple testing uses Romano--Wolf stepdown
+\parencite{romanowolf2005snooping}; mediation uses the ivmediate framework in
+which a single IV identifies both total and mediated effects
+\parencite{dippel2020ivmediate}.
+
+\subsection{Positioning and Differentiation}
+Relative to companion papers built on the same corpus infrastructure, this
+paper's construct boundary is ``exposure intensity'': distinct from
+sentiment-direction studies (exposure intensity $\neq$ tone direction; the two
+are separable signals \parencite{cookson2024social}); distinct from
+announcement-substance studies (media exposure $\neq$ the substantive content
+of corporate announcements); distinct from two-dimensional locus measures
+(ours is a one-dimensional scalar intensity, not a 2D coordinate); distinct
+from LLM semantic-peer methodology (we do not build peer instruments from LLM
+semantic similarity); distinct from network-centrality studies (network
+position enters only as a control, never as treatment); distinct from
+attitude-projection measures (exposure volume $\neq$ attitude projection); and
+distinct from strategic-differentiation studies (a bank's own attention level
+$\neq$ its distance from an N-neighbor peer group). The gap in the literature
+is that existing Chinese bank-fintech text indices stop at keyword counts,
+with no intensity weighting, no quasi-experimental identification, and no
+observable mediation chain; this paper fills all three.
+
+\section{Theory and Hypotheses}\label{sec:theory}
+
+This section develops hypotheses along the ``measurement $\to$ firm response''
+paradigm \parencite{hassan2019firm}. All statements below are theoretical
+predictions, not obtained results.
+
+Cumulative media exposure of the ``bank $\times$ fintech'' topic constitutes
+observable competitive/reputational pressure through two channels. First, the
+salience channel: high-frequency exposure raises the salience of fintech on
+the decision-makers' agenda and lowers the internal coordination cost of
+pushing digital transformation; classic evidence documents media's
+information-intermediary effect on firm behavior
+\parencite{fang2009media,engelberg2011causal}. Second, the stakeholder
+channel: exposure leads regulators, investors, and depositors to form
+expectations about the bank's fintech response, raising the reputational cost
+of inaction. Both channels predict that exposure intensity induces real
+resource-allocation responses. We therefore state the single confirmatory
+main hypothesis:
+
+\textbf{H1 (confirmatory, the only main hypothesis)}: Bank-level fintech media
+attention intensity raises fintech investment, i.e., the predicted sign of
+\code{attention\_index\_full} $\to$ \code{ln\_fintech\_investment} is
+positive. Estimator = cross-sectional intensity DiD (TWFE with bank and year
+fixed effects, standard errors clustered by bank).
+
+Resource-allocation responses need not stop at the investment line item. If
+exposure pressure drives overall digital transformation rather than a single
+expenditure category, we should simultaneously observe external (M\&A),
+innovative (patents), organizational (IT staffing), and business-structure
+(noninterest income) responses; the margin-squeeze logic
+\parencite{parlour2022payment} predicts diversification into fee-based
+business. The direction for the cost-income ratio is theoretically ambiguous:
+investment raises costs in the short run while efficiency gains lower them in
+the long run, so it is tested two-sided.
+
+\textbf{H2 (exploratory, secondary-outcome family)}: The predicted signs of
+\code{attention\_index\_full} on \code{m\_and\_a\_fintech} (+),
+\code{patent\_fintech\_count} (+), \code{employee\_growth\_it} (+), and
+\code{noninterest\_income\_share} (+) are positive; the direction for
+\code{cost\_income\_ratio} is ambiguous (two-sided test). The entire family
+enters the Romano--Wolf correction \parencite{romanowolf2005snooping}.
+
+How does exposure pressure translate into investment? We conjecture it first
+manifests as managerial narrative---expansion of the fintech discussion in
+annual-report MD\&A---before materializing as real investment; i.e., narrative
+commitment is the observable mediator between exposure and investment.
+
+\textbf{H3 (mechanism/mediation, exploratory)}: \code{attention\_index\_full}
+$\to$ \code{ln\_fintech\_mdna\_length} (+) $\to$
+\code{ln\_fintech\_investment}; estimated by IV-mediation within the existing
+IV architecture \parencite{dippel2020ivmediate}; the mediated share is
+\NoteThis{to be backfilled from production estimates}.
+
+Finally, the elasticity of response should vary with bank attributes.
+Non-state small and mid-sized banks (joint-stock, city commercial, rural
+commercial) overlap more directly with fintech platforms' customer base and
+have shorter decision chains; we conjecture their investment response to
+exposure pressure is stronger, while large state-owned banks may respond more
+slowly due to policy mandates and scale inertia.
+
+\textbf{H4 (heterogeneity, exploratory)}: The exposure effect varies with bank
+type (state-owned / joint-stock / city commercial / rural commercial, four
+categories) $\times$ fintech wave; theory conjectures stronger responses among
+non-state small and mid-sized banks (Table~4 interaction design). Pure
+theoretical conjecture, awaiting production data.
 
 \section{Methodology}\label{sec:method}
 \subsection{Sample and Data}
 The bank--year panel covers $N \times T \approx 3000\text{--}9000$ bank--years
 across 2007--2024 (per spec.sample). All bank--year observations are processed
 through the \code{news\_process} pipeline.
+\NoteThis{paper\_spec.sample (n\_bank\_min=200 / obs\_target\_min=3000)
+conflicts with the production count of 110 banks $\times$ T=18; sample sizes
+to be reconciled and backfilled once the production panel is finalized.}
 
-\subsection{Attention Measurement (Stage 14)}
-\NoteThis{Describe the four attention measures: index\_full / index\_ctx / disp / pct.}
+\subsection{Attention Measurement (Derived from Stage 15 fintech\_intensity)}\label{subsec:attention}
+The bank-year attention index is defined as
+\begin{equation}\label{eq:attn}
+\code{attention\_index}_{it} \;=\; \ln\!\Bigl(1 + \sum_{a \in \mathcal{A}_{it}}
+\mathit{fintech\_intensity\_score}_a\Bigr),
+\end{equation}
+where $\mathcal{A}_{it}$ is the set of gated articles for bank $i$ in year
+$t$, and each article's intensity score is the weighted product of log-damped
+term frequency $\times$ inverse document frequency (IDF) $\times$
+embedding-based semantic similarity. Three construct disclosures follow.
 
-\subsection{Identification Strategy}
-\NoteThis{Staggered DiD (Callaway--Sant'Anna 2021) with leave-one-out peer-attention IV;
-Bartik shift-share fallback.}
+First, \textbf{counts vs.\ intensity-weighted sums}: equation (\ref{eq:attn})
+differs from the Fang--Peress unweighted article count
+\parencite{fang2009media}---the same extensive-coverage construct, but with
+per-article intensity weighting---and also from the Hassan-style intensive
+normalized share \parencite{hassan2019firm}: the Hassan benchmark applies only
+to the auxiliary share-type measures \code{attention\_pct} /
+\code{attention\_intensity\_density} and the entity-proximity attribution of
+the ctx track; the main index is not a share.
+
+Second, \textbf{outlet concentration}: \code{attention\_disp\_full} is the
+concentration HHI across media outlets, $\mathit{HHI} = \sum_o (n_o /
+\sum_{o'} n_{o'})^2$ (the Simpson-$D$ form \parencite{simpson1949diversity});
+\emph{high values = coverage concentrated in few outlets}; do not read the
+sign in reverse as ``dispersion.''
+
+Third, \textbf{three text tracks}: \code{attention\_index\_\{full,ctx,ss\}}
+are computed on three text tracks---full text (title + body), entity-context
+window, and bank--fintech same-sentence ($\pm 1$ sentence), respectively. The
+article-retention gate is full-only: whether an article enters the panel
+depends solely on full-track LLM verification (\code{llm\_verified\_full});
+the ctx / ss tracks are conditional-on-full robustness measures whose row
+universe is a subset of the full-gated set. The three tracks are mutual
+robustness checks with no primacy ranking, each entering its own
+just-identified specification (see \ref{subsec:robust}).
+
+\subsection{Identification Strategy}\label{subsec:ident}
+\textbf{Main specification: cross-sectional intensity DiD.} Five fintech
+policy events---E1 Yu'ebao launch (2013-06-13), E2 P2P lending crackdown
+(2016-08-24), E4 Ant IPO suspension (2020-11-03), E5a Data-Export Security
+Assessment Measures (2022-09-01), E5b Data-Export Management Measures
+(2023-09-30)---all take effect simultaneously for every bank, with no
+cross-bank staggering of treatment timing, so the main specification is a
+cross-sectional intensity DiD (\code{cross\_sectional\_intensity\_did}) rather
+than a staggered DiD:
+\begin{equation}\label{eq:did}
+Y_{it} = \sum_{e} \beta_e \bigl(\mathit{Exposure}^{\mathrm{pre}}_{i,e}
+\times \mathit{Post}^{e}_{t}\bigr) + \mathbf{X}_{it}'\boldsymbol{\gamma}
++ \alpha_i + \lambda_t + \varepsilon_{it},
+\end{equation}
+where $\mathit{Exposure}^{\mathrm{pre}}_{i,e}$ is bank $i$'s pre-event
+exposure intensity for event $e$, $\alpha_i$ and $\lambda_t$ are bank and year
+fixed effects, and standard errors are clustered by bank. Modern DiD
+diagnostics \parencite{baker2022staggered} support this choice; the
+Callaway--Sant'Anna csdid \parencite{callaway2021difference} is retained only
+as a sub-cohort robustness check, and Sun--Abraham interaction weighting
+\parencite{sun2021estimating} is used for event-study parallel-trend
+diagnostics.
+
+\textbf{Instrumental variables.} The primary instrument is the leave-one-out
+peer attention mean within bank-type $\times$ year strata (with a lagged
+\code{\_lag1} variant):
+\begin{equation}\label{eq:iv}
+Z^{\mathrm{LOO}}_{it} = \frac{1}{|g(i)_t| - 1}
+\sum_{j \in g(i)_t,\, j \neq i} \code{attention\_index}_{jt},
+\end{equation}
+where $g(i)$ is bank $i$'s type stratum (state-owned / joint-stock / city
+commercial / rural commercial, four categories). The exclusion restriction
+requires that industry-level media topic shocks hitting same-type banks affect
+own investment only through own exposure; we disclose the reflection problem
+explicitly following \textcite{manski1993reflection} and argue via
+network-structure identification conditions \parencite{bramoulle2009peer}.
+The fallback instrument is a generalized Bartik: base-period (taken as
+$\max(\text{first panel year}, 2010)$) type co-occurrence shares $\times$
+same-type LOO intensity shifts
+\parencite{goldsmith2020bartik,borusyak2022shiftshare}. LOO $\times$ Bartik is
+the pre-existing cross-family over-identified combination explicitly permitted
+by the spec---in that case we report the Hansen $J$, the Kleibergen--Paap rk
+$F$, and the two instruments' correlation / VIF; \emph{this is the only
+over-identified setting permitted anywhere in the paper}. The full / ctx / ss
+tracks each pair with their own-track IV
+(\code{leave\_one\_out\_peer\_attention\_iv} /
+\code{lpeer\_attention\_iv\_ctx} / \code{lpeer\_attention\_iv\_ss}), each
+just-identified side by side; pooling across tracks into a single Hansen $J$
+is strictly prohibited.
+
+\textbf{Network-position controls.} Attention is mechanically co-generated
+with degree centrality in the bank co-occurrence network (mechanical
+coexposure): without controlling for network position, the main coefficient
+would mix ``pure exposure intensity'' with ``network hub status.'' All
+specifications therefore control for \code{bank\_degree\_cent} and
+\code{net\_density\_yr} (\code{bank\_strength\_cent} is not comparable across
+years and serves only as an auxiliary control); missing centralities are
+zero-filled as off-network with $N$ disclosed. The spec explicitly forbids
+constructing a new co-occurrence peer-LOO instrument (correlation 0.998 with
+the main LOO instrument; rejected by audit).
+
+\subsection{Inference Discipline}\label{subsec:inference}
+The paper has one and only one confirmatory test: H1, i.e.,
+\code{attention\_index\_full} $\to$ \code{ln\_fintech\_investment} (M4 with
+full controls, TWFE bank + year fixed effects, standard errors clustered by
+bank, one-sided prediction exposure $\uparrow \to$ investment $\uparrow$).
+Everything else---the alternative-track measures and
+\code{attention\_disp\_full} / \code{attention\_pct\_full}, the five secondary
+outcomes, the three-method sentiment triangulation, and the EW/VW/MW/HW
+weighting schemes---is labeled exploratory or robustness, with no confirmatory
+claims. Family-wise error control: the family of alternative attention
+measures $\{\code{index\_full}, \code{index\_ctx}, \code{index\_ss},
+\code{disp}, \code{pct}\}$ receives Romano--Wolf stepdown corrections
+\parencite{romanowolf2005snooping}. The clustering ladder: the main
+specification clusters by bank (ample $G$ under T=18); bank $\times$ year and
+province $\times$ year two-way clustering serve as comparisons, the latter
+($G \approx 31$) paired with a wild cluster bootstrap (9{,}999 replications).
 
 \subsection{Embedding-Based Measures (Co-Primary Dual Track; F5)}
 All embedding-derived features are computed under two co-primary
@@ -71,15 +422,186 @@ rank-correlation check ($\rho \geq 0.80$). The sentiment-annotation
 LLM ensemble (F1) is unaffected by this change: embedding models and
 sentiment LLMs are disjoint pipeline components.
 
+\subsection{Robustness Design}\label{subsec:robust}
+All robustness ladders follow a uniform protocol: within each ladder, the
+variants are \emph{mutual robustness checks with no primacy ranking, each
+entering its own just-identified specification reported side by side, and
+never pooled into a single over-identified Hansen $J$ system} (the sole
+exception being the pre-existing cross-family LOO $\times$ Bartik combination
+made explicit in \ref{subsec:ident}); ladders are orthogonal to one another
+and never crossed.
+
+\textbf{(i) Three text tracks + IV mirror.}
+\code{attention\_index\_\{full,ctx,ss\}} run side by side; each track's
+endogenous variable pairs with its own-track LOO instrument, each
+just-identified; the ctx / ss row universe is the conditional-on-full subset
+under the full-only retention gate.
+
+\textbf{(ii) IV engine ladder.} LOO (primary, incl.\ \code{\_lag1}) and
+generalized Bartik (fallback) report first and second stages side by side; the
+outlet house-style third engine is not listed as a main IV in this paper's
+spec.
+
+\textbf{(iii) Romano--Wolf FWER.} The family of alternative attention
+measures (five measures) receives stepdown corrections
+\parencite{romanowolf2005snooping}; the cross-LLM / cross-BERT model families
+are declarative documentation in the spec and outside this paper's correction
+scope.
+
+\textbf{(iv) Weighting schemes.} Equal- / value- / media- / hybrid-weighted
+(EW/VW/MW/HW) bank-year aggregation variants are reported side by side as
+specification robustness, within the exploratory-labeled family.
+
+\textbf{(v) Clustering ladder + wild bootstrap.} Bank (main) / bank $\times$
+year / province $\times$ year clustering side by side; small-$G$ tiers paired
+with a wild cluster bootstrap with 9{,}999 replications.
+
+\textbf{(vi) Network-criteria sensitivity.} The three construction criteria
+for network control variables (same-article co-occurrence / $\pm 1$-sentence
+window \code{\_win1} / strict same-sentence \code{\_sent}) run side by side as
+specification robustness, each just-identified, never pooled into one Hansen
+$J$, and with no FWER template.
+
+\textbf{(vii) Sample-construction disclosure.} Articles entering the panel
+must pass the stage 13 co-occurrence hard filter (target bank and $\geq 1$
+fintech term co-occurring within $\pm 1$ sentence, scanning title + body) and
+the full-only retention gate. We disclose that the full-only gating shrinks
+\code{n\_articles} / \code{fintech\_share} / \code{attention\_pct}
+numerically---a definitional change, not a data defect; the embedding-vendor
+switch (Google $\to$ Alibaba Qwen) is disclosed in the F5 paragraph.
+
+\textbf{(viii) Modern DiD diagnostics.} The main cross-sectional intensity
+DiD is paired with event-study parallel-trend figures (Sun--Abraham
+interaction weighting \parencite{sun2021estimating}) and csdid sub-cohort
+robustness \parencite{callaway2021difference}.
+
+\textbf{(ix) Robustness battery.} Omitted-variable bounds (Oster $\delta$),
+wild bootstrap, and rwolf multiple-testing corrections; count outcomes
+(\code{patent\_fintech\_count} / \code{m\_and\_a\_fintech}) re-estimated via
+PPML or $\ln(1+x)$ as definitional robustness. All numerical results are
+\NoteThis{to be backfilled from production estimates}.
+
+The three-method sentiment triangulation appears only as a one-line
+exploratory appendix note per the spec: this paper's treatment carries no
+polarity and consumes no sentiment columns; the political-word-weight and
+dictionary-ablation ladders belong to the sentiment-paper family and do not
+enter this paper's robustness matrix.
+
 \section{Data}\label{sec:data}
-\NoteThis{Data sources, sample selection, descriptive statistics (Table 1).}
+
+\textbf{Raw corpus census (before filtering and deduplication).} The stage 00
+census over 183 deduplicated source files records 18{,}198{,}978 media
+articles between 2007-01-01 and 2025-12-31, from 3{,}740 media outlets
+(all-type, unfiltered scope); articles whose media type is newspaper account
+for 92.93\% of all rows (16{,}912{,}361 rows) and are retained, while other
+types (wire services / magazines / government / web pages, etc.) are dropped
+row-wise; exactly unique records number 18{,}177{,}370 (duplication rate
+0.12\%).
+
+\textbf{Production target corpus.} After newspaper-type screening and
+restriction to the 2007--2024 window, the production target corpus is
+approximately 17~million articles (T=18); this scope lies \emph{before} the
+bank--fintech co-occurrence hard filter. The two scopes---the census
+(2007--2025, all types, pre-filter) and the production target (2007--2024,
+newspaper-screened)---are reported separately and must not be conflated. The
+article count surviving the co-occurrence hard filter and the retention gate
+is \NoteThis{to be back-filled once the production pipeline has run}.
+
+\textbf{Sample-construction criteria.} An article enters the panel only after
+passing, in order: (i) the stage 13 co-occurrence hard filter---the target
+bank and at least one fintech term co-occur within a $\pm 1$-sentence window,
+with the criterion scanning both title and body; and (ii) the full-only
+retention gate---a three-vendor LLM vote (temperature $= 0$, prompt v8
+byte-frozen, seed $= 42$) verifies the full track as a genuine bank--fintech
+article (\code{llm\_verified\_full}). The ctx / ss tracks are
+conditional-on-full robustness scopes.
+
+\textbf{Variable construction.} The treatment is
+\code{attention\_index\_full} (equation \ref{eq:attn}); auxiliary measures are
+\code{attention\_index\_ctx} / \code{attention\_index\_ss} /
+\code{attention\_disp\_full} (outlet-concentration HHI) /
+\code{attention\_pct\_full} (share-type). The primary outcome is
+\code{ln\_fintech\_investment}; secondary outcomes are
+\code{m\_and\_a\_fintech} / \code{patent\_fintech\_count} /
+\code{employee\_growth\_it} / \code{noninterest\_income\_share} /
+\code{cost\_income\_ratio}; the mediator is \code{ln\_fintech\_mdna\_length}.
+Network controls are \code{bank\_degree\_cent} / \code{net\_density\_yr}.
+Financial controls (asset size, leverage, capital adequacy, NPL ratio, deposit
+growth, and macro variables) will be added as the financial-panel enrichment
+comes online.
+
+\textbf{Descriptive statistics.} Table~1 reports bank-year descriptive
+statistics for all variables. \NoteThis{Table 1 values to be backfilled once
+the production panel is finalized; the 110-bank vs.\ paper\_spec
+n\_bank\_min=200 conflict will be reconciled in the same pass.}
 
 \section{Results}\label{sec:results}
-\NoteThis{Table 2 (M1$\to$M6 progressive main regression); Table 3 (mediation);
-Table 4 (heterogeneity 4 bank types $\times$ fintech wave); Table 5 (robustness battery).}
+
+\subsection{Main Regressions (Table 2)}
+Table~2 reports the M1 $\to$ M6 progressive build-up of equation
+(\ref{eq:did}): M1 treatment + year FE only; M2 adds bank FE (TWFE); M3 adds
+network-position controls; M4 adds financial controls (the confirmatory
+baseline); M5 switches to LOO-IV 2SLS; M6 switches to Bartik-IV 2SLS. Every
+column reports bank-clustered standard errors; IV columns additionally report
+the Kleibergen--Paap rk $F$; when M5/M6 include both instruments jointly, the
+Hansen $J$ is reported (the only permitted cross-family over-identification).
+The H1 test lies in column M4:
+\NoteThis{coefficients, standard errors, and significance to be backfilled
+from production estimates}.
+
+\subsection{Mechanism: MD\&A Narrative Mediation (Table 3)}
+Table~3 estimates the ``exposure $\to$ \code{ln\_fintech\_mdna\_length} $\to$
+\code{ln\_fintech\_investment}'' chain via ivmediate
+\parencite{dippel2020ivmediate} within the unified IV architecture, reporting
+total effects, indirect effects, and the mediated share. Interpretation: a
+significantly positive mediated share indicates that exposure pressure first
+manifests as managerial narrative commitment before materializing as real
+investment (H3). \NoteThis{All values to be backfilled from production
+estimates}.
+
+\subsection{Heterogeneity (Table 4)}
+Table~4 interacts bank type (state-owned / joint-stock / city commercial /
+rural commercial) $\times$ fintech wave (periods split by the five events) to
+test H4. Theory predicts stronger responses among non-state small and
+mid-sized banks; \NoteThis{interaction coefficients and between-group tests to
+be backfilled from production estimates}.
+
+\subsection{Robustness Matrix (Table 5)}
+Table~5 assembles the main-coefficient matrix across the nine ladders of
+\ref{subsec:robust}: rows = ladder variants, columns = main outcomes. All
+variants are mutual robustness checks with no primacy ranking, each
+just-identified side by side. \NoteThis{Matrix values to be backfilled from
+production estimates}.
 
 \section{Conclusion}\label{sec:conclusion}
-\NoteThis{Summarize findings and policy implications.}
+
+Within the Hassan paradigm of firm-level text-based exposure, this paper
+constructs an intensity-weighted media attention index for the ``bank $\times$
+fintech'' topic, identifies its causal effect on banks' real fintech
+investment via a cross-sectional intensity DiD and a two-engine LOO / Bartik
+instrument architecture, and uses annual-report MD\&A narrative as an
+observable mediator. \NoteThis{Summary of key findings and effect-size
+statements to be backfilled from production estimates.}
+
+Theoretically, the paper extends ``media exposure'' from the asset-pricing
+context to the context of real banking decisions: the cumulative intensity of
+exposure---independent of sentiment direction---itself constitutes a
+measurable salience channel of competitive pressure. For policy, bank-level
+fintech media attention intensity can serve regulators as a forward-looking
+monitor of digital-transformation pressure: where exposure clusters, transformation
+pressure and resource reallocation tend to lead. \NoteThis{The strength of the
+policy wording will be calibrated to the robustness of production estimates.}
+
+Three limitations apply. First, annual frequency: a bank-year panel cannot
+capture within-year exposure-response dynamics. Second, the endogeneity of
+media coverage: despite policy shocks and instruments, which banks the media
+chooses to cover may still correlate with unobserved bank characteristics;
+media coverage is not fundamentals. Third, external validity: the media
+institutions and banking structure of China's single market are distinctive
+\parencite{qin2018mediabias}, so extrapolation to other institutional
+environments requires caution. In addition, once the financial-controls
+enrichment panel comes online, all specifications will be re-estimated with
+the full control set.
 
 \printbibliography
 

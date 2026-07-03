@@ -14,16 +14,292 @@
 \maketitle
 
 \begin{abstract}
-\NoteThis{Final abstract pending.}
-Using bank-year media coverage of FinTech and N-nearest-neighbor TF-IDF (Guzman--Li 2023) + product-market fluidity (Hoberg--Phillips 2016), we measure
-strategic differentiation score (\code{strat\_diff\_n5}) for Chinese listed banks. We find \NoteThis{key result}\@.
+\NoteThis{Final abstract pending; all result statements await production-panel regressions.}
+Amid the FinTech shock, Chinese banks' digital-transformation
+narratives have become strikingly homogeneous, leaving open whether
+strategic differentiation still translates into franchise value. We
+transplant the Hoberg--Phillips (2016) framework of endogenous
+product differentiation to FinTech competition in Chinese banking:
+using a bank-year corpus of FinTech media coverage, we measure each
+bank's strategic-narrative distinctness with the Guzman--Li (2023)
+N-nearest-neighbor text distance (\code{strat\_diff\_n5} as the
+pre-specified primary measure), complemented by product-market
+fluidity (Hoberg--Phillips--Prabhala 2014) and multiple alternative
+text representations. Identification relies on a single
+pre-specified confirmatory specification with bank and year fixed
+effects and bank-clustered standard errors, supported by Bartik-type
+shift-share instruments and Romano--Wolf familywise error control.
+The theoretical predictions are that strategic distinctness raises
+listed banks' franchise value (Tobin's Q, $\beta>0$) and lowers
+funding costs through deposit pricing power ($\beta<0$). We find
+\NoteThis{key result (production-panel T=18 estimates pending)}\@.
 \end{abstract}
 
 \section{Introduction}\label{sec:intro}
-\NoteThis{Motivate the research question and contribution.}
+
+Over the past decade, FinTech has reshaped banking competition across
+payments, lending, and wealth management
+\parencite{berg2022fintechlending,parlour2022payments,vives2025lendercompetition},
+and China is among the markets where this transformation has been most
+dramatic \parencite{hau2024fintechcredit,cheng2020bankfintech}. Facing
+entry pressure from technology platforms, Chinese commercial banks
+announced ``digital transformation'' strategies almost in unison, and
+narratives of retail transformation, open banking, and digital
+middle-platforms converged across the industry. When every bank tells
+a similar story, a classic industrial-organization question resurfaces:
+can strategic differentiation still soften homogeneous competition,
+accumulate market power, and ultimately show up as a franchise-value
+premium \parencite{hoberg2016tnic,drechsler2026franchise}? Media
+coverage offers a natural window on banks' strategic narratives: news
+text records the direction, intensity, and wording of each bank's
+FinTech positioning, and media coverage is itself a central
+information intermediary in capital markets
+\parencite{fang2009media,you2018pen}. We build a corpus of Chinese
+bank--FinTech news spanning 2007--2024: the raw census (before
+filtering and deduplication) counts 18{,}198{,}978 media reports from
+3{,}740 outlets, of which newspaper-type reports account for
+92.93\,\% of all rows and are retained; after the newspaper-type
+screen and \emph{before} the bank--FinTech entity co-occurrence hard
+filter, the production target corpus is roughly 17 million articles
+(2007--2024) covering 110 banks over 18 years (T=18). The
+co-occurrence hard filter drops rows, so the article count entering
+the regression panel is far smaller than this target corpus.
+
+Our research question is whether the \emph{textual distinctness} of a
+bank's FinTech strategic narrative raises its \emph{franchise value}.
+We transplant the endogenous product differentiation framework of
+\textcite{hoberg2016tnic} to FinTech competition in banking and adopt
+the N-nearest-neighbor text distance of \textcite{guzman2023strategy},
+measuring at the bank-year level the average distance between each
+bank's narrative and its N most similar peers (\code{strat\_diff\_n5};
+N=5 with a TF-IDF character representation is the pre-specified
+primary measure), with product-market fluidity
+\parencite{hoberg2014fluidity}, industry-centroid distance, LDA topic
+divergence, and embedding distance serving as mutually robust
+alternative representations. The theoretical logic is that more
+distinct banks face weaker homogeneous competition and lower
+product-market threats, accumulate market power, and---among listed
+banks---command a Tobin's Q premium; in the full sample,
+differentiation lowers funding costs through deposit pricing power.
+
+For identification we impose bank and year fixed effects, cluster
+standard errors at the bank level, and pre-specify a single
+confirmatory specification (\code{strat\_diff\_n5} $\to$ Tobin's Q,
+one-sided prediction $\beta>0$), explicitly labeling all alternative
+measures, tracks, and heterogeneity analyses as exploratory, with
+familywise error rates controlled within pre-declared families by
+Romano--Wolf step-down resampling
+\parencite{romano2005stepwise,list2019multiplehypothesis}. Against the
+classic endogeneity concern that media coverage and firm value are
+jointly determined \parencite{gurun2012hype}, we deploy Bartik-type
+shift-share instruments whose construction and diagnostics follow the
+modern share-exogeneity \parencite{goldsmith2020bartik} and
+shock-exogeneity
+\parencite{borusyak2022shiftshare,borusyak2025shiftshareguide}
+standards.
+
+The paper makes four contributions. First, measurement: to our
+knowledge this is the first implementation of N-nearest-neighbor
+strategic distinctness on a Chinese bank-news corpus, delivering a
+complete measurement family of five text representations (TF-IDF
+character / TF-IDF word / LDA+JSD / embedding / industry centroid)
+crossed with an N-neighbor ladder
+(N$\in\{3,\dots,7,10,20,30,40,50\}$), extending the text-based
+strategy measurement lineage
+\parencite{guzman2023strategy,bellstam2021innovation,banker2024strategy,hoberg2025scope}.
+Second, identification and inference discipline: explicit
+confirmatory/exploratory boundaries, pre-registered FWER families,
+and Bartik instruments remain rare in observational bank-panel work.
+Third, evidence: we provide systematic Chinese evidence on the
+relation between bank differentiation and franchise value in the
+FinTech era, adding a competitive-strategy dimension to the deposit
+franchise literature \parencite{drechsler2026franchise}. Fourth,
+methodology: given that text-based conclusions are highly sensitive
+to embedding-model choice \parencite{ganguli2024patenttext}, all
+embedding-derived measures are computed under two co-primary
+embedding models from independent vendors, reported side by side as
+mutual robustness (Section F5).
+
+This paper belongs to a series built on the same data pipeline, but
+its object is orthogonal to its siblings: unlike the tone paper (P1)
+we measure N-neighbor textual distinctness, not firm tone; unlike the
+attention paper (P2) we measure distinctness, not exposure intensity;
+we do not construct binary substantive-adoption labels (P3) and do
+not distinguish innovation locus (P4); unlike benefit\_society's
+single attitude projection we use multi-representation text
+differences; unlike brokerage\_network's network positions we use
+text-representation differences; and unlike llm\_peer's LLM semantic
+peer instrument, our core is the N-neighbor text distance.
+
+The remainder proceeds as follows. Section \ref{sec:lit} reviews the
+literature; Section \ref{sec:theory} develops hypotheses; Section
+\ref{sec:method} describes the pipeline and measure construction;
+Section \ref{sec:data} describes the sample and variables; Section
+\ref{sec:main} reports baseline results; Section \ref{sec:mech} tests
+mechanisms; Section \ref{sec:het} examines heterogeneity; Section
+\ref{sec:robust} presents robustness; Section \ref{sec:concl}
+concludes.
 
 \section{Literature Review}\label{sec:lit}
-(1)~founding strategy differentiation (Guzman--Li 2023 \emph{MS}); (2)~text-based product-market industries (Hoberg--Phillips 2016 \emph{JPE}); (3)~product-market fluidity (Hoberg--Phillips--Prabhala 2014 \emph{JF}); (4)~industry-centroid distance (Xie--Fan--Lin 2025 \emph{Economic Research}).
+
+\subsection{Text-Based Strategic Distinctness and Optimal Distinctiveness}
+Two strands anchor our measurement construct. The first is the
+text-based network industries (TNIC) lineage pioneered by
+\textcite{hoberg2016tnic}, which characterizes endogenous product
+differentiation via pairwise similarity of firm text, with
+differentiation governing the intensity of competition a firm faces;
+\textcite{hoberg2014fluidity} further define product-market fluidity
+as the speed at which rivals' text moves toward a firm's
+neighborhood, measuring product-market threats, and
+\textcite{hoberg2025scope} extend the lineage to the scope and scale
+of the 21st-century firm. The second is the founding-strategy
+measurement of \textcite{guzman2023strategy}, which measures
+strategic distinctness as the text distance between a firm and its N
+nearest neighbors; our \code{strat\_diff\_n\{N\}} column family is
+its bank-news implementation. Relatedly,
+\textcite{bellstam2021innovation} measure corporate innovation from
+analyst-report text and \textcite{banker2024strategy} characterize
+strategy typology and cost structure textually. The optimal
+distinctiveness literature supplies boundary conditions:
+\textcite{haans2019distinctiveness} shows that the performance return
+to distinctiveness varies with category homogeneity;
+\textcite{su2024optimal} emphasize dynamic positioning between
+competitive and institutional pressures; and
+\textcite{arts2025technology} provide recent evidence that technology
+differentiation relaxes product-market rivalry. These boundary
+conditions map into our ownership, size, and network-hub
+heterogeneity designs. The industry-centroid variant has an
+additional Chinese-language antecedent referenced inside the pipeline
+code (Xie et al., 2025, \emph{Economic Research}); that record awaits
+CNKI verification, so our formal citations anchor both the centroid
+and N-neighbor operationalizations to \textcite{hoberg2016tnic} and
+\textcite{guzman2023strategy}.
+
+\subsection{FinTech, Bank Competition, and Franchise Value}
+How FinTech entry reshapes bank competition is a central question in
+recent finance research: \textcite{berg2022fintechlending} survey the
+rise of FinTech lending; \textcite{vives2025lendercompetition}
+theorize the effect of information technology on lender competition;
+and \textcite{parlour2022payments} analyze how FinTech competition for
+payment flows erodes banks' information rents. In the Chinese
+context, \textcite{hau2024fintechcredit} document FinTech credit
+fostering entrepreneurial growth, and \textcite{cheng2020bankfintech}
+construct a bank FinTech index from Chinese text and study its credit
+risk consequences---the closest antecedent to our text-based
+approach. On the outcome side, our
+``differentiation $\to$ market power $\to$ franchise value''
+narrative connects to the deposit franchise literature:
+\textcite{drechsler2026franchise} show that the deposit franchise is
+a core component of bank value whose stability rests on banks'
+deposit pricing power---precisely the theoretical landing point of
+our funding-cost channel.
+
+\subsection{Text-as-Data Methods and Embedding-Model Sensitivity}
+\textcite{gentzkow2019text} provide the general blueprint of
+``text $\to$ numerical representation $\to$ regression input.''
+\textcite{hanley2019dynamic} and \textcite{engle2020climatenews}
+demonstrate time-varying exposure measures built from financial
+filings and news text respectively; \textcite{fang2009media}
+establish the classic media-coverage design in asset pricing, and
+\textcite{you2018pen} characterize the institutional divide between
+state-controlled and marketized media in China, providing contextual
+legitimacy for our Chinese media corpus. At the embedding-era
+frontier, \textcite{cong2024textualfactors} propose a scalable and
+interpretable textual-factors framework; most critically,
+\textcite{ganguli2024patenttext} systematically show that
+text-similarity conclusions depend strongly on embedding-model
+choice---a finding that directly motivates the co-primary dual-track
+parity design (Qwen3-Embedding-8B $\perp$ text-embedding-3-large) in
+Section F5.
+
+\subsection{Identification Strategy and Inference Discipline}
+Our instrumental-variable strategy rests on the shift-share (Bartik)
+identification literature: \textcite{goldsmith2020bartik} develop the
+share-exogeneity route and Rotemberg-weight diagnostics, while
+\textcite{borusyak2022shiftshare} and
+\textcite{borusyak2025shiftshareguide} develop the shock-exogeneity
+route and practical guidance; together they support our design in
+which each track's Bartik instrument enters its own just-identified
+specification. For multiple-testing discipline,
+\textcite{romano2005stepwise} supply the step-down FWER correction we
+use, and \textcite{list2019multiplehypothesis} provide an operational
+precedent for declaring confirmatory/exploratory boundaries. On media
+endogeneity, the classic warning of \textcite{gurun2012hype} about
+local media slant and firm value justifies our IV demand; clustered
+inference follows \textcite{cameron2015practitioner}.
+
+Taken together, the literature has not yet implemented
+N-nearest-neighbor textual strategic distinctness in banking---least
+of all in China, where FinTech competition is fiercest---nor linked
+such a measure to franchise value under modern inference discipline.
+This paper fills that gap.
+
+\section{Theory and Hypotheses}\label{sec:theory}
+
+\subsection{Differentiation and Franchise Value}
+In the endogenous product differentiation framework of
+\textcite{hoberg2016tnic}, the more similar a firm's text is to its
+rivals', the stronger the substitution threat it faces and the weaker
+its pricing power; conversely, differentiation places the firm in a
+sparser region of product space, softening homogeneous competition
+and accumulating market power. Transplanted to banking: when most
+banks push FinTech transformation with highly convergent narratives,
+a bank whose strategic narrative is distinctly different from its
+peers is more likely to occupy a differentiated business niche
+(clientele, scenarios, technology route), and its market power
+capitalizes into franchise value, priced as a valuation premium.
+Franchise value is measurable by Tobin's Q among listed banks. We
+therefore state a theoretical prediction (not a result):
+
+\textbf{H1 (confirmatory).} Strategic distinctness raises bank
+franchise value: the coefficient of \code{strat\_diff\_n5} on
+Tobin's Q (implemented as winsorized \code{tobin\_q\_w}) is predicted
+positive ($\beta>0$); listed-bank subsample, main table. This is the
+paper's single pre-specified confirmatory specification.
+
+\subsection{Differentiation and Funding Costs}
+A micro-foundation of franchise value is deposit pricing power
+\parencite{drechsler2026franchise}: banks facing weak homogeneous
+competition need not bid up deposit rates. If differentiation indeed
+softens competition, it should surface on the liability side as lower
+funding costs. This channel is testable in the full sample (including
+unlisted banks), and its predicted direction is opposite to the
+tone--funding-cost channel in the companion tone paper (P1), making
+the two mutually cross-validating.
+
+\textbf{H2.} Strategic distinctness lowers funding costs: the
+coefficient of \code{strat\_diff\_n5} on \code{funding\_cost} is
+predicted negative ($\beta<0$); full-sample channel.
+
+\subsection{Income Structure and Product-Market Threat Channels}
+If differentiation is effective, two intermediate channels should be
+observable. First, differentiated banks are more likely to build
+unique positions in non-interest businesses (wealth management,
+technology output, scenario finance), tilting their income structure
+toward non-interest income. Second, by the product-market fluidity
+logic \parencite{hoberg2014fluidity}, rivals move more slowly toward
+a differentiated bank's product space, so it faces lower
+product-market threats. Profitability (ROA) is an auxiliary channel.
+
+\textbf{H3 (mechanism, exploratory).} \code{strat\_diff\_n5} is
+predicted positive on \code{noninterest\_income\_share}, negative on
+\code{strat\_fluidity}, and positive on \code{roa}. All are secondary
+outcomes, labeled exploratory.
+
+\subsection{Complementarity of Differentiation and Network Hub Position}
+The value of differentiation may depend on a bank's position in the
+interbank network: a bank that is both differentiated and a network
+hub combines a unique niche with informational and business network
+advantages---the strongest moat. However, the interaction between
+network position and differentiation is endogenous and admits no
+causal interpretation \parencite{brambor2006understanding}.
+
+\textbf{H4 (exploratory, conditional association).}
+\code{diff\_x\_btwn} (= \code{strat\_diff\_n5} $\times$
+L.\code{bank\_between\_cent}) is predicted to show a positive
+\emph{conditional association} with Tobin's Q; per the audit ruling
+(STRATDIFF-MOD-1), this interaction is framed strictly as a
+conditional association and never as causal.
 
 \section{Methodology}\label{sec:method}
 \subsection{Sample and Data}
@@ -90,25 +366,421 @@ rank-correlation check ($\rho \geq 0.80$). The sentiment-annotation
 LLM ensemble (F1) is unaffected by this change: embedding models and
 sentiment LLMs are disjoint pipeline components.
 
+\subsection{Constructing the Strategic Distinctness Measures}\label{sec:method-stratdiff}
+The paper-specific treatment family \code{strat\_diff\_*} is
+constructed at the bank-year level under five text representations,
+with a common distinctness definition: given each bank's aggregated
+FinTech news text vector in a year, bank $i$'s strategic distinctness
+is the average distance to its $N$ nearest peer neighbors (the
+N-nearest-neighbor niche distance, operationalized following
+\textcite{guzman2023strategy}). The five representations
+are: (i) TF-IDF character n-grams (canonical; the pre-specified
+primary measure \code{strat\_diff\_n5} is the N=5 character variant);
+(ii) TF-IDF words (jieba segmentation); (iii) LDA topic
+distributions with Jensen--Shannon divergence as the distance;
+(iv) embedding cosine distance (co-primary dual track, see F5);
+(v) the industry-centroid method: the cosine distance between a
+bank's text vector and the leave-one-out industry centroid
+(\code{centroid\_diff\_*} family). Auxiliary measures include the
+maximum similarity to the nearest neighbor (\code{strat\_sim\_max}),
+within-bank text coherence (\code{coh\_tfidf\_c\_full}), and
+product-market fluidity (\code{strat\_fluidity})---following the
+fluidity-construction logic of \textcite{hoberg2014fluidity}, which captures
+product-market threats via rivals' textual movement toward the
+focal bank's neighborhood.
+
+\subsection{The N-Neighbor Ladder and FWER Family Definitions}\label{sec:method-fwer}
+There is no unique prior value of the neighborhood width N, so we
+materialize the full ladder N$\in\{3,4,5,6,7,10,20,30,40,50\}$
+(\code{strat\_diff\_n\{N\}}); the N variants are mutually robust with
+no primacy ordering, each entering its own just-identified
+specification. Multiple testing is corrected within pre-declared
+families: the headline n\_neighbor family comprises all 10 N members
+of the character representation; the centroid family comprises the 4
+centroid variants (\code{centroid\_diff\_tfidf\_c},
+\code{centroid\_diff\_tfidf\_w}, \code{centroid\_diff\_lda},
+\code{centroid\_diff\_emb});
+within each family we report Romano--Wolf step-down resampling
+corrected $p$-values \parencite{romano2005stepwise}. Large-N columns
+of the word/lda/emb/\code{\_lg} variants and of the ctx/ss tracks
+serve only as point-estimate exploratory robustness and do not form
+separate FWER families.
+
+\subsection{Clustering and Inference Conventions}\label{sec:method-cluster}
+Baseline standard errors are clustered one-way at the bank level (the
+production panel has $G\approx110$ clusters, i.e., 110 banks, over
+T=18); the listed-bank subsample of the main table has even fewer
+clusters, backstopped by Cameron--Gelbach--Miller-style small-$G$
+sensitivity checks; robustness checks compare two-way bank $\times$
+year clustering \parencite{cameron2015practitioner}. There is exactly one
+confirmatory specification (H1); all alternative measures, tracks,
+and subsamples are labeled exploratory.
+
+\subsection{Network Control Column and Missing-Value Conventions}\label{sec:method-network}
+To separate the confound between ``textual strategic difference'' and
+``network isolation,'' the baseline controls for the bank's Burt
+structural constraint (\code{bank\_constraint}, network
+embeddedness). Disclosure convention: bank-years with degree $<2$
+are \code{NaN} in this column, and the listwise sample loss must be
+reported in table notes (N-02); other centrality columns follow a
+zero-fill convention for off-network banks with N disclosed. The
+three-tier network co-occurrence criteria (same article, unsuffixed /
+$\pm$1-sentence window \code{\_win1} / strict same sentence
+\code{\_sent}) provide control-column substitution checks
+(Section \ref{sec:robust}).
+
+\subsection{Researcher--AI Collaboration Disclosure}\label{sec:method-ai}
+Following the AI-use policies of the target journals, the author
+discloses three classes of AI tools; all outputs were reviewed and
+verified by the author, who bears full responsibility.
+
+\emph{LLM sentiment annotation and routing.} Article-level sentiment
+and relevance labels come from a majority-vote ensemble of three
+independent-vendor LLMs (OpenAI \code{gpt-5.4-nano}, Google
+\code{gemini-3.1-flash-lite}, DeepSeek \code{deepseek-v4-flash});
+the OpenAI and Google models are routed through yunwu.ai's
+OpenAI-compatible endpoint, while DeepSeek is called directly at
+\code{api.deepseek.com}. All calls use \code{temperature=0},
+\code{seed=42}, and byte-frozen prompt version v8; full invocation
+logs and cache databases are preserved in the replication package,
+enabling zero-cost offline reproduction.
+
+\emph{Retention gating.} Whether an article counts as bank--FinTech
+coverage is determined solely by full-track verification
+(\code{llm\_verified\_full}); the \code{ctx} and \code{ss} tracks are
+conditional-on-full robustness tracks (see F2). The mechanical level
+shift of this gate (shrinking \code{n\_articles} and derived shares)
+is a definitional consequence, disclosed in F2.
+
+\emph{Dual embeddings and vendor swap.} All embedding-derived
+measures are computed in parallel under Alibaba
+\code{Qwen3-Embedding-8B} (4{,}096-d, canonical) and OpenAI
+\code{text-embedding-3-large} (3{,}072-d, \code{\_lg}) under strict
+column parity as co-primary mutual robustness; the canonical slot's
+vendor dimension underwent a Google $\to$ Alibaba Qwen swap (pipeline
+v3.15.0, June 2026), after which all embedding-derived features were
+regenerated in a controlled full re-embedding and passed the Spearman
+$\rho\geq0.80$ semantic-validity gate (see F5).
+
 \section{Data}\label{sec:data}
-\NoteThis{Descriptive statistics in Table 1 (see \code{papers/strategic_diff/tables.py:build\_table1}).}
+
+\subsection{Corpus Scope Chain}
+The corpus passes through three strictly distinct scopes. The first
+is the raw census scope (before filtering and deduplication): 183
+deduplicated source files and 18{,}198{,}978 media reports spanning
+2007-01-01 to 2025-12-31 from 3{,}740 outlets; newspaper-type reports
+account for 92.93\,\% of all rows (16{,}912{,}361 rows) and are
+retained, while wire services, magazines, government bulletins, web
+pages, and other types are dropped row-wise. The second is the
+production target corpus scope: after the newspaper-type screen and
+\emph{before} the bank--FinTech entity co-occurrence hard filter,
+roughly 17 million articles (2007--2024) covering 110 banks over
+T=18. The third is the regression panel scope: the bank-year panel
+obtained after the (row-dropping) co-occurrence hard filter and the
+full-only retention gate, whose article count is far smaller than the
+second-scope target corpus \NoteThis{Article count after the
+co-occurrence hard filter and retention gate to be read off the full
+production rerun.}; in the current development environment it
+comprises approximately 164 bank-year observations (2017--2018, a T=2
+development slice), while the production panel targets 110 banks
+$\times$ 18 years. \NoteThis{Final production-panel N pending the
+financial-panel enrichment and the full production rerun.}
+
+\subsection{Variable Definitions}
+\emph{Treatment}: \code{strat\_diff\_n\{3,4,5,6,7,10,20,30,40,50\}}
+$\times$ five methods (TF-IDF character / TF-IDF word / LDA+JSD /
+embedding / centroid) $\times$ three text tracks (full/ctx/ss), with
+\code{\_lg} twins for the embedding method; the pre-specified primary
+is \code{strat\_diff\_n5} (N=5, TF-IDF character, full track).
+\emph{Outcomes}: the primary outcome is \code{tobin\_q} in the
+listed-bank subsample (implemented as winsorized \code{tobin\_q\_w});
+secondary outcomes are \code{funding\_cost}, \code{roa},
+\code{strat\_fluidity}, and \code{noninterest\_income\_share}.
+\emph{Controls}: five bank-level columns (\code{ln\_assets},
+\code{leverage}, \code{capital\_ratio}, \code{npl\_ratio},
+\code{deposit\_growth}) and two year-level macro columns
+(\code{gdp\_growth}, \code{m2\_growth}); the financial-panel
+enrichment is forthcoming, and the current replication-package
+control set consists of coverage proxies (\code{ln\_news\_coverage},
+\code{media\_hhi}, \code{bank\_scale\_ord}). The network control is
+\code{bank\_constraint} (Section \ref{sec:method-network}).
+
+\subsection{Descriptive Statistics}
+\NoteThis{Descriptive statistics in Table 1 (see
+\code{papers/strategic_diff/tables.py:build\_table1}); all means,
+standard deviations, and quantiles await the production-panel rerun
+and must not be filled in beforehand.}
 
 \section{Main Results}\label{sec:main}
-\NoteThis{Table 2 from \code{output/tables/table2\_*.csv}; Figure 2 coefplot.}
+
+The confirmatory specification is a two-way fixed-effects regression
+on the listed-bank subsample:
+\begin{equation}\label{eq:main}
+\mathit{TobinQ}^{w}_{it}
+  = \beta\,\mathit{StratDiff}^{(n5)}_{it}
+  + \boldsymbol{\gamma}'\mathbf{X}_{it}
+  + \alpha_i + \lambda_t + \varepsilon_{it},
+\end{equation}
+where $\mathit{TobinQ}^{w}_{it}$ is winsorized Tobin's Q,
+$\mathit{StratDiff}^{(n5)}_{it}$ is the N=5 TF-IDF character
+distinctness, $\mathbf{X}_{it}$ collects bank-level and macro
+controls, and $\alpha_i$, $\lambda_t$ are bank and year fixed
+effects; standard errors are clustered at the bank level. The Stata
+implementation is \code{reghdfe tobin\_q\_w strat\_diff\_n5
+\$controls, absorb(bank\_id year) vce(cluster bank\_id)}. H1's
+one-sided prediction is $\beta>0$. Table 2 will report
+Eq.~(\ref{eq:main}) across progressive-control columns M1--M6, from
+fixed effects only through coverage proxies, financial controls, and
+the network control; Figure 2 shows the corresponding coefficient
+plot. A positive and economically meaningful $\beta$ that survives
+the full control set supports the differentiation--franchise-value
+proposition. The full-sample channel re-estimates
+Eq.~(\ref{eq:main}) with \code{funding\_cost} as the outcome, with
+H2 predicting $\beta<0$.
+\NoteThis{All Table 2 coefficients, standard errors, and significance
+levels await the production-panel (T=18) estimates; source
+\code{output/tables/table2\_*.csv}.}
+
+Against media-scope endogeneity \parencite{gurun2012hype}, we
+estimate two-stage least squares with a Bartik-type shift-share
+instrument:
+\begin{equation}\label{eq:iv}
+\widehat{\mathit{Text}}_{it}
+  = \pi\,Z^{\mathrm{bartik}}_{it}
+  + \boldsymbol{\phi}'\mathbf{X}_{it} + \alpha_i + \lambda_t + u_{it},
+\end{equation}
+reporting the first-stage Kleibergen--Paap rk F statistic and
+Rotemberg-weight diagnostics per \textcite{goldsmith2020bartik}
+(Table A3). In Eq.~(\ref{eq:iv}), $\widehat{\mathit{Text}}_{it}$ is
+this paper's endogenous treatment---the primary measure
+\code{strat\_diff\_n5} (full track); instrument--endogenous pairing
+follows the pipeline IV extension's same-track convention: each text
+track's endogenous variable is paired with its own-track instrument
+(\code{bartik\_type\_iv\_full} is primary), each track just
+identified; cross-track over-identified systems are never assembled
+(Section \ref{sec:robust}).
+\NoteThis{\code{bartik\_type\_iv\_full} is registered in the pipeline
+IV extension as an instrument originally constructed for the
+full-track tone measure; its first-stage strength for
+\code{strat\_diff\_n5} must be confirmed empirically (production-panel
+KP rk F) before it serves as this paper's primary IV specification.
+IV estimates and first-stage F await production-panel results.}
 
 \section{Mechanism}\label{sec:mech}
-\NoteThis{Table 3 from \code{output/tables/table3\_*.csv}; Figure 3.}
+
+If differentiation operates through market power, two channels should
+be observable. The first is the deposit-pricing channel:
+differentiated banks face weaker homogeneous competition, need not
+bid up deposit rates, and thus enjoy lower funding costs (H2); this
+channel's direction is opposite to the tone channel in the companion
+tone paper (P1), making the two mutually cross-validating---tone
+captures the attitudinal dimension of media evaluation, distinctness
+the spatial dimension of strategic positioning, and if both show
+opposite yet theory-consistent signs on funding cost, they jointly
+rule out the common confound of mechanical coverage-volume effects.
+The second comprises the product-market threat and income structure
+channels (H3): Table 3 re-estimates Eq.~(\ref{eq:main}) with
+\code{strat\_fluidity} (predicted negative),
+\code{noninterest\_income\_share} (predicted positive), and
+\code{roa} (predicted positive) as outcomes, all labeled exploratory.
+Interpretively, a significantly negative fluidity coefficient
+together with a significantly positive non-interest income share
+supports the chain of ``differentiation occupies a sparse niche and
+uniquifies the income structure.''
+\NoteThis{Table 3 (source \code{output/tables/table3\_*.csv}) and
+Figure 3 values await production-panel results.}
 
 \section{Heterogeneity}\label{sec:het}
-\NoteThis{Table 4 (SOE × paper-specific interactions) from
-\code{output/tables/table4\_heterogeneity.csv}.}
+
+Following the boundary conditions of the optimal distinctiveness
+literature \parencite{haans2019distinctiveness,su2024optimal},
+Tables 4 and 8 will report four subsample splits: state-owned (SOE)
+vs.\ non-SOE, network hub vs.\ non-hub, size groups, and bank-type
+groups; all labeled exploratory. Theoretically, large state-owned
+banks face stronger institutional pressure and narrower
+differentiation latitude, so the return to distinctness may
+concentrate among joint-stock and city commercial banks; this
+expectation is exploratory and not a pre-specified test.
+
+For moderation, per H4 we estimate
+\begin{equation}\label{eq:mod}
+\mathit{TobinQ}^{w}_{it}
+  = \beta_1\,\mathit{StratDiff}^{(n5)}_{it}
+  + \beta_2\,\mathit{StratDiff}^{(n5)}_{it}\times
+    L.\mathit{BankBetween}_{i,t-1}
+  + \beta_3\,L.\mathit{BankBetween}_{i,t-1}
+  + \boldsymbol{\gamma}'\mathbf{X}_{it} + \alpha_i + \lambda_t
+  + \varepsilon_{it},
+\end{equation}
+interpreting the interaction per \textcite{brambor2006understanding}
+(reporting marginal effects rather than the raw interaction
+coefficient alone). Per the audit ruling (STRATDIFF-MOD-1), the
+interaction of network position with differentiation is endogenous,
+so $\beta_2$ in Eq.~(\ref{eq:mod}) is stated strictly as a
+\emph{conditional association}---``bank-years that are both
+differentiated and central go with higher valuations''---and never as
+causal. The control column \code{bank\_constraint} enters all
+heterogeneity specifications as an embeddedness confound control; its
+degree$<2\to$NaN listwise sample loss is disclosed in table notes
+(N-02).
+\NoteThis{Table 4 / Table 8 values await production-panel results.}
 
 \section{Robustness}\label{sec:robust}
-\NoteThis{Table 5 (paper-specific robustness battery) from
-\code{output/tables/table5\_*.csv}.}
+
+All robustness dimensions in this section share one inference
+discipline: within each ladder the members are \emph{mutually robust
+with no primacy ordering}, each entering its own just-identified
+specification, reported side by side; members of any ladder are
+\emph{never} pooled into a single over-identified system (e.g., by
+entering several highly correlated twin measures or several
+instruments into one Hansen J test)---highly correlated twins carry
+no independent information, and assembling them into over-identified
+tests only manufactures spurious over-identification power.
+
+\paragraph{N-neighbor sensitivity ladder (headline FWER family).}
+Table 5a runs Eq.~(\ref{eq:main}) separately for each of
+\code{strat\_diff\_n\{3,4,5,6,7,10,20,30,40,50\}} (TF-IDF character,
+full track), reporting Romano--Wolf corrected $p$-values within the
+family \parencite{romano2005stepwise}. Two statistical disclosures:
+first, the 2026-07 expansion grew the family from 5 members (n3--n7)
+to 10 (adding n10--n50); the Romano--Wolf correction becomes
+\emph{monotonically stricter} as the family grows, mechanically
+raising the corrected $p$-values of the pre-existing members
+n3--n7 (including n5)---a definitional consequence of family
+expansion that referees should interpret under the corrected scope.
+Second, \code{strat\_diff\_n5} plays a dual role: it is both the
+\emph{uncorrected single pre-specified hypothesis} of the
+confirmatory specification (Section \ref{sec:main}) and an ordinary
+member of this family subject to RW correction. The two scopes are
+orthogonal and serve different purposes---the former tests a single
+pre-registered theoretical hypothesis, the latter answers the family
+question of whether the choice of N drives the conclusion---so the
+same measure appearing in both places is not double-counting.
+Large-N columns of the word/lda/emb/\code{\_lg} variants and the
+ctx/ss tracks serve only as point-estimate exploratory robustness
+and form no separate FWER family.
+
+\paragraph{Representation-method family.}
+The five text representations (TF-IDF character / TF-IDF word /
+LDA+JSD / embedding / centroid) are each run separately and never
+enter the same right-hand side simultaneously; the headline stays
+character-based. The centroid family
+(\code{centroid\_diff\_tfidf\_c} / \code{centroid\_diff\_tfidf\_w} /
+\code{centroid\_diff\_lda} / \code{centroid\_diff\_emb}) is the second
+pre-declared FWER family (4 members) with RW-corrected $p$-values.
+The auxiliary measures \code{strat\_sim\_max} and
+\code{coh\_tfidf\_c\_full} are each run alone.
+
+\paragraph{Three text tracks full/ctx/ss.}
+Retention gating is full-only; the \code{ctx} and \code{ss} tracks
+are conditional-on-full robustness tracks whose row universe is a
+subset of the full-track retained set (F2).
+\code{strat\_diff\_n5\_ctx} and \code{strat\_diff\_n5\_ss} each run
+Eq.~(\ref{eq:main}) alone; the three tracks are mutually robust,
+highly correlated twins rather than independent hypotheses, and a
+full$\times$ctx$\times$ss composite Hansen J is strictly prohibited.
+
+\paragraph{Co-primary dual embeddings.}
+The embedding-method column family is reported in strict column
+parity under Qwen3-Embedding-8B (canonical) and
+text-embedding-3-large (\code{\_lg}) (F5); each track enters its own
+just-identified specification and the two are never pooled into one
+over-identified system. The scholarly necessity:
+\textcite{ganguli2024patenttext} show text-similarity conclusions
+depend strongly on embedding-model choice; consistent signs across
+independent vendors establish robustness to that choice.
+
+\paragraph{Bartik IV three-track mirror and diagnostics.}
+IV specifications are mirrored by track:
+\code{bartik\_type\_iv\_full} (primary) / \code{bartik\_type\_iv\_ctx}
+(fallback) / \code{bartik\_type\_iv\_ss} (ss mirror); each track's
+endogenous variable is paired with its own-track instrument, each
+just identified; mechanical \code{\_ctx}$\to$\code{\_ss} swaps into
+over-identified systems are prohibited. Roughly 30 candidate
+instruments were pruned to 2 under the
+\textcite{goldsmith2020bartik} exogeneity standard (F4). Table A3
+reports Rotemberg weights and the KP rk F.
+\NoteThis{Per-track IV point estimates and diagnostics await
+production-panel results.}
+
+\paragraph{Three IV engines side by side.}
+Beyond Bartik, the pipeline provides leave-one-out peer-mean
+instruments (\code{leave\_one\_out\_peer\_*\_iv}) and media-outlet
+house-style exposure instruments (\code{outlet\_*\_iv}); the three
+instrument classes are each estimated in separate 2SLS as mutual
+identification-strategy robustness and never enter the same equation
+\parencite{borusyak2025shiftshareguide}.
+
+\paragraph{Clustered inference.}
+The baseline clusters one-way by bank; Tables 5/7 compare two-way
+bank $\times$ year clustering \parencite{cameron2015practitioner}.
+
+\paragraph{Network-control criteria ladder.}
+The three network co-occurrence criteria (same article, unsuffixed /
+$\pm$1-sentence window \code{\_win1} / strict same sentence
+\code{\_sent}) are mutually robust, each just identified, side by
+side (specification robustness, no FWER family). Both the
+\code{bank\_constraint} confound control and the \code{diff\_x\_btwn}
+moderator used in this paper have three-criteria twins; the
+robustness check re-estimates the baseline substituting the
+control/interaction column one criterion at a time, while disclosing
+the \code{bank\_constraint} degree$<2\to$NaN listwise loss (N-02)
+and the zero-fill convention of other centrality columns.
+
+\paragraph{Era stability.}
+The T=18 production panel permits re-estimating the baseline by era
+(e.g., before vs.\ after the FinTech takeoff; Table 9, exploratory)
+to test the temporal stability of the main effect.
+\NoteThis{Era cutoffs and results await the production panel.}
+
+\paragraph{Disclosure boundary of pipeline-level ladders.}
+The pipeline-level robustness ladders---three sentiment LLMs, three
+BERT models, political-word weights, dictionary-rule
+ablations---operate on the sentiment/dictionary column families and
+do not intersect this paper's text-distance treatment; they therefore
+do not enter this paper's robustness battery and are disclosed only
+at the pipeline level (F1).
 
 \section{Conclusion}\label{sec:concl}
-\NoteThis{Final discussion and policy implications.}
+
+This paper transplants the endogenous product differentiation
+framework to FinTech competition in Chinese banking, implements the
+N-nearest-neighbor textual strategic distinctness measure on a
+Chinese bank-news corpus for the first time, and tests the
+``differentiation $\to$ market power $\to$ franchise value''
+proposition under the inference discipline of a single pre-specified
+confirmatory specification, Bartik instruments, and Romano--Wolf
+familywise error control. We find \NoteThis{summary of key results
+(production-panel estimates pending)}\@.
+
+Theoretically, the paper brings the optimal distinctiveness and
+text-based industrial organization literatures into the banking
+context: if differentiation indeed accompanies a valuation premium
+and lower funding costs, then even in a heavily regulated,
+homogeneous industry, strategic-narrative differentiation remains a
+viable source of franchise value. For policy, the results
+\NoteThis{conditional on signs and magnitudes} would suggest that
+regulators encouraging differentiated positioning---rather than a
+homogeneous digital arms race---help preserve bank franchise value
+and systemic stability; for bank management, niche selection is a
+strategic lever in the FinTech era.
+
+Three limitations apply. First, the panel is annual, so intra-year
+strategic dynamics and short-run market reactions are not captured.
+Second, media coverage is itself endogenous: coverage scope reflects
+outlet selection and bank public relations \parencite{gurun2012hype};
+although we mitigate this with Bartik and leave-one-out instruments,
+exclusion restrictions are untestable and causal interpretation
+warrants caution. Third, the sample covers the single Chinese market,
+whose institutional environment (state ownership dominance, heavy
+regulation, platform-economy structure) is distinctive, so
+extrapolation to other banking systems should be cautious. The
+financial-panel enrichment and the full T=18 production regressions
+are forthcoming, at which point all result-dependent statements will
+be updated.
+
+\NoteThis{Final discussion and policy implications to be refined
+after results are in.}
 
 \printbibliography
 

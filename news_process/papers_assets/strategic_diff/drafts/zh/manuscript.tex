@@ -14,16 +14,211 @@
 \maketitle
 
 \begin{abstract}
-\NoteThis{最终摘要待定。}
-本文基于银行—年度金融科技媒体报道, 采用N-最近邻 TF-IDF (Guzman--Li 2023) + 产品市场流动性 (Hoberg--Phillips 2016),
-度量中国上市银行的战略差异度分数 (\code{strat\_diff\_n5})。我们发现 \NoteThis{核心结论}\@。
+\NoteThis{最终摘要待定; 结果性语句以生产面板回归为准。}
+金融科技冲击下, 中国银行业的数字化转型叙事呈现高度同质化, 差异化战略能否
+转化为特许权价值成为悬而未决的实证问题。本文将
+Hoberg--Phillips (2016) 内生产品差异化框架移植到中国银行业金融科技竞争场景,
+基于银行—年度金融科技媒体报道语料, 采用 Guzman--Li (2023) 的 N-最近邻
+文本距离并辅以产品市场流动性 (Hoberg--Phillips--Prabhala 2014) 等多种文本
+表征, 测度各银行战略叙事的差异度 (\code{strat\_diff\_n5} 为预设主测度)。
+识别上, 我们采用银行与年份双向固定效应、银行层面聚类标准误的
+单一预设验证性 (confirmatory) 主规格, 辅以 Bartik 型移位—份额工具变量与
+Romano--Wolf 族错误率校正的推断纪律。理论预期为: 战略差异度提升上市银行的
+特许权价值 (Tobin Q, $\beta>0$), 并经由存款定价能力压低资金成本
+($\beta<0$)。我们发现 \NoteThis{核心结论 (生产面板 T=18 回归结果待填)}\@。
 \end{abstract}
 
 \section{引言}\label{sec:intro}
-\NoteThis{阐释研究问题与贡献。}
+
+过去十余年, 金融科技从支付、信贷到财富管理全方位重塑了银行业的竞争格局
+\parencite{berg2022fintechlending,parlour2022payments,vives2025lendercompetition},
+中国是这一变革最剧烈的市场之一 \parencite{hau2024fintechcredit,cheng2020bankfintech}。
+面对科技平台的进入压力, 中国商业银行几乎同步宣示"数字化转型"战略,
+零售转型、开放银行、数字中台等叙事在同业间高度趋同。当所有银行都讲述
+相似的故事时, 一个经典的产业组织问题重新浮现: 战略差异化是否仍然能够
+削弱同质竞争、积累市场势力, 并最终体现为特许权价值溢价
+\parencite{hoberg2016tnic,drechsler2026franchise}?
+媒体报道是观察银行战略叙事的天然窗口: 新闻文本记录了各银行金融科技
+布局的方向、强度与措辞, 且媒体覆盖本身即是资本市场的重要信息中介
+\parencite{fang2009media,you2018pen}。本文构建覆盖 2007--2024 年的中国银行
+金融科技新闻语料: 原始普查 (过滤、去重之前的全量) 计 18{,}198{,}978 条
+媒体报道、来自 3{,}740 家媒体来源, 其中报纸类报道占全部行的 92.93\,\%
+并被保留; 经媒体类型筛选 (仅保留报纸类) 后、银行—金融科技实体共现
+硬过滤前, 生产目标语料约 1{,}700 万条 (2007--2024), 覆盖 110 家银行、
+18 个年度 (T=18); 共现硬过滤为丢行式硬过滤, 过滤后进入回归面板的
+文章数远小于该目标语料量。
+
+本文的研究问题是: 银行金融科技战略叙事的\emph{文本差异度}
+(distinctness) 是否提升其\emph{特许权价值}?
+我们将 \textcite{hoberg2016tnic} 的内生产品差异化框架移植到银行业
+金融科技竞争场景, 借鉴 \textcite{guzman2023strategy} 的 N-最近邻文本距离
+方法, 在银行—年度层面测度每家银行的战略叙事与其 N 个最相似同业之间的
+平均距离 (\code{strat\_diff\_n5}, N=5、TF-IDF 字符表征为预设主测度),
+并以产品市场流动性 \parencite{hoberg2014fluidity}、行业质心距离、
+LDA 主题散度与嵌入距离等多种表征互为稳健性。理论逻辑是:
+差异化程度高的银行面临的同质竞争更弱、产品市场威胁更低,
+从而积累市场势力, 在上市银行子样本中体现为 Tobin Q 溢价;
+在全样本通道上, 差异化经由存款定价能力压低资金成本。
+
+识别上, 我们施加银行与年份双向固定效应, 在银行层面聚类标准误,
+并预先声明单一验证性主规格 (\code{strat\_diff\_n5} $\to$ Tobin Q,
+单侧理论预期 $\beta>0$), 将全部替代测度、替代轨道与异质性分析
+明确标注为探索性 (exploratory), 族内以 Romano--Wolf 逐步降步法
+控制族错误率 \parencite{romano2005stepwise,list2019multiplehypothesis}。
+针对媒体口径与企业价值之间的经典内生性担忧 \parencite{gurun2012hype},
+我们进一步引入 Bartik 型移位—份额工具变量, 其构造与诊断遵循份额外生
+\parencite{goldsmith2020bartik} 与冲击外生
+\parencite{borusyak2022shiftshare,borusyak2025shiftshareguide} 两条路径的
+现代标准。
+
+本文有四方面贡献。其一, 测度贡献: 据我们所知, 本文首次在中文银行新闻
+语料上落地 N-最近邻战略差异度测度, 并给出五种文本表征
+(TF-IDF 字符 / TF-IDF 分词 / LDA+JSD / 嵌入 / 行业质心) 乘
+N-邻梯子 (N$\in\{3,\dots,7,10,20,30,40,50\}$) 的完整测度族,
+延伸了文本战略测度谱系
+\parencite{guzman2023strategy,bellstam2021innovation,banker2024strategy,hoberg2025scope}。
+其二, 识别与推断纪律贡献: 观测性银行面板研究中显式划定
+confirmatory/exploratory 边界、预设族错误率校正并配 Bartik 工具的
+做法仍不多见。其三, 实证贡献: 为金融科技时代银行差异化战略与
+特许权价值的关系提供来自中国的系统证据, 补充存款特许权文献
+\parencite{drechsler2026franchise} 的竞争战略维度。其四, 方法论贡献:
+针对文本测度结论对嵌入模型选择的敏感性 \parencite{ganguli2024patenttext},
+本文所有嵌入派生测度均在两个独立厂商的 co-primary 嵌入模型下
+并行计算、互为稳健性 (方法节 F5)。
+
+本文隶属于同一数据管线上的系列论文, 但研究对象彼此正交:
+与语调论文 (P1) 不同, 本文测度的是 N-邻文本差异度而非公司语调;
+与关注度论文 (P2) 不同, 本文测度差异度而非曝光强度; 本文不做
+实质—象征二元标签 (P3), 不区分创新区位 (P4); 与 benefit\_society
+的单一态度投影不同, 本文使用多文本表征差异; 与 brokerage\_network
+的网络位置测度不同, 本文使用文本表征差异; 与 llm\_peer 的 LLM
+语义同业工具不同, 本文的核心是 N-邻文本距离。
+
+下文结构如下: 第 \ref{sec:lit} 节综述相关文献; 第 \ref{sec:theory}
+节发展假设; 第 \ref{sec:method} 节介绍数据管线与测度构造;
+第 \ref{sec:data} 节描述样本与变量; 第 \ref{sec:main} 节报告基准
+回归; 第 \ref{sec:mech} 节检验机制; 第 \ref{sec:het} 节分析异质性;
+第 \ref{sec:robust} 节呈现稳健性; 第 \ref{sec:concl} 节总结。
 
 \section{文献综述}\label{sec:lit}
-(1)~创业战略差异度 (Guzman--Li 2023 \emph{MS}); (2)~文本驱动产品市场行业 (Hoberg--Phillips 2016 \emph{JPE}); (3)~产品市场流动性 (Hoberg--Phillips--Prabhala 2014 \emph{JF}); (4)~行业重心法 (谢佳松--樊嘉诚--林建浩 2025 \emph{经济研究})。
+
+\subsection{文本战略差异度与最优区分度}
+本文测度构念的直接源头是两支文献。其一是 \textcite{hoberg2016tnic}
+开创的文本网络行业 (TNIC) 谱系: 以企业文本的成对相似度刻画内生
+产品差异化, 差异化程度决定企业面临的竞争强度;
+\textcite{hoberg2014fluidity} 进一步以竞争者文本向邻域移动的速度
+定义产品市场流动性 (fluidity), 度量企业面临的产品市场威胁;
+\textcite{hoberg2025scope} 将该谱系延伸到 21 世纪企业的范围与规模。
+其二是 \textcite{guzman2023strategy} 的创业战略测度: 以企业与其 N 个
+最近邻之间的文本距离度量战略差异度 (distinctness), 本文的
+\code{strat\_diff\_n\{N\}} 列族即其银行新闻版实现。相关地,
+\textcite{bellstam2021innovation} 用分析师报告文本测度企业创新,
+\textcite{banker2024strategy} 用文本法刻画战略类型与成本结构。
+最优区分度 (optimal distinctiveness) 文献则提供边界条件:
+\textcite{haans2019distinctiveness} 表明差异化的绩效回报依类别同质性
+而变; \textcite{su2024optimal} 强调企业需在竞争压力与制度压力之间
+动态定位; \textcite{arts2025technology} 给出技术差异化缓解产品市场
+竞争的最新证据。这些边界条件对应本文的所有制、规模与网络枢纽
+异质性设计。行业质心距离法在管线代码内部另有一条中文文献线索
+(谢佳松等, 2025, 《经济研究》), 该题录尚待 CNKI 核实, 故本文正式
+引注以 \textcite{hoberg2016tnic} 与 \textcite{guzman2023strategy} 锚定
+质心与 N-邻两类操作化。
+
+\subsection{金融科技、银行竞争与特许权价值}
+金融科技进入如何重塑银行竞争是近年金融学的核心议题:
+\textcite{berg2022fintechlending} 综述了金融科技信贷的兴起;
+\textcite{vives2025lendercompetition} 从理论上刻画信息技术对贷款人
+竞争的影响; \textcite{parlour2022payments} 分析金融科技争夺支付流
+对银行信息租金的侵蚀。中国情境下, \textcite{hau2024fintechcredit}
+提供金融科技信贷促进创业增长的证据; \textcite{cheng2020bankfintech}
+基于中文语料构造银行金融科技指数并考察其信用风险后果, 是与本文
+文本测度做法最直接的对标。outcome 端, 本文的"差异化 $\to$ 市场势力
+$\to$ 特许权价值"叙事与存款特许权文献相承:
+\textcite{drechsler2026franchise} 表明存款特许权是银行价值的核心
+组成部分, 其稳定性依赖银行维持存款定价能力——这正是本文
+资金成本通道的理论落点。
+
+\subsection{Text-as-data 方法与嵌入模型选择敏感性}
+\textcite{gentzkow2019text} 给出"文本 $\to$ 数值表示 $\to$ 回归输入"
+的方法总纲。\textcite{hanley2019dynamic} 与 \textcite{engle2020climatenews}
+分别示范了在金融申报文本与新闻文本上构造时变暴露测度的范式;
+\textcite{fang2009media} 确立媒体覆盖测度与资产价格研究的经典设计,
+\textcite{you2018pen} 则刻画了中国国有与市场化媒体的制度分野,
+为本文使用中文媒体语料提供情境正当性。嵌入时代的前沿方法上,
+\textcite{cong2024textualfactors} 提出可扩展、可解释的文本因子框架;
+尤为关键的是, \textcite{ganguli2024patenttext} 系统论证了文本相似度
+结论强烈依赖嵌入模型的选择——这一发现直接支撑本文
+Qwen3-Embedding-8B 与 text-embedding-3-large 双主轨严格列对偶设计
+(方法节 F5) 的学理必要性。
+
+\subsection{识别策略与推断纪律}
+本文的工具变量策略立足移位—份额 (Bartik) 识别文献:
+\textcite{goldsmith2020bartik} 给出份额外生路径及 Rotemberg 权重诊断,
+\textcite{borusyak2022shiftshare} 与 \textcite{borusyak2025shiftshareguide}
+给出冲击外生路径与实操指南; 二者共同支撑本文 Bartik 工具三轨各自
+恰好识别的设定与诊断报告。多重检验纪律上,
+\textcite{romano2005stepwise} 的逐步降步法是本文族错误率校正的
+方法源, \textcite{list2019multiplehypothesis} 提供实验与观测研究中
+confirmatory/exploratory 边界声明的操作先例。媒体内生性方面,
+\textcite{gurun2012hype} 关于地方媒体倾向与企业价值的经典警示
+正当化了本文的工具变量需求; 聚类推断遵循
+\textcite{cameron2015practitioner}。
+
+综合来看, 既有文献尚未在银行业——尤其是金融科技竞争最激烈的中国
+市场——落地过 N-最近邻文本战略差异度测度, 也缺少将该测度与
+特许权价值联系起来、并施加现代推断纪律的系统证据。本文填补这一
+缺口。
+
+\section{理论与假设}\label{sec:theory}
+
+\subsection{差异化与特许权价值}
+在 \textcite{hoberg2016tnic} 的内生产品差异化框架中, 企业文本与
+竞争者越相似, 其面临的替代威胁越强、定价能力越弱; 反之, 差异化
+使企业占据更稀疏的产品空间位置, 削弱同质竞争并积累市场势力。
+移植到银行业: 当多数银行以高度趋同的叙事推进金融科技转型时,
+战略叙事显著区别于同业的银行更可能占据差异化的业务生态位
+(客群、场景、技术路线), 其市场势力沉淀为特许权价值, 在资本市场
+定价中体现为估值溢价。特许权价值在上市银行中可由 Tobin Q 度量。
+据此提出理论预期 (而非结果):
+
+\textbf{H1 (confirmatory).} 战略差异度提升银行特许权价值:
+\code{strat\_diff\_n5} 对 Tobin Q (回归实现为缩尾后的
+\code{tobin\_q\_w}) 的系数预期为正 ($\beta>0$); 上市银行子样本主表。
+此为本文唯一预设验证性主规格。
+
+\subsection{差异化与资金成本}
+特许权价值的微观基础之一是存款定价能力
+\parencite{drechsler2026franchise}: 面临同质竞争弱的银行无需以更高
+利率争夺存款。若差异化确实削弱同质竞争, 其应在负债端体现为更低的
+资金成本。该通道可在全样本 (含非上市银行) 中检验, 且其方向预测与
+本管线语调论文 (P1) 的语调—资金成本通道相反, 二者互为交叉验证。
+
+\textbf{H2.} 战略差异度降低资金成本: \code{strat\_diff\_n5} 对
+\code{funding\_cost} 的系数预期为负 ($\beta<0$); 全样本通道。
+
+\subsection{收入结构与产品市场威胁通道}
+差异化若有效, 应可观测到两条中间通道。其一, 差异化银行更可能在
+非利息业务 (财富管理、科技输出、场景金融) 上形成独特定位, 收入
+结构向非利息收入倾斜。其二, 按产品市场流动性逻辑
+\parencite{hoberg2014fluidity}, 差异化银行所处产品空间中竞争者向其
+移动的速度更慢, 面临的产品市场威胁更低。盈利能力 (ROA) 为辅助
+通道。
+
+\textbf{H3 (机制, 探索性).} \code{strat\_diff\_n5} 对
+\code{noninterest\_income\_share} 预期为正; 对 \code{strat\_fluidity}
+预期为负; 对 \code{roa} 预期为正。均为 secondary outcome, 探索性
+标注。
+
+\subsection{差异化与网络枢纽地位的互补性}
+差异化战略的价值可能依赖银行在同业网络中的位置: 既差异化又居于
+枢纽位置的银行, 兼具独特生态位与信息、业务网络优势, 构成最强
+护城河。但网络位置与差异化的交乘项内生, 无法赋予因果解释
+\parencite{brambor2006understanding}。
+
+\textbf{H4 (exploratory, 条件关联).} \code{diff\_x\_btwn}
+(= \code{strat\_diff\_n5} $\times$ L.\code{bank\_between\_cent}) 与
+Tobin Q 预期呈正向\emph{条件关联}; 按审计裁决
+(STRATDIFF-MOD-1), 该交乘仅作条件关联陈述, 绝不作因果表述。
 
 \section{方法}\label{sec:method}
 \subsection{样本与数据}
@@ -79,25 +274,311 @@ Google Gemini 嵌入; 自管线 v3.15.0 (2026 年 6 月) 起换为阿里
 情感标注 LLM 集成 (F1) 不受此变更影响: 嵌入模型与情感 LLM
 是互不相交的管线组件。
 
+\subsection{战略差异度测度构造}\label{sec:method-stratdiff}
+本文专属的处理变量族 \code{strat\_diff\_*} 在银行—年度层面按五种
+文本表征构造, 各表征下的差异度定义一致: 给定某年各银行的金融科技
+新闻文本聚合向量, 银行 $i$ 的战略差异度为其与 $N$ 个最近邻同业之间
+的平均距离 (N-最近邻生态位距离, 参照 \textcite{guzman2023strategy}
+的操作化)。五种表征为: (i) TF-IDF 字符 n-gram (canonical,
+预设主测度 \code{strat\_diff\_n5} 即 N=5 的字符表征);
+(ii) TF-IDF 分词 (jieba); (iii) LDA 主题分布, 距离取
+Jensen--Shannon 散度; (iv) 嵌入向量余弦距离 (双主轨, 见 F5);
+(v) 行业质心法: 银行文本向量与留一 (leave-one-out) 行业质心的
+余弦距离 (\code{centroid\_diff\_*} 列族)。辅助测度包括与最近邻的
+最大相似度 \code{strat\_sim\_max}、银行内文本一致性
+\code{coh\_tfidf\_c\_full}, 以及产品市场流动性 \code{strat\_fluidity}
+——按 \textcite{hoberg2014fluidity} 的流动性构造逻辑, 以竞争者文本
+向本行邻域的移动刻画产品市场威胁。
+
+\subsection{N-邻梯子与 FWER 族定义}\label{sec:method-fwer}
+邻域宽度 N 无先验唯一值, 本文将 N$\in\{3,4,5,6,7,10,20,30,40,50\}$
+全部物化 (\code{strat\_diff\_n\{N\}}), 各 N 互为稳健性、不分主次,
+各自进入恰好识别的独立规格。多重检验按预设族校正: headline
+n\_neighbor 族 = 字符表征全部 10 个 N 成员; centroid 族 = 4 个
+质心变体 (\code{centroid\_diff\_tfidf\_c}、\code{centroid\_diff\_tfidf\_w}、
+\code{centroid\_diff\_lda}、\code{centroid\_diff\_emb}); 族内以
+Romano--Wolf 逐步降步重抽样 \parencite{romano2005stepwise} 报告
+校正后 $p$ 值。word/lda/emb/\code{\_lg} 及 ctx/ss 轨的大 N 列仅作
+点估计探索性稳健, 不组建独立 FWER 族。
+
+\subsection{聚类与推断口径}\label{sec:method-cluster}
+主规格标准误在银行层面单向聚类 (生产面板 $G\approx110$,
+即 110 家银行、T=18); 上市银行子样本主表的聚类数更少, 以
+Cameron--Gelbach--Miller 类小 $G$ 敏感性检验兜底; 稳健性检验
+对比银行 $\times$ 年份双向聚类
+\parencite{cameron2015practitioner}。confirmatory 主规格仅有一条
+(H1), 其余全部替代测度、轨道与子样本均标注 exploratory。
+
+\subsection{网络控制列与缺失值约定}\label{sec:method-network}
+为区分"文本战略差异"与"网络孤立"两个混淆构念, 主规格控制银行的
+Burt 结构约束 (\code{bank\_constraint}, 网络嵌入度)。披露约定:
+度数 $<2$ 的银行—年该列为 \code{NaN}, 回归列删除带来的样本损失
+须在表注中报告 (N-02); 其余中心性列对脱网银行按 zero-fill 约定
+填零并披露 N。网络共现判据 (同篇 / $\pm$1 句窗 \code{\_win1} /
+严格同句 \code{\_sent}) 的三档变体用于控制列替换检验
+(见第 \ref{sec:robust} 节)。
+
+\subsection{研究者—AI 协作披露}\label{sec:method-ai}
+遵循目标期刊 AI 使用政策, 作者披露三类 AI 工具的使用方式, 全部
+输出均由作者审核确认、文责自负。
+
+\emph{LLM 情感标注与路由。}文章级情感与相关性标注采用三家独立
+厂商 LLM 的多数投票集成 (OpenAI \code{gpt-5.4-nano}、Google
+\code{gemini-3.1-flash-lite}、DeepSeek \code{deepseek-v4-flash});
+OpenAI 与 Google 两家经 yunwu.ai 的 OpenAI 兼容端点路由, DeepSeek
+直连 \code{api.deepseek.com}。所有调用 \code{temperature=0}、
+\code{seed=42}、prompt 版本 v8 字节级冻结; 完整调用日志与缓存
+数据库保存在复制包中, 支持零成本离线复现。
+
+\emph{留篇门控。}一篇文章是否计为银行—金融科技报道仅由全文轨
+验证 (\code{llm\_verified\_full}) 决定; \code{ctx} 与 \code{ss} 轨为
+conditional-on-full 的稳健性轨 (详见 F2)。该口径的机械性水平位移
+(压缩 \code{n\_articles} 及派生份额) 系定义性后果, 已在 F2 披露。
+
+\emph{嵌入双轨与厂商换模。}全部嵌入派生测度在阿里
+\code{Qwen3-Embedding-8B} (4{,}096 维, canonical) 与 OpenAI
+\code{text-embedding-3-large} (3{,}072 维, \code{\_lg}) 两个
+co-primary 模型下并行计算、严格列对偶、互为稳健性; canonical 槽
+的厂商维度经历 Google $\to$ 阿里 Qwen 换模 (管线 v3.15.0, 2026 年
+6 月), 换模后全部嵌入派生特征受控全量重嵌再生并通过 Spearman
+$\rho\geq0.80$ 语义效度闸 (详见 F5)。
+
 \section{数据描述}\label{sec:data}
-\NoteThis{Table 1 描述统计参见 \code{papers/strategic_diff/tables.py:build\_table1}。}
+
+\subsection{语料口径链条}
+本文语料经历三级口径, 须严格区分。第一级为原始普查口径 (过滤、
+去重之前的全量): 183 个去重源文件、18{,}198{,}978 条媒体报道,
+时间跨度 2007-01-01 至 2025-12-31, 覆盖 3{,}740 家媒体来源;
+媒体类型为报纸的报道占全部行的 92.93\,\% (16{,}912{,}361 行) 被
+保留, 通讯社、杂志、政府公报与网页等其余类型按行剔除。第二级为
+生产目标语料口径: 媒体类型筛选 (仅保留报纸类) 后、银行—金融科技
+实体共现硬过滤\emph{前}, 约 1{,}700 万条 (2007--2024), 覆盖
+110 家银行、T=18。第三级为回归面板口径: 经共现硬过滤 (丢行式)
+与留篇门控后的银行—年度面板, 过滤后文章条数远小于第二级目标语料
+\NoteThis{共现硬过滤+留篇门控后的文章条数待生产机全量重跑后实读
+填写。}; 本稿开发环境下为约 164 个银行—年观测
+(2017--2018, T=2 开发切片), 生产面板以 110 家银行 $\times$ 18 年
+为目标。\NoteThis{生产面板最终 N 待财务面板 enrichment 接入与
+全量重跑后填写。}
+
+\subsection{变量定义}
+\emph{处理变量}: \code{strat\_diff\_n\{3,4,5,6,7,10,20,30,40,50\}}
+$\times$ 五方法 (TF-IDF 字符 / TF-IDF 分词 / LDA+JSD / 嵌入 /
+质心) $\times$ 三文本轨 (full/ctx/ss), 嵌入方法另有 \code{\_lg}
+孪生列; 预设主测度为 \code{strat\_diff\_n5} (N=5, TF-IDF 字符,
+full 轨)。\emph{结果变量}: 主结果为上市银行子样本的
+\code{tobin\_q} (回归实现为缩尾 \code{tobin\_q\_w}); 次级结果为
+\code{funding\_cost}、\code{roa}、\code{strat\_fluidity} 与
+\code{noninterest\_income\_share}。\emph{控制变量}: 银行层面 5 列
+(\code{ln\_assets}、\code{leverage}、\code{capital\_ratio}、
+\code{npl\_ratio}、\code{deposit\_growth}) 与年度宏观 2 列
+(\code{gdp\_growth}、\code{m2\_growth}); 财务面板 enrichment 即将
+接入, 当前复现包控制集为新闻覆盖代理 (\code{ln\_news\_coverage}、
+\code{media\_hhi}、\code{bank\_scale\_ord})。网络控制为
+\code{bank\_constraint} (见第 \ref{sec:method-network} 节)。
+
+\subsection{描述统计}
+\NoteThis{Table 1 描述统计参见 \code{papers/strategic_diff/tables.py:build\_table1};
+均值/标准差/分位数等全部数值待生产面板重跑后填入, 不得先行填写。}
 
 \section{基准回归}\label{sec:main}
-\NoteThis{Table 2 源自 \code{output/tables/table2\_*.csv}; Figure 2 系数图。}
+
+验证性主规格为上市银行子样本上的双向固定效应回归:
+\begin{equation}\label{eq:main}
+\mathit{TobinQ}^{w}_{it}
+  = \beta\,\mathit{StratDiff}^{(n5)}_{it}
+  + \boldsymbol{\gamma}'\mathbf{X}_{it}
+  + \alpha_i + \lambda_t + \varepsilon_{it},
+\end{equation}
+其中 $\mathit{TobinQ}^{w}_{it}$ 为缩尾后的 Tobin Q,
+$\mathit{StratDiff}^{(n5)}_{it}$ 为 N=5 TF-IDF 字符表征的战略差异度,
+$\mathbf{X}_{it}$ 为银行层面与年度宏观控制, $\alpha_i$、$\lambda_t$
+分别为银行与年份固定效应; 标准误在银行层面聚类。Stata 实现为
+\code{reghdfe tobin\_q\_w strat\_diff\_n5 \$controls,
+absorb(bank\_id year) vce(cluster bank\_id)}。按 H1 的单侧理论预期
+$\beta>0$。Table 2 将按 M1--M6 渐进控制列报告式 (\ref{eq:main}),
+从无控制、仅固定效应, 逐列加入覆盖代理、财务控制与网络控制;
+Figure 2 为对应系数图。若 $\beta$ 在加入全部控制后保持正向且
+经济量级可观, 则支持"差异化 $\to$ 特许权价值"命题。
+全样本通道以 \code{funding\_cost} 为被解释变量重估式
+(\ref{eq:main}), 按 H2 预期 $\beta<0$。
+\NoteThis{Table 2 全部系数、标准误与显著性待生产面板 (T=18)
+回归结果填入; 源 \code{output/tables/table2\_*.csv}。}
+
+针对媒体口径内生性 \parencite{gurun2012hype}, 我们以 Bartik 型
+移位—份额工具作两阶段最小二乘:
+\begin{equation}\label{eq:iv}
+\widehat{\mathit{Text}}_{it}
+  = \pi\,Z^{\mathrm{bartik}}_{it}
+  + \boldsymbol{\phi}'\mathbf{X}_{it} + \alpha_i + \lambda_t + u_{it},
+\end{equation}
+第一阶段报告 Kleibergen--Paap rk F 统计量, 并按
+\textcite{goldsmith2020bartik} 报告 Rotemberg 权重诊断
+(Table A3)。式 \eqref{eq:iv} 中 $\widehat{\mathit{Text}}_{it}$
+即本文的内生处理变量——主测度 \code{strat\_diff\_n5} (full 轨);
+工具与内生变量沿用管线 IV 扩展的同轨配对约定, 每条文本轨的内生
+变量配同轨工具 (\code{bartik\_type\_iv\_full} 为 primary), 各轨
+各自恰好识别; 严禁跨轨合成过度识别系统 (详见第 \ref{sec:robust}
+节)。\NoteThis{\code{bartik\_type\_iv\_full} 在管线 IV 扩展登记中
+原为 full 轨语调测度构造的工具; 其对 \code{strat\_diff\_n5} 的
+第一阶段强度须以生产面板 KP rk F 实证确认后方可作为本文 IV 主
+规格。IV 估计值与第一阶段 F 待生产面板结果填入。}
 
 \section{机制检验}\label{sec:mech}
-\NoteThis{Table 3 源自 \code{output/tables/table3\_*.csv}; Figure 3。}
+
+若差异化经市场势力起效, 应观测到两条通道。其一为存款定价通道:
+差异化银行面临的同质竞争弱, 无需以高利率争夺存款, 资金成本更低
+(H2); 该通道方向与本管线语调论文 (P1) 的语调通道相反, 二者互为
+交叉验证——语调捕捉媒体评价的态度维度, 差异度捕捉战略定位的
+空间维度, 两者若在资金成本上给出相反且各自符合理论的符号,
+可相互排除"媒体覆盖量的机械效应"这一共同混淆解释。其二为产品
+市场威胁与收入结构通道 (H3): Table 3 将分别以
+\code{strat\_fluidity} (预期负)、\code{noninterest\_income\_share}
+(预期正) 与 \code{roa} (预期正) 为被解释变量重估式
+(\ref{eq:main}), 均标注探索性。解读上, 若 fluidity 显著为负而
+非利息收入份额显著为正, 则支持"差异化占据稀疏生态位、收入结构
+独特化"的机制链条。
+\NoteThis{Table 3 (源 \code{output/tables/table3\_*.csv}) 与
+Figure 3 数值待生产面板结果填入。}
 
 \section{异质性}\label{sec:het}
-\NoteThis{Table 4 (SOE × 论文专属交互) 源自
-\code{output/tables/table4\_heterogeneity.csv}。}
+
+按最优区分度文献的边界条件
+\parencite{haans2019distinctiveness,su2024optimal}, Table 4 与
+Table 8 将报告四类子样本拆分: 国有 (SOE) vs.\ 非国有、网络枢纽
+(hub) vs.\ 非枢纽、规模分组与银行类型分组; 全部标注 exploratory。
+理论上, 制度压力更强的国有大行差异化空间受限, 差异化回报可能
+集中于中小股份制与城商行; 该预期属探索性, 不作预设假设检验。
+
+调节效应方面, 按 H4 估计
+\begin{equation}\label{eq:mod}
+\mathit{TobinQ}^{w}_{it}
+  = \beta_1\,\mathit{StratDiff}^{(n5)}_{it}
+  + \beta_2\,\mathit{StratDiff}^{(n5)}_{it}\times
+    L.\mathit{BankBetween}_{i,t-1}
+  + \beta_3\,L.\mathit{BankBetween}_{i,t-1}
+  + \boldsymbol{\gamma}'\mathbf{X}_{it} + \alpha_i + \lambda_t
+  + \varepsilon_{it},
+\end{equation}
+交互项解读遵循 \textcite{brambor2006understanding} (报告边际效应
+而非单看交乘系数)。按审计裁决 (STRATDIFF-MOD-1), 网络位置与
+差异化的交乘内生, 式 (\ref{eq:mod}) 的 $\beta_2$ 仅作\emph{条件
+关联}陈述——"既差异化又居枢纽的银行—年伴随更高估值"——绝不
+表述为因果。控制列 \code{bank\_constraint} 作为嵌入度混淆控制
+进入全部异质性规格; 其 deg$<2\to$NaN 的列删除样本损失在表注
+披露 (N-02)。
+\NoteThis{Table 4 / Table 8 数值待生产面板结果填入。}
 
 \section{稳健性}\label{sec:robust}
-\NoteThis{Table 5 (论文专属稳健性矩阵) 源自
-\code{output/tables/table5\_*.csv}。}
+
+本节各稳健性维度共享同一推断纪律: 每一梯子内的各成员\emph{互为
+稳健性、不分主次}, 各自进入恰好识别的独立规格并排报告;
+任何梯子的成员都\emph{绝不}合并进同一过度识别系统 (如以多个
+高相关孪生测度或多条工具同时进入一个 Hansen J 检验)——高相关
+孪生并非独立信息, 合成过度识别检验只会制造虚假的过度识别功效。
+
+\paragraph{N-邻敏感性梯子 (headline FWER 族)。}
+Table 5a 以 \code{strat\_diff\_n\{3,4,5,6,7,10,20,30,40,50\}}
+(TF-IDF 字符, full 轨) 逐一单跑式 (\ref{eq:main}), 族内报告
+Romano--Wolf 校正后 $p$ 值 \parencite{romano2005stepwise}。两点
+统计披露: 其一, 2026-07 扩展将族成员由 5 (n3--n7) 增至 10
+(纳入 n10--n50), Romano--Wolf 校正随族扩大\emph{单调变严},
+既有 n3--n7 (含 n5) 的校正后 $p$ 值因此被机械抬高; 这是扩族的
+定义性后果, 审稿人应据校正后口径解读。其二, \code{strat\_diff\_n5}
+具有双角色: 它既是 confirmatory 主规格中\emph{未经校正的单一预设
+假设} (第 \ref{sec:main} 节), 又是本族内接受 RW 校正的普通成员。
+两个口径正交、服务不同目的——前者检验单一预设理论假设, 后者
+回答"N 的选择是否驱动结论"的族问题——同一测度出现在两处并非
+重复计数 (double-counting)。word/lda/emb/\code{\_lg} 及 ctx/ss 轨
+的大 N 列仅作点估计探索稳健, 不组建独立 FWER 族。
+
+\paragraph{表征方法族。}
+五种文本表征 (TF-IDF 字符 / TF-IDF 分词 / LDA+JSD / 嵌入 / 质心)
+各自单跑、绝不同时进入同一右端; headline 保持字符表征。质心族
+(\code{centroid\_diff\_tfidf\_c} / \code{centroid\_diff\_tfidf\_w} /
+\code{centroid\_diff\_lda} / \code{centroid\_diff\_emb}) 为第二个预设
+FWER 族 (4 成员), 同样报告 RW 校正后 $p$。辅助测度
+\code{strat\_sim\_max} 与 \code{coh\_tfidf\_c\_full} 各自单跑。
+
+\paragraph{三文本轨 full/ctx/ss。}
+留篇门控为 full-only, \code{ctx} 与 \code{ss} 轨是
+conditional-on-full 的稳健性轨, 其行宇宙为 full 轨留篇集的子集
+(F2)。\code{strat\_diff\_n5\_ctx} 与 \code{strat\_diff\_n5\_ss}
+各自单跑式 (\ref{eq:main}); 三轨互为稳健性、高相关孪生非独立
+假设, 严禁 full$\times$ctx$\times$ss 合成 Hansen J。
+
+\paragraph{co-primary 双嵌入。}
+嵌入方法列族在 Qwen3-Embedding-8B (canonical) 与
+text-embedding-3-large (\code{\_lg}) 下严格列对偶并排 (F5);
+两轨各进恰好识别设定、禁混同一过度识别系统。学理必要性:
+\textcite{ganguli2024patenttext} 表明文本相似度结论强烈依赖嵌入
+模型选择, 跨厂商双轨若给出一致符号, 结论即对该选择稳健。
+
+\paragraph{Bartik IV 三轨镜像与诊断。}
+IV 规格按轨镜像: \code{bartik\_type\_iv\_full} (primary) /
+\code{bartik\_type\_iv\_ctx} (fallback) / \code{bartik\_type\_iv\_ss}
+(ss 镜像), 每轨内生变量配同轨工具、各自恰好识别; 严禁机械
+\code{\_ctx}$\to$\code{\_ss} 替换合成过度识别。约 30 个候选工具
+已按 \textcite{goldsmith2020bartik} 外生性标准修剪至 2 (F4)。
+Table A3 报告 Rotemberg 权重与 KP rk F。
+\NoteThis{各轨 IV 点估计与诊断量待生产面板填入。}
+
+\paragraph{IV 三引擎并排。}
+除 Bartik 外, 管线另提供同组留一均值工具
+(\code{leave\_one\_out\_peer\_*\_iv}) 与媒体来源 house-style 暴露
+工具 (\code{outlet\_*\_iv}); 三类工具各自单独 2SLS、互为识别
+策略稳健性, 绝不同时进入同一方程
+\parencite{borusyak2025shiftshareguide}。
+
+\paragraph{聚类推断。}
+主规格银行单向聚类; Table 5 / Table 7 对比银行 $\times$ 年份
+双向聚类 \parencite{cameron2015practitioner}。
+
+\paragraph{网络控制列判据梯子。}
+网络共现判据三档 (同篇, 无后缀 / $\pm$1 句窗 \code{\_win1} /
+严格同句 \code{\_sent}) 互为稳健性、各自恰好识别并排 (规格
+稳健性并排, 不设 FWER 族)。本文用到的 \code{bank\_constraint}
+混淆控制与 \code{diff\_x\_btwn} 调节项均有三判据孪生, 稳健性
+检验以逐一替换控制列/交乘列重估主规格; 同时披露
+\code{bank\_constraint} 的 deg$<2\to$NaN 列删除损样本 (N-02)
+与其余中心性列的 zero-fill 约定。
+
+\paragraph{分时代稳定性。}
+T=18 生产面板允许按金融科技兴起前后分时代重估主规格
+(Table 9, 探索性), 检验主效应的时变稳定性。
+\NoteThis{分时代切点与结果待生产面板确定与填入。}
+
+\paragraph{管线级梯子的披露边界。}
+情感 LLM 三家、BERT 三模型、政治词权重、词典消融等管线级稳健性
+梯子作用于情感/词典列族, 与本文的文本距离处理变量无直接交集,
+故不进入本文稳健性 battery, 仅在方法节 (F1) 作管线披露。
 
 \section{结论}\label{sec:concl}
-\NoteThis{最终讨论与政策含义。}
+
+本文将内生产品差异化框架移植到中国银行业金融科技竞争场景,
+在中文银行新闻语料上首次落地 N-最近邻文本战略差异度测度,
+并以单一预设验证性规格、Bartik 工具与 Romano--Wolf 族错误率
+校正的推断纪律, 检验"差异化 $\to$ 市场势力 $\to$ 特许权价值"
+命题。我们发现 \NoteThis{核心结论回顾 (生产面板结果待填)}\@。
+
+理论上, 本文把最优区分度与文本产业组织两支文献带入银行业情境:
+若差异化确实伴随估值溢价与更低资金成本, 则说明在强监管、高同质
+的银行业, 战略叙事的差异化仍是特许权价值的可行来源。政策上,
+结果 \NoteThis{视符号与量级而定} 将提示监管者: 引导银行差异化
+定位 (而非同质化竞速式的数字化军备竞赛) 有助于维护银行
+特许权价值与体系稳定; 对银行管理层, 差异化的生态位选择是
+金融科技时代的战略杠杆。
+
+本文有三点局限。其一, 面板为年度频率, 战略叙事的年内动态与
+短期市场反应无法捕捉。其二, 媒体报道本身内生: 报道口径受媒体
+选择与银行公关影响 \parencite{gurun2012hype}; 尽管我们以 Bartik
+与留一工具缓解, 工具的排他性约束不可直接检验, 因果解释仍需
+审慎。其三, 样本限于中国单一市场, 制度环境 (国有主导、强监管、
+平台经济格局) 特殊, 外推到其他银行体系须谨慎。财务面板
+enrichment 与全量 T=18 生产回归即将接入, 届时更新全部
+结果性陈述。
+
+\NoteThis{最终讨论与政策含义细化待结果落定后补写。}
 
 \printbibliography
 

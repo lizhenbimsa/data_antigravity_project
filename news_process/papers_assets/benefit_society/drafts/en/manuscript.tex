@@ -15,20 +15,264 @@
 
 \begin{abstract}
 \NoteThis{Final abstract pending.}
-Using bank-year media coverage of FinTech and bipolar anchor projection (Jha--Liu--Manela 2026, RFS), we measure
-operating-benefit attitude (\code{benefit\_mean\_full}) for Chinese listed banks. We find \NoteThis{key result}\@.
+How is the digital transformation of banks evaluated by the media, and
+how does that evaluation relate to bank performance? We transpose the
+language-embedding bipolar anchor projection of Jha--Liu--Manela (2026,
+\emph{RFS}) from the country-year macro unit to the bank-year firm
+level: for each bank--FinTech news article's embedding vector $s_j$, we
+take the projection $a_j=\cos(s_j,\,\mathrm{pos}-\mathrm{neg})$ on the
+semantic axis spanned by 10 fintech-specific positive/negative anchor
+pairs and aggregate to a bank-year ``operating-benefit attitude''
+(\code{benefit\_mean\_full}). The measure is computed under two
+co-primary embedding models from independent vendors (Alibaba
+Qwen3-Embedding-8B, 4{,}096-d; OpenAI text-embedding-3-large,
+3{,}072-d), reported side by side as mutual robustness. On a bank-year
+panel built from Chinese bank--FinTech media coverage (production
+target corpus of roughly 17 million articles, 2007--2024), we test the
+effect of operating-benefit attitude on bank profitability (ROA) under
+bank and year fixed effects (bank-clustered plus wild-cluster-bootstrap
+inference; leave-one-out peer instruments), and examine its asymmetric
+transmission to token versus substantive FinTech adoption. We find
+\NoteThis{key result: baseline coefficients, significance, and
+mechanism results to be back-filled from the production panel}\@.
 \end{abstract}
 
 \section{Introduction}\label{sec:intro}
-\NoteThis{Motivate the research question and contribution.}
+
+Over the past decade and a half, Chinese banking has undergone a deep
+digital transformation: from mobile payments and online credit to
+AI-based risk control, FinTech has become the core vocabulary of bank
+strategic narratives. At the same time, the media are among the most
+important information intermediaries in a bank's information
+environment: depositors, regulators, and investors form their
+perception of a bank's digital transformation largely through news
+coverage \parencite{tetlock2007content,fang2009media}. The raw-corpus
+census underlying this paper spans 18{,}198{,}978 media reports
+(2007--2025, 3{,}740 media outlets, with newspaper-type reports
+accounting for 92.93\% of all rows), documenting sustained, dense media
+attention to banks. Yet the existing literature focuses mostly on the
+\emph{quantity} of coverage (exposure) or the \emph{direction} of
+sentiment (positive/negative tone); it lacks a systematic firm-level
+measure of the \emph{attitude intensity} with which the media assess
+whether a bank's FinTech operations benefit its operating performance.
+
+The question we pose and answer is: is the media's attitude toward a
+bank's FinTech operating benefit associated with bank performance, and
+if so, how? We transpose the language-embedding bipolar anchor
+projection of \textcite{jha2026benefit} from the country-year macro
+unit to the bank-year firm level: for each bank--FinTech article's
+embedding vector $s_j$, we take the projection
+$a_j=\cos(s_j,\,\mathrm{pos}-\mathrm{neg})$ on the semantic axis
+spanned by 10 fintech-specific frozen anchor pairs and aggregate to the
+bank-year operating-benefit attitude \code{benefit\_mean\_full}.
+
+For identification, the baseline regression uses a within estimator
+with bank and year fixed effects (absorb(bank\_id year)) and controls
+for coverage proxies (\code{ln\_news\_coverage}, \code{media\_breadth},
+\code{n\_articles}) to separate ``how much a bank is covered'' (the
+extensive margin) from ``how it is evaluated'' (the intensive margin)
+\parencite{fang2009media}; inference is based on bank-level clustering
+complemented by the wild cluster bootstrap
+\parencite{roodman2019boottest}. To address the endogeneity of media
+attitude, we estimate 2SLS with the leave-one-out mean attitude of
+same-type peer banks (\code{leave\_one\_out\_peer\_benefit\_iv}) as the
+primary instrument and the cross-province same-economic-zone
+leave-one-out mean (\code{zone\_leave1out\_benefit\_iv}) as the
+fallback, disclosing exclusion-restriction limitations following
+\textcite{manski1993reflection} and \textcite{leary2014peer}. As for
+results, \NoteThis{results preview: baseline, mechanism, and
+heterogeneity conclusions to be back-filled after production-panel
+($T=18$, 110 banks) regressions}\@.
+
+This paper makes four contributions. First, a measurement
+contribution: we transpose bipolar anchor projection from the
+country-year macro unit to the bank-year firm level, constructing 10
+fintech-specific frozen anchor pairs (versus J-L-M's 5 broad-finance
+pairs), with the measure computed in parallel under embedding models
+from two independent vendors, reported side by side as mutual
+robustness. Second, a construct-differentiation contribution: relative
+to the text-measurement literature
+\parencite{gentzkow2019text,li2021culture,hoberg2016text}, we measure
+\emph{attitude projection intensity} rather than sentiment direction,
+exposure counts, or binary substantiveness labels, explicitly
+distinguishing this paper from the tone, attention, substance, locus,
+and network papers in the same research portfolio. Third, a mechanism
+contribution: we bring symbolic--substantive decoupling theory
+\parencite{westphal1994substance,fiss2006symbolic} into the
+bank-FinTech setting and test the asymmetric transmission of media
+attitude to token versus substantive adoption. Fourth, a
+reproducibility contribution: the entire measurement chain (LLM gating,
+embeddings, anchors) is reproducible under frozen parameters
+(temperature=0, seed=42, byte-frozen prompt v8) and caching.
+
+The paper proceeds as follows. Section~\ref{sec:lit} reviews the
+literature; Section~\ref{sec:theory} develops hypotheses;
+Section~\ref{sec:method} presents methods and identification;
+Section~\ref{sec:data} describes the data;
+Sections~\ref{sec:main}--\ref{sec:robust} report baseline, mechanism,
+heterogeneity, and robustness results; Section~\ref{sec:discussion}
+discusses limitations and contributions, and Section~\ref{sec:concl}
+concludes.
 
 \section{Literature Review}\label{sec:lit}
-Three strands: (1)~bipolar anchor projection (Jha--Liu--Manela 2026 \emph{RFS}); (2)~symbolic/substantive adoption (Westphal--Zajac 2001 \emph{ASQ}); (3)~text-based corporate-finance measures (Hoberg--Phillips 2016 \emph{JPE}).
+This paper speaks to four strands of literature: (1)~embedding
+projection and text-based measurement (the measurement foundation being
+Jha--Liu--Manela 2026 \emph{RFS}); (2)~media coverage, information
+intermediation, and bank outcomes; (3)~symbolic--substantive decoupling
+and narrative--performance divergence; and (4)~FinTech and bank
+performance, together with identification and inference.
+
+\subsection{Embedding Projection and Text-Based Measurement}\label{sec:lit:embed}
+Text entered economics as data with the foundational survey of
+\textcite{gentzkow2019text}, whose ``text $\to$ numerical
+representation $\to$ regression input'' framework is the methodological
+blueprint for our measurement chain; \textcite{ash2023text} further
+systematize the case for representing text with embedding vectors and
+performing economic measurement with vector geometry. On concrete
+constructions, \textcite{gennaro2022emotion} build a continuous measure
+from the relative distance of document embeddings to two reference
+semantic poles---isomorphic to our projection
+$a_j=\cos(s_j,\,\mathrm{pos}-\mathrm{neg})$;
+\textcite{li2021culture} construct an embedding-based corporate-culture
+measure with a battery of validity checks, the benchmark for
+``embedding measure plus validation''; and \textcite{hoberg2016text}
+rebuild industry classification from text cosine similarity, founding
+the family of similarity-based economic measures. Our measurement base
+directly extends \textcite{jha2026benefit}. On the engine side, the
+technical details of the canonical-slot model are given by
+\textcite{zhang2025qwen3}, its financial-domain (including Chinese)
+validity anchored by benchmark evaluation \parencite{tang2025finmteb};
+\textcite{gabaix2025asset} provide frontier legitimacy for using
+embedding vectors directly as financial econometric variables.
+
+\subsection{Media Coverage, Information Intermediation, and Bank Outcomes}\label{sec:lit:media}
+\textcite{tetlock2007content} established the paradigm that media tone
+affects economic outcomes; \textcite{fang2009media} showed that
+coverage itself is a pre-determined visibility confounder that must be
+controlled when estimating attitude effects---the direct precedent for
+our coverage-proxy control set. In the Chinese setting,
+\textcite{you2018pen} characterize the tone differences between
+state-controlled and market-oriented media and their governance
+consequences; \textcite{gurun2012hype} document the link between local
+media slant and firm value, also supporting the geographic granularity
+of our economic-zone instrument. Closest to us,
+\textcite{fang2024mediasentiment} show that bank-level media sentiment
+in China affects deposit stability and systemic risk. Together, this
+strand establishes the premise that bank-year media attitude has real
+operating consequences.
+
+\subsection{Symbolic--Substantive Decoupling and Narrative--Performance Divergence}\label{sec:lit:decouple}
+\textcite{westphal1994substance} founded the decoupling theory that
+adoption need not equal implementation; \textcite{westphal2023systemic}
+extends symbolic-management theory to the CSR and corporate-purpose
+era. \textcite{fiss2006symbolic} formalize symbolic strategic
+management via framing plus decoupling; \textcite{kim2015greenwash}
+formalize disclosure--performance deviation as a measurable construct;
+and \textcite{duchin2025greenwashing} provide direct asset-market
+evidence of divergence between talk and real behavior. This strand
+anchors the theory and banking context for the token-versus-substantive
+asymmetric transmission in H2/H3, and connects to the
+evidence-to-impact chain of \parencite{distel2026evidence}.
+
+\subsection{FinTech and Bank Performance: China Context, Identification, and Inference}\label{sec:lit:fintech}
+The survey of \textcite{berg2022fintech} maps the fintech--bank
+research landscape; \textcite{cheng2020fintech} provide direct Chinese
+evidence that bank FinTech reduces credit risk; and
+\textcite{wu2025cooperation} offer panel evidence on Chinese
+bank--fintech strategic cooperation and risk-taking, jointly motivating
+why we measure fintech operating-benefit attitude in Chinese banking.
+On identification, peer-mean instruments face the reflection problem
+\parencite{manski1993reflection}, and \textcite{leary2014peer} is the
+classic implementation of leave-one-out peer instruments; on inference,
+the stepwise FWER correction of \textcite{romano2005stepwise} and the
+wild cluster bootstrap of \textcite{roodman2019boottest} underpin our
+inference declaration.
+
+Taken together, the gap left by the literature is the absence of a
+firm-level, fintech-operating-benefit-oriented media-attitude measure
+built on embedding projection intensity, along with systematic evidence
+on its relation to bank performance and adoption behavior. This paper
+fills that gap.
+
+\section{Theory and Hypotheses}\label{sec:theory}
+
+This section develops hypotheses from two theoretical threads:
+information intermediation and symbolic--substantive decoupling. All
+statements below are \emph{theoretical predictions}, not obtained
+results; H1 is the only confirmatory hypothesis, locked by PAP
+v1.0-final (spec \code{inference.confirmatory\_family}), while H2--H4
+are exploratory and subject to Romano--Wolf family correction (see
+Section~\ref{sec:method:infer}).
+
+\subsection{H1: Operating-Benefit Attitude and Bank Performance (confirmatory)}
+Under the information-intermediation channel, positive media attitude
+toward a bank's FinTech operating benefit improves the bank's
+information environment and reputational capital: depositors are more
+willing to maintain deposit relationships, counterparties demand lower
+risk premia, and customers adopt digital channels more readily
+\parencite{tetlock2007content,fang2024mediasentiment}. Crucially, media
+operating-benefit attitude is the \emph{intensive margin} of the
+information environment (how a bank is evaluated), distinct from the
+\emph{extensive margin} of coverage (how much it is covered)
+\parencite{fang2009media}; conditional on coverage proxies, independent
+variation in attitude should transmit to profitability through
+reputation and information channels. Hence:
+
+\textbf{H1 (confirmatory)}: bank-year operating-benefit attitude
+(\code{benefit\_mean\_full}) is positively associated with bank
+profitability (\code{roa}); the predicted sign is positive.
+
+\subsection{H2: Attitude and Token Adoption (exploratory)}
+Symbolic-management theory holds that organizations respond to external
+legitimacy pressure with low-cost symbolic gestures
+\parencite{westphal1994substance,fiss2006symbolic}. A favorable media
+attitude environment lowers the marginal cost of symbolic
+pronouncements and amplifies their expected legitimacy payoff, raising
+the propensity for token FinTech adoption.
+
+\textbf{H2 (exploratory, PAP secondary)}: \code{benefit\_mean\_full} is
+positively associated with \code{token\_adopt\_kw\_p50}; the predicted
+sign is positive.
+
+\subsection{H3: Symbolic--Substantive Asymmetric Transmission (exploratory)}
+Substantive adoption requires real resource commitment and
+organizational change, so its sensitivity to the external opinion
+environment should be lower than that of symbolic gestures; the
+decoupling literature predicts that talk responds faster and more
+strongly than action \parencite{kim2015greenwash,duchin2025greenwashing}.
+
+\textbf{H3 (exploratory)}: the transmission of
+\code{benefit\_mean\_full} to \code{subst\_adopt\_kw\_p50} and
+\code{hidden\_adopt\_kw\_p50} is weaker than to
+\code{token\_adopt\_kw\_p50} (theoretical prediction; coefficient
+comparison awaits production results).
+
+\subsection{H4: Social-Function Counterparts (exploratory extension, not pre-registered)}
+If the ``benefit-society/operating-benefit'' narrative reflects real
+operating orientation, it should leave traces in social-function
+channels such as credit allocation and liquidity creation.
+
+\textbf{H4 (exploratory extension, outside the PAP and explicitly not
+pre-registered)}: \code{benefit\_mean\_full} is positively associated
+with \code{inclusive\_loan\_growth} and \code{liquidity\_creation};
+this test depends on the arrival of the financial panel (theoretical
+prediction).
 
 \section{Methodology}\label{sec:method}
 \subsection{Sample and Data}
 The bank--year panel covers approximately 164 bank--years
-(2017--2018). All bank--year observations are processed by the
+(2017--2018). This count is a \emph{development-period snapshot}
+($T=2$ dev) used only for pipeline and specification validation; the
+production target panel aggregates roughly 17 million
+newspaper-filtered articles (2007--2024, $T=18$) into a bank-year
+panel covering 110
+banks, and the PAP sample target (n\_bank\_min $= 200$, $T=18$, obs
+$\geq 3000$) is yet another stage-specific accounting---the three
+must not be mixed.
+\NoteThis{TODO: all sample-size figures in text and tables to be
+back-filled uniformly once the production panel is finalized; no
+interim sample counts are to be computed by hand.}
+All bank--year observations are processed by the
 \code{news\_process} pipeline (Phase 9b baseline; see
 \code{papers\_assets/V6\_METHODOLOGY\_CHANGES.md}).
 
@@ -68,9 +312,9 @@ as \code{NaN}. Counts remain at 0. Listwise deletion follows Allison
 
 \subsection{Bartik IV Pruning (F4)}
 Of approximately 30 candidate Bartik instruments, 28 are removed in v6
-for violating Goldsmith-Pinkham \emph{et~al.}\ (2020, \emph{AER})
-exogeneity. Retained: \code{bartik\_type\_iv\_full} and
-\code{prov\_leave1out\_tone\_full}.
+for violating the exogeneity criteria of Goldsmith-Pinkham et
+al.\ \parencite{goldsmith2020bartik}. Retained: \code{bartik\_type\_iv\_full}
+and \code{prov\_leave1out\_tone\_full}.
 
 \subsection{Embedding Backbone (Co-Primary Dual Track; F5)}
 The bipolar anchor projection underlying
@@ -102,22 +346,250 @@ two vendor spaces---precisely the failure mode the cross-vendor
 dual-track architecture is designed to absorb, and we disclose it
 here.
 
+\subsection{Identification Strategy and Instruments (Just-Identified per Track)}\label{sec:method:iv}
+Media attitude is not randomly assigned: better-performing banks may
+both attract more favorable coverage and actively manage media
+relations. Beyond the two-way fixed effects and coverage-proxy
+controls, we address remaining endogeneity with instrumental
+variables. The primary instrument is the leave-one-out mean
+operating-benefit attitude of same-type peer banks
+(\code{leave\_one\_out\_peer\_benefit\_iv}): peer media-attitude shocks
+transmit to the focal bank's media attitude through the industry-wide
+information environment but---under the exclusion restriction---do not
+enter the focal bank's own ROA through other channels. The fallback
+instrument is the cross-province same-economic-zone leave-one-out mean
+(\code{zone\_leave1out\_benefit\_iv}), identifying off regional common
+shocks; \code{\_lag1} lagged variants serve as additional robustness.
+Peer-mean instruments face the reflection problem, and the exclusion
+restriction rests on untestable assumptions; we disclose this
+limitation candidly following \textcite{manski1993reflection} and
+\textcite{leary2014peer}.
+
+Each text track receives a mirrored own-track instrument set: the
+entity-context endogenous twin \code{benefit\_mean\_ctx} is paired with
+\code{lpeer\_benefit\_iv\_ctx} and
+\code{zone\_leave1out\_benefit\_iv\_ctx}; the same-sentence twin
+\code{benefit\_mean\_ss} with \code{lpeer\_benefit\_iv\_ss} and
+\code{zone\_leave1out\_benefit\_iv\_ss}. Each track forms its own
+just-identified 2SLS, reported side by side (template
+25\_tableA12\_iv\_2sls); pooling the full/ctx/ss instruments into a
+single over-identified Hansen $J$ system is \emph{strictly
+prohibited}---the three tracks are co-equal mutual-robustness measures,
+not multiple instruments for one construct.
+
+\subsection{Inference Declaration}\label{sec:method:infer}
+Primary inference uses bank-clustered (cluster $=$ bank\_id) standard
+errors as the baseline; given the possibly small number of bank
+clusters, the wild cluster bootstrap serves as the headline inference
+\parencite{roodman2019boottest,mackinnon2017wild,cameron2008bootstrap},
+with bank $\times$ year two-way clustering as a comparison
+\parencite{cameron2015practitioner}. The confirmatory family contains
+a single primary hypothesis (\code{benefit\_mean\_full} $\to$
+\code{roa}, main specification M4); a single hypothesis requires no
+FWER correction. All exploratory hypothesis families (ctx/ss tracks,
+pos/neg decomposition, secondary outcomes, \code{is\_listed} and
+subsample heterogeneity) receive the Romano--Wolf stepdown correction
+on their p-value families \parencite{romano2005stepwise}. A
+distinction is essential: the robustness ladders themselves (dual
+embeddings, three text tracks, six dimension tracks, criteria ladder)
+are co-equal mutual-robustness measures, not multiple-testing families,
+and no FWER is applied across ladders. That the same ctx/ss estimates
+also enter the exploratory Romano--Wolf family above is not a
+contradiction: the correction operates within that hypothesis family
+only and is never pooled across ladders.
+
 \section{Data}\label{sec:data}
-\NoteThis{Descriptive statistics in Table 1 (see \code{papers/benefit_society/tables.py:build\_table1}).}
+
+\subsection{Corpus Census and Accounting Chain}
+The raw-corpus census (the full pre-filtering, pre-deduplication
+accounting, for the data appendix): 183 deduplicated source files
+containing 18{,}198{,}978 media reports spanning 2007-01-01 to
+2025-12-31 across 3{,}740 media outlets; newspaper-type reports,
+92.93\% of all rows (16{,}912{,}361 rows), are retained, while wire,
+magazine, government-bulletin, web, and other types are dropped
+row-wise; exact-unique records number 18{,}177{,}370 (duplication rate
+0.12\%). We stress that the census accounting is \emph{not} the corpus
+entering the analysis: after newspaper-type retention \emph{only}
+(2007--2024, $T=18$), the production target corpus is roughly 17
+million articles---a figure that sits \emph{before} the co-occurrence
+hard filter; the subsequent target-bank identification, the
+bank--FinTech proximity co-occurrence hard filter, and the LLM
+full-track retention gate (\code{llm\_verified\_full}) each further
+shrink the number of articles entering the panel, which is ultimately
+aggregated into a bank-year panel covering 110 banks.
+\NoteThis{Retention counts at each filtering stage to be back-filled
+once the production pipeline is finalized; no interim counts are to be
+computed by hand.} The two accountings must not be mixed.
+
+\subsection{Variable Construction}
+The treatment is \code{benefit\_mean\_full} (the bank-year mean of the
+per-article bipolar anchor projection $a_j$; the spec-declared
+alternative treatment is \code{benefit\_pos\_frac\_full}). The primary
+outcome is \code{roa} (locked by PAP v1.0-final); secondary outcomes
+are \code{token\_adopt\_kw\_p50}, \code{hidden\_adopt\_kw\_p50}, and
+\code{subst\_adopt\_kw\_p50} (\code{car\_3day} requires daily data, is
+not run in the annual mainline, and is reserved for a listed-bank
+extension). The current control set consists of coverage proxies
+(\code{ln\_news\_coverage}, \code{media\_breadth}, \code{n\_articles};
+framing $=$ visibility confounder, the extensive margin); the five
+financial controls (\code{ln\_assets}/\code{leverage}/
+\code{capital\_ratio}/\code{npl\_ratio}/\code{deposit\_growth}) and two
+macro controls (\code{gdp\_growth}/\code{m2\_growth}) will be added
+once the financial panel is connected. Network visibility controls
+(\code{bank\_between\_cent}, \code{bank\_degree\_cent}) are zero-filled
+for off-network bank-years with N disclosed; per the PAP lock, network
+columns never enter the primary specification.
+\NoteThis{Table 1 descriptive statistics (means/SDs/quantiles): see
+\code{papers/benefit_society/tables.py:build\_table1}; all numbers to
+be back-filled once the production panel is finalized (TODO).}
 
 \section{Main Results}\label{sec:main}
-\NoteThis{Table 2 from \code{output/tables/table2\_*.csv}; Figure 2 coefplot.}
+The baseline specification is a two-way fixed-effects within regression
+on the bank-year panel:
+\begin{equation}\label{eq:baseline}
+\mathit{ROA}_{it} \;=\; \beta\,\mathit{Benefit}_{it} \;+\; \Gamma' X_{it}
+\;+\; \alpha_i \;+\; \delta_t \;+\; \varepsilon_{it},
+\end{equation}
+where $\mathit{Benefit}_{it}$ is \code{benefit\_mean\_full},
+$\alpha_i$ and $\delta_t$ are bank and year fixed effects (implemented
+in Stata as \code{reghdfe} + absorb(bank\_id year)), $X_{it}$ is the
+coverage-proxy control set (Section~\ref{sec:data}), and standard
+errors are clustered at the bank level and complemented by the wild
+cluster bootstrap (Section~\ref{sec:method:infer}). Table 2 adds fixed
+effects and controls progressively from M1 to M4; M4 (two-way fixed
+effects plus full controls) is the PAP-locked confirmatory main
+specification; under H1 we expect $\hat\beta > 0$. The table will show
+the within association between operating-benefit attitude and ROA; the
+coefficient captures the co-movement of within-bank, across-year
+variation in attitude and profitability, net of time-invariant bank
+heterogeneity and common year shocks.
+\NoteThis{Table 2 coefficients, clustered/bootstrap standard errors,
+and significance to be back-filled from production regressions (source
+\code{output/tables/table2\_*.csv}); Figure 2 coefplot likewise.}
+
+The 2SLS instrumental-variable estimates appear in Table A12, which
+reports each track's just-identified estimates side by side
+(Section~\ref{sec:method:iv}; template 25\_tableA12\_iv\_2sls),
+including first-stage F statistics and second-stage coefficients;
+because each track is exactly identified, no over-identification test
+is reported---by design, not omission.
+\NoteThis{Table A12 first-stage F and second-stage coefficients to be
+back-filled.}
 
 \section{Mechanism}\label{sec:mech}
-\NoteThis{Table 3 from \code{output/tables/table3\_*.csv}; Figure 3.}
+The mechanism tests examine the transmission of operating-benefit
+attitude into FinTech adoption behavior, corresponding to H2/H3. The
+dependent variables are three adoption-share measures (PAP secondary):
+token \code{token\_adopt\_kw\_p50}, hidden
+\code{hidden\_adopt\_kw\_p50}, and substantive
+\code{subst\_adopt\_kw\_p50}. As fractional response variables they are
+estimated under a dual-model design: fractional logit
+\parencite{papke1996fractional} and an OLS linear probability model
+(with bank fixed effects; spec B2 dual-model convention), coefficients
+read side by side in marginal-effect terms. The interpretive frame is
+symbolic--substantive decoupling
+\parencite{westphal1994substance,fiss2006symbolic}: under H3, the token
+channel coefficient should exceed the subst/hidden channels. All of
+the above are exploratory; the p-value family receives the Romano--Wolf
+correction.
+\NoteThis{Table 3 (fracreg + LPM dual columns) coefficients and
+cross-channel comparisons to be back-filled from production regressions
+(source \code{output/tables/table3\_*.csv}); Figure 3 likewise.}
+
+\subsection{Exploratory Extension Outcomes (Not Pre-Registered)}\label{sec:mech:ext}
+As an exploratory extension outside the PAP (spec
+\code{outcome.exploratory\_extension}, explicitly not pre-registered),
+we examine the social-function counterparts of the
+``benefit-society/operating-benefit'' narrative: inclusive/SME loan
+growth (\code{inclusive\_loan\_growth}, the credit-allocation channel)
+and liquidity creation (\code{liquidity\_creation}, requiring the
+cat-fat accounting from balance-sheet detail;
+\NoteThis{the foundational liquidity-creation reference
+(Berger--Bouwman 2009 \emph{RFS}) is not yet in the project literature
+pool; formal citation to be added upon pool inclusion}). Both depend
+on the financial panel and will be estimated once the data arrive; H4
+is a theoretical prediction.
+\NoteThis{H4 results to be back-filled after the financial panel is
+connected and production regressions run.}
 
 \section{Heterogeneity}\label{sec:het}
-\NoteThis{Table 4 (SOE × paper-specific interactions) from
-\code{output/tables/table4\_heterogeneity.csv}.}
+The main heterogeneity dimension is listing status
+(\code{is\_listed}): listed banks face stronger capital-market
+information demand, analyst coverage, and disclosure scrutiny, so the
+information-intermediation channel is expected to be stronger. Table 4
+presents the \code{is\_listed} interaction under a within-type design
+retaining bank-type fixed effects (the 13\_table4 template deliberately
+keeps bank\_type FE so that comparisons occur within bank types);
+Table A14 further estimates subsamples by state ownership (SOE), bank
+type, hub-city status, and size. All heterogeneity tests are
+exploratory; the p-value family of cross-group coefficient differences
+receives the Romano--Wolf correction, and no confirmatory claims are
+based on them.
+\NoteThis{Table 4 (source \code{output/tables/table4\_heterogeneity.csv})
+and Table A14 subgroup coefficients, interactions, and corrected
+p-values to be back-filled from production regressions.}
 
 \section{Robustness}\label{sec:robust}
+All robustness ladders in this section share one statistical
+convention: within each ladder, the measures are \emph{co-equal mutual
+robustness}, each entering its own just-identified specification and
+reported side by side; the measures of any ladder are never pooled into
+a single over-identified Hansen $J$ system, and ladders are orthogonal
+and never crossed.
 \NoteThis{Table 5 (paper-specific robustness battery) from
-\code{output/tables/table5\_*.csv}.}
+\code{output/tables/table5\_*.csv}; row results to be back-filled.}
+
+\subsection{Three Text Tracks: full/ctx/ss}\label{sec:robust:tracks}
+The treatment is constructed in parallel on three text tracks: the
+full-text track \code{benefit\_mean\_full} (the headline measure;
+retention gated full-only), the entity-context track
+\code{benefit\_mean\_ctx}, and the bank--fintech same-sentence
+co-occurrence track \code{benefit\_mean\_ss}. The latter two are
+conditional-on-full robustness tracks whose row universe is a subset of
+the full-track retained set (F2). The three tracks are reported side
+by side, each just-identified (Table A2), never pooled into one Hansen
+$J$. \NoteThis{Table A2 three-track coefficient comparison to be
+back-filled.}
+
+\subsection{Benefit Dimension Sub-Measures: Three Text Tracks $\times$ Two Embeddings}\label{sec:robust:dims}
+Beyond the aggregate attitude, the four benefit dimension sub-measures
+are materialized side by side on six tracks, $\{$full, ctx, ss$\}
+\times \{$canonical, \code{\_lg}$\}$ (column names follow the
+lg-infix convention, under strict both-or-neither column parity, with a
+per-spec direction vector). The six tracks are presented purely as
+mutual robustness; they constitute neither an independent validity gate
+nor pooled inference.
+\NoteThis{Dimension six-track coefficient matrix to be back-filled from
+production results.}
+
+\subsection{Positive/Negative Share Decomposition and Alternative Treatment}\label{sec:robust:decomp}
+We decompose the mean attitude into positive/negative shares
+(\code{benefit\_pos\_frac\_full} / \code{benefit\_neg\_frac\_full};
+Table 5 R5) to test whether the main effect is driven by one side;
+\code{benefit\_pos\_frac\_full} is also the spec-declared alternative
+treatment. Both are exploratory with Romano--Wolf correction.
+\NoteThis{Decomposition results to be back-filled.}
+
+\subsection{Numerical-Intensity Robustness (Table A8)}\label{sec:robust:numint}
+Per the spec tA8 anchor (Davis \& Tama-Sweet, 2012, \emph{CAR} 29(3);
+the formula is a project-specific operationalization, and the spec
+notes the earlier Hales 2011 attribution was erroneous and is no longer
+cited), we test the sensitivity of the main result to numerical
+intensity using \code{num\_intensity} variants (template
+19\_bs\_num\_intensity\_robustness), run in parallel on both embedding
+tracks. \NoteThis{Table A8 to be back-filled.}
+
+\subsection{Criteria Ladder for Network Visibility Controls}\label{sec:robust:netcrit}
+The network visibility columns in the control set
+(\code{bank\_between\_cent}, \code{bank\_degree\_cent}; PAP-locked,
+network columns never enter the primary specification) are re-estimated
+under the co-occurrence criteria ladder $\{$same article (no suffix),
+$\pm 1$-sentence window (\code{\_win1}), strict same sentence
+(\code{\_sent})$\}$, a control-layer specification-sensitivity
+side-by-side (co-equal mutual robustness); off-network bank-years are
+zero-filled with N disclosed.
+\NoteThis{Effect of the criteria ladder on the main coefficient to be
+back-filled.}
 
 % ====================================================================
 % V2.0 J-L-M 2026 RFS robustness alignment (Round 9 implementation)
@@ -207,7 +679,48 @@ distinguishing this paper from a China-replication of J-L-M:
 }
 
 \section{Conclusion}\label{sec:concl}
-\NoteThis{Final discussion and policy implications.}
+This paper transposes language-embedding bipolar anchor projection from
+the country-year macro unit to the bank-year firm level, constructs the
+operating-benefit attitude measure \code{benefit\_mean\_full} from
+Chinese bank--FinTech media coverage, and tests its effects on bank
+performance and FinTech adoption within a mutual-robustness
+architecture of dual embeddings, three text tracks, per-track
+just-identified instruments, and an inference ladder.
+\NoteThis{Core empirical conclusion paragraph: direction, magnitude,
+and the mechanism/heterogeneity picture to be back-filled after
+production-panel (roughly 17 million articles, 2007--2024, 110 banks)
+regressions.}
+
+Theoretically, the paper connects the information-intermediation
+channel with symbolic--substantive decoupling theory: media
+operating-benefit attitude, as the intensive margin of a bank's
+information environment, may both reflect and shape the bank's digital
+transformation path;
+\NoteThis{the theoretical-implication sentence on token-vs-substantive
+transmission asymmetry to be back-filled from results.}
+For policy, the measure offers regulators a low-cost, reproducible
+monitoring indicator of public discourse on bank digital
+transformation: if \NoteThis{conditional policy-implication clause
+(conditional on production results) to be back-filled}, then regulatory
+communication on inclusive finance and bank digitalization could add
+media operating-benefit attitude to its monitoring dashboard.
+
+Several limitations remain. First, the panel is annual, so quarterly
+or event-level dynamics cannot be captured; high-frequency event
+studies (e.g., \code{car\_3day}) await the daily-data listed-bank
+extension. Second, media coverage is itself endogenous to bank
+behavior and editorial selection, and the instruments' exclusion
+restriction rests on untestable assumptions
+\parencite{manski1993reflection,leary2014peer}; conclusions should be
+read as within associations combined with instrumental evidence, not
+unconditional causality. Third, the sample covers the single Chinese
+market, whose media institutional environment (state-media structure,
+regulatory communication) is distinctive \parencite{you2018pen};
+extrapolation to other banking systems warrants caution. Fourth, the
+measure depends on embedding-model choice: the dual-vendor co-primary
+architecture absorbs single-model failure modes (including the
+disclosed sign flip of anchor pair 9), but sensitivity beyond the two
+vendors is not exhausted.
 
 \printbibliography
 

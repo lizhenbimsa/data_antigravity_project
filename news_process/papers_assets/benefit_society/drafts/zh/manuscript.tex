@@ -15,19 +15,172 @@
 
 \begin{abstract}
 \NoteThis{最终摘要待定。}
-本文基于银行—年度金融科技媒体报道, 采用双极锚点投影 (Jha--Liu--Manela 2026 RFS),
-度量中国上市银行的经营效益态度 (\code{benefit\_mean\_full})。我们发现 \NoteThis{核心结论}\@。
+银行的数字化转型如何被媒体评价, 又与银行绩效有何关联?
+本文将 Jha--Liu--Manela (2026, \emph{RFS}) 的语言嵌入双极锚点投影法从国家—年宏观
+单元迁移到银行—年 firm-level: 对每篇银行金融科技报道的嵌入向量 $s_j$, 在 10 对
+fintech 专属正负锚点张成的语义轴上取投影 $a_j=\cos(s_j,\,\mathrm{pos}-\mathrm{neg})$,
+聚合为银行—年"经营效益态度" (\code{benefit\_mean\_full})。测度在两个独立厂商的
+co-primary 嵌入模型 (阿里 Qwen3-Embedding-8B, 4{,}096 维; OpenAI
+text-embedding-3-large, 3{,}072 维) 下并行计算、互为稳健性。基于中国银行业
+金融科技媒体报道构建的银行—年面板 (生产目标语料约 1{,}700 万条, 2007--2024),
+我们在银行与年份双固定效应下检验经营效益态度对银行盈利能力 (ROA) 的作用
+(银行层聚类 + wild cluster bootstrap 推断; 同业 leave-one-out 工具变量),
+并考察其对象征性 (token) 与实质性 (substantive) 金融科技采纳的不对称传导。
+我们发现 \NoteThis{核心结论: 主回归系数、显著性与机制结果待生产面板回填}\@。
 \end{abstract}
 
 \section{引言}\label{sec:intro}
-\NoteThis{阐释研究问题与贡献。}
+
+过去十余年, 中国银行业经历了深刻的数字化转型: 从移动支付、线上信贷到智能
+风控, 金融科技 (FinTech) 已成为银行战略叙事的核心词汇。与此同时, 媒体是银行
+信息环境中最重要的信息中介之一: 存款人、监管者与投资者对银行数字化转型的
+认知, 很大程度上经由媒体报道形成 \parencite{tetlock2007content,fang2009media}。
+本文所依托的原始语料普查覆盖 18{,}198{,}978 条媒体报道 (2007--2025, 3{,}740 家
+媒体来源, 其中报纸类型占全部行的 92.93\%), 印证了媒体对银行的持续、密集关注。
+然而, 既有文献多聚焦媒体报道的\emph{数量} (曝光) 或\emph{情感方向} (正负语调),
+对报道内容中"银行的金融科技经营是否惠及其经营效益"这一\emph{态度强度}维度
+缺乏系统的 firm-level 测度。
+
+本文提出并回答的问题是: 媒体对银行金融科技经营效益的态度, 是否以及如何与
+银行绩效相关联? 我们将 \textcite{jha2026benefit} 的语言嵌入双极锚点投影法从
+国家—年宏观单元迁移到银行—年 firm-level: 对每篇银行金融科技报道的嵌入向量
+$s_j$, 在 10 对 fintech 专属正负锚点张成的语义轴上取投影
+$a_j=\cos(s_j,\,\mathrm{pos}-\mathrm{neg})$, 聚合为银行—年经营效益态度
+\code{benefit\_mean\_full}。
+
+识别上, 基准回归采用银行与年份双固定效应的组内设定 (absorb(bank\_id year)),
+并控制覆盖量代理 (\code{ln\_news\_coverage}、\code{media\_breadth}、
+\code{n\_articles}) 以隔离"被报道多少" (外延边际) 与"被如何评价" (强度边际)
+\parencite{fang2009media}; 推断以银行层聚类为主, 辅以 wild cluster bootstrap
+\parencite{roodman2019boottest}。针对媒体态度的内生性, 我们以同类型同业
+leave-one-out 态度均值 (\code{leave\_one\_out\_peer\_benefit\_iv}) 为主工具、
+同经济圈跨省 leave-one-out 均值 (\code{zone\_leave1out\_benefit\_iv}) 为后备
+工具做 2SLS, 并按 \textcite{manski1993reflection} 与 \textcite{leary2014peer}
+披露排他性局限。结果方面, \NoteThis{结果预览段: 主回归、机制与异质性结论
+待生产面板 ($T=18$, 110 家银行) 回归后回填}\@。
+
+本文贡献有四。其一, 测度贡献: 将双极锚点投影从国家—年宏观单元迁移到银行—年
+firm-level, 构造 10 对 fintech 专属冻结锚点 (区别于 J-L-M 的 5 对广义金融
+锚点), 且测度在两个独立厂商嵌入模型下并行计算、并排报告、互为稳健性。其二,
+构念区分贡献: 相对既有文本测度文献
+\parencite{gentzkow2019text,li2021culture,hoberg2016text}, 本文度量\emph{态度
+投影强度}而非情感方向、曝光计数或二元实质性标签, 与同一研究组合中的语调、
+注意力、实质采纳、locus 与网络类论文在构念层面明确区分。其三, 机制贡献: 将
+象征—实质脱耦理论 \parencite{westphal1994substance,fiss2006symbolic} 引入
+银行金融科技情境, 检验媒体态度对 token 与 substantive 采纳的不对称传导。
+其四, 可复现贡献: 全测度链 (LLM 门控、嵌入、锚点) 以冻结参数
+(temperature=0, seed=42, prompt v8 字节级冻结) 与缓存实现可复现。
+
+下文结构如下: 第\ref{sec:lit}节梳理文献; 第\ref{sec:theory}节发展假设;
+第\ref{sec:method}节介绍方法与识别; 第\ref{sec:data}节描述数据;
+第\ref{sec:main}--\ref{sec:robust}节依次报告基准、机制、异质性与稳健性结果;
+第\ref{sec:discussion}节讨论局限与贡献, 第\ref{sec:concl}节结论。
 
 \section{文献综述}\label{sec:lit}
-三条主线: (1)~双极锚点投影 (Jha--Liu--Manela 2026 \emph{RFS}); (2)~象征--实质采用 (Westphal--Zajac 2001 \emph{ASQ}); (3)~公司金融文本测度 (Hoberg--Phillips 2016 \emph{JPE})。
+本文与四条文献脉络对话: (1)~嵌入投影与文本测度方法 (测度基座
+Jha--Liu--Manela 2026 \emph{RFS}); (2)~媒体报道、信息中介与银行结果;
+(3)~象征—实质脱耦与叙事—绩效背离; (4)~金融科技与银行绩效及其识别与推断。
+
+\subsection{嵌入投影与文本测度方法}\label{sec:lit:embed}
+文本作为数据进入经济学始于 \textcite{gentzkow2019text} 的奠基综述, 其"文本
+$\to$ 数值表征 $\to$ 回归输入"三步框架构成本文测度链的方法学总纲;
+\textcite{ash2023text} 进一步系统论证了以嵌入向量表征文本、以向量几何做经济
+测度的正当性。在具体构造上, \textcite{gennaro2022emotion} 将"文档嵌入到两个
+参照语义极的相对距离"做成连续测度, 与本文 $a_j=\cos(s_j,\,\mathrm{pos}-
+\mathrm{neg})$ 的投影构造同构; \textcite{li2021culture} 以词嵌入构造企业文化
+测度并配套多重效度校验, 是"嵌入式测度 + 效度验证"的标杆;
+\textcite{hoberg2016text} 以文本余弦相似度重构产业分类, 奠基了文本相似度类
+经济测度。本文测度基座直接承接 \textcite{jha2026benefit}。嵌入引擎层面,
+canonical 槽模型技术细节见 \textcite{zhang2025qwen3}, 其金融域 (含中文) 效度
+由基准测评 \parencite{tang2025finmteb} 锚定; \textcite{gabaix2025asset} 则为
+"嵌入向量直接作为金融计量变量"提供了前沿正当性。
+
+\subsection{媒体报道、信息中介与银行结果}\label{sec:lit:media}
+\textcite{tetlock2007content} 确立了媒体语调影响经济结果的研究范式;
+\textcite{fang2009media} 证明覆盖量本身是 pre-determined visibility 混淆,
+需要在估计态度效应时予以控制, 为本文以覆盖量代理为控制集的做法提供直接
+先例。中国情境下, \textcite{you2018pen} 刻画官媒与市场化媒体的语调差异及其
+公司治理后果; \textcite{gurun2012hype} 揭示本地媒体倾向与企业价值的关联,
+亦支撑本文同经济圈工具变量的地域粒度选择。与本文最接近的是
+\textcite{fang2024mediasentiment}: 中国银行级媒体情感影响存款稳定与系统性
+风险。这一脉络共同确立了"银行—年媒体态度具有真实经营后果"的研究前提。
+
+\subsection{象征—实质脱耦与叙事—绩效背离}\label{sec:lit:decouple}
+\textcite{westphal1994substance} 奠基了"采纳 $\neq$ 实施"的脱耦理论;
+\textcite{westphal2023systemic} 将象征管理理论延伸至 CSR 与公司宗旨情境。
+\textcite{fiss2006symbolic} 给出 framing + decoupling 的象征性战略管理机制;
+\textcite{kim2015greenwash} 将披露—绩效偏差形式化为可测构念;
+\textcite{duchin2025greenwashing} 提供"话语与真实行为背离"在资产市场定价中的
+直接证据。这一脉络为本文 H2/H3 的 token vs.\ substantive 不对称传导提供理论
+与银行情境锚点, 并与证据—影响链条研究 \parencite{distel2026evidence} 衔接。
+
+\subsection{金融科技与银行绩效: 中国情境、识别与推断}\label{sec:lit:fintech}
+\textcite{berg2022fintech} 的综述定位了 fintech 与银行关系的研究版图;
+\textcite{cheng2020fintech} 提供中国银行金融科技降低信用风险的直接先例;
+\textcite{wu2025cooperation} 给出中国银行—金科战略合作与风险承担的面板证据,
+共同支撑"为何在中国银行业测度金科经营效益态度"的动机。识别侧, 同业均值类
+工具面临反射问题 \parencite{manski1993reflection}, \textcite{leary2014peer}
+是同业 leave-one-out 工具的经典实现; 推断侧, \textcite{romano2005stepwise}
+的逐步 FWER 校正与 \textcite{roodman2019boottest} 的 wild cluster bootstrap
+构成本文推断声明的方法基础。
+
+综合以上, 既有文献留下的缺口是: 缺乏一个 firm-level、面向金融科技经营效益、
+以嵌入投影强度为构念的媒体态度测度, 及其与银行绩效和采纳行为关系的系统
+证据。本文填补这一缺口。
+
+\section{理论与假设}\label{sec:theory}
+
+本节从信息中介与象征—实质脱耦两条理论线索发展假设。以下各条均为\emph{理论
+预期}而非已得结果; H1 为 PAP v1.0-final 锁定的唯一 confirmatory 假设
+(spec \code{inference.confirmatory\_family}), H2--H4 为 exploratory, 其推断
+接受 Romano--Wolf 族校正 (见第\ref{sec:method:infer}节)。
+
+\subsection{H1: 经营效益态度与银行绩效 (confirmatory)}
+依信息中介渠道, 媒体对银行金融科技经营效益的正面态度改善银行的信息环境与
+声誉资本: 存款人更愿意维持存款关系、交易对手要求的风险溢价更低、客户对
+数字渠道的采纳更积极 \parencite{tetlock2007content,fang2024mediasentiment}。
+关键在于, 媒体经营效益态度是信息环境的\emph{强度边际} (被如何评价), 区别于
+覆盖量的\emph{外延边际} (被报道多少) \parencite{fang2009media}; 在控制覆盖量
+代理后, 态度的独立变异应经声誉与信息渠道传导至盈利能力。据此:
+
+\textbf{H1 (confirmatory)}: 银行—年经营效益态度 (\code{benefit\_mean\_full})
+与银行盈利能力 (\code{roa}) 正相关; 理论预期符号为正。
+
+\subsection{H2: 态度与象征性采纳 (exploratory)}
+象征管理理论指出, 组织以低成本的象征性姿态回应外部合法性压力
+\parencite{westphal1994substance,fiss2006symbolic}。正面的媒体态度环境降低
+象征性表态的边际成本、放大其预期合法性收益, 因而提高象征性 (token) 金融
+科技采纳倾向。
+
+\textbf{H2 (exploratory, PAP secondary)}: \code{benefit\_mean\_full} 与
+\code{token\_adopt\_kw\_p50} 正相关; 理论预期符号为正。
+
+\subsection{H3: 象征—实质不对称传导 (exploratory)}
+实质性采纳需要真实资源投入与组织变革, 对外部舆论环境的敏感性应低于象征性
+姿态; 脱耦文献预期话语层面的响应快于且强于行为层面
+\parencite{kim2015greenwash,duchin2025greenwashing}。
+
+\textbf{H3 (exploratory)}: \code{benefit\_mean\_full} 对
+\code{subst\_adopt\_kw\_p50} 与 \code{hidden\_adopt\_kw\_p50} 的传导弱于对
+\code{token\_adopt\_kw\_p50} 的传导 (理论预期; 系数对比待生产结果)。
+
+\subsection{H4: 社会功能对应物 (exploratory extension, 非预注册)}
+"惠民/经营效益"叙事若反映真实经营取向, 应在信贷决策与流动性创造等社会功能
+通道上留下痕迹。
+
+\textbf{H4 (exploratory extension, PAP 外、非预注册, 论文明示)}:
+\code{benefit\_mean\_full} 与 \code{inclusive\_loan\_growth} 及
+\code{liquidity\_creation} 正相关; 该检验依赖财务面板接入 (理论预期)。
 
 \section{方法}\label{sec:method}
 \subsection{样本与数据}
 银行—年度面板覆盖约 164 个银行—年观测 (2017--2018)。
+上述观测数为\emph{开发期快照} ($T=2$ dev), 仅用于管线与规格验证; 生产目标
+面板基于约 1{,}700 万条报纸筛选后报道 (2007--2024, $T=18$) 聚合为覆盖 110 家银行
+的银行—年面板, 与 PAP 样本目标 (n\_bank\_min $= 200$, $T=18$, obs $\geq 3000$)
+属不同阶段口径, 三套口径不得混用。
+\NoteThis{TODO: 正文与全部表格的样本量数字待生产面板落定后统一回填,
+不以任何口径心算过渡样本数。}
 所有数据由 \code{news\_process} 管线 (Phase 9b 基线) 处理,
 详见 \code{papers\_assets/V6\_METHODOLOGY\_CHANGES.md}。
 
@@ -63,7 +216,7 @@
 
 \subsection{Bartik IV 修剪 (F4)}
 约 30 个候选 Bartik 工具变量中, 28 个在 v6 中因违反
-Goldsmith-Pinkham \emph{et~al.}\ (2020, \emph{AER}) 外生性被删除。
+Goldsmith-Pinkham 等 \parencite{goldsmith2020bartik} 的外生性判据被删除。
 保留: \code{bartik\_type\_iv\_full} 与 \code{prov\_leave1out\_tone\_full}。
 
 \subsection{嵌入底座 (双主轨、互为稳健性; F5)}
@@ -85,22 +238,168 @@ Google Gemini 嵌入; 自管线 v3.15.0 (2026 年 6 月) 起换为阿里
 并行、对受影响测度做跨厂商双轨并读 --- 这正是跨厂商双轨架构设计
 所要吸收的失效模式, 在此如实披露。
 
+\subsection{识别策略与工具变量 (每轨恰好识别)}\label{sec:method:iv}
+媒体态度并非随机分配: 经营状况好的银行既可能获得更正面的报道, 也可能主动
+经营媒体关系。除双固定效应与覆盖量代理控制外, 我们以工具变量法处理剩余
+内生性。主工具为同类型同业 leave-one-out 经营效益态度均值
+(\code{leave\_one\_out\_peer\_benefit\_iv}): 同业媒体态度冲击经行业共同信息
+环境传导至目标银行的媒体态度, 但 (排他性假设下) 不经其他渠道直接进入该行
+自身 ROA。后备工具为同经济圈 (跨省) leave-one-out 态度均值
+(\code{zone\_leave1out\_benefit\_iv}), 以区域共同冲击为识别粒度; \code{\_lag1}
+滞后变体为附加稳健性。同业均值类工具面临反射问题, 排他性依赖不可直接检验的
+假设, 我们按 \textcite{manski1993reflection} 与 \textcite{leary2014peer} 的
+惯例如实披露这一局限。
+
+三条文本轨各配同轨工具的镜像: 实体上下文轨的内生孪生 \code{benefit\_mean\_ctx}
+配 \code{lpeer\_benefit\_iv\_ctx} 与 \code{zone\_leave1out\_benefit\_iv\_ctx};
+同句共现轨的内生孪生 \code{benefit\_mean\_ss} 配 \code{lpeer\_benefit\_iv\_ss}
+与 \code{zone\_leave1out\_benefit\_iv\_ss}。每轨各自构成恰好识别
+(just-identified) 的 2SLS 并排报告 (模板 25\_tableA12\_iv\_2sls); \emph{严禁}
+将 full/ctx/ss 三轨的工具合成同一过度识别 (over-identified) Hansen $J$ 系统
+--- 三轨是互为稳健性、不分主次的并列测度, 而非同一构念的多个工具。
+
+\subsection{推断声明}\label{sec:method:infer}
+主推断以银行层聚类 (cluster $=$ bank\_id) 标准误为基准; 鉴于银行组数偏小的
+可能, 以 wild cluster bootstrap 为主推断
+\parencite{roodman2019boottest,mackinnon2017wild,cameron2008bootstrap}, 并以
+银行 $\times$ 年份双向聚类为对照 \parencite{cameron2015practitioner}。
+confirmatory family 仅含单一主假设 (\code{benefit\_mean\_full} $\to$
+\code{roa}, 主规格 M4), 单一假设无须 FWER 校正; 全部 exploratory 假设族
+(ctx/ss 轨、pos/neg 分解、secondary outcomes、\code{is\_listed} 及子样本
+异质性) 的 p 值族施 Romano--Wolf 逐步校正 \parencite{romano2005stepwise}。
+需要区分: 各稳健性梯子 (双嵌入、三文本轨、维度六轨、判据梯子等) 本身是
+"互为稳健性、不分主次"的并列测度而非多重检验族, 不对梯子施 FWER。同一
+ctx/ss 估计以 exploratory 假设身份进入上述 Romano--Wolf 族, 与此并不矛盾:
+校正只在该假设族内进行, 绝不跨梯子合并 FWER。
+
 \section{数据描述}\label{sec:data}
-\NoteThis{Table 1 描述统计参见 \code{papers/benefit_society/tables.py:build\_table1}。}
+
+\subsection{语料普查与口径链条}
+原始语料普查 (过滤、去重\emph{之前}的全量口径, 供数据附录): 183 个去重源
+文件共 18{,}198{,}978 条媒体报道, 时间跨度 2007-01-01 至 2025-12-31, 覆盖
+3{,}740 家媒体来源; 其中媒体类型为报纸的报道占全部行的 92.93\%
+(16{,}912{,}361 行) 予以保留, 通讯社、杂志、政府公报、网页等其余类型按行
+剔除; 精确唯一记录 18{,}177{,}370 条 (重复率 0.12\%)。需要强调, 普查口径
+\emph{不等于}进入分析的语料: 仅经报纸类型保留后 (2007--2024, $T=18$), 生产
+目标语料约 1{,}700 万条 --- 这一数字位于共现硬过滤\emph{之前}; 其后的目标
+银行识别、银行—金融科技邻近共现硬过滤与 LLM 全文轨留篇门控
+(\code{llm\_verified\_full}) 会逐级进一步收缩进入面板的篇数, 最终聚合为
+覆盖 110 家银行的银行—年面板。\NoteThis{各级过滤后的留存篇数待生产管线
+落定后回填, 不以任何口径心算过渡篇数。}两套口径不可混用。
+
+\subsection{变量构造}
+处理变量为 \code{benefit\_mean\_full} (逐文章双极锚点投影 $a_j$ 的银行—年
+均值; spec 声明的替代 treatment 为 \code{benefit\_pos\_frac\_full})。结果
+变量主项为 \code{roa} (PAP v1.0-final 锁定); secondary 为
+\code{token\_adopt\_kw\_p50}、\code{hidden\_adopt\_kw\_p50}、
+\code{subst\_adopt\_kw\_p50} (\code{car\_3day} 需日频数据, 年度主线不跑,
+留作上市行扩展)。现行控制集为覆盖量代理 (\code{ln\_news\_coverage}、
+\code{media\_breadth}、\code{n\_articles}; framing $=$ visibility confounder,
+外延边际); 财务控制 5 列 (\code{ln\_assets}/\code{leverage}/
+\code{capital\_ratio}/\code{npl\_ratio}/\code{deposit\_growth}) 与宏观 2 列
+(\code{gdp\_growth}/\code{m2\_growth}) 待财务面板接入后补充。网络可见度
+控制 (\code{bank\_between\_cent}、\code{bank\_degree\_cent}) 对 off-network
+银行—年零填并披露 N; 按 PAP 锁定, 网络列严禁进入 primary 规格。
+\NoteThis{Table 1 描述统计 (均值/标准差/分位数) 参见
+\code{papers/benefit_society/tables.py:build\_table1}; 全部数值待生产面板
+落定后回填 (TODO)。}
 
 \section{基准回归}\label{sec:main}
-\NoteThis{Table 2 源自 \code{output/tables/table2\_*.csv}; Figure 2 系数图。}
+基准设定为银行—年面板的双固定效应组内回归:
+\begin{equation}\label{eq:baseline}
+\mathit{ROA}_{it} \;=\; \beta\,\mathit{Benefit}_{it} \;+\; \Gamma' X_{it}
+\;+\; \alpha_i \;+\; \delta_t \;+\; \varepsilon_{it},
+\end{equation}
+其中 $\mathit{Benefit}_{it}$ 为 \code{benefit\_mean\_full}, $\alpha_i$ 与
+$\delta_t$ 为银行与年份固定效应 (Stata 实现为 \code{reghdfe} +
+absorb(bank\_id year)), $X_{it}$ 为覆盖量代理控制集 (第\ref{sec:data}节),
+标准误按银行聚类并辅以 wild cluster bootstrap (第\ref{sec:method:infer}节)。
+Table 2 按 M1 $\to$ M4 渐进加入固定效应与控制, M4 (双固定效应 + 全控制) 为
+PAP 锁定的 confirmatory 主规格; 若 H1 成立, 预期 $\hat\beta > 0$。该表将呈现
+经营效益态度与 ROA 的组内关联, 解读时应注意系数刻画的是同一银行跨年内
+态度变异与盈利变异的共动, 已剔除银行恒常异质性与年度共同冲击。
+\NoteThis{Table 2 各列系数、聚类/自助标准误与显著性待生产回归回填
+(源 \code{output/tables/table2\_*.csv}); Figure 2 系数图同步回填。}
+
+工具变量估计的 2SLS 结果在 Table A12 并排呈现三轨各自恰好识别的估计
+(第\ref{sec:method:iv}节; 模板 25\_tableA12\_iv\_2sls), 报告第一阶段 F 统计量
+与二阶段系数; 因每轨恰好识别, 无过度识别检验可报, 这是设计使然而非遗漏。
+\NoteThis{Table A12 第一阶段 F、二阶段系数待回填。}
 
 \section{机制检验}\label{sec:mech}
-\NoteThis{Table 3 源自 \code{output/tables/table3\_*.csv}; Figure 3。}
+机制检验考察经营效益态度向金融科技采纳行为的传导, 对应 H2/H3。因变量为三个
+采纳比例测度 (PAP secondary): 象征性 \code{token\_adopt\_kw\_p50}、隐性
+\code{hidden\_adopt\_kw\_p50} 与实质性 \code{subst\_adopt\_kw\_p50}。比例型
+响应变量同时以 fractional logit \parencite{papke1996fractional} 与 OLS 线性
+概率模型双模型估计 (含银行固定效应; spec B2 双模型口径), 系数以边际效应
+口径对读。解读框架为象征—实质脱耦
+\parencite{westphal1994substance,fiss2006symbolic}: 若 H3 成立, token 通道的
+系数应大于 subst/hidden 通道。上述均为 exploratory, p 值族施 Romano--Wolf
+校正。
+\NoteThis{Table 3 (fracreg + LPM 双列) 系数与跨通道对比待生产回归回填
+(源 \code{output/tables/table3\_*.csv}); Figure 3 同步回填。}
+
+\subsection{探索性扩展结果变量 (非预注册)}\label{sec:mech:ext}
+作为 PAP 外的探索性扩展 (spec \code{outcome.exploratory\_extension}, 论文
+明示非预注册), 我们考察"惠民/经营效益"叙事的社会功能对应物: 普惠/小微贷款
+增速 (\code{inclusive\_loan\_growth}, 信贷决策通道) 与流动性创造
+(\code{liquidity\_creation}, 需资产负债表分项的 cat-fat 口径;
+\NoteThis{流动性创造奠基文献 (Berger--Bouwman 2009 \emph{RFS}) 尚未收录于
+项目文献池, 待收录后补正式引注})。两项均依赖财务面板接入, 数据到位后估计,
+H4 为理论预期。\NoteThis{H4 结果待财务面板接入与生产回归后回填。}
 
 \section{异质性}\label{sec:het}
-\NoteThis{Table 4 (SOE × 论文专属交互) 源自
-\code{output/tables/table4\_heterogeneity.csv}。}
+主异质性维度为上市状态 (\code{is\_listed}): 上市银行面临更强的资本市场信息
+需求、分析师跟踪与披露监督, 信息中介渠道预期更强。Table 4 在保留银行类型
+固定效应的 within-type 设定下呈现 \code{is\_listed} 交互 (13\_table4 模板
+刻意保留 bank\_type FE, 使比较发生在同类型银行内部); Table A14 进一步按
+国有属性 (SOE)、银行类型、枢纽城市 (hub) 与规模 (size) 分组子样本估计。
+全部异质性检验为 exploratory, 组间系数差异的 p 值族施 Romano--Wolf 校正,
+不据以做 confirmatory 声明。
+\NoteThis{Table 4 (源 \code{output/tables/table4\_heterogeneity.csv}) 与
+Table A14 的分组系数、交互项与校正后 p 值待生产回归回填。}
 
 \section{稳健性}\label{sec:robust}
+本节全部稳健性梯子共享同一统计口径: 每一梯子内的各测度\emph{互为稳健性、
+不分主次}, 各自进入恰好识别 (just-identified) 的独立设定并排报告, 绝不将
+任何梯子的多个测度合并进同一过度识别 (over-identified) Hansen $J$ 系统;
+梯子之间正交、不交叉组合。
 \NoteThis{Table 5 (论文专属稳健性矩阵) 源自
-\code{output/tables/table5\_*.csv}。}
+\code{output/tables/table5\_*.csv}; 各行结果待回填。}
+
+\subsection{三轨文本口径: full/ctx/ss}\label{sec:robust:tracks}
+处理变量在三条文本轨上并行构造: 全文轨 \code{benefit\_mean\_full} (主测度;
+留篇门控 full-only)、实体上下文轨 \code{benefit\_mean\_ctx} 与银行—金科同句
+共现轨 \code{benefit\_mean\_ss}。后两者为 conditional-on-full 稳健轨, 其行
+宇宙是全文轨留篇集的子集 (F2)。三轨各自恰好识别并排报告 (Table A2), 禁混
+同一 Hansen $J$。\NoteThis{Table A2 三轨系数对比待回填。}
+
+\subsection{benefit 维度分测度: 三文本轨 $\times$ 双嵌入六轨}\label{sec:robust:dims}
+除总量态度外, benefit 的 4 个维度分测度在 $\{$full, ctx, ss$\} \times
+\{$canonical, \code{\_lg}$\}$ 六轨上并排物化 (列名遵循 lg 中置命名、严格
+both-or-neither 列对偶, 每 spec 配独立方向向量)。六轨仅作互为稳健性并排
+呈现, 不构成独立的效度闸, 亦不合并推断。
+\NoteThis{维度六轨系数矩阵待生产结果回填。}
+
+\subsection{正/负份额分解与替代 treatment}\label{sec:robust:decomp}
+将均值态度分解为正/负份额 (\code{benefit\_pos\_frac\_full} /
+\code{benefit\_neg\_frac\_full}; Table 5 R5), 检验主效应是否由单侧份额驱动;
+\code{benefit\_pos\_frac\_full} 同时是 spec 声明的替代 treatment。二者为
+exploratory, 施 Romano--Wolf 校正。\NoteThis{分解结果待回填。}
+
+\subsection{数字密度稳健性 (Table A8)}\label{sec:robust:numint}
+按 spec tA8 锚定 (Davis \& Tama-Sweet, 2012, \emph{CAR} 29(3); 公式为项目
+自定义操作化, spec 明示原引 Hales 2011 系误归、不再引用), 以
+\code{num\_intensity} 变体检验数字密度对主结果的影响 (模板
+19\_bs\_num\_intensity\_robustness), 双嵌入轨并行。
+\NoteThis{Table A8 待回填。}
+
+\subsection{网络可见度控制的判据梯子}\label{sec:robust:netcrit}
+控制集中的网络可见度列 (\code{bank\_between\_cent}、\code{bank\_degree\_cent};
+PAP 锁定, 网络列严禁进入 primary) 在共现判据梯子 $\{$同篇 (无后缀),
+$\pm 1$ 句窗 (\code{\_win1}), 严格同句 (\code{\_sent})$\}$ 三变体下替换重估,
+属控制层的规格敏感性并排 (互为稳健性、不分主次); off-network 银行—年零填
+并披露 N。\NoteThis{判据梯子对主系数的影响待回填。}
 
 % ====================================================================
 % V2.0 J-L-M 2026 RFS 稳健性对齐 (Round 9 实施)
@@ -179,7 +478,28 @@ magnitude ratio 仅作 informative 报告。Table A11 来自
 }
 
 \section{结论}\label{sec:concl}
-\NoteThis{最终讨论与政策含义。}
+本文将语言嵌入双极锚点投影从国家—年宏观单元迁移到银行—年 firm-level, 构造
+中国银行业金融科技报道的经营效益态度测度 \code{benefit\_mean\_full}, 并在
+双嵌入、三文本轨、每轨恰好识别的工具变量与推断梯子的互为稳健性架构下,
+检验其对银行绩效与金融科技采纳行为的作用。
+\NoteThis{核心实证结论段: 主效应方向、幅度与机制/异质性图景待生产面板
+(约 1{,}700 万条, 2007--2024, 110 家银行) 回归后回填。}
+
+理论上, 本文将信息中介渠道与象征—实质脱耦理论对接: 媒体经营效益态度作为
+银行信息环境的强度边际, 既可能反映也可能塑造银行的数字化转型路径;
+\NoteThis{token vs.\ substantive 传导不对称性的理论含义句待结果回填。}
+政策上, 该测度为监管者提供了一个低成本、可复现的银行数字化转型舆论监测
+指标: 若 \NoteThis{政策含义的条件句 (以生产结果为条件) 待回填}, 则普惠金融
+与银行数字化的监管沟通可将媒体经营效益态度纳入监测面板。
+
+本文存在若干局限。第一, 面板为年度频率, 无法捕捉季度或事件级动态, 高频
+event-study (如 \code{car\_3day}) 留待日频数据的上市行扩展。第二, 媒体报道
+本身内生于银行行为与编辑选择, 工具变量的排他性依赖不可直接检验的假设
+\parencite{manski1993reflection,leary2014peer}, 结论应作"组内关联 + 工具
+证据"的组合解读而非无条件因果。第三, 样本限于中国单一市场, 其媒体制度环境
+(官媒结构、监管沟通方式) 具有特殊性 \parencite{you2018pen}, 向其他银行体系
+外推须谨慎。第四, 测度依赖嵌入模型选择: 双厂商 co-primary 架构吸收了单一
+模型的失效模式 (含第 9 对锚点翻号的披露), 但两厂商之外的敏感性未穷尽。
 
 \printbibliography
 

@@ -1,13 +1,14 @@
 % bank_fintech_tone/drafts/zh/manuscript.tex
 % P4.2 中文 manuscript 骨架 (plan-r3 衍生论文扩展, 2026-05-15)
+% 2026-07-03 丰富: 储户纪律主线重写 (引言/文献/假设/识别/数据/结果脚手架/结论)
 % 编译: xelatex + biber + xelatex × 2
 
 \input{../../../_shared/preamble_zh.tex}
 
 \addbibresource{refs.bib}
 
-\title{媒体语调、金融科技战略与银行绩效：\\
-       基于中国银行—年度新闻语料的证据}
+\title{媒体语调与银行资金成本：储户纪律视角\\
+       {\large ——基于中国银行金融科技报道的银行—年度证据}}
 \author{\NoteThis{作者姓名}}
 \date{\today}
 
@@ -16,30 +17,219 @@
 
 \begin{abstract}
 \NoteThis{最终摘要待定。}
-本文基于约 37~GB 中国媒体金融科技报道构建银行—年度面板,
-研究银行金融科技战略的媒体语调与银行经营结果之间的关系。
-通过三家族大语言模型 (LLM) 集成进行情感标注,
-我们同时度量金融科技报道的"主体性 (locus)"
-(全文 vs.\ 实体上下文) 和"实质性 (substantiveness)"
-(全文 vs.\ 实体上下文)。我们发现 \NoteThis{核心结论占位}\@。
+媒体对银行的报道语调是储户与债权人可以低成本获取的公开风险信号。
+本文基于对中国媒体银行—金融科技报道的全量普查
+(原始普查 18{,}198{,}978 条报道、3{,}740 家媒体来源, 其中报纸类占
+92.93\,\% 予以保留; 过滤后生产目标语料约 1{,}700 万条, 覆盖
+2007--2024 年 110 家银行), 构建银行—年度媒体语调面板, 检验储户纪律
+假说: 更负面的媒体语调提高储户与债权人对银行风险的感知, 从而抬高
+银行计息负债的定价, 表现为资金成本
+(\code{funding\_cost} = 利息支出/计息负债年均余额) 上升。语调测度采用
+三家独立厂商大语言模型 (LLM) 的多数投票共识
+(\code{llm\_vote\_tone\_full}), 并以三家 per-model 序列、六部中文金融
+词典与三个金融域 BERT 模型作为互为稳健性、不分主次的并列测度。
+我们发现 \NoteThis{核心结论占位: 主 confirmatory 系数、经济量级与
+稳健性摘要待生产面板回归}\@。
 \end{abstract}
 
 \section{引言}\label{sec:intro}
-\NoteThis{阐释问题: 媒体对银行金融科技战略的报道,
-对制度理论 (Westphal \& Zajac 1994) 与数字化转型结果
-(Gomber et al.\ 2018, \emph{JMIS}) 至关重要。借鉴 Hassan et al.\
-(2019, \emph{QJE}) 公司层级政治风险方法作为我们的文本测度模板。}
+
+2023 年硅谷银行 (SVB) 事件之后, ``公开媒体信号如何作用于银行负债端''
+迅速成为金融学顶刊的核心议题: 社交媒体暴露被证明是挤兑的催化剂
+\parencite{cookson2026runcatalyst}, 未保险存款的规模决定了银行对
+储户情绪变化的脆弱程度 \parencite{jiang2024fragility}, 而存款特许权
+价值本身即可成为挤兑的对象 \parencite{drechsler2026franchise}。这批
+文献共同指向一个更一般的机制——公开信息改变储户与债权人的风险感知,
+进而通过负债定价与存款流动对银行产生实体效应
+\parencite{goldstein2023information}。然而, 现有证据高度集中于美国
+上市银行与日频/事件窗设定, 对占银行体系多数的非上市中小银行,
+系统性的负债端定价证据仍然稀缺。
+
+本文利用中国情境的两项制度性优势填补这一缺口。第一, 我们对中国媒体
+关于银行金融科技战线的报道做了全量普查——原始普查计 18{,}198{,}978
+条报道、来自 3{,}740 家媒体来源, 过滤后生产目标语料约 1{,}700 万条,
+覆盖 2007--2024 年 110 家银行——由此构建的银行—年度面板将大量
+\emph{非上市}中小银行纳入样本, 这是依赖股价的 CAR 类研究无法触及的
+主体。第二, 中国的官方媒体/市场化媒体二元结构
+\parencite{qin2018mediabias, you2018pen} 为语调的信息含量提供了
+制度性分层, 便于检验储户纪律机制的异质性。金融科技竞争时期恰是
+银行负债端信息环境剧烈变动的时期, 为观察语调—资金成本关系提供了
+充分的时序与截面变异。
+
+我们的研究问题是: 银行—年层面的媒体报道语调是否影响银行的资金成本?
+识别策略上, 基准设定采用银行与年份双向固定效应, 标准误在银行层聚类;
+在此之上以省内同组留一 (leave-one-out) 语调、广义 Bartik 与媒体来源
+风格暴露三类工具变量分别构成各自恰好识别的 2SLS 设定
+\parencite{goldsmith2020bartik, wang2024wildiv}; 少簇聚类场景配合
+wild cluster bootstrap 推断 \parencite{mackinnon2017wild}。全文仅
+设一条 confirmatory 主假设 (语调 $\to$ 资金成本), 其余全部标注为
+exploratory 并纳入 Romano--Wolf 族错误率校正
+\parencite{romanowolf2005stepwise}。
+
+本文的贡献有四。其一, 为储户纪律文献提供来自非上市中小银行、
+年度全样本口径的负债端定价新证据, 与集中于上市银行与危机窗口的
+既有研究 \parencite{cookson2026runcatalyst, fang2024mediadeposit,
+marchetti2025tone} 形成互补。其二, 方法学上提出三家独立厂商 LLM
+多数投票的语调测度, 并以词典与 BERT 两类传统方法作三角互证
+\parencite{gilardi2023chatgpt, huang2023finbert, loughran2011liability},
+全部测度在确定性配置 (temperature=0、字节级冻结 prompt) 下可复现。
+其三, 提出并实施``多梯子互为稳健性''的研究设计: 文本窗口、模型厂商、
+词典规则、政治词权重等每一维度的并列测度各自进入恰好识别的独立设定,
+以并排复现而非合并检验来约束研究者自由度。其四, 在研究组合内部,
+本文度量的是报道情感的\emph{方向与强度} (连续有符号语调), 区别于
+无符号曝光强度、实质—象征属性与技术定位属性等姊妹构念; 本文仅使用
+银行自身层面的语调, 不以同业网络结构作主识别。
+
+余文安排如下: 第 \ref{sec:inst} 节介绍制度背景; 第 \ref{sec:lit}
+节综述文献; 第 \ref{sec:hypo} 节发展假设; 第 \ref{sec:method} 节
+说明测度与识别; 第 \ref{sec:data} 节描述数据; 第 \ref{sec:main}
+至 \ref{sec:robust} 节报告基准结果、机制、异质性与稳健性;
+第 \ref{sec:concl} 节结论。
+
+\section{制度背景}\label{sec:inst}
+
+\subsection{中国银行业的金融科技竞争}
+2010 年代以来, 以第三方支付、货币市场基金与网络借贷为代表的金融
+科技对中国银行业的存款端形成直接竞争, 银行亦大规模自建金融科技
+能力予以回应; 银行层面的金融科技投入被证明与信用风险结果相关
+\parencite{cheng2020bankfintech}, 而金融科技信贷的兴起改变了
+传统银行的竞争边界 \parencite{berg2022fintechlending}。对储户而言,
+银行``金融科技战线''的新闻既报道其技术转型的进展, 也披露其在
+存款争夺战中的处境, 因而构成关于银行前景与稳健性的公开信号流。
+在存款利率市场化渐进推进的背景下, 储户与批发资金提供者对这类
+信号的反应能够直接反映在计息负债的定价上。
+
+\subsection{官方媒体与市场化媒体的二元结构}
+中国报业存在系统性的政治偏向分层: 党报体系承担宣传职能, 市场化
+媒体则更接近商业化新闻生产 \parencite{qin2018mediabias};
+政治激励还可能导致负面信息被延迟或压制
+\parencite{piotroski2015political}。对中文财经新闻的研究表明,
+只有市场化媒体的负面报道具有实质性的公司治理监督效应, 官方媒体
+的报道则不具备 \parencite{you2018pen}。这一制度性分层意味着媒体
+语调的信息含量在来源维度上存在可预期的异质性, 我们在异质性分析
+(第 \ref{sec:het} 节) 与媒体来源风格工具 (第 \ref{sec:method} 节)
+中显式利用这一结构。
 
 \section{文献综述}\label{sec:lit}
-\NoteThis{三条主线: (1)~媒体作为信息中介 (Tetlock 2007);
-(2)~企业回应的象征 vs.\ 实质 (Westphal--Zajac 1994/1998 \emph{ASQ});
-(3)~Bartik 工具变量设计 (Goldsmith-Pinkham et al.\ 2020, \emph{AER})。}
+
+\subsection{媒体作为信息中介与资产/负债定价}
+自 \textcite{tetlock2007giving} 以来, 媒体语调被确立为一条独立的
+信息渠道: 媒体覆盖的广度影响股票收益截面
+\parencite{fangperess2009media}, 而借助地方媒体的自然实验与报纸
+罢工事件, 后续研究把``报道本身''的因果效应与``被报道事件''分离开来
+\parencite{engelberg2011causal, peress2014media}, 确立了媒体语调
+不是基本面的冗余代理这一关键前提, 也为处理``报道 $\ne$ 基本面''
+的内生性提供了识别模板。与本文最贴近的前沿对照是
+\textcite{marchetti2025tone}: 该文在银行层面测量报纸语调的迁移,
+并验证其对银行融资条件的预测力。本文将这一范式推进到年度全样本、
+以非上市银行为主体的负债端定价设定。
+
+\subsection{储户纪律、挤兑与银行负债端脆弱性}
+\textcite{goldstein2023information} 给出``金融市场信息 $\to$ 实体
+效应''的一般框架; \textcite{chen2022transparency} 证明储户确实对
+银行公开信息作出反应——透明度越高的银行, 其存款流对业绩的敏感度
+越强, 这是媒体语调能够传导到负债定价的行为前提。SVB 事件后,
+\textcite{cookson2026runcatalyst} 证明社交媒体暴露催化挤兑,
+\textcite{jiang2024fragility} 量化了未保险存款杠杆下的银行脆弱性,
+\textcite{drechsler2026franchise} 提出存款特许权价值本身可成为
+挤兑对象的理论。在中国情境下, \textcite{fang2024mediadeposit}
+给出``负面媒体情感 $\to$ 存款不稳 $\to$ 负债成本上升 $\to$ 系统性
+风险''的证据链, 与本文的因变量构念直接对应。此外,
+\textcite{cookson2024socialsignal} 证明注意力与情感是两类可分离的
+文本信号, 为本文聚焦有符号语调 (而非无符号曝光量) 提供方法学依据。
+
+\subsection{中国媒体制度与银行金融科技情境}
+中文财经新闻语调研究的顶刊范本是 \textcite{you2018pen}
+(市场化媒体的负面报道才有监督效应); \textcite{qin2018mediabias}
+刻画了中国报业的政治偏向结构, \textcite{piotroski2015political}
+给出压制负面信息的政治激励——三者共同构成按媒体属性分层解读语调
+信息含量的制度依据。测度层面, \textcite{du2022dictionary} 提供了
+英文顶刊中最权威的中文金融情感词典 (亦是本文政治词权重敏感性梯子
+的依据文献)。情境层面, \textcite{cheng2020bankfintech} 是用中文
+语料构造银行金融科技指数并进入银行—年面板的最直接对标,
+\textcite{berg2022fintechlending} 为金融科技竞争的研究动机提供
+综述级锚点。
+
+\subsection{金融文本情感测度: 词典/BERT/LLM 三角}
+\textcite{loughran2011liability} 确立了金融领域专用词典范式,
+\textcite{loughran2016survey} 系统总结了实施陷阱 (否定处理、加权
+选择等); \textcite{huang2023finbert} 证明金融域预训练 BERT 在
+金融文本信息抽取上显著优于词典; \textcite{frankel2022disclosure}
+系统比较机器学习与词典方法并支持多方法并行互证;
+\textcite{gilardi2023chatgpt} 给出 LLM 标注质量超过众包标注者的
+证据。这些结果合流为本文``三法三角、互为稳健性''的测度架构:
+LLM 投票共识作 headline, 词典轨与 BERT 轨作透明基准与深度学习
+基准, 三法并排互证而不合并。
+
+\subsection{识别与推断纪律}
+\textcite{romanowolf2005stepwise} 的 step-down 重抽样程序是本文
+全部 exploratory 族错误率校正的方法出处;
+\textcite{mackinnon2017wild} 支撑少簇且簇规模悬殊场景下的 wild
+cluster bootstrap 推断; \textcite{wang2024wildiv} 给出弱识别与
+少簇并存时 IV 回归的 wild bootstrap 推断, 直接支撑本文
+LOO/Bartik 工具族的聚类稳健 2SLS; \textcite{goldsmith2020bartik}
+是 Bartik 工具外生性论证与修剪 (方法节 F4) 的依据。
+
+\paragraph{本文定位。}
+综上, 三支文献分别确立了``媒体语调是独立信息渠道''、``储户对公开
+信息作出反应''与``中国媒体语调可被可信地测度''; 但三者的交集——
+媒体语调对\emph{非上市中小银行}负债成本的系统性年度证据——仍是
+空白。本文以全量普查语料与储户纪律框架填补这一缺口。
+
+\section{理论与假设}\label{sec:hypo}
+
+本文置于储户/市场纪律范式: 媒体对银行金融科技战线的报道语调是
+储户与债权人可低成本获取的公开信息信号; 语调改变其对银行风险的
+感知, 进而通过计息负债的定价——要求更高或更低的利息补偿——反映
+为银行资金成本的变动。以下各假设的符号方向均为\emph{理论预期},
+而非实证结果; 全部系数与显著性待生产面板回归
+\NoteThis{生产回归后回填}。
+
+\paragraph{H1 (confirmatory 主假设)。}
+储户对银行公开信息的敏感反应已有直接证据
+\parencite{chen2022transparency}; 在中国情境下, 负面媒体情感被
+证明与存款不稳与负债成本上升相联
+\parencite{fang2024mediadeposit}。若媒体语调改变储户与债权人的
+风险感知, 则更正面的语调应降低其要求的利息补偿。
+\emph{H1: 银行—年媒体语调 (\code{llm\_vote\_tone\_full}) 对资金
+成本 (\code{funding\_cost}) 的效应为负——语调越正面, 资金成本
+越低。}此为本文唯一的 confirmatory 假设, 对应 paper spec 中
+inference.confirmatory 的主规格方向。
+
+\paragraph{H2 (exploratory, 机制延伸)。}
+若正面语调降低负债端成本, 则资金约束的放松应支持资产端扩张与
+盈利改善 \parencite{goldstein2023information}。
+\emph{H2: 语调对贷款增长 (\code{loan\_growth}) 与资产收益率
+(\code{roa}) 的效应为正。}二者为 secondary outcomes, 仅作
+exploratory 检验并纳入 Romano--Wolf outcomes 校正族, 不与 H1
+并列为主假设。
+
+\paragraph{H3 (exploratory, 特许权价值通道, 上市行子样本)。}
+存款特许权价值理论意味着负债端的稳定预期本身是银行价值的组成
+部分 \parencite{drechsler2026franchise}; 正面语调若支撑特许权
+价值, 应体现于市场估值。\emph{H3: 上市银行子样本中, 语调对
+Tobin's Q (\code{tobin\_q}) 的效应为正。}\code{tobin\_q} 在本文
+仅为 secondary outcome (与姊妹论文共享列名但角色不同)。
+
+\paragraph{H4 (异质性, 理论预期)。}
+储户纪律的强度取决于储户对信息的敏感程度: 透明度—存款流敏感性
+证据 \parencite{chen2022transparency} 与``只有市场化媒体才有监督
+效应''的证据 \parencite{you2018pen} 共同预示, 语调效应在储户
+信息敏感度更高的银行更强。\emph{H4: H1 的负向效应在中小/非上市
+银行、以及市场化媒体报道占比更高的银行中更强。}操作化为
+\code{llm\_vote\_tone\_full} 与分层指示变量的交互, 分层采用
+within-year 分位而非绝对阈值; 交互结果 \NoteThis{待生产回归},
+hub 银行异质性 (\code{bank\_is\_hub}) 须待生产 T=18 面板。
 
 \section{方法}\label{sec:method}
 \subsection{样本与数据}
 银行—年度面板覆盖 \NoteThis{2017--2018 年共 N=164 个银行—年观测
 (后续合并新一轮年报数据后扩展)}。原始文本输入为 XLSX 媒体报道,
 经 \code{news\_process} 管线 (Phase~9b 基线) 处理。
+\NoteThis{样本量口径: 本机开发态面板为 T=2 (2017--2018, 110 家
+银行 $\times$ 2 年 $\approx$ 220 个银行—年槽位), 与上行 N=164
+的历史快照数字不一致; 正式样本量以生产面板 (2007--2024, T=18)
+定稿为准, 届时统一回填。}
 
 \subsection{语调标注 (F1: 三家族 LLM 真三角验证)}
 我们采用三个独立的 LLM 家族进行情感标注:
@@ -95,8 +285,8 @@ Table~A12), 而非以"三家都显著"的叙述性说法代替正式检验。
 (\code{token\_adopt\_*}、\code{hidden\_adopt\_*}、
 \code{subst\_adopt\_*})、连续强度分 (\code{fintech\_intensity\_mean})
 均编码为未定义 (\code{NaN}), 而非零。
-我们遵循 Allison (2001) 和 Heckman (1979) 把这类设计性缺失视为缺失值,
-回归中采用列删除处理。计数与求和型变量在零观测时保留 $0$,
+我们遵循缺失数据分析与样本选择文献的标准处理, 把这类设计性缺失
+(missing by design) 视为缺失值, 回归中采用列删除处理。计数与求和型变量在零观测时保留 $0$,
 作为数学上正确的零观测值。
 
 \subsection{Bartik IV 修剪 (F4)}
@@ -125,26 +315,209 @@ canonical 无后缀列) 与 OpenAI \code{text-embedding-3-large}
 (见方法节) 不受此变更影响: 嵌入模型与情感 LLM
 是管线中互不相交的两类组件。
 
+\subsection{识别策略}\label{sec:ident}
+基准设定为银行与年份双向固定效应: 银行固定效应吸收所有不随时间
+变化的银行特征 (商业模式、所有制、地域禀赋), 年份固定效应吸收
+宏观与行业共同冲击 (利率周期、监管周期), 识别来自银行\emph{内部}
+语调的年度变异; 标准误在银行层聚类。
+
+在此之上, 我们以三类工具变量引擎处理``报道语调与银行基本面互为
+因果''的剩余内生性, 三引擎\emph{各自进入恰好识别的独立 2SLS
+设定、并排报告、互为稳健性, 绝不合并进同一个过度识别系统}
+(联合 Hansen $J$ 在共享共同冲击的工具间无信息量): (i)~省内同组
+留一均值工具 \code{prov\_leave1out\_tone\_full} (主引擎: 同省
+其它银行的平均语调影响本行所处的舆论环境, 但排除本行自身报道);
+(ii)~广义 Bartik 工具 \code{bartik\_type\_iv\_full} (后备引擎,
+外生性论证与修剪见 F4 小节与
+\textcite{goldsmith2020bartik}); (iii)~媒体来源 house-style 暴露
+工具 (\code{outlet\_*\_iv} 列族: 银行被动暴露于各媒体来源的稳定
+写作风格)。ss 轨配有镜像工具
+(\code{prov\_leave1out\_tone\_ss}、\code{bartik\_type\_iv\_ss}),
+使窗口稳健性轨在 IV 设定下同样成立。少簇场景 (省级 $G \approx
+31 < 50$) 的 IV 推断采用 wild cluster bootstrap
+\parencite{mackinnon2017wild, wang2024wildiv}。
+
+\NoteThis{诚实披露 (spec 已声明的缺口): 现行复现包中唯一的 IV
+模板 (22\_tableA3\_bartik\_iv.do) 工具化的内生变量是
+\code{tech\_frac} 而非语调; 以语调为内生变量的 tone-IV .do 模板
+待 M5 里程碑接线后回填, 上段所述 tone-IV 结果在此之前均为设计
+声明而非已产出结果。}
+
+\subsection{测度效度: 人工标注闸}\label{sec:validity}
+按照项目效度声明闸 (validity claim gate) 的要求, 语调测度的效度
+声明须以\emph{真实人工标注}的 $\kappa$ 一致性为前提: 人工标注
+样本经 \code{61\_human\_samples} 抽样、由独立标注者盲标, 与
+LLM 共识标签的一致性经 \code{09\_sentiment\_verify} 路径计算。
+截至本稿, 人工标注处于 pending 状态, 人工—LLM 一致性
+$\kappa$ = \NoteThis{待人工标注完成后回填}; 在该闸通过之前,
+本文不宣称语调测度已经人工效度验证, 仅依赖跨模型/跨方法一致性
+诊断 (F1 小节) 作为机器侧效度证据。
+
 \section{数据描述}\label{sec:data}
-\NoteThis{Table~1 描述统计参见
-\code{news\_process/papers/bank\_fintech\_tone/tables.py:build\_table1}。}
+
+\subsection{语料普查与口径链条}
+原始语料普查在任何过滤与去重\emph{之前}进行 (全量递归口径):
+183 个去重后源文件、18{,}198{,}978 条媒体报道, 时间跨度
+2007-01-01 至 2025-12-31, 来自 3{,}740 家媒体来源 (全类型未过滤);
+其中媒体类型为报纸的报道占全部行的 92.93\,\% (16{,}912{,}361 行)
+予以保留, 其余类型 (通讯社、杂志、政府公报、网页等) 按行剔除;
+精确唯一条目 18{,}177{,}370 条 (重复率 0.12\,\%)。需要强调两套
+口径不可混用: 上述递归全量普查口径服务于数据附录, 与过滤后进入
+管线的生产目标语料 (约 1{,}700 万条, 2007--2024) 是两个不同的
+计数。
+
+\subsection{面板结构与因变量}
+生产面板为 110 家银行 $\times$ 2007--2024 (T=18) 的银行—年结构。
+本稿撰写时可用的是开发态面板 (T=2, 2017--2018), 仅用于管线与
+模板联调; 全部描述统计与回归以生产面板定稿
+\NoteThis{Table~1 描述统计待生产面板, 参见
+\code{news\_process/papers/bank\_fintech\_tone/tables.py:build\_table1}}。
+因变量资金成本定义为 \code{funding\_cost} = 利息支出 / 计息负债
+年均余额 (年度频率, 全样本含非上市银行)。处理变量为银行—年聚合的
+LLM 投票语调 \code{llm\_vote\_tone\_full}; 文章 $\to$ 银行—年的
+聚合以等权为 headline, 其余加权族见稳健性节。银行层面财务控制
+变量 (规模、资本充足、流动性等) 随财务面板 enrichment 接入,
+复现包以 \code{capture confirm} 自校验仅使用实际存在的列。
+
+\subsection{描述统计}
+\NoteThis{全部均值/标准差/分位数/相关矩阵待生产面板回填;
+包括语调分布、\code{n\_articles} 分布与 funding\_cost 的
+时序特征。}
 
 \section{基准回归}\label{sec:main}
-\NoteThis{Table 2 (M1--M6 渐进控制) 与 Figure 2 (系数图)
-源自 \code{output/tables/table2\_main\_m1m6.csv}。}
+
+基准 confirmatory 规格为双向固定效应模型:
+\begin{equation}\label{eq:main}
+\mathit{FundingCost}_{i,t}
+  = \beta\, \mathit{Tone}_{i,t}
+  + \mathbf{X}_{i,t}'\boldsymbol{\gamma}
+  + \alpha_i + \lambda_t + \varepsilon_{i,t},
+\end{equation}
+其中 $\mathit{Tone}_{i,t}$ 为银行 $i$ 在年 $t$ 的
+\code{llm\_vote\_tone\_full}, $\alpha_i$ 与 $\lambda_t$ 分别为
+银行与年份固定效应, $\mathbf{X}_{i,t}$ 为银行层控制向量,
+标准误在银行层聚类。H1 的理论预期为 $\beta < 0$。
+
+Table~2 按 M1--M6 渐进控制呈现: M1 仅语调与年份固定效应; M2 加
+银行固定效应 (双向 FE 基线); M3 加银行规模与资本结构控制; M4 加
+流动性与业务结构控制; M5 加媒体覆盖量控制 (\code{n\_articles}
+对数), 以区分语调 (有符号) 与曝光 (无符号) 两类信号
+\parencite{cookson2024socialsignal}; M6 为全控制饱和设定。系数
+沿 M1--M6 的稳定性是选择性偏误有界的间接证据。由于 H1 是全文
+唯一的 confirmatory 假设, 主系数不做多重检验校正 (单一假设);
+除 H1 之外的全部系数均为 exploratory, 按族纳入 Romano--Wolf
+校正 (第 \ref{sec:robust} 节)。
+\NoteThis{Table~2 全部系数、标准误、显著性与经济量级解读待生产
+回归; 系数图 Figure~2 同。}
+
+2SLS 设定将式 \eqref{eq:main} 中的 $\mathit{Tone}_{i,t}$ 分别以
+第 \ref{sec:ident} 节的三类工具作内生处理, 每一工具单独构成
+恰好识别设定并排报告。
+\NoteThis{一阶段 F、弱工具诊断与 2SLS 系数待 tone-IV 模板接线
+(见识别策略小节的缺口披露)。}
 
 \section{机制检验}\label{sec:mech}
-\NoteThis{Table 3 (机制: 技术应用 vs.\ 实质--象征差异)
-源自 \code{output/tables/table3\_mechanism.csv}。}
+
+储户纪律机制链为: 语调 $\to$ 储户/债权人风险感知 $\to$ 存款端
+数量与价格调整 $\to$ 资金成本。链条最上游的存款数量端
+(\code{deposit\_growth}) 依 paper spec 约定保留在控制向量中、
+刻意不作被解释变量 (避免同一列在主回归控制与机制回归因变量间
+双重角色), 故本文不对其作回归检验; 存款端一环仅以既有文献作
+文字论证——储户存款流对银行公开信息的响应
+\parencite{chen2022transparency}, 以及中国情境下``负面媒体情绪
+$\to$ 存款不稳定 $\to$ 负债成本上升''的链条
+\parencite{fang2024mediadeposit}。Table~3 呈现链条下游两步可
+检验的旁证: (i)~语调对贷款增长与 ROA 的效应 (H2, 资金约束
+放松通道); (ii)~上市行子样本中语调对 Tobin's Q 的效应 (H3,
+特许权价值通道 \parencite{drechsler2026franchise})。两步的
+被解释变量 (\code{loan\_growth}、\code{roa}、\code{tobin\_q})
+均为 spec 定义的 secondary outcomes, 全部标注为 exploratory
+并纳入 Romano--Wolf outcomes 校正族。
+\NoteThis{Table~3 全部系数与解读待生产回归。}
 
 \section{异质性}\label{sec:het}
-\NoteThis{Table 4 (银行规模 $\times$ 前沿性 $\times$ 地理) 源自
-\code{output/tables/table4\_heterogeneity.csv}。}
+
+H4 预期语调效应随储户信息敏感度增强。Table~4 按三个理论维度
+分层: (i)~银行规模与上市状态——小银行与非上市银行的储户更依赖
+公开媒体信号 (缺乏分析师覆盖与强制披露),
+\textcite{chen2022transparency} 的透明度—存款流敏感性框架预期
+其语调效应更强; (ii)~市场化媒体报道占比——依据
+\textcite{you2018pen}, 只有市场化媒体语调预期具有实质信息含量,
+官媒语调预期效应弱 (此维度为 exploratory 设计声明, 不在 paper
+spec 的 heterogeneity 块内, 其面板分层列的操作化命名须于生产
+回归前落实);(iii)~网络枢纽地位
+(\code{bank\_is\_hub})——同业关联度高的银行可能面临更强的
+批发资金端纪律。全部分层采用 within-year 分位 (十分位) 而非
+绝对阈值, 避免规模趋势污染; hub 异质性须待生产 T=18 面板方有
+足够组内变异。
+\NoteThis{Table~4 交互系数与分层结果待生产回归。}
 
 \section{稳健性}\label{sec:robust}
-\NoteThis{Table 5 (安慰剂、留一法、wild bootstrap) 加上 1016 行
-falsification 模板
-(\code{papers\_assets/bank\_fintech\_tone/do/falsification\_template.do.tmpl})。}
+
+本节全部稳健性检验遵循统一口径: 每一梯子内的并列测度
+\emph{互为稳健性、不分主次}, 各自进入恰好识别的独立设定并排
+报告, 绝不合并进同一个过度识别系统 (联合 Hansen $J$ 在共享共同
+冲击的测度/工具间无信息量); 不同梯子之间正交、不交叉组合。
+\NoteThis{Table~5 及各附表全部数值待生产回归。}
+
+\paragraph{三轨文本窗口 (treatment 测量窗口)。}
+headline 处理变量在全文轨 (\code{llm\_vote\_tone\_full}) 上定义;
+实体上下文轨与银行—金科同句共现轨提供两个更窄的测量窗口
+(\code{llm\_vote\_tone\_ctx}、\code{llm\_vote\_tone\_ss}), 均为
+conditional-on-full 测度 (见 F2 留篇门控段)。主规格分别以三轨
+语调重估, 三家 per-model 序列亦各有三轨孪生; IV 引擎配 ss 镜像
+工具。三轨各自恰好识别并排, 严禁 full$\times$ctx$\times$ss
+合成同一过度识别系统。
+
+\paragraph{三法三角 (LLM/词典/BERT)。}
+除 LLM 投票外, 主规格以六部中文金融情感词典的语调聚合
+(\code{\{dict\}\_tone}, 含 \textcite{du2022dictionary} 与
+Loughran--McDonald 范式词典 \parencite{loughran2011liability})
+与三个中文金融域 BERT 模型的有符号净语调
+(\code{\{finbert\_cn, fin\_sent\_zh, finbert2\}\_net\_tone})
+分别重估: 词典轨是完全透明、可审计的传统基准, BERT 轨是
+监督式深度学习基准 \parencite{huang2023finbert,
+frankel2022disclosure}, 与 LLM 轨三角互证。
+
+\paragraph{词典消融梯度 (语言学规则 powerset)。}
+词典语调的三条语言学规则 (否定翻转、程度副词加权、转折处理)
+按全 powerset 消融为并列变体
+(\code{\{dict\}\_score\_\{raw,degonly,advonly,negdeg,negadv,degadv\}}),
+证明词典结论不被任一规则驱动。各变体自归一化且高度共线
+(相关系数约 0.99), 故按口径报告变体间相关而非并入同一方程。
+
+\paragraph{政治词权重敏感性 (du\_2022 词典独有)。}
+依据 \textcite{du2022dictionary} 政治正面词信号弱于普通正面词的
+发现, 该词典的 1{,}434 个政治正面词在生产口径下以 0.5 权重计入
+正侧 (研究者选择)。敏感性梯子令该权重 $\in \{0.0, 0.5, 1.0\}$
+(\code{du\_2022\_polw\{00,05,10\}\_tone}; polw05 即 canonical
+列), 三者互为稳健性、不分主次、各自恰好识别并排, 证明结论不被
+这一取值驱动; 该梯子与规则消融梯度正交、不交叉组合。
+
+\paragraph{聚合加权族。}
+文章 $\to$ 银行—年的聚合除等权 headline 外, 另按价值加权、媒体
+层级加权与羊群调整加权重估 (面板 \code{\_vw/\_mw/\_hw} 后缀
+列族), 四种加权并排互证并纳入 rwolf weighting 校正族。
+
+\paragraph{聚类层级递进与 wild bootstrap。}
+headline 推断在银行层聚类; 稳健性依次上移至城市层与省级层。
+省级聚类为少簇场景 ($G \approx 31 < 50$), 采用 wild cluster
+bootstrap \parencite{mackinnon2017wild}; IV 设定下的少簇推断
+采用 \textcite{wang2024wildiv} 的 wild bootstrap 程序。
+
+\paragraph{网络中心度: bad-control 双版本。}
+媒体可见度可能是语调的中介 (语调 $\to$ 可见度 $\to$ 资金成本;
+可见度与定价的关联见 \textcite{fangperess2009media}), 故默认
+控制网络中心度会构成 post-treatment bad control 并吸收主效应。
+按 spec, \code{bank\_between\_cent} 与 \code{bank\_degree\_cent}
+仅出现在稳健性附表: 主系数以\emph{不}控网络为基准, 含网络控制
+的版本并排报告以界定中介吸收的幅度。
+
+\paragraph{数值强度 (Table~A9)。}
+语调结论对报道中数值信息密度的稳健性由数值强度双轨变量
+(\code{num\_intensity}) 检验, 对应模板
+27\_tableA9\_num\_intensity (位于
+\code{papers/\_common/stata\_templates/v3\_5\_1/})。
 
 跨模型稳健性: headline 设定分别以三家 LLM 各自的语调测度重估
 (BERT 侧同理, 以三个中文金融域 BERT 模型各自的有符号净语调
@@ -153,8 +526,49 @@ net\_tone 重估), per-model 系数一律 $z$-score 标准化,
 模型间一致性诊断 (Cohen's $\kappa$, 非负码重映射后计算;
 Krippendorff's $\alpha$, 缺标感知) 随表一并报告。
 
+\subsection{事件研究 (E1--E4)}
+四个行业级外生事件为语调冲击提供准实验佐证, 事件窗设计为
+事件前后年度的语调—资金成本关系对比: E1 余额宝上线
+(2013-06-13, 货币基金对存款的直接竞争冲击); E2 P2P 网络借贷
+监管办法 (2016-08-24, 网贷行业出清起点); E3 资管新规征求意见
+(2017-04-27, 影子银行收缩); E4 蚂蚁集团 IPO 暂停 (2020-11-03,
+平台金融监管转向)。四事件各自构成独立设定并排报告。上市行
+子样本的日频扩展 (\code{car\_3day\_window\_tone\_shock},
+事件日三日累计异常收益) 列为附表, 待日频数据启用。
+\NoteThis{E1--E4 事件窗估计待生产面板 (T=18 方覆盖全部四个
+事件年份)。}
+
 \section{结论}\label{sec:concl}
-\NoteThis{最终讨论与政策含义。}
+
+本文以中国媒体银行—金融科技报道的全量普查语料为基础, 从储户
+纪律视角检验媒体语调对银行资金成本的效应。理论预期为: 更正面
+的语调降低储户与债权人的风险感知, 从而降低计息负债定价
+(H1, $\beta<0$)。\NoteThis{核心发现总结、经济量级与机制/异质性
+结论待生产回归回填。}
+
+\paragraph{贡献回顾。}
+本文将储户纪律证据从美国上市银行与危机窗口扩展到中国非上市
+中小银行的年度全样本; 提出三家 LLM 投票 + 词典 + BERT 三角的
+可复现语调测度; 并示范了``多梯子互为稳健性、各自恰好识别''的
+研究设计纪律。
+
+\paragraph{理论与政策含义。}
+若 H1 成立, 媒体环境即构成一支``准监管力量'': 在正式监管指标
+之外, 公开报道语调通过负债定价对银行施加持续的市场纪律。这对
+存款保险定价具有直接含义——储户纪律的强度决定风险定价中市场
+分担的份额; 对监管沟通亦然——语调驱动的负债成本波动意味着
+信息披露政策本身即是审慎工具。\NoteThis{政策含义的定量表述待
+生产回归。}
+
+\paragraph{局限。}
+第一, 面板为年度频率, 无法刻画语调冲击的月内/周内传导, 挤兑
+类高频动态只能由事件研究间接逼近。第二, 媒体报道本身内生于
+银行行为与基本面: 尽管双向固定效应与三类工具变量缓解了这一
+问题, 观测性设计仍不能完全排除未观测冲击同时驱动报道与资金
+成本的可能; 且现行复现包的 tone-IV 模板尚待接线 (见识别策略
+小节的披露)。第三, 中国的媒体制度结构 (官媒/市场化二元) 与
+存款利率市场化进程具有特殊性, 结论向其它市场的外推须谨慎。
+第四, 银行财务控制变量随财务面板接入后方能达到全饱和设定。
 
 \printbibliography
 

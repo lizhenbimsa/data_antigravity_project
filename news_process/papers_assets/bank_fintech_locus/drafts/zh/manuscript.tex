@@ -1,5 +1,6 @@
 % bank_fintech_locus/drafts/zh/manuscript.tex
 % P4 中文 manuscript 骨架 — M0 G0 scaffolded per B-route plan v2.55 (2026-05-17)
+% M1 富集 (2026-07-03): 引言/文献/假设/方法/数据/结果/结论 + 效度承诺附录 + 网络角色附录
 % 编译: xelatex + biber + xelatex × 2
 
 \input{../../../_shared/preamble_zh.tex}
@@ -14,36 +15,288 @@
 \maketitle
 
 \begin{abstract}
-\NoteThis{最终摘要待定 — 目标约 300 中文字。}
-本文遵循 Gomber 等 (2018, \emph{JMIS}) 的 fintech 分类学, 把银行 fintech 公告区分为
-底层技术 (区块链 / AI / 云) 与应用场景 (支付 / 信贷 / 理财) 两类 locus 属性。基于
-2007--2024 (18 年) 的中国银行业面板, 检验此二元 locus 如何影响事件窗口 5 日 CAR、
-专利产出 (Kogan 等 2017 市值加权) 及 IT capex / R\&D 中介通道。识别策略利用 4 个外生
-政策冲击 (余额宝、蚂蚁 IPO 暂停、两项数据出境管理办法) 与三波 fintech 浪潮 (互联网
-金融 / 区块链 / 大模型, 以 consolidation period 作对照)。研究发现 \NoteThis{核心结论}\@。
+\NoteThis{最终摘要待定 — 目标约 300 中文字; 核心结论数字待生产语料 (T=18) 回归回填。}
+本文遵循 Gomber、Koch 与 Siering (2017) 的 Digital Finance Cube 框架, 把中国银行 fintech
+媒体话语区分为底层技术 (区块链 / AI / 云) 与应用场景 (支付 / 信贷 / 理财) 两类 locus,
+并检验一组结构对仗的理论预期: 底层技术轨话语应映射到技术创新产出 (引用加权专利,
+Kogan 等 2017 谱系; 非上市行以引用计数加权), 应用场景轨话语应映射到产品创新与收费
+业务 (非利息收入占比)。基于约 1{,}700 万条中国媒体报道 (报纸筛选后、银行—金科共现
+硬过滤前口径; 2007--2024, 110 家银行, $T=18$) 构建银行—年面板, locus 标签由三家独立
+厂商 LLM 多数投票产生, 识别策略
+结合银行与年份双固定效应、四个政策事件 (余额宝、蚂蚁 IPO 暂停、两项数据出境管理
+办法) 的 layer $\times$ 事件研究, 以及同银行类型—年 leave-one-out 同业 locus 工具变量。
+上市银行子样本中事件窗口 CAR 仅作扩展性检验。研究发现 \NoteThis{核心结论}\@。
 \end{abstract}
 
 \section{引言}\label{sec:intro}
-\NoteThis{研究问题动机与贡献。}
+
+过去十余年, 中国银行业经历了全球罕见的数字化转型浪潮: 从 2013 年余额宝引爆的互联网
+金融元年 (第一波, 2013--2015), 到区块链与早期人工智能驱动的技术竞赛 (第二波,
+2016--2018), 再到 2022 年以来的大模型浪潮 (第三波, 2022--2024), 中间夹着 2020 年 11 月
+蚂蚁集团 IPO 暂停后的监管整固期 (2019--2021)。在这一进程中, 媒体是银行技术战略最重要
+的信息中介: 银行「说什么」——是谈区块链、AI 与云计算等底层技术, 还是谈支付、信贷与
+理财等应用场景——构成了外界观察其创新取向 (locus) 的高频公开信号。然而现有文献大多
+把银行 fintech 活动当作一个同质标量处理, 忽视了「技术维」与「业务功能维」这一在
+数字金融分类学中早已确立的正交区分 \parencite{gomber2017cube,gomber2018fintech}。
+
+本文提出并检验的核心问题是: 银行 fintech 媒体话语的 locus——底层技术主导抑或应用
+场景主导——是否差异化地预测其创新产出形态? 我们依循 \textcite{gomber2017cube} 的
+Digital Finance Cube, 把银行—年语料中的文章级 locus 标签聚合为两个互斥主导指示变量
+(底层技术主导 \code{locus\_layer\_full} 与应用场景主导 \code{locus\_scenario\_full}),
+并给出结构对仗的理论预期: 底层技术层投入改变银行的信息生产函数, 应产出可专利化的
+技术创新 (引用加权专利); 应用场景层投入改变分销与产品界面, 应产出收费业务 (非利息
+收入占比) \parencite{yoo2010layered,boot2021fintech}。
+
+在数据上, 我们从一个 18{,}198{,}978 条媒体报道的原始普查语料 (2007--2025, 3{,}740 家
+媒体来源) 出发, 经报纸类型筛选并截取 2007--2024 时间窗, 得到覆盖 110 家银行、
+2007--2024 ($T=18$)、目标规模约 1{,}700 万条的生产语料——该口径位于银行—金融科技
+共现硬过滤\emph{之前}, 其后的共现硬过滤与留篇门控将大幅收缩进入分析的篇数;
+文章级 locus 由三家独立厂商
+大语言模型 (LLM) 多数投票分类 (temperature $=0$, 提示词字节级冻结), 并配以完整的
+离线缓存可复现纪律 \parencite{ludwig2025llmecon,carlson2026llmannotation}。在识别上,
+基线为银行与年份双固定效应 (银行层聚类), 辅以四个政策事件 (E1 余额宝 2013-06-13、
+E4 蚂蚁 IPO 暂停 2020-11-03、E5a/E5b 两项数据出境管理办法 2022-09-01 / 2023-09-30)
+的 layer $\times$ 事件研究与异质性稳健估计量 \parencite{sunabraham2021eventstudy,
+borusyak2024revisiting,callaway2021difference}, 以及同银行类型—年 leave-one-out 同业
+locus 均值工具变量 \parencite{manski1993reflection,leary2014peereffects}; 推断纪律上
+预先声明唯一验证性 (confirmatory) 主假设, 其余全部标注为探索性, 族错误率以
+Romano--Wolf stepdown 控制 \parencite{romanowolf2005stepdown}。
+
+本文贡献有四。其一, 测度贡献: 将 Digital Finance Cube 的「技术维 $\times$ 业务功能维」
+分类学首次操作化为大规模媒体语料上的银行—年 locus 面板测度, 并披露完整的 LLM 标注
+效度承诺与可复现协议。其二, 设计贡献:「二元处理配二元产出」的结构对仗设计将本文与
+同一语料家族中度量连续语调 (tone)、曝光强度 (attention)、实质—象征维 (substance) 与
+自主—协同维 (collaboration) 的姊妹研究明确区分——locus 度量的是公告的技术层属性本身,
+而非其情感、显著度或组织来源。其三, 识别贡献: 在年度面板中组合 leave-one-out 同业
+工具变量、事件研究部分识别敏感性 \parencite{rambachan2023honestdid} 与多梯子稳健性
+体系, 且每一梯子各自进入恰好识别的独立设定。其四, 情境贡献: 为以美国专利与上市
+公司为主的银行技术文献 \parencite{chen2019fintechvalue,lerner2024finpatents} 提供
+中国这一全球最大数字金融市场的系统证据, 覆盖大量非上市银行。
+
+我们预览主要发现如下: \NoteThis{结果预览 — H1/H2/H3/H4 方向与量级, 待生产回归回填}。
+
+下文结构如下: 第 \ref{sec:lit} 节梳理四条相关文献; 第 \ref{sec:hypo} 节发展理论假设;
+第 \ref{sec:method} 节介绍样本、locus 度量与识别策略; 第 \ref{sec:data} 节描述数据
+来源; 第 \ref{sec:results} 节报告实证结果; 第 \ref{sec:conclusion} 节总结。附录给出
+测量效度承诺与网络角色探索性分析。
 
 \section{文献综述}\label{sec:lit}
-\NoteThis{三条文献: (1) Fintech 分类与 locus \autocite{gomber2018fintech,goldstein2019fintech};
-(2) 创新市值加权 \autocite{kogan2017technological};
-(3) 区块链与代币化 \autocite{conghe2019blockchain,cong2021tokenomics}。}
+
+\subsection{Fintech 分类学与数字创新的分层架构}
+
+本文 locus 构念的直接概念出处是 \textcite{gomber2017cube} 的 Digital Finance Cube:
+数字金融创新可沿「技术维」「业务功能维」与「机构维」三个正交维度刻画, 其中前两维
+正是本文「底层技术 vs 应用场景」二元 locus 的理论原型; \textcite{gomber2018fintech}
+进一步给出 fintech 革命的功能图谱。信息系统理论为这一区分提供了架构基础:
+\textcite{yoo2010layered} 的分层模块化架构指出, 数字产品由设备、网络、服务与内容
+等层组成, 创新的控制点 (locus of control) 位于哪一层决定了创新的组织逻辑。金融学
+文献中, \textcite{boot2021fintech} 将 fintech 分解为「信息」与「沟通」两轴, 与本文
+底层 (信息生产) / 应用 (分销沟通) 的二分同构; \textcite{vives2019digital} 综述在位
+银行面对数字颠覆的策略空间; \textcite{parlour2022payments} 与
+\textcite{berg2022fintechlending} 分别刻画支付层与信贷应用层的竞争经济学; 区块链与
+代币经济的底层技术属性见 \parencite{conghe2019blockchain,cong2021tokenomics}。
+\textcite{adner2010ecosystem} 的创新生态理论进一步说明, 上游 (组件/底层) 与下游
+(互补/应用) 技术互依结构对企业绩效的影响本质不同——「底层 vs 应用」因此是有经济
+机制支撑的区分, 而非任意标签。
+
+\subsection{银行技术采纳与创新产出}
+
+第二条文献连接银行技术投入与可度量的创新产出。\textcite{kogan2017technological}
+建立了以市值反应加权专利价值的经典谱系; \textcite{chen2019fintechvalue} 用机器学习
+对专利文本区分 fintech 技术类别并证明不同技术类别的私人价值差异显著, 是「不同技术
+locus 具有差异化经济价值」的直接顶刊先例; \textcite{lerner2024finpatents} 刻画金融
+创新专利的产出主体归属。银行 IT 投入侧, \textcite{he2026lendingit} 将银行 IT 支出
+拆分为不同技术定位, \textcite{vivesye2025itcompetition} 给出信息技术与贷款人竞争的
+理论, \textcite{pierri2022techbanking} 证明技术采纳影响危机期信贷绩效,
+\textcite{kwan2024digitalcapability} 提供银行层数字能力指数的同型测度先例。中国语境
+的外部效度由 \textcite{hau2024fintechcredit} (基于蚂蚁集团数据的 fintech 信贷证据)
+与 \textcite{alfhaili2026fintechequity} (银行金科股权投资对银行创新的影响) 提供;
+大数据对金融的一般性影响见 \parencite{goldstein2021bigdata,goldstein2019fintech}。
+
+\subsection{LLM 文本测度作为计量变量}
+
+第三条文献关乎测量方法本身。\textcite{ludwig2025llmecon} 给出 LLM 产出变量进入下游
+计量分析的应用计量框架, 区分预测用途与估计用途, 并强调标注误差对下游推断的传导;
+\textcite{carlson2026llmannotation} 为管理学研究中的 LLM 标注给出基础指南, 警示系统
+偏置与提示词敏感性。本文的设计直接回应这些警示: 三家独立厂商模型多数投票以对冲单一
+厂商系统偏置、提示词字节级冻结与温度归零以消除随机性、离线缓存保证字节级可复现,
+以及附录 \ref{app:validity} 中预先承诺的人工金标效度检验。
+
+\subsection{识别与推断}
+
+第四条文献支撑识别设计。同业工具变量的识别根基是 \textcite{manski1993reflection}
+的反射问题与 \textcite{leary2014peereffects} 在金融学中的 leave-one-out 同业构造先例;
+广义 Bartik 类工具的两条识别路径分别由 \textcite{goldsmithpinkham2020bartik} (份额
+外生) 与 \textcite{borusyak2022shiftshare} (冲击外生) 给出。交错处理与异质性效应下
+的事件研究估计依 \parencite{sunabraham2021eventstudy,callaway2021difference,
+borusyak2024revisiting}; 平行趋势局部偏离的部分识别敏感性依
+\textcite{rambachan2023honestdid}; 多重检验族错误率依 \textcite{romanowolf2005stepdown};
+小聚类数推断依 \textcite{roodman2019boottest} 的 wild cluster bootstrap。
+
+\subsection{本文定位}
+
+综合来看, 分类学文献确立了「底层 vs 应用」的概念区分但缺少大样本银行面板证据;
+银行技术文献度量 IT 支出或专利产出但缺少对「银行对外话语中技术定位」的直接观测;
+LLM 测度文献提供了工具但鲜有嵌入完整识别框架的应用。本文位于三者交点: 用受纪律
+约束的 LLM 测度把分类学构念转化为面板变量, 并以现代因果推断工具检验其对创新产出
+形态的结构对仗预测。
+
+\section{理论与假设}\label{sec:hypo}
+
+本文的理论骨架是: 银行 fintech 媒体话语的 locus 反映其数字化投入在分层架构中的
+位置 \parencite{gomber2017cube,yoo2010layered}, 而不同层的投入通过不同的经济机制
+映射到不同形态的创新产出 \parencite{boot2021fintech,adner2010ecosystem}。以下假设
+均为理论预期而非结果陈述; 其中仅 H1 为预先声明的验证性主假设, H2--H4 均为探索性。
+
+\paragraph{H1 (验证性主假设: 底层技术 $\to$ 技术创新)。}
+底层技术 (区块链 / AI / 云) 层面的话语反映银行对通用目的技术的真实投入取向。此类
+投入改变银行的信息生产函数, 其产出天然以可专利化的技术方案形态沉淀:
+\textcite{chen2019fintechvalue} 证明各 fintech 技术类别的专利具有显著且异质的私人
+价值, \textcite{he2026lendingit} 证明竞争压力诱发银行在软件类 IT 上加码投入。据此,
+\emph{理论预期}: 底层技术主导指示变量 \code{locus\_layer\_full} (由
+\code{tech\_frac} $>$ \code{app\_frac} 推导) 对引用加权专利产出
+(\code{citation\_weighted\_patent}) 的系数为正 (银行与年份双固定效应, 银行层聚类)。
+
+\paragraph{H2 (探索性对仗假设: 应用场景 $\to$ 收费业务)。}
+支付、信贷与理财是业务功能层的创新, 其投入改变的是分销渠道与产品界面而非底层技术
+栈 \parencite{parlour2022payments,boot2021fintech}; 其产出形态是手续费与佣金类收费
+业务, 而非专利。据此, \emph{理论预期}: 应用场景主导指示变量
+\code{locus\_scenario\_full} 对非利息收入占比 (\code{noninterest\_income\_share})
+的系数为正; 同时其对引用加权专利的效应应显著弱于 H1——这构成结构对仗设计中的
+placebo 侧, 若应用场景话语同等强度地预测专利, 则 locus 区分不具备判别效度。
+
+\paragraph{H3 (探索性中介: IT 资本开支与研发强度通道)。}
+若底层技术话语反映真实投入, 其对专利产出的作用应部分经由可观测的投入变量传导:
+IT 资本开支 (\code{capex\_it}, 主中介) 与研发强度 (\code{r\_and\_d\_intensity},
+次中介)。\emph{理论预期}: \code{locus\_layer\_full} $\to$ 中介 $\to$
+\code{citation\_weighted\_patent} 的间接通道为正。我们按 Baron--Kenny 分解估计
+\parencite{baron1986moderator}, 并依 \textcite{imai2010general} 报告序贯可忽略性
+违背的敏感性参数 $\rho$; 鉴于中介变量内生, 该分析明确标注为关联分解
+(association-decomposition) 而非因果中介。
+
+\paragraph{H4 (探索性异质性: 三波浪潮)。}
+locus 效应的强度应随各波浪潮的技术内容而变: 第二波 (2016--2018, 区块链 / 早期 AI)
+与第三波 (2022--2024, 大模型) 以底层技术为内容主体, 第一波 (2013--2015, 互联网金融)
+以支付与理财等场景为内容主体。\emph{理论预期}: \code{locus\_layer\_full} 对引用
+加权专利的效应在 wave\_2 与 wave\_3 更强; \code{locus\_scenario\_full} 对非利息收入
+占比的效应在 wave\_1 更强; 整固期 (2019--2021) 作为对照期 (三波各恰 3 年, 严格对称)。
 
 \section{方法}\label{sec:method}
-\subsection{样本与数据}
-$N \times T \approx 3000\text{--}9000$ 银行—年, 2007--2024。
 
-\subsection{Locus 度量 (stage 32a)}
-\NoteThis{innovation\_locus\_full 二元指示 → derived primary\_pair
-(locus\_layer\_full, locus\_scenario\_full) 与 locus\_gap.}
+\subsection{样本与数据}
+
+$N \times T \approx 3000\text{--}9000$ 银行—年, 2007--2024 (per spec.sample)。
+\NoteThis{paper\_spec.sample (n\_bank\_min=200 / obs\_target\_min=3000) 为银行宇宙
+扩容目标, 与当前 110 家银行 $\times$ $T=18$ (上限 1980 银行—年) 冲突, 样本规模待
+样本框 enrichment 与生产面板定稿后统一调和回填。}
+
+语料构建遵循两套明确分离的口径。\emph{原始普查口径} (过滤与去重之前, 供数据附录):
+183 个去重源文件, 共 18{,}198{,}978 条媒体报道, 时间跨度 2007-01-01 至 2025-12-31,
+覆盖 3{,}740 家媒体来源; 其中媒体类型为报纸的报道占全部行的 92.93\%
+(16{,}912{,}361 行) 予以保留, 通讯社、杂志、政府公报与网页等其余类型按行剔除;
+精确唯一记录 18{,}177{,}370 条 (重复率 0.12\%)。\emph{生产目标口径} (报纸筛选 /
+去重后、银行—金科共现硬过滤\emph{之前}): 约 1{,}700 万条, 2007--2024, $T=18$,
+110 家银行。进入回归的留篇宇宙 (共现硬过滤 $+$ \code{full} 轨留篇门控之后) 规模
+远小于该口径, \NoteThis{待生产管线跑毕回填}。两套口径不可混用。
+
+过滤链条包括: 目标银行实体识别 (否定与短名过滤的非对称判定口径)、金融科技词表
+匹配, 以及关键的共现硬过滤——仅保留「目标银行与至少一个金融科技词在 $\pm 1$ 句
+窗口内邻近共现」的文章 (\code{sentence\_radius}$=1$), 且共现判定同时覆盖标题与
+正文 (\code{match\_in\_title}$=$\code{true})。此后, 每篇文章物化为三条平行文本轨:
+\code{full} (标题 $+$ 全文)、\code{ctx} (标题 $+$ 实体上下文窗口) 与 \code{ss}
+(标题 $+$ 银行与金科词严格同句 $\pm 1$ 句窗), 三轨互为稳健性、不分主次。
+
+\subsection{Locus 度量 (管线 stage 21 文章级标注 $\to$ stage 40 面板聚合)}
+
+\paragraph{F1: LLM 集成标注。}
+文章级标注由三家独立厂商的大语言模型集成完成: \code{gpt-5.4-nano}、
+\code{gemini-3.1-flash-lite} 与 \code{deepseek-v4-flash}, 三家产出以多数投票形成
+共识标签。全部调用以 temperature $=0.0$、seed $=42$ 实传, 提示词 (prompt v8,
+v8-2026-05-17) 字节级冻结; 全部请求—响应对写入离线缓存, 缓存零缺失时可在完全
+离线、零 API 成本下字节级复现全部标注 \parencite{ludwig2025llmecon,
+carlson2026llmannotation}。中文分词锚定 \code{jieba==0.42.1}。
+
+\paragraph{F2: 三轨文本。}
+每一 LLM 维度在 \code{full} / \code{ctx} / \code{ss} 三条文本轨上独立标注, 产生
+\code{innovation\_locus} 的三轨版本。三轨互为稳健性、不分主次; 每轨进入各自恰好
+识别的独立设定, 绝不合并进同一过度识别系统 (见第 \ref{subsec:robust} 小节)。
+
+\paragraph{F3: 留篇门控。}
+一篇文章是否判为「银行金融科技报道」而进入分析宇宙, 仅由 full 轨验证标志
+\code{llm\_verified\_full}$=$\code{true} 决定 (full-only 门控); \code{ctx} 与
+\code{ss} 轨为 conditional-on-full 的稳健性测度轨, 其行宇宙是 full 留篇集的子集。
+
+\paragraph{F4: locus 标签与面板聚合。}
+文章级 locus 标签为混合 (HYBRID) 构造: LLM 多数投票为主体, 辅以关键词置信度调整
+与空票回退; 因此其效度数字继承关键词环路, 与纯 LLM 维度不可直接比较 (详见附录
+\ref{app:validity})。银行—年聚合 (管线 stage 40) 产生底层技术篇占比
+\code{tech\_frac} 与应用场景篇占比 \code{app\_frac}; 处理变量对
+(\code{locus\_layer\_full}, \code{locus\_scenario\_full}) 由复现包 Stata
+\code{01\_data\_prep.do} 推导 (唯一 producer, 不落 parquet):
+\code{locus\_layer\_full}$=\mathbf{1}[\code{tech\_frac}>\code{app\_frac}]$,
+\code{locus\_scenario\_full}$=\mathbf{1}[\code{app\_frac}>\code{tech\_frac}]$,
+两占比任一缺失则记缺失; 平票 (含双零) 时两指示变量同为 0, 作参照组; 次级测度
+\code{locus\_gap}$=$\code{locus\_layer\_full}$-$\code{locus\_scenario\_full}
+$\in\{-1,0,+1\}$。
 
 \subsection{识别策略}
-\NoteThis{Layer $\times$ event study + leave-one-out peer-locus 工具变量;
-4 events $\times$ 5 日 CAR + 专利 + Kogan 2017 市值加权。}
+
+\paragraph{基线双固定效应。}
+基线设定为
+\begin{equation}\label{eq:baseline}
+Y_{i,t} = \beta_1\,\mathrm{Layer}_{i,t} + \beta_2\,\mathrm{Scenario}_{i,t}
+ + \mathbf{X}_{i,t}'\boldsymbol{\gamma} + \alpha_i + \lambda_t + \varepsilon_{i,t},
+\end{equation}
+其中 $Y_{i,t}$ 为银行 $i$ 年 $t$ 的引用加权专利 (主结果) 或非利息收入占比 (对仗
+结果), $\mathrm{Layer}$ 与 $\mathrm{Scenario}$ 为上节推导的二元处理对, $\alpha_i$
+与 $\lambda_t$ 为银行与年份固定效应, $\mathbf{X}_{i,t}$ 为银行层与年度层控制
+(接入现状见第 \ref{sec:data} 节)。主规格标准误在银行层聚类 ($T=18$ 长面板的
+within-bank 序列相关); 聚类维度梯子与小聚类数修正见稳健性小节。
+
+\paragraph{Layer $\times$ 事件研究。}
+四个政策事件 (E1 余额宝 2013-06-13; E4 蚂蚁 IPO 暂停 2020-11-03; E5a 数据出境安全
+评估办法 2022-09-01; E5b 数据出境管理办法 2023-09-30) 提供外生的 fintech 环境冲击。
+我们估计
+\begin{equation}\label{eq:eventstudy}
+Y_{i,t} = \sum_{k \neq -1} \delta_k\, \mathbf{1}[t - t_e = k] \times
+\mathrm{Layer}^{\mathrm{pre}}_{i} + \alpha_i + \lambda_t + \varepsilon_{i,t},
+\end{equation}
+其中 $t_e$ 为事件年, $\mathrm{Layer}^{\mathrm{pre}}_i$ 为事件前测度的底层技术主导
+暴露, $k=-1$ 为省略基期; 交错与异质性效应下并排报告 \textcite{sunabraham2021eventstudy}
+交互加权估计量与 \textcite{borusyak2024revisiting} 插补估计量, 前趋势联合检验
+(leads $-3/-2/-1=0$) 与 \textcite{rambachan2023honestdid} 相对幅度部分识别敏感带
+配套报告 (E1 窗口最长, 敏感性分析在 E1 上执行; $M$ 网格 $\{0,0.5,1,1.5,2\}$)。
+
+\paragraph{Leave-one-out 同业工具变量。}
+locus 话语可能与银行不可观测创新禀赋同时决定。我们以同银行类型 $\times$ 年的
+leave-one-out 同业 \code{tech\_frac} 均值为工具:
+\begin{equation}\label{eq:iv}
+\code{tech\_frac}_{i,t} = \pi\, \overline{\code{tech\_frac}}^{\,\mathrm{LOO}}_{-i,g(i),t}
+ + \mathbf{X}_{i,t}'\boldsymbol{\phi} + \alpha_i + \lambda_t + u_{i,t},
+\end{equation}
+其中 $g(i)$ 为银行 $i$ 的类型组。识别逻辑源于同业效应文献: 同组同业的话语取向
+影响焦点银行的战略语言选择, 但在双固定效应与控制变量条件下不直接进入其专利生产
+函数 \parencite{manski1993reflection,leary2014peereffects}。主工具为同期 LOO 均值
+(\code{leave\_one\_out\_peer\_locus\_iv}), 后备工具为其一期滞后
+(\code{leave\_one\_out\_peer\_locus\_iv\_lag1}, 规避同期反射); \code{ctx} / \code{ss}
+轨各配其同轨 LOO 工具 (\code{lpeer\_locus\_iv\_ctx\{,\_lag1\}} /
+\code{lpeer\_locus\_iv\_ss\{,\_lag1\}})。每一「内生变量—工具」对各自进入恰好识别
+的独立 2SLS 设定; 绝不把多工具塞入同一过度识别系统, 因此不报告 Hansen J——各变体
+间的一致性本身即稳健性证据。弱工具场景 (Kleibergen--Paap F 低于常规临界值) 改读
+Anderson--Rubin 置信集。项目层面另有广义 Bartik 与媒体来源 house-style 两类工具
+引擎可作扩展 \parencite{goldsmithpinkham2020bartik,borusyak2022shiftshare}。
+
+\paragraph{推断纪律。}
+预先声明的唯一验证性主假设为 H1 (\code{locus\_layer\_full} $\to$
+\code{citation\_weighted\_patent}, 双固定效应); 其余全部设定 (H2--H4、三轨孪生、
+跨厂商孪生、次级结果、异质性切分、网络角色) 均明确标注为探索性。
+$\{\code{locus\_layer\_full}, \code{locus\_scenario\_full}\}$ 双处理族的族错误率
+以 Romano--Wolf stepdown 控制 (1{,}000 次重抽) \parencite{romanowolf2005stepdown};
+聚类数偏小或 few-treated 事件研究以 wild cluster bootstrap (9{,}999 次) 兜底
+\parencite{roodman2019boottest}。
 
 \subsection{嵌入类测度 (双主轨、互为稳健性; F5)}
+
 所有嵌入派生特征均在来自独立厂商的两个同为主测度的嵌入模型下并行
 计算、并排报告、互为稳健性: 阿里 \code{Qwen3-Embedding-8B}
 (4{,}096 维, 经硅基流动 API; canonical 无后缀列) 与 OpenAI
@@ -56,17 +309,199 @@ Google Gemini 嵌入; 自管线 v3.15.0 (2026 年 6 月) 起换为阿里
 情感标注 LLM 集成不受此变更影响: 嵌入模型与情感 LLM
 是互不相交的管线组件。
 
+需要强调的是, 本文的 locus 处理变量本身是 LLM 分类而非嵌入派生; 双嵌入梯子作用于
+嵌入派生的辅助测度与控制特征。
+
+\subsection{稳健性设计}\label{subsec:robust}
+
+本文的稳健性体系由若干互不交叉的梯子组成; 统一口径是: 每一梯子内的各变体
+\emph{互为稳健性、不分主次}, 各自进入\emph{恰好识别}的独立设定, \emph{绝不}把
+同一构念的多个测度变体合并进同一过度识别的 Hansen J 系统。
+
+\paragraph{三轨替代分类器与逐轨 IV 镜像。}
+同一 locus 构念在 \code{full} / \code{ctx} / \code{ss} 三种文本口径下重算, 产生
+\code{tech\_frac} 的 ctx 孪生 (\code{tech\_frac\_lc}) 与 ss 孪生
+(\code{tech\_frac\_ls}); 每轨内生变量配其同轨 LOO 工具, 逐轨恰好识别并排, 严禁
+full $\times$ ctx $\times$ ss 合成过度识别系统。行宇宙口径: 留篇门控为 full-only,
+ctx / ss 为 conditional-on-full。
+
+\paragraph{跨厂商 per-model 分类梯子。}
+处理变量的跨厂商稳健性: 三家 LLM 各自单独分类的
+$\{\code{gpt54nano},\code{gemini31},\code{deepseekv4}\}$\code{\_tech\_frac\_full}
+与共识投票版并排、同格 (co-equal) 互为稳健性, 每一 per-model 版本的分母为该模型
+自身验证通过的篇数。共识标签并非裸多数票 (含验证门控、清票与关键词回退), 故
+per-model 梯子是真正独立的测量臂。跨模型族的真族错误率由项目根级 Romano--Wolf
+模板 (Table A12, Panel C) 承担; 各家各自恰好识别, 禁混同一 Hansen J。
+
+\paragraph{IV 变体梯子与弱工具推断。}
+主工具 / 滞后后备 / 逐轨镜像共六个「内生变量—工具」对逐一恰好识别并排 (见识别
+策略小节); KP F 偏低时改读 Anderson--Rubin 置信集; 不构造任何过度识别检验。
+
+\paragraph{聚类梯子与 wild bootstrap。}
+主规格银行层聚类之外, 并排报告 bank-only、bank $\times$ year 双向与 bank-type
+$\times$ year 双向聚类; 聚类数 $G<50$ 或 few-treated 事件研究以 boottest wild
+cluster bootstrap (9{,}999 次) 复核 \parencite{roodman2019boottest}。
+
+\paragraph{Honest DiD 平行趋势敏感性。}
+事件研究结论对平行趋势局部偏离的敏感性以 \textcite{rambachan2023honestdid} 相对
+幅度部分识别带呈现 (E1, $M \in \{0,0.5,1,1.5,2\}$), 与异质性稳健估计量并排报告。
+
+\paragraph{Cell 分解与语言清晰度稳健表。}
+locus 与相邻构念 (P5 的 collab\_mode) 的 $2^2$ 交叉 cell 分解证明维度独立性
+(Table 6); collab\_mode 仅在 Table 5 作替代规格控制, 不是并列处理。语言清晰度
+稳健表 (Table A7) 双轨并排。已取消的标题轨表格不再出现。
+
+\paragraph{适用范围声明。}
+项目语料家族中的其他测度梯子 (词典语调的政治词权重与语言学规则消融、罕见词频次
+cutoff、前瞻性陈述二臂、BERT 情感 per-model 族等) 属于姊妹论文的构念族, 与本文的
+LLM 分类 locus 无关, 不进入本文稳健性体系。
+
 \section{数据}\label{sec:data}
-\NoteThis{数据来源 (CSMAR 日行情, IncoPat 专利, Kogan 2017 算法); 描述统计 (Table 1)。}
+
+\paragraph{媒体语料。}
+文本侧数据即第 \ref{sec:method} 节所述银行—金融科技媒体语料 (原始普查
+18{,}198{,}978 条 / 3{,}740 家来源 / 报纸 92.93\% 保留; 生产目标约 1{,}700 万条,
+共现硬过滤前口径, 2007--2024, 110 家银行)。
+
+\paragraph{专利数据。}
+创新产出侧计划接入 IncoPat 与国家知识产权局专利数据 (enrichment M0.5.11):
+主结果为引用加权专利 (\code{citation\_weighted\_patent}); 专利质量加权采用双轨
+并报——上市银行用 \textcite{kogan2017technological} 市值反应加权 (需股价, 仅上市
+行可行), 非上市银行退回引用计数加权 (Hall--Jaffe--Trajtenberg 谱系); 次级结果为
+fintech 专利计数 (\code{patent\_fintech\_count})。
+
+\paragraph{财务与中介数据。}
+应用场景轨对仗结果为财务面板的非利息收入占比 (\code{noninterest\_income\_share});
+中介变量为 CSMAR 的 IT 资本开支 (\code{capex\_it}) 与研发强度
+(\code{r\_and\_d\_intensity}); 上市行扩展 (5 日 CAR) 需 CSMAR/Wind 日频行情, 非
+年度主线。银行层财务控制 (资产对数、杠杆、资本充足率、不良率、存款增速) 与年度
+宏观控制 (GDP 增速、M2 增速) 的财务数据接入在进行中; 复现包在数据准备阶段以
+\code{capture confirm} 自校验, 仅装配实际存在的控制列, 财务面板接入后自动纳入。
+
+\paragraph{描述统计。}
+\NoteThis{Table 1 描述统计 (均值 / 标准差 / 分位数 / 银行覆盖) 待生产语料 (T=18)
+面板生成后回填。}
 
 \section{实证结果}\label{sec:results}
-\NoteThis{Table 2 (主回归: layer $\times$ event study); Table 3 (Baron-Kenny 中介:
-locus $\to$ R\&D / IT capex $\to$ patent + CAR); Table 4 (异质性 三波 fintech 浪潮
-wave\_1/2/3 + consolidation + SOE); Table 5 (稳健性: alternative locus classifier +
-Borusyak DiD)。}
+
+\subsection{主回归: Layer $\times$ 事件研究 (Table 2)}
+
+Table 2 报告式 \eqref{eq:baseline} 与式 \eqref{eq:eventstudy} 的估计: 左半为
+双固定效应基线 (列 1--2: \code{citation\_weighted\_patent}; 列 3--4:
+\code{noninterest\_income\_share}), 右半为四事件 layer $\times$ 事件研究。解读
+框架: H1 预期列 1--2 中 $\beta_1>0$; H2 预期列 3--4 中 $\beta_2>0$ 且
+$\beta_2^{(patent)}$ 显著弱于 $\beta_1^{(patent)}$ (结构对仗的 placebo 侧);
+事件研究预期底层技术暴露银行在 E1 后 (以及 E4/E5a/E5b 后视监管方向) 呈现差异化
+动态。\NoteThis{Table 2 系数、标准误、pre-trend 联合 F 与 rwolf 调整 p 值待生产
+回归回填。}
+
+\subsection{中介分解 (Table 3)}
+
+Table 3 按 Baron--Kenny 三步报告 \code{locus\_layer\_full} $\to$ \code{capex\_it}
+(主中介) / \code{r\_and\_d\_intensity} (次中介) $\to$
+\code{citation\_weighted\_patent} 的关联分解 \parencite{baron1986moderator},
+并依 \textcite{imai2010general} 报告 $\rho$ 敏感性 (序贯可忽略性违背下间接效应
+翻号所需的 $\rho$ 阈值)。该表明确标注为探索性关联分解而非因果中介。
+\NoteThis{Table 3 直接 / 间接效应分解与 $\rho$ 阈值待回填。}
+
+\subsection{异质性: 三波浪潮与所有制 (Table 4)}
+
+Table 4 按波次切分 (pre 2007--2012 / wave\_1 2013--2015 / wave\_2 2016--2018 /
+consolidation 2019--2021 / wave\_3 2022--2024) 与所有制 (国有 vs 非国有) 报告
+H4: 预期 \code{locus\_layer\_full} 的专利效应集中于 wave\_2 与 wave\_3,
+\code{locus\_scenario\_full} 的非息收入效应集中于 wave\_1, 整固期为对照。全部
+切分标注探索性。\NoteThis{Table 4 分组系数与组间差异检验待回填。}
+
+\subsection{替代分类器与替代估计量 (Table 5)}
+
+Table 5 并排报告: (i) ctx / ss 轨替代分类器 (\code{tech\_frac\_lc} /
+\code{tech\_frac\_ls} 及其推导指示变量), 每轨各自恰好识别; (ii) 跨厂商 per-model
+分类器; (iii) \textcite{borusyak2024revisiting} 插补 DiD 与
+\textcite{callaway2021difference} 分组时变估计量; (iv) 以 P5 的 collab\_mode 作
+替代规格控制 (仅控制, 非并列处理)。\NoteThis{Table 5 各臂系数与跨臂一致性叙述
+待回填。}
+
+\subsection{IV 估计 (2SLS)}
+
+依式 \eqref{eq:iv} 的六个恰好识别「内生变量—工具」对逐列报告第一阶段 F、二阶段
+系数与 (弱工具时的) Anderson--Rubin 置信集。\NoteThis{IV 表系数与 KP F 待回填。}
+
+\subsection{Cell 分解 (Table 6)}
+
+Table 6 报告 locus $\times$ collab\_mode 的 $2^2$ (4-cell) 跨构念分解,
+检验 locus 效应并非 collab 维的影子。\NoteThis{Table 6 cell 均值与分解份额待回填;
+paper\_spec 同时出现 ``$2^2$ cross-tab cells'' 与 ``8-cell decomposition'' 两种
+说法, 本稿统一取 $2^2$ 口径, cell 数以生产实现为准回填核对。}
 
 \section{结论}\label{sec:conclusion}
-\NoteThis{总结发现; fintech 监管与银行创新战略启示。}
+
+本文把数字金融分类学中的「技术维 $\times$ 业务功能维」区分
+\parencite{gomber2017cube} 操作化为中国 110 家银行 18 年媒体话语面板上的二元
+locus 测度, 并以「二元处理配二元产出」的结构对仗设计检验: 底层技术话语
+$\to$ 引用加权专利 (H1, 验证性), 应用场景话语 $\to$ 非利息收入占比 (H2, 探索性
+对仗)。\NoteThis{结论第一段的结果性总结 (H1--H4 支持情况) 待生产回归回填。}
+
+理论上, 结果将回答分层模块化架构 \parencite{yoo2010layered} 与信息—沟通二分
+\parencite{boot2021fintech} 是否在银行创新产出形态上留下可观测的指纹; 若结构对仗
+成立, 则「银行做 fintech」不是一个同质标量, 对其技术层定位的忽略会系统性误估
+数字化转型的创新回报。政策上, 结果将为 fintech 监管提供分层视角: 针对应用场景
+(支付 / 信贷 / 理财) 的监管冲击与针对数据 / 底层技术的监管冲击 (如两项数据出境
+办法) 可能作用于完全不同的银行创新边际; 对银行战略而言, 结果将刻画技术话语定位
+与创新产出形态之间的对应关系。\NoteThis{政策含义的方向性表述待结果确认后收紧。}
+
+本文的局限有三, 均须坦承。其一, 年度频率: 面板以银行—年为单位, 无法捕捉季度内
+的话语—投入动态, 事件研究的时间分辨率受限。其二, 媒体报道的内生性: 媒体话语由
+银行披露策略与媒体选择共同生成, 尽管 LOO 同业工具与事件研究缓解了部分担忧, 话语
+测度仍非随机指派; 中介分析亦仅为关联分解。其三, 外推边界: 中国是单一但独特的
+数字金融市场 (监管集中、平台主导、国有银行占比高), 结论向其他制度环境的外推须
+谨慎。此外, locus 机器标签为 LLM 投票与关键词调整的混合构造, 其效度证据以预先
+承诺的人工金标检验兑现 (附录 \ref{app:validity}), 在该证据到位前, 测量误差方向
+的讨论保持开放。
+
+\appendix
+
+\section{测量效度承诺}\label{app:validity}
+
+本附录预先登记 locus 测度的效度检验协议 (承诺状态: new\_2026-06-22; 证据状态:
+pending\_T18\_human\_annotation)。全部效度数字待生产语料 ($T=18$) 人工标注完成后
+回填; 在此之前本文不宣称任何效度数字已兑现。
+
+\paragraph{校标效度 (criterion validity)。}
+三名独立编码员对分层抽样文章集独立标注 locus, 以多数金标对照 LLM 三轨机器标签,
+报告 Cohen $\kappa$、Gwet AC1 与 Krippendorff $\alpha$ (管线 stage 63, Panel F)。
+\NoteThis{$\kappa$ / AC1 / $\alpha$ 数值待 T=18 人工标注回填。}
+须予披露: locus 机器标签为 HYBRID 构造 (LLM 多数投票 $+$ 关键词置信度调整 $+$
+空票回退), 其校标 / 判别 $\kappa$ 继承了纯 LLM 维度 (substance / collab) 所没有
+的关键词环路, 故 locus 效度数字与纯 LLM 维度不可直接比较。
+
+\paragraph{轨间信度 (inter-track reliability)。}
+full / ctx / ss 三轨机器—机器一致性以 Cohen $\kappa$ 报告 (stage 71)。
+\NoteThis{轨间 $\kappa$ 待回填。}
+
+\paragraph{构念正交性与判别效度。}
+文章级构念正交性以归一化互信息 (NMI) 为主证据 (stage 72); 判别效度辅助证据为
+焦点占比与语言清晰度 / 数字强度等相邻测度的 $|corr|$ 非冗余检验 (stage 73;
+单一 LLM 方法内的非冗余性证据, 不作方向性 $\kappa$ 解释)。
+\NoteThis{NMI 与 $|corr|$ 数值待回填。}
+
+\section{网络角色: 探索性附录}\label{app:network}
+
+本附录为探索性分析, 非主回归。第一, 中介通道: 以银行共现网络的介数中心度
+(\code{bank\_between\_cent}) 为候选中介, 检验底层技术话语是否经由跨群知识经纪
+位置 (结构洞逻辑) 影响专利产出——该通道 (知识经纪 $\to$ 创新) 与姊妹论文中
+风险传染通道 ($\to$ 盈利能力) 明确区分。中介内生, 故按关联分解框架估计并报告
+\textcite{imai2010general} $\rho$ 敏感性。第二, 异质性: 以年内 hub 分位指示
+(\code{bank\_is\_hub}) 切分 locus 效应。\NoteThis{网络中介与 hub 异质性估计待
+生产面板回填。}
+
+两点披露。其一, 判据敏感性: 自 2026-07 起, 网络指标提供三种银行—银行共现判据
+变体——同篇 (无后缀)、$\pm 1$ 句窗 (\code{\_win1}) 与严格同句 (\code{\_sent});
+三判据互为稳健性、各自恰好识别、属规格稳健性并排, 不设族错误率校正, 亦不合并
+过度识别。其二, 可复现性: current-flow 介数中心度 (\code{bank\_cfbetween\_cent})、
+聚类系数 (\code{bank\_clustering}) 与调和中心度 (\code{bank\_harmonic\_cent})
+三个列族 (含各判据后缀变体) 属 BLAS 浮点非确定列, 跨机复现按全名排除口径核验
+零漂移; 本稿使用的 Freeman 介数中心度 (\code{bank\_between\_cent}) 为确定性列,
+不在排除清单内。网络缺失约定为离网银行零填充并披露在网银行数 $N$。
 
 \printbibliography
 

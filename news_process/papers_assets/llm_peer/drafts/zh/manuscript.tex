@@ -1,5 +1,6 @@
 % llm_peer/drafts/zh/manuscript.tex
 % P4.2 中文 manuscript 骨架 (plan-r3 衍生论文扩展, 2026-05-15)
+% 2026-07-03 扩写: 引言/文献/假设/方法补全/数据/结果脚手架/结论 (结果性数字一律 \NoteThis 占位)
 % 编译: xelatex + biber + xelatex × 2
 
 \input{../../../_shared/preamble_zh.tex}
@@ -14,20 +15,180 @@
 \maketitle
 
 \begin{abstract}
-\NoteThis{最终摘要待定。}
-本文基于银行—年度金融科技媒体报道, 采用LLM 定义的同业集 (Cao \emph{et~al.}\ 2025) + 留一法工具变量,
-度量中国上市银行的LLM 同业留一法语调 IV (\code{llm\_peer\_tone\_iv\_full})。我们发现 \NoteThis{核心结论}\@。
+\NoteThis{最终摘要待定; 全部结果性数字待生产回归回填。}
+媒体语调如何影响银行的真实经营结果? 其因果识别面临双重障碍: 同业集合的传统定义依赖粗糙的
+行业代码或银行类型分类, 而语调与经营基本面之间存在双向因果与共同冲击。本文提出一套方法学
+方案: 以大语言模型 (LLM) 判定的语义同业关系 (对标 \textcite{cao2025genai} 的生成式 AI 同业
+识别范式) 替代分类同业, 在滞后一期的动态语义同业网上构造 ``滞后一期 + 文章级留出
+(leave-out)'' 的同业语调工具变量
+(\code{llm\_peer\_tone\_iv\_full}), 以两阶段最小二乘识别本行媒体语调
+(\code{llm\_vote\_tone\_full}) 对资产收益率 (\code{roa}) 的因果效应。语调由三家独立厂商的
+LLM 在 \code{temperature=0}、\code{seed=42}、字节级冻结 prompt 下多数投票产生, 全流程可
+离线零成本复现。目标语料为 110 家中国银行 2007--2024 年约 1{,}700 万条媒体报道。我们发现
+\NoteThis{核心结论: 主效应系数、显著性与第一阶段工具强度待生产回归回填}。本文贡献在方法学:
+给出 ``LLM 语义同业 $\rightarrow$ 公式型工具变量 $\rightarrow$ 恰好识别 2SLS'' 的完整可复现
+工作流, 并以受控稳健性阶梯证明结论不依赖任何单一测度选择。
 \end{abstract}
 
 \section{引言}\label{sec:intro}
-\NoteThis{阐释研究问题与贡献。}
+
+过去十余年, 中国银行业经历了一场由金融科技驱动的深刻转型: 移动支付、线上信贷与大数据
+风控重塑了银行的竞争边界, 金融科技信贷对实体经济的真实效应已获顶刊证据支持
+\parencite{hau2024fintechcredit}, 银行自身的金融科技投入亦被证明与信用风险相关联
+\parencite{cheng2020bankfintech}。在这一转型中, 媒体扮演着关键的信息中介角色:
+自 \textcite{tetlock2007media} 以来, 大量文献表明新闻语调承载着影响金融市场与企业行为的
+增量信息。对中国银行而言, 媒体对 ``银行 $\times$ 金融科技'' 议题的报道语调既反映外部
+利益相关者对其数字化战略的评价, 也可能通过声誉、融资与同业竞争压力反作用于其经营结果。
+然而, ``媒体语调 $\rightarrow$ 银行经营结果'' 的因果论断面临明显的内生性: 经营基本面好的
+银行本就获得更正面的报道 (反向因果), 而不可观测的战略质量同时驱动语调与业绩 (遗漏变量)。
+
+本文的研究问题是方法学的: 能否利用同业语调的外生变异来识别本行语调的因果效应?
+经典的同业工具变量思路 \parencite{leary2014peerfirms} 依赖 ``谁是同业'' 的先验定义,
+而传统的行业代码或银行类型分类 (国有大行/股份制/城商行/农商行) 对金融科技战略语境下的
+竞争关系刻画粗糙: 一家聚焦零售数字化的城商行, 其战略参照系未必是同省的农商行, 而可能是
+业务结构相似的异地股份制银行。我们借鉴 \textcite{cao2025genai} 在会计研究中开创的生成式
+AI 同业识别范式, 让 LLM 基于 $t-1$ 年新闻共提句所述的金融科技竞争关系判定每家银行的
+动态同业集合, 进而对每个银行—年取 $t-1$ 期各同业的文章级语调均值 (剔除与焦点银行共提
+的文章) 再等权平均, 构造 ``滞后一期 + 文章级留出'' 的同业语调工具
+(\code{llm\_peer\_tone\_iv\_full}), 以两阶段最小二乘识别本行语调
+(\code{llm\_vote\_tone\_full}) 对资产收益率 (\code{roa}) 的效应。
+
+识别策略上, 工具的 ``滞后一期 + 文章级留出'' 双重构造回应 \textcite{manski1993reflection}
+的反射问题: 工具建立在 $t-1$ 期同业信息之上以规避同期联立, 且各同业语调均值剔除与焦点
+银行共提的文章, 切断 ``自己影响自己'' 的机械同源; 而 LLM 语义同业网的非对称、非传递结构提供了
+\textcite{bramoulle2009networks} 意义上的网络识别变异 (同业的同业不必是自己的同业)。
+估计采用银行与年份双固定效应, 标准误在银行层面聚类; 工具强度以对聚类稳健的
+Kleibergen--Paap rk Wald F 统计量 \parencite{kleibergen2006rank} 对照 Stock--Yogo 临界值
+\parencite{stock2005weak} 评估, 并辅以弱工具稳健的 Anderson--Rubin 置信区间
+\parencite{andrews2019weakiv}。全文遵循 ``一篇一识别'' 的推断纪律: 唯一的验证性
+(confirmatory) 主规格预先声明, 其余全部梯子标为探索性 (exploratory) 并做
+Romano--Wolf 族错误率校正 \parencite{romano2005stepdown}。
+
+本文与同一数据基础设施上的姊妹论文严格区分: 姊妹论文以语调、关注度或战略属性为处理变量
+研究银行金融科技行为本身, 而本文是方法学论文, 其对象是 ``LLM 判定语义同业 + 滞后留出工具''
+这一识别引擎; 主结局刻意选取真实经济结局 \code{roa} 而非任何文本派生量, 以回避
+``同业文本量 $\rightarrow$ 本行文本量'' 的近同义反复与跨论文同源污染 (详见方法节的
+同源性披露)。
+
+本文的贡献有四。第一, 方法学贡献: 将 \textcite{cao2025genai} 的 LLM 同业识别从描述性
+效度检验推进到工具变量识别框架, 给出 ``语义同业网 $\rightarrow$ 公式型滞后留出工具
+$\rightarrow$ 恰好识别 2SLS'' 的完整工作流。第二, 测度贡献: 语调由三家独立厂商 LLM 多数
+投票产生, 并与三个中文金融 BERT、六部词典的消融变体构成跨方法测度族, 全部测度以
+``互为稳健性、不分主次'' 的并排结构进入各自恰好识别的独立设定。第三, 可复现性贡献:
+\code{temperature=0}、\code{seed=42}、prompt 字节级冻结与全量调用缓存使整条测度链可离线
+零成本逐字节复现, 直接回应 LLM 标注中隐性研究者自由度的警示 \parencite{baumann2025llmhacking}。
+第四, 语料贡献: 识别建立在 110 家中国银行 2007--2024 年约 1{,}700 万条媒体报道之上,
+为单一新兴市场银行业提供了迄今最大规模之一的银行—媒体文本面板。
+
+余文结构如下: 第 \ref{sec:lit} 节综述文献; 第 \ref{sec:theory} 节发展假设;
+第 \ref{sec:method} 节给出测度与识别设计; 第 \ref{sec:data} 节描述数据;
+第 \ref{sec:main}--\ref{sec:het} 节报告基准、机制与异质性结果的呈现框架;
+第 \ref{sec:robust} 节交代稳健性阶梯; 第 \ref{sec:concl} 节结论。
 
 \section{文献综述}\label{sec:lit}
-(1)~基于 LLM 的同业识别 (Cao \emph{et~al.}\ 2025 \emph{RAS}); (2)~Stock--Yogo (2005) 弱工具检验; (3)~Kleibergen--Paap (2006) 秩识别。
+
+\subsection{LLM 同业识别与 LLM 金融文本分析}
+本文的方法学定位直接锚于 \textcite{cao2025genai}: 该文首次系统证明生成式 AI 能够识别
+经济意义上的同业企业, 且其同业集合在解释估值与业绩共动上优于行业代码。更广泛地,
+LLM 作为金融与会计文本的测度工具已形成学科规范: \textcite{dekok2025chatgpt} 给出了在
+会计研究中使用生成式 LLM 做文本分析的最佳实践 (含 temperature 置零与 prompt 版本固定),
+\textcite{eisfeldt2025genai} 从金融学视角综述了生成式 AI 的方法边界。应用先例方面,
+\textcite{jha2024chatgpt} 用 LLM 从企业文本构造前瞻性政策指标并接入面板回归,
+\textcite{hansen2023fedspeak} 证明 LLM 对央行文本立场的分类优于词典与 BERT,
+\textcite{gilardi2023chatgpt} 证明 LLM 标注质量超过众包标注者。与此同时, 方法论警示
+同样清晰: \textcite{baumann2025llmhacking} 量化了 LLM 标注中模型/prompt 选择带来的隐性
+研究者自由度 (``LLM hacking''), \textcite{ludwig2025llmframework} 给出 LLM 测度进入
+应用计量框架的有效性条件, \textcite{levy2026lookahead} 提供了商用 LLM 前视偏误的顶刊
+证据。本文的三厂商投票、确定性解码与字节级冻结 prompt 设计正是对这组警示的工程化回应。
+
+\subsection{同业效应识别: 反射问题、网络识别与留一法工具}
+同业效应识别的起点是 \textcite{manski1993reflection} 的反射问题: 线性均值模型中内生
+同业效应与情境效应不可分。\textcite{bramoulle2009networks} 证明网络结构 (非传递性、
+同业的同业) 可恢复识别, 其后续综述 \parencite{bramoulle2020survey} 系统总结了网络识别
+的适用条件。金融学中, \textcite{leary2014peerfirms} 以同业特质冲击为工具识别同业对
+公司财务政策的影响, 是留一法同业工具的经典范式; 本文的滞后留出语调工具与其属同一
+家族, 但以同业\emph{结果均值}近似特质冲击, 差异与残余识别假设在方法节明示。
+\textcite{luo2025causalpeer} 进一步给出未观测混淆下用工具变量识别因果同伴效应的一般
+条件。在 ``用文本定义同业'' 的谱系上, \textcite{hoberg2016textnetwork} 的文本网络行业
+(TNIC) 是奠基性对照: 其以产品描述相似度定义连续同业关系; 本文的 LLM 语义同业可视为其
+生成式升级 --- 同业判定不再依赖词袋相似度, 而是模型对业务与战略语义的整体理解。
+
+\subsection{弱工具诊断、聚类稳健推断与多重检验}
+本文的推断工具箱来自三支文献。弱工具方面, \textcite{kleibergen2006rank} 的 rk Wald F
+统计量对聚类稳健, 是我们第一阶段强度的主报告统计量, 对照 \textcite{stock2005weak}
+临界值; \textcite{montielolea2013weak} 的 effective F 适用于非独立同分布误差;
+\textcite{andrews2019weakiv} 综述了弱工具稳健推断 (AR 置信区间、tF 程序) 的现代做法,
+本文在主表并行报告; 当多个并排工具 (如 IV 三引擎) 需做联合推断时, 多弱工具情形的
+推断以 \textcite{mikusheva2022manyweak} 为参照。聚类方面, \textcite{mackinnon2023cluster} 与
+\textcite{cameron2015practitioner} 指导了银行层面主聚类、双向聚类与少簇情形 wild
+bootstrap 的选择。多重检验方面, \textcite{romano2005stepdown} 的逐步降维程序控制族
+错误率, 是本文全部探索性家族的校正标准。
+
+\subsection{媒体语调测度与中国银行—金融科技情境}
+媒体语调影响金融结果的奠基证据来自 \textcite{tetlock2007media};
+\textcite{shapiro2022newssentiment} 从计量经济学角度系统比较了词典与模型两类新闻情感
+测度并给出效度基准, 直接支撑本文 LLM/BERT/词典三方法并行的设计。中文语境下,
+\textcite{du2022chinesedict} 构建并验证了领域特异的中文金融情感词典, 是本文词典稳健轨
+与政治词权重梯子的出处。中国银行—金融科技情境方面, \textcite{cheng2020bankfintech}
+将银行金融科技文本指数接入银行—年面板考察信用风险, 是与本文数据结构最接近的对标;
+\textcite{hau2024fintechcredit} 则提供了中国金融科技信贷真实经济效应的因果证据。
+
+\subsection{本文的缺口定位}
+综合来看, 三个缺口尚未被填补: (i) LLM 同业识别 \parencite{cao2025genai} 迄今主要用于
+效度验证与描述性应用, 尚未被系统嵌入工具变量识别框架; (ii) 同业语调工具在中文银行业
+语境中缺少大规模、可复现的实现; (iii) LLM 文本测度文献与同业效应识别文献彼此独立发展,
+缺少将两者桥接、并以完整稳健性阶梯约束研究者自由度的方法学范本。本文同时填补这三个缺口。
+
+\section{理论与假设}\label{sec:theory}
+
+本节从信息中介与同业压力两条机制推导四个可检验假设。以下均为理论预期,
+全部系数、显著性与检验统计量待生产语料回归回填 \NoteThis{结果回填后逐条对照}。
+
+媒体语调之所以可能影响银行经营结果, 有两条互补机制。其一是信息中介机制: 媒体对银行
+金融科技战略的正面报道降低外部利益相关者 (储户、同业拆借对手、监管者) 的信息不对称,
+改善融资条件与业务拓展环境 \parencite{tetlock2007media}; 其二是战略推进机制: 有利的
+舆论环境降低银行内部推进数字化转型的组织阻力, 促成金融科技投入转化为成本节约与收入
+多元化 \parencite{cheng2020bankfintech,hau2024fintechcredit}。两条机制的方向一致,
+均预期正面语调改善盈利能力。据此提出:
+
+\textbf{H1 (验证性主假设).} 本行媒体语调 (\code{llm\_vote\_tone\_full}, 由
+\code{llm\_peer\_tone\_iv\_full} 工具化) 对资产收益率 (\code{roa}) 的因果效应为正
+($\beta > 0$)。
+
+H1 的识别前提是工具的相关性。同业语调之所以预期传导至本行语调, 是因为语义同业面对
+共同的产品市场与舆论议题: 当同业的金融科技战略获得正面报道时, 媒体对可比银行的同类
+议题关注与评价框架随之迁移, 且银行自身亦会响应同业的战略信号 \parencite{leary2014peerfirms};
+``滞后一期 + 文章级留出'' 的双重构造保证该传导不含机械的自我成分
+\parencite{manski1993reflection}。据此提出:
+
+\textbf{H2 (第一阶段).} LLM 同业滞后留出语调 (\code{llm\_peer\_tone\_iv\_full}) 与本行
+语调正相关, 且第一阶段强度足以通过弱工具诊断 (Kleibergen--Paap rk Wald F 超过
+Stock--Yogo 临界值)。\NoteThis{第一阶段 F 值待回填。}
+
+若 H1 成立, 语调影响盈利的一条中间通道是本行对金融科技议题的关注与投入强度: 正面语调
+环境下银行更积极地推进金融科技布局, 表现为本行金融科技报道强度上升。该通道检验刻意
+定位为机制佐证而非并列主结局, 因为其因变量与姊妹论文的处理变量同源 (见方法节同源性
+披露)。据此提出:
+
+\textbf{H3 (机制佐证, 非主结局).} 工具化的本行语调对本行金融科技报道强度
+(\code{avg\_ft\_intensity\_full}) 的效应为正。
+
+最后, 同业语调压力的传导强度应随银行对市场信号的响应弹性而异。国有大型银行受行政
+目标、隐性担保与更严格的规模监管约束, 其战略调整对同业舆论压力的敏感度预期低于
+股份制银行与城商行; 交互项推断遵循 \textcite{brambor2006understanding} 的完整交互
+模型规范。据此提出:
+
+\textbf{H4 (异质性).} 语调效应在国有大型银行中衰减: \code{llm\_vote\_tone\_full}
+$\times$ SOE 交互项预期为负; 鉴于行政约束亦可能放大部分渠道, 检验采用双侧。
+\NoteThis{交互项符号与显著性待回填。}
 
 \section{方法}\label{sec:method}
 \subsection{样本与数据}
-银行—年度面板覆盖约 164 个银行—年观测 (2017--2018)。
+目标样本为银行—年度面板: 110 家中国银行 $\times$ 2007--2024 年 (T=18), 生产目标语料
+约 1{,}700 万条银行/金融科技媒体报道 (与第 \ref{sec:data} 节的原始普查口径为两套口径,
+不可混用)。本稿当前展示的中间数值出自开发子样本 (110 家银行 $\times$ 2 年,
+2017--2018, T=2 \NoteThis{开发子样本银行—年观测数以盘上面板实读为准});
+全部表格与统计量待生产语料机回填 \NoteThis{生产回归回填后更新}。
 所有数据由 \code{news\_process} 管线 (Phase 9b 基线) 处理,
 详见 \code{papers\_assets/V6\_METHODOLOGY\_CHANGES.md}。
 
@@ -79,25 +240,273 @@ Google Gemini 嵌入; 自管线 v3.15.0 (2026 年 6 月) 起换为阿里
 情感标注 LLM 集成 (F1) 不受此变更影响: 嵌入模型与情感 LLM
 是互不相交的管线组件。
 
+\subsection{LLM 同业集构造}
+遵循 \textcite{cao2025genai} 的生成式同业识别范式, 但输入并非 roster 式的银行名单加
+业务画像: 对每个焦点银行 $\times$ 年份, 我们从 $t-1$ 年新闻正文中抽取\emph{共提句}
+--- 同时提及焦点银行与其他银行 (规范化后不同银行 $\geq 2$ 家) 且含金融科技关键词的
+句子 --- 将编号句子集送入 LLM (\code{temperature=0}、\code{seed=42}、JSON 输出,
+prompt 独立版本化冻结), 由其判定报道所述在金融科技领域与焦点银行构成\emph{产品市场
+竞争关系}的银行 (\code{llm\_peer\_iv.py}, 管线 stage 7h-llmpeer)。同业集按银行—年
+逐年动态生成, 上限 10 家, 对齐 \textcite{hoberg2016textnetwork} TNIC ``10 closest
+peers'' 标准 (亦为 \textcite{cao2025genai} 的评估基准)。LLM 返回的同业名称经三策略
+归一到面板银行标识: 精确匹配、变体映射 (如简称 ``工行'')、唯一子串包含; 行业泛称
+歧义 (子串命中多于一家规范名) 与词典外名称一律拒绝, 不做任何模糊吸附。须披露:
+同业集派生自判定语调所用的同一媒体语料 (共提句), 该同源性对排除性约束的含义在
+识别假设小节明示。
+
+\subsection{计量模型}
+基准设定为银行—年面板上的两阶段最小二乘。结构方程为
+\begin{equation}\label{eq:second}
+\mathit{roa}_{it} = \beta \cdot \mathit{Tone}_{it}
+ + \Gamma' X_{it} + \alpha_i + \delta_t + \varepsilon_{it},
+\end{equation}
+其中 $\mathit{Tone}_{it}$ 为本行语调 \code{llm\_vote\_tone\_full} (内生处理变量),
+$X_{it}$ 为控制向量, $\alpha_i$、$\delta_t$ 分别为银行与年份固定效应。
+第一阶段为
+\begin{equation}\label{eq:first}
+\mathit{Tone}_{it} = \pi \cdot \mathit{PeerTone}^{\mathrm{LOO}}_{it}
+ + \Lambda' X_{it} + \alpha_i + \delta_t + \nu_{it},
+\end{equation}
+排除性工具为 ``滞后一期 + 文章级留出 (leave-out)'' 双重构造的 LLM 同业语调均值
+\begin{equation}\label{eq:loo}
+\mathit{PeerTone}^{\mathrm{LOO}}_{it}
+ = \frac{1}{|\mathcal{P}_{i,t-1}|} \sum_{j \in \mathcal{P}_{i,t-1}}
+ \overline{\mathit{Tone}}^{\,(-i)}_{j,t-1},
+\end{equation}
+其中 $\mathcal{P}_{i,t-1}$ 为由 $t-1$ 年新闻共提句构建的银行 $i$ 动态语义同业集
+(排除自身; 构造见上小节), $\overline{\mathit{Tone}}^{\,(-i)}_{j,t-1}$ 为同业 $j$ 在
+$t-1$ 年全部文章级语调的均值、\emph{剔除与焦点银行 $i$ 共同提及的文章} (文章级
+leave-out), 外层对同业等权平均; 对应面板列 \code{llm\_peer\_tone\_iv\_full}。
+滞后一期规避 \textcite{manski1993reflection} 的同期反射问题; 文章级留出切断共提
+报道使同业均值机械嵌入自身报道语调的通道。须明确: 内生变量是\emph{本行}语调
+$\mathit{Tone}_{it}$, 工具是同业语调; 我们估计的是本行语调的因果效应, 而非把工具
+本身当作处理变量。单内生变量配单工具, 系统恰好识别 (just-identified)。标准误在银行
+(\code{bank\_id}) 层面聚类。
+
+\subsection{识别假设}
+排除性约束要求: 在固定效应与控制变量条件下, 同业语调仅通过本行语调影响本行
+\code{roa}。三点支撑该约束。第一, ``滞后一期 + 文章级留出'' 的双重构造: 工具建立在
+$t-1$ 期信息之上以规避同期反射问题的联立性 \parencite{manski1993reflection}, 且每个
+同业的语调均值剔除了与银行 $i$ 共提的全部文章, 切断共享报道的机械同源通道; 第二,
+LLM 语义同业网是非对称、非传递的有向结构, 满足 \textcite{bramoulle2009networks}
+网络识别所需的 ``同业的同业'' 排除性变异; 第三, 年份固定效应吸收全行业共同冲击,
+银行固定效应吸收时不变的战略与报道倾向, 残余威胁 (省域共同冲击、同业直接业务关联)
+由省级聚类方案与网络位置基线控制 (第 \ref{sec:robust} 节) 分别探查。须如实披露残余
+识别假设: 在语调存在持续性的情形下, 该构造仍要求同业 $t-1$ 期的特质报道冲击对银行
+$i$ 第 $t$ 期结果\emph{仅}经同业渠道起作用; 且同业集本身派生自判定语调所用的同一
+媒体语料 (共提句, 见上小节), 该同源性属排除性约束的披露项而非可检验命题。识别结构
+与 \textcite{leary2014peerfirms} 的同业工具属同一家族但\emph{并非直接同构}: L\&R
+正因同业\emph{结果均值}难以满足排除约束而改用同业特质 (股票收益) 冲击为工具; 本文
+以滞后一期与文章级留出缓解同业语调均值的机械相关, 并将上述残余假设明示为识别代价。
+\textcite{luo2025causalpeer} 的工具变量同伴效应识别条件为该构造提供了一般化依据。
+
+\subsection{推断纪律: 验证性与探索性}
+本文遵循 ``一篇一识别'' 纪律: 唯一的验证性 (confirmatory) 主规格为 Table~2 的 M3 列
+(全文轨 2SLS, 全控制, 银行聚类), 在数据分析前预先声明; 其余全部设定 --- 三轨镜像、
+cutoff 梯子、替代工具、加权聚合、跨模型与跨方法测度族 --- 一律标注为探索性
+(exploratory) 家族, 并按家族做 Romano--Wolf 逐步降维校正
+\parencite{romano2005stepdown} (管线根级模板 \code{27\_tableA12\_cross\_model\_fwer})。
+如实披露: 部分探索性家族的 FWER 校正 battery 采取 wire-ahead 方式接线, 待生产语料
+回归时一并执行 \NoteThis{生产机回填后更新校正后 p 值}。
+
+\subsection{同源性披露 (avg\_ft\_intensity\_full 与姊妹论文)}
+机制检验因变量 \code{avg\_ft\_intensity\_full} (本行金融科技报道强度) 与姊妹论文
+(注意力篇) 的处理变量 \code{attention\_index\_full} 派生自同一媒体语料, 存在同源性。
+为此: (i) 本文主结局采用真实经济结局 \code{roa}, 使主假设 H1 完全独立于文本量测度;
+(ii) \code{avg\_ft\_intensity\_full} 仅作 H3 机制佐证, 定位为 non-headline, 不与 H1
+并列; (iii) 该同源关系在此显式声明, 避免跨论文的隐性重复计数。
+
+\subsection{聚类层级声明}
+主规格标准误在 \code{bank\_id} 层面单向聚类 (110 个簇)。附录并行报告银行—年双向聚类
+与省级聚类方案; 省级方案簇数较少, 按 \textcite{mackinnon2023cluster} 与
+\textcite{cameron2015practitioner} 的实践指引配 wild cluster bootstrap 推断。
+\NoteThis{各方案标准误对比待回填。}
+
 \section{数据描述}\label{sec:data}
-\NoteThis{Table 1 描述统计参见 \code{papers/llm_peer/tables.py:build\_table1}。}
+
+\subsection{语料口径链条}
+语料构建遵循 ``原始普查 $\rightarrow$ 类型过滤 $\rightarrow$ 共现过滤 $\rightarrow$
+面板'' 的口径链条, 两端口径不可混用。上游原始普查 (过滤与去重之前的全量) 计
+18{,}198{,}978 条媒体报道, 时间跨度 2007-01-01 至 2025-12-31, 来自 183 个去重源文件、
+3{,}740 家媒体来源; 其中媒体类型为报纸的报道占全部行的 92.93\,\% (16{,}912{,}361 行),
+予以保留, 通讯社、杂志、政府公报与网页等其余类型按行剔除。经报纸类型筛选与研究窗口
+(2007--2024) 截取后、银行—金融科技共现硬过滤\emph{之前}, 生产目标语料约 1{,}700 万条,
+覆盖 110 家银行, 构成 T=18 银行—年面板的上游底座; 共现硬过滤后的留存文章量待生产管线
+运行后回填 \NoteThis{共现硬过滤后留存量待生产回填}。文章依次经共现硬过滤、三家 LLM
+验证与全文轨留篇门控 (F2) 后聚合为银行—年观测。
+
+\subsection{变量定义}
+处理变量为本行语调 \code{llm\_vote\_tone\_full}: 银行—年内经验证文章的三家 LLM 多数
+投票语调均值 (全文轨)。工具变量为 \code{llm\_peer\_tone\_iv\_full}: 式 \eqref{eq:loo}
+的 ``滞后一期 + 文章级留出'' LLM 同业语调均值。主结局为 \code{roa} (资产收益率), 来自外部财务面板;
+如实披露: 财务面板接入前, 管线数据准备阶段对该列采取 fail-loud 的优雅跳过 (缺席即
+显式报错而非静默填充), 财务数据将在生产回填时接入。次级结局
+(\code{ln\_fintech\_investment}、\code{citation\_weighted\_patent}、\code{tobin\_q})
+用于附录。机制变量为 \code{avg\_ft\_intensity\_full} (见同源性披露)。当前控制集为
+媒体覆盖代理: \code{ln\_news\_coverage} (报道量对数)、\code{media\_hhi} (媒体来源
+集中度) 与 \code{n\_articles} (文章数); 财务控制 (5 列) 与宏观控制 (2 列) 随财务
+面板接入补齐。
+
+\subsection{描述统计}
+\NoteThis{Table 1 描述统计参见 \code{papers/llm_peer/tables.py:build\_table1};
+全部均值/标准差/分位数待生产语料回填。}
+Table~1 将报告处理变量、工具、结局与控制的银行—年层面分布, 以及语调三分类
+(正面/负面/缺失) 的构成; 按银行类型分组的子样本描述见附录。
 
 \section{基准回归}\label{sec:main}
-\NoteThis{Table 2 源自 \code{output/tables/table2\_*.csv}; Figure 2 系数图。}
+
+Table~2 (模板 \code{11\_table2\_main\_iv\_2sls}) 按 M1--M5 递进呈现主结果:
+M1 为 OLS 基准 (式 \eqref{eq:second} 不做工具化), 提供内生性偏误的方向参照;
+M2 为全文轨 2SLS 精简控制; M3 为全文轨 2SLS 全控制 --- 即预先声明的\emph{唯一验证性
+主规格}; M4--M5 为 ctx/ss 轨的镜像设定 (各配同轨工具, 各自恰好识别, 属探索性并排,
+解释以 M3 为准)。每列 2SLS 报告: 第一阶段系数 $\pi$ 与 Kleibergen--Paap rk Wald F
+\parencite{kleibergen2006rank} 对照 Stock--Yogo 临界值 \parencite{stock2005weak},
+以及弱工具稳健的 Anderson--Rubin 置信区间 \parencite{andrews2019weakiv}。
+解读框架: 若 H1 成立, M3 的 $\hat\beta$ 应为正且 AR 区间不含零; OLS 与 2SLS 系数之差
+指示反向因果与遗漏变量的净方向。
+\NoteThis{Table 2 全部系数、标准误、KP F 与 AR 区间待生产回归回填;
+Figure 2 系数图源自 \code{output/tables/table2\_*.csv}。}
 
 \section{机制检验}\label{sec:mech}
-\NoteThis{Table 3 源自 \code{output/tables/table3\_*.csv}; Figure 3。}
+
+Table~3 检验 H3 的中间通道: 以工具化的本行语调为解释变量, 本行金融科技报道强度
+\code{avg\_ft\_intensity\_full} 为因变量, 设定与式 \eqref{eq:second} 一致 (仅替换
+因变量)。解读框架: 正系数支持 ``同业语调 $\rightarrow$ 本行语调 $\rightarrow$ 本行
+金科关注强度'' 的传导链条; 该表定位为机制佐证 (non-headline), 因变量与姊妹论文处理
+变量同源 (见方法节披露), 不作为独立的主张来源。
+\NoteThis{Table 3 源自 \code{output/tables/table3\_*.csv}; Figure 3; 系数待回填。}
 
 \section{异质性}\label{sec:het}
-\NoteThis{Table 4 (SOE × 论文专属交互) 源自
-\code{output/tables/table4\_heterogeneity.csv}。}
+
+Table~4 (模板 \code{13\_table4}) 检验 H4: 在 M3 基础上加入
+\code{llm\_vote\_tone\_full} $\times$ SOE 交互项, 主效应与交互项同报, 交互模型规范
+遵循 \textcite{brambor2006understanding} (完整边际效应与其置信区间, 不以交互项系数
+单独解读)。理论预期交互项为负 --- 国有大型银行对同业语调压力的战略响应弹性较低,
+溢出效应衰减; 因行政约束亦可能放大部分渠道, 采用双侧检验。
+\NoteThis{Table 4 (SOE $\times$ 论文专属交互) 源自
+\code{output/tables/table4\_heterogeneity.csv}; 交互项符号与边际效应图待回填。}
 
 \section{稳健性}\label{sec:robust}
-\NoteThis{Table 5 (论文专属稳健性矩阵) 源自
-\code{output/tables/table5\_*.csv}。}
+
+本节全部梯子共享同一口径纪律: 各梯子内的并排设定\emph{互为稳健性、不分主次}, 每个
+设定单内生变量配单工具、各自恰好识别 (just-identified), \emph{绝不}把多轨/多档/多模型
+的工具合并进同一过度识别 (over-identified) 系统。这一纪律的理由是: 并排工具派生自
+同一文本语料, 暴露于同类共同冲击, 强行堆叠成过度识别系统后 Hansen J 检验对这类共同
+偏误的功效趋近于零, 通过 J 检验并不能提供有效性证据, 反而制造虚假安慰
+\NoteThis{Parente--Santos Silva (2012, Economics Letters) 佐证引用待文献池收录后挂载}。
+各梯子之间正交、不交叉组合, 避免规格空间的组合爆炸。
+\NoteThis{Table 5 (论文专属稳健性矩阵) 源自 \code{output/tables/table5\_*.csv};
+以下各小节数字均待生产回归回填。}
+
+\subsection{三轨文本归因窗口镜像}
+全文轨 (\code{full})、实体上下文轨 (\code{ctx}) 与银行—金科同句共现轨 (\code{ss})
+三条归因窗口各配内生孪生变量与\emph{同轨}滞后留出工具
+(\code{llm\_peer\_tone\_iv\_\{full,ctx,ss\}}), 在 Table~2 的 M4--M5 并排呈现。留篇
+门控为 full-only, ctx/ss 是 conditional-on-full 的稳健轨 (F2)。三轨绝不合成同一
+过度识别系统。
+
+\subsection{同业名称匹配 cutoff 后缀列 (披露, 非敏感性证据)}
+面板保留五档后缀列 (如 \code{llm\_peer\_tone\_iv\_full\_75}, 档位
+$\{0.70, 0.75, 0.80, 0.85, 0.90\}$, 无后缀主列 $=$ 0.80 档; 模板 \code{12\_table3}
+消费该 schema)。如实披露: 该 cutoff 是历史版本 \code{difflib} 模糊匹配兜底的字符串
+严格度参数; 现行名称归一 (精确/变体/唯一子串三策略, 见方法节) 已整体移除该兜底,
+cutoff 参数完全惰性, \emph{五档列结构性逐位相同}, 仅为 Stata schema 兼容而保留。
+因此本文\emph{不}将其作为敏感性检验呈现 --- 五档结果必然恒等, 若呈现为梯子将构成
+虚假稳健性主张。真正有识别力的同业集敏感性维度 (同业数上限、共提句筛选口径、单模型
+vs 多模型判定) 留待后续扫描 \NoteThis{同业集构造敏感性扫描待生产语料机执行}。
+
+\subsection{替代工具: 同业覆盖 IV}
+模板 \code{14\_table5} 以 $t-1$ 期同业媒体覆盖量的均值 (\code{llm\_peer\_coverage\_iv},
+集合层面排除自身) 替代同业语调构造工具, 作为独立的 instrument-robustness 设定并排
+呈现; 不与主工具合并进过度识别系统。如实披露: 与主工具不同, 该辅助工具为 panel 级
+同业均值, \emph{未}做文章级留出, 共提报道的声量成分保留在工具内, 其构造弱于主工具
+的双重口径, 仅作辅助稳健性呈现。
+
+\subsection{IV 三引擎并排}
+管线提供三类公式型工具引擎: 同组留一法均值 (\code{leave\_one\_out\_peer\_*\_iv})、
+广义 Bartik (\code{bartik\_*\_iv}; 候选修剪见 F4) 与媒体来源 house-style 暴露
+(\code{outlet\_*\_iv})。三引擎各自进入独立的恰好识别 2SLS 并排报告, 提供识别策略
+层面的三角验证。
+
+\subsection{面板聚合加权}
+模板 \code{15\_tableA6} 以等权 (EW, 主口径)、提及密度加权 (VW, 参照
+\textcite{hassan2019firm})、媒体权威加权 (MW, 参照 \textcite{holzman2023curbing})
+与跟风衰减加权 (HW, 参照 \textcite{tetlock2011stale}) 四种文章 $\rightarrow$
+银行—年聚合方案重算内生的本行语调; 工具沿用等权同业留出构造 --- 这是披露的近似
+(工具的外生性来自同业身份, 与自身语调的聚合方案无关)。该表证明结果不被聚合权重
+选择驱动。
+
+\subsection{跨厂商: 三家 LLM per-model 语调}
+多数投票共识 \code{llm\_vote\_tone} 为 canonical headline; 三家 per-model 语调
+(\code{gpt54nano\_tone}、\code{gemini31\_tone}、\code{deepseekv4\_tone}) 为 co-equal
+跨厂商稳健轨, 各自恰好识别并排, 禁混同一 Hansen J。跨模型一致性报告
+Krippendorff's $\alpha$ 与 Cohen's $\kappa$ (F1); 跨模型家族的族错误率由根级
+Romano--Wolf 模板 (\code{27\_tableA12\_cross\_model\_fwer}) 控制
+\parencite{romano2005stepdown}。该设计直接回应 LLM 标注研究者自由度的警示
+\parencite{baumann2025llmhacking,ludwig2025llmframework}。
+
+\subsection{跨方法测度族: BERT 与词典}
+语调测度另有两个独立方法族作跨方法对照 \parencite{shapiro2022newssentiment,hansen2023fedspeak}:
+(i) 三个中文金融 BERT 模型 (\code{finbert\_cn}、\code{fin\_sent\_zh}、\code{finbert2})
+co-equal 并排, 无 ensemble headline, 单模型缺席仅降级自身族; 跨模型系数比较前须
+z-score 标准化 (二/三分类原始方差不同)。(ii) 词典族: 六部中文金融词典
+\parencite{du2022chinesedict} 的三语言学规则 (否定翻转/程度副词/转折) 全幂集消融变体,
+以及 \code{du\_2022} 政治正面词权重 $\in \{0.0, 0.5, 1.0\}$ 三档梯子 --- 三档互为
+稳健性、不分主次, 且与规则消融梯子正交不交叉。消融变体间高度共线, 报告相关系数而非
+并入同一方程。
+
+\subsection{网络位置基线与构造判据梯子}
+针对 ``LLM 语义同业网相对共现网络是否有增量'' 的质询, 我们在主规格中加入共现网络
+位置基线控制 (\code{bank\_between\_cent}、\code{brokerage\_eigen\_cent}): 若控制
+共现网位置后 LLM 同业工具的第一阶段与二阶段仍成立, 即为语义网增量识别力的直接证据
+(incremental validity); 辅以判别检验 corr(\code{llm\_peer\_count},
+\code{bank\_degree\_cent}) \NoteThis{相关系数待回填}。披露: 两控制列对不在网银行的
+缺失约定统一为零填充并报告 off-network 银行数 \NoteThis{N 待回填}。网络控制列另有
+构造判据三档变体 (同篇共现/同篇 $\pm 1$ 句窗 \code{\_win1}/严格同句 \code{\_sent}),
+作为规格稳健性并排, 不设 FWER 模板。
+
+\subsection{聚类层级}
+主规格 \code{bank\_id} 单向聚类; 附录报告银行—年双向聚类与省级聚类, 省级少簇情形配
+wild cluster bootstrap \parencite{mackinnon2023cluster,cameron2015practitioner}。
+
+\subsection{声明排除的梯子}
+管线数据集中另存在若干属姊妹论文处理变量族的稳健性梯子 (罕见词频次 cutoff、前瞻性
+表述二臂、benefit 维度六轨、boilerplate 三轨等)。它们与本文的 LLM 同业工具正交,
+遵循 ``梯子间正交不交叉'' 纪律, 不纳入本篇稳健性节, 仅在管线披露附录说明数据集共享。
 
 \section{结论}\label{sec:concl}
-\NoteThis{最终讨论与政策含义。}
+
+本文提出并实现了一套以 LLM 语义同业识别为核心的因果推断工作流: LLM 从 $t-1$ 年新闻
+共提句判定动态语义同业集 \parencite{cao2025genai}, ``滞后一期 + 文章级留出'' 构造
+同业语调工具 \parencite{leary2014peerfirms,
+manski1993reflection,bramoulle2009networks}, 恰好识别 2SLS 估计本行媒体语调对真实
+经营结果的因果效应, 全流程配以预声明的验证性主规格、探索性家族的族错误率校正
+\parencite{romano2005stepdown} 与跨轨/跨档/跨模型/跨方法的稳健性阶梯。
+\NoteThis{主结果回顾句待生产回归回填。}
+
+方法学含义有三。第一, LLM 同业识别可以且应当被推进到识别框架内使用: 语义同业网为
+公式型工具提供了比行业代码信息更丰富的 $W$ 矩阵, 其增量可通过共现网络基线控制直接
+检验。第二, LLM 测度进入计量框架的可信性依赖工程化的可复现边界: 本文的
+\code{temperature=0}、\code{seed=42}、prompt v8 字节级冻结与全量调用缓存 (离线零成本
+逐字节复现) 给出一个可操作的规范样本, 直接回应 \textcite{baumann2025llmhacking} 与
+\textcite{ludwig2025llmframework} 的警示; \textcite{levy2026lookahead} 所示的前视
+偏误风险则由冻结 prompt 与留出检验框架约束。第三, ``互为稳健性、不分主次'' 的并排
+结构 --- 每个设定恰好识别、绝不合并进同一过度识别系统 --- 为多测度文本计量提供了
+可推广的推断纪律。
+
+政策含义方面, 若 H1--H2 得到生产数据支持 \NoteThis{条件句, 待回填}, 则媒体对银行
+金融科技议题的语调环境构成一条独立于基本面的同业传导渠道: 监管者在评估银行数字化
+转型的系统性节奏时, 应将舆论环境的同业溢出纳入监测; 银行管理层亦应意识到同业的舆论
+表现会经由自身语调环境影响经营结果。
+
+本文的局限有四。第一, 面板为年度频率, 语调冲击的高频动态 (季度/月度) 被平均化,
+短期传导机制无法分辨。第二, 媒体报道本身内生: 哪些银行—议题被报道并非随机, 滞后留出
+工具缓解语调的内生性但不消除报道选择的内生性; 覆盖代理控制与媒体来源 house-style
+工具部分缓解, 但残余选择偏误仍需承认。第三, 样本为中国单一市场, 其媒体结构 (报纸
+主导、官媒与市场化媒体并存) 与银行业结构 (国有主导) 特殊, 向其他制度环境外推须谨慎。
+第四, LLM 同业判定虽可复现, 但依赖特定模型版本的语义先验, 模型代际更替下同业集的
+时变稳定性有待后续工作系统评估。
+\NoteThis{结论性数字与效应量级句待生产回归回填。}
 
 \printbibliography
 
