@@ -682,7 +682,18 @@ def build_variable_labels(
     _PM_BERT_METRIC_EN = {
         'net_tone': 'net-tone(pos-neg)', 'pos': 'P(pos)', 'neg': 'P(neg)', 'neu': 'P(neu)',
         'pos_sum': 'P(pos) sum', 'neg_sum': 'P(neg) sum', 'neu_sum': 'P(neu) sum',
-        'pos_std': 'P(pos) SD'}
+        'pos_std': 'P(pos) SD',
+        # BERT 分布形状族 7 metric (2026-07-03 执行计划 P3-2): 与
+        # bert_distribution.iter_panel_cols byte-sync; 加权键为全积生成的无害
+        # 多余键 (面板不产加权孪生, 仅列存在时被查)。⚠ finbert2 的 entropy/
+        # xneg 与三分类构念不可比 (codebook notes 详), 标签仅描述构造。
+        'tone_entropy': 'tone entropy [0,1]',
+        'xneg_frac': 'extreme-neg share tau=.90',
+        'xneg_frac_t80': 'extreme-neg share tau=.80',
+        'xneg_frac_t95': 'extreme-neg share tau=.95',
+        'net_tone_skew': 'net-tone skew (raw, n>=10)',
+        'nt_iyvol': 'intra-yr net-tone vol (noise-adj)',
+        'nt_iytrend': 'intra-yr net-tone trend /mo'}
     for _pm_model in _PM_LLM:
         for _pm_metric, _pm_en in _PM_LLM_METRIC_EN.items():
             for _pm_w, _pm_wen in _PM_WEIGHT_EN.items():
@@ -704,6 +715,17 @@ def build_variable_labels(
         _vk = f'llm_vote_tone_{_vt}'
         if _vk not in HEURISTIC_LABELS:
             HEURISTIC_LABELS[_vk] = f'LLM ensemble vote tone (canonical headline, {_vt})'[:80]
+    # BERT 跨模型分歧双轨 (2026-07-03 执行计划 WP-D): 非 per-model 列, 不走上方
+    # 机械块 → 精确键。lblhet = canonical (sign 两两不一致对占比, 逐篇局部确定);
+    # disp = z-SD 稳健轨 (样本依赖, 见 codebook notes)。两轨互为稳健不分主次。
+    for _xm_trk in _PM_TRACKS:
+        for _xm_key, _xm_lab in (
+                (f'bert_xmodel_lblhet_{_xm_trk}',
+                 f'BERT x-model sign-disagree pair share (canonical, {_xm_trk})'),
+                (f'bert_xmodel_disp_{_xm_trk}',
+                 f'BERT x-model z-SD dispersion (robust twin, {_xm_trk})')):
+            if _xm_key not in HEURISTIC_LABELS:
+                HEURISTIC_LABELS[_xm_key] = _xm_lab[:80]
 
     # ═══ 网络判据敏感性 "_win1/_sent" 标签机械生成 (2026-07-03, 计划层 F) ═══
     # 33 基名 (SSOT = network_spillover.NETWORK_METRIC_BASES) × 2 判据 = 66 标签。

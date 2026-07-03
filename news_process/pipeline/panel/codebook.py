@@ -42,12 +42,18 @@ import pandas as pd
 
 from news_process.core.config import load_config
 from news_process.core.logging import pct4, sig4
+from news_process.pipeline.panel import bert_distribution as _bd
 
 # 互为稳健性 (2026-07-02): per-model SSOT 从 encode 单一事实源**模块级**导入 (供
 # _LLM_MODEL_RE/_BERT_MODEL_RE matcher 与 _infer_source_stage 宽前缀路由用; encode↔codebook
 # 无循环导入)。⚠ 勿依赖 get_variable_metadata_dict 内 :~684 的函数级局部别名导入
 # (_ISS_LLM_MODELS) — 那对模块级 matcher / _infer_source_stage 不可见 → NameError。
-from news_process.pipeline.panel.encode import BERT_MODELS, LLM_CLASS_SPEC, LLM_MODELS
+from news_process.pipeline.panel.encode import (
+    BERT_MODELS,
+    LLM_CLASS_SPEC,
+    LLM_MODELS,
+    THREE_CLASS_MODELS,
+)
 
 # 初始化配置和日志
 CONFIG = load_config()
@@ -915,6 +921,172 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         category='情感指标-locus 子集',
         track='full',
     )
+
+    # ═══ BERT 概率分布形状族 69 列 (2026-07-03, 执行计划 BERT_DISTRIBUTION_METRICS) ═══
+    # SSOT = bert_distribution (叶模块); 显式条目全覆盖 (三推断入口对 fin_sent_zh
+    # 'sent' 子串会 category 分叉、label 落 Title-case 兜底 → 必须显式)。
+    # reference 两段式纪律 (计划 §2.7): 构造=本项目定义, 锚点=构念动机非方法出处。
+    _bd_cat = '情感指标-BERT分布形状'
+    _bd_stage = 'Stage 23 (article probs) → Stage 40 (panel/bert_distribution·encode)'
+    for _suffix, _track_zh, _track_en in [
+        ('_full', '全文', 'Full'), ('_ctx', '上下文', 'Ctx'), ('_ss', '同句', 'Same-sent'),
+    ]:
+        _trk = _suffix.lstrip('_')
+        for _b in BERT_MODELS:
+            _is2 = _b not in THREE_CLASS_MODELS
+            _k = 2 if _is2 else 3
+            _ent_note = (
+                '⚠ 二分类 Bernoulli 熵 = 极性不确定度, 与三分类"模糊度"构念不可比 '
+                '(中性概率质量被重归一, 真中性文章在本模型下熵≈1), 禁跨模型直接比较'
+                '水平; 且逐篇 = |' + _b + '_net_tone| 的严格单调递减确定性变换 '
+                '(Spearman ρ≡−1, 高度共线 — MATH-1 口径: 报 corr 不并列同式)。'
+                if _is2 else
+                '"语调模糊度"构念的主解释模型 (三分类)。与 ' + _b + '_pos_std 正交: '
+                'pos_std=跨文章离散度, 本列=篇内类分布不确定性。')
+            metadata[f'{_b}_tone_entropy{_suffix}'] = VariableMetadata(
+                var_name=f'{_b}_tone_entropy{_suffix}',
+                label=f'{_b} Tone Entropy ({_track_en})'[:80],
+                description=f'白话: 模型 {_b} 给{_track_zh}轨每篇报道分类时"有多犹豫"'
+                            f'的 bank-year 均值 — 高=类概率接近均匀、文本难判读; '
+                            f'低=一边倒确信。构造=篇级归一化香农熵的年均。',
+                data_type='float', unit='归一化熵(无量纲)', value_range='[0, 1] ∪ NaN',
+                formula=f'mean_articles[ -Σ_k p_k·ln(p_k) / ln({_k}) ] '
+                        f'(K={_k}; p=0 项记 0; 任一参与类 NaN → 整篇 NaN)',
+                source_stage=_bd_stage,
+                reference='构造=本项目定义; 构念动机(非方法出处): Epstein & Schneider '
+                          '(2008) JF doi:10.1111/j.1540-6261.2008.01314.x; Ilut & '
+                          'Schneider (2014) AER doi:10.1257/aer.104.8.2368',
+                notes=_ent_note + ' per-model 独立降级。⚠ per-model' + _PER_MODEL_HANSEN_NOTE + '。',
+                category=_bd_cat, track=_trk,
+            )
+            for _tau in _bd.XNEG_THRESHOLDS:
+                _tag = _bd._xneg_tag(_tau)
+                _canon = ' (canonical, 无后缀 ≡ τ=0.90)' if _tag == '' else ' (梯子变体)'
+                metadata[f'{_b}_xneg_frac{_tag}{_suffix}'] = VariableMetadata(
+                    var_name=f'{_b}_xneg_frac{_tag}{_suffix}',
+                    label=f'{_b} Extreme-Neg Share tau={_tau:.2f} ({_track_en})'[:80],
+                    description=f'白话: {_track_zh}轨中被模型 {_b} 以超过 {_tau:.0%} 的'
+                                f'负面概率"强判负面"的报道占比 — 捕捉极端唱衰/尾部'
+                                f'风险叙事, 与均值语调正交{_canon}。',
+                    data_type='float', unit='占比', value_range='[0, 1] ∪ NaN',
+                    formula=f'mean_articles[ 1{{P(负面) > {_tau}}} ] (指示列 float 保 '
+                            'NaN 禁 fillna(0); 分母=该模型该轨概率非缺篇数)',
+                    source_stage=_bd_stage,
+                    reference='构造=本项目定义; 家族动机(非方法出处): Baker, Bloom & '
+                              'Davis (2016) QJE doi:10.1093/qje/qjw024; Engle et al. '
+                              '(2020) RFS doi:10.1093/rfs/hhz072',
+                    notes='⚠ 阈值语义 model-specific: finbert2 中性质量重归一使同一 τ '
+                          '捕获集系统性更大更温和 (先例 omni-g-geography-06), **禁跨'
+                          '模型直接比较占比水平**, 跨模型仅比较各自回归的标准化 β '
+                          '(Table A5 口径)。三阈值 {0.80, 0.90, 0.95} 互为稳健不分'
+                          '主次' + _PER_MODEL_HANSEN_NOTE + '; 与既有梯子正交不交叉。',
+                    category=_bd_cat, track=_trk,
+                )
+            metadata[f'{_b}_net_tone_skew{_suffix}'] = VariableMetadata(
+                var_name=f'{_b}_net_tone_skew{_suffix}',
+                label=f'{_b} Net-Tone Skewness raw ({_track_en})'[:80],
+                description=f'白话: {_track_zh}轨逐篇净语调 (P(正)−P(负)) 在 bank-year '
+                            f'内的分布偏度 — 负偏=坏消息集中爆发在少数极端负面报道; '
+                            f'年均值相同的两家银行可有完全不同的偏度。',
+                data_type='float', unit='无量纲',
+                value_range=f'(-inf, +inf) ∪ NaN (n≥{_bd.SKEW_MIN_N} 门槛)',
+                formula=f'groupby skew of (P(正面)−P(负面)); n < SKEW_MIN_N='
+                        f'{_bd.SKEW_MIN_N} → NaN (小样本偏度机械有界纯噪声)',
+                source_stage=_bd_stage,
+                reference='构造=本项目定义 (raw skew, 正=右偏, **非 NCSKEW** 无负号); '
+                          '方法论移植: Chen, Hong & Stein (2001) JFE '
+                          'doi:10.1016/S0304-405X(01)00066-6 (对象从收益率移植到情感'
+                          '得分, 构念含义不继承)',
+                notes='mean(逐篇净语调) ≡ ' + _b + '_net_tone (pos/neg 同 NaN 掩码恒等'
+                      '式)。掩码 n 口径 = 净语调非缺篇数 (禁用 pos_count: argmax 判正'
+                      '数, 内生)。dev T=2 稀疏格大面积 NaN 属预期退化。⚠ per-model'
+                      + _PER_MODEL_HANSEN_NOTE + '。',
+                category=_bd_cat, track=_trk,
+            )
+            metadata[f'{_b}_nt_iyvol{_suffix}'] = VariableMetadata(
+                var_name=f'{_b}_nt_iyvol{_suffix}',
+                label=f'{_b} Intra-Yr Net-Tone Vol noise-adj ({_track_en})'[:80],
+                description=f'白话: 该银行该年{_track_zh}轨净语调的**年内跨月**波动 — '
+                            f'"全年平稳温和"与"上半年吹捧下半年翻脸"在年均值上不可'
+                            f'区分, 本列区分。已剔除"报道少的月份均值本身不准"的抽样'
+                            f'噪声 (否则低覆盖银行机械虚高)。',
+                data_type='float', unit='净语调SD', value_range='[0, 1.2] ∪ NaN',
+                formula=f'sqrt(max(0, Var1(m_t) − (1/T)·Σ_t σ̂²/n_t)); m_t=月均净语调, '
+                        f'Var1/s²_t 均 ddof=1, σ̂²=Σ(n_t−1)s²_t/Σ(n_t−1) 仅 n_t≥2 月池'
+                        f'化, 校正项含单篇月; 门槛 T≥{_bd.IYVOL_MIN_MONTHS} 且 ≥1 月 '
+                        f'n_t≥2, 否则 NaN',
+                source_stage=_bd_stage,
+                reference='构造=本项目定义 (ANOVA 组间方差无偏估计, 无偏性仅指开方/'
+                          '截断前); 前提动机(非方法出处): Tetlock (2007) JF '
+                          'doi:10.1111/j.1540-6261.2007.01232.x; Da, Engelberg & Gao '
+                          '(2015) RFS doi:10.1093/rfs/hhu072',
+                notes='等权月 (构念=语调路径非篇量加权); 回归须以 coverage 作控制。'
+                      '三向正交: vs tone_volatility(跨年 rolling) 真正交; vs '
+                      + _b + '_pos_std 仅噪声校正后近似正交 (此即采校正版为 canonical '
+                      '的理由, raw 版刻意不产)。上确界>1: 单篇月致 Var1 不封顶, '
+                      '√(4/3)≈1.155 真实可达。⚠ per-model' + _PER_MODEL_HANSEN_NOTE + '。',
+                category=_bd_cat, track=_trk,
+            )
+            metadata[f'{_b}_nt_iytrend{_suffix}'] = VariableMetadata(
+                var_name=f'{_b}_nt_iytrend{_suffix}',
+                label=f'{_b} Intra-Yr Net-Tone Trend ({_track_en})'[:80],
+                description=f'白话: 该银行该年{_track_zh}轨净语调的年内月度趋势斜率 — '
+                            f'正=年内舆论转暖, 负=年内转冷; 与年均水平正交的时间'
+                            f'结构信息。',
+                data_type='float', unit='净语调/月', value_range='[-2, 2] ∪ NaN',
+                formula=f'闭式 OLS 斜率 Σ(x−x̄)(m−m̄)/Σ(x−x̄)², x=实际月号 1..12, '
+                        f'm=月均净语调; 有效月 ≥ {_bd.IYTREND_MIN_MONTHS} 否则 NaN '
+                        f'(3 点回归 df=1 纯噪声); 禁 lstsq/polyfit (确定性口径)',
+                source_stage=_bd_stage,
+                reference='构造=本项目定义; 前提动机(非方法出处): Tetlock (2007) JF; '
+                          'Da, Engelberg & Gao (2015) RFS',
+                notes='分母>0 由月号互异+门槛 6 结构保证。dev T=2 大概率全 NaN (有效'
+                      '月不足) 属预期退化, 生产 T=18 多数格 10-12 有效月。⚠ per-model'
+                      + _PER_MODEL_HANSEN_NOTE + '。',
+                category=_bd_cat, track=_trk,
+            )
+        # --- 跨模型分歧双轨 (per-track, 非 per-model) ---
+        metadata[f'bert_xmodel_lblhet{_suffix}'] = VariableMetadata(
+            var_name=f'bert_xmodel_lblhet{_suffix}',
+            label=f'BERT X-Model Sign-Disagree Share ({_track_en})'[:80],
+            description=f'白话: 同一篇{_track_zh}轨报道让三个 BERT 模型分别判正负, 它们'
+                        f'"吵架"的程度 (两两符号不一致的模型对占比) 的 bank-year 均值 '
+                        f'— 度量文本对分类器的判读难度/模糊度。canonical 轨 (逐篇局部'
+                        f'、确定性)。',
+            data_type='float', unit='占比', value_range='[0, 1] ∪ NaN',
+            formula='mean_articles[ #{(a,b): sign(nt_a) ≠ sign(nt_b)} / #pairs ]; '
+                    'sign(0) 与 ±1 记不一致、0 与 0 记一致; 逐篇可用模型 <2 → NaN',
+            source_stage=_bd_stage,
+            reference='构造=本项目定义; 直接类比(标准化方案不同, 勿写"按 DMS 方法"): '
+                      'Diether, Malloy & Scherbina (2002) JF doi:10.1111/0022-1082.'
+                      '00490; Cookson & Niessner (2020) JF doi:10.1111/jofi.12852',
+            notes='与 disag_{b} 区分: disag_{b}=同一模型跨文章正负分歧 (Antweiler-'
+                  'Frank, 概率均值基); 本列=同一篇跨模型判读分歧。2-模型 vs 3-模型逐'
+                  '篇口径混合 (模型全局缺席或逐篇 infer_failed), 支撑 {0,1} vs '
+                  '{0,1/3,2/3,1}。near-zero 净语调符号翻转噪声属标签基固有, 刻意不设 '
+                  'deadband。测量诊断定位, 非 per-model 梯子成员; 与 disp 双轨互为稳'
+                  '健不分主次' + _PER_MODEL_HANSEN_NOTE + '。',
+            category=_bd_cat, track=_trk,
+        )
+        metadata[f'bert_xmodel_disp{_suffix}'] = VariableMetadata(
+            var_name=f'bert_xmodel_disp{_suffix}',
+            label=f'BERT X-Model z-SD Dispersion ({_track_en})'[:80],
+            description=f'白话: 同一篇{_track_zh}轨报道三个 BERT 模型净语调 (各自 z 标'
+                        f'准化后) 的跨模型标准差的 bank-year 均值 — lblhet 的连续幅度'
+                        f'版稳健孪生轨。',
+            data_type='float', unit='z分数SD', value_range='[0, +inf) ∪ NaN',
+            formula='mean_articles[ SD_ddof1( z_b ) ]; z_b=(nt_b−μ_b)/σ_b 按 模型×轨 '
+                    '在本次 run 文章宇宙估计 (ddof=1); σ=0/全 NaN 模型退出; 可用 <2 → NaN',
+            source_stage=_bd_stage,
+            reference='构造=本项目定义; 直接类比: Diether, Malloy & Scherbina (2002) '
+                      'JF; Cookson & Niessner (2020) JF',
+            notes='⚠ 样本依赖三重披露: ① 前视 (早年观测依赖全语料矩); ② 加数据历史值'
+                  '变, 非逐篇局部可复现 (故降为稳健轨, canonical=lblhet); ③ z 只对齐'
+                  '方差不对齐分布形状 (finbert2 净语调双峰 vs 三分类近 0), disp 仍被'
+                  '形状差部分抬高。2v3 模型口径混合同 lblhet。双轨互为稳健不分主次'
+                  + _PER_MODEL_HANSEN_NOTE + '。',
+            category=_bd_cat, track=_trk,
+        )
 
     # ═══ v3.2.0 Stage 3 三轨 (full/ctx/ss) prob_score bank-year 聚合 (plan v1.37 P2) ═══
     # 三轨 (third-track _ss, 2026-06-14): prob_score 轨枚举加 '_ss' (银行+金科同句共现);

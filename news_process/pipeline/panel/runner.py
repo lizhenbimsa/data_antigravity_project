@@ -93,6 +93,9 @@ from news_process.pipeline.features.strategic_diff import (
     compute_strategic_differentiation,
 )
 
+# BERT 概率分布形状叶模块 (2026-07-03 执行计划; 零仓内依赖, 模型清单参数注入)
+from news_process.pipeline.panel import bert_distribution
+
 # Phase 2a 扫尾：补全 _m43 模块别名，恢复地理距离缓冲 + 区域模仿渗透率两组特征
 # （commit 722bc0e 删除 importlib 反射时遗漏对 _m43.foo() 调用点的更新；
 # 详见 plan c1：runner.py 中 hasattr(_m43, ...) 调用点位于 ~L446 / ~L455）。
@@ -1131,6 +1134,22 @@ def main():
     _wr_flag_cols = [c for c in df.columns if c.startswith('_is_')]
     logger.info(f"  洗稿率前置列生成完毕: {len(_wr_flag_cols)} 列 (三轨 full/ctx/ss)")
 
+    # --- 4z. BERT 概率分布形状: 逐篇中间列 (2026-07-03 执行计划) ---
+    # WP-A 熵 / WP-B 极端负面指示 / WP-C 逐篇净语调 + WP-D 跨模型分歧双轨,
+    # 由叶模块 bert_distribution 计算 (模型清单参数注入, 防循环导入), 一次性
+    # concat 并入 (防 fragmentation)。聚合条目由 encode.build_aggregation_dict
+    # 经 iter_agg_entries 无条件注册, 缺源 valid_agg 过滤。中间列 (非 `_is_`
+    # 前缀, 不被 6c sweep 清理) 存活至步骤 9 前统一 drop — WP-E (7h 后) 仍要
+    # 消费 `_nt_art_*`, 勿提前清。
+    _bd_cols = bert_distribution.compute_article_distribution_cols(
+        df, BERT_MODELS, THREE_CLASS_MODELS)
+    _bd_cols.update(bert_distribution.compute_xmodel_dispersion(df, BERT_MODELS))
+    if _bd_cols:
+        df = _append_columns(df, _bd_cols)
+    logger.info(f"  BERT 分布形状逐篇中间列: {len(_bd_cols)} 列 "
+                f"(声明全集 {len(bert_distribution.iter_intermediate_cols(BERT_MODELS))}, "
+                f"差额=概率源列合法缺席轨)")
+
     # --- 5. Bank-Year 聚合 (df 为只读: groupby/filter/merge) ---
     _t_agg = time.time()
     panel = aggregate_panel(df)
@@ -1731,6 +1750,25 @@ def main():
         panel = compute_network_spillovers(panel, df_exploded)
     else:
         logger.info("  46_network_spillovers.py 不存在, 跳过网络溢出计算")
+
+    # --- 7h-bd. BERT 净语调年内时序 (2026-07-03 执行计划 WP-E) ---
+    # iyvol = 噪声校正年内波动 (剔稀疏月均值抽样噪声, 否则低覆盖格机械虚高);
+    # iytrend = 月均值对实际月号的闭式 OLS 斜率 (≥6 有效月)。三向正交:
+    # vs tone_volatility(跨年 rolling) 真正交 / vs {b}_pos_std 仅校正后近似
+    # 正交 (codebook notes 详)。merge 时序在 balance_panel 零填之后 → 结构上
+    # 不经 zero-fill, 无新闻格天然 NaN; 先 pre-drop 既存同名列防重跑 _x/_y
+    # 污染 (先例 attention_media 媒体异质 merge)。
+    _bd_iy = bert_distribution.compute_intrayear_dynamics(df_exploded, BERT_MODELS)
+    _bd_iy_cols = [c for c in _bd_iy.columns if c not in ('target_bank', 'year')]
+    _bd_iy_existing = [c for c in _bd_iy_cols if c in panel.columns]
+    if _bd_iy_existing:
+        panel = panel.drop(columns=_bd_iy_existing)
+    _bd_rows_before = len(panel)
+    panel = panel.merge(_bd_iy, on=['target_bank', 'year'], how='left')
+    assert len(panel) == _bd_rows_before, (
+        f"WP-E merge 行数漂移 {_bd_rows_before}→{len(panel)} (键重复?)")
+    logger.info(f"  BERT 年内时序 merge: {len(_bd_iy_cols)} 列 "
+                f"(源 {len(_bd_iy):,} 个 bank-year 格, 行数不变 {_bd_rows_before:,})")
 
     # --- 7h-cent. 银行共现网络中心度 (Freeman 1979; Billio et al. 2012) ---
     if compute_bank_network_centrality is not None:
@@ -2704,6 +2742,19 @@ def main():
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
     _t_export = time.time()
+
+    # --- 8z-bd. BERT 分布形状文章级中间列单点 drop (2026-07-03 执行计划 §2.6) ---
+    # 挂载点 = 步骤 9 导出块入口 (log_diagnostics 之前): 中间列 (`_ent_*`/
+    # `_xneg_ind_*`/`_nt_art_*`/`_xmd_art*`/`_lblhet_art*`, 非 `_is_` 前缀故
+    # 6c sweep 不清) 若不显式 drop 会随 export_panel 全列写入
+    # 40_article_bank_level.parquet。交集清单天然容忍合法缺席轨; 单点挂载
+    # (显式否决双 call site — 省的内存 < 两处维护漂移风险)。
+    _bd_drop = [c for c in bert_distribution.iter_intermediate_cols(BERT_MODELS)
+                if c in df_exploded.columns]
+    if _bd_drop:
+        df_exploded.drop(columns=_bd_drop, inplace=True)
+        logger.info(f"  BERT 分布形状中间列已清理: {len(_bd_drop)} 列 (导出前单点 drop)")
+
     log_diagnostics(panel, df_exploded)
 
     # --- 9. 导出 ---

@@ -35,6 +35,7 @@ import pandas as pd
 
 from news_process.core.config import herd_sensitivity_grid, load_config
 from news_process.core.logging import pct4, setup_logging, sig4
+from news_process.pipeline.panel import bert_distribution
 
 warnings.filterwarnings('ignore', category=FutureWarning)
 
@@ -1216,6 +1217,17 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
         agg[f'avg_collab_prob_score{track}'] = (f'avg_collab_prob_score{track}', 'mean')
         agg[f'avg_collab_prob_score_std{track}'] = (f'avg_collab_prob_score{track}', 'std')
 
+    # --- BERT 概率分布形状族 (2026-07-03, 执行计划 BERT_DISTRIBUTION_METRICS) ---
+    # SSOT = bert_distribution.iter_agg_entries (叶模块, 安全模块级 import);
+    # 无条件注册 + 缺源列由 valid_agg 过滤 (D 块惯例)。含 9 条 `_nt_n_{b}{trk}`
+    # 辅助计数 (count = _nt_art 非 NaN 篇数) 供 aggregate_panel 的 SKEW_MIN_N
+    # post-agg 掩码, 掩码后即刻 drop 绝不落盘。中间列由 runner 步骤 9 前统一
+    # drop。⚠ 铁律: 三阈值/per-model/三轨/xmodel 双轨各自 just-identified 并排,
+    # 禁混同一 over-identified Hansen J; finbert2 熵/xneg 与三分类构念不可比,
+    # 禁跨模型直接比较水平 (codebook notes 详)。
+    for _bd_panel_col, _bd_src_col, _bd_func in bert_distribution.iter_agg_entries(BERT_MODELS):
+        agg[_bd_panel_col] = (_bd_src_col, _bd_func)
+
     return agg
 
 
@@ -1436,6 +1448,28 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             _nt_neg = f'{_nt_short}_neg{_nt_track}'
             if _nt_pos in panel.columns and _nt_neg in panel.columns:
                 panel[f'{_nt_short}_net_tone{_nt_track}'] = panel[_nt_pos] - panel[_nt_neg]
+
+    # --- BERT 分布形状: SKEW_MIN_N post-agg 掩码 (2026-07-03 执行计划 §2.3) ---
+    # n < SKEW_MIN_N 的格样本偏度纯噪声 (|G1| 机械有界 n=3→√3/n=4→2, 抽样 SD
+    # n=3≈1.22) → 作 treatment 致衰减偏误, 掩 NaN 宁缺勿噪。n 口径 = `_nt_n_*`
+    # 辅助计数 (count = _nt_art 非 NaN 篇数, 与 groupby 'skew' 的 n 恰同口径;
+    # ⚠ 禁用 {b}_pos_count: 其语义 = argmax 判正篇数, 以语调为条件的内生样本
+    # 选择 — 50 篇全负面格 pos_count=0 会被误掩)。掩码只改写 skew 列 →
+    # mean(_nt_art) ≡ net_tone 恒等式在全部格 (含被掩格) 保持可断言。
+    # `_nt_n_*` 面板临时列随即 drop (镜像上方 _ctx_fallback_count 先例, 防
+    # iv_did underscore-prefix 过滤干扰 + 防泄入 dta; gate #14 断言零残留)。
+    _bd_ntn_cols = []
+    for _bd_track in ['_full', '_ctx', '_ss']:
+        for _bd_short in BERT_MODELS:
+            _bd_ntn = f'_nt_n_{_bd_short}{_bd_track}'
+            _bd_skew = f'{_bd_short}_net_tone_skew{_bd_track}'
+            if _bd_ntn in panel.columns:
+                _bd_ntn_cols.append(_bd_ntn)
+                if _bd_skew in panel.columns:
+                    panel.loc[panel[_bd_ntn].fillna(0)
+                              < bert_distribution.SKEW_MIN_N, _bd_skew] = np.nan
+    if _bd_ntn_cols:
+        panel.drop(columns=_bd_ntn_cols, inplace=True)
 
     # v3.7.2 R8-H1: 由 _ctx_fallback_count (sum) 派生 n_articles_for_ctx_independence
     # 之所以不在 agg_dict 用 lambda: pandas.groupby.NamedAgg 协议不支持闭包稳定 hash
