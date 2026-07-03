@@ -259,3 +259,7 @@
 - **_sent 网保留 65~77% 边** (41/63, 24/31) — 远优于预期稀疏度 (标题双银行命中充足, D19 口径的直接收益); D13 的"_sent 全 0 边"降级预案未触发, gate 数值断言按正常口径落地。
 - R9 耗时: 0.77 ms/多银行组 (dev 55 组 0.04s); 生产外推 50 万组 ≈ 6.4 分钟 — panel 期重扫可行, sidecar 物化预案不需启用。
 - ①-A 三轨 dev 基线: full neg_count=1 (分母 17≥5, 有方差 std≈0.0013) / ctx neg_count=1 但分母 2<min_count=5 被守门 → ≡0 / ss neg_count=0 → ≡0 (F0.6 确认)。
+
+## §12 累积终判 (2026-07-03, wf_cfbf9407-a92 — 第八轮/收官: 4 提交 15 文件累积 diff 整体视角)
+
+4 专项 (whole-diff 连贯性 / hostile-input 鲁棒探针 / fresh-verify 独立复验 / **ok_to_ship 终判官**): **verdict 4/4 一致 `ok_to_ship`, 0 findings (含 minor), 51 项 checked_ok**。要点: ① 跨提交零中间态残留, 术语 7 表面统一 (codebook '±1-sent' vs Stata ASCII '+/-1-sent' 为 .dta 字节约束下的刻意分面非漂移); ② 敌意输入实测 — 103k 字符文本 4ms / 全标点安全 / 正则元字符银行名安全 (全程 str.find+AC 无正则通道) / year NaN·Int64-NA 安全 / config 缺键优雅降级带 WARN / fallback 列 object 化仅致降级非污染 (生产 dtype 由 stage 14 保 bool); ③ 生产规模探针: 0.9ms/篇 (10k 篇实测), 别名缓存实证生效, 单机线性可行; ④ 独立复验: gate 29 + parity 10 + 相邻网络测试面 54 项全绿, import 冒烟/P2-D 通过, 盘值与 §9/§11 披露逐一吻合。**判定: 交付。** 余项 = DEFERRED 生产机三件 (golden 重生 9 列 BLAS 排除 / 生产播种费用实测过审 / manuscript prose), 无隐藏欠账。
