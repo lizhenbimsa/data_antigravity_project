@@ -36,13 +36,20 @@ def get_git_commit_hash_with_dirty() -> str:
     try:
         # 向上四级: 本文件 → _common → papers → news_process → repo_root。
         repo_root = Path(__file__).resolve().parents[3]
+        # fix(git-utils-gbk, 2026-07-03): 显式 encoding='utf-8' — Windows 下 text=True
+        # 走 locale 默认 GBK, git 输出含 UTF-8 中文字节 (中文路径如 Excel `~$中文名.xlsx`
+        # 锁文件进 status / 中文 commit 标题) 时 reader 线程 UnicodeDecodeError →
+        # stdout=None → .strip() AttributeError 崩 build。errors='replace' 兜底任何
+        # 非法字节 (哈希/dirty 判定只依赖 ASCII 部分, 替换字符无害)。
         h = subprocess.run(
             ['git', 'rev-parse', 'HEAD'],
-            cwd=str(repo_root), capture_output=True, text=True, timeout=10,
+            cwd=str(repo_root), capture_output=True, text=True,
+            encoding='utf-8', errors='replace', timeout=10,
         ).stdout.strip()[:12]
         dirty = subprocess.run(
             ['git', 'status', '--porcelain'],
-            cwd=str(repo_root), capture_output=True, text=True, timeout=10,
+            cwd=str(repo_root), capture_output=True, text=True,
+            encoding='utf-8', errors='replace', timeout=10,
         ).stdout.strip()
         return f'{h}+dirty' if dirty else h
     except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError):
