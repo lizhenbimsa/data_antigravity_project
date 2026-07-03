@@ -4,12 +4,15 @@
 本文件承载计划层 G 的 G1(a)-(k) 断言 (随层 A→F 落地逐节补齐):
   - 层 A (h): 银行∧银行句级共现原语 — 假阳性反例 / 标题第 0 句正例 /
     句窗距离语义 / phantom 反例 (仅幸存银行入参)。
+  - (a)  盘上 40_panel_yearly.parquet 含全部 80 新列 (缺盘 skip)。
+  - (b)  .dta 标签源 build_variable_labels 对全部新列非列名 fallback。
+  - (c)  diag/sim 嵌入族落入 parity 判定面 (n10 逃逸防线)。
   - (d)  ①-A 分母逐轨 (ctx 分子借 full 分母即红)。
   - (e)  ② 无后缀路径对 Phase 0 冻结 fixture 等价 (禁真空自对拍)。
   - (f)  ② _sent ⊆ _win1 ⊆ 同篇 边数单调。
   - (g)  codebook 判据后缀归一 (category/source_stage)。
   - (i)(j) D6/D8 语义断言 (fallback 剔除 / 双标题拦截 / per-W-轨降级隔离)。
-  - (b)(k) 标签非 fallback + bank-bank 限定 + W 来源措辞。
+  - (k)  ② 标签 bank-bank 限定 + diag/legacy 标签 W 来源措辞。
 """
 
 import json

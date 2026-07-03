@@ -87,7 +87,7 @@
 **Out of scope (显式)**
 - fire_sale 三轨 (D3); peer_tone_lag1 (共现网) 的判据分轨; W轨×tone轨 3×3 交叉; Newman 加权交叉 (D12); 新 .do 模板与 manuscript prose; golden 重生与生产播种 (DEFERRED); 二分图/brokerage_eigen_cent 任何变体 (数学恒等)。
 
-**列增量**: ①-A +4, ①-B +10, ② +66 → **净增 +80 列** (最宽 dta ≈2782 → ≈2862)。
+**列增量**: ①-A +4, ①-B +10, ② +66 → **净增 +80 列** (⭑终验勘误: 原"≈2782→≈2862"是对陈旧基数的心算 — 07-02/07-03 多轮扩展叠加后实际基数 3228, 落盘后实读 **3308** 列, CLAUDE.md 已按实读口径更正)。
 
 ---
 
@@ -228,7 +228,7 @@
 
 ## §8 实施记录 (2026-07-03 实施)
 
-**逐层完成态**: 层 A ✅ (entity_context 两原语 + 9 单测) → Phase 0 ✅ (§9) → 层 B1/B2 ✅ (criterion 参数化 + 33×3 落列 + runner 三调) → 层 C ✅ (shock 三轨 + 护栏翻转 + fire_sale canonical-only 注释) → 层 B3/B4/B5 ✅ (cogn 三轨 / emb per-W-轨 diag 单元 + 空文档守卫 + 轨级 miss WARN / docstring 双口径) → 层 D ✅ (panel.yaml::network_criteria, 顶层键直落 CONFIG 根) → 层 E ✅ (三推断函数判据后缀归一 `_CRITERIA_SFX_RE` + 8 基名白名单双接 + neg_shock/cogn/emb 族 token + 14 条精写 VariableMetadata 含 D5/D6 披露) → 层 F ✅ (源① HEURISTIC ①-A 6 条+①-B 8 条+② 66 机械块+anchor 原子 6 键 / 源② export.py 同族+机械块 / 源③ 08_label_network.do capture 非-ss 键+② 声明) → 层 G gate: test_network_tritrack_expansion.py 断言全绿 — 首批 26 项覆盖 (d,e,f,g,h,i,j) + ⭑结果审计后补齐 (a,b,k) 三项 (29 项, 见偏差 5), G2 ✅ (_EMB_FAMILY_PREFIXES += 'emb_peer_tone_diag_lag1' — diag 与既有 'emb_peer_tone_lag1' 前缀于第 14 字符分叉, 不加即 n10 式静默逃逸; sim W-轨由既有前缀自动覆盖; parity 10 项全绿), G4 check_static_enums 0 新增违规 (60 条 prose 均 HEAD 既存)。
+**逐层完成态** (⭑最终终验 wf_ed44ac47-a0e 补记: 层 H ✅ CLAUDE.md 铁律段+BLAS 9 列+列数实读口径+播种状态句 / 层 I ✅ ctx/ss+diag canonical+_lg 已本机在线播种、离线 0-miss 复现、首跑 yunwu SSL 事故实证 D8 单元隔离): 层 A ✅ (entity_context 两原语 + 9 单测) → Phase 0 ✅ (§9) → 层 B1/B2 ✅ (criterion 参数化 + 33×3 落列 + runner 三调) → 层 C ✅ (shock 三轨 + 护栏翻转 + fire_sale canonical-only 注释) → 层 B3/B4/B5 ✅ (cogn 三轨 / emb per-W-轨 diag 单元 + 空文档守卫 + 轨级 miss WARN / docstring 双口径) → 层 D ✅ (panel.yaml::network_criteria, 顶层键直落 CONFIG 根) → 层 E ✅ (三推断函数判据后缀归一 `_CRITERIA_SFX_RE` + 8 基名白名单双接 + neg_shock/cogn/emb 族 token + 14 条精写 VariableMetadata 含 D5/D6 披露) → 层 F ✅ (源① HEURISTIC ①-A 6 条+①-B 8 条+② 66 机械块+anchor 原子 6 键 / 源② export.py 同族+机械块 / 源③ 08_label_network.do capture 非-ss 键+② 声明) → 层 G gate: test_network_tritrack_expansion.py 断言全绿 — 首批 26 项覆盖 (c,d,e,f,g,h,i,j) + ⭑结果审计后补齐 (a,b,k) 三项 (29 项, 见偏差 5), G2 ✅ (_EMB_FAMILY_PREFIXES += 'emb_peer_tone_diag_lag1' — diag 与既有 'emb_peer_tone_lag1' 前缀于第 14 字符分叉, 不加即 n10 式静默逃逸; sim W-轨由既有前缀自动覆盖; parity 10 项全绿), G4 check_static_enums 0 新增违规 (60 条 prose 均 HEAD 既存)。
 
 - **实施偏差 1 (层 A, 2026-07-03)**: 未采用计划原定的 `_split_sentences_with_spans` (AC 字符位置 + span 归句), 改为**逐句 `has_unexcluded_occurrence` 判定** (`map_bank_sentence_positions`) — 与 ctx/ss 轨锚句判定字节级同款原语, **从根上无偏移映射问题** (R13 根因消灭而非缓解); B1 只需幸存银行的句集, 逐句判定成本可忽略 (Phase 0 实测 0.77ms/组)。配对判定原语 `bank_pairs_within_sentence_window` (min |i−j| ≤ radius, 天然对称 ≡ D11 OR 口径)。
 - **实施偏差 2 (顺序)**: G1(e) 冻结 fixture 未等 Phase 0 — 在改动落地后用 **git HEAD(e39955d0) 版模块与改动后模块在同一合成小图上做一次性 in-process A/B** (33 列全等, 零容差外 0 列), 以 HEAD 输出冻结 `tests/fixtures/network_criteria_baseline_v0.json` — 强于计划口径 (真·改动前代码, 非"改动前时间点")。
@@ -239,6 +239,10 @@
 ## §10 结果审计台账 (2026-07-03, wf_fbe5d1cf-016 — 实施后最终审)
 
 6 专项 (code-net / code-meta / closure / real-output / downstream / break-it-3) 审已提交 diff (17c8f0d4+593dae3c) 与盘上真实产物; major 2 票对抗复核。**checked_ok 80 项** (含: 判据梯子盘上单调 0.0182>0.0152>0.0128 / parity 双射 0 孤儿 0 错配 / diag≠legacy 实值可分 / canonical 路径零回归逐键等价 / suffix rename 零 _x/_y 碰撞 / 闭包安全 / stage 46 全列过 32 字符+80 字节硬限)。findings = 1 major + 6 minor, 全部为 gate 覆盖记账与两处小缺口 (非数据缺陷), 处置见偏差 5; closure-3 (G3) 记偏差 4。
+
+## §11 最终终验台账 (2026-07-03, wf_ed44ac47-a0e — 最终态 HEAD=24b4eb1d, 5 个全新角度)
+
+5 专项 (commit3 diff 审 / prose-truth 文档全对账 / cross-artifact 跨产物一致性 / value-sanity 数值计量健全 / git-hygiene): **0 major (无一确认亦无一被驳) / 66 项 checked_ok / 代码与数据零缺陷**; 并行全量 sweep 失败集与基线**逐条恰同 (23↔23, 新增 0 消失 0)**。6 条 minor 全为文档一致性, 已全部修正: ① CLAUDE.md/本计划的"≈2862 列"心算口径 → 实读 3308 (593dae3c message 内部自相矛盾一并勘误); ② gate docstring 与 §8 字母表漏列已实现的 (a)(c) (undersell 方向); ③ 17c8f0d4 message 首句"计划全量落地"按整个 effort 口径书写 — 单提交粒度实为层 A/B/C, 联动面见 593dae3c (历史不可改, 此句即对账注记); ④ CLAUDE.md 铁律段补播种状态句 (层 H 原要求); ⑤ §8 补层 H/层 I 完成行; ⑥ MEMORY.md 索引 BLAS 条目 "3列"→"9列" 与 topic 文件对齐。
 
 ## §9 Phase 0 实测记录 (2026-07-03, scripts/audit/measure_bank_bank_cooccurrence.py, 生产函数直调)
 
