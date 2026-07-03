@@ -426,7 +426,26 @@ def build_variable_labels(
         'benefit_neg_frac_ctx':             "Benefit Neg Frac (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
         'emb_peer_tone_lag1_full':          "Emb Peer Tone Lag1 (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
         'bank_emb_sim_mean_lag1':           "Bank Emb Sim Mean (L1) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        # ①-B W-轨扩展 (2026-07-03, 计划层 F): legacy ctx/ss 缺口补齐 (标签写明
+        # W 来源 = full-doc, 终验 econ-final-3) + diag 新轨 (W 与 tone 同轨) +
+        # sim W-轨 + cogn 三轨 (TF-IDF 非嵌入, 无 co-primary 标注)。
+        # 嵌入族键与下方 _MAIN_ANCHOR_KEYS 原子同增 (P2-D 守卫), _lg 自动派生。
+        'emb_peer_tone_lag1_ctx':           "Emb Peer Tone L1 (W=full, tone=ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'emb_peer_tone_lag1_ss':            "Emb Peer Tone L1 (W=full, tone=ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'emb_peer_tone_diag_lag1_ctx':      "Emb Peer Tone Diag L1 (W=ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'emb_peer_tone_diag_lag1_ss':       "Emb Peer Tone Diag L1 (W=ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'bank_emb_sim_mean_lag1_ctx':       "Bank Emb Sim Mean (L1, W=ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'bank_emb_sim_mean_lag1_ss':        "Bank Emb Sim Mean (L1, W=ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'bank_cogn_mean_ctx':               "Cognitive Proximity TF-IDF cosine (ctx window text)",
+        'bank_cogn_mean_ss':                "Cognitive Proximity TF-IDF cosine (ss same-sent text)",
+        # ①-A industry_neg_shock 三轨 (2026-07-03): 同期版逐轨带年 FE 精确共线
+        # 警示 (含 canonical — 终验 econ-final-3 对称性补缺); 含年FE规格只可用 lag1。
+        'industry_neg_shock':               "Industry Neg Shock (LOO, same-period; year-FE collinear)",
+        'industry_neg_shock_ctx':           "Industry Neg Shock (LOO same-period, ctx; year-FE collinear)",
+        'industry_neg_shock_ss':            "Industry Neg Shock (LOO same-period, ss; year-FE collinear)",
         'industry_neg_shock_lag1':          "Industry Neg Shock LOO (L1, year-FE-safe)",
+        'industry_neg_shock_lag1_ctx':      "Industry Neg Shock LOO (L1, year-FE-safe, ctx)",
+        'industry_neg_shock_lag1_ss':       "Industry Neg Shock LOO (L1, year-FE-safe, ss)",
         # 网络指标扩展 2026-06-21 (WS-A net 级 6 / WS-C GF 5 / WS-B 二分图 5);
         # .dta 标签经此 HEURISTIC_LABELS (build_variable_labels 优先级 2) 命中,
         # export.py STATA_LABELS 不入 stage-46 .dta 路径 (MISSING_SCHEMA-1)。各 ≤80 字节。
@@ -552,6 +571,11 @@ def build_variable_labels(
         'benefit_neg_frac_full', 'benefit_neg_frac_ctx',
         'emb_peer_tone_lag1_full',
         'bank_emb_sim_mean_lag1',
+        # ①-B W-轨扩展 (2026-07-03): legacy ctx/ss + diag + sim W-轨, 与上方
+        # HEURISTIC 手写条目原子同增 (P2-D); _lg 键自动派生 (轨后缀前插 _lg)。
+        'emb_peer_tone_lag1_ctx', 'emb_peer_tone_lag1_ss',
+        'emb_peer_tone_diag_lag1_ctx', 'emb_peer_tone_diag_lag1_ss',
+        'bank_emb_sim_mean_lag1_ctx', 'bank_emb_sim_mean_lag1_ss',
         # ss 轨 (银行+金科同句)
         'strat_diff_ss',
         'strat_diff_n5_emb_ss', 'strat_sim_max_emb_ss', 'centroid_diff_emb_ss',
@@ -679,6 +703,32 @@ def build_variable_labels(
         _vk = f'llm_vote_tone_{_vt}'
         if _vk not in HEURISTIC_LABELS:
             HEURISTIC_LABELS[_vk] = f'LLM ensemble vote tone (canonical headline, {_vt})'[:80]
+
+    # ═══ 网络判据敏感性 "_win1/_sent" 标签机械生成 (2026-07-03, 计划层 F) ═══
+    # 33 基名 (SSOT = network_spillover.NETWORK_METRIC_BASES) × 2 判据 = 66 标签。
+    # 基名标签源优先级 = codebook 精写 meta → 本 HEURISTIC → Title-case 兜底。
+    # ⚠ 后缀措辞必须带 bank-bank 限定 — 裸 'same-sent' 已是 `_ss` 银行∧金科文本
+    #   轨的官方英文压缩词, 逐字冲突 (终验 econometrics-final-1); 判据主体是
+    #   银行∧银行边, 两个"同句"概念在 .dta 用户面必须可区分。各 ≤80 字节。
+    try:
+        from news_process.pipeline.panel.network_spillover import (
+            NETWORK_METRIC_BASES as _NET_BASES,
+        )
+    except Exception:  # noqa: BLE001 — 防御性: 导入失败不崩标签构建
+        _NET_BASES = ()
+    _CRIT_SFX_DESC = {'_win1': 'bank-bank +/-1-sent edge',
+                      '_sent': 'bank-bank same-sent edge'}
+    for _cb in _NET_BASES:
+        if _cb in meta and getattr(meta[_cb], 'label', ''):
+            _cb_label = meta[_cb].label
+        elif _cb in HEURISTIC_LABELS:
+            _cb_label = HEURISTIC_LABELS[_cb]
+        else:
+            _cb_label = _cb.replace('_', ' ').title()
+        for _cs, _cd in _CRIT_SFX_DESC.items():
+            _ck = f'{_cb}{_cs}'
+            if _ck not in HEURISTIC_LABELS:
+                HEURISTIC_LABELS[_ck] = f'{_cb_label} ({_cd})'[:80]
 
     for col in df.columns:
         # fix(omni-g-stata-export-05/09, 2026-06-11): 改名列先按原名查

@@ -106,6 +106,25 @@ _CMNT_MIN_COMPONENT_SIZE = 3
 # bank_pairs_within_sentence_window (审计脚本共用, 审计==生产)。
 # 执行计划 = scripts/audit/NETWORK_TRITRACK_AND_CRITERIA_EXECUTION_PLAN_2026-07-02.md
 _ADJ_CRITERIA = ('article', 'win1', 'sent')
+# 33 结构指标基名 SSOT (compute_bank_network_centrality 产出全集; stata_export
+# 判据标签机械块与 gate 测试 import 复用防漂移 — 镜像 encode.LLM_MODELS 先例)
+NETWORK_METRIC_BASES = (
+    # 18 节点级 (Part A 11 + Part B 7)
+    'bank_degree_cent', 'bank_strength_cent', 'bank_eigen_cent',
+    'bank_katz_cent', 'bank_subgraph_cent', 'bank_cfbetween_cent',
+    'bank_clustering', 'bank_constraint', 'bank_ego_density',
+    'bank_effective_size', 'bank_avg_nbr_deg', 'bank_coreness',
+    'bank_between_cent', 'bank_harmonic_cent', 'bank_closeness_cent',
+    'bank_eccentricity', 'bank_ci', 'bank_is_hub',
+    # 10 网络级 (Part C + WS-A)
+    'net_density_yr', 'net_avg_cluster_yr', 'net_avg_path_yr',
+    'net_degree_gini_yr', 'net_modularity_yr', 'net_assortativity_yr',
+    'net_transitivity_yr', 'net_diameter_yr', 'net_giant_share_yr',
+    'net_n_components_yr',
+    # 5 GF 经纪角色 (Part E)
+    'gf_coordinator', 'gf_itinerant', 'gf_gatekeeper_rep', 'gf_liaison',
+    'gf_total',
+)
 _BANK_SCAN_CTX = None
 
 
@@ -130,9 +149,10 @@ def _get_bank_scan_ctx():
             os.path.join(os.path.dirname(bank_names_file or '.'),
                          'bank_name_exclusions.json'))
         neg_ac, short_excl, cw = load_exclusion_patterns(excl_file)
+        # 拆分 YAML 顶层键直落 CONFIG 根 (panel.yaml::network_criteria →
+        # CONFIG['network_criteria'], 同 panel_building 惯例)
         win_radius = int(
-            (CONFIG.get('panel', {}) or {})
-            .get('network_criteria', {}).get('win_radius', 1))
+            (CONFIG.get('network_criteria', {}) or {}).get('win_radius', 1))
         _BANK_SCAN_CTX = (bank_names_file, neg_ac, short_excl, cw, win_radius)
     return _BANK_SCAN_CTX
 

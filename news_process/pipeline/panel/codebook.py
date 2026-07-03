@@ -722,6 +722,101 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
                 track=_trk.lstrip('_'),
             )
 
+    # ═══ 网络三轨/W-轨扩展精写 (2026-07-03, 计划层 E — 终验 traceability-3:
+    #     必做非可选; 备注承载 D5 文本源不同源披露 + D6 兜底机制分家披露) ═══
+    _D5_NOTE = ('D5 口径披露: canonical (无后缀) 文本源 = 原始「内容+标题」拼接 '
+                '(历史口径, 缓存锚); ctx/ss 轨 = stage 14 物化 content_{ctx,ss} '
+                '原样拼接 (prepend_title 已内嵌标题, 禁再拼 title — 双标题陷阱), '
+                '且剔除 *_is_fallback==True 行 (纯轨文本)。两口径刻意不同源。')
+    _D6_NOTE = ('D6 兜底分家: cogn 路径 = 100 字符最短守卫→NaN; emb 路径 = 剔行后 '
+                'bank 从 groupby 缺席→NaN + 空超级文档剔节点 (无 100 字符门, '
+                '短文本照嵌)。三轨/W-轨互为稳健性、不分主次, 禁混同一 Hansen J。')
+    for _sfx, _trk_zh in (('', 'full(canonical)'), ('_ctx', 'ctx'), ('_ss', 'ss')):
+        _col = f'industry_neg_shock{_sfx}'
+        metadata[_col] = VariableMetadata(
+            var_name=_col,
+            label=(f"Industry Neg Shock (LOO same-period"
+                   f"{', ' + _sfx.lstrip('_') if _sfx else ''}; year-FE collinear)"),
+            description=f'行业负面冲击 LOO ({_trk_zh} 轨): 同行银行负面报道占比的 '
+                        f'leave-one-out 均值; 分子分母严格逐轨 '
+                        f'(neg_count{_sfx or "_full"} / n_articles_llm_valid{_sfx})。',
+            data_type='float', unit='占比', value_range='[0, 1]',
+            formula=f'mean_{{j≠i}}(neg_count{_sfx or "_full"}_j / n_valid{_sfx}_j)',
+            source_stage='Stage 40 (panel/network_brokerage)',
+            reference='Manski (1993, RES); Angrist (2014, Labour Economics)',
+            notes='⚠ 同期版含年FE与自身负面率精确共线, 回归请用 lag1 变体。'
+                  '三轨互为稳健性、不分主次 (无后缀=历史命名非"主")。',
+            category='情感指标 (行业冲击 LOO)', track=(_sfx.lstrip('_') or 'full'),
+        )
+        metadata[f'industry_neg_shock_lag1{_sfx}'] = VariableMetadata(
+            var_name=f'industry_neg_shock_lag1{_sfx}',
+            label=(f"Industry Neg Shock LOO (L1, year-FE-safe"
+                   f"{', ' + _sfx.lstrip('_') if _sfx else ''})"),
+            description=f'行业负面冲击 LOO 的 t-1 滞后 ({_trk_zh} 轨), 含年FE规格的可用形态。',
+            data_type='float', unit='占比', value_range='[0, 1]',
+            formula=f'L1.industry_neg_shock{_sfx}',
+            source_stage='Stage 40 (panel/network_brokerage)',
+            reference='Manski (1993, RES)',
+            notes='年FE-safe 滞后变体; 三轨禁混同一 Hansen J。',
+            category='情感指标 (行业冲击 LOO)', track=(_sfx.lstrip('_') or 'full'),
+        )
+    for _wt in ('ctx', 'ss'):
+        metadata[f'bank_cogn_mean_{_wt}'] = VariableMetadata(
+            var_name=f'bank_cogn_mean_{_wt}',
+            label=f'Cognitive Proximity TF-IDF ({_wt} '
+                  f'{"window" if _wt == "ctx" else "same-sent"} text)',
+            description=f'认知邻近度 ({_wt} 轨文本): 银行 content_{_wt} 超级文档 '
+                        f'TF-IDF char-ngram cosine 对其他银行的均值。',
+            data_type='float', unit='余弦相似度', value_range='[0, 1]',
+            formula=f'mean_j(cosine(tfidf(superdoc_{_wt}_i), tfidf(superdoc_{_wt}_j)))',
+            source_stage='Stage 40 (panel/network_spillover)',
+            reference='Boschma (2005, Regional Studies)',
+            notes=f'{_D5_NOTE} {_D6_NOTE}',
+            category='网络指标 (认知邻近)', track=_wt,
+        )
+        metadata[f'emb_peer_tone_lag1_{_wt}'] = VariableMetadata(
+            var_name=f'emb_peer_tone_lag1_{_wt}',
+            label=f'Emb Peer Tone L1 (W=full, tone={_wt}) '
+                  f'(co-primary: Qwen/Qwen3-Embedding-8B)',
+            description=f'嵌入加权同行情感 (legacy 列): W 矩阵来源恒为 full 文本超级'
+                        f'文档, 传播 {_wt} 轨 tone — 语义 = W_full × tone_{_wt}。',
+            data_type='float', unit='语调', value_range='[-1, 1]',
+            formula=f'W_emb^full(t-1) × llm_vote_tone_{_wt}(t-1)',
+            source_stage='Stage 40 (panel/network_spillover)',
+            reference='Hoberg & Phillips (2016, JPE); Manski (1993, RES)',
+            notes='⚠ 与 diag 列仅差 W 来源轨 — 标签/备注必须写明 W, 防审稿人混淆 '
+                  '(终验 econ-final-3)。co-primary _lg 孪生同语义。',
+            category='情感指标 (嵌入同行)', track=_wt,
+        )
+        metadata[f'emb_peer_tone_diag_lag1_{_wt}'] = VariableMetadata(
+            var_name=f'emb_peer_tone_diag_lag1_{_wt}',
+            label=f'Emb Peer Tone Diag L1 (W={_wt}) '
+                  f'(co-primary: Qwen/Qwen3-Embedding-8B)',
+            description=f'嵌入加权同行情感 (diag 对角轨, 2026-07-03): W 矩阵由 '
+                        f'content_{_wt} 超级文档构建, 传播同轨 tone — '
+                        f'语义 = W_{_wt} × tone_{_wt} (W same-track)。',
+            data_type='float', unit='语调', value_range='[-1, 1]',
+            formula=f'W_emb^{_wt}(t-1) × llm_vote_tone_{_wt}(t-1)',
+            source_stage='Stage 40 (panel/network_spillover)',
+            reference='Hoberg & Phillips (2016, JPE); Manski (1993, RES)',
+            notes=f'{_D5_NOTE} {_D6_NOTE} per-W-轨独立降级 (D8): 本单元 miss 不连坐 '
+                  f'full 族。',
+            category='情感指标 (嵌入同行)', track=_wt,
+        )
+        metadata[f'bank_emb_sim_mean_lag1_{_wt}'] = VariableMetadata(
+            var_name=f'bank_emb_sim_mean_lag1_{_wt}',
+            label=f'Bank Emb Sim Mean (L1, W={_wt}) '
+                  f'(co-primary: Qwen/Qwen3-Embedding-8B)',
+            description=f'银行嵌入相似度均值 (W 来源轨 = {_wt}): content_{_wt} 超级'
+                        f'文档 (t-1) 两两 cosine 对其他银行的均值。后缀语义 = W 来源轨。',
+            data_type='float', unit='余弦相似度', value_range='[-1, 1]',
+            formula=f'mean_j(cosine(emb(superdoc_{_wt}_i, t-1), emb(superdoc_{_wt}_j, t-1)))',
+            source_stage='Stage 40 (panel/network_spillover)',
+            reference='Hoberg & Phillips (2016, JPE)',
+            notes=f'{_D5_NOTE} {_D6_NOTE}',
+            category='网络指标 (嵌入相似)', track=_wt,
+        )
+
     # ═══ 网络中心度指标 ═══
     metadata['bank_degree_cent'] = VariableMetadata(
         var_name='bank_degree_cent',
@@ -1951,8 +2046,42 @@ def generate_codebook(
 # 5. 辅助函数：自动推断变量属性
 # ============================================================================
 
+# ── 网络构造判据后缀归一 (2026-07-03, 计划 NETWORK_TRITRACK_AND_CRITERIA 层 E) ──
+# ② 类结构网络指标的判据变体后缀 _win1 (银行∧银行 ±1 句窗) / _sent (严格同句)。
+# ⚠ 三个推断函数 (_infer_label/_infer_source_stage/_infer_category) 入口先剥
+# 该后缀再匹配 (镜像 _strip_lg token 剥离先例) — 否则: ① '_sent' 含子串 'sent'
+# 被 _infer_category 误归「情感指标」(33 列); ② net_*_yr 的 endswith('_yr')
+# 联合判据被后缀破坏落「未知」(20 列)。判据后缀 ≠ 三轨文本后缀 (_full/_ctx/_ss),
+# 全仓无既有列以 _win1/_sent 结尾 (终验实测), 剥离对既有列恒为 no-op。
+_CRITERIA_SFX_RE = re.compile(r'_(win1|sent)$')
+_CRITERIA_SFX_DESC = {
+    'win1': 'bank-bank ±1-sent edge',
+    'sent': 'bank-bank same-sent edge',
+}
+# 8 个无 'cent' 子串的节点级结构指标基名 (现状落'未知'的既存缺口, 一并消化;
+# 终验 identity-trap-1: 白名单须同时接入 source_stage 与 category 两函数)
+_NET_STRUCT_BASES = frozenset({
+    'bank_clustering', 'bank_constraint', 'bank_ego_density',
+    'bank_effective_size', 'bank_avg_nbr_deg', 'bank_coreness',
+    'bank_ci', 'bank_is_hub',
+})
+
+
+def _strip_criteria_suffix(var_name: str) -> tuple:
+    """剥判据后缀: 返回 (基名, 'win1'|'sent'|None)。"""
+    m = _CRITERIA_SFX_RE.search(var_name)
+    if m:
+        return var_name[:m.start()], m.group(1)
+    return var_name, None
+
+
 def _infer_label(var_name: str) -> str:
     """自动推断变量标签 (三轨: full/ctx/ss; ss=银行+金科同句共现)"""
+    # 判据后缀归一 (2026-07-03): 基名推断 + bank-bank 限定注解 (措辞刻意与
+    # `_ss` 银行∧金科文本轨的 'same-sent' 官方压缩词区分, 终验 econ-final-1)
+    _crit_base, _crit = _strip_criteria_suffix(var_name)
+    if _crit:
+        return f'{_infer_label(_crit_base)} ({_CRITERIA_SFX_DESC[_crit]})'
     # 轨道映射
     track_suffix = ''
     if var_name.endswith('_full'):
@@ -2047,6 +2176,8 @@ def _infer_source_stage(var_name: str) -> str:
     # 无 llm/gpt/gemini/bert 子串的 per-model 列 (含加权 _vw/_mw/_hw / 计数 / 和变体),
     # 否则窄子串判据漏 → 落 '未知'。llm_vote_* 不以模型名开头故不误命中; 模型名与
     # 词典/网络列名无碰撞 (前置早返回安全)。
+    # 判据后缀归一 (2026-07-03, 层 E): 全仓无既有列以 _win1/_sent 结尾 → 恒 no-op 安全
+    var_name = _CRITERIA_SFX_RE.sub('', var_name)
     if any(var_name.startswith(m + '_') for m in LLM_MODELS):
         return 'Stage 21'
     if any(var_name.startswith(m + '_') for m in BERT_MODELS):
@@ -2067,9 +2198,18 @@ def _infer_source_stage(var_name: str) -> str:
         return 'Stage 40 (panel/attention_media·encode)'
     elif ('network' in var_name or 'cent' in var_name
           or var_name.startswith('gf_') or var_name.startswith('brok')
-          or (var_name.startswith('net_') and var_name.endswith('_yr'))):
+          or (var_name.startswith('net_') and var_name.endswith('_yr'))
+          or var_name in _NET_STRUCT_BASES):
         # 网络指标扩展 2026-06-21: gf_*/brok_bip_*/net_*_yr 一并归网络族
         # (含既有 4 个 net_*_yr — 此前漏 token 误落 '未知', 一并修, §3.1 Q7)
+        # 2026-07-03: + 8 个无 'cent' 子串节点基名白名单 (_NET_STRUCT_BASES,
+        # 判据后缀已在入口剥离 → 基名精确匹配)
+        return 'Stage 40 (panel/network_spillover·network_brokerage)'
+    elif ('neg_shock' in var_name or var_name.startswith('bank_cogn')
+          or var_name.startswith('emb_peer_tone')
+          or var_name.startswith('bank_emb_sim')):
+        # 2026-07-03 (计划 D17): industry_neg_shock 三轨 (network_brokerage) +
+        # 认知邻近/嵌入相似网族 (network_spillover) — 此前落 '未知' 的既存缺口
         return 'Stage 40 (panel/network_spillover·network_brokerage)'
     elif 'strat' in var_name:
         return 'Stage 25'
@@ -2079,15 +2219,21 @@ def _infer_source_stage(var_name: str) -> str:
 
 def _infer_category(var_name: str) -> str:
     """自动推断变量类别"""
+    # 判据后缀归一 (2026-07-03, 层 E): 必须在 'sent' 子串分支**之前**剥离 —
+    # 否则全部 *_sent 结构网络列被误归「情感指标」(终验 identity-trap-1)
+    var_name = _CRITERIA_SFX_RE.sub('', var_name)
     if var_name in ['target_bank', 'year']:
         return '主键'
-    elif 'tone' in var_name or 'sent' in var_name:
+    elif 'tone' in var_name or 'sent' in var_name or 'neg_shock' in var_name:
         return '情感指标'
     elif 'attn' in var_name or var_name.startswith('ft_vol'):
         return '注意力指数'
     elif ('cent' in var_name or 'network' in var_name
           or var_name.startswith('gf_') or var_name.startswith('brok')
-          or (var_name.startswith('net_') and var_name.endswith('_yr'))):
+          or (var_name.startswith('net_') and var_name.endswith('_yr'))
+          or var_name in _NET_STRUCT_BASES
+          or var_name.startswith('bank_cogn')
+          or var_name.startswith('bank_emb_sim')):
         return '网络指标'
     elif 'media' in var_name:
         return '媒体指标'

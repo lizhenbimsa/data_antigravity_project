@@ -470,6 +470,18 @@ class TestEmbDiagWTrackUnits:
         for d in ('a1', 'a2', 'a3'):
             assert f'CTXWIN-{d}' in ctx_texts
 
+    def test_diag_prefix_registered_in_parity_net(self):
+        """G1(c): diag 新列必须落入嵌入族判定面 (n10 静默逃逸教训)。"""
+        from news_process.tests.test_embedding_coprimary_parity import (
+            _is_emb_family,
+        )
+        for col in ('emb_peer_tone_diag_lag1_ctx', 'emb_peer_tone_diag_lag1_ss',
+                    'bank_emb_sim_mean_lag1_ctx', 'bank_emb_sim_mean_lag1_ss',
+                    'emb_peer_tone_diag_lag1_lg_ctx'):
+            assert _is_emb_family(col), col
+        # cogn 是 TF-IDF 非嵌入 → 不入 parity 面 (合法免 _lg)
+        assert not _is_emb_family('bank_cogn_mean_ctx')
+
     def test_d8_per_unit_isolation(self, monkeypatch):
         """G1(j): ctx 轨嵌入失败 → 仅 ctx 单元 NaN, full 族与 ss 单元不连坐。"""
         captured = {}
@@ -506,3 +518,70 @@ class TestEmbDiagWTrackUnits:
             assert ((vv >= -1e-6) & (vv <= 1 + 1e-6)).all()
         # 缺 content 列 → 该轨列不产 (D6 家族级守卫)
         assert 'bank_cogn_mean_ctx' not in before.columns
+
+
+# ============================================================================
+# 层 E (G1(g)): codebook 判据后缀归一 — category/source_stage 正确落族
+# ============================================================================
+
+class TestCodebookCriteriaSuffixNormalization:
+
+    def _fns(self):
+        from news_process.pipeline.panel.codebook import (
+            _infer_category,
+            _infer_label,
+            _infer_source_stage,
+        )
+        return _infer_category, _infer_source_stage, _infer_label
+
+    def test_sent_suffix_not_sentiment(self):
+        """'sent' 子串陷阱 (终验 identity-trap-1): 全部 _sent 结构列 = 网络指标。"""
+        cat, stage, _ = self._fns()
+        for base in ('bank_degree_cent', 'net_assortativity_yr', 'gf_total',
+                     'bank_is_hub', 'bank_clustering', 'bank_constraint'):
+            for sfx in ('_win1', '_sent'):
+                col = base + sfx
+                assert cat(col) == '网络指标', col
+                assert stage(col) != '未知', col
+                # 判据变体与无后缀孪生同族 (元数据不分裂)
+                assert stage(col) == stage(base), col
+
+    def test_net_yr_endswith_survives_suffix(self):
+        cat, stage, _ = self._fns()
+        for col in ('net_density_yr_win1', 'net_modularity_yr_sent',
+                    'net_diameter_yr_win1'):
+            assert stage(col) == stage('net_density_yr'), col
+            assert cat(col) == '网络指标', col
+
+    def test_eight_bare_bases_whitelist_both_functions(self):
+        """8 个无 'cent' 基名白名单双接 source_stage 与 category (终验 minor)。"""
+        cat, stage, _ = self._fns()
+        for base in ('bank_clustering', 'bank_constraint', 'bank_ego_density',
+                     'bank_effective_size', 'bank_avg_nbr_deg',
+                     'bank_coreness', 'bank_ci', 'bank_is_hub'):
+            assert stage(base) != '未知', base
+            assert cat(base) == '网络指标', base
+
+    def test_new_family_tokens(self):
+        """D17: neg_shock/cogn/emb_peer/emb_sim 族不再落 '未知'。"""
+        cat, stage, _ = self._fns()
+        for col in ('industry_neg_shock', 'industry_neg_shock_ctx',
+                    'industry_neg_shock_lag1_ss', 'bank_cogn_mean',
+                    'bank_cogn_mean_ctx', 'emb_peer_tone_lag1_full',
+                    'emb_peer_tone_diag_lag1_ctx', 'bank_emb_sim_mean_lag1',
+                    'bank_emb_sim_mean_lag1_lg_ss'):
+            assert stage(col) != '未知', col
+        assert cat('bank_cogn_mean_ss') == '网络指标'
+        assert cat('bank_emb_sim_mean_lag1_ctx') == '网络指标'
+        assert cat('industry_neg_shock_ctx') == '情感指标'
+
+    def test_label_carries_bank_bank_qualifier(self):
+        """G1(k): 判据变体标签带 bank-bank 限定, 不裸用 same-sent。"""
+        _, _, label = self._fns()
+        lbl = label('bank_degree_cent_sent')
+        assert 'bank-bank' in lbl
+        lbl_w = label('net_density_yr_win1')
+        assert 'bank-bank' in lbl_w
+        # 既有列标签不受归一影响 (no-op 安全)
+        assert label('bank_degree_cent') == label('bank_degree_cent')
+        assert 'bank-bank' not in label('bank_degree_cent')

@@ -42,6 +42,11 @@ _EMB_FAMILY_PREFIXES = (
     "auth_sim_emb",
     "benefit_mean", "benefit_std", "benefit_pos_frac", "benefit_neg_frac",
     "emb_peer_tone_lag1", "bank_emb_sim_mean_lag1",
+    # diag W-轨 (2026-07-03, 计划 NETWORK_TRITRACK_AND_CRITERIA D7/G2):
+    # 'emb_peer_tone_diag_lag1' 不以既有 'emb_peer_tone_lag1' 开头 (diag≠lag1
+    # 于第 14 字符分叉), 不加即静默逃逸 parity (n10 教训); sim W-轨
+    # (bank_emb_sim_mean_lag1_{ctx,ss}) 已被上行前缀自动覆盖。
+    "emb_peer_tone_diag_lag1",
 )
 # strat_diff 契约别名 (EXACT 匹配, 非 prefix): 仅 strat_diff_{full,ctx,ss} 是嵌入列
 # (= centroid_diff_emb 逐值别名); strat_diff_n5/n3/n5_w/n5_lda 等是 TF-IDF/LDA 非嵌入, 无 _lg。

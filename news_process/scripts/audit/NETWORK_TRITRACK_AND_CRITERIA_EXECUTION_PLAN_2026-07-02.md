@@ -226,7 +226,9 @@
 | econometrics-final-3: diag/legacy 标签不含 W 来源 | 层 F/层 E W 来源措辞; G1(k) |
 | test-adequacy-2: G1(e) 可被真空自对拍 | G1(e) 冻结 fixture 口径; G5 顺带采集 |
 
-## §8 实施记录 (执行时填写)
+## §8 实施记录 (2026-07-03 实施)
+
+**逐层完成态**: 层 A ✅ (entity_context 两原语 + 9 单测) → Phase 0 ✅ (§9) → 层 B1/B2 ✅ (criterion 参数化 + 33×3 落列 + runner 三调) → 层 C ✅ (shock 三轨 + 护栏翻转 + fire_sale canonical-only 注释) → 层 B3/B4/B5 ✅ (cogn 三轨 / emb per-W-轨 diag 单元 + 空文档守卫 + 轨级 miss WARN / docstring 双口径) → 层 D ✅ (panel.yaml::network_criteria, 顶层键直落 CONFIG 根) → 层 E ✅ (三推断函数判据后缀归一 `_CRITERIA_SFX_RE` + 8 基名白名单双接 + neg_shock/cogn/emb 族 token + 14 条精写 VariableMetadata 含 D5/D6 披露) → 层 F ✅ (源① HEURISTIC ①-A 6 条+①-B 8 条+② 66 机械块+anchor 原子 6 键 / 源② export.py 同族+机械块 / 源③ 08_label_network.do capture 非-ss 键+② 声明) → 层 G gate: test_network_tritrack_expansion.py 26 项断言全绿 (a,d,e,f,g,h,i,j,k), G2 ✅ (_EMB_FAMILY_PREFIXES += 'emb_peer_tone_diag_lag1' — diag 与既有 'emb_peer_tone_lag1' 前缀于第 14 字符分叉, 不加即 n10 式静默逃逸; sim W-轨由既有前缀自动覆盖; parity 10 项全绿), G4 check_static_enums 0 新增违规 (60 条 prose 均 HEAD 既存)。
 
 - **实施偏差 1 (层 A, 2026-07-03)**: 未采用计划原定的 `_split_sentences_with_spans` (AC 字符位置 + span 归句), 改为**逐句 `has_unexcluded_occurrence` 判定** (`map_bank_sentence_positions`) — 与 ctx/ss 轨锚句判定字节级同款原语, **从根上无偏移映射问题** (R13 根因消灭而非缓解); B1 只需幸存银行的句集, 逐句判定成本可忽略 (Phase 0 实测 0.77ms/组)。配对判定原语 `bank_pairs_within_sentence_window` (min |i−j| ≤ radius, 天然对称 ≡ D11 OR 口径)。
 - **实施偏差 2 (顺序)**: G1(e) 冻结 fixture 未等 Phase 0 — 在改动落地后用 **git HEAD(e39955d0) 版模块与改动后模块在同一合成小图上做一次性 in-process A/B** (33 列全等, 零容差外 0 列), 以 HEAD 输出冻结 `tests/fixtures/network_criteria_baseline_v0.json` — 强于计划口径 (真·改动前代码, 非"改动前时间点")。

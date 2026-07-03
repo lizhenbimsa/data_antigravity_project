@@ -1190,22 +1190,36 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'coh_lda_ctx':       'Text Coherence t/(t-1) LDA+JSD (Ctx)',
                 'coh_emb_full':      'Text Coherence t/(t-1) Embedding (Full)',
                 'coh_emb_ctx':       'Text Coherence t/(t-1) Embedding (Ctx)',
-                # === 认知邻近度 (Boschma 2005) ===
+                # === 认知邻近度 (Boschma 2005; 三轨 2026-07-03) ===
                 'bank_cogn_mean':                'Cognitive Proximity (TF-IDF)',
-                # === 信息经纪网络 (Han et al. 2024) ===
+                'bank_cogn_mean_ctx':            'Cognitive Proximity (TF-IDF, ctx window text)',
+                'bank_cogn_mean_ss':             'Cognitive Proximity (TF-IDF, ss same-sent text)',
+                # === 信息经纪网络 (Han et al. 2024; shock 三轨 2026-07-03) ===
                 'brokerage_eigen_cent':          'Brokerage Eigenvector Cent',
                 'industry_neg_shock':            'Industry Neg Shock (LOO, same-period; year-FE collinear)',
+                'industry_neg_shock_ctx':        'Industry Neg Shock (LOO same-period, ctx; year-FE collinear)',
+                'industry_neg_shock_ss':         'Industry Neg Shock (LOO same-period, ss; year-FE collinear)',
                 'industry_neg_shock_lag1':       'Industry Neg Shock LOO (L1, year-FE-safe)',
+                'industry_neg_shock_lag1_ctx':   'Industry Neg Shock LOO (L1, year-FE-safe, ctx)',
+                'industry_neg_shock_lag1_ss':    'Industry Neg Shock LOO (L1, year-FE-safe, ss)',
                 'brokerage_fire_sale':           'Brokerage x Neg Shock',
                 # === 同行金融科技溢出 (LeSage & Pace 2009; Leary & Roberts 2014 JF) ===
                 # fix(omni-g-misc-01, 2026-06-11): 原误引 Berger et al. (2022, JFI) — 该文研究
                 # EPU 与银行流动性囤积, 与本构念 (row-stochastic 同行声量溢出) 不符; 正确锚点
                 # 同 network_spillover.py:309-316 勘误 (空间滞后 + 同行均值范式)。
                 'peer_fintech_exposure_lag1':    'Peer Fintech Exposure (L1)',
-                # === Embedding 同业网络 (Hoberg & Phillips 2016) ===
+                # === Embedding 同业网络 (Hoberg & Phillips 2016; W-轨 2026-07-03) ===
+                # legacy 列语义 = W_full × tone_track (标签写明 W 来源, 终验
+                # econ-final-3); diag 新轨 = W 与 tone 同轨对角。_ctx/_ss 手写
+                # 成对 (勿依赖下方 Ctx→SS 镜像 — 本族小写 'ctx' 不匹配该替换)。
                 'emb_peer_tone_lag1_full':      'Emb Peer Tone L1 (Full)',
-                'emb_peer_tone_lag1_ctx':       'Emb Peer Tone L1 (Ctx)',
+                'emb_peer_tone_lag1_ctx':       'Emb Peer Tone L1 (W=full, tone=ctx)',
+                'emb_peer_tone_lag1_ss':        'Emb Peer Tone L1 (W=full, tone=ss)',
+                'emb_peer_tone_diag_lag1_ctx':  'Emb Peer Tone Diag L1 (W=ctx)',
+                'emb_peer_tone_diag_lag1_ss':   'Emb Peer Tone Diag L1 (W=ss)',
                 'bank_emb_sim_mean_lag1':       'Bank Embedding Sim Mean (L1)',
+                'bank_emb_sim_mean_lag1_ctx':   'Bank Embedding Sim Mean (L1, W=ctx)',
+                'bank_emb_sim_mean_lag1_ss':    'Bank Embedding Sim Mean (L1, W=ss)',
                 # === LLM-Peer 竞争网络 IV (Cao et al. 2025) ===
                 # 主回归变量 (无后缀, difflib 名归一 cutoff=0.80)
                 # fix(omni-g-misc-02, 2026-06-11): cutoff 是 difflib.get_close_matches 的
@@ -1431,6 +1445,23 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                     if _ss_v == _v:  # 源标签无 (Ctx) 轨标记 → 显式补 SS 同句标识
                         _ss_v = f'{_v} [SS]'
                     STATA_LABELS[_ss_key] = _ss_v[:80]
+            # ═══ 网络判据敏感性 "_win1/_sent" 标签机械派生 (2026-07-03, 计划层 F) ═══
+            # 33 基名 (SSOT = network_spillover.NETWORK_METRIC_BASES) × 2 判据;
+            # 后缀带 bank-bank 限定 (与 `_ss` 银行∧金科文本轨的 same-sent 词汇区分)。
+            try:
+                from news_process.pipeline.panel.network_spillover import (
+                    NETWORK_METRIC_BASES as _NET_BASES,
+                )
+            except Exception:  # noqa: BLE001
+                _NET_BASES = ()
+            for _nb in _NET_BASES:
+                _nb_label = STATA_LABELS.get(
+                    _nb, _nb.replace('_', ' ').title())
+                for _ncs, _ncd in (('_win1', 'bank-bank +/-1-sent edge'),
+                                   ('_sent', 'bank-bank same-sent edge')):
+                    _nck = f'{_nb}{_ncs}'
+                    if _nck not in STATA_LABELS:
+                        STATA_LABELS[_nck] = f'{_nb_label} ({_ncd})'[:80]
             # ═══ 全年份锚点 "_allv" 标签机械派生 (all-vintage anchor robustness, 2026-06-21) ═══
             # 置于 _ss 派生之后 → full/ctx/ss 三轨政策键均已就绪, 一并派生其 _allv 孪生。
             # 仅对 **anchor-dependent** 政策族派生 (余弦/相似度/四象限阈值依赖政策锚点):

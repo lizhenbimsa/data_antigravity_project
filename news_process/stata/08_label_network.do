@@ -42,23 +42,36 @@ label variable net_avg_cluster_yr "网络平均聚类系数(年度)"
 label variable net_avg_path_yr "网络平均路径长度(年度)"
 label variable net_degree_gini_yr "网络度基尼系数(年度)"
 
-* 22.4 认知邻近性
+* 22.4 认知邻近性 (三轨 2026-07-03: ctx 手写; _ss 按 01 号约定留给
+*      stage-46 自动生成的 46_panel_yearly_labels.do)
 label variable bank_cogn_mean "银行认知邻近性均值"
+capture label variable bank_cogn_mean_ctx "银行认知邻近性均值(上下文窗口文本)"
+
+* 22.5 网络构造判据敏感性 (2026-07-03): 33 指标 × {_win1,_sent} 共 66 个
+*      判据变体 (银行∧银行 ±1句窗/严格同句边; 判据后缀≠三轨文本后缀) 的标签
+*      由 stage-46 自动生成文件 (46_panel_yearly_labels.do) 机械覆盖
+*      (bank-bank 限定措辞), 本手写源刻意不逐条手抄 (镜像 _ss 约定精神)。
 
 * ============================================================================
 * 23. 经纪网络指标 (阶段47: 经纪网络)
 * ============================================================================
 
 label variable brokerage_eigen_cent "经纪网络特征向量中心度"
+* shock 三轨 (2026-07-03): 同期版含年FE精确共线, 回归请用 lag1 变体
 label variable industry_neg_shock "行业负面冲击"
+capture label variable industry_neg_shock_ctx "行业负面冲击(上下文轨)"
+capture label variable industry_neg_shock_lag1_ctx "行业负面冲击滞后1期(上下文轨)"
 label variable brokerage_fire_sale "经纪网络火灾甩卖"
 
 * ============================================================================
-* 24. 嵌入同行网络指标
+* 24. 嵌入同行网络指标 (W-轨扩展 2026-07-03: legacy=W取全文文本; diag=W与情感同轨)
 * ============================================================================
 
 label variable emb_peer_tone_lag1_full "嵌入同行情感滞后1期(全文)"
+capture label variable emb_peer_tone_lag1_ctx "嵌入同行情感滞后1期(W=全文,情感=上下文)"
+capture label variable emb_peer_tone_diag_lag1_ctx "嵌入同行情感对角滞后1期(W=上下文)"
 label variable bank_emb_sim_mean_lag1 "银行嵌入相似度均值(滞后1期)"
+capture label variable bank_emb_sim_mean_lag1_ctx "银行嵌入相似度均值(滞后1期,W=上下文)"
 
 * ============================================================================
 * 25. LLM同行IV指标 (阶段48: LLM同行IV)

@@ -65,6 +65,23 @@ panel_building:
   compute_policy_shocks: true             # 7g. DID 政策冲击变量 — DCEP + Fintech Sandbox (Callaway & Sant'Anna 2021, JoE)
 
 # ------------------------------------------------------------------------------
+# 网络构造判据敏感性 (2026-07-03, 计划 NETWORK_TRITRACK_AND_CRITERIA D14/D19)
+# ------------------------------------------------------------------------------
+# 33 种结构网络指标按银行∧银行共现判据分轨: 同篇 (无后缀 canonical) / ±win_radius
+# 句窗 (_win1) / 严格同句 (_sent)。结构性常开 (镜像三轨 _ss 惯例, 无 compute 开关);
+# 本段为**记录性参数** (network_spillover._get_bank_scan_ctx 消费 win_radius)。
+# ⚠ 与 filtering.yaml::cooccurrence_filter.sentence_radius (stage 13 银行∧金科
+#   保留判据) 是**两个不同键**, 互不联动 — 判据主体不同 (银行∧银行 vs 银行∧金科)。
+# ⚠ match_in_title 恒 true (D19, 镜像 stage 13 标题盲区修复): 扫描文本 =
+#   prepend_title(标题, 正文), 标题自成第 0 句, 参与 _sent 同句判定与 _win1 距离;
+#   该口径硬编码于 entity_context.map_bank_sentence_positions, 此键仅作披露。
+# 白话: 同一批网络指标算三遍 — "两家银行出现在同一篇文章" / "出现在相邻一句内" /
+#       "出现在同一句话里", 三种越来越严的"算认识"标准, 互为稳健性、不分主次。
+network_criteria:
+  win_radius: 1
+  match_in_title: true
+
+# ------------------------------------------------------------------------------
 # 跟风/抄袭新闻检测配置 (Herd Detection)
 # ------------------------------------------------------------------------------
 # 学术依据: Tetlock (2011, RFS 24(5):1481-1512) — 媒体新闻信息冗余与重复效应
