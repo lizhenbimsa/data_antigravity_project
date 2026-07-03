@@ -208,8 +208,8 @@ LLM: `llm_vote_tone`=headline; 三 `{short}_tone` co-equal 不分主次。BERT: 
 - [x] P3 tone_validation `compute_cross_model_kappa` (复用 llms_evaluation Krippendorff α + Cohen κ; **非负重映射** 负=0/中=1/正=2 避 -1 哨兵; 矩阵 n_coders×n_items) + 钩入 _run_validation_for_track + eval_reports — 实跑 8 行, LLM α=-0.035 (随机≈0 证 -1 修复), finbert2 2-vs-3 原生处理, 'llm' 剔除; golden-safe
 - [x] P2 encode B3 +9 net_tone (post-agg, per-model 守卫独立降级, 仅 mean) — 实跑 net_tone==pos−neg 恒等 + finbert2 缺席跳过; ⚠ 真面板 +9 须生产机 aggregate_panel 重生 (golden DEFERRED + A/B)
 - [x] 全局门 + A/B: fast baseline-stash A/B **证 0 新增失败** (4 红灯 baseline≡A = 既有 disk-state, 非本次); DAG + 面板列 presence 26/26 绿
-- [ ] 提交 (by-name, 排除并发 v3_5_1_constants.json/bank_list.yaml) + 推送 — 待用户确认 (outward)
-- [ ] 生产机: aggregate_panel 重生 (+9 net_tone) + golden 重生 + manuscript FWER/κ prose
+- [x] **提交 + 推送 main=6805475a** (2026-07-02, by-name 20 文件, 排除并发 v3_5_1_constants.json/bank_list.yaml; pre-commit ruff Passed; fast-forward 6857c068→6805475a)
+- [ ] 生产机 (DEFERRED): aggregate_panel 重生 (+9 net_tone 真列) + golden 重生 + manuscript FWER/κ prose; ⚠ 继承性: rwolf method(reghdfe) 在部分 reghdfe 版本 rc=111 (repo-wide, 18_* 同模式), 依赖 Table A12/18_* 前须核 reghdfe/rwolf 或全仓改 method(areg)/wyoung
 
 ---
 
