@@ -837,6 +837,12 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
         # fix(hanzi-char-dual, 2026-06-13): 汉字口径篇内冗余 (剔数字/标点/拉丁后切3-gram),
         # 与上方字符口径 avg_within_doc_redund 互为"字符 vs 汉字"双口径稳健性。
         agg[f'avg_within_doc_redund_han{track}'] = (f'within_doc_redundancy_han{track}', 'mean')
+        # fix(dta-coverage-audit, 2026-07-03): redundancy 的配对长度控制列 (lexical_complexity
+        # 模块要求回归用 redundancy 时同时控制 ln 长度, 字符/汉字双口径)。聚合取文章级
+        # ln 的 bank-year 均值 (mean-of-ln, 与 avg_within_doc_redund 同域同口径配对;
+        # ≠ geography 的 ln-of-mean ln_word_count, 两者刻意并存不互代)。
+        agg[f'avg_redund_log_length{track}'] = (f'redundancy_log_length{track}', 'mean')
+        agg[f'avg_redund_han_log_length{track}'] = (f'redundancy_han_log_length{track}', 'mean')
         agg[f'avg_adversative{track}'] = (f'adversative_ratio{track}', 'mean')
         # 词级文章长度 (批 #7): bank-year 平均 jieba 词数; geography 再做 ln → ln_word_count
         agg[f'avg_word_count{track}'] = (f'n_words_real{track}', 'mean')
@@ -926,6 +932,10 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
         else:
             _ar_src = f'llm_agreement_rate{_ar_track}'
         agg[f'avg_agreement_rate{_ar_track}'] = (_ar_src, 'mean')
+        # fix(dta-coverage-audit, 2026-07-03): 情感票一致率 (三家 LLM 情感票与最终情感
+        # 一致占比, verified 子集; tone_llms 产出) — 与上行验证票一致率并排的第二质量
+        # 维度。文章级 NaN=无有效情感票已自编码域 → 直 mean, 不需 _agree_valid 式掩码。
+        agg[f'avg_agreement_rate_s{_ar_track}'] = (f'llm_agreement_rate_s{_ar_track}', 'mean')
     # remove-title-track: avg_agreement_rate_title 已取消
 
     # --- E2. v3.7.2 R8-H1 全管道延伸: ctx 独立度信号 ---

@@ -5,7 +5,8 @@
 * 内生变量: benefit_mean_full (媒体经营效益态度均值, paper_spec treatment.primary)
 * IV (paper_spec identification.iv, iv_extensions.py 物化):
 *   primary  = leave_one_out_peer_benefit_iv (同银行类型×年 LOO 态度均值;
-*              滞后稳健性变体 leave_one_out_peer_benefit_iv_lag1)
+*              滞后稳健性变体面板原名 leave_one_out_peer_benefit_iv_lag1 超
+*              Stata 32 字符上限, .dta 实名 = l1o_peer_benefit_iv_lag1)
 *   fallback = zone_leave1out_benefit_iv     (同经济圈跨省 LOO 态度均值,
 *              区域共同冲击粒度, 与 iv_did.compute_zone_leave1out 同构)
 * 白话: 媒体对一家银行"是否有利经营"的态度可能被该行业绩反向驱动; 借
@@ -300,7 +301,7 @@ else {
         title("Table A12: Benefit-Attitude IV — Type LOO + Zone LOO (First Stage + 2SLS)") ///
         mtitles(`mtitles') ///
         addnotes("IV1 = same-bank-type leave-one-out benefit-attitude mean; IV2 = same-economic-zone (cross-province) leave-one-out mean (regional common shocks; cf. iv_did.compute_zone_leave1out)." ///
-                 "Exclusion caveats for peer-mean instruments (Manski 1993; Leary-Roberts 2014 JF) must be disclosed; lag-1 variant leave_one_out_peer_benefit_iv_lag1 as robustness." ///
+                 "Exclusion caveats for peer-mean instruments (Manski 1993; Leary-Roberts 2014 JF) must be disclosed; lag-1 variant l1o_peer_benefit_iv_lag1 (.dta short name of panel column leave_one_out_peer_benefit_iv_lag1) as robustness." ///
                  "ctx columns: entity-window twin benefit_mean_ctx instrumented by ctx peer-LOO (lpeer_benefit_iv_ctx) and ctx zone-LOO (zone_leave1out_benefit_iv_ctx); just-identified + cross-family ctx over-id, side-by-side dual-track robustness — NOT pooled with full-track IV (same-text windows make Hansen J uninformative; Parente-Santos Silva 2012)." ///
                  "ss columns: bank+fintech same-sentence twin benefit_mean_ss instrumented by ss peer-LOO (lpeer_benefit_iv_ss) and ss zone-LOO (zone_leave1out_benefit_iv_ss); just-identified + cross-family ss over-id, side-by-side tri-track robustness — full/ctx/ss are NEVER pooled into one Hansen J (same-article windows co-contaminate; Parente-Santos Silva 2012)." ///
                  "Cross-family over-id instrument correlations (GPSS 2020 AER sec.5): full type-LOO x zone-LOO rho=`rho_full'; ctx rho=`rho_ctx'; ss rho=`rho_ss'. Distinct grouping dimensions (bank_type vs bank_zone) are near-orthogonal by construction; high |rho| would render the df=1 Hansen J underpowered." ///

@@ -5,7 +5,9 @@
 * 内生变量: collab_frac (外部协同文章占比, paper_spec treatment.primary)
 * IV (paper_spec identification.iv, iv_extensions.py 物化):
 *   primary  = leave_one_out_peer_collab_iv (同银行类型×年 LOO 协同占比;
-*              滞后稳健性变体 leave_one_out_peer_collab_iv_lag1)
+*              滞后稳健性变体面板原名 leave_one_out_peer_collab_iv_lag1 超
+*              Stata 32 字符上限, .dta 实名 = l1o_peer_collab_iv_lag1
+*              (stata_export 缩写映射; 反查 46_panel_yearly_codebook.xlsx))
 *   fallback = bartik_collab_iv_full        (基期类型共现份额 × 同类 LOO
 *              协同占比, GPSS 2020 AER share 外生性视角)
 * 白话: "自己研发还是找外部伙伴"由银行能力内生决定; 借同类型同业的协同
@@ -28,7 +30,7 @@ use "$data_dir/_prepared_panel.dta", clear
 
 local TX   collab_frac
 local IV1  leave_one_out_peer_collab_iv
-local IV1L leave_one_out_peer_collab_iv_lag1
+local IV1L l1o_peer_collab_iv_lag1
 local IV2  bartik_collab_iv_full
 local DV   m_and_a_fintech
 * ctx 轨镜像 (2026-06-13 终审): 内生孪生 collab_frac_cm 配 ctx 同业 LOO 工具

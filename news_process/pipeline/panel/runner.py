@@ -207,7 +207,11 @@ def _bert_argmax_pos_neg(frame: pd.DataFrame, model: str, track: str):
     if n_col not in frame.columns:
         return (p > 0.5), None  # 退化: 仅正面概率可用, 无法 argmax
     n = frame[n_col]
-    if u_col in frame.columns:  # 3-class: 全类 argmax
+    # fix(dta-coverage-audit, 2026-07-03): 2-class 模型 (finbert2) 的 `_中性` 列是
+    # 全 NaN 占位 (tone_berts.py:1144, 刻意非 0), 仅凭列存在判 3-class 会使
+    # (p>n)&(p>u) 与全 NaN 比较恒 False → 判正 0 篇, 违背上方 2-class P>0.5 设计。
+    # 须同时要求中性列真有值才走 3-class argmax。
+    if u_col in frame.columns and frame[u_col].notna().any():  # 3-class: 全类 argmax
         u = frame[u_col]
         return ((p > n) & (p > u)), ((n > p) & (n > u))
     return (p > 0.5), (n > 0.5)  # 2-class: P>0.5 ⇔ argmax

@@ -685,6 +685,11 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 # 汉字口径冗余孪生 (剔数字/标点/拉丁; 与上方字符口径双口径, hanzi-char-dual 2026-06-13)
                 'avg_within_doc_redund_han_full': 'Within-Doc Redundancy Han-char (Full)',
                 'avg_within_doc_redund_han_ctx':  'Within-Doc Redundancy Han-char (Ctx)',
+                # redundancy 配对长度控制 (mean-of-ln; dta-coverage-audit 2026-07-03)
+                'avg_redund_log_length_full':    'Redundancy Paired ln-Length Control (Full)',
+                'avg_redund_log_length_ctx':     'Redundancy Paired ln-Length Control (Ctx)',
+                'avg_redund_han_log_length_full': 'Redundancy Paired ln-Han-Length Ctrl (Full)',
+                'avg_redund_han_log_length_ctx': 'Redundancy Paired ln-Han-Length Ctrl (Ctx)',
                 'avg_adversative_full':          'Adversative-Conjunction Ratio (Full)',
                 'avg_adversative_ctx':           'Adversative-Conjunction Ratio (Ctx)',
                 'avg_word_count_full':           'Avg Word Count (Full)',

@@ -1381,6 +1381,15 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         ('avg_within_doc_redund_han', 'Within-Document Redundancy (Han-char)', 'ratio', '[0,1] ∪ NaN',
          'bank-year mean of (1 − 唯一汉字3-gram/全部汉字3-gram); 仅汉字口径(剔数字/标点/拉丁), 分子分母同为汉字. ⚠与字符口径 avg_within_doc_redund 文章级 corr≈0.99 → 敏感性诊断非独立构念, 勿同进一回归 (hanzi-char-dual); 锚点系中文落地非英文原文做法',
          'Dyer-Lang-Stice-Lawrence (2017) JAE 64(2-3); Cazier & Pfeiffer (2016)', 'Stage 22 (lexical_complexity) + Stage 40'),
+        # fix(dta-coverage-audit, 2026-07-03): redundancy 配对长度控制 (字符/汉字双口径).
+        # 聚合=mean-of-ln (文章级 ln 长度的 bank-year 均值), 与 avg_within_doc_redund(_han)
+        # 同域同口径配对; ≠ geography 的 ln-of-mean (ln_word_count/ln_han_count), 刻意并存.
+        ('avg_redund_log_length', 'Redundancy Paired Length Control (ln chars)', 'ln(chars)', '[0, +∞) ∪ NaN',
+         'bank-year mean of ln(去空白字符数); 回归用 avg_within_doc_redund 时的配对长度控制 (redundancy 与长度机械相关, Cazier & Pfeiffer 2016), 与其同定义域',
+         'Dyer-Lang-Stice-Lawrence (2017) JAE 64(2-3); Cazier & Pfeiffer (2016)', 'Stage 22 (lexical_complexity) + Stage 40'),
+        ('avg_redund_han_log_length', 'Redundancy Paired Length Control (ln Han chars)', 'ln(chars)', '[0, +∞) ∪ NaN',
+         'bank-year mean of ln(汉字数); 回归用 avg_within_doc_redund_han 时的配对长度控制, 与其同定义域 (hanzi-char-dual 汉字口径)',
+         'Dyer-Lang-Stice-Lawrence (2017) JAE 64(2-3); Cazier & Pfeiffer (2016)', 'Stage 22 (lexical_complexity) + Stage 40'),
         ('avg_adversative', 'Adversative-Conjunction Ratio', 'token fraction', '[0,1] ∪ NaN',
          'bank-year mean of (独立逆接连词表命中/总 token); 探索性, 不复用情感轨 adversative_words',
          '徐巍-姚振晔-陈冬华 (2021) 会计研究 (3):28; Ding-Liu-Yu (2008) WSDM', 'Stage 22 (lexical_complexity) + Stage 40'),

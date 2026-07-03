@@ -237,7 +237,10 @@ def compute_balanced_media_robustness(df, panel, logger, score_patterns):
         df_b = df_w[df_w['媒体(中文)'].isin(balanced)]
 
         if len(df_b) == 0:
-            logger.info(f"  窗口 {suffix}: 无平衡媒体数据, 跳过该稳健性窗口")
+            logger.info(
+                f"  窗口 {suffix}: 无平衡媒体数据, 跳过该稳健性窗口 "
+                f"(bal_w*/n_media_bal_* 列族本轮不落地 — 逐年覆盖判据下 dev T=2 无满足者属预期, "
+                f"生产 T=18 全量应触发; 与'已接线等生产数据回填'族同性质, 非代码遗漏)")
             continue
 
         # (D.a) 三轨道全局情感均值 (平衡子集; full/ctx/ss)
