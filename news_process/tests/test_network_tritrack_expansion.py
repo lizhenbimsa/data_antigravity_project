@@ -576,12 +576,92 @@ class TestCodebookCriteriaSuffixNormalization:
         assert cat('industry_neg_shock_ctx') == '情感指标'
 
     def test_label_carries_bank_bank_qualifier(self):
-        """G1(k): 判据变体标签带 bank-bank 限定, 不裸用 same-sent。"""
+        """G1(k)-codebook: 判据变体推断标签带 bank-bank 限定。"""
         _, _, label = self._fns()
         lbl = label('bank_degree_cent_sent')
         assert 'bank-bank' in lbl
         lbl_w = label('net_density_yr_win1')
         assert 'bank-bank' in lbl_w
-        # 既有列标签不受归一影响 (no-op 安全)
-        assert label('bank_degree_cent') == label('bank_degree_cent')
+        # 既有列不受归一影响: 剥后缀对无判据后缀列必须是 no-op (结果审计
+        # code-meta-2: 原恒真式改为直接锁 no-op 性质 + 冻结基名推断输出)
+        from news_process.pipeline.panel.codebook import (
+            _strip_criteria_suffix,
+        )
+        assert _strip_criteria_suffix('bank_degree_cent') == (
+            'bank_degree_cent', None)
+        assert _strip_criteria_suffix('llm_vote_tone_full') == (
+            'llm_vote_tone_full', None)
+        assert label('bank_degree_cent') == 'Network Centrality'
         assert 'bank-bank' not in label('bank_degree_cent')
+
+
+# ============================================================================
+# G1(a)(b)(k): 落盘存在性 + .dta 标签源非 fallback + 措辞断言
+# (结果审计 closure-1/closure-2/break-it-3-1 补落地)
+# ============================================================================
+
+def _all_new_columns():
+    """本次扩展 +80 新列全集 (SSOT: NETWORK_METRIC_BASES × 判据 + ①类清单)。"""
+    from news_process.pipeline.panel.network_spillover import (
+        NETWORK_METRIC_BASES,
+    )
+    crit = [f'{b}{s}' for b in NETWORK_METRIC_BASES for s in ('_win1', '_sent')]
+    shock = ['industry_neg_shock_ctx', 'industry_neg_shock_ss',
+             'industry_neg_shock_lag1_ctx', 'industry_neg_shock_lag1_ss']
+    emb = []
+    for w in ('ctx', 'ss'):
+        emb += [f'bank_cogn_mean_{w}',
+                f'bank_emb_sim_mean_lag1_{w}', f'bank_emb_sim_mean_lag1_lg_{w}',
+                f'emb_peer_tone_diag_lag1_{w}', f'emb_peer_tone_diag_lag1_lg_{w}']
+    return crit, shock, emb
+
+
+class TestNewColumnsLandingAndLabels:
+
+    def test_g1a_real_output_columns_present(self):
+        """G1(a): 盘上 40_panel_yearly.parquet 含全部 80 新列 (缺盘 skip)。"""
+        pq = os.path.join(os.path.dirname(__file__), '..', 'data',
+                          'processed', '40_panel_yearly.parquet')
+        if not os.path.exists(pq):
+            pytest.skip('40_panel_yearly.parquet 不在盘上 (fresh clone)')
+        cols = set(pd.read_parquet(pq, columns=None).columns)
+        crit, shock, emb = _all_new_columns()
+        missing = [c for c in (*crit, *shock, *emb) if c not in cols]
+        assert not missing, f'落盘缺列: {missing}'
+        assert len(crit) + len(shock) + len(emb) == 80
+
+    def test_g1b_dta_labels_not_colname_fallback(self):
+        """G1(b): stage-46 .dta 标签源 (build_variable_labels) 对全部新列
+        (含 _lg 孪生) 非列名 fallback 且 ≤80 UTF-8 字节
+        (镜像 test_network_metrics_expansion 先例; 源② export.py 经
+        _apply_label_fallback 复用同一启发式源 + 自带 100% 覆盖硬断言)。"""
+        from news_process.pipeline.panel.stata_export import (
+            build_variable_labels,
+        )
+        crit, shock, emb = _all_new_columns()
+        cols = [*crit, *shock, *emb, 'industry_neg_shock', 'bank_cogn_mean']
+        df = pd.DataFrame({c: [0.0] for c in cols})
+        labels = build_variable_labels(df, {c: c for c in cols})
+        fallback = [c for c in cols if labels[c] == c]
+        assert not fallback, f'标签退化为列名: {fallback}'
+        overlong = [c for c in cols
+                    if len(labels[c].encode('utf-8')) > 80]
+        assert not overlong, f'标签超 80 字节: {overlong}'
+
+    def test_g1k_label_wording(self):
+        """G1(k)-.dta: ② 标签含 bank-bank 限定 (不裸 same-sent);
+        diag/legacy 标签含 W 来源子串。"""
+        from news_process.pipeline.panel.stata_export import (
+            build_variable_labels,
+        )
+        crit, _, _ = _all_new_columns()
+        wcols = ['emb_peer_tone_lag1_ctx', 'emb_peer_tone_lag1_ss',
+                 'emb_peer_tone_diag_lag1_ctx', 'emb_peer_tone_diag_lag1_ss',
+                 'bank_emb_sim_mean_lag1_ctx', 'bank_emb_sim_mean_lag1_ss']
+        cols = [*crit, *wcols]
+        df = pd.DataFrame({c: [0.0] for c in cols})
+        labels = build_variable_labels(df, {c: c for c in cols})
+        for c in crit:
+            assert 'bank-bank' in labels[c], f'{c}: {labels[c]}'
+        for c in wcols:
+            assert 'W=' in labels[c], f'{c} 缺 W 来源子串: {labels[c]}'

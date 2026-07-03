@@ -436,6 +436,7 @@ def build_variable_labels(
         'emb_peer_tone_diag_lag1_ss':       "Emb Peer Tone Diag L1 (W=ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
         'bank_emb_sim_mean_lag1_ctx':       "Bank Emb Sim Mean (L1, W=ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
         'bank_emb_sim_mean_lag1_ss':        "Bank Emb Sim Mean (L1, W=ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'bank_cogn_mean':                   "Cognitive Proximity TF-IDF cosine (full-doc text)",
         'bank_cogn_mean_ctx':               "Cognitive Proximity TF-IDF cosine (ctx window text)",
         'bank_cogn_mean_ss':                "Cognitive Proximity TF-IDF cosine (ss same-sent text)",
         # ①-A industry_neg_shock 三轨 (2026-07-03): 同期版逐轨带年 FE 精确共线

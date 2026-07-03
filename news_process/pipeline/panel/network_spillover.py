@@ -343,6 +343,13 @@ def build_adjacency_matrix(
         # 仅 ≥2 家幸存银行的组可能成边; 层 A 原语输入 = 该组幸存
         # target_bank 的别名字典 → 非幸存银行不入参、不可能成边
         # (phantom 边防线, omni-g-net-spill-01)。
+        # ⚠ hyperedge_normalize (Newman 1/(N-1)) 尚未在判据分轨路径实现
+        # (article 主路径独有的预留参数, NB-01 未接线) — 未来若接线 *_hn,
+        # 此守卫防止三判据轨无警告分叉口径 (结果审计 code-net-1)。
+        if hyperedge_normalize:
+            raise ValueError(
+                f"criterion={criterion!r} 分轨路径暂不支持 "
+                f"hyperedge_normalize=True (仅 article 主路径实现)")
         from news_process.core.text.entity_context import (
             bank_pairs_within_sentence_window,
             get_target_aliases,
