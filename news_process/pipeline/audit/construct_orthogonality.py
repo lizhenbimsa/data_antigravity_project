@@ -399,7 +399,7 @@ def run_stage(
             "     · 阶段 72 construct_orthogonality (验证支线; thin shim 72_construct_orthogonality.py)"
         )
         logger.info(
-            "     · 项目:     news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1"
+            "     · 项目:     news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.15.0"
         )
         logger.info(f"     · 模块:     {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")

@@ -626,7 +626,7 @@ def main():
         logger.info("")
         logger.info("  🧭 项目 / 环境信息")
         logger.info(f"     · 阶段: {STAGE_NAME} (文本指标判别效度; STAGES_VALIDATION 73; 三轨 full/ctx/ss)")
-        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板; v3.11.1)")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板; v3.15.0)")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
         logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")

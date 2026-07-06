@@ -815,7 +815,7 @@ def _log_environment_and_references(llm_full_path: str, ft_full_path: str,
         logger.info(f"     · 阶段: {STAGE_NAME} (金融科技词典覆盖率审计, 验证支线 stage 67; "
                     "Precision/Coverage/Stability 三维)")
         logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板)"
-                    " | 版本 v3.11.1 (rule-ablation-ladder)")
+                    " | 版本 v3.15.0 (rule-ablation-ladder)")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
         logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")

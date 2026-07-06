@@ -515,7 +515,7 @@ def main():
     logger.info("=" * 72)
     logger.info("【功能】把银行分类阈值 min_name_occurrences 与金科分类阈值 min_distinct_keywords")
     logger.info("        各从 1 扫到 10, 统计每个阈值下被判为正例的文章数/保留率, 验证当前生产")
-    logger.info("        阈值(银行=3、金科=3)是否站得住脚 (产稳健性附录表/图, 不改任何主链数据)。")
+    logger.info("        阈值(银行=2、金科=2, 见 config/filtering.yaml min_name_occurrences/min_distinct_keywords)是否站得住脚 (产稳健性附录表/图, 不改任何主链数据)。")
     logger.info("【方法】银行轨复用与 stage 11 完全一致的 Aho-Corasick 匹配逻辑(analyze_bank_matches, 含否定模式+短名歧义消解);")
     logger.info("        金科轨为本 stage 独立实现(单遍全文扫+按起始位置切 upper/lower, fix 已消除横跨切点关键词丢失),")
     logger.info("        与 stage 12 analyze_fintech_matches 口径高度一致但非逐字复刻(边缘可能 ±1 篇分歧, 见 docstring);")
@@ -539,7 +539,7 @@ def main():
     # ① 🧭 项目 / 环境信息 (运行环境指纹 — tone_words.py 黄金范式; 仅日志, golden-safe)。
     # 整块 try/except 兜底: 任何 env-probe 异常都不得拖垮验证阶段。
     try:
-        _ver = CONFIG.get('project', {}).get('version', 'v3.11.1')
+        _ver = CONFIG.get('project', {}).get('version', 'v3.15.0')
         logger.info("【环境】项目 = news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) "
                     f"| 版本 {_ver}")
         logger.info(

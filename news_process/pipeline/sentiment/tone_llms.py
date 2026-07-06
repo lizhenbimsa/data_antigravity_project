@@ -865,7 +865,7 @@ def iter_article_track_prompts(df: pd.DataFrame):
         title = str(row.get('标题', ''))
         # fix(tonellms-01): content_ctx 已由 stage13 prepend 标题, 若再把 {title} 作独立
         # 字段注入会致 ctx 轨标题双重注入 (full 轨 1 次 / ctx 轨 2 次), 污染 full↔ctx
-        # 对照 — 而 llm_vote_tone_ctx 是 P1 G3 主处理。剥离 content_ctx 的标题前缀, 使
+        # 对照 — 而 llm_vote_tone_full 是 P1 G3 主处理 (full-only 2026-06-29; ctx 降稳健轨)。剥离 content_ctx 的标题前缀, 使
         # 三轨 (full/ctx/ss)**近似**对称: 均由 {title} 字段提供标题 1 次 + content
         # 提供去标题正文/窗口 (ss 轨剥离见下方)。
         # fix(omni-g-tonellms-03, 2026-06-11) 披露: "full 轨 (内容 无标题)" 的原声称
@@ -2123,7 +2123,7 @@ def _log_environment_and_methodology(input_path: str) -> None:
             f"     · 阶段: {STAGE_NAME} (统一 LLM 语义精筛与情感分析, STAGES_MAIN; "
             "三轨 full/ctx/ss; 全流水线唯一核心付费阶段)"
         )
-        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.11.1")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.15.0")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
         logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
@@ -2402,7 +2402,28 @@ def main():
         # 异步并发大模型（三轨 full/ctx/ss）
         logger.info(f"开始分发三轨组合模型处理任务，包含模型: {[m['short_name'] for m in MODELS]}")
         _t = time.time()
-        results_map = asyncio.run(run_all_llms(df, MODELS, cache=cache))
+        # fix(tonellms-connreset): Windows ProactorEventLoop 在 aiohttp session 关闭时
+        # 常抛无害的 ConnectionResetError [WinError 10054] 回调回溯 (污染日志, 不影响
+        # LLM 响应内容/全命中缓存字节)。显式建 loop + set_exception_handler 静默该类
+        # socket 关闭噪声, 其余异常仍走 default_exception_handler (不吞真请求错误)。
+        # ⚠ 若回溯源自 transport 的 __del__/GC 阶段 (loop 关闭后) 则本抑制不生效, 属
+        # 可接受残留噪声。等价替换 asyncio.run(...) + 补齐 shutdown_asyncgens/close 收尾。
+        def _suppress_connreset(_loop_arg, _context):  # noqa: ANN001
+            _exc = _context.get('exception')
+            if isinstance(_exc, ConnectionResetError) and getattr(_exc, 'winerror', None) == 10054:
+                logger.debug("  (已抑制 ProactorEventLoop socket 关闭噪声: WinError 10054)")
+                return
+            _loop_arg.default_exception_handler(_context)
+
+        _loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(_loop)
+        _loop.set_exception_handler(_suppress_connreset)
+        try:
+            results_map = _loop.run_until_complete(run_all_llms(df, MODELS, cache=cache))
+        finally:
+            _loop.run_until_complete(_loop.shutdown_asyncgens())
+            _loop.close()
+            asyncio.set_event_loop(None)
         phase_durations['②三轨LLM并发请求'] = time.time() - _t
 
         # 问题3: 缓存命中统计摘要 — 让确定性可观测。misses=0 & writes=0

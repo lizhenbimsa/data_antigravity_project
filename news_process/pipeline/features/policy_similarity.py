@@ -228,7 +228,7 @@ def compute_authoritative_similarity(df_exploded, panel):
     # ── 子步骤 banner (called-by-runner helper; ENV/CONFIG/方法论/结果判读) ──
     # 全程 try/except 包裹 — 日志块绝不允许炸 stage (铁律)。数字一律 sig4/pct4。
     try:
-        logger.info("  🧭 项目/环境  news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板, v3.11.1)")
+        logger.info("  🧭 项目/环境  news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板, v3.15.0)")
         logger.info("     · 子步骤 7h(policy): 银行年度战略画像 vs 宏观权威政策锚点的 ghost-anchor 余弦响应度")
         logger.info(f"     · Python {sys.version.split()[0]} @ {sys.executable}")
         logger.info(f"     · {platform.platform()} | CPU={os.cpu_count()} | PID={os.getpid()}")

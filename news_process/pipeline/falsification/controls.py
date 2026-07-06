@@ -344,7 +344,7 @@ def _log_environment_and_config(df_full_path: str, art_path: str,
         logger.info("  🧭 项目 / 环境信息")
         logger.info(f"     · 阶段: {STAGE_NAME} (伪造检验对照变量构建, STAGES_MAIN 主链末端)")
         logger.info("     · 项目: news_process 研究数据流水线 "
-                    "(中文银行/金科新闻 → 计量面板); 版本 v3.11.1")
+                    "(中文银行/金科新闻 → 计量面板); 版本 v3.15.0")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
         logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
@@ -371,7 +371,7 @@ def _log_environment_and_config(df_full_path: str, art_path: str,
         logger.info("     · 计数基: ft_n_articles_dedup 与 nf_n_articles 同基去重 (Hassan Table 7)")
         logger.info("     · fintech_share 分母0 语义: → NaN (zero_coverage 标记, 不冒充 0 份额)")
         logger.info("     · 区分效力诊断阈值: |r|<0.3 弱相关(支持 H1) / [0.3,0.7) 中等 / ≥0.7 高相关")
-        logger.info("     · 挤出弹性阈值: r(ln_ft,ln_nf)<-0.95 机械约束(坏) / >-0.95 有效(好)")
+        logger.info("     · 挤出弹性阈值(三档, 与运行时分支一致): r(ln_ft,ln_nf)<-0.95 机械约束(坏) / -0.95≤r<-0.50 中等负相关(警告) / r≥-0.50 非机械关联(好)")
         logger.info("     · 假设框架: H0 解释力全来自一般媒体关注度 vs H1 含金融科技特异性增量信息")
 
         logger.info("  📖 方法论依据 (核心方法/构念学术出处, 经核验注册表逐字照抄)")
@@ -1671,7 +1671,7 @@ def main():
     logger.info(f"        核心方法论对标: {REFERENCES['Hassan2019']}")
     logger.info("        → Table 7: 通过 PRisk vs NPRisk 的非对称预测验证构造效度。")
     logger.info("【判读】fintech_share 与 nf_* 越是弱相关 (|r|<0.3) → fintech tone 越像独立信号(好);")
-    logger.info("        |r|≥0.7 高相关→赛马回归区分力存疑(坏); 挤出弹性 r(ln_ft,ln_nf)<-0.95→机械约束(坏)。")
+    logger.info("        |r|≥0.7 高相关→赛马回归区分力存疑(坏); 挤出弹性三档 r<-0.95 机械约束(坏)/-0.95≤r<-0.50 中等(警告)/r≥-0.50 有效(好)。")
     logger.info("【确定性】纯 pandas/numpy, 无 LLM/Embedding/网络, 逐位可复现。")
     logger.info("")
 

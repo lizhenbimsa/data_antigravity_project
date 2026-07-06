@@ -416,7 +416,7 @@ def _log_environment_config_method(args: argparse.Namespace) -> None:
             "     · 阶段: 80_alt_anchor (J-L-M 2026 替代锚点族, A2 稳健性, audit-only sibling)"
         )
         logger.info(
-            "     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.11.1"
+            "     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.15.0"
         )
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")

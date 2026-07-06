@@ -193,7 +193,7 @@ def _log_network_env_and_config() -> None:
         logger.info("     · 阶段: %s (同行网络传染/溢出 + 33 网络指标 + 认知/嵌入邻近)",
                     STAGE_NAME)
         logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板);"
-                    " 版本 v3.11.1")
+                    " 版本 v3.15.0")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
         logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
@@ -1396,13 +1396,13 @@ def compute_bank_network_centrality(
                         f"{' ...' if len(_zero_var_cols) > 8 else ''}")
         else:
             logger.info("  📊 零方差列诊断: ✅ 无零方差中心度列")
-        _eig = 'bank_eigen_cent'
+        _eig = f'bank_eigen_cent{suffix}'
         if _eig in panel.columns:
             _eig_cov = panel[_eig].notna().sum()
             _eig_frac = _eig_cov / len(panel) if len(panel) else float('nan')
             _ev = ("⚠ 多数置 NaN (断连图微小分量, 见 P1-1)"
                    if _eig_frac < 0.5 else "✅ 大分量覆盖良好")
-            logger.info(f"  📊 bank_eigen_cent 覆盖: {_eig_cov:,}/{len(panel):,} "
+            logger.info(f"  📊 {_eig} 覆盖: {_eig_cov:,}/{len(panel):,} "
                         f"({pct4(_eig_frac)}) — {_ev}")
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"  中心度结果分析失败 (不影响产物): {_e}")

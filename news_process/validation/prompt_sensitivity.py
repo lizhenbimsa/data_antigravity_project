@@ -1440,7 +1440,7 @@ def main():
         logger.info("     · 阶段: 70_prompt_sensitivity / 阶段 70 (Prompt 措辞敏感度量化测试, "
                     "STAGES_VALIDATION; thin shim 70_prompt_sensitivity.py)")
         logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) "
-                    "| 版本 v3.11.1")
+                    "| 版本 v3.15.0")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
         logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")

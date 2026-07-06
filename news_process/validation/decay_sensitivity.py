@@ -915,7 +915,7 @@ def _log_environment_config_methods(input_path: str = "") -> None:
         import platform
         logger.info("🧭 项目 / 环境")
         logger.info("  · 阶段: 69 decay_sensitivity (shim 69_decay_sensitivity) — 距离衰减权重敏感性检验 (G-14)")
-        logger.info("  · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.11.1")
+        logger.info("  · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.15.0")
         logger.info(f"  · Python {sys.version.split()[0]} @ {sys.executable}")
         logger.info(f"  · 平台 {platform.platform()}; CPU {os.cpu_count()} 核; PID {os.getpid()}")
         run_id = os.environ.get("NEWS_PROCESS_RUN_ID", "(未设)")

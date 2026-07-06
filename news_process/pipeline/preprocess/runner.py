@@ -451,8 +451,10 @@ def load_and_process_data(raw_data_dir: str, output_path: str) -> int:
             _max_share = (max(_pos) / total_rows) if total_rows else float('nan')
             logger.info(f"  · 逐源贡献行数分布 (正贡献源 n={_n_pos:,d}):")
             logger.info(
-                f"      均值 = {sig4(_mean)} 行/源, 中位数 = {sig4(_median)} 行/源, "
-                f"p25 = {sig4(_p25)} 行/源, p75 = {sig4(_p75)} 行/源"
+                # 逐源行数是整数计数的统计量 (单源退化时全等整数): 用一位小数忠实呈现,
+                # 不过 sig4 (sig4 针对非整数, 会把 10076→'10080' 与下一行 min/max 自相矛盾)。
+                f"      均值 = {_mean:,.1f} 行/源, 中位数 = {_median:,.1f} 行/源, "
+                f"p25 = {_p25:,.1f} 行/源, p75 = {_p75:,.1f} 行/源"
             )
             logger.info(
                 f"      最小 = {min(_pos):,d} 行/源, 最大 = {max(_pos):,d} 行/源 "
@@ -512,7 +514,7 @@ def main() -> None:
         logger.info("🧭 项目 / 环境信息")
         logger.info(
             "  · 项目 = news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); "
-            "版本 v3.11.1"
+            "版本 v3.15.0"
         )
         logger.info(
             f"  · 阶段 = {STAGE_NAME} (DAG 根阶段; 下游 11/12/13… 全部依赖其 parquet)"

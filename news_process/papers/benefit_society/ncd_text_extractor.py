@@ -369,7 +369,7 @@ def _log_environment_and_config(args, pdf_dir: Path, output_path: Path) -> None:
     try:
         logger.info("  🧭 项目 / 环境信息")
         logger.info("     · 阶段: NCD 评级报告 PDF → 结构化字段抽取 (benefit_society, Phase 0 stub; 不在 STAGES_MAIN)")
-        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.15.0")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
         logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")

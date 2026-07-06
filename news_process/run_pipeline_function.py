@@ -550,7 +550,7 @@ def _log_environment_and_config(stages: list, enabled_methods: list) -> None:
 
         logger.info("  🧭 项目 / 环境信息")
         logger.info(f"     · 阶段: {STAGE_NAME} (主流水线编排器; 子进程隔离顺序执行 STAGES_MAIN)")
-        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.11.1")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.15.0")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
         logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
@@ -615,7 +615,7 @@ def run_pipeline(args: argparse.Namespace | None = None):
     with PipelineLock(logger, CONFIG["paths"]["output_dir"]):
         # ── 【功能】banner (黄金范式, 对齐 herd_decay.main() 单 banner 范式) ──
         logger.info("=" * 72)
-        logger.info("新闻处理流水线编排器 (News Processing Pipeline Orchestrator, v3.11.1)")
+        logger.info("新闻处理流水线编排器 (News Processing Pipeline Orchestrator, v3.15.0)")
         logger.info("=" * 72)
         logger.info(
             "【功能】把'一堆原始中文银行/金科新闻 Excel'端到端加工成'可做计量回归的"

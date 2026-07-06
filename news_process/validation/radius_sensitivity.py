@@ -1180,7 +1180,7 @@ def _log_environment_and_config(input_path: str) -> None:
 
         logger.info("  🧭 项目 / 环境信息")
         logger.info(f"     · 阶段: {STAGE_NAME} (实体上下文窗口半径敏感性检验, STAGES_VALIDATION; ctx 轨稳健性附录证据)")
-        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板), 版本 v3.11.1")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板), 版本 v3.15.0")
         logger.info("     · 行为版本: 跨类重叠词『保留并两侧计数』(用户决策 2026-06-24, 逆转双侧剔除; 旁路 loader 已对齐生产 22_tone_words 6 词典 union)")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")

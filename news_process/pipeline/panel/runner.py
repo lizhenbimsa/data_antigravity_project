@@ -504,7 +504,7 @@ def _log_environment_config_and_methods(input_path: str) -> None:
         logger.info(f"     · 阶段: {STAGE_NAME} (面板导出主入口, STAGES_MAIN; "
                     "内含子步 41+42+43+44+46+47→45 的串行编排; 三轨 full/ctx/ss)")
         logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); "
-                    "版本 v3.11.1 (rule-ablation-ladder)")
+                    "版本 v3.15.0 (rule-ablation-ladder)")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
         logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")
@@ -662,7 +662,7 @@ def main():
     logger.info("        关键公式: J-F P>N→(P²−PN)/t²; Bartik=Σ_k(base-share×year-shift)。")
     logger.info("【判读】结构自检: 行数应==banks×years笛卡尔积(post-balance_panel恒成立);")
     logger.info("        真实信号密度看 has_coverage=1 占比; 零新闻行=故意标缺失而非零(护回归口径);")
-    logger.info("        P1 主规格主因变量=llm_vote_tone_ctx; 上游缺数据→fail-loud 停。")
+    logger.info("        P1 主规格主处理变量(treatment)=llm_vote_tone_full (full-only 2026-06-29); 上游缺数据→fail-loud 停。")
     logger.info("【确定性】本阶段不直接调 LLM (消费 stage 21 缓存); 仅 7h-emb/llmpeer 内联")
     logger.info("        Sentence-Embedding 相似度可能触网 (timeout=7200 留 buffer); 其余纯 CPU。")
 
@@ -2626,19 +2626,19 @@ def main():
                     f"刻意不填零以防回归口径污染)"
                 )
 
-        # (3) 主因变量 (P1 注册主规格): llm_vote_tone_ctx (entity-attributed, ctx 轨;
-        #     CLAUDE.md / papers/bank_fintech_tone/paper_spec 锁定 main=llm_vote_tone_ctx,
-        #     Tetlock 2007 / Loughran-McDonald 2016); llm_vote_tone_full 为全平价孪生轨,
-        #     此处一并报告作 robustness 对照, 但不冠以"P1 主线"避免误判落盘主回归 DV。
+        # (3) 主处理变量 (treatment; P1 注册主规格): llm_vote_tone_full (entity-attributed, full 轨;
+        #     CLAUDE.md / papers/bank_fintech_tone/paper_spec 锁定 main=llm_vote_tone_full (full-only 2026-06-29),
+        #     Tetlock 2007 / Loughran-McDonald 2016); llm_vote_tone_ctx 为 conditional-on-full 稳健性轨,
+        #     此处一并报告作 robustness 对照, 但不冠以"P1 主线"避免误判落盘主回归 treatment。
         for _tone_col, _tone_lab in (
-            ('llm_vote_tone_ctx', '媒体语调主测度 llm_vote_tone_ctx (ctx 轨, P1 注册主规格)'),
-            ('llm_vote_tone_full', '媒体语调 llm_vote_tone_full (full 轨, 全平价稳健性对照)'),
+            ('llm_vote_tone_full', '媒体语调主测度 llm_vote_tone_full (full 轨, P1 注册主规格)'),
+            ('llm_vote_tone_ctx', '媒体语调 llm_vote_tone_ctx (ctx 轨, conditional-on-full 稳健性对照)'),
         ):
             if _tone_col not in panel.columns:
-                # ctx 缺列才告警 (主规格); full 缺列降级 info
-                if _tone_col == 'llm_vote_tone_ctx':
+                # full 缺列才告警 (主规格); ctx 缺列降级 info
+                if _tone_col == 'llm_vote_tone_full':
                     logger.warning(
-                        "  · ⚠️ 主因变量 llm_vote_tone_ctx (P1 主规格) 列缺失: "
+                        "  · ⚠️ 主处理变量(treatment) llm_vote_tone_full (P1 主规格) 列缺失: "
                         "stage 21 产物可能未就绪"
                     )
                 continue
