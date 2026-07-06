@@ -375,3 +375,19 @@ herd_detection:
 # 白话: 用"利好经营 vs 损害经营"方向轴给每篇新闻打态度分
 # (Phase 4d split 注释残留: benefit_society 段配置实际位于 features.yaml, 本文件中此处无对应键。)
 # 共享 Embedding API — CO-PRIMARY: Qwen/Qwen3-Embedding-8B (硅基流动, embedding_api) + text-embedding-3-large (yunwu, embedding_large/_lg) (供阶段 15/25/27 共用; 两段均位于 features.yaml)。
+
+# ------------------------------------------------------------------------------
+# [模块三] boilerplate 跨文档套话比率 OOM 硬化 (阶段 22 子步骤; 执行计划 2026-07-06)
+# ------------------------------------------------------------------------------
+# 学术依据: Lang & Stice-Lawrence (2015) JAE; Dyer, Lang & Stice-Lawrence (2017) JAE
+#   — 跨语料高频公式化短语(套话)占比构念。
+# 说明: pipeline/sentiment/boilerplate.py 的 exact two-pass 内存控制参数。改造为分块两遍
+#   (字节等价单遍, golden 零漂移), 消除生产 T=18 单遍 fit_transform 的全量 CSR 物化 OOM。
+# ⚠ 顶层块 (load_config 扁平根 dict; 域文件名非嵌套键) → 读 load_config().get('boilerplate', {})。
+# 白话: 数套话时"分批数=一次性数结果一模一样", 文章多也不爆内存; 参数缺省全走代码内置默认。
+boilerplate:
+  memory_tier: in_memory        # in_memory=tier1 分块(已实现,默认) / single_pass=旧单遍字节等价参照臂 / disk|auto=tier2 DEFERRED→raise
+  chunk_size: 20000             # 每块文档数; 纯性能参数, 不改输出 (字节等价)
+  df_dict_budget_warn: 8000000  # global_df entry 软预算, 超则 loud WARNING (非兜底)
+  df_dict_budget_hard: 40000000 # global_df entry 硬上限, 超则 SystemExit (Pass1 循环内, 拒绝跑优于 OOM-killer 静默 SIGKILL)
+                                # ⚠ 40M=保守占位, 生产机跑执行计划 §3-P0 实测 per-entry 字节后按 128GB 反推校准

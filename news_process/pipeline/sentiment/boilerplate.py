@@ -15,19 +15,25 @@
   boilerplate_phrase_ratio_{full,ctx,ss}。解释性限定 (原 by-design DEFER 的理由, 转为
   codebook 披露): 套话集口径在 ctx/ss 子窗口文本上信号较弱, ctx/ss 轨作稳健性对照解读。
   ⚠ 三轨各自 just-identified 并排, 禁混同一 over-identified Hansen J。
-  ⚠ 三轨使峰值内存 ×3 (逐轨顺序跑, 词表不叠加; 生产 T=18 前仍须先做分块改造, 见下 P1)。
+  ⚠ 三轨逐轨顺序跑, 词表不叠加 → 峰值 = 单轨峰值。
   非嵌入族 (char n-gram DF 统计) → 无 `_lg` 孪生 (carve-out, 同 surface_staleness)。
-- **确定性**: CountVectorizer 固定参数 + sklearn 内部 vocab 字典序 → 无 HASHSEED 依赖。
+- **确定性**: CountVectorizer 固定参数 (min_df=1/max_df=1.0/max_features=None, `_make_vectorizer`
+  工厂 + 类型感知 assert 锁定) + sorted(boiler_set) 传 vocabulary → 无 HASHSEED 依赖; round(,6)。
 - **SAFE**: 套话集为空 (无 n-gram ≥ 阈值) → 全 nan + loud WARNING (镜像 FINTECH_AC=None,
   绝不静默清空); 空/哨兵/退化(实字< n-gram 下界)文本 → nan (_clean 守卫)。
 - **analyzer='char_wb'**: 实测中文上与 analyzer='char' corr≈0.99 (边界空格影响可忽略, 真盘
   最短文 133 字不触退化边界); 保留 char_wb 与 herd_decay 范式一致。
-- **⚠ 生产 T=18 OOM 风险 (code review 2026-06-20 P1)**: 当前为**单遍全语料 fit_transform**,
-  vocab dict 随唯一 4-6gram 近线性膨胀 (实测 847 文→2.4M n-gram≈231MB); T=18 gated 子集
-  (数十万~百万篇) 会 OOM。**本机 T=2 可行**, 生产前**必须改造**为分块/限词表二遍:
-  第一遍流式累加 DF (或 HashingVectorizer/min_df) 得套话集, 第二遍 CountVectorizer(vocabulary=
-  套话集) 只对小子词表二次扫描算逐文命中。`_MAX_SAFE_DOCS` 守卫在超规模时 loud WARNING。
-  (旧 docstring "分块防 OOM" 系**未兑现的承诺**, 已订正为如上实况 + TODO。)
+- **⚠ 生产 T=18 OOM 硬化 (执行计划 BOILERPLATE_CHUNKED_TWOPASS_OOM_HARDENING 2026-07-06)**:
+  改造为 **exact two-pass** (字节等价单遍, golden 零漂移; 三轮对抗评审 + 实测确认):
+  Pass1 分块流式**精确**累加全局 DF (`global_df` dict) + 顺带存逐文 total → 套话集;
+  Pass2 用固定小 `boiler_set` 词表 `CountVectorizer(vocabulary=)` 逐块 transform 算命中。
+  两驱动: 全量 CSR (随语料线性, 分块后不物化) + vocab dict (`global_df`, 亚线性但仍随 N 增长,
+  是 binding 项)。**tier 1 (memory_tier='in_memory', 本模块已实现)** 消除 CSR 驱动 (较小项) + 建骨架;
+  **tier 2 (disk-backed 精确 DF) DEFERRED** —— vocab-binding 生产可产性须生产机跑执行计划 §3-P0
+  外推裁定后补 tier2 (memory_tier='disk'/'auto' 现 raise NotImplementedError, 绝不静默 OOM)。
+  运行期硬闸: `global_df` 超 `df_dict_budget_hard` (Pass1 循环内周期检查) → SystemExit
+  (拒绝跑优于被 OOM-killer 静默 SIGKILL)。旧单遍保留为 memory_tier='single_pass' 字节等价参照臂。
+  ⚠ 严禁 HashingVectorizer/近似 sketch/块内 min_df 预剪 (碰撞/近似破 exact DF 与 golden)。
 - **小语料饱和**: n_docs < 1/阈值 时任意 DF≥1 的 n-gram 都满足 → 套话集=全词表 → 比率饱和≈1.0
   不可解释 (与 T 无关, 任意极小 stage-22 子集皆然); `compute_boilerplate_ratios` loud WARNING。
 """
@@ -53,8 +59,15 @@ OUT_COL = 'boilerplate_phrase_ratio_full'
 # ctx/ss = 稳健性轨, 由 enrich_with_boilerplate 在 canonical 轨之外追加。
 TRACKS = ('full', 'ctx', 'ss')
 _SENTINELS = frozenset({'', 'nan', 'none', '<na>'})
-# 单遍全语料 fit 的安全规模上界; 超过则 loud WARNING (生产须改分块, 见 docstring P1)。
+# legacy 单遍臂 (memory_tier='single_pass') 的安全规模上界; 超过则 loud WARNING。
+# ⚠ 保留供 legacy 字节等价参照臂消费 (勿删: 只要 test_boilerplate_chunked 存在即为受保护参照)。
 _MAX_SAFE_DOCS = 50_000
+# ── tier1 chunked exact two-pass 参数 (执行计划 2026-07-06; config/sentiment.yaml::boilerplate 可覆盖) ──
+_DEFAULT_CHUNK_SIZE = 20_000        # 每块文档数; 纯性能参数, 不改输出 (字节等价)
+_DEFAULT_TIER = 'in_memory'         # in_memory=tier1(已实现) / single_pass=legacy 参照臂 / disk|auto=DEFERRED→raise
+_DEFAULT_BUDGET_WARN = 8_000_000    # global_df entry 软预算, 超则 loud WARNING (非兜底)
+_DEFAULT_BUDGET_HARD = 40_000_000   # global_df entry 硬上限, 超则 SystemExit (Pass1 循环内); ⚠ 保守占位, 生产 P0 实测 per-entry 字节后按 128GB 反推校准
+_VALID_TIERS = frozenset({'in_memory', 'single_pass', 'disk', 'auto'})
 # 零宽/不可见字符 (str.strip() 不剥离 ​ 等 → 退化文本逃逸成伪值; code review 2026-06-20)。
 _ZERO_WIDTH_RE = re.compile(r'[​‌‍⁠﻿]')
 # 实字下界 = n-gram 最小长; 不足以产合法 (4,6)-gram 的退化文本 → nan (防 char_wb 边界伪值)。
@@ -80,11 +93,60 @@ def _clean(text) -> str:
     return t  # 非退化: 返回原 strip 文本 (不剔零宽), 保证与旧版逐字节一致
 
 
+def _make_vectorizer(ngram_range: tuple[int, int] = NGRAM_RANGE, vocabulary=None):
+    """单一 CountVectorizer 工厂 (Pass1/Pass2 共用), 类型感知锁死字节等价命门。
+
+    ⚠ 不变量 I/II 仅在无语料级剪枝 (min_df=1/max_df=1.0/max_features=None) 时成立;
+    工厂 + assert 把该隐性前提转为运行时硬约束 (执行计划 §2.6)。类型感知防 1==1.0 逃逸:
+    min_df=1(int, 无剪枝) vs 1.0(float, 100%剪枝) 语义天壤但 ==1 同真。ngram_range 穿透形参
+    (勿硬编码常量, 否则 compute 的 public ngram_range 沦为死参)。"""
+    from sklearn.feature_extraction.text import CountVectorizer
+    min_df, max_df, max_features = 1, 1.0, None
+    assert type(min_df) is int and min_df == 1, "boilerplate: min_df 必须 int 1 (无剪枝); float 1.0=100%剪枝"
+    assert isinstance(max_df, float) and not isinstance(max_df, bool) and max_df == 1.0, \
+        "boilerplate: max_df 必须 float 1.0 (无剪枝)"
+    assert max_features is None, "boilerplate: max_features 必须 None (无剪枝)"
+    return CountVectorizer(analyzer='char_wb', ngram_range=ngram_range, lowercase=True,
+                           min_df=min_df, max_df=max_df, max_features=max_features,
+                           vocabulary=vocabulary)
+
+
+def _coerce_int(v, default: int, name: str) -> int:
+    """config 畸值兜底: None/非数值/bool → default + WARNING (优雅降级, 不裸 TypeError)。"""
+    if isinstance(v, bool) or v is None:            # bool 是 int 子类, 显式排除防 True→1 静默
+        logger.warning(f"boilerplate: {name}={v!r} 非法 → 回落默认 {default:,d}")
+        return default
+    try:
+        return int(v)
+    except (TypeError, ValueError, OverflowError):   # OverflowError: int(±inf) (Result R2 补齐)
+        logger.warning(f"boilerplate: {name}={v!r} 无法转 int → 回落默认 {default:,d}")
+        return default
+
+
 def compute_boilerplate_ratios(texts: list[str],
                                df_ratio_threshold: float = DF_RATIO_THRESHOLD,
-                               ngram_range: tuple[int, int] = NGRAM_RANGE) -> list[float]:
-    """语料级两遍, 返回每文 boilerplate 比率 (与 texts 等长)。空文/无套话集 → nan。"""
-    from sklearn.feature_extraction.text import CountVectorizer
+                               ngram_range: tuple[int, int] = NGRAM_RANGE,
+                               *,
+                               chunk_size: int = _DEFAULT_CHUNK_SIZE,
+                               memory_tier: str = _DEFAULT_TIER,
+                               df_dict_budget_warn: int = _DEFAULT_BUDGET_WARN,
+                               df_dict_budget_hard: int = _DEFAULT_BUDGET_HARD) -> list[float]:
+    """语料级 exact two-pass, 返回每文 boilerplate 比率 (与 texts 等长)。空文/无套话集 → nan。
+
+    memory_tier: 'in_memory'=tier1 chunked (默认, 字节等价) / 'single_pass'=legacy 单遍参照臂
+    / 'disk'|'auto'=tier2 DEFERRED (raise NotImplementedError)。畸值在入口 clamp (直调+enrich 双护)。"""
+    # ── 入口 clamp (Round2 P2 + Result R1 P2: 直调与 enrich 注入两路径都受保护) ──
+    # None/非数值 config 畸值 → 回落默认 + WARNING (优雅降级, 不裸 TypeError 崩 stage 22)。
+    chunk_size = max(1, _coerce_int(chunk_size, _DEFAULT_CHUNK_SIZE, 'chunk_size'))
+    df_dict_budget_warn = _coerce_int(df_dict_budget_warn, _DEFAULT_BUDGET_WARN, 'df_dict_budget_warn')
+    df_dict_budget_hard = _coerce_int(df_dict_budget_hard, _DEFAULT_BUDGET_HARD, 'df_dict_budget_hard')
+    if memory_tier not in _VALID_TIERS:
+        logger.warning(f"boilerplate: 未知 memory_tier={memory_tier!r} → 'in_memory' (默认)")
+        memory_tier = 'in_memory'
+    if memory_tier in ('disk', 'auto'):          # tier2 DEFERRED: fail-loud, 绝不静默回落 tier1 跑到 OOM
+        raise NotImplementedError(
+            f"boilerplate: memory_tier={memory_tier!r} (tier2 disk-backed DF) DEFERRED 未实现; "
+            f"请设 memory_tier='in_memory', 或到生产机跑执行计划 §3-P0 外推裁定后启用 tier2")
 
     cleaned = [_clean(t) for t in texts]
     nonempty_idx = [i for i, t in enumerate(cleaned) if t]
@@ -95,20 +157,34 @@ def compute_boilerplate_ratios(texts: list[str],
 
     docs = [cleaned[i] for i in nonempty_idx]
     n_docs = len(docs)
-    # 生产规模 OOM 守卫 (code review 2026-06-20 P1): 单遍全语料 fit 的 vocab dict 随唯一
-    # n-gram 近线性膨胀 (847 文≈2.4M n-gram/231MB); 超规模 → loud WARNING, 生产须改分块/限词表。
-    if n_docs > _MAX_SAFE_DOCS:
-        logger.warning(
-            f"boilerplate: n_docs={n_docs} 超单遍安全规模 {_MAX_SAFE_DOCS} — char_wb"
-            f"{ngram_range} 全词表单遍 fit 极可能 OOM; 生产 T=18 须改分块/限词表二遍 "
-            f"(min_df/HashingVectorizer 求套话集 → CountVectorizer(vocabulary=套话集) 二扫), "
-            f"见模块 docstring P1 TODO")
-    # 小语料饱和守卫: n_docs < 1/阈值 → 套话集坍缩为全词表 → 比率饱和≈1.0 不可解释。
+    # 小语料饱和守卫 (两臂共享): n_docs < 1/阈值 → 套话集坍缩为全词表 → 比率饱和≈1.0 不可解释。
     _sat = math.ceil(1 / df_ratio_threshold) if df_ratio_threshold > 0 else 0
     if n_docs < _sat:
         logger.warning(
             f"boilerplate: n_docs={n_docs} < 1/阈值={_sat} → 套话集坍缩为全词表, "
             f"比率饱和≈1.0 不可解释 (小样本退化, 与 T 无关; 须更大语料方可解读)")
+
+    if memory_tier == 'single_pass':
+        return _compute_single_pass_legacy(docs, nonempty_idx, out, n_docs,
+                                           df_ratio_threshold, ngram_range)
+    return _compute_chunked(docs, nonempty_idx, out, n_docs, df_ratio_threshold, ngram_range,
+                            chunk_size, df_dict_budget_warn, df_dict_budget_hard)
+
+
+def _compute_single_pass_legacy(docs, nonempty_idx, out, n_docs,
+                                df_ratio_threshold, ngram_range) -> list[float]:
+    """legacy 单遍全语料 fit_transform (memory_tier='single_pass' 参照臂)。
+
+    ⚠ 冻结: 这是 chunked exact two-pass 的字节等价参照实现 (gate test_boilerplate_chunked 的
+    A 臂)。只要该 gate 存在即禁改此函数逻辑 (改动会失去字节等价参照)。"""
+    from sklearn.feature_extraction.text import CountVectorizer
+
+    # 单遍全语料 fit 的 vocab dict 随唯一 n-gram 近线性膨胀 (847 文≈2.4M n-gram); 超规模 → loud WARNING。
+    if n_docs > _MAX_SAFE_DOCS:
+        logger.warning(
+            f"boilerplate: n_docs={n_docs} 超 legacy 单遍安全规模 {_MAX_SAFE_DOCS} — char_wb"
+            f"{ngram_range} 全词表单遍 fit 极可能 OOM; 生产 T=18 请改 memory_tier='in_memory' "
+            f"(tier1 chunked exact two-pass), 见模块 docstring")
     try:
         vec = CountVectorizer(analyzer='char_wb', ngram_range=ngram_range)
         X = vec.fit_transform(docs)               # doc × ngram 计数 (CSR), 确定性
@@ -125,22 +201,15 @@ def compute_boilerplate_ratios(texts: list[str],
             f"boilerplate: 无 n-gram 达 DF≥{pct4(df_ratio_threshold)} (套话集为空, "
             f"n_docs={n_docs:,d}) → 全 nan (SAFE 降级, 绝不静默清空)")
         return out
-    # vocabulary 固定序 (sorted by ngram 字面) — 防 HASHSEED 漂移; mask 已按列序故确定。
     logger.info(
         f"boilerplate: 套话集 {n_boiler:,d}/{X.shape[1]:,d} 个 char_wb{ngram_range}-gram "
         f"(占全词表 {pct4(n_boiler / X.shape[1]) if X.shape[1] else 'n/a'}, "
         f"DF≥{pct4(df_ratio_threshold)} of {n_docs:,d} 文); 第二遍算逐文命中率")
 
     # ── 构念效度: 套话集示例 + DF 占比谱 (log-only, 全程 discarded, 不参与第二遍计算) ──
-    # referee 常要求"展示文本测度到底抓到了什么"(qualitative construct validation): 本模块
-    # 此前只记套话集的 *数量*, 从不示其 *内容*。此处补 ① top-k 高 DF 套话短语示例 (按文档频率
-    # 降序), ② 选中套话集 DF 占比的 [min/中位/max] 谱 — 表征 DF≥阈值 截断的 selectivity
-    # (套话集是紧贴阈值, 还是含近乎全语料皆现的极高频短语)。两输入 (feats / df_counts) 均已存在,
-    # 派生量用后即弃, 与 golden 输出无关。
     try:
         feats = vec.get_feature_names_out()             # 全词表 char_wb-gram 字面 (与列序一致)
         masked_pos = np.flatnonzero(boiler_mask)        # 套话 n-gram 在全词表中的列位
-        # 在 masked 子集上按 DF 降序排序后映射回全词表列位, 取前 10; 纯展示, discarded。
         topk = masked_pos[np.argsort(df_counts[masked_pos])[::-1][:10]]
         logger.info(
             f"  · 套话集 top-{min(10, n_boiler):,d} 高 DF char_wb-gram (按文档频率降序, "
@@ -150,7 +219,6 @@ def compute_boilerplate_ratios(texts: list[str],
             logger.info(
                 f"     #{rank:>2d} {phrase!r:<16} DF={int(df_counts[j]):,d}/{n_docs:,d} "
                 f"= {pct4(df_counts[j] / n_docs)}")
-        # 选中套话集的 DF 占比谱 (用后即弃): min 贴阈值=截断起约束; max 趋近 1.0=含近乎全语料短语。
         sel = df_counts[boiler_mask] / n_docs
         logger.info(
             f"  · 套话集 DF 占比谱: [min={pct4(float(sel.min()))} "
@@ -168,6 +236,95 @@ def compute_boilerplate_ratios(texts: list[str],
     return out
 
 
+def _compute_chunked(docs, nonempty_idx, out, n_docs, df_ratio_threshold, ngram_range,
+                     chunk_size, df_dict_budget_warn, df_dict_budget_hard) -> list[float]:
+    """tier1 chunked exact two-pass (memory_tier='in_memory', 默认)。
+
+    与 legacy 单遍逐字节等价 (执行计划 §9 三不变量: DF 可加性 / total 逐文独立 / 分子同值;
+    实测确认)。分块消除全量 CSR 物化 (较小驱动); global_df 词表仍驻 RAM (binding, 超硬闸则 fail-loud)。"""
+    N = n_docs
+    global_df: dict[str, int] = {}                # n-gram 字面(含 char_wb 边界空格) → 全局 DF
+    per_doc_total = np.zeros(N, dtype=float)       # np.zeros(非 empty): 未写入位 fail-safe 0→nan (§2.1)
+    _warned_soft = False
+    # ── Pass 1: 流式精确全局 DF + 顺带存逐文 total (免 Pass2 重分词; 免物化全量 CSR) ──
+    for start in range(0, N, chunk_size):
+        stop = min(start + chunk_size, N)
+        chunk = docs[start:stop]
+        idx = np.arange(start, stop)               # 全局位置 (§2.1 chunks_with_index 契约)
+        vec_c = _make_vectorizer(ngram_range=ngram_range)
+        try:
+            Xc = vec_c.fit_transform(chunk)        # 块内矩阵 (即弃)
+        except ValueError:                         # 空词表块; _clean≥4 下不可达=死分支, 仍显式防御
+            per_doc_total[idx] = 0.0               # → 逐文 total=0 → nan (belt-and-suspenders)
+            continue
+        feats = vec_c.get_feature_names_out()
+        df_c = np.asarray((Xc > 0).sum(axis=0)).ravel()
+        for j, ng in enumerate(feats):
+            global_df[ng] = global_df.get(ng, 0) + int(df_c[j])   # 不变量 I: DF 可加
+        per_doc_total[idx] = np.asarray(Xc.sum(axis=1)).ravel()   # 不变量 II: 块内行和 = 单遍行和
+        if not _warned_soft and 0 < df_dict_budget_warn < len(global_df):
+            logger.warning(
+                f"boilerplate: global_df {len(global_df):,d} entry 超软预算 {df_dict_budget_warn:,d} "
+                f"(仅告警, 非兜底; 生产超规模请跑 P0 裁定 tier2)")
+            _warned_soft = True
+        # ⚠ 运行期硬闸 IN-LOOP (Round2 P1): RAM 耗尽前抢先 fail-loud, 防 OOM-killer 静默 SIGKILL
+        if 0 < df_dict_budget_hard < len(global_df):
+            raise SystemExit(
+                f"boilerplate: global_df {len(global_df)} entry 超硬上限 {df_dict_budget_hard}; "
+                f"tier1 不可产, 到生产机跑执行计划 §3-P0 外推裁定 tier2 (DEFERRED)")
+
+    if not global_df:                              # 全块空词表 (不可达); global_df 空 → SAFE 全 nan
+        logger.warning("boilerplate: global_df 空 (全块空词表) → 全 nan (SAFE 降级)")
+        return out
+
+    # ── 套话集: DF/N ≥ 阈值 (不变量 I ⟹ 与单遍 boiler_mask 同集) ──
+    boiler_set = [ng for ng, d in global_df.items() if d / N >= df_ratio_threshold]
+    n_boiler = len(boiler_set)
+    if n_boiler == 0:
+        logger.warning(
+            f"boilerplate: 无 n-gram 达 DF≥{pct4(df_ratio_threshold)} (套话集为空, "
+            f"n_docs={N:,d}) → 全 nan (SAFE 降级, 绝不静默清空)")
+        return out
+    logger.info(
+        f"boilerplate: 套话集 {n_boiler:,d}/{len(global_df):,d} 个 char_wb{ngram_range}-gram "
+        f"(占全词表 {pct4(n_boiler / len(global_df))}, "
+        f"DF≥{pct4(df_ratio_threshold)} of {N:,d} 文); 第二遍算逐文命中率")
+
+    # ── 构念效度: top-k 高 DF 套话短语 + DF 占比谱 (log-only, discarded; §2.5 集合等价) ──
+    # 从 global_df 复现; DF 谱数值由不变量 I 与单遍精确等; top-k 集合等价 (tie 序 log-only 不强求)。
+    try:
+        _sorted = sorted(boiler_set, key=lambda ng: (-global_df[ng], ng))   # DF 降序, tie 按字面 (确定)
+        topk = _sorted[:10]
+        logger.info(
+            f"  · 套话集 top-{min(10, n_boiler):,d} 高 DF char_wb-gram (按文档频率降序, "
+            f"构念效度示例 — 这些跨文档高频公式化短语即被判为'套话'):")
+        for rank, ng in enumerate(topk, 1):
+            logger.info(
+                f"     #{rank:>2d} {ng!r:<16} DF={global_df[ng]:,d}/{N:,d} "
+                f"= {pct4(global_df[ng] / N)}")
+        sel = np.asarray([global_df[ng] / N for ng in boiler_set], dtype=float)
+        logger.info(
+            f"  · 套话集 DF 占比谱: [min={pct4(float(sel.min()))} "
+            f"中位={pct4(float(np.median(sel)))} max={pct4(float(sel.max()))}] "
+            f"(min 贴近阈值 {pct4(df_ratio_threshold)} → DF 截断起约束; "
+            f"max 趋近 1.0 → 套话集含近乎全语料皆现的极高频公式化短语)")
+    except Exception as e:  # noqa: BLE001 — 日志块绝不阻断派生
+        logger.warning(f"boilerplate: 套话集示例/DF 谱打印失败 (忽略, 不影响派生): {e}")
+
+    # ── Pass 2: 流式逐文命中 (固定小 boiler_set 词表, 内存恒有界; 仅一次 transform/块) ──
+    vec_boiler = _make_vectorizer(ngram_range=ngram_range, vocabulary=sorted(boiler_set))
+    for start in range(0, N, chunk_size):
+        stop = min(start + chunk_size, N)
+        chunk = docs[start:stop]
+        idx = np.arange(start, stop)
+        boiler_c = np.asarray(vec_boiler.transform(chunk).sum(axis=1)).ravel().astype(float)
+        for k in range(len(idx)):
+            i_global = int(idx[k])
+            t = per_doc_total[i_global]
+            out[nonempty_idx[i_global]] = round(boiler_c[k] / t, 6) if t > 0 else float('nan')
+    return out
+
+
 def enrich_with_boilerplate(df: pd.DataFrame, text_col: str = 'content_full',
                             out_col: str = OUT_COL) -> pd.DataFrame:
     """在 df 上加三轨 boilerplate_phrase_ratio_{full,ctx,ss} 列 (in-place 安全, 返回同 df)。
@@ -175,14 +332,30 @@ def enrich_with_boilerplate(df: pd.DataFrame, text_col: str = 'content_full',
     2026-07-03 §4 WP-C 三轨化: (text_col, out_col) 形参对 = canonical full 轨
     (向后兼容既有调用方的 '内容' 回退与自定义列名); ctx/ss 稳健轨固定读
     content_{ctx,ss} 写 boilerplate_phrase_ratio_{ctx,ss}, 各轨独立两遍建集。
-    任一轨缺文本列 → 该轨全 nan 列 + WARNING (graceful, 不阻断 stage 22)。"""
+    任一轨缺文本列 → 该轨全 nan 列 + WARNING (graceful, 不阻断 stage 22)。
+
+    OOM 硬化 (2026-07-06): 读 config/sentiment.yaml::boilerplate (缺段→模块默认) 下传
+    compute_boilerplate_ratios 的 chunk_size/memory_tier/budget kwargs (exact two-pass, 字节等价)。"""
+    # ── config 接线 (执行计划 §2.3, Round1 P1: load_config 扁平根 dict, boilerplate 为顶层块) ──
+    _bp_cfg = {}
+    try:
+        from news_process.core.config import load_config
+        _bp_cfg = load_config().get('boilerplate', {}) or {}
+    except Exception as e:  # noqa: BLE001 — config 不可用则全走模块默认 (test 零 config 直调不受影响)
+        logger.warning(f"boilerplate: load_config 读取失败 → 走模块默认 kwargs: {e}")
+    _bp_kwargs = {k: _bp_cfg[k] for k in
+                  ('chunk_size', 'memory_tier', 'df_dict_budget_warn', 'df_dict_budget_hard')
+                  if k in _bp_cfg}
+    _tier = _bp_kwargs.get('memory_tier', _DEFAULT_TIER)
+    _chunk = _bp_kwargs.get('chunk_size', _DEFAULT_CHUNK_SIZE)
+
     # ── 子步骤 banner (called-by-runner helper, 共享 stage 22 tone_words 日志) ──
     # 不重打 ENV/CONFIG (那是 stage 22 入口 main 的职责), 仅打本步骤名+方法依据+本步配置。
     try:
         logger.info("─" * 70)
         logger.info("[stage 22 子步骤] boilerplate_phrase_ratio_{full,ctx,ss} — 跨文档套话比率派生 (三轨)")
         logger.info(
-            "  · 功能: 语料级两遍统计 char_wb%s-gram 的 document-frequency, "
+            "  · 功能: 语料级 exact two-pass 统计 char_wb%s-gram 的 document-frequency, "
             "DF/N ≥ 阈值者为'套话集', 逐文算 命中套话 n-gram 数 / 全部 n-gram 数 (占比越高=越公式化套话)",
             NGRAM_RANGE)
         # 方法依据 (注册表中无对应 DOI → 仅作者-年散文, 不伪造 DOI; 见富集铁律 §4)。
@@ -192,9 +365,9 @@ def enrich_with_boilerplate(df: pd.DataFrame, text_col: str = 'content_full',
             "(DOI 不在经核验注册表, 仅注释保留, 未 emit)")
         logger.info(
             "  · 本步配置: text_col=%s | out_col=%s | DF 阈值=%s | n-gram=char_wb%s | "
-            "单遍安全规模上界 _MAX_SAFE_DOCS=%s | 三轨(full=headline, ctx/ss=稳健轨, 2026-07-03) | "
-            "$0 纯 CPU/确定性(CountVectorizer 固定参数, 无 HASHSEED 依赖)",
-            text_col, out_col, pct4(DF_RATIO_THRESHOLD), NGRAM_RANGE, f"{_MAX_SAFE_DOCS:,d}")
+            "memory_tier=%s | chunk_size=%s | 三轨(full=headline, ctx/ss=稳健轨, 2026-07-03) | "
+            "$0 纯 CPU/确定性(exact two-pass, 字节等价, 无 HASHSEED 依赖)",
+            text_col, out_col, pct4(DF_RATIO_THRESHOLD), NGRAM_RANGE, _tier, f"{int(_chunk):,d}")
     except Exception as e:  # noqa: BLE001 — 日志块绝不阻断阶段
         logger.warning(f"boilerplate: 子步骤 banner 打印失败 (忽略, 不影响派生): {e}")
 
@@ -210,7 +383,7 @@ def enrich_with_boilerplate(df: pd.DataFrame, text_col: str = 'content_full',
             if _oc == out_col:
                 ratios = [float('nan')] * len(df)
             continue
-        _r = compute_boilerplate_ratios(df[_tc].tolist())
+        _r = compute_boilerplate_ratios(df[_tc].tolist(), **_bp_kwargs)   # 三轨各自穿透 config kwargs
         df[_oc] = _r
         if _oc == out_col:
             ratios = _r
