@@ -38,6 +38,9 @@ FILES = [
     os.path.join(_HERE, "LITERATURE_ANCHORS_SUPPLEMENT_IV_2026-06-26.md"),
     os.path.join(_HERE, "LITERATURE_ANCHORS_SUPPLEMENT_V_2026-07-01.md"),
     os.path.join(_HERE, "LITERATURE_ANCHORS_SUPPLEMENT_VI_2026-07-06.md"),
+    os.path.join(_HERE, "LITERATURE_ANCHORS_SUPPLEMENT_VII_2026-07-06.md"),
+    # 前沿(银企共现面板)学术锚点归档: 137 DOI 并入主机械闸 (2026-07-06 第七补编轮)
+    os.path.join(_HERE, "COMPANY_BANK_COOC_PANEL_PLAN_ARCHIVE_2026-07-04.md"),
 ]
 
 DOIORG_RE = re.compile(r"doi\.org/(10\.\S+)")
