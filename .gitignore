@@ -68,6 +68,9 @@ news_process/.test_tmp/
 !news_process/config/*.xlsx
 !news_process/config/dicts_excel/**
 
+# 四权源商业 dta (~4.4GB, 商业许可) 恒不入库 (COMPANY_BANK_COOC_PANEL 计划 v33 J2/WP4)
+news_process/config/*.dta
+
 # ============================================================
 # 模型文件
 # ============================================================
