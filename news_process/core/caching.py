@@ -33,7 +33,7 @@
   prompts/sentiment_cot.txt 改写时, 旧 cache 仍命中, 分析结果不反映新提示词.
   现在 prompt_version 进键, 改一行 prompt → cache miss → 重新调 API.
 - BREAKING — Plan-r3 P3-17 把 SCHEMA_VERSION 从 ``"v0"`` 升至 ``"v1"``,
-  既有 ``_llm_cache.db`` (236 MiB, 历史快照 @ P3-17 迁移时刻; 现已 ~500MB+
+  既有 ``_llm_cache.db`` (236 MiB, 历史快照 @ P3-17 迁移时刻; 现已 ~2.1GB
   且随 _ss 轨缓存播种持续增长, 精确值以 CLAUDE.md / 实读磁盘为准)
   全部 silent miss, 下次跑 stage 21 / 15 / 27 会冷启动. 用户已在 plan 中
   explicit 接受此代价.

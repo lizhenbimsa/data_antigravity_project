@@ -120,7 +120,8 @@ news_process = [
     "papers_assets/**/*.tex",
     "papers_assets/**/*.bib",
     "stata/**/*.do",
-    # F-42 (2026-05-16): 95 个 Stata 模板的真实位置 (R10/R6 实测; remove-title-track 后 104→95).
+    # F-42 (2026-05-16, 计数更新 2026-07-05): 147 个 Stata 模板的真实位置 (papers/_common/stata_templates rglob 实测;
+    # 历史: remove-title-track 后 104→95, 后续多轮扩展 (27_tableA12 / 28_tableA13 等) 至 147).
     # 之前 papers_assets/**/*.do.tmpl 仅 1 match; 真模板在 papers/_common/.
     "papers/_common/stata_templates/**/*.tmpl",
     "papers/_common/stata_templates/**/*.md",

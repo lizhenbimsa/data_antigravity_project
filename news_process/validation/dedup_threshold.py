@@ -348,7 +348,7 @@ def main():
         logger.info(f"正在加载回退分析数据集: {input_path}")
         df = pd.read_parquet(input_path)
         logger.info(f"成功加载数据, 行数: {len(df):,}")
-        # IO provenance (日志富集, 2026-06-29): 回退口径 read_parquet 物化了全部 ~2771 列,
+        # IO provenance (日志富集, 2026-06-29; 数字更新 2026-07-05): 回退口径 read_parquet 物化了全部 ~3395 列 (随重生漂移, 以实读为准),
         # 但本阶段下游仅消费单一文本列 (text_col) → 显式记录"物化列数 vs 实际所需 1 列"的
         # 冗余 IO 差距, 便于审计宽表读取代价。纯日志, 不改任何产物 (golden-safe)。
         try:
