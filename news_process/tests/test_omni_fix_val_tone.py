@@ -33,7 +33,9 @@ import pandas as pd
 import pytest
 
 from news_process.validation.tone_validation import (
+    _llm_continuous_score,
     _run_validation_for_track,
+    _strip_sentinel_confidence,
     diagnose_confidence_calibration,
     discover_sentiment_columns,
     generate_validation_sample,
@@ -109,6 +111,33 @@ class TestBertGroupExcludesIdf:
         probs = result['bert']['finbert_cn']['probs']
         assert set(probs.keys()) == {'正面', '中性', '负面'}
         assert 'zscore' not in probs
+
+
+# ============================================================================
+# A1 (2026-07-06): 未报告哨兵 conf=0 按缺失一致处理 (方法学正确性 + 内部一致性)
+# ============================================================================
+
+def test_strip_sentinel_confidence_maps_zero_to_nan():
+    """helper: 哨兵 0.0 → NaN; 真值/真 NaN 不变 (4 站点共享逻辑单点验证)。"""
+    s = pd.Series([0.0, 0.5, 0.0, 0.9, np.nan])
+    out = _strip_sentinel_confidence(s)
+    assert out.isna().tolist() == [True, False, True, False, True]
+    assert out.dropna().tolist() == [0.5, 0.9]
+
+
+def test_llm_continuous_score_sentinel_uses_neutral_prior():
+    """S4 守卫: 未报告哨兵 conf=0 行的 LLM 连续得分 = label×0.5 (中性先验),
+    绝不 label×0=0 (旧码静默清零方向信号, 污染跨方法 Spearman/within-LLM Cronbach)。"""
+    sent = pd.Series(['正面', '正面', '负面', None])
+    conf = pd.Series([0.0, 0.9, 0.0, 0.9])
+    out = _llm_continuous_score(sent, conf)
+    assert out.iloc[0] == pytest.approx(0.5)    # 正面(+1) × 哨兵→0.5
+    assert out.iloc[1] == pytest.approx(0.9)    # 正面(+1) × 真值0.9
+    assert out.iloc[2] == pytest.approx(-0.5)   # 负面(-1) × 哨兵→0.5
+    assert pd.isna(out.iloc[3])                 # 标签缺失 → NaN (不受 conf 影响)
+    assert out.iloc[0] != 0.0                   # 关键: 哨兵行不被静默清零
+    # 无 conf 分支 = 纯 label 数值
+    assert _llm_continuous_score(pd.Series(['正面'])).iloc[0] == pytest.approx(1.0)
 
 
 # ============================================================================
@@ -208,6 +237,53 @@ class TestEceLeaveOneOut:
         )
         assert result['mode'] == 'descriptive_only'
         assert 'ece' not in result
+
+    # ---- A1: 哨兵 conf=0 剔除 (专用 100 行 fixture, 剔后 ≥50 规避 <50 跳过) ----
+    @staticmethod
+    def _make_sentinel_df():
+        """100 行全一致 (m2==m3=='正面' → LOO gt='正面'); m1 全 '正面' (全对)。
+        m1 前 20 行 conf=0.0 (哨兵), 后 80 行 conf=0.95。剔哨兵后 80 有效 ≥50。"""
+        n = 100
+        return pd.DataFrame({
+            'm1_sentiment_full': ['正面'] * n,
+            'm1_sentiment_confidence_full': [0.0] * 20 + [0.95] * 80,
+            'm2_sentiment_full': ['正面'] * n,
+            'm3_sentiment_full': ['正面'] * n,
+            'llm_sentiment_full': ['正面'] * n,
+        })
+
+    def test_sentinel_zero_excluded_from_ece(self, tmp_path, test_logger):
+        """哨兵 conf=0 行须剔出 ECE 分箱: 仅 80 真置信度行入 bin, 最低分箱空。
+        (无本 fix 时 100 行全入、最低分箱 n=20 → 断言失败, 构成真回归守卫。)"""
+        result = diagnose_confidence_calibration(
+            self._make_sentinel_df(), self._llm_cols(), '_full',
+            str(tmp_path), test_logger,
+        )
+        assert 'ece' in result and 'm1' in result['ece'], "剔哨兵后 80≥50, ECE 应算出"
+        n_in_bins = sum(b['n'] for b in result['reliability_data']['m1'])
+        assert n_in_bins == 80, f"仅 80 真置信度行入 bin, 实际 {n_in_bins}"
+        bin0 = next(b for b in result['reliability_data']['m1'] if b['bin'] == '0.0-0.1')
+        assert bin0['n'] == 0, f"哨兵剔除后最低分箱应空, 实际 {bin0['n']}"
+
+    def test_sentinel_zero_disclosed_and_stats_clean(self, tmp_path):
+        """① 日志披露剔除数; ② 描述统计 mean 不被 0 拖偏 (≈0.95 而非含 20 个 0)。
+        ⚠ 用自建 Handler 直捕, 不用 caplog: test_logger 惯例 propagate=False, caplog(挂 root)捕不到。"""
+        records = []
+
+        class _Cap(logging.Handler):
+            def emit(self, r):
+                records.append(r.getMessage())
+
+        lg = logging.getLogger('test_sentinel_disc_a1')
+        lg.handlers = [_Cap()]
+        lg.setLevel(logging.INFO)
+        lg.propagate = False
+        result = diagnose_confidence_calibration(
+            self._make_sentinel_df(), self._llm_cols(), '_full', str(tmp_path), lg,
+        )
+        assert any('置信度=0' in m and '20' in m for m in records), "须披露剔除 20 行哨兵"
+        # 描述统计: 80 个 0.95 的均值 = 0.95 (若含 20 个 0 则 ≈0.76); result['stats'][name]={'mean',...}
+        assert result['stats']['m1']['mean'] == pytest.approx(0.95, abs=0.01)
 
 
 # ============================================================================

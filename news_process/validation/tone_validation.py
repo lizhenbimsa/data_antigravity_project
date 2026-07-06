@@ -260,6 +260,40 @@ def label_to_numeric(series: pd.Series) -> pd.Series:
     return series.map(SENTIMENT_MAP).astype(float)
 
 
+def _strip_sentinel_confidence(series: pd.Series) -> pd.Series:
+    """把哨兵置信度 0.0 映射为 NaN, 供 stage-64 置信度诊断按'缺失'一致处理。
+
+    conf==0 是 tone_llms.py 对 'LLM 未返回/未解析 sentiment_confidence 字段' 的填充
+    (`float(jd.get(..., 0.0) or 0.0)`, pipeline/sentiment/tone_llms.py:1688 等), 语义=
+    '未报告'(P3 one-hot 回退, tone_llms.py:1350/1461-1462), **非真实 0 置信度**。校准/
+    一致性诊断只应对真实自报置信度计算, 否则: ① ECE 把带真标签的哨兵行塞进最低分箱产生
+    虚假 gap; ② 描述统计 mean/skew 被 0 拖偏; ③ 连续得分 label×0=0 静默清零 LLM 信号,
+    污染 within-LLM Cronbach α / 跨方法 Spearman。**注**: 本处理使诊断更正确, 但不消除
+    真实存在的校准红灯 (如 gpt54nano 三轨真实欠自信, 剔哨兵后 ECE 仍 ≥0.15)。仅用于诊断
+    内部 (不写回 df, 不影响面板/parquet)。
+    """
+    s = pd.to_numeric(series, errors='coerce')
+    return s.where(s.ne(0.0))
+
+
+def _llm_continuous_score(sent_series: pd.Series,
+                          conf_series: pd.Series = None) -> pd.Series:
+    """LLM 标签×置信度连续得分 (跨方法 Spearman / within-LLM Cronbach 用)。
+
+    有 conf: label(±1/0) × 真实置信度; 未报告哨兵 conf=0 与真缺失(NaN)同按 0.5 中性先验
+    fillna — **不排除** (排除→NaN 会经 compute_cronbachs_alpha 的 dropna(how='any') 在
+    within-LLM Cronbach 的 LLM 子集上连坐丢掉整行, 损失该行其它 LLM 家族的真实得分),
+    **不置 0** (label×0 会静默清零方向信号)。无 conf: 仅 label 数值。⚠ 与
+    _strip_sentinel_confidence 在 ECE/描述统计处的'剔除(dropna/notna)'刻意分道:
+    校准/描述诊断可安全丢行, 跨方法 within-LLM Cronbach 行不可 (dropna 连坐)。
+    """
+    numeric = label_to_numeric(sent_series)
+    if conf_series is None:
+        return numeric
+    conf = _strip_sentinel_confidence(conf_series).fillna(0.5)
+    return numeric * conf
+
+
 # ============================================================================
 # 4. 统计指标计算
 # ============================================================================
@@ -1965,10 +1999,18 @@ def diagnose_confidence_calibration(df: pd.DataFrame, llm_cols: dict,
             logger_inst.info(f"  [{name}] 无置信度列，跳过")
             continue
 
-        conf = pd.to_numeric(df[conf_col], errors='coerce').dropna()
+        # fix(A1): 剔除未报告哨兵 conf=0 (按缺失, 见 _strip_sentinel_confidence), 使
+        # mean/median/std/skew 只反映真实自报置信度 (否则被大量 0 拖偏, 如 skew≈-4.6)。
+        n_sentinel = int(pd.to_numeric(df[conf_col], errors='coerce').eq(0.0).sum())
+        conf = _strip_sentinel_confidence(df[conf_col]).dropna()
         if len(conf) == 0:
             logger_inst.info(f"  [{name}] 置信度列全为空值，跳过")
             continue
+        if n_sentinel:
+            logger_inst.info(
+                f"  [{name}] {n_sentinel} 行置信度=0 (未报告哨兵) 按缺失处理: "
+                f"ECE/描述统计/直方图剔除; 跨方法连续得分以 0.5 中性先验代入 (不剔除, 避免 Cronbach dropna 连坐)"
+            )
 
         stats = {
             'mean': round(float(conf.mean()), 4),
@@ -2054,8 +2096,13 @@ def diagnose_confidence_calibration(df: pd.DataFrame, llm_cols: dict,
             gt_series = others.iloc[:, 0].where(unanimous)
 
         # 构建有效数据掩码
+        # fix(A1): 哨兵 conf=0 (未报告, 见 _strip_sentinel_confidence) 按缺失剔除, 使 ECE 只对
+        # 真实自报置信度校准 (哨兵行带真标签, 计入会落最低分箱 [0,0.1) 产生虚假 gap)。
+        # ⚠ 本举使诊断正确, 但不消真实红灯 (gpt54nano 三轨剔后 ECE 仍 ≥0.15=真实欠自信, 已实测披露);
+        # 剔除数已在上方描述统计段披露。conf_numeric.notna() 天然排除哨兵 (已置 NaN)。
+        conf_numeric = _strip_sentinel_confidence(df[conf_col])
         valid_mask = (
-            df[conf_col].notna() &
+            conf_numeric.notna() &
             df[model_sent_col].notna() &
             gt_series.notna()
         )
@@ -2063,7 +2110,7 @@ def diagnose_confidence_calibration(df: pd.DataFrame, llm_cols: dict,
             logger_inst.info(f"  [{name}] 有效观测 < 50，跳过 ECE")
             continue
 
-        confidences = pd.to_numeric(df.loc[valid_mask, conf_col], errors='coerce').values
+        confidences = conf_numeric[valid_mask].values
         predictions = df.loc[valid_mask, model_sent_col].astype(str).values
         ground_truth = gt_series.loc[valid_mask].astype(str).values
 
@@ -2169,7 +2216,8 @@ def diagnose_confidence_calibration(df: pd.DataFrame, llm_cols: dict,
                 if plot_idx >= n_models:
                     break
 
-                conf = pd.to_numeric(df[conf_col], errors='coerce').dropna()
+                # fix(A1): 剔哨兵, 与同 PNG 内已剔哨兵的 ECE 可靠性图同口径 (避免直方图不自洽)
+                conf = _strip_sentinel_confidence(df[conf_col]).dropna()
 
                 # ── 可靠性图 (Reliability Diagram) ──
                 if has_ece and name in reliability_data:
@@ -2820,13 +2868,14 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
     # 聚合投票列 'llm' 不参与任何跨方法统计
     for short_name, cols_info in llm_independent.items():
         all_labels[f'LLM_{short_name}'] = df[cols_info['sentiment']]
-        # 用标签×置信度作为连续得分
+        # 用标签×置信度作为连续得分 (fix A1: 经 _llm_continuous_score, 未报告哨兵 conf=0
+        # 按 0.5 中性先验而非 label×0=0 静默清零; sentinel 不排除以免 Cronbach dropna 连坐)
         if cols_info.get('confidence'):
-            numeric = label_to_numeric(df[cols_info['sentiment']])
-            conf = pd.to_numeric(df[cols_info['confidence']], errors='coerce').fillna(0.5)
-            all_scores[f'LLM_{short_name}'] = numeric * conf
+            all_scores[f'LLM_{short_name}'] = _llm_continuous_score(
+                df[cols_info['sentiment']], df[cols_info['confidence']]
+            )
         else:
-            all_scores[f'LLM_{short_name}'] = label_to_numeric(
+            all_scores[f'LLM_{short_name}'] = _llm_continuous_score(
                 df[cols_info['sentiment']]
             )
 
