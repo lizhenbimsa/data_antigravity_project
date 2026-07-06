@@ -30,9 +30,13 @@
   两驱动: 全量 CSR (随语料线性, 分块后不物化) + vocab dict (`global_df`, 亚线性但仍随 N 增长,
   是 binding 项)。**tier 1 (memory_tier='in_memory', 本模块已实现)** 消除 CSR 驱动 (较小项) + 建骨架;
   **tier 2 (disk-backed 精确 DF) DEFERRED** —— vocab-binding 生产可产性须生产机跑执行计划 §3-P0
-  外推裁定后补 tier2 (memory_tier='disk'/'auto' 现 raise NotImplementedError, 绝不静默 OOM)。
+  外推裁定后补 tier2 (memory_tier='disk'/'auto' 现 raise **SystemExit** fail-loud —— 用 SystemExit
+  非 NotImplementedError, 因调用方 tone_words `except Exception` 会吞后者致静默丢列, SystemExit⊂
+  BaseException 穿透硬停; 绝不静默回落 tier1 跑到 OOM)。
   运行期硬闸: `global_df` 超 `df_dict_budget_hard` (Pass1 循环内周期检查) → SystemExit
-  (拒绝跑优于被 OOM-killer 静默 SIGKILL)。旧单遍保留为 memory_tier='single_pass' 字节等价参照臂。
+  (拒绝跑优于被 OOM-killer 静默 SIGKILL)。⚠ **该 SystemExit 会连坐整个 stage-22 本轮已算产出**
+  (boilerplate 派生在保存前), 且默认 40M 为未校准保守占位 —— 生产上 T=18 **须先跑 §3-P0 校准硬闸**,
+  避免合法大语料误触硬闸 nuke 整批 stage-22。旧单遍保留为 memory_tier='single_pass' 字节等价参照臂。
   ⚠ 严禁 HashingVectorizer/近似 sketch/块内 min_df 预剪 (碰撞/近似破 exact DF 与 golden)。
 - **小语料饱和**: n_docs < 1/阈值 时任意 DF≥1 的 n-gram 都满足 → 套话集=全词表 → 比率饱和≈1.0
   不可解释 (与 T 无关, 任意极小 stage-22 子集皆然); `compute_boilerplate_ratios` loud WARNING。
@@ -134,17 +138,25 @@ def compute_boilerplate_ratios(texts: list[str],
     """语料级 exact two-pass, 返回每文 boilerplate 比率 (与 texts 等长)。空文/无套话集 → nan。
 
     memory_tier: 'in_memory'=tier1 chunked (默认, 字节等价) / 'single_pass'=legacy 单遍参照臂
-    / 'disk'|'auto'=tier2 DEFERRED (raise NotImplementedError)。畸值在入口 clamp (直调+enrich 双护)。"""
+    / 'disk'|'auto'=tier2 DEFERRED (raise SystemExit fail-loud)。畸值在入口 clamp (直调+enrich 双护)。"""
     # ── 入口 clamp (Round2 P2 + Result R1 P2: 直调与 enrich 注入两路径都受保护) ──
     # None/非数值 config 畸值 → 回落默认 + WARNING (优雅降级, 不裸 TypeError 崩 stage 22)。
     chunk_size = max(1, _coerce_int(chunk_size, _DEFAULT_CHUNK_SIZE, 'chunk_size'))
     df_dict_budget_warn = _coerce_int(df_dict_budget_warn, _DEFAULT_BUDGET_WARN, 'df_dict_budget_warn')
     df_dict_budget_hard = _coerce_int(df_dict_budget_hard, _DEFAULT_BUDGET_HARD, 'df_dict_budget_hard')
+    # 安全护栏禁用告警 (Final-A P2 footgun): budget≤0 令 `0<budget<len` 恒假 → 闸静默关闭, 须 loud 提示。
+    if df_dict_budget_hard <= 0:
+        logger.warning("boilerplate: df_dict_budget_hard≤0 → OOM 硬闸已禁用 (生产 T=18 有 OOM 风险)")
+    if df_dict_budget_warn <= 0:
+        logger.warning("boilerplate: df_dict_budget_warn≤0 → 软预算告警已禁用")
     if memory_tier not in _VALID_TIERS:
         logger.warning(f"boilerplate: 未知 memory_tier={memory_tier!r} → 'in_memory' (默认)")
         memory_tier = 'in_memory'
     if memory_tier in ('disk', 'auto'):          # tier2 DEFERRED: fail-loud, 绝不静默回落 tier1 跑到 OOM
-        raise NotImplementedError(
+        # ⚠ SystemExit (非 NotImplementedError): 调用方 tone_words 用 `except Exception` graceful-skip,
+        # NotImplementedError⊂Exception 会被吞成静默丢列; SystemExit⊂BaseException 穿透硬停, 与 hard 闸
+        # 一致 fail-loud (Final-A P2: 误配 disk/auto 应硬报错, 而非静默从面板抹去 boilerplate 三轨)。
+        raise SystemExit(
             f"boilerplate: memory_tier={memory_tier!r} (tier2 disk-backed DF) DEFERRED 未实现; "
             f"请设 memory_tier='in_memory', 或到生产机跑执行计划 §3-P0 外推裁定后启用 tier2")
 

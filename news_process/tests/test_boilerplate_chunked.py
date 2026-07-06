@@ -238,12 +238,35 @@ def test_compute_zero_config_defaults():
     assert all(math.isnan(v) or 0.0 <= v <= 1.0 for v in r)
 
 
-# ── §4-10: fail-loud (disk/auto → NotImplementedError; hard 闸 in-loop → SystemExit) ──
+# ── §4-10: fail-loud (disk/auto → SystemExit⊂BaseException 穿透 except Exception; hard 闸 in-loop → SystemExit) ──
 
 @pytest.mark.parametrize('tier', ['disk', 'auto'])
-def test_disk_tier_not_implemented(tier):
-    with pytest.raises(NotImplementedError, match='DEFERRED'):
+def test_disk_tier_fail_loud_systemexit(tier):
+    # tier2 DEFERRED → SystemExit (⊂BaseException), 穿透调用方 `except Exception`, 绝不静默丢列
+    with pytest.raises(SystemExit, match='DEFERRED'):
         compute_boilerplate_ratios(_corpus_with_boiler(), memory_tier=tier)
+
+
+def test_disk_tier_propagates_through_broad_except():
+    # 模拟调用方 tone_words 的 `except Exception` graceful-skip: SystemExit 须穿透, 不被吞
+    caught_as_exception = False
+    try:
+        try:
+            compute_boilerplate_ratios(_corpus_with_boiler(), memory_tier='disk')
+        except Exception:  # noqa: BLE001 — 模拟 tone_words:2344 宽 except
+            caught_as_exception = True
+    except SystemExit:
+        pass  # 期望: SystemExit 穿透 except Exception
+    assert not caught_as_exception, 'disk tier 的 SystemExit 被 except Exception 吞 (fail-loud 被击穿)'
+
+
+def test_nonpositive_budget_warns_gate_disabled(caplog):
+    import logging
+    with caplog.at_level(logging.WARNING):
+        compute_boilerplate_ratios(_corpus_with_boiler(), memory_tier='in_memory',
+                                   df_dict_budget_hard=0, df_dict_budget_warn=-1)
+    msgs = ' '.join(r.message for r in caplog.records)
+    assert '硬闸已禁用' in msgs, 'budget_hard≤0 应 loud 警告闸已禁用 (防静默 footgun)'
 
 
 def test_hard_budget_systemexit_in_loop():

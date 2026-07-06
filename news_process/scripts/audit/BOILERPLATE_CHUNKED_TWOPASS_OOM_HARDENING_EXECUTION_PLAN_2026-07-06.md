@@ -28,7 +28,7 @@
 ### 本次实施范围 (v3 定案, tier1-only + fail-loud 硬闸)
 > **⚠ 诚实定位 (Round1 P1)**: 本会话在 dev (T=2, ~847 文) 只实施 **tier 1 (chunked 内存, 字节等价)**; **tier 2 (disk-backed) DEFERRED** —— 其必要性与字节等价须靠**生产 T=18 的 P0 外推**裁定, 本机无生产语料无从验证。∴ **tier1-only 交付 = 消除 CSR 驱动 (较小的非 binding 项) + 建立分块两遍骨架 + 全部 P2 硬化**, **不等于"生产 OOM 已解决"** —— vocab/`global_df` (binding 项) 的生产可产性仍 gated on tier2。
 > **无悔性**: tier 1 字节等价 → golden 零漂移 → dev 可验; 是 tier 2 的必备前置结构 (二者共享 Pass-2 与 boiler_set 契约)。
-> **fail-loud 硬闸 (替代缺失的运行时兜底, Round1 P1)**: tier1-only 下必须有运行期硬天花板 —— `global_df` 超 `df_dict_budget_hard` → `SystemExit(1)` (镜像 stage13 `keep<min_keep_frac` 先例, **拒绝跑优于被 OOM-killer 静默 SIGKILL**); `memory_tier=disk` 或 `auto` 解析到需 disk → `raise NotImplementedError`, **绝不静默回落 tier1 跑到 OOM** (§2.2/§2.3)。
+> **fail-loud 硬闸 (替代缺失的运行时兜底, Round1 P1)**: tier1-only 下必须有运行期硬天花板 —— `global_df` 超 `df_dict_budget_hard` → `SystemExit(1)` (镜像 stage13 `keep<min_keep_frac` 先例, **拒绝跑优于被 OOM-killer 静默 SIGKILL**); `memory_tier=disk` 或 `auto` 解析到需 disk → `raise SystemExit` (Final-A P2: 用 `SystemExit`⊂BaseException 穿透调用方 `except Exception`, 非 `NotImplementedError`⊂Exception 会被吞), **绝不静默回落 tier1 跑到 OOM** (§2.2/§2.3)。
 
 ### 范围
 | 改 | 不改 |
@@ -142,7 +142,7 @@ boilerplate:
 - **memory_tier dispatch (Round1 P1, tier1-only 契约)**:
   - `in_memory` → tier 1 (§2.1)。
   - `single_pass` → 保留的 legacy 单遍旧码 (§4-1 字节等价参照臂; **只要 gate 存在即禁删**)。
-  - **`disk` / `auto`** → **`raise NotImplementedError('tier2 disk-backed DF DEFERRED 未实现; 请设 in_memory, 或到生产机跑 P0 外推后启用 tier2')`** —— 绝不静默回落 tier1 跑到 OOM。是**已知但未实现值**, 纳入 dispatch 分支 (区别于"未知值→默认")。
+  - **`disk` / `auto`** → **`raise SystemExit('tier2 disk-backed DF DEFERRED 未实现; 请设 in_memory, 或到生产机跑 P0 外推后启用 tier2')`** (⚠ Final-A P2: 用 `SystemExit`⊂BaseException **非** `NotImplementedError`⊂Exception —— 调用方 tone_words `except Exception` graceful-skip 会吞后者致**静默丢 boilerplate 三轨列**, SystemExit 穿透硬停, 与 hard 闸统一 fail-loud) —— 绝不静默回落 tier1 跑到 OOM。是**已知但未实现值**, 纳入 dispatch 分支 (区别于"未知值→默认")。
 - **畸值 clamp**: `chunk_size=max(1,int(chunk_size))`; `df_dict_budget_warn/hard` 非正→禁用对应闸; **未知** `memory_tier` (非上述四值) → `in_memory` + loud WARNING。
 - `chunk_size`/`memory_tier(in_memory vs single_pass)` **均不改输出** (同 exact DF; chunk 划分与不变量正交) → §4-1/§4-2 gate 锁。
 
@@ -189,7 +189,7 @@ boilerplate:
 7. **test_vectorizer_params_locked** (评审 P2, §2.6): 断言 `_make_vectorizer` 产物**类型感知** `type(min_df) is int and min_df==1` / `isinstance(max_df,float) and max_df==1.0 and not bool` / `max_features is None`; **含 int-1 vs float-1.0 混淆用例** (篡改工厂引入 min_df=1.0 须 raise); `ngram_range` 形参穿透工厂。
 8. **test_construct_log_set_equivalence** (评审 P1-D): chunked top-k **短语集合** == 单遍集合 + DF 谱 [min/中位/max] **数值精确等** (不比逐序)。⚠ 合成语料须构造 **top-k DF 互异 (第 k/k+1 名无并列)**, 否则单遍 quicksort 与 chunked 各自任意 tie-break 在 k-边界可能选出不等集合致假红; 或改比 **DF 多重集** (order+tie 无关)。
 9. **test_config_wiring** (Round1 P1, 真穿透断言): ① 设**非默认** `boilerplate: {chunk_size: 7}` (顶层块) 经 `enrich` → monkeypatch/spy 观测 `compute_boilerplate_ratios` **真收到 chunk_size=7** (防 KeyError 崩 / `.get` 静默死接线两种发散); ② 缺 `boilerplate` 段→走默认常量; ③ 畸值 (`chunk_size≤0`/未知 tier) → clamp graceful; ④ `compute_boilerplate_ratios` 零 config 直调走默认。
-10. **test_disk_tier_fail_loud** (Round1 P1 + Round2 P1): `memory_tier='disk'` 及 `'auto'` → `raise NotImplementedError` (tier2 DEFERRED, 绝不静默回落 tier1); `len(global_df)>df_dict_budget_hard` (monkeypatch 小硬上限) → `SystemExit` **且携带非空可操作消息**; ⚠ **断言硬闸 in-loop 语义** (Round2 P1): 注入多块序列使 global_df 在**第 2 块**即越限, 验证在 Pass1 **累加未结束时**即 raise (证明非 post-loop, 防生产 RAM 撑爆前抢先 fail-loud)。
+10. **test_disk_tier_fail_loud** (Round1 P1 + Round2 P1 + Final-A P2): `memory_tier='disk'` 及 `'auto'` → `raise SystemExit` (tier2 DEFERRED, ⊂BaseException 穿透调用方 `except Exception` 硬停, 绝不静默回落 tier1/丢列); `len(global_df)>df_dict_budget_hard` (monkeypatch 小硬上限) → `SystemExit` **且携带非空可操作消息**; ⚠ **断言硬闸 in-loop 语义** (Round2 P1): 注入多块序列使 global_df 在**第 2 块**即越限, 验证在 Pass1 **累加未结束时**即 raise (证明非 post-loop, 防生产 RAM 撑爆前抢先 fail-loud)。
 - **既有 gate**: `test_panel_reproducibility` (**full 轨列哈希 `a5667be2b3fce425` UNCHANGED**; ctx/ss 不在 fixture, 见 §1.8); `test_dag_consistency`; 全量 pytest 不新增失败。
 
 ---
@@ -279,7 +279,9 @@ boilerplate:
 
 **Result 复审 Round2 (最后一次, 3 镜头[最终正确性/回归集成/收尾一致] + 终裁; 2 findings; 终裁=ship_ready, can_commit=True)**: 3 镜头全 ship_ready。**1 个 P2 已修**: `_coerce_int` except 元组漏 `OverflowError` (`int(±inf)` 逃逸, config 写 `.inf` 会崩) → 并入捕获元组 + 加 inf/-inf/nan/bool/str 兜底 gate。另 1 为提交清单指引 (非缺陷)。经证正确: bool 排除防 True→1 / 双路径 clamp / nan→default / disk fail-loud / 恰 3 文件改动。
 
-> **最终状态: 计划 v4 + 实施 tier1 全部落地并三轮 (v1/R1/R2 计划) + 两轮 (R1/R2 结果) 对抗评审通过; 字节等价三重验证 (数学证明 + 实测 1200 次 + golden A/B 0 新增); 24 gate + ruff + 下游全绿。SHIP-READY, can_commit=True。**
+**Final 审计 Round A (提交后, 3 镜头[正确性深挖/生产集成/确定性golden] + 终裁; 5 findings→3 P2 潜伏; correctness_deep+determinism_golden=clean, prod_integration=fix_needed; 终裁=clean_ship, must_fix 空)**: 作者先做 ground-truth 自验证 (属性化 fuzz 1800 次 A/B 0 失败 + 真实 400 篇新闻多块 A/B 字节等 + 真实 enrich 无循环导入)。3 潜伏 P2 **全部主动加固** (超 must_fix 空的最低要求, 求"完美无缺"): ① **fail-loud 不对称 (真缺陷)**: `disk`/`auto` 的 `NotImplementedError`⊂Exception 被调用方 tone_words `except Exception` graceful-skip 吞 → 静默丢 boilerplate 三轨列, 与 fail-loud 意图相反 → **改 `SystemExit`⊂BaseException** 穿透硬停, 与 hard 闸统一 (实证穿透确认); ② **budget≤0 footgun**: 非正 budget 令 `0<budget<len` 恒假静默禁用 OOM 闸 → 加 **loud WARNING "硬闸已禁用"**; ③ **hard 闸连坐 stage-22 已算产出** (SystemExit 在保存前, 40M 未校准占位) → **docstring 显式披露** "生产 T=18 须先跑 §3-P0 校准硬闸避免误触 nuke 整批"。gate +2 (disk→SystemExit 穿透 + budget≤0 警告)。correctness_deep 亲测确认极长文档/重复文档/pandas NA/阈值边界/unicode/N=1 全字节等; determinism_golden 亲测 HASHSEED=0 vs =1 输出逐字节等 (global_df dict 序经 sorted(boiler_set) 消除、整数计数无浮点序依赖)。
+
+> **最终状态: 计划 v4 + 实施 tier1 + Final-A 三潜伏加固 全部落地; 三轮计划 (v1/R1/R2) + 三轮结果 (R1/R2/Final-A) 对抗评审通过; 字节等价四重验证 (数学证明 + fuzz 1800 + 真实数据 400 + golden A/B 0 新增) + HASHSEED 确定性; 26 gate + ruff + 下游全绿。SHIP-READY。**
 
 ---
 
