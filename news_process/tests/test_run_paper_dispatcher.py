@@ -139,3 +139,32 @@ def test_paper_summaries_cover_all_dispatchable_ids():
     assert keys == valid, (
         f"summary↔白名单漂移: 缺={valid - keys}, 多={keys - valid}"
     )
+
+
+def test_theory_and_anchors_cover_all_dispatchable_ids():
+    """_PAPER_THEORY / _PAPER_LIT_ANCHORS 必须与白名单精确相等, 每篇 ≥1 条锚点。
+
+    回归锁: 组合总览 (--list) 逐篇档案与单篇调度 dossier 均依赖这两张表覆盖全 11 篇;
+    白名单扩容时漏补即红 (镜像 _PAPER_SUMMARIES 覆盖锁)。
+    """
+    from news_process.papers._common.paper_config import _VALID_PAPER_IDS
+    from news_process.run_paper import _PAPER_LIT_ANCHORS, _PAPER_THEORY
+    valid = set(_VALID_PAPER_IDS)
+    assert set(_PAPER_THEORY) == valid, (
+        f"theory↔白名单漂移: 缺={valid - set(_PAPER_THEORY)}, 多={set(_PAPER_THEORY) - valid}"
+    )
+    assert set(_PAPER_LIT_ANCHORS) == valid, (
+        f"anchors↔白名单漂移: 缺={valid - set(_PAPER_LIT_ANCHORS)}, "
+        f"多={set(_PAPER_LIT_ANCHORS) - valid}"
+    )
+    for pid, refs in _PAPER_LIT_ANCHORS.items():
+        assert len(refs) >= 1, f"{pid} 无任何锚点参考文献"
+
+
+def test_lit_anchor_dois_wellformed():
+    """所有非空 DOI 必须形如 '10.<registrant>/...' (防臆造/脏值污染审计日志)。"""
+    from news_process.run_paper import _PAPER_LIT_ANCHORS
+    for pid, refs in _PAPER_LIT_ANCHORS.items():
+        for r in refs:
+            if r.doi is not None:
+                assert r.doi.startswith('10.') and '/' in r.doi, (pid, r.doi)
