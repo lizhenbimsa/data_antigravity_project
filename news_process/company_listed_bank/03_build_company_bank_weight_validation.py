@@ -118,7 +118,7 @@ def _log_stage_header(pairs_path: Path, registry_path: Path, outdir: Path,
     logger.info("       (互验媒体锚, '无锚即无互验') + 02 的 SSOT 双函数 build_measure_library/")
     logger.info("       compute_weighted_panel (importlib.import_module 复用, 禁第二份实现)")
     logger.info("     · 下游消费者: Stata 分析端八权 specification-curve 森林图 (primary 权源预先声明,")
-    logger.info("       禁挑臂单报) + gate 测试 tests/test_company_bank_weight_validation.py (50 用例)")
+    logger.info("       禁挑臂单报) + gate 测试 tests/test_company_bank_weight_validation.py (54 用例)")
     logger.info("     · 复现命令: python company_listed_bank/run_pipeline.py --steps 03 (orchestrator 子进程")
     logger.info("       隔离); 或全链 python company_listed_bank/run_pipeline.py (01→02→03, 顺序=硬依赖)")
     logger.info("     · 关键 config 键: registry `dv2_constants` (DV2 双向锁) / `bank_company_map` (own-bank")
@@ -855,12 +855,23 @@ def enrichment(pairs_m: set, pairs_alt: set) -> dict:
 
 
 def spearman_common(sa: pd.Series, sb: pd.Series) -> tuple[float | None, int]:
-    """③ 份额 Spearman — 仅共同支撑口径, 禁 union 补 0。"""
+    """③ 份额 Spearman — 仅共同支撑口径, 禁 union 补 0。
+
+    返回 None 的两种情形均按 n/a 呈报: ① n<10 (小样本闸); ② ρ 数学未定义
+    (任一份额向量在共同支撑上为常数, 如全单银行公司 share≡1 → spearmanr 出 nan;
+    透传 nan 会在报告打出 '+nan' 且被 ρ<0 反向证据点名静默漏计)。"""
     common = sa.index.intersection(sb.index)
     if len(common) < 10:
         return None, len(common)
-    from scipy.stats import spearmanr
-    rho, _ = spearmanr(sa.loc[common], sb.loc[common])
+    import warnings
+
+    from scipy.stats import ConstantInputWarning, spearmanr
+    with warnings.catch_warnings():
+        # ρ 未定义在下方显式归 None (n/a), 常数输入警告为冗余噪音, 定向收掉不遮蔽其它警告
+        warnings.simplefilter("ignore", ConstantInputWarning)
+        rho, _ = spearmanr(sa.loc[common], sb.loc[common])
+    if pd.isna(rho):
+        return None, len(common)
     return float(rho), len(common)
 
 
@@ -970,6 +981,8 @@ def build_codebook_section(coverage: dict[str, pd.Series], canon: BankCanon) -> 
 
 # ================================================================ 主流程
 def main(argv=None) -> int:
+    if sys.flags.optimize:  # 本脚本 fail-fast 闸为 assert, -O/PYTHONOPTIMIZE 下会静默失效
+        raise SystemExit("禁以 -O/PYTHONOPTIMIZE 运行 (assert 闸失效 → 无防线静默落盘)")
     _init_stage_logging()
     ap = argparse.ArgumentParser()
     ap.add_argument("--loan-dta"); ap.add_argument("--branch-dta")
@@ -997,10 +1010,16 @@ def main(argv=None) -> int:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     wp1 = importlib.import_module("02_build_company_bank_cooc_panel")
 
-    registry = yaml.safe_load(Path(args.registry).read_text(encoding="utf-8"))
-    # DV2 常量双向锁 (v33 J2): WP5 启动断言自身常量 == registry 区段
-    reg_dv2 = registry.get("dv2_constants") or {}
-    if reg_dv2 and reg_dv2 != DV2_CONSTANTS:
+    reg_path = Path(args.registry)
+    if not reg_path.exists():  # 显式 SystemExit (兑现头部"缺/stale 即 SystemExit"文案的最后一个分支)
+        raise SystemExit(f"registry 缺失: {reg_path} — 先跑 WP0 (01_build_company_bank_cooc_registry.py)")
+    registry = yaml.safe_load(reg_path.read_text(encoding="utf-8"))
+    # DV2 常量双向锁 (v33 J2): WP5 启动断言自身常量 == registry 区段 (缺/空区段同为 fail-closed —
+    # 兑现头部日志"缺/stale 即 SystemExit"承诺; 空区段=旧版/03 损坏期 WP0 产物, 放行即锁形同虚设)
+    reg_dv2 = registry.get("dv2_constants")
+    if not reg_dv2:
+        raise SystemExit("registry 缺 dv2_constants 区段 (旧版/空占位 WP0 产物) — 重跑 WP0")
+    if reg_dv2 != DV2_CONSTANTS:
         raise SystemExit("DV2_CONSTANTS 与 registry dv2_constants 区段不一致 — 重跑 WP0")
     logger.info("DV2 常量双向锁校验通过: 模块常量 == registry dv2_constants 区段 (%d 键: %s)",
                 len(DV2_CONSTANTS), "/".join(sorted(DV2_CONSTANTS)))
@@ -1011,7 +1030,9 @@ def main(argv=None) -> int:
     import pyarrow.parquet as pq
     meta = pq.ParquetFile(pairs_path).schema_arrow.metadata or {}
     reg_sha = (meta.get(b"registry_sha256") or b"").decode()
-    if reg_sha and reg_sha != registry["meta"]["registry_sha256"]:
+    if not reg_sha:  # fail-closed: 缺指纹=非 02 正规产物 (02 恒内嵌), 放行即指纹校验形同虚设
+        raise SystemExit("pair 长表 metadata 缺 registry_sha256 (被外部工具重写/非 02 产物?) — 先重跑 WP1")
+    if reg_sha != registry["meta"]["registry_sha256"]:
         raise SystemExit("pair 长表 registry 指纹与当前 registry 不一致 (stale, 先重跑 WP1)")
     pair = pd.read_parquet(pairs_path)
     logger.info("已加载 pair 长表 %s 行 (registry 指纹校验通过: 内嵌 registry_sha256=%s… == 当前"
@@ -1241,8 +1262,8 @@ def main(argv=None) -> int:
         rho, n = spearman_common(media_shares["media"], alt_shares[s])
         rl.append(f"| media×{s} | {'n/a' if rho is None else f'{rho:+.3f}'} | {n} |")
         logger.info("互验③ 份额 Spearman media×%s: ρ=%s (共同支撑 n=%d 对; 禁 union 补 0)",
-                    s, "n/a (n<10)" if rho is None else f"{rho:+.4g}", n)
-        if rho is not None and rho < 0:  # nan 比较恒 False, 自动排除 (镜像 ④ marg_below 的 nan 口径)
+                    s, "n/a (n<10 或 ρ 未定义)" if rho is None else f"{rho:+.4g}", n)
+        if rho is not None and rho < 0:  # ρ 未定义已在 spearman_common 归 None, 不进点名
             spearman_neg.append(f"media×{s} (ρ={rho:+.4g}, n={n})")
     if spearman_neg:
         rl.append("")

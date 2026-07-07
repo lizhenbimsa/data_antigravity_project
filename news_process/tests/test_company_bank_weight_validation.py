@@ -553,3 +553,39 @@ def _load_code_map():
     import yaml
     comp = yaml.safe_load((w8.CONFIG / "company_listed_names.yaml").read_text(encoding="utf-8"))
     return {str(c["stock_code"]).zfill(6): c["company_listed_name"] for c in comp["companies"]}
+
+
+# ---------------------------------------------------------------- 启动双锁 fail-closed + ③ ρ 未定义口径 (2026-07-07)
+def test_missing_dv2_section_systemexit(tmp_path):
+    """registry 缺 dv2_constants 区段 (旧版/空占位 WP0 产物) → fail-closed
+    (此前 `if reg_dv2 and ...` 静默放行, 与头部日志"缺/stale 即 SystemExit"承诺相悖)。"""
+    p = tmp_path / "no_dv2.yaml"
+    p.write_text("meta:\n  registry_sha256: 'x'\n", encoding="utf-8")
+    with pytest.raises(SystemExit, match="缺 dv2_constants"):
+        w8.main(["--registry", str(p)])
+
+
+def test_pair_missing_metadata_systemexit(tmp_path):
+    """pair parquet 无内嵌 registry_sha256 metadata (非 02 正规产物) → fail-closed。"""
+    pair = tmp_path / "pairs_nometa.parquet"
+    pd.DataFrame({"company": ["甲"], "bank": ["A"], "year": [2017],
+                  "track": ["full"], "n_docs": [1]}).to_parquet(pair)
+    with pytest.raises(SystemExit, match="缺 registry_sha256"):
+        w8.main(["--pairs", str(pair)])
+
+
+def test_spearman_undefined_rho_is_na():
+    """共同支撑上任一份额向量为常数 → ρ 数学未定义, 归 None (报告呈 n/a),
+    不透传 nan (透传会打出 '+nan' 且被 ρ<0 反向证据点名静默漏计)。"""
+    const = pd.Series([1.0] * 12, index=range(12))
+    ranked = pd.Series(np.arange(12, dtype=float), index=range(12))
+    rho, n = w8.spearman_common(const, ranked)
+    assert rho is None and n == 12
+    rho2, n2 = w8.spearman_common(ranked, ranked)  # 正例对照: 定义良好时照常出值
+    assert rho2 == pytest.approx(1.0) and n2 == 12
+
+
+def test_registry_missing_systemexit(tmp_path):
+    """registry 文件缺失 → 显式 SystemExit 带排障指引 (非裸 FileNotFoundError)。"""
+    with pytest.raises(SystemExit, match="registry 缺失"):
+        w8.main(["--registry", str(tmp_path / "nonexistent.yaml")])

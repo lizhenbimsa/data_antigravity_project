@@ -137,7 +137,7 @@ def _log_stage_header(dp: dict, registry_path: Path, out_dta: Path,
     logger.info("     · 关键 config 键: paths.yaml::output_21_tone_llms_full / output_40_panel_yearly /")
     logger.info("       output_15_article_alignment / output_51_panel_controls (27 号无键, 脚本内常量)")
     logger.info("     · 名单 SSOT: config/company_listed_names.yaml (公司) + config/bank_names.json (银行);")
-    logger.info("       gate 测试 = tests/test_company_bank_cooc_panel.py (pytest 收集 51 项)")
+    logger.info("       gate 测试 = tests/test_company_bank_cooc_panel.py (pytest 收集 58 项)")
     logger.info("  📂 输入 / 输出文件")
     logger.info("     · 输入(21_full): %s (留篇宇宙, 行=报道×目标银行)", dp["input"])
     logger.info("     · 输入(40 面板): %s (银行×年测度库主源)", dp["panel"])
@@ -306,13 +306,18 @@ def load_input21(path: Path, bank_canonical: set[str]) -> pd.DataFrame:
         raise SystemExit("docid 非空断言失败 (null docid 会折叠去重单元静默减计)")
     dates = pd.to_datetime(df["日期"], errors="raise")  # object 字符串, 显式解析 fail-loud
     df = df.assign(_year=dates.dt.year)
-    # (docid, target_bank) 去重: keep='first' 按读入序; 重复行三轨文本 hash 须一致
+    # (docid, target_bank) 去重: keep='first' 按读入序; 重复行三轨文本 + 归年/verified 源列须一致
+    # (日期/llm_verified_full 并入闸: 分歧行若仅文本一致仍会让 _year 与 _v 口径随读入序漂移)
     dup_mask = df.duplicated(subset=["docid", "target_bank"], keep=False)
     if dup_mask.any():
         grp = df.loc[dup_mask].groupby(["docid", "target_bank"])
-        for keycols in ("content_full", "content_ctx", "content_ss"):
-            if (grp[keycols].nunique(dropna=False) > 1).any():
-                raise SystemExit(f"(docid,target_bank) 重复行 {keycols} 不一致 — 确定性失锚")
+        for keycols in ("content_full", "content_ctx", "content_ss", "日期", "llm_verified_full"):
+            nun = grp[keycols].nunique(dropna=False)
+            if (nun > 1).any():
+                key0 = nun[nun > 1].index[0]
+                sample = grp.get_group(key0)[keycols].astype(str).str[:40].tolist()[:4]
+                raise SystemExit(f"(docid,target_bank) 重复行 {keycols} 不一致 — 确定性失锚; "
+                                 f"首例 {key0}: {sample}")
         n_before = len(df)
         df = df.drop_duplicates(subset=["docid", "target_bank"], keep="first")
         log(f"(docid,target_bank) 去重删行 {n_before - len(df)}", warn=True)
@@ -523,6 +528,19 @@ def build_measure_library(input21_df: pd.DataFrame, panel40_df: pd.DataFrame,
             frames.append(keyed(df)[want])
     # 16 号 PA 自聚合 (verified 子集 semi-join, v16 P0; 双向差分日志 v20)
     if alignment_df is not None:
+        # 重复 (docid,target_bank) 键防御, 语义镜像 21 号入口: 同值重复 → 去重放行+WARN
+        # (经 inner merge 存活会在 mean 里双计同篇), 值分歧 → fail-loud (确定性失锚)
+        dup_pa = alignment_df.duplicated(subset=["docid", "target_bank"], keep=False)
+        if dup_pa.any():
+            g16 = alignment_df.loc[dup_pa].groupby(["docid", "target_bank"])
+            for c in (c for c in alignment_df.columns if c not in ("docid", "target_bank")):
+                if (g16[c].nunique(dropna=False) > 1).any():
+                    raise SystemExit(f"16 号 alignment (docid,target_bank) 重复键且 {c} 值分歧 — "
+                                     "PA 均值会双计同篇且取值随行序漂移, 先修上游")
+            n_before16 = len(alignment_df)
+            alignment_df = alignment_df.drop_duplicates(subset=["docid", "target_bank"], keep="first")
+            log(f"16 号 alignment 同值重复键去重删行 {n_before16 - len(alignment_df)} (防 PA 均值双计)",
+                warn=True)
         ver_keys = input21_df.loc[input21_df["_verified"], ["docid", "target_bank"]].drop_duplicates()
         merged = alignment_df.merge(ver_keys, on=["docid", "target_bank"], how="inner")
         miss = len(ver_keys) - len(merged.drop_duplicates(["docid", "target_bank"]))
@@ -1218,6 +1236,8 @@ def _sparse_equivalence_check(weights: pd.DataFrame, measures: pd.DataFrame, reg
 
 # ---------------------------------------------------------------- main
 def main(argv=None) -> int:
+    if sys.flags.optimize:  # 本脚本 fail-fast 闸为 assert, -O/PYTHONOPTIMIZE 下会静默失效并照常落盘
+        raise SystemExit("禁以 -O/PYTHONOPTIMIZE 运行 (assert 闸失效 → 无防线静默落盘)")
     _init_stage_logging()
     dp = default_paths()
     ap = argparse.ArgumentParser()
@@ -1251,10 +1271,24 @@ def main(argv=None) -> int:
     _log_stage_header(dp, Path(args.registry), Path(args.output), args.year_min, args.year_max)
 
     t0 = time.monotonic()
-    registry = yaml.safe_load(Path(args.registry).read_text(encoding="utf-8"))
-    # 启动自校验 (D10): registry 基名数 + 40 面板实读列集 ⊆ 已判定全集
+    reg_path = Path(args.registry)
+    if not reg_path.exists():  # 显式 SystemExit (兑现"缺则不跑"文案; 裸 FileNotFoundError 无排障指引)
+        raise SystemExit(f"registry 缺失: {reg_path} — 先跑 WP0 (01_build_company_bank_cooc_registry.py)")
+    registry = yaml.safe_load(reg_path.read_text(encoding="utf-8"))
+    # 启动自校验 (D10): 哈希锚复算 + registry 基名数 + 40 面板实读列集 ⊆ 已判定全集
     if registry["meta"]["n_entries"] < 600:
         raise SystemExit("registry 基名数 < 600 — 疑损坏")
+    # 哈希锚复算 (兑现 README/01 日志"启动校验哈希锚"承诺): canonical 式经 importlib 复用 01 的
+    # SSOT 函数 registry_content_sha256 (禁第二份实现; gate 测试另存独立重算式作双实现互证)
+    import importlib
+    if str(HERE) not in sys.path:
+        sys.path.insert(0, str(HERE))
+    wp0 = importlib.import_module("01_build_company_bank_cooc_registry")
+    recalc_sha = wp0.registry_content_sha256(registry)
+    if recalc_sha != registry["meta"]["registry_sha256"]:
+        raise SystemExit("registry 内容与 meta.registry_sha256 不自洽 (手改/半写/损坏) — 重跑 WP0")
+    logger.info("registry 哈希锚启动复算通过: 内容 sha256=%s… == meta.registry_sha256 (canonical 式"
+                "复用 01 SSOT 函数)", recalc_sha[:16])
     p_input = resolve("input", required=True)
     p_panel = resolve("panel", required=True)
     p_align, p_benefit, p_controls = resolve("alignment"), resolve("benefit"), resolve("controls")

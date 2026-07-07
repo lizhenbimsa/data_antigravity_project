@@ -598,3 +598,85 @@ def test_engine_duplicate_measure_key_raises():
     w = wtab([("甲", "A", 2017, "full", 1)])
     with pytest.raises(AssertionError, match="键重复"):
         mod.compute_weighted_panel(w, meas, reg)
+
+
+# ---------------------------------------------------------------- 启动哈希锚复算闸 + 入口防御补全 (2026-07-07)
+def test_registry_hash_tamper_systemexit(tmp_path):
+    """手改 registry 内容而不改 meta.registry_sha256 → 02 启动复算即拒 (fail-closed,
+    兑现 README/01 日志"启动校验哈希锚"承诺; 此前只查 n_entries≥600, 手改可静默跑通)。"""
+    import yaml
+    reg = yaml.safe_load((REPO / "config" / "company_bank_cooc_registry.yaml")
+                         .read_text(encoding="utf-8"))
+    reg["entries"][0]["basename"] = reg["entries"][0]["basename"] + "_tampered"
+    p = tmp_path / "tampered.yaml"
+    p.write_text(yaml.safe_dump(reg, allow_unicode=True), encoding="utf-8")
+    with pytest.raises(SystemExit, match="不自洽"):
+        mod.main(["--registry", str(p)])
+
+
+def test_pa_duplicate_keys_systemexit():
+    """16 号 alignment 重复 (docid,target_bank) 键且值分歧 → fail-loud
+    (语义镜像 21 号入口: 分歧才杀; inner merge 后 mean 会双计同篇且取值随行序漂移)。"""
+    reg = mini_registry([dict(basename="policy_cosine_sim", family="PA", source="16",
+                              col_by_track={t: f"policy_cosine_sim_{t}" for t in mod.TRACKS},
+                              track_agnostic=False, agg="mean", emit_tracks=list(mod.TRACKS),
+                              emit_panel=True, cut_code=None, range_gate="none",
+                              label_elems={}, short_name="polsim")])
+    input21 = make_input([row(1, "银行A", "x", verified=True)])
+    align = pd.DataFrame({"docid": [1, 1], "target_bank": ["银行A"] * 2,
+                          **{f"policy_cosine_sim_{t}": [0.5, 0.7] for t in mod.TRACKS}})
+    with pytest.raises(SystemExit, match="重复键"):
+        mod.build_measure_library(input21, pd.DataFrame({"target_bank": [], "year": []}),
+                                  align, None, None, reg)
+
+
+@pytest.mark.parametrize("col,vals", [("日期", ["2017-01-01", "2018-06-30"]),
+                                      ("llm_verified_full", [True, False])])
+def test_dedup_divergent_metadata_systemexit(tmp_path, col, vals):
+    """(docid,target_bank) 重复行三轨文本一致但 日期/llm_verified_full 分歧 → fail-loud
+    (keep='first' 下 _year 归年与 _v 口径会随读入序静默漂移 — 一致性闸原只锁三轨文本)。"""
+    p = tmp_path / "dup_meta.parquet"
+    df = pd.DataFrame({c: ["x", "x"] for c in mod.INPUT_COLS})
+    df["docid"] = [1, 1]
+    df["日期"] = ["2017-01-01"] * 2
+    df["target_bank"] = ["正规银行"] * 2
+    df["llm_verified_full"] = [True, True]
+    df[col] = vals
+    df.to_parquet(p)
+    with pytest.raises(SystemExit, match="不一致"):
+        mod.load_input21(p, {"正规银行"})
+
+
+def test_dedup_identical_rows_pass(tmp_path):
+    """正例对照: 重复行全字段一致 → 一致性闸放行, 去重后恰 1 行 (防新增两列误伤合法重复)。"""
+    p = tmp_path / "dup_ok.parquet"
+    df = pd.DataFrame({c: ["x", "x"] for c in mod.INPUT_COLS})
+    df["docid"] = [1, 1]
+    df["日期"] = ["2017-01-01"] * 2
+    df["target_bank"] = ["正规银行"] * 2
+    df["llm_verified_full"] = [True, True]
+    df.to_parquet(p)
+    out = mod.load_input21(p, {"正规银行"})
+    assert len(out) == 1
+
+
+def test_registry_missing_systemexit(tmp_path):
+    """registry 文件缺失 → 显式 SystemExit 带排障指引 (非裸 FileNotFoundError)。"""
+    with pytest.raises(SystemExit, match="registry 缺失"):
+        mod.main(["--registry", str(tmp_path / "nonexistent.yaml")])
+
+
+def test_pa_identical_duplicate_keys_dedup_pass():
+    """正例对照: 16 号同值重复键 → 去重放行 (镜像 21 号语义), PA 均值不双计。"""
+    reg = mini_registry([dict(basename="policy_cosine_sim", family="PA", source="16",
+                              col_by_track={t: f"policy_cosine_sim_{t}" for t in mod.TRACKS},
+                              track_agnostic=False, agg="mean", emit_tracks=list(mod.TRACKS),
+                              emit_panel=True, cut_code=None, range_gate="none",
+                              label_elems={}, short_name="polsim")])
+    input21 = make_input([row(1, "银行A", "x", verified=True), row(2, "银行A", "y", verified=True)])
+    align = pd.DataFrame({"docid": [1, 1, 2], "target_bank": ["银行A"] * 3,
+                          **{f"policy_cosine_sim_{t}": [0.5, 0.5, 1.0] for t in mod.TRACKS}})
+    lib = mod.build_measure_library(input21, pd.DataFrame({"target_bank": [], "year": []}),
+                                    align, None, None, reg)
+    # 同值重复 docid=1 去重后单计: mean(0.5, 1.0) = 0.75 (双计则为 (0.5+0.5+1.0)/3 ≈ 0.667)
+    assert lib.loc[("银行A", 2017), "__agg16__policy_cosine_sim_full"] == pytest.approx(0.75)

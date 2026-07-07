@@ -208,3 +208,16 @@ def test_irregular_suffix_mappings(registry):
     assert by_name["avg_herd_weight_thr25"]["col_by_track"]["full"] == "avg_herd_weight_full_thr25"
     assert by_name["industry_neg_shock"]["col_by_track"]["full"] == "industry_neg_shock"  # WP0-6 ④
     assert by_name["bank_cogn_mean"]["col_by_track"]["full"] == "bank_cogn_mean"
+
+
+# ---------------------------------------------------------------- 哈希锚 canonical 式 SSOT (2026-07-07)
+@pytest.mark.fast
+def test_registry_content_sha256_function(registry):
+    """01 的运行时 canonical 式 (registry_content_sha256, 02 启动复算经 importlib 复用) 与
+    本文件独立重算式/盘上 meta/测试锚 三方一致 — 双实现互证, 防运行时侧 canonical 式漂移。"""
+    import importlib
+    import sys
+    sys.path.insert(0, str(REPO / "company_listed_bank"))
+    wp0 = importlib.import_module("01_build_company_bank_cooc_registry")
+    assert wp0.registry_content_sha256(registry) == registry["meta"]["registry_sha256"]
+    assert wp0.registry_content_sha256(registry) == EXPECTED_REGISTRY_SHA256

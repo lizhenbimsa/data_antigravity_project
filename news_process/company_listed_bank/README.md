@@ -8,8 +8,8 @@
 | 步骤 | 脚本 | 消费 | 产出 |
 |---|---|---|---|
 | 01 | `01_build_company_bank_cooc_registry.py` (WP0) | 五上游 parquet 列名 + 裁剪负清单 + 两名单 SSOT | `config/company_bank_cooc_registry.yaml` (加权引擎唯一 SSOT) |
-| 02 | `02_build_company_bank_cooc_panel.py` (WP1) | **01 的 registry yaml** (启动校验哈希锚, 缺则不跑) | 主面板 dta/parquet + codebook + `_company_bank_cooc_pairs.parquet` (pair 长表) |
-| 03 | `03_build_company_bank_weight_validation.py` (WP5) | **01 的 registry yaml** (DV2 常量双向锁) + **02 的 pair 长表** (缺则 `SystemExit`: "无锚即无互验") | 七替代权长表 + 七权面板 ×7 + 互验报告 |
+| 02 | `02_build_company_bank_cooc_panel.py` (WP1) | **01 的 registry yaml** (启动复算并校验哈希锚 — canonical 式经 importlib 复用 01 的 `registry_content_sha256`; 缺/不自洽则不跑) | 主面板 dta/parquet + codebook + `_company_bank_cooc_pairs.parquet` (pair 长表) |
+| 03 | `03_build_company_bank_weight_validation.py` (WP5) | **01 的 registry yaml** (DV2 常量双向锁, 缺区段即拒) + **02 的 pair 长表** (缺文件/缺内嵌指纹/指纹 stale 均 `SystemExit`: "无锚即无互验") | 七替代权长表 + 七权面板 ×7 + 互验报告 |
 
 顺序为硬依赖 (fail-loud 闸), 非约定: 02 缺 registry / 03 缺 pair 长表均直接退出。
 
@@ -49,8 +49,9 @@ python company_listed_bank/02_build_company_bank_cooc_panel.py
 python company_listed_bank/03_build_company_bank_weight_validation.py
 ```
 
-gate 测试: `tests/test_company_bank_cooc_registry.py` (11) +
-`tests/test_company_bank_cooc_panel.py` (34) + `tests/test_company_bank_weight_validation.py` (51+2)。
+gate 测试四件 (pytest 收集实数, 增删测试后以 `--collect-only -q` 为准同步此处与各脚本 banner):
+`tests/test_company_bank_cooc_registry.py` (12) + `tests/test_company_bank_cooc_panel.py` (58) +
+`tests/test_company_bank_weight_validation.py` (54) + `tests/test_company_bank_run_pipeline_lock.py` (5) = 129。
 
 ⚠ 生产 T=18 复跑注意 (计划 §9.4 DEFERRED): registry 哈希锚锚死盘上态, 有意重跑 01 后须
 bump `tests/test_company_bank_cooc_registry.py::EXPECTED_REGISTRY_SHA256` 并级联重跑 02 (pair

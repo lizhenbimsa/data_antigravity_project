@@ -100,7 +100,7 @@ def _log_stage_header(panel_path: Path, out_path: Path) -> None:
     logger.info("     · 流水线定位: 上市公司×年 银企共现媒体报道面板 (105,032 行全谱) 三步生产链之第 1 步")
     logger.info("     · 下游消费者: 02 (WP1 加权引擎, 启动即校验本 registry 哈希锚, 缺则不跑) /")
     logger.info("       03 (WP5 七权互验, 经 dv2_constants 区段与本表双向锁) /")
-    logger.info("       gate 测试 tests/test_company_bank_cooc_registry.py (11 用例, 锚死 registry_sha256 与族小计)")
+    logger.info("       gate 测试 tests/test_company_bank_cooc_registry.py (12 用例, 锚死 registry_sha256 与族小计)")
     logger.info("     · 权威计划: scripts/audit/COMPANY_BANK_COOC_PANEL_EXECUTION_PLAN_2026-07-03.md (v34, §4 WP0)")
     logger.info("     · 复现命令: python company_listed_bank/run_pipeline.py --steps 01")
     logger.info("       (或单跑: python company_listed_bank/%s.py [--panel PATH] [--out PATH])", stem)
@@ -266,13 +266,28 @@ MANUAL_BANK_COMPANY_MAP = {
 # ---------------------------------------------------------------- DV2 常量 (v33 J2: WP0 import WP5 模块常量落 registry 区段, 双向锁)
 def _load_dv2_constants() -> dict:
     # 序号前缀模块名 (03_*) 非合法 import 语句标识符 → 走 importlib
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    here = str(Path(__file__).resolve().parent)
+    if here not in sys.path:
+        sys.path.insert(0, here)
     try:
         import importlib  # noqa: PLC0415
         w8 = importlib.import_module("03_build_company_bank_weight_validation")
         return w8.DV2_CONSTANTS
-    except Exception:  # WP5 脚本未就绪时 (WP0 首跑早于 WP5) 用空占位, WP5 落地后重跑 WP0 回填
+    except Exception as exc:  # WP5 脚本未就绪时 (WP0 首跑早于 WP5) 用空占位, WP5 落地后重跑 WP0 回填
+        logger.warning("导入 03 (WP5) 失败, dv2_constants 落空占位 — WP5 已落地的现状下这属异常, "
+                       "须排查 03 模块 import 期错误而非重跑 WP0: %r", exc)
         return {}
+
+
+# ---------------------------------------------------------------- 哈希锚 canonical 式 (SSOT)
+def registry_content_sha256(registry: dict) -> str:
+    """哈希锚 = sha256(canonical JSON, 键排序) over 四内容区段 (meta 刻意不入锚, 防自指)。
+
+    本函数是运行时侧唯一实现: 01 写锚 / 02 启动复算校验均调本函数 (02 经 importlib 复用,
+    禁第二份实现); gate 测试 test_registry_hash_anchor 保留独立重算式作双实现互证。"""
+    anchor_obj = {k: registry[k] for k in ("entries", "bank_company_map", "excluded", "dv2_constants")}
+    return hashlib.sha256(
+        json.dumps(anchor_obj, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
 
 
 # ---------------------------------------------------------------- 上游列名读取
@@ -839,10 +854,8 @@ def main(argv=None) -> int:
         "excluded": dict(sorted(excluded.items())),
         "dv2_constants": dv2_constants,
     }
-    # 哈希锚 = sha256(canonical JSON, 键排序; 剔除易变字段 — meta 不入锚)
-    anchor_obj = {k: registry[k] for k in ("entries", "bank_company_map", "excluded", "dv2_constants")}
-    anchor = hashlib.sha256(
-        json.dumps(anchor_obj, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
+    # 哈希锚 = sha256(canonical JSON, 键排序; 剔除易变字段 — meta 不入锚); canonical 式 SSOT = registry_content_sha256
+    anchor = registry_content_sha256(registry)
     registry["meta"]["registry_sha256"] = anchor
     logger.info("输入内容指纹 (v20 防呆): company_names=%s… | bank_names=%s… | cut_list=%s…",
                 registry["meta"]["company_names_sha256"][:16],
