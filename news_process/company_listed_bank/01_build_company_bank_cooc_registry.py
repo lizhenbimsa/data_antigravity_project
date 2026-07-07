@@ -63,6 +63,15 @@ def _rss_mb() -> float:
     return psutil.Process().memory_info().rss / 1024 / 1024
 
 
+def _pkg_ver(name: str) -> str:
+    """仅日志用途: 读已安装包版本 (importlib.metadata); 缺失/异常一律返回 'n/a', 不影响任何计算。"""
+    try:
+        from importlib.metadata import version
+        return version(name)
+    except Exception:
+        return "n/a"
+
+
 def _log_stage_header(panel_path: Path, out_path: Path) -> None:
     """阶段头汇报块 (完全参照主管道 12_news_fintech.log 的内容格式)。"""
     import os
@@ -88,32 +97,116 @@ def _log_stage_header(panel_path: Path, out_path: Path) -> None:
     logger.info("  🧭 项目 / 环境信息")
     logger.info("     · 步骤: %s (WP0 注册表对账, company_listed_bank 流水线 01/03; 不注册主 DAG)", stem)
     logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板), 当前版本 v3.15.0")
+    logger.info("     · 流水线定位: 上市公司×年 银企共现媒体报道面板 (105,032 行全谱) 三步生产链之第 1 步")
+    logger.info("     · 下游消费者: 02 (WP1 加权引擎, 启动即校验本 registry 哈希锚, 缺则不跑) /")
+    logger.info("       03 (WP5 七权互验, 经 dv2_constants 区段与本表双向锁) /")
+    logger.info("       gate 测试 tests/test_company_bank_cooc_registry.py (11 用例, 锚死 registry_sha256 与族小计)")
+    logger.info("     · 权威计划: scripts/audit/COMPANY_BANK_COOC_PANEL_EXECUTION_PLAN_2026-07-03.md (v34, §4 WP0)")
+    logger.info("     · 复现命令: python company_listed_bank/run_pipeline.py --steps 01")
+    logger.info("       (或单跑: python company_listed_bank/%s.py [--panel PATH] [--out PATH])", stem)
+    logger.info("     · 配置锚: 本流水线不消费 config/*.yaml 运行键 (参数全为脚本内常量 SSOT);")
+    logger.info("       输入锚 = 两名单 + 负清单, 三者内容 sha256 落 registry.meta (v20 防呆)")
     logger.info("     · 模块文件: %s", Path(__file__).resolve())
     logger.info("     · 工作目录: %s", os.getcwd())
     logger.info("     · Python:   %s @ %s", platform.python_version(), _sys.executable)
     logger.info("     · 平台:     %s | CPU 逻辑核=%s", platform.platform(), os.cpu_count())
+    logger.info("     · 关键库:   pandas=%s | numpy=%s | pyarrow=%s | PyYAML=%s",
+                _pkg_ver("pandas"), _pkg_ver("numpy"), _pkg_ver("pyarrow"), _pkg_ver("PyYAML"))
+    logger.info("     · 关键库:   psutil=%s | pyreadstat=%s | pyahocorasick=%s (缺失显示 n/a; 仅日志用途)",
+                _pkg_ver("psutil"), _pkg_ver("pyreadstat"), _pkg_ver("pyahocorasick"))
     logger.info("     · PID=%s | RUN_ID=%s | 本步骤纯 CPU / 无 LLM·网络·API ($0) / 逐字节幂等",
                 os.getpid(), os.environ.get("NEWS_PROCESS_RUN_ID", "standalone"))
     logger.info("  📂 输入 / 输出文件")
-    logger.info("     · 输入(40): %s (主上游, 全划分对象)", panel_path)
+    logger.info("     · 输入(40): %s", panel_path)
+    logger.info("       ↳ 角色: 主上游 = 银行×年全列面板 (全划分对象); 每列必判 '纳入源列' 或 '排除+理由码',")
+    logger.info("         残差非零即 SystemExit(1); 列名经 parquet footer schema 读取, 零数据页 IO")
     logger.info("     · 输入(51/27/16/21_full): %s 下同名 parquet (域外族列名来源)", DATA)
-    logger.info("     · 输入(负清单): %s (emit 判定 SSOT)", CUT_LIST_PATH)
+    logger.info("       ↳ 角色: 51=覆盖控制增量 (CTRL 6 基名直读, 与 40 重复列判 DUP_OF_40) |")
+    logger.info("         27=社会效益 4 维度六轨 (BD 族, 银行×年直读) | 16=文章级政策对齐 (PA 族, 注册聚合算子 mean) |")
+    logger.info("         21_full=verified 留篇宇宙 (KW/FOCUS 族 track-agnostic 自聚合)")
+    logger.info("     · 输入(负清单): %s", CUT_LIST_PATH)
+    logger.info("       ↳ 角色: emit 判定唯一 SSOT (仅锚 CUT 侧 410 基名; 段头全等匹配, 数据行=族\\t基名,")
+    logger.info("         对账前施 _dcls→_dm 别名映射; 禁 keep==294/domain==704 计数锚)")
     logger.info("     · 输入(两名单): %s | %s", CONFIG / "company_listed_names.yaml", CONFIG / "bank_names.json")
+    logger.info("       ↳ 角色: D4 对照表构造输入 (机器 variant 交集 + 5 家人工键经 variant 表归一到公司全称)")
     logger.info("     · 输出:     %s (入库 SSOT, 供步骤 02/03 与 gate 测试消费)", out_path)
+    logger.info("       ↳ schema: 五区段 {meta, entries, bank_company_map, excluded, dv2_constants}; 条目 12 字段")
+    logger.info("         (basename/family/source/col_by_track/track_agnostic/agg/emit_tracks/short_name/")
+    logger.info("          label_elems/emit_panel/cut_code/range_gate); 条目顺序 = 下游输出列序 SSOT")
+    logger.info("       ↳ 缺失语义: DEFERRED/缺源列基名照出全 NaN 列 (缺列容错, registry 推导 schema 跨环境恒等);")
+    logger.info("         CUT 条目 emit_panel=false 仅留对账痕迹不投影")
     logger.info("  ⚙ 运行配置 (脚本内常量 SSOT)")
     logger.info("     · D16 短名替换表 %d 条 | DCLS→DM 别名 %d 条 | D4 人工对照 %d 家 | DEFERRED 基名 %d 个",
                 len(SHORT_NAME_REPLACEMENTS), len(DCLS_ALIAS), len(MANUAL_BANK_COMPANY_MAP),
                 len(DEFERRED_BASENAMES))
-    logger.info("  📖 方法论依据 (参考文献)")
-    logger.info("     · 文本测度方法学总纲: Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. "
-                "Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020")
-    logger.info("       → 白话: 文本变量进计量前须显式声明构造规则与测度目录; 本步骤把 3,442 列的"
-                "纳入/排除规则物化为机器可核验的注册表, 即该原则的工程落地。")
-    logger.info("     · 词典/测度敏感性: Loughran, T., & McDonald, B. (2016). Textual analysis in accounting "
-                "and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. "
-                "https://doi.org/10.1111/1475-679X.12123")
-    logger.info("       → 白话: 文本测度结论对词表与口径选择敏感, 须留可审计痕迹; 本注册表的"
-                "excluded 理由代码 + 哈希锚即为口径选择的全程留痕。")
+    logger.info("     · D15 排除规则 %d 条正则 + 强制纳入白名单 %d 项 + 不变式候选 (前缀 %d / 精确 %d / 政策正则 1)",
+                len(EXCLUDE_RULES), len(INCLUDE_WHITELIST), len(INVARIANT_CANDIDATES_PREFIX),
+                len(INVARIANT_CANDIDATES_EXACT))
+    logger.info("  📖 方法论依据 (参考文献, 按主题分节; 每条附白话说明其支撑的具体设计决策)")
+    logger.info("   —— A. 构念与效度 (文本测度目录 / 共现构念) ——")
+    logger.info("     · Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic Literature,")
+    logger.info("       57(3), 535–574. https://doi.org/10.1257/jel.20181020")
+    logger.info("       → 白话: 文本变量进计量前须显式声明构造规则与测度目录; 本步骤把 40 面板每列的纳入/排除")
+    logger.info("         判定物化为机器可核验的注册表条目 (全划分+理由码), 即该原则的工程落地。")
+    logger.info("     · Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey.")
+    logger.info("       Journal of Accounting Research, 54(4), 1187–1230. https://doi.org/10.1111/1475-679X.12123")
+    logger.info("       → 白话: 文本测度结论对口径选择高度敏感、须全程留痕; excluded 理由码 + 三输入内容 sha256")
+    logger.info("         即本脚本给每个口径决策留下的可审计痕迹。")
+    logger.info("     · Bybee, L., Kelly, B. T., Manela, A., & Xiu, D. (2024). Business news and business cycles.")
+    logger.info("       The Journal of Finance, 79(5), 3105–3147. https://doi.org/10.1111/jofi.13377")
+    logger.info("       → 白话: 把海量商业新闻压成结构化面板测度, 前提是字段目录稳定; 本注册表为 700+ 基名冻结")
+    logger.info("         族/轨/聚合算子, 保证步骤 02 加权引擎跨重跑产出同一测度集合。")
+    logger.info("     · Baker, S. R., Bloom, N., & Davis, S. J. (2016). Measuring economic policy uncertainty.")
+    logger.info("       The Quarterly Journal of Economics, 131(4), 1593–1636. https://doi.org/10.1093/qje/qjw024")
+    logger.info("       → 白话: 共现计数型文本指标的效度取决于筛选规则透明且固定; D15 十一条排除正则+白名单把")
+    logger.info("         银企共现测度的列级筛选规则固化, 消除随手改口径的空间。")
+    logger.info("     · Lee, C. M. C., Ma, P., & Wang, C. C. Y. (2015). Search-based peer firms: Aggregating investor")
+    logger.info("       perceptions through internet co-searches. Journal of Financial Economics, 116(2), 410–431.")
+    logger.info("       https://doi.org/10.1016/j.jfineco.2015.02.003")
+    logger.info("       → 白话: 该文证明'共同被检索'携带经济关联信息, 为同类'共同被提及'共现构念提供同型前提;")
+    logger.info("         D4 对照表在源头剔除上市银行'自我共现'的机械污染。")
+    logger.info("     · Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level political risk:")
+    logger.info("       Measurement and effects. The Quarterly Journal of Economics, 134(4), 2135–2202.")
+    logger.info("       https://doi.org/10.1093/qje/qjz021")
+    logger.info("       → 白话: 该文示范了 firm-level 文本测度的系统构造与验证纪律; 本注册表以 range_gate")
+    logger.info("         (tone/frac/none) 把每族值域断言机器化以延伸该纪律, 供下游 WP3 gate 逐列复核。")
+    logger.info("   —— B. 识别与加权 (份额加权 / 规格全枚举 / 多重检验纪律) ——")
+    logger.info("     · Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik instruments: What, when, why,")
+    logger.info("       and how. American Economic Review, 110(8), 2586–2624. https://doi.org/10.1257/aer.20181047")
+    logger.info("       → 白话: 份额加权测度的可信度取决于权重构成完全透明; 本表冻结进入 02 号 cw/ce 双臂投影的")
+    logger.info("         全部源列与轨别, 使'权重×测度'的每一格可回溯到唯一源列。")
+    logger.info("     · Simonsohn, U., Simmons, J. P., & Nelson, L. D. (2020). Specification curve analysis.")
+    logger.info("       Nature Human Behaviour, 4(11), 1208–1214. https://doi.org/10.1038/s41562-020-0912-z")
+    logger.info("       → 白话: 规格曲线要求把合理规格全枚举而非只报其一; emit_tracks 三轨 + track-agnostic 判定")
+    logger.info("         把每个基名的可用测量臂全部登记, 不留隐藏抽屉。")
+    logger.info("     · Steegen, S., Tuerlinckx, F., Gelman, A., & Vanpaemel, W. (2016). Increasing transparency")
+    logger.info("       through a multiverse analysis. Perspectives on Psychological Science, 11(5), 702–712.")
+    logger.info("       https://doi.org/10.1177/1745691616658637")
+    logger.info("       → 白话: 多重宇宙分析主张把数据处理分叉显式化; CUT 410/KEEP 的裁剪来自负清单一次性审定,")
+    logger.info("         本脚本仅机械落值, 每个分叉点都留档在 cut_code 字段。")
+    logger.info("     · Harvey, C. R., Liu, Y., & Zhu, H. (2016). … and the cross-section of expected returns.")
+    logger.info("       The Review of Financial Studies, 29(1), 5–68. https://doi.org/10.1093/rfs/hhv059")
+    logger.info("       → 白话: 测度越多假发现风险越高, 须先固定检验域再谈显著性; 本表把 emit 域锚死在负清单之外,")
+    logger.info("         是下游多重检验校正的前置纪律。")
+    logger.info("   —— C. 数据工程与复现 (分析者自由度 / 复现材料标准) ——")
+    logger.info("     · Menkveld, A. J., Dreber, A., Holzmeister, F., Huber, J., Johannesson, M., Kirchler, M.,")
+    logger.info("       Razen, M., Weitzel, U., … [百人合著] (2024). Nonstandard errors. The Journal of Finance,")
+    logger.info("       79(3), 2339–2390. https://doi.org/10.1111/jofi.13337")
+    logger.info("       → 白话: 同一数据不同团队得出不同结果的根源是未记录的口径分叉; registry_sha256 把整个")
+    logger.info("         测度目录压成单一指纹, 任何口径漂移都会让 gate 测试即刻翻红。")
+    logger.info("     · Chen, A. Y., & Zimmermann, T. (2022). Open source cross-sectional asset pricing.")
+    logger.info("       Critical Finance Review, 11(2), 207–264. https://doi.org/10.1561/104.00000112")
+    logger.info("       → 白话: 开源资产定价库示范了'变量目录+可复现构造代码'的复现材料范式; 本 yaml 即银企共现")
+    logger.info("         面板的入库变量目录, 供审稿人逐条目核对来源与口径。")
+    logger.info("     · Brodeur, A., Mikola, D., Cook, N., … [百人合著] (2026). Reproducibility and robustness of")
+    logger.info("       economics and political science research. Nature, 652(8108), 151–156.")
+    logger.info("       https://doi.org/10.1038/s41586-026-10251-x")
+    logger.info("       → 白话: 大规模复现研究显示数据构造不透明是复现失败的常见原因之一; 本步骤 $0、纯列名、逐字节幂等,")
+    logger.info("         任何第三方按复现命令重跑应得到相同 registry_sha256。")
+    logger.info("     · Dreber, A., & Johannesson, M. (2024). A framework for evaluating reproducibility and")
+    logger.info("       replicability in economics. Economic Inquiry, 63(2), 338–356. https://doi.org/10.1111/ecin.13244")
+    logger.info("       → 白话: 复现性评估须先界定'同数据同代码'的边界; 哈希锚 + 三输入内容指纹恰好给出该边界 —")
+    logger.info("         指纹一致而产物不同即为真缺陷, 而非口径漂移。")
     logger.info("")
 
 
@@ -516,7 +609,9 @@ def main(argv=None) -> int:
     logger.info("  📐 输入 schema: 40 面板=%s 列 | 51=%s | 27=%s | 16=%s | 21_full=%s",
                 f"{len(cols40):,}", f"{len(cols51):,}", f"{len(cols27):,}",
                 f"{len(cols16):,}", f"{len(cols21):,}")
-    logger.info("[Memory] 列名加载后 | RSS: %.1f MB", _rss_mb())
+    logger.info("  📐 读取方式: 仅 parquet footer schema (零数据页 IO), __index_level_0__ 簿记列已剥除;")
+    logger.info("     列数即行列规模中的'列'维 (本步骤纯 schema 驱动, 不读任何数据行, 与行数/T 无关)")
+    logger.info("[Memory] 列名加载后 | RSS: %.4g MB", _rss_mb())
 
     t0 = time.monotonic()
     cut_rows, keep_rows = parse_cut_list(CUT_LIST_PATH)
@@ -782,29 +877,49 @@ def main(argv=None) -> int:
     logger.info("分族小计 (%d 族): %s", len(fam_counts), dict(sorted(fam_counts.items())))
     logger.info("registry_sha256: %s", anchor)
     logger.info("-" * 70)
-    logger.info("【结果分析】注册表对账产出指标判读 (越接近预期方向越健康):")
+    logger.info("【结果分析】注册表对账产出指标判读 (逐条附经济学/方法学判读; 越接近预期方向越健康):")
     logger.info("  ① 穷尽性: 40 面板 %s 列全划分残差 0 (硬闸已过) → 无静默漏列 (好)", f"{len(cols40):,}")
+    logger.info("     判读: 全划分是测度目录完备性的机器证明 — 上游新增列若未经审计, 本闸即 SystemExit(1);")
+    logger.info("     它同时堵'新测度悄悄漏出加权域'与'诊断列误入测度域'两类静默偏误; 闸纯 schema 驱动, 与行数无关。")
     logger.info("  ② 负清单对账: cut=%s 恰等 CUT_LIST_v23 物化 410 基名 → emit 判定机械落值零人工 (好)",
                 f"{registry['meta']['n_cut']:,}")
+    logger.info("     判读: 裁剪是研究者一次性审定的口径决策 (researcher degrees of freedom 封口), 本脚本只机械执行;")
+    logger.info("     若 cut≠410 = 负清单被改动或 _dcls→_dm 别名失配 → 须回计划评审, 禁就地调参凑数。")
     logger.info("  ③ D4 对照: bank_company_map=%d 家全称键 (集合相等断言已过) → own-bank 剔除无错位 (好)",
                 len(bank_company_map))
+    logger.info("     判读: own-bank 剔除防'上市银行报道自身'机械推高共现分子 (42 家 = A股上市银行全集);")
+    logger.info("     新银行 IPO/名单 variant 变化会使集合相等断言翻红 — 翻红是样本框更新信号, 非代码 bug。")
     logger.info("  ④ 哈希锚: %s… — 与 tests/test_company_bank_cooc_registry.py::EXPECTED_REGISTRY_SHA256"
                 " 比对; 不一致 = 盘上态漂移, 须 bump 锚并级联 02→03 (关注)", anchor[:16])
+    logger.info("     判读: 锚只压 entries/bank_company_map/excluded/dv2_constants 四区段 (meta 剔除, 防自指);")
+    logger.info("     有意重跑后锚变属预期; 无改动而锚变 = 输入盘上态漂移, 先取证 (比对三输入 sha256) 再重跑。")
+    logger.info("  ⑤ 域外条目: %d 条 (PA/KW/FOCUS/BD/CTRL 五族) — 应恒为 25; 增减 = 16/21/27/51 上游 schema"
+                " 漂移信号 (关注)", len(off))
+    logger.info("  ⑥ 排除域: %s 列全部持理由码 (码集全枚举, 设计上不存在无码残差); 最大簇为 DUP_OF_40"
+                " (51↔40 重复列簿记)", f"{len(excluded):,}")
+    logger.info("     与 D15_3_MOMENT (std/sum/count/skew 伴生矩); TEXT/KEY 仅标记文章级与键列, 不构成信息损失。")
+    logger.info("  ⑦ 生产 T=18 预期: 本步骤仅依赖列名不依赖行数 → dev(T=2) 与生产(T=18) 的 registry 应逐字节一致;")
+    logger.info("     例外仅共享树 40 面板重生增删列 → 表现为残差闸/缺列 WARNING 变化, 均为显式信号而非静默漂移。")
     logger.info("-" * 70)
-    logger.info("  ⏱ 各子阶段墙钟耗时 (秒, 4 位有效数字):")
+    logger.info("  ⏱ 各子阶段墙钟耗时与吞吐 (4 位有效数字):")
     logger.info("     · ①读五上游列名: %.4g 秒", t_load)
     logger.info("     · ②解析+全划分+构条目: %.4g 秒", t_build)
     logger.info("     · ③写盘 registry yaml: %.4g 秒", t_write)
+    n_cols_all = len(cols40) + len(cols51) + len(cols27) + len(cols16) + len(cols21)  # 仅日志用途
+    logger.info("     · 吞吐率: ①列名读取 %.4g 列/秒 | ②全划分 %.4g 列/秒 (按五上游 %s 列与既有墙钟推算)",
+                n_cols_all / max(t_load, 1e-9), n_cols_all / max(t_build, 1e-9), f"{n_cols_all:,}")
     t_total = time.monotonic() - t_start
-    logger.info("     · 子阶段合计: %.4g 秒 (占总阶段 %.2f%%)",
+    logger.info("     · 子阶段合计: %.4g 秒 (占总阶段 %.4g%%)",
                 t_load + t_build + t_write, 100 * (t_load + t_build + t_write) / max(t_total, 1e-9))
+    logger.info("     · 峰值内存说明: 当前 RSS %.4g MB (纯列名/字符串处理, 峰值≈现值; 全程未映射 parquet 数据页)",
+                _rss_mb())
     logger.info("═" * 50)
     logger.info("阶段摘要: %s", Path(__file__).stem)
     logger.info("─" * 50)
-    logger.info("  耗时:     %.2f 秒 (%.4f 分钟)", t_total, t_total / 60)
-    logger.info("  输入:     %s 列 (五上游列名合计)", f"{len(cols40)+len(cols51)+len(cols27)+len(cols16)+len(cols21):,}")
+    logger.info("  耗时:     %.4g 秒 (%.4g 分钟)", t_total, t_total / 60)
+    logger.info("  输入:     %s 列 (五上游列名合计)", f"{n_cols_all:,}")
     logger.info("  输出:     %s 条注册条目 → %s", f"{len(entries):,}", out.name)
-    logger.info("  内存RSS:  %.1f MB", _rss_mb())
+    logger.info("  内存RSS:  %.4g MB", _rss_mb())
     logger.info("═" * 50)
     logger.info("--- 阶段执行完毕: %s ---", Path(__file__).stem)
     return 0

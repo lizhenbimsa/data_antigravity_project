@@ -67,6 +67,197 @@ STEPS: list[tuple[str, str, str]] = [
 STEP_IDS = [s[0] for s in STEPS]
 
 
+# ────────────────────────── 日志辅助纯函数 (仅日志用途, 不参与任何计算/控制流) ──────────────────────────
+
+def _pkg_version(name: str) -> str:
+    """importlib.metadata 读安装版本, 仅日志用途; 未安装/任何异常一律回 'n/a' (绝不影响控制流)。"""
+    try:
+        from importlib.metadata import version
+        return version(name)
+    except Exception:
+        return "n/a"
+
+
+def _rss_mb() -> float | None:
+    """本 orchestrator 进程自身 RSS (MB); psutil 缺席/异常回 None。仅日志用途的廉价读数。"""
+    try:
+        import psutil
+        return psutil.Process().memory_info().rss / 1048576.0
+    except Exception:
+        return None
+
+
+def _size_mb(p: Path) -> float | None:
+    """文件体量 (MB) 的廉价 stat 读数; 缺失回 None。仅日志用途, 不打开文件内容。"""
+    try:
+        return p.stat().st_size / 1048576.0
+    except OSError:
+        return None
+
+
+def _iter_artifacts(step_id: str):
+    """逐步产物清单 (路径, 角色说明) — 静态口径 + 廉价 glob, 仅供落盘后体量/存在性日志。"""
+    if step_id == "01":
+        yield (REPO / "config" / "company_bank_cooc_registry.yaml",
+               "注册表 yaml (加权引擎唯一 SSOT; 例外入库, 属配置而非数据结果)")
+    elif step_id == "02":
+        yield (OUT_DATA / "company_bank_cooc_panel.dta",
+               "主面板 dta (Stata format 118; 20 固定列 + 加权列; 消费者 = Stata 回归 + 03 骨架)")
+        yield (OUT_DATA / "company_bank_cooc_panel.parquet",
+               "主面板 parquet 伴生 (未缩写全名, 供 Python 侧审计)")
+        yield (OUT_DATA / "company_bank_cooc_panel_codebook.md",
+               "codebook (与 news_process 主项目 codebook 互不交叉)")
+        yield (OUT_DATA / "_company_bank_cooc_pairs.parquet",
+               "pair 长表 10 列 (被删加权列唯一重构载体; 03 互验的锚, 缺则 03 SystemExit)")
+    elif step_id == "03":
+        for p in sorted(OUT_DATA.glob("_company_bank_altweights_*.parquet")):
+            yield p, "替代权长表 (统一 schema company/bank/year/w [+稳健臂])"
+        for p in sorted(OUT_DATA.glob("company_bank_*w_panel.dta")):
+            yield p, "替代权面板 dta (与主面板同引擎同列名, scheme 身份由文件名承载)"
+        for p in sorted(OUT_DATA.glob("company_bank_*w_panel.parquet")):
+            yield p, "替代权面板 parquet 伴生"
+        yield (OUT_DATA / "_company_bank_weight_validation.md",
+               "互验报告 (DV5 五件套 + 顶刊披露包 + 未映射审计附录)")
+
+
+def _log_banner(selected_ids: list[str]) -> None:
+    """运行头 banner: 流水线定位/上下游/复现命令/关键 config/环境版本 — 复现材料级最小充分信息。"""
+    logger.info("=" * 70)
+    logger.info("银企共现面板流水线 orchestrator (COMPANY_BANK_COOC_PANEL_EXECUTION_PLAN v34)")
+    logger.info("定位: 上市公司×年 银企共现媒体报道面板三步生产链 (registry → 主面板 → 七权源互验)")
+    logger.info("  · 规模锚: 105,032 行 = 5,528 家上市公司 × 19 年 (2007–2025) 全骨架, 含零覆盖行")
+    logger.info("  · 上游(只读): data/processed/ 五 parquet (40/51/27/16/21_full, 主管道产物)")
+    logger.info("  · 上游(权源): config/ 四份商业 dta (借款/分支/董监高/股东; 恒不入库)")
+    logger.info("  · 下游消费者: Stata 银企回归 (七权面板互为规格稳健性臂) + gate 测试三件 (pytest 收集 11+38+50=99 项)")
+    logger.info("  · 关键 config 键: config/company_bank_cooc_registry.yaml (加权引擎唯一 SSOT, 01 产出)")
+    logger.info("  · 目标银行映射: registry 顶层 bank_company_map (D4, 42 家; 牡丹江锁 target_bank=龙江银行)")
+    logger.info("复现命令 (从 news_process/ 目录, conda base python):")
+    logger.info("  python company_listed_bank/run_pipeline.py                 # 全链 01→02→03")
+    logger.info("  python company_listed_bank/run_pipeline.py --steps 02,03   # registry 已就绪时从 02 起")
+    logger.info("  python company_listed_bank/run_pipeline.py --dry-run       # 只打印将执行的命令")
+    logger.info("本次选定步骤: %s (顺序恒按 01→02→03 硬依赖执行, 传入序不生效)", ", ".join(selected_ids))
+    logger.info("环境 (importlib.metadata, 仅日志用途): Python %s", sys.version.split()[0])
+    logger.info("  pandas %s | numpy %s | pyarrow %s | pyreadstat %s",
+                _pkg_version("pandas"), _pkg_version("numpy"),
+                _pkg_version("pyarrow"), _pkg_version("pyreadstat"))
+    logger.info("  pyahocorasick %s | PyYAML %s | psutil %s",
+                _pkg_version("pyahocorasick"), _pkg_version("PyYAML"), _pkg_version("psutil"))
+    rss = _rss_mb()
+    if rss is not None:
+        logger.info("  启动时 orchestrator RSS %.4g MB (三步各为独立子进程, 峰值内存见各步骤自身日志)", rss)
+    logger.info("=" * 70)
+
+
+def _log_step_context(step_id: str) -> None:
+    """步骤开跑前的输入/输出角色与缺失语义说明 (静态口径 + 廉价存在性读数), 仅日志用途。"""
+    if step_id == "01":
+        logger.info("  输入: 五上游 parquet 全列名 (data/processed/, 只读) + 裁剪负清单")
+        logger.info("        COMPANY_BANK_COOC_PANEL_CUT_LIST_v23.txt + 两名单 SSOT yaml (公司/银行清单)")
+        logger.info("  职责: D15/D11 全划分对账 (残差非零 → SystemExit) + D16 短名 (≤32 全局唯一) + sha256 哈希锚")
+        logger.info("  输出: config/company_bank_cooc_registry.yaml — 02/03 加权引擎与 gate 测试的唯一 SSOT")
+    elif step_id == "02":
+        reg = REPO / "config" / "company_bank_cooc_registry.yaml"
+        logger.info("  输入: registry yaml (启动校验哈希锚, 当前%s; 缺则 02 拒跑) + 五上游 parquet",
+                    "存在" if reg.exists() else "缺失")
+        logger.info("  输出: 主面板 dta/parquet (105,032 行, 20 固定列 + 加权列) + codebook + pair 长表 10 列")
+        logger.info("  缺失语义: rel_n_banks=0 的公司-年 cw/ce 置 NaN (非 0, 勿把无关系年当零暴露); rel_hhi∈(0,1]")
+        logger.info("  pair 长表 = 被删加权列的唯一重构载体, 亦是 03 互验的锚 (跨年去重键禁含 year)")
+    elif step_id == "03":
+        pairs = OUT_DATA / "_company_bank_cooc_pairs.parquet"
+        logger.info("  输入: registry (DV2 常量双向锁) + 02 pair 长表 (当前%s; 缺则 SystemExit: 无锚即无互验)",
+                    "存在" if pairs.exists() else "缺失")
+        logger.info("        + config/ 四份商业 dta 权源 (借款/分支/董监高/股东)")
+        logger.info("  权源 7 scheme: loan/branch/board/supervisor/exec/dsg/shareholder (银行名 canon 化 = DV2 判定序)")
+        logger.info("  输出: 七替代权长表 ×7 + 七权面板 dta/parquet ×7 + 互验报告 md (共 22 文件, 均不入库)")
+        logger.info("  互验口径: 与主面板同引擎同列名 (cw_/ce_{基名}_{track}), scheme 身份由文件名承载 (D18 单引擎)")
+
+
+def _log_step_done(step_id: str, dt: float) -> None:
+    """步骤成功后的产物清点 (体量/角色) + 吞吐率 — 只消费已算出的墙钟与廉价 stat 读数。"""
+    rss = _rss_mb()
+    if rss is not None:
+        logger.info("步骤 %s 完成: 墙钟 %.4gs | orchestrator RSS %.4g MB (子进程已退出, 其峰值见该步骤日志)",
+                    step_id, dt, rss)
+    else:
+        logger.info("步骤 %s 完成: 墙钟 %.4gs", step_id, dt)
+    total_mb = 0.0
+    for p, desc in _iter_artifacts(step_id):
+        mb = _size_mb(p)
+        if mb is None:
+            logger.warning("  产物缺失: %s — %s", p.name, desc)
+        else:
+            total_mb += mb
+            logger.info("  产物 %-42s %.4g MB — %s", p.name, mb, desc)
+    if total_mb > 0 and dt > 0:
+        logger.info("  本步落盘合计 %.4g MB, 吞吐 %.4g MB/s (墙钟口径, 含计算+IO; 体量为盘上现值)",
+                    total_mb, total_mb / dt)
+    if step_id == "02" and dt > 0:
+        logger.info("  主面板文档口径 105,032 行 → 构建吞吐 %.4g 行/s (墙钟口径)", 105032.0 / dt)
+
+
+def _log_run_summary(step_stats: list[tuple[str, str, float]], total: float) -> None:
+    """收尾统计报告 + 【结果分析】逐条经济学/方法学判读 — 仅消费已算出的墙钟, 无新增计算。"""
+    ran = {s for s, _, _ in step_stats}
+    logger.info("=" * 70)
+    logger.info("【统计报告 · 墙钟分解】总墙钟 %.4gs ≈ %.4g 分钟", total, total / 60.0)
+    for step_id, desc, dt in step_stats:
+        share = 100.0 * dt / total if total > 0 else 0.0
+        logger.info("  步骤 %s: %.4gs (占 %.4g%%) — %s", step_id, dt, share, desc)
+    logger.info("【结果分析 · 判读】")
+    logger.info("  · 走到本节 = 三步 rc 全 0, 硬依赖链完整闭合: registry 哈希锚 → 主面板/pair 指纹 →")
+    logger.info("    DV2 双向锁; 任一环节断裂会 fail-loud 中断, 本节根本不会打印")
+    if "01" in ran:
+        logger.info("  · 01 判读: 秒级墙钟为健康区间; 失败/骤慢通常 = 上游 parquet 列名漂移或负清单不同步")
+        logger.info("    (全划分残差非零即 SystemExit 是防静默漏列的设计 — 翻红应查列名对账而非盲目重试)")
+    if "02" in ran:
+        logger.info("  · 02 判读: 分钟级墙钟为健康区间; 面板保留全骨架 (零共现公司-年不删行, 缺权重记 NaN")
+        logger.info("    而非 0), 避免以媒体覆盖存活为条件的幸存者/选择偏差; dta ≈1.6GB 系 Stata format 118")
+        logger.info("    定长字符串所致, dta ≫ parquet 属格式预期而非数据膨胀异常")
+    if "03" in ran:
+        logger.info("  · 03 判读: 占总墙钟约九成为预期形态 (7 权源 × 全套加权面板 × dta+parquet 双格式落盘,")
+        logger.info("    合计约 13GB, IO-bound); 占比骤降多半 = 某 scheme 长表全缺被跳过, 须查 03 日志的")
+        logger.info("    逐权逐年覆盖表; 单银行公司-年 rel_hhi 恒 1 属定义使然, 非集中度异常")
+        logger.info("  · 互验判读: 富集度须双基准并报 (计划 v31 实弹: 均匀基准 4.85× vs 边际保持置换基准")
+        logger.info("    1.16×) — 只报均匀基准会夸大收敛效度; 七权面板为规格稳健性并排臂, 按 specification-")
+        logger.info("    curve 口径逐权独立报告, 不混作同一回归的多工具")
+    logger.info("  · 生产 T=18 预期差异: 当前上游 21_full 为 dev 语料口径, 覆盖/富集度实测以互验报告为准;")
+    logger.info("    生产重跑后 §9.4 级联义务生效 (哈希锚 bump → 02 pair 指纹 → 03 双向锁), 墙钟与 IO 同步放大")
+
+
+def _log_references() -> None:
+    """📖 方法论依据 — APA 引文逐字取自审定引文池 (仅整理换行); 白话注解落到本脚本的具体设计决策。"""
+    logger.info("-" * 70)
+    logger.info("📖 方法论依据")
+    logger.info("[数据工程与复现]")
+    logger.info("  1. Menkveld, A. J., Dreber, A., Holzmeister, F., Huber, J., Johannesson, M.,")
+    logger.info("     Kirchler, M., Razen, M., Weitzel, U., … [百人合著] (2024). Nonstandard errors.")
+    logger.info("     The Journal of Finance, 79(3), 2339–2390. https://doi.org/10.1111/jofi.13337")
+    logger.info("     → 白话: 同一数据同一假设, 不同团队跑出的结果会系统性发散 (\"非标准误差\")。本 orchestrator")
+    logger.info("       把 01→02→03 固化为唯一执行序 (传入序不生效) 并逐条记录实际命令行, 就是把\"跑法自由度\"")
+    logger.info("       这一误差源压到零。")
+    logger.info("  2. Brodeur, A., Mikola, D., Cook, N., … [百人合著] (2026). Reproducibility and")
+    logger.info("     robustness of economics and political science research. Nature, 652(8108),")
+    logger.info("     151–156. https://doi.org/10.1038/s41586-026-10251-x")
+    logger.info("     → 白话: 大样本复现研究表明复现成败高度取决于材料完备度。本日志记录环境库版本、逐步产物")
+    logger.info("       清单/体量/角色与失败排障入口, 即为审稿人与 data editor 准备的最小充分复现信息。")
+    logger.info("  3. Chen, A. Y., & Zimmermann, T. (2022). Open source cross-sectional asset pricing.")
+    logger.info("     Critical Finance Review, 11(2), 207–264. https://doi.org/10.1561/104.00000112")
+    logger.info("     → 白话: 把面板生产做成可一键重建的代码本身就是研究基础设施。本链以 registry 唯一 SSOT +")
+    logger.info("       02/03 单引擎双函数复用 (禁第二份实现) 实现同等的\"代码即口径\"可审计性。")
+    logger.info("[面板构建与样本选择]")
+    logger.info("  4. Brown, S. J., Goetzmann, W., Ibbotson, R. G., & Ross, S. A. (1992). Survivorship")
+    logger.info("     bias in performance studies. The Review of Financial Studies, 5(4), 553–580.")
+    logger.info("     https://doi.org/10.1093/rfs/5.4.553")
+    logger.info("     → 白话: 只留\"活下来/被报道\"的样本会系统性高估效应。步骤 02 保留 5,528 公司 × 19 年全")
+    logger.info("       骨架 (零共现公司-年不删行, 缺权重记 NaN 而非 0), 正是为切断这条选择偏差通道。")
+    logger.info("[识别与多口径稳健]")
+    logger.info("  5. Simonsohn, U., Simmons, J. P., & Nelson, L. D. (2020). Specification curve analysis.")
+    logger.info("     Nature Human Behaviour, 4(11), 1208–1214. https://doi.org/10.1038/s41562-020-0912-z")
+    logger.info("     → 白话: 把合理规格全枚举再看结论分布, 而非只报一条。步骤 03 用借款/分支/董监高/股东等")
+    logger.info("       7 个独立权源对同一共现构念批量生产平行面板, 就是把\"权重矩阵怎么选\"这条研究者自由度")
+    logger.info("       摊开成规格曲线供互验。")
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description="银企共现面板流水线: 01 registry → 02 panel → 03 weights (硬依赖顺序)")
@@ -85,22 +276,31 @@ def main(argv: list[str] | None = None) -> int:
     if not selected:
         ap.error("--steps 为空")
 
+    if not args.dry_run:
+        _log_banner([s[0] for s in selected])
+
     # 跳步前置自检 (fail-loud 提前于子进程闸, 报错更可读; 02/03 自身仍有权威闸)
     if "01" not in wanted and {"02", "03"} & wanted:
         reg = REPO / "config" / "company_bank_cooc_registry.yaml"
         if not reg.exists():
             logger.error("缺 %s 且未选 01 — registry 是 02/03 的唯一 SSOT", reg)
+            logger.error("  修复: 先跑 `python company_listed_bank/run_pipeline.py --steps 01` 或改跑全链")
             return 1
     if "02" not in wanted and "03" in wanted:
         pairs = OUT_DATA / "_company_bank_cooc_pairs.parquet"
         if not pairs.exists():
             logger.error("缺 %s 且未选 02 — 无锚即无互验", pairs)
+            logger.error("  修复: 先跑 `python company_listed_bank/run_pipeline.py --steps 02` 重建 pair 长表")
             return 1
 
     t_all = time.monotonic()
+    step_stats: list[tuple[str, str, float]] = []  # (step_id, desc, 墙钟秒) — 仅收尾日志用途
     for step_id, script, desc in selected:
         cmd = [sys.executable, "-u", str(HERE / script)]
+        logger.info("─" * 70)
         logger.info("%s %s", step_id, desc)
+        if not args.dry_run:
+            _log_step_context(step_id)
         logger.info("  $ %s", " ".join(cmd))
         if args.dry_run:
             continue
@@ -108,16 +308,22 @@ def main(argv: list[str] | None = None) -> int:
         rc = subprocess.run(cmd, cwd=str(REPO)).returncode
         dt = time.monotonic() - t0
         if rc != 0:
-            logger.error("步骤 %s 失败 (exit=%d, %.0fs) — 中断, 后续步骤未跑", step_id, rc, dt)
+            logger.error("步骤 %s 失败 (exit=%d, 墙钟 %.4gs) — fail-loud 中断, 后续步骤未跑", step_id, rc, dt)
+            logger.error("  排障: 看 company_listed_bank/logs/%s.log; 单步重跑 `python company_listed_bank/%s`",
+                         Path(script).stem, script)
             return rc
-        logger.info("步骤 %s 完成 (%.0fs)", step_id, dt)
+        step_stats.append((step_id, desc, dt))
+        _log_step_done(step_id, dt)
 
     if not args.dry_run:
-        logger.info("全部 %d 步完成 (%.0fs)", len(selected), time.monotonic() - t_all)
+        total = time.monotonic() - t_all
+        logger.info("全部 %d 步完成 (总墙钟 %.4gs)", len(selected), total)
+        _log_run_summary(step_stats, total)
         if "01" in wanted:
             logger.warning("本次重生了 registry: 若哈希变更, 须 bump "
                            "tests/test_company_bank_cooc_registry.py::EXPECTED_REGISTRY_SHA256 "
                            "并确认 02→03 已级联 (本链若含 02/03 则已级联)")
+        _log_references()
     return 0
 
 
