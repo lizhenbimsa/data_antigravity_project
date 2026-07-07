@@ -137,7 +137,7 @@ def _log_stage_header(dp: dict, registry_path: Path, out_dta: Path,
     logger.info("     · 关键 config 键: paths.yaml::output_21_tone_llms_full / output_40_panel_yearly /")
     logger.info("       output_15_article_alignment / output_51_panel_controls (27 号无键, 脚本内常量)")
     logger.info("     · 名单 SSOT: config/company_listed_names.yaml (公司) + config/bank_names.json (银行);")
-    logger.info("       gate 测试 = tests/test_company_bank_cooc_panel.py (35 用例, pytest 收集 38 项)")
+    logger.info("       gate 测试 = tests/test_company_bank_cooc_panel.py (pytest 收集 51 项)")
     logger.info("  📂 输入 / 输出文件")
     logger.info("     · 输入(21_full): %s (留篇宇宙, 行=报道×目标银行)", dp["input"])
     logger.info("     · 输入(40 面板): %s (银行×年测度库主源)", dp["panel"])

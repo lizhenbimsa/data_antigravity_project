@@ -158,7 +158,7 @@ def _log_stage_header(panel_path: Path, out_path: Path) -> None:
     logger.info("         族/轨/聚合算子, 保证步骤 02 加权引擎跨重跑产出同一测度集合。")
     logger.info("     · Baker, S. R., Bloom, N., & Davis, S. J. (2016). Measuring economic policy uncertainty.")
     logger.info("       The Quarterly Journal of Economics, 131(4), 1593–1636. https://doi.org/10.1093/qje/qjw024")
-    logger.info("       → 白话: 共现计数型文本指标的效度取决于筛选规则透明且固定; D15 十一条排除正则+白名单把")
+    logger.info("       → 白话: 共现计数型文本指标的效度取决于筛选规则透明且固定; D15 排除规则 (10 条正则+不变式三件)+白名单把")
     logger.info("         银企共现测度的列级筛选规则固化, 消除随手改口径的空间。")
     logger.info("     · Lee, C. M. C., Ma, P., & Wang, C. C. Y. (2015). Search-based peer firms: Aggregating investor")
     logger.info("       perceptions through internet co-searches. Journal of Financial Economics, 116(2), 410–431.")
@@ -684,7 +684,7 @@ def main(argv=None) -> int:
     n_def = sum(1 for e in entries if e["basename"] in DEFERRED_BASENAMES)
     per_track = {t: sum(1 for e in entries if e["col_by_track"].get(t)) for t in TRACKS}
     logger.info("40 面板域条目构造: %d 条 (KEEP emit=%d / CUT emit_panel=false=%d) | track-agnostic=%d"
-                " | DEFERRED 承诺全 NaN=%d | 逐轨源列解析 full=%d / ctx=%d / ss=%d",
+                " | DEFERRED 注册=%d (缺源列才容错落全 NaN) | 逐轨源列解析 full=%d / ctx=%d / ss=%d",
                 len(entries), n_keep_dom, len(entries) - n_keep_dom, n_ta, n_def,
                 per_track["full"], per_track["ctx"], per_track["ss"])
 

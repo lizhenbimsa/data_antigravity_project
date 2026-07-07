@@ -1026,11 +1026,12 @@ def main(argv=None) -> int:
     code_map, geo = load_companies()
     logger.info("DV2 canonical 化器就绪: variant→canonical 映射 %s 条 | canonical 银行 %s 家 | "
                 "判定序 = ⓪₀缺失闸 → ⓪不可名指(%d 词) → ①精确查表(原名/剥公司后缀/括注规则) → "
-                "境外闸(%d 国家地区词+%d 法人尾缀, head 内豁免 8 家) → ②泛称/尾段黑名单(%d 词) → "
+                "境外闸(%d 国家地区词+%d 法人尾缀, head 内豁免 8 家) → ②泛称(%d 词)/尾段黑名单(%d 词) → "
                 "截断剥分支行 → ③未映射审计 (memo 缓存, 七表共用单函数)",
                 f"{len(canon.variant_to_canon):,}", f"{len(canon.canonicals):,}",
                 len(DV2_CONSTANTS["unnameable"]), len(DV2_CONSTANTS["overseas_words"]),
-                len(DV2_CONSTANTS["foreign_suffixes"]), len(DV2_CONSTANTS["affiliate_tail"]))
+                len(DV2_CONSTANTS["foreign_suffixes"]), len(DV2_CONSTANTS["generic_heads"]),
+                len(DV2_CONSTANTS["affiliate_tail"]))
     logger.info("公司键载入 (DV3): 股票代码→全称 %s 家 | 地理键 (city/district) %s 家",
                 f"{len(code_map):,}", f"{len(geo):,}")
     dp = wp1.default_paths()
@@ -1245,6 +1246,7 @@ def main(argv=None) -> int:
            "| 方向 | 命中率 | 均匀基准 | 富集(均匀) | 边际保持基准 | 富集(边际保持) |",
            "|---|---|---|---|---|---|"]
     warn_schemes = []
+    marg_below = []  # 边际保持富集 <1× 的方向 (叙事判据的反向证据, ⑥ 点名披露)
     for s in SCHEMES:
         if s not in longtabs:
             continue
@@ -1262,6 +1264,8 @@ def main(argv=None) -> int:
                         "边际保持基准 %.4g → %.4g× (叙事以边际保持为准; 共见公司 %d)",
                         tag, e["hit_rate"], e["base_uniform"], e["enrich_uniform"],
                         e["base_marginal"], e["enrich_marginal"], e["n_common_companies"])
+            if e["enrich_marginal"] < 1.0:  # nan 比较恒 False, 自动排除
+                marg_below.append(tag)
         if not fwd.get("n/a") and fwd["enrich_uniform"] < 1.5:
             warn_schemes.append(s)
     if warn_schemes:
@@ -1366,6 +1370,9 @@ def main(argv=None) -> int:
     logger.info("  ⑥ 富集度方向锚 (gate 口径 = 均匀基准 1.5×): 未达标权源 %d 个%s (dev 不判失败, loud "
                 "WARNING 待生产复审)", len(warn_schemes),
                 f" ({'/'.join(warn_schemes)})" if warn_schemes else "")
+    logger.info("     边际保持口径 <1× 方向 (⑤ 叙事判据的反向证据, 点名披露): %d 个%s — dev 共同支撑"
+                "极小, 方向定谳以生产复跑为准", len(marg_below),
+                f" ({'/'.join(marg_below)})" if marg_below else "")
     logger.info("  ⑦ dev vs 生产 T=18 预期差异: 媒体锚出自 dev 语料, 共同支撑对数偏小 (稀疏权可现 n<10 →")
     logger.info("     Spearman n/a, 小样本 ρ 波动大属预期); 生产 17M 篇/T=18 下共同支撑将数量级增厚,")
     logger.info("     互验数值以生产复跑为准; 权源 dta 侧锚 (行数/覆盖) 不随语料变, 翻红另查数据商改版。")

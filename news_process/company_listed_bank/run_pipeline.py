@@ -126,7 +126,7 @@ STEPS: list[tuple[str, str, str]] = [
     ("02", "02_build_company_bank_cooc_panel.py",
      "WP1 主面板 + pair 长表 + codebook"),
     ("03", "03_build_company_bank_weight_validation.py",
-     "WP5 七权源 + 八权面板 ×7 + 互验报告"),
+     "WP5 七权源 + 七替代权面板 (与 02 主面板并称八权) + 互验报告"),
 ]
 STEP_IDS = [s[0] for s in STEPS]
 
@@ -192,7 +192,7 @@ def _log_banner(selected_ids: list[str]) -> None:
     logger.info("  · 规模锚: 105,032 行 = 5,528 家上市公司 × 19 年 (2007–2025) 全骨架, 含零覆盖行")
     logger.info("  · 上游(只读): data/processed/ 五 parquet (40/51/27/16/21_full, 主管道产物)")
     logger.info("  · 上游(权源): config/ 四份商业 dta (借款/分支/董监高/股东; 恒不入库)")
-    logger.info("  · 下游消费者: Stata 银企回归 (七权面板互为规格稳健性臂) + gate 测试三件 (pytest 收集 11+38+50=99 项)")
+    logger.info("  · 下游消费者: Stata 银企回归 (七权面板互为规格稳健性臂) + gate 测试四件 (pytest 收集 11+51+50+5=117 项)")
     logger.info("  · 关键 config 键: config/company_bank_cooc_registry.yaml (加权引擎唯一 SSOT, 01 产出)")
     logger.info("  · 目标银行映射: registry 顶层 bank_company_map (D4, 42 家; 牡丹江锁 target_bank=龙江银行)")
     logger.info("复现命令 (从 news_process/ 目录, conda base python):")
