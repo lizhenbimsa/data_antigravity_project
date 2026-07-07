@@ -1234,6 +1234,7 @@ def main(argv=None) -> int:
                           f"{len(pa_ & pb_)/len(pa_ | pb_):.3f} | {len(C)} |")
     rl += ["", "## ③ 份额 Spearman (共同支撑口径, 禁 union 补 0)",
            "| 媒体×权源 | ρ | n 共同对 |", "|---|---|---|"]
+    spearman_neg = []  # ρ<0 的权源 (收敛效度反向证据, ⑥ 点名披露, 与富集度 <1× 同标准)
     for s in SCHEMES:
         if s not in longtabs:
             continue
@@ -1241,6 +1242,12 @@ def main(argv=None) -> int:
         rl.append(f"| media×{s} | {'n/a' if rho is None else f'{rho:+.3f}'} | {n} |")
         logger.info("互验③ 份额 Spearman media×%s: ρ=%s (共同支撑 n=%d 对; 禁 union 补 0)",
                     s, "n/a (n<10)" if rho is None else f"{rho:+.4g}", n)
+        if rho is not None and rho < 0:  # nan 比较恒 False, 自动排除 (镜像 ④ marg_below 的 nan 口径)
+            spearman_neg.append(f"media×{s} (ρ={rho:+.4g}, n={n})")
+    if spearman_neg:
+        rl.append("")
+        rl.append(f"⚠ 反向证据点名: {'; '.join(spearman_neg)} — 份额 Spearman 为负 "
+                  "(dev 共同支撑对数小, 方向定谳以生产复跑为准)。")
     rl += ["", "## ④ 富集度 (双向双基准; 叙事以边际保持版为准, gate 按均匀基准 1.5×)",
            "(富集倍数按未舍入底数计算, 用表内 4 位小数机械复算存在尾差属预期)",
            "| 方向 | 命中率 | 均匀基准 | 富集(均匀) | 边际保持基准 | 富集(边际保持) |",
@@ -1273,22 +1280,34 @@ def main(argv=None) -> int:
         rl.append(f"⚠ WARNING: {warn_schemes} 均匀基准富集度 <1.5× — 待生产复审 (dev 不判失败)。")
         for s in warn_schemes:
             log(f"富集度方向锚 <1.5× (均匀口径): {s} — 待生产复审", warn=True)
+    if marg_below:  # 反向证据点名同款落报告 (报告是 ⑤ 判读权威载体, 三件反向证据披露面对齐)
+        rl.append("")
+        rl.append(f"⚠ 反向证据点名: {'/'.join(marg_below)} — 边际保持富集 <1× "
+                  "(叙事判据的反向证据; dev 共同支撑极小, 方向定谳以生产复跑为准)。")
     # ④b (⑥(a)③, v33): 媒体对篇数在有无各权源关系子集的均值差 (within-relationship, pair 表 $0)
     rl += ["", "## ④b 媒体对篇数按有无权源关系分组均值差 (⑥(a)③, 收敛效度第三件)",
            "| 权源 | 有关系媒体对均值 n_docs | 无关系媒体对均值 | 比值 | 有关系对数 |",
            "|---|---|---|---|---|"]
     media_ndocs = mp.groupby(["company", "bank"])["w"].sum()  # 媒体对窗口总篇数
+    meandiff_below = []  # 均值差 <1× 的权源 (收敛效度反向证据, ⑥ 点名披露, 与富集度 <1× 同标准)
     for s in SCHEMES:
         if s not in longtabs:
             continue
         in_rel = media_ndocs.index.isin(alt_pairs[s])
         if in_rel.any() and (~in_rel).any():
             a_mean, b_mean = media_ndocs[in_rel].mean(), media_ndocs[~in_rel].mean()
+            ratio = a_mean / b_mean  # pair 表 n_docs≥1 保证 b_mean>0; 若上游口径变致 nan/inf, <1 比较恒 False 自动排除
             rl.append(f"| {s} | {a_mean:.2f} | {b_mean:.2f} | "
-                      f"{a_mean / b_mean:.2f}× | {int(in_rel.sum())} |")
+                      f"{ratio:.2f}× | {int(in_rel.sum())} |")
             logger.info("互验④b 篇数均值差 %s: 有权源关系媒体对均值 %.4g vs 无关系 %.4g = %.4g× "
-                        "(有关系对 %d; 收敛效度第三件)", s, a_mean, b_mean, a_mean / b_mean,
+                        "(有关系对 %d; 收敛效度第三件)", s, a_mean, b_mean, ratio,
                         int(in_rel.sum()))
+            if ratio < 1.0:
+                meandiff_below.append(f"{s} ({ratio:.4g}×, 有关系对 {int(in_rel.sum())})")
+    if meandiff_below:
+        rl.append("")
+        rl.append(f"⚠ 反向证据点名: {'; '.join(meandiff_below)} — 有权源关系媒体对篇数均值低于无关系对 "
+                  "(dev 有关系对数小, 方向定谳以生产复跑为准)。")
     rl += ["", "## ⑤ Top-1 同银行率 / 包含率",
            "| media×权源 | 同银行率 | media Top1 ∈ 权源支撑 | n |", "|---|---|---|---|"]
     for s in SCHEMES:
@@ -1373,6 +1392,10 @@ def main(argv=None) -> int:
     logger.info("     边际保持口径 <1× 方向 (⑤ 叙事判据的反向证据, 点名披露): %d 个%s — dev 共同支撑"
                 "极小, 方向定谳以生产复跑为准", len(marg_below),
                 f" ({'/'.join(marg_below)})" if marg_below else "")
+    logger.info("     份额 Spearman ρ<0 权源 (⑤ 叙事判据的反向证据, 点名披露): %d 个%s — 同上以生产复跑定谳",
+                len(spearman_neg), f" ({'; '.join(spearman_neg)})" if spearman_neg else "")
+    logger.info("     ④b 篇数均值差 <1× 权源 (⑤ 叙事判据的反向证据, 点名披露): %d 个%s — 同上以生产复跑定谳",
+                len(meandiff_below), f" ({'; '.join(meandiff_below)})" if meandiff_below else "")
     logger.info("  ⑦ dev vs 生产 T=18 预期差异: 媒体锚出自 dev 语料, 共同支撑对数偏小 (稀疏权可现 n<10 →")
     logger.info("     Spearman n/a, 小样本 ρ 波动大属预期); 生产 17M 篇/T=18 下共同支撑将数量级增厚,")
     logger.info("     互验数值以生产复跑为准; 权源 dta 侧锚 (行数/覆盖) 不随语料变, 翻红另查数据商改版。")

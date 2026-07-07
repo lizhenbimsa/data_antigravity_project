@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import re
 import subprocess
 import sys
 import time
@@ -352,6 +353,60 @@ def main(argv: list[str] | None = None) -> int:
             _release_single_instance_lock(lock_fd)
 
 
+def _registry_sha() -> str | None:
+    """读盘上 registry meta.registry_sha256 (yaml.safe_load, 与 02/03/gate 测试同一解析路径,
+    禁第二份实现); 缺文件/缺键/解析失败 → None (fail-soft, 本函数仅服务收尾判读日志)。"""
+    reg = REPO / "config" / "company_bank_cooc_registry.yaml"
+    try:
+        import yaml
+        with open(reg, encoding="utf-8") as fh:
+            sha = yaml.safe_load(fh).get("meta", {}).get("registry_sha256")
+        return sha if isinstance(sha, str) and len(sha) == 64 else None
+    except Exception:
+        return None
+
+
+def _expected_registry_anchor() -> str | None:
+    """读 gate 测试锚 EXPECTED_REGISTRY_SHA256 (正则取常量字面量); 不可读 → None。"""
+    test_file = REPO / "tests" / "test_company_bank_cooc_registry.py"
+    try:
+        m = re.search(r'^EXPECTED_REGISTRY_SHA256\s*=\s*["\']([0-9a-f]{64})["\']',
+                      test_file.read_text(encoding="utf-8"), re.M)
+        return m.group(1) if m else None
+    except Exception:
+        return None
+
+
+def _log_registry_anchor_status(pre_sha: str | None) -> None:
+    """01 重生 registry 后的哈希锚判读: 盘上锚 vs 跑前快照 vs gate 测试锚 三方对比 (证据驱动;
+    含步骤失败提前退出路径 — 只要 01 已成功落盘, 锚状态就必须被披露)。"""
+    post_sha = _registry_sha()
+    if post_sha is None:
+        logger.warning("本次重生了 registry, 但 meta.registry_sha256 读取失败 — 请人工核对 "
+                       "config/company_bank_cooc_registry.yaml 与测试锚 (勿在未核对前 bump)")
+        return
+    expected = _expected_registry_anchor()
+    changed = pre_sha is None or post_sha != pre_sha
+    if expected is not None and post_sha != expected:
+        logger.warning("本次重生了 registry: 盘上锚 %s… ≠ 测试锚 %s… — 须 bump "
+                       "tests/test_company_bank_cooc_registry.py::EXPECTED_REGISTRY_SHA256 %s",
+                       post_sha[:16], expected[:16],
+                       "并确认 02→03 已级联 (本链若含 02/03 则已级联)" if changed
+                       else "并核查盘上 02/03 产物是否与该锚同代 (本次运行未改锚, 属既有欠账)")
+        return
+    anchor_note = ", 与测试锚一致" if expected is not None else " (测试锚不可读, 未对比)"
+    if not changed:
+        logger.info("本次重生了 registry: 哈希锚未变 (%s…%s) — 无需 bump 测试锚, 02/03 免级联义务"
+                    " (锚未含 meta 输入指纹, registry 文件字节可有 meta 级漂移, 以 git diff 为准)",
+                    post_sha[:16], anchor_note)
+    else:
+        logger.warning("本次重生了 registry 且哈希锚变更 (%s… → %s…%s): 须确认 02→03 已级联 "
+                       "(本链若含 02/03 则已级联)%s",
+                       (pre_sha or "无旧值")[:16], post_sha[:16], anchor_note,
+                       "" if expected is not None else "; 并核对是否须 bump "
+                       "tests/test_company_bank_cooc_registry.py::EXPECTED_REGISTRY_SHA256")
+
+
 def _run(args: argparse.Namespace, wanted: set[str], selected: list[tuple[str, str, str]]) -> int:
     """main() 的执行主体 (锁获取之后); 拆出以保证任何 return/异常路径都经 finally 释放锁。"""
     if not args.dry_run:
@@ -372,6 +427,7 @@ def _run(args: argparse.Namespace, wanted: set[str], selected: list[tuple[str, s
             return 1
 
     t_all = time.monotonic()
+    pre_sha = _registry_sha() if ("01" in wanted and not args.dry_run) else None  # 01 重生前的锚, 收尾对比用
     step_stats: list[tuple[str, str, float]] = []  # (step_id, desc, 墙钟秒) — 仅收尾日志用途
     for step_id, script, desc in selected:
         cmd = [sys.executable, "-u", str(HERE / script)]
@@ -389,6 +445,8 @@ def _run(args: argparse.Namespace, wanted: set[str], selected: list[tuple[str, s
             logger.error("步骤 %s 失败 (exit=%d, 墙钟 %.4gs) — fail-loud 中断, 后续步骤未跑", step_id, rc, dt)
             logger.error("  排障: 看 company_listed_bank/logs/%s.log; 单步重跑 `python company_listed_bank/%s`",
                          Path(script).stem, script)
+            if any(s == "01" for s, _, _ in step_stats):  # 01 已成功落盘 → 锚状态不得因中断而失声
+                _log_registry_anchor_status(pre_sha)
             return rc
         step_stats.append((step_id, desc, dt))
         _log_step_done(step_id, dt)
@@ -398,9 +456,7 @@ def _run(args: argparse.Namespace, wanted: set[str], selected: list[tuple[str, s
         logger.info("全部 %d 步完成 (总墙钟 %.4gs)", len(selected), total)
         _log_run_summary(step_stats, total)
         if "01" in wanted:
-            logger.warning("本次重生了 registry: 若哈希变更, 须 bump "
-                           "tests/test_company_bank_cooc_registry.py::EXPECTED_REGISTRY_SHA256 "
-                           "并确认 02→03 已级联 (本链若含 02/03 则已级联)")
+            _log_registry_anchor_status(pre_sha)
         _log_references()
     return 0
 
