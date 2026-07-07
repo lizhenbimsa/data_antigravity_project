@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import subprocess
 import sys
 import time
@@ -30,6 +31,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
 OUT_DATA = HERE / "data"
+LOCK_FILE = HERE / "logs" / "_run_pipeline.lock"
 
 logger = logging.getLogger("run_pipeline")
 if not logger.handlers:  # console 兜底; main() 实跑时由 setup_logging 接管
@@ -54,6 +56,68 @@ def _init_stage_logging() -> None:
     # 恢复 True 无双打副作用, 且保 pytest caplog (root handler) 可捕 — 否则负例测试调过
     # main() 后, 同会话后续 caplog 断言静默失捕 (2026-07-07 实弹)
     logging.getLogger(Path(__file__).stem).propagate = True
+
+
+def _pid_alive(pid: int) -> bool:
+    """PID 存活判定 (psutil); 判不了一律按存活返回 — 宁可 fail-loud 拒跑, 绝不误清他人持有的锁。"""
+    try:
+        import psutil
+        return psutil.pid_exists(pid)
+    except Exception:
+        return True
+
+
+def _acquire_single_instance_lock() -> int:
+    """orchestrator 单实例互斥锁: O_CREAT|O_EXCL 原子创建 logs/_run_pipeline.lock (内容=本 PID)。
+
+    2026-07-07 实弹: 两个 orchestrator 相差 46 秒并发全链, 各持句柄按各自偏移交错覆写同一套
+    日志 (PID 混写/时间戳倒流/行粘连) 与同一套 ~13GB 产物, 最终 company_bank_branchw_panel.dta
+    留下 688MB 半成品 (后启动实例在先启动实例收尾后被杀于写盘中途)。本锁把该事故类别封死在入口。
+
+    语义: 锁已存在 → 读持有者 PID 判存活 — 存活 → SystemExit(1) fail-loud (绝不静默排队);
+    已死/不可读 → 视为陈旧锁 (上次异常退出残留), 清除后重试一次。返回持有的 fd, 由
+    _release_single_instance_lock 在 main() 收尾 (含失败路径) 释放。
+    ⚠ 本锁只护 orchestrator 入口; 绕过 orchestrator 直跑单步脚本仍无互斥, 并发纪律同样适用。"""
+    LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
+    for attempt in (1, 2):
+        try:
+            fd = os.open(str(LOCK_FILE), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.write(fd, str(os.getpid()).encode("ascii"))
+            return fd
+        except FileExistsError:
+            try:
+                holder = int(LOCK_FILE.read_text(encoding="ascii").strip() or "0")
+            except (OSError, ValueError):
+                holder = 0
+            if holder and _pid_alive(holder):
+                logger.error("另一 run_pipeline 实例正在运行 (PID=%d, 锁=%s) — 拒绝启动。", holder, LOCK_FILE)
+                logger.error("  并发双跑会交错覆写同一套日志与 ~13GB 产物 (2026-07-07 实弹: "
+                             "branchw dta 688MB 半成品), 请等待该实例结束后再跑。")
+                logger.error("  若确认 PID=%d 已不存在 (psutil 误判), 手工删除锁文件后重试。", holder)
+                raise SystemExit(1)
+            if attempt == 1:
+                logger.warning("发现陈旧锁 (持有者 PID=%s 已不存活, 上次异常退出残留), 清除后重试",
+                               holder or "不可读")
+                try:
+                    LOCK_FILE.unlink()
+                except OSError:
+                    pass
+            else:
+                logger.error("陈旧锁清除后仍无法获取 %s — 疑似另一实例恰在同刻启动, 拒绝启动", LOCK_FILE)
+                raise SystemExit(1)
+    raise AssertionError("unreachable")
+
+
+def _release_single_instance_lock(fd: int) -> None:
+    """释放单实例锁: 关句柄 + 删锁文件 (幂等; 删失败仅告警 — 下次启动按陈旧锁自愈)。"""
+    try:
+        os.close(fd)
+    except OSError:
+        pass
+    try:
+        LOCK_FILE.unlink(missing_ok=True)
+    except OSError:
+        logger.warning("锁文件 %s 删除失败 (无害: 下次启动按陈旧锁清除)", LOCK_FILE)
 
 
 STEPS: list[tuple[str, str, str]] = [
@@ -265,8 +329,6 @@ def main(argv: list[str] | None = None) -> int:
                     help="逗号分隔步骤子集 (默认全链); 顺序恒按 01→02→03, 传入序不生效")
     ap.add_argument("--dry-run", action="store_true", help="只打印将执行的命令, 不实跑")
     args = ap.parse_args(argv)
-    if not args.dry_run:
-        _init_stage_logging()
 
     wanted = {s.strip() for s in args.steps.split(",") if s.strip()}
     unknown = wanted - set(STEP_IDS)
@@ -276,6 +338,22 @@ def main(argv: list[str] | None = None) -> int:
     if not selected:
         ap.error("--steps 为空")
 
+    lock_fd: int | None = None
+    if not args.dry_run:
+        # ⚠ 锁必须先于 _init_stage_logging: setup_logging 以 'w' 打开日志文件, 若第二实例
+        # 先接管文件日志再被锁拒, 会把在跑实例的 run_pipeline.log 首写截断清零。
+        # 被拒实例的报错走模块顶部的 console 兜底 handler, 不触盘。
+        lock_fd = _acquire_single_instance_lock()
+        _init_stage_logging()
+    try:
+        return _run(args, wanted, selected)
+    finally:
+        if lock_fd is not None:
+            _release_single_instance_lock(lock_fd)
+
+
+def _run(args: argparse.Namespace, wanted: set[str], selected: list[tuple[str, str, str]]) -> int:
+    """main() 的执行主体 (锁获取之后); 拆出以保证任何 return/异常路径都经 finally 释放锁。"""
     if not args.dry_run:
         _log_banner([s[0] for s in selected])
 
