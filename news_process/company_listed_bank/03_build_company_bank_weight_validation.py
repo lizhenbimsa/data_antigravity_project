@@ -64,7 +64,17 @@ def _rss_mb() -> float:
     return psutil.Process().memory_info().rss / 1024 / 1024
 
 
-def _log_stage_header(pairs_path: Path, registry_path: Path, outdir: Path) -> None:
+def _lib_ver(name: str) -> str:
+    """关键库版本 (仅日志用途; 未安装/无发行元数据 → 'n/a', 不影响任何计算)。"""
+    try:
+        from importlib.metadata import version
+        return version(name)
+    except Exception:
+        return "n/a"
+
+
+def _log_stage_header(pairs_path: Path, registry_path: Path, outdir: Path,
+                      year_min: int, year_max: int) -> None:
     """阶段头汇报块 (完全参照主管道 12_news_fintech.log 的内容格式)。"""
     import os
     import platform
@@ -81,7 +91,8 @@ def _log_stage_header(pairs_path: Path, registry_path: Path, outdir: Path) -> No
     logger.info("        尾段黑名单→审计); 贷款四臂 (含银团四则预清洗拆分) / 分支存续判定+城市三层键 /")
     logger.info("        董监高四臂 EndDate 快照 / 股东双通道四闸; own-bank 剔除在长表落盘前施加;")
     logger.info("        DV2 常量与 registry 区段双向锁, pair 长表 registry 指纹校验 (stale 即崩)。")
-    logger.info("【判读】富集度 (有权源关系对的共现篇数 vs 基准) > 1 支持'共现代理真实关系'; 各权源")
+    logger.info("【判读】富集度 (有权源关系对的共现命中率 vs 零模型基准) > 1 支持'共现代理真实关系';")
+    logger.info("        叙事以边际保持基准为准 (机械边际集中已扣除), gate 按均匀基准 1.5×; 各权源")
     logger.info("        方向一致 > 单点数值; 分支覆盖锚 A≥90%∧B≥95% 与行数锚是硬闸 (翻红=数据商改版)。")
     logger.info("【确定性】纯 pandas ($0), 无 LLM/网络/API; sorted 遍历 + 闭式聚合, 同输入可复现;")
     logger.info("          未映射名称全量落审计附录 (top-50), 无静默丢弃。")
@@ -89,38 +100,135 @@ def _log_stage_header(pairs_path: Path, registry_path: Path, outdir: Path) -> No
     logger.info("  🧭 项目 / 环境信息")
     logger.info("     · 步骤: %s (WP5 七权互验, company_listed_bank 流水线 03/03; 不注册主 DAG)", stem)
     logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板), 当前版本 v3.15.0")
+    logger.info("     · 权威执行计划: scripts/audit/COMPANY_BANK_COOC_PANEL_EXECUTION_PLAN_2026-07-03.md (v34)")
     logger.info("     · 模块文件: %s", Path(__file__).resolve())
     logger.info("     · 工作目录: %s", os.getcwd())
     logger.info("     · Python:   %s @ %s", platform.python_version(), _sys.executable)
     logger.info("     · 平台:     %s | CPU 逻辑核=%s", platform.platform(), os.cpu_count())
+    logger.info("     · 关键库:   pandas=%s | numpy=%s | pyarrow=%s | pyreadstat=%s | scipy=%s",
+                _lib_ver("pandas"), _lib_ver("numpy"), _lib_ver("pyarrow"),
+                _lib_ver("pyreadstat"), _lib_ver("scipy"))
+    logger.info("     · 关键库②: PyYAML=%s | psutil=%s | pyahocorasick=%s "
+                "(importlib.metadata 读数, 仅日志用途)",
+                _lib_ver("PyYAML"), _lib_ver("psutil"), _lib_ver("pyahocorasick"))
     logger.info("     · PID=%s | RUN_ID=%s | 本步骤纯 CPU / 无 LLM·网络·API ($0) / 确定性可复现",
                 os.getpid(), os.environ.get("NEWS_PROCESS_RUN_ID", "standalone"))
+    logger.info("  🔗 流水线定位 / 上下游 / 复现")
+    logger.info("     · 上游: 01 registry yaml (启动双向锁+哈希指纹, 缺/stale 即 SystemExit) + 02 pair 长表")
+    logger.info("       (互验媒体锚, '无锚即无互验') + 02 的 SSOT 双函数 build_measure_library/")
+    logger.info("       compute_weighted_panel (importlib.import_module 复用, 禁第二份实现)")
+    logger.info("     · 下游消费者: Stata 分析端八权 specification-curve 森林图 (primary 权源预先声明,")
+    logger.info("       禁挑臂单报) + gate 测试 tests/test_company_bank_weight_validation.py (50 用例)")
+    logger.info("     · 复现命令: python company_listed_bank/run_pipeline.py --steps 03 (orchestrator 子进程")
+    logger.info("       隔离); 或全链 python company_listed_bank/run_pipeline.py (01→02→03, 顺序=硬依赖)")
+    logger.info("     · 关键 config 键: registry `dv2_constants` (DV2 双向锁) / `bank_company_map` (own-bank")
+    logger.info("       剔除) / `entries[].range_gate` (面板值域 gate) / `meta.registry_sha256` (pair 指纹锚)")
     logger.info("  📂 输入 / 输出文件")
-    logger.info("     · 输入(pair 长表): %s (步骤 02 产出, 互验媒体锚)", pairs_path)
-    logger.info("     · 输入(registry): %s (DV2 常量双向锁)", registry_path)
-    logger.info("     · 输入(四权源 dta): %s 下 借款/分支/董监高/股东 四表 (商业许可, 恒不入库)", CONFIG)
+    logger.info("     · 输入(pair 长表): %s", pairs_path)
+    logger.info("       角色=互验媒体锚 (步骤 02 产出; canonical (company,bank) 对×轨×篇数;")
+    logger.info("       内嵌 registry_sha256 指纹, 与当前 registry 不一致即 SystemExit)")
+    logger.info("     · 输入(registry): %s", registry_path)
+    logger.info("       角色=加权引擎 SSOT (DV2 常量双向锁 + own-bank 映射 + 测度 range_gate 值域档案)")
+    logger.info("     · 输入(四权源 dta): %s 下 借款/分支/董监高/股东 四表 (商业许可, 恒不入库;", CONFIG)
+    logger.info("       行数锚在各权源漏斗内逐表校验, 翻红=数据商改版信号)")
     logger.info("     · 输出(七权长表): %s (_company_bank_altweights_{scheme}.parquet ×7)", outdir)
+    logger.info("       统一 schema company/bank/year/w [+稳健臂 w_cnt/w_own/w_dur/w_strict]; own-bank 已剔")
     logger.info("     · 输出(七权面板): %s (company_bank_{scheme}w_panel.{dta,parquet} ×7)", outdir)
+    logger.info("       与媒体主面板同引擎同列名 (cw_/ce_ 列族); 缺失语义: rel_n_banks=0 行 cw/ce 全 NaN 非 0")
+    logger.info("       ('无权源关系'≠'测度为零', 批量 gate 锚死); 禁八面板横向 merge / 禁混同一 Hansen J")
     logger.info("     · 输出(互验报告): %s", outdir / "_company_bank_weight_validation.md")
+    logger.info("       DV5 五件套 (覆盖/支撑重合/Spearman/富集度双基准+均值差/Top-1) + ⑥ 顶刊披露包 +")
+    logger.info("       未映射审计附录 (top-50 频次全量留痕)")
+    logger.info("     · 输出(codebook 七权章): %s (幂等 section-replace, 与主项目 codebook 互不交叉)",
+                outdir / "company_bank_cooc_panel_codebook.md")
     logger.info("  ⚙ 运行配置")
     logger.info("     · 权源 = %s | DV2 常量键 %d 个 | 三轨 = %s",
                 "/".join(SCHEMES), len(DV2_CONSTANTS), "/".join(TRACKS))
-    logger.info("  📖 方法论依据 (参考文献)")
-    logger.info("     · 银企关系谱系奠基: Petersen, M. A., & Rajan, R. G. (1994). The benefits of lending "
-                "relationships: Evidence from small business data. The Journal of Finance, 49(1), 3-37. "
-                "https://doi.org/10.1111/j.1540-6261.1994.tb04418.x")
-    logger.info("       → 白话: 银行对企业的影响经由'关系'传导是银企实证的奠基前提; 本步骤用贷款/"
-                "分支/董监高/股东四类可观测关系为该前提提供七套可交叉验证的权重载体。")
-    logger.info("     · 贷款关系传导识别范式: Khwaja, A. I., & Mian, A. (2008). Tracing the impact of bank "
-                "liquidity shocks: Evidence from an emerging market. American Economic Review, 98(4), "
-                "1413-1442. https://doi.org/10.1257/aer.98.4.1413")
-    logger.info("       → 白话: 银行冲击沿真实借贷关系传导到企业, 是 cw_X 加权设计的经济学原型;"
-                " 贷款权臂即该识别范式的权重化落地。")
-    logger.info("     · 份额外生性诊断: Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik "
-                "instruments: What, when, why, and how. American Economic Review, 110(8), 2586-2624. "
-                "https://doi.org/10.1257/aer.20181047")
-    logger.info("       → 白话: share×shift 设计的识别落在'份额'上; 用七套彼此独立来源的份额互验,"
-                " 正是对'哪一种份额驱动结论'的直接诊断。")
+    logger.info("     · 年窗 = %d–%d (CLI --year-min/--year-max) | 输出目录 = %s (--output-dir, 整目录不入库)",
+                year_min, year_max, outdir)
+    logger.info("     · 通则: ⓑ 年窗两层 (脏年 >0.5% SystemExit / 窗外 INFO 裁剪) | ⓒ w 非缺失必 >0 |")
+    logger.info("       稳健臂随长表落盘但不入引擎 (引擎入口只收 company/bank/year/w 四列)")
+    logger.info("  📖 方法论依据 (参考文献 15 条, 逐字引自项目已核验 DOI 池; 按主题三小节)")
+    logger.info("   [A] 构念与效度 — 共现→关系的收敛效度 / 富集度零模型")
+    logger.info("     · 共现代理关系的效度先例: Lee, C. M. C., Ma, P., & Wang, C. C. Y. (2015). Search-based")
+    logger.info("       peer firms: Aggregating investor perceptions through internet co-searches. Journal of")
+    logger.info("       Financial Economics, 116(2), 410–431. https://doi.org/10.1016/j.jfineco.2015.02.003")
+    logger.info("       → 白话: 共同被检索能聚合出真实同侪关系; 本步骤把'媒体共现对是否富集于贷款/分支/")
+    logger.info("         董监高/股东四类注册关系'做成同构的收敛效度检验 (DV5 ④), 逻辑与该文一致。")
+    logger.info("     · 共现指数的边际污染: Mainali, K. P., Slud, E., Singer, M. C., & Fagan, W. F. (2022).")
+    logger.info("       A better index for analysis of co-occurrence and similarity. Science Advances, 8(4),")
+    logger.info("       Article eabj9204. https://doi.org/10.1126/sciadv.abj9204")
+    logger.info("       → 白话: 传统共现指数被两侧流行度机械抬高; 本步骤富集度因此设'边际保持'第二基准")
+    logger.info("         (Σ m_b·a_b 解析式), 叙事只认扣除大银行机械重合后的倍数, 不引均匀基准夸大。")
+    logger.info("     · 固定度序列零模型: Neal, Z. P., Domagalski, R., & Sagan, B. (2021). Comparing")
+    logger.info("       alternatives to the fixed degree sequence model for extracting the backbone of")
+    logger.info("       bipartite projections. Scientific Reports, 11(1), Article 23929.")
+    logger.info("       https://doi.org/10.1038/s41598-021-03238-3")
+    logger.info("       → 白话: 二部投影里'共同出现'大半由度序列机械决定; 边际保持基准即固定边际零模型的")
+    logger.info("         闭式实现 (零随机、sorted 遍历), 同输入重跑逐字节一致。")
+    logger.info("     · 零模型选择须元验证: Cimini, G., Carra, A., Didomenicantonio, L., & Zaccaria, A. (2022).")
+    logger.info("       Meta-validation of bipartite network projections. Communications Physics, 5(1),")
+    logger.info("       Article 76. https://doi.org/10.1038/s42005-022-00856-9")
+    logger.info("       → 白话: 不同零模型判出的'显著关系'不同, 单一基准会误导; 本步骤双基准并报 (gate 按")
+    logger.info("         均匀 1.5×, 叙事按边际保持), 两基准的差值本身即'大银行机械重合'的量化披露。")
+    logger.info("   [B] 识别与加权 — 七权源的经济学依据")
+    logger.info("     · 银企关系谱系奠基: Petersen, M. A., & Rajan, R. G. (1994). The benefits of lending")
+    logger.info("       relationships: Evidence from small business data. The Journal of Finance, 49(1), 3–37.")
+    logger.info("       https://doi.org/10.1111/j.1540-6261.1994.tb04418.x")
+    logger.info("       → 白话: 银行对企业的影响经由'关系'传导是银企实证的奠基前提; 本步骤用贷款/分支/")
+    logger.info("         董监高/股东四类可观测关系为该前提提供七套可交叉验证的权重载体。")
+    logger.info("     · 贷款关系传导识别范式: Khwaja, A. I., & Mian, A. (2008). Tracing the impact of bank")
+    logger.info("       liquidity shocks: Evidence from an emerging market. American Economic Review, 98(4),")
+    logger.info("       1413–1442. https://doi.org/10.1257/aer.98.4.1413")
+    logger.info("       → 白话: 银行冲击沿真实借贷关系传导到企业, 是 cw_X 加权设计的经济学原型; 贷款权")
+    logger.info("         (授信恒额×存续年展开×银团 1/k 等分) 即该识别范式的权重化落地。")
+    logger.info("     · 银行家董事纽带: Kroszner, R. S., & Strahan, P. E. (2001). Bankers on boards:")
+    logger.info("       Monitoring, conflicts of interest, and lender liability. Journal of Financial")
+    logger.info("       Economics, 62(3), 415–452. https://doi.org/10.1016/S0304-405X(01)00082-4")
+    logger.info("       → 白话: 银行家进公司董事会是监督与利益冲突并存的真实纽带; 董监高四臂 (董事/监事/")
+    logger.info("         高管/全体, PersonID 去重计数) 把这一纽带权重化, 四臂高度重叠故禁求和当总量。")
+    logger.info("     · 董事连锁的银行实证: Barone, G., Schivardi, F., & Sette, E. (2025). Interlocking")
+    logger.info("       directorates and competition in banking. The Journal of Finance, 80(4), 1963–2016.")
+    logger.info("       https://doi.org/10.1111/jofi.13464")
+    logger.info("       → 白话: 董事连锁网络实质改变银行行为 — 人事纽带与信贷/地理纽带是不同构念;")
+    logger.info("         支撑八权'各测不同构念、各自 just-identified 并排、免 FWER'的推断地位。")
+    logger.info("     · 地理邻近信息通道: Kang, B. U., & Nam, J. S. (2025). Do local newspapers matter to")
+    logger.info("       institutional investors? Contemporary Accounting Research, 42(3), 1713–1743.")
+    logger.info("       https://doi.org/10.1111/1911-3846.13049")
+    logger.info("       → 白话: 信息与关系有地理边界; 分支权用'公司注册/办公城市内该行存续网点数'做地理")
+    logger.info("         暴露代理, 与该文本地信息逻辑同源 (稠密权, 刻意不进支撑重合件)。")
+    logger.info("     · 中国股权结构证据: Choi, H., Kim, J. H., Suh, J., & Yu, S. (2023). Ownership")
+    logger.info("       concentration and financial policy of China's listed firms. China Economic Review,")
+    logger.info("       79, Article 101973. https://doi.org/10.1016/j.chieco.2023.101973")
+    logger.info("       → 白话: 中国上市公司股权结构直接影响财务政策; 股东权 (银行入十大股东, 年内最晚")
+    logger.info("         报告期快照+双通道四闸) 捕捉这一治理通道, 其制度性稀疏 (商业银行法 43 条) 属预期。")
+    logger.info("     · 份额外生性诊断: Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik")
+    logger.info("       instruments: What, when, why, and how. American Economic Review, 110(8), 2586–2624.")
+    logger.info("       https://doi.org/10.1257/aer.20181047")
+    logger.info("       → 白话: share×shift 设计的识别落在'份额'上; 用七套彼此独立来源的份额互验")
+    logger.info("         (Spearman/富集度), 正是对'哪一种份额驱动结论'的直接诊断。")
+    logger.info("     · 暴露相关稳健推断: Adão, R., Kolesár, M., & Morales, E. (2019). Shift-share designs:")
+    logger.info("       Theory and inference. The Quarterly Journal of Economics, 134(4), 1949–2010.")
+    logger.info("       https://doi.org/10.1093/qje/qjz025")
+    logger.info("       → 白话: 份额结构相似的公司残差相关, 常规 SE 失真; 互验报告 ⑥(c) 逐权内生性处方中")
+    logger.info("         的 exposure-robust SE (AKM 2019) 即出自此文。")
+    logger.info("   [C] 多重规格与复现 — 八权并排的方法学地位")
+    logger.info("     · 规格曲线: Simonsohn, U., Simmons, J. P., & Nelson, L. D. (2020). Specification curve")
+    logger.info("       analysis. Nature Human Behaviour, 4(11), 1208–1214.")
+    logger.info("       https://doi.org/10.1038/s41562-020-0912-z")
+    logger.info("       → 白话: 所有合理规格一次报全而非挑好看的报; 八权面板把'权重构造'物化成规格维度 —")
+    logger.info("         同一 (测度,DV) 报八权系数森林图, 禁挑臂单报 (互验报告 ⑥(b) 落地)。")
+    logger.info("     · 研究者自由度方差: Menkveld, A. J., Dreber, A., Holzmeister, F., Huber, J.,")
+    logger.info("       Johannesson, M., Kirchler, M., Razen, M., Weitzel, U., … [百人合著] (2024).")
+    logger.info("       Nonstandard errors. The Journal of Finance, 79(3), 2339–2390.")
+    logger.info("       https://doi.org/10.1111/jofi.13337")
+    logger.info("       → 白话: 同一数据不同团队结果的方差主要来自研究者自由度; 八权+稳健臂把权重构造")
+    logger.info("         这一自由度显式暴露为可并排检验的对象, 而非藏进未披露的取舍。")
+    logger.info("     · 复现性大样本证据: Brodeur, A., Mikola, D., Cook, N., … [百人合著] (2026).")
+    logger.info("       Reproducibility and robustness of economics and political science research. Nature,")
+    logger.info("       652(8108), 151–156. https://doi.org/10.1038/s41586-026-10251-x")
+    logger.info("       → 白话: 大规模复现研究凸显了机器可核验复现材料的价值; 本步骤行数锚/覆盖锚/双向锁/")
+    logger.info("         parquet 指纹全部 fail-loud, 同输入重跑字节级一致, 即此类可核验证据的工程落地。")
     logger.info("")
 
 
@@ -275,9 +383,9 @@ def year_two_layer(years: pd.Series, year_min: int, year_max: int, tag: str,
     n_bad = int(bad.sum())
     if n_bad:
         frac = n_bad / len(years)
-        log(f"{tag}: 第一层脏年剔除 {n_bad} ({frac:.3%})", warn=True)
+        log(f"{tag}: 第一层脏年剔除 {n_bad} ({100 * frac:.4g}%)", warn=True)
         if frac > sys_exit_frac:
-            raise SystemExit(f"{tag} 第一层脏年占比 {frac:.3%} > {sys_exit_frac:.1%}")
+            raise SystemExit(f"{tag} 第一层脏年占比 {100 * frac:.4g}% > {100 * sys_exit_frac:.4g}%")
     outwin = ~bad & ((years < year_min) | (years > year_max))
     if outwin.any():
         log(f"{tag}: 第二层窗外年裁剪 {int(outwin.sum())} (INFO, 属预期)")
@@ -354,15 +462,15 @@ def build_weight_loan(raw_df: pd.DataFrame, canon: BankCanon, companies: dict[st
     if len(f):
         n_l1 = int(_y_start.notna().sum())
         n_l2 = int((_y_start.isna() & _y_sign.notna()).sum())
-        logger.info("贷款 y0 三级回退分布: LoanStarDate 直取 %s (%.1f%%) → SignDate 回退 %s → "
+        logger.info("贷款 y0 三级回退分布: LoanStarDate 直取 %s (%.4g%%) → SignDate 回退 %s → "
                     "DeclareDate 回退 %s", f"{n_l1:,}", 100 * n_l1 / len(f), f"{n_l2:,}",
                     f"{int(y0.notna().sum() - n_l1 - n_l2):,}")
     bad = y0.isna() | (y0 < 1990) | (y0 > 2035)
     if bad.any():
         frac = bad.sum() / len(f)
-        log(f"贷款 y0: 第一层脏年剔除 {int(bad.sum())} ({frac:.3%})", warn=True)
+        log(f"贷款 y0: 第一层脏年剔除 {int(bad.sum())} ({100 * frac:.4g}%)", warn=True)
         if frac > 0.005:
-            raise SystemExit(f"贷款 y0 第一层脏年占比 {frac:.3%} > 0.5%")
+            raise SystemExit(f"贷款 y0 第一层脏年占比 {100 * frac:.4g}% > 0.5%")
     f, y0 = f[~bad], y0[~bad]
     # 存续终点 y1 三级: LoanEndDate → y0+ceil(LoanTerm) → y0 单年 (v27 P0; LoanTerm 单位=年)
     y_end = parse_year(f["LoanEndDate"])
@@ -432,13 +540,13 @@ def build_weight_loan(raw_df: pd.DataFrame, canon: BankCanon, companies: dict[st
     canon.audit_extra = getattr(canon, "audit_extra", []) + audit_rows
     if n_synd or n_nosep:
         logger.info("贷款银团处理 (四则预清洗+括注平衡拆分): 有分隔符银团 %s 笔 (成员 canonical "
-                    "去重后均值 k=%.1f, 金额 1/k 等分; 牵头行留痕 %s 条; k=0 整笔落审计 %s 笔) | "
+                    "去重后均值 k=%.4g, 金额 1/k 等分; 牵头行留痕 %s 条; k=0 整笔落审计 %s 笔) | "
                     "无分隔符银团 %s 笔 (⓪ 闸拦截, canon 成功者强制审计不入权)",
                     f"{n_synd:,}", (k_sum / max(n_synd - n_k0, 1)), f"{n_lead:,}",
                     f"{n_k0:,}", f"{n_nosep:,}")
     if len(ev):
         logger.info("贷款事件表: %s 笔 (company,bank,y0,y1) | 本体 P7514 %s | 期限可观测 w_dur 臂 "
-                    "%s (%.1f%%; 余为单年回退流量口径) | 金额可观测 %s",
+                    "%s (%.4g%%; 余为单年回退流量口径) | 金额可观测 %s",
                     f"{len(ev):,}", f"{int(ev['own'].sum()):,}", f"{int(ev['dur_obs'].sum()):,}",
                     100 * float(ev["dur_obs"].mean()), f"{int(ev['amt'].notna().sum()):,}")
     if ev.empty:
@@ -483,8 +591,8 @@ def build_weight_branch(raw_df: pd.DataFrame, canon: BankCanon, geo: pd.DataFram
     n_all = len(df)
     df["bank"] = df["HeadofficeName"].map(uniq)
     df = df.dropna(subset=["bank"])
-    logger.info("分支漏斗: 网点记录 %s 行 | 总行名 %s 种 → DV2 canonical 成功 %s 种 (%.1f%%) | "
-                "映射后保留 %s 行 (%.1f%%; 未映射=境外/村镇/非银机构落审计)",
+    logger.info("分支漏斗: 网点记录 %s 行 | 总行名 %s 种 → DV2 canonical 成功 %s 种 (%.4g%%) | "
+                "映射后保留 %s 行 (%.4g%%; 未映射=境外/村镇/非银机构落审计)",
                 f"{n_all:,}", f"{len(uniq):,}", f"{n_mapped_names:,}",
                 100 * n_mapped_names / max(len(uniq), 1), f"{len(df):,}",
                 100 * len(df) / max(n_all, 1))
@@ -501,10 +609,10 @@ def build_weight_branch(raw_df: pd.DataFrame, canon: BankCanon, geo: pd.DataFram
     fail = (status == "2") & quit_y.isna() | (status == "1") & run_y.isna()
     frac_fail = fail.sum() / max(int(exit_mask.sum()), 1)
     if frac_fail > 0.05:
-        raise SystemExit(f"分支端点失败率 {frac_fail:.1%} > 5%")
+        raise SystemExit(f"分支端点失败率 {100 * frac_fail:.4g}% > 5%")
     if frac_fail > 0.01:
-        log(f"分支端点失败率 {frac_fail:.1%} > 1%", warn=True)
-    logger.info("分支存续判定要素: Status 退出 %s / 失控 %s 行 | 端点日期解析失败率 %.2f%% "
+        log(f"分支端点失败率 {100 * frac_fail:.4g}% > 1%", warn=True)
+    logger.info("分支存续判定要素: Status 退出 %s / 失控 %s 行 | 端点日期解析失败率 %.4g%% "
                 "(≤1%% 健康; 失败=按'未发生'保守处理) | 城市键 %s 种 (剥括注+正则 市$ 单次)",
                 f"{int((status == '2').sum()):,}", f"{int((status == '1').sum()):,}",
                 100 * frac_fail, f"{df['city_key'].replace('', np.nan).nunique():,}")
@@ -565,7 +673,7 @@ def build_board_family(raw_df: pd.DataFrame, canon: BankCanon, companies: dict[s
     if check_anchors:
         logger.info("董监高漏斗: 银行类 (S8002 商业银行/S8003 政策性银行) %s 行 (锚 139,753 ✓; "
                     "IsExsacutive 锚 64,263 ✓ / strict 锚 27,974 ✓) | 任职机构 canonical 后 %s 行 "
-                    "(%.1f%%) | 公司码命中清单后 %s 行",
+                    "(%.4g%%) | 公司码命中清单后 %s 行",
                     f"{n_bankclass:,}", f"{n_bank_mapped:,}",
                     100 * n_bank_mapped / max(n_bankclass, 1), f"{len(df):,}")
     yr = parse_year(df["EndDate"])
@@ -881,7 +989,7 @@ def main(argv=None) -> int:
     outdir.mkdir(parents=True, exist_ok=True)
     import time
     t_start = time.monotonic()
-    _log_stage_header(Path(args.pairs), Path(args.registry), outdir)
+    _log_stage_header(Path(args.pairs), Path(args.registry), outdir, y0, y1)
     t0 = time.monotonic()
 
     # SSOT 双函数复用 (禁第二份实现); 序号前缀模块名 (02_*) 非合法 import 语句标识符 → 走 importlib
@@ -908,7 +1016,9 @@ def main(argv=None) -> int:
     pair = pd.read_parquet(pairs_path)
     logger.info("已加载 pair 长表 %s 行 (registry 指纹校验通过: 内嵌 registry_sha256=%s… == 当前"
                 " registry, 媒体锚与测度注册表同代)。", f"{len(pair):,}", reg_sha[:16])
-    logger.info("[Memory] 数据加载后 | RSS: %.1f MB", _rss_mb())
+    logger.info("pair 长表 schema: %d 列 = %s (互验仅用 track=='full' 的 canonical n_docs 作媒体锚)",
+                len(pair.columns), "/".join(map(str, pair.columns)))
+    logger.info("[Memory] 数据加载后 | RSS: %.4g MB", _rss_mb())
     t_load = time.monotonic() - t0
     t0 = time.monotonic()
 
@@ -952,14 +1062,18 @@ def main(argv=None) -> int:
                     "w_dur 期限可观测; 源=%s) ――", p_loan.name)
         _ts = time.monotonic()
         longtabs["loan"] = build_weight_loan(read_dta("loan", p_loan), canon, code_map, y0, y1)
-        logger.info("loan 长表构建完成 (%.1f 秒)", time.monotonic() - _ts)
+        _el = time.monotonic() - _ts
+        logger.info("loan 长表构建完成 (%.4g 秒, 产出吞吐 %.4g 长表行/秒 [含 dta 读取])",
+                    _el, len(longtabs["loan"]) / max(_el, 1e-9))
     p_branch = resolve_dta("branch")
     if p_branch:
         logger.info("―― 权源构建 [2/4] branch 分支网点 (DV4b: 公司城市内存续网点数, 城市三层键; "
                     "源=%s) ――", p_branch.name)
         _ts = time.monotonic()
         longtabs["branch"] = build_weight_branch(read_dta("branch", p_branch), canon, geo, y0, y1)
-        logger.info("branch 长表构建完成 (%.1f 秒)", time.monotonic() - _ts)
+        _el = time.monotonic() - _ts
+        logger.info("branch 长表构建完成 (%.4g 秒, 产出吞吐 %.4g 长表行/秒 [含 dta 读取])",
+                    _el, len(longtabs["branch"]) / max(_el, 1e-9))
     p_board = resolve_dta("board")
     if p_board:
         logger.info("―― 权源构建 [3/4] board/supervisor/exec/dsg 董监高四臂 (DV4c–f: EndDate 快照"
@@ -967,7 +1081,9 @@ def main(argv=None) -> int:
         _ts = time.monotonic()
         fam = build_board_family(read_dta("board", p_board), canon, code_map, y0, y1)
         longtabs.update(fam)
-        logger.info("董监高四臂长表构建完成 (%.1f 秒)", time.monotonic() - _ts)
+        _el = time.monotonic() - _ts
+        logger.info("董监高四臂长表构建完成 (%.4g 秒, 四臂合计产出吞吐 %.4g 长表行/秒 [含 dta 读取])",
+                    _el, sum(len(v) for v in fam.values()) / max(_el, 1e-9))
     p_sh = resolve_dta("shareholder")
     if p_sh:
         logger.info("―― 权源构建 [4/4] shareholder 银行股东 (DV4g: 年内最晚报告期快照持股比例, "
@@ -975,7 +1091,9 @@ def main(argv=None) -> int:
         _ts = time.monotonic()
         longtabs["shareholder"] = build_weight_shareholder(read_dta("shareholder", p_sh),
                                                            canon, code_map, y0, y1)
-        logger.info("shareholder 长表构建完成 (%.1f 秒)", time.monotonic() - _ts)
+        _el = time.monotonic() - _ts
+        logger.info("shareholder 长表构建完成 (%.4g 秒, 产出吞吐 %.4g 长表行/秒 [含 dta 读取])",
+                    _el, len(longtabs["shareholder"]) / max(_el, 1e-9))
     # own-bank 长表落盘即已剔 (DV3/v31 R3)
     for k in list(longtabs):
         longtabs[k] = drop_own_bank(longtabs[k], registry, tag=k)
@@ -996,11 +1114,11 @@ def main(argv=None) -> int:
             hit = br.attrs.get("city_hit_rate", 1.0)
             # 双断言 A∧B (v31 R3 P1, 废"或"字; A 必断 — 拦"存续判定全错→全零"剧本)
             if nonzero < 0.90:
-                raise SystemExit(f"分支覆盖锚 A: 非零关系公司占比 {nonzero:.1%} < 90%")
+                raise SystemExit(f"分支覆盖锚 A: 非零关系公司占比 {100 * nonzero:.4g}% < 90%")
             if hit < 0.95:
-                raise SystemExit(f"分支覆盖锚 B: 城市命中率 {hit:.1%} < 95% (双侧去市尾疑失效)")
-            logger.info("分支覆盖锚 A∧B 实测: A 非零关系公司占比 %.1f%% (≥90%% ✓) | "
-                        "B 公司城市键命中网点城市集 %.1f%% (≥95%% ✓) — 双 SystemExit 闸全过",
+                raise SystemExit(f"分支覆盖锚 B: 城市命中率 {100 * hit:.4g}% < 95% (双侧去市尾疑失效)")
+            logger.info("分支覆盖锚 A∧B 实测: A 非零关系公司占比 %.4g%% (≥90%% ✓) | "
+                        "B 公司城市键命中网点城市集 %.4g%% (≥95%% ✓) — 双 SystemExit 闸全过",
                         100 * nonzero, 100 * hit)
 
     # ---- 测度库一次构建八面板复用 (v28)
@@ -1043,6 +1161,7 @@ def main(argv=None) -> int:
                        "rel_n_banks", "rel_hhi", "rel_wt_base"]]
         panel = panel.merge(weighted, how="left", left_on=["company_listed_name", "year"],
                             right_index=True)
+        _t_engine = time.monotonic()  # 分段计时① 引擎加权+固定列+merge (COOC_SPEEDUP G0)
         # 八面板批量 gate (DV6 末段)
         assert len(panel) == len(skeleton), f"{scheme} 面板行数 ≠ 骨架"
         cwce = [c for c in panel.columns if c.startswith(("cw_", "ce_"))]
@@ -1065,6 +1184,7 @@ def main(argv=None) -> int:
                     if len(v):
                         assert (v >= lo - 1e-9).all() and (v <= hi + 1e-9).all(), \
                             f"{scheme}: 值域违例 {col}"
+        _t_gate = time.monotonic()  # 分段计时② 批量 gate (COOC_SPEEDUP G0)
         out_dta = outdir / f"company_bank_{scheme}w_panel.dta"
         wp1.write_outputs(panel, registry, out_dta, scheme_word=SCHEME_LABEL_WORD[scheme],
                           fixed_labels={
@@ -1074,9 +1194,11 @@ def main(argv=None) -> int:
                               "rel_hhi": f"{SCHEME_LABEL_WORD[scheme]}权重集中度HHI",
                               "rel_wt_base": f"{SCHEME_LABEL_WORD[scheme]}权重落在银行面板比例"})
         n_nonzero = int((panel["rel_n_banks"] > 0).sum())
+        _elp = time.monotonic() - _tp
         log(f"{scheme} 面板: {len(panel):,} 行 × {len(panel.columns)} 列 → {out_dta.name} "
-            f"({time.monotonic() - _tp:.0f} 秒: 引擎加权+批量 gate+dta 写盘) | "
-            f"有关系公司×年格 {n_nonzero:,} ({100 * n_nonzero / len(panel):.1f}%) | "
+            f"({_elp:.4g} 秒 = 引擎加权 {_t_engine - _tp:.4g} + 批量 gate {_t_gate - _t_engine:.4g} "
+            f"+ dta 写盘 {time.monotonic() - _t_gate:.4g}, 吞吐 {len(panel) / max(_elp, 1e-9):.4g} 行/秒) | "
+            f"有关系公司×年格 {n_nonzero:,} ({100 * n_nonzero / len(panel):.4g}%) | "
             f"批量 gate: 骨架行数/零关系全缺失/全缺失锚/rel_hhi 值域+单银行==1/registry 值域 全过")
 
     # ---- 互验报告 (DV5)
@@ -1117,7 +1239,7 @@ def main(argv=None) -> int:
         rho, n = spearman_common(media_shares["media"], alt_shares[s])
         rl.append(f"| media×{s} | {'n/a' if rho is None else f'{rho:+.3f}'} | {n} |")
         logger.info("互验③ 份额 Spearman media×%s: ρ=%s (共同支撑 n=%d 对; 禁 union 补 0)",
-                    s, "n/a (n<10)" if rho is None else f"{rho:+.3f}", n)
+                    s, "n/a (n<10)" if rho is None else f"{rho:+.4g}", n)
     rl += ["", "## ④ 富集度 (双向双基准; 叙事以边际保持版为准, gate 按均匀基准 1.5×)",
            "(富集倍数按未舍入底数计算, 用表内 4 位小数机械复算存在尾差属预期)",
            "| 方向 | 命中率 | 均匀基准 | 富集(均匀) | 边际保持基准 | 富集(边际保持) |",
@@ -1136,8 +1258,8 @@ def main(argv=None) -> int:
             rl.append(f"| {tag} | {e['hit_rate']:.3f} | {e['base_uniform']:.4f} | "
                       f"{e['enrich_uniform']:.2f}× | {e['base_marginal']:.4f} | "
                       f"{e['enrich_marginal']:.2f}× |")
-            logger.info("互验④ 富集度 %s: 命中率 %.3f | 均匀基准 %.4f → %.2f× | "
-                        "边际保持基准 %.4f → %.2f× (叙事以边际保持为准; 共见公司 %d)",
+            logger.info("互验④ 富集度 %s: 命中率 %.4g | 均匀基准 %.4g → %.4g× | "
+                        "边际保持基准 %.4g → %.4g× (叙事以边际保持为准; 共见公司 %d)",
                         tag, e["hit_rate"], e["base_uniform"], e["enrich_uniform"],
                         e["base_marginal"], e["enrich_marginal"], e["n_common_companies"])
         if not fwd.get("n/a") and fwd["enrich_uniform"] < 1.5:
@@ -1160,7 +1282,7 @@ def main(argv=None) -> int:
             a_mean, b_mean = media_ndocs[in_rel].mean(), media_ndocs[~in_rel].mean()
             rl.append(f"| {s} | {a_mean:.2f} | {b_mean:.2f} | "
                       f"{a_mean / b_mean:.2f}× | {int(in_rel.sum())} |")
-            logger.info("互验④b 篇数均值差 %s: 有权源关系媒体对均值 %.2f vs 无关系 %.2f = %.2f× "
+            logger.info("互验④b 篇数均值差 %s: 有权源关系媒体对均值 %.4g vs 无关系 %.4g = %.4g× "
                         "(有关系对 %d; 收敛效度第三件)", s, a_mean, b_mean, a_mean / b_mean,
                         int(in_rel.sum()))
     rl += ["", "## ⑤ Top-1 同银行率 / 包含率",
@@ -1171,7 +1293,7 @@ def main(argv=None) -> int:
         st = top1_stats(media_shares["media"], alt_shares[s])
         if st["n"]:
             rl.append(f"| media×{s} | {st['same']:.3f} | {st['incl_a_in_b']:.3f} | {st['n']} |")
-            logger.info("互验⑤ Top-1 media×%s: 同银行率 %.3f | media Top1 ∈ 权源支撑 %.3f (n=%d; "
+            logger.info("互验⑤ Top-1 media×%s: 同银行率 %.4g | media Top1 ∈ 权源支撑 %.4g (n=%d; "
                         "低同银行率 = 八权测不同构念的实证, 免 FWER 依据)",
                         s, st["same"], st["incl_a_in_b"], st["n"])
     rl += [
@@ -1225,27 +1347,43 @@ def main(argv=None) -> int:
     logger.info("【结果分析】七权源产出指标判读 (越接近预期方向越健康):")
     logger.info("  ① 七权长表: %d/%d 权源就绪, 全部非空 (空长表 SystemExit 级锚已过) (好)",
                 len(longtabs), len(SCHEMES))
+    logger.info("     判读: 覆盖谱从制度性稀疏 (shareholder, 商业银行法 43 条限制银行持股工商企业)")
+    logger.info("     到城市级稠密 (branch) 属构念差异而非质量差异; 分析端按研究问题预先声明 primary 权源。")
     logger.info("  ② own-bank 剔除: 长表落盘前已施加 (银行系公司 vs 自家银行零泄漏, R3 P0-1 修复在位) (好)")
+    logger.info("     判读: 上市银行与其自身的对角线'关系'是机械恒真而非经济关系, 不剔会同时虚增八权并")
+    logger.info("     令互验富集度向上偏; 落盘前剔除保证长表任何下游消费者都拿不到泄漏行。")
     logger.info("  ③ 覆盖锚: 分支 A≥90%∧B≥95% 双 SystemExit 闸已过; 行数锚由 gate 测试锚死 (好)")
+    logger.info("     判读: A 翻红 = '存续判定全错→网点全零'剧本; B 翻红 = 城市键双侧去'市'尾失效或数据商")
+    logger.info("     城市字段改码。生产 T=18 复跑若翻红, 先查数据商改版而非放松阈值。")
     logger.info("  ④ DV2 未映射名称: %s 种 (全量落互验报告审计附录 top-50, 无静默丢弃) — 生产复跑时"
                 "复核映射率 (关注)", f"{n_unmapped:,}")
+    logger.info("     判读: top 频次以政策性银行 (进出口/农发/国开) 与集团财务公司为主 — 属 canonical")
+    logger.info("     宇宙刻意一致排除 (非缺陷); 真值关注点 = 映射率漂移与新增高频未映射商业银行名。")
     logger.info("  ⑤ 互验五件套 (富集度双基准/份额 Spearman/均值差/Top-1/支撑重合) 已写入报告,"
                 " 判读以报告为准: %s", outdir / "_company_bank_weight_validation.md")
+    logger.info("     判读: 健康形态 = 边际保持富集 >1× 且方向跨权源一致 + Spearman 以正为主 + 有关系媒体")
+    logger.info("     对篇数均值高于无关系对 (收敛效度) + Top-1 同银行率低 (<0.1 = 不同构念实证, 免 FWER)。")
+    logger.info("  ⑥ 富集度方向锚 (gate 口径 = 均匀基准 1.5×): 未达标权源 %d 个%s (dev 不判失败, loud "
+                "WARNING 待生产复审)", len(warn_schemes),
+                f" ({'/'.join(warn_schemes)})" if warn_schemes else "")
+    logger.info("  ⑦ dev vs 生产 T=18 预期差异: 媒体锚出自 dev 语料, 共同支撑对数偏小 (稀疏权可现 n<10 →")
+    logger.info("     Spearman n/a, 小样本 ρ 波动大属预期); 生产 17M 篇/T=18 下共同支撑将数量级增厚,")
+    logger.info("     互验数值以生产复跑为准; 权源 dta 侧锚 (行数/覆盖) 不随语料变, 翻红另查数据商改版。")
     logger.info("-" * 70)
     logger.info("  ⏱ 各子阶段墙钟耗时 (秒, 4 位有效数字):")
     logger.info("     · ①加载 registry+pair 长表: %.4g 秒", t_load)
     logger.info("     · ②七权构建+八面板+互验计算: %.4g 秒", t_build)
     logger.info("     · ③写盘 报告+codebook: %.4g 秒", t_write)
     t_total = time.monotonic() - t_start
-    logger.info("     · 子阶段合计: %.4g 秒 (占总阶段 %.2f%%)",
+    logger.info("     · 子阶段合计: %.4g 秒 (占总阶段 %.4g%%)",
                 t_load + t_build + t_write, 100 * (t_load + t_build + t_write) / max(t_total, 1e-9))
     logger.info("═" * 50)
     logger.info("阶段摘要: %s", Path(__file__).stem)
     logger.info("─" * 50)
-    logger.info("  耗时:     %.2f 秒 (%.4f 分钟)", t_total, t_total / 60)
+    logger.info("  耗时:     %.4g 秒 (%.4g 分钟)", t_total, t_total / 60)
     logger.info("  输入:     pair 长表 %s 行 + 四权源 dta", f"{len(pair):,}")
     logger.info("  输出:     七权长表 %d 份 + 七权面板 ×7 + 互验报告 → %s", len(longtabs), outdir)
-    logger.info("  内存RSS:  %.1f MB", _rss_mb())
+    logger.info("  内存RSS:  %.4g MB (psutil 终态读数, 峰值出现在 branch 稠密面板段, 以此为下界)", _rss_mb())
     logger.info("═" * 50)
     logger.info("--- 阶段执行完毕: %s ---", Path(__file__).stem)
     return 0

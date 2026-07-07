@@ -462,3 +462,139 @@ def test_pytest_never_touches_stage_logs(stem):
     assert not any(  # 也不允许挂上任何文件 handler (mtime 不变可能只是缓冲未 flush)
         isinstance(h, _lg.FileHandler) for h in lg.handlers
     ), "pytest 进程内 logger 挂上了 FileHandler — 守卫失效"
+
+
+# ---------------------------------------------------------------- (B2) COOC_SPEEDUP 位级参照臂 gate
+# 2026-07-07 引擎提速重构 (一次对齐 + int-codes 分组 + 宽内核) 的位级等价锁:
+# 生产路径 compute_weighted_panel 必须与冻结参照臂 _compute_weighted_panel_percol
+# 逐位相等 (含 ±0.0 符号位 — assert_frame_equal 分不出, 故加 uint 视图断言)。
+# 本 gate 存在即禁删参照臂。
+def _assert_bitwise_equal(a: pd.DataFrame, b: pd.DataFrame):
+    pd.testing.assert_frame_equal(a, b, check_exact=True)
+    for c in a.columns:
+        av, bv = a[c], b[c]
+        dt = str(av.dtype)
+        if dt in ("float64", "float32"):
+            u = "uint64" if dt == "float64" else "uint32"
+            assert np.array_equal(av.to_numpy().view(u), bv.to_numpy().view(u)), \
+                f"float 位级分叉 (±0.0/NaN 位型): {c}"
+        elif dt in ("Float64", "Float32", "Int64"):
+            am, bm = av.array._mask, bv.array._mask
+            assert np.array_equal(am, bm), f"nullable 掩码分叉: {c}"
+            ad, bd = av.array._data, bv.array._data
+            if ad.dtype.kind == "f":
+                u = "uint64" if ad.dtype.itemsize == 8 else "uint32"
+                assert np.array_equal(ad[~am].view(u), bd[~bm].view(u)), \
+                    f"nullable float 位级分叉: {c}"
+            else:
+                assert np.array_equal(ad[~am], bd[~bm]), f"nullable int 值分叉: {c}"
+
+
+def _speedup_case(seed: int, with_track: bool, unmatched: bool = True):
+    """钉 seed 的随机样本, 覆盖 COOC_SPEEDUP G1③ 清单: 混 dtype (float64/float32/
+    Float64/Float32/int64/Int64) / 缺源列 / track-agnostic / N=1 与 den>0 边界 /
+    w=0 行 / 负值测度 / 含 NaN 列 / year=int32 探针 / 空轨 (with_track 时剔 ss) /
+    unmatched=True 含未匹配 (bank,year) (升格分支), False 全匹配 (保源 dtype 分支,
+    结果评审 F-3 补强)。"""
+    rng = np.random.default_rng(seed)
+    banks, years = list("ABCDE"), [2016, 2017, 2018]
+    idx = pd.MultiIndex.from_product([banks, years], names=["target_bank", "year"])
+    n = len(idx)
+
+    def fcol(kind):
+        v = rng.normal(0, 3, n)
+        v[rng.random(n) < 0.35] = np.nan
+        if kind == "float32":
+            return v.astype("float32")
+        if kind == "Float64":
+            return pd.array([None if np.isnan(x) else x for x in v], dtype="Float64")
+        return v
+
+    meas = pd.DataFrame(index=idx)
+    for base in ("x", "y"):
+        for t in mod.TRACKS:
+            meas[f"{base}_{t}"] = fcol("float64")
+    for t in mod.TRACKS:
+        meas[f"xf_{t}"] = fcol("float32")
+        meas[f"xn_{t}"] = fcol("Float64")
+        meas[f"xg_{t}"] = pd.array(
+            [None if rng.random() < 0.3 else np.float32(v)
+             for v in rng.normal(0, 2, n)], dtype="Float32")
+        meas[f"xi_{t}"] = pd.array(rng.integers(-5, 5, n), dtype="int64")
+        meas[f"xI_{t}"] = pd.array(
+            [None if rng.random() < 0.3 else int(v) for v in rng.integers(0, 9, n)],
+            dtype="Int64")
+    meas["q"] = fcol("float64")
+    reg = mini_registry([entry("x"), entry("y"), entry("xf"), entry("xn"),
+                         entry("xg"), entry("xi"), entry("xI"),
+                         entry("q", track_agnostic=True), entry("ghost")])
+    rows = []
+    tracks = list(mod.TRACKS) if with_track else [None]
+    bank_pool = banks + ["Z"] if unmatched else banks   # Z → 未匹配银行
+    year_pool = years + [2030] if unmatched else years  # 2030 → 未匹配年
+    for t in tracks:
+        for c in ["甲", "乙", "丙", "丁", "戊"]:
+            k = int(rng.integers(1, 5))  # k=1 → N=1 短路面
+            picks = rng.choice(bank_pool, size=k, replace=False)
+            for b in picks:
+                yv = int(rng.choice(year_pool))
+                wv = float(rng.choice([0.0, 1.0, 2.5, 7.0]))  # 0.0 → den 边界
+                rows.append((c, b, yv, t, wv))
+    w = pd.DataFrame(rows, columns=["company", "bank", "year", "track", "w"])
+    if with_track:
+        w = w[w["track"] != "ss"]  # 空轨路径 (R2 P2-2 补列)
+    else:
+        w = w.drop(columns=["track"])
+    w["year"] = w["year"].astype("int32")  # 生产 pair 实态: int32 vs 测度库 int64 (G1⑥)
+    return w.reset_index(drop=True), meas, reg
+
+
+@pytest.mark.parametrize("seed", [0, 1, 2])
+@pytest.mark.parametrize("with_track", [True, False])
+def test_engine_bitwise_equiv_percol(seed, with_track):
+    """G1①②③: 生产路径 vs 冻结参照臂 逐位相等 (钉 seed 随机样本 ×6)。"""
+    w, meas, reg = _speedup_case(seed, with_track)
+    _assert_bitwise_equal(mod.compute_weighted_panel(w, meas, reg),
+                          mod._compute_weighted_panel_percol(w, meas, reg))
+
+
+@pytest.mark.parametrize("with_track", [True, False])
+def test_engine_bitwise_equiv_no_unmatched(with_track):
+    """G1③ 补强 (结果评审 F-3): 全匹配情形 — int/float32 列保源 dtype 分支的位级锁。"""
+    w, meas, reg = _speedup_case(11, with_track, unmatched=False)
+    _assert_bitwise_equal(mod.compute_weighted_panel(w, meas, reg),
+                          mod._compute_weighted_panel_percol(w, meas, reg))
+
+
+@pytest.mark.parametrize("chunk", [1, 3, 100])
+def test_engine_chunk_invariance_bitwise(chunk):
+    """G1④: chunk 划分只切"哪些列同批", 不改任何列的行集/行序 → 结果位级不随 chunk 变。"""
+    w, meas, reg = _speedup_case(7, True)
+    _assert_bitwise_equal(mod.compute_weighted_panel(w, meas, reg, chunk=chunk),
+                          mod._compute_weighted_panel_percol(w, meas, reg))
+
+
+def test_engine_mixed_n1_bitwise():
+    """G1③ 混合 N=1 判别用例: 同组对列 x nvalid==1、对列 y nvalid>1 —
+    掩码若误用单列命中集做全 chunk 掩码, 此例翻红。"""
+    reg = mini_registry([entry("x"), entry("y")])
+    meas = make_measures({"target_bank": ["A", "B"], "year": [2017] * 2,
+                          "x_full": [4.25, np.nan], "y_full": [1.0, 2.0],
+                          "x_ctx": [np.nan] * 2, "y_ctx": [np.nan] * 2,
+                          "x_ss": [np.nan] * 2, "y_ss": [np.nan] * 2})
+    w = wtab([("甲", "A", 2017, "full", 3), ("甲", "B", 2017, "full", 5)])
+    out = mod.compute_weighted_panel(w, meas, reg)
+    ref = mod._compute_weighted_panel_percol(w, meas, reg)
+    _assert_bitwise_equal(out, ref)
+    assert out.loc[("甲", 2017), "cw_x_full"] == 4.25  # N=1 短路取原值 (非 3*4.25/3 浮点路径)
+    assert out.loc[("甲", 2017), "cw_y_full"] == pytest.approx((3 * 1 + 5 * 2) / 8)
+
+
+def test_engine_duplicate_measure_key_raises():
+    """G1⑤ 重复键负例: 新路径 fail-fast raise (参照臂保留 merge 静默扩张属刻意, 不测)。"""
+    reg = mini_registry([entry("x")])
+    meas = make_measures({"target_bank": ["A", "A"], "year": [2017, 2017],
+                          "x_full": [1.0, 2.0], "x_ctx": [1.0, 2.0], "x_ss": [1.0, 2.0]})
+    w = wtab([("甲", "A", 2017, "full", 1)])
+    with pytest.raises(AssertionError, match="键重复"):
+        mod.compute_weighted_panel(w, meas, reg)

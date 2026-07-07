@@ -1,7 +1,7 @@
 """WP1 — 上市公司×年 银企共现媒体报道面板 (COMPANY_BANK_COOC_PANEL_EXECUTION_PLAN v34).
 
 产出 (D9/D10, 默认落 company_listed_bank/data/, 不入库):
-  company_listed_bank/data/company_bank_cooc_panel.dta        主面板 (105,032 行, 19 固定列 + 加权列)
+  company_listed_bank/data/company_bank_cooc_panel.dta        主面板 (105,032 行, 20 固定列 + 加权列)
   company_listed_bank/data/company_bank_cooc_panel.parquet    伴生 (未缩写全名)
   company_listed_bank/data/company_bank_cooc_panel_codebook.md
   company_listed_bank/data/_company_bank_cooc_pairs.parquet   pair 长表 10 列 (被删加权列唯一重构载体)
@@ -30,6 +30,18 @@ OUT_DATA = HERE / "data"             # 本流水线产物 (面板/pair/codebook,
 CONFIG = REPO / "config"
 TRACKS = ("full", "ctx", "ss")
 ABS_YEAR_MIN, ABS_YEAR_MAX = 2007, 2025  # 绝对合法域 (D10)
+
+_STOCK_CODE_MAP: dict[str, str] | None = None
+
+
+def stock_code_map() -> dict[str, str]:
+    """company_listed_name → 6 位股票代码 (SSOT=company_listed_names.yaml, 恒字符串保前导零)。
+    八面板 (主+七替代权) 共用; 模块级缓存避免 03 七面板循环重复读 yaml。"""
+    global _STOCK_CODE_MAP
+    if _STOCK_CODE_MAP is None:
+        comp = yaml.safe_load((CONFIG / "company_listed_names.yaml").read_text(encoding="utf-8"))["companies"]
+        _STOCK_CODE_MAP = {c["company_listed_name"]: str(c["stock_code"]).zfill(6) for c in comp}
+    return _STOCK_CODE_MAP
 
 import logging
 
@@ -67,8 +79,18 @@ def _rss_mb() -> float:
     return psutil.Process().memory_info().rss / 1024 / 1024
 
 
-def _log_stage_header(dp: dict, registry_path: Path, out_dta: Path) -> None:
-    """阶段头汇报块 (完全参照主管道 12_news_fintech.log 的内容格式)。"""
+def _pkg_ver(name: str) -> str:
+    """关键库版本 (importlib.metadata; 仅日志用途, 取不到一律 'n/a', 绝不影响计算)。"""
+    try:
+        from importlib.metadata import version
+        return version(name)
+    except Exception:
+        return "n/a"
+
+
+def _log_stage_header(dp: dict, registry_path: Path, out_dta: Path,
+                      year_min: int, year_max: int) -> None:
+    """阶段头汇报块 (完全参照主管道 12_news_fintech.log 的内容格式; 纯日志, 无计算副作用)。"""
     import os
     import platform
     import sys as _sys
@@ -79,7 +101,7 @@ def _log_stage_header(dp: dict, registry_path: Path, out_dta: Path) -> None:
     logger.info("=" * 72)
     logger.info("【功能】在 21_full 留篇宇宙 (行=报道×目标银行) 上, 用 5,528 家上市公司名 variant 做")
     logger.info("        Aho-Corasick 三轨 (full/ctx/ss) 扫描, 判定'该报道同时谈及目标银行与该上市公司',")
-    logger.info("        聚成 公司×年 面板 (19 固定列 + registry 全部 emit 测度的 cw/ce 加权投影列),")
+    logger.info("        聚成 公司×年 面板 (20 固定列 + registry 全部 emit 测度的 cw/ce 加权投影列),")
     logger.info("        另产 pair 长表 (公司×银行×年×轨, 被删加权列的唯一重构载体) 与 codebook。")
     logger.info("【方法】名单 SSOT=company_listed_names.yaml; D4 own-bank 剔除 (银行系公司 vs 自家银行)")
     logger.info("        + D4b 子串自共现作废 (如 牡丹江⊂牡丹江市商业银行); 归年=docid 全局 min(日期);")
@@ -99,6 +121,23 @@ def _log_stage_header(dp: dict, registry_path: Path, out_dta: Path) -> None:
     logger.info("     · 平台:     %s | CPU 逻辑核=%s", platform.platform(), os.cpu_count())
     logger.info("     · PID=%s | RUN_ID=%s | 本步骤纯 CPU / 无 LLM·网络·API ($0) / 确定性可复现",
                 os.getpid(), os.environ.get("NEWS_PROCESS_RUN_ID", "standalone"))
+    logger.info("     · 关键库版本: pandas=%s | numpy=%s | pyarrow=%s | pyahocorasick=%s",
+                _pkg_ver("pandas"), _pkg_ver("numpy"), _pkg_ver("pyarrow"), _pkg_ver("pyahocorasick"))
+    logger.info("       pyreadstat=%s | scipy=%s | PyYAML=%s | psutil=%s (importlib.metadata, 仅日志用途)",
+                _pkg_ver("pyreadstat"), _pkg_ver("scipy"), _pkg_ver("PyYAML"), _pkg_ver("psutil"))
+    logger.info("  🧬 流水线定位 / 上下游消费者 / 复现命令")
+    logger.info("     · 定位: company_listed_bank 独立派生流水线 01→02→03 的第 2 步 (WP1);")
+    logger.info("       不注册主 DAG, 但上游全依赖主管道 data/processed 产物 (只读)")
+    logger.info("     · 上游硬依赖: 步骤 01 的 registry yaml (加权引擎唯一 SSOT, 缺则本步骤拒跑)")
+    logger.info("     · 下游消费者: ① 步骤 03 七替代权互验 (import 本模块 SSOT 双函数 + 读 pair 长表锚,")
+    logger.info("       缺 pair 即 SystemExit '无锚即无互验'); ② Stata 分析端 (dta 短名+中文标签);")
+    logger.info("       ③ 论文数据附录 (codebook 独立覆盖本流水线全部产物)")
+    logger.info("     · 复现命令: python company_listed_bank/run_pipeline.py --steps 02  (或 02,03 级联)")
+    logger.info("       等价单步: python company_listed_bank/02_build_company_bank_cooc_panel.py")
+    logger.info("     · 关键 config 键: paths.yaml::output_21_tone_llms_full / output_40_panel_yearly /")
+    logger.info("       output_15_article_alignment / output_51_panel_controls (27 号无键, 脚本内常量)")
+    logger.info("     · 名单 SSOT: config/company_listed_names.yaml (公司) + config/bank_names.json (银行);")
+    logger.info("       gate 测试 = tests/test_company_bank_cooc_panel.py (35 用例, pytest 收集 38 项)")
     logger.info("  📂 输入 / 输出文件")
     logger.info("     · 输入(21_full): %s (留篇宇宙, 行=报道×目标银行)", dp["input"])
     logger.info("     · 输入(40 面板): %s (银行×年测度库主源)", dp["panel"])
@@ -109,25 +148,91 @@ def _log_stage_header(dp: dict, registry_path: Path, out_dta: Path) -> None:
     logger.info("     · 输出(pair 长表): %s (metadata 含 registry_sha256 + 输入指纹)",
                 out_dta.parent / "_company_bank_cooc_pairs.parquet")
     logger.info("     · 输出(codebook): %s", out_dta.parent / "company_bank_cooc_panel_codebook.md")
+    logger.info("     · 输出 schema 概述: 主面板 = 公司×年骨架 (无缺格) × [20 固定列 (计数/HHI/覆盖诊断)")
+    logger.info("       + registry 全部 emit 测度的 cw/ce×三轨投影列]; pair 长表 = 公司×银行×年×轨 10 列")
+    logger.info("     · 指纹/校验语义: pair 长表 parquet metadata 内嵌 registry_sha256 +")
+    logger.info("       input_fingerprint=sha256(输入文件字节数|行数); 步骤 03 启动双向校验, stale 即 SystemExit")
+    logger.info("     · 两套缺失语义: 计数列无命中=0 (真零); cw/ce 加权列无共现或无可用银行=NaN")
+    logger.info("       (Stata '.', 绝非 0) — gate⑧ 强制互斥, 消费端不可混用")
     logger.info("  ⚙ 运行配置")
-    logger.info("     · 三轨 = %s | 绝对合法域 = [%d, %d] | 固定列 %d 个",
-                "/".join(TRACKS), ABS_YEAR_MIN, ABS_YEAR_MAX, len(FIXED_ORDER))
-    logger.info("  📖 方法论依据 (参考文献)")
-    logger.info("     · 新闻共现→企业关联效度 (中国): Ge, S., Li, S., & Zheng, H. (2025). Diamond cuts diamond: "
-                "News co-mention momentum spillover prevails in China. Journal of Banking & Finance, 171, "
-                "Article 107356. https://doi.org/10.1016/j.jbankfin.2024.107356")
-    logger.info("       → 白话: 中文财经新闻里两家机构被同篇报道共同提及, 是可用的经济关联信号;"
-                " 本步骤以'银行×上市公司同篇共现'构建关联强度, 即同一效度前提。")
-    logger.info("     · share×shift 构造检查表: Borusyak, K., Hull, P., & Jaravel, X. (2025). A practical guide "
-                "to shift-share instruments. Journal of Economic Perspectives, 39(1), 181-204. "
-                "https://doi.org/10.1257/jep.20231370")
-    logger.info("       → 白话: cw 加权列 = 共现份额(share)×银行测度(shift) 的 shift-share 结构;"
-                " 分母只计 X 非缺失的权重 (incomplete-shares 的正面处理), 依该检查表落地。")
-    logger.info("     · W 矩阵设定即识别: Grieser, W., Hadlock, C., LeSage, J., & Zekhnini, M. (2022). Network "
-                "effects in corporate financial policies. Journal of Financial Economics, 144(1), 247-272. "
-                "https://doi.org/10.1016/j.jfineco.2021.05.060")
-    logger.info("       → 白话: 用哪种关系矩阵加权本身就是识别假设; 故本流水线另备步骤 03 的七套"
-                "替代权源互验, 证结论不被'媒体共现'这一种 W 的选择驱动。")
+    logger.info("     · 三轨 = %s | 绝对合法域 = [%d, %d] | 面板年窗 = [%d, %d] | 固定列 %d 个",
+                "/".join(TRACKS), ABS_YEAR_MIN, ABS_YEAR_MAX, year_min, year_max, len(FIXED_ORDER))
+    logger.info("     · 加权双臂: cw=共现份额加权 (share×shift 结构) / ce=等权均值 — 互为稳健性、不分主次,")
+    logger.info("       各自 just-identified 并排, 禁混同一 over-identified Hansen J (项目铁律)")
+    logger.info("  📖 方法论依据 (参考文献 15 条, 按主题分节; 逐字引自项目已核验文献池, DOI 未改动)")
+    logger.info("   ─── [A] 构念与效度: 新闻共现作为银企关联测度 ───")
+    logger.info("     A1. Ge, S., Li, S., & Zheng, H. (2025). Diamond cuts diamond: News co-mention momentum")
+    logger.info("         spillover prevails in China. Journal of Banking & Finance, 171, Article 107356.")
+    logger.info("         https://doi.org/10.1016/j.jbankfin.2024.107356")
+    logger.info("       → 白话: 中文财经新闻里两家机构被同篇报道共同提及, 是可检验的经济关联信号;")
+    logger.info("         本步骤以'目标银行×上市公司同篇共现'构建关联强度, 与其效度前提同构。")
+    logger.info("     A2. Fang, L., & Peress, J. (2009). Media coverage and the cross-section of stock returns.")
+    logger.info("         The Journal of Finance, 64(5), 2023–2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x")
+    logger.info("       → 白话: 媒体覆盖量本身就是有定价含义的公司特征; 本面板的 n_cooc_{full,ctx,ss} 计数列")
+    logger.info("         即公司层'涉银报道覆盖量'测度, 无命中填 0 (真零) 是该构念的一部分。")
+    logger.info("     A3. Engelberg, J. E., & Parsons, C. A. (2011). The causal impact of media in financial")
+    logger.info("         markets. The Journal of Finance, 66(1), 67–97. https://doi.org/10.1111/j.1540-6261.2010.01626.x")
+    logger.info("       → 白话: 把'报道行为'与'事件本身'分离并证明报道有独立因果作用; 支撑本脚本把报道级")
+    logger.info("         共现做成面板处理变量, 而非仅当底层业务关系的被动代理。")
+    logger.info("     A4. Lee, C. M. C., Ma, P., & Wang, C. C. Y. (2015). Search-based peer firms: Aggregating")
+    logger.info("         investor perceptions through internet co-searches. Journal of Financial Economics,")
+    logger.info("         116(2), 410–431. https://doi.org/10.1016/j.jfineco.2015.02.003")
+    logger.info("       → 白话: 用'共同被检索'聚合公众感知来定义公司间关联, 与本脚本'共同被报道'同构;")
+    logger.info("         其共现→关联的聚合思路即 pair 长表 (公司×银行×年×轨) 的设计原型。")
+    logger.info("   ─── [B] 识别与加权: shift-share 结构 / W 矩阵选择 ───")
+    logger.info("     B1. Borusyak, K., Hull, P., & Jaravel, X. (2025). A practical guide to shift-share")
+    logger.info("         instruments. Journal of Economic Perspectives, 39(1), 181–204.")
+    logger.info("         https://doi.org/10.1257/jep.20231370")
+    logger.info("       → 白话: cw 加权列 = 共现份额(share)×银行测度(shift) 的 shift-share 结构; 分母只计")
+    logger.info("         该测度非缺失银行的权重 (incomplete shares 的正面处理), 依该检查表落地。")
+    logger.info("     B2. Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik instruments: What, when,")
+    logger.info("         why, and how. American Economic Review, 110(8), 2586–2624.")
+    logger.info("         https://doi.org/10.1257/aer.20181047")
+    logger.info("       → 白话: shift-share 设计的识别力来自份额的外生性; 本脚本把份额 (pair 长表 n_docs 系)")
+    logger.info("         与银行测度库分离落盘, 使份额可被分析端单独审查、检验与替换。")
+    logger.info("     B3. Adão, R., Kolesár, M., & Morales, E. (2019). Shift-share designs: Theory and inference.")
+    logger.info("         The Quarterly Journal of Economics, 134(4), 1949–2010. https://doi.org/10.1093/qje/qjz025")
+    logger.info("       → 白话: 共享同一银行 shift 的公司间残差相关, 常规聚类 SE 会失真; codebook §7 已把")
+    logger.info("         exposure-robust SE 列为 cw 列回归的分析端义务, 本日志同步提示。")
+    logger.info("     B4. Grieser, W., Hadlock, C., LeSage, J., & Zekhnini, M. (2022). Network effects in")
+    logger.info("         corporate financial policies. Journal of Financial Economics, 144(1), 247–272.")
+    logger.info("         https://doi.org/10.1016/j.jfineco.2021.05.060")
+    logger.info("       → 白话: 用哪种关系矩阵 W 加权本身就是识别假设; 故步骤 03 另备七套替代权源互验,")
+    logger.info("         证结论不被'媒体共现'这一种 W 的选择驱动。")
+    logger.info("     B5. Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate financial policy?")
+    logger.info("         The Journal of Finance, 69(1), 139–178. https://doi.org/10.1111/jofi.12094")
+    logger.info("       → 白话: 关联组均值特征作解释变量是公司金融标准范式; ce 臂即'共现银行等权均值',")
+    logger.info("         与 cw 共现加权臂并排互为稳健、不分主次。")
+    logger.info("   ─── [C] 共现计数的统计性质: 分数计数 / 零模型 / 集中度 (HHI) ───")
+    logger.info("     C1. Neal, Z. P., Domagalski, R., & Sagan, B. (2021). Comparing alternatives to the fixed")
+    logger.info("         degree sequence model for extracting the backbone of bipartite projections. Scientific")
+    logger.info("         Reports, 11(1), Article 23929. https://doi.org/10.1038/s41598-021-03238-3")
+    logger.info("       → 白话: 二部投影的原始共现计数被两侧度分布机械驱动, 须对照零模型判读; 本步骤的")
+    logger.info("         k^c 分位诊断与 frac (1/k 分摊) 即为此设; 步骤 03 富集度双基准是其正式检验。")
+    logger.info("     C2. Mainali, K. P., Slud, E., Singer, M. C., & Fagan, W. F. (2022). A better index for")
+    logger.info("         analysis of co-occurrence and similarity. Science Advances, 8(4), Article eabj9204.")
+    logger.info("         https://doi.org/10.1126/sciadv.abj9204")
+    logger.info("       → 白话: 传统共现指数受边际频次污染, 跨单元比较会系统性误导; 本脚本同时物化")
+    logger.info("         n_docs/frac/longhit/strict 多口径, 并保 pair 长表供任意替代指数事后重构。")
+    logger.info("     C3. Hoberg, G., & Phillips, G. M. (2025). Scope, scale, and concentration: The 21st-century")
+    logger.info("         firm. The Journal of Finance, 80(1), 415–466. https://doi.org/10.1111/jofi.13400")
+    logger.info("       → 白话: 以文本测度刻画企业'组合集中度'的顶刊范式; cooc_hhi_{track} 用共现份额平方和")
+    logger.info("         度量公司的银行组合集中度 (单银行格≡1, 零共现=NaN, gate③ 三锁)。")
+    logger.info("   ─── [D] 数据工程与复现 ───")
+    logger.info("     D1. Silcock, E., D'Amico-Wong, L., Yang, J., & Dell, M. (2022). Noise-robust de-duplication")
+    logger.info("         at scale (NBER Working Paper No. 30726). https://doi.org/10.3386/w30726")
+    logger.info("       → 白话: 大规模新闻语料的重复稿是文本测度的主要噪声源; 本脚本对 (docid,target_bank)")
+    logger.info("         去重并断言重复行三轨文本一致, 不一致即 fail-loud 拒跑 (确定性失锚)。")
+    logger.info("     D2. Menkveld, A. J., Dreber, A., Holzmeister, F., Huber, J., Johannesson, M., Kirchler, M.,")
+    logger.info("         Razen, M., Weitzel, U., … [百人合著] (2024). Nonstandard errors. The Journal of Finance,")
+    logger.info("         79(3), 2339–2390. https://doi.org/10.1111/jofi.13337")
+    logger.info("       → 白话: 同一数据不同团队的管道决策会产生系统性'非标准误'; 本脚本把 cw/ce、三轨、")
+    logger.info("         frac/longhit/strict 等构造决策全部并排物化, 把管道方差显性化供读者复算。")
+    logger.info("     D3. Brodeur, A., Mikola, D., Cook, N., … [百人合著] (2026). Reproducibility and robustness")
+    logger.info("         of economics and political science research. Nature, 652(8108), 151–156.")
+    logger.info("         https://doi.org/10.1038/s41586-026-10251-x")
+    logger.info("       → 白话: 大样本复现评估表明材料完备性直接决定可复现率; 本日志按复现材料标准记录")
+    logger.info("         环境/库版本/输入指纹/复现命令, dta+parquet+codebook+pair 四件产物自足。")
     logger.info("")
 
 
@@ -221,7 +326,7 @@ def load_input21(path: Path, bank_canonical: set[str]) -> pd.DataFrame:
         df[col] = df[col].fillna("")
         if n_empty:
             level = n_empty / len(df) > 0.01
-            log(f"{t} 轨空文本 {n_empty} 行 ({n_empty/len(df):.2%})", warn=level)
+            log(f"{t} 轨空文本 {n_empty} 行 ({100 * n_empty / len(df):.4g}%)", warn=level)
     return df
 
 
@@ -257,7 +362,7 @@ def scan_hits(df: pd.DataFrame, A, bank_substr, own_map) -> pd.DataFrame:
     if len(hits):
         per_track = hits["track"].value_counts().to_dict()
         n_ver = int(hits["verified"].sum())
-        logger.info("AC 三轨扫描完成: 命中明细 %s 行 (full=%s / ctx=%s / ss=%s) | verified 行 %s (%.1f%%)",
+        logger.info("AC 三轨扫描完成: 命中明细 %s 行 (full=%s / ctx=%s / ss=%s) | verified 行 %s (%.4g%%)",
                     f"{len(hits):,}", f"{per_track.get('full', 0):,}", f"{per_track.get('ctx', 0):,}",
                     f"{per_track.get('ss', 0):,}", f"{n_ver:,}", 100 * n_ver / len(hits))
         logger.info("内联作废留痕: D4 own-bank 自共现跳过 %s 次 | D4b 子串自共现作废 %s 次 "
@@ -265,7 +370,7 @@ def scan_hits(df: pd.DataFrame, A, bank_substr, own_map) -> pd.DataFrame:
                     f"{n_d4:,}", f"{n_d4b:,}")
         vlen = hits["max_vlen"]
         logger.info("命中 variant 长度谱 (max_vlen, 精度分层依据: ≥4 字层 precision≈0.92): "
-                    "≤2 字=%s | 3 字=%s | ≥4 字=%s (%.1f%%)",
+                    "≤2 字=%s | 3 字=%s | ≥4 字=%s (%.4g%%)",
                     f"{int((vlen <= 2).sum()):,}", f"{int((vlen == 3).sum()):,}",
                     f"{int((vlen >= 4).sum()):,}", 100 * float((vlen >= 4).mean()))
     return hits
@@ -278,7 +383,7 @@ def build_year_map(hits: pd.DataFrame) -> tuple[pd.Series, pd.DataFrame]:
     n_bad = int(bad.sum())
     if n_bad:
         frac = n_bad / len(hits)
-        log(f"绝对合法域外年份行剔除 {n_bad} ({frac:.3%})", warn=True)
+        log(f"绝对合法域外年份行剔除 {n_bad} ({100 * frac:.4g}%)", warn=True)
         if frac > 0.001:
             raise SystemExit(f"合法域外年份占比 {frac:.3%} > 0.1%")
         hits = hits.loc[~bad]
@@ -423,7 +528,7 @@ def build_measure_library(input21_df: pd.DataFrame, panel40_df: pd.DataFrame,
         miss = len(ver_keys) - len(merged.drop_duplicates(["docid", "target_bank"]))
         if miss:
             frac = miss / max(len(ver_keys), 1)
-            log(f"PA 双向差分: verified ∖ 16 号 = {miss} ({frac:.3%})", warn=frac > 0.001)
+            log(f"PA 双向差分: verified ∖ 16 号 = {miss} ({100 * frac:.4g}%)", warn=frac > 0.001)
         # 16 号无日期列 → 借 21 号 (docid,target_bank)→_year (归年与计数侧同源)
         y21 = input21_df.set_index(["docid", "target_bank"])["_year"]
         merged["year"] = pd.MultiIndex.from_frame(merged[["docid", "target_bank"]]).map(y21)
@@ -461,6 +566,78 @@ def build_measure_library(input21_df: pd.DataFrame, panel40_df: pd.DataFrame,
 
 
 # ---------------------------------------------------------------- 加权引擎 (SSOT 纯函数, D18)
+# 三条计算路径角色归档 (COOC_SPEEDUP v4 §0-C4, 防未来误判 D18 "第二份实现"违例):
+#   ① compute_weighted_panel = 生产路径 (一次对齐 + int-codes 分组 + 宽内核, 2026-07-07 提速);
+#   ② _compute_weighted_panel_percol = 旧逐列实现原样冻结的位级参照臂 (私有不导出,
+#      gate test_engine_bitwise_equiv_* 存在即禁删, 镜像 boilerplate 'single_pass' 先例);
+#   ③ _sparse_equivalence_check = 实跑内数学对照臂 (稀疏矩阵法抽样 isclose)。
+# 位级等价原理: 同一 pandas cython group_sum/group_mean 内核逐列跑、行序不变;
+# 取数用 merge 内部同款原语 (numpy 列 take_nd / EA 列 .take(allow_fill)) 定义级复刻
+# left-merge 的逐列 dtype 语义 (float32 保 float32, nullable 填 pd.NA, int64 升 float64)。
+
+_MEASURE_DTYPES_ALLOWED = {"float64", "float32", "int64", "Float64", "Float32", "Int64"}
+_BUDGET_CELLS_DEFAULT = 60_000_000  # chunk 内存预算 (单帧 cell 数); 128GB 本机保守取值
+
+
+_budget_logged = False
+
+
+def _budget_cells() -> int:
+    import os
+    global _budget_logged
+    raw = os.environ.get("NEWS_PROCESS_COOC_BUDGET_CELLS", "")
+    try:
+        val = int(float(raw)) if raw else _BUDGET_CELLS_DEFAULT
+    except (ValueError, OverflowError):  # 'abc' / 'inf' / '1e400' 均回退默认
+        val = _BUDGET_CELLS_DEFAULT
+    if not _budget_logged:  # 生效值一次性入日志 (G4 复现口径, COOC_SPEEDUP R2-B/N2)
+        _budget_logged = True
+        logger.info("加权引擎内存预算 NEWS_PROCESS_COOC_BUDGET_CELLS 生效值 = %s (env=%s)",
+                    f"{val:,}", repr(raw) if raw else "未设→默认")
+    return val
+
+
+def _take_measure_col(s: pd.Series, pos: np.ndarray) -> np.ndarray | object:
+    """按 left-merge 内部同款原语取数 (定义级复刻 dtype promote 语义)。
+
+    pos==-1 (未匹配 (bank,year)) → numpy 列走 take_nd(fill_value=nan)
+    (int64 升 float64 / float32 保 float32); EA 列 (Float64/Float32/Int64) 走
+    ExtensionArray.take(allow_fill=True) 填 pd.NA — 均与 merge 右侧取数同函数。
+    """
+    from pandas.core.array_algos.take import take_nd
+    arr = s._values
+    if isinstance(arr, np.ndarray):
+        return take_nd(arr, pos, fill_value=np.nan)
+    return arr.take(pos, allow_fill=True)
+
+
+def _align_weight_frame(Wt: pd.DataFrame, measures: pd.DataFrame):
+    """一次对齐 + 一次分组编码 (每 Wt 仅一次; 取代旧路径每 chunk 重 merge)。
+
+    返回 (pos, codes, uniq): pos = Wt 行 → 测度库行号 (-1=未匹配, 复刻 left-merge
+    行集/行序); codes = (company,year) 组编码; uniq = 编码 → 键 MultiIndex。
+    探针 year 显式 astype(int64) 对齐测度库 index dtype (生产 pair 表 year=int32)。
+    """
+    assert measures.index.is_unique, "测度库 (bank,year) 键重复 — 上游 concat 应先崩, fail-fast"
+    bad = {str(c): str(dt) for c, dt in measures.dtypes.items()
+           if str(dt) not in _MEASURE_DTYPES_ALLOWED}
+    assert not bad, f"测度库出现引擎未验证 dtype (2026-07-07 普查全集之外): {sorted(bad.items())[:5]}"
+    # 探针 year 显式 cast 到测度库 index 层 dtype (生产 pair year=int32 vs 库 int64;
+    # 混 dtype level 的 get_indexer 有全 -1 风险 — 取库侧 dtype 而非硬编码 int64)
+    probe = pd.MultiIndex.from_arrays(
+        [Wt["bank"], Wt["year"].astype(measures.index.levels[1].dtype)])
+    pos = measures.index.get_indexer(probe)
+    mi = pd.MultiIndex.from_arrays([Wt["company"], Wt["year"]])
+    codes, uniq = mi.factorize()
+    assert (codes != -1).all(), "权重长表 company/year 含缺失键 (旧路径静默丢行, 新路径拒绝)"
+    # factorize 可能升格 level dtype (int32→int64) — 复刻 groupby-by-keys 的输出
+    # index dtype 语义 (= 键列原 dtype), 否则与参照臂 index level dtype 分叉
+    for lvl, src in ((0, Wt["company"]), (1, Wt["year"])):
+        if uniq.levels[lvl].dtype != src.dtype:
+            uniq = uniq.set_levels(uniq.levels[lvl].astype(src.dtype), level=lvl)
+    return pos, codes, uniq
+
+
 def compute_weighted_panel(weights: pd.DataFrame, measures: pd.DataFrame, registry: dict,
                            chunk: int = 100) -> pd.DataFrame:
     """权重长表 + 测度库 → 加权列宽表 (company×year × cw/ce 全名列, 列序 registry SSOT)。
@@ -469,6 +646,9 @@ def compute_weighted_panel(weights: pd.DataFrame, measures: pd.DataFrame, regist
     含 track 列 → 逐轨三矩阵 (媒体); 无 track 列 → 同一 W 对三轨广播 (七替代权)。
     引擎入口统一预处理 = 丢弃命名稳健臂列 + drop w 缺失行 (DV4a 组级全缺互锁)。
     cw = Σ(w·X.fillna(0)·notna(X)) / Σ(w·notna(X)); ce = mean(X|notna); N=1 短路 cw:=X。
+
+    2026-07-07 提速重构 (COOC_SPEEDUP v4): 数学与输出与 _compute_weighted_panel_percol
+    位级恒等 (gate 锁定); 仅消灭"每列重建分组 + 每 chunk 重 merge"的重复劳动。
     """
     keep = [c for c in ("company", "bank", "year", "w", "track") if c in weights.columns]
     W = weights[keep].dropna(subset=["w"]).copy()
@@ -476,43 +656,81 @@ def compute_weighted_panel(weights: pd.DataFrame, measures: pd.DataFrame, regist
     emit = [e for e in registry["entries"] if e["emit_panel"]]
 
     out_frames: list[pd.DataFrame] = []
+    aligned_shared = None  # 无 track 权源: 三轨共用同一 Wt → 对齐/编码只算一次
     for t in TRACKS:
         Wt = W[W["track"] == t] if has_track else W
         if Wt.empty:
             continue
-        # 分块 join (WP1-5 内存陷阱二选一之 (a)); 每批 chunk 列
+        if has_track:
+            pos, codes, uniq = _align_weight_frame(Wt, measures)
+        else:
+            if aligned_shared is None:
+                aligned_shared = _align_weight_frame(Wt, measures)
+            pos, codes, uniq = aligned_shared
+        code_of = pd.Series(np.arange(len(uniq)), index=uniq)  # 键 → 组编码 (N=1 掩码用)
+        w_ser = Wt["w"]
+        comp_ser, yr_ser = Wt["company"], Wt["year"]
+
+        def _finish(g, _uniq=uniq):
+            """组编码结果 → (company,year) MultiIndex + 复刻 sorted-groupby 序 (纯置换)。"""
+            g.index = _uniq.take(np.asarray(g.index))
+            return g.sort_index()
+
         todo: list[tuple[str, str]] = []  # (输出全名, 测度库列)
         for e in emit:
             if t not in e["emit_tracks"]:
                 continue
             col = _measure_col_id(e, t)
             todo.append((f"{e['basename']}__{t}", col))
+        # 自适应 chunk (仅护内存; chunk 划分不改任何列的行集/行序 → 位级无涉)
+        chunk_eff = max(1, min(chunk, int(_budget_cells() // max(len(Wt), 1))))
+        if chunk_eff < 4 and chunk >= 4:
+            logger.warning("加权引擎: 自适应 chunk 收缩到 %d (len(Wt)=%s, budget=%s) — "
+                           "内存预算显著吃紧, 复核 NEWS_PROCESS_COOC_BUDGET_CELLS",
+                           chunk_eff, f"{len(Wt):,}", f"{_budget_cells():,}")
         results: dict[str, pd.Series] = {}
-        for i in range(0, len(todo), chunk):
-            batch = todo[i:i + chunk]
-            cols = [c for _, c in batch if c and c in measures.columns]
-            sub = Wt.merge(measures[sorted(set(cols))], left_on=["bank", "year"],
-                           right_index=True, how="left") if cols else Wt.copy()
+        for i in range(0, len(todo), chunk_eff):
+            batch = todo[i:i + chunk_eff]
             for out_name, mcol in batch:
                 if not mcol or mcol not in measures.columns:
                     results[f"cw_{out_name}"] = pd.Series(dtype="float64")
                     results[f"ce_{out_name}"] = pd.Series(dtype="float64")
+            cols = list(dict.fromkeys(m for _, m in batch if m and m in measures.columns))
+            if not cols:
+                continue
+            X = pd.DataFrame({c: _take_measure_col(measures[c], pos) for c in cols},
+                             index=Wt.index)
+            V = X.notna()
+            # NUM 复刻现乘序 (w*x)*valid; DEN 的 valid×w 与 w×valid 靠 IEEE 乘法交换律位级同值
+            NUM = X.fillna(0).rmul(w_ser, axis=0).mul(V)
+            DEN = V.mul(w_ser, axis=0)
+            g_num = _finish(NUM.groupby(codes).sum())
+            g_den = _finish(DEN.groupby(codes).sum())
+            g_ce = _finish(X.groupby(codes).mean())  # mean skipna, 同 group_mean 内核
+            g_nval = _finish(V.groupby(codes).sum())
+            cw_wide = g_num / g_den.replace(0, np.nan)  # den==0 → NaN 非 inf (逐字保留)
+            # N=1 短路: 唯一非缺失测度银行 → cw := X (防浮点漂移, D13/v21 N 语义;
+            # R2 P2-3: 限 den>0, w=0 理论边界不短路)。行掩码 = 本批全列命中组并集。
+            hit_wide = (g_nval == 1) & (g_den > 0)
+            hit_cols = [c for c in cols if hit_wide[c].any()]
+            xonly_by_col: dict[str, pd.Series] = {}
+            if hit_cols:
+                union_keys = hit_wide.index[hit_wide[hit_cols].any(axis=1)]
+                rows = np.isin(codes, code_of.loc[union_keys].to_numpy())
+                comp_s, yr_s = comp_ser[rows], yr_ser[rows]
+                for c in hit_cols:
+                    x_s = X.loc[rows, c]
+                    v_s = x_s.notna()
+                    xonly_by_col[c] = x_s[v_s].groupby([comp_s[v_s], yr_s[v_s]]).first()
+            for out_name, mcol in batch:
+                if not mcol or mcol not in measures.columns:
                     continue
-                x = sub[mcol]
-                valid = x.notna()
-                num = (sub["w"] * x.fillna(0) * valid).groupby([sub["company"], sub["year"]]).sum()
-                den = (sub["w"] * valid).groupby([sub["company"], sub["year"]]).sum()
-                cw = num / den.replace(0, np.nan)
-                ce = x.groupby([sub["company"], sub["year"]]).mean()  # mean skipna
-                nvalid = valid.groupby([sub["company"], sub["year"]]).sum()
-                # N=1 短路: 唯一非缺失测度银行 → cw := X (防浮点漂移, D13/v21 N 语义;
-                # R2 P2-3: 限 den>0, w=0 理论边界不短路)
-                if (nvalid == 1).any():
-                    one = nvalid[(nvalid == 1) & (den > 0)].index
-                    xonly = x[valid].groupby([sub.loc[valid, "company"], sub.loc[valid, "year"]]).first()
-                    cw.loc[one] = xonly.loc[one]
+                cw = cw_wide[mcol].copy()
+                if mcol in xonly_by_col:
+                    one = hit_wide.index[hit_wide[mcol]]
+                    cw.loc[one] = xonly_by_col[mcol].loc[one]
                 results[f"cw_{out_name}"] = cw
-                results[f"ce_{out_name}"] = ce
+                results[f"ce_{out_name}"] = g_ce[mcol]
         nonempty = {k: v for k, v in results.items() if len(v)}
         if nonempty:
             wide = pd.DataFrame(nonempty)
@@ -538,6 +756,81 @@ def compute_weighted_panel(weights: pd.DataFrame, measures: pd.DataFrame, regist
             out_frames[0][c] = np.nan
     out = pd.concat(out_frames, axis=1)
     # 列序 = registry SSOT: 逐条目 → 轨 full/ctx/ss → 臂 cw/ce
+    order = [f"{arm}_{e['basename']}_{t}" for e in emit for t in TRACKS if t in e["emit_tracks"]
+             for arm in ("cw", "ce")]
+    order = [c for c in order if c in out.columns] + [c for c in out.columns if c not in set(order)]
+    return out[order]
+
+
+def _compute_weighted_panel_percol(weights: pd.DataFrame, measures: pd.DataFrame,
+                                   registry: dict, chunk: int = 100) -> pd.DataFrame:
+    """字节等价参照臂 (2026-07-07 COOC_SPEEDUP 冻结; gate 存在即禁删, 禁生产调用)。
+
+    = 提速重构前的逐列实现原样冻结 (含其每 chunk merge 的低效, 连低效一起冻结);
+    gate 测试 test_engine_bitwise_equiv_* 断言生产路径与本臂逐位相等。
+    """
+    keep = [c for c in ("company", "bank", "year", "w", "track") if c in weights.columns]
+    W = weights[keep].dropna(subset=["w"]).copy()
+    has_track = "track" in W.columns
+    emit = [e for e in registry["entries"] if e["emit_panel"]]
+
+    out_frames: list[pd.DataFrame] = []
+    for t in TRACKS:
+        Wt = W[W["track"] == t] if has_track else W
+        if Wt.empty:
+            continue
+        todo: list[tuple[str, str]] = []  # (输出全名, 测度库列)
+        for e in emit:
+            if t not in e["emit_tracks"]:
+                continue
+            col = _measure_col_id(e, t)
+            todo.append((f"{e['basename']}__{t}", col))
+        results: dict[str, pd.Series] = {}
+        for i in range(0, len(todo), chunk):
+            batch = todo[i:i + chunk]
+            cols = [c for _, c in batch if c and c in measures.columns]
+            sub = Wt.merge(measures[sorted(set(cols))], left_on=["bank", "year"],
+                           right_index=True, how="left") if cols else Wt.copy()
+            for out_name, mcol in batch:
+                if not mcol or mcol not in measures.columns:
+                    results[f"cw_{out_name}"] = pd.Series(dtype="float64")
+                    results[f"ce_{out_name}"] = pd.Series(dtype="float64")
+                    continue
+                x = sub[mcol]
+                valid = x.notna()
+                num = (sub["w"] * x.fillna(0) * valid).groupby([sub["company"], sub["year"]]).sum()
+                den = (sub["w"] * valid).groupby([sub["company"], sub["year"]]).sum()
+                cw = num / den.replace(0, np.nan)
+                ce = x.groupby([sub["company"], sub["year"]]).mean()  # mean skipna
+                nvalid = valid.groupby([sub["company"], sub["year"]]).sum()
+                if (nvalid == 1).any():
+                    one = nvalid[(nvalid == 1) & (den > 0)].index
+                    xonly = x[valid].groupby([sub.loc[valid, "company"], sub.loc[valid, "year"]]).first()
+                    cw.loc[one] = xonly.loc[one]
+                results[f"cw_{out_name}"] = cw
+                results[f"ce_{out_name}"] = ce
+        nonempty = {k: v for k, v in results.items() if len(v)}
+        if nonempty:
+            wide = pd.DataFrame(nonempty)
+            for k in results:
+                if k not in wide.columns:
+                    wide[k] = np.nan
+        else:
+            idx = pd.MultiIndex.from_frame(Wt[["company", "year"]].drop_duplicates())
+            wide = pd.DataFrame({k: np.nan for k in results}, index=idx)
+        wide.index.names = ["company_listed_name", "year"]
+        wide.columns = [c.replace("__", "_") for c in wide.columns]
+        out_frames.append(wide)
+    if not out_frames:
+        return pd.DataFrame()
+    have = {c for f in out_frames for c in f.columns}
+    missing_track_cols = [f"{arm}_{e['basename']}_{t}" for e in emit for t in TRACKS
+                          if t in e["emit_tracks"] for arm in ("cw", "ce")
+                          if f"{arm}_{e['basename']}_{t}" not in have]
+    if missing_track_cols:
+        for c in missing_track_cols:
+            out_frames[0][c] = np.nan
+    out = pd.concat(out_frames, axis=1)
     order = [f"{arm}_{e['basename']}_{t}" for e in emit for t in TRACKS if t in e["emit_tracks"]
              for arm in ("cw", "ce")]
     order = [c for c in order if c in out.columns] + [c for c in out.columns if c not in set(order)]
@@ -587,9 +880,17 @@ def make_label(arm: str, base: str, track: str, family: str, scheme_word: str = 
 def write_outputs(panel: pd.DataFrame, registry: dict, out_dta: Path, scheme_word: str = "共现",
                   fixed_labels: dict[str, str] | None = None) -> None:
     import pyreadstat
+    # stock_code 兜底注入 (紧随 company_listed_name; 主面板已在 main 显式插入则跳过) —
+    # 03 七替代权面板经此单点获得同列, 禁在 03 第二份实现
+    if "stock_code" not in panel.columns:
+        panel = panel.copy()
+        panel.insert(panel.columns.get_loc("company_listed_name") + 1, "stock_code",
+                     panel["company_listed_name"].map(stock_code_map()))
+    assert panel["stock_code"].notna().all(), "stock_code 映射缺失 (名单 SSOT 应全覆盖 5528 家)"
     emit = {e["basename"]: e for e in registry["entries"] if e["emit_panel"]}
     rename: dict[str, str] = {}
     labels: dict[str, str] = dict(fixed_labels or {})
+    labels.setdefault("stock_code", "股票代码 (6位字符串, 保前导零)")
     for col in panel.columns:
         m = None
         for arm in ("cw", "ce"):
@@ -617,6 +918,7 @@ def write_outputs(panel: pd.DataFrame, registry: dict, out_dta: Path, scheme_wor
 
 FIXED_LABELS = {
     "company_listed_name": "上市公司中文全称",
+    "stock_code": "股票代码 (6位字符串, 保前导零)",
     "year": "报道发表年",
     "is_bank_company": "该公司自身是否为银行(D4, 42家)",
     "n_cooc_full": "银企共现报道数-full轨",
@@ -655,7 +957,7 @@ def write_codebook(path: Path, registry: dict, panel: pd.DataFrame, input21: pd.
         "",
         "## 产物总览 (整个功能, 全部落 company_listed_bank/data/)",
         "| 产物 | 生产步骤 | 说明 |", "|---|---|---|",
-        "| `company_bank_cooc_panel.dta`/`.parquet` | 02 | 主面板 (媒体共现权): 公司×年, 19 固定列 + 加权列 |",
+        "| `company_bank_cooc_panel.dta`/`.parquet` | 02 | 主面板 (媒体共现权): 公司×年, 20 固定列 + 加权列 |",
         "| `_company_bank_cooc_pairs.parquet` | 02 | pair 长表 (公司×银行×年×轨), 被删加权列唯一重构载体 |",
         "| `company_bank_cooc_panel_codebook.md` | 02 (07 权章由 03 upsert) | 本文件 |",
         "| `_company_bank_altweights_{scheme}.parquet` ×7 | 03 | 七替代权长表 (loan/branch/board/supervisor/exec/dsg/shareholder) |",
@@ -691,7 +993,7 @@ def write_codebook(path: Path, registry: dict, panel: pd.DataFrame, input21: pd.
         "权重 = canonical 不门控计数 (21_full 全宇宙); 测度侧统一为 verified 宇宙 "
         "(40 面板沿上游门控, 自聚合族 = verified 子集 semi-join)。两宇宙刻意不同属设计。",
         "",
-        "## 固定列 (19)",
+        f"## 固定列 ({len(FIXED_LABELS)})",
         "| 变量 | 标签 |", "|---|---|",
     ]
     lines += [f"| `{k}` | {v} |" for k, v in FIXED_LABELS.items()]
@@ -946,7 +1248,7 @@ def main(argv=None) -> int:
 
     import time
     t_start = time.monotonic()
-    _log_stage_header(dp, Path(args.registry), Path(args.output))
+    _log_stage_header(dp, Path(args.registry), Path(args.output), args.year_min, args.year_max)
 
     t0 = time.monotonic()
     registry = yaml.safe_load(Path(args.registry).read_text(encoding="utf-8"))
@@ -976,7 +1278,7 @@ def main(argv=None) -> int:
                 f"{len(variant_owner):,}", len(bank_canonical))
     n_ver_rows = int(input21["_verified"].sum())
     logger.info("留篇宇宙细目 (21_full, 行=报道×目标银行): docid 去重 %s 篇 | 目标银行 %d 家 | "
-                "年域 [%d, %d] | llm_verified_full==True 行 %s (%.1f%%; 门控双宇宙 D7 — "
+                "年域 [%d, %d] | llm_verified_full==True 行 %s (%.4g%%; 门控双宇宙 D7 — "
                 "权重侧 canonical 不门控, 测度侧 verified 宇宙)",
                 f"{input21['docid'].nunique():,}", input21["target_bank"].nunique(),
                 int(input21["_year"].min()), int(input21["_year"].max()),
@@ -986,7 +1288,7 @@ def main(argv=None) -> int:
                 "跨公司重复 variant %d 个 (D5: 全部归属公司各计) | D4 own-bank 对照 %d 家",
                 len(bank_substr), f"{sum(len(s) for s in bank_substr.values()):,}",
                 n_multi_owner, len(own_map))
-    logger.info("[Memory] 数据加载后 | RSS: %.1f MB", _rss_mb())
+    logger.info("[Memory] 数据加载后 | RSS: %.4g MB (psutil 驻留集读数, 非峰值)", _rss_mb())
     t_load = time.monotonic() - t0
 
     t0 = time.monotonic()
@@ -1013,13 +1315,16 @@ def main(argv=None) -> int:
         n_docs_sum, frac_sum = int(p["n_docs"].sum()), float(p["n_docs_frac"].sum())
         lh_share = float(p["n_docs_longhit"].sum()) / max(n_docs_sum, 1)
         msg = (f"  pair[{t}]: Σn_docs={n_docs_sum:,} | Σn_docs_v={int(p['n_docs_v'].sum()):,} "
-               f"(verified 门控) | Σn_docs_frac={frac_sum:,.1f} (Σ(1/k) 同篇多银行分摊) | "
-               f"longhit 篇占比={lh_share:.1%} (≥4 字 variant 精度稳健臂)")
+               f"(verified 门控) | Σn_docs_frac={frac_sum:,.4g} (Σ(1/k) 同篇多银行分摊) | "
+               f"longhit 篇占比={100 * lh_share:.4g}% (≥4 字 variant 精度稳健臂)")
         if t == "ss":
             n_fb = int((p["n_docs"] - p["n_docs_strict"]).sum())
             msg += f" | strict 剔 ss 回退 {n_fb:,} 篇计数"
         logger.info(msg)
     panel = build_counts(hits, company_names, args.year_min, args.year_max, bank_company_set)
+    # stock_code 紧随 company_listed_name (FIXED_ORDER 第 2 固定列; 6 位字符串保前导零)
+    panel.insert(1, "stock_code", panel["company_listed_name"].map(stock_code_map()))
+    assert panel["stock_code"].notna().all(), "stock_code 映射缺失 (名单 SSOT 应全覆盖)"
     panel = add_hhi(panel, pair)
     for t in TRACKS:
         nz = panel[panel[f"n_cooc_{t}"] > 0]
@@ -1048,7 +1353,7 @@ def main(argv=None) -> int:
         wb = wt_base[f"cooc_wt_base_{t}"].dropna()
         if len(wb):
             logger.info("  cooc_wt_base[%s] (共现落在银行面板的比例, 加权测度覆盖诊断): "
-                        "均值 %.3f | p10 %.3f | 全 1.0 格占比 %.1f%%",
+                        "均值 %.4g | p10 %.4g | 全 1.0 格占比 %.4g%%",
                         t, float(wb.mean()), float(wb.quantile(0.1)), 100 * float((wb == 1.0).mean()))
 
     # 媒体权重长表 (canonical n_docs, 逐轨)
@@ -1068,7 +1373,7 @@ def main(argv=None) -> int:
         log(f"{n_all_nan} 个加权列全 NaN (缺源列/dev 数据态)", warn=True)
     panel = panel.merge(weighted, how="left", left_on=["company_listed_name", "year"], right_index=True)
 
-    # 列序: 固定 19 列 + 加权列 (registry SSOT 序, weighted 已排)
+    # 列序: 固定 20 列 + 加权列 (registry SSOT 序, weighted 已排)
     ordered = FIXED_ORDER + [c for c in panel.columns if c not in FIXED_ORDER]
     panel = panel[ordered]
 
@@ -1076,6 +1381,7 @@ def main(argv=None) -> int:
     run_gates(panel, pair, registry, n_expect)
     _sparse_equivalence_check(weights, measures, registry, weighted)
     t_build = time.monotonic() - t0
+    logger.info("[Memory] 聚合+加权+gate 后 | RSS: %.4g MB (psutil 驻留集读数, 非峰值)", _rss_mb())
 
     t0 = time.monotonic()
     out_dta = Path(args.output)
@@ -1126,36 +1432,63 @@ def main(argv=None) -> int:
         kc = ht.groupby("docid")["company"].nunique()
         if len(kc):
             q = kc.quantile([0.5, 0.9, 0.99]).tolist()
-            log(f"k^c {t}: p50={q[0]:.0f} p90={q[1]:.0f} p99={q[2]:.1f} max={kc.max()}"
+            log(f"k^c {t}: p50={q[0]:.4g} p90={q[1]:.4g} p99={q[2]:.4g} max={kc.max()}"
                 f" | top docid: {kc.nlargest(3).to_dict()}")
     logger.info("-" * 70)
     n_docs_hit = hits.drop_duplicates("docid").shape[0]
     n_comp_hit = panel.loc[panel["n_cooc_full"] > 0, "company_listed_name"].nunique()
-    logger.info("【结果分析】面板构建产出指标判读 (越接近预期方向越健康):")
+    logger.info("【结果分析】面板构建产出指标判读 (逐条附经济学/方法学解读与健康区间):")
     logger.info("  ① 行数不变量: %s 行 == %s 公司 × %d 年 → 骨架完备无缺格 (好)",
                 f"{len(panel):,}", f"{len(company_names):,}", args.year_max - args.year_min + 1)
-    logger.info("  ② 共现覆盖: %s/%s 篇报道命中 ≥1 家上市公司 (%.2f%%); %s 家公司 full 轨有共现"
+    logger.info("     判读: 行数只由名单×年窗决定, 与语料规模无关 — 缺格意味着 reindex/merge 静默丢行,")
+    logger.info("     任何偏离都是代码缺陷而非数据态; 平衡骨架也是 Stata xtset 与真零/假零判别的前提。")
+    logger.info("  ② 共现覆盖: %s/%s 篇报道命中 ≥1 家上市公司 (%.4g%%); %s 家公司 full 轨有共现"
                 " → 有可消费信号 (好)", f"{n_docs_hit:,}", f"{input21['docid'].nunique():,}",
                 100 * n_docs_hit / max(input21["docid"].nunique(), 1), f"{n_comp_hit:,}")
+    logger.info("     判读: 语料宇宙是 stage 13 过滤后的'银行金融科技报道', 命中率高于一般新闻属预期;")
+    logger.info("     命中率过高 (>90%) 提示短名误配灌水, 过低 (<10%) 提示名单覆盖不足或轨文本为空 —")
+    logger.info("     两个方向都应先查 variant 长度谱与 k^c 右尾, 而非直接采信计数列。")
     logger.info("  ③ 内联 gate: frac 恒等/HHI 三锁/值域/单银行 cw==ce/缺失互斥/verified 分化 全过;"
                 " 双法 (分块 join vs 稀疏矩阵) 抽样等价已证 → 加权引擎无静默错位 (好)")
+    logger.info("     判读: 八闸全为恒等式/序关系/值域约束, 与样本规模无关 — 生产 T=18 上任何一闸翻红")
+    logger.info("     都指向构造缺陷 (如权重错轨/分母摊薄/缺失被填 0), 属拒绝落盘级错误, 不可当告警忽略。")
     logger.info("  ④ pair 长表 metadata 带 registry_sha256=%s… + 输入指纹 → 步骤 03 双向锁可核 (好)",
                 registry["meta"]["registry_sha256"][:16])
+    logger.info("     判读: 指纹链保证 03 的七权互验与本面板同源同输入 — 复现包审查者可据此排除")
+    logger.info("     '面板与权重来自不同数据快照'这一常见不可复现根因。")
+    logger.info("  ⑤ k^c 右尾判读 (上表分位): p50 低而 max 高 = 少数名录/盘点稿贡献大量弱关联共现;")
+    logger.info("     frac 列 (1/k 分摊) 与 longhit 臂即其对冲, 刻意不设剔除阈值 (阈值属分析端自由度,")
+    logger.info("     预注册后在回归端做样本限制稳健, 避免本步骤引入 researcher df)。")
+    logger.info("  ⑥ 全 NaN 加权列 %s 个 (共 %s 列): dev 数据态缺源列所致; 生产 T=18 上游全列重生后",
+                f"{n_all_nan:,}", f"{n_cw + n_ce:,}")
+    logger.info("     应显著减少 — 若仍大面积全 NaN, 先查 40/51/27 上游列覆盖而非本脚本。")
+    logger.info("  ⑦ cooc_wt_base (上文三轨统计): 该值是 cw 列有效覆盖的上界 — 越接近 1, 加权测度")
+    logger.info("     对共现宇宙的代表性越强 (>0.9 视为健康); 生产上若走低属数据态而非 bug,")
+    logger.info("     分析端按覆盖率做样本限制稳健 (codebook §7 义务)。")
+    logger.info("  ⑧ 与生产 T=18 的预期差异: 本次输入为 dev 语料 (约全量 0.055%); 计数/覆盖/k^c 分位")
+    logger.info("     将随语料放大数量级, 但 gate 判据 (恒等/值域/序) 与骨架行数公式均规模无关,")
+    logger.info("     可直接作为生产运行的判读基线; 2025 年整年 0 属上游截止预期, 非缺失。")
     logger.info("-" * 70)
-    logger.info("  ⏱ 各子阶段墙钟耗时 (秒, 4 位有效数字):")
-    logger.info("     · ①加载 registry+名单+21_full: %.4g 秒", t_load)
-    logger.info("     · ②AC 扫描+聚合+加权+gate: %.4g 秒", t_build)
-    logger.info("     · ③写盘 dta/parquet/pair/codebook: %.4g 秒", t_write)
+    logger.info("  ⏱ 各子阶段墙钟耗时与吞吐率 (4 位有效数字; 吞吐率=既有计数/墙钟, 无新增重计算):")
+    logger.info("     · ①加载 registry+名单+21_full: %.4g 秒 (吞吐 %.4g 输入行/秒)",
+                t_load, len(input21) / max(t_load, 1e-9))
+    logger.info("     · ②AC 扫描+聚合+加权+gate: %.4g 秒 (吞吐 %.4g 输入行/秒 | %.4g 命中明细行/秒)",
+                t_build, len(input21) / max(t_build, 1e-9), len(hits) / max(t_build, 1e-9))
+    logger.info("     · ③写盘 dta/parquet/pair/codebook: %.4g 秒 (吞吐 %.4g 面板单元格/秒; "
+                "dta 全表序列化为该段主项)",
+                t_write, len(panel) * len(panel.columns) / max(t_write, 1e-9))
     t_total = time.monotonic() - t_start
-    logger.info("     · 子阶段合计: %.4g 秒 (占总阶段 %.2f%%)",
+    logger.info("     · 子阶段合计: %.4g 秒 (占总阶段 %.4g%%; 余量=argparse/头部日志等常数开销)",
                 t_load + t_build + t_write, 100 * (t_load + t_build + t_write) / max(t_total, 1e-9))
+    logger.info("     · 判读: 生产 T=18 下 ② 随语料行数近线性放大 (AC 扫描对文本长度线性), ③ 随")
+    logger.info("       面板行×列放大; RSS 峰值主项 = 写盘期 dta 全表驻留 (加权段已分块 join 限增量)。")
     logger.info("═" * 50)
     logger.info("阶段摘要: %s", Path(__file__).stem)
     logger.info("─" * 50)
-    logger.info("  耗时:     %.2f 秒 (%.4f 分钟)", t_total, t_total / 60)
+    logger.info("  耗时:     %.4g 秒 (%.4g 分钟)", t_total, t_total / 60)
     logger.info("  输入:     %s 行 (21_full 报道×目标银行)", f"{len(input21):,}")
     logger.info("  输出:     %s 行 × %s 列 → %s", f"{len(panel):,}", f"{len(panel.columns):,}", out_dta.name)
-    logger.info("  内存RSS:  %.1f MB", _rss_mb())
+    logger.info("  内存RSS:  %.4g MB (进程当前驻留集, 非运行期峰值)", _rss_mb())
     logger.info("═" * 50)
     logger.info("--- 阶段执行完毕: %s ---", Path(__file__).stem)
     return 0
