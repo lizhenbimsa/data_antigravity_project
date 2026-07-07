@@ -86,6 +86,7 @@ news_process/models/
 # 日志文件
 # ============================================================
 news_process/logs/
+news_process/company_listed_bank/logs/
 *.log
 
 # ============================================================
@@ -94,6 +95,8 @@ news_process/logs/
 # Phase 8 (2026-05-04): data_processed/ 重命名为 data/processed/
 news_process/data/
 news_process/data_excel/
+# 2026-07-07: 银企共现面板流水线产物 (~13GB dta/parquet, 镜像 data/processed 不入库惯例)
+news_process/company_listed_bank/data/
 # 2026-06-26 (A6 修复): stage 70 prompt_sensitivity 等验证诊断产物的落点已统一对齐到
 # data/processed/eval_reports/ (受 news_process/data/ 整树忽略); 历史误落源码树的
 # validation/eval_reports/ 一律忽略, 杜绝研究产物再泄漏进版本库。

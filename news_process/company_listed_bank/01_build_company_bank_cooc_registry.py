@@ -13,7 +13,7 @@
   4. D16 短名: 基名级判定与施加, 全列 ≤32 且全局唯一断言 fail-loud。
   5. 哈希锚 = sha256(canonical JSON, 键排序、剔除易变字段) + 两份名单文件内容哈希 (v20 防呆)。
 
-用法: python scripts/build_company_bank_cooc_registry.py [--panel PATH] [--out PATH]
+用法: python company_listed_bank/01_build_company_bank_cooc_registry.py [--panel PATH] [--out PATH]
 独立派生数据脚本, 不注册 DAG (镜像 generate_company_listed_names.py 定位)。
 """
 from __future__ import annotations
@@ -21,15 +21,102 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import logging
 import re
 import sys
 from pathlib import Path
 
 import yaml
 
+HERE = Path(__file__).resolve().parent
 REPO = Path(__file__).resolve().parents[1]
 DATA = REPO / "data" / "processed"
 CONFIG = REPO / "config"
+
+logger = logging.getLogger("01_build_company_bank_cooc_registry")
+if not logger.handlers:  # console 兜底 (被测试/importlib 导入时); main() 实跑时由 setup_logging 接管
+    _h = logging.StreamHandler(sys.stdout)
+    _h.setFormatter(logging.Formatter("[WP0] %(levelname)s %(message)s"))
+    logger.addHandler(_h)
+    logger.setLevel(logging.INFO)
+
+
+def _init_stage_logging() -> None:
+    """接入主管道日志基建 (core/logging.py::setup_logging): 写 company_listed_bank/logs/<stem>.log,
+    格式/每次运行覆盖/50MB rotate 与主管道各阶段日志完全一致。单文件 importlib 加载, 不引入包依赖。"""
+    import os
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        return  # WP-A: 测试进程绝不接管文件日志 (2026-07-07 审计: 负例测试曾首写截断覆盖生产 02 日志)
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("_np_core_logging", REPO / "core" / "logging.py")
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    m.setup_logging(Path(__file__).stem, str(HERE / "logs"))
+    # setup_logging 置 propagate=False (主管道防双打惯例); 本脚本进程 root 无 handler,
+    # 恢复 True 无双打副作用, 且保 pytest caplog (root handler) 可捕 — 否则负例测试调过
+    # main() 后, 同会话后续 caplog 断言静默失捕 (2026-07-07 实弹)
+    logging.getLogger(Path(__file__).stem).propagate = True
+
+
+def _rss_mb() -> float:
+    import psutil
+    return psutil.Process().memory_info().rss / 1024 / 1024
+
+
+def _log_stage_header(panel_path: Path, out_path: Path) -> None:
+    """阶段头汇报块 (完全参照主管道 12_news_fintech.log 的内容格式)。"""
+    import os
+    import platform
+    import sys as _sys
+    stem = Path(__file__).stem
+    logger.info("--- 开始执行阶段: %s ---", stem)
+    logger.info("=" * 72)
+    logger.info("步骤 01: 银企共现面板测度注册表对账 (WP0; 五上游全划分 + 负清单机械落值 + sha256 哈希锚)")
+    logger.info("=" * 72)
+    logger.info("【功能】读五上游 (40/51/27/16/21_full) 全部列名, 把 40 面板每一列判定为")
+    logger.info("        '纳入某基名的源列' 或 '排除+理由代码' (全划分, 残差非零即崩), 产出")
+    logger.info("        config/company_bank_cooc_registry.yaml — 步骤 02/03 加权引擎与 schema gate 的唯一 SSOT。")
+    logger.info("【方法】D15 排除正则+白名单 / D11 族规则解析不规则轨后缀; emit 判定从负清单")
+    logger.info("        CUT_LIST_v23 机械落值 (仅锚 CUT 侧 410); D16 短名基名级施加 (≤32 且全局唯一);")
+    logger.info("        D4 人工对照键经 variant 表解析归一到公司全称 (集合相等断言, 禁计数相等);")
+    logger.info("        DV2 常量 import 自步骤 03 落 registry 区段 (双向锁)。")
+    logger.info("【判读】40 面板残差 0 列是硬闸 (非 0 → SystemExit); 条目/emit/cut 对账负清单恰等;")
+    logger.info("        registry_sha256 变更 = 盘上态漂移信号 → 须 bump 测试锚并级联重跑 02→03。")
+    logger.info("【确定性】纯列名读取 + canonical JSON 哈希, 无 LLM/网络/API ($0); 同输入逐字节幂等")
+    logger.info("          (2026-07-07 实证: 重跑前后 registry yaml git hash 一致)。")
+    logger.info("")
+    logger.info("  🧭 项目 / 环境信息")
+    logger.info("     · 步骤: %s (WP0 注册表对账, company_listed_bank 流水线 01/03; 不注册主 DAG)", stem)
+    logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板), 当前版本 v3.15.0")
+    logger.info("     · 模块文件: %s", Path(__file__).resolve())
+    logger.info("     · 工作目录: %s", os.getcwd())
+    logger.info("     · Python:   %s @ %s", platform.python_version(), _sys.executable)
+    logger.info("     · 平台:     %s | CPU 逻辑核=%s", platform.platform(), os.cpu_count())
+    logger.info("     · PID=%s | RUN_ID=%s | 本步骤纯 CPU / 无 LLM·网络·API ($0) / 逐字节幂等",
+                os.getpid(), os.environ.get("NEWS_PROCESS_RUN_ID", "standalone"))
+    logger.info("  📂 输入 / 输出文件")
+    logger.info("     · 输入(40): %s (主上游, 全划分对象)", panel_path)
+    logger.info("     · 输入(51/27/16/21_full): %s 下同名 parquet (域外族列名来源)", DATA)
+    logger.info("     · 输入(负清单): %s (emit 判定 SSOT)", CUT_LIST_PATH)
+    logger.info("     · 输入(两名单): %s | %s", CONFIG / "company_listed_names.yaml", CONFIG / "bank_names.json")
+    logger.info("     · 输出:     %s (入库 SSOT, 供步骤 02/03 与 gate 测试消费)", out_path)
+    logger.info("  ⚙ 运行配置 (脚本内常量 SSOT)")
+    logger.info("     · D16 短名替换表 %d 条 | DCLS→DM 别名 %d 条 | D4 人工对照 %d 家 | DEFERRED 基名 %d 个",
+                len(SHORT_NAME_REPLACEMENTS), len(DCLS_ALIAS), len(MANUAL_BANK_COMPANY_MAP),
+                len(DEFERRED_BASENAMES))
+    logger.info("  📖 方法论依据 (参考文献)")
+    logger.info("     · 文本测度方法学总纲: Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. "
+                "Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020")
+    logger.info("       → 白话: 文本变量进计量前须显式声明构造规则与测度目录; 本步骤把 3,442 列的"
+                "纳入/排除规则物化为机器可核验的注册表, 即该原则的工程落地。")
+    logger.info("     · 词典/测度敏感性: Loughran, T., & McDonald, B. (2016). Textual analysis in accounting "
+                "and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. "
+                "https://doi.org/10.1111/1475-679X.12123")
+    logger.info("       → 白话: 文本测度结论对词表与口径选择敏感, 须留可审计痕迹; 本注册表的"
+                "excluded 理由代码 + 哈希锚即为口径选择的全程留痕。")
+    logger.info("")
+
+
 CUT_LIST_PATH = REPO / "scripts" / "audit" / "COMPANY_BANK_COOC_PANEL_CUT_LIST_v23.txt"
 
 TRACKS = ("full", "ctx", "ss")
@@ -85,10 +172,12 @@ MANUAL_BANK_COMPANY_MAP = {
 
 # ---------------------------------------------------------------- DV2 常量 (v33 J2: WP0 import WP5 模块常量落 registry 区段, 双向锁)
 def _load_dv2_constants() -> dict:
-    sys.path.insert(0, str(REPO / "scripts"))
+    # 序号前缀模块名 (03_*) 非合法 import 语句标识符 → 走 importlib
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
     try:
-        from build_company_bank_weight_validation import DV2_CONSTANTS  # noqa: PLC0415
-        return DV2_CONSTANTS
+        import importlib  # noqa: PLC0415
+        w8 = importlib.import_module("03_build_company_bank_weight_validation")
+        return w8.DV2_CONSTANTS
     except Exception:  # WP5 脚本未就绪时 (WP0 首跑早于 WP5) 用空占位, WP5 落地后重跑 WP0 回填
         return {}
 
@@ -349,12 +438,18 @@ def build_bank_company_map(companies: list[dict], banks: list[dict]) -> dict[str
             mapping[name] = hit
         if ("银行" in name) or ("农商" in name):
             name_flag_set.add(name)
+    n_machine = len(mapping)
     # 人工 5 家: 证券简称经 variant 表解析归一到 company_listed_name 全称 (R3 P0-1 修复)
     for alias, extra in MANUAL_BANK_COMPANY_MAP.items():
         owners = company_variant_owner.get(alias, [])
         if len(owners) != 1:
             raise SystemExit(f"D4 人工对照键 {alias!r} 解析到 {len(owners)} 家公司 (须唯一) — 人工目检")
         mapping.setdefault(owners[0], set()).update(extra)
+        logger.info("D4 人工对照解析: 证券简称 %s → 全称 %s (own-bank 对照: %s)",
+                    alias, owners[0], "/".join(extra))
+    logger.info("D4 对照表构建: 机器 variant 交集 %d 家 + 人工 %d 家解析并入 → 合计 %d 家 "
+                "(全称含'银行/农商'公司集 %d 家, 集合相等断言待验)",
+                n_machine, len(MANUAL_BANK_COMPANY_MAP), len(mapping), len(name_flag_set))
     # 覆盖性断言 (D4, R3 P0-1 升级为集合相等 — 计数锚对成员错位盲):
     # 对照表键集合 == 全称含银行/农商的公司集合
     if set(mapping) != name_flag_set:
@@ -400,24 +495,40 @@ def finalize_short_names(entries: list[dict]) -> None:
 
 # ---------------------------------------------------------------- 主流程
 def main(argv=None) -> int:
+    _init_stage_logging()
     ap = argparse.ArgumentParser()
     ap.add_argument("--panel", default=str(DATA / "40_panel_yearly.parquet"))
     ap.add_argument("--out", default=str(CONFIG / "company_bank_cooc_registry.yaml"))
     args = ap.parse_args(argv)
+    import time
+    t_start = time.monotonic()
+    _log_stage_header(Path(args.panel), Path(args.out))
 
+    t0 = time.monotonic()
     cols40 = read_cols(Path(args.panel))
     cols51 = read_cols(DATA / "51_panel_with_controls.parquet")
     cols27 = read_cols(DATA / "27_benefit_dimensions_panel.parquet")
     cols16 = read_cols(DATA / "16_article_alignment.parquet")
     cols21 = read_cols(DATA / "21_tone_llms_full.parquet")
     set40, set51, set27, set16, set21 = map(set, (cols40, cols51, cols27, cols16, cols21))
+    t_load = time.monotonic() - t0
+    logger.info("正在从 %s 加载五上游列名...", DATA)
+    logger.info("  📐 输入 schema: 40 面板=%s 列 | 51=%s | 27=%s | 16=%s | 21_full=%s",
+                f"{len(cols40):,}", f"{len(cols51):,}", f"{len(cols27):,}",
+                f"{len(cols16):,}", f"{len(cols21):,}")
+    logger.info("[Memory] 列名加载后 | RSS: %.1f MB", _rss_mb())
 
+    t0 = time.monotonic()
     cut_rows, keep_rows = parse_cut_list(CUT_LIST_PATH)
     # 对账前施 _dcls→_dm 别名映射 (仅按基名集合)
     cut_bases = [(fam, DCLS_ALIAS.get(b, b)) for fam, b in cut_rows]
     if len({b for _, b in cut_bases}) != 410:
         raise SystemExit(f"负清单 CUT 段物化后应恰 410 基名, 实得 {len({b for _, b in cut_bases})}")
     cut_set = {b for _, b in cut_bases}
+    n_alias = sum(1 for _, b in cut_rows if b in DCLS_ALIAS)
+    logger.info("负清单 CUT_LIST_v23 解析: CUT 段 %d 行 / KEEP 段 %d 行 | _dcls→_dm 别名映射命中 %d 条"
+                " | CUT 物化 %d 基名 (恰 410 硬闸 ✓, 禁 keep/domain 计数锚)",
+                len(cut_rows), len(keep_rows), n_alias, len(cut_set))
 
     # WP0-6 修正: ② lazy 幽灵基名并入标准三轨注册 (KEEP 段 6 条 lazy → 3 真基名)
     keep_bases: list[tuple[str, str]] = []
@@ -427,6 +538,9 @@ def main(argv=None) -> int:
         if b2 not in seen_keep:
             keep_bases.append((fam, b2))
             seen_keep.add(b2)
+    if len(keep_rows) != len(keep_bases):
+        logger.info("KEEP 段 lazy 幽灵基名折叠: %d 行 → %d 基名 (lazy_{jaccard,overlap,minedit} 并入"
+                    "标准三轨注册, WP0-6 ②)", len(keep_rows), len(keep_bases))
     # WP0-6 ③ llm_vote_tone_std 白名单入 DA 族纳入域 (负清单缺席即保留);
     # 同机制 (v21 干跑被 ⑦ 正则吞掉) 的 C1b 三基名一并核查补注册 — 白名单豁免列须证入纳入域
     for fam, wl in (("DA", "llm_vote_tone_std"), ("C1b", "avg_subst_prob_score"),
@@ -434,8 +548,8 @@ def main(argv=None) -> int:
         if wl not in seen_keep and wl not in cut_set:
             keep_bases.append((fam, wl))
             seen_keep.add(wl)
-            print(f"[WP0] WARNING: 白名单豁免基名 {wl} 不在负清单域, 按 WP0-6 ③ 先例补注册"
-                  f" (族 {fam}, emit_panel=true)", file=sys.stderr)
+            logger.warning("白名单豁免基名 %s 不在负清单域, 按 WP0-6 ③ 先例补注册 (族 %s, emit_panel=true)",
+                           wl, fam)
 
     # 40 面板域条目构造 (KEEP + CUT 全在划分域; CUT 打 emit_panel=false)
     entries: list[dict] = []
@@ -466,10 +580,18 @@ def main(argv=None) -> int:
             agg=None, emit_tracks=emit_tracks, emit_panel=emit,
             cut_code=("CUT_V23" if not emit else None)))
     if unresolved:
-        print(f"[WP0] WARNING: {len(unresolved)} 个注册在案基名盘上缺全部源列 (共享树 40 面板漂移/DEFERRED),"
-              " 按缺列容错出全 NaN 列:", file=sys.stderr)
+        logger.warning("%d 个注册在案基名盘上缺全部源列 (共享树 40 面板漂移/DEFERRED), 按缺列容错出全 NaN 列:",
+                       len(unresolved))
         for b in unresolved:
-            print("   ", b, file=sys.stderr)
+            logger.warning("    %s", b)
+    n_keep_dom = sum(1 for e in entries if e["emit_panel"])
+    n_ta = sum(1 for e in entries if e["track_agnostic"])
+    n_def = sum(1 for e in entries if e["basename"] in DEFERRED_BASENAMES)
+    per_track = {t: sum(1 for e in entries if e["col_by_track"].get(t)) for t in TRACKS}
+    logger.info("40 面板域条目构造: %d 条 (KEEP emit=%d / CUT emit_panel=false=%d) | track-agnostic=%d"
+                " | DEFERRED 承诺全 NaN=%d | 逐轨源列解析 full=%d / ctx=%d / ss=%d",
+                len(entries), n_keep_dom, len(entries) - n_keep_dom, n_ta, n_def,
+                per_track["full"], per_track["ctx"], per_track["ss"])
 
     # 域外条目 (PA/KW/FOCUS/BD/CTRL)
     off = build_offpanel_entries(set16, set27, set51)
@@ -479,6 +601,12 @@ def main(argv=None) -> int:
         else:
             e["emit_tracks"] = [t for t in TRACKS if e["col_by_track"].get(t)]
     entries.extend(off)
+    off_fams: dict[str, int] = {}
+    for e in off:
+        off_fams[e["family"]] = off_fams.get(e["family"], 0) + 1
+    logger.info("域外条目追加: %d 条 %s — PA=16 号文章级自聚合 mean / KW·FOCUS=21_full verified 宇宙"
+                "自聚合 / BD=27 号银行×年直读 (六轨 lg 中置) / CTRL=51 号覆盖控制直读",
+                len(off), dict(sorted(off_fams.items())))
 
     # range_gate 落值
     for e in entries:
@@ -509,9 +637,9 @@ def main(argv=None) -> int:
         else:
             excluded[col] = code
     if residual:
-        print(f"[WP0] 40 面板残差 {len(residual)} 列无判定 (穷尽性断言失败):", file=sys.stderr)
+        logger.error("40 面板残差 %d 列无判定 (穷尽性断言失败):", len(residual))
         for c in residual:
-            print("   ", c, file=sys.stderr)
+            logger.error("    %s", c)
         raise SystemExit(1)
 
     # 51 号: CTRL 6 列纳入; 与 40 重复列 DUP_OF_40; 其余走排除
@@ -529,9 +657,9 @@ def main(argv=None) -> int:
         else:
             excluded[f"51:{col}"] = code
     if residual51:
-        print(f"[WP0] 51 号残差 {len(residual51)} 列:", file=sys.stderr)
+        logger.error("51 号残差 %d 列:", len(residual51))
         for c in residual51:
-            print("   ", c, file=sys.stderr)
+            logger.error("    %s", c)
         raise SystemExit(1)
 
     # 27 号: BD 24 轨列纳入 + 键
@@ -564,6 +692,14 @@ def main(argv=None) -> int:
             continue
         excluded[f"21:{col}"] = "KEY" if col in {"docid", "target_bank", "日期"} else "TEXT"
 
+    # 排除域理由代码分布 (D15 十一规则 + KEY/TEXT/DUP_OF_40 簿记码全谱)
+    code_counts: dict[str, int] = {}
+    for v in excluded.values():
+        code_counts[v] = code_counts.get(v, 0) + 1
+    logger.info("排除域全划分完成: %d 列判排除 (40 面板域 %d + 51/27/16/21 前缀域 %d), 理由代码分布: %s",
+                len(excluded), sum(1 for k in excluded if ":" not in k),
+                sum(1 for k in excluded if ":" in k), dict(sorted(code_counts.items())))
+
     # 白名单核查 (WP0-6 ③): 强制纳入清单每项须在纳入域
     for w in INCLUDE_WHITELIST:
         if not any(e["basename"] == w or w in (e["col_by_track"].get(t) or "" for t in TRACKS)
@@ -575,6 +711,9 @@ def main(argv=None) -> int:
 
     # 短名
     finalize_short_names(entries)
+    n_short = sum(1 for e in entries if e["short_name"] != e["basename"])
+    logger.info("D16 短名施加: %d/%d 条目触发缩写替换 (替换表 %d 条单遍表序应用; 投影列全 ≤32 字符"
+                "且全局唯一断言 ✓)", n_short, len(entries), len(SHORT_NAME_REPLACEMENTS))
 
     # 排序: 条目顺序 = 输出列序 SSOT (负清单族/入表序 → 域外族按 PA/KW/FOCUS/BD/CTRL 追加)
     # (domain_rows 构造序 = KEEP→CUT 的负清单原序, off 按构造序 — 已是确定序, 不再重排)
@@ -610,20 +749,64 @@ def main(argv=None) -> int:
     anchor = hashlib.sha256(
         json.dumps(anchor_obj, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
     registry["meta"]["registry_sha256"] = anchor
+    logger.info("输入内容指纹 (v20 防呆): company_names=%s… | bank_names=%s… | cut_list=%s…",
+                registry["meta"]["company_names_sha256"][:16],
+                registry["meta"]["bank_names_sha256"][:16],
+                registry["meta"]["cut_list_sha256"][:16])
+    logger.info("DV2 常量区段落值: %d 键 (import 自步骤 03 模块常量, 双向锁载体) — %s",
+                len(dv2_constants),
+                "/".join(sorted(dv2_constants)) if dv2_constants else "空占位 (WP5 未就绪)")
 
+    t_build = time.monotonic() - t0
+
+    t0 = time.monotonic()
     out = Path(args.out)
+    logger.info("正在将注册表写入 %s...", out)
     out.write_text(yaml.safe_dump(registry, allow_unicode=True, sort_keys=False, width=200),
                    encoding="utf-8")
+    t_write = time.monotonic() - t0
 
-    # 人读审计表
+    # 人读审计表 + 统计报告 (格式参照 12_news_fintech.log)
     fam_counts: dict[str, int] = {}
     for e in entries:
         fam_counts[e["family"]] = fam_counts.get(e["family"], 0) + 1
     n_proj = sum(2 * len(e["emit_tracks"]) for e in entries if e["emit_panel"])
-    print(f"[WP0] 条目 {len(entries)} (emit {registry['meta']['n_emit']} / cut {registry['meta']['n_cut']})"
-          f" | 40 面板 {len(cols40)} 列全划分 (排除 {sum(1 for k in excluded if ':' not in k)})"
-          f" | 加权投影列 {n_proj} | registry_sha256 {anchor[:16]}…")
-    print("[WP0] 分族小计:", dict(sorted(fam_counts.items())))
+    n_excl40 = sum(1 for k in excluded if ":" not in k)
+    logger.info("=" * 70)
+    logger.info("===      注册表对账统计报告      ===")
+    logger.info("=" * 70)
+    logger.info("条目总数: %s (emit %s / cut %s)", f"{len(entries):,}",
+                f"{registry['meta']['n_emit']:,}", f"{registry['meta']['n_cut']:,}")
+    logger.info("40 面板列数: %s | 纳入源列域外排除: %s | 加权投影列: %s",
+                f"{len(cols40):,}", f"{n_excl40:,}", f"{n_proj:,}")
+    logger.info("分族小计 (%d 族): %s", len(fam_counts), dict(sorted(fam_counts.items())))
+    logger.info("registry_sha256: %s", anchor)
+    logger.info("-" * 70)
+    logger.info("【结果分析】注册表对账产出指标判读 (越接近预期方向越健康):")
+    logger.info("  ① 穷尽性: 40 面板 %s 列全划分残差 0 (硬闸已过) → 无静默漏列 (好)", f"{len(cols40):,}")
+    logger.info("  ② 负清单对账: cut=%s 恰等 CUT_LIST_v23 物化 410 基名 → emit 判定机械落值零人工 (好)",
+                f"{registry['meta']['n_cut']:,}")
+    logger.info("  ③ D4 对照: bank_company_map=%d 家全称键 (集合相等断言已过) → own-bank 剔除无错位 (好)",
+                len(bank_company_map))
+    logger.info("  ④ 哈希锚: %s… — 与 tests/test_company_bank_cooc_registry.py::EXPECTED_REGISTRY_SHA256"
+                " 比对; 不一致 = 盘上态漂移, 须 bump 锚并级联 02→03 (关注)", anchor[:16])
+    logger.info("-" * 70)
+    logger.info("  ⏱ 各子阶段墙钟耗时 (秒, 4 位有效数字):")
+    logger.info("     · ①读五上游列名: %.4g 秒", t_load)
+    logger.info("     · ②解析+全划分+构条目: %.4g 秒", t_build)
+    logger.info("     · ③写盘 registry yaml: %.4g 秒", t_write)
+    t_total = time.monotonic() - t_start
+    logger.info("     · 子阶段合计: %.4g 秒 (占总阶段 %.2f%%)",
+                t_load + t_build + t_write, 100 * (t_load + t_build + t_write) / max(t_total, 1e-9))
+    logger.info("═" * 50)
+    logger.info("阶段摘要: %s", Path(__file__).stem)
+    logger.info("─" * 50)
+    logger.info("  耗时:     %.2f 秒 (%.4f 分钟)", t_total, t_total / 60)
+    logger.info("  输入:     %s 列 (五上游列名合计)", f"{len(cols40)+len(cols51)+len(cols27)+len(cols16)+len(cols21):,}")
+    logger.info("  输出:     %s 条注册条目 → %s", f"{len(entries):,}", out.name)
+    logger.info("  内存RSS:  %.1f MB", _rss_mb())
+    logger.info("═" * 50)
+    logger.info("--- 阶段执行完毕: %s ---", Path(__file__).stem)
     return 0
 
 

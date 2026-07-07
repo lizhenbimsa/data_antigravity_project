@@ -1,7 +1,7 @@
 """DV6 — 七替代权源 gate + 测试 (COMPANY_BANK_COOC_PANEL_EXECUTION_PLAN v34)。
 
 fast 部分全 mock 不碰盘 (仅 bank_names.json/registry 只读); integration 部分 = dev 真跑锚
-(行数锚/身份实弹锚, 读 config dta 与 data/processed 产物)。
+(行数锚/身份实弹锚, 读 config dta 与 company_listed_bank/data 产物)。
 """
 from __future__ import annotations
 
@@ -13,9 +13,12 @@ import pandas as pd
 import pytest
 
 REPO = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO / "scripts"))
+sys.path.insert(0, str(REPO / "company_listed_bank"))
 
-import build_company_bank_weight_validation as w8  # noqa: E402
+# 序号前缀模块名 (03_*) 非合法 import 语句标识符 → 走 importlib
+import importlib  # noqa: E402
+
+w8 = importlib.import_module("03_build_company_bank_weight_validation")
 
 pytestmark = pytest.mark.fast
 
@@ -490,7 +493,7 @@ def test_codebook_idempotent(tmp_path):
 
 def test_label_scheme_word():
     """标签改写锁: 贷款面板变量标签不含'共现'字样。"""
-    import build_company_bank_cooc_panel as wp1
+    wp1 = importlib.import_module("02_build_company_bank_cooc_panel")
     lbl = wp1.make_label("cw", "n_articles", "full", "Q", scheme_word="贷款")
     assert "共现" not in lbl and "贷款加权" in lbl
 
@@ -526,9 +529,9 @@ def test_identity_anchors_seven_panels():
     的长表中 (同构 schema 批量 zip 错绑时唯身份锚必红)。"""
     got = {}
     for scheme in w8.SCHEMES:
-        p = w8.DATA / f"_company_bank_altweights_{scheme}.parquet"
+        p = w8.OUT_DATA / f"_company_bank_altweights_{scheme}.parquet"
         if not p.exists():
-            pytest.skip("WP5 长表未落盘 (先跑 build_company_bank_weight_validation.py)")
+            pytest.skip("WP5 长表未落盘 (先跑 company_listed_bank/03_build_company_bank_weight_validation.py)")
         got[scheme] = pd.read_parquet(p)
     # 贷款: 从原始 dta 手算首个 CNY 非银团可映射事件
     canon = w8.BankCanon()

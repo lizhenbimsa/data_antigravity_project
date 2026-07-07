@@ -12,9 +12,12 @@ import pandas as pd
 import pytest
 
 REPO = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO / "scripts"))
+sys.path.insert(0, str(REPO / "company_listed_bank"))
 
-import build_company_bank_cooc_panel as mod  # noqa: E402
+# 序号前缀模块名 (02_*) 非合法 import 语句标识符 → 走 importlib
+import importlib  # noqa: E402
+
+mod = importlib.import_module("02_build_company_bank_cooc_panel")
 
 pytestmark = pytest.mark.fast
 
@@ -420,7 +423,7 @@ def test_cross_year_warning(caplog):
     A = make_automaton(VO)
     hits = mod.scan_hits(make_input(rows), A, {}, {})
     import logging
-    with caplog.at_level(logging.WARNING, logger="company_bank_cooc_panel"):
+    with caplog.at_level(logging.WARNING, logger="02_build_company_bank_cooc_panel"):
         mod.build_year_map(hits)
     assert any("跨年" in r.message for r in caplog.records)
 
@@ -431,3 +434,31 @@ def test_labels_dual_gate():
     assert len(lbl) <= 80 and len(lbl.encode("utf-8")) <= 320
     lbl2 = mod.make_label("cw", "x", "full", "Q", scheme_word="贷款")
     assert "贷款加权" in lbl2 and "共现" not in lbl2
+
+
+# ---------------------------------------------------------------- WP-A log-clobber 防复发 gate
+# (2026-07-07 日志审计: 负例测试调 main() 曾三次首写截断覆盖生产 02 日志; 守卫=PYTEST_CURRENT_TEST 早退)
+@pytest.mark.parametrize("stem", [
+    "01_build_company_bank_cooc_registry",
+    "02_build_company_bank_cooc_panel",
+    "03_build_company_bank_weight_validation",
+    "run_pipeline",
+])
+def test_pytest_never_touches_stage_logs(stem):
+    """pytest 进程内调 _init_stage_logging 绝不接管/写 company_listed_bank/logs (四脚本逐一验)。"""
+    import os
+    assert os.environ.get("PYTEST_CURRENT_TEST"), "守卫前提失效: pytest 未设 PYTEST_CURRENT_TEST"
+    m = importlib.import_module(stem)
+    logs_dir = Path(m.__file__).resolve().parent / "logs"
+    snap = lambda: sorted(  # noqa: E731
+        (p.name, p.stat().st_mtime_ns, p.stat().st_size) for p in logs_dir.glob("*.log")
+    ) if logs_dir.exists() else []
+    before = snap()
+    m._init_stage_logging()  # 守卫在位 → 早退, 不 attach 文件 handler
+    m.logger.warning("WP-A gate probe — 本行绝不应落盘")
+    assert snap() == before, "pytest 进程写入了生产日志 — WP-A 守卫失效/被移除"
+    import logging as _lg
+    lg = _lg.getLogger(stem)
+    assert not any(  # 也不允许挂上任何文件 handler (mtime 不变可能只是缓冲未 flush)
+        isinstance(h, _lg.FileHandler) for h in lg.handlers
+    ), "pytest 进程内 logger 挂上了 FileHandler — 守卫失效"
