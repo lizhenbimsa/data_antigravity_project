@@ -438,6 +438,14 @@ def test_year_min_gt_max_systemexit():
         w8.main(["--year-min", "2020", "--year-max", "2007"])
 
 
+def test_weight_year_window_2011_2020():
+    """v7 口径修正守卫: 03 面板年窗默认 = 税调数据可得域 2011–2020 (与 02 PANEL_YEAR 同源锚);
+    argparse --year-min/--year-max 默认锚模块常量, 防未来静默回退窗口。⚠ 03 第一层脏年域
+    [1990, 2035] (网点审批/退出日期合理域, 可早于 2011) 与面板年窗**无关、独立**, 不随之变。"""
+    assert (w8.PANEL_YEAR_MIN, w8.PANEL_YEAR_MAX) == (2011, 2020), "03 面板年窗须 = 2011–2020"
+    assert w8.PANEL_YEAR_MAX - w8.PANEL_YEAR_MIN + 1 == 10
+
+
 # ---------------------------------------------------------------- integration: dev 真跑锚
 @pytest.mark.integration
 def test_branch_dta_row_anchors():
@@ -532,7 +540,12 @@ def test_county_key_ok_unidirectional_and_count():
 @pytest.mark.integration
 def test_city_county_spearman_excludes_identity():
     """city×county 份额 Spearman 剔恒等企业: 占位 144 家两权向量逐格恒等 (ρ 抬高伪影),
-    按企业整体剔除后 ρ 仍高 (跨粒度收敛效度真信号)。锚 = 互验报告 ③ 行 (+0.899 / n=945447)。"""
+    按企业整体剔除后 ρ 仍高 (跨粒度收敛效度真信号)。锚 = 互验报告 ③ 行 (+0.899 / n=945447)。
+
+    ⚠ v7 窗口修正 (2011–2020) 相关: n/ρ 是 `_shares` 跨窗内年求和产物 → **随年窗收窄而变**;
+    当前锚 (945447 / 0.899) 读的是**旧 19 年窗盘上产物**, 与陈旧 on-disk 一致故此刻正确。
+    03 按 2011–2020 重跑双权长表后须同步 bump 此二 assert + 上行 docstring 数字 (计划 §9 v7
+    DEFERRED 已登记)。同族 :537 `county_key_ok==0 nunique==971` 是**企业级、窗无关, 勿误 bump**。"""
     _skip_if_no_altweights()
     _, geo = w8.load_companies()
     ph = set(geo[geo["city"].isin(w8.DV2_CONSTANTS["city_placeholder"])]["company"])

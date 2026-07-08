@@ -147,6 +147,19 @@ def test_panel_skeleton_zero_fill():
         assert ((nb >= 1) == (nc >= 1)).all()
 
 
+def test_panel_year_window_2011_2020():
+    """v7 口径修正守卫: 面板年窗默认 = 税调数据可得域 2011–2020 (10 年); 绝对合法年域保持
+    新闻语料发表域 2007–2025 不动 (两概念刻意分离, 见 02 ABS/PANEL 分叉铁律)。防未来静默回退窗口。"""
+    assert (mod.PANEL_YEAR_MIN, mod.PANEL_YEAR_MAX) == (2011, 2020), "面板年窗须 = 2011–2020"
+    assert (mod.ABS_YEAR_MIN, mod.ABS_YEAR_MAX) == (2007, 2025), "绝对合法域须保持语料域 2007–2025"
+    assert mod.PANEL_YEAR_MAX - mod.PANEL_YEAR_MIN + 1 == 10
+    # 骨架 math: 默认窗上 n_firms × 10 行 (乘式恒等, 非写死行数); 窗内命中年 2017 计入
+    _, _, panel = run_pipeline([row(1, "银行A", "甲税企", year=2017)], VO,
+                               y0=mod.PANEL_YEAR_MIN, y1=mod.PANEL_YEAR_MAX)
+    assert len(panel) == 2 * 10, "满骨架 = 2 企业 × 10 年"
+    assert set(panel["year"]) == set(range(2011, 2021))
+
+
 def test_three_tracks_independent():
     rows = [dict(docid=1, year=2017, bank="银行A", full="甲税企", ctx="无", ss="无")]
     _, _, panel = run_pipeline(rows, VO)

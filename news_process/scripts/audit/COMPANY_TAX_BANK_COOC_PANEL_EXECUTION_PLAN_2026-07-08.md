@@ -1,4 +1,4 @@
-# COMPANY_TAX_BANK_COOC_PANEL 执行计划 (v6, 2026-07-08)
+# COMPANY_TAX_BANK_COOC_PANEL 执行计划 (v7, 2026-07-08)
 
 > **状态: 计划待批, 未获用户明确允许不得执行任何实现步骤。**
 > 母本 = `company_listed_bank/` 三步流水线 (权威计划
@@ -20,7 +20,7 @@
 
 新增一条**独立于主管道 DAG** 的三步派生数据流水线 `news_process/company_tax_bank/`:
 把新闻库里"税调企业与银行在同一篇报道中共现"的信息, 加工成
-**税调企业 × 年份 (2007–2025) 的计量面板** (dta + parquet), 并用
+**税调企业 × 年份 (2011–2020, 税调数据可得域) 的计量面板** (dta + parquet), 并用
 **城市层级**与**县域层级**的银行分支机构数据构造两个替代权重, 与共现报道权重
 互为交叉验证 (三权互为稳健性、不分主次)。面板与外部数据的 merge 键 =
 **`usci × year`** (18 位统一社会信用代码, 全填全唯一 — 税调数据的核心接入优势;
@@ -121,8 +121,8 @@ listed 主面板 = **105,032 行 × 1,914 列 = 20 固定 (含 stock_code) + 1,8
 ## §3 口径判定 (T-D1 … T-D20; 实施前全部定死, 逐条为闸)
 
 **T-D1 名单与主键**: 公司名单 SSOT = `config/company_tax_names.yaml`; 面板行键 =
-`company_tax_name × year` 满骨架 (44,771 × 19 = **850,649 行**, 无缺格)。
-标识符固定列 = **`usci`** (str18; 合法 Stata 变量名; 850,649×18B≈15MB 可忽略),
+`company_tax_name × year` 满骨架 (44,771 × 10 = **447,710 行**, 无缺格; 年窗 2011–2020)。
+标识符固定列 = **`usci`** (str18; 合法 Stata 变量名; 447,710×18B≈8MB 可忽略),
 沿用 write_outputs **单点注入**范式: 税调 02 本地实现 `usci_map()` + `write_outputs`
 (相对 listed 为本地件, 见 T-D10), **税调 03 经
 `importlib.import_module("02_build_company_tax_bank_cooc_panel")` 复用税调 02 的
@@ -184,7 +184,11 @@ listed 的 5 家人工表 (上市银行) **不迁移**。`is_bank_company` 标�
 牡丹江先例)、D5 重复 variant 多归属、跨年去重键 (company,track,docid) 不含 year、
 docid→min(年) 归年、frac=1/k 分摊、n_docs_v/strict/longhit 全套 pair 口径、
 两套缺失语义 (计数 fillna(0) 真零 / 加权无共现 NaN) — **构造口径逐条照搬,
-零新口径**。绝对年域 2007–2025 与面板年窗同 listed。
+零新口径**。绝对合法年域 = 新闻语料发表域 2007–2025 (数据质检器, 与 listed 同); **但面板年窗
+2011–2020 (税调数据可得域) 与 listed 刻意分叉** — listed 二者恰重合于 2007–2025, 税调则"语料域"与
+"税调数据可得域"两概念真正分离; 窗外 (2007–2010 / 2021–2025) 报道是"合法但窗外", 由
+build_pair_table/build_counts 年窗过滤丢入 n_outwin 诊断 (INFO), **绝非坏年** (若把绝对合法域也收成
+2011–2020 → 生产全量 9 年报道被判合法域外坏年、占比远超 0.1% 阈 → build_year_map SystemExit)。
 D5/D4b 的**事实基础在税调侧须重建** (完备性 P1-6): 跨公司重复 variant 普查
 (listed 30 个 → 税调规模未知, T-P0-4) 与 D4b 子串对全量普查 (listed 22 对;
 命中主体不限银行系企业, 须对全部 124,366 variants × 1,767 银行 variants 普查,
@@ -241,7 +245,7 @@ T-P0-5) — 结果回填本节与 §7。
     给机器可读标识。仅县权面板 +1 列 (城权面板/主面板不加), dta 标签 +1;
     gate 为**单向断言** `county_key_ok==0 ⇒ 该企业县权全缺失` + key_ok==0
     家数锚 (运行时实数) — **禁双向**: key_ok==1 且县权全缺失是合法真零形态
-    (如全部网点 2007 前退出), 恰是该列要与缺键区分的情形, 归互验报告
+    (如全部网点 2011 前退出), 恰是该列要与缺键区分的情形, 归互验报告
     "真零企业 N 家"披露行 (补强 T-D7① 判读) 而非断言。
 - **T-D5c 网点侧 CityName 占位回退 (对 listed 的净新增, 计量 P1-3)**: 网点侧
   CityName ∈ 占位值集 (T-P0-2 实测全集 = {海南省直辖 128, 海南省直辖县级行政区
@@ -362,7 +366,7 @@ listed 02 的公司无关件 (核验: 纯函数, 无名单/registry 模块态, i
 load_input21)。
 **税调本地实现** (公司相关): `load_name_assets` (读税调 yaml) / `usci_map` /
 `scan_hits`·`build_pair_table`·`build_counts`·`add_hhi` / `write_outputs`+
-`FIXED_LABELS` (usci 注入+税调文案) / `run_gates` (行数锚 850,649)。
+`FIXED_LABELS` (usci 注入+税调文案) / `run_gates` (行数锚 447,710)。
 **index 名硬编码位点清单** (工程 P2-5, 防漏改): listed 02:761/839 引擎输出
 index 名 `company_listed_name` (merge 按位置对齐不受影响, 但税调本地
 `run_gates` [listed 02:1139] 与 03 `fixed_cols_for` [03:813] 的 index.names
@@ -405,10 +409,11 @@ weight_validation,run_pipeline_lock}.py`。父仓 `.gitignore` 增两条:
 `news_process/company_tax_bank/logs/` + `news_process/company_tax_bank/data/`。
 模块名与 listed 含 `_tax_` 区分, sys.path 双目录无遮蔽 (工程评审核验)。
 
-**T-D13 规模与预算 (128GB/64core; 采纳工程 P1-1/P2-7 修正)**: 主面板 850,649 行
-× 1,914 列 ≈ 1.63e9 cell ≈ 13GB float64 单帧; **峰值 ≈ 3–4× 单帧 (~40–55GB:
-concat/merge/列序重排/rename/arrow 转换各持一份拷贝)**, 128GB 边际 ~2.5× 成立
-但不裕 — 实现须在 merge/写盘间显式 `del` 释放, 03 双面板**串行**处理禁同持两面板。
+**T-D13 规模与预算 (128GB/64core; 采纳工程 P1-1/P2-7 修正)**: 主面板 447,710 行
+× 1,914 列 ≈ 0.857e9 cell ≈ 7GB float64 单帧 (年窗 2011–2020 收窄后, 相对旧 19 年窗
+850,649 行/13GB 减半); **峰值 ≈ 3–4× 单帧 (~21–28GB: concat/merge/列序重排/rename/
+arrow 转换各持一份拷贝)**, 128GB 边际 ~4.5× 较宽裕 — 实现仍在 merge/写盘间显式 `del`
+释放 (安全边际留给生产 T=18 语料放大), 03 双面板**串行**处理禁同持两面板。
 三面板 dta+parquet 落盘 **~80GB 磁盘**, T-P0-6 探针核余量 ≥120GB (先决闸)。
 **引擎 chunk 预算**: 02 媒体权稀疏长表 → 默认 60M cell 够用; **03 branch 长表
 ~25–34M 行 → chunk_eff=2 触发内存吃紧 WARNING、~945 轮 groupby** — 跑前设
@@ -416,7 +421,7 @@ concat/merge/列序重排/rename/arrow 转换各持一份拷贝)**, 128GB 边际
 轮次降 10×), 该设定写进 run_pipeline 03 步骤与 README。
 耗时预估修正: 02 全链 ~30–60 min; **03 双权 ~60–90 min** (引擎 8× + 2×13GB dta
 写盘 15–25 min; v1 "20–40 min"偏乐观 2×, 已更正); D4b 全量子串普查 ~2.2e8 次
-`in` 分钟级。**dev T=2 语料下测度列大面积 NaN、2019+ 年计数 0 属预期退化,
+`in` 分钟级。**dev T=2 语料 (2017–2018) 下测度列大面积 NaN、窗内其余年 (2011–2016 与 2019–2020) 计数 0 属预期退化,
 生产 T=18 才有全谱; dev 产物不可用于任何回归** (镜像母本 §6 禁令, 显式落字)。
 
 **T-D14 gate 测试设计 (四文件, 计数以 `--collect-only -q` 实数为准)**:
@@ -453,7 +458,7 @@ concat/merge/列序重排/rename/arrow 转换各持一份拷贝)**, 128GB 边际
 
 **T-D15 日志与可观测性**: 复用 `core/logging.py::setup_logging`
 (PYTEST_CURRENT_TEST 守卫 + propagate 恢复); 阶段头/参考文献/漏斗日志/规模锚
-(850,649 行 = 44,771×19)/富集度双基准判读逐段移植改写; 全量数字 `%.4g`;
+(447,710 行 = 44,771×10)/富集度双基准判读逐段移植改写; 全量数字 `%.4g`;
 引文只取 audit_dois 白名单池零自造 (县域银行分支暴露构念的可用 DOI 由 T-P0-7
 盘点, 池内无则该段引文从简, **不为凑引文自造**); **跨管道引擎 logger 文件
 handler attach** (T-D10); GBK 控制台兜底已由 listed 验证 (文件 handler utf-8,
@@ -490,7 +495,7 @@ listed 02 引擎 (T-D10)。
    逐字节同构, 逐条成立;
 ④ **D17 三义务段**: allv 单载体声明 / neu=1−pos−neg 恒等注记 / 被删臂地位声明
    + D12 重构公式可复制代码段 (CUT 负清单同一份, 义务原封适用);
-⑤ **D9 逐年语料覆盖表** (2025 假零可查表化);
+⑤ **D9 逐年语料覆盖表** (窗内年 dev 假零 vs 生产真覆盖可查表化; 窗 2011–2020 全内嵌语料域);
 ⑥ 排除列审计表附录 + 短名对照 + Stata 示例 (usci×year merge + 满骨架截断示例,
    L2 口径) + 精度分层抽样 + 已知局限 (§7 全量);
 ⑦ 03 侧 **「双权面板章」 section-upsert**: 成对标记字面量见 §1 命名规则
@@ -581,8 +586,9 @@ Stata 侧可读; 性能实测记录回填 §9。
 
 ## §6 生产机 DEFERRED (镜像母本 §9.4)
 
-dev T=2 只证管线正确性; 生产 T=18 全量 21_full 重跑得真面板 (2025 无语料整年 0
-属预期)。DEFERRED: 富集度双基准生产值 / 城县覆盖锚生产复测 / precision 生产
+dev T=2 只证管线正确性; 生产 T=18 全量 21_full 重跑得真面板 (面板窗 2011–2020 完整内嵌
+语料域 2007–2025, 生产各窗内年均有语料; dev T=2 仅 2017–2018 有语料、其余窗内年整年 0 属预期)。
+DEFERRED: 富集度双基准生产值 / 城县覆盖锚生产复测 (ρ/n 随窗收窄至 10 年重算) / precision 生产
 第二轮 / 未映射银行 top-N 生产版 / **权源 dta 谱系七字段与许可条款核定 (T-D20①)**
 / 复现包 (附 pair 长表+双权长表, 声明税调名单与权源不可再分发的降级路径) /
 提交哈希回填。
@@ -755,4 +761,38 @@ LLM lookahead bias。(母本 NW/BLAS 豁免条不适用 — 本管线无网络�
   - **验收**: compile+ruff 全过; 125 gate 全绿 (weight 45 含新 usci gate + 03 builder
     单元 + 13GB integration 锚; EXIT=0); listed 零改动; fast A/B 不变 (R2 改动 = gitignore
     + 03 源码防御项, 不触既有测试)。
+- **v7 (2026-07-08, 面板年窗口径修正)**: 用户指出税调企业数据仅覆盖 **2011–2020**, 面板年窗
+  从 2007–2025 (19 年, 沿 listed) 收窄至 **2011–2020 (10 年, 税调数据可得域)**。行数锚
+  **850,649 → 447,710** (44,771 × 10)。
+  - **核心设计判定 (ABS ⟂ PANEL 两概念分离)**: **绝对合法年域 (ABS_YEAR_MIN/MAX) 保持
+    2007–2025 不动** = 新闻语料真实发表域 (数据质检器); **只收窄面板年窗
+    (PANEL_YEAR_MIN/MAX=2011,2020)**。listed 母本二者恰重合于 2007–2025, 税调则语料域与税调
+    数据可得域真正分离。⚠ **铁律**: 若把 ABS 也收成 2011–2020, 生产全量下 2007–2010/2021–2025
+    共 9 年报道会被 `build_year_map` 判"合法域外坏年"、占比远超 0.1% 阈 → `SystemExit` 崩溃;
+    正确路径 = 窗外报道由 build_pair_table/build_counts 年窗过滤丢入 `n_outwin` 诊断 (INFO, 非坏年)。
+    03 第一层脏年域 `[1990, 2035]` (网点审批/退出日期合理域) 亦与面板窗无关、不动。
+  - **落地**: 02/03 新增模块级常量 `PANEL_YEAR_MIN, PANEL_YEAR_MAX = 2011, 2020` (argparse
+    `--year-min/--year-max` 默认锚此; ABS 常量旁并列 + 分叉铁律注释); 全仓行数/年域/年数字面量
+    (01/02/03/run_pipeline 源码 log+docstring / README / 本计划 §1–§6 规范正文 / 内存卡) 一律
+    850,649→447,710 · 19 年→10 年 · 2007–2025→2011–2020; T-D13 内存预算重估 (7GB 单帧/峰值
+    ~21–28GB/128GB 边际 ~4.5×)。**§9 v2–v6 历史记录不改** (其 850,649 / ρ=0.899(n=945,447) /
+    双权面板行数均为**旧 19 年窗 dev 真值**, 保历史准确; 已被本 v7 窗口取代, 下次 03 重跑更新)。
+  - **版本/哈希**: 计划 v6→v7 (头 + 01/02/03/run_pipeline docstring+log + 01 `meta.plan` +
+    README); **registry 内容哈希锚不变 = `4f580e3f…c034`** (面板年窗是 argparse 默认、不在
+    `registry_content_sha256` 的四段 [entries/bank_company_map/excluded/dv2_constants] 内, meta
+    亦剔除) → 重跑 01 仅 `meta.plan` 字段变 (yaml meta-only diff), `EXPECTED_TAX_REGISTRY_SHA256`
+    与三输入名单哈希全部保持, 无需级联重跑 02/03 的指纹/锁。
+  - **窗口守卫 (新增 gate)**: panel/weight 两测试各加 `PANEL_YEAR_MIN/MAX==2011/2020` +
+    `ABS==2007/2025` 常量断言 + build_counts 骨架 math (10 年窗 → n_firms×10 行) 守卫, 防未来
+    静默回退窗口; gate 计数 **125 → 127** (registry 15 / panel 59→**60** / weight 45→**46** /
+    lock 6; --collect-only 实收, 同步 README + run_pipeline banner)。
+  - **验收**: compile+ruff 全过; 全套 gate 全绿 (含新窗口守卫); listed 零改动; registry sha
+    不变经函数级复算 gate 双证; fast A/B 不变 (改动 = 年窗默认 + 文档 + 新守卫, 不触既有测试逻辑)。
+  - **DEFERRED (§6)**: 双权面板/pair 长表/codebook/互验报告等 on-disk dev 产物按 2011–2020 窗
+    的重生随生产机 21_full 全量重跑一并产出 (ρ/n 随窗收窄至 10 年重算; on-disk 现存产物是旧
+    19 年窗快照, 源码已锚 447,710)。**级联须 bump 的窗口依赖 integration 锚** (镜像
+    `EXPECTED_TAX_REGISTRY_SHA256` 的级联登记规范, 03 按新窗重跑双权长表后必改, 否则 integration
+    翻红): `test_company_tax_bank_weight_validation.py::test_city_county_spearman_excludes_identity`
+    的 `assert n == 945447` + `assert rho == 0.899` (:552–553) 与其 docstring 数字 (:543) —— 三者
+    均**旧 19 年窗值**。⚠ 同族 `county_key_ok==0 nunique==971` (:537) 是企业级、窗无关, **勿误 bump**。
 - (后续评审轮次与实施记录在此追加)

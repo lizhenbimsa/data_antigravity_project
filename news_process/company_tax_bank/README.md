@@ -1,9 +1,9 @@
 # company_tax_bank — 税调企业—银行共现面板生产流水线
 
-税调企业×年 银企共现媒体报道面板 (850,649 行 = 44,771 家税调企业 × 19 年 2007–2025) 的三步生产脚本。
+税调企业×年 银企共现媒体报道面板 (447,710 行 = 44,771 家税调企业 × 10 年 2011–2020) 的三步生产脚本。
 面板与外部数据 merge 键 = **`usci × year`** (18 位统一社会信用代码, 全填全唯一; `company_tax_name × year`
 为等价备用键)。产出**三个互为稳健性的权重** (共现报道权 + 城市网点权 + 县域网点权, 不分主次)。
-权威执行计划 = `scripts/audit/COMPANY_TAX_BANK_COOC_PANEL_EXECUTION_PLAN_2026-07-08.md` (v6)。
+权威执行计划 = `scripts/audit/COMPANY_TAX_BANK_COOC_PANEL_EXECUTION_PLAN_2026-07-08.md` (v7)。
 
 与姊妹管线 `company_listed_bank/` 完全隔离 (零字节交集); 唯一交集 = 02/03 只读 import 其加权引擎 (见下)。
 
@@ -71,10 +71,12 @@ python company_tax_bank/03_build_company_tax_bank_weight_validation.py
 
 pytest 收集实数以 `--collect-only -q` 为准 (增删测试后同步此处与各脚本/run_pipeline banner):
 
-`tests/test_company_tax_bank_cooc_registry.py` (15) + `tests/test_company_tax_bank_cooc_panel.py` (59) +
-`tests/test_company_tax_bank_weight_validation.py` (45) + `tests/test_company_tax_bank_run_pipeline_lock.py` (6) = 125。
+`tests/test_company_tax_bank_cooc_registry.py` (15) + `tests/test_company_tax_bank_cooc_panel.py` (60) +
+`tests/test_company_tax_bank_weight_validation.py` (46) + `tests/test_company_tax_bank_run_pipeline_lock.py` (6) = 127
+(v7 各 +1 窗口守卫: panel `test_panel_year_window_2011_2020` / weight `test_weight_year_window_2011_2020`)。
 
 ⚠ 生产 T=18 复跑注意 (计划 §6 DEFERRED): dev T=2 语料只证管线正确性, 生产全量 21_full 重跑得真面板
-(2025 无语料整年 0 属预期; dev 产物不可用于任何回归)。registry 哈希锚锚死盘上态, 有意重跑 01 后须
+(面板窗 2011–2020 完整内嵌语料域 2007–2025, 生产各窗内年均有语料; dev T=2 仅 2017–2018 有语料、
+其余窗内年整年 0 属预期; dev 产物不可用于任何回归)。registry 哈希锚锚死盘上态, 有意重跑 01 后须
 bump `tests/test_company_tax_bank_cooc_registry.py::EXPECTED_TAX_REGISTRY_SHA256` 并级联重跑 02 (pair
 指纹) → 03 (双向锁); 权源商业 dta (`config/银行业金融机构基本信息表.dta`) 恒不入库。

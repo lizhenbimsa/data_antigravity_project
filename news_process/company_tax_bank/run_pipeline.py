@@ -1,4 +1,4 @@
-"""税调企业—银行共现面板流水线 orchestrator (COMPANY_TAX_BANK_COOC_PANEL_EXECUTION_PLAN v6).
+"""税调企业—银行共现面板流水线 orchestrator (COMPANY_TAX_BANK_COOC_PANEL_EXECUTION_PLAN v7).
 
 按硬依赖顺序串跑三步 (子进程隔离, 任一步非零退出即中断, 镜像 run_pipeline_function.py 风格):
   01 WP0 注册表对账   → config/company_tax_bank_cooc_registry.yaml (加权引擎唯一 SSOT)
@@ -198,14 +198,14 @@ def _iter_artifacts(step_id: str):
 def _log_banner(selected_ids: list[str]) -> None:
     """运行头 banner: 流水线定位/上下游/复现命令/关键 config/环境版本 — 复现材料级最小充分信息。"""
     logger.info("=" * 70)
-    logger.info("税调企业—银行共现面板流水线 orchestrator (COMPANY_TAX_BANK_COOC_PANEL_EXECUTION_PLAN v6)")
+    logger.info("税调企业—银行共现面板流水线 orchestrator (COMPANY_TAX_BANK_COOC_PANEL_EXECUTION_PLAN v7)")
     logger.info("定位: 税调企业×年 银企共现媒体报道面板三步生产链 (registry → 主面板 → 双权源互验; 三权稳健)")
-    logger.info("  · 规模锚: 850,649 行 = 44,771 家税调企业 × 19 年 (2007–2025) 全骨架, 含零覆盖行")
+    logger.info("  · 规模锚: 447,710 行 = 44,771 家税调企业 × 10 年 (2011–2020) 全骨架, 含零覆盖行")
     logger.info("  · merge 键: usci × year (18 位统一社会信用代码, 全填全唯一; company_tax_name×year 等价备用键)")
     logger.info("  · 上游(只读): data/processed/ 五 parquet (40/51/27/16/21_full, 主管道产物)")
     logger.info("  · 上游(权源): config/银行业金融机构基本信息表.dta (城市/县域两层级网点权; 恒不入库)")
     logger.info("               + config/company_tax_names.yaml (税调名单 SSOT v1.0.0, 44,771 家; 已入库)")
-    logger.info("  · 下游消费者: Stata 税调企业回归 (三权面板互为规格稳健性臂) + gate 测试四件 (pytest 收集 15+59+45+6=125 项)")
+    logger.info("  · 下游消费者: Stata 税调企业回归 (三权面板互为规格稳健性臂) + gate 测试四件 (pytest 收集 15+60+46+6=127 项)")
     logger.info("  · 关键 config 键: config/company_tax_bank_cooc_registry.yaml (加权引擎唯一 SSOT, 01 产出)")
     logger.info("  · own-bank 映射: registry 顶层 bank_company_map (D4, 280 家银行系税调企业 → 自家银行剔除; 值可为空列表)")
     logger.info("复现命令 (从 news_process/ 目录, conda base python):")
@@ -236,7 +236,7 @@ def _log_step_context(step_id: str) -> None:
         reg = REPO / "config" / "company_tax_bank_cooc_registry.yaml"
         logger.info("  输入: registry yaml (启动校验哈希锚, 当前%s; 缺则 02 拒跑) + 五上游 parquet",
                     "存在" if reg.exists() else "缺失")
-        logger.info("  输出: 主面板 dta/parquet (850,649 行, 20 固定列 [含 usci] + 加权列) + codebook + pair 长表 10 列")
+        logger.info("  输出: 主面板 dta/parquet (447,710 行, 20 固定列 [含 usci] + 加权列) + codebook + pair 长表 10 列")
         logger.info("  缺失语义: rel_n_banks=0 的企业-年 cw/ce 置 NaN (非 0, 勿把无关系年当零暴露); rel_hhi∈(0,1]")
         logger.info("  满骨架: 44,771 家税调名单快照无逐年存续 → 99%+ 全零行属\"无共现企业-年\", 样本裁剪归分析端 (codebook 给口径)")
         logger.info("  pair 长表 = 被删加权列的唯一重构载体, 亦是 03 互验的锚 (跨年去重键禁含 year)")
@@ -271,7 +271,7 @@ def _log_step_done(step_id: str, dt: float) -> None:
         logger.info("  本步落盘合计 %.4g MB, 吞吐 %.4g MB/s (墙钟口径, 含计算+IO; 体量为盘上现值)",
                     total_mb, total_mb / dt)
     if step_id == "02" and dt > 0:
-        logger.info("  主面板文档口径 850,649 行 → 构建吞吐 %.4g 行/s (墙钟口径)", 850649.0 / dt)
+        logger.info("  主面板文档口径 447,710 行 → 构建吞吐 %.4g 行/s (墙钟口径)", 447710.0 / dt)
 
 
 def _log_run_summary(step_stats: list[tuple[str, str, float]], total: float) -> None:
@@ -327,7 +327,7 @@ def _log_references() -> None:
     logger.info("  4. Brown, S. J., Goetzmann, W., Ibbotson, R. G., & Ross, S. A. (1992). Survivorship")
     logger.info("     bias in performance studies. The Review of Financial Studies, 5(4), 553–580.")
     logger.info("     https://doi.org/10.1093/rfs/5.4.553")
-    logger.info("     → 白话: 只留\"活下来/被报道\"的样本会系统性高估效应。步骤 02 保留 44,771 家税调企业 × 19 年")
+    logger.info("     → 白话: 只留\"活下来/被报道\"的样本会系统性高估效应。步骤 02 保留 44,771 家税调企业 × 10 年")
     logger.info("       全骨架 (零共现企业-年不删行, 缺权重记 NaN 而非 0), 正是为切断这条选择偏差通道。")
     logger.info("[识别与多口径稳健]")
     logger.info("  5. Simonsohn, U., Simmons, J. P., & Nelson, L. D. (2020). Specification curve analysis.")

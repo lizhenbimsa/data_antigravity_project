@@ -1,7 +1,7 @@
-"""WP1 — 税调企业×年 银企共现媒体报道面板 (COMPANY_TAX_BANK_COOC_PANEL_EXECUTION_PLAN_2026-07-08 v6).
+"""WP1 — 税调企业×年 银企共现媒体报道面板 (COMPANY_TAX_BANK_COOC_PANEL_EXECUTION_PLAN_2026-07-08 v7).
 
 产出 (T-D1/T-D12, 默认落 company_tax_bank/data/, 不入库):
-  company_tax_bank/data/company_tax_bank_cooc_panel.dta        主面板 (850,649 行 = 44,771 家 × 19 年, 20 固定列 + 加权列)
+  company_tax_bank/data/company_tax_bank_cooc_panel.dta        主面板 (447,710 行 = 44,771 家 × 10 年 2011–2020, 20 固定列 + 加权列)
   company_tax_bank/data/company_tax_bank_cooc_panel.parquet    伴生 (未缩写全名)
   company_tax_bank/data/company_tax_bank_cooc_panel_codebook.md
   company_tax_bank/data/_company_tax_bank_cooc_pairs.parquet   pair 长表 10 列 (被删加权列唯一重构载体)
@@ -34,7 +34,15 @@ DATA = REPO / "data" / "processed"         # 上游输入 (只读, 主管道产�
 OUT_DATA = HERE / "data"                   # 本流水线产物 (面板/pair/codebook, 不入库)
 CONFIG = REPO / "config"
 TRACKS = ("full", "ctx", "ss")
-ABS_YEAR_MIN, ABS_YEAR_MAX = 2007, 2025    # 绝对合法域 (T-D4, 与母本同)
+# 绝对合法域 = 新闻语料真实发表年域 (T-D4; 数据质检器, 与母本 listed 同 2007–2025)。
+# ⚠ 铁律: **不随税调面板窗收窄** — 窗外 (2007–2010 / 2021–2025) 报道是"合法但窗外", 由
+# build_pair_table/build_counts 的年窗过滤丢入 n_outwin 诊断 (INFO), 绝非"坏年"。若误把此域也收成
+# 面板窗 2011–2020 → 生产全量下 2007–2010/2021–2025 共 9 年报道被判合法域外坏年、占比远超 0.1% 阈
+# → build_year_map SystemExit。
+ABS_YEAR_MIN, ABS_YEAR_MAX = 2007, 2025
+# 面板年窗 = 税调企业数据可得域 (2011–2020; 税调调查仅覆盖此十年)。与 ABS 域 / listed 面板窗**刻意分叉**
+# (listed 二者恰重合于 2007–2025; 税调则 ABS=语料域、PANEL=数据可得域两概念真正分离)。argparse 默认值锚此。
+PANEL_YEAR_MIN, PANEL_YEAR_MAX = 2011, 2020
 
 logger = logging.getLogger("02_build_company_tax_bank_cooc_panel")
 if not logger.handlers:  # console 兜底 (被测试/importlib 导入时); main() 实跑时由 setup_logging 接管
@@ -723,7 +731,8 @@ def write_codebook(path: Path, registry: dict, panel: pd.DataFrame, input21: pd.
         lines.append(f"| {y} | {int(yearly.get(y, 0))} |")
     lines += [
         "",
-        "2025 覆盖取决于上游语料截止; 整年 0 属预期而非缺失。",
+        "面板年窗 2011–2020 (税调企业数据可得域) 完整内嵌于新闻语料域 2007–2025, 故生产全量下"
+        "每个窗内年均有语料; dev T=2 (2017–2018) 下其余窗内年整年 0 属预期而非缺失。",
         "",
         "## ⑥ 附录 (T-D19⑥)",
         "",
@@ -904,8 +913,8 @@ def main(argv=None) -> int:
     ap.add_argument("--benefit"); ap.add_argument("--controls")
     ap.add_argument("--registry", default=str(CONFIG / "company_tax_bank_cooc_registry.yaml"))
     ap.add_argument("--output", default=str(OUT_DATA / "company_tax_bank_cooc_panel.dta"))
-    ap.add_argument("--year-min", type=int, default=2007)
-    ap.add_argument("--year-max", type=int, default=2025)
+    ap.add_argument("--year-min", type=int, default=PANEL_YEAR_MIN)
+    ap.add_argument("--year-max", type=int, default=PANEL_YEAR_MAX)
     args = ap.parse_args(argv)
     if args.year_min > args.year_max:
         raise SystemExit(2)
@@ -1166,7 +1175,8 @@ def main(argv=None) -> int:
     logger.info("     分析端按覆盖率做样本限制稳健 (codebook 使用要点义务)。")
     logger.info("  ⑧ 与生产 T=18 的预期差异: 本次输入为 dev 语料 (约全量 0.055%%); 计数/覆盖/k^c 分位")
     logger.info("     将随语料放大数量级, 但 gate 判据 (恒等/值域/序) 与骨架行数公式均规模无关,")
-    logger.info("     可直接作为生产运行的判读基线; 2025 年整年 0 属上游截止预期, 非缺失;")
+    logger.info("     可直接作为生产运行的判读基线; 面板窗 2011–2020 全内嵌语料域 2007–2025, 生产各窗内年")
+    logger.info("     均有语料, dev T=2 仅 2017–2018 有语料、其余窗内年整年 0 属预期非缺失;")
     logger.info("     dev 产物不可用于任何回归 (T-D13 禁令)。")
     logger.info("-" * 70)
     logger.info("  ⏱ 各子阶段墙钟耗时与吞吐率 (4 位有效数字; 吞吐率=既有计数/墙钟, 无新增重计算):")
@@ -1181,8 +1191,8 @@ def main(argv=None) -> int:
     logger.info("     · 子阶段合计: %.4g 秒 (占总阶段 %.4g%%; 余量=argparse/头部日志等常数开销)",
                 t_load + t_build + t_write, 100 * (t_load + t_build + t_write) / max(t_total, 1e-9))
     logger.info("     · 判读: 生产 T=18 下 ② 随语料行数近线性放大 (AC 扫描对文本长度线性), ③ 随")
-    logger.info("       面板行×列放大; RSS 峰值主项 = 写盘期 dta 全表驻留 (850,649 行 × ~1,900 列")
-    logger.info("       ≈13GB float64 单帧, T-D13 预算内; merge/写盘间已显式 del 释放)。")
+    logger.info("       面板行×列放大; RSS 峰值主项 = 写盘期 dta 全表驻留 (447,710 行 × ~1,900 列")
+    logger.info("       ≈7GB float64 单帧, T-D13 预算内; merge/写盘间已显式 del 释放)。")
     logger.info("═" * 50)
     logger.info("阶段摘要: %s", Path(__file__).stem)
     logger.info("─" * 50)

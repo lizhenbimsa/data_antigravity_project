@@ -1,4 +1,4 @@
-"""WP5 — 税调企业双替代权源构建 + 三权互验 (COMPANY_TAX_BANK_COOC_PANEL_EXECUTION_PLAN_2026-07-08 v6).
+"""WP5 — 税调企业双替代权源构建 + 三权互验 (COMPANY_TAX_BANK_COOC_PANEL_EXECUTION_PLAN_2026-07-08 v7).
 
 三层产物 (均不入库, 默认落 company_tax_bank/data/):
   ① 双替代权长表 _company_tax_bank_altweights_{branch_city,branch_county}.parquet
@@ -44,6 +44,10 @@ DATA = REPO / "data" / "processed"   # 上游输入 (只读, 主管道产物)
 OUT_DATA = HERE / "data"             # 本流水线产物 (双权长表/面板/互验报告, 不入库)
 CONFIG = REPO / "config"
 TRACKS = ("full", "ctx", "ss")
+# 面板年窗 = 税调企业数据可得域 (2011–2020; 与 02 同源锚, 见 02 ABS/PANEL 分叉铁律)。argparse 默认锚此。
+# ⚠ 03 第一层脏年域 = 网点审批/退出日期合理域 [1990, 2035] (可早于 2007, 与面板窗**无关**, 勿混改);
+# 第二层 outwin 才用本窗裁网点存续年格。
+PANEL_YEAR_MIN, PANEL_YEAR_MAX = 2011, 2020
 
 logger = logging.getLogger("03_build_company_tax_bank_weight_validation")
 if not logger.handlers:  # console 兜底 (被测试/importlib 导入时); main() 实跑时由 setup_logging 接管
@@ -164,7 +168,7 @@ def _log_stage_header(pairs_path: Path, registry_path: Path, dta_path: Path, out
     logger.info("  🧭 项目 / 环境信息")
     logger.info("     · 步骤: %s (WP5 双权互验, company_tax_bank 流水线 03/03; 不注册主 DAG)", stem)
     logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板), 当前版本 v3.15.0")
-    logger.info("     · 权威执行计划: scripts/audit/COMPANY_TAX_BANK_COOC_PANEL_EXECUTION_PLAN_2026-07-08.md (v6)")
+    logger.info("     · 权威执行计划: scripts/audit/COMPANY_TAX_BANK_COOC_PANEL_EXECUTION_PLAN_2026-07-08.md (v7)")
     logger.info("     · 模块文件: %s", Path(__file__).resolve())
     logger.info("     · 工作目录: %s", os.getcwd())
     logger.info("     · Python:   %s @ %s", platform.python_version(), _sys.executable)
@@ -797,7 +801,7 @@ def build_codebook_section(coverage: dict[str, pd.Series], cov_county: dict,
         f"{cov_county['n_placeholder'] - cov_county['n_placeholder_hit']:,}); 其县权全缺失是**缺键**而非"
         "真零 — 与 `rel_n_banks=0` 的\"城里真无网点\"真零形态在面板端签名相同, 必须以本列区分",
         "(税调名单不可再分发, 复现包使用者无法自行重构该子集, T-D5b)。`county_key_ok==1` 且县权",
-        "全缺失 = 合法真零形态 (如全部网点 2007 前退出), 见互验报告 ① 真零企业披露行。",
+        "全缺失 = 合法真零形态 (如全部网点 2011 前退出), 见互验报告 ① 真零企业披露行。",
         "",
         "### 构念与 rel_hhi 披露 (L5)",
         "w = 企业注册地 (城市层=city, placeholder 退 district; 县域层=(city,district) 复合键) 内",
@@ -849,8 +853,8 @@ def main(argv=None) -> int:
     ap.add_argument("--benefit"); ap.add_argument("--controls")
     ap.add_argument("--registry", default=str(CONFIG / "company_tax_bank_cooc_registry.yaml"))
     ap.add_argument("--output-dir", default=str(OUT_DATA))
-    ap.add_argument("--year-min", type=int, default=2007)
-    ap.add_argument("--year-max", type=int, default=2025)
+    ap.add_argument("--year-min", type=int, default=PANEL_YEAR_MIN)
+    ap.add_argument("--year-max", type=int, default=PANEL_YEAR_MAX)
     args = ap.parse_args(argv)
     if args.year_min > args.year_max:
         raise SystemExit(2)

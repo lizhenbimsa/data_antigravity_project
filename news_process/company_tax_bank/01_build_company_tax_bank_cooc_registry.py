@@ -1,4 +1,4 @@
-"""WP0 — 税调银企共现面板测度注册表对账脚本 (COMPANY_TAX_BANK_COOC_PANEL_EXECUTION_PLAN_2026-07-08 v6).
+"""WP0 — 税调银企共现面板测度注册表对账脚本 (COMPANY_TAX_BANK_COOC_PANEL_EXECUTION_PLAN_2026-07-08 v7).
 
 职责 (计划 §4 WP0; 母本 = company_listed_bank/01, 改动面 = T-D2/T-D3, 其余逐段照搬):
   1. 读五上游 (40/51/27/16/21_full) 全列名, 按 D15 排除规则 (正则+白名单) 与
@@ -98,11 +98,11 @@ def _log_stage_header(panel_path: Path, out_path: Path) -> None:
     logger.info("  🧭 项目 / 环境信息")
     logger.info("     · 步骤: %s (WP0 注册表对账, company_tax_bank 流水线 01/03; 不注册主 DAG)", stem)
     logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板), 当前版本 v3.15.0")
-    logger.info("     · 流水线定位: 税调企业×年 银企共现媒体报道面板 (850,649 行全谱 = 44,771 家 × 19 年) 三步生产链之第 1 步")
+    logger.info("     · 流水线定位: 税调企业×年 银企共现媒体报道面板 (447,710 行全谱 = 44,771 家 × 10 年 2011–2020) 三步生产链之第 1 步")
     logger.info("     · 下游消费者: 02 (WP1 加权引擎, 启动即校验本 registry 哈希锚, 缺则不跑) /")
     logger.info("       03 (WP5 三权互验 [媒体共现权 + 城市/县域网点双替代权], 经 dv2_constants 区段与本表双向锁) /")
     logger.info("       gate 测试 tests/test_company_tax_bank_cooc_registry.py (15 用例, 锚死 registry_sha256 与族小计)")
-    logger.info("     · 权威计划: scripts/audit/COMPANY_TAX_BANK_COOC_PANEL_EXECUTION_PLAN_2026-07-08.md (v6, §4 WP0)")
+    logger.info("     · 权威计划: scripts/audit/COMPANY_TAX_BANK_COOC_PANEL_EXECUTION_PLAN_2026-07-08.md (v7, §4 WP0)")
     logger.info("     · 复现命令: python company_tax_bank/run_pipeline.py --steps 01")
     logger.info("       (或单跑: python company_tax_bank/%s.py [--panel PATH] [--out PATH])", stem)
     logger.info("     · 配置锚: 本流水线不消费 config/*.yaml 运行键 (参数全为脚本内常量 SSOT);")
@@ -947,7 +947,7 @@ def main(argv=None) -> int:
 
     registry = {
         "meta": {
-            "plan": "COMPANY_TAX_BANK_COOC_PANEL_EXECUTION_PLAN_2026-07-08 v6",
+            "plan": "COMPANY_TAX_BANK_COOC_PANEL_EXECUTION_PLAN_2026-07-08 v7",
             "n_entries": len(entries),
             "n_emit": sum(1 for e in entries if e["emit_panel"]),
             "n_cut": sum(1 for e in entries if e["cut_code"] == "CUT_V23"),
