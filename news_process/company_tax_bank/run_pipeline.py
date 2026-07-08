@@ -38,10 +38,10 @@ REPO = HERE.parent
 OUT_DATA = HERE / "data"
 LOCK_FILE = HERE / "logs" / "_run_pipeline.lock"
 
-# 03 分支长表 (~千万行级) 的加权引擎内存预算默认值 (T-D13): 媒体权稀疏长表用引擎默认 60M 即可,
-# 但 03 城/县网点长表 ~25–34M 行, 默认预算会把 chunk_eff 收缩到 2、触发内存吃紧 WARNING 且 groupby
-# 轮次暴涨 (~945 轮)。500M cell (25M 行×20 列×8B≈4GB/帧) → chunk_eff→20、轮次降一个数量级。
-_BRANCH_BUDGET_CELLS = 500_000_000
+# 03 分支长表 (千万行级) 的加权引擎内存预算默认值 (T-D13 / WP-S1 提速 v2): 媒体权稀疏长表用引擎默认
+# 60M 即可, 但 03 城网点长表 15M 行 / 县 8M 行 (v7 年窗 2011–2020), 默认 60M 会把 chunk_eff 收缩到 2、
+# 触发内存吃紧 WARNING 且 groupby 轮次暴涨。见下方常量: 1.0B 使 chunk_eff city 33→66 / county 62→100。
+_BRANCH_BUDGET_CELLS = 1_000_000_000  # WP-S1 (提速计划 v2): 500M→1.0B, city chunk_eff 33→66 / county 62→100 (cap), 减 chunk 数; 峰值 ~35-45GB (128GB 安全); chunk 位级无涉 golden-safe (test_engine_chunk_invariance_bitwise 锚)
 
 logger = logging.getLogger("run_pipeline")
 if not logger.handlers:  # console 兜底; main() 实跑时由 setup_logging 接管
@@ -205,7 +205,7 @@ def _log_banner(selected_ids: list[str]) -> None:
     logger.info("  · 上游(只读): data/processed/ 五 parquet (40/51/27/16/21_full, 主管道产物)")
     logger.info("  · 上游(权源): config/银行业金融机构基本信息表.dta (城市/县域两层级网点权; 恒不入库)")
     logger.info("               + config/company_tax_names.yaml (税调名单 SSOT v1.0.0, 44,771 家; 已入库)")
-    logger.info("  · 下游消费者: Stata 税调企业回归 (三权面板互为规格稳健性臂) + gate 测试四件 (pytest 收集 15+60+46+6=127 项)")
+    logger.info("  · 下游消费者: Stata 税调企业回归 (三权面板互为规格稳健性臂) + gate 测试四件 (pytest 收集 15+61+47+6=129 项)")
     logger.info("  · 关键 config 键: config/company_tax_bank_cooc_registry.yaml (加权引擎唯一 SSOT, 01 产出)")
     logger.info("  · own-bank 映射: registry 顶层 bank_company_map (D4, 280 家银行系税调企业 → 自家银行剔除; 值可为空列表)")
     logger.info("复现命令 (从 news_process/ 目录, conda base python):")
@@ -343,6 +343,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--steps", default=",".join(STEP_IDS),
                     help="逗号分隔步骤子集 (默认全链); 顺序恒按 01→02→03, 传入序不生效")
     ap.add_argument("--dry-run", action="store_true", help="只打印将执行的命令, 不实跑")
+    ap.add_argument("--no-emit-dta", action="store_true",
+                    help="WP-S3 dev 快速模式: 02/03 跳过 dta 落盘只写 parquet (省 ~980s; "
+                         "dev 产物本不可回归, 生产勿用 — 默认出 dta)")
     args = ap.parse_args(argv)
 
     wanted = {s.strip() for s in args.steps.split(",") if s.strip()}
@@ -446,6 +449,8 @@ def _run(args: argparse.Namespace, wanted: set[str], selected: list[tuple[str, s
     step_stats: list[tuple[str, str, float]] = []  # (step_id, desc, 墙钟秒) — 仅收尾日志用途
     for step_id, script, desc in selected:
         cmd = [sys.executable, "-u", str(HERE / script)]
+        if args.no_emit_dta and step_id in ("02", "03"):  # WP-S3 透传 (01 不产 dta)
+            cmd.append("--no-emit-dta")
         logger.info("─" * 70)
         logger.info("%s %s", step_id, desc)
         if not args.dry_run:
@@ -456,8 +461,9 @@ def _run(args: argparse.Namespace, wanted: set[str], selected: list[tuple[str, s
             child_env = dict(os.environ)
             if "NEWS_PROCESS_COOC_BUDGET_CELLS" not in child_env:
                 child_env["NEWS_PROCESS_COOC_BUDGET_CELLS"] = str(_BRANCH_BUDGET_CELLS)
-                logger.info("  env 注入: NEWS_PROCESS_COOC_BUDGET_CELLS=%s (T-D13: 城/县网点长表 ~25–34M 行, "
-                            "防 chunk 收缩至 chunk_eff=2)", _BRANCH_BUDGET_CELLS)
+                logger.info("  env 注入: NEWS_PROCESS_COOC_BUDGET_CELLS=%s (WP-S1 提速 v2: 城/县网点长表 "
+                            "15M/8M 行, 1.0B 使 chunk_eff city 33→66 / county 62→100 减 chunk 数; "
+                            "防收缩至 chunk_eff=2; 峰值 ~35-45GB 128GB 安全)", _BRANCH_BUDGET_CELLS)
             else:
                 logger.info("  env: NEWS_PROCESS_COOC_BUDGET_CELLS 已由环境提供 (%s), 不覆盖默认 %s",
                             child_env["NEWS_PROCESS_COOC_BUDGET_CELLS"], _BRANCH_BUDGET_CELLS)

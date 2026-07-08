@@ -63,17 +63,20 @@ python company_tax_bank/03_build_company_tax_bank_weight_validation.py
 - **单实例锁**: orchestrator 入口 O_CREAT|O_EXCL 原子创建 `logs/_run_pipeline.lock` (内容=PID) —
   并发双跑会交错覆写同一套日志与 ~13GB 产物 (2026-07-07 listed 姊妹管线实弹), 第二实例 fail-loud 拒启;
   陈旧锁 (持有者 PID 已不存活) 自愈清除。绕过 orchestrator 直跑单步脚本仍无互斥, 并发纪律同样适用。
-- **03 内存预算 (T-D13)**: run_pipeline 在 03 子进程注入默认 `NEWS_PROCESS_COOC_BUDGET_CELLS=500000000`
-  (城/县网点长表 ~25–34M 行, 默认预算会把加权引擎 chunk 收缩到 chunk_eff=2 → 内存吃紧 WARNING +
-  groupby 轮次暴涨)。用户已 `export` 该变量则不覆盖。手跑 03 时须自行设置该环境变量。
+- **03 内存预算 (T-D13 / WP-S1 提速 v2)**: run_pipeline 在 03 子进程注入默认
+  `NEWS_PROCESS_COOC_BUDGET_CELLS=1000000000` (1.0B; 城网点长表 15M 行 / 县 8M 行, v7 年窗 2011–2020 口径)。
+  1.0B 使加权引擎 chunk_eff = city 33→66 / county 62→100 (cap), 减 chunk 数提速; 引擎默认 60M 会把
+  chunk_eff 收缩到 2 触发内存吃紧 WARNING + groupby 轮次暴涨。峰值 ~35-45GB (128GB 安全)。用户已
+  `export` 该变量则不覆盖。手跑 03 时须自行设置 (否则回退引擎默认 60M, 次优)。
 
 ## gate 测试四件
 
 pytest 收集实数以 `--collect-only -q` 为准 (增删测试后同步此处与各脚本/run_pipeline banner):
 
-`tests/test_company_tax_bank_cooc_registry.py` (15) + `tests/test_company_tax_bank_cooc_panel.py` (60) +
-`tests/test_company_tax_bank_weight_validation.py` (46) + `tests/test_company_tax_bank_run_pipeline_lock.py` (6) = 127
-(v7 各 +1 窗口守卫: panel `test_panel_year_window_2011_2020` / weight `test_weight_year_window_2011_2020`)。
+`tests/test_company_tax_bank_cooc_registry.py` (15) + `tests/test_company_tax_bank_cooc_panel.py` (61) +
+`tests/test_company_tax_bank_weight_validation.py` (47) + `tests/test_company_tax_bank_run_pipeline_lock.py` (6) = 129
+(v7 各 +1 窗口守卫: panel `test_panel_year_window_2011_2020` / weight `test_weight_year_window_2011_2020`;
+提速 v2 各 +1: panel `test_write_outputs_emit_dta_flag` [WP-S3] / weight `test_wps2_join_background_writes_semantics` [WP-S2])。
 
 ⚠ 生产 T=18 复跑注意 (计划 §6 DEFERRED): dev T=2 语料只证管线正确性, 生产全量 21_full 重跑得真面板
 (面板窗 2011–2020 完整内嵌语料域 2007–2025, 生产各窗内年均有语料; dev T=2 仅 2017–2018 有语料、

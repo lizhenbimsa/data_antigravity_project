@@ -195,7 +195,7 @@ def _log_stage_header(dp: dict, registry_path: Path, out_dta: Path,
     logger.info("     · 关键 config 键: paths.yaml::output_21_tone_llms_full / output_40_panel_yearly /")
     logger.info("       output_15_article_alignment / output_51_panel_controls (27 号无键, 引擎内常量)")
     logger.info("     · 名单 SSOT: config/company_tax_names.yaml (企业, v1.0.0) + config/bank_names.json (银行);")
-    logger.info("       gate 测试 = tests/test_company_tax_bank_cooc_panel.py (pytest 收集 59 项)")
+    logger.info("       gate 测试 = tests/test_company_tax_bank_cooc_panel.py (pytest 收集 61 项)")
     logger.info("  📂 输入 / 输出文件")
     logger.info("     · 输入(21_full): %s (留篇宇宙, 行=报道×目标银行)", dp["input"])
     logger.info("     · 输入(40 面板): %s (银行×年测度库主源)", dp["panel"])
@@ -535,7 +535,10 @@ def make_label(arm: str, base: str, track: str, family: str, scheme_word: str = 
 
 # ---------------------------------------------------------------- dta 写出 (usci 单点注入, T-D1)
 def write_outputs(panel: pd.DataFrame, registry: dict, out_dta: Path, scheme_word: str = "共现",
-                  fixed_labels: dict[str, str] | None = None) -> None:
+                  fixed_labels: dict[str, str] | None = None, emit_dta: bool = True) -> None:
+    """emit_dta=False (WP-S3 --no-emit-dta dev 快速模式): 只写 parquet 伴生, 跳过 pyreadstat.write_dta
+    (省 ~330s/面板; dev 产物本不可回归)。默认 True → 生产照出 dta, 零行为变化。本函数对入参 panel
+    非破坏 (usci 缺则先 .copy(); rename 建新 dta), 故可安全放后台线程 (WP-S2)。"""
     import pyreadstat
     # usci 兜底注入 (紧随 company_tax_name; 主面板已在 main 显式插入则跳过) —
     # 税调 03 双替代权面板经此单点获得同列, 禁在 03 第二份实现 (T-D1)
@@ -567,12 +570,16 @@ def write_outputs(panel: pd.DataFrame, registry: dict, out_dta: Path, scheme_wor
             short = f"{arm}_{e['short_name']}_{t}"
             rename[col] = short
             labels[short] = make_label(arm, base, t, e["family"], scheme_word)
+    # 三结构断言前置于任何写盘 (rename 非破坏 inplace=False, 元数据操作成本可忽略) → 恢复"全过才落盘"原子性
     dta = panel.rename(columns=rename)
     assert all(len(c) <= 32 for c in dta.columns), "dta 变量名超 32"
     assert len(set(dta.columns)) == len(dta.columns), "dta 变量名碰撞"
     assert all(len(v) <= 80 for v in labels.values()), "dta 变量标签超 80 字符"
-    pyreadstat.write_dta(dta, str(out_dta), column_labels=[labels.get(c, c) for c in dta.columns])
-    panel.to_parquet(out_dta.with_suffix(".parquet"))  # 伴生用未缩写全名
+    panel.to_parquet(out_dta.with_suffix(".parquet"))  # 伴生用未缩写全名 (parquet 恒出)
+    if emit_dta:  # WP-S3: --no-emit-dta (dev 快速模式) 跳过 dta 落盘; 默认 True → 生产照出
+        pyreadstat.write_dta(dta, str(out_dta), column_labels=[labels.get(c, c) for c in dta.columns])
+    else:  # 删陈旧 dta: 防外部 Stata 静默读到与新 parquet 版本错配的旧 dta (评审 no-emit-dta-stale)
+        out_dta.unlink(missing_ok=True)
 
 
 FIXED_LABELS = {
@@ -915,6 +922,8 @@ def main(argv=None) -> int:
     ap.add_argument("--output", default=str(OUT_DATA / "company_tax_bank_cooc_panel.dta"))
     ap.add_argument("--year-min", type=int, default=PANEL_YEAR_MIN)
     ap.add_argument("--year-max", type=int, default=PANEL_YEAR_MAX)
+    ap.add_argument("--no-emit-dta", action="store_true",
+                    help="WP-S3 dev 快速模式: 跳过 dta 落盘只写 parquet (dev 产物不可回归; 生产勿用)")
     args = ap.parse_args(argv)
     if args.year_min > args.year_max:
         raise SystemExit(2)
@@ -1107,7 +1116,7 @@ def main(argv=None) -> int:
                 "(步骤 03 启动时校验, stale 即 SystemExit)",
                 registry["meta"]["registry_sha256"][:16], fingerprint[:16])
 
-    write_outputs(panel, registry, out_dta, fixed_labels=FIXED_LABELS)
+    write_outputs(panel, registry, out_dta, fixed_labels=FIXED_LABELS, emit_dta=not args.no_emit_dta)
     logger.info("主面板落盘: %s (短名 + 中文变量标签 ≤80 字符; usci str18 三联闸过) + 同名 .parquet "
                 "伴生 (未缩写全名, 程序端首选)", out_dta.name)
     cb_path = out_dta.parent / "company_tax_bank_cooc_panel_codebook.md"

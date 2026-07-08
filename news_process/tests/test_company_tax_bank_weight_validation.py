@@ -540,12 +540,12 @@ def test_county_key_ok_unidirectional_and_count():
 @pytest.mark.integration
 def test_city_county_spearman_excludes_identity():
     """city×county 份额 Spearman 剔恒等企业: 占位 144 家两权向量逐格恒等 (ρ 抬高伪影),
-    按企业整体剔除后 ρ 仍高 (跨粒度收敛效度真信号)。锚 = 互验报告 ③ 行 (+0.899 / n=945447)。
+    按企业整体剔除后 ρ 仍高 (跨粒度收敛效度真信号)。锚 = 互验报告 ③ 行 (+0.9009 / n=903506)。
 
-    ⚠ v7 窗口修正 (2011–2020) 相关: n/ρ 是 `_shares` 跨窗内年求和产物 → **随年窗收窄而变**;
-    当前锚 (945447 / 0.899) 读的是**旧 19 年窗盘上产物**, 与陈旧 on-disk 一致故此刻正确。
-    03 按 2011–2020 重跑双权长表后须同步 bump 此二 assert + 上行 docstring 数字 (计划 §9 v7
-    DEFERRED 已登记)。同族 :537 `county_key_ok==0 nunique==971` 是**企业级、窗无关, 勿误 bump**。"""
+    ⚠ v7 窗口修正 (2011–2020) 已落盘: n/ρ 是 `_shares` 跨窗内年求和产物 → **随年窗收窄而变**;
+    盘上 03 双权长表已按 2011–2020 重生 (03 log:164 实测 ρ=0.9009 / n=903506), 本锚已从旧 19 年窗值
+    (945447 / 0.899) bump 至新窗值 (计划 §9 v7 DEFERRED 已随 03 重跑兑现)。同族 :537
+    `county_key_ok==0 nunique==971` 是**企业级、窗无关, 勿误 bump**。"""
     _skip_if_no_altweights()
     _, geo = w8.load_companies()
     ph = set(geo[geo["city"].isin(w8.DV2_CONSTANTS["city_placeholder"])]["company"])
@@ -554,8 +554,8 @@ def test_city_county_spearman_excludes_identity():
     sc = w8._shares(city_lt[~city_lt["company"].isin(ph)])
     sq = w8._shares(county_lt[~county_lt["company"].isin(ph)])
     rho, n = w8.spearman_common(sc, sq)
-    assert n == 945447
-    assert rho == pytest.approx(0.899, abs=0.01)
+    assert n == 903506
+    assert rho == pytest.approx(0.9009, abs=0.01)
 
 
 @pytest.mark.integration
@@ -570,8 +570,32 @@ def test_usci_output_dtype_str18_in_products():
     s = pd.read_parquet(pq, columns=["usci"])["usci"]
     assert s.dtype == object, f"parquet usci dtype 应为 object(字符串), 实为 {s.dtype} — 疑写盘静默转数值"
     assert s.notna().all() and (s.astype(str).str.len() == 18).all(), "usci 须全非空且逐值 18 位"
+    # ⚠ WP-S3 (--no-emit-dta) 下 dta 不产出 → 本子块自动降级为仅校验 parquet usci 契约 (上方
+    # 强制断言恒跑); dta-string 子契约刻意条件化 = dev 快速模式无 dta 属预期, 非假绿 (parquet 即数据真源)
     if dta.exists():
         import pyreadstat
         _, meta = pyreadstat.read_dta(str(dta), metadataonly=True)
         vt = meta.readstat_variable_types.get("usci")
         assert vt == "string", f"dta 读回 usci 类型应为 string, 实为 {vt} — 防 str18 主键被强转数值"
+
+
+def test_wps2_join_background_writes_semantics():
+    """WP-S2 后台写盘 join fail-loud 语义 (评审 R2 复合失败守卫, 隔离测 _join_background_writes):
+    ① 成功 future → 返回 [(scheme, 秒)]; ② 主序正常 + bg 写失败 → 上抛 (fail-loud, 禁静默吞);
+    ③ 主序已异常 (exc_active) + bg 写失败 → 不上抛只记录 (原异常优先, 防 finally 掩盖 root cause)。"""
+    class _OKFut:
+        def result(self):
+            return 1.23
+
+    class _BadFut:
+        def result(self):
+            raise RuntimeError("bg dta 写失败")
+
+    logs: list[str] = []
+    assert w8._join_background_writes({"branch_city": _OKFut()}, False, logs.append) \
+        == [("branch_city", 1.23)]
+    with pytest.raises(RuntimeError, match="bg dta 写失败"):
+        w8._join_background_writes({"branch_city": _BadFut()}, False, logs.append)
+    logs.clear()
+    out = w8._join_background_writes({"branch_city": _BadFut()}, True, logs.append)
+    assert out == [] and len(logs) == 1 and "原异常优先" in logs[0]

@@ -486,6 +486,28 @@ def test_usci_map_triple_invariant():
     assert len(set(vals)) == len(vals), "usci 非全局唯一 (F1 唯一破; usci×year merge 键前提)"
 
 
+def test_write_outputs_emit_dta_flag(tmp_path):
+    """WP-S3 (--no-emit-dta dev 快速模式): emit_dta=False → 只写 parquet 跳 dta; True (默认) → 双出;
+    两模式 parquet 内容一致 (证 dta 门控不污染 parquet 伴生, 生产默认行为零变化)。"""
+    um = mod.usci_map()
+    name = next(iter(um))  # 真实税调企业名 → usci 契约 (str18/notna) 满足
+    base_panel = pd.DataFrame({
+        "company_tax_name": [name, name], "usci": [um[name], um[name]],
+        "year": [2011, 2012], "rel_n_banks": [0, 1], "rel_hhi": [np.nan, 1.0],
+        "cw_x_full": [np.nan, 0.5], "ce_x_full": [np.nan, 0.5]})
+    reg = mini_registry([entry("x")])
+    out_no = tmp_path / "p_nodta.dta"
+    mod.write_outputs(base_panel.copy(), reg, out_no, emit_dta=False)
+    assert not out_no.exists(), "emit_dta=False 仍写了 dta (WP-S3 门控失效)"
+    assert out_no.with_suffix(".parquet").exists(), "emit_dta=False 未写 parquet (伴生须恒出)"
+    out_yes = tmp_path / "p_dta.dta"
+    mod.write_outputs(base_panel.copy(), reg, out_yes, emit_dta=True)
+    assert out_yes.exists() and out_yes.with_suffix(".parquet").exists(), "emit_dta=True 应双出 dta+parquet"
+    a = pd.read_parquet(out_no.with_suffix(".parquet"))
+    b = pd.read_parquet(out_yes.with_suffix(".parquet"))
+    pd.testing.assert_frame_equal(a, b)  # parquet 内容与 emit_dta 无关
+
+
 # ---------------------------------------------------------------- WP-A log-clobber 防复发 gate
 # (2026-07-07 日志审计: 负例测试调 main() 曾三次首写截断覆盖生产 02 日志; 守卫=PYTEST_CURRENT_TEST 早退)
 # ⚠ 并发安全 (T-D18): 03 可能后台在写自身 03_*.log → 全目录 mtime 快照会被并发写污染。

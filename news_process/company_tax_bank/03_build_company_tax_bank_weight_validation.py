@@ -187,7 +187,7 @@ def _log_stage_header(pairs_path: Path, registry_path: Path, dta_path: Path, out
     logger.info("       (互验媒体锚, '无锚即无互验') + 02 的 SSOT 加权引擎与 write_outputs")
     logger.info("       (importlib.import_module 复用, 管道内禁第二份实现, T-D1/T-D10)")
     logger.info("     · 下游消费者: Stata 分析端三权 specification-curve 森林图 (primary 权重预先声明,")
-    logger.info("       禁挑臂单报) + gate 测试 tests/test_company_tax_bank_weight_validation.py (45 用例)")
+    logger.info("       禁挑臂单报) + gate 测试 tests/test_company_tax_bank_weight_validation.py (47 用例)")
     logger.info("     · 复现命令: python company_tax_bank/run_pipeline.py --steps 03 (WP-orch 期建立); 或")
     logger.info("       直接 python company_tax_bank/03_build_company_tax_bank_weight_validation.py")
     logger.info("     · 关键 config 键: registry `dv2_constants` (DV2 双向锁) / `bank_company_map` (own-bank")
@@ -841,6 +841,24 @@ def build_codebook_section(coverage: dict[str, pd.Series], cov_county: dict,
     return "\n".join(lines)
 
 
+# ================================================================ WP-S2 后台写盘 join (可测助手)
+def _join_background_writes(bg: dict, exc_active: bool, log_err) -> list:
+    """join WP-S2 后台 dta 写 future。fail-loud 语义:
+    - exc_active=False (主序正常结束) → 任一 bg 写异常直接**上抛** (fail-loud, 不静默吞)。
+    - exc_active=True (主序已因先前异常退出, 如 county gate 断言先抛) → bg 写异常仅 log_err **记录不上抛**,
+      使**原异常优先**呈现 (防 finally 异常掩盖 root cause; 镜像评审 R2 建议)。
+    返回 [(scheme, 后台写秒)] (成功者)。bg 值 = future (须有 .result())。"""
+    done = []
+    for scheme, fut in bg.items():
+        try:
+            done.append((scheme, fut.result()))
+        except Exception as e:  # noqa: BLE001 — 蓄意宽捕以在复合失败下保原异常优先
+            if not exc_active:
+                raise
+            log_err(f"[WP-S2] {scheme} 后台 dta 写盘失败, 但主序已因先前异常退出 → 原异常优先: {e!r}")
+    return done
+
+
 # ================================================================ 主流程
 def main(argv=None) -> int:
     if sys.flags.optimize:  # 本脚本 fail-fast 闸为 assert, -O/PYTHONOPTIMIZE 下会静默失效
@@ -855,6 +873,8 @@ def main(argv=None) -> int:
     ap.add_argument("--output-dir", default=str(OUT_DATA))
     ap.add_argument("--year-min", type=int, default=PANEL_YEAR_MIN)
     ap.add_argument("--year-max", type=int, default=PANEL_YEAR_MAX)
+    ap.add_argument("--no-emit-dta", action="store_true",
+                    help="WP-S3 dev 快速模式: 两 branch 面板跳过 dta 落盘只写 parquet (dev 不可回归; 生产勿用)")
     args = ap.parse_args(argv)
     if args.year_min > args.year_max:
         raise SystemExit(2)
@@ -1059,79 +1079,108 @@ def main(argv=None) -> int:
                                           names=["company_tax_name", "year"])
     bank_company_set = set(registry["bank_company_map"])
 
-    # ---- 双面板批量生产 (串行, 禁同持两面板 — T-D13)
+    # ---- 双面板批量生产 (WP-S2: branch_city 写盘后台线程与 branch_county 引擎部分重叠; 禁同持两面板)
+    from concurrent.futures import ThreadPoolExecutor
+    emit_dta = not args.no_emit_dta
+    wp1.usci_map()  # WP-S2 预热: 单线程首建 usci 惰性全局, 防 city 后台线程与 county 主线程并发双建 (无锁全局)
     coverage: dict[str, pd.Series] = {}
     panel_shapes: dict[str, tuple] = {}
-    for scheme in SCHEMES:
-        _tp = time.monotonic()
-        lt = longtabs[scheme]
-        coverage[scheme] = lt.dropna(subset=["w"]).groupby("year").size()
-        weights = lt[["company", "bank", "year", "w"]]  # 引擎入口四列 (track-less → 三轨广播)
-        weighted = eng.compute_weighted_panel(weights, measures, registry)
-        fixed = fixed_cols_for(lt, measures, skeleton)
-        panel = fixed.reset_index()
-        panel["is_bank_company"] = panel["company_tax_name"].isin(bank_company_set).astype("int8")
-        panel["year"] = panel["year"].astype("int16")
-        cols = ["company_tax_name", "year", "is_bank_company",
-                "rel_n_banks", "rel_hhi", "rel_wt_base"]
-        fixed_labels = {
-            "company_tax_name": "税调企业名称 (全称)", "year": "年",
-            "is_bank_company": "银行系税调企业 (D4, 280 家)",
-            "rel_n_banks": f"{SCHEME_LABEL_WORD[scheme]}权当年支撑银行数",
-            "rel_hhi": f"{SCHEME_LABEL_WORD[scheme]}权重集中度HHI",
-            "rel_wt_base": f"{SCHEME_LABEL_WORD[scheme]}权重落在银行面板比例"}
-        if scheme == "branch_county":
-            panel["county_key_ok"] = (panel["company_tax_name"].map(county_key_ok)
-                                      .fillna(0).astype("int8"))
-            cols.append("county_key_ok")
-            fixed_labels["county_key_ok"] = "县级键有效性 (1=有效复合键或退化键; 0=缺键, 县权缺失非真零)"
-        panel = panel[cols]
-        panel = panel.merge(weighted, how="left", left_on=["company_tax_name", "year"],
-                            right_index=True)
-        _t_engine = time.monotonic()
-        # 面板批量 gate (母本 DV6 末段 + 县权 T-D5b 单向 gate)
-        assert len(panel) == len(skeleton), f"{scheme} 面板行数 ≠ 骨架 (乘式 {len(skeleton):,})"
-        cwce = [c for c in panel.columns if c.startswith(("cw_", "ce_"))]
-        zero = panel["rel_n_banks"] == 0
-        assert panel.loc[zero, cwce].isna().all().all(), f"{scheme}: rel_n_banks=0 行出现非缺失 cw/ce"
-        assert panel[cwce].notna().any().any(), f"{scheme} 面板全缺失 (SystemExit 级锚)"
-        hhi = panel["rel_hhi"].dropna()
-        assert ((hhi > 0) & (hhi <= 1 + 1e-12)).all(), f"{scheme}: rel_hhi 值域违例"
-        single = panel[(panel["rel_n_banks"] == 1) & panel["rel_hhi"].notna()]
-        assert np.isclose(single["rel_hhi"], 1.0).all(), f"{scheme}: 单银行 rel_hhi ≠ 1"
-        for e in registry["entries"]:
-            if not e["emit_panel"] or e["range_gate"] == "none":
-                continue
-            lo, hi = (-1.0, 1.0) if e["range_gate"] == "tone" else (0.0, 1.0)
-            for t in e["emit_tracks"]:
-                col = f"cw_{e['basename']}_{t}"
-                if col in panel.columns:
-                    v = panel[col].dropna()
-                    if len(v):
-                        assert (v >= lo - 1e-9).all() and (v <= hi + 1e-9).all(), \
-                            f"{scheme}: 值域违例 {col}"
-        if scheme == "branch_county":
-            # county_key_ok 单向 gate (T-D5b; 禁双向 — key_ok==1 且全缺失是合法真零形态)
-            bad_rows = panel.loc[panel["county_key_ok"] == 0, "rel_n_banks"]
-            assert (bad_rows == 0).all(), "county_key_ok==0 企业出现非零县权 (单向 gate 破)"
-            log(f"  gate(县) county_key_ok 单向断言: ==0 的 {n_keyok0:,} 家企业县权全缺失 "
-                f"(rel_n_banks≡0 ⇒ cw/ce 全 NaN) ✓; ==1 且全缺失者归真零披露 (互验①)")
-        _t_gate = time.monotonic()
-        out_dta = outdir / f"company_tax_bank_{scheme}w_panel.dta"
-        wp1.write_outputs(panel, registry, out_dta, scheme_word=SCHEME_LABEL_WORD[scheme],
-                          fixed_labels=fixed_labels)
-        n_nonzero = int((panel["rel_n_banks"] > 0).sum())
-        panel_shapes[scheme] = (len(panel), len(panel.columns) + 1)  # +1 = write_outputs usci 注入
-        _elp = time.monotonic() - _tp
-        log(f"{scheme} 面板: {len(panel):,} 行 × {len(panel.columns) + 1} 列 (含 usci 单点注入) → "
-            f"{out_dta.name} ({_elp:.4g} 秒 = 引擎加权 {_t_engine - _tp:.4g} + 批量 gate "
-            f"{_t_gate - _t_engine:.4g} + dta 写盘 {time.monotonic() - _t_gate:.4g}, 吞吐 "
-            f"{len(panel) / max(_elp, 1e-9):.4g} 行/秒) | 有关系企业×年格 {n_nonzero:,} "
-            f"({100 * n_nonzero / len(panel):.4g}%) | 批量 gate: 骨架行数/零关系全缺失/全缺失锚/"
-            f"rel_hhi 值域+单银行==1/registry 值域"
-            f"{'/county_key_ok 单向' if scheme == 'branch_county' else ''} 全过")
-        del panel, weighted, fixed  # T-D13 串行释放
-        logger.info("[Memory] %s 面板落盘后 | RSS: %.4g MB", scheme, _rss_mb())
+    _write_pool = ThreadPoolExecutor(max_workers=1)
+    _bg_writes: dict[str, object] = {}  # scheme -> future (仅 branch_city; panel 经闭包默认参存活至 join)
+    try:
+        for scheme in SCHEMES:
+            _tp = time.monotonic()
+            lt = longtabs[scheme]
+            coverage[scheme] = lt.dropna(subset=["w"]).groupby("year").size()
+            weights = lt[["company", "bank", "year", "w"]]  # 引擎入口四列 (track-less → 三轨广播)
+            weighted = eng.compute_weighted_panel(weights, measures, registry)
+            fixed = fixed_cols_for(lt, measures, skeleton)
+            panel = fixed.reset_index()
+            panel["is_bank_company"] = panel["company_tax_name"].isin(bank_company_set).astype("int8")
+            panel["year"] = panel["year"].astype("int16")
+            cols = ["company_tax_name", "year", "is_bank_company",
+                    "rel_n_banks", "rel_hhi", "rel_wt_base"]
+            fixed_labels = {
+                "company_tax_name": "税调企业名称 (全称)", "year": "年",
+                "is_bank_company": "银行系税调企业 (D4, 280 家)",
+                "rel_n_banks": f"{SCHEME_LABEL_WORD[scheme]}权当年支撑银行数",
+                "rel_hhi": f"{SCHEME_LABEL_WORD[scheme]}权重集中度HHI",
+                "rel_wt_base": f"{SCHEME_LABEL_WORD[scheme]}权重落在银行面板比例"}
+            if scheme == "branch_county":
+                panel["county_key_ok"] = (panel["company_tax_name"].map(county_key_ok)
+                                          .fillna(0).astype("int8"))
+                cols.append("county_key_ok")
+                fixed_labels["county_key_ok"] = "县级键有效性 (1=有效复合键或退化键; 0=缺键, 县权缺失非真零)"
+            panel = panel[cols]
+            panel = panel.merge(weighted, how="left", left_on=["company_tax_name", "year"],
+                                right_index=True)
+            _t_engine = time.monotonic()
+            # 面板批量 gate (母本 DV6 末段 + 县权 T-D5b 单向 gate)
+            assert len(panel) == len(skeleton), f"{scheme} 面板行数 ≠ 骨架 (乘式 {len(skeleton):,})"
+            cwce = [c for c in panel.columns if c.startswith(("cw_", "ce_"))]
+            zero = panel["rel_n_banks"] == 0
+            assert panel.loc[zero, cwce].isna().all().all(), f"{scheme}: rel_n_banks=0 行出现非缺失 cw/ce"
+            assert panel[cwce].notna().any().any(), f"{scheme} 面板全缺失 (SystemExit 级锚)"
+            hhi = panel["rel_hhi"].dropna()
+            assert ((hhi > 0) & (hhi <= 1 + 1e-12)).all(), f"{scheme}: rel_hhi 值域违例"
+            single = panel[(panel["rel_n_banks"] == 1) & panel["rel_hhi"].notna()]
+            assert np.isclose(single["rel_hhi"], 1.0).all(), f"{scheme}: 单银行 rel_hhi ≠ 1"
+            for e in registry["entries"]:
+                if not e["emit_panel"] or e["range_gate"] == "none":
+                    continue
+                lo, hi = (-1.0, 1.0) if e["range_gate"] == "tone" else (0.0, 1.0)
+                for t in e["emit_tracks"]:
+                    col = f"cw_{e['basename']}_{t}"
+                    if col in panel.columns:
+                        v = panel[col].dropna()
+                        if len(v):
+                            assert (v >= lo - 1e-9).all() and (v <= hi + 1e-9).all(), \
+                                f"{scheme}: 值域违例 {col}"
+            if scheme == "branch_county":
+                # county_key_ok 单向 gate (T-D5b; 禁双向 — key_ok==1 且全缺失是合法真零形态)
+                bad_rows = panel.loc[panel["county_key_ok"] == 0, "rel_n_banks"]
+                assert (bad_rows == 0).all(), "county_key_ok==0 企业出现非零县权 (单向 gate 破)"
+                log(f"  gate(县) county_key_ok 单向断言: ==0 的 {n_keyok0:,} 家企业县权全缺失 "
+                    f"(rel_n_banks≡0 ⇒ cw/ce 全 NaN) ✓; ==1 且全缺失者归真零披露 (互验①)")
+            _t_gate = time.monotonic()
+            out_dta = outdir / f"company_tax_bank_{scheme}w_panel.dta"
+            n_nonzero = int((panel["rel_n_banks"] > 0).sum())
+            panel_shapes[scheme] = (len(panel), len(panel.columns) + 1)  # +1 = write_outputs usci 注入
+            _gatetail = ("骨架行数/零关系全缺失/全缺失锚/rel_hhi 值域+单银行==1/registry 值域"
+                         + ("/county_key_ok 单向" if scheme == "branch_county" else "") + " 全过")
+            _head = (f"{scheme} 面板: {len(panel):,} 行 × {len(panel.columns) + 1} 列 (含 usci 单点注入) "
+                     f"→ {out_dta.name}")
+            _cov = (f" | 有关系企业×年格 {n_nonzero:,} ({100 * n_nonzero / len(panel):.4g}%) "
+                    f"| 批量 gate: {_gatetail}")
+            if scheme == "branch_city":  # WP-S2: 后台写盘, 与 branch_county 引擎部分重叠 (write_dta 持 GIL,
+                # 靠主线程 county 引擎 pandas/numpy 释放 GIL 实现部分重叠; panel 经闭包默认参存活至 join)
+                def _timed_write(_p=panel, _od=out_dta, _sw=SCHEME_LABEL_WORD[scheme],
+                                 _fl=fixed_labels, _emit=emit_dta):
+                    _t0 = time.monotonic()
+                    wp1.write_outputs(_p, registry, _od, scheme_word=_sw, fixed_labels=_fl, emit_dta=_emit)
+                    return time.monotonic() - _t0
+                _bg_writes[scheme] = _write_pool.submit(_timed_write)
+                log(f"{_head} (引擎加权 {_t_engine - _tp:.4g}s + 批量 gate {_t_gate - _t_engine:.4g}s "
+                    f"+ dta 写盘→后台线程 [WP-S2, 与 branch_county 引擎重叠]){_cov}")
+                del weighted, fixed  # panel 经闭包存活至 join; weighted(~6.4GB 宽帧)/fixed 立即释放
+            else:  # branch_county: 同步写盘 (其后仅互验 ~14s, 无可重叠对象)
+                wp1.write_outputs(panel, registry, out_dta, scheme_word=SCHEME_LABEL_WORD[scheme],
+                                  fixed_labels=fixed_labels, emit_dta=emit_dta)
+                _elp = time.monotonic() - _tp
+                log(f"{_head} ({_elp:.4g} 秒 = 引擎加权 {_t_engine - _tp:.4g} + 批量 gate "
+                    f"{_t_gate - _t_engine:.4g} + dta 写盘 {time.monotonic() - _t_gate:.4g}, 吞吐 "
+                    f"{len(panel) / max(_elp, 1e-9):.4g} 行/秒){_cov}")
+                del panel, weighted, fixed  # T-D13 串行释放
+                logger.info("[Memory] %s 面板落盘后 | RSS: %.4g MB", scheme, _rss_mb())
+    finally:
+        # WP-S2 join: 主序正常结束→bg 写异常 fail-loud 上抛; 主序已异常→bg 异常记录不掩盖原异常。
+        # shutdown 先于 join 循环 (wait=True 阻塞等 city 写完), 确保 join 上抛时线程池仍被清理 (WP-S2-f)。
+        _exc_active = sys.exc_info()[0] is not None
+        _write_pool.shutdown(wait=True)
+        for _sc, _wsec in _join_background_writes(_bg_writes, _exc_active, logger.error):
+            logger.info("[WP-S2] %s dta 后台写盘完成: %.4g 秒 (与 branch_county 引擎重叠) | RSS: %.4g MB",
+                        _sc, _wsec, _rss_mb())
+        logger.info("[Memory] 双面板全部落盘/join 完成 | RSS: %.4g MB", _rss_mb())
 
     # ---- 三权互验报告 (T-D7)
     mp = pair[pair["track"] == "full"].rename(columns={"n_docs": "w"})
