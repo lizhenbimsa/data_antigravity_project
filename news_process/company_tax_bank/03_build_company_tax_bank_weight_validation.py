@@ -104,16 +104,34 @@ def _init_stage_logging() -> None:
     logging.getLogger(Path(__file__).stem).propagate = True
 
 
+class _EngineLogRename(logging.Filter):
+    """把借用的 listed 加权引擎 logger 记录改名为本税调阶段名 — 真正兑现 redirect_module_logger
+    语义。attach 只接管 handler 不改名, 会让引擎自身 emit 的 budget/chunk 收缩等行携带 listed
+    引擎阶段名混入税调 03 日志 (按阶段名 grep 排障会漏归, 且步骤号错标为 02)。改写 record.name
+    使这些行归到宿主税调阶段 (纯 cosmetic, 零数据/确定性影响; R1/T-D10)。"""
+
+    def __init__(self, stage_name: str) -> None:
+        super().__init__()
+        self._stage = stage_name
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.name = self._stage
+        return True
+
+
 def _attach_engine_logging() -> None:
     """跨管道引擎日志接管 (T-D10, 镜像主仓 redirect_module_logger 语义): 把本阶段文件
-    handler attach 到 listed 02 引擎 logger, 使 budget 生效值与 chunk 收缩 WARNING 落
-    税调 03 日志文件 (否则只上 console, 生产日志失载)。仅 attach 文件 handler (console
-    由税调 02 的 engine() attach 兜底, 避免 console 双打)。测试进程不接管。"""
+    handler attach 到 listed 02 引擎 logger + 挂改名 Filter, 使 budget 生效值与 chunk 收缩
+    WARNING 以本税调阶段名落税调 03 日志文件 (否则只上 console 且携带 listed 阶段名, 生产日志
+    失载/错归)。仅 attach 文件 handler (console 由税调 02 的 engine() attach 兜底, 避免 console
+    双打)。测试进程不接管。"""
     import os
     if os.environ.get("PYTEST_CURRENT_TEST"):
         return
     # 白名单字面量 ① (T-D8): listed 02 引擎 logger 名, 跨管道 importlib 目标串
     eng_logger = logging.getLogger("02_build_company_bank_cooc_panel")
+    if not any(isinstance(f, _EngineLogRename) for f in eng_logger.filters):
+        eng_logger.addFilter(_EngineLogRename(Path(__file__).stem))  # R1: 改名兑现真 redirect
     for h in logger.handlers:
         if isinstance(h, logging.FileHandler) and h not in eng_logger.handlers:
             eng_logger.addHandler(h)
@@ -1399,8 +1417,11 @@ def main(argv=None) -> int:
     logger.info("     '缺键'与'真零'在面板端机器可分 — 复现包使用者无需税调名单即可重构县权样本子集。")
     logger.info("  ⑤ DV2 未映射名称: %s 种 (全量落互验报告审计附录 top-50, 无静默丢弃) — 生产复跑时"
                 "复核映射率 (关注)", f"{len(canon.audit):,}")
-    logger.info("     判读: top 频次以政策性银行 (进出口/农发/国开) 与村镇银行为主 — 属 canonical")
-    logger.info("     宇宙刻意一致排除 (非缺陷); 真值关注点 = 映射率漂移与新增高频未映射商业银行名。")
+    logger.info("     判读: 未映射名 freq 结构性恒 1 (distinct 名集, 无频次梯度 — 'top 频次'非有效概念);")
+    logger.info("     top-50 实以农商行/境外行为主, 另含少数城商行 (大同/洛阳/晋城) 因不在 bank_names.json")
+    logger.info("     canonical 宇宙 (1,767 家) 而落审计 — 属 SSOT 枚举缺口 (非'政策性银行刻意排除', top-50")
+    logger.info("     零命中进出口/农发/国开)。⚠ 覆盖锚 A/B 系 conditional-on-in-universe (测企业侧键命中率),")
+    logger.info("     不认证银行宇宙本身完备性; 生产须另核 SSOT 是否漏收真实营业城商行 (codebook §7 L7 已挂账)。")
     logger.info("  ⑥ 互验件套 (富集度双基准/份额 Spearman 三行/均值差/Top-1/城县支撑对比) 已写入报告,"
                 " 判读以报告为准: %s", outdir / "_company_tax_bank_weight_validation.md")
     logger.info("     判读: 健康形态 = 边际保持富集 >1× 且城县方向一致 + Spearman 以正为主 + 有关系媒体")

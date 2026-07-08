@@ -72,14 +72,32 @@ def engine():
     return _ENGINE
 
 
+class _EngineLogRename(logging.Filter):
+    """把借用的 listed 加权引擎 logger 记录改名为本税调阶段名 — 真正兑现 redirect_module_logger
+    语义。attach 只接管 handler 不改名, 会让引擎自身 emit 的 budget/双法等价断言等行携带 listed
+    引擎阶段名混入税调日志 (按阶段名 grep 排障会漏归, 且步骤号错标)。改写 record.name 使这些行归
+    到宿主税调阶段 (纯 cosmetic, 零数据/确定性影响; R1/T-D10)。"""
+
+    def __init__(self, stage_name: str) -> None:
+        super().__init__()
+        self._stage = stage_name
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.name = self._stage
+        return True
+
+
 def _attach_engine_logging() -> None:
-    """跨管道引擎日志接管 (T-D10, 镜像主仓 redirect_module_logger 语义): 把本阶段文件
-    handler attach 到引擎 logger, 使 budget 生效值与 chunk 收缩 WARNING 落税调日志文件
-    (否则只上 console, 生产日志失载)。测试进程不接管 (与 _init_stage_logging 对称)。"""
+    """跨管道引擎日志接管 (T-D10, 镜像主仓 redirect_module_logger 语义): 把本阶段文件 handler
+    attach 到引擎 logger + 挂改名 Filter, 使 budget 生效值与 chunk 收缩 WARNING 以本税调阶段名落
+    税调日志文件 (否则只上 console 且携带 listed 阶段名, 生产日志失载/错归)。测试进程不接管
+    (与 _init_stage_logging 对称)。"""
     import os
     if os.environ.get("PYTEST_CURRENT_TEST"):
         return
     eng_logger = logging.getLogger("02_build_company_bank_cooc_panel")
+    if not any(isinstance(f, _EngineLogRename) for f in eng_logger.filters):
+        eng_logger.addFilter(_EngineLogRename(Path(__file__).stem))  # R1: 改名兑现真 redirect
     for h in logger.handlers:
         if h not in eng_logger.handlers:
             eng_logger.addHandler(h)
@@ -400,7 +418,9 @@ def scan_hits(df: pd.DataFrame, A, bank_substr, own_map) -> pd.DataFrame:
 # ---------------------------------------------------------------- 归年映射与年窗 (T-D4)
 def build_year_map(hits: pd.DataFrame) -> tuple[pd.Series, pd.DataFrame]:
     """绝对合法域剔除 → 全局 docid→min(年) 映射 (窗口裁剪之前建立, 母本 v20 顺序封口)。"""
-    bad = (hits["year_raw"] < ABS_YEAR_MIN) | (hits["year_raw"] > ABS_YEAR_MAX)
+    bad = ((hits["year_raw"] < ABS_YEAR_MIN) | (hits["year_raw"] > ABS_YEAR_MAX)
+           | hits["year_raw"].isna())  # L2: null 日期→NaT→NaN year, 显式计脏年 (否则 NaN 比较恒
+    #                                    False 绕过脏年 SystemExit 闸 → 窗口过滤静默丢行, fail-open)
     n_bad = int(bad.sum())
     if n_bad:
         frac = n_bad / len(hits)
@@ -1142,6 +1162,17 @@ def main(argv=None) -> int:
     top5 = (panel.groupby("company_tax_name")["n_cooc_full"].sum()
             .sort_values(ascending=False).head(5))
     logger.info("full 轨共现篇数 top-5 企业: %s", {k: int(v) for k, v in top5.items()})
+    # B1: 单企业占比畸高 = 短名/通用子串 variant 误配灌水信号 (设计刻意不剔除, 仅 surface —
+    # 阈值属分析端自由度; 对冲工具 = n_docs_longhit ≥4字臂 + codebook §7 L1)。运行时 loud 告警,
+    # 使该数据态在生产日志即被点名, 而非仅靠 top-5/k^c 留痕人工发现。
+    _tot_full = int(panel["n_cooc_full"].sum())
+    if _tot_full and len(top5):
+        _t1_share = int(top5.iloc[0]) / _tot_full
+        if _t1_share > 0.30:
+            log(f"单企业共现占比畸高: {top5.index[0]} 占 full 轨共现总篇计 {_t1_share:.1%} "
+                f"({int(top5.iloc[0]):,}/{_tot_full:,}) — 疑短名/通用子串 variant 误配灌水; 核该"
+                f"企业 variant 长度谱 + 用 n_docs_longhit (≥4字臂) 稳健复核 (刻意不剔除, §7 L1)",
+                warn=True)
     # k^c 分位诊断 (§7, 无剔除阈值)
     for t in TRACKS:
         ht = hits[hits["track"] == t].drop_duplicates(["company", "docid"])
