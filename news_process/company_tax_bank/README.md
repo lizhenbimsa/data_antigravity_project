@@ -65,8 +65,12 @@ python company_tax_bank/03_build_company_tax_bank_weight_validation.py
   陈旧锁 (持有者 PID 已不存活) 自愈清除。绕过 orchestrator 直跑单步脚本仍无互斥, 并发纪律同样适用。
 - **03 内存预算 (T-D13 / WP-S1 提速 v2)**: run_pipeline 在 03 子进程注入默认
   `NEWS_PROCESS_COOC_BUDGET_CELLS=1000000000` (1.0B; 城网点长表 15M 行 / 县 8M 行, v7 年窗 2011–2020 口径)。
-  1.0B 使加权引擎 chunk_eff = city 33→66 / county 62→100 (cap), 减 chunk 数提速; 引擎默认 60M 会把
-  chunk_eff 收缩到 2 触发内存吃紧 WARNING + groupby 轮次暴涨。峰值 ~35-45GB (128GB 安全)。用户已
+  1.0B 使加权引擎 chunk_eff = city 33→66 / county 62→100 (cap), 减 chunk 数; 引擎默认 60M 会把
+  chunk_eff 收缩到 city 3 / county 7 (city <4 触发内存吃紧 WARNING) + groupby 轮次暴涨。
+  ⚠ **budget 提速非单调**: 实测 (7db15e69 全链) city 引擎 781→478s 大受益, 但 county 引擎 312→510s
+  **反变慢** (chunk_eff 62→100 大帧内存带宽 + WP-S2 城写盘重叠争用); 1.0B 净效应仍为正 (总 −660s),
+  但生产 T=18 须 **per-分支实测选最优 budget**, 勿假定 county 随 budget 提高而加速。峰值 ~35-45GB
+  投影 (128GB 安全; mid-chunk RSS 采样 DEFERRED 到生产实测, 现日志仅落盘后 RSS 下界)。用户已
   `export` 该变量则不覆盖。手跑 03 时须自行设置 (否则回退引擎默认 60M, 次优)。
 
 ## gate 测试四件

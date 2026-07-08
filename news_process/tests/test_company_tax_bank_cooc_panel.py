@@ -487,8 +487,8 @@ def test_usci_map_triple_invariant():
 
 
 def test_write_outputs_emit_dta_flag(tmp_path):
-    """WP-S3 (--no-emit-dta dev 快速模式): emit_dta=False → 只写 parquet 跳 dta; True (默认) → 双出;
-    两模式 parquet 内容一致 (证 dta 门控不污染 parquet 伴生, 生产默认行为零变化)。"""
+    """WP-S3 (--no-emit-dta dev 快速模式): emit_dta=False → 只写 parquet 跳 dta 且删陈旧 dta; True
+    (默认) → 双出; 两模式 parquet 内容一致 (证 dta 门控不污染 parquet 伴生, 生产默认行为零变化)。"""
     um = mod.usci_map()
     name = next(iter(um))  # 真实税调企业名 → usci 契约 (str18/notna) 满足
     base_panel = pd.DataFrame({
@@ -497,8 +497,10 @@ def test_write_outputs_emit_dta_flag(tmp_path):
         "cw_x_full": [np.nan, 0.5], "ce_x_full": [np.nan, 0.5]})
     reg = mini_registry([entry("x")])
     out_no = tmp_path / "p_nodta.dta"
+    out_no.write_bytes(b"STALE-DTA")  # 预置陈旧 dta → 令 emit_dta=False 的 unlink 分支真被执行 (非 no-op),
+    #                                    防外部 Stata 读到与新 parquet 版本错配的旧 dta (评审 no-emit-dta-stale)
     mod.write_outputs(base_panel.copy(), reg, out_no, emit_dta=False)
-    assert not out_no.exists(), "emit_dta=False 仍写了 dta (WP-S3 门控失效)"
+    assert not out_no.exists(), "emit_dta=False 未删除陈旧 dta (WP-S3 unlink 分支失效 → Stata 读错配旧 dta)"
     assert out_no.with_suffix(".parquet").exists(), "emit_dta=False 未写 parquet (伴生须恒出)"
     out_yes = tmp_path / "p_dta.dta"
     mod.write_outputs(base_panel.copy(), reg, out_yes, emit_dta=True)

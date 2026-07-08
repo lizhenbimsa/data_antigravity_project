@@ -39,9 +39,9 @@ OUT_DATA = HERE / "data"
 LOCK_FILE = HERE / "logs" / "_run_pipeline.lock"
 
 # 03 分支长表 (千万行级) 的加权引擎内存预算默认值 (T-D13 / WP-S1 提速 v2): 媒体权稀疏长表用引擎默认
-# 60M 即可, 但 03 城网点长表 15M 行 / 县 8M 行 (v7 年窗 2011–2020), 默认 60M 会把 chunk_eff 收缩到 2、
-# 触发内存吃紧 WARNING 且 groupby 轮次暴涨。见下方常量: 1.0B 使 chunk_eff city 33→66 / county 62→100。
-_BRANCH_BUDGET_CELLS = 1_000_000_000  # WP-S1 (提速计划 v2): 500M→1.0B, city chunk_eff 33→66 / county 62→100 (cap), 减 chunk 数; 峰值 ~35-45GB (128GB 安全); chunk 位级无涉 golden-safe (test_engine_chunk_invariance_bitwise 锚)
+# 60M 即可, 但 03 城网点长表 15M 行 / 县 8M 行 (v7 年窗 2011–2020), 默认 60M 会把 chunk_eff 收缩到
+# city 3 / county 7 (city <4 触发内存吃紧 WARNING) 且 groupby 轮次暴涨。见下方常量: 1.0B 使 chunk_eff city 33→66 / county 62→100。
+_BRANCH_BUDGET_CELLS = 1_000_000_000  # WP-S1 (提速计划 v2): 500M→1.0B, city chunk_eff 33→66 / county 62→100 (cap), 减 chunk 数; ⚠ 提速非单调 (实测 7db15e69): city 引擎 781→478s 但 county 312→510s 反变慢 (大帧内存带宽/重叠争用), 净仍 -660s 但生产 T=18 须 per-分支实测最优; 峰值 ~35-45GB 投影 (128GB 安全, mid-chunk RSS 实测 DEFERRED); chunk 位级无涉 golden-safe (test_engine_chunk_invariance_bitwise 锚)
 
 logger = logging.getLogger("run_pipeline")
 if not logger.handlers:  # console 兜底; main() 实跑时由 setup_logging 接管
@@ -463,7 +463,8 @@ def _run(args: argparse.Namespace, wanted: set[str], selected: list[tuple[str, s
                 child_env["NEWS_PROCESS_COOC_BUDGET_CELLS"] = str(_BRANCH_BUDGET_CELLS)
                 logger.info("  env 注入: NEWS_PROCESS_COOC_BUDGET_CELLS=%s (WP-S1 提速 v2: 城/县网点长表 "
                             "15M/8M 行, 1.0B 使 chunk_eff city 33→66 / county 62→100 减 chunk 数; "
-                            "防收缩至 chunk_eff=2; 峰值 ~35-45GB 128GB 安全)", _BRANCH_BUDGET_CELLS)
+                            "防收缩至 city 3 / county 7; ⚠ 实测 city 引擎提速但 county 反变慢 (非单调); "
+                            "峰值 ~35-45GB 投影 128GB 安全)", _BRANCH_BUDGET_CELLS)
             else:
                 logger.info("  env: NEWS_PROCESS_COOC_BUDGET_CELLS 已由环境提供 (%s), 不覆盖默认 %s",
                             child_env["NEWS_PROCESS_COOC_BUDGET_CELLS"], _BRANCH_BUDGET_CELLS)

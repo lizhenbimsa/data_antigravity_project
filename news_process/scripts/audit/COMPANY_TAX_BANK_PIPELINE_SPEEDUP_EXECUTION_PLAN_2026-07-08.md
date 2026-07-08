@@ -146,9 +146,13 @@
 - branch_county len(Wt)=7,965,690: 500M→**62** | 1.0B→**100** (cap: 1e9//7,965,690=125→钳 100)。
 - chunk 数 = ⌈787/chunk_eff⌉。city 24→(1.0B)12→(1.5B)8; county 13→(1.0B)8。
 
-**收益 (含 county 修正)**: 主受益 branch_city (33 偏小); **county 62→100 (chunk 13→8) 亦贡献
-次要增益 ~15-20s** (同 15% 每-chunk 开销假设), 不宜以 "已近最优" 完全排除。合计 L1 ≈ **95-170s**
-(city ~80-150 + county ~15-20)。**非数量级, 但零成本零风险**。
+**收益 (预测, ⚠ 已被实测推翻为非单调)**: 主受益 branch_city (33 偏小); 原预测 **county 62→100
+(chunk 13→8) 亦贡献次要增益 ~15-20s**, 合计 L1 ≈ **95-170s** (city ~80-150 + county ~15-20)。
+⚠ **实测修正 (7db15e69 全链)**: budget 提速**非单调** — city 引擎 781→478s (−303s, 远超预测) 但
+**county 引擎 312→510s = +198s 反变慢** (chunk_eff 62→100 大帧内存带宽 + WP-S2 城写盘重叠争用),
+与本段"county 亦提速"的预测**方向相反**。L1 净值 ~105s 凑巧仍落在 95-170s 区间且总效应为正
+(−660s), 但**生产 T=18 须 per-分支实测选最优 budget, 勿假定 county 随 budget 提高而加速**。
+**非数量级, 但零成本零风险 (golden 位级不变)**。
 
 **内存核算 (128GB 本机)**: 每 chunk 瞬时工作集 = X(8B)+V(1B)+NUM(8B)+DEN(8B) = **25B/cell**
 (`listed 02:719,721,723,724`; NUM 链中间帧被 CPython 即时回收, 不额外增峰) × 15M × chunk_eff:
@@ -159,7 +163,8 @@
 **落地**: 先设 **1.0B**, 跑一轮验证 + 量峰值, 有余量再试 1.5B。⚠ 现 03 日志 (`03:155,158,222`) 只有
 **落盘后 RSS** (2617/2408/3205MB, 原文自述为下界), **无引擎/chunk 循环期峰值**; 故 "跑一轮量峰值"
 须在**引擎加权段内**加一次 RSS 采样 (mid chunk 循环), 否则拿到的仍是落盘后下界、无法证实 24.7-37.5GB
-投影。同步改注入日志文案 (`run_pipeline.py:459-460` 的 "防 chunk 收缩至 chunk_eff=2" → 反映新值)。
+投影。同步改注入日志文案 (`run_pipeline.py:459-460` 的 "防 chunk 收缩至 chunk_eff=2" → 已落地为
+"防收缩至 city 3 / county 7" 反映 v7 年窗 15M/8M 行实值; 旧 "=2" 系 pre-v7 19 年窗遗留)。
 
 **gate (更正)**: `test_engine_chunk_invariance_bitwise` (chunk∈{1,3,100} 位级不变, **L1 真锚**) +
 `test_engine_bitwise_equiv_percol`/`_no_unmatched` (默认 chunk 下"新路径==参照臂") 全绿 +
@@ -196,9 +201,10 @@ DEFER 到生产 T=18 复跑实证。
   v1 所述 ~40-55GB。**若同时做 WP-S1(1.5B) + WP-S2, 峰值 ~60GB 无 2× 余量 → 联合 budget 上限钉 1.0B,
   或先做 usci 前置注入治本。**
 
-**gate**: 新增 `test_weight_dta_write_overlap_faildfast` (mock write 抛异常 → SystemExit; **含
-"county gate 失败 AND city 后台写同时失败" 复合用例**, 断言 city 写失败被 surfaced 非被 executor 吞) +
-既有 dta-reading integration 全绿 (产物字节等价)。
+**gate**: 新增 `test_wps2_join_background_writes_semantics` (落地名; 原提议名
+`test_weight_dta_write_overlap_faildfast` 已改) — 覆盖 `_join_background_writes` 三分支: 主序正常
+→ 后台写异常 fail-loud 上抛; 主序已异常 → 后台异常记录不掩盖原异常; 正常返回计时。断言 city 写失败
+被 surfaced 非被 executor 吞) + 既有 dta-reading integration 全绿 (产物字节等价)。
 
 ---
 
