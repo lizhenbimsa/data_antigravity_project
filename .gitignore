@@ -87,6 +87,7 @@ news_process/models/
 # ============================================================
 news_process/logs/
 news_process/company_listed_bank/logs/
+news_process/company_tax_bank/logs/
 *.log
 
 # ============================================================
@@ -97,6 +98,8 @@ news_process/data/
 news_process/data_excel/
 # 2026-07-07: 银企共现面板流水线产物 (~13GB dta/parquet, 镜像 data/processed 不入库惯例)
 news_process/company_listed_bank/data/
+# 2026-07-08: 税调企业×银行共现面板流水线产物 (~39GB 双权面板 dta/parquet + codebook/互验报告, 不入库)
+news_process/company_tax_bank/data/
 # 2026-06-26 (A6 修复): stage 70 prompt_sensitivity 等验证诊断产物的落点已统一对齐到
 # data/processed/eval_reports/ (受 news_process/data/ 整树忽略); 历史误落源码树的
 # validation/eval_reports/ 一律忽略, 杜绝研究产物再泄漏进版本库。
