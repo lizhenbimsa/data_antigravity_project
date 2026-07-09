@@ -140,6 +140,7 @@ exclude = [
     "news_process.data_excel*",
     "news_process.logs*",
     "news_process.models*",
+    "news_process.LLMs_for_FinTech_dic*",  # vendored 研究/诊断脚本, 非 pipeline 代码, 不打包 (同 ruff exclude)
 ]
 namespaces = false
 
