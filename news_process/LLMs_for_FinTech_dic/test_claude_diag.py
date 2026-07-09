@@ -5,7 +5,9 @@
 import json
 import re
 import sys
-sys.path.insert(0, r"F:\WiseSearch\data_antigravity_project\LLMs_for_FinTech_dic")
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from config import get_client_config, get_model_params, build_judge_prompt
 from openai import OpenAI

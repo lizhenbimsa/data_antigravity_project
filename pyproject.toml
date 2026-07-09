@@ -201,6 +201,7 @@ exclude = [
     "news_process/logs",
     "news_process/models",
     "news_process/papers_assets",
+    "news_process/LLMs_for_FinTech_dic",  # 移入 news_process 后仍为 vendored 研究脚本, 不入 lint
     "data",
     "data_excel",
     "logs",
@@ -218,7 +219,6 @@ exclude = [
     "FinBERT",
     "fastText",
     "LLMs_for_dic",
-    "LLMs_for_FinTech_dic",
 ]
 
 [tool.ruff.lint]

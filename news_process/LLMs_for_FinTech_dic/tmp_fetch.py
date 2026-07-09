@@ -1,6 +1,7 @@
 import requests
 import json
 import time
+from pathlib import Path
 
 queries = [
     "fintech dictionary textual analysis",
@@ -61,7 +62,7 @@ papers.insert(0, {
 
 papers = sorted(papers, key=lambda x: x["year"], reverse=True)
 
-with open("f:\\WiseSearch\\data_antigravity_project\\LLMs_for_FinTech_dic\\fetched_papers.json", "w", encoding="utf-8") as f:
+with open(Path(__file__).resolve().parent / "fetched_papers.json", "w", encoding="utf-8") as f:
     json.dump(papers[:60], f, ensure_ascii=False, indent=2)
 
 print(f"Saved {min(len(papers), 60)} papers.")

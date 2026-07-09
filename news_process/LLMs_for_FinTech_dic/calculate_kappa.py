@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from pathlib import Path
 
 def fleiss_kappa(ratings, n_categories):
     """
@@ -36,7 +37,7 @@ def fleiss_kappa(ratings, n_categories):
     return kappa, P_bar, P_e
 
 try:
-    df = pd.read_excel('f:/WiseSearch/data_antigravity_project/LLMs_for_FinTech_dic/data_processed/bank_keywords_20260302_011050.xlsx', sheet_name='判别-金融科技')
+    df = pd.read_excel(Path(__file__).resolve().parent / 'data_processed' / 'bank_keywords_20260302_011050.xlsx', sheet_name='判别-金融科技')
     # 提取所有模型评分列
     score_cols = [col for col in df.columns if col.endswith('_score') and col != 'total_score']
     print(f"找到的评分列 ({len(score_cols)} 个):")
