@@ -253,6 +253,11 @@ def run_stage(stage_script: str, stage_name: str, logger,
     # 重新引入 jieba+frozenset 边界 token 的非确定性). 此处子进程的 seed 不应
     # 由调用方意外覆盖, 故强制赋值.
     env["PYTHONHASHSEED"] = "0"
+    # F13 (2026-07-10 五入口再验证): 本执行器**只**强制 HASHSEED=0, **不** setdefault BLAS 线程
+    # (MKL/OPENBLAS/NUMEXPR/OMP_NUM_THREADS=1) —— 刻意不对称: HASHSEED 零性能代价; BLAS=1 对生产 T=18
+    # 嵌入/网络重数值 stage 有真实性能代价 (逼成单线程 BLAS)。故 golden 逐位复现的 BLAS 钉死是 **shell 约定**
+    # (经上方 os.environ.copy() 继承), 由 golden-regen SOP + M0 审批门覆盖 (见 CLAUDE.md 确定性铁律);
+    # 勿在此盲加 setdefault BLAS=1 (会拖慢正常跑)。
 
     start_time = time.time()
 

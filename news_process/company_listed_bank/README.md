@@ -56,3 +56,19 @@ gate 测试四件 (pytest 收集实数, 增删测试后以 `--collect-only -q` �
 ⚠ 生产 T=18 复跑注意 (计划 §9.4 DEFERRED): registry 哈希锚锚死盘上态, 有意重跑 01 后须
 bump `tests/test_company_bank_cooc_registry.py::EXPECTED_REGISTRY_SHA256` 并级联重跑 02 (pair
 指纹)→03 (双向锁); 四权源商业 dta (`config/*.dta`) 恒不入库。
+
+## 与主管道的顺序 / 并发纪律 (F2/F7/F9, 2026-07-10 五入口再验证)
+
+- **cross_media 顺序耦合 (F2)**: 本管线 02 消费主管道 `data/processed/40_panel_yearly.parquet`。若主管道按自然
+  顺序 `run_pipeline_function → run_pipeline_validation` 跑, 则 stage40 (group=main) 建面板时 stage75
+  (`75_cross_media_alpha`, group=validation) **恒晚于**刚重生的 stage21 → `pipeline/panel/runner.py` 的 mtime
+  新鲜度守卫**恒跳过** cross_media merge → 40 面板缺 `cross_media_alpha`/`cross_outlet_tone_variance`/`n_events`
+  三基名源列 → 本管线对应加权列优雅降级为全 NaN (**非 bug, 非 T=18 可恢复; 标准/生产顺序皆恒缺**)。
+  **需含 cross_media 的完整面板**须走: `① function → ② validation → ③ 单独补跑 python 40_panel_export_main.py
+  (不重跑 21, 使 75 相对 21 新鲜) → ④ 本管线`, 或主管道传 `--skip-21-if-exists`。
+- **跨管道串行纪律 (F7)**: 本管线单实例锁 (`logs/_run_pipeline.lock`) 只防同目录 orchestrator 双跑, **与主管道
+  PipelineLock (`data/processed/.pipeline.lock`) 互不感知**。本管线 02/03 只读 `data/processed/`, 而主管道收尾有
+  os.remove + 非原子重写窗口 → **务必在主管道空闲时运行本管线** (否则可能读到预清理/重写窗口的半写/缺文件,
+  诊断中曾遇 WinError 2)。listed × tax 两派生管线之间可并发 (各写自有 `data/`, 仅只读 `data/processed`)。
+- **--skip-unchanged 盲区 (F9)**: 主管道以 `--skip-unchanged` 重跑时 stage40 可能被跳过 (75 不在其 input_hashes
+  追踪集), cross_media/staleness 等 opt-in 特征列会保留旧/缺值 — 需这些列时勿配该 flag, 或先单独重跑 stage40。

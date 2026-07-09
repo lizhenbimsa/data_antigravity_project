@@ -81,6 +81,23 @@ def test_write_table1_custom_filenames_propagate():
         assert kwargs.get('dta_filename') is None
 
 
+def test_write_table1_footnote_no_stale_nan_placeholder():
+    """F4 (2026-07-10 五入口再验证): Table1 脚注**不得**再声称 ft_vol_* 为 'NaN-placeholder' —
+    ft_vol_yr/ft_vol_prov 已由 attention/volume 实算落真值 (盘上 N=220/194, 非 NaN 占位),
+    旧脚注末句 'ft_vol_* are NaN-placeholder until the panel is rebuilt' 已删。回归守卫:
+    防未来重新引入静态占位声明与实际面板数据漂移 (文档-数据一致性)。保留的准确说明
+    (year-level constants / absorbed by year FE) 仍须在。"""
+    from news_process.papers.bank_fintech_tone import tables as t_mod
+
+    fake_path = Path('/tmp/fake_table1.csv')
+    with patch.object(t_mod, 'write_summary_table', return_value=fake_path) as mock_write:
+        t_mod.write_table1()
+        footnote = mock_write.call_args.kwargs.get('footnote', '')
+        assert 'NaN-placeholder' not in footnote, \
+            "Table1 脚注不得再声称 ft_vol_* 为 NaN 占位 (F4: 该列已实算落值)"
+        assert 'year-level constant' in footnote  # 保留的准确描述
+
+
 def test_table1_variables_inventory_stable():
     """_TABLE1_VARIABLES 锚定核心 21 变量 — 任何无意修改 (rename/drop) 立即报错.
 

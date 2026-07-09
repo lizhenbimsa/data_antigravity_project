@@ -647,6 +647,10 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog='python -m news_process.run_paper',
         description='多论文统一调度器 — 调用指定论文子包的 analysis CLI。',
+        epilog='注 (F5, 2026-07-10): 未知参数原样透传给论文 analysis.main() 再转发主流水线。'
+               '⚠ 拼错的流水线 flag (如 --skip-21-if-exsit) 仅在**真跑** --stage pipeline/all 时于主流水线 '
+               'parse_args 处 fail-loud 报错; --dry-run 与 --stage tables/figures 路径不真调主流水线, 会 '
+               'parse_known_args 静默吸收该 typo 并正常退出 (exit 0) — 冒烟核验流水线 flag 时务必用真跑路径。',
     )
     parser.add_argument(
         'paper_id', nargs='?',

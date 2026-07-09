@@ -115,8 +115,7 @@ def write_table1(paper_config: PaperConfig | None = None,
         'a year); their reported SD reflects between-year variation only, not '
         'cross-sectional dispersion (N counts bank-year cells; #distinct values = #years). '
         'These year-tier rows are descriptive; they are absorbed by year fixed effects '
-        'and carry no within-estimator identifying variation. ft_vol_* are NaN-placeholder '
-        'until the panel is rebuilt (golden regen, stage 45/46).'
+        'and carry no within-estimator identifying variation.'
     )
     return write_summary_table('bank_fintech_tone', _TABLE1_VARIABLES,
                                paper_config=paper_config,

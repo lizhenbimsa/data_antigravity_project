@@ -1736,6 +1736,9 @@ def diagnose_llm_category_bias(df: pd.DataFrame, llm_cols: dict,
     # "不在注册表→不 emit" 的误判); Carlson & Burbano (2026, SMJ §4.2) 报告 model certainty
     # 已由主控 main() 的方法论块 emit, 此处不重复。判读: JSD>0.1=偏向差异大→多数投票有效,
     # JSD<0.01=高度同质化→投票退化风险。
+    # ⚠ F14 (2026-07-10 五入口再验证): dev T=2 实测 gpt54nano vs gemini31 JSD≈0.0004 (<0.01, 高度同质) →
+    # 三家多数投票实质近两家; 且覆盖率-一致性非单调 (低覆盖 α 反高)。均为 T=2/1005 篇小样本层现象, 生产 T=18
+    # 待复核 —— **论文方法学章若引用 stage64 须如实披露该同质性与非单调**, 勿宣称三家独立投票 (代码逻辑无需改)。
     # 白话: 多个 LLM 若都偏爱"中性"且彼此判读高度雷同, 多数投票就退化成"一个模型说了算";
     # 故先量化每个模型的类别偏向与模型间分布差异, 作为多数投票有效性的前置体检。
     logger_inst.info(f"  📖 类别偏向诊断方法源: {_LLM_DIAG_REFERENCES['chiu_hung_2025']}")

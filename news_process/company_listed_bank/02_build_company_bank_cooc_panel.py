@@ -930,8 +930,15 @@ def write_outputs(panel: pd.DataFrame, registry: dict, out_dta: Path, scheme_wor
     dta = panel.rename(columns=rename)
     assert all(len(c) <= 32 for c in dta.columns), "dta 变量名超 32"
     assert len(set(dta.columns)) == len(dta.columns), "dta 变量名碰撞"
-    pyreadstat.write_dta(dta, str(out_dta), column_labels=[labels.get(c, c) for c in dta.columns])
-    panel.to_parquet(out_dta.with_suffix(".parquet"))  # 伴生用未缩写全名
+    # F8 (2026-07-10 crash-safe): 先写 .tmp 再 Path.replace 原子改名 — kill/崩于写盘中途不留半写供 Stata 误读;
+    # 最终字节等价就地写 → golden 中性 (dta 头含时间戳, golden gate 走 registry sha/列内容哈希非 dta 字节)。
+    _dta_tmp = out_dta.with_name(out_dta.name + ".tmp")
+    pyreadstat.write_dta(dta, str(_dta_tmp), column_labels=[labels.get(c, c) for c in dta.columns])
+    _dta_tmp.replace(out_dta)
+    _pq = out_dta.with_suffix(".parquet")
+    _pq_tmp = _pq.with_name(_pq.name + ".tmp")
+    panel.to_parquet(_pq_tmp)  # 伴生用未缩写全名
+    _pq_tmp.replace(_pq)
 
 
 FIXED_LABELS = {
@@ -1404,7 +1411,7 @@ def main(argv=None) -> int:
                 "全 NaN 列 %s 个", f"{len(weighted.columns):,}", f"{n_cw:,}", f"{n_ce:,}",
                 f"{n_all_nan:,}")
     if n_all_nan:
-        log(f"{n_all_nan} 个加权列全 NaN (缺源列/dev 数据态)", warn=True)
+        log(f"{n_all_nan} 个加权列全 NaN (主因 BERT nt_iyvol/iytrend 需 T≥3 + _ss 稀疏的 dev T=2 退化→T=18 恢复; 非 cross_media, 后者 emit_tracks=[] 产 0 列, 详见 ⑥ 判读 / 计划 F2/F3)", warn=True)
     panel = panel.merge(weighted, how="left", left_on=["company_listed_name", "year"], right_index=True)
 
     # 列序: 固定 20 列 + 加权列 (registry SSOT 序, weighted 已排)
@@ -1493,9 +1500,12 @@ def main(argv=None) -> int:
     logger.info("  ⑤ k^c 右尾判读 (上表分位): p50 低而 max 高 = 少数名录/盘点稿贡献大量弱关联共现;")
     logger.info("     frac 列 (1/k 分摊) 与 longhit 臂即其对冲, 刻意不设剔除阈值 (阈值属分析端自由度,")
     logger.info("     预注册后在回归端做样本限制稳健, 避免本步骤引入 researcher df)。")
-    logger.info("  ⑥ 全 NaN 加权列 %s 个 (共 %s 列): dev 数据态缺源列所致; 生产 T=18 上游全列重生后",
+    logger.info("  ⑥ 全 NaN 加权列 %s 个 (共 %s 列): 两独立成因 (F3 拆分, 勿混为'缺源列一因') —",
                 f"{n_all_nan:,}", f"{n_cw + n_ce:,}")
-    logger.info("     应显著减少 — 若仍大面积全 NaN, 先查 40/51/27 上游列覆盖而非本脚本。")
+    logger.info("     (a) BERT nt_iyvol/iytrend (需 T≥3 且 ≥6 有效月) + _ss 轨 substance/washing 稀疏 = dev T=2 时间深度退化,")
+    logger.info("         生产 T=18 上游全列重生后自然填充 (与'缺源列'无关, 勿盲查 40/51/27 覆盖);")
+    logger.info("     (b) cross_media 三基名 (cross_media_alpha/cross_outlet_tone_variance/n_events) registry emit_tracks=[] → 产 0 列 (非此处 NaN);")
+    logger.info("         若主面板整体缺 cross_media, 属 main↔validation 顺序耦合 (stage75 恒晚于 stage40) 非 T=18 覆盖问题 — 见 README/计划 F2。")
     logger.info("  ⑦ cooc_wt_base (上文三轨统计): 该值是 cw 列有效覆盖的上界 — 越接近 1, 加权测度")
     logger.info("     对共现宇宙的代表性越强 (>0.9 视为健康); 生产上若走低属数据态而非 bug,")
     logger.info("     分析端按覆盖率做样本限制稳健 (codebook §7 义务)。")

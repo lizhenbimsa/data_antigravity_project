@@ -118,6 +118,8 @@ def _acquire_single_instance_lock() -> int:
                     pass
                 LOCK_FILE.unlink(missing_ok=True)
                 raise
+            logger.info("单实例锁已获取 (F11): PID=%d → %s (此 INFO 走兜底 console, 早于 _init_stage_logging 接管文件日志)",
+                        os.getpid(), LOCK_FILE)
             return fd
         except FileExistsError:
             try:
@@ -151,8 +153,31 @@ def _release_single_instance_lock(fd: int) -> None:
         pass
     try:
         LOCK_FILE.unlink(missing_ok=True)
+        logger.info("单实例锁已释放 (F11): %s", LOCK_FILE)
     except OSError:
         logger.warning("锁文件 %s 删除失败 (无害: 下次启动按陈旧锁清除)", LOCK_FILE)
+
+
+def _spawn_stderr_forwarder(proc: subprocess.Popen, tag: str):
+    """F12 (2026-07-10): 守护线程逐行把子步 stderr forward 进 orchestrator logger (→ run_pipeline.log,
+    对齐主线 core/stage.py)。原 subprocess.run 无捕获 → 子步未经 logger 的原始 stderr (未捕获 traceback /
+    第三方库直写) 只入继承管道不入本 .log; 本转发使 run_pipeline.log 自足佐证 '0 traceback', 消除对会话
+    capture 的单点依赖。stdout 仍继承 (保实时终端); 仅 stderr 单管道 + 持续 drain → 无 pipe 满死锁。"""
+    import threading
+
+    def _pump():
+        try:
+            for _line in iter(proc.stderr.readline, ''):
+                logger.warning("  │⚠ %s", _line.rstrip("\r\n"))
+        finally:
+            try:
+                proc.stderr.close()
+            except Exception:
+                pass
+
+    t = threading.Thread(target=_pump, name=tag, daemon=True)
+    t.start()
+    return t
 
 
 STEPS: list[tuple[str, str, str]] = [
@@ -517,7 +542,12 @@ def _run(args: argparse.Namespace, wanted: set[str], selected: list[tuple[str, s
                 logger.info("  env: NEWS_PROCESS_COOC_BUDGET_CELLS 已由环境提供 (%s), 不覆盖默认 %s",
                             child_env["NEWS_PROCESS_COOC_BUDGET_CELLS"], _BRANCH_BUDGET_CELLS)
         t0 = time.monotonic()
-        rc = subprocess.run(cmd, cwd=str(REPO), env=child_env).returncode
+        # F12: stdout 继承 (实时终端), stderr 单管道经守护线程 forward 进 run_pipeline.log
+        _proc = subprocess.Popen(cmd, cwd=str(REPO), env=child_env,
+                                 stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
+        _t = _spawn_stderr_forwarder(_proc, f"tax-step{step_id}-stderr")
+        rc = _proc.wait()
+        _t.join(timeout=10)
         dt = time.monotonic() - t0
         if rc != 0:
             logger.error("步骤 %s 失败 (exit=%d, 墙钟 %.4gs) — fail-loud 中断, 后续步骤未跑", step_id, rc, dt)

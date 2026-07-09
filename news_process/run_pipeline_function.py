@@ -540,6 +540,8 @@ def _parse_cli_args(argv: list[str] | None = None) -> argparse.Namespace:
             "上游链 (00–16, stage21 走专用 --skip-21 + 前缀守卫) 可跳。检出: 语料内容变/删除/新增 + config/"
             "资源 + (stage00) 预处理代码版本。⚠ 不检出: **非根阶段的纯代码逻辑变更**与依赖/jieba 版本变 "
             "(opt-in 跳过的固有边界) — 改流水线代码请勿配本 flag 或全量重跑。机制经 tests/test_w5_skip_unchanged.py 覆盖。"
+            "⚠ F9 (2026-07-10): 开启本 flag 时 stage40 可能被跳过 → opt-in 特征列 (cross_media/staleness; 75 不在 40 的 "
+            "input_hashes 追踪集) 会保留旧/缺值; 需含这些列时勿配本 flag, 或先单独重跑 40_panel_export_main.py。"
         ),
     )
     return parser.parse_args(argv)
