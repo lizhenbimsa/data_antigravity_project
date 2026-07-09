@@ -108,3 +108,30 @@ def test_expected_registry_anchor_is_readable():
     assert anchor is not None, \
         "run_pipeline 无法读出 EXPECTED_TAX_REGISTRY_SHA256 — 锚对比会静默降级为不可读"
     assert anchor == EXPECTED_TAX_REGISTRY_SHA256, "run_pipeline 读出的锚与 registry gate 件不一致"
+
+
+# ── 五入口诊断整改 gate (2026-07-09): A5 锁 try/finally 边界 + A9 os.write fd 清理 ──
+
+def test_init_logging_exception_still_releases_lock(lock_in_tmp, monkeypatch):
+    """A5: _init_stage_logging() 抛异常时 main() 的 try/finally 仍释放锁 —— 原实现 acquire+_init
+    在 try 外, _init 异常则 finally 不执行 → fd + 锁残留。修复后异常路径也释放锁。"""
+    def _boom():
+        raise RuntimeError("simulated _init_stage_logging failure")
+    monkeypatch.setattr(rp, "_init_stage_logging", _boom)
+    with pytest.raises(RuntimeError, match="simulated _init_stage_logging failure"):
+        rp.main(["--steps", "01"])
+    assert not lock_in_tmp.exists(), "A5: _init_stage_logging 异常后锁必须被 finally 释放"
+
+
+def test_os_write_failure_cleans_fd_and_lock(lock_in_tmp, monkeypatch):
+    """A9: os.write 失败(如 ENOSPC)时清理 fd + 删 0 字节锁再抛 —— 原实现绕过 except FileExistsError
+    上抛且 fd 未 close → fd 泄漏 + 0 字节残锁。仅对本进程 PID 写入抛, 不干扰其它 os.write。"""
+    real_write = os.write
+    def _boom(fd, data):
+        if data == str(os.getpid()).encode("ascii"):
+            raise OSError(28, "No space left on device")
+        return real_write(fd, data)
+    monkeypatch.setattr(rp.os, "write", _boom)
+    with pytest.raises(OSError):
+        rp._acquire_single_instance_lock()
+    assert not lock_in_tmp.exists(), "A9: os.write 失败后 0 字节锁文件必须被清理"

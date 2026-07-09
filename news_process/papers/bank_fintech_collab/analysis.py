@@ -30,7 +30,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument('--stage', choices=['pipeline', 'tables', 'figures', 'all'],
                         default='all')
     parser.add_argument('--dry-run', action='store_true')
-    args = parser.parse_args(argv)
+    args, _extra = parser.parse_known_args(argv)  # A10: 透传未知流水线 flag 给 run_main_pipeline
 
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s [%(name)s] %(levelname)s %(message)s')
@@ -49,7 +49,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.stage in ('pipeline', 'all'):
         _LOGGER.info("阶段 pipeline: 调用 run_pipeline_function.run_pipeline()")
-        run_main_pipeline()
+        run_main_pipeline(_extra)  # A10: 透传流水线 flag (如 --skip-21-if-exists)
 
     # fix(omni-g-papers-misc-02, 2026-06-11): 扩散 attention-01 修复 — 缺列触发
     # pyarrow ArrowInvalid (非 FileNotFoundError), 原窄 except 接不住 → CLI 整体

@@ -51,7 +51,7 @@ def main(argv: list[str] | None = None) -> int:
         '--dry-run', action='store_true',
         help='不真正运行 pipeline / 表/图; 仅打印计划, 用于冒烟测试。',
     )
-    args = parser.parse_args(argv)
+    args, _extra = parser.parse_known_args(argv)  # A10: 透传未知流水线 flag 给 run_main_pipeline
 
     logging.basicConfig(
         level=logging.INFO,
@@ -73,7 +73,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.stage in ('pipeline', 'all'):
         _LOGGER.info("阶段 pipeline: 调用 run_pipeline_function.run_pipeline()")
-        run_main_pipeline()
+        run_main_pipeline(_extra)  # A10: 透传流水线 flag (如 --skip-21-if-exists)
 
     if args.stage in ('tables', 'all'):
         _LOGGER.info("阶段 tables: 生成主线论文表格")

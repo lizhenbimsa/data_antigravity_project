@@ -36,6 +36,7 @@ run_pipeline_validation.py — 新闻处理流水线: 评估验证模块
     python run_pipeline_validation.py
 """
 
+import argparse
 import os
 import sys
 import time
@@ -73,7 +74,10 @@ def _generate_run_id() -> str:
 
 _RUN_ID = _generate_run_id()
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
-logger.info(f"NEWS_PROCESS_RUN_ID = {_RUN_ID}")
+# A3 修复 (2026-07-09 五入口诊断): RUN_ID emit 下沉到 run_validation() 入口。原在模块级立即 emit 会
+# 触发 _DelayedTruncatingRotatingHandler 首写以 mode='w' 截断上次 .log —— 连 --help / pytest import
+# 都会截断日志。setup_logging(delay=True) 本身 import 不截断, 仅这条 emit 是首写触发者; 下沉后 import
+# 不再截断, 实跑时在函数入口正常 emit。
 
 
 # 脚本所在目录（用于定位阶段脚本）
@@ -166,6 +170,7 @@ def run_validation():
     仅作启用记录, 不再驱动启停。
     """
     module_start = time.time()
+    logger.info(f"NEWS_PROCESS_RUN_ID = {_RUN_ID}")  # A3: 原模块级 emit 下沉至此 (见模块顶注释)
 
     # ── 并发运行保护 (plan s3): 与主流水线对称, 共享同一锁文件 ──
     # validation 与 main pipeline 都会读写 output_dir/, 共享 logger / 中间 cache;
@@ -292,4 +297,25 @@ def run_validation():
 
 
 if __name__ == "__main__":
-    run_validation()
+    # A2 修复 (2026-07-09 五入口诊断): 原文件无 argparse, --help/任何参数被静默忽略直接全量实跑
+    # 并获 PipelineLock(覆写 eval_reports/parquet 产物)。加 argparse 提供 -h/--help + --dry-run 预检;
+    # 无参数=全量默认(向后兼容)。dry-run 用 print(非 logger, 避免触发日志层截断/落盘), 且在
+    # run_validation() 之前 branch(该函数 with PipelineLock 获锁实跑)。
+    _parser = argparse.ArgumentParser(
+        prog="run_pipeline_validation",
+        description="新闻处理流水线: 评估验证模块 (模块四, STAGES_VALIDATION 全 always-on; 无参数=全量实跑)",
+    )
+    _parser.add_argument(
+        "--dry-run", action="store_true",
+        help="只打印将执行的 STAGES_VALIDATION 阶段清单, 不获锁、不实跑、不写产物 (冒烟/预检)。",
+    )
+    _args = _parser.parse_args()
+    if _args.dry_run:
+        _stages = [(s.script, s.name) for s in filter_enabled(STAGES, CONFIG)]
+        print(f"[dry-run] run_pipeline_validation 将执行 {len(_stages)} 个验证阶段 "
+              f"(STAGES_VALIDATION, 全 always-on):")
+        for _i, (_script, _name) in enumerate(_stages, 1):
+            print(f"  {_i:2d}. {_name} ({_script})")
+        print("[dry-run] 未获锁、未实跑、未写任何产物。")
+    else:
+        run_validation()

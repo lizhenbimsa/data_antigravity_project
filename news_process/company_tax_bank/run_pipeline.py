@@ -25,6 +25,7 @@ core/logging.py::setup_logging); 数据产物统一落 company_tax_bank/data/ (�
 from __future__ import annotations
 
 import argparse
+import io
 import logging
 import os
 import re
@@ -45,7 +46,20 @@ _BRANCH_BUDGET_CELLS = 1_000_000_000  # WP-S1 (提速计划 v2): 500M→1.0B, ci
 
 logger = logging.getLogger("run_pipeline")
 if not logger.handlers:  # console 兜底; main() 实跑时由 setup_logging 接管
-    _h = logging.StreamHandler(sys.stdout)
+    # A1 修复 (2026-07-09 五入口诊断): 兜底 handler 在 dry-run/锁前路径直写 stdout, 未经 setup_logging
+    # 的 _configure_standard_streams reconfigure; Windows GBK(cp936) 终端遇 emoji(如 ⚠) 会
+    # UnicodeEncodeError(被 logging.handleError 吞、丢该行)。用 errors='backslashreplace' 包裹流规避。
+    # ⚠ pytest 经 spec_from_file_location import 本模块时 capture 下 sys.stdout 可能无 .buffer/fileno
+    # → try/except 回退裸 stdout, 保 import 不崩。
+    try:
+        _stream = io.TextIOWrapper(
+            sys.stdout.buffer,
+            encoding=getattr(sys.stdout, "encoding", None) or "utf-8",
+            errors="backslashreplace", line_buffering=True,
+        )
+    except (AttributeError, ValueError, io.UnsupportedOperation):
+        _stream = sys.stdout
+    _h = logging.StreamHandler(_stream)
     _h.setFormatter(logging.Formatter("[pipeline] %(levelname)s %(message)s"))
     logger.addHandler(_h)
     logger.setLevel(logging.INFO)
@@ -93,7 +107,17 @@ def _acquire_single_instance_lock() -> int:
     for attempt in (1, 2):
         try:
             fd = os.open(str(LOCK_FILE), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-            os.write(fd, str(os.getpid()).encode("ascii"))
+            try:
+                os.write(fd, str(os.getpid()).encode("ascii"))
+            except OSError:
+                # A9 修复 (2026-07-09 五入口诊断): os.write 失败(如 ENOSPC 磁盘满)时原实现绕过下方
+                # except FileExistsError 上抛且 fd 未 close → fd 泄漏 + 留 0 字节锁文件。此处清理后再抛。
+                try:
+                    os.close(fd)
+                except OSError:
+                    pass
+                LOCK_FILE.unlink(missing_ok=True)
+                raise
             return fd
         except FileExistsError:
             try:
@@ -170,14 +194,20 @@ def _size_mb(p: Path) -> float | None:
         return None
 
 
-def _iter_artifacts(step_id: str):
-    """逐步产物清单 (路径, 角色说明) — 静态口径 + 廉价 glob, 仅供落盘后体量/存在性日志。"""
+def _iter_artifacts(step_id: str, no_emit_dta: bool = False):
+    """逐步产物清单 (路径, 角色说明) — 静态口径 + 廉价 glob, 仅供落盘后体量/存在性日志。
+
+    A7 修复 (2026-07-09 五入口诊断): no_emit_dta=True 时跳过全部 .dta yield —— 02 的固定路径
+    (--no-emit-dta 下 write_outputs 已 unlink 陈旧 dta → 缺席会误报"产物缺失") 与 03 的 glob
+    (若盘残留上次全量 dta → glob 命中会把旧当新误报"产物 X MB"), 两向误报统一消除。
+    """
     if step_id == "01":
         yield (REPO / "config" / "company_tax_bank_cooc_registry.yaml",
                "注册表 yaml (加权引擎唯一 SSOT; 例外入库, 属配置而非数据结果)")
     elif step_id == "02":
-        yield (OUT_DATA / "company_tax_bank_cooc_panel.dta",
-               "主面板 dta (Stata format 118; 20 固定列 [含 usci] + 加权列; 消费者 = Stata 回归 + 03 骨架)")
+        if not no_emit_dta:
+            yield (OUT_DATA / "company_tax_bank_cooc_panel.dta",
+                   "主面板 dta (Stata format 118; 20 固定列 [含 usci] + 加权列; 消费者 = Stata 回归 + 03 骨架)")
         yield (OUT_DATA / "company_tax_bank_cooc_panel.parquet",
                "主面板 parquet 伴生 (未缩写全名, 供 Python 侧审计)")
         yield (OUT_DATA / "company_tax_bank_cooc_panel_codebook.md",
@@ -187,8 +217,9 @@ def _iter_artifacts(step_id: str):
     elif step_id == "03":
         for p in sorted(OUT_DATA.glob("_company_tax_bank_altweights_branch_*.parquet")):
             yield p, "替代权长表 (统一 schema company/bank/year/w; branch_city/branch_county 双 scheme 无稳健臂)"
-        for p in sorted(OUT_DATA.glob("company_tax_bank_branch_*w_panel.dta")):
-            yield p, "替代权面板 dta (与主面板同引擎同列名, scheme 身份由文件名承载)"
+        if not no_emit_dta:
+            for p in sorted(OUT_DATA.glob("company_tax_bank_branch_*w_panel.dta")):
+                yield p, "替代权面板 dta (与主面板同引擎同列名, scheme 身份由文件名承载)"
         for p in sorted(OUT_DATA.glob("company_tax_bank_branch_*w_panel.parquet")):
             yield p, "替代权面板 parquet 伴生"
         yield (OUT_DATA / "_company_tax_bank_weight_validation.md",
@@ -251,7 +282,7 @@ def _log_step_context(step_id: str) -> None:
         logger.info("  三权 = 共现报道权 (02) + 城市网点权 + 县域网点权, 互为规格稳健性、不分主次 (禁混同一 Hansen J)")
 
 
-def _log_step_done(step_id: str, dt: float) -> None:
+def _log_step_done(step_id: str, dt: float, no_emit_dta: bool = False) -> None:
     """步骤成功后的产物清点 (体量/角色) + 吞吐率 — 只消费已算出的墙钟与廉价 stat 读数。"""
     rss = _rss_mb()
     if rss is not None:
@@ -260,7 +291,7 @@ def _log_step_done(step_id: str, dt: float) -> None:
     else:
         logger.info("步骤 %s 完成: 墙钟 %.4gs", step_id, dt)
     total_mb = 0.0
-    for p, desc in _iter_artifacts(step_id):
+    for p, desc in _iter_artifacts(step_id, no_emit_dta):
         mb = _size_mb(p)
         if mb is None:
             logger.warning("  产物缺失: %s — %s", p.name, desc)
@@ -362,8 +393,13 @@ def main(argv: list[str] | None = None) -> int:
         # 先接管文件日志再被锁拒, 会把在跑实例的 run_pipeline.log 首写截断清零。
         # 被拒实例的报错走模块顶部的 console 兜底 handler, 不触盘。
         lock_fd = _acquire_single_instance_lock()
-        _init_stage_logging()
+    # A5 修复 (2026-07-09 五入口诊断): _init_stage_logging() 原在 try 外, 若它抛异常(importlib
+    # exec_module / setup_logging 'w' 开文件 OSError)则 finally 不执行 → fd 泄漏 + 锁残留。移入 try
+    # 使锁在任何失败路径都释放。⚠ 承重铁律: ①acquire 仍先于 _init(锁序不变, 见上方注释);
+    # ②_init 保留 `if not args.dry_run` 守卫(否则 dry-run 会 setup_logging 截断 run_pipeline.log)。
     try:
+        if not args.dry_run:
+            _init_stage_logging()
         return _run(args, wanted, selected)
     finally:
         if lock_fd is not None:
@@ -455,10 +491,22 @@ def _run(args: argparse.Namespace, wanted: set[str], selected: list[tuple[str, s
         logger.info("%s %s", step_id, desc)
         if not args.dry_run:
             _log_step_context(step_id)
-        # T-D13: 03 分支长表 ~千万行级 → 子进程注入加权引擎内存预算默认值 (用户已 export 则不覆盖)
-        child_env: dict[str, str] | None = None
+        logger.info("  $ %s", " ".join(cmd))
+        if args.dry_run:
+            continue  # A4 修复 (2026-07-09): dry-run 只打印命令; child_env 构造与 budget 注入日志下移至此后
+        # A6 修复 (2026-07-09 五入口诊断): 镜像 core/stage.py:239-255, 给每个子步子进程注入确定性+编码 env。
+        # 裸跑 company 时子步原本继承父 env、无 HASHSEED=0 → 违反金标铁律(靠子脚本 sorted() 免疫故非活 bug,
+        # 属纵深防御); PYTHONHASHSEED 强制="0" 是复现锚非改锚(本轮 sha 已匹配 EXPECTED_TAX_REGISTRY_SHA256)。
+        # setdefault 尊重用户已 export 的值。golden 安全: registry 读写显式 encoding='utf-8', 02/03 二进制
+        # 走列内容哈希 gate, 均不受 PYTHONUTF8/PYTHONIOENCODING 轴影响。
+        child_env = dict(os.environ)
+        child_env.setdefault("PYTHONUNBUFFERED", "1")
+        child_env.setdefault("PYTHONIOENCODING", "utf-8:replace")
+        child_env.setdefault("PYTHONUTF8", "1")
+        child_env.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+        child_env["PYTHONHASHSEED"] = "0"
+        # T-D13: 03 分支长表 ~千万行级 → 子进程叠加加权引擎内存预算默认值 (用户已 export 则不覆盖)
         if step_id == "03":
-            child_env = dict(os.environ)
             if "NEWS_PROCESS_COOC_BUDGET_CELLS" not in child_env:
                 child_env["NEWS_PROCESS_COOC_BUDGET_CELLS"] = str(_BRANCH_BUDGET_CELLS)
                 logger.info("  env 注入: NEWS_PROCESS_COOC_BUDGET_CELLS=%s (WP-S1 提速 v2: 城/县网点长表 "
@@ -468,9 +516,6 @@ def _run(args: argparse.Namespace, wanted: set[str], selected: list[tuple[str, s
             else:
                 logger.info("  env: NEWS_PROCESS_COOC_BUDGET_CELLS 已由环境提供 (%s), 不覆盖默认 %s",
                             child_env["NEWS_PROCESS_COOC_BUDGET_CELLS"], _BRANCH_BUDGET_CELLS)
-        logger.info("  $ %s", " ".join(cmd))
-        if args.dry_run:
-            continue
         t0 = time.monotonic()
         rc = subprocess.run(cmd, cwd=str(REPO), env=child_env).returncode
         dt = time.monotonic() - t0
@@ -482,7 +527,7 @@ def _run(args: argparse.Namespace, wanted: set[str], selected: list[tuple[str, s
                 _log_registry_anchor_status(pre_sha)
             return rc
         step_stats.append((step_id, desc, dt))
-        _log_step_done(step_id, dt)
+        _log_step_done(step_id, dt, args.no_emit_dta)
 
     if not args.dry_run:
         total = time.monotonic() - t_all

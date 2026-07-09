@@ -108,7 +108,10 @@ def _generate_run_id() -> str:
 
 _RUN_ID = _generate_run_id()
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
-logger.info(f"NEWS_PROCESS_RUN_ID = {_RUN_ID}")
+# A3 修复 (2026-07-09 五入口诊断): RUN_ID emit 下沉到 run_pipeline() 入口。原在模块级立即 emit 会触发
+# _DelayedTruncatingRotatingHandler 首写以 mode='w' 截断上次 .log —— 连 --help / pytest import /
+# run_paper→run_main_pipeline 懒 import 都会截断日志。setup_logging(delay=True) 本身 import 不截断,
+# 仅这条 emit 是首写触发者; 下沉后 import 不再截断, 实跑时在函数入口正常 emit。
 
 
 # 脚本所在目录(用于定位阶段脚本, 传给 run_stage() 的 base_dir 参数)
@@ -386,8 +389,16 @@ def _stage21_skip_is_compatible(stage21_outputs: list[str]) -> tuple[bool, str]:
         return False, "stage 21 output registry is incomplete"
 
     output_dir = CONFIG['paths']['output_dir']
-    main_path = os.path.join(output_dir, stage21_outputs[0])
-    full_path = os.path.join(output_dir, stage21_outputs[1])
+    # B4/F6 修复 (2026-07-09 五入口诊断): 按 _full 后缀而非位置序 [0]/[1] 定位 main/full parquet,
+    # 防 OUTPUT_REGISTRY 顺序调换致 main/full 对调 (文件名可被 config['filenames'] 覆盖)。原为
+    # fail-safe (错配触 except → reject skip 重跑 stage21, 不误用旧数据), 此处进一步消除脆弱性;
+    # 当前 registry 顺序下结果与旧位置序等价, 纯鲁棒性增强。
+    _full = [f for f in stage21_outputs if f.endswith("_full.parquet")]
+    _main = [f for f in stage21_outputs if not f.endswith("_full.parquet")]
+    if len(_full) != 1 or len(_main) != 1:
+        return False, f"stage 21 outputs 无法按 _full 后缀唯一区分 main/full: {stage21_outputs}"
+    main_path = os.path.join(output_dir, _main[0])
+    full_path = os.path.join(output_dir, _full[0])
     missing_outputs = [
         path for path in (main_path, full_path)
         if not os.path.exists(path)
@@ -605,6 +616,8 @@ def run_pipeline(args: argparse.Namespace | None = None):
     """
     if args is None:
         args = argparse.Namespace(skip_21_if_exists=False, skip_unchanged=False)
+
+    logger.info(f"NEWS_PROCESS_RUN_ID = {_RUN_ID}")  # A3: 原模块级 emit 下沉至此 (见模块顶注释)
 
     pipeline_start = time.time()
     # 运行期阶段计时累计 (编排器自身各子阶段墙钟耗时, 末尾汇总打印; 纯日志, golden-safe)。

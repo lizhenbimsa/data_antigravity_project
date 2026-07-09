@@ -21,6 +21,7 @@ core/logging.py::setup_logging); 数据产物统一落 company_listed_bank/data/
 from __future__ import annotations
 
 import argparse
+import io
 import logging
 import os
 import re
@@ -36,7 +37,19 @@ LOCK_FILE = HERE / "logs" / "_run_pipeline.lock"
 
 logger = logging.getLogger("run_pipeline")
 if not logger.handlers:  # console 兜底; main() 实跑时由 setup_logging 接管
-    _h = logging.StreamHandler(sys.stdout)
+    # A1 修复 (2026-07-09 五入口诊断): 兜底 handler 在 dry-run/锁前路径直写 stdout, 未经 setup_logging
+    # 的 _configure_standard_streams reconfigure; Windows GBK(cp936) 终端遇 emoji 会 UnicodeEncodeError。
+    # 用 errors='backslashreplace' 包裹流规避。⚠ pytest 经 spec_from_file_location import 本模块时
+    # capture 下 sys.stdout 可能无 .buffer/fileno → try/except 回退裸 stdout, 保 import 不崩。
+    try:
+        _stream = io.TextIOWrapper(
+            sys.stdout.buffer,
+            encoding=getattr(sys.stdout, "encoding", None) or "utf-8",
+            errors="backslashreplace", line_buffering=True,
+        )
+    except (AttributeError, ValueError, io.UnsupportedOperation):
+        _stream = sys.stdout
+    _h = logging.StreamHandler(_stream)
     _h.setFormatter(logging.Formatter("[pipeline] %(levelname)s %(message)s"))
     logger.addHandler(_h)
     logger.setLevel(logging.INFO)
@@ -83,7 +96,17 @@ def _acquire_single_instance_lock() -> int:
     for attempt in (1, 2):
         try:
             fd = os.open(str(LOCK_FILE), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-            os.write(fd, str(os.getpid()).encode("ascii"))
+            try:
+                os.write(fd, str(os.getpid()).encode("ascii"))
+            except OSError:
+                # A9 修复 (2026-07-09 五入口诊断): os.write 失败(如 ENOSPC 磁盘满)时原实现绕过下方
+                # except FileExistsError 上抛且 fd 未 close → fd 泄漏 + 留 0 字节锁文件。此处清理后再抛。
+                try:
+                    os.close(fd)
+                except OSError:
+                    pass
+                LOCK_FILE.unlink(missing_ok=True)
+                raise
             return fd
         except FileExistsError:
             try:
@@ -345,8 +368,13 @@ def main(argv: list[str] | None = None) -> int:
         # 先接管文件日志再被锁拒, 会把在跑实例的 run_pipeline.log 首写截断清零。
         # 被拒实例的报错走模块顶部的 console 兜底 handler, 不触盘。
         lock_fd = _acquire_single_instance_lock()
-        _init_stage_logging()
+    # A5 修复 (2026-07-09 五入口诊断): _init_stage_logging() 原在 try 外, 若它抛异常(importlib
+    # exec_module / setup_logging 'w' 开文件 OSError)则 finally 不执行 → fd 泄漏 + 锁残留。移入 try
+    # 使锁在任何失败路径都释放。⚠ 承重铁律: ①acquire 仍先于 _init(锁序不变, 见上方注释);
+    # ②_init 保留 `if not args.dry_run` 守卫(否则 dry-run 会 setup_logging 截断 run_pipeline.log)。
     try:
+        if not args.dry_run:
+            _init_stage_logging()
         return _run(args, wanted, selected)
     finally:
         if lock_fd is not None:
@@ -438,8 +466,17 @@ def _run(args: argparse.Namespace, wanted: set[str], selected: list[tuple[str, s
         logger.info("  $ %s", " ".join(cmd))
         if args.dry_run:
             continue
+        # A6 修复 (2026-07-09 五入口诊断): 镜像 core/stage.py:239-255, 给子步子进程注入确定性+编码 env。
+        # 裸跑无此保护 → 违反金标 HASHSEED=0(靠子脚本 sorted() 免疫故纵深防御) + GBK emoji 风险。
+        # PYTHONHASHSEED 强制="0" 是复现锚非改锚(本轮 sha 已匹配 EXPECTED_REGISTRY_SHA256); setdefault 尊重用户覆盖。
+        child_env = dict(os.environ)
+        child_env.setdefault("PYTHONUNBUFFERED", "1")
+        child_env.setdefault("PYTHONIOENCODING", "utf-8:replace")
+        child_env.setdefault("PYTHONUTF8", "1")
+        child_env.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+        child_env["PYTHONHASHSEED"] = "0"
         t0 = time.monotonic()
-        rc = subprocess.run(cmd, cwd=str(REPO)).returncode
+        rc = subprocess.run(cmd, cwd=str(REPO), env=child_env).returncode
         dt = time.monotonic() - t0
         if rc != 0:
             logger.error("步骤 %s 失败 (exit=%d, 墙钟 %.4gs) — fail-loud 中断, 后续步骤未跑", step_id, rc, dt)
