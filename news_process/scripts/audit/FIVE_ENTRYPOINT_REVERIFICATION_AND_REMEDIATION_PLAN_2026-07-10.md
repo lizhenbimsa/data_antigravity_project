@@ -59,7 +59,7 @@
 
 ---
 
-## 3. 问题清单 (经对抗审计 + 三轮评审证伪修订; 无 P0/P1)
+## 3. 问题清单 (经对抗审计 + 三轮评审证伪修订; 本轮无 P0/P1 — **F17 为 2026-07-10 八入口审计后补 P1**, 见 F16 之后)
 
 > 图例: verdict∈{NEEDS_FIX 建议修 · RE-EVAL 再评估 · DISCLOSURE 论文/复现披露 · DOC 文档}; golden: 安全=不触测度/缓存/确定性。
 
@@ -75,6 +75,7 @@
 - **机制 (源码+mtime 链坐实)**: `core/dag.py:316` stage40=group **main** / `:459` stage75=group **validation**; `runner.py:400-410` mtime 新鲜度守卫 (75 早于登记上游 21 → 跳过 cross_media merge)。main 每跑必先重生 stage21 → stage40 建面板时盘上 75 恒早于刚生的 21 → **恒跳过**。本轮 mtime 链 21_full@22:27 → 40@22:35(守卫触发) → 75@22:42。**非 T=2、非生产可恢复** — 任何 `main→validation→company` 顺序恒缺 cross_media 三基名。
 - **评审校准 (REV-5, 降 P1→P2)**: `cross_outlet_tone_variance_full` 在 `papers/bank_media_disagreement/paper_spec.yaml:87` 标 **"待新建 (M2-M3)"** (尚未构建进流水线), 盘上同名列是 stage 39f **不同口径**占位 (:88-95 已披露)。故 paper-10 复现阻断是**前瞻/潜伏风险** (待该变量按 spec 口径建成后受此耦合制约), **非当前活跃回归失败**。company 日志"生产 T=18 上游全列重生后减少"对 cross_media 子集**误导排障方向**。
 - **修复 (纯文档/日志 golden 安全)**: (1) 文档化 canonical 顺序 (主线+company README): 需含 cross_media 列的完整面板须走 `①function → ②validation → ③单独补跑 40_panel_export_main.py (不重跑21) → ④⑤company`; 替代 = 主线 `--skip-21-if-exists`。(2) 纠正 company 侧对 cross_media 子集的"T=18 恢复"误导文案 (改为"main↔validation 顺序耦合, 须按 §5 顺序或补跑 stage40")。(3) 可选 runner.py skip WARNING 升为运行末尾醒目摘要行。(4) DEFERRED (不建议): 提升 cross_media 为主线阶段 / 放宽守卫。
+- **反向补遗 (2026-07-10 八入口审计 G9)**: validation 重生 75 后其 mtime 晚于 21 → **下轮单独重跑 stage 40 时守卫必放行, cross_media +9 列并入 (3442→3451)**; 下轮全主线重跑 (21 重生) 又跳过回落 3442 — 面板列数随"跑法"在 3442↔3451 间**振荡**, schema 不再是 stage 40 自身输入的纯函数。**A/B 差分 SOP: 比较前先核 `cross_media_alpha_full` 列在场性**, 9 列差异勿误判回归 ("validation 后单跑 40 = +9 列属预期, 全主线重跑 = 回落属预期")。并入侧安全性有守卫兜底 (重复键 fail-loud / 行数断言 / 只并新列)。
 
 ### F3 · [P2 · NEEDS_FIX/DOC] company "40 个加权列全 NaN = 缺源列" 诊断误标 (两独立根因)
 - **证据 (实读 parquet 坐实)**: 40 个全 NaN 列**全部**为 `cw_/ce_{finbert_cn,fin_sent_zh,finbert2}_nt_{iyvol,iytrend}_{full,ctx,ss}` (36 列, 需 T≥3 且 ≥6 有效月, dev T=2 全 NaN 属预期) + `cw_/ce_{neg_sub_ratio_ss,washing_asymmetry_ss}` (4 列, ss 轨 T=2 稀疏)。cross_media 3 基名 registry `emit_tracks=[]` → 实产 **0 列** (非全 NaN)。**纠正了初判 RUN_NOTES 的 "40 NaN = cross_media 传导" 错误归因。**
@@ -133,6 +134,11 @@
 ### F16 · [COVERAGE · 本轮大部已闭 · 不计严重度] live 覆盖缺口 (显式声明)
 - **本轮已 live 闭合** (冒烟): A1/A2/A4/A5 (A5 = --help/--dry-run 不获锁, 语义坐实)。
 - **仍依赖 pytest gate (非本轮 live, 须显式声明非全覆盖)**: **A7 完整 --no-emit-dta RUN 的告警抑制** (dry-run 短路未触达) · lock-race 并发双跑 (破坏性) · --skip-unchanged 真跑 (会改 data) · run_paper --stage all 全量 paper。**验收记录须显式声明"上述路径依赖 `tests/test_five_entrypoint_hardening_2026_07_09.py` + 两 lock 测试 CI gate 覆盖, 非本轮 live 触发"**。golden: 安全。
+
+### F17 · [P1 · 收编自 2026-07-10 八入口审计 G2 · 记录层已修] company 双管道 input_fingerprint 只锚 21_full 的"尺寸|行数"; 40/51/16/27 不入锚 — 27 号混代实弹
+- **完整台账与证据链**: 见 `scripts/audit/EIGHT_ENTRYPOINT_SEQUENTIAL_RUN_AUDIT_AND_REMEDIATION_PLAN_2026-07-10.md` §3-G2 (八路评审收口)。要点: `27_benefit_dimensions_panel.parquet` 唯一生产者 = `papers/benefit_society/dimension_analysis.py` (标准八入口顺序不重生它), 2026-07-10 真跑实弹混代消费 07-03 旧代 27 号 — 暴露面 = registry `source=='27'` 8 基名 × 3 轨 = 24 源列 → **48 列/管道** (⚠ 勿按 `cw_/ce_benefit_*` 前缀计数=84, 其中 36 列源自 40/51 同代), 锁链全绿不报警。
+- **已修 (记录层, 2026-07-10)**: 双管道 02 加 `build_upstream_snapshot` (五上游 `{file,size,mtime_ns,sha256_16}` 入日志 + pair parquet metadata 新键 `upstream_snapshot`; 03/04 按键点取不受影响, 锁不翻, registry 双锚不 bump) + 27 号新鲜度哨兵 loud WARNING (警不崩, 文案含完整重生命令 `--track all --include-lg --df-exploded …`; **dev 上该 WARNING 属常态预期, 日志审计勿立案**)。硬锁层 (五上游并入 fingerprint 本体) DEFERRED 受 M0。
+- **⚠ 字节漂移前瞻 (by-design)**: snapshot 含 `mtime_ns` → 自此 pair 长表 parquet 与 80 sidecar 的**文件级字节随上游 mtime 漂移**; A/B 复现验证一律用**列级哈希** (pair) / 排除 `upstream_snapshot` 键后的 JSON 比对 (sidecar); 15 份面板 dta 与主面板 parquet 数据字节不受影响, 字节锚保留。
 
 ---
 

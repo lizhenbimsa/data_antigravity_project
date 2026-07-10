@@ -84,5 +84,7 @@ stage 21 情感 LLM 三家族之一是 `gemini-3.1-flash-lite` (short_name `gemi
 ## 6. 验收门
 ruff clean · 全量 pytest 零新增失败 (golden 类 DEFERRED-skip) · dag_consistency · 计数 16/16/35/16 · 探针实证 (§1) · 残留扫描: 全仓无 `gemini-embedding-2-preview` 字面 (除本计划/v3.14.0 历史计划) · LLM `gemini31` 零误改。
 
+**换嵌入模型复核清单补遗 (2026-07-10 八入口审计 G7)**: benefit 负极锚点句 #3 ("金融科技降低银行信贷质量与资产安全性…") 在 Qwen 空间投影为正 (+0.1416 > 符号容差 0.03; 锚点轴整体仍判"锐利", 最小对间隔 0.06481>0.02) — 单句反号被 mean(pos)−mean(neg) 稀释非缺陷, 但**任何后续换嵌入模型时须复核该句措辞/投影符号** (stage 40 benefit 锚点自检日志段), 反号扩大则改写锚句。
+
 ## TL;DR
 把 canonical 嵌入槽从「gemini-embedding-2-preview (云雾, 3072)」换成「Qwen/Qwen3-Embedding-8B (硅基流动, 4096)」, `_lg`=text-embedding-3-large 不动 → co-primary 变为「阿里 Qwen ⟂ OpenAI large」跨厂商对等双轨。引擎数学层零改 (维度无关), 改动 = config + 新 env key + 4 处默认回退 + 全仓 gemini→Qwen 注释/标签/测试清扫。列 schema 零改动, 计数不变。LLM `gemini31` 严禁误改。golden 重生 + 付费重嵌 DEFERRED 到生产语料机。
