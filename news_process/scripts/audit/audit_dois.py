@@ -41,8 +41,13 @@ FILES = [
     os.path.join(_HERE, "LITERATURE_ANCHORS_SUPPLEMENT_VII_2026-07-06.md"),
     # 第八补编 (2026-07-10): company_tax_bank 税调×银行共现面板专项 79 条
     os.path.join(_HERE, "LITERATURE_ANCHORS_SUPPLEMENT_VIII_2026-07-10.md"),
+    # 第九补编 (2026-07-10): 三文件夹功能专项 (两管线补遗 + LLMs_for_FinTech_dic 全量) 79 条
+    os.path.join(_HERE, "LITERATURE_ANCHORS_SUPPLEMENT_IX_2026-07-10.md"),
     # 前沿(银企共现面板)学术锚点归档: 137 DOI 并入主机械闸 (2026-07-06 第七补编轮)
     os.path.join(_HERE, "COMPANY_BANK_COOC_PANEL_PLAN_ARCHIVE_2026-07-04.md"),
+    # LLMs_for_FinTech_dic 两份修复后文档并入主机械闸 (2026-07-10 第九补编轮, 修复台账见第九补编 §二)
+    os.path.join(_HERE, "..", "..", "LLMs_for_FinTech_dic", "FinTech_Dictionary_LLMs_Paper_Final.md"),
+    os.path.join(_HERE, "..", "..", "LLMs_for_FinTech_dic", "FinTech_Dictionary_Fleiss_Kappa_Methodology.md"),
 ]
 
 DOIORG_RE = re.compile(r"doi\.org/(10\.\S+)")

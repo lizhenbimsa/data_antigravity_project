@@ -2,7 +2,7 @@
 
 在现代金融与经济学实证研究中，构建专有的“金融科技(FinTech)”词典是测度企业创新、金融数字化转型以及银行信贷风险等核心变量的前提。但在海量非结构化文本中筛选词汇时，仅依赖人工先验或单一自然语言处理模型往往面临高昂的标注成本以及由于“算法幻觉”引入的内生性测量偏误(Endogenous Measurement Bias)。
 
-本项目开创性地运用了 8 个最先进的大语言模型(如 Claude Opus, Gemini, DeepSeek 等)组成的“虚拟专家委员会”，采用严格的**“简单多数投票原则”(Simple Majority Voting，即 total_score $\ge$ 5)**，对 2814 个候选核心词汇进行交叉盲审。
+本项目开创性地运用了 8 个最先进的大语言模型(如 Claude Opus, Gemini, Kimi 等)组成的“虚拟专家委员会”，采用严格的**“简单多数投票原则”(Simple Majority Voting，即 total_score $\ge$ 5)**，对 2814 个候选核心词汇进行交叉盲审。
 
 为验证这一创新性多智能体(Multi-Agent)评价体系在顶刊审稿标准下的严谨性与科学性，本报告从**数理统计底层原理**出发，对该判别结果（Fleiss' Kappa = 0.5017）进行解构，并提供了 15 篇国际顶级期刊的参考文献作为强有力的论证实基石。
 
@@ -43,9 +43,9 @@ $$ \kappa = \frac{\bar{P} - P_e}{1 - P_e} $$
 - **分子 $\bar{P} - P_e$** = $0.7596 - 0.5176 = 0.2420$：代表排除了随机猜测后，8个模型通过真正“理解词汇语义”所取得的实质性一致性。
 - **分母 $1 - P_e$** = $1 - 0.5176 = 0.4824$：代表如果在去除随机猜测的前提下，理论上能够达到的“最大一致性空间”。
 
-两者的比值 **$ \kappa = 0.5017 $**，落在知名统计学家 Landis & Koch (1977) 定义的 **0.41~0.60 (Moderate Agreement / 中度乃至实质性稳健一致)** 区间。
+两者的比值 **$ \kappa = 0.5017 $**，落在知名统计学家 Landis & Koch (1977) 定义的 **0.41~0.60 (Moderate Agreement / 中度一致)** 区间。
 
-**科学论断：** 在包含海量生僻字、长尾业务黑话的超高难度纯文本分类中，8 个具有完全不同训练语料体系、权重结构和偏好的模型（如西方思维主导的 Claude 与中文母语的 DeepSeek/Doubao），能取得 0.5017 的 Kappa 系数。这**无可辩驳地证明了“简单多数投票机制 (total_score $\ge$ 5)”所剔除的低分词并非模型的随机分歧，而是客观存在的语意模糊区。进而强力证明了被截断保留的高分词典具有绝佳的纯度和高维的真实性。**
+**科学论断：** 在包含海量生僻字、长尾业务黑话的超高难度纯文本分类中，8 个具有完全不同训练语料体系、权重结构和偏好的模型（如西方思维主导的 Claude 与中文母语的 Doubao/Kimi），能取得 0.5017 的 Kappa 系数。这**无可辩驳地证明了“简单多数投票机制 (total_score $\ge$ 5)”所剔除的低分词并非模型的随机分歧，而是客观存在的语意模糊区。进而强力证明了被截断保留的高分词典具有绝佳的纯度和高维的真实性。**
 
 ---
 
@@ -65,26 +65,27 @@ $$ \kappa = \frac{\bar{P} - P_e}{1 - P_e} $$
 - **论证与引用理由 (Justification)**: 本研究首次为无量纲的 Kappa 统计量定义了世界公认的标尺划分范围区间（如 0.41-0.60 为 Moderate，0.61-0.80 为 Substantial）。因为 0.5017 的结果从绝对值上看“似乎不高”，但依据该文被数万次引用的行业标尺，0.5 已经构成了在非结构化大规模分类任务中具有强统计学显著性的“实质性一致”。引用该文能极大增强审稿人对“Kappa=0.5 即代表模型打分可靠”这一判断的信服度。
 
 **3. Krippendorff, K. (2004). "Reliability in Content Analysis: Some Common Misconceptions and Recommendations." *Human Communication Research*, 30(3), 411-433.**
-- **DOI**: [10.1111/j.1468-2958.2004.tb00738.x](https://doi.org/10.1111/j.1468-2958.2004.tb00738.x)
+- **DOI**: [10.1111/j.1468-2958.2004.tb00738.x](https://doi.org/10.1111/j.1468-2958.2004.tb00738.x) — Krippendorff (2004), Reliability in content analysis: Some common misconceptions and recommendations, *Human Communication Research*, 30(3), 411-433
 - **论证与引用理由 (Justification)**: 内容分析法大师 Krippendorff 的这篇顶刊论文系统批判了学界在使用一致性检验时的误区。这为项目通过多模型“多数投票原则（total_score $\ge$ 5）”构建语料字典做出了绝佳的背书。作者指出，只要评估过程排除了系统性偏差，中度一致的统计观测即可为大规模实证文本编码构建提供坚实基石，确保金融科技字典词频提取具有外部效度。
 
 ### B. 大语言模型（LLMs）作为零样本/高维裁判科学性的确立
 这些文献用于说服读者为何不大量使用人工标注，而是采用大模型替代“评审专家”进行打分。
 
-**4. Gilardi, F., Alizadeh, M., & Kubli, M. (2023). "ChatGPT outperforms crowd-workers for text-annotation tasks." *Proceedings of the National Academy of Sciences (PNAS)*, 120(30), e2305016120.**
+**4. Gilardi, F., Alizadeh, M., & Kubli, M. (2023). "ChatGPT outperforms crowd workers for text-annotation tasks." *Proceedings of the National Academy of Sciences (PNAS)*, 120(30), e2305016120.**
 - **DOI**: [10.1073/pnas.2305016120](https://doi.org/10.1073/pnas.2305016120)
 - **论证与引用理由 (Justification)**: 这篇发表于顶级学术旗舰期刊 PNAS 的神作是最权威的“大模型替代人类质检者”的实证声明。作者不仅证明了用 LLM 批处理判断文本（如同我们判断金融科技词汇）的速度和成本远优于人类外包工（crowd-workers），更以海量数据证实了 LLM 的零样本分类准确率在绝对值上**超越了未经严密特定训练的人类**。这为我们赋予模型以打分为“1 或 0”的“合法裁判权”提供了不可磨灭的支撑。
 
-**5. Zheng, L., Chiang, W. L., Ying, J., et al. (2024). "Judging LLM-as-a-judge with MT-Bench and Chatbot Arena." *Advances in Neural Information Processing Systems (NeurIPS)*.**
-- **链接**: [arXiv:2306.05685](https://arxiv.org/abs/2306.05685)
+**5. Zheng, L., Chiang, W.-L., Sheng, Y., Zhuang, S., Wu, Z., Zhuang, Y., Lin, Z., Li, Z., Li, D., Xing, E. P., Zhang, H., Gonzalez, J. E., & Stoica, I. (2023). "Judging LLM-as-a-judge with MT-Bench and Chatbot Arena." *Advances in Neural Information Processing Systems (NeurIPS)*, 36.**
+- **DOI**: [10.48550/arXiv.2306.05685](https://doi.org/10.48550/arXiv.2306.05685)
 - **论证与引用理由 (Justification)**: 来自人工智能界历史最悠久的顶级会议 NeurIPS 的重磅文章，首次系统性提出了“LLM-as-a-judge（利用大模型扮演法官）”在评定开放式问题时的稳健性。该研究展示了只要合理利用跨模型的交叉评分（正如本研究同时采用了由各种不同架构训练出来的 8 种模型做判别），模型即能达到接近顶尖人类专家共识的高度。证明了 `total_score` 聚类叠加能过滤极少数模型劣质判断导致的影响。
 
 **6. Brown, T. B., et al. (2020). "Language models are few-shot learners." *Advances in Neural Information Processing Systems (NeurIPS)*, 33, 1877-1901.**
 - **链接**: [NeurIPS Proceedings](https://papers.nips.cc/paper_files/paper/2020/hash/1457c0d6bfcb4967418bfb8ac142f64a-Abstract.html)
 - **论证与引用理由 (Justification)**: 这是引爆当前大模型革命的 GPT-3 基石论文。文章证实了参数量爆炸的语言模型由于“看见了一切互联网的语料”，天生具备一种直接处理此前从未训练过的判别任务能力（即 Few-shot/Zero-shot 零样本分类的内在合理性）。这构成了本项目中，为什么仅仅通过构造特定的 Prompt，大语言模型就能在一夜之间精准备别极其冷僻垂直的金融创新与商业底层变量（如联邦学习、智能风控）。
 
-**7. Zhu, Y., Pevalin, C., Rowe, F., et al. (2023). "Large Language Models for text classification: From zero-shot learning to fine-tuning." *Data Mining and Knowledge Discovery*.** (等效或相关该方向应用综述)
-- **论证与引用理由 (Justification)**: 在垂直文本场景下，该类论文实证比对了 LLM 作为文本判定锚与传统词频方法之间的区别。借由本论文我们可论证，比起过往采用 TF-IDF 抽取金融年报关键字，LLM 所依据的情境感知，能排除比如“银行科技分部购买了一台苹果（非 Apple Pay 相关业务机器电脑）”所带来的噪音困扰，证明 AI 在“语境除噪”和判断该词汇是否作为独立有意义的金融变量具有卓越优越性。
+**7. Heseltine, M., & Clemm von Hohenberg, B. (2024). "Large language models as a substitute for human experts in annotating political text." *Research & Politics*, 11(1), Article 20531680241236239.**
+- **DOI**: [10.1177/20531680241236239](https://doi.org/10.1177/20531680241236239)
+- **论证与引用理由 (Justification)**: 该文系统实证了 GPT-4 编码与人类专家编码的高度一致性（短文本准确率最高达 95%，覆盖美/智/德/意四国政治文本），并提出模型多次运行分歧交由专家仲裁的 hybrid 方案。借由本论文我们可论证，比起过往采用 TF-IDF 抽取金融年报关键字，LLM 所依据的情境感知，能排除比如“银行科技分部购买了一台苹果（非 Apple Pay 相关业务机器电脑）”所带来的噪音困扰，证明 AI 在“语境除噪”和判断该词汇是否作为独立有意义的金融变量方面具有优越性。
 
 ### C. 现代金融与管理学中文本分析、金融词基（FinTech）顶刊标杆
 这里提供商科金融学领域最顶配期刊群的引用，证明“依赖自建的创新性专业词典来测量未被公开财务报表反映的信息，已经是发表顶刊的标准路径”。
@@ -123,4 +124,4 @@ $$ \kappa = \frac{\bar{P} - P_e}{1 - P_e} $$
 
 ---
 > ⚠️ **项目执行建议**：
-> 在您未来的论文实证陈述中，您可以使用本项目提供的专属 Python 脚本，以一句极简练的声明收尾：“*结合 Landis (1977) 与 Gilardi (2023) 提出的验证体系，本文定制化引入基于 8 个主流大语言模型所组成的零样本交叉评审架构构建 FinTech 特征词库。多专家 Fleiss' Kappa 系数验证达 0.5017 实质性稳健通过。依据多数投票制过滤截断后（保留大于半数通过项），将该专属高质量词典应用于文本挖掘回归分析中（Loughran & McDonald, 2011），以测算微观银行业实体的高科技内嵌表征。*”
+> 在您未来的论文实证陈述中，您可以使用本项目提供的专属 Python 脚本，以一句极简练的声明收尾：“*结合 Landis & Koch (1977) 与 Gilardi et al. (2023) 提出的验证体系，本文定制化引入基于 8 个主流大语言模型所组成的零样本交叉评审架构构建 FinTech 特征词库。多专家 Fleiss' Kappa 系数验证达 0.5017（中度一致）稳健通过。依据多数投票制过滤截断后（保留大于半数通过项），将该专属高质量词典应用于文本挖掘回归分析中（Loughran & McDonald, 2011），以测算微观银行业实体的高科技内嵌表征。*”
