@@ -64,7 +64,22 @@ from config import (
     build_generate_prompt,
     build_judge_prompt,
     GEN_CHECKPOINT_FILE,
+    CACHE_DB_FILE,
+    CACHE_ENABLED,
+    OFFLINE_MODE,
 )
+from llm_cache import LLMCache, LLMCacheMissError
+
+# 目录级独立 LLM 缓存（LLMS_DIC_CACHE=0 可停用；LLMS_DIC_OFFLINE=1 为 $0 离线重放）
+_llm_cache: Optional[LLMCache] = LLMCache(CACHE_DB_FILE) if CACHE_ENABLED else None
+
+# 配置冲突守卫: 离线守卫依赖缓存, CACHE=0 + OFFLINE=1 会让离线承诺 fail-open
+# (静默直连付费 API), 拒绝启动
+if OFFLINE_MODE and _llm_cache is None:
+    raise SystemExit(
+        "[配置冲突] LLMS_DIC_OFFLINE=1 (离线重放) 与 LLMS_DIC_CACHE=0 (缓存停用) 不可同设: "
+        "离线守卫依赖缓存, 该组合会静默直连付费 API。请去掉其中一个环境变量。"
+    )
 
 # 输出文件路径（含时间戳，每次运行生成新文件）
 OUTPUT_FILE = DATA_DIR / f"bank_keywords_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
@@ -329,9 +344,10 @@ def _call_llm_with_retry(
     task_id: str,
     logger: logging.Logger,
     force_temperature: Optional[float] = None,
+    cache_tag: str = "",
 ) -> Optional[str]:
     """
-    带重试的 LLM 调用。统一处理重试逻辑、退避策略、中断检测和费用保护。
+    带重试的 LLM 调用。统一处理缓存、重试逻辑、退避策略、中断检测和费用保护。
 
     Args:
         client: OpenAI 客户端
@@ -342,6 +358,9 @@ def _call_llm_with_retry(
         force_temperature: 强制使用的 temperature 值。
             None = 不传 temperature，使用模型默认值；
             数值 = 强制使用该 temperature（如 0 表示最大确定性）。
+        cache_tag: 缓存键区分标签。同一 prompt 的多次刻意重复采样（生成阶段
+            rep 序号）与解析失败重试（try 序号）必须传不同 tag，否则会被缓存
+            折叠成同一个响应。
 
     Returns:
         LLM 返回的文本内容，失败返回 None
@@ -352,6 +371,25 @@ def _call_llm_with_retry(
         model_params["temperature"] = force_temperature
     else:
         model_params.pop("temperature", None)
+
+    # ── 缓存前置检查：命中直接返回（$0，不占用信号量/重试预算） ──
+    # 数字规范化: int 0 与 float 0.0 归一为 "0"，防止调用方类型漂移导致键分裂
+    temp_key = (
+        format(float(force_temperature), "g")
+        if force_temperature is not None
+        else "model-default"
+    )
+    if _llm_cache is not None:
+        cached = _llm_cache.get(model_name, prompt, temp_key, cache_tag)
+        if cached is not None:
+            logger.debug(f"  [{task_id}] 缓存命中 ($0)")
+            return cached
+        if OFFLINE_MODE:
+            raise LLMCacheMissError(
+                f"[{task_id}] 离线模式 (LLMS_DIC_OFFLINE=1) 下缓存未命中 "
+                f"(model={model_name}, tag={cache_tag})，拒绝调用付费 API"
+            )
+
     consecutive_timeouts = 0
 
     for i in range(MAX_RETRIES):
@@ -374,7 +412,11 @@ def _call_llm_with_retry(
                 resp = client.chat.completions.create(**call_kwargs)
             finally:
                 sem.release()
-            return resp.choices[0].message.content
+            content = resp.choices[0].message.content
+            # 成功响应写入缓存（原样存，含后续可能解析失败的响应，保证重放可复现）
+            if _llm_cache is not None and isinstance(content, str):
+                _llm_cache.put(model_name, prompt, temp_key, cache_tag, content)
+            return content
 
         except Exception as e:
             error_str = str(e)
@@ -441,7 +483,18 @@ def fetch_batch(args: Tuple) -> Tuple[str, str, List[str]]:
         if _shutdown_event.is_set():
             return (model_name, dom_name, [], idx)
 
-        text = _call_llm_with_retry(client, model_name, prompt, f"任务 {task_id}", logger)
+        # cache_tag 带 rep 序号 + 解析重试序号：100 次刻意重复采样各占独立缓存槽位
+        try:
+            text = _call_llm_with_retry(
+                client, model_name, prompt, f"任务 {task_id}", logger,
+                cache_tag=f"gen|{dom_name}|rep{idx}|try{parse_attempt}",
+            )
+        except LLMCacheMissError as e:
+            # 离线重放遇到首跑缓存空洞：置全局停止走优雅中断（保 checkpoint），
+            # 不让异常炸穿 executor
+            logger.error(f"  [任务 {task_id}] {e}")
+            _shutdown_event.set()
+            return (model_name, dom_name, [], idx)
         if text is None:
             return (model_name, dom_name, [], idx)
 
@@ -508,7 +561,20 @@ def judge_batch(args: Tuple) -> Tuple[str, List[Tuple[str, int, str]]]:
             return (model_name, [(kw, 0, "") for kw in keywords_batch])
 
         prompt = build_judge_prompt(keywords_batch)
-        text = _call_llm_with_retry(client, model_name, prompt, task_id, logger, force_temperature=0)
+        # temperature=0 确定性判别：prompt 本身含全部关键词即可唯一定位；
+        # try 序号防止缓存里的坏响应把解析重试锁死在同一条上。
+        # ⚠ 键=整批 prompt：上游词表哪怕漂移一个词，批次切片整体移位 → 判别缓存
+        # 几乎全 miss（正确性无损，纯成本放大）；词表稳定时才有 $0 重放。
+        try:
+            text = _call_llm_with_retry(
+                client, model_name, prompt, task_id, logger,
+                force_temperature=0, cache_tag=f"judge|try{attempt}",
+            )
+        except LLMCacheMissError as e:
+            # 离线重放遇到首跑缓存空洞：置全局停止走优雅中断，不炸穿 executor
+            logger.error(f"  [{task_id}] {e}")
+            _shutdown_event.set()
+            return (model_name, [(kw, 0, "") for kw in keywords_batch])
 
         if text is None:
             logger.warning(f"  [{task_id}] 第{attempt + 1}次尝试失败，返回为None")
@@ -891,6 +957,21 @@ def main(resume: bool = False, dry_run: bool = False) -> None:
     logger = setup_logger()
     start_time = time.time()
     # client_config 现在按模型动态获取，见下方任务构建处
+
+    # 缓存状态汇报
+    if _llm_cache is not None:
+        cs = _llm_cache.stats()
+        mode = "离线重放 (miss 即报错, $0)" if OFFLINE_MODE else "在线 (miss 才调 API)"
+        logger.info(
+            f"🗄️ LLM 缓存已启用 [{mode}]: {cs['db_path']} "
+            f"(现有 {cs['total_entries']} 条, {cs['size_mb']:.1f} MB)"
+        )
+        logger.info(
+            "   注意: 缓存命中=重放历史响应; 若要全新多样性采样, "
+            "设 LLMS_DIC_CACHE=0 或先 python llm_cache.py --clear --yes"
+        )
+    else:
+        logger.info("🗄️ LLM 缓存已停用 (LLMS_DIC_CACHE=0)，所有请求直连 API")
 
     # Dry-run 模式：仅显示任务规模和预估信息
     gen_task_count = len(MODELS) * len(DOMAINS) * NUM_REPEAT_PER_MODEL
@@ -1313,6 +1394,13 @@ def main(resume: bool = False, dry_run: bool = False) -> None:
     )
     if _total_retry_count > 0:
         logger.info(f"全局重试总次数: {_total_retry_count}")
+    if _llm_cache is not None:
+        n_req = _llm_cache.hits + _llm_cache.misses
+        hit_rate = _llm_cache.hits / n_req * 100 if n_req else 0.0
+        logger.info(
+            f"LLM 缓存统计: 命中 {_llm_cache.hits} / 未命中 {_llm_cache.misses} "
+            f"(命中率 {hit_rate:.1f}%, 命中部分 $0)"
+        )
 
     # 判别统计
     score_counts = df_final["total_score"].value_counts().sort_index(ascending=False)

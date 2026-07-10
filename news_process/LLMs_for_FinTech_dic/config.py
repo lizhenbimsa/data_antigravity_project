@@ -36,6 +36,21 @@ DOUBAO_BASE_URL: str = os.environ.get(
 DOUBAO_API_KEY: str = os.environ.get("DOUBAO_API_KEY", "")
 
 # ════════════════════════════════════════════════════════════════
+# LLM 缓存配置（本目录独立缓存，见 llm_cache.py）
+# ════════════════════════════════════════════════════════════════
+
+# 缓存库文件（SQLite，与主项目 news_process 的 _llm_cache.db 完全独立）
+CACHE_DB_FILE = DATA_DIR / "_llm_cache.db"
+# 整体开关：设 LLMS_DIC_CACHE=0 停用缓存（读写全跳过）
+CACHE_ENABLED: bool = os.environ.get("LLMS_DIC_CACHE", "1").strip().lower() not in {
+    "0", "false", "no", "off",
+}
+# 离线模式：设 LLMS_DIC_OFFLINE=1 后缓存 miss 直接报错，绝不调 API（$0 重放守卫）
+OFFLINE_MODE: bool = os.environ.get("LLMS_DIC_OFFLINE", "").strip().lower() in {
+    "1", "true", "yes", "on",
+}
+
+# ════════════════════════════════════════════════════════════════
 # 任务参数
 # ════════════════════════════════════════════════════════════════
 
