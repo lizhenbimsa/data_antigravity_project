@@ -154,7 +154,7 @@
 1. **F1 生产 canonical 污染是已披露既定权衡**: 项目立场 = 不裁剪只披露 + n_docs_longhit 稳健臂; 论文须以稳健臂为准或 usci 剔除受污行 (非 pipeline 缺陷)。若走方案 (a) 匹配层清洗须防误删 建发/金地 类合法短名。
 2. **F1 执行期风险 (若落 SSOT/清洗, REV-6)**: ① SSOT 重生非原子写 (`generate_company_tax_names.py:151 OUT.write_text` 无 temp+rename) — 与 tax/listed 管线无跨锁, 重生瞬间管线读该 yaml 会 torn-read → 须管线空闲时执行或对 generator 加 temp+os.replace; ② dev 落清洗但 DEFER 面板/registry 重生时, 盘上 cleaned yaml 与 committed `meta.company_names_sha256` 失配 → `test_name_list_hash_anchor` **立即翻红** → 须**同步重跑 01 (廉价 20.4s)** 复位自洽门 (区分 廉价 01-regen 立即做 vs 昂贵 02/03-regen 走 M0)。
 3. **F2 第 10 篇复现受耦合制约为前瞻风险** (变量待新建 M2-M3); 现无活跃回归失败, 但须文档化 canonical 顺序以免建成后踩坑 + 纠正误导文案。
-4. **F8 长跑 03 非原子 dta 写**: 单跑 kill 留半成品 (本轮未复现, 40min 后台净完成); 前次诊断计划 §7-1 会话级后台中断风险对生产 T=18 更长跑仍在。
+4. **F8 长跑 03 非原子 dta 写**: 单跑 kill 留半成品 (本轮未复现, 40min 后台净完成); 前次诊断计划 §7-1 会话级后台中断风险对生产 T=18 更长跑仍在。**F8 temp+replace 瞬时磁盘 (终审 NIT)**: 重跑时 .tmp 与旧文件共存 → dta 峰值需 ~2× (T=18 单 dta ≥6.85GB → 瞬时 ~13.7GB); T=18 前须确保 data 目录 ~2× 头room; 陈旧 .tmp (上次 kill 残留) 下轮 write 直接覆写无害。**F8 逐文件非跨文件原子 (终审 NIT)**: dta.replace 与 parquet.replace 之间被 kill 会留新 dta+旧 parquet 版本错配对 (各自仍完整), 属 pre-existing 且被 F8 严格改善, Stata 单消费 dta 恒完整, 低风险。
 5. **确定性金标 BLAS=1 仅 shell 约定** (F13/F15); golden 重生须遵 SOP + M0。
 6. **本轮未 live 覆盖** (F16, 依赖 CI gate): A7 完整 --no-emit-dta RUN / lock-race / --skip-unchanged 真跑 / --stage all。
 

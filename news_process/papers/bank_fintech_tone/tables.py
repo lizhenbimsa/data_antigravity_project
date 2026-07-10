@@ -36,7 +36,8 @@ if TYPE_CHECKING:
 # 三轨 (full/ctx/ss) 平价 (third-track-ss 2026-06-14): _ss = 银行+金科同句共现轨
 # (content_ss; 机械 _ctx→_ss 后缀 swap, 标签 "(银行+金科同句)"); ss 列 stage 21/15
 # 三轨产出后落盘, 落盘前 build_summary_table(strict=False) 以 NaN 占位行可见保留
-# (golden-safe, 同 ft_vol_* 惯例)。⚠ full×ctx×ss 三轨各自 just-identified 并排,
+# (golden-safe, 同 funding_cost 待 enrichment 落盘惯例; F4 2026-07-10: 原"同 ft_vol_*"
+# 类比已失效 — ft_vol_* 现已实算落值非占位)。⚠ full×ctx×ss 三轨各自 just-identified 并排,
 # 严禁混进同一 over-id Hansen J (三轨互为稳健性, 非穷尽工具集)。
 _TABLE1_VARIABLES: list[str] = [
     # 主关键解释变量 — 媒体语调 (main = full 轨, full-only gating 2026-06-29; +ss 同句共现轨)
@@ -54,8 +55,8 @@ _TABLE1_VARIABLES: list[str] = [
     'fin_media_frac',
     'central_media_frac',
     # 注意力指数 — 比值 (议程份额) + 总量孪生 (extensive 覆盖量, 互为稳健性 2026-06-13;
-    # ft_vol_* 为新增列, golden 重生重跑 stage 45/46 后落盘, 在盘前由 build_summary_table
-    # 以 NaN 占位行可见保留, 同 funding_cost enrichment 待落盘惯例)
+    # ⚠ F4 据实校正 2026-07-10: ft_vol_yr/ft_vol_prov 已由 attention/volume 实算落真值
+    # (盘上 N=220/194 非空, 非 NaN 占位); 原"待 stage 45/46 golden 重生"注释已删, 脚注同步)
     'ft_attn_yr',
     'ft_attn_prov',
     'ft_vol_yr',

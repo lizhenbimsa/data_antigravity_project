@@ -94,7 +94,7 @@ bump `tests/test_company_tax_bank_cooc_registry.py::EXPECTED_TAX_REGISTRY_SHA256
   顺序 `run_pipeline_function → run_pipeline_validation` 跑, 则 stage40 (group=main) 建面板时 stage75
   (`75_cross_media_alpha`, group=validation) **恒晚于**刚重生的 stage21 → `pipeline/panel/runner.py` 的 mtime
   新鲜度守卫**恒跳过** cross_media merge → 40 面板缺 `cross_media_alpha`/`cross_outlet_tone_variance`/`n_events`
-  三基名源列 → 本管线对应加权列优雅降级为全 NaN (**非 bug, 非 T=18 可恢复; 标准/生产顺序皆恒缺**)。
+  三基名源列 → 本管线 registry 对该三基名 emit_tracks=[] **不产对应加权列 (0 列, 非全 NaN; 与 02 日志 F3 拆因一致)** (非 bug, 非 T=18 可恢复; 标准/生产顺序皆恒缺)。
   **需含 cross_media 的完整面板**须走: `① function → ② validation → ③ 单独补跑 python 40_panel_export_main.py
   (不重跑 21, 使 75 相对 21 新鲜) → ④ 本管线`, 或主管道传 `--skip-21-if-exists`。
 - **跨管道串行纪律 (F7)**: 本管线单实例锁 (`logs/_run_pipeline.lock`) 只防同目录 orchestrator 双跑, **与主管道

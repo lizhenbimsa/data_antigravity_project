@@ -147,6 +147,11 @@ def _release_single_instance_lock(fd: int) -> None:
         logger.warning("锁文件 %s 删除失败 (无害: 下次启动按陈旧锁清除)", LOCK_FILE)
 
 
+# F12: ANSI/VT100 转义序列剥离 (对齐 core/stage.py:_ANSI_ESCAPE_RE) — 第三方库对子步 stderr 直写的
+# 颜色/光标码不得随转发落入 run_pipeline.log (子步经 PIPE 非 TTY 本不应着色, 此为防御性剥离; LOG-COLOR)。
+_ANSI_ESCAPE_RE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+
+
 def _spawn_stderr_forwarder(proc: subprocess.Popen, tag: str):
     """F12 (2026-07-10): 守护线程逐行把子步 stderr forward 进 orchestrator logger (→ run_pipeline.log,
     对齐主线 core/stage.py)。原 subprocess.run 无捕获 → 子步未经 logger 的原始 stderr (未捕获 traceback /
@@ -157,7 +162,7 @@ def _spawn_stderr_forwarder(proc: subprocess.Popen, tag: str):
     def _pump():
         try:
             for _line in iter(proc.stderr.readline, ''):
-                logger.warning("  │⚠ %s", _line.rstrip("\r\n"))
+                logger.warning("  │⚠ %s", _ANSI_ESCAPE_RE.sub("", _line.rstrip("\r\n")))
         finally:
             try:
                 proc.stderr.close()
