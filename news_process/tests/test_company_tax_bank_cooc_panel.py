@@ -760,3 +760,53 @@ def test_pa_identical_duplicate_keys_dedup_pass():
                                     align, None, None, reg)
     # 同值重复 docid=1 去重后单计: mean(0.5, 1.0) = 0.75 (双计则为 (0.5+0.5+1.0)/3 ≈ 0.667)
     assert lib.loc[("银行A", 2017), "__agg16__policy_cosine_sim_full"] == pytest.approx(0.75)
+
+
+# ---------------------------------------------------------------------------
+# G2a/F17 (八入口审计计划 2026-07-10): 五上游代际快照 + 27 号新鲜度哨兵 (镜像 listed)
+# ---------------------------------------------------------------------------
+
+
+class TestUpstreamSnapshot:
+    """build_upstream_snapshot: 五键 schema / 陈旧哨兵 WARNING / 缺席 null 不崩。"""
+
+    @staticmethod
+    def _mk(tmp_path, name, mtime_ns):
+        p = tmp_path / name
+        p.write_bytes(b"x" * 8)
+        os.utime(p, ns=(mtime_ns, mtime_ns))
+        return p
+
+    def test_five_keys_and_entry_schema(self, tmp_path):
+        t0 = 1_700_000_000_000_000_000
+        snap = mod.build_upstream_snapshot(
+            self._mk(tmp_path, "21.parquet", t0),
+            self._mk(tmp_path, "40.parquet", t0),
+            self._mk(tmp_path, "16.parquet", t0),
+            self._mk(tmp_path, "27.parquet", t0),
+            self._mk(tmp_path, "51.parquet", t0),
+        )
+        assert set(snap) == {"input", "panel", "alignment", "benefit", "controls"}
+        for ent in snap.values():
+            assert set(ent) == {"file", "size", "mtime_ns", "sha256_16"}
+            assert ent["size"] == 8 and len(ent["sha256_16"]) == 16
+            assert isinstance(ent["mtime_ns"], int)
+
+    def test_stale_benefit_emits_warning(self, tmp_path, caplog):
+        t0 = 1_700_000_000_000_000_000
+        p_in = self._mk(tmp_path, "21.parquet", t0 + 1_000_000_000)
+        p_pn = self._mk(tmp_path, "40.parquet", t0 + 2_000_000_000)
+        p_bf = self._mk(tmp_path, "27.parquet", t0)  # 早于 max(panel, input) 整秒级 → 陈旧 (NTFS mtime 100ns 粒度, 偏移须 ≥100ns)
+        with caplog.at_level(logging.WARNING, logger=mod.logger.name):
+            mod.build_upstream_snapshot(p_in, p_pn, None, p_bf, None)
+        assert any("代际陈旧" in r.message for r in caplog.records)
+        assert any("--track all --include-lg --df-exploded" in r.message for r in caplog.records)
+
+    def test_missing_benefit_null_entry_no_crash_no_warning(self, tmp_path, caplog):
+        t0 = 1_700_000_000_000_000_000
+        p_in = self._mk(tmp_path, "21.parquet", t0)
+        p_pn = self._mk(tmp_path, "40.parquet", t0)
+        with caplog.at_level(logging.WARNING, logger=mod.logger.name):
+            snap = mod.build_upstream_snapshot(p_in, p_pn, None, None, None)
+        assert snap["benefit"] is None and snap["alignment"] is None
+        assert not any("代际陈旧" in r.message for r in caplog.records)

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import logging
 import sys
 from pathlib import Path
@@ -938,6 +939,48 @@ def run_gates(panel: pd.DataFrame, pair: pd.DataFrame, registry: dict,
 
 
 # ---------------------------------------------------------------- main
+def build_upstream_snapshot(p_input: Path | None, p_panel: Path | None,
+                            p_align: Path | None, p_benefit: Path | None,
+                            p_controls: Path | None) -> dict:
+    """G2a/F17 (八入口审计计划 2026-07-10): 五上游代际快照 — 记录层锚 + 新鲜度哨兵。
+
+    刻意不并入 input_fingerprint 本体 (03/04 双向锁语义不变, 锁不翻); 仅供审计取证。
+    schema: 键=resolve 句柄名, 值={file,size,mtime_ns,sha256_16}, 缺席上游=null。
+    哨兵 (保守超集 max(panel, input)): 27 号由 paper 侧独立生产, 陈旧在 dev 常态 —
+    **警不崩, 照并旧值** (语义与主管道 runner F2 mtime 守卫相反: 那边=陈旧跳过 merge)。
+    与 listed 侧 02 逐字同构 (pair metadata 写段是两处独立副本, 双改同步)。
+    """
+    def _snap(path: Path | None) -> dict | None:
+        if path is None:
+            return None
+        st = path.stat()
+        h = hashlib.sha256()
+        with open(path, "rb") as fh:
+            for chunk in iter(lambda: fh.read(1 << 20), b""):
+                h.update(chunk)
+        return {"file": path.name, "size": st.st_size,
+                "mtime_ns": st.st_mtime_ns, "sha256_16": h.hexdigest()[:16]}
+
+    snapshot = {name: _snap(p) for name, p in (
+        ("input", p_input), ("panel", p_panel), ("alignment", p_align),
+        ("benefit", p_benefit), ("controls", p_controls))}
+    for name, ent in snapshot.items():
+        logger.info("  [upstream_snapshot] %-9s = %s", name,
+                    "缺席 (null)" if ent is None else
+                    f"{ent['file']} | {ent['size']:,d} B | mtime_ns={ent['mtime_ns']}"
+                    f" | sha256_16={ent['sha256_16']}")
+    if (p_benefit is not None and p_input is not None and p_panel is not None
+            and p_benefit.stat().st_mtime_ns < max(
+                p_panel.stat().st_mtime_ns, p_input.stat().st_mtime_ns)):
+        logger.warning(
+            "27_benefit_dimensions_panel 早于本轮主管道产物 (代际陈旧), benefit 48 列取值属旧代 — "
+            "重生入口 = 从 repo 根跑 python -m news_process.papers.benefit_society.dimension_analysis "
+            "--track all --include-lg --df-exploded news_process/data/processed/40_article_bank_level.parquet "
+            "(缺 --df-exploded 则 anchors-only 不落面板; 若 27 号确已同步重生, 本警告为保守误报, "
+            "以 upstream_snapshot 内 benefit 的 sha256_16 为准)")
+    return snapshot
+
+
 def main(argv=None) -> int:
     if sys.flags.optimize:  # 本脚本 fail-fast 闸为 assert, -O/PYTHONOPTIMIZE 下会静默失效并照常落盘
         raise SystemExit("禁以 -O/PYTHONOPTIMIZE 运行 (assert 闸失效 → 无防线静默落盘)")
@@ -1008,6 +1051,9 @@ def main(argv=None) -> int:
     if drift:
         raise SystemExit(f"40 面板出现 registry 未判定新列 (WP0 后漂移; 处置协议 T-D9: 先跑 listed 01 "
                          f"对照确认漂移同源, 禁就地加 EXCLUDE 正则): {sorted(drift)[:10]}")
+
+    upstream_snapshot = build_upstream_snapshot(
+        p_input, p_panel, p_align, p_benefit, p_controls)
 
     A, variant_owner, bank_canonical, bank_substr, own_map, bank_company_set, company_names = \
         load_name_assets(registry)
@@ -1139,7 +1185,10 @@ def main(argv=None) -> int:
     fingerprint = hashlib.sha256(f"{p_input.stat().st_size}|{len(input21)}".encode()).hexdigest()
     tbl = tbl.replace_schema_metadata({**(tbl.schema.metadata or {}),
                                        b"registry_sha256": registry["meta"]["registry_sha256"].encode(),
-                                       b"input_fingerprint": fingerprint.encode()})
+                                       b"input_fingerprint": fingerprint.encode(),
+                                       b"upstream_snapshot": json.dumps(
+                                           upstream_snapshot, ensure_ascii=False,
+                                           sort_keys=True).encode()})
     pqw.write_table(tbl, out_dta.parent / "_company_tax_bank_cooc_pairs.parquet")
     logger.info("pair 长表落盘: metadata 内嵌 registry_sha256=%s… + input_fingerprint=%s… "
                 "(步骤 03 启动时校验, stale 即 SystemExit)",

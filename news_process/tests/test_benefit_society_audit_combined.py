@@ -486,3 +486,65 @@ def test_auto_wired_ctx_model_mismatch_raises(tmp_path, monkeypatch):
 
     with pytest.raises(ValueError, match="ctx embeddings model"):
         mod.main([])
+
+
+# ---------------------------------------------------------------------------
+# G3 (八入口审计计划 2026-07-10): sidecar 上游数据代际指纹 upstream_snapshot
+# ---------------------------------------------------------------------------
+
+
+def test_sidecar_contains_upstream_snapshot_and_v12(tmp_path, monkeypatch):
+    """main() 写盘的 sidecar 须含 upstream_snapshot (5 键, {file,size,mtime_ns,
+    sha256_16} schema, 缺席=null) — G3 可审计性补齐; schema_version 同步 1.2。"""
+    import json as _json
+    from unittest.mock import patch
+
+    import news_process.core.config as _cfg
+    import news_process.pipeline.features.benefit_society_audit_combined as mod
+
+    monkeypatch.setattr(
+        _cfg, "load_config",
+        lambda *a, **k: {"paths": {"output_dir": str(tmp_path), "log_dir": str(tmp_path)}, "filenames": {}},
+    )
+    emb = np.zeros((2, 8), dtype=np.float32)
+    df_exp = pd.DataFrame({
+        'target_bank': ['A', 'B'], 'year': [2018, 2018],
+        '标题': ['x', 'y'], '内容': ['x', 'y'],
+    })
+    emb_path = tmp_path / 'emb.npy'
+    df_path = tmp_path / 'df.parquet'
+    dir_path = tmp_path / 'dir.npy'
+    out_path = tmp_path / 'out' / 'panel.parquet'
+    _write_emb_with_sidecar(emb_path, emb)
+    df_exp.to_parquet(df_path)
+    np.save(dir_path, np.zeros(8, dtype=np.float32))
+
+    fake_panel = pd.DataFrame({'target_bank': ['A'], 'year': [2018], 'metric': [0.1]})
+    fake_meta = {'schema_version': '1.2', 'placebo_match_counts': {}, 'n_articles_total': 2}
+    with patch.object(mod, 'build_audit_panel', return_value=(fake_panel, fake_meta)):
+        rc = mod.main([
+            '--text-embeddings-full', str(emb_path),
+            '--df-exploded', str(df_path),
+            '--main-direction-npy', str(dir_path),
+            '--output', str(out_path),
+        ])
+    assert rc == 0
+    loaded = _json.loads(out_path.with_suffix('.sidecar.json').read_text(encoding='utf-8'))
+    snap = loaded['upstream_snapshot']
+    assert set(snap) == {'text_embeddings_full', 'text_embeddings_ctx',
+                         'text_embeddings_ss', 'df_exploded', 'main_direction_npy'}
+    # ctx/ss 未接线 → null; 已接线三件套须带四字段 schema
+    assert snap['text_embeddings_ctx'] is None and snap['text_embeddings_ss'] is None
+    for key in ('text_embeddings_full', 'df_exploded', 'main_direction_npy'):
+        ent = snap[key]
+        assert set(ent) == {'file', 'size', 'mtime_ns', 'sha256_16'}
+        assert len(ent['sha256_16']) == 16 and isinstance(ent['mtime_ns'], int)
+
+
+def test_build_audit_panel_metadata_schema_version_is_12():
+    """schema_version 字面量 gate: build_audit_panel 元数据须为 1.2 (G3 bump)。"""
+    import inspect
+
+    import news_process.pipeline.features.benefit_society_audit_combined as mod
+    src = inspect.getsource(mod.build_audit_panel)
+    assert '"schema_version": "1.2"' in src

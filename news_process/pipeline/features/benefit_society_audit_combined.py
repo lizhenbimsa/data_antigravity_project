@@ -329,7 +329,7 @@ def build_audit_panel(
         "placebo_match_counts": match_counts,
         "n_articles_total": int(len(df_exploded)),
         "n_bank_year_obs": int(len(combined)),
-        "schema_version": "1.1",
+        "schema_version": "1.2",  # 1.2 (2026-07-10, G3): main() 写盘前追加 upstream_snapshot
         "plan_version": "v2.0 (J-L-M 2026 robustness alignment)",
         "task_id": "P1.6 audit-only combined panel",
         "embedding_model": embedding_model_id,
@@ -652,6 +652,31 @@ def main(argv: list[str] | None = None) -> int:
         )
     except Exception as _e:
         logger.warning(f"[schema 溯源] 日志诊断异常, 跳过(不影响产物): {_e}")
+
+    # G3 (八入口审计计划 2026-07-10): sidecar 补上游数据代际指纹 upstream_snapshot —
+    # 事后仅凭 sidecar 即可证明 80 面板用的是哪一代嵌入/文章表 ("同长度换代"盲区补齐;
+    # 行数级错配另有上方 len(df)==len(npy) 硬校验)。schema 同 company 02 双管道:
+    # 值={file,size,mtime_ns,sha256_16}, 缺席输入=null。在 main() 内追加 (build_audit_panel
+    # 不持有输入路径, 且测试对其返回值有 mock)。
+    def _snap(path_str: str | None) -> dict[str, object] | None:
+        if not path_str or not os.path.exists(path_str):
+            return None
+        p = Path(path_str)
+        st = p.stat()
+        h = hashlib.sha256()
+        with open(p, "rb") as fh:
+            for chunk in iter(lambda: fh.read(1 << 20), b""):
+                h.update(chunk)
+        return {"file": p.name, "size": st.st_size,
+                "mtime_ns": st.st_mtime_ns, "sha256_16": h.hexdigest()[:16]}
+
+    meta["upstream_snapshot"] = {
+        "text_embeddings_full": _snap(args.text_embeddings_full),
+        "text_embeddings_ctx": _snap(args.text_embeddings_ctx),
+        "text_embeddings_ss": _snap(args.text_embeddings_ss),
+        "df_exploded": _snap(args.df_exploded),
+        "main_direction_npy": _snap(args.main_direction_npy),
+    }
 
     sidecar_path = write_sidecar_json(output_path, meta)
     logger.info("Wrote sidecar JSON: %s", sidecar_path)
