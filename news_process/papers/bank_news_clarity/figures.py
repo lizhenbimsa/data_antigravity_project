@@ -43,9 +43,11 @@ def plot_clarity_distribution(paper_config: PaperConfig | None = None,
     pc = paper_config or get_paper_config(PAPER_ID)
     pc.output_dir.mkdir(parents=True, exist_ok=True)
 
+    # 不传 columns= 过滤: pd.read_parquet 对缺列 raise ArrowInvalid (非 FileNotFoundError, 逃逸
+    # analysis.py 的 except), 而 ss 轨在 P4 付费 run 前盘上必缺 — 整盘加载后用 `col in panel.columns`
+    # skip-if-missing 才兑现 docstring 承诺 (审计 F2, 镜像 bank_media_disagreement/figures.py)。
     panel = load_panel('40_panel_yearly.parquet', paper_id=pc.paper_id,
-                       project_config=pc.config,
-                       columns=[col for col, _ in _CLARITY_TRACKS])
+                       project_config=pc.config)
 
     apply_publication_style()
     fig, ax = plt.subplots(figsize=FIGSIZE_SINGLE)

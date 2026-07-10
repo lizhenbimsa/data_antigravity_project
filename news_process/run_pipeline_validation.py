@@ -177,12 +177,14 @@ def run_validation():
     仅作启用记录, 不再驱动启停。
     """
     module_start = time.time()
-    logger.info(f"NEWS_PROCESS_RUN_ID = {_RUN_ID}")  # A3: 原模块级 emit 下沉至此 (见模块顶注释)
+    # A3+F4: RUN_ID emit 下沉到 with PipelineLock 块内 (见下方) — 防被拒并发实例截断在跑实例 .log。
 
     # ── 并发运行保护 (plan s3): 与主流水线对称, 共享同一锁文件 ──
     # validation 与 main pipeline 都会读写 output_dir/, 共享 logger / 中间 cache;
     # 同时跑两个进程会产生数据竞争与日志互踩, 必须互斥。
-    with PipelineLock(logger, CONFIG["paths"]["output_dir"]):
+    with PipelineLock(logger, CONFIG["paths"]["output_dir"],
+                      console_only_on_reject=True):
+        logger.info(f"NEWS_PROCESS_RUN_ID = {_RUN_ID}")  # A3/F4: 获锁后首条 file emit
         logger.info("=" * 72)
         logger.info("模块四: 评估验证编排器 (规格曲线/多元宇宙稳健性; Simonsohn 2020 NHB / Steegen 2016 PPS)")
         logger.info("=" * 72)

@@ -1984,8 +1984,11 @@ def _log_robustness_diagnostics(panel):
             continue
         if col.startswith('strat_sim_max') and '_emb' in col:
             lo, hi = -1.0, 1.0       # emb 余弦相似度
-        elif '_emb' in col or col.startswith('strat_diff_lg'):
-            lo, hi = 0.0, 2.0        # emb 距离 δ = 1 − cos (含 _lg 别名)
+        elif ('_emb' in col or col.startswith('strat_diff_lg')
+                or col in ('strat_diff_full', 'strat_diff_ctx', 'strat_diff_ss')):
+            # emb 距离 δ = 1 − cos ∈ [0,2] (含 _lg 别名 + MAIN centroid 别名 strat_diff_{full,ctx,ss};
+            # 审计 F7: MAIN 别名本体 = centroid_diff_emb, 负余弦时 δ>1, 原 [0,1] 桶会误崩阶段)
+            lo, hi = 0.0, 2.0
         else:
             lo, hi = 0.0, 1.0        # TF-IDF / LDA / fluidity
         assert (v >= lo - 1e-10).all() and (v <= hi + 1e-10).all(), \

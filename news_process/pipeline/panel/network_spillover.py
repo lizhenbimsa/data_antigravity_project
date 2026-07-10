@@ -55,6 +55,7 @@ brokerage 2SLS 有效 N≈22(含 DV), 在 absorb(bank_id year) 下 bank FE 饱�
 
 import os
 import platform
+import re
 import sys
 import time
 
@@ -1971,6 +1972,28 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
     return emb_results
 
 
+def _enforce_row_parity(panel: pd.DataFrame) -> pd.DataFrame:
+    """行级 both-or-neither 补强 (审计 F3, 2026-07-10)。
+
+    pass 级守卫 (`main_ok = bool(emb_results)`) 只在整遍 pass 返空时对称置 NaN;
+    当 MAIN(Qwen) 与 _lg(emb3large) 覆盖 (bank,year) 键集不同 (per-year 单侧 embed
+    miss) 时两遍非空 → left-merge 后单边孤儿, 违反 co-primary both-or-neither 铁律。
+    此处对每对 (canonical, _lg) 嵌入网络列强制: 任一 NaN → 两列同置 NaN。
+    ⚠ T=2 全命中 0 孤儿 → orphan 恒空 → 按构造 no-op 字节不变 (golden-safe)。
+    """
+    net_lg = [c for c in panel.columns
+              if '_lg' in c and ('emb_peer_tone' in c or 'bank_emb_sim' in c)]
+    for lgc in net_lg:
+        can = re.sub(r'_lg(?=_|$)', '', lgc, count=1)  # 边界感知单次剥离 (防未来 _lg-邻接命名误配)
+        if can in panel.columns and can != lgc:
+            orphan = panel[can].isna() ^ panel[lgc].isna()
+            if orphan.any():
+                logger.warning(
+                    f"  行级 parity 补强 (F3): {can}/{lgc} {int(orphan.sum())} 单边孤儿 → 同置 NaN")
+                panel.loc[orphan, [can, lgc]] = np.nan
+    return panel
+
+
 def _merge_diag_w_track_units(df_exploded: pd.DataFrame,
                               panel: pd.DataFrame) -> pd.DataFrame:
     """ctx/ss diag W-轨单元编排 (2026-07-03, 计划 D7/D8)。
@@ -2148,6 +2171,7 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
             panel[_c] = np.nan
         # D8: full 族失败不连坐 ctx/ss diag 单元 — 各单元独立尝试
         panel = _merge_diag_w_track_units(df_exploded, panel)
+        panel = _enforce_row_parity(panel)  # F3: 补强 diag 轨行级 both-or-neither
         logger.info(f"  ⏱ 步骤 7h-emb (嵌入同业网) 耗时: {sig4(time.time() - _t0)} 秒")
         return panel
 
@@ -2209,5 +2233,6 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
     # ── diag W-轨单元 (ctx/ss, 2026-07-03 计划 D7/D8): 独立于 full 族 ──
     panel = _merge_diag_w_track_units(df_exploded, panel)
 
+    panel = _enforce_row_parity(panel)  # F3: 行级 both-or-neither 补强 (per-year 单侧 miss 孤儿)
     logger.info(f"  ⏱ 步骤 7h-emb (嵌入同业网) 耗时: {sig4(time.time() - _t0)} 秒")
     return panel

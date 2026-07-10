@@ -346,13 +346,31 @@ def load_and_process_data(raw_data_dir: str, output_path: str) -> int:
                     continue
 
                 if df_cleaned is not None and not df_cleaned.empty:
-                    source_rows[file_name] = source_rows.get(file_name, 0) + len(df_cleaned)
                     table = pa.Table.from_pandas(df_cleaned)
-                    if writer is None:
-                        writer = pq.ParquetWriter(
-                            output_path, table.schema, compression='snappy'
-                        )
-                    writer.write_table(table)
+                    try:
+                        if writer is None:
+                            writer = pq.ParquetWriter(
+                                output_path, table.schema, compression='snappy'
+                            )
+                        elif table.schema != writer.schema:
+                            # 多源 dtype 推断分歧 (docid int64↔float64↔str 等): 对齐到已锁 schema。
+                            # safe=True (默认): 有损/越界 cast (fractional float→int / 含空串或非数字
+                            # string→int) 或列集不匹配 → raise → 走 failed_files 对账; NaN→null 与无损
+                            # 加宽 (int→float/int→string) 仍成功写入。绝不 nuke DAG 根阶段 (审计 F1)。
+                            # ⚠ 「NaN→null 写入」依赖 pa.Table.from_pandas 的 null-masking (NaN→arrow-null);
+                            # ⚠ 首 writer 锁哪个 dtype 由 as_completed 完成序决定 → T=18 跨次可产出不同,
+                            #   该非确定性由 F1b (load.py 标识列归 string) 根治, 二者须同生产窗口落地。
+                            table = table.cast(writer.schema)
+                        writer.write_table(table)
+                    except (pa.ArrowInvalid, pa.ArrowTypeError,
+                            pa.ArrowNotImplementedError, ValueError) as e:
+                        # 仅接 schema/cast 类异常; 真正的 I/O 写失败 (磁盘满/权限, OSError) 不在此列 → 仍 fail-loud。
+                        logger.error(
+                            f"schema 不兼容, 跳过 {file_name} (计入 failed_files 对账): {e}")
+                        failed_files.append((file_name, f"schema mismatch: {e}"))
+                        source_rows.setdefault(file_name, 0)
+                        continue
+                    source_rows[file_name] = source_rows.get(file_name, 0) + len(df_cleaned)
                     total_rows += len(df_cleaned)
 
                     # 写入增量缓存

@@ -54,6 +54,29 @@ def test_run_id_emit_moved_out_of_module_level(fname):
     assert func_level is not None, f"{fname}: RUN_ID emit 应下沉到函数体内(有缩进)"
 
 
+# ── F4 (2026-07-10): 编排器 `with PipelineLock` 之前不得有 file emit + 须传 console_only_on_reject ──
+
+@pytest.mark.fast
+@pytest.mark.parametrize("fname", ["run_pipeline_function.py", "run_pipeline_validation.py"])
+def test_no_file_emit_before_pipeline_lock(fname):
+    """F4 结构护栏: run_pipeline/run_validation 函数体内 `with PipelineLock` 之前不得有任何
+    logger file emit —— 否则被拒并发实例会在获锁前经 delayed-truncating file handler 首写截断
+    在跑实例的共享 .log。且该锁须传 console_only_on_reject=True (被拒实例诊断走 stderr 不触盘)。
+    防未来在 with 前加日志静默重引截断 bug。"""
+    src = (REPO / fname).read_text(encoding="utf-8")
+    m = re.search(r'^\s*with PipelineLock\(', src, re.M)
+    assert m is not None, f"{fname}: 未找到 with PipelineLock"
+    lock_stmt = src[m.start():m.start() + 220]
+    assert "console_only_on_reject=True" in lock_stmt, \
+        f"{fname}: with PipelineLock 未传 console_only_on_reject=True → 被拒实例仍 logger.error 截断 .log"
+    func_start = src.rfind("\ndef ", 0, m.start())
+    assert func_start != -1, f"{fname}: 未定位到 with PipelineLock 的宿主函数"
+    body_before_lock = src[func_start:m.start()]
+    stray = re.search(r'^\s+logger\.(info|warning|error)\(', body_before_lock, re.M)
+    assert stray is None, \
+        f"{fname}: `with PipelineLock` 之前有 file emit ({stray.group()!r}) → 被拒实例会截断在跑实例 .log"
+
+
 # ── A10: run_main_pipeline(argv) 透传流水线 flag; argv 空/None 走零参保 bridge ──
 
 @pytest.mark.fast

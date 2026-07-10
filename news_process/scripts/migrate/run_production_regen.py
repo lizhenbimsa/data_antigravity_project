@@ -117,7 +117,7 @@ def main() -> int:
 
     det_env = {"NEWS_PROCESS_LLM_OFFLINE": "1", "PYTHONHASHSEED": "0"}
 
-    print("\n[步骤 1] 重建面板 (stage 40 → 46) — 离线确定 ($0, 缓存全命中)")
+    print("\n[步骤 1] 重建面板 (stage 40 → 46 → 51) — 离线确定 ($0, 缓存全命中)")
     if args.skip_stages:
         print("    (--skip-stages: 跳过)")
     else:
@@ -127,6 +127,11 @@ def main() -> int:
         rc = _run([sys.executable, "46_stata_export.py"], execute=execute, env=det_env)
         if execute and rc:
             print(f"    [STOP] stage 46 退出码 {rc}"); return rc
+        # 审计 F5: stage 51 硬读 40_panel_yearly 且注册 OUTPUT_REGISTRY (schemas.py:94), 属 40 下游 —
+        # 必须同步重建 (对齐 PRODUCTION_REGEN_SOP 步骤1), 否则 golden 会 bless 40-新/51-旧不自洽面板。
+        rc = _run([sys.executable, "51_falsification_test.py"], execute=execute, env=det_env)
+        if execute and rc:
+            print(f"    [STOP] stage 51 退出码 {rc}"); return rc
 
     print("\n[步骤 2] 重生 golden snapshot")
     rc = _run([sys.executable, "scripts/migrate/generate_golden_snapshot.py"], execute=execute, env=det_env)

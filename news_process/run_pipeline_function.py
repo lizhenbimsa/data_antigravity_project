@@ -619,15 +619,17 @@ def run_pipeline(args: argparse.Namespace | None = None):
     if args is None:
         args = argparse.Namespace(skip_21_if_exists=False, skip_unchanged=False)
 
-    logger.info(f"NEWS_PROCESS_RUN_ID = {_RUN_ID}")  # A3: 原模块级 emit 下沉至此 (见模块顶注释)
-
+    # A3+F4: RUN_ID emit 下沉到 with PipelineLock 块内 (见下方) — 防被拒并发实例在获锁前
+    #        经模块级 file handler 首写截断在跑实例的共享 .log。with 前不得有任何 file emit。
     pipeline_start = time.time()
     # 运行期阶段计时累计 (编排器自身各子阶段墙钟耗时, 末尾汇总打印; 纯日志, golden-safe)。
     # 注: 各 pipeline stage 的耗时由下方 stage_timings 逐条记录; 此 dict 记编排器框架开销。
     phase_durations: dict[str, float] = {}
 
     # ── 并发运行保护：确保同一时间只有一个管道实例运行 ──
-    with PipelineLock(logger, CONFIG["paths"]["output_dir"]):
+    with PipelineLock(logger, CONFIG["paths"]["output_dir"],
+                      console_only_on_reject=True):
+        logger.info(f"NEWS_PROCESS_RUN_ID = {_RUN_ID}")  # A3/F4: 获锁后首条 file emit (本实例截断自己新鲜日志)
         # ── 【功能】banner (黄金范式, 对齐 herd_decay.main() 单 banner 范式) ──
         logger.info("=" * 72)
         logger.info("新闻处理流水线编排器 (News Processing Pipeline Orchestrator, v3.15.0)")

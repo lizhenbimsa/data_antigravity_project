@@ -37,7 +37,11 @@ class MockLogger:
 # 直接导入PipelineLock类（内联代码以避免依赖问题）
 # Plan P1-5: 与生产 news_process/core/locking.py 的 sidecar 设计同步.
 class PipelineLock:
-    """管道运行锁 (内联副本, 与 news_process.core.locking.PipelineLock 同步; Plan P1-5 sidecar 设计)."""
+    """管道运行锁 (内联副本, 与 news_process.core.locking.PipelineLock 同步; Plan P1-5 sidecar 设计).
+
+    ⚠ 锁契约冻结骨架: 本内联副本**不追随**生产类 2026-07-10 新增的 console_only_on_reject 参数
+    (审计 F4) — 该 flag 仅服务主/验证编排器的日志截断防护, 与本副本测的 sidecar/OS 锁契约无关;
+    测试自足, 勿因二者不逐字一致而误判需同步。"""
 
     def __init__(self, logger, lock_dir: str = None):
         self.logger = logger

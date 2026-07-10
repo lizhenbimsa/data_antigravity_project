@@ -333,6 +333,27 @@ class TestFallbackAxiom:
         'avg_subst_prob_score',
         'avg_locus_prob_score',
         'avg_collab_prob_score',
+        # ── 审计 F8 (2026-07-10): 补齐 allow-list 漂移 ──────────────────────────
+        # (a) LLM 分类维度 per-model 文章级列 (2026-07-03 稳健性补齐新增): 各家自身
+        #     verified 子集上做 subst/locus/collab 分类, LLM 失败/未分类 → NaN 是设计信号。
+        #     ⚠ 观察 (非缺陷): gpt54nano_locus NaN ~42% (419/442/452), 远高于其 subst/collab
+        #     (17/73/106) 且唯它非对称; 实测 402/988 是 verified==True 却无 locus → gpt54nano
+        #     对 innovation locus 更保守 (无法判定即返 null), gemini31/deepseekv4 总赋值。
+        #     属模型响应模式差异 (盘上既有数据特征, 非 fixture bug); panel 指标按各模型自身
+        #     分类子集自门控, 不偏估。
+        'gpt54nano_subst', 'gpt54nano_locus', 'gpt54nano_collab',
+        'gemini31_subst', 'gemini31_locus', 'gemini31_collab',
+        'deepseekv4_subst', 'deepseekv4_locus', 'deepseekv4_collab',
+        # (d) LLM 聚合 prob_score (full 轨 0-NaN, ctx/ss 有值缺失 = LLM 衍生聚合 NaN)
+        'llm_prob_score',
+        # (c) 嵌入 co-primary 衍生 (非 LLM): fintech_intensity_score{,_lg} NaN = 空/短文本
+        #     嵌入降级, 严格 both-or-neither (full 15/15, ctx 104/104, ss 118/118 canonical==_lg)。
+        #     前缀 startswith 自动含 _lg 孪生。
+        'fintech_intensity_score',
+        # (b) BERT K=2 结构性 (非 LLM): finbert2 是 2 类 Bernoulli 模型 (CLAUDE.md), neutral
+        #     中性类结构性无输出 → finbert2_中性_{full,ctx,ss} 恒 NaN by design (与 FINBERT2_MODEL_DIR
+        #     无关; finbert2 已成功推理, 其 label/正面/负面/infer_failed 均 0-NaN)。
+        'finbert2_中性',
     )
 
     def _is_llm_nan_allowed(self, col_name: str) -> bool:

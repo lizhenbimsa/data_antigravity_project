@@ -53,14 +53,21 @@ class PipelineLock:
         避免 Windows 下 'w' 模式句柄阻塞同文件的 'r' 读取.
     """
 
-    def __init__(self, logger, lock_dir: str = None):
+    def __init__(self, logger, lock_dir: str = None,
+                 console_only_on_reject: bool = False):
         """初始化管道锁。
 
         Args:
             logger: 日志对象
             lock_dir: 锁文件目录，默认为当前目录
+            console_only_on_reject: 获锁失败 (被拒) 时把诊断走 ``sys.stderr`` 而非
+                ``self.logger.error`` (审计 F4, 2026-07-10)。默认 False 保既有行为。
+                主/验证编排器传 True: 防被拒并发实例经模块级 delayed-truncating file
+                handler **首写截断**在跑实例的共享 .log。⚠ **禁**在 test_pipeline_lock.py
+                的 PipelineLock 构造透传此 flag (会破其 reject→logger.error 断言)。
         """
         self.logger = logger
+        self.console_only_on_reject = console_only_on_reject
         if lock_dir is None:
             lock_dir = os.path.dirname(os.path.abspath(__file__))
         self.lock_file_path = os.path.join(lock_dir, '.pipeline.lock')
@@ -184,7 +191,12 @@ class PipelineLock:
             f"如果确认没有其他实例运行，请手动删除锁文件 (含 sidecar "
             f"{os.path.basename(self.sidecar_path)})。"
         )
-        self.logger.error(error_msg)
+        if self.console_only_on_reject:
+            # F4: 被拒实例不触 file handler (防经 delayed-truncating handler 首写截断在跑实例
+            # 的共享 .log); 诊断改走 stderr。顶层未捕获的 RuntimeError traceback 亦落 stderr。
+            print(error_msg, file=sys.stderr)
+        else:
+            self.logger.error(error_msg)
         raise RuntimeError(error_msg)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
