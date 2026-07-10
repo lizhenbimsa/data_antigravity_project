@@ -7,9 +7,9 @@
   2. **替代权重换轨**: 姊妹管线的权重效度对照(股东/董监高/借款表)在税调侧不可得, 改用**银行分支机构城市/县域两级网点权**(源=银保监金融许可证口径的银行业金融机构基本信息表)与报道共现权**三权互稳**——需要"branch presence = 在地信贷供给暴露"的经典与最新出处(桶②), 与"城市 vs 县域双层级金融地理"的先例(桶③), 以及"份额型暴露权重构造+替代权重规格稳健性"的计量出处(桶⑥);
   3. **实体匹配面**: 44,771 家企业名称 variant × 银行 AC 自动机匹配 + usci 全填全唯一主键——需要 record linkage / 模糊匹配偏误 / 标识符 merge 键的方法出处(桶⑤)。
 - **规模**: 6 主题桶并行动态多智能体工作流发现(每候选提名前实时 `GET api.crossref.org/works/{DOI}`, arXiv 走 `api.datacite.org`, 读回标题自比对) → 主控**逐条直连 Crossref/DataCite 回填权威书目元数据**(标题/年份/第一作者/期刊/卷期/页码两道机械回比, 89 候选零解析失败) → 全语料查重(剔与前八份+前沿归档重叠 11 条、批内重复 4 条) = 初稿 74 条 → **8 路对抗评审 (R1)** 后修复 1 P0 + 7 P1 + 10 P2 + 若干 NIT, 并按完备性评审补入 5 条真缺口锚 (related lending own-bank 剔除 ×2 / MAUP ×1 / 撤县设区 ×2) = **净增 79 条唯一锚点**, 其中 **2024–2026 者 33 条**(占 42%), 工作论文 2 条(arXiv)。
-- **核验铁律**: "查不实=不存在", **严禁自我生成参考文献**。本补编经**三道独立核验 + 两道元数据回比**:
+- **核验铁律**: "查不实=不存在", **严禁自我生成参考文献**。本补编经**三道独立核验 + 两道元数据回比 + 一轮对抗评审**:
   1. 发现层每候选提名前实时查 Crossref/DataCite 读回标题自比对, 核验不过当场弃;
-  2. 主控逐条直连回填权威元数据: 第一道 DOI→标题回比(74/74 过, 3 条初判不符经 HTML 实体/`<scp>` 标签归一化后全数复核为假阳性), 第二道卷期/页码/第一作者/期刊名回比(9 条初判疑点全部为 `&amp;` 反转义/U+2010 连字符/期刊副标题等编码假阳性, **零真书目错乱**);
+  2. 主控逐条直连回填权威元数据: 第一道 DOI→标题回比(74/74 过, 3 条初判不符经 HTML 实体/`<scp>` 标签归一化后全数复核为假阳性), 第二道卷期/页码/第一作者/期刊名回比(9 条初判疑点全部为 `&amp;` 反转义/U+2010 连字符/期刊副标题等编码假阳性, **零真书目错乱**); R1 补入的 5 条同样经主控逐条直连 Crossref 回填 (标题/年份/第一作者/期刊/卷期/页码) 并全数通过;
   3. 全语料本地决定性闸: `scripts/audit/audit_dois.py`(本补编已加入 FILES)直连 Crossref/DataCite, 对全套唯一 DOI 逐条 DOI→标题逐字回比 + 年份核验 (R1 前 745 DOI 轮实测: 742 OK + 仅 3 条既有 benign 零新增 flag; R1 补入 5 条后复跑同样零新增 flag);
   4. **8 路对抗评审 (R1)**: 6 桶各一名对抗审稿人逐条查文献真实摘要比对锚定句诚实性 + 1 名格式/口径一致性审 + 1 名完备性批评者。抓获并修复: **1 P0**(Cui-Hicks-Xing 2022 数据源错配 — 该文用某省行政税表**非**税调数据, 锚定句已改写并显式划界)、**7 P1**(Yu-Qi NTSD 未证实点名/Wang-Dong-Ge 网点级数据夸大+银保监年代错置/Greenstone-Mas-Nguyen 否定性结论未披露/Xu 2019 上市公司样本+选择性引用/Ward 2023 race 成分吞并+构念滑移/Li-Shao 设计细节投射/Schwenkler-Zheng 判据与语境边界缺失)、**10 P2**(含 3 处年份-卷期口径统一为卷期年优先、方法迁移锚逐条补国别/构念边界)与格式 NIT(en-dash 统一/Article 前缀/Fišar 斜体/回读标题空白归一/同姓作者消歧)。修复方向逐条对照评审证据自验 (镜像"评审 agent 修法也要验方向"教训)。
 - **合计**: 681(前八份)+ **79(本补编净增)** = **760 条**唯一文献锚点; 全语料 `audit_dois.py` 实测唯一 doi.org DOI = **750 个**(671 + 79)。
@@ -20,13 +20,13 @@
 
 **这份补的是什么**: 前八份把主管道(v3.15.0)和上市公司×银行共现面板的学术出处都配齐了(681 条)。但 7 月 8 日项目又落地了一条**新管线**: 把"上市公司"换成"**全国税收调查里的 44,771 家企业**"(绝大多数是非上市的中小企业), 照样数"哪家企业和哪家银行在同一篇新闻里一起出现"。因为税调企业没有股东名单、董监高这类公开对照数据, 项目改用了另一个思路做交叉验证: **数一数每家银行在这家企业所在的城市/县里开了多少网点**——网点多, 说明这家银行在当地信贷供给强, 企业和它发生关系的可能性就大。于是"报道共现权 + 城市网点权 + 县域网点权"三把尺子互相印证。这份补编补的就是这条新管线的四类出处: ① 税调数据本身靠不靠谱(顶刊用过没有、覆盖谁、口径如何); ② "网点=在地信贷供给"这件事的经典与最新证据; ③ 城市和县两个层级分别量金融可及性的先例; ④ 用 18 位社会信用代码和企业名字做数据匹配时, 怎么防错配、错配会带来什么偏误。
 
-**和"严禁自我生成"的关系**: 每一条**都不是编的**。发现时智能体先查官方接口, 之后主控又**逐条直连 Crossref/DataCite 把标题、年份、第一作者、期刊、卷期、页码原样拉回来**做两道机械回比(不信智能体的转写)。这次 79 条**一条没查不着、一条真书目没错乱**(初判的 12 处疑点复核后全部是 HTML 转义符和特殊连字符造成的假阳性)。之后又请 8 个对抗评审员逐条去查每篇文献**实际写了什么**, 抓出 1 条把"某省行政税表"错说成"税调数据"的硬伤和一批夸大/漏注边界的措辞, 全部改写修正; 评审还指出 3 个真缺口(为什么要剔"银行自家企业"的共现、城/县两个口径对不上怎么办、县改区了怎么办), 补了 5 条对应出处。最后本地脚本再对全套 750 个 DOI 全量复核一遍。每条后面的"回读标题"就是接口实际回读值。
+**和"严禁自我生成"的关系**: 每一条**都不是编的**。发现时智能体先查官方接口, 之后主控又**逐条直连 Crossref/DataCite 把标题、年份、第一作者、期刊、卷期、页码原样拉回来**做两道机械回比(不信智能体的转写)。这次 79 条**一条没查不着、一条真书目没错乱**(初判的 12 处疑点均出自初稿 74 条轮, 复核后全部是 HTML 转义符和特殊连字符造成的假阳性; 评审后补入的 5 条同样逐条回填核验)。之后又请 8 个对抗评审员逐条去查每篇文献**实际写了什么**, 抓出 1 条把"某省行政税表"错说成"税调数据"的硬伤和一批夸大/漏注边界的措辞, 全部改写修正; 评审还指出 3 个真缺口(为什么要剔"银行自家企业"的共现、城/县两个口径对不上怎么办、县改区了怎么办), 补了 5 条对应出处。最后本地脚本再对全套 750 个 DOI 全量复核一遍。每条后面的"回读标题"就是接口实际回读值。
 
 **怎么用**: 写论文/codebook 时按 §一各主题桶直接引用; 参考文献表抄各条 APA(已是第 7 版成品、DOI 全可点开)。**勿沿用代码注释里的旧版引用**。
 
 **一句话铁律提醒**: 报道共现权、城市网点权、县域网点权**三权互为稳健性、不分主次**——各自 just-identified 并排, **严禁混进同一 over-identified Hansen J**(与代码 `company_tax_bank/` 及 CLAUDE.md 铁律一致, 引用时须在方法节写明)。各桶方法迁移锚(原文语境≠银企共现)的"锚定"句均已注明国别/构念/结论方向边界(R1 评审逐条把关), 引用时勿夸大。
 
-**评审遗留的两项 DEFERRED 挂靠动作**(不新增锚点, 生产机重生 codebook 时落地): ① codebook §7-L1 单一企业占比告警段显式挂靠八补-5 Bailey et al. (2020) + Abramitzky et al. (2021), 声明阈值为研究者选择的诊断哨兵; ② codebook L2 批次快照铺零段显式引用七补-4 幸存者偏误/as-of 条目 + 八补-1 Chen et al. (2021)。
+**评审遗留的两项 DEFERRED 挂靠动作**(不新增锚点, 生产机重生 codebook 时落地): ① codebook §7-L1 单一企业占比告警段显式挂靠八补-5 Bailey et al. (2020) + Abramitzky et al. (2021), 声明阈值为研究者选择的诊断哨兵; ② codebook L2 批次快照铺零段显式引用七补-4 幸存者偏误/as-of 条目 + 八补-1 Chen, He, Liu, Suárez Serrato & Xu (2021, *Tax Policy and the Economy*, NTSD 口径描述件)。
 
 ---
 
@@ -66,7 +66,7 @@
 - 【2024–2026】Xiao, R., Xu, P., & Huang, B. (2024). Tax incentives and firm social insurance contributions: Evidence from China. *China Economic Review, 86*, Article 102210. https://doi.org/10.1016/j.chieco.2024.102210
   - *锚定* — 以中国企业微观数据估计税收优惠对企业社保缴费的正向效应, 支撑税调企业税负/优惠变量对企业行为的解释力。
   - 〔Crossref 回读标题: Tax incentives and firm social insurance contributions: Evidence from China〕
-- 【2024–2026】Yu, C., & Li, Y. (2025). Digitalization of tax collection and enterprises' social security compliance. *International Tax and Public Finance, 32*(4), 1213–1252. https://doi.org/10.1007/s10797-024-09867-4
+- 【2024–2026】Yu, C., & Li, Y. (2025). Digitalization of tax collection and enterprises' social security compliance. *International Tax and Public Finance, 32*(4), 1213–1252. (卷期年优先; online-first 2024) https://doi.org/10.1007/s10797-024-09867-4
   - *锚定* — 研究税收征管数字化 (金税三期) 对企业社保合规的影响, 支撑本管线税调窗口内征管环境变迁作为企业申报数据口径背景。
   - 〔Crossref 回读标题: Digitalization of tax collection and enterprises’ social security compliance〕
 - 【2024–2026】Cao, J., Ma, G., Mao, J., & Yin, H. (2026). Who benefits from investment tax incentives? Evidence from China's VAT reform. *Journal of Economic Behavior & Organization, 245*, Article 107532. https://doi.org/10.1016/j.jebo.2026.107532
@@ -114,7 +114,7 @@
   - *锚定* — 以政策驱动的银行网点进入 (banking deserts 填补) 识别在地银行存在对创业/就业/工资的因果效应, 为县域网点权作为信贷供给暴露的政策外生变异提供最新 JFE 锚点。
   - 〔Crossref 回读标题: Financial inclusion, economic development, and inequality: Evidence from Brazil〕
 - 【2024–2026】Keil, J., & Ongena, S. (2024). The demise of branch banking – Technology, consolidation, bank fragility. *Journal of Banking & Finance, 158*, Article 107038. https://doi.org/10.1016/j.jbankfin.2023.107038
-  - *锚定* — 记录技术与并购驱动的分支网络收缩长期趋势及其与银行脆弱性的关联, 提醒本管线网点权在样本期 (2011-2020) 内的时变性须以年度网点面板而非截面刻画。
+  - *锚定* — 记录技术与并购驱动的分支网络收缩长期趋势及其与银行脆弱性的关联, 提醒本管线网点权在样本期 (2011–2020) 内的时变性须以年度网点面板而非截面刻画。
   - 〔Crossref 回读标题: The demise of branch banking – Technology, consolidation, bank fragility〕
 - 【2024–2026】Tian, Z., Shen, Y., & Chen, Z. (2024). How does bank branch expansion affect ESG: Evidence from Chinese commercial banks. *Economic Analysis and Policy, 82*, 502–514. https://doi.org/10.1016/j.eap.2024.03.025
   - *锚定* — 以中国商业银行分支扩张 (分支扩张测度) 为处理变量研究银行行为后果, 提供中国网点级数据构造银行在地存在测度的 2024 年实证先例。
@@ -122,10 +122,10 @@
 - 【2024–2026】Wang, S., Zeng, S., & Xie, W. (2025). City commercial banks' expansion and firm innovation: Evidence from China. *Economic Analysis and Policy, 87*, 2658–2673. https://doi.org/10.1016/j.eap.2025.08.020
   - *锚定* — 城商行跨区网点进入通过缓解融资约束提升企业研发/创新, 直接锚定'企业所在地银行网点进入 → 企业层结果'的识别链条 (与本管线企业-银行网点权同构)。
   - 〔Crossref 回读标题: City commercial banks’ expansion and firm innovation: Evidence from China〕
-- 【2024–2026】Du, Y., Li, W., & Wang, X. (2026). The impact of foreign bank deregulation on firm performance: Evidence from China. *Economica, 93*, 677–704. https://doi.org/10.1111/ecca.70032
+- 【2024–2026】Du, Y., Li, W., & Wang, X. (2026). The impact of foreign bank deregulation on firm performance: Evidence from China. *Economica, 93*(370), 677–704. https://doi.org/10.1111/ecca.70032
   - *锚定* — 以中国外资银行准入放开 (分支设立管制) 的城市×时间变异识别银行在地进入对企业绩效的影响, 为网点权的准自然实验解释提供 2026 年最新锚点。
   - 〔Crossref 回读标题: The impact of foreign bank deregulation on firm performance: evidence from China〕
-- 【2024–2026】Zhang, X., & Li, Z. (2026). FinTech and branch network expansion: Evidence from China's banking industry. *Applied Economics, 58*(12), 2321–2336. https://doi.org/10.1080/00036846.2025.2476213
+- 【2024–2026】Zhang, X., & Li, Z. (2026). FinTech and branch network expansion: Evidence from China's banking industry. *Applied Economics, 58*(12), 2321–2336. (卷期年优先; online-first 2025) https://doi.org/10.1080/00036846.2025.2476213
   - *锚定* — 用约 27 万条中国银行网点数据研究金融科技对分支网络扩张的影响, 与本项目银行×金科主题直接交叉, 且示范中国网点大样本数据 (许可证口径) 的学术使用。
   - 〔Crossref 回读标题: FinTech and branch network expansion: evidence from China’s banking industry〕
 
@@ -133,7 +133,7 @@
 
 > 净增 16 条(其中 2024–2026 者 7 条)。⚠ 铁律: 城市权 vs 县域权双层级互为稳健性、不分主次, 禁混同一 over-identified Hansen J。MAUP/撤县设区 3 条为 R1 完备性评审补入。
 
-- Fotheringham, A. S., & Wong, D. W. S. (1991). The Modifiable Areal Unit Problem in Multivariate Statistical Analysis. *Environment and Planning A: Economy and Space, 23*(7), 1025–1044. https://doi.org/10.1068/a231025
+- Fotheringham, A. S., & Wong, D. W. S. (1991). The modifiable areal unit problem in multivariate statistical analysis. *Environment and Planning A: Economy and Space, 23*(7), 1025–1044. https://doi.org/10.1068/a231025
   - *锚定* — **MAUP (可变面积单元问题) 奠基**: 多变量统计推断对空间聚合单元的尺度 (scale) 与分区 (zoning) 选择敏感 — 锚定本管线城市/县域两级网点权并排报告 + 跨粒度秩相关 (city×county Spearman ρ=0.899) 作为聚合层级敏感性检验的方法学动机。注: 通用空间统计方法件, 非金融应用。
   - 〔Crossref 回读标题: The Modifiable Areal Unit Problem in Multivariate Statistical Analysis〕
 - Guiso, L., Sapienza, P., & Zingales, L. (2004). Does local financial development matter? *The Quarterly Journal of Economics, 119*(3), 929–969. https://doi.org/10.1162/0033553041502162
@@ -178,7 +178,7 @@
 - 【2024–2026】Qiao, L., Guo, D., Wu, C., & Wang, H. (2025). Exploring common prosperity in China's counties: From the perspective of bank branch expansion. *Cities, 158*, Article 105724. https://doi.org/10.1016/j.cities.2025.105724
   - *锚定* — 直接以中国县域银行分支机构扩张为解释变量研究县域经济结果, 锚定本管线县域层网点权 (③, 金融许可证口径网点计数) 的构造与county-level中国证据。
   - 〔Crossref 回读标题: Exploring common prosperity in China's counties: From the perspective of bank branch expansion〕
-- 【2024–2026】Tan, P., & Wang, R. (2026). Local Drivers of Municipal Consolidation: County-to-District Conversion in China. *Land, 15*(4), Article 672. https://doi.org/10.3390/land15040672
+- 【2024–2026】Tan, P., & Wang, R. (2026). Local drivers of municipal consolidation: County-to-district conversion in China. *Land, 15*(4), Article 672. https://doi.org/10.3390/land15040672
   - *锚定* — 县改区行政区划合并的地方驱动因素 (2026 最新) — 区划变更具选择性 (非随机) 的证据, 支撑本管线不建历史区划别名表、以缺键标识如实披露而非静默回填的决策 (题名级核验, 机制以正文为准)。
   - 〔Crossref 回读标题: Local Drivers of Municipal Consolidation: County-to-District Conversion in China〕
 
@@ -186,10 +186,10 @@
 
 > 净增 14 条(其中 2024–2026 者 4 条)。own-bank 剔除 2 条 (La Porta et al. 2003 / Khwaja & Mian 2005) 为 R1 完备性评审补入。
 
-- La Porta, R., Lopez-de-Silanes, F., & Zamarripa, G. (2003). Related Lending. *The Quarterly Journal of Economics, 118*(1), 231–268. https://doi.org/10.1162/00335530360535199
+- La Porta, R., Lopez-de-Silanes, F., & Zamarripa, G. (2003). Related lending. *The Quarterly Journal of Economics, 118*(1), 231–268. https://doi.org/10.1162/00335530360535199
   - *锚定* — **own-bank 剔除 (D4 五通道) 的构念出处**: 关联贷款 (银行对其控制人/关联企业放贷) 条件更优、违约率更高、回收率更低 (墨西哥全银行样本), 证明关联借贷与臂长银企信贷关系不同质 — 锚定本管线把银行系企业与自家银行的共现剔出银企关系计数 (280 家 bank_company_map, is_bank_company 标记保留供分析端裁样) 的经济学依据。
   - 〔Crossref 回读标题: Related Lending〕
-- Khwaja, A. I., & Mian, A. (2005). Do Lenders Favor Politically Connected Firms? Rent Provision in an Emerging Financial Market. *The Quarterly Journal of Economics, 120*(4), 1371–1411. https://doi.org/10.1162/003355305775097524
+- Khwaja, A. I., & Mian, A. (2005). Do lenders favor politically connected firms? Rent provision in an emerging financial market. *The Quarterly Journal of Economics, 120*(4), 1371–1411. https://doi.org/10.1162/003355305775097524
   - *锚定* — 政治关联企业从政府银行获得优惠信贷且违约率更高 (巴基斯坦全量信贷登记), 与 La Porta et al. (2003) 同为'关联≠臂长借贷'的核心证据 — 支撑 own-bank/关联共现须与一般银企媒体关联区分处理的决策。
   - 〔Crossref 回读标题: Do Lenders Favor Politically Connected Firms? Rent Provision in an Emerging Financial Market〕
 - Ayyagari, M., Demirgüç-Kunt, A., & Maksimovic, V. (2010). Formal versus informal finance: Evidence from China. *Review of Financial Studies, 23*(8), 3048–3097. https://doi.org/10.1093/rfs/hhq030
@@ -298,3 +298,12 @@
 - 【2024–2026】Schwenkler, G., & Zheng, H. (2025). News-driven peer co-movement in crypto markets. *Journal of Corporate Finance, 93*, Article 102772. https://doi.org/10.1016/j.jcorpfin.2025.102772
   - *锚定* — 以同句共提及 + NLP 关系分类从财经新闻构建加密资产 peer 网络, 发现 peer 间由投资者过度反应驱动的条件反向共动 (数周内修正的错误定价), 为新闻共提及可提取经济关系网络提供方法先例。⚠ 注: 其 peer 判据 (同句+竞争关系分类) 与市场语境 (加密资产投机市场) 均与本管线银企共现权不同, 头条结论是媒体驱动 mispricing 而非共现网络效度验证, 引用须注明边界。
   - 〔Crossref 回读标题: News-driven peer co-movement in crypto markets〕
+
+---
+
+## 二、核验记录 (决定性闸 + 评审轮)
+
+- **机械闸三轮** (`scripts/audit/audit_dois.py`, 直连 Crossref/DataCite, 100% 覆盖非抽样): R1 前 745 唯一 DOI 轮与 R1 补入后 750 唯一 DOI 两轮、终稿字节态再一轮 — 三轮均 **747 OK + 仅 3 条既有 benign** (CNKI 10.13821 目录 404 / ACL BERT 10.18653 目录 404 / SSRN 3446388 年差), **零新增 flag**。
+- **R1 8 路对抗评审**: 6 桶逐条真实摘要比对 + 格式/口径一致性 + 完备性批评者; 1 P0 + 7 P1 + 10 P2 + NIT 全数修复, 完备性补 5 条真缺口锚。
+- **R2 双路复核**: 修复方向逐条对照原文验证 + 终稿格式全查; 抓获并修复"字典键被批内重复记录覆盖致 2 处 R1 修复未落地"。
+- **终审双路 (max 标准, 独立抽验)**: 6 桶各抽 3 条 + 全部 2026 年条目逐条 Crossref 确证 (7 条 2026 全部真实存在、零幻觉, 其中 Zhang et al. 2026 JAE 的"税调数据+道路级邻近"宣称经原文摘要逐点确证); 双路判定 **ok_to_ship、零 P0/P1**, 残余 NIT (Economica 期号/en-dash 残留/sentence case/卷期年短注/指称消歧/本节补齐) 已全部落实于本版。
