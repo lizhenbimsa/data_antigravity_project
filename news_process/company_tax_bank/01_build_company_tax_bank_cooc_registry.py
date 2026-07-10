@@ -134,7 +134,8 @@ def _log_stage_header(panel_path: Path, out_path: Path) -> None:
     logger.info("       ↳ schema: 五区段 {meta, entries, bank_company_map, excluded, dv2_constants}; 条目 12 字段")
     logger.info("         (basename/family/source/col_by_track/track_agnostic/agg/emit_tracks/short_name/")
     logger.info("          label_elems/emit_panel/cut_code/range_gate); 条目顺序 = 下游输出列序 SSOT")
-    logger.info("       ↳ 缺失语义: DEFERRED/缺源列基名照出全 NaN 列 (缺列容错, registry 推导 schema 跨环境恒等);")
+    logger.info("       ↳ 缺失语义: DEFERRED 家族 (boilerplate/rare_word) 缺源列照出全 NaN 列; 其余缺源列"
+                "基名默认不产列 (emit_tracks=[], 缺列容错; registry 推导 schema 跨环境恒等);")
     logger.info("         CUT 条目 emit_panel=false 仅留对账痕迹不投影")
     logger.info("  ⚙ 运行配置 (脚本内常量 SSOT)")
     logger.info("     · D16 短名替换表 %d 条 | DCLS→DM 别名 %d 条 | D4 零命中人工表 %d 家 | DEFERRED 基名 %d 个",
