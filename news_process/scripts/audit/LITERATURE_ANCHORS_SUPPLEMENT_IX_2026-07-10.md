@@ -108,7 +108,7 @@
   - *锚定* — 最新的组织/机构级 (非个人级) 记录联结方法 (LinkOrgs), 用众包别名网络解决机构名称变体问题, 与项目用 iFind 名称变体字典解决同一问题同构, 是机构名联结的 2024 年方法前沿锚点。迁移边界: 其别名图谱基于 LinkedIn 英文记录, 中文企业变体需自建 (项目已自建), 引用限于方法论同构性。
   - 〔Crossref 回读标题: Linking datasets on organizations using half a billion open-collaborated records〕
 - Yang, X., Arora, A., Jheng, S.-Y., & Dell, M. (2023). Quantifying Character Similarity with Vision Transformers. *Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing*, 13982-13996. https://doi.org/10.18653/v1/2023.emnlp-main.863
-  - *锚定* — CJK 文字记录联结的对照文献 (EMNLP 2023): 该文指出字母文字的编辑距离/音似度量不直接适配 CJK 名称匹配 (动机层与本项目一致), 并提出视觉 Transformer homoglyph 相似度实现 CJK **模糊**匹配 (日本企业记录联结验证, 面向 OCR 错字场景)。**引用方向**: 本项目新闻文本无 OCR 噪声、名称变体已由 iFind 字典枚举, 故走变体字典+精确 AC 匹配而**未采用**其模糊路线——本文作为『为何不走模糊匹配』的对照与动机引注, 非精确路线的支撑文献。
+  - *锚定* — CJK 文字记录联结的对照文献 (EMNLP 2023): 该文指出统一代价的现成字符串匹配与手工替换代价清单在 CJK 等低资源文字场景缺失/表现不佳, 提出视觉 Transformer homoglyph 相似度作为 Levenshtein 编辑距离的替换代价、实现 CJK **模糊**匹配 (日本企业记录联结验证, 面向 OCR 错字场景)。**引用方向**: 本项目新闻文本无 OCR 噪声、名称变体已由 iFind 字典枚举, 故走变体字典+精确 AC 匹配而**未采用**其模糊路线——本文作为『为何不走模糊匹配』的对照与动机引注, 非精确路线的支撑文献。
   - 〔Crossref 回读标题: Quantifying Character Similarity with Vision Transformers〕
 - Li, Y., Li, J., Suhara, Y., Doan, A., & Tan, W.-C. (2020). Deep entity matching with pre-trained language models. *Proceedings of the VLDB Endowment*, *14*(1), 50-60. https://doi.org/10.14778/3421424.3421431
   - *锚定* — 预训练语言模型实体匹配的标杆方法 (Ditto), 是数据库界实体匹配从规则/字典转向 PLM 的分水岭文献, 为项目匹配方案的方法谱系定位提供 NLP 侧锚点。迁移边界: 需带标注训练对做二分类微调, 项目零标注、字典驱动, 仅作方法谱系对照。
@@ -131,7 +131,7 @@
 > 净增 18 条(其中 2024–2026 者 13 条)。
 
 - 【2024–2026】Rathje, S., Mirea, D.-M., Sucholutsky, I., Marjieh, R., Robertson, C. E., & Van Bavel, J. J. (2024). GPT is an effective tool for multilingual psychological text analysis. *Proceedings of the National Academy of Sciences*, *121*(34), Article e2308950121. https://doi.org/10.1073/pnas.2308950121
-  - *锚定* — GPT 多语言心理文本分析的基准验证 (PNAS 2024): **以人工标注为评判基准**, GPT (相关系数 r=0.59–0.77) 显著优于英文词典法 (r=0.20–0.30), 接近乃至偶超微调 ML 模型, 且跨 12 种语言稳健——锚定 LLM 判定优于词典基线、且多语言 (含非英语) 可用的证据。迁移边界: 心理构念 (情绪/道德化) 非金融术语判定; 人工标注在该设计中是 ground truth, 不存在『超过人工』的比较。
+  - *锚定* — GPT 多语言心理文本分析的基准验证 (PNAS 2024): **以人工标注为评判基准**, GPT (相关系数 r=0.59–0.77) 大幅优于英文词典法 (r=0.20–0.30), 接近乃至偶超微调 ML 模型, 且跨 12 种语言稳健——锚定 LLM 判定优于词典基线、且多语言 (含非英语) 可用的证据。迁移边界: 心理构念 (情绪/道德化) 非金融术语判定; 人工标注在该设计中是 ground truth, 不存在『超过人工』的比较。
   - 〔Crossref 回读标题: GPT is an effective tool for multilingual psychological text analysis〕
 - 【2024–2026】Heseltine, M., & Clemm von Hohenberg, B. (2024). Large language models as a substitute for human experts in annotating political text. *Research & Politics*, *11*(1), Article 20531680241236239. https://doi.org/10.1177/20531680241236239
   - *锚定* — LLM 替代人工专家标注的直接证据 (2024): GPT-4 对政治文本的编码与人类专家编码高度一致 (短文本准确率最高达 95%), 并提出多次 GPT-4 运行分歧交由专家仲裁的 hybrid 方案——锚定本项目 8 模型交叉盲审替代人工筛词的可行性。迁移边界: 美/智/德/意四国政治文本 (非英语仅轻微降级), 非金融中文语境; 该文比较对象是人类专家而非众包工人 (『优于众包工人』是 Gilardi et al. 2023 PNAS 的结论, 勿混引)。
@@ -161,7 +161,7 @@
   - *锚定* — 锚定「多数投票聚合的 method-origin」: self-consistency 证明对多条推理路径做多数表决可显著降低单次采样误差, 是本项目 total_score>=5 简单多数投票截断的方法学始祖。迁移边界: 原文是同一模型多次采样内部聚合, 本项目是 8 个异构模型跨厂商聚合(错误相关性更低, 理论上更优), 属机制外推而非同构复现。
   - 〔DataCite 回读标题: Self-Consistency Improves Chain of Thought Reasoning in Language Models〕
 - 【2024–2026】Li, J., Zhang, Q., Yu, Y., Fu, Q., & Ye, D. (2024). More Agents Is All You Need. *arXiv*. https://doi.org/10.48550/arxiv.2402.05120
-  - *锚定* — 多模型/多次采样投票的规模化增益 (2024): 实验表明 LLM 集成性能随投票规模提升并**趋于饱和**, 增益幅度与任务难度相关——为本项目 8 模型多数投票的规模选择提供经验参照。迁移边界: 其实验为同模型多实例采样与异构集成的混合设定, 非 8 异构厂商面板; 增益无单调保证, 8 之外的边际收益曲线未知。
+  - *锚定* — 多模型/多次采样投票的规模化增益 (2024): 实验表明 LLM 集成性能随投票规模 (采样-投票集成数) 提升, 增益幅度与任务难度相关——为本项目 8 模型多数投票的规模选择提供经验参照。迁移边界: 其主实验为同模型多实例采样-投票 (仅分层扩展涉及 GPT-3.5→GPT-4 两级), 非 8 异构厂商面板; 增益无单调保证, 8 之外的边际收益曲线未知。
   - 〔DataCite 回读标题: More Agents Is All You Need〕
 - 【2024–2026】Verga, P., Hofstatter, S., Althammer, S., Su, Y., Piktus, A., Arkhangorodsky, A., Xu, M., White, N., & Lewis, P. (2024). Replacing Judges with Juries: Evaluating LLM Generations with a Panel of Diverse Models. *arXiv*. https://doi.org/10.48550/arxiv.2404.18796
   - *锚定* — 锚定「异构模型陪审团 (PoLL)」: 证明多个异构小模型组成的评审团比单一大模型 judge 偏差更小、成本更低, 是与本项目『8 异构 LLM 交叉盲审多数投票』最同构的先例。迁移边界: 其评审对象是 QA 生成质量且陪审团规模为 3 家, 本项目为词条判定+8 家; 结论方向可迁移, 具体偏差缩减幅度不可照搬。
@@ -240,10 +240,10 @@
 > 净增 17 条(其中 2024–2026 者 4 条)。
 
 - Wang, R., Liu, J., & Luo, H. (2021). Fintech development and bank risk taking in China. *The European Journal of Finance*, *27*(4-5), 397-418. https://doi.org/10.1080/1351847x.2020.1805782
-  - *锚定* — 新闻文本→fintech 计量路线的同源先例 (EJF 2021): 以新闻标题关键词计数 (在技术词前加 financial/banking 前缀) 构建**行业/宏观层面** FinTech 发展指数, 接入中国银行风险回归 (银行侧为被解释面板)。迁移边界: 其 fintech 测度是全行业时序而非 per-bank 词频; 本项目银行级词典强度是更细粒度测度, 二者仅在『新闻文本→fintech 计量』路线上同源。
+  - *锚定* — 新闻文本→fintech 计量路线的同源先例 (EJF 2021): 以媒体对 FinTech 相关信息的关注度构建**行业/宏观层面** FinTech 发展指数 (据摘要口径; 具体计数机制以原文方法节为准), 接入中国银行风险回归 (银行侧为被解释面板)。迁移边界: 其 fintech 测度是全行业时序而非 per-bank 词频; 本项目银行级词典强度是更细粒度测度, 二者仅在『新闻文本→fintech 计量』路线上同源。
   - 〔Crossref 回读标题: Fintech development and bank risk taking in China〕
 - Lee, C.-C., Li, X., Yu, C.-H., & Zhao, J. (2021). Does fintech innovation improve bank efficiency? Evidence from China’s banking industry. *International Review of Economics & Finance*, *74*, 468-483. https://doi.org/10.1016/j.iref.2021.03.009
-  - *锚定* — 中国 fintech 发展→银行效率的代表性实证 (IREF 2021): 其 fintech 指数基于金融科技**企业层面注册数据**构建的行业发展指数 (整体+信贷/支付/投资管理/市场支持四子行业, 2003–2017), 银行效率用 stochastic metafrontier 估计。**引用定位**: 该指数是行业层面企业数据指数而**非文本词频测度**, 与本项目词典词频路线是不同测度族——引作『fintech→银行绩效』文献定位与测度谱系对照, 不作方法先例。
+  - *锚定* — 中国 fintech 发展→银行效率的代表性实证 (IREF 2021): 其 fintech 指数基于金融科技**企业层面数据**构建的行业发展指数 (整体+信贷/支付/投资管理/市场支持四子行业, 2003–2017), 银行效率用 stochastic metafrontier 估计。**引用定位**: 该指数是行业层面企业数据指数而**非文本词频测度**, 与本项目词典词频路线是不同测度族——引作『fintech→银行绩效』文献定位与测度谱系对照, 不作方法先例。
   - 〔Crossref 回读标题: Does fintech innovation improve bank efficiency? Evidence from China’s banking industry〕
 - Fang, Y., Wang, Q., Wang, F., & Zhao, Y. (2023). Bank fintech, liquidity creation, and risk-taking: Evidence from China. *Economic Modelling*, *127*, 106445. https://doi.org/10.1016/j.econmod.2023.106445
   - *锚定* — 中国银行 fintech 指数的新闻语料词典路线升级版 (Economic Modelling 2023): 基于**新闻语料**的 **155 个关键词** (战略构建/基础设施/业务应用三维度) + 词向量训练 + 因子分析构建银行 fintech 指数, 属 Cheng-Qu (2020) 新闻计数路线的方法学升级——与本项目 (新闻语料+词典词频) 高度同构, 是测度构建段落的直接参照。迁移边界: 155 词 vs 本项目 1,506 词的覆盖度差异须量化讨论; 其因子合成与本项目原始词频强度口径不同。
@@ -314,7 +314,9 @@
 
 ## 三、审计闸与复核记录
 
-- 发现层: 6 桶智能体每候选实时 Crossref/DataCite 自核验后才提名; 主控回填 106/106 零解析失败、标题重叠全部 ≥0.6; 三重去重后净增 79。
+- 发现层: 6 桶智能体每候选实时 Crossref/DataCite 自核验后才提名。去重流水账: 发现 114 候选 → 候选间跨桶重复 −8 → 主控回填 106/106 (零解析失败、标题重叠全部 ≥0.6) → 对第八补编重叠 −27 (对既有池 671 DOI 与词典自有 43 条的重叠均为 0) = **净增 79**。
 - 修复层: 18 个替换 DOI 主控独立二次核验 17 PASS + 1 改判删除(见 §二)。
+- 口径说明: 头部 **839** 为九份锚点文件的锚点条目数; 下行 **874** 为机械闸全部注册文件 (另含 COOC 计划归档 137 DOI 与两份词典 md 引文等非锚点文件) 去重后的唯一 doi.org DOI 数 — 两口径统计对象不同, 皆以 audit_dois.py 实测为准。
 - 全语料闸 (2026-07-10 实测): `python scripts/audit/audit_dois.py`(含第八/第九补编 + 两份修复后 md) = **874 唯一 doi.org DOI / 871 OK / 0 新增红旗**; 仅余 3 条既有 benign (CNKI 预期 404 / Devlin NAACL DOI Crossref 未收录 [10.18653/v1/n19-1423, 见主编 2026-06-13] / Bian et al. SSRN 3446388 修订版年差), 均先于本补编存在。
-- 对抗评审: 多智能体 claim-fit / APA / 方向性评审(见提交说明)。
+- 对抗评审 (第一轮, 8 智能体): claim-fit / APA / 方向性 / 修复复核 / 悬空引注侦探 — 3 P0 + 7 P1 + 若干 P2/NIT 全部整改 (含 Ludwig 两条件框架方向、Heseltine 张冠李戴、kappa 悖论三条数学口径、图文矛盾等)。
+- 终审 (第二轮, 6 智能体 + 主控亲算): 20 条重写锚定逐条与原文对勘 (Ludwig 框架/κ 全链数字/Kleven 五人作者序/18.8%/155 词/12 万+ 等全部确证), 抓出并整改 2 P1 (More Agents 「趋于饱和」为文外之言 / Yang EMNLP 动机句归属失准) + 论文稿 3 处图文矛盾 (图1 P_i>0.5 残迹会数学性剔除全部 141 个 5 票词 / 图2 「降温采样」与正文默认温度矛盾 / Gomber-Cheng&Qu 方法归属) + Kappa 文档 3 P1 (Krippendorff 立场反转 / 「实质性一致」自相矛盾 / P_e 成对概率解释错误) 等共 28 处; Fleiss κ 全链 (p=59.37%/40.63%, P_e=0.5176, P̄=0.7596, κ=0.5017, ≥5 票=1,506) 由主控据盘上票数分布独立复算逐位吻合。

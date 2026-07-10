@@ -4,7 +4,7 @@
 
 近年来，金融科技（FinTech）的发展深刻改变了商业银行的业务模式、服务边界与风险特征。准确测度微观企业层面的金融科技水平，是实证金融与会计研究领域面临的重要挑战。传统的文本分析（Textual Analysis）方法受制于领域专家人工构建或无监督拓展的种子词典，这不可避免地引入了主观偏差，且存在更新时滞长、特定语境覆盖度低等局限性。为此，本文提出一种基于大语言模型群体智能（Swarm Intelligence of LLMs）的垂直领域词典全自动化构建方法。
 
-依托 8 种当前主流的大语言模型（涵盖 GPT-5.2, Claude Opus 4.6, Gemini 3.1 Pro, Kimi-k2.5 等），本文针对商业银行“金融科技”领域，设计了“零样本并发生成 (Zero-shot Concurrency Generation)—集合迭代精简 (Set-based Evolutionary Reduction)—专家交叉盲审 (Cross-Blind Peer Review)”的三阶段运行机制。在生成阶段，各模型独立执行高并发温度采样，共获取 82,356 个原始词汇候选集；该文本集经数据清洗与基于子串包容理论的迭代规约，收敛至 2,814 个正交词根；在交叉盲审阶段，本文将“大模型作为评判者”（LLM-as-a-Judge）范式拓展至群体决策网络，引导 8 款模型开展背靠背评分并施加思维链（CoT）约束。最终，本文遴选出 1,506 个具有高置信度的金融科技词表，且 30.9%（870词）的词汇获得了全体模型的一致通过。**量化验证显示，各模型间的 Fleiss' Kappa 系数达到 0.5017，位于 Landis & Koch (1977) 定义的中度一致性区间（Moderate Agreement），显著证明了本算法交叉盲审机制在削减单体模型偏误方面的有效性。**
+依托 8 种当前主流的大语言模型（涵盖 GPT-5.2, Claude Opus 4.6, Gemini 3.1 Pro, Kimi-k2.5 等），本文针对商业银行“金融科技”领域，设计了“零样本并发生成 (Zero-shot Concurrency Generation)—集合迭代精简 (Set-based Evolutionary Reduction)—专家交叉盲审 (Cross-Blind Peer Review)”的三阶段运行机制。在生成阶段，各模型独立执行高并发温度采样，共获取 82,356 个原始词汇候选集；该文本集经数据清洗与基于子串包容理论的迭代规约，收敛至 2,814 个正交词根；在交叉盲审阶段，本文将“大模型作为评判者”（LLM-as-a-Judge）范式拓展至群体决策网络，引导 8 款模型开展背靠背评分并施加思维链（CoT）约束。最终，本文遴选出 1,506 个具有高置信度的金融科技词表，其中 870 词（占 2,814 个受审词根的 30.9%、占最终词表的 57.8%）获得了全体模型的一致通过。**量化验证显示，各模型间的 Fleiss' Kappa 系数达到 0.5017，位于 Landis & Koch (1977) 定义的中度一致性区间（Moderate Agreement），显著证明了本算法交叉盲审机制在削减单体模型偏误方面的有效性。**
 
 本文的边际贡献主要体现在：第一，在研究机制上，体系化地将异构大语言模型的交叉验证范式引入金融特征词典的构建过程，有效缓解了单一模型的“幻觉”现象；第二，在数理基础上，针对群体似然估计下的确定性提取制定了数学规约，并论证了“提示词工程（Prompt Engineering）”在复杂语义判断中的适用性；第三，通过机器同行评审（Machine Peer Review）机制，为探析数字化转型及开放银行的文本量化测度，提供了更为客观的基础测量工具。
 
@@ -31,7 +31,7 @@
 ### 2.1 文本表征在会计与金融实证研究中的应用
 在资产定价与公司行为实证研究中，市场主体不仅仅依据量化财务数据进行决策，同时也广泛吸收披露文本中管理层叙事（Management Narratives）与语调（Tone）传递的信息增量 (Tetlock et al., 2008)。在早期研究中，受限于自然语言处理技术的普适性，学者通常借用哈佛心理学词典（Harvard IV-4）等通用情感库。然而，Loughran and McDonald (2011) 指出，通用词库在金融语境中存在严重的语义错位现象。这一研究推动了 Loughran-McDonald (LM) 专有财务情感词典的诞生，确立了特定领域专属词表在金融量化评估中的重要地位。
 
-随后，学者基于特定宏观政策与微观经济冲击主题，构建了一系列具有预测力与截面解释力的软特征词表。例如，Baker et al. (2016) 以及 Hassan et al. (2019) 分别利用特定的政策文本高频词追踪测度，量化了“经济政策不确定性（EPU）”指数与“企业级政治风险曝露度（Firm-level Political Risk）”。针对信息技术、金融科技与企业数字化转型领域，早期实证如 Gomber et al. (2018) 及 Cheng & Qu (2020) 依托传统静态规则，通过统计企业招股书或年报 MDA 章节中“区块链”、“云计算”、“分布式记账”等特定特征词集的出现频次来构造数字化维度的代理变量。在此研究传统下，尽管词频字典有效降低了文本噪音提取难度，但总体而言，依靠少数先验专家主观界定或词汇延伸的特定微观词组，难以全面覆盖复杂金融创新的长尾信息，且静态词表难以应对市场动态特征词库的快速更新 (Siano, 2025)。
+随后，学者基于特定宏观政策与微观经济冲击主题，构建了一系列具有预测力与截面解释力的软特征词表。例如，Baker et al. (2016) 以及 Hassan et al. (2019) 分别利用特定的政策文本高频词追踪测度，量化了“经济政策不确定性（EPU）”指数与“企业级政治风险曝露度（Firm-level Political Risk）”。针对信息技术、金融科技与企业数字化转型领域，在 Gomber et al. (2018) 界定的金融科技概念框架下，早期实证如 Cheng & Qu (2020) 依托传统静态规则，通过统计新闻等披露文本中“区块链”、“云计算”、“分布式记账”等特定特征词集的出现频次来构造银行数字化维度的代理变量。在此研究传统下，尽管词频字典有效降低了文本噪音提取难度，但总体而言，依靠少数先验专家主观界定或词汇延伸的特定微观词组，难以全面覆盖复杂金融创新的长尾信息，且静态词表难以应对市场动态特征词库的快速更新 (Siano, 2025)。
 
 ### 2.2 无监督自然语言算法的方法改进与局限
 为了突破人工词表的局限性，机器学习算法得以被广泛应用于文本挖掘。潜在狄利克雷分配模型（LDA, Blei et al., 2003）及词嵌入技术（Word Embedding, 如 Word2Vec 等）允许研究者利用向量空间中的余弦相似度（Cosine Similarity），从庞大语料库中自动化提取与核心概念距离接近的潜藏词组 (Hanley and Hoberg, 2019)。
@@ -41,7 +41,7 @@
 ### 2.3 生成式人工智能与“LLM-as-a-Judge”的学术前沿
 与古典文本计量模型相比，自基于 Transformer 注意力机制的架构被提出以来 (Vaswani et al., 2017)，大语言模型（LLMs）的演进深刻改变了认知计算的底层统计学习范式。在特定的金融推演、审计判研与非结构化文本分析领域，FinBERT (Huang et al., 2023) 抑或 BloombergGPT (Wu et al., 2023) 等基于专业金融语料库深度微调的模型，在市场情绪分类与风险隐性特征提取中均展现出显著的模型优势。近期的文献如 Lopez-Lira and Tang (2023) 验证发现大语言基座模型在处理含有未知信号的文本证券预期收益解读时，表现出一定的预见性；Kıcıman et al. (2023) 进一步论证了大语言模型在文本推理中展现出向“因果关联发现（Causal Reasoning）”演进的潜能。
 
-更进一步，在微观实证设计的方法论层面，学界开始探索利用预训练大模型集群在评估过滤（Evaluative Filtration）与“标注员代理”（Employed Agent Annotator）环节的适用性与鲁棒性。遵循对齐机制（RLHF），能够使模型深刻拟合复杂的人类评价逻辑与效用偏好约束，并在一定程度上连贯执行跨语言打分与逻辑归因指令 (Ouyang et al., 2022; Zheng et al., 2023; Gopal et al., 2025)。为了降低单一架构或特定语料带来的模型内生一致性偏差（Memory Hallucination Error），Zheng et al. (2023) 提出并在探讨实证应用时论证了：在多智能体系统（Swarm-Agent Voting Systems）中建立底层的统计验证协议能够有效控制偏见与假阳性 (Zheng et al., 2023; Bernard et al., 2026)。本文在此基础上，进一步探索将其应用至特定学术领域垂直词库的自动化编纂流转中，并通过统计学一致性检验指标系统，评估多模型交叉判断的有效性与特征剥离的收敛性。
+更进一步，在微观实证设计的方法论层面，学界开始探索利用预训练大模型集群在评估过滤（Evaluative Filtration）与“标注员代理”（Employed Agent Annotator）环节的适用性与鲁棒性。遵循对齐机制（RLHF），能够使模型深刻拟合复杂的人类评价逻辑与效用偏好约束，并在一定程度上连贯执行跨语言打分与逻辑归因指令 (Ouyang et al., 2022; Zheng et al., 2023; Gopal et al., 2025)。为了降低单一架构或特定语料带来的模型内生一致性偏差（Memory Hallucination Error），Zheng et al. (2023) 提出并在探讨实证应用时论证了：在多智能体系统（Swarm-Agent Voting Systems）中建立底层的统计验证协议能够有效控制偏见与假阳性；Bernard et al. (2026) 亦证实经人工基准校验的 GPT 文本测度具备可靠效度。本文在此基础上，进一步探索将其应用至特定学术领域垂直词库的自动化编纂流转中，并通过统计学一致性检验指标系统，评估多模型交叉判断的有效性与特征剥离的收敛性。
 
 
 ## 3. 研究方法与核心演化算法
@@ -125,9 +125,9 @@ $$
 2. **伯努利分布转换（Bernoulli Transfer）**：通过“判定属于返回1，不属于返回0”的约束，规避大模型处理长篇语义中常见的语境模糊现象，将输出结构化为二元分类矩阵（Boolean Mapping）。
 3. **凝缩型思维链注入（Condensed CoT-Reasoning）**：“要求理由且字数不多于20字”是保证判定可靠性的控制项。该约束激活 LLMs 隐藏在深层权重下的因果逻辑链条，有助于减少其面对大批量选项时易发的不作为判断（Lazy Output Defaults），同时将后端解码负担控制在合理范围内。
 
-为了在统计学上评估大模型参数分布带来的由于“随机巧合（Random Agreement）”所导致的假阳性风险，本文在基础多数决之上，引入了适用于广义多评委阵列（Multi-rater Arrays）的 **Fleiss' Kappa ($\kappa$)** 多评估者一致性系数 (Fleiss, 1971)。在现代文本特征提取的前沿范式中，$\kappa$ 通常被视为剥离人工标注或模型推断噪音的统计准则 (Shan & Qiu, 2026)。本文不仅将其作为测度异构机器学习阵列判决一致性的全局指标，更进一步将其下沉至**局部特征词项层面（Item-Level Agreement, $P_i$）**，作为最终词库的准入截断器（Truncation Threshold）。
+为了在统计学上评估大模型参数分布带来的由于“随机巧合（Random Agreement）”所导致的假阳性风险，本文在基础多数决之上，引入了适用于广义多评委阵列（Multi-rater Arrays）的 **Fleiss' Kappa ($\kappa$)** 多评估者一致性系数 (Fleiss, 1971)。在现代文本特征提取的前沿范式中，$\kappa$ 是剥离随机一致成分的标准统计准则 (Fleiss, 1971; Landis & Koch, 1977)；近期信息系统研究亦以 $\kappa$ 类指标校验机器标注质量 (Shan & Qiu, 2026)。本文不仅将其作为测度异构机器学习阵列判决一致性的全局指标，更进一步将其下沉至**局部特征词项层面（Item-Level Agreement, $P_i$）**，作为词项层面一致度的报告性指标（准入截断本身由简单多数投票决定）。
 
-给定目标词项总数 $N=2814$，每个词项的参评模型数 $n=8$，分类数 $k=2$（判定为属于目标领域与否），模型 $j$ 对目标 $i$ 的判定矩阵为 $r_{i,j}$：
+给定目标词项总数 $N=2814$，每个词项的参评模型数 $n=8$，分类数 $k=2$（判定为属于目标领域与否），$r_{i,j}$ 表示将词项 $i$ 判入类别 $j$ 的模型数（$\sum_{j=1}^{k} r_{i,j} = n$）：
 $$
 \kappa = \frac{\bar{P} - \bar{P_e}}{1 - \bar{P_e}}
 $$
@@ -157,7 +157,7 @@ graph LR
     J2 -.->|"Score ∈ {0,1}, Reason 约束"| SUM
     J3 -.->|"Score ∈ {0,1}, Reason 约束"| SUM
     
-    SUM --> C1{"total_score >= 5\n&(Pi > 0.5)?"}:::logicNode
+    SUM --> C1{"total_score >= 5 ?"}:::logicNode
     
     C1 -->|Yes: 超过半数认可| ACCEPT["准入核心区：纳入金融科技词库"]:::outNode
     C1 -->|No: 未达多数共识| REJECT["剔除：争议性或噪音词汇"]:::outNode
@@ -179,9 +179,9 @@ graph TD
     classDef endNode fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#000
 
     subgraph Phase_1 ["【第一阶】多智能体零样本探测阵列"]
-        M1["GPT-5.2 生成锚\n(独立执行 100 次降温采样)"]:::sysNode
-        M2["Claude-Opus-4.6 知识锚\n(独立执行 100 次降温采样)"]:::sysNode
-        M3["余下 6 类异构模型\n(各执行 100 次降温采样)"]:::sysNode
+        M1["GPT-5.2 生成锚\n(独立执行 100 次默认温度采样)"]:::sysNode
+        M2["Claude-Opus-4.6 知识锚\n(独立执行 100 次默认温度采样)"]:::sysNode
+        M3["余下 6 类异构模型\n(各执行 100 次默认温度采样)"]:::sysNode
         DB[("海量原始特征集\n(Ω_raw: 82,356项)")]:::funNode
         
         M1 --> DB
@@ -222,11 +222,11 @@ pie title 图3. 基于多数投票原则的银行金融科技核心词库占比�
     "B层 多数投票准入区 (5票): 141词" : 141
 ```
 
-直观的图形聚集分布表明本实验在度量技术上的系统性特征：即使异构模型在参数、注意力框架与外部知识预先分布上存在差异，当设定单项独立同分布阈值准入（$\text{total\_score} \ge 5$）后，模型对金融科技本体论（Ontology Definition）边界要素展现出一致性认知趋同（Cognitive Convergence）（全票覆盖率达到 30.9%，多数投票通过率达到 53.5%）。
+直观的图形聚集分布表明本实验在度量技术上的系统性特征：即使异构模型在参数、注意力框架与外部知识预先分布上存在差异，当设定单项阈值准入（$\text{total\_score} \ge 5$）后，模型对金融科技本体论（Ontology Definition）边界要素展现出一致性认知趋同（Cognitive Convergence）（全票覆盖率达到 30.9%，多数投票通过率达到 53.5%）。
 
-进一步地，根据对 2,814 批次原始判决矩阵的检定（$N=2814, n=8, k=2$），8 款极其异构的大模型给出的全局 Fleiss' Kappa 一致性测度系数达到了 $\kappa \approx 0.5017$。在无人工预先标注作为基准的前提下，这一 $\kappa$ 值拒绝了由随机判断导致的零度期望底线，并在分布检验中反映了判决的一致性。
+进一步地，根据对 2,814 批次原始判决矩阵的检定（$N=2814, n=8, k=2$），8 款异构的大模型给出的全局 Fleiss' Kappa 一致性测度系数达到了 $\kappa = 0.5017$。在无人工预先标注作为基准的前提下，这一 $\kappa$ 值拒绝了由随机判断导致的零度期望底线，并在分布检验中反映了判决的一致性。
 
-基于第三节构建的原假设分布方差 $\text{Var}_0(\kappa)$ 计算，系统估算所得的渐近标准误 $SE(\kappa)$ 较小。推算出的机器盲审体系 $Z$-检验统计量数值大于 5.0，系统以 99.99% 的绝对置信水平（渐近分布的双侧 $p$-value 小于 $0.0001$）拒绝了人工智能生成内容源于随机共现（Random Co-occurrence）的原假设。依照 Landis & Koch (1977) 的解释分级，该度量在统计学上处于“中度一致（Moderate Agreement）”区间（注：McHugh (2012) 的更严格分级将 0.40–0.59 归为弱一致，两种口径在此如实并列）。
+基于第三节构建的原假设分布方差 $\text{Var}_0(\kappa)$ 计算，系统估算所得的渐近标准误 $SE(\kappa)$ 较小。推算出的机器盲审体系 $Z$-检验统计量数值大于 5.0，系统以极高置信水平（渐近分布的双侧 $p$-value 小于 $0.0001$）拒绝了人工智能生成内容源于随机共现（Random Co-occurrence）的原假设。依照 Landis & Koch (1977) 的解释分级，该度量在统计学上处于“中度一致（Moderate Agreement）”区间（注：McHugh (2012) 的更严格分级将 0.40–0.59 归为弱一致，两种口径在此如实并列）。
 
 配合前述的简单多数投票截断机制（Majority Voting Threshold），Kappa 置信区间检验证实，这种多智能体交叉框架（Cross-Validation Protocols）能在一定程度上识别模型的内源性幻觉及弱相关噪音信号；这为基于大规模语言模型构建金融代理变量结构（Proxy Architectures）提供了相应的量化支持 (Gopal et al., 2025)。
 
@@ -257,14 +257,14 @@ pie title 图3. 基于多数投票原则的银行金融科技核心词库占比�
 2. Baker, S. R., Bloom, N., & Davis, S. J. (2016). Measuring economic policy uncertainty. *The Quarterly Journal of Economics*, 131(4), 1593-1636. https://doi.org/10.1093/qje/qjw024
 3. Bao, Y., Ke, B., Li, B., Yu, Y. J., & Zhang, J. (2020). Detecting accounting fraud in publicly traded US firms using a machine learning approach. *Journal of Accounting Research*, 58(1), 199-235. https://doi.org/10.1111/1475-679X.12292
 4. Bernard, D., Blankespoor, E., de Kok, T., & Toynbee, S. (2026). Using GPT to measure business complexity. *The Accounting Review*, 101(3), 67-102. https://doi.org/10.2308/tar-2023-0716
-5. Blankespoor, E., deHaan, E., & Marinovic, I. (2020). Disclosure processing costs, investors information choice, and equity market outcomes: A review. *Journal of Accounting and Economics*, 70(2-3), 101344. https://doi.org/10.1016/j.jacceco.2020.101344
+5. Blankespoor, E., deHaan, E., & Marinovic, I. (2020). Disclosure processing costs, investors' information choice, and equity market outcomes: A review. *Journal of Accounting and Economics*, 70(2-3), 101344. https://doi.org/10.1016/j.jacceco.2020.101344
 6. Blei, D. M., Ng, A. Y., & Jordan, M. I. (2003). Latent Dirichlet allocation. *Journal of Machine Learning Research*, 3, 993-1022. https://jmlr.org/papers/v3/blei03a.html
 7. Bollen, J., Mao, H., & Zeng, X. (2011). Twitter mood predicts the stock market. *Journal of Computational Science*, 2(1), 1-8. https://doi.org/10.1016/j.jocs.2010.12.007
 8. Brogaard, J., Ringgenberg, M. C., & Sovich, D. (2019). The economic impact of index investing. *The Review of Financial Studies*, 32(9), 3461-3499. https://doi.org/10.1093/rfs/hhy129
 9. Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J. D., ... & Amodei, D. (2020). Language models are few-shot learners. *Advances in Neural Information Processing Systems*, 33, 1877-1901. https://doi.org/10.48550/arXiv.2005.14165
 10. Bubeck, S., Chandrasekaran, V., Eldan, R., Gehrke, J., Horvitz, E., Kamar, E., ... & Zhang, Y. (2023). Sparks of artificial general intelligence: Early experiments with gpt-4. *arXiv preprint arXiv:2303.12712*. https://doi.org/10.48550/arXiv.2303.12712
 11. Buehlmaier, M. M. M., & Whited, T. M. (2018). Are financial constraints priced? Evidence from textual analysis. *The Review of Financial Studies*, 31(7), 2693-2728. https://doi.org/10.1093/rfs/hhy007
-12. Bybee, L., Kelly, B. T., Manela, A., & Xiu, D. (2020). The structure of economic news. *National Bureau of Economic Research(No. w26648)*. https://doi.org/10.3386/w26648
+12. Bybee, L., Kelly, B. T., Manela, A., & Xiu, D. (2020). The structure of economic news. National Bureau of Economic Research (No. w26648). https://doi.org/10.3386/w26648
 13. Calomiris, C. W., & Mamaysky, H. (2019). How news and its context drive risk and returns around the world. *Journal of Financial Economics*, 133(2), 299-336. https://doi.org/10.1016/j.jfineco.2018.11.009
 14. Cao, S., Jiang, W., Wang, J., & Yang, B. (2024). From man vs. machine to man + machine: The art and AI of stock analyses. *Journal of Financial Economics*, 160, 103910. https://doi.org/10.1016/j.jfineco.2024.103910
 15. Cheng, M., & Qu, Y. (2020). Does bank FinTech reduce credit risk? Evidence from China. *Pacific-Basin Finance Journal*, 63, 101398. https://doi.org/10.1016/j.pacfin.2020.101398
@@ -291,7 +291,7 @@ pie title 图3. 基于多数投票原则的银行金融科技核心词库占比�
 36. Hojati, A., & Nault, B. R. (2026). Content moderation with shadowbanning. *Information Systems Research*, 37(2), 1304-1322. https://doi.org/10.1287/isre.2024.1140
 37. Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A large language model for extracting information from financial text. *Contemporary Accounting Research*, 40(2), 806-841. https://doi.org/10.1111/1911-3846.12832
 38. Jiang, F., Lee, J., Martin, X., & Zhou, G. (2019). Manager sentiment and stock returns. *Journal of Financial Economics*, 132(1), 126-149. https://doi.org/10.1016/j.jfineco.2018.10.001
-39. Ke, Z. T., Kelly, B. T., & Xiu, D. (2019). Predicting returns with text data. *National Bureau of Economic Research(No. w26186)*. https://doi.org/10.3386/w26186
+39. Ke, Z. T., Kelly, B. T., & Xiu, D. (2019). Predicting returns with text data. National Bureau of Economic Research (No. w26186). https://doi.org/10.3386/w26186
 40. Kearney, C., & Liu, S. (2014). Textual sentiment in finance: A survey of methods and models. *International Review of Financial Analysis*, 33, 171-185. https://doi.org/10.1016/j.irfa.2014.02.006
 41. Kelly, B., Papanikolaou, D., Seru, A., & Taddy, M. (2021). Measuring technological innovation over the long run. *American Economic Review: Insights*, 3(3), 303-320. https://doi.org/10.1257/aeri.20190499
 42. Kıcıman, E., Ness, R., Sharma, A., & Tan, C. (2023). Causal reasoning and large language models: Opening a new frontier for causality. *arXiv*. https://doi.org/10.48550/arXiv.2305.00050
@@ -305,7 +305,7 @@ pie title 图3. 基于多数投票原则的银行金融科技核心词库占比�
 50. McHugh, M. L. (2012). Interrater reliability: the kappa statistic. *Biochemia Medica*, 22(3), 276-282. https://doi.org/10.11613/bm.2012.031
 51. Ouyang, L., Wu, J., Jiang, X., Almeida, D., Wainwright, C., ... & Lowe, R. (2022). Training language models to follow instructions with human feedback. *Advances in Neural Information Processing Systems*, 35, 27730-27744. https://doi.org/10.48550/arXiv.2203.02155
 52. Pearl, J. (2009). Causality: Models, Reasoning, and Inference. *Cambridge University Press*. https://doi.org/10.1017/CBO9780511803161
-53. Philippon, T. (2019). On fintech and financial inclusion. *National Bureau of Economic Research(No. w26330)*. https://doi.org/10.3386/w26330
+53. Philippon, T. (2019). On fintech and financial inclusion. National Bureau of Economic Research (No. w26330). https://doi.org/10.3386/w26330
 54. Shan, G., & Qiu, L. (2026). Examining the impact of generative AI on users' voluntary knowledge contribution: Evidence from a natural experiment on Stack Overflow. *Information Systems Research*, 37(2), 1021-1041. https://doi.org/10.1287/isre.2023.0332
 55. Shiller, R. J. (2017). Narrative economics. *American Economic Review*, 107(4), 967-1004. https://doi.org/10.1257/aer.107.4.967
 56. Siano, F. (2025). The news in earnings announcement disclosures: Capturing word context using LLM methods. *Management Science*, 71(11), 9831-9855. https://doi.org/10.1287/mnsc.2024.05417
