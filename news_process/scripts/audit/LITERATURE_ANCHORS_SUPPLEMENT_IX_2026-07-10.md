@@ -58,7 +58,7 @@
   - *锚定* — 2025 年最新发表: 中国增值税留抵退税政策与企业风险承担, 锚定税收政策×企业金融行为 (与本项目银企关系构念最近邻) 的 2024-26 前沿文献带。边界: FRL 短文, 数据为上市公司而非税调全样本的可能性存在, 引用时按'税收政策-企业金融'谱系而非税调数据谱系归位。
   - 〔Crossref 回读标题: VAT credit refund policy and corporate risk-taking: Evidence from China〕
 - 【2024–2026】Wang, B., Wang, X., & Qin, C. (2025). Can Tax Incentives Promote Corporate Digital Transformation? Evidence from China’s Accelerated Depreciation of Fixed Assets Policy. *China Finance and Economic Review*, *14*(2), 108-128. https://doi.org/10.1515/cfer-2025-0012
-  - *锚定* — 2025 年加速折旧政策×企业数字化转型实证, 锚定任务点①中'固定资产加速折旧'政策评估的 2024-26 延续文献, 且数字化转型构念与本项目金融科技语境相邻。边界: 非顶刊, 数据源需正文核对是否税调; 作为前沿补充锚而非承重锚。
+  - *锚定* — 2025 年加速折旧政策×企业数字化转型实证, 锚定任务点①中'固定资产加速折旧'政策评估的 2024-26 延续文献, 且数字化转型构念与本项目金融科技语境相邻。边界: 非顶刊; 据 Crossref 摘要其样本为 A 股上市公司 2012–2022 (交错 DiD), **非**税调数据——引作加速折旧政策评估谱系的延续文献而非税调数据源先例; 作为前沿补充锚而非承重锚。
   - 〔Crossref 回读标题: Can Tax Incentives Promote Corporate Digital Transformation? Evidence from China’s Accelerated Depreciation of Fixed Assets Policy〕
 - 【2024–2026】Yang, X., Wan, P., & Yang, M. (2026). How polluting enterprises respond to Pigovian tax: Evidence from China's environmental protection tax law. *China Economic Review*, *98*, 102723. https://doi.org/10.1016/j.chieco.2026.102723
   - *锚定* — 2026 年最新: 中国企业对环保税 (庇古税) 的微观响应, 锚定中国税制改革×企业微观行为面板的当下前沿。边界: 环境税语境, 数据源是否全国税收调查需正文核对; 仅作'中国税收微观实证仍活跃'的时效性锚, 不承重。
@@ -119,7 +119,7 @@
 - 【2024–2026】Çeliktuğ, M. F., & Kantarcıoğlu, M. (2024). Power of Sentence Transformers in Record Linkage. *2024 IEEE International Conference on Big Data (BigData)*, 6944-6955. https://doi.org/10.1109/bigdata62323.2024.10825999
   - *锚定* — 2024 年句向量嵌入用于记录联结的系统评测, 与项目双轨嵌入基础设施 (Qwen3/text-embedding-3-large) 天然衔接, 锚定'嵌入相似度可作 AC 精确匹配的召回审计轨'这一潜在稳健性检验设计。迁移边界: 项目现行匹配不用嵌入, 引用为方法可行性佐证而非已实施功能。
   - 〔Crossref 回读标题: Power of Sentence Transformers in Record Linkage〕
-- Schwenkler, G., & Zheng, H. (2019). The Network of Firms Implied by the News. *SSRN*. https://doi.org/10.2139/ssrn.3320859 (注: 2020 年有更新修订版 ssrn.3664879, 无期刊版)
+- Schwenkler, G., & Zheng, H. (2019). The Network of Firms Implied by the News. *SSRN*. https://doi.org/10.2139/ssrn.3320859 (注: 2020 年有更新修订版 ssrn.3664879/ssrn.3723464, 无期刊版)
   - *锚定* — 金融学中从新闻文本识别公司实体并构建公司网络的直接同域先例: 其流水线同样始于新闻-公司实体识别与别名消歧, 终于公司共现网络, 与项目'企业×银行新闻共现面板+网络溢出指标'高度同构, 是⑤类 news-firm entity linking 的核心锚点。迁移边界: 英文财经新闻+美国上市公司语境; SSRN 工作论文版本, 引用时注明未刊状态。
   - 〔Crossref 回读标题: The Network of Firms Implied by the News〕
 - Sevgili, Ö., Shelmanov, A., Arkhipov, M., Panchenko, A., & Biemann, C. (2022). Neural entity linking: A survey of models based on deep learning. *Semantic Web*, *13*(3), 527-570. https://doi.org/10.3233/sw-222986
@@ -300,7 +300,7 @@
 | 类别 | 条数 | 处置 |
 |---|---|---|
 | 提取伪影(DOI 独占一行, 实际正确) | 5 | 不动 (Cheng-Qu 2020 / Gilardi 2023 / L&M 2016 survey / Krippendorff 2004 / Landis-Koch 1977) |
-| 错 DOI(解析到无关论文/404) | 18 | 已逐条找回真 DOI, 主控独立二次 GET 回读确认后替换 (17/18 一次通过; 1 条 Jiang-Kelly-Xiu 见下) |
+| 错 DOI(解析到无关论文/404) | 18 | 17 条找回真 DOI 并经主控独立二次 GET 回读确认后替换; 1 条 (Jiang-Kelly-Xiu) 复核题名不符改判删除, 见下 |
 | 论文不存在(多路检索无此标题, 疑似生成幻觉) | 5 | 从参考文献表删除; 其中 Chen & Wang (2022) 在正文有引用, 以已核验真实文献 Cheng & Qu (2020) 替换 |
 | Crossref 已删除 DOI (Blei et al. 2003 LDA) | 1 | 去除失效 DOI, 改 JMLR 官方页链接 |
 
@@ -320,3 +320,4 @@
 - 全语料闸 (2026-07-10 实测): `python scripts/audit/audit_dois.py`(含第八/第九补编 + 两份修复后 md) = **874 唯一 doi.org DOI / 871 OK / 0 新增红旗**; 仅余 3 条既有 benign (CNKI 预期 404 / Devlin NAACL DOI Crossref 未收录 [10.18653/v1/n19-1423, 见主编 2026-06-13] / Bian et al. SSRN 3446388 修订版年差), 均先于本补编存在。
 - 对抗评审 (第一轮, 8 智能体): claim-fit / APA / 方向性 / 修复复核 / 悬空引注侦探 — 3 P0 + 7 P1 + 若干 P2/NIT 全部整改 (含 Ludwig 两条件框架方向、Heseltine 张冠李戴、kappa 悖论三条数学口径、图文矛盾等)。
 - 终审 (第二轮, 6 智能体 + 主控亲算): 20 条重写锚定逐条与原文对勘 (Ludwig 框架/κ 全链数字/Kleven 五人作者序/18.8%/155 词/12 万+ 等全部确证), 抓出并整改 2 P1 (More Agents 「趋于饱和」为文外之言 / Yang EMNLP 动机句归属失准) + 论文稿 3 处图文矛盾 (图1 P_i>0.5 残迹会数学性剔除全部 141 个 5 票词 / 图2 「降温采样」与正文默认温度矛盾 / Gomber-Cheng&Qu 方法归属) + Kappa 文档 3 P1 (Krippendorff 立场反转 / 「实质性一致」自相矛盾 / P_e 成对概率解释错误) 等共 28 处; Fleiss κ 全链 (p=59.37%/40.63%, P_e=0.5176, P̄=0.7596, κ=0.5017, ≥5 票=1,506) 由主控据盘上票数分布独立复算逐位吻合。
+- 第三轮终验 (5 智能体全新通读 + 干净机械闸): 前两轮整改的事实内核全部确证 (P_e 成对 51.76% / 全体一致约 1.6% 亲算复核; Krippendorff α≥0.800/0.667 阈值与原文相符; More Agents 与 Yang EMNLP 改写与 arXiv/ACL 原文吻合); 再清剿 20 处残留 (两处"只改一处未清同伴"型矛盾: 论文 P_i 引导语仍称"决定截断" / Kappa 条目3 首句仍称"绝佳的背书"; 提示词2 "50 个词汇"与代码 JUDGE_BATCH_SIZE=100 不符按代码实证改 100; ⌈n/2⌉+1 取整泛化错误改 ⌊n/2⌋+1; 图2 "反事实辩伪"图示夸大; 摘要/结论补 McHugh 双口径; 参考文献表按语如实披露含延伸阅读书目; CFER 条目数据源按 Crossref 摘要直陈非税调; 等)。
