@@ -380,25 +380,182 @@ def build_codebook_section(fro_diag: pd.DataFrame, win: pd.DataFrame,
     return "\n".join(L)
 
 
-# ---------------------------------------------------------------- 文献锚点 (D9: 仅审计白名单内 5 条入日志)
+# ---------------------------------------------------------------- 结果统计 (纯日志, 无计算副作用; 照搬母本 04)
+def _rss_mb() -> float:
+    import psutil
+    return psutil.Process().memory_info().rss / 1024 / 1024
+
+
+def _pkg_ver(name: str) -> str:
+    try:
+        from importlib.metadata import version
+        return version(name)
+    except Exception:
+        return "n/a"
+
+
+def _log_result_stats(scheme: str, panel: pd.DataFrame, company_col: str) -> None:
+    """逐面板结果统计段 (镜像 02 统计报告口径; 全部非整数 %.4g)。只消费已算出的面板, 零副作用。"""
+    n = len(panel)
+    cw_cols = [c for c in panel.columns if c.startswith("cw_")]
+    logger.info("  【%s 结果统计】面板 %s 行 × %s 列 (cw/ce 对偶 %d 对 + 诊断列)",
+                scheme, f"{n:,}", f"{len(panel.columns):,}", len(cw_cols))
+    for t in TRACKS:
+        tcols = [c for c in cw_cols if c.endswith(f"_{t}")]
+        if not tcols:
+            continue
+        nz = panel[tcols].notna().any(axis=1)
+        n_nz = int(nz.sum())
+        logger.info("    · %s 轨: 非缺格点 %s (%.4g%% of 骨架) | 该轨 cw 列均值覆盖率 %.4g%%",
+                    t, f"{n_nz:,}", 100.0 * n_nz / n,
+                    100.0 * float(panel[tcols].notna().mean().mean()))
+    if scheme == "frozenw":
+        for t in TRACKS:
+            by = panel.get(f"base_year_{t}")
+            if by is None or not by.notna().any():
+                continue
+            m_trunc = by.notna() & (panel["year"] < by)
+            covered = panel[company_col].isin(panel.loc[by.notna(), company_col].unique())
+            logger.info("    · %s 轨: 左截断格 %s (基期前, 恒 NaN 不回退) | 有基期企业覆盖行 %s | "
+                        "基期年跨度 [%.4g, %.4g]",
+                        t, f"{int(m_trunc.sum()):,}", f"{int(covered.sum()):,}",
+                        float(by.min()), float(by.max()))
+    if scheme == "mainbankw":
+        for t in TRACKS:
+            sh = panel.get(f"main_bank_share_{t}")
+            tie = panel.get(f"main_bank_tie_{t}")
+            if sh is None or not sh.notna().any():
+                continue
+            v = sh.dropna()
+            logger.info("    · %s 轨: 主办行格 %s | share 分布 均值 %.4g / p50 %.4g / p90 %.4g / "
+                        "全 1.0 (单银行) 占比 %.4g%% | tie 率 %.4g%%",
+                        t, f"{len(v):,}", float(v.mean()), float(v.quantile(0.5)),
+                        float(v.quantile(0.9)), 100.0 * float((v == 1.0).mean()),
+                        100.0 * float(tie.dropna().mean()))
+
+
+# ---------------------------------------------------------------- 文献锚点 (D9: 仅审计白名单内条目入日志)
 def _log_citations() -> None:
-    logger.info("【文献锚点】shift-share / 关系借贷设计谱系 (5 条, 全部在 audit_dois 白名单池;")
-    logger.info("  Chodorow-Reich 2014 / HKS 1991 / Bharath 2011 三条池缺, 仅入 codebook 散文不入日志):")
-    logger.info("  · Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik instruments: What, when,")
-    logger.info("    why, and how. American Economic Review, 110(8), 2586–2624.")
-    logger.info("    https://doi.org/10.1257/aer.20181047 — initial-share 冻结构造与 exogenous shares 叙事")
-    logger.info("  · Borusyak, K., Hull, P., & Jaravel, X. (2022). Quasi-experimental shift-share research")
-    logger.info("    designs. The Review of Economic Studies, 89(1), 181–213.")
-    logger.info("    https://doi.org/10.1093/restud/rdab030 — shift-share 拟实验识别框架")
-    logger.info("  · Adão, R., Kolesár, M., & Morales, E. (2019). Shift-share designs: Theory and inference.")
-    logger.info("    The Quarterly Journal of Economics, 134(4), 1949–2010.")
-    logger.info("    https://doi.org/10.1093/qje/qjz025 — exposure-robust SE (frozenw 推断义务)")
-    logger.info("  · Petersen, M. A., & Rajan, R. G. (1994). The benefits of lending relationships: Evidence")
-    logger.info("    from small business data. The Journal of Finance, 49(1), 3–37.")
-    logger.info("    https://doi.org/10.1111/j.1540-6261.1994.tb04418.x — 主办银行/关系借贷构念 (mainbankw)")
-    logger.info("  · Khwaja, A. I., & Mian, A. (2008). Tracing the impact of bank liquidity shocks: Evidence")
-    logger.info("    from an emerging market. American Economic Review, 98(4), 1413–1442.")
-    logger.info("    https://doi.org/10.1257/aer.98.4.1413 — 银企配对传导设计先例")
+    """📖 方法论依据 — APA 引文逐字取自审定引文池 (audit_dois 白名单, 仅整理换行, 0 自造);
+    白话注解落到本脚本的具体设计决策。Chodorow-Reich 2014/HKS 1991/Bharath 2011 池缺,
+    仅入 codebook 散文不入日志 (待 litanchor 补池后可扩)。"""
+    logger.info("-" * 70)
+    logger.info("📖 方法论依据 (22 条, 全部在 audit_dois 白名单池)")
+    logger.info("[shift-share 识别谱系 — frozenw 基期冻结权重]")
+    logger.info("  1. Bartik, T. J. (1991). Who benefits from state and local economic development")
+    logger.info("     policies? W.E. Upjohn Institute. https://doi.org/10.17848/9780585223940")
+    logger.info("     → 白话: \"基期份额 × 外生增量\"加权范式的原始出处 — frozenw 把共现份额冻结在基期、")
+    logger.info("       逐年只乘银行侧测度, 正是该构造在税调银企面板上的落地, 亦是 scheme 命名的方法源头。")
+    logger.info("  2. Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik instruments: What, when,")
+    logger.info("     why, and how. American Economic Review, 110(8), 2586–2624.")
+    logger.info("     https://doi.org/10.1257/aer.20181047")
+    logger.info("     → 白话: 把 Bartik 识别正式化为\"份额外生\"路径 — frozenw 的基期 = 窗内首个共现年")
+    logger.info("       (initial share); ⚠ 税调窗 2011–2020 使基期为窗口截断首年而非真 pre-period 快照,")
+    logger.info("       窗前基期臂 DEFER 生产机, 该偏离已按 GPSS 框架在 codebook 章披露。")
+    logger.info("  3. Borusyak, K., Hull, P., & Jaravel, X. (2022). Quasi-experimental shift-share research")
+    logger.info("     designs. The Review of Economic Studies, 89(1), 181–213.")
+    logger.info("     https://doi.org/10.1093/restud/rdab030")
+    logger.info("     → 白话: \"冲击外生\"的互补识别路径 — frozenw 的\"冻结份额 × 逐年银行测度\"恰是其")
+    logger.info("       share×shift 分解结构, shift 外生时基期份额允许残余内生。")
+    logger.info("  4. Borusyak, K., Hull, P., & Jaravel, X. (2025). A practical guide to shift-share")
+    logger.info("     instruments. Journal of Economic Perspectives, 39(1), 181–204.")
+    logger.info("     https://doi.org/10.1257/jep.20231370")
+    logger.info("     → 白话: 2025 最新实操检查表 (含 incomplete shares 与重归一的正面处理) — frozenw 的")
+    logger.info("       基期选择、冻结集合测度缺失时引擎逐年限非缺失重归一 (D12), 逐项可对到该清单。")
+    logger.info("  5. Adão, R., Kolesár, M., & Morales, E. (2019). Shift-share designs: Theory and inference.")
+    logger.info("     The Quarterly Journal of Economics, 134(4), 1949–2010.")
+    logger.info("     https://doi.org/10.1093/qje/qjz025")
+    logger.info("     → 白话: 份额相关使常规标准误失效 — frozenw 冻结后各企业共享同一基期权重结构, 下游")
+    logger.info("       回归须 exposure-robust SE (codebook 章 D10① 发表义务, 非可选)。")
+    logger.info("  6. Borusyak, K., & Hull, P. (2023). Nonrandom exposure to exogenous shocks.")
+    logger.info("     Econometrica, 91(6), 2155–2185. https://doi.org/10.3982/ECTA19367")
+    logger.info("     → 白话: 暴露非随机时的遗漏变量偏差与 recentering 修正 — 本面板现阶段为描述性暴露")
+    logger.info("       测度, 引作\"若未来将 frozenw 升格为处理/工具\"时的偏差诊断参照, 非现行构造依据。")
+    logger.info("  7. Apfel, N. (2024). Relaxing the exclusion restriction in shift-share instrumental")
+    logger.info("     variable estimation. Journal of the Royal Statistical Society Series A: Statistics")
+    logger.info("     in Society, 187(3), 748–771. https://doi.org/10.1093/jrsssa/qnad148")
+    logger.info("     → 白话: 允许部分份额违反排他仍可识别 — 基期共现并非随机, frozenw 下游若作 IV, 残余")
+    logger.info("       \"基期份额内生\"疑虑的敏感性论证工具即此。")
+    logger.info("  8. Hahn, J., Kuersteiner, G., Santos, A., & Willigrod, W. (2024). Overidentification in")
+    logger.info("     shift-share designs. arXiv. https://doi.org/10.48550/arXiv.2404.17049")
+    logger.info("     → 白话: shift-share 设计中不同识别假设隐含不同过度识别约束 — 本步两 scheme 与三权/")
+    logger.info("       三轨\"各自 just-identified 并排、禁混同一 Hansen J\"铁律的直接计量支撑。(arXiv 未评审)")
+    logger.info("  9. Greenstone, M., Mas, A., & Nguyen, H.-L. (2020). Do credit market shocks affect the")
+    logger.info("     real economy? Quasi-experimental evidence from the Great Recession and \"normal\"")
+    logger.info("     economic times. American Economic Journal: Economic Policy, 12(1), 200–225.")
+    logger.info("     https://doi.org/10.1257/pol.20160005")
+    logger.info("     → 白话: 以\"银行本地份额 × 信贷供给移动\"构造 county 级暴露的直接先例 — 与 frozenw")
+    logger.info("       同构且同用前定份额; 此处仅取其暴露构造方法, 不引其结论方向。")
+    logger.info("[关系借贷·主办银行·own-bank 关联 — mainbankw top-1 主办银行]")
+    logger.info("  10. Petersen, M. A., & Rajan, R. G. (1994). The benefits of lending relationships:")
+    logger.info("      Evidence from small business data. The Journal of Finance, 49(1), 3–37.")
+    logger.info("      https://doi.org/10.1111/j.1540-6261.1994.tb04418.x")
+    logger.info("      → 白话: 关系借贷谱系奠基, 且样本恰为小企业 — 税调 44,771 家中小企业的单一主办行")
+    logger.info("        构念贴合度高于上市样本, top-1 口径的构念效度直接承接该文。")
+    logger.info("  11. Berger, A. N., & Udell, G. F. (1995). Relationship lending and lines of credit in")
+    logger.info("      small firm finance. The Journal of Business, 68(3), 351–381.")
+    logger.info("      https://doi.org/10.1086/296668")
+    logger.info("      → 白话: 小企业关系强度→信贷条件的原始证据 — mainbankw 以共现计数 argmax 代理")
+    logger.info("        \"最强关系银行\", 其经济学前提即关系强度单调映射到银企互动密度。")
+    logger.info("  12. Boot, A. W. A. (2000). Relationship banking: What do we know? Journal of Financial")
+    logger.info("      Intermediation, 9(1), 7–25. https://doi.org/10.1006/jfin.2000.0282")
+    logger.info("      → 白话: relationship banking 权威综述, 界定\"与一家主要银行长期专属互动\"构念 —")
+    logger.info("        top-1 主办行定义的理论出处。")
+    logger.info("  13. Khwaja, A. I., & Mian, A. (2008). Tracing the impact of bank liquidity shocks:")
+    logger.info("      Evidence from an emerging market. American Economic Review, 98(4), 1413–1442.")
+    logger.info("      https://doi.org/10.1257/aer.98.4.1413")
+    logger.info("      → 白话: 以冲击前既存银企配对追踪银行冲击传导的识别范式 — frozenw 冻结基期权重与")
+    logger.info("        mainbankw 主办行×银行测度都是该传导算术的落地。")
+    logger.info("  14. La Porta, R., Lopez-de-Silanes, F., & Zamarripa, G. (2003). Related lending.")
+    logger.info("      The Quarterly Journal of Economics, 118(1), 231–268.")
+    logger.info("      https://doi.org/10.1162/00335530360535199")
+    logger.info("      → 白话: 关联借贷非臂长关系的核心证据 — 银行系税调企业与自家银行的共现属关联通道")
+    logger.info("        而非市场关系, 支撑 pair 表上游 D4 剔 own-bank (否则 argmax 被关联噪声污染)。")
+    logger.info("  15. Khwaja, A. I., & Mian, A. (2005). Do lenders favor politically connected firms?")
+    logger.info("      Rent provision in an emerging financial market. The Quarterly Journal of Economics,")
+    logger.info("      120(4), 1371–1411. https://doi.org/10.1162/003355305775097524")
+    logger.info("      → 白话: 关联/政治联结扭曲信贷配置的第二支柱 — 与 La Porta et al. 同为主办行判定前")
+    logger.info("        先剔关联通道 (D4) 的经济学依据。")
+    logger.info("  16. Chong, T. T.-L., Lu, L., & Ongena, S. (2013). Does banking competition alleviate or")
+    logger.info("      worsen credit constraints faced by small- and medium-sized enterprises? Evidence")
+    logger.info("      from China. Journal of Banking & Finance, 37(9), 3412–3424.")
+    logger.info("      https://doi.org/10.1016/j.jbankfin.2013.05.006")
+    logger.info("      → 白话: 中国 SME 调查×银行结构的先例 — 税调中小企业样本框下银企关系测度与融资")
+    logger.info("        约束研究的直接中国锚。")
+    logger.info("  17. Lu, Z., Wu, J., Li, H., & Nguyen, D. K. (2022). Local bank, digital financial")
+    logger.info("      inclusion and SME financing constraints: Empirical evidence from China. Emerging")
+    logger.info("      Markets Finance and Trade, 58(6), 1712–1725.")
+    logger.info("      https://doi.org/10.1080/1540496X.2021.1923477")
+    logger.info("      → 白话: 本地银行→中国 SME 融资约束的近期证据 — 税调样本的 top-1 主办行多为在地")
+    logger.info("        银行, 该文是这一分布形态的经济学背景。")
+    logger.info("[测度构造披露·时点纪律·复现工程]")
+    logger.info("  18. Huntington-Klein, N., Arenas, A., Beam, E., Bertoni, M., Bloem, J. R., Burli, P.,")
+    logger.info("      Chen, N., Grieco, P., Ekpe, G., Pugatch, T., Saavedra, M., & Stopnitzky, Y. (2021).")
+    logger.info("      The influence of hidden researcher decisions in applied microeconomics. Economic")
+    logger.info("      Inquiry, 59(3), 944–960. https://doi.org/10.1111/ecin.12992")
+    logger.info("      → 白话: 隐藏的构造决策足以改变结论 — 本步把\"权重取哪年 (frozenw)\"与\"聚合用均值")
+    logger.info("        还是取最大 (mainbankw)\"两个隐藏自由度物化为并排面板, 显式化而非择一隐藏。")
+    logger.info("  19. Steegen, S., Tuerlinckx, F., Gelman, A., & Vanpaemel, W. (2016). Increasing")
+    logger.info("      transparency through a multiverse analysis. Perspectives on Psychological Science,")
+    logger.info("      11(5), 702–712. https://doi.org/10.1177/1745691616658637")
+    logger.info("      → 白话: multiverse = 把数据构造分叉全部展开 — frozenw/mainbankw 正是同一共现构念")
+    logger.info("        的构造分叉, 与三权并成规格曲线的两根新支。")
+    logger.info("  20. Banz, R. W., & Breen, W. J. (1986). Sample-dependent results using accounting and")
+    logger.info("      market data: Some evidence. The Journal of Finance, 41(4), 779–793.")
+    logger.info("      https://doi.org/10.1111/j.1540-6261.1986.tb04548.x")
+    logger.info("      → 白话: look-ahead 偏差的首次系统论证 — frozenw \"只用基期已可得的共现信息定权\"")
+    logger.info("        即防前视纪律在权重矩阵上的应用 (左截断不回退同源)。")
+    logger.info("  21. Gabaix, X., & Koijen, R. S. J. (2024). Granular instrumental variables. Journal of")
+    logger.info("      Political Economy, 132(7), 2274–2303. https://doi.org/10.1086/728743")
+    logger.info("      → 白话: 规模加权和 vs 等权和的识别差异正式化 — 本步 cw (份额加权) 与 ce (等权) 两")
+    logger.info("        臂并排的理论出处; frozenw 的 ce=基期集合等权是独立稳健臂, mainbankw 的 ce 单银行")
+    logger.info("        退化恒等 (勿计臂数)。")
+    logger.info("  22. Fišar, M., Greiner, B., Huber, C., Katok, E., Ozkes, A. I., & the Management Science")
+    logger.info("      Reproducibility Collaboration. (2024). Reproducibility in Management Science.")
+    logger.info("      Management Science, 70(3), 1343–1356. https://doi.org/10.1287/mnsc.2023.03556")
+    logger.info("      → 白话: 大规模复现协作确立的工程规范 — 本步 registry 哈希锚复算 + pair 双向锁")
+    logger.info("        (sha+input_fingerprint) + 同输入双跑列哈希恒等 gate, 即按该规范落的确定性防线。")
+    logger.info("-" * 70)
 
 
 # ---------------------------------------------------------------- main
@@ -434,6 +591,21 @@ def main(argv=None) -> int:
     logger.info("【口径】frozenw: 逐 (company,track) 首个共现年份额冻结 (GPSS initial-share), 左截断不")
     logger.info("        回退, 引擎逐年限非缺失重归一; mainbankw: 当年 n_docs argmax, 三级确定性平票")
     logger.info("        (n_docs→longhit→名序), 严格 top-1 测度缺失不顺延; own-bank 上游 D4 已剔零特判。")
+    logger.info("【识别定位】frozenw 只动权重时点 (堵当期共现份额与结果同源共动的 shift-share 时点内生),")
+    logger.info("        mainbankw 只动聚合函数 (堵加权均值被长尾共现稀释) — 两臂正交、各与主 cw 差恰一个")
+    logger.info("        自由度; 中小企业单一主办行构念在税调样本贴合度高于上市样本; frozenw 推断须")
+    logger.info("        exposure-robust SE, 共同样本对齐义务见 codebook 章 D10⑤; 税调窗前基期臂 DEFER 生产机。")
+    logger.info("【确定性】纯 pandas groupby/argmax (n_docs=int32 无浮点歧义), 无 BLAS 重矩阵, mergesort")
+    logger.info("        稳定排序 + drop_duplicates 行原子; PYTHONHASHSEED 由 orchestrator 注入; $0 零 LLM。")
+    logger.info("  ⚙ 运行配置")
+    logger.info("     · 面板年窗 = [%d, %d] (来源: 本管道 02 PANEL_YEAR_MIN/MAX 常量 import; 禁从 pair"
+                " 推年窗) | 三轨 = %s | --no-emit-dta=%s", args.year_min, args.year_max,
+                "/".join(TRACKS), args.no_emit_dta)
+    logger.info("     · 输入(pair 长表): %s | 输入(registry): %s", args.pairs, reg_path)
+    logger.info("     · 输出目录: %s (面板 dta+parquet ×2 + 权重长表 ×2 + codebook 章)", outdir)
+    logger.info("     · 关键库版本: pandas=%s | numpy=%s | pyarrow=%s | pyreadstat=%s",
+                _pkg_ver("pandas"), _pkg_ver("numpy"), _pkg_ver("pyarrow"), _pkg_ver("pyreadstat"))
+    logger.info("     · 启动 RSS %.4g MB (psutil 驻留集读数)", _rss_mb())
     _log_citations()
 
     # registry 载入 + 哈希锚复算 (镜像 02; 复用税调 01 SSOT 函数, 禁第二份实现)
@@ -518,6 +690,7 @@ def main(argv=None) -> int:
     logger.info("frozenw 面板落盘: %s 行 × %s 列 (%.4g 秒) — cw=基期冻结份额加权 / ce=基期集合等权 "
                 "(独立稳健臂); 左截断格与第三缺失通道详见 codebook 章",
                 f"{len(panel_f):,}", f"{len(panel_f.columns):,}", time.monotonic() - t0)
+    _log_result_stats("frozenw", panel_f, company_col)
 
     # ---- scheme 2: mainbankw
     t0 = time.monotonic()
@@ -550,6 +723,8 @@ def main(argv=None) -> int:
     logger.info("mainbankw 面板落盘: %s 行 × %s 列 (%.4g 秒) — cw≡ce 单银行退化恒等 (结构冗余非 bug,"
                 " ce 无独立信息勿计臂数); 严格 top-1 测度缺失不顺延",
                 f"{len(panel_m):,}", f"{len(panel_m.columns):,}", time.monotonic() - t0)
+    _log_result_stats("mainbankw", panel_m, company_col)
+    logger.info("  [Memory] 双面板装配+gate 后 RSS %.4g MB (psutil 驻留集读数, 非峰值)", _rss_mb())
 
     # ---- 权重长表落盘 (重构载体, metadata 内嵌 registry 锚, 镜像 pair 表)
     import pyarrow as pa

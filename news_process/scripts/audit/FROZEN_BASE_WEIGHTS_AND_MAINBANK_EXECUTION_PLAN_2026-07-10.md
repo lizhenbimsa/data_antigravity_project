@@ -40,7 +40,7 @@ v1→v2 修订史见 §11 (四路对抗评审: 引擎复用/设计计量/爆炸�
 - `compute_weighted_panel(weights, measures, registry)` — listed 02 L659 (签名 v33 钉死, 第 4 参 chunk 有默认); **weights 消费面 schema**: 必需列 `company`(不得 NaN)/`bank`/`year`(int32 安全, 引擎 astype 对齐)/**`w`**(计数列必须叫 w), 可选 `track`(有→逐轨; 04 两 scheme 权重逐轨, 必须保留); 其余列静默丢弃; **隐含契约: (company,bank,year,track) 不得重复行** (重复=NUM/DEN 双计, 无内建防线; 04 的两种构造天然唯一, gate 锚死)。输出 index 名硬编码 `["company_listed_name","year"]` — **tax 04 照 tax 03 姿势按值 merge** (`left_on=["company_tax_name","year"], right_index=True`), 禁 `join(on=…)`。
 - `write_outputs` — **双侧签名不同, 各用各的 02**: listed 02 L898 `(panel, registry, out_dta, scheme_word, fixed_labels)` **无 emit_dta 参数**; tax 02 L557 多 `emit_dta=True` + label≤80 断言。**listed 04 不提供 `--no-emit-dta`** (保 02 零改动, 三选一定案 (a)); tax 04 提供并接 run_pipeline 转发 (WP3)。面板公司列名必须精确 = `company_listed_name`/`company_tax_name` (write_outputs 按 get_loc 注入 stock_code/usci)。新诊断列不匹配 cw_/ce_ 前缀 → 原名直落 dta, 标签经 `fixed_labels` 参数注入 (03 调用姿势照抄)。
 - 测度库同源调用序: `default_paths()` (config 键 = `output_21_tone_llms_full`/`output_40_panel_yearly`/`output_15_article_alignment`(值指向 16 文件)/`output_51_panel_controls`; benefit 无键, 脚本内常量 27 parquet) → `load_name_assets(registry)` (取 bank_canonical/company_names/bank_company_set) → `load_input21(p_input, bank_canonical)` → 四上游 read_parquet (缺→None) → `build_measure_library(五 DataFrame, registry)`。registry 载入镜像 02 L1290–1296: importlib 载 01 复算 `registry_content_sha256` 锚, 不自洽 → SystemExit。
-- pair 长表载入校验镜像 03: 读 parquet metadata `registry_sha256`/`input_fingerprint`, 与盘上 registry 锚比对, stale → SystemExit (无锚即无面板)。
+- pair 长表载入校验镜像 03: 读 parquet metadata (只读 footer, `pq.ParquetFile`) 的 `registry_sha256`/`input_fingerprint` **双向锁两把**: sha 对盘上 registry 锚, fingerprint 对现场 21_full 重建值 (R1-P1-2, 禁"旧权重×新测度"混代), 任一 stale → SystemExit (无锚即无面板)。
 - codebook upsert: **04 各自自带 ≤12 行参数化 `_upsert_section(path, md, begin, end)`** (语义=tax 03 四参版 pre+block+post; listed 03 版标记对硬编码不可复用, 跨管道 import 又踩 token 扫描 — 双辙皆废, 自带最小实现并注明镜像来源)。标记对 = `<!-- BEGIN 替代聚合面板章 (04 生成, 勿手改) -->` / `<!-- END 替代聚合面板章 -->` (双侧同 token, 各写各的 codebook)。
 - ⚠ **已知磨损 (接受+披露, 保 02 零改动)**: 两侧 02 `write_codebook` 整文件重写只保留 03 标记块 (listed 02 L1103–1109 / tax 02 CODEBOOK_ALT 对) → **单跑 `--steps 02`(,03) 后 04 章被抹掉, 直到补跑 04**。处置: README 级联义务写明 "重跑 02 ⇒ 04 产物与 codebook 章 stale, 须补跑 04"; 全链 01→02→03→04 无碍。
 
@@ -78,7 +78,7 @@ v1→v2 修订史见 §11 (四路对抗评审: 引擎复用/设计计量/爆炸�
 
 **D8 确定性。** 纯 pandas groupby/argmax (n_docs=int32 无浮点歧义), 无 BLAS 重矩阵; 确定性验证用**列内容哈希** (dta 头嵌时间戳禁 file-SHA); PYTHONHASHSEED 由 run_pipeline `setdefault("0")` 承接。**mainbank 取行姿势钉死 (R2-P2-4)**: `sort_values(多键)` (np.lexsort 稳定) + `drop_duplicates(subset=[company,year,track], keep="first")` — **行原子**; 禁 `groupby.first()` (pandas 2.2.x 逐列取首个非 NaN 值, 格内跨行拼装暗雷) 禁裸 `idxmax`。覆盖表加报"仅靠第三级名序裁决的格点占比" (二级 longhit 常与一级同平, 第三级实际频繁承重)。同输入双跑列哈希恒等 = gate 用例。
 
-**D9 日志与运行卫生。** `logs/04_*.log` 扁平覆盖式 (盘上无同名, 已核); `PYTEST_CURRENT_TEST` 守卫 (镜像四脚本先例, 并入既有 `test_pytest_never_touches_stage_logs` parametrize); 单实例锁由 run_pipeline 持有; 全量数字 `%.4g`; RSS psutil 惯例。**引擎日志归宿 (R2-P2-6)**: 引擎 budget/chunk WARNING 走 listed-02 logger — **双侧 04 各自带 `_attach_engine_logging`** (own stem 改名 Filter + 自身文件 handler + PYTEST 守卫, 镜像 tax 03 L122–137; **勿照抄 listed 03 — 它没做**), 否则 04 日志缺引擎行且错归 02 阶段名。**日志引文只引已在 audit_dois 池的 5 条** (GPSS/BHJ/AKM/Petersen-Rajan/Khwaja-Mian, 逐条已核在池); Chodorow-Reich/HKS/Bharath **不入日志**, 进 codebook 散文引用不带 DOI (镜像 codebook 既有 "AKM 2019" 散文先例; 不碰 audit_dois.py — 当前是并发会话脏文件)。引擎 budget env: 04 weights frame 量级 (dev ~6k/2.2k 行; 生产 ≈ pair×年窗深线性) 远小于 03, 默认预算充裕, **不注入** budget env (§6 记录)。
+**D9 日志与运行卫生。** 日志引文以 audit_dois 白名单池**成员资格为唯一硬约束** (防自造/防引池外; 首发落地 5 条: GPSS/BHJ/AKM/Petersen-Rajan/Khwaja-Mian; 富集轮可扩池内条目, 逐条核在池 — F5 修订, 原"仅 5 条"系当时在池枚举结果非数量上限); 池缺三条 (Chodorow-Reich/HKS/Bharath) 补池 (§9-5) 前不入日志, 仅 codebook 散文。 `logs/04_*.log` 扁平覆盖式 (盘上无同名, 已核); `PYTEST_CURRENT_TEST` 守卫 (镜像四脚本先例, 并入既有 `test_pytest_never_touches_stage_logs` parametrize); 单实例锁由 run_pipeline 持有; 全量数字 `%.4g`; RSS psutil 惯例。**引擎日志归宿 (R2-P2-6)**: 引擎 budget/chunk WARNING 走 listed-02 logger — **双侧 04 各自带 `_attach_engine_logging`** (own stem 改名 Filter + 自身文件 handler + PYTEST 守卫, 镜像 tax 03 L122–137; **勿照抄 listed 03 — 它没做**), 否则 04 日志缺引擎行且错归 02 阶段名。池缺三条进 codebook 散文引用不带 DOI (镜像 codebook 既有 "AKM 2019" 散文先例; 引文硬约束见本段首句 F5 修订版, 首发轮"5 条"记录已并入)。引擎 budget env: 04 weights frame 量级 (dev ~6k/2.2k 行; 生产 ≈ pair×年窗深线性) 远小于 03, 默认预算充裕, **不注入** budget env (§6 记录)。
 
 **D10 frozenw 发表义务五句 (codebook 章必含, 非可选)。**
 ① shift-share 推断须 exposure-robust SE (AKM 2019), 常规聚类 SE 过窄。
@@ -100,7 +100,7 @@ v1→v2 修订史见 §11 (四路对抗评审: 引擎复用/设计计量/爆炸�
 4. `build_mainbank_weights(pair)` → 逐格三级平票 argmax → 单行 frame (w=1.0) + 诊断三列源数据。
 5. 两次 `compute_weighted_panel` → 满骨架合并 (**姿势钉死, R2-P1-1**: 骨架 `MultiIndex.from_product(company_names × years)` 只承载固定/诊断列; 加权列一律**按值 merge** `panel.merge(weighted, how="left", left_on=[公司列,"year"], right_index=True)` 镜像 02 L1415/03 L1184; **明文禁 `weighted.reindex(骨架)`** — 混 dtype level 的 get_indexer 有全 -1 静默全 NaN 雷, 引擎 L643 自己写明; 面板 year 落盘前 `astype("int16")` 与主面板一致) → 拼诊断列 (D4 dtype 表) → 两次 `write_outputs` (scheme_word="基期冻结"/"主办银行")。**禁复用 02 `run_gates`** (其 gate⑧ "n_cooc==0⇒cw/ce 全 NaN" 对 frozenw 结构性不成立); 04 自带内联 gate (frame 键唯一性/mainbank cw≡ce/base_year 值域/share∈(0,1]/**frozen 面板存在非 NaN 加权值** — 防 merge 键错配静默全 NaN)。
 5a. **年窗来源钉死 (R2-P1-2): 禁从 pair 数据推年窗** (dev pair max=2018, 推导必产窄面板)。listed 04 argparse `--year-min/--year-max` 默认 **2007/2025** 字面量 (注明系 02/03 argparse 默认的第三副本, 无模块常量可 import); tax 04 直接 import `tax02.PANEL_YEAR_MIN/MAX` (2011/2020)。gate 锚死行数不变量 (listed 5528×19 / tax 44771×10)。
-6. 权重长表 ×2 落 `_company_bank_altagg_{frozen,mainbank}.parquet` (metadata 内嵌 registry sha, 镜像 pair 表)。
+6. 权重长表 ×2 落 `_company_bank_altagg_{frozen,mainbank}.parquet` (metadata 内嵌 registry sha + input_fingerprint **双锚**, 镜像 pair 表; tmp+`Path.replace` 原子写, F8)。
 7. 日志: 阶段头+口径+铁律段+覆盖诊断 (D11 清单) + D9 在池 5 条引文 + dev 退化判读段。
 8. codebook `_upsert_section` + argparse (`--pairs/--output-dir`, 默认自足 — run_pipeline 子进程不带参调用)。**无 `--no-emit-dta`** (D1 定案 (a))。
 
@@ -142,13 +142,13 @@ v1→v2 修订史见 §11 (四路对抗评审: 引擎复用/设计计量/爆炸�
 
 ## §4 验收清单
 
-- [ ] 双管道 04 真跑 EXIT=0, 四面板落盘, 列数恰等预期
-- [ ] 新 gate ≥13×2 全绿; 既有 gate (双侧各 129 族; v1 "listed 95" 系陈旧数已更正) A/B 0 新增失败
-- [ ] registry sha 双侧恒等; git diff 零 config 改动
-- [ ] frozen/mainbank 各 1 格逐数字手算对照通过
-- [ ] codebook 04 章 (D10 五句/铁律衔接/覆盖表) + README 级联义务在位; "三步" 字面量 grep 零残留
-- [ ] 日志引文 5/5 命中池; Chodorow-Reich 等 3 条仅 codebook 散文
-- [ ] by-name 提交 (hunk 隔离并发改动), HEREDOC+Co-Authored-By, 不 amend 不 --no-verify
+- [x] 双管道 04 真跑 EXIT=0 (417.6s/457.9s), 四面板落盘, 列数恰等预期 (全链单发日志被覆盖机制吞, 以 01→04 四日志同日时间戳单调链为证 — 弱证据注记)
+- [x] 新 gate 15×2 全绿; 既有 gate 双侧各 **132** 实收 (banner 旧值 "129" 系实施前已陈旧字面量, 本次一并更正; lock 文件实收 7/8); 实施后各 147, 合计 294; fast A/B 0 新增失败
+- [x] registry sha 双侧恒等 (023cdc91…/4f580e3f…, 零 bump); git diff 零 config 改动
+- [x] frozen/mainbank 双侧各 2 格逐数字手算对照通过 (留痕口径 = 会话内手算脚本 + gate 手算用例 (4) 永久锁 — 弱证据注记)
+- [x] codebook 04 章 (D10 五句/铁律衔接/覆盖表) + README 级联义务在位; "三步" 字面量 grep 零残留
+- [x] 日志引文全部命中池 (首发 5/5; 富集轮扩至 22×2, 逐条核在池); Chodorow-Reich 等 3 条仅 codebook 散文
+- [x] by-name 提交 12 路径 (并发 hunk 已由对方先行入库, 整文件干净), HEREDOC+Co-Authored-By, 不 amend 不 --no-verify → main=3400c1cc
 
 ## §5 确定性 / golden / registry 安全声明
 
@@ -206,3 +206,14 @@ v1→v2 修订史见 §11 (四路对抗评审: 引擎复用/设计计量/爆炸�
 - **[对抗-P1]** WP1.5 合并姿势钉死 (骨架只承载固定列, 加权列按值 merge, **禁 reindex** — 混 dtype 全 -1 雷; year 落盘 astype int16; 非 NaN 存在锚); WP1.5a 年窗来源钉死 (**禁从 pair 推**; listed 04 字面量 2007/2025 第三副本+CLI 参, tax import PANEL_YEAR_MIN/MAX; 行数不变量锚); WP6.2 磨损三段可操作断言 + WP4.14 `_upsert_section` 三用例。
 - **[对抗-P2]** D8 mainbank 取行=sort+drop_duplicates 行原子 (**禁 groupby.first** 逐列非 NaN 拼装雷/禁裸 idxmax) + 第三级裁决占比披露; WP4 fixture 纪律 (mini_registry SSOT 复用/绕 main 闸/write_outputs 用真名或 monkeypatch); D9 双侧 04 自带 `_attach_engine_logging` (勿照抄 listed 03); D4 公司序钉死 sorted (归 03 系)。
 - **[实据更新]** F12/F2F3 脏 hunk 与 04 改动区不重叠 (hunk 隔离可行, README 脏 hunk 按内容识别勿按标签); 双侧锁文件已消失 (并发 run 已结束, WP6.1 前置此刻满足)。
+
+### v3 实施后结果评审 (R1–R3, 2026-07-10, 随 3400c1cc 一并入库; 计划终审 F1 补记)
+- **[R1-P1-1]** 双侧 04 main() 首行加 `-O`/PYTHONOPTIMIZE fail-closed 闸 (镜像 02; 全部防线为裸 assert, -O 下会静默拔除)。
+- **[R1-P1-2]** pair `input_fingerprint` 双向锁第二把 (现场 21_full 重建值比对, 禁旧权重×新测度混代) + altagg 权重长表 metadata 透传双锚。
+- **[R1-P2]** metadata 只读 footer (`pq.ParquetFile`); altagg parquet tmp+replace 原子写 (F8); frozenw gate 三分诊断文案; 空指纹文案"缺失或不同代"。
+- **[R1-测试]** G1 诊断宽表逐轨归位锁 / G3 listed 年窗字面量锚 / G4 flong 入确定性 blob + base_year≤year 锚 (双侧)。
+- **[R2/R3]** 终态产物 7 项审计全 ✓ (可发布); 修复闭环 9/9 ✓; 终审 SHIP。无害超出项: `--registry` 参数、tax codebook 窗前基期两句特有披露、listed `_init_stage_logging` 禁借道 wp1() 的 handler 顺序雷注释。
+- **[F4 措辞更正]** listed 04 实为自建模块常量 `PANEL_YEAR_MIN/MAX = 2007, 2025` 再作 argparse 默认 (仍是 02/03 默认的第三副本, 语义等价; v3 原文"无模块常量可 import"指 02/03 侧无可 import 常量)。
+
+### 实施后富集轮 (2026-07-10, 计划终审 F5 + 日志学术化)
+- D9 措辞由"仅 5 条"修为"白名单成员资格为唯一硬约束" (F5); 双侧 04 日志扩容: 阶段头 (识别定位/确定性/运行配置/库版本/RSS) + 逐面板结果统计段 (逐轨非缺格点/覆盖率/左截断/share 分布/tie 率, 全部非整数 %.4g) + 文献段 5→**22 条×2** (三主题组: shift-share 识别谱系 9 / 关系借贷与主办银行 8 / 测度构造披露·时点纪律·复现工程 5; 全部逐字取池、逐条 grep 自验, tax 侧换入 La Porta 2003 + Khwaja-Mian 2005 own-bank 依据与中国 SME 条目)。
