@@ -39,6 +39,8 @@ FILES = [
     os.path.join(_HERE, "LITERATURE_ANCHORS_SUPPLEMENT_V_2026-07-01.md"),
     os.path.join(_HERE, "LITERATURE_ANCHORS_SUPPLEMENT_VI_2026-07-06.md"),
     os.path.join(_HERE, "LITERATURE_ANCHORS_SUPPLEMENT_VII_2026-07-06.md"),
+    # 第八补编 (2026-07-10): company_tax_bank 税调×银行共现面板专项 79 条
+    os.path.join(_HERE, "LITERATURE_ANCHORS_SUPPLEMENT_VIII_2026-07-10.md"),
     # 前沿(银企共现面板)学术锚点归档: 137 DOI 并入主机械闸 (2026-07-06 第七补编轮)
     os.path.join(_HERE, "COMPANY_BANK_COOC_PANEL_PLAN_ARCHIVE_2026-07-04.md"),
 ]
