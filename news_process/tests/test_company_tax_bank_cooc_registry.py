@@ -82,6 +82,7 @@ _TAX_SCRIPTS = (
     "01_build_company_tax_bank_cooc_registry.py",
     "02_build_company_tax_bank_cooc_panel.py",
     "03_build_company_tax_bank_weight_validation.py",
+    "04_build_company_tax_bank_altagg_panels.py",
     "run_pipeline.py",
 )
 _XPIPE_TOKEN_WHITELIST = {

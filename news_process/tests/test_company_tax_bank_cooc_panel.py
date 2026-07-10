@@ -519,10 +519,11 @@ def test_write_outputs_emit_dta_flag(tmp_path):
     "01_build_company_tax_bank_cooc_registry",
     "02_build_company_tax_bank_cooc_panel",
     "03_build_company_tax_bank_weight_validation",
+    "04_build_company_tax_bank_altagg_panels",
     "run_pipeline",
 ])
 def test_pytest_never_touches_stage_logs(stem):
-    """pytest 进程内调 _init_stage_logging 绝不接管/写 company_tax_bank/logs (四脚本逐一验)。"""
+    """pytest 进程内调 _init_stage_logging 绝不接管/写 company_tax_bank/logs (五脚本逐一验)。"""
     assert os.environ.get("PYTEST_CURRENT_TEST"), "守卫前提失效: pytest 未设 PYTEST_CURRENT_TEST"
     m = mod if stem == "02_build_company_tax_bank_cooc_panel" else _load_tax_module(stem)
     stem_name = Path(m.__file__).stem
