@@ -797,7 +797,8 @@ def main(argv=None) -> int:
             agg=None, emit_tracks=emit_tracks, emit_panel=emit,
             cut_code=("CUT_V23" if not emit else None)))
     if unresolved:
-        logger.warning("%d 个注册在案基名盘上缺全部源列 (共享树 40 面板漂移/DEFERRED), 按缺列容错出全 NaN 列:",
+        logger.warning("%d 个注册在案基名盘上缺全部源列 (共享树 40 面板漂移/DEFERRED), 按缺列容错默认不产列"
+                       " (emit_tracks=[], 面板无此列族; boilerplate/rare_word DEFERRED 家族例外仍出全 NaN 列):",
                        len(unresolved))
         for b in unresolved:
             logger.warning("    %s", b)

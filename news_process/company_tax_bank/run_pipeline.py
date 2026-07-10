@@ -351,7 +351,9 @@ def _log_step_done(step_id: str, dt: float, no_emit_dta: bool = False) -> None:
             logger.warning("  产物缺失: %s — %s", p.name, desc)
         else:
             total_mb += mb
-            logger.info("  产物 %-48s %.4g MB — %s", p.name, mb, desc)
+            # 精确字节数供跨轮机器对账 (%.4g MB 4 位有效数字不足以证字节等价)
+            logger.info("  产物 %-48s %.4g MB (%s B) — %s",
+                        p.name, mb, f"{int(round(mb * 1048576.0)):,d}", desc)
     if total_mb > 0 and dt > 0:
         logger.info("  本步落盘合计 %.4g MB, 吞吐 %.4g MB/s (墙钟口径, 含计算+IO; 体量为盘上现值)",
                     total_mb, total_mb / dt)

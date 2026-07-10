@@ -19,4 +19,4 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 if __name__ == "__main__":
     from news_process.pipeline.audit.stata_audit import main
-    main()
+    sys.exit(main())

@@ -911,11 +911,20 @@ def compute_fire_sale_interaction(panel: pd.DataFrame) -> pd.DataFrame:
     # 两主效应分量的共线性以避免交互系数误读 (Brambor, Clark & Golder 2006, Polit Anal)
     try:
         _lag_cs = panel.groupby('target_bank')['brokerage_eigen_cent'].shift(1)
-        _corr_cs = _lag_cs.corr(panel['industry_neg_shock'])
-        if pd.notna(_corr_cs):
-            logger.info(
-                f"     · 混淆诊断 corr(cent_t-1, shock_t)={sig4(float(_corr_cs))} "
-                "(|ρ|→0 利于交乘项独立识别; 高 |ρ| 提示两主效应分量共线, 交互系数解读须谨慎)")
+        # 零方差守卫须在配对完备子集上判 (Series.corr 是 pairwise dropna 语义,
+        # 全局有方差不代表配对子集有方差 — T=2 下 shock 2017 有方差而 lag 仅 2018 非空);
+        # 前提: panel 上方已 reset_index(drop=True) 为唯一 RangeIndex, concat 对齐依赖此前提。
+        _pair = pd.concat([_lag_cs, panel['industry_neg_shock']], axis=1).dropna()
+        if len(_pair) >= 2 and _pair.iloc[:, 0].std() > 0 and _pair.iloc[:, 1].std() > 0:
+            _corr_cs = _pair.iloc[:, 0].corr(_pair.iloc[:, 1])
+            if pd.notna(_corr_cs):  # 保留原守卫: dropna 不剔 inf, corr 仍可能非有限
+                logger.info(
+                    f"     · 混淆诊断 corr(cent_t-1, shock_t)={sig4(float(_corr_cs))} "
+                    "(|ρ|→0 利于交乘项独立识别; 高 |ρ| 提示两主效应分量共线, 交互系数解读须谨慎)")
+            else:
+                logger.info("     · 混淆诊断: 配对子集 corr 无定义 (非有限值), 跳过")
+        else:
+            logger.info("     · 混淆诊断: 配对子集样本不足/零方差, 跳过 (T=2 常见)")
     except Exception as _e:  # noqa: BLE001 — 诊断块绝不崩阶段
         logger.warning(f"  火灾甩卖混淆诊断失败 (忽略): {_e}")
 

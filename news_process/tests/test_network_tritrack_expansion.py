@@ -668,3 +668,77 @@ class TestNewColumnsLandingAndLabels:
             assert 'bank-bank' in labels[c], f'{c}: {labels[c]}'
         for c in wcols:
             assert 'W=' in labels[c], f'{c} 缺 W 来源子串: {labels[c]}'
+
+
+# ---------------------------------------------------------------------------
+# G4 (八入口审计计划 2026-07-10): 火灾甩卖混淆诊断块的零方差守卫
+# ---------------------------------------------------------------------------
+
+
+class TestFireSaleConfoundDiag:
+    """混淆诊断 corr(cent_t-1, shock_t) 的配对子集零方差守卫 (G4)。
+
+    病灶: Series.corr 是 pairwise dropna 语义 — T=2 下 lag 后配对子集仅剩
+    2018 年且该年 shock 全 0 → numpy corrcoef 除 0 → RuntimeWarning 漏 stderr。
+    旧"全局 std>0"判法对此无效 (shock 2017 有方差, 全局判定放行)。
+    修法 = 配对完备子集 (concat+dropna) 上双侧判 std>0。
+    """
+
+    @staticmethod
+    def _make_diag_panel():
+        """2 银行 × {2017,2018}: shock 2017 两行不同非零 (全局有方差,
+        证伪旧全局判法), 2018 两行全 0 (配对子集零方差); lag 后配对子集=2018。"""
+        return pd.DataFrame({
+            'target_bank': ['甲银行', '甲银行', '乙银行', '乙银行'],
+            'year': [2017, 2018, 2017, 2018],
+            'brokerage_eigen_cent': [0.10, 0.40, 0.20, 0.80],
+            'industry_neg_shock': [0.10, 0.0, 0.30, 0.0],
+        })
+
+    def test_paired_subset_guard_no_runtimewarning(self):
+        """守卫逻辑等价重演: 配对子集判法在 error-filter 下零 RuntimeWarning。
+
+        (catch_warnings 包真函数调用不会翻红 — 诊断块 try/except 外壳会把升级
+        后的异常吞成"混淆诊断失败" WARNING, 故此处在 try 外重演修后判定逻辑。)
+        """
+        import warnings
+
+        panel = self._make_diag_panel().sort_values(
+            ['target_bank', 'year']).reset_index(drop=True)
+        _lag_cs = panel.groupby('target_bank')['brokerage_eigen_cent'].shift(1)
+        with warnings.catch_warnings():
+            warnings.simplefilter('error', RuntimeWarning)
+            _pair = pd.concat(
+                [_lag_cs, panel['industry_neg_shock']], axis=1).dropna()
+            guard = (len(_pair) >= 2
+                     and _pair.iloc[:, 0].std() > 0
+                     and _pair.iloc[:, 1].std() > 0)
+        # 配对子集 = 2018 两行, shock 侧 std=0 → 守卫必须拒绝
+        assert not guard, '配对子集零方差应被守卫拒绝 (旧全局判法在此放行=病灶)'
+        # 证伪旧判法: 全局双侧 std>0 均为真 → 旧守卫会放行
+        assert _lag_cs.std() > 0 and panel['industry_neg_shock'].std() > 0
+
+    def test_real_function_skips_cleanly(self, caplog, monkeypatch):
+        """调真函数: caplog 有"跳过"INFO、无"混淆诊断失败"WARNING, 产列正常。"""
+        import logging
+
+        from news_process.pipeline.panel import network_brokerage as nb_module
+        from news_process.pipeline.panel.network_brokerage import (
+            compute_fire_sale_interaction,
+        )
+
+        # stage logger propagate=False (core/logging.py:277) → caplog 捕不到;
+        # 仓内先例 (test_omni_fix_herd._quiet_logger): 换成可传播的普通 logger。
+        test_logger = logging.getLogger('test_fire_sale_diag')
+        test_logger.handlers.clear()
+        test_logger.setLevel(logging.DEBUG)
+        monkeypatch.setattr(nb_module, 'logger', test_logger)
+
+        panel = self._make_diag_panel()
+        with caplog.at_level(logging.INFO, logger='test_fire_sale_diag'):
+            out = compute_fire_sale_interaction(panel)
+        assert 'brokerage_fire_sale' in out.columns
+        text = caplog.text
+        assert '混淆诊断失败' not in text, (
+            '守卫应在 corr 前拦截零方差, 不应走 except 兜底')
+        assert '配对子集样本不足/零方差, 跳过' in text
