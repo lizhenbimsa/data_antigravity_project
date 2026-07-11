@@ -72,7 +72,11 @@ def test_no_file_emit_before_pipeline_lock(fname):
     func_start = src.rfind("\ndef ", 0, m.start())
     assert func_start != -1, f"{fname}: 未定位到 with PipelineLock 的宿主函数"
     body_before_lock = src[func_start:m.start()]
-    stray = re.search(r'^\s+logger\.(info|warning|error)\(', body_before_lock, re.M)
+    # 覆盖【所有】emit 级别 (兑现计划 F4 契约(4) 的 logger. 宽口径, 推送后终审 NIT 闭环):
+    # logger.critical(50)/exception(以 ERROR 40 发) 在默认 INFO file handler 上照样 emit→首写截断,
+    # 窄口径 (仅 info|warning|error) 会漏网。setLevel/addHandler 等【配置】调用非 emit, 刻意不匹配。
+    stray = re.search(r'^\s+logger\.(debug|info|warning|warn|error|critical|exception|fatal|log)\(',
+                      body_before_lock, re.M)
     assert stray is None, \
         f"{fname}: `with PipelineLock` 之前有 file emit ({stray.group()!r}) → 被拒实例会截断在跑实例 .log"
 

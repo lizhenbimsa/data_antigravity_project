@@ -3,6 +3,7 @@
 > 来源: 两轮多智能体对抗审计 (32 finder 单元 + 双透镜验证) + 独立 fast 测试线 + 亲自逐行复核。
 > **R1 评审整改** (6 维度对抗评审, 2026-07-11): F1 safe=False→safe=True + 收窄 except; F8 扩 allow-list 覆盖 fintech_intensity_score/llm_prob_score 两族且须实跑转绿; F4 钉死 flag 契约 + gate; defer 段 cohort/fast 红事实订正。F2/F3/F5/F7 经多维实证 SHIP-AS-PLANNED。
 > **R2/R3 结果评审** (18-agent 对抗式逐-fix diff 评审 + 字节 A/B + 通读, 2026-07-11): 7 fix × 5 维对抗校验 + 疑虑第二 lens 独立复核。**唯一 confirmed concern = F1 P2** (premise-only 测试只锁 pyarrow cast 语义、不覆盖 runner 集成路径, 回退 try/except 仍全绿) → **已闭环**: 补 `test_f1_preprocess_schema_divergence_no_crash` (列集分歧 + 同步 executor 驱动真 `load_and_process_data`, 锁不崩+跳源对账)。F2/F3/F4/F5/F7/F8 零 confirmed (NIT 均被反驳)。F3 字节 A/B 实证 SHA256 恒等 (aa9a6c27, 8 对 0 孤儿)。golden gate 14 阶段红全属盘上 parquet-vs-冻结 golden 慢性陈旧, 本会话重生零 parquet → 逐字节独立于本 diff。
+> **推送后终审** (5-lens 16-agent 对抗审查【已提交产物 89263829】: 完备性批判/产物一致性/跨-fix交互/铁律遵从/测试反恒真 + 全量 fast 套件, 2026-07-11): 5 lens 全判 Clean, 11 raw concern → **仅 1 confirmed NIT** = F4 gate 正则窄于契约(4) (`info|warning|error` 漏 `critical|exception|debug`) → **已闭环**: 正则加宽到全 emit 级别 (`logger.(debug|info|warning|warn|error|critical|exception|fatal|log)\(`, setLevel/addHandler 配置调用刻意不匹配), 兑现契约(4) 宽口径。全量 fast 套件仅 3 先存基线红 (cohort×2 + jieba order-flaky×1, 均 §DEFER, 与本 diff 无关), **F8 已消除 dual_track×3, 零新增红, F1 executor-swap 零污染**。
 > 硬约束: **golden 确定性铁律** (CLAUDE.md「确定性/golden」段)。ship-now 项必须在 T=2 上按构造字节不变; 改测度列的一律 defer。本机 data/raw 空、T=2 dev、不可本地重生 golden。
 
 ## 判据分类总表
