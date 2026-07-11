@@ -14,6 +14,51 @@
       "retraction_check": "pass",
       "verify_agent": "done (五元组 PASS: Bushee, Core, Guay & Hamm 2010 JAR 48(1) 1-19; claim-fit 成立 — dissemination 维度支撑不去重广度分工论证; 2026-07-11)",
       "entry_sha": "3974485932f26bd53e57f074a91e524e7d99aae71a2c46a6ff33abfe9b8a50a6"
+    },
+    {
+      "doi": "10.1177/0003122419877135",
+      "admitted_date": "2026-07-11",
+      "admitted_by": "admit_new_dois.py",
+      "family_id": "F110",
+      "apa_line": "Kozlowski, A. C., Taddy, M., & Evans, J. A. (2019). The geometry of culture: Analyzing the meanings of class through word embeddings. American Sociological Review, 84(5), 905-949. https://doi.org/10.1177/0003122419877135",
+      "crossref_title": "The Geometry of Culture: Analyzing the Meanings of Class through Word Embeddings",
+      "crossref_container": "American Sociological Review",
+      "crossref_year": 2019,
+      "meta_source": "crossref",
+      "title_overlap": 1.0,
+      "retraction_check": "pass",
+      "verify_agent": "done (五元组 PASS: Kozlowski, Taddy & Evans 2019 ASR 84(5) 905-949; claim-fit 词嵌入差分向量定义语义维度; 2026-07-11)",
+      "entry_sha": "4b65571c4fbb2999ff4cc1f1999b7987416a15216fc854c9742a2fd4be1dcc75"
+    },
+    {
+      "doi": "10.2139/ssrn.4323093",
+      "admitted_date": "2026-07-11",
+      "admitted_by": "admit_new_dois.py",
+      "family_id": "F311",
+      "apa_line": "Dim, C., Sangiorgi, I., & Vilkov, G. (2024). Media narratives and price informativeness. SSRN Working Paper No. 4323093 [Working Paper]. https://doi.org/10.2139/ssrn.4323093",
+      "crossref_title": "Media Narratives and Price Informativeness",
+      "crossref_container": "SSRN Electronic Journal",
+      "crossref_year": 2023,
+      "meta_source": "crossref",
+      "title_overlap": 1.0,
+      "retraction_check": "pass",
+      "verify_agent": "done (五元组 PASS: Dim, Sangiorgi & Vilkov 2023 SSRN wp 4323093 media narratives; claim-fit 叙事暴露构念迁移已诚实披露; NIT 作者F./年2023 已修; 2026-07-11)",
+      "entry_sha": "3d4c0eed7ee268d67acf35ff0353e58ca257ebdd95a6eff06d960814900c017c"
+    },
+    {
+      "doi": "10.3368/jhr.50.2.317",
+      "admitted_date": "2026-07-11",
+      "admitted_by": "admit_new_dois.py",
+      "family_id": "F096",
+      "apa_line": "Cameron, A. C., & Miller, D. L. (2015). A practitioner's guide to cluster-robust inference. Journal of Human Resources, 50(2), 317-372. https://doi.org/10.3368/jhr.50.2.317",
+      "crossref_title": "A Practitioner’s Guide to Cluster-Robust Inference",
+      "crossref_container": "Journal of Human Resources",
+      "crossref_year": 2015,
+      "meta_source": "crossref",
+      "title_overlap": 1.0,
+      "retraction_check": "pass",
+      "verify_agent": "done (五元组 PASS: Cameron & Miller 2015 JHR 50(2) 317-372 cluster-robust inference; 经典方法学锚; 2026-07-11)",
+      "entry_sha": "ba057e26a01d49316fde8de1fb8d2db5e08b42c3d21fe0fd75acf7e18cdff38e"
     }
   ],
   "no_doi_acks": []
