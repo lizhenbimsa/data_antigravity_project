@@ -1,0 +1,20 @@
+{
+  "entries": [
+    {
+      "doi": "10.1111/j.1475-679x.2009.00357.x",
+      "admitted_date": "2026-07-11",
+      "admitted_by": "admit_new_dois.py",
+      "family_id": "F015",
+      "apa_line": "Bushee, B. J., Core, J. E., Guay, W., & Hamm, S. J. W. (2010). The role of the business press as an information intermediary. Journal of Accounting Research, 48(1), 1-19. https://doi.org/10.1111/j.1475-679X.2009.00357.x",
+      "crossref_title": "The Role of the Business Press as an Information Intermediary",
+      "crossref_container": "Journal of Accounting Research",
+      "crossref_year": 2010,
+      "meta_source": "crossref",
+      "title_overlap": 1.0,
+      "retraction_check": "pass",
+      "verify_agent": "done (五元组 PASS: Bushee, Core, Guay & Hamm 2010 JAR 48(1) 1-19; claim-fit 成立 — dissemination 维度支撑不去重广度分工论证; 2026-07-11)",
+      "entry_sha": "3974485932f26bd53e57f074a91e524e7d99aae71a2c46a6ff33abfe9b8a50a6"
+    }
+  ],
+  "no_doi_acks": []
+}

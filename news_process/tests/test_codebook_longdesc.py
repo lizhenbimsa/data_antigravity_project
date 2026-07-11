@@ -479,11 +479,59 @@ class TestWhitelistDiff:
 # ============================================================================
 
 class TestTopJournalGate:
-    def test_non_top_over_30pct_violation(self):
+    # v2.11 双层语义 (2026-07-11 C1 实证校准): 零 top 锚 = 家族级硬闸 (final FATAL /
+    # draft WARN); (top+field 内) 非 top 占比 >30% 一律降级 WARN (记录数字)。
+
+    def test_non_top_over_30pct_returns_message(self):
         cites = [_cite(1), _cite(2), _cite(3, venue='Obscure Journal of Things'),
                  _cite(4, venue='Journal of Banking and Finance')]
         v = chk.family_top_journal_gate(cites, TOPCFG)
         assert v is not None and '> 30%' in v
+
+    def test_zero_top_anchor_final_fatal(self, tmp_path):
+        # 层① 硬闸: final 家族全非 top → FATAL
+        d = make_lib(tmp_path, [{'fid': 'F001', 'columns': ['alpha_tone_full'],
+                                 'cites': [_cite(i, venue='Obscure Journal of Things')
+                                           for i in range(1, 4)],
+                                 'status': 'final'}])
+        rep = chk.run_checks(d, whitelist=WL_SET, top_journal_cfg=TOPCFG,
+                             materialize=True)
+        assert any('零 top 锚' in e for e in rep['fatal'])
+
+    def test_zero_top_anchor_draft_warn_only(self, tmp_path):
+        d = make_lib(tmp_path, [{'fid': 'F001', 'columns': ['alpha_tone_full'],
+                                 'cites': [_cite(i, venue='Obscure Journal of Things')
+                                           for i in range(1, 4)],
+                                 'status': 'draft'}])
+        rep = chk.run_checks(d, whitelist=WL_SET, top_journal_cfg=TOPCFG,
+                             materialize=True)
+        assert not any('零 top 锚' in e for e in rep['fatal'])
+        assert any('零 top 锚' in w for w in rep['warnings'])
+
+    def test_over_30pct_with_top_anchor_final_warn_not_fatal(self, tmp_path):
+        # 层② 降级: final 家族占比 40% 但有 top 锚 → WARN 记录数字, 不 FATAL
+        cites = CITES_STD + [_cite(4, venue='Obscure Journal of Things'),
+                             _cite(5, venue='Another Obscure Review')]
+        d = make_lib(tmp_path, [{'fid': 'F001', 'columns': ['alpha_tone_full'],
+                                 'cites': cites, 'status': 'final'}])
+        rep = chk.run_checks(d, whitelist=WL_SET, top_journal_cfg=TOPCFG,
+                             materialize=True)
+        assert rep['fatal'] == []
+        assert any('> 30%' in w for w in rep['warnings'])
+
+    def test_top_journal_mix_report_final_only(self, tmp_path):
+        d = make_lib(tmp_path, [
+            {'fid': 'F001', 'columns': ['alpha_tone_full'],
+             'cites': CITES_STD + [_cite(4, venue='Journal of Banking and Finance'),
+                                   _cite(5, venue='Obscure Journal of Things')],
+             'status': 'final'},
+            {'fid': 'F002', 'columns': ['beta_core_full'],
+             'cites': CITES_STD, 'status': 'draft'},  # draft 不入聚合
+        ])
+        rep = chk.run_checks(d, whitelist=WL_SET, top_journal_cfg=TOPCFG,
+                             materialize=True)
+        mix = rep['top_journal_mix_final']['counts']
+        assert mix['top'] == 3 and mix['field'] == 1 and mix['unlisted'] == 1
 
     def test_wp_preprint_excluded_from_denominator(self):
         cites = [_cite(1), _cite(2),

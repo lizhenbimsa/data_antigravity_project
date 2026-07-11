@@ -7,7 +7,9 @@
 #   · type == book → 不计分母 (须过 no_doi_ack 闸);
 #   · type == journal 且 venue ∈ top → top; 其余 (field 清单 + 未列名刊) 一律计
 #     非 top 进 (top+field) 分母 (从严: 未知刊不因未列名而逃逸分母)。
-# 家族级闸: (top+field 内) 非 top 占比 >30% 打回 (final 崩 / draft 告警)。
+# 家族级闸 (v2.11 双层, 2026-07-11 C1 实证校准): ① 每 final 家族 citations 中
+#   top 分类 ≥1 条 (零 top 锚 = FATAL, 顶刊支撑底线); ② (top+field 内) 非 top
+#   占比 >30% 降级为 WARN (记录占比供对抗审核与 WP5 终局报告); draft 两项均 WARN。
 # 匹配口径: venue 小写 + '&'→'and' + 空白折叠 (check 脚本 _norm_venue)。
 #
 # 清单定稿随 WP1 提交时全文列出供用户确认 (§2.7); 之后增删须记 rationale。
@@ -56,6 +58,13 @@ top:
   - Journal of Economic Perspectives
   - Annual Review of Financial Economics
   - Annual Review of Economics
+  # ── 跨学科旗舰增补 (2026-07-11 C1 实证校准, 学科对等原则: 方法学家族的构念
+  #    规范出处多在社会学/物理/NLP 旗舰, finance-centric 清单结构性打回 20+/36) ──
+  - Physical Review X                       # APS 旗舰 (网络科学/复杂系统方法源头刊)
+  - American Journal of Sociology           # 社会学两大旗舰之一 (网络中心度构念规范出处)
+  - American Sociological Review            # 社会学两大旗舰之一 (ASA 旗舰)
+  - Annual Review of Sociology              # Annual Reviews 社会学权威综述 (对等 ARE/ARFE)
+  - Transactions of the Association for Computational Linguistics  # ACL 旗舰期刊 (NLP 顶刊, 词典/文本测度方法锚)
 
 field:
   # 领域刊 (§1a 收窄决策③: 家族内占比 ≤30% 可接受; 未列名刊与本清单同待遇计非 top)
@@ -83,6 +92,21 @@ field:
   - Sociologica
   - Communications of the ACM
   - Advances in Methods and Practices in Psychological Science
+  # ── 2026-07-11 C1 实证校准增补 (方法学家族领域专业刊; mega-journal 如 PLOS ONE
+  #    与会议 proceedings 如 EMNLP/ACM Web Conf 刻意不收, 保持计非 top) ──
+  - Social Networks                         # 网络分析领域规范刊 (Freeman 中心度等构念原始出处)
+  - Physical Review E                       # APS 统计物理/复杂网络领域刊 (聚类系数/社群方法)
+  - Annals of Operations Research           # 运筹领域权威刊 (网络优化/图算法应用)
+  - Journal of the Academy of Marketing Science  # 营销领域一线刊 (测度效度方法论引用源)
+  - North American Journal of Economics and Finance  # 金融经济领域刊 (归一形: 'The ' 前缀剥除)
+  - International Review of Economics and Finance    # 金融经济领域刊 (归一形: '&'→and)
+  - Sociological Methodology                # ASA 方法学年刊 (社会网络测度方法规范)
+  - Journal of Mathematical Sociology       # 数理社会学领域刊 (中心度公理化原始出处; 归一形剥 The)
+  - Internet Mathematics                    # 网络图论领域刊 (PageRank/幂律网络方法)
+  - Social Network Analysis and Mining      # 网络分析应用领域刊 (SNAM)
+  - Economics Letters                       # 经济学短文领域刊 (方法/稳健性快报)
+  - Computational and Mathematical Organization Theory  # 计算组织理论领域刊 (归一形: '&'→and)
+  - Humanities and Social Sciences Communications       # Nature 系人文社科刊 (非 mega-journal 口径)
 
 wp_preprint:
   # 展示性枚举 (分类由 citation type ∈ {wp, arxiv} 驱动, 非 venue 匹配)

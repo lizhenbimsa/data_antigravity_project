@@ -28,8 +28,11 @@
      结构化字段之外任何 doi.org = fatal — 旁路: formula/unit 等标量藏链接逃逸
      lint 与差集闸并流入组装产物); ★ 大小写变体 (DOI.ORG/ 等) 同 fatal
      (audit_dois.DOIORG_RE 已 re.IGNORECASE 化, extract_refs 同步多捕)。
-  6. 顶刊结构闸 (§2.7, SSOT=config/top_journal_list.yaml): 家族级 (top+field 内)
-     非 top 占比 >30% 打回 (final 崩 / draft 告警); wp/preprint 不计入分母;
+  6. 顶刊结构闸 (§2.7, SSOT=config/top_journal_list.yaml; v2.11 双层, 2026-07-11
+     C1 实证校准): ① 家族级硬闸 = 每 final 家族 citations 中 top 分类 ≥1 条
+     (零 top 锚 = FATAL, draft 仅 WARN); ② (top+field 内) 非 top 占比 >30% 降级
+     为 WARN (记录占比数字, 供对抗审核与 WP5 终局报告); wp/preprint 不计入分母;
+     全卷级 final 家族 top/field/unlisted 三分类构成进 report (不设新硬闸);
      ★ type 自报 ∈ {wp,arxiv,book} 但 venue 在 top/field 清单 → 交叉校验 WARN
      (type 误标/恶标可无限稀释分母)。
   7. 弱断言 (§2.6): 正文 "作者 (年份)" 型引注 ⊆ citations 渲染集, 未命中仅 WARN。
@@ -215,8 +218,41 @@ def classify_citation(c: Dict[str, Any], cfg: Dict[str, Any]) -> str:
     return "top" if v in tops else "field"
 
 
+def classify_citation_detailed(c: Dict[str, Any], cfg: Dict[str, Any]) -> str:
+    """报告用五分类: top / field (清单列名) / unlisted (未列名刊) / wp-preprint / book。
+
+    与 classify_citation 的计分口径 (field ≡ unlisted 同计非 top 分母) 不冲突 —
+    本函数仅供全卷级构成报告 (v2.11, WP5 终局报告消费), 不参与闸判定。
+    """
+    coarse = classify_citation(c, cfg)
+    if coarse != "field":
+        return coarse
+    v = _norm_venue(str(c.get("venue", "")))
+    fields = {_norm_venue(x) for x in (cfg.get("field") or [])}
+    return "field" if v in fields else "unlisted"
+
+
+def family_top_anchor_gate(citations: List[Dict[str, Any]], cfg: Dict[str, Any]) -> Optional[str]:
+    """★ v2.11 家族级硬闸 (2026-07-11 C1 实证校准): citations 中 top 分类 ≥1 条。
+
+    零 top 锚 → 违规文案 (final 崩 / draft 告警, run_checks 分级); 合格 → None。
+    保住每家族的顶刊支撑底线 (用户"国际顶级期刊学术支持"字面要求)。
+    """
+    classes = [classify_citation(c, cfg) for c in citations or []]
+    if not classes:
+        return None  # 无引文由 CITATION_MIN 条数闸另管, 此处不重复报
+    if "top" not in classes:
+        return ("顶刊结构闸: citations 中 top 分类 0 条 (零 top 锚, §2.7 v2.11 "
+                "家族级硬闸 — 每家族须 ≥1 条顶刊支撑)")
+    return None
+
+
 def family_top_journal_gate(citations: List[Dict[str, Any]], cfg: Dict[str, Any]) -> Optional[str]:
-    """家族级闸: (top+field 内) 非 top 占比 >30% → 违规文案; 合格 → None。"""
+    """家族级占比检查 (v2.11 降级为 WARN): (top+field 内) 非 top 占比 >30% → 文案。
+
+    原 FATAL 判据经 C1 实证校准降级 (finance-centric 清单曾结构性打回 20+/36
+    方法学家族); 占比数字记录供对抗审核聚焦与 WP5 终局报告。合格 → None。
+    """
     classes = [classify_citation(c, cfg) for c in citations or []]
     denom = [x for x in classes if x in ("top", "field")]
     if not denom:
@@ -225,7 +261,7 @@ def family_top_journal_gate(citations: List[Dict[str, Any]], cfg: Dict[str, Any]
     frac = non_top / len(denom)
     if frac > 0.30:
         return (f"顶刊结构闸: (top+field 内) 非 top 占比 {non_top}/{len(denom)} = "
-                f"{frac:.1%} > 30% (§2.7 打回)")
+                f"{frac:.1%} > 30% (§2.7 v2.11 降级 WARN, 供对抗审核聚焦)")
     return None
 
 
@@ -497,6 +533,9 @@ def run_checks(
 
     all_frontmatter_dois: Set[str] = set()
     n_draft_over = 0
+    # ★ v2.11 全卷级报告项 (不设新硬闸): final 家族聚合 top/field/unlisted 构成
+    tj_mix: Dict[str, int] = {"top": 0, "field": 0, "unlisted": 0,
+                              "wp-preprint": 0, "book": 0}
     for fid, fam in sorted(parsed.items()):
         status = fam.status
         citations = fam.frontmatter.get("citations", []) or []
@@ -561,11 +600,22 @@ def run_checks(
         fatal.extend(lint_doiorg_case_variants(fam))
         fatal.extend(lint_frontmatter_doiorg(fam))
 
-        # 顶刊结构闸 (§2.7) + ★ type↔venue 交叉校验 (WARN)
+        # 顶刊结构闸 (§2.7 v2.11 双层) + ★ type↔venue 交叉校验 (WARN)
         if top_journal_cfg is not None:
-            v = family_top_journal_gate(citations, top_journal_cfg)
-            if v:
-                (fatal if status == "final" else warns).append(f"{fid}[{status}]: {v}")
+            # 层①: 零 top 锚硬闸 (final 崩 / draft 告警)
+            v_anchor = family_top_anchor_gate(citations, top_journal_cfg)
+            if v_anchor:
+                (fatal if status == "final" else warns).append(
+                    f"{fid}[{status}]: {v_anchor}")
+            # 层②: 非 top 占比 >30% 一律 WARN (原 FATAL 降级, 记录数字)
+            v_frac = family_top_journal_gate(citations, top_journal_cfg)
+            if v_frac:
+                warns.append(f"{fid}[{status}]: {v_frac}")
+            # 全卷级构成聚合 (final 家族; 报告项, 不设新硬闸)
+            if status == "final":
+                for c in citations:
+                    if isinstance(c, dict):
+                        tj_mix[classify_citation_detailed(c, top_journal_cfg)] += 1
             warns.extend(type_venue_crosscheck(citations, top_journal_cfg, fid))
 
         # 弱断言 (WARN only)
@@ -597,6 +647,11 @@ def run_checks(
         "n_frontmatter_dois": len(all_frontmatter_dois),
         "n_extracted_dois": len(extracted),
         "n_draft_over": n_draft_over,
+        "top_journal_mix_final": {
+            "counts": tj_mix,
+            "fracs": {k: (v / total if total else None)
+                      for total in [sum(tj_mix.values())] for k, v in tj_mix.items()},
+        },
         "novelty": novelty,
         "fatal": fatal,
         "warnings": warns,
@@ -639,6 +694,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         print("  novelty_2023plus       0/0 (无可计年份引文, 跳过)")
     if nv.get("exempt_families"):
         print(f"  novelty_exempt         {sorted(nv['exempt_families'])}")
+    mix = (report.get("top_journal_mix_final") or {}).get("counts") or {}
+    if sum(mix.values()):
+        total = sum(mix.values())
+        parts = ", ".join(f"{k}={v} ({v / total:.1%})" for k, v in mix.items() if v)
+        print(f"  top_journal_mix(final) {parts}  [n={total}]")
     for w in report["warnings"]:
         print("  WARN:", w)
     if report["fatal"]:
