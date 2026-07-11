@@ -275,7 +275,8 @@ def test_build_labels_resolves_renamed_via_original_name():
     df_new, rename_map = se.shorten_long_column_names(df)
     short = df_new.columns[0]
     labels = se.build_variable_labels(df_new, rename_map=rename_map)
-    assert labels[short] == "Collab Mode Confidence (Full-text, raw LLM)"
+    # WP3 (2026-07-10) 标签中文化后的 HEURISTIC 文案
+    assert labels[short] == "协同模式分类置信度(原始LLM,全文轨)"
 
 
 def test_build_labels_fallback_uses_original_name():

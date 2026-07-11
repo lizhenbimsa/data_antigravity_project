@@ -4,7 +4,14 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
+# WP1 (2026-07-10 计划 §4 四格式落点迁移): 原 `build/` 整目录忽略替换为三行组合
+# (顺序敏感缺一不可 — 父目录被目录模式忽略后 git 不下探, 单条否定无效; 真 git 根
+# 在上级 data_antigravity_project 且其 .gitignore 也有非锚定 build/, 深层文件
+# 优先级覆盖根层规则): build/codebook/ (codebook md/json 权威载体) 入 git,
+# build/ 其余 (manual_facts / codebook_inputs 等) 仍忽略。
+!/build/
+/build/*
+!/build/codebook/
 develop-eggs/
 dist/
 downloads/

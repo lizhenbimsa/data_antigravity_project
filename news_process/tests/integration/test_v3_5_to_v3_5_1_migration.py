@@ -9,7 +9,6 @@
 """
 from __future__ import annotations
 
-import inspect
 import json
 from pathlib import Path
 
@@ -111,9 +110,22 @@ def test_sidecar_json_path_exists_or_created():
 
 
 def test_heuristic_labels_export_stata_labels_sync():
-    """v3.5.1: stata_export.HEURISTIC_LABELS 与 export.py STATA_LABELS 8 entries 同步 (修 H2')."""
-    from news_process.pipeline.panel import export as export_mod
+    """v3.5.1 H2' 契约的强形式 (WP3 分语言 + P1 整改 2026-07-11 AST 值级).
+
+    WP3 标签中文化后 46-path 标签为中文, export.py STATA_LABELS 显式条目仍英文
+    (40 dta 终态由 labels.do 中文统一; 旧 docstring 声称的 latin-1 硬约束已勘误
+    — 40-path 实为 to_stata(version=118) UTF-8 writer, _apply_label_fallback
+    的降级守卫 2026-07-11 已移除)。契约: ① 46-path 8 列标签含 CJK; ② export.py
+    STATA_LABELS **AST 字面量键集** 覆盖 8 列 + 值级非空 ≤80 字节 (旧
+    `f"'{col}'" in src` token 检查可被注释残留假绿, 已封死 — 复用
+    tests.test_stata_export_v3_5_1 的 AST 提取器为单一实现)。
+    """
+    import re
+
     from news_process.pipeline.panel.stata_export import build_variable_labels
+    from news_process.tests.test_stata_export_v3_5_1 import (
+        _extract_export_stata_labels_via_ast,
+    )
 
     a1_a3_cols = [
         'mean_clarity_score_full', 'mean_clarity_score_ctx',
@@ -123,10 +135,14 @@ def test_heuristic_labels_export_stata_labels_sync():
     ]
     df = pd.DataFrame(columns=a1_a3_cols)
     heuristic_labels = build_variable_labels(df)
-    src = inspect.getsource(export_mod)
+    export_labels = _extract_export_stata_labels_via_ast()
+    _cjk = re.compile('[\u4e00-\u9fff\u3400-\u4dbf]')
     for col in a1_a3_cols:
         h_label = heuristic_labels[col]
-        assert h_label in src, (
-            f"export.py STATA_LABELS 与 stata_export.HEURISTIC_LABELS 不同步 — "
-            f"missing entry for {col}: '{h_label}'"
+        assert _cjk.search(h_label), f"46-path 标签未中文化: {col} = '{h_label}'"
+        assert len(h_label.encode('utf-8')) <= 80
+        assert col in export_labels, (
+            f"export.py STATA_LABELS 字面量字典缺键 {col} (AST 级, 注释残留不算)"
         )
+        v = export_labels[col]
+        assert isinstance(v, str) and v.strip() and len(v.encode('utf-8')) <= 80

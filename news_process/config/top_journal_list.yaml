@@ -1,0 +1,91 @@
+# top_journal_list.yaml — 顶刊清单 SSOT (WP1, 2026-07-10 计划 §2.7)
+#
+# 消费者: scripts/audit/check_longdesc_whitelist.py::classify_citation
+# 计分三分类: top / field / wp-preprint —
+#   · type ∈ {wp, arxiv} → wp-preprint, **不计入"非顶刊"分母** (与 arXiv 方法学
+#     补充锚地位一致, 否则 LLM 方法学 core 家族先天过不了闸; §1a 收窄决策④);
+#   · type == book → 不计分母 (须过 no_doi_ack 闸);
+#   · type == journal 且 venue ∈ top → top; 其余 (field 清单 + 未列名刊) 一律计
+#     非 top 进 (top+field) 分母 (从严: 未知刊不因未列名而逃逸分母)。
+# 家族级闸: (top+field 内) 非 top 占比 >30% 打回 (final 崩 / draft 告警)。
+# 匹配口径: venue 小写 + '&'→'and' + 空白折叠 (check 脚本 _norm_venue)。
+#
+# 清单定稿随 WP1 提交时全文列出供用户确认 (§2.7); 之后增删须记 rationale。
+# 域覆盖依据 = 仓库 manuscripts/paper_spec 实际引用域: 金融/经济/会计主线 +
+# 管理/IS (W&Z ASQ / Gomber JMIS / Chesbrough) + 科学通刊 + 计量方法。
+
+top:
+  # ── 金融三大 + 一线金融 ──
+  - Journal of Finance
+  - Journal of Financial Economics
+  - Review of Financial Studies
+  - Review of Finance                       # Du et al. 2022 政治词权重锚
+  - Journal of Financial and Quantitative Analysis
+  # ── 经济五大 + 一线计量 ──
+  - American Economic Review
+  - Quarterly Journal of Economics
+  - Journal of Political Economy
+  - Econometrica
+  - Review of Economic Studies
+  - Journal of Econometrics
+  - "American Economic Journal: Applied Economics"
+  - "American Economic Journal: Macroeconomics"
+  # ── 会计三大 ──
+  - Journal of Accounting Research
+  - Journal of Accounting and Economics
+  - The Accounting Review
+  # ── 管理 / IS 一线 (W&Z 1998 ASQ / Gomber 2018 JMIS 构念锚) ──
+  - Management Science
+  - Administrative Science Quarterly
+  - Academy of Management Journal
+  - Academy of Management Review
+  - Strategic Management Journal
+  - Organization Science
+  - MIS Quarterly
+  - Information Systems Research
+  - Journal of Management Information Systems
+  - Research Policy
+  # ── 科学通刊系 ──
+  - Nature
+  - Science
+  - Nature Human Behaviour
+  - Nature Communications
+  - Proceedings of the National Academy of Sciences
+  # ── 综述权威 (JEL 计 top: AEA 旗舰综述) ──
+  - Journal of Economic Literature
+  - Journal of Economic Perspectives
+  - Annual Review of Financial Economics
+  - Annual Review of Economics
+
+field:
+  # 领域刊 (§1a 收窄决策③: 家族内占比 ≤30% 可接受; 未列名刊与本清单同待遇计非 top)
+  - Journal of Banking and Finance
+  - Journal of Financial Intermediation
+  - Journal of Corporate Finance
+  - Journal of Financial Stability
+  - Journal of Empirical Finance
+  - Journal of International Money and Finance
+  - International Review of Financial Analysis
+  - Finance Research Letters
+  - Journal of Money, Credit and Banking
+  - Contemporary Accounting Research
+  - Review of Accounting Studies
+  - Journal of Business Ethics
+  - Journal of Economic Behavior and Organization
+  - Journal of Financial Markets
+  - Pacific-Basin Finance Journal
+  - Emerging Markets Review
+  - China Economic Review
+  - Journal of Comparative Economics
+  - Economic Modelling
+  - Journal of Business and Economic Statistics
+  - Social Science Computer Review
+  - Sociologica
+  - Communications of the ACM
+  - Advances in Methods and Practices in Psychological Science
+
+wp_preprint:
+  # 展示性枚举 (分类由 citation type ∈ {wp, arxiv} 驱动, 非 venue 匹配)
+  - NBER Working Paper
+  - SSRN Working Paper
+  - arXiv

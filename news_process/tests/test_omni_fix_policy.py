@@ -750,10 +750,13 @@ def test_allv_labels_mechanically_derived_in_both_label_dicts():
     import inspect
 
     from news_process.pipeline.panel import export, stata_export
+    # WP3 (2026-07-10): 46-path (stata_export) _allv 文案中文化为 '(全年份锚)';
+    # 40-path (export.py, latin-1 硬约束) 保留英文 '(All-Vintage anchor)'。
+    _ALLV_TEXT = {export: '(All-Vintage anchor)', stata_export: '(全年份锚)'}
     for mod in (export, stata_export):
         src = inspect.getsource(mod)
-        assert '(All-Vintage anchor)' in src, \
-            f"{mod.__name__} 缺 _allv 标签派生文案"
+        assert _ALLV_TEXT[mod] in src, \
+            f"{mod.__name__} 缺 _allv 标签派生文案 {_ALLV_TEXT[mod]!r}"
         assert '_ALLV_PREFIXES' in src, f"{mod.__name__} 缺 _allv 前缀白名单"
 
     # 行为级: stata_export.build_variable_labels 对其 HEURISTIC_LABELS 内有基标签的
@@ -769,12 +772,12 @@ def test_allv_labels_mechanically_derived_in_both_label_dicts():
         'auth_sim_emb_lg_allv_full': [0.4],
     })
     labels = stata_export.build_variable_labels(df)
-    # _lg base 标签带 "(co-primary: text-embedding-3-large)" 较长, 追加 "(All-Vintage anchor)"
-    # 后超 80 字节被尾截 → 仅断言可识别前缀 "(All-Vintage" (派生已生效, 截断是 to_stata 硬约束)。
-    assert '(All-Vintage' in labels['policy_cosine_sim_lg_allv_full'], \
-        "policy_cosine_sim_lg_allv_full 应得 All-Vintage anchor 派生标签"
-    assert '(All-Vintage' in labels['auth_sim_emb_lg_allv_full'], \
-        "auth_sim_emb_lg_allv_full 应得 All-Vintage anchor 派生标签"
+    # WP3: _lg base 中文标签带 "(对等轨emb-3-large)", 追加 "(全年份锚)" 派生
+    # (字节预算已在静态汉化脚本按 _lg+_allv 双头补断言, 不再触发尾截)。
+    assert '(全年份锚)' in labels['policy_cosine_sim_lg_allv_full'], \
+        "policy_cosine_sim_lg_allv_full 应得 全年份锚 派生标签"
+    assert '(全年份锚)' in labels['auth_sim_emb_lg_allv_full'], \
+        "auth_sim_emb_lg_allv_full 应得 全年份锚 派生标签"
     # 标签仍满足 to_stata 80 字节硬约束
     assert len(labels['policy_cosine_sim_lg_allv_full']) <= 80
     assert len(labels['auth_sim_emb_lg_allv_full']) <= 80

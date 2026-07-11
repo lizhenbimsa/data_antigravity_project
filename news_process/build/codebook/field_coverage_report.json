@@ -1,0 +1,65 @@
+{
+ "n_variables": 3453,
+ "fields": {
+  "变量名": {
+   "non_empty": 3453,
+   "total": 3453,
+   "rate": 1.0
+  },
+  "标签": {
+   "non_empty": 3453,
+   "total": 3453,
+   "rate": 1.0
+  },
+  "描述": {
+   "non_empty": 3453,
+   "total": 3453,
+   "rate": 1.0
+  },
+  "数据类型": {
+   "non_empty": 3453,
+   "total": 3453,
+   "rate": 1.0
+  },
+  "单位": {
+   "non_empty": 3453,
+   "total": 3453,
+   "rate": 1.0
+  },
+  "取值范围": {
+   "non_empty": 3453,
+   "total": 3453,
+   "rate": 1.0
+  },
+  "计算公式": {
+   "non_empty": 3453,
+   "total": 3453,
+   "rate": 1.0
+  },
+  "来源阶段": {
+   "non_empty": 3453,
+   "total": 3453,
+   "rate": 1.0
+  },
+  "学术引用": {
+   "non_empty": 671,
+   "total": 3453,
+   "rate": 0.194324
+  },
+  "备注": {
+   "non_empty": 3370,
+   "total": 3453,
+   "rate": 0.975963
+  },
+  "变量类别": {
+   "non_empty": 3453,
+   "total": 3453,
+   "rate": 1.0
+  },
+  "文本轨道": {
+   "non_empty": 2858,
+   "total": 3453,
+   "rate": 0.827686
+  }
+ }
+}

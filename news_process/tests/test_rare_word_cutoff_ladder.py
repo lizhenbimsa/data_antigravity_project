@@ -112,8 +112,8 @@ class TestCodebook:
                 key = f'{pb}_{t}'
                 assert key in meta, f'codebook 缺 {key}'
                 assert meta[key].source_stage and '未知' not in meta[key].source_stage
-        # canonical 条目不受扰动
-        assert meta['avg_rare_word_full'].label == 'Rare-Word Ratio (full)'
+        # canonical 条目不受扰动 (WP3 2026-07-10 标签中文化后的中文文案)
+        assert meta['avg_rare_word_full'].label == '罕见词比率(词频≤3)(全文轨)'
 
 
 class TestMatcherOrthogonality:

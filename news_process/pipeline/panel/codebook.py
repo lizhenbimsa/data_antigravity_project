@@ -29,6 +29,7 @@ v3.0.0 (v8) schema 升级 (2026-05-15):
 
 from __future__ import annotations
 
+import csv
 import json
 import logging
 import os
@@ -343,7 +344,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     # 此处仅作 panel 缺列时的 fallback 文案。
     metadata['target_bank'] = VariableMetadata(
         var_name='target_bank',
-        label='Target Bank',
+        label='目标银行(面板主键)',
         description='目标银行名称（标准化后的银行全称）',
         data_type='str',
         unit='',
@@ -360,7 +361,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     # (盘上实际 2017–2018, 全量语料 2007–2024, 两种口径下都错) — 生成时动态覆盖。
     metadata['year'] = VariableMetadata(
         var_name='year',
-        label='Year',
+        label='年度(面板主键)',
         description='年份',
         data_type='int',
         unit='年',
@@ -382,7 +383,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     #   panel encode (compute_fintech_attention_index) 物化而非 Stage 24。
     metadata['ft_attn_yr'] = VariableMetadata(
         var_name='ft_attn_yr',
-        label='Fintech Attention Index (Year)',
+        label='金融科技注意力指数(年度)',
         description='年度金融科技注意力强度 = 当年金融科技新闻占当年全部唯一文章的比例 '
                     '(year-level 常量, 同年所有 bank 取同值)',
         data_type='float',
@@ -413,20 +414,20 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     # (compute_attention_treatments, 已门控 verified 集) 刻意不同; 可能含 LLM 判伪文章,
     # 论文 data/sample 段须披露该口径。注 notes 字段同载此披露。
     _GEO_ATTN = [
-        ('ft_attn_prov', 'Fintech Attention (Province, Exp-Wt)', '比率', '[0, 1]',
+        ('ft_attn_prov', '金融科技注意力比值(省级,曝露加权LOO)', '比率', '[0, 1]',
          '(cell_ft − own_ft)/(cell_total − own_total) 按 (省,年) LOO, 再 bank-year 曝露加权均值',
          '省级金融科技注意力比值 = 报道该行的媒体来源省份 (剔除自身报道后) 的 fintech 议程份额; '
          '曝露加权 leave-one-out (反身性内生守卫); LOO 余分母 < 5 → NaN'),
-        ('ft_attn_city', 'Fintech Attention (City, Exp-Wt)', '比率', '[0, 1]',
+        ('ft_attn_city', '金融科技注意力比值(市级,曝露加权LOO)', '比率', '[0, 1]',
          '(cell_ft − own_ft)/(cell_total − own_total) 按 (市,年) LOO, 再 bank-year 曝露加权均值',
          '市级金融科技注意力比值; 口径同 ft_attn_prov, 地理粒度细化到城市; 小单元更易退化 → NaN 守卫'),
-        ('ft_vol_yr', 'Fintech Coverage Volume (Year, ln)', '', '[0, +inf)',
+        ('ft_vol_yr', '金融科技覆盖总量(年度,ln)', '', '[0, +inf)',
          'ln(1 + 当年 fintech 唯一篇数)',
          '年度金融科技覆盖总量 (extensive 规模, year-level 常量, 无 LOO); ft_attn_yr 比值的总量孪生, 互为稳健性'),
-        ('ft_vol_prov', 'Fintech Coverage Volume (Province, Exp-Wt, ln)', '', '[0, +inf)',
+        ('ft_vol_prov', '金融科技覆盖总量(省级,曝露加权LOO,ln)', '', '[0, +inf)',
          'ln(1 + 曝露加权 LOO fintech 篇数, 按 (省,年))',
          '省级金融科技覆盖总量; ft_attn_prov 比值的总量孪生 (同 LOO 样本/守卫), 互为稳健性'),
-        ('ft_vol_city', 'Fintech Coverage Volume (City, Exp-Wt, ln)', '', '[0, +inf)',
+        ('ft_vol_city', '金融科技覆盖总量(市级,曝露加权LOO,ln)', '', '[0, +inf)',
          'ln(1 + 曝露加权 LOO fintech 篇数, 按 (市,年))',
          '市级金融科技覆盖总量; ft_attn_city 比值的总量孪生 (同 LOO 样本/守卫), 互为稳健性'),
     ]
@@ -458,45 +459,45 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     # 注: 下方 _ATTN_TREAT 静态列表仅 curate full/ctx 列; attention_media 产出的 _ss 注意力
     # 列在 codebook 中走 _infer_track/_infer_label 兜底 (已三轨化), 不在此重复 curate。
     _ATTN_TREAT = [
-        ('attention_index_full', 'Fintech Attention Index (full)', 'full',
+        ('attention_index_full', '金融科技注意力指数(累积曝光,全文轨)', 'full',
          'ln(1 + Σ_d fintech_intensity_score_full)', '[0, +inf)',
          '银行-年累积 fintech 曝光强度 (全文口径); P2 主处理变量 (cumulative attention without sign); '
          'extensive 累积曝光, 非 Hassan intensive 归一化份额 (intensive 对应 attention_pct/density)'),
-        ('attention_index_ctx', 'Fintech Attention Index (ctx)', 'ctx',
+        ('attention_index_ctx', '金融科技注意力指数(累积曝光,实体窗轨)', 'ctx',
          'ln(1 + Σ_d fintech_intensity_score_ctx)', '[0, +inf)',
          '同上, 实体窗口口径 (entity-context 窗口归因); 三轨 (full/ctx/ss) 稳健性: 与 _full/_ss 分离复跑; '
          'extensive 累积曝光, 非 Hassan intensive 份额'),
-        ('attention_pct_full', 'Fintech Attention Share', '',
+        ('attention_pct_full', '金融科技议程份额(占全部新闻比)', '',
          'N_ft / N_all (12_full 全部银行新闻为分母)', '[0, 1]',
          'fintech 新闻占该行该年全部新闻的议程份额 (track-agnostic 单轨, Fang-Peress 2009 JF)'),
-        ('attention_disp_full', 'Fintech Attention Dispersion (outlet HHI)', '',
+        ('attention_disp_full', '注意力跨媒体集中度(outlet HHI)', '',
          'Σ_o (n_o / Σn)²  on 媒体(中文)', '[0, 1]',
          '跨媒体曝光集中度 (HHI, 单 outlet=1); 零-fintech→NaN (track-agnostic, Cookson-Niessner 2020 JF)'),
-        ('attention_intensity_density_full', 'Attention Intensity Density (full)', 'full',
+        ('attention_intensity_density_full', '注意力强度密度(全文轨)', 'full',
          'Σ_d fintech_intensity_score_full / N_all', '[0, +inf)',
          '强度加权曝光密度 (非[0,1]故非"share"名); 三轨 (full/ctx/ss) 稳健性载体'),
-        ('attention_intensity_density_ctx', 'Attention Intensity Density (ctx)', 'ctx',
+        ('attention_intensity_density_ctx', '注意力强度密度(实体窗轨)', 'ctx',
          'Σ_d fintech_intensity_score_ctx / N_all', '[0, +inf)',
          '同上, 实体窗口口径; 与 _full 分离复跑'),
-        ('attention_intensity_sd_full', 'Attention Intensity SD (full)', 'full',
+        ('attention_intensity_sd_full', '注意力强度篇间离散(SD,全文轨)', 'full',
          'std_d(fintech_intensity_score_full), ddof=1', '[0, +inf)',
          '篇间 fintech 技术强度离散 (二阶矩); N<2→NaN; disp 三轨 (full/ctx/ss) 载体'),
-        ('attention_intensity_sd_ctx', 'Attention Intensity SD (ctx)', 'ctx',
+        ('attention_intensity_sd_ctx', '注意力强度篇间离散(SD,实体窗轨)', 'ctx',
          'std_d(fintech_intensity_score_ctx), ddof=1', '[0, +inf)',
          '同上, 实体窗口口径; 三轨 (full/ctx/ss) 中与 full 相关最低 (实跑 0.656), 最强稳健性'),
-        ('attention_gap_full_ctx', 'Attention Attribution Gap', '',
+        ('attention_gap_full_ctx', '注意力归因缺口(full−ctx)', '',
          'mean_d(intensity_full − intensity_ctx)', '(-inf, +inf)',
          'full/ctx 派生: 注意力借位/稀释度 (full 相对 ctx 的非本行归因量); 机制变量'),
-        ('attention_attr_share', 'Attention Attribution Purity', '',
+        ('attention_attr_share', '注意力归因纯度(ctx占比)', '',
          # fix(toptier-audit D4-1, 2026-06-13): 同步 attention_media.py:472-474 的有界 share
          # 构造 — 旧 clip(Σctx/Σfull,0,1) 右删失版已于 2026-06-12 撤回 (见该处 fix 注),
          # codebook 此前漏同步 (docstring:433 承诺的集中重生未落)。
          'Σ_d ctx / (Σ_d ctx + Σ_d full)  (= r/(1+r), 保序无删失)', '[0, 1]',
          'full/ctx 派生: 归因纯度 (指向本行的 fintech 注意力占比); Σctx+Σfull=0→NaN'),
-        ('n_fintech_articles', 'N fintech articles', '',
+        ('n_fintech_articles', '金融科技报道篇数', '',
          'count(fintech 文章 in bank-year)', '[0, +inf)',
          'extensive-margin baseline 计数 (诊断/对照, track-agnostic)'),
-        ('n_outlets', 'N distinct outlets', '',
+        ('n_outlets', '报道媒体来源数(去重)', '',
          'nunique(媒体(中文) over fintech 文章)', '[0, +inf)',
          'HHI 可算性诊断 (n_outlets≥2 才有 disp 变异); 零-fintech→NaN'),
     ]
@@ -555,7 +556,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     # 分子分母同口径 (encode.py:661-684)。补这三列的 codebook 条目消除元数据缺口。
     metadata['n_articles'] = VariableMetadata(
         var_name='n_articles',
-        label='N articles (physical coverage)',
+        label='物理覆盖篇数(含LLM失败行)',
         description='该 Bank-Year 的物理新闻覆盖篇数 (组内全部行, 含 LLM 投票失败 / NA 行); '
                     '用作媒体覆盖度 (ln_news_coverage) 与 falsification 的曝露量',
         data_type='int',
@@ -571,7 +572,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     )
     metadata['n_articles_llm_valid'] = VariableMetadata(
         var_name='n_articles_llm_valid',
-        label='N articles, LLM-valid (category-frac denominator)',
+        label='LLM有效验证篇数(占比分母)',
         description='该 Bank-Year LLM 有效分类/投票成功的篇数 (full 轨); '
                     '是 tech/app/sub/symb/indep/collab 等分类组成型 frac 的正确分母',
         data_type='int',
@@ -587,7 +588,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     )
     metadata['n_articles_llm_valid_ctx'] = VariableMetadata(
         var_name='n_articles_llm_valid_ctx',
-        label='N articles, ctx-track LLM-valid (ctx category-frac denom)',
+        label='LLM有效验证篇数(占比分母,实体窗轨)',
         description='该 Bank-Year ctx 轨 LLM 有效投票篇数; 是 ctx 对角线分类 frac '
                     '(tech/app_lc, sub/symb_sc, indep/collab_cm) 的正确分母',
         data_type='int',
@@ -606,10 +607,11 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     # 条目 (三轨), 与同批 redund 配对控制列同待遇 — 否则泛型推断无 llm 子串,
     # source_stage 落 '未知'。兄弟验证票一致率 avg_agreement_rate_* 由下方
     # _infer_source_stage 的 agreement_rate 规则承接 (同批补), 不另设手工条目。
+    _AGR_TRK_ZH = {'full': '全文轨', 'ctx': '实体窗轨', 'ss': '同句轨'}
     for _tk, _tn in (('_full', 'full'), ('_ctx', 'ctx'), ('_ss', 'ss')):
         metadata[f'avg_agreement_rate_s{_tk}'] = VariableMetadata(
             var_name=f'avg_agreement_rate_s{_tk}',
-            label=f'LLM Sentiment-Vote Agreement Rate ({_tn})',
+            label=f'LLM情感票一致率({_AGR_TRK_ZH[_tn]})',
             description=f'三家 LLM 情感票与最终情感一致占比 (verified 子集, {_tn} 轨) 的 '
                         f'bank-year 均值; 与验证票一致率 avg_agreement_rate{_tk} 并排的'
                         f'第二质量维度 (票=情感方向而非验证判定)',
@@ -659,7 +661,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     )
     metadata['llm_vote_tone_full'] = VariableMetadata(
         var_name='llm_vote_tone_full',
-        label='Media Favorability/Optimism (LLM Vote, Full; neg degenerate)',
+        label='LLM投票媒体正向倾向(负面类近退化,全文轨)',
         description='LLM 投票媒体正向报道倾向/乐观度指数 (全文轨道), 多模型多数投票; '
                     '名义双极 [-1,1] 但负面类近退化 → 实为单极正向强度 (favorability)',
         data_type='float',
@@ -676,7 +678,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
 
     metadata['llm_vote_tone_ctx'] = VariableMetadata(
         var_name='llm_vote_tone_ctx',
-        label='Media Favorability/Optimism (LLM Vote, Ctx; neg degenerate)',
+        label='LLM投票媒体正向倾向(负面类近退化,实体窗轨)',
         description='LLM 投票媒体正向报道倾向/乐观度指数 (上下文轨道, 仅含目标银行句及其前后文); '
                     '名义双极 [-1,1] 但负面类近退化 → 实为单极正向强度',
         data_type='float',
@@ -723,22 +725,22 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     # 这些列支撑 SENT CV-1 measurement 节的"类别先验 + 负面子样本零方差/极小 N"诊断,
     # 此前仅由 codebook fallback 自动推断, 此处补精写元数据 (含义/公式/来源/用途/引文)。
     _SENT_DIAG_SPECS = {
-        'pos_frac': ('Positive-Class Fraction', '正面类占比 (文章级 is_positive 的 bank-year 均值)',
+        'pos_frac': ('正面类占比', '正面类占比 (文章级 is_positive 的 bank-year 均值)',
                      'mean(is_positive)', '[0, 1]', '占比'),
-        'neg_frac': ('Negative-Class Fraction (near-degenerate)', '负面类占比 (近退化, 验证篇实测 0.24%)',
+        'neg_frac': ('负面类占比(近退化)', '负面类占比 (近退化, 验证篇实测 0.24%)',
                      'mean(is_negative)', '[0, 1] (实测近 0)', '占比'),
-        'pos_count': ('Positive-Class Count', '正面类文章计数 (bank-year)',
+        'pos_count': ('正面类篇数', '正面类文章计数 (bank-year)',
                       'sum(is_positive)', '[0, +inf)', '篇'),
-        'neg_count': ('Negative-Class Count (near-zero)', '负面类文章计数 (近零)',
+        'neg_count': ('负面类篇数(近零)', '负面类文章计数 (近零)',
                       'sum(is_negative)', '[0, +inf) (实测近 0)', '篇'),
     }
-    _DIAG_TRACK_LABEL = {'_full': 'Full', '_ctx': 'Ctx', '_ss': 'SS (bank+fintech same-sentence)'}
+    _DIAG_TRACK_LABEL = {'_full': '全文轨', '_ctx': '实体窗轨', '_ss': '同句轨(银行+金科)'}
     for _stem, (_lab, _desc, _formula, _vrange, _unit) in _SENT_DIAG_SPECS.items():
         for _trk in ('_full', '_ctx', '_ss'):
             _col = f'{_stem}{_trk}'
             metadata[_col] = VariableMetadata(
                 var_name=_col,
-                label=f'{_lab} ({_DIAG_TRACK_LABEL[_trk]})',
+                label=f'{_lab}({_DIAG_TRACK_LABEL[_trk]})',
                 description=f'{_desc}; {_DIAG_TRACK_LABEL[_trk]} 轨道。LLM 投票类别先验诊断, 支撑 '
                             'SENT CV-1 measurement 节 (负面类近退化 → 报告类别先验 + 负面子样本零方差/极小 N)。',
                 data_type='float',
@@ -761,12 +763,12 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     _D6_NOTE = ('D6 兜底分家: cogn 路径 = 100 字符最短守卫→NaN; emb 路径 = 剔行后 '
                 'bank 从 groupby 缺席→NaN + 空超级文档剔节点 (无 100 字符门, '
                 '短文本照嵌)。三轨/W-轨互为稳健性、不分主次, 禁混同一 Hansen J。')
+    _INS_TRK_LBL = {'': '', '_ctx': ',实体窗轨', '_ss': ',同句轨'}
     for _sfx, _trk_zh in (('', 'full(canonical)'), ('_ctx', 'ctx'), ('_ss', 'ss')):
         _col = f'industry_neg_shock{_sfx}'
         metadata[_col] = VariableMetadata(
             var_name=_col,
-            label=(f"Industry Neg Shock (LOO same-period"
-                   f"{', ' + _sfx.lstrip('_') if _sfx else ''}; year-FE collinear)"),
+            label=f'行业负面冲击LOO(同期,年FE共线{_INS_TRK_LBL[_sfx]})',
             description=f'行业负面冲击 LOO ({_trk_zh} 轨): 同行银行负面报道占比的 '
                         f'leave-one-out 均值; 分子分母严格逐轨 '
                         f'(neg_count{_sfx or "_full"} / n_articles_llm_valid{_sfx})。',
@@ -780,8 +782,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         )
         metadata[f'industry_neg_shock_lag1{_sfx}'] = VariableMetadata(
             var_name=f'industry_neg_shock_lag1{_sfx}',
-            label=(f"Industry Neg Shock LOO (L1, year-FE-safe"
-                   f"{', ' + _sfx.lstrip('_') if _sfx else ''})"),
+            label=f'行业负面冲击LOO(滞后1,年FE安全{_INS_TRK_LBL[_sfx]})',
             description=f'行业负面冲击 LOO 的 t-1 滞后 ({_trk_zh} 轨), 含年FE规格的可用形态。',
             data_type='float', unit='占比', value_range='[0, 1]',
             formula=f'L1.industry_neg_shock{_sfx}',
@@ -790,11 +791,11 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
             notes='年FE-safe 滞后变体; 三轨禁混同一 Hansen J。',
             category='情感指标 (行业冲击 LOO)', track=(_sfx.lstrip('_') or 'full'),
         )
+    _WT_TRK_ZH = {'ctx': '实体窗', 'ss': '同句'}
     for _wt in ('ctx', 'ss'):
         metadata[f'bank_cogn_mean_{_wt}'] = VariableMetadata(
             var_name=f'bank_cogn_mean_{_wt}',
-            label=f'Cognitive Proximity TF-IDF ({_wt} '
-                  f'{"window" if _wt == "ctx" else "same-sent"} text)',
+            label=f'认知邻近度(TF-IDF余弦,{_WT_TRK_ZH[_wt]}轨)',
             description=f'认知邻近度 ({_wt} 轨文本): 银行 content_{_wt} 超级文档 '
                         f'TF-IDF char-ngram cosine 对其他银行的均值。',
             data_type='float', unit='余弦相似度', value_range='[0, 1]',
@@ -806,8 +807,9 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         )
         metadata[f'emb_peer_tone_lag1_{_wt}'] = VariableMetadata(
             var_name=f'emb_peer_tone_lag1_{_wt}',
-            label=f'Emb Peer Tone L1 (W=full, tone={_wt}) '
-                  f'(co-primary: Qwen/Qwen3-Embedding-8B)',
+            # WP3: 与 stata_export HEURISTIC 同款措辞; W 来源必须写明 (econ-final-3);
+            # 尾注 = 中文 co-primary 紧凑形 (MAIN 槽 Qwen/Qwen3-Embedding-8B)
+            label=f'嵌入同业语调(W=全文,语调={_WT_TRK_ZH[_wt]},滞后1)(对等轨Qwen3-8B)',
             description=f'嵌入加权同行情感 (legacy 列): W 矩阵来源恒为 full 文本超级'
                         f'文档, 传播 {_wt} 轨 tone — 语义 = W_full × tone_{_wt}。',
             data_type='float', unit='语调', value_range='[-1, 1]',
@@ -820,8 +822,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         )
         metadata[f'emb_peer_tone_diag_lag1_{_wt}'] = VariableMetadata(
             var_name=f'emb_peer_tone_diag_lag1_{_wt}',
-            label=f'Emb Peer Tone Diag L1 (W={_wt}) '
-                  f'(co-primary: Qwen/Qwen3-Embedding-8B)',
+            label=f'嵌入同业语调对角轨(W={_WT_TRK_ZH[_wt]},滞后1)(对等轨Qwen3-8B)',
             description=f'嵌入加权同行情感 (diag 对角轨, 2026-07-03): W 矩阵由 '
                         f'content_{_wt} 超级文档构建, 传播同轨 tone — '
                         f'语义 = W_{_wt} × tone_{_wt} (W same-track)。',
@@ -835,8 +836,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         )
         metadata[f'bank_emb_sim_mean_lag1_{_wt}'] = VariableMetadata(
             var_name=f'bank_emb_sim_mean_lag1_{_wt}',
-            label=f'Bank Emb Sim Mean (L1, W={_wt}) '
-                  f'(co-primary: Qwen/Qwen3-Embedding-8B)',
+            label=f'银行嵌入相似度均值(W={_WT_TRK_ZH[_wt]},滞后1)(对等轨Qwen3-8B)',
             description=f'银行嵌入相似度均值 (W 来源轨 = {_wt}): content_{_wt} 超级'
                         f'文档 (t-1) 两两 cosine 对其他银行的均值。后缀语义 = W 来源轨。',
             data_type='float', unit='余弦相似度', value_range='[-1, 1]',
@@ -850,7 +850,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     # ═══ 网络中心度指标 ═══
     metadata['bank_degree_cent'] = VariableMetadata(
         var_name='bank_degree_cent',
-        label='Co-mention Degree Centrality',
+        label='共现网络度中心度',
         description='银行共现网络的度中心度，衡量银行在媒体报道中的连接数量',
         data_type='float',
         unit='中心度',
@@ -882,13 +882,18 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         '_ctx': ('上下文', 'Context'),
         '_ss': ('同句', 'Same-sentence'),
     }
+    # WP3: 模型显示名与 stata_export._PM_MODEL_ZH 同款 (标签层中文化)
+    _ISS_MODEL_LBL = {'gpt54nano': 'GPT-5.4nano', 'gemini31': 'Gemini3.1',
+                      'deepseekv4': 'DeepSeekV4'}
+    _ISS_TRACK_LBL = {'_full': '全文轨', '_ctx': '实体窗轨', '_ss': '同句轨'}
     for _short in _ISS_LLM_MODELS:
         for _suffix, _meta in _ISS_SUBSETS.items():
             for _track, (_zh_t, _en_t) in _ISS_TRACKS.items():
                 _var = f'{_short}_tone{_suffix}{_track}'
                 metadata[_var] = VariableMetadata(
                     var_name=_var,
-                    label=f'{_short} Tone in {_meta["en"]} subset ({_en_t})',
+                    label=(f'{_ISS_MODEL_LBL.get(_short, _short)}语调'
+                           f'({_meta["zh"]}子集,{_ISS_TRACK_LBL[_track]})'),
                     description=f'{_short} 模型对【{_meta["zh"]}创新】新闻 sentiment 在{_zh_t}轨道的 bank-year 均值',
                     data_type='float',
                     unit='情感值',
@@ -905,7 +910,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     # 反向借鉴 tone_gap_sub_symb (v3.0.0); 增加 min(n_tech,n_app)>=5 confound 防御
     metadata['tone_gap_tech_app'] = VariableMetadata(
         var_name='tone_gap_tech_app',
-        label='Technology-Application Sentiment Gap',
+        label='语调差:底层技术-应用场景(全文轨)',
         description='同一 bank-year 内 底层技术类 LLM 投票情感 减去 应用场景类，'
                     '反映该银行该年度技术层 vs 业务应用层的舆论温差。',
         data_type='float',
@@ -928,6 +933,10 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     # reference 两段式纪律 (计划 §2.7): 构造=本项目定义, 锚点=构念动机非方法出处。
     _bd_cat = '情感指标-BERT分布形状'
     _bd_stage = 'Stage 23 (article probs) → Stage 40 (panel/bert_distribution·encode)'
+    # WP3: 标签层轨名/模型显示名 (与 stata_export per-model 中文模板同款措辞)
+    _BD_TRACK_LBL = {'_full': '全文轨', '_ctx': '实体窗轨', '_ss': '同句轨'}
+    _BD_MODEL_LBL = {'finbert_cn': 'FinBERT-CN', 'fin_sent_zh': 'FinSentZH',
+                     'finbert2': 'FinBERT2'}
     for _suffix, _track_zh, _track_en in [
         ('_full', '全文', 'Full'), ('_ctx', '上下文', 'Ctx'), ('_ss', '同句', 'Same-sent'),
     ]:
@@ -945,7 +954,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
                 'pos_std=跨文章离散度, 本列=篇内类分布不确定性。')
             metadata[f'{_b}_tone_entropy{_suffix}'] = VariableMetadata(
                 var_name=f'{_b}_tone_entropy{_suffix}',
-                label=f'{_b} Tone Entropy ({_track_en})'[:80],
+                label=f'{_BD_MODEL_LBL.get(_b, _b)}语调熵({_BD_TRACK_LBL[_suffix]})'[:80],
                 description=f'白话: 模型 {_b} 给{_track_zh}轨每篇报道分类时"有多犹豫"'
                             f'的 bank-year 均值 — 高=类概率接近均匀、文本难判读; '
                             f'低=一边倒确信。构造=篇级归一化香农熵的年均。',
@@ -964,7 +973,8 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
                 _canon = ' (canonical, 无后缀 ≡ τ=0.90)' if _tag == '' else ' (梯子变体)'
                 metadata[f'{_b}_xneg_frac{_tag}{_suffix}'] = VariableMetadata(
                     var_name=f'{_b}_xneg_frac{_tag}{_suffix}',
-                    label=f'{_b} Extreme-Neg Share tau={_tau:.2f} ({_track_en})'[:80],
+                    label=(f'{_BD_MODEL_LBL.get(_b, _b)}极端负面占比'
+                           f'(t={_tau:.2f},{_BD_TRACK_LBL[_suffix]})')[:80],
                     description=f'白话: {_track_zh}轨中被模型 {_b} 以超过 {_tau:.0%} 的'
                                 f'负面概率"强判负面"的报道占比 — 捕捉极端唱衰/尾部'
                                 f'风险叙事, 与均值语调正交{_canon}。',
@@ -984,7 +994,8 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
                 )
             metadata[f'{_b}_net_tone_skew{_suffix}'] = VariableMetadata(
                 var_name=f'{_b}_net_tone_skew{_suffix}',
-                label=f'{_b} Net-Tone Skewness raw ({_track_en})'[:80],
+                label=(f'{_BD_MODEL_LBL.get(_b, _b)}净语调偏度'
+                       f'(raw,{_BD_TRACK_LBL[_suffix]})')[:80],
                 description=f'白话: {_track_zh}轨逐篇净语调 (P(正)−P(负)) 在 bank-year '
                             f'内的分布偏度 — 负偏=坏消息集中爆发在少数极端负面报道; '
                             f'年均值相同的两家银行可有完全不同的偏度。',
@@ -1005,7 +1016,8 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
             )
             metadata[f'{_b}_nt_iyvol{_suffix}'] = VariableMetadata(
                 var_name=f'{_b}_nt_iyvol{_suffix}',
-                label=f'{_b} Intra-Yr Net-Tone Vol noise-adj ({_track_en})'[:80],
+                label=(f'{_BD_MODEL_LBL.get(_b, _b)}年内净语调波动'
+                       f'(降噪,{_BD_TRACK_LBL[_suffix]})')[:80],
                 description=f'白话: 该银行该年{_track_zh}轨净语调的**年内跨月**波动 — '
                             f'"全年平稳温和"与"上半年吹捧下半年翻脸"在年均值上不可'
                             f'区分, 本列区分。已剔除"报道少的月份均值本身不准"的抽样'
@@ -1029,7 +1041,8 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
             )
             metadata[f'{_b}_nt_iytrend{_suffix}'] = VariableMetadata(
                 var_name=f'{_b}_nt_iytrend{_suffix}',
-                label=f'{_b} Intra-Yr Net-Tone Trend ({_track_en})'[:80],
+                label=(f'{_BD_MODEL_LBL.get(_b, _b)}年内净语调月度趋势'
+                       f'({_BD_TRACK_LBL[_suffix]})')[:80],
                 description=f'白话: 该银行该年{_track_zh}轨净语调的年内月度趋势斜率 — '
                             f'正=年内舆论转暖, 负=年内转冷; 与年均水平正交的时间'
                             f'结构信息。',
@@ -1048,7 +1061,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         # --- 跨模型分歧双轨 (per-track, 非 per-model) ---
         metadata[f'bert_xmodel_lblhet{_suffix}'] = VariableMetadata(
             var_name=f'bert_xmodel_lblhet{_suffix}',
-            label=f'BERT X-Model Sign-Disagree Share ({_track_en})'[:80],
+            label=f'BERT跨模型符号分歧对占比(canonical,{_BD_TRACK_LBL[_suffix]})'[:80],
             description=f'白话: 同一篇{_track_zh}轨报道让三个 BERT 模型分别判正负, 它们'
                         f'"吵架"的程度 (两两符号不一致的模型对占比) 的 bank-year 均值 '
                         f'— 度量文本对分类器的判读难度/模糊度。canonical 轨 (逐篇局部'
@@ -1070,7 +1083,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         )
         metadata[f'bert_xmodel_disp{_suffix}'] = VariableMetadata(
             var_name=f'bert_xmodel_disp{_suffix}',
-            label=f'BERT X-Model z-SD Dispersion ({_track_en})'[:80],
+            label=f'BERT跨模型z-SD离散度(对等孪生轨,{_BD_TRACK_LBL[_suffix]})'[:80],
             description=f'白话: 同一篇{_track_zh}轨报道三个 BERT 模型净语调 (各自 z 标'
                         f'准化后) 的跨模型标准差的 bank-year 均值 — lblhet 的连续幅度'
                         f'版稳健孪生轨。',
@@ -1105,17 +1118,19 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     _PROB_STD_RANGE = '[0, 1/√2 ≈ 0.7071]'
     _PROB_STD_NOTE = ('zero-article bank-year → NaN per encode.py L1105 convention; '
                       '上界 1/√2 为 ddof=1 样本 SD 上确界 (√(n/(n-1))·0.5, n=2 时取得)')
+    _PS_TRACK_LBL = {'_full': '全文轨', '_ctx': '实体窗轨', '_ss': '同句轨'}  # WP3 标签层轨名
     for _suffix, _track_zh, _track_en in [
         ('_full', '全文', 'Full-text'),
         ('_ctx', '上下文', 'Entity-context'),
         ('_ss', '同句', 'Same-sentence'),
     ]:
         _trk = _suffix.lstrip('_')  # 'full' / 'ctx' / 'ss' 标准枚举值
+        _ps_trk = _PS_TRACK_LBL[_suffix]
         # ─── Plan v1.37 P2 + 三维对称 (2026-06-14): 每轨 6 个 binary prob_score
         #     列 (subst/locus/collab × {mean,std}), 三轨 (full/ctx/ss) 共 18 列 ───
         metadata[f'avg_subst_prob_score{_suffix}'] = VariableMetadata(
             var_name=f'avg_subst_prob_score{_suffix}',
-            label=f'Avg Subst P_BIN ({_track_en}, 1=symbolic)',
+            label=f'实质性二元概率分均值(1=象征,{_ps_trk})',
             description=f'平均 binary prob_score for innovation_substantiveness {_track_zh}轨',
             data_type='float',
             unit='概率',
@@ -1129,7 +1144,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         )
         metadata[f'avg_subst_prob_score_std{_suffix}'] = VariableMetadata(
             var_name=f'avg_subst_prob_score_std{_suffix}',
-            label=f'Std Subst P_BIN ({_track_en}, bank-year SD)',
+            label=f'实质性二元概率分标准差(1=象征,{_ps_trk})',
             description=f'avg_subst_prob_score{_suffix} 的 bank-year 标准差',
             data_type='float',
             unit='概率SD',
@@ -1143,7 +1158,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         )
         metadata[f'avg_locus_prob_score{_suffix}'] = VariableMetadata(
             var_name=f'avg_locus_prob_score{_suffix}',
-            label=f'Avg Locus P_BIN ({_track_en}, 1=application)',
+            label=f'位置二元概率分均值(1=应用,{_ps_trk})',
             description=f'平均 binary prob_score for innovation_locus {_track_zh}轨',
             data_type='float',
             unit='概率',
@@ -1157,7 +1172,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         )
         metadata[f'avg_locus_prob_score_std{_suffix}'] = VariableMetadata(
             var_name=f'avg_locus_prob_score_std{_suffix}',
-            label=f'Std Locus P_BIN ({_track_en}, bank-year SD)',
+            label=f'位置二元概率分标准差(1=应用,{_ps_trk})',
             description=f'avg_locus_prob_score{_suffix} 的 bank-year 标准差',
             data_type='float',
             unit='概率SD',
@@ -1173,7 +1188,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         # positive_class=外部协同 与 stata_export 1=对照 一致), 与 subst/locus 同构。
         metadata[f'avg_collab_prob_score{_suffix}'] = VariableMetadata(
             var_name=f'avg_collab_prob_score{_suffix}',
-            label=f'Avg Collab P_BIN ({_track_en}, 1=external/open)',
+            label=f'协同二元概率分均值(1=协同,{_ps_trk})',
             description=f'平均 binary prob_score for innovation_collab_mode {_track_zh}轨',
             data_type='float',
             unit='概率',
@@ -1187,7 +1202,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         )
         metadata[f'avg_collab_prob_score_std{_suffix}'] = VariableMetadata(
             var_name=f'avg_collab_prob_score_std{_suffix}',
-            label=f'Std Collab P_BIN ({_track_en}, bank-year SD)',
+            label=f'协同二元概率分标准差(1=协同,{_ps_trk})',
             description=f'avg_collab_prob_score{_suffix} 的 bank-year 标准差',
             data_type='float',
             unit='概率SD',
@@ -1276,7 +1291,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     for _vn, _zh, _en, _trk, _num, _den, _ref, _cat in _FRAC_SPECS:
         metadata[_vn] = VariableMetadata(
             var_name=_vn,
-            label=f'Frac {_en} articles ({_trk})',
+            label=f'{_zh}类报道占比({_trk}轨分类)',
             description=f'该 Bank-Year 中 LLM 判定为「{_zh}」的文章占比 ({_trk} 轨分类)',
             data_type='float',
             unit='比率',
@@ -1297,7 +1312,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     ]:
         metadata[f'n_articles{_suffix}'] = VariableMetadata(
             var_name=f'n_articles{_suffix}',
-            label=f'N articles in {_en} subset (Loc=Ctx)',
+            label=f'{_zh}类篇数(位置分类=ctx)',
             description=f'innovation_locus_ctx="{_zh}" 子集篇章数 (entity-ctx classification)',
             data_type='int',
             unit='篇',
@@ -1311,7 +1326,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         )
         metadata[f'llm_vote_tone{_suffix}'] = VariableMetadata(
             var_name=f'llm_vote_tone{_suffix}',
-            label=f'LLM Tone in {_en} subset (Loc=Ctx, ctx sent)',
+            label=f'LLM投票正向倾向({_zh}子集,位置分类=ctx,实体窗轨)',
             description=f'LLM 投票情感 ({_zh} 子集, ctx 分类, ctx 情感) mean',
             data_type='float',
             unit='情感值',
@@ -1330,7 +1345,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     ]:
         metadata[f'n_articles{_suffix}'] = VariableMetadata(
             var_name=f'n_articles{_suffix}',
-            label=f'N articles in {_en} subset (Subst=Ctx)',
+            label=f'{_zh}类篇数(实质分类=ctx)',
             description=f'innovation_substantiveness_ctx="{_zh}" 子集篇章数',
             data_type='int',
             unit='篇',
@@ -1344,7 +1359,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         )
         metadata[f'llm_vote_tone{_suffix}'] = VariableMetadata(
             var_name=f'llm_vote_tone{_suffix}',
-            label=f'LLM Tone in {_en} subset (Subst=Ctx)',
+            label=f'LLM投票正向倾向({_zh}子集,实质分类=ctx,实体窗轨)',
             description=f'LLM 投票情感 ({_zh} 子集, ctx 分类, ctx 情感) mean',
             data_type='float',
             unit='情感值',
@@ -1362,7 +1377,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     #   而 ss 是纯情感轨 (不做 D2/D4 分类分解, 见 plan §7.3-A1) → 刻意无 _ss 孪生。
     metadata['tone_gap_tech_app_lc_ctx'] = VariableMetadata(
         var_name='tone_gap_tech_app_lc_ctx',
-        label='Tone Gap: Tech-App (Loc=Ctx, ctx sentiment)',
+        label='语调差:技术-应用(P4主DV,位置分类=ctx,实体窗轨)',
         description='Tech 子集 LLM 投票情感 - App 子集 (entity-ctx classification + ctx sentiment)',
         data_type='float',
         unit='情感差值',
@@ -1376,7 +1391,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     )
     metadata['tone_gap_sub_symb_sc_ctx'] = VariableMetadata(
         var_name='tone_gap_sub_symb_sc_ctx',
-        label='Tone Gap: Sub-Symb (Subst=Ctx, ctx sentiment)',
+        label='语调差:实质-象征(实质分类=ctx,实体窗轨)',
         description='Substantive - Symbolic LLM 情感 (ctx 分类 + ctx 情感, 洗稿率 cheap talk 指标)',
         data_type='float',
         unit='情感差值',
@@ -1399,7 +1414,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     # title 轨不纳入 (修 R3-H1: title 文本 < 50 字符分母不稳).
     metadata['mean_clarity_score_full'] = VariableMetadata(
         var_name='mean_clarity_score_full',
-        label='Mean Clarity Score from indep Full-text scan (LM 2011 JF; You 2018)',
+        label='词汇清晰度均值(LM2011,全文轨)',
         description='Bank-year 加权平均 clarity_score; 基于 content_full 独立词典扫描',
         data_type='float',
         unit='clarity ratio',
@@ -1414,7 +1429,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
 
     metadata['mean_clarity_score_ctx'] = VariableMetadata(
         var_name='mean_clarity_score_ctx',
-        label='Mean Clarity Score from indep Ctx-text scan (LM 2011 JF; You 2018)',
+        label='词汇清晰度均值(LM2011,实体窗轨)',
         description='Bank-year 加权平均 clarity_score; 基于 content_ctx 独立词典扫描',
         data_type='float',
         unit='clarity ratio',
@@ -1429,7 +1444,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
 
     metadata['mean_frac_definite_full'] = VariableMetadata(
         var_name='mean_frac_definite_full',
-        label='Mean Frac Definite from indep Full scan (You 2018 Panel C 388 words)',
+        label='确定性词占比均值(You2018,全文轨)',
         description='Bank-year 加权平均 frac_definite (备份连续指标, 修 R9-M3 不损失信息)',
         data_type='float',
         unit='token fraction',
@@ -1444,7 +1459,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
 
     metadata['mean_frac_definite_ctx'] = VariableMetadata(
         var_name='mean_frac_definite_ctx',
-        label='Mean Frac Definite from indep Ctx scan (You 2018 Panel C 388 words)',
+        label='确定性词占比均值(You2018,实体窗轨)',
         description='Bank-year 加权平均 frac_definite (ctx 轨)',
         data_type='float',
         unit='token fraction',
@@ -1459,12 +1474,14 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
 
     metadata['frac_amb_articles_full'] = VariableMetadata(
         var_name='frac_amb_articles_full',
-        label='Frac Articles Ambiguous Full (>=D0 median, You 2018 Panel D)',
+        label='模糊表述报道占比(You2018,全文轨)',
         description='Bank-year 中 frac_ambiguous_full ≥ D0 frozen 全样本中位数的 article 占比',
         data_type='float',
         unit='article fraction',
         value_range='[0, 1] ∪ NaN',
-        formula='#{i: frac_ambiguous_full_i ≥ median_amb_d0 ∧ n_articles ≥ 2} / n_articles',
+        # WP1 (2026-07-10): 集合构造记号 #{i: ...} 改 count(i ∣ ...) — 花括号+冒号形态
+        # 会被长文库宽占位符残留闸 (\{[A-Za-z_]+:[^}]*\}, §1) 误判为拼错占位符, 语义等价改写
+        formula='count(i ∣ frac_ambiguous_full_i ≥ median_amb_d0 ∧ n_articles ≥ 2) / n_articles',
         source_stage='Stage 22 + Stage 40',
         reference='You et al. (2018) hhx055 Panel D; LM 2011 JF binarized version',
         notes='二值化指标 (修 R9-M3); n_articles<2 cell → NaN (修 R8-H2); median anchored to prompt v8 + stage 21 (修 R7-H1)',
@@ -1474,12 +1491,13 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
 
     metadata['frac_amb_articles_ctx'] = VariableMetadata(
         var_name='frac_amb_articles_ctx',
-        label='Frac Articles Ambiguous Ctx (>=D0 median, You 2018 Panel D)',
+        label='模糊表述报道占比(You2018,实体窗轨)',
         description='Bank-year 中 frac_ambiguous_ctx ≥ D0 frozen 中位数的 article 占比 (ctx 轨)',
         data_type='float',
         unit='article fraction',
         value_range='[0, 1] ∪ NaN',
-        formula='#{i: frac_ambiguous_ctx_i ≥ median_amb_d0 ∧ n_articles ≥ 2} / n_articles',
+        # 同上: 集合构造记号改写防宽占位符闸误报 (语义等价)
+        formula='count(i ∣ frac_ambiguous_ctx_i ≥ median_amb_d0 ∧ n_articles ≥ 2) / n_articles',
         source_stage='Stage 22 + Stage 40',
         reference='You et al. (2018) hhx055 Panel D',
         notes='ctx 三轨 (full/ctx/ss) 二值化之一; 与 frac_amb_articles_full 配对',
@@ -1492,7 +1510,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     #   (银行+金科同句共现) 分别调用; 此处 curate full/ctx, mean_num_intensity_ss 走 _infer_* 兜底。
     metadata['mean_num_intensity_full'] = VariableMetadata(
         var_name='mean_num_intensity_full',
-        label='Mean Numerical Intensity Full (three-track)',
+        label='数值披露强度均值(全文轨)',
         description='Bank-year 加权平均量化披露强度; 基于 content_full + cn2arab + 正则独立扫描',
         data_type='float',
         unit='digits per sentence',
@@ -1507,7 +1525,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
 
     metadata['mean_num_intensity_ctx'] = VariableMetadata(
         var_name='mean_num_intensity_ctx',
-        label='Mean Numerical Intensity Ctx (three-track)',
+        label='数值披露强度均值(实体窗轨)',
         description='Bank-year 加权平均 num_intensity; ctx 轨独立扫描',
         data_type='float',
         unit='digits per sentence',
@@ -1533,96 +1551,102 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     _DUAL_TEXT_SPECS = [
         # D2 FLS 全族补录 (2026-07-03 §5: 此前 frac_fls 族 codebook 零条目, 顺手偿还欠账;
         # 同名直聚合 dst=src, 非 avg_ 前缀范式):
-        ('frac_fls', 'Forward-Looking Statements Frac (dual-gate)', '[0,1]', '[0,1] ∪ NaN',
+        ('frac_fls', '前瞻性陈述占比(双门)', '[0,1]', '[0,1] ∪ NaN',
          'bank-year mean of (FLS 句数/总句数); 双门=句含 future 词∧time 词 (canonical headline); 与单门 frac_fls_fonly 互为稳健、不分主次, 禁混同一 Hansen J',
          'Li (2010) JAR 48(5); Bozanic-Roulstone-Van Buskirk (2018) JAE 65(1); Muslu et al. (2015) MS', 'Stage 22 (forward_looking) + Stage 40'),
-        ('frac_fls_fonly', 'Forward-Looking Statements Frac (future-only)', '[0,1]', '[0,1] ∪ NaN',
+        ('frac_fls_fonly', '前瞻性陈述占比(仅future单门)', '[0,1]', '[0,1] ∪ NaN',
          'bank-year mean of (单门 FLS 句数/总句数); 单门=句含 future 词即计 (双门的超集, 逐句蕴含); 证明 FLS 结论不被 time 门控驱动 (2026-07-03 D2 稳健臂)',
          'Li (2010) JAR 48(5); Bozanic-Roulstone-Van Buskirk (2018) JAE 65(1)', 'Stage 22 (forward_looking) + Stage 40'),
         # WP-C 三轨化 (2026-07-03, 自 _SINGLE_TEXT_SPECS 的 'avg_boilerplate_full' 迁入;
         # base label 已去 '(full)' 后缀 → 发射 label 'Boilerplate Phrase Ratio (full)' 与旧
         # 单轨条目逐字节同; full=headline, ctx/ss=互为稳健轨):
-        ('avg_boilerplate', 'Boilerplate Phrase Ratio', '[0,1]', '[0,1] ∪ NaN',
+        ('avg_boilerplate', '跨文档套话比率', '[0,1]', '[0,1] ∪ NaN',
          'bank-year mean of (命中跨语料高频 char_wb(4,6)-gram 套话集出现数/全部 n-gram 出现数); 解释性限定: 套话集口径在 ctx/ss 子窗信号较弱, ctx/ss 作稳健对照. ⚠ 套话集建在 stage22 输入子集(非真全量), 中文新闻落地非英文 10-K 原做法; 与 within_doc_redundancy(篇内)/staleness(整篇相似度)正交; 非嵌入族无 _lg 孪生',
          'Lang-Stice-Lawrence (2015) JAE 60(2-3):110; Dyer-Lang-Stice-Lawrence (2017) JAE 64(2-3)', 'Stage 22 (boilerplate) + Stage 40'),
-        ('avg_rare_word', 'Rare-Word Ratio', 'token fraction', '[0,1] ∪ NaN',
+        ('avg_rare_word', '罕见词比率(词频≤3)', 'token fraction', '[0,1] ∪ NaN',
          'bank-year mean of (低频词 token / 总 token); 低频=jieba 冻结词典词频≤P20 cutoff(实测覆盖~57% distinct词, 实为"非高频词率")',
          'You & Zhang (2009) RAS 14(4); Gentzkow-Kelly-Taddy (2019) JEL 57(3)', 'Stage 22 (lexical_complexity) + Stage 40'),
         # D1 频次 cutoff 梯子 (2026-07-03 §5): c2/c5 与 canonical (cutoff=3, 上行) 互为稳健、
         # 不分主次; 频次而非分位参数化 (冻结词典低频 tie 使分位梯子退化), 禁混同一 Hansen J
-        ('avg_rare_word_c2', 'Rare-Word Ratio (cutoff=2)', 'token fraction', '[0,1] ∪ NaN',
+        ('avg_rare_word_c2', '罕见词比率(词频≤2稳健臂)', 'token fraction', '[0,1] ∪ NaN',
          'bank-year mean; 低频=词频≤2 (≈实测 P10, 覆盖~11.6% distinct 词); canonical(≤3) 的敏感性臂, SSOT=lexical_complexity.RARE_WORD_FREQ_CUTOFFS',
          'You & Zhang (2009) RAS 14(4); Gentzkow-Kelly-Taddy (2019) JEL 57(3)', 'Stage 22 (lexical_complexity) + Stage 40'),
-        ('avg_rare_word_c5', 'Rare-Word Ratio (cutoff=5)', 'token fraction', '[0,1] ∪ NaN',
+        ('avg_rare_word_c5', '罕见词比率(词频≤5稳健臂)', 'token fraction', '[0,1] ∪ NaN',
          'bank-year mean; 低频=词频≤5 (≈实测 P63, 覆盖~63.4% distinct 词); canonical(≤3) 的敏感性臂, SSOT=lexical_complexity.RARE_WORD_FREQ_CUTOFFS',
          'You & Zhang (2009) RAS 14(4); Gentzkow-Kelly-Taddy (2019) JEL 57(3)', 'Stage 22 (lexical_complexity) + Stage 40'),
-        ('avg_hard_char', 'Hard-Char Ratio', 'char fraction', '[0,1] ∪ NaN',
+        ('avg_hard_char', '生僻字占比', 'char fraction', '[0,1] ∪ NaN',
          'bank-year mean of (非常用汉字 / 全部汉字); 常用字=jieba 词典字频累计 99.5% 派生集',
          '丘心颖等 (2016) 经济学(季刊) 15(4):1483; Dale & Chall (1948)', 'Stage 22 (lexical_complexity) + Stage 40'),
-        ('avg_nominalization', 'Nominalization Ratio', 'token fraction', '[0,1] ∪ NaN',
+        ('avg_nominalization', '名词化比率', 'token fraction', '[0,1] ∪ NaN',
          'bank-year mean of (vn/an 词性+性/化/度/型/制 后缀名词 / 总 token); posseg 近似(含专名 nr 小幅高估)',
          'Bonsall-Leone-Miller-Rennekamp (2017) JAE 63(2-3) Bog 句法成分', 'Stage 22 (lexical_complexity) + Stage 40'),
-        ('avg_function_word', 'Function-Word Ratio (LIWC Analytic 近似)', 'token fraction', '[0,1] ∪ NaN',
+        # P1-2 (2026-07-11): 标签中文为主 + 英文术语括注 (原英文开头中文尾注与
+        # "标签均使用中文"口径倒置, 且遮蔽 stata_export 全中文 HEURISTIC 条目)
+        ('avg_function_word', '虚词占比(LIWC Analytic近似)', 'token fraction', '[0,1] ∪ NaN',
          'bank-year mean of (u/p/c/r/y/e 虚词词性 / 总 token); 虚词占比高≈低分析性',
          'LIWC Analytic 维中文近似', 'Stage 22 (lexical_complexity) + Stage 40'),
-        ('avg_specificity', 'Specificity / Hard-Info Density', 'token fraction', '[0,1] ∪ NaN',
+        ('avg_specificity', '具体性/硬信息密度', 'token fraction', '[0,1] ∪ NaN',
          'bank-year mean of ((nr/ns/nt/nz 实体 + m 数词)/总 token); reframe=报道硬信息密度(非10-K披露); posseg 粗近似',
          'Hope, Hu & Lu (2016) RAS 21(4):1005', 'Stage 22 (lexical_complexity) + Stage 40'),
-        ('avg_named_entity', 'Named-Entity Density (specificity 实体面)', 'token fraction', '[0,1] ∪ NaN',
+        # P1-2 (2026-07-11): 中文为主英文括注 (原 'Named-Entity Density (...)')
+        ('avg_named_entity', '命名实体密度(specificity实体面)', 'token fraction', '[0,1] ∪ NaN',
          'bank-year mean of (nr/ns/nt/nz 具名实体/总 token); specificity 的纯实体子集(不含 m 数词), 拆出实体面以与数字面(num_intensity)正交. ⚠ avg_specificity 真子集分子(机械相关); T=2 盘面实测 article corr≈0.81 / bank-year≈0.75-0.80 — 中高相关非别名(信息量充分, 可作独立 specificity-面稳健性列), 但因子集机械相关勿与 avg_specificity 同进同一回归式(corr 数值待生产 T=18 回填)',
          'Hope, Hu & Lu (2016) RAS 21(4):1005', 'Stage 22 (lexical_complexity) + Stage 40'),
-        ('avg_within_doc_redund', 'Within-Document Redundancy', 'ratio', '[0,1] ∪ NaN',
+        ('avg_within_doc_redund', '篇内冗余度(字符3-gram)', 'ratio', '[0,1] ∪ NaN',
          'bank-year mean of (1 − 唯一字符3-gram/全部字符3-gram); 篇内自重复(与 staleness 跨篇正交)',
          'Dyer-Lang-Stice-Lawrence (2017) JAE 64(2-3); Cazier & Pfeiffer (2016)', 'Stage 22 (lexical_complexity) + Stage 40'),
-        ('avg_within_doc_redund_han', 'Within-Document Redundancy (Han-char)', 'ratio', '[0,1] ∪ NaN',
+        ('avg_within_doc_redund_han', '篇内冗余度(汉字3-gram)', 'ratio', '[0,1] ∪ NaN',
          'bank-year mean of (1 − 唯一汉字3-gram/全部汉字3-gram); 仅汉字口径(剔数字/标点/拉丁), 分子分母同为汉字. ⚠与字符口径 avg_within_doc_redund 文章级 corr≈0.99 → 敏感性诊断非独立构念, 勿同进一回归 (hanzi-char-dual); 锚点系中文落地非英文原文做法',
          'Dyer-Lang-Stice-Lawrence (2017) JAE 64(2-3); Cazier & Pfeiffer (2016)', 'Stage 22 (lexical_complexity) + Stage 40'),
         # fix(dta-coverage-audit, 2026-07-03): redundancy 配对长度控制 (字符/汉字双口径).
         # 聚合=mean-of-ln (文章级 ln 长度的 bank-year 均值), 与 avg_within_doc_redund(_han)
         # 同域同口径配对; ≠ geography 的 ln-of-mean (ln_word_count/ln_han_count), 刻意并存.
-        ('avg_redund_log_length', 'Redundancy Paired Length Control (ln chars)', 'ln(chars)', '[0, +∞) ∪ NaN',
+        ('avg_redund_log_length', '冗余度配对长度控制(ln字符)', 'ln(chars)', '[0, +∞) ∪ NaN',
          'bank-year mean of ln(去空白字符数); 回归用 avg_within_doc_redund 时的配对长度控制 (redundancy 与长度机械相关, Cazier & Pfeiffer 2016), 与其同定义域',
          'Dyer-Lang-Stice-Lawrence (2017) JAE 64(2-3); Cazier & Pfeiffer (2016)', 'Stage 22 (lexical_complexity) + Stage 40'),
-        ('avg_redund_han_log_length', 'Redundancy Paired Length Control (ln Han chars)', 'ln han chars', '[0, +∞) ∪ NaN',
+        ('avg_redund_han_log_length', '冗余度配对长度控制(ln汉字)', 'ln han chars', '[0, +∞) ∪ NaN',
          'bank-year mean of ln(汉字数); 回归用 avg_within_doc_redund_han 时的配对长度控制, 与其同定义域 (hanzi-char-dual 汉字口径)',
          'Dyer-Lang-Stice-Lawrence (2017) JAE 64(2-3); Cazier & Pfeiffer (2016)', 'Stage 22 (lexical_complexity) + Stage 40'),
-        ('avg_adversative', 'Adversative-Conjunction Ratio', 'token fraction', '[0,1] ∪ NaN',
+        ('avg_adversative', '转折连词比率', 'token fraction', '[0,1] ∪ NaN',
          'bank-year mean of (独立逆接连词表命中/总 token); 探索性, 不复用情感轨 adversative_words',
          '徐巍-姚振晔-陈冬华 (2021) 会计研究 (3):28; Ding-Liu-Yu (2008) WSDM', 'Stage 22 (lexical_complexity) + Stage 40'),
-        ('avg_word_count', 'Avg Word Count (jieba)', 'words', '[0, +∞) ∪ NaN',
+        ('avg_word_count', '篇均词数(jieba)', 'words', '[0, +∞) ∪ NaN',
          'bank-year mean of 文章 jieba 词数(去空白)',
          'Li (2008) JAE 45(2-3) 篇幅代理', 'Stage 22 (lexical_complexity) + Stage 40'),
-        ('ln_word_count', 'Article Length ln(1+avg_words) 词口径 MLENGTH', 'ln words', '[0, +∞) ∪ NaN',
+        # P1-2 (2026-07-11): 中文为主英文括注 (原 'Article Length ln(1+avg_words) ...')
+        ('ln_word_count', '文章长度ln(1+篇均词数)(词口径MLENGTH)', 'ln words', '[0, +∞) ∪ NaN',
          'ln(1 + avg_word_count); 真词口径 MLENGTH (区别于字符口径 avg_article_length)',
          'Li (2008) JAE 45(2-3); He et al. (2024) IRFA', 'Stage 40 (geography)'),
-        ('avg_han_count', 'Avg Han-Char Count', 'han chars', '[0, +∞) ∪ NaN',
+        ('avg_han_count', '篇均汉字数', 'han chars', '[0, +∞) ∪ NaN',
          'bank-year mean of 文章 CJK 汉字数 (is_cjk 计数, 剔数字/标点/拉丁; 与 hard_char 的 n_han 同源)',
          'Li (2008) JAE 45(2-3) 篇幅代理 (汉字口径)', 'Stage 22 (lexical_complexity) + Stage 40'),
-        ('ln_han_count', 'Article Length ln(1+avg_hanchars) 汉字口径', 'ln han chars', '[0, +∞) ∪ NaN',
+        # P1-2 (2026-07-11): 中文为主英文括注 (原 'Article Length ln(1+avg_hanchars) ...')
+        ('ln_han_count', '文章长度ln(1+篇均汉字数)(汉字口径)', 'ln han chars', '[0, +∞) ∪ NaN',
          'ln(1 + avg_han_count); 文章长度第三口径, 与字符口径 avg_article_length / 词口径 ln_word_count 互为长度稳健 (hanzi-char-dual)',
          'Li (2008) JAE 45(2-3); He et al. (2024) IRFA', 'Stage 40 (geography)'),
-        ('mean_num_intensity_word', 'Numerical Intensity per-Word (§4.3)', 'digits per word', '[0, +∞) ∪ NaN',
+        ('mean_num_intensity_word', '数值披露强度(词级)', 'digits per word', '[0, +∞) ∪ NaN',
          'bank-year 加权均值 of (数字 token / jieba 词数); 句级 num_intensity 的词级替代版, 对中文句读 sparse 稳健',
          'Davis & Tama-Sweet (2012) CAR 29(3) (构念; 公式为项目自定义)', 'Stage 22 (numerical_intensity) + Stage 40'),
-        ('tone_volatility', 'Tone Volatility (rolling SD)', 'std', '[0, +∞) ∪ NaN',
+        ('tone_volatility', '语调波动率(3年滚动SD)', 'std', '[0, +∞) ∪ NaN',
          'per-bank 3-year rolling std of llm_vote_tone (min_periods=2); 时间维二阶矩(与年内SD/反转正交)',
          'De Bondt-Thaler (1985) 反转之二阶矩补全', 'Stage 40 (runner i2)'),
-        ('lazy_jaccard', 'YoY Text Change — Jaccard', 'distance', '[0,1] ∪ NaN',
+        ('lazy_jaccard', '年际文本变化(Jaccard距离)', 'distance', '[0,1] ∪ NaN',
          '相邻年(t,t-1)同行聚合文本 1 − jieba 词集 Jaccard; 首年 NaN',
          'Cohen, Malloy & Nguyen (2020) JF 75(3):1371', 'Stage 40 (strategic_diff)'),
-        ('lazy_overlap', 'YoY Text Change — Word-Overlap', 'distance', '[0,1] ∪ NaN',
+        ('lazy_overlap', '年际文本变化(词重叠距离)', 'distance', '[0,1] ∪ NaN',
          '相邻年 1 − |A∩B|/min(|A|,|B|) 词集; 首年 NaN',
          'Cohen, Malloy & Nguyen (2020) JF 75(3):1371', 'Stage 40 (strategic_diff)'),
-        ('lazy_minedit', 'YoY Text Change — Norm-Levenshtein', 'distance', '[0,1] ∪ NaN',
+        ('lazy_minedit', '年际文本变化(归一化编辑距离)', 'distance', '[0,1] ∪ NaN',
          '相邻年 归一化编辑距离(rapidfuzz, 截断前2000字); 首年 NaN',
          'Cohen, Malloy & Nguyen (2020) JF 75(3):1371', 'Stage 40 (strategic_diff)'),
     ]
+    _DT_TRK_LBL = {'full': '全文轨', 'ctx': '实体窗轨', 'ss': '同句轨'}  # WP3 标签层轨名
     for _base, _label, _unit, _vr, _formula, _ref, _src in _DUAL_TEXT_SPECS:
         # 三轨 (full/ctx/ss): ss 条目仅对 lexical_complexity 泛型测度命中 panel (见上注),
         # 其余永不发射 → 加性安全。
         for _tk, _tn in (('_full', 'full'), ('_ctx', 'ctx'), ('_ss', 'ss')):
             metadata[f'{_base}{_tk}'] = VariableMetadata(
-                var_name=f'{_base}{_tk}', label=f'{_label} ({_tn})',
+                var_name=f'{_base}{_tk}', label=f'{_label}({_DT_TRK_LBL[_tn]})',
                 description=f'{_label}; bank-year 聚合, {_tn} 轨', data_type='float',
                 unit=_unit, value_range=_vr, formula=_formula, source_stage=_src,
                 reference=_ref, category=_CAT_NEW, track=_tn)
@@ -1630,21 +1654,21 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     # 新闻体裁显著性 (#8–#10, track-agnostic 单轨, 无 full/ctx/ss 分轨; 版面/页号/作者 解析,
     # Tetlock 2007/2008; Boudoukh 2019 RFS)
     _SINGLE_TEXT_SPECS = [
-        ('frac_front_page', 'Front-Page Coverage Frac', '[0,1] ∪ NaN',
+        ('frac_front_page', '头版报道占比', '[0,1] ∪ NaN',
          'bank-year mean of is_front_page (头版/要闻 或 A叠首页)', 'Tetlock (2007) JF 62(3); Boudoukh et al. (2019) RFS', 'Stage 11 (news_salience) + Stage 40'),
-        ('frac_front_section', 'Front-Section Coverage Frac', '[0,1] ∪ NaN',
+        ('frac_front_section', '要闻版报道占比', '[0,1] ∪ NaN',
          'bank-year mean of is_front_section (版面含头版/要闻/头条关键词)', 'Tetlock (2007) JF 62(3)', 'Stage 11 (news_salience) + Stage 40'),
-        ('avg_page_rank', 'Avg Page Prominence (lower=front)', 'rank ∪ NaN',
+        ('avg_page_rank', '版面显著度均值(越小越靠前)', 'rank ∪ NaN',
          'bank-year mean of page_rank=叠字母序×100+页码 (越小越显著)', 'Tetlock (2007) JF 62(3); Boudoukh et al. (2019) RFS', 'Stage 11 (news_salience) + Stage 40'),
-        ('staff_written_frac', 'Staff-Written (Byline) Frac', '[0,1] ∪ NaN',
+        ('staff_written_frac', '记者署名原创占比', '[0,1] ∪ NaN',
          'bank-year mean of has_byline (作者具名且非通讯社)', '来源原创性 (投入端, 与 media_authority/herd 正交)', 'Stage 11 (news_salience) + Stage 40'),
-        ('wire_frac', 'Wire-Service Frac', '[0,1] ∪ NaN',
+        ('wire_frac', '通讯社通稿占比', '[0,1] ∪ NaN',
          'bank-year mean of is_wire (作者/电头命中通讯社)', '通稿/转载来源', 'Stage 11 (news_salience) + Stage 40'),
-        ('frac_target_in_lead', 'Target-in-Lead Frac', '[0,1] ∪ NaN',
+        ('frac_target_in_lead', '标题/导语提及目标行占比', '[0,1] ∪ NaN',
          'bank-year mean of target_in_lead (规范行名出现在标题或正文前2句)', 'Tetlock (2008); Boudoukh et al. (2019) RFS relevance/centrality', 'Stage 11 (news_salience) + Stage 40'),
-        ('coverage_active_days', 'Active Coverage Days per Year', 'days ∪ NaN',
+        ('coverage_active_days', '年内有报道天数', 'days ∪ NaN',
          'bank-year 内有报道的不同日历天数(nunique 日期)', 'Hillert-Jacobs-Müller (2014) RFS', 'Stage 40 (encode)'),
-        ('coverage_continuity', 'Coverage Continuity (active/span)', '[0,1] ∪ NaN',
+        ('coverage_continuity', '报道连续性(活跃天/跨度)', '[0,1] ∪ NaN',
          'coverage_active_days / (报道跨度天数); 1=天天有, 低=爆发式 (节奏, 与 staleness 内容重复正交)', 'Hillert-Jacobs-Müller (2014) RFS', 'Stage 40 (encode)'),
     ]
     for _name, _label, _vr, _formula, _ref, _src in _SINGLE_TEXT_SPECS:
@@ -2040,10 +2064,168 @@ def _log_codebook_result_analysis(
         logger.warning(f"  codebook 结果解读打印失败 (不影响生成): {e}")
 
 
+# ── WP1 codebook markdown 方法学声明 (§1a 四项收窄决策 + 共享核心长文诚实披露;
+#    gate: tests/test_codebook_longdesc.py 断言该声明存在于 md 产物头部) ──
+_METHODOLOGY_DECLARATION = """## 方法学声明
+
+1. **同家族变体共享家族核心长文属刻意设计** (镜像 codebook 既有家族推断结构); 变体差分段保证逐列非逐字重复 (执行计划 §1)。
+2. 四项对用户字面要求的收窄决策 (与 `_index.json::tier_signoff` 签核问卷同列):
+   ① 结构列 (target_bank/year) 豁免 ≥1000 汉字闸 (仅须 12 字段完整 + 短描述);
+   ② pending 哨兵列暂不注 Stata notes (列不在 dta 中, 事实约束; 财务面板接入后回补);
+   ③ 顶刊闸允许 field 领域刊占比 ≤30% (SSOT = config/top_journal_list.yaml);
+   ④ wp/preprint 不计入"非顶刊"分母。
+3. 字数计量单位 = **CJK 汉字数** (Unicode 基本区 + 扩展 A; 英文/数字/标点/空白均不计): 全量 ≥1000 汉字 / 关键核心指标 (core) ≥5000 汉字; 引文段以英文/DOI 为主, 汉字贡献不计入闸。
+4. 动态统计段数值为生成期从面板实测注入 (本机 T=2 开发面板), 生产 T=18 重生后以实读为准 (基数禁写死)。
+"""
+
+_MD_SUMMARY_FIELDS = ('变量名', '标签', '数据类型', '来源阶段', '变量类别', '文本轨道')
+_CODEBOOK_12_FIELDS = ('变量名', '标签', '描述', '数据类型', '单位', '取值范围',
+                       '计算公式', '来源阶段', '学术引用', '备注', '变量类别', '文本轨道')
+
+
+def _md_cell(v: Any) -> str:
+    """摘要表单元格安全化: | 转义 + 换行折叠 (to_markdown 单表两大损坏根因之一)。"""
+    s = '' if v is None or (isinstance(v, float) and pd.isna(v)) else str(v)
+    return s.replace('|', '\\|').replace('\r', ' ').replace('\n', ' ')
+
+
+def _is_na_scalar(v: Any) -> bool:
+    """标量级缺失判定 (P2-⑤ json NaN→null 归一用): NaN/pd.NA/NaT → True。
+
+    pd.isna 对 list/ndarray 返回数组 → TypeError/ValueError 兜底为 False
+    (codebook 记录值均为标量, 兜底只防御性存在)。
+    """
+    if v is None:
+        return False   # None 本身已是 null, 无须再归一
+    try:
+        return bool(pd.isna(v))
+    except (TypeError, ValueError):
+        return False
+
+
+def _write_codebook_markdown(
+    codebook_df: pd.DataFrame,
+    panel: pd.DataFrame,
+    md_path: str,
+    pending_entries: List[Dict[str, Any]] | None = None,
+) -> None:
+    """md writer (WP1 §4 v2.3 P1 重写): 逐变量分节式 (`## 变量名` + 12 字段块)。
+
+    弃 to_markdown 单表 — 长文下单元格换行破表成变量名为空的续行 (破坏"产物行数
+    = 面板列数"判读)、`|` 不转义、tabulate 逐格 pad 到全列最宽 → 30MB+ 纯 padding。
+    顶部摘要表只放短字段 (行数 = 面板列数, §9.5 机器可验); 头部方法学声明;
+    尾部"待接入变量"附录章覆盖全部 pending 哨兵列。
+    """
+    os.makedirs(os.path.dirname(md_path) or '.', exist_ok=True)
+    stat_cols = [c for c in codebook_df.columns if c not in _CODEBOOK_12_FIELDS]
+    with open(md_path, 'w', encoding='utf-8') as f:
+        f.write("# 变量代码手册（Variable Codebook）\n\n")
+        f.write(f"**生成时间**: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        f.write(f"**变量总数**: {len(codebook_df)}\n\n")
+        f.write(f"**面板维度**: {len(panel)} 行 × {len(panel.columns)} 列\n\n")
+        f.write(_METHODOLOGY_DECLARATION + "\n")
+        # ── 顶部摘要表 (短字段 only; 行数 = 面板列数) ──
+        f.write("## 变量总览\n\n")
+        f.write('| ' + ' | '.join(_MD_SUMMARY_FIELDS) + ' |\n')
+        f.write('|' + '---|' * len(_MD_SUMMARY_FIELDS) + '\n')
+        for _, r in codebook_df.iterrows():
+            f.write('| ' + ' | '.join(_md_cell(r.get(k, '')) for k in _MD_SUMMARY_FIELDS) + ' |\n')
+        f.write('\n---\n\n## 变量详情\n\n')
+        # ── 逐变量分节 ──
+        for _, r in codebook_df.iterrows():
+            f.write(f"## {r.get('变量名', '')}\n\n")
+            for k in _CODEBOOK_12_FIELDS:
+                if k in ('变量名', '描述'):
+                    continue
+                f.write(f"- **{k}**: {_md_cell(r.get(k, ''))}\n")
+            f.write("\n**描述/注释**:\n\n")
+            f.write(str(r.get('描述', '') or '') + "\n\n")
+            _stats = ' | '.join(
+                f"{k}={r.get(k)}" for k in stat_cols
+                if r.get(k) is not None and not (isinstance(r.get(k), float) and pd.isna(r.get(k)))
+            )
+            if _stats:
+                f.write(f"**统计信息**: {_stats}\n\n")
+        # ── 待接入变量附录章 (§1a 类别 2: pending 哨兵列, 覆盖全部 pending) ──
+        f.write("## 附录: 待接入变量 (tier=pending)\n\n")
+        if pending_entries:
+            f.write("以下列为外部财务面板哨兵列: 家族长文照写入库, 12 字段照填 "
+                    "(来源阶段=外部财务面板接入时构造); 显式排除在守恒 gate / 逐列 "
+                    "≥5000 汉字 gate / Stata notes 注入对账之外 (§1a 类别 2)。\n\n")
+            for e in pending_entries:
+                f.write(f"### {e.get('col', '')}\n\n")
+                f.write(f"- **家族**: {e.get('family_id', '')} | **tier**: pending\n")
+                if e.get('unit'):
+                    f.write(f"- **单位**: {_md_cell(e['unit'])}\n")
+                if e.get('formula'):
+                    f.write(f"- **计算公式**: {_md_cell(e['formula'])}\n")
+                f.write("\n" + str(e.get('description', '')) + "\n\n")
+        else:
+            f.write("(本次生成无 pending 哨兵列条目 — 长文库未启用或库中无 tier=pending 列。)\n")
+
+
+def _write_field_coverage_report(codebook_df: pd.DataFrame, path: str) -> None:
+    """12 字段逐字段非空率报告 (§9.2: gate 读文件断言而非人读日志)。"""
+    os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
+    n = len(codebook_df)
+    report: Dict[str, Any] = {'n_variables': n, 'fields': {}}
+    for k in _CODEBOOK_12_FIELDS:
+        col = codebook_df.get(k)
+        n_nonempty = int((col.astype(str).str.strip() != '').sum()) if col is not None else 0
+        report['fields'][k] = {
+            'non_empty': n_nonempty,
+            'total': n,
+            'rate': round(n_nonempty / n, 6) if n else 0.0,
+        }
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(report, f, ensure_ascii=False, indent=1)
+
+
+def _compose_long_description(
+    col: str,
+    meta,
+    panel: pd.DataFrame | None,
+    longdesc_dir: str | None = None,
+    library=None,
+    counters: Dict[str, Any] | None = None,
+):
+    """家族长文库组装器薄封装 (WP1 §0: **唯一挂载点 = generate_codebook 逐列发射循环**)。
+
+    panel-无关纯函数 (col/meta/panel/longdesc_dir 全参数注入, 不 import 主线 51 路径
+    常量) — WP6 从 company_{listed,tax}_bank 管道传入其 panel 与 longdesc_dir 复用。
+    实现在叶模块 codebook_longdesc (镜像 bert_distribution 先例), 此处惰性 import —
+    导出路径 (stata_export/export/controls) import codebook 时**不**加载组装器。
+
+    ⚠ 铁律 (§0 v2.3): 刻意不进 get_variable_metadata_dict (无参签名 :329, 被
+    stage 40/46/51 标签路径调用; 挂入则 51-only 列在 46 的列宇宙触发 SystemExit
+    而 stata_export.py:252 的 except Exception 捕不到 SystemExit → 三导出 stage 全崩)。
+
+    Returns:
+        None — 长文库未启用 / col 无家族 (调用方回退现状短描述 + 告警计数);
+        dict — 见 codebook_longdesc.compose_long_description。
+    """
+    from news_process.pipeline.panel import codebook_longdesc as _cl
+
+    if library is None:
+        library = _cl.load_library(longdesc_dir)
+    if library is None:
+        return None
+    _src_stage = ''
+    if meta is not None and getattr(meta, 'source_stage', ''):
+        _src_stage = meta.source_stage
+    else:
+        _src_stage = _infer_source_stage(col)
+    return _cl.compose_long_description(
+        col, panel, library, source_stage=_src_stage, counters=counters,
+    )
+
+
 def generate_codebook(
     panel: pd.DataFrame,
     output_dir: str,
     formats: List[str] | None = None,
+    versioned_dir: str | None = None,
+    longdesc_dir: str | None = None,
 ) -> Dict[str, str]:
     """生成完整的变量代码手册
 
@@ -2051,11 +2233,20 @@ def generate_codebook(
     取值范围从 panel 动态实测覆盖静态 fallback; track 编码非法值 (∉ {'', 'full',
     'ctx', 'dual'}) fail-loud raise ValueError 而非静默进产物。
 
+    WP1 (2026-07-10 计划 §1/§4): 家族长文库组装挂载点 (longdesc_dir 显式启用) +
+    md/json 权威载体可迁 versioned_dir (build/codebook/, git 版本化) + xlsx 组装层
+    32,767 守卫 + csv QUOTE_ALL + md 逐变量分节式 writer + field_coverage_report。
+
     Args:
         panel: 面板数据
-        output_dir: 输出目录
+        output_dir: 输出目录 (xlsx/csv 可再生品落点, 不入 git)
         formats: 输出格式列表，可选：'excel', 'csv', 'markdown', 'json'.
             None 时取 _DEFAULT_CODEBOOK_FORMATS 全 4 格式.
+        versioned_dir: md + json 权威载体落点 (生产入口传 build/codebook/);
+            None → 回退 output_dir (向后兼容既有调用/测试)。
+        longdesc_dir: 家族长文库目录 (config/codebook_longdesc)。None → 长文模式
+            关闭 (完全既有行为); 传入但库缺失 (_index.json 不存在) → 逐列回退现状
+            短描述 + 告警计数 (§1 缺库回退口径)。
 
     Returns:
         生成的文件路径字典
@@ -2064,6 +2255,7 @@ def generate_codebook(
     _phase_durations: Dict[str, float] = {}
     if formats is None:
         formats = list(_DEFAULT_CODEBOOK_FORMATS)
+    versioned_dir = versioned_dir or output_dir
     logger.info("=" * 70)
     logger.info("生成变量代码手册（Variable Codebook）")
     logger.info("=" * 70)
@@ -2077,12 +2269,29 @@ def generate_codebook(
     _phase_durations['①元数据字典构建'] = time.time() - _t
     _t = time.time()
 
+    # ── 家族长文库加载 (WP1): longdesc_dir 显式启用; 缺库 → None + 告警计数 ──
+    _ld_lib = None
+    _ld_counters: Dict[str, Any] = {'composed': 0, 'fallback': 0, 'warnings': []}
+    if longdesc_dir is not None:
+        from news_process.pipeline.panel import codebook_longdesc as _cl
+        _ld_lib = _cl.load_library(longdesc_dir)
+        if _ld_lib is None:
+            logger.warning(
+                f"  ⚠ 家族长文库缺失 ({longdesc_dir} 无 _index.json) — 全列回退现状"
+                "短描述 + 告警计数 (§1 缺库回退口径, 终验须归零)"
+            )
+        elif _ld_lib.load_warnings:
+            for _w in _ld_lib.load_warnings:
+                logger.warning(f"  ⚠ 长文库加载告警: {_w}")
+
     # 构建完整的代码手册数据
     codebook_data = []
+    _ld_desc_by_col: Dict[str, str] = {}
+    _ld_tier_by_col: Dict[str, str] = {}
     for col in panel.columns:
-        # 获取预定义的元数据
-        if col in metadata_dict:
-            meta = metadata_dict[col]
+        # 获取预定义的元数据 (v2.5 纪律: 显式 metadata_dict.get(col), 禁复用循环残留绑定)
+        meta = metadata_dict.get(col)
+        if meta is not None:
             row = meta.to_dict()
         else:
             # 自动推断元数据
@@ -2144,6 +2353,39 @@ def generate_codebook(
         # fix(omni-g-codebook-06/-14/-01, 2026-06-11): 主键取值范围动态实测覆盖
         row = _apply_dynamic_value_ranges(row, col, panel)
 
+        # ── WP1 家族长文库组装 (§0 唯一挂载点; §4 12 字段机械回填) ──
+        if _ld_lib is not None or longdesc_dir is not None:
+            _ld_entry = _compose_long_description(
+                col, meta, panel, library=_ld_lib, counters=_ld_counters,
+            ) if _ld_lib is not None else None
+            if _ld_entry is not None:
+                row['描述'] = _ld_entry['description']
+                if _ld_entry.get('unit'):
+                    row['单位'] = _ld_entry['unit']
+                if _ld_entry.get('formula'):
+                    row['计算公式'] = _ld_entry['formula']
+                if _ld_entry.get('value_range'):
+                    row['取值范围'] = _ld_entry['value_range']
+                if _ld_entry.get('reference_short'):
+                    row['学术引用'] = _ld_entry['reference_short']
+                # P2-② (2026-07-11) 备注回填通道: 家族 md 的 notes_zh (frontmatter) /
+                # VAR 节内联【备注】命中 → 替换 _AUTO_INFER_NOTE (与 dict6/LM/消融
+                # provenance 注入同套幂等口径: 空/占位即替换, 已有实注即追加)。
+                _ld_note = str(_ld_entry.get('notes_zh', '') or '').strip()
+                if _ld_note:
+                    _cur_note = row.get('备注', '') or ''
+                    if (not _cur_note.strip()) or (_AUTO_INFER_NOTE in _cur_note):
+                        row['备注'] = _ld_note
+                    elif _ld_note not in _cur_note:
+                        row['备注'] = f'{_cur_note} {_ld_note}'
+                _ld_desc_by_col[col] = _ld_entry['description']
+                _ld_tier_by_col[col] = _ld_entry['tier']
+            else:
+                # 缺库 / 无家族 → 回退现状短描述 + 告警计数 (§1; 结构列白名单豁免不计)
+                _sw = getattr(_ld_lib, 'structural_whitelist', frozenset()) if _ld_lib else frozenset()
+                if col not in _sw:
+                    _ld_counters['fallback'] += 1
+
         # fix(omni-g-codebook-05, 2026-06-11): 生成期断言 track 编码统一枚举,
         # 防 '全文'/'上下文'/'—' 等混编值再次进入产物
         if row['文本轨道'] not in _ALLOWED_TRACKS:
@@ -2166,23 +2408,47 @@ def generate_codebook(
     logger.info("  📊 关键指标解读 (codebook 覆盖度自检)")
     _log_codebook_result_analysis(codebook_df, panel)
 
+    # ── WP1 长文模式生成期体积/告警日志 (§1 fail-loud 分级: draft 告警计数须终验归零) ──
+    _pending_entries: List[Dict[str, Any]] = []
+    if _ld_lib is not None:
+        from news_process.pipeline.panel import codebook_longdesc as _cl
+        _pending_entries = _cl.compose_pending_appendix(_ld_lib, panel, counters=_ld_counters)
+        logger.info(
+            f"  📜 长文库组装: composed={_ld_counters['composed']:,d} | "
+            f"fallback={_ld_counters['fallback']:,d} | "
+            f"draft 告警={len(_ld_counters['warnings']):,d} | "
+            f"pending 附录={len(_pending_entries):,d}"
+        )
+        for _w in _ld_counters['warnings'][:20]:
+            logger.warning(f"  ⚠ 长文闸 (draft): {_w}")
+        if len(_ld_counters['warnings']) > 20:
+            logger.warning(f"  ⚠ 长文闸 (draft): ... 另 {len(_ld_counters['warnings']) - 20:,d} 条")
+
     # 生成输出文件
     _t = time.time()
     output_files = {}
     os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(versioned_dir, exist_ok=True)
 
     # Excel 格式
     if 'excel' in formats:
         # fix(omni-g-codebook-12, 2026-06-11): 列字母改用 openpyxl get_column_letter —
         # 原 chr(64+idx) 仅支持 A–Z (26 列), idx=27 → '[' 非法列名致 xlsx 崩溃
         # (当前 25 列距边界仅 1 列裕度, latent)。
+        # WP1 (§4): xlsx 32,767 字符守卫在组装层 (engine 无关) — >30000 截断 + 尾注。
         from openpyxl.utils import get_column_letter
+
+        from news_process.pipeline.panel.codebook_longdesc import xlsx_safe_dataframe
+        excel_df, _n_trunc = xlsx_safe_dataframe(codebook_df)
+        if _n_trunc:
+            logger.warning(f"  ⚠ xlsx 截断守卫命中 {_n_trunc:,d} 个单元格 "
+                           "(>30000 字符; 全文见 codebook.md/json — §9.5 截断清单披露)")
         excel_path = os.path.join(output_dir, 'variable_codebook.xlsx')
         with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
-            codebook_df.to_excel(writer, sheet_name='Codebook', index=False)
+            excel_df.to_excel(writer, sheet_name='Codebook', index=False)
             # 调整列宽
             worksheet = writer.sheets['Codebook']
-            for idx, col in enumerate(codebook_df.columns, 1):
+            for idx, col in enumerate(excel_df.columns, 1):
                 # 逐元素 str() 再取 len: nullable Float64/NaN 列上 .astype(str).map(len)
                 # 会在 pandas 2.x 留下 float 标量导致 `object of type 'float' has no len()`,
                 # 改用 map(lambda v: len(str(v))) 对每个标量先 Python str() 再 len, dtype 无关。
@@ -2191,7 +2457,7 @@ def generate_codebook(
                 # str(np.nan)='nan' / str(pd.NA)='<NA>' 均可 len, 故 ss 列天然受此守卫覆盖。
                 # 防御 (空 codebook_df 退化态): .max() 在零行列上返回 NaN → int(NaN) 崩溃,
                 # 用 pd.isna 兜底回退 len(col)。
-                _per_cell_max = codebook_df[col].map(lambda v: len(str(v))).max()
+                _per_cell_max = excel_df[col].map(lambda v: len(str(v))).max()
                 max_length = max(
                     int(_per_cell_max) if not pd.isna(_per_cell_max) else 0,
                     len(col)
@@ -2200,34 +2466,62 @@ def generate_codebook(
         output_files['excel'] = excel_path
         logger.info(f"  ✓ Excel 格式: {excel_path}{_artifact_size_note(excel_path)}")
 
-    # CSV 格式
+    # CSV 格式 (WP1 §4: QUOTE_ALL 统一全引号; 落 output_dir 作可再生品不入 git)
     if 'csv' in formats:
         csv_path = os.path.join(output_dir, 'variable_codebook.csv')
-        codebook_df.to_csv(csv_path, index=False, encoding='utf-8-sig')
+        codebook_df.to_csv(csv_path, index=False, encoding='utf-8-sig',
+                           quoting=csv.QUOTE_ALL)
         output_files['csv'] = csv_path
         logger.info(f"  ✓ CSV 格式: {csv_path}{_artifact_size_note(csv_path)}")
 
-    # Markdown 格式
+    # Markdown 格式 (WP1 §4 md writer 重写: 弃 to_markdown 单表 [长文下实测损坏:
+    # 单元格换行破表 + | 不转义 + tabulate 逐格 pad 30MB+] → 逐变量分节式;
+    # 权威载体落 versioned_dir [生产入口=build/codebook/, git 版本化])
     if 'markdown' in formats:
-        md_path = os.path.join(output_dir, 'variable_codebook.md')
-        with open(md_path, 'w', encoding='utf-8') as f:
-            f.write("# 变量代码手册（Variable Codebook）\n\n")
-            f.write(f"**生成时间**: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-            f.write(f"**变量总数**: {len(codebook_df)}\n\n")
-            f.write(f"**面板维度**: {len(panel)} 行 × {len(panel.columns)} 列\n\n")
-            f.write("---\n\n")
-            f.write(codebook_df.to_markdown(index=False))
+        md_path = os.path.join(versioned_dir, 'variable_codebook.md')
+        _write_codebook_markdown(codebook_df, panel, md_path, _pending_entries)
         output_files['markdown'] = md_path
         logger.info(f"  ✓ Markdown 格式: {md_path}{_artifact_size_note(md_path)}")
 
-    # JSON 格式
+    # JSON 格式 (权威载体, 落 versioned_dir 同 md)
     if 'json' in formats:
-        json_path = os.path.join(output_dir, 'variable_codebook.json')
+        json_path = os.path.join(versioned_dir, 'variable_codebook.json')
         codebook_dict = codebook_df.to_dict(orient='records')
+        # P2-⑤ (2026-07-11): NaN → null 归一 — json.dump 默认 allow_nan=True 会把统计列
+        # 浮点 NaN 写成非法严格 JSON token 'NaN' (jq/浏览器/非 Python 解析器直接拒读,
+        # 权威载体缺陷); allow_nan=False 兜底 fail-loud 防新 NaN 源静默再入。
+        codebook_dict = [
+            {k: (None if _is_na_scalar(v) else v) for k, v in r.items()}
+            for r in codebook_dict
+        ]
         with open(json_path, 'w', encoding='utf-8') as f:
-            json.dump(codebook_dict, f, ensure_ascii=False, indent=2)
+            json.dump(codebook_dict, f, ensure_ascii=False, indent=2, allow_nan=False)
         output_files['json'] = json_path
         logger.info(f"  ✓ JSON 格式: {json_path}{_artifact_size_note(json_path)}")
+
+    # ── WP1 §9.2 双报告 (机器可验, gate 读文件断言而非人读日志) ──
+    # ① 12 字段逐字段非空率 → field_coverage_report.json
+    _fcr_path = os.path.join(versioned_dir, 'field_coverage_report.json')
+    _write_field_coverage_report(codebook_df, _fcr_path)
+    output_files['field_coverage_report'] = _fcr_path
+    # ② 逐列三单位 (汉字[闸]/字符/UTF-8 字节) 分布报告 → longdesc_size_report.json
+    from news_process.pipeline.panel.codebook_longdesc import build_size_report
+    _desc_col = codebook_df.get('描述')
+    _size_report = build_size_report(
+        {str(v): str(d) for v, d in zip(codebook_df.get('变量名', []), _desc_col if _desc_col is not None else [])},
+        _ld_tier_by_col,
+    )
+    _size_report['longdesc_counters'] = {
+        'composed': _ld_counters['composed'],
+        'fallback': _ld_counters['fallback'],
+        'n_draft_warnings': len(_ld_counters['warnings']),
+        'draft_warnings': _ld_counters['warnings'],
+    }
+    _size_path = os.path.join(versioned_dir, 'longdesc_size_report.json')
+    with open(_size_path, 'w', encoding='utf-8') as f:
+        json.dump(_size_report, f, ensure_ascii=False, indent=1)
+    output_files['size_report'] = _size_path
+    logger.info(f"  ✓ 覆盖率/体积报告: {_fcr_path} + {_size_path}")
 
     _phase_durations['③多格式落盘'] = time.time() - _t
 
@@ -2280,8 +2574,28 @@ def _strip_criteria_suffix(var_name: str) -> tuple:
     return var_name, None
 
 
+def _shared_stata_zh_label(var_name: str) -> str | None:
+    """WP3 两端同源 (计划 §4 标签行): 消费 stata_export.get_shared_zh_labels().
+
+    命中 = HEURISTIC / stata_labels_zh.json 域列 → codebook「标签」字段与 .dta
+    46-path 标签逐字同源 (meta 命中列两端本就共享 get_variable_metadata_dict)。
+    函数级惰性 import (stata_export 反向亦函数级 import 本模块, 无模块级成环);
+    任何异常回退 None → 走既有推断 (行为与旧版一致)。
+    """
+    try:
+        from news_process.pipeline.panel.stata_export import get_shared_zh_labels
+        return get_shared_zh_labels().get(var_name)
+    except Exception:  # noqa: BLE001 — 防御性: 同源层缺席不崩推断
+        return None
+
+
 def _infer_label(var_name: str) -> str:
     """自动推断变量标签 (三轨: full/ctx/ss; ss=银行+金科同句共现)"""
+    # WP3 (2026-07-10): 先查两端同源层 (HEURISTIC + zh JSON), 防 codebook 与
+    # .dta 标签分叉; miss 才走下方既有推断链。
+    _shared = _shared_stata_zh_label(var_name)
+    if _shared:
+        return _shared
     # 判据后缀归一 (2026-07-03): 基名推断 + bank-bank 限定注解 (措辞刻意与
     # `_ss` 银行∧金科文本轨的 'same-sent' 官方压缩词区分, 终验 econ-final-1)
     _crit_base, _crit = _strip_criteria_suffix(var_name)

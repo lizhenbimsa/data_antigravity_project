@@ -325,8 +325,9 @@ def test_build_variable_labels_heuristic_hit():
         'mean_clarity_score_full': [0.1, 0.2],
     })
     labels = build_variable_labels(df)
-    assert 'Innovation Locus' in labels['innovation_locus_full']
-    assert 'Clarity Score' in labels['mean_clarity_score_full']
+    # WP3 (2026-07-10) 标签中文化: HEURISTIC 命中的期望文案改中文
+    assert '创新位置分类' in labels['innovation_locus_full']
+    assert '词汇清晰度均值' in labels['mean_clarity_score_full']
 
 
 def test_build_variable_labels_truncates_long_label():

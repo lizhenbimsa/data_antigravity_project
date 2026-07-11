@@ -203,10 +203,14 @@ class TestCodebookInference:
         assert cb._rule_ablation_match('avg_msent_negonly_full') is None  # 计数口径不匹配
 
     def test_infer_label_rule_specific(self):
+        # WP3 (2026-07-10): _infer_label 先查两端同源层 (stata_export HEURISTIC),
+        # 消融列命中 F3 中文模板 (变体语义仍在标签文本内, 非泛型)
         lbl = cb._infer_label('jiang_2021_negdeg_tone_full')
-        assert '规则消融' in lbl and 'jiang_2021' in lbl
-        # 泛型 tone 列不被消融分支吞掉
-        assert cb._infer_label('llm_vote_tone_full') == 'Sentiment Tone (Full)'
+        assert '否定+程度' in lbl and 'Jiang2021' in lbl
+        # 共识 headline 列不被消融分支吞掉 (得 F7 共识专属标签, 非消融/泛型文案)
+        vote_lbl = cb._infer_label('llm_vote_tone_full')
+        assert vote_lbl == 'LLM三家投票正向倾向(共识主测度,全文轨)'
+        assert vote_lbl != lbl
 
     def test_infer_source_stage_all_six_dicts(self):
         for d in DICTS:
@@ -279,8 +283,10 @@ class TestCrossDictRollup:
 
     def test_codebook_labels_cross_dict_rule_specific(self):
         assert cb._rule_ablation_match('dict_avg_raw_tone_full') == ('dict_avg', 'raw')
+        # WP3 (2026-07-10): _infer_label 先查两端同源层 → F3 中文模板
+        # (dict_avg 词典名=六词典均值, 变体语义=程度+转折, 非泛型)
         lbl = cb._infer_label('dict_avg_degadv_tone_ctx')
-        assert '跨词典均值' in lbl and '规则消融' in lbl
+        assert '六词典均值' in lbl and '程度+转折' in lbl
 
     def test_stata_labels_cross_dict(self):
         cols = [f'dict_avg_{s}_tone_{tk}' for s in self.NEW for tk in ('full', 'ctx', 'ss')]

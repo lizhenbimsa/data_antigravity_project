@@ -330,16 +330,22 @@ def test_dta_labels_reach_new_columns_not_colname_fallback():
     labels = build_variable_labels(df)
     for c in _NEW16:
         assert c in labels and labels[c] != c, f"{c} 退化为列名 (无描述标签)"
-        assert len(labels[c].encode('latin-1', 'ignore')) <= 80
+        # WP3 (2026-07-10): 标签中文化 → 字节口径改 utf-8 (与 validate_stata_compat 一致)
+        assert len(labels[c].encode('utf-8')) <= 80
 
 
 def test_infer_label_does_not_regress_brokerage_fire_sale():
-    """_infer_label brok_bip 分支不改写既有 brokerage_fire_sale (MISSING_SCHEMA-2)。"""
+    """_infer_label brok_bip 分支不改写既有 brokerage_fire_sale (MISSING_SCHEMA-2)。
+
+    WP3 (2026-07-10) 更新: _infer_label 先查两端同源层 (HEURISTIC/zh JSON 中文
+    标签) → 期望文案改中文; 语义守卫不变 (fire_sale 不被二分图文案吞)。
+    """
     from news_process.pipeline.panel.codebook import _infer_label
     assert 'Bipartite' not in _infer_label('brokerage_fire_sale')
-    assert _infer_label('brok_bip_between_cent').startswith('Bipartite')
-    assert _infer_label('gf_total').startswith('GF Brokerage Role')
-    assert _infer_label('net_modularity_yr') == 'Network-Level Structure (annual)'
+    assert '二分图' not in _infer_label('brokerage_fire_sale')
+    assert '二分图' in _infer_label('brok_bip_between_cent')
+    assert 'GF' in _infer_label('gf_total') and '经纪' in _infer_label('gf_total')
+    assert _infer_label('net_modularity_yr') == '年度共现网络模块度'
 
 
 if __name__ == '__main__':

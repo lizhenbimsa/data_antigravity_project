@@ -366,6 +366,11 @@ class TestScriptPanelSource:
             'output_51_panel_controls': '51_panel_with_controls.parquet',
             'output_40_panel_yearly': '40_panel_yearly.parquet',
         })
+        # WP1 (2026-07-10): md/json 权威载体默认迁 build/codebook/, 家族长文库默认
+        # 指 config/codebook_longdesc — 测试与真实仓库落点/长文库解耦 (指向 tmp,
+        # 无 _index.json → 长文模式关闭, 保持本测试的既有行为断言)。
+        monkeypatch.setattr(mod, '_VERSIONED_CODEBOOK_DIR', str(tmp_path))
+        monkeypatch.setattr(mod, '_LONGDESC_DIR', str(tmp_path / '_no_longdesc'))
 
     def _load_script_module(self):
         import importlib
@@ -406,7 +411,10 @@ class TestScriptPanelSource:
 
 def test_generate_codebook_all_formats_end_to_end(tmp_path, synthetic_panel):
     out = cb.generate_codebook(synthetic_panel, str(tmp_path))
-    assert set(out) == {'excel', 'csv', 'markdown', 'json'}
+    # WP1 (2026-07-10): 4 格式外另落 field_coverage_report + longdesc_size_report
+    # 两份机器可验报告 (§9.2 gate 读文件断言) — 断言改超集 + 报告键显式在场
+    assert {'excel', 'csv', 'markdown', 'json',
+            'field_coverage_report', 'size_report'} == set(out)
     for p in out.values():
         assert Path(p).exists()
     rows = json.loads(Path(out['json']).read_text(encoding='utf-8'))

@@ -383,12 +383,36 @@ class TestStage51VariableLabels:
         assert set(labels.keys()) == set(cols)
         assert all(isinstance(v, str) and v for v in labels.values())
 
-    def test_stage51_overlay_wins(self):
-        """STATA_LABELS_41 覆盖优先 (stage-51 专属语义)。"""
+    def test_stage51_zh_shared_wins_overlay_only_fills_gaps(self):
+        """WP3 整改 (2026-07-11) 契约翻转: 中文共享标签胜出, STATA_LABELS_41 仅兜底.
+
+        旧契约 (overlay 覆盖优先) 让英文 STATA_LABELS_41 遮蔽中文共享标签, 其中
+        5 个 51-only 列不在 46 labels.do 宇宙 → 终态永久英文 (评审 P1)。新契约:
+        shared 产真标签时胜出; overlay 仅在 shared 退化为裸列名兜底时补位
+        (安全网职能保留, 见 test_stata_labels_zh.py::TestStage51RealWritePath)。
+        """
+        import re as _re
+        _cjk = _re.compile('[\u4e00-\u9fff\u3400-\u4dbf]')
         cols = ['ln_ft_articles', 'zero_coverage', 'ft_n_articles_dedup']
         labels = mod.build_stage51_variable_labels(cols, cols)
         for c in cols:
-            assert labels[c] == mod.STATA_LABELS_41[c]
+            assert _cjk.search(labels[c]), (
+                f'{c}: 中文共享标签未胜出 (英文 overlay 覆盖回潮): {labels[c]!r}')
+            assert labels[c] != mod.STATA_LABELS_41[c]
+            assert len(labels[c].encode('utf-8')) <= 80
+
+    def test_stage51_overlay_fills_when_shared_bare(self, monkeypatch):
+        """overlay 补位分支: 中文层缺失 → shared 退裸列名 → overlay 英文补位。"""
+        import news_process.pipeline.panel.stata_export as se
+        monkeypatch.setattr(se, '_ZH_LABELS_CACHE', {})
+        monkeypatch.setattr(se, '_SHARED_ZH_CACHE', None)
+        try:
+            labels = mod.build_stage51_variable_labels(['zero_coverage'], ['zero_coverage'])
+            assert labels['zero_coverage'] == mod.STATA_LABELS_41['zero_coverage']
+        finally:
+            monkeypatch.undo()
+            se._ZH_LABELS_CACHE = None
+            se._SHARED_ZH_CACHE = None
 
     def test_new_columns_present_in_labels_dict(self):
         """fix 新增列 (zero_coverage / ft_n_articles_dedup) 已注册标签。"""

@@ -327,9 +327,15 @@ def _apply_label_fallback(labels: dict, columns) -> dict:
     build_variable_labels (codebook 优先 → HEURISTIC_LABELS → 列名兜底)
     补齐未命中列, 保证 100% 标签覆盖。
 
-    防御: pandas to_stata 要求 variable label ≤80 字符且 latin-1 可编码 —
-    兜底标签若含非 latin-1 字符 (如中文 codebook label) 则退回列名本身
-    (此时列名已被 sanitize_stata_columns asciify, 安全)。
+    P2 整改 (2026-07-11): 移除 latin-1 降级守卫 — 旧前提 "pandas to_stata 要求
+    variable label latin-1 可编码" 仅对默认 version(=114) 成立; 本路径实际写出
+    恒为 ``to_stata(version=118)`` (StataWriterUTF8, 见 export_panel 写 .dta 处),
+    本机 pandas 2.2.3 实测中文标签 version=118 写入+读回逐字成功 (gate:
+    tests/test_omni_fix_panel_export.py::TestLabelFallback 实写探针)。故兜底
+    标签 (含中文 codebook/zh JSON label) 原样透传 — 与 51-path (controls.py 同
+    version=118 直嵌中文无守卫) 口径统一, 40 dta 中间态不再白丢中文标签。
+    字节预算由 build_variable_labels 统一按 UTF-8 ≤80 字节截断, 此处仅防御性
+    复核 (超限退列名, 理论不可达)。
     """
     out = dict(labels)
     missing = [c for c in columns if c not in out]
@@ -340,11 +346,9 @@ def _apply_label_fallback(labels: dict, columns) -> dict:
     fb = build_variable_labels(pd.DataFrame(columns=missing))
     for c in missing:
         lab = str(fb.get(c, c)) or str(c)
-        try:
-            lab.encode('latin-1')
-        except UnicodeEncodeError:
-            lab = str(c)  # 列名已 ASCII 化, 必然 latin-1 可编码
-        out[c] = lab[:80]
+        if len(lab.encode('utf-8')) > 80:  # 防御性: build_variable_labels 已截断
+            lab = str(c)
+        out[c] = lab
     return out
 
 
@@ -1438,9 +1442,10 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
             # 三轨 (full / ctx / ss): _ss 是 _ctx 的同句共现孪生 (content_ss = 标题 + 同句内
             # 同时含 目标银行∧金科词 的句窗; 无共现→回退全文 body, 镜像 ctx 回退公理)。
             # 全部 _ss 标签 = 对应 _ctx 标签的机械 swap: key `_ctx`→`_ss`, 文案 `Ctx`→`SS`
-            # (`SS` = same-sentence Bank+FinTech co-occurrence; .dta variable label 受
-            # to_stata latin-1 + ≤80 字符硬约束, 故同句口径在英文标签用 ASCII 缩写 `SS`,
-            # 中文全称 "(银行+金科同句)" 仅落 codebook UTF-8 产物)。机械派生 (而非手抄 ~100 条)
+            # (`SS` = same-sentence Bank+FinTech co-occurrence; 显式英文条目按 ≤80 字节
+            # 预算用 ASCII 缩写 `SS`。P2 整改 2026-07-11 勘误: 本路径 to_stata(version=118)
+            # 为 UTF-8 writer, 旧注释声称的 latin-1 硬约束不成立 — 中文全称 "(银行+金科
+            # 同句)" 见 codebook 与 46-path 中文标签)。机械派生 (而非手抄 ~100 条)
             # 保证 count(_ss labels) == count(_ctx labels), 且自动覆盖所有动态推导式产出的
             # _ctx 键 (washing_ratio_*_ctx / disag_*_ctx / llm_peer_tone_iv_ctx_* 等)。
             for _k, _v in [(k, v) for k, v in STATA_LABELS.items() if k.endswith('_ctx')]:

@@ -93,8 +93,10 @@ class TestCodebookInference:
         assert cb._infer_source_stage('fin_sent_zh_pos_vw_full') == 'Stage 23'
 
     def test_infer_label_specific(self):
+        # WP3 (2026-07-10): _infer_label 先查两端同源层 → per-model 中文标签
+        # (模型显示名 FinBERT-CN, 见 stata_export._PM_MODEL_ZH)
         lbl = cb._infer_label('finbert_cn_pos_full')
-        assert 'finbert_cn' in lbl
+        assert 'FinBERT-CN' in lbl
         assert lbl != 'Finbert_Cn Pos Full'  # 未落 Title-case 兜底
 
     def test_note_iron_rule(self):

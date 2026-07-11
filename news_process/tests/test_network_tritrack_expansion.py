@@ -579,12 +579,13 @@ class TestCodebookCriteriaSuffixNormalization:
         assert cat('industry_neg_shock_ctx') == '情感指标'
 
     def test_label_carries_bank_bank_qualifier(self):
-        """G1(k)-codebook: 判据变体推断标签带 bank-bank 限定。"""
+        """G1(k)-codebook: 判据变体推断标签带「银行间」限定 (WP3 中文化后
+        bank-bank 的中文对应物, 仍与 _ss 银行∧金科「同句轨」措辞可区分)。"""
         _, _, label = self._fns()
         lbl = label('bank_degree_cent_sent')
-        assert 'bank-bank' in lbl
+        assert '银行间' in lbl
         lbl_w = label('net_density_yr_win1')
-        assert 'bank-bank' in lbl_w
+        assert '银行间' in lbl_w
         # 既有列不受归一影响: 剥后缀对无判据后缀列必须是 no-op (结果审计
         # code-meta-2: 原恒真式改为直接锁 no-op 性质 + 冻结基名推断输出)
         from news_process.pipeline.panel.codebook import (
@@ -652,8 +653,8 @@ class TestNewColumnsLandingAndLabels:
         assert not overlong, f'标签超 80 字节: {overlong}'
 
     def test_g1k_label_wording(self):
-        """G1(k)-.dta: ② 标签含 bank-bank 限定 (不裸 same-sent);
-        diag/legacy 标签含 W 来源子串。"""
+        """G1(k)-.dta: ② 标签含「银行间」限定 (WP3 中文化后的 bank-bank 对应物,
+        不与 _ss 文本轨「同句轨」混同); diag/legacy 标签含 W 来源子串。"""
         from news_process.pipeline.panel.stata_export import (
             build_variable_labels,
         )
@@ -665,7 +666,7 @@ class TestNewColumnsLandingAndLabels:
         df = pd.DataFrame({c: [0.0] for c in cols})
         labels = build_variable_labels(df, {c: c for c in cols})
         for c in crit:
-            assert 'bank-bank' in labels[c], f'{c}: {labels[c]}'
+            assert '银行间' in labels[c], f'{c}: {labels[c]}'
         for c in wcols:
             assert 'W=' in labels[c], f'{c} 缺 W 来源子串: {labels[c]}'
 

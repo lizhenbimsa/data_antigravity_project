@@ -5,16 +5,22 @@ generate_codebook.py - 生成完整的变量代码手册（Variable Codebook）
 用法:
     python scripts/generate_codebook.py
 
-输出:
-    - data/processed/variable_codebook.xlsx
-    - data/processed/variable_codebook.csv
-    - data/processed/variable_codebook.md
-    - data/processed/variable_codebook.json
+输出 (WP1 2026-07-10 四格式落点迁移, 计划 §4):
+    - data/processed/variable_codebook.xlsx   (可再生品, 不入 git)
+    - data/processed/variable_codebook.csv    (可再生品, 不入 git)
+    - build/codebook/variable_codebook.md     (权威载体, git 版本化)
+    - build/codebook/variable_codebook.json   (权威载体, git 版本化)
+    - build/codebook/field_coverage_report.json + longdesc_size_report.json (§9.2)
 
 fix(omni-g-codebook-07, 2026-06-11): 面板源改为优先读 51_panel_with_controls
 (stage 51 controls 超集, 含 nf_*/fintech_share 族), 缺失时回退 40_panel_yearly。
 历史盘上产物实际生成自 51 面板而本入口只读 40 → 产物不可由文档化入口复现,
 且 40/51 列集差异是 codebook 幻影行/漏登记的结构性根因。
+
+WP1 (2026-07-10): 家族长文库 (config/codebook_longdesc/) 存在 (_index.json) 时
+启用长文组装 (五段确定性组装, §1), 且 **51 缺失 = 拒跑** (§0: 长文生产/验收模式
+禁在回退 40 宇宙 [缺 11 个 51-only 列] 下产出四格式成品); 库缺失时保持既有行为。
+生产入口在生成前对全库做引文渲染物化回写 (§2.1, 幂等)。
 """
 
 import os
@@ -37,7 +43,14 @@ import pandas as pd
 
 from news_process.core.config import load_config
 from news_process.core.logging import sig4
+from news_process.pipeline.panel import codebook_longdesc as _cl
 from news_process.pipeline.panel.codebook import generate_codebook
+
+# WP1 (2026-07-10) 落点常量 (模块级, 测试可 monkeypatch):
+# md/json 权威载体 → build/codebook/ (git 版本化, gitignore 三行组合豁免);
+# 家族长文库 → config/codebook_longdesc/ (存在 _index.json 即启用长文模式)。
+_VERSIONED_CODEBOOK_DIR = str(project_root / 'build' / 'codebook')
+_LONGDESC_DIR = _cl.default_longdesc_dir()
 
 # 初始化配置和日志
 CONFIG = load_config()
@@ -72,13 +85,14 @@ def _log_environment_and_config(panel_path: str, output_dir: str) -> None:
 
         logger.info("  📂 输入 / 输出文件")
         logger.info(f"     · 输入面板: {panel_path}")
-        for _fmt, _name in (
-            ('excel', 'variable_codebook.xlsx'),
-            ('csv', 'variable_codebook.csv'),
-            ('markdown', 'variable_codebook.md'),
-            ('json', 'variable_codebook.json'),
+        # WP1 落点迁移 (§4): xlsx/csv 留 output_dir 可再生; md/json 权威载体入 git
+        for _fmt, _dir, _name in (
+            ('excel', output_dir, 'variable_codebook.xlsx'),
+            ('csv', output_dir, 'variable_codebook.csv'),
+            ('markdown', _VERSIONED_CODEBOOK_DIR, 'variable_codebook.md'),
+            ('json', _VERSIONED_CODEBOOK_DIR, 'variable_codebook.json'),
         ):
-            logger.info(f"     · 输出[{_fmt}]: {os.path.join(output_dir, _name)}")
+            logger.info(f"     · 输出[{_fmt}]: {os.path.join(_dir, _name)}")
 
         logger.info("  ⚙ 运行配置")
         logger.info("     · 面板源优先级: 51_panel_with_controls (controls 超集) > 40_panel_yearly (回退)")
@@ -138,9 +152,20 @@ def main():
         CONFIG['paths']['output_dir'],
         CONFIG['filenames'].get('output_40_panel_yearly', '40_panel_yearly.parquet')
     )
+    # WP1: 长文模式判定 = 家族长文库 _index.json 实存 (缺库 → 保持既有行为)
+    _longdesc_on = os.path.exists(os.path.join(_LONGDESC_DIR, '_index.json'))
     if os.path.exists(panel51_path):
         panel_path = panel51_path
     elif os.path.exists(panel40_path):
+        if _longdesc_on:
+            # §0 fail-loud: 长文生产/验收模式下 51 缺失 = 拒跑 — 禁在回退 40 宇宙
+            # (缺 11 个 51-only 列: nf_*/fintech_share 族) 下产出四格式成品
+            logger.error(
+                f"长文模式 (家族长文库实存: {_LONGDESC_DIR}) 下 51_panel_with_controls "
+                f"缺失 ({panel51_path}) — §0 铁律拒跑, 禁回退 40 宇宙产出四格式成品; "
+                "请先重生 stage 51 面板"
+            )
+            return 1
         panel_path = panel40_path
         logger.warning(
             "51_panel_with_controls 不存在, 回退 40_panel_yearly — "
@@ -150,6 +175,14 @@ def main():
         logger.error(f"面板数据文件不存在: {panel51_path} 与 {panel40_path}")
         logger.error("请先运行数据处理流程生成面板数据")
         return 1
+
+    # WP1 §2.1: 生产入口在生成前对全库做引文渲染物化回写 (幂等; audit_dois 的
+    # 机械核验域扫描对象 = 渲染尾节, 不物化则全量闸对长文库提取 0 条 "0 红旗"恒真)
+    if _longdesc_on:
+        _lib = _cl.load_library(_LONGDESC_DIR)
+        if _lib is not None:
+            _n_mat = _cl.materialize_all(_lib)
+            logger.info(f"引文渲染物化回写: {_n_mat} 个家族尾节更新 (幂等, 0=已最新)")
 
     # 项目/环境信息 + 输入输出 + 运行配置 + 方法论依据 (日志富集 2026-06-24, 路径确定后打印)
     output_dir = CONFIG['paths']['output_dir']
@@ -161,12 +194,15 @@ def main():
     phase_durations['①加载面板parquet'] = time.time() - _t
     logger.info(f"  面板维度: {len(panel):,d} 行 × {len(panel.columns):,d} 列")
 
-    # 生成代码手册
+    # 生成代码手册 (WP1: md/json 权威载体 → build/codebook/; 长文库显式注入,
+    # 库缺失时 generate_codebook 内部逐列回退现状短描述 + 告警计数)
     _t = time.time()
     output_files = generate_codebook(
         panel=panel,
         output_dir=output_dir,
-        formats=['excel', 'csv', 'markdown', 'json']
+        formats=['excel', 'csv', 'markdown', 'json'],
+        versioned_dir=_VERSIONED_CODEBOOK_DIR,
+        longdesc_dir=_LONGDESC_DIR if _longdesc_on else None,
     )
     phase_durations['②生成codebook(4格式)'] = time.time() - _t
 

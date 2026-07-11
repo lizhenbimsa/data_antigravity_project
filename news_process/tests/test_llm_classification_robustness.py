@@ -267,7 +267,9 @@ class TestStataLabels:
         for c in cols:
             assert c in labels and labels[c].strip() and labels[c] != c, f'{c} 标签 fallback'
             assert len(labels[c].encode('utf-8')) <= 80
-            assert 'share' in labels[c], f'{c} 英文标签未用 share 措辞: {labels[c]}'
+            # WP3 (2026-07-10) 标签中文化: share → 「占比」措辞 (非语调, 语义守卫不变)
+            assert '占比' in labels[c], f'{c} 标签未用「占比」措辞: {labels[c]}'
+            assert '语调' not in labels[c], f'{c} frac 列标签误用「语调」: {labels[c]}'
 
 
 class TestCodebookInference:
@@ -283,9 +285,10 @@ class TestCodebookInference:
                     assert cb._llm_model_match(f'{m}_{metric}_{t}') is not None
 
     def test_label_is_classification_not_tone(self):
+        # WP3 (2026-07-10): 同源层中文标签用「实质类占比」措辞 (占比≠语调守卫不变)
         lbl = cb._infer_label('gpt54nano_sub_frac_full')
         desc = cb._infer_description('gpt54nano_sub_frac_full')
-        assert '分类占比' in lbl and '语调' not in lbl
+        assert '占比' in lbl and '语调' not in lbl
         assert '语调' not in desc and '不分主次' in desc and 'Hansen J' in desc
         # 分母口径披露 (计划 R2)
         assert 'verified' in desc

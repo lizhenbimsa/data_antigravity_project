@@ -767,7 +767,7 @@ def _cli_verify_replication(args) -> int:
     return 0
 
 
-# reaudit-t18-2026-06-15: doctor [6/6] Stata ado 检查所需 — 顶刊稳健性/复现必装包清单。
+# reaudit-t18-2026-06-15: doctor [6/7] Stata ado 检查所需 — 顶刊稳健性/复现必装包清单。
 # 用途: 外部复现者在自己机器跑 `doctor` 即知须 ssc install 哪些包 (空跑稳健性的根因之一)。
 _REQUIRED_STATA_ADOS = {
     # name: (purpose, install_cmd)
@@ -850,7 +850,7 @@ def _cli_doctor(args) -> int:
     print("=" * 60)
 
     # 1. Python deps (硬依赖 5 + optional 1)
-    print("\n[1/6] Python 依赖")
+    print("\n[1/7] Python 依赖")
     REQUIRED_DEPS = ['pandas', 'numpy', 'pyarrow', 'pytest', 'yaml']
     OPTIONAL_DEPS = {
         # v3.2.0 M1/7: pyreadstat 改为 OPTIONAL (pandas to_stata fallback 可代)
@@ -884,7 +884,7 @@ def _cli_doctor(args) -> int:
             n_warn += 1
 
     # 2. Stage 14 输入 (LLM launch 前置)
-    print("\n[2/6] Pipeline 数据")
+    print("\n[2/7] Pipeline 数据")
     try:
         from news_process.core.config import load_config
         CONFIG = load_config()
@@ -906,7 +906,7 @@ def _cli_doctor(args) -> int:
         n_err += 1
 
     # 3. LLM cache (stage 35 LLM 升级前置)
-    print("\n[3/6] LLM cache (stage 35 LLM 升级)")
+    print("\n[3/7] LLM cache (stage 35 LLM 升级)")
     try:
         from news_process.core.config import load_config
         cache_path = os.path.join(load_config()['paths']['output_dir'], '_llm_cache.db')
@@ -921,7 +921,7 @@ def _cli_doctor(args) -> int:
         n_warn += 1
 
     # 4. YUNWU_API_KEY (LLM launch 前置)
-    print("\n[4/6] LLM API access")
+    print("\n[4/7] LLM API access")
     if os.environ.get('YUNWU_API_KEY', '').strip():
         print("   [OK] YUNWU_API_KEY set")
         n_ok += 1
@@ -930,7 +930,7 @@ def _cli_doctor(args) -> int:
         n_warn += 1
 
     # 5. Stata bin (CLI build-replication 后用)
-    print("\n[5/6] Stata 可执行")
+    print("\n[5/7] Stata 可执行")
     try:
         from news_process.papers._common.stata_runner import discover_stata_bin
         bin_path = discover_stata_bin()
@@ -945,7 +945,7 @@ def _cli_doctor(args) -> int:
         n_warn += 1
 
     # 6. Stata ado 包 (顶刊稳健性 / 复现必装; reaudit-t18-2026-06-15)
-    print("\n[6/6] Stata ado 包 (顶刊稳健性 / 复现必装)")
+    print("\n[6/7] Stata ado 包 (顶刊稳健性 / 复现必装)")
     ado_dirs = _candidate_ado_dirs()
     if not ado_dirs:
         print("   [WARN] 未定位 Stata ado 目录 (personal PLUS / 安装 base);")
@@ -973,6 +973,57 @@ def _cli_doctor(args) -> int:
         if n_ado_miss:
             print(f"   → {n_ado_miss} 个必装 ado 缺失: 对应顶刊稳健性块 (弱工具 AR-CI / FWER /"
                   " 错时 DiD / wild bootstrap 等) 会优雅跳过、不产出承诺统计量, 投稿前须装齐。")
+
+    # 7. Stata variable notes 指纹 (WP2 2026-07-10, 计划 §3b 陈旧性自动检测:
+    #    dta writer 任一重跑 = 该 dta notes 全灭 → 比对 sidecar 内容哈希, 不等即 loud WARN)
+    print("\n[7/7] Stata variable notes 指纹 (dta 重生 = notes 全灭检测)")
+    try:
+        import hashlib
+        import json as _json
+
+        from news_process.core.config import load_config
+        _out_dir = load_config()['paths']['output_dir']
+        _sidecar_path = os.path.join(_out_dir, '_notes_applied_fingerprint.json')
+        # 与 stata_export.STATA_NOTES_DTA_TARGETS 同源三 dta (SSOT import 复用;
+        # NIT 整改 2026-07-11: 移除 except 分支的手抄三键副本 — dta 目标增删时
+        # 副本会静默过期漂移; import 失败由本段外层 try 统一降级为 [WARN])
+        from news_process.pipeline.panel.stata_export import STATA_NOTES_DTA_TARGETS
+        _notes_dta = dict(STATA_NOTES_DTA_TARGETS)
+        if not os.path.exists(_sidecar_path):
+            print("   [WARN] _notes_applied_fingerprint.json 不存在 — variable notes 尚未注入 "
+                  "(注入: scripts/apply_stata_notes.ps1; 依赖 codebook 长注释产出)")
+            n_warn += 1
+        else:
+            with open(_sidecar_path, encoding='utf-8') as _f:
+                _fp = _json.load(_f)
+            for _k, _fn in _notes_dta.items():
+                _p = os.path.join(_out_dir, _fn)
+                if not os.path.exists(_p):
+                    print(f"   [WARN] {_fn} 不存在 (先跑 pipeline 产 dta)")
+                    n_warn += 1
+                    continue
+                _rec = _fp.get(_k) or {}
+                _want = str(_rec.get('sha256', '')).lower()
+                if not _want:
+                    print(f"   [WARN] {_fn}: sidecar 无该 dta 键 — notes 未注入或上次注入"
+                          "失败, 请重放 scripts/apply_stata_notes.ps1 (master 幂等)")
+                    n_warn += 1
+                    continue
+                _h = hashlib.sha256()
+                with open(_p, 'rb') as _f:
+                    for _chunk in iter(lambda: _f.read(1 << 20), b''):
+                        _h.update(_chunk)
+                if _h.hexdigest() == _want:
+                    print(f"   [OK] {_fn} notes 指纹一致 "
+                          f"(n_applied={_rec.get('n_notes_applied', '?')})")
+                    n_ok += 1
+                else:
+                    print(f"   [WARN] {_fn}: dta 已重生, notes 缺失/陈旧, 请重放 "
+                          "scripts/apply_stata_notes.ps1")
+                    n_warn += 1
+    except Exception as _e:  # noqa: BLE001
+        print(f"   [WARN] notes 指纹检查失败: {_e}")
+        n_warn += 1
 
     print("\n" + "=" * 60)
     print(f"  Summary: {n_ok} OK / {n_warn} WARN / {n_err} ERR")

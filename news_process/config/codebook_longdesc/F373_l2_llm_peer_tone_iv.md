@@ -1,0 +1,127 @@
+---
+family_id: F373
+columns:
+- llm_peer_tone_iv_ctx
+- llm_peer_tone_iv_ctx_70
+- llm_peer_tone_iv_ctx_75
+- llm_peer_tone_iv_ctx_80
+- llm_peer_tone_iv_ctx_85
+- llm_peer_tone_iv_ctx_90
+- llm_peer_tone_iv_full
+- llm_peer_tone_iv_full_70
+- llm_peer_tone_iv_full_75
+- llm_peer_tone_iv_full_80
+- llm_peer_tone_iv_full_85
+- llm_peer_tone_iv_full_90
+- llm_peer_tone_iv_ss
+- llm_peer_tone_iv_ss_70
+- llm_peer_tone_iv_ss_75
+- llm_peer_tone_iv_ss_80
+- llm_peer_tone_iv_ss_85
+- llm_peer_tone_iv_ss_90
+unit: 语调得分 (连续, 约 [-1,1]; 聚合后 bank-year 均值)
+formula: '(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)'
+producer: pipeline\panel\llm_peer_iv.py ; papers\llm_peer\tables.py
+upstream: []
+citations: []
+new_dois: []
+---
+
+## CORE
+
+【构念与来源】
+骨架占位 — 本节为家族核心长文, 待 WP4 写手按写手输入包三件套 (build/codebook_inputs/F373/ 下 columns.json、source_excerpt.md、citations_pool.md) 撰写。本骨架由 build_codebook_family_map 机械生成, 家族 status=draft, 字数闸与引文闸在 draft 态降级为告警计数。单位初判: 语调得分 (连续, 约 [-1,1]; 聚合后 bank-year 均值)。公式初判见 frontmatter formula 字段, 写手须对 producer 源码逐条校对后改写。
+
+## VAR: llm_peer_tone_iv_ctx
+
+【变体差分】
+骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+
+## VAR: llm_peer_tone_iv_ctx_70
+
+【变体差分】
+骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+
+## VAR: llm_peer_tone_iv_ctx_75
+
+【变体差分】
+骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+
+## VAR: llm_peer_tone_iv_ctx_80
+
+【变体差分】
+骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+
+## VAR: llm_peer_tone_iv_ctx_85
+
+【变体差分】
+骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+
+## VAR: llm_peer_tone_iv_ctx_90
+
+【变体差分】
+骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+
+## VAR: llm_peer_tone_iv_full
+
+【变体差分】
+骨架占位 — 本列 tier=core, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+
+## VAR: llm_peer_tone_iv_full_70
+
+【变体差分】
+骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+
+## VAR: llm_peer_tone_iv_full_75
+
+【变体差分】
+骨架占位 — 本列 tier=core, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+
+## VAR: llm_peer_tone_iv_full_80
+
+【变体差分】
+骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+
+## VAR: llm_peer_tone_iv_full_85
+
+【变体差分】
+骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+
+## VAR: llm_peer_tone_iv_full_90
+
+【变体差分】
+骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+
+## VAR: llm_peer_tone_iv_ss
+
+【变体差分】
+骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+
+## VAR: llm_peer_tone_iv_ss_70
+
+【变体差分】
+骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+
+## VAR: llm_peer_tone_iv_ss_75
+
+【变体差分】
+骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+
+## VAR: llm_peer_tone_iv_ss_80
+
+【变体差分】
+骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+
+## VAR: llm_peer_tone_iv_ss_85
+
+【变体差分】
+骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+
+## VAR: llm_peer_tone_iv_ss_90
+
+【变体差分】
+骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+
+<!-- rendered-citations:begin -->
+
+<!-- rendered-citations:end -->

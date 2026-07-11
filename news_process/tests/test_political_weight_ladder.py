@@ -217,8 +217,9 @@ class TestCodebookInference:
         assert cb._political_weight_match('jiang_2021_polw00_tone_full') is None  # 非 du_2022
 
     def test_infer_label_political_specific(self):
+        # WP3 (2026-07-10): _infer_label 先查两端同源层 → F4 中文模板 (Du2022 显示名)
         lbl = cb._infer_label('du_2022_polw10_tone_full')
-        assert 'du_2022' in lbl and '政治词权重' in lbl
+        assert 'Du2022' in lbl and '政治词权重' in lbl
         # 泛型 tone 列不被政治分支吞掉, 且与 canonical 主列标签相异
         assert cb._infer_label('du_2022_polw10_tone_full') != cb._infer_label('du_2022_tone_full')
 

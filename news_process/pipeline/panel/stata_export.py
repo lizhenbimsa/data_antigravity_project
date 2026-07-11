@@ -58,7 +58,7 @@
 
 ■ 白话说明
 
-**这一步是什么**: 这是数据的"出关口岸"。Python 算出来的那张大表格 (parquet 格式) 经济学家的 Stata 软件读不了, 这一步负责把它翻译成 Stata 能直接打开的 .dta 文件, 并且给每一列贴上看得懂的英文标签 (比如把 llm_vote_tone_full 标注成媒体乐观度), 再附一份 Excel 字典告诉人每列是什么意思。打个比方: Python 给数据起了很长的名字, 但古老的 Stata 只认 32 个字母的短名, 这一步就是严格的护照审查员, 把长名字安全剪短、防止两列剪短后撞名、再盖上学术标签。
+**这一步是什么**: 这是数据的"出关口岸"。Python 算出来的那张大表格 (parquet 格式) 经济学家的 Stata 软件读不了, 这一步负责把它翻译成 Stata 能直接打开的 .dta 文件, 并且给每一列贴上看得懂的中文标签 (WP3 2026-07-10 起全列中文化, 比如把 llm_vote_tone_full 标注成「LLM投票媒体正向倾向」), 再附一份 Excel 字典告诉人每列是什么意思。打个比方: Python 给数据起了很长的名字, 但古老的 Stata 只认 32 个字母的短名, 这一步就是严格的护照审查员, 把长名字安全剪短、防止两列剪短后撞名、再盖上学术标签。
 
 **为什么需要它**: 全世界经济金融论文几乎都用 Stata 跑回归出表。如果没有这一步, 研究者拿到的就是一堆 Python 才认识的文件, 没法直接做实证。它还把缺失值、中文类别、整数溢出这些水土不服的细节统一处理好, 保证 Stata 一打开就能跑。
 
@@ -67,8 +67,11 @@
 """
 from __future__ import annotations
 
+import json
 import logging
+import math
 import os
+import re
 from typing import Dict, List, Tuple
 
 import pandas as pd
@@ -223,263 +226,289 @@ def encode_categorical_columns(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str
     return df, value_labels
 
 
-def build_variable_labels(
-    df: pd.DataFrame,
-    rename_map: Dict[str, str] = None,
-) -> Dict[str, str]:
-    """为每列生成 ≤ 80 字节英文 variable label.
+# ── WP3 标签中文化数据层 (STATA_VARATTR 计划 §3a, 2026-07-10) ──
+# 兜底列 2562 条中文标签外置为数据文件 (config/stata_labels_zh.json, key=panel
+# 原列名), 在 HEURISTIC 之后、裸列名 fallback 之前作第 3 级标签源; 文件缺失时
+# 优雅回退 {} → 行为与旧四级链完全一致 (向后兼容, gate: test_stata_labels_zh)。
+_STATA_LABELS_ZH_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), '..', '..', 'config',
+    'stata_labels_zh.json')
+_ZH_LABELS_CACHE: Dict[str, str] | None = None
 
-    fix(omni-g-stata-export-05/09, 2026-06-11): 新增 rename_map 参数
-    ({short_stata_name: original_panel_name}) — codebook meta 与
-    HEURISTIC_LABELS 均以原始 panel 列名为键, 此前被 shorten/asciify 改名的
-    列按短名查找必 miss, 人工标签静默退化为列名 fallback。
 
-    优先级:
-        1. codebook meta[原名].label (若改名, 先按原名查)
-        2. HEURISTIC_LABELS[原名]
-        3. codebook meta[短名].label / HEURISTIC_LABELS[短名] (兜底)
-        4. fallback: 原始列名本身 (保留被截断吃掉的判别后缀信息)
+def load_stata_labels_zh() -> Dict[str, str]:
+    """加载 config/stata_labels_zh.json (兜底列中文标签 SSOT; 缺失 → {} 优雅回退)."""
+    global _ZH_LABELS_CACHE
+    if _ZH_LABELS_CACHE is None:
+        try:
+            with open(_STATA_LABELS_ZH_PATH, encoding='utf-8') as _f:
+                _raw = json.load(_f)
+            _ZH_LABELS_CACHE = {str(k): str(v) for k, v in _raw.items()}
+        except Exception as _e:  # noqa: BLE001 — 缺失/畸形均回退旧行为
+            logger.warning(f"stata_labels_zh.json 不可用 ({_e}), 兜底列退回列名标签")
+            _ZH_LABELS_CACHE = {}
+    return _ZH_LABELS_CACHE
 
-    所有 label 强制按 UTF-8 字节边界截断至 80 字节 (R32-H + R40-A;
-    fix(omni-g-stata-export-02/08, 2026-06-11): 原实现字节判定+字符切片,
-    CJK 标签『越截越长』并触发 validate_stata_compat raise).
+
+_SHARED_ZH_CACHE: Dict[str, str] | None = None
+
+
+def get_shared_zh_labels() -> Dict[str, str]:
+    """codebook 侧同源消费出口 (计划 §4 标签行「HEURISTIC-only 列两端须同步补」).
+
+    返回 {panel 原列名: 中文标签} = zh JSON ∪ HEURISTIC (HEURISTIC 优先, 镜像
+    build_variable_labels 第 2>3 级优先序)。codebook._infer_label 顶部消费本出口,
+    保证 .dta 标签 (46-path) 与 codebook「标签」字段对 HEURISTIC/兜底两域逐字同源;
+    meta 命中列两端本就共享 get_variable_metadata_dict, 无需经此。进程内缓存。
     """
-    rename_map = rename_map or {}
-    labels: Dict[str, str] = {}
-    try:
-        from news_process.pipeline.panel.codebook import get_variable_metadata_dict
-        meta = get_variable_metadata_dict()
-    except Exception as e:
-        logger.warning(f"codebook metadata 不可用 ({e}), 使用启发式标签")
-        meta = {}
+    global _SHARED_ZH_CACHE
+    if _SHARED_ZH_CACHE is None:
+        try:
+            from news_process.pipeline.panel.codebook import get_variable_metadata_dict
+            _meta = get_variable_metadata_dict()
+        except Exception as _e:  # noqa: BLE001
+            logger.warning(f"codebook metadata 不可用 ({_e}), shared 标签仅含 HEURISTIC+zh")
+            _meta = {}
+        _SHARED_ZH_CACHE = {**load_stata_labels_zh(), **build_heuristic_labels(_meta)}
+    return _SHARED_ZH_CACHE
 
+
+def build_heuristic_labels(meta: Dict[str, object] | None = None) -> Dict[str, str]:
+    """构建 HEURISTIC_LABELS 全字典 (静态手写条目 + 9 个机械生成族).
+
+    WP3 (2026-07-10) 自 build_variable_labels 函数体提为模块级: 逻辑/键域零变更,
+    供 build_variable_labels (46-path) 与 get_shared_zh_labels (codebook 侧) 两端
+    同源消费。meta 仅用于 F9 网络判据族的基名标签反查 (可传 {})。
+    """
+    meta = meta or {}
     # 启发式映射 (覆盖三轨 (full/ctx/ss) 列, codebook 未及时同步时的 fallback)
     HEURISTIC_LABELS: Dict[str, str] = {
-        'n_articles_llm_valid':             "News count, LLM-valid (category-frac denominator)",
-        'n_articles_llm_valid_ctx':         "News count, ctx-track LLM-valid (ctx category-frac denom)",
-        'innovation_locus_full':            "Innovation Locus (Full-text, Gomber 2018 JMIS)",
-        'innovation_locus_ctx':             "Innovation Locus (Entity-context, Hassan 2019 QJE)",
-        'innovation_substantiveness_full':  "Innov. Substantiveness (Full-text, W&Z 1998 ASQ)",
-        'innovation_substantiveness_ctx':   "Innov. Substantiveness (Entity-ctx, Hassan 2019 QJE)",
-        'innovation_collab_mode_full':      "Innov. Collab Mode (Full-text, Chesbrough 2003)",
-        'innovation_collab_mode_ctx':       "Innov. Collab Mode (Entity-ctx, Hassan 2019 QJE)",
-        'innovation_collab_mode_confidence_full': "Collab Mode Confidence (Full-text, raw LLM)",
-        'innovation_collab_mode_confidence_ctx':  "Collab Mode Confidence (Entity-ctx, raw LLM)",
-        'category_confidence_full':         "Locus Confidence (Full-text, hybrid LLM+keyword)",
-        'category_confidence_ctx':          "Locus Confidence (Entity-ctx, hybrid LLM+keyword)",
-        'llm_verified_dual_full_only':      "Dual Gate: Full-track only verified",
-        'llm_verified_dual_ctx_only':       "Dual Gate: Ctx-track only verified (empty under full-only)",
-        'llm_verified_dual_both':           "Dual Gate: Both tracks verified",
-        'tone_gap_tech_app_lc_ctx':         "Tone Gap: Tech-App (Loc=Ctx, ctx sentiment)",
-        'tone_gap_sub_symb_sc_ctx':         "Tone Gap: Sub-Symb (Subst=Ctx, ctx sentiment)",
-        'tech_frac_lc':                     "Frac of Tech-locus articles (ctx classification)",
-        'app_frac_lc':                      "Frac of App-locus articles (ctx classification)",
-        'sub_frac_sc':                      "Frac of Substantive articles (ctx classification)",
-        'symb_frac_sc':                     "Frac of Symbolic articles (ctx classification)",
+        'n_articles_llm_valid':             "LLM有效验证篇数(占比分母)",
+        'n_articles_llm_valid_ctx':         "LLM有效验证篇数(占比分母,实体窗轨)",
+        'innovation_locus_full':            "创新位置分类(技术/应用,Gomber2018,全文轨)",
+        'innovation_locus_ctx':             "创新位置分类(技术/应用,Gomber2018,实体窗轨)",
+        'innovation_substantiveness_full':  "创新实质性分类(实质/象征,W&Z1998,全文轨)",
+        'innovation_substantiveness_ctx':   "创新实质性分类(实质/象征,W&Z1998,实体窗轨)",
+        'innovation_collab_mode_full':      "协同模式分类(独立/协同,Chesbrough,全文轨)",
+        'innovation_collab_mode_ctx':       "协同模式分类(独立/协同,Chesbrough,实体窗轨)",
+        'innovation_collab_mode_confidence_full': "协同模式分类置信度(原始LLM,全文轨)",
+        'innovation_collab_mode_confidence_ctx':  "协同模式分类置信度(原始LLM,实体窗轨)",
+        'category_confidence_full':         "位置分类置信度(LLM+关键词混合,全文轨)",
+        'category_confidence_ctx':          "位置分类置信度(LLM+关键词混合,实体窗轨)",
+        'llm_verified_dual_full_only':      "双门验证:仅全文轨通过",
+        'llm_verified_dual_ctx_only':       "双门验证:仅实体窗轨通过(全文门控下为空)",
+        'llm_verified_dual_both':           "双门验证:两轨均通过",
+        'tone_gap_tech_app_lc_ctx':         "语调差:技术-应用(P4主DV,位置分类=ctx,实体窗轨)",
+        'tone_gap_sub_symb_sc_ctx':         "语调差:实质-象征(实质分类=ctx,实体窗轨)",
+        'tech_frac_lc':                     "底层技术类报道占比(位置分类=ctx)",
+        'app_frac_lc':                      "应用场景类报道占比(位置分类=ctx)",
+        'sub_frac_sc':                      "实质类报道占比(实质分类=ctx)",
+        'symb_frac_sc':                     "象征类报道占比(实质分类=ctx)",
         # Plan v1.37 P2 §5.3.4: 二元 prob_score 列的标签 (每条 ≤ 80 UTF-8
         # 字节; em-dash 占 3 字节; positive_class = 象征性 / 应用场景 / 外部协同, 与
         # stata_export 编码 1=对照 一致)。三维对称补 collab (2026-06-14)。
-        'avg_subst_prob_score_full':        "Avg Subst P_BIN (full-track) — 1=symbolic, max-ent map",
-        'avg_subst_prob_score_std_full':    "Std Subst P_BIN (full-track, bank-year SD)",
-        'avg_subst_prob_score_ctx':         "Avg Subst P_BIN (ctx-track) — 1=symbolic, max-ent map",
-        'avg_subst_prob_score_std_ctx':     "Std Subst P_BIN (ctx-track, bank-year SD)",
-        'avg_locus_prob_score_full':        "Avg Locus P_BIN (full-track) — 1=application, max-ent map",
-        'avg_locus_prob_score_std_full':    "Std Locus P_BIN (full-track, bank-year SD)",
-        'avg_locus_prob_score_ctx':         "Avg Locus P_BIN (ctx-track) — 1=application, max-ent map",
-        'avg_locus_prob_score_std_ctx':     "Std Locus P_BIN (ctx-track, bank-year SD)",
-        'avg_collab_prob_score_full':       "Avg Collab P_BIN (full-track) — 1=external/open, max-ent map",
-        'avg_collab_prob_score_std_full':   "Std Collab P_BIN (full-track, bank-year SD)",
-        'avg_collab_prob_score_ctx':        "Avg Collab P_BIN (ctx-track) — 1=external/open, max-ent map",
-        'avg_collab_prob_score_std_ctx':    "Std Collab P_BIN (ctx-track, bank-year SD)",
+        'avg_subst_prob_score_full':        "实质性二元概率分均值(1=象征,全文轨)",
+        'avg_subst_prob_score_std_full':    "实质性二元概率分(1=象征,标准差,全文轨)",
+        'avg_subst_prob_score_ctx':         "实质性二元概率分均值(1=象征,实体窗轨)",
+        'avg_subst_prob_score_std_ctx':     "实质性二元概率分(1=象征,标准差,实体窗轨)",
+        'avg_locus_prob_score_full':        "位置二元概率分均值(1=应用,全文轨)",
+        'avg_locus_prob_score_std_full':    "位置二元概率分(1=应用,标准差,全文轨)",
+        'avg_locus_prob_score_ctx':         "位置二元概率分均值(1=应用,实体窗轨)",
+        'avg_locus_prob_score_std_ctx':     "位置二元概率分(1=应用,标准差,实体窗轨)",
+        'avg_collab_prob_score_full':       "协同二元概率分均值(1=协同,全文轨)",
+        'avg_collab_prob_score_std_full':   "协同二元概率分(1=协同,标准差,全文轨)",
+        'avg_collab_prob_score_ctx':        "协同二元概率分均值(1=协同,实体窗轨)",
+        'avg_collab_prob_score_std_ctx':    "协同二元概率分(1=协同,标准差,实体窗轨)",
         # v3.5.1 A1 Lexical Clarity (LM 2011 JF 66:1; You 2018 hhx055 Panel C/D)
         # 三轨 (full/ctx/ss) 独立扫描; 每条 ≤ 80 UTF-8 bytes (per plan v0.3 §2.4.1 frozen at D0).
-        'mean_clarity_score_full':          "Mean Clarity Score from indep Full-text scan (LM 2011 JF; You 2018)",
-        'mean_clarity_score_ctx':           "Mean Clarity Score from indep Ctx-text scan (LM 2011 JF; You 2018)",
+        'mean_clarity_score_full':          "词汇清晰度均值(LM2011,全文轨)",
+        'mean_clarity_score_ctx':           "词汇清晰度均值(LM2011,实体窗轨)",
         # v3.10.0: L&M 2011 JF 中文主译第 6 部主词典 tone + 纯计数版 (negonly) + 2 新非情感子集.
-        'loughran_tone_full':               "Avg Tone Loughran-McDonald 2011 JF Chinese 6th dict (full-track)",
-        'loughran_tone_ctx':                "Avg Tone Loughran-McDonald 2011 JF Chinese 6th dict (ctx-track)",
-        'loughran_tone_ss':                 "Avg Tone L-M 2011 JF Chinese (bank+fintech same-sentence track)",
-        'loughran_negonly_tone_full':       "Avg Tone L-M counts-faithful (negonly, rule-reduced) full-track",
-        'loughran_negonly_tone_ctx':        "Avg Tone L-M counts-faithful (negonly, rule-reduced) ctx-track",
-        'loughran_negonly_tone_ss':         "Avg Tone L-M counts-faithful (negonly) same-sentence track",
-        'modal_weak_frac_full':             "Frac Weak-Modal words (L-M 2011 JF; Bochkay 2020) full-track",
-        'modal_weak_frac_ctx':              "Frac Weak-Modal words (L-M 2011 JF; Bochkay 2020) ctx-track",
-        'modal_weak_frac_ss':               "Frac Weak-Modal words (L-M 2011 JF) same-sentence track",
-        'complexity_frac_full':             "Frac Complexity words (L-M 2011 JF complexity list) full-track",
-        'complexity_frac_ctx':              "Frac Complexity words (L-M 2011 JF complexity list) ctx-track",
-        'complexity_frac_ss':               "Frac Complexity words (L-M 2011 JF) same-sentence track",
+        'loughran_tone_full':               "LM词典语调(全文轨)",
+        'loughran_tone_ctx':                "LM词典语调(实体窗轨)",
+        'loughran_tone_ss':                 "LM词典语调(同句轨)",
+        'loughran_negonly_tone_full':       "LM词典语调(仅否定规则,全文轨)",
+        'loughran_negonly_tone_ctx':        "LM词典语调(仅否定规则,实体窗轨)",
+        'loughran_negonly_tone_ss':         "LM词典语调(仅否定规则,同句轨)",
+        'modal_weak_frac_full':             "弱模态词占比(LM,全文轨)",
+        'modal_weak_frac_ctx':              "弱模态词占比(LM,实体窗轨)",
+        'modal_weak_frac_ss':               "弱模态词占比(LM,同句轨)",
+        'complexity_frac_full':             "复杂词占比(LM,全文轨)",
+        'complexity_frac_ctx':              "复杂词占比(LM,实体窗轨)",
+        'complexity_frac_ss':               "复杂词占比(LM,同句轨)",
         # 2026-06-20 对称补全: 其余 5 部情感词典的 headline 极性 tone + negonly 列 curated
         # 标签 (此前唯 loughran 有这 6 个 headline 标签, 其余 5 部回退泛型 codebook 推断 →
         # Stata 标签层不对称)。仅补 6 个 headline 列/部 (与 loughran 同口径);
         # sum/std/vw/mw/hw/tech/app/idf 衍生列对全部 6 部一律走泛型推断 (loughran 亦然), 保持对称。
-        'jiang_2021_tone_full':             "Avg Tone Jiang et al. 2021 CN-fin dict (full-track)",
-        'jiang_2021_tone_ctx':              "Avg Tone Jiang et al. 2021 CN-fin dict (ctx-track)",
-        'jiang_2021_tone_ss':               "Avg Tone Jiang et al. 2021 (bank+fintech same-sentence track)",
-        'jiang_2021_negonly_tone_full':     "Avg Tone Jiang et al. 2021 (negonly, rule-reduced) full-track",
-        'jiang_2021_negonly_tone_ctx':      "Avg Tone Jiang et al. 2021 (negonly, rule-reduced) ctx-track",
-        'jiang_2021_negonly_tone_ss':       "Avg Tone Jiang et al. 2021 (negonly) same-sentence track",
-        'yao_2021_tone_full':               "Avg Tone Yao et al. 2021 CN-fin dict (full-track)",
-        'yao_2021_tone_ctx':                "Avg Tone Yao et al. 2021 CN-fin dict (ctx-track)",
-        'yao_2021_tone_ss':                 "Avg Tone Yao et al. 2021 (bank+fintech same-sentence track)",
-        'yao_2021_negonly_tone_full':       "Avg Tone Yao et al. 2021 (negonly, rule-reduced) full-track",
-        'yao_2021_negonly_tone_ctx':        "Avg Tone Yao et al. 2021 (negonly, rule-reduced) ctx-track",
-        'yao_2021_negonly_tone_ss':         "Avg Tone Yao et al. 2021 (negonly) same-sentence track",
-        'bian_2021_tone_full':              "Avg Tone Bian et al. 2021 LM-CN-extended (full-track)",
-        'bian_2021_tone_ctx':               "Avg Tone Bian et al. 2021 LM-CN-extended (ctx-track)",
-        'bian_2021_tone_ss':                "Avg Tone Bian et al. 2021 (bank+fintech same-sentence track)",
-        'bian_2021_negonly_tone_full':      "Avg Tone Bian et al. 2021 (negonly, rule-reduced) full-track",
-        'bian_2021_negonly_tone_ctx':       "Avg Tone Bian et al. 2021 (negonly, rule-reduced) ctx-track",
-        'bian_2021_negonly_tone_ss':        "Avg Tone Bian et al. 2021 (negonly) same-sentence track",
-        'du_2022_tone_full':                "Avg Tone Du et al. 2022 (+political-pos) (full-track)",
-        'du_2022_tone_ctx':                 "Avg Tone Du et al. 2022 (+political-pos) (ctx-track)",
-        'du_2022_tone_ss':                  "Avg Tone Du et al. 2022 (bank+fintech same-sentence track)",
-        'du_2022_negonly_tone_full':        "Avg Tone Du et al. 2022 (negonly, rule-reduced) full-track",
-        'du_2022_negonly_tone_ctx':         "Avg Tone Du et al. 2022 (negonly, rule-reduced) ctx-track",
-        'du_2022_negonly_tone_ss':          "Avg Tone Du et al. 2022 (negonly) same-sentence track",
-        'you_2018_tone_full':               "Avg Tone You et al. 2018 CN-fin dict (full-track)",
-        'you_2018_tone_ctx':                "Avg Tone You et al. 2018 CN-fin dict (ctx-track)",
-        'you_2018_tone_ss':                 "Avg Tone You et al. 2018 (bank+fintech same-sentence track)",
-        'you_2018_negonly_tone_full':       "Avg Tone You et al. 2018 (negonly, rule-reduced) full-track",
-        'you_2018_negonly_tone_ctx':        "Avg Tone You et al. 2018 (negonly, rule-reduced) ctx-track",
-        'you_2018_negonly_tone_ss':         "Avg Tone You et al. 2018 (negonly) same-sentence track",
-        'mean_frac_definite_full':          "Mean Frac Definite from indep Full scan (You 2018 Panel C 388 words)",
-        'mean_frac_definite_ctx':           "Mean Frac Definite from indep Ctx scan (You 2018 Panel C 388 words)",
-        'frac_amb_articles_full':           "Frac Articles Ambiguous Full (>=D0 median, You 2018 Panel D)",
-        'frac_amb_articles_ctx':            "Frac Articles Ambiguous Ctx (>=D0 median, You 2018 Panel D)",
+        'jiang_2021_tone_full':             "Jiang2021词典语调(全文轨)",
+        'jiang_2021_tone_ctx':              "Jiang2021词典语调(实体窗轨)",
+        'jiang_2021_tone_ss':               "Jiang2021词典语调(同句轨)",
+        'jiang_2021_negonly_tone_full':     "Jiang2021词典语调(仅否定规则,全文轨)",
+        'jiang_2021_negonly_tone_ctx':      "Jiang2021词典语调(仅否定规则,实体窗轨)",
+        'jiang_2021_negonly_tone_ss':       "Jiang2021词典语调(仅否定规则,同句轨)",
+        'yao_2021_tone_full':               "Yao2021词典语调(全文轨)",
+        'yao_2021_tone_ctx':                "Yao2021词典语调(实体窗轨)",
+        'yao_2021_tone_ss':                 "Yao2021词典语调(同句轨)",
+        'yao_2021_negonly_tone_full':       "Yao2021词典语调(仅否定规则,全文轨)",
+        'yao_2021_negonly_tone_ctx':        "Yao2021词典语调(仅否定规则,实体窗轨)",
+        'yao_2021_negonly_tone_ss':         "Yao2021词典语调(仅否定规则,同句轨)",
+        'bian_2021_tone_full':              "Bian2021词典语调(全文轨)",
+        'bian_2021_tone_ctx':               "Bian2021词典语调(实体窗轨)",
+        'bian_2021_tone_ss':                "Bian2021词典语调(同句轨)",
+        'bian_2021_negonly_tone_full':      "Bian2021词典语调(仅否定规则,全文轨)",
+        'bian_2021_negonly_tone_ctx':       "Bian2021词典语调(仅否定规则,实体窗轨)",
+        'bian_2021_negonly_tone_ss':        "Bian2021词典语调(仅否定规则,同句轨)",
+        'du_2022_tone_full':                "Du2022词典语调(全文轨)",
+        'du_2022_tone_ctx':                 "Du2022词典语调(实体窗轨)",
+        'du_2022_tone_ss':                  "Du2022词典语调(同句轨)",
+        'du_2022_negonly_tone_full':        "Du2022词典语调(仅否定规则,全文轨)",
+        'du_2022_negonly_tone_ctx':         "Du2022词典语调(仅否定规则,实体窗轨)",
+        'du_2022_negonly_tone_ss':          "Du2022词典语调(仅否定规则,同句轨)",
+        'you_2018_tone_full':               "You2018词典语调(全文轨)",
+        'you_2018_tone_ctx':                "You2018词典语调(实体窗轨)",
+        'you_2018_tone_ss':                 "You2018词典语调(同句轨)",
+        'you_2018_negonly_tone_full':       "You2018词典语调(仅否定规则,全文轨)",
+        'you_2018_negonly_tone_ctx':        "You2018词典语调(仅否定规则,实体窗轨)",
+        'you_2018_negonly_tone_ss':         "You2018词典语调(仅否定规则,同句轨)",
+        'mean_frac_definite_full':          "确定性词占比均值(You2018,全文轨)",
+        'mean_frac_definite_ctx':           "确定性词占比均值(You2018,实体窗轨)",
+        'frac_amb_articles_full':           "模糊表述报道占比(You2018,全文轨)",
+        'frac_amb_articles_ctx':            "模糊表述报道占比(You2018,实体窗轨)",
         # v3.5.1 A3 Numerical Intensity (数值披露强度; 引文勘误见 codebook reference) 三轨 (full/ctx/ss)
-        'mean_num_intensity_full':          "Mean Numerical Intensity Full (three-track)",
-        'mean_num_intensity_ctx':           "Mean Numerical Intensity Ctx (three-track)",
+        'mean_num_intensity_full':          "数值披露强度均值(全文轨)",
+        'mean_num_intensity_ctx':           "数值披露强度均值(实体窗轨)",
         # nonpolarity-dims (2026-06-20): Named-Entity Density (Hope-Hu-Lu 2016 RAS; specificity 实体面)
-        'avg_named_entity_full':            "Named-Entity Density Full (specificity 实体子集; Hope 2016)",
-        'avg_named_entity_ctx':             "Named-Entity Density Ctx (specificity 实体子集; Hope 2016)",
-        'avg_named_entity_ss':              "Named-Entity Density same-sentence (specificity 实体子集; Hope 2016)",
+        'avg_named_entity_full':            "命名实体密度均值(全文轨)",
+        'avg_named_entity_ctx':             "命名实体密度均值(实体窗轨)",
+        'avg_named_entity_ss':              "命名实体密度均值(同句轨)",
         # nonpolarity-dims WS-B2 (2026-06-20): Boilerplate Phrase Ratio 单轨 (Lang-Stice-Lawrence 2015 JAE)
         # D2 FLS 双门/单门二臂 (2026-07-03; 全族补录, 此前 fallback 列名):
-        'frac_fls_full':                    "FLS Frac Full (dual-gate; Li 2010 JAR)",
-        'frac_fls_ctx':                     "FLS Frac Ctx (dual-gate; Li 2010 JAR)",
-        'frac_fls_ss':                      "FLS Frac SS (dual-gate; Li 2010 JAR)",
-        'frac_fls_fonly_full':              "FLS Frac Full (future-only 稳健臂)",
-        'frac_fls_fonly_ctx':               "FLS Frac Ctx (future-only 稳健臂)",
-        'frac_fls_fonly_ss':                "FLS Frac SS (future-only 稳健臂)",
+        'frac_fls_full':                    "前瞻性陈述占比(双门,全文轨)",
+        'frac_fls_ctx':                     "前瞻性陈述占比(双门,实体窗轨)",
+        'frac_fls_ss':                      "前瞻性陈述占比(双门,同句轨)",
+        'frac_fls_fonly_full':              "前瞻性陈述占比(仅未来词单门,全文轨)",
+        'frac_fls_fonly_ctx':               "前瞻性陈述占比(仅未来词单门,实体窗轨)",
+        'frac_fls_fonly_ss':                "前瞻性陈述占比(仅未来词单门,同句轨)",
         # D1 罕见词频次 cutoff 梯子 (2026-07-03): c2/c5 互为稳健臂 (canonical=avg_rare_word_*)
-        'avg_rare_word_c2_full':            "Rare-Word Ratio c2 Full (cutoff=2 稳健臂)",
-        'avg_rare_word_c2_ctx':             "Rare-Word Ratio c2 Ctx (cutoff=2 稳健臂)",
-        'avg_rare_word_c2_ss':              "Rare-Word Ratio c2 SS (cutoff=2 稳健臂)",
-        'avg_rare_word_c5_full':            "Rare-Word Ratio c5 Full (cutoff=5 稳健臂)",
-        'avg_rare_word_c5_ctx':             "Rare-Word Ratio c5 Ctx (cutoff=5 稳健臂)",
-        'avg_rare_word_c5_ss':              "Rare-Word Ratio c5 SS (cutoff=5 稳健臂)",
-        'avg_boilerplate_full':             "Boilerplate Phrase Ratio Full (跨文档套话; LSL 2015)",
+        'avg_rare_word_c2_full':            "罕见词占比均值(词频cutoff=2,全文轨)",
+        'avg_rare_word_c2_ctx':             "罕见词占比均值(词频cutoff=2,实体窗轨)",
+        'avg_rare_word_c2_ss':              "罕见词占比均值(词频cutoff=2,同句轨)",
+        'avg_rare_word_c5_full':            "罕见词占比均值(词频cutoff=5,全文轨)",
+        'avg_rare_word_c5_ctx':             "罕见词占比均值(词频cutoff=5,实体窗轨)",
+        'avg_rare_word_c5_ss':              "罕见词占比均值(词频cutoff=5,同句轨)",
+        'avg_boilerplate_full':             "跨文档套话比率(全文轨)",
         # WP-C 三轨化 (2026-07-03): ctx/ss 互为稳健轨 (full=headline)
-        'avg_boilerplate_ctx':              "Boilerplate Phrase Ratio Ctx (跨文档套话稳健轨; LSL 2015)",
-        'avg_boilerplate_ss':               "Boilerplate Phrase Ratio SS (跨文档套话稳健轨; LSL 2015)",
+        'avg_boilerplate_ctx':              "跨文档套话比率(实体窗轨)",
+        'avg_boilerplate_ss':               "跨文档套话比率(同句轨)",
         # remove-title-track: title-indicator labels 已移除
         # ─────────────────────────────────────────────────────────────
         # v3.15.0 (2026-06-28): 嵌入主轨 = Qwen3-Embedding-8B(MAIN, 无后缀, 硅基流动)
         # ⟂ text-embedding-3-large(_lg) 跨厂商对等 CO-PRIMARY 双轨 (本地 text2vec/_t2v
         # 与 _bge 整体移除)。这批 MAIN (无后缀) anchor 嵌入族标签是 _lg 派生循环 (下方
         # _MAIN_ANCHOR_KEYS) 与 _allv 派生循环的输入源 —— 删 _t2v 后必须存在, 否则两循环
-        # 输入归零、_lg/_allv 标签全失。每条 base 文案恰带一个 "(co-primary:
-        # Qwen/Qwen3-Embedding-8B)" 对称标注 (_lg 派生时整体 replace 为
-        # text-embedding-3-large; 严禁 "robust/robustness check" 措辞 —— 二者对等互证)。
+        # 输入归零、_lg/_allv 标签全失。每条 base 文案恰带一个 co-primary 对称尾注
+        # (WP3 中文紧凑形 "(对等轨Qwen3-8B)", 指代 MAIN 槽 Qwen/Qwen3-Embedding-8B;
+        # _lg 派生时整体 replace 为 "(对等轨emb-3-large)" = text-embedding-3-large;
+        # 严禁 "robust/稳健性" 措辞 —— 二者对等互证)。
         # full 轨命名遵循 producer 列约定: n5_emb/sim_max_emb/centroid_diff_emb 的 full
         # 为裸名 (无 _full 后缀), 其余族 full 带 _full。≤80 UTF-8 bytes。
         # ─────────────────────────────────────────────────────────────
-        'strat_diff_full':                  "Strat Diff (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'strat_diff_ctx':                   "Strat Diff (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'strat_diff_n5_emb':                "Strat Diff N5 Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'strat_diff_n5_emb_ctx':            "Strat Diff N5 Emb (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_diff_full':                  "战略差异度(=行业质心距离,嵌入,全文轨)(对等轨Qwen3-8B)",
+        'strat_diff_ctx':                   "战略差异度(=行业质心距离,嵌入,实体窗轨)(对等轨Qwen3-8B)",
+        'strat_diff_n5_emb':                "N近邻战略差异度(N=5,嵌入,全文轨)(对等轨Qwen3-8B)",
+        'strat_diff_n5_emb_ctx':            "N近邻战略差异度(N=5,嵌入,实体窗轨)(对等轨Qwen3-8B)",
         # top-k N 扩展 (2026-07-02): 大邻域 emb N∈{10,20,30,40,50} × 3 轨 (full/ctx/ss) = 15 条;
         #   _lg 孪生 15 条由下方 _lg 派生循环自动生成 (无需手写)。⚠ 须与 _MAIN_ANCHOR_KEYS 原子同增
         #   (P2-D 守卫断言每 anchor key ∈ 带 Qwen 标注的 HEURISTIC_LABELS)。
-        'strat_diff_n10_emb':               "Strat Diff N10 Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'strat_diff_n20_emb':               "Strat Diff N20 Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'strat_diff_n30_emb':               "Strat Diff N30 Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'strat_diff_n40_emb':               "Strat Diff N40 Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'strat_diff_n50_emb':               "Strat Diff N50 Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'strat_diff_n10_emb_ctx':           "Strat Diff N10 Emb (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'strat_diff_n20_emb_ctx':           "Strat Diff N20 Emb (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'strat_diff_n30_emb_ctx':           "Strat Diff N30 Emb (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'strat_diff_n40_emb_ctx':           "Strat Diff N40 Emb (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'strat_diff_n50_emb_ctx':           "Strat Diff N50 Emb (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'strat_diff_n10_emb_ss':            "Strat Diff N10 Emb (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'strat_diff_n20_emb_ss':            "Strat Diff N20 Emb (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'strat_diff_n30_emb_ss':            "Strat Diff N30 Emb (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'strat_diff_n40_emb_ss':            "Strat Diff N40 Emb (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'strat_diff_n50_emb_ss':            "Strat Diff N50 Emb (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'strat_sim_max_emb':                "Strat Max Sim Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'strat_sim_max_emb_ctx':            "Strat Max Sim Emb (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'centroid_diff_emb':                "Centroid Diff Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'centroid_diff_emb_ctx':            "Centroid Diff Emb (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'coh_emb_full':                     "Temporal Coherence Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'coh_emb_ctx':                      "Temporal Coherence Emb (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'policy_cosine_sim_full':           "Policy Cosine Sim (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'policy_cosine_sim_ctx':            "Policy Cosine Sim (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'auth_sim_emb_full':                "Auth Policy Sim Emb (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'auth_sim_emb_ctx':                 "Auth Policy Sim Emb (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'benefit_mean_full':                "Benefit Attitude Mean (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'benefit_mean_ctx':                 "Benefit Attitude Mean (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'benefit_std_full':                 "Benefit Attitude SD (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'benefit_std_ctx':                  "Benefit Attitude SD (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'benefit_pos_frac_full':            "Benefit Pos Frac (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'benefit_pos_frac_ctx':             "Benefit Pos Frac (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'benefit_neg_frac_full':            "Benefit Neg Frac (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'benefit_neg_frac_ctx':             "Benefit Neg Frac (ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'emb_peer_tone_lag1_full':          "Emb Peer Tone Lag1 (full) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'bank_emb_sim_mean_lag1':           "Bank Emb Sim Mean (L1) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        'strat_diff_n10_emb':               "N近邻战略差异度(N=10,嵌入,全文轨)(对等轨Qwen3-8B)",
+        'strat_diff_n20_emb':               "N近邻战略差异度(N=20,嵌入,全文轨)(对等轨Qwen3-8B)",
+        'strat_diff_n30_emb':               "N近邻战略差异度(N=30,嵌入,全文轨)(对等轨Qwen3-8B)",
+        'strat_diff_n40_emb':               "N近邻战略差异度(N=40,嵌入,全文轨)(对等轨Qwen3-8B)",
+        'strat_diff_n50_emb':               "N近邻战略差异度(N=50,嵌入,全文轨)(对等轨Qwen3-8B)",
+        'strat_diff_n10_emb_ctx':           "N近邻战略差异度(N=10,嵌入,实体窗轨)(对等轨Qwen3-8B)",
+        'strat_diff_n20_emb_ctx':           "N近邻战略差异度(N=20,嵌入,实体窗轨)(对等轨Qwen3-8B)",
+        'strat_diff_n30_emb_ctx':           "N近邻战略差异度(N=30,嵌入,实体窗轨)(对等轨Qwen3-8B)",
+        'strat_diff_n40_emb_ctx':           "N近邻战略差异度(N=40,嵌入,实体窗轨)(对等轨Qwen3-8B)",
+        'strat_diff_n50_emb_ctx':           "N近邻战略差异度(N=50,嵌入,实体窗轨)(对等轨Qwen3-8B)",
+        'strat_diff_n10_emb_ss':            "N近邻战略差异度(N=10,嵌入,同句轨)(对等轨Qwen3-8B)",
+        'strat_diff_n20_emb_ss':            "N近邻战略差异度(N=20,嵌入,同句轨)(对等轨Qwen3-8B)",
+        'strat_diff_n30_emb_ss':            "N近邻战略差异度(N=30,嵌入,同句轨)(对等轨Qwen3-8B)",
+        'strat_diff_n40_emb_ss':            "N近邻战略差异度(N=40,嵌入,同句轨)(对等轨Qwen3-8B)",
+        'strat_diff_n50_emb_ss':            "N近邻战略差异度(N=50,嵌入,同句轨)(对等轨Qwen3-8B)",
+        'strat_sim_max_emb':                "同业最大相似度(嵌入,全文轨)(对等轨Qwen3-8B)",
+        'strat_sim_max_emb_ctx':            "同业最大相似度(嵌入,实体窗轨)(对等轨Qwen3-8B)",
+        'centroid_diff_emb':                "行业质心距离(嵌入)(对等轨Qwen3-8B)",
+        'centroid_diff_emb_ctx':            "行业质心距离(嵌入,实体窗轨)(对等轨Qwen3-8B)",
+        'coh_emb_full':                     "相邻期文本连贯性(嵌入,全文轨)(对等轨Qwen3-8B)",
+        'coh_emb_ctx':                      "相邻期文本连贯性(嵌入,实体窗轨)(对等轨Qwen3-8B)",
+        'policy_cosine_sim_full':           "政策余弦相似度(全文轨)(对等轨Qwen3-8B)",
+        'policy_cosine_sim_ctx':            "政策余弦相似度(实体窗轨)(对等轨Qwen3-8B)",
+        'auth_sim_emb_full':                "权威政策对齐度(嵌入,全文轨)(对等轨Qwen3-8B)",
+        'auth_sim_emb_ctx':                 "权威政策对齐度(嵌入,实体窗轨)(对等轨Qwen3-8B)",
+        'benefit_mean_full':                "经营效益态度均值(嵌入投影,全文轨)(对等轨Qwen3-8B)",
+        'benefit_mean_ctx':                 "经营效益态度均值(嵌入投影,实体窗轨)(对等轨Qwen3-8B)",
+        'benefit_std_full':                 "经营效益态度标准差(全文轨)(对等轨Qwen3-8B)",
+        'benefit_std_ctx':                  "经营效益态度标准差(实体窗轨)(对等轨Qwen3-8B)",
+        'benefit_pos_frac_full':            "效益态度正面占比(全文轨)(对等轨Qwen3-8B)",
+        'benefit_pos_frac_ctx':             "效益态度正面占比(实体窗轨)(对等轨Qwen3-8B)",
+        'benefit_neg_frac_full':            "效益态度负面占比(全文轨)(对等轨Qwen3-8B)",
+        'benefit_neg_frac_ctx':             "效益态度负面占比(实体窗轨)(对等轨Qwen3-8B)",
+        'emb_peer_tone_lag1_full':          "嵌入加权同业语调(滞后1,全文轨)(对等轨Qwen3-8B)",
+        'bank_emb_sim_mean_lag1':           "银行嵌入相似度均值(滞后1)(对等轨Qwen3-8B)",
         # ①-B W-轨扩展 (2026-07-03, 计划层 F): legacy ctx/ss 缺口补齐 (标签写明
         # W 来源 = full-doc, 终验 econ-final-3) + diag 新轨 (W 与 tone 同轨) +
         # sim W-轨 + cogn 三轨 (TF-IDF 非嵌入, 无 co-primary 标注)。
         # 嵌入族键与下方 _MAIN_ANCHOR_KEYS 原子同增 (P2-D 守卫), _lg 自动派生。
-        'emb_peer_tone_lag1_ctx':           "Emb Peer Tone L1 (W=full, tone=ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'emb_peer_tone_lag1_ss':            "Emb Peer Tone L1 (W=full, tone=ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'emb_peer_tone_diag_lag1_ctx':      "Emb Peer Tone Diag L1 (W=ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'emb_peer_tone_diag_lag1_ss':       "Emb Peer Tone Diag L1 (W=ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'bank_emb_sim_mean_lag1_ctx':       "Bank Emb Sim Mean (L1, W=ctx) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'bank_emb_sim_mean_lag1_ss':        "Bank Emb Sim Mean (L1, W=ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'bank_cogn_mean':                   "Cognitive Proximity TF-IDF cosine (full-doc text)",
-        'bank_cogn_mean_ctx':               "Cognitive Proximity TF-IDF cosine (ctx window text)",
-        'bank_cogn_mean_ss':                "Cognitive Proximity TF-IDF cosine (ss same-sent text)",
+        'emb_peer_tone_lag1_ctx':           "嵌入同业语调(W=全文,语调=实体窗,滞后1)(对等轨Qwen3-8B)",
+        'emb_peer_tone_lag1_ss':            "嵌入同业语调(W=全文,语调=同句,滞后1)(对等轨Qwen3-8B)",
+        'emb_peer_tone_diag_lag1_ctx':      "嵌入同业语调对角轨(W=实体窗,滞后1)(对等轨Qwen3-8B)",
+        'emb_peer_tone_diag_lag1_ss':       "嵌入同业语调对角轨(W=同句,滞后1)(对等轨Qwen3-8B)",
+        'bank_emb_sim_mean_lag1_ctx':       "银行嵌入相似度均值(W=实体窗,滞后1)(对等轨Qwen3-8B)",
+        'bank_emb_sim_mean_lag1_ss':        "银行嵌入相似度均值(W=同句,滞后1)(对等轨Qwen3-8B)",
+        'bank_cogn_mean':                   "认知邻近度(TF-IDF余弦)",
+        'bank_cogn_mean_ctx':               "认知邻近度(TF-IDF余弦,实体窗轨)",
+        'bank_cogn_mean_ss':                "认知邻近度(TF-IDF余弦,同句轨)",
         # ①-A industry_neg_shock 三轨 (2026-07-03): 同期版逐轨带年 FE 精确共线
         # 警示 (含 canonical — 终验 econ-final-3 对称性补缺); 含年FE规格只可用 lag1。
-        'industry_neg_shock':               "Industry Neg Shock (LOO, same-period; year-FE collinear)",
-        'industry_neg_shock_ctx':           "Industry Neg Shock (LOO same-period, ctx; year-FE collinear)",
-        'industry_neg_shock_ss':            "Industry Neg Shock (LOO same-period, ss; year-FE collinear)",
-        'industry_neg_shock_lag1':          "Industry Neg Shock LOO (L1, year-FE-safe)",
-        'industry_neg_shock_lag1_ctx':      "Industry Neg Shock LOO (L1, year-FE-safe, ctx)",
-        'industry_neg_shock_lag1_ss':       "Industry Neg Shock LOO (L1, year-FE-safe, ss)",
+        'industry_neg_shock':               "行业负面冲击(同业留一LOO)",
+        'industry_neg_shock_ctx':           "行业负面冲击(同业留一LOO,实体窗轨)",
+        'industry_neg_shock_ss':            "行业负面冲击(同业留一LOO,同句轨)",
+        'industry_neg_shock_lag1':          "行业负面冲击(同业留一LOO,滞后1期)",
+        'industry_neg_shock_lag1_ctx':      "行业负面冲击(同业留一LOO,滞后1期,实体窗轨)",
+        'industry_neg_shock_lag1_ss':       "行业负面冲击(同业留一LOO,滞后1期,同句轨)",
         # 网络指标扩展 2026-06-21 (WS-A net 级 6 / WS-C GF 5 / WS-B 二分图 5);
         # .dta 标签经此 HEURISTIC_LABELS (build_variable_labels 优先级 2) 命中,
         # export.py STATA_LABELS 不入 stage-46 .dta 路径 (MISSING_SCHEMA-1)。各 ≤80 字节。
-        'net_modularity_yr':                "Annual Co-mention Modularity (CNM 2004; year-FE absorbed)",
-        'net_assortativity_yr':             "Annual Degree Assortativity (Newman 2002; year-FE absorbed)",
-        'net_transitivity_yr':              "Annual Global Transitivity (Watts-Strogatz 1998)",
-        'net_diameter_yr':                  "Annual Co-mention Diameter (LCC, unweighted)",
-        'net_giant_share_yr':               "Annual Giant Component Share",
-        'net_n_components_yr':              "Annual Number of Connected Components",
-        'gf_coordinator':                   "GF Coordinator Brokerage (Gould-Fernandez 1989)",
-        'gf_itinerant':                     "GF Itinerant Brokerage (Gould-Fernandez 1989)",
-        'gf_gatekeeper_rep':                "GF Gatekeeper-Representative (undirected merge, 1989)",
-        'gf_liaison':                       "GF Liaison Brokerage (Gould-Fernandez 1989)",
-        'gf_total':                         "GF Total Brokerage (Gould-Fernandez 1989)",
-        'brok_bip_degree_cent':             "Bipartite Media-Bank Degree (Borgatti-Everett 1997)",
-        'brok_bip_between_cent':            "Bipartite Media-Bank Betweenness Brokerage (Freeman 1979)",
-        'brok_bip_closeness_cent':          "Bipartite Media-Bank Closeness (LCC-restricted)",
-        'brok_bip_clustering_ra':           "Bipartite Clustering Robins-Alexander (2004)",
-        'brok_bip_node_redundancy':         "Bipartite Node Redundancy (Latapy et al. 2008)",
+        'net_modularity_yr':                "年度共现网络模块度",
+        'net_assortativity_yr':             "年度度同配性",
+        'net_transitivity_yr':              "年度全局传递性",
+        'net_diameter_yr':                  "年度共现网络直径(LCC)",
+        'net_giant_share_yr':               "年度最大连通片占比",
+        'net_n_components_yr':              "年度连通片数",
+        'gf_coordinator':                   "GF协调者经纪(1989)",
+        'gf_itinerant':                     "GF巡回经纪(1989)",
+        'gf_gatekeeper_rep':                "GF守门-代表经纪(无向合并)",
+        'gf_liaison':                       "GF联络者经纪(1989)",
+        'gf_total':                         "GF总经纪量(1989)",
+        'brok_bip_degree_cent':             "媒体-银行二分图度中心性",
+        'brok_bip_between_cent':            "媒体-银行二分图介数经纪",
+        'brok_bip_closeness_cent':          "媒体-银行二分图接近中心性",
+        'brok_bip_clustering_ra':           "二分图聚类RA(2004)",
+        'brok_bip_node_redundancy':         "二分图节点冗余度",
         # IV 扩展族 LOO 同业工具 (2026-06-13): full 轨 leave_one_out_peer_* +
         # ctx 轨镜像 lpeer_*_ctx (实体窗口归因, Hassan 2019 QJE). 各 ≤ 80 字节.
-        'leave_one_out_peer_attention_iv':  "Same-type peer LOO attention IV (full; Manski 1993 caveat)",
-        'leave_one_out_peer_subst_iv':      "Same-type peer LOO substantive-share IV (full)",
-        'leave_one_out_peer_locus_iv':      "Same-type peer LOO tech-locus IV (full)",
-        'leave_one_out_peer_collab_iv':     "Same-type peer LOO collaboration-share IV (full)",
-        'leave_one_out_peer_benefit_iv':    "Same-type peer LOO benefit-attitude IV (full)",
-        'zone_leave1out_benefit_iv':        "Same-zone (cross-prov) LOO benefit-attitude IV (full)",
-        'zone_leave1out_benefit_iv_ctx':    "Same-zone (cross-prov) LOO benefit-attitude IV (ctx)",
-        'lpeer_attention_iv_ctx':           "Same-type peer LOO attention IV (ctx/entity-window)",
-        'lpeer_subst_iv_ctx':               "Same-type peer LOO substantive-share IV (ctx)",
-        'lpeer_locus_iv_ctx':               "Same-type peer LOO tech-locus IV (ctx)",
-        'lpeer_collab_iv_ctx':              "Same-type peer LOO collaboration-share IV (ctx)",
-        'lpeer_benefit_iv_ctx':             "Same-type peer LOO benefit-attitude IV (ctx)",
+        'leave_one_out_peer_attention_iv':  "同类同业留一注意力(LOO,工具变量IV)",
+        'leave_one_out_peer_subst_iv':      "同类同业留一实质份额(LOO,工具变量IV)",
+        'leave_one_out_peer_locus_iv':      "同类同业留一技术位置(LOO,工具变量IV)",
+        'leave_one_out_peer_collab_iv':     "同类同业留一协同份额(LOO,工具变量IV)",
+        'leave_one_out_peer_benefit_iv':    "同类同业留一效益态度(LOO,工具变量IV)",
+        'zone_leave1out_benefit_iv':        "经济区留一效益态度(LOO,工具变量IV)",
+        'zone_leave1out_benefit_iv_ctx':    "经济区留一效益态度(LOO,工具变量IV,实体窗轨)",
+        'lpeer_attention_iv_ctx':           "同类同业留一注意力(LOO,工具变量IV,实体窗轨)",
+        'lpeer_subst_iv_ctx':               "同类同业留一实质份额(LOO,工具变量IV,实体窗轨)",
+        'lpeer_locus_iv_ctx':               "同类同业留一技术位置(LOO,工具变量IV,实体窗轨)",
+        'lpeer_collab_iv_ctx':              "同类同业留一协同份额(LOO,工具变量IV,实体窗轨)",
+        'lpeer_benefit_iv_ctx':             "同类同业留一效益态度(LOO,工具变量IV,实体窗轨)",
         # ─────────────────────────────────────────────────────────────
         # 三轨 (full/ctx/ss): 第三轨 _ss = 银行+金科同句共现轨 (content_ss; 同句内
         # 同时含 目标银行∧金科词 的句 ±N 句窗, 无共现→回退全文镜像 ctx)。锚点:
@@ -490,49 +519,49 @@ def build_variable_labels(
         # build_variable_labels 仍按字节边界兜底截断)。三轨各自 just-identified IV
         # 并排, full×ctx×ss 禁混进同一 over-id Hansen J (镜像 ctx 红线)。
         # ─────────────────────────────────────────────────────────────
-        'n_articles_llm_valid_ss':          "News count, SS-track LLM-valid (银行+金科同句; ss category-frac denom)",
-        'innovation_locus_ss':              "Innovation Locus (SS-track 银行+金科同句, Gentzkow-Shapiro 2010)",
-        'innovation_substantiveness_ss':    "Innov. Substantiveness (SS-track 银行+金科同句, W&Z 1998 ASQ)",
-        'innovation_collab_mode_ss':        "Innov. Collab Mode (SS-track 银行+金科同句, Chesbrough 2003)",
-        'innovation_collab_mode_confidence_ss': "Collab Mode Confidence (SS-track 银行+金科同句, raw LLM)",
-        'category_confidence_ss':           "Locus Confidence (SS-track 银行+金科同句, hybrid LLM+keyword)",
-        'tone_gap_tech_app_ls_ss':          "Tone Gap: Tech-App (Loc=SS, ss sentiment 银行+金科同句)",
-        'tone_gap_sub_symb_ss_ss':          "Tone Gap: Sub-Symb (Subst=SS, ss sentiment 银行+金科同句)",
+        'n_articles_llm_valid_ss':          "LLM有效验证篇数(占比分母,同句轨)",
+        'innovation_locus_ss':              "创新位置分类(技术/应用,Gomber2018,同句轨)",
+        'innovation_substantiveness_ss':    "创新实质性分类(实质/象征,W&Z1998,同句轨)",
+        'innovation_collab_mode_ss':        "协同模式分类(独立/协同,Chesbrough,同句轨)",
+        'innovation_collab_mode_confidence_ss': "协同模式分类置信度(原始LLM,同句轨)",
+        'category_confidence_ss':           "位置分类置信度(LLM+关键词混合,同句轨)",
+        'tone_gap_tech_app_ls_ss':          "语调差:技术-应用(P4主DV,位置分类=ss,同句轨)",
+        'tone_gap_sub_symb_ss_ss':          "语调差:实质-象征(实质分类=ss,同句轨)",
         # 二元 prob_score 三维 × ss 轨 (positive_class = 象征性/应用场景/外部协同)
-        'avg_subst_prob_score_ss':          "Avg Subst P_BIN (SS-track 银行+金科同句) — 1=symbolic",
-        'avg_subst_prob_score_std_ss':      "Std Subst P_BIN (SS-track 银行+金科同句, bank-year SD)",
-        'avg_locus_prob_score_ss':          "Avg Locus P_BIN (SS-track 银行+金科同句) — 1=application",
-        'avg_locus_prob_score_std_ss':      "Std Locus P_BIN (SS-track 银行+金科同句, bank-year SD)",
-        'avg_collab_prob_score_ss':         "Avg Collab P_BIN (SS-track 银行+金科同句) — 1=external/open",
-        'avg_collab_prob_score_std_ss':     "Std Collab P_BIN (SS-track 银行+金科同句, bank-year SD)",
+        'avg_subst_prob_score_ss':          "实质性二元概率分均值(1=象征,同句轨)",
+        'avg_subst_prob_score_std_ss':      "实质性二元概率分(1=象征,标准差,同句轨)",
+        'avg_locus_prob_score_ss':          "位置二元概率分均值(1=应用,同句轨)",
+        'avg_locus_prob_score_std_ss':      "位置二元概率分(1=应用,标准差,同句轨)",
+        'avg_collab_prob_score_ss':         "协同二元概率分均值(1=协同,同句轨)",
+        'avg_collab_prob_score_std_ss':     "协同二元概率分(1=协同,标准差,同句轨)",
         # A1 Lexical Clarity (LM 2011 JF; You 2018) ss 独立扫描
-        'mean_clarity_score_ss':            "Mean Clarity Score from indep SS-text scan (银行+金科同句, LM 2011 JF)",
-        'mean_frac_definite_ss':            "Mean Frac Definite from indep SS scan (银行+金科同句, You 2018)",
-        'frac_amb_articles_ss':             "Frac Articles Ambiguous SS (银行+金科同句, >=D0 median, You 2018)",
+        'mean_clarity_score_ss':            "词汇清晰度均值(LM2011,同句轨)",
+        'mean_frac_definite_ss':            "确定性词占比均值(You2018,同句轨)",
+        'frac_amb_articles_ss':             "模糊表述报道占比(You2018,同句轨)",
         # A3 Numerical Intensity ss 轨
-        'mean_num_intensity_ss':            "Mean Numerical Intensity SS (三轨 full/ctx/ss; 银行+金科同句)",
+        'mean_num_intensity_ss':            "数值披露强度均值(同句轨)",
         # MAIN (无后缀) anchor 嵌入族 ss 轨 (Qwen/Qwen3-Embedding-8B; v3.15.0
         # 起 _lg 派生循环 + _allv 循环的 ss-轨输入源, 镜像上方 full/ctx MAIN 块)。
-        # 每条恰带一个 "(co-primary: Qwen/Qwen3-Embedding-8B)" 对称标注。
-        'strat_diff_ss':                    "Strat Diff (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'strat_diff_n5_emb_ss':             "Strat Diff N5 Emb (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'strat_sim_max_emb_ss':             "Strat Max Sim Emb (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'centroid_diff_emb_ss':             "Centroid Diff Emb (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'coh_emb_ss':                       "Temporal Coherence Emb (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'policy_cosine_sim_ss':             "Policy Cosine Sim (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'auth_sim_emb_ss':                  "Auth Policy Sim Emb (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'benefit_mean_ss':                  "Benefit Attitude Mean (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'benefit_std_ss':                   "Benefit Attitude SD (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'benefit_pos_frac_ss':              "Benefit Pos Frac (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
-        'benefit_neg_frac_ss':              "Benefit Neg Frac (ss) (co-primary: Qwen/Qwen3-Embedding-8B)",
+        # 每条恰带一个 "(对等轨Qwen3-8B)" 对称尾注 (WP3 中文紧凑形)。
+        'strat_diff_ss':                    "战略差异度(=行业质心距离,嵌入,同句轨)(对等轨Qwen3-8B)",
+        'strat_diff_n5_emb_ss':             "N近邻战略差异度(N=5,嵌入,同句轨)(对等轨Qwen3-8B)",
+        'strat_sim_max_emb_ss':             "同业最大相似度(嵌入,同句轨)(对等轨Qwen3-8B)",
+        'centroid_diff_emb_ss':             "行业质心距离(嵌入,同句轨)(对等轨Qwen3-8B)",
+        'coh_emb_ss':                       "相邻期文本连贯性(嵌入,同句轨)(对等轨Qwen3-8B)",
+        'policy_cosine_sim_ss':             "政策余弦相似度(同句轨)(对等轨Qwen3-8B)",
+        'auth_sim_emb_ss':                  "权威政策对齐度(嵌入,同句轨)(对等轨Qwen3-8B)",
+        'benefit_mean_ss':                  "经营效益态度均值(嵌入投影,同句轨)(对等轨Qwen3-8B)",
+        'benefit_std_ss':                   "经营效益态度标准差(同句轨)(对等轨Qwen3-8B)",
+        'benefit_pos_frac_ss':              "效益态度正面占比(同句轨)(对等轨Qwen3-8B)",
+        'benefit_neg_frac_ss':              "效益态度负面占比(同句轨)(对等轨Qwen3-8B)",
         # IV 扩展族 ss 轨镜像 lpeer_*_ss / zone_leave1out_benefit_iv_ss
         # (各自 just-identified 并排, 禁与 full/ctx 混 over-id Hansen J)
-        'zone_leave1out_benefit_iv_ss':     "Same-zone (cross-prov) LOO benefit-attitude IV (ss 银行+金科同句)",
-        'lpeer_attention_iv_ss':            "Same-type peer LOO attention IV (ss 银行+金科同句, same-sent window)",
-        'lpeer_subst_iv_ss':                "Same-type peer LOO substantive-share IV (ss 银行+金科同句)",
-        'lpeer_locus_iv_ss':                "Same-type peer LOO tech-locus IV (ss 银行+金科同句)",
-        'lpeer_collab_iv_ss':               "Same-type peer LOO collaboration-share IV (ss 银行+金科同句)",
-        'lpeer_benefit_iv_ss':              "Same-type peer LOO benefit-attitude IV (ss 银行+金科同句)",
+        'zone_leave1out_benefit_iv_ss':     "经济区留一效益态度(LOO,工具变量IV,同句轨)",
+        'lpeer_attention_iv_ss':            "同类同业留一注意力(LOO,工具变量IV,同句轨)",
+        'lpeer_subst_iv_ss':                "同类同业留一实质份额(LOO,工具变量IV,同句轨)",
+        'lpeer_locus_iv_ss':                "同类同业留一技术位置(LOO,工具变量IV,同句轨)",
+        'lpeer_collab_iv_ss':               "同类同业留一协同份额(LOO,工具变量IV,同句轨)",
+        'lpeer_benefit_iv_ss':              "同类同业留一效益态度(LOO,工具变量IV,同句轨)",
     }
 
     # ═══ co-primary ② "_lg" 标签机械派生 (text-embedding-3-large; v3.14.0 起 ACTIVE) ═══
@@ -543,9 +572,10 @@ def build_variable_labels(
     #   · _lg KEY: 在 track 后缀 (_full/_ctx/_ss) 之前插 `_lg`; 无 track 后缀的裸名 (如
     #     strat_diff_n5_emb / bank_emb_sim_mean_lag1) 则 append `_lg` —— 与 producer 列名
     #     (strat_diff_n5_emb_lg / bank_emb_sim_mean_lag1_lg) 1:1 对齐。
-    #   · _lg LABEL: 把 MAIN base 文案里的 "(co-primary: Qwen/Qwen3-Embedding-8B)"
-    #     整体 REPLACE 为 "(co-primary: text-embedding-3-large)" (replacive 非 append →
-    #     MAIN 与 _lg 各带恰一个对称 co-primary 标注; 严禁 "robust/robustness check" 措辞)。
+    #   · _lg LABEL: 把 MAIN base 文案里的 co-primary 尾注 "(对等轨Qwen3-8B)"
+    #     (WP3 中文紧凑形, 指代 Qwen/Qwen3-Embedding-8B) 整体 REPLACE 为
+    #     "(对等轨emb-3-large)" (= text-embedding-3-large; replacive 非 append →
+    #     MAIN 与 _lg 各带恰一个对称 co-primary 尾注; 严禁 "robust/稳健性" 措辞)。
     # 位置在 MAIN 字面 dict 之后、_allv 派生循环之前 → 下方 _allv 循环可自动为 MAIN+_lg
     # 两套键补 _allv (anchor-dependent 政策族, 如 policy_cosine_sim)。
     _MAIN_ANCHOR_KEYS = frozenset({
@@ -583,8 +613,11 @@ def build_variable_labels(
         'coh_emb_ss', 'policy_cosine_sim_ss', 'auth_sim_emb_ss',
         'benefit_mean_ss', 'benefit_std_ss', 'benefit_pos_frac_ss', 'benefit_neg_frac_ss',
     })
-    _QWEN_ANNOT = '(co-primary: Qwen/Qwen3-Embedding-8B)'
-    _LARGE_ANNOT = '(co-primary: text-embedding-3-large)'
+    # WP3 (2026-07-10) 标签中文化: co-primary 尾注改中文紧凑形 (≤80B 预算内保住
+    # 中文正文)。⚠ 换嵌入模型入口 (CLAUDE.md): 本尾注指代 MAIN 槽模型
+    # Qwen/Qwen3-Embedding-8B (grep 锚, 换模型时本行与下两常量须同步改)。
+    _QWEN_ANNOT = '(对等轨Qwen3-8B)'
+    _LARGE_ANNOT = '(对等轨emb-3-large)'
     # P2-D 防御 (code-review): 每个 _MAIN_ANCHOR_KEYS 须存在于 HEURISTIC_LABELS 且含 Qwen
     # 标注, 否则下方 replacive 派生会 0-迭代 / 产未替换标签 → 整族 _lg 标签静默丢失。手写键
     # typo 时立即 fail-loud (而非到生产才发现 .dta 缺标签)。
@@ -620,22 +653,26 @@ def build_variable_labels(
         else:
             _allv_key = f'{_k}_allv'
         if _allv_key not in HEURISTIC_LABELS:
-            HEURISTIC_LABELS[_allv_key] = f'{_v} (All-Vintage anchor)'[:80]
+            # WP3: '(All-Vintage anchor)' → '(全年份锚)' (中文化, 14B)
+            HEURISTIC_LABELS[_allv_key] = f'{_v}(全年份锚)'[:80]
 
     # ═══ 规则消融梯度 "{d}_{suffix}_tone{track}" 标签机械生成 (rule-ablation ladder, v3.11.1) ═══
     # 6 新变体 (negonly 已上方手写, 此处不重复) × 7 键 (6 词典 + dict_avg 跨词典均值) × 3 轨 = 126 标签。变体语义 / 计数口径
     # 不入梯度的理由见 tone_words._RULE_ABLATION_VARIANTS。标签 ≤80 字节 ASCII (最长 ~53 字符);
     # 列名最长 jiang_2021_degonly_tone_full=28 ≤32 → 不被 shorten 改名, 按 orig 命中。
+    # WP3 (2026-07-10): 中文模板; 轨名/词典名/变体名与静态手写条目 · zh JSON 统一措辞
+    # (negonly 静态条目='仅否定规则', 本梯度 6 变体沿同风格)。
+    _TRK_ZH = {'full': '全文轨', 'ctx': '实体窗轨', 'ss': '同句轨'}
     _ABL_DICT_REF = {
-        'loughran': 'L-M 2011 JF Chinese', 'jiang_2021': 'Jiang et al. 2021',
-        'yao_2021': 'Yao et al. 2021', 'bian_2021': 'Bian et al. 2021',
-        'du_2022': 'Du et al. 2022', 'you_2018': 'You et al. 2018',
-        'dict_avg': 'across 6 dicts',  # 跨词典均值 dict_avg_{sfx}_tone (geography.py, v3.11.1)
+        'loughran': 'LM词典', 'jiang_2021': 'Jiang2021词典',
+        'yao_2021': 'Yao2021词典', 'bian_2021': 'Bian2021词典',
+        'du_2022': 'Du2022词典', 'you_2018': 'You2018词典',
+        'dict_avg': '六词典均值',  # 跨词典均值 dict_avg_{sfx}_tone (geography.py, v3.11.1)
     }
     _ABL_VARIANT_DESC = {
-        'raw': 'raw no-rule baseline', 'degonly': 'degree-only',
-        'advonly': 'adversative-only', 'negdeg': 'neg+degree',
-        'negadv': 'neg+adversative', 'degadv': 'degree+adversative',
+        'raw': '零规则基线', 'degonly': '仅程度副词',
+        'advonly': '仅转折', 'negdeg': '否定+程度',
+        'negadv': '否定+转折', 'degadv': '程度+转折',
     }
     for _abl_d, _abl_ref in _ABL_DICT_REF.items():
         for _abl_sfx, _abl_desc in _ABL_VARIANT_DESC.items():
@@ -643,23 +680,23 @@ def build_variable_labels(
                 _abl_key = f'{_abl_d}_{_abl_sfx}_tone_{_abl_trk}'
                 if _abl_key not in HEURISTIC_LABELS:
                     HEURISTIC_LABELS[_abl_key] = (
-                        f'Avg Tone {_abl_ref} ({_abl_desc}, {_abl_trk})')[:80]
+                        f'{_abl_ref}语调({_abl_desc},{_TRK_ZH[_abl_trk]})')[:80]
 
     # ═══ 政治词权重敏感性 "du_2022_{polw*}_tone{track}" 标签机械生成 (du_2022 only) ═══
     # Du et al. (2022, RoF) political_positive 生产口径 0.5 权重; 敏感性检验并排三权重 {0,0.5,1.0}
     # 互为稳健性、不分主次 (polw05 ≡ du_2022_tone canonical)。3 权重 × 3 轨 = 9 标签, ≤80 字节。
     # 列名最长 du_2022_polw00_tone_full=24 ≤32 → 不被 shorten。⚠ 三权重禁混同一 over-identified Hansen J。
     _POLW_VARIANT_DESC = {
-        'polw00': 'political-word wt=0.0, dropped',
-        'polw05': 'political-word wt=0.5, Du et al. 2022 default',
-        'polw10': 'political-word wt=1.0, full-positive',
+        'polw00': '政治词权重0,剔除',
+        'polw05': '政治词权重0.5,Du2022默认',
+        'polw10': '政治词权重1,全额计入',
     }
     for _polw_sfx, _polw_desc in _POLW_VARIANT_DESC.items():
         for _polw_trk in ('full', 'ctx', 'ss'):
             _polw_key = f'du_2022_{_polw_sfx}_tone_{_polw_trk}'
             if _polw_key not in HEURISTIC_LABELS:
                 HEURISTIC_LABELS[_polw_key] = (
-                    f'Avg Tone Du et al. 2022 ({_polw_desc}, {_polw_trk})')[:80]
+                    f'Du2022词典语调({_polw_desc},{_TRK_ZH[_polw_trk]})')[:80]
 
     # ═══ per-model 逐模型语调标签机械生成 (互为稳健性, 2026-07-02) ═══
     # LLM 三家 {short}_tone/... 与 BERT 三模型 {short}_pos/neg/neu/net_tone (+加权 _vw/_mw/_hw),
@@ -670,68 +707,78 @@ def build_variable_labels(
     from news_process.pipeline.panel.encode import BERT_MODELS as _PM_BERT
     from news_process.pipeline.panel.encode import LLM_MODELS as _PM_LLM
     _PM_TRACKS = ('full', 'ctx', 'ss')
-    _PM_WEIGHT_EN = {'': '', '_vw': ' [value-wt]', '_mw': ' [media-wt]', '_hw': ' [herd-wt]'}
-    _PM_LLM_METRIC_EN = {
-        'tone': 'tone', 'tone_sum': 'tone sum', 'tone_std': 'tone SD',
-        'cont_mean': 'continuous mean', 'cont_sum': 'continuous sum',
+    # WP3 中文模板 (2026-07-10): 模型显示名保留英文 (仓库注释惯例, 提案 F5/F6);
+    # 加权词与 zh JSON 兜底列统一 (密度权/媒体权/羊群权)。
+    _PM_MODEL_ZH = {
+        'gpt54nano': 'GPT-5.4nano', 'gemini31': 'Gemini3.1', 'deepseekv4': 'DeepSeekV4',
+        'finbert_cn': 'FinBERT-CN', 'fin_sent_zh': 'FinSentZH', 'finbert2': 'FinBERT2'}
+    _PM_WEIGHT_ZH = {'': '', '_vw': '密度权,', '_mw': '媒体权,', '_hw': '羊群权,'}
+    _PM_LLM_METRIC_ZH = {
+        'tone': '语调', 'tone_sum': '语调和', 'tone_std': '语调标准差',
+        'cont_mean': '连续情感分均值', 'cont_sum': '连续情感分和',
         # per-model 分类维度 frac (2026-07-03, ROBUSTNESS_GAP_BACKFILL §2 A4): 与
-        # encode.LLM_CLASS_SPEC 值[0] byte-sync; 英文用 share 措辞 (非 tone), 沿用既有
+        # encode.LLM_CLASS_SPEC 值[0] byte-sync; 用「占比」措辞 (非语调), 沿用既有
         # metric×weight×track 全积生成 — 面板不产加权分类列, 多余加权键无害 (仅列存在时被查)。
-        'sub_frac': 'share substantive', 'tech_frac': 'share tech-layer',
-        'collab_frac': 'share collaborative'}
-    _PM_BERT_METRIC_EN = {
-        'net_tone': 'net-tone(pos-neg)', 'pos': 'P(pos)', 'neg': 'P(neg)', 'neu': 'P(neu)',
-        'pos_sum': 'P(pos) sum', 'neg_sum': 'P(neg) sum', 'neu_sum': 'P(neu) sum',
-        'pos_std': 'P(pos) SD',
+        'sub_frac': '实质类占比', 'tech_frac': '技术层占比',
+        'collab_frac': '协同类占比'}
+    _PM_BERT_METRIC_ZH = {
+        'net_tone': '净语调(正-负)', 'pos': 'P(正面)', 'neg': 'P(负面)', 'neu': 'P(中性)',
+        'pos_sum': 'P(正面)和', 'neg_sum': 'P(负面)和', 'neu_sum': 'P(中性)和',
+        'pos_std': 'P(正面)标准差',
         # BERT 分布形状族 7 metric (2026-07-03 执行计划 P3-2): 与
         # bert_distribution.iter_panel_cols byte-sync; 加权键为全积生成的无害
         # 多余键 (面板不产加权孪生, 仅列存在时被查)。⚠ finbert2 的 entropy/
         # xneg 与三分类构念不可比 (codebook notes 详), 标签仅描述构造。
-        'tone_entropy': 'tone entropy [0,1]',
-        'xneg_frac': 'extreme-neg share tau=.90',
-        'xneg_frac_t80': 'extreme-neg share tau=.80',
-        'xneg_frac_t95': 'extreme-neg share tau=.95',
-        'net_tone_skew': 'net-tone skew (raw, n>=10)',
-        'nt_iyvol': 'intra-yr net-tone vol (noise-adj)',
-        'nt_iytrend': 'intra-yr net-tone trend /mo'}
+        'tone_entropy': '语调熵[0,1]',
+        'xneg_frac': '极端负面占比(t=.90)',
+        'xneg_frac_t80': '极端负面占比(t=.80)',
+        'xneg_frac_t95': '极端负面占比(t=.95)',
+        'net_tone_skew': '净语调偏度(raw,n>=10)',
+        'nt_iyvol': '年内净语调波动(降噪)',
+        'nt_iytrend': '年内净语调月度趋势'}
     for _pm_model in _PM_LLM:
-        for _pm_metric, _pm_en in _PM_LLM_METRIC_EN.items():
-            for _pm_w, _pm_wen in _PM_WEIGHT_EN.items():
+        for _pm_metric, _pm_zh in _PM_LLM_METRIC_ZH.items():
+            for _pm_w, _pm_wzh in _PM_WEIGHT_ZH.items():
                 for _pm_trk in _PM_TRACKS:
                     _pm_key = f'{_pm_model}_{_pm_metric}{_pm_w}_{_pm_trk}'
                     if _pm_key not in HEURISTIC_LABELS:
                         HEURISTIC_LABELS[_pm_key] = (
-                            f'LLM {_pm_model} per-model {_pm_en}{_pm_wen} ({_pm_trk})')[:80]
+                            f'{_PM_MODEL_ZH.get(_pm_model, _pm_model)}逐模型{_pm_zh}'
+                            f'({_pm_wzh}{_TRK_ZH[_pm_trk]})')[:80]
     for _pm_model in _PM_BERT:
-        for _pm_metric, _pm_en in _PM_BERT_METRIC_EN.items():
-            for _pm_w, _pm_wen in _PM_WEIGHT_EN.items():
+        for _pm_metric, _pm_zh in _PM_BERT_METRIC_ZH.items():
+            for _pm_w, _pm_wzh in _PM_WEIGHT_ZH.items():
                 for _pm_trk in _PM_TRACKS:
                     _pm_key = f'{_pm_model}_{_pm_metric}{_pm_w}_{_pm_trk}'
                     if _pm_key not in HEURISTIC_LABELS:
                         HEURISTIC_LABELS[_pm_key] = (
-                            f'BERT {_pm_model} per-model {_pm_en}{_pm_wen} ({_pm_trk})')[:80]
+                            f'{_PM_MODEL_ZH.get(_pm_model, _pm_model)}逐模型{_pm_zh}'
+                            f'({_pm_wzh}{_TRK_ZH[_pm_trk]})')[:80]
     # G2: llm_vote_tone_{track} 共识 headline (full/ctx 另有 codebook metadata 优先; _ss 现缺 → 补)
+    # WP3: 措辞对齐 export.py STATA_LABELS 勘误口径 (SENT CV-1 负面类近退化 →
+    # favorability/optimism = 正向倾向, 非双极语调)。
     for _vt in _PM_TRACKS:
         _vk = f'llm_vote_tone_{_vt}'
         if _vk not in HEURISTIC_LABELS:
-            HEURISTIC_LABELS[_vk] = f'LLM ensemble vote tone (canonical headline, {_vt})'[:80]
+            HEURISTIC_LABELS[_vk] = f'LLM三家投票正向倾向(共识主测度,{_TRK_ZH[_vt]})'[:80]
     # BERT 跨模型分歧双轨 (2026-07-03 执行计划 WP-D): 非 per-model 列, 不走上方
     # 机械块 → 精确键。lblhet = canonical (sign 两两不一致对占比, 逐篇局部确定);
     # disp = z-SD 稳健轨 (样本依赖, 见 codebook notes)。两轨互为稳健不分主次。
     for _xm_trk in _PM_TRACKS:
         for _xm_key, _xm_lab in (
                 (f'bert_xmodel_lblhet_{_xm_trk}',
-                 f'BERT x-model sign-disagree pair share (canonical, {_xm_trk})'),
+                 f'BERT跨模型符号分歧对占比(canonical,{_TRK_ZH[_xm_trk]})'),
                 (f'bert_xmodel_disp_{_xm_trk}',
-                 f'BERT x-model z-SD dispersion (robust twin, {_xm_trk})')):
+                 f'BERT跨模型z-SD离散度(对等孪生轨,{_TRK_ZH[_xm_trk]})')):
             if _xm_key not in HEURISTIC_LABELS:
                 HEURISTIC_LABELS[_xm_key] = _xm_lab[:80]
 
     # ═══ 网络判据敏感性 "_win1/_sent" 标签机械生成 (2026-07-03, 计划层 F) ═══
     # 33 基名 (SSOT = network_spillover.NETWORK_METRIC_BASES) × 2 判据 = 66 标签。
-    # 基名标签源优先级 = codebook 精写 meta → 本 HEURISTIC → Title-case 兜底。
-    # ⚠ 后缀措辞必须带 bank-bank 限定 — 裸 'same-sent' 已是 `_ss` 银行∧金科文本
-    #   轨的官方英文压缩词, 逐字冲突 (终验 econometrics-final-1); 判据主体是
+    # 基名标签源优先级 = codebook 精写 meta → 本 HEURISTIC → zh JSON (WP3 新增,
+    # 兜底列基名亦得中文) → Title-case 兜底。
+    # ⚠ 后缀措辞必须带「银行间」限定 (原 bank-bank) — 与 `_ss` 银行∧金科文本轨
+    #   的「同句轨」概念区分 (终验 econometrics-final-1 中文对应物); 判据主体是
     #   银行∧银行边, 两个"同句"概念在 .dta 用户面必须可区分。各 ≤80 字节。
     try:
         from news_process.pipeline.panel.network_spillover import (
@@ -739,19 +786,60 @@ def build_variable_labels(
         )
     except Exception:  # noqa: BLE001 — 防御性: 导入失败不崩标签构建
         _NET_BASES = ()
-    _CRIT_SFX_DESC = {'_win1': 'bank-bank +/-1-sent edge',
-                      '_sent': 'bank-bank same-sent edge'}
+    _CRIT_SFX_DESC = {'_win1': '银行间±1句判据',
+                      '_sent': '银行间同句判据'}
+    _zh_fallback = load_stata_labels_zh()
     for _cb in _NET_BASES:
         if _cb in meta and getattr(meta[_cb], 'label', ''):
             _cb_label = meta[_cb].label
         elif _cb in HEURISTIC_LABELS:
             _cb_label = HEURISTIC_LABELS[_cb]
+        elif _cb in _zh_fallback:
+            _cb_label = _zh_fallback[_cb]
         else:
             _cb_label = _cb.replace('_', ' ').title()
         for _cs, _cd in _CRIT_SFX_DESC.items():
             _ck = f'{_cb}{_cs}'
             if _ck not in HEURISTIC_LABELS:
-                HEURISTIC_LABELS[_ck] = f'{_cb_label} ({_cd})'[:80]
+                HEURISTIC_LABELS[_ck] = f'{_cb_label}({_cd})'[:80]
+
+    return HEURISTIC_LABELS
+
+
+def build_variable_labels(
+    df: pd.DataFrame,
+    rename_map: Dict[str, str] = None,
+) -> Dict[str, str]:
+    """为每列生成 ≤ 80 字节中文 variable label (WP3 起中文化, 技术术语英文括注).
+
+    fix(omni-g-stata-export-05/09, 2026-06-11): 新增 rename_map 参数
+    ({short_stata_name: original_panel_name}) — codebook meta 与
+    HEURISTIC_LABELS 均以原始 panel 列名为键, 此前被 shorten/asciify 改名的
+    列按短名查找必 miss, 人工标签静默退化为列名 fallback。
+
+    优先级 (WP3 2026-07-10: 原四级在 HEURISTIC 之后、列名兜底之前插入
+    stata_labels_zh.json 数据层, 扩为五级; 文件缺失时与旧四级链行为一致):
+        1. codebook meta[原名].label (若改名, 先按原名查)
+        2. HEURISTIC_LABELS[原名]
+        3. stata_labels_zh.json[原名] (兜底列 2562 条中文标签数据层)
+        4. codebook meta[短名].label / HEURISTIC_LABELS[短名] / zh[短名] (兜底)
+        5. fallback: 原始列名本身 (保留被截断吃掉的判别后缀信息)
+
+    所有 label 强制按 UTF-8 字节边界截断至 80 字节 (R32-H + R40-A;
+    fix(omni-g-stata-export-02/08, 2026-06-11): 原实现字节判定+字符切片,
+    CJK 标签『越截越长』并触发 validate_stata_compat raise).
+    """
+    rename_map = rename_map or {}
+    labels: Dict[str, str] = {}
+    try:
+        from news_process.pipeline.panel.codebook import get_variable_metadata_dict
+        meta = get_variable_metadata_dict()
+    except Exception as e:
+        logger.warning(f"codebook metadata 不可用 ({e}), 使用启发式标签")
+        meta = {}
+
+    HEURISTIC_LABELS = build_heuristic_labels(meta)
+    ZH_LABELS = load_stata_labels_zh()
 
     for col in df.columns:
         # fix(omni-g-stata-export-05/09, 2026-06-11): 改名列先按原名查
@@ -761,10 +849,16 @@ def build_variable_labels(
             label = meta[orig].label
         elif orig in HEURISTIC_LABELS:
             label = HEURISTIC_LABELS[orig]
+        elif orig in ZH_LABELS:
+            # WP3 第 3 级: 兜底列中文标签数据层 (原名域优先)
+            label = ZH_LABELS[orig]
         elif col != orig and col in meta and hasattr(meta[col], 'label') and meta[col].label:
             label = meta[col].label
         elif col != orig and col in HEURISTIC_LABELS:
             label = HEURISTIC_LABELS[col]
+        elif col != orig and col in ZH_LABELS:
+            # WP3 短名域兜底 (镜像 meta/HEURISTIC 短名层)
+            label = ZH_LABELS[col]
         else:
             # fallback: 原始列名 (改名列保留判别后缀; 中文 column 名直接用)
             label = orig
@@ -1057,7 +1151,8 @@ def write_labels_do_file(
 
     Args:
         out_path: 输出 .do 路径
-        var_labels: {var_name: english_label}
+        var_labels: {var_name: label} (WP3 2026-07-10 起为中文标签, 技术术语英文括注
+            — 消费 build_variable_labels 结果; 旧口径 english_label 已退役)
         value_labels: {var_name: {int_code: label_string}}
         backend_name: fix(omni-g-stata-export-03/15, 2026-06-11) 产物指纹 —
             实际写 .dta 的 backend ('pyreadstat' | 'pandas'), 空串则省略该注释行
@@ -1074,7 +1169,7 @@ def write_labels_do_file(
                         if backend_name == 'pandas' else ''))
     lines.extend([
         '',
-        '* Section 1: Variable labels (每列加 ≤ 80 字节英文说明)',
+        '* Section 1: Variable labels (每列加 ≤ 80 UTF-8 字节说明; WP3 起中文为主)',
     ])
     for col, label in var_labels.items():
         # Stata `label var` 语法: label var <name> `"<label>"' (compound quotes)
@@ -1123,6 +1218,381 @@ def write_labels_do_file(
     with open(out_path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(lines) + '\n')
     logger.info(f"  Stata labels .do 已写入: {out_path} ({len(lines)} 行)")
+
+
+# ============================================================================
+# Stata variable notes (WP2, 2026-07-10, 计划 §3b):
+#   长注释 (codebook 描述 SSOT) 以 `notes` 注入 dta characteristics 层。
+#   pyreadstat / pandas to_stata 均不支持写 notes → 必须走 .do 后处理
+#   (master 模式: use 一次 → 顺序 do 子卷 → save, replace)。
+#
+# 文本层铁律 (§3b 规则① v2.10 — 2026-07-10 三轮 probe 存储层字节实证后重议裁决):
+#   notes 的 text 是宏展开后按行剩余原样入库 (verbatim 语境), 且该展开 pass
+#   **不承认反斜杠保护** (probe 实锤: `\$g` 照样展开且反斜杠被消费, `` \`x' ``
+#   静默展开为空, 未闭合 `` ` `` 直接 r(132) 整条丢失, compound 包裹内同样失效;
+#   而 label/display 双引号串语境转义有效 — 两语境行为分叉)。
+#   → 危险宏序列一律**全角中和** (镜像规则④ ／／ 先例, 全角字符 probe 实测安全入库):
+#     `\` → ＼(U+FF3C) 全量; `` ` `` → ｀(U+FF40) 全量;
+#     `$`+宏名起始字符 → ＄(U+FF04) 窄面 ($100/$ /行尾 $ probe 实证安全, 保真)。
+# ============================================================================
+
+#: 每段 note 上限字节数 (UTF-8; 单条 note Stata 硬上限 67,784 字节, 4000 双保险防行长)
+STATA_NOTES_SEG_MAX_BYTES = 4000
+#: 段首守卫预留 (U+3000 全角空格 3 字节: TS 时间戳替换守卫 / 段首 // 注释守卫)
+_NOTES_SEG_GUARD_HEADROOM = 3
+#: 每子卷变量数上限 (§3b 编排层)
+STATA_NOTES_VARS_PER_PART = 500
+#: notes 注入的三份生产 dta (§3b 执行; 注入顺序 = dict 序 46→40→51)
+STATA_NOTES_DTA_TARGETS = {
+    '46': '46_panel_yearly_full.dta',
+    '40': '40_panel_yearly.dta',
+    '51': '51_panel_with_controls.dta',
+}
+#: 子卷/manifest 文件名前缀
+_NOTES_PART_STEM = 'apply_notes_part'
+NOTES_MANIFEST_FILENAME = 'apply_notes_manifest.json'
+
+_STATA_LEGAL_NAME_RE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]{0,31}$')
+# P2 整改 (2026-07-11): 行首锚定 (MULTILINE) — display 输出恒在 log 行首, 而
+# do 命令回显行带 '. ' 前缀、linesize 折行续行带 '> ' 前缀, 均不在行首命中;
+# 与 _stata_notes_text 的 marker 文本层中和构成双保险 (正文字面量绝到不了行首)。
+_NOTES_APPLIED_LOG_RE = re.compile(r'^NOTES_APPLIED_PART(\d+)=(\d+)\s*$', re.MULTILINE)
+# note 正文自含对账 marker 字样 (含幻影 part 键) → '=' 换全角 ＝ U+FF1D 中和
+_NOTES_MARKER_NEUTRALIZE_RE = re.compile(r'(NOTES_APPLIED_PART\d*|NOTES_MASTER_DONE)=')
+
+
+def _stata_notes_text(text: str) -> str:
+    """§3b 文本层: 把任意描述文本归一为 notes verbatim 语境安全的单行文本。
+
+    处理顺序 (编排会话 2026-07-10 重议裁决, probe 三轮实证冻结):
+      1. 换行归一为空格 (verbatim 语境换行即命令终结; 先做, 保证后续规则见到终态);
+      2. 一切 ``\\`` → ＼ U+FF3C (全量 — 消除 ``\\\\``→``\\`` 折叠与 ``\\$`` 反斜杠
+         被消费两个 probe 观测畸变; notes 正文=中文散文+DOI URL, 反斜杠无正当场景);
+      3. 一切 `` ` `` → ｀ U+FF40 (全量 — probe 证明任意反引号都危险:
+         未定义 local 静默变空 / 不闭合 r(132) 整条丢失);
+      4. ``$`` 后接 ``[A-Za-z_{]`` → ＄ U+FF04 (窄面 — probe 边界实证
+         $100 / "$ " / 行尾 $ 原样入库安全, 数额美元号保真);
+      5. 前有空白 (或文首) 的 ``//`` 连跑 → 全角 ／ U+FF0F (行内 // 前有空白即
+         截断该行; DOI URL 的 :// 前无空白, 安全; /// 续行吞后行已实弹证实);
+      6. 段首 TS 守卫在 :func:`_split_note_segments` 逐段执行 (存储层时间戳替换,
+         probe 实证 U+3000 前置有效);
+      7. 不包 compound quotes (probe 证实定界符会原样入库), ASCII 引号原样;
+      8. 对账 marker 中和 (P2 整改 2026-07-11): 正文字面
+         'NOTES_APPLIED_PART<d>=' / 'NOTES_MASTER_DONE=' 的 '=' → 全角 ＝
+         (封死 do 回显/折行通道对 log 对账 regex 的 last-wins 污染)。
+    """
+    t = str(text)
+    # ③ 换行 (含 CR/LF/VT/FF/LS/PS) 归一空格 — 必须最先做
+    t = re.sub('[\\r\\n\\x0b\\x0c\\u2028\\u2029]+', ' ', t)
+    # ①-a 反斜杠全量中和
+    t = t.replace('\\', '＼')
+    # ①-b 反引号全量中和
+    t = t.replace('`', '｀')
+    # ①-c $ 窄面中和 (仅后接合法宏名起始字符时危险)
+    t = re.sub(r'\$(?=[A-Za-z_{])', '＄', t)
+    # ④ 空白前导 (或文首) 的 // 连跑 → 全角 (notes 行内 text 前恒有 ": " 空白)
+    t = re.sub(r'(?:(?<=\s)|^)/{2,}', lambda m: '／' * len(m.group(0)), t)
+    # ⑤ P2 整改 (2026-07-11): 对账 marker 中和 — 正文若字面含
+    #    'NOTES_APPLIED_PART<d>=' / 'NOTES_MASTER_DONE=' (如引用本机制文档),
+    #    经 do 回显 + linesize 折行可在 log 里伪造/覆盖对账计数 (last-wins) →
+    #    '=' 换全角 ＝ U+FF1D (语义可读, 对账 regex 必不再命中; 行首锚定为第二重保险)。
+    t = _NOTES_MARKER_NEUTRALIZE_RE.sub(lambda m: m.group(1) + '＝', t)
+    return t
+
+
+def _guard_note_segment(seg: str) -> str:
+    """段首守卫: TS 开头 (存储层被替换为时间戳) / '/' 开头 (段切可把 :// 切成
+    段首 //, 前有 ": " 空白即整段变注释) → 前置全角空格 U+3000 (probe 实测安全)。"""
+    if seg.startswith('TS') or seg.startswith('/'):
+        return '　' + seg
+    return seg
+
+
+def _split_note_segments(text: str, max_bytes: int = STATA_NOTES_SEG_MAX_BYTES) -> List[str]:
+    """按 UTF-8 字节预算切段 (≤ max_bytes, 段首守卫含在预算内), 绝不切坏多字节字符。
+
+    ⚠ 调用契约: text 必须已过 :func:`_stata_notes_text` (切分须在全角中和之后 —
+    中和后不存在 ASCII ``\\``/`` ` `` 与 ``$``+宏名序列, 段边界无转义对可切坏)。
+    """
+    if max_bytes <= _NOTES_SEG_GUARD_HEADROOM:
+        raise ValueError(f"max_bytes 过小: {max_bytes}")
+    budget = max_bytes - _NOTES_SEG_GUARD_HEADROOM
+    segs: List[str] = []
+    cur: List[str] = []
+    cur_bytes = 0
+    for ch in text:
+        b = len(ch.encode('utf-8'))
+        if cur and cur_bytes + b > budget:
+            segs.append(''.join(cur))
+            cur = [ch]
+            cur_bytes = b
+        else:
+            cur.append(ch)
+            cur_bytes += b
+    if cur:
+        segs.append(''.join(cur))
+    return [_guard_note_segment(s) for s in segs if s.strip()]
+
+
+def compute_expected_notes_count(dta_columns, manifest_short_columns) -> int:
+    """对账期望数 (§3b 对账层): 该 dta 实际列名 ∩ 子卷短名集 (期望数按各 dta
+    实际列名集合分别计算 — 51 宇宙多的列在 40/46 由 exact-confirm 跳过并排除)。"""
+    return len(set(dta_columns) & set(manifest_short_columns))
+
+
+def parse_notes_applied_from_log(log_text: str) -> Dict[int, int]:
+    """从 master 运行 log 提取各子卷计数 {part_idx: n_applied}。
+
+    三重防误捕 (P2 整改 2026-07-11 补②③): ① ``=`` 后紧跟数字 → do 命令回显行
+    (``=`notes_n'``) 不误匹配; ② 行首锚定 (MULTILINE) → 回显 ``. `` 前缀与折行
+    ``> `` 续行不误匹配; ③ note 正文字面 marker 已在 :func:`_stata_notes_text`
+    全角中和 (``=``→＝), 折行也拼不回可匹配序列。重放多次时后写覆盖前写
+    (取最新一次)。Σvalues == 该 dta 期望数为对账绿灯。
+    """
+    out: Dict[int, int] = {}
+    for m in _NOTES_APPLIED_LOG_RE.finditer(log_text):
+        out[int(m.group(1))] = int(m.group(2))
+    return out
+
+
+def _render_notes_block(short: str, orig: str, text: str, max_seg_bytes: int) -> List[str]:
+    """单列注入块: exact confirm 守卫 + notes drop 幂等 + 首段原始列名 + 分段注入 + 计数。"""
+    orig_safe = _stata_notes_text(orig)
+    segs = _split_note_segments(_stata_notes_text(text), max_seg_bytes)
+    lines = [
+        f'* ---- {short}  (panel: {orig_safe}) ----',
+        f'capture confirm variable {short}, exact',
+        'if _rc == 0 {',
+        f'    capture notes drop {short}',
+        f'    notes {short}: 【原始 panel 列名】{orig_safe}',
+    ]
+    for seg in segs:
+        lines.append(f'    notes {short}: {seg}')
+    lines.append("    local notes_n = `notes_n' + 1")
+    lines.append('}')
+    lines.append('')
+    return lines
+
+
+def write_notes_do_file(
+    notes_by_col: Dict[str, str],
+    rename_map: Dict[str, str],
+    output_dir: str,
+    dta_targets: Dict[str, str] = None,
+    labels_do_filename: str = '46_panel_yearly_labels.do',
+    max_seg_bytes: int = STATA_NOTES_SEG_MAX_BYTES,
+    max_vars_per_part: int = STATA_NOTES_VARS_PER_PART,
+) -> Dict:
+    """生成 {40,46,51}_apply_notes do 族 (§3b 消费端 B) + manifest。
+
+    Args:
+        notes_by_col: {panel 原列名: 长注释文本} (pending 列由调用方/loader 排除)。
+        rename_map: {dta 短名: panel 原名} — **必传** (§7.5 铁律: do 内一律 dta
+            短名; 用原名 confirm 必失败且对账两侧同落选 → 假绿 + 改名列永久无
+            notes)。无改名请显式传 ``{}``。
+        output_dir: 产物目录 (与三 dta 同目录, master 内一律相对文件名)。
+        dta_targets: {key: dta 文件名}; 默认 :data:`STATA_NOTES_DTA_TARGETS`。
+        labels_do_filename: master 内先于 notes 应用的 labels .do (§3b 执行:
+            40/51 pandas 路径无嵌入 value labels, labels.do 本就必跑; capture-safe)。
+    Returns:
+        manifest dict (同时落盘 :data:`NOTES_MANIFEST_FILENAME`)。
+    """
+    if rename_map is None:
+        raise ValueError(
+            "rename_map 必传 (§3b/§7.5 铁律): 改名列须以 dta 短名注 notes; 无改名请传 {}")
+    if not notes_by_col:
+        raise ValueError("notes_by_col 为空 — 无可注入长注释 (调用方应在空时跳过)")
+    dta_targets = dict(dta_targets) if dta_targets else dict(STATA_NOTES_DTA_TARGETS)
+
+    orig2short = {orig: short for short, orig in rename_map.items()}
+    entries: List[Tuple[str, str, str]] = []  # (short, orig, text)
+    skipped_illegal: List[str] = []
+    skipped_empty: List[str] = []
+    for orig in sorted(notes_by_col):
+        text = notes_by_col[orig]
+        short = orig2short.get(orig, orig)
+        if not _STATA_LEGAL_NAME_RE.match(short):
+            skipped_illegal.append(orig)
+            continue
+        if not isinstance(text, str) or not text.strip():
+            skipped_empty.append(orig)
+            continue
+        entries.append((short, orig, text))
+    if skipped_illegal:
+        logger.warning(
+            f"  notes: {len(skipped_illegal)} 列短名非法 Stata 标识符, 已跳过 "
+            f"(前 5: {skipped_illegal[:5]}) — 任何 dta 内都不可能存在该名, 非静默缺口")
+    if skipped_empty:
+        logger.warning(f"  notes: {len(skipped_empty)} 列描述为空, 已跳过 (前 5: {skipped_empty[:5]})")
+
+    # fail-loud: 短名碰撞会让对账双计 + notes 互相覆盖
+    _seen: Dict[str, str] = {}
+    _dups = []
+    for short, orig, _ in entries:
+        if short in _seen:
+            _dups.append((short, _seen[short], orig))
+        _seen[short] = orig
+    if _dups:
+        raise ValueError(f"notes 短名碰撞 (fail-loud, 前 5): {_dups[:5]}")
+    if not entries:
+        raise ValueError("notes_by_col 经短名/空文本过滤后无有效条目")
+
+    entries.sort(key=lambda e: e[0])
+    n_parts = math.ceil(len(entries) / max_vars_per_part)
+    width = max(2, len(str(n_parts)))
+
+    part_files: List[str] = []
+    per_part_counts: Dict[str, int] = {}
+    for i in range(n_parts):
+        chunk = entries[i * max_vars_per_part:(i + 1) * max_vars_per_part]
+        idx = str(i + 1).zfill(width)
+        fname = f'{_NOTES_PART_STEM}{idx}.do'
+        lines = [
+            f'* news_process — Stata variable notes 子卷 part{idx}/{str(n_parts).zfill(width)} '
+            f'({len(chunk)} 列)',
+            '* Generated by news_process.pipeline.panel.stata_export.write_notes_do_file (§3b)',
+            '* 契约: 纯 notes 命令 (无 use/save/exit — CLAUDE.md 铁律), 被 *_apply_notes_master.do 顺序调用',
+            '* 幂等: 逐列先 capture notes drop 再注入 → 重放两次 == 注入一次',
+            '* 守卫: capture confirm variable <短名>, exact (缩写匹配 probe 实锤 rc=0, 必须 exact)',
+            'local notes_n = 0',
+            '',
+        ]
+        for short, orig, text in chunk:
+            lines.extend(_render_notes_block(short, orig, text, max_seg_bytes))
+        lines.append(f'display "NOTES_APPLIED_PART{idx}=`notes_n\'"')
+        out_path = os.path.join(output_dir, fname)
+        with open(out_path, 'w', encoding='utf-8', newline='\n') as f:
+            f.write('\n'.join(lines) + '\n')
+        part_files.append(fname)
+        per_part_counts[fname] = len(chunk)
+
+    masters: Dict[str, str] = {}
+    for key, dta_name in dta_targets.items():
+        mname = f'{key}_apply_notes_master.do'
+        lines = [
+            f'* news_process — Stata variable notes master (dta={dta_name}; §3b 编排层)',
+            '* Generated by news_process.pipeline.panel.stata_export.write_notes_do_file',
+            '* 单次 use/save 原子事务 (未 save 即无半状态); 子卷幂等 → 整卷重放安全',
+            '* 启动: 一律 /b 批处理 (scripts/apply_stata_notes.ps1 封装; 禁 /e 与裸 GUI)',
+            'version 19',
+            'clear all',
+            'set maxvar 32767',
+            'set linesize 120',
+            f'use "{dta_name}"',
+            '* 先 labels 后 notes (§3b 执行: 40/51 pandas 路径无嵌入 value labels; capture-safe)',
+            f'do "{labels_do_filename}"',
+        ]
+        lines.extend(f'do "{p}"' for p in part_files)
+        lines.append(f'save "{dta_name}", replace')
+        lines.append(f'display "NOTES_MASTER_DONE={key}"')
+        lines.append('exit, clear')
+        with open(os.path.join(output_dir, mname), 'w', encoding='utf-8', newline='\n') as f:
+            f.write('\n'.join(lines) + '\n')
+        masters[key] = mname
+
+    manifest = {
+        'schema': 'apply_notes_manifest/v1',
+        'n_cols_total': len(entries),
+        'n_parts': n_parts,
+        'parts': part_files,
+        'per_part_counts': per_part_counts,
+        'masters': masters,
+        'dta_targets': dta_targets,
+        'labels_do': labels_do_filename,
+        'columns_short': [e[0] for e in entries],
+        'short_to_orig': {e[0]: e[1] for e in entries},
+        'skipped_illegal': skipped_illegal,
+        'skipped_empty': skipped_empty,
+        'seg_max_bytes': max_seg_bytes,
+        'vars_per_part': max_vars_per_part,
+    }
+    with open(os.path.join(output_dir, NOTES_MANIFEST_FILENAME), 'w',
+              encoding='utf-8', newline='\n') as f:
+        json.dump(manifest, f, ensure_ascii=False, indent=2, sort_keys=True)
+    logger.info(
+        f"  Stata notes .do 族已写入: {n_parts} 子卷 × ≤{max_vars_per_part} 列 "
+        f"(共 {len(entries)} 列) + {len(masters)} master + manifest → {output_dir}")
+    return manifest
+
+
+#: WP1 长注释 json 候选文件名 (查找顺序)。首位 = 权威落盘名 SSOT
+#: (codebook.py::generate_codebook 写 build/codebook/variable_codebook.json);
+#: 次位 = 旧名回退 (deprecated, 2026-07-11 P1 整改前 loader 误读该名 → 生产上
+#: 整条 notes 注入链静默失活; 保留回退仅为兼容手工旧产物, 勿新增消费)。
+_CODEBOOK_NOTES_JSON_NAMES = ('variable_codebook.json', 'codebook.json')
+
+
+def _codebook_notes_json_candidates(base_dir: str = None) -> List[str]:
+    """返回 loader 依序尝试的绝对路径清单 (供 fail-soft 日志与接线 gate 消费)。"""
+    if base_dir is None:
+        base_dir = os.path.normpath(os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), '..', '..',
+            'build', 'codebook'))
+    return [os.path.join(base_dir, name) for name in _CODEBOOK_NOTES_JSON_NAMES]
+
+
+def _load_notes_from_codebook_json(base_dir: str = None) -> Dict[str, str]:
+    """从 build/codebook/variable_codebook.json (WP1 落盘名 SSOT) 读长注释
+    → {原列名: 描述}。旧名 codebook.json 作回退 (deprecated, 见候选清单注释)。
+
+    §0 铁律: 导出路径不 import 组装器 (_compose_long_description) — 经落盘 json
+    消费。json 未产出 (WP1 未跑) → 返回 {} 由调用方优雅跳过 (fail-soft 日志明列
+    全部尝试路径, 防再次接线漂移被误读为 'WP1 未跑')。兼容 list[dict] 与 dict
+    两形态。tier=pending 排除为前瞻防御: 真实 variable_codebook.json 记录现无
+    tier/层级字段 (pending 哨兵条目单走 md 附录不进 json 主体, 见 codebook.py
+    compose_pending_appendix), 该过滤仅在未来 pending 并入 json 且带 tier 字段时
+    生效, 当前为刻意保留的死代码 (§1a 类别 2 契约锚)。
+
+    Args:
+        base_dir: 覆盖默认 build/codebook 目录 (测试接线 gate 用; 生产勿传)。
+    """
+    candidates = _codebook_notes_json_candidates(base_dir)
+    path = next((p for p in candidates if os.path.exists(p)), None)
+    if path is None:
+        logger.info(
+            "  notes 长注释 json 未找到 (WP1 generate_codebook 未跑?) — 依序尝试过: "
+            + ' ; '.join(candidates))
+        return {}
+    if os.path.basename(path) != _CODEBOOK_NOTES_JSON_NAMES[0]:
+        logger.warning(
+            f"  notes 文本源命中旧名回退 {path} (deprecated) — 权威落盘名应为 "
+            f"{_CODEBOOK_NOTES_JSON_NAMES[0]}, 请重跑 scripts/generate_codebook.py")
+    with open(path, encoding='utf-8') as f:
+        data = json.load(f)
+    if isinstance(data, dict) and isinstance(data.get('variables'), (list, dict)):
+        data = data['variables']
+
+    def _extract(rec) -> Tuple[str, str]:
+        if not isinstance(rec, dict):
+            return None, None
+        desc = (rec.get('描述') or rec.get('描述/注释')
+                or rec.get('description') or rec.get('long_description'))
+        tier = rec.get('tier') or rec.get('层级')
+        return desc, tier
+
+    out: Dict[str, str] = {}
+    if isinstance(data, list):
+        for rec in data:
+            if not isinstance(rec, dict):
+                continue
+            col = (rec.get('变量名') or rec.get('var_name')
+                   or rec.get('variable') or rec.get('name'))
+            desc, tier = _extract(rec)
+            if tier == 'pending' or not col:
+                continue
+            if isinstance(desc, str) and desc.strip():
+                out[str(col)] = desc
+    elif isinstance(data, dict):
+        for col, rec in data.items():
+            if isinstance(rec, str):
+                desc, tier = rec, None
+            else:
+                desc, tier = _extract(rec)
+            if tier == 'pending':
+                continue
+            if isinstance(desc, str) and desc.strip():
+                out[str(col)] = desc
+    return out
 
 
 def upcast_unsafe_int8_columns(
@@ -1361,12 +1831,43 @@ def export_panel_to_stata(
     _phase['⑦写.dta'] = _time.time() - _t
     logger.info(f"  Full .dta 已写入: {full_path} ({len(df_encoded.columns)} 列; "
                 f"单一全列导出不再拆分 core/aux)")
+    # WP2 (2026-07-10, §3b/§7.9 三重保险之一): dta 重生 = 既有 notes 全灭的固定提示行
+    logger.info("  提示: .dta 已重生 — 既有 Stata variable notes (characteristics 层) "
+                "已随重生丢失; 如需 notes 请重放 scripts/apply_stata_notes.ps1 "
+                "(notes master 幂等可重放)")
 
     # 5. labels .do (omni-03/15: 带 backend 指纹)
     labels_path = os.path.join(output_dir, f'{output_prefix}_labels.do')
     _t = _time.time()
     write_labels_do_file(labels_path, var_labels, value_labels, backend_name=backend_name)
     _phase['⑧写labels.do'] = _time.time() - _t
+
+    # 5b. WP2 (2026-07-10, §3b): Stata variable notes .do 族 — 长注释 SSOT 消费端 B。
+    #     文本源 = build/codebook/variable_codebook.json (WP1 权威落盘名; §0 铁律: 导出
+    #     路径不 import 组装器 — 经落盘 json 消费)。json 未产出 (WP1 未跑) → 优雅
+    #     跳过; 生成失败非阻塞 (镜像 codebook.xlsx 先例)。rename_map 在此作用域内
+    #     (§3b 列名层: do 内一律 dta 短名)。实机注入不在此执行 (apply_stata_notes.ps1)。
+    _t = _time.time()
+    try:
+        _notes_by_col = _load_notes_from_codebook_json()
+        if _notes_by_col:
+            # NIT 整改 (2026-07-11): 显式传实际 labels.do 文件名 — 不再依赖
+            # write_notes_do_file 形参默认值与 output_prefix 默认值的巧合对齐
+            # (非默认前缀调用时 master 曾会 `do` 一个不存在的 labels.do → r(601))
+            _notes_manifest = write_notes_do_file(
+                _notes_by_col, rename_map, output_dir,
+                labels_do_filename=os.path.basename(labels_path))
+            logger.info(
+                f"  notes .do 族: {_notes_manifest['n_cols_total']} 列 / "
+                f"{_notes_manifest['n_parts']} 子卷 (注入须另跑 scripts/apply_stata_notes.ps1)")
+        else:
+            logger.info(
+                "  notes .do 生成跳过: 长注释 json 无可用描述字段, 或未产出 — 依序找过: "
+                + ' ; '.join(_codebook_notes_json_candidates())
+                + " (产出: python -m news_process.scripts.generate_codebook)")
+    except Exception as e:  # noqa: BLE001 — 非阻塞 (镜像 codebook.xlsx 先例)
+        logger.warning(f"  notes .do 生成失败 (非阻塞): {e}")
+    _phase['⑧b写notes.do族'] = _time.time() - _t
 
     # 6. codebook .xlsx (依赖 codebook.py)
     codebook_path = os.path.join(output_dir, f'{output_prefix}_codebook.xlsx')

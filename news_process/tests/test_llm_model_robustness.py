@@ -79,8 +79,10 @@ class TestCodebookInference:
         assert cb._llm_model_match('gpt54nano_tone_symb_ctx') is None
 
     def test_infer_label_specific(self):
+        # WP3 (2026-07-10): _infer_label 先查两端同源层 → per-model 中文标签
+        # (模型显示名 GPT-5.4nano, 见 stata_export._PM_MODEL_ZH)
         lbl = cb._infer_label('gpt54nano_tone_full')
-        assert 'gpt54nano' in lbl
+        assert 'GPT-5.4nano' in lbl
         assert 'Sentiment Tone' not in lbl                       # 未落泛型
         assert lbl != cb._infer_label('llm_vote_tone_full')      # 与共识标签相异
 

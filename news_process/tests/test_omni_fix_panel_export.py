@@ -311,8 +311,26 @@ class TestLabelFallback:
         for c in cols:
             lab = out[c]
             assert lab, f"{c} 标签为空 (覆盖率兜底失效)"
-            assert len(lab) <= 80, f"{c} 标签超 80 字符: {lab!r}"
-            lab.encode('latin-1')  # to_stata 硬约束, 不可编码会 raise
+            # P2 整改 (2026-07-11): latin-1 断言移除 — 40-path 实际写出恒为
+            # to_stata(version=118) (StataWriterUTF8), 中文兜底标签合法透传
+            # (实写探针见 test_to_stata_v118_accepts_utf8_labels)。字节口径
+            # 与 validate_stata_compat 统一为 UTF-8 ≤80 字节。
+            assert len(lab.encode('utf-8')) <= 80, f"{c} 标签超 80 UTF-8 字节: {lab!r}"
+
+    def test_to_stata_v118_accepts_utf8_labels(self, tmp_path):
+        """实写探针 (P2 整改依据锁定): version=118 中文标签写入+读回逐字成功.
+
+        旧 _apply_label_fallback 的 latin-1 降级守卫前提 ("pandas to_stata 要求
+        label latin-1 可编码") 仅对默认 version(=114) 成立 — 本探针以真实写出
+        锁死 118 通道; 若未来 pandas 收紧 (探针转红), 守卫须按实测恢复降级。
+        """
+        p = tmp_path / 'probe_zh_label.dta'
+        zh = '创新漂洗率(象征性正面占比)'
+        pd.DataFrame({'x': [1.0, 2.0]}).to_stata(
+            p, write_index=False, version=118, variable_labels={'x': zh})
+        from pandas.io.stata import StataReader
+        with StataReader(p) as r:
+            assert r.variable_labels()['x'] == zh
 
     def test_explicit_labels_take_priority(self):
         out = _exp._apply_label_fallback(
@@ -325,7 +343,13 @@ class TestLabelFallback:
         assert out['zz_unknown_col_123'] == 'zz_unknown_col_123'
 
     def test_main_regression_dv_gets_semantic_label_when_codebook_available(self):
-        """主回归 DV llm_vote_tone_full 必须获得语义标签 (codebook/启发式)."""
+        """主回归 DV llm_vote_tone_full 的 40-path 标签行为 (P2 整改 2026-07-11).
+
+        latin-1 降级守卫已随过时前提移除 (40-path 写出恒为 version=118 UTF-8
+        writer, 实写探针见 test_to_stata_v118_accepts_utf8_labels) → 兜底标签
+        (含 WP3 中文 meta.label) 一律逐字透传, 与 46-path/51-path 口径统一,
+        不再分叉降级列名。
+        """
         try:
             from news_process.pipeline.panel.codebook import (
                 get_variable_metadata_dict,

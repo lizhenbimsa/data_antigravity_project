@@ -67,7 +67,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `build-replication`: 一键 instantiate 21 个根级 `.do` 模板 + spec 替换 (构建复现包的规范入口; 2026-07-02 +27_tableA12_cross_model_fwer; 2026-07-03 +28_tableA13_policy_family_robustness)。
 - `list-templates [--verbose]`: 模板清单 + 占位符 inventory。
-- `doctor [--verbose]`: 6 段诊断 (Python 依赖 / pipeline 数据 / LLM cache / LLM API / Stata bin / Stata ado 包)。
+- `doctor [--verbose]`: 7 段诊断 (Python 依赖 / pipeline 数据 / LLM cache / LLM API / Stata bin / Stata ado 包 / Stata notes 指纹)。
 - `verify-replication <path>`: 5 段验证 replication 包结构。
 - panel 迁移: `python -m news_process.scripts.migrate.v3_1_to_v3_2_panel_upgrade`。
 

@@ -108,8 +108,8 @@ def test_codebook_and_stata_labels_three_tracks():
     from news_process.pipeline.panel import stata_export as se
     from news_process.pipeline.panel.codebook import get_variable_metadata_dict
     meta = get_variable_metadata_dict()
-    # 迁移不变量: full 条目 label 与旧单轨条目逐字节同
-    assert meta['avg_boilerplate_full'].label == 'Boilerplate Phrase Ratio (full)'
+    # WP3 (2026-07-10) 标签中文化: full 条目 label 改中文 (轨后缀=全文轨)
+    assert meta['avg_boilerplate_full'].label == '跨文档套话比率(全文轨)'
     for trk in ('ctx', 'ss'):
         assert f'avg_boilerplate_{trk}' in meta
     import pandas as pd_

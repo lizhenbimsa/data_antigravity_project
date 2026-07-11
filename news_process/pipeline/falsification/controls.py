@@ -1214,8 +1214,18 @@ def build_stage51_variable_labels(sanitized_cols, original_cols) -> dict:
     标签), 与 40.dta (666 条策展标签) / 46_*.dta 断崖式不一致 — 而 CLAUDE.md
     恰推荐 MP 用户直接读本文件。改为消费 stage 46 的共享标签构建器
     ``stata_export.build_variable_labels`` (codebook meta → HEURISTIC_LABELS →
-    列名兜底, ≤80 UTF-8 字节), 以 rename_map(短名→原名) 桥接 sanitize 改名,
-    stage-51 专属 STATA_LABELS_41 仍以覆盖优先。
+    zh JSON → 列名兜底, ≤80 UTF-8 字节), 以 rename_map(短名→原名) 桥接
+    sanitize 改名。
+
+    WP3 整改 (2026-07-11, 评审 P1): STATA_LABELS_41 (英文) 从"覆盖优先"降为
+    **兜底补位层** — 旧口径 ``{**shared, **overlay}`` 让英文 overlay 覆盖中文
+    共享标签, 其中 5 个 51-only 列 (ln_ft_articles/ln_nf_articles/fintech_share/
+    zero_coverage/ft_n_articles_dedup) 不在 46_panel_yearly_labels.do 宇宙 →
+    终态永久英文, 违反「标签均使用中文」硬口径且与 codebook 两端分叉。现口径:
+    shared 产出真标签 (≠裸列名兜底) 时中文胜出; 仅当 shared 对该列退化为裸列名
+    (如 zh JSON 意外缺失 / 未来财务列 GOV_* 尚无中文条目) 时 overlay 补位 —
+    保留其安全网职能, 不再遮蔽中文。gate:
+    tests/test_stata_labels_zh.py::TestStage51RealWritePath。
 
     注: 真正的单一事实源 (export.py 函数内 STATA_LABELS 提升为模块级共享)
     须改 pipeline/panel/export.py (本轮另组负责文件), 留待主控统一落地。
@@ -1235,7 +1245,15 @@ def build_stage51_variable_labels(sanitized_cols, original_cols) -> dict:
                                    rename_map=rename_map)
     overlay = {k: v for k, v in STATA_LABELS_41.items()
                if k in set(sanitized_cols)}
-    return {**shared, **overlay}
+    # WP3 整改 (2026-07-11): 中文共享标签优先; overlay 仅补 shared 裸列名兜底位
+    # (shared 对每列必有值, 裸兜底 = label == 该列的原名/列名本身)。
+    sanitized2orig = dict(zip(sanitized_cols, original_cols))
+    merged = dict(shared)
+    for k, v in overlay.items():
+        bare_fallbacks = {k, sanitized2orig.get(k, k)}
+        if merged.get(k, k) in bare_fallbacks:
+            merged[k] = v
+    return merged
 
 
 def export_results(panel: pd.DataFrame, pearson_corr: pd.DataFrame):
