@@ -4,34 +4,98 @@ columns:
 - bian_2021_tone_sum_ctx
 - bian_2021_tone_sum_full
 - bian_2021_tone_sum_ss
-unit: 语调得分 (连续, 约 [-1,1]; 聚合后 bank-year 均值)
-formula: '(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)'
-producer: pipeline\panel\stata_export.py ; pipeline\panel\export.py
-upstream: []
-citations: []
+unit: 语调总和 (无量纲, 单篇净极性分逐篇相加; 近似落于 [-n_articles, n_articles], 无固定上下界)
+formula: "bian_2021_tone_sum{track} = Σ_j bian_2021_score_j{track} (对 bank-year 单元内留篇报道 j 求和); 单篇 bian_2021_score = total_score / total_abs_score = Σ_i s_i / Σ_i |s_i|, 对篇内每个命中词 i 求和, s_i 为叠加否定翻转/程度分级/转折规则后的带符号加权分 (正词正、负词负), 分母为同一组 |s_i| 之和 (both-sided 重叠词按 2×|s_i| 计入分母, 使归一化口径偏中性); 分子分母同源、皆含语言学规则加权, 数值近似落于 [-1, 1]"
+producer: news_process/pipeline/panel/encode.py (bank-year 'sum' 聚合); 标签 news_process/pipeline/panel/stata_export.py
+upstream:
+- 14_materialize_ctx.parquet (content_full / content_ctx / content_ss)
+- 22_tone_words.parquet (article-level bian_2021_score{track})
+citations:
+- doi: 10.1016/j.jfineco.2022.11.006
+  type: journal
+  authors: García, D., Hu, X., & Rohrer, M.
+  year: 2023
+  title: "The colour of finance words"
+  venue: Journal of Financial Economics
+  vol: 147
+  issue: 3
+  pages_or_artno: 525-549
+- doi: 10.1093/rof/rfab036
+  type: journal
+  authors: Du, Z., Huang, A. G., Wermers, R., & Wu, W.
+  year: 2022
+  title: "Language and domain specificity: A Chinese financial sentiment dictionary"
+  venue: Review of Finance
+  vol: 26
+  issue: 3
+  pages_or_artno: 673-719
+- doi: 10.1287/mnsc.2021.4156
+  type: journal
+  authors: Frankel, R., Jennings, J., & Lee, J.
+  year: 2022
+  title: "Disclosure sentiment: Machine learning vs. dictionary methods"
+  venue: Management Science
+  vol: 68
+  issue: 7
+  pages_or_artno: 5514-5532
+- doi: 10.2139/ssrn.3446388
+  type: wp
+  authors: Bian, S., Jia, D., Li, F., & Yan, Z.
+  year: 2021
+  title: "A new Chinese financial sentiment dictionary for textual analysis in accounting and finance"
+  venue: SSRN Working Paper No. 3446388
+- doi: 10.1080/19312458.2020.1869198
+  type: journal
+  authors: van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M.
+  year: 2021
+  title: "The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms"
+  venue: Communication Methods and Measures
+  vol: 15
+  issue: 2
+  pages_or_artno: 121-140
+- doi: 10.1111/j.1540-6261.2010.01625.x
+  type: journal
+  authors: Loughran, T., & McDonald, B.
+  year: 2011
+  title: "When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks"
+  venue: Journal of Finance
+  vol: 66
+  issue: 1
+  pages_or_artno: 35-65
 new_dois: []
 ---
 
 ## CORE
 
 【构念与来源】
-骨架占位 — 本节为家族核心长文, 待 WP4 写手按写手输入包三件套 (build/codebook_inputs/F136/ 下 columns.json、source_excerpt.md、citations_pool.md) 撰写。本骨架由 build_codebook_family_map 机械生成, 家族 status=draft, 字数闸与引文闸在 draft 态降级为告警计数。单位初判: 语调得分 (连续, 约 [-1,1]; 聚合后 bank-year 均值)。公式初判见 frontmatter formula 字段, 写手须对 producer 源码逐条校对后改写。
+本家族三列 bian_2021_tone_sum_full、bian_2021_tone_sum_ctx、bian_2021_tone_sum_ss 度量的是: 在一个银行—年度 (bank-year) 单元内, 以 Bian、Jia、Li 与 Yan (2021) 构建的中文金融情感词典对每篇银行金融科技报道逐篇打出的净极性语调分之总和 (sum), 而非该单元内的均值。该词典是一部面向会计与金融文本的中文情感词表, 以工作论文形式发布于 SSRN (编号 3446388), 其正、负面词表针对中文财经语域重新筛选, 相较于英文场景直译的词表更贴合中文年报、公告与财经新闻的表达习惯, 因此被本项目纳入六部并行的中文金融情感词典之一, 与 Du、Huang、Wermers 与 Wu (2022) 等其余词典构成词典法内部的互为稳健性并排轨。逐篇语调分 bian_2021_score 的构造遵循标准净极性归一化口径: 先在报道文本上以冻结版 jieba 分词切词, 对照 Bian 等 (2021) 的正面词与负面词统计命中, 再叠加三条针对中文的语言学状态机规则——否定翻转、程度副词分级、转折让步——为每个命中词赋一个带符号的加权分 (正面词取正、负面词取负)。单篇分值采用带符号分之和除以其绝对值之和的归一化口径, 即 total_score 除以 total_abs_score, 分子为篇内所有命中词带符号加权分的代数和, 分母为同一组加权分绝对值的总和; 其中同时落入正负两侧的重叠词按其绝对值的两倍计入分母, 从而把归一化结果向中性方向拉动, 因此这是一个近似而非精确的正负差比值, 数值近似落在负一到正一之间。在 bank-year 层, tone_sum 把该单元内所有留篇报道的单篇分值直接相加, 得到一个不设固定上下界的总和量: 其绝对值同时随报道语调的强度与报道篇数上升, 因此刻画的是情感的外延边际 (extensive margin), 与家族 canonical 的均值列 bian_2021_tone 所刻画的内涵边际 (intensive margin) 互补。
 
-## VAR: bian_2021_tone_sum_ctx
+【方法学与计算】
+tone_sum 列由 pipeline/panel/encode.py 在 bank-year 聚合阶段以 pandas 具名聚合 (源列 bian_2021_score{track}, 聚合算子 sum) 生成, 每个文本轨道独立成列; Stata 变量标签由 pipeline/panel/stata_export.py 机械挂载。上游依赖两级: 一是 14_materialize_ctx.parquet 物化的三条文本列 content_full / content_ctx / content_ss (以及各自的回退旗标), 二是 22_tone_words.parquet 中逐篇算出的 bian_2021_score{track}。留篇口径遵循 full-only 门控 (2026-06-29): 一篇报道是否计入 bank-year 单元, 只由 full 轨的 LLM 留篇判定 (llm_verified_full 为真) 决定; ctx 与 ss 轨降为在 full 留篇集之上条件计算的测度轨, 其行宇宙是 full 留篇集的子集, 各轨列在该行宇宙上按本轨文本各自求和。三条文本轨的语义严格分层: full 轨为标题 prepend 后的全文正文, ctx 轨为标题加实体上下文窗口, ss 轨为标题加银行与金融科技同句共现窗口; ss 轨在无同句共现时镜像 ctx 的回退语义、退回全文 body 并置 ss_is_fallback 为真, 与 ctx/full 共享 n_articles 分母口径。三轨 tone_sum 属规格稳健性并排: 各自 just-identified 并排、互为稳健性不分主次, 严禁把三轨混进同一个 over-identified 的 Hansen J 过度识别检验。与均值列相比, 求和聚合对留篇篇数敏感, 因而在做跨银行、跨年度比较时通常需与 n_articles 或篇数控制项联用, 或作为均值主轨结论的稳健性佐证而非独立识别源。
 
-【变体差分】
-骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+【文献定位】
+本家族的词典源头是 Bian 等 (2021): 该文的核心贡献是为中文会计与金融文本重建一部本土化的情感词典, 弥补英文词表直译在中文语域上的失配。与之并列的另一部权威中文金融情感词典来自 Du 等 (2022) 发表于 Review of Finance 的研究, 该文系统论证了语言与领域特异性对情感测度的实质影响, 是本项目将多部中文词典并排为互为稳健性轨的直接理据。词典法这一测度范式的方法学根基可追溯至 Loughran 与 McDonald (2011) 发表于 Journal of Finance 的经典工作, 他们指出通用情感词表在金融文本中系统性误判, 从而奠定了领域专用词典的必要性; García、Hu 与 Rohrer (2023) 发表于 Journal of Financial Economics 的研究进一步用大规模标注数据校准了金融词汇的情感色彩, 为词典命中的极性赋权提供了实证依据。在测度效度层面, Frankel、Jennings 与 Lee (2022) 于 Management Science 比较了词典法与机器学习法在披露情感上的表现, 支持将词典法与 LLM、BERT 三角并置作为互为稳健性设计; van Atteveldt、van der Velden 与 Boukes (2021) 则从人工标注、众包、词典与机器学习的对比中系统评估了情感分析的效度边界, 提示词典法总和量在解读时须与人工基准和替代测度交叉验证。
 
 ## VAR: bian_2021_tone_sum_full
 
 【变体差分】
-骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+本列是 Bian (2021) 词典语调总和在全文轨 (full) 上的实现, 也是本家族三轨中与留篇门控口径完全对齐的主轨。其文本通道为标题 prepend 之后的完整正文: 先把报道标题拼接到正文最前, 再在整篇文本上逐篇计算 bian_2021_score_full, 最后在 bank-year 单元内对所有留篇报道的单篇分值求和。相对于家族其余两轨, full 轨的差分维度在于文本覆盖面最广——它不做任何实体窗口或同句共现的裁剪, 因此单篇分值综合了报道全篇的正负词命中, 求和后的量既反映语调强度也反映留篇篇数。由于 full-only 门控 (2026-06-29) 规定一篇报道是否计入 bank-year 单元仅由 full 轨的 LLM 留篇判定决定, 本列的行宇宙即为留篇全集本身, 而 ctx 与 ss 两轨的行宇宙是本列行宇宙的子集。本列与家族 canonical 的均值列 bian_2021_tone_full 的关键区别在于聚合算子: 前者用 sum、刻画外延边际 (总量随篇数与强度共同变动), 后者用 mean、刻画内涵边际 (单位报道的平均语调)。因此在跨单元比较时本列通常需与篇数控制联用, 或作为均值主轨结论的稳健性佐证而非独立识别源。作为词典法六部并排轨之一, 本列还与其余五部中文金融情感词典的同轨总和列互为稳健性, 用以证明主结论不被任一部词表的词汇取舍所驱动。本列与 ctx、ss 两轨各自 just-identified 并排、互为稳健性不分主次, 严禁把三轨混入同一个 over-identified 的 Hansen J。
+
+## VAR: bian_2021_tone_sum_ctx
+
+【变体差分】
+本列是 Bian (2021) 词典语调总和在实体上下文窗口轨 (ctx) 上的实现。其文本通道为标题 prepend 加实体上下文窗口: 在标题拼接正文之后, 仅保留银行与金融科技实体命中位置附近的上下文片段作为计分文本, 因此相较 full 轨剔除了与目标实体无关的段落, 使单篇语调分更聚焦于银行金融科技这一具体语境。bank-year 层的求和口径与其余两轨一致——把该单元内所有留篇报道的单篇 bian_2021_score_ctx 直接相加。本列区别于 full 轨的核心差分在文本裁剪范围: ctx 只在实体窗口内取词, 命中词更集中、噪声段落更少, 但也可能因窗口过窄而漏掉全篇层面的语气线索。依 full-only 门控, 本列在 full 留篇集的子集上条件计算: 留篇与否由 full 轨判定, ctx 轨仅在被留下的报道上按本轨文本各自求和; 当某报道缺失有效实体窗口时按回退旗标处理。本列与家族均值列 bian_2021_tone_ctx 的区别同样在于聚合算子由 mean 改为 sum, 因而对篇数敏感, 通常作为均值主轨的稳健性佐证而非独立识别源。作为与 full 轨互补的规格稳健性轨, 本列检验的是当计分文本收窄到实体窗口时总和量结论是否依然定性稳健。本列与 full、ss 两轨各自 just-identified 并排、互为稳健性不分主次, 严禁三轨混进同一个 over-identified 的 Hansen J 过度识别检验。
 
 ## VAR: bian_2021_tone_sum_ss
 
 【变体差分】
-骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+本列是 Bian (2021) 词典语调总和在同句共现窗口轨 (ss) 上的实现, 是三轨中文本约束最严的一轨。其文本通道为标题 prepend 加银行与金融科技同句共现窗口: 仅保留银行实体与金融科技实体落在同一句 (可含前后 N 句半径, 默认半径为一) 的片段作为计分文本, 因此单篇语调分只捕捉两类实体真正同句关联时的情感表达, 语境最纯但覆盖面最窄。bank-year 层仍按求和聚合, 把留篇报道的单篇 bian_2021_score_ss 直接相加。ss 轨的差分要点在其回退语义: 当某报道不存在银行与金融科技同句共现时, 本轨镜像 ctx 的降级逻辑, 退回全文 body 计分并置 ss_is_fallback 为真, 且与 full/ctx 共享同一 n_articles 分母口径, 从而避免因样本框收缩造成的口径漂移。依 full-only 门控, 本列同样在 full 留篇集的子集上条件计算, 留篇由 full 轨判定。本列与家族均值列 bian_2021_tone_ss 的区别在聚合算子由 mean 改为 sum, 刻画外延边际而非平均语调, 对篇数与回退占比均较敏感, 解读时须结合回退旗标, 通常作为均值主轨结论的稳健性佐证而非独立识别源。作为文本约束最严的一轨, 本列检验的是当情感只取自银行与金融科技真正同句关联时总和量结论是否依然成立。本列与 full、ctx 两轨各自 just-identified 并排、互为稳健性不分主次, 严禁把三轨混入同一个 over-identified 的 Hansen J。
 
 <!-- rendered-citations:begin -->
-
+García, D., Hu, X., & Rohrer, M. (2023). The colour of finance words. Journal of Financial Economics, 147(3), 525-549. https://doi.org/10.1016/j.jfineco.2022.11.006
+Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
+Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
+Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
+van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
+Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 <!-- rendered-citations:end -->
