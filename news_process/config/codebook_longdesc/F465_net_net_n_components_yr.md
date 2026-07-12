@@ -183,5 +183,18 @@ new_dois: []
 本列为 ±1 句窗判据变体, 邻接标准居于同篇 (canonical) 与严格同句 (_sent) 之间: 当两家银行的实体出现位置落在彼此相距不超过 win_radius 句 (默认取 config/panel.yaml 的 network_criteria.win_radius = 1, 即目标句及其前后各一句构成的滑动窗口) 时连边。相对严格同句放宽了一句的容差以捕捉跨相邻句的紧邻并置 (如上一句点名甲行、下一句评论乙行的连续叙述), 又相对同篇收紧以排除仅在篇章两端遥隔出现的松散并置。因此本列连出的边数、网络连通性与分量数均系统性居于三轨之中: 分量数低于 _sent、高于 canonical。判据原语在 map_bank_sentence_positions 定位后取句窗内银行对, 窗口半径来自 network_criteria.win_radius, 须再次强调该键与 stage 13 银行∧金科过滤所用的 filtering.yaml::cooccurrence_filter.sentence_radius 是不同键、互不联动。本列与 canonical、_sent 互为稳健性、不分主次, 三判据各自 just-identified 并排, 禁混进同一 over-identified Hansen J; ±1 句窗提供的中间松紧度, 使三列共同构成对连通分量数随邻接标准单调变化的完整刻画, 支撑"主结论不被判据窗口选择驱动"的稳健性论证。判据后缀 _win1 与三轨文本后缀分属正交空间, 不可拼配。本列同为网络级年度广播量, 双向固定效应下被年 FE 吸收, 消费于无年 FE 的结构描述与拓扑控制; 亦为纯拓扑计数, 无 _lg 嵌入孪生, 不涉 full-only 留篇门控。计算沿用 networkx 连通分量枚举, 孤立银行计为大小 1 分量不掩码, 与 canonical 处理一致, 保证三判据轨的唯一差异恰为邻接窗口半径而无其它混淆。
 
 <!-- rendered-citations:begin -->
-
+Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
+Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223
+Grieser, W., Hadlock, C., LeSage, J., & Zekhnini, M. (2022). Network effects in corporate financial policies. Journal of Financial Economics, 144(1), 247-272. https://doi.org/10.1016/j.jfineco.2021.05.060
+Jackson, M. O., & Pernoud, A. (2021). Systemic risk in financial networks: A survey. Annual Review of Economics, 13, 171-202. https://doi.org/10.1146/annurev-economics-083120-111540
+Duarte, F., & Eisenbach, T. M. (2021). Fire-sale spillovers and systemic risk. The Journal of Finance, 76(3), 1251-1294. https://doi.org/10.1111/jofi.13010
+Bramoullé, Y., Djebbari, H., & Fortin, B. (2020). Peer effects in networks: A survey. Annual Review of Economics, 12, 603-629. https://doi.org/10.1146/annurev-economics-020320-033926
+Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effects through social networks. Journal of Econometrics, 150(1), 41-55. https://doi.org/10.1016/j.jeconom.2008.12.021
+Newman, M. E. J. (2005). A measure of betweenness centrality based on random walks. Social Networks, 27(1), 39-54. https://doi.org/10.1016/j.socnet.2004.11.009
+Newman, M. E. J., & Girvan, M. (2004). Finding and evaluating community structure in networks. Physical Review E, 69(2), 11339. https://doi.org/10.1103/PhysRevE.69.026113
+Clauset, A., Newman, M. E. J., & Moore, C. (2004). Finding community structure in very large networks. Physical Review E, 70(6), 27721. https://doi.org/10.1103/PhysRevE.70.066111
+Watts, D. J., & Strogatz, S. H. (1998). Collective dynamics of 'small-world' networks. Nature, 393(6684), 440-442. https://doi.org/10.1038/30918
+Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
+Seidman, S. B. (1983). Network structure and minimum degree. Social Networks, 5(3), 269-287. https://doi.org/10.1016/0378-8733(83)90028-X
+Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
 <!-- rendered-citations:end -->

@@ -9254,7 +9254,7 @@
       "core_rationale_by_col": {
         "llm_models_avg_cont_full": "[类别6-扩围①] LLM 三家均值-ensemble 连续得分 canonical (2026-07-10 签核扩围)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -9336,7 +9336,7 @@
       "core_rationale_by_col": {
         "llm_models_avg_tone_full": "[类别6-扩围①] LLM 三家均值-ensemble 语调 (CLAUDE.md LLM 三家段点名 headline 变体) (2026-07-10 签核扩围)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "语调得分 (连续, 约 [-1,1]; 聚合后 bank-year 均值)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -9475,7 +9475,7 @@
         "llm_peer_tone_iv_full": "[类别3] 识别策略主 IV (paper=llm_peer, identification.iv primary/fallback 全收)",
         "llm_peer_tone_iv_full_75": "[类别3] 识别策略主 IV (paper=llm_peer, identification.iv primary/fallback 全收)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "语调得分 (连续, 约 [-1,1]; 聚合后 bank-year 均值)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -9704,7 +9704,7 @@
       "core_rationale_by_col": {
         "llm_vote_cont_full": "[类别6-扩围①] LLM 共识连续得分族 canonical (tone 的连续孪生; 2026-07-10 签核扩围)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -10128,7 +10128,7 @@
       "core_rationale_by_col": {
         "llm_vote_tone_full": "[类别1] paper_spec treatment 主列 (paper=bank_fintech_tone; 正文级主处理变量) / [类别1] paper_spec treatment 主列 (paper=llm_peer; 正文级主处理变量)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "语调得分 (连续, 约 [-1,1]; 聚合后 bank-year 均值)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -10784,7 +10784,7 @@
       "core_rationale_by_col": {
         "loughran_tone_full": "[类别6] 六词典 canonical full 轨"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "语调得分 (连续, 约 [-1,1]; 聚合后 bank-year 均值)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -10945,7 +10945,7 @@
       "core_rationale_by_col": {
         "mean_clarity_score_full": "[类别1] paper_spec treatment 主列 (paper=bank_news_clarity; 正文级主处理变量)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -10985,7 +10985,7 @@
       "core_rationale_by_col": {
         "mean_num_intensity_full": "[类别6-扩围①] 数值强度 canonical (Table A9 num_intensity 真双轨之字符轨) (2026-07-10 签核扩围)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -11006,7 +11006,7 @@
       "core_rationale_by_col": {
         "mean_num_intensity_word_full": "[类别6-扩围①] 数值强度词轨 (Table A9 真双轨 co-equal 第二臂, spec tA9 dual_track) (2026-07-10 签核扩围)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -11233,7 +11233,7 @@
       "core_rationale_by_col": {
         "n_articles": "[类别4] 全局 headline 测度 (分母/门控/canonical 及 _lg co-primary 对偶)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "篇数/计数 (count)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -11254,7 +11254,7 @@
       "core_rationale_by_col": {
         "n_articles_llm_valid": "[类别4] 全局 headline 测度 (分母/门控/canonical 及 _lg co-primary 对偶)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "篇数/计数 (count)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -11468,7 +11468,7 @@
       "core_rationale_by_col": {
         "net_assortativity_yr": "[类别6-扩围①] 网络结构指标家族 canonical (同篇判据无后缀列; NETWORK_METRIC_BASES SSOT; 2026-07-10 签核扩围)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "年度银行共现网络 (networkx) 上的结构指标; 判据变体 {同篇/±1句 _win1/同句 _sent}",
@@ -11489,7 +11489,7 @@
       "core_rationale_by_col": {
         "net_avg_cluster_yr": "[类别6-扩围①] 网络结构指标家族 canonical (同篇判据无后缀列; NETWORK_METRIC_BASES SSOT; 2026-07-10 签核扩围)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "年度银行共现网络 (networkx) 上的结构指标; 判据变体 {同篇/±1句 _win1/同句 _sent}",
@@ -11510,7 +11510,7 @@
       "core_rationale_by_col": {
         "net_avg_path_yr": "[类别6-扩围①] 网络结构指标家族 canonical (同篇判据无后缀列; NETWORK_METRIC_BASES SSOT; 2026-07-10 签核扩围)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "年度银行共现网络 (networkx) 上的结构指标; 判据变体 {同篇/±1句 _win1/同句 _sent}",
@@ -11531,7 +11531,7 @@
       "core_rationale_by_col": {
         "net_degree_gini_yr": "[类别6-扩围①] 网络结构指标家族 canonical (同篇判据无后缀列; NETWORK_METRIC_BASES SSOT; 2026-07-10 签核扩围)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "年度银行共现网络 (networkx) 上的结构指标; 判据变体 {同篇/±1句 _win1/同句 _sent}",
@@ -11552,7 +11552,7 @@
       "core_rationale_by_col": {
         "net_density_yr": "[类别6-扩围①] 网络结构指标家族 canonical (同篇判据无后缀列; NETWORK_METRIC_BASES SSOT; 2026-07-10 签核扩围)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "网络结构指标 (无量纲)",
       "formula_draft": "年度银行共现网络 (networkx) 上的结构指标; 判据变体 {同篇/±1句 _win1/同句 _sent}",
@@ -11573,7 +11573,7 @@
       "core_rationale_by_col": {
         "net_diameter_yr": "[类别6-扩围①] 网络结构指标家族 canonical (同篇判据无后缀列; NETWORK_METRIC_BASES SSOT; 2026-07-10 签核扩围)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "年度银行共现网络 (networkx) 上的结构指标; 判据变体 {同篇/±1句 _win1/同句 _sent}",
@@ -11594,7 +11594,7 @@
       "core_rationale_by_col": {
         "net_giant_share_yr": "[类别6-扩围①] 网络结构指标家族 canonical (同篇判据无后缀列; NETWORK_METRIC_BASES SSOT; 2026-07-10 签核扩围)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "比率/占比 (proportion, [0,1] 或百分比; 待写手按 frontmatter 校准)",
       "formula_draft": "年度银行共现网络 (networkx) 上的结构指标; 判据变体 {同篇/±1句 _win1/同句 _sent}",
@@ -11615,7 +11615,7 @@
       "core_rationale_by_col": {
         "net_modularity_yr": "[类别6-扩围①] 网络结构指标家族 canonical (同篇判据无后缀列; NETWORK_METRIC_BASES SSOT; 2026-07-10 签核扩围)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "年度银行共现网络 (networkx) 上的结构指标; 判据变体 {同篇/±1句 _win1/同句 _sent}",
@@ -11636,7 +11636,7 @@
       "core_rationale_by_col": {
         "net_n_components_yr": "[类别6-扩围①] 网络结构指标家族 canonical (同篇判据无后缀列; NETWORK_METRIC_BASES SSOT; 2026-07-10 签核扩围)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "年度银行共现网络 (networkx) 上的结构指标; 判据变体 {同篇/±1句 _win1/同句 _sent}",
@@ -11657,7 +11657,7 @@
       "core_rationale_by_col": {
         "net_transitivity_yr": "[类别6-扩围①] 网络结构指标家族 canonical (同篇判据无后缀列; NETWORK_METRIC_BASES SSOT; 2026-07-10 签核扩围)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "年度银行共现网络 (networkx) 上的结构指标; 判据变体 {同篇/±1句 _win1/同句 _sent}",
@@ -11721,7 +11721,7 @@
         "outlet_style_clarity_iv_ctx": "[类别3] 识别策略主 IV (paper=bank_news_clarity, identification.iv primary/fallback 全收)",
         "outlet_style_clarity_iv_full": "[类别3] 识别策略主 IV (paper=bank_news_clarity, identification.iv primary/fallback 全收)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "工具变量 (与被工具化内生变量同量纲)",
       "formula_draft": "IV 引擎构造 (同组 LOO 均值 / 广义 Bartik / 媒体 house-style 暴露)",
@@ -11791,7 +11791,7 @@
         "peer_tone_2nd_lag1_full": "[类别3] 识别策略主 IV (paper=brokerage_network, identification.iv primary/fallback 全收)",
         "peer_tone_lag1_full": "[类别1] paper_spec treatment 主列 (paper=brokerage_network; 正文级主处理变量)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "语调得分 (连续, 约 [-1,1]; 聚合后 bank-year 均值)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -11989,7 +11989,7 @@
       "core_rationale_by_col": {
         "prov_leave1out_tone_full": "[类别3] 识别策略主 IV (paper=bank_fintech_tone, identification.iv primary/fallback 全收)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "语调得分 (连续, 约 [-1,1]; 聚合后 bank-year 均值)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -12244,7 +12244,7 @@
         "semantic_highstale_full": "[类别6-扩围①] 语义高陈旧二元 headline (staleness canonical 孪生) (2026-07-10 签核扩围)",
         "semantic_highstale_full_lg": "[类别6-扩围②] semantic_highstale_full 的 _lg co-primary 对偶 (2026-07-10 签核扩围)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -12272,7 +12272,7 @@
         "semantic_staleness_full": "[类别6] staleness canonical (+嵌入族 _lg 对偶; surface=carve-out 无 _lg)",
         "semantic_staleness_full_lg": "[类别6] staleness canonical (+嵌入族 _lg 对偶; surface=carve-out 无 _lg)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "相似度/比率 [0,1]",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -12403,7 +12403,7 @@
       "core_rationale_by_col": {
         "strat_diff_n5": "[类别1] paper_spec treatment 主列 (paper=strategic_diff; 正文级主处理变量)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -12651,7 +12651,7 @@
         "strat_diff_n5_emb": "[类别6-扩围①] strat_diff 嵌入方法臂 canonical (N=5, 与主方法 co-equal 互稳) (2026-07-10 签核扩围)",
         "strat_diff_n5_emb_lg": "[类别6-扩围①] strat_diff 嵌入方法臂的 _lg co-primary 对偶 (2026-07-10 签核扩围)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -12672,7 +12672,7 @@
       "core_rationale_by_col": {
         "strat_diff_n5_lda": "[类别6-扩围①] strat_diff LDA 方法臂 canonical (N=5, 与主方法 co-equal 互稳) (2026-07-10 签核扩围)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -12809,7 +12809,7 @@
       "core_rationale_by_col": {
         "sub_frac": "[类别1] paper_spec treatment 主列 (paper=bank_fintech_substance; 正文级主处理变量)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "比率/占比 (proportion, [0,1] 或百分比; 待写手按 frontmatter 校准)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -13473,7 +13473,7 @@
       "core_rationale_by_col": {
         "surface_highstale_full": "[类别6-扩围①] 表层高陈旧二元 headline (MinHash carve-out 无 _lg) (2026-07-10 签核扩围)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -13494,7 +13494,7 @@
       "core_rationale_by_col": {
         "surface_staleness_full": "[类别6] staleness canonical (+嵌入族 _lg 对偶; surface=carve-out 无 _lg)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "相似度/比率 [0,1]",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -13551,7 +13551,7 @@
       "core_rationale_by_col": {
         "tech_frac": "[类别1] paper_spec treatment 主列 (paper=bank_fintech_locus; 正文级主处理变量)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "比率/占比 (proportion, [0,1] 或百分比; 待写手按 frontmatter 校准)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -15283,7 +15283,7 @@
       "core_rationale_by_col": {
         "yao_2021_tone_full": "[类别6] 六词典 canonical full 轨"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "语调得分 (连续, 约 [-1,1]; 聚合后 bank-year 均值)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -15716,7 +15716,7 @@
       "core_rationale_by_col": {
         "you_2018_tone_full": "[类别6] 六词典 canonical full 轨"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "语调得分 (连续, 约 [-1,1]; 聚合后 bank-year 均值)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -15756,7 +15756,7 @@
       "core_rationale_by_col": {
         "zone_leave1out_benefit_iv": "[类别3] 识别策略主 IV (paper=benefit_society, identification.iv primary/fallback 全收)"
       },
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "工具变量 (与被工具化内生变量同量纲)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",

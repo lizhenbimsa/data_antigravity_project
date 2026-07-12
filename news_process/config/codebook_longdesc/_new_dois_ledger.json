@@ -59,6 +59,21 @@
       "retraction_check": "pass",
       "verify_agent": "done (五元组 PASS: Cameron & Miller 2015 JHR 50(2) 317-372 cluster-robust inference; 经典方法学锚; 2026-07-11)",
       "entry_sha": "ba057e26a01d49316fde8de1fb8d2db5e08b42c3d21fe0fd75acf7e18cdff38e"
+    },
+    {
+      "doi": "10.1007/s11142-025-09892-6",
+      "admitted_date": "2026-07-12",
+      "admitted_by": "admit_new_dois.py",
+      "family_id": "F373",
+      "apa_line": "Cao, Y., Chen, L., Tucker, J. W., & Wan, C. (2025). Can generative AI help identify peer firms?. Review of Accounting Studies, 30(4), 3344-3386. https://doi.org/10.1007/s11142-025-09892-6",
+      "crossref_title": "Can generative AI help identify peer firms?",
+      "crossref_container": "Review of Accounting Studies",
+      "crossref_year": 2025,
+      "meta_source": "crossref",
+      "title_overlap": 1.0,
+      "retraction_check": "pass",
+      "verify_agent": "done (五元组 PASS: Cao, Chen, Tucker & Wan 2025 RAS 30(4) 3344-3386 can generative AI identify peer firms; claim-fit LLM 识别产品市场同行支撑 llm_peer IV; 2026-07-12)",
+      "entry_sha": "a121f8e89c0279d6adc86f7b5872c8222e8fd8f5c3a8e3cf8e67c6dd2d94de29"
     }
   ],
   "no_doi_acks": []

@@ -213,5 +213,19 @@ new_dois: []
 本列是一阶网络溢出 (W×tone) 的 ss 轨, 与 canonical 主列 peer_tone_lag1_full 构念同型 (都是直接同行舆论压力、行随机加权同行均值、严格 lag1), 差别仅在节点情感文本轨: 节点值取同行去年的 llm_vote_tone_ss, 即标题 prepend 加"银行与金科同句 ±N 窗"共现片段 (ss_sentence_radius 默认 1) 喂三家 LLM 多数投票得到的共识语调。ss 是三轨中语义最严的一轨, 要求银行与金科在同一句共现, 故本列度量的是"当节点情感只由银行金科紧邻同句语境驱动时, 同行舆论压力是否依然成立"的最严稳健性版本。ss 轨回退语义严格镜像 ctx: 无银行金科同句共现的报道, content_ss 回退全文 body、ss_is_fallback=True, 与 ctx 共享 n_articles 分母而非丢篇。ss 作 conditional-on-full 稳健性轨, 行宇宙为 full 留篇集子集 (留篇仍由 llm_verified_full 判定, 2026-06-29)。计算链路 (W 行随机标准化、obs_mask 仅对观测同行重归一、无观测同行置 NaN、严格 lag1) 与 full 一阶列一致, 网络骨架 (邻接与权重) 仍共享 full 口径, 本列只换节点情感向量为 ss 轨。本列 tier=standard, 定位是一阶主处理列的轨道稳健性并排, 而非主 treatment 声明入口。它与 full/ctx 一阶孪生及二阶各列各自 just-identified 并排、互为稳健性不分主次, 禁混进同一 over-identified Hansen J。在 T=2 dev 上, ss 一阶轨因同句共现要求更严, 常见零方差或全 NaN 退化, 属预期而非缺陷; 生产 T≥3 扩样后方提供有效横截面变异, 论文勿在当前样本据此列声称因果。
 
 <!-- rendered-citations:begin -->
-
+Aksoy-Yurdagul, D., Buchner, A., & Zareei, A. (2026). The persistence of news sentiment: Implications for return predictability. Economics Letters, 260, 112803. https://doi.org/10.1016/j.econlet.2025.112803
+Schwenkler, G., & Zheng, H. (2025). News-driven peer co-movement in crypto markets. Journal of Corporate Finance, 93, 102772. https://doi.org/10.1016/j.jcorpfin.2025.102772
+Ge, S., Li, S., & Zheng, H. (2025). Diamond cuts diamond: News co-mention momentum spillover prevails in China. Journal of Banking & Finance, 171, 107356. https://doi.org/10.1016/j.jbankfin.2024.107356
+Xu, Z., Hua, X., & Zhang, T. (2025). Does official media sentiment matter for the stock market? Evidence from China. Emerging Markets Review, 64, 101234. https://doi.org/10.1016/j.ememar.2024.101234
+Ahmad, M., Hall, S. G., Law, S. H., & Nayan, S. (2024). Spillover effects in the nexus of finance-institutions-growth: New insights from spatial Durbin analysis on emerging economies. International Journal of Finance & Economics, 30(3), 2470-2491. https://doi.org/10.1002/ijfe.3025
+Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
+Cookson, J. A., Lu, R., Mullins, W., & Niessner, M. (2024). The social signal. Journal of Financial Economics, 158, 103870. https://doi.org/10.1016/j.jfineco.2024.103870
+Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing enthusiasm: Media sentiment and the disciplining role of quarterly earnings announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
+Grieser, W., Hadlock, C., LeSage, J., & Zekhnini, M. (2022). Network effects in corporate financial policies. Journal of Financial Economics, 144(1), 247-272. https://doi.org/10.1016/j.jfineco.2021.05.060
+Shapiro, A. H., Sudhof, M., & Wilson, D. J. (2022). Measuring news sentiment. Journal of Econometrics, 228(2), 221-243. https://doi.org/10.1016/j.jeconom.2020.07.053
+Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
+Lee, C. M. C., Ma, P., & Wang, C. C. Y. (2015). Search-based peer firms: Aggregating investor perceptions through internet co-searches. Journal of Financial Economics, 116(2), 410-431. https://doi.org/10.1016/j.jfineco.2015.02.003
+Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effects through social networks. Journal of Econometrics, 150(1), 41-55. https://doi.org/10.1016/j.jeconom.2008.12.021
+Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Romano, J. P., & Wolf, M. (2005). Stepwise multiple testing as formalized data snooping. Econometrica, 73(4), 1237-1282. https://doi.org/10.1111/j.1468-0262.2005.00615.x
 <!-- rendered-citations:end -->

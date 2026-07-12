@@ -180,5 +180,18 @@ new_dois: []
 本列为 ss 轨 (同句共现轨) 的词级数字密度: 文本取材 = content_ss = 标题 prepend + 银行实体与金融科技词同句共现窗口 (银行∧金科同句 ±N 句窗, N 由 config filtering.yaml context_window.ss_sentence_radius 控制, 默认 1)。与 ctx 轨相比, ss 轨的取材更严格 — 不仅要求银行被提及, 还要求银行与金融科技词在同一句 (或近邻窗口) 内共现, 因此测量的是"在银行与金科同句谈及的语境里数字有多密"。ss 轨严格平价 ctx (plan §④/§7.3-A1 仅情感/文本测度族得 _ss), 回退语义镜像 ctx: 当某报道无银行∧金科同句共现时, content_ss 优雅回退为全文 body 且 ss_is_fallback 置 True, 与 ctx 共享 n_articles 分母口径; 当上游 FINTECH_AC 为 None 时 ss 相关列整体降级为 NaN 而非静默填零。计算公式、cn2arab 分子、jieba 词级分母、NaN 哨兵拦截、媒体权威×herd_weight_ss 加权聚合均与 full/ctx 逐字一致, 唯一差别是输入文本轨与 ss 专属 herd 权重。ss 词级列的聚合是条件性的: 仅当上游 num_intensity_word_ss 就位时才产出, 旧 parquet 无 ss 时优雅跳过 (has_word_ss 守卫)。ss 轨与 full/ctx 互为稳健性、不分主次, 各自 just-identified 并排, 严禁三轨列混进同一条 over-identified Hansen J。留篇口径遵循 full-only: 本列为 conditional-on-full 测度轨, 行宇宙 = full 留篇集, per-track 分子分母按 ss 轨自身文本重算。因同句共现窗口最窄, ss 轨词级分母通常最小, 在开发期 T=2 小样本或回退篇占比高时该列方差可能退化 (甚至逼近全 NaN/零方差), 属预期退化, 生产期 T=18 全量语料下恢复正常。
 
 <!-- rendered-citations:begin -->
-
+Taraj, I., & Wahlström, R. R. (2026). Narratives contextualizing numeric disclosures: Insights from earnings calls. Journal of Business Finance & Accounting, 53(3), 1263-1286. https://doi.org/10.1111/jbfa.70056
+Levy, B. (2026). Caution ahead: Numerical reasoning and look-ahead bias in AI models. Journal of Accounting Research, 64(3), 1139-1188. https://doi.org/10.1111/1475-679X.70058
+Campbell, J. L., Zheng, X., & Zhou, D. (2025). Number of numbers: Does a greater proportion of quantitative textual disclosure reduce information risk?. Journal of Corporate Finance, 94, 102813. https://doi.org/10.1016/j.jcorpfin.2025.102813
+Cai, W., Shi, W., & Jiang, F. (2025). Cheap talk? Strategy disclosure intensity, corporate risk-taking and financial performance. British Journal of Management, 36(1), 361-382. https://doi.org/10.1111/1467-8551.12853
+Siano, F. (2025). The news in earnings announcement disclosures: Capturing word context using LLM methods. Management Science, 71(11), 9831-9855. https://doi.org/10.1287/mnsc.2024.05417
+Lesmy, D., Muchnik, L., & Mugerman, Y. (2025). Lost in the fog: Growing complexity in financial reporting — A comparative study. Humanities and Social Sciences Communications, 12, 848. https://doi.org/10.1057/s41599-025-06094-y
+Rosillo-Rodes, P., San Miguel, M., & Sánchez, D. (2025). Entropy and type-token ratio in gigaword corpora. Physical Review Research, 7(3), 13868. https://doi.org/10.1103/rxxz-lk3n
+Hartley, E. (2025). Narratives to numbers: Large language models and economic policy uncertainty. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2511.17866
+Isler, C. (2025). Words matter: Forecasting economic downside risks with corporate textual data. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2511.04935
+García, D., Hu, X., & Rohrer, M. (2023). The colour of finance words. Journal of Financial Economics, 147(3), 525-549. https://doi.org/10.1016/j.jfineco.2022.11.006
+Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis. Journal of Financial Economics, 110(3), 712-729. https://doi.org/10.1016/j.jfineco.2013.08.018
+Tausczik, Y. R., & Pennebaker, J. W. (2010). The psychological meaning of words: LIWC and computerized text analysis methods. Journal of Language and Social Psychology, 29(1), 24-54. https://doi.org/10.1177/0261927X09351676
+Tetlock, P. C., Saar-Tsechansky, M., & Macskassy, S. (2008). More than words: Quantifying language to measure firms' fundamentals. The Journal of Finance, 63(3), 1437-1467. https://doi.org/10.1111/j.1540-6261.2008.01362.x
+Sproat, R., & Emerson, T. (2003). The first international Chinese word segmentation bakeoff. Proceedings of the Second SIGHAN Workshop on Chinese Language Processing, 133-143. https://doi.org/10.3115/1119250.1119269
 <!-- rendered-citations:end -->

@@ -6,7 +6,7 @@ columns:
 - net_giant_share_yr_win1
 unit: 比率/占比 (proportion, 无量纲, 取值域 [0,1]; 巨片节点数占年度网络节点总数之比)
 formula: "net_giant_share_yr = |V(LCC_t)| / |V_t|; LCC_t = 年度银行共现网络 G_t 的最大连通分量, V_t = 年度出现的银行节点全集; 判据变体 {同篇(无后缀)/±1句窗(_win1)/严格同句(_sent)} 决定 G_t 的建边口径"
-producer: news_process/pipeline/panel/network_spillover.py::compute_network_level_metrics (经 compute_bank_network_centrality 分判据物化); news_process/pipeline/panel/export.py (Stata 标签)
+producer: news_process/pipeline/panel/network_spillover.py::_net_level_extra_metrics (私有助手, 第 911-912 行 len(lcc_nodes)/n_nodes; 经公开入口 compute_bank_network_centrality 分判据物化); news_process/pipeline/panel/export.py (Stata 标签)
 upstream:
 - 13_cooccurrence_filter.parquet (banks∧banks 共现文章集, 建边原料)
 - 14_materialize_ctx.parquet (content_full, prepend_title 后的判据扫描文本)
@@ -169,5 +169,17 @@ new_dois: []
 本列 tier=standard, 是巨片占比的 ±1 句窗 (_win1) 判据变体, 邻近尺度居于 canonical (同篇) 与 _sent (严格同句) 之间: 当两家银行落在彼此 ±1 句的窗口内 (即同句或相邻一句) 被共同提及时连边, 比严格同句宽松 (允许跨相邻句的并置), 又比全篇同框苛刻 (排除长报道里相隔多句的银行对)。其余计算流程 (networkx 建年度无向图、取最大连通分量、巨片占比 = LCC 节点数 / 该年银行节点总数、NaN 守卫、逐年广播因而在含年 FE 回归中被吸收) 与 canonical 逐字节一致, 判据切换经 compute_bank_network_centrality 的 criterion='win1' 物化, win_radius 取 config/panel.yaml::network_criteria.win_radius (默认 1) — 须再次强调该键与 filtering.yaml::cooccurrence_filter.sentence_radius (stage 13 银行∧金科口径) 是不同键, 互不联动, 改一个不牵动另一个。作为中间尺度, 本列的巨片占比通常介于同篇与严格同句两个端点之间, 其价值在于提供一条"局部邻近但不必严格同句"的连通度读数, 检验主结论是否对邻近窗口的具体取值稳健 — 若同篇、±1 句窗、严格同句三个读数下结论一致, 则可判定结果不由"共现定义得多宽"这一研究者选择驱动。判据后缀 _win1 属网络构造判据敏感性空间, 与 full/ctx/ss 三轨文本后缀是正交的两套概念, 禁止混为一谈。铁律: 本列与 canonical 及 _sent 各自 just-identified 并排、互为稳健性不分主次, 严禁三判据混进同一 over-identified Hansen J。同 canonical 与 _sent, 本列在含年固定效应设定中与年份哑变量共线被吸收, 正确用法为不含年 FE 的跨年描述或宏观连通度协变量, 不得充作银行层面处理项。
 
 <!-- rendered-citations:begin -->
-
+Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
+Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
+Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223
+Gao, H., Ru, H., & Yang, X. (2022). The informational role of ownership networks in bank lending. Journal of Financial and Quantitative Analysis, 57(8), 2993-3017. https://doi.org/10.1017/S0022109021000788
+Grieser, W., Hadlock, C., LeSage, J., & Zekhnini, M. (2022). Network effects in corporate financial policies. Journal of Financial Economics, 144(1), 247-272. https://doi.org/10.1016/j.jfineco.2021.05.060
+Jackson, M. O., & Pernoud, A. (2021). Systemic risk in financial networks: A survey. Annual Review of Economics, 13, 171-202. https://doi.org/10.1146/annurev-economics-083120-111540
+Duarte, F., & Eisenbach, T. M. (2021). Fire-sale spillovers and systemic risk. The Journal of Finance, 76(3), 1251-1294. https://doi.org/10.1111/jofi.13010
+Wang, Y., Zhang, Q., & Yang, X. (2020). Evolution of the Chinese guarantee network under financial crisis and stimulus program. Nature Communications, 11, 2693. https://doi.org/10.1038/s41467-020-16535-8
+Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effects through social networks. Journal of Econometrics, 150(1), 41-55. https://doi.org/10.1016/j.jeconom.2008.12.021
+Bramoullé, Y., Djebbari, H., & Fortin, B. (2020). Peer effects in networks: A survey. Annual Review of Economics, 12, 603-629. https://doi.org/10.1146/annurev-economics-020320-033926
+Clauset, A., Newman, M. E. J., & Moore, C. (2004). Finding community structure in very large networks. Physical Review E, 70(6), 27721. https://doi.org/10.1103/PhysRevE.70.066111
+Watts, D. J., & Strogatz, S. H. (1998). Collective dynamics of small-world networks. Nature, 393(6684), 440-442. https://doi.org/10.1038/30918
+Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
 <!-- rendered-citations:end -->

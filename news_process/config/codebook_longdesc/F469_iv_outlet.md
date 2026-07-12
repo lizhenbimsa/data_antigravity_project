@@ -12,7 +12,6 @@ formula: "IV_{i,t} = Σ_o share_{i,o,T0} × style_{o,t}^{LOO(排除银行 i 的�
 producer: news_process/pipeline/panel/iv_extensions.py::compute_outlet_composition_iv (编排 compute_iv_extensions, runner 步骤 8z); 标签见 news_process/pipeline/panel/export.py
 upstream:
 - 21_tone_llms.parquet (llm_vote_score_full/_ctx/_ss — disp style 原料)
-- 16_article_policy_alignment.parquet
 - 40_article_bank_level (df_exploded; clarity_clarity_score_full/_ctx/_ss — clarity style 原料)
 citations:
 - doi: 10.1080/07350015.2026.2618311

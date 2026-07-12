@@ -190,5 +190,18 @@ new_dois: []
 本列是「正负一句窗」判据变体 (_win1 后缀), 松紧介于 canonical 与 _sent 之间。它区别于 canonical 的唯一维度是边的构造判据: 两家目标银行须出现在相距不超过 win_radius 句的窗口内 (win_radius 取 config/panel.yaml::network_criteria.win_radius, 默认 1, 即正负一句窗) 才计一条共现边。落地同样走判据分轨的 docid 组内句级重扫路径, 与 _sent 共享 map_bank_sentence_positions 与 bank_pairs_within_sentence_window 原语, 差别仅在传入的 radius: _sent 是 radius=0 (严格同句), _win1 是 radius=win_radius (默认 1)。因此边集稠密度与传递性数值一般落在 canonical (最宽、最高) 与 _sent (最紧、最低) 之间, 构成一条由松到紧的单调判据梯子中的中间档。须再次强调 win_radius 取自 panel.yaml::network_criteria.win_radius, 与 filtering.yaml::cooccurrence_filter.sentence_radius (stage 13 银行∧金科过滤用的句半径) 是两个不同的 config 键, 互不联动, 改一个不会牵动另一个。本列同样复用与主线一致的否定 AC 与短名排除事实源, 保证实体识别口径统一。作为句窗判据, _win1 比 canonical 更能排除「同篇但相隔甚远」的伪共现, 又比 _sent 保留了跨句但邻近的语境共现, 提供了对判据松紧的中间敏感性检验。本列与 canonical、_sent 各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J; 判据后缀与三轨文本后缀 (_full/_ctx/_ss) 属正交概念空间, 不可交叉。它是年度网络级标量, 广播到该年全部银行, 在含年度固定效应的设定下被吸收, 只应作为不含年 FE 的结构控制或与银行层变量的交乘项进入回归。
 
 <!-- rendered-citations:begin -->
-
+Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
+Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
+Boucher, V., Rendall, M., Ushchev, P., & Zenou, Y. (2024). Toward a general theory of peer effects. Econometrica, 92(2), 543-565. https://doi.org/10.3982/ECTA21048
+Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223
+Grieser, W., Hadlock, C., LeSage, J., & Zekhnini, M. (2022). Network effects in corporate financial policies. Journal of Financial Economics, 144(1), 247-272. https://doi.org/10.1016/j.jfineco.2021.05.060
+Jackson, M. O., & Pernoud, A. (2021). Systemic risk in financial networks: A survey. Annual Review of Economics, 13, 171-202. https://doi.org/10.1146/annurev-economics-083120-111540
+Duarte, F., & Eisenbach, T. M. (2021). Fire-sale spillovers and systemic risk. The Journal of Finance, 76(3), 1251-1294. https://doi.org/10.1111/jofi.13010
+Bramoullé, Y., Djebbari, H., & Fortin, B. (2020). Peer effects in networks: A survey. Annual Review of Economics, 12, 603-629. https://doi.org/10.1146/annurev-economics-020320-033926
+Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate financial policy?. The Journal of Finance, 69(1), 139-178. https://doi.org/10.1111/jofi.12094
+Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effects through social networks. Journal of Econometrics, 150(1), 41-55. https://doi.org/10.1016/j.jeconom.2008.12.021
+Clauset, A., Newman, M. E. J., & Moore, C. (2004). Finding community structure in very large networks. Physical Review E, 70(6), 27721. https://doi.org/10.1103/PhysRevE.70.066111
+Newman, M. E. J., & Girvan, M. (2004). Finding and evaluating community structure in networks. Physical Review E, 69(2), 11339. https://doi.org/10.1103/PhysRevE.69.026113
+Watts, D. J., & Strogatz, S. H. (1998). Collective dynamics of 'small-world' networks. Nature, 393(6684), 440-442. https://doi.org/10.1038/30918
+Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
 <!-- rendered-citations:end -->

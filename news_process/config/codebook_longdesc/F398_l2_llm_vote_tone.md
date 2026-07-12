@@ -65,7 +65,7 @@ columns:
 - llm_vote_tone_vw_ss_z
 unit: 语调得分 (无量纲, 文章级投票分 ∈ {-1,0,+1} 的 bank-year 加权/等权均值, 值域约 [-1,1]; _std 后缀为组内标准差, _z 后缀为横截面标准化 z 值, 均无量纲)
 formula: "llm_vote_tone{track} = mean_i(llm_vote_score{track}_i); 其中 llm_vote_score ∈ {-1,0,+1} 为三家 LLM (gpt54nano/gemini31/deepseekv4) 对该文章语调的多数投票共识; 加权变体 = sum_i(w_i * score_i) / sum_i(w_i), w ∈ {value/salience(vw), media-authority(mw), herd-decay(hw)}; track ∈ {_full,_ctx,_ss}"
-producer: news_process/pipeline/panel/encode.py::aggregate_panel (build_aggregation_dict / compute_weighted_llm_tone / 分类对角线聚合); 质量审核 news_process/pipeline/audit/stata_audit.py::audit_variable_quality
+producer: news_process/pipeline/panel/encode.py::aggregate_panel (build_aggregation_dict 组装权重和 / _llm_denom 助手内联计算加权语调 / _aggregate_ctx_diagonal 对角线聚合); 质量审核 news_process/pipeline/audit/stata_audit.py::audit_variable_quality
 upstream:
 - 21_tone_llms.parquet (llm_vote_score_full/_ctx/_ss 文章级投票分, 三家 LLM 多数投票)
 - 24_herd_decay_processor.parquet (herd_weight_full/_ctx/_ss 及阈值敏感性权重, 供 hw 变体)
