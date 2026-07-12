@@ -5,7 +5,7 @@
   "cjk_p10": 228,
   "cjk_min": 216,
   "cjk_max": 8748,
-  "n_within_10pct_of_floor": 2513,
+  "n_within_10pct_of_floor": 2337,
   "floor_note": "地板 +10% 内聚集触发抽查复审 (§6 写手铁律: 下限是地板非目标)"
  },
  "per_col": {
@@ -832,9 +832,9 @@
    "tier": "standard"
   },
   "avg_cpw_full": {
-   "cjk": 232,
-   "chars": 700,
-   "utf8_bytes": 1226,
+   "cjk": 1833,
+   "chars": 5641,
+   "utf8_bytes": 9483,
    "tier": "standard"
   },
   "avg_rare_word_full": {
@@ -856,9 +856,9 @@
    "tier": "standard"
   },
   "avg_hard_char_full": {
-   "cjk": 230,
-   "chars": 752,
-   "utf8_bytes": 1274,
+   "cjk": 1692,
+   "chars": 4191,
+   "utf8_bytes": 7711,
    "tier": "standard"
   },
   "avg_nominalization_full": {
@@ -868,9 +868,9 @@
    "tier": "standard"
   },
   "avg_function_word_full": {
-   "cjk": 230,
-   "chars": 756,
-   "utf8_bytes": 1278,
+   "cjk": 1682,
+   "chars": 4918,
+   "utf8_bytes": 8462,
    "tier": "standard"
   },
   "avg_specificity_full": {
@@ -916,9 +916,9 @@
    "tier": "standard"
   },
   "avg_adversative_full": {
-   "cjk": 230,
-   "chars": 762,
-   "utf8_bytes": 1284,
+   "cjk": 1778,
+   "chars": 5546,
+   "utf8_bytes": 9306,
    "tier": "standard"
   },
   "avg_word_count_full": {
@@ -928,9 +928,9 @@
    "tier": "standard"
   },
   "avg_han_count_full": {
-   "cjk": 220,
-   "chars": 740,
-   "utf8_bytes": 1242,
+   "cjk": 1955,
+   "chars": 5519,
+   "utf8_bytes": 9603,
    "tier": "standard"
   },
   "avg_pos_ratio_full": {
@@ -1792,9 +1792,9 @@
    "tier": "standard"
   },
   "avg_cpw_ctx": {
-   "cjk": 232,
-   "chars": 699,
-   "utf8_bytes": 1225,
+   "cjk": 1951,
+   "chars": 5908,
+   "utf8_bytes": 9986,
    "tier": "standard"
   },
   "avg_rare_word_ctx": {
@@ -1816,9 +1816,9 @@
    "tier": "standard"
   },
   "avg_hard_char_ctx": {
-   "cjk": 230,
-   "chars": 751,
-   "utf8_bytes": 1273,
+   "cjk": 1692,
+   "chars": 4193,
+   "utf8_bytes": 7707,
    "tier": "standard"
   },
   "avg_nominalization_ctx": {
@@ -1828,9 +1828,9 @@
    "tier": "standard"
   },
   "avg_function_word_ctx": {
-   "cjk": 230,
-   "chars": 755,
-   "utf8_bytes": 1277,
+   "cjk": 1632,
+   "chars": 4834,
+   "utf8_bytes": 8272,
    "tier": "standard"
   },
   "avg_specificity_ctx": {
@@ -1876,9 +1876,9 @@
    "tier": "standard"
   },
   "avg_adversative_ctx": {
-   "cjk": 230,
-   "chars": 761,
-   "utf8_bytes": 1283,
+   "cjk": 1777,
+   "chars": 5470,
+   "utf8_bytes": 9228,
    "tier": "standard"
   },
   "avg_word_count_ctx": {
@@ -1888,9 +1888,9 @@
    "tier": "standard"
   },
   "avg_han_count_ctx": {
-   "cjk": 220,
-   "chars": 738,
-   "utf8_bytes": 1240,
+   "cjk": 1939,
+   "chars": 5410,
+   "utf8_bytes": 9452,
    "tier": "standard"
   },
   "avg_pos_ratio_ctx": {
@@ -2752,9 +2752,9 @@
    "tier": "standard"
   },
   "avg_cpw_ss": {
-   "cjk": 232,
-   "chars": 698,
-   "utf8_bytes": 1224,
+   "cjk": 1746,
+   "chars": 5663,
+   "utf8_bytes": 9318,
    "tier": "standard"
   },
   "avg_rare_word_ss": {
@@ -2776,9 +2776,9 @@
    "tier": "standard"
   },
   "avg_hard_char_ss": {
-   "cjk": 230,
-   "chars": 750,
-   "utf8_bytes": 1272,
+   "cjk": 1666,
+   "chars": 4253,
+   "utf8_bytes": 7725,
    "tier": "standard"
   },
   "avg_nominalization_ss": {
@@ -2788,9 +2788,9 @@
    "tier": "standard"
   },
   "avg_function_word_ss": {
-   "cjk": 230,
-   "chars": 754,
-   "utf8_bytes": 1276,
+   "cjk": 1591,
+   "chars": 4822,
+   "utf8_bytes": 8173,
    "tier": "standard"
   },
   "avg_specificity_ss": {
@@ -2836,9 +2836,9 @@
    "tier": "standard"
   },
   "avg_adversative_ss": {
-   "cjk": 230,
-   "chars": 760,
-   "utf8_bytes": 1282,
+   "cjk": 1811,
+   "chars": 5514,
+   "utf8_bytes": 9349,
    "tier": "standard"
   },
   "avg_word_count_ss": {
@@ -2848,9 +2848,9 @@
    "tier": "standard"
   },
   "avg_han_count_ss": {
-   "cjk": 220,
-   "chars": 737,
-   "utf8_bytes": 1239,
+   "cjk": 1965,
+   "chars": 5548,
+   "utf8_bytes": 9647,
    "tier": "standard"
   },
   "avg_pos_ratio_ss": {
@@ -2902,93 +2902,93 @@
    "tier": "standard"
   },
   "avg_llm_conf_full": {
-   "cjk": 230,
-   "chars": 703,
-   "utf8_bytes": 1225,
+   "cjk": 2251,
+   "chars": 7078,
+   "utf8_bytes": 11736,
    "tier": "standard"
   },
   "avg_llm_conf_std_full": {
-   "cjk": 230,
-   "chars": 706,
-   "utf8_bytes": 1228,
+   "cjk": 2238,
+   "chars": 6889,
+   "utf8_bytes": 11511,
    "tier": "standard"
   },
   "avg_gpt54nano_conf_full": {
-   "cjk": 230,
-   "chars": 682,
-   "utf8_bytes": 1204,
+   "cjk": 2208,
+   "chars": 6873,
+   "utf8_bytes": 11462,
    "tier": "standard"
   },
   "avg_gemini31_conf_full": {
-   "cjk": 230,
-   "chars": 681,
-   "utf8_bytes": 1203,
+   "cjk": 2253,
+   "chars": 5717,
+   "utf8_bytes": 10419,
    "tier": "standard"
   },
   "avg_deepseekv4_conf_full": {
-   "cjk": 232,
-   "chars": 677,
-   "utf8_bytes": 1203,
+   "cjk": 1778,
+   "chars": 5133,
+   "utf8_bytes": 8832,
    "tier": "standard"
   },
   "avg_llm_conf_ctx": {
-   "cjk": 230,
-   "chars": 702,
-   "utf8_bytes": 1224,
+   "cjk": 2242,
+   "chars": 6964,
+   "utf8_bytes": 11598,
    "tier": "standard"
   },
   "avg_llm_conf_std_ctx": {
-   "cjk": 230,
-   "chars": 705,
-   "utf8_bytes": 1227,
+   "cjk": 2274,
+   "chars": 7001,
+   "utf8_bytes": 11697,
    "tier": "standard"
   },
   "avg_gpt54nano_conf_ctx": {
-   "cjk": 230,
-   "chars": 681,
-   "utf8_bytes": 1203,
+   "cjk": 2205,
+   "chars": 6752,
+   "utf8_bytes": 11331,
    "tier": "standard"
   },
   "avg_gemini31_conf_ctx": {
-   "cjk": 230,
-   "chars": 680,
-   "utf8_bytes": 1202,
+   "cjk": 2197,
+   "chars": 5578,
+   "utf8_bytes": 10170,
    "tier": "standard"
   },
   "avg_deepseekv4_conf_ctx": {
-   "cjk": 232,
-   "chars": 676,
-   "utf8_bytes": 1202,
+   "cjk": 1735,
+   "chars": 5044,
+   "utf8_bytes": 8663,
    "tier": "standard"
   },
   "avg_llm_conf_ss": {
-   "cjk": 230,
-   "chars": 701,
-   "utf8_bytes": 1223,
+   "cjk": 2221,
+   "chars": 7017,
+   "utf8_bytes": 11615,
    "tier": "standard"
   },
   "avg_llm_conf_std_ss": {
-   "cjk": 230,
-   "chars": 704,
-   "utf8_bytes": 1226,
+   "cjk": 2215,
+   "chars": 7025,
+   "utf8_bytes": 11607,
    "tier": "standard"
   },
   "avg_gpt54nano_conf_ss": {
-   "cjk": 230,
-   "chars": 680,
-   "utf8_bytes": 1202,
+   "cjk": 2188,
+   "chars": 6865,
+   "utf8_bytes": 11412,
    "tier": "standard"
   },
   "avg_gemini31_conf_ss": {
-   "cjk": 230,
-   "chars": 679,
-   "utf8_bytes": 1201,
+   "cjk": 2198,
+   "chars": 5645,
+   "utf8_bytes": 10244,
    "tier": "standard"
   },
   "avg_deepseekv4_conf_ss": {
-   "cjk": 232,
-   "chars": 675,
-   "utf8_bytes": 1201,
+   "cjk": 1736,
+   "chars": 5069,
+   "utf8_bytes": 8688,
    "tier": "standard"
   },
   "n_articles": {
@@ -3028,15 +3028,15 @@
    "tier": "standard"
   },
   "avg_bank_count": {
-   "cjk": 222,
-   "chars": 685,
-   "utf8_bytes": 1191,
+   "cjk": 1631,
+   "chars": 4234,
+   "utf8_bytes": 7635,
    "tier": "standard"
   },
   "max_bank_count": {
-   "cjk": 222,
-   "chars": 686,
-   "utf8_bytes": 1192,
+   "cjk": 1632,
+   "chars": 4235,
+   "utf8_bytes": 7632,
    "tier": "standard"
   },
   "avg_agreement_rate_full": {
@@ -3046,9 +3046,9 @@
    "tier": "core"
   },
   "avg_agreement_rate_s_full": {
-   "cjk": 230,
-   "chars": 787,
-   "utf8_bytes": 1309,
+   "cjk": 1963,
+   "chars": 5921,
+   "utf8_bytes": 10008,
    "tier": "standard"
   },
   "avg_agreement_rate_ctx": {
@@ -3058,9 +3058,9 @@
    "tier": "standard"
   },
   "avg_agreement_rate_s_ctx": {
-   "cjk": 230,
-   "chars": 786,
-   "utf8_bytes": 1308,
+   "cjk": 1935,
+   "chars": 5897,
+   "utf8_bytes": 9932,
    "tier": "standard"
   },
   "avg_agreement_rate_ss": {
@@ -3070,9 +3070,9 @@
    "tier": "standard"
   },
   "avg_agreement_rate_s_ss": {
-   "cjk": 230,
-   "chars": 785,
-   "utf8_bytes": 1307,
+   "cjk": 1935,
+   "chars": 5968,
+   "utf8_bytes": 9994,
    "tier": "standard"
   },
   "frac_ctx_fallback": {
@@ -3094,15 +3094,15 @@
    "tier": "standard"
   },
   "sum_doc_length": {
-   "cjk": 232,
-   "chars": 723,
-   "utf8_bytes": 1249,
+   "cjk": 1495,
+   "chars": 4819,
+   "utf8_bytes": 7963,
    "tier": "standard"
   },
   "avg_doc_length": {
-   "cjk": 232,
-   "chars": 724,
-   "utf8_bytes": 1250,
+   "cjk": 1467,
+   "chars": 4826,
+   "utf8_bytes": 7919,
    "tier": "standard"
   },
   "sum_target_mentions": {
@@ -6016,15 +6016,15 @@
    "tier": "standard"
   },
   "avg_ft_word_ratio": {
-   "cjk": 232,
-   "chars": 726,
-   "utf8_bytes": 1252,
+   "cjk": 1636,
+   "chars": 4602,
+   "utf8_bytes": 8005,
    "tier": "standard"
   },
   "avg_ft_word_ratio_std": {
-   "cjk": 232,
-   "chars": 729,
-   "utf8_bytes": 1255,
+   "cjk": 1697,
+   "chars": 4646,
+   "utf8_bytes": 8177,
    "tier": "standard"
   },
   "avg_ft_intensity": {
@@ -6124,15 +6124,15 @@
    "tier": "standard"
   },
   "avg_llm_prob_score_full": {
-   "cjk": 230,
-   "chars": 717,
-   "utf8_bytes": 1239,
+   "cjk": 1695,
+   "chars": 6717,
+   "utf8_bytes": 10244,
    "tier": "standard"
   },
   "avg_llm_prob_score_std_full": {
-   "cjk": 230,
-   "chars": 719,
-   "utf8_bytes": 1241,
+   "cjk": 1697,
+   "chars": 6658,
+   "utf8_bytes": 10193,
    "tier": "standard"
   },
   "llm_prob_score_sum_full": {
@@ -6160,15 +6160,15 @@
    "tier": "standard"
   },
   "avg_llm_prob_score_ctx": {
-   "cjk": 230,
-   "chars": 716,
-   "utf8_bytes": 1238,
+   "cjk": 1692,
+   "chars": 6707,
+   "utf8_bytes": 10231,
    "tier": "standard"
   },
   "avg_llm_prob_score_std_ctx": {
-   "cjk": 230,
-   "chars": 718,
-   "utf8_bytes": 1240,
+   "cjk": 1693,
+   "chars": 6648,
+   "utf8_bytes": 10173,
    "tier": "standard"
   },
   "llm_prob_score_sum_ctx": {
@@ -6196,15 +6196,15 @@
    "tier": "standard"
   },
   "avg_llm_prob_score_ss": {
-   "cjk": 230,
-   "chars": 714,
-   "utf8_bytes": 1236,
+   "cjk": 1701,
+   "chars": 6756,
+   "utf8_bytes": 10300,
    "tier": "standard"
   },
   "avg_llm_prob_score_std_ss": {
-   "cjk": 230,
-   "chars": 717,
-   "utf8_bytes": 1239,
+   "cjk": 1674,
+   "chars": 6692,
+   "utf8_bytes": 10181,
    "tier": "standard"
   },
   "llm_prob_score_sum_ss": {
@@ -6514,27 +6514,27 @@
    "tier": "standard"
   },
   "avg_locus_prob_score_full": {
-   "cjk": 230,
-   "chars": 764,
-   "utf8_bytes": 1288,
+   "cjk": 1662,
+   "chars": 5517,
+   "utf8_bytes": 9031,
    "tier": "standard"
   },
   "avg_locus_prob_score_std_full": {
-   "cjk": 230,
-   "chars": 741,
-   "utf8_bytes": 1263,
+   "cjk": 1697,
+   "chars": 5491,
+   "utf8_bytes": 9067,
    "tier": "standard"
   },
   "avg_collab_prob_score_full": {
-   "cjk": 230,
-   "chars": 765,
-   "utf8_bytes": 1289,
+   "cjk": 2171,
+   "chars": 6599,
+   "utf8_bytes": 11119,
    "tier": "standard"
   },
   "avg_collab_prob_score_std_full": {
-   "cjk": 230,
-   "chars": 742,
-   "utf8_bytes": 1264,
+   "cjk": 2158,
+   "chars": 6479,
+   "utf8_bytes": 10977,
    "tier": "standard"
   },
   "avg_subst_prob_score_ctx": {
@@ -6550,27 +6550,27 @@
    "tier": "standard"
   },
   "avg_locus_prob_score_ctx": {
-   "cjk": 230,
-   "chars": 763,
-   "utf8_bytes": 1287,
+   "cjk": 1692,
+   "chars": 5565,
+   "utf8_bytes": 9125,
    "tier": "standard"
   },
   "avg_locus_prob_score_std_ctx": {
-   "cjk": 230,
-   "chars": 740,
-   "utf8_bytes": 1262,
+   "cjk": 1613,
+   "chars": 5476,
+   "utf8_bytes": 8886,
    "tier": "standard"
   },
   "avg_collab_prob_score_ctx": {
-   "cjk": 230,
-   "chars": 764,
-   "utf8_bytes": 1288,
+   "cjk": 2196,
+   "chars": 6541,
+   "utf8_bytes": 11107,
    "tier": "standard"
   },
   "avg_collab_prob_score_std_ctx": {
-   "cjk": 230,
-   "chars": 741,
-   "utf8_bytes": 1263,
+   "cjk": 2142,
+   "chars": 6495,
+   "utf8_bytes": 10953,
    "tier": "standard"
   },
   "avg_subst_prob_score_ss": {
@@ -6586,27 +6586,27 @@
    "tier": "standard"
   },
   "avg_locus_prob_score_ss": {
-   "cjk": 230,
-   "chars": 762,
-   "utf8_bytes": 1286,
+   "cjk": 1644,
+   "chars": 5519,
+   "utf8_bytes": 8990,
    "tier": "standard"
   },
   "avg_locus_prob_score_std_ss": {
-   "cjk": 230,
-   "chars": 739,
-   "utf8_bytes": 1261,
+   "cjk": 1636,
+   "chars": 5455,
+   "utf8_bytes": 8915,
    "tier": "standard"
   },
   "avg_collab_prob_score_ss": {
-   "cjk": 230,
-   "chars": 763,
-   "utf8_bytes": 1287,
+   "cjk": 2159,
+   "chars": 6556,
+   "utf8_bytes": 11057,
    "tier": "standard"
   },
   "avg_collab_prob_score_std_ss": {
-   "cjk": 230,
-   "chars": 740,
-   "utf8_bytes": 1262,
+   "cjk": 2144,
+   "chars": 6611,
+   "utf8_bytes": 11073,
    "tier": "standard"
   },
   "finbert_cn_tone_entropy_full": {
@@ -6988,15 +6988,15 @@
    "tier": "standard"
   },
   "coverage_active_days": {
-   "cjk": 230,
-   "chars": 744,
-   "utf8_bytes": 1266,
+   "cjk": 1699,
+   "chars": 5174,
+   "utf8_bytes": 8733,
    "tier": "standard"
   },
   "coverage_continuity": {
-   "cjk": 230,
-   "chars": 743,
-   "utf8_bytes": 1265,
+   "cjk": 1710,
+   "chars": 5204,
+   "utf8_bytes": 8786,
    "tier": "standard"
   },
   "n_articles_tech": {
@@ -7174,9 +7174,9 @@
    "tier": "standard"
   },
   "llm_prob_score_tech_full": {
-   "cjk": 230,
-   "chars": 716,
-   "utf8_bytes": 1238,
+   "cjk": 1659,
+   "chars": 6743,
+   "utf8_bytes": 10202,
    "tier": "standard"
   },
   "gpt54nano_tone_tech_ctx": {
@@ -7348,9 +7348,9 @@
    "tier": "standard"
   },
   "llm_prob_score_tech_ctx": {
-   "cjk": 230,
-   "chars": 715,
-   "utf8_bytes": 1237,
+   "cjk": 1666,
+   "chars": 6709,
+   "utf8_bytes": 10180,
    "tier": "standard"
   },
   "gpt54nano_tone_tech_ss": {
@@ -7522,9 +7522,9 @@
    "tier": "standard"
   },
   "llm_prob_score_tech_ss": {
-   "cjk": 230,
-   "chars": 714,
-   "utf8_bytes": 1236,
+   "cjk": 1687,
+   "chars": 6826,
+   "utf8_bytes": 10337,
    "tier": "standard"
   },
   "n_articles_app": {
@@ -7702,9 +7702,9 @@
    "tier": "standard"
   },
   "llm_prob_score_app_full": {
-   "cjk": 230,
-   "chars": 717,
-   "utf8_bytes": 1239,
+   "cjk": 1684,
+   "chars": 6753,
+   "utf8_bytes": 10262,
    "tier": "standard"
   },
   "gpt54nano_tone_app_ctx": {
@@ -7876,9 +7876,9 @@
    "tier": "standard"
   },
   "llm_prob_score_app_ctx": {
-   "cjk": 230,
-   "chars": 716,
-   "utf8_bytes": 1238,
+   "cjk": 1670,
+   "chars": 6749,
+   "utf8_bytes": 10224,
    "tier": "standard"
   },
   "gpt54nano_tone_app_ss": {
@@ -8050,9 +8050,9 @@
    "tier": "standard"
   },
   "llm_prob_score_app_ss": {
-   "cjk": 230,
-   "chars": 714,
-   "utf8_bytes": 1236,
+   "cjk": 1683,
+   "chars": 6802,
+   "utf8_bytes": 10305,
    "tier": "standard"
   },
   "tech_frac": {
@@ -8068,75 +8068,75 @@
    "tier": "core"
   },
   "avg_category_confidence_full": {
-   "cjk": 232,
-   "chars": 715,
-   "utf8_bytes": 1241,
+   "cjk": 2251,
+   "chars": 5568,
+   "utf8_bytes": 10216,
    "tier": "standard"
   },
   "avg_category_confidence_ctx": {
-   "cjk": 232,
-   "chars": 714,
-   "utf8_bytes": 1240,
+   "cjk": 2168,
+   "chars": 5465,
+   "utf8_bytes": 9936,
    "tier": "standard"
   },
   "avg_category_confidence": {
-   "cjk": 232,
-   "chars": 710,
-   "utf8_bytes": 1236,
+   "cjk": 2110,
+   "chars": 5372,
+   "utf8_bytes": 9731,
    "tier": "standard"
   },
   "avg_iss_confidence_full": {
-   "cjk": 237,
-   "chars": 664,
-   "utf8_bytes": 1200,
+   "cjk": 1365,
+   "chars": 4621,
+   "utf8_bytes": 7546,
    "tier": "standard"
   },
   "avg_iss_confidence_ctx": {
-   "cjk": 237,
-   "chars": 663,
-   "utf8_bytes": 1199,
+   "cjk": 1404,
+   "chars": 4621,
+   "utf8_bytes": 7622,
    "tier": "standard"
   },
   "avg_iss_confidence_ss": {
-   "cjk": 237,
-   "chars": 662,
-   "utf8_bytes": 1198,
+   "cjk": 1393,
+   "chars": 4674,
+   "utf8_bytes": 7645,
    "tier": "standard"
   },
   "avg_il_confidence_full": {
-   "cjk": 237,
-   "chars": 663,
-   "utf8_bytes": 1199,
+   "cjk": 1639,
+   "chars": 4941,
+   "utf8_bytes": 8435,
    "tier": "standard"
   },
   "avg_il_confidence_ctx": {
-   "cjk": 237,
-   "chars": 662,
-   "utf8_bytes": 1198,
+   "cjk": 1640,
+   "chars": 4972,
+   "utf8_bytes": 8468,
    "tier": "standard"
   },
   "avg_il_confidence_ss": {
-   "cjk": 237,
-   "chars": 661,
-   "utf8_bytes": 1197,
+   "cjk": 1686,
+   "chars": 5118,
+   "utf8_bytes": 8715,
    "tier": "standard"
   },
   "avg_icm_confidence_full": {
-   "cjk": 237,
-   "chars": 664,
-   "utf8_bytes": 1200,
+   "cjk": 1996,
+   "chars": 5143,
+   "utf8_bytes": 9395,
    "tier": "standard"
   },
   "avg_icm_confidence_ctx": {
-   "cjk": 237,
-   "chars": 663,
-   "utf8_bytes": 1199,
+   "cjk": 2032,
+   "chars": 5170,
+   "utf8_bytes": 9480,
    "tier": "standard"
   },
   "avg_icm_confidence_ss": {
-   "cjk": 237,
-   "chars": 662,
-   "utf8_bytes": 1198,
+   "cjk": 2036,
+   "chars": 5190,
+   "utf8_bytes": 9512,
    "tier": "standard"
   },
   "tone_gap_tech_app": {
@@ -8158,9 +8158,9 @@
    "tier": "standard"
   },
   "llm_prob_score_tech_lc_ctx": {
-   "cjk": 230,
-   "chars": 718,
-   "utf8_bytes": 1240,
+   "cjk": 1662,
+   "chars": 6786,
+   "utf8_bytes": 10247,
    "tier": "standard"
   },
   "n_articles_app_lc_ctx": {
@@ -8176,9 +8176,9 @@
    "tier": "standard"
   },
   "llm_prob_score_app_lc_ctx": {
-   "cjk": 230,
-   "chars": 719,
-   "utf8_bytes": 1241,
+   "cjk": 1664,
+   "chars": 6790,
+   "utf8_bytes": 10253,
    "tier": "standard"
   },
   "tech_frac_lc": {
@@ -8212,9 +8212,9 @@
    "tier": "standard"
   },
   "llm_prob_score_tech_ls_ss": {
-   "cjk": 230,
-   "chars": 717,
-   "utf8_bytes": 1239,
+   "cjk": 1684,
+   "chars": 6877,
+   "utf8_bytes": 10380,
    "tier": "standard"
   },
   "n_articles_app_ls_ss": {
@@ -8230,9 +8230,9 @@
    "tier": "standard"
   },
   "llm_prob_score_app_ls_ss": {
-   "cjk": 230,
-   "chars": 717,
-   "utf8_bytes": 1239,
+   "cjk": 1668,
+   "chars": 6845,
+   "utf8_bytes": 10318,
    "tier": "standard"
   },
   "tech_frac_ls": {
@@ -8266,9 +8266,9 @@
    "tier": "standard"
   },
   "llm_prob_score_sub_full": {
-   "cjk": 230,
-   "chars": 717,
-   "utf8_bytes": 1239,
+   "cjk": 1657,
+   "chars": 6789,
+   "utf8_bytes": 10242,
    "tier": "standard"
   },
   "gpt54nano_tone_sub_full": {
@@ -8296,9 +8296,9 @@
    "tier": "standard"
   },
   "llm_prob_score_sub_ctx": {
-   "cjk": 230,
-   "chars": 716,
-   "utf8_bytes": 1238,
+   "cjk": 1659,
+   "chars": 6763,
+   "utf8_bytes": 10216,
    "tier": "standard"
   },
   "gpt54nano_tone_sub_ctx": {
@@ -8326,9 +8326,9 @@
    "tier": "standard"
   },
   "llm_prob_score_sub_ss": {
-   "cjk": 230,
-   "chars": 714,
-   "utf8_bytes": 1236,
+   "cjk": 1663,
+   "chars": 6807,
+   "utf8_bytes": 10270,
    "tier": "standard"
   },
   "gpt54nano_tone_sub_ss": {
@@ -8362,9 +8362,9 @@
    "tier": "standard"
   },
   "llm_prob_score_symb_full": {
-   "cjk": 230,
-   "chars": 716,
-   "utf8_bytes": 1238,
+   "cjk": 1662,
+   "chars": 6750,
+   "utf8_bytes": 10209,
    "tier": "standard"
   },
   "gpt54nano_tone_symb_full": {
@@ -8392,9 +8392,9 @@
    "tier": "standard"
   },
   "llm_prob_score_symb_ctx": {
-   "cjk": 230,
-   "chars": 715,
-   "utf8_bytes": 1237,
+   "cjk": 1651,
+   "chars": 6748,
+   "utf8_bytes": 10185,
    "tier": "standard"
   },
   "gpt54nano_tone_symb_ctx": {
@@ -8422,9 +8422,9 @@
    "tier": "standard"
   },
   "llm_prob_score_symb_ss": {
-   "cjk": 230,
-   "chars": 714,
-   "utf8_bytes": 1236,
+   "cjk": 1662,
+   "chars": 6805,
+   "utf8_bytes": 10266,
    "tier": "standard"
   },
   "gpt54nano_tone_symb_ss": {
@@ -8476,9 +8476,9 @@
    "tier": "standard"
   },
   "llm_prob_score_sub_sc_ctx": {
-   "cjk": 230,
-   "chars": 719,
-   "utf8_bytes": 1241,
+   "cjk": 1647,
+   "chars": 6794,
+   "utf8_bytes": 10225,
    "tier": "standard"
   },
   "n_articles_symb_sc_ctx": {
@@ -8494,9 +8494,9 @@
    "tier": "standard"
   },
   "llm_prob_score_symb_sc_ctx": {
-   "cjk": 230,
-   "chars": 719,
-   "utf8_bytes": 1241,
+   "cjk": 1642,
+   "chars": 6789,
+   "utf8_bytes": 10210,
    "tier": "standard"
   },
   "sub_frac_sc": {
@@ -8530,9 +8530,9 @@
    "tier": "standard"
   },
   "llm_prob_score_sub_ss_ss": {
-   "cjk": 230,
-   "chars": 717,
-   "utf8_bytes": 1239,
+   "cjk": 1661,
+   "chars": 6865,
+   "utf8_bytes": 10322,
    "tier": "standard"
   },
   "n_articles_symb_ss_ss": {
@@ -8548,9 +8548,9 @@
    "tier": "standard"
   },
   "llm_prob_score_symb_ss_ss": {
-   "cjk": 230,
-   "chars": 717,
-   "utf8_bytes": 1239,
+   "cjk": 1655,
+   "chars": 6861,
+   "utf8_bytes": 10306,
    "tier": "standard"
   },
   "sub_frac_ss": {
@@ -9310,9 +9310,9 @@
    "tier": "standard"
   },
   "ln_news_coverage": {
-   "cjk": 232,
-   "chars": 724,
-   "utf8_bytes": 1250,
+   "cjk": 1648,
+   "chars": 5245,
+   "utf8_bytes": 8698,
    "tier": "standard"
   },
   "llm_vote_tone_vw_full": {
@@ -11062,9 +11062,9 @@
    "tier": "standard"
   },
   "has_coverage": {
-   "cjk": 232,
-   "chars": 718,
-   "utf8_bytes": 1244,
+   "cjk": 1652,
+   "chars": 5071,
+   "utf8_bytes": 8527,
    "tier": "standard"
   },
   "ft_attn_yr": {
@@ -11122,15 +11122,15 @@
    "tier": "core"
   },
   "attention_intensity_density_full": {
-   "cjk": 225,
-   "chars": 772,
-   "utf8_bytes": 1284,
+   "cjk": 1829,
+   "chars": 5689,
+   "utf8_bytes": 9555,
    "tier": "standard"
   },
   "attention_intensity_density_ctx": {
-   "cjk": 225,
-   "chars": 771,
-   "utf8_bytes": 1283,
+   "cjk": 2026,
+   "chars": 5772,
+   "utf8_bytes": 10031,
    "tier": "standard"
   },
   "attention_disp_full": {
@@ -11140,15 +11140,15 @@
    "tier": "core"
   },
   "attention_intensity_sd_full": {
-   "cjk": 230,
-   "chars": 776,
-   "utf8_bytes": 1298,
+   "cjk": 1567,
+   "chars": 4892,
+   "utf8_bytes": 8168,
    "tier": "standard"
   },
   "attention_intensity_sd_ctx": {
-   "cjk": 230,
-   "chars": 775,
-   "utf8_bytes": 1297,
+   "cjk": 1588,
+   "chars": 4903,
+   "utf8_bytes": 8225,
    "tier": "standard"
   },
   "attention_gap_full_ctx": {
@@ -11182,15 +11182,15 @@
    "tier": "standard"
   },
   "attention_intensity_density_ss": {
-   "cjk": 227,
-   "chars": 711,
-   "utf8_bytes": 1227,
+   "cjk": 1888,
+   "chars": 5587,
+   "utf8_bytes": 9570,
    "tier": "standard"
   },
   "attention_intensity_sd_ss": {
-   "cjk": 232,
-   "chars": 715,
-   "utf8_bytes": 1241,
+   "cjk": 1568,
+   "chars": 5045,
+   "utf8_bytes": 8327,
    "tier": "standard"
   },
   "attention_index_full_j70w5": {
@@ -14146,9 +14146,9 @@
    "tier": "standard"
   },
   "avg_article_length": {
-   "cjk": 232,
-   "chars": 703,
-   "utf8_bytes": 1229,
+   "cjk": 1744,
+   "chars": 4897,
+   "utf8_bytes": 8560,
    "tier": "standard"
   },
   "ln_word_count_full": {
@@ -14746,27 +14746,27 @@
    "tier": "standard"
   },
   "avg_llm_conf_full_z": {
-   "cjk": 230,
-   "chars": 706,
-   "utf8_bytes": 1228,
+   "cjk": 2281,
+   "chars": 7007,
+   "utf8_bytes": 11724,
    "tier": "standard"
   },
   "avg_llm_conf_ctx_z": {
-   "cjk": 230,
-   "chars": 706,
-   "utf8_bytes": 1228,
+   "cjk": 2270,
+   "chars": 7124,
+   "utf8_bytes": 11820,
    "tier": "standard"
   },
   "avg_llm_conf_ss_z": {
-   "cjk": 230,
-   "chars": 705,
-   "utf8_bytes": 1227,
+   "cjk": 2288,
+   "chars": 7073,
+   "utf8_bytes": 11807,
    "tier": "standard"
   },
   "ln_news_coverage_z": {
-   "cjk": 232,
-   "chars": 728,
-   "utf8_bytes": 1254,
+   "cjk": 1648,
+   "chars": 5145,
+   "utf8_bytes": 8591,
    "tier": "standard"
   },
   "media_breadth_z": {
@@ -14776,9 +14776,9 @@
    "tier": "standard"
   },
   "avg_article_length_z": {
-   "cjk": 232,
-   "chars": 706,
-   "utf8_bytes": 1232,
+   "cjk": 1759,
+   "chars": 4863,
+   "utf8_bytes": 8549,
    "tier": "standard"
   },
   "bank_province": {
@@ -15220,39 +15220,39 @@
    "tier": "standard"
   },
   "ai_reg_province": {
-   "cjk": 232,
-   "chars": 697,
-   "utf8_bytes": 1223,
+   "cjk": 1867,
+   "chars": 5945,
+   "utf8_bytes": 9819,
    "tier": "standard"
   },
   "ai_reg_city": {
-   "cjk": 232,
-   "chars": 694,
-   "utf8_bytes": 1220,
+   "cjk": 1861,
+   "chars": 5916,
+   "utf8_bytes": 9778,
    "tier": "standard"
   },
   "ai_reg_50km": {
-   "cjk": 232,
-   "chars": 694,
-   "utf8_bytes": 1220,
+   "cjk": 1873,
+   "chars": 5929,
+   "utf8_bytes": 9815,
    "tier": "standard"
   },
   "ai_reg_100km": {
-   "cjk": 232,
-   "chars": 695,
-   "utf8_bytes": 1221,
+   "cjk": 1819,
+   "chars": 5894,
+   "utf8_bytes": 9678,
    "tier": "standard"
   },
   "ai_reg_150km": {
-   "cjk": 232,
-   "chars": 695,
-   "utf8_bytes": 1221,
+   "cjk": 1859,
+   "chars": 5958,
+   "utf8_bytes": 9814,
    "tier": "standard"
   },
   "ai_reg_200km": {
-   "cjk": 232,
-   "chars": 695,
-   "utf8_bytes": 1221,
+   "cjk": 1831,
+   "chars": 5864,
+   "utf8_bytes": 9670,
    "tier": "standard"
   },
   "bank_type": {
@@ -15760,9 +15760,9 @@
    "tier": "standard"
   },
   "high_coverage": {
-   "cjk": 232,
-   "chars": 719,
-   "utf8_bytes": 1245,
+   "cjk": 1669,
+   "chars": 5158,
+   "utf8_bytes": 8650,
    "tier": "standard"
   },
   "tone_x_soe_full": {
@@ -17698,183 +17698,183 @@
    "tier": "standard"
   },
   "auth_sim_tfidf_c_full": {
-   "cjk": 223,
-   "chars": 705,
-   "utf8_bytes": 1213,
+   "cjk": 1680,
+   "chars": 5124,
+   "utf8_bytes": 8617,
    "tier": "standard"
   },
   "auth_sim_tfidf_w_full": {
-   "cjk": 223,
-   "chars": 705,
-   "utf8_bytes": 1213,
+   "cjk": 1903,
+   "chars": 5610,
+   "utf8_bytes": 9549,
    "tier": "standard"
   },
   "auth_sim_lda_full": {
-   "cjk": 223,
-   "chars": 701,
-   "utf8_bytes": 1209,
+   "cjk": 1596,
+   "chars": 4817,
+   "utf8_bytes": 8128,
    "tier": "standard"
   },
   "auth_sim_emb_full": {
-   "cjk": 223,
-   "chars": 707,
-   "utf8_bytes": 1215,
+   "cjk": 1406,
+   "chars": 5489,
+   "utf8_bytes": 8443,
    "tier": "standard"
   },
   "auth_sim_emb_lg_full": {
-   "cjk": 223,
-   "chars": 710,
-   "utf8_bytes": 1218,
+   "cjk": 1388,
+   "chars": 5613,
+   "utf8_bytes": 8539,
    "tier": "standard"
   },
   "auth_sim_tfidf_c_allv_full": {
-   "cjk": 223,
-   "chars": 683,
-   "utf8_bytes": 1191,
+   "cjk": 2240,
+   "chars": 5699,
+   "utf8_bytes": 10357,
    "tier": "standard"
   },
   "auth_sim_tfidf_w_allv_full": {
-   "cjk": 223,
-   "chars": 683,
-   "utf8_bytes": 1191,
+   "cjk": 1780,
+   "chars": 5098,
+   "utf8_bytes": 8801,
    "tier": "standard"
   },
   "auth_sim_lda_allv_full": {
-   "cjk": 223,
-   "chars": 679,
-   "utf8_bytes": 1187,
+   "cjk": 2051,
+   "chars": 5851,
+   "utf8_bytes": 10183,
    "tier": "standard"
   },
   "auth_sim_emb_allv_full": {
-   "cjk": 223,
-   "chars": 679,
-   "utf8_bytes": 1187,
+   "cjk": 1638,
+   "chars": 5444,
+   "utf8_bytes": 8838,
    "tier": "standard"
   },
   "auth_sim_emb_lg_allv_full": {
-   "cjk": 223,
-   "chars": 682,
-   "utf8_bytes": 1190,
+   "cjk": 1577,
+   "chars": 5507,
+   "utf8_bytes": 8783,
    "tier": "standard"
   },
   "auth_sim_tfidf_c_ctx": {
-   "cjk": 223,
-   "chars": 704,
-   "utf8_bytes": 1212,
+   "cjk": 1637,
+   "chars": 5125,
+   "utf8_bytes": 8542,
    "tier": "standard"
   },
   "auth_sim_tfidf_w_ctx": {
-   "cjk": 223,
-   "chars": 704,
-   "utf8_bytes": 1212,
+   "cjk": 1897,
+   "chars": 5596,
+   "utf8_bytes": 9521,
    "tier": "standard"
   },
   "auth_sim_lda_ctx": {
-   "cjk": 223,
-   "chars": 700,
-   "utf8_bytes": 1208,
+   "cjk": 1602,
+   "chars": 4793,
+   "utf8_bytes": 8120,
    "tier": "standard"
   },
   "auth_sim_emb_ctx": {
-   "cjk": 223,
-   "chars": 706,
-   "utf8_bytes": 1214,
+   "cjk": 1404,
+   "chars": 5544,
+   "utf8_bytes": 8494,
    "tier": "standard"
   },
   "auth_sim_emb_lg_ctx": {
-   "cjk": 223,
-   "chars": 709,
-   "utf8_bytes": 1217,
+   "cjk": 1424,
+   "chars": 5624,
+   "utf8_bytes": 8626,
    "tier": "standard"
   },
   "auth_sim_tfidf_c_allv_ctx": {
-   "cjk": 223,
-   "chars": 682,
-   "utf8_bytes": 1190,
+   "cjk": 2188,
+   "chars": 5625,
+   "utf8_bytes": 10175,
    "tier": "standard"
   },
   "auth_sim_tfidf_w_allv_ctx": {
-   "cjk": 223,
-   "chars": 682,
-   "utf8_bytes": 1190,
+   "cjk": 1786,
+   "chars": 5066,
+   "utf8_bytes": 8787,
    "tier": "standard"
   },
   "auth_sim_lda_allv_ctx": {
-   "cjk": 223,
-   "chars": 678,
-   "utf8_bytes": 1186,
+   "cjk": 2028,
+   "chars": 5789,
+   "utf8_bytes": 10084,
    "tier": "standard"
   },
   "auth_sim_emb_allv_ctx": {
-   "cjk": 223,
-   "chars": 678,
-   "utf8_bytes": 1186,
+   "cjk": 1625,
+   "chars": 5402,
+   "utf8_bytes": 8770,
    "tier": "standard"
   },
   "auth_sim_emb_lg_allv_ctx": {
-   "cjk": 223,
-   "chars": 681,
-   "utf8_bytes": 1189,
+   "cjk": 1605,
+   "chars": 5477,
+   "utf8_bytes": 8811,
    "tier": "standard"
   },
   "auth_sim_tfidf_c_ss": {
-   "cjk": 223,
-   "chars": 703,
-   "utf8_bytes": 1211,
+   "cjk": 1667,
+   "chars": 5196,
+   "utf8_bytes": 8667,
    "tier": "standard"
   },
   "auth_sim_tfidf_w_ss": {
-   "cjk": 223,
-   "chars": 703,
-   "utf8_bytes": 1211,
+   "cjk": 1932,
+   "chars": 5651,
+   "utf8_bytes": 9651,
    "tier": "standard"
   },
   "auth_sim_lda_ss": {
-   "cjk": 223,
-   "chars": 699,
-   "utf8_bytes": 1207,
+   "cjk": 1634,
+   "chars": 5041,
+   "utf8_bytes": 8437,
    "tier": "standard"
   },
   "auth_sim_emb_ss": {
-   "cjk": 223,
-   "chars": 705,
-   "utf8_bytes": 1213,
+   "cjk": 1436,
+   "chars": 5641,
+   "utf8_bytes": 8673,
    "tier": "standard"
   },
   "auth_sim_emb_lg_ss": {
-   "cjk": 223,
-   "chars": 708,
-   "utf8_bytes": 1216,
+   "cjk": 1434,
+   "chars": 5644,
+   "utf8_bytes": 8669,
    "tier": "standard"
   },
   "auth_sim_tfidf_c_allv_ss": {
-   "cjk": 223,
-   "chars": 681,
-   "utf8_bytes": 1189,
+   "cjk": 2260,
+   "chars": 5678,
+   "utf8_bytes": 10379,
    "tier": "standard"
   },
   "auth_sim_tfidf_w_allv_ss": {
-   "cjk": 223,
-   "chars": 681,
-   "utf8_bytes": 1189,
+   "cjk": 1825,
+   "chars": 5110,
+   "utf8_bytes": 8910,
    "tier": "standard"
   },
   "auth_sim_lda_allv_ss": {
-   "cjk": 223,
-   "chars": 677,
-   "utf8_bytes": 1185,
+   "cjk": 2078,
+   "chars": 5848,
+   "utf8_bytes": 10225,
    "tier": "standard"
   },
   "auth_sim_emb_allv_ss": {
-   "cjk": 223,
-   "chars": 677,
-   "utf8_bytes": 1185,
+   "cjk": 1608,
+   "chars": 5409,
+   "utf8_bytes": 8744,
    "tier": "standard"
   },
   "auth_sim_emb_lg_allv_ss": {
-   "cjk": 223,
-   "chars": 680,
-   "utf8_bytes": 1188,
+   "cjk": 1626,
+   "chars": 5570,
+   "utf8_bytes": 8952,
    "tier": "standard"
   },
   "benefit_mean_full": {
@@ -18022,15 +18022,15 @@
    "tier": "standard"
   },
   "article_sim_mean": {
-   "cjk": 223,
-   "chars": 686,
-   "utf8_bytes": 1194,
+   "cjk": 1577,
+   "chars": 5422,
+   "utf8_bytes": 8698,
    "tier": "standard"
   },
   "article_sim_std": {
-   "cjk": 223,
-   "chars": 684,
-   "utf8_bytes": 1192,
+   "cjk": 1703,
+   "chars": 5726,
+   "utf8_bytes": 9280,
    "tier": "standard"
   },
   "fintech_intensity_mean": {
@@ -18040,135 +18040,135 @@
    "tier": "standard"
   },
   "article_sim_mean_ctx": {
-   "cjk": 223,
-   "chars": 690,
-   "utf8_bytes": 1198,
+   "cjk": 1591,
+   "chars": 5401,
+   "utf8_bytes": 8705,
    "tier": "standard"
   },
   "article_sim_std_ctx": {
-   "cjk": 223,
-   "chars": 688,
-   "utf8_bytes": 1196,
+   "cjk": 1677,
+   "chars": 5767,
+   "utf8_bytes": 9264,
    "tier": "standard"
   },
   "article_sim_mean_ss": {
-   "cjk": 223,
-   "chars": 689,
-   "utf8_bytes": 1197,
+   "cjk": 1542,
+   "chars": 5469,
+   "utf8_bytes": 8681,
    "tier": "standard"
   },
   "article_sim_std_ss": {
-   "cjk": 223,
-   "chars": 687,
-   "utf8_bytes": 1195,
+   "cjk": 1650,
+   "chars": 5721,
+   "utf8_bytes": 9175,
    "tier": "standard"
   },
   "article_sim_mean_allv": {
-   "cjk": 223,
-   "chars": 664,
-   "utf8_bytes": 1172,
+   "cjk": 1670,
+   "chars": 5296,
+   "utf8_bytes": 8802,
    "tier": "standard"
   },
   "article_sim_std_allv": {
-   "cjk": 223,
-   "chars": 662,
-   "utf8_bytes": 1170,
+   "cjk": 1908,
+   "chars": 5698,
+   "utf8_bytes": 9656,
    "tier": "standard"
   },
   "article_sim_mean_allv_ctx": {
-   "cjk": 223,
-   "chars": 668,
-   "utf8_bytes": 1176,
+   "cjk": 1704,
+   "chars": 5337,
+   "utf8_bytes": 8909,
    "tier": "standard"
   },
   "article_sim_std_allv_ctx": {
-   "cjk": 223,
-   "chars": 666,
-   "utf8_bytes": 1174,
+   "cjk": 1893,
+   "chars": 5714,
+   "utf8_bytes": 9636,
    "tier": "standard"
   },
   "article_sim_mean_allv_ss": {
-   "cjk": 223,
-   "chars": 667,
-   "utf8_bytes": 1175,
+   "cjk": 1685,
+   "chars": 5366,
+   "utf8_bytes": 8893,
    "tier": "standard"
   },
   "article_sim_std_allv_ss": {
-   "cjk": 223,
-   "chars": 665,
-   "utf8_bytes": 1173,
+   "cjk": 1864,
+   "chars": 5697,
+   "utf8_bytes": 9571,
    "tier": "standard"
   },
   "article_sim_mean_lg": {
-   "cjk": 223,
-   "chars": 689,
-   "utf8_bytes": 1197,
+   "cjk": 1546,
+   "chars": 5452,
+   "utf8_bytes": 8672,
    "tier": "standard"
   },
   "article_sim_std_lg": {
-   "cjk": 223,
-   "chars": 687,
-   "utf8_bytes": 1195,
+   "cjk": 1610,
+   "chars": 5906,
+   "utf8_bytes": 9271,
    "tier": "standard"
   },
   "article_sim_mean_lg_ctx": {
-   "cjk": 223,
-   "chars": 693,
-   "utf8_bytes": 1201,
+   "cjk": 1576,
+   "chars": 5560,
+   "utf8_bytes": 8838,
    "tier": "standard"
   },
   "article_sim_std_lg_ctx": {
-   "cjk": 223,
-   "chars": 691,
-   "utf8_bytes": 1199,
+   "cjk": 1594,
+   "chars": 5755,
+   "utf8_bytes": 9088,
    "tier": "standard"
   },
   "article_sim_mean_lg_ss": {
-   "cjk": 223,
-   "chars": 692,
-   "utf8_bytes": 1200,
+   "cjk": 1608,
+   "chars": 5606,
+   "utf8_bytes": 8954,
    "tier": "standard"
   },
   "article_sim_std_lg_ss": {
-   "cjk": 223,
-   "chars": 690,
-   "utf8_bytes": 1198,
+   "cjk": 1655,
+   "chars": 5825,
+   "utf8_bytes": 9296,
    "tier": "standard"
   },
   "article_sim_mean_lg_allv": {
-   "cjk": 223,
-   "chars": 667,
-   "utf8_bytes": 1175,
+   "cjk": 1700,
+   "chars": 5398,
+   "utf8_bytes": 8957,
    "tier": "standard"
   },
   "article_sim_std_lg_allv": {
-   "cjk": 223,
-   "chars": 665,
-   "utf8_bytes": 1173,
+   "cjk": 1820,
+   "chars": 5728,
+   "utf8_bytes": 9510,
    "tier": "standard"
   },
   "article_sim_mean_lg_allv_ctx": {
-   "cjk": 223,
-   "chars": 671,
-   "utf8_bytes": 1179,
+   "cjk": 1679,
+   "chars": 5382,
+   "utf8_bytes": 8907,
    "tier": "standard"
   },
   "article_sim_std_lg_allv_ctx": {
-   "cjk": 223,
-   "chars": 669,
-   "utf8_bytes": 1177,
+   "cjk": 1785,
+   "chars": 5712,
+   "utf8_bytes": 9430,
    "tier": "standard"
   },
   "article_sim_mean_lg_allv_ss": {
-   "cjk": 223,
-   "chars": 670,
-   "utf8_bytes": 1178,
+   "cjk": 1724,
+   "chars": 5496,
+   "utf8_bytes": 9115,
    "tier": "standard"
   },
   "article_sim_std_lg_allv_ss": {
-   "cjk": 223,
-   "chars": 668,
-   "utf8_bytes": 1176,
+   "cjk": 1835,
+   "chars": 5732,
+   "utf8_bytes": 9553,
    "tier": "standard"
   },
   "token_adopt_kw_p25": {
@@ -19894,15 +19894,15 @@
    "tier": "standard"
   },
   "algo_cater_full": {
-   "cjk": 232,
-   "chars": 697,
-   "utf8_bytes": 1223,
+   "cjk": 1367,
+   "chars": 4135,
+   "utf8_bytes": 6999,
    "tier": "standard"
   },
   "algo_cater_b_full": {
-   "cjk": 232,
-   "chars": 698,
-   "utf8_bytes": 1224,
+   "cjk": 1557,
+   "chars": 4323,
+   "utf8_bytes": 7605,
    "tier": "standard"
   },
   "jiang_2021_cater_full": {
@@ -20014,15 +20014,15 @@
    "tier": "standard"
   },
   "algo_cater_ctx": {
-   "cjk": 232,
-   "chars": 696,
-   "utf8_bytes": 1222,
+   "cjk": 1377,
+   "chars": 4055,
+   "utf8_bytes": 6957,
    "tier": "standard"
   },
   "algo_cater_b_ctx": {
-   "cjk": 232,
-   "chars": 697,
-   "utf8_bytes": 1223,
+   "cjk": 1606,
+   "chars": 4313,
+   "utf8_bytes": 7691,
    "tier": "standard"
   },
   "jiang_2021_cater_ctx": {
@@ -20134,15 +20134,15 @@
    "tier": "standard"
   },
   "algo_cater_ss": {
-   "cjk": 232,
-   "chars": 695,
-   "utf8_bytes": 1221,
+   "cjk": 1435,
+   "chars": 4261,
+   "utf8_bytes": 7272,
    "tier": "standard"
   },
   "algo_cater_b_ss": {
-   "cjk": 232,
-   "chars": 696,
-   "utf8_bytes": 1222,
+   "cjk": 1639,
+   "chars": 4503,
+   "utf8_bytes": 7957,
    "tier": "standard"
   },
   "jiang_2021_cater_ss": {
@@ -20680,9 +20680,9 @@
    "tier": "standard"
   },
   "nf_ln_coverage": {
-   "cjk": 232,
-   "chars": 722,
-   "utf8_bytes": 1248,
+   "cjk": 1718,
+   "chars": 5255,
+   "utf8_bytes": 8851,
    "tier": "standard"
   },
   "ft_n_articles_dedup": {
@@ -20692,21 +20692,21 @@
    "tier": "standard"
   },
   "all_n_articles": {
-   "cjk": 232,
-   "chars": 679,
-   "utf8_bytes": 1205,
+   "cjk": 1668,
+   "chars": 4321,
+   "utf8_bytes": 7781,
    "tier": "standard"
   },
   "all_ln_coverage": {
-   "cjk": 232,
-   "chars": 723,
-   "utf8_bytes": 1249,
+   "cjk": 1705,
+   "chars": 5242,
+   "utf8_bytes": 8800,
    "tier": "standard"
   },
   "zero_coverage": {
-   "cjk": 232,
-   "chars": 719,
-   "utf8_bytes": 1245,
+   "cjk": 1685,
+   "chars": 5281,
+   "utf8_bytes": 8811,
    "tier": "standard"
   },
   "fintech_share": {
@@ -20731,7 +20731,7 @@
  "longdesc_counters": {
   "composed": 3462,
   "fallback": 0,
-  "n_draft_warnings": 9916,
+  "n_draft_warnings": 9212,
   "draft_warnings": [
    "F185/gpt54nano_tone_sum_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
    "F185/gpt54nano_tone_sum_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
@@ -21189,22 +21189,10 @@
    "F070/avg_ttr_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F070/avg_ttr_full: 组装全文 232 汉字 < 1000 (standard 总量闸)",
    "F070/avg_ttr_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F034/avg_cpw_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F034/avg_cpw_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F034/avg_cpw_full: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F034/avg_cpw_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F045/avg_hard_char_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F045/avg_hard_char_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F045/avg_hard_char_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F045/avg_hard_char_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F061/avg_nominalization_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F061/avg_nominalization_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F061/avg_nominalization_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
    "F061/avg_nominalization_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F041/avg_function_word_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F041/avg_function_word_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F041/avg_function_word_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F041/avg_function_word_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F068/avg_specificity_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F068/avg_specificity_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F068/avg_specificity_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
@@ -21229,18 +21217,10 @@
    "F065/avg_redund_han_log_length_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F065/avg_redund_han_log_length_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
    "F065/avg_redund_han_log_length_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F024/avg_adversative_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F024/avg_adversative_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F024/avg_adversative_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F024/avg_adversative_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F073/avg_word_count_full: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
    "F073/avg_word_count_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F073/avg_word_count_full: 组装全文 220 汉字 < 1000 (standard 总量闸)",
    "F073/avg_word_count_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F044/avg_han_count_full: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F044/avg_han_count_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F044/avg_han_count_full: 组装全文 220 汉字 < 1000 (standard 总量闸)",
-   "F044/avg_han_count_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F063/avg_pos_ratio_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F063/avg_pos_ratio_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F063/avg_pos_ratio_full: 组装全文 232 汉字 < 1000 (standard 总量闸)",
@@ -21729,22 +21709,10 @@
    "F070/avg_ttr_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F070/avg_ttr_ctx: 组装全文 232 汉字 < 1000 (standard 总量闸)",
    "F070/avg_ttr_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F034/avg_cpw_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F034/avg_cpw_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F034/avg_cpw_ctx: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F034/avg_cpw_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F045/avg_hard_char_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F045/avg_hard_char_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F045/avg_hard_char_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F045/avg_hard_char_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F061/avg_nominalization_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F061/avg_nominalization_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F061/avg_nominalization_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
    "F061/avg_nominalization_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F041/avg_function_word_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F041/avg_function_word_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F041/avg_function_word_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F041/avg_function_word_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F068/avg_specificity_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F068/avg_specificity_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F068/avg_specificity_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
@@ -21769,18 +21737,10 @@
    "F065/avg_redund_han_log_length_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F065/avg_redund_han_log_length_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
    "F065/avg_redund_han_log_length_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F024/avg_adversative_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F024/avg_adversative_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F024/avg_adversative_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F024/avg_adversative_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F073/avg_word_count_ctx: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
    "F073/avg_word_count_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F073/avg_word_count_ctx: 组装全文 220 汉字 < 1000 (standard 总量闸)",
    "F073/avg_word_count_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F044/avg_han_count_ctx: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F044/avg_han_count_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F044/avg_han_count_ctx: 组装全文 220 汉字 < 1000 (standard 总量闸)",
-   "F044/avg_han_count_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F063/avg_pos_ratio_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F063/avg_pos_ratio_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F063/avg_pos_ratio_ctx: 组装全文 232 汉字 < 1000 (standard 总量闸)",
@@ -22269,22 +22229,10 @@
    "F070/avg_ttr_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F070/avg_ttr_ss: 组装全文 232 汉字 < 1000 (standard 总量闸)",
    "F070/avg_ttr_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F034/avg_cpw_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F034/avg_cpw_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F034/avg_cpw_ss: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F034/avg_cpw_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F045/avg_hard_char_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F045/avg_hard_char_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F045/avg_hard_char_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F045/avg_hard_char_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F061/avg_nominalization_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F061/avg_nominalization_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F061/avg_nominalization_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
    "F061/avg_nominalization_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F041/avg_function_word_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F041/avg_function_word_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F041/avg_function_word_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F041/avg_function_word_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F068/avg_specificity_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F068/avg_specificity_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F068/avg_specificity_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
@@ -22309,18 +22257,10 @@
    "F065/avg_redund_han_log_length_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F065/avg_redund_han_log_length_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
    "F065/avg_redund_han_log_length_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F024/avg_adversative_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F024/avg_adversative_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F024/avg_adversative_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F024/avg_adversative_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F073/avg_word_count_ss: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
    "F073/avg_word_count_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F073/avg_word_count_ss: 组装全文 220 汉字 < 1000 (standard 总量闸)",
    "F073/avg_word_count_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F044/avg_han_count_ss: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F044/avg_han_count_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F044/avg_han_count_ss: 组装全文 220 汉字 < 1000 (standard 总量闸)",
-   "F044/avg_han_count_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F063/avg_pos_ratio_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F063/avg_pos_ratio_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F063/avg_pos_ratio_ss: 组装全文 232 汉字 < 1000 (standard 总量闸)",
@@ -22353,90 +22293,10 @@
    "F058/avg_msent_negonly_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F058/avg_msent_negonly_ss: 组装全文 232 汉字 < 1000 (standard 总量闸)",
    "F058/avg_msent_negonly_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F052/avg_llm_conf_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F052/avg_llm_conf_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F052/avg_llm_conf_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F052/avg_llm_conf_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F052/avg_llm_conf_std_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F052/avg_llm_conf_std_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F052/avg_llm_conf_std_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F052/avg_llm_conf_std_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F043/avg_gpt54nano_conf_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F043/avg_gpt54nano_conf_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F043/avg_gpt54nano_conf_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F043/avg_gpt54nano_conf_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F042/avg_gemini31_conf_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F042/avg_gemini31_conf_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F042/avg_gemini31_conf_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F042/avg_gemini31_conf_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F035/avg_deepseekv4_conf_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F035/avg_deepseekv4_conf_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F035/avg_deepseekv4_conf_full: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F035/avg_deepseekv4_conf_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F052/avg_llm_conf_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F052/avg_llm_conf_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F052/avg_llm_conf_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F052/avg_llm_conf_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F052/avg_llm_conf_std_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F052/avg_llm_conf_std_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F052/avg_llm_conf_std_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F052/avg_llm_conf_std_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F043/avg_gpt54nano_conf_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F043/avg_gpt54nano_conf_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F043/avg_gpt54nano_conf_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F043/avg_gpt54nano_conf_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F042/avg_gemini31_conf_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F042/avg_gemini31_conf_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F042/avg_gemini31_conf_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F042/avg_gemini31_conf_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F035/avg_deepseekv4_conf_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F035/avg_deepseekv4_conf_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F035/avg_deepseekv4_conf_ctx: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F035/avg_deepseekv4_conf_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F052/avg_llm_conf_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F052/avg_llm_conf_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F052/avg_llm_conf_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F052/avg_llm_conf_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F052/avg_llm_conf_std_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F052/avg_llm_conf_std_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F052/avg_llm_conf_std_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F052/avg_llm_conf_std_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F043/avg_gpt54nano_conf_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F043/avg_gpt54nano_conf_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F043/avg_gpt54nano_conf_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F043/avg_gpt54nano_conf_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F042/avg_gemini31_conf_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F042/avg_gemini31_conf_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F042/avg_gemini31_conf_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F042/avg_gemini31_conf_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F035/avg_deepseekv4_conf_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F035/avg_deepseekv4_conf_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F035/avg_deepseekv4_conf_ss: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F035/avg_deepseekv4_conf_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F444/multi_bank_frac: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F444/multi_bank_frac: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F444/multi_bank_frac: 组装全文 232 汉字 < 1000 (standard 总量闸)",
    "F444/multi_bank_frac: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F028/avg_bank_count: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F028/avg_bank_count: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F028/avg_bank_count: 组装全文 222 汉字 < 1000 (standard 总量闸)",
-   "F028/avg_bank_count: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F028/max_bank_count: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F028/max_bank_count: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F028/max_bank_count: 组装全文 222 汉字 < 1000 (standard 总量闸)",
-   "F028/max_bank_count: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F026/avg_agreement_rate_s_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F026/avg_agreement_rate_s_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F026/avg_agreement_rate_s_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F026/avg_agreement_rate_s_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F026/avg_agreement_rate_s_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F026/avg_agreement_rate_s_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F026/avg_agreement_rate_s_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F026/avg_agreement_rate_s_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F026/avg_agreement_rate_s_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F026/avg_agreement_rate_s_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F026/avg_agreement_rate_s_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F026/avg_agreement_rate_s_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F314/frac_ctx_fallback: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F314/frac_ctx_fallback: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F314/frac_ctx_fallback: 组装全文 237 汉字 < 1000 (standard 总量闸)",
@@ -22449,14 +22309,6 @@
    "F525/sum_mention_density: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F525/sum_mention_density: 组装全文 227 汉字 < 1000 (standard 总量闸)",
    "F525/sum_mention_density: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F036/sum_doc_length: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F036/sum_doc_length: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F036/sum_doc_length: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F036/sum_doc_length: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F036/avg_doc_length: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F036/avg_doc_length: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F036/avg_doc_length: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F036/avg_doc_length: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F526/sum_target_mentions: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F526/sum_target_mentions: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F526/sum_target_mentions: 组装全文 232 汉字 < 1000 (standard 总量闸)",
@@ -24109,22 +23961,6 @@
    "F291/finbert2_neg_count_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F291/finbert2_neg_count_ss: 组装全文 219 汉字 < 1000 (standard 总量闸)",
    "F291/finbert2_neg_count_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F040/avg_ft_word_ratio: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F040/avg_ft_word_ratio: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F040/avg_ft_word_ratio: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F040/avg_ft_word_ratio: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F040/avg_ft_word_ratio_std: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F040/avg_ft_word_ratio_std: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F040/avg_ft_word_ratio_std: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F040/avg_ft_word_ratio_std: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/avg_llm_prob_score_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/avg_llm_prob_score_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/avg_llm_prob_score_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/avg_llm_prob_score_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/avg_llm_prob_score_std_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/avg_llm_prob_score_std_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/avg_llm_prob_score_std_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/avg_llm_prob_score_std_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F380/llm_prob_score_sum_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F380/llm_prob_score_sum_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F380/llm_prob_score_sum_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
@@ -24141,14 +23977,6 @@
    "F376/llm_prob_score_hw_sum_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F376/llm_prob_score_hw_sum_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
    "F376/llm_prob_score_hw_sum_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/avg_llm_prob_score_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/avg_llm_prob_score_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/avg_llm_prob_score_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/avg_llm_prob_score_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/avg_llm_prob_score_std_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/avg_llm_prob_score_std_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/avg_llm_prob_score_std_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/avg_llm_prob_score_std_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F380/llm_prob_score_sum_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F380/llm_prob_score_sum_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F380/llm_prob_score_sum_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
@@ -24165,14 +23993,6 @@
    "F376/llm_prob_score_hw_sum_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F376/llm_prob_score_hw_sum_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
    "F376/llm_prob_score_hw_sum_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/avg_llm_prob_score_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/avg_llm_prob_score_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/avg_llm_prob_score_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/avg_llm_prob_score_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/avg_llm_prob_score_std_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/avg_llm_prob_score_std_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/avg_llm_prob_score_std_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/avg_llm_prob_score_std_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F380/llm_prob_score_sum_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F380/llm_prob_score_sum_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F380/llm_prob_score_sum_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
@@ -24377,22 +24197,6 @@
    "F069/avg_subst_prob_score_std_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F069/avg_subst_prob_score_std_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
    "F069/avg_subst_prob_score_std_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F054/avg_locus_prob_score_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F054/avg_locus_prob_score_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F054/avg_locus_prob_score_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F054/avg_locus_prob_score_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F054/avg_locus_prob_score_std_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F054/avg_locus_prob_score_std_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F054/avg_locus_prob_score_std_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F054/avg_locus_prob_score_std_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F033/avg_collab_prob_score_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F033/avg_collab_prob_score_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F033/avg_collab_prob_score_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F033/avg_collab_prob_score_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F033/avg_collab_prob_score_std_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F033/avg_collab_prob_score_std_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F033/avg_collab_prob_score_std_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F033/avg_collab_prob_score_std_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F069/avg_subst_prob_score_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F069/avg_subst_prob_score_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F069/avg_subst_prob_score_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
@@ -24401,22 +24205,6 @@
    "F069/avg_subst_prob_score_std_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F069/avg_subst_prob_score_std_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
    "F069/avg_subst_prob_score_std_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F054/avg_locus_prob_score_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F054/avg_locus_prob_score_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F054/avg_locus_prob_score_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F054/avg_locus_prob_score_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F054/avg_locus_prob_score_std_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F054/avg_locus_prob_score_std_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F054/avg_locus_prob_score_std_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F054/avg_locus_prob_score_std_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F033/avg_collab_prob_score_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F033/avg_collab_prob_score_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F033/avg_collab_prob_score_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F033/avg_collab_prob_score_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F033/avg_collab_prob_score_std_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F033/avg_collab_prob_score_std_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F033/avg_collab_prob_score_std_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F033/avg_collab_prob_score_std_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F069/avg_subst_prob_score_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F069/avg_subst_prob_score_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F069/avg_subst_prob_score_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
@@ -24425,34 +24213,10 @@
    "F069/avg_subst_prob_score_std_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F069/avg_subst_prob_score_std_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
    "F069/avg_subst_prob_score_std_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F054/avg_locus_prob_score_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F054/avg_locus_prob_score_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F054/avg_locus_prob_score_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F054/avg_locus_prob_score_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F054/avg_locus_prob_score_std_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F054/avg_locus_prob_score_std_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F054/avg_locus_prob_score_std_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F054/avg_locus_prob_score_std_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F033/avg_collab_prob_score_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F033/avg_collab_prob_score_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F033/avg_collab_prob_score_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F033/avg_collab_prob_score_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F033/avg_collab_prob_score_std_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F033/avg_collab_prob_score_std_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F033/avg_collab_prob_score_std_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F033/avg_collab_prob_score_std_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F439/media_breadth: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F439/media_breadth: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F439/media_breadth: 组装全文 232 汉字 < 1000 (standard 总量闸)",
    "F439/media_breadth: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F004/coverage_active_days: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F004/coverage_active_days: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F004/coverage_active_days: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F004/coverage_active_days: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F004/coverage_continuity: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F004/coverage_continuity: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F004/coverage_continuity: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F004/coverage_continuity: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F169/gpt54nano_cont_mean_tech_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F169/gpt54nano_cont_mean_tech_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F169/gpt54nano_cont_mean_tech_full: 组装全文 229 汉字 < 1000 (standard 总量闸)",
@@ -24521,10 +24285,6 @@
    "F290/finbert2_neg_tech_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F290/finbert2_neg_tech_full: 组装全文 229 汉字 < 1000 (standard 总量闸)",
    "F290/finbert2_neg_tech_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/llm_prob_score_tech_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/llm_prob_score_tech_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/llm_prob_score_tech_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/llm_prob_score_tech_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F169/gpt54nano_cont_mean_tech_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F169/gpt54nano_cont_mean_tech_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F169/gpt54nano_cont_mean_tech_ctx: 组装全文 229 汉字 < 1000 (standard 总量闸)",
@@ -24593,10 +24353,6 @@
    "F290/finbert2_neg_tech_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F290/finbert2_neg_tech_ctx: 组装全文 229 汉字 < 1000 (standard 总量闸)",
    "F290/finbert2_neg_tech_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/llm_prob_score_tech_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/llm_prob_score_tech_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/llm_prob_score_tech_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/llm_prob_score_tech_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F169/gpt54nano_cont_mean_tech_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F169/gpt54nano_cont_mean_tech_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F169/gpt54nano_cont_mean_tech_ss: 组装全文 229 汉字 < 1000 (standard 总量闸)",
@@ -24665,10 +24421,6 @@
    "F290/finbert2_neg_tech_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F290/finbert2_neg_tech_ss: 组装全文 229 汉字 < 1000 (standard 总量闸)",
    "F290/finbert2_neg_tech_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/llm_prob_score_tech_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/llm_prob_score_tech_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/llm_prob_score_tech_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/llm_prob_score_tech_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F169/gpt54nano_cont_mean_app_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F169/gpt54nano_cont_mean_app_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F169/gpt54nano_cont_mean_app_full: 组装全文 229 汉字 < 1000 (standard 总量闸)",
@@ -24737,10 +24489,6 @@
    "F290/finbert2_neg_app_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F290/finbert2_neg_app_full: 组装全文 229 汉字 < 1000 (standard 总量闸)",
    "F290/finbert2_neg_app_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/llm_prob_score_app_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/llm_prob_score_app_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/llm_prob_score_app_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/llm_prob_score_app_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F169/gpt54nano_cont_mean_app_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F169/gpt54nano_cont_mean_app_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F169/gpt54nano_cont_mean_app_ctx: 组装全文 229 汉字 < 1000 (standard 总量闸)",
@@ -24809,10 +24557,6 @@
    "F290/finbert2_neg_app_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F290/finbert2_neg_app_ctx: 组装全文 229 汉字 < 1000 (standard 总量闸)",
    "F290/finbert2_neg_app_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/llm_prob_score_app_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/llm_prob_score_app_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/llm_prob_score_app_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/llm_prob_score_app_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F169/gpt54nano_cont_mean_app_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F169/gpt54nano_cont_mean_app_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F169/gpt54nano_cont_mean_app_ss: 组装全文 229 汉字 < 1000 (standard 总量闸)",
@@ -24881,110 +24625,18 @@
    "F290/finbert2_neg_app_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F290/finbert2_neg_app_ss: 组装全文 229 汉字 < 1000 (standard 总量闸)",
    "F290/finbert2_neg_app_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/llm_prob_score_app_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/llm_prob_score_app_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/llm_prob_score_app_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/llm_prob_score_app_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F032/avg_category_confidence_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F032/avg_category_confidence_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F032/avg_category_confidence_full: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F032/avg_category_confidence_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F032/avg_category_confidence_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F032/avg_category_confidence_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F032/avg_category_confidence_ctx: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F032/avg_category_confidence_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F032/avg_category_confidence: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F032/avg_category_confidence: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F032/avg_category_confidence: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F032/avg_category_confidence: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F049/avg_iss_confidence_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F049/avg_iss_confidence_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F049/avg_iss_confidence_full: 组装全文 237 汉字 < 1000 (standard 总量闸)",
-   "F049/avg_iss_confidence_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F049/avg_iss_confidence_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F049/avg_iss_confidence_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F049/avg_iss_confidence_ctx: 组装全文 237 汉字 < 1000 (standard 总量闸)",
-   "F049/avg_iss_confidence_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F049/avg_iss_confidence_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F049/avg_iss_confidence_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F049/avg_iss_confidence_ss: 组装全文 237 汉字 < 1000 (standard 总量闸)",
-   "F049/avg_iss_confidence_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F048/avg_il_confidence_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F048/avg_il_confidence_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F048/avg_il_confidence_full: 组装全文 237 汉字 < 1000 (standard 总量闸)",
-   "F048/avg_il_confidence_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F048/avg_il_confidence_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F048/avg_il_confidence_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F048/avg_il_confidence_ctx: 组装全文 237 汉字 < 1000 (standard 总量闸)",
-   "F048/avg_il_confidence_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F048/avg_il_confidence_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F048/avg_il_confidence_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F048/avg_il_confidence_ss: 组装全文 237 汉字 < 1000 (standard 总量闸)",
-   "F048/avg_il_confidence_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F047/avg_icm_confidence_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F047/avg_icm_confidence_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F047/avg_icm_confidence_full: 组装全文 237 汉字 < 1000 (standard 总量闸)",
-   "F047/avg_icm_confidence_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F047/avg_icm_confidence_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F047/avg_icm_confidence_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F047/avg_icm_confidence_ctx: 组装全文 237 汉字 < 1000 (standard 总量闸)",
-   "F047/avg_icm_confidence_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F047/avg_icm_confidence_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F047/avg_icm_confidence_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F047/avg_icm_confidence_ss: 组装全文 237 汉字 < 1000 (standard 总量闸)",
-   "F047/avg_icm_confidence_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F580/tone_gap_tech_app: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
    "F580/tone_gap_tech_app: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F580/tone_gap_tech_app: 组装全文 228 汉字 < 1000 (standard 总量闸)",
    "F580/tone_gap_tech_app: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/llm_prob_score_tech_lc_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/llm_prob_score_tech_lc_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/llm_prob_score_tech_lc_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/llm_prob_score_tech_lc_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/llm_prob_score_app_lc_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/llm_prob_score_app_lc_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/llm_prob_score_app_lc_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/llm_prob_score_app_lc_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F580/tone_gap_tech_app_lc_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
    "F580/tone_gap_tech_app_lc_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F580/tone_gap_tech_app_lc_ctx: 组装全文 228 汉字 < 1000 (standard 总量闸)",
    "F580/tone_gap_tech_app_lc_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/llm_prob_score_tech_ls_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/llm_prob_score_tech_ls_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/llm_prob_score_tech_ls_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/llm_prob_score_tech_ls_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/llm_prob_score_app_ls_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/llm_prob_score_app_ls_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/llm_prob_score_app_ls_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/llm_prob_score_app_ls_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F580/tone_gap_tech_app_ls_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
    "F580/tone_gap_tech_app_ls_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F580/tone_gap_tech_app_ls_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
    "F580/tone_gap_tech_app_ls_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/llm_prob_score_sub_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/llm_prob_score_sub_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/llm_prob_score_sub_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/llm_prob_score_sub_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/llm_prob_score_sub_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/llm_prob_score_sub_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/llm_prob_score_sub_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/llm_prob_score_sub_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/llm_prob_score_sub_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/llm_prob_score_sub_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/llm_prob_score_sub_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/llm_prob_score_sub_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/llm_prob_score_symb_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/llm_prob_score_symb_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/llm_prob_score_symb_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/llm_prob_score_symb_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/llm_prob_score_symb_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/llm_prob_score_symb_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/llm_prob_score_symb_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/llm_prob_score_symb_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/llm_prob_score_symb_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/llm_prob_score_symb_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/llm_prob_score_symb_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/llm_prob_score_symb_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F548/symb_frac: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F548/symb_frac: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F548/symb_frac: 组装全文 230 汉字 < 1000 (standard 总量闸)",
@@ -24993,14 +24645,6 @@
    "F580/tone_gap_sub_symb: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F580/tone_gap_sub_symb: 组装全文 233 汉字 < 1000 (standard 总量闸)",
    "F580/tone_gap_sub_symb: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/llm_prob_score_sub_sc_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/llm_prob_score_sub_sc_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/llm_prob_score_sub_sc_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/llm_prob_score_sub_sc_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/llm_prob_score_symb_sc_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/llm_prob_score_symb_sc_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/llm_prob_score_symb_sc_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/llm_prob_score_symb_sc_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F548/symb_frac_sc: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F548/symb_frac_sc: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F548/symb_frac_sc: 组装全文 230 汉字 < 1000 (standard 总量闸)",
@@ -25009,14 +24653,6 @@
    "F580/tone_gap_sub_symb_sc_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F580/tone_gap_sub_symb_sc_ctx: 组装全文 231 汉字 < 1000 (standard 总量闸)",
    "F580/tone_gap_sub_symb_sc_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/llm_prob_score_sub_ss_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/llm_prob_score_sub_ss_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/llm_prob_score_sub_ss_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/llm_prob_score_sub_ss_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F053/llm_prob_score_symb_ss_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F053/llm_prob_score_symb_ss_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F053/llm_prob_score_symb_ss_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F053/llm_prob_score_symb_ss_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F548/symb_frac_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F548/symb_frac_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F548/symb_frac_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
@@ -25345,10 +24981,6 @@
    "F316/frac_fls_fonly_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F316/frac_fls_fonly_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
    "F316/frac_fls_fonly_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F004/ln_news_coverage: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F004/ln_news_coverage: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F004/ln_news_coverage: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F004/ln_news_coverage: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F350/jiang_2021_idf_tone_vw_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
    "F350/jiang_2021_idf_tone_vw_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F350/jiang_2021_idf_tone_vw_full: 组装全文 228 汉字 < 1000 (standard 总量闸)",
@@ -26021,10 +25653,6 @@
    "F476/pos_hc_substvalid_count_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F476/pos_hc_substvalid_count_ss: 组装全文 222 汉字 < 1000 (standard 总量闸)",
    "F476/pos_hc_substvalid_count_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F004/has_coverage: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F004/has_coverage: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F004/has_coverage: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F004/has_coverage: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F318/ft_attn_yr: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F318/ft_attn_yr: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F318/ft_attn_yr: 组装全文 230 汉字 < 1000 (standard 总量闸)",
@@ -26049,34 +25677,10 @@
    "F320/ft_vol_city: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F320/ft_vol_city: 组装全文 230 汉字 < 1000 (standard 总量闸)",
    "F320/ft_vol_city: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F013/attention_intensity_density_full: 家族核心长文段 92 汉字 < 700 (standard 家族段落闸)",
-   "F013/attention_intensity_density_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F013/attention_intensity_density_full: 组装全文 225 汉字 < 1000 (standard 总量闸)",
-   "F013/attention_intensity_density_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F013/attention_intensity_density_ctx: 家族核心长文段 92 汉字 < 700 (standard 家族段落闸)",
-   "F013/attention_intensity_density_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F013/attention_intensity_density_ctx: 组装全文 225 汉字 < 1000 (standard 总量闸)",
-   "F013/attention_intensity_density_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F014/attention_intensity_sd_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F014/attention_intensity_sd_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F014/attention_intensity_sd_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F014/attention_intensity_sd_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F014/attention_intensity_sd_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F014/attention_intensity_sd_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F014/attention_intensity_sd_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F014/attention_intensity_sd_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F447/n_outlets: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
    "F447/n_outlets: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F447/n_outlets: 组装全文 220 汉字 < 1000 (standard 总量闸)",
    "F447/n_outlets: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F013/attention_intensity_density_ss: 家族核心长文段 92 汉字 < 700 (standard 家族段落闸)",
-   "F013/attention_intensity_density_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F013/attention_intensity_density_ss: 组装全文 227 汉字 < 1000 (standard 总量闸)",
-   "F013/attention_intensity_density_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F014/attention_intensity_sd_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F014/attention_intensity_sd_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F014/attention_intensity_sd_ss: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F014/attention_intensity_sd_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F145/fin_media_frac: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F145/fin_media_frac: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F145/fin_media_frac: 组装全文 232 汉字 < 1000 (standard 总量闸)",
@@ -27813,10 +27417,6 @@
    "F111/bert_avg_neg_hw_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F111/bert_avg_neg_hw_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
    "F111/bert_avg_neg_hw_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F027/avg_article_length: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F027/avg_article_length: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F027/avg_article_length: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F027/avg_article_length: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F409/ln_word_count_full: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
    "F409/ln_word_count_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F409/ln_word_count_full: 组装全文 220 汉字 < 1000 (standard 总量闸)",
@@ -27985,30 +27585,10 @@
    "F057/avg_msent_ss_z: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F057/avg_msent_ss_z: 组装全文 232 汉字 < 1000 (standard 总量闸)",
    "F057/avg_msent_ss_z: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F052/avg_llm_conf_full_z: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F052/avg_llm_conf_full_z: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F052/avg_llm_conf_full_z: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F052/avg_llm_conf_full_z: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F052/avg_llm_conf_ctx_z: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F052/avg_llm_conf_ctx_z: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F052/avg_llm_conf_ctx_z: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F052/avg_llm_conf_ctx_z: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F052/avg_llm_conf_ss_z: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F052/avg_llm_conf_ss_z: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F052/avg_llm_conf_ss_z: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F052/avg_llm_conf_ss_z: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F004/ln_news_coverage_z: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F004/ln_news_coverage_z: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F004/ln_news_coverage_z: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F004/ln_news_coverage_z: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F439/media_breadth_z: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F439/media_breadth_z: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F439/media_breadth_z: 组装全文 232 汉字 < 1000 (standard 总量闸)",
    "F439/media_breadth_z: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F027/avg_article_length_z: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F027/avg_article_length_z: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F027/avg_article_length_z: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F027/avg_article_length_z: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F082/bank_province: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F082/bank_province: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F082/bank_province: 组装全文 236 汉字 < 1000 (standard 总量闸)",
@@ -28289,30 +27869,6 @@
    "F483/prox_200km_neg_frac_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F483/prox_200km_neg_frac_ss: 组装全文 232 汉字 < 1000 (standard 总量闸)",
    "F483/prox_200km_neg_frac_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F001/ai_reg_province: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F001/ai_reg_province: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F001/ai_reg_province: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F001/ai_reg_province: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F001/ai_reg_city: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F001/ai_reg_city: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F001/ai_reg_city: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F001/ai_reg_city: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F001/ai_reg_50km: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F001/ai_reg_50km: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F001/ai_reg_50km: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F001/ai_reg_50km: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F001/ai_reg_100km: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F001/ai_reg_100km: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F001/ai_reg_100km: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F001/ai_reg_100km: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F001/ai_reg_150km: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F001/ai_reg_150km: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F001/ai_reg_150km: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F001/ai_reg_150km: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F001/ai_reg_200km: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F001/ai_reg_200km: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F001/ai_reg_200km: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F001/ai_reg_200km: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F108/bartik_type_share_city: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F108/bartik_type_share_city: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F108/bartik_type_share_city: 组装全文 232 汉字 < 1000 (standard 总量闸)",
@@ -28517,10 +28073,6 @@
    "F097/bank_scale_ord: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F097/bank_scale_ord: 组装全文 232 汉字 < 1000 (standard 总量闸)",
    "F097/bank_scale_ord: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F004/high_coverage: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F004/high_coverage: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F004/high_coverage: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F004/high_coverage: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F598/tone_x_soe_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
    "F598/tone_x_soe_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F598/tone_x_soe_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
@@ -29057,222 +28609,6 @@
    "F506/strat_fluidity_w_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F506/strat_fluidity_w_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
    "F506/strat_fluidity_w_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F021/auth_sim_tfidf_c_full: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F021/auth_sim_tfidf_c_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F021/auth_sim_tfidf_c_full: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F021/auth_sim_tfidf_c_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F023/auth_sim_tfidf_w_full: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F023/auth_sim_tfidf_w_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F023/auth_sim_tfidf_w_full: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F023/auth_sim_tfidf_w_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F019/auth_sim_lda_full: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F019/auth_sim_lda_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F019/auth_sim_lda_full: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F019/auth_sim_lda_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F017/auth_sim_emb_full: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F017/auth_sim_emb_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F017/auth_sim_emb_full: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F017/auth_sim_emb_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F017/auth_sim_emb_lg_full: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F017/auth_sim_emb_lg_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F017/auth_sim_emb_lg_full: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F017/auth_sim_emb_lg_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F020/auth_sim_tfidf_c_allv_full: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F020/auth_sim_tfidf_c_allv_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F020/auth_sim_tfidf_c_allv_full: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F020/auth_sim_tfidf_c_allv_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F022/auth_sim_tfidf_w_allv_full: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F022/auth_sim_tfidf_w_allv_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F022/auth_sim_tfidf_w_allv_full: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F022/auth_sim_tfidf_w_allv_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F018/auth_sim_lda_allv_full: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F018/auth_sim_lda_allv_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F018/auth_sim_lda_allv_full: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F018/auth_sim_lda_allv_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F016/auth_sim_emb_allv_full: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F016/auth_sim_emb_allv_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F016/auth_sim_emb_allv_full: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F016/auth_sim_emb_allv_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F016/auth_sim_emb_lg_allv_full: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F016/auth_sim_emb_lg_allv_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F016/auth_sim_emb_lg_allv_full: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F016/auth_sim_emb_lg_allv_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F021/auth_sim_tfidf_c_ctx: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F021/auth_sim_tfidf_c_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F021/auth_sim_tfidf_c_ctx: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F021/auth_sim_tfidf_c_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F023/auth_sim_tfidf_w_ctx: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F023/auth_sim_tfidf_w_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F023/auth_sim_tfidf_w_ctx: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F023/auth_sim_tfidf_w_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F019/auth_sim_lda_ctx: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F019/auth_sim_lda_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F019/auth_sim_lda_ctx: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F019/auth_sim_lda_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F017/auth_sim_emb_ctx: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F017/auth_sim_emb_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F017/auth_sim_emb_ctx: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F017/auth_sim_emb_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F017/auth_sim_emb_lg_ctx: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F017/auth_sim_emb_lg_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F017/auth_sim_emb_lg_ctx: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F017/auth_sim_emb_lg_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F020/auth_sim_tfidf_c_allv_ctx: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F020/auth_sim_tfidf_c_allv_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F020/auth_sim_tfidf_c_allv_ctx: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F020/auth_sim_tfidf_c_allv_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F022/auth_sim_tfidf_w_allv_ctx: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F022/auth_sim_tfidf_w_allv_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F022/auth_sim_tfidf_w_allv_ctx: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F022/auth_sim_tfidf_w_allv_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F018/auth_sim_lda_allv_ctx: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F018/auth_sim_lda_allv_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F018/auth_sim_lda_allv_ctx: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F018/auth_sim_lda_allv_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F016/auth_sim_emb_allv_ctx: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F016/auth_sim_emb_allv_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F016/auth_sim_emb_allv_ctx: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F016/auth_sim_emb_allv_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F016/auth_sim_emb_lg_allv_ctx: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F016/auth_sim_emb_lg_allv_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F016/auth_sim_emb_lg_allv_ctx: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F016/auth_sim_emb_lg_allv_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F021/auth_sim_tfidf_c_ss: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F021/auth_sim_tfidf_c_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F021/auth_sim_tfidf_c_ss: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F021/auth_sim_tfidf_c_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F023/auth_sim_tfidf_w_ss: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F023/auth_sim_tfidf_w_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F023/auth_sim_tfidf_w_ss: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F023/auth_sim_tfidf_w_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F019/auth_sim_lda_ss: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F019/auth_sim_lda_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F019/auth_sim_lda_ss: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F019/auth_sim_lda_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F017/auth_sim_emb_ss: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F017/auth_sim_emb_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F017/auth_sim_emb_ss: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F017/auth_sim_emb_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F017/auth_sim_emb_lg_ss: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F017/auth_sim_emb_lg_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F017/auth_sim_emb_lg_ss: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F017/auth_sim_emb_lg_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F020/auth_sim_tfidf_c_allv_ss: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F020/auth_sim_tfidf_c_allv_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F020/auth_sim_tfidf_c_allv_ss: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F020/auth_sim_tfidf_c_allv_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F022/auth_sim_tfidf_w_allv_ss: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F022/auth_sim_tfidf_w_allv_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F022/auth_sim_tfidf_w_allv_ss: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F022/auth_sim_tfidf_w_allv_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F018/auth_sim_lda_allv_ss: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F018/auth_sim_lda_allv_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F018/auth_sim_lda_allv_ss: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F018/auth_sim_lda_allv_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F016/auth_sim_emb_allv_ss: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F016/auth_sim_emb_allv_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F016/auth_sim_emb_allv_ss: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F016/auth_sim_emb_allv_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F016/auth_sim_emb_lg_allv_ss: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F016/auth_sim_emb_lg_allv_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F016/auth_sim_emb_lg_allv_ss: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F016/auth_sim_emb_lg_allv_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F007/article_sim_mean: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F007/article_sim_mean: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F007/article_sim_mean: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F007/article_sim_mean: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F009/article_sim_std: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F009/article_sim_std: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F009/article_sim_std: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F009/article_sim_std: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F007/article_sim_mean_ctx: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F007/article_sim_mean_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F007/article_sim_mean_ctx: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F007/article_sim_mean_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F009/article_sim_std_ctx: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F009/article_sim_std_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F009/article_sim_std_ctx: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F009/article_sim_std_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F007/article_sim_mean_ss: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F007/article_sim_mean_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F007/article_sim_mean_ss: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F007/article_sim_mean_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F009/article_sim_std_ss: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F009/article_sim_std_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F009/article_sim_std_ss: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F009/article_sim_std_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F008/article_sim_mean_allv: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F008/article_sim_mean_allv: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F008/article_sim_mean_allv: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F008/article_sim_mean_allv: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F010/article_sim_std_allv: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F010/article_sim_std_allv: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F010/article_sim_std_allv: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F010/article_sim_std_allv: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F008/article_sim_mean_allv_ctx: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F008/article_sim_mean_allv_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F008/article_sim_mean_allv_ctx: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F008/article_sim_mean_allv_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F010/article_sim_std_allv_ctx: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F010/article_sim_std_allv_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F010/article_sim_std_allv_ctx: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F010/article_sim_std_allv_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F008/article_sim_mean_allv_ss: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F008/article_sim_mean_allv_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F008/article_sim_mean_allv_ss: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F008/article_sim_mean_allv_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F010/article_sim_std_allv_ss: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F010/article_sim_std_allv_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F010/article_sim_std_allv_ss: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F010/article_sim_std_allv_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F007/article_sim_mean_lg: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F007/article_sim_mean_lg: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F007/article_sim_mean_lg: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F007/article_sim_mean_lg: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F009/article_sim_std_lg: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F009/article_sim_std_lg: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F009/article_sim_std_lg: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F009/article_sim_std_lg: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F007/article_sim_mean_lg_ctx: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F007/article_sim_mean_lg_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F007/article_sim_mean_lg_ctx: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F007/article_sim_mean_lg_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F009/article_sim_std_lg_ctx: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F009/article_sim_std_lg_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F009/article_sim_std_lg_ctx: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F009/article_sim_std_lg_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F007/article_sim_mean_lg_ss: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F007/article_sim_mean_lg_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F007/article_sim_mean_lg_ss: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F007/article_sim_mean_lg_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F009/article_sim_std_lg_ss: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F009/article_sim_std_lg_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F009/article_sim_std_lg_ss: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F009/article_sim_std_lg_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F008/article_sim_mean_lg_allv: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F008/article_sim_mean_lg_allv: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F008/article_sim_mean_lg_allv: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F008/article_sim_mean_lg_allv: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F010/article_sim_std_lg_allv: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F010/article_sim_std_lg_allv: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F010/article_sim_std_lg_allv: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F010/article_sim_std_lg_allv: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F008/article_sim_mean_lg_allv_ctx: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F008/article_sim_mean_lg_allv_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F008/article_sim_mean_lg_allv_ctx: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F008/article_sim_mean_lg_allv_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F010/article_sim_std_lg_allv_ctx: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F010/article_sim_std_lg_allv_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F010/article_sim_std_lg_allv_ctx: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F010/article_sim_std_lg_allv_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F008/article_sim_mean_lg_allv_ss: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F008/article_sim_mean_lg_allv_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F008/article_sim_mean_lg_allv_ss: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F008/article_sim_mean_lg_allv_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F010/article_sim_std_lg_allv_ss: 家族核心长文段 88 汉字 < 700 (standard 家族段落闸)",
-   "F010/article_sim_std_lg_allv_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F010/article_sim_std_lg_allv_ss: 组装全文 223 汉字 < 1000 (standard 总量闸)",
-   "F010/article_sim_std_lg_allv_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F557/token_adopt_kw_p25: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F557/token_adopt_kw_p25: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F557/token_adopt_kw_p25: 组装全文 232 汉字 < 1000 (standard 总量闸)",
@@ -30249,14 +29585,6 @@
    "F411/log_sent_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F411/log_sent_ss: 组装全文 232 汉字 < 1000 (standard 总量闸)",
    "F411/log_sent_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F003/algo_cater_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F003/algo_cater_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F003/algo_cater_full: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F003/algo_cater_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F002/algo_cater_b_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F002/algo_cater_b_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F002/algo_cater_b_full: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F002/algo_cater_b_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F346/jiang_2021_cater_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F346/jiang_2021_cater_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F346/jiang_2021_cater_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
@@ -30329,14 +29657,6 @@
    "F141/cater_finbert2_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F141/cater_finbert2_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
    "F141/cater_finbert2_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F003/algo_cater_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F003/algo_cater_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F003/algo_cater_ctx: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F003/algo_cater_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F002/algo_cater_b_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F002/algo_cater_b_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F002/algo_cater_b_ctx: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F002/algo_cater_b_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F346/jiang_2021_cater_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F346/jiang_2021_cater_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F346/jiang_2021_cater_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
@@ -30409,14 +29729,6 @@
    "F141/cater_finbert2_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F141/cater_finbert2_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
    "F141/cater_finbert2_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F003/algo_cater_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F003/algo_cater_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F003/algo_cater_ss: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F003/algo_cater_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F002/algo_cater_b_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F002/algo_cater_b_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F002/algo_cater_b_ss: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F002/algo_cater_b_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F346/jiang_2021_cater_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F346/jiang_2021_cater_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F346/jiang_2021_cater_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
@@ -30585,26 +29897,10 @@
    "F467/nf_headline_frac: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F467/nf_headline_frac: 组装全文 232 汉字 < 1000 (standard 总量闸)",
    "F467/nf_headline_frac: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F004/nf_ln_coverage: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F004/nf_ln_coverage: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F004/nf_ln_coverage: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F004/nf_ln_coverage: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F319/ft_n_articles_dedup: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F319/ft_n_articles_dedup: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F319/ft_n_articles_dedup: 组装全文 232 汉字 < 1000 (standard 总量闸)",
    "F319/ft_n_articles_dedup: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F005/all_n_articles: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F005/all_n_articles: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F005/all_n_articles: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F005/all_n_articles: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F004/all_ln_coverage: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F004/all_ln_coverage: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F004/all_ln_coverage: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F004/all_ln_coverage: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F004/zero_coverage: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F004/zero_coverage: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F004/zero_coverage: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F004/zero_coverage: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F407/ln_ft_articles: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
    "F407/ln_ft_articles: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
    "F407/ln_ft_articles: 组装全文 232 汉字 < 1000 (standard 总量闸)",
