@@ -76,7 +76,10 @@ async def call_llm_with_cache(session: aiohttp.ClientSession, cache: LLMCache,
     # "离线=$0" 承诺并把未经生产校验的裸响应预写进生产 _llm_cache.db。
     if os.environ.get('NEWS_PROCESS_LLM_OFFLINE', '').strip().lower() in (
             '1', 'true', 'yes', 'on'):
-        raise RuntimeError(
+        # SystemExit ⊂ BaseException ⊄ Exception — 穿透 main() 的逐行 except Exception
+        # (镜像 boilerplate SystemExit 穿透先例), 保证离线 miss = 整跑硬失败而非
+        # 静默 _error 行 + 误导性 misses:0 汇总。
+        raise SystemExit(
             'NEWS_PROCESS_LLM_OFFLINE=1 下缓存 miss — v7_wz_audit 禁止在线付费调用')
 
     # Cache miss: 调真实 API
