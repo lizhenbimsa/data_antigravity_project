@@ -71,6 +71,14 @@ async def call_llm_with_cache(session: aiohttp.ClientSession, cache: LLMCache,
     if cached:
         return cached, True
 
+    # fix(reaudit-2026-07-12 WP-A3): miss 必须尊重全局离线守卫 — 本脚本经 config 注入
+    # 生产 v8 prompt_version, 与 stage 21 同缓存键空间; 无守卫的在线 miss 会绕过
+    # "离线=$0" 承诺并把未经生产校验的裸响应预写进生产 _llm_cache.db。
+    if os.environ.get('NEWS_PROCESS_LLM_OFFLINE', '').strip().lower() in (
+            '1', 'true', 'yes', 'on'):
+        raise RuntimeError(
+            'NEWS_PROCESS_LLM_OFFLINE=1 下缓存 miss — v7_wz_audit 禁止在线付费调用')
+
     # Cache miss: 调真实 API
     api_key = os.environ.get('YUNWU_API_KEY') or _read_env_key()
     url = 'https://yunwu.ai/v1/chat/completions'

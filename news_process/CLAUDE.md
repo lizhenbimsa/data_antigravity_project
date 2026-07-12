@@ -56,7 +56,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 确定性 / golden (铁律)
 
-- **勿删 `data/processed/_llm_cache.db`** (~2.1GB, 随缓存播种增长; ⚠ `data/processed/_cache/_llm_cache.db` 是 0 字节空壳, 勿认错) — golden 跨-run 可复现锚。三轨 (full/ctx/ss) 在缓存 **0 miss** 即可 `NEWS_PROCESS_LLM_OFFLINE=1` 离线 $0 字节级复现 (miss → raise `LLMCacheMissError`, 不调 API, 跳过 preflight 探针)。缓存命中键 = `prompt_version='v8-2026-05-17'` / `temperature=0.0`; prompt 构造 SSOT = `tone_llms.iter_article_track_prompts` (生产/审计共用 → 缓存键一致)。验证: `python -m news_process.scripts.audit.verify_stage21_cache_coverage`。⚠ 嵌入族**亦受** `NEWS_PROCESS_LLM_OFFLINE` 守卫 (`embedding_engine.py` 内 miss→raise `RuntimeError`, 与 stage 21 `LLMCacheMissError` 对称但异常类型不同、live 逐次读非 import 快照); 仅在线 (env 未设或为非真值) miss 才付费。
+- **勿删 `data/processed/_llm_cache.db`** (~2.1GB, 随缓存播种增长) — golden 跨-run 可复现锚。三轨 (full/ctx/ss) 在缓存 **0 miss** 即可 `NEWS_PROCESS_LLM_OFFLINE=1` 离线 $0 字节级复现 (miss → raise `LLMCacheMissError`, 不调 API, 跳过 preflight 探针)。缓存命中键 = `prompt_version='v8-2026-05-17'` / `temperature=0.0`; prompt 构造 SSOT = `tone_llms.iter_article_track_prompts` (生产/审计共用 → 缓存键一致)。验证: `python -m news_process.scripts.audit.verify_stage21_cache_coverage`。⚠ 嵌入族**亦受** `NEWS_PROCESS_LLM_OFFLINE` 守卫 (`embedding_engine.py` 内 miss→raise `RuntimeError`, 与 stage 21 `LLMCacheMissError` 对称但异常类型不同、live 逐次读非 import 快照); 仅在线 (env 未设或为非真值) miss 才付费。
 - **冻结锚点**: Prompt v8 字节级冻结 + `jieba == 0.42.1` (不重跑 stage 21, $0 LLM)。
 - **golden 重生 DEFERRED 到生产语料机** (本机 data/raw 空、T=2、无生产语料、付费不可逆); 完整付费 LLM 重处理 (stage 21 全量重跑) 须先过 **M0 审批门**。重生须 `PYTHONHASHSEED=0` + 全 BLAS 线程钉 1 (`MKL_NUM_THREADS`/`OPENBLAS_NUM_THREADS`/`NUMEXPR`/`OMP_NUM_THREADS`=1)。BLAS-FP 非确定网络列 (2026-07-03 判据分轨后 3→**9**): `bank_clustering` / `bank_cfbetween_cent` / `bank_harmonic_cent` 各自的 无后缀/_win1/_sent 三判据变体 → 验零漂移须按全名 drop 排除这 9 列 (⚠ diff_golden.py 的 _KNOWN_BLAS_RE 子串匹配自动覆盖新后缀; 其宽清单含 eigen 与本处 3 基名清单不一致, 待生产机重生时实证统一)。换模/改测度类改动 golden **零字节安全**须受控全量重生; manuscript 须披露厂商维度 Google→阿里 Qwen 与 full-only 数值副作用 (`n_articles`/`fintech_share`/`attention_pct` 收缩, 均非 bug)。
 - **本机验证套路**: 改测度类改动本机不动 parquet → 用 baseline-stash A/B 差分证"0 新增失败"(committed golden 本就陈旧, T=2 dev 不新增红灯)。
@@ -178,6 +178,7 @@ pytest tests/integration/test_panel_reproducibility.py
 - `SILICONFLOW_API_KEY`: canonical Qwen 嵌入轨 (硅基流动)。
 - `EMBEDDING_API_KEY`: 默认 `${YUNWU_API_KEY}` (可覆盖独立端点)。
 - `FINBERT2_MODEL_DIR`: 可选本地 BERT (stage 23 缺失时优雅跳过)。
+- ⚠ `LLMs_for_FinTech_dic/` 独立管道使用**独立开关 `LLMS_DIC_OFFLINE`**; `NEWS_PROCESS_LLM_OFFLINE` 对该目录无效 ("设主项目离线变量即全仓 $0" 不成立)。
 - ⚠ 裸环境嵌入 SSL 报错 → 设 `SSL_CERT_FILE=$(python -c "import certifi;print(certifi.where())")`; 重跑 stage 23 BERT 设 `HF_HUB_OFFLINE=1`/`TRANSFORMERS_OFFLINE=1`。
 
 ## Multi-Paper Support

@@ -2173,12 +2173,18 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     # sum 跳过无效行 = valid-only 分子; 若分母用 physical Σweight 则 Σ_valid(w·s)/Σ_all(w)
     # 系统性向 0 衰减。故 LLM 族改用 valid-mask 分母 sum_wd_{wtag}_{group}{track}
     # (= Σ weight over {i: 该族 score 有效}, 由 runner._build_llm_valid_masked_weights 预计算)。
-    # ⚠ dict/BERT 族 **不改**: 词典 score=0(非 NA)/BERT prob=0(非 NA), 分子分母同全物理域,
-    # 加 mask 会反向失配 (over-correct)。缺 mask 列 → 回退 physical (向后兼容)。
+    # ⚠ dict/BERT 族 **不改** (前提更正 reaudit-2026-07-12 WP-A5): dict 族 score 结构性
+    # 无 NaN (stage 13 硬过滤 + prepend_title ⇒ 存活行必含真实 token, 空文本分支不可达),
+    # 分子分母确同全物理域; BERT 族则自 omni-g-berts-02 (2026-06-11) 起存在失败哨兵
+    # NaN (tone_berts._failure_result, 概率=NaN) — 若生产推理失败率 > 0, 物理域分母会使
+    # {b}_pos/neg_{vw,mw,hw} 受影响格向 0 偏 (与 encode-01 修前的 LLM 族同构)。掩码根治
+    # 属改测度, DEFER 至 M0/golden 重生窗口 (FATAL_REAUDIT_CLOSEOUT plan §3 WP-B1);
+    # 现行防线 = panel runner 输入处 infer_failed 观测闸 (WP-A1, 失败>0 即 loud ERROR)。
+    # 缺 mask 列 → 回退 physical (向后兼容)。
     # 白话: 加权平均 = "分数×权重加总"再除以"权重加总"。LLM 打分失败的文章
     # 分子里自动不算, 那分母也必须只数"打分成功文章"的权重 — 否则分母偏大,
-    # 算出来的语调被整体压向 0。词典/BERT 对每篇文章都有分数 (失败记 0 而非
-    # 缺失), 分子分母本来就同域, 不需要也不能套这个修正。
+    # 算出来的语调被整体压向 0。词典对每篇存活文章都必有分数, 不需要这个修正;
+    # BERT 仅在"推理失败"时无分数 (当前实测 0 篇, 有观测闸盯着), 根治留待重生窗口。
     def _llm_denom(wtag, grp, track, physical):
         col = f'sum_wd_{wtag}_{grp}{track}'
         return panel[col].replace(0, np.nan) if col in panel.columns else physical

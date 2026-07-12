@@ -503,6 +503,19 @@ def main() -> None:
     # 仅在真正运行 main() 时触发 (import 本模块/被测试导入不会写文件)。
     setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"], console_only=False, file_mode="w")
 
+    # fix(reaudit-2026-07-12 WP-A4): 银行关键词硬闸 (镜像 news_bank.py::main 的 BANKS 空表
+    # SystemExit 先例)。_constants.py 加载 bank_keywords.json 失败时 import 期吞异常回退
+    # BANK_KEYWORDS=[] → BANK_KW_AUTOMATON=None → 第 6 步银行关键词保留过滤整体静默跳过:
+    # 语料过度包含, 且近重簇代表可被"无关键词副本"占位挤掉本应存活的文章 (行集漂移)。
+    # 闸放 main() 运行期而非 import 期 (import 期 SystemExit 会误伤仅 import 本模块的
+    # 测试/工具); config/bank_keywords.json 正常加载时永不触发 (golden-safe)。
+    from news_process.pipeline.preprocess._constants import BANK_KEYWORDS as _bank_kws
+    if not _bank_kws:
+        logger.error(
+            "bank_keywords.json 未加载 (BANK_KEYWORDS 为空) — 银行关键词保留过滤将整体"
+            "失效, 拒绝以过度包含语料污染 DAG 根产物; 请检查 config paths.bank_keywords_file")
+        raise SystemExit(1)
+
     # ── 黄金范式【功能】banner (golden-safe: 纯日志; 单一权威 banner, 替换旧 emoji 概览) ──
     logger.info("=" * 72)
     logger.info("阶段 00: 数据预处理 (DAG 根阶段; MinHash LSH, Broder 1997)")

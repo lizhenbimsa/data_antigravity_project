@@ -439,7 +439,9 @@ def _build_llm_valid_masked_weights(frame: pd.DataFrame, weight, wtag: str) -> d
     分母 (Σ weight over all) 使加权语调系统性向 0 衰减 (随 LLM-invalid 占比增大)。
 
     仅 LLM 族需要: 其 score 为 nullable <NA>(无效行) → 分子 NA-skip。**dict/BERT 族不建**
-    (score=0 非 NA, 分子分母同为全物理域, 加 mask 会反向失配; 见 encode.py VW 段说明)。
+    (前提更正 reaudit-2026-07-12 WP-A5: dict 族 score 结构性无 NaN — stage 13 硬过滤后
+    空文本分支不可达; BERT 族存在失败哨兵 NaN (omni-g-berts-02), 掩码根治 DEFER M0
+    窗口 WP-B1, 现行防线 = panel 输入处 infer_failed 观测闸; 见 encode.py VW 段说明)。
 
     Args:
         frame: 含 llm_vote_score / {short}_score / llm_prob_score {track} 列的篇级 df。
@@ -688,6 +690,24 @@ def main():
     df = pd.read_parquet(input_path)
     logger.info(f"  已加载: {input_path}")
     logger.info(f"  行数: {len(df):,}, 列数: {df.shape[1]}")
+
+    # fix(reaudit-2026-07-12 WP-A1): BERT 推理失败哨兵可观测性闸 (golden-safe 纯日志)。
+    # tone_berts._failure_result 的概率哨兵 = NaN (omni-g-berts-02, 2026-06-11), 而 encode 的
+    # BERT vw/mw/hw 加权族分母仍为物理域权重和 (encode-01 carve-out): 任一 infer_failed 行
+    # 会使分子 NA-skip、分母仍含其权重 → 该 bank-year 格向 0 偏。根治 (镜像
+    # _build_llm_valid_masked_weights 给 BERT 建掩码) 属改测度, DEFER 至 M0/golden 重生窗口
+    # (见 FATAL_REAUDIT_CLOSEOUT_EXECUTION_PLAN_2026-07-12 §3 WP-B1); 本闸保证失败率 > 0
+    # 时 fail-loud 可见, 绝不静默。判真用 == True (防 NaN 经 astype(bool) 误判)。
+    _if_cols = [c for c in df.columns
+                if c.endswith(('_infer_failed_full', '_infer_failed_ctx', '_infer_failed_ss'))]
+    _if_total = int((df[_if_cols] == True).sum().sum()) if _if_cols else 0  # noqa: E712
+    if _if_total > 0:
+        logger.error(
+            f"  ⚠ BERT 推理失败哨兵: {_if_total} 篇×轨 (infer_failed=True) — "
+            f"{{b}}_pos/neg_{{vw,mw,hw}} 加权族物理域分母将使受影响格向 0 偏 "
+            f"(掩码根治 DEFER M0, 见 WP-B1); 请核查 stage 23 日志定位失败篇")
+    elif _if_cols:
+        logger.info("  BERT 推理失败哨兵: 0 篇 (加权族物理域分母无向-0-偏风险)")
 
     # 校验关键列
     required_cols = ['target_bank', 'llm_sentiment_full', '日期', 'llm_agreement_rate_full']

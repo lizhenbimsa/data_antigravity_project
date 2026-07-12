@@ -1812,7 +1812,12 @@ def compute_strategic_differentiation(df_exploded, panel):
                 sl = _compute_nn_scores(jsd_mat, banks, LDA_EMB_N_LIST,
                                          is_distance=True)
                 cd_lda = _compute_centroid_scores(theta, banks)
-            except Exception:
+            except Exception as e:
+                # fix(reaudit-2026-07-12 WP-A2): 镜像 Full 轨同款告警 — 原裸吞零日志,
+                # 该年 *_lda{_tsfx} 列静默 NaN 无审计线索 (数值语义不变: None → 跳写)。
+                logger.warning(
+                    f"    {_tsfx} 轨 year={year} LDA+JSD 失败 "
+                    f"({type(e).__name__}), 跳过")
                 sl, cd_lda = None, None
 
             # fix(omni-g-strategic-02/10): emb 轨显式 bounds (同 Full 轨)
