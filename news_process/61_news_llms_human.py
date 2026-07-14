@@ -17,4 +17,6 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 if __name__ == "__main__":
     from news_process.validation.llms_human import main
-    main()
+    # fix(N2-P1, 2026-07-14): argv 透传 --force-regenerate (纯 plumbing 非业务
+    # 逻辑) — 否则 shim 路径无越权通道, 非空标注拦截后无法经编排入口显式重生。
+    main(force_regenerate='--force-regenerate' in sys.argv[1:])

@@ -164,12 +164,21 @@ def derive_blind_paths(output_path: str) -> dict:
 
 
 def _build_coder_guide(coder: str) -> pd.DataFrame:
-    """盲表内嵌编码指南 sheet (WP-E; 摘自协议文档的编码员可见部分)。"""
+    """盲表内嵌编码指南 sheet (WP-E; 摘自协议文档的编码员可见部分)。
+
+    fix(M3, 2026-07-14): '任务'/'判断依据' 措辞与 tone_validation.py 新版
+    coding_note (:749-765) 逐字对齐 — 由"整体语调"改为"仅对 target_bank
+    目标银行的情感倾向, 同行提及不传染", 对齐 unified_cot.txt:20-21 LLM
+    构念 (聚焦目标银行 + 抗污染指令); 原"边界规则"行的"引用他行负面不传染"
+    已是正确构念, 本次仅补齐上方两行此前遗留的"整体语调"错位措辞。
+    """
     rows = [
         ('任务', f'编码者{coder} 独立完成两列: 编码者{coder}_验证 ∈ {{1,0}} — 1=该文确为目标银行'
                  '(target_bank 列) 的金融科技相关新闻, 0=不是; '
-                 f'编码者{coder}_情感 ∈ {{正面,中性,负面}} — 基于标题+内容整体语调。'),
-        ('判断依据', '阅读"标题"+"内容"全文判断; 客观描述标中性; 标题计入判断但以正文为主。'),
+                 f'编码者{coder}_情感 ∈ {{正面,中性,负面}} — 仅对 target_bank 目标银行的情感倾向,'
+                 ' 同行提及不传染 (其利好/负面与目标银行无直接关联时视为噪音, 不影响评分)。'),
+        ('判断依据', '阅读"标题"+"内容"全文, 定位 target_bank 目标银行本身的情感倾向判断;'
+                   ' 客观描述标中性; 标题计入判断但以正文为主。'),
         ('独立性', '禁止与另一位编码员就任何篇目交流; 禁止使用任何 LLM/翻译/摘要工具辅助判定; '
                    '按表内行序标注, 不得自选顺序。'),
         ('边界规则', '混合情感按主导语调、势均力敌标中性; 引用他行负面不传染; 目标银行被处罚/通报=负面, '
@@ -180,9 +189,118 @@ def _build_coder_guide(coder: str) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=['项目', '说明'])
 
 
-def _write_blind_workbook(sample_df: pd.DataFrame, coder: str, out_path: str) -> pd.DataFrame:
-    """写单编码员盲表: 本编码员 2 标注列前置 + 白名单上下文列, 零机器判定列。"""
+# ============================================================================
+# N2 盲表防覆写机制 (2026-07-14; 计划 §10 新挂账 N2, 人工窗口硬前置)
+# ----------------------------------------------------------------------------
+# fix(N2, 2026-07-14): 此前 _write_blind_workbook 直接 to_excel 无任何检测 —
+# 人工标注启动后若管道被重跑 (如误触发编排器/手动重跑本模块), 会静默覆盖已
+# 填写的人工判定列且不可逆 (人工标注无法从代码重建)。现补写出前双保险检测:
+# ① 既有盲表标注列非空计数 >0 → 拒绝; ② 独立"标注进行中"旗标文件存在 → 拒绝
+# (覆盖"刚发放尚未填写即被误重跑"的窗口, 此时标注列本身还是空的)。
+# 二者任一命中即 fail-loud (raise SystemExit, 镜像 manual_validation_sampling.py
+# ``_resolve_col`` 的 fail-loud 风格), 需显式 force_regenerate=True
+# (CLI: ``--force-regenerate``) 才可覆盖。
+# ============================================================================
+
+def _annotation_flag_path(out_path: str) -> str:
+    """"发放"旗标文件路径 (与 out_path 同目录同名+后缀)。
+
+    fix(N2-P1, 2026-07-14): 语义 = 盲表已发放的留痕/重生警告触发器; 单独在位
+    (零标注) 不硬拦重生 (防编排器死锁), 非空标注由主检硬拦。
+    """
+    return f"{out_path}.annotation_in_progress"
+
+
+def _count_filled_annotations_in_file(path: str, ann_cols: list) -> int:
+    """读取既有盲表, 统计 ann_cols 中非空(非 NaN/非空白/非字面 'nan')值个数。
+
+    读取失败 (文件损坏/sheet 缺失等) 时向上抛出异常, 由调用方保守地当作
+    "有风险"处理 (fail-loud, 绝不静默放行覆写)。
+    """
+    with pd.ExcelFile(path) as xl:
+        sheet = '验证数据' if '验证数据' in xl.sheet_names else xl.sheet_names[0]
+        existing = pd.read_excel(xl, sheet_name=sheet)
+    n_filled = 0
+    for c in ann_cols:
+        if c not in existing.columns:
+            continue
+        s = existing[c]
+        non_null = s.notna()
+        non_blank = s.astype(str).str.strip().str.lower().ne('') & s.astype(str).str.strip().str.lower().ne('nan')
+        n_filled += int((non_null & non_blank).sum())
+    return n_filled
+
+
+def _guard_blind_overwrite(out_path: str, ann_cols: list, force_regenerate: bool) -> None:
+    """N2 盲表防覆写守卫: 写出前检测, 有风险则 fail-loud 拒绝覆写。
+
+    Args:
+        out_path: 即将写出的盲表路径 (可能尚不存在)。
+        ann_cols: 该盲表内的人工标注列名 (只检测这些列, 不误伤上下文列)。
+        force_regenerate: 显式越权标记 (CLI ``--force-regenerate`` 或调用方传
+            ``force_regenerate=True``); 为 True 时放行但仍打印 loud 提示。
+    """
+    flag_path = _annotation_flag_path(out_path)
+    flag_exists = os.path.exists(flag_path)
+    n_filled = 0
+    read_failed = False
+    if os.path.exists(out_path):
+        try:
+            n_filled = _count_filled_annotations_in_file(out_path, ann_cols)
+        except Exception as e:
+            logger.error(f"覆写检测: 读取既有盲表 {out_path} 失败 ({e}) — 保守判定为有风险, 拒绝覆写")
+            read_failed = True
+
+    if force_regenerate:
+        if n_filled > 0 or flag_exists or read_failed:
+            logger.warning(
+                f"  ⚠ --force-regenerate/force_regenerate=True 显式越权覆写 {out_path} "
+                f"(检测到 {n_filled} 个非空标注"
+                f"{'/读取失败按有风险处理' if read_failed else ''}"
+                f"{'/存在标注进行中旗标' if flag_exists else ''}) — "
+                "现有人工标注 (如有) 将被覆盖/作废。"
+            )
+        return
+
+    if n_filled > 0 or read_failed:
+        logger.error(
+            f"检测到 {out_path} 已有 {n_filled} 个非空标注"
+            + ("（读取异常, 保守视为有标注）" if read_failed else "")
+            + ("（且存在'发放'旗标文件）" if flag_exists else "")
+            + " → 拒绝重生 (N2 盲表防覆写机制)。如确需重新生成 (将作废现有人工标注), "
+              "请显式传 force_regenerate=True 或 CLI --force-regenerate。"
+        )
+        raise SystemExit(
+            f"N2 盲表防覆写守卫拦截: {out_path} 已有 {n_filled} 个非空人工标注"
+            f"{'（含读取异常）' if read_failed else ''}, "
+            "拒绝覆写；需 --force-regenerate 显式越权。"
+        )
+
+    # fix(N2-P1, 2026-07-14): 旗标单独在位 (零标注且可读) → **放行 + LOUD 警告**,
+    # 不再硬拦。原实现"旗标单独拦"会死锁编排器: shim 零参调用 main() 无越权
+    # 通道, 首次成功跑过 stage 61 (自动落旗标) 后每次验证管道在此硬中止并连坐
+    # 跳过 62 起全部后续阶段 (R2-A 实跑确证)。放行安全性: 抽样 seed 恒定 →
+    # 重生内容逐字节可再现, 空表无人工成果可丢; "已发放未填写"窗口的外部副本
+    # 亦因内容确定性可无损回贴。非空标注的硬拦 (上方主检) 不受影响。
+    if flag_exists:
+        logger.warning(
+            f"  ⚠ 检测到'已发放'旗标 {flag_path} 但盲表零标注 — 按确定性重生放行 "
+            "(seed 恒定内容可再现)。若编码员正于外部副本作业, 请先收回核对。"
+        )
+
+
+def _write_blind_workbook(sample_df: pd.DataFrame, coder: str, out_path: str,
+                          force_regenerate: bool = False) -> pd.DataFrame:
+    """写单编码员盲表: 本编码员 2 标注列前置 + 白名单上下文列, 零机器判定列。
+
+    fix(N2, 2026-07-14): 写出前经 ``_guard_blind_overwrite`` 检测既有人工标注,
+    有则拒绝覆写 (需 force_regenerate=True 显式越权); 写出成功后落地"发放"
+    旗标文件。fix(N2-P1, 2026-07-14): 旗标语义 = 发放记录——单独在位 (零标注)
+    时重生**放行 + LOUD 警告** (seed 恒定内容可再现, 防编排器死锁), 只有非空
+    标注才硬拦。
+    """
     ann_cols = [f'编码者{coder}_验证', f'编码者{coder}_情感']
+    _guard_blind_overwrite(out_path, ann_cols, force_regenerate)
     cols = [c for c in ann_cols + _BLIND_CONTEXT_COLS if c in sample_df.columns]
     blind_df = sample_df[cols].copy()
     try:
@@ -193,6 +311,19 @@ def _write_blind_workbook(sample_df: pd.DataFrame, coder: str, out_path: str) ->
     except Exception as e:
         logger.warning(f"写入盲表 {out_path} (xlsxwriter) 失败 ({e}), 回退普通写入")
         blind_df.to_excel(out_path, index=False)
+    # N2 发放旗标: 写出成功后落地, 作发放留痕与重生警告触发器。
+    # fix(N2-P1, 2026-07-14): 语义降格为"发放记录"——单独在位不再硬拦空表重生
+    # (防编排器死锁, 见 _guard_blind_overwrite), 非空标注仍由主检硬拦。
+    try:
+        with open(_annotation_flag_path(out_path), 'w', encoding='utf-8') as f:
+            f.write(
+                "N2 盲表发放旗标 — "
+                f"由 llms_human._write_blind_workbook 于 {time.strftime('%Y-%m-%d %H:%M:%S')} 生成。\n"
+                f"存在表示 {out_path} 已发放给编码员; 零标注时重跑仅警告放行 "
+                "(seed 恒定内容可再现), 检出非空人工标注则硬拦 (须 --force-regenerate 越权)。\n"
+            )
+    except Exception as e:
+        logger.warning(f"落地发放旗标文件失败 (不影响盲表本身): {e}")
     return blind_df
 
 
@@ -203,7 +334,14 @@ def _write_reconciliation(sample_df: pd.DataFrame, out_path: str) -> None:
     recon_df.to_excel(out_path, sheet_name='验证数据', index=False)
 
 
-def main():
+def main(force_regenerate: bool = False):
+    """阶段 61 主入口。
+
+    Args:
+        force_regenerate: fix(N2, 2026-07-14) 显式越权覆写 blind_A/B 既有人工
+            标注 (CLI: ``--force-regenerate``)。默认 False — 若既有盲表已有
+            非空标注或"标注进行中"旗标存在, 拒绝覆写并 fail-loud。
+    """
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
 
@@ -322,12 +460,32 @@ def main():
     # 产物 = 盲表A + 盲表B (零机器列, per-coder 独立副本) + reconciliation (全列对账)。
     blind_paths = derive_blind_paths(output_path)
     logger.info(f"正在保存盲标双文件协议产物 (base = {output_path}):")
+    logger.info(
+        f"  N2 防覆写守卫: force_regenerate={force_regenerate} "
+        f"({'显式越权, 既有人工标注将被覆盖' if force_regenerate else '默认, 既有非空标注/进行中旗标将拒绝覆写'})"
+    )
     for coder in ('A', 'B'):
         bp = blind_paths[f'blind_{coder}']
-        _write_blind_workbook(sample_df, coder, bp)
+        _write_blind_workbook(sample_df, coder, bp, force_regenerate=force_regenerate)
         logger.info(f"  盲表{coder} = {bp} (仅键/元数据/原文/target_bank + 编码者{coder} 两标注列, 已锁下拉)")
     _write_reconciliation(sample_df, blind_paths['reconciliation'])
     logger.info(f"  对账表 = {blind_paths['reconciliation']} (全部机器列, 共识冻结后解锁, 不发编码员)")
+
+    # fix(N2, 2026-07-14): 独立 blind_A/B 覆写检测警告 —— 与下方"旧版单文件工作台"
+    # 警告分开处理, 勿混用: 旧警告只管无用的历史单文件工作台 (output_path 本体已
+    # 不再产出, 仅历史遗留文件才会命中); 本警告专门播报"本次运行对 blind_A/B 是否
+    # 触发了 N2 防覆写放行/越权"。若 _write_blind_workbook 已因未 --force-regenerate
+    # 而 raise SystemExit, 本行不会被执行到 —— 走到这里即代表两份盲表本次写出未被拦截。
+    if force_regenerate:
+        logger.warning(
+            "  ⚠ N2: 本次运行以 --force-regenerate/force_regenerate=True 显式越权生成 "
+            "blind_A/B (N2 防覆写守卫已放行) — 若此前已有人工标注, 该批标注已被覆盖/作废。"
+        )
+    else:
+        logger.info(
+            "  N2: blind_A/B 均无既有非空标注且无'标注进行中'旗标 (或此前不存在), 正常生成。"
+        )
+
     if os.path.exists(output_path):
         logger.warning(
             f"  ⚠ 检测到旧版单文件工作台 {output_path} (含机器判定列, 反盲标) — "
@@ -750,4 +908,6 @@ if __name__ == "__main__":
         out = args[1] if len(args) > 1 else None
         merge_annotations(inp, out, with_adjudication=adj)
     else:
-        main()
+        # fix(N2, 2026-07-14): --force-regenerate 显式越权覆写既有 blind_A/B 人工标注
+        # 用法: python 61_news_llms_human.py [--force-regenerate]
+        main(force_regenerate='--force-regenerate' in sys.argv[1:])

@@ -27,6 +27,107 @@ import pandas as pd
 
 sys.stdout.reconfigure(encoding='utf-8')
 
+# ============================================================================
+# N2 盲表防覆写机制 (2026-07-14; 计划 §10 新挂账 N2, 人工窗口硬前置)
+# ----------------------------------------------------------------------------
+# fix(N2, 2026-07-14): 此前两处 to_excel (coder_df→OUTPUT_XLSX,
+# recon_df→RECONCILIATION_XLSX) 直接写盘无任何检测 — 人工标注 (R1/R2/R3_*
+# 列) 启动后若本脚本被误重跑, 会静默覆盖已填写的人工判定且不可逆。现补写出
+# 前双保险检测 (同款机制镜像 news_process/validation/llms_human.py
+# ``_guard_blind_overwrite``): ① 既有 xlsx 的 R1_/R2_/R3_ 标注列非空计数 >0
+# → 拒绝; ② 独立"标注进行中"旗标文件存在 → 拒绝 (覆盖"刚生成尚未填写即被
+# 误重跑"窗口)。二者任一命中即 fail-loud raise SystemExit (镜像本文件既有
+# ``_resolve_col`` 的 fail-loud 风格), 需显式 --force-regenerate 才可覆盖。
+# ============================================================================
+
+
+def _annotation_flag_path(out_path) -> Path:
+    """"发放"旗标文件路径 (fix N2-P1: 发放留痕/警告触发器, 非独立硬闸)。"""
+    return Path(str(out_path) + '.annotation_in_progress')
+
+
+def _count_filled_rater_annotations(path) -> int:
+    """读取既有工作台, 统计 R1_/R2_/R3_ 前缀列中非空(非 NaN/非空白/非'nan')值个数。
+
+    读取失败时向上抛出异常, 由调用方保守地当作"有风险"处理。
+    """
+    existing = pd.read_excel(path)
+    rater_cols = [c for c in existing.columns if c.startswith(('R1_', 'R2_', 'R3_'))]
+    n_filled = 0
+    for c in rater_cols:
+        s = existing[c]
+        non_null = s.notna()
+        non_blank = (s.astype(str).str.strip().str.lower().ne('')
+                     & s.astype(str).str.strip().str.lower().ne('nan'))
+        n_filled += int((non_null & non_blank).sum())
+    return n_filled
+
+
+def _guard_blind_overwrite(out_path, force_regenerate: bool) -> None:
+    """N2 盲表防覆写守卫: 写出前检测, 有风险则 fail-loud 拒绝覆写。"""
+    out_path = Path(out_path)
+    flag_path = _annotation_flag_path(out_path)
+    flag_exists = flag_path.exists()
+    n_filled = 0
+    read_failed = False
+    if out_path.exists():
+        try:
+            n_filled = _count_filled_rater_annotations(out_path)
+        except Exception as e:
+            print(f"覆写检测: 读取既有工作台 {out_path} 失败 ({e}) — 保守判定为有风险, 拒绝覆写")
+            read_failed = True
+
+    if force_regenerate:
+        if n_filled > 0 or flag_exists or read_failed:
+            print(
+                f"⚠ --force-regenerate 显式越权覆写 {out_path} (检测到 {n_filled} 个非空标注"
+                f"{'/读取失败按有风险处理' if read_failed else ''}"
+                f"{'/存在标注进行中旗标' if flag_exists else ''}) — "
+                "现有人工标注 (如有) 将被覆盖/作废。"
+            )
+        return
+
+    if n_filled > 0 or read_failed:
+        msg = (
+            f"检测到 {out_path} 已有 {n_filled} 个非空标注"
+            + ("（读取异常, 保守视为有标注）" if read_failed else "")
+            + ("（且存在'发放'旗标文件）" if flag_exists else "")
+            + " → 拒绝重生 (N2 盲表防覆写机制)。如确需重新生成 (将作废现有人工标注), "
+              "请显式传 --force-regenerate。"
+        )
+        print(msg)
+        raise SystemExit(
+            f"N2 盲表防覆写守卫拦截: {out_path} 已有 {n_filled} 个非空人工标注"
+            f"{'（含读取异常）' if read_failed else ''}, "
+            "拒绝覆写；需 --force-regenerate 显式越权。"
+        )
+
+    # fix(N2-P1, 2026-07-14): 旗标单独在位 (零标注且可读) → 放行 + LOUD 警告,
+    # 与 llms_human._guard_blind_overwrite 同款语义 (旗标=发放记录, 非独立硬闸;
+    # 抽样确定性保证重生内容可再现, 空表无人工成果可丢; 防守卫死锁重跑路径)。
+    if flag_exists:
+        print(
+            f"⚠ 检测到'已发放'旗标 {flag_path} 但工作台零标注 — 按确定性重生放行。"
+            "若编码员正于外部副本作业, 请先收回核对。"
+        )
+
+
+def _touch_annotation_flag(out_path) -> None:
+    """写出成功后落"发放"旗标 (fix N2-P1: 语义=发放记录/重生警告触发器,
+    单独在位不硬拦空表重生; 非空标注由主检硬拦)。旗标写失败不影响工作台本身。"""
+    import time
+    try:
+        with open(_annotation_flag_path(out_path), 'w', encoding='utf-8') as f:
+            f.write(
+                "N2 盲表发放旗标 — "
+                f"由 manual_validation_sampling.main 于 {time.strftime('%Y-%m-%d %H:%M:%S')} 生成。\n"
+                f"存在表示 {out_path} 已发放给编码员; 零标注时重跑仅警告放行, "
+                "检出非空人工标注则硬拦 (须 --force-regenerate 越权)。\n"
+            )
+    except Exception as e:
+        print(f"落地发放旗标文件失败 (不影响工作台本身): {e}")
+
+
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 INPUT_PARQUET = PROJECT_ROOT / 'news_process' / 'data' / 'processed' / '21_tone_llms.parquet'
 INPUT_FULL_PARQUET = PROJECT_ROOT / 'news_process' / 'data' / 'processed' / '21_tone_llms_full.parquet'
@@ -39,7 +140,14 @@ TARGET_TOTAL = 500
 PER_STRATUM = 100
 
 
-def main():
+def main(force_regenerate: bool = False):
+    """分层抽样主入口。
+
+    Args:
+        force_regenerate: fix(N2, 2026-07-14) 显式越权覆写既有工作台的人工
+            标注 (CLI: ``--force-regenerate``)。默认 False —— 若既有 xlsx 已
+            有非空 R1_/R2_/R3_ 标注或"标注进行中"旗标存在, 拒绝覆写并 fail-loud。
+    """
     # 加载: 21_tone_llms_full.parquet 含全部 1,170 篇文章 (包括 verified=False)
     if INPUT_FULL_PARQUET.exists():
         df = pd.read_parquet(INPUT_FULL_PARQUET)
@@ -225,11 +333,22 @@ def main():
     print('Stratum breakdown:')
     print(out['stratum'].value_counts().to_string())
     print(f'\n[盲表] coder-facing (零 LLM 标签) → {OUTPUT_XLSX}')
+    # fix(N2, 2026-07-14): 写出前 N2 防覆写守卫 — 既有工作台若已有非空 R1_/R2_/R3_
+    # 标注或"标注进行中"旗标, 拒绝覆写 (需 force_regenerate=True 显式越权)。
+    _guard_blind_overwrite(OUTPUT_XLSX, force_regenerate)
     coder_df.to_excel(OUTPUT_XLSX, index=False)
+    _touch_annotation_flag(OUTPUT_XLSX)
     print(f'[对账表] reconciliation (LLM 预测, 编码后解锁) → {RECONCILIATION_XLSX}')
+    # fix(N2, 2026-07-14): 对账表同款守卫 (镜像上一处; 该表本身无 R1_/R2_/R3_ 列,
+    # 故非空标注计数恒为 0, 但"标注进行中"旗标/读取异常两路仍生效, 防止编码期间
+    # 误重跑过早覆盖/解锁尚未冻结共识的 v7ref_ 对账表)。
+    _guard_blind_overwrite(RECONCILIATION_XLSX, force_regenerate)
     recon_df.to_excel(RECONCILIATION_XLSX, index=False)
+    _touch_annotation_flag(RECONCILIATION_XLSX)
     print('Done.')
 
 
 if __name__ == '__main__':
-    main()
+    # fix(N2, 2026-07-14): --force-regenerate 显式越权覆写既有人工标注
+    # 用法: python manual_validation_sampling.py [--force-regenerate]
+    main(force_regenerate='--force-regenerate' in sys.argv[1:])
