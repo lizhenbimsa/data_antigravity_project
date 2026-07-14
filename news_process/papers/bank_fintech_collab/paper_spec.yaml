@@ -120,7 +120,9 @@ inference:
     - secondary_outcomes                      # r_and_d_intensity / patent_fintech_count / capex_it / z_score
     - alternative_treatments                  # independent_minus_collab_gap / cell_id_full
     - cross_model_classifier                  # {gpt54nano,gemini31,deepseekv4}_collab_frac_full per-model 跨厂商孪生 (co-equal 互为稳健、
-                                              #  不分主次; 2026-07-03; ⚠ 声明式文档, 真 FWER=根级 27_tableA12 Panel C; 禁混同一 Hansen J)
+                                              #  不分主次; 2026-07-03; ⚠ 声明式文档, fix(N1, 2026-07-14): collab_frac 的真 FWER 待扩
+                                              #  (27_tableA12 Panel C 现仅覆盖 sub_frac, 对 collab_frac 空指——如实声明, 扩族为独立
+                                              #  小改挂 M0 清单); 禁混同一 Hansen J)
     - subsample_splits                        # SOE / hub / size / type / era (24, 26)
     - aggregation_weighting                   # EW vs VW/MW/HW (22)
   fwer:

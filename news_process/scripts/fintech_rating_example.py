@@ -15,6 +15,12 @@ fintech_rating_example.py — 金融科技新闻多维度连续评分示例
   - 创新深度: Li et al. (2021, The Review of Financial Studies — Measuring corporate culture using machine learning)
   - 战略前瞻: 姜富伟等 (2024, 管理世界)
   - 实质关联: Carlson & Burbano (2026, SMJ §3.3)
+
+【D4 SSOT 声明, 2026-07-14】模板源 (SSOT) =
+`news_process/config/prompts/fintech_rating_prompt.jinja2`；本文件的
+`build_rating_prompt` (方式 B) 是该模板的纯 f-string 手写等价副本，供无
+jinja2 依赖场景演示，措辞已历史性漂移 (三处文本差，接线时以 jinja2 为准
+同步)。本文件与 jinja2 模板目前均为**死代码** (零管线消费者)。
 """
 
 # ============================================================================
@@ -68,7 +74,9 @@ async def rate_with_gabriel(df, content_column="内容"):
         content_column: 文本列名
 
     Returns:
-        pd.DataFrame: 原 DataFrame + 5 个评分列 (0-100)
+        pd.DataFrame: 原 DataFrame + 4 个评分列 (0-100，对应
+            FINTECH_RATING_ATTRIBUTES 现有 4 个属性；D4 修正: 原文写"5 个"
+            与实际属性数不一致，2026-07-14)
     """
     import gabriel
 

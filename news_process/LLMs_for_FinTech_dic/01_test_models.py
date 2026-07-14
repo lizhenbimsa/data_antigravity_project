@@ -9,6 +9,14 @@
     python LLMs_for_dic/01_test_models.py --judge-only     # 仅测试判别模型
     python LLMs_for_dic/01_test_models.py --generate-only  # 仅测试生成模型
     python LLMs_for_dic/01_test_models.py --workers 20     # 指定并发数
+
+【D6 裁定, 2026-07-14】本脚本刻意绕过 LLMCache 与目录级 `LLMS_DIC_OFFLINE` 守卫，
+直连各模型 API 做手动可用性诊断（非确定性、非 $0、不落入生产缓存）——仅供开发者
+手动在线排查模型接口时执行，不进入任何自动化/CI 路径。文件名以数字前缀 `01_`
+而非 `test_` 开头, 不匹配 `pyproject.toml::[tool.pytest.ini_options] python_files
+= ["test_*.py"]`, 不会被 pytest 收集; 顶层逻辑已封装于 `main()` 并由文末
+`if __name__ == "__main__":` 守卫 (未改动, 本次仅补充本段声明注释), 双重防线与
+同目录 `diag_claude.py` (D6 同批改名+加固) 保持一致处置口径。
 """
 
 # === 标准库 ===

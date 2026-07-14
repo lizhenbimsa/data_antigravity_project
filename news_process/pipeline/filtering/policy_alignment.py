@@ -56,7 +56,11 @@
 
 与 Stage 26 的区别：
   - Stage 26: Bank-Year 粒度，聚合后比较，用于面板回归
-  - Stage 15: Article 粒度，逐篇比较，用于 Token/Hidden 四象限分类
+  - Stage 16 (本模块): Article 粒度，逐篇比较，用于 Token/Hidden 四象限分类
+  # fix(D5, 2026-07-14): 本行原写"Stage 15"是重编号残留(自引用错标为上游stage)，
+  # 本模块实为 Stage 16 (script=16_article_policy_alignment.py)；本文件内同类
+  # "15/16 混用" 与"stage 13/14 物化归属"残留已随本次批改统一订正，SSOT 见
+  # core/dag.py 与 CLAUDE.md「当前状态铁律」。
 
 输入:
   15_fintech_intensity.parquet (含 标题、内容、fintech_intensity_score 等)
@@ -66,7 +70,7 @@
   16_article_alignment.parquet (= 原数据 + 新增 7 列: policy_cosine_sim
   (legacy alias = _full) + policy_cosine_sim_{full,ctx,ss} 三轨 (MAIN, 无后缀)
   + policy_cosine_sim_lg_{full,ctx,ss} 双 co-primary 孪生 (large))
-  注: ss 轨 = content_ss (标题 + 银行∧金科同句共现窗), 上游 stage 13 物化;
+  注: ss 轨 = content_ss (标题 + 银行∧金科同句共现窗), 上游 stage 14 物化;
       回退 (无共现) → 全文 body (镜像 ctx 回退公理, ss_is_fallback=True)。
   全年份锚点稳健孪生 (2026-06-21, article_alignment.all_vintage_companion=true 默认):
   并列再新增 `_allv` (all-vintage) 一族 policy_cosine_sim_allv[_full/_ctx/_ss] +
@@ -83,7 +87,7 @@
 
 ■ 详细功能说明
 
-**在 DAG 中的位置**: STAGES_MAIN 阶段15, kind=filter, timeout=7200(因含 Embedding API)。上游 = stage 14(直接读 15_fintech_intensity.parquet), 下游被 stage 45 panel runner 的四象限分类(Token/Hidden/Substantive/Irrelevant)消费。
+**在 DAG 中的位置**: STAGES_MAIN 阶段16, kind=filter, timeout=7200(因含 Embedding API)。上游 = stage 15(直接读 15_fintech_intensity.parquet), 下游被 stage 45 panel runner 的四象限分类(Token/Hidden/Substantive/Irrelevant)消费。
 
 **输入**:
 - `15_fintech_intensity.parquet`(含 标题/内容/content_full/content_ctx/content_ss/year/日期 等)。
@@ -108,7 +112,7 @@
 
 它还同时用两套不同的'翻译机'(都是联网大模型 API: 一套阿里 Qwen, 一套 OpenAI large)各算一遍, 互为稳健性对照: 如果两套都给出类似结论, 结果就更可信。
 
-为什么需要它: 后面要把每篇新闻分到四个格子里——'关键词刷得多但其实不贴政策'(洗科技/喊口号)、'关键词不多但很贴政策'(闷声干事)、'又多又贴'(言行一致)、'又少又不贴'(无关)。要分格子, 就必须先有这个'贴不贴政策'的对齐分(配合 stage 14 的'关键词强度')。
+为什么需要它: 后面要把每篇新闻分到四个格子里——'关键词刷得多但其实不贴政策'(洗科技/喊口号)、'关键词不多但很贴政策'(闷声干事)、'又多又贴'(言行一致)、'又少又不贴'(无关)。要分格子, 就必须先有这个'贴不贴政策'的对齐分(配合 stage 15 的'关键词强度')。
 
 对最终面板/论文的影响: 这是把'象征性 vs 实质性采纳'这个核心构念落地的关键一步。若政策语料选错、前视守卫没做、或嵌入算偏, 银行被错分进'洗科技'还是'真干事'就会反转, 直接动摇 P1/P3 等论文关于'媒体语调/政策实质'的主结论。它的输出还会经年度内分位阈值定四象限, 所以哪怕单篇分数小变动, 也可能让整年阈值移动、连带多篇文章翻类, 需要谨慎重生面板。
 ========================================================================
@@ -338,7 +342,7 @@ def load_policy_corpus_docs(auth_path: str) -> list[dict]:
 def vintage_aware_enabled() -> bool:
     """vintage-aware 锚点开关 (默认 True; 静态全语料旧行为降级为稳健性 opt-out)。
 
-    供 stage 15 (本模块) 与 stage 26 (policy_similarity) 共用 — 两者消费同一语料,
+    供 stage 16 (本模块) 与 stage 26 (policy_similarity) 共用 — 两者消费同一语料,
     锚点口径必须一致。config 键: article_alignment.vintage_aware。
     """
     return bool((CONFIG.get('article_alignment') or {}).get('vintage_aware', True))
@@ -349,7 +353,7 @@ def all_vintage_companion_enabled() -> bool:
 
     【动机】vintage-aware 主轨用"年度 t 仅 ≤t 政策段"消除前视构造 (look-ahead),
     是 identification 的正确口径。但审稿人常追问: 结论是否被 vintage 裁剪本身驱动?
-    本开关让 stage 15 (本模块) 与 stage 26 (policy_similarity) 在保留 vintage 主轨
+    本开关让 stage 16 (本模块) 与 stage 26 (policy_similarity) 在保留 vintage 主轨
     不动的前提下, **并列**产出一套"年度 t 文章与**所有年份**政策文档拼成锚点"的孪生
     指标 (后缀 `_allv`), 用**完全一致的下游构造方法** (同嵌入/同池化/同余弦/同四象限)
     作为稳健性对照。`_allv` 锚点 = 既有静态全语料锚点 (vintage 关闭时的旧行为),
@@ -765,15 +769,15 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
       - 分数低 → 这篇新闻跟国家政策"不太像"（语义对齐度低）
     且只跟"这篇新闻发表时已经发布"的政策文件比 (vintage-aware, 见上)。
 
-    后续 Stage 45 会结合词频维度（Stage 12/14）把每篇新闻归入四个象限:
+    后续 Stage 45 会结合词频维度（Stage 15 的 fintech_intensity_score）把每篇新闻归入四个象限:
       Token (词频高+对齐低=洗科技) / Hidden (词频低+对齐高=闷声干大事) /
       Substantive (词频高+对齐高=言行一致) / Irrelevant (词频低+对齐低=不相关)
 
     Args:
-        df: DataFrame (来自 15_fintech_intensity.parquet)。full 轨优先读 stage 13
+        df: DataFrame (来自 15_fintech_intensity.parquet)。full 轨优先读 stage 14
             物化的 'content_full' 列; 缺列时回退用 '标题' + '内容' 经 prepend_title 构建。
             ctx 轨读 'content_ctx' 列; ss 轨读 'content_ss' 列 (银行+金科同句共现窗,
-            stage 13 物化; 缺列时优雅跳过, 不产出 _ss 列)。
+            stage 14 物化; 缺列时优雅跳过, 不产出 _ss 列)。
 
     Returns:
         DataFrame: 新增 'policy_cosine_sim' (legacy alias) + _full/_ctx/_ss 三轨 (MAIN)
@@ -799,7 +803,7 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
         'authoritative_corpus_file',
         os.path.join(os.path.dirname(__file__), 'config', 'authoritative_corpus.txt'),
     )
-    # 三轨 (full/ctx/ss) ss 轨可用性: 上游 stage 13 物化 content_ss 时才产 _ss 列,
+    # 三轨 (full/ctx/ss) ss 轨可用性: 上游 stage 14 物化 content_ss 时才产 _ss 列,
     # 缺列优雅跳过 (镜像 ctx 守卫) — 早退/失败路径据此决定是否把 _ss 列也置 NaN。
     has_ss = 'content_ss' in df.columns
     # 全年份锚点稳健孪生开关 (2026-06-21): true → 并列产出 `_allv` 一族 (全语料静态锚点)。
@@ -852,7 +856,7 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
 
     # ---- 4.2 构建文章输入文本 (v3.6.0 Plan E P3 B2: full/ctx → 三轨 (full/ctx/ss) 2026-06-14) ----
     # 【术语】full 轨 = 标题 + 全文; ctx 轨 = content_ctx (= 标题 + 目标银行局部窗口);
-    #   ss 轨 = content_ss (= 标题 + 目标银行∧金科同句共现窗口, 上游 stage 13
+    #   ss 轨 = content_ss (= 标题 + 目标银行∧金科同句共现窗口, 上游 stage 14
     #   ctx_materializer 物化; 无共现回退全文 body, 镜像 ctx 回退公理 ss_is_fallback=True)。
     #   三轨均含同一标题前缀 (remove-title-track 终态: 标题 prepend 进 full/ctx/ss)。
     # 【白话】三条轨道分别打分:
@@ -860,7 +864,7 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     #   - ctx:  目标银行那段 vs 政策 (实体特异性窗口 — Hassan et al. 2019 QJE §III.B
     #           proximity-based attribution; Tetlock 2007 / L&M 2016 为媒体文本分析谱系)
     #   - ss:   目标银行∧金科同句那段 vs 政策 (共现特异性, 主题漂移更小的独立信号)
-    # P0 修复 (embedding-reuse-audit 2026-06-05, 病根A 残留): full 轨改读 stage 13
+    # P0 修复 (embedding-reuse-audit 2026-06-05, 病根A 残留): full 轨改读 stage 14
     # 物化的 content_full (= prepend_title(标题, 内容)), 替代旧的裸 '标题 + 空格 + 内容'。
     # 两个动机:
     #   (1) embedding 缓存复用: content_full 是逐字节固定的文章级串, 与 **stage 27
@@ -872,7 +876,7 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     #       虽读同一 content_full 源串, 但走词典/BERT 不调 embedding API, 不进此缓存。
     #   (2) full↔ctx 标题对称: full 轨 (含标题) 与 ctx 轨 (content_ctx 含标题) 标题
     #       口径一致 (病根A 同型, 与 fintech_intensity / strategic_diff 等同批修复)。
-    # 缺 content_full 列时回退至 prepend_title 内联构建 — 与 stage 13 同函数同输入,
+    # 缺 content_full 列时回退至 prepend_title 内联构建 — 与 stage 14 同函数同输入,
     # 产出字节一致字符串, 故两个分支都能命中 stage 27 的共享缓存。
     if 'content_full' in df.columns:
         full_texts = df['content_full'].fillna('').astype(str).str.strip().tolist()
@@ -889,11 +893,11 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
                     f"(ss 轨另行记录)")
     else:
         logger.warning(
-            "  content_ctx 列缺失 (stage 13 未跑?), ctx 轨回退至 full — "
+            "  content_ctx 列缺失 (stage 14 未跑?), ctx 轨回退至 full — "
             "此时 policy_cosine_sim_ctx ≡ _full, 不构成真正独立的 ctx 轨")
         ctx_texts = full_texts
 
-    # ss 轨输入 (银行+金科同句): content_ss 由 stage 13 物化 (无共现已回退全文 body,
+    # ss 轨输入 (银行+金科同句): content_ss 由 stage 14 物化 (无共现已回退全文 body,
     # 镜像 ctx); 缺列 (has_ss=False) → ss_texts=None → 下游 _cosine_for_spec 优雅跳过,
     # 不产出 _ss 列 (镜像 ctx 缺列守卫的"不构成真三轨"逻辑, 但此处选择不产 _ss 列以
     # 避免 _ss≡_full 的伪列污染面板)。
@@ -903,7 +907,7 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
                     f"| ss={len(ss_texts)}")
     else:
         logger.warning(
-            "  content_ss 列缺失 (stage 13 未物化同句共现轨?), 跳过 ss 轨 — "
+            "  content_ss 列缺失 (stage 14 未物化同句共现轨?), 跳过 ss 轨 — "
             "不产出 policy_cosine_sim_ss / _lg_ss 列 (镜像 ctx 缺列优雅跳过)")
         ss_texts = None
 
@@ -1170,7 +1174,7 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
 # ============================================================================
 
 def main():
-    """Stage 15 主入口。
+    """Stage 16 主入口。
 
     数据流: 15_fintech_intensity.parquet → 16_article_alignment.parquet
     新增列: policy_cosine_sim 族共 7 列 (float32, 值域 [-1, 1];
@@ -1179,7 +1183,7 @@ def main():
     全语料静态锚点; anchor-robustness 对照, 不替换 vintage 主轨)。
     """
     # setup_logging 接线 (golden 范式): 本模块的 logger 自 encode.py import,
-    # 其 STAGE_NAME='40_build_panel' → stage 15 日志原会落入 40_build_panel.log。
+    # 其 STAGE_NAME='40_build_panel' → stage 16 日志原会落入 40_build_panel.log。
     # 此处按本阶段 STAGE_NAME 重接, 使 <stage>.log 命名为 16_article_policy_alignment.log
     # (纯日志路由, 不改任何返回值/产物/计量逻辑)。
     global logger
@@ -1319,7 +1323,9 @@ def main():
     # per-phase 墙钟计时锚点 (golden 范式 ⑥): 各子阶段 time.time() 差, 末尾汇总。
     _phase_t = {}
 
-    # 读取 Stage 14 输出
+    # 读取 Stage 15 (15_fintech_intensity.py) 输出 (fix(D5, 2026-07-14): 原写
+    # "Stage 14" 是重编号残留; config 键 output_14_fintech_intensity 的"14"是历史
+    # 命名残留、非当前阶段号, 勿动——见 paths.yaml:68 既有说明)
     output_dir = CONFIG['paths']['output_dir']
     input_filename = CONFIG['filenames'].get(
         'output_14_fintech_intensity', '15_fintech_intensity.parquet')

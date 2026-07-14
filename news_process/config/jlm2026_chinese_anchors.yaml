@@ -88,7 +88,10 @@ pairs:
 # 下游消费注意事项:
 # - 所有句子均为简体中文, 未做任何预处理
 # - 编码: UTF-8
-# - 经 shibing624/text2vec-base-chinese (768 维) 嵌入时: 无需分词
 # - 方向向量: p = (1/N) Σ_i [emb(pos_i) − emb(neg_i)],
 #   依线性可加性, 数学上等价于 mean(pos_embs) − mean(neg_embs)
 #   (见 V2.0 plan §0 V1.E4 撤回)
+# fix(D10, 2026-07-14): 删除本节原"经 shibing624/text2vec-base-chinese (768 维)
+# 嵌入时: 无需分词"一行 — text2vec 本地嵌入轨已于 v3.14.0 整体移除 (现 co-primary
+# 为 Qwen/Qwen3-Embedding-8B 4096 维 + text-embedding-3-large 3072 维, 均经 API
+# 消费, 与本地分词器/本地模型无关); 上方锚点句字节零改动。

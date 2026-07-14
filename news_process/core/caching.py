@@ -21,9 +21,10 @@
   Plan-r3 P3-17 引入 prompt_version + temperature 维度的标记.
 - ``len(x):x`` 长度前缀 — 防止 ``("a", "b:c")`` 与 ``("a:b", "c")`` 的拼接
   歧义碰撞 (round 1 已有的设计).
-- ``prompt_version`` — 调用方显式传入的 prompt 模板版本 (例如
-  ``"v6-2026-05-09"``, 与 ``config/prompts/*.txt`` 头部 ``# version: ...``
-  对齐). 默认 ``"v0"`` 表示未指定.
+- ``prompt_version`` — 调用方显式传入的 prompt 模板版本 (例如现行生产
+  ``"v8-2026-05-17"``, 与 ``config/prompts/*.txt`` 头部 ``# version: ...``
+  对齐; fix(D10, 2026-07-14): 示例由陈旧的 v6-2026-05-09 更新为现行 v8 口径,
+  机制本身不变). 默认 ``"v0"`` 表示未指定.
 - ``temperature`` — LLM 推理温度 (默认 0.0 = 确定性). 0.0 与 0.5 的响应
   分布完全不同, 共用同一缓存键会污染.
 
@@ -249,7 +250,7 @@ class LLMCache:
         Args:
             model_id:        模型标识符 (例如 "gpt-5.4-nano").
             prompt:          请求的 prompt 文本.
-            prompt_version:  prompt 模板版本字符串 (例如 "v6-2026-05-09").
+            prompt_version:  prompt 模板版本字符串 (例如现行生产 "v8-2026-05-17").
                              默认 "v0" 表示调用方未指定 — 与新 prompt 改动后
                              的 cache 自然分离.
             temperature:     LLM 推理温度 (默认 0.0 = 确定性).

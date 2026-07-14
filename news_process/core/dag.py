@@ -196,7 +196,10 @@ STAGES_MAIN: list[StageSpec] = [
         script="13_cooccurrence_filter.py",
         group="main", kind="filter",
     ),
-    # v3.6.0 (Plan E P4 A1): stage 13 物化 content_ctx 列, 让下游 14/15
+    # fix(D5, 2026-07-14): 下两条历史注释原写"stage 13 物化"是重编号残留 (12b→13→14
+    # 历次重排后串号)——物化动作实际发生在**本 StageSpec (阶段14)**, stage 13 只做
+    # 共现硬过滤不物化文本列 (SSOT 见 CLAUDE.md「当前状态铁律」)。
+    # v3.6.0 (Plan E P4 A1): 阶段14 物化 content_ctx 列, 让下游 14/15
     # 在 stage 21 之前即可消费 ctx, 实现真双轨化 (B1 + B2 闭合; 后于 v3.9.0 扩为三轨)。
     # v3.9.0 (2026-06-14): 同一阶段再物化第三轨 content_ss (银行+金科同句共现轨)
     # + ss_is_fallback 旗标 — 取"标题 + 含目标银行∧金科词同句 ±N 句窗"; 无共现→
@@ -222,7 +225,8 @@ STAGES_MAIN: list[StageSpec] = [
     # always-on (用户决策"全部启用而非条件启用", 对齐 2026-06-12 的 23/24 先例);
     # 不再受 sentiment_analysis.enabled_methods 控制 (见下方注释)。
     # v3.9.0 (2026-06-14): stage 21-24 全部三轨化 (full/ctx/ss) — 第三轨 _ss 读
-    # stage 13 物化的 content_ss; LLM prompt v8 字节冻结, 仅 content 实参换 content_ss;
+    # 阶段14 物化的 content_ss (fix(D5, 2026-07-14): 原写"stage 13"是重编号残留,
+    # 物化在阶段14非13); LLM prompt v8 字节冻结, 仅 content 实参换 content_ss;
     # ss 为结构性 always-on (无独立 compute 开关), 与 full/ctx 并列第三主轨。
     StageSpec(
         name="阶段21: 统一 LLM 语义精筛与情感分析 (三轨 full/ctx/ss)",
@@ -275,7 +279,8 @@ STAGES_MAIN: list[StageSpec] = [
     # 是两个独立编号空间, 勿混淆; 阶段已退役, 不参与 v3.9.0 三轨化。
     # 原 stage 30 (30_robustness_text2vec) 单独用 text2vec 计算 strat_diff_t2v /
     # policy_cosine_sim_t2v 4 列稳健 twin。改为"主阶段内联双模型计算"后, 这些 _t2v
-    # 列由 stage 15 (policy_alignment) + stage 25 (strategic_diff) 在主流程内直接产出
+    # 列由 stage 16 (policy_alignment) + stage 25 (strategic_diff) 在主流程内直接产出
+    # (fix(D5, 2026-07-14): 原写"stage 15"是重编号残留, policy_alignment 现为阶段16)
     # (main=text-embedding-3-small / robustness=text2vec 同源同算法), stage 30 因此
     # 完全冗余而退役。详见 config/features.yaml embedding_robustness + runner.py 8e 段。
     # v3.7.0 PR #9 (D 组前置): article-level SBERT 持久化.

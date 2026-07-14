@@ -90,7 +90,9 @@ inference:
     - network_roles             # bank_between_cent 中介/调节 (探索性附录)
     - alternative_classifier    # locus_layer_ctx / locus_layer_ss 替代分类器 (三轨 full/ctx/ss)
     - cross_model_classifier    # {gpt54nano,gemini31,deepseekv4}_tech_frac_full per-model 跨厂商孪生 (co-equal 互为稳健、不分主次;
-                                #  2026-07-03 分类维度梯子; ⚠ 声明式文档, 真 FWER=根级 27_tableA12 Panel C; 禁混同一 Hansen J)
+                                #  2026-07-03 分类维度梯子; ⚠ 声明式文档, fix(N1, 2026-07-14): tech_frac 的真 FWER 待扩
+                                #  (27_tableA12 Panel C 现仅覆盖 sub_frac, 对 tech_frac 空指——如实声明, 扩族为独立小改挂 M0 清单);
+                                #  禁混同一 Hansen J)
   fwer_correction:
     method: romano_wolf         # rwolf step-down over locus_pair family (18_locus_robustness)
     family_def: "locus_layer_full + locus_scenario_full (treatment family)"

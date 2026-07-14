@@ -15,6 +15,28 @@ PDF → 文本 抽取器 (GPT-4o vision / Claude vision / Gemini vision)
 【缓存】
 - 复用 [news_process.core.caching.LLMCache] (公开 API)
 - 缓存键: (model_id, pdf_hash, prompt_version, temperature)
+
+【D4 解禁 checklist (接真 API 前必办四项; D3 审计条目, 2026-07-14 记账, 只列不办——现全
+provider stub 零运行时影响, EXTRACTION_PROMPT 零字节, 本次 D3 仅补此 checklist 注释)】
+① JSON 解析失败不应 put：`extract_single` (:301-317) 现状=`json.loads` 解析失败
+   (JSONDecodeError, :303-305) 后仅打 `logger.warning`，随即无条件把 `response_raw`
+   写入缓存 (:308-317 `cache.put` 不检查 `parsed`)——接真 API 前须在 put 前加
+   `if parsed is None: skip put` 校验，防坏 JSON 被永久缓存成"正确答案"。
+② `parsed=None` 时 `status` 应 ≠ "ok"：同函数尾部 (:321-332) 无论 `parsed` 是否为
+   None，只要 API 调用未抛异常就无条件 `status="ok"` (:329)——接真 API 前须改为
+   `status="ok" if parsed is not None else "parse_failed"`（或等价新枚举值），
+   否则下游按 `status=='ok'` 过滤 yield 统计 (:562) 会把解析失败的空结果算作成功。
+③ 模型 ID 修正：`DEFAULT_MODELS` (:65-68) 当前 `claude-opus-4-5-20251001` 疑似需更新为
+   `claude-opus-4-5-20251101`（以接线时最新可用 API 型号实况为准）；`gemini-2.0-pro`
+   同理以接线时 Gemini API 实况为准——两者均需在真正接线前对照当时 provider 文档复核。
+④ 缓存键口径三处矛盾，接线前须择一改齐：模块头 docstring (:17) 与 CLI 运行期
+   log (约 :417，"Reproducibility 锁定" 一行) 均称缓存键含 `temperature`
+   (`(model_id, pdf_sha256, prompt_version, temperature)`)；但 `batch_extract`
+   docstring (约 :509) 与 `extract_single` 实际 `cache.put` 调用 (:308-317，传入
+   `resolved_model, cache_key_prompt, prompt_version=...`) 均**不含** temperature
+   分量——即 :17/:417 两处文字与真实实现 (:509 docstring + 实际 put 调用) 相反，
+   D4 解禁时必须统一（改代码把 temperature 也编码进键，或改 :17/:417 两处文字删除
+   该分量、以 :509 描述的口径为准）。
 """
 
 from __future__ import annotations

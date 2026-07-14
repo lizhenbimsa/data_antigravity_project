@@ -1,7 +1,13 @@
-"""news_process.validation.radius_sensitivity_llm — Stage 35 LLM 升级 (v3.2.0)
+"""news_process.validation.radius_sensitivity_llm — Stage 65 LLM 升级 (v3.2.0)
 
-Plan v14 §3.5 P5.2: stage 35 词典法 → LLM 法升级
-    现行 stage 35 (radius_sensitivity.py) 是纯词典法 (6 套 jieba 词典: jiang/yao/bian/du/you/loughran).
+fix(D5, 2026-07-14): 本文件历史上曾用"stage 35"编号 (plan v14 起草时的旧序号)；
+经重编号后 dict-based 姊妹模块与本模块均已改挂**阶段65** (script=65_radius_sensitivity.py,
+STAGES_VALIDATION; 本模块自身 report/日志亦以 '65_radius_sensitivity_llm' 自称, 见
+:286/:380/:387)。以下 "stage 35" 字样为重编号残留, 一并订正为 65 (历史 plan 文档本身
+不改)。
+
+Plan v14 §3.5 P5.2: stage 65 (原 35) 词典法 → LLM 法升级
+    现行 stage 65 (radius_sensitivity.py) 是纯词典法 (6 套 jieba 词典: jiang/yao/bian/du/you/loughran).
     本模块新建 LLM 法 section, 与 dict-based 并存 (plan v14 P5.2 backward-compat).
 
 核心洞察 (plan v14 R11):
@@ -97,7 +103,7 @@ def cohens_kappa_2cat(y1: np.ndarray, y2: np.ndarray) -> Dict[str, float]:
 
 
 def estimate_llm_calls(n_articles: int, n_radii_new: int = 3, n_llms: int = 3) -> Dict[str, int]:
-    """估算本次 stage 35 LLM 升级的 API 调用量 (plan v14 修订, 替代 180k 误估).
+    """估算本次 stage 65 (原 35) LLM 升级的 API 调用量 (plan v14 修订, 替代 180k 误估).
 
     Args:
         n_articles: stage 21 输入文章数 (默认从 stage 14 parquet 读)
@@ -240,7 +246,7 @@ def compute_radius_kappa_report(
 def write_radius_llm_report(report: Dict, output_path: str,
                              call_estimates: Dict[str, int],
                              baseline_n: int) -> None:
-    """写 stage 35 LLM 法 robustness 报告 (plan v14 §3.5 P5.2).
+    """写 stage 65 (原 35) LLM 法 robustness 报告 (plan v14 §3.5 P5.2).
 
     Args:
         report: compute_radius_kappa_report 返回值
@@ -299,7 +305,7 @@ def write_radius_llm_report(report: Dict, output_path: str,
     }
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(out, f, ensure_ascii=False, indent=2, default=str)
-    logger.info(f"Stage 35 LLM 法报告已写入: {output_path}")
+    logger.info(f"Stage 65 LLM 法报告已写入: {output_path}")
 
 
 def _parse_args(argv=None):
@@ -307,7 +313,7 @@ def _parse_args(argv=None):
     import argparse
     parser = argparse.ArgumentParser(
         prog='python -m news_process.validation.radius_sensitivity_llm',
-        description='Stage 35 LLM-based radius sensitivity (plan v14 §3.5 P5.2)',
+        description='Stage 65 (原 35) LLM-based radius sensitivity (plan v14 §3.5 P5.2)',
     )
     parser.add_argument(
         '--dry-run', action='store_true',
@@ -378,6 +384,10 @@ def _log_environment_and_config(stage_14_path: str, args) -> None:
         except Exception:  # noqa: BLE001
             out_dir = '(未知)'
         report_path = os.path.join(out_dir, '65_radius_sensitivity_llm.json')
+        # fix(D7-P2, 2026-07-14): 本行是 baseline (radius=1) $0 复现锚的**生产库**
+        # 展示路径 — 仅日志展示; WP-R4 接线时新 radii 的 LLM 响应**写入**目标是
+        # 独立 `_llm_cache_validation.db` (见模块 docstring 读写分离纪律), 勿因
+        # 此行误把生产库当写入目标。
         cache_path = os.path.join(out_dir, '_llm_cache.db')
         new_radii = [r for r in RADII_TO_TEST if r != CACHED_RADIUS]
         is_launch = bool(getattr(args, 'launch', False))
@@ -474,7 +484,7 @@ def _log_estimate_analysis(n_articles: int, estimates: Dict[str, int]) -> None:
 
 
 def main():
-    """Stage 35 LLM 法主入口 (plan v14 §3.5 P5.2 + R20-A).
+    """Stage 65 (原 35) LLM 法主入口 (plan v14 §3.5 P5.2 + R20-A).
 
     工作流:
         1. CLI argparse + estimate_llm_calls (给用户看实际预算)
@@ -484,6 +494,12 @@ def main():
            parse_track_results_from_cache 收集篇章级标签 (当前仅 ctx 轨;
            full 轨缓存命中不受 radius 影响, ss 轨另有独立 radius 扫描, 见模块头注)
            compute_radius_kappa_report + write_radius_llm_report
+
+    fix(D7 docstring, 2026-07-14): 上一步"调 LLM → cache"写入目标须为独立的
+    `_llm_cache_validation.db`（对齐 CLAUDE.md「验证族缓存双保险隔离」决策：独立库 +
+    prompt 文本必异），**绝非**生产 `_llm_cache.db`——直接复用 tone_llms.py 异步框架
+    若不显式改路由会误写生产库、污染 stage 21 缓存。本行仅更正文字表述；实际接线
+    (显式传参切换写入目标 db 路径) 由 §10 WP-R4 实现，本批不动代码。
     """
     stage_start = time.time()
     args = _parse_args()
@@ -492,7 +508,7 @@ def main():
         'output_14_fintech_intensity', '15_fintech_intensity.parquet')
     stage_14_path = os.path.join(CONFIG['paths']['output_dir'], stage_14_filename)
 
-    logger.info("=== Stage 35 LLM 法升级 (plan v14 §3.5 P5.2) ===")
+    logger.info("=== Stage 65 (原 35) LLM 法升级 (plan v14 §3.5 P5.2) ===")
     logger.info(f"  Mode: {'LAUNCH (real LLM)' if args.launch else 'DRY-RUN (estimate-only)'}")
 
     # 项目/环境信息 + 输入输出 + 运行配置 + 方法论引文 (日志富集 2026-06-24)
@@ -577,7 +593,9 @@ def main():
     # 由于 stage 21 LLM 调用层在 tone_llms.py main() 中, 复用其异步框架需要:
     #   a) 临时修改 sentence_radius 配置
     #   b) 重抽 content_ctx
-    #   c) 调 run_all_llms (复用 LLMCache)
+    #   c) 调 run_all_llms (复用 LLMCache) —— fix(D7 docstring, 2026-07-14): 写入目标
+    #      须显式路由到独立的 _llm_cache_validation.db (验证族缓存隔离决策), 不得沿用
+    #      tone_llms.py 默认的生产 _llm_cache.db；本条仅更正文字, 路由代码由 WP-R4 接线
     #   d) 解析新 cache 条目
     # 完整实施留作 future commit (需要 yunwu API key + 实际跑 4 小时).
     logger.warning("  [LAUNCH] 实施细节留作 future commit (需 yunwu API + 跑 ~2 min/radius).")

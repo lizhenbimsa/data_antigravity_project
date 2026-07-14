@@ -2,6 +2,18 @@
    fintech_rating_prompt.jinja2
    金融科技新闻多维度连续评分模板
 
+   【D4 SSOT 声明, 2026-07-14】本文件 = 模板源 (SSOT)；
+   `news_process/scripts/fintech_rating_example.py::build_rating_prompt`
+   是不依赖 Jinja2 的可执行等价副本 (方式 B，纯 f-string 拼接)，供无
+   jinja2 依赖环境演示用；两文件目前均为**死代码** (零管线消费者，无
+   import/render 调用点)，措辞已历史性漂移 (三处文本差)，接线时以本文件
+   为准同步 example.py。
+   ⚠ 若未来真正接入管线渲染本模板：`check_prompt_headers.py` 当前只扫
+   `config/prompts/*.txt`，`.jinja2` 被豁免——接线前必须仿 `.txt` 惯例在
+   本文件首行补 `# version: vX-YYYY-MM-DD` 头 (再迁到本注释块之后)，
+   否则 `core.config._inline_external_prompts` fallback 到 `'v0'` 命名
+   空间，会让改动后的渲染结果静默复用旧版本的缓存条目。
+
    设计依据:
      - GABRIEL (Asirvatham, Mokski & Shleifer, 2026, NBER WP 34834)
        核心范式: 0-100 连续属性评分 + 属性独立性约束 + 抗交叉推断
