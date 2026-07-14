@@ -25,6 +25,26 @@ if PROJECT_PARENT not in sys.path:
     sys.path.insert(0, PROJECT_PARENT)
 
 # ============================================================================
+# fix(M1-P2, 2026-07-14): v3.5.1 冻结 sidecar 写入全局隔离。
+# M1 后 sidecar 为 git 跟踪文件且写路径经 config 绝对解析 (cwd 免疫) — 任何
+# 经 apply_v3_5_1/aggregate_panel 的测试路径都会刷新真 sidecar 的
+# stage21_last_run_timestamp → 每次全量 pytest 脏工作树 (推送后终审实证:
+# 逐点给 4 个已知调用测试补 env 隔离后仍有漏网路径)。改为 conftest autouse
+# 一点封死: 所有测试默认把 LLM_ARCHIVE_SIDECAR_PATH 指向各自 tmp; 刻意走真
+# 解析路径的只读测试共三处 delenv 豁免 (test_prompt_v8_frozen 恒等 gate /
+# test_v3_5_to_v3_5_1_migration 存在性 gate / test_omni_fix_tonellms 的
+# g05 路径断言[既有, 只解析不读写]); 需自定 sidecar 的测试用 setenv 覆盖
+# (monkeypatch 同栈后设优先, R4 活跑 206 例验证零脏写)。
+# ============================================================================
+
+
+@pytest.fixture(autouse=True)
+def _isolate_v3_5_1_sidecar_writes(tmp_path, monkeypatch):
+    monkeypatch.setenv(
+        'LLM_ARCHIVE_SIDECAR_PATH', str(tmp_path / 'v3_5_1_constants.json'))
+
+
+# ============================================================================
 # 日志隔离【根因修复 R1】(2026-06-20 日志审计): 模块级 monkeypatch setup_logging,
 # 防 pytest 收集/import 覆写真实生产日志 logs/<stage>.log。
 # ============================================================================

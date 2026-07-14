@@ -171,7 +171,7 @@ v9 通道（跨批次，增补 3 统筹推进）：(a)/(c) 起草+G-v9-1 评审+
 ## §9 收口记录（实施时填写；2026-07-14 执行完毕批次已回填，全程两轮结果评审+终审 R2 双路）
 
 - [x] 批次 A（M1/M2/S1/S14）：commit **d06ce8b3**，verify 双绿证据 = verify_manifest()=(True,[]) + fetch_llm_archive EXIT=0 + verify_stage21_cache_coverage 0 miss + 批次相关测试 178 绿。**执行中发现并同批收口**：① M1-P0（终审 R2 确证）——config 路径被 news_process/data/ 整目录 gitignore 吞，迁移后冻结 sidecar 零跟踪副本 → .gitignore ** 化 + negation 例外恢复跟踪（git 识别为 rename 92% 保血缘）；② 归档 mock 污染——test_sentiment_tie_retry 缺归档隔离，自 2026-06-24 起 146 条 m1/http://x 测试记录泄入生产 append-only 归档（16 文件混入，8 纯 mock 文件）→ 记录级清洗（备份于会话 scratchpad）+ 根因测试补 _LLM_ARCHIVE_AVAILABLE 隔离 + manifest 重登记 26 文件/197,247 条；Zenodo 冻结 5 文件（05-25~29）不涉；③ S14-P1——AI_DISCLOSURE_TEMPLATES.md 被 papers/**/*.md 规则吞、从未入库 → negation 例外首次入库。
-- [x] 批次 B-1（M3 装置修复+盲表重生）：commit **2fcc56e1**，盲表重生指纹 = 09 全系 6 份（2026-07-14 10:34, 含 target_bank 列实读确认）+ 61 blind_A/B（10:40, N2 守卫放行路径实证）。**执行中发现并同批收口**：N2-P1（终审 R2-A 实跑确证）——旗标单独硬拦 = 编排器死锁（shim 零参无越权通道, stage 61 首跑后每次验证管道硬中止连坐后续阶段）→ 旗标降格发放记录（零标注放行+LOUD 警告, 非空标注仍硬拦），shim 补 argv 透传，编排器两连跑 EXIT=0 实证，gate 13 用例。
+- [x] 批次 B-1（M3 装置修复+盲表重生）：commit **2fcc56e1**，盲表重生指纹 = 09 全系 6 份（2026-07-14 10:34, 含 target_bank 列实读确认）+ 61 blind_A/B（首生 10:40; N2-P1 修复验证时于 12:13 确定性二次重生, seed 恒定内容可再现, 盘上终态 mtime=12:13——R4 终审核对项）。**执行中发现并同批收口**：N2-P1（终审 R2-A 实跑确证）——旗标单独硬拦 = 编排器死锁（shim 零参无越权通道, stage 61 首跑后每次验证管道硬中止连坐后续阶段）→ 旗标降格发放记录（零标注放行+LOUD 警告, 非空标注仍硬拦），shim 补 argv 透传，编排器两连跑 EXIT=0 实证，gate 13 用例。
 - [ ] 批次 B-2（WP-R2 生产盲表生成，前置=生产数据到位）：**合法延后**（本机 T=2 无生产语料；N2 防覆写已先落, 证据=2fcc56e1 + test_n2_blind_overwrite_guard 13 绿）。
 - [x] 批次 C（M4/S4/S5/S6 + WP-R5 文档）：commit **23bf4229**，grep 复扫零残留 = Wickert 零命中 / 平局 undefined 错误语义零残留（V6 changelog 加历史逆转指针, 终审 R2-B 裁定项）/ 第 3 对×4 全对；test_manuscripts_structure 126 绿。
 - [x] 批次 D（S2/S3/S7/S8/S10-S13 + WP-R3 proxy 构造）：commit **1fea954d**，fast+gate 全绿 = 专属断言 35 用例 + WP-R3 gate 21 + S11 锚点 sha 与 S3 生产侧双向独立一致互证；locus 双编码 κ=0.8375（tech 492/func 758/unassigned 256），WP-R3-P1（终审 R2-B）：双编码 CSV 由 eval_reports（不入库惯例）迁 config/ 并 negation 入库（κ 证据不可再生须版本化, 文档化偏离）。
@@ -182,6 +182,7 @@ v9 通道（跨批次，增补 3 统筹推进）：(a)/(c) 起草+G-v9-1 评审+
 - [ ] §11 v9 落地（G-v9-2..5）：待前项。
 - [x] §12 注释/日志台账打勾证据：批次 A 表 ✅ / 批次 B-D 表 ✅ / 批次 F 补遗表 ✅ / §10 表（WP-R3 行）✅（第一轮评审一号路逐行核对全中, 冒烟三项 = write_manifest banner anchor 口径 ✅ + radius --help 无旧编号残留 ✅ + prompt_sensitivity 全 full-only 无三轨 AND 残留 ✅）/ G-v9 表 = v9 时点不适用。
 - **全量 A/B 差分终判**：改动前基线 21 失败（17 golden 慢性陈旧+4 既有杂项）↔ 终局 21 失败**逐条相同**，0 新增 0 消失（§6-5 达成）；盘上 parquet/dta/golden_panel_v0.json 零触碰（§6-6 达成）；unified_cot.txt/PEER_PROMPT/锚点句等一切缓存键 prompt 字节零触碰（三冻结 gate + git diff 双重实证）。
+- [x] **推送后终审补遗（2026-07-14 下午, 四轮推送后验证）**：① 新克隆模拟——自 10ade99f 裸树检出, sidecar 权威值在位+prompt 复算恒等, 12 个 gate 文件 155 项全绿（M1-P0 在其防御场景实证成立）；② 推送后精确树全量 sweep 21↔21 同基线；③ 八提交内容纯度审计 R3=CLEAN（零夹带/零 prompt 字节/消息-内容逐字对应）；④ 跨状态一致性 R4=ok_to_ship（16 项独立抽验 15 项逐字节命中, 含 κ=0.8375 独立重算与 35 用例拆分命中）。**M1-P2**（本行随附 commit 收口）：M1 后 sidecar 被跟踪且写路径 cwd 免疫 → 全量 pytest 中仍有漏网路径刷新其时间戳致每次测试脏树 → conftest autouse 全局 env 隔离一点封死（三处只读 gate delenv 豁免; 修复后全量 sweep 实证 21↔21 且跑后树净, R4 活跑 206 例对抗验证零脏写）。
 
 ---
 

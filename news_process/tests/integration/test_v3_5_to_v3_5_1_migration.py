@@ -93,7 +93,7 @@ def test_apply_v3_5_1_idempotent(tmp_path, monkeypatch):
             assert abs(v1 - v2) < 1e-9, f"{col} idempotent violation: {v1} vs {v2}"
 
 
-def test_sidecar_json_path_exists_or_created():
+def test_sidecar_json_path_exists_or_created(monkeypatch):
     """sidecar JSON 路径约定 (修 C1' panel.attrs 序列化丢失).
 
     实际 sidecar 在 D0 首次跑 apply_v3_5_1 时写入; 本测试验证 stub 存在 + 必要字段.
@@ -102,6 +102,9 @@ def test_sidecar_json_path_exists_or_created():
     # 路径, 并经 .gitignore negation 例外保持 git 跟踪 (M1-P0: 三 median 是
     # 防泄漏冻结阈值, 必须有版本控制副本, 否则新 clone 各自重冻结分叉);
     # 本测试改经解析 SSOT 定位, 不再锚 REPO_ROOT 旧位置。
+    # fix(M1-P2, 2026-07-14): conftest autouse env 指向 tmp — 本测试刻意读
+    # **真** sidecar (只读存在性+字段 gate), 显式 delenv 豁免走 config 解析。
+    monkeypatch.delenv('LLM_ARCHIVE_SIDECAR_PATH', raising=False)
     from news_process.pipeline.llm_archive.manifest import _resolve_sidecar_path
     sidecar_path = _resolve_sidecar_path()
     if not sidecar_path.exists():

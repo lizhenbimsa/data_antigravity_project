@@ -59,7 +59,7 @@ def test_v8_prompt_frozen_raw_bytes():
 
 
 @pytest.mark.fast
-def test_sidecar_anchor_matches_disk_recomputation():
+def test_sidecar_anchor_matches_disk_recomputation(monkeypatch):
     """sidecar 锚 == 盘上实文件 raw 复算 (恒等闭环, M1 迁移后口径).
 
     sidecar 已随 M1-P0 修复 (2026-07-14) 通过 .gitignore negation 例外恢复
@@ -67,6 +67,10 @@ def test_sidecar_anchor_matches_disk_recomputation():
     若在剥离数据的环境中缺失 → skip (sha 锚可由 runtime producer 首跑重建,
     见 encode_collab.compute_prompt_v8_raw_sha256; median 以 git 版本为权威)。
     """
+    # fix(M1-P2, 2026-07-14): conftest autouse 把 env 指向 tmp (防测试写真
+    # sidecar 脏树) — 本测试是刻意读**真** sidecar 的只读 gate, 显式 delenv
+    # 豁免走 config 解析。
+    monkeypatch.delenv('LLM_ARCHIVE_SIDECAR_PATH', raising=False)
     from news_process.pipeline.llm_archive.manifest import _resolve_sidecar_path
     sidecar = _resolve_sidecar_path()
     if not sidecar.exists():
