@@ -27,7 +27,7 @@
    - 验证族缓存双保险隔离（独立 `_llm_cache_validation.db` + prompt 文本必异）；离线守卫链（`LLMCacheMissError` / 嵌入 `RuntimeError`）主路径健全。
    - **【已推翻】EOL/autocrlf 不构成缓存风险**：`core/config.py:123` 文本模式 universal newlines，磁盘 CRLF 进内存恒归一 `\n`，缓存键与 checkout 行尾无关（实测内存 prompt `contains CR: False`）。`.gitattributes` 无需加 eol 规则。
 3. **指纹双口径声明（M1/M2/S1 落地时必须统一写明）**：公示指纹 `0430ba3c…` = `unified_cot.txt` **raw 磁盘 CRLF 字节**（含版本头）sha256；缓存键使用的是 **LF 归一内存字节**（其 sha = `14952b06…`）。两口径都合法，但所有锚点/gate/复现文档必须显式标注自己用哪个口径，否则复算必撞口径墙。
-4. 共享树纪律照旧：**by-name stage、绝不 amend、绝不 --no-verify**；`data/processed/v3_5_1_constants.json` 当前工作树已有未提交改动（正是 M1 的案发现场），处理前先按 §1-M1 迁移，勿盲目 checkout 恢复。
+4. 共享树纪律照旧：**by-name stage、绝不 amend、绝不 --no-verify**；`data/processed/v3_5_1_constants.json` 当前工作树已有未提交改动（正是 M1 的案发现场），处理前先按 §1-M1 迁移，勿盲目 checkout 恢复。**（历史叙述, 描述 2026-07-12 起草时点状态; M1 已于 d06ce8b3 收口迁移, 该 repo 根文件已退役不存在——R5 终审时间戳限定订正 2026-07-14。）**
 5. **注释与日志同步纪律**（用户要求 2026-07-13：所有修改必须详细具体反映到注释和日志中；触点已逐条 grep 成 §12 台账）：
    - **每个"改行为"的条目 = 原子三件套**：改代码 + 清理"会变谎话的既有注释/docstring"（§12 按条目列全了将失真的现存文字——这不是缺注释，是**改完代码后留下来会变成谎言的旧文字**，必须同批删改）+ 更新运行时日志字面量。修复注释统一用项目既有 fix-tag 范式：`# fix(<台账编号如 S7/M1/WP-R1.1②>, <日期>): <问题一句话> — <解法一句话>`（镜像 `tone_llms.py:749` omni-g-tonellms-04 的写法）。
    - **两类触点分治**：硬编码字面量（版本号/路径/口径写死在字符串里，如 `codebook.py:1487` notes、`.do.tmpl` 的 `display as error`、scaffold 警告 banner）必须逐条手工改，§12 已列全；变量插值（如 manifest 用 `%s` 打印 anchor）只需确认变量本身更新，勿逐条改文案。
