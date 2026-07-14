@@ -189,6 +189,8 @@
 - [ ] **G7**: 若换嵌入模型, 复核 benefit 负极锚点句 #3 措辞。
 - [ ] **61**: 媒体代表性 (单类 100% 抽样倾斜) 在 33/34 代表性检验披露复测。
 - [ ] **离线冷缓存前置**: 主管道 stage 16/25/40 的 MAIN 嵌入 spec 离线 miss = fail-loud (`benefit_society.py:300-307` / `embedding_engine.py:322-324`), 生产首跑前先验缓存热度或备好在线预算。
+- [ ] **(2026-07-14 复审增量 H1)**: 双 company 管道生产跑 = 独占时段硬义务 (争用下四步均匀 ×3, tax 击穿 2h cap); 详见 `EIGHT_ENTRYPOINT_SEQUENTIAL_RERUN_AUDIT_AND_REMEDIATION_PLAN_2026-07-14.md` §3-H1/§7。
+- [ ] **(2026-07-14 复审增量 R2)**: 主管道运行窗内禁止并发重生 `build/codebook/variable_codebook.json` (stage 46 fail-soft 撞半写 json 会静默降级为无 notes 导出); 详见同计划 §3-R2/§7。
 
 ## 7-bis. 实施记录 (2026-07-10, 用户完全授权后)
 
