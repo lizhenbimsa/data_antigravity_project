@@ -223,6 +223,7 @@ def save_parquet_with_metadata(
     row_group_size: int | None = None,
     use_dictionary: bool = True,
     write_statistics: bool = True,
+    extra_schema_metadata: Optional[dict[bytes, bytes]] = None,
 ):
     """
     保存 DataFrame 到 parquet 文件，并附加版本元数据。
@@ -239,6 +240,12 @@ def save_parquet_with_metadata(
         preserve_index: 透传给 ``pa.Table.from_pandas`` (默认 None = pyarrow 默认行为)
         compression / row_group_size / use_dictionary / write_statistics:
             透传给 ``pq.write_table`` 的列存布局参数。
+        extra_schema_metadata: 额外 pyarrow schema metadata (bytes→bytes key/value), 与
+            ``data_version`` 一并合并写入 (非数据列, golden-safe)。V9-PRE-1 (2026-07-14):
+            stage 21 (``tone_llms.py``) 用它记录 ``b"news_process.prompt_version"``, 供
+            ``run_pipeline_function.py::_stage21_skip_is_compatible`` 的 --skip-21-if-exists
+            守卫做 prompt 版本一致性校验 (修版本盲区, 防 v9 落地后旧 v8 parquet 被静默放行)。
+            默认 None = 不额外写 (既有调用方字节不变)。
 
     ⚠ W5 (2026-06-26): ``preserve_index`` 与四个 write 参数的默认值与
     ``pa.Table.from_pandas`` / ``pq.write_table`` 的 pyarrow 默认**逐位一致** —— 既有调用方
@@ -257,6 +264,10 @@ def save_parquet_with_metadata(
     custom_metadata = {
         b"data_version": metadata.to_json().encode("utf-8"),
     }
+    if extra_schema_metadata:
+        # V9-PRE-1: 调用方 (如 tone_llms.py) 附加的额外 schema metadata (如 prompt_version) —
+        # 与 data_version 平级合并, 同样只落 schema metadata 不动数据列 (golden-safe)。
+        custom_metadata.update(extra_schema_metadata)
     merged_metadata = {**existing_metadata, **custom_metadata}
 
     new_schema = table.schema.with_metadata(merged_metadata)

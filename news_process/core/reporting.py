@@ -53,6 +53,7 @@ def save_dataset(
     stage_name: str = None,
     config: dict = None,
     input_files: list = None,
+    extra_schema_metadata: dict = None,
 ):
     """将 ``df`` 同时持久化为 Parquet + CSV 预览, 两者共享 ``output_path`` 词干。
 
@@ -66,6 +67,9 @@ def save_dataset(
         stage_name: 阶段名称（可选，用于数据版本控制）
         config: 配置字典（可选，用于数据版本控制）
         input_files: 依赖的输入文件列表（可选，用于数据版本控制）
+        extra_schema_metadata: 额外 pyarrow schema metadata (bytes→bytes), 透传给
+            ``save_parquet_with_metadata``（仅当 stage_name+config 均提供时生效；
+            V9-PRE-1: stage 21 用它记录 ``b"news_process.prompt_version"``）
     """
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
@@ -79,9 +83,17 @@ def save_dataset(
                 stage_name=stage_name,
                 config=config,
                 input_files=input_files,
+                extra_schema_metadata=extra_schema_metadata,
             )
         else:
             # 向后兼容：没有版本控制参数时使用原始方法
+            if extra_schema_metadata and logger:
+                # V9-PRE-1: 向后兼容分支不支持自定义 schema metadata (无 save_parquet_with_metadata
+                # 承载点) —— 如实告警而非静默丢弃调用方的意图, 但不因此升级为异常。
+                logger.warning(
+                    "save_dataset: extra_schema_metadata 已提供但缺 stage_name/config "
+                    "(向后兼容 to_parquet 分支不支持附加 schema metadata) — 已忽略"
+                )
             df.to_parquet(output_path, index=False)
 
         if logger:

@@ -2896,10 +2896,18 @@ def main():
         full_output_path = os.path.join(CONFIG["paths"]["output_dir"], full_output_filename)
         input_file = os.path.join(CONFIG['paths']['output_dir'],
                                   CONFIG['filenames']['output_14_fintech_intensity'])
+        # fix(V9-PRE-1, 2026-07-14): 附加 prompt_version schema metadata (非数据列,
+        # golden-safe) —— 修 run_pipeline_function.py::_stage21_skip_is_compatible 此前
+        # 对 prompt 版本盲的缺口: --skip-21-if-exists 只比行数+内容指纹, 不比生成这些
+        # 指纹时用的是哪版 prompt。v9 落地前 (当前 PROMPT_VERSION == legacy 兜底值)
+        # 本次改动零行为变化; v9 落地后旧 v8 parquet 会被该守卫正确拒绝重放。
         save_dataset(df, full_output_path, logger,
                     stage_name="21_tone_llms",
                     config=CONFIG,
-                    input_files=[input_file])
+                    input_files=[input_file],
+                    extra_schema_metadata={
+                        b"news_process.prompt_version": PROMPT_VERSION.encode("utf-8"),
+                    })
         logger.info(f"全量 LLM 结果已保存: {full_output_path} ({len(df)} 行)")
 
         # full-only 留篇门控 (用户决策 2026-06-29; 逆转 v3.2.0 R1-A + v3.9.0 三轨并集门):
@@ -2954,10 +2962,15 @@ def main():
         logger.info(f"正在保存处理结果至 {output_path}...")
         input_file = os.path.join(CONFIG['paths']['output_dir'],
                                   CONFIG['filenames']['output_14_fintech_intensity'])
+        # fix(V9-PRE-1, 2026-07-14): 同上 (:2899 附近) — 主输出 parquet 同款附加
+        # prompt_version schema metadata, 与 _full 变体保持一致 (skip 守卫两份都读)。
         save_dataset(df_filtered, output_path, logger,
                     stage_name="21_tone_llms",
                     config=CONFIG,
-                    input_files=[input_file])
+                    input_files=[input_file],
+                    extra_schema_metadata={
+                        b"news_process.prompt_version": PROMPT_VERSION.encode("utf-8"),
+                    })
 
         # ── 【结果分析】: 对真实产出指标对照阈值/预期方向给判读 (golden 范式; 纯只读日志) ──
         # 所有局部量仅服务于日志, 不回写 df/产物。本块整体 try/except 包裹:

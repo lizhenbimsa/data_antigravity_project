@@ -373,6 +373,43 @@ def _fingerprint_dataframe_rows(df, columns: tuple[str, ...]) -> tuple[int, str]
     return len(key_df), hashlib.sha256(payload).hexdigest()
 
 
+#  Prompt 版本 metadata key —— 写侧 (tone_llms.py::save_dataset 调用点) 用同一字面量键
+#  往 parquet schema metadata 里写入当前 PROMPT_VERSION (非数据列, golden-safe)。
+_STAGE21_PROMPT_VERSION_METADATA_KEY = b"news_process.prompt_version"
+# V9-PRE-1 (2026-07-14): legacy parquet (V9-PRE-1 落地之前产出, 未写此 metadata 键) 的
+# 兜底假定版本 —— 这类文件在 git 历史上必然产自 v9 之前, 故归属 v8 宇宙。该假定是
+# 常量, 不随时间自动更新; 一旦 v9 落地 (PROMPT_VERSION != 'v8-2026-05-17'), 旧 legacy
+# parquet 会被下方版本比对自动判为不兼容而 reject skip —— 这正是本项修复要达成的效果。
+_STAGE21_LEGACY_PROMPT_VERSION = "v8-2026-05-17"
+
+
+def _read_stage21_prompt_version(parquet_path: str) -> str:
+    """读取 stage 21 输出 parquet 的 prompt_version schema metadata。
+
+    Returns:
+        记录的 prompt_version 字符串; 若 metadata 缺失该键 (legacy parquet, 必产于
+        V9-PRE-1 落地前) 返回 ``_STAGE21_LEGACY_PROMPT_VERSION`` 兜底。
+
+    Raises:
+        Exception: schema 本身读取失败 (文件损坏/非 parquet 等) 原样上抛, 由调用方
+            决定保守 reject skip (不在此吞掉, 见 _stage21_skip_is_compatible)。
+    """
+    import pyarrow.parquet as pq
+
+    schema_metadata = pq.read_schema(parquet_path).metadata or {}
+    raw = schema_metadata.get(_STAGE21_PROMPT_VERSION_METADATA_KEY)
+    if raw is None:
+        # 可见性: legacy parquet 静默兜底本身不是错误 (今日预期路径), 但值得留痕,
+        # 便于日后回看 "何时最后一次读到没打版本戳的旧文件"。
+        logger.warning(
+            f"stage 21 parquet 缺 prompt_version schema metadata (legacy, 必产于 "
+            f"V9-PRE-1 落地前): {parquet_path} — 兜底假定 "
+            f"prompt_version={_STAGE21_LEGACY_PROMPT_VERSION!r}"
+        )
+        return _STAGE21_LEGACY_PROMPT_VERSION
+    return raw.decode("utf-8")
+
+
 def _stage21_skip_is_compatible(stage21_outputs: list[str]) -> tuple[bool, str]:
     """检查既有 stage 21 输出是否与当前 stage 14 输入匹配。
 
@@ -381,7 +418,9 @@ def _stage21_skip_is_compatible(stage21_outputs: list[str]) -> tuple[bool, str]:
     会静默消费过期的 LLM 标签。
 
     白话: 这是"跳过付费 LLM 阶段"的安检 — 对比上游输入和已有输出的
-    行数与内容指纹, 对得上才允许跳过, 防止省钱省出旧数据。
+    行数与内容指纹, + parquet 元数据 prompt_version 与当前 PROMPT_VERSION
+    一致性校验 (V9-PRE-1), 对得上才允许跳过, 防止省钱省出旧数据 (含旧
+    prompt 版本产出的过期标签)。
     """
     import pandas as pd
 
@@ -405,6 +444,40 @@ def _stage21_skip_is_compatible(stage21_outputs: list[str]) -> tuple[bool, str]:
     ]
     if missing_outputs:
         return False, f"missing stage 21 outputs: {missing_outputs}"
+
+    # V9-PRE-1 (2026-07-14): prompt_version 一致性校验 —— 修复本函数此前对 prompt
+    # 版本变化"全盲"的缺口 (只比对行数+内容指纹, 从不比对生成这些指纹时用的是哪版
+    # prompt)。四分支 (均归约到同一次字符串比较, 无需分支代码):
+    #   (a) 两份 parquet metadata 均记录且 == 当前 PROMPT_VERSION → 兼容, 继续下方指纹校验;
+    #   (b) 记录但 != 当前 PROMPT_VERSION → reject skip (版本失配, 防静默消费旧标签);
+    #   (c) metadata 缺失 (legacy parquet) → _read_stage21_prompt_version 兜底返回
+    #       _STAGE21_LEGACY_PROMPT_VERSION ('v8-2026-05-17'); 与当前 PROMPT_VERSION 比较——
+    #       v9 落地前两者相等 → 兼容 (今日零行为变化, golden-safe); v9 落地后自动不等 →
+    #       reject (旧 v8 parquet 不会被静默放行);
+    #   (d) 读 schema metadata 本身失败 (文件损坏等) → 保守 reject, 不吞异常。
+    try:
+        from news_process.pipeline.sentiment.tone_llms import (
+            PROMPT_VERSION as _stage21_current_prompt_version,
+        )
+    except Exception as exc:
+        return False, f"failed to resolve current stage 21 PROMPT_VERSION: {exc}"
+
+    for _pv_label, _pv_path in (("main", main_path), ("full", full_path)):
+        try:
+            _recorded_prompt_version = _read_stage21_prompt_version(_pv_path)
+        except Exception as exc:
+            return False, (
+                f"failed to read stage 21 {_pv_label} parquet prompt_version metadata: "
+                f"{exc} (保守 reject skip, V9-PRE-1)"
+            )
+        if _recorded_prompt_version != _stage21_current_prompt_version:
+            return False, (
+                f"stage 21 {_pv_label} parquet prompt_version mismatch: "
+                f"recorded={_recorded_prompt_version!r} != "
+                f"current PROMPT_VERSION={_stage21_current_prompt_version!r} "
+                "(V9-PRE-1 版本盲区修复; 需重跑 stage 21 刷新标签, 离线缓存全命中时 "
+                "NEWS_PROCESS_LLM_OFFLINE=1 重放为 $0)"
+            )
 
     upstream_name = CONFIG.get('filenames', {}).get(
         'output_14_fintech_intensity',
