@@ -89,6 +89,21 @@
    "retraction_check": "pass",
    "verify_agent": "done",
    "entry_sha": "257df392228cc7bc7ab261a6f8163b5ea58e497dabc4a7154822fc3453b0140c"
+  },
+  {
+   "doi": "10.1177/014920630002600602",
+   "admitted_date": "2026-07-14",
+   "admitted_by": "admit_new_dois.py",
+   "family_id": "F614",
+   "apa_line": "Deephouse, D. L. (2000). Media reputation as a strategic resource: An integration of mass communication and resource-based theories. Journal of Management, 26(6), 1091-1112. https://doi.org/10.1177/014920630002600602",
+   "crossref_title": "Media Reputation as a Strategic Resource: An Integration of Mass Communication and Resource-Based Theories",
+   "crossref_container": "Journal of Management",
+   "crossref_year": 2000,
+   "meta_source": "crossref",
+   "title_overlap": 1.0,
+   "retraction_check": "pass",
+   "verify_agent": "done",
+   "entry_sha": "773d0cb5270ce62793f593492492a595719718c113f9a7657169905fb8edf16a"
   }
  ],
  "no_doi_acks": []

@@ -4,34 +4,49 @@ columns:
 - washing_ratio_gpt54nano
 - washing_ratio_gpt54nano_ctx
 - washing_ratio_gpt54nano_ss
-unit: 比率/占比 (proportion, [0,1] 或百分比; 待写手按 frontmatter 校准)
-formula: '(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)'
-producer: pipeline\panel\runner.py ; pipeline\panel\export.py
-upstream: []
-citations: []
+unit: 比率 (proportion, [0,1]; 分子分母同域计数, 无量纲)
+formula: washing_ratio_gpt54nano{track} = gpt54nano_pos_symb_count{track} / gpt54nano_pos_substvalid_count{track} (分母缺失时回退 gpt54nano_pos_count{track} 并告警); 其中 gpt54nano_pos_symb_count{track} = 该银行-年内 gpt54nano_score{track} > 0 且 innovation_substantiveness_full == '象征性' 的文章数之和, gpt54nano_pos_substvalid_count{track} = gpt54nano_score{track} > 0 且实质性已被测量 (非 NaN) 的文章数之和
+producer: pipeline\panel\runner.py (方法 A2 篇章级标记 L1001-L1015; 面板级比率聚合 L2209-L2218) ; pipeline\panel\encode.py (agg 字典 L1107-L1110 _pos_count / _pos_symb_count 求和)
+upstream: [gpt54nano_score_full, gpt54nano_score_ctx, gpt54nano_score_ss, innovation_substantiveness_full]
+citations:
+- {doi: "10.1111/jofi.13412", type: journal, authors: "Duchin, R., Gao, J., & Xu, Q.", year: 2025, title: "Sustainability or greenwashing: Evidence from the asset market for industrial pollution", venue: "The Journal of Finance", vol: "80", issue: "2", pages_or_artno: "699-754"}
+- {doi: "10.1111/eufm.12509", type: journal, authors: "Gorovaia, N., & Makrominas, M.", year: 2024, title: "Identifying greenwashing in corporate-social responsibility reports using natural-language processing", venue: "European Financial Management", vol: "31", issue: "1", pages_or_artno: "427-462"}
+- {doi: "10.1016/j.pacfin.2024.102600", type: journal, authors: "Fan, X., Tang, Z., Huang, W., & Yang, K.", year: 2025, title: "Ownership concentration and corporate greenwashing in China's capital markets: Based on a multi-actors perspective", venue: "Pacific-Basin Finance Journal", vol: "89", issue: "", pages_or_artno: "Article 102600"}
+- {doi: "10.1016/j.frl.2026.109684", type: journal, authors: "Song, X., Hou, W., Ouyang, Z., & Hao, F.", year: 2026, title: "AI washing: Strategic disclosure and backlash", venue: "Finance Research Letters", vol: "95", issue: "", pages_or_artno: "109684"}
+- {doi: "10.1086/693096", type: journal, authors: "Piotroski, J. D., Wong, T. J., & Zhang, T.", year: 2017, title: "Political bias in corporate news: The role of conglomeration reform in China", venue: "The Journal of Law and Economics", vol: "60", issue: "1", pages_or_artno: "173-207"}
 new_dois: []
 ---
 
 ## CORE
 
 【构念与来源】
-骨架占位 — 本节为家族核心长文, 待 WP4 写手按写手输入包三件套 (build/codebook_inputs/F612/ 下 columns.json、source_excerpt.md、citations_pool.md) 撰写。本骨架由 build_codebook_family_map 机械生成, 家族 status=draft, 字数闸与引文闸在 draft 态降级为告警计数。单位初判: 比率/占比 (proportion, [0,1] 或百分比; 待写手按 frontmatter 校准)。公式初判见 frontmatter formula 字段, 写手须对 producer 源码逐条校对后改写。
+washing_ratio_gpt54nano 族测度的是"洗稿式正面报道"在单一 LLM 打分者 (gpt54nano, 即 gpt-5.4-nano) 视角下的相对占比: 在该模型判为正面情感的报道中, 有多大比例同时被 P3 实质性分类 (`innovation_substantiveness_full`, W&Z 1998 substantive/symbolic 二分传统) 判为"象征性"而非"实质性"。构念动机直接承袭企业传播/漂绿文献: 企业可以用正面语调的软新闻 (象征性动作、口号式表态) 稀释市场对其"是否真的做了实质金融科技投入"的判断, washing_ratio 就是把"语调正面"与"内容空心"两条独立判定交叉后得到的度量。家族命名前缀 `washing_ratio` 呼应 pipeline 注释里明确引用的 Bingler, Kraus, Leippold & Webersinke (2022, Finance Research Letters, ClimateBert cheap-talk 研究) 的"廉价谈话/挑樱桃披露"框架, 本仓库把该逻辑从气候信息披露迁移到银行金融科技新闻场景。近年文献进一步把"洗X"式测度扩展到 ESG 之外的技术叙事: Song, Hou, Ouyang & Hao (2026, Finance Research Letters) 的"AI washing"研究直指企业用 AI 相关战略性披露制造市场预期与实际落地之间的落差, 与本族对"金融科技象征性报道"占比的构造思路高度同源; Duchin, Gao & Xu (2025, The Journal of Finance) 在工业污染资产市场证据里区分"可持续"与"漂绿"两种解释, 方法论上同样依赖把"正面叙事"与"实质行动指标"分离交叉的识别策略, 是本族分子分母交叉设计的顶刊方法论锚点; Gorovaia & Makrominas (2024, European Financial Management) 用 NLP 识别企业社会责任报告中的漂绿信号, 提供了将文本正负极性与实质性/形式性维度联合建模的近邻先例; Fan, Tang, Huang & Yang (2025, Pacific-Basin Finance Journal) 则从股权集中度视角研究中国资本市场企业漂绿行为的多主体机制, 呼应本项目样本同处中国银行业情境。washing_ratio_gpt54nano 是 F612 家族三轨 (full/ctx/ss) 之一 (本条目对应 full 轨, 即无后缀 canonical), 也是"单模型" (method A2) 系列在 gpt-5.4-nano 这一具体 LLM 打分者上的实例; 家族内还有对应的均值版本 washing_ratio (三家 LLM 多数投票版, method A) 与另外两个单模型版本 washing_ratio_gemini31 / washing_ratio_deepseekv4。
+
+【方法学与计算】
+计算分两层。第一层是篇章级标记 (`pipeline/panel/runner.py` L1001-L1015, 方法 A2): 对每条报道每一轨, 取该 LLM 的连续情感打分 `gpt54nano_score{track}` (nullable Int8, NaN 表示该模型对该篇未产出有效打分), `fillna(0)` 后判定 `_llm_pos = score > 0`; 若同时 `innovation_substantiveness_full == '象征性'`, 标记 `_is_gpt54nano_pos_symb{track} = 1`, 否则为 0; 另建同域分母标记 `_svd_gpt54nano_pos{track} = _llm_pos & _subst_measured`, 其中 `_subst_measured` 表示该篇的实质性分类结果非缺失 (即 P3 判出了"实质性"或"象征性"其中之一, 未判出的一律不进分母)。这一同域分母设计是 2026-06-11 (fix omni-g-runner-10/14) 的修正: 早期实现分子只数"正面且象征性"、分母却数"全部正面文章" (含实质性分类失败的那批), 导致 LLM 实质性分类失败率越高、洗稿率被系统性拉低的假象 (失败样本进不了分子, 却仍撑大分母)。修正后分子分母同域: 分母只计"该文章的实质性分类确有结果"的正面文章, 分类失败的文章既不进分子也不进分母, 彻底剔除测量失败对比率水平的机械性拖累。第二层是银行-年面板级聚合 (`runner.py` L2209-L2218): 先按银行-年对篇章级标记求和 (`encode.py` agg 字典, `{llm}_pos_count{track}` 与 `{llm}_pos_symb_count{track}`), 再取比: `washing_ratio_gpt54nano{track} = gpt54nano_pos_symb_count{track} / gpt54nano_pos_substvalid_count{track}` (`_safe_ratio` 对分母为 0 的银行-年返回 NaN 而非除零错误或人为 0); 若面板缺 `_substvalid_count` 列 (旧 schema), 回退为物理正面计数 `gpt54nano_pos_count{track}` 并写 WARNING 日志, 但生产口径以 substvalid 分母为准。三轨 full/ctx/ss 使用严格独立的输入列 (`gpt54nano_score_full` / `_ctx` / `_ss`) 与独立的实质性掩码来源 (三轨共用 `innovation_substantiveness_full`, 因 P3 实质性分类本身只在 full 轨产出, 详见下方各 VAR 节口径说明), 分别聚合出三个互相独立的银行-年比率, 互为稳健性、不分主次、各自 just-identified, 禁止把三轨混进同一个 over-identified 的 Hansen J 检验。
+
+【文献定位】
+本族测度处于三条文献脉络的交叉点。第一条是"象征性 vs 实质性"行为分类传统 (Westphal & Zajac 1998 母框架, 本仓库以 `innovation_substantiveness_full` 落地), 用来判定企业动作是"做样子"还是"真投入"。第二条是文本挖掘视角下的漂绿/洗X测度文献: Duchin, Gao & Xu (2025, The Journal of Finance) 提供顶刊级的方法论参照 — 用资产市场证据区分可持续投资的"真"与"假"信号, 其识别策略同样建立在"正面叙事标签"与"独立实质性指标"的交叉表之上; Gorovaia & Makrominas (2024, European Financial Management) 与 Fan, Tang, Huang & Yang (2025, Pacific-Basin Finance Journal) 分别从 NLP 文本分类和股权治理视角提供了漂绿测度的操作化先例; Song, Hou, Ouyang & Hao (2026, Finance Research Letters) 的 AI washing 研究是本族最贴近的"科技叙事洗白"同类构念, 直接支撑把 Bingler et al. (2022) 的气候披露 cheap-talk 框架迁移到金融科技报道场景的合理性。第三条是中国媒体报道情境下的"新闻真实性/政治偏向"研究: Piotroski, Wong & Zhang (2017, The Journal of Law and Economics) 研究中国国企新闻政治偏向的制度成因, 提示中国语境下企业相关新闻报道存在系统性的内容失真动机, 为本族在中国银行-金融科技新闻样本上构造洗稿率测度提供了制度背景支撑。gpt54nano 单模型版本 (method A2) 与三家 LLM 投票的均值版本 (method A, washing_ratio 无模型后缀) 及另外两个单模型版本互为跨厂商稳健性, 三者及 D/D2 词典系列、E/E2 BERT 系列共同构成 pipeline 注释所述"多方法 × 三轨"的洗稿率变体矩阵 — 各方法层面同样各自 just-identified 并排, 不设跨方法的单一权威点估计, 而是作为一组稳健性证据链共同支撑"洗稿现象是否存在"的结论。
 
 ## VAR: washing_ratio_gpt54nano
 
 【变体差分】
-骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+本列是 F612 家族的 full 轨 (canonical, 无轨道后缀), 分子分母全部基于 `gpt54nano_score_full` (标题+正文全文) 与 `innovation_substantiveness_full` 计算。因留篇门控 (full-only, 2026-06-29 起) 以 `llm_verified_full == True` 为唯一判定"这是一篇有效银行金科报道"的口径, full 轨是三轨中样本覆盖最完整、最贴近门控行 universe 的一支, 在 P3/P4/P5 等主线论文中作为主设定优先引用; ctx/ss 两轨则退化为 conditional-on-full 的测度/稳健性轨, 行宇宙是 full 轨留篇集的子集。分子 `gpt54nano_pos_symb_count_full` 与分母 `gpt54nano_pos_substvalid_count_full` 均只用全文轨的连续打分 `gpt54nano_score_full > 0` 作为"正面"判据, 不掺入 ctx/ss 轨的打分。分母 `gpt54nano_pos_substvalid_count_full` 采用同域计数 (2026-06-11 fix omni-g-runner-10/14 后的口径): 只统计 `gpt54nano_score_full > 0` 且该篇实质性分类 (`innovation_substantiveness_full`) 确有结果 (非 NaN) 的文章, 剔除模型未能判出实质性/象征性的样本, 避免分类失败率上升时比率被系统性拉低的假象; 若面板缺该同域分母列 (旧 schema 兼容路径), 才回退为物理正面计数 `gpt54nano_pos_count_full` 并伴随 WARNING 日志, 生产口径不触发该回退。银行-年若当年 `gpt54nano_pos_substvalid_count_full` 为 0 (该行无任何被判为正面且实质性已测量的报道), 本列取 NaN (`_safe_ratio` 语义), 不人为填 0, 避免把"无样本"与"零洗稿"混为一谈。该列与家族内 ctx/ss 两个孪生列互为稳健性、不分主次, 三者各自 just-identified 并排, 严禁混入同一个 over-identified 的 Hansen J 检验; 与家族外的 washing_ratio (三家 LLM 多数投票均值版, method A) 及 washing_ratio_gemini31 / washing_ratio_deepseekv4 (另两个单模型版, method A2 的其余两家厂商实例) 亦互为跨厂商稳健性并排, 不设单一权威估计; 与 washing_ratio_dict (词典均值版) / washing_ratio_bert (BERT 均值版) / washing_ratio_hc (高置信度子样本版) 同属"多方法 × 三轨"矩阵的不同方法维度, 彼此正交不交叉, 不应合并进同一识别方程。
 
 ## VAR: washing_ratio_gpt54nano_ctx
 
 【变体差分】
-骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+本列是 ctx (实体窗口) 轨: 分子分母改用 `gpt54nano_score_ctx > 0` (标题+目标银行/金融科技实体上下文窗口打分, `14_materialize_ctx` 物化的 `content_ctx` + `prepend_title`) 作为正面判据, `gpt54nano_pos_symb_count_ctx` / `gpt54nano_pos_substvalid_count_ctx` 均取自 ctx 轨专属篇章级标记 (`_is_gpt54nano_pos_symb_ctx` / `_svd_gpt54nano_pos_ctx`, `runner.py` 方法 A2 循环内按 `track='_ctx'` 单独求值), 与 full 轨的打分列、实质性掩码来源虽共用 `innovation_substantiveness_full` (P3 实质性分类本身不分轨, 只在 full 轨物化, 三轨的"象征性 vs 实质性"标签是同一套), 但正面判据本身随 ctx 轨的实体窗口文本独立变化 (gpt54nano 在窗口化短文本上打出的连续分数与全文轨系统性不同), 因此分子分母组合与 full 轨列严格不同源, 是独立的银行-年比率而非 full 轨的派生量或简单加权。分母同样采用同域计数口径 (`gpt54nano_pos_substvalid_count_ctx`, 仅计正面且实质性已测量的 ctx 轨文章), 与 full 轨遵循同一 2026-06-11 修正逻辑, 缺列时回退物理计数并告警。按 2026-06-29 起的留篇门控口径, ctx 轨行宇宙是 full 轨留篇集的子集 (conditional-on-full, "是否算一篇有效报道"只看 full 轨判定, ctx 轨仅在此子集上计算测度), 用于检验"把洗稿判据限缩到银行/金融科技实体紧邻上下文"是否改变结论, 与 full/ss 两轨互为稳健性、不分主次, 各自 just-identified 并排, 禁止三轨混入同一 Hansen J。ctx 轨与 ss 轨的核心差异在于共现判据严格度: ctx 取实体窗口 (较宽), ss 取同句 (更严), 二者及 full 三者构成从宽到严的判据阶梯, 而非同一构念的重复测量, 稳健性检验须逐轨单独汇报系数, 不做跨轨加总或平均。
 
 ## VAR: washing_ratio_gpt54nano_ss
 
 【变体差分】
-骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+本列是 ss (银行∧金融科技同句) 轨: 分子分母改用 `gpt54nano_score_ss > 0` (标题+银行与金融科技词同句±N窗口打分, 窗口半径见 `config/filtering.yaml::context_window.ss_sentence_radius`, 默认 1; 与 stage 13 `cooccurrence_filter.sentence_radius` 是两个不同的配置键, 前者控制 ss 轨文本物化窗口, 后者控制上游硬过滤窗口, 不可混用) 作为正面判据。ss 回退语义镜像 ctx: 若某篇报道内不存在银行∧金融科技的同句共现, 则 `content_ss` 回退为全文 body (`ss_is_fallback=True`), 该篇的 `gpt54nano_score_ss` 仍会正常产出打分并进入分子分母计算, 但其正面判据实际退化为接近全文口径, 与"真正同句共现"的样本共享同一 `n_articles` 分母、不做区分丢弃, 若 `FINTECH_AC=None` 则 `*_is_fallback` 全 True、ss 轨整体优雅降级为近似全文口径。`gpt54nano_pos_symb_count_ss` / `gpt54nano_pos_substvalid_count_ss` 是 ss 轨专属篇章级标记 (`_is_gpt54nano_pos_symb_ss` / `_svd_gpt54nano_pos_ss`) 的银行-年求和, 分母同样是同域计数 (正面且实质性已测量的 ss 轨文章数), 与 full/ctx 两轨的分子分母组合各自独立、互不借用, 缺列回退逻辑与其余两轨一致。按留篇门控口径, ss 轨行宇宙同样是 full 轨留篇集的子集, 是三轨中共现判据最严格 (要求银行与金融科技词紧邻同句) 的一支, 用于检验洗稿结论是否对"银行与金融科技在同一句话内出现"这一最强共现口径依然稳健, 与 full/ctx 两轨互为稳健性、不分主次, 三轨各自 just-identified 并排, 禁止混入同一 Hansen J 检验。
 
 <!-- rendered-citations:begin -->
-
+Duchin, R., Gao, J., & Xu, Q. (2025). Sustainability or greenwashing: Evidence from the asset market for industrial pollution. The Journal of Finance, 80(2), 699-754. https://doi.org/10.1111/jofi.13412
+Gorovaia, N., & Makrominas, M. (2024). Identifying greenwashing in corporate-social responsibility reports using natural-language processing. European Financial Management, 31(1), 427-462. https://doi.org/10.1111/eufm.12509
+Fan, X., Tang, Z., Huang, W., & Yang, K. (2025). Ownership concentration and corporate greenwashing in China's capital markets: Based on a multi-actors perspective. Pacific-Basin Finance Journal, 89, Article 102600. https://doi.org/10.1016/j.pacfin.2024.102600
+Song, X., Hou, W., Ouyang, Z., & Hao, F. (2026). AI washing: Strategic disclosure and backlash. Finance Research Letters, 95, 109684. https://doi.org/10.1016/j.frl.2026.109684
+Piotroski, J. D., Wong, T. J., & Zhang, T. (2017). Political bias in corporate news: The role of conglomeration reform in China. The Journal of Law and Economics, 60(1), 173-207. https://doi.org/10.1086/693096
 <!-- rendered-citations:end -->
