@@ -17,7 +17,19 @@ over-identified Hansen J。维度列停留孤儿 parquet (27_benefit_dimensions_
   6. CLI 冒烟 (--track ss / all; 缺 .npy 优雅 skip 返回 0);
   7. merge 桥接 (track='all'+include_lg → 24 列; 'both' 回归锚; 剪枝 tracks 透传);
   8. 空 embedding_large 降级 (剔除 _lg 不崩 MAIN, 无错键缓存查询)。
+
+S11 补充 (PROMPT_ASSETS_AUDIT_EXECUTION_PLAN_2026-07-12.md §2 表 S11, 2026-07-14, 纯测试侧):
+  9.  DIMENSION_INDICES 纯位置耦合防护 — 10 对锚点各补 1 条内容关键词断言 (对照
+      ``pipeline.features.benefit_society.POSITIVE_ANCHORS``/``NEGATIVE_ANCHORS``
+      的实际句子内容, 而非仅校验索引集合的完备性/不重不漏; 锚点顺序被重排 →
+      TestDimensionIndices.test_ten_anchors_partition 仍可能绿, 但本类会红)。
+  10. 主 10 对锚点冻结锁 ``ANCHORS_SHA256`` (对照 test_peer_prompt_frozen.py 的
+      PEER_PROMPT_SHA256 与 test_benefit_society_alt_anchor.py 的 jlm yaml_sha256
+      两个既有先例, 补 benefit 主锚点缺失的第三把锁)。canonical 拼接口径见下方
+      TestAnchorsFrozenHash docstring — 与 S3 (benefit_society.py 写入侧
+      ``anchor_sha256`` 字段, 尚未落地) 须使用同一口径, 届时以此处口径为准。
 """
+import hashlib
 import json
 
 import numpy as np
@@ -66,6 +78,136 @@ class TestDimensionIndices:
         idx = [i for tup in da.DIMENSION_INDICES.values() for i in tup]
         assert sorted(idx) == list(range(10)), 'DIMENSION_INDICES 未不重不漏覆盖 10 锚点'
         assert tuple(da.DIMENSION_INDICES) == DIMS
+
+
+# ============================================================================
+# S11-① DIMENSION_INDICES 纯位置耦合防护 (内容关键词断言)
+# ============================================================================
+# DIMENSION_INDICES 只按 0-based 位置切片 POSITIVE_ANCHORS/NEGATIVE_ANCHORS
+# (dimension_analysis.py:45-50), 与锚点句内容本身没有任何运行时校验绑定。若未来
+# 有人调整 benefit_society.py 里 10 对锚点的书写顺序 (例如把 ⑨信贷质量 与 ③风险
+# 管控 顺序对调), TestDimensionIndices.test_ten_anchors_partition 只验证"索引集合
+# 恰好覆盖 0-9 且不重不漏", 依然全绿 —— 但 DIMENSION_INDICES 里 "core_op":(0,1,2)
+# 的注释 "①盈利效率 ③风险管控 ⑨信贷质量" 就与实际内容错位, 4 维度子指数会静默
+# 张冠李戴。这里为 10 个位置各锁 1 个稳定判别关键词 (正/负极句仅替换核心动词,
+# 关键词在两极句中都出现), 锚点重排即测试失败。
+_ANCHOR_KEYWORDS: dict[int, str] = {
+    0: "经营效率",   # ① 盈利效率 (core_op)
+    1: "风险管控",   # ③ 风险管控 (core_op)
+    2: "信贷质量",   # ⑨ 信贷质量 (core_op)
+    3: "业务转型",   # ② 业务转型 (growth)
+    4: "客户基础",   # ④ 客户基础 (growth)
+    5: "市场竞争力", # ⑤ 市场竞争力 (growth)
+    6: "经营效益",   # ⑦ 经济效益 (resource)
+    7: "人才队伍",   # ⑩ 人才队伍 (resource)
+    8: "合规成本",   # ⑥ 合规成本 (compliance)
+    9: "信息安全",   # ⑧ 信息安全 (compliance)
+}
+
+
+class TestAnchorContentKeywords:
+    """S11-①: 逐位置内容关键词断言 (10 条), 防 DIMENSION_INDICES 纯位置耦合。"""
+
+    def test_ten_positions_have_stable_keywords(self):
+        pos, neg = da._import_anchors()
+        assert len(pos) == 10 and len(neg) == 10
+        for idx, keyword in _ANCHOR_KEYWORDS.items():
+            assert keyword in pos[idx], (
+                f"POSITIVE_ANCHORS[{idx}] 缺关键词 {keyword!r} (实际: {pos[idx]!r}) — "
+                "锚点顺序疑似被重排, DIMENSION_INDICES 维度归属需重新核对"
+            )
+            assert keyword in neg[idx], (
+                f"NEGATIVE_ANCHORS[{idx}] 缺关键词 {keyword!r} (实际: {neg[idx]!r}) — "
+                "正/负极句在该位置已不再是 single-word-change 对偶"
+            )
+
+    def test_keywords_cover_all_dimension_indices(self):
+        # _ANCHOR_KEYWORDS 自身也要不重不漏覆盖 DIMENSION_INDICES 的 10 个位置,
+        # 否则本类可能悄悄漏测某个位置。
+        covered = {i for tup in da.DIMENSION_INDICES.values() for i in tup}
+        assert set(_ANCHOR_KEYWORDS) == covered
+
+
+# ============================================================================
+# S11-② 主 10 对锚点冻结锁 (ANCHORS_SHA256)
+# ============================================================================
+# 对照既有两把类似锁: test_peer_prompt_frozen.py::test_peer_prompt_frozen 锁
+# PEER_PROMPT_SHA256、test_benefit_society_alt_anchor.py::test_sha256_stable 锁
+# jlm yaml_sha256 —— benefit_society.py 的 10 对主锚点 (POSITIVE_ANCHORS +
+# NEGATIVE_ANCHORS) 此前没有对应的冻结锁, 改一个字都不会被任何测试发现。
+#
+# canonical 拼接口径 (务必读完再改): '\n'.join(POSITIVE_ANCHORS + NEGATIVE_ANCHORS),
+# 即先 10 句正极 (保持原书写顺序) 再 10 句负极 (保持原书写顺序), 逐句用单个 '\n'
+# 分隔、首尾不加分隔符, 再 .encode('utf-8') 后取 sha256 十六进制摘要。选择这个口
+# 径的理由: (a) 与 test_peer_prompt_frozen 对整段 prompt 文本直接取 sha 的做法一
+# 致 (无需额外分隔符设计); (b) 用 '\n' 而非 '' 连接可避免"上一句句尾字与下一句句
+# 首字连读"造成的边界歧义; (c) 锚点是 Python 源码里的字符串字面量 (不经磁盘文件
+# 读取), 不存在 CRLF/LF 归一问题, 故不需要 PEER_PROMPT 测试里的 .replace("\r\n",
+# "\n") 步骤。
+#
+# ⚠ S3 (PROMPT_ASSETS_AUDIT 计划 §2 表 S3, benefit_society.py:548-579 附近, 写入
+# ``anchor_sha256`` sidecar 字段) 落地时必须复用同一口径。**核验结果 (2026-07-14,
+# 两条独立实现互证)**: 本文件实现之初 benefit_society.py:548-579 附近尚无
+# anchor_sha256 相关代码 (并发任务尚未落地); 收尾复核时该任务已落地并新增模块级
+# 常量 ``_ANCHOR_SHA256 = hashlib.sha256("\n".join(POSITIVE_ANCHORS +
+# NEGATIVE_ANCHORS).encode("utf-8")).hexdigest()`` —— 与本文件独立选定的口径逐字
+# 节相同, 且实算值同为 ``aab698f6...c4c204``。下方 TestAnchorsFrozenHash 额外补
+# 一条 test_matches_production_anchor_sha256 交叉校验两者不漂移。
+#
+# 若有意修改任一锚点句 (需先过 §0-1/§11 受控流程 —— 锚点句进嵌入缓存键):
+#   1. 重算 hashlib.sha256('\n'.join(POSITIVE_ANCHORS + NEGATIVE_ANCHORS)
+#      .encode('utf-8')).hexdigest();
+#   2. 把下方 ANCHORS_SHA256 更新为新值;
+#   3. 同步确认 _benefit_center_sidecar.json 是否需要按 S3 的 anchor_sha256
+#      字段失配规则重新冻结。
+ANCHORS_SHA256 = "aab698f6a46045d1533e2c5bd5b11b9ca50c6565730ec0a1b291fea984c4c204"
+
+
+class TestAnchorsFrozenHash:
+    """S11-②: 主 10 对锚点句 canonical 拼接 sha256 冻结测试。"""
+
+    def test_anchors_frozen(self):
+        from news_process.pipeline.features.benefit_society import (
+            NEGATIVE_ANCHORS,
+            POSITIVE_ANCHORS,
+        )
+        canon = "\n".join(POSITIVE_ANCHORS + NEGATIVE_ANCHORS)
+        actual = hashlib.sha256(canon.encode("utf-8")).hexdigest()
+        assert actual == ANCHORS_SHA256, (
+            f"benefit_society 主 10 对锚点句已变 (actual={actual!r})。若是有意修改 "
+            "(须先过 §0-1/§11 受控流程 — 改一个字节即对应嵌入缓存全 miss), 把本文件 "
+            "ANCHORS_SHA256 更新为上面的 actual, 并检查 S3 anchor_sha256 sidecar 字段"
+            "是否需要同步重新冻结。"
+        )
+
+    def test_anchors_via_dimension_analysis_import_path_match(self):
+        # 确认 dimension_analysis._import_anchors() (生产消费路径) 取到的锚点句
+        # 与本文件直接 import 的 benefit_society 常量逐字节相同, 防两条路径分叉。
+        from news_process.pipeline.features.benefit_society import (
+            NEGATIVE_ANCHORS,
+            POSITIVE_ANCHORS,
+        )
+        pos, neg = da._import_anchors()
+        assert pos == list(POSITIVE_ANCHORS)
+        assert neg == list(NEGATIVE_ANCHORS)
+
+    def test_matches_production_anchor_sha256(self):
+        # 交叉校验: S3 (benefit_society.py) 落地的模块级 ``_ANCHOR_SHA256`` 与本
+        # 文件独立选定并锁定的 ANCHORS_SHA256 必须逐字节相同 (两条独立实现同一口
+        # 径的证据; 任一方今后改了拼接口径而未同步, 本条测试即红)。若生产侧尚未
+        # 落地该常量 (ImportError), 优雅 skip —— 不因并发任务进度而误报本文件缺陷。
+        pytest.importorskip(
+            "news_process.pipeline.features.benefit_society",
+            reason="benefit_society 模块不可用",
+        )
+        from news_process.pipeline.features import benefit_society as _bs
+        production_sha = getattr(_bs, "_ANCHOR_SHA256", None)
+        if production_sha is None:
+            pytest.skip("S3 (_ANCHOR_SHA256) 尚未落地, 跳过交叉校验")
+        assert production_sha == ANCHORS_SHA256, (
+            "生产侧 benefit_society._ANCHOR_SHA256 与本文件 ANCHORS_SHA256 口径/值"
+            "已分叉 — 两处 canonical 拼接口径须保持一致 (见本类上方 docstring)。"
+        )
 
 
 class TestDimColSSOT:

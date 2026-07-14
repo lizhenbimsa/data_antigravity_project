@@ -66,6 +66,7 @@ pos/neg_frac 阈值中心 (KNOWN-OPEN① 修复, fix(omni-g-benefit, 2026-06-11)
 ============================================================================
 """
 
+import hashlib
 import json
 import os
 import platform
@@ -215,6 +216,17 @@ NEGATIVE_ANCHORS = [
 assert len(POSITIVE_ANCHORS) == len(NEGATIVE_ANCHORS), \
     f"正极 ({len(POSITIVE_ANCHORS)}) 和负极 ({len(NEGATIVE_ANCHORS)}) 锚点句数量不一致"
 
+# fix(S3, 2026-07-14): 锚点句 canonical 拼接 sha256 — 单一事实源, 供 _get_frozen_center
+# 的冻结 center sidecar 守卫消费 (§2 S3)。canonical 拼接口径 = 与
+# `_compute_direction_vector` 内 `all_anchors = POSITIVE_ANCHORS + NEGATIVE_ANCHORS`
+# 完全同序 (正极 10 句在前、负极 10 句在后, 各自内部保持上方定义顺序), 用 '\n' 连接后
+# 编码为 utf-8 再取 sha256。任何锚点句字增/删/改字都会改变此 sha —— 与 model_id 一样,
+# 用于检测"冻结阈值 center 与当前锚点版本是否一致", 但**本身不驱动嵌入**, 修改本常量
+# 前必读 CLAUDE.md 铁律"锚点句字节 = 缓存键, 改动须走受控流程"。
+_ANCHOR_SHA256 = hashlib.sha256(
+    "\n".join(POSITIVE_ANCHORS + NEGATIVE_ANCHORS).encode("utf-8")
+).hexdigest()
+
 
 # ============================================================================
 # 3. Token 截断与 Embedding 工具
@@ -243,8 +255,12 @@ def _get_embeddings(texts: list[str],
     token_counts 已不再需要 (引擎内部按 token 自行分批), 保留参数仅为签名兼容。
 
     P0-1 (API-fatal 守卫): 仅对 co-primary twin `_lg` (API 且**非** MAIN canonical) 的
-    致命错 (鉴权/网络/配额/离线闸) 兜底降级 None + logger.warning, 使该 twin 仅跳过
-    (其轨列 NaN), 不连带炸 stage。**MAIN canonical** (EMBEDDING_CONFIG) 一律 fail-fast
+    致命错 (鉴权/网络/配额) 兜底降级 None + logger.warning, 使该 twin 仅跳过
+    (其轨列 NaN), 不连带炸 stage。fix(S10, 2026-07-14): 离线闸 RuntimeError 必须穿透
+    re-raise, 不属兜底范围 —— 离线确定性守卫 (`NEWS_PROCESS_LLM_OFFLINE=1` 缓存 miss)
+    的语义是"miss 即中止", 若被本层 except 一并吞掉降级为 None, _lg 轨会静默退化为
+    "离线偷跑成功假象/全 NaN", 与 golden 可复现锚点铁律相悖 (旧版曾把离线闸也算进被吞
+    范围, 现更正)。**MAIN canonical** (EMBEDDING_CONFIG) 一律 fail-fast
     (走裸路径, 异常照常上抛) — 既保留 MAIN 既有失败语义, 又不吞 embedding_engine 离线
     确定性闸 RuntimeError (防主结果列被静默置 NaN bless 进 golden)。对齐
     policy_alignment/policy_similarity 范本。
@@ -273,6 +289,14 @@ def _get_embeddings(texts: list[str],
             log_prefix=log_prefix,
         )
     except Exception as exc:  # noqa: BLE001 — 仅 _lg twin API 致命错降级, 防连带炸 stage
+        # fix(S10, 2026-07-14): 离线确定性闸 RuntimeError 必须穿透 re-raise, 不进入下方
+        # 兜底降级——否则离线守卫 (embedding_engine miss→raise) 被本层静默吞掉,
+        # "miss 即中止" 的结构性保证失效。仅在线致命错 (鉴权/网络/配额) 才走降级 warning。
+        _offline_env = os.environ.get('NEWS_PROCESS_LLM_OFFLINE', '').strip().lower() in (
+            '1', 'true', 'yes', 'on',
+        )
+        if _offline_env:
+            raise
         logger.warning(
             f"    [API spec] {log_prefix} 嵌入失败 (model={_eng.spec_model(_spec)}), "
             f"该 spec 降级为 None (其轨列 NaN, 不影响其他 spec): {exc!r}"
@@ -518,7 +542,9 @@ _CENTER_SIDECAR_FILENAME = '_benefit_center_sidecar.json'
 _CENTER_MIN_N_TO_FREEZE = 50
 
 
-def _get_frozen_center(score_key: str, scores: pd.Series, model_id: str) -> float:
+def _get_frozen_center(score_key: str, scores: pd.Series, model_id: str,
+                       anchor_sha256: str | None = None,
+                       text_pipeline_version: str | None = None) -> float:
     """pos/neg_frac 阈值中心的单一事实源 (冻结 sidecar)。
 
     fix(omni-g-benefit KNOWN-OPEN①, 2026-06-11): 此前 _center 每次 run 用当期
@@ -528,8 +554,14 @@ def _get_frozen_center(score_key: str, scores: pd.Series, model_id: str) -> floa
         ``data/processed/_benefit_center_sidecar.json`` (键 = score 列名,
         如 ``benefit_score_full`` / ``benefit_score_lg_ctx``);
       - 后续 run: 直接读冻结值, 不随语料漂移;
-      - sidecar 记录 model_id, 与当前 spec 不匹配 → fail-loud (嵌入模型换代须
-        显式删除过期条目重冻结, 防跨嵌入空间阈值误用)。
+      - fix(S3, 2026-07-14): sidecar 记录**三字段** model_id / anchor_sha256 /
+        text_pipeline_version (原仅 model_id) —— 三者任一双方都存在且不匹配 →
+        fail-loud (嵌入模型换代 / 锚点句改动 / 文本处理管线换代, 均须显式删除
+        过期条目重冻结, 防跨版本阈值误用)。旧条目 (本次升级前冻结, 缺
+        anchor_sha256/text_pipeline_version 字段) → **不** fail-loud, 改为
+        `logger.warning` + 原地回填缺失字段并重写 sidecar, **绝不改动已冻结的
+        center 数值** —— 若对旧条目直接 fail-loud, 老生产 sidecar 一遇本次升级
+        就会整批报错、当场崩 stage 40, 不是 golden-safe 的做法。
     披露: 冻结值本质仍是首跑 in-sample median — P(>center)≈0.5 仅对首跑语料
     成立; benefit_mean 连续主测度不经此中心化, 不受影响。
     """
@@ -556,6 +588,46 @@ def _get_frozen_center(score_key: str, scores: pd.Series, model_id: str) -> floa
                 f"{frozen_model!r}, 当前 spec model={model_id!r} — 嵌入模型换代须"
                 f"删除 {sidecar_path} 中该条目后重冻结 (防跨嵌入空间阈值误用)"
             )
+        # fix(S3, 2026-07-14): anchor_sha256 / text_pipeline_version 两新字段同款
+        # fail-loud 校验 (双方都存在且不匹配才 raise; 一方缺失走下方回填分支)。
+        frozen_anchor = entry.get('anchor_sha256')
+        if (frozen_anchor is not None and anchor_sha256 is not None
+                and frozen_anchor != anchor_sha256):
+            raise ValueError(
+                f"benefit center sidecar 条目 {score_key!r} 冻结自 anchor_sha256="
+                f"{frozen_anchor!r}, 当前锚点句 sha256={anchor_sha256!r} — 锚点句"
+                f"改动须删除 {sidecar_path} 中该条目后重冻结 (防跨锚点版本阈值误用)"
+            )
+        frozen_tpv = entry.get('text_pipeline_version')
+        if (frozen_tpv is not None and text_pipeline_version is not None
+                and frozen_tpv != text_pipeline_version):
+            raise ValueError(
+                f"benefit center sidecar 条目 {score_key!r} 冻结自 "
+                f"text_pipeline_version={frozen_tpv!r}, 当前 "
+                f"text_pipeline_version={text_pipeline_version!r} — 文本处理管线"
+                f"换代须删除 {sidecar_path} 中该条目后重冻结 (防跨管线版本阈值误用)"
+            )
+        # fix(S3, 2026-07-14): 旧条目 (升级前冻结) 缺 anchor_sha256/
+        # text_pipeline_version 字段 → warning + 回填字段, **绝不改 center 值**
+        # (防当场崩 stage 40, golden-safe 设计要求)。
+        _backfilled = []
+        if entry.get('anchor_sha256') is None and anchor_sha256 is not None:
+            entry['anchor_sha256'] = anchor_sha256
+            _backfilled.append('anchor_sha256')
+        if entry.get('text_pipeline_version') is None and text_pipeline_version is not None:
+            entry['text_pipeline_version'] = text_pipeline_version
+            _backfilled.append('text_pipeline_version')
+        if _backfilled:
+            logger.warning(
+                f"    {score_key}: sidecar 旧条目缺字段 {_backfilled} (S3 升级前冻结), "
+                f"回填字段但绝不改 center 值 (center 仍={sig4(entry['center'])}, "
+                f"防当场崩 stage 40)"
+            )
+            try:
+                with open(sidecar_path, 'w', encoding='utf-8') as f:
+                    json.dump(record, f, ensure_ascii=False, indent=2)
+            except OSError as exc:
+                logger.warning(f"    center sidecar 回填写入失败 (不影响本次取值): {exc!r}")
         logger.info(f"    {score_key}: 使用冻结 center={sig4(entry['center'])} (sidecar)")
         return float(entry['center'])
 
@@ -573,6 +645,8 @@ def _get_frozen_center(score_key: str, scores: pd.Series, model_id: str) -> floa
     record[score_key] = {
         'center': center,
         'model_id': model_id,
+        'anchor_sha256': anchor_sha256,
+        'text_pipeline_version': text_pipeline_version,
         'method': 'pooled-median (首跑 in-sample, 冻结)',
         'n_scores': n_scores,
         'frozen_utc': datetime.now(timezone.utc).isoformat(timespec='seconds'),
@@ -824,7 +898,9 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
             # — 改冻结 sidecar (_benefit_center_sidecar.json): 首跑计算持久化, 后续
             # 读冻结值; 语料增量不再平移全历史 pos/neg_frac。详见 _get_frozen_center。
             _center = _get_frozen_center(col_score, df_exploded[col_score],
-                                         _eng.spec_model(spec))
+                                         _eng.spec_model(spec),
+                                         anchor_sha256=_ANCHOR_SHA256,
+                                         text_pipeline_version=_eng.spec_version(spec))
             frac = (df_exploded
                     .dropna(subset=[col_score])
                     .groupby(['target_bank', 'year'])[col_score]

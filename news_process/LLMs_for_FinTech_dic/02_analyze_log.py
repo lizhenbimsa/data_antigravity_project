@@ -16,7 +16,9 @@ from pathlib import Path
 from typing import DefaultDict, Dict, List, Optional, Set
 
 # === 本地配置 ===
-from config import LOG_DIR
+# fix(S12, 2026-07-14): 补 DOMAINS 导入，替换本文件内硬编码的 "26"（历史领域
+# 数量），改为动态 len(DOMAINS)，避免领域列表精简/扩容后报告口径与实际漂移。
+from config import LOG_DIR, DOMAINS
 
 
 # ════════════════════════════════════════════════════════════════
@@ -105,8 +107,13 @@ def analyze_log(log_path: Path, output_path: Path) -> None:
             continue
 
         # 生成阶段 - 失败
+        # fix(S12, 2026-07-14): 原正则要求 "]" 后紧跟 " 失败"，漏计
+        # 00_LLMs_for_dic.py:449 的 "达到最大重试次数，任务失败"（"]" 与
+        # "失败" 之间夹了 "达到最大重试次数，任务" 字样）一类失败信息，
+        # 导致该类失败未计入 total_gen_fail → 放宽为 "].*失败"，两种措辞
+        # （紧邻式 "] 失败" 与夹字式 "] 达到最大重试次数，任务失败"）均可捕获。
         m_fail = re.search(
-            r"\[ERROR\].*\[任务 (.+?)/(.+?) \((\d+)\)\] 失败", line
+            r"\[ERROR\].*\[任务 (.+?)/(.+?) \((\d+)\)\].*失败", line
         )
         if m_fail and not judge_phase_started:
             model, domain, idx = m_fail.groups()
@@ -198,7 +205,8 @@ def analyze_log(log_path: Path, output_path: Path) -> None:
         p(
             f"{model:<50} {stats['success']:>5} {stats['fail']:>5} "
             f"{stats['retry']:>5} {stats['keywords_total']:>7} "
-            f"{avg_kw:>7.1f} {len(stats['domains']):>5}/26"
+            # fix(S12, 2026-07-14): 硬编码 /26 → len(DOMAINS) 动态（领域列表现已精简为 1 个）
+            f"{avg_kw:>7.1f} {len(stats['domains']):>5}/{len(DOMAINS)}"
         )
 
     # 3. 失败模型汇总
@@ -243,21 +251,24 @@ def analyze_log(log_path: Path, output_path: Path) -> None:
         avg = stats["keywords_total"] / stats["success"]
         p(f"  {i + 1:>2}. {model:<50} 平均 {avg:>6.1f} 词/领域, 总计 {stats['keywords_total']:>5} 词")
 
-    # 6. 未完全覆盖 26 领域的模型
-    incomplete = [(m, s) for m, s in gen_models.items() if len(s["domains"]) < 26]
+    # fix(S12, 2026-07-14): 本节 4 处硬编码 "26"（与 :201/:208 同族缺陷）
+    # 一并改 len(DOMAINS) 动态，避免领域列表精简/扩容后报告口径漂移。
+    n_domains = len(DOMAINS)
+    # 6. 未完全覆盖全部领域的模型
+    incomplete = [(m, s) for m, s in gen_models.items() if len(s["domains"]) < n_domains]
     if incomplete:
         p()
         p("=" * 80)
-        p(f"六、未完全覆盖26个领域的模型 (共 {len(incomplete)} 个)")
+        p(f"六、未完全覆盖全部{n_domains}个领域的模型 (共 {len(incomplete)} 个)")
         p("=" * 80)
         for model, stats in sorted(incomplete, key=lambda x: len(x[1]["domains"])):
             p(
-                f"  {model}: 覆盖 {len(stats['domains'])}/26 领域, "
+                f"  {model}: 覆盖 {len(stats['domains'])}/{n_domains} 领域, "
                 f"成功 {stats['success']}, 失败 {stats['fail']}"
             )
     else:
         p()
-        p("六、所有模型均完全覆盖26个领域 ✅")
+        p(f"六、所有模型均完全覆盖全部{n_domains}个领域 ✅")
 
     # 7. 判别阶段统计
     if judge_models:

@@ -596,7 +596,19 @@ def judge_batch(args: Tuple) -> Tuple[str, List[Tuple[str, int, str]]]:
                 for item in results_list:
                     if isinstance(item, dict) and "keyword" in item:
                         kw = str(item["keyword"]).strip()
-                        sc = int(item.get("score", 0))
+                        # fix(S12, 2026-07-14): int() 裸转换在 score 为非数字/None/list 等
+                        # 畸形值时会 ValueError/TypeError 炸穿整个判别主循环 → 改为 try/except
+                        # 记 warning 并跳过该坏项，不让单条坏响应拖垮整批判别；该词缺席
+                        # result_map 后，走下方既有"未匹配补默认值 0"兜底路径。
+                        raw_score = item.get("score", 0)
+                        try:
+                            sc = int(raw_score)
+                        except (TypeError, ValueError):
+                            logger.warning(
+                                f"  [{task_id}] 判别结果坏项: keyword={kw!r} "
+                                f"score={raw_score!r} 无法转为 int，已跳过该词（按未匹配处理）"
+                            )
+                            continue
                         rs = str(item.get("reason", "")).strip()
                         result_map[kw] = (sc, rs)
 
@@ -1282,8 +1294,12 @@ def main(resume: bool = False, dry_run: bool = False) -> None:
     # ====================================================================
     simplified_set = set(simplified_keywords)
     final_kw_set = set(kw_list)
+    # fix(S2, 2026-07-14): 阈值由 >= (含平票=4) 改严格多数 > (=≥5/8)，
+    # 对齐发表词表 1506 实证口径（发表词表本身未被污染: xlsx 实测 ≥5 计数=1506=
+    # fintech_dict.json 词条数）；平票(=4)不再计入 judge_ok_set。阈值不进 LLM
+    # 缓存键，此改动只影响未来重跑的词表筛选，不动现有 fintech_dict.json。
     judge_ok_set = set(
-        df_final[df_final["total_score"] >= len(JUDGE_MODELS) * 0.5]["keyword"]
+        df_final[df_final["total_score"] > len(JUDGE_MODELS) * 0.5]["keyword"]
     )
 
     # 构建统计总览
@@ -1407,6 +1423,14 @@ def main(resume: bool = False, dry_run: bool = False) -> None:
     logger.info("AI判别统计 (total_score 分布):")
     for sc, cnt in score_counts.items():
         logger.info(f"  得分 {sc}: {cnt} 个词")
+    # fix(S2, 2026-07-14): 口径声明——上方分布及下表"AI认可"列均按严格多数
+    # (>50%，即 JUDGE_MODELS 中 >len(JUDGE_MODELS)*0.5 家模型认可) 统计；
+    # 平票(=len(JUDGE_MODELS)*0.5)不计入。
+    logger.info(
+        f"  口径声明(S2): 'AI认可'/上方 total_score 分布均按严格多数统计"
+        f"(> {len(JUDGE_MODELS) * 0.5:.1f}，即 {len(JUDGE_MODELS)} 家模型中需 >50% 认可；"
+        f"平票=不计入)"
+    )
 
     logger.info("各领域统计:")
     logger.info(

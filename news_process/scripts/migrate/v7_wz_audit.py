@@ -1,7 +1,16 @@
 """v7 W&Z 框架抽查脚本 (R8-K + A 选项)
 
-从 gray_v7_samples.csv 10 行 → 用 v7 unified_cot.txt prompt 调单模型
+从 gray_v7_samples.csv 10 行 → 读活 config 模板 (`tone_llm_processing.prompt_template`,
+**现为 v8** unified_cot.txt — 脚本名/docstring 沿用最初编写时的 "v7" 字面量, 但实际
+调用的 prompt 内容随 config 实时漂移, 名实不一致; 见下方"弃用声明") 调单模型
 (gpt-5.4-nano) → 提取 4 个 reason 字段 → 输出 markdown 表供 user BLIND review。
+
+fix(S8, 2026-07-14) 弃用声明: 本工具仅对 v8 语料/缓存有效 (与其读活 config 的
+prompt_template 绑定); v9 prompt (见 CLAUDE.md §11.4-#15 / v9 升级计划) 落地后,
+本工具会自动切读 v9 模板但仍打印/记录 "v7" 字面量、且与 v9 prompt_version 的
+缓存键不再匹配 stage 21 已播种的历史缓存 —— 届时运行本工具须 `git checkout`
+回 v9 落地前的历史 commit, **不得**在 v9 之后的工作树直接运行 (预先兑现
+§11.4-#15; v9 落地时仅需复核本声明仍在位, 无需额外改动)。
 
 设计原则 (V+W 系列修正):
 - AI 永远不输出评分 (anchoring bias 防御; U1/V3)
@@ -34,9 +43,20 @@ import pandas as pd
 from news_process.core.caching import LLMCache
 from news_process.core.config import load_config
 
+# fix(S8, 2026-07-14): put 前写入闸直接 import 复用 (非本地重实现) —
+# 本工具的 PROMPT_TEMPLATE 读活 config 的 `tone_llm_processing.prompt_template`,
+# 与 stage 21 (tone_llms.py) 消费的是**同一份** v8 unified_cot.txt / 同一 JSON
+# 契约 (含 is_bank_fintech_news 验证键), 故不存在 S7 场景下"校验键语义不同,
+# 直接复用会误判"的复用陷阱 —— 可安全直接 import 复用。
+from news_process.pipeline.sentiment.tone_llms import _is_cacheable_llm_response
+
 CONFIG = load_config()
 LLM_CFG = CONFIG.get('tone_llm_processing', {})
 PROMPT_TEMPLATE = LLM_CFG.get('prompt_template', '')
+# fix(S8, 2026-07-14): 'v7-2026-05-14' 是死 fallback ——
+# CONFIG['tone_llm_processing']['prompt_template_version'] 在当前 config
+# 拆分下恒有值 (v8 起从未缺失过), 此默认值分支实际不可达; 保留仅作
+# .get() 防御性写法, 不代表本工具仍以某个真实存在过的 "v7" prompt_version 运行。
 PROMPT_VERSION = LLM_CFG.get('prompt_template_version', 'v7-2026-05-14')
 
 # 单模型抽查 (W2: 单 rater 已显式承认, 不作 publishable evidence)
@@ -97,8 +117,14 @@ async def call_llm_with_cache(session: aiohttp.ClientSession, cache: LLMCache,
                             timeout=aiohttp.ClientTimeout(total=60)) as resp:
         data = await resp.json()
         text = data['choices'][0]['message']['content']
-        cache.put(MODEL_ID, prompt, text,
-                  prompt_version=PROMPT_VERSION, temperature=TEMPERATURE)
+        # fix(S8, 2026-07-14): put 前写入闸 —— 此前在线路径 cache.put 无任何
+        # 校验直写生产 _llm_cache.db (WP-A3 只堵了离线 miss, 未堵在线写入侧);
+        # 空串/不可解析/缺 is_bank_fintech_news 键的 200 响应会被永久冻结,
+        # 污染 stage 21 复用的同一确定性锚点。不合格响应本次仍返回给调用方
+        # (不阻塞本次 audit 报告), 只是不写入生产缓存库。
+        if _is_cacheable_llm_response(text):
+            cache.put(MODEL_ID, prompt, text,
+                      prompt_version=PROMPT_VERSION, temperature=TEMPERATURE)
         return text, False
 
 

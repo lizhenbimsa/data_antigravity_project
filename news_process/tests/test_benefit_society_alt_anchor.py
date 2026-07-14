@@ -56,7 +56,10 @@ class TestLoadAnchors:
         # Round 9 V2.E37 修正版: yaml comments 重写 (澄清"不同研究问题"非"项目扩展")
         # 2026-06-12 注释审计: yaml 注释英译中 (锚点句/键值逐位未动, safe_load 与改前
         # 递归相等), 按上行指引同步更新期望 hash。
-        assert sha == "0e35d996917c8910bd9f6293cf920e2898438bd0fd225ab5957ad3f1acb57c4d"
+        # fix(D10-③, 2026-07-14): 删过时 t2v 尾注 (本地 text2vec 轨 v3.14.0 已整体
+        # 移除) — 锚点句/键值逐位未动, safe_load 与改前递归相等 (实证 True), 按
+        # 上行指引同步更新期望 hash (先例=2026-06-12 同款注释级操作)。
+        assert sha == "48f7167d58e6ec490bb7e345c78b2fba9ba50533df06f46c05779028b30bb2d7"
 
     def test_missing_yaml_raises(self, tmp_path) -> None:
         """yaml 不存在 → FileNotFoundError."""

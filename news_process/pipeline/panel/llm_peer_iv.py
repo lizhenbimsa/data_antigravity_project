@@ -345,6 +345,66 @@ PEER_PROMPT_VERSION = "v1-2026-05-13"
 PEER_PROMPT_SHA256 = "35bb3ec60c3c5678ba0b626bf84d15a641c59182c3466306690b875c8a926c88"
 
 
+# fix(S7, 2026-07-14): 本通道写入闸 SSOT — 校验键取 PEER_PROMPT 契约要求的
+# "peers" 字段 (见上方 PEER_PROMPT 末行 `仅输出 JSON: {"peers": [...]}`)。
+_PEER_VERIFICATION_KEY = "peers"
+
+
+def _is_cacheable_peer_response(result_text, force_json: bool | None = None) -> bool:
+    """HTTP 200 响应写缓存前的内容校验 (write-side gate)。
+
+    fix(S7, 2026-07-14): 镜像 ``tone_llms.py::_is_cacheable_llm_response``
+    (omni-g-tonellms-02/15) 的写入闸语义 — 本通道此前无此闸: 空串/不可解析/
+    缺契约键的 200 响应会被直接 ``cache.put`` 永久冻结, 该 (model, prompt)
+    格此后 ``cache.get`` 命中即短路返回, 永无重试机会。
+
+    **未直接 import 复用 ``tone_llms._is_cacheable_llm_response`` 的原因**:
+    该函数的校验键硬编码为模块级常量 ``tone_llms._VERIFICATION_KEY =
+    "is_bank_fintech_news"``, 是 stage 21 情感 prompt (v8) 专属的 JSON 契约
+    字段; 本通道 PEER_PROMPT 要求的字段是 ``"peers"``, 两者语义不同、字符串
+    不可变换互通。若直接 import 复用会让**全部**合法 peer 响应 (含
+    ``{"peers": []}``) 都因缺 ``is_bank_fintech_news`` 键而被误判为不可缓存,
+    是功能性回归而非加固。因此按 ``_is_cacheable_llm_response`` 的判定*语义*
+    (非空字符串 + FORCE_JSON 时 JSON 可解析且含校验键) 在本模块本地重新实现,
+    校验键换成本通道自己的 ``_PEER_VERIFICATION_KEY``。
+
+    判为「合格可缓存响应」需同时满足:
+      ① result_text 是非空字符串 (非 None / 非纯空白);
+      ② 若 force_json (默认取模块级 FORCE_JSON): 内容 JSON 可解析 (剥离
+         markdown ```json 代码块包围, 与下方 peer_map 解析逻辑同口径) 且含
+         ``"peers"`` 键 (值可为空列表 ``[]``, 仍视为合格 — 与"已查证但零同行"
+         的既有语义[omni-g-llm-peer-07]一致)。
+
+    Args:
+        result_text: API 200 响应的 message.content。
+        force_json: 覆盖模块级 FORCE_JSON (测试注入用); None = 取全局值。
+
+    Returns:
+        bool: True = 允许 cache.put/archive; False = 视为不合格响应, 本次
+        跳过缓存与归档 (不新增重试逻辑 — 本通道 200 分支历史上无 continue
+        重试路径, 此处刻意保持零漂移, 仅新增"不缓存"这一道闸)。
+    """
+    if force_json is None:
+        force_json = FORCE_JSON
+    if not isinstance(result_text, str) or not result_text.strip():
+        return False
+    if not force_json:
+        return True
+    # 与下方 peer_map 解析逻辑 (第 ~920 行附近) 同口径的 markdown 代码块剥离。
+    _raw = result_text.strip()
+    if _raw.startswith("```json"):
+        _raw = _raw[7:]
+    if _raw.startswith("```"):
+        _raw = _raw[3:]
+    if _raw.endswith("```"):
+        _raw = _raw[:-3]
+    try:
+        parsed = json.loads(_raw.strip())
+    except (json.JSONDecodeError, AttributeError):
+        return False
+    return isinstance(parsed, dict) and _PEER_VERIFICATION_KEY in parsed
+
+
 # ============================================================================
 # 6. LLM API 调用
 # ============================================================================
@@ -417,14 +477,20 @@ async def _call_llm_peer(session, semaphore, bank: str, year: int,
                     if resp.status == 200:
                         data = await resp.json()
                         result = data['choices'][0]['message']['content']
-                        # 写入 LLMCache (SQLite 持久化缓存)
-                        if cache is not None:
-                            cache.put(model_id, prompt, result,
-                                      prompt_version=PEER_PROMPT_VERSION,
-                                      temperature=TEMPERATURE,
-                                      random_seed=RANDOM_SEED)
+                        # fix(S7, 2026-07-14): archive 先于 cache.put + 写入闸
+                        # _is_cacheable_peer_response (机械镜像 tone_llms.py
+                        # omni-g-tonellms-04 的 _archive_ok 模式)。原顺序
+                        # "先 put 后 archive"存在窗口: put 成功后若 archive 抛
+                        # 异常, 响应已被永久缓存、后续 cache.get 命中短路,
+                        # 归档永久漏档且无重试机会。现改为: 先过写入闸 (本通道
+                        # 此前亦无此闸 — 空/不可解析/缺 "peers" 键的 200 响应
+                        # 此前会被直接永久冻结), 再 archive, archive 失败则
+                        # 跳过本次 put — 下次 run 因未命中缓存会重调 API 并
+                        # 重试归档。
+                        _cacheable = _is_cacheable_peer_response(result)
+                        _archive_ok = True
                         # v3.7.0 (C1): LLM 原始响应永久归档 (V4 F-P2.1 复现性要求)
-                        if _LLM_ARCHIVE_AVAILABLE:
+                        if _cacheable and _LLM_ARCHIVE_AVAILABLE:
                             try:
                                 _llm_archive_record(
                                     cache_key=LLMCache.make_key(
@@ -443,9 +509,15 @@ async def _call_llm_peer(session, semaphore, bank: str, year: int,
                                     http_status=resp.status,
                                 )
                             except Exception as _arch_exc:
+                                _archive_ok = False
                                 logger.warning(
-                                    f"LLM archive 失败 (不阻塞 pipeline): {_arch_exc!r}"
+                                    f"归档失败，本次跳过 put，下次 run 重调并重试归档: {_arch_exc!r}"
                                 )
+                        if cache is not None and _cacheable and _archive_ok:
+                            cache.put(model_id, prompt, result,
+                                      prompt_version=PEER_PROMPT_VERSION,
+                                      temperature=TEMPERATURE,
+                                      random_seed=RANDOM_SEED)
                         return bank, year, result
                     elif resp.status in (429, 500, 502, 503, 504):
                         logger.warning(f"[Peer-IV] {bank}_{year} HTTP {resp.status}, "

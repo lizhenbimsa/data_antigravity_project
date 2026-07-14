@@ -31,9 +31,15 @@ def fleiss_kappa(ratings, n_categories):
 
     # 计算 Kappa
     if P_e == 1:
-        return 1.0 # 如果所有评估者总是给出完全相同的单一分类
+        # fix(D10, 2026-07-14): 原分支返回裸标量 1.0, 与下方正常路径返回
+        # (kappa, P_bar, P_e) 三元组不一致 — 调用方 `k, p_bar, p_e = fleiss_kappa(...)`
+        # 解包裸 float 会抛 TypeError ('float' object is not iterable)。P_e==1 意味着
+        # 全部评估者对每个项目都给出完全相同的单一分类 (期望一致性已饱和), 该退化情形下
+        # P_bar 与 P_e 数学上同为 1.0 (自洽), kappa 按惯例记完全一致 = 1.0 (0/0 不定式的
+        # 约定取值), 一并以三元组返回保持接口形状恒定。
+        return 1.0, 1.0, 1.0
     kappa = (P_bar - P_e) / (1 - P_e)
-    
+
     return kappa, P_bar, P_e
 
 try:

@@ -23,6 +23,14 @@ schema_version: "1.0"
 
 # 4 条业务线过滤器 (非金融科技) — 用于构造 placebo
 # 该业务线新闻文章应当**不**强烈响应 fintech 经营效益锚点投影
+#
+# 披露 (fix(S13, 2026-07-14)): branch_channel 词表内「智能柜员机」与
+# fintech_dict.json (1506 词金科词表) 精确交集 (恰 1 词, 全部 4 条业务线 ×
+# 全部关键词中唯一重叠项)。构念上双属可辩护 (智能柜员机既是网点渠道设施也是
+# 金融科技具体应用) —— 方向保守: 该交集会使 branch_channel 这条 placebo 更容易
+# "响应 fintech 锚点投影", 即让此项 placebo 检验偏严, 不会虚高主测度的稳健性
+# 结论。裁定 (§4 明确不修清单 #4): 保留该词, 不再反复; 详见 Table A10 注记与
+# scripts/audit/PROMPT_ASSETS_AUDIT_EXECUTION_PLAN_2026-07-12.md §2 S13。
 business_lines:
   housing_loans:
     label_en: "Housing Loans"
@@ -70,7 +78,7 @@ business_lines:
       - "营业网点"
       - "营业部"
       - "支行"
-      - "智能柜员机"
+      - "智能柜员机"  # fix(S13, 2026-07-14): 与 fintech_dict.json 精确交集(恰1词, 见头注披露); 方向保守, 保留不删
       - "自助银行"
       - "网点改造"
       - "网点转型"
