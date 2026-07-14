@@ -78,7 +78,13 @@ import pandas as pd
 
 from news_process.core.logging import pct4, sig4
 
-logger = logging.getLogger(__name__)
+# fix(H2, 2026-07-14 八入口复审): 模块 logger 必须与 main() 的 stage logger 同名同单例
+# (getLogger 按名单例), 否则 46-path 运行时模块内 INFO/计时/notes 证据链行冒泡到无
+# handler 的 root 即丢, stage log 出现静默盲区; 46-path 之外该名 logger 无 handler,
+# 行为与旧 __name__ logger 等价 (勿在此处调用 setup_logging — 40/51-path import 复用
+# build_variable_labels 等函数, 模块级挂接会截断污染 46 号日志)。
+STAGE_NAME = '46_stata_export'
+logger = logging.getLogger(STAGE_NAME)
 
 # Stata 硬限 (plan v14 §9.5 / R32-D, R42-A 修复)
 STATA_VAR_NAME_MAXLEN = 32      # 变量名最长 32 字符
@@ -2116,7 +2122,7 @@ def main():
 
     _stage_start = _time.time()
     CONFIG = load_config()
-    STAGE_NAME = '46_stata_export'
+    # STAGE_NAME = 模块级常量 (H2): setup_logging 配置的即模块 logger 本体
     log = setup_logging(STAGE_NAME, CONFIG['paths']['log_dir'])
 
     # ── 【功能】banner (黄金范式: 紧随 setup_logging 之后, 替换而非叠加旧短 banner) ──

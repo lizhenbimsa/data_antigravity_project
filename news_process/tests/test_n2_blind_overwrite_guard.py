@@ -220,3 +220,18 @@ class TestLlmsHumanMainForceRegenerateWiring:
         sig = inspect.signature(llms_human.main)
         assert 'force_regenerate' in sig.parameters
         assert sig.parameters['force_regenerate'].default is False
+
+
+# ============================================================================
+# 4. H3 source-lock (2026-07-14 八入口复审): N2 汇总文案防回漂
+#    汇总 INFO 在 main() 内, 单元测试不可达 (caplog 断言必红) — 以源文本锁语义:
+#    N2-P1 降格后"旗标单独在位"也走该分支, 文案不得再声称"无旗标"。
+# ============================================================================
+
+def test_n2_summary_wording_source_lock():
+    import inspect
+    src = inspect.getsource(llms_human)
+    assert '未被 N2 拦截' in src, "N2 汇总文案缺新短语 (H3 修复被回退?)"
+    assert "且无'标注进行中'旗标" not in src, (
+        "N2 汇总文案旧短语复活: 与 N2-P1 放行语义矛盾 (旗标在位也走该分支)"
+    )

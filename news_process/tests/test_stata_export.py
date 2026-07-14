@@ -397,7 +397,7 @@ def test_export_panel_rename_map_more_than_three_logged(tmp_path, monkeypatch, c
                         lambda: ('pandas', se._write_dta_pandas_fallback))
 
     with caplog.at_level(logging.INFO,
-                          logger='news_process.pipeline.panel.stata_export'):
+                          logger=se.logger.name):  # rename-proof (H2 A案后 = '46_stata_export')
         se.export_panel_to_stata(str(panel_path), str(tmp_path))
     msgs = ' | '.join(r.getMessage() for r in caplog.records)
     assert 'more' in msgs.lower() or 'Renamed' in msgs
@@ -515,3 +515,7 @@ def test_main_cli_entry(tmp_path, monkeypatch, mock_panel):
     assert (output_dir / '46_panel_yearly_full.dta').exists()
     assert not (output_dir / '46_panel_yearly_core.dta').exists()
     assert not (output_dir / '46_panel_yearly_aux.dta').exists()
+    # fix(H2/R4-P2-1): se.main() 的 setup_logging 给模块 logger 持久挂 stage handler
+    # 并置 propagate=False, 会污染同会话其后用例的 caplog 捕获 — 用例尾恢复裸态
+    se.logger.handlers.clear()
+    se.logger.propagate = True

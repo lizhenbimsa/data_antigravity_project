@@ -483,7 +483,8 @@ def main(force_regenerate: bool = False):
         )
     else:
         logger.info(
-            "  N2: blind_A/B 均无既有非空标注且无'标注进行中'旗标 (或此前不存在), 正常生成。"
+            "  N2: blind_A/B 无既有非空标注, 未被 N2 拦截 (旗标单独在位者已按确定性"
+            "放行并另行警告), 正常生成。"
         )
 
     if os.path.exists(output_path):

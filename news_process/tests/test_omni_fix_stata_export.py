@@ -38,7 +38,7 @@ if str(_PROJECT_PARENT) not in sys.path:
 
 from news_process.pipeline.panel import stata_export as se  # noqa: E402
 
-_LOGGER_NAME = 'news_process.pipeline.panel.stata_export'
+_LOGGER_NAME = se.logger.name  # rename-proof (H2 A案后 = '46_stata_export', 勿硬编码)
 
 
 # ============================================================================

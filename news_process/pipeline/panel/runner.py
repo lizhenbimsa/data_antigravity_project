@@ -2718,7 +2718,9 @@ def main():
             _track_counts[_tk] = sum(1 for _c in panel.columns if _c.endswith(_tk))
         logger.info(
             f"  · 三轨列承载: _full={_track_counts['_full']} / _ctx={_track_counts['_ctx']} / "
-            f"_ss={_track_counts['_ss']} 列; 面板总列数 {panel.shape[1]:,}"
+            f"_ss={_track_counts['_ss']} 列; 面板总列数 {panel.shape[1]:,} "
+            f"(导出前计数, 不含导出期无条件物化的 low_conf_flag — 阶段摘要处 +1 为 "
+            f"by-design, 见 export._materialize_low_conf_flag)"
         )
         if _track_counts['_ss'] == 0:
             logger.warning(
