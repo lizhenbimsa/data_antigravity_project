@@ -1,11 +1,11 @@
 {
  "summary": {
   "n_cols": 3453,
-  "cjk_median": 2148,
-  "cjk_p10": 1569,
-  "cjk_min": 220,
+  "cjk_median": 2168,
+  "cjk_p10": 1645,
+  "cjk_min": 1297,
   "cjk_max": 8748,
-  "n_within_10pct_of_floor": 176,
+  "n_within_10pct_of_floor": 41,
   "floor_note": "地板 +10% 内聚集触发抽查复审 (§6 写手铁律: 下限是地板非目标)"
  },
  "per_col": {
@@ -244,9 +244,9 @@
    "tier": "core"
   },
   "yao_2021_tone_sum_full": {
-   "cjk": 228,
-   "chars": 730,
-   "utf8_bytes": 1248,
+   "cjk": 1749,
+   "chars": 4842,
+   "utf8_bytes": 8521,
    "tier": "standard"
   },
   "yao_2021_tone_std_full": {
@@ -298,9 +298,9 @@
    "tier": "core"
   },
   "you_2018_tone_sum_full": {
-   "cjk": 230,
-   "chars": 732,
-   "utf8_bytes": 1254,
+   "cjk": 1719,
+   "chars": 6324,
+   "utf8_bytes": 9949,
    "tier": "standard"
   },
   "you_2018_tone_std_full": {
@@ -346,21 +346,21 @@
    "tier": "standard"
   },
   "yao_2021_idf_tone_full": {
-   "cjk": 228,
-   "chars": 729,
-   "utf8_bytes": 1247,
+   "cjk": 2962,
+   "chars": 8395,
+   "utf8_bytes": 14537,
    "tier": "standard"
   },
   "yao_2021_idf_tone_sum_full": {
-   "cjk": 228,
-   "chars": 733,
-   "utf8_bytes": 1251,
+   "cjk": 2157,
+   "chars": 5629,
+   "utf8_bytes": 10103,
    "tier": "standard"
   },
   "yao_2021_idf_tone_std_full": {
-   "cjk": 228,
-   "chars": 732,
-   "utf8_bytes": 1250,
+   "cjk": 2936,
+   "chars": 8329,
+   "utf8_bytes": 14414,
    "tier": "standard"
   },
   "bian_2021_idf_tone_full": {
@@ -400,21 +400,21 @@
    "tier": "standard"
   },
   "you_2018_idf_tone_full": {
-   "cjk": 230,
-   "chars": 726,
-   "utf8_bytes": 1248,
+   "cjk": 1815,
+   "chars": 6330,
+   "utf8_bytes": 10092,
    "tier": "standard"
   },
   "you_2018_idf_tone_sum_full": {
-   "cjk": 230,
-   "chars": 730,
-   "utf8_bytes": 1252,
+   "cjk": 2975,
+   "chars": 7607,
+   "utf8_bytes": 13798,
    "tier": "standard"
   },
   "you_2018_idf_tone_std_full": {
-   "cjk": 230,
-   "chars": 728,
-   "utf8_bytes": 1250,
+   "cjk": 1765,
+   "chars": 6171,
+   "utf8_bytes": 9829,
    "tier": "standard"
   },
   "loughran_idf_tone_full": {
@@ -460,9 +460,9 @@
    "tier": "standard"
   },
   "you_2018_raw_tone_full": {
-   "cjk": 234,
-   "chars": 728,
-   "utf8_bytes": 1259,
+   "cjk": 1987,
+   "chars": 5308,
+   "utf8_bytes": 9436,
    "tier": "standard"
   },
   "loughran_raw_tone_full": {
@@ -496,9 +496,9 @@
    "tier": "standard"
   },
   "you_2018_negonly_tone_full": {
-   "cjk": 234,
-   "chars": 732,
-   "utf8_bytes": 1263,
+   "cjk": 2023,
+   "chars": 5289,
+   "utf8_bytes": 9489,
    "tier": "standard"
   },
   "loughran_negonly_tone_full": {
@@ -532,9 +532,9 @@
    "tier": "standard"
   },
   "you_2018_degonly_tone_full": {
-   "cjk": 234,
-   "chars": 732,
-   "utf8_bytes": 1263,
+   "cjk": 2039,
+   "chars": 5398,
+   "utf8_bytes": 9636,
    "tier": "standard"
   },
   "loughran_degonly_tone_full": {
@@ -568,9 +568,9 @@
    "tier": "standard"
   },
   "you_2018_advonly_tone_full": {
-   "cjk": 234,
-   "chars": 732,
-   "utf8_bytes": 1263,
+   "cjk": 2038,
+   "chars": 5470,
+   "utf8_bytes": 9710,
    "tier": "standard"
   },
   "loughran_advonly_tone_full": {
@@ -604,9 +604,9 @@
    "tier": "standard"
   },
   "you_2018_negdeg_tone_full": {
-   "cjk": 234,
-   "chars": 731,
-   "utf8_bytes": 1262,
+   "cjk": 2020,
+   "chars": 5305,
+   "utf8_bytes": 9503,
    "tier": "standard"
   },
   "loughran_negdeg_tone_full": {
@@ -640,9 +640,9 @@
    "tier": "standard"
   },
   "you_2018_negadv_tone_full": {
-   "cjk": 234,
-   "chars": 731,
-   "utf8_bytes": 1262,
+   "cjk": 2009,
+   "chars": 5362,
+   "utf8_bytes": 9536,
    "tier": "standard"
   },
   "loughran_negadv_tone_full": {
@@ -676,9 +676,9 @@
    "tier": "standard"
   },
   "you_2018_degadv_tone_full": {
-   "cjk": 234,
-   "chars": 731,
-   "utf8_bytes": 1262,
+   "cjk": 2058,
+   "chars": 5389,
+   "utf8_bytes": 9662,
    "tier": "standard"
   },
   "loughran_degadv_tone_full": {
@@ -1204,9 +1204,9 @@
    "tier": "standard"
   },
   "yao_2021_tone_sum_ctx": {
-   "cjk": 228,
-   "chars": 729,
-   "utf8_bytes": 1247,
+   "cjk": 1789,
+   "chars": 4870,
+   "utf8_bytes": 8619,
    "tier": "standard"
   },
   "yao_2021_tone_std_ctx": {
@@ -1258,9 +1258,9 @@
    "tier": "standard"
   },
   "you_2018_tone_sum_ctx": {
-   "cjk": 230,
-   "chars": 731,
-   "utf8_bytes": 1253,
+   "cjk": 1722,
+   "chars": 6195,
+   "utf8_bytes": 9822,
    "tier": "standard"
   },
   "you_2018_tone_std_ctx": {
@@ -1306,21 +1306,21 @@
    "tier": "standard"
   },
   "yao_2021_idf_tone_ctx": {
-   "cjk": 228,
-   "chars": 728,
-   "utf8_bytes": 1246,
+   "cjk": 2954,
+   "chars": 8137,
+   "utf8_bytes": 14249,
    "tier": "standard"
   },
   "yao_2021_idf_tone_sum_ctx": {
-   "cjk": 228,
-   "chars": 732,
-   "utf8_bytes": 1250,
+   "cjk": 2135,
+   "chars": 5530,
+   "utf8_bytes": 9962,
    "tier": "standard"
   },
   "yao_2021_idf_tone_std_ctx": {
-   "cjk": 228,
-   "chars": 731,
-   "utf8_bytes": 1249,
+   "cjk": 2863,
+   "chars": 7982,
+   "utf8_bytes": 13912,
    "tier": "standard"
   },
   "bian_2021_idf_tone_ctx": {
@@ -1360,21 +1360,21 @@
    "tier": "standard"
   },
   "you_2018_idf_tone_ctx": {
-   "cjk": 230,
-   "chars": 725,
-   "utf8_bytes": 1247,
+   "cjk": 1863,
+   "chars": 6207,
+   "utf8_bytes": 10059,
    "tier": "standard"
   },
   "you_2018_idf_tone_sum_ctx": {
-   "cjk": 230,
-   "chars": 729,
-   "utf8_bytes": 1251,
+   "cjk": 2903,
+   "chars": 7617,
+   "utf8_bytes": 13655,
    "tier": "standard"
   },
   "you_2018_idf_tone_std_ctx": {
-   "cjk": 230,
-   "chars": 727,
-   "utf8_bytes": 1249,
+   "cjk": 1817,
+   "chars": 6089,
+   "utf8_bytes": 9853,
    "tier": "standard"
   },
   "loughran_idf_tone_ctx": {
@@ -1420,9 +1420,9 @@
    "tier": "standard"
   },
   "you_2018_raw_tone_ctx": {
-   "cjk": 234,
-   "chars": 727,
-   "utf8_bytes": 1258,
+   "cjk": 2075,
+   "chars": 5471,
+   "utf8_bytes": 9794,
    "tier": "standard"
   },
   "loughran_raw_tone_ctx": {
@@ -1456,9 +1456,9 @@
    "tier": "standard"
   },
   "you_2018_negonly_tone_ctx": {
-   "cjk": 234,
-   "chars": 731,
-   "utf8_bytes": 1262,
+   "cjk": 1997,
+   "chars": 5387,
+   "utf8_bytes": 9541,
    "tier": "standard"
   },
   "loughran_negonly_tone_ctx": {
@@ -1492,9 +1492,9 @@
    "tier": "standard"
   },
   "you_2018_degonly_tone_ctx": {
-   "cjk": 234,
-   "chars": 731,
-   "utf8_bytes": 1262,
+   "cjk": 2052,
+   "chars": 5430,
+   "utf8_bytes": 9694,
    "tier": "standard"
   },
   "loughran_degonly_tone_ctx": {
@@ -1528,9 +1528,9 @@
    "tier": "standard"
   },
   "you_2018_advonly_tone_ctx": {
-   "cjk": 234,
-   "chars": 731,
-   "utf8_bytes": 1262,
+   "cjk": 2048,
+   "chars": 5478,
+   "utf8_bytes": 9742,
    "tier": "standard"
   },
   "loughran_advonly_tone_ctx": {
@@ -1564,9 +1564,9 @@
    "tier": "standard"
   },
   "you_2018_negdeg_tone_ctx": {
-   "cjk": 234,
-   "chars": 730,
-   "utf8_bytes": 1261,
+   "cjk": 1991,
+   "chars": 5370,
+   "utf8_bytes": 9516,
    "tier": "standard"
   },
   "loughran_negdeg_tone_ctx": {
@@ -1600,9 +1600,9 @@
    "tier": "standard"
   },
   "you_2018_negadv_tone_ctx": {
-   "cjk": 234,
-   "chars": 730,
-   "utf8_bytes": 1261,
+   "cjk": 2048,
+   "chars": 5608,
+   "utf8_bytes": 9873,
    "tier": "standard"
   },
   "loughran_negadv_tone_ctx": {
@@ -1636,9 +1636,9 @@
    "tier": "standard"
   },
   "you_2018_degadv_tone_ctx": {
-   "cjk": 234,
-   "chars": 730,
-   "utf8_bytes": 1261,
+   "cjk": 2069,
+   "chars": 5499,
+   "utf8_bytes": 9805,
    "tier": "standard"
   },
   "loughran_degadv_tone_ctx": {
@@ -2164,9 +2164,9 @@
    "tier": "standard"
   },
   "yao_2021_tone_sum_ss": {
-   "cjk": 228,
-   "chars": 728,
-   "utf8_bytes": 1246,
+   "cjk": 1866,
+   "chars": 5062,
+   "utf8_bytes": 8969,
    "tier": "standard"
   },
   "yao_2021_tone_std_ss": {
@@ -2218,9 +2218,9 @@
    "tier": "standard"
   },
   "you_2018_tone_sum_ss": {
-   "cjk": 230,
-   "chars": 730,
-   "utf8_bytes": 1252,
+   "cjk": 1777,
+   "chars": 6495,
+   "utf8_bytes": 10245,
    "tier": "standard"
   },
   "you_2018_tone_std_ss": {
@@ -2266,21 +2266,21 @@
    "tier": "standard"
   },
   "yao_2021_idf_tone_ss": {
-   "cjk": 228,
-   "chars": 728,
-   "utf8_bytes": 1246,
+   "cjk": 2884,
+   "chars": 8178,
+   "utf8_bytes": 14169,
    "tier": "standard"
   },
   "yao_2021_idf_tone_sum_ss": {
-   "cjk": 228,
-   "chars": 732,
-   "utf8_bytes": 1250,
+   "cjk": 2141,
+   "chars": 5640,
+   "utf8_bytes": 10081,
    "tier": "standard"
   },
   "yao_2021_idf_tone_std_ss": {
-   "cjk": 228,
-   "chars": 730,
-   "utf8_bytes": 1248,
+   "cjk": 2966,
+   "chars": 8108,
+   "utf8_bytes": 14252,
    "tier": "standard"
   },
   "bian_2021_idf_tone_ss": {
@@ -2320,21 +2320,21 @@
    "tier": "standard"
   },
   "you_2018_idf_tone_ss": {
-   "cjk": 230,
-   "chars": 724,
-   "utf8_bytes": 1246,
+   "cjk": 1808,
+   "chars": 6236,
+   "utf8_bytes": 9979,
    "tier": "standard"
   },
   "you_2018_idf_tone_sum_ss": {
-   "cjk": 230,
-   "chars": 728,
-   "utf8_bytes": 1250,
+   "cjk": 3081,
+   "chars": 7849,
+   "utf8_bytes": 14258,
    "tier": "standard"
   },
   "you_2018_idf_tone_std_ss": {
-   "cjk": 230,
-   "chars": 726,
-   "utf8_bytes": 1248,
+   "cjk": 1764,
+   "chars": 6151,
+   "utf8_bytes": 9805,
    "tier": "standard"
   },
   "loughran_idf_tone_ss": {
@@ -2380,9 +2380,9 @@
    "tier": "standard"
   },
   "you_2018_raw_tone_ss": {
-   "cjk": 234,
-   "chars": 726,
-   "utf8_bytes": 1257,
+   "cjk": 2046,
+   "chars": 5433,
+   "utf8_bytes": 9692,
    "tier": "standard"
   },
   "loughran_raw_tone_ss": {
@@ -2416,9 +2416,9 @@
    "tier": "standard"
   },
   "you_2018_negonly_tone_ss": {
-   "cjk": 234,
-   "chars": 730,
-   "utf8_bytes": 1261,
+   "cjk": 2055,
+   "chars": 5385,
+   "utf8_bytes": 9654,
    "tier": "standard"
   },
   "loughran_negonly_tone_ss": {
@@ -2452,9 +2452,9 @@
    "tier": "standard"
   },
   "you_2018_degonly_tone_ss": {
-   "cjk": 234,
-   "chars": 730,
-   "utf8_bytes": 1261,
+   "cjk": 2059,
+   "chars": 5415,
+   "utf8_bytes": 9696,
    "tier": "standard"
   },
   "loughran_degonly_tone_ss": {
@@ -2488,9 +2488,9 @@
    "tier": "standard"
   },
   "you_2018_advonly_tone_ss": {
-   "cjk": 234,
-   "chars": 730,
-   "utf8_bytes": 1261,
+   "cjk": 2038,
+   "chars": 5527,
+   "utf8_bytes": 9767,
    "tier": "standard"
   },
   "loughran_advonly_tone_ss": {
@@ -2524,9 +2524,9 @@
    "tier": "standard"
   },
   "you_2018_negdeg_tone_ss": {
-   "cjk": 234,
-   "chars": 729,
-   "utf8_bytes": 1260,
+   "cjk": 2034,
+   "chars": 5405,
+   "utf8_bytes": 9633,
    "tier": "standard"
   },
   "loughran_negdeg_tone_ss": {
@@ -2560,9 +2560,9 @@
    "tier": "standard"
   },
   "you_2018_negadv_tone_ss": {
-   "cjk": 234,
-   "chars": 729,
-   "utf8_bytes": 1260,
+   "cjk": 1987,
+   "chars": 5318,
+   "utf8_bytes": 9454,
    "tier": "standard"
   },
   "loughran_negadv_tone_ss": {
@@ -2596,9 +2596,9 @@
    "tier": "standard"
   },
   "you_2018_degadv_tone_ss": {
-   "cjk": 234,
-   "chars": 729,
-   "utf8_bytes": 1260,
+   "cjk": 2142,
+   "chars": 5536,
+   "utf8_bytes": 9982,
    "tier": "standard"
   },
   "loughran_degadv_tone_ss": {
@@ -3214,9 +3214,9 @@
    "tier": "standard"
   },
   "yao_2021_score_w_sum_full": {
-   "cjk": 230,
-   "chars": 717,
-   "utf8_bytes": 1239,
+   "cjk": 1913,
+   "chars": 5463,
+   "utf8_bytes": 9482,
    "tier": "standard"
   },
   "bian_2021_score_w_sum_full": {
@@ -3232,9 +3232,9 @@
    "tier": "standard"
   },
   "you_2018_score_w_sum_full": {
-   "cjk": 232,
-   "chars": 713,
-   "utf8_bytes": 1239,
+   "cjk": 1956,
+   "chars": 5591,
+   "utf8_bytes": 9690,
    "tier": "standard"
   },
   "loughran_score_w_sum_full": {
@@ -3268,9 +3268,9 @@
    "tier": "standard"
   },
   "you_2018_idf_score_w_sum_full": {
-   "cjk": 232,
-   "chars": 717,
-   "utf8_bytes": 1243,
+   "cjk": 2107,
+   "chars": 6787,
+   "utf8_bytes": 11181,
    "tier": "standard"
   },
   "loughran_idf_score_w_sum_full": {
@@ -3382,9 +3382,9 @@
    "tier": "standard"
   },
   "yao_2021_score_w_sum_ctx": {
-   "cjk": 230,
-   "chars": 716,
-   "utf8_bytes": 1238,
+   "cjk": 1961,
+   "chars": 5378,
+   "utf8_bytes": 9483,
    "tier": "standard"
   },
   "bian_2021_score_w_sum_ctx": {
@@ -3400,9 +3400,9 @@
    "tier": "standard"
   },
   "you_2018_score_w_sum_ctx": {
-   "cjk": 232,
-   "chars": 712,
-   "utf8_bytes": 1238,
+   "cjk": 2000,
+   "chars": 5692,
+   "utf8_bytes": 9881,
    "tier": "standard"
   },
   "loughran_score_w_sum_ctx": {
@@ -3436,9 +3436,9 @@
    "tier": "standard"
   },
   "you_2018_idf_score_w_sum_ctx": {
-   "cjk": 232,
-   "chars": 716,
-   "utf8_bytes": 1242,
+   "cjk": 2190,
+   "chars": 6957,
+   "utf8_bytes": 11518,
    "tier": "standard"
   },
   "loughran_idf_score_w_sum_ctx": {
@@ -3550,9 +3550,9 @@
    "tier": "standard"
   },
   "yao_2021_score_w_sum_ss": {
-   "cjk": 230,
-   "chars": 715,
-   "utf8_bytes": 1237,
+   "cjk": 1934,
+   "chars": 5480,
+   "utf8_bytes": 9540,
    "tier": "standard"
   },
   "bian_2021_score_w_sum_ss": {
@@ -3568,9 +3568,9 @@
    "tier": "standard"
   },
   "you_2018_score_w_sum_ss": {
-   "cjk": 232,
-   "chars": 711,
-   "utf8_bytes": 1237,
+   "cjk": 2066,
+   "chars": 6081,
+   "utf8_bytes": 10417,
    "tier": "standard"
   },
   "loughran_score_w_sum_ss": {
@@ -3604,9 +3604,9 @@
    "tier": "standard"
   },
   "you_2018_idf_score_w_sum_ss": {
-   "cjk": 232,
-   "chars": 715,
-   "utf8_bytes": 1241,
+   "cjk": 2174,
+   "chars": 6943,
+   "utf8_bytes": 11469,
    "tier": "standard"
   },
   "loughran_idf_score_w_sum_ss": {
@@ -3772,9 +3772,9 @@
    "tier": "standard"
   },
   "yao_2021_score_hw_sum_full": {
-   "cjk": 230,
-   "chars": 719,
-   "utf8_bytes": 1241,
+   "cjk": 2374,
+   "chars": 5977,
+   "utf8_bytes": 10848,
    "tier": "standard"
   },
   "yao_2021_idf_score_hw_sum_full": {
@@ -3808,15 +3808,15 @@
    "tier": "standard"
   },
   "you_2018_score_hw_sum_full": {
-   "cjk": 232,
-   "chars": 715,
-   "utf8_bytes": 1241,
+   "cjk": 1837,
+   "chars": 5563,
+   "utf8_bytes": 9421,
    "tier": "standard"
   },
   "you_2018_idf_score_hw_sum_full": {
-   "cjk": 232,
-   "chars": 719,
-   "utf8_bytes": 1245,
+   "cjk": 1773,
+   "chars": 6535,
+   "utf8_bytes": 10239,
    "tier": "standard"
   },
   "loughran_score_hw_sum_full": {
@@ -3928,9 +3928,9 @@
    "tier": "standard"
   },
   "yao_2021_score_hw_sum_ctx": {
-   "cjk": 230,
-   "chars": 718,
-   "utf8_bytes": 1240,
+   "cjk": 2304,
+   "chars": 5838,
+   "utf8_bytes": 10571,
    "tier": "standard"
   },
   "yao_2021_idf_score_hw_sum_ctx": {
@@ -3964,15 +3964,15 @@
    "tier": "standard"
   },
   "you_2018_score_hw_sum_ctx": {
-   "cjk": 232,
-   "chars": 714,
-   "utf8_bytes": 1240,
+   "cjk": 1860,
+   "chars": 5539,
+   "utf8_bytes": 9461,
    "tier": "standard"
   },
   "you_2018_idf_score_hw_sum_ctx": {
-   "cjk": 232,
-   "chars": 718,
-   "utf8_bytes": 1244,
+   "cjk": 1823,
+   "chars": 6815,
+   "utf8_bytes": 10623,
    "tier": "standard"
   },
   "loughran_score_hw_sum_ctx": {
@@ -4084,9 +4084,9 @@
    "tier": "standard"
   },
   "yao_2021_score_hw_sum_ss": {
-   "cjk": 230,
-   "chars": 717,
-   "utf8_bytes": 1239,
+   "cjk": 2356,
+   "chars": 6043,
+   "utf8_bytes": 10889,
    "tier": "standard"
   },
   "yao_2021_idf_score_hw_sum_ss": {
@@ -4120,15 +4120,15 @@
    "tier": "standard"
   },
   "you_2018_score_hw_sum_ss": {
-   "cjk": 232,
-   "chars": 713,
-   "utf8_bytes": 1239,
+   "cjk": 1846,
+   "chars": 5588,
+   "utf8_bytes": 9475,
    "tier": "standard"
   },
   "you_2018_idf_score_hw_sum_ss": {
-   "cjk": 232,
-   "chars": 717,
-   "utf8_bytes": 1243,
+   "cjk": 1823,
+   "chars": 6757,
+   "utf8_bytes": 10567,
    "tier": "standard"
   },
   "loughran_score_hw_sum_ss": {
@@ -4600,9 +4600,9 @@
    "tier": "standard"
   },
   "yao_2021_score_mw_sum_full": {
-   "cjk": 230,
-   "chars": 719,
-   "utf8_bytes": 1241,
+   "cjk": 1856,
+   "chars": 5725,
+   "utf8_bytes": 9557,
    "tier": "standard"
   },
   "yao_2021_idf_score_mw_sum_full": {
@@ -4636,15 +4636,15 @@
    "tier": "standard"
   },
   "you_2018_score_mw_sum_full": {
-   "cjk": 232,
-   "chars": 715,
-   "utf8_bytes": 1241,
+   "cjk": 1906,
+   "chars": 5581,
+   "utf8_bytes": 9614,
    "tier": "standard"
   },
   "you_2018_idf_score_mw_sum_full": {
-   "cjk": 232,
-   "chars": 719,
-   "utf8_bytes": 1245,
+   "cjk": 2401,
+   "chars": 8021,
+   "utf8_bytes": 13023,
    "tier": "standard"
   },
   "loughran_score_mw_sum_full": {
@@ -4756,9 +4756,9 @@
    "tier": "standard"
   },
   "yao_2021_score_mw_sum_ctx": {
-   "cjk": 230,
-   "chars": 718,
-   "utf8_bytes": 1240,
+   "cjk": 1899,
+   "chars": 5722,
+   "utf8_bytes": 9636,
    "tier": "standard"
   },
   "yao_2021_idf_score_mw_sum_ctx": {
@@ -4792,15 +4792,15 @@
    "tier": "standard"
   },
   "you_2018_score_mw_sum_ctx": {
-   "cjk": 232,
-   "chars": 714,
-   "utf8_bytes": 1240,
+   "cjk": 1821,
+   "chars": 5496,
+   "utf8_bytes": 9337,
    "tier": "standard"
   },
   "you_2018_idf_score_mw_sum_ctx": {
-   "cjk": 232,
-   "chars": 718,
-   "utf8_bytes": 1244,
+   "cjk": 2535,
+   "chars": 8419,
+   "utf8_bytes": 13693,
    "tier": "standard"
   },
   "loughran_score_mw_sum_ctx": {
@@ -4912,9 +4912,9 @@
    "tier": "standard"
   },
   "yao_2021_score_mw_sum_ss": {
-   "cjk": 230,
-   "chars": 717,
-   "utf8_bytes": 1239,
+   "cjk": 2032,
+   "chars": 5969,
+   "utf8_bytes": 10157,
    "tier": "standard"
   },
   "yao_2021_idf_score_mw_sum_ss": {
@@ -4948,15 +4948,15 @@
    "tier": "standard"
   },
   "you_2018_score_mw_sum_ss": {
-   "cjk": 232,
-   "chars": 713,
-   "utf8_bytes": 1239,
+   "cjk": 1838,
+   "chars": 5566,
+   "utf8_bytes": 9450,
    "tier": "standard"
   },
   "you_2018_idf_score_mw_sum_ss": {
-   "cjk": 232,
-   "chars": 717,
-   "utf8_bytes": 1243,
+   "cjk": 2574,
+   "chars": 8512,
+   "utf8_bytes": 13871,
    "tier": "standard"
   },
   "loughran_score_mw_sum_ss": {
@@ -5080,15 +5080,15 @@
    "tier": "standard"
   },
   "yao_2021_pos_count_full": {
-   "cjk": 220,
-   "chars": 707,
-   "utf8_bytes": 1209,
+   "cjk": 2338,
+   "chars": 6505,
+   "utf8_bytes": 11323,
    "tier": "standard"
   },
   "yao_2021_pos_symb_count_full": {
-   "cjk": 220,
-   "chars": 710,
-   "utf8_bytes": 1212,
+   "cjk": 1836,
+   "chars": 5270,
+   "utf8_bytes": 9144,
    "tier": "standard"
   },
   "bian_2021_pos_count_full": {
@@ -5116,15 +5116,15 @@
    "tier": "standard"
   },
   "you_2018_pos_count_full": {
-   "cjk": 222,
-   "chars": 703,
-   "utf8_bytes": 1209,
+   "cjk": 2412,
+   "chars": 6010,
+   "utf8_bytes": 11102,
    "tier": "standard"
   },
   "you_2018_pos_symb_count_full": {
-   "cjk": 222,
-   "chars": 706,
-   "utf8_bytes": 1212,
+   "cjk": 2001,
+   "chars": 5587,
+   "utf8_bytes": 9816,
    "tier": "standard"
   },
   "loughran_pos_count_full": {
@@ -5272,15 +5272,15 @@
    "tier": "standard"
   },
   "yao_2021_pos_count_ctx": {
-   "cjk": 220,
-   "chars": 706,
-   "utf8_bytes": 1208,
+   "cjk": 2435,
+   "chars": 6457,
+   "utf8_bytes": 11475,
    "tier": "standard"
   },
   "yao_2021_pos_symb_count_ctx": {
-   "cjk": 220,
-   "chars": 709,
-   "utf8_bytes": 1211,
+   "cjk": 1827,
+   "chars": 5135,
+   "utf8_bytes": 8991,
    "tier": "standard"
   },
   "bian_2021_pos_count_ctx": {
@@ -5308,15 +5308,15 @@
    "tier": "standard"
   },
   "you_2018_pos_count_ctx": {
-   "cjk": 222,
-   "chars": 702,
-   "utf8_bytes": 1208,
+   "cjk": 2498,
+   "chars": 6093,
+   "utf8_bytes": 11350,
    "tier": "standard"
   },
   "you_2018_pos_symb_count_ctx": {
-   "cjk": 222,
-   "chars": 705,
-   "utf8_bytes": 1211,
+   "cjk": 2009,
+   "chars": 5474,
+   "utf8_bytes": 9719,
    "tier": "standard"
   },
   "loughran_pos_count_ctx": {
@@ -5464,15 +5464,15 @@
    "tier": "standard"
   },
   "yao_2021_pos_count_ss": {
-   "cjk": 220,
-   "chars": 705,
-   "utf8_bytes": 1207,
+   "cjk": 2386,
+   "chars": 6460,
+   "utf8_bytes": 11385,
    "tier": "standard"
   },
   "yao_2021_pos_symb_count_ss": {
-   "cjk": 220,
-   "chars": 708,
-   "utf8_bytes": 1210,
+   "cjk": 1848,
+   "chars": 5267,
+   "utf8_bytes": 9154,
    "tier": "standard"
   },
   "bian_2021_pos_count_ss": {
@@ -5500,15 +5500,15 @@
    "tier": "standard"
   },
   "you_2018_pos_count_ss": {
-   "cjk": 222,
-   "chars": 701,
-   "utf8_bytes": 1207,
+   "cjk": 2481,
+   "chars": 6156,
+   "utf8_bytes": 11384,
    "tier": "standard"
   },
   "you_2018_pos_symb_count_ss": {
-   "cjk": 222,
-   "chars": 704,
-   "utf8_bytes": 1210,
+   "cjk": 2026,
+   "chars": 5595,
+   "utf8_bytes": 9863,
    "tier": "standard"
   },
   "loughran_pos_count_ss": {
@@ -5608,9 +5608,9 @@
    "tier": "standard"
   },
   "yao_2021_neg_count_full": {
-   "cjk": 220,
-   "chars": 705,
-   "utf8_bytes": 1207,
+   "cjk": 2148,
+   "chars": 6236,
+   "utf8_bytes": 10692,
    "tier": "standard"
   },
   "bian_2021_neg_count_full": {
@@ -5626,9 +5626,9 @@
    "tier": "standard"
   },
   "you_2018_neg_count_full": {
-   "cjk": 222,
-   "chars": 707,
-   "utf8_bytes": 1213,
+   "cjk": 1862,
+   "chars": 4440,
+   "utf8_bytes": 8317,
    "tier": "standard"
   },
   "loughran_neg_count_full": {
@@ -5680,9 +5680,9 @@
    "tier": "standard"
   },
   "yao_2021_neg_count_ctx": {
-   "cjk": 220,
-   "chars": 704,
-   "utf8_bytes": 1206,
+   "cjk": 2327,
+   "chars": 6468,
+   "utf8_bytes": 11290,
    "tier": "standard"
   },
   "bian_2021_neg_count_ctx": {
@@ -5698,9 +5698,9 @@
    "tier": "standard"
   },
   "you_2018_neg_count_ctx": {
-   "cjk": 222,
-   "chars": 706,
-   "utf8_bytes": 1212,
+   "cjk": 1960,
+   "chars": 4523,
+   "utf8_bytes": 8592,
    "tier": "standard"
   },
   "loughran_neg_count_ctx": {
@@ -5752,9 +5752,9 @@
    "tier": "standard"
   },
   "yao_2021_neg_count_ss": {
-   "cjk": 220,
-   "chars": 703,
-   "utf8_bytes": 1205,
+   "cjk": 2129,
+   "chars": 6309,
+   "utf8_bytes": 10731,
    "tier": "standard"
   },
   "bian_2021_neg_count_ss": {
@@ -5770,9 +5770,9 @@
    "tier": "standard"
   },
   "you_2018_neg_count_ss": {
-   "cjk": 222,
-   "chars": 705,
-   "utf8_bytes": 1211,
+   "cjk": 1879,
+   "chars": 4555,
+   "utf8_bytes": 8461,
    "tier": "standard"
   },
   "loughran_neg_count_ss": {
@@ -7096,9 +7096,9 @@
    "tier": "standard"
   },
   "yao_2021_idf_tone_tech_full": {
-   "cjk": 228,
-   "chars": 733,
-   "utf8_bytes": 1251,
+   "cjk": 2917,
+   "chars": 8089,
+   "utf8_bytes": 14149,
    "tier": "standard"
   },
   "bian_2021_idf_tone_tech_full": {
@@ -7114,9 +7114,9 @@
    "tier": "standard"
   },
   "you_2018_idf_tone_tech_full": {
-   "cjk": 230,
-   "chars": 729,
-   "utf8_bytes": 1251,
+   "cjk": 1798,
+   "chars": 6188,
+   "utf8_bytes": 9910,
    "tier": "standard"
   },
   "loughran_idf_tone_tech_full": {
@@ -7270,9 +7270,9 @@
    "tier": "standard"
   },
   "yao_2021_idf_tone_tech_ctx": {
-   "cjk": 228,
-   "chars": 732,
-   "utf8_bytes": 1250,
+   "cjk": 2899,
+   "chars": 8087,
+   "utf8_bytes": 14097,
    "tier": "standard"
   },
   "bian_2021_idf_tone_tech_ctx": {
@@ -7288,9 +7288,9 @@
    "tier": "standard"
   },
   "you_2018_idf_tone_tech_ctx": {
-   "cjk": 230,
-   "chars": 728,
-   "utf8_bytes": 1250,
+   "cjk": 1885,
+   "chars": 6312,
+   "utf8_bytes": 10214,
    "tier": "standard"
   },
   "loughran_idf_tone_tech_ctx": {
@@ -7444,9 +7444,9 @@
    "tier": "standard"
   },
   "yao_2021_idf_tone_tech_ss": {
-   "cjk": 228,
-   "chars": 731,
-   "utf8_bytes": 1249,
+   "cjk": 2932,
+   "chars": 8053,
+   "utf8_bytes": 14128,
    "tier": "standard"
   },
   "bian_2021_idf_tone_tech_ss": {
@@ -7462,9 +7462,9 @@
    "tier": "standard"
   },
   "you_2018_idf_tone_tech_ss": {
-   "cjk": 230,
-   "chars": 727,
-   "utf8_bytes": 1249,
+   "cjk": 1880,
+   "chars": 6273,
+   "utf8_bytes": 10158,
    "tier": "standard"
   },
   "loughran_idf_tone_tech_ss": {
@@ -7624,9 +7624,9 @@
    "tier": "standard"
   },
   "yao_2021_idf_tone_app_full": {
-   "cjk": 228,
-   "chars": 733,
-   "utf8_bytes": 1251,
+   "cjk": 2859,
+   "chars": 7913,
+   "utf8_bytes": 13847,
    "tier": "standard"
   },
   "bian_2021_idf_tone_app_full": {
@@ -7642,9 +7642,9 @@
    "tier": "standard"
   },
   "you_2018_idf_tone_app_full": {
-   "cjk": 230,
-   "chars": 730,
-   "utf8_bytes": 1252,
+   "cjk": 1877,
+   "chars": 6317,
+   "utf8_bytes": 10197,
    "tier": "standard"
   },
   "loughran_idf_tone_app_full": {
@@ -7798,9 +7798,9 @@
    "tier": "standard"
   },
   "yao_2021_idf_tone_app_ctx": {
-   "cjk": 228,
-   "chars": 732,
-   "utf8_bytes": 1250,
+   "cjk": 2886,
+   "chars": 7976,
+   "utf8_bytes": 13954,
    "tier": "standard"
   },
   "bian_2021_idf_tone_app_ctx": {
@@ -7816,9 +7816,9 @@
    "tier": "standard"
   },
   "you_2018_idf_tone_app_ctx": {
-   "cjk": 230,
-   "chars": 729,
-   "utf8_bytes": 1251,
+   "cjk": 1823,
+   "chars": 6167,
+   "utf8_bytes": 9941,
    "tier": "standard"
   },
   "loughran_idf_tone_app_ctx": {
@@ -7972,9 +7972,9 @@
    "tier": "standard"
   },
   "yao_2021_idf_tone_app_ss": {
-   "cjk": 228,
-   "chars": 732,
-   "utf8_bytes": 1250,
+   "cjk": 2895,
+   "chars": 7935,
+   "utf8_bytes": 13931,
    "tier": "standard"
   },
   "bian_2021_idf_tone_app_ss": {
@@ -7990,9 +7990,9 @@
    "tier": "standard"
   },
   "you_2018_idf_tone_app_ss": {
-   "cjk": 230,
-   "chars": 728,
-   "utf8_bytes": 1250,
+   "cjk": 1820,
+   "chars": 6266,
+   "utf8_bytes": 10033,
    "tier": "standard"
   },
   "loughran_idf_tone_app_ss": {
@@ -9388,9 +9388,9 @@
    "tier": "standard"
   },
   "yao_2021_idf_tone_vw_full": {
-   "cjk": 228,
-   "chars": 732,
-   "utf8_bytes": 1250,
+   "cjk": 2952,
+   "chars": 8298,
+   "utf8_bytes": 14411,
    "tier": "standard"
   },
   "bian_2021_idf_tone_vw_full": {
@@ -9406,9 +9406,9 @@
    "tier": "standard"
   },
   "you_2018_idf_tone_vw_full": {
-   "cjk": 230,
-   "chars": 729,
-   "utf8_bytes": 1251,
+   "cjk": 1829,
+   "chars": 6102,
+   "utf8_bytes": 9882,
    "tier": "standard"
   },
   "loughran_idf_tone_vw_full": {
@@ -9532,9 +9532,9 @@
    "tier": "standard"
   },
   "yao_2021_idf_tone_vw_ctx": {
-   "cjk": 228,
-   "chars": 731,
-   "utf8_bytes": 1249,
+   "cjk": 2888,
+   "chars": 8026,
+   "utf8_bytes": 14021,
    "tier": "standard"
   },
   "bian_2021_idf_tone_vw_ctx": {
@@ -9550,9 +9550,9 @@
    "tier": "standard"
   },
   "you_2018_idf_tone_vw_ctx": {
-   "cjk": 230,
-   "chars": 728,
-   "utf8_bytes": 1250,
+   "cjk": 1826,
+   "chars": 6152,
+   "utf8_bytes": 9924,
    "tier": "standard"
   },
   "loughran_idf_tone_vw_ctx": {
@@ -9676,9 +9676,9 @@
    "tier": "standard"
   },
   "yao_2021_idf_tone_vw_ss": {
-   "cjk": 228,
-   "chars": 731,
-   "utf8_bytes": 1249,
+   "cjk": 2870,
+   "chars": 7992,
+   "utf8_bytes": 13942,
    "tier": "standard"
   },
   "bian_2021_idf_tone_vw_ss": {
@@ -9694,9 +9694,9 @@
    "tier": "standard"
   },
   "you_2018_idf_tone_vw_ss": {
-   "cjk": 230,
-   "chars": 727,
-   "utf8_bytes": 1249,
+   "cjk": 1821,
+   "chars": 6217,
+   "utf8_bytes": 9986,
    "tier": "standard"
   },
   "loughran_idf_tone_vw_ss": {
@@ -9796,9 +9796,9 @@
    "tier": "standard"
   },
   "yao_2021_idf_tone_mw_full": {
-   "cjk": 228,
-   "chars": 732,
-   "utf8_bytes": 1250,
+   "cjk": 2873,
+   "chars": 7999,
+   "utf8_bytes": 13949,
    "tier": "standard"
   },
   "bian_2021_tone_mw_full": {
@@ -9832,9 +9832,9 @@
    "tier": "standard"
   },
   "you_2018_idf_tone_mw_full": {
-   "cjk": 230,
-   "chars": 729,
-   "utf8_bytes": 1251,
+   "cjk": 1806,
+   "chars": 6134,
+   "utf8_bytes": 9870,
    "tier": "standard"
   },
   "loughran_tone_mw_full": {
@@ -9940,9 +9940,9 @@
    "tier": "standard"
   },
   "yao_2021_idf_tone_mw_ctx": {
-   "cjk": 228,
-   "chars": 731,
-   "utf8_bytes": 1249,
+   "cjk": 2866,
+   "chars": 7901,
+   "utf8_bytes": 13847,
    "tier": "standard"
   },
   "bian_2021_tone_mw_ctx": {
@@ -9976,9 +9976,9 @@
    "tier": "standard"
   },
   "you_2018_idf_tone_mw_ctx": {
-   "cjk": 230,
-   "chars": 728,
-   "utf8_bytes": 1250,
+   "cjk": 1827,
+   "chars": 6213,
+   "utf8_bytes": 9999,
    "tier": "standard"
   },
   "loughran_tone_mw_ctx": {
@@ -10084,9 +10084,9 @@
    "tier": "standard"
   },
   "yao_2021_idf_tone_mw_ss": {
-   "cjk": 228,
-   "chars": 731,
-   "utf8_bytes": 1249,
+   "cjk": 3004,
+   "chars": 8210,
+   "utf8_bytes": 14436,
    "tier": "standard"
   },
   "bian_2021_tone_mw_ss": {
@@ -10120,9 +10120,9 @@
    "tier": "standard"
   },
   "you_2018_idf_tone_mw_ss": {
-   "cjk": 230,
-   "chars": 727,
-   "utf8_bytes": 1249,
+   "cjk": 1800,
+   "chars": 6108,
+   "utf8_bytes": 9836,
    "tier": "standard"
   },
   "loughran_tone_mw_ss": {
@@ -10228,9 +10228,9 @@
    "tier": "standard"
   },
   "yao_2021_idf_tone_hw_full": {
-   "cjk": 228,
-   "chars": 732,
-   "utf8_bytes": 1250,
+   "cjk": 2937,
+   "chars": 8037,
+   "utf8_bytes": 14121,
    "tier": "standard"
   },
   "bian_2021_tone_hw_full": {
@@ -10264,9 +10264,9 @@
    "tier": "standard"
   },
   "you_2018_idf_tone_hw_full": {
-   "cjk": 230,
-   "chars": 729,
-   "utf8_bytes": 1251,
+   "cjk": 1792,
+   "chars": 6260,
+   "utf8_bytes": 9972,
    "tier": "standard"
   },
   "loughran_tone_hw_full": {
@@ -10372,9 +10372,9 @@
    "tier": "standard"
   },
   "yao_2021_idf_tone_hw_ctx": {
-   "cjk": 228,
-   "chars": 731,
-   "utf8_bytes": 1249,
+   "cjk": 2902,
+   "chars": 8006,
+   "utf8_bytes": 14018,
    "tier": "standard"
   },
   "bian_2021_tone_hw_ctx": {
@@ -10408,9 +10408,9 @@
    "tier": "standard"
   },
   "you_2018_idf_tone_hw_ctx": {
-   "cjk": 230,
-   "chars": 728,
-   "utf8_bytes": 1250,
+   "cjk": 1786,
+   "chars": 6261,
+   "utf8_bytes": 9957,
    "tier": "standard"
   },
   "loughran_tone_hw_ctx": {
@@ -10516,9 +10516,9 @@
    "tier": "standard"
   },
   "yao_2021_idf_tone_hw_ss": {
-   "cjk": 228,
-   "chars": 731,
-   "utf8_bytes": 1249,
+   "cjk": 2911,
+   "chars": 8116,
+   "utf8_bytes": 14150,
    "tier": "standard"
   },
   "bian_2021_tone_hw_ss": {
@@ -10552,9 +10552,9 @@
    "tier": "standard"
   },
   "you_2018_idf_tone_hw_ss": {
-   "cjk": 230,
-   "chars": 727,
-   "utf8_bytes": 1249,
+   "cjk": 1764,
+   "chars": 6221,
+   "utf8_bytes": 9874,
    "tier": "standard"
   },
   "loughran_tone_hw_ss": {
@@ -10798,9 +10798,9 @@
    "tier": "standard"
   },
   "yao_2021_pos_substvalid_count_full": {
-   "cjk": 220,
-   "chars": 718,
-   "utf8_bytes": 1220,
+   "cjk": 1766,
+   "chars": 5726,
+   "utf8_bytes": 9426,
    "tier": "standard"
   },
   "bian_2021_pos_substvalid_count_full": {
@@ -10816,9 +10816,9 @@
    "tier": "standard"
   },
   "you_2018_pos_substvalid_count_full": {
-   "cjk": 222,
-   "chars": 714,
-   "utf8_bytes": 1220,
+   "cjk": 2194,
+   "chars": 6188,
+   "utf8_bytes": 10725,
    "tier": "standard"
   },
   "loughran_pos_substvalid_count_full": {
@@ -10900,9 +10900,9 @@
    "tier": "standard"
   },
   "yao_2021_pos_substvalid_count_ctx": {
-   "cjk": 220,
-   "chars": 717,
-   "utf8_bytes": 1219,
+   "cjk": 1799,
+   "chars": 5863,
+   "utf8_bytes": 9631,
    "tier": "standard"
   },
   "bian_2021_pos_substvalid_count_ctx": {
@@ -10918,9 +10918,9 @@
    "tier": "standard"
   },
   "you_2018_pos_substvalid_count_ctx": {
-   "cjk": 222,
-   "chars": 713,
-   "utf8_bytes": 1219,
+   "cjk": 2170,
+   "chars": 6051,
+   "utf8_bytes": 10542,
    "tier": "standard"
   },
   "loughran_pos_substvalid_count_ctx": {
@@ -11002,9 +11002,9 @@
    "tier": "standard"
   },
   "yao_2021_pos_substvalid_count_ss": {
-   "cjk": 220,
-   "chars": 716,
-   "utf8_bytes": 1218,
+   "cjk": 1876,
+   "chars": 6060,
+   "utf8_bytes": 9977,
    "tier": "standard"
   },
   "bian_2021_pos_substvalid_count_ss": {
@@ -11020,9 +11020,9 @@
    "tier": "standard"
   },
   "you_2018_pos_substvalid_count_ss": {
-   "cjk": 222,
-   "chars": 712,
-   "utf8_bytes": 1218,
+   "cjk": 2116,
+   "chars": 6010,
+   "utf8_bytes": 10398,
    "tier": "standard"
   },
   "loughran_pos_substvalid_count_ss": {
@@ -15586,21 +15586,21 @@
    "tier": "standard"
   },
   "zone_leave1out_tone_full": {
-   "cjk": 230,
-   "chars": 719,
-   "utf8_bytes": 1241,
+   "cjk": 2735,
+   "chars": 6073,
+   "utf8_bytes": 11668,
    "tier": "standard"
   },
   "zone_leave1out_tone_ctx": {
-   "cjk": 230,
-   "chars": 718,
-   "utf8_bytes": 1240,
+   "cjk": 2785,
+   "chars": 6156,
+   "utf8_bytes": 11851,
    "tier": "standard"
   },
   "zone_leave1out_tone_ss": {
-   "cjk": 230,
-   "chars": 717,
-   "utf8_bytes": 1239,
+   "cjk": 2613,
+   "chars": 6133,
+   "utf8_bytes": 11487,
    "tier": "standard"
   },
   "dcep_treat_year": {
@@ -19954,15 +19954,15 @@
    "tier": "standard"
   },
   "you_2018_cater_full": {
-   "cjk": 232,
-   "chars": 709,
-   "utf8_bytes": 1235,
+   "cjk": 2326,
+   "chars": 6947,
+   "utf8_bytes": 11763,
    "tier": "standard"
   },
   "you_2018_cater_b_full": {
-   "cjk": 232,
-   "chars": 710,
-   "utf8_bytes": 1236,
+   "cjk": 2020,
+   "chars": 5405,
+   "utf8_bytes": 9613,
    "tier": "standard"
   },
   "loughran_cater_full": {
@@ -20074,15 +20074,15 @@
    "tier": "standard"
   },
   "you_2018_cater_ctx": {
-   "cjk": 232,
-   "chars": 708,
-   "utf8_bytes": 1234,
+   "cjk": 2327,
+   "chars": 6992,
+   "utf8_bytes": 11809,
    "tier": "standard"
   },
   "you_2018_cater_b_ctx": {
-   "cjk": 232,
-   "chars": 709,
-   "utf8_bytes": 1235,
+   "cjk": 2008,
+   "chars": 5369,
+   "utf8_bytes": 9555,
    "tier": "standard"
   },
   "loughran_cater_ctx": {
@@ -20194,15 +20194,15 @@
    "tier": "standard"
   },
   "you_2018_cater_ss": {
-   "cjk": 232,
-   "chars": 707,
-   "utf8_bytes": 1233,
+   "cjk": 2318,
+   "chars": 7068,
+   "utf8_bytes": 11872,
    "tier": "standard"
   },
   "you_2018_cater_b_ss": {
-   "cjk": 232,
-   "chars": 708,
-   "utf8_bytes": 1234,
+   "cjk": 2009,
+   "chars": 5397,
+   "utf8_bytes": 9582,
    "tier": "standard"
   },
   "loughran_cater_ss": {
@@ -20731,602 +20731,62 @@
  "longdesc_counters": {
   "composed": 3462,
   "fallback": 0,
-  "n_draft_warnings": 594,
+  "n_draft_warnings": 54,
   "draft_warnings": [
-   "F636/yao_2021_tone_sum_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F636/yao_2021_tone_sum_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F636/yao_2021_tone_sum_full: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F636/yao_2021_tone_sum_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F653/you_2018_tone_sum_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F653/you_2018_tone_sum_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F653/you_2018_tone_sum_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F653/you_2018_tone_sum_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F626/yao_2021_idf_tone_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F626/yao_2021_idf_tone_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F626/yao_2021_idf_tone_full: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F626/yao_2021_idf_tone_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F627/yao_2021_idf_tone_sum_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F627/yao_2021_idf_tone_sum_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F627/yao_2021_idf_tone_sum_full: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F627/yao_2021_idf_tone_sum_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F626/yao_2021_idf_tone_std_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F626/yao_2021_idf_tone_std_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F626/yao_2021_idf_tone_std_full: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F626/yao_2021_idf_tone_std_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F643/you_2018_idf_tone_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F643/you_2018_idf_tone_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F643/you_2018_idf_tone_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F643/you_2018_idf_tone_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F644/you_2018_idf_tone_sum_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F644/you_2018_idf_tone_sum_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F644/you_2018_idf_tone_sum_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F644/you_2018_idf_tone_sum_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F643/you_2018_idf_tone_std_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F643/you_2018_idf_tone_std_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F643/you_2018_idf_tone_std_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F643/you_2018_idf_tone_std_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F637/you_2018_raw_tone_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F637/you_2018_raw_tone_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F637/you_2018_raw_tone_full: 组装全文 234 汉字 < 1000 (standard 总量闸)",
-   "F637/you_2018_raw_tone_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F637/you_2018_negonly_tone_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F637/you_2018_negonly_tone_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F637/you_2018_negonly_tone_full: 组装全文 234 汉字 < 1000 (standard 总量闸)",
-   "F637/you_2018_negonly_tone_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F637/you_2018_degonly_tone_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F637/you_2018_degonly_tone_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F637/you_2018_degonly_tone_full: 组装全文 234 汉字 < 1000 (standard 总量闸)",
-   "F637/you_2018_degonly_tone_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F637/you_2018_advonly_tone_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F637/you_2018_advonly_tone_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F637/you_2018_advonly_tone_full: 组装全文 234 汉字 < 1000 (standard 总量闸)",
-   "F637/you_2018_advonly_tone_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F637/you_2018_negdeg_tone_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F637/you_2018_negdeg_tone_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F637/you_2018_negdeg_tone_full: 组装全文 234 汉字 < 1000 (standard 总量闸)",
-   "F637/you_2018_negdeg_tone_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F637/you_2018_negadv_tone_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F637/you_2018_negadv_tone_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F637/you_2018_negadv_tone_full: 组装全文 234 汉字 < 1000 (standard 总量闸)",
-   "F637/you_2018_negadv_tone_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F637/you_2018_degadv_tone_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F637/you_2018_degadv_tone_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F637/you_2018_degadv_tone_full: 组装全文 234 汉字 < 1000 (standard 总量闸)",
-   "F637/you_2018_degadv_tone_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F290/finbert_cn_neg_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
-   "F636/yao_2021_tone_sum_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F636/yao_2021_tone_sum_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F636/yao_2021_tone_sum_ctx: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F636/yao_2021_tone_sum_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F653/you_2018_tone_sum_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F653/you_2018_tone_sum_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F653/you_2018_tone_sum_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F653/you_2018_tone_sum_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F626/yao_2021_idf_tone_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F626/yao_2021_idf_tone_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F626/yao_2021_idf_tone_ctx: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F626/yao_2021_idf_tone_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F627/yao_2021_idf_tone_sum_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F627/yao_2021_idf_tone_sum_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F627/yao_2021_idf_tone_sum_ctx: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F627/yao_2021_idf_tone_sum_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F626/yao_2021_idf_tone_std_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F626/yao_2021_idf_tone_std_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F626/yao_2021_idf_tone_std_ctx: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F626/yao_2021_idf_tone_std_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F643/you_2018_idf_tone_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F643/you_2018_idf_tone_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F643/you_2018_idf_tone_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F643/you_2018_idf_tone_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F644/you_2018_idf_tone_sum_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F644/you_2018_idf_tone_sum_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F644/you_2018_idf_tone_sum_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F644/you_2018_idf_tone_sum_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F643/you_2018_idf_tone_std_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F643/you_2018_idf_tone_std_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F643/you_2018_idf_tone_std_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F643/you_2018_idf_tone_std_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F637/you_2018_raw_tone_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F637/you_2018_raw_tone_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F637/you_2018_raw_tone_ctx: 组装全文 234 汉字 < 1000 (standard 总量闸)",
-   "F637/you_2018_raw_tone_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F637/you_2018_negonly_tone_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F637/you_2018_negonly_tone_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F637/you_2018_negonly_tone_ctx: 组装全文 234 汉字 < 1000 (standard 总量闸)",
-   "F637/you_2018_negonly_tone_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F637/you_2018_degonly_tone_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F637/you_2018_degonly_tone_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F637/you_2018_degonly_tone_ctx: 组装全文 234 汉字 < 1000 (standard 总量闸)",
-   "F637/you_2018_degonly_tone_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F637/you_2018_advonly_tone_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F637/you_2018_advonly_tone_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F637/you_2018_advonly_tone_ctx: 组装全文 234 汉字 < 1000 (standard 总量闸)",
-   "F637/you_2018_advonly_tone_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F637/you_2018_negdeg_tone_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F637/you_2018_negdeg_tone_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F637/you_2018_negdeg_tone_ctx: 组装全文 234 汉字 < 1000 (standard 总量闸)",
-   "F637/you_2018_negdeg_tone_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F637/you_2018_negadv_tone_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F637/you_2018_negadv_tone_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F637/you_2018_negadv_tone_ctx: 组装全文 234 汉字 < 1000 (standard 总量闸)",
-   "F637/you_2018_negadv_tone_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F637/you_2018_degadv_tone_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F637/you_2018_degadv_tone_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F637/you_2018_degadv_tone_ctx: 组装全文 234 汉字 < 1000 (standard 总量闸)",
-   "F637/you_2018_degadv_tone_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F290/finbert_cn_neg_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
-   "F636/yao_2021_tone_sum_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F636/yao_2021_tone_sum_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F636/yao_2021_tone_sum_ss: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F636/yao_2021_tone_sum_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F653/you_2018_tone_sum_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F653/you_2018_tone_sum_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F653/you_2018_tone_sum_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F653/you_2018_tone_sum_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F626/yao_2021_idf_tone_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F626/yao_2021_idf_tone_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F626/yao_2021_idf_tone_ss: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F626/yao_2021_idf_tone_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F627/yao_2021_idf_tone_sum_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F627/yao_2021_idf_tone_sum_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F627/yao_2021_idf_tone_sum_ss: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F627/yao_2021_idf_tone_sum_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F626/yao_2021_idf_tone_std_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F626/yao_2021_idf_tone_std_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F626/yao_2021_idf_tone_std_ss: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F626/yao_2021_idf_tone_std_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F643/you_2018_idf_tone_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F643/you_2018_idf_tone_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F643/you_2018_idf_tone_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F643/you_2018_idf_tone_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F644/you_2018_idf_tone_sum_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F644/you_2018_idf_tone_sum_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F644/you_2018_idf_tone_sum_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F644/you_2018_idf_tone_sum_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F643/you_2018_idf_tone_std_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F643/you_2018_idf_tone_std_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F643/you_2018_idf_tone_std_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F643/you_2018_idf_tone_std_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F637/you_2018_raw_tone_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F637/you_2018_raw_tone_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F637/you_2018_raw_tone_ss: 组装全文 234 汉字 < 1000 (standard 总量闸)",
-   "F637/you_2018_raw_tone_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F637/you_2018_negonly_tone_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F637/you_2018_negonly_tone_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F637/you_2018_negonly_tone_ss: 组装全文 234 汉字 < 1000 (standard 总量闸)",
-   "F637/you_2018_negonly_tone_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F637/you_2018_degonly_tone_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F637/you_2018_degonly_tone_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F637/you_2018_degonly_tone_ss: 组装全文 234 汉字 < 1000 (standard 总量闸)",
-   "F637/you_2018_degonly_tone_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F637/you_2018_advonly_tone_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F637/you_2018_advonly_tone_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F637/you_2018_advonly_tone_ss: 组装全文 234 汉字 < 1000 (standard 总量闸)",
-   "F637/you_2018_advonly_tone_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F637/you_2018_negdeg_tone_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F637/you_2018_negdeg_tone_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F637/you_2018_negdeg_tone_ss: 组装全文 234 汉字 < 1000 (standard 总量闸)",
-   "F637/you_2018_negdeg_tone_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F637/you_2018_negadv_tone_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F637/you_2018_negadv_tone_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F637/you_2018_negadv_tone_ss: 组装全文 234 汉字 < 1000 (standard 总量闸)",
-   "F637/you_2018_negadv_tone_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F637/you_2018_degadv_tone_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F637/you_2018_degadv_tone_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F637/you_2018_degadv_tone_ss: 组装全文 234 汉字 < 1000 (standard 总量闸)",
-   "F637/you_2018_degadv_tone_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F290/finbert_cn_neg_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
-   "F634/yao_2021_score_w_sum_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F634/yao_2021_score_w_sum_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F634/yao_2021_score_w_sum_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F634/yao_2021_score_w_sum_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F651/you_2018_score_w_sum_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F651/you_2018_score_w_sum_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F651/you_2018_score_w_sum_full: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F651/you_2018_score_w_sum_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F642/you_2018_idf_score_w_sum_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F642/you_2018_idf_score_w_sum_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F642/you_2018_idf_score_w_sum_full: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F642/you_2018_idf_score_w_sum_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F634/yao_2021_score_w_sum_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F634/yao_2021_score_w_sum_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F634/yao_2021_score_w_sum_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F634/yao_2021_score_w_sum_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F651/you_2018_score_w_sum_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F651/you_2018_score_w_sum_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F651/you_2018_score_w_sum_ctx: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F651/you_2018_score_w_sum_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F642/you_2018_idf_score_w_sum_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F642/you_2018_idf_score_w_sum_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F642/you_2018_idf_score_w_sum_ctx: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F642/you_2018_idf_score_w_sum_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F634/yao_2021_score_w_sum_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F634/yao_2021_score_w_sum_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F634/yao_2021_score_w_sum_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F634/yao_2021_score_w_sum_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F651/you_2018_score_w_sum_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F651/you_2018_score_w_sum_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F651/you_2018_score_w_sum_ss: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F651/you_2018_score_w_sum_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F642/you_2018_idf_score_w_sum_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F642/you_2018_idf_score_w_sum_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F642/you_2018_idf_score_w_sum_ss: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F642/you_2018_idf_score_w_sum_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F632/yao_2021_score_hw_sum_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F632/yao_2021_score_hw_sum_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F632/yao_2021_score_hw_sum_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F632/yao_2021_score_hw_sum_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F649/you_2018_score_hw_sum_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F649/you_2018_score_hw_sum_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F649/you_2018_score_hw_sum_full: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F649/you_2018_score_hw_sum_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F640/you_2018_idf_score_hw_sum_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F640/you_2018_idf_score_hw_sum_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F640/you_2018_idf_score_hw_sum_full: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F640/you_2018_idf_score_hw_sum_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F632/yao_2021_score_hw_sum_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F632/yao_2021_score_hw_sum_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F632/yao_2021_score_hw_sum_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F632/yao_2021_score_hw_sum_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F649/you_2018_score_hw_sum_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F649/you_2018_score_hw_sum_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F649/you_2018_score_hw_sum_ctx: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F649/you_2018_score_hw_sum_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F640/you_2018_idf_score_hw_sum_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F640/you_2018_idf_score_hw_sum_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F640/you_2018_idf_score_hw_sum_ctx: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F640/you_2018_idf_score_hw_sum_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F632/yao_2021_score_hw_sum_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F632/yao_2021_score_hw_sum_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F632/yao_2021_score_hw_sum_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F632/yao_2021_score_hw_sum_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F649/you_2018_score_hw_sum_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F649/you_2018_score_hw_sum_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F649/you_2018_score_hw_sum_ss: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F649/you_2018_score_hw_sum_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F640/you_2018_idf_score_hw_sum_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F640/you_2018_idf_score_hw_sum_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F640/you_2018_idf_score_hw_sum_ss: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F640/you_2018_idf_score_hw_sum_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F633/yao_2021_score_mw_sum_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F633/yao_2021_score_mw_sum_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F633/yao_2021_score_mw_sum_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F633/yao_2021_score_mw_sum_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F650/you_2018_score_mw_sum_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F650/you_2018_score_mw_sum_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F650/you_2018_score_mw_sum_full: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F650/you_2018_score_mw_sum_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F641/you_2018_idf_score_mw_sum_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F641/you_2018_idf_score_mw_sum_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F641/you_2018_idf_score_mw_sum_full: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F641/you_2018_idf_score_mw_sum_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F633/yao_2021_score_mw_sum_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F633/yao_2021_score_mw_sum_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F633/yao_2021_score_mw_sum_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F633/yao_2021_score_mw_sum_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F650/you_2018_score_mw_sum_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F650/you_2018_score_mw_sum_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F650/you_2018_score_mw_sum_ctx: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F650/you_2018_score_mw_sum_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F641/you_2018_idf_score_mw_sum_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F641/you_2018_idf_score_mw_sum_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F641/you_2018_idf_score_mw_sum_ctx: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F641/you_2018_idf_score_mw_sum_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F633/yao_2021_score_mw_sum_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F633/yao_2021_score_mw_sum_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F633/yao_2021_score_mw_sum_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F633/yao_2021_score_mw_sum_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F650/you_2018_score_mw_sum_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F650/you_2018_score_mw_sum_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F650/you_2018_score_mw_sum_ss: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F650/you_2018_score_mw_sum_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F641/you_2018_idf_score_mw_sum_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F641/you_2018_idf_score_mw_sum_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F641/you_2018_idf_score_mw_sum_ss: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F641/you_2018_idf_score_mw_sum_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F629/yao_2021_pos_count_full: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F629/yao_2021_pos_count_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F629/yao_2021_pos_count_full: 组装全文 220 汉字 < 1000 (standard 总量闸)",
-   "F629/yao_2021_pos_count_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F631/yao_2021_pos_symb_count_full: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F631/yao_2021_pos_symb_count_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F631/yao_2021_pos_symb_count_full: 组装全文 220 汉字 < 1000 (standard 总量闸)",
-   "F631/yao_2021_pos_symb_count_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F646/you_2018_pos_count_full: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F646/you_2018_pos_count_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F646/you_2018_pos_count_full: 组装全文 222 汉字 < 1000 (standard 总量闸)",
-   "F646/you_2018_pos_count_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F648/you_2018_pos_symb_count_full: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F648/you_2018_pos_symb_count_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F648/you_2018_pos_symb_count_full: 组装全文 222 汉字 < 1000 (standard 总量闸)",
-   "F648/you_2018_pos_symb_count_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F629/yao_2021_pos_count_ctx: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F629/yao_2021_pos_count_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F629/yao_2021_pos_count_ctx: 组装全文 220 汉字 < 1000 (standard 总量闸)",
-   "F629/yao_2021_pos_count_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F631/yao_2021_pos_symb_count_ctx: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F631/yao_2021_pos_symb_count_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F631/yao_2021_pos_symb_count_ctx: 组装全文 220 汉字 < 1000 (standard 总量闸)",
-   "F631/yao_2021_pos_symb_count_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F646/you_2018_pos_count_ctx: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F646/you_2018_pos_count_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F646/you_2018_pos_count_ctx: 组装全文 222 汉字 < 1000 (standard 总量闸)",
-   "F646/you_2018_pos_count_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F648/you_2018_pos_symb_count_ctx: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F648/you_2018_pos_symb_count_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F648/you_2018_pos_symb_count_ctx: 组装全文 222 汉字 < 1000 (standard 总量闸)",
-   "F648/you_2018_pos_symb_count_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F629/yao_2021_pos_count_ss: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F629/yao_2021_pos_count_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F629/yao_2021_pos_count_ss: 组装全文 220 汉字 < 1000 (standard 总量闸)",
-   "F629/yao_2021_pos_count_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F631/yao_2021_pos_symb_count_ss: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F631/yao_2021_pos_symb_count_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F631/yao_2021_pos_symb_count_ss: 组装全文 220 汉字 < 1000 (standard 总量闸)",
-   "F631/yao_2021_pos_symb_count_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F646/you_2018_pos_count_ss: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F646/you_2018_pos_count_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F646/you_2018_pos_count_ss: 组装全文 222 汉字 < 1000 (standard 总量闸)",
-   "F646/you_2018_pos_count_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F648/you_2018_pos_symb_count_ss: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F648/you_2018_pos_symb_count_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F648/you_2018_pos_symb_count_ss: 组装全文 222 汉字 < 1000 (standard 总量闸)",
-   "F648/you_2018_pos_symb_count_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F628/yao_2021_neg_count_full: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F628/yao_2021_neg_count_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F628/yao_2021_neg_count_full: 组装全文 220 汉字 < 1000 (standard 总量闸)",
-   "F628/yao_2021_neg_count_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F645/you_2018_neg_count_full: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F645/you_2018_neg_count_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F645/you_2018_neg_count_full: 组装全文 222 汉字 < 1000 (standard 总量闸)",
-   "F645/you_2018_neg_count_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F628/yao_2021_neg_count_ctx: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F628/yao_2021_neg_count_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F628/yao_2021_neg_count_ctx: 组装全文 220 汉字 < 1000 (standard 总量闸)",
-   "F628/yao_2021_neg_count_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F645/you_2018_neg_count_ctx: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F645/you_2018_neg_count_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F645/you_2018_neg_count_ctx: 组装全文 222 汉字 < 1000 (standard 总量闸)",
-   "F645/you_2018_neg_count_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F628/yao_2021_neg_count_ss: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F628/yao_2021_neg_count_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F628/yao_2021_neg_count_ss: 组装全文 220 汉字 < 1000 (standard 总量闸)",
-   "F628/yao_2021_neg_count_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F645/you_2018_neg_count_ss: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F645/you_2018_neg_count_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F645/you_2018_neg_count_ss: 组装全文 222 汉字 < 1000 (standard 总量闸)",
-   "F645/you_2018_neg_count_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F626/yao_2021_idf_tone_tech_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F626/yao_2021_idf_tone_tech_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F626/yao_2021_idf_tone_tech_full: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F626/yao_2021_idf_tone_tech_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F643/you_2018_idf_tone_tech_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F643/you_2018_idf_tone_tech_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F643/you_2018_idf_tone_tech_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F643/you_2018_idf_tone_tech_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F290/finbert_cn_neg_tech_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_tech_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_tech_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
-   "F626/yao_2021_idf_tone_tech_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F626/yao_2021_idf_tone_tech_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F626/yao_2021_idf_tone_tech_ctx: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F626/yao_2021_idf_tone_tech_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F643/you_2018_idf_tone_tech_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F643/you_2018_idf_tone_tech_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F643/you_2018_idf_tone_tech_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F643/you_2018_idf_tone_tech_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F290/finbert_cn_neg_tech_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_tech_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_tech_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
-   "F626/yao_2021_idf_tone_tech_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F626/yao_2021_idf_tone_tech_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F626/yao_2021_idf_tone_tech_ss: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F626/yao_2021_idf_tone_tech_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F643/you_2018_idf_tone_tech_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F643/you_2018_idf_tone_tech_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F643/you_2018_idf_tone_tech_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F643/you_2018_idf_tone_tech_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F290/finbert_cn_neg_tech_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_tech_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_tech_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
-   "F626/yao_2021_idf_tone_app_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F626/yao_2021_idf_tone_app_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F626/yao_2021_idf_tone_app_full: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F626/yao_2021_idf_tone_app_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F643/you_2018_idf_tone_app_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F643/you_2018_idf_tone_app_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F643/you_2018_idf_tone_app_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F643/you_2018_idf_tone_app_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F290/finbert_cn_neg_app_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_app_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_app_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
-   "F626/yao_2021_idf_tone_app_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F626/yao_2021_idf_tone_app_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F626/yao_2021_idf_tone_app_ctx: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F626/yao_2021_idf_tone_app_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F643/you_2018_idf_tone_app_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F643/you_2018_idf_tone_app_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F643/you_2018_idf_tone_app_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F643/you_2018_idf_tone_app_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F290/finbert_cn_neg_app_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_app_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_app_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
-   "F626/yao_2021_idf_tone_app_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F626/yao_2021_idf_tone_app_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F626/yao_2021_idf_tone_app_ss: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F626/yao_2021_idf_tone_app_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F643/you_2018_idf_tone_app_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F643/you_2018_idf_tone_app_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F643/you_2018_idf_tone_app_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F643/you_2018_idf_tone_app_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F290/finbert_cn_neg_app_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_app_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_app_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
-   "F626/yao_2021_idf_tone_vw_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F626/yao_2021_idf_tone_vw_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F626/yao_2021_idf_tone_vw_full: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F626/yao_2021_idf_tone_vw_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F643/you_2018_idf_tone_vw_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F643/you_2018_idf_tone_vw_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F643/you_2018_idf_tone_vw_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F643/you_2018_idf_tone_vw_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F290/finbert_cn_neg_vw_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_vw_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_vw_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
-   "F626/yao_2021_idf_tone_vw_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F626/yao_2021_idf_tone_vw_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F626/yao_2021_idf_tone_vw_ctx: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F626/yao_2021_idf_tone_vw_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F643/you_2018_idf_tone_vw_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F643/you_2018_idf_tone_vw_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F643/you_2018_idf_tone_vw_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F643/you_2018_idf_tone_vw_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F290/finbert_cn_neg_vw_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_vw_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_vw_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
-   "F626/yao_2021_idf_tone_vw_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F626/yao_2021_idf_tone_vw_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F626/yao_2021_idf_tone_vw_ss: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F626/yao_2021_idf_tone_vw_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F643/you_2018_idf_tone_vw_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F643/you_2018_idf_tone_vw_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F643/you_2018_idf_tone_vw_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F643/you_2018_idf_tone_vw_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F290/finbert_cn_neg_vw_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_vw_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_vw_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
-   "F626/yao_2021_idf_tone_mw_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F626/yao_2021_idf_tone_mw_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F626/yao_2021_idf_tone_mw_full: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F626/yao_2021_idf_tone_mw_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F643/you_2018_idf_tone_mw_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F643/you_2018_idf_tone_mw_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F643/you_2018_idf_tone_mw_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F643/you_2018_idf_tone_mw_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F290/finbert_cn_neg_mw_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_mw_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_mw_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
-   "F626/yao_2021_idf_tone_mw_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F626/yao_2021_idf_tone_mw_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F626/yao_2021_idf_tone_mw_ctx: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F626/yao_2021_idf_tone_mw_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F643/you_2018_idf_tone_mw_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F643/you_2018_idf_tone_mw_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F643/you_2018_idf_tone_mw_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F643/you_2018_idf_tone_mw_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F290/finbert_cn_neg_mw_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_mw_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_mw_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
-   "F626/yao_2021_idf_tone_mw_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F626/yao_2021_idf_tone_mw_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F626/yao_2021_idf_tone_mw_ss: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F626/yao_2021_idf_tone_mw_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F643/you_2018_idf_tone_mw_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F643/you_2018_idf_tone_mw_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F643/you_2018_idf_tone_mw_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F643/you_2018_idf_tone_mw_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F290/finbert_cn_neg_mw_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_mw_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_mw_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
-   "F626/yao_2021_idf_tone_hw_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F626/yao_2021_idf_tone_hw_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F626/yao_2021_idf_tone_hw_full: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F626/yao_2021_idf_tone_hw_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F643/you_2018_idf_tone_hw_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F643/you_2018_idf_tone_hw_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F643/you_2018_idf_tone_hw_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F643/you_2018_idf_tone_hw_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F290/finbert_cn_neg_hw_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_hw_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_hw_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
-   "F626/yao_2021_idf_tone_hw_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F626/yao_2021_idf_tone_hw_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F626/yao_2021_idf_tone_hw_ctx: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F626/yao_2021_idf_tone_hw_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F643/you_2018_idf_tone_hw_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F643/you_2018_idf_tone_hw_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F643/you_2018_idf_tone_hw_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F643/you_2018_idf_tone_hw_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F290/finbert_cn_neg_hw_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_hw_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_hw_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
-   "F626/yao_2021_idf_tone_hw_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F626/yao_2021_idf_tone_hw_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F626/yao_2021_idf_tone_hw_ss: 组装全文 228 汉字 < 1000 (standard 总量闸)",
-   "F626/yao_2021_idf_tone_hw_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F643/you_2018_idf_tone_hw_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F643/you_2018_idf_tone_hw_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F643/you_2018_idf_tone_hw_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F643/you_2018_idf_tone_hw_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
    "F290/finbert_cn_neg_hw_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_hw_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
-   "F290/finbert2_neg_hw_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
-   "F630/yao_2021_pos_substvalid_count_full: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F630/yao_2021_pos_substvalid_count_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F630/yao_2021_pos_substvalid_count_full: 组装全文 220 汉字 < 1000 (standard 总量闸)",
-   "F630/yao_2021_pos_substvalid_count_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F647/you_2018_pos_substvalid_count_full: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F647/you_2018_pos_substvalid_count_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F647/you_2018_pos_substvalid_count_full: 组装全文 222 汉字 < 1000 (standard 总量闸)",
-   "F647/you_2018_pos_substvalid_count_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F630/yao_2021_pos_substvalid_count_ctx: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F630/yao_2021_pos_substvalid_count_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F630/yao_2021_pos_substvalid_count_ctx: 组装全文 220 汉字 < 1000 (standard 总量闸)",
-   "F630/yao_2021_pos_substvalid_count_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F647/you_2018_pos_substvalid_count_ctx: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F647/you_2018_pos_substvalid_count_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F647/you_2018_pos_substvalid_count_ctx: 组装全文 222 汉字 < 1000 (standard 总量闸)",
-   "F647/you_2018_pos_substvalid_count_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F630/yao_2021_pos_substvalid_count_ss: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F630/yao_2021_pos_substvalid_count_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F630/yao_2021_pos_substvalid_count_ss: 组装全文 220 汉字 < 1000 (standard 总量闸)",
-   "F630/yao_2021_pos_substvalid_count_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F647/you_2018_pos_substvalid_count_ss: 家族核心长文段 87 汉字 < 700 (standard 家族段落闸)",
-   "F647/you_2018_pos_substvalid_count_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F647/you_2018_pos_substvalid_count_ss: 组装全文 222 汉字 < 1000 (standard 总量闸)",
-   "F647/you_2018_pos_substvalid_count_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F655/zone_leave1out_tone_full: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F655/zone_leave1out_tone_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F655/zone_leave1out_tone_full: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F655/zone_leave1out_tone_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F655/zone_leave1out_tone_ctx: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F655/zone_leave1out_tone_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F655/zone_leave1out_tone_ctx: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F655/zone_leave1out_tone_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F655/zone_leave1out_tone_ss: 家族核心长文段 95 汉字 < 700 (standard 家族段落闸)",
-   "F655/zone_leave1out_tone_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F655/zone_leave1out_tone_ss: 组装全文 230 汉字 < 1000 (standard 总量闸)",
-   "F655/zone_leave1out_tone_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F639/you_2018_cater_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F639/you_2018_cater_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F639/you_2018_cater_full: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F639/you_2018_cater_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F638/you_2018_cater_b_full: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F638/you_2018_cater_b_full: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F638/you_2018_cater_b_full: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F638/you_2018_cater_b_full: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F639/you_2018_cater_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F639/you_2018_cater_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F639/you_2018_cater_ctx: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F639/you_2018_cater_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F638/you_2018_cater_b_ctx: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F638/you_2018_cater_b_ctx: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F638/you_2018_cater_b_ctx: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F638/you_2018_cater_b_ctx: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F639/you_2018_cater_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F639/you_2018_cater_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F639/you_2018_cater_ss: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F639/you_2018_cater_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)",
-   "F638/you_2018_cater_b_ss: 家族核心长文段 97 汉字 < 700 (standard 家族段落闸)",
-   "F638/you_2018_cater_b_ss: 变体差分段 41 汉字 < 350 (standard 列段落闸)",
-   "F638/you_2018_cater_b_ss: 组装全文 232 汉字 < 1000 (standard 总量闸)",
-   "F638/you_2018_cater_b_ss: 引文段 0 条/0 字符 < 3 条/300 字符 (standard 引文段质量约束)"
+   "F290/finbert2_neg_hw_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)"
   ]
  }
 }
