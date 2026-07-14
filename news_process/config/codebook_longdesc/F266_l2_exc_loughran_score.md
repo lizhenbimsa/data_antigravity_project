@@ -10,64 +10,165 @@ columns:
 - exc_loughran_score_w_ctx
 - exc_loughran_score_w_full
 - exc_loughran_score_w_ss
-unit: 无量纲得分/指标 (WP0 初判待写手校对)
-formula: '(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)'
-producer: pipeline\panel\attention_media.py
-upstream: []
-citations: []
+unit: 无量纲 (剔除疑似退出覆盖媒体后, 银行-年度内 Loughran & McDonald 2011 词典中文主译情感得分的组内均值; 基线臂落在 [-1,1], 加权臂为得分×权重的均值不再归一)
+formula: "loughran_score{track} = Σ(final_score)/Σ|final_score| ∈ [-1,1] (L&M 2011 词典中文主译极性 + 否定/程度/转折全语言学规则); loughran_score_w{track} = loughran_score{track} × mention_density_weight (VW); loughran_score_hw{track} = loughran_score{track} × herd_weight{track} (HW); exc_loughran_score[_hw|_w]{track} = mean_{article ∈ bank-year ∧ media ∉ ceased_set} (对应文章级得分); ceased_set = confirmed ∪ suspected (last_year < sample_max - 2 ∧ n_articles ≥ 10)"
+producer: news_process/pipeline/panel/attention_media.py (停刊稳健性块 C.4, mean over df_alive; ceased 判定见 detect_defacto_cessation)
+upstream:
+- 22_tone_words.parquet (loughran_score_full / _ctx / _ss)
+- 24_herd_decay.parquet (herd_weight_full / _ctx / _ss, 供 _hw 臂)
+- runner 步骤 3b/3d 预计算文章级加权列 (loughran_score_w / _hw)
+citations:
+- doi: 10.1017/S0022109023000716
+  type: journal
+  authors: Loughran, T., & McDonald, B.
+  year: 2024
+  title: "Measuring firm complexity"
+  venue: Journal of Financial and Quantitative Analysis
+  vol: 59
+  issue: 6
+  pages_or_artno: 2487-2514
+- doi: 10.1111/ecin.13264
+  type: journal
+  authors: Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E.
+  year: 2025
+  title: "Sentiment analysis of economic text: A lexicon-based approach"
+  venue: Economic Inquiry
+  vol: 63
+  issue: 1
+  pages_or_artno: 125-143
+- doi: 10.1093/rof/rfab036
+  type: journal
+  authors: Du, Z., Huang, A. G., Wermers, R., & Wu, W.
+  year: 2022
+  title: "Language and domain specificity: A Chinese financial sentiment dictionary"
+  venue: Review of Finance
+  vol: 26
+  issue: 3
+  pages_or_artno: 673-719
+- doi: 10.1287/mnsc.2021.4156
+  type: journal
+  authors: Frankel, R., Jennings, J., & Lee, J.
+  year: 2022
+  title: "Disclosure sentiment: Machine learning vs. dictionary methods"
+  venue: Management Science
+  vol: 68
+  issue: 7
+  pages_or_artno: 5514-5532
+- doi: 10.1080/19312458.2020.1869198
+  type: journal
+  authors: van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M.
+  year: 2021
+  title: "The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms"
+  venue: Communication Methods and Measures
+  vol: 15
+  issue: 2
+  pages_or_artno: 121-140
+- doi: 10.1146/annurev-financial-012820-032249
+  type: journal
+  authors: Loughran, T., & McDonald, B.
+  year: 2020
+  title: "Textual analysis in finance"
+  venue: Annual Review of Financial Economics
+  vol: 12
+  issue: 1
+  pages_or_artno: 357-375
+- doi: 10.1111/1475-679X.12123
+  type: journal
+  authors: Loughran, T., & McDonald, B.
+  year: 2016
+  title: "Textual analysis in accounting and finance: A survey"
+  venue: Journal of Accounting Research
+  vol: 54
+  issue: 4
+  pages_or_artno: 1187-1230
+- doi: 10.1111/j.1540-6261.2010.01625.x
+  type: journal
+  authors: Loughran, T., & McDonald, B.
+  year: 2011
+  title: "When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks"
+  venue: Journal of Finance
+  vol: 66
+  issue: 1
+  pages_or_artno: 35-65
+- doi: 10.1162/COLI_a_00049
+  type: journal
+  authors: Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M.
+  year: 2011
+  title: "Lexicon-based methods for sentiment analysis"
+  venue: Computational Linguistics
+  vol: 37
+  issue: 2
+  pages_or_artno: 267-307
 new_dois: []
 ---
 
 ## CORE
 
 【构念与来源】
-骨架占位 — 本节为家族核心长文, 待 WP4 写手按写手输入包三件套 (build/codebook_inputs/F266/ 下 columns.json、source_excerpt.md、citations_pool.md) 撰写。本骨架由 build_codebook_family_map 机械生成, 家族 status=draft, 字数闸与引文闸在 draft 态降级为告警计数。单位初判: 无量纲得分/指标 (WP0 初判待写手校对)。公式初判见 frontmatter formula 字段, 写手须对 producer 源码逐条校对后改写。
+本家族刻画一个银行-年度层面的媒体幸存者偏差稳健性测度: 在剔除疑似退出话题覆盖的媒体来源之后, 用 Loughran 与 McDonald (2011) 金融情感词典 (本管道第六部词典, 由该英文 10-K 金融词典主译为中文并与其余五部中文金融词典并轨) 逐篇算得的报道情感得分, 在同一银行同一年度内对存活媒体的报道求组内均值。名称四段各有所指: exc 是 exclusion 的缩写, 指本量的样本域已剔除疑似停止覆盖银行-金科话题的媒体来源, 是相对全样本情感均值的保守替代口径; loughran 指底层词典为 Loughran 与 McDonald (2011) 面向公司年报文本构建、经中文主译并入本管道的金融情感词典; score 指文章级测度是该词典的归一化情感极性得分, 基线取值落在 [-1, +1]; 无后缀 (基线)、_hw、_w 三支则区分文章级得分进入组内均值前是否先施加权重。因此本家族不是全样本情感, 而是"排除疑似退出覆盖媒体"这一稳健性维度上的替代情感: 它与配套的 ceased_media_frac (退出媒体文章占比)、n_articles_exc (排除后文章数) 共同支持 Stata 侧对媒体来源消失所致选择偏误的系数稳定性检验。之所以特意把英文原产的 L&M 2011 词典也纳入本管道, 是因为它是文本分析在会计与金融领域最被广泛引用的极性词表基准, 保留其中文主译轨可与其余五部原生中文词典 (jiang/yao/bian/du/you) 互为跨词典稳健性对照, 检验情感结论是否依赖某一特定词表来源。
 
-## VAR: exc_loughran_score_ctx
+【构念与来源续】
+之所以要构造这一排除口径, 是因为以媒体情感为核心解释变量的面板研究里, 覆盖某银行-金科话题的媒体来源会随时间进入或退出; 若某些来源在样本后期悄然停止覆盖 (无论是真实停刊, 还是只是不再报道该话题), 而分析仅用存活来源, 则情感度量会向存活媒体的语气系统性倾斜, 引入幸存者偏差, 并污染以媒体暴露为基础的 Bartik 型工具变量。本家族把疑似退出的媒体保守地整体剔出后重算情感均值, 使研究者可将其与含全部媒体的基准情感并列, 检验主结论是否被媒体退出这一样本选择所驱动。诚实披露口径: 排除集 ceased_set = confirmed ∪ suspected, 其中 suspected 由数据驱动规则判定 (某媒体在银行-金科子集上的最后出现年份早于样本末年减两年, 且累计报道数不少于十篇), 未经外部登记核验的 suspected 亦全量进入排除集; 度量的是"话题覆盖退出"而非经证实的报纸停刊, 故下游列只可解读为疑似退出覆盖的保守稳健性口径, 不可在论文中表述为严格停刊口径。历史提示: 前缀发现表曾漏列 loughran (新增第六部词典时未同步), 补齐后 loughran 与其余五部走完全相同的动态发现路径, 实测产出十二个 exc_loughran_* 列, 后缀结构与 exc_jiang_2021_* 全等。
 
-【变体差分】
-骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+【方法学与计算】
+计算链路分四段。第一段在 stage 22 词典法: 对每篇报道分词后在 L&M 2011 中文主译词典上逐词匹配, 命中情感词依次施加三条语言学规则 —— 否定词在其后固定窗口内翻转极性、程度副词按倍率缩放幅值、转折词在从句作用域内放大后半句, 遇句末标点重置规则状态; 每个情感词得 final_score, 文章级得分归一化为 Σ(final_score)/Σ|final_score| ∈ [-1, +1]。第二段在面板 runner 预计算文章级加权列: VW 臂 (步骤 3b) 令文章级得分乘以提及密度权重 mention_density_weight 得 loughran_score_w{track}; HW 臂 (步骤 3d) 令其乘以羊群衰减权重 herd_weight{track} = 1/(1 + n_similar_articles{track}) 得 loughran_score_hw{track}; 基线臂不加权。第三段是停刊检测 (detect_defacto_cessation): 按媒体聚合首末出现年份与报道数, 标记疑似退出集 ceased_set。第四段在 attention_media 停刊稳健性块 C.4: 取存活子集 df_alive (媒体不在 ceased_set 的报道), 对匹配 _SCORE_PATTERNS 前缀且非 mw/idf 变体、非以 _w 结尾的文章级得分列, 按目标银行-年度分组求均值, 冠以 exc_ 前缀落盘 (注意过滤器排除的是以裸 _w 结尾的旧加权列与 _mw_/_idf_ 变体, 而 loughran_score_w{track} 以轨道后缀结尾故照常入选)。本家族聚合口径是组内均值 (mean) 而非求和, 与 hw_sum 家族的分子求和口径不同; 留篇门控采用 full-only 口径 (2026-06-29), 报道是否计入某银行某年宇宙由其 full 轨是否被判为一篇银行金科报道决定, 三轨在该留篇集合上分别计列, ctx/ss 为 conditional-on-full 子集测度。
+
+【文献定位】
+本测度的方法学谱系由数支文献锚定, 顶刊层面首推 Loughran 与 McDonald (2011) 发表于 Journal of Finance 的奠基作: 该文以"负债"一词在金融语境中往往并非负面为例, 系统论证通用英文情感词表 (如 Harvard GI) 直接套用于金融文本会大量误判, 据此构建面向 10-K 的金融专用极性词典, 奠定了本管道 loughran 轨的词表基础与"领域专用词典优于通用词典"的核心方法论。该团队后续在 Journal of Accounting Research (2016) 的会计金融文本分析综述与 Annual Review of Financial Economics (2020) 的综述中进一步系统化了词典法的适用边界、消融敏感性与效度评估, 并在 Journal of Financial and Quantitative Analysis (2024) 将同一文本计量思路推广到公司复杂度度量。词典的领域特异性价值在中文语境由 Du et al. (2022, Review of Finance) 确证 —— 通用词典直译到中文会因语言与制度差异系统性偏误, 这正是本管道同时保留 L&M 中文主译轨与五部原生中文词典的依据。逐词施加否定、程度、转折规则并作从句级作用域重置, 遵循 Taboada et al. (2011) 确立的词典法情感分析范式。将词典法结果单独成轨并与机器学习及大模型法并置互证, 呼应 Frankel, Jennings 与 Lee (2022, Management Science) 关于机器学习法与词典法互为稳健性的先例, 以及 van Atteveldt, van der Velden 与 Boukes (2021) 对人工标注、词典法与机器学习法效度的横向比较; Barbaglia et al. (2025) 亦重申词典法在经济文本上的可解释与可复现优势。需强调: 本家族的三条聚合权重臂 (基线均值、HW 羊群加权均值、VW 提及密度加权均值)、三条文本轨 (full/ctx/ss)、以及"排除疑似退出媒体"相对全样本情感的两口径, 均各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同权重臂、不同轨、不同口径或不同词典混进同一 over-identified Hansen J 检验。
 
 ## VAR: exc_loughran_score_full
 
 【变体差分】
-骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+本列是基线权重臂的 full (全文) 轨: 剔除疑似退出覆盖媒体后, 对存活报道的未加权文章级 loughran_score_full 求银行-年度组内均值。文本口径为标题 prepend 后的报道全文正文, L&M 2011 中文主译词典在完整标题加正文上逐词匹配并施加否定/程度/转折全规则得 loughran_score_full ∈ [-1, +1]; 因是均值聚合基线臂, 本列同样落在 [-1, +1], 直接可读为"存活媒体对该银行该年在 loughran 词典下的平均语调"。与配套的 exc_loughran_score_w_full (提及密度加权臂) 与 exc_loughran_score_hw_full (羊群加权臂) 的差别只在进入均值前是否加权: 本列不加权, 每篇报道等权贡献。full 轨在三轨中承担留篇门控职责 (full-only 口径, 2026-06-29), 故其行宇宙是全集、ctx 与 ss 轨在其子集上条件计列。本列与全样本 loughran 情感 (不带 exc_ 前缀的对应列) 的唯一差别是样本域: 本列已把 ceased_set 内媒体的报道整体剔除, 因而是媒体退出稳健性并排轨, 与全样本情感各自 just-identified、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J。作为基线权重臂, 本列口径最直白, 是解读另两条加权臂 (HW/VW) 的参照系: 若排除退出媒体后本列与全样本情感符号一致、量级相近, 则说明主结论未被媒体退出的样本选择驱动; 若两者显著背离, 则提示存在幸存者偏差。本列聚合口径为组内均值而非分子求和, 故可直接读作平均语调, 无需再除以权重合计还原。
 
-## VAR: exc_loughran_score_hw_ctx
-
-【变体差分】
-骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
-
-## VAR: exc_loughran_score_hw_full
+## VAR: exc_loughran_score_ctx
 
 【变体差分】
-骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
-
-## VAR: exc_loughran_score_hw_ss
-
-【变体差分】
-骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+本列是基线权重臂的 ctx (实体窗) 轨: 剔除疑似退出覆盖媒体后, 对存活报道的未加权文章级 loughran_score_ctx 求银行-年度均值。文本口径为标题 prepend 后的实体上下文窗片段 content_ctx, 只保留银行等目标实体邻近窗口内的文本, 剔除与实体无关段落, 再在此片段上算 L&M 2011 中文主译词典得分。与本家族 full 轨的差别在文本轨而非权重: 本列把情感信号收窄到实体近旁, 削弱远端无关文本对语调的稀释, 是 full 轨的规格稳健性并排轨; 因取均值聚合基线臂, 本列同样落在 [-1, +1]。ctx 轨不承担留篇门控 (门控为 full-only), 其行宇宙是 full 留篇集的子集, 按 ctx 轨自身列照算。本轨情感判据所用的实体窗与 stage 13 共现硬过滤、以及 ss 轨的严格同句判据是三套不同口径, 彼此不可复用。与全样本 ctx 情感的差别仅在样本域已剔除 ceased_set。ctx 与 full、ss 各自 just-identified 并排、互为稳健性、不分主次, 三轨严禁混进同一 over-identified Hansen J。相对 full 轨, 本列把情感读数聚焦在与银行直接相关的文本片段上, 因而对识别"针对该银行的语调"更具构念针对性, 但代价是有效文本更短、组内方差更高; 当某银行某年存活报道稀疏时, 本列可能因分母小而不稳。作为基线权重臂的 ctx 轨, 本列亦是同轨 HW 列与 VW 列的未加权参照系, 三臂并读可分离"媒体退出""跟风降权""提及密度"三条独立稳健性通道各自对情感均值的影响。
 
 ## VAR: exc_loughran_score_ss
 
 【变体差分】
-骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+本列是基线权重臂的 ss (同句) 轨, 三轨中文本判据最严: 剔除疑似退出覆盖媒体后, 对存活报道的未加权文章级 loughran_score_ss 求银行-年度均值。文本口径为标题 prepend 后的银行与金科同句共现片段 content_ss, 仅保留目标银行与金融科技词在同一句子且落在 ss_sentence_radius (默认 ±1 句) 窗内共现的文本。回退语义镜像 ctx: 当某报道无银行与金科同句共现时 content_ss 回退为全文正文、ss_is_fallback 置 True。ss 轨的构念最贴近"银行与金融科技在同一句子内被同时提及时在 loughran 词典下的情感倾向", 但也最易受回退稀释; 在开发期 T=2 小样本上, ss 轨因同句共现稀疏可能大面积回退或零方差, 属预期退化, 生产期 T=18 恢复正常。与本家族其余轨的差别在文本轨 (最严同句判据) 而非权重臂 (本列仍为未加权均值基线臂)。ss 轨不承担留篇门控 (full-only), 行宇宙为 full 留篇集子集。ss 的严格同句判据与 ctx 的实体窗判据、stage 13 的邻近共现判据均为不同口径, 三者不可互相复用。ss 与 full、ctx 各自 just-identified 并排、互为稳健性、不分主次, 严禁三轨混进同一 over-identified Hansen J。作为基线权重臂的 ss 轨, 本列是同轨 HW 列与 VW 列的未加权参照系。ss 轨的立意是把情感读数锁定在银行与金融科技被同时提及的那句话上, 从而最直接刻画银行-金科关联报道的语气; 但正因判据最严, 本列对回退最敏感, 在存活报道少或同句共现稀疏时最易退化为全文口径, 因此它在三轨中提供的是最保守、也最需配合回退率披露的稳健性证据。
 
-## VAR: exc_loughran_score_w_ctx
+## VAR: exc_loughran_score_hw_full
 
 【变体差分】
-骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+本列是羊群加权 (HW) 臂的 full (全文) 轨: 剔除疑似退出覆盖媒体后, 对存活报道的羊群加权文章级得分 loughran_score_hw_full 求银行-年度均值。相对同轨的基线列 exc_loughran_score_full, 唯一差别是文章级得分进入均值前先乘以 full 轨羊群衰减权重 herd_weight_full = 1/(1 + n_similar_articles_full): 系统按同年早前存在多少篇高度相似 (疑似转抄、回声式跟风) 的报道对该篇降权, 转抄越多权重越低、越接近独立首发权重越接近 1。因此本列是"排除退出媒体"与"羊群降权"两条稳健性维度的叠加: 既剔除疑似退出媒体, 又对跟风转抄式报道降权, 使得情感均值更贴近独立首发信息。因乘了小于等于 1 的权重, 本列不再严格归一到 [-1, +1], 是加权得分的均值。羊群相似度在全文空间统计, 通常最密, 故 full 轨的降权幅度往往强于 ctx/ss 轨。HW 臂与 VW 臂 (提及密度加权)、基线臂刻画不同稳健性维度: HW 按信息独立性降权, VW 按提及密度加权, 三臂各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J; 三轨与排除口径同理。本列的构念可读作"在只看存活媒体、且对跟风转抄降权之后, 该银行该年在 loughran 词典下的加权平均语调": 它同时抑制了两类可能扭曲情感的力量 —— 退出媒体带来的样本选择、以及回声式报道带来的信息重复计数。若本列与同轨基线列 exc_loughran_score_full 走势一致, 说明羊群降权未实质改变情感结论; 若两者背离, 则提示跟风转抄在该样本中密集, 情感均值被回声报道放大, 须以羊群加权口径为更稳健的读数。
+
+## VAR: exc_loughran_score_hw_ctx
+
+【变体差分】
+本列是羊群加权 (HW) 臂的 ctx (实体窗) 轨: 剔除疑似退出覆盖媒体后, 对存活报道的羊群加权文章级得分 loughran_score_hw_ctx 求银行-年度均值。相对同轨基线列 exc_loughran_score_ctx, 差别是先乘以 ctx 轨羊群权重 herd_weight_ctx —— 在 ctx 超级文档 (content_ctx 原样拼接、剔除回退行、不走标题通道以避免双标题污染) 上做 TF-IDF 相似度所得的独立性降权。因此本轨的情感判据 (实体窗) 与降权判据 (实体窗相似度) 同在实体窗空间, 与 full 轨在全文空间的口径系统性不同。相对 full 轨的 HW 列, 本列把情感与降权双双收窄到实体近旁, 在语义上更贴近"关于该银行的这段话是正面还是负面、且是否为跟风转抄", 代价是可用文本更短、方差更高。因乘了权重, 本列不再严格归一到 [-1, +1]。本列同时叠加"排除退出媒体"与"羊群降权"两维稳健性, 并处于 ctx 文本轨。HW/VW/基线三臂、full/ctx/ss 三轨、排除与全样本两口径均各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两者混进同一 over-identified Hansen J。相对 full 轨的 HW 列, 本列的一个实质差别是: full 轨在整篇层面统计相似度, 回声报道更易被 TF-IDF 捕获, 降权最强; ctx 轨只在实体窗片段上比相似度, 只有围绕该银行的表述高度雷同才会触发降权, 因此本列对"针对该银行的跟风表述"更敏感、对与银行无关段落的雷同不敏感, 这使它在识别银行专属回声报道上比 full 轨更精准。
+
+## VAR: exc_loughran_score_hw_ss
+
+【变体差分】
+本列是羊群加权 (HW) 臂的 ss (同句) 轨: 剔除疑似退出覆盖媒体后, 对存活报道的羊群加权文章级得分 loughran_score_hw_ss 求银行-年度均值。相对同轨基线列 exc_loughran_score_ss, 差别是先乘以 ss 轨羊群权重 herd_weight_ss (在 ss 超级文档上做 TF-IDF 相似度所得)。当 ss 文本大面积回退到全文时 herd_weight_ss 会趋近 herd_weight_full, 此为预期退化: 回退率越高、真三轨独立性越弱, 日志会告知。本列是三轨中文本判据最严 (同句共现) 且叠加羊群降权与排除退出媒体两维稳健性的组合列; 因乘了权重, 不再严格归一到 [-1, +1]。在开发期 T=2 上, ss 轨同句共现稀疏叠加羊群降权可能出现零方差或全回退, 属预期退化, 生产期 T=18 恢复正常。解读本列须与回退率一并披露: 一旦回退, 该篇实际用的是全文文本与全文相似度, ss 轨对 full 轨的独立性随回退率上升而衰减。HW/VW/基线三臂、三轨、排除口径均各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J。本列是本家族叠加规格最深的组合之一 (最严同句文本轨 × 羊群降权 × 排除退出媒体), 因而在生产 T=18 全量语料上提供的是最保守的 loughran 情感读数: 它要求报道既来自存活媒体、又在同句层面提及银行与金科、还要在同句相似度空间上非跟风, 才对情感均值作显著贡献; 满足全部条件的报道越少, 本列越接近纯"独立首发的银行金科同句语调"这一理想构念。
 
 ## VAR: exc_loughran_score_w_full
 
 【变体差分】
-骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+本列是提及密度加权 (VW, volume/mention-density weighted) 臂的 full (全文) 轨: 剔除疑似退出覆盖媒体后, 对存活报道的提及密度加权文章级得分 loughran_score_w_full 求银行-年度均值。相对同轨基线列 exc_loughran_score_full, 唯一差别是文章级得分进入均值前先乘以提及密度权重 mention_density_weight (runner 步骤 3b 预计算): 该权重按报道对目标银行的提及密度加权, 提及越密集的报道对银行-年度情感的贡献越大, 反映"该篇有多聚焦于这家银行"。因此本列是"排除退出媒体"与"提及密度加权"两维稳健性的叠加; 因乘了权重, 本列不再严格归一到 [-1, +1], 是加权得分的均值。VW 臂与 HW 臂 (羊群加权)、基线臂刻画彼此正交的加权维度: VW 按银行提及聚焦度加权, HW 按信息独立性降权, 基线不加权; 三臂各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J。full 轨承担留篇门控 (full-only), 行宇宙为全集。本列与全样本 VW loughran 情感的差别仅在样本域已剔除 ceased_set, 三轨与排除口径同理各自 just-identified 并排。本列的构念可读作"在只看存活媒体、且按报道对该银行的聚焦程度加权之后, 该银行该年在 loughran 词典下的加权平均语调": 它同时抑制了退出媒体的样本选择, 又相对压低了一带而过、蜻蜓点水式提及的报道对情感的稀释。若本列与同轨基线列 exc_loughran_score_full 走势一致, 说明提及密度未实质改变情感结论; 若两者背离, 则提示低聚焦报道在该样本中拉偏了等权情感均值, 须以提及密度加权口径为更贴近"关于本行的报道语调"的读数。作为 VW 臂的 full 轨, 本列亦承担该臂的留篇门控参照。
+
+## VAR: exc_loughran_score_w_ctx
+
+【变体差分】
+本列是提及密度加权 (VW) 臂的 ctx (实体窗) 轨: 剔除疑似退出覆盖媒体后, 对存活报道的提及密度加权文章级得分 loughran_score_w_ctx 求银行-年度均值。相对同轨基线列 exc_loughran_score_ctx, 差别是先乘以提及密度权重 mention_density_weight; 相对 full 轨的 VW 列, 差别在文本轨 —— 本列情感得分在标题 prepend 后的实体上下文窗片段 content_ctx 上计算, 把情感信号收窄到实体近旁。因此本列同时处于"排除退出媒体""提及密度加权""实体窗文本轨"三重规格上, 是 full 轨 VW 列的规格稳健性并排轨。因乘了权重, 本列不再严格归一到 [-1, +1]。ctx 轨不承担留篇门控 (full-only), 行宇宙为 full 留篇集子集, 按 ctx 轨自身列照算。ctx 的实体窗判据与 ss 的严格同句判据、stage 13 的邻近共现判据是三套不同口径, 不可复用。VW/HW/基线三臂、full/ctx/ss 三轨、排除与全样本两口径均各自 just-identified 并排、互为稳健性、不分主次, 严禁任意两者混进同一 over-identified Hansen J。本列的立意是: 一篇报道若在实体窗内密集提及该银行, 说明它真正聚焦这家银行, 其情感读数应比一带而过的报道更有分量; 提及密度加权正是把这一直觉物化。与 HW 臂正相反, VW 臂不降权任何报道, 而是相对放大高聚焦报道的贡献, 二者刻画的稳健性维度彼此正交: HW 问"是否独立首发", VW 问"是否聚焦本行", 基线则等权。三臂并读可分离这两条正交通道各自对情感均值的移动方向。
 
 ## VAR: exc_loughran_score_w_ss
 
 【变体差分】
-骨架占位 — 本列 tier=standard, 待写手写清该列区别于家族 canonical 的精确差分语义 (轨道、模型、阈值、判据、权重、滞后)。
+本列是提及密度加权 (VW) 臂的 ss (同句) 轨, 是本家族文本判据最严且加权的组合列: 剔除疑似退出覆盖媒体后, 对存活报道的提及密度加权文章级得分 loughran_score_w_ss 求银行-年度均值。相对同轨基线列 exc_loughran_score_ss, 差别是先乘以提及密度权重 mention_density_weight; 相对 full/ctx 的 VW 列, 差别在文本轨 —— 情感得分在标题 prepend 后的银行与金科同句共现片段 content_ss 上计算, 仅保留目标银行与金融科技词在同一句子且落在 ss_sentence_radius (默认 ±1 句) 窗内共现的文本。回退语义镜像 ctx: 无同句共现时 content_ss 回退全文、ss_is_fallback 置 True。因此本列同时叠加"排除退出媒体""提及密度加权""最严同句文本轨"三重规格; 因乘了权重, 不再严格归一到 [-1, +1]。在开发期 T=2 上同句共现稀疏可能全回退或零方差, 属预期退化, 生产期 T=18 恢复正常; 解读须与回退率一并披露。VW/HW/基线三臂、三轨、排除口径均各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J。本列是本家族中同句判据最严且以提及密度加权的组合列: 它把情感读数既锁定在银行与金科同句共现的文本上, 又相对放大对该银行提及密集的报道, 因而对"高聚焦、强关联"的银行金科同句语调最敏感。作为 VW 臂的 ss 轨, 本列与同轨基线列、HW 列并读, 可在最严文本判据下同时观察"提及密度放大"与"羊群降权"两条正交加权通道对情感结论的影响, 是本家族提供的最细粒度稳健性证据之一。
 
 <!-- rendered-citations:begin -->
-
+Loughran, T., & McDonald, B. (2024). Measuring firm complexity. Journal of Financial and Quantitative Analysis, 59(6), 2487-2514. https://doi.org/10.1017/S0022109023000716
+Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
+Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
+Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
+van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
+Loughran, T., & McDonald, B. (2020). Textual analysis in finance. Annual Review of Financial Economics, 12(1), 357-375. https://doi.org/10.1146/annurev-financial-012820-032249
+Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
+Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
+Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
 <!-- rendered-citations:end -->
