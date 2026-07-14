@@ -7597,7 +7597,7 @@
         "finbert_cn_pos_vw_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "单一 BERT 模型文章级概率/符号语调 → bank-year 聚合",
@@ -7628,7 +7628,7 @@
         "finbert_cn_pos_count_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "篇数/计数 (count)",
       "formula_draft": "单一 BERT 模型文章级概率/符号语调 → bank-year 聚合",
@@ -7659,7 +7659,7 @@
         "finbert_cn_pos_substvalid_count_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "篇数/计数 (count)",
       "formula_draft": "单一 BERT 模型文章级概率/符号语调 → bank-year 聚合",
@@ -7690,7 +7690,7 @@
         "finbert_cn_pos_sum_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "单一 BERT 模型文章级概率/符号语调 → bank-year 聚合",
@@ -7721,7 +7721,7 @@
         "finbert_cn_pos_symb_count_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "篇数/计数 (count)",
       "formula_draft": "单一 BERT 模型文章级概率/符号语调 → bank-year 聚合",
@@ -7858,7 +7858,7 @@
         "finbert_cn_正面_hw_sum_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "单一 BERT 模型文章级概率/符号语调 → bank-year 聚合",
@@ -7889,7 +7889,7 @@
         "finbert_cn_正面_mw_sum_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "单一 BERT 模型文章级概率/符号语调 → bank-year 聚合",
@@ -7920,7 +7920,7 @@
         "finbert_cn_正面_w_sum_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "单一 BERT 模型文章级概率/符号语调 → bank-year 聚合",
@@ -7951,7 +7951,7 @@
         "finbert_cn_负面_hw_sum_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "单一 BERT 模型文章级概率/符号语调 → bank-year 聚合",
@@ -7982,7 +7982,7 @@
         "finbert_cn_负面_mw_sum_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "单一 BERT 模型文章级概率/符号语调 → bank-year 聚合",
@@ -8013,7 +8013,7 @@
         "finbert_cn_负面_w_sum_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "单一 BERT 模型文章级概率/符号语调 → bank-year 聚合",
@@ -8082,7 +8082,7 @@
         "frac_amb_articles_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "比率/占比 (proportion, [0,1] 或百分比; 待写手按 frontmatter 校准)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8099,7 +8099,7 @@
         "frac_ss_fallback": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "比率/占比 (proportion, [0,1] 或百分比; 待写手按 frontmatter 校准)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8139,7 +8139,7 @@
         "frac_fls_fonly_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "比率/占比 (proportion, [0,1] 或百分比; 待写手按 frontmatter 校准)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8182,7 +8182,7 @@
         "ft_attn_yr": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8197,7 +8197,7 @@
         "ft_n_articles_dedup": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8217,7 +8217,7 @@
         "ft_vol_yr": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8359,7 +8359,7 @@
         "hidden_adopt_int_p25_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8378,7 +8378,7 @@
         "hidden_adopt_int_p25_allv_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8397,7 +8397,7 @@
         "hidden_adopt_int_p50_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8416,7 +8416,7 @@
         "hidden_adopt_int_p50_allv_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8435,7 +8435,7 @@
         "hidden_adopt_int_p75_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8454,7 +8454,7 @@
         "hidden_adopt_int_p75_allv_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8473,7 +8473,7 @@
         "hidden_adopt_kw_p25_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8492,7 +8492,7 @@
         "hidden_adopt_kw_p25_allv_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8511,7 +8511,7 @@
         "hidden_adopt_kw_p50_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8533,7 +8533,7 @@
         "hidden_adopt_kw_p50_allv_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8552,7 +8552,7 @@
         "hidden_adopt_kw_p75_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8571,7 +8571,7 @@
         "hidden_adopt_kw_p75_allv_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8586,7 +8586,7 @@
         "indep_frac": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "比率/占比 (proportion, [0,1] 或百分比; 待写手按 frontmatter 校准)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8604,7 +8604,7 @@
         "indep_frac_cm_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "比率/占比 (proportion, [0,1] 或百分比; 待写手按 frontmatter 校准)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8646,7 +8646,7 @@
         "is_soe": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8666,7 +8666,7 @@
         "jf_coefficient_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8721,7 +8721,7 @@
         "jiang_2021_raw_tone_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "语调得分 (连续, 约 [-1,1]; 聚合后 bank-year 均值)",
       "formula_draft": "状态机 Σ|final| 自归一化词典语调 (指定语言学规则子集) → bank-year 均值",
@@ -8740,7 +8740,7 @@
         "jiang_2021_cater_b_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8759,7 +8759,7 @@
         "jiang_2021_cater_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8778,7 +8778,7 @@
         "jiang_2021_idf_score_hw_sum_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8797,7 +8797,7 @@
         "jiang_2021_idf_score_mw_sum_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8816,7 +8816,7 @@
         "jiang_2021_idf_score_w_sum_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "无量纲得分/指标 (WP0 初判待写手校对)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
@@ -8871,7 +8871,7 @@
         "jiang_2021_idf_tone_vw_ss": "standard"
       },
       "core_rationale_by_col": {},
-      "status": "draft",
+      "status": "final",
       "batch": null,
       "unit_draft": "语调得分 (连续, 约 [-1,1]; 聚合后 bank-year 均值)",
       "formula_draft": "(WP0 初判占位 — 以家族 md frontmatter formula: 为准, 写手对源码校对)",
