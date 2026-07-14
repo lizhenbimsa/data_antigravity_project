@@ -7,6 +7,7 @@ columns:
 unit: 迎合度差分得分 (无量纲; 词典语调 减 LLM 共识语调, 值域随两个被减数各自的 [-1,1] 归一化区间落在 [-2,2])
 formula: "bian_2021_cater{track} = bian_2021_tone{track} - llm_vote_tone{track}; track in {_full,_ctx,_ss}"
 producer: news_process/pipeline/panel/runner.py (步骤 8d 算法迎合度 algo_cater, L2432-L2477)
+novelty_exempt_rationale: "该家族 (bian_2021_cater_*) 是词典语调与LLM共识语调之差的算法迎合度衍生测度 (producer algo_cater, 步骤8d), 正文明确'该构念不是一个独立的情感测度,而是两个异源情感测度之差', 其学术依据已由被减数 bian_2021_tone (Bian et al. 2021 词典) 与 llm_vote_tone 各自的母族文献支撑, 属衍生/差分变体家族, 非独立新构念, 无需单独追新2023+文献。"
 upstream:
 - 22_tone_words.parquet (bian_2021_tone{track}, Bian2021 词典逐篇极性聚合)
 - 21_tone_llms.parquet (llm_vote_tone{track}, 三家 LLM 多数投票共识语调)

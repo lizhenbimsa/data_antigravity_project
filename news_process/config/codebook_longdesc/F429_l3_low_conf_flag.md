@@ -9,47 +9,47 @@ upstream:
   - 21_tone_llms.parquet (category_confidence_full / category_confidence_ctx)
   - 40_panel_export_main (encode.py 聚合 avg_category_confidence)
 citations:
-  - doi: 10.1257/aer.20200374
-    type: journal
-    authors: Aguirregabiria, V., Clark, R., & Wang, H.
-    year: 2025
-    title: "The geographic flow of bank funding and access to credit: Branch networks, synergies, and local competition"
-    venue: American Economic Review
-    vol: 115
-    issue: 6
-    pages_or_artno: 1818-1856
-  - doi: 10.1016/j.jfineco.2022.07.009
-    type: journal
-    authors: Chen, Q., Goldstein, I., Huang, Z., & Vashishtha, R.
-    year: 2022
-    title: "Bank transparency and deposit flows"
-    venue: Journal of Financial Economics
-    vol: 146
-    issue: 2
-    pages_or_artno: 475-501
-  - doi: 10.18653/v1/2024.naacl-long.366
-    type: wp
-    authors: Geng, J., Cai, F., Wang, Y., Koeppl, H., Nakov, P., & Gurevych, I.
-    year: 2024
-    title: "A survey of confidence estimation and calibration in large language models"
-    venue: "Proceedings of NAACL-HLT 2024"
-    pages_or_artno: 6577-6595
-  - doi: 10.1145/1102351.1102430
-    type: wp
-    authors: Niculescu-Mizil, A., & Caruana, R.
-    year: 2005
-    title: "Predicting good probabilities with supervised learning"
-    venue: "Proceedings of the 22nd International Conference on Machine Learning (ICML)"
-    pages_or_artno: 625-632
-  - doi: 10.1177/0956797611417632
-    type: journal
-    authors: Simmons, J. P., Nelson, L. D., & Simonsohn, U.
-    year: 2011
-    title: "False-positive psychology: Undisclosed flexibility in data collection and analysis allows presenting anything as significant"
-    venue: Psychological Science
-    vol: 22
-    issue: 11
-    pages_or_artno: 1359-1366
+- doi: 10.1257/aer.20200374
+  type: journal
+  authors: Aguirregabiria, V., Clark, R., & Wang, H.
+  year: 2025
+  title: "The geographic flow of bank funding and access to credit: Branch networks, synergies, and local competition"
+  venue: American Economic Review
+  vol: 115
+  issue: 6
+  pages_or_artno: 1818-1856
+- doi: 10.1016/j.jfineco.2022.07.009
+  type: journal
+  authors: Chen, Q., Goldstein, I., Huang, Z., & Vashishtha, R.
+  year: 2022
+  title: "Bank transparency and deposit flows"
+  venue: Journal of Financial Economics
+  vol: 146
+  issue: 2
+  pages_or_artno: 475-501
+- doi: 10.18653/v1/2024.naacl-long.366
+  type: wp
+  authors: Geng, J., Cai, F., Wang, Y., Koeppl, H., Nakov, P., & Gurevych, I.
+  year: 2024
+  title: "A survey of confidence estimation and calibration in large language models"
+  venue: "Proceedings of NAACL-HLT 2024"
+  pages_or_artno: 6577-6595
+- doi: 10.1145/1102351.1102430
+  type: wp
+  authors: Niculescu-Mizil, A., & Caruana, R.
+  year: 2005
+  title: "Predicting good probabilities with supervised learning"
+  venue: "Proceedings of the 22nd International Conference on Machine Learning (ICML)"
+  pages_or_artno: 625-632
+- doi: 10.1177/0956797611417632
+  type: journal
+  authors: Simmons, J. P., Nelson, L. D., & Simonsohn, U.
+  year: 2011
+  title: "False-positive psychology: Undisclosed flexibility in data collection and analysis allows presenting anything as significant"
+  venue: Psychological Science
+  vol: 22
+  issue: 11
+  pages_or_artno: 1359-1366
 new_dois: []
 ---
 

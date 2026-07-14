@@ -59,7 +59,21 @@ citations:
   title: "Giving content to investor sentiment: The role of media in the stock market"
   venue: The Journal of Finance
   pages_or_artno: 1139-1168
-new_dois: []
+- doi: "10.1016/j.pacfin.2024.102632"
+  type: journal
+  authors: "Chiu, I.-C., & Hung, M.-W."
+  year: 2025
+  title: "Finance-specific large language models: Advancing sentiment analysis and return prediction with LLaMA 2"
+  venue: "Pacific-Basin Finance Journal"
+- doi: "10.1073/pnas.2305016120"
+  type: journal
+  authors: "Gilardi, F., Alizadeh, M., & Kubli, M."
+  year: 2023
+  title: "ChatGPT outperforms crowd workers for text-annotation tasks"
+  venue: "Proceedings of the National Academy of Sciences"
+new_dois:
+  - "10.1016/j.pacfin.2024.102632"
+  - "10.1073/pnas.2305016120"
 ---
 
 ## CORE
@@ -71,7 +85,7 @@ new_dois: []
 逐篇置信的产生遵循冻结 prompt 契约 (prompt_version v8, temperature=0.0), 模型在返回结构化情感判定时同时给出一个把握度字段, 经解析归一化至 [0,1] 连续区间, 数值越大表示模型对本篇极性判定越有把握。银行-年聚合采用无权算术平均, 篇均而非篇加权是为与其余情感面板列 (极性、类别占比) 的分母口径保持一致。分母口径须精确到 per-model 有效性掩码这一层: encode.py 在聚合前先对每家模型每轨物化掩码列 `_conf_valid_{short}{track} = df[{short}_sentiment_confidence{track}].where(df[{short}_score{track}].notna())`, 即只保留该模型该轨 score 判定成功 (非 <NA>) 的行的置信, 其余行置 NaN; 随后 `avg_gpt54nano_conf{track}` 以此掩码列取 'mean', pandas mean 跳过 NaN, 因此本家族篇均的实际域 = 该轨 full-only 留篇集 ∩ gpt54nano 该轨 score 有效行, 分母是这个交集的行数, 而非该轨进入情感样本的全部报道篇数。这一 per-model 掩码保证置信与其调节的同模型 `{short}_tone` 严格同口径 (只在该模型确实打出有效极性的篇上取置信均值), 避免把模型判定失败 (score=<NA>) 的篇的残留置信混入分母。掩码列缺失 (legacy parquet 或未过 encode_sentiment 的合成测试 df) 时回退 raw 物理域列 `{short}_sentiment_confidence{track}` 向后兼容。三家 (gpt54nano/gemini31/deepseekv4) 各自持有独立掩码, 逐轨、逐模型独立计算, 不借 full 轨置信、不借他家有效域。留篇门控采用 full-only 口径 (2026-06-29 铁律): 一篇报道是否算作「一篇银行金融科技报道」只看 `llm_verified_full == True`, 即以 full 轨的模型核验结果决定留篇集; ctx 与 ss 两轨降为 conditional-on-full 的测度轨, 其行宇宙是 full 留篇集的子集, 但各轨的置信仍按该轨自身文本重新判定、逐轨独立计算, 不借用 full 轨的置信数值。三轨文本在 stage 14 物化: full = 标题 prepend 全文正文; ctx = 标题加实体窗口; ss = 标题加银行与金融科技同句共现窗口。ss 的回退语义镜像 ctx: 当某篇不存在银行与金融科技的同句共现时, `content_ss` 退化为全文 body 且 `ss_is_fallback=True`, 与 full 共享 `n_articles` 分母; 当金融科技词库缺席 (`FINTECH_AC=None`) 时优雅降级为全 fallback。
 
 【文献定位】
-把 LLM 自报置信当作一项可分析的信号, 呼应了近年对大模型置信估计与校准的系统梳理: Geng et al. (2024) 综述了大模型置信估计与校准的多种范式, 指出自报置信虽便捷但可能系统性偏高或偏低, 需谨慎当作概率解读; Gligorić et al. (2024) 进一步探讨了在标注置信不足时如何仍得出稳健结论, 为把置信当作加权或分组信号而非硬阈值提供了方法学间接支撑。置信作为分类质量代理的思路可上溯至监督学习概率校准研究: Niculescu-Mizil & Caruana (2005) 系统比较了不同学习器输出概率的可靠性, 提示原始模型分数与真实后验之间常存在偏差, 这正是本家族只把置信用作稳健性维度、不直接解读其绝对水平的依据。把新闻媒体情感当作可量化并与真实经济后果相联结的信号, 这一范式的金融学奠基工作是 Tetlock (2007): 他以媒体语调构造情感序列并实证其对市场的预测作用, 确立了「媒体文本情感 → 面板计量」的研究路径, 本项目把银行金融科技报道情感聚合为银行-年面板正沿此传统, 而 LLM 自报置信则是该传统在生成式判定阶段新增的、用于诊断情感信号可靠性的元维度。在情感判定这一具体任务上, 早期词典式意见挖掘 (Ding et al. 2008) 与随后的预训练语言模型 (Devlin et al. 2019 的 BERT, Liu et al. 2020 的 FinBERT) 奠定了从符号规则到深度表征的判定范式演进, 本项目的 LLM 三家投票是该演进在生成式模型阶段的延伸, 而置信数值则是生成式判定相较词典法与判别式 BERT 新增的一项自省信号。需强调: 置信 (conf) 与情感极性 (tone) 是两个正交构念, 高置信不等于正面, 二者在计量上分列不同 RHS。
+把 LLM 自报置信当作一项可分析的信号, 呼应了近年对大模型置信估计与校准的系统梳理: Geng et al. (2024) 综述了大模型置信估计与校准的多种范式, 指出自报置信虽便捷但可能系统性偏高或偏低, 需谨慎当作概率解读; Gligorić et al. (2024) 进一步探讨了在标注置信不足时如何仍得出稳健结论, 为把置信当作加权或分组信号而非硬阈值提供了方法学间接支撑。置信作为分类质量代理的思路可上溯至监督学习概率校准研究: Niculescu-Mizil & Caruana (2005) 系统比较了不同学习器输出概率的可靠性, 提示原始模型分数与真实后验之间常存在偏差, 这正是本家族只把置信用作稳健性维度、不直接解读其绝对水平的依据。把新闻媒体情感当作可量化并与真实经济后果相联结的信号, 这一范式的金融学奠基工作是 Tetlock (2007): 他以媒体语调构造情感序列并实证其对市场的预测作用, 确立了「媒体文本情感 → 面板计量」的研究路径, 本项目把银行金融科技报道情感聚合为银行-年面板正沿此传统, 而 LLM 自报置信则是该传统在生成式判定阶段新增的、用于诊断情感信号可靠性的元维度。在情感判定这一具体任务上, 早期词典式意见挖掘 (Ding et al. 2008) 与随后的预训练语言模型 (Devlin et al. 2019 的 BERT, Liu et al. 2020 的 FinBERT) 奠定了从符号规则到深度表征的判定范式演进, 本项目的 LLM 三家投票是该演进在生成式模型阶段的延伸, 而置信数值则是生成式判定相较词典法与判别式 BERT 新增的一项自省信号。需强调: 置信 (conf) 与情感极性 (tone) 是两个正交构念, 高置信不等于正面, 二者在计量上分列不同 RHS。Chiu & Hung (2025, Pacific-Basin Finance Journal) 用自训练金融专用大模型对10-K文本做情感判定并驱动交易策略, 呼应本家族把生成式LLM情感判定质量(以自报置信为代理)当作可分析信号的思路; Gilardi, Alizadeh & Kubli (2023, Proceedings of the National Academy of Sciences) 系统比较大模型与人工标注在多项文本标注任务上的准确率与一致性, 为本家族用LLM自报置信刻画判定把握、并以跨模型/跨轨稳健性检验其可靠性提供了实证参照。
 
 【口径铁律】
 本家族三列同属三轨 (full/ctx/ss) 规格稳健性并排族: 三轨各自 just-identified 并排, 互为稳健性、不分主次, 严禁把三轨置信混进同一 over-identified Hansen J。同理, gpt54nano 与另两家 (gemini31, deepseekv4) 的同名置信列构成 per-model 跨厂商稳健性并排, 各家各自 just-identified, 亦禁混同一 over-identified Hansen J。置信不是嵌入测度, 无 co-primary 双轨 `_lg` 孪生; per-model 独立降级 — 某家缺席仅掉该家自身族, 不触发 co-primary 嵌入式的 both-or-neither 连坐。
@@ -99,4 +113,6 @@ Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2019). BERT: Pre-training of
 Ding, X., Liu, B., & Yu, P. S. (2008). A holistic lexicon-based approach to opinion mining. Proceedings of the International Conference on Web Search and Web Data Mining (WSDM '08), 231-240. https://doi.org/10.1145/1341531.1341561
 Niculescu-Mizil, A., & Caruana, R. (2005). Predicting good probabilities with supervised learning. Proceedings of the 22nd International Conference on Machine Learning (ICML), 625-632. https://doi.org/10.1145/1102351.1102430
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Chiu, I.-C., & Hung, M.-W. (2025). Finance-specific large language models: Advancing sentiment analysis and return prediction with LLaMA 2. Pacific-Basin Finance Journal. https://doi.org/10.1016/j.pacfin.2024.102632
+Gilardi, F., Alizadeh, M., & Kubli, M. (2023). ChatGPT outperforms crowd workers for text-annotation tasks. Proceedings of the National Academy of Sciences. https://doi.org/10.1073/pnas.2305016120
 <!-- rendered-citations:end -->

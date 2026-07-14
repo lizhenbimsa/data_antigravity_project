@@ -11,39 +11,39 @@ upstream:
   - 40_article_bank_level.parquet (已进面板的金融科技文章)
   - 40_panel_yearly.parquet
 citations:
-  - doi: 10.1016/j.jacceco.2021.101455
-    type: journal
-    authors: Call, A. C., Emett, S. A., Maksymov, E., & Sharp, N. Y.
-    year: 2022
-    title: "Meet the press: Survey evidence on financial journalists as information intermediaries"
-    venue: Journal of Accounting and Economics
-    vol: 73
-    issue: 2-3
-    pages_or_artno: 101455
-  - doi: 10.1016/j.jfineco.2024.103957
-    type: journal
-    authors: Vives, X., & Ye, Z.
-    year: 2025
-    title: "Information technology and lender competition"
-    venue: Journal of Financial Economics
-    vol: 163
-    pages_or_artno: 103957
-  - doi: 10.1016/j.jempfin.2025.101670
-    type: journal
-    authors: Chen, Z., Li, Z., Liu, J., & Liu, X.
-    year: 2026
-    title: "Information salience, investor attention, and stock price crash risk"
-    venue: Journal of Empirical Finance
-    vol: 85
-    pages_or_artno: "101670"
-  - doi: 10.1016/j.jimonfin.2024.103076
-    type: journal
-    authors: Zheng, H., & Mao, M. Q.
-    year: 2024
-    title: "Fintech mergers and acquisitions"
-    venue: Journal of International Money and Finance
-    vol: 143
-    pages_or_artno: 103076
+- doi: 10.1016/j.jacceco.2021.101455
+  type: journal
+  authors: Call, A. C., Emett, S. A., Maksymov, E., & Sharp, N. Y.
+  year: 2022
+  title: "Meet the press: Survey evidence on financial journalists as information intermediaries"
+  venue: Journal of Accounting and Economics
+  vol: 73
+  issue: 2-3
+  pages_or_artno: 101455
+- doi: 10.1016/j.jfineco.2024.103957
+  type: journal
+  authors: Vives, X., & Ye, Z.
+  year: 2025
+  title: "Information technology and lender competition"
+  venue: Journal of Financial Economics
+  vol: 163
+  pages_or_artno: 103957
+- doi: 10.1016/j.jempfin.2025.101670
+  type: journal
+  authors: Chen, Z., Li, Z., Liu, J., & Liu, X.
+  year: 2026
+  title: "Information salience, investor attention, and stock price crash risk"
+  venue: Journal of Empirical Finance
+  vol: 85
+  pages_or_artno: "101670"
+- doi: 10.1016/j.jimonfin.2024.103076
+  type: journal
+  authors: Zheng, H., & Mao, M. Q.
+  year: 2024
+  title: "Fintech mergers and acquisitions"
+  venue: Journal of International Money and Finance
+  vol: 143
+  pages_or_artno: 103076
 new_dois: []
 ---
 

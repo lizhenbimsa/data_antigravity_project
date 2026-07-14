@@ -1,5 +1,6 @@
 ---
 family_id: F623
+novelty_exempt_rationale: "该家族是 yao_2021 情感词典基础分数上叠加 IDF 稀有度加权与羊群 (herd) 衰减加权两个正交聚合权重维度的消融/组合变体 (idf_score_hw_sum), 与同词典的等权求和/单纯IDF/单纯herd等变体构成互为稳健性的权重梯度, 其测度定义的学术依据已在母族词典 (Yao 2021) 及 IDF/羊群加权原始文献 (Jegadeesh & Wu 2013; Spärck Jones 1972) 中给出, 非独立新构念, 不需追加 2023+ 新颖文献。"
 columns:
 - yao_2021_idf_score_hw_sum_ctx
 - yao_2021_idf_score_hw_sum_full

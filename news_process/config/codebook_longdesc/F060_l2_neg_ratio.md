@@ -78,7 +78,23 @@ citations:
   vol: 67
   issue: 2
   pages_or_artno: 561-598
-new_dois: []
+- doi: "10.1002/isaf.1549"
+  type: journal
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+  one_sentence_zh: "该文系统综述了金融文本情感分析(含正负词计数类词典法)的方法脉络与未来方向,为本家族固定词典负面词密度测度提供最新方法学定位。"
+- doi: "10.1016/j.eswa.2024.125739"
+  title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
+  authors: "Ma, Y., Zhang, T., & Zhang, P."
+  year: 2025
+  venue: "Expert Systems with Applications"
+  type: "journal"
+  one_sentence_zh: "该文构建了面向中国境内投资者的细粒度中文金融情感词典(CN-FSD)并验证其应用效果,为本家族固定中文金融情感词典度量负面用词密度提供最新的词典构建方法学参照。"
+new_dois:
+  - "10.1002/isaf.1549"
+  - "10.1016/j.eswa.2024.125739"
 ---
 
 ## CORE
@@ -90,7 +106,7 @@ new_dois: []
 文章级 neg_ratio 的分子 = 固定 union 词典判定的负面词计数 (union_neg_count), 分母 = 该文本的实词 token 数 (n_word_tokens, 排除纯标点与纯数字), 分母为零时取 NaN, 结果四舍五入到 6 位。这里的"固定 union 词典"是本项目 2026-06-11 的关键测度纠正: pos_ratio/neg_ratio/msent_score 的计数基从旧的"逐篇匹配数最多的词典" (best-dict, 会让测量工具随观测漂移) 改为六部中文金融情感词典 (jiang_2021 / yao_2021 / bian_2021 / du_2022 / you_2018 / loughran_mcdonald_zh_2026) 并集后、对跨类重叠词以极性多数票消解、平票剔除而成的单一全样本词表, 兑现 Tetlock (2007)、Garcia (2013)、Henry (2008) 所要求的"固定词表"构念——同一把尺子量所有观测。词条扫描叠加三条语言学规则: 否定词在窗口内翻转极性、程度副词六级放大或缩小强度、转折连词后权重提升。面板聚合在 encode 层按银行-年分组: avg_neg_ratio{track} 取组内文章级 neg_ratio 的均值, avg_neg_ratio_std{track} 取组内文章间的样本标准差 (pandas std, ddof=1)——须强调 std 后缀是"银行-年内跨文章离散度", 度量该行当年不同报道在负面密度上的分歧程度, 并非把均值做 z 标准化, 两者语义正交不可混淆。留篇门控遵循 full-only 口径 (2026-06-29): 一篇报道是否计入银行金科报道宇宙, 只看 full 轨的 LLM 判定; ctx/ss 轨降为 conditional-on-full 的子集测度, 各轨 per-track 分子分母严格逐轨自洽。
 
 【文献定位】
-负面词频作为文本情感的独立维度, 上承 Garcia (2013) 将正负面词分离为独立协变量、Loughran & McDonald (2011) 的固定词表方法学传统; 计量文本测度的规范做法与可复现性可锚 Hansen, McMahon & Prat (2018) 在 FOMC 语料上的计算语言学框架。否定处理是负面词密度可信度的命门, 因为漏判否定会把"并非坏消息"误计为负面, 本项目的否定翻转窗口与 Pröllochs, Feuerriegel & Neumann (2016) 的否定作用域检测、Punetha & Jain (2025) 的否定处理数学方法同属一脉。构念的下游价值在近期银行文本研究中持续得到印证: Anastasiou, Katsafados & Tzomakas (2026) 用文本分析预测银行股价崩盘风险, Pham 等 (2025) 论证由新闻派生的投资者负面情绪对企业困境动态的塑造作用, 均说明"报道负面密度"是银行风险与舆论研究的有效前置变量。三轨 (full/ctx/ss) 与 avg 主测度、std 离散度测度之间: 三轨各自 just-identified 并排, 互为稳健性、不分主次, 严禁把不同轨的同名列混进同一 over-identified Hansen J; avg 与 std 度量的是均值水平与年内分歧两个不同构念, 应各自入回归右手侧而非并列进同一识别式。
+负面词频作为文本情感的独立维度, 上承 Garcia (2013) 将正负面词分离为独立协变量、Loughran & McDonald (2011) 的固定词表方法学传统; 计量文本测度的规范做法与可复现性可锚 Hansen, McMahon & Prat (2018) 在 FOMC 语料上的计算语言学框架。否定处理是负面词密度可信度的命门, 因为漏判否定会把"并非坏消息"误计为负面, 本项目的否定翻转窗口与 Pröllochs, Feuerriegel & Neumann (2016) 的否定作用域检测、Punetha & Jain (2025) 的否定处理数学方法同属一脉。构念的下游价值在近期银行文本研究中持续得到印证: Anastasiou, Katsafados & Tzomakas (2026) 用文本分析预测银行股价崩盘风险, Pham 等 (2025) 论证由新闻派生的投资者负面情绪对企业困境动态的塑造作用, 均说明"报道负面密度"是银行风险与舆论研究的有效前置变量。三轨 (full/ctx/ss) 与 avg 主测度、std 离散度测度之间: 三轨各自 just-identified 并排, 互为稳健性、不分主次, 严禁把不同轨的同名列混进同一 over-identified Hansen J; avg 与 std 度量的是均值水平与年内分歧两个不同构念, 应各自入回归右手侧而非并列进同一识别式。Todd, Bowden & Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 系统综述了金融文本情感分析(含正负词计数类词典法)的方法脉络与未来方向, 为本家族固定词典负面词密度测度提供了最新的方法学定位。Ma, Zhang & Zhang (2025, Expert Systems with Applications) 构建了面向中国境内投资者的细粒度中文金融情感词典(CN-FSD)并验证其应用效果, 为本家族固定中文金融情感词典度量负面用词密度提供最新的词典构建方法学参照。
 
 ## VAR: avg_neg_ratio_full
 
@@ -130,4 +146,6 @@ Hansen, S., McMahon, M., & Prat, A. (2018). Transparency and deliberation within
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
 Piotroski, J. D., Wong, T. J., & Zhang, T. (2015). Political incentives to suppress negative information: Evidence from Chinese listed firms. Journal of Accounting Research, 53(2), 405-459. https://doi.org/10.1111/1475-679X.12071
 Gurun, U. G., & Butler, A. W. (2012). Don't believe the hype: Local media slant, local advertising, and firm value. Journal of Finance, 67(2), 561-598. https://doi.org/10.1111/j.1540-6261.2012.01725.x
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
+Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications. https://doi.org/10.1016/j.eswa.2024.125739
 <!-- rendered-citations:end -->

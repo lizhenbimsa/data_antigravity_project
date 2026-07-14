@@ -126,9 +126,30 @@ citations:
   vol: 59
   issue: 3
   pages_or_artno: 1259-1294
+- doi: "10.1111/ecin.13264"
+  type: journal
+  authors: "Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E."
+  year: 2025
+  title: "Sentiment analysis of economic text: A lexicon-based approach"
+  venue: "Economic Inquiry"
+- doi: "10.1016/j.procs.2025.04.477"
+  title: "Enhancing Financial Sentiment Analysis: Integrating the Loughran-McDonald Dictionary with BERT for Advanced Market Predictive Insights"
+  authors: "Sheetal, R., & Aithal, P. K."
+  year: 2025
+  venue: "Procedia Computer Science"
+  type: "journal"
+- doi: "10.3390/bdcc9100263"
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  venue: "Big Data and Cognitive Computing"
+  type: "journal"
 new_dois:
 - 10.1111/jofi.12027
 - 10.1111/j.1540-6261.2004.00662.x
+- "10.1111/ecin.13264"
+- "10.1016/j.procs.2025.04.477"
+- "10.3390/bdcc9100263"
 ---
 
 ## CORE
@@ -140,7 +161,7 @@ new_dois:
 计算链路分文章级与面板级两层, 全程零 LLM 调用、零 API 成本, 确定性来自冻结版 jieba 分词器与词典文件本身, 因而在缓存离线守卫下可字节级复现。文章级在 stage 22 完成, 核心函数是 _analyze_single_article 调用 _compute_sentiment_with_rules: 输入读 stage 21 输出 parquet, 其中三条文本轨 content_full、content_ctx、content_ss 已在 stage 14 物化, 标题以 prepend 方式并入各轨正文, 原始内容列保持不动。对每条轨道文本, 先用独立的 tone tokenizer 单次分词, 该分词器与全局 jieba 隔离, 领域词注入不会污染其他阶段; 六部词典共享同一份分词结果, 保证跨词典可比。随后进入语言学规则状态机: 顺序遍历词元序列, 同时维护否定窗口剩余长度、程度副词倍率、转折激活标志三个状态变量, 句末标点会重置全部句法级状态, 修饰效果不跨句串味。当词元命中 loughran 词表时, 其基础极性分值先按否定窗口翻号 —— 处于否定窗口内的正面词被翻转为负向 —— 再乘以程度副词倍率与转折加权; 后两类规则只缩放幅度、不改变符号, 因而对计数归侧唯一有影响的语言学规则是否定翻号。最终带符号分值严格大于零的命中计入 pos_count, 严格小于零的计入 neg_count; 23 个两侧保留词每次命中同时向两侧各计一次, 对净语调贡献为零但对两侧占比对称贡献。文章级比率即 pos_count 除以 n_word_tokens, 四舍五入至小数点后六位。这里须与无前缀的 pos_ratio 计数基区分: 无前缀列走六词典固定并集扫描, 本列走单一 loughran 词典扫描, 两者共用同一分母但分子来自不同词表口径。分母 n_word_tokens 采用 word-token 口径: 剔除纯标点与纯数字词元后计数, 该类被剔词元在中文财经报道里占全部物理词元的比例非可忽略且逐篇不恒定 (报道内数字与标点的使用密度因文而异), 若不剔除会因标点数字比例差异造成逐篇非均匀稀释; 该口径与 Loughran & McDonald (2011) 及 Garcia (2013) 定义的"词数占比"原始构念对齐, 也与本仓 L&M 非情感子集 frac 族的分母修复同口径, 保证同词表家族内分母可比。边界契约体现"缺失不可测"与"真实为零"的严格区分: 空文本、全空白分词结果、分母为零的纯标点或纯数字文本、以及词典文件缺失时, 本列输出 NaN 而非零 —— 零只保留给"有有效词元但无正面命中"的真实观测。面板级在 stage 40 聚合: 聚合注册表 M 段把文章级三轨比率按银行-年做简单算术均值 (聚合入口 build_aggregation_dict 生成三轨 avg_loughran_pos_ratio 各列到对应文章级源列的 mean 映射, aggregate_panel 消费), 得到 avg_loughran_pos_ratio_full、_ctx、_ss 三列, pandas 均值自动跳过 NaN 篇; 源列缺席时聚合入口自动过滤该列而不抛错。留篇门控执行 full-only 口径 (2026-06-29 变更): 一篇报道是否进入聚合宇宙只看 full 轨 LLM 验证结果 llm_verified_full 是否为真, ctx 与 ss 两轨降为 conditional-on-full 的测度轨, 其行宇宙是 full 留篇集的子集, 各轨列在该子集上照常计算。另需说明的是, 本列的单词典扫描与用于 sentiment_details 展示的固定并集 Top-20 匹配词是两条独立的扫描路径: 单词典比率只统计命中 loughran 词表的词元, 而 sentiment_details 只保留并集口径下绝对影响力最大的前二十个匹配词供人工审计, 两者互不干扰, 本列的分子不受 Top-20 截断影响。确定性来源可逐层追溯: 分词器版本冻结在 jieba 0.42.1, 词表冻结在 config/tone_dicts.json, 语言学规则为纯函数状态机无随机成分, 因而同一输入文本在任意机器上给出逐字节一致的比率, 面板重生时该列不进入需要排除的 BLAS 浮点非确定列名单。下游消费上, 本族与镜像负面族共同构成词级意见分歧指标 disag_loughran 三轨的直接输入, 该指标按 Antweiler & Frank (2004) 的经典分歧公式构造 —— 分歧等于一减去正负占比之差与正负占比之和的比值的平方、再开平方 —— 取值零表示银行-年内媒体语调完全一致, 取值一表示正负势均力敌的最大分歧; 因此本列不仅本身是一条正面密度测度, 还是媒体分歧这一独立构念的必备半成品, 缺了正面侧分歧公式无从成立。
 
 【文献定位】
-本族在三条文献脉络的交汇处。第一条是金融文本词典法的经典谱系: Loughran & McDonald (2011) 确立了领域专用词表原则并成为财务文本分析被引最多的测量工具, 其研究纲领延续至今, Loughran & McDonald (2024) 仍在用文本测度刻画企业复杂性, 说明词典与词频类简单透明测度在机器学习时代依然有独立的方法论地位; Garcia (2013) 则确立了正负极性分离进入回归的规范, 本列正是该规范在中文银行新闻语料上的逐词典实现。第二条是测量效度与方法比较脉络: van Atteveldt et al. (2021) 系统比较人工标注、众包、词典法与机器学习算法的情感测量效度, 发现词典法效度通常最低但透明性与可复现性最高, 这一结论直接支撑本仓"词典法不单用、与 LLM 三家投票和 BERT 三模型并行三角验证"的总体设计 —— 本列的价值不在单独作为最优测度, 而在提供一条完全透明、零成本、可逐词审计的基准轨; Ma, Zhang & Zhang (2025) 为中国投资者构建本土细粒度情感词典, 提示译本词典与本土构建词典可能存在覆盖差异, 是本列翻译效度局限的直接对照文献; Sun, Yuan & Xu (2025) 把词典知识注入预训练语言模型做金融情感分析, 表明词典作为先验知识与深度模型融合是当前前沿方向, 词典成分测度因而具有面向未来方法的可衔接性。第三条是银行与媒体文本的应用脉络: Hansen, McMahon & Prat (2018) 示范了计算语言学方法在央行沟通研究中的因果识别应用, 为文本测度进入严肃识别设计立标; Li, Mai, Shen & Yan (2021) 用词嵌入从文本中测量企业文化, 代表与词典法互补的机器学习测量路线, 亦是本仓 co-primary 嵌入轨的方法源头之一; Fang, Wang, Wang & Yuan (2024) 用中国媒体情感解释存款稳定性与银行系统性风险, 与本面板的银行-年媒体语调设定同域同构; Anastasiou, Katsafados & Tzomakas (2026) 用文本分析预测银行股价崩盘风险, 说明银行文本测度对尾部风险结果有预测力; Chen, Goldstein, Huang & Vashishtha (2022) 证明银行信息环境的透明度直接影响存款人行为, 为"媒体正面语调密度影响银行负债端"的经济机制提供理论支点; Piotroski, Wong & Zhang (2017) 则揭示中国企业新闻存在系统性政治偏倚, 提示中文语料中正面词汇的基线密度受媒体制度环境影响, 是解读本列水平值时必须纳入的制度背景。
+本族在三条文献脉络的交汇处。第一条是金融文本词典法的经典谱系: Loughran & McDonald (2011) 确立了领域专用词表原则并成为财务文本分析被引最多的测量工具, 其研究纲领延续至今, Loughran & McDonald (2024) 仍在用文本测度刻画企业复杂性, 说明词典与词频类简单透明测度在机器学习时代依然有独立的方法论地位; Garcia (2013) 则确立了正负极性分离进入回归的规范, 本列正是该规范在中文银行新闻语料上的逐词典实现。第二条是测量效度与方法比较脉络: van Atteveldt et al. (2021) 系统比较人工标注、众包、词典法与机器学习算法的情感测量效度, 发现词典法效度通常最低但透明性与可复现性最高, 这一结论直接支撑本仓"词典法不单用、与 LLM 三家投票和 BERT 三模型并行三角验证"的总体设计 —— 本列的价值不在单独作为最优测度, 而在提供一条完全透明、零成本、可逐词审计的基准轨; Ma, Zhang & Zhang (2025) 为中国投资者构建本土细粒度情感词典, 提示译本词典与本土构建词典可能存在覆盖差异, 是本列翻译效度局限的直接对照文献; Sun, Yuan & Xu (2025) 把词典知识注入预训练语言模型做金融情感分析, 表明词典作为先验知识与深度模型融合是当前前沿方向, 词典成分测度因而具有面向未来方法的可衔接性。第三条是银行与媒体文本的应用脉络: Hansen, McMahon & Prat (2018) 示范了计算语言学方法在央行沟通研究中的因果识别应用, 为文本测度进入严肃识别设计立标; Li, Mai, Shen & Yan (2021) 用词嵌入从文本中测量企业文化, 代表与词典法互补的机器学习测量路线, 亦是本仓 co-primary 嵌入轨的方法源头之一; Fang, Wang, Wang & Yuan (2024) 用中国媒体情感解释存款稳定性与银行系统性风险, 与本面板的银行-年媒体语调设定同域同构; Anastasiou, Katsafados & Tzomakas (2026) 用文本分析预测银行股价崩盘风险, 说明银行文本测度对尾部风险结果有预测力; Chen, Goldstein, Huang & Vashishtha (2022) 证明银行信息环境的透明度直接影响存款人行为, 为"媒体正面语调密度影响银行负债端"的经济机制提供理论支点; Piotroski, Wong & Zhang (2017) 则揭示中国企业新闻存在系统性政治偏倚, 提示中文语料中正面词汇的基线密度受媒体制度环境影响, 是解读本列水平值时必须纳入的制度背景。Barbaglia, Consoli, Manzan, Tiozzo Pezzoli & Tosetti (2025, Economic Inquiry) 构建面向经济文本的词典法情感测度并验证其效度, 与本族基于词表匹配计算正面词密度的方法学路径直接呼应, 佐证词典法在金融与经济文本情感测量中依然具有独立方法论地位。Sheetal & Aithal (2025, Procedia Computer Science) 该文把 Loughran-McDonald 词典法与 BERT 微调结合做金融新闻情感分析, 印证词典法与深度模型融合是当前前沿方向, 呼应本族作为透明词典基准轨与 LLM/BERT 三角互证的方法学定位。Chuang, He & Hu (2025, Big Data and Cognitive Computing) 该文系统比较多种词嵌入与语言模型在中文财经新闻情感分类与股价预测中的表现, 为本族词典法正面占比在中文金融新闻语域的方法学定位提供同域对照。
 
 【识别策略定位】
 本族在识别体系中的角色是机制分解测度与词典法稳健性臂, 而非任何一篇论文的主处理变量。厘清这一从属定位是正确使用本列的前提。P1 主线的 treatment primary 是 LLM 三家投票共识 llm_vote_tone_full (gpt54nano、gemini31、deepseekv4 三家多数投票产出), 词典法整体作为与 LLM、BERT 并列的第三类测量方法进入稳健性矩阵; 三类方法互为三角验证而非替代 —— LLM 是大模型判别、BERT 是微调判别、词典是词表匹配, 三者对同一情感构念给出方法学互相独立的读数, 只有当主效应在三类方法下定性一致时, 才可判定结论不被任一测量范式的特异误差 (LLM 的提示敏感、BERT 的训练域偏、词典的覆盖漏项) 单独驱动。在词典法内部, loughran 与 jiang_2021、yao_2021、bian_2021、du_2022、you_2018 共六部词典互为稳健性、不分主次, 各词典的成分测度各自 just-identified 并排进入各自的回归设定; 铁律是禁止把多部词典的同构念测度混进同一个 over-identified Hansen J 检验 —— 六词典高度相关 (固定并集口径下第六部接入前后实测 Pearson r=0.985), 混入同一工具集只会制造虚假的过度识别检验通过, 用同源工具的表面正交掩盖其实质共线。三轨维度同理: full、ctx、ss 三轨各自 just-identified 并排、互为稳健性不分主次, 禁混同一 over-identified Hansen J。本列在门控结构中的位置也印证其从属地位: 2026-06-29 起留篇门控为 full-only 口径, 一篇报道是否进入面板宇宙只看 full 轨 LLM 验证 llm_verified_full 是否为真, 词典法比率是在这一门控划定的留篇集上事后计算的属性测度, 不参与留篇决策本身, 因而天然落在机制/稳健性侧而非处理侧。本列的识别价值有三层: 其一, 作为极性分解成分, 它允许把任何用净语调发现的主效应拆解为正面侧与负面侧的各自贡献, 回答机制层面"效应由哪一侧驱动"的问题, 这正是 Garcia (2013) 主张正负极性分离进回归的识别理由 —— 单一净指标会让"正面信息增多"与"负面信息减少"两种经济含义相反的变动在系数上无法辨识; 其二, 与镜像负面列合成的 disag_loughran 分歧指标, 为媒体意见分散度这一独立构念提供词典法测量, 使本列同时是一条正面密度属性测度和一个独立构念的必备半成品, 缺了正面侧分歧公式无从成立; 其三, 跨词典比较时须报告标准化系数 —— 六部词典的正面词表规模差异悬殊, loughran 正面侧 1295 词的命中基率与其他词典不同, 原始系数的水平不可直接跨词典比较, 只有 z 标准化后的 β 才有跨词典可比性, 这与本仓跨 BERT 模型比较须先标准化的口径完全一致。此外, 本列不设跨词典 FWER 校正模板: 根级 rwolf 多重检验模板 (根级 27_tableA12 跨模型 FWER) 只覆盖同一构念的替代 headline 测量, 而按词典的成分测度属于规格稳健性并排, 按既定先例 (镜像政治词权重梯度、词典消融梯度、三轨/co-primary 嵌入并排) 不适用该模板; 换言之, 六词典之间报告的是稳健性一致性而非需要多重检验校正的独立假设检验族, 误套 FWER 反会把稳健性并排错当成需要控制的独立发现集。
@@ -180,4 +201,7 @@ Piotroski, J. D., Wong, T. J., & Zhang, T. (2017). Political bias in corporate n
 Garcia, D. (2013). Sentiment during recessions. The Journal of Finance, 68(3), 1267-1300. https://doi.org/10.1111/jofi.12027
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Antweiler, W., & Frank, M. Z. (2004). Is all that talk just noise? The information content of internet stock message boards. The Journal of Finance, 59(3), 1259-1294. https://doi.org/10.1111/j.1540-6261.2004.00662.x
+Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry. https://doi.org/10.1111/ecin.13264
+Sheetal, R., & Aithal, P. K. (2025). Enhancing Financial Sentiment Analysis: Integrating the Loughran-McDonald Dictionary with BERT for Advanced Market Predictive Insights. Procedia Computer Science. https://doi.org/10.1016/j.procs.2025.04.477
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 <!-- rendered-citations:end -->

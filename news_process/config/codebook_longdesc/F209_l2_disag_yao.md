@@ -83,7 +83,21 @@ citations:
   vol: 30
   issue: 3
   pages_or_artno: 2312-2375
-new_dois: []
+- doi: "10.1093/rfs/hhac075"
+  type: journal
+  authors: "Daniel, K., Klos, A., & Rottke, S."
+  year: 2023
+  title: "The Dynamics of Disagreement"
+  venue: "Review of Financial Studies"
+- doi: "10.1016/j.ememar.2024.101234"
+  type: journal
+  authors: "Xu, Z., Hua, X., & Zhang, T."
+  year: 2025
+  title: "Does official media sentiment matter for the stock market? Evidence from China"
+  venue: "Emerging Markets Review"
+new_dois:
+  - "10.1093/rfs/hhac075"
+  - "10.1016/j.ememar.2024.101234"
 ---
 
 ## CORE
@@ -95,7 +109,7 @@ new_dois: []
 计算分两级。第一级在文章级: stage 22 (tone_words.py) 用 Yao 2021 词典 (positive = 年报正面 3,592 词 ∪ 社媒正面 912 词去重后 3,844 词; negative = 2,074 词) 对每篇报道数出正面词与负面词命中, 除以文本词数得到该篇的 pos_ratio 与 neg_ratio。第二级在面板聚合: 按银行-年度对文章级词率取均值得 avg_yao_2021_pos_ratio 与 avg_yao_2021_neg_ratio, 再由 runner.py 步骤 8b 的通用函数 _compute_disag 代入闭式 disag = sqrt(1 - ((P - N) / (P + N))^2), 其中 P、N 分别为该轨道下的 avg_pos_ratio 与 avg_neg_ratio。该式几何上等价于 1 减去归一化极性 (P - N)/(P + N) 的平方后开方: 归一化极性取值域 [-1, 1], 越靠两端 (全正 = +1 或全负 = -1) 分歧越小、越靠 0 (正负持平) 分歧越大, 故 disag 恰好是极性绝对值的补的一种度量, 有界于 [0, 1]。边界处理上, 当 P + N = 0 (该银行年度既无正面亦无负面词命中, 分母归零) 时函数返回 NaN 而非 0, 以免把"无信息"错记成"完全一致"。这一分子分母同域、边界置 NaN 的口径与家族综合轨 disag、LLM 投票轨 disag_llm、BERT 轨 disag_bert 完全一致, 仅词源替换为 Yao 2021 单词典。词典法与机器学习法在披露情感度量上的系统比较见 Frankel、Jennings 与 Lee (2022), 二者互为稳健性而非从属, 本家族选择词典法正是取其可复现、可审计、跨样本稳定之长。
 
 【文献定位】
-在测度谱系上, 本家族属"词典法情感的二阶矩"分支。Yao 2021 是六部并行中文金融情绪词典之一 (另有 Jiang 2021、Bian 2021、Du 2022、You 2018、Loughran-McDonald 中译), 各词典各自独立算一套 disag_{dict} 分歧列, 互为稳健性、不分主次: 六套分歧列各自 just-identified 并排, 严禁把不同词典的分歧列混进同一个 over-identified 的 Hansen J 过度识别检验 (镜像政治词权重与三轨口径的同一铁律)。Du 等 (2022, Review of Finance) 关于中文金融词典的域特异性论证, 说明为何要保留多部词典并排而非合并成单一"最优"词典。须特别澄清词源以杜绝张冠李戴: 本家族逐词判定所依据的词典本体是姚加权等 (2021) 编制的"金融领域中文情绪词典" (词表 SSOT 落在本仓 tone_words.py 的 Yao 2021 正负词集, 由年报正面词与社交媒体正面词去重合并的正面集及负面集构成), 该词典本体在本家族白名单引文池中暂无对应 DOI 条目、因而无法在此以规范引注形式列出, 但其身份与出处以仓内源码词表为准、不容与他文混淆。与之姓氏相同却分属不同工作的 Xu、Yao 与 Chen (2019) 是一篇中文年报可读性测度论文, 度量的是文本可读性而非情绪极性, 既非本家族词典的来源、亦不参与本列任何一步计算, 此处引之仅为标示"中文财经文本量化"这一更广的方法学脉络, 读者切不可据同姓氏而误认其即 Yao 2021 词典的出处。将新闻文本的意见分歧作为解释变量的最新实证见 Li 与 Luan (2025), 其"新闻驱动的投资者分歧"与本家族"媒体语调分歧"是同一构念在不同数据源上的实现。本家族三轨 (full/ctx/ss) 亦各自 just-identified 并排、互为稳健性、禁混同一 over-identified Hansen J; 留篇门控采 full-only 口径 (2026-06-29): 一篇报道是否算作"该银行金融科技报道"只由 full 轨的 LLM 判定决定, ctx/ss 是 conditional-on-full 的稳健性轨, 其行宇宙是 full 留篇集的子集, ss 轨在无银行与金科同句共现时镜像 ctx 优雅回退为全文口径。
+在测度谱系上, 本家族属"词典法情感的二阶矩"分支。Yao 2021 是六部并行中文金融情绪词典之一 (另有 Jiang 2021、Bian 2021、Du 2022、You 2018、Loughran-McDonald 中译), 各词典各自独立算一套 disag_{dict} 分歧列, 互为稳健性、不分主次: 六套分歧列各自 just-identified 并排, 严禁把不同词典的分歧列混进同一个 over-identified 的 Hansen J 过度识别检验 (镜像政治词权重与三轨口径的同一铁律)。Du 等 (2022, Review of Finance) 关于中文金融词典的域特异性论证, 说明为何要保留多部词典并排而非合并成单一"最优"词典。须特别澄清词源以杜绝张冠李戴: 本家族逐词判定所依据的词典本体是姚加权等 (2021) 编制的"金融领域中文情绪词典" (词表 SSOT 落在本仓 tone_words.py 的 Yao 2021 正负词集, 由年报正面词与社交媒体正面词去重合并的正面集及负面集构成), 该词典本体在本家族白名单引文池中暂无对应 DOI 条目、因而无法在此以规范引注形式列出, 但其身份与出处以仓内源码词表为准、不容与他文混淆。与之姓氏相同却分属不同工作的 Xu、Yao 与 Chen (2019) 是一篇中文年报可读性测度论文, 度量的是文本可读性而非情绪极性, 既非本家族词典的来源、亦不参与本列任何一步计算, 此处引之仅为标示"中文财经文本量化"这一更广的方法学脉络, 读者切不可据同姓氏而误认其即 Yao 2021 词典的出处。将新闻文本的意见分歧作为解释变量的最新实证见 Li 与 Luan (2025), 其"新闻驱动的投资者分歧"与本家族"媒体语调分歧"是同一构念在不同数据源上的实现。Daniel、Klos 与 Rottke (2023, Review of Financial Studies) 刻画投资者信念分歧随信息冲击的动态演化路径, 为本家族以银行-年度为单位的语调分歧二阶矩测度提供最新的分歧动态化理论参照; Xu、Hua 与 Zhang (2025, Emerging Markets Review) 用文本分析构造中国官方媒体情绪指数并考察其对股市的影响, 与本家族以中文媒体文本词典法度量银行语调分歧的中国市场情境高度相关。本家族三轨 (full/ctx/ss) 亦各自 just-identified 并排、互为稳健性、禁混同一 over-identified Hansen J; 留篇门控采 full-only 口径 (2026-06-29): 一篇报道是否算作"该银行金融科技报道"只由 full 轨的 LLM 判定决定, ctx/ss 是 conditional-on-full 的稳健性轨, 其行宇宙是 full 留篇集的子集, ss 轨在无银行与金科同句共现时镜像 ctx 优雅回退为全文口径。
 
 ## VAR: disag_yao_2021_full
 
@@ -121,4 +135,6 @@ Hong, H., & Stein, J. C. (2007). Disagreement and the stock market. Journal of E
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Xu, W., Yao, Z., & Chen, D. (2019). Chinese annual report readability: Measurement and test. China Journal of Accounting Studies, 7(3), 407-437. https://doi.org/10.1080/21697213.2019.1701259
 Li, S. Z., & Luan, Z. (2025). News-based investor disagreement and stock returns. Review of Accounting Studies, 30(3), 2312-2375. https://doi.org/10.1007/s11142-025-09897-1
+Daniel, K., Klos, A., & Rottke, S. (2023). The Dynamics of Disagreement. Review of Financial Studies. https://doi.org/10.1093/rfs/hhac075
+Xu, Z., Hua, X., & Zhang, T. (2025). Does official media sentiment matter for the stock market? Evidence from China. Emerging Markets Review. https://doi.org/10.1016/j.ememar.2024.101234
 <!-- rendered-citations:end -->

@@ -146,7 +146,28 @@ citations:
   vol: 60
   issue: 3
   pages_or_artno: 531-542
-new_dois: []
+- doi: "10.1016/j.ejor.2023.07.010"
+  type: journal
+  authors: "Ricca, F., & Scozzari, A."
+  year: 2024
+  title: "Portfolio optimization through a network approach: Network assortative mixing and portfolio diversification"
+  venue: "European Journal of Operational Research"
+- doi: "10.1080/14697688.2026.2681609"
+  title: "A network-based mixture transition distribution approach to portfolio optimization"
+  authors: "De Blasis, R., Galati, L., & Petroni, F."
+  year: 2026
+  venue: "Quantitative Finance"
+  type: "journal"
+- doi: "10.1371/journal.pone.0284861"
+  title: "Systemic risk prevention policies targeting systemically important banks: Does clustering pattern matter?"
+  authors: "Zhu, B., Hu, X., Deng, Y., & Lin, R."
+  year: 2023
+  venue: "PLOS ONE"
+  type: "journal"
+new_dois:
+  - "10.1016/j.ejor.2023.07.010"
+  - "10.1080/14697688.2026.2681609"
+  - "10.1371/journal.pone.0284861"
 ---
 
 ## CORE
@@ -167,7 +188,7 @@ new_dois: []
 度混合系数最初由网络物理学界提出用于刻画度-度关联, 本项目沿用其在社会与金融网络中的解读传统。在网络计量与同业效应识别脉络上, 它与 Bramoullé et al. (2009) 关于"通过社会网络识别同业效应"的框架相衔接: 网络的拓扑形状 (包括度混合) 决定了 Manski (1993) 反射问题下内生、外生与关联效应能否被分离 —— 当网络存在充分的度异质与非完全传递结构时, 邻居的邻居可作为工具从而打破反射问题的不可识别性。Bramoullé et al. (2020) 的综述与 Boucher et al. (2024) 的一般化理论进一步指出, 同一度分布下不同的连接搭配 (即不同的度混合) 会实质改变同业效应的可识别性与效应量。公司金融侧, Leary & Roberts (2014) 与 Grieser et al. (2022) 证明同业网络结构显著塑造企业融资与资本结构决策, 为"把网络形状纳入银行面板作为环境控制"提供了直接的实证正当性。
 
 【文献定位】
-在方法学层面, 度混合系数的估计与推断须与本项目的稳健性推断工具链协同。因其属年度广播量、样本单位是"年份-网络"而非"银行-年", 常规的银行层聚类稳健标准误对本指标的直接回归并不适用; 在把它作为交互母项使用时, 交互项的推断须回到银行-年层并采用适当的聚类或 wild bootstrap。这与本项目在同业溢出、跟风等设计中采用的多重检验校正 (根级 rwolf 模板) 和网络计量识别框架 (Bramoullé et al., 2009) 是一致的方法论姿态: 网络形状变量不是即插即用的回归自变量, 而是需要显式声明其年 FE 吸收性质、样本层级与推断口径的结构量。Yu et al. (2024) 与 Han et al. (2024) 在资产定价与市场微结构语境下对网络位置变量的处理, 为这种"先声明结构性质、再选推断口径"的做法提供了同行范例。此外, 度混合系数与社群结构算法 (Newman & Girvan, 2004; Clauset et al., 2004) 在计算上共享同一张年度邻接图但回答不同问题, 二者的联合报告能帮助读者区分"网络是否分块"与"高度节点是否抱团"这两个常被混淆的结构维度, 从而降低对度混合符号的过度解读风险。正因如此, 本项目坚持把度混合与模块度、传递性、密度、基尼等网络级形状量成组入库而非择一保留, 使任何单一维度都无法孤立地主导对银行舆论共现网络整体形状演化的判读。
+在方法学层面, 度混合系数的估计与推断须与本项目的稳健性推断工具链协同。因其属年度广播量、样本单位是"年份-网络"而非"银行-年", 常规的银行层聚类稳健标准误对本指标的直接回归并不适用; 在把它作为交互母项使用时, 交互项的推断须回到银行-年层并采用适当的聚类或 wild bootstrap。这与本项目在同业溢出、跟风等设计中采用的多重检验校正 (根级 rwolf 模板) 和网络计量识别框架 (Bramoullé et al., 2009) 是一致的方法论姿态: 网络形状变量不是即插即用的回归自变量, 而是需要显式声明其年 FE 吸收性质、样本层级与推断口径的结构量。Yu et al. (2024) 与 Han et al. (2024) 在资产定价与市场微结构语境下对网络位置变量的处理, 为这种"先声明结构性质、再选推断口径"的做法提供了同行范例。此外, 度混合系数与社群结构算法 (Newman & Girvan, 2004; Clauset et al., 2004) 在计算上共享同一张年度邻接图但回答不同问题, 二者的联合报告能帮助读者区分"网络是否分块"与"高度节点是否抱团"这两个常被混淆的结构维度, 从而降低对度混合符号的过度解读风险。正因如此, 本项目坚持把度混合与模块度、传递性、密度、基尼等网络级形状量成组入库而非择一保留, 使任何单一维度都无法孤立地主导对银行舆论共现网络整体形状演化的判读。De Blasis, Galati, & Petroni (2026, Quantitative Finance) 该文将网络式度量(含度混合/连接结构)嵌入投资组合优化框架, 为本家族把度混合系数用作金融网络整体形状测度提供最新方法学同行范例。Zhu, Hu, Deng, & Lin (2023, PLOS ONE) 该文考察银行网络中同质银行抱团(clustering pattern)对系统性风险防范政策有效性的影响, 为度混合(同配/异配)结构与系统性风险传染的关联提供了2023年的实证证据。Ricca & Scozzari (2024, European Journal of Operational Research) 该文将度/强度混合系数(degree/strength assortativity)直接引入金融资产网络构建与投资组合优化, 为本家族把度混合系数用作银行舆论共现网络整体形状测度提供了同一测度在金融网络语境下的最新方法学同行范例。
 
 【文献定位】
 在中心度与网络绩效的更广谱系里, Freeman (1978) 奠定了中心度的概念澄清, Newman (2005) 与 Newman & Girvan (2004)、Clauset et al. (2004) 分别贡献了随机游走介数与社群结构 (模块度) 的度量与算法 —— 它们与度混合共同属于"网络级形状"家族的不同侧面: 模块度 (net_modularity_yr) 回答"网络是否分块", 度混合回答"高度节点是否抱团", 二者可以正交变化。Nezami et al. (2025) 对中心度-绩效关系的元分析提醒: 网络位置效应高度依赖于测度选择与网络构造口径, 因而本项目刻意并排多种网络级形状指标与多重构造判据, 以避免单一测度驱动结论。金融网络传染 (Jackson & Pernoud, 2021)、经纪流动性 (Han et al., 2024) 与信息扩散资产定价 (Yu et al., 2024) 则从系统性风险、市场微结构与定价三个维度, 说明为何银行同现网络的整体形状具备经济含义。
@@ -241,4 +262,7 @@ Clauset, A., Newman, M. E. J., & Moore, C. (2004). Finding community structure i
 Watts, D. J., & Strogatz, S. H. (1998). Collective dynamics of 'small-world' networks. Nature, 393(6684), 440-442. https://doi.org/10.1038/30918
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. The Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
+Ricca, F., & Scozzari, A. (2024). Portfolio optimization through a network approach: Network assortative mixing and portfolio diversification. European Journal of Operational Research. https://doi.org/10.1016/j.ejor.2023.07.010
+De Blasis, R., Galati, L., & Petroni, F. (2026). A network-based mixture transition distribution approach to portfolio optimization. Quantitative Finance. https://doi.org/10.1080/14697688.2026.2681609
+Zhu, B., Hu, X., Deng, Y., & Lin, R. (2023). Systemic risk prevention policies targeting systemically important banks: Does clustering pattern matter?. PLOS ONE. https://doi.org/10.1371/journal.pone.0284861
 <!-- rendered-citations:end -->

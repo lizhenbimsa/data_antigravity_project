@@ -1,5 +1,6 @@
 ---
 family_id: F120
+novelty_exempt_rationale: "rule_ablation_bian_2021 是词典消融变体家族(否定/程度副词/转折三语言学规则全 powerset 物化), 其测度定义依据母族 bian_2021 词典及既有情感词典文献, 非独立新构念, 不需单独追新文献。"
 columns:
 - bian_2021_advonly_tone_ctx
 - bian_2021_advonly_tone_full

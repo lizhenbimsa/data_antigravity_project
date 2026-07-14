@@ -12,40 +12,40 @@ upstream:
   - 21_tone_llms.parquet (innovation_substantiveness_full)
   - 22_tone_words.parquet (yao_2021_score_full / _ctx / _ss)
 citations:
-  - doi: 10.1016/j.eswa.2024.125739
-    type: journal
-    authors: Ma, Y., Zhang, T., & Zhang, P.
-    year: 2025
-    title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
-    venue: Expert Systems with Applications
-    vol: 264
-    pages_or_artno: 125739
-  - doi: 10.1016/j.frl.2022.102776
-    type: journal
-    authors: Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N.
-    year: 2022
-    title: "Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures"
-    venue: Finance Research Letters
-    vol: 47
-    pages_or_artno: 102776
-  - doi: 10.1016/j.jacceco.2015.09.002
-    type: journal
-    authors: Lang, M., & Stice-Lawrence, L.
-    year: 2015
-    title: "Textual analysis and international financial reporting: Large sample evidence"
-    venue: Journal of Accounting and Economics
-    vol: 60
-    issue: 2-3
-    pages_or_artno: 110-135
-  - doi: 10.1016/j.jacceco.2008.02.003
-    type: journal
-    authors: Li, F.
-    year: 2008
-    title: "Annual report readability, current earnings, and earnings persistence"
-    venue: Journal of Accounting and Economics
-    vol: 45
-    issue: 2-3
-    pages_or_artno: 221-247
+- doi: 10.1016/j.eswa.2024.125739
+  type: journal
+  authors: Ma, Y., Zhang, T., & Zhang, P.
+  year: 2025
+  title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
+  venue: Expert Systems with Applications
+  vol: 264
+  pages_or_artno: 125739
+- doi: 10.1016/j.frl.2022.102776
+  type: journal
+  authors: Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N.
+  year: 2022
+  title: "Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures"
+  venue: Finance Research Letters
+  vol: 47
+  pages_or_artno: 102776
+- doi: 10.1016/j.jacceco.2015.09.002
+  type: journal
+  authors: Lang, M., & Stice-Lawrence, L.
+  year: 2015
+  title: "Textual analysis and international financial reporting: Large sample evidence"
+  venue: Journal of Accounting and Economics
+  vol: 60
+  issue: 2-3
+  pages_or_artno: 110-135
+- doi: 10.1016/j.jacceco.2008.02.003
+  type: journal
+  authors: Li, F.
+  year: 2008
+  title: "Annual report readability, current earnings, and earnings persistence"
+  venue: Journal of Accounting and Economics
+  vol: 45
+  issue: 2-3
+  pages_or_artno: 221-247
 new_dois: []
 ---
 

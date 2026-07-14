@@ -1,5 +1,6 @@
 ---
 family_id: F187
+novelty_exempt_rationale: "rule_ablation 前缀家族, 是词典法语调 (dict_avg_tone) 在三条语言学规则幂集上的消融变体 (raw/negonly/degonly/advonly/negdeg/negadv/degadv × full/ctx/ss), 测度定义与学术依据已在母族词典语调及既有引文 (Taboada 2011 valence shifters、Pröllochs 2016 否定范围检测) 中给出, 非独立新构念, 无需为消融变体本身另觅新引文。"
 columns:
 - dict_avg_advonly_tone_ctx
 - dict_avg_advonly_tone_full

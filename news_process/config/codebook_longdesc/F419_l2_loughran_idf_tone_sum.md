@@ -54,7 +54,21 @@ citations:
   vol: '98'
   issue: '7'
   pages_or_artno: 315-345
-new_dois: []
+- doi: "10.1145/3649451"
+  title: "Financial Sentiment Analysis: Techniques and Applications"
+  authors: "Du, K.; Xing, F.; Mao, R.; Cambria, E."
+  year: 2024
+  venue: "ACM Computing Surveys"
+  type: "journal"
+- doi: "10.1007/s11135-024-01896-9"
+  title: "Dictionary-based sentiment analysis of monetary policy communication: on the applicability of lexicons"
+  authors: "Rutkowska, A.; Szyszko, M."
+  year: 2024
+  venue: "Quality & Quantity"
+  type: "journal"
+new_dois:
+  - "10.1145/3649451"
+  - "10.1007/s11135-024-01896-9"
 ---
 
 ## CORE
@@ -68,7 +82,7 @@ loughran_idf_score{track} 的计算分两步。第一步是 IDF 权重矩阵的�
 第三步是 bank-year 面板聚合: pipeline/panel/encode.py 在构建 loughran_idf_tone_sum{track} 时, 以 pandas groupby-agg 对同一 bank-year 单元内全部文章的 loughran_idf_score{track} 直接取 sum (而非 mean 或 std), 得到本家族三列的最终数值。sum 聚合方式与同一网格内的 mean 聚合 (loughran_idf_tone{track}, 篇均语调) 及 std 聚合 (loughran_idf_tone_std{track}, 语调分散度) 三者并列, 各自捕捉不同的分布矩: sum 天然会随该 bank-year 观测到的报道篇数增多而放大, 因此它同时承载了"语调方向"与"报道体量"两重信息, 在解释上须与 n_articles 类分母列联合审视, 不宜脱离样本规模单独解读为纯粹的语调强度指标; 若研究设计需要剥离规模效应而只保留语调水平信息, 应转用 mean 口径的 loughran_idf_tone{track} 而非本家族。
 【文献定位】
 本家族的方法学谱系交汇于两条独立文献线。第一条是词典构造与验证线: Loughran & McDonald (2011, The Journal of Finance) 首次系统证明通用情感词典 (如 Harvard-IV) 在金融文本上大量误判 (把行业中性词误判为负面), 提出须构造领域专用金融词典, 该文是本管道六词典矩阵的方法论起点, 也是本家族列名前缀 loughran 的直接出处。第二条是词权重构造线: Jegadeesh & Wu (2013, Journal of Financial Economics) 提出用词条在语料库中的相对信息量 (而非简单二值出现/不出现) 对情感词加权的 "word power" 方法, 与本家族 IDF 加权臂在"让判别力强的词主导得分"这一构造哲学上同源, 是 loughran_idf_tone_sum 相对于等权基线 loughran_tone_sum 的直接文献支撑。IDF 加权与等权两臂在本管道中被明确设计为互为稳健性检验、不分主次的并列臂, 而非互相替代的"改进版"关系: 若两臂在下游回归中给出定性一致的结论, 说明语调测度结果不依赖于是否对词条做语料库层面的判别力加权, 这一稳健性论证思路呼应 Frankel, Jennings & Lee (2022, Management Science) 关于不同文本情感测量方法 (词典法内部不同权重方案、以及词典法与机器学习法之间) 应互为交叉验证而非线性替代的方法论主张。Taboada et al. (2011, Computational Linguistics) 对词典法情感分析中语言学规则 (否定/程度/转折) 的系统综述, 为本家族共享的状态机规则层 (与等权基线完全一致的三规则叠加) 提供了通用方法学依据。Holzman, Miller & Twedt (2023, The Accounting Review) 关于媒体语调加权测量在会计与金融文本中如何影响下游经济结果解释力的讨论, 佐证了在银行-金融科技报道语境下对语调测度做加权稳健性检验 (而不满足于单一等权基线) 的实证价值。
-需特别澄清本家族与管道内另一条正交梯子——政治词权重敏感性 (du_2022 词典特有, political_positive 类词以 {0.0, 0.5, 1.0} 三档权重敏感性检验) ——之间的边界: 二者虽同属"加权"范畴, 但加权对象、加权依据与适用词典完全不同 (本家族对 loughran 词典的全部词条按语料库 IDF 加权; du_2022 权重梯子只对该词典内 political_positive 一个专门词类按研究者设定的固定权重加权), 属于互不重叠、可分别独立解释的两套稳健性设计, 不应混为一谈或混入同一识别方程。同理, 本家族与词典规则消融梯度 (raw/negonly/degonly/advonly 等 rule-ablation 变体) 也是正交关系: 消融梯度控制的是否定/程度/转折三条语言学规则的开关组合, 本家族三列则固定使用全规则 (full) 状态机, 仅在词权重矩阵上做 IDF 替换, 两个维度互不交叉, 各自的组内变体各自 just-identified 并排, 不应混入同一个 over-identified 的 Hansen J 过度识别检验。
+需特别澄清本家族与管道内另一条正交梯子——政治词权重敏感性 (du_2022 词典特有, political_positive 类词以 {0.0, 0.5, 1.0} 三档权重敏感性检验) ——之间的边界: 二者虽同属"加权"范畴, 但加权对象、加权依据与适用词典完全不同 (本家族对 loughran 词典的全部词条按语料库 IDF 加权; du_2022 权重梯子只对该词典内 political_positive 一个专门词类按研究者设定的固定权重加权), 属于互不重叠、可分别独立解释的两套稳健性设计, 不应混为一谈或混入同一识别方程。近年文献进一步夯实了本家族的方法学定位: Du, Xing, Mao & Cambria (2024, ACM Computing Surveys) 系统综述金融情感分析的任务、词典/权重表示方法(含IDF等词权重技术)与下游金融市场应用,为词典法情感测度的方法学定位提供最新综述支撑; Rutkowska & Szyszko (2024, Quality & Quantity) 比较通用词典与领域专用词典在央行沟通文本情感测度中的适用性,并采用IDF加权词频构造语调分数,验证不同词典口径互为稳健性对照的实证价值。同理, 本家族与词典规则消融梯度 (raw/negonly/degonly/advonly 等 rule-ablation 变体) 也是正交关系: 消融梯度控制的是否定/程度/转折三条语言学规则的开关组合, 本家族三列则固定使用全规则 (full) 状态机, 仅在词权重矩阵上做 IDF 替换, 两个维度互不交叉, 各自的组内变体各自 just-identified 并排, 不应混入同一个 over-identified 的 Hansen J 过度识别检验。
 
 ## VAR: loughran_idf_tone_sum_ctx
 
@@ -97,4 +111,6 @@ Jegadeesh, N.; Wu, D. (2013). Word power: A new approach for content analysis. J
 Frankel, R.; Jennings, J.; Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Taboada, M.; Brooke, J.; Tofiloski, M.; Voll, K.; Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
 Holzman, E. R.; Miller, B. P.; Twedt, B. J. (2023). Curbing enthusiasm: Media sentiment and the disciplining role of quarterly earnings announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
+Du, K.; Xing, F.; Mao, R.; Cambria, E. (2024). Financial Sentiment Analysis: Techniques and Applications. ACM Computing Surveys. https://doi.org/10.1145/3649451
+Rutkowska, A.; Szyszko, M. (2024). Dictionary-based sentiment analysis of monetary policy communication: on the applicability of lexicons. Quality & Quantity. https://doi.org/10.1007/s11135-024-01896-9
 <!-- rendered-citations:end -->

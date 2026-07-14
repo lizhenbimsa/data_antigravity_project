@@ -298,13 +298,27 @@ citations:
   vol: 39
   issue: 3
   pages_or_artno: 367-390
-new_dois: []
+- doi: "10.1002/smj.70023"
+  title: "The use of LLMs to annotate data in management research: Foundational guidelines and warnings"
+  authors: "Carlson, N. A., & Burbano, V."
+  year: 2025
+  venue: "Strategic Management Journal"
+  type: "journal"
+- doi: "10.3390/info16080688"
+  title: "Ensemble Large Language Models: A Survey"
+  authors: "Mienye, I. D., & Swart, T. G."
+  year: 2025
+  venue: "Information"
+  type: "journal"
+new_dois:
+  - "10.1002/smj.70023"
+  - "10.3390/info16080688"
 ---
 
 ## CORE
 
 【构念与来源】
-本家族收录三家大语言模型逐模型的银行-年媒体语调测度, 覆盖 deepseekv4 (DeepSeek V4 Flash, 直连官方端点)、gemini31 (Gemini 3.1 Flash Lite, 经 yunwu 网关) 与 gpt54nano (GPT-5.4 nano, 经 yunwu 网关) 三个评分主体, 每个主体各有等权均值、组内标准差、提及密度加权、媒体权威加权、跟风衰减加权五个统计与加权变体, 以及实质性、象征性、底层技术、应用场景四个分类条件变体, 再各自展开 full、ctx、ss 三条文本轨。构念本体是目标银行在金融科技相关媒体报道中获得的情感语调: 阶段二十一对留篇集内每篇文章构建思维链提示, 单次请求同时让模型完成两件事——甄别这篇报道是否真是关于目标银行的金融科技报道, 以及在正面、中性、负面三分类上判定语调; 三家模型对同一篇文章彼此不可见地并发作答, 多数投票合成共识列 llm_vote_tone, 而本家族刻意绕开投票, 把每一家的原始判断单独聚合成列。媒体语调影响资产价格与企业行为的构念传统可以追溯到 Tetlock (2007) 对媒体悲观度的开创性度量与 Loughran & McDonald (2016) 对财务文本分析方法的系统综述; 进入大语言模型时代后, Fatouros et al. (2023) 证明对话式模型在金融新闻情感上超越微调基线, Kirtac & Germano (2024) 证明其情感信号可交易, Lan et al. (2025) 把证据延伸到中文金融文本的实体级细粒度判定, 本家族的文章级评分即站在这条证据链上。之所以除共识外还要保留逐模型列, 方法学动机有三层: 其一, Ludwig, Mullainathan & Rambachan (2026) 的生成回归量框架指出, 以模型输出为解释变量时, 测量的模型依赖性本身就是待披露的识别假设, 单一共识数字会掩盖这一依赖; 其二, Hansen (2026) 论证在缺乏金标准的场景下, 多标注者一致性是 LLM 标注效度的一线证据, 而一致性只能在逐模型列之间计算; 其三, Baumann et al. (2025) 量化了所谓 LLM hacking 风险——换模型、换提示词足以翻转下游统计推断——逐模型全披露加族内多重检验校正是对这一研究者自由度的制度性防御。用大白话说, 这个家族回答的问题是: 如果只请一位阅卷人给全国银行的金融科技新闻打情感分, 分别请三位背景不同的阅卷人各打一遍, 每位的分数单独存档, 我们就能看出最终结论是三位共识还是某一位的口味; 共识列相当于合议庭判决, 本家族相当于把每位法官的独立意见书都附在卷宗里。列名结构完全机械: 前缀是模型缩写, 中缀是变体 (无中缀为等权均值, std 为标准差, vw、mw、hw 为三种加权, sub、symb、tech、app 为四类条件), 后缀是轨道, 三个维度正交展开、无一例外, 使用者可以从任何一列的名字直接还原其计算配方。
+本家族收录三家大语言模型逐模型的银行-年媒体语调测度, 覆盖 deepseekv4 (DeepSeek V4 Flash, 直连官方端点)、gemini31 (Gemini 3.1 Flash Lite, 经 yunwu 网关) 与 gpt54nano (GPT-5.4 nano, 经 yunwu 网关) 三个评分主体, 每个主体各有等权均值、组内标准差、提及密度加权、媒体权威加权、跟风衰减加权五个统计与加权变体, 以及实质性、象征性、底层技术、应用场景四个分类条件变体, 再各自展开 full、ctx、ss 三条文本轨。构念本体是目标银行在金融科技相关媒体报道中获得的情感语调: 阶段二十一对留篇集内每篇文章构建思维链提示, 单次请求同时让模型完成两件事——甄别这篇报道是否真是关于目标银行的金融科技报道, 以及在正面、中性、负面三分类上判定语调; 三家模型对同一篇文章彼此不可见地并发作答, 多数投票合成共识列 llm_vote_tone, 而本家族刻意绕开投票, 把每一家的原始判断单独聚合成列。媒体语调影响资产价格与企业行为的构念传统可以追溯到 Tetlock (2007) 对媒体悲观度的开创性度量与 Loughran & McDonald (2016) 对财务文本分析方法的系统综述; 进入大语言模型时代后, Fatouros et al. (2023) 证明对话式模型在金融新闻情感上超越微调基线, Kirtac & Germano (2024) 证明其情感信号可交易, Lan et al. (2025) 把证据延伸到中文金融文本的实体级细粒度判定, 本家族的文章级评分即站在这条证据链上。之所以除共识外还要保留逐模型列, 方法学动机有三层: 其一, Ludwig, Mullainathan & Rambachan (2026) 的生成回归量框架指出, 以模型输出为解释变量时, 测量的模型依赖性本身就是待披露的识别假设, 单一共识数字会掩盖这一依赖; 其二, Hansen (2026) 论证在缺乏金标准的场景下, 多标注者一致性是 LLM 标注效度的一线证据, 而一致性只能在逐模型列之间计算; 其三, Baumann et al. (2025) 量化了所谓 LLM hacking 风险——换模型、换提示词足以翻转下游统计推断——逐模型全披露加族内多重检验校正是对这一研究者自由度的制度性防御。用大白话说, 这个家族回答的问题是: 如果只请一位阅卷人给全国银行的金融科技新闻打情感分, 分别请三位背景不同的阅卷人各打一遍, 每位的分数单独存档, 我们就能看出最终结论是三位共识还是某一位的口味; 共识列相当于合议庭判决, 本家族相当于把每位法官的独立意见书都附在卷宗里。列名结构完全机械: 前缀是模型缩写, 中缀是变体 (无中缀为等权均值, std 为标准差, vw、mw、hw 为三种加权, sub、symb、tech、app 为四类条件), 后缀是轨道, 三个维度正交展开、无一例外, 使用者可以从任何一列的名字直接还原其计算配方。Carlson & Burbano (2025, Strategic Management Journal) 提出管理学研究中使用大语言模型标注数据的基础性指南与警示,涉及多模型/多标注者一致性验证方法论,与本测度族的三LLM并排投票设计直接相关; Mienye & Swart (2025, Information) 系统综述大语言模型集成方法,含多数投票、加权融合等,为本测度族三家 LLM 互为稳健性、共识投票的设计提供方法论支持。
 
 【方法学与计算】
 计算链路分文章级与面板级两段。文章级: 每篇文章按轨道取物化文本 (full 轨为标题拼全文 content_full, ctx 轨为标题拼含银行句邻域 content_ctx, ss 轨为标题拼银行与金科同句片段 content_ss), 以字节冻结的 prompt v8、温度取零的确定性配置请求各模型, 响应解析出三分类语调后编码为负一、零、正一的离散得分, 逐模型逐轨落列; 全部请求经由内容寻址缓存持久化, 缓存全命中时可离线零成本逐字节复现, 这一温度锁零加提示冻结加缓存回放的组置正是 de Kok (2025) 为会计与金融研究总结的生成式模型可复现范式。留篇门控自 2026-06-29 起为 full-only: 一篇文章是否算作目标银行的金融科技报道只看 full 轨甄别结果, ctx 与 ss 降为 conditional-on-full 的测度轨, 行宇宙是 full 留篇集的子集; ss 轨另有回退语义, 无银行金科同句共现的文章其 content_ss 回退为全文并打 ss_is_fallback 标记, 与 full 共享篇数分母。面板级在阶段四十完成, 九个变体的聚合算子各不相同: 等权均值与样本标准差直接在 build_aggregation_dict 注册为 mean 与 std (自由度修正取一, 篇数不足两篇时标准差缺失); 三个加权变体先在聚合期物化加权得分和作分子, 再在 aggregate_panel 用与分子同域的 valid-mask 权重和作分母相除——提及密度权重承袭 Hassan et al. (2019) 的主体邻近度思想, 媒体权威权重对应 Holzman et al. (2023) 的媒体影响力分层证据, 跟风衰减权重压低事件簇内转载回声、且三轨各用本轨独立分母; 分母取同域权重和而非物理权重和, 是为修正有效得分分子除以全体文章分母的域失配偏误, 分母为零一律记缺失而非记零。四个分类条件变体则按三家共识的实质性对象征性分类 (Westphal & Zajac (1994) 与 Westphal & Zajac (1998) 的治理行动二分) 与底层技术对应用场景分类 (Gomber et al. (2018) 的金融科技定位二分) 切子样本, 在类内取该模型本轨得分均值, 分类判定固定取 full 轨、情感得分逐轨, 构成分类在 full、情感逐轨的对角口径。全家族遵循 per-model 独立降级: 任何一家响应缺失只影响该家族列, 不连坐他家, 与 co-primary 嵌入的 both-or-neither 口径构成刻意反差。若干工程细节对复现者是承重的: 其一, 离散得分列之外另有连续判分的 cont 族列, 两者是不同的文章级源列, 本家族只消费离散得分, 连续族的均值与加权聚合是并行的另一组面板列, 不可混淆; 其二, 缓存命中键由提示版本与温度共同构成, 离线守卫环境变量置位后缓存未命中会直接抛错而非静默调用付费接口, 这保证了审计场景下的零成本字节级复现; 其三, 加权变体的分母列本身也物化在面板中, 研究者可以自行核对每个加权语调的分子分母是否同域; 其四, 分类条件变体的类内篇数列同样落盘, 最小篇数守门可以在消费端复算而不依赖生产端。缺失语义全家族统一: 该银行-年无留篇文章、该模型全部响应缺失、加权分母为零、条件类内为空、标准差样本不足, 均记缺失而非记零, 缺失与零在本家族是两个信息完全不同的状态, 下游填补须显式论证。
@@ -1407,4 +1421,6 @@ Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media i
 Romano, J. P., & Wolf, M. (2005). Stepwise multiple testing as formalized data snooping. Econometrica, 73(4), 1237-1282. https://doi.org/10.1111/j.1468-0262.2005.00615.x
 Westphal, J. D., & Zajac, E. J. (1998). The symbolic management of stockholders: Corporate governance reforms and shareholder reactions. Administrative Science Quarterly, 43(1), 127-153. https://doi.org/10.2307/2393593
 Westphal, J. D., & Zajac, E. J. (1994). Substance and symbolism in CEOs' long-term incentive plans. Administrative Science Quarterly, 39(3), 367-390. https://doi.org/10.2307/2393295
+Carlson, N. A., & Burbano, V. (2025). The use of LLMs to annotate data in management research: Foundational guidelines and warnings. Strategic Management Journal. https://doi.org/10.1002/smj.70023
+Mienye, I. D., & Swart, T. G. (2025). Ensemble Large Language Models: A Survey. Information. https://doi.org/10.3390/info16080688
 <!-- rendered-citations:end -->

@@ -1,5 +1,6 @@
 ---
 family_id: F232
+novelty_exempt_rationale: "该家族是 bian_2021 词典情感的双重衍生/消融变体 (exc_ 前缀=剔疑似停刊媒体的稳健性子样本聚合, advonly=规则消融梯度中仅保留转折规则的技术变体), 非独立新构念, 其测度定义的学术依据已在正文引文的母族词典 (Bian et al. 2021) 与规则消融方法学文献 (Taboada et al. 2011) 中给出。"
 columns:
 - exc_bian_2021_score_advonly_ctx
 - exc_bian_2021_score_advonly_full

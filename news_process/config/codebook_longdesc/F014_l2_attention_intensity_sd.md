@@ -74,7 +74,30 @@ citations:
   vol: 64
   issue: 5
   pages_or_artno: 2023-2052
-new_dois: []
+- doi: "10.1111/fire.70002"
+  title: "Tone Distance: Managerial Tone Divergence and Market Reaction to Earnings Announcements"
+  authors: "Angelo, B., Johnston, M., Singh, A., & Wan, Y. Q."
+  year: 2025
+  venue: "Financial Review"
+  type: "journal"
+- title: "The Impact of News Media Coverage on Voluntary Disclosure"
+  authors: "Lock, B."
+  year: 2024
+  venue: "Contemporary Accounting Research"
+  doi: "10.1111/1911-3846.12982"
+  type: "journal"
+  one_sentence_zh: "媒体报道强度上升会促使管理层更多披露自愿性信息, 印证媒体覆盖强度承载独立经济信息的构念基础。"
+- title: "How Media Coverage Elicits Strategic Change: The Moderating Role of the Business Model Design"
+  authors: "Klein, S. P., Spieth, P., Ricart, J. E., & Noble, C. H."
+  year: 2024
+  venue: "Strategic Management Journal"
+  doi: "10.1002/smj.3688"
+  type: "journal"
+  one_sentence_zh: "媒体报道的内容与强度异质性驱动企业战略变革, 支持报道内容层面 (而非仅数量) 的分散度承载独立信息的观点。"
+new_dois:
+  - "10.1111/fire.70002"
+  - "10.1111/1911-3846.12982"
+  - "10.1002/smj.3688"
 ---
 
 ## CORE
@@ -86,7 +109,7 @@ new_dois: []
 计算在 attention_media.py 的 compute_attention_treatments 中完成: 将逐篇 fintech_intensity_score 按银行-年分组, 对组内各篇取样本标准差 (pandas std, ddof=1), 落为 sd_full / sd_ctx / sd_ss 三列。样本标准差采用无偏 (ddof=1) 口径, 直接后果是单篇银行-年 (N=1) 因自由度为零而返回 NaN, 而非返回 0; 这是刻意的, 因为单篇报道不存在篇间离散这一构念, 以 NaN 表达"不可算"优于以 0 冒充"离散为零"。取值域为非负半轴, 值域校验函数 _validate_attention_treatments 对 attention_intensity_sd_{full,ctx,ss} 施加 (0.0, None) 下界断言。零-fintech 银行-年 (无任何金融科技报道) 与单篇银行-年一样落 NaN (disp/sd/gap/share 类离散测度对零覆盖统一置 NaN, 区别于 index/density 类对真零曝光置 0)。三轨在方法学上互为稳健性、不分主次: full 轨为 canonical 主轨 (标题 prepend + 全文正文), ctx/ss 为分离复跑的稳健性载体, 三者各自 just-identified 并排进入各自回归, 严禁把三轨列混进同一个 over-identified 的 Hansen J 过度识别检验 (CLAUDE.md 三轨铁律)。留篇门控依 full-only 口径 (2026-06-29): 一篇报道是否算作银行金融科技报道只看 full 轨的 llm_verified_full, ctx/ss 是 conditional-on-full 的子集轨, ss 回退语义镜像 ctx (无银行∧金科同句共现时 content_ss 退回全文 body)。
 
 【文献定位】
-本测度的方法学谱系源自媒体关注度与文本暴露度量的实证传统。Fang 与 Peress (2009) 确立了媒体覆盖量作为横截面定价因子的基础范式, Da、Engelberg 与 Gao (2011) 进一步把"注意力"操作化为可测的关注代理; 本族的一阶矩 attention_index 即锚定于此二者的覆盖量口径。相对而言, 本二阶矩测度更贴近 Hassan、Hollander、van Lent 与 Tahoun (2019) 所倡的 firm-level 文本暴露强度传统, 以及 Sautner、van Lent、Vilkov 与 Zhang (2023) 把主题暴露从计数推进到强度与分布的思路 — 关注度不只是"是否被提及", 而是"以何等技术强度、在多大内容散布下被提及"。Cookson、Lu、Mullins 与 Niessner (2024) 对信息信号跨来源异质性的刻画, 与本测度捕捉篇间强度分化的动机同源。Bybee、Kelly、Manela 与 Xiu (2024) 从商业新闻文本中提取宏观状态的工作, 印证了新闻文本二阶结构 (而非仅计数) 承载独立经济信息的判断。方法论层面, Gentzkow、Kelly 与 Taddy (2019) 的 text-as-data 综述为把非结构化文本聚合为银行-年面板矩提供了统一的计量框架。需强调本测度是内容强度的离散, 与本族另一离散测度 attention_disp (跨媒体来源的 outlet-HHI 集中度) 构念正交: 前者问"报道内容有多异质", 后者问"报道来源有多集中"。
+本测度的方法学谱系源自媒体关注度与文本暴露度量的实证传统。Fang 与 Peress (2009) 确立了媒体覆盖量作为横截面定价因子的基础范式, Da、Engelberg 与 Gao (2011) 进一步把"注意力"操作化为可测的关注代理; 本族的一阶矩 attention_index 即锚定于此二者的覆盖量口径。相对而言, 本二阶矩测度更贴近 Hassan、Hollander、van Lent 与 Tahoun (2019) 所倡的 firm-level 文本暴露强度传统, 以及 Sautner、van Lent、Vilkov 与 Zhang (2023) 把主题暴露从计数推进到强度与分布的思路 — 关注度不只是"是否被提及", 而是"以何等技术强度、在多大内容散布下被提及"。Cookson、Lu、Mullins 与 Niessner (2024) 对信息信号跨来源异质性的刻画, 与本测度捕捉篇间强度分化的动机同源。Bybee、Kelly、Manela 与 Xiu (2024) 从商业新闻文本中提取宏观状态的工作, 印证了新闻文本二阶结构 (而非仅计数) 承载独立经济信息的判断。方法论层面, Gentzkow、Kelly 与 Taddy (2019) 的 text-as-data 综述为把非结构化文本聚合为银行-年面板矩提供了统一的计量框架。需强调本测度是内容强度的离散, 与本族另一离散测度 attention_disp (跨媒体来源的 outlet-HHI 集中度) 构念正交: 前者问"报道内容有多异质", 后者问"报道来源有多集中"。Angelo、Johnston、Singh 与 Wan (2025, Financial Review) 构造管理层语调跨来源的离散度量并检验其市场反应, 与本家族用样本标准差捕捉同一银行-年内金科报道技术强度篇间分化的二阶矩思路直接呼应, 均主张离散度而非均值承载独立信息。Lock (2024, Contemporary Accounting Research) 发现媒体报道强度上升会促使管理层更多披露自愿性信息, 印证媒体覆盖强度承载独立经济信息的构念基础; Klein, Spieth, Ricart 与 Noble (2024, Strategic Management Journal) 则发现媒体报道的内容与强度异质性驱动企业战略变革, 支持报道内容层面 (而非仅数量) 的分散度承载独立信息的观点, 二者共同为本测度以篇间强度标准差捕捉内容异质性的构念提供了外部支撑。
 
 ## VAR: attention_intensity_sd_full
 
@@ -113,4 +136,7 @@ Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic L
 Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level political risk: Measurement and effects. The Quarterly Journal of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021
 Da, Z., Engelberg, J., & Gao, P. (2011). In search of attention. The Journal of Finance, 66(5), 1461-1499. https://doi.org/10.1111/j.1540-6261.2011.01679.x
 Fang, L., & Peress, J. (2009). Media coverage and the cross-section of stock returns. The Journal of Finance, 64(5), 2023-2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x
+Angelo, B., Johnston, M., Singh, A., & Wan, Y. Q. (2025). Tone Distance: Managerial Tone Divergence and Market Reaction to Earnings Announcements. Financial Review. https://doi.org/10.1111/fire.70002
+Lock, B. (2024). The Impact of News Media Coverage on Voluntary Disclosure. Contemporary Accounting Research. https://doi.org/10.1111/1911-3846.12982
+Klein, S. P., Spieth, P., Ricart, J. E., & Noble, C. H. (2024). How Media Coverage Elicits Strategic Change: The Moderating Role of the Business Model Design. Strategic Management Journal. https://doi.org/10.1002/smj.3688
 <!-- rendered-citations:end -->

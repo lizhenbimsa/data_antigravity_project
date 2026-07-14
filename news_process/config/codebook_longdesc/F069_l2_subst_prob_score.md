@@ -14,79 +14,79 @@ upstream:
   - 21_tone_llms.parquet (article-level avg_subst_prob_score_{full,ctx,ss})
   - 14_materialize_ctx.parquet (content_ctx / content_ss)
 citations:
-  - doi: 10.1002/smj.70023
-    type: journal
-    authors: Carlson, N. A., & Burbano, V.
-    year: 2026
-    title: "The use of LLMs to annotate data in management research: Foundational guidelines and warnings"
-    venue: Strategic Management Journal
-  - doi: 10.1111/jofi.13412
-    type: journal
-    authors: Duchin, R., Gao, J., & Xu, Q.
-    year: 2025
-    title: "Sustainability or greenwashing: Evidence from the asset market for industrial pollution"
-    venue: The Journal of Finance
-  - doi: 10.18653/v1/2024.findings-emnlp.432
-    type: journal
-    authors: Renze, M.
-    year: 2024
-    title: "The effect of sampling temperature on problem solving in large language models"
-    venue: "Findings of the Association for Computational Linguistics: EMNLP 2024"
-    pages_or_artno: 7346-7356
-  - doi: 10.1177/20531680241236239
-    type: journal
-    authors: Heseltine, M., & Clemm von Hohenberg, B.
-    year: 2024
-    title: "Large language models as a substitute for human experts in annotating political text"
-    venue: Research & Politics
-    vol: 11
-    issue: 1
-    pages_or_artno: 20531680241236239
-  - doi: 10.1073/pnas.2305016120
-    type: journal
-    authors: Gilardi, F., Alizadeh, M., & Kubli, M.
-    year: 2023
-    title: "ChatGPT outperforms crowd workers for text-annotation tasks"
-    venue: Proceedings of the National Academy of Sciences
-  - doi: 10.1016/j.frl.2022.102776
-    type: journal
-    authors: Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N.
-    year: 2022
-    title: "Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures"
-    venue: Finance Research Letters
-    vol: 47
-    pages_or_artno: 102776
-  - doi: 10.1111/j.1540-6261.2010.01625.x
-    type: journal
-    authors: Loughran, T., & McDonald, B.
-    year: 2011
-    title: "When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks"
-    venue: The Journal of Finance
-  - doi: 10.1145/1102351.1102430
-    type: journal
-    authors: Niculescu-Mizil, A., & Caruana, R.
-    year: 2005
-    title: "Predicting good probabilities with supervised learning"
-    venue: Proceedings of the 22nd International Conference on Machine Learning (ICML)
-    pages_or_artno: 625-632
-  - doi: 10.2307/2393593
-    type: journal
-    authors: Westphal, J. D., & Zajac, E. J.
-    year: 1998
-    title: "The symbolic management of stockholders: Corporate governance reforms and shareholder reactions"
-    venue: Administrative Science Quarterly
-    vol: 43
-    issue: 1
-    pages_or_artno: 127-153
-  - doi: 10.2307/2393295
-    type: journal
-    authors: Westphal, J. D., & Zajac, E. J.
-    year: 1994
-    title: "Substance and symbolism in CEOs' long-term incentive plans"
-    venue: Administrative Science Quarterly
-    vol: 39
-    issue: 3
-    pages_or_artno: 367-390
+- doi: 10.1002/smj.70023
+  type: journal
+  authors: Carlson, N. A., & Burbano, V.
+  year: 2026
+  title: "The use of LLMs to annotate data in management research: Foundational guidelines and warnings"
+  venue: Strategic Management Journal
+- doi: 10.1111/jofi.13412
+  type: journal
+  authors: Duchin, R., Gao, J., & Xu, Q.
+  year: 2025
+  title: "Sustainability or greenwashing: Evidence from the asset market for industrial pollution"
+  venue: The Journal of Finance
+- doi: 10.18653/v1/2024.findings-emnlp.432
+  type: journal
+  authors: Renze, M.
+  year: 2024
+  title: "The effect of sampling temperature on problem solving in large language models"
+  venue: "Findings of the Association for Computational Linguistics: EMNLP 2024"
+  pages_or_artno: 7346-7356
+- doi: 10.1177/20531680241236239
+  type: journal
+  authors: Heseltine, M., & Clemm von Hohenberg, B.
+  year: 2024
+  title: "Large language models as a substitute for human experts in annotating political text"
+  venue: Research & Politics
+  vol: 11
+  issue: 1
+  pages_or_artno: 20531680241236239
+- doi: 10.1073/pnas.2305016120
+  type: journal
+  authors: Gilardi, F., Alizadeh, M., & Kubli, M.
+  year: 2023
+  title: "ChatGPT outperforms crowd workers for text-annotation tasks"
+  venue: Proceedings of the National Academy of Sciences
+- doi: 10.1016/j.frl.2022.102776
+  type: journal
+  authors: Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N.
+  year: 2022
+  title: "Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures"
+  venue: Finance Research Letters
+  vol: 47
+  pages_or_artno: 102776
+- doi: 10.1111/j.1540-6261.2010.01625.x
+  type: journal
+  authors: Loughran, T., & McDonald, B.
+  year: 2011
+  title: "When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks"
+  venue: The Journal of Finance
+- doi: 10.1145/1102351.1102430
+  type: journal
+  authors: Niculescu-Mizil, A., & Caruana, R.
+  year: 2005
+  title: "Predicting good probabilities with supervised learning"
+  venue: Proceedings of the 22nd International Conference on Machine Learning (ICML)
+  pages_or_artno: 625-632
+- doi: 10.2307/2393593
+  type: journal
+  authors: Westphal, J. D., & Zajac, E. J.
+  year: 1998
+  title: "The symbolic management of stockholders: Corporate governance reforms and shareholder reactions"
+  venue: Administrative Science Quarterly
+  vol: 43
+  issue: 1
+  pages_or_artno: 127-153
+- doi: 10.2307/2393295
+  type: journal
+  authors: Westphal, J. D., & Zajac, E. J.
+  year: 1994
+  title: "Substance and symbolism in CEOs' long-term incentive plans"
+  venue: Administrative Science Quarterly
+  vol: 39
+  issue: 3
+  pages_or_artno: 367-390
 new_dois: []
 ---
 

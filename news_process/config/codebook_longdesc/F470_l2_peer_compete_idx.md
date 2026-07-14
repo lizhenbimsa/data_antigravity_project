@@ -76,7 +76,21 @@ citations:
   venue: Annual Review of Economics
   vol: '12'
   pages_or_artno: 603-629
-new_dois: []
+- doi: "10.1108/jfrc-11-2024-0218"
+  title: "Fintech-driven resilience amid pandemic: a text mining analysis of the banking industry with ESG dynamics"
+  authors: "Kakinuma, Y., & Likitratcharoen, D."
+  year: 2025
+  venue: "Journal of Financial Regulation and Compliance"
+  type: "journal"
+- doi: "10.1111/1475-679x.12560"
+  title: "News Bias in Financial Journalists' Social Networks"
+  authors: "Xu, G."
+  year: 2024
+  venue: "Journal of Accounting Research"
+  type: "journal"
+new_dois:
+  - "10.1108/jfrc-11-2024-0218"
+  - "10.1111/1475-679x.12560"
 ---
 
 ## CORE
@@ -90,7 +104,7 @@ peer_compete_idx 系列量化的是「某银行在某年被新闻媒体同篇报
 关于 peer_maps 本身如何按 cutoff 分层构建: LLM 对每个 (bank, year) 单元输出的候选同行名单是自由文本 (可能含简称、全称、异体字), 需经归一化管道 (_normalize_peer_names) 映射到 bank_names.json 规范名。该归一化管道明确披露 (源码 fix omni-g-llm-peer-04): 原有的策略 4 (difflib.get_close_matches 模糊串匹配, 以 cutoff 控制匹配严格度) 已被移除并替换为策略 4' OOV 拒绝 (不在规范名册中的候选一律丢弃, 不再吸附到最相近在册银行, 因其曾把政策性银行"中国农业发展银行"误配为"中国农业银行")。现行有效策略仅剩策略 1 精确匹配、策略 2 变体映射 (处理"工行"→"中国工商银行"等简称)、策略 3 唯一子串包含 (命中 >1 家规范名视为歧义泛称直接拒绝), 三者均不消费 cutoff 参数。源码 disclosure (omni-g-llm-peer-05) 因此明确指出: cutoff 五档"原仅作用于已移除的策略 4 difflib 兜底", 现行五档后缀列"结构性逐位相同", 保留仅为 Stata schema 兼容, 且"论文表注必须披露该灵敏度维度无识别变差"。无后缀 peer_compete_idx 并非独立计算, 而是在循环内当 c == 0.80 时把该单元的值原样复制一份, 即 peer_compete_idx ≡ peer_compete_idx_80, 是本家族的 canonical (默认) 口径, 对应 export.py 面板标签 "Peer Competition Index (0.80)"。
 
 【文献定位】
-本家族"用新闻共现构造同行暴露"这一构造范式的直接文献支撑来自 Ge, Li & Zheng (2025, Journal of Banking & Finance): 该文在中国资本市场语境下证明新闻共同提及现象携带可预测的关联效应与动量外溢信息, 是 co_mentioned_banks 字段被赋予经济含义的最贴近文献锚。Schwenkler & Zheng (2025, Journal of Corporate Finance) 在加密资产语境下的"新闻驱动同行联动"发现进一步佐证了这一构念的跨市场普适性, 说明新闻叙事本身 (不依赖公司基本面相似度) 足以驱动可观测的同行联动效应。在"同行"这一构念本身应如何界定的更广泛文献中, Lee, Ma & Wang (2015, Journal of Financial Economics) 用互联网协同搜索行为构造"搜索型同行"网络, 是另一支基于非静态行业代码信息源构造同行关系的代表性工作, 佐证了实证金融中"同行"存在多种数据驱动的替代定义方式, peer_compete_idx (基于新闻共现 + LLM 语义识别的交叉) 是这一谱系中面向中文财经新闻语境的一个具体实现。Grieser, Hadlock, LeSage & Zekhnini (2022, Journal of Financial Economics) 用网络方法研究同行公司财务政策的相互影响, 提供了"同行网络对公司决策产生实质性经济后果"这一背景论证。在同行效应 (peer effects) 更广泛的计量识别文献中, Leary & Roberts (2014, The Journal of Finance) 证明同行公司的资本结构决策会显著影响焦点公司自身的资本结构选择, 是最早系统检验同行效应存在性的代表性研究之一, 但需要特别说明: 该文的"同行效应"是分析端的因果识别设计 (用同行冲击作为工具变量估计政策外溢), 而 peer_compete_idx 只是一个描述性的暴露强度测度, 二者构念层级不同, Leary & Roberts (2014) 在本家族中的定位是方法论对照锚, 提醒读者 peer_compete_idx 本身不构成同行效应的因果证据。Bramoullé, Djebbari & Fortin (2020, Annual Review of Economics) 对同行效应网络识别的系统性综述进一步说明, 若要把"同行竞争暴露"提升为因果识别设计, 须借助独立的识别策略 (如本仓库另一族 LOO 同行工具变量 leave_one_out_peer_*_iv), 而非直接把 peer_compete_idx 代入因果推断框架。
+本家族"用新闻共现构造同行暴露"这一构造范式的直接文献支撑来自 Ge, Li & Zheng (2025, Journal of Banking & Finance): 该文在中国资本市场语境下证明新闻共同提及现象携带可预测的关联效应与动量外溢信息, 是 co_mentioned_banks 字段被赋予经济含义的最贴近文献锚。Schwenkler & Zheng (2025, Journal of Corporate Finance) 在加密资产语境下的"新闻驱动同行联动"发现进一步佐证了这一构念的跨市场普适性, 说明新闻叙事本身 (不依赖公司基本面相似度) 足以驱动可观测的同行联动效应。在"同行"这一构念本身应如何界定的更广泛文献中, Lee, Ma & Wang (2015, Journal of Financial Economics) 用互联网协同搜索行为构造"搜索型同行"网络, 是另一支基于非静态行业代码信息源构造同行关系的代表性工作, 佐证了实证金融中"同行"存在多种数据驱动的替代定义方式, peer_compete_idx (基于新闻共现 + LLM 语义识别的交叉) 是这一谱系中面向中文财经新闻语境的一个具体实现。Grieser, Hadlock, LeSage & Zekhnini (2022, Journal of Financial Economics) 用网络方法研究同行公司财务政策的相互影响, 提供了"同行网络对公司决策产生实质性经济后果"这一背景论证。在同行效应 (peer effects) 更广泛的计量识别文献中, Leary & Roberts (2014, The Journal of Finance) 证明同行公司的资本结构决策会显著影响焦点公司自身的资本结构选择, 是最早系统检验同行效应存在性的代表性研究之一, 但需要特别说明: 该文的"同行效应"是分析端的因果识别设计 (用同行冲击作为工具变量估计政策外溢), 而 peer_compete_idx 只是一个描述性的暴露强度测度, 二者构念层级不同, Leary & Roberts (2014) 在本家族中的定位是方法论对照锚, 提醒读者 peer_compete_idx 本身不构成同行效应的因果证据。Bramoullé, Djebbari & Fortin (2020, Annual Review of Economics) 对同行效应网络识别的系统性综述进一步说明, 若要把"同行竞争暴露"提升为因果识别设计, 须借助独立的识别策略 (如本仓库另一族 LOO 同行工具变量 leave_one_out_peer_*_iv), 而非直接把 peer_compete_idx 代入因果推断框架。Kakinuma & Likitratcharoen (2025, Journal of Financial Regulation and Compliance) 用文本挖掘方法从新闻语料构造银行业指数, 与本族用新闻共现构造银行同业暴露测度的文本挖掘方法学谱系相呼应。Xu (2024, Journal of Accounting Research) 研究财经记者社交网络对新闻报道偏向的影响, 为本族以新闻共同提及构造银行同业竞争暴露指数提供了新闻网络结构如何塑造企业间报道关联的文献背景。
 
 peer_compete_idx 家族与本仓库其他"同行" (peer) 相关的族群构念边界分明、不可混同: leave_one_out_peer_*_iv 系列是留一法同行均值工具变量, 用于工具变量识别策略的排他性约束构造 (第一阶段回归的外生工具), 属于识别设计工具; llm_peer_coverage_iv / llm_peer_count 度量的是 LLM 同行查询本身的覆盖率与同行数目, 是工具有效性的辅助诊断; 而 peer_compete_idx 是一个纯描述性的、银行自身报道中同行共现频率的暴露测度, 不承担工具变量的排他性角色, 不应被单独用作因果识别的排他性约束来源。五个 cutoff 后缀列名义上各自独立、并排存在, 遵循本仓库梯子类测度的一般铁律: 各档口径互为稳健性、不分主次, 严禁把多个 cutoff 变体同时纳入同一个过度识别的 Hansen J 检验框架 (镜像本仓库三轨文本、co-primary 双轨嵌入、政治词权重梯度等既有梯子铁律)。但对本家族而言必须额外如实披露: 五档口径当前在归一化管道层面结构性相同 (无 difflib 兜底后, cutoff 不再影响归一化结果), 即该阈值维度暂不提供真实的识别变差, 使用者若要展示阈值敏感性稳健性, 应改为在最大同行数上限、单模型 vs 多模型合意、句子级 vs 全文级判据等其余维度上另行扫描, 而非依赖本家族五档列本身。
 
@@ -137,5 +151,7 @@ Grieser, W., Hadlock, C., LeSage, J., & Zekhnini, M. (2022). Network effects in 
 Lee, C. M. C., Ma, P., & Wang, C. C. Y. (2015). Search-based peer firms — Aggregating investor perceptions through internet co-searches. Journal of Financial Economics, 116(2), 410-431. https://doi.org/10.1016/j.jfineco.2015.02.003
 Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate financial policy?. The Journal of Finance, 69(1), 139-178. https://doi.org/10.1111/jofi.12094
 Bramoullé, Y., Djebbari, H., & Fortin, B. (2020). Peer effects in networks — A survey. Annual Review of Economics, 12, 603-629. https://doi.org/10.1146/annurev-economics-020320-033926
+Kakinuma, Y., & Likitratcharoen, D. (2025). Fintech-driven resilience amid pandemic: a text mining analysis of the banking industry with ESG dynamics. Journal of Financial Regulation and Compliance. https://doi.org/10.1108/jfrc-11-2024-0218
+Xu, G. (2024). News Bias in Financial Journalists' Social Networks. Journal of Accounting Research. https://doi.org/10.1111/1475-679x.12560
 <!-- rendered-citations:end -->
 </content>

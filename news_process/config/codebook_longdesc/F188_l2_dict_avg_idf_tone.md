@@ -120,7 +120,28 @@ citations:
   vol: 28
   issue: 1
   pages_or_artno: 11-21
-new_dois: []
+- doi: "10.1145/3649451"
+  title: "Financial Sentiment Analysis: Techniques and Applications"
+  authors: "Du, K., Xing, F., Mao, R., & Cambria, E."
+  year: 2024
+  venue: "ACM Computing Surveys"
+  type: "journal"
+- doi: "10.1002/isaf.1549"
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+  type: "journal"
+- doi: "10.1080/1351847X.2025.2476538"
+  title: "Predicting financial distress: the power of sentiment words in business plans"
+  authors: "Zhang, Z., Chi, G., Zhou, Y., & Liu, Y."
+  year: 2025
+  venue: "The European Journal of Finance"
+  type: "journal"
+new_dois:
+  - "10.1145/3649451"
+  - "10.1002/isaf.1549"
+  - "10.1080/1351847X.2025.2476538"
 ---
 
 ## CORE
@@ -132,7 +153,7 @@ new_dois: []
 逐词典 IDF 语调的文章级分子为「正情感词 IDF 权重之和减负情感词 IDF 权重之和」, 分母为「二者之和」, 因而落在约 [-1,1] 区间, 正值偏乐观、负值偏悲观; 该文章级归一化列在源码里名为 {d}_idf_score{track} (tone_words.py 的 idf_norm), 面板级同名 idf_tone 是它按 bank-year 取均值的结果。IDF 权重的思想可回溯到信息检索中的词特异性度量 (Spärck Jones 1972), 并在金融文本分析里由 Jegadeesh 与 Wu (2013) 的「词力量 (word power)」框架系统化, 用样本内文档频率反比给情感词赋权, 替代朴素等权计数。本家族把这一逐词典权重方案外推到六部词典的集成层: 先各词典自归一化算文章级 idf_score, 聚合为面板级 idf_tone, 再跨词典行均值 (_safe_mean 对缺列优雅返回 NaN, golden 重生前源列缺失不致崩)。三条文本轨 (full/ctx/ss)、四种文章级聚合权重 (等权、_vw、_mw、_hw)、两类分类子样本 (_tech/_app) 以及横截面标准化 (_z) 在此基础上正交派生, 每一维度都是对同一构念的规格稳健性探针, 而非新构念。
 
 【文献定位】
-IDF 加权语调坐落于会计与金融文本情感测量的方法学三角内。词典法的规范地位由 Loughran 与 McDonald (2011) 奠定, 他们证明通用心理学词表在金融语境下系统性误判, 领域专属词典不可或缺; 其后 Loughran 与 McDonald (2016) 的综述进一步把词权重、稀有度加权列为提升词典效度的关键工艺。Jegadeesh 与 Wu (2013, 发表于 Journal of Financial Economics) 是本家族 IDF 支柱最直接的顶刊锚: 他们提出以词的文档频率反比赋权来度量文本语气, 显著改善了语气对市场反应的解释力, 本家族的逐词典 idf_score 正是这一「词力量」思想在中文金融语料上的落地。媒体情感与市场之间的因果关联则由 Tetlock (2007, Journal of Finance) 奠基, 他用媒体悲观语气预测股市回报与成交量, 论证「谁在报道、报道语气如何」本身携带定价信息, 这一发现是本家族 _mw 媒体权威加权与 _hw 报道相关性加权族的思想源头之一。García、Hu 与 Rohrer (2023) 则从「金融词汇的色彩」角度提示情感词的信息价值随语境与稀有度漂移, 支持非等权方案。Frankel、Jennings 与 Lee (2022) 与 Algaba 等 (2020) 论证词典法、机器学习、计数法三者互为稳健、各有偏误, 呼应本项目让 IDF 语调与等权语调、BERT、LLM 投票并排互证的设计。就中文金融词典本身, Du 等 (2022) 与相关本土词典构造工作提供了六部词典的语义基座。⚠ 铁律: 本家族的三轨、四加权、两分类子样本、标准化各自 just-identified 并排, 互为稳健性、不分主次, 严禁把任意两个后缀变体混入同一 over-identified Hansen J 过度识别检验。留篇门控口径与 full-only (2026-06-29) 一致: 一篇报道是否计入银行—金科新闻宇宙只看 full 轨 llm_verified_full, ctx/ss 为 conditional-on-full 的稳健轨。
+IDF 加权语调坐落于会计与金融文本情感测量的方法学三角内。词典法的规范地位由 Loughran 与 McDonald (2011) 奠定, 他们证明通用心理学词表在金融语境下系统性误判, 领域专属词典不可或缺; 其后 Loughran 与 McDonald (2016) 的综述进一步把词权重、稀有度加权列为提升词典效度的关键工艺。Jegadeesh 与 Wu (2013, 发表于 Journal of Financial Economics) 是本家族 IDF 支柱最直接的顶刊锚: 他们提出以词的文档频率反比赋权来度量文本语气, 显著改善了语气对市场反应的解释力, 本家族的逐词典 idf_score 正是这一「词力量」思想在中文金融语料上的落地。媒体情感与市场之间的因果关联则由 Tetlock (2007, Journal of Finance) 奠基, 他用媒体悲观语气预测股市回报与成交量, 论证「谁在报道、报道语气如何」本身携带定价信息, 这一发现是本家族 _mw 媒体权威加权与 _hw 报道相关性加权族的思想源头之一。García、Hu 与 Rohrer (2023) 则从「金融词汇的色彩」角度提示情感词的信息价值随语境与稀有度漂移, 支持非等权方案。Frankel、Jennings 与 Lee (2022) 与 Algaba 等 (2020) 论证词典法、机器学习、计数法三者互为稳健、各有偏误, 呼应本项目让 IDF 语调与等权语调、BERT、LLM 投票并排互证的设计。就中文金融词典本身, Du 等 (2022) 与相关本土词典构造工作提供了六部词典的语义基座。Du、Xing、Mao 与 Cambria (2024, ACM Computing Surveys) 的综述系统梳理了金融情感分析中词典法、机器学习法及权重赋值方案 (含 IDF 类稀有度加权) 的方法学谱系, 为本家族逐词典 IDF 加权语调的构念定位提供了最新的方法学综述锚点。Todd、Bowden 与 Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 系统综述金融文本情感分析文献(含词典法与权重方案), 为词典 IDF 加权语调测度提供最新方法学综述锚点。Zhang、Chi、Zhou 与 Liu (2025, The European Journal of Finance) 提出对文本语调变量按其与财务困境关联度加权的机制, 支持情感词非等权赋值的构念动机, 且以中国上市公司语料为实证背景。⚠ 铁律: 本家族的三轨、四加权、两分类子样本、标准化各自 just-identified 并排, 互为稳健性、不分主次, 严禁把任意两个后缀变体混入同一 over-identified Hansen J 过度识别检验。留篇门控口径与 full-only (2026-06-29) 一致: 一篇报道是否计入银行—金科新闻宇宙只看 full 轨 llm_verified_full, ctx/ss 为 conditional-on-full 的稳健轨。
 
 ## VAR: dict_avg_idf_tone_app_ctx
 
@@ -277,4 +298,7 @@ Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis.
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Spärck Jones, K. (1972). A statistical interpretation of term specificity and its application in retrieval. Journal of Documentation, 28(1), 11-21. https://doi.org/10.1108/eb026526
+Du, K., Xing, F., Mao, R., & Cambria, E. (2024). Financial Sentiment Analysis: Techniques and Applications. ACM Computing Surveys. https://doi.org/10.1145/3649451
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
+Zhang, Z., Chi, G., Zhou, Y., & Liu, Y. (2025). Predicting financial distress: the power of sentiment words in business plans. The European Journal of Finance. https://doi.org/10.1080/1351847X.2025.2476538
 <!-- rendered-citations:end -->

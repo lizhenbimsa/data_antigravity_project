@@ -5,6 +5,7 @@ columns:
 - exc_loughran_score_advonly_full
 - exc_loughran_score_advonly_ss
 unit: 无量纲情感得分 (自归一化, 值域约 [-1, 1])
+novelty_exempt_rationale: "exc_(疑似退出覆盖媒体剔除)×advonly(转折规则单开)双重消融/排除变体家族, 测度定义依据母族 Loughran&McDonald 词典与规则消融梯度设计, 已有文献锚点覆盖, 非独立新构念, 无需追加新引文。"
 formula: "exc_loughran_score_advonly = 剔除疑似退出覆盖媒体 (confirmed ∪ suspected, 保守话题层面代理, 非严格停刊口径) 子集上, 仅启用转折(adversative)语言学规则的 loughran (L&M 2011 JF 中文主译) 词典打分聚合; 单篇 score = (pos_adv − neg_adv) / (pos_adv + neg_adv), 分子分母仅计入转折规则调整后的正/负情感词命中, 否定翻转与程度副词加权两条规则均关闭"
 producer: pipeline/panel/attention_media.py::detect_defacto_cessation (疑似退出覆盖媒体剔除 exc_ 子集聚合, 保守稳健性口径而非严格停刊判定; 上游单篇词典打分 pipeline/sentiment/tone_words.py::compute_dict_scores 的 advonly 消融变体)
 upstream:

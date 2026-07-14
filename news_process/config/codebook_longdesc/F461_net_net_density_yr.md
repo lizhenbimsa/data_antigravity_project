@@ -130,7 +130,28 @@ citations:
   vol: 1
   issue: 3
   pages_or_artno: 215-239
-new_dois: []
+- doi: "10.1016/j.najef.2024.102307"
+  title: "Text Spillover: Measuring connectedness of financial institutions based on news text data"
+  authors: "Klaucke, K."
+  year: 2025
+  venue: "The North American Journal of Economics and Finance"
+  type: "journal"
+- doi: "10.1057/s41599-025-04419-5"
+  title: "University digital media co-occurrence networks reveal structure and dynamics of brand visibility in the attention economy"
+  authors: "Petersen, A. M."
+  year: 2025
+  venue: "Humanities and Social Sciences Communications"
+  type: "journal"
+- doi: "10.1111/ijcs.13031"
+  title: "How to conduct a bibliometric content analysis: Guidelines and contributions of content co-occurrence or co-word literature reviews"
+  authors: "Klarin, A."
+  year: 2024
+  venue: "International Journal of Consumer Studies"
+  type: "journal"
+new_dois:
+- "10.1016/j.najef.2024.102307"
+- "10.1057/s41599-025-04419-5"
+- "10.1111/ijcs.13031"
 ---
 
 ## CORE
@@ -144,7 +165,7 @@ new_dois: []
 密度的度量哲学值得单独说明: 它是一个「关系已实现比例」量, 分子是被媒体实际激活的银行对数, 分母是理论上可能的银行对数 N(N-1)/2, 因此它对节点数 N 的变化极为敏感 — 当某年被报道的银行数骤增, 即便实际共现边数同比增长, 密度也可能因分母以平方阶膨胀而下降。这一「规模效应」意味着跨年比较密度水平时必须意识到, 密度下降未必代表舆论关联减弱, 也可能只是被纳入舆论场的银行更多、网络更大更稀。正因如此, 密度在实证中更宜作为控制或调节变量吸收年度舆论环境, 而非作为需要给出结构解释的因变量; 若要刻画「关联强度」而非「关联比例」, 应转向不受分母平方膨胀影响的加权强度类测度。
 
 【文献定位】
-网络密度作为结构描述量, 其方法学根基可追溯至社会网络分析对中心与结构的经典厘清, Freeman (1978) 对中心性概念的澄清奠定了从图论量刻画社会结构的范式, 而 Watts 与 Strogatz (1998) 关于小世界网络的工作则把聚类与路径这类宏观拓扑量引入对真实网络疏密与凝聚形态的刻画, 密度与聚类系数正是描述这类形态最基础的一对量。在把网络结构接入经济金融实证的脉络上, Bramoullé、Djebbari 与 Fortin (2009) 及其后续综述 (Bramoullé 等, 2020) 系统论证了如何借助社会网络结构识别同群效应, Manski (1993) 的反射问题则界定了这类识别的根本困难; Boucher 等 (2024) 进一步给出同群效应的一般化理论。金融网络与系统性风险方向, Jackson 与 Pernoud (2021) 的综述梳理了网络拓扑如何放大或抑制冲击传染; Grieser 等 (2022) 记录了企业财务政策中的网络效应; Gao、Ru 与 Yang (2022) 揭示了所有权网络在银行信贷中的信息角色。就以银行为节点、以媒体共现为纽带这一具体设定而言, Li 等 (2026) 展示了如何从文本风险披露中还原金融网络结构与连通性, 与本家族「从新闻共现构造银行网络」的思路直接呼应; Nezami、Chisam 与 Palmatier (2025) 的元分析则提醒网络位置与绩效的关系存在情境依赖, 不宜简单外推。资产定价一侧, Yu、Hu 与 Zhong (2024) 以及 Xu 与 Zhao (2024) 论证了网络中心度与信息扩散、资产价格之间的联系。这些文献共同界定了 net_density_yr 的读法: 它是一个媒体注意力共现网络的宏观疏密指标, 可作为刻画舆论关联环境的年度背景控制或调节变量, 而非因果处理变量本身。进一步看, 从文本共现构造经济网络这一方法论传统, 一端连接以文本相似度刻画产业网络的做法, 另一端连接以新闻社交扩散刻画信息传播的做法; 本家族选择「同一篇报道共同提及」作为最小关联单元, 是这一传统在银行舆论场景下的具体化。de Paula、Rasul 与 Souza (2024) 关于从面板数据识别网络连边的工作, 从计量角度提示: 当网络本身是从观测数据 (此处为媒体共现) 推断而来时, 连边的构造判据本身就是一个需要做敏感性检验的设定选择 — 这正是本家族设三判据变体的方法论依据。系统性风险与传染文献 (Jackson 与 Pernoud, 2021) 则从反面界定了本测度的边界: 密度虽可作为舆论关联环境的概括, 但媒体共现网的稠密不等于真实敞口网的稠密, 后者才是传染动力学的载体; 把二者混淆会误导对系统风险的判断。综合而言, 密度在本项目中的合法读法是「年度舆论共现环境的宏观强度」, 其解释力止步于媒体注意力层面。
+网络密度作为结构描述量, 其方法学根基可追溯至社会网络分析对中心与结构的经典厘清, Freeman (1978) 对中心性概念的澄清奠定了从图论量刻画社会结构的范式, 而 Watts 与 Strogatz (1998) 关于小世界网络的工作则把聚类与路径这类宏观拓扑量引入对真实网络疏密与凝聚形态的刻画, 密度与聚类系数正是描述这类形态最基础的一对量。在把网络结构接入经济金融实证的脉络上, Bramoullé、Djebbari 与 Fortin (2009) 及其后续综述 (Bramoullé 等, 2020) 系统论证了如何借助社会网络结构识别同群效应, Manski (1993) 的反射问题则界定了这类识别的根本困难; Boucher 等 (2024) 进一步给出同群效应的一般化理论。金融网络与系统性风险方向, Jackson 与 Pernoud (2021) 的综述梳理了网络拓扑如何放大或抑制冲击传染; Grieser 等 (2022) 记录了企业财务政策中的网络效应; Gao、Ru 与 Yang (2022) 揭示了所有权网络在银行信贷中的信息角色。就以银行为节点、以媒体共现为纽带这一具体设定而言, Li 等 (2026) 展示了如何从文本风险披露中还原金融网络结构与连通性, 与本家族「从新闻共现构造银行网络」的思路直接呼应; Klaucke (2025, The North American Journal of Economics and Finance) 同样以新闻文本数据构造金融机构间的连通性 spillover 测度, 与本家族「从新闻共现构造银行网络密度」的思路直接呼应, 为文本共现网络的经济金融解读提供最新佐证; Petersen (2025, Humanities and Social Sciences Communications) 以大学数字媒体共现网络刻画品牌可见度的结构与动态, 验证了媒体共现构造网络密度这一操作化路径在注意力经济情境下同样成立; Klarin (2024, International Journal of Consumer Studies) 系统梳理以内容共现/共词构造网络并度量密度等结构指标的方法学准则, 为本家族以共现关系构造年度银行网络密度提供方法论佐证; Nezami、Chisam 与 Palmatier (2025) 的元分析则提醒网络位置与绩效的关系存在情境依赖, 不宜简单外推。资产定价一侧, Yu、Hu 与 Zhong (2024) 以及 Xu 与 Zhao (2024) 论证了网络中心度与信息扩散、资产价格之间的联系。这些文献共同界定了 net_density_yr 的读法: 它是一个媒体注意力共现网络的宏观疏密指标, 可作为刻画舆论关联环境的年度背景控制或调节变量, 而非因果处理变量本身。进一步看, 从文本共现构造经济网络这一方法论传统, 一端连接以文本相似度刻画产业网络的做法, 另一端连接以新闻社交扩散刻画信息传播的做法; 本家族选择「同一篇报道共同提及」作为最小关联单元, 是这一传统在银行舆论场景下的具体化。de Paula、Rasul 与 Souza (2024) 关于从面板数据识别网络连边的工作, 从计量角度提示: 当网络本身是从观测数据 (此处为媒体共现) 推断而来时, 连边的构造判据本身就是一个需要做敏感性检验的设定选择 — 这正是本家族设三判据变体的方法论依据。系统性风险与传染文献 (Jackson 与 Pernoud, 2021) 则从反面界定了本测度的边界: 密度虽可作为舆论关联环境的概括, 但媒体共现网的稠密不等于真实敞口网的稠密, 后者才是传染动力学的载体; 把二者混淆会误导对系统风险的判断。综合而言, 密度在本项目中的合法读法是「年度舆论共现环境的宏观强度」, 其解释力止步于媒体注意力层面。
 
 【识别策略定位】
 在识别框架中, net_density_yr 的定位是「网络环境背景量 / 调节变量」而非核心处理变量。它的年度广播特性决定了单独进入含年 FE 的主回归会被吸收, 因此它的识别用途主要有二: 其一, 作为不含年 FE 的规格里对整体舆论共现环境的控制, 吸收「某些年份银行普遍被一起讨论」这一宏观时变混杂; 其二, 与银行层处理变量交乘, 检验个体层效应是否随年度网络稠密程度而放大或衰减 — 这正契合同群效应文献 (Bramoullé 等, 2009, 2020; Boucher 等, 2024) 对网络结构调节个体互动强度的论证, 也回应 Manski (1993) 反射问题对内生互动识别的警示。判据敏感性构成本家族识别稳健性的主线: 同篇 (canonical)、±1 句窗 (_win1)、严格同句 (_sent) 三个判据变体是同一密度构念在「共现空间粒度」这一维度上的三种测量, 三者各自 just-identified 并排、互为稳健性、不分主次, 严禁把三判据变体混进同一个 over-identified 的 Hansen J 统计量。这里必须与三轨文本 (full/ctx/ss, 银行∧金融科技口径) 严格区分: 判据后缀刻画的是银行∧银行邻近的句法粒度, 与三轨文本后缀是两个正交的概念空间, 同样禁混同一 Hansen J。判据的 win_radius 取自 config/panel.yaml 的 network_criteria.win_radius (默认 1), 与 stage 13 银行∧金融科技共现过滤的 filtering.yaml::cooccurrence_filter.sentence_radius 是两个互不联动的不同键, 不可混用。
@@ -187,4 +208,7 @@ Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effect
 Newman, M. E. J., & Girvan, M. (2004). Finding and evaluating community structure in networks. Physical Review E, 69(2), 11339. https://doi.org/10.1103/PhysRevE.69.026113
 Watts, D. J., & Strogatz, S. H. (1998). Collective dynamics of 'small-world' networks. Nature, 393(6684), 440-442. https://doi.org/10.1038/30918
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
+Klaucke, K. (2025). Text Spillover: Measuring connectedness of financial institutions based on news text data. The North American Journal of Economics and Finance. https://doi.org/10.1016/j.najef.2024.102307
+Petersen, A. M. (2025). University digital media co-occurrence networks reveal structure and dynamics of brand visibility in the attention economy. Humanities and Social Sciences Communications. https://doi.org/10.1057/s41599-025-04419-5
+Klarin, A. (2024). How to conduct a bibliometric content analysis: Guidelines and contributions of content co-occurrence or co-word literature reviews. International Journal of Consumer Studies. https://doi.org/10.1111/ijcs.13031
 <!-- rendered-citations:end -->

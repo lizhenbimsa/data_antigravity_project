@@ -194,8 +194,22 @@ citations:
   vol: 60
   issue: 3
   pages_or_artno: 531-542
+- doi: "10.1186/s40854-024-00675-7"
+  title: "Investor sentiment networks: mapping connectedness in DJIA stocks"
+  authors: "Nyakurukwa, K., & Seetharam, Y."
+  year: 2025
+  venue: "Financial Innovation"
+  type: "journal"
+- doi: "10.1145/3604237.3626862"
+  title: "Modeling Momentum Spillover with Economic Links Discovered from Financial Documents"
+  authors: "Chung, A., & Tanaka-Ishii, K."
+  year: 2023
+  venue: "Proceedings of the 4th ACM International Conference on AI in Finance (ICAIF '23)"
+  type: "wp"
 new_dois:
 - 10.1086/688176
+- "10.1186/s40854-024-00675-7"
+- "10.1145/3604237.3626862"
 ---
 
 ## CORE
@@ -207,7 +221,7 @@ new_dois:
 计算在 pipeline/panel/network_spillover.py 的步骤 7h-emb 完成, 单遍内核为 _compute_embedding_peer_network_pass, 本家族六列全部出自 w_track='full' 的两遍 (MAIN 与 _lg 各一遍)。流程分五步。第一步, 对每个观测年 t, 取滞后年 t-1 的文章级展开帧 df_exploded, 按 target_bank 分组, 把该行该年全部报道的标题与正文 (原始"标题"+"内容"列, 非 stage 14 物化文本) 以 docid 升序确定性排序后拼接成一份 bank-year 超级文档; 排序键缺 docid 时退用日期/标题, 保证拼接顺序不随上游行序漂移。第二步, 完整超级文档交统一嵌入引擎编码: 引擎按 cl100k 词表以 8191 token 上限切块, 逐块嵌入后做逐块 L2 归一的 token 加权 mean pooling; 这里刻意移除了历史实现的 8000 字符前缀截断 (fix omni-g-net-spill-02), 因为前缀截断只保留行序最先若干篇文章, 是非代表性样本。第三步, 每个嵌入 spec 用自己的模型独立编码自己的文本: MAIN spec 为 Qwen/Qwen3-Embedding-8B (硅基流动, 4096 维), _lg spec 为 text-embedding-3-large (yunwu, 3072 维); 余弦相似度维度无关, 两轨向量绝不混算, 维度由返回矩阵形状驱动。第四步, 对同年全部 n 家有文本银行的嵌入矩阵计算两两余弦相似度, 对角线置零 (自身不算同行); 再把负余弦 clip 为 0 (fix omni-g-net-spill-04) 后做行随机归一得到权重矩阵 W_emb — 若不 clip, 含负项的行做行和归一会产生负"权重", 加权均值语义被破坏, 行和分母甚至可被负项侵蚀至非正而静默产出 NaN 或符号翻转; clip 发生时留 loud 告警披露。第五步, 令滞后同业语调等于 W_emb(t-1) 与 tone(t-1) 的矩阵乘积, tone 取面板滞后年的 llm_vote_tone 列。此处有一个承重的缺失值口径 (fix NSP-1): 对缺 tone 的同行不做 fillna(0), 而是把它们同时从分子与分母中剔除 — 分母改为观测 tone 同行的权重和, 并据此重归一; 分母为 0 (该行无任何观测 tone 的同行) 时置 NaN。旧 fillna(0) 口径会把伪零注入分子而权重仍留在行和为 1 的分母里, 在生产 T=18 全量下 (缺 tone 同行也有真实新闻与权重) 使加权均值系统性向 0 衰减。滞后年无数据、当年有文本银行不足 2 家、或该年嵌入 miss/失败时整年跳过 (该年该列 NaN), miss 年份数在轨级汇总 loud 告警。嵌入调用经 data/processed/_llm_cache.db 缓存穿透, 缓存命中即零成本; NEWS_PROCESS_LLM_OFFLINE=1 时 miss 直接 raise 而非调 API, 保证离线可复现。语调输入侧须与全仓留篇门控口径一致: 自 2026-06-29 起, 一篇文章是否计为"银行金科报道"只看 llm_verified_full, ctx/ss 是 conditional-on-full 的测度轨, 其行宇宙为 full 留篇集的子集; 因此本家族 ctx/ss 后缀列的语调分量继承该门控。降级语义分两层: 嵌入模型层, MAIN 与 _lg 在 full-W 单元内 both-or-neither — 任一 spec 缺结果则本单元两族列同置 NaN, 不留单边孤儿列; W-轨单元层, full 单元失败不连坐 diag 单元 (per-W-轨独立降级, D8), 各单元独立尝试。补充两点承重细节。其一, 行随机归一的经济含义: 每行权重和为 1, 使输出是同行语调的凸组合而非规模量, 银行被多少家同业"包围"不改变量纲, 改变的只是权重在同行间的分配 — 报道话题越独特的银行, 其权重分布越均匀 (近邻不突出), 话题越同质的银行权重越向少数高相似同业集中。其二, 与 sim_mean 伴生列的关系: 同一遍计算顺手产出 bank_emb_sim_mean_lag1 (未 clip 真实余弦的去对角均值), 二者共享 sim_matrix 但语义正交 — sim_mean 是"我有多典型" (网络密度/位置), 本家族是"我的近邻在说什么" (加权语调水平); 回归中二者可同时进入, 分别吸收位置效应与环境效应。成本与播种口径: 每个 bank-year 超级文档 × 每个 spec 是一次付费嵌入调用 (超长文档分块则多次), 全部经缓存穿透, 生产 T=18 的播种费用按生产语料实测重估 (播种状态为 DEFERRED); 开发盘 T=2 下仅 2018 年存在滞后年 2017, 本家族有效值天然只覆盖单一年份截面, 属预期而非缺陷。
 
 【文献定位】
-本测度处在三支文献的交汇处。其一是文本网络文献: Hoberg 与 Phillips (2016) 确立了"以文本相似度内生定义同业网络"的范式, 本模块的贡献性替换是以大模型嵌入余弦取代 TF-IDF 余弦, 以捕获同义替换、话题级邻近等词面不重叠的深层语义关系; Rodriguez 与 Spirling (2022) 对嵌入方法在应用研究中"何时有效、何时失效"的系统评估为这一替换提供方法论边界, Amancio 等 (2025) 的近作亦证明嵌入可在统计意义上增强共现网络的结构信号。其二是同伴效应与网络计量文献: Manski (1993) 的反射问题指出同期同伴均值回归无法区分内生效应、外生 (情境) 效应与相关效应; Bramoulle、Djebbari 与 Fortin (2009) 证明在网络非完全传递 (存在朋友的朋友非朋友) 时可借网络结构识别内生同伴效应, Bramoulle 等 (2020) 与 Boucher 等 (2024) 分别给出该识别路线的综述与一般化理论。本测度显式采用 Manski (1993) 的滞后规避策略: W 与 tone 双双取 t-1, 使同期反射在构造层即被切断 — 注意是双滞后而非仅语调滞后, 网络本身也随文本年度重建, 避免"用未来的相似度加权过去的语调"这类时间口径错配; 代价是网络与语调共享同一滞后年信息集, 相关效应问题依旧 (见识别策略定位段)。其三是金融文本情感文献: Zheng 等 (2024) 证明嵌入空间中的情感演化信号对市场结果有预测内容, Aksoy-Yurdagul 等 (2026) 证明新闻情感存在跨期持续性 — 这正是滞后一期的同业语调仍具信息量、值得作为控制变量纳入的经验前提; Fang 等 (2024) 提供中国银行业媒体情感溢出的直接场景证据。嵌入模型侧的两条技术谱系恰好对应本家族的两条 co-primary 轨: canonical 轨的 Qwen3-Embedding (Zhang 等, 2025) 属"以大语言模型为底座训练嵌入"的路线, 其方法论前身见 Wang 等 (2024) 以大模型合成数据改进文本嵌入的工作; _lg 轨的 text-embedding-3-large 属对比预训练路线, 谱系起自 Neelakantan 等 (2022) 的文本与代码对比嵌入。两轨在训练数据、目标函数、参数规模与厂商上全面异质, 这正是把它们并置为互检双轨的价值所在。基准评估侧, Muennighoff 等 (2023) 的 MTEB 提供通用排名, Tang 与 Yang (2025) 的 FinMTEB 证明金融专域表现与通用排名并不完全同序 — 这一发现直接支持本仓"不押注单一模型、双轨并行"的设计。Steck 等 (2024) 对"嵌入余弦是否真的度量相似"的批判性分析则构成本测度已知局限的一部分, 见下文。
+本测度处在三支文献的交汇处。其一是文本网络文献: Hoberg 与 Phillips (2016) 确立了"以文本相似度内生定义同业网络"的范式, 本模块的贡献性替换是以大模型嵌入余弦取代 TF-IDF 余弦, 以捕获同义替换、话题级邻近等词面不重叠的深层语义关系; Rodriguez 与 Spirling (2022) 对嵌入方法在应用研究中"何时有效、何时失效"的系统评估为这一替换提供方法论边界, Amancio 等 (2025) 的近作亦证明嵌入可在统计意义上增强共现网络的结构信号。其二是同伴效应与网络计量文献: Manski (1993) 的反射问题指出同期同伴均值回归无法区分内生效应、外生 (情境) 效应与相关效应; Bramoulle、Djebbari 与 Fortin (2009) 证明在网络非完全传递 (存在朋友的朋友非朋友) 时可借网络结构识别内生同伴效应, Bramoulle 等 (2020) 与 Boucher 等 (2024) 分别给出该识别路线的综述与一般化理论。本测度显式采用 Manski (1993) 的滞后规避策略: W 与 tone 双双取 t-1, 使同期反射在构造层即被切断 — 注意是双滞后而非仅语调滞后, 网络本身也随文本年度重建, 避免"用未来的相似度加权过去的语调"这类时间口径错配; 代价是网络与语调共享同一滞后年信息集, 相关效应问题依旧 (见识别策略定位段)。其三是金融文本情感文献: Zheng 等 (2024) 证明嵌入空间中的情感演化信号对市场结果有预测内容, Aksoy-Yurdagul 等 (2026) 证明新闻情感存在跨期持续性 — 这正是滞后一期的同业语调仍具信息量、值得作为控制变量纳入的经验前提; Fang 等 (2024) 提供中国银行业媒体情感溢出的直接场景证据。嵌入模型侧的两条技术谱系恰好对应本家族的两条 co-primary 轨: canonical 轨的 Qwen3-Embedding (Zhang 等, 2025) 属"以大语言模型为底座训练嵌入"的路线, 其方法论前身见 Wang 等 (2024) 以大模型合成数据改进文本嵌入的工作; _lg 轨的 text-embedding-3-large 属对比预训练路线, 谱系起自 Neelakantan 等 (2022) 的文本与代码对比嵌入。两轨在训练数据、目标函数、参数规模与厂商上全面异质, 这正是把它们并置为互检双轨的价值所在。基准评估侧, Muennighoff 等 (2023) 的 MTEB 提供通用排名, Tang 与 Yang (2025) 的 FinMTEB 证明金融专域表现与通用排名并不完全同序 — 这一发现直接支持本仓"不押注单一模型、双轨并行"的设计。Steck 等 (2024) 对"嵌入余弦是否真的度量相似"的批判性分析则构成本测度已知局限的一部分, 见下文。Nyakurukwa 与 Seetharam (2025, Financial Innovation) 构建投资者情感网络刻画道琼斯成分股间的情感连通性与非对称传染, 为本家族"文本相似度加权同业情感溢出"构念提供情感网络方法论的最新期刊佐证。Chung 与 Tanaka-Ishii (2023, Proceedings of the 4th ACM International Conference on AI in Finance) 从财务文档 (年报/电话会议记录) 挖掘公司间经济联系网络并用图注意力网络建模动量溢出, 证明文档衍生网络优于传统行业分类, 呼应本家族以嵌入相似度替代固定行业分类构建同业网络的设计动机。
 
 【识别策略定位】
 本家族在识别链条中的角色定位是控制变量而非工具变量: 它吸收"同业情感环境"这一潜在混杂通道, 使银行自身语调 (或其他处理变量) 的系数不再搭载行业性情绪波动的便车。按 Manski (1993) 的经典三分, 同伴关联可来自内生效应 (同业语调直接影响本行结果)、情境效应 (同业特征影响本行结果) 与相关效应 (共同环境使彼此相似); 作为控制变量使用时无须区分三者 — 只要该列吸收了三种来源共同张成的混杂空间, 主处理变量的系数即得净化, 这也是它比"识别因果同伴效应"这一更强目标对假设要求宽松得多的原因。构造层的滞后一期只切断同期反射, 并不能排除相关效应 — 共同冲击若有持续性, 仍会同时驱动 t-1 年同业语调与 t 年结果; 因此使用建议是与年份固定效应 (吸收全行业共同冲击) 及银行固定效应联用, 并把本列与同族 industry_neg_shock_lag1 等等权 LOO 测度并列为规格稳健性。若研究目标是识别因果性同伴效应本身而非仅控制, 应转用本仓 IV 扩展族: 同组 leave-one-out 均值工具、广义 Bartik/shift-share 工具 (设计与诊断见 Borusyak、Hull 与 Jaravel, 2025) 与媒体来源 house-style 暴露工具是独立的列族与 2SLS 模板; granular IV (Gabaix 与 Koijen, 2024) 与网络结构识别 (Bramoulle 等, 2009) 是进一步的可选路线。口径铁律必须复述: 本家族横跨两条正交的稳健性维度 — 情感三轨 (full/ctx/ss) 与 co-primary 双轨嵌入 (canonical Qwen 与 _lg text-embedding-3-large), 两维度上的各变体均为互为稳健性、不分主次的并排测度, 每列各自进 just-identified 规格并排报告, 严禁把三轨或双轨嵌入变体混进同一个 over-identified 的 Hansen J 检验 — 它们是同一构念的替代测量而非满足排除约束的独立工具, 混用会把测量误差的相关性伪装成过度识别信息。同理, 本家族与 diag W-轨、与三判据网络指标之间也只做规格并排, 不做交叉合并。
@@ -271,4 +285,6 @@ Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous 
 Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate financial policy?. The Journal of Finance, 69(1), 139-178. https://doi.org/10.1111/jofi.12094
 Bramoulle, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effects through social networks. Journal of Econometrics, 150(1), 41-55. https://doi.org/10.1016/j.jeconom.2008.12.021
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. The Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
+Nyakurukwa, K., & Seetharam, Y. (2025). Investor sentiment networks: mapping connectedness in DJIA stocks. Financial Innovation. https://doi.org/10.1186/s40854-024-00675-7
+Chung, A., & Tanaka-Ishii, K. (2023). Modeling Momentum Spillover with Economic Links Discovered from Financial Documents. Proceedings of the 4th ACM International Conference on AI in Finance (ICAIF '23) [Working Paper]. https://doi.org/10.1145/3604237.3626862
 <!-- rendered-citations:end -->

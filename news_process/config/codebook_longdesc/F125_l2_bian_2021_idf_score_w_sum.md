@@ -55,7 +55,14 @@ citations:
   vol: 28
   issue: 1
   pages_or_artno: 11-21
-new_dois: []
+- doi: "10.1111/1911-3846.12825"
+  type: journal
+  authors: "Bochkay, K., Brown, S. V., Leone, A. J., & Tucker, J. W."
+  year: 2023
+  title: "Textual Analysis in Accounting: What's Next?"
+  venue: "Contemporary Accounting Research"
+new_dois:
+  - "10.1111/1911-3846.12825"
 ---
 
 ## CORE
@@ -67,7 +74,7 @@ new_dois: []
 计算分三层。第一层是词级 IDF 加权: 在 tone_words.build_idf_weights 中, 对全语料 (document-frequency 统计以 content_full 去重篇为文档单位) 求 raw_idf(w)=log₁₀(N/(1+df(w))), 再除以全词均值做归一化, 末以 P1/P99 Winsorize 截尾, 得到落在 22_idf_weights.json 的词级权重; _build_idf_weighted_dict 将 Bian2021 每个词的 ±1 基分乘以该词 IDF 权重, 生成 IDF 加权词典。第二层是篇章语调: _compute_sentiment_with_rules 在 IDF 加权词典上逐篇扫描, 施加否定翻转/程度副词/转折三条语言学规则并做归一化, 落为 bian_2021_idf_score{track}。第三层是价值加权与聚合: runner.py 步骤 3b 取提及密度 w=mention_density (缺失填 0), 逐篇算出 bian_2021_idf_score_w{track}=bian_2021_idf_score{track}×w; encode.py 的 build_aggregation_dict F2 块再在 bank-year × 轨内对该列做 'sum' 聚合, 得本家族三列。三条文本轨 (full/ctx/ss) 各自独立走完这条链路, 分子分母严格逐轨匹配, 不跨轨借用。IDF 的引入使高信息量的稀有情感词权重上升、遍布全语料的常见词权重下降, 呼应 text-as-data 中 tf-idf 词加权的方法学传统。
 
 【文献定位】
-方法学锚点有三条谱系。其一是词典法本身的效度与定位: Frankel, Jennings and Lee (2022) 在 Management Science 上系统比较了机器学习与词典法在披露情感度量上的表现, 论证了词典法在可解释、可复现与跨样本稳定上的价值, 为本项目并置 LLM/词典/BERT 三法互为稳健性提供了先例。其二是中文金融语域的专用词典: Bian et al. (2021) 是本家族底层词典的直接出处, 而 Du et al. (2022) 在 Review of Finance 上进一步论证了语言与领域专用性对中文金融情感度量的关键作用, 二者共同支撑"必须用财经语域词典而非通用词表"的选择。其三是词级加权的理论根据: Jegadeesh and Wu (2013) 在 Journal of Financial Economics 提出的 word power 思想说明不同词对文档语调的贡献并不均等, 而 Spärck Jones (1972) 关于词项特异性的经典统计解释则是 IDF 加权的原始出处。需强调的是, 三条文本轨 (full/ctx/ss) 在本族属规格稳健性并排: 各自 just-identified、互为稳健性不分主次, 严禁把不同轨的加权分子混进同一 over-identified 的 Hansen J 检验。留篇门控口径遵循 full-only (2026-06-29): 一篇报道是否被判为"银行金融科技报道"只看 full 轨的 llm_verified_full, ctx/ss 降为 conditional-on-full 的测度/稳健性轨, 其行宇宙是 full 留篇集的子集。
+方法学锚点有三条谱系。其一是词典法本身的效度与定位: Frankel, Jennings and Lee (2022) 在 Management Science 上系统比较了机器学习与词典法在披露情感度量上的表现, 论证了词典法在可解释、可复现与跨样本稳定上的价值, 为本项目并置 LLM/词典/BERT 三法互为稳健性提供了先例。其二是中文金融语域的专用词典: Bian et al. (2021) 是本家族底层词典的直接出处, 而 Du et al. (2022) 在 Review of Finance 上进一步论证了语言与领域专用性对中文金融情感度量的关键作用, 二者共同支撑"必须用财经语域词典而非通用词表"的选择。其三是词级加权的理论根据: Jegadeesh and Wu (2013) 在 Journal of Financial Economics 提出的 word power 思想说明不同词对文档语调的贡献并不均等, 而 Spärck Jones (1972) 关于词项特异性的经典统计解释则是 IDF 加权的原始出处。需强调的是, 三条文本轨 (full/ctx/ss) 在本族属规格稳健性并排: 各自 just-identified、互为稳健性不分主次, 严禁把不同轨的加权分子混进同一 over-identified 的 Hansen J 检验。留篇门控口径遵循 full-only (2026-06-29): 一篇报道是否被判为"银行金融科技报道"只看 full 轨的 llm_verified_full, ctx/ss 降为 conditional-on-full 的测度/稳健性轨, 其行宇宙是 full 留篇集的子集。此外, Bochkay, Brown, Leone and Tucker (2023, Contemporary Accounting Research) 系统综述了会计文本分析方法(含词典法情感度量及其权重设计)的现状与未来方向, 为本家族 IDF 加权词典与提及密度价值加权并置的方法学选择提供了近期综述性文献支撑。
 
 ## VAR: bian_2021_idf_score_w_sum_ctx
 
@@ -90,4 +97,5 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis. Journal of Financial Economics, 110(3), 712-729. https://doi.org/10.1016/j.jfineco.2013.08.018
 Spärck Jones, K. (1972). A statistical interpretation of term specificity and its application in retrieval. Journal of Documentation, 28(1), 11-21. https://doi.org/10.1108/eb026526
+Bochkay, K., Brown, S. V., Leone, A. J., & Tucker, J. W. (2023). Textual Analysis in Accounting: What's Next?. Contemporary Accounting Research. https://doi.org/10.1111/1911-3846.12825
 <!-- rendered-citations:end -->

@@ -1,5 +1,6 @@
 ---
 family_id: F134
+novelty_exempt_rationale: "该家族是 Bian et al. (2021) 词典情感分在 value-weighted (提及密度加权) 口径下的未归一聚合分子变体 (w_sum), 属于词典轨内部加权口径的技术衍生 (与等权 tone、mw、hw 并列的加权阶梯之一), 非独立新构念; 其测度定义的学术依据已由母族词典原始文献 Bian et al. (2021) 及既有词典法效度/比较文献覆盖, 无需为该加权变体单独追加新构念文献。"
 columns:
 - bian_2021_score_w_sum_ctx
 - bian_2021_score_w_sum_full

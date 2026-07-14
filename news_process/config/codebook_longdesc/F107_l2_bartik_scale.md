@@ -1,5 +1,6 @@
 ---
 family_id: F107
+novelty_exempt_rationale: "该家族是 Bartik shift-share 工具变量在「银行规模」维度上的份额分量, 与 bartik_type (主维度) 共享同一 compute_bartik_iv 计算内核, 仅 group_prefix 与分组映射不同, 属规格稳健性并排的技术变体, 非独立新构念, 其测度定义的学术依据已在 GPSS(2020)/Adão et al.(2019)/Borusyak et al.(2022,2025)/Bartik(1991) 等母族 Bartik 工具变量文献中给出。"
 columns:
 - bartik_scale_share_L
 - bartik_scale_share_M

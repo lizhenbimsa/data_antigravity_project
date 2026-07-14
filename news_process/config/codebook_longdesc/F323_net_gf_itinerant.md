@@ -175,7 +175,28 @@ citations:
   vol: 1
   issue: 3
   pages_or_artno: 215-239
-new_dois: []
+- doi: "10.1111/acfi.13091"
+  title: "How do co-shareholding networks affect negative media coverage? Evidence from China"
+  authors: "Wang, L., Hou, W., & Liu, Y."
+  year: 2023
+  venue: "Accounting & Finance"
+  type: "journal"
+- doi: "10.1287/mnsc.2023.4891"
+  title: "Analyst Coverage Networks and Corporate Financial Policies"
+  authors: "Gomes, A. R., Gopalan, R., Leary, M. T., & Marcet, F."
+  year: 2024
+  venue: "Management Science"
+  type: "journal"
+- doi: "10.1016/j.irfa.2023.102701"
+  title: "Brokers in beneficial ownership: A network approach"
+  authors: "Kostaris, K., & Andrikopoulos, A."
+  year: 2023
+  venue: "International Review of Financial Analysis"
+  type: "journal"
+new_dois:
+  - "10.1111/acfi.13091"
+  - "10.1287/mnsc.2023.4891"
+  - "10.1016/j.irfa.2023.102701"
 ---
 
 ## CORE
@@ -187,7 +208,7 @@ new_dois: []
 计算分三层: 建网、分组、数角色。第一层建网: 生产函数 compute_bank_network_centrality (pipeline/panel/network_spillover.py) 逐年调用 build_adjacency_matrix, 在篇章级展开帧 df_exploded 上按 docid 聚合, 取每篇文章内全部通过验证的目标银行集合, 对集合内每个无序银行对在对称邻接矩阵上各加一, 得到该年度的加权无向共现图; 这一 docid 聚合口径是 2026 年 6 月审计修复后的统一口径, 消除了旧实现中同篇文章双行重复计数与幻影边 (验证未通过的银行经 co_mentioned_banks 字段混入) 两类污染, 保证入网节点全部是 both-verified 银行。留篇的上游宇宙与 full-only 留篇门控口径 (2026-06-29) 一致: 是否算一篇银行金科报道只看 full 轨验证结果, 展开帧即在该门控之后生成。第二层分组: 巡回经纪的判定需要每个节点的群标签, 生产代码复用既有 SSOT 加载器 load_bank_group_maps (pipeline/panel/iv_did.py) 的银行类型映射, 将银行归入国有、股份、城商、农商、民营、外资、其他等所有制类型群; 分组是年不变的银行属性, 加载失败时全部 gf 列优雅置 NaN 而非报错。第三层数角色: 叶函数 _gould_fernandez_roles 对图中每个有分组的节点 i, 以确定性的字典序枚举其邻居中的无序对 {a, c}, 先执行经典 GF 铁律筛选, 即仅统计端点不直连的对 (a 与 c 之间无边, 甲方必须真的需要经过 i 才能到达丙方); 随后按三者群标签归类: 三者同群计入协调人, 两端同群且异于 i 计入巡回经纪人 (本家族), 两端中恰有一端与 i 同群计入守门人代表人合并类, 三群互异计入联络人; 任一端点分组缺失的对整对跳过。四个角色计数之和等于 gf_total, 该守恒关系由单元测试锁定。两处口径细节须特别说明。其一, 无向坍缩: Gould & Fernandez (1989) 的原始框架定义在有向网络上, 有五种角色, 但银行共现图严格无向, 每条二步路径与其逆向路径不可区分, 导致守门人 (信息流入群) 与代表人 (信息流出群) 两角色机械共线, 生产口径将其合并为 gf_gatekeeper_rep, 全家族落地为四个可区分角色加总计数五列; 巡回经纪角色本身在正逆两个方向上定义对称, 无向化不改变其语义, 这是本家族相对守门人族在口径上更干净的一点。其二, 端点不直连筛选的团投影鲁棒性: 新闻共现网络由文章级团投影生成, 一篇提及多家银行的文章会在这些银行间生成完全子图, 若不加筛选, 团内任意三元组都会被误计为经纪; 经典 GF 定义天然免疫这一膨胀, 因为团内所有端点对均直接相邻, 经纪计数恒为零, 只有跨文章拼接出的真实结构洞才产生非零计数。缺失值语义刻意区分两类: 节点自身分组缺失时置 NaN (不可计算), 节点有分组但无可用二步路径 (孤立点、邻居全部直连、邻居全部缺分组) 时置零 (真实零经纪), 下游回归须区分零经纪与未知, 该约定与 bank_constraint 等列一致。计算为纯整数计数, 无随机数、无谱分解、无浮点迭代, 逐位确定可复现, 不在面板九列 BLAS 浮点漂移排除集之内。判据维度上, 本家族随全部三十三个网络结构指标 (SSOT 为 network_spillover.NETWORK_METRIC_BASES 元组) 按银行与银行共现判据分三轨落列: 无后缀列为同篇判据 (canonical, 现行口径, 同一篇文章共同幸存即成边), _win1 列为正负一句窗判据, _sent 列为严格同句判据; 后两者在 docid 组内做句级文本重扫 (标题经 prepend_title 作为第零句参与扫描, 镜像 stage 13 的 match_in_title 口径), 节点全集与同篇判据一致, 仅边集依次收紧。判据原语复用 core/text/entity_context 的银行句位映射与句窗配对函数, 银行识别与 stage 11/13 共用同一否定与短名排除事实源, 禁用裸 AC 自动机以防涉农行业误匹配农行一类假阳性。窗宽读取 config/panel.yaml 下 network_criteria.win_radius (默认一), 与 config/filtering.yaml 下 cooccurrence_filter.sentence_radius (stage 13 银行与金科共现的过滤半径) 是两个互不联动的配置键, 不可混淆。判据后缀与三轨文本后缀 (_full/_ctx/_ss, 银行与金融科技共现口径) 属于两个正交的概念空间: 前者改变的是银行间成边的判据, 后者改变的是情感测度所依据的文本切片, 两者不交叉组合。
 
 【文献定位】
-本家族在文献坐标系中位于三条脉络的交点。第一条是结构社会学的经纪与结构洞传统: Freeman (1978) 厘清了中心度族系的概念边界并确立中介性作为独立构念, Burt (2004) 将结构洞位置与信息优势和创新产出连接, Gould & Fernandez (1989) 则贡献了本家族直接实现的角色分解代数; 方法论上的现代延伸如 Zádor et al. (2022) 提出加权归一化的 GF 测度, 说明原始计数口径的规模依赖问题已被方法文献正视, 本项目以原始计数落列并把规模调整留给回归规格 (年内标准化、控制度中心度), 与该文献的处理精神一致。第二条是金融网络与银行体系脉络: Jackson & Pernoud (2021) 综述了金融网络中系统性风险的结构决定因素, 强调网络位置异质性对传染与保险的双重作用; Wang, Zhang & Yang (2020) 刻画了中国担保网络在危机与刺激周期中的结构演化, Gao, Ru & Yang (2022) 证明所有权网络在中国银行信贷决策中承载真实信息; 这些研究共同确立了在中国银行体系内, 网络结构位置 (而非仅仅规模) 是风险与信息分析的一级变量。第三条是媒体网络与信息扩散脉络: Xu (2024) 证明财经记者社交网络的结构塑造新闻偏差, Yu, Hu & Zhong (2024) 证明网络中心度经由信息扩散通道影响资产定价, Han, Kim & Nanda (2024) 在机构经纪场景下识别出经纪网络对流动性供给的因果贡献。本家族把这三条脉络接到同一个可复现的面板测度上: 用媒体共现文本还原银行间信息网络 (脉络三的测量基底), 在其上计算社会学口径的经纪角色 (脉络一的构念), 服务于中国银行金融科技研究的结构异质性分析 (脉络二的应用场景)。
+本家族在文献坐标系中位于三条脉络的交点。第一条是结构社会学的经纪与结构洞传统: Freeman (1978) 厘清了中心度族系的概念边界并确立中介性作为独立构念, Burt (2004) 将结构洞位置与信息优势和创新产出连接, Gould & Fernandez (1989) 则贡献了本家族直接实现的角色分解代数; 方法论上的现代延伸如 Zádor et al. (2022) 提出加权归一化的 GF 测度, 说明原始计数口径的规模依赖问题已被方法文献正视, 本项目以原始计数落列并把规模调整留给回归规格 (年内标准化、控制度中心度), 与该文献的处理精神一致。第二条是金融网络与银行体系脉络: Jackson & Pernoud (2021) 综述了金融网络中系统性风险的结构决定因素, 强调网络位置异质性对传染与保险的双重作用; Wang, Zhang & Yang (2020) 刻画了中国担保网络在危机与刺激周期中的结构演化, Gao, Ru & Yang (2022) 证明所有权网络在中国银行信贷决策中承载真实信息; 这些研究共同确立了在中国银行体系内, 网络结构位置 (而非仅仅规模) 是风险与信息分析的一级变量。第三条是媒体网络与信息扩散脉络: Xu (2024) 证明财经记者社交网络的结构塑造新闻偏差, Yu, Hu & Zhong (2024) 证明网络中心度经由信息扩散通道影响资产定价, Han, Kim & Nanda (2024) 在机构经纪场景下识别出经纪网络对流动性供给的因果贡献。本家族把这三条脉络接到同一个可复现的面板测度上: 用媒体共现文本还原银行间信息网络 (脉络三的测量基底), 在其上计算社会学口径的经纪角色 (脉络一的构念), 服务于中国银行金融科技研究的结构异质性分析 (脉络二的应用场景)。同期中国场景的证据同样支持把网络结构位置而非仅中心度水平作为媒体信息环境的自变量: Wang, Hou & Liu (2023, Accounting & Finance) 证明企业共股东网络中的结构洞位置通过信息控制机制降低负面媒体报道, 说明结构位置本身承载独立于中心度的媒体信息含量, 为本家族按群构型细分经纪角色 (而非仅报告一个笼统的中心度水平) 的构念取向提供了同期中国场景的实证支持。分析师覆盖网络中的经纪中介地位通过信息中介机制传导同伴效应, 驱动企业融资政策的趋同, 为本家族用媒体共现网络刻画银行经纪角色的构念提供了方法论近邻证据 (Gomes, Gopalan, Leary, & Marcet, 2024, Management Science); 实益所有权网络中的经纪节点连接彼此不直接相连的股东与目标公司群体, 其结构位置显著影响被并购概率, 印证经纪角色测度对公司金融事件具有独立解释力 (Kostaris & Andrikopoulos, 2023, International Review of Financial Analysis)。
 
 【识别策略定位】
 本家族在计量框架中的定位是结构位置控制变量与异质性调节变量, 不是因果处理变量, 也不是工具变量。网络计量的根本困难自 Manski (1993) 的反射问题起就已明确: 同伴结果、同伴特征与共同冲击在线性均值模型中不可分, 而 Bramoullé, Djebbari & Fortin (2009) 证明网络结构本身 (非重叠邻域) 可以打破这一不可识别性, Bramoullé, Djebbari & Fortin (2020) 与 Boucher et al. (2024) 进一步系统化了网络内生性与效应异质性下的识别条件。这些结果对本家族的含义是双向的: 一方面, 共现网络的拓扑非平凡性 (巡回经纪计数非零恰恰要求存在非重叠邻域结构) 是网络工具策略的前提, 项目内 brokerage_network 论文规格以二阶同伴情感作为一阶同伴效应的工具, 正是 Bramoullé 式识别的应用, 本家族列在该规格中的角色是刻画哪些银行位于适合该识别策略的结构位置; 另一方面, 媒体共现网络是内生生成的, 媒体选择报道谁与谁同框本身可能被不可观测的银行质量或事件驱动 (Grieser et al. 2022 对公司金融网络效应中此类内生性的处理提供了参照), 故本家族列进入回归时应以银行固定效应吸收慢变结构位置、以年固定效应吸收网络整体规模漂移, 系数解释为年内相对经纪地位变动的条件关联, 不宜作因果读数。节点级计数逐银行逐年变动, 与年固定效应相容 (这一点与年内恒定、会被年固定效应吸收的 net 级列如 net_density_yr 不同)。判据梯子的计量纪律遵循全仓铁律: 同篇、句窗、同句三个判据变体各自 just-identified 并排进入各自的回归, 三者互为稳健性、不分主次, 禁止把多个判据变体混进同一个 over-identified 的 Hansen J 检验; 该铁律同样约束三轨文本 (full/ctx/ss)、co-primary 双轨嵌入及各类梯子, 因为这些变体测量的是同一构念的替代口径, 联合过度识别检验会把口径差异误读为工具无效。判据族属于规格稳健性并排 (镜像政治词权重与词典消融先例), 不设跨判据的 FWER 模板, 因为跨模型 rwolf 先例仅覆盖同构念替代 headline 测量的情形。
@@ -233,4 +254,7 @@ Burt, R. S. (2004). Structural holes and good ideas. American Journal of Sociolo
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
 Gould, R. V., & Fernandez, R. M. (1989). Structures of mediation: A formal approach to brokerage in transaction networks. Sociological Methodology, 19, 89-126. https://doi.org/10.2307/270949
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
+Wang, L., Hou, W., & Liu, Y. (2023). How do co-shareholding networks affect negative media coverage? Evidence from China. Accounting & Finance. https://doi.org/10.1111/acfi.13091
+Gomes, A. R., Gopalan, R., Leary, M. T., & Marcet, F. (2024). Analyst Coverage Networks and Corporate Financial Policies. Management Science. https://doi.org/10.1287/mnsc.2023.4891
+Kostaris, K., & Andrikopoulos, A. (2023). Brokers in beneficial ownership: A network approach. International Review of Financial Analysis. https://doi.org/10.1016/j.irfa.2023.102701
 <!-- rendered-citations:end -->

@@ -17,7 +17,21 @@ citations:
 - {doi: "10.1086/688176", type: journal, authors: "Hoberg, G., & Phillips, G.", year: 2016, title: "Text-based network industries and endogenous product differentiation", venue: "Journal of Political Economy", vol: "124", issue: "5", pages_or_artno: "1423-1465"}
 - {doi: "10.1002/smj.2978", type: journal, authors: "Haans, R. F. J.", year: 2019, title: "What's the value of being different when everyone is? The effects of distinctiveness on performance in homogeneous versus heterogeneous categories", venue: "Strategic Management Journal", vol: "40", issue: "1", pages_or_artno: "3-27"}
 - {doi: "10.1257/jel.20181020", type: journal, authors: "Gentzkow, M., Kelly, B., & Taddy, M.", year: 2019, title: "Text as data", venue: "Journal of Economic Literature", vol: "57", issue: "3", pages_or_artno: "535-574"}
-new_dois: []
+- doi: "10.1287/mnsc.2023.00282"
+  title: "Position and Differentiation of Firms in Technology Space"
+  authors: "Arts, S., Cassiman, B., & Hou, J."
+  year: 2023
+  venue: "Management Science"
+  type: "journal"
+- doi: "10.1016/j.econlet.2024.111823"
+  title: "Textual similarity between firm and government: Measurement and pricing"
+  authors: "Liu, Y., Cao, Z., & Wen, F."
+  year: 2024
+  venue: "Economics Letters"
+  type: "journal"
+new_dois:
+  - "10.1287/mnsc.2023.00282"
+  - "10.1016/j.econlet.2024.111823"
 ---
 
 ## CORE
@@ -29,7 +43,7 @@ new_dois: []
 计算管线四步, 与家族内 `strat_diff_n{N}`/`centroid_diff_*` 等最近邻/质心类姊妹列的实现路径完全不同 (不共享检索基础设施)。第一步, 银行-年文档聚合。`_aggregate_bank_year_texts` 把每家目标银行同一年份内全部报道的文本拼接聚合为单一文档 N_{i,t}, 计算单元自此就是"银行-年"而非"文章", 全流程不存在文章级 sim(i) 再取均值的步骤。第二步, 两期联合向量化。对每个 t 期, 同时取 t-1 期的银行-年文档集合, 用二者的并集联合拟合一个 TF-IDF 向量化器: 默认字符级轨 (无 `_w` 后缀) 用 char_wb n-gram(2,4) 编码; `_w` 后缀轨改用注入 1506 个金科领域词的独立 jieba 分词器做词级 (word) TF-IDF 向量化, 使"金融科技""区块链"等领域复合词整词保留而不被字符切碎, 该口径自 2026-06-21 起对全部 `*_w`/`*_lda` 列统一生效 (fix inject-fintech-word-lda); 拟合完成后对 t 期与 t-1 期文档向量分别做 L2 归一化。第三步, 构造市场变化向量。对 t 期内每家银行 i, 遍历除自身外同时出现在 t 期与 t-1 期的全部其余银行 j, 逐元素计算 |N_{j,t}−N_{j,t-1}| 并累加, 得到该行当期专属的市场变化向量 change_{i,t} (注意: change 向量本身不含银行 i 的信息, 是"其余全部同行"的变化合成)。第四步, 求余弦相似度。fluidity_{i,t} = dot(N_{i,t}, change_{i,t}) / (‖N_{i,t}‖·‖change_{i,t}‖); 分母为零 (change 向量全零, 即无任何同行在两期间发生文本变化) 时取 NaN; 首年 (无 t-1 期数据可比) 该年全部银行同样返回 NaN。三轨 full/ctx/ss 的差别只在第一步聚合前喂给聚合函数的原始文章文本来源不同 (详见各 VAR 节), 第二至四步的两期联合向量化/市场变化向量构造/余弦求值逻辑对三轨完全一致, 因此三轨可直接横向比较、互为稳健性检验而非彼此替代。值域方面, TF-IDF 向量与由其逐元素绝对差累加而成的 change 向量均为非负, 二者余弦相似度理论落在 [0,1], 不涉及 embedding 轨 [-1,1] 的负值问题, 但这一非负结论建立在"两个参与内积的向量均非负"这一 TF-IDF 输入前提上, 而非"相似度均值天然落域"式的经验凑数论证。
 
 【文献定位】
-本家族方法学谱系有三层, 且 fluidity 一列与家族内最近邻/质心类姊妹列在方法学出处上分属不同层次, 不应混同。底层且唯一直接支撑本列公式的文献是 Hoberg, Phillips & Prabhala (2014) 的产品市场流动性构念与 Eq.2 计算式本身, 其原始设计用于解释企业支付政策与财务灵活性受产品市场威胁驱动的机制, 本列是该 Eq.2 公式从企业 10-K 语料到银行金科新闻语料的直接迁移复刻, 而非另起炉灶的近似替代算法。第二层是本家族内其余最近邻类列 (`strat_diff_n{N}` 系列) 所依据的方法学出处 Guzman & Li (2023, Management Science)——其"Measuring Founding Strategy"一文用 TF-IDF 最近邻相似度衡量创业策略的独特性/趋同性, 为家族内 Top-N 检索类列 (含 2026-07-02 起的大邻域 N∈{10,20,30,40,50} 孪生) 提供方法学模板, 但该文献与本 fluidity 一列的市场变化向量算法无直接方法学传承关系, 二者仅同属 strategic_diff 模块下"以文本相似度代理竞争定位"的共同技术家族, 不共享计算步骤。第三层是文本相似度用作产业/竞争测度的更早经典出处 Hoberg & Phillips (2016, Journal of Political Economy), 该文提出文本网络行业分类 (TNIC) 与内生产品差异化的框架, 是 HPP (2014) 之前的方法学奠基, 也是家族内 `strat_diff_n{N}`/`centroid_diff_*` 等姊妹列共同追溯的源头之一。此外, Haans (2019, Strategic Management Journal) 关于"差异化价值取决于同质/异质情境"的发现提醒使用者: 流动性得分的经济含义随竞争环境结构而变, 不能脱离行业背景做跨期简单比较; Gentzkow, Kelly & Taddy (2019, Journal of Economic Literature) 的文本即数据方法论综述则为本家族的 TF-IDF 整体技术路线提供了计量经济学框架层面的正当性论证。全部三轨/两分词轨口径均遵循 CLAUDE.md「当前状态铁律」: full/ctx/ss 三轨各自 just-identified 并排、互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 设定; char 与 word (`_w`) 两条分词轨同理互为稳健性检验, 二者共同构成本家族对"分词粒度是否驱动结论"的敏感性证据链, 而非哪一条更优先的取舍。
+本家族方法学谱系有三层, 且 fluidity 一列与家族内最近邻/质心类姊妹列在方法学出处上分属不同层次, 不应混同。底层且唯一直接支撑本列公式的文献是 Hoberg, Phillips & Prabhala (2014) 的产品市场流动性构念与 Eq.2 计算式本身, 其原始设计用于解释企业支付政策与财务灵活性受产品市场威胁驱动的机制, 本列是该 Eq.2 公式从企业 10-K 语料到银行金科新闻语料的直接迁移复刻, 而非另起炉灶的近似替代算法。第二层是本家族内其余最近邻类列 (`strat_diff_n{N}` 系列) 所依据的方法学出处 Guzman & Li (2023, Management Science)——其"Measuring Founding Strategy"一文用 TF-IDF 最近邻相似度衡量创业策略的独特性/趋同性, 为家族内 Top-N 检索类列 (含 2026-07-02 起的大邻域 N∈{10,20,30,40,50} 孪生) 提供方法学模板, 但该文献与本 fluidity 一列的市场变化向量算法无直接方法学传承关系, 二者仅同属 strategic_diff 模块下"以文本相似度代理竞争定位"的共同技术家族, 不共享计算步骤。第三层是文本相似度用作产业/竞争测度的更早经典出处 Hoberg & Phillips (2016, Journal of Political Economy), 该文提出文本网络行业分类 (TNIC) 与内生产品差异化的框架, 是 HPP (2014) 之前的方法学奠基, 也是家族内 `strat_diff_n{N}`/`centroid_diff_*` 等姊妹列共同追溯的源头之一。此外, Haans (2019, Strategic Management Journal) 关于"差异化价值取决于同质/异质情境"的发现提醒使用者: 流动性得分的经济含义随竞争环境结构而变, 不能脱离行业背景做跨期简单比较; Gentzkow, Kelly & Taddy (2019, Journal of Economic Literature) 的文本即数据方法论综述则为本家族的 TF-IDF 整体技术路线提供了计量经济学框架层面的正当性论证。Arts, Cassiman, & Hou (2023, Management Science) 该文用文本方法度量企业在技术空间中的相对位置与差异化程度, 为本家族以文本相似度/变化向量代理战略定位的方法论提供 2023 年后的最新同类实证支持。Liu, Cao, & Wen (2024, Economics Letters) 该文用 BERT 文本相似度量化企业文本与政府文本的对齐程度并检验其市场定价效应, 佐证文本相似度/变化度量作为经济主体战略/行为代理变量在 2024 年后仍是活跃的方法论路线。全部三轨/两分词轨口径均遵循 CLAUDE.md「当前状态铁律」: full/ctx/ss 三轨各自 just-identified 并排、互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 设定; char 与 word (`_w`) 两条分词轨同理互为稳健性检验, 二者共同构成本家族对"分词粒度是否驱动结论"的敏感性证据链, 而非哪一条更优先的取舍。
 
 ## VAR: strat_fluidity
 
@@ -66,4 +80,6 @@ Guzman, J., & Li, A. (2023). Measuring founding strategy. Management Science, 69
 Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous product differentiation. Journal of Political Economy, 124(5), 1423-1465. https://doi.org/10.1086/688176
 Haans, R. F. J. (2019). What's the value of being different when everyone is? The effects of distinctiveness on performance in homogeneous versus heterogeneous categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
+Arts, S., Cassiman, B., & Hou, J. (2023). Position and Differentiation of Firms in Technology Space. Management Science. https://doi.org/10.1287/mnsc.2023.00282
+Liu, Y., Cao, Z., & Wen, F. (2024). Textual similarity between firm and government: Measurement and pricing. Economics Letters. https://doi.org/10.1016/j.econlet.2024.111823
 <!-- rendered-citations:end -->

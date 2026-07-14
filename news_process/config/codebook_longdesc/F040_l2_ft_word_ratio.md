@@ -55,7 +55,28 @@ citations:
   vol: 17
   issue: 2
   pages_or_artno: 94-100
-new_dois: []
+- doi: "10.1016/j.irfa.2025.104121"
+  type: journal
+  authors: "Fengler, M. R., & Phan, T. M."
+  year: 2025
+  title: "Unveiling themes in 10-K disclosures: A new topic modeling perspective"
+  venue: "International Review of Financial Analysis"
+- doi: "10.1016/j.jcae.2023.100395"
+  type: journal
+  authors: "Yu, X., & Zhao, L."
+  year: 2024
+  title: "Textual disclosure complexity and analysts' weighting of information"
+  venue: "Journal of Contemporary Accounting & Economics"
+- doi: "10.1287/mnsc.2024.05417"
+  type: journal
+  authors: "Siano, F."
+  year: 2025
+  title: "The News in Earnings Announcement Disclosures: Capturing Word Context Using LLM Methods"
+  venue: "Management Science"
+new_dois:
+  - "10.1016/j.irfa.2025.104121"
+  - "10.1016/j.jcae.2023.100395"
+  - "10.1287/mnsc.2024.05417"
 ---
 
 ## CORE
@@ -67,7 +88,7 @@ avg_ft_word_ratio 家族刻画的是"银行相关报道文本内部, 金融科�
 计算分两步, 严格遵循"先分后合 (compute-then-aggregate)"次序。第一步在篇章级: 对每一篇报道, 取上游 12_news_fintech 阶段产出的金科词命中总次数 fintech_total_count 作分子, 取 11_news_bank 阶段产出的文档长度 doc_length (= len(str(内容)), 即全文 内容 列的字符数) 作分母, 逐篇算出 _ft_word_ratio = fintech_total_count / doc_length; 当 doc_length 为 0 时置 NaN 以避免除零。第二步在 aggregate_panel() 中按 bank-year 分组聚合: avg_ft_word_ratio 取组内均值 (mean), avg_ft_word_ratio_std 取组内样本标准差 (std, pandas 默认 ddof=1)。这里的次序不可颠倒: 比率必须在 groupby 之前逐篇算好再取均值, 因为 mean(a/b) 一般不等于 mean(a)/mean(b) (Jensen 不等式); 若先把分子分母各自跨报道加总再相除, 得到的是"银行-年全体报道拼成一篇超级文档"的整体密度, 语义与"逐篇密度的集中趋势"不同, 且对长文档过度加权。源码注释 (encode.py L1370) 亦显式标注了这一 Jensen 陷阱。分母用字符数而非分词后词数, 是对中文文本免受分词器版本漂移影响的稳健选择——命中计数与长度口径都建立在原始 内容 列之上, 保证跨-run 确定性。
 
 【文献定位】
-本家族属于 text-as-data 计量传统里的"主题词频归一化"分支。以词频作为文本内容的可量化代理, 是内容分析的经典进路: Jegadeesh 与 Wu (2013) 的 word power 方法即以词频构造文本得分, 论证了词级计数在金融文本中的信息含量; Hansen、McMahon 与 Prat (2018) 在 FOMC 透明度研究中用计算语言学从文本频次里提取审议行为信号, 示范了"频次即行为强度代理"的识别逻辑。归一化环节则与词汇密度、type-token ratio 一脉相承: Covington 与 McFall (2010) 讨论了以文本长度对词汇计数做归一化时的口径问题, 提醒长度敏感性会污染未归一化的原始计数——这正是本家族坚持除以 doc_length 的动因。在词典与词汇口径的选择上, García、Hu 与 Rohrer (2023) 对金融词汇的信息色彩做了系统刻画, 支持"以特定主题词表逐词命中"这一测量前提。就中国媒体语料的构念效度而言, Piotroski、Wong 与 Zhang (2017) 揭示了中国上市公司新闻报道存在政治倾向与选择性, 提示本家族的密度读数须与情感、态度类测度分开解读: ft_word_ratio 只测"谈了多少金科", 不测"谈得好不好", 是纯粹的主题聚焦度而非语调。需强调本家族与 fintech_share 是两个不同构念: fintech_share 分母是 bank-year 去重后的报道篇数, 度量的是"多少比例的报道涉金科"(报道层面存在性占比); ft_word_ratio 分母是单篇字符长度, 度量的是"单篇内部金科着墨密度"(词汇层面强度), 两者互补而非替代, 不可混用。本家族无三轨 (full/ctx/ss) 分裂、无 co-primary 双轨嵌入、无阈值/权重梯子——它是单一 track-agnostic 的元数据密度测度, 因此不涉及"多轨并排各自 just-identified、禁混同一 over-identified Hansen J"的稳健性梯子口径; 其稳健性来自与 fintech_share、avg_ft_intensity (TF-IDF 加权技术重度) 等平行密度/强度族的构念三角互证。
+本家族属于 text-as-data 计量传统里的"主题词频归一化"分支。以词频作为文本内容的可量化代理, 是内容分析的经典进路: Jegadeesh 与 Wu (2013) 的 word power 方法即以词频构造文本得分, 论证了词级计数在金融文本中的信息含量; Hansen、McMahon 与 Prat (2018) 在 FOMC 透明度研究中用计算语言学从文本频次里提取审议行为信号, 示范了"频次即行为强度代理"的识别逻辑。归一化环节则与词汇密度、type-token ratio 一脉相承: Covington 与 McFall (2010) 讨论了以文本长度对词汇计数做归一化时的口径问题, 提醒长度敏感性会污染未归一化的原始计数——这正是本家族坚持除以 doc_length 的动因。在词典与词汇口径的选择上, García、Hu 与 Rohrer (2023) 对金融词汇的信息色彩做了系统刻画, 支持"以特定主题词表逐词命中"这一测量前提。就中国媒体语料的构念效度而言, Piotroski、Wong 与 Zhang (2017) 揭示了中国上市公司新闻报道存在政治倾向与选择性, 提示本家族的密度读数须与情感、态度类测度分开解读: ft_word_ratio 只测"谈了多少金科", 不测"谈得好不好", 是纯粹的主题聚焦度而非语调。Fengler 与 Phan (2025, International Review of Financial Analysis) 对 10-K 文本主题相对显著度按文档长度做归一化建模, 与本家族以字符数归一化金科词命中密度的先分后合口径构念相通, 进一步印证了主题词密度须经文档长度校正才可跨文档比较这一测量原则。Yu 与 Zhao (2024, Journal of Contemporary Accounting & Economics) 考察 10-K 文本复杂度对分析师信息加权的影响, 支持本家族以文本篇幅归一化主题密度以确保跨文档可比的测量前提; Siano (2025, Management Science) 用 LLM 方法从盈余公告文本中捕捉词语语境信息含量, 呼应本家族以词汇命中密度作为主题聚焦强度代理的测量逻辑。需强调本家族与 fintech_share 是两个不同构念: fintech_share 分母是 bank-year 去重后的报道篇数, 度量的是"多少比例的报道涉金科"(报道层面存在性占比); ft_word_ratio 分母是单篇字符长度, 度量的是"单篇内部金科着墨密度"(词汇层面强度), 两者互补而非替代, 不可混用。本家族无三轨 (full/ctx/ss) 分裂、无 co-primary 双轨嵌入、无阈值/权重梯子——它是单一 track-agnostic 的元数据密度测度, 因此不涉及"多轨并排各自 just-identified、禁混同一 over-identified Hansen J"的稳健性梯子口径; 其稳健性来自与 fintech_share、avg_ft_intensity (TF-IDF 加权技术重度) 等平行密度/强度族的构念三角互证。
 
 ## VAR: avg_ft_word_ratio
 
@@ -85,4 +106,7 @@ Hansen, S., McMahon, M., & Prat, A. (2018). Transparency and deliberation within
 Piotroski, J. D., Wong, T. J., & Zhang, T. (2017). Political bias in corporate news: The role of conglomeration reform in China. The Journal of Law and Economics, 60(1), 173-207. https://doi.org/10.1086/693096
 Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis. Journal of Financial Economics, 110(3), 712-729. https://doi.org/10.1016/j.jfineco.2013.08.018
 Covington, M. A., & McFall, J. D. (2010). Cutting the Gordian knot: The moving-average type-token ratio (MATTR). Journal of Quantitative Linguistics, 17(2), 94-100. https://doi.org/10.1080/09296171003643098
+Fengler, M. R., & Phan, T. M. (2025). Unveiling themes in 10-K disclosures: A new topic modeling perspective. International Review of Financial Analysis. https://doi.org/10.1016/j.irfa.2025.104121
+Yu, X., & Zhao, L. (2024). Textual disclosure complexity and analysts' weighting of information. Journal of Contemporary Accounting & Economics. https://doi.org/10.1016/j.jcae.2023.100395
+Siano, F. (2025). The News in Earnings Announcement Disclosures: Capturing Word Context Using LLM Methods. Management Science. https://doi.org/10.1287/mnsc.2024.05417
 <!-- rendered-citations:end -->

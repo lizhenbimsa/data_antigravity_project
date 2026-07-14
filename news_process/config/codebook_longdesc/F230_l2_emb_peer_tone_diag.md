@@ -5,6 +5,7 @@ columns:
 - emb_peer_tone_diag_lag1_lg_ctx
 - emb_peer_tone_diag_lag1_lg_ss
 - emb_peer_tone_diag_lag1_ss
+novelty_exempt_rationale: "该家族是 emb_peer_tone_lag1 同行语调外溢测度的 diag(对角轨)技术变体——仅改变权重矩阵 W 与语调的同轨对齐方式(W_ctx×tone_ctx / W_ss×tone_ss 替代历史 W_full 混合轨), 并非独立新构念, 其经济逻辑与测度定义已在母族(同行效应/嵌入相似度文献)及正文引文中给出依据, 无需为变体本身追加独立新颖文献。"
 unit: 语调得分 (连续, 约 [-1,1]; 银行-年层面的嵌入加权同行滞后语调)
 formula: "emb_peer_tone_diag_lag1_{trk} = Σ_j W_emb^{trk}(t-1)_{ij} · tone_j^{trk}(t-1); W_emb 由同轨超级文档嵌入的 cosine similarity 构造, 对角线置零 → 负值 clip 至 0 → row-stochastic 行归一化; trk ∈ {ctx, ss}, 嵌入模型 ∈ {Qwen3-Embedding-8B (MAIN), text-embedding-3-large (_lg)}"
 producer: news_process/pipeline/panel/network_spillover.py ; news_process/pipeline/panel/stata_export.py

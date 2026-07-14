@@ -55,7 +55,21 @@ citations:
   vol: '87'
   issue: '5'
   pages_or_artno: 537-580
-new_dois: []
+- doi: "10.1111/1467-8551.12879"
+  title: "FinTech Adoption and Corporate Greenwashing: A Technology Affordance Perspective"
+  authors: "Sun, Z., Liu, L., Johan, S., & Zhao, L."
+  year: 2024
+  venue: "British Journal of Management"
+  type: "journal"
+- doi: "10.1002/csr.70722"
+  title: "Symbolic Versus Substantive ESG Practices: A Systematic Review and Integrative Framework"
+  authors: "Ștefănescu, C. A., & Suciu, A. L."
+  year: 2026
+  venue: "Corporate Social Responsibility and Environmental Management"
+  type: "journal"
+new_dois:
+  - "10.1111/1467-8551.12879"
+  - "10.1002/csr.70722"
 ---
 
 ## CORE
@@ -65,7 +79,7 @@ subst_adopt_int_p50 家族刻画银行-年层面「实质性金融科技政策�
 【方法学与计算】
 上游两条测度链路各自独立产出原始变量: 词频/强度维度取 stage 15 (`fintech_intensity`) 产出的 Track B/int 连续强度分 `fintech_intensity_score`(与 Track A/kw 的裸关键词计数并列、互为稳健性, 详见姊妹家族 F518-F523 subst_adopt_kw_* 系列); 对齐维度取 stage 16 (`article_policy_alignment`) 产出的 `policy_cosine_sim{_ctx,_ss}`(文章嵌入向量与政策锚点文本嵌入向量的余弦相似度)。判据函数 `_classify_policy_quadrants` (runner.py) 对每篇文章分别在 freq 维和 sim 维上, 按年度(而非全样本)分位数阈值(P50=年内中位数)做高/低二分, 再取逻辑与得到"双高"指示 `_is_subst_{track}_p50`; 年度而非全样本分位是为了吸收金融科技话语整体随时间增长的长期趋势, 避免早期年份文章被系统性判为"低词频", 与本项目其它梯子(如政治词权重、词典消融)一样属于按年重估的相对判据而非绝对阈值。分类前置一道 measured 掩码: 仅当 sim 与 freq 同时非缺失(notna)的文章才参与二分类, 否则该文章的三个指示列(token/hidden/subst)全部记为 NaN 而非静默计为 0——这是 2026-06-11 的一处修复(commit note "omni-g-runner-03/g-runner-11"): 旧实现对 `NaN >= threshold` 求值时 pandas 返回 False, 会把 stage 15 三条优雅早退路径写出的全 NaN `policy_cosine_sim` 静默误判为"低对齐", 从而让全部高词频文章系统性地误落入 token_adopt 象限, 制造由零测量伪造出的非缺失面板值。修复后, 逐篇指示列在 groupby(bank, year).mean() 聚合为占比时, pandas 的 mean 会自动跳过 NaN, 使占比分母严格等于"已测量篇数"而非"全部篇数", 与 CLAUDE.md 铁律"无数据=未测量(NaN)非零"的口径(Allison 2001 §3 缺失值处理原则)保持一致——若一年内一家银行的对齐分与强度分全部未测量, 面板输出为 NaN 而非 0, 避免虚假拉低固定效应回归系数。三个占比列(token_adopt/hidden_adopt/subst_adopt)加总恰等于"已测量篇数中双高或单高的篇数占比", 不含双低象限, 因此三者之和一般 <1 (双低象限文章计入分母但不计入任一分子)。
 【文献定位】
-本家族与 P3 (bank_fintech_substance, 参照 W&Z/Fiss-Zajac 政策解耦框架) 论文主线直接对应, 是该论文实质-象征区分的核心文本测度层。象征性高声量、低实质对齐的现象在企业可持续披露文献中有大量平行证据: Bingler et al. (2022, Finance Research Letters; 2024, Journal of Banking & Finance) 用 ClimateBERT 证明企业气候披露文本存在系统性"廉价谈话"(cherry-picking)成分, 即披露声量与真实排放/举措改善脱钩; 本家族的 token_adopt(F551 起的 int 轨系列)即是该逻辑在银行金融科技语境下的对应测度。Gomber, Koch & Siering (2017, Journal of Business Economics) 对数字金融/金融科技研究的主题图谱与研究方向做了系统梳理, 是本项目金融科技话语域(bank-fintech discourse)整体研究定位的背景文献之一, 为"金融科技"这一话语场的边界与子主题构成提供了外部学术参照; 需要说明的是, 该文在本项目其它家族(如 locus 维度测度)中被用作更直接的构念出处, 本家族对它的引用范围仅限于金融科技话语域的一般性背景定位, 并非声称本列词频词典本身直接取自该文的主题分类。年度相对分位阈值设计参照本项目一贯的"梯子/轨"方法论惯例——凡涉及阈值切分, 各分位点 (P25/P50/P75, 对应家族 F512/F514/F516) 各自 just-identified 并排, 互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 检验。
+本家族与 P3 (bank_fintech_substance, 参照 W&Z/Fiss-Zajac 政策解耦框架) 论文主线直接对应, 是该论文实质-象征区分的核心文本测度层。象征性高声量、低实质对齐的现象在企业可持续披露文献中有大量平行证据: Bingler et al. (2022, Finance Research Letters; 2024, Journal of Banking & Finance) 用 ClimateBERT 证明企业气候披露文本存在系统性"廉价谈话"(cherry-picking)成分, 即披露声量与真实排放/举措改善脱钩; 本家族的 token_adopt(F551 起的 int 轨系列)即是该逻辑在银行金融科技语境下的对应测度。Gomber, Koch & Siering (2017, Journal of Business Economics) 对数字金融/金融科技研究的主题图谱与研究方向做了系统梳理, 是本项目金融科技话语域(bank-fintech discourse)整体研究定位的背景文献之一, 为"金融科技"这一话语场的边界与子主题构成提供了外部学术参照; 需要说明的是, 该文在本项目其它家族(如 locus 维度测度)中被用作更直接的构念出处, 本家族对它的引用范围仅限于金融科技话语域的一般性背景定位, 并非声称本列词频词典本身直接取自该文的主题分类。Sun, Liu, Johan & Zhao (2024, British Journal of Management) 该文从技术可供性视角研究金融科技采纳如何压缩企业漂绿(象征性合规)的操作空间, 为本家族"实质采纳 vs 象征采纳"的二分测度提供了金融科技语境下的最新实证平行证据。Ștefănescu & Suciu (2026, Corporate Social Responsibility and Environmental Management) 该文系统综述并提出整合框架, 梳理"象征性 vs 实质性"ESG实践区分的理论谱系与测度方法, 直接呼应本家族源自 Westphal & Zajac (1994)/Fiss & Zajac (2006) 的实质-象征二分构念在近期文献中的延续与再理论化。年度相对分位阈值设计参照本项目一贯的"梯子/轨"方法论惯例——凡涉及阈值切分, 各分位点 (P25/P50/P75, 对应家族 F512/F514/F516) 各自 just-identified 并排, 互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 检验。
 
 ## VAR: subst_adopt_int_p50
 
@@ -88,4 +102,6 @@ Fiss, P. C., & Zajac, E. J. (2006). The Symbolic Management of Strategic Change:
 Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2024). How cheap talk in climate disclosures relates to climate initiatives, corporate emissions, and reputation risk. Journal of Banking & Finance, 164, 107191. https://doi.org/10.1016/j.jbankfin.2024.107191
 Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022). Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures. Finance Research Letters, 47, 102776. https://doi.org/10.1016/j.frl.2022.102776
 Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital finance and FinTech: Current research and future research directions. Journal of Business Economics, 87(5), 537-580. https://doi.org/10.1007/s11573-017-0852-x
+Sun, Z., Liu, L., Johan, S., & Zhao, L. (2024). FinTech Adoption and Corporate Greenwashing: A Technology Affordance Perspective. British Journal of Management. https://doi.org/10.1111/1467-8551.12879
+Ștefănescu, C. A., & Suciu, A. L. (2026). Symbolic Versus Substantive ESG Practices: A Systematic Review and Integrative Framework. Corporate Social Responsibility and Environmental Management. https://doi.org/10.1002/csr.70722
 <!-- rendered-citations:end -->

@@ -162,7 +162,35 @@ citations:
   vol: 73
   issue: 4
   pages_or_artno: 1237-1282
-new_dois: []
+- doi: "10.1002/isaf.1549"
+  type: "journal"
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+- doi: "10.1016/j.ememar.2024.101234"
+  type: "journal"
+  authors: "Xu, Z., Hua, X., & Zhang, T."
+  year: 2025
+  title: "Does official media sentiment matter for the stock market? Evidence from China"
+  venue: "Emerging Markets Review"
+- doi: "10.1016/j.pacfin.2025.102717"
+  type: "journal"
+  authors: "Wang, D., Xin, L., Shen, X., & Wang, Y."
+  year: 2025
+  title: "Media sentiment fluctuations on exchange rate, managerial risk appetite and FX derivatives usage"
+  venue: "Pacific-Basin Finance Journal"
+- doi: "10.1016/j.iref.2025.104751"
+  type: "journal"
+  authors: "Wang, X., Ye, W., & Xu, G."
+  year: 2025
+  title: "Media tone disagreement and the cross-section of stock returns: Evidence from China"
+  venue: "International Review of Economics & Finance"
+new_dois:
+  - "10.1002/isaf.1549"
+  - "10.1016/j.ememar.2024.101234"
+  - "10.1016/j.pacfin.2025.102717"
+  - "10.1016/j.iref.2025.104751"
 ---
 
 ## CORE
@@ -180,7 +208,7 @@ new_dois: []
 本家族的三轨(full/ctx/ss)对应三种文本判定域, 均在 stage 14 ctx_materializer 物化为独立文本列并置回退标记。full 轨(content_full)= 标题 prepend 后拼接全文正文, 信息量最大但也最易混入与目标银行无关的语气噪声; ctx 轨(content_ctx)= 标题 prepend 后拼接目标实体上下文窗, 把语气判定聚焦到银行等实体附近的语境, 提升语气归因精度; ss 轨(content_ss)= 标题 prepend 后拼接"银行与金融科技词同句±N 窗"(半径由 config/filtering.yaml 的 context_window.ss_sentence_radius 控制, 默认 1), 最贴近"针对该银行金融科技活动"的语气。三轨判定的银行侧口径为否定加短名过滤, 金融科技侧为裸 AC 词表匹配。留篇门控为 full-only(2026-06-29): 一篇是否算银行金融科技报道只由 llm_verified_full == True 决定, 故 full 轨定义整个家族的行宇宙, ctx / ss 降为该宇宙内的 conditional-on-full 测度轨与稳健性轨, per-track 列仍按各自轨道分子分母独立计算, 绝不借用 full 轨分母。ss 轨回退语义镜像 ctx: 当某篇不存在银行与金融科技词的同句共现时, content_ss 优雅回退为全文正文并置 ss_is_fallback=True, 与 ctx 共享 n_articles 分母, 绝不静默清空; 若金融科技 AC 词表为空则回退标记全 True 优雅降级。三轨文本域宽窄不同, 是判定域这一维度上的规格稳健性并排, 而非同一测度的冗余副本。
 
 【文献定位】
-在测量学谱系上, 本家族属于词典/词表法一支, 与统计学习法(如 FinBERT 家族)和大模型投票法(stage 21 三家 LLM)构成三方互证的测量三角。Frankel et al. (2022) 与 van Atteveldt et al. (2021) 均实证指出词典法在披露文本与新闻文本上的信度与外部效度需以人工标注和机器学习法交叉校验, 本项目正是以此为据把词典轨、BERT 轨、LLM 轨并置而非单选; 词典法的独特价值在于它完全透明、可逐词复算、零 API 成本且确定性可复现, 因而适合充当昂贵 LLM 轨语气的确定性对照基准。Algaba et al. (2020) 对"情感计量学"方法论的综述, 为把多词典、多加权、多轨道视为一组规格稳健性并排提供了方法论支撑, 其核心主张是任何单一情感测度都携带构造选择的自由度, 唯有把这些自由度显式展开为并排的稳健性梯子才能证明主结论不被某一构造选择驱动。中文语境下, Du et al. (2022) 论证了金融情感词表的语言与领域专用性——英文金融词表直译到中文会系统性误判, 因为金融正负面表达在中文里高度依赖领域惯用语与政治语境; Ma et al. (2025) 进一步给出细粒度中文投资者情感词典 CN-FSD, 二者共同说明中文金融情感测度不宜照搬英文词表, 也印证本项目采用多部中文词表并排消融的必要性; 而 Barbaglia et al. (2025) 对经济文本的词典法给出跨语言的方法学范式, 说明词典法在经济新闻这一具体文本类型上仍具竞争力。媒体语气与资产定价的因果链条则可追溯至 Tetlock (2007) 关于媒体悲观语气预测股市短期下行与随后回归的经典发现, 该文奠定了"媒体语气是可定价信息"的实证传统; Holzman et al. (2023) 关于媒体情感需按媒体权威度加权方能反映市场纪律作用的证据, 正是本家族 _mw 轨的直接锚。银行×年语气聚合的操作口径参照 Marchetti et al. (2025) 对意大利银行融资条件媒体语气的银行年度聚合实践, 该文示范了如何把文章级语气按银行年折叠为可进入面板回归的暴露度量。语言学规则(否定翻转/程度副词/转折)的处理则依据 Taboada et al. (2011) 的词典法规则体系, 该文系统论证了否定、程度、转折三类语境算子对词典法情感准确度的边际贡献。金融科技创新的底层技术与应用场景两分, 落点判定依据 Gomber et al. (2018) 对金融科技创新力量的构念框架。
+在测量学谱系上, 本家族属于词典/词表法一支, 与统计学习法(如 FinBERT 家族)和大模型投票法(stage 21 三家 LLM)构成三方互证的测量三角。Frankel et al. (2022) 与 van Atteveldt et al. (2021) 均实证指出词典法在披露文本与新闻文本上的信度与外部效度需以人工标注和机器学习法交叉校验, 本项目正是以此为据把词典轨、BERT 轨、LLM 轨并置而非单选; 词典法的独特价值在于它完全透明、可逐词复算、零 API 成本且确定性可复现, 因而适合充当昂贵 LLM 轨语气的确定性对照基准。Algaba et al. (2020) 对"情感计量学"方法论的综述, 为把多词典、多加权、多轨道视为一组规格稳健性并排提供了方法论支撑, 其核心主张是任何单一情感测度都携带构造选择的自由度, 唯有把这些自由度显式展开为并排的稳健性梯子才能证明主结论不被某一构造选择驱动。中文语境下, Du et al. (2022) 论证了金融情感词表的语言与领域专用性——英文金融词表直译到中文会系统性误判, 因为金融正负面表达在中文里高度依赖领域惯用语与政治语境; Ma et al. (2025) 进一步给出细粒度中文投资者情感词典 CN-FSD, 二者共同说明中文金融情感测度不宜照搬英文词表, 也印证本项目采用多部中文词表并排消融的必要性; 而 Barbaglia et al. (2025) 对经济文本的词典法给出跨语言的方法学范式, 说明词典法在经济新闻这一具体文本类型上仍具竞争力。Todd, Bowden, & Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 系统综述金融文本情感分析的词典法、机器学习法与大模型法三条技术路线, 支撑本家族把词典轨与 LLM 轨、BERT 轨并置为测量三角的方法论定位; Xu, Hua, & Zhang (2025, Emerging Markets Review) 构建中国官方媒体情感指数并证实其对股市收益反转与交易行为的预测力, 印证本家族媒体权威加权轨(_mw)所依据的官媒/市场化媒体语气不等假设在中国语境下的现实相关性。Wang, Xin, Shen, & Wang (2025, Pacific-Basin Finance Journal) 基于中国3300万+条媒体报道用N-gram法构建汇率语气词典, 证实媒体语气波动通过管理层风险偏好影响企业外汇衍生品使用决策, 示范了大规模中文财经语料词典法语气构造的操作范式。Wang, Ye, & Xu (2025, International Review of Economics & Finance) 构造中国股市媒体语气分歧度量并证实其对横截面股票收益有显著负向解释力, 为本家族_std组内语气离散度变体度量"叙事分歧而非水平"的构念提供了直接的实证与方法学锚点。媒体语气与资产定价的因果链条则可追溯至 Tetlock (2007) 关于媒体悲观语气预测股市短期下行与随后回归的经典发现, 该文奠定了"媒体语气是可定价信息"的实证传统; Holzman et al. (2023) 关于媒体情感需按媒体权威度加权方能反映市场纪律作用的证据, 正是本家族 _mw 轨的直接锚。银行×年语气聚合的操作口径参照 Marchetti et al. (2025) 对意大利银行融资条件媒体语气的银行年度聚合实践, 该文示范了如何把文章级语气按银行年折叠为可进入面板回归的暴露度量。语言学规则(否定翻转/程度副词/转折)的处理则依据 Taboada et al. (2011) 的词典法规则体系, 该文系统论证了否定、程度、转折三类语境算子对词典法情感准确度的边际贡献。金融科技创新的底层技术与应用场景两分, 落点判定依据 Gomber et al. (2018) 对金融科技创新力量的构念框架。
 
 【识别策略定位】
 本家族在识别框架中通常充当处理变量(treatment)一侧的媒体叙事测度, 而非结果变量。canonical 列 you_2018_tone_full 与主线 P1 论文(bank_fintech_tone)共享的 llm_vote_tone_full 属于同一构念"银行金融科技报道语气"的不同测量实现, 二者互为构念替代测量; 词典轨的价值在于它是完全透明、可复算、零 API 成本的确定性测度, 可作为 LLM 轨语气的稳健性对照。由于本项目内所有情感测度都嵌入 IV 扩展框架(同组 LOO 均值、广义 Bartik、媒体来源 house-style 暴露三引擎), 本家族的各轨语气可作为被工具化的内生媒体叙事: 同组同侪的语气均值提供 leave-one-out 工具, 银行金融科技暴露的广义 Bartik 分解提供份额-冲击工具, 媒体来源的固有语气风格提供 house-style 暴露工具, 三条工具各自 just-identified 地为语气回归提供外生变异。须强调的是, 本家族的语气水平列(等权与三加权轨)度量的是媒体如何评价银行金融科技活动, 而非银行金融科技活动本身的强度或成效——后者由 fintech_intensity、attention、substance/locus/collab 等家族分别度量; 因此在因果链上, 本家族语气常被建模为银行金融科技暴露对某个财务或市场结果(如 funding_cost)传导的媒体中介渠道, 而非结果本身。这一定位决定了它在稳健性梯子里的角色: 语气水平的多重构造(词典/加权/轨道/落点)是对同一处理变量的多重测量, 用以证明处理效应不被语气测量口径驱动。须进一步区分处理变量与结果变量两套体系: 本家族语气属处理变量(treatment)一侧, 主线 P1 论文 bank_fintech_tone 的结果变量(如 funding_cost 等外部财务哨兵列)另行构造, 二者在因果图上分居箭头两端, 绝不可把语气水平当作被解释的成效结局。同侪同组的语气均值提供 leave-one-out 工具时, 须满足排他性约束——同组银行的媒体语气仅通过本行媒体叙事这一渠道影响本行结果, 而不经由其他直接渠道; 广义 Bartik 分解则把银行金融科技暴露拆为份额与冲击两部分, 以行业级冲击的外生性支撑识别; 媒体来源 house-style 暴露工具利用某银行报道所依赖的媒体组合的固有语气风格。三条工具各自 just-identified, 严禁把互为稳健性的多轨语气叠进同一 over-identified 的工具集合, 否则 Hansen J 过度识别检验将检验一个由构造自由度人为制造的伪约束。词典轨在此框架中的独特价值是它不依赖任何在线服务、逐位可复现, 因而可作为昂贵 LLM 语气工具化结果的确定性对照——若两种测量范式下的 IV 系数方向一致, 则识别结论不被语气测量范式驱动。
@@ -318,4 +346,8 @@ Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textua
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Romano, J. P., & Wolf, M. (2005). Stepwise multiple testing as formalized data snooping. Econometrica, 73(4), 1237-1282. https://doi.org/10.1111/j.1468-0262.2005.00615.x
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
+Xu, Z., Hua, X., & Zhang, T. (2025). Does official media sentiment matter for the stock market? Evidence from China. Emerging Markets Review. https://doi.org/10.1016/j.ememar.2024.101234
+Wang, D., Xin, L., Shen, X., & Wang, Y. (2025). Media sentiment fluctuations on exchange rate, managerial risk appetite and FX derivatives usage. Pacific-Basin Finance Journal. https://doi.org/10.1016/j.pacfin.2025.102717
+Wang, X., Ye, W., & Xu, G. (2025). Media tone disagreement and the cross-section of stock returns: Evidence from China. International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2025.104751
 <!-- rendered-citations:end -->

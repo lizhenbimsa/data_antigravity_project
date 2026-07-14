@@ -11,130 +11,151 @@ upstream:
   - 15_fintech_intensity.parquet (三轨文本 content_full/content_ctx/content_ss + 金科强度列)
   - 21_tone_llms.parquet (innovation_substantiveness_{full,ctx,ss} 三家投票分类)
 citations:
-  - doi: 10.1016/j.frl.2026.109684
-    type: journal
-    authors: Song, X., Hou, W., Ouyang, Z., & Hao, F.
-    year: 2026
-    title: "AI washing: Strategic disclosure and backlash"
-    venue: Finance Research Letters
-    vol: 95
-    pages_or_artno: 109684
-  - doi: 10.1287/mnsc.2024.07420
-    type: journal
-    authors: Giannetti, M., Jasova, M., Loumioti, M., & Mendicino, C.
-    year: 2026
-    title: "\"Glossy green\" banks: The disconnect between environmental disclosures and lending activities"
-    venue: Management Science
-  - doi: 10.1002/smj.70023
-    type: journal
-    authors: Carlson, N. A., & Burbano, V.
-    year: 2026
-    title: "The use of LLMs to annotate data in management research: Foundational guidelines and warnings"
-    venue: Strategic Management Journal
-  - doi: 10.1111/jofi.13412
-    type: journal
-    authors: Duchin, R., Gao, J., & Xu, Q.
-    year: 2025
-    title: "Sustainability or greenwashing: Evidence from the asset market for industrial pollution"
-    venue: The Journal of Finance
-  - doi: 10.1016/j.jbankfin.2024.107191
-    type: journal
-    authors: Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N.
-    year: 2024
-    title: "How cheap talk in climate disclosures relates to climate initiatives, corporate emissions, and reputation risk"
-    venue: Journal of Banking & Finance
-    vol: 164
-    pages_or_artno: 107191
-  - doi: 10.1287/stsc.2023.0188
-    type: journal
-    authors: Westphal, J. D.
-    year: 2023
-    title: "Systemic symbolic management, corporate social responsibility, and corporate purpose: A cautionary tale"
-    venue: Strategy Science
-    vol: 8
-    issue: 2
-    pages_or_artno: 221-232
-  - doi: 10.1073/pnas.2305016120
-    type: journal
-    authors: Gilardi, F., Alizadeh, M., & Kubli, M.
-    year: 2023
-    title: "ChatGPT outperforms crowd workers for text-annotation tasks"
-    venue: Proceedings of the National Academy of Sciences
-  - doi: 10.1016/j.frl.2022.102776
-    type: journal
-    authors: Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N.
-    year: 2022
-    title: "Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures"
-    venue: Finance Research Letters
-    vol: 47
-    pages_or_artno: 102776
-  - doi: 10.1257/jel.20181020
-    type: journal
-    authors: Gentzkow, M., Kelly, B., & Taddy, M.
-    year: 2019
-    title: "Text as data"
-    venue: Journal of Economic Literature
-  - doi: 10.1177/1536867X19830877
-    type: journal
-    authors: Roodman, D., Nielsen, M. Ø., MacKinnon, J. G., & Webb, M. D.
-    year: 2019
-    title: "Fast and wild: Bootstrap inference in Stata using boottest"
-    venue: The Stata Journal
-  - doi: 10.1111/jofi.12094
-    type: journal
-    authors: Leary, M. T., & Roberts, M. R.
-    year: 2014
-    title: "Do peer firms affect corporate financial policy?"
-    venue: The Journal of Finance
-  - doi: 10.1111/j.1468-0262.2005.00615.x
-    type: journal
-    authors: Romano, J. P., & Wolf, M.
-    year: 2005
-    title: "Stepwise multiple testing as formalized data snooping"
-    venue: Econometrica
-  - doi: 10.2307/2298123
-    type: journal
-    authors: Manski, C. F.
-    year: 1993
-    title: "Identification of endogenous social effects: The reflection problem"
-    venue: The Review of Economic Studies
-  - doi: 10.1287/orsc.2014.0949
-    type: journal
-    authors: Kim, E.-H., & Lyon, T. P.
-    year: 2015
-    title: "Greenwash vs. brownwash: Exaggeration and undue modesty in corporate sustainability disclosure"
-    venue: Organization Science
-    vol: 26
-    issue: 3
-    pages_or_artno: 705-723
-  - doi: 10.5465/amj.2006.23478255
-    type: journal
-    authors: Fiss, P. C., & Zajac, E. J.
-    year: 2006
-    title: "The symbolic management of strategic change: Sensegiving via framing and decoupling"
-    venue: Academy of Management Journal
-    vol: 49
-    issue: 6
-    pages_or_artno: 1173-1193
-  - doi: 10.2307/2393593
-    type: journal
-    authors: Westphal, J. D., & Zajac, E. J.
-    year: 1998
-    title: "The symbolic management of stockholders: Corporate governance reforms and shareholder reactions"
-    venue: Administrative Science Quarterly
-    vol: 43
-    issue: 1
-    pages_or_artno: 127-153
-  - doi: 10.2307/2393295
-    type: journal
-    authors: Westphal, J. D., & Zajac, E. J.
-    year: 1994
-    title: "Substance and symbolism in CEOs' long-term incentive plans"
-    venue: Administrative Science Quarterly
-    vol: 39
-    issue: 3
-    pages_or_artno: 367-390
-new_dois: []
+- doi: 10.1016/j.frl.2026.109684
+  type: journal
+  authors: Song, X., Hou, W., Ouyang, Z., & Hao, F.
+  year: 2026
+  title: "AI washing: Strategic disclosure and backlash"
+  venue: Finance Research Letters
+  vol: 95
+  pages_or_artno: 109684
+- doi: 10.1287/mnsc.2024.07420
+  type: journal
+  authors: Giannetti, M., Jasova, M., Loumioti, M., & Mendicino, C.
+  year: 2026
+  title: "\"Glossy green\" banks: The disconnect between environmental disclosures and lending activities"
+  venue: Management Science
+- doi: 10.1002/smj.70023
+  type: journal
+  authors: Carlson, N. A., & Burbano, V.
+  year: 2026
+  title: "The use of LLMs to annotate data in management research: Foundational guidelines and warnings"
+  venue: Strategic Management Journal
+- doi: 10.1111/jofi.13412
+  type: journal
+  authors: Duchin, R., Gao, J., & Xu, Q.
+  year: 2025
+  title: "Sustainability or greenwashing: Evidence from the asset market for industrial pollution"
+  venue: The Journal of Finance
+- doi: 10.1016/j.jbankfin.2024.107191
+  type: journal
+  authors: Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N.
+  year: 2024
+  title: "How cheap talk in climate disclosures relates to climate initiatives, corporate emissions, and reputation risk"
+  venue: Journal of Banking & Finance
+  vol: 164
+  pages_or_artno: 107191
+- doi: 10.1287/stsc.2023.0188
+  type: journal
+  authors: Westphal, J. D.
+  year: 2023
+  title: "Systemic symbolic management, corporate social responsibility, and corporate purpose: A cautionary tale"
+  venue: Strategy Science
+  vol: 8
+  issue: 2
+  pages_or_artno: 221-232
+- doi: 10.1073/pnas.2305016120
+  type: journal
+  authors: Gilardi, F., Alizadeh, M., & Kubli, M.
+  year: 2023
+  title: "ChatGPT outperforms crowd workers for text-annotation tasks"
+  venue: Proceedings of the National Academy of Sciences
+- doi: 10.1016/j.frl.2022.102776
+  type: journal
+  authors: Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N.
+  year: 2022
+  title: "Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures"
+  venue: Finance Research Letters
+  vol: 47
+  pages_or_artno: 102776
+- doi: 10.1257/jel.20181020
+  type: journal
+  authors: Gentzkow, M., Kelly, B., & Taddy, M.
+  year: 2019
+  title: "Text as data"
+  venue: Journal of Economic Literature
+- doi: 10.1177/1536867X19830877
+  type: journal
+  authors: Roodman, D., Nielsen, M. Ø., MacKinnon, J. G., & Webb, M. D.
+  year: 2019
+  title: "Fast and wild: Bootstrap inference in Stata using boottest"
+  venue: The Stata Journal
+- doi: 10.1111/jofi.12094
+  type: journal
+  authors: Leary, M. T., & Roberts, M. R.
+  year: 2014
+  title: "Do peer firms affect corporate financial policy?"
+  venue: The Journal of Finance
+- doi: 10.1111/j.1468-0262.2005.00615.x
+  type: journal
+  authors: Romano, J. P., & Wolf, M.
+  year: 2005
+  title: "Stepwise multiple testing as formalized data snooping"
+  venue: Econometrica
+- doi: 10.2307/2298123
+  type: journal
+  authors: Manski, C. F.
+  year: 1993
+  title: "Identification of endogenous social effects: The reflection problem"
+  venue: The Review of Economic Studies
+- doi: 10.1287/orsc.2014.0949
+  type: journal
+  authors: Kim, E.-H., & Lyon, T. P.
+  year: 2015
+  title: "Greenwash vs. brownwash: Exaggeration and undue modesty in corporate sustainability disclosure"
+  venue: Organization Science
+  vol: 26
+  issue: 3
+  pages_or_artno: 705-723
+- doi: 10.5465/amj.2006.23478255
+  type: journal
+  authors: Fiss, P. C., & Zajac, E. J.
+  year: 2006
+  title: "The symbolic management of strategic change: Sensegiving via framing and decoupling"
+  venue: Academy of Management Journal
+  vol: 49
+  issue: 6
+  pages_or_artno: 1173-1193
+- doi: 10.2307/2393593
+  type: journal
+  authors: Westphal, J. D., & Zajac, E. J.
+  year: 1998
+  title: "The symbolic management of stockholders: Corporate governance reforms and shareholder reactions"
+  venue: Administrative Science Quarterly
+  vol: 43
+  issue: 1
+  pages_or_artno: 127-153
+- doi: 10.2307/2393295
+  type: journal
+  authors: Westphal, J. D., & Zajac, E. J.
+  year: 1994
+  title: "Substance and symbolism in CEOs' long-term incentive plans"
+  venue: Administrative Science Quarterly
+  vol: 39
+  issue: 3
+  pages_or_artno: 367-390
+- doi: "10.1016/j.techsoc.2025.103145"
+  title: "Fake it till you make it: Digital washing and corporate innovation"
+  authors: "Zhou, H., Liu, Z., & Huang, C."
+  year: 2026
+  venue: "Technology in Society"
+  type: "journal"
+- doi: "10.3390/systems12060197"
+  title: "Symbolic or Substantive? The Effects of the Digital Transformation Process on Environmental Disclosure"
+  authors: "Ji, H., Sheng, S., & Wan, J."
+  year: 2024
+  venue: "Systems"
+  type: "journal"
+- doi: "10.1007/s10490-025-10098-2"
+  title: "Substantive investment or symbolic disclosure toward digital transformation? The impact of entrepreneurial orientation and political connections"
+  authors: "Liu, L., Li, Z., & Zhu, Q."
+  year: 2026
+  venue: "Asia Pacific Journal of Management"
+  type: "journal"
+new_dois:
+  - "10.1016/j.techsoc.2025.103145"
+  - "10.3390/systems12060197"
+  - "10.1007/s10490-025-10098-2"
 ---
 
 ## CORE
@@ -160,7 +181,7 @@ canonical 列 sub_frac 的公式为 sub_frac = n_articles_sub / n_articles_llm_v
 【文献定位】
 本家族把组织理论的"实质—象征"话语搬到银行金科的媒体计量语境, 与金融学近年蓬勃的"言行脱耦/漂绿"实证直接对话。Kim 与 Lyon (2015) 在披露维度刻画了夸大与过度谦虚两类脱耦; Bingler 等 (2022, 2024) 用 ClimateBert 识别气候披露中的"廉价空谈"(cheap talk) 与择优披露, 并把文本信号关联到真实的减排行动与声誉风险; Duchin 等 (2025) 在资产市场层面区分了真实的可持续行为与漂绿; Giannetti 等 (2026) 直击"光鲜绿色银行"——环境披露与实际放贷活动的脱节; Song 等 (2026) 命名了"AI 洗白"(AI washing) 现象——用战略性披露包装 AI 能力并招致市场反噬。本家族正是把这一族"叙事—实质是否脱耦"的测度精神, 落到"银行金科报道中实质性份额"这一具体占比上, 使 P3 得以检验媒体叙事的实质含量是否驱动后续的成本效率与财务结果。
 
-这一文献谱系的组织理论根脉可追溯到 Westphal 与 Zajac 的系列工作。Westphal 与 Zajac (1994) 首次在 CEO 长期激励计划中区分了"实质"与"象征": 一项治理安排可以真正改变高管的激励结构 (实质), 也可以只是向股东发出信号而不改动实际支付 (象征)。Westphal 与 Zajac (1998) 进一步展示了公司治理改革中面向股东的象征性管理如何引发市场反应, 揭示了"对外话语"与"内部实践"可以系统脱钩且这种脱钩本身被市场感知。Fiss 与 Zajac (2006) 把这一逻辑扩展到战略变革的"意义给予"(sensegiving), 阐明框架化 (framing) 与脱耦 (decoupling) 如何共同服务于象征性目的。Westphal (2023) 最新的反思则警示了系统性象征管理在 CSR 与公司宗旨语境下的风险。本项目继承这一谱系, 但把研究对象从治理/CSR 转到银行的金融科技转型, 并把测量从档案编码升级为多模型 LLM 标注——这既延续了构念的理论内核, 又借助 Gentzkow 等 (2019) 的"文本即数据"范式和 Gilardi 等 (2023)、Carlson 与 Burbano (2026) 对 LLM 标注的方法学背书, 使"实质—象征"这一原本需要大量人工编码的构念可以在千万级报道语料上规模化、可复现地度量。正是这一测量升级, 让本家族既扎根经典理论、又具备大样本计量的操作性。
+这一文献谱系的组织理论根脉可追溯到 Westphal 与 Zajac 的系列工作。Westphal 与 Zajac (1994) 首次在 CEO 长期激励计划中区分了"实质"与"象征": 一项治理安排可以真正改变高管的激励结构 (实质), 也可以只是向股东发出信号而不改动实际支付 (象征)。Westphal 与 Zajac (1998) 进一步展示了公司治理改革中面向股东的象征性管理如何引发市场反应, 揭示了"对外话语"与"内部实践"可以系统脱钩且这种脱钩本身被市场感知。Fiss 与 Zajac (2006) 把这一逻辑扩展到战略变革的"意义给予"(sensegiving), 阐明框架化 (framing) 与脱耦 (decoupling) 如何共同服务于象征性目的。Westphal (2023) 最新的反思则警示了系统性象征管理在 CSR 与公司宗旨语境下的风险。本项目继承这一谱系, 但把研究对象从治理/CSR 转到银行的金融科技转型, 并把测量从档案编码升级为多模型 LLM 标注——这既延续了构念的理论内核, 又借助 Gentzkow 等 (2019) 的"文本即数据"范式和 Gilardi 等 (2023)、Carlson 与 Burbano (2026) 对 LLM 标注的方法学背书, 使"实质—象征"这一原本需要大量人工编码的构念可以在千万级报道语料上规模化、可复现地度量。正是这一测量升级, 让本家族既扎根经典理论、又具备大样本计量的操作性。近期 Zhou, Liu 与 Huang (2026, Technology in Society) 用中国A股上市公司披露文本区分数字化转型披露中的实质性投入与象征性(洗牌式)宣称, 为本家族区分实质性创新报道与形式性/空洞报道占比(sub_frac)的构念提供了同构的经验参照。基于中国制造业上市公司文本挖掘证据, 区分数字化转型过程驱动的象征性与实质性环境披露两类反应, 为 sub_frac 的实质—象征二分构念提供同期经验参照, 引用格式为 Ji, Sheng 与 Wan (2024, Systems)。考察企业家导向与政治关联如何驱动企业在数字化转型上选择实质性投入还是象征性披露, 呼应本家族用实质性报道占比刻画银行金科转型言行是否脱耦的构念, 引用格式为 Liu, Li 与 Zhu (2026, Asia Pacific Journal of Management)。
 
 【识别策略定位】
 sub_frac 作为 P3 主处理变量, 其识别挑战在于"实质性报道份额"可能与银行的可观测特征、地区金融环境乃至媒体覆盖强度内生共变。项目为此配套了 IV 扩展 (iv_extensions.py): 对 sub_frac 计算同组留一 (leave-one-out) 同侪均值工具 (leave_one_out_peer_subst_iv), 借同类银行的实质性报道份额作为外生变动来源, 呼应同侪效应识别的经典框架; ctx/ss 轨内生变量 (sub_frac_sc / sub_frac_ss) 各自配套对应轨的 LOO 工具, 严格轨内配对。需要强调的是: full/ctx/ss 三轨以及各自的 just-identified IV 设定是并排的稳健性臂, 互为稳健性、不分主次, 严禁把不同轨或不同工具混进同一个 over-identified 的 Hansen J 过度识别检验 (这是本项目贯穿三轨、co-primary 双轨嵌入、per-model、各类梯子的统一铁律)。分类维度的跨厂商稳健则由 per-model 存档列 (subst 维经 LLM_CLASS_SPEC 映射到 sub_frac) 承担, 三家 per-model 子测度同样各自 just-identified 并排。
@@ -216,4 +237,7 @@ Kim, E.-H., & Lyon, T. P. (2015). Greenwash vs. brownwash: Exaggeration and undu
 Fiss, P. C., & Zajac, E. J. (2006). The symbolic management of strategic change: Sensegiving via framing and decoupling. Academy of Management Journal, 49(6), 1173-1193. https://doi.org/10.5465/amj.2006.23478255
 Westphal, J. D., & Zajac, E. J. (1998). The symbolic management of stockholders: Corporate governance reforms and shareholder reactions. Administrative Science Quarterly, 43(1), 127-153. https://doi.org/10.2307/2393593
 Westphal, J. D., & Zajac, E. J. (1994). Substance and symbolism in CEOs' long-term incentive plans. Administrative Science Quarterly, 39(3), 367-390. https://doi.org/10.2307/2393295
+Zhou, H., Liu, Z., & Huang, C. (2026). Fake it till you make it: Digital washing and corporate innovation. Technology in Society. https://doi.org/10.1016/j.techsoc.2025.103145
+Ji, H., Sheng, S., & Wan, J. (2024). Symbolic or Substantive? The Effects of the Digital Transformation Process on Environmental Disclosure. Systems. https://doi.org/10.3390/systems12060197
+Liu, L., Li, Z., & Zhu, Q. (2026). Substantive investment or symbolic disclosure toward digital transformation? The impact of entrepreneurial orientation and political connections. Asia Pacific Journal of Management. https://doi.org/10.1007/s10490-025-10098-2
 <!-- rendered-citations:end -->

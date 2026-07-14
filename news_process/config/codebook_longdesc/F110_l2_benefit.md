@@ -197,8 +197,32 @@ citations:
   vol: 62
   issue: 3
   pages_or_artno: 1139-1168
+- doi: "10.1111/eufm.12509"
+  type: journal
+  authors: "Gorovaia, N., & Makrominas, M."
+  year: 2025
+  title: "Identifying greenwashing in corporate-social responsibility reports using natural-language processing"
+  venue: "European Financial Management"
+  one_sentence_zh: "该文用自然语言处理方法识别企业社会责任报告中的漂绿式文本策略, 为本家族占比测度中\"正面叙事高企不等于真实效益改善\"这一构念澄清提供了同期方法论近邻证据。"
+- doi: "10.1057/s41310-026-00371-1"
+  type: journal
+  authors: "Okeke, A."
+  year: 2026
+  title: "Green claims and grey areas: a diagnostic tool for assessing corporate environmental misrepresentation"
+  venue: "International Journal of Disclosure and Governance"
+  one_sentence_zh: "该文提出一套诊断工具用于识别企业环境信息披露中的夸大与误导性表述, 为本家族\"正面叙事占比高企不必然等于真实经营效益改善\"这一构念澄清提供了最新同期证据。"
+- doi: "10.3390/bdcc9100263"
+  type: journal
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  venue: "Big Data and Cognitive Computing"
+  one_sentence_zh: "该文系统比较多种词嵌入与语言模型在中文财经新闻情感分类与短期股价预测任务上的表现, 为本家族在中文语料上采用嵌入投影法测度报道态度提供了同期方法论对照证据。"
 new_dois:
 - 10.1177/0003122419877135
+- "10.1111/eufm.12509"
+- "10.1057/s41310-026-00371-1"
+- "10.3390/bdcc9100263"
 ---
 
 ## CORE
@@ -210,7 +234,7 @@ new_dois:
 计算链路分文章级投影与 bank-year 聚合两段。文章级: 生产函数 compute_benefit_society_panel 对每个嵌入规格与每条文本轨道循环。嵌入规格有二, 构成 co-primary 双轨: canonical 无后缀槽使用 Qwen3-Embedding-8B 模型经硅基流动 API 取 4096 维向量 (Zhang et al. 2025 报告了该系列模型在多语言嵌入基准上的训练细节与对齐策略), _lg 槽使用 text-embedding-3-large 取 3072 维向量; 两规格各自独立嵌入锚点句、独立计算方向向量、独立投影, 全程由嵌入矩阵实际列数驱动, 维度无关, 互不掺混。选择中文能力强的嵌入模型并保留跨厂商对照, 与 Tang 与 Yang (2025) 在金融领域嵌入基准中的核心发现一致: 嵌入质量在金融文本上高度依赖领域与语言适配, 单一模型的结论需要第二嵌入空间交叉验证。方向向量计算时有锚点轴锐利度守卫: 逐对检查正极句在轴上的投影须显著为正、负极句须显著为负 (符号容差 0.03), 且每对正负投影之间的间隔不得小于 0.02, 违背即告警, 防止某对锚点在当前嵌入空间中退化失效。文本轨道有三: full 轨读 content_full (标题 prepend 到正文, 与词典法和 BERT 法同源), ctx 轨读 content_ctx (标题加目标银行实体窗口), ss 轨读 content_ss (标题加"目标银行与金融科技词同句共现"的句子及其前后一句窗口)。ss 轨回退语义镜像 ctx: 若一篇文章不存在银行与金科词同句共现, content_ss 回退为全文正文并置 ss_is_fallback 为真, 与其余轨共享同一篇数分母。行宇宙遵循 full-only 留篇门控口径: 一篇文章是否算作"银行金融科技报道"只由 full 轨的 LLM 验证结论决定, ctx 与 ss 是 conditional-on-full 的测度轨, 其行集合是 full 留篇集的子集。空文本在投影前被过滤并以 NaN 回填, 保证得分向量与文章行序等长, 由此落盘的全长嵌入矩阵与方向向量 (各带记录模型标识与维数的 sidecar) 可供审计链路在同一嵌入空间复算。聚合段: 按目标银行与年份分组, 均值与标准差直接聚合, 标准差用 ddof 为 1 的样本口径, 单观测 bank-year 保持 NaN 而非填零, 因为"只有一篇报道"与"多篇报道完全一致"在统计上不可区分, 填零会混淆两者且与同面板 LLM 情感标准差族的 NaN 口径冲突。占比对的阈值中心是本家族最重要的一处工程决策: 由于嵌入空间各向异性, 以零为界的符号阈值会使利好占比接近饱和, 作为回归自变量信息量趋零; 生产口径改以全样本投影的合并中位数为中心, 由构造保证文章级高于中心的概率约为一半, 对投影分布的左偏形态稳健。源码注释明确澄清: 这是针对偏态分布的操作化处理, 并非实现了文献中的去主成分或白化式各向异性校正, 不得作方法归属误述。中位数中心并非每次运行现算, 而是首跑计算后冻结持久化到 _benefit_center_sidecar.json, 键为具体得分列名并记录嵌入模型标识; 后续运行读冻结值, 保证语料增量不会平移全历史占比 (跨运行可比), 但披露成本是冻结值只是首跑语料的样本内中位数; 若更换嵌入模型而 sidecar 中模型标识不匹配, 程序 fail-loud 拒跑, 换嵌入前必须删除对应条目重新冻结, 防止跨嵌入空间误用旧阈值。还需注意占比列存在 mean-of-fractions 的 Jensen 效应: 各 bank-year 文章数不均, 使面板层面占比的简单平均系统性偏离文章级的一半基线, 这是聚合口径的固有性质而非缺陷。工程与可复现性层面还有四个承重细节。其一, 嵌入取数走统一引擎的纯 API 路径, 零本地模型, 超长文本按分词器口径切块后取块级向量, 单条输入的令牌上限为八千一百九十一; 全部嵌入请求经统一缓存层持久化, 缓存即复现性台账, 在离线守卫环境变量开启时缓存未命中直接抛错而不调用付费接口, 保证已播种语料可零成本字节级复算。其二, co-primary 双槽的 parity 由专门守卫段机械执行: 每条轨道检查两嵌入槽的产出覆盖, 若恰有一侧存在有效列 (另一侧因方向向量计算失败被整体跳过), 则该轨两族列一并置缺失, 从结构上排除"单边孤儿列"进入面板 — 这使任何消费两槽对照的下游分析在缺数情形下自动对称降级, 而不是静默地拿单空间结果冒充双空间验证。其三, 锚点句集合与方向向量随运行落盘并带记录模型标识、行数与维数的 sidecar 文件, 陈旧输入 fail-loud, 使审计管线 (替代锚点与安慰剂) 能严格在同一嵌入空间内复算, 排除"审计结论差异来自嵌入空间漂移"的解释。其四, 家族全部列在开发切片与生产语料两种环境下的统计性状差异显著: 开发切片年份极短、覆盖稀疏, 占比与标准差的缺失率和方差均不具外推性, 任何以开发切片数值评估本家族信息量的做法都会系统性误判, 相关数值评估一律以生产面板的注入统计为准。
 
 【文献定位】
-本家族站在三支文献的交汇处。第一支是经济学文本方法论: Gentzkow, Kelly 与 Taddy (2019) 系统化了文本即数据的测量框架, Ash 与 Hansen (2023) 进一步综述了嵌入表征相对词袋方法在构念效度上的优势与陷阱; 在具体的"轴投影"技术上, Gennaro 与 Ash (2022) 用情绪极与理性极的中心差向量对国会演说做余弦投影, 与本家族的双极锚点投影在数学形式上同构, Li, Mai, Shen 与 Yan (2021) 则示范了用词嵌入从财报电话会议中提取企业文化维度的完整测量流水线, Gabaix, Koijen, Richmond 与 Yogo (2025) 把嵌入表征进一步推向资产定价对象本身, 说明嵌入式测度已进入金融学主流工具箱。第二支是媒体与金融市场文献: Tetlock (2007) 确立了媒体语气对市场的预测内容, Fang 与 Peress (2009) 证明媒体覆盖本身影响股票收益截面, Gurun 与 Butler (2012) 与 You, Zhang 与 Zhang (2018) 分别揭示了地方媒体倾向与中国语境下媒体监督的俘获问题, 提示占比测度的解释须考虑媒体激励; Fang, Wang, Wang 与 Yuan (2024) 直接在中国银行样本上把媒体情感与存款稳定性和系统性风险联系起来, 是本家族因变量端应用的近邻; Gutknecht (2025) 则显示负面企业社会责任报道的覆盖强度载有独立于均值语气的风险信息, 为把 neg_frac 与 pos_frac 分开入模而非只用净值提供了依据。第三支是银行金融科技与象征性披露文献: Berg, Fuster 与 Puri (2022) 综述了金融科技信贷的实证图景, Cheng 与 Qu (2020) 在中国银行样本上估计了银行金融科技对信用风险的影响, 界定了本家族态度测度所指向的真实经营后果; Kim 与 Lyon (2015), Westphal (2023) 与 Duchin, Gao 与 Xu (2025) 关于夸大与漂绿的证据则提醒: 媒体正面叙事占比高不等于真实效益高, pos_frac 应解释为"叙事环境"而非"经营事实", 这正是本项目把态度测度与财务结果变量分置两侧的原因。构念源头 Jha, Liu 与 Manela (2026) 与文化几何学源头 Kozlowski, Taddy 与 Evans (2019) 共同构成锚定引用。
+本家族站在三支文献的交汇处。第一支是经济学文本方法论: Gentzkow, Kelly 与 Taddy (2019) 系统化了文本即数据的测量框架, Ash 与 Hansen (2023) 进一步综述了嵌入表征相对词袋方法在构念效度上的优势与陷阱; 在具体的"轴投影"技术上, Gennaro 与 Ash (2022) 用情绪极与理性极的中心差向量对国会演说做余弦投影, 与本家族的双极锚点投影在数学形式上同构, Li, Mai, Shen 与 Yan (2021) 则示范了用词嵌入从财报电话会议中提取企业文化维度的完整测量流水线, Gabaix, Koijen, Richmond 与 Yogo (2025) 把嵌入表征进一步推向资产定价对象本身, 说明嵌入式测度已进入金融学主流工具箱。第二支是媒体与金融市场文献: Tetlock (2007) 确立了媒体语气对市场的预测内容, Fang 与 Peress (2009) 证明媒体覆盖本身影响股票收益截面, Gurun 与 Butler (2012) 与 You, Zhang 与 Zhang (2018) 分别揭示了地方媒体倾向与中国语境下媒体监督的俘获问题, 提示占比测度的解释须考虑媒体激励; Fang, Wang, Wang 与 Yuan (2024) 直接在中国银行样本上把媒体情感与存款稳定性和系统性风险联系起来, 是本家族因变量端应用的近邻; Gutknecht (2025) 则显示负面企业社会责任报道的覆盖强度载有独立于均值语气的风险信息, 为把 neg_frac 与 pos_frac 分开入模而非只用净值提供了依据。第三支是银行金融科技与象征性披露文献: Berg, Fuster 与 Puri (2022) 综述了金融科技信贷的实证图景, Cheng 与 Qu (2020) 在中国银行样本上估计了银行金融科技对信用风险的影响, 界定了本家族态度测度所指向的真实经营后果; Kim 与 Lyon (2015), Westphal (2023) 与 Duchin, Gao 与 Xu (2025) 关于夸大与漂绿的证据则提醒: 媒体正面叙事占比高不等于真实效益高, pos_frac 应解释为"叙事环境"而非"经营事实", 这正是本项目把态度测度与财务结果变量分置两侧的原因。构念源头 Jha, Liu 与 Manela (2026) 与文化几何学源头 Kozlowski, Taddy 与 Evans (2019) 共同构成锚定引用。Gorovaia 与 Makrominas (2025, European Financial Management) 用自然语言处理方法识别企业社会责任报告中的漂绿式文本策略, 为本家族占比测度中"正面叙事高企不等于真实效益改善"这一构念澄清提供了同期方法论近邻证据。Okeke (2026, International Journal of Disclosure and Governance) 提出一套诊断工具用于识别企业环境信息披露中的夸大与误导性表述, 为本家族"正面叙事占比高企不必然等于真实经营效益改善"这一构念澄清提供了最新同期证据。Chuang, He 与 Hu (2025, Big Data and Cognitive Computing) 系统比较多种词嵌入与语言模型在中文财经新闻情感分类与短期股价预测任务上的表现, 为本家族在中文语料上采用嵌入投影法测度报道态度提供了同期方法论对照证据。
 
 【识别策略定位】
 在本项目的多论文架构中, 本家族三个 full 轨列是 benefit_society 衍生论文验证轨中的回归变量, 其中 pos_frac 与 neg_frac 的 full 轨列各进入三个机制与稳健性正文表模板, std 的 full 轨列作为态度分歧的 canonical 分散度统计进入分歧机制检验; 它们通常不是处理变量本身, 而是作为机制中介、分布形状控制或异质性切分变量出现, 与作为连续位置测度的 benefit_mean 并排。识别口径上须严格遵守本仓库铁律: full, ctx, ss 三条文本轨互为稳健性、不分主次, 各自以 just-identified 规格并排估计, 严禁把多轨测度混进同一条 over-identified 的 Hansen J 检验; canonical 嵌入槽与 _lg 嵌入槽是 co-primary 双轨, 同为主测度、互为稳健性, 同样各自 just-identified 并排, 严禁跨嵌入空间混进同一工具变量组; 占比对与标准差亦不应与其均值测度同时塞入一条过度识别方程去"增加工具", 因为三者由同一投影得分构造, 相关结构是机械的。列间 parity 由 both-or-neither 守卫保证: 任一轨道若只有单侧嵌入槽产出有效列, 两族同置缺失, 不留单边孤儿, 使双轨对照在任何样本切片上都成对可比。面板接入回归时, 标准差列的 NaN (单观测格) 经 listwise deletion 自然处理, 研究者应意识到这会使分歧度回归的样本偏向报道密集的银行年, 必要时以文章数加权或设最低篇数门槛做敏感性。计量形态上还有两点定位须写明。其一, 占比对是取值于零到一闭区间的有界变量, 作为解释变量入线性固定效应模型无碍, 但若研究设计把它转到被解释侧 (例如检验何种银行特征吸引更高利好叙事占比), 线性概率式近似在占比贴近边界的银行年会失真, 稳健性方向是分数响应类设定或对占比做经验分位变换后复核符号。其二, 家族全部列都是年度聚合统计, 年内的叙事时序动态 (例如负面叙事集中爆发于某一季度) 被抹平, 这既是与年度财务面板对接的口径要求, 也意味着本家族无法用于识别月度级事件研究; 涉及事件窗的假设应转用文章级投影得分自行聚合, 而不是对年度列做内插。
@@ -332,4 +356,7 @@ Kim, E.-H., & Lyon, T. P. (2015). Greenwash vs. brownwash: Exaggeration and undu
 Gurun, U. G., & Butler, A. W. (2012). Don't believe the hype: Local media slant, local advertising, and firm value. The Journal of Finance, 67(2), 561-598. https://doi.org/10.1111/j.1540-6261.2012.01725.x
 Fang, L., & Peress, J. (2009). Media coverage and the cross-section of stock returns. The Journal of Finance, 64(5), 2023-2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Gorovaia, N., & Makrominas, M. (2025). Identifying greenwashing in corporate-social responsibility reports using natural-language processing. European Financial Management. https://doi.org/10.1111/eufm.12509
+Okeke, A. (2026). Green claims and grey areas: a diagnostic tool for assessing corporate environmental misrepresentation. International Journal of Disclosure and Governance. https://doi.org/10.1057/s41310-026-00371-1
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 <!-- rendered-citations:end -->

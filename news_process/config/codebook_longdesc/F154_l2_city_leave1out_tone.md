@@ -82,7 +82,14 @@ citations:
   vol: 73
   issue: 4
   pages_or_artno: 1237-1282
-new_dois: []
+- doi: "10.1086/728743"
+  type: journal
+  authors: "Gabaix, X., & Koijen, R. S. J."
+  year: 2024
+  title: "Granular Instrumental Variables"
+  venue: "Journal of Political Economy"
+new_dois:
+  - "10.1086/728743"
 ---
 
 ## CORE
@@ -94,7 +101,7 @@ new_dois: []
 计算采用向量化的 leave-one-out 公式, 复杂度 O(N): 先对每个 (城市, 年) 分组求组内所有银行 (含自身) 的情感总和 group_sum 与组内有非缺情感得分的银行数 group_cnt, 再对每个成员用 (group_sum − tone_i) / (group_cnt − 1) 剔除自身, 得到严格排除 i 的同城均值。分母 N_{G,t} − 1 是"同城异行有效计数减一", 组内只剩一家银行时留一均值无定义 (记为缺失)。情感原料 tone_{j,t} 是银行 j 在年度 t 的 bank-year 情感聚合值, 上游取自三轨情感流水线 (stage 21 LLM 情感等), 数值域约在 [-1, 1]。⚠ 三轨 (full/ctx/ss) 严格逐轨构建: 留一均值在哪条轨上算, 分子分母就都取哪条轨的同城银行情感, 不跨轨借分母。⚠ 铁律: full / ctx / ss 三轨各自 just-identified 并排, 互为稳健性、不分主次, 禁混进同一 over-identified Hansen J; 城市级与省级两个地理层级则是刻意设计的 over-id 组合入口, 二者可同时进 Hansen J, 与三轨不可混同是两码事。留篇门控沿用 full-only 口径 (2026-06-29): 银行 j 是否算一篇有效银行金科报道、进而形成有效 bank-year 情感, 由 full 轨判定; ctx/ss 是 conditional-on-full 的测度/稳健性轨, 其行宇宙是 full 留篇集的子集。
 
 【文献定位】
-把媒体情感当作对银行结果有实质影响的信息变量, 直接承接媒体金融文献的主线: Tetlock (2007) 证明媒体悲观基调对股市有可度量的定价效应; Fang & Peress (2009) 揭示媒体覆盖度进入股票横截面收益; Shapiro et al. (2022) 系统化了新闻情感的测度方法。就中国银行业场景而言, Fang et al. (2024) 直接刻画媒体情感如何影响存款稳定性与银行系统性风险, 是本家族外生变异经济机制 (同城舆论气候 → 存款流动 → 银行结果) 的同域证据; Goldstein (2023) 从"金融市场信息及其实体效应"的角度为这一渠道提供理论定位。情感测度本身的效度依托中文金融词典与文本情感度量的方法学积累, 如 Du et al. (2022) 的中文金融情感词典与 García et al. (2023) 对金融词汇色彩的刻画。识别辩护上须如实披露反射问题: Manski (1993) 证明线性均值模型下同期组均值与个体结果不可分离识别 (reflection problem), Bramoullé et al. (2009) 的网络识别条件要求非传递三元组, 而同城分组是完全图不满足该条件 —— 因此本 IV 是稳健性/证伪展示用途而非强因果主 IV, 论文须明写。多测度并排时的族错误率控制走根级 rwolf 模板, 方法学依据见 Romano & Wolf (2005)。⚠ 弱工具警告 (T=2 当前面板实测): 城市级一阶段 F ≈ 0.037, 甚至弱于省级 F ≈ 0.25, 根因是面板深度浅 + 地理稀疏使留一后变异枯竭; 生产 T=18 下同城年度银行数增加, 工具强度才可能改善, 需届时重测。
+把媒体情感当作对银行结果有实质影响的信息变量, 直接承接媒体金融文献的主线: Tetlock (2007) 证明媒体悲观基调对股市有可度量的定价效应; Fang & Peress (2009) 揭示媒体覆盖度进入股票横截面收益; Shapiro et al. (2022) 系统化了新闻情感的测度方法。就中国银行业场景而言, Fang et al. (2024) 直接刻画媒体情感如何影响存款稳定性与银行系统性风险, 是本家族外生变异经济机制 (同城舆论气候 → 存款流动 → 银行结果) 的同域证据; Goldstein (2023) 从"金融市场信息及其实体效应"的角度为这一渠道提供理论定位。情感测度本身的效度依托中文金融词典与文本情感度量的方法学积累, 如 Du et al. (2022) 的中文金融情感词典与 García et al. (2023) 对金融词汇色彩的刻画。识别辩护上须如实披露反射问题: Manski (1993) 证明线性均值模型下同期组均值与个体结果不可分离识别 (reflection problem), Bramoullé et al. (2009) 的网络识别条件要求非传递三元组, 而同城分组是完全图不满足该条件 —— 因此本 IV 是稳健性/证伪展示用途而非强因果主 IV, 论文须明写。多测度并排时的族错误率控制走根级 rwolf 模板, 方法学依据见 Romano & Wolf (2005)。⚠ 弱工具警告 (T=2 当前面板实测): 城市级一阶段 F ≈ 0.037, 甚至弱于省级 F ≈ 0.25, 根因是面板深度浅 + 地理稀疏使留一后变异枯竭; 生产 T=18 下同城年度银行数增加, 工具强度才可能改善, 需届时重测。Gabaix & Koijen (2024, Journal of Political Economy) 提出用同群体内其他成员的留一 (leave-out) 加权均值构造工具变量以识别因果参数的通用方法论, 为本家族城市留一情感 IV 的构造逻辑与弱工具/识别强度讨论提供直接方法学依据。
 
 ## VAR: city_leave1out_tone_full
 
@@ -120,4 +127,5 @@ Shapiro, A. H., Sudhof, M., & Wilson, D. J. (2022). Measuring news sentiment. Jo
 Fang, L., & Peress, J. (2009). Media coverage and the cross-section of stock returns. Journal of Finance, 64(5), 2023-2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Romano, J. P., & Wolf, M. (2005). Stepwise multiple testing as formalized data snooping. Econometrica, 73(4), 1237-1282. https://doi.org/10.1111/j.1468-0262.2005.00615.x
+Gabaix, X., & Koijen, R. S. J. (2024). Granular Instrumental Variables. Journal of Political Economy. https://doi.org/10.1086/728743
 <!-- rendered-citations:end -->

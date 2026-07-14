@@ -17,48 +17,62 @@ upstream:
 - 21_tone_llms.parquet (innovation_substantiveness_full, P3 创新实质性 LLM 分类)
 - 22_tone_words.parquet (loughran_score_{full,ctx,ss}, 词典净情感极性)
 citations:
-  - doi: 10.1016/j.frl.2022.102776
-    type: journal
-    authors: Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N.
-    year: 2022
-    title: "Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures"
-    venue: Finance Research Letters
-    vol: 47
-    pages_or_artno: 102776
-  - doi: 10.1111/j.1540-6261.2010.01625.x
-    type: journal
-    authors: Loughran, T., & McDonald, B.
-    year: 2011
-    title: "When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks"
-    venue: The Journal of Finance
-    vol: 66
-    issue: 1
-    pages_or_artno: 35-65
-  - doi: 10.1111/1475-679X.12123
-    type: journal
-    authors: Loughran, T., & McDonald, B.
-    year: 2016
-    title: "Textual analysis in accounting and finance: A survey"
-    venue: Journal of Accounting Research
-    vol: 54
-    issue: 4
-    pages_or_artno: 1187-1230
-  - doi: 10.1287/stsc.2023.0188
-    type: journal
-    authors: Westphal, J. D.
-    year: 2023
-    title: "Systemic symbolic management, corporate social responsibility, and corporate purpose: A cautionary tale"
-    venue: Strategy Science
-    vol: 8
-    issue: 2
-    pages_or_artno: 221-232
-  - doi: 10.2139/ssrn.3446388
-    type: wp
-    authors: Bian, S., Jia, D., Li, F., & Yan, Z.
-    year: 2021
-    title: "A new Chinese financial sentiment dictionary for textual analysis in accounting and finance"
-    venue: SSRN Working Paper
-new_dois: []
+- doi: 10.1016/j.frl.2022.102776
+  type: journal
+  authors: Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N.
+  year: 2022
+  title: "Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures"
+  venue: Finance Research Letters
+  vol: 47
+  pages_or_artno: 102776
+- doi: 10.1111/j.1540-6261.2010.01625.x
+  type: journal
+  authors: Loughran, T., & McDonald, B.
+  year: 2011
+  title: "When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks"
+  venue: The Journal of Finance
+  vol: 66
+  issue: 1
+  pages_or_artno: 35-65
+- doi: 10.1111/1475-679X.12123
+  type: journal
+  authors: Loughran, T., & McDonald, B.
+  year: 2016
+  title: "Textual analysis in accounting and finance: A survey"
+  venue: Journal of Accounting Research
+  vol: 54
+  issue: 4
+  pages_or_artno: 1187-1230
+- doi: 10.1287/stsc.2023.0188
+  type: journal
+  authors: Westphal, J. D.
+  year: 2023
+  title: "Systemic symbolic management, corporate social responsibility, and corporate purpose: A cautionary tale"
+  venue: Strategy Science
+  vol: 8
+  issue: 2
+  pages_or_artno: 221-232
+- doi: 10.2139/ssrn.3446388
+  type: wp
+  authors: Bian, S., Jia, D., Li, F., & Yan, Z.
+  year: 2021
+  title: "A new Chinese financial sentiment dictionary for textual analysis in accounting and finance"
+  venue: SSRN Working Paper
+- doi: "10.1017/mor.2024.62"
+  title: "Innovation in Family Firms: An Intergenerational Tale of Symbol and Substance"
+  authors: "Wu, Q., Wang, Y., Chu, H., & Chen, J."
+  year: 2025
+  venue: "Management and Organization Review"
+  type: "journal"
+- doi: "10.1007/s10614-026-11328-5"
+  title: "DeepGreen: Effective LLM-Driven Greenwashing Monitoring System Designed for Empirical Testing — Evidence from China"
+  authors: "Xu, C., Liu, J., Li, Z., & Lin, C."
+  year: 2026
+  venue: "Computational Economics"
+  type: "journal"
+new_dois:
+  - "10.1017/mor.2024.62"
+  - "10.1007/s10614-026-11328-5"
 ---
 
 ## CORE
@@ -76,7 +90,7 @@ loughran_pos_symb_count 家族衡量单个 bank-year 内, 同时满足两个跨�
 本家族与其余四种"洗稿率"方法学变体 (方法 A: LLM 投票正面 ∧ 象征性; 方法 A2: 单 LLM per-model 正面 ∧ 象征性; 方法 D: 六词典均值正面 ∧ 象征性; 方法 E/E2: BERT argmax/per-model 正面 ∧ 象征性; 方法 F: 高置信 agreement_rate 门控) 属于同一构念族下并排的跨方法学稳健性梯子——loughran 词典是方法 D2 (单词典) 分支下的一员, 与 jiang_2021/yao_2021/bian_2021/du_2022/you_2018 五部姊妹词典各自产出同构的 `{dict}_pos_symb_count{track}` 列并排存在, 互为方法学稳健性, 不分主次; 各词典各自 just-identified, 不应混入同一 over-identified 检验框架。三个文本轨道 (full/ctx/ss) 在"净正面"判据一端各自独立、互为稳健性并排 (full=标题 prepend 全文基准轨; ctx=标题+实体窗口; ss=标题+银行∧金科同句共现窗口, 无共现时镜像 ctx 回退语义退化为全文并置 ss_is_fallback=True, 与非回退观测共享同一 n_articles 分母), 三轨计数严禁混入同一个 over-identified 的 Hansen J 过度识别检验; 但如上文所述, 三轨差异只体现在 loughran_score 一端, "象征性"判据全轨统一取自 innovation_substantiveness_full, 这是本家族独有的、区别于典型三轨族的构造细节, 使用者不应误将本列理解为"innovation_substantiveness 本身也做了三轨独立分类"。
 
 【文献定位】
-本家族最直接的方法学锚点是 Bingler, Kraus, Leippold & Webersinke (2022, Finance Research Letters) 提出的 "cheap talk and cherry-picking" 检测框架, 该文用 ClimateBert 在企业气候风险披露文本中识别"言辞正面但缺乏可核验承诺支撑"的表述模式, 为本项目"词典净情感极性 × LLM 创新实质性分类"的交叉构造提供了直接的方法论范式——将"语调是否正面"与"内容是否实质"拆解为两个独立测量维度再取交集, 而非依赖单一维度的判断。词典本体的构建原则则承袭 Loughran & McDonald (2011, The Journal of Finance) 关于"通用情感词典直接套用在专业领域文本上会产生系统性误判"的经典论证, 该文主张情感词表须结合领域语境重新校准, 是本项目并行维护六部中文金融情感词典 (含 loughran 中文本土化译本) 的方法论出发点; Loughran & McDonald (2016, Journal of Accounting Research) 的后续综述进一步系统梳理了文本分析在会计与金融研究中原始计数与归一化比率各自的适用场景, 支持本家族保留原始篇数计数、由分母 (F422) 与洗稿率比值分别承担归一化任务的设计选择。"象征性表述与实质性行动断裂"这一构念的组织理论根基部分呼应 Westphal (2023, Strategy Science) 关于"系统性象征管理" (systemic symbolic management) 的讨论, 该文揭示企业社会责任与公司目标叙事中广泛存在的以言辞替代实质行动的现象, 为"象征性"标签的实证意义提供跨学科理论支撑, 但需注意本家族的"象征性"判据来自 LLM P3 分类任务而非该文的词表或量表, 引用关系是理论动机层面而非方法直接移植。Bian et al. (2021) 关于中文金融情感词典构建的工作方法学是本项目多词典并行架构中 bian_2021 词典 (F130 家族所在) 的直接来源, 此处引用旨在说明"多词典互为稳健性"设计在中文金融文本情感测度领域已有方法学先例, 而非暗示 loughran 与 bian_2021 两部词典之间存在词表层面的姊妹关系。
+本家族最直接的方法学锚点是 Bingler, Kraus, Leippold & Webersinke (2022, Finance Research Letters) 提出的 "cheap talk and cherry-picking" 检测框架, 该文用 ClimateBert 在企业气候风险披露文本中识别"言辞正面但缺乏可核验承诺支撑"的表述模式, 为本项目"词典净情感极性 × LLM 创新实质性分类"的交叉构造提供了直接的方法论范式——将"语调是否正面"与"内容是否实质"拆解为两个独立测量维度再取交集, 而非依赖单一维度的判断。词典本体的构建原则则承袭 Loughran & McDonald (2011, The Journal of Finance) 关于"通用情感词典直接套用在专业领域文本上会产生系统性误判"的经典论证, 该文主张情感词表须结合领域语境重新校准, 是本项目并行维护六部中文金融情感词典 (含 loughran 中文本土化译本) 的方法论出发点; Loughran & McDonald (2016, Journal of Accounting Research) 的后续综述进一步系统梳理了文本分析在会计与金融研究中原始计数与归一化比率各自的适用场景, 支持本家族保留原始篇数计数、由分母 (F422) 与洗稿率比值分别承担归一化任务的设计选择。"象征性表述与实质性行动断裂"这一构念的组织理论根基部分呼应 Westphal (2023, Strategy Science) 关于"系统性象征管理" (systemic symbolic management) 的讨论, 该文揭示企业社会责任与公司目标叙事中广泛存在的以言辞替代实质行动的现象, 为"象征性"标签的实证意义提供跨学科理论支撑, 但需注意本家族的"象征性"判据来自 LLM P3 分类任务而非该文的词表或量表, 引用关系是理论动机层面而非方法直接移植。Bian et al. (2021) 关于中文金融情感词典构建的工作方法学是本项目多词典并行架构中 bian_2021 词典 (F130 家族所在) 的直接来源, 此处引用旨在说明"多词典互为稳健性"设计在中文金融文本情感测度领域已有方法学先例, 而非暗示 loughran 与 bian_2021 两部词典之间存在词表层面的姊妹关系。Wu, Wang, Chu & Chen (2025, Management and Organization Review) 提出"创新解耦" (innovation decoupling) 概念, 刻画企业优先做象征性创新披露而非实质性创新改变的倾向, 与本家族"净正面语调×象征性创新分类"交叉构念高度吻合, 可作为象征性/实质性创新二分构念的最新方法学锚点。Xu, Liu, Li & Lin (2026, Computational Economics) 构建基于 LLM 的中国企业洗绿 (greenwashing) 监测系统, 识别言辞正面但缺乏实质支撑的披露文本, 方法论上与本家族"洗稿率" (washing ratio) 分子构造 (词典净正面×LLM象征性判定交叉计数) 高度平行, 可补强中国语境下的最新方法学支撑。
 
 ## VAR: loughran_pos_symb_count_ctx
 
@@ -105,4 +119,6 @@ Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textua
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
 Westphal, J. D. (2023). Systemic symbolic management, corporate social responsibility, and corporate purpose: A cautionary tale. Strategy Science, 8(2), 221-232. https://doi.org/10.1287/stsc.2023.0188
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.3446388
+Wu, Q., Wang, Y., Chu, H., & Chen, J. (2025). Innovation in Family Firms: An Intergenerational Tale of Symbol and Substance. Management and Organization Review. https://doi.org/10.1017/mor.2024.62
+Xu, C., Liu, J., Li, Z., & Lin, C. (2026). DeepGreen: Effective LLM-Driven Greenwashing Monitoring System Designed for Empirical Testing — Evidence from China. Computational Economics. https://doi.org/10.1007/s10614-026-11328-5
 <!-- rendered-citations:end -->

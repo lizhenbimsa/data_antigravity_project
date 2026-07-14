@@ -161,7 +161,14 @@ citations:
   vol: 69
   issue: 1
   pages_or_artno: 293-324
-new_dois: []
+- doi: "10.1002/smj.3600"
+  title: "Competing for attention on digital platforms: The case of news outlets"
+  authors: "Meyer, T., Kerkhof, A., Cennamo, C., & Kretschmer, T."
+  year: 2024
+  venue: "Strategic Management Journal"
+  type: "journal"
+new_dois:
+  - "10.1002/smj.3600"
 ---
 
 
@@ -174,7 +181,7 @@ new_dois: []
 计算在 pipeline/features/strategic_diff.py::compute_strategic_differentiation 中逐年展开。对每一年度, 先把该年内每家银行的相关报道文本按银行聚合为一份超级文档, 再用多种方法把文档映射为向量并两两求余弦相似度, 构成年度相似度矩阵。对目标银行 i, 取相似度最高的 N 个同业作为其最近邻集合 KNN(i,N), 令距离 delta_ij = 1 - cos(v_i, v_j), 则战略差异度 S_i = (1/N) 求和_{j in KNN(i,N)} delta_ij, 即与最像的 N 家同行的平均文本距离。本家族含三条并排的向量化方法轨与两类算子。其一为 char 级 TF-IDF (char_wb 字符 n-gram, 不依赖分词, 列名裸 strat_diff_n{N}); 其二为 word 级 TF-IDF (以注入 1506 个金融科技领域复合词的独立 jieba 分词器切分, 领域整词如金融科技、区块链整体保留, 列带 _w 后缀); 二者的非负 TF-IDF 向量余弦落在 [0,1], 故距离列值域为 [0,1]。TF-IDF 权重采用 sublinear tf 与标准逆文档频率, 依据 Manning、Raghavan 与 Schuetze (2008) 及 Salton 与 Buckley (1988) 的经典词权范式。此外家族含 Embedding 契约别名轨 strat_diff_{full,ctx,ss} 与其跨厂商孪生 strat_diff_lg_{full,ctx,ss}: 二者并非 N 最近邻算子, 而是到年度行业质心的距离 (centroid_diff_emb 与 centroid_diff_emb_lg 的逐值别名), 底层为稠密语义嵌入, 余弦真值域 [-1,1], 故质心距离值域为 [0,2] (此前对嵌入轨统一 clip 到 [0,1] 属值域删失, 已修正)。N 邻域取值构成梯子 {3,4,5,6,7} 并 {10,20,30,40,50}, 其中 TF-IDF char/word 的 full 轨覆盖全部十档, 而 ctx/ss 轨与 LDA/嵌入方法覆盖 {5} 并 {10,20,30,40,50}。文本轨的口径遵循全项目三轨架构: full = 标题 prepend 后的全文正文; ctx = 标题加实体上下文窗; ss = 标题加银行与金科同句共现窗。稠密嵌入的编码统一由 stage 25 article_sbert 供给, 主轨为 Qwen/Qwen3-Embedding-8B (4096 维, 硅基流动), co-primary 孪生为 text-embedding-3-large (3072 维), 二者在线缺失受 NEWS_PROCESS_LLM_OFFLINE 离线闸约束、miss 即 raise 零网络。
 
 【文献定位】
-本家族坐落于文本即数据的计量方法学传统 (Gentzkow, Kelly 与 Taddy, 2019) 与以文本刻画企业战略与创新的实证脉络交汇处。就构念本体而言, 它对接最优独特性 (optimal distinctiveness) 与战略生态位定位文献: Haans (2019) 论证独特性对绩效的价值随品类同质度而变, Su, Gao 与 Tan (2024) 刻画企业在竞争与制度压力下如何定位最优独特性, 二者直接锚定本家族到同业的战略距离这一生态位构念。就近期同范式应用而言, Arts, Cassiman 与 Hou (2025) 以 TNIC 式技术差异度研究并购市场, Miller 与 Wang (2024) 以文本测度数字化如何改变企业差异化战略, 后者与本家族以金科新闻文本测银行战略差异高度同构。就文本创新与语义向量方法而言, Bellstam, Bhagat 与 Cookson (2021) 的文本创新度量、Hoberg, Phillips 与 Prabhala (2014) 的竞争流动性 (fluidity)、Hanley 与 Hoberg (2019) 的新兴风险动态解读, 共同支撑本家族以逐年文本网络刻画企业相对定位的合法性。就嵌入模型选择的稳健性关切而言, Ganguli 等 (2024) 关于专利文本长期创新动态中模型选择关键作用的告讫、Cong 等 (2024) 的可扩展可解释文本因子方法, 为本家族保留 char/word/LDA/Qwen/large 多方法与 co-primary 双嵌入的设计提供了方法论依据。上述文献并非松散罗列: 战略定位文献界定构念、文本方法文献界定测量、嵌入模型文献界定稳健性设计, 三者恰好对应本家族是什么、怎么测、如何证稳健三层逻辑。
+本家族坐落于文本即数据的计量方法学传统 (Gentzkow, Kelly 与 Taddy, 2019) 与以文本刻画企业战略与创新的实证脉络交汇处。就构念本体而言, 它对接最优独特性 (optimal distinctiveness) 与战略生态位定位文献: Haans (2019) 论证独特性对绩效的价值随品类同质度而变, Su, Gao 与 Tan (2024) 刻画企业在竞争与制度压力下如何定位最优独特性, 二者直接锚定本家族到同业的战略距离这一生态位构念。就近期同范式应用而言, Arts, Cassiman 与 Hou (2025) 以 TNIC 式技术差异度研究并购市场, Miller 与 Wang (2024) 以文本测度数字化如何改变企业差异化战略, 后者与本家族以金科新闻文本测银行战略差异高度同构。就文本创新与语义向量方法而言, Bellstam, Bhagat 与 Cookson (2021) 的文本创新度量、Hoberg, Phillips 与 Prabhala (2014) 的竞争流动性 (fluidity)、Hanley 与 Hoberg (2019) 的新兴风险动态解读, 共同支撑本家族以逐年文本网络刻画企业相对定位的合法性。就嵌入模型选择的稳健性关切而言, Ganguli 等 (2024) 关于专利文本长期创新动态中模型选择关键作用的告讫、Cong 等 (2024) 的可扩展可解释文本因子方法, 为本家族保留 char/word/LDA/Qwen/large 多方法与 co-primary 双嵌入的设计提供了方法论依据。上述文献并非松散罗列: 战略定位文献界定构念、文本方法文献界定测量、嵌入模型文献界定稳健性设计, 三者恰好对应本家族是什么、怎么测、如何证稳健三层逻辑。此外, Meyer、Kerkhof、Cennamo 与 Kretschmer (2024, Strategic Management Journal) 研究新闻媒体在数字平台上如何通过内容差异化争夺受众注意力, 为本家族以媒体文本刻画银行金科战略差异度提供了媒体竞争与内容定位维度的最新佐证。
 
 【识别策略定位】
 本家族的 core 列 strat_diff_n5 是 strategic_diff 论文的正文级主处理变量 (treatment.primary): 论文以 N=5 (Guzman 与 Li 2023 推荐的基准邻域) 的 char 级 full 轨战略差异度为主回归处理变量, 检验银行金科战略独特性对其市场估值/绩效结果 (如 tobin_q 等外部财务哨兵列, 财务面板接入时构造) 的因果影响。识别层面, 该处理变量接入项目统一的 IV 扩展三引擎 (同组留一均值 leave_one_out_peer / 广义 Bartik / 媒体来源 house-style 暴露), 各自形成 just-identified 的一阶段; 其中留一同组均值利用同组其余银行的战略差异度均值作为外生变动源, Bartik 借助份额-移动分解, 媒体 house-style 暴露以来源特有的叙事风格构造工具。铁律: 家族内所有稳健性轴 (N 邻域梯子、char/word 分词、full/ctx/ss 三轨、Qwen 与 large 双嵌入契约别名) 均须各自 just-identified 并排使用, 互为稳健性、不分主次, 严禁把不同 N、不同轨、不同嵌入的差异度列混进同一个 over-identified 的 Hansen J 过度识别检验——这与三轨、co-primary 双嵌入、政治词权重梯子的铁律完全一致。留篇口径遵循 full-only 门控 (2026-06-29): 是否判为一篇银行金科报道只看 full 轨的 llm_verified_full, ctx/ss 是 conditional-on-full 的子集测度, 行宇宙为 full 留篇集的子集。进一步展开三条工具的外生性论证与识别逻辑: 留一同组均值 (leave_one_out_peer) 的识别前提是, 同组其余银行的战略差异度水平通过共同的行业级金科叙事潮流影响目标银行的定位选择, 却不直接进入目标银行自身的估值/绩效结果方程, 从而在剔除目标银行自身贡献后提供一个与目标银行特质冲击正交的外生变动源; 这一构造承袭 Hoberg 与 Phillips (2016) 逐年重建文本网络的思路, 把网络中同业的相对位置转化为对个体定位的外生推力。广义 Bartik 工具则遵循份额-移动 (shares-shift) 分解逻辑, 以银行早期在各金科主题上的暴露份额为权重、乘以各主题在全行业层面的时序移动, 合成一个不由银行当期选择驱动的预测性差异度; 其识别有效性依赖份额外生或移动外生两条平行论证路线之一。媒体来源 house-style 暴露工具利用不同媒体来源特有且相对稳定的叙事风格 (outlet fixed narrative style), 银行被何种风格的媒体覆盖在短期内是准随机的, 由此构造与银行真实战略无关、却影响其被建构差异度的外生变动。三条工具各自与主处理变量恰好一一对应, 形成三个独立的 just-identified 一阶段, 而非拼进一个共享工具集的 over-identified 系统。之所以坚持 just-identified 并排而非 over-identified 合并, 根本原因在于: 不同 N、不同分词、不同轨、不同嵌入的差异度列度量的是同一潜在构念的不同侧面, 彼此高度共线, 若强行塞入同一 Hansen J 过度识别统计量, 其自由度与检验功效会被人为的共线冗余污染, 得出的过度识别 p 值不具备真实的证伪意义; 正确做法是把它们视作平行的稳健性证据链, 各自跑一遍恰好识别的 2SLS, 观察系数符号与显著性是否跨规格一致。跨模型/跨规格的族级多重假设校正不落在 Hansen J, 而落在根级 rwolf/FWER 模板 (镜像 27_tableA12 的跨模型族), 以 Romano 与 Wolf 步降式多重检验控制家族误报率, 与此处过度识别检验是两套彼此不可替代的推断纪律。
@@ -449,4 +456,5 @@ Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic L
 Haans, R. F. J. (2019). What's the value of being different when everyone is? The effects of distinctiveness on performance in homogeneous versus heterogeneous categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978
 Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous product differentiation. Journal of Political Economy, 124(5), 1423-1465. https://doi.org/10.1086/688176
 Hoberg, G., Phillips, G., & Prabhala, N. (2014). Product market threats, payouts, and financial flexibility. The Journal of Finance, 69(1), 293-324. https://doi.org/10.1111/jofi.12050
+Meyer, T., Kerkhof, A., Cennamo, C., & Kretschmer, T. (2024). Competing for attention on digital platforms: The case of news outlets. Strategic Management Journal. https://doi.org/10.1002/smj.3600
 <!-- rendered-citations:end -->

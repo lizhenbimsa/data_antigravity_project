@@ -1,5 +1,6 @@
 ---
 family_id: F261
+novelty_exempt_rationale: "exc_前缀=排除疑似停刊媒体的样本层稳健性变体, negadv=词典规则消融梯度变体(否定翻转+转折, 关闭程度副词), 二者均为姜富伟(2021)词典母族测度的技术性组合变体, 非独立新构念, 其测度定义学术依据已在母族词典文献与规则消融方法学(Taboada 2011)中给出。"
 columns:
 - exc_jiang_2021_score_negadv_ctx
 - exc_jiang_2021_score_negadv_full

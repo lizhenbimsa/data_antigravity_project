@@ -82,7 +82,14 @@ citations:
   title: "A new Chinese financial sentiment dictionary for textual analysis in accounting and finance"
   venue: SSRN Working Paper
   pages_or_artno: No. 3446388
-new_dois: []
+- doi: "10.1111/1911-3846.12996"
+  title: "Aggregate tone and gross domestic product"
+  authors: "Demers, E., Gaertner, F. B., Kausar, A., Li, H., & Steele, L. B."
+  year: 2024
+  venue: "Contemporary Accounting Research"
+  type: "journal"
+new_dois:
+  - "10.1111/1911-3846.12996"
 ---
 
 ## CORE
@@ -94,7 +101,7 @@ new_dois: []
 计算分三步。第一步在文章层求逐篇 IDF 加权语调得分 bian_2021_idf_score{track}: 先用注入态 tone tokenizer 对每篇文本切词, 命中 Bian 词典的褒贬词按其极性归入正、负两侧, 每个命中词的幅值再乘以该词的语料级 IDF 权重, 正负两侧分别求加权和后作归一化, 得到落在闭区间 [-1,1] 的连续得分, 正值表正面语调、负值表负面语调。IDF 权重由 build_idf_weights 在全语料上一次性估计: 以平滑逆文档频率 log10(N/(1+df(w))) 为原始权重, 再除以全体情感词原始权重的均值做归一化 (使加权版得分量级与等权版可比、共享阈值), 最后对归一化权重做 P1/P99 Winsorization 抑制极端稀有词或极高频词的杠杆。文档频率 df(w) 与文档总数 N 均在"按文本内容去重后的唯一文档"上统计, 以免同一篇报道被展开成多家银行多行时虚增计数。三轨 (full/ctx/ss) 共享同一份基于 content_full 语料估计的 IDF 权重, 绝不按轨分别估权, 保证跨轨权重可比。IDF 加权的方法学根据是文本即数据范式中对高信息量稀有词赋权、压低套话高频词权重的通行做法, 其金融文本内的先例可追溯至 Jegadeesh 与 Wu (2013) 的词权重内容分析。第二步在银行-年层对逐篇得分做求和聚合 (encode 层的 'sum' 归约), 分母不做规范化。第三步经面板导出与 Stata 导出落列。
 
 【文献定位】
-本家族坐落于金融文本情感测度的词典法一支。García, Hu 与 Rohrer (2023) 在顶级金融学期刊系统检验了金融词表的极性构造, 指出词典的领域适配与词权重设定对下游测度有实质影响, 为本家族"专用中文词典 + IDF 重加权"的双重设计提供了直接的文献支撑。Du, Huang, Wermers 与 Wu (2022) 论证了中文金融情感词典相对英文词典直译的领域优越性, 与本项目并置多部中文词典 (含 Bian 词典) 互为稳健性的做法同源。方法论上, 词典法只是本项目情感测度三角的一支: Frankel, Jennings 与 Lee (2022) 比较了机器学习法与词典法披露情感, Shapiro, Sudhof 与 Wilson (2022) 给出词典法新闻情感的量化范式, Holzman, Miller 与 Twedt (2023) 则示范了媒体基调的权威加权累积——这些工作共同界定了求和口径累积语调在媒体金融研究中的解释边界。须强调: Bian 词典轨与本项目其余五部词典轨、以及 IDF 加权轨与等权轨, 各自 just-identified 并排, 互为稳健性、不分主次, 严禁把不同词典或加权口径的多列混入同一 over-identified 的 Hansen J 过度识别检验。
+本家族坐落于金融文本情感测度的词典法一支。García, Hu 与 Rohrer (2023) 在顶级金融学期刊系统检验了金融词表的极性构造, 指出词典的领域适配与词权重设定对下游测度有实质影响, 为本家族"专用中文词典 + IDF 重加权"的双重设计提供了直接的文献支撑。Du, Huang, Wermers 与 Wu (2022) 论证了中文金融情感词典相对英文词典直译的领域优越性, 与本项目并置多部中文词典 (含 Bian 词典) 互为稳健性的做法同源。方法论上, 词典法只是本项目情感测度三角的一支: Frankel, Jennings 与 Lee (2022) 比较了机器学习法与词典法披露情感, Shapiro, Sudhof 与 Wilson (2022) 给出词典法新闻情感的量化范式, Holzman, Miller 与 Twedt (2023) 则示范了媒体基调的权威加权累积——这些工作共同界定了求和口径累积语调在媒体金融研究中的解释边界。须强调: Bian 词典轨与本项目其余五部词典轨、以及 IDF 加权轨与等权轨, 各自 just-identified 并排, 互为稳健性、不分主次, 严禁把不同词典或加权口径的多列混入同一 over-identified 的 Hansen J 过度识别检验。此外, Demers, Gaertner, Kausar, Li 与 Steele (2024, Contemporary Accounting Research) 构造企业层面文本语调在总量口径下的加总测度并与宏观产出联系, 为本家族按 bank-year 求和而非取均值的累积总量式聚合口径提供了直接的方法学先例。
 
 ## VAR: bian_2021_idf_tone_sum_ctx
 
@@ -120,4 +127,5 @@ Shapiro, A. H., Sudhof, M., & Wilson, D. J. (2022). Measuring news sentiment. Jo
 Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis. Journal of Financial Economics, 110(3), 712-729. https://doi.org/10.1016/j.jfineco.2013.08.018
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
+Demers, E., Gaertner, F. B., Kausar, A., Li, H., & Steele, L. B. (2024). Aggregate tone and gross domestic product. Contemporary Accounting Research. https://doi.org/10.1111/1911-3846.12996
 <!-- rendered-citations:end -->

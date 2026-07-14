@@ -65,7 +65,14 @@ citations:
   vol: 66
   issue: 1
   pages_or_artno: 35-65
-new_dois: []
+- doi: "10.1007/s11142-025-09897-1"
+  type: journal
+  authors: "Li, S. Z., & Luan, Z."
+  year: 2025
+  title: "News-based investor disagreement and stock returns"
+  venue: "Review of Accounting Studies"
+new_dois:
+  - "10.1007/s11142-025-09897-1"
 ---
 
 ## CORE
@@ -77,7 +84,7 @@ new_dois: []
 词典底座为 loughran (Loughran 与 McDonald, 2011) 的正负情感类别, 经本项目 tone_words 阶段汉化落地为 tone_dicts.json 中的 loughran 正面/负面词表, 在 stage 22 逐篇统计命中并归一化为逐篇词比率 loughran_pos_ratio 与 loughran_neg_ratio (每篇正/负词命中数占该篇有效词数之比), 并在 stage 21 语义精筛留篇后进入 24_herd_decay 的 article×bank verified 集。面板装配阶段先在 encode.py 的 M 聚合块上对每一银行-年、逐轨求这两个逐篇词比率的算术均值, 得到 avg_loughran_pos_ratio 与 avg_loughran_neg_ratio; 随后 runner.py 步骤 8b 把这两个均值分别作为 P 与 N 代入闭式 disag = 平方根下 (1 减去 ((P 减 N) 除以 (P 加 N)) 的平方)。须强调 P、N 是逐篇词比率的银行-年均值而非命中计数的求和——命中计数求和 (pos_count/neg_count) 是 LLM 篇章计数分支 disag_llm 及各单模型分支的输入口径, 与本词典族的词级比率口径彼此独立, 不可混用。该式的性质为: 当 P 等于 N 时净语调比 (P−N)/(P+N) 为 0, disag 取上界 1, 代表褒贬完全对冲的极端分歧; 当某一侧比率均值为 0 (报道单边化) 时净语调比为正负 1, disag 取下界 0, 代表零分歧的语调共识; 取值单调地随净语调比绝对值增大而下降, 因而是净语调"幅度"的严格递减变换, 与净语调的"符号/方向"信息正交。分母 P+N 为 0 (该银行-年在该轨的 loughran 正负词比率均值同时为 0, 即无任何 loughran 情感词命中) 时置 NaN 而非 0, 以免把"无信息"误编码为"零分歧"。本测度不作跨词典可加分解, 与 bian_2021、du_2022 等其他词典的同名 disag 变体互为稳健性、不分主次、各自 just-identified 并排, 禁混进同一 over-identified Hansen J。
 
 【文献定位】
-在文本情感度量的方法学谱系中, 本家族属于"词典法离散度"分支。Loughran 与 McDonald (2011) 奠定了以财经专用词典替代通用心理学词典的范式, 其后续综述 (Loughran 与 McDonald, 2016; 2020) 系统梳理了词典法相对机器学习法的可解释性与可复现优势, 也明确指出词典命中计数对语料清洗与分母口径高度敏感——本家族据此坚持"留篇门控 full-only、分母逐轨严格对齐"的口径纪律。就构念本身, Cookson 与 Niessner (2020) 是最贴近的先例, 他们证明语调离散型分歧代理能预测收益与波动, 与均值型语调携带互补信息; Hong 与 Stein (2007)、Carlin 等 (2014) 则从理论与资产定价侧论证了分歧作为独立状态变量的经济意义。本家族并非直接复制 Cookson 与 Niessner (2020) 的分歧公式, 而是采用 Antweiler 与 Frank (2004) 提出的平方根标准化分歧测度壳 (disag = 平方根下 (1 减去净语调比平方)), 使 disag 落在有界区间 [0,1] 便于跨银行-年比较; 这一测度壳与 step 7i 的 Janis-Fadner 系数是两个不同的闭式, 本家族刻意采用前者而非后者, 二者不可混同。
+在文本情感度量的方法学谱系中, 本家族属于"词典法离散度"分支。Loughran 与 McDonald (2011) 奠定了以财经专用词典替代通用心理学词典的范式, 其后续综述 (Loughran 与 McDonald, 2016; 2020) 系统梳理了词典法相对机器学习法的可解释性与可复现优势, 也明确指出词典命中计数对语料清洗与分母口径高度敏感——本家族据此坚持"留篇门控 full-only、分母逐轨严格对齐"的口径纪律。就构念本身, Cookson 与 Niessner (2020) 是最贴近的先例, 他们证明语调离散型分歧代理能预测收益与波动, 与均值型语调携带互补信息; Hong 与 Stein (2007)、Carlin 等 (2014) 则从理论与资产定价侧论证了分歧作为独立状态变量的经济意义。本家族并非直接复制 Cookson 与 Niessner (2020) 的分歧公式, 而是采用 Antweiler 与 Frank (2004) 提出的平方根标准化分歧测度壳 (disag = 平方根下 (1 减去净语调比平方)), 使 disag 落在有界区间 [0,1] 便于跨银行-年比较; 这一测度壳与 step 7i 的 Janis-Fadner 系数是两个不同的闭式, 本家族刻意采用前者而非后者, 二者不可混同。近年 Li 与 Luan (2025, Review of Accounting Studies) 以新闻文本构造投资者分歧代理并检验其对横截面收益的预测力, 呼应本家族以媒体文本语调离散度刻画银行金融科技报道分歧的构念思路。
 
 ## VAR: disag_loughran_full
 
@@ -101,4 +108,5 @@ Carlin, B. I., Longstaff, F. A., & Matoba, K. (2014). Disagreement and asset pri
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
 Hong, H., & Stein, J. C. (2007). Disagreement and the stock market. Journal of Economic Perspectives, 21(2), 109-128. https://doi.org/10.1257/jep.21.2.109
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
+Li, S. Z., & Luan, Z. (2025). News-based investor disagreement and stock returns. Review of Accounting Studies. https://doi.org/10.1007/s11142-025-09897-1
 <!-- rendered-citations:end -->

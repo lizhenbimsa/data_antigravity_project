@@ -17,54 +17,68 @@ upstream:
   - 22_words_tone.parquet (content_full/content_ctx/content_ss)
   - 23_bert_tone.parquet ({model}_正面_{track} 文章级概率, mention_density)
 citations:
-  - doi: 10.1111/1911-3846.12832
-    type: journal
-    authors: Huang, A. H., Wang, H., & Yang, Y.
-    year: 2023
-    title: "FinBERT: A large language model for extracting information from financial text"
-    venue: Contemporary Accounting Research
-    vol: 40
-    issue: 2
-    pages_or_artno: 806-841
-  - doi: 10.1145/3711896.3737219
-    type: wp
-    authors: Xu, X., Wen, F., Chu, B., Fu, Z., Lin, Q., Liu, J., Fei, B., Li, Y., Zhou, L., & Yang, Z.
-    year: 2025
-    title: "FinBERT2: A specialized bidirectional encoder for bridging the gap in finance-specific deployment of large language models"
-    venue: "Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2 (KDD '25)"
-    pages_or_artno: 5117-5128
-  - doi: 10.18653/v1/N19-1423
-    type: wp
-    authors: Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K.
-    year: 2019
-    title: "BERT: Pre-training of deep bidirectional transformers for language understanding"
-    venue: "Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics (NAACL-HLT 2019), Volume 1"
-    pages_or_artno: 4171-4186
-  - doi: 10.24963/ijcai.2020/622
-    type: wp
-    authors: Liu, Z., Huang, D., Huang, K., Li, Z., & Zhao, J.
-    year: 2020
-    title: "FinBERT: A pre-trained financial language representation model for financial text mining"
-    venue: "Proceedings of the Twenty-Ninth International Joint Conference on Artificial Intelligence (IJCAI-20)"
-    pages_or_artno: 4513-4519
-  - doi: 10.1007/978-3-030-32381-3_16
-    type: wp
-    authors: Sun, C., Qiu, X., Xu, Y., & Huang, X.
-    year: 2019
-    title: "How to fine-tune BERT for text classification?"
-    venue: "Chinese Computational Linguistics (CCL 2019), Lecture Notes in Computer Science"
-    vol: 11856
-    pages_or_artno: 194-206
-  - doi: 10.1287/mnsc.2021.4156
-    type: journal
-    authors: Frankel, R., Jennings, J., & Lee, J.
-    year: 2022
-    title: "Disclosure Sentiment: Machine Learning vs. Dictionary Methods"
-    venue: Management Science
-    vol: 68
-    issue: 7
-    pages_or_artno: 5514-5532
-new_dois: []
+- doi: 10.1111/1911-3846.12832
+  type: journal
+  authors: Huang, A. H., Wang, H., & Yang, Y.
+  year: 2023
+  title: "FinBERT: A large language model for extracting information from financial text"
+  venue: Contemporary Accounting Research
+  vol: 40
+  issue: 2
+  pages_or_artno: 806-841
+- doi: 10.1145/3711896.3737219
+  type: wp
+  authors: Xu, X., Wen, F., Chu, B., Fu, Z., Lin, Q., Liu, J., Fei, B., Li, Y., Zhou, L., & Yang, Z.
+  year: 2025
+  title: "FinBERT2: A specialized bidirectional encoder for bridging the gap in finance-specific deployment of large language models"
+  venue: "Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2 (KDD '25)"
+  pages_or_artno: 5117-5128
+- doi: 10.18653/v1/N19-1423
+  type: wp
+  authors: Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K.
+  year: 2019
+  title: "BERT: Pre-training of deep bidirectional transformers for language understanding"
+  venue: "Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics (NAACL-HLT 2019), Volume 1"
+  pages_or_artno: 4171-4186
+- doi: 10.24963/ijcai.2020/622
+  type: wp
+  authors: Liu, Z., Huang, D., Huang, K., Li, Z., & Zhao, J.
+  year: 2020
+  title: "FinBERT: A pre-trained financial language representation model for financial text mining"
+  venue: "Proceedings of the Twenty-Ninth International Joint Conference on Artificial Intelligence (IJCAI-20)"
+  pages_or_artno: 4513-4519
+- doi: 10.1007/978-3-030-32381-3_16
+  type: wp
+  authors: Sun, C., Qiu, X., Xu, Y., & Huang, X.
+  year: 2019
+  title: "How to fine-tune BERT for text classification?"
+  venue: "Chinese Computational Linguistics (CCL 2019), Lecture Notes in Computer Science"
+  vol: 11856
+  pages_or_artno: 194-206
+- doi: 10.1287/mnsc.2021.4156
+  type: journal
+  authors: Frankel, R., Jennings, J., & Lee, J.
+  year: 2022
+  title: "Disclosure Sentiment: Machine Learning vs. Dictionary Methods"
+  venue: Management Science
+  vol: 68
+  issue: 7
+  pages_or_artno: 5514-5532
+- doi: "10.1002/isaf.1549"
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+  type: "journal"
+- doi: "10.1016/j.ememar.2024.101234"
+  title: "Does official media sentiment matter for the stock market? Evidence from China"
+  authors: "Xu, Z., Hua, X., & Zhang, T."
+  year: 2025
+  venue: "Emerging Markets Review"
+  type: "journal"
+new_dois:
+  - "10.1002/isaf.1549"
+  - "10.1016/j.ememar.2024.101234"
 ---
 
 ## CORE
@@ -78,7 +92,7 @@ new_dois: []
 
 【文献定位】
 本家族方法学根基有二: 一是 BERT 架构本身 (Devlin et al., 2019), 双向 Transformer 编码器通过掩码语言建模预训练, 微调后在文本分类任务 (含金融文本情感三分类) 上取得当时最优表现, 为后续所有领域微调 BERT 变体奠定基础; Sun et al. (2019) 系统评估了微调 BERT 用于文本分类的各类超参数与层选取策略, 为 finbert_cn/fin_sent_zh 这类"通用 BERT 权重 + 领域语料微调"路线提供操作规范。二是金融领域专用化: Liu et al. (2020) 的 FinBERT 首次系统展示了在金融语料上继续预训练/微调 BERT 能显著提升金融文本情感分类效果; Huang, Wang & Yang (2023, *Contemporary Accounting Research*) 进一步把这一思路系统化并在会计与金融文本抽取任务上做出顶刊级验证, 是本项目采用"预训练语言模型作情感打分器"这一测度路线的方法学锚点; finbert2 模型本身直接对应 Xu et al. (2025) 在 KDD '25 上发表的 FinBench2 双向编码器, 针对中文金融部署场景专门优化, 是本项目三 BERT 之一的原始出处。value-weighted 加权求和的设计思路是让提及目标银行更集中、信号更强的文章在聚合语调中占更大权重, 而非对该 bank-year 单元内所有文章简单等权平均, 这类"按相关密度加权"的构造在企业层面文本度量文献中已有先例; 这一权重构造与本项目 LLM 三家、词典六家的 `_score_w_sum` 加权求和范式共享同一原语, 三条独立测度路线 (LLM/词典/BERT) 因此在"是否加权"这一维度上保持结构对称, 便于跨路线做 value-weighted vs. equal-weighted 的稳健性对照。
-需要强调的是: 本列是中间分子, 不是可直接解读的语调水平指标; 三模型 (finbert_cn/fin_sent_zh/finbert2) 之间互为稳健性、不分主次 (无 ensemble headline, 与 LLM 三家的多数投票共识 `llm_vote_tone` 设计不同), finbert2 因依赖本地私有权重 (`.env` 配置 `FINBERT2_MODEL_DIR`) 在该配置缺失时会优雅跳过, 仅该模型自身相关列 (含本家族 finbert2 三列) 整体降级为缺失, 不影响另外两个基于公开 HuggingFace 权重的模型继续产出。凡涉及跨模型比较, 必须各模型各自 just-identified 并排、互为稳健性、不分主次, 禁止把三模型 (或同模型三轨) 混入同一个 over-identified 的 Hansen J 过度识别检验, 这是与三轨文本架构、co-primary 双轨嵌入、政治词权重梯度同款的项目铁律, 目的在于防止把本质上互为稳健性替代的多个测度错误地当作可联合矩条件叠加的多工具变量使用。BERT 深层模型相较词典法在情感判定质量上的优势, 另有 Frankel, Jennings & Lee (2022, Management Science) 的直接顶刊证据支撑: 该文系统比较机器学习分类器与词典法在披露文本情感抽取上的表现, 证明经监督学习/微调的分类模型在识别语义层面的情感信号上显著优于关键词计数式词典法, 为本项目以 BERT 深层模型 (而非词典) 承担情感分类主力提供了顶刊层级的方法学背书。
+需要强调的是: 本列是中间分子, 不是可直接解读的语调水平指标; 三模型 (finbert_cn/fin_sent_zh/finbert2) 之间互为稳健性、不分主次 (无 ensemble headline, 与 LLM 三家的多数投票共识 `llm_vote_tone` 设计不同), finbert2 因依赖本地私有权重 (`.env` 配置 `FINBERT2_MODEL_DIR`) 在该配置缺失时会优雅跳过, 仅该模型自身相关列 (含本家族 finbert2 三列) 整体降级为缺失, 不影响另外两个基于公开 HuggingFace 权重的模型继续产出。凡涉及跨模型比较, 必须各模型各自 just-identified 并排、互为稳健性、不分主次, 禁止把三模型 (或同模型三轨) 混入同一个 over-identified 的 Hansen J 过度识别检验, 这是与三轨文本架构、co-primary 双轨嵌入、政治词权重梯度同款的项目铁律, 目的在于防止把本质上互为稳健性替代的多个测度错误地当作可联合矩条件叠加的多工具变量使用。BERT 深层模型相较词典法在情感判定质量上的优势, 另有 Frankel, Jennings & Lee (2022, Management Science) 的直接顶刊证据支撑: 该文系统比较机器学习分类器与词典法在披露文本情感抽取上的表现, 证明经监督学习/微调的分类模型在识别语义层面的情感信号上显著优于关键词计数式词典法, 为本项目以 BERT 深层模型 (而非词典) 承担情感分类主力提供了顶刊层级的方法学背书。此外, Todd, Bowden & Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 系统综述金融领域文本情感分析文献并展望未来方向, 为本家族采用 BERT 类模型作情感打分器的路线提供近期文献坐标; Xu, Hua & Zhang (2025, Emerging Markets Review) 构建基于文本分析与 BERT 的中国官方媒体情感指数并检验其对股市的影响, 为中文金融 BERT 情感打分在中国市场语境下的应用提供近期实证支持。
 
 ## VAR: fin_sent_zh_正面_w_sum_ctx
 
@@ -132,4 +146,6 @@ Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2019). BERT: Pre-training of
 Liu, Z., Huang, D., Huang, K., Li, Z., & Zhao, J. (2020). FinBERT: A pre-trained financial language representation model for financial text mining. Proceedings of the Twenty-Ninth International Joint Conference on Artificial Intelligence (IJCAI-20) No. 4513-4519 [Working Paper]. https://doi.org/10.24963/ijcai.2020/622
 Sun, C., Qiu, X., Xu, Y., & Huang, X. (2019). How to fine-tune BERT for text classification?. Chinese Computational Linguistics (CCL 2019), Lecture Notes in Computer Science No. 194-206 [Working Paper]. https://doi.org/10.1007/978-3-030-32381-3_16
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure Sentiment: Machine Learning vs. Dictionary Methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
+Xu, Z., Hua, X., & Zhang, T. (2025). Does official media sentiment matter for the stock market? Evidence from China. Emerging Markets Review. https://doi.org/10.1016/j.ememar.2024.101234
 <!-- rendered-citations:end -->

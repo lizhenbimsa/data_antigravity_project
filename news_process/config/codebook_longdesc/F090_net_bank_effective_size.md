@@ -157,7 +157,28 @@ citations:
   vol: 1
   issue: 3
   pages_or_artno: 215-239
-new_dois: []
+- doi: "10.1080/2833115x.2026.2662558"
+  type: journal
+  authors: "Lei, J., Campbell-Verduyn, M., Steglich, C., & Wittek, R."
+  year: 2026
+  title: "The evolution of global bank-to-nonbank networks, 2002–2022: a stochastic actor-oriented analysis"
+  venue: "Finance and Space"
+- doi: "10.1016/j.najef.2024.102307"
+  title: "Text Spillover: Measuring connectedness of financial institutions based on news text data"
+  authors: "Klaucke, K."
+  year: 2025
+  venue: "The North American Journal of Economics and Finance"
+  type: "journal"
+- doi: "10.1007/s10490-026-10116-x"
+  title: "Agentic, powerful, but unethical: New ventures' ethical practices as the outcome of entrepreneurs' networking behaviors and structural holes"
+  authors: "Wang, Y., & Wei, F."
+  year: 2026
+  venue: "Asia Pacific Journal of Management"
+  type: "journal"
+new_dois:
+  - "10.1080/2833115x.2026.2662558"
+  - "10.1016/j.najef.2024.102307"
+  - "10.1007/s10490-026-10116-x"
 ---
 
 ## CORE
@@ -169,7 +190,7 @@ new_dois: []
 计算在 network_spillover.py 的 compute_bank_network_centrality 中逐年进行。第一步 build_adjacency_matrix 对给定年份切出 df_year, 取其 target_bank 去重排序得到节点全集, 然后按 docid 分组: 凡在同一篇文章 (同一 docid) 内共同出现的银行, 其两两无序对在对称邻接矩阵上各加一, 因而边权等于"当年共同提及这两家银行的文章篇数", 是一个正整数计数权重。第二步据此邻接矩阵建立无向加权图 G (边属性 weight = 共现次数), 并把当年所有节点 (含孤立银行) 都放进图里。第三步调用 networkx 的 nx.effective_size(G, weight='weight') 得到每个节点的有效规模。在无权情形下, 有效规模等于度数减去邻居间的平均冗余, 即 k − 2t/k (k 为度数, t 为邻居之间的连边数); 在本项目的加权图上, networkx 采用 Burt 结构洞框架的加权推广, 用比例投入强度与边际强度衡量每个邻居的冗余程度, 再由度数扣减冗余总量得到有效规模, 因此边权 (共现强度) 越强的冗余联系被扣减得越多。缺失约定是: 当 G.degree(b)==0 (该银行当年无任何共现邻居, 孤立点) 时, bank_effective_size 置 NaN 而非 0, 以区分"零非冗余邻居"与"网络中缺席"; 计算过程一旦抛异常, 该年全体银行的有效规模亦置 NaN, 属 fail-soft 降级。判据敏感性由 criterion 与配套 suffix 参数驱动: 同篇口径 (criterion='article') 落无后缀 canonical 列, ±win_radius 句窗口径 (criterion='win1') 落 _win1, 严格同句口径 (criterion='sent', 内部 radius=0) 落 _sent; win_radius 取自 config/panel.yaml 的 network_criteria.win_radius (默认 1), 与 filtering.yaml 中 stage 13 的 cooccurrence_filter.sentence_radius 是互不联动的两个键。win1 与 sent 走 docid 组内文本重扫路径, 复用 entity_context 的 map_bank_sentence_positions 与 bank_pairs_within_sentence_window 原语, 扫描文本经 prepend_title 把标题接为第 0 句参与句级判定, 镜像 stage 13 的 match_in_title 口径; 三判据的节点全集一致 (均为当年幸存银行), 仅边集逐级收紧。就实现细节而言, 同篇 canonical 路径 (criterion='article') 走的是 both-verified 主路径: 对每个 docid 分组内幸存 target_bank 的去重集合逐无序对累加, 单银行文章不产边; 邻接矩阵以稀疏 lil_matrix 累积后转稠密 DataFrame, 且对一篇提及超过十家银行的大-N 文章会打印诊断日志以提示其等权 clique 投影可能主导网络。有效规模只在原始加权图 G 上计算, 不使用路径型指标所需的倒数权重图 G_inv (后者仅供 betweenness、harmonic、closeness、eccentricity 一类"距离越短越近"的度量), 因为结构洞冗余度衡量的是邻居间连边的存在与强度, 与最短路径距离无关。孤立节点在建 G 时被显式加入 (add_node), 保证节点全集完整, 从而 degree==0 的银行能被正确识别并置 NaN, 而不是因不在图中被静默丢失。runner 在面板构造步骤中对同一 df_exploded 依次以 article、win1、sent 三个 criterion 各调用一次 compute_bank_network_centrality, 分别落无后缀、_win1、_sent 三套 33 列, 三次调用彼此独立、加性叠加, 互不改写对方列。win1 与 sent 的句窗判据分轨路径当前不支持 hyperedge_normalize (仅 article 主路径预留该参数且尚未接线), 一旦误传即 raise, 以防三判据轨在无警告下分叉出不同的边权归一口径。
 
 【文献定位】
-有效规模的理论根脉是 Burt (2004) 的结构洞框架: 处于结构洞两侧、连接原本不相往来群体的行动者, 因掌握非冗余的信息与控制优势而获益, 有效规模正是量化这一"非冗余触达广度"的核心算子。作为一个建立在共现图上的节点位置度量, 它与 Freeman (1978) 对社会网络中心度的经典厘清一脉相承, 但刻画的不是"居中程度"而是"跨结构洞的信息不重叠度"。由于本项目的共现图是加权的 (边权=共现文章数), 有效规模的加权实现直接承接 Opsahl, Agneessens & Skvoretz (2010) 关于加权网络节点中心度推广的思路, 以及 Barrat, Barthélemy, Pastor-Satorras & Vespignani (2004) 对复杂加权网络架构的刻画。在金融应用层面, 银行间由共现或所有权关系构成的网络位置已被证明具有经济后果: Gao, Ru & Yang (2022) 显示银行所有权网络承载信息角色并影响信贷, Wang, Zhang & Yang (2020) 追踪了中国担保网络在危机与刺激下的演化, Jackson & Pernoud (2021) 综述了金融网络中的系统性风险传导, Yu, Hu & Zhong (2024) 则把网络中心度与信息扩散、资产定价直接关联。就"从文本构造金融网络"这一方法论传统而言, Hoberg & Phillips (2016) 的文本网络产业分类与 Li 等 (2026) 从文本风险披露中还原金融网络连通性, 为以新闻共现刻画银行结构位置提供了外部支撑。结构洞与经纪的社会学谱系还包括 Gould & Fernandez (1989) 对交易网络中中介结构的形式化, 以及 Han, Kim & Nanda (2024) 对机构经纪网络促成流动性供给的金融实证, 二者与有效规模同属"中介/桥接"构念族, 但落点不同 (见下文构念区分)。把有效规模嵌入一个包含度、强度、介数、特征向量、约束、聚类等多种度量的中心度全集, 也回应了 Freeman (1978) 的核心洞见: 没有单一的"中心度"能概括节点在网络中的全部重要性, 不同算子量的是不同的结构角色, 应并置而非相互替代。加权网络的引入使这一多度量策略更贴近真实: Barrat 等 (2004) 与 Opsahl 等 (2010) 均指出, 一旦边带上强度信息, 单纯拓扑度数会遗漏"联系有多强"的维度, 加权有效规模因此比无权版本更能区分"频繁被一起报道"与"偶然被一起报道"的邻居。就中国情境的银行网络证据链而言, Wang 等 (2020) 的担保网络、Gao 等 (2022) 的所有权网络与 Yu 等 (2024) 的中心度—定价关联共同表明, 银行的网络位置并非纯粹描述性标签, 而是承载信息传导与风险外溢的结构变量; Jackson & Pernoud (2021) 的系统性风险综述则从理论上说明为何桥接位置 (低冗余、高有效规模) 在传染与信息扩散中扮演关键角色。
+有效规模的理论根脉是 Burt (2004) 的结构洞框架: 处于结构洞两侧、连接原本不相往来群体的行动者, 因掌握非冗余的信息与控制优势而获益, 有效规模正是量化这一"非冗余触达广度"的核心算子。作为一个建立在共现图上的节点位置度量, 它与 Freeman (1978) 对社会网络中心度的经典厘清一脉相承, 但刻画的不是"居中程度"而是"跨结构洞的信息不重叠度"。由于本项目的共现图是加权的 (边权=共现文章数), 有效规模的加权实现直接承接 Opsahl, Agneessens & Skvoretz (2010) 关于加权网络节点中心度推广的思路, 以及 Barrat, Barthélemy, Pastor-Satorras & Vespignani (2004) 对复杂加权网络架构的刻画。在金融应用层面, 银行间由共现或所有权关系构成的网络位置已被证明具有经济后果: Gao, Ru & Yang (2022) 显示银行所有权网络承载信息角色并影响信贷, Wang, Zhang & Yang (2020) 追踪了中国担保网络在危机与刺激下的演化, Jackson & Pernoud (2021) 综述了金融网络中的系统性风险传导, Yu, Hu & Zhong (2024) 则把网络中心度与信息扩散、资产定价直接关联。就"从文本构造金融网络"这一方法论传统而言, Hoberg & Phillips (2016) 的文本网络产业分类与 Li 等 (2026) 从文本风险披露中还原金融网络连通性, 为以新闻共现刻画银行结构位置提供了外部支撑。结构洞与经纪的社会学谱系还包括 Gould & Fernandez (1989) 对交易网络中中介结构的形式化, 以及 Han, Kim & Nanda (2024) 对机构经纪网络促成流动性供给的金融实证, 二者与有效规模同属"中介/桥接"构念族, 但落点不同 (见下文构念区分)。把有效规模嵌入一个包含度、强度、介数、特征向量、约束、聚类等多种度量的中心度全集, 也回应了 Freeman (1978) 的核心洞见: 没有单一的"中心度"能概括节点在网络中的全部重要性, 不同算子量的是不同的结构角色, 应并置而非相互替代。加权网络的引入使这一多度量策略更贴近真实: Barrat 等 (2004) 与 Opsahl 等 (2010) 均指出, 一旦边带上强度信息, 单纯拓扑度数会遗漏"联系有多强"的维度, 加权有效规模因此比无权版本更能区分"频繁被一起报道"与"偶然被一起报道"的邻居。就中国情境的银行网络证据链而言, Wang 等 (2020) 的担保网络、Gao 等 (2022) 的所有权网络与 Yu 等 (2024) 的中心度—定价关联共同表明, 银行的网络位置并非纯粹描述性标签, 而是承载信息传导与风险外溢的结构变量; Jackson & Pernoud (2021) 的系统性风险综述则从理论上说明为何桥接位置 (低冗余、高有效规模) 在传染与信息扩散中扮演关键角色。Lei, Campbell-Verduyn, Steglich & Wittek (2026, Finance and Space) 用随机行动者导向模型追踪了 2002-2022 年全球银行与非银行机构网络的动态演化, 为本家族以新闻共现刻画银行间网络结构位置随年度变化的构造思路提供了银行网络动态演化视角的外部实证支撑。Klaucke (2025, The North American Journal of Economics and Finance) 用约4.7万篇新闻文本构造银行等金融机构的文本共现溢出测度并与Diebold-Yilmaz计量测度对照,证明新闻共现可直接反映机构间连通性,为本家族以银行新闻共现构造网络的方法论提供直接外部支撑。Wang & Wei (2026, Asia Pacific Journal of Management) 考察创业者跨越结构洞的网络行为如何通过赋能与议价力影响新创企业的商业伦理实践,延伸Burt结构洞框架在企业层面行为后果上的最新实证证据。
 
 【识别策略定位】
 在计量识别上, 有效规模主要以两种身份进入本项目的面板回归。第一种身份是银行网络位置的结构性控制变量: 一家银行处在信息不重叠、跨群桥接的位置这一事实, 本身可能同时影响它接触金融科技动向的广度与它被媒体书写的方式, 若不加控制便会与金融科技新闻情感、注意力等主处理变量纠缠, 使系数估计混入网络位置的异质性; 把有效规模纳入回归右端可吸收这一维度, 让主处理变量的估计更接近"给定网络位置后"的净效应。第二种身份是同群暴露 (peer exposure) 与网络溢出构造中的位置权重成分: 有效规模刻画的"桥接了多少非重叠信息面"正是溢出强度的天然调节量, 一家跨越更多结构洞的银行更可能把异质的同业信息聚合、转译并再扩散, 因而在留一同群均值、广义 Bartik 暴露等溢出算子里承担位置权重角色。需要强调, 无论作为控制还是权重, 有效规模所依托的银行∧银行共现网络其节点与边宇宙都继承自 full-only 留篇门控 (2026-06-29): 只有 llm_verified_full 为真的报道才被判为一篇银行金融科技报道并进入 24_herd_decay 的 verified 篇章级宇宙, 网络的年度重建即建立在这一 full-only 留篇集之上, 因此有效规模的宇宙口径与主处理变量的留篇口径严格一致, 不存在网络用一套留篇、情感用另一套留篇的错配。
@@ -216,4 +237,7 @@ Barrat, A., Barthélemy, M., Pastor-Satorras, R., & Vespignani, A. (2004). The a
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
 Gould, R. V., & Fernandez, R. M. (1989). Structures of mediation: A formal approach to brokerage in transaction networks. Sociological Methodology, 19, 89-126. https://doi.org/10.2307/270949
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
+Lei, J., Campbell-Verduyn, M., Steglich, C., & Wittek, R. (2026). The evolution of global bank-to-nonbank networks, 2002–2022: a stochastic actor-oriented analysis. Finance and Space. https://doi.org/10.1080/2833115x.2026.2662558
+Klaucke, K. (2025). Text Spillover: Measuring connectedness of financial institutions based on news text data. The North American Journal of Economics and Finance. https://doi.org/10.1016/j.najef.2024.102307
+Wang, Y., & Wei, F. (2026). Agentic, powerful, but unethical: New ventures' ethical practices as the outcome of entrepreneurs' networking behaviors and structural holes. Asia Pacific Journal of Management. https://doi.org/10.1007/s10490-026-10116-x
 <!-- rendered-citations:end -->

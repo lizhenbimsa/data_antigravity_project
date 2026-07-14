@@ -13,7 +13,14 @@ citations:
 - {doi: "10.2307/2298123", type: journal, authors: "Manski, C. F.", year: 1993, title: "Identification of Endogenous Social Effects: The Reflection Problem", venue: "The Review of Economic Studies", vol: "60", issue: "3", pages_or_artno: "531-542"}
 - {doi: "10.1111/jofi.12094", type: journal, authors: "Leary, M. T., & Roberts, M. R.", year: 2014, title: "Do Peer Firms Affect Corporate Financial Policy?", venue: "The Journal of Finance", vol: "69", issue: "1", pages_or_artno: "139-178"}
 - {doi: "10.1016/j.jeconom.2008.12.021", type: journal, authors: "Bramoullé, Y., Djebbari, H., & Fortin, B.", year: 2009, title: "Identification of Peer Effects through Social Networks", venue: "Journal of Econometrics", vol: "150", issue: "1", pages_or_artno: "41-55"}
-new_dois: []
+- doi: "10.2478/bsrj-2026-0010"
+  title: "AI-Driven Peer Company Identification: A Semantic Text-Similarity Approach Beyond Traditional Industry Classification Systems"
+  authors: "Jagrič, T., & Herman, A."
+  year: 2026
+  venue: "Business Systems Research Journal, 17(1), 204-222"
+  type: "journal"
+new_dois:
+  - "10.2478/bsrj-2026-0010"
 ---
 
 ## CORE
@@ -24,7 +31,7 @@ new_dois: []
 llm_peer_n_effective 的计算路径是: LLM 返回的原始同行候选集合 (未做面板过滤, 对应诊断列 llm_peer_count 的口径) 先与面板样本框做交集 (仅保留在册且在样本期内的银行), 再对每个候选同行检验其 t-1 期是否存在可用的 tone 观测 (缺失/停牌/未进入样本的同行被剔除), 剩余数量即为该 bank-year 实际进入 tone IV 均值分母的同行家数, 是一个 double 类型的计数值 (允许出现 0, 表示查证成功但无面板内可用同行, 此时对应的 tone IV 应为缺失或退化)。llm_peer_queried 则是更上游的一个 0/1 指示列 (int64): 1 表示该 bank-year 的 LLM 同行识别调用已发起且响应被成功解析 (无论解析出的同行集合是否为空); 0 表示调用未发起或响应无法解析, 即该 bank-year 从未真正"被查证过"。这一区分刻意把"查证后确认零同行"与"根本未查证"两种截然不同的缺失机制分离开来 (producer 注释标注为 fix omni-g-llm-peer-07), 因为二者对下游 IV 缺失应如何处理、是否可信有本质区别: 前者是信息 (该银行在 LLM 识别的产品市场同行网络中确无可用同行), 后者是数据缺口 (需要重新查证或做缺失机制分析), 二者混同会污染任何基于"零同行"样本的稳健性检验。
 两列的存在服务于同一识别策略的透明度要求: llm_peer_tone_iv 作为工具变量, 其排除约束依赖"同行 t-1 期特质报道冲击只经同行渠道影响焦点银行 t 期结果"这一假设, 而这一假设的可信度直接取决于同行集合的构造质量与覆盖广度——若某类银行系统性地查证失败 (llm_peer_queried=0 占比高) 或系统性地面板内同行稀少 (llm_peer_n_effective 系统性偏低), 则 IV 的弱工具风险与选择性缺失风险都会上升, 必须在第一阶段 F-统计量与工具相关性诊断之外单独披露。llm_peer_n_effective 与另一诊断列 llm_peer_count (计入全部归一化同行, 含不在面板内者) 是不同有效域: 前者是 tone IV 均值分母的真实基数, 后者是 LLM 原始识别广度, 二者之差刻画了"面板覆盖损耗"。
 【文献定位】
-同行工具变量的构造范式承袭 Leary & Roberts (2014) 关于同行公司财务政策外溢的研究传统; 该文献本身也讨论了同行结果均值型 IV 在排除约束上的局限 (同行结果本身可能与焦点公司共同暴露于相同冲击), 本 producer 通过滞后一期 + 文章级 leave-out (剔除与焦点银行同篇报道的贡献) 缓解这一机械相关, 但 Leary & Roberts (2014) 与 Manski (1993) 关于反射问题 (reflection problem) 的经典论证提醒: 剩余识别假设仍需在论文正文中明确披露, 而非隐含默认成立。同行集合的识别方法论借鉴 Hoberg & Phillips (2016) 的文本网络产业分类思路——用文本信息 (此处为 LLM 对新闻/公开信息的语义推断) 而非传统行业代码来刻画产品市场竞争关系, 并沿用其"10 家最近同行"的实践惯例作为候选集合规模上限; Cao et al. (2025) 进一步证实生成式 LLM 在识别同行公司方面具有与传统文本网络方法相当的效度, 为本 producer 用 LLM 而非规则式匹配来构造同行集合提供了方法学背书。Bramoullé, Djebbari & Fortin (2009) 关于网络中同行效应识别的结构性条件 (网络结构差异性、非传递闭包) 也为审视本工具变量的可识别性提供了理论参照——llm_peer_n_effective 的跨行截面变异, 本质上就是这类识别条件在本数据集中的经验体现。
+同行工具变量的构造范式承袭 Leary & Roberts (2014) 关于同行公司财务政策外溢的研究传统; 该文献本身也讨论了同行结果均值型 IV 在排除约束上的局限 (同行结果本身可能与焦点公司共同暴露于相同冲击), 本 producer 通过滞后一期 + 文章级 leave-out (剔除与焦点银行同篇报道的贡献) 缓解这一机械相关, 但 Leary & Roberts (2014) 与 Manski (1993) 关于反射问题 (reflection problem) 的经典论证提醒: 剩余识别假设仍需在论文正文中明确披露, 而非隐含默认成立。同行集合的识别方法论借鉴 Hoberg & Phillips (2016) 的文本网络产业分类思路——用文本信息 (此处为 LLM 对新闻/公开信息的语义推断) 而非传统行业代码来刻画产品市场竞争关系, 并沿用其"10 家最近同行"的实践惯例作为候选集合规模上限; Cao et al. (2025) 进一步证实生成式 LLM 在识别同行公司方面具有与传统文本网络方法相当的效度, 为本 producer 用 LLM 而非规则式匹配来构造同行集合提供了方法学背书。Bramoullé, Djebbari & Fortin (2009) 关于网络中同行效应识别的结构性条件 (网络结构差异性、非传递闭包) 也为审视本工具变量的可识别性提供了理论参照——llm_peer_n_effective 的跨行截面变异, 本质上就是这类识别条件在本数据集中的经验体现。该文提出基于 BERT 语义文本相似度、超越传统 NACE/NAICS 行业代码的 AI 驱动同行公司识别方法, 与本家族 llm_peer_n_effective/llm_peer_queried 所依赖的 LLM 同行识别构造思路互为印证, 引用格式 Jagrič & Herman (2026, Business Systems Research Journal)。
 
 ## VAR: llm_peer_n_effective
 
@@ -42,4 +49,5 @@ Hoberg, G., & Phillips, G. (2016). Text-Based Network Industries and Endogenous 
 Manski, C. F. (1993). Identification of Endogenous Social Effects: The Reflection Problem. The Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
 Leary, M. T., & Roberts, M. R. (2014). Do Peer Firms Affect Corporate Financial Policy?. The Journal of Finance, 69(1), 139-178. https://doi.org/10.1111/jofi.12094
 Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of Peer Effects through Social Networks. Journal of Econometrics, 150(1), 41-55. https://doi.org/10.1016/j.jeconom.2008.12.021
+Jagrič, T., & Herman, A. (2026). AI-Driven Peer Company Identification: A Semantic Text-Similarity Approach Beyond Traditional Industry Classification Systems. Business Systems Research Journal, 17(1), 204-222. https://doi.org/10.2478/bsrj-2026-0010
 <!-- rendered-citations:end -->

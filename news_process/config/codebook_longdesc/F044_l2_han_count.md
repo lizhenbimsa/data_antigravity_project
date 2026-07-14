@@ -65,7 +65,28 @@ citations:
   vol: 27
   issue: 3
   pages_or_artno: 379-423
-new_dois: []
+- doi: "10.1017/s0022109023000716"
+  title: "Measuring Firm Complexity"
+  authors: "Loughran, T., & McDonald, B."
+  year: 2023
+  venue: "Journal of Financial and Quantitative Analysis"
+  type: "journal"
+- doi: "10.3390/bdcc9100263"
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  venue: "Big Data and Cognitive Computing"
+  type: "journal"
+- doi: "10.1108/ijaim-09-2025-0294"
+  title: "Firm complexity and non-GAAP earnings disclosure"
+  authors: "Chen, L., & Sun, L."
+  year: 2026
+  venue: "International Journal of Accounting & Information Management"
+  type: "journal"
+new_dois:
+  - "10.1017/s0022109023000716"
+  - "10.3390/bdcc9100263"
+  - "10.1108/ijaim-09-2025-0294"
 ---
 
 ## CORE
@@ -81,7 +102,7 @@ new_dois: []
 留篇门控遵循 full-only 口径 (2026-06-29): 某篇报道是否算作"一篇银行金融科技报道"、从而进入 bank-year 分母, 仅由 full 轨的 llm_verified_full 判定; ctx 与 ss 降为 conditional-on-full 的测度轨, 其行宇宙是 full 留篇集的子集, 但 per-track 的篇均汉字数仍按各自轨道文本逐列计算。ss 轨的回退语义镜像 ctx: 当某篇不存在银行与金融科技词的同句共现时, content_ss 优雅回退为全文 body (ss_is_fallback=True), 与 full 共享 n_articles 分母, 保证 ss 列不因窄窗为空而塌缩为缺失。三轨严格是规格稳健性并排关系: 各自 just-identified, 互为稳健性、不分主次, 禁止把 full / ctx / ss 三列混进同一个 over-identified 的 Hansen J 过度识别检验 (这是全项目三轨、co-primary 双轨嵌入、各类梯子共守的铁律)。本族为纯计数, 不涉及嵌入, 故无 co-primary 的 _lg 孪生列。
 
 【文献定位】
-文本篇幅与复杂度作为信息含量代理, 有稳固的实证会计与金融文献传统。You and Zhang (2009) 以 10-K 文件长度刻画报告复杂度, 发现文件越长, 投资者对信息的反应越不充分、事后漂移越大, 奠定了"篇幅即处理成本"的基本逻辑。Lundholm, Rogo, and Zhang (2014) 进一步表明, 需要与投资者跨越语言与制度距离沟通的公司会系统性调整其披露文本的长度与用词, 说明篇幅是一个受策略调节的可观测沟通选择, 而非纯技术噪声。Hope, Hu, and Lu (2016) 从风险因素披露的具体性角度补充: 更长、更具体的文本承载更多决策相关信息, 对定价有增量贡献, 支持把长度作为信息量的一阶代理。近期研究延续并细化了这一脉络: Yu and Zhao (2024) 检验文本披露复杂度如何影响分析师对信息的加权, Lesmy, Muchnik, and Mugerman (2025) 则以跨国比较记录了财务报告复杂度的持续增长及其可比性代价。方法学的更上游锚点是 Shannon (1948) 的信息论: 符号序列的长度与信息量在信息编码意义上直接关联, 为"数字数"这一朴素计数提供了理论合法性。本族把这些以英文 10-K/年报为对象的长度—信息量关系, 迁移到中文银行新闻语料, 并以汉字口径 (而非字符或词) 实现最抗噪的中文篇幅刻画。需要清醒认识局限: 篇均长度只是信息量的粗糙一阶代理, 它无法区分"长而空洞的通稿"与"长而信息密集的深度报道", 这类质量维度须由难字率、套话比率、冗余度等测度分工承担; 本族与那些测度构念正交, 彼此互补而非替代。
+文本篇幅与复杂度作为信息含量代理, 有稳固的实证会计与金融文献传统。You and Zhang (2009) 以 10-K 文件长度刻画报告复杂度, 发现文件越长, 投资者对信息的反应越不充分、事后漂移越大, 奠定了"篇幅即处理成本"的基本逻辑。Lundholm, Rogo, and Zhang (2014) 进一步表明, 需要与投资者跨越语言与制度距离沟通的公司会系统性调整其披露文本的长度与用词, 说明篇幅是一个受策略调节的可观测沟通选择, 而非纯技术噪声。Hope, Hu, and Lu (2016) 从风险因素披露的具体性角度补充: 更长、更具体的文本承载更多决策相关信息, 对定价有增量贡献, 支持把长度作为信息量的一阶代理。近期研究延续并细化了这一脉络: Yu and Zhao (2024) 检验文本披露复杂度如何影响分析师对信息的加权, Lesmy, Muchnik, and Mugerman (2025) 则以跨国比较记录了财务报告复杂度的持续增长及其可比性代价。方法学的更上游锚点是 Shannon (1948) 的信息论: 符号序列的长度与信息量在信息编码意义上直接关联, 为"数字数"这一朴素计数提供了理论合法性。本族把这些以英文 10-K/年报为对象的长度—信息量关系, 迁移到中文银行新闻语料, 并以汉字口径 (而非字符或词) 实现最抗噪的中文篇幅刻画。需要清醒认识局限: 篇均长度只是信息量的粗糙一阶代理, 它无法区分"长而空洞的通稿"与"长而信息密集的深度报道", 这类质量维度须由难字率、套话比率、冗余度等测度分工承担; 本族与那些测度构念正交, 彼此互补而非替代。近期方法学文献进一步把"篇幅即复杂度"的逻辑推向更直接的构造: Loughran and McDonald (2023, Journal of Financial and Quantitative Analysis) 以 10-K 文件体量 (文件大小与篇幅) 为核心构造企业复杂度的文本代理测度, 为本族以篇幅 (汉字计数) 作为报道信息量与复杂度代理提供了最新的方法学锚点。该文比较多种词嵌入与语言模型对中文财经新闻做情感分类与股价预测,文本长度等篇幅特征是其特征工程的一部分,为本族以中文新闻篇幅刻画报道信息量提供了同源语料方法学参照,引用格式为 Chuang, He, and Hu (2025, Big Data and Cognitive Computing)。该文发现企业复杂度与非公认会计准则盈余披露倾向显著正相关,延续了以复杂度—披露关系为核心的实证脉络,支持本族把文本篇幅作为报道信息量与复杂度代理的构念定位,引用格式为 Chen and Sun (2026, International Journal of Accounting & Information Management)。
 
 ## VAR: avg_han_count_full
 
@@ -105,4 +126,7 @@ Hope, O.-K., Hu, D., & Lu, H. (2016). The benefits of specific risk-factor discl
 Lundholm, R. J., Rogo, R., & Zhang, J. L. (2014). Restoring the Tower of Babel: How foreign firms communicate with U.S. investors. The Accounting Review, 89(4), 1453-1485. https://doi.org/10.2308/accr-50725
 You, H., & Zhang, X.-J. (2009). Financial reporting complexity and investor underreaction to 10-K information. Review of Accounting Studies, 14(4), 559-586. https://doi.org/10.1007/s11142-008-9083-2
 Shannon, C. E. (1948). A mathematical theory of communication. Bell System Technical Journal, 27(3), 379-423. https://doi.org/10.1002/j.1538-7305.1948.tb01338.x
+Loughran, T., & McDonald, B. (2023). Measuring Firm Complexity. Journal of Financial and Quantitative Analysis. https://doi.org/10.1017/s0022109023000716
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
+Chen, L., & Sun, L. (2026). Firm complexity and non-GAAP earnings disclosure. International Journal of Accounting & Information Management. https://doi.org/10.1108/ijaim-09-2025-0294
 <!-- rendered-citations:end -->

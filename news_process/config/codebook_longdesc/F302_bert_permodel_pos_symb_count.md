@@ -71,7 +71,21 @@ citations:
   vol: 26
   issue: 3
   pages_or_artno: 673-719
-new_dois: []
+- doi: "10.1140/epjds/s13688-025-00562-w"
+  title: "Construction and analysis of corporate greenwashing index: a deep learning approach"
+  authors: "Wang, X., Gao, X., & Sun, M."
+  year: 2025
+  venue: "EPJ Data Science"
+  type: "journal"
+- doi: "10.3390/bdcc9100263"
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  venue: "Big Data and Cognitive Computing"
+  type: "journal"
+new_dois:
+  - "10.1140/epjds/s13688-025-00562-w"
+  - "10.3390/bdcc9100263"
 ---
 
 ## CORE
@@ -83,7 +97,7 @@ new_dois: []
 计算分两层, 均在 pipeline/panel/runner.py 与 encode.py 中完成。第一层在报道层构造二值指示列 _is_{b}_pos_symb{track}: 对每个 BERT 模型 b、每条轨 track, 一篇报道当且仅当同时满足两个条件才置 1 — 其一, 该模型该轨的 argmax 标签为正面 (对应中间列 _is_{b}_positive{track} == 1, 由 stage 23 tone_berts 产出的逐模型逐轨概率取 argmax 得到, 而非概率阈值软判; finbert2 为二分类, 其余两模型为三分类, 三者各自独立按自身标签空间取 argmax, 不做跨模型概率平均以规避尺度不可比问题); 其二, 该篇 innovation_substantiveness_full 判为"象征性"。这里有一处承重且贯穿全九列的口径: 象征-实质判定固定取 full 轨的 innovation_substantiveness_full (由 stage 21 LLM 输出), 不随 BERT 的 track 切换, 因此 ctx/ss 轨列的语义是"用该 BERT 模型 ctx/ss 轨的正面判定 × full 轨的象征判定"的乘积, 而非在 ctx/ss 文本上重判象征性。第二层在 encode.py 的 K 段洗稿率聚合块 (E2: 单个 BERT, 与家族注释 `# E2: 单个 BERT (Huang et al. 2023, CAR)` 对应) 中, 对每个模型 b 与每条轨 track 分别执行 groupby(bank, year).sum(), 把逐篇 0/1 指示折算为 bank-year 计数, 因此本列量纲是非负整数计数, 不是比率也不是归一化分值。计数落在留篇门控 (full-only, 2026-06-29) 界定的宇宙内: 一篇报道是否算作"一篇银行金融科技报道"只看 llm_verified_full, ctx/ss 是 conditional-on-full 的子集轨, per-track 分子各自独立累计, 不跨轨借值。BERT 单模型独立降级: finbert2 若因 `FINBERT2_MODEL_DIR` 未配置而缺席, 仅令 finbert2_pos_symb_count{track} 三列全为 NaN 后续零填, 不触发 co-primary 嵌入式的 both-or-neither 连坐, 另两模型 (finbert_cn/fin_sent_zh) 照常出值。三模型推理确定性来自模型权重固定与 argmax 判定 (AMP 混合精度对分类结果无影响), 与 stage 21 三家大模型 LLM 完全独立 (换嵌入模型不影响本家族; BERT 亦与嵌入模型无关)。⚠ 铁律: 三模型各自 just-identified 并排、三轨各自 just-identified 并排, 彼此互为稳健性、不分主次, 严禁把不同模型或不同轨的计数混进同一 over-identified 的 Hansen J 检验。
 
 【文献定位】
-本家族坐落在"用预训练金融领域 Transformer 对中文新闻做情感极性标注、并与实质—象征二元判据交叉相乘构造计数测度"的方法学传统上。Huang et al. (2023) 在 Contemporary Accounting Research 上提出的 FinBERT 证明了预训练金融领域 Transformer 相对词典法在情感抽取上的增益, 是本家族三个 BERT 模型 (finbert_cn/fin_sent_zh/finbert2) 方法学依托的直接来源; Bochkay et al. (2023) 同刊进一步综述了会计文本分析"下一步"的方向, 主张从单纯极性打分转向对披露内容质量 (实质性、可核验性) 的刻画, 这正是本家族在正面极性之上叠加象征性判据的动机。Loughran & McDonald (2016) 在 Journal of Accounting Research 对会计金融文本分析方法做了权威综述, 确立了计数型测度需多方法交叉验证的规范, 支撑本仓词典法 (D/D2)、LLM 投票法 (A/A2)、BERT 集成法 (E) 与本家族 BERT per-model 法 (E2) 并列互证的整体设计。象征性构念本身的组织理论根基是 Westphal & Zajac (1998) 关于公司治理改革中"股东象征性管理"的经典论述, 并经 Bingler et al. (2022) 在气候披露语境下复活为 cheap talk 的机器可测度量。Du et al. (2022) 在 Review of Finance 构建的中文金融情感词典及其领域特异性发现, 支撑了本仓多方法三角化 (词典/BERT/LLM) 的整体设计思路与中文语境适配的必要性。三模型、三轨两个维度均各自 just-identified 并排、互为稳健性、不分主次, 严禁混入同一 over-identified Hansen J。
+本家族坐落在"用预训练金融领域 Transformer 对中文新闻做情感极性标注、并与实质—象征二元判据交叉相乘构造计数测度"的方法学传统上。Huang et al. (2023) 在 Contemporary Accounting Research 上提出的 FinBERT 证明了预训练金融领域 Transformer 相对词典法在情感抽取上的增益, 是本家族三个 BERT 模型 (finbert_cn/fin_sent_zh/finbert2) 方法学依托的直接来源; Bochkay et al. (2023) 同刊进一步综述了会计文本分析"下一步"的方向, 主张从单纯极性打分转向对披露内容质量 (实质性、可核验性) 的刻画, 这正是本家族在正面极性之上叠加象征性判据的动机。Loughran & McDonald (2016) 在 Journal of Accounting Research 对会计金融文本分析方法做了权威综述, 确立了计数型测度需多方法交叉验证的规范, 支撑本仓词典法 (D/D2)、LLM 投票法 (A/A2)、BERT 集成法 (E) 与本家族 BERT per-model 法 (E2) 并列互证的整体设计。象征性构念本身的组织理论根基是 Westphal & Zajac (1998) 关于公司治理改革中"股东象征性管理"的经典论述, 并经 Bingler et al. (2022) 在气候披露语境下复活为 cheap talk 的机器可测度量。Du et al. (2022) 在 Review of Finance 构建的中文金融情感词典及其领域特异性发现, 支撑了本仓多方法三角化 (词典/BERT/LLM) 的整体设计思路与中文语境适配的必要性。三模型、三轨两个维度均各自 just-identified 并排、互为稳健性、不分主次, 严禁混入同一 over-identified Hansen J。Wang, Gao, & Sun (2025, EPJ Data Science) 该文用深度学习(BERT类模型)在句子层面区分企业披露话语中的"实质"与"象征"内容, 构建绿色清洗指数, 方法学上直接支撑本家族"正面且象征性"BERT计数构念的可操作化路径。Chuang, He, & Hu (2025, Big Data and Cognitive Computing) 该文比较多种中文金融新闻情感分析语言模型(含FinBERT类架构)在中文财经文本上的表现, 为本家族三个中文金融BERT模型 (finbert_cn/fin_sent_zh/finbert2) 并排互证的方法学设计提供了同期文献支撑。
 
 ## VAR: fin_sent_zh_pos_symb_count_ctx
 
@@ -137,4 +151,6 @@ Bochkay, K., Brown, S. V., Leone, A. J., & Tucker, J. W. (2023). Textual analysi
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
 Westphal, J. D., & Zajac, E. J. (1998). The symbolic management of stockholders: Corporate governance reforms and shareholder reactions. Administrative Science Quarterly, 43(1), 127-153. https://doi.org/10.2307/2393593
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
+Wang, X., Gao, X., & Sun, M. (2025). Construction and analysis of corporate greenwashing index: a deep learning approach. EPJ Data Science. https://doi.org/10.1140/epjds/s13688-025-00562-w
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 <!-- rendered-citations:end -->

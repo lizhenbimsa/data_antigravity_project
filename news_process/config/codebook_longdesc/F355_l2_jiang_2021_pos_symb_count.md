@@ -12,50 +12,64 @@ upstream:
   - 21_tone_llms.parquet (innovation_substantiveness_full)
   - 22_tone_words.parquet (jiang_2021_score_full / _ctx / _ss)
 citations:
-  - doi: 10.13821/j.cnki.ceq.2021.04.10
-    type: journal
-    authors: 姜富伟, 孟令超, 唐国豪
-    year: 2021
-    title: "媒体文本情绪与股票回报预测"
-    venue: 经济学(季刊)
-    vol: 21
-    issue: 4
-    pages_or_artno: 1323-1344
-  - doi: 10.1016/j.eswa.2024.125739
-    type: journal
-    authors: Ma, Y., Zhang, T., & Zhang, P.
-    year: 2025
-    title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
-    venue: Expert Systems with Applications
-    vol: 264
-    pages_or_artno: 125739
-  - doi: 10.1016/j.frl.2022.102776
-    type: journal
-    authors: Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N.
-    year: 2022
-    title: "Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures"
-    venue: Finance Research Letters
-    vol: 47
-    pages_or_artno: 102776
-  - doi: 10.1016/j.jacceco.2015.09.002
-    type: journal
-    authors: Lang, M., & Stice-Lawrence, L.
-    year: 2015
-    title: "Textual analysis and international financial reporting: Large sample evidence"
-    venue: Journal of Accounting and Economics
-    vol: 60
-    issue: 2-3
-    pages_or_artno: 110-135
-  - doi: 10.1016/j.jacceco.2008.02.003
-    type: journal
-    authors: Li, F.
-    year: 2008
-    title: "Annual report readability, current earnings, and earnings persistence"
-    venue: Journal of Accounting and Economics
-    vol: 45
-    issue: 2-3
-    pages_or_artno: 221-247
-new_dois: []
+- doi: 10.13821/j.cnki.ceq.2021.04.10
+  type: journal
+  authors: 姜富伟, 孟令超, 唐国豪
+  year: 2021
+  title: "媒体文本情绪与股票回报预测"
+  venue: 经济学(季刊)
+  vol: 21
+  issue: 4
+  pages_or_artno: 1323-1344
+- doi: 10.1016/j.eswa.2024.125739
+  type: journal
+  authors: Ma, Y., Zhang, T., & Zhang, P.
+  year: 2025
+  title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
+  venue: Expert Systems with Applications
+  vol: 264
+  pages_or_artno: 125739
+- doi: 10.1016/j.frl.2022.102776
+  type: journal
+  authors: Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N.
+  year: 2022
+  title: "Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures"
+  venue: Finance Research Letters
+  vol: 47
+  pages_or_artno: 102776
+- doi: 10.1016/j.jacceco.2015.09.002
+  type: journal
+  authors: Lang, M., & Stice-Lawrence, L.
+  year: 2015
+  title: "Textual analysis and international financial reporting: Large sample evidence"
+  venue: Journal of Accounting and Economics
+  vol: 60
+  issue: 2-3
+  pages_or_artno: 110-135
+- doi: 10.1016/j.jacceco.2008.02.003
+  type: journal
+  authors: Li, F.
+  year: 2008
+  title: "Annual report readability, current earnings, and earnings persistence"
+  venue: Journal of Accounting and Economics
+  vol: 45
+  issue: 2-3
+  pages_or_artno: 221-247
+- doi: "10.1002/csr.70722"
+  title: "Symbolic Versus Substantive ESG Practices: A Systematic Review and Integrative Framework"
+  authors: "Ştefănescu, C. A., & Suciu, A. L."
+  year: 2026
+  venue: "Corporate Social Responsibility and Environmental Management"
+  type: "journal"
+- doi: "10.3390/bdcc9100263"
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  venue: "Big Data and Cognitive Computing"
+  type: "journal"
+new_dois:
+  - "10.1002/csr.70722"
+  - "10.3390/bdcc9100263"
 ---
 
 ## CORE
@@ -82,7 +96,7 @@ new_dois: []
 ## VAR: jiang_2021_pos_symb_count_ss
 
 【变体差分】
-本列是 ss (同句共现) 轨实现, 三轨中窗口最窄。词典极性侧取 jiang_2021_score_ss, 底层文本 content_ss 由 stage 14 物化为「标题 prepend + 目标银行与金科词同句共现的 ±N 句窗口」(窗宽由 filtering.yaml 的 context_window.ss_sentence_radius 控, 默认 1), 只有当报道里银行与金科词落在同一句 (或近邻句窗) 时才计入该轨正面证据, 极性判定因此最贴近「银行确实在谈金科」的语境, 但也最易受召回不足影响。承重的回退语义 (镜像 ctx): 当某篇报道没有银行与金科的同句共现时, content_ss 优雅回退为全文正文 body 且 ss_is_fallback 置 True (与 ctx 回退口径一致); 若上游金科 AC 自动机为空 (FINTECH_AC=None), 则整轨 fallback 标记为真, 优雅降级不静默清空。象征侧同样恒取 innovation_substantiveness_full (三列共用 full 轨象征掩码, ss 轨绝不另判象征性), 故本列相对 full/ctx 的差分仍只在词典极性的文本供给这一半。ss 与 full/ctx 互为稳健性、各自 just-identified 并排, 禁混进同一 over-identified Hansen J; 行宇宙为 full 留篇集的 conditional-on-full 子集。缺列由 valid_agg 跳过, NaN 情感视为非正, 非象征侧不入分子; 计数非负整数, dtype double。由于 ss 轨窗口最窄且带回退, 在开发期浅面板 (T 极小) 上本列的方差可能显著小于 full/ctx, 甚至在同句共现极稀时逼近退化, 这属于窗口收窄的预期表现而非缺陷; 在生产规模语料上, ss 轨给出的是三轨中主题最纯净的脱耦率分子读数, 适合作为「银行确实在正面谈论金科却止于象征」这一最严格构念的下界估计。ss 与 ctx 的回退口径严格镜像, 保证两轨在无共现时不会各自漂移, 三轨间的差异因此可干净地归因于窗口宽窄而非回退规则差异。
+本列是 ss (同句共现) 轨实现, 三轨中窗口最窄。词典极性侧取 jiang_2021_score_ss, 底层文本 content_ss 由 stage 14 物化为「标题 prepend + 目标银行与金科词同句共现的 ±N 句窗口」(窗宽由 filtering.yaml 的 context_window.ss_sentence_radius 控, 默认 1), 只有当报道里银行与金科词落在同一句 (或近邻句窗) 时才计入该轨正面证据, 极性判定因此最贴近「银行确实在谈金科」的语境, 但也最易受召回不足影响。承重的回退语义 (镜像 ctx): 当某篇报道没有银行与金科的同句共现时, content_ss 优雅回退为全文正文 body 且 ss_is_fallback 置 True (与 ctx 回退口径一致); 若上游金科 AC 自动机为空 (FINTECH_AC=None), 则整轨 fallback 标记为真, 优雅降级不静默清空。象征侧同样恒取 innovation_substantiveness_full (三列共用 full 轨象征掩码, ss 轨绝不另判象征性), 故本列相对 full/ctx 的差分仍只在词典极性的文本供给这一半。ss 与 full/ctx 互为稳健性、各自 just-identified 并排, 禁混进同一 over-identified Hansen J; 行宇宙为 full 留篇集的 conditional-on-full 子集。缺列由 valid_agg 跳过, NaN 情感视为非正, 非象征侧不入分子; 计数非负整数, dtype double。由于 ss 轨窗口最窄且带回退, 在开发期浅面板 (T 极小) 上本列的方差可能显著小于 full/ctx, 甚至在同句共现极稀时逼近退化, 这属于窗口收窄的预期表现而非缺陷; 在生产规模语料上, ss 轨给出的是三轨中主题最纯净的脱耦率分子读数, 适合作为「银行确实在正面谈论金科却止于象征」这一最严格构念的下界估计。ss 与 ctx 的回退口径严格镜像, 保证两轨在无共现时不会各自漂移, 三轨间的差异因此可干净地归因于窗口宽窄而非回退规则差异。Ştefănescu & Suciu (2026, Corporate Social Responsibility and Environmental Management) 该文对2021-2025年62篇实证文献做系统综述,构建实质性-象征性ESG脱耦互动的整合理论框架,为本家族「正面语调但象征性分类」的脱耦计数构念提供最新方法学定位。Chuang, He & Hu (2025, Big Data and Cognitive Computing) 该文对中文财经新闻构建情感分类与股价预测的语言模型比较框架,支撑本家族「中文金融语料需专用情感测度」的方法论立场并提供词典法之外的最新对照锚点。
 
 <!-- rendered-citations:begin -->
 姜富伟, 孟令超, 唐国豪. (2021). 媒体文本情绪与股票回报预测. 经济学(季刊), 21(4), 1323-1344. https://doi.org/10.13821/j.cnki.ceq.2021.04.10
@@ -90,4 +104,6 @@ Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-graine
 Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022). Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures. Finance Research Letters, 47, 102776. https://doi.org/10.1016/j.frl.2022.102776
 Lang, M., & Stice-Lawrence, L. (2015). Textual analysis and international financial reporting: Large sample evidence. Journal of Accounting and Economics, 60(2-3), 110-135. https://doi.org/10.1016/j.jacceco.2015.09.002
 Li, F. (2008). Annual report readability, current earnings, and earnings persistence. Journal of Accounting and Economics, 45(2-3), 221-247. https://doi.org/10.1016/j.jacceco.2008.02.003
+Ştefănescu, C. A., & Suciu, A. L. (2026). Symbolic Versus Substantive ESG Practices: A Systematic Review and Integrative Framework. Corporate Social Responsibility and Environmental Management. https://doi.org/10.1002/csr.70722
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 <!-- rendered-citations:end -->

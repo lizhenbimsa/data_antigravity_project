@@ -74,7 +74,21 @@ citations:
   vol: '150'
   issue: '1'
   pages_or_artno: 41-55
-new_dois: []
+- doi: "10.3390/systems13100918"
+  type: journal
+  authors: "He, L., Zhu, S., Zhang, M., & Dong, X."
+  year: 2025
+  title: "Peer Effects of Bank Digital Transformation Through Shareholder Networks"
+  venue: "Systems"
+- doi: "10.1080/00036846.2025.2515298"
+  type: journal
+  authors: "Ren, Q., Chen, Z., Tourani-Rad, A., Xiong, H., & Xu, Y."
+  year: 2025
+  title: "Peer effects in cross-regional investment: evidence from China"
+  venue: "Applied Economics"
+new_dois:
+  - "10.3390/systems13100918"
+  - "10.1080/00036846.2025.2515298"
 ---
 
 ## CORE
@@ -90,7 +104,7 @@ new_dois: []
 留篇门控口径: attention_index 系列 (及本家族工具化的 ctx/ss 变体) 的样本行是否计入"一篇银行金科报道", 遵循 2026-06-29 起确立的 full-only 留篇门控——即行宇宙由 `llm_verified_full == True` 决定, ctx/ss 轨的样本集合是 full 留篇集的子集, 各轨在此子集之上分别计算自身的 per-track 测度 (含本家族的 LOO 均值), 不存在 ctx/ss 各自独立扩样的情况。ss 轨回退语义严格镜像 ctx: 若某银行-文章对不存在"目标银行与金科词同句 (±N 句窗) 共现", `content_ss` 回退为全文 body、`ss_is_fallback` 置 True, 该行 attention_index_ss 仍按全文口径参与计算并共享 `n_articles` 分母, 因此本家族 ss 轨工具值的样本基础与 ctx 轨在存在同句共现的子样本上重合, 在无共现样本上退化为 full 口径, 这是设计使然而非缺陷。
 
 【文献定位】
-本家族的方法论谱系首先落在 Hassan, Hollander, van Lent & Tahoun (2019, QJE)"公司层面政治风险测度"一文开创的文本暴露度量与工具化框架: 该文示范了如何用同侪公司 (peer firm) 的暴露度均值作为焦点公司自身暴露度的工具, 以缓解文本测度中公司自身特质性因素导致的联立性偏误, 本家族的 bank_type 同侪留一法与该文的识别逻辑直接呼应。识别策略的理论基础追溯到 Manski (1993, Review of Economic Studies)"反射问题"经典文献, 该文首次系统刻画了同侪效应估计中内生同侪选择与共同环境冲击难以区分的识别困境, 是本家族"为何要工具化注意力指数"这一动机的理论出处。留一法工具的构造与近年 Bartik/shift-share 工具变量方法论文献一脉相承, Goldsmith-Pinkham, Sorkin & Swift (2020, American Economic Review)"Bartik 工具: 是什么、何时用、为何用、如何用"一文系统阐述了此类"用其余单位的结果或特征构造工具"的识别条件与诊断做法, 为本家族工具的排他性论证提供方法论支撑; Stock & Yogo (2005) 关于线性 IV 回归弱工具检验的经典判据是下游 2SLS 模板评估本家族工具强度 (第一阶段 F 统计量) 时的标准参照。构念侧的"注意力"测度本身则承接媒体覆盖度与市场关注度的经典文献谱系 (如 Fang & Peress 2009 关于媒体覆盖度与股票截面收益关系的研究, 以及更广义的"文本作为数据"方法论综述 Gentzkow, Kelly & Taddy 2019), 本家族只负责该测度的工具化环节, 不重复定义注意力本身的构念 (注意力指数构念定位见 attention_index / attention_index_ctx / attention_index_ss 所在家族)。
+本家族的方法论谱系首先落在 Hassan, Hollander, van Lent & Tahoun (2019, QJE)"公司层面政治风险测度"一文开创的文本暴露度量与工具化框架: 该文示范了如何用同侪公司 (peer firm) 的暴露度均值作为焦点公司自身暴露度的工具, 以缓解文本测度中公司自身特质性因素导致的联立性偏误, 本家族的 bank_type 同侪留一法与该文的识别逻辑直接呼应。识别策略的理论基础追溯到 Manski (1993, Review of Economic Studies)"反射问题"经典文献, 该文首次系统刻画了同侪效应估计中内生同侪选择与共同环境冲击难以区分的识别困境, 是本家族"为何要工具化注意力指数"这一动机的理论出处。留一法工具的构造与近年 Bartik/shift-share 工具变量方法论文献一脉相承, Goldsmith-Pinkham, Sorkin & Swift (2020, American Economic Review)"Bartik 工具: 是什么、何时用、为何用、如何用"一文系统阐述了此类"用其余单位的结果或特征构造工具"的识别条件与诊断做法, 为本家族工具的排他性论证提供方法论支撑; Stock & Yogo (2005) 关于线性 IV 回归弱工具检验的经典判据是下游 2SLS 模板评估本家族工具强度 (第一阶段 F 统计量) 时的标准参照。构念侧的"注意力"测度本身则承接媒体覆盖度与市场关注度的经典文献谱系 (如 Fang & Peress 2009 关于媒体覆盖度与股票截面收益关系的研究, 以及更广义的"文本作为数据"方法论综述 Gentzkow, Kelly & Taddy 2019), 本家族只负责该测度的工具化环节, 不重复定义注意力本身的构念 (注意力指数构念定位见 attention_index / attention_index_ctx / attention_index_ss 所在家族)。近期银行业同侪效应 IV 文献亦为本家族识别策略提供了同期方法学同伴: He, Zhu, Zhang & Dong (2025, Systems) 用股东网络同侪构造工具变量识别银行数字化转型的同侪效应, 与本家族用 bank_type 同业留一法工具化注意力指数的识别思路同属银行业同侪效应 IV 谱系; Ren, Chen, Tourani-Rad, Xiong & Xu (2025, Applied Economics) 在中国上市公司样本中用同侪留一法均值构造工具变量识别跨区域投资中的同侪效应, 为本家族 bank_type 分组留一法 IV 的排他性论证提供了近期中国情境下的方法学同侪。
 
 ## VAR: lpeer_attention_iv_ctx
 
@@ -120,5 +134,7 @@ Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik Instruments: What,
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as Data. Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
 Stock, J. H., & Yogo, M. (2005). Testing for Weak Instruments in Linear IV Regression. Identification and Inference for Econometric Models: Essays in Honor of Thomas Rothenberg (Cambridge University Press). https://doi.org/10.1017/CBO9780511614491.006
 Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of Peer Effects through Social Networks. Journal of Econometrics, 150(1), 41-55. https://doi.org/10.1016/j.jeconom.2008.12.021
+He, L., Zhu, S., Zhang, M., & Dong, X. (2025). Peer Effects of Bank Digital Transformation Through Shareholder Networks. Systems. https://doi.org/10.3390/systems13100918
+Ren, Q., Chen, Z., Tourani-Rad, A., Xiong, H., & Xu, Y. (2025). Peer effects in cross-regional investment: evidence from China. Applied Economics. https://doi.org/10.1080/00036846.2025.2515298
 <!-- rendered-citations:end -->
 </content>

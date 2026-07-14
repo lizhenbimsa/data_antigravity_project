@@ -278,7 +278,35 @@ citations:
   vol: 1
   issue: 3
   pages_or_artno: "215-239"
-new_dois: []
+- doi: "10.1111/abac.12341"
+  type: journal
+  authors: "Guo, F., Lyu, B., Lyu, X., & Zheng, J."
+  year: 2024
+  title: "Social Media Networks and Stock Price Synchronicity: Evidence from a Chinese Stock Forum"
+  venue: "Abacus"
+- doi: "10.1016/j.frl.2024.105780"
+  type: journal
+  authors: "Wu, Y., & Wang, X."
+  year: 2024
+  title: "The cross section of information transmission in news media and stock returns"
+  venue: "Finance Research Letters"
+- doi: "10.1007/s44163-025-00350-5"
+  type: journal
+  authors: "Alamsyah, A., Ramadhani, D. P., Kristanti, F. T., Nasution, A. H., Mohamad, M. S., Sokkalingam, R., Widiyanesti, S., & Saputra, M. A. A."
+  year: 2025
+  title: "Deciphering news sentiment and stock price relationships in Indonesian companies: an AI-based exploration of industry affiliation and news co-occurrence"
+  venue: "Discover Artificial Intelligence"
+- doi: "10.1111/acfi.13091"
+  type: journal
+  authors: "Wang, L., Hou, W., & Liu, Y."
+  year: 2023
+  title: "How do co-shareholding networks affect negative media coverage? Evidence from China"
+  venue: "Accounting & Finance"
+new_dois:
+  - "10.1111/abac.12341"
+  - "10.1016/j.frl.2024.105780"
+  - "10.1007/s44163-025-00350-5"
+  - "10.1111/acfi.13091"
 ---
 
 ## CORE
@@ -290,7 +318,7 @@ new_dois: []
 计算在 pipeline/panel/network_spillover.py 的 compute_bank_network_centrality 中完成, 属 runner 步骤 7g, 是 NETWORK_METRIC_BASES 所列三十三个结构指标基名之一 (SSOT 元组, stata_export 标签块与 gate 测试直接 import 复用防漂移)。第一步由 build_adjacency_matrix 按年构建对称邻接矩阵: 取当年篇章级展开帧, 节点全集为该年出现过的全部目标银行 (排序后编号, 含孤立节点); canonical 同篇判据下, 按 docid 分组, 同一篇文章内幸存的银行集合中每个无序对的边权加一 — 每篇文章对每对银行恰贡献一次, 这等价于把文章乘银行的二部隶属网络做 clique 投影到银行单模网络, 边权即共现文章计数。Borgatti and Everett (1997) 与 Faust (1997) 对二模数据的单模投影及其中心度语义有系统讨论, 提醒投影会丢失隶属结构信息; 源码对这一点有显式披露: 一篇提及 N 家银行的榜单或批量监管通报会贡献 N 取 2 条等权边, 大 N 文章可凭组合爆炸主导网络。producer 预留了 Newman 式 1/(N-1) 度守恒超边归一参数 hyperedge_normalize, 但按 NB-01 披露该参数尚未接线到 config 与 runner, 生产路径恒为等权加一, 且判据分轨路径遇 True 会直接 raise 以防三判据轨无警告分叉口径。第二步在 networkx 无向加权图 G 上取 strength 等于 G.degree(weight='weight'), 即每个节点相连边权之和; 随后除以当年全网最大强度做 max-normalize, 全零时分母置一防除零, 未入图银行取零。这里有两条必须逐字转述的源码口径警示 (network-metrics-audit 2026-06-13, P2-7): 其一, Opsahl et al. (2010) 只定义了 node strength 为边权和, 并不含按网络内最大值归一这一步 — max-normalize 是本项目的 ad-hoc 实现细节, 面板导出标签中的 Opsahl 指涉仅限 strength 构念本身; 其二, 该归一是年相对度量, 每年加权度最大的银行恒等于一, 故数值水平跨年不可比, 且除以年份特定标量是乘性重标度, 无法被含年固定效应回归中的加性年效应吸收 — 若要把本列升格为回归右手边变量, 须先改为结构性归一 (如对数强度、全样本归一或组内标准化); 当前生产消费面仅 Table 1 描述统计, 无任何 Stata 模板把它放上回归右侧。判据维度上, 家族三列对应三种银行与银行共现判据: 无后缀列为同篇判据 (现行 canonical); _win1 列要求两银行出现在相距不超过 win_radius 句的句子内 (win_radius 取 config/panel.yaml 的 network_criteria.win_radius, 默认一, 与 stage 13 银行金融科技过滤的 filtering.yaml 中 cooccurrence_filter.sentence_radius 是两个不同键, 互不联动); _sent 列要求严格同句。后两种判据在 docid 组内做文本级重扫: 判据原语为 core/text/entity_context.py 的 map_bank_sentence_positions 与 bank_pairs_within_sentence_window, 扫描文本为标题加正文的 prepend_title 拼接 (标题记为第零句, 镜像 stage 13 的 match_in_title 口径), 银行识别与 stage 11 及 13 共用同一否定词与短名排除事实源 (禁裸 Aho-Corasick 匹配, 防涉农行业误命中农行一类假阳性), 仅有至少两家幸存银行的文章组可能成边, 非幸存银行不进入原语入参因而不可能产生幽灵边。三判据的节点全集与同篇判据完全一致 (同为该年幸存银行), 仅边集依次收严, 因此同一银行年在三列间的取值差异纯由边集判据驱动。runner 对三判据各调用一次 compute_bank_network_centrality, 函数入口设 criterion 与 suffix 配对守卫 (同篇对空后缀、句窗对 _win1、同句对 _sent, 错配即 raise), 从机制上排除判据算错落错列的静默口径污染。上游数据链条须完整交代以界定网络的样本框: 原始语料经 stage 00 预处理与媒体类型过滤、stage 11 银行主体识别 (否定与短名排除)、stage 12 金融科技词识别、stage 13 银行与金融科技词邻近共现硬过滤丢行、stage 14 三轨文本物化、stage 21 三家大模型投票留篇门控, 只有 full 轨判定为银行金融科技报道的文章才进入面板构建期的篇章级展开帧 — 因此本家族网络中每条边的两端都以同一篇被验证的金融科技报道为证据载体, 边权计数的分母宇宙与面板 n_articles 的 full-only 口径一致。数值性质上, strength 是纯求和运算, 无谱分解无随机数, 属确定性 golden-safe 指标, 不在本项目九个 BLAS 浮点漂移网络列 (三个基名乘三判据后缀) 的排除清单内, 跨次重建可逐位复现。
 
 【文献定位】
-本测度在三支文献的交汇处。第一支是加权网络中心度的方法文献: Freeman (1978) 确立中心度三分法, Bonacich (1987) 提出把邻居重要性递归计入的幂中心度族并厘清正负参数下中心度与权力的分野, Barrat et al. (2004) 与 Opsahl et al. (2010) 把度推广到加权情形, Boldi and Vigna (2014) 则用公理化方法检验各中心度是否满足规模单调与密度敏感等基本性质 — 强度中心度作为最直接的一阶加权统计量, 是这一谱系中解释成本最低、对测量误差最不敏感的成员, 也因此常被用作更复杂谱型指标 (特征向量、Katz) 的稳健性参照。第二支是金融网络与系统性风险文献: Jackson and Pernoud (2021) 综述了金融网络中风险传染对网络位置的依赖, 指出高连接强度节点既可能分散风险也可能放大传染, 方向取决于冲击规模与网络密度的相互作用; Sadeghi and Feinstein (2024) 提出对传染中心度做统计显著性检验的框架, 提醒任何中心度点估计都伴随网络抽样误差; Yu et al. (2024) 与 Xu and Zhao (2024) 分别给出网络中心度经由信息扩散影响资产定价及节点中心度改善金融网络中价格预测的近期证据; Nezami et al. (2025) 对网络中心度与企业绩效关系做元分析, 发现中心度绩效关联的方向与强度高度依赖网络类型与中心度指标选择 — 这正是本项目把三十三个结构指标并排物化而非只挑单一指标的文献理由。第三支是媒体与银行的中国语境文献: Fang et al. (2024) 证明媒体情绪影响中国银行的存款稳定性与系统性风险, Cookson et al. (2026) 记录了社交媒体在银行挤兑中的催化角色, Khan et al. (2024) 用机器学习刻画硅谷银行事件经社交媒体向银行股指数的多米诺传导, Gao et al. (2022) 则展示了股权网络在中国银行信贷决策中的信息角色。这些研究共同支撑本家族的前提: 银行间的媒体共同报道不是噪声, 而是信息与情绪传导的可测通道, 其强度分布本身就是有经济含义的网络暴露特征。
+本测度在三支文献的交汇处。第一支是加权网络中心度的方法文献: Freeman (1978) 确立中心度三分法, Bonacich (1987) 提出把邻居重要性递归计入的幂中心度族并厘清正负参数下中心度与权力的分野, Barrat et al. (2004) 与 Opsahl et al. (2010) 把度推广到加权情形, Boldi and Vigna (2014) 则用公理化方法检验各中心度是否满足规模单调与密度敏感等基本性质 — 强度中心度作为最直接的一阶加权统计量, 是这一谱系中解释成本最低、对测量误差最不敏感的成员, 也因此常被用作更复杂谱型指标 (特征向量、Katz) 的稳健性参照。第二支是金融网络与系统性风险文献: Jackson and Pernoud (2021) 综述了金融网络中风险传染对网络位置的依赖, 指出高连接强度节点既可能分散风险也可能放大传染, 方向取决于冲击规模与网络密度的相互作用; Sadeghi and Feinstein (2024) 提出对传染中心度做统计显著性检验的框架, 提醒任何中心度点估计都伴随网络抽样误差; Yu et al. (2024) 与 Xu and Zhao (2024) 分别给出网络中心度经由信息扩散影响资产定价及节点中心度改善金融网络中价格预测的近期证据; Nezami et al. (2025) 对网络中心度与企业绩效关系做元分析, 发现中心度绩效关联的方向与强度高度依赖网络类型与中心度指标选择 — 这正是本项目把三十三个结构指标并排物化而非只挑单一指标的文献理由。第三支是媒体与银行的中国语境文献: Fang et al. (2024) 证明媒体情绪影响中国银行的存款稳定性与系统性风险, Cookson et al. (2026) 记录了社交媒体在银行挤兑中的催化角色, Khan et al. (2024) 用机器学习刻画硅谷银行事件经社交媒体向银行股指数的多米诺传导, Gao et al. (2022) 则展示了股权网络在中国银行信贷决策中的信息角色。这些研究共同支撑本家族的前提: 银行间的媒体共同报道不是噪声, 而是信息与情绪传导的可测通道, 其强度分布本身就是有经济含义的网络暴露特征。近期文献进一步充实了这一论证: Guo, Lyu, Lyu, & Zheng (2024, Abacus) 证明基于媒体与社交网络的公司中心度与股价同步性显著负相关, 为本家族用媒体共现网络中心度刻画银行信息暴露的构念提供了同题材的近期实证参照; Wu & Wang (2024, Finance Research Letters) 用新闻媒体信息传导的截面证据说明媒体关注与共现结构如何影响资产回报, 呼应本家族把媒体共现网络位置作为信息传导通道的识别定位。Alamsyah et al. (2025, Discover Artificial Intelligence) 用新闻共现网络刻画印尼上市公司间的媒体关联结构并连接情感与股价, 与本家族用媒体共现网络度量银行强度中心度的构念高度同源; Wang, Hou, & Liu (2023, Accounting & Finance) 证明中国企业在共同持股网络中的度中心度与结构洞位置显著影响其负面媒体报道的数量与严重程度, 为本家族网络位置调节效应的解读提供中国语境近期实证参照。
 
 【识别策略定位】
 在本项目的计量架构中, bank_strength_cent 族的角色是网络位置控制变量与异质性调节变量, 不是处理变量也不是工具变量。各论文的处理变量是文章级情感与属性测度聚合 (如 llm_vote_tone_full), 结果变量是外部财务指标; 强度中心度进入分析的方式是刻画哪类银行更暴露于媒体网络中心位置, 从而支持调节效应检验 (中心银行的语调冲击是否传导更强) 与溢出机制叙事 (industry_neg_shock 与 emb_peer_tone 等同伴暴露测度的网络结构背景)。把网络位置放进回归须直面两类身份识别难题: 其一是 Manski (1993) 的反射问题 — 银行间行为相互影响时, 内生同伴效应、外生特征效应与相关效应观测等价; Bramoullé et al. (2009) 证明网络结构本身 (排除性的二度邻居) 可提供识别杠杆, Grieser et al. (2022) 在公司金融政策场景展示了网络计量的空间计量实现, de Paula et al. (2024) 更进一步从面板数据中同时恢复未知网络与同伴效应。其二是网络本身的内生性与测量误差 — 媒体共现由编辑选择生成, 与银行不可观测特征相关; Hughes (2026) 给出非线性网络模型固定效应估计的刀切偏差修正, 提示带网络回归元的固定效应估计存在附带参数偏误。本项目的务实立场是: 强度中心度当前仅进入描述统计与机制叙事, 升格为回归右手边前须完成上文所述归一改造, 并按同伴效应识别文献的要求配置工具或结构假设; IV 扩展模块 (leave-one-out 同组均值、广义 Bartik、媒体来源暴露) 为这一升格预留了工具变量货架。进一步说, 本项目同伴暴露测度族与本列在识别架构中的分工须写明: industry_neg_shock 三轨族是行业层面负面冲击暴露 (分子分母严格逐轨), emb_peer_tone 与 bank_cogn_mean 族是以嵌入相似度或词频余弦为权重矩阵的同伴语调加权平均 — 这些 W 轨暴露测度回答的是别家银行的语调经何种关联通道传到本行, 是回归右手边的暴露变量; 而强度中心度只回答本行在共现网络中的位置有多中心, 不携带任何语调内容, 是位置调节变量, 二者在机制检验中互补而非替代, 且各自的权重来源 (嵌入相似度对文本余弦对共现计数) 互不派生, 不存在一列由另一列线性变换可得的冗余关系。同伴效应文献近年的进展亦为升格路径提供了操作模板: Bramoullé et al. (2020) 综述了网络同伴效应识别的完整工具箱, 明确了排除性网络结构、组规模变异与面板时序三类识别杠杆的适用边界; Boucher et al. (2024) 给出同伴效应的一般理论框架, 把线性均值模型与其非线性推广统一在同一偏好基础上, 提示线性设定本身是可检验假设而非免费午餐; Leary and Roberts (2014) 是公司金融同伴效应用特质冲击作工具的经典先例。若以共现网络定义同组, leave-one-out 均值工具的有效性依赖组内排除约束 (同组他行的冲击不得经网络外通道直接影响本行结果), 广义 Bartik 类工具 (Goldsmith-Pinkham et al. 2020; Borusyak et al. 2025) 则把识别负担转移到基期份额或冲击序列的外生性上, 二者的可信度论证责任不同, 应在论文正文按所选路线逐项交代。无论哪条路线, 强度中心度作为网络位置的一阶汇总统计量都是刻画暴露异质性的首选调节维度: 相对谱型指标它解释成本低、不依赖幂迭代收敛细节、对断连图天然稳健, 审稿沟通中不需要额外的数值方法附录。
@@ -348,4 +376,8 @@ Borgatti, S. P., & Everett, M. G. (1997). Network analysis of 2-mode data. Socia
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
 Bonacich, P. (1987). Power and centrality: A family of measures. American Journal of Sociology, 92(5), 1170-1182. https://doi.org/10.1086/228631
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
+Guo, F., Lyu, B., Lyu, X., & Zheng, J. (2024). Social Media Networks and Stock Price Synchronicity: Evidence from a Chinese Stock Forum. Abacus. https://doi.org/10.1111/abac.12341
+Wu, Y., & Wang, X. (2024). The cross section of information transmission in news media and stock returns. Finance Research Letters. https://doi.org/10.1016/j.frl.2024.105780
+Alamsyah, A., Ramadhani, D. P., Kristanti, F. T., Nasution, A. H., Mohamad, M. S., Sokkalingam, R., Widiyanesti, S., & Saputra, M. A. A. (2025). Deciphering news sentiment and stock price relationships in Indonesian companies: an AI-based exploration of industry affiliation and news co-occurrence. Discover Artificial Intelligence. https://doi.org/10.1007/s44163-025-00350-5
+Wang, L., Hou, W., & Liu, Y. (2023). How do co-shareholding networks affect negative media coverage? Evidence from China. Accounting & Finance. https://doi.org/10.1111/acfi.13091
 <!-- rendered-citations:end -->

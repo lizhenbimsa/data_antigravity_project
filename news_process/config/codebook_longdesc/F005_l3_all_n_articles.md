@@ -55,7 +55,31 @@ citations:
   vol: 21
   issue: 3
   pages_or_artno: 267-297
-new_dois: []
+- doi: "10.1111/1911-3846.12982"
+  title: "The impact of news media coverage on voluntary disclosure"
+  authors: "Lock, B."
+  year: 2024
+  venue: "Contemporary Accounting Research"
+  type: "journal"
+  one_sentence_zh: "该文用媒体报道量度量投资者注意力并检验其对企业信息披露行为的因果影响, 为本列把总报道篇数作为一般媒体关注度混淆控制的构念定位提供了2024年顶刊佐证。"
+- doi: "10.1002/smj.3600"
+  title: "Competing for attention on digital platforms: The case of news outlets"
+  authors: "Meyer, T., Kerkhof, A., Cennamo, C., & Kretschmer, T."
+  year: 2024
+  venue: "Strategic Management Journal"
+  type: "journal"
+  one_sentence_zh: "该文研究新闻媒体在数字平台上争夺注意力的机制, 揭示报道量/曝光度本身是一种独立于内容质量的注意力资源, 为本列把总报道篇数作为一般媒体关注度基线的构念定位提供2024年顶刊佐证。"
+- doi: "10.1111/ajps.12752"
+  title: "Banklash: How Media Coverage of Bank Scandals Moves Mass Preferences on Financial Regulation"
+  authors: "Culpepper, P. D., Jung, J.-H., & Lee, T."
+  year: 2023
+  venue: "American Journal of Political Science"
+  type: "journal"
+  one_sentence_zh: "该文用银行相关新闻报道的曝光量衡量公众对银行议题的媒体关注强度并检验其对监管偏好的因果影响, 为本列以银行-年报道篇数作为媒体关注度计数测度提供2023年针对银行主体的实证佐证。"
+new_dois:
+  - "10.1111/1911-3846.12982"
+  - "10.1002/smj.3600"
+  - "10.1111/ajps.12752"
 ---
 
 ## CORE
@@ -67,7 +91,7 @@ all_n_articles 是一个银行-年粒度的总媒体报道量计数, 度量某�
 本列在 stage 51 (falsification) 的 merge_to_panel 环节构造。上游三方 fan-in: 12_fintech_news_full.parquet 是 stage 12 过滤之前的全量银行新闻底库 (与 11_bank_news 逐行 1:1, 仅多出 is_fintech_news 等标注列, 命名带 fintech 但实为全量), 40_article_bank_level.parquet 是已进入面板的金融科技文章, 40_panel_yearly.parquet 是待挂控制变量的银行-年面板。构造分两支: 一支经 build_non_fintech 用反连接 (anti-join) 把全量银行新闻减去已进面板的金融科技文章, 得到非金融科技对照组, 复合键为 (目标银行, 标题, 日期串) 双侧去重后取集合差集, 再按 (银行, 年) 聚合得 nf_n_articles; 另一支取金融科技去重稿件计数 ft_dedup_agg。二者相加即 all_n_articles。这里最承重的一条纪律是同一把尺子: 分子分母必须共用同一去重口径, 若 ft 端用去重稿件数而 nf 端用物理篇数 (或反之), 得到的份额会系统性偏大, 赛马就失真; 因此 all_n_articles 优先以去重稿件为同基, 仅当 ft_dedup_agg 缺失时才回退为物理 n_articles 与 nf 的混合基, 并配有去重计数不超过物理计数的逐行一致性校验。派生同族的 fintech_share = ft_dedup / all_n_articles, 当 all_n_articles 为 0 时置为未定义 (NaN) 而非零份额, 以免把全年零报道的银行-年当成金融科技占比为零污染回归。整个阶段无 LLM、无嵌入、无网络调用, 纯 pandas/numpy, 确定性强。留篇口径与全线一致: 是否算作一篇银行金融科技报道以 full 轨的 LLM 门控为准 (full-only, 2026-06-29), 非金融科技对照组则是全量底库减去这些留篇文章的补集, 二者构成 Hassan 式的互补划分。
 
 【文献定位】
-该列的方法论谱系横跨三条脉络。其一是媒体与信息中介文献: Call 等 (2022) 的记者调查、以及更广义的文本即数据传统 (Grimmer & Stewart, 2013) 提示, 从非结构化新闻抽取的任何计数都带有内容分析方法的固有偏误 (选题、转载、去重口径), 必须显式声明测量协议才能复现, 这正是本列坚持同基去重与物理/去重双口径披露的原因。其二是文本披露演化文献: Dyer, Lang 与 Stice-Lawrence (2017) 对 10-K 文本篇幅与主题演化的度量表明, 简单的量 (篇数、字数) 与质 (语调、主题) 需分别建模, 二者高度相关却不可互相替代, 这为把报道量单列为赛马对照、而非并入语调变量提供了度量学依据。其三是打假/安慰剂识别文献: 本阶段的假设框架为 H0 (金融科技语调解释力全部来自一般媒体关注度) 对 H1 (含金融科技特异性增量), all_n_articles 是检验 H0 的核心对照; 与之配套的安慰剂时点 DID 借鉴 Callaway 与 Sant'Anna (2021) 的多期差分框架, 而对平行趋势可信性的敏感性叙事则可锚定 Rambachan 与 Roth (2023) 的更可信平行趋势方法。需要说明的是, all_n_articles 与金融科技份额、语调等测度是构念上正交的两类对象: 前者是数量维度的混淆控制, 后者是内容维度的处理变量, 二者不得互相代换, 这一区分是整条打假防线成立的前提。
+该列的方法论谱系横跨三条脉络。其一是媒体与信息中介文献: Call 等 (2022) 的记者调查、以及更广义的文本即数据传统 (Grimmer & Stewart, 2013) 提示, 从非结构化新闻抽取的任何计数都带有内容分析方法的固有偏误 (选题、转载、去重口径), 必须显式声明测量协议才能复现, 这正是本列坚持同基去重与物理/去重双口径披露的原因。其二是文本披露演化文献: Dyer, Lang 与 Stice-Lawrence (2017) 对 10-K 文本篇幅与主题演化的度量表明, 简单的量 (篇数、字数) 与质 (语调、主题) 需分别建模, 二者高度相关却不可互相替代, 这为把报道量单列为赛马对照、而非并入语调变量提供了度量学依据。其三是打假/安慰剂识别文献: 本阶段的假设框架为 H0 (金融科技语调解释力全部来自一般媒体关注度) 对 H1 (含金融科技特异性增量), all_n_articles 是检验 H0 的核心对照; 与之配套的安慰剂时点 DID 借鉴 Callaway 与 Sant'Anna (2021) 的多期差分框架, 而对平行趋势可信性的敏感性叙事则可锚定 Rambachan 与 Roth (2023) 的更可信平行趋势方法。需要说明的是, all_n_articles 与金融科技份额、语调等测度是构念上正交的两类对象: 前者是数量维度的混淆控制, 后者是内容维度的处理变量, 二者不得互相代换, 这一区分是整条打假防线成立的前提。Lock (2024, Contemporary Accounting Research) 用媒体报道量度量投资者注意力并检验其对企业信息披露行为的因果影响, 为本列把总报道篇数作为一般媒体关注度混淆控制的构念定位提供了2024年顶刊佐证。Meyer, Kerkhof, Cennamo 与 Kretschmer (2024, Strategic Management Journal) 研究新闻媒体在数字平台上争夺注意力的机制, 揭示报道量/曝光度本身是一种独立于内容质量的注意力资源, 为本列把总报道篇数作为一般媒体关注度基线的构念定位提供2024年顶刊佐证。Culpepper, Jung 与 Lee (2023, American Journal of Political Science) 用银行相关新闻报道的曝光量衡量公众对银行议题的媒体关注强度并检验其对监管偏好的因果影响, 为本列以银行-年报道篇数作为媒体关注度计数测度提供2023年针对银行主体的实证佐证。
 
 ## VAR: all_n_articles
 
@@ -80,4 +104,7 @@ Call, A. C., Emett, S. A., Maksymov, E., & Sharp, N. Y. (2022). Meet the press: 
 Callaway, B., & Sant'Anna, P. H. C. (2021). Difference-in-differences with multiple time periods. Journal of Econometrics, 225(2), 200-230. https://doi.org/10.1016/j.jeconom.2020.12.001
 Dyer, T., Lang, M., & Stice-Lawrence, L. (2017). The evolution of 10-K textual disclosure: Evidence from Latent Dirichlet Allocation. Journal of Accounting and Economics, 64(2-3), 221-245. https://doi.org/10.1016/j.jacceco.2017.07.002
 Grimmer, J., & Stewart, B. M. (2013). Text as data: The promise and pitfalls of automatic content analysis methods for political texts. Political Analysis, 21(3), 267-297. https://doi.org/10.1093/pan/mps028
+Lock, B. (2024). The impact of news media coverage on voluntary disclosure. Contemporary Accounting Research. https://doi.org/10.1111/1911-3846.12982
+Meyer, T., Kerkhof, A., Cennamo, C., & Kretschmer, T. (2024). Competing for attention on digital platforms: The case of news outlets. Strategic Management Journal. https://doi.org/10.1002/smj.3600
+Culpepper, P. D., Jung, J.-H., & Lee, T. (2023). Banklash: How Media Coverage of Bank Scandals Moves Mass Preferences on Financial Regulation. American Journal of Political Science. https://doi.org/10.1111/ajps.12752
 <!-- rendered-citations:end -->

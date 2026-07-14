@@ -61,7 +61,21 @@ citations:
   year: 2025
   title: 'Sustainability or Greenwashing: Evidence from the Asset Market for Industrial Pollution'
   venue: The Journal of Finance
-new_dois: []
+- doi: "10.1016/j.jenvman.2024.123399"
+  title: "Quantifying firm-level greenwashing: A systematic literature review"
+  authors: "Lublóy, Á.; Keresztúri, J. L.; Berlinger, E."
+  year: 2025
+  venue: "Journal of Environmental Management"
+  type: "journal"
+- doi: "10.1007/s10490-025-10098-2"
+  title: "Substantive investment or symbolic disclosure toward digital transformation? The impact of entrepreneurial orientation and political connections"
+  authors: "Liu, L.; Li, Z.; Zhu, Q."
+  year: 2026
+  venue: "Asia Pacific Journal of Management"
+  type: "journal"
+new_dois:
+  - "10.1016/j.jenvman.2024.123399"
+  - "10.1007/s10490-025-10098-2"
 ---
 
 ## CORE
@@ -79,7 +93,7 @@ new_dois: []
 行宇宙口径: 与项目 2026-06-29 起的留篇门控(full-only gate)一致, "一篇文章是否算作银行—金融科技报道"由 `llm_verified_full` 决定; ctx/ss 轨的分类与聚合是在这一 full 留篇集合的子集上分别计算各自轨道的词频与相似度, 而非独立扩展行宇宙。分母(已测量篇数)因此随轨道 (full/ctx/ss) 与锚点 (vintage/allv) 组合各自结算, 不跨轨借用。
 
 【文献定位】
-本家族横跨两支文献。其一是组织理论中的话语—实践脱耦/象征管理传统: Westphal & Zajac (1994) 最早在 CEO 长期激励计划采纳研究中区分"substance"(实质条款设计)与"symbolism"(仅为满足制度合法性压力的表面采纳), 发现二者驱动因素与后果显著不同; Fiss & Zajac (2006) 进一步用框架建构(sensegiving)与脱耦(decoupling)机制解释企业如何在战略变革叙事与实际执行之间制造系统性落差; Kim & Lyon (2015) 把这一逻辑正式化为可持续披露语境下的 greenwash/brownwash 双向错配框架, 是本四象限设计(词频×相似度二维交叉)最直接的概念原型。其二是文本量化对齐与"话语可信度"检验文献: Bingler et al. (2022) 用 ClimateBert 类模型识别企业气候披露中"cherry-picking"式的选择性话语操纵, Bingler et al. (2024) 进一步检验这类"cheap talk"(话语与实际排放/举措脱节的部分)是否与真实气候举措、企业排放及声誉风险对齐, 二者合力方法论上确认单一文本信号(如关键词密度)不足以区分真实承诺与策略性话术, 须结合语义对齐或外部结果证据联合判定; Duchin, Gao & Xu (2025) 则从资产市场交易行为的角度提供了可持续性投入 vs. 漂绿的外部验证证据, 呼应"话语强度需要独立信号交叉验证"这一识别逻辑。本家族的政策相似度轴(`policy_cosine_sim_allv`)在方法上承袭本项目 stage 16 `article_policy_alignment` 模块的锚点注入设计, 用政策语料嵌入构造语义锚点、以余弦相似度替代表层关键词匹配衡量话语与官方议程的贴合度, 而 `_allv` 全年份静态锚点这一稳健性口径本身则是对"锚点文本时间窗选择是否驱动结论"这一 identification 关切的显式回应, 与项目其余稳健性梯子(政治词权重/词典消融/BERT 阈值)遵循同一"多口径并排、互不替代"的方法论立场。
+本家族横跨两支文献。其一是组织理论中的话语—实践脱耦/象征管理传统: Westphal & Zajac (1994) 最早在 CEO 长期激励计划采纳研究中区分"substance"(实质条款设计)与"symbolism"(仅为满足制度合法性压力的表面采纳), 发现二者驱动因素与后果显著不同; Fiss & Zajac (2006) 进一步用框架建构(sensegiving)与脱耦(decoupling)机制解释企业如何在战略变革叙事与实际执行之间制造系统性落差; Kim & Lyon (2015) 把这一逻辑正式化为可持续披露语境下的 greenwash/brownwash 双向错配框架, 是本四象限设计(词频×相似度二维交叉)最直接的概念原型。其二是文本量化对齐与"话语可信度"检验文献: Bingler et al. (2022) 用 ClimateBert 类模型识别企业气候披露中"cherry-picking"式的选择性话语操纵, Bingler et al. (2024) 进一步检验这类"cheap talk"(话语与实际排放/举措脱节的部分)是否与真实气候举措、企业排放及声誉风险对齐, 二者合力方法论上确认单一文本信号(如关键词密度)不足以区分真实承诺与策略性话术, 须结合语义对齐或外部结果证据联合判定; Duchin, Gao & Xu (2025) 则从资产市场交易行为的角度提供了可持续性投入 vs. 漂绿的外部验证证据, 呼应"话语强度需要独立信号交叉验证"这一识别逻辑。本家族的政策相似度轴(`policy_cosine_sim_allv`)在方法上承袭本项目 stage 16 `article_policy_alignment` 模块的锚点注入设计, 用政策语料嵌入构造语义锚点、以余弦相似度替代表层关键词匹配衡量话语与官方议程的贴合度, 而 `_allv` 全年份静态锚点这一稳健性口径本身则是对"锚点文本时间窗选择是否驱动结论"这一 identification 关切的显式回应, 与项目其余稳健性梯子(政治词权重/词典消融/BERT 阈值)遵循同一"多口径并排、互不替代"的方法论立场。Lublóy, Keresztúri & Berlinger (2025, Journal of Environmental Management) 系统综述111篇实证研究中的120种企业层面漂绿(话语—实践脱耦)量化测度方法, 归纳出选择性披露与脱耦两大测度范式, 为本家族词频×政策相似度双轴脱耦构造提供方法学谱系定位; Liu, Li & Zhu (2026, Asia Pacific Journal of Management) 直接在数字化转型语境下区分企业的实质性投入与象征性披露, 并检验创业导向/政治关联对二者选择的驱动作用, 与本家族银行金融科技言行是否同步的四象限构念高度同构。
 
 ## VAR: subst_adopt_kw_p75_allv
 
@@ -109,4 +123,6 @@ Fiss, P. C.; Zajac, E. J. (2006). The Symbolic Management of Strategic Change: S
 Bingler, J. A.; Kraus, M.; Leippold, M.; Webersinke, N. (2024). How Cheap Talk in Climate Disclosures Relates to Climate Initiatives, Corporate Emissions, and Reputation Risk. Journal of Banking & Finance, 164, 107191. https://doi.org/10.1016/j.jbankfin.2024.107191
 Bingler, J. A.; Kraus, M.; Leippold, M.; Webersinke, N. (2022). Cheap Talk and Cherry-Picking: What ClimateBert Has to Say on Corporate Climate Risk Disclosures. Finance Research Letters, 47, 102776. https://doi.org/10.1016/j.frl.2022.102776
 Duchin, R.; Gao, J.; Xu, Q. (2025). Sustainability or Greenwashing: Evidence from the Asset Market for Industrial Pollution. The Journal of Finance. https://doi.org/10.1111/jofi.13412
+Lublóy, Á.; Keresztúri, J. L.; Berlinger, E. (2025). Quantifying firm-level greenwashing: A systematic literature review. Journal of Environmental Management. https://doi.org/10.1016/j.jenvman.2024.123399
+Liu, L.; Li, Z.; Zhu, Q. (2026). Substantive investment or symbolic disclosure toward digital transformation? The impact of entrepreneurial orientation and political connections. Asia Pacific Journal of Management. https://doi.org/10.1007/s10490-025-10098-2
 <!-- rendered-citations:end -->

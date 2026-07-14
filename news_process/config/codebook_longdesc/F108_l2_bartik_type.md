@@ -74,7 +74,28 @@ citations:
   vol: 95
   issue: 3
   pages_or_artno: 780-795
-new_dois: []
+- doi: "10.1016/j.jfineco.2024.103934"
+  type: journal
+  authors: "Goldstein, I., Kopytov, A., Shen, L., & Xiang, H."
+  year: 2024
+  title: "Bank heterogeneity and financial stability"
+  venue: "Journal of Financial Economics"
+- doi: "10.3390/jrfm18080440"
+  title: "An Empirical Study on the Impact of Financial Technology on the Profitability of China's Listed Commercial Banks"
+  authors: "Yuan, X., Puah, C.-H., & Marikan, D. A. binti A."
+  year: 2025
+  venue: "Journal of Risk and Financial Management"
+  type: "journal"
+- doi: "10.1016/j.iref.2024.103788"
+  title: "Empirical analysis of the impact of financial technology on the profitability of listed banks"
+  authors: "Xiao, T., & Wang, Y."
+  year: 2025
+  venue: "International Review of Economics & Finance"
+  type: "journal"
+new_dois:
+  - "10.1016/j.jfineco.2024.103934"
+  - "10.3390/jrfm18080440"
+  - "10.1016/j.iref.2024.103788"
 ---
 
 ## CORE
@@ -86,7 +107,7 @@ new_dois: []
 计算发生在 pipeline/panel/iv_did.py::compute_bartik_iv 内, 由 runner.py 以位置参数 group_prefix='type' (第四个位置实参, 调用形如 compute_bartik_iv(panel, df_exploded, type_map, 'type', base_year=T0)) 传入类型映射 type_map 调用, 变量标签在 export.py 挂载; 该 type_map 由 load_bank_group_maps 从 config/bank_addresses.json (CONFIG['paths']['bank_addresses_file']) 逐行读取每家银行的 nfra_type 字段、经 NFRA_TO_SHORT 归并为六短码而成, 与 config/bank_list.yaml 无关。基期年 T0 = max(panel.year.min, 2010), 且在 runner.py 内受一道硬性外生性守卫: 若 T0 已达到或越过政策冲击里程碑 (_bartik_pre_cutoff), 直接 RuntimeError 中止, 因为基期份额一旦落入 post-treatment 区间就违反 Goldsmith-Pinkham et al. (2020) 所强调的"基期 share 外生性"公理。份额本身的算法是: 对每家在基期有文章的银行, 把它基期内所有同业共现按类型 explode-map-groupby 向量化计数, 分母是该行全部非 'other' 类型的共现总次数, 分子是落在类型 g 的共现次数, 二者相除即得 share。这里四类缺失/边界语义务必写清, 且分层不可混同: 其一, 基期完全无共现文章的银行 (根本不进 base、不出现在遍历的 target_bank 集合里), 不产任何 share 行, 经下游 merge 后六列整行保持 NaN 而非填零 —— 早期 fillna(0) 会把"工具缺失"伪装成"零暴露", 在下游二阶段最小二乘一阶段制造 incomplete-shares 伪零离群 (Goldsmith-Pinkham et al. 2020); 其二, 银行有基期文章、但其全部同业共现在归类后 total_base==0 (即无任何非 'other' 共现) 时, 并非一律 NaN, 而是按银行自身类型 own_group 分叉——若该行本身被映射到六类真实类型之一 (own_group ∈ groups), 引擎走 one-hot 兜底: 令 own 组份额=1.0、其余五列=0.0 (源码 iv_did.py: total==0 分支内 share = 1.0 if g==own_group else 0.0), 视作"该行只与自身类型自我暴露"的极限情形而非缺失; 其三, 承接其二, 只有当 total_base==0 且该行自身也未被类型字典映射到 (own_group=='other') 时, 才 continue 跳过、整行 NaN, 因为此时 one-hot 兜底会退化为全 0 行使 Σshare=0≠1、制造 IV 伪零; 其四, 银行有真实非 'other' 分母、但某个类型 g 一次都没共现到, 该列取真零 0 (有分母、分子为零), 这是常态的稀疏零而非缺失。三/四两点须与 compute_bartik_iv_fintech "基期文章全 'other'/未映射 → NaN" 的口径对齐。份额向下游与"冲击 (shift)"分量 (同类型别的银行的年度情感变化, 自身组走 leave-one-out) 相乘再求和, 汇成 bartik_type_iv_{full,ctx,ss} 工具列; 份额还派生 _t0/_t1/_t01 三个基期敏感性变体, 用来检验工具对基期年选择是否稳健, 其中任何令基期落入 post-treatment 的变体一律置 NaN 并告警。需强调本家族只是"份额半成品", 不是可直接进结果方程的回归变量; 它的意义在于诊断与识别透明度 (可读出每家银行的类型暴露构成、可算 Rotemberg 权重)。当前盘上为 T=2 开发样本 (2017–2018), 基期结构高度退化, 份额分布稀疏属预期, 生产 T=18 语料下方回归常态。
 
 【文献定位】
-Bartik (shift-share) 工具变量把内生自变量拆成"基期份额 × 外部冲击"的加权和, 其份额外生性识别路径由 Goldsmith-Pinkham, Sorkin & Swift (2020) 在《美国经济评论》系统化, 并给出 Rotemberg 权重这一"哪几个份额在真正驱动识别"的诊断工具, 本管道正是沿其份额视角构造工具 (而非 Borusyak, Hull & Jaravel 2022 的冲击准随机视角), 两条路径的区分与相应诊断清单见 Borusyak, Hull & Jaravel (2025) 的实操指南。份额型设计的推断校正 (跨截面相关、有效样本量塌缩) 由 Adão, Kolesár & Morales (2019) 奠定, 排他性约束的松弛与检验思路见 Apfel (2024)。就类型维度多工具并用而言, Hahn, Kuersteiner, Santos & Willigrod (2024) 讨论了 shift-share 设计中的过度识别问题, 构成本管道一条铁律的计量支撑: 银行类型、规模、金融科技类别三套 Bartik 工具各自 just-identified 并排、互为稳健性不分主次, 严禁混入同一 over-identified 的 Hansen J 检验; 同理主工具的三条文本轨 (full/ctx/ss, ss 语义镜像 ctx: 无银行与金科同句共现时回退全文) 与基期敏感性变体亦各自 just-identified 并排, 不得合并过度识别。类型切分之所以经济上有意义, 是因为不同类型银行的功能定位差异实在 —— 例如 Burgess & Pande (2005) 证明面向农村的银行网点扩张对减贫与产出有真实因果效应, 提示农商行、城商行等地方性类型与国有大行、外资行的暴露结构不可互换。
+Bartik (shift-share) 工具变量把内生自变量拆成"基期份额 × 外部冲击"的加权和, 其份额外生性识别路径由 Goldsmith-Pinkham, Sorkin & Swift (2020) 在《美国经济评论》系统化, 并给出 Rotemberg 权重这一"哪几个份额在真正驱动识别"的诊断工具, 本管道正是沿其份额视角构造工具 (而非 Borusyak, Hull & Jaravel 2022 的冲击准随机视角), 两条路径的区分与相应诊断清单见 Borusyak, Hull & Jaravel (2025) 的实操指南。份额型设计的推断校正 (跨截面相关、有效样本量塌缩) 由 Adão, Kolesár & Morales (2019) 奠定, 排他性约束的松弛与检验思路见 Apfel (2024)。就类型维度多工具并用而言, Hahn, Kuersteiner, Santos & Willigrod (2024) 讨论了 shift-share 设计中的过度识别问题, 构成本管道一条铁律的计量支撑: 银行类型、规模、金融科技类别三套 Bartik 工具各自 just-identified 并排、互为稳健性不分主次, 严禁混入同一 over-identified 的 Hansen J 检验; 同理主工具的三条文本轨 (full/ctx/ss, ss 语义镜像 ctx: 无银行与金科同句共现时回退全文) 与基期敏感性变体亦各自 just-identified 并排, 不得合并过度识别。类型切分之所以经济上有意义, 是因为不同类型银行的功能定位差异实在 —— 例如 Burgess & Pande (2005) 证明面向农村的银行网点扩张对减贫与产出有真实因果效应, 提示农商行、城商行等地方性类型与国有大行、外资行的暴露结构不可互换。Goldstein, Kopytov, Shen & Xiang (2024, Journal of Financial Economics) 建立银行异质性影响系统性风险传导的模型, 佐证本家族按国有大行、股份制、城商、农商、外资六类切分同业暴露结构的经济含义。Yuan, Puah & Marikan (2025, Journal of Risk and Financial Management) 实证发现金融科技对国有大行与股份制银行盈利的负面冲击比中小银行更显著, 支持按银行类型切分同业暴露结构的经济含义; Xiao & Wang (2025, International Review of Economics & Finance) 基于33家上市银行文本挖掘构造金融科技指数, 证明金融科技对银行盈利的影响因银行类型异质而不同。
 
 ## VAR: bartik_type_share_city
 
@@ -121,4 +142,7 @@ Borusyak, K., Hull, P., & Jaravel, X. (2022). Quasi-experimental shift-share res
 Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik instruments: What, when, why, and how. American Economic Review, 110(8), 2586-2624. https://doi.org/10.1257/aer.20181047
 Adão, R., Kolesár, M., & Morales, E. (2019). Shift-share designs: Theory and inference. Quarterly Journal of Economics, 134(4), 1949-2010. https://doi.org/10.1093/qje/qjz025
 Burgess, R., & Pande, R. (2005). Do rural banks matter? Evidence from the Indian social banking experiment. American Economic Review, 95(3), 780-795. https://doi.org/10.1257/0002828054201242
+Goldstein, I., Kopytov, A., Shen, L., & Xiang, H. (2024). Bank heterogeneity and financial stability. Journal of Financial Economics. https://doi.org/10.1016/j.jfineco.2024.103934
+Yuan, X., Puah, C.-H., & Marikan, D. A. binti A. (2025). An Empirical Study on the Impact of Financial Technology on the Profitability of China's Listed Commercial Banks. Journal of Risk and Financial Management. https://doi.org/10.3390/jrfm18080440
+Xiao, T., & Wang, Y. (2025). Empirical analysis of the impact of financial technology on the profitability of listed banks. International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2024.103788
 <!-- rendered-citations:end -->

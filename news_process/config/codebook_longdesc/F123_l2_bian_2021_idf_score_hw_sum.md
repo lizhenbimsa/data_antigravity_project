@@ -56,7 +56,21 @@ citations:
   vol: 28
   issue: 1
   pages_or_artno: 11-21
-new_dois: []
+- doi: "10.1016/j.eswa.2024.125739"
+  type: "journal"
+  authors: "Ma, Y., Zhang, T., & Zhang, P."
+  year: 2025
+  title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
+  venue: "Expert Systems with Applications"
+- doi: "10.1007/s00521-024-10603-6"
+  type: "journal"
+  authors: "Lan, Y., Wu, Y., Xu, W., Feng, W., & Zhang, Y."
+  year: 2024
+  title: "Chinese fine-grained financial sentiment analysis with large language models"
+  venue: "Neural Computing and Applications"
+new_dois:
+  - "10.1016/j.eswa.2024.125739"
+  - "10.1007/s00521-024-10603-6"
 ---
 
 ## CORE
@@ -68,7 +82,7 @@ new_dois: []
 计算分三层。第一层是 IDF 权重的语料级估计: 对全语料按唯一文档去重 (以文本内容自身为键, 避免"一篇提到八家银行被展开成八行"虚增文档数), 令 raw_idf(w) = log10(N / (1 + df(w))), 再逐词典 (per-dictionary) 各自求本部词典内全体情感词 raw_idf 的均值, 以该词典自身的均值为除数做归一化 (故 Bian 词典的每个词除以 Bian 词典内部 raw_idf 均值, 而非跨全体六部词典情感词的单一总均值——源码 tone_words.py 对 dictionaries 逐部循环, 每部先算 mean_val 再归一), 最后对归一化值做 P1/P99 Winsorize 截尾, 得到每个情感词的最终 IDF 权重。逐词典均值归一化的目的是让每部词典 IDF 加权后的得分量级各自与该词典等权版大体相当, 从而各词典轨共享同一套阈值; 采用词典内均值而非全体均值, 是因不同词典的稀有度分布与词表规模不同, 用各自的分布中心归一才能保证跨词典可比性。Winsorize 则防止某个超稀有词一词定乾坤或极高频词被压成零。三轨在这一步共享同一份基于 content_full 语料估得的 IDF 权重, 绝不按轨分语料重估——ss 轨也复用此权重。第二层是 article 级得分: 复用同一次 tone tokenizer 的切词结果 (零额外分词开销), 对匹配到的情感词施加语言学规则 (否定翻转、程度副词、转折), 用 IDF 权重缩放各词的 final 极性幅值后归一化, 得到 bian_2021_idf_score{track} ∈ 有界区间; IDF 仅缩放幅值不改极性归属, 空文本或无情感词时取零或中性。第三层是羊群加权求和: 每篇乘 herd_weight{track} (stage 24 依 Tetlock 传统对疑似跟风、抄稿的报道逐篇降权, 权重落在零到一), 再在银行-年内 sum 聚合成本列。方法学上须复述三轨铁律: full / ctx / ss 三条轨各自 just-identified 并排, 互为稳健性、不分主次, 严禁把三轨混进同一条 over-identified 的 Hansen J 过度识别检验。留篇门控采用 full-only 口径 (2026-06-29): 一篇报道是否计入某银行的报道宇宙, 只看 full 轨的 LLM 留篇判定; ctx / ss 降为 conditional-on-full 的测度轨, 其行宇宙是 full 留篇集的子集, 但 per-track 的得分与羊群权重仍逐轨独立计算。ss 轨的回退语义镜像 ctx: 当某篇不存在银行与金科的同句共现时, content_ss 回退为全文正文并置 ss_is_fallback 为真。
 
 【文献定位】
-本列的三条方法学支柱各有其经典出处。词典构念锚是 Bian, Jia, Li 与 Yan (2021): 他们针对中文会计与金融文本编制情感词典, 论证英文词典直译到中文金融语境会系统性失真, 为本家族选用中文本土词典提供了直接依据; 这与 Du, Huang, Wermers 与 Wu (2022) 在 Review of Finance 上关于"语言与领域特异性——中文金融情感词典"的发现同源, 后者进一步量化了领域专用中文词典相对通用词典在中国市场文本上的增量效度。IDF 加权的思想上溯 Spärck Jones (1972) 关于词项特异性的统计诠释——越稀有的词区分力越强, 这一逆文档频率原理是本列"稀有情感词加权更重"的方法根; 在金融文本分析语境中, Jegadeesh 与 Wu (2013) 的"词力量"框架示范了如何按词的信息含量而非简单计数来加权情感词, 是本列 IDF 臂的金融学先例。至于词典法本身的地位, Frankel, Jennings 与 Lee (2022) 在 Management Science 上系统比较了机器学习与词典方法的披露情感度量, 表明两类方法各有所长、互为稳健性——这正是本项目保留词典轨 (含 Bian 词典的 IDF 加权变体) 与 LLM 轨、BERT 轨并排作互证的方法论根据。羊群加权分子的设计意在把跟风转载、抄稿式报道的过度计权剥离, 使加总后的加权语调更贴近"独立信息"的口径, 与上述词典效度文献形成互补。
+本列的三条方法学支柱各有其经典出处。词典构念锚是 Bian, Jia, Li 与 Yan (2021): 他们针对中文会计与金融文本编制情感词典, 论证英文词典直译到中文金融语境会系统性失真, 为本家族选用中文本土词典提供了直接依据; 这与 Du, Huang, Wermers 与 Wu (2022) 在 Review of Finance 上关于"语言与领域特异性——中文金融情感词典"的发现同源, 后者进一步量化了领域专用中文词典相对通用词典在中国市场文本上的增量效度。IDF 加权的思想上溯 Spärck Jones (1972) 关于词项特异性的统计诠释——越稀有的词区分力越强, 这一逆文档频率原理是本列"稀有情感词加权更重"的方法根; 在金融文本分析语境中, Jegadeesh 与 Wu (2013) 的"词力量"框架示范了如何按词的信息含量而非简单计数来加权情感词, 是本列 IDF 臂的金融学先例。至于词典法本身的地位, Frankel, Jennings 与 Lee (2022) 在 Management Science 上系统比较了机器学习与词典方法的披露情感度量, 表明两类方法各有所长、互为稳健性——这正是本项目保留词典轨 (含 Bian 词典的 IDF 加权变体) 与 LLM 轨、BERT 轨并排作互证的方法论根据。羊群加权分子的设计意在把跟风转载、抄稿式报道的过度计权剥离, 使加总后的加权语调更贴近"独立信息"的口径, 与上述词典效度文献形成互补。Ma, Zhang 与 Zhang (2025, Expert Systems with Applications) 构建了面向中国本土投资者的细粒度中文情感词典并验证其市场预测效度, 呼应本家族选用中文本土 (而非英文直译) 情感词典并按词权重差异化打分的构念取向; Lan, Wu, Xu, Feng 与 Zhang (2024, Neural Computing and Applications) 用大语言模型对中文金融文本做细粒度情感分析并与传统词典法比较, 为本家族在词典轨之外并排设置 LLM 轨、互为稳健性的设计提供了新近的方法论参照。
 
 ## VAR: bian_2021_idf_score_hw_sum_ctx
 
@@ -91,4 +105,6 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis. Journal of Financial Economics, 110(3), 712-729. https://doi.org/10.1016/j.jfineco.2013.08.018
 Spärck Jones, K. (1972). A statistical interpretation of term specificity and its application in retrieval. Journal of Documentation, 28(1), 11-21. https://doi.org/10.1108/eb026526
+Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications. https://doi.org/10.1016/j.eswa.2024.125739
+Lan, Y., Wu, Y., Xu, W., Feng, W., & Zhang, Y. (2024). Chinese fine-grained financial sentiment analysis with large language models. Neural Computing and Applications. https://doi.org/10.1007/s00521-024-10603-6
 <!-- rendered-citations:end -->

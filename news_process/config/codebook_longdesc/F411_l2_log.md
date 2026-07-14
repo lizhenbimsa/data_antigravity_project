@@ -11,31 +11,31 @@ upstream:
   - 21_tone_llms.parquet (llm_sentiment_* 逐篇情感判定 → 面板层聚合 pos_count/neg_count)
   - 40_panel_export_main (balance_panel 零填契约; n_articles 覆盖门控依据)
 citations:
-  - doi: 10.1093/qje/qjad054
-    type: journal
-    authors: Chen, J., & Roth, J.
-    year: 2024
-    title: "Logs with zeros? Some problems and solutions"
-    venue: Quarterly Journal of Economics
-    vol: 139
-    issue: 2
-    pages_or_artno: 891-936
-  - doi: 10.1016/j.jfineco.2024.103957
-    type: journal
-    authors: Vives, X., & Ye, Z.
-    year: 2025
-    title: "Information technology and lender competition"
-    venue: Journal of Financial Economics
-    vol: 163
-    pages_or_artno: Article 103957
-  - doi: 10.1016/j.jmoneco.2022.04.001
-    type: journal
-    authors: Pierri, N., & Timmer, Y.
-    year: 2022
-    title: "The importance of technology in banking during a crisis"
-    venue: Journal of Monetary Economics
-    vol: 128
-    pages_or_artno: 88-104
+- doi: 10.1093/qje/qjad054
+  type: journal
+  authors: Chen, J., & Roth, J.
+  year: 2024
+  title: "Logs with zeros? Some problems and solutions"
+  venue: Quarterly Journal of Economics
+  vol: 139
+  issue: 2
+  pages_or_artno: 891-936
+- doi: 10.1016/j.jfineco.2024.103957
+  type: journal
+  authors: Vives, X., & Ye, Z.
+  year: 2025
+  title: "Information technology and lender competition"
+  venue: Journal of Financial Economics
+  vol: 163
+  pages_or_artno: Article 103957
+- doi: 10.1016/j.jmoneco.2022.04.001
+  type: journal
+  authors: Pierri, N., & Timmer, Y.
+  year: 2022
+  title: "The importance of technology in banking during a crisis"
+  venue: Journal of Monetary Economics
+  vol: 128
+  pages_or_artno: 88-104
 new_dois: []
 ---
 

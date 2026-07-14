@@ -1,5 +1,6 @@
 ---
 family_id: F433
+novelty_exempt_rationale: "F433 是 P4 主线 full 轨工具变量家族 leave_one_out_peer_locus_iv 在 ctx/ss 两条文本剪裁轨上的镜像补全变体(命名/构造/分组逻辑与主家族完全一致,仅内生变量所依赖的文本剪裁窗口不同),其测度定义与识别策略依据(Manski反射问题、Leary & Roberts同业LOO工具、Bartik/shift-share诊断框架)已在母族/主线家族引文中给出,属技术变体而非独立新构念,无需单独追加新颖文献。"
 columns:
 - lpeer_locus_iv_ctx
 - lpeer_locus_iv_ctx_lag1

@@ -126,9 +126,23 @@ citations:
   vol: 24
   issue: 5
   pages_or_artno: 513-523
+- doi: "10.1111/jfir.70039"
+  title: "Social media sentiment, investor herding and informational efficiency"
+  authors: "Yang, N., Fernandez-Perez, A., & Indriawan, I."
+  year: 2026
+  venue: "Journal of Financial Research"
+  type: "journal"
+- doi: "10.1093/anncom/wlaf014"
+  title: "Copy, paste, and publish: a systematic review of churnalism as a journalistic practice"
+  authors: "Brück, J., Knorr, C., & Guenther, L."
+  year: 2025
+  venue: "Annals of the International Communication Association"
+  type: "journal"
 new_dois:
 - 10.1093/rfs/hhq141
 - 10.1111/jofi.13219
+- "10.1111/jfir.70039"
+- "10.1093/anncom/wlaf014"
 ---
 
 ## CORE
@@ -140,7 +154,7 @@ new_dois:
 文章级权重由 stage 24 计算, 生产函数为 pipeline/sentiment/herd_decay.py 的 compute_herd_weights。流程为: 按 target_bank 分组, 组内按日期做确定性稳定排序, 同日文章的次序被显式固定以保证跨次运行可复现; 对每条文本轨独立做 TF-IDF 向量化并计算组内两两余弦相似度; 对文章 j, 统计发表时间早于它且落在它之前七天窗口内、余弦相似度大于等于阈值的前驱篇数, 记为计数 c, 则该文权重等于一除以一加 c。时间窗由 herd_detection.time_window_days 控制, 默认七天; 阈值判定为闭边界, 即等于阈值也算前驱。向量化口径为字符级分析器 char_wb 加二至四元字符语法, 对中文免分词且对转载中少量字词改动保持鲁棒。词项加权采用 TF-IDF, 其经典依据是 Salton & Buckley (1988) 对词项加权方案的系统比较; Sheridan, Ahmed & Farooque (2026) 进一步证明 TF-IDF 权重与 Fisher 精确检验的负对数 p 值存在对应关系, 说明这一看似启发式的加权具有可辩护的统计推断基础。特征上限 max_features 配置为五百万, 有效等价于不截断: 该值于历史修复中由一万上调, 因为按原始词频截断前一万个特征会把头部大银行的字符语法词表压进高频套话子空间, 判别性长尾缺席导致余弦相似度系统性膨胀, 形成随组规模变化的偏差; 最小文档频率 min_df 做了比例化处理, 取固定上限与组规模百分之一向上取整二者的较小值且不低于二, 消除小银行组词表塌缩成套话带来的相似度断崖, 使同一阈值跨银行可比; max_df 为零点九并带退化守卫, 微型组直接放开剪枝。词表拟合按年做 as-of 截断: 年 t 文章的前驱计数只使用年份不晚于 t 的文档拟合出的向量空间, 保证向量空间不含未来的文档频率信息, 历史权重不因语料追加新年份而漂移, 年内的残余前视在银行年度粒度下是可接受的近似。计算路径分两支: 组内不超过两千篇时走稠密两两余弦, 超过两千篇时走七天窗双指针分桶的线性乘窗口复杂度路径, 两支由专门测试在超两千篇夹具上对拍守护等价。整个阶段纯 CPU、零 LLM 与网络成本、参数全部固定, 因而输出确定。从图的视角看, 组内文章构成一张以余弦相似度为边权的加权图, 阈值判定等价于对该图做全局阈值稀疏化: 加权网络的结构刻画可追溯到 Barrat et al. (2004), 而 Kirkley (2025) 关于加权图骨架抽取的工作表明, 全局阈值的具体取值对保留下来的图结构影响可观, 简单阈值化并非无害操作。这正是家族物化阈值梯子的动机: 敏感性网格取零点二五、零点三、零点四、零点四五四个备选阈值, 列名后缀为 thr25、thr30、thr40、thr45, 网格的单一事实源是 core.config 的 herd_sensitivity_grid 函数, 它自动剔除与基线重复的取值和落在零一开区间之外的非法值, 并按阈值乘一百取整生成后缀; 四臂在与基线同一张 TF-IDF 余弦矩阵上一遍式复算前驱计数, 零额外向量化成本, 同时输出逐阈值的判定率、权重分布与对基线的秩相关诊断摘要。面板层聚合发生在 pipeline/panel/encode.py 的 build_aggregation_dict: 对每个银行年度组, 文章级权重分别取均值得到 avg 列、取最小值得到 min 列、求和得到 sum 列; 阈值梯子只物化 avg 与 sum 两个算子, min 不进梯子以防列数爆炸。聚合的行宇宙遵循管道的域门控约定: stage 24 对全部文章计算权重, 域门控不在该层发生; 下游面板 runner 先与 stage 21 的验证集做半连接, 留篇门控为 full-only 口径, 即一篇文章是否计入面板只看全文轨的 LLM 验证标志是否为真, ctx 与 ss 是以 full 留篇集为行宇宙的条件测度轨, 各轨的权重列在同一行集合上照常聚合。encode 层另有历史兼容守卫: 若检测到上游只有旧版单列权重而无三轨列, 三个轨的聚合源会显式映射到同一列并给出高声告警, 提示此时三轨输出同源、不构成真三轨, 需要重跑 stage 24 才能恢复真三轨语义。
 
 【文献定位】
-本家族与 Tetlock (2011) 的构念同源但工程实现有三点刻意差异。其一, 该文使用连续的陈旧度得分, 以新文与既往报道的最近邻相似度直接进入回归; 本家族改用阈值加计数的离散判定再映射为倒数权重, 原因是权重要作为聚合乘子进入面板构造而非作为回归变量, 倒数形式保证首篇满权重、权重随前驱数单调下降且和式聚合有自然的有效篇数解释。其二, 该文关心投资者对陈旧信息的反应本身, 陈旧度是研究对象; 本家族把陈旧度用作测量修正器, 研究对象是修正后的情感与关注度测度。其三, 硬阈值是研究者自由参数, 构念锚本身并不提供 0.35 这一取值的先验依据, 因此家族按预注册网格并排物化四个备选阈值, 这一并排披露参数族的做法在加权网络测度文献中有直接先例: Opsahl et al. (2010) 在推广加权网络中心性时引入调谐参数并主张按参数族报告测度而非钦定单点。阈值梯子的另一层动机来自金融文本特性的时变: Lesmy, Muchnik & Mugerman (2025) 记录了金融报告语言复杂度跨期系统性增长的证据, 对横跨十八个年度的新闻语料, 单一固定相似度阈值的跨期适配性先验存疑, 梯子为跨期稳健性提供了直接检验面。聚合算子的三重并排同样有方法论依据: 均值、最小值与求和对应文本信号聚合中不同的池化算子, Yamato, Okada & Mori (2023) 在文本分类语境中比较了不同加权池化方式并显示池化算子本身携带信息, 不同算子强调分布的不同侧面, 因此家族并排物化三算子而非钦定其一, 由使用者按研究问题选择中心趋势、尾部极值或总量口径。羊群与信息重复的实证文献为构念效度提供外部支撑: Zhang, Miao & Zhang (2025) 表明中国市场的羊群行为与系统性风险相关联, 媒体转载潮是这一群体动力学在信息生产端的镜像, 对转载潮不加修正的文本测度会把群体动力学误认为信息流。
+本家族与 Tetlock (2011) 的构念同源但工程实现有三点刻意差异。其一, 该文使用连续的陈旧度得分, 以新文与既往报道的最近邻相似度直接进入回归; 本家族改用阈值加计数的离散判定再映射为倒数权重, 原因是权重要作为聚合乘子进入面板构造而非作为回归变量, 倒数形式保证首篇满权重、权重随前驱数单调下降且和式聚合有自然的有效篇数解释。其二, 该文关心投资者对陈旧信息的反应本身, 陈旧度是研究对象; 本家族把陈旧度用作测量修正器, 研究对象是修正后的情感与关注度测度。其三, 硬阈值是研究者自由参数, 构念锚本身并不提供 0.35 这一取值的先验依据, 因此家族按预注册网格并排物化四个备选阈值, 这一并排披露参数族的做法在加权网络测度文献中有直接先例: Opsahl et al. (2010) 在推广加权网络中心性时引入调谐参数并主张按参数族报告测度而非钦定单点。阈值梯子的另一层动机来自金融文本特性的时变: Lesmy, Muchnik & Mugerman (2025) 记录了金融报告语言复杂度跨期系统性增长的证据, 对横跨十八个年度的新闻语料, 单一固定相似度阈值的跨期适配性先验存疑, 梯子为跨期稳健性提供了直接检验面。聚合算子的三重并排同样有方法论依据: 均值、最小值与求和对应文本信号聚合中不同的池化算子, Yamato, Okada & Mori (2023) 在文本分类语境中比较了不同加权池化方式并显示池化算子本身携带信息, 不同算子强调分布的不同侧面, 因此家族并排物化三算子而非钦定其一, 由使用者按研究问题选择中心趋势、尾部极值或总量口径。羊群与信息重复的实证文献为构念效度提供外部支撑: Zhang, Miao & Zhang (2025) 表明中国市场的羊群行为与系统性风险相关联, 媒体转载潮是这一群体动力学在信息生产端的镜像, 对转载潮不加修正的文本测度会把群体动力学误认为信息流。近期文献进一步补强了这一构念动机的两端: Yang, Fernandez-Perez & Indriawan (2026, Journal of Financial Research) 发现社交媒体情绪驱动的羊群行为会降低市场信息效率, 为本家族中文财经媒体转载潮与羊群式信息扩散的构念动机提供最新实证支撑; Brück, Knorr & Guenther (2025, Annals of the International Communication Association) 系统性综述近二十五年 churnalism 研究, 证实媒体大量照搬转载既有素材是普遍新闻实践, 为本家族跟风衰减权重修正转载重复计数偏差的必要性提供文献基础。
 
 【识别策略定位】
 本家族在计量框架中的位置是测量层的修正器与诊断变量, 不是识别工具, 也不是任何一篇论文的处理变量或结果变量。第一重角色是加权分母: sum 列是跟风加权语调族的分母, 加权语调等于逐篇权重乘语调得分的组内和除以权重和, 因此 sum_herd_weight 系列直接决定加权均值的标尺; 经过权重折算, 处理变量端的媒体语调按信息新颖度而非报道篇数聚合, 削弱事件传播广度带来的重复计数偏差。若不做该修正, 极端情绪事件的转载潮会主导面板, 处理变量的测量误差与事件显著性正相关, 偏差方向不可先验签名, 这比经典衰减偏差更危险。第二重角色是描述与控制: avg 列给出平均原创度, min 列给出年内最极端跟风事件的强度, sum 列给出有效独立报道量, 三者可进入描述统计表或作为控制变量, 帮助把报道多与独立信息多这两个经常被混同的构念在回归中分离。口径铁律与仓库当前状态铁律逐字一致: 三条文本轨 full、ctx、ss 各自 just-identified 并排、互为稳健性、不分主次, 禁止把多轨变量塞进同一条 over-identified 方程去做 Hansen J 过度识别检验; 阈值梯子五档同理, 基线与四臂各自 just-identified 并排, 属规格稳健性并排, 镜像政治词权重梯子与词典消融梯度的既有先例, 不设跨臂的 FWER 校正模板, 因为跨模型 rwolf 先例只覆盖同一构念的替代 headline 测量, 而阈值臂是同一测量的规格扰动; 阈值梯子与其它梯子, 包括词典消融梯度、政治词权重梯子与 BERT 极端占比阈值梯子, 互相正交不交叉, 不生成梯子乘梯子的组合列。留篇门控口径必须与全仓一致: 自 full-only 门控切换后, 面板行宇宙由全文轨验证标志唯一决定, 本家族 ctx 与 ss 列是 conditional-on-full 的测度轨, 解释时不得声称 ctx 或 ss 拥有独立的留篇宇宙。承重分母的传导链在源码中可精确定位: encode 层的 build_aggregation_dict 为每条轨物化两个量, 分子是逐篇权重乘测度得分的组内和, 分母是 sum_herd_weight 系列本身, 面板 runner 再在两者之间做除法生成 hw 后缀的加权测度; 这条链不止服务 LLM 投票语调, 各词典得分与各 BERT 概率的加权变体共享同一分母, 因此 sum 列的口径完整性一处失守会连坐全文轨全部 hw 测度, 这是它在识别框架里承重面最大的原因。加权修正对处理变量的作用是把非经典测量误差的一阶项压下去: 未修正聚合里, 一篇被数十家转抄的极端情绪稿在面板上贡献数十次表态, 其测量误差与事件显著性正相关, 误差方向随事件情绪符号翻转而不可先验签名, 因而不能像经典古典误差那样指望期望上衰减到零、只会把系数系统性拉向传播广度而非信息量; 加权后同一事件按有效独立篇数计入, 该一阶项被显著削弱, 这也是本家族被定位为测量修正器而非可有可无的描述列的根据。三个聚合算子在识别层的分工可由一个恒等式收束: 均值恰等于求和除以 n_articles, 故均值是尺度无关的强度读数、求和是混合了强度与报道量的总量读数、最小值是左尾极值读数, 三者知均值与篇数即可互推求和, 严禁把均值列与求和列同时放进一条方程制造机械共线。
@@ -327,4 +341,6 @@ Tetlock, P. C. (2011). All the news that's fit to reprint: Do investors react to
 Opsahl, T., Agneessens, F., & Skvoretz, J. (2010). Node centrality in weighted networks: Generalizing degree and shortest paths. Social Networks, 32(3), 245-251. https://doi.org/10.1016/j.socnet.2010.03.006
 Barrat, A., Barthélemy, M., Pastor-Satorras, R., & Vespignani, A. (2004). The architecture of complex weighted networks. Proceedings of the National Academy of Sciences, 101(11), 3747-3752. https://doi.org/10.1073/pnas.0400087101
 Salton, G., & Buckley, C. (1988). Term-weighting approaches in automatic text retrieval. Information Processing & Management, 24(5), 513-523. https://doi.org/10.1016/0306-4573(88)90021-0
+Yang, N., Fernandez-Perez, A., & Indriawan, I. (2026). Social media sentiment, investor herding and informational efficiency. Journal of Financial Research. https://doi.org/10.1111/jfir.70039
+Brück, J., Knorr, C., & Guenther, L. (2025). Copy, paste, and publish: a systematic review of churnalism as a journalistic practice. Annals of the International Communication Association. https://doi.org/10.1093/anncom/wlaf014
 <!-- rendered-citations:end -->

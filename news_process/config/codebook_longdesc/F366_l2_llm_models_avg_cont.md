@@ -139,7 +139,14 @@ citations:
   vol: 73
   issue: 4
   pages_or_artno: 1237-1282
-new_dois: []
+- doi: "10.48550/arxiv.2409.00094"
+  type: wp
+  authors: "Lefort, B., Benhamou, E., Ohana, J.-J., Guez, B., Saltiel, D., & Jacquot, T."
+  year: 2024
+  title: "Examining Independence in Ensemble Sentiment Analysis: A Study on the Limits of Large Language Models Using the Condorcet Jury Theorem"
+  venue: arXiv
+new_dois:
+  - "10.48550/arxiv.2409.00094"
 ---
 
 ## CORE
@@ -157,7 +164,7 @@ new_dois: []
 须再强调三家厂商的对等性。gpt54nano、gemini31、deepseekv4 分属不同预训练语料、不同对齐策略与不同提示敏感性的三条技术路线, 把它们的连续读数等权平均, 目的正是稀释任一单一厂商的系统性偏置——某家可能对政策性正面表述过度乐观、某家可能对风险词过度警觉, 等权集成在一阶意义上互相抵消这些方向性偏置, 得到比任一单家更稳的构念读数。这与仅换一个模型「重跑一遍」有本质区别: 集成不是复制, 而是把三份带独立噪声的读数做方差缩减。也正因如此, 三家的 per-vendor 子测度 (各自的 cont_mean) 被保留为可单独调用的稳健轨, 而非在集成后丢弃; 当论文需要展示「主结论不依赖某一特定厂商」时, 可把三家子测度分别代入同一回归, 观察系数符号与显著性是否一致, 这正是 per-model 稳健性梯的用法, 与把三家塞进一条过度识别方程截然不同。
 
 【文献定位】
-本家族坐落在「以大模型做金融文本情感、并以连续刻度承载强度」这一近年迅速成形的方法学脉络上。用大模型替代或补充人工与词典标注, 已有较系统的证据: Gilardi、Alizadeh 与 Kubli (2023) 在通用文本标注任务上证明大模型可超过众包工人的一致性与准确度, Fatouros 等 (2023) 与 Lopez-Lira 与 Tang (2023) 分别在金融领域情感分析与股价方向预测上展示了大模型读数的信息含量, Kirtac 与 Germano (2024) 进一步把大模型情感直接接入交易信号, Chiu 与 Hung (2025) 则以金融专用大模型改进情感与收益预测, Lan 等 (2025) 面向中文金融文本给出细粒度实体级情感的大模型方案, 与本项目的中文银行金科语料高度同构。把这些单模型读数横向集成为 ensemble, 有其独立方法学依据: Chen 等 (2025) 系统综述了多大模型集成的收益与设计空间, Kamen 与 Kamen (2025) 论证了多模型「多数规则」式集成在内容归类上的稳健优势; 本家族取三家等权平均正是这一集成思想在「连续读数」上的落地, 用以稀释任一单一厂商的系统性偏置与提示敏感性。方法学的审慎面由两支文献锚定: Ludwig、Mullainathan 与 Rambachan (2026) 的应用计量框架, 以及 Egami 等 (2023) 关于「以不完美代理做下游推断」的设计化监督学习, 共同提醒把大模型读数当作生成的回归变量时须正视测量误差与偏置传导——这正是本项目坚持三家并排、三轨并排而非单点采信、并把跨模型一致性单列检验的原因。回到金融文本计量的母题, 本家族与词典法、监督式机器学习互为并行度量: Loughran 与 McDonald (2016) 综述了会计金融文本分析的谱系, Frankel、Jennings 与 Lee (2022) 直接比较了机器学习与词典法在披露情感上的分歧, Tetlock (2007) 则奠定了「媒体情感对市场有实质影响」的经验基石; 本家族的连续综合分, 意在为这一谱系补上一条不依赖固定词表、且保留强度维度的大模型连续测度。相较词典法固定词表在跨语域迁移时的失配 (中文金融文本尤甚, 故本项目另配 Du 等 (2022) 的中文金融情感词典作词典臂), 大模型读数以少样本乃至零样本的语境理解见长, 对反讽、否定嵌套、程度修饰等词典法难以捕捉的语言现象更鲁棒; 但其代价是可复现性依赖提示与温度的冻结、以及潜在的训练数据污染与前瞻偏置, 故本项目以冻结提示版本、温度置零、并把逐次读数落缓存的方式锁定确定性。把大模型作情感测量而非直接因果读数, 也呼应了 Frankel 等 (2022) 对机器学习与词典法分歧来源的剖析: 两类方法的差异本身携带信息, 不应简单择一, 而应作为测量稳健性的并行证据。本家族因此不谋求取代词典法或 BERT, 而是与之构成金融文本情感测量的方法三角, 三腿各自 just-identified 并排、禁混同一 over-identified Hansen J。
+本家族坐落在「以大模型做金融文本情感、并以连续刻度承载强度」这一近年迅速成形的方法学脉络上。用大模型替代或补充人工与词典标注, 已有较系统的证据: Gilardi、Alizadeh 与 Kubli (2023) 在通用文本标注任务上证明大模型可超过众包工人的一致性与准确度, Fatouros 等 (2023) 与 Lopez-Lira 与 Tang (2023) 分别在金融领域情感分析与股价方向预测上展示了大模型读数的信息含量, Kirtac 与 Germano (2024) 进一步把大模型情感直接接入交易信号, Chiu 与 Hung (2025) 则以金融专用大模型改进情感与收益预测, Lan 等 (2025) 面向中文金融文本给出细粒度实体级情感的大模型方案, 与本项目的中文银行金科语料高度同构。把这些单模型读数横向集成为 ensemble, 有其独立方法学依据: Chen 等 (2025) 系统综述了多大模型集成的收益与设计空间, Kamen 与 Kamen (2025) 论证了多模型「多数规则」式集成在内容归类上的稳健优势; 本家族取三家等权平均正是这一集成思想在「连续读数」上的落地, 用以稀释任一单一厂商的系统性偏置与提示敏感性。方法学的审慎面由两支文献锚定: Ludwig、Mullainathan 与 Rambachan (2026) 的应用计量框架, 以及 Egami 等 (2023) 关于「以不完美代理做下游推断」的设计化监督学习, 共同提醒把大模型读数当作生成的回归变量时须正视测量误差与偏置传导——这正是本项目坚持三家并排、三轨并排而非单点采信、并把跨模型一致性单列检验的原因。回到金融文本计量的母题, 本家族与词典法、监督式机器学习互为并行度量: Loughran 与 McDonald (2016) 综述了会计金融文本分析的谱系, Frankel、Jennings 与 Lee (2022) 直接比较了机器学习与词典法在披露情感上的分歧, Tetlock (2007) 则奠定了「媒体情感对市场有实质影响」的经验基石; 本家族的连续综合分, 意在为这一谱系补上一条不依赖固定词表、且保留强度维度的大模型连续测度。Lefort、Benhamou、Ohana、Guez、Saltiel 与 Jacquot (2024, arXiv) 以孔多塞陪审团定理检验多大模型集成情感分析中各模型判断独立性的边界条件, 为本家族三家等权集成连续情感读数的方差缩减前提 (厂商间判断相对独立) 提供了直接的方法学审视。相较词典法固定词表在跨语域迁移时的失配 (中文金融文本尤甚, 故本项目另配 Du 等 (2022) 的中文金融情感词典作词典臂), 大模型读数以少样本乃至零样本的语境理解见长, 对反讽、否定嵌套、程度修饰等词典法难以捕捉的语言现象更鲁棒; 但其代价是可复现性依赖提示与温度的冻结、以及潜在的训练数据污染与前瞻偏置, 故本项目以冻结提示版本、温度置零、并把逐次读数落缓存的方式锁定确定性。把大模型作情感测量而非直接因果读数, 也呼应了 Frankel 等 (2022) 对机器学习与词典法分歧来源的剖析: 两类方法的差异本身携带信息, 不应简单择一, 而应作为测量稳健性的并行证据。本家族因此不谋求取代词典法或 BERT, 而是与之构成金融文本情感测量的方法三角, 三腿各自 just-identified 并排、禁混同一 over-identified Hansen J。
 
 【识别策略定位】
 在识别上, 本家族的核心角色是 P1 主线 (bank_fintech_tone) 情感处理变量的一条并行测量轨, 与离散投票主轨 llm_vote_tone 互为稳健性: 前者保留强度、后者稳健于置信噪声, 二者对同一构念给出可交叉验证的读数。三家模型的 per-vendor 子测度、三条文本轨、以及连续综合与离散综合, 都是「同一构念的替代测量」而非「同一方程的多重工具」: 严禁把 llm_models_avg_cont 的 full/ctx/ss 三轨或三家厂商拼进同一个过度识别的 Hansen J; 跨模型的真正联合检验只走根级的跨模型 FWER 模板 (以 Romano 与 Wolf (2005) 的逐步多重检验控制族错误率), 而非把替代测量塞进一条工具变量方程冒充过度识别。_z 变体的年度截面标准化服务于跨年可比与系数解读, 不改变识别内核。_app 与 _tech 的 locus 条件化则服务于机制辨析 (P4 位置分类), 用「技术层情感减应用层情感」的差距刻画媒体叙事重心, 而非作为独立的外生冲击。需要点明的是, 本家族多为「生成的回归变量」: 大模型读数带测量误差, 直接当作解释变量会把误差传导进系数与标准误。本项目对此的一贯处理不是寄望单点读数无偏, 而是以三家并排稀释厂商偏置、以三轨并排稀释文本切分偏置、以连续对离散并排稀释标度偏置, 并在真正需要跨模型联合推断时走根级的跨模型 FWER 模板, 以 Romano 与 Wolf (2005) 的逐步多重检验在族层控制错误率——这与把多份替代测量塞进一条工具变量方程冒充过度识别是两回事, 后者会因替代测量高度共线而使 Hansen J 失去检验力, 是本仓明令禁止的做法。
@@ -256,4 +263,5 @@ Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance:
 Gomber, P., Kauffman, R. J., Parker, C., & Weber, B. W. (2018). On the FinTech revolution: Interpreting the forces of innovation, disruption, and transformation in financial services. Journal of Management Information Systems, 35(1), 220-265. https://doi.org/10.1080/07421222.2018.1440766
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Romano, J. P., & Wolf, M. (2005). Stepwise multiple testing as formalized data snooping. Econometrica, 73(4), 1237-1282. https://doi.org/10.1111/j.1468-0262.2005.00615.x
+Lefort, B., Benhamou, E., Ohana, J.-J., Guez, B., Saltiel, D., & Jacquot, T. (2024). Examining Independence in Ensemble Sentiment Analysis: A Study on the Limits of Large Language Models Using the Condorcet Jury Theorem. arXiv [Working Paper]. https://doi.org/10.48550/arxiv.2409.00094
 <!-- rendered-citations:end -->

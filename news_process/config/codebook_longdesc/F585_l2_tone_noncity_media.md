@@ -65,7 +65,6 @@ citations:
   venue: International Review of Economics & Finance
   vol: '91'
   pages_or_artno: 1150-1172
-new_dois: []
 ---
 
 ## CORE

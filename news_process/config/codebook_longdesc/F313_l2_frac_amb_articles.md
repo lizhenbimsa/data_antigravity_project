@@ -62,7 +62,21 @@ citations:
   vol: '36'
   issue: '2'
   pages_or_artno: 450-500
-new_dois: []
+- doi: "10.1111/1475-679x.12560"
+  title: "News Bias in Financial Journalists' Social Networks"
+  authors: "Xu, G."
+  year: 2024
+  venue: "Journal of Accounting Research"
+  type: "journal"
+- doi: "10.1080/15140326.2024.2354641"
+  title: "Annual report tone and divergence of opinion: evidence from textual analysis"
+  authors: "Qin, Z., & Cui, M."
+  year: 2024
+  venue: "Journal of Applied Economics"
+  type: "journal"
+new_dois:
+  - "10.1111/1475-679x.12560"
+  - "10.1080/15140326.2024.2354641"
 ---
 
 ## CORE
@@ -75,6 +89,8 @@ F313 家族刻画银行-年层面「报道语气/措辞含糊」这一构念在�
 
 【文献定位】
 本家族的三轨设计并非 lexical clarity 的孤立创新, 而是承接项目内"情感/文本测度族统一走三轨"的既定架构决策——full=标题+正文全文、ctx=标题+实体邻近窗口、ss=标题+银行∧金科词同句共现窗口 (含句子半径参数)——将其套用到 clarity 构念上。三轨并排各自独立测算、跨窗口比对以排除单一文本截取方式驱动结果的一般性做法, 是本项目文本测度族的既定架构选择, 与信息环境文献中"信息来源结构会系统性影响信号解读"这一更宽泛的问题意识相呼应——Cookson, Engelberg & Mullins (2023, Review of Financial Studies) 研究的是投资者社交网络中因关注对象同质化而形成的"回声室"效应, 其实证对象是 StockTwits 论坛的社交关注结构而非文本窗口稳健性方法本身; 该文与本家族的关联仅在于二者共同提示"文本/信息呈现方式的差异可能改变市场参与者对同一底层信号的解读", 而非该文提供了三轨窗口设计的方法论模板, 本家族三轨稳健性检验的直接方法论依据仍是项目内部既有的三轨架构决策。就近年模糊度测量文献而言, Wei & Zhang (2025, SSRN) 的"叙事模糊性" (narrative ambiguity) 工作稿延续了 Ertugrul et al. (2017) 一脉对文本模糊性经济后果的兴趣, 关注点从年报扩展到更广义的企业叙事文本, 这与本家族把模糊度测量对象从企业年报进一步外推到第三方媒体报道的思路方向一致, 均是在拓展"文本模糊性"这一构念的应用场域, 而非改变其定义内核。
+
+Xu (2024, Journal of Accounting Research) 发现记者与并购方管理层的私人关系会使报道语气更含糊、负面词更少, 呼应本家族以措辞含糊度刻画媒体报道信息质量的构念; Qin & Cui (2024, Journal of Applied Economics) 用文本分析度量年报语气与投资者意见分歧的关系, 支持本家族模糊/确定语气二值化门槛测度的方法学思路。
 
 三轨 (full/ctx/ss) 属于项目铁律所定义的规格并排稳健性设计: 三者各自独立按自身分布计算 D0 冻结中位数并各自 just-identified 聚合, 互为稳健性检验、不分主次, 严禁在同一 over-identified Hansen J 检验中把三轨的 frac_amb_articles 同时作为工具变量或联立回归量混用。ss 轨的回退语义镜像 ctx 轨: 当某篇文章不存在银行∧金科词同句共现窗口时, 该文章的 content_ss 退化为全文 body 且 ss_is_fallback 置 True (与 ctx 共享 n_articles 分母口径); 若 FINTECH_AC 词典未加载, 则 *_is_fallback 全部置 True, 整条流水线优雅降级而非报错。留篇门控口径遵循 2026-06-29 起生效的 full-only 铁律: 一篇文章是否被计入"银行金科报道"样本只看 llm_verified_full 这一门控, ctx/ss 轨的 clarity 测度是在 full 轨确定的留篇行宇宙子集上按各自轨条件计算的稳健性/条件测度, 而非独立扩大或收缩样本框; 本家族三列共享同一行宇宙, 差异仅在文本窗口与各自门槛值。
 
@@ -100,4 +116,6 @@ Ilut, C. L., & Schneider, M. (2014). Ambiguous business cycles. American Economi
 Ellsberg, D. (1961). Risk, ambiguity, and the Savage axioms. The Quarterly Journal of Economics, 75(4), 643-669. https://doi.org/10.2307/1884324
 Wei, X., & Zhang, Q. (2025). Narrative ambiguity matters. SSRN Working Paper No. 5337268 [Working Paper]. https://doi.org/10.2139/ssrn.5337268
 Cookson, J. A., Engelberg, J. E., & Mullins, W. (2023). Echo chambers. The Review of Financial Studies, 36(2), 450-500. https://doi.org/10.1093/rfs/hhac058
+Xu, G. (2024). News Bias in Financial Journalists' Social Networks. Journal of Accounting Research. https://doi.org/10.1111/1475-679x.12560
+Qin, Z., & Cui, M. (2024). Annual report tone and divergence of opinion: evidence from textual analysis. Journal of Applied Economics. https://doi.org/10.1080/15140326.2024.2354641
 <!-- rendered-citations:end -->

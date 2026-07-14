@@ -177,7 +177,35 @@ citations:
   vol: 73
   issue: 4
   pages_or_artno: 1237-1282
-new_dois: []
+- doi: "10.1016/j.iref.2024.01.067"
+  type: journal
+  authors: "Fang, Y., Wang, Q., Wang, Y., & Yuan, Y."
+  year: 2024
+  title: "Media sentiment, deposit stability and bank systemic risk: Evidence from China"
+  venue: "International Review of Economics & Finance"
+- doi: "10.1007/s11135-024-01896-9"
+  type: journal
+  authors: "Rutkowska, A., & Szyszko, M."
+  year: 2024
+  title: "Dictionary-based sentiment analysis of monetary policy communication: on the applicability of lexicons"
+  venue: "Quality & Quantity"
+- doi: "10.1016/j.ribaf.2025.102881"
+  title: "Annual report tone and bank risk-taking behavior: Evidence from China"
+  authors: "Lu, W., Wei, M., Jing, H., & Jing, Z."
+  year: 2025
+  venue: "Research in International Business and Finance"
+  type: "journal"
+- doi: "10.1016/j.heliyon.2024.e30211"
+  title: "Sentimental showdown: News media vs. social media in stock markets"
+  authors: "Nyakurukwa, K., & Seetharam, Y."
+  year: 2024
+  venue: "Heliyon"
+  type: "journal"
+new_dois:
+  - "10.1016/j.iref.2024.01.067"
+  - "10.1007/s11135-024-01896-9"
+  - "10.1016/j.ribaf.2025.102881"
+  - "10.1016/j.heliyon.2024.e30211"
 ---
 
 ## CORE
@@ -189,7 +217,7 @@ new_dois: []
 计算分两层。第一层是文章级打分 (stage 22, tone_words.py 内 classify_batch 逐批调 _analyze_single_article, 词典打分核心在 _compute_sentiment_with_rules): 对每篇报道按 jieba 分词 (版本冻结于 0.42.1 以保确定性) 后, 命中 yao_2021 词典的 token 取其 base 极性权重, 再逐 token 施加三条语言学规则乘子 —— 否定翻转 (negation, 遇否定词将该词极性取反)、程度副词放大 (degree, 依副词强度施乘子, 最高约 3.0 倍)、转折增强 (adversative, 转折连词后的语调被适度放大)。逐 token 累加得 final_score 后, 文章归一化语调 = Σ(final_score) / Σ|final_score|, 值域严格落在 [-1, +1]。归一化分母取绝对值之和而非裸匹配词数 (pos_count+neg_count), 使程度与转折规则既进分子又进分母, 从而避免分母被规则乘子系统性放大而把语调虚拉向中性 —— 这是相对旧实现 (分母为裸词数) 的关键修正。对同时被判正负的混合极性词, 其对分子的净贡献为 0 (正负 final 相抵)、对分母贡献 2|final|, 因此把该词的语调拉向中性而非武断剔除, 体现对该词典个体净语调「不武断选边」的设计取向。第二层是 bank-year 聚合 (stage 40, encode.py::aggregate_panel): 遵循先分后合范式 (Tetlock 等 2008) —— 先对每篇报道各自算分, 再对每个 (银行, 年度) 单元内的文章级 yao_2021_score 求汇总量; 这一顺序至关重要, 因为 mean(a/b) ≠ mean(a)/mean(b) (Jensen 不等式), 若先聚合原始计数再算比率会引入系统性偏差。汇总量按变体分岔: canonical/base 列取等权算术均值; std 变体取单元内横截面标准差 (度量分歧度而非水平); vw/mw/hw 三个加权变体取 Σ(权重×分数)/Σ(权重) 的加权均值, 权重分别为提及密度、媒体权威、跟风衰减; tech/app 两个子样本变体取按文章级 innovation_locus 条件筛选后的均值。文章级分数不落最终面板, 仅 bank-year 聚合列进 .dta。三轨文本 (full/ctx/ss) 在 stage 14 (ctx_materializer) 物化, 词典打分对三轨各扫一遍, 故每个变体都有三轨孪生列。
 
 【文献定位】
-本家族方法学根植于金融文本分析的词典法传统。Loughran & McDonald (2011) 确立了领域专用词典相对通用词典 (如 Harvard General Inquirer) 在金融语料上的必要性 —— 通用词典里许多「负面」词在金融语境实为中性, 直接套用会系统性误判; 其后续综述 Loughran & McDonald (2016) 进一步系统梳理了词典法的适用边界、常见陷阱与稳健性建议。Tetlock (2007) 是媒体语调影响资产定价的开创性证据, 奠定了「把报道语调聚合为可回归的连续变量」这一范式, 也是本项目把 tone 聚合到 bank-year 的直接思想来源。中文金融语域的专用词典建设由 Du 等 (2022) 在 Review of Finance 上的中文金融情感词典、Bian 等 (2021) 的 Loughran-McDonald 中文扩展词典、以及 Ma 等 (2025) 的细粒度投资者情绪词典 CN-FSD 等推进; yao_2021 属于同一本土化谱系的一部词典, 与它们互为稳健、可交叉验证。词典法的三条语言学规则 (否定、程度、转折) 在方法学上有 Ding 等 (2008) 的整体式 (holistic) 词典观点与 Taboada 等 (2011) 系统的 lexicon-based 情感计算作锚点, 二者论证了规则修饰对提升词典法效度的作用。方法学综述层面, Algaba 等 (2020) 的 sentometrics 框架把词典聚合、加权与稳健性并入统一的计量经济视角, 为本家族的多加权、多轨设计提供了总纲。效度校准层面, van Atteveldt 等 (2021) 以人工标注、众包编码为参照系, 比较了词典法、机器学习各自的效度边界; Frankel 等 (2022) 直接对比机器学习与词典法在披露语调上的表现 —— 二者共同论证了「不把单一方法当真值、而以多方法互为稳健」的必要性, 正是本项目「六词典并排 + LLM/BERT 并排」设计的直接先例。Barbaglia 等 (2025) 则提供了经济文本 lexicon-based 语调抽取的近期方法参照, 说明词典法在大规模经济文本上仍具竞争力。
+本家族方法学根植于金融文本分析的词典法传统。Loughran & McDonald (2011) 确立了领域专用词典相对通用词典 (如 Harvard General Inquirer) 在金融语料上的必要性 —— 通用词典里许多「负面」词在金融语境实为中性, 直接套用会系统性误判; 其后续综述 Loughran & McDonald (2016) 进一步系统梳理了词典法的适用边界、常见陷阱与稳健性建议。Tetlock (2007) 是媒体语调影响资产定价的开创性证据, 奠定了「把报道语调聚合为可回归的连续变量」这一范式, 也是本项目把 tone 聚合到 bank-year 的直接思想来源。中文金融语域的专用词典建设由 Du 等 (2022) 在 Review of Finance 上的中文金融情感词典、Bian 等 (2021) 的 Loughran-McDonald 中文扩展词典、以及 Ma 等 (2025) 的细粒度投资者情绪词典 CN-FSD 等推进; yao_2021 属于同一本土化谱系的一部词典, 与它们互为稳健、可交叉验证。词典法的三条语言学规则 (否定、程度、转折) 在方法学上有 Ding 等 (2008) 的整体式 (holistic) 词典观点与 Taboada 等 (2011) 系统的 lexicon-based 情感计算作锚点, 二者论证了规则修饰对提升词典法效度的作用。方法学综述层面, Algaba 等 (2020) 的 sentometrics 框架把词典聚合、加权与稳健性并入统一的计量经济视角, 为本家族的多加权、多轨设计提供了总纲。效度校准层面, van Atteveldt 等 (2021) 以人工标注、众包编码为参照系, 比较了词典法、机器学习各自的效度边界; Frankel 等 (2022) 直接对比机器学习与词典法在披露语调上的表现 —— 二者共同论证了「不把单一方法当真值、而以多方法互为稳健」的必要性, 正是本项目「六词典并排 + LLM/BERT 并排」设计的直接先例。Barbaglia 等 (2025) 则提供了经济文本 lexicon-based 语调抽取的近期方法参照, 说明词典法在大规模经济文本上仍具竞争力。Fang 等 (2024, International Review of Economics & Finance) 用词典法从中文新闻文本构造银行层面媒体语调指数, 证明负面语调显著推高银行系统性风险, 为本家族将词典语调应用于中国银行业舆论环境这一构念定位提供了同期直接的实证先例。Rutkowska & Szyszko (2024, Quality & Quantity) 系统比较多部金融文本情感词典在同一语料上的表现与相互一致性, 为本家族六词典并排互为稳健性、以多重测量压制单一词典构念偏差的设计提供了近期方法学参照。Lu 等 (2025, Research in International Business and Finance) 以中国38家A股上市银行年报为样本, 用词典法测出的正常语调(normal tone)显著预测银行未来风险承担上升, 为本家族将词典语调应用于中国银行业风险相关舆论构念提供近期直接实证先例。Nyakurukwa & Seetharam (2024, Heliyon) 比较新闻媒体与社交媒体文本情绪对股市的差异化影响, 为本家族区分媒体权威加权(mw)与跟风衰减加权(hw)等不同来源语调的经济含义提供近期方法参照。
 
 【识别策略定位】
 在下游计量中, yao_2021 家族的角色是「同一潜在构念 (媒体对银行金科报道的语调) 的一部独立测量」, 而非某个独立的经济机制。canonical 列 yao_2021_tone_full 可作处理变量或稳健性列进入 bank-year 面板固定效应回归 (银行与年度双向固定效应), 度量语调对下游银行财务、投资或声誉结局的关联。识别纪律有二, 二者互相独立且都是硬约束。其一, 六部词典 (yao/du/jiang/bian/you/loughran) 各自算出的 tone 是对同一潜在语调的平行测量, 它们各自 just-identified 并排、互为稳健性、不分主次; 严禁把不同词典的 tone 混进同一 over-identified 的 Hansen J 过度识别检验 —— 因为它们对同一文本高度共线 (逐篇胜出词典漂移即是共线的直接证据), 并非相互独立的外生矩条件, 混入会使 J 统计量丧失应有的过度识别含义, 得出虚假的「工具有效」结论。其二, 家族内部的三轨 (full/ctx/ss)、三种加权 (vw/mw/hw)、两种落点子样本 (tech/app) 亦各自构成规格稳健性并排臂, 同样禁止混入同一 over-identified Hansen J; 它们的唯一用途是证明主结论不被文本切片口径、加权方案或子样本选择所驱动, 而非提供额外的识别性矩条件。三个加权变体分别承接三条独立的加权理论脉络: vw 承 Hassan 等 (2019) 的提及密度加权、mw 承 Holzman 等 (2023) 的媒体权威加权、hw 承媒体跟风/重复转载衰减 (herd-decay) 的加权脉络; 三者对「哪些报道更该被重视」给出不同但都有理论依据的答案, 因此互为稳健。落点子样本 tech/app 承 Gomber 等 (2018) 的金融科技创新框架, 切分底层技术层与应用场景层的舆论。跨这些规格臂的多重检验若需汇报族错误率, 应参照 Romano & Wolf (2005) 的逐步多重检验框架, 由根级跨模型/跨规格 rwolf 模板统一处置, 而非在单个回归里堆矩条件。就基准设定而言, 本家族列进入回归时的规范做法是: bank-year 面板上以银行固定效应吸收各家银行不随时间变的经营禀赋、股权结构、地域与监管层级异质性, 以年度固定效应吸收共同的宏观金融周期、金融科技监管政策冲击与行业性舆论潮汐, 标准误在银行层面聚类以容许同一银行跨年度的序列相关。作处理变量时, 须警惕语调与下游财务结局之间的双向因果与遗漏变量: 媒体语调既可能领先影响银行融资成本或投资 (Tetlock 2007 的信息传导), 也可能滞后反映已被市场知悉的基本面, 因此本项目在识别设计中另配 leave-one-out 同群均值、广义 Bartik 与媒体 house-style 暴露三类工具变量列 (`*_iv` 列族), 用外生于本行的舆论成分驱动本行语调, 缓解反向因果; 但须再次强调, 这些工具的构造逻辑是「同一测量的外生变异」, 与本家族六词典/三轨/三加权的规格稳健并排是两回事 —— 前者服务识别, 后者服务稳健性, 两者不可互相替代, 更不可把稳健性并排臂当作过度识别的额外工具塞进 Hansen J。此外, 词典法测量误差 (词表覆盖缺口、分词歧义) 会在作为解释变量时造成经典衰减偏差, 使系数向零收缩, 因此单一词典的显著性是主结论的保守下界, 六词典一致显著才构成对衰减稳健的证据; 这也是把六词典并排解读为「多重测量以压制随机测量误差」而非「多个独立机制」的计量理由。
@@ -323,4 +351,8 @@ Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textua
 Ding, X., Liu, B., & Yu, P. S. (2008). A holistic lexicon-based approach to opinion mining. Proceedings of the International Conference on Web Search and Web Data Mining (WSDM '08). https://doi.org/10.1145/1341531.1341561
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Romano, J. P., & Wolf, M. (2005). Stepwise multiple testing as formalized data snooping. Econometrica, 73(4), 1237-1282. https://doi.org/10.1111/j.1468-0262.2005.00615.x
+Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2024.01.067
+Rutkowska, A., & Szyszko, M. (2024). Dictionary-based sentiment analysis of monetary policy communication: on the applicability of lexicons. Quality & Quantity. https://doi.org/10.1007/s11135-024-01896-9
+Lu, W., Wei, M., Jing, H., & Jing, Z. (2025). Annual report tone and bank risk-taking behavior: Evidence from China. Research in International Business and Finance. https://doi.org/10.1016/j.ribaf.2025.102881
+Nyakurukwa, K., & Seetharam, Y. (2024). Sentimental showdown: News media vs. social media in stock markets. Heliyon. https://doi.org/10.1016/j.heliyon.2024.e30211
 <!-- rendered-citations:end -->

@@ -54,7 +54,21 @@ citations:
   title: "A new Chinese financial sentiment dictionary for textual analysis in accounting and finance"
   venue: SSRN Working Paper
   pages_or_artno: No. 3446388
-new_dois: []
+- doi: "10.3390/bdcc9100263"
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  venue: "Big Data and Cognitive Computing"
+  type: "journal"
+- doi: "10.1016/j.eswa.2024.125739"
+  title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
+  authors: "Ma, Y., Zhang, T., & Zhang, P."
+  year: 2025
+  venue: "Expert Systems with Applications"
+  type: "journal"
+new_dois:
+  - "10.3390/bdcc9100263"
+  - "10.1016/j.eswa.2024.125739"
 ---
 
 ## CORE
@@ -66,7 +80,7 @@ new_dois: []
 文章级底料在 stage 22 (22_tone_words.parquet) 生成: 对每篇报道的每条轨道文本分词后, 逐 token 状态机以 apply_negation=apply_degree=apply_adversative 三个开关全部关闭的方式扫过 Bian et al. (2021) 词表, 命中正极词累加 +1 幅度、命中负极词累加 -1 幅度, 最终得分 = Σ(signed) / Σ|signed|, 恒有界于 [-1, +1] (分母为加权幅度绝对值之和, 见 tone_words 归一化修正)。零规则口径使这一列成为整条规则消融梯度 (raw / negonly / degonly / advonly / negdeg / negadv / degadv, 以及施加全部三条规则的无后缀 canonical score) 的最下沿基线。随后在面板装配阶段, compute_media_heterogeneity 先由 detect_defacto_cessation 依据每家媒体的首末报道年份与最小报道量识别疑似覆盖退出集 (confirmed ∪ suspected, 并经 NPPA 新闻出版机构注销/停办/休刊名录交叉验证仅改报告标签、不收窄排除集), 在 df_alive (_is_ceased_media == 0) 子集上按 target_bank × year 分组对 bian_2021_score_raw_{track} 取均值, 左连接回面板得到本家族三列。分母为该银行-年在存活媒体上的报道篇数, 未报道格保持 NaN (比例/情感类按契约不做零填, 只有计数类如 n_articles_exc 填 0)。
 
 【文献定位】
-词典法情感测度在会计金融文本分析中长期作为"透明、可复现、跨观测稳定"的旁证工具与大模型/BERT 情感互为稳健。Du et al. (2022) 系统比较多部中文金融情感词典, 论证语言与领域专用词表相对英文直译词表在中文语料上的增益, 为选用 Bian et al. (2021) 这类本土词典提供依据; Bian et al. (2021) 本身即针对会计金融文本构建中文情感词表。Frankel et al. (2022) 在 Management Science 上比较机器学习与词典法披露情感, 确立"两法并行、以一致性互证"的稳健性范式, 正是本项目把词典情感与三家 LLM、三部 BERT 并列的先例。van Atteveldt et al. (2021) 通过人工标注、众包、词典与机器学习四法对照, 揭示词典法作为独立测量通道的效度边界。Barbaglia et al. (2025) 在 Economic Inquiry 系统阐述经济文本的 lexicon-based 打分框架, 其纯词表计数思路与本家族的 raw 零规则口径直接对应。停刊剔除动机则承接报纸退出地方覆盖引入选择偏误的实证脉络。凡涉三轨 (full/ctx/ss) 者, 三条轨道各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J; 留篇门控为 full-only (2026-06-29), ctx/ss 系 conditional-on-full 测度轨, 其行宇宙是 full 留篇集的子集。
+词典法情感测度在会计金融文本分析中长期作为"透明、可复现、跨观测稳定"的旁证工具与大模型/BERT 情感互为稳健。Du et al. (2022) 系统比较多部中文金融情感词典, 论证语言与领域专用词表相对英文直译词表在中文语料上的增益, 为选用 Bian et al. (2021) 这类本土词典提供依据; Bian et al. (2021) 本身即针对会计金融文本构建中文情感词表。Frankel et al. (2022) 在 Management Science 上比较机器学习与词典法披露情感, 确立"两法并行、以一致性互证"的稳健性范式, 正是本项目把词典情感与三家 LLM、三部 BERT 并列的先例。van Atteveldt et al. (2021) 通过人工标注、众包、词典与机器学习四法对照, 揭示词典法作为独立测量通道的效度边界。Barbaglia et al. (2025) 在 Economic Inquiry 系统阐述经济文本的 lexicon-based 打分框架, 其纯词表计数思路与本家族的 raw 零规则口径直接对应。停刊剔除动机则承接报纸退出地方覆盖引入选择偏误的实证脉络。凡涉三轨 (full/ctx/ss) 者, 三条轨道各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J; 留篇门控为 full-only (2026-06-29), ctx/ss 系 conditional-on-full 测度轨, 其行宇宙是 full 留篇集的子集。Chuang, He, & Hu (2025, Big Data and Cognitive Computing) 比较词嵌入(one-hot/TF-IDF/BERT等)与17种模型在中文金融新闻情感分类与短期股价预测上的表现, 为词典法之外的对照基准; Ma, Zhang, & Zhang (2025, Expert Systems with Applications) 基于股吧评论构建细粒度中文情感词典(CN-FSD), 验证细粒度情感指标较传统极性/粗粒度词典更能预测市场波动。
 
 ## VAR: exc_bian_2021_score_raw_ctx
 
@@ -89,4 +103,6 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
+Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications. https://doi.org/10.1016/j.eswa.2024.125739
 <!-- rendered-citations:end -->

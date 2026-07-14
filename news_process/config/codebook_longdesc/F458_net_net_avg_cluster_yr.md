@@ -154,7 +154,39 @@ citations:
   vol: 1
   issue: 3
   pages_or_artno: 215-239
-new_dois: []
+- doi: "10.1111/joes.12655"
+  title: "Correlation networks in economics and finance: A review of methodologies and bibliometric analysis"
+  authors: "Esmalifalak, H., & Moradi-Motlagh, A."
+  year: 2024
+  venue: "Journal of Economic Surveys"
+  type: "journal"
+  one_sentence_zh: "该综述系统梳理了经济金融领域相关性网络的构造方法学谱系(含加权聚类等结构统计量),为本家族以加权平均聚类系数刻画年度银行共现网络凝聚度的方法选择提供当代方法学定位。"
+- doi: "10.1016/j.intfin.2025.102237"
+  title: "Detecting cross-firm momentum effects via shared analyst coverage: The role of leaders"
+  authors: "Mao, Y.-R., Shi, H.-L., Chen, H., & Wan, Y.-L."
+  year: 2025
+  venue: "Journal of International Financial Markets, Institutions and Money"
+  type: "journal"
+  one_sentence_zh: "该研究以共同分析师覆盖构造企业间共现/关注网络并揭示领导者-跟随者式的动量溢出结构,呼应本家族用媒体共现网络的聚类系数刻画银行间叙事抱团与信息关联传导的构念逻辑。"
+- doi: "10.61351/mf.v2i2.111"
+  title: "Measuring the connectedness of the Nigerian banking network and its implications for systemic risk"
+  authors: "Kamah, M., & Riti, J."
+  year: 2024
+  venue: "Modern Finance"
+  type: "journal"
+  one_sentence_zh: "该研究以尼日利亚十五家主要银行的股票收益构造网络并度量其连通性与系统性风险含义,为本家族以加权网络结构统计量刻画银行间关联紧密度的做法提供了同类银行网络实证先例。"
+- doi: "10.1007/s44163-025-00350-5"
+  title: "Deciphering news sentiment and stock price relationships in Indonesian companies: an AI-based exploration of industry affiliation and news co-occurrence"
+  authors: "Alamsyah, A., Ramadhani, D. P., Kristanti, F. T., Nasution, A. H., Mohamad, M. S. bin, Sokkalingam, R., Widiyanesti, S., & Saputra, M. A. A."
+  year: 2025
+  venue: "Discover Artificial Intelligence"
+  type: "journal"
+  one_sentence_zh: "该研究基于印尼公司新闻文本构造企业间新闻共现集群并考察其与股价情感关联的强度层级,呼应本家族以媒体报道共现网络刻画银行间叙事关联结构的构念逻辑。"
+new_dois:
+  - "10.1111/joes.12655"
+  - "10.1016/j.intfin.2025.102237"
+  - "10.61351/mf.v2i2.111"
+  - "10.1007/s44163-025-00350-5"
 ---
 
 ## CORE
@@ -175,7 +207,7 @@ new_dois: []
 从网络演化的角度看, 年度平均聚类系数提供了一条刻画中国银行业金融科技叙事结构变迁的时间序列。在金融科技概念初兴、仅少数头部银行被媒体单独报道的早期年份, 共现网络接近松散的星状或若干孤立对, 聚类系数偏低; 随着监管政策、行业事件把越来越多银行卷入同一批报道 (例如某一年集中出现的行业性金融科技整改), 网络的三角闭合迅速增加, 聚类系数系统性抬升; 而当叙事再度分化、各银行走上差异化的金融科技路径时, 抱团可能回落。这种非单调的结构演化本身即是有价值的描述性事实, 也是把本列纳入结构性突变检验的动因。与之互补的模块度 net_modularity_yr (Newman 与 Girvan 2004 的社区结构口径, 经 Clauset-Newman-Moore 贪心检测) 从"网络是否可清晰划分为若干社区"的角度刻画同一张图, 聚类系数则从"局部三角是否闭合"的角度切入, 二者共同构成年度网络的多维结构画像, 但在含年份 FE 的回归里同样被吸收, 定位一致。
 
 【文献定位】
-把媒体共现网络当作银行间信息与关注溢出的载体, 与近年金融网络文献的主线高度契合。Hirshleifer、Peng 与 Wang (2025) 证明新闻在社会网络中的扩散会系统性地驱动股票市场反应, 说明"谁与谁被一起谈论"本身携带定价相关信息; Yu、Hu 与 Zhong (2024) 进一步表明金融网络中的中心度会通过信息扩散渠道影响资产定价。在公司金融层面, Grieser 等 (2022) 与 Leary 和 Roberts (2014) 记录了同群 (peer) 企业的网络效应如何塑造公司财务政策, 为把银行嵌入其共现关系网、以网络结构解释其行为提供了实证先例。在系统性风险维度, Jackson 与 Pernoud (2021) 的综述以及 Duarte 与 Eisenbach (2021) 对火线抛售溢出的量化, 说明金融机构间的网络拓扑 (尤其是抱团与集中程度) 是传染与共同风险暴露的结构基础——年度聚类系数正是刻画这种"抱团稠密度"的自然候选。就测度本体而言, Watts 与 Strogatz (1998) 奠定了聚类系数与小世界结构的概念地基, Barrat 等 (2004) 提供了加权推广, Newman 与 Girvan (2004) 的社区结构方法则从互补角度刻画同一张图的模块化程度, 与聚类系数共同构成年度网络的多维结构画像。Freeman (1978) 对中心性概念的澄清则提醒我们, 网络结构指标是一族而非单一, 聚类只是其中刻画局部凝聚的一支。Nezami 等 (2025) 对网络中心度与企业绩效的元分析在为"结构—绩效"关联提供总体证据的同时也警示效应异质性显著 (该元分析并不专门背书聚类系数这一具体测度), 提示本列宜作描述与稳健性佐证而非因果主锚。
+把媒体共现网络当作银行间信息与关注溢出的载体, 与近年金融网络文献的主线高度契合。Hirshleifer、Peng 与 Wang (2025) 证明新闻在社会网络中的扩散会系统性地驱动股票市场反应, 说明"谁与谁被一起谈论"本身携带定价相关信息; Yu、Hu 与 Zhong (2024) 进一步表明金融网络中的中心度会通过信息扩散渠道影响资产定价。在公司金融层面, Grieser 等 (2022) 与 Leary 和 Roberts (2014) 记录了同群 (peer) 企业的网络效应如何塑造公司财务政策, 为把银行嵌入其共现关系网、以网络结构解释其行为提供了实证先例。在系统性风险维度, Jackson 与 Pernoud (2021) 的综述以及 Duarte 与 Eisenbach (2021) 对火线抛售溢出的量化, 说明金融机构间的网络拓扑 (尤其是抱团与集中程度) 是传染与共同风险暴露的结构基础——年度聚类系数正是刻画这种"抱团稠密度"的自然候选。就测度本体而言, Watts 与 Strogatz (1998) 奠定了聚类系数与小世界结构的概念地基, Barrat 等 (2004) 提供了加权推广, Newman 与 Girvan (2004) 的社区结构方法则从互补角度刻画同一张图的模块化程度, 与聚类系数共同构成年度网络的多维结构画像。Freeman (1978) 对中心性概念的澄清则提醒我们, 网络结构指标是一族而非单一, 聚类只是其中刻画局部凝聚的一支。Nezami 等 (2025) 对网络中心度与企业绩效的元分析在为"结构—绩效"关联提供总体证据的同时也警示效应异质性显著 (该元分析并不专门背书聚类系数这一具体测度), 提示本列宜作描述与稳健性佐证而非因果主锚。Esmalifalak 与 Moradi-Motlagh (2024, Journal of Economic Surveys) 的综述系统梳理了经济金融领域相关性网络的构造方法学谱系,含加权聚类等结构统计量,为本家族以加权平均聚类系数刻画年度银行共现网络凝聚度的方法选择提供了当代方法学定位; Mao、Shi、Chen 与 Wan (2025, Journal of International Financial Markets, Institutions and Money) 以共同分析师覆盖构造企业间共现/关注网络并揭示领导者-跟随者式的动量溢出结构, 呼应本家族用媒体共现网络的聚类系数刻画银行间叙事抱团与信息关联传导的构念逻辑。Kamah 与 Riti (2024, Modern Finance) 以尼日利亚十五家主要银行的股票收益构造网络并度量其连通性与系统性风险含义, 为本家族以加权网络结构统计量刻画银行间关联紧密度的做法提供了同类银行网络实证先例; Alamsyah 等 (2025, Discover Artificial Intelligence) 基于印尼公司新闻文本构造企业间新闻共现集群并考察其与股价情感关联的强度层级, 呼应本家族以媒体报道共现网络刻画银行间叙事关联结构的构念逻辑。
 
 还应把本家族置于本项目更宽的媒体—银行研究脉络中理解。项目的整体研究关切是中国银行业在金融科技冲击下的媒体叙事及其经济后果, 银行共现网络是这一叙事的关系维度: 当媒体把若干银行反复放进同一篇金融科技报道时, 它们在投资者认知中被归为同一叙事板块, 这种被建构的关联可能影响其融资成本、金融科技投入与同群模仿。You、Zhang 与 Zhang (2018) 记录了媒体"笔杆子的权力"如何被不同主体俘获, 提示媒体共现并非中性的信息映射而带有构造性; 在此背景下, 用聚类系数量化"叙事抱团"的年度演化, 为后续把网络位置与银行行为相连接提供了结构底座。需强调的是, 本家族只提供网络的整体结构描述 (net-level), 承载横截面识别与个体异质性的是节点级中心度与经纪角色列 (bank_ 与 gf_ 前缀); 二者分工明确, 不可越界互替。
 
@@ -231,4 +263,8 @@ Barrat, A., Barthélemy, M., Pastor-Satorras, R., & Vespignani, A. (2004). The a
 Watts, D. J., & Strogatz, S. H. (1998). Collective dynamics of 'small-world' networks. Nature, 393(6684), 440-442. https://doi.org/10.1038/30918
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
+Esmalifalak, H., & Moradi-Motlagh, A. (2024). Correlation networks in economics and finance: A review of methodologies and bibliometric analysis. Journal of Economic Surveys. https://doi.org/10.1111/joes.12655
+Mao, Y.-R., Shi, H.-L., Chen, H., & Wan, Y.-L. (2025). Detecting cross-firm momentum effects via shared analyst coverage: The role of leaders. Journal of International Financial Markets, Institutions and Money. https://doi.org/10.1016/j.intfin.2025.102237
+Kamah, M., & Riti, J. (2024). Measuring the connectedness of the Nigerian banking network and its implications for systemic risk. Modern Finance. https://doi.org/10.61351/mf.v2i2.111
+Alamsyah, A., Ramadhani, D. P., Kristanti, F. T., Nasution, A. H., Mohamad, M. S. bin, Sokkalingam, R., Widiyanesti, S., & Saputra, M. A. A. (2025). Deciphering news sentiment and stock price relationships in Indonesian companies: an AI-based exploration of industry affiliation and news co-occurrence. Discover Artificial Intelligence. https://doi.org/10.1007/s44163-025-00350-5
 <!-- rendered-citations:end -->

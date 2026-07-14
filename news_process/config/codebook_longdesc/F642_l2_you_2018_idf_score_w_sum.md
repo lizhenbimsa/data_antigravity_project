@@ -74,7 +74,14 @@ citations:
   vol: '68'
   issue: '7'
   pages_or_artno: 5514–5532
-new_dois: []
+- doi: "10.1093/rfs/hhad044"
+  title: "Firm-Level Exposure to Epidemic Diseases: COVID-19, SARS, and H1N1"
+  authors: "Hassan, T. A., Hollander, S., van Lent, L., Schwedeler, M., & Tahoun, A."
+  year: 2023
+  venue: "The Review of Financial Studies"
+  type: "journal"
+new_dois:
+  - "10.1093/rfs/hhad044"
 ---
 
 ## CORE
@@ -86,7 +93,7 @@ F642 家族刻画的是「you_2018 中文金融情感词典在 IDF (逆文档频
 计算链路分三步, 由三个不同 producer 接续完成。第一步 (`tone_words.py::build_idf_weights` / `_build_idf_weighted_dict`) 在全语料 (以去重后的 `content_full` 文本, 缺则回退裸「内容」列) 上, 对 you_2018 词典内每个情感词 w 计算 smooth IDF: raw_idf(w) = log₁₀(N / (1 + df(w))), 其中 N 是唯一文档数、df(w) 是包含该词的文档数 (fix omni-g-tonewords-04, 2026-06-11 起严格按去重后的唯一文档统计, 杜绝同一文章因"提及 8 家银行展开成 8 行"而虚增 N 与 df(w) 的同向膨胀); 再做均值归一化 normalized_idf(w) = raw_idf(w) / mean(raw_idf), 使加权后得分量级与不加权版本大致可比、可共用同一套语调阈值; 最后做 P1/P99 分位 Winsorization 削平极端权重, 防止个别超稀有词单独左右整篇文章的判分。三轨 (full/ctx/ss) 共享同一份基于 `content_full` 语料算出的 IDF 权重表, 绝不按轨分别估计语料 —— 这是刻意的方法学选择: 若按轨各自估计, ss 轨样本量小、极端稀有词的 df(w) 估计噪声大, 会让本应互为稳健性的三轨在权重层面就先行失真; 因此差异只体现在轨道各自的文本 (含哪些情感词、词频多少) 上, 而不体现在权重表本身。第二步在文章级用该 IDF 权重表对每篇文章 (每轨分别) 重新加权计分, 产出 `you_2018_idf_score{track}` (归一化后取值范围与未加权的 `you_2018_score{track}` 量级可比)。第三步是本家族三列所在的 panel 聚合层: `runner.py` 先用 `mention_density{track}` (银行在该文章中的提及强度) 对 `you_2018_idf_score{track}` 做逐文章相乘, 得到文章级加权列 `you_2018_idf_score_w{track}`; `encode.py` 再按 bank-year 分组对该列取 `sum` 聚合, 落地为本家族三列 `you_2018_idf_score_w_sum{full,ctx,ss}`。这三列本身不是最终语调测度, 而是与 `sum_mention_density{track}` 分母配对使用的分子: 下游 `you_2018_idf_tone_vw{track}` 语调变量正是用本家族列除以该分母得到。三轨 full/ctx/ss 各自 just-identified 并排、互为稳健性、不分主次, 禁止在同一个 over-identified 的 Hansen J 检验中混用; ss 轨若某篇文章没有银行与金科词汇的同句共现, 依 CLAUDE.md 回退语义镜像 ctx —— `content_ss` 回退为全文正文 (`ss_is_fallback=True`), 与 `n_articles` 分母共享同一套口径, 不产生单边孤儿列。留篇门控口径 (2026-06-29 起) 是 full-only: 一篇报道是否算作"一篇银行金科报道"只看 `llm_verified_full`, ctx/ss 是 conditional-on-full 的测度轨, 行宇宙是 full 留篇集合的子集, 但本族三轨各自的分子/分母仍按各自轨道逐项计算, 不借用 full 轨的分母去凑 ctx/ss 的比率。
 
 【文献定位】
-本家族的方法学谱系有三条主线交汇。其一是词典本身的出处: You, Zhang & Zhang (2018, *Review of Financial Studies*) 在「Who captures the power of the pen?」一文中构建并验证了官媒/市场化媒体双锚定的中文金融情感词典 (定义为 you_2018 词典的 positive/negative 及后续 v3.5.1 引入的 definite/ambiguous 子集), 是本项目情感词典族六部词典之一, 也是本家族测度赖以计分的底层情感极性来源。其二是 IDF 加权本身的谱系: Spärck Jones (1972, *Journal of Documentation*) 最早提出词项特异性的统计诠释, 是 IDF 权重的原始出处; Jegadeesh & Wu (2013, *Journal of Financial Economics*) 的 "Word Power" 把类似的逆文档频率式加权思想系统地引入金融文本内容分析, 论证词的稀有度信息应纳入情感/语调打分而非简单等权计数, 是本家族"词级 IDF 加权而非裸词典等权计数"这一设计选择的直接方法学先例; Sheridan, Ahmed & Farooque (2025/2026, *The American Statistician*) 近期从 Fisher 精确检验角度为 TF-IDF 权重方案提供了统计推断层面的正当性论证, 补强了本家族 smooth-IDF 加权公式并非纯粹工程经验规则、而是有统计检验基础支撑的判断。其三是本项目自身的方法学一致性来源: Du et al. (2022, *Review of Finance*) 的中文金融情感词典构建论文与 Bian et al. (2021, SSRN) 的中文情感词典本土化扩充工作, 与 you_2018 同属项目六词典族的姊妹词典, 共享同一套 IDF 加权/提及密度加权/三轨并排的处理管线, 论证本族的加权设计不是 you_2018 独有的特例而是跨词典一致落地的通用规则。此外 Frankel, Jennings & Lee (2022, *Management Science*) 关于机器学习与词典法测度语调互为稳健性的论证, 为本项目"词典法 (含 IDF 加权变体) / LLM 三家投票 / BERT 三模型" 三条测度路径各自 just-identified、互为稳健性而非相互嵌套检验的整体设计哲学提供了外部方法学支撑。
+本家族的方法学谱系有三条主线交汇。其一是词典本身的出处: You, Zhang & Zhang (2018, *Review of Financial Studies*) 在「Who captures the power of the pen?」一文中构建并验证了官媒/市场化媒体双锚定的中文金融情感词典 (定义为 you_2018 词典的 positive/negative 及后续 v3.5.1 引入的 definite/ambiguous 子集), 是本项目情感词典族六部词典之一, 也是本家族测度赖以计分的底层情感极性来源。其二是 IDF 加权本身的谱系: Spärck Jones (1972, *Journal of Documentation*) 最早提出词项特异性的统计诠释, 是 IDF 权重的原始出处; Jegadeesh & Wu (2013, *Journal of Financial Economics*) 的 "Word Power" 把类似的逆文档频率式加权思想系统地引入金融文本内容分析, 论证词的稀有度信息应纳入情感/语调打分而非简单等权计数, 是本家族"词级 IDF 加权而非裸词典等权计数"这一设计选择的直接方法学先例; Sheridan, Ahmed & Farooque (2025/2026, *The American Statistician*) 近期从 Fisher 精确检验角度为 TF-IDF 权重方案提供了统计推断层面的正当性论证, 补强了本家族 smooth-IDF 加权公式并非纯粹工程经验规则、而是有统计检验基础支撑的判断。其三是本项目自身的方法学一致性来源: Du et al. (2022, *Review of Finance*) 的中文金融情感词典构建论文与 Bian et al. (2021, SSRN) 的中文情感词典本土化扩充工作, 与 you_2018 同属项目六词典族的姊妹词典, 共享同一套 IDF 加权/提及密度加权/三轨并排的处理管线, 论证本族的加权设计不是 you_2018 独有的特例而是跨词典一致落地的通用规则。此外 Frankel, Jennings & Lee (2022, *Management Science*) 关于机器学习与词典法测度语调互为稳健性的论证, 为本项目"词典法 (含 IDF 加权变体) / LLM 三家投票 / BERT 三模型" 三条测度路径各自 just-identified、互为稳健性而非相互嵌套检验的整体设计哲学提供了外部方法学支撑。此外, Hassan, Hollander, van Lent, Schwedeler & Tahoun (2023, The Review of Financial Studies) 将 Hassan et al. (2019, QJE) 提及密度加权 (value-weighted) 文本暴露测度范式延展应用于疫情语境, 为本家族 mention_density 提及密度再加权分子求和的方法学谱系提供了最新的顶刊延续性佐证。
 
 ## VAR: you_2018_idf_score_w_sum_ctx
 
@@ -111,4 +118,5 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Sheridan, P., Ahmed, Z., & Farooque, A. A. (2026). A Fisher's exact test justification of the TF–IDF term-weighting scheme. The American Statistician, 80(1), 146–156. https://doi.org/10.1080/00031305.2025.2539241
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514–5532. https://doi.org/10.1287/mnsc.2021.4156
+Hassan, T. A., Hollander, S., van Lent, L., Schwedeler, M., & Tahoun, A. (2023). Firm-Level Exposure to Epidemic Diseases: COVID-19, SARS, and H1N1. The Review of Financial Studies. https://doi.org/10.1093/rfs/hhad044
 <!-- rendered-citations:end -->

@@ -71,7 +71,21 @@ citations:
   year: 2011
   title: "When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks"
   venue: Journal of Finance
-new_dois: []
+- doi: "10.1111/eufm.12509"
+  title: "Identifying greenwashing in corporate-social responsibility reports using natural-language processing"
+  authors: "Gorovaia, N., & Makrominas, M."
+  year: 2024
+  venue: "European Financial Management"
+  type: "journal"
+- doi: "10.1002/csr.70722"
+  title: "Symbolic Versus Substantive ESG Practices: A Systematic Review and Integrative Framework"
+  authors: "Ștefănescu, C. A., & Suciu, A. L."
+  year: 2026
+  venue: "Corporate Social Responsibility and Environmental Management"
+  type: "journal"
+new_dois:
+  - "10.1111/eufm.12509"
+  - "10.1002/csr.70722"
 ---
 
 ## CORE
@@ -83,7 +97,7 @@ new_dois: []
 分子分母的域必须严格对齐, 这是本列存在的唯一理由。篇章级指示 _svd_bert_pos{track} = 1[BERT 集成 argmax 多数票判为正面 (该轨)] ∧ 1[innovation_substantiveness_full ∈ {实质性, 象征性}]; 即要求这篇报道既被判正面, 又在实质性维度上「有判定结果」(非缺测)。BERT 侧采用三模型集成的逐模型 argmax 标签多数票 (占比 > 0.5 判正面, 尺度不变, 规避跨模型概率标度差污染), 三模型为 finbert_cn / fin_sent_zh / finbert2。实质性侧取 innovation_substantiveness_full 的取值落入 {实质性, 象征性} 两类有效标签集; 若 LLM 未能判出实质性 (NaN→astype(str)→'nan'), 该篇既进不了象征性分子, 也不应计入分母。这一「同域」修正 (fix omni-g-runner-10/14) 修补了旧实现的系统性偏误: 旧分母数全部正面文章, 当实质性分类失败率上升时, 有效分子被稀释, 洗稿率被虚假地压低。篇章级指示由 _pool_svd_substvalid_counts 在 银行×年 上求和聚合为本列, 命中 balance_panel 的计数零填规则 (零新闻 银行—年 → 0), 除法经 _safe_ratio 在分母为 0 时安全返 NaN; 旧 schema 缺本列时 _svd_denom 回退物理分母 bert_pos_count{track}。需要强调: 实质性/象征性标签固定取 full 轨 (v3.2.0 起裸 innovation_substantiveness 退役、以 _full 为 main spec), 因此三列的轨道差异只由 BERT 正面判定的轨道驱动, 而非象征性判定的轨道。
 
 【文献定位】
-测度方法学锚定在金融文本的 BERT 情感抽取与洗白实证两条脉络。Huang、Wang 与 Yang (2023) 在《Contemporary Accounting Research》提出的 FinBERT 证明了 transformer 语言模型在金融文本情感抽取上系统优于词典法, 是本族 BERT 均值方法采用集成 transformer 判正面的直接依据; Bochkay 等 (2023) 同刊综述系统梳理了会计文本分析的下一步方向, 为多测度并置提供方法学框架。洗白/脱耦实证方面, Bingler 等 (2022) 用 ClimateBert 识别气候披露中的「廉价表态与摘樱桃」, 与本族「象征性正面 ÷ 实质性可判正面」的构造几乎逐字对应; Giannetti 等 (2026, 《Management Science》) 记录了「亮绿」银行环境披露与实际放贷活动的脱节, Duchin、Gao 与 Xu (2025, 《Journal of Finance》) 从工业污染资产市场提供了区分真可持续与洗白的证据, Kim 与 Lyon (2015, 《Organization Science》) 则给出洗绿与「洗棕」双向夸大/过度谦逊的对称刻画——三者共同支撑「正面话语与实质行动可脱耦」这一识别前提。Loughran 与 McDonald (2011, 《Journal of Finance》) 关于文本情感测量的经典口径, 提醒极性计数须谨防语域错配, 正是本列坚持同域分母的方法论根据。铁律: 本族三轨 (full/ctx/ss) 各自 just-identified 并排、互为稳健性不分主次, 禁混进同一 over-identified Hansen J; BERT 三模型亦各自 just-identified 并排、per-model 独立降级; 留篇门控为 full-only (2026-06-29), full 轨为 canonical 主轨, ctx/ss 降为 conditional-on-full 的测度/稳健轨。
+测度方法学锚定在金融文本的 BERT 情感抽取与洗白实证两条脉络。Huang、Wang 与 Yang (2023) 在《Contemporary Accounting Research》提出的 FinBERT 证明了 transformer 语言模型在金融文本情感抽取上系统优于词典法, 是本族 BERT 均值方法采用集成 transformer 判正面的直接依据; Bochkay 等 (2023) 同刊综述系统梳理了会计文本分析的下一步方向, 为多测度并置提供方法学框架。洗白/脱耦实证方面, Bingler 等 (2022) 用 ClimateBert 识别气候披露中的「廉价表态与摘樱桃」, 与本族「象征性正面 ÷ 实质性可判正面」的构造几乎逐字对应; Giannetti 等 (2026, 《Management Science》) 记录了「亮绿」银行环境披露与实际放贷活动的脱节, Duchin、Gao 与 Xu (2025, 《Journal of Finance》) 从工业污染资产市场提供了区分真可持续与洗白的证据, Kim 与 Lyon (2015, 《Organization Science》) 则给出洗绿与「洗棕」双向夸大/过度谦逊的对称刻画——三者共同支撑「正面话语与实质行动可脱耦」这一识别前提。Loughran 与 McDonald (2011, 《Journal of Finance》) 关于文本情感测量的经典口径, 提醒极性计数须谨防语域错配, 正是本列坚持同域分母的方法论根据。Gorovaia 与 Makrominas (2024, European Financial Management) 用自然语言处理从企业社会责任报告中提取文本特征, 识别披露与实际行为脱耦的洗白倾向, 与本族象征性/实质性 BERT 分母构造的方法学定位高度契合; Ștefănescu 与 Suciu (2026, Corporate Social Responsibility and Environmental Management) 系统综述并整合象征性与实质性 ESG 实践的理论框架, 为本族「实质—象征脱耦」构念提供最新的跨学科文献锚点。铁律: 本族三轨 (full/ctx/ss) 各自 just-identified 并排、互为稳健性不分主次, 禁混进同一 over-identified Hansen J; BERT 三模型亦各自 just-identified 并排、per-model 独立降级; 留篇门控为 full-only (2026-06-29), full 轨为 canonical 主轨, ctx/ss 降为 conditional-on-full 的测度/稳健轨。
 
 ## VAR: bert_pos_substvalid_count_full
 
@@ -109,4 +123,6 @@ Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022). Cheap talk and
 Kim, E.-H., & Lyon, T. P. (2015). Greenwash vs. brownwash: Exaggeration and undue modesty in corporate sustainability disclosure. Organization Science. https://doi.org/10.1287/orsc.2014.0949
 Westphal, J. D., & Zajac, E. J. (1998). The symbolic management of stockholders: Corporate governance reforms and shareholder reactions. Administrative Science Quarterly, 43(1), 127-153. https://doi.org/10.2307/2393593
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance. https://doi.org/10.1111/j.1540-6261.2010.01625.x
+Gorovaia, N., & Makrominas, M. (2024). Identifying greenwashing in corporate-social responsibility reports using natural-language processing. European Financial Management. https://doi.org/10.1111/eufm.12509
+Ștefănescu, C. A., & Suciu, A. L. (2026). Symbolic Versus Substantive ESG Practices: A Systematic Review and Integrative Framework. Corporate Social Responsibility and Environmental Management. https://doi.org/10.1002/csr.70722
 <!-- rendered-citations:end -->

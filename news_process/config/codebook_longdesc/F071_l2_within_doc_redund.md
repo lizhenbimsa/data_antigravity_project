@@ -12,49 +12,70 @@ upstream:
   - 22_tone_words.parquet
   - 40_panel_yearly.parquet
 citations:
-  - doi: 10.1093/restud/rdz061
-    type: journal
-    authors: Cagé, J., Hervé, N., & Viaud, M.-L.
-    year: 2020
-    title: "The production of information in an online world"
-    venue: Review of Economic Studies
-    vol: 87
-    issue: 5
-    pages_or_artno: 2126-2164
-  - doi: 10.1093/qje/qjx045
-    type: journal
-    authors: Hansen, S., McMahon, M., & Prat, A.
-    year: 2018
-    title: "Transparency and deliberation within the FOMC: A computational linguistics approach"
-    venue: Quarterly Journal of Economics
-    vol: 133
-    issue: 2
-    pages_or_artno: 801-870
-  - doi: 10.1145/3657299
-    type: journal
-    authors: Xia, B., Rawte, V., Gupta, A., & Zaki, M. J.
-    year: 2024
-    title: "FETILDA: Evaluation framework for effective representations of long financial documents"
-    venue: ACM Transactions on Knowledge Discovery from Data
-    vol: 18
-    issue: 7
-    pages_or_artno: 1-27
-  - doi: 10.1108/eb026526
-    type: journal
-    authors: Spärck Jones, K.
-    year: 1972
-    title: "A statistical interpretation of term specificity and its application in retrieval"
-    venue: Journal of Documentation
-    vol: 28
-    issue: 1
-    pages_or_artno: 11-21
-  - doi: 10.48550/arXiv.2004.05150
-    type: arxiv
-    authors: Beltagy, I., Peters, M. E., & Cohan, A.
-    year: 2020
-    title: "Longformer: The long-document transformer"
-    venue: arXiv
-new_dois: []
+- doi: 10.1093/restud/rdz061
+  type: journal
+  authors: Cagé, J., Hervé, N., & Viaud, M.-L.
+  year: 2020
+  title: "The production of information in an online world"
+  venue: Review of Economic Studies
+  vol: 87
+  issue: 5
+  pages_or_artno: 2126-2164
+- doi: 10.1093/qje/qjx045
+  type: journal
+  authors: Hansen, S., McMahon, M., & Prat, A.
+  year: 2018
+  title: "Transparency and deliberation within the FOMC: A computational linguistics approach"
+  venue: Quarterly Journal of Economics
+  vol: 133
+  issue: 2
+  pages_or_artno: 801-870
+- doi: 10.1145/3657299
+  type: journal
+  authors: Xia, B., Rawte, V., Gupta, A., & Zaki, M. J.
+  year: 2024
+  title: "FETILDA: Evaluation framework for effective representations of long financial documents"
+  venue: ACM Transactions on Knowledge Discovery from Data
+  vol: 18
+  issue: 7
+  pages_or_artno: 1-27
+- doi: 10.1108/eb026526
+  type: journal
+  authors: Spärck Jones, K.
+  year: 1972
+  title: "A statistical interpretation of term specificity and its application in retrieval"
+  venue: Journal of Documentation
+  vol: 28
+  issue: 1
+  pages_or_artno: 11-21
+- doi: 10.48550/arXiv.2004.05150
+  type: arxiv
+  authors: Beltagy, I., Peters, M. E., & Cohan, A.
+  year: 2020
+  title: "Longformer: The long-document transformer"
+  venue: arXiv
+- doi: "10.18653/v1/2024.emnlp-main.800"
+  type: journal
+  authors: "Merrill, W., Smith, N. A., & Elazar, Y."
+  year: 2024
+  title: "Evaluating n-Gram Novelty of Language Models Using Rusty-DAWG"
+  venue: "Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing (EMNLP)"
+- doi: "10.1016/j.bar.2024.101512"
+  title: "Textual dimensions of sustainability information, stock price informativeness, and proprietary costs: Evidence from integrated reports"
+  authors: "Barth, M. E., Cahan, S. F., Chen, L., Venter, E. R., & Wang, R."
+  year: 2025
+  venue: "The British Accounting Review"
+  type: "journal"
+- doi: "10.1057/s41599-024-04169-w"
+  title: "Are risk disclosures in financial reports informative? A text mining-based perspective"
+  authors: "Zhu, X., Li, J., & Wang, Y."
+  year: 2024
+  venue: "Humanities and Social Sciences Communications"
+  type: "journal"
+new_dois:
+  - "10.18653/v1/2024.emnlp-main.800"
+  - "10.1016/j.bar.2024.101512"
+  - "10.1057/s41599-024-04169-w"
 ---
 
 ## CORE
@@ -66,7 +87,7 @@ new_dois: []
 逐篇计算在 pipeline\sentiment\lexical_complexity.py::compute_lexical_complexity 内完成: 对单篇文本切出全部相邻字符 3-gram, 令分母为全部 3-gram 出现总数、分子为其中"唯一" (去重后) 3-gram 数, 则 within_doc_redundancy = 1 − 唯一3-gram/全部3-gram, 取值落于 [0,1], 越大越冗余。该实现是词形-词例比 (type-token ratio, TTR) 族的字符级变体, 全部依赖 jieba 0.42.1 冻结分词生态与纯字符串解析, 不触付费 LLM、不引新依赖、不触 M0 审批门。文章级度量本身 track-agnostic (输入单一文本返回单一 dict), 三轨 (full/ctx/ss) 的差异完全由调用方 tone_words 用各轨物化文本 content_full/content_ctx/content_ss 各调用一次驱动; 三轨文本在 stage 14 ctx_materializer 物化, prepend_title 已把标题拼入正文首句。面板聚合在 stage 40 完成: avg_within_doc_redund_{track} = 该 bank-year 内所有留篇文章 within_doc_redundancy 的算术均值。留篇门控为 full-only (2026-06-29 口径): 是否判为一篇银行金科报道只看 full 轨判定, ctx/ss 是 conditional-on-full 的测度/稳健性轨, 行宇宙为 full 留篇集的子集。三轨互为稳健性、不分主次、各自 just-identified 并排, 铁律禁止把三轨混进同一 over-identified Hansen J。ss 轨回退语义镜像 ctx: 当篇内无银行与金科的同句共现时 content_ss 回退为全文 body, ss_is_fallback=True, 与 ctx 共享分母口径。
 
 【文献定位】
-篇内冗余属于计算语言学与文本经济学交叉的可读性/披露质量测度谱系。Hansen, McMahon, & Prat (2018) 在 FOMC 讨论纪要上用计算语言学方法刻画沟通文本的信息与重复结构, 为"以词频/n-gram 结构量化文本沟通质量"提供了顶刊范式; 本家族的 3-gram 自重复正是这一范式在中文新闻上的轻量落地。Cagé, Hervé, & Viaud (2020) 在在线新闻生产的研究中系统度量了新闻内容的原创性与复制/复读, 是"以字面片段重复刻画信息生产"最贴近的顶刊参照——他们关注的复制是跨稿件的, 而篇内冗余把同一思路收缩到单篇之内。字符/词片段 n-gram 作为文本特征的统计基础可追溯至 Spärck Jones (1972) 对词项特异性 (term specificity) 的统计解释, 这是 n-gram 去重与信息量权衡的经典源头。Xia et al. (2024) 与 Beltagy, Peters, & Cohan (2020) 则从长金融文档表示与长文本建模角度提示: 文本冗余与长度高度耦合, 任何 TTR 族测度都存在机械长度依赖。据此本家族披露一项已知局限: within_doc_redundancy 存在强机械长度依赖 (与 Covington & McFall 2010 的 TTR 长度效应同构), 文档越长常见 3-gram 重复概率机械上升, 盘上实测冗余与长度呈正相关且长度分位组均值严格单调; 故回归中必须同时控制长度 (配套输出 redundancy_log_length = ln 去空白字符数)。此外存在汉字口径孪生 within_doc_redundancy_han (先抽纯汉字子序列再切 3-gram), 但实测其与字符版相关约 0.99, 属"字符口径对非汉字符号扰动的敏感性诊断"而非独立第二构念, 论文报告须披露该近完美共线且不与字符版同进一回归。构念解释还须诚实限定: 中文新闻篇幅中位约数百字、常无段落标记, 篇内信号弱于 10-K, 全量下宜另出 bank-year pooled 版互为稳健 (本模块仅篇级)。
+篇内冗余属于计算语言学与文本经济学交叉的可读性/披露质量测度谱系。Hansen, McMahon, & Prat (2018) 在 FOMC 讨论纪要上用计算语言学方法刻画沟通文本的信息与重复结构, 为"以词频/n-gram 结构量化文本沟通质量"提供了顶刊范式; 本家族的 3-gram 自重复正是这一范式在中文新闻上的轻量落地。Cagé, Hervé, & Viaud (2020) 在在线新闻生产的研究中系统度量了新闻内容的原创性与复制/复读, 是"以字面片段重复刻画信息生产"最贴近的顶刊参照——他们关注的复制是跨稿件的, 而篇内冗余把同一思路收缩到单篇之内。字符/词片段 n-gram 作为文本特征的统计基础可追溯至 Spärck Jones (1972) 对词项特异性 (term specificity) 的统计解释, 这是 n-gram 去重与信息量权衡的经典源头。Xia et al. (2024) 与 Beltagy, Peters, & Cohan (2020) 则从长金融文档表示与长文本建模角度提示: 文本冗余与长度高度耦合, 任何 TTR 族测度都存在机械长度依赖。据此本家族披露一项已知局限: within_doc_redundancy 存在强机械长度依赖 (与 Covington & McFall 2010 的 TTR 长度效应同构), 文档越长常见 3-gram 重复概率机械上升, 盘上实测冗余与长度呈正相关且长度分位组均值严格单调; 故回归中必须同时控制长度 (配套输出 redundancy_log_length = ln 去空白字符数)。此外存在汉字口径孪生 within_doc_redundancy_han (先抽纯汉字子序列再切 3-gram), 但实测其与字符版相关约 0.99, 属"字符口径对非汉字符号扰动的敏感性诊断"而非独立第二构念, 论文报告须披露该近完美共线且不与字符版同进一回归。构念解释还须诚实限定: 中文新闻篇幅中位约数百字、常无段落标记, 篇内信号弱于 10-K, 全量下宜另出 bank-year pooled 版互为稳健 (本模块仅篇级)。Merrill, Smith, & Elazar (2024, EMNLP) 提出以唯一n-gram占比 (1-唯一/全部) 衡量生成文本相对语料的新颖度/重复度, 与本家族篇内字符3-gram自重复比 (1-唯一/全部) 在构念与计算式上高度同构, 为字符级TTR型冗余测度提供了2024年计算语言学顶会的方法论参照。Barth, Cahan, Chen, Venter, & Wang (2025, The British Accounting Review) 以机器化文本测度评估整合报告披露质量的四维构念(含文本冗余相关属性), 并检验其与股价信息含量的关联, 为篇内文本质量测度提供2025年顶级会计期刊参照。Zhu, Li, & Wang (2024, Humanities and Social Sciences Communications) 以文本挖掘方法评估金融报告风险披露的信息含量与冗余/套话程度, 为篇内字面重复与披露质量关联提供2024年新近实证参照。
 
 ## VAR: avg_within_doc_redund_full
 
@@ -89,4 +110,7 @@ Hansen, S., McMahon, M., & Prat, A. (2018). Transparency and deliberation within
 Xia, B., Rawte, V., Gupta, A., & Zaki, M. J. (2024). FETILDA: Evaluation framework for effective representations of long financial documents. ACM Transactions on Knowledge Discovery from Data, 18(7), 1-27. https://doi.org/10.1145/3657299
 Spärck Jones, K. (1972). A statistical interpretation of term specificity and its application in retrieval. Journal of Documentation, 28(1), 11-21. https://doi.org/10.1108/eb026526
 Beltagy, I., Peters, M. E., & Cohan, A. (2020). Longformer: The long-document transformer. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2004.05150
+Merrill, W., Smith, N. A., & Elazar, Y. (2024). Evaluating n-Gram Novelty of Language Models Using Rusty-DAWG. Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing (EMNLP). https://doi.org/10.18653/v1/2024.emnlp-main.800
+Barth, M. E., Cahan, S. F., Chen, L., Venter, E. R., & Wang, R. (2025). Textual dimensions of sustainability information, stock price informativeness, and proprietary costs: Evidence from integrated reports. The British Accounting Review. https://doi.org/10.1016/j.bar.2024.101512
+Zhu, X., Li, J., & Wang, Y. (2024). Are risk disclosures in financial reports informative? A text mining-based perspective. Humanities and Social Sciences Communications. https://doi.org/10.1057/s41599-024-04169-w
 <!-- rendered-citations:end -->

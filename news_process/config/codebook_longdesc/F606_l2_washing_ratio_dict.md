@@ -18,7 +18,35 @@ citations:
 - {doi: "10.1111/j.1540-6261.2010.01625.x", type: journal, authors: "Loughran, T., & McDonald, B.", year: 2011, title: "When Is a Liability Not a Liability? Textual Analysis, Dictionaries, and 10-Ks", venue: "The Journal of Finance", vol: "66", issue: "1", pages_or_artno: "35-65"}
 - {doi: "10.1287/mnsc.2021.4156", type: journal, authors: "Frankel, R., Jennings, J., & Lee, J.", year: 2022, title: "Disclosure Sentiment: Machine Learning vs. Dictionary Methods", venue: "Management Science", vol: "68", issue: "7", pages_or_artno: "5514-5532"}
 - {doi: "10.1111/eufm.12509", type: journal, authors: "Gorovaia, N., & Makrominas, M.", year: 2024, title: "Identifying Greenwashing in Corporate-Social Responsibility Reports Using Natural-Language Processing", venue: "European Financial Management", vol: "31", issue: "1", pages_or_artno: "427-462"}
-new_dois: []
+- doi: "10.1016/j.jenvman.2024.123399"
+  title: "Quantifying firm-level greenwashing: A systematic literature review"
+  authors: "Lublóy, Á., Keresztúri, J. L., & Berlinger, E."
+  year: 2025
+  venue: "Journal of Environmental Management"
+  type: "journal"
+- doi: "10.1007/s13162-025-00323-y"
+  title: "AI washing: A conceptual exploration"
+  authors: "Elhajjar, S., & Itani, O. S."
+  year: 2025
+  venue: "AMS Review"
+  type: "journal"
+- doi: "10.3390/risks13070134"
+  title: "Unmasking Greenwashing in Finance: A PROMETHEE II-Based Evaluation of ESG Disclosure and Green Accounting Alignment"
+  authors: "Sklavos, G., Zournatzidou, G., Ragazou, K., & Sariannidis, N."
+  year: 2025
+  venue: "Risks"
+  type: "journal"
+- doi: "10.1007/s11135-024-02045-y"
+  title: "An Analysis of the news coverage of Fintech in Africa: a natural language processing approach"
+  authors: "Nach, H."
+  year: 2025
+  venue: "Quality & Quantity"
+  type: "journal"
+new_dois:
+  - "10.1016/j.jenvman.2024.123399"
+  - "10.1007/s13162-025-00323-y"
+  - "10.3390/risks13070134"
+  - "10.1007/s11135-024-02045-y"
 ---
 
 ## CORE
@@ -36,7 +64,7 @@ washing_ratio_dict 的计算发生在银行-年面板聚合之后的派生计算
 washing_ratio_dict 存在三轨版本(无后缀 full / _ctx / _ss), 对应本项目情感三轨文本口径体系: full=标题+正文全文, ctx=标题+银行/金科实体窗口, ss=标题+银行与金科同句(±N 句窗)共现文本; 三者共享同一套判正与实质/象征分类规则, 唯一差异是喂给规则引擎的文本片段不同(见【VAR】各节)。三轨口径必须各自 just-identified 并排使用、互为稳健性、不分主次, 严禁把三轨列混入同一 over-identified Hansen J 检验。此外, 词典法本身依赖的词典集合在 v3.10.0 由 5 部扩为 6 部(接入 Loughran-McDonald 2011 中文主译本), 这是一次有意的、经内部审计(scripts/audit/measure_dict_union_impact.py)量化过的测度口径变更; 该审计脚本名中的"union"指的是构造合并词表(build_union_dictionary, 多部词典词条合并为单一词表用于计算 msent_score)的词表级并集, 与 washing_ratio_dict 判正逻辑本身(6 部词典 score 取均值判正, 非任一词典判正即计入)是两个不同层面的"union", 不应混淆; 实测 5 部与 6 部词表并集口径的 msent_score 相关系数 r=0.985, 符号翻转率仅 0.13%, 均值级微变约 3.5%, 反映词表覆盖面的改善而非方法误差; 该披露通过列名前缀匹配(_DICT6_AFFECTED_RE, 命中 washing_ratio_dict 及其 _ctx/_ss 变体但不命中逐词典的 washing_ratio_{dict} 单列, 因为后者是"新增列"而非"变值列")机械注入到本列的 codebook 元数据备注中, 使用者在解读跨版本(v3.9.x 之前 vs v3.10.0 之后)数值差异时应留意这一有意的测度演进而非误判为 bug。
 
 【文献定位】
-本列在测度谱系上处于两条文献脉络的交点。其一是媒体文本情感测度的词典法传统: Loughran & McDonald (2011, The Journal of Finance) 建立了金融文本专用词典分析范式, 证明通用情感词典(如 Harvard IV-4)在金融/监管文本上会产生系统性误判, 需用领域专属词表; Du, Huang, Wermers & Wu (2022, Review of Finance) 进一步针对中文金融文本构建专属情感词典(本项目 DICT_NAMES 中的 du_2022), 是本项目词典法判正规则的直接方法学来源之一, 也是本家族「词典均值」聚合口径下六部词典之一。其二是实质与象征区分传统: Westphal & Zajac (1994; 1998, 均刊于 Administrative Science Quarterly) 首创并检验了公司治理采纳行为的实质/象征二分框架, 本项目把该框架用于对媒体报道内容(而非公司治理安排本身)做实质/象征分类, 从而把"正面报道占比"进一步细分为"实质性正面"与"象征性正面", 洗稿率即后者在全部正面报道中的占比。两条脉络的合流呼应了近年"文本洗白"(washing)研究的兴起, 如 Gorovaia & Makrominas (2024, European Financial Management) 用自然语言处理方法从企业社会责任报告中识别 greenwashing 现象; 本项目将同一逻辑迁移到银行-金融科技媒体报道语境, 用洗稿率捕捉"媒体渲染的正面形象"与"报道实际反映的业务/风险实质"之间的落差。最后, 词典法与机器学习/LLM 判正法孰优孰劣一直是文本情感测度领域的方法学争论焦点, Frankel, Jennings & Lee (2022, Management Science) 系统比较了机器学习与词典法在信息披露情感测度上的表现差异, 是本项目坚持词典法/LLM/BERT 三法并排、互为稳健性设计的直接方法学依据 —— washing_ratio_dict 正是这一"三法并排"矩阵中词典法一支的银行-年层面代表性产出。
+本列在测度谱系上处于两条文献脉络的交点。其一是媒体文本情感测度的词典法传统: Loughran & McDonald (2011, The Journal of Finance) 建立了金融文本专用词典分析范式, 证明通用情感词典(如 Harvard IV-4)在金融/监管文本上会产生系统性误判, 需用领域专属词表; Du, Huang, Wermers & Wu (2022, Review of Finance) 进一步针对中文金融文本构建专属情感词典(本项目 DICT_NAMES 中的 du_2022), 是本项目词典法判正规则的直接方法学来源之一, 也是本家族「词典均值」聚合口径下六部词典之一。其二是实质与象征区分传统: Westphal & Zajac (1994; 1998, 均刊于 Administrative Science Quarterly) 首创并检验了公司治理采纳行为的实质/象征二分框架, 本项目把该框架用于对媒体报道内容(而非公司治理安排本身)做实质/象征分类, 从而把"正面报道占比"进一步细分为"实质性正面"与"象征性正面", 洗稿率即后者在全部正面报道中的占比。两条脉络的合流呼应了近年"文本洗白"(washing)研究的兴起, 如 Gorovaia & Makrominas (2024, European Financial Management) 用自然语言处理方法从企业社会责任报告中识别 greenwashing 现象; 本项目将同一逻辑迁移到银行-金融科技媒体报道语境, 用洗稿率捕捉"媒体渲染的正面形象"与"报道实际反映的业务/风险实质"之间的落差。最后, 词典法与机器学习/LLM 判正法孰优孰劣一直是文本情感测度领域的方法学争论焦点, Frankel, Jennings & Lee (2022, Management Science) 系统比较了机器学习与词典法在信息披露情感测度上的表现差异, 是本项目坚持词典法/LLM/BERT 三法并排、互为稳健性设计的直接方法学依据 —— washing_ratio_dict 正是这一"三法并排"矩阵中词典法一支的银行-年层面代表性产出。Lublóy, Keresztúri & Berlinger (2025, Journal of Environmental Management) 系统梳理了企业层面洗白测度的方法学谱系(选择性披露与解耦两大类), 为 washing_ratio_dict 所处的实质与象征二分测度传统提供了最新的方法学定位坐标; Elhajjar & Itani (2025, AMS Review) 概念化辨析企业技术叙事中的言过其实(AI washing)现象, 与本项目把媒体正面报道细分为实质性与象征性的洗稿率构念在技术领域的措辞夸大问题上高度呼应。Sklavos, Zournatzidou, Ragazou & Sariannidis (2025, Risks) 提出基于 PROMETHEE II 多准则决策方法评估企业 ESG 披露与绿色会计一致性、识别金融业洗绿(greenwashing)现象的框架, 呼应本列象征性正面报道占比的洗稿测度传统。Nach (2025, Quality & Quantity) 用自然语言处理方法(词云、情感分析、主题建模)分析十年间金融科技媒体报道语料, 与本列媒体报道文本测度的应用场景直接相关。
 
 ## VAR: washing_ratio_dict
 
@@ -60,4 +88,8 @@ Westphal, J. D., & Zajac, E. J. (1998). The Symbolic Management of Stockholders:
 Loughran, T., & McDonald, B. (2011). When Is a Liability Not a Liability? Textual Analysis, Dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure Sentiment: Machine Learning vs. Dictionary Methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Gorovaia, N., & Makrominas, M. (2024). Identifying Greenwashing in Corporate-Social Responsibility Reports Using Natural-Language Processing. European Financial Management, 31(1), 427-462. https://doi.org/10.1111/eufm.12509
+Lublóy, Á., Keresztúri, J. L., & Berlinger, E. (2025). Quantifying firm-level greenwashing: A systematic literature review. Journal of Environmental Management. https://doi.org/10.1016/j.jenvman.2024.123399
+Elhajjar, S., & Itani, O. S. (2025). AI washing: A conceptual exploration. AMS Review. https://doi.org/10.1007/s13162-025-00323-y
+Sklavos, G., Zournatzidou, G., Ragazou, K., & Sariannidis, N. (2025). Unmasking Greenwashing in Finance: A PROMETHEE II-Based Evaluation of ESG Disclosure and Green Accounting Alignment. Risks. https://doi.org/10.3390/risks13070134
+Nach, H. (2025). An Analysis of the news coverage of Fintech in Africa: a natural language processing approach. Quality & Quantity. https://doi.org/10.1007/s11135-024-02045-y
 <!-- rendered-citations:end -->

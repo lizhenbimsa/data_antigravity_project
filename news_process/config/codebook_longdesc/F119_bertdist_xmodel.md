@@ -163,9 +163,23 @@ citations:
   vol: 57
   issue: 5
   pages_or_artno: 2113-2141
+- doi: "10.3389/frai.2025.1609097"
+  type: journal
+  authors: "Herrera-Poyatos, D., Peláez-González, C., Zuheros, C., Herrera-Poyatos, A., Tejedor, V., Herrera, F., & Montes, R."
+  year: 2025
+  title: "An overview of model uncertainty and variability in LLM-based sentiment analysis: challenges, mitigation strategies, and the role of explainability"
+  venue: "Frontiers in Artificial Intelligence"
+- doi: "10.1002/isaf.1549"
+  type: journal
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  venue: "Intelligent Systems in Accounting, Finance and Management"
 new_dois:
 - 10.1111/jofi.12852
 - 10.1111/0022-1082.00490
+- "10.3389/frai.2025.1609097"
+- "10.1002/isaf.1549"
 ---
 
 ## CORE
@@ -177,7 +191,7 @@ new_dois:
 计算分文章级与面板级两步。文章级由 compute_xmodel_dispersion 完成: 对每条轨道, 先为每个可用模型构造逐篇净语调, 即该模型该轨的正面概率减负面概率, 值域负一到正一; 某模型该轨的正面或负面概率列任一缺席, 则该模型退出该轨 (per-model 独立降级, 镜像 finbert2 优雅跳过语义); 某轨可用模型列不足两个, 则该轨双列整体不产, 属合法缺席而非报错。canonical 的 lblhet 中间列取符号化后的两两模型对比较: 对每一对可用模型, 若二者净语调符号不同则记一次不一致, 分母是该篇实际可比的模型对数, 商即该篇的符号不一致占比。符号判定有两条定音规则: 其一, 净语调恰为零 (finbert2 概率重归一后正负各半在真实数据中可达) 与正负一记为不一致, 零与零记为一致; 其二, 刻意不设任何净语调死区, 靠近零点的符号翻转噪声被承认为标签基测度的固有属性而非待修的缺陷, 理由是任何死区宽度都是一个新增的研究者自由度, 而隐藏的研究者决策本身就是应用微观计量可复现性的重要威胁来源 (Huntington-Klein 等, 2021)。逐篇可用模型不足两个时该篇双列均记缺失, 不做任何填补。稳健孪生轨 disp 的中间列则先把每个模型的净语调按模型乘轨道在本次运行的全部文章宇宙上做 z 标准化 (均值与标准差按样本标准差自由度修正一计算, 标准差为零或全缺失的模型退出该轨), 再对每篇文章取跨模型 z 分数的样本标准差 (同样自由度修正一), 非缺模型不足两个的行记缺失。z 标准化的动机是三个模型的原始净语调方差量纲不同 (二分类与三分类的概率几何天然不同), 直接取原始净语调的跨模型标准差会被方差最大的模型主导; 代价是 z 参数取自本次运行的文章宇宙, 带样本依赖与前视性, 逐篇数值不可局部复现, 这正是 disp 被降为稳健轨而由逐篇局部确定、不依赖任何全样本统计量的 lblhet 出任 canonical 的裁决理由。面板级聚合是简单的银行年均值: 两支文章级中间列各自按银行年取算术平均, 得到六个面板列。文章级中间列属于内部生命周期管理对象, 由 runner 在诊断日志之前按声明全集与实际列交集单点删除, 绝不落入文章级 parquet, 因此外部只见面板列。数值上, lblhet 的逐篇支撑在三模型可用时为零、三分之一、三分之二、一四点, 在仅两模型可用时退化为零一两点, 面板均值混合两种支撑, 这一逐篇口径混合 (源自模型全局缺席或逐篇推断失败) 属已记账的测量特征而非缺陷。全族无嵌入 _lg 孪生列: 本家族基于 BERT 分类概率而非 API 嵌入向量, 属非嵌入 carve-out, 与 co-primary 双轨嵌入的列名双射守卫无关。聚合权重口径还有两点须申明。其一, 银行年均值是逐篇等权而非按篇幅或曝光加权, 构念是语料的平均判读难度而非曝光加权的舆论环境, 篇数少的银行年格子均值方差大, 回归中应以报道量类变量作控制或按其加权稳健性重估。其二, 分母是该银行年中间列非缺失的文章数, 它随可用模型构成变化而非恒等于留篇总数: 某篇三模型全部推断失败则该篇对本家族不贡献分母, 但仍计入 n_articles 类计数列, 两个分母口径不可混同。确定性口径上, lblhet 全链只含比较与计数运算, 不经过任何 BLAS 线性代数路径, 不属于本仓已记账的浮点非确定网络列清单, golden 复现按逐位一致要求; disp 含均值与标准差归约, 在固定线程钉一的重生环境下同样逐位可复现, 但跨语料宇宙不可复现的样本依赖性质如前所述。
 
 【文献定位】
-本家族站在三条文献脉络的交汇处。第一条是预训练语言模型在金融文本情感测量中的谱系: 双向 Transformer 预训练范式由 Devlin 等 (2019) 确立, 金融领域适配的 FinBERT 系模型随后出现 (Liu 等, 2020), 会计与金融学界的系统评估表明微调后的 FinBERT 在金融文本情感分类上稳定超越词典法与传统机器学习 (Huang, Wang 与 Yang, 2023), 中文金融场景的第二代专用编码器进一步缩小了与通用大模型的部署差距 (Xu 等, 2025)。本项目 stage 23 并行运行三个此谱系内的模型, 正是为了不把测量命运押在任何单一模型上。第二条是测量方法比较与测量误差文献: 词典法的领域适配问题由 Loughran 与 McDonald (2011) 确立为金融文本分析的基本教训, 其综述 (Loughran 与 McDonald, 2016) 与后续会计文本分析综述 (Bochkay 等, 2023) 都反复强调不同测量方法在同一构念上产生系统性分歧; Frankel, Jennings 与 Lee (2022) 直接量化了机器学习测度与词典测度的信息含量差异; 中文语境的领域专用词典 (Du 等, 2022) 是本项目词典轨的锚。在这一脉络里, 本家族把方法间分歧本身从需要在稳健性附录里被动检查的麻烦, 升格为一个显式落盘、可进回归的一等测度。第三条是意见分歧与信息质量文献: 除前述 Diether, Malloy 与 Scherbina (2002) 和 Cookson 与 Niessner (2020) 外, 社交媒体文本信号的信息含量分解 (Cookson, Lu, Mullins 与 Niessner, 2024) 与分析师预测分散度对市场质量的含义 (Frijns 等, 2026) 都表明分歧类测度承载着水平类测度无法替代的信息。方法学上还有一条新兴的旁支直接支持跨模型分歧的诊断价值: 大规模实证研究系统比较了大语言模型与人类评审在数十项自然语言评估任务上的一致性 (Bavaresco 等, 2024), 而把大语言模型输出与 Transformer 编码器融合以获得更稳健金融新闻分类的工作 (Schlee 等, 2025) 则说明模型间分歧正是融合增益的来源; 媒体语调影响投资者行为这一整个测量事业的前提动机则可追溯至 Tetlock (2007)。
+本家族站在三条文献脉络的交汇处。第一条是预训练语言模型在金融文本情感测量中的谱系: 双向 Transformer 预训练范式由 Devlin 等 (2019) 确立, 金融领域适配的 FinBERT 系模型随后出现 (Liu 等, 2020), 会计与金融学界的系统评估表明微调后的 FinBERT 在金融文本情感分类上稳定超越词典法与传统机器学习 (Huang, Wang 与 Yang, 2023), 中文金融场景的第二代专用编码器进一步缩小了与通用大模型的部署差距 (Xu 等, 2025)。本项目 stage 23 并行运行三个此谱系内的模型, 正是为了不把测量命运押在任何单一模型上。第二条是测量方法比较与测量误差文献: 词典法的领域适配问题由 Loughran 与 McDonald (2011) 确立为金融文本分析的基本教训, 其综述 (Loughran 与 McDonald, 2016) 与后续会计文本分析综述 (Bochkay 等, 2023) 都反复强调不同测量方法在同一构念上产生系统性分歧; Frankel, Jennings 与 Lee (2022) 直接量化了机器学习测度与词典测度的信息含量差异; 中文语境的领域专用词典 (Du 等, 2022) 是本项目词典轨的锚。在这一脉络里, 本家族把方法间分歧本身从需要在稳健性附录里被动检查的麻烦, 升格为一个显式落盘、可进回归的一等测度。第三条是意见分歧与信息质量文献: 除前述 Diether, Malloy 与 Scherbina (2002) 和 Cookson 与 Niessner (2020) 外, 社交媒体文本信号的信息含量分解 (Cookson, Lu, Mullins 与 Niessner, 2024) 与分析师预测分散度对市场质量的含义 (Frijns 等, 2026) 都表明分歧类测度承载着水平类测度无法替代的信息。方法学上还有一条新兴的旁支直接支持跨模型分歧的诊断价值: 大规模实证研究系统比较了大语言模型与人类评审在数十项自然语言评估任务上的一致性 (Bavaresco 等, 2024), 而把大语言模型输出与 Transformer 编码器融合以获得更稳健金融新闻分类的工作 (Schlee 等, 2025) 则说明模型间分歧正是融合增益的来源; 媒体语调影响投资者行为这一整个测量事业的前提动机则可追溯至 Tetlock (2007)。此外, Herrera-Poyatos 等 (2025, Frontiers in Artificial Intelligence) 的综述系统梳理了基于大语言模型的情感分析中模型间不确定性与输出变异性的成因与缓解策略, 与本家族把跨模型判读分歧本身作为一等可测量构念的思路直接呼应。Todd, Bowden 与 Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 系统综述金融文本情感分析文献并指出方法间与模型间分歧、测量比较是未来研究方向之一, 为本家族把跨模型判读分歧作为一等测度的定位提供综述层支撑。
 
 【识别策略定位】
 本家族在识别体系中的定位是测量诊断量与规格稳健性并排成员, 明确不是任何 per-model 梯子的成员, 也不是任何论文的主处理变量。第一种用法是测量质量诊断: 经典测量误差使系数向零衰减, 跨模型判读分歧高的银行年格子正是情感测度测量误差大的格子, 把样本按本列高低分层重估主回归, 若主效应在低分歧子样本中更强, 则与衰减偏误的方向预测一致, 构成对测量误差解释的间接检验。第二种用法是调节变量或控制变量: 在以任一 BERT 情感测度为处理变量的规格中加入本列或其交互项, 检验结论是否被高模糊度语料驱动。第三种用法是作为文本模糊度这一构念本身的代理进入描述性与机制分析。计量口径上有三条铁律必须复述。其一, lblhet 与 disp 双轨互为稳健性、不分主次, 各自 just-identified 并排进各自的回归, 禁止把双轨同时塞进同一个 over-identified 的 Hansen J 检验; 同理, full、_ctx、_ss 三轨也各自 just-identified 并排, 禁混同一 Hansen J; 这一口径与本仓 co-primary 双轨嵌入、词典消融梯度、政治词权重梯子的处理完全同构。其二, 本家族属规格稳健性并排族, 不进入跨模型 FWER 模板: 根级 rwolf 多重检验模板只覆盖同一构念的替代 headline 测量 (Romano 与 Wolf, 2005 意义上的正式数据窥探控制), 而本家族与逐模型净语调是不同构念, 不适用该模板。其三, 若涉及跨模型系数比较, 须按 Table A5 口径用标准化系数, 因为二分类与三分类模型的原始净语调方差不同, 原始系数不可比。留篇门控口径与全仓一致: 一篇文章是否算作银行金融科技报道只看 full 轨的 LLM 验证标志 (二〇二六年六月二十九日 full-only 口径), _ctx 与 _ss 是 conditional-on-full 的测度轨, 其行宇宙是 full 留篇集的子集。此外还须申明本家族在因果链条中的位置: 它不是处理变量的候选, 因为跨模型分歧由模型集合与文本共同决定, 对银行结果变量不存在可辩护的排除约束; 它也不宜作工具变量, 因为分歧与情感水平的测量误差机械相关, 恰好违反工具外生性。其正当角色被刻意限定在诊断、调节与描述三类, 任何把本列升格为主处理或工具的用法均属口径违规。与财务结果变量对接时, 由于外部财务面板尚在接入过程中, 相关回归设计以哨兵列占位, 本家族在该阶段的实际用途以测量诊断为先。
@@ -237,4 +251,6 @@ Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textua
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Romano, J. P., & Wolf, M. (2005). Stepwise multiple testing as formalized data snooping. Econometrica, 73(4), 1237-1282. https://doi.org/10.1111/j.1468-0262.2005.00615.x
 Diether, K. B., Malloy, C. J., & Scherbina, A. (2002). Differences of opinion and the cross section of stock returns. The Journal of Finance, 57(5), 2113-2141. https://doi.org/10.1111/0022-1082.00490
+Herrera-Poyatos, D., Peláez-González, C., Zuheros, C., Herrera-Poyatos, A., Tejedor, V., Herrera, F., & Montes, R. (2025). An overview of model uncertainty and variability in LLM-based sentiment analysis: challenges, mitigation strategies, and the role of explainability. Frontiers in Artificial Intelligence. https://doi.org/10.3389/frai.2025.1609097
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
 <!-- rendered-citations:end -->

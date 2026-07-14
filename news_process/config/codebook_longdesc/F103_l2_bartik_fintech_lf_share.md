@@ -1,5 +1,6 @@
 ---
 family_id: F103
+novelty_exempt_rationale: "该家族是金融科技类型维度 Bartik (shift-share) 工具变量中冻结不动的'份额'分量 (lf=locus-full 轨), 与基于 ctx 轨的孪生家族 bartik_fintech_lc_share_* 互为稳健性变体, 测度定义与识别依据 (shift-share 理论、locus 分类学) 已在正文引用的 Adão-Kolesár-Morales(2019)/Goldsmith-Pinkham 等母方法学及 Gomber 系列分类学文献中给出, 属既有构念的轨道/基期变体而非独立新构念, 无需为其单独追加新文献。"
 columns:
 - bartik_fintech_lf_share_app
 - bartik_fintech_lf_share_tech

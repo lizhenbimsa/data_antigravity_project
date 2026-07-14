@@ -1,5 +1,6 @@
 ---
 family_id: F426
+novelty_exempt_rationale: "该家族是 loughran 词典情感分在 value-weighted (提及密度加权) 口径下的技术变体分子, 与 vw/mw/hw 加权阶梯及 full/ctx/ss 三轨并列, 测度定义完全依据母体 L&M 词典及其中文本地化文献 (已在 CORE 引文中给出), 非独立新构念, 无需单独追加 2023+ 新颖文献。"
 columns:
 - loughran_score_w_sum_ctx
 - loughran_score_w_sum_full

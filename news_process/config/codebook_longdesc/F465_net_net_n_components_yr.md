@@ -134,7 +134,35 @@ citations:
   vol: 1
   issue: 3
   pages_or_artno: 215-239
-new_dois: []
+- doi: "10.1016/j.najef.2024.102307"
+  title: "Text Spillover: Measuring connectedness of financial institutions based on news text data"
+  authors: "Klaucke, K."
+  year: 2025
+  venue: "The North American Journal of Economics and Finance"
+  type: "journal"
+- doi: "10.1111/1475-679X.12560"
+  title: "News Bias in Financial Journalists' Social Networks"
+  authors: "Xu, G."
+  year: 2024
+  venue: "Journal of Accounting Research"
+  type: "journal"
+- doi: "10.1016/j.iref.2025.103979"
+  title: "Interconnected bank networks: Shock amplifiers or absorbers in the financial system?"
+  authors: "Ren, J., & Tang, L."
+  year: 2025
+  venue: "International Review of Economics & Finance"
+  type: "journal"
+- doi: "10.1080/1540496x.2025.2562336"
+  title: "Analyst Network: Implications for Systemic Risk of Non-Financial Firms in China"
+  authors: "Xiang, Y., & Borjigin, S."
+  year: 2025
+  venue: "Emerging Markets Finance and Trade"
+  type: "journal"
+new_dois:
+  - "10.1016/j.najef.2024.102307"
+  - "10.1111/1475-679x.12560"
+  - "10.1016/j.iref.2025.103979"
+  - "10.1080/1540496x.2025.2562336"
 ---
 
 ## CORE
@@ -150,7 +178,7 @@ new_dois: []
 【文献定位】
 连通分量作为图的最基本连通性统计, 其方法学根系可追溯到社会网络分析对结构与连通性的经典刻画。Freeman (1978) 对中心性概念的厘清奠定了以节点在连通结构中位置刻画其重要性的范式, 而连通分量数则是与之互补的整体层面统计, 回答"网络是否被切成多块"而非"某点多重要"。Watts 与 Strogatz (1998) 揭示的小世界现象说明真实网络往往在高聚类的同时保持全局可达, 连通分量数正是检验这一"全局是否一体"性质的门槛量: 单一巨分量是小世界的前提。社区结构文献进一步细化了"块"的概念, Newman 与 Girvan (2004) 以及 Clauset、Newman 与 Moore (2004) 发展的模块度优化与快速社区发现方法刻画的是连通图内部的软性分块, 与连通分量所刻画的硬性 (拓扑不可达) 分块形成层次互补——本家族同族的 net_modularity_yr 正对应前者, net_n_components_yr 对应后者。Newman (2005) 的随机游走介数、Seidman (1983) 的 k-核分解则从中间性与稠密核心两个侧面补足了对同一共现图的结构画像, 与连通分量数共处同一 NETWORK_METRIC_BASES 家族。
 
-在金融与经济学脉络中, 连通结构直接关联系统性风险与同伴效应两条主线。Jackson 与 Pernoud (2021) 对金融网络系统性风险的综述指出, 机构间连通性的拓扑形态决定冲击的传染路径与放大程度, 一体化 (低分量数) 网络在提供风险分散的同时也可能成为传染高速路; Duarte 与 Eisenbach (2021) 对火线抛售溢出的度量同样以机构间的连通与重叠为传染载体。就本项目而言, 银行共现网络虽是媒体话语层面的关联而非资产负债表层面的暴露, 但其连通分量数刻画的正是"银行群体在公共叙事中是否被作为一个相互关联的整体来讨论", 这与舆论驱动的信心传染 (媒体情绪在关联银行间的溢出) 直接呼应。同伴效应识别文献为此提供了计量地基: Manski (1993) 的反射问题指出内生社会效应识别的根本困难, Bramoullé、Djebbari 与 Fortin (2009) 证明网络拓扑的差异 (尤其是非完全连通、存在多分量或不同邻接结构) 可为同伴效应提供识别所需的排除性变异, 其 2020 年综述进一步系统化了这一识别策略。连通分量数作为拓扑异质性的最粗概括, 恰是这类识别赖以成立的网络结构变异的可观测标度。Grieser 等 (2022) 关于网络效应对公司财务政策的证据、Yu、Hu 与 Zhong (2024) 关于网络中心性与信息扩散和资产定价的证据, 以及 Nezami、Chisam 与 Palmatier (2025) 对网络中心性与企业绩效关系的元分析, 共同表明网络位置与连通形态是解释企业与金融机构结果变量的一类稳健协变量, 为将网络结构指标纳入银行面板提供了实证正当性 (该元分析对具体度量如聚类系数持保留态度, 本家族据此仅将连通分量数用作结构描述与稳健性协变量, 不对其单独因果解读)。
+在金融与经济学脉络中, 连通结构直接关联系统性风险与同伴效应两条主线。Jackson 与 Pernoud (2021) 对金融网络系统性风险的综述指出, 机构间连通性的拓扑形态决定冲击的传染路径与放大程度, 一体化 (低分量数) 网络在提供风险分散的同时也可能成为传染高速路; Duarte 与 Eisenbach (2021) 对火线抛售溢出的度量同样以机构间的连通与重叠为传染载体。就本项目而言, 银行共现网络虽是媒体话语层面的关联而非资产负债表层面的暴露, 但其连通分量数刻画的正是"银行群体在公共叙事中是否被作为一个相互关联的整体来讨论", 这与舆论驱动的信心传染 (媒体情绪在关联银行间的溢出) 直接呼应。同伴效应识别文献为此提供了计量地基: Manski (1993) 的反射问题指出内生社会效应识别的根本困难, Bramoullé、Djebbari 与 Fortin (2009) 证明网络拓扑的差异 (尤其是非完全连通、存在多分量或不同邻接结构) 可为同伴效应提供识别所需的排除性变异, 其 2020 年综述进一步系统化了这一识别策略。连通分量数作为拓扑异质性的最粗概括, 恰是这类识别赖以成立的网络结构变异的可观测标度。Grieser 等 (2022) 关于网络效应对公司财务政策的证据、Yu、Hu 与 Zhong (2024) 关于网络中心性与信息扩散和资产定价的证据, 以及 Nezami、Chisam 与 Palmatier (2025) 对网络中心性与企业绩效关系的元分析, 共同表明网络位置与连通形态是解释企业与金融机构结果变量的一类稳健协变量, 为将网络结构指标纳入银行面板提供了实证正当性 (该元分析对具体度量如聚类系数持保留态度, 本家族据此仅将连通分量数用作结构描述与稳健性协变量, 不对其单独因果解读)。此外, Klaucke (2025, The North American Journal of Economics and Finance) 以新闻文本中的机构共现构造文本溢出指数度量金融机构连通性, 并与 Diebold-Yilmaz 溢出指数交叉验证, 为本家族以媒体共现图刻画银行连通结构、进而以连通分量数概括碎裂程度提供了方法学近邻与外部效度支持; Xu (2024, Journal of Accounting Research) 考察财经记者社交网络的连接结构如何系统性影响其对相关公司的报道语气, 佐证了媒体话语层面的关联网络 (而非资产负债表暴露) 本身即可承载并塑造经济叙事, 呼应本家族将银行共现网络的连通与碎裂结构作为舆论场结构协变量的定位。Ren 与 Tang (2025, International Review of Economics & Finance) 该文用银团贷款数据构建银行间互联网络, 发现银行间连通性上升会同时放大个体银行风险与系统性风险, 为本家族以共现网络连通分量刻画银行群体连通/碎裂结构提供了银行间网络拓扑与系统性风险关联的实证近邻。Xiang 与 Borjigin (2025, Emerging Markets Finance and Trade) 该文以分析师共同覆盖构造企业网络并考察其连通结构与系统性风险的关系, 与本家族以媒体共现构造银行网络、用连通分量数刻画碎裂度的思路方法学近邻, 均以话语/覆盖层面的关联网络而非资产负债表暴露作为系统性风险的结构诊断。
 
 【识别策略定位】
 本家族在识别上的角色须严格区分两个层次。第一, net_n_components_yr 是纯网络级年度广播量, 在主线银行年面板的带双向固定效应 (银行 FE + 年 FE) 设定下会被年 FE 完全吸收, 因而不可作为主处理变量进入这类回归; 其识别价值体现在不含年 FE 的时序描述、跨年结构演化叙事, 以及作为工具变量族或网络结构控制的构造原料 (同伴效应 IV 与 Bartik 类构造依赖网络拓扑的时变结构, 连通性演化是其合法性诊断的一部分)。第二, 更重要的是本家族三列构成判据敏感性梯子: 同篇 (无后缀 canonical)、±1 句窗 (_win1)、严格同句 (_sent) 三种银行邻接判定各自独立地重建全年网络并各自计算连通分量数。这三条判据轨互为稳健性、不分主次, 各自 just-identified 并排, 禁混进同一 over-identified Hansen J——即禁止把三种判据下的同一构念度量当作过度识别工具集塞进单一 Hansen 过度识别检验, 因为它们是对同一潜在网络结构的替代测量而非独立矩条件。该口径与项目全局的三轨文本 (full/ctx/ss)、co-primary 双轨嵌入、词典消融/政治词权重/BERT 阈值等梯子的稳健性并排原则一脉相承。须特别强调: 网络判据后缀 (无后缀/_win1/_sent) 与三轨文本后缀 (_full/_ctx/_ss) 是两个正交概念空间, 前者刻画银行∧银行邻接的空间紧邻度, 后者刻画银行∧金科文本的语境窗口, 二者绝不可混入同一 Hansen J, 亦不可字面拼配。
@@ -197,4 +225,8 @@ Watts, D. J., & Strogatz, S. H. (1998). Collective dynamics of 'small-world' net
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
 Seidman, S. B. (1983). Network structure and minimum degree. Social Networks, 5(3), 269-287. https://doi.org/10.1016/0378-8733(83)90028-X
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
+Klaucke, K. (2025). Text Spillover: Measuring connectedness of financial institutions based on news text data. The North American Journal of Economics and Finance. https://doi.org/10.1016/j.najef.2024.102307
+Xu, G. (2024). News Bias in Financial Journalists' Social Networks. Journal of Accounting Research. https://doi.org/10.1111/1475-679X.12560
+Ren, J., & Tang, L. (2025). Interconnected bank networks: Shock amplifiers or absorbers in the financial system?. International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2025.103979
+Xiang, Y., & Borjigin, S. (2025). Analyst Network: Implications for Systemic Risk of Non-Financial Firms in China. Emerging Markets Finance and Trade. https://doi.org/10.1080/1540496x.2025.2562336
 <!-- rendered-citations:end -->

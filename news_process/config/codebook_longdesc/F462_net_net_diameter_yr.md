@@ -133,7 +133,35 @@ citations:
   vol: 1
   issue: 3
   pages_or_artno: 215-239
-new_dois: []
+- doi: "10.1016/j.jfineco.2024.103852"
+  type: journal
+  authors: "Ying, J."
+  year: 2024
+  title: "Gradual information diffusion across commonly owned firms"
+  venue: "Journal of Financial Economics"
+- doi: "10.3390/math13193059"
+  type: journal
+  authors: "Sun, B., & Liu, Y."
+  year: 2025
+  title: "A SEIQRS Model for Interbank Financial Risk Contagion and Rescue Strategies in Complex Networks"
+  venue: "Mathematics"
+- doi: "10.1111/1475-679X.12560"
+  title: "News Bias in Financial Journalists' Social Networks"
+  authors: "Xu, G."
+  year: 2024
+  venue: "Journal of Accounting Research"
+  type: "journal"
+- doi: "10.1007/s10479-026-07305-8"
+  title: "Uncovering financial network structures and connectedness from textual risk disclosures"
+  authors: "Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y."
+  year: 2026
+  venue: "Annals of Operations Research"
+  type: "journal"
+new_dois:
+- "10.1016/j.jfineco.2024.103852"
+- "10.3390/math13193059"
+- "10.1111/1475-679X.12560"
+- "10.1007/s10479-026-07305-8"
 ---
 
 ## CORE
@@ -154,7 +182,7 @@ new_dois: []
 【文献定位】
 直径这一构念在图论上还有一层"最坏情形保证"的意味, 对本项目的经济解读尤为贴切。若把年度共现网想象成情绪或叙事在银行之间传播的潜在通道, 那么平均路径长度描述的是"一条消息平均要走多远", 直径描述的是"一条消息在最不利的起点—终点组合下最多要走多远"。当媒体把某几家银行密集地并列报道时, 这几家银行会形成紧密子团、彼此距离为一, 但若这些子团之间缺少桥接性报道, 整张网的直径就会被"团与团之间的空隙"撑大。因此直径对网络的宏观形态高度敏感: 一个由若干紧密小团经少数长程边串起来的链状结构, 其直径远大于一个各处均匀相连的稠密图。银行共现网若逐年直径收缩, 通常对应两种情形之一——要么媒体叙事更趋同 (更多银行被写进同一篇金融科技报道、桥接边增多), 要么某些原本孤立的银行被拉入主叙事巨片; 二者都意味着"跨行结构距离"在缩短、潜在溢出更易跨越整张网。这一解读与本项目把共现网视为情绪溢出载体的核心假设一脉相承, 也解释了为何直径与巨片占比、连通分量数被归入同一组 net_* 网络级结构控制、须联读。
 
-在实证金融的语境里, 网络级结构尺度已被反复证明与信息扩散、系统性风险和公司决策相关。Jackson 与 Pernoud (2021) 系统综述金融网络中的系统性风险, 强调网络拓扑 (连通度、路径长度、集中度) 决定冲击如何跨机构传导; 直径作为"最坏可达距离"是刻画传导链条最大跨度的自然量。Yu, Hu 与 Zhong (2024) 与 Xu, Zhao (2024) 分别从信息扩散—资产定价和节点中心性—价格预测两条线, 提供了"金融网络结构承载定价相关信息"的近年证据; Nezami, Chisam 与 Palmatier (2025) 以元分析汇总了中心性与企业绩效的关系, 提示网络位置的经济后果具有跨情境稳健性 (但其注册表注明确不背书具体某个中心性算法的因果解读, 本项目沿用此谨慎口径, 将网络结构变量定位为描述性/控制性协变量而非因果处理)。社区结构文献 (Newman & Girvan 2004; Clauset, Newman & Moore 2004) 与直径互为补充: 直径刻画全网跨度, 模块度刻画分块紧密度, 二者共同勾勒共现网的"松散/抱团"形态, 在本项目中并列为 net_* 网络级结构控制族。银行业媒体—网络的中国制度语境可参照 Zhang 与 Li (2026) 对金融科技驱动网点网络扩张的研究, 为"银行间关系网年际重构"提供了机构层面的现实背景。Grieser 等 (2022) 则以公司财务政策的网络效应示范了把同伴网络结构接入财务面板的完整实证范式, 是本项目把共现网直径等结构量与银行财务哨兵列对接的方法论参照; 其强调网络结构变量须与恰当的固定效应结构配合、避免把网络级广播量误当截面处理, 恰是本家族反复申明的识别边界。整体而言, 本家族在文献坐标上处于三条脉络的交汇处: 社会网络分析的结构度量传统 (Freeman 1978; Watts & Strogatz 1998), 同伴效应识别的计量经济学 (Manski 1993; Bramoullé, Djebbari & Fortin 2009; Bramoullé 等 2020; Boucher 等 2024), 以及金融网络与系统性风险的实证前沿 (Jackson & Pernoud 2021; Yu, Hu & Zhong 2024; Xu & Zhao 2024)。直径在这一坐标里是最粗粒度、最直观的全网跨度标尺, 与更精细的模块度、度分布、中心性分布并列, 共同为"银行共现网如何随媒体金融科技叙事演化、又如何承载跨行情绪溢出"这一核心问题提供结构侧的描述与诊断。
+在实证金融的语境里, 网络级结构尺度已被反复证明与信息扩散、系统性风险和公司决策相关。Jackson 与 Pernoud (2021) 系统综述金融网络中的系统性风险, 强调网络拓扑 (连通度、路径长度、集中度) 决定冲击如何跨机构传导; 直径作为"最坏可达距离"是刻画传导链条最大跨度的自然量。Yu, Hu 与 Zhong (2024) 与 Xu, Zhao (2024) 分别从信息扩散—资产定价和节点中心性—价格预测两条线, 提供了"金融网络结构承载定价相关信息"的近年证据; Nezami, Chisam 与 Palmatier (2025) 以元分析汇总了中心性与企业绩效的关系, 提示网络位置的经济后果具有跨情境稳健性 (但其注册表注明确不背书具体某个中心性算法的因果解读, 本项目沿用此谨慎口径, 将网络结构变量定位为描述性/控制性协变量而非因果处理)。社区结构文献 (Newman & Girvan 2004; Clauset, Newman & Moore 2004) 与直径互为补充: 直径刻画全网跨度, 模块度刻画分块紧密度, 二者共同勾勒共现网的"松散/抱团"形态, 在本项目中并列为 net_* 网络级结构控制族。银行业媒体—网络的中国制度语境可参照 Zhang 与 Li (2026) 对金融科技驱动网点网络扩张的研究, 为"银行间关系网年际重构"提供了机构层面的现实背景。Grieser 等 (2022) 则以公司财务政策的网络效应示范了把同伴网络结构接入财务面板的完整实证范式, 是本项目把共现网直径等结构量与银行财务哨兵列对接的方法论参照; 其强调网络结构变量须与恰当的固定效应结构配合、避免把网络级广播量误当截面处理, 恰是本家族反复申明的识别边界。Ying (2024, Journal of Financial Economics) 考察信息如何沿企业间共同所有权网络逐步扩散、扩散速度与网络结构距离相关, 为本家族直径刻画信息跨网络传导最坏情形距离的解读提供了信息扩散—网络路径长度关联的近年实证参照; Sun 与 Liu (2025, Mathematics) 在复杂网络拓扑 (含路径长度与连通结构) 框架下建模银行间金融风险传染与救助策略, 呼应本家族把网络直径视为跨行风险/情绪传导链条最大跨度诊断指标的构念。Xu (2024, Journal of Accounting Research) 发现财经记者社会网络中的连带关系为其新闻报道注入系统性偏向, 为本家族共现网络承载信息传播偏误提供近年实证参照。Li, Yuan, Zhu, Emrouznejad, Hao 与 Jin (2026, Annals of Operations Research) 以文本风险披露构建企业间相似度网络并追踪连通性演化, 方法学上呼应本家族由媒体共现文本构图并度量年度网络跨度的做法。整体而言, 本家族在文献坐标上处于三条脉络的交汇处: 社会网络分析的结构度量传统 (Freeman 1978; Watts & Strogatz 1998), 同伴效应识别的计量经济学 (Manski 1993; Bramoullé, Djebbari & Fortin 2009; Bramoullé 等 2020; Boucher 等 2024), 以及金融网络与系统性风险的实证前沿 (Jackson & Pernoud 2021; Yu, Hu & Zhong 2024; Xu & Zhao 2024)。直径在这一坐标里是最粗粒度、最直观的全网跨度标尺, 与更精细的模块度、度分布、中心性分布并列, 共同为"银行共现网如何随媒体金融科技叙事演化、又如何承载跨行情绪溢出"这一核心问题提供结构侧的描述与诊断。
 
 【识别策略定位】
 必须清醒界定本家族在识别链条中的角色: 它是网络级 (年度广播) 变量, 对全体银行在给定年份取同一值, 因此在含年份固定效应 (year FE) 的规格中会被完全吸收, 不可作为主处理变量进入以银行—年为观测的双固定效应回归。这与源码注释对相邻 net_modularity_yr / net_assortativity_yr 标注的"year-FE absorbed"是同一道理。其正当用途有三: 其一, 作为纯时间序列的网络演化描述量 (逐年直径轨迹), 服务数据附录与机制叙事; 其二, 在放开年份 FE、以更粗时间维度 (如子样本或跨期) 比较的稳健性表中, 作为刻画网络结构状态的协变量; 其三, 作为构造节点级溢出权重矩阵 W 的结构诊断——直径、巨片占比、连通分量数共同判断"网络是否连通到足以让 peer 效应有意义"。同伴效应识别的经典难题即 Manski (1993) 的反射问题: 内生社会效应、外生情境效应与相关效应在线性均值模型中不可分。Bramoullé, Djebbari 与 Fortin (2009) 证明当网络存在"有间隔的间接连接" (即直径 ≥ 2、非完全图) 时, 邻居的邻居可作为工具, 令内生同伴效应重获识别; Bramoullé 等 (2020) 与 Boucher 等 (2024) 分别以综述和一般理论深化了这一识别基础。这正是本项目关心网络直径的深层动机: 直径 > 2 是"网络结构可用于识别"的必要拓扑前提, 直径退化为 1 (完全图) 则反射问题无解。Grieser 等 (2022) 进一步示范了如何用网络效应刻画公司财务政策的相互影响, 为把银行共现网结构接入财务面板提供了实证范式。
@@ -201,4 +229,8 @@ Newman, M. E. J., & Girvan, M. (2004). Finding and evaluating community structur
 Watts, D. J., & Strogatz, S. H. (1998). Collective dynamics of 'small-world' networks. Nature, 393(6684), 440-442. https://doi.org/10.1038/30918
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
+Ying, J. (2024). Gradual information diffusion across commonly owned firms. Journal of Financial Economics. https://doi.org/10.1016/j.jfineco.2024.103852
+Sun, B., & Liu, Y. (2025). A SEIQRS Model for Interbank Financial Risk Contagion and Rescue Strategies in Complex Networks. Mathematics. https://doi.org/10.3390/math13193059
+Xu, G. (2024). News Bias in Financial Journalists' Social Networks. Journal of Accounting Research. https://doi.org/10.1111/1475-679X.12560
+Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
 <!-- rendered-citations:end -->

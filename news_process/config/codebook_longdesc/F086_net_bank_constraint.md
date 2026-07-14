@@ -211,7 +211,35 @@ citations:
   vol: 1
   issue: 3
   pages_or_artno: 215-239
-new_dois: []
+- doi: "10.1086/730630"
+  type: journal
+  authors: "Burt, R. S., & Opper, S."
+  year: 2024
+  title: "Guanxi and Structural Holes: Strong Bridges from Relational Embedding"
+  venue: American Journal of Sociology
+- doi: "10.1287/mnsc.2024.06313"
+  type: journal
+  authors: "Harris, J. H., Spyridopoulos, I., Zekhnini, M., & Brunetti, C."
+  year: 2026
+  title: "The Role of Networks in Loan Syndicate Markets"
+  venue: Management Science
+- doi: "10.1002/smj.3679"
+  title: "Toward an improved causal test of network effects: Does alliance network position enhance firm innovation?"
+  authors: "Hernandez, E., Lee, J. K., & Shaver, J. M."
+  year: 2024
+  venue: "Strategic Management Journal"
+  type: "journal"
+- doi: "10.1016/j.jbusres.2025.115452"
+  title: "Structural holes and firm innovation in industrial clusters: A dual embeddedness perspective"
+  authors: "You, S., Wang, L., Zhou, K. Z., & Jia, L."
+  year: 2025
+  venue: "Journal of Business Research"
+  type: "journal"
+new_dois:
+  - "10.1086/730630"
+  - "10.1287/mnsc.2024.06313"
+  - "10.1002/smj.3679"
+  - "10.1016/j.jbusres.2025.115452"
 ---
 
 ## CORE
@@ -229,7 +257,7 @@ bank_constraint 家族度量的是一家银行在"年度新闻共现网络"中�
 缺失语义遵循 0-vs-NaN 约定。约束在邻居数不足时无定义: producer 对 degree 小于二的银行显式置 NaN (只有零个或一个邻居时结构洞概念退化, 无从谈"邻居之间是否互联"); 当 networkx 约束例程整体抛异常时, 该年全部银行的 constraint 置 NaN。这一"不可计算即 NaN"的约定, 与同 producer 内 Gould 与 Fernandez (1989) 式经纪角色 gf_* 的"真实零经纪记 0.0、分组缺失或不可计算记 NaN"约定保持一致 — 下游回归必须区分"结构上确实不受约束 (低值)"与"无法计算约束 (缺失)", 不可把 NaN 当作零处理, 也不可在描述统计里把 NaN 折算成任何数值填充。需要提醒的是, 本家族不属于本项目已知的 BLAS 浮点非确定网络列 (那三个是 clustering、cfbetween_cent、harmonic_cent 各自的无后缀、_win1、_sent 判据变体); constraint 的计算路径不含谱迭代、随机游走或最短路求解等对浮点求和顺序敏感的环节, 在钉死随机种子与全部 BLAS 线程数为一后逐位可复现, 因此在 golden 重生时不进入需按列名排除的非确定清单。
 
 【文献定位】
-在测量理论谱系上, 本家族上承 Freeman (1978) 的中心度概念厘清与 Burt (1992, 2004) 的结构洞纲领: Freeman (1978) 把"中心"拆解为度、中介、接近三种不可通约的直觉, 提醒任何单一中心度都只捕捉网络地位的一个侧面; Burt (1992) 则把视角从"节点有多中心"转向"节点周围有没有结构洞", 而 Burt (2004) 进一步论证跨越结构洞的经纪者更易获得非冗余信息与"好想法", 为"低约束等于信息与创新优势"提供了机理叙事 — constraint 正是这一纲领的量化闭式。加权网络下的度量口径, 本项目参照 Opsahl 等 (2010) 对度与最短路在加权情形的推广, 以及 Barrat 等 (2004) 对复杂加权网络架构 (强度分布、加权聚类) 的刻画, 二者共同支撑了"用共现计数而非零一边、并以强度比例定义关系投入"的做法。在把网络位置接入经济结果的实证脉络上, Nezami 等 (2025) 对网络中心度与企业绩效关系的元分析给出一个务实的定位: 网络位置确实系统性地关联绩效, 但不同中心度测度的预测力并不一致、异质性可观 — 这恰好从反面支持了本项目并排保留多种正交网络指标 (度、路径、结构洞) 而非单押一个"中心度"的做法, 也提示 constraint 的绩效含义须放在具体机制中审视而非一概而论。在金融网络语境中, Yu 等 (2024) 与 Xu 与 Zhao (2024) 分别论证节点中心度经由信息扩散影响资产定价、以及金融网络中的节点中心度对资产价格预测的增量价值; Gao 等 (2022) 则揭示银行所处的产权网络在贷款决策中的信息角色; Grieser 等 (2022) 记录了公司财务政策沿网络的外溢。这些工作共同说明: 银行在信息网络中的结构位置, 是一个既有理论支撑又有实证回报的构念, 而 constraint 从"结构封闭度、结构洞可利用性"这一独特侧面刻画了它, 与度、路径类指标共同拼出银行网络地位的完整画像。
+在测量理论谱系上, 本家族上承 Freeman (1978) 的中心度概念厘清与 Burt (1992, 2004) 的结构洞纲领: Freeman (1978) 把"中心"拆解为度、中介、接近三种不可通约的直觉, 提醒任何单一中心度都只捕捉网络地位的一个侧面; Burt (1992) 则把视角从"节点有多中心"转向"节点周围有没有结构洞", 而 Burt (2004) 进一步论证跨越结构洞的经纪者更易获得非冗余信息与"好想法", 为"低约束等于信息与创新优势"提供了机理叙事 — constraint 正是这一纲领的量化闭式。加权网络下的度量口径, 本项目参照 Opsahl 等 (2010) 对度与最短路在加权情形的推广, 以及 Barrat 等 (2004) 对复杂加权网络架构 (强度分布、加权聚类) 的刻画, 二者共同支撑了"用共现计数而非零一边、并以强度比例定义关系投入"的做法。在把网络位置接入经济结果的实证脉络上, Nezami 等 (2025) 对网络中心度与企业绩效关系的元分析给出一个务实的定位: 网络位置确实系统性地关联绩效, 但不同中心度测度的预测力并不一致、异质性可观 — 这恰好从反面支持了本项目并排保留多种正交网络指标 (度、路径、结构洞) 而非单押一个"中心度"的做法, 也提示 constraint 的绩效含义须放在具体机制中审视而非一概而论。在金融网络语境中, Yu 等 (2024) 与 Xu 与 Zhao (2024) 分别论证节点中心度经由信息扩散影响资产定价、以及金融网络中的节点中心度对资产价格预测的增量价值; Gao 等 (2022) 则揭示银行所处的产权网络在贷款决策中的信息角色; Grieser 等 (2022) 记录了公司财务政策沿网络的外溢。这些工作共同说明: 银行在信息网络中的结构位置, 是一个既有理论支撑又有实证回报的构念, 而 constraint 从"结构封闭度、结构洞可利用性"这一独特侧面刻画了它, 与度、路径类指标共同拼出银行网络地位的完整画像。Burt 与 Opper (2024, American Journal of Sociology) 以中国关系 (guanxi) 情境重新检验结构洞理论, 论证强关系亦可充当跨越结构洞的桥梁, 为本家族 constraint 所依托的 Burt 结构洞纲领提供了最新的理论延伸与边界条件; Harris 等 (2026, Management Science) 证明银行在贷款银团网络中的连接位置影响其组建银团的规模与费用收益, 为银行网络结构位置具有实证经济后果这一构念提供了最新的银行业场景证据。Hernandez, Lee 与 Shaver (2024, Strategic Management Journal) 提出区分自驱动与他驱动网络变化的研究设计以改进结构洞对企业创新因果效应的识别, 发现结构洞 (而非网络闭合) 仅在自驱动网络变化下促进创新, 为本家族 constraint 指标的因果解释边界提供最新方法论参照。You, Wang, Zhou 与 Jia (2025, Journal of Business Research) 以中国产业集群企业样本论证结构洞对企业创新的影响可为负向, 其效应受经纪企业的社会与政治嵌入性调节, 为 constraint (结构洞倒数意义上的约束) 与经济结果关系的机理提供了与 Burt 经典纲领相反方向的最新场景证据, 提示解释须视具体情境机制而非一概而论。
 
 【识别策略定位】
 本家族在因果识别链条中的定位需谨慎陈述, 且这一谨慎有其技术根源。须先厘清一点: constraint 在数学上是网络拓扑的确定性函数 — 给定年度邻接矩阵, 每家银行的约束值由其 ego 网内部的关系投入比例唯一决定, 不含任何行为方程或随机扰动。因此当它作为回归右手边解释某个银行结果 (如融资成本、金科投资、绩效) 时, 所面临的并非 Manski (1993) 反射问题 (reflection problem) 意义上最严格的"同时性不可分" — 反射问题针对的是"个体行为受其参照组当期平均行为影响"这一联立结构, 内生效应 (endogenous effect)、外生情境效应 (contextual effect) 与相关效应 (correlated effect) 在线性均值模型下无法分离; 而 constraint 作为一个预先构造的结构位置协变量, 更贴切的识别威胁是相关效应: 某些未被观测的因素 (银行业务战略、地域、被监管关注度) 可能同时驱动它在新闻共现网络中的结构位置与它的经济结果, 使 constraint 的系数吸收了这层混淆而非纯粹的"结构约束因果"。Bramoullé 等 (2009) 证明, 当网络含有非完全传递的三元结构 (即存在"我的朋友的朋友并非我的朋友"这类开放三角) 时, 二阶、三阶邻居的特征可作为工具, 内生与外生同伴效应因而可被分离识别; Bramoullé 等 (2020) 的综述进一步把这一"利用网络拓扑的不完全传递性实现识别"的条件系统化, 并厘清其对网络测量误差与选择性连边的敏感性; Boucher 等 (2024) 则把同伴效应从线性均值模型推广到更一般的社会互动理论框架, 说明识别结论对效用函数形式与互动机制设定的依赖, 提醒任何"网络位置到结果"的因果读法都须交代其背后的行为假设。
@@ -287,4 +315,8 @@ Burt, R. S. (2004). Structural holes and good ideas. American Journal of Sociolo
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
 Gould, R. V., & Fernandez, R. M. (1989). Structures of mediation: A formal approach to brokerage in transaction networks. Sociological Methodology, 19, 89-126. https://doi.org/10.2307/270949
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
+Burt, R. S., & Opper, S. (2024). Guanxi and Structural Holes: Strong Bridges from Relational Embedding. American Journal of Sociology. https://doi.org/10.1086/730630
+Harris, J. H., Spyridopoulos, I., Zekhnini, M., & Brunetti, C. (2026). The Role of Networks in Loan Syndicate Markets. Management Science. https://doi.org/10.1287/mnsc.2024.06313
+Hernandez, E., Lee, J. K., & Shaver, J. M. (2024). Toward an improved causal test of network effects: Does alliance network position enhance firm innovation?. Strategic Management Journal. https://doi.org/10.1002/smj.3679
+You, S., Wang, L., Zhou, K. Z., & Jia, L. (2025). Structural holes and firm innovation in industrial clusters: A dual embeddedness perspective. Journal of Business Research. https://doi.org/10.1016/j.jbusres.2025.115452
 <!-- rendered-citations:end -->

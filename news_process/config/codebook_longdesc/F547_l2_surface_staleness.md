@@ -112,9 +112,30 @@ citations:
   vol: 21
   issue: 4
   pages_or_artno: 1323-1344
+- doi: "10.2139/ssrn.4555832"
+  type: wp
+  authors: "Glasserman, P., Mamaysky, H., & Qin, J."
+  year: 2023
+  title: "New News is Bad News"
+  venue: "SSRN Electronic Journal (Working Paper No. 4555832)"
+- doi: "10.1145/3701716.3715303"
+  title: "Benchmarking Near-Duplicate Detection in the era of Pay-walled News"
+  authors: "Kumar, A., Tumre, S., & Patil, S."
+  year: 2025
+  venue: "Companion Proceedings of the ACM on Web Conference 2025 (WWW '25 Companion)"
+  type: "wp"
+- doi: "10.1007/s11142-025-09897-1"
+  title: "News-based investor disagreement and stock returns"
+  authors: "Li, S. Z., & Luan, Z."
+  year: 2025
+  venue: "Review of Accounting Studies"
+  type: "journal"
 new_dois:
 - 10.1016/j.jacceco.2017.07.002
 - 10.1016/j.jacceco.2015.09.002
+- "10.2139/ssrn.4555832"
+- "10.1145/3701716.3715303"
+- "10.1007/s11142-025-09897-1"
 ---
 
 ## CORE
@@ -130,7 +151,7 @@ surface_staleness 的核心算法是字符 shingle 上的 MinHash 近似 Jaccard
 【文献定位】
 panel 级另有一个配套统计量 staleness_corr, 记录 surface 与 semantic 两支路陈旧度在整个语料上的相关性, 它不属于本家族的逐文列, 但为读者评估 "词面陈旧" 与 "语义陈旧" 的重叠度提供全局参照, 与本家族 surface 三列配合解读。
 
-本家族在文献谱系上处于三条线索的交汇处。第一条是新闻陈旧度与资产定价: Tetlock (2011) 奠定 "词面重叠即陈旧" 的操作化并给出 return reversal 证据, Wu (2025) 则从更一般的 "文本新颖性" 视角讨论新颖度与影响力的关系, 为 "新颖 (低陈旧) 报道更具信息价值" 的假设提供跨领域佐证; Fang & Peress (2009) 关于媒体报道与股票横截面收益的经典证据, 则从 "报道即信息" 的方向说明媒体覆盖本身携带定价相关信号, 而陈旧度正是把这类覆盖按信息新颖性再切分的调节维度。第二条是会计与披露文本学: Lang & Stice-Lawrence (2015) 与 Dyer, Lang & Stice-Lawrence (2017) 把 "套话/公式化措辞占比" 与 "披露文本随时间的演化" 作为文本质量与信息含量的代理, 与本项目 boilerplate 家族同源, 也间接支撑 "高度重复的词面表述携带较少增量信息" 这一 surface_staleness 的构念前提; Bushee, Gow & Taylor (2018) 关于语言复杂度究竟是混淆还是信息的辨析, 以及 Kim, Muhn & Nikolaev (2023) 对 "膨胀披露 (bloated disclosure)" 稀释增量信息的量化, 都从不同侧面印证 "文本冗余度与其信息含量负相关" 的方向, 与本家族 "越陈旧越少增量信息" 的假设同调。Blankespoor, deHaan & Marinovic (2020) 对披露处理成本与投资者信息选择的综述进一步提示, 陈旧/冗余文本会抬高信息处理成本、压低有效信息获取, 使陈旧度成为一个具有市场后果的文本质量维度。第三条是文本相似度的度量与定价: Liu, Cao & Wen (2024) 直接把 "企业与政府文本的相似度" 操作化为可度量、可进入资产定价的连续变量, 与本家族把 "整篇 vs 历史报道的相似度" 物化为连续陈旧度分值的思路方法学同构, 为 "文本相似度是一个一等的、有定价含义的度量" 提供了最贴近的近期支撑; 而 Loughran & McDonald (2016, 2020) 两篇文本分析权威综述则确立了本家族所处的方法学范式 —— 在财经文本上以可复现、可审计的量化度量刻画文本属性, 是本项目所有文本度量列 (含 surface_staleness) 共同遵循的方法学底座。中文语境上, 姜富伟、孟令超、唐国豪 (2021) 对中文媒体文本情绪与股票回报预测的研究, 说明中文财经媒体文本本身即携带可被量化并进入定价的信号, 为本家族把词面陈旧度从英文语料迁移到中文银行金科报道语料提供了本土可行性佐证。本家族与 boilerplate 家族出自同一执行计划下的非极性文本维度组, 但测度对象不同: boilerplate 度量的是 "篇内命中语料级高频套话短语的比率" (单篇 vs 语料级套话集), surface_staleness 度量的是 "整篇 vs 具体历史报道的相似度" (两篇之间的 Jaccard), 二者正交、各自成列, 不得互相替代。把这两条文本学线索接到银行金科研究上, 陈旧度可作为一个新闻质量/信息含量的控制变量或识别工具: 在研究媒体报道对银行行为、市场反应或政策传导的影响时, 剔除或调节高陈旧 (旧闻转载) 报道有助于把真实的增量新闻信号从例行通稿的噪声中分离出来。Tetlock (2011) 的 return reversal 结果进一步提示, 陈旧信息可能诱发短期误定价并随后反转, 因此陈旧度不仅是数据清洗维度, 本身也可能是一个具有行为金融含义的解释变量。Wu (2025) 关于新颖性与影响力关系的讨论则从产出端佐证: 更新颖的文本 (低陈旧) 往往对应更高的后续影响力, 与本家族 "低陈旧报道携带更多增量信息" 的假设方向一致。
+本家族在文献谱系上处于三条线索的交汇处。第一条是新闻陈旧度与资产定价: Tetlock (2011) 奠定 "词面重叠即陈旧" 的操作化并给出 return reversal 证据, Wu (2025) 则从更一般的 "文本新颖性" 视角讨论新颖度与影响力的关系, 为 "新颖 (低陈旧) 报道更具信息价值" 的假设提供跨领域佐证; Fang & Peress (2009) 关于媒体报道与股票横截面收益的经典证据, 则从 "报道即信息" 的方向说明媒体覆盖本身携带定价相关信号, 而陈旧度正是把这类覆盖按信息新颖性再切分的调节维度。第二条是会计与披露文本学: Lang & Stice-Lawrence (2015) 与 Dyer, Lang & Stice-Lawrence (2017) 把 "套话/公式化措辞占比" 与 "披露文本随时间的演化" 作为文本质量与信息含量的代理, 与本项目 boilerplate 家族同源, 也间接支撑 "高度重复的词面表述携带较少增量信息" 这一 surface_staleness 的构念前提; Bushee, Gow & Taylor (2018) 关于语言复杂度究竟是混淆还是信息的辨析, 以及 Kim, Muhn & Nikolaev (2023) 对 "膨胀披露 (bloated disclosure)" 稀释增量信息的量化, 都从不同侧面印证 "文本冗余度与其信息含量负相关" 的方向, 与本家族 "越陈旧越少增量信息" 的假设同调。Blankespoor, deHaan & Marinovic (2020) 对披露处理成本与投资者信息选择的综述进一步提示, 陈旧/冗余文本会抬高信息处理成本、压低有效信息获取, 使陈旧度成为一个具有市场后果的文本质量维度。第三条是文本相似度的度量与定价: Liu, Cao & Wen (2024) 直接把 "企业与政府文本的相似度" 操作化为可度量、可进入资产定价的连续变量, 与本家族把 "整篇 vs 历史报道的相似度" 物化为连续陈旧度分值的思路方法学同构, 为 "文本相似度是一个一等的、有定价含义的度量" 提供了最贴近的近期支撑; 而 Loughran & McDonald (2016, 2020) 两篇文本分析权威综述则确立了本家族所处的方法学范式 —— 在财经文本上以可复现、可审计的量化度量刻画文本属性, 是本项目所有文本度量列 (含 surface_staleness) 共同遵循的方法学底座。中文语境上, 姜富伟、孟令超、唐国豪 (2021) 对中文媒体文本情绪与股票回报预测的研究, 说明中文财经媒体文本本身即携带可被量化并进入定价的信号, 为本家族把词面陈旧度从英文语料迁移到中文银行金科报道语料提供了本土可行性佐证。Glasserman, Mamaysky & Qin (2023, SSRN Electronic Journal) 以新闻文本分布随时间变化的新颖度 (熵测度) 预测股票市场收益与宏观经济下行, 与本家族用词面重叠度刻画陈旧度构成同一新闻新颖性—市场后果研究线索的最新实证支撑。本家族与 boilerplate 家族出自同一执行计划下的非极性文本维度组, 但测度对象不同: boilerplate 度量的是 "篇内命中语料级高频套话短语的比率" (单篇 vs 语料级套话集), surface_staleness 度量的是 "整篇 vs 具体历史报道的相似度" (两篇之间的 Jaccard), 二者正交、各自成列, 不得互相替代。把这两条文本学线索接到银行金科研究上, 陈旧度可作为一个新闻质量/信息含量的控制变量或识别工具: 在研究媒体报道对银行行为、市场反应或政策传导的影响时, 剔除或调节高陈旧 (旧闻转载) 报道有助于把真实的增量新闻信号从例行通稿的噪声中分离出来。Tetlock (2011) 的 return reversal 结果进一步提示, 陈旧信息可能诱发短期误定价并随后反转, 因此陈旧度不仅是数据清洗维度, 本身也可能是一个具有行为金融含义的解释变量。Wu (2025) 关于新颖性与影响力关系的讨论则从产出端佐证: 更新颖的文本 (低陈旧) 往往对应更高的后续影响力, 与本家族 "低陈旧报道携带更多增量信息" 的假设方向一致。Kumar, Tumre & Patil (2025, WWW '25 Companion) 在付费墙新闻场景下对 MinHash-LSH、SimHash 与句向量方法做近重复检测基准评测, 发现哈希类方法准确率显著低于神经方法, 为本家族选用的 MinHash 近似 Jaccard 词面相似度方法提供了最新的方法学效度边界参照。Li & Luan (2025, Review of Accounting Studies) 以新闻文本构造投资者分歧度量并检验其对股票收益的预测力, 与本家族把新闻词面重复/陈旧度作为信息含量调节变量的思路同属最新的新闻文本—资产定价实证支撑。
 
 【识别策略定位】
 在计量识别上, surface_staleness 家族是一条纯词面 (lexical/surface) 的信息新颖性测度轨, 与 semantic_staleness 家族构成一对刻意区分的互补支路: 前者捕捉字面重复, 后者 (由 stage 26 semantic 支路以 Faiss 余弦嵌入计算) 捕捉 "措辞不同但语义近似" 的深层重复。二者共同刻画陈旧度的两个正交侧面, panel 级另产 staleness_corr 记录二者的相关性以便读者评估二者的重叠度。关键的口径铁律是: surface_staleness 是嵌入派生度量的 carve-out —— 由于它基于 MinHash 字符 n-gram 而非任何 API 嵌入, 它没有 co-primary 双轨嵌入体系下的 `_lg` 孪生列; 与之对照的 semantic_staleness 才各算两遍 (Qwen 主轨无后缀 + text-embedding-3-large 的 `_lg` 孪生, 两轨维度不同 4096/3072, 余弦维度无关绝不混算, 各自 just-identified 并排、互为稳健性不分主次、禁混进同一 over-identified Hansen J)。因此在任何涉及 `_lg` 的批量列操作或 both-or-neither 平价守卫里, surface_staleness 三列都应被显式排除, 不能被误当作缺失孪生的孤儿列。作为工具变量或稳健性对照使用时, surface 轨与 semantic 轨应各自单独进入识别式, 不应把两条不同测度机制的陈旧度硬塞进同一超辨识 Hansen J 的过度识别检验。同理, full/ctx/ss 三条文本轨的 surface_staleness 属规格稳健性并排 (镜像本项目政治词权重梯度、词典消融梯度、共现判据敏感性等先例的口径): 三轨各自 just-identified 单独进入回归、互为稳健性、不分主次, 证明主结论不被文本口径选择所驱动, 而不应把三轨并入同一过度识别工具集。这一 "各自 just-identified 并排、禁混同一 over-identified Hansen J" 的铁律贯穿本项目所有三轨/co-primary 双轨/梯子/per-model 度量族, surface_staleness 家族在其中的定位是: 三轨 (文本口径梯子) 与 semantic 轨 (词面 vs 语义机制对照, 且 semantic 侧另含 `_lg` co-primary 双轨) 共同构成陈旧度构念的多重稳健性对照矩阵, 但每一维都需分别进入识别式。
@@ -171,4 +192,7 @@ Lang, M., & Stice-Lawrence, L. (2015). Textual analysis and international financ
 Tetlock, P. C. (2011). All the news that's fit to reprint: Do investors react to stale information?. Review of Financial Studies, 24(5), 1481-1512. https://doi.org/10.1093/rfs/hhq141
 Fang, L., & Peress, J. (2009). Media coverage and the cross-section of stock returns. The Journal of Finance, 64(5), 2023-2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x
 姜富伟, 孟令超, 唐国豪. (2021). 媒体文本情绪与股票回报预测. 经济学(季刊), 21(4), 1323-1344. https://doi.org/10.13821/j.cnki.ceq.2021.04.10
+Glasserman, P., Mamaysky, H., & Qin, J. (2023). New News is Bad News. SSRN Electronic Journal (Working Paper No. 4555832) [Working Paper]. https://doi.org/10.2139/ssrn.4555832
+Kumar, A., Tumre, S., & Patil, S. (2025). Benchmarking Near-Duplicate Detection in the era of Pay-walled News. Companion Proceedings of the ACM on Web Conference 2025 (WWW '25 Companion) [Working Paper]. https://doi.org/10.1145/3701716.3715303
+Li, S. Z., & Luan, Z. (2025). News-based investor disagreement and stock returns. Review of Accounting Studies. https://doi.org/10.1007/s11142-025-09897-1
 <!-- rendered-citations:end -->

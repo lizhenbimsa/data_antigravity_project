@@ -47,7 +47,23 @@ citations:
   vol: 68
   issue: 7
   pages_or_artno: 5514-5532
-new_dois: []
+- doi: "10.1016/j.eswa.2024.125739"
+  title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
+  authors: "Ma, Y., Zhang, T., & Zhang, P."
+  year: 2025
+  venue: "Expert Systems with Applications"
+  type: "journal"
+  one_sentence_zh: "构建面向中国本土投资者的中文细粒度情感词典 (CN-FSD), 支持本家族在中文金融语域词典法情感消融梯度设计上的方法论参照。"
+- doi: "10.1111/1911-3846.13046"
+  title: "Local newspaper closures and bank loan contracts"
+  authors: "Ma, Z., Stice, D., Stice, H., & Zhang, Y."
+  year: 2025
+  venue: "Contemporary Accounting Research"
+  type: "journal"
+  one_sentence_zh: "以地方报纸停刊为媒体覆盖退出的外生冲击, 考察其对银行贷款契约的影响, 为本家族 exc_ 前缀退出媒体剔除设计提供实证文献支撑。"
+new_dois:
+  - "10.1016/j.eswa.2024.125739"
+  - "10.1111/1911-3846.13046"
 ---
 
 ## CORE
@@ -59,7 +75,7 @@ new_dois: []
 计算分三层, 与家族其余同源家族 (如无消融后缀的 exc_yao_2021_score) 共享同一聚合骨架, 差异集中在文章级打分环节。第一层是文章级词典打分: tone_words.py 的 classify_batch 对每篇报道逐轨调用 _compute_sentiment_with_rules, 在分词后遍历命中词, 对每个情感词取其基准极性得分; 本列对应的调用把 apply_negation 与 apply_degree 均锁为 False、apply_adversative 锁为 True——否定词与程度副词的识别、continue 分支与窗口递减骨架仍然保留 (与其余消融变体共享同一 scoping 机制, 只是数值效应被锁), 但否定不翻号、程度倍率恒为 1.0, 只有命中转折词 (adversative words, 如"但是""然而"类连接词) 时才对被强调分句内的情感词施加 ADVERSATIVE_BOOST 倍率放大。逐词最终贡献累加为 total_score, 归一化得分 = total_score / Σ|final_score| ∈ [-1, +1], 即以本变体自身的加权幅度和为分母做自归一化 (self-normalize), 而非借用全规则档的分母——这意味着七个消融变体 (raw/negonly/degonly/advonly/negdeg/negadv/degadv) 与叠满三规则的 full 各自独立归一化, 相邻档位之差并非可加分解的"某规则纯贡献" (审计口径 MATH-1): 否定与程度作用于同一词时倍率是乘在翻转后幅度上的, 含交互项, 且分母本身随启用规则集合变化而变化, 因此本列与 full 列之差不能解读为"转折规则的独立边际效应", 只能作为消融稳健性对照读数, 实测 corr(full, 各消融变体) 高度共线 (corr≈0.99 量级)。第二层是退出媒体识别: attention_media.py 的 detect_defacto_cessation 以"话题覆盖退出"为停刊的保守代理, 取数据实测退出与 NPPA 名录交叉验证的并集, 标记 _is_ceased_media, 这是覆盖退出而非经证实的出版停刊, 论文表述须用保守稳健性口径而非严格停刊口径。第三层是 bank-year 聚合: compute_media_heterogeneity 在存活媒体子样本 (df_alive) 上按 (target_bank, year) 对文章级 yao_2021_score_advonly{track} 取均值, 动态发现以情感前缀开头的列并生成对应 exc_* 输出; 缺样本格保持 NaN (不零填), 避免把"该银行当年无存活媒体报道"误读为语调为零。
 
 【文献定位】
-词典法情感测度的方法学根基在 Taboada 等 (2011) 系统阐述的基于词典的情感分析框架中, 该文明确指出否定、程度副词与转折结构 (valence shifters) 是极性合成中三类相互独立、须分别刻画的语言学机制, 是本项目三条规则及其全 powerset 消融梯度的直接方法论原型——本列正是把该框架中的转折机制单独隔离出来做敏感性检验。就中文金融语域而言, Du 等 (2022) 指出通用情感词典迁移到专业金融语境会失真, 论证了领域与语言双重专用的中文金融情感词典 (如本家族依托的 yao_2021) 有必要与其它词典并列互为稳健性, 也间接支持了本项目在规则层面同样做穷举消融而非只信任单一规则组合的研究设计。van Atteveldt 等 (2021) 系统比较人工标注、众包编码、词典法与机器学习算法的效度, 强调任何单一情感测度都需要交叉验证——这一提醒不仅适用于词典/LLM/BERT 三法并置的宏观架构, 也适用于词典内部规则层面的消融梯度: 本列即是把交叉验证原则下沉到"规则粒度"的产物。Frankel 等 (2022) 以机器学习与词典法的直接对照说明词典法在可解释性与可复现性上的比较优势, 但也提示词典法结果对具体规则实现较为敏感, 这正是本项目构造 raw/negonly/degonly/advonly/negdeg/negadv/degadv 全消融梯度、以经验方式而非先验假设去检验该敏感性的直接动机。exc_ 前缀所代表的退出媒体剔除设计, 呼应了媒体覆盖进入退出会系统性改写被报道主体信息环境结构这一支实证文献的关切, 在本列中与规则消融两条正交稳健性线索叠加, 共同构成"样本构成 × 打分规则"二维稳健性网格的一个格点。
+词典法情感测度的方法学根基在 Taboada 等 (2011) 系统阐述的基于词典的情感分析框架中, 该文明确指出否定、程度副词与转折结构 (valence shifters) 是极性合成中三类相互独立、须分别刻画的语言学机制, 是本项目三条规则及其全 powerset 消融梯度的直接方法论原型——本列正是把该框架中的转折机制单独隔离出来做敏感性检验。就中文金融语域而言, Du 等 (2022) 指出通用情感词典迁移到专业金融语境会失真, 论证了领域与语言双重专用的中文金融情感词典 (如本家族依托的 yao_2021) 有必要与其它词典并列互为稳健性, 也间接支持了本项目在规则层面同样做穷举消融而非只信任单一规则组合的研究设计。van Atteveldt 等 (2021) 系统比较人工标注、众包编码、词典法与机器学习算法的效度, 强调任何单一情感测度都需要交叉验证——这一提醒不仅适用于词典/LLM/BERT 三法并置的宏观架构, 也适用于词典内部规则层面的消融梯度: 本列即是把交叉验证原则下沉到"规则粒度"的产物。Frankel 等 (2022) 以机器学习与词典法的直接对照说明词典法在可解释性与可复现性上的比较优势, 但也提示词典法结果对具体规则实现较为敏感, 这正是本项目构造 raw/negonly/degonly/advonly/negdeg/negadv/degadv 全消融梯度、以经验方式而非先验假设去检验该敏感性的直接动机。exc_ 前缀所代表的退出媒体剔除设计, 呼应了媒体覆盖进入退出会系统性改写被报道主体信息环境结构这一支实证文献的关切, 在本列中与规则消融两条正交稳健性线索叠加, 共同构成"样本构成 × 打分规则"二维稳健性网格的一个格点。Ma, Zhang & Zhang (2025, Expert Systems with Applications) 构建面向中国本土投资者的中文细粒度情感词典 CN-FSD, 支持本家族在中文金融语域词典法情感消融梯度设计上的方法论参照; Ma, Stice, Stice & Zhang (2025, Contemporary Accounting Research) 以地方报纸停刊为媒体覆盖退出的外生冲击, 考察其对银行贷款契约的影响, 为本家族 exc_ 前缀退出媒体剔除设计提供实证文献支撑。
 
 ## VAR: exc_yao_2021_score_advonly_full
 
@@ -81,4 +97,6 @@ Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-ba
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
+Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications. https://doi.org/10.1016/j.eswa.2024.125739
+Ma, Z., Stice, D., Stice, H., & Zhang, Y. (2025). Local newspaper closures and bank loan contracts. Contemporary Accounting Research. https://doi.org/10.1111/1911-3846.13046
 <!-- rendered-citations:end -->

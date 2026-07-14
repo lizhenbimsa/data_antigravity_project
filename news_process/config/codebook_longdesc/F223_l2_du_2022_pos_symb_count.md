@@ -12,37 +12,37 @@ upstream:
   - 21_tone_llms.parquet (innovation_substantiveness_full)
   - 22_tone_words.parquet (du_2022_score_full / _ctx / _ss)
 citations:
-  - doi: 10.1016/j.eswa.2024.125739
-    type: journal
-    authors: Ma, Y., Zhang, T., & Zhang, P.
-    year: 2025
-    title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
-    venue: Expert Systems with Applications
-    vol: 264
-    pages_or_artno: 125739
-  - doi: 10.1016/j.frl.2022.102776
-    type: journal
-    authors: Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N.
-    year: 2022
-    title: "Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures"
-    venue: Finance Research Letters
-    vol: 47
-    pages_or_artno: 102776
-  - doi: 10.1093/rof/rfab036
-    type: journal
-    authors: Du, Z., Huang, A. G., Wermers, R., & Wu, W.
-    year: 2022
-    title: "Language and domain specificity: A Chinese financial sentiment dictionary"
-    venue: Review of Finance
-    vol: 26
-    issue: 3
-    pages_or_artno: 673-719
-  - doi: 10.2139/ssrn.3446388
-    type: wp
-    authors: Bian, S., Jia, D., Li, F., & Yan, Z.
-    year: 2021
-    title: "A new Chinese financial sentiment dictionary for textual analysis in accounting and finance"
-    venue: SSRN Working Paper No. 3446388
+- doi: 10.1016/j.eswa.2024.125739
+  type: journal
+  authors: Ma, Y., Zhang, T., & Zhang, P.
+  year: 2025
+  title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
+  venue: Expert Systems with Applications
+  vol: 264
+  pages_or_artno: 125739
+- doi: 10.1016/j.frl.2022.102776
+  type: journal
+  authors: Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N.
+  year: 2022
+  title: "Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures"
+  venue: Finance Research Letters
+  vol: 47
+  pages_or_artno: 102776
+- doi: 10.1093/rof/rfab036
+  type: journal
+  authors: Du, Z., Huang, A. G., Wermers, R., & Wu, W.
+  year: 2022
+  title: "Language and domain specificity: A Chinese financial sentiment dictionary"
+  venue: Review of Finance
+  vol: 26
+  issue: 3
+  pages_or_artno: 673-719
+- doi: 10.2139/ssrn.3446388
+  type: wp
+  authors: Bian, S., Jia, D., Li, F., & Yan, Z.
+  year: 2021
+  title: "A new Chinese financial sentiment dictionary for textual analysis in accounting and finance"
+  venue: SSRN Working Paper No. 3446388
 new_dois: []
 ---
 

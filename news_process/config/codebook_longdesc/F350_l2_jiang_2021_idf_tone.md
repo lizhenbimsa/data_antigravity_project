@@ -32,7 +32,21 @@ citations:
 - {doi: 10.1016/j.jfineco.2013.08.018, type: journal, authors: "Jegadeesh, N., & Wu, D.", year: 2013, title: "Word Power: A New Approach for Content Analysis", venue: "Journal of Financial Economics", vol: "110", issue: "3", pages_or_artno: "712–729"}
 - {doi: 10.2308/TAR-2020-0104, type: journal, authors: "Holzman, E. R., Miller, B. P., & Twedt, B. J.", year: 2023, title: "Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements", venue: "The Accounting Review", vol: "98", issue: "7", pages_or_artno: "315–345"}
 - {doi: 10.1108/eb026526, type: journal, authors: "Spärck Jones, K.", year: 1972, title: "A Statistical Interpretation of Term Specificity and Its Application in Retrieval", venue: "Journal of Documentation", vol: "28", issue: "1", pages_or_artno: "11–21"}
-new_dois: []
+- doi: "10.1002/isaf.1549"
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+  type: "journal"
+- doi: "10.1080/00031305.2025.2539241"
+  title: "A Fisher's Exact Test Justification of the TF–IDF Term-Weighting Scheme"
+  authors: "Sheridan, P., Ahmed, Z., & Farooque, A. A."
+  year: 2025
+  venue: "The American Statistician"
+  type: "journal"
+new_dois:
+  - "10.1002/isaf.1549"
+  - "10.1080/00031305.2025.2539241"
 ---
 
 ## CORE
@@ -47,7 +61,7 @@ jiang_2021_idf_tone 家族测度的是姜富伟、孟令超、唐国豪 (2021, �
 第二族是「子样本切分」的两个变体 — `_app` (限定 LLM locus 分类判定为"应用场景"的报道子集) 与 `_tech` (限定判定为"底层技术"的报道子集), 二者在 `build_aggregation_dict` 的类别聚合分支 (约 L1560-L1600) 内对同一 `jiang_2021_idf_score{track}` 源列做条件均值, 分类依据来自 stage 21 LLM locus 判定 (P4 Gomber 范式下的技术定位维度), 与 IDF 词权重方案本身正交 — app/tech 差分的是"算哪些篇章", vw/mw/hw/std 差分的是"怎么加权/怎么汇总", 无后缀/canonical 差分的是"聚合层面的简单均值"。
 
 【文献定位】
-本家族在方法学谱系上处于三条已核验先例的交汇点: ① 词典构造本体沿用姜富伟等 (2021) 的中文财经情绪词典, 是本仓库对中国语境金融文本情绪测度的本土化锚点之一, 与仓库内 bian_2021/du_2022/yao_2021/you_2018/loughran 等其余五部词典构成"多词典互为稳健性"矩阵 (`DICT_NAMES` 遍历, 各词典各自 just-identified 并排); ② tf-idf 词权重方案直接对应 Gentzkow, Kelly & Taddy (2019) 对 text-as-data 领域词权重技术的系统性综述, 是本仓库处理"高频泛义词稀释情绪信号"问题的标准应对; ③ IDF 权重的数学根源溯自 Spärck Jones (1972) 对 term specificity 的经典统计诠释。此外, `_mw` 变体直接呼应 Holzman, Miller & Twedt (2023) 对媒体权威加权语气的方法论先例, `_vw`/`_hw` 变体与仓库同名的其余词典/LLM 加权族共享同一套加权基础设施 (`sum_mention_density`/`sum_media_authority_weight`/`sum_herd_weight` 三个分母源), 三者均是跨情感测度方法 (词典法/LLM 三家投票/BERT 三模型) 通用的"聚合权重"稳健性维度, 而非 jiang_2021 词典独有。与仓库内 Du et al. (2022,《Review of Finance》) 中文金融情绪词典、Jegadeesh & Wu (2013,《Journal of Financial Economics》) 提出的 word power 内容分析法互为方法学参照, 三者均属"词典法 vs 加权改进版词典法"这一测度谱系, 共同支撑 P1 银行-金科语调 (`bank_fintech_tone`) 主线论文将 jiang_2021 词典法作为 LLM 三家投票之外的独立测度路径纳入跨方法一致性检验 (Krippendorff's alpha / Cohen kappa)。
+本家族在方法学谱系上处于三条已核验先例的交汇点: ① 词典构造本体沿用姜富伟等 (2021) 的中文财经情绪词典, 是本仓库对中国语境金融文本情绪测度的本土化锚点之一, 与仓库内 bian_2021/du_2022/yao_2021/you_2018/loughran 等其余五部词典构成"多词典互为稳健性"矩阵 (`DICT_NAMES` 遍历, 各词典各自 just-identified 并排); ② tf-idf 词权重方案直接对应 Gentzkow, Kelly & Taddy (2019) 对 text-as-data 领域词权重技术的系统性综述, 是本仓库处理"高频泛义词稀释情绪信号"问题的标准应对; ③ IDF 权重的数学根源溯自 Spärck Jones (1972) 对 term specificity 的经典统计诠释。Todd, Bowden & Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 系统综述金融文本情绪分析文献(含 tf-idf 等词权重方案), 为本家族 tf-idf 加权语调测度提供最新方法学谱系定位; Sheridan, Ahmed & Farooque (2025, The American Statistician) 为 tf-idf 词权重方案提供统计检验层面的理论诠释, 支撑本家族逐词 idf 权重构造的方法学正当性。此外, `_mw` 变体直接呼应 Holzman, Miller & Twedt (2023) 对媒体权威加权语气的方法论先例, `_vw`/`_hw` 变体与仓库同名的其余词典/LLM 加权族共享同一套加权基础设施 (`sum_mention_density`/`sum_media_authority_weight`/`sum_herd_weight` 三个分母源), 三者均是跨情感测度方法 (词典法/LLM 三家投票/BERT 三模型) 通用的"聚合权重"稳健性维度, 而非 jiang_2021 词典独有。与仓库内 Du et al. (2022,《Review of Finance》) 中文金融情绪词典、Jegadeesh & Wu (2013,《Journal of Financial Economics》) 提出的 word power 内容分析法互为方法学参照, 三者均属"词典法 vs 加权改进版词典法"这一测度谱系, 共同支撑 P1 银行-金科语调 (`bank_fintech_tone`) 主线论文将 jiang_2021 词典法作为 LLM 三家投票之外的独立测度路径纳入跨方法一致性检验 (Krippendorff's alpha / Cohen kappa)。
 
 三轨口径 (full/ctx/ss) 铁律: `jiang_2021_idf_tone_full` 以全文 (`content_full`=标题+正文) 为扫描域, `jiang_2021_idf_tone_ctx` 以实体窗口 (`content_ctx`=标题+银行/金科实体窗口) 为扫描域, `jiang_2021_idf_tone_ss` 以银行∧金科同句共现窗口 (`content_ss`, 默认 ±1 句半径) 为扫描域; `_ss` 的回退语义镜像 `_ctx`: 当某篇文章无银行∧金科同句共现时, `content_ss` 退化为全文 body 且共享分母的 `ss_is_fallback` 标记为 True, 优雅降级而非产出缺失值。三轨各自 just-identified 并排、互为稳健性、不分主次, 铁律要求禁止将三轨测度混入同一个 over-identified 的 Hansen J 检验; 留篇门控 (是否判定某篇报道为"一篇有效的银行-金科报道") 一律以 full 轨 LLM 验证结果 (`llm_verified_full`) 为准 (2026-06-29 full-only 门控切换), ctx/ss 轨的 `jiang_2021_idf_tone` 系列是"以 full 留篇集为行宇宙"的条件测度/稳健性轨, 而非独立样本。同理, `_vw`/`_mw`/`_hw`/`_std`/`_app`/`_tech` 六个衍生维度彼此正交、各自 just-identified 并排 (聚合权重维度与子样本切分维度互不重叠, 均与三轨维度正交), 不得将任意两个衍生维度混入同一个过度识别的 Hansen J/GMM 检验设定; 在跨方法稳健性叙事中, 应将其视为一组"互相印证、彼此独立"的测度矩阵单元, 而非单一测度的多个候选替代。
 
@@ -187,4 +201,6 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and Domain Specific
 Jegadeesh, N., & Wu, D. (2013). Word Power: A New Approach for Content Analysis. Journal of Financial Economics, 110(3), 712–729. https://doi.org/10.1016/j.jfineco.2013.08.018
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements. The Accounting Review, 98(7), 315–345. https://doi.org/10.2308/TAR-2020-0104
 Spärck Jones, K. (1972). A Statistical Interpretation of Term Specificity and Its Application in Retrieval. Journal of Documentation, 28(1), 11–21. https://doi.org/10.1108/eb026526
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
+Sheridan, P., Ahmed, Z., & Farooque, A. A. (2025). A Fisher's Exact Test Justification of the TF–IDF Term-Weighting Scheme. The American Statistician. https://doi.org/10.1080/00031305.2025.2539241
 <!-- rendered-citations:end -->

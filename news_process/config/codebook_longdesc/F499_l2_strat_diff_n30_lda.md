@@ -15,7 +15,21 @@ citations:
 - {doi: "10.1002/smj.2978", type: journal, authors: "Haans, R. F. J.", year: 2019, title: "What's the value of being different when everyone is? The effects of distinctiveness on performance in homogeneous versus heterogeneous categories", venue: "Strategic Management Journal", vol: "40", issue: "1", pages_or_artno: "3-27"}
 - {doi: "10.1002/smj.3549", type: journal, authors: "Su, J., Gao, X., & Tan, J.", year: 2024, title: "Positioning for optimal distinctiveness: How firms manage competitive and institutional pressures under dynamic and complex environment", venue: "Strategic Management Journal", vol: "45", issue: "2", pages_or_artno: "333-361"}
 - {doi: "10.1257/jel.20181020", type: journal, authors: "Gentzkow, M., Kelly, B., & Taddy, M.", year: 2019, title: "Text as data", venue: "Journal of Economic Literature", vol: "57", issue: "3", pages_or_artno: "535-574"}
-new_dois: []
+- doi: "10.1287/mnsc.2023.4915"
+  title: "Disclosure Similarity and Future Stock Return Comovement"
+  authors: "Dyer, T. A., Roulstone, D. T., & Van Buskirk, A."
+  year: 2024
+  venue: "Management Science"
+  type: "journal"
+- doi: "10.1016/j.ememar.2025.101309"
+  title: "The textual similarity of news content and stock return synchronicity"
+  authors: "Huang, R., Chen, X., & Wu, C."
+  year: 2025
+  venue: "Emerging Markets Review"
+  type: "journal"
+new_dois:
+  - "10.1287/mnsc.2023.4915"
+  - "10.1016/j.ememar.2025.101309"
 ---
 
 ## CORE
@@ -31,7 +45,7 @@ strat_diff_n30_lda 的计算流程为: ①对该期(年度)全体样本文章的
 top-k N 扩展(fix topk-n-expansion, 2026-07-02)将原本仅有 N=5 的 canonical LDA 差异度列(`strat_diff_n5_lda`)系统扩展为 N∈{10,20,30,40,50} 大邻域孪生集合, 覆盖全部方法(TF-IDF char/word · LDA · Embedding Qwen 主轨 · Embedding text-embedding-3-large 的 `_lg` 对等轨)与全部三个文本轨(full/ctx/ss)。strat_diff_n30_lda 正是该扩展中 N=30 一档在 LDA 方法、full 轨上的实现。不同 N 之间互为稳健性、各自 just-identified 并排、不分主次、禁止混入同一 over-identified Hansen J 或同一回归设定——较小 N(如 5)对局部近邻结构更敏感、噪声更大但更贴近"最相似同业"的语义; 较大 N(如 30、50)对局部噪声更稳健但可能引入跨子类别的稀释效应, 研究者应将不同 N 的估计结果并列报告作为规格曲线的一部分, 而非挑选单一 N 作为"最优"设定。
 
 【文献定位】
-本家族的方法学谱系直接对应 Hoberg & Phillips (2016, JPE)提出的文本网络产业分类思想——用文本相似度而非行政行业代码刻画企业间的竞争/战略邻近关系——以及 Guzman & Li (2023, Management Science)将该思路用于测量初创企业战略定位的最近邻方法。构念上呼应 Haans (2019, SMJ)与 Su, Gao & Tan (2024, SMJ)关于企业在同质/异质类别环境下"差异化"绩效效应与"最优区分度"定位策略的组织理论文献, 本指标可视为这类构念在中国银行业新闻文本语境下的经验代理。JSD 作为分布间距离度量的方法论出处为 Lin (1991); LDA 主题模型出处为 Blei, Ng & Jordan (2003)。整体文本-as-data 方法论定位参见 Gentzkow, Kelly & Taddy (2019, Journal of Economic Literature)对文本计量经济学方法的系统综述, 该文亦讨论了主题模型与词袋/嵌入类方法各自的适用边界与解释力权衡, 是本家族在方法选择与稳健性论证上的重要参照。
+本家族的方法学谱系直接对应 Hoberg & Phillips (2016, JPE)提出的文本网络产业分类思想——用文本相似度而非行政行业代码刻画企业间的竞争/战略邻近关系——以及 Guzman & Li (2023, Management Science)将该思路用于测量初创企业战略定位的最近邻方法。构念上呼应 Haans (2019, SMJ)与 Su, Gao & Tan (2024, SMJ)关于企业在同质/异质类别环境下"差异化"绩效效应与"最优区分度"定位策略的组织理论文献, 本指标可视为这类构念在中国银行业新闻文本语境下的经验代理。JSD 作为分布间距离度量的方法论出处为 Lin (1991); LDA 主题模型出处为 Blei, Ng & Jordan (2003)。整体文本-as-data 方法论定位参见 Gentzkow, Kelly & Taddy (2019, Journal of Economic Literature)对文本计量经济学方法的系统综述, 该文亦讨论了主题模型与词袋/嵌入类方法各自的适用边界与解释力权衡, 是本家族在方法选择与稳健性论证上的重要参照。此外, Dyer, Roulstone & Van Buskirk (2024, Management Science) 证明企业间文本披露相似度不仅预测、而且部分驱动了未来股票收益联动, 与本家族基于文本距离刻画企业间(异)同性的方法论直接呼应; Huang, Chen & Wu (2025, Emerging Markets Review) 以中国股票市场新闻文本为对象, 用新闻内容与同业的文本相似度测度信息环境与收益同步性, 方法论与语料场景均与本家族(中文银行/金科新闻文本战略差异度)高度贴近。
 
 ## VAR: strat_diff_n30_lda
 
@@ -61,5 +75,7 @@ Hoberg, G., Phillips, G., & Prabhala, N. (2014). Product market threats, payouts
 Haans, R. F. J. (2019). What's the value of being different when everyone is? The effects of distinctiveness on performance in homogeneous versus heterogeneous categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978
 Su, J., Gao, X., & Tan, J. (2024). Positioning for optimal distinctiveness: How firms manage competitive and institutional pressures under dynamic and complex environment. Strategic Management Journal, 45(2), 333-361. https://doi.org/10.1002/smj.3549
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
+Dyer, T. A., Roulstone, D. T., & Van Buskirk, A. (2024). Disclosure Similarity and Future Stock Return Comovement. Management Science. https://doi.org/10.1287/mnsc.2023.4915
+Huang, R., Chen, X., & Wu, C. (2025). The textual similarity of news content and stock return synchronicity. Emerging Markets Review. https://doi.org/10.1016/j.ememar.2025.101309
 <!-- rendered-citations:end -->
 </content>

@@ -74,7 +74,21 @@ citations:
   vol: 132
   issue: 1
   pages_or_artno: 126-149
-new_dois: []
+- doi: "10.1111/1475-679x.12560"
+  title: "News Bias in Financial Journalists' Social Networks"
+  authors: "Xu, G."
+  year: 2024
+  venue: "Journal of Accounting Research"
+  type: "journal"
+- doi: "10.1016/j.eswa.2024.125739"
+  title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
+  authors: "Wang, et al."
+  year: 2025
+  venue: "Expert Systems with Applications"
+  type: "journal"
+new_dois:
+  - "10.1111/1475-679x.12560"
+  - "10.1016/j.eswa.2024.125739"
 ---
 
 ## CORE
@@ -101,7 +115,7 @@ new_dois: []
 ## VAR: exc_jiang_2021_score_negdeg_ss
 
 【变体差分】
-本列是三轨中的 ss (same-sentence, 同句共现) 轨: 文章级 jiang_2021_score_negdeg_ss 在 content_ss 上统计, content_ss = 标题 prepend 之后, 只保留目标银行与金融科技词同句 (或 config 指定的同句 ±N 句窗, 默认半径 1) 共现的语句。相对 full 与 ctx 两轨, ss 轨的主题聚焦最严, 只在银行与金科真正同句出现的语境里抽取情绪, 信噪比最高、覆盖最窄。ss 轨遵循镜像 ctx 的回退语义: 当某篇报道没有银行与金科同句共现时, content_ss 回退为整篇正文 body, 同时 ss_is_fallback 置 True, 并与 ctx 共享 n_articles 分母; 若上游金科自动机 FINTECH_AC 为 None, 则 _is_fallback 全部为 True, 优雅降级。停刊稳健性聚合与其它两轨一致: 先剔除疑似退出媒体报道再按 bank-year 求均值; negdeg 规则口径 (否定翻转开、程度副词开、转折关) 亦一致。行宇宙同样服从 full-only 门控, ss 为 conditional-on-full 子集测度轨。本列与 _full、_ctx 各自 just-identified 并排, 互为稳健性、不分主次, 禁混进同一 over-identified Hansen J; 在 dev T=2 盘面上 ss 轨因同句共现约束最严而最易取缺失或退化为零方差, 属预期现象, 生产 T=18 语料下正常出值。与不剔除停刊媒体的 jiang_2021 基准 ss 均值相比, 本列仅在存在疑似退出覆盖媒体的 bank-year 上取值不同, 用于检验 ss 轨系数对幸存者偏差的稳定性。同样, negdeg 与其它规则消融变体高度共线 (相关系数约 0.99), 只作互为稳健性并排臂, 各自自归一化、非可加分解, 报相关而不并入同一识别方程; ss 轨的严格同句判据与 stage 13 共现硬过滤的 sentence_radius 是两个不同键, 前者服务情感文本片段裁剪, 后者服务上游丢行, 不可互相复用。
+本列是三轨中的 ss (same-sentence, 同句共现) 轨: 文章级 jiang_2021_score_negdeg_ss 在 content_ss 上统计, content_ss = 标题 prepend 之后, 只保留目标银行与金融科技词同句 (或 config 指定的同句 ±N 句窗, 默认半径 1) 共现的语句。相对 full 与 ctx 两轨, ss 轨的主题聚焦最严, 只在银行与金科真正同句出现的语境里抽取情绪, 信噪比最高、覆盖最窄。ss 轨遵循镜像 ctx 的回退语义: 当某篇报道没有银行与金科同句共现时, content_ss 回退为整篇正文 body, 同时 ss_is_fallback 置 True, 并与 ctx 共享 n_articles 分母; 若上游金科自动机 FINTECH_AC 为 None, 则 _is_fallback 全部为 True, 优雅降级。停刊稳健性聚合与其它两轨一致: 先剔除疑似退出媒体报道再按 bank-year 求均值; negdeg 规则口径 (否定翻转开、程度副词开、转折关) 亦一致。行宇宙同样服从 full-only 门控, ss 为 conditional-on-full 子集测度轨。本列与 _full、_ctx 各自 just-identified 并排, 互为稳健性、不分主次, 禁混进同一 over-identified Hansen J; 在 dev T=2 盘面上 ss 轨因同句共现约束最严而最易取缺失或退化为零方差, 属预期现象, 生产 T=18 语料下正常出值。与不剔除停刊媒体的 jiang_2021 基准 ss 均值相比, 本列仅在存在疑似退出覆盖媒体的 bank-year 上取值不同, 用于检验 ss 轨系数对幸存者偏差的稳定性。同样, negdeg 与其它规则消融变体高度共线 (相关系数约 0.99), 只作互为稳健性并排臂, 各自自归一化、非可加分解, 报相关而不并入同一识别方程; ss 轨的严格同句判据与 stage 13 共现硬过滤的 sentence_radius 是两个不同键, 前者服务情感文本片段裁剪, 后者服务上游丢行, 不可互相复用。发现与公司管理层有工作/校友/社交连接的财经记者在报道中系统性引入媒体偏向, 与本家族排除疑似退出覆盖媒体的稳健性动机同属媒体覆盖选择性偏差范畴, 参见 Xu (2024, Journal of Accounting Research)。基于近180万条中国股吧评论构建中文细粒度情绪词典 (CN-FSD), 与姜富伟等 (2021, 经济学(季刊)) 本土中文财经情绪词典构建路径互为可比证据, 参见 Wang et al. (2025, Expert Systems with Applications)。
 
 <!-- rendered-citations:begin -->
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
@@ -111,4 +125,6 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 姜富伟, 孟令超, & 唐国豪. (2021). 媒体文本情绪与股票回报预测. 经济学(季刊), 21(4), 1323-1344. https://doi.org/10.13821/j.cnki.ceq.2021.04.10
 Jiang, F., Lee, J., Martin, X., & Zhou, G. (2019). Manager sentiment and stock returns. Journal of Financial Economics, 132(1), 126-149. https://doi.org/10.1016/j.jfineco.2018.10.001
+Xu, G. (2024). News Bias in Financial Journalists' Social Networks. Journal of Accounting Research. https://doi.org/10.1111/1475-679x.12560
+Wang, et al. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications. https://doi.org/10.1016/j.eswa.2024.125739
 <!-- rendered-citations:end -->

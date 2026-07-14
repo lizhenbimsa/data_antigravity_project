@@ -9,42 +9,42 @@ upstream:
   - 21_tone_llms.parquet (llm_vote_tone_full → pos_count_full)
   - 40_panel_yearly.parquet (bank-year 聚合)
 citations:
-  - doi: 10.1016/j.jfineco.2021.08.015
-    type: journal
-    authors: Heese, J., Pérez-Cavazos, G., & Peter, C. D.
-    year: 2022
-    title: "When the local newspaper leaves town: The effects of local newspaper closures on corporate misconduct"
-    venue: Journal of Financial Economics
-    vol: 145
-    issue: 2
-    pages_or_artno: 445-463
-  - doi: 10.1016/j.jfineco.2019.06.003
-    type: journal
-    authors: Gao, P., Lee, C., & Murphy, D.
-    year: 2020
-    title: "Financing dies in darkness? The impact of newspaper closures on public finance"
-    venue: Journal of Financial Economics
-    vol: 135
-    issue: 2
-    pages_or_artno: 445-467
-  - doi: 10.1016/j.jfineco.2023.04.008
-    type: journal
-    authors: Fedyk, A., & Hodson, J.
-    year: 2023
-    title: "When can the market identify old news?"
-    venue: Journal of Financial Economics
-    vol: 149
-    issue: 1
-    pages_or_artno: 92-113
-  - doi: 10.1016/j.jeconom.2020.07.053
-    type: journal
-    authors: Shapiro, A. H., Sudhof, M., & Wilson, D. J.
-    year: 2022
-    title: "Measuring news sentiment"
-    venue: Journal of Econometrics
-    vol: 228
-    issue: 2
-    pages_or_artno: 221-243
+- doi: 10.1016/j.jfineco.2021.08.015
+  type: journal
+  authors: Heese, J., Pérez-Cavazos, G., & Peter, C. D.
+  year: 2022
+  title: "When the local newspaper leaves town: The effects of local newspaper closures on corporate misconduct"
+  venue: Journal of Financial Economics
+  vol: 145
+  issue: 2
+  pages_or_artno: 445-463
+- doi: 10.1016/j.jfineco.2019.06.003
+  type: journal
+  authors: Gao, P., Lee, C., & Murphy, D.
+  year: 2020
+  title: "Financing dies in darkness? The impact of newspaper closures on public finance"
+  venue: Journal of Financial Economics
+  vol: 135
+  issue: 2
+  pages_or_artno: 445-467
+- doi: 10.1016/j.jfineco.2023.04.008
+  type: journal
+  authors: Fedyk, A., & Hodson, J.
+  year: 2023
+  title: "When can the market identify old news?"
+  venue: Journal of Financial Economics
+  vol: 149
+  issue: 1
+  pages_or_artno: 92-113
+- doi: 10.1016/j.jeconom.2020.07.053
+  type: journal
+  authors: Shapiro, A. H., Sudhof, M., & Wilson, D. J.
+  year: 2022
+  title: "Measuring news sentiment"
+  venue: Journal of Econometrics
+  vol: 228
+  issue: 2
+  pages_or_artno: 221-243
 new_dois: []
 ---
 

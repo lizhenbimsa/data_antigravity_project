@@ -123,7 +123,21 @@ citations:
   vol: "134"
   issue: "4"
   pages_or_artno: "2135-2202"
-new_dois: []
+- doi: "10.1002/isaf.1549"
+  type: journal
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+- doi: "10.3390/bdcc9100263"
+  type: journal
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  venue: "Big Data and Cognitive Computing"
+new_dois:
+  - "10.1002/isaf.1549"
+  - "10.3390/bdcc9100263"
 ---
 
 ## CORE
@@ -135,7 +149,7 @@ F298 家族收纳三家独立 BERT 情感分类器 (finbert_cn=yiyanghkust/finbe
 每篇文章文本先按 prepend_title 规则拼接标题与对应轨正文 (full=标题+全文, ctx=标题+银行实体窗口正文 content_ctx, ss=标题+银行和金科同句前后各1句窗正文 content_ss; ss 若无同句共现回退为全文 body 且置 ss_is_fallback=True, 镜像 ctx 轨回退语义), 超长文本按 WINDOW_STRIDE_RATIO=0.5 (50% 重叠) 切成多个不超过 512 token (含特殊 token, 有效正文不超过510 token) 的滑动窗口, 各窗口分别推理后按置信度加权池化 (logits 乘以归一化置信度权重求和) 合并为整篇文本的分类概率, 三个模型各自使用自身 tokenizer 独立分词 (词表不同的模型不共享分词结果, 防止跨词表 token id 错配)。批级推理异常时逐篇重试一次, 仍失败才写失败哨兵 (label=None、概率列 NaN、bert_num_windows_{track}=-1), 与空文本 (num_windows=0) 严格区分, 二者均不参与本家族任何列的 bank-year 聚合分母。基线聚合 (无后缀) 在 encode.aggregate_panel 中对该 track 下留篇文章的正面概率列做 groupby(target_bank, year).mean(); std 后缀改用 .std() (ddof=1, 组内 n<2 时为 NaN); app/tech 后缀先按 innovation_locus_full (三家 LLM 多数投票产出的 locus 分类, Gomber et al. 2018 概念化的应用场景/底层技术二分) 切出子样本 df_cat, 再在该子集上对该 track 的正面概率取组内均值, 需特别注意子样本切分依据固定用 full 轨分类标签, 即便被聚合的是 ctx 或 ss 轨情感概率, 这是 M1 阶段遗留设计, 尚待后续 M2 展开为逐轨对角分类; hw/mw/vw 三支加权后缀分别以 herd_weight (跟风衰减权重, 源自 stage 24 herd_decay_processor 的三轨独立衰减权重设计)、media_authority_weight (媒体权威度打分表)、提及密度权重 w (Hassan, Hollander, van Lent & Tahoun 2019, Quarterly Journal of Economics 提出的企业层面文本提及密度加权范式, 该文原用于政治风险测度, 本项目借鉴其加权思路应用于本家族情感测度) 为权重, 面板层先算概率乘以权重的加和与权重本身的加和两个求和列, 再相除得到最终列, 权重和为 0 时结果置 NaN。
 
 【文献定位】
-本家族方法学直接对应 Huang, Wang & Yang (2023, Contemporary Accounting Research) 提出的金融领域微调 BERT 文本信息抽取范式, 该文证明在金融语料上微调过的 BERT 相比通用情感词典与通用预训练模型更能捕捉金融文本的专业语境语义, 是三家 BERT 模型均选用金融领域微调/预训练权重而非通用情感模型的方法学依据。子样本切分所依赖的 locus 分类维度概念化自 Gomber, Kauffman, Parker & Weber (2018, Journal of Management Information Systems) 对金融科技创新的应用场景/基础设施层次划分, 本项目将其转化为 LLM 分类任务再据以切分 BERT 情感子样本, 使得 app/tech 两类后缀能够回答与整体正面语调不同的问题, 即银行在金融科技应用落地报道中的媒体形象是否系统性异于在底层技术布局报道中的形象。微调策略 (分层学习率、滑动窗口长度、序列截断) 参照 Sun, Qiu, Xu & Huang (2019) 关于中文 BERT 文本分类微调的系统性实践建议 (发表于 CCL 2019, Springer LNCS)。作为顶刊方法学锚点, Hassan, Hollander, van Lent, Schwedeler & Tahoun (2023, The Review of Financial Studies) 展示了同一套文本语料到神经网络语义打分到企业-年面板的一般化测度构造范式 (该文测度企业层面对流行病的暴露强度), 本家族的 BERT 正面概率 bank-year 聚合结构与其高度同构, 均是把篇章级模型输出通过等权/加权求和折叠为面板单元层面的连续变量。Loughran & McDonald (2016, Journal of Accounting Research) 的文本分析综述则系统比较了词典法与机器学习法在会计金融文本分析中的适用边界, 为本项目采用词典/LLM/BERT 三线并行而非依赖单一方法提供了方法学正当性依据。vw 后缀所用的提及密度加权思路参照 Hassan, Hollander, van Lent & Tahoun (2019, Quarterly Journal of Economics) 在构造企业层面政治风险暴露度时采用的按文本提及量赋权做法, 该文原始构念是政治风险而非情感, 本家族仅借鉴其"篇章提及密度即可作为该篇对企业相关性权重"的加权范式, 用以在 bank-year 聚合时让与目标银行提及更密集的文章对正面概率均值贡献更大权重, 与该文的政治风险测度构念本身不构成同一构念。
+本家族方法学直接对应 Huang, Wang & Yang (2023, Contemporary Accounting Research) 提出的金融领域微调 BERT 文本信息抽取范式, 该文证明在金融语料上微调过的 BERT 相比通用情感词典与通用预训练模型更能捕捉金融文本的专业语境语义, 是三家 BERT 模型均选用金融领域微调/预训练权重而非通用情感模型的方法学依据。子样本切分所依赖的 locus 分类维度概念化自 Gomber, Kauffman, Parker & Weber (2018, Journal of Management Information Systems) 对金融科技创新的应用场景/基础设施层次划分, 本项目将其转化为 LLM 分类任务再据以切分 BERT 情感子样本, 使得 app/tech 两类后缀能够回答与整体正面语调不同的问题, 即银行在金融科技应用落地报道中的媒体形象是否系统性异于在底层技术布局报道中的形象。微调策略 (分层学习率、滑动窗口长度、序列截断) 参照 Sun, Qiu, Xu & Huang (2019) 关于中文 BERT 文本分类微调的系统性实践建议 (发表于 CCL 2019, Springer LNCS)。作为顶刊方法学锚点, Hassan, Hollander, van Lent, Schwedeler & Tahoun (2023, The Review of Financial Studies) 展示了同一套文本语料到神经网络语义打分到企业-年面板的一般化测度构造范式 (该文测度企业层面对流行病的暴露强度), 本家族的 BERT 正面概率 bank-year 聚合结构与其高度同构, 均是把篇章级模型输出通过等权/加权求和折叠为面板单元层面的连续变量。Loughran & McDonald (2016, Journal of Accounting Research) 的文本分析综述则系统比较了词典法与机器学习法在会计金融文本分析中的适用边界, 为本项目采用词典/LLM/BERT 三线并行而非依赖单一方法提供了方法学正当性依据。vw 后缀所用的提及密度加权思路参照 Hassan, Hollander, van Lent & Tahoun (2019, Quarterly Journal of Economics) 在构造企业层面政治风险暴露度时采用的按文本提及量赋权做法, 该文原始构念是政治风险而非情感, 本家族仅借鉴其"篇章提及密度即可作为该篇对企业相关性权重"的加权范式, 用以在 bank-year 聚合时让与目标银行提及更密集的文章对正面概率均值贡献更大权重, 与该文的政治风险测度构念本身不构成同一构念。Todd, Bowden & Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 系统综述金融文本情感分析文献并指明未来研究方向, 其中对 BERT 等神经网络方法与传统词典法的对比脉络梳理, 为本家族三线并行 (词典/LLM/BERT) 的方法学选择提供了最新文献定位。Chuang, He & Hu (2025, Big Data and Cognitive Computing) 针对中文金融新闻构建情感分类与股价预测联合框架, 系统比较 BERT 等多种词嵌入及 LLM 微调模型在中文金融文本情感任务上的表现, 与本家族三家中文/金融 BERT 模型并行测度设计高度对应。
 
 ## VAR: fin_sent_zh_pos_app_ctx
 
@@ -459,4 +473,6 @@ Sun, C., Qiu, X., Xu, Y., & Huang, X. (2019). How to fine-tune BERT for text cla
 Gomber, P., Kauffman, R. J., Parker, C., & Weber, B. W. (2018). On the fintech revolution: Interpreting the forces of innovation, disruption, and transformation in financial services. Journal of Management Information Systems, 35(1), 220-265. https://doi.org/10.1080/07421222.2018.1440766
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
 Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-Level Political Risk: Measurement and Effects. Quarterly Journal of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 <!-- rendered-citations:end -->

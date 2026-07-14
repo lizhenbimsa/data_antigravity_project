@@ -51,7 +51,23 @@ citations:
   vol: '62'
   issue: '3'
   pages_or_artno: 1139-1168
-new_dois: []
+- doi: "10.1111/jofi.70009"
+  title: "Institutional Investor Attention"
+  authors: "Kwan, A., Liu, Y., & Matthies, B."
+  year: 2026
+  venue: "The Journal of Finance"
+  type: "journal"
+  one_sentence_zh: "机构投资者对宏观与个股新闻的注意力配置存在系统性异质,可用交易活动与持仓调整识别,为本族'新闻覆盖占比即注意力代理'的构念提供最新顶刊佐证。"
+- doi: "10.1111/jofi.13377"
+  title: "Business News and Business Cycles"
+  authors: "Bybee, L., Kelly, B., Manela, A., & Xiu, D."
+  year: 2024
+  venue: "The Journal of Finance"
+  type: "journal"
+  one_sentence_zh: "基于80万篇华尔街日报文章构建可解释的新闻主题注意力指数,证明媒体议题关注度对产出、就业与股市回报具有显著预测力,呼应本族以新闻篇数占比刻画议程份额的方法论。"
+new_dois:
+  - "10.1111/jofi.70009"
+  - "10.1111/jofi.13377"
 ---
 
 ## CORE
@@ -73,7 +89,7 @@ NaN 语义存在两种刻意不对称的来源: 其一是 min_articles=5 守卫�
 本族与同一 producer 内并行产出的总量孪生列 (ft_vol_yr/prov/city, 不属本 F318 家族但共享同一计算管线) 构成"比值 vs 总量"互为稳健性的一对测度: ft_attn_* 是 intensive 议程份额 (对样本规模不敏感, 忽略绝对新闻热度), ft_vol_* = ln(1 + 曝露加权 LOO fintech 篇数) 是 extensive 覆盖规模 (Fang & Peress 2009 覆盖计数范式, ∈[0,+∞))。两者复用完全相同的 geo×year 单元划分、min_articles=5 守卫与曝露加权 LOO 映射, 因此共享同一非缺样本, 可直接对照, 但二者高度共线, 应分别进入各自独立回归、不应同时进入同一右手边设定。本族三列本身不涉及情感三轨 (full/ctx/ss) 划分: 其分子仅依赖 is_fintech_news 布尔标记 (源自 stage 15 fintech_intensity 判定加 stage-21 verified 域门控), 不涉及 llm_vote_score/tone 等情感测度, 因此不存在"银行∧金科同句" (_ss) 或"实体窗口" (_ctx) 这类文本轨概念上的分裂——这是本族与同一 producer 文件内其它三轨情感列的关键区别, 混淆二者会误判本族存在不存在的三轨口径。
 
 【文献定位】
-本族的核心识别逻辑与顶刊范式一脉相承: Fang & Peress (2009, The Journal of Finance) 首次系统论证媒体覆盖率 (coverage ratio) 作为公众关注度的合法代理变量, 并证明低媒体覆盖股票存在显著的"被忽视效应" (neglected-firm effect) 溢价, 为本族"新闻覆盖占比 = 议程份额"的构造提供了直接的方法论先例。Da, Engelberg & Gao (2011, The Journal of Finance) 提出以 Google 搜索量指数 (SVI) 度量直接注意力, 并系统比较搜索量与媒体覆盖两类代理的异同, 本族据此文献作对照式披露: 项目缺乏搜索量数据, 以报纸覆盖度量间接注意力属已知的替代方案而非最优方案。Gurun & Butler (2012, The Journal of Finance) 关于本地媒体偏斜 (local media slant) 与本地广告的研究进一步支持了本族地理分层构造 (省/市) 的合理性: 媒体的地理属性会系统性影响其报道倾向与覆盖密度, 因而在企业层面构造注意力代理时应显式控制/分层地理维度, 而非仅用全国汇总的年度序列。Tetlock (2007, The Journal of Finance) 关于媒体在股市中的角色 (Giving Content to Investor Sentiment) 进一步佐证了"新闻文本覆盖强度是公众/投资者关注与情绪的合法代理"这一识别前提: 该文证明媒体悲观度可预测股市定价与成交量偏离基本面, 说明新闻文本本身承载了独立于财务基本面的信息内容, 为本族"仅凭新闻篇数占比即可刻画议程份额"的极简加总构造提供了额外的方法论正当性 (议程份额本身不需情感极性信息即可承载有效的关注度信号)。这四篇构成本族识别策略在国际顶刊文献中的直接理论支撑链条。
+本族的核心识别逻辑与顶刊范式一脉相承: Fang & Peress (2009, The Journal of Finance) 首次系统论证媒体覆盖率 (coverage ratio) 作为公众关注度的合法代理变量, 并证明低媒体覆盖股票存在显著的"被忽视效应" (neglected-firm effect) 溢价, 为本族"新闻覆盖占比 = 议程份额"的构造提供了直接的方法论先例。Da, Engelberg & Gao (2011, The Journal of Finance) 提出以 Google 搜索量指数 (SVI) 度量直接注意力, 并系统比较搜索量与媒体覆盖两类代理的异同, 本族据此文献作对照式披露: 项目缺乏搜索量数据, 以报纸覆盖度量间接注意力属已知的替代方案而非最优方案。Gurun & Butler (2012, The Journal of Finance) 关于本地媒体偏斜 (local media slant) 与本地广告的研究进一步支持了本族地理分层构造 (省/市) 的合理性: 媒体的地理属性会系统性影响其报道倾向与覆盖密度, 因而在企业层面构造注意力代理时应显式控制/分层地理维度, 而非仅用全国汇总的年度序列。Tetlock (2007, The Journal of Finance) 关于媒体在股市中的角色 (Giving Content to Investor Sentiment) 进一步佐证了"新闻文本覆盖强度是公众/投资者关注与情绪的合法代理"这一识别前提: 该文证明媒体悲观度可预测股市定价与成交量偏离基本面, 说明新闻文本本身承载了独立于财务基本面的信息内容, 为本族"仅凭新闻篇数占比即可刻画议程份额"的极简加总构造提供了额外的方法论正当性 (议程份额本身不需情感极性信息即可承载有效的关注度信号)。这四篇构成本族识别策略在国际顶刊文献中的直接理论支撑链条。近年顶刊文献进一步夯实了这一识别前提: Kwan, Liu & Matthies (2026, The Journal of Finance) 发现机构投资者对宏观与个股新闻的注意力配置存在系统性异质,可用交易活动与持仓调整识别,为本族"新闻覆盖占比即注意力代理"的构念提供了最新顶刊佐证; Bybee, Kelly, Manela & Xiu (2024, The Journal of Finance) 基于80万篇华尔街日报文章构建可解释的新闻主题注意力指数,证明媒体议题关注度对产出、就业与股市回报具有显著预测力,呼应了本族以新闻篇数占比刻画议程份额的方法论。
 
 ## VAR: ft_attn_city
 
@@ -97,4 +113,6 @@ Fang, L., & Peress, J. (2009). Media coverage and the cross-section of stock ret
 Da, Z., Engelberg, J., & Gao, P. (2011). In search of attention. The Journal of Finance, 66(5), 1461-1499. https://doi.org/10.1111/j.1540-6261.2011.01679.x
 Gurun, U. G., & Butler, A. W. (2012). Don't believe the hype: Local media slant, local advertising, and firm value. The Journal of Finance, 67(2), 561-598. https://doi.org/10.1111/j.1540-6261.2012.01725.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Kwan, A., Liu, Y., & Matthies, B. (2026). Institutional Investor Attention. The Journal of Finance. https://doi.org/10.1111/jofi.70009
+Bybee, L., Kelly, B., Manela, A., & Xiu, D. (2024). Business News and Business Cycles. The Journal of Finance. https://doi.org/10.1111/jofi.13377
 <!-- rendered-citations:end -->

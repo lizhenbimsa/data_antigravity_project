@@ -65,7 +65,14 @@ citations:
   vol: 21
   issue: 2
   pages_or_artno: 109-128
-new_dois: []
+- doi: "10.2139/ssrn.5375473"
+  type: wp
+  authors: "Bhagwat, V., Cookson, J. A., Dim, C., & Niessner, M."
+  year: 2025
+  title: "The Market's Mirror: Revealing Investor Disagreement with LLMs"
+  venue: "SSRN Working Paper"
+new_dois:
+  - "10.2139/ssrn.5375473"
 ---
 
 ## CORE
@@ -77,7 +84,7 @@ new_dois: []
 计算在面板总装阶段 (runner.py 步骤 8b disag) 完成, 是纯后处理、不额外调用任何 LLM。设该银行-年-轨道单元内, gpt54nano 判为正面的篇数为 P, 判为负面的篇数为 N (中性篇不进入本式), 则分歧指数定义为 disag = 根号下 (1 减去 ((P 减 N) 除以 (P 加 N)) 的平方)。括号内 (P−N)/(P+N) 是标准化的净极性 (net polarity), 取值落在 −1 到 +1: 全正面时为 +1, 全负面时为 −1, 正负相等时为 0。对其取平方再用 1 减、再开方, 就把"极性的绝对偏离"翻译成"分歧": 当报道一边倒 (净极性为 ±1) 时 disag=0 (零分歧), 当正负两侧完全对半 (净极性为 0) 时 disag=1 (最大分歧)。该式在几何上等价于以净极性为横坐标的单位半圆上半支, 是一条把 [−1,1] 的极性映射到 [0,1] 分歧的确定性平滑变换, 与 Janis–Fadner 系数 (步骤 7i) 共享同一 (P,N) 输入但走不同的非线性 (J-F 保号并按篇数缩放, 本式对称且无量纲、只依赖极性比而不依赖篇数绝对量)。上游篇集来自 24_herd_decay.parquet 的 df_exploded (stage 21 语义精筛后的 verified article×bank 集), 逐篇标签来自 21_tone_llms.parquet 中 gpt54nano 单模型的三分类输出。
 
 【文献定位】
-"分歧"作为资产定价与信息经济学的一等构念有深厚积累。Carlin、Longstaff 与 Matoba (2014) 直接把分歧刻画为影响资产价格与预期收益的独立状态变量, 论证分歧上升伴随更高的波动率与风险溢价; Hong 与 Stein (2007) 在综述层面把分歧模型确立为解释交易量、动量与泡沫的统一框架, 其"意见分歧"范式正是本指数试图从新闻文本侧近似的对象。Cen、Wei 与 Yang (2017) 进一步给出分歧与随后收益之间的横截面证据, 支持把分歧当作可测量、可回归的银行-年状态量。Cookson 与 Niessner (2020) 提供了分歧分解 (跨群体与群体内) 的经验框架, 提示同一"分歧"总量可由不同来源构成——这正是本家族坚持逐模型、逐轨道分列而非过早汇总的动机。就"用新闻近似投资者分歧"这一测量路径, Li 与 Luan (2025) 展示了基于新闻的分歧代理与股票收益的关联, 为本文用报道极性平衡度构造分歧提供了同源的最新计量先例。而由于本家族的情感标签来自 LLM 标注, Uma 等人 (2021) 关于"从标注分歧中学习"的综述在方法论上尤为切题: 它提醒我们标注者 (此处即不同 LLM) 之间的系统性分歧本身是信号而非噪声, 支持把 gpt54nano 单模型口径作为一条独立的、可与其它厂商并排比较的测量轨, 而不是急于用多数投票把厂商差异抹平。
+"分歧"作为资产定价与信息经济学的一等构念有深厚积累。Carlin、Longstaff 与 Matoba (2014) 直接把分歧刻画为影响资产价格与预期收益的独立状态变量, 论证分歧上升伴随更高的波动率与风险溢价; Hong 与 Stein (2007) 在综述层面把分歧模型确立为解释交易量、动量与泡沫的统一框架, 其"意见分歧"范式正是本指数试图从新闻文本侧近似的对象。Cen、Wei 与 Yang (2017) 进一步给出分歧与随后收益之间的横截面证据, 支持把分歧当作可测量、可回归的银行-年状态量。Cookson 与 Niessner (2020) 提供了分歧分解 (跨群体与群体内) 的经验框架, 提示同一"分歧"总量可由不同来源构成——这正是本家族坚持逐模型、逐轨道分列而非过早汇总的动机。就"用新闻近似投资者分歧"这一测量路径, Li 与 Luan (2025) 展示了基于新闻的分歧代理与股票收益的关联, 为本文用报道极性平衡度构造分歧提供了同源的最新计量先例。而由于本家族的情感标签来自 LLM 标注, Uma 等人 (2021) 关于"从标注分歧中学习"的综述在方法论上尤为切题: 它提醒我们标注者 (此处即不同 LLM) 之间的系统性分歧本身是信号而非噪声, 支持把 gpt54nano 单模型口径作为一条独立的、可与其它厂商并排比较的测量轨, 而不是急于用多数投票把厂商差异抹平。Bhagwat, Cookson, Dim 与 Niessner (2025, SSRN Working Paper) 用大语言模型模拟216种投资者画像对新闻标题给出买卖持有反应, 以反应离散度构造文章级投资者分歧, 与本家族用LLM三分类正负篇数比例构造分歧的思路同源, 均以LLM作为衡量新闻侧意见分歧的测量工具。
 
 【与相邻测度、per-model 与三轨口径的关系】
 本家族是"逐模型稳健性"设计的一员: gpt54nano 只是情感三家 (gpt54nano / gemini31 / deepseekv4) 之一, 每家各自算出自己的 disag。这三家的同名 disag 列各自 just-identified、并排、互为稳健性、不分主次, 严禁把不同厂商的 disag 混进同一条 over-identified 的 Hansen J 过度识别检验 (CLAUDE.md 铁律); 它们只用于并排展示与跨模型一致性核查, 而不构成一组可堆叠的工具变量。同理, 本家族内部的 full / ctx / ss 三条文本轨也是各自 just-identified 并排、互为稳健性的规格稳健性梯子, 三轨同样禁混同一 over-identified Hansen J。留篇门控采用 full-only 口径 (2026-06-29): 一篇报道是否计入"银行金科报道"只看 full 轨的 gpt54nano verified 判定, ctx 与 ss 降为 conditional-on-full 的测度轨, 其行宇宙是 full 留篇集的子集, 但每条轨的 (P,N) 与 disag 仍逐轨独立计数。ss 轨的回退语义镜像 ctx: 当某篇不存在银行与金融科技的同句共现时, ss 文本回退为全文正文, 相应的 fallback 标记置真。分歧与语调均值 (tone)、与 Janis–Fadner、与"套话率"等相邻测度构念上正交, 不可互相替代。
@@ -104,4 +111,5 @@ Cookson, J. A., & Niessner, M. (2020). Why don't we agree? Evidence from a socia
 Cen, L., Wei, K. C. J., & Yang, L. (2017). Disagreement, underreaction, and stock returns. Management Science, 63(4), 1214-1231. https://doi.org/10.1287/mnsc.2015.2405
 Carlin, B. I., Longstaff, F. A., & Matoba, K. (2014). Disagreement and asset prices. Journal of Financial Economics, 114(2), 226-238. https://doi.org/10.1016/j.jfineco.2014.06.007
 Hong, H., & Stein, J. C. (2007). Disagreement and the stock market. Journal of Economic Perspectives, 21(2), 109-128. https://doi.org/10.1257/jep.21.2.109
+Bhagwat, V., Cookson, J. A., Dim, C., & Niessner, M. (2025). The Market's Mirror: Revealing Investor Disagreement with LLMs. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.5375473
 <!-- rendered-citations:end -->

@@ -167,7 +167,35 @@ citations:
   vol: 60
   issue: 3
   pages_or_artno: 531-542
-new_dois: []
+- doi: "10.1111/1475-679x.12560"
+  type: journal
+  authors: "Xu, G."
+  year: 2024
+  title: "News Bias in Financial Journalists' Social Networks"
+  venue: "Journal of Accounting Research"
+- doi: "10.1111/acfi.13091"
+  type: journal
+  authors: "Wang, L., Hou, W., & Liu, Y."
+  year: 2023
+  title: "How do co-shareholding networks affect negative media coverage? Evidence from China"
+  venue: "Accounting & Finance"
+- doi: "10.1016/j.heliyon.2024.e26952"
+  type: journal
+  authors: "Fan, H., & Hu, C."
+  year: 2024
+  title: "Research on systemic risk of China's bank-asset bipartite network"
+  venue: "Heliyon"
+- doi: "10.1057/s41599-026-07085-3"
+  type: journal
+  authors: "Wei, W., Wang, Z., Wang, Y., & Song, Y."
+  year: 2026
+  title: "Transfer entropy, multidimensional multiple correlation network, and risk contagion of bank capital shortage"
+  venue: "Humanities and Social Sciences Communications"
+new_dois:
+  - "10.1111/1475-679x.12560"
+  - "10.1111/acfi.13091"
+  - "10.1016/j.heliyon.2024.e26952"
+  - "10.1057/s41599-026-07085-3"
 ---
 
 ## CORE
@@ -183,7 +211,7 @@ new_dois: []
 计算分三步。第一步建图: 对给定年度 t, 遍历当年每篇留篇报道, 依当前判据把同篇 (或同窗、同句) 内共现的银行两两配对, 累积共现次数为无向边权 weight (共现越频繁边权越大); 再由此派生一张距离图 G_inv, 其单边距离取共现次数的倒数 1/weight — 共现越强、两节点间边距离越短。第二步取最大连通分量: 由于媒体共现网通常并非全连通 (总有若干只被零星提及、彼此不相连的银行), 直接对全图求平均路径会因存在不可达对而未定义, 故遵循网络科学惯例把计算限制在 LCC 上, 报告的是"主体连通银行群"的内部典型距离。第三步聚合: 在 LCC 的距离图上对每一对可达节点求加权最短路距离 (即沿途各边 1/共现频次 之和最小的那条路径的距离), 再取全体有序对的算术平均, 得到当年的单一标量 net_avg_path_yr(t)。因此本指标是共现强度敏感的加权路径量, 而非仅数边跳数的无权路径。因为这是一个网络级 (network-level) 量, 它对当年所有银行取同一个值, 即在银行-年面板中沿银行维度是年内广播常数 (annual broadcast), 只沿年度维度变化。这一"年内不随银行变"的性质对下游计量识别至关重要 (见识别策略定位)。与之相对, 同家族里以银行为节点的 18 个节点级中心度指标 (如度中心性、介数、聚类系数) 才在银行维度上有截面变异。net_avg_path_yr 属于刻画"整张网长什么样"的宏观形状族, 与 Watts & Strogatz (1998) 的特征路径长度、Freeman (1978) 奠基的中心性谱系、以及 Newman (2005) 基于随机游走的路径类度量同属最短路/可达性这一测度传统。
 
 【文献定位】
-把银行放进由媒体共现构造的关系网并度量其拓扑形状, 其学理正当性来自三条互补的文献线。其一是金融网络与系统性风险文献: Jackson & Pernoud (2021) 系统综述了金融网络结构如何塑造传染与系统性风险, Duarte & Eisenbach (2021) 则量化了火线抛售溢出如何沿网络放大冲击 — 平均路径长度作为网络"紧凑度"的宏观刻画, 与这类传染半径、冲击传导速度的构念天然相关。其二是网络中心性与资产定价/绩效的实证文献: Yu et al. (2024) 与 Xu & Zhao (2024) 分别论证了金融网络中的节点中心度对信息扩散与资产价格预测的作用, Nezami et al. (2025) 对中心性—企业绩效关系做了元分析, 提示网络位置具有可度量的经济后果。其三是从文本构造金融网络的方法学文献: Li et al. (2026) 直接示范了如何从文本化风险披露中抽取金融网络结构与关联度, 与本项目"由媒体共现文本反演银行关系网"的路径同源, 为共现网这一测度对象提供了当代方法论背书。此外, Han et al. (2024) 对机构经纪网络的刻画为"网络中介与连通结构影响资源流动"的构念提供了金融情境锚点; Grieser et al. (2022) 关于公司财务政策沿网络传导的证据, 则说明网络连通结构本身即可承载可估计的经济后果。需要强调的是, 上述文献是构念与情境锚, 而非对本指标具体算法或对某一下游因果结论的背书 — 平均路径长度在本项目中是媒体关注结构的宏观形状描述量, 不预设任何银行层面的因果机制。
+把银行放进由媒体共现构造的关系网并度量其拓扑形状, 其学理正当性来自三条互补的文献线。其一是金融网络与系统性风险文献: Jackson & Pernoud (2021) 系统综述了金融网络结构如何塑造传染与系统性风险, Duarte & Eisenbach (2021) 则量化了火线抛售溢出如何沿网络放大冲击 — 平均路径长度作为网络"紧凑度"的宏观刻画, 与这类传染半径、冲击传导速度的构念天然相关。其二是网络中心性与资产定价/绩效的实证文献: Yu et al. (2024) 与 Xu & Zhao (2024) 分别论证了金融网络中的节点中心度对信息扩散与资产价格预测的作用, Nezami et al. (2025) 对中心性—企业绩效关系做了元分析, 提示网络位置具有可度量的经济后果。其三是从文本构造金融网络的方法学文献: Li et al. (2026) 直接示范了如何从文本化风险披露中抽取金融网络结构与关联度, 与本项目"由媒体共现文本反演银行关系网"的路径同源, 为共现网这一测度对象提供了当代方法论背书。此外, Han et al. (2024) 对机构经纪网络的刻画为"网络中介与连通结构影响资源流动"的构念提供了金融情境锚点; Grieser et al. (2022) 关于公司财务政策沿网络传导的证据, 则说明网络连通结构本身即可承载可估计的经济后果。Xu (2024, Journal of Accounting Research) 以财经记者社交网络的连通结构解释报道偏向的溢出效应, 为本项目由媒体共提及构造银行关系网并度量其拓扑紧凑度提供了同源的媒体网络方法论参照; Wang, Hou, & Liu (2023, Accounting & Finance) 在中国情境下用共同持股网络的中心性与结构洞刻画企业间关联并检验其对负面媒体报道的影响, 呼应本指标以网络位置刻画媒体关注结构的测度取径。Fan & Hu (2024, Heliyon) 以中国银行数据构建银行-资产二模网络并用改进DebtRank算法度量系统性风险, 为文本共现网络投影下度量银行间紧凑度提供同源的银行网络构造与拓扑分析参照。Wei, Wang, Wang, & Song (2026, Humanities and Social Sciences Communications) 构建中国银行资本短缺的多层传导网络并报告其平均路径长度与紧凑度呈现小世界特征, 为本指标以平均最短路径刻画银行网络紧凑度的构念提供中国银行业情境下的实证参照。需要强调的是, 上述文献是构念与情境锚, 而非对本指标具体算法或对某一下游因果结论的背书 — 平均路径长度在本项目中是媒体关注结构的宏观形状描述量, 不预设任何银行层面的因果机制。
 
 在方法学谱系上, 本指标与最短路/可达性这一测度传统一脉相承。Freeman (1978) 对中心性概念的奠基性厘清确立了以"最短路径"为核心的一整套网络位置度量, 接近中心性与介数中心性都建立在两点间最短路之上; Newman (2005) 进一步把介数从"仅走最短路"推广为"基于随机游走"的路径度量, 提示了同一可达性构念的不同算子化选择。平均路径长度取的是这一谱系中最聚合的一端: 不落到单点、而对全网所有点对的最短路取平均, 从而得到刻画整张网的单一形状标量。把这套源自社会网络与复杂网络物理的工具迁移到金融情境, 近年已成显学 — Yu et al. (2024)、Xu & Zhao (2024) 在资产定价语境下验证了网络位置的定价含义, Nezami et al. (2025) 的元分析则跨大量实证汇总了中心性与绩效的关系, Li et al. (2026) 更直接示范由文本反演金融网络结构与连通度。这些工作共同支撑了"以文本共现构造银行关系网、再以经典拓扑量刻画其形状"这一测度路线的当代正当性。
 
@@ -236,4 +264,8 @@ Newman, M. E. J. (2005). A measure of betweenness centrality based on random wal
 Watts, D. J., & Strogatz, S. H. (1998). Collective dynamics of 'small-world' networks. Nature, 393(6684), 440-442. https://doi.org/10.1038/30918
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
+Xu, G. (2024). News Bias in Financial Journalists' Social Networks. Journal of Accounting Research. https://doi.org/10.1111/1475-679x.12560
+Wang, L., Hou, W., & Liu, Y. (2023). How do co-shareholding networks affect negative media coverage? Evidence from China. Accounting & Finance. https://doi.org/10.1111/acfi.13091
+Fan, H., & Hu, C. (2024). Research on systemic risk of China's bank-asset bipartite network. Heliyon. https://doi.org/10.1016/j.heliyon.2024.e26952
+Wei, W., Wang, Z., Wang, Y., & Song, Y. (2026). Transfer entropy, multidimensional multiple correlation network, and risk contagion of bank capital shortage. Humanities and Social Sciences Communications. https://doi.org/10.1057/s41599-026-07085-3
 <!-- rendered-citations:end -->

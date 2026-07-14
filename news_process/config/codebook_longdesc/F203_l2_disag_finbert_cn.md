@@ -82,7 +82,15 @@ citations:
   vol: 21
   issue: 2
   pages_or_artno: 109-128
-new_dois: []
+- doi: "10.1016/j.jfineco.2024.103816"
+  title: "Political polarization in financial news"
+  authors: "Goldman, E., Gupta, N., & Israelsen, R."
+  year: 2024
+  venue: "Journal of Financial Economics"
+  type: "journal"
+  one_sentence_zh: "该文以财经新闻报道间的语调分歧刻画政治极化程度并检验其对交易量与定价的影响, 与本家族用媒体情感在正负两极间的离散度刻画银行舆论分歧的构念思路直接对应。"
+new_dois:
+  - "10.1016/j.jfineco.2024.103816"
 ---
 
 ## CORE
@@ -94,7 +102,7 @@ new_dois: []
 计算式为 disag = √(1 − ((P − N) / (P + N))²)。令一致率 tone = (P − N) / (P + N) ∈ [−1, 1] 表示正负净倾向, 则 disag = √(1 − tone²)。极端情形: 当该单元所有报道的概率一致偏向单极 (正面概率均值 P 远大于负面概率均值 N, 或反之, 极限下另一极均值趋 0) 时 tone→±1, disag→0, 表示零分歧; 当正、负两类概率均值恰好相等 (P = N > 0, 意味着媒体样本整体上对该行既有等量的看多置信也有等量的看空置信) 时 tone=0, disag=1, 表示最大分歧。需要澄清基座差异: 本 FinBERT-CN 分歧列的 P、N 是 BERT 正/负类概率的 bank-year-track 均值, 与流水线中 Janis-Fadner 系数 (7i) 及 concern_score 走的基座并不相同——Janis-Fadner 用的是 LLM 有效投票篇数 (n_articles_llm_valid 与正、负篇数计数), concern_score 用的是词典效价比率 (neg−pos)/(neg+pos); 而 disag 家族内部又分三支: 词典综合/单词典支走词级正负比率 (avg_pos_ratio 等), LLM 综合/单 LLM 支走 LLM 篇数计数 (pos_count/neg_count), 唯独 BERT 综合/单 BERT 支 (含本 finbert_cn 列) 走概率均值。三支只是 disag 这一函数壳的三种不同输入基座, 函数形态相同而基座各异, 因此本列与 Janis-Fadner、concern 之间既非"共用同一 P/N 计数基座", 也不能把它们的 P、N 混用。中性类概率不进入分子分母 (只由 P、N 定义), 因此 disag 反映的是"正负两极置信之间"的对立, 而非"表态与中性"的对比。分母 P+N 为 0 (该单元该轨无任何 FinBERT-CN 有效概率) 时结果按缺失处理, 不强行置零, 以免把"无信息"误当成"零分歧"。FinBERT-CN 是 stage 23 三个并列 BERT 模型 (finbert_cn / fin_sent_zh / finbert2) 之一, 三模型 co-equal、互为稳健性、不分主次; 本家族只取 FinBERT-CN 一家的概率均值, 其同构兄弟家族对 fin_sent_zh、finbert2 各自另算。按项目铁律, 三个 BERT 模型的同名分歧列各自 just-identified 并排、互为稳健性, 禁混进同一 over-identified Hansen J; 且 per-model 独立降级——某模型缺席只掉其自身族列, 不连坐其余。FinBERT 类模型对金融文本的判别效度见 Huang, Wang, & Yang (2023) 的系统评估。
 
 【文献定位】
-把分歧作为一个可测度的舆论状态量, 直接承接 Cookson & Niessner (2020) 在《Journal of Finance》提出的分歧分解框架: 他们区分同一信息集下不同解读带来的分歧, 与不同信息集带来的分歧, 并展示前者对定价的独立作用; 本家族的 disag 属"给定媒体样本内情感对立"的可观测代理, 落在其框架的"信息处理异质"一侧。Li & Luan (2025) 更直接地以新闻文本构造投资者分歧并检验其对股票收益的预测力, 与本项目用媒体报道情感极性离散刻画银行层面分歧的做法同源。方法层面, 用机器标注情感的"不一致"本身承载信号而非纯噪声, 这一视角由 Uma et al. (2021) 的"从分歧中学习"综述系统化; 值得注意的是本列以概率均值而非离散标签为基座, 恰与该综述强调的"保留标注端连续不确定度信息"的主张相合。分歧亦具网络维度: Grieser, Hadlock, LeSage, & Zekhnini (2022) 记录企业财务政策的同行网络效应, 提示银行层面的舆论分歧可能沿同业网络扩散, 为下游 disag 与网络溢出族的交叉分析提供理论接口。综合看, disag 是把资产定价分歧文献的核心状态变量, 移植到中文银行-金融科技媒体语料、并以 FinBERT-CN 分类器的连续概率为基座的一个操作化实现。
+把分歧作为一个可测度的舆论状态量, 直接承接 Cookson & Niessner (2020) 在《Journal of Finance》提出的分歧分解框架: 他们区分同一信息集下不同解读带来的分歧, 与不同信息集带来的分歧, 并展示前者对定价的独立作用; 本家族的 disag 属"给定媒体样本内情感对立"的可观测代理, 落在其框架的"信息处理异质"一侧。Li & Luan (2025) 更直接地以新闻文本构造投资者分歧并检验其对股票收益的预测力, 与本项目用媒体报道情感极性离散刻画银行层面分歧的做法同源。方法层面, 用机器标注情感的"不一致"本身承载信号而非纯噪声, 这一视角由 Uma et al. (2021) 的"从分歧中学习"综述系统化; 值得注意的是本列以概率均值而非离散标签为基座, 恰与该综述强调的"保留标注端连续不确定度信息"的主张相合。分歧亦具网络维度: Grieser, Hadlock, LeSage, & Zekhnini (2022) 记录企业财务政策的同行网络效应, 提示银行层面的舆论分歧可能沿同业网络扩散, 为下游 disag 与网络溢出族的交叉分析提供理论接口。综合看, disag 是把资产定价分歧文献的核心状态变量, 移植到中文银行-金融科技媒体语料、并以 FinBERT-CN 分类器的连续概率为基座的一个操作化实现。Goldman, Gupta, & Israelsen (2024, Journal of Financial Economics) 以财经新闻报道间的语调分歧刻画政治极化程度并检验其对交易量与定价的影响, 与本家族用媒体情感在正负两极间的离散度刻画银行舆论分歧的构念思路直接对应。
 
 ## VAR: disag_finbert_cn_full
 
@@ -120,4 +128,5 @@ Cookson, J. A., & Niessner, M. (2020). Why don't we agree? Evidence from a socia
 Cen, L., Wei, K. C. J., & Yang, L. (2017). Disagreement, underreaction, and stock returns. Management Science, 63(4), 1214-1231. https://doi.org/10.1287/mnsc.2015.2405
 Carlin, B. I., Longstaff, F. A., & Matoba, K. (2014). Disagreement and asset prices. Journal of Financial Economics, 114(2), 226-238. https://doi.org/10.1016/j.jfineco.2014.06.007
 Hong, H., & Stein, J. C. (2007). Disagreement and the stock market. Journal of Economic Perspectives, 21(2), 109-128. https://doi.org/10.1257/jep.21.2.109
+Goldman, E., Gupta, N., & Israelsen, R. (2024). Political polarization in financial news. Journal of Financial Economics. https://doi.org/10.1016/j.jfineco.2024.103816
 <!-- rendered-citations:end -->

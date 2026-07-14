@@ -177,8 +177,30 @@ citations:
   vol: 1
   issue: 3
   pages_or_artno: 215-239
+- doi: "10.1287/mnsc.2023.4891"
+  type: journal
+  authors: "Gomes, A., Gopalan, R., Leary, M. T., & Marcet, F."
+  year: 2024
+  title: "Analyst Coverage Networks and Corporate Financial Policies"
+  venue: "Management Science"
+  one_sentence_zh: "该文构建分析师-公司二分覆盖网络并证明网络结构位置影响公司财务政策，为本家族媒体-银行二分图经纪度测度提供同构的构念与方法论先例。"
+- doi: "10.3390/e26050378"
+  title: "Systemic Importance and Risk Characteristics of Banks Based on a Multi-Layer Financial Network Analysis"
+  authors: "Gao, Q., Fan, H., & Yu, C."
+  year: 2024
+  venue: "Entropy"
+  type: "journal"
+- doi: "10.1016/j.physa.2024.129624"
+  title: "Financial risk contagion based on dynamic multi-layer network between banks and firms"
+  authors: "Jin, Q., Sun, L., Chen, Y., & Hu, Z.-L."
+  year: 2024
+  venue: "Physica A: Statistical Mechanics and its Applications"
+  type: "journal"
 new_dois:
 - 10.1016/j.socnet.2007.04.006
+- "10.1287/mnsc.2023.4891"
+- "10.3390/e26050378"
+- "10.1016/j.physa.2024.129624"
 ---
 
 ## CORE
@@ -187,7 +209,7 @@ new_dois:
 
 【方法学与计算】五列全部由 pipeline/panel/network_brokerage.py 的 _bipartite_bank_metrics 函数在同一张年度二分图 G 上计算, 且共享一组防御性守卫。构图阶段: build_media_bank_bipartite 对每个年份取 df_exploded 子集, 按 (媒体(中文), target_bank) groupby 计数得边表, 分别挂媒体节点 (bipartite=0) 与银行节点 (bipartite=1), 加权边 weight 取整数文章数; 构图后以显式 raise 断言 nx.is_bipartite (刻意不用裸 assert, 防 python -O 优化剥离守卫); 节点总数不足 3 (至少 1 媒体加 2 银行) 的年份整年跳过。指标阶段的第一条铁律是: networkx 的全部 nx.bipartite.* 中心度函数返回的字典同时覆盖两端节点, 必须过滤到 bank_nodes 集合才落面板, 否则媒体节点的数值会混入银行列。第二条铁律是逐指标独立降级: 每个指标的调用各自包 try/except, 单指标计算失败只将该指标置 NaN 并写 warning 日志, 不连坐其余四列, 也不崩阶段。具体到各列: 度中心度用 nx.bipartite.degree_centrality, 其归一化分母是对侧节点集规模, 即银行的度除以当年媒体总数, 得到"年内相对"量纲, 年份固定效应下跨年媒体总量的漂移被吸收; 介数中心度用 nx.bipartite.betweenness_centrality, 采用 Borgatti & Everett (1997) 针对二分图修正的归一化常数 (二分图中最短路径可达的节点对组合受两端集合规模约束, 直接套用一分图归一化会系统低估); 聚类系数用 nx.bipartite.clustering 的 mode='dot' 变体, 其实现口径为 Latapy, Magnien & Del Vecchio (2008) 定义的成对邻域重叠 (两节点共享邻居集的 Jaccard 型点积比) — 列名后缀 _ra 是历史命名, 并非指 Robins & Alexander (2004) 的四环系数 (后者在 NetworkX 中是未被本模块调用的独立函数 robins_alexander_clustering, 详见对应 VAR 节的估计量纠正); 接近中心度受 R13 审计裁决约束, 只在最大连通分量 (LCC) 的子图上用 nx.bipartite.closeness_centrality 计算并只对 LCC 内的银行赋值, LCC 外银行一律 NaN — 依据是断连图上跨分量的接近中心度不可比, 项目实测出现过孤立小分量节点取值 1.5 而大分量核心节点仅 1.0 的排名倒挂; 节点冗余用 nx.bipartite.node_redundancy, 但该函数对度小于 2 的节点直接抛 NetworkXError 崩溃, 故先以 degree>=2 预过滤出合格银行集 (F5 铁律), 度不足的银行置 NaN。一个必须写明的 API 约束: networkx 的二分图介数、聚类、冗余实现不消费边权 (这是库函数签名的硬约束, 不是研究者选择), 因此这三列是无权拓扑测度, 度量"渠道存在与否"的结构; 与之互补, 同图上的 brokerage_eigen_cent 走加权特征向量路径, 度量"渠道强度加权"的声望, 两类测度合起来覆盖 Opsahl, Agneessens & Skvoretz (2010) 所论证的无权/加权中心度分野的两端。落盘链路上, 逐年计算的结果先累积到以 (银行, 年份) 为键的字典 bip_results, 循环结束后一次性转 DataFrame 并以 target_bank 加 year 联合键 left join 回 bank-year 面板 — left join 保证面板行数在合并前后严格不变, 图中未出现的银行-年组合自动为 NaN 而非被丢行, 这是面板完整性的承重设计。由此本家族的 NaN 携带三层可区分语义: 整年图退化 (节点不足 3) 时该年全体银行五列皆缺; closeness 对 LCC 外银行单列缺; redundancy 对度小于 2 银行单列缺 — 三层缺失各有结构含义, 下游填补策略必须区别对待, 一律填零会把"处于信息网络边缘"改写成"处于网络中心度为零的位置", 属语义错误。日志侧, 模块以一次性 banner 输出环境、配置与方法论引用三大块, 逐年输出媒体数、银行数、边数与所用方法, 输入端回显 df_exploded 的行列形态与必需列存在性作 provenance 存档, 全部日志为纯观测、golden-safe。计算全程为精确确定性算法 (精确最短路径与邻域集合运算, 无随机初始向量、无迭代特征分解), 因此本家族 5 列不在面板已知的 BLAS 浮点非确定列清单内 (该清单为 bank_clustering 等 3 基名乘三判据共 9 列), golden 验证无需对其做漂移豁免, 跨 run 字节级可复现。
 
-【文献定位】本家族的文献谱系有三层。测度理论层: Freeman (1978) 奠定度、介数、接近三大中心度的概念区分 — 度对应直接沟通活动量, 介数对应对信息流的潜在控制, 接近对应独立可达性 — 本家族的三个同名列是该分类在二分图上的直接移植; Borgatti & Everett (1997) 与 Faust (1997) 是二分图 (2-mode / affiliation) 中心度的方法论源头, 前者给出二分图上度、介数、接近的归一化修正, 后者系统讨论隶属网络中心度的构念含义, 二者共同回答"为何不能把一分图公式原样套在二分图上"; Robins & Alexander (2004) 与 Latapy et al. (2008) 补齐二分图特有的聚类与冗余测度; Boldi & Vigna (2014) 以公理化方法比较各中心度对"重要性"直觉的满足程度, 为多测度并排而非单测度独断提供理论理由; Newman (2005) 的随机游走介数说明介数亦有非最短路径变体, 本家族取标准最短路径口径, 该文界定了口径边界。测度选择层: Neal, Domagalski & Sagan (2021) 与 Cimini et al. (2022) 系统评估了将二分图投影为一分图再算指标的信息损失与虚假边问题, 支持本家族"原生二分图指标、不做投影"的设计决策 — 投影会让共享任一媒体的银行对全部连边, 稠密化后的一分图指标混入大量投影伪影。应用与效度层: Han, Kim & Nanda (2024) 是构念锚, 证明二分经纪网络位置影响流动性供给这一真实经济结果; Yu, Hu & Zhong (2024) 与 Xu & Zhao (2024) 分别证明金融网络中心度对信息扩散、资产定价与价格预测有增量解释力; Nezami, Chisam & Palmatier (2025) 对网络中心度-企业绩效关系做了元分析, 给出跨研究的效应量基准与边界条件; Li et al. (2026) 展示从文本披露构建金融网络并测量关联性的前沿做法, 与本项目"从新闻文本构建媒体-银行网络"的路径同源; Sadeghi & Feinstein (2024) 则提醒网络中心度作为统计量需要显著性验证, 构成本家族局限讨论的方法论参照。
+【文献定位】本家族的文献谱系有三层。测度理论层: Freeman (1978) 奠定度、介数、接近三大中心度的概念区分 — 度对应直接沟通活动量, 介数对应对信息流的潜在控制, 接近对应独立可达性 — 本家族的三个同名列是该分类在二分图上的直接移植; Borgatti & Everett (1997) 与 Faust (1997) 是二分图 (2-mode / affiliation) 中心度的方法论源头, 前者给出二分图上度、介数、接近的归一化修正, 后者系统讨论隶属网络中心度的构念含义, 二者共同回答"为何不能把一分图公式原样套在二分图上"; Robins & Alexander (2004) 与 Latapy et al. (2008) 补齐二分图特有的聚类与冗余测度; Boldi & Vigna (2014) 以公理化方法比较各中心度对"重要性"直觉的满足程度, 为多测度并排而非单测度独断提供理论理由; Newman (2005) 的随机游走介数说明介数亦有非最短路径变体, 本家族取标准最短路径口径, 该文界定了口径边界。测度选择层: Neal, Domagalski & Sagan (2021) 与 Cimini et al. (2022) 系统评估了将二分图投影为一分图再算指标的信息损失与虚假边问题, 支持本家族"原生二分图指标、不做投影"的设计决策 — 投影会让共享任一媒体的银行对全部连边, 稠密化后的一分图指标混入大量投影伪影。应用与效度层: Han, Kim & Nanda (2024) 是构念锚, 证明二分经纪网络位置影响流动性供给这一真实经济结果; Yu, Hu & Zhong (2024) 与 Xu & Zhao (2024) 分别证明金融网络中心度对信息扩散、资产定价与价格预测有增量解释力; Nezami, Chisam & Palmatier (2025) 对网络中心度-企业绩效关系做了元分析, 给出跨研究的效应量基准与边界条件; Li et al. (2026) 展示从文本披露构建金融网络并测量关联性的前沿做法, 与本项目"从新闻文本构建媒体-银行网络"的路径同源; Sadeghi & Feinstein (2024) 则提醒网络中心度作为统计量需要显著性验证, 构成本家族局限讨论的方法论参照。Gomes, Gopalan, Leary & Marcet (2024, Management Science) 构建分析师-公司二分覆盖网络并证明网络结构位置影响公司财务政策, 为本家族媒体-银行二分图经纪度测度提供同构的构念与方法论先例。Gao, Fan & Yu (2024, Entropy) 该文以多层金融网络刻画银行间多重关联并识别系统重要性银行, 为本家族媒体-银行二分图的多层/多关系网络测度思路提供同期方法论参照。Jin, Sun, Chen & Hu (2024, Physica A: Statistical Mechanics and its Applications) 该文构建银行-企业动态多层网络模型刻画风险传染路径, 与本家族媒体-银行二分图均属以二分/多层结构刻画银行外部关联的建模范式, 为网络拓扑测度的经济含义提供同期实证支持。
 
 【识别策略定位】本家族在计量设计中定位为描述性结构测度与异质性调节变量, 不是任何一篇论文的 treatment 主变量, 也不进入 IV 三引擎 (LOO 均值 / 广义 Bartik / outlet house-style) 的工具构造。使用场景有三: 一是作为银行信息环境的控制变量进入主回归右侧; 二是作为调节变量做分组或交互 (如高经纪地位银行对媒体情感冲击的敏感度差异); 三是作为网络结构本身的描述统计支撑机制叙事。识别口径上有四点铁律级约束。其一, 五列同族但构念各异 (广度/桥接/重叠/可达/冗余), 使用时各自 just-identified 并排进入各自的回归规格, 互为稳健性、不分主次, 严禁将多列同时塞进同一个 over-identified 的 Hansen J 检验矩条件 — 这与项目内三轨、co-primary 双轨嵌入、政治词权重梯子的口径完全一致。其二, 本家族是 track-agnostic 的元数据测度: 输入只有媒体名、银行名、年份三个字段, 完全不消费 content_full/content_ctx/content_ss 三轨文本, 因此不存在 _ctx/_ss 孪生列, 也因其非嵌入测度而不在 co-primary 双轨 carve-out 之列, 无 _lg 孪生 — 这属于"唯一不能双轨"的 track-agnostic 例外, 缺孪生是 by design 而非缺口。其三, 度中心度分母为当年媒体总数, 使指标天然是年内相对量, 建议规格始终含年份固定效应, 使跨年媒体生态规模变化 (媒体创刊停刊、语料覆盖变化) 不被误读为银行结构位置变动。其四, 网络位置本身是内生结果 (更大的银行天然接入更多媒体), 任何将其作因果解释的用法须交由外生冲击设计, 本家族自身只承诺测度效度不承诺识别效度; Sadeghi & Feinstein (2024) 式的中心度显著性检验可作为结构位置差异非噪声的前置证据。此外, 若下游将本家族列用于同伴效应类规格 (如以网络位置定义参照组再回归同伴均值), 须直面 Manski 反射问题: Bramoullé, Djebbari & Fortin (2009) 证明经由网络结构的排他性约束 (存在二阶邻居非一阶邻居的节点三元组) 才能分离内生同伴效应与外生特征效应, 而媒体-银行二分图恰好天然提供这类非传递结构, 这是二分图相对全连接参照组在识别上的额外价值; 但项目现行 IV 三引擎均不消费本家族列, 上述讨论仅界定潜在扩展的识别前提, 不描述现状。最后须说明与留篇口径的关系: 本家族的输入 df_exploded 属篇章级元数据宇宙, 其行集在主线过滤链 (含 stage 13 共现硬过滤) 之后形成, 与 stage 21 情感留篇的 full-only 门控 (2026-06-29) 属两条正交口径 — 本家族不消费任何 llm_verified 门控列, 也不参与 n_articles 分母的构造, 换 LLM 或改门控不会波及本家族数值。
 
@@ -235,4 +257,7 @@ Robins, G., & Alexander, M. (2004). Small worlds among interlocking directors: N
 Borgatti, S. P., & Everett, M. G. (1997). Network analysis of 2-mode data. Social Networks, 19(3), 243-269. https://doi.org/10.1016/S0378-8733(96)00301-2
 Faust, K. (1997). Centrality in affiliation networks. Social Networks, 19(2), 157-191. https://doi.org/10.1016/S0378-8733(96)00300-0
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
+Gomes, A., Gopalan, R., Leary, M. T., & Marcet, F. (2024). Analyst Coverage Networks and Corporate Financial Policies. Management Science. https://doi.org/10.1287/mnsc.2023.4891
+Gao, Q., Fan, H., & Yu, C. (2024). Systemic Importance and Risk Characteristics of Banks Based on a Multi-Layer Financial Network Analysis. Entropy. https://doi.org/10.3390/e26050378
+Jin, Q., Sun, L., Chen, Y., & Hu, Z.-L. (2024). Financial risk contagion based on dynamic multi-layer network between banks and firms. Physica A: Statistical Mechanics and its Applications. https://doi.org/10.1016/j.physa.2024.129624
 <!-- rendered-citations:end -->

@@ -53,7 +53,21 @@ citations:
   vol: 62
   issue: 3
   pages_or_artno: 1139-1168
-new_dois: []
+- doi: "10.1016/j.iref.2024.01.067"
+  title: "Media sentiment, deposit stability and bank systemic risk: Evidence from China"
+  authors: "Fang, Y., Wang, Q., Wang, Y., & Yuan, Y."
+  year: 2024
+  venue: "International Review of Economics & Finance"
+  type: "journal"
+- doi: "10.1002/mde.70100"
+  title: "The Textual Tone of Annual Reports and Market Attention: Evidence From Chinese Listed Companies"
+  authors: "Li, Y."
+  year: 2026
+  venue: "Managerial and Decision Economics"
+  type: "journal"
+new_dois:
+  - "10.1016/j.iref.2024.01.067"
+  - "10.1002/mde.70100"
 ---
 
 ## CORE
@@ -65,7 +79,7 @@ new_dois: []
 单篇打分口径为全语言学规则的 self-normalized 签名加权和, 而非朴素计数比: du_2022_score = Σ_w final_score_w / Σ_w |final_score_w|, w 遍历该篇命中的 du_2022 情感词, final_score_w = base_score_w × degree_multiplier_w。其中三条语言学规则全程生效——否定翻转 (被否定的正面词其 final_score 直接翻为负号, 计入负侧而非正侧计数, apply_negation)、程度副词六级加权 (degree_multiplier ≤ 3.0)、转折关系 ×1.5 (ADVERSATIVE_BOOST)。因此该分数等于签名加权和除以其绝对值和, 天然落在 [-1, 1] 且随每个词的极性、被否定状态、程度修饰与转折位置动态变化; 只有在剥除全部规则的 raw 消融变体下, 它才退化为等价于计数比的形式, canonical du_2022_score 恒为全规则口径。du_2022 的独有设计体现在政治正面词上: 其 political_positive (1,434 词) 依据 Du et al. (2022) 关于政治正面词信号弱于普通正面词的发现, 以 base_score = 0.5 进入上述签名加权和 (即该类命中词贡献 0.5 而非 1.0 的正向分量, 而非在分子上做独立计数相加); 该权重 0.5 是生产口径, 另有政治词权重梯度 (权重 ∈ {0.0, 0.5, 1.0}) 三臂互为稳健性、不分主次、各自 just-identified 并排, 禁混进同一 over-identified Hansen J。词典加载对 positive 与 negative 跨类重叠词按用户 2026-06-24 决策两侧保留, 打分时同时计入 pos/neg 使个体净语调拉向中性而非武断选边。逐篇得分在 stage 22 (tone_words) 产出, 面板聚合在 encode 层以 pandas groupby 的 'sum' 算子完成: du_2022_tone_sum{track} = (du_2022_score{track}, 'sum'), 沿银行-年分组对该轨全部有效报道求和。由于是纯求和, 结果无界, 量纲等于报道篇数乘以单篇 [-1,1] 净语调, 与均值列量纲不可直接比较, 计量应用中须相应选择随规模缩放或做对数/标准化处理。字典法与机器学习/大模型情感抽取互为稳健的三角关系已被 Frankel et al. (2022) 系统评估, 本项目据此把词典 tone 与 LLM 三家投票、BERT 三模型并列为互为稳健的测量臂。
 
 【文献定位】
-把媒体语调按主体-时间单元聚合以研究其对金融结果的影响, 是媒体金融学的成熟范式: Tetlock (2007) 以媒体悲观语调预测市场回报, Marchetti et al. (2025) 明确以银行×时间为单元聚合媒体语调刻画银行融资条件, 与本家族的银行-年聚合口径直接对应。度量层面的词典选择争议由 Loughran and McDonald (2011) 奠基——通用情感词典移植到财经语境会系统性误判, 需领域专用词典——Du et al. (2022) 则把这一洞见延伸到中文金融文本并处理了政治词这一中文语境特有的信号衰减问题。方法学上, Frankel et al. (2022) 指出词典法虽较机器学习法在细粒度上有损, 却具备透明、可复现、无训练泄漏的优点, 恰是本项目保留六部词典 tone 作为互为稳健测量臂的依据。总和这一外延聚合算子的价值在于, 它不丢弃报道数量信息, 从而对"关注度放大情感冲击"这类假设保持敏感, 与仅捕捉平均倾向的均值列构成互补而非替代。
+把媒体语调按主体-时间单元聚合以研究其对金融结果的影响, 是媒体金融学的成熟范式: Tetlock (2007) 以媒体悲观语调预测市场回报, Marchetti et al. (2025) 明确以银行×时间为单元聚合媒体语调刻画银行融资条件, 与本家族的银行-年聚合口径直接对应。度量层面的词典选择争议由 Loughran and McDonald (2011) 奠基——通用情感词典移植到财经语境会系统性误判, 需领域专用词典——Du et al. (2022) 则把这一洞见延伸到中文金融文本并处理了政治词这一中文语境特有的信号衰减问题。方法学上, Frankel et al. (2022) 指出词典法虽较机器学习法在细粒度上有损, 却具备透明、可复现、无训练泄漏的优点, 恰是本项目保留六部词典 tone 作为互为稳健测量臂的依据。总和这一外延聚合算子的价值在于, 它不丢弃报道数量信息, 从而对"关注度放大情感冲击"这类假设保持敏感, 与仅捕捉平均倾向的均值列构成互补而非替代。以中国银行层面媒体情感文本指数为核心变量, 检验负面媒体语调经存款稳定性渠道放大银行系统性风险, 与本家族银行-年媒体语调聚合测度直接呼应, 引用格式 Fang et al. (2024, International Review of Economics & Finance), 不带DOI链接。基于中文年报文本语调测度考察其与市场关注度的关系, 为中文财经文本词典法语调打分与主体-期间聚合提供最新方法学参照, 引用格式 Li (2026, Managerial and Decision Economics), 不带DOI链接。
 
 ## VAR: du_2022_tone_sum_full
 
@@ -88,4 +102,6 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2024.01.067
+Li, Y. (2026). The Textual Tone of Annual Reports and Market Attention: Evidence From Chinese Listed Companies. Managerial and Decision Economics. https://doi.org/10.1002/mde.70100
 <!-- rendered-citations:end -->

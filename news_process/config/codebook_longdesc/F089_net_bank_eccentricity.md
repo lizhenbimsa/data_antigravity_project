@@ -246,7 +246,21 @@ citations:
   vol: 2
   issue: 1
   pages_or_artno: 113-120
-new_dois: []
+- doi: "10.1080/1540496x.2025.2562336"
+  title: "Analyst Network: Implications for Systemic Risk of Non-Financial Firms in China"
+  authors: "Xiang, Y., & Borjigin, S."
+  year: 2025
+  venue: "Emerging Markets Finance and Trade"
+  type: "journal"
+- doi: "10.1007/s11424-025-4338-6"
+  title: "The Benefit of Being Central: Stock Network Centrality and Stock Price Crashes"
+  authors: "Huang, C., Deng, Y., Yang, X., Cai, Y., & Zhao, X."
+  year: 2025
+  venue: "Journal of Systems Science and Complexity"
+  type: "journal"
+new_dois:
+  - "10.1080/1540496x.2025.2562336"
+  - "10.1007/s11424-025-4338-6"
 ---
 
 ## CORE
@@ -289,7 +303,7 @@ bank_eccentricity 是"银行共现网络 (co-mention network)"上的偏心率 (e
 偏心率与本族两个"核心—周边"味道的量也须切开, 以免望文生义。其一是 net_diameter_yr (网络级直径): 直径是 LCC 内所有节点偏心率的最大值, 与本节点量同属"半径—直径"谱系的两端, 但源码里直径走的是无权 BFS (对 G_lcc 求 eccentricity 不带 weight), 本列走的是 1/共现次数加权最短路 (在 G_inv_lcc 上以 weight 计), 二者作用在不同图对象上、加权口径不同, 因此本列列内最大值并不等同于 net_diameter_yr, 二者是构念平行而非数值嵌套的关系。其二是 bank_coreness (k-核数, Seidman 1983): 核数由反复剥离低度节点的 degeneracy 剥壳给出, 刻画"局部稠密的核心", 而偏心率刻画"到最远点的距离包络"; 一家银行完全可能身处高 k-核 (周围抱团稠密) 却仍有较高偏心率 (那一团核心整体离某个边缘挂件很远), 两种"核心"概念不可互换。与 betweenness/cfbetween_cent (中介/电流中介) 相比, 中介类量的是"多少最短路必须经过我"的桥梁控制地位, 关注中介而非距离远近, 一家边缘银行也可能因扼守唯一通道而中介值不低。与 degree/strength (度/强度) 相比, 度类只数局部邻居的多寡与总权重, 是纯局部量, 不必遍历全 LCC; 偏心率是需要遍历全 LCC 的全局量。与 eigen/katz/subgraph (特征向量/Katz/子图) 相比, 这些是"邻居本身重不重要"的递归声望量, 与"距最远点多远"正交。与 constraint/effective_size/ego_density/ci (Burt 结构洞族) 相比, 后者度量的是自我中心网 (ego-network) 内的经纪机会与冗余, 属局部结构洞视角, 同样与全局距离正交。简言之, 偏心率在本族独占"全局最坏可达距离 / 核心—周边"这一语义生态位。最后须记住一个构造前提: 银行共现网络是"文章×银行"二部图向银行单模的投影, Cimini 等 (2022) 对二部投影的元验证提示, 单模投影会因同时提及众多银行的大文章而系统性放大边密度; 偏心率作为距离量对这类密度伪影相对稳健 (距离由最短路而非局部密度主导), 但解释时仍应意识到投影这一构造前提。
 
 【已知局限与稳健性梯子】
-第一重局限是覆盖率对连通性的依赖: 由于限定 LCC 且要求 LCC 至少 2 节点, 在稀疏或高度断连的年份 (尤其本机 T=2 开发语料的退化情形), 大量银行会落在 LCC 之外而取 NaN, _sent 这类最严判据尤甚; 当某列在某年退化到零方差或近全缺, 它进回归后会被银行/年固定效应吸收或直接掉出可用样本, 其解释力实质悬置。生产 T=18 全量语料下图更稠密、LCC 更大, 覆盖显著改善, 因此本族指标的方差与解释力应以生产规模语料为准, 不宜以开发样本的退化表现外推。第二重是判据严苛度与信息量的权衡: 越严的判据 (sent) 边越少、图越碎、偏心率越可能缺失或呈零方差, 越宽的判据 (article) 则可能纳入"同篇但语义无关"的跨句偶然共现。三判据并排正是把这一权衡显性化为稳健性梯子, 而非事后择一; 但也须承认梯子只离散地探了三档严苛度, 档间连续的敏感性 (如任意句窗半径) 并未逐一物化。第三重是网络本身的测量误差: 银行共现网络并非行政观测到的产权、授信或担保关系, 而是媒体叙事把哪些银行反复并置的文本沉淀, 是一层"话语可见度"代理; 以代理反推的连边带测量误差, de Paula 等 (2024) 关于从面板识别网络连边的研究表明这类误差会削弱或扭曲下游网络系数, 且二部投影本身 (Cimini 等 (2022)) 会因大文章放大边密度——两者叠加意味着偏心率度量的是"新闻话语网络中的边缘性", 不可直接等同于"经济关系网络中的边缘性"。第四重是加权方案的任意性: 距离取 1/共现次数是 Opsahl 等 (2010) 框架下的标准但非唯一选择, 任何其它单调递减映射, 或先做加权图骨架提取 (backbone extraction) 再算距离, 都会给出不同的距离标度; Kirkley (2025) 的非参数骨架稀疏化即是一条尚未在本族物化的替代加权稳健性方向。第五重涉及确定性复现: 本族已知的 BLAS 浮点非确定列集中在 clustering/cfbetween/harmonic 三基名 (乘以三判据共 9 列), 偏心率属基于最短路的路径型量, 最短路搜索与取最大值均为确定性运算, 不在该 9 列之列, 在 PYTHONHASHSEED=0 且 BLAS 线程钉死为 1 的条件下可稳定复现 (golden 重生的一般纪律仍适用); 唯一残留的口径依赖是 LCC 选取在出现两个并列极大分量时取先遇者, 属实现约定而非随机源。综上, 偏心率的稳健性叙事由三判据梯子承载: 无后缀 / _win1 / _sent 各自 just-identified、互为稳健性、不分主次, 禁混同一 over-identified Hansen J, 跨规格推断以 FWER (Romano 与 Wolf, 2005) 收口。
+第一重局限是覆盖率对连通性的依赖: 由于限定 LCC 且要求 LCC 至少 2 节点, 在稀疏或高度断连的年份 (尤其本机 T=2 开发语料的退化情形), 大量银行会落在 LCC 之外而取 NaN, _sent 这类最严判据尤甚; 当某列在某年退化到零方差或近全缺, 它进回归后会被银行/年固定效应吸收或直接掉出可用样本, 其解释力实质悬置。生产 T=18 全量语料下图更稠密、LCC 更大, 覆盖显著改善, 因此本族指标的方差与解释力应以生产规模语料为准, 不宜以开发样本的退化表现外推。第二重是判据严苛度与信息量的权衡: 越严的判据 (sent) 边越少、图越碎、偏心率越可能缺失或呈零方差, 越宽的判据 (article) 则可能纳入"同篇但语义无关"的跨句偶然共现。三判据并排正是把这一权衡显性化为稳健性梯子, 而非事后择一; 但也须承认梯子只离散地探了三档严苛度, 档间连续的敏感性 (如任意句窗半径) 并未逐一物化。第三重是网络本身的测量误差: 银行共现网络并非行政观测到的产权、授信或担保关系, 而是媒体叙事把哪些银行反复并置的文本沉淀, 是一层"话语可见度"代理; 以代理反推的连边带测量误差, de Paula 等 (2024) 关于从面板识别网络连边的研究表明这类误差会削弱或扭曲下游网络系数, 且二部投影本身 (Cimini 等 (2022)) 会因大文章放大边密度——两者叠加意味着偏心率度量的是"新闻话语网络中的边缘性", 不可直接等同于"经济关系网络中的边缘性"。第四重是加权方案的任意性: 距离取 1/共现次数是 Opsahl 等 (2010) 框架下的标准但非唯一选择, 任何其它单调递减映射, 或先做加权图骨架提取 (backbone extraction) 再算距离, 都会给出不同的距离标度; Kirkley (2025) 的非参数骨架稀疏化即是一条尚未在本族物化的替代加权稳健性方向。第五重涉及确定性复现: 本族已知的 BLAS 浮点非确定列集中在 clustering/cfbetween/harmonic 三基名 (乘以三判据共 9 列), 偏心率属基于最短路的路径型量, 最短路搜索与取最大值均为确定性运算, 不在该 9 列之列, 在 PYTHONHASHSEED=0 且 BLAS 线程钉死为 1 的条件下可稳定复现 (golden 重生的一般纪律仍适用); 唯一残留的口径依赖是 LCC 选取在出现两个并列极大分量时取先遇者, 属实现约定而非随机源。综上, 偏心率的稳健性叙事由三判据梯子承载: 无后缀 / _win1 / _sent 各自 just-identified、互为稳健性、不分主次, 禁混同一 over-identified Hansen J, 跨规格推断以 FWER (Romano 与 Wolf, 2005) 收口。以中国上市公司分析师网络为对象, 发现网络中心度更高的企业系统性风险更低, 为网络位置量与金融风险关联提供了2025年新证据 (Xiang & Borjigin, 2025, Emerging Markets Finance and Trade)。基于中国上市公司动态股票网络, 发现中心度更高的公司未来股价崩盘风险更低, 呼应偏心率一类核心—周边网络位置量的实证价值 (Huang et al., 2025, Journal of Systems Science and Complexity)。
 
 ## VAR: bank_eccentricity
 
@@ -346,4 +360,6 @@ Manski, C. F. (1993). Identification of endogenous social effects: The reflectio
 Seidman, S. B. (1983). Network structure and minimum degree. Social Networks, 5(3), 269-287. https://doi.org/10.1016/0378-8733(83)90028-X
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
 Bonacich, P. (1972). Factoring and weighting approaches to status scores and clique identification. The Journal of Mathematical Sociology, 2(1), 113-120. https://doi.org/10.1080/0022250X.1972.9989806
+Xiang, Y., & Borjigin, S. (2025). Analyst Network: Implications for Systemic Risk of Non-Financial Firms in China. Emerging Markets Finance and Trade. https://doi.org/10.1080/1540496x.2025.2562336
+Huang, C., Deng, Y., Yang, X., Cai, Y., & Zhao, X. (2025). The Benefit of Being Central: Stock Network Centrality and Stock Price Crashes. Journal of Systems Science and Complexity. https://doi.org/10.1007/s11424-025-4338-6
 <!-- rendered-citations:end -->

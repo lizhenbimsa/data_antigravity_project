@@ -186,7 +186,28 @@ citations:
   vol: 2
   issue: 1
   pages_or_artno: 113-120
-new_dois: []
+- doi: "10.1038/s41598-024-61511-7"
+  type: journal
+  authors: "Wu, Y., Ding, L., Li, N., & Yu, X."
+  year: 2024
+  title: "Unveiling the influence of global innovation networks on corporate innovation: evidence from the international semiconductor industry"
+  venue: "Scientific Reports"
+- doi: "10.1108/rbf-01-2025-0038"
+  title: "Webs of influence: Do institutional networks enhance or distort stock price efficiency?"
+  authors: "Iqbal, M. S., Bashir, Z., Usman, M., Sabir, S. A., & Sair, S. A."
+  year: 2025
+  venue: "Review of Behavioral Finance"
+  type: "journal"
+- doi: "10.1007/s44163-025-00350-5"
+  title: "Deciphering news sentiment and stock price relationships in Indonesian companies: an AI-based exploration of industry affiliation and news co-occurrence"
+  authors: "Alamsyah, A., Ramadhani, D. P., Kristanti, F. T., Nasution, A. H., Mohamad, M. S., Sokkalingam, R., Widiyanesti, S., & Saputra, M. A. A."
+  year: 2025
+  venue: "Discover Artificial Intelligence"
+  type: "journal"
+new_dois:
+  - "10.1038/s41598-024-61511-7"
+  - "10.1108/rbf-01-2025-0038"
+  - "10.1007/s44163-025-00350-5"
 ---
 
 ## CORE
@@ -206,7 +227,7 @@ bank_closeness_cent 是"年度银行共现网络"上的接近中心度 (closenes
 networkx 默认采用 Wasserman-Faust 改进式 (wf_improved=True), 对断连图作可达比例校正: 节点 u 的接近中心度等于 (可达节点数减一) 除以 (加权距离之和), 再乘以 (可达节点数减一) 除以 (全体节点数减一)。因而处于非巨分量的银行不会被简单地当作"无穷远"从而与巨分量银行无从比较, 而是按其可达邻域规模被线性缩放; 完全孤立的银行 (该年无任何共现) 的接近中心度取 0.0, 借 clc.get(b, 0.0) 兜底。这使接近中心度成为一个"稠密"指标 — 对全部银行都有定义、原则上不产生 NaN, 不像离心率 (bank_eccentricity) 或电流介数 (bank_cfbetween_cent) 仅在最大连通分量上有值、分量外置 NaN, 也不像特征向量中心度 (bank_eigen_cent) 对微小分量置 NaN。计算得到的逐年逐行结果并入银行-年面板; 判据分轨的落列按 _expected_suffix 映射 (article 对应无后缀、win1 对应 _win1、sent 对应 _sent) 严格配对, 错配即抛错。33 个网络结构指标基名的唯一事实源是 NETWORK_METRIC_BASES 常量, stata_export 的判据标签机械块与 gate 测试均从此 import 复用以防漂移。export.py 给本列的英文标签是 "Co-mention Closeness Centrality (Freeman 1979)", 其构念本源即 Freeman (1978) 的接近中心度定义。就确定性而言, 生产源码明确将 bank_clustering、bank_cfbetween_cent、bank_harmonic_cent 三列标注为受 BLAS 浮点漂移影响、跨次重建非逐位可复现; 接近中心度不在此清单内, 其 Dijkstra 加权最短路径求解不经稠密特征分解, 在钉死 PYTHONHASHSEED 与全 BLAS 线程为 1 的受控环境下逐位可复现, 因此在 golden 验零漂移时不属需按全名排除的漂移列。
 
 【文献定位】
-接近中心度的方法学定位横跨社会网络计量与金融网络两支文献。计量本源方面, Freeman (1978) 奠定接近中心度的构念, Opsahl 等 (2010) 把度与最短路径中心度推广到加权网络、给出"边强度取倒数为距离"的加权口径, Boldi 与 Vigna (2014) 从公理化视角比较各类中心度、指出接近中心度与调和中心度在断连图上的行为差异, Newman (2005) 提出基于随机游走的介数中心度作为路径型度量的补充参照, Faust (1997) 专论隶属 (affiliation) 网络中的中心度 — 本项目的银行共现网正是由"报道-银行"二模隶属关系投影而来的一模网络, Faust 的处理与之最贴切。Nezami 等 (2025) 的元分析系统汇总网络中心度与企业绩效的关联证据 (该条在注册表中不背书 bank_clustering, 此处仅援引其对中心度-绩效一般关系的综述结论)。金融网络应用方面, Yu 等 (2024) 与 Xu 与 Zhao (2024) 分别论证金融网络中的节点中心度对信息扩散、资产定价与价格预测的作用, Jackson 与 Pernoud (2021) 综述金融网络中的系统性风险 — 中心度常被用作系统重要性代理, Grieser 等 (2022) 则实证网络位置对公司财务政策的影响。这些工作共同支撑了"银行在媒体共现网络中的接近中心度可能与其信息环境、融资与经营结果相关"的研究假设。这些应用文献的共同启示是: 中心度并非纯拓扑玩具, 而在信息扩散速度、系统重要性与政策传导上具有可检验的经济含义 — 一家在共现网络中接近中心度高的银行, 其正负面消息更可能被快速并置传播、纳入同业比较, 从而与其被市场关注的程度乃至融资成本相关联; Yu 等 (2024) 关于中心度与信息扩散、资产定价的证据, 与 Nezami 等 (2025) 元分析归纳的中心度-绩效正向关联, 为这一传导链条提供了跨情境的经验支撑, 而 Jackson 与 Pernoud (2021) 则从系统性风险视角提示了高中心度节点在冲击传染中的放大作用。
+接近中心度的方法学定位横跨社会网络计量与金融网络两支文献。计量本源方面, Freeman (1978) 奠定接近中心度的构念, Opsahl 等 (2010) 把度与最短路径中心度推广到加权网络、给出"边强度取倒数为距离"的加权口径, Boldi 与 Vigna (2014) 从公理化视角比较各类中心度、指出接近中心度与调和中心度在断连图上的行为差异, Newman (2005) 提出基于随机游走的介数中心度作为路径型度量的补充参照, Faust (1997) 专论隶属 (affiliation) 网络中的中心度 — 本项目的银行共现网正是由"报道-银行"二模隶属关系投影而来的一模网络, Faust 的处理与之最贴切。Nezami 等 (2025) 的元分析系统汇总网络中心度与企业绩效的关联证据 (该条在注册表中不背书 bank_clustering, 此处仅援引其对中心度-绩效一般关系的综述结论)。金融网络应用方面, Yu 等 (2024) 与 Xu 与 Zhao (2024) 分别论证金融网络中的节点中心度对信息扩散、资产定价与价格预测的作用, Jackson 与 Pernoud (2021) 综述金融网络中的系统性风险 — 中心度常被用作系统重要性代理, Grieser 等 (2022) 则实证网络位置对公司财务政策的影响。这些工作共同支撑了"银行在媒体共现网络中的接近中心度可能与其信息环境、融资与经营结果相关"的研究假设。这些应用文献的共同启示是: 中心度并非纯拓扑玩具, 而在信息扩散速度、系统重要性与政策传导上具有可检验的经济含义 — 一家在共现网络中接近中心度高的银行, 其正负面消息更可能被快速并置传播、纳入同业比较, 从而与其被市场关注的程度乃至融资成本相关联; Yu 等 (2024) 关于中心度与信息扩散、资产定价的证据, 与 Nezami 等 (2025) 元分析归纳的中心度-绩效正向关联, 为这一传导链条提供了跨情境的经验支撑, 而 Jackson 与 Pernoud (2021) 则从系统性风险视角提示了高中心度节点在冲击传染中的放大作用。此外, Wu, Ding, Li, & Yu (2024, Scientific Reports) 用企业间创新协作网络的中心度 (含接近中心度) 度量企业获取网络信息的便利程度并检验其对创新绩效的影响, 为本项目把媒体共现网络接近中心度解读为信息可达性代理提供了跨情境实证参照。Iqbal, Bashir, Usman, Sabir, & Sair (2025, Review of Behavioral Finance) 用机构股东共同持股网络的介数与接近中心度区分高连通与低连通机构, 检验网络位置是否带来信息优势并影响股价效率。Alamsyah, Ramadhani, Kristanti, Nasution, Mohamad, Sokkalingam, Widiyanesti, & Saputra (2025, Discover Artificial Intelligence) 基于新闻文本构造公司共现网络并结合情感分析, 考察行业归属与新闻共现结构对企业中心性地位及股价关联的影响。
 
 【识别策略定位】
 把网络位置 (接近中心度) 用作处理或暴露变量, 直面 Manski (1993) 揭示的反射问题 (reflection problem)。Manski 把一家银行结果对其同伴的依赖拆为三类难以互斥的混淆源: 内生效应 (同伴的结果反过来影响本行结果)、外生或情境效应 (同伴的可观测特征影响本行结果)、以及相关效应 (同伴与本行共处同一不可观测环境, 因而结果相似却非彼此因果)。在线性均值模型里, 内生效应与情境效应的系数因同伴均值互为镜像而无法分离 — 这正是"反射"的本义; 相关效应则与真正的溢出彼此难辨。接近中心度作为一个刻画银行在共现网络中整体近便性的结构位置摘要, 既可能经由信息可达性驱动其融资、经营结果, 也可能与那些同时决定它被频繁共同提及的不可观测特征 (资产规模、系统重要性、地域曝光度) 相混淆, 因此把它当作因果处理必须直面这三重内生性, 不可回避。
@@ -273,4 +294,7 @@ Gould, R. V., & Fernandez, R. M. (1989). Structures of mediation: A formal appro
 Seidman, S. B. (1983). Network structure and minimum degree. Social Networks, 5(3), 269-287. https://doi.org/10.1016/0378-8733(83)90028-X
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
 Bonacich, P. (1972). Factoring and weighting approaches to status scores and clique identification. The Journal of Mathematical Sociology, 2(1), 113-120. https://doi.org/10.1080/0022250X.1972.9989806
+Wu, Y., Ding, L., Li, N., & Yu, X. (2024). Unveiling the influence of global innovation networks on corporate innovation: evidence from the international semiconductor industry. Scientific Reports. https://doi.org/10.1038/s41598-024-61511-7
+Iqbal, M. S., Bashir, Z., Usman, M., Sabir, S. A., & Sair, S. A. (2025). Webs of influence: Do institutional networks enhance or distort stock price efficiency?. Review of Behavioral Finance. https://doi.org/10.1108/rbf-01-2025-0038
+Alamsyah, A., Ramadhani, D. P., Kristanti, F. T., Nasution, A. H., Mohamad, M. S., Sokkalingam, R., Widiyanesti, S., & Saputra, M. A. A. (2025). Deciphering news sentiment and stock price relationships in Indonesian companies: an AI-based exploration of industry affiliation and news co-occurrence. Discover Artificial Intelligence. https://doi.org/10.1007/s44163-025-00350-5
 <!-- rendered-citations:end -->

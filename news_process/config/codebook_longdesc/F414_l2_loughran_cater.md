@@ -57,7 +57,21 @@ citations:
   vol: '12'
   issue: '1'
   pages_or_artno: 357-375
-new_dois: []
+- doi: "10.1016/j.frl.2024.105227"
+  title: "Sentiment trading with large language models"
+  authors: "Kirtac, K., & Germano, G."
+  year: 2024
+  venue: "Finance Research Letters"
+  type: "journal"
+- doi: "10.1002/isaf.1549"
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+  type: "journal"
+new_dois:
+  - "10.1016/j.frl.2024.105227"
+  - "10.1002/isaf.1549"
 ---
 
 ## CORE
@@ -73,7 +87,7 @@ new_dois: []
 三轨 full/ctx/ss 分别对应: full=标题+正文全文语料, ctx=标题+实体窗口语料, ss=标题+银行∧金科同句±N窗语料 (无同句共现时回退为全文, 与 ctx 回退语义镜像, 回退标记 ss_is_fallback 共享 n_articles 分母)。三轨测度各自独立计算、并排存在, 互为稳健性检验、不分主次 — 不存在"以 full 为主、ctx/ss 为附属"的层级关系; 计量应用中三轨绝不可混入同一 over-identified 的 Hansen J 过度识别检验 (三轨各自 just-identified 并排使用)。
 
 【文献定位】
-词典法与深度学习/LLM 情感分类器之间的系统性差异是文本分析方法学文献长期关注的议题: Frankel, Jennings & Lee (2022, Management Science) 直接比较了机器学习方法与词典法在披露语调测量上的分歧及其经济含义, 是本家族"以差分作为诊断量而非独立构念"这一设计取向最直接的方法学先例。Loughran & McDonald (2011, Journal of Finance) 提出的金融专用词典 (即本家族依赖的 loughran 词表母本) 本身已经证明通用情感词典 (如 Harvard IV-4) 系统性误判金融文本语调, 说明"词典选择/词典与语料领域匹配度"本身就是分歧的一个来源; Loughran & McDonald (2016, Journal of Accounting Research; 2020, Annual Review of Financial Economics) 进一步综述了会计金融文本分析中词典法的适用边界与常见误用, 为解释 loughran_cater 差分的可能来源 (词典规则粗糙 vs 语料本身歧义) 提供了方法论背景。
+词典法与深度学习/LLM 情感分类器之间的系统性差异是文本分析方法学文献长期关注的议题: Frankel, Jennings & Lee (2022, Management Science) 直接比较了机器学习方法与词典法在披露语调测量上的分歧及其经济含义, 是本家族"以差分作为诊断量而非独立构念"这一设计取向最直接的方法学先例。Loughran & McDonald (2011, Journal of Finance) 提出的金融专用词典 (即本家族依赖的 loughran 词表母本) 本身已经证明通用情感词典 (如 Harvard IV-4) 系统性误判金融文本语调, 说明"词典选择/词典与语料领域匹配度"本身就是分歧的一个来源; Loughran & McDonald (2016, Journal of Accounting Research; 2020, Annual Review of Financial Economics) 进一步综述了会计金融文本分析中词典法的适用边界与常见误用, 为解释 loughran_cater 差分的可能来源 (词典规则粗糙 vs 语料本身歧义) 提供了方法论背景。Kirtac & Germano (2024, Finance Research Letters) 比较基于大语言模型(如GPT系列)与传统词典法在金融文本情感提取及其对股票收益预测能力上的差异, 发现LLM情感信号显著优于词典法, 为本家族"词典-LLM 迎合度差分"提供最新的方法学对照证据。Todd, Bowden & Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 系统综述金融领域文本情感分析技术谱系(词典法、机器学习、深度学习/大语言模型), 梳理不同测量工具间系统性分歧的成因与研究趋势, 为本家族词典-LLM 差分构念的文献定位提供最新综述支撑。
 
 ## VAR: loughran_cater_full
 
@@ -98,4 +112,6 @@ Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textua
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
 Loughran, T., & McDonald, B. (2020). Textual analysis in finance. Annual Review of Financial Economics, 12(1), 357-375. https://doi.org/10.1146/annurev-financial-012820-032249
+Kirtac, K., & Germano, G. (2024). Sentiment trading with large language models. Finance Research Letters. https://doi.org/10.1016/j.frl.2024.105227
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
 <!-- rendered-citations:end -->

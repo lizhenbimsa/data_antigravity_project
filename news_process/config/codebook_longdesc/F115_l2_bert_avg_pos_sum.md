@@ -62,7 +62,35 @@ citations:
   year: 2018
   title: "BERT: Pre-training of deep bidirectional transformers for language understanding"
   venue: arXiv
-new_dois: []
+- doi: "10.1016/j.iref.2024.01.067"
+  type: journal
+  authors: "Fang, Y., Wang, Q., Wang, Y., & Yuan, Y."
+  year: 2024
+  title: "Media sentiment, deposit stability and bank systemic risk: Evidence from China"
+  venue: "International Review of Economics & Finance"
+- doi: "10.1111/1911-3846.12949"
+  type: journal
+  authors: "Berger, A. N., Kim, H. H., & Ma, X. (Flora)"
+  year: 2024
+  title: "Bank sentiment and liquidity hoarding"
+  venue: "Contemporary Accounting Research"
+- doi: "10.1016/j.najef.2025.102361"
+  title: "An early prediction model on systemic risk under global risk: Using FinBERT and temporal fusion transformer to multimodal data fusion framework"
+  authors: "Jin, X., & Lin, S.-L."
+  year: 2025
+  venue: "The North American Journal of Economics and Finance"
+  type: "journal"
+- doi: "10.1016/j.ribaf.2025.102881"
+  title: "Annual report tone and bank risk-taking behavior: Evidence from China"
+  authors: "Wei, L., Wei, M., Jing, H., & Jing, Z."
+  year: 2025
+  venue: "Research in International Business and Finance"
+  type: "journal"
+new_dois:
+  - "10.1016/j.iref.2024.01.067"
+  - "10.1111/1911-3846.12949"
+  - "10.1016/j.najef.2025.102361"
+  - "10.1016/j.ribaf.2025.102881"
 ---
 
 ## CORE
@@ -74,7 +102,7 @@ new_dois: []
 计算分两层。底层 (stage 23) 由若干同为三分类 (正面 pos / 中性 neu / 负面 neg 同域输出) 的中文金融 BERT 模型对每篇报道打分, 得到逐篇正面类概率; 该逐篇概率在银行-年内对轨道文本做加总 (sum 而非 mean), 落为各模型自身的 {模型}_pos_sum{track} 列。上层 (geography.py) 对这一组同分类口径的三分类 BERT 模型 (代码内记为 _BERT3) 取跨模型算术均值, 生成本家族列; 聚合函数 _safe_mean 在某模型该列缺失时优雅返回 NaN 而不中断, 因而某一 BERT 模型缺席只连坐其自身族、不拖垮综合列 (per-model 独立降级, 区别于 co-primary 嵌入的 both-or-neither)。需强调 _sum 与同族 _pos 的区别: _pos 是银行-年内正面概率的均值 (强度, intensive), _pos_sum 是同一概率的总量 (规模, extensive), 后者随报道条数放大, 因而在计量上应与报道数量控制变量或对数化处理配合使用, 单独进入回归时其系数吸收了报道规模效应。FinBERT 类模型的判别有效性由 Huang、Wang 与 Yang (2023) 在金融文本信息抽取中系统验证, 是本项目采用预训练判别器打分的直接文献支撑。BERT 家族的双向 Transformer 编码机制则源自 Devlin 等 (2018) 的预训练范式。
 
 【文献定位】
-本测度的经济学意义锚定于银行信息环境与存款人纪律文献。Chen、Goldstein、Huang 与 Vashishtha (2022) 在顶刊证据中表明, 银行信息透明度直接影响存款流动, 媒体所传递的正面语调信息强度是银行外部信息环境的可观测代理, 其累积规模 (而非仅平均语调) 关系到公众对银行的注意力与信心分布。相对于词典法的经典基准 Loughran 与 McDonald (2011), BERT 综合正面总量在方法学上以上下文判别替代词频计数, 二者被本项目刻意并列为互为稳健性的两极而非主从关系。凡涉三轨 (full/ctx/ss)、三法 (词典/LLM/BERT)、跨模型子测度者, 一律遵循"各自 just-identified 并排、互为稳健性不分主次、禁混进同一 over-identified Hansen J"的口径铁律; 真正的跨模型 FWER 校正只在根级 rwolf 模板 (27_tableA12) 内实现, 家族并排本身不构成过度识别。
+本测度的经济学意义锚定于银行信息环境与存款人纪律文献。Chen、Goldstein、Huang 与 Vashishtha (2022) 在顶刊证据中表明, 银行信息透明度直接影响存款流动, 媒体所传递的正面语调信息强度是银行外部信息环境的可观测代理, 其累积规模 (而非仅平均语调) 关系到公众对银行的注意力与信心分布。相对于词典法的经典基准 Loughran 与 McDonald (2011), BERT 综合正面总量在方法学上以上下文判别替代词频计数, 二者被本项目刻意并列为互为稳健性的两极而非主从关系。凡涉三轨 (full/ctx/ss)、三法 (词典/LLM/BERT)、跨模型子测度者, 一律遵循"各自 just-identified 并排、互为稳健性不分主次、禁混进同一 over-identified Hansen J"的口径铁律; 真正的跨模型 FWER 校正只在根级 rwolf 模板 (27_tableA12) 内实现, 家族并排本身不构成过度识别。Fang, Wang, Wang 与 Yuan (2024, International Review of Economics & Finance) 以中国银行媒体语调证据表明正面/负面情感的累积暴露直接关联存款稳定与银行系统性风险, 为本家族正面情感总量测度提供中国银行业情境下的经济后果锚点; Berger, Kim 与 Ma (2024, Contemporary Accounting Research) 以文本情感构造银行管理层情绪测度并检验其对流动性囤积行为的影响, 支持本家族将 BERT 情感概率总量视为银行层面可累积经济信号的构念定位。Jin 与 Lin (2025, The North American Journal of Economics and Finance) 用 FinBERT 从多模态新闻文本中提取公众信心情感, 结合时序融合Transformer预测系统性风险, 为本家族 BERT 正面情感总量测度与系统性风险经济后果的关联提供方法学与实证锚点。Wei、Wei、Jing 与 Jing (2025, Research in International Business and Finance) 以中国38家A股上市银行年报语调为文本情感测度, 检验正面语调对银行风险承担行为的影响, 为本家族银行文本正面情感累积规模测度的经济后果解读提供中国银行业情境证据。
 
 ## VAR: bert_avg_pos_sum_full
 
@@ -98,4 +126,8 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 Chen, Q., Goldstein, I., Huang, Z., & Vashishtha, R. (2022). Bank transparency and deposit flows. Journal of Financial Economics, 146(2), 475-501. https://doi.org/10.1016/j.jfineco.2022.07.009
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2018). BERT: Pre-training of deep bidirectional transformers for language understanding. arXiv [Preprint]. https://doi.org/10.48550/arXiv.1810.04805
+Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2024.01.067
+Berger, A. N., Kim, H. H., & Ma, X. (Flora). (2024). Bank sentiment and liquidity hoarding. Contemporary Accounting Research. https://doi.org/10.1111/1911-3846.12949
+Jin, X., & Lin, S.-L. (2025). An early prediction model on systemic risk under global risk: Using FinBERT and temporal fusion transformer to multimodal data fusion framework. The North American Journal of Economics and Finance. https://doi.org/10.1016/j.najef.2025.102361
+Wei, L., Wei, M., Jing, H., & Jing, Z. (2025). Annual report tone and bank risk-taking behavior: Evidence from China. Research in International Business and Finance. https://doi.org/10.1016/j.ribaf.2025.102881
 <!-- rendered-citations:end -->

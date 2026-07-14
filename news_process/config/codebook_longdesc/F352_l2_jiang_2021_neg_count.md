@@ -62,7 +62,21 @@ citations:
   venue: Expert Systems with Applications
   vol: 264
   pages_or_artno: 125739
-new_dois: []
+- doi: "10.1016/j.ememar.2024.101234"
+  title: "Does official media sentiment matter for the stock market? Evidence from China"
+  authors: "Xu, Z., Hua, X., & Zhang, T."
+  year: 2025
+  venue: "Emerging Markets Review"
+  type: "journal"
+- doi: "10.3390/bdcc9100263"
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  venue: "Big Data and Cognitive Computing"
+  type: "journal"
+new_dois:
+  - "10.1016/j.ememar.2024.101234"
+  - "10.3390/bdcc9100263"
 ---
 
 ## CORE
@@ -74,7 +88,7 @@ new_dois: []
 计算链路分两层。篇章层在 stage 22 tone_words 完成: 对每篇报道的分词序列, 以状态机顺序扫描, 遇否定词设置翻转窗口、遇程度副词设置倍率、遇转折连词激活从句级加权、遇句末标点重置全部句法状态, 命中 jiang_2021 词典的情感词按 base×degree×negation×adversative 累加得篇章语调 jiang_2021_score{track}, 该分数经加权绝对值之和归一化后恒落在 [-1, +1] 区间, 且可按词典消融梯度 (`{dict}_score_{raw,negonly,degonly,advonly,negdeg,negadv,degadv}`) 拆出仅含否定/仅含程度副词/仅含转折等子规则变体, 但本家族三列固定消费全语言学规则版本 jiang_2021_score{track} (未经消融拆分)。面板层在 runner.py 把 jiang_2021_score{track} < 0 物化为篇章级二值指示 _is_jiang_2021_negative{track} (严格小于零方判负, 恰为零即中性、不计入负面计数), encode.py 再以 groupby-sum 聚合到 bank-year, 得到本家族三列。聚合层还须满足零填契约: 一个银行某年若没有任何留篇, 该行的计数类和流量类列应显式填 0 而非残留 NaN, 这在 encode.py 中由正则 `_count_pat = re.compile(r'_count(_vw)?_(full|ctx|ss|title)$')` 匹配 jiang_2021_neg_count_full/_ctx/_ss 等带轨道后缀的计数列名实现 (该正则历经多轮修复才覆盖到逐词典/逐模型计数列, 早期版本仅锚定裸 pos_count/neg_count 会遗漏本家族这类带词典前缀的计数列, 现已改为后缀匹配保证覆盖); 零填不适用于均值/比例类列 (以 avg_/mean_ 前缀排除), 因其空 bank-year 语义是"无观测"而非"观测值为零"。留篇宇宙统一遵循 2026-06-29 起的 full-only 门控: 一篇报道是否进入银行金科语料只由 llm_verified_full 决定, ctx/ss 两轨在此留篇集之上做 conditional-on-full 的逐轨重算, 三轨分母各自独立计算、不交叉借用。作为计数型中间量, neg_count 是负面信息累积程度的直接原语, 供下游需要"负面报道数量"而非"负面语气强度均值"的场景消费, 例如行业负面冲击构造中作分子成分之一。
 
 【文献定位】
-把 neg_count 建成一个显式的、非负整数的计数列, 呼应了金融文本研究中把计数类信息与连续得分区分处理的做法——本家族刻意与 jiang_2021_tone 的连续语调分开落列, 为下游提供计数原语而非仅依赖均值代表全部信息。词典本身的构建依据是姜富伟、孟令超、唐国豪 (2021) 发表于《经济学(季刊)》的媒体文本情绪与股票回报预测研究, 该文从中国财经媒体语料出发构建情绪词表并验证其对股票回报的预测力, 是本项目采用它判定负面语气的直接依据; 该词典与 Bian, Jia, Li, & Yan (2021) 针对会计与金融文本构建的中文情感词典并列, 后者的方法论——从大规模中文财经语料归纳构建领域专用词表——为 jiang_2021 词典的构建逻辑提供了同类参照。方法学上, 负面语气识别的核心难点在否定处理, Pröllochs, Feuerriegel, & Neumann (2016) 论证了否定范围检测对新闻驱动交易情感测度准确性的实质影响, 本项目状态机的否定窗口与句末重置机制即是对该关切的工程回应, 也是 jiang_2021 词典打分流程与 bian_2021 等其余词典共用同一套语言学规则引擎的原因。Todd, Bowden, & Moshfeghi (2024) 对金融文本情感分析文献的系统综述指出, 词典法在可解释性与领域适配性上仍是与机器学习/大语言模型法并存的重要一支, 支持本项目以多部中文词典并列作稳健性面而非单一"最优"词典的设计取向。就构念指向的负面信息本身而言, Piotroski, Wong, & Zhang (2015) 发表于《Journal of Accounting Research》的研究提供了关键的制度背景: 该文以中国上市公司为样本证明负面信息在政治激励下系统性地被压制、可见度更低, 这意味着在中国语境下媒体负面报道的绝对数量本身承载着独立于比例指标的信息价值, 也是本家族选择对负面报道做绝对计数、而非仅报负面占比的现实依据。Ma, Zhang, & Zhang (2025) 新近构建的中文细粒度投资者情感词典进一步印证中文金融文本情感测度对领域专用词表的高度依赖, 支持本项目保留 jiang_2021 等多部中文词典而非仅采用英文舶来词典翻译版的设计选择。
+把 neg_count 建成一个显式的、非负整数的计数列, 呼应了金融文本研究中把计数类信息与连续得分区分处理的做法——本家族刻意与 jiang_2021_tone 的连续语调分开落列, 为下游提供计数原语而非仅依赖均值代表全部信息。词典本身的构建依据是姜富伟、孟令超、唐国豪 (2021) 发表于《经济学(季刊)》的媒体文本情绪与股票回报预测研究, 该文从中国财经媒体语料出发构建情绪词表并验证其对股票回报的预测力, 是本项目采用它判定负面语气的直接依据; 该词典与 Bian, Jia, Li, & Yan (2021) 针对会计与金融文本构建的中文情感词典并列, 后者的方法论——从大规模中文财经语料归纳构建领域专用词表——为 jiang_2021 词典的构建逻辑提供了同类参照。方法学上, 负面语气识别的核心难点在否定处理, Pröllochs, Feuerriegel, & Neumann (2016) 论证了否定范围检测对新闻驱动交易情感测度准确性的实质影响, 本项目状态机的否定窗口与句末重置机制即是对该关切的工程回应, 也是 jiang_2021 词典打分流程与 bian_2021 等其余词典共用同一套语言学规则引擎的原因。Todd, Bowden, & Moshfeghi (2024) 对金融文本情感分析文献的系统综述指出, 词典法在可解释性与领域适配性上仍是与机器学习/大语言模型法并存的重要一支, 支持本项目以多部中文词典并列作稳健性面而非单一"最优"词典的设计取向。就构念指向的负面信息本身而言, Piotroski, Wong, & Zhang (2015) 发表于《Journal of Accounting Research》的研究提供了关键的制度背景: 该文以中国上市公司为样本证明负面信息在政治激励下系统性地被压制、可见度更低, 这意味着在中国语境下媒体负面报道的绝对数量本身承载着独立于比例指标的信息价值, 也是本家族选择对负面报道做绝对计数、而非仅报负面占比的现实依据。Ma, Zhang, & Zhang (2025) 新近构建的中文细粒度投资者情感词典进一步印证中文金融文本情感测度对领域专用词表的高度依赖, 支持本项目保留 jiang_2021 等多部中文词典而非仅采用英文舶来词典翻译版的设计选择。Xu, Hua, & Zhang (2025, Emerging Markets Review) 该文构建官方媒体负面情绪指数(NegGovOp)并证明其对中国股市回报反转与散户悲观抛售行为的预测力, 为本家族按负面报道数量单独计数(而非仅报净语调)的设计取向提供了新近实证支持。Chuang, He, & Hu (2025, Big Data and Cognitive Computing) 该文系统比较词嵌入与大语言模型在中文财经新闻情感分类与股价预测中的表现, 印证了词典法与机器学习/LLM法在中文财经文本情感测度上并存互补的方法论定位。
 
 ## VAR: jiang_2021_neg_count_full
 
@@ -98,4 +112,6 @@ Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment d
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
 Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management, 31(1), e1549. https://doi.org/10.1002/isaf.1549
 Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications, 264, 125739. https://doi.org/10.1016/j.eswa.2024.125739
+Xu, Z., Hua, X., & Zhang, T. (2025). Does official media sentiment matter for the stock market? Evidence from China. Emerging Markets Review. https://doi.org/10.1016/j.ememar.2024.101234
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 <!-- rendered-citations:end -->

@@ -119,9 +119,33 @@ citations:
   vol: 50
   issue: 1
   pages_or_artno: 185-224
+- doi: 10.1016/j.iref.2024.04.020
+  type: journal
+  authors: "Yu, C., Song, A., & Yu, F."
+  year: 2024
+  title: "Media attention and corporate risk-taking: Evidence from China"
+  venue: International Review of Economics & Finance
+  one_sentence_zh: "该文以中国上市公司为样本证明媒体关注度(报道显著程度)通过信息不对称与披露质量渠道影响公司风险承担,为本家族版位与主角性显著度向银行经营和融资结果传导的移植路径提供了同一制度背景下的最新实证支持。"
+- doi: "10.1111/jofi.13377"
+  title: "Business News and Business Cycles"
+  authors: "Bybee, L., Kelly, B., Manela, A., & Xiu, D."
+  year: 2024
+  venue: "The Journal of Finance"
+  type: "journal"
+  one_sentence_zh: "该文以80万篇华尔街日报文章的主题模型量化商业新闻的注意力分配随经济周期变化,为本家族“报道显著性反映媒体与编辑部对经济相关性判断”这一论点提供了另一维度(新闻内容主题配给而非版位配给)的最新实证参照。"
+- doi: "10.3390/journalmedia5010003"
+  title: "Media Output Score, a New Indicator for Measuring Online Media Coverage"
+  authors: "Oliveira, U., Soares, C., & Trigo, M. R."
+  year: 2023
+  venue: "Journalism and Media"
+  type: "journal"
+  one_sentence_zh: "该文提出综合媒体能见度、favorability与读者规模的媒体产出分数以衡量品牌在线媒体覆盖强度,与本家族把版位显著性和导语主角性作为集约边际测度的思路相呼应,补充了数字媒体语境下的可见度量化视角。"
 new_dois:
 - 10.1111/j.1540-6261.2008.01362.x
 - 10.1111/j.1540-6261.2007.01232.x
+- "10.1016/j.iref.2024.04.020"
+- "10.1111/jofi.13377"
+- "10.3390/journalmedia5010003"
 ---
 
 ## CORE
@@ -135,7 +159,7 @@ article 级构造由 news_salience.py 的 compute_news_salience 一次性完成,
 进入面板后的工程细节还有三点值得写明。其一, encode 的聚合注册走 valid_agg 过滤: 若上游 parquet 因故缺失某个源列, 该列的聚合条目被优雅跳过而非报错, 面板中该列整列缺席 —— 消费端 (Stata 模板与 codebook) 须以列存在性探测而非硬引用处理这一优雅降级。其二, 中国报业语境给版位测度附加了一层制度含义: 在党报与主流财经报纸的编辑惯例中, 头版与要闻版的选题须经更高层级的编辑决策, 头版占比因此不仅是读者注意力的代理, 也部分反映编辑部乃至监管沟通层面对该银行新闻价值与政策相关性的判断, 论文解释系数时须对这两种机制保持并列开放而非武断归一。其三, 三列的年度均值形式意味着它们对报道总量不敏感 —— 一个只有两篇报道但其中一篇上头版的银行年份, 其 frac_front_page 高于一个有百篇报道其中十篇上头版的年份 —— 这正是集约边际测度的设计意图, 但也要求小样本年份 (留篇数极少的银行) 的取值以较大方差解读, 回归中可按留篇数加权或对低报道年份做敏感性剔除。
 
 【文献定位】
-本家族在文献谱系中处于媒体经济学"注意力配给"分支与文本资产定价"相关性过滤"分支的交汇点。注意力分支的锚点链条是: Tetlock (2007) 确立报纸内容影响市场的基准事实并隐含版位显著性的作用; Fedyk (2024) 用位置的准随机变化把"显著位置导致更强反应"从相关提升为因果; Fang 与 Peress (2009) 证明覆盖本身的存在与否已在横截面定价中留下痕迹。相关性分支的锚点是 Tetlock, Saar-Tsechansky 与 Macskassy (2008) 与 Boudoukh 等 (2019): 前者证明公司特定新闻的语言内容含有关于基本面的真实信息, 后者进一步证明只有当公司处于新闻的语义中心时这种信息含量才充分显现, 把"提及"与"主角"区分开来。行为金融维度上, Baker 与 Wurgler (2006) 的投资者情绪框架为显著性提供了传导机制: 显著位置的报道触达更广、更少专业化的读者群体, 情绪敏感型投资者的参与被放大; Diether, Malloy 与 Scherbina (2002) 关于意见分歧与横截面收益的证据则提示, 高显著性报道通过扩大异质信念持有者的接触面, 可能同时放大分歧的形成与其价格含义。本家族把这些为股票市场发展的构念移植到中国银行业的银行-年面板: 被解释对象从日频价格反应换成银行年度经营与融资结果, 显著性从事件研究的调节变量转为面板中的持续暴露强度测度。这一移植有两处非平凡的口径转换须交代。第一, 频率转换: 股票市场文献的显著性效应多在日频甚至分钟频事件窗内识别, 银行-年面板把逐篇显著性平均到年度, 度量的不再是单次冲击的瞬时强度而是该银行全年媒体呈现方式的稳态分布 —— 相应地, 理论预期从"价格对单条头版新闻反应更强"变为"常年被头版式报道的银行, 其融资成本、存款人行为与监管关注对媒体语调的敏感度系统性更高"。第二, 对象转换: 上市股票的显著性效应经由交易者注意力传导, 而中国商业银行样本中相当部分主体未上市或股权交易稀薄, 显著性的传导更多经由存款人、同业交易对手与监管者的注意力, 这使得版位与导语测度作为"公众可见度"的解释在本面板中比"交易者注意力"更准确, 也解释了为何本家族在论文组合中主要以调节与控制角色出现, 而非直接复刻资产定价文献的收益预测规格。
+本家族在文献谱系中处于媒体经济学"注意力配给"分支与文本资产定价"相关性过滤"分支的交汇点。注意力分支的锚点链条是: Tetlock (2007) 确立报纸内容影响市场的基准事实并隐含版位显著性的作用; Fedyk (2024) 用位置的准随机变化把"显著位置导致更强反应"从相关提升为因果; Fang 与 Peress (2009) 证明覆盖本身的存在与否已在横截面定价中留下痕迹。相关性分支的锚点是 Tetlock, Saar-Tsechansky 与 Macskassy (2008) 与 Boudoukh 等 (2019): 前者证明公司特定新闻的语言内容含有关于基本面的真实信息, 后者进一步证明只有当公司处于新闻的语义中心时这种信息含量才充分显现, 把"提及"与"主角"区分开来。行为金融维度上, Baker 与 Wurgler (2006) 的投资者情绪框架为显著性提供了传导机制: 显著位置的报道触达更广、更少专业化的读者群体, 情绪敏感型投资者的参与被放大; Diether, Malloy 与 Scherbina (2002) 关于意见分歧与横截面收益的证据则提示, 高显著性报道通过扩大异质信念持有者的接触面, 可能同时放大分歧的形成与其价格含义。本家族把这些为股票市场发展的构念移植到中国银行业的银行-年面板: 被解释对象从日频价格反应换成银行年度经营与融资结果, 显著性从事件研究的调节变量转为面板中的持续暴露强度测度。近年中国本土证据进一步强化了这一移植的制度适配性: Yu, Song 与 Yu (2024, International Review of Economics & Finance) 以中国上市公司为样本证明媒体关注度即报道显著程度通过信息不对称与披露质量渠道影响公司风险承担, 为本家族版位与主角性显著度向银行经营和融资结果传导的移植路径提供了同一制度背景下的最新实证支持。这一移植有两处非平凡的口径转换须交代。第一, 频率转换: 股票市场文献的显著性效应多在日频甚至分钟频事件窗内识别, 银行-年面板把逐篇显著性平均到年度, 度量的不再是单次冲击的瞬时强度而是该银行全年媒体呈现方式的稳态分布 —— 相应地, 理论预期从"价格对单条头版新闻反应更强"变为"常年被头版式报道的银行, 其融资成本、存款人行为与监管关注对媒体语调的敏感度系统性更高"。第二, 对象转换: 上市股票的显著性效应经由交易者注意力传导, 而中国商业银行样本中相当部分主体未上市或股权交易稀薄, 显著性的传导更多经由存款人、同业交易对手与监管者的注意力, 这使得版位与导语测度作为"公众可见度"的解释在本面板中比"交易者注意力"更准确, 也解释了为何本家族在论文组合中主要以调节与控制角色出现, 而非直接复刻资产定价文献的收益预测规格。Bybee, Kelly, Manela 与 Xiu (2024, The Journal of Finance) 以80万篇华尔街日报文章的主题模型量化商业新闻的注意力分配随经济周期变化, 为本家族"报道显著性反映媒体与编辑部对经济相关性判断"这一论点提供了另一维度即新闻内容主题配给而非版位配给的最新实证参照。Oliveira, Soares 与 Trigo (2023, Journalism and Media) 提出综合媒体能见度、favorability 与读者规模的媒体产出分数以衡量品牌在线媒体覆盖强度, 与本家族把版位显著性和导语主角性作为集约边际测度的思路相呼应, 补充了数字媒体语境下的可见度量化视角。
 
 【识别策略定位】
 在本项目的多论文组合中, 本家族的识别角色是"媒体处理强度的质量调节器"而非独立处理变量。主线各论文的 treatment 是情感与属性测度 (如 P1 的 llm_vote_tone_full), 本家族三列进入三类规格: 其一, 作为暴露强度的交互调节 —— 同样的年均语调, 头版占比高的银行年份对应更强的公众触达, 语调效应的斜率应随 frac_front_page 增大, 这一异质性预测直接由 Fedyk (2024) 的因果证据背书; 其二, 作为注意力通道的控制变量, 把"报道显著性"从"报道内容"中剥离, 防止情感系数吸收纯注意力效应; 其三, 作为 P2 注意力论文中注意力构念的物理测度臂, 与基于计数的 attention_pct 并排互证。须遵守的口径铁律: 本家族三列与同批产出的 avg_page_rank、staff_written_frac、wire_frac 等兄弟测度是并排的显著性信号族, 各自 just-identified 进入各自的回归规格, 互为稳健性、不分主次, 严禁把多个显著性测度当作同一内生变量的多工具混进同一个 over-identified 的 Hansen J 检验 —— 它们度量的是显著性构念的不同物理侧面, 排除性约束互不嵌套, 合并检验只会制造不可解释的过度识别拒绝。同理, 三列之间 (头版、版面关键词、导语) 也各走各的规格, 以规格并排而非工具堆叠的方式呈现。多测度族的统计纪律另有一层: Harvey, Liu 与 Zhu (2016) 证明金融学因子发现的海量多重检验已使传统显著性阈值失效, Linnainmaa 与 Roberts (2018) 用样本外历史数据证明大量已发表横截面关系在数据窥探之外即衰减, Chen 与 Zimmermann (2022) 则示范了以开源可复现方式约束测度族膨胀的实践标准。本家族对这三重警告的回应是: 测度构造在看到任何回归结果之前由 2026-06-05 缺口报告预先声明并冻结, 全部解析规则以源码形式公开可审计, 且论文报告中显著性族的多列结果须作为一个 family 整体呈现而非择优挑列。
@@ -174,4 +198,7 @@ Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media i
 Baker, M., & Wurgler, J. (2006). Investor sentiment and the cross-section of stock returns. The Journal of Finance, 61(4), 1645-1680. https://doi.org/10.1111/j.1540-6261.2006.00885.x
 Diether, K. B., Malloy, C. J., & Scherbina, A. (2002). Differences of opinion and the cross section of stock returns. The Journal of Finance, 57(5), 2113-2141. https://doi.org/10.1111/0022-1082.00490
 Kothari, S. P., Shanken, J., & Sloan, R. G. (1995). Another look at the cross-section of expected stock returns. The Journal of Finance, 50(1), 185-224. https://doi.org/10.1111/j.1540-6261.1995.tb05171.x
+Yu, C., Song, A., & Yu, F. (2024). Media attention and corporate risk-taking: Evidence from China. International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2024.04.020
+Bybee, L., Kelly, B., Manela, A., & Xiu, D. (2024). Business News and Business Cycles. The Journal of Finance. https://doi.org/10.1111/jofi.13377
+Oliveira, U., Soares, C., & Trigo, M. R. (2023). Media Output Score, a New Indicator for Measuring Online Media Coverage. Journalism and Media. https://doi.org/10.3390/journalmedia5010003
 <!-- rendered-citations:end -->

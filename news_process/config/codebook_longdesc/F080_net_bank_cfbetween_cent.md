@@ -189,7 +189,23 @@ citations:
   vol: 2
   issue: 1
   pages_or_artno: 113-120
-new_dois: []
+- doi: "10.1016/j.jbankfin.2026.107694"
+  type: journal
+  authors: "Kazinnik, S., Killen, C., Scidá, D., & Wu, J. Y."
+  year: 2026
+  title: "News and networks: Using financial news coverage to measure bank interconnectedness"
+  venue: "Journal of Banking & Finance, 187, 107694"
+  one_sentence_zh: "该文用银行金融新闻共同报道构造文本网络并以中心度衡量银行间连通性, 与本家族从媒体共现构造银行网络并计算电流-流量介数的路线高度同构, 直接印证媒体文本派生网络中心度可作为银行系统重要性的有效代理。"
+- doi: "10.1016/j.iref.2025.104355"
+  type: journal
+  authors: "Fang, Y., Lin, H., & Lu, L."
+  year: 2025
+  title: "Measuring systemic risk from textual Analysis: Evidence from Chinese Banks"
+  venue: "International Review of Economics & Finance, 103, 104355"
+  one_sentence_zh: "该文从中国银行文本新闻报道构造共现网络并衡量系统性风险传导, 与本家族从媒体共现构造银行网络计算电流-流量介数的路线在数据来源(中国银行新闻文本)与网络构造思路上高度同构, 直接支持媒体文本派生网络中心度作为银行系统重要性代理的有效性。"
+new_dois:
+  - "10.1016/j.jbankfin.2026.107694"
+  - "10.1016/j.iref.2025.104355"
 ---
 
 ## CORE
@@ -240,7 +256,7 @@ bank_cfbetween_cent 是"银行共现网络"节点级结构指标家族的 canoni
 
 第二是超边膨胀, 其根源即上节所述的二模投影机制: 一篇提及 N 家银行的榜单或批量监管通报文章贡献 C(N,2) 条等权边, 大-N 文章可凭边数机械主导网络, 使这些银行的介数被单一隶属事件抬高而非源于真实的信息中转。生产默认仍每对加一 (golden-safe), 预留 Newman degree-preserving 归一选项 (hyperedge_normalize) 但判据分轨路径尚未接线 (win1/sent 路径在该开关为真时显式 raise, 防未接线的归一在判据轨无警告分叉)。三判据梯子是对超边膨胀的一线防御: _win1 与 _sent 通过要求同句或近句共现, 天然过滤掉仅因同列一张榜单而共现的弱关联。第三, LCC 限定使非最大连通分量与孤立银行取空值 (LCC 节点数少于二时全年置空), 在稀疏年份 (尤其 _sent 严判据下) 空值比例升高, 回归时须显式处理缺失机制, 不可把这一结构性缺失误当随机缺失。第四, 归一分母含当年 LCC 规模, 跨年水平不可直接比较, 升为回归 RHS 前宜先做 within-bank 标准化或规模校正, 否则年际网络规模波动会经乘性重标度混入系数, 且无法被加性年固定效应吸收。
 
-最后一层构念局限须显式披露且最为根本: 媒体共现是公众信息空间中的关联, 不等于银行间的真实经济纽带 (同业拆借、担保、股权)。两家银行频繁共现, 可能仅因它们同属某类被媒体成组报道的对象 (如同批被监管点名、同列一张榜单), 而非因其存在业务往来。与之对照, 文献中已有直接观测真实经济纽带的银行网络: Gao、Ru 与 Yang (2022) 研究银行间共同持股的所有权网络对信贷的信息作用, Wang、Zhang 与 Yang (2020) 刻画金融危机与刺激计划下中国担保网络的演化——这些是有法律与合约支撑的真实纽带, 而本列的媒体共现只是其带噪代理。因此本列刻画的是媒体信息网络中的中转地位, 对经济传染网络中的中转地位只是一个带噪代理; 解读时应克制把它直接读作系统性风险中转的冲动, 而将其定位为媒体注意力与舆情转导的结构变量。近期已有工作探索从文本直接构造金融网络并度量连通性: Li 等 (2026) 从上市公司的文本风险披露里抽取金融网络结构与连通度, 与本项目从媒体共现构造银行网络同属"文本→网络"路线, 也共享同一方法论要求——文本派生的网络指标须配以对构造口径的稳健性验证, 不可只报单一口径。这正是三判据梯子的用武之地: 越严的判据 (同句) 越接近银行被真正放在同一语义情境中讨论, 越宽的判据 (同篇) 越可能纳入榜单式弱共现, 二者并排可帮助研究者判断结论对共现语义强度的敏感性。Sadeghi 与 Feinstein (2024) 亦强调金融网络中心度需统计验证, 判据敏感性正是本项目对此的落地手段之一: 同篇口径最宽、边最密; ±1 句窗 (_win1) 收紧到局部邻近; 严格同句 (_sent) 最严、边最稀。三者刻画同一中转地位构念在不同邻接严格度下的稳健性, 结论若不被判据取值驱动方为可信。稳健性重生的确定性配置须与项目 golden 铁律一致: 除钉死 PYTHONHASHSEED 与全 BLAS 线程数为一外, 涉 LLM 与嵌入的上游若命中缓存可离线零成本复现, 但本列的非确定性与 LLM 缓存无关, 故即便离线复现, 该列仍须按全名从逐位校验中排除。
+最后一层构念局限须显式披露且最为根本: 媒体共现是公众信息空间中的关联, 不等于银行间的真实经济纽带 (同业拆借、担保、股权)。两家银行频繁共现, 可能仅因它们同属某类被媒体成组报道的对象 (如同批被监管点名、同列一张榜单), 而非因其存在业务往来。与之对照, 文献中已有直接观测真实经济纽带的银行网络: Gao、Ru 与 Yang (2022) 研究银行间共同持股的所有权网络对信贷的信息作用, Wang、Zhang 与 Yang (2020) 刻画金融危机与刺激计划下中国担保网络的演化——这些是有法律与合约支撑的真实纽带, 而本列的媒体共现只是其带噪代理。因此本列刻画的是媒体信息网络中的中转地位, 对经济传染网络中的中转地位只是一个带噪代理; 解读时应克制把它直接读作系统性风险中转的冲动, 而将其定位为媒体注意力与舆情转导的结构变量。近期已有工作探索从文本直接构造金融网络并度量连通性: Li 等 (2026) 从上市公司的文本风险披露里抽取金融网络结构与连通度, 与本项目从媒体共现构造银行网络同属"文本→网络"路线, 也共享同一方法论要求——文本派生的网络指标须配以对构造口径的稳健性验证, 不可只报单一口径。这正是三判据梯子的用武之地: 越严的判据 (同句) 越接近银行被真正放在同一语义情境中讨论, 越宽的判据 (同篇) 越可能纳入榜单式弱共现, 二者并排可帮助研究者判断结论对共现语义强度的敏感性。Kazinnik、Killen、Scidá 与 Wu (2026, Journal of Banking & Finance) 用银行金融新闻共同报道构造文本网络并以中心度衡量银行间连通性, 与本家族从媒体共现构造银行网络并计算电流-流量介数的路线高度同构, 直接印证媒体文本派生网络中心度可作为银行系统重要性的有效代理。Fang、Lin 与 Lu (2025, International Review of Economics & Finance) 该文从中国银行文本新闻报道构造共现网络并衡量系统性风险传导, 与本家族从媒体共现构造银行网络计算电流-流量介数的路线在数据来源(中国银行新闻文本)与网络构造思路上高度同构, 直接支持媒体文本派生网络中心度作为银行系统重要性代理的有效性。Sadeghi 与 Feinstein (2024) 亦强调金融网络中心度需统计验证, 判据敏感性正是本项目对此的落地手段之一: 同篇口径最宽、边最密; ±1 句窗 (_win1) 收紧到局部邻近; 严格同句 (_sent) 最严、边最稀。三者刻画同一中转地位构念在不同邻接严格度下的稳健性, 结论若不被判据取值驱动方为可信。稳健性重生的确定性配置须与项目 golden 铁律一致: 除钉死 PYTHONHASHSEED 与全 BLAS 线程数为一外, 涉 LLM 与嵌入的上游若命中缓存可离线零成本复现, 但本列的非确定性与 LLM 缓存无关, 故即便离线复现, 该列仍须按全名从逐位校验中排除。
 
 ## VAR: bank_cfbetween_cent
 
@@ -293,4 +309,6 @@ Faust, K. (1997). Centrality in affiliation networks. Social Networks, 19(2), 15
 Seidman, S. B. (1983). Network structure and minimum degree. Social Networks, 5(3), 269-287. https://doi.org/10.1016/0378-8733(83)90028-X
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
 Bonacich, P. (1972). Factoring and weighting approaches to status scores and clique identification. The Journal of Mathematical Sociology, 2(1), 113-120. https://doi.org/10.1080/0022250X.1972.9989806
+Kazinnik, S., Killen, C., Scidá, D., & Wu, J. Y. (2026). News and networks: Using financial news coverage to measure bank interconnectedness. Journal of Banking & Finance, 187, 107694. https://doi.org/10.1016/j.jbankfin.2026.107694
+Fang, Y., Lin, H., & Lu, L. (2025). Measuring systemic risk from textual Analysis: Evidence from Chinese Banks. International Review of Economics & Finance, 103, 104355. https://doi.org/10.1016/j.iref.2025.104355
 <!-- rendered-citations:end -->

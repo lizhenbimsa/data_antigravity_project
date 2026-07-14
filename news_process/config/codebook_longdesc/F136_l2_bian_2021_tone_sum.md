@@ -1,5 +1,6 @@
 ---
 family_id: F136
+novelty_exempt_rationale: "该家族是 bian_2021 词典语调分在 bank-year 层的求和 (sum) 聚合变体, 与 canonical 均值列 bian_2021_tone 共用同一套逐篇打分构造与词典来源, 仅聚合算子由 mean 换为 sum 以刻画外延边际, 属于测度的机械聚合变体而非独立学术构念, 其学术依据已由母族词典文献 (Bian et al. 2021 等) 覆盖, 无需额外追新文献。"
 columns:
 - bian_2021_tone_sum_ctx
 - bian_2021_tone_sum_full

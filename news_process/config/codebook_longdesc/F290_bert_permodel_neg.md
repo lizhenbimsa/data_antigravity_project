@@ -55,6 +55,7 @@ columns:
 - finbert_cn_neg_vw_ctx
 - finbert_cn_neg_vw_full
 - finbert_cn_neg_vw_ss
+novelty_exempt_rationale: "F290 (bert_permodel_neg) 是 F111 (bert_avg_neg 跨模型集成) 的逐模型 (per-model) 派生稳健轨变体, 属于 CLAUDE.md 明确列举的 bert_permodel_ 前缀豁免类型: 三个 BERT 模型各自独立输出负面概率, 不做跨模型集成, 母族测度学 (FinBERT/FinBERT2 架构、加权口径、三轨口径) 已由现有 citations 充分覆盖 (含 2023 Huang et al. CAR FinBERT 原始文献、2025 Xu et al. KDD FinBERT2 私有模型锚点、2025 Punetha & Jain 否定处理分歧文献), 无需为该派生变体本身额外新增独立学术锚点。"
 unit: 无量纲概率 (BERT 分类器 softmax 输出的负面类概率, 单模型独立值, [0,1] 区间; 加权变体为同区间加权平均; 分类维度变体为该子集内条件均值)
 formula: "{model}_neg{sfx}{track} = 该 BERT 模型对银行-年留篇文章负面类 softmax 概率的 (条件/加权) 均值; model in {finbert_cn, fin_sent_zh, finbert2}; sfx in {'', _hw, _mw, _vw, _app, _tech}; track in {_full, _ctx, _ss}"
 producer: pipeline/sentiment/tone_berts.py (逐模型逐轨 softmax 概率, stage 23) ; pipeline/panel/encode.py (银行-年聚合 agg 字典 D/F3-F5/K/L 块与 VW/MW/HW 除法) ; pipeline/panel/geography.py (compute_composite_indicators 内 _app/_tech 条件均值分支)

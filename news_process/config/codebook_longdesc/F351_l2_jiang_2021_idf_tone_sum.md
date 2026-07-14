@@ -54,7 +54,21 @@ citations:
   vol: "57"
   issue: "3"
   pages_or_artno: 535-574
-new_dois: []
+- doi: "10.1145/3649451"
+  title: "Financial Sentiment Analysis: Techniques and Applications"
+  authors: "Du, K., Xing, F., Mao, R., & Cambria, E."
+  year: 2024
+  venue: "ACM Computing Surveys"
+  type: "journal"
+- doi: "10.1016/j.eswa.2024.125739"
+  title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
+  authors: "Ma, Y., Zhang, T., & Zhang, P."
+  year: 2025
+  venue: "Expert Systems with Applications"
+  type: "journal"
+new_dois:
+  - "10.1145/3649451"
+  - "10.1016/j.eswa.2024.125739"
 ---
 
 ## CORE
@@ -66,7 +80,7 @@ new_dois: []
 计算管线分两段, 数学口径须区分清楚: 文章级产出的并非未归一化的原始加权和, 而是一个已自归一化、有界于 [-1,+1] 的比率。文章级(stage 22 `tone_words.py`): 先用 jieba(冻结版本 0.42.1, 保证跨次运行分词结果确定性可复现)对文章文本分词, 再在词典词表上匹配正面词与负面词; 每个命中词依 IDF 权重(在项目语料上预先估计并冻结)与三条语言学规则——否定翻转/程度副词/转折——共同决定其最终贡献 final_score(w), 随后对全部命中词的 final_score 求和并除以其绝对值之和做自归一化, 得到 idf_score = Σfinal_score(w) / Σ|final_score(w)| ∈ [-1,+1]。也就是说, "IDF 加权"体现在逐词贡献的权重构造上, 而非体现在最终产出量纲上——最终产出已经是一个有界比率, 与"是否除以词数"这一常见的 raw/avg 二分法不完全对应, 更接近于一个自身内部已做过尺度归一化的语调强度指标。该文章级 idf_score 在 stage 22 内部计算, 供后续聚合消费。面板级(stage 40 `encode.py`/`export.py`): 对通过留篇门控的 bank-year 样本内全部文章, 按轨(full/ctx/ss)分别对文章级 idf_score 取 sum(聚合动词为求和而非均值), 得到本家族三个面板列 jiang_2021_idf_tone_sum_{full,ctx,ss}。因此面板列名中的"tone_sum"准确描述的是聚合方式(对篇计数求和), 而被求和的对象——文章级 idf_score——本身早已是归一化比率, 二者不可混为一谈; 篇均含义应通过与 n_articles 相除另行还原, 本列不预先做该归一化。三轨的差异纯粹来自扫描文本的范围, 而非算法本身。留篇门控口径为 full-only(2026-06-29 起): 一篇报道是否计入"银行-金融科技"样本, 只看 full 轨大语言模型三家投票结果(`llm_verified_full == True`), 与词典打分完全独立的两条测度路线判定其是否留篇; ctx/ss 轨的 idf_tone_sum 值是在 full 轨已确定的留篇文章行宇宙子集上、各自扫描各自的文本窗口(ctx=标题+实体窗口, ss=标题+银行∧金科同句±N窗)计算的稳健性/条件测度, 不构成独立的样本纳入判据。当某篇文章不存在银行与金科词的同句共现窗口时, ss 轨依 CLAUDE.md 铁律镜像 ctx 轨的回退语义: 退化为使用全文 body 作为 content_ss, 并将 ss_is_fallback 标记为真、与 ctx 共享 n_articles 分母, 从而在稀疏共现场景下不静默丢文章。
 
 【文献定位】
-姜富伟等(2021)在《经济学(季刊)》构建的这部词典是本项目 6 部情感词典之一, 与 Du 等(2022, *Review of Finance*)提出的针对中国金融文本领域特异性的情感词典构成同类中文金融专用词典路线的两个代表——两文均强调通用情感词典(如英文 Loughran-McDonald)直接翻译或移植到中文金融语境会因语言结构与领域用词差异而失真, 需要基于本地语料重新构建词表与极性判定规则。本项目并列纳入 jiang_2021/du_2022/bian_2021/you_2018/yao_2021/loughran(经中文主译改造)六部词典, 既是对"哪一部词典更优"这一开放问题不做预设立场的稳健性设计, 也呼应 Frankel、Jennings 与 Lee(2022, *Management Science*)关于机器学习方法与词典方法在披露情感测量上系统性分歧的发现——词典法本身对词表选择、权重方案高度敏感, 单一词典的点估计不足以支撑因果推断的稳健性主张。idf_tone_sum 这一 IDF 加权口径, 是在"是否加权""如何归一化"两个维度上, 与家族内其余变体(如未加权 raw 计数、除以词数的比率 tone、仅保留否定规则的 negonly 等)共同构成的消融/口径梯子的一环。其加权思想的方法学锚点是 Gentzkow、Kelly 与 Taddy(2019, *Journal of Economic Literature*)对文本作为经济学数据(text as data)的系统性综述——该文将 tf-idf 式的词加权确立为文本量化研究中处理"不同词信息量不等"这一问题的经典工具, 逆文档频率越高(即在语料中越普遍出现)的词, 其对单篇文本区分度的边际贡献越低, 理应赋予更小权重; 反之在少数文章中才出现的生僻但强烈的情感词往往携带更多辨识信息, 应予放大。本项目将这一源自信息检索、经 Gentzkow 等系统化梳理的加权框架应用到中文金融情感词典打分算子上, 构成 idf_tone_sum 相对于未加权 raw 计数变体的方法学依据。同时, Barbaglia 等(2025, *Economic Inquiry*; 另有 2024 年 arXiv 工作论文版本)在经济文本词典法综述中进一步佐证了"对高信息量、低频次情感词赋予更大权重"这一改进方向在词典法情感分析实践中的可行性, 二者共同支撑本列的构造动机: 部分缓解纯计数词典法对语境不敏感、易被套话与高频套语词稀释的固有缺陷。
+姜富伟等(2021)在《经济学(季刊)》构建的这部词典是本项目 6 部情感词典之一, 与 Du 等(2022, *Review of Finance*)提出的针对中国金融文本领域特异性的情感词典构成同类中文金融专用词典路线的两个代表——两文均强调通用情感词典(如英文 Loughran-McDonald)直接翻译或移植到中文金融语境会因语言结构与领域用词差异而失真, 需要基于本地语料重新构建词表与极性判定规则。本项目并列纳入 jiang_2021/du_2022/bian_2021/you_2018/yao_2021/loughran(经中文主译改造)六部词典, 既是对"哪一部词典更优"这一开放问题不做预设立场的稳健性设计, 也呼应 Frankel、Jennings 与 Lee(2022, *Management Science*)关于机器学习方法与词典方法在披露情感测量上系统性分歧的发现——词典法本身对词表选择、权重方案高度敏感, 单一词典的点估计不足以支撑因果推断的稳健性主张。idf_tone_sum 这一 IDF 加权口径, 是在"是否加权""如何归一化"两个维度上, 与家族内其余变体(如未加权 raw 计数、除以词数的比率 tone、仅保留否定规则的 negonly 等)共同构成的消融/口径梯子的一环。其加权思想的方法学锚点是 Gentzkow、Kelly 与 Taddy(2019, *Journal of Economic Literature*)对文本作为经济学数据(text as data)的系统性综述——该文将 tf-idf 式的词加权确立为文本量化研究中处理"不同词信息量不等"这一问题的经典工具, 逆文档频率越高(即在语料中越普遍出现)的词, 其对单篇文本区分度的边际贡献越低, 理应赋予更小权重; 反之在少数文章中才出现的生僻但强烈的情感词往往携带更多辨识信息, 应予放大。本项目将这一源自信息检索、经 Gentzkow 等系统化梳理的加权框架应用到中文金融情感词典打分算子上, 构成 idf_tone_sum 相对于未加权 raw 计数变体的方法学依据。同时, Barbaglia 等(2025, *Economic Inquiry*; 另有 2024 年 arXiv 工作论文版本)在经济文本词典法综述中进一步佐证了"对高信息量、低频次情感词赋予更大权重"这一改进方向在词典法情感分析实践中的可行性, 二者共同支撑本列的构造动机: 部分缓解纯计数词典法对语境不敏感、易被套话与高频套语词稀释的固有缺陷。Du, Xing, Mao 与 Cambria (2024, ACM Computing Surveys) 系统综述金融情感分析的技术路线(词典法/机器学习/深度学习), 为本家族词典加权口径提供方法学定位参照。Ma, Zhang 与 Zhang (2025, Expert Systems with Applications) 构建面向中国境内投资者的细粒度中文情感词典(CN-FSD)并验证其对市场指标的解释力, 呼应本项目多部中文金融专用词典并列稳健性设计。
 
 ## VAR: jiang_2021_idf_tone_sum_ctx
 
@@ -89,4 +103,6 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
+Du, K., Xing, F., Mao, R., & Cambria, E. (2024). Financial Sentiment Analysis: Techniques and Applications. ACM Computing Surveys. https://doi.org/10.1145/3649451
+Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications. https://doi.org/10.1016/j.eswa.2024.125739
 <!-- rendered-citations:end -->

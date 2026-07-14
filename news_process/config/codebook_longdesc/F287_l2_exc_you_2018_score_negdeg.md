@@ -57,7 +57,15 @@ citations:
   vol: 68
   issue: 7
   pages_or_artno: 5514-5532
-new_dois: []
+- doi: "10.1109/access.2024.3349970"
+  title: "Sentiment Analysis in Finance: From Transformers Back to eXplainable Lexicons (XLex)"
+  authors: "Rizinski, M., Peshov, H., Mishev, K., Jovanovik, M., & Trajanov, D."
+  year: 2024
+  venue: "IEEE Access"
+  type: "journal"
+  one_sentence_zh: "提出结合 transformer 与 SHAP 可解释性方法自动学习并扩充金融情感词典 (XLex), 为词典法情感打分的规则与覆盖度提供近期方法学参照, 支撑本族在词典打分器上做语言学规则消融的设计动机。"
+new_dois:
+  - "10.1109/access.2024.3349970"
 ---
 
 ## CORE
@@ -69,7 +77,7 @@ new_dois: []
 计算分三层。第一层是文章级规则消融打分: stage 22 (tone_words) 的状态机逐词扫描 you_2018 词表命中, 对每个命中词依次尝试应用否定翻转 (检测该词前若干词内是否存在否定词, 命中则将符号翻转)、程度副词加权 (检测紧邻的程度副词, 按六级词表给出 1.0～3.0 区间的乘子) 与转折增强 (检测句内转折连词, 对转折分句后的情感命中给予额外放大); negdeg 变体在扫描时只让①②两条规则参与最终得分计算、③规则被关闭 (对应 `_RULE_ABLATION_VARIANTS` 中 `('negdeg', True, True, False)` 一项), 随后按 Σ|final_score| (加权幅度和) 归一化, 得到自归一化、值域恒有界于 [-1, +1] 的文章级得分 you_2018_score_negdeg{track}, 写入 22_tone_words.parquet。第二层是停刊稳健性聚合: attention_media 先经 detect_defacto_cessation 识别在样本期内疑似停止覆盖该话题的媒体来源 (排除集 = confirmed 与 suspected 并集, 未经 NPPA 证实的 suspected 一律保守纳入排除集), 标记 _is_ceased_media, 再在存活子集 (_is_ceased_media==0) 上按 target_bank、year 分组求相应源列均值。第三层是列的动态发现: 本家族三列并非像 exc_tone_full/ctx/ss 那样在代码里显式写死, 而是由 attention_media.py 第 (C.4) 步遍历存活子集 df_alive 的全部列, 对列名以 _SCORE_PATTERNS 中任一前缀开头 (含 you_2018_score) 且非已加权变体 (不以 _w 结尾、不含 _mw_/_idf_、不以 llm_vote_score_ 开头) 的列逐一聚合并以 exc_{src} 命名——因此每一条规则消融梯度变体 (raw/negonly/degonly/advonly/negdeg/negadv/degadv) 都会自动获得对应的 exc_ 前缀停刊稳健性列, 无需在聚合代码里逐一登记。须强调该口径是「话题覆盖退出」的保守代理而非经证实的报纸停刊, 论文表述应称稳健性口径 (survivorship / 幸存者偏差检验), 不可等同严格出版停刊。留篇门控沿用 full-only 口径 (2026-06-29): 一篇报道是否算「银行金科报道」只看 full 轨 llm_verified 判定, ctx/ss 为 conditional-on-full 的稳健轨, 行宇宙是 full 留篇集的子集。三轨含义: full 为标题加全文正文, ctx 为标题加实体窗口, ss 为标题加银行与金科同句共现窗; ss 回退语义镜像 ctx, 无同句共现时 content_ss 回退为全文正文, ss_is_fallback 置真并共享 n_articles 分母。
 
 【文献定位】
-情感词典法在财经文本上的效度是本族方法学的支点: van Atteveldt、van der Velden 与 Boukes (2021, *Communication Methods and Measures*) 系统比较人工标注、众包、词典与机器学习, 论证词典法在成本与可解释性上的位置, 并指出规则细节 (否定、强度修饰) 对词典法效度的边际影响不可忽视, 为本族「拆解语言学规则做消融」提供了直接的方法学动机。Taboada、Brooke、Tofiloski、Voll 与 Stede (2011, *Computational Linguistics*) 系统论述基于词典的情感分析方法中否定处理、强度修饰与转折 (contrastive conjunction) 三类语言学规则各自的作用机制与边界, 是本仓状态机打分器三条规则设计、以及本族选择「保留否定+程度、剔除转折」这一具体消融臂的直接方法学依据。Barbaglia 等 (2025, *Economic Inquiry*) 给出经济文本词典构造的近期范式, 支撑以规则化词表打分聚合的做法。Frankel、Jennings 与 Lee (2022, *Management Science*) 比较词典法与机器学习情感, 为「多方法互为稳健性、不分主次」提供先例, 呼应本仓词典/LLM/BERT 三法并排的整体设计。You、Zhang 与 Zhang (2018, *Review of Financial Studies*) 是 you_2018 词表的构念母锚。停刊稳健性的动机在于媒体来源消失会引入幸存者偏差, 使情感指标向存活媒体倾斜并污染基于媒体暴露的工具变量, 故以剔除疑似退出媒体的子集重算作为系数稳定性检验; 规则消融梯度的动机则是把词典打分器内部三条正乘子/翻转规则的贡献拆解为可审计的独立稳健性臂, 而非把它们隐式打包进单一 canonical 得分。三轨 (full/ctx/ss) 与规则消融梯度 (raw/negonly/degonly/advonly/negdeg/negadv/degadv) 各自 just-identified 并排、互为稳健性不分主次, 禁混进同一 over-identified Hansen J; 本族与政治词权重梯度 (du_2022 独有) 正交, 不交叉。非可加分解须留意: 每个消融变体各自 self-normalize (Σ|final| 分母随启用规则变化), 且否定与程度作用同一词含交互, 相邻级差并非「某规则的纯贡献」, 仅作为 ablation 稳健性对照, 论文表述宜采用「定性不变」而非声称某规则边际效应量化可分解。
+情感词典法在财经文本上的效度是本族方法学的支点: van Atteveldt、van der Velden 与 Boukes (2021, *Communication Methods and Measures*) 系统比较人工标注、众包、词典与机器学习, 论证词典法在成本与可解释性上的位置, 并指出规则细节 (否定、强度修饰) 对词典法效度的边际影响不可忽视, 为本族「拆解语言学规则做消融」提供了直接的方法学动机。Taboada、Brooke、Tofiloski、Voll 与 Stede (2011, *Computational Linguistics*) 系统论述基于词典的情感分析方法中否定处理、强度修饰与转折 (contrastive conjunction) 三类语言学规则各自的作用机制与边界, 是本仓状态机打分器三条规则设计、以及本族选择「保留否定+程度、剔除转折」这一具体消融臂的直接方法学依据。Barbaglia 等 (2025, *Economic Inquiry*) 给出经济文本词典构造的近期范式, 支撑以规则化词表打分聚合的做法。Frankel、Jennings 与 Lee (2022, *Management Science*) 比较词典法与机器学习情感, 为「多方法互为稳健性、不分主次」提供先例, 呼应本仓词典/LLM/BERT 三法并排的整体设计。You、Zhang 与 Zhang (2018, *Review of Financial Studies*) 是 you_2018 词表的构念母锚。Rizinski 等 (2024, IEEE Access) 提出结合 transformer 与 SHAP 可解释性方法自动学习并扩充金融情感词典 (XLex), 为词典法情感打分的规则与覆盖度提供近期方法学参照, 支撑本族在词典打分器上做语言学规则消融的设计动机。停刊稳健性的动机在于媒体来源消失会引入幸存者偏差, 使情感指标向存活媒体倾斜并污染基于媒体暴露的工具变量, 故以剔除疑似退出媒体的子集重算作为系数稳定性检验; 规则消融梯度的动机则是把词典打分器内部三条正乘子/翻转规则的贡献拆解为可审计的独立稳健性臂, 而非把它们隐式打包进单一 canonical 得分。三轨 (full/ctx/ss) 与规则消融梯度 (raw/negonly/degonly/advonly/negdeg/negadv/degadv) 各自 just-identified 并排、互为稳健性不分主次, 禁混进同一 over-identified Hansen J; 本族与政治词权重梯度 (du_2022 独有) 正交, 不交叉。非可加分解须留意: 每个消融变体各自 self-normalize (Σ|final| 分母随启用规则变化), 且否定与程度作用同一词含交互, 相邻级差并非「某规则的纯贡献」, 仅作为 ablation 稳健性对照, 论文表述宜采用「定性不变」而非声称某规则边际效应量化可分解。
 
 ## VAR: exc_you_2018_score_negdeg_ctx
 
@@ -92,4 +100,5 @@ Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025)
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
+Rizinski, M., Peshov, H., Mishev, K., Jovanovik, M., & Trajanov, D. (2024). Sentiment Analysis in Finance: From Transformers Back to eXplainable Lexicons (XLex). IEEE Access. https://doi.org/10.1109/access.2024.3349970
 <!-- rendered-citations:end -->

@@ -88,7 +88,15 @@ citations:
   vol: 21
   issue: 2
   pages_or_artno: 109-128
-new_dois: []
+- doi: "10.1080/15140326.2024.2354641"
+  type: "journal"
+  authors: "Qin, Z., & Cui, M."
+  year: 2024
+  title: "Annual report tone and divergence of opinion: evidence from textual analysis"
+  venue: "Journal of Applied Economics"
+  one_sentence_zh: "该文以年报文本情感语气构造投资者意见分歧的度量并检验其市场后果,与本家族以文本情感失衡度量化分歧的思路高度一致,为disag_bert的构念选择提供了2024年的前沿佐证。"
+new_dois:
+  - "10.1080/15140326.2024.2354641"
 ---
 
 ## CORE
@@ -106,7 +114,7 @@ new_dois: []
 需要强调三轨与稳健性口径。本家族按 full / ctx / ss 三条文本轨道并行计算 (stage 14 物化 content_full / content_ctx / content_ss): full 轨为标题 prepend 加全文正文, 是 canonical 主轨, 其行宇宙锚定 full-only 留篇门控 (2026-06-29 口径, 即一篇报道是否算作"一篇银行金科报道"只看 full 轨判定); ctx 轨为标题加实体窗口, ss 轨为标题加银行与金科同句共现窗, 二者降格为 conditional-on-full 的稳健性轨, ss 轨在无同句共现时优雅回退、镜像 ctx 语义。三轨各自 just-identified 并排使用, 互为稳健性、不分主次, 严禁把三轨混入同一 over-identified 的 Hansen J 过度识别检验。同理, 本 disag_bert 与分歧族内的词典均值分歧 (disag_full/ctx)、LLM 投票分歧 (disag_llm)、以及三个 BERT 单模型分歧 (disag_finbert_cn / disag_fin_sent_zh / disag_finbert2) 属于对同一"分歧"构念的不同测量前端, 彼此互为稳健性并排, 各自 just-identified, 亦禁混入同一过度识别检验。per-model 的单模型缺席只拖累其自身族列, 不触发集成轨的连坐降级。
 
 【文献定位】
-在实证识别层面, 本家族服务于以媒体信息环境解释银行融资与稳定性的研究链条。分歧作为信息环境刻画, 一方面可作解释变量进入银行结果方程 (融资成本、存款流动性等), 另一方面可作稳健性检验的替代测量, 检验主结论是否被单一情感测度所驱动。Cookson 与 Niessner (2020)、Li 与 Luan (2025) 提供了"分歧分解"与"新闻分歧预测收益"的框架先例; Cen、Wei 与 Yang (2017) 及 Carlin 等 (2014) 提供了分歧与价格、收益的理论桥梁; 而 Huang、Wang 与 Yang (2023) 与 Bochkay 等 (2023) 则为"用金融 BERT 测量文本情感"这一方法选择提供了会计金融顶刊层面的方法学背书。综合而言, disag_bert 是把成熟的意见分歧构念嫁接到深度学习情感编码前端、以银行-年聚合正负概率质量失衡度构造有界指数、并按三轨稳健性纪律实现的一组测量变量。
+在实证识别层面, 本家族服务于以媒体信息环境解释银行融资与稳定性的研究链条。分歧作为信息环境刻画, 一方面可作解释变量进入银行结果方程 (融资成本、存款流动性等), 另一方面可作稳健性检验的替代测量, 检验主结论是否被单一情感测度所驱动。Cookson 与 Niessner (2020)、Li 与 Luan (2025) 提供了"分歧分解"与"新闻分歧预测收益"的框架先例; Cen、Wei 与 Yang (2017) 及 Carlin 等 (2014) 提供了分歧与价格、收益的理论桥梁; 而 Huang、Wang 与 Yang (2023) 与 Bochkay 等 (2023) 则为"用金融 BERT 测量文本情感"这一方法选择提供了会计金融顶刊层面的方法学背书。综合而言, disag_bert 是把成熟的意见分歧构念嫁接到深度学习情感编码前端、以银行-年聚合正负概率质量失衡度构造有界指数、并按三轨稳健性纪律实现的一组测量变量。Qin 与 Cui (2024, Journal of Applied Economics) 以年报文本情感语气构造投资者意见分歧的度量并检验其市场后果, 与本家族以文本情感失衡度量化分歧的思路高度一致, 为 disag_bert 的构念选择提供了 2024 年的前沿佐证。
 
 ## VAR: disag_bert_full
 
@@ -133,4 +141,5 @@ Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2018). BERT: Pre-training of
 Cen, L., Wei, K. C. J., & Yang, L. (2017). Disagreement, underreaction, and stock returns. Management Science, 63(4), 1214-1231. https://doi.org/10.1287/mnsc.2015.2405
 Carlin, B. I., Longstaff, F. A., & Matoba, K. (2014). Disagreement and asset prices. Journal of Financial Economics, 114(2), 226-238. https://doi.org/10.1016/j.jfineco.2014.06.007
 Hong, H., & Stein, J. C. (2007). Disagreement and the stock market. Journal of Economic Perspectives, 21(2), 109-128. https://doi.org/10.1257/jep.21.2.109
+Qin, Z., & Cui, M. (2024). Annual report tone and divergence of opinion: evidence from textual analysis. Journal of Applied Economics. https://doi.org/10.1080/15140326.2024.2354641
 <!-- rendered-citations:end -->

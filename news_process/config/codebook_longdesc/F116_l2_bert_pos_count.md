@@ -56,7 +56,31 @@ citations:
   vol: 54
   issue: 4
   pages_or_artno: 1187-1230
-new_dois: []
+- doi: "10.1002/isaf.1549"
+  type: journal
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+  vol: null
+  issue: null
+  pages_or_artno: null
+- doi: "10.3390/ijfs13020075"
+  title: "Financial Sentiment Analysis and Classification: A Comparative Study of Fine-Tuned Deep Learning Models"
+  authors: "Nasiopoulos, D. K., Roumeliotis, K. I., Sakas, D. P., Toudas, K., & Reklitis, P."
+  year: 2025
+  venue: "International Journal of Financial Studies"
+  type: "journal"
+- doi: "10.18653/v1/2023.emnlp-main.956"
+  title: "FinEntity: Entity-level Sentiment Classification for Financial Texts"
+  authors: "Tang, Y., Yang, Y., Huang, A., Tam, A., & Tang, J."
+  year: 2023
+  venue: "Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing (EMNLP)"
+  type: "wp"
+new_dois:
+  - "10.1002/isaf.1549"
+  - "10.3390/ijfs13020075"
+  - "10.18653/v1/2023.emnlp-main.956"
 ---
 
 ## CORE
@@ -70,7 +94,7 @@ new_dois: []
 留篇口径遵循全仓 full-only 门控 (2026-06-29): 是否算作一篇进入银行金科报道宇宙的报道, 只由 full 轨的 LLM 留篇判定 (llm_verified_full) 决定; ctx 与 ss 轨是条件在 full 留篇集之上的子测度轨, 其行宇宙是 full 留篇集的子集, 但每条轨各自按本轨文本重新判定正面并各自计数。分母口径由此在三轨间保持一致的行集来源, 而分子的正面判定则逐轨独立。当某轨文本对某篇不可得或回退时, 该篇在该轨的 _is_bert_positive 依 stage 23 的降级语义处理; ss 轨的回退镜像 ctx 轨语义 (无银行金科同句共现时 content_ss 退化为全文正文)。
 
 【文献定位】
-以 BERT 类预训练语言模型抽取金融文本情感, 方法学锚在 Devlin et al. (2018) 提出的双向 Transformer 预训练范式, 以及 Huang et al. (2023) 面向金融文本信息抽取的 FinBERT 大模型工作, 后者论证了领域微调后的 BERT 在金融叙事情感判别上相较通用模型与词典法的增量。Frankel et al. (2022) 系统对比了机器学习与词典法在披露情感测量上的一致与背离, 支撑本项目为何要在词典轨之外并列一条 BERT 轨作为互为稳健性的测度来源。Loughran and McDonald (2016) 对会计与金融文本分析的综述则确立了正负面篇数分离统计 (而非直接极性对冲) 的计量传统, 使得像本家族这样先算正面篇数再叠加象征性密度的两步构造具有方法学合法性。正面篇数作为分母基元最终服务于 Bingler et al. (2022) 意义上的 "廉价空话与摘樱桃" 识别: 只有先框定正面叙事的规模, 才能检验其中有多少是有实质证据支撑、有多少只是象征性表态。需强调三条文本轨 (full / ctx / ss) 各自 just-identified 并排, 互为稳健性、不分主次, 严禁把三轨计数混进同一条 over-identified 的 Hansen J 过度识别检验。
+以 BERT 类预训练语言模型抽取金融文本情感, 方法学锚在 Devlin et al. (2018) 提出的双向 Transformer 预训练范式, 以及 Huang et al. (2023) 面向金融文本信息抽取的 FinBERT 大模型工作, 后者论证了领域微调后的 BERT 在金融叙事情感判别上相较通用模型与词典法的增量。Frankel et al. (2022) 系统对比了机器学习与词典法在披露情感测量上的一致与背离, 支撑本项目为何要在词典轨之外并列一条 BERT 轨作为互为稳健性的测度来源。Loughran and McDonald (2016) 对会计与金融文本分析的综述则确立了正负面篇数分离统计 (而非直接极性对冲) 的计量传统, 使得像本家族这样先算正面篇数再叠加象征性密度的两步构造具有方法学合法性。正面篇数作为分母基元最终服务于 Bingler et al. (2022) 意义上的 "廉价空话与摘樱桃" 识别: 只有先框定正面叙事的规模, 才能检验其中有多少是有实质证据支撑、有多少只是象征性表态。需强调三条文本轨 (full / ctx / ss) 各自 just-identified 并排, 互为稳健性、不分主次, 严禁把三轨计数混进同一条 over-identified 的 Hansen J 过度识别检验。Todd, Bowden, and Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 系统综述了基于文本(含BERT类模型)的金融情感分析文献并展望未来方向, 为本家族以BERT多数票判正面篇数的方法学定位提供了最新综述锚点。Nasiopoulos, Roumeliotis, Sakas, Toudas, & Reklitis (2025, International Journal of Financial Studies) 比较微调 BERT/FinBERT/GPT-4o 等深度学习模型在金融文本情感分类上的表现, 为多模型集成判正面情感提供最新方法学参照。Tang, Yang, Huang, Tam, & Tang (2023, Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing) 构建实体级金融文本情感分类基准数据集并测评 BERT/FinBERT/ChatGPT, 支撑本家族以 BERT 多数票判定报道正面情感的实体级情感抽取传统。
 
 ## VAR: bert_pos_count_full
 
@@ -93,4 +117,7 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022). Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures. Finance Research Letters, 47, 102776. https://doi.org/10.1016/j.frl.2022.102776
 Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2018). BERT: Pre-training of deep bidirectional transformers for language understanding. arXiv [Preprint]. https://doi.org/10.48550/arXiv.1810.04805
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
+Nasiopoulos, D. K., Roumeliotis, K. I., Sakas, D. P., Toudas, K., & Reklitis, P. (2025). Financial Sentiment Analysis and Classification: A Comparative Study of Fine-Tuned Deep Learning Models. International Journal of Financial Studies. https://doi.org/10.3390/ijfs13020075
+Tang, Y., Yang, Y., Huang, A., Tam, A., & Tang, J. (2023). FinEntity: Entity-level Sentiment Classification for Financial Texts. Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing (EMNLP) [Working Paper]. https://doi.org/10.18653/v1/2023.emnlp-main.956
 <!-- rendered-citations:end -->

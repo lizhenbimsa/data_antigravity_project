@@ -1,5 +1,6 @@
 ---
 family_id: F264
+novelty_exempt_rationale: "exc_ 前缀的疑似退出覆盖稳健性剔除变体家族, 是对 jiang_2021 词典情绪母族施加媒体构成稳健性检验的技术变体 (与 bal_ 互为姊妹稳健轨), 非独立新构念, 测度定义的学术依据已在母族词典原始文献 (姜富伟等 2021) 及既有 5 篇方法学引文中给出, 不需追新文献。"
 columns:
 - exc_jiang_2021_score_raw_ctx
 - exc_jiang_2021_score_raw_full

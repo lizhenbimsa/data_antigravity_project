@@ -76,7 +76,14 @@ citations:
   venue: Statistics & Probability Letters
   vol: 113
   pages_or_artno: 38-40
-new_dois: []
+- doi: "10.1177/08944393241286471"
+  type: journal
+  authors: "Törnberg, P."
+  year: 2024
+  title: "Large Language Models Outperform Expert Coders and Supervised Classifiers at Annotating Political Social Media Messages"
+  venue: "Social Science Computer Review"
+new_dois:
+  - "10.1177/08944393241286471"
 ---
 
 ## CORE
@@ -88,7 +95,7 @@ new_dois: []
 测度自文章级向面板级两级构造。文章级在 stage 21 (tone_llms) 完成: 三家大模型 (gpt54nano / gemini31 / deepseekv4) 各自独立读同一篇报道, 就 innovation_locus 维给出「底层技术 / 应用场景」标签及其置信度。聚合入口是 `_aggregate_track`, 它先解除 verification 与维度判定的耦合 (单模型即便未通过金科验证也保留自身维度判定), 再对通过验证的模型调用 `compute_prob_score_binary(label, conf, positive_class="应用场景")`, 把「离散标签 + 置信度」直接线性重标记为一个连续概率分数 ∈ [0, 1]: 当模型判定的标签恰为正类 (应用场景) 时取该判定的置信度 conf 本身, 否则取 1 − conf, 即把 verbalized confidence 解读为 P(应用场景 | 该篇报道) 的直接估计, 全程不作任何 logit / log-odds 变换。随后对参与的模型取平均, 得到文章级 `avg_locus_prob_score`。这一置信度重标记概率化的方法学动机是概率校准文献 (Niculescu-Mizil & Caruana, 2005): 相比只用硬多数票, 以置信度加权的概率分数保留了判定强度信息, 使弱信号 (低置信) 与强信号 (高置信) 在下游回归中被区别对待。为使概率分数在多次运行间字节可复现, 三家 LLM 的采样温度一律钉为 0.0, 这与 Renze (2024) 关于采样温度影响大模型判定稳定性的实证一致 — 温度归零把随机性从判定链路中移除, 是本项目 golden 可复现锚的前提之一。文章级分数在 stage 40 按 (target_bank, year) 聚合: 取均值得到 `avg_locus_prob_score{track}` (本家族三条无 std 后缀列), 取组内标准差得到 `avg_locus_prob_score_std{track}` (三条 std 列), 后者刻画同一银行同一年内不同报道在位点判定上的离散度。
 
 【文献定位】
-把 LLM 作为标注器为管理学/金融学构造变量, 本身是一条正在成型的方法学路径, Carlson & Burbano (2026) 与 Ludwig, Mullainathan, & Rambachan (2025) 分别从操作指南与应用计量框架两个角度给出了使用规范与告警: 前者强调多模型交叉、置信度留痕与降级口径的必要, 后者给出把 LLM 输出当作带测量误差的回归输入时的识别框架。本家族的三家投票 + 置信度概率化 + full-only 留篇门控设计正是对这些告警的直接回应。判定的不可消除分歧被显式建模而非抹平: Plank (2022) 论证了「人类标注本就存在合理变异, 不存在唯一 ground truth」, 这为本家族保留 std 离散度列 (而非只报均值) 提供了构念依据 — 同一银行同年报道在位点上的分散度本身是有信息的信号, 而非纯噪声。需要说明的是, LLM 三家在本项目中互为稳健性: 三家各自的 per-model 子测度并排为「互为稳健性、不分主次」轨, 各自 just-identified 并排, 禁混进同一 over-identified Hansen J; 本家族报告的是三家平均后的共识概率, 与情感三家投票、三轨文本、co-primary 双轨嵌入遵循同一条铁律。当位点族与其相邻的 subst (实质性) / collab (协作模式) 概率族一并进入多重检验时, 家族级 p 值调整走 Romano & Wolf (2016) 的 stepdown 重抽样方法, 以控制族错误率。
+把 LLM 作为标注器为管理学/金融学构造变量, 本身是一条正在成型的方法学路径, Carlson & Burbano (2026) 与 Ludwig, Mullainathan, & Rambachan (2025) 分别从操作指南与应用计量框架两个角度给出了使用规范与告警: 前者强调多模型交叉、置信度留痕与降级口径的必要, 后者给出把 LLM 输出当作带测量误差的回归输入时的识别框架。本家族的三家投票 + 置信度概率化 + full-only 留篇门控设计正是对这些告警的直接回应。判定的不可消除分歧被显式建模而非抹平: Plank (2022) 论证了「人类标注本就存在合理变异, 不存在唯一 ground truth」, 这为本家族保留 std 离散度列 (而非只报均值) 提供了构念依据 — 同一银行同年报道在位点上的分散度本身是有信息的信号, 而非纯噪声。需要说明的是, LLM 三家在本项目中互为稳健性: 三家各自的 per-model 子测度并排为「互为稳健性、不分主次」轨, 各自 just-identified 并排, 禁混进同一 over-identified Hansen J; 本家族报告的是三家平均后的共识概率, 与情感三家投票、三轨文本、co-primary 双轨嵌入遵循同一条铁律。当位点族与其相邻的 subst (实质性) / collab (协作模式) 概率族一并进入多重检验时, 家族级 p 值调整走 Romano & Wolf (2016) 的 stepdown 重抽样方法, 以控制族错误率。Törnberg (2024, Social Science Computer Review) 实证比较大模型标注与专家人工编码、监督分类器在社会媒体文本标签任务上的表现, 为本家族以三家 LLM 置信度概率化替代人工标注 innovation_locus 的方法学选择提供了最新的同行评议依据。
 
 ## VAR: avg_locus_prob_score_full
 
@@ -129,4 +136,5 @@ Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital finance and FinTech: Curr
 Yoo, Y., Henfridsson, O., & Lyytinen, K. (2010). The new organizing logic of digital innovation: An agenda for information systems research. Information Systems Research, 21(4), 724-735. https://doi.org/10.1287/isre.1100.0322
 Niculescu-Mizil, A., & Caruana, R. (2005). Predicting good probabilities with supervised learning. Proceedings of the 22nd International Conference on Machine Learning (ICML), 625-632. https://doi.org/10.1145/1102351.1102430
 Romano, J. P., & Wolf, M. (2016). Efficient computation of adjusted p-values for resampling-based stepdown multiple testing. Statistics & Probability Letters, 113, 38-40. https://doi.org/10.1016/j.spl.2016.02.012
+Törnberg, P. (2024). Large Language Models Outperform Expert Coders and Supervised Classifiers at Annotating Political Social Media Messages. Social Science Computer Review. https://doi.org/10.1177/08944393241286471
 <!-- rendered-citations:end -->

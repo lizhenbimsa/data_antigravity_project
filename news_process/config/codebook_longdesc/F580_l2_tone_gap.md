@@ -94,7 +94,15 @@ citations:
   vol: '32'
   issue: '3'
   pages_or_artno: 4179-4193
-new_dois: []
+- doi: "10.1016/j.jbusres.2025.115188"
+  title: "Talk, but don't talk too much: How corporate sustainability communication evokes stepwise organizational change"
+  authors: "Reppmann, M., Maibaum, F., Edinger-Schons, L. M., & Foege, J. N."
+  year: 2025
+  venue: "Journal of Business Research"
+  type: "journal"
+  one_sentence_zh: "该文提出企业可持续性言辞(talk)与实际行动(walk)之间存在倒U型关系、言辞过量反而抑制言行一致的实证发现,为本家族实质性vs象征性报道语调缺口测度提供了2025年的最新方法论呼应。"
+new_dois:
+  - "10.1016/j.jbusres.2025.115188"
 ---
 
 ## CORE
@@ -110,7 +118,7 @@ F580 家族衡量的是"同一 bank-year 内, 银行金融科技相关报道按�
 三轨 (full/ctx/ss) 铁律适用于全部含轨道后缀的列: full=标题+正文全文, ctx=标题+实体窗口, ss=标题+银行∧金科同句±N窗口 (缺同句共现回退全文并标记 fallback, 语义镜像 ctx 回退)。三轨口径各自独立成立、互为稳健性而不分主次, 在识别策略上各自 just-identified 并排, 严禁混入同一 over-identified 的 Hansen J 检验框架。留篇门控为 full-only (2026-06-29 起生效): 一篇文章是否计入"银行金科报道"的样本论域, 只看 llm_verified_full 是否为真; ctx/ss 轨道的分组均值是在该 full-only 留篇集合的子集上, 按各自轨道的分类标签与情感列重新计算, 属于 conditional-on-full 的测度/稳健性轨, 而非独立样本论域。ss 轨若某文章不满足银行与金科同句共现, 则 content_ss 回退为全文正文且 ss_is_fallback 记为真, 该文章仍参与 ss 轨的实质性/象征性或底层技术/应用场景分类与均值计算, 只是所用文本退化为全文, 与 ctx 轨的回退处理逻辑完全对称。
 
 【文献定位】
-本家族的方法学谱系可分三条线: 其一是言行脱耦/象征管理 (symbolic management) 传统, 源自 Westphal & Zajac (1994, 1998, Administrative Science Quarterly) 对"采纳了制度但未真正执行"现象的开创性刻画, 在企业可持续性/ESG 披露文献中进一步细化为"漂绿 (greenwash) 与漂棕 (brownwash) 两类脱耦方向"的经典区分 (Kim & Lyon, 2015, Organization Science) 以及"象征性治理工具是否被用来掩护实质性回避行为"的检验设计 (Velte, 2025, Corporate Social Responsibility and Environmental Management)。其二是媒体语调分组比较的方法学基础, 承袭 Holzman, Miller, & Twedt (2023, The Accounting Review) 用媒体情感约束盈余公告披露纪律的分组均值设计思路, 以及 Frankel, Jennings, & Lee (2022, Management Science) 对机器学习与词典法情感测度互为稳健性的方法论立场 (本仓库三家 LLM 多数投票即践行该立场的中文金融语境延伸)。其三是洗稿率 (washing ratio) 方法族本身的漂绿/漂科技类比, 借鉴 climate-washing 文献对"廉价言辞 (cheap talk)"与实际行动脱节的量化范式 (Bingler, Kraus, Leippold, & Webersinke, 2022, Finance Research Letters; 2024, Journal of Banking & Finance), 将其原本用于气候披露的"言辞 vs 实质"对比结构移植到银行金融科技报道语境, 用媒体语调而非披露文本内容作为言辞代理变量。三条线交汇于同一个基本诊断问题: 当报道内容可分为"做了什么"(实质性/底层技术) 与"说了什么"(象征性/应用场景) 两类时, 语调本身是否也系统性地偏向某一类, 若是, 则该偏向本身构成一种可测度的"叙事脱耦"信号, 可作为 P1 tone 主线与 P4 locus 主线的机制/稳健性补充证据, 而非独立主假设检验对象。
+本家族的方法学谱系可分三条线: 其一是言行脱耦/象征管理 (symbolic management) 传统, 源自 Westphal & Zajac (1994, 1998, Administrative Science Quarterly) 对"采纳了制度但未真正执行"现象的开创性刻画, 在企业可持续性/ESG 披露文献中进一步细化为"漂绿 (greenwash) 与漂棕 (brownwash) 两类脱耦方向"的经典区分 (Kim & Lyon, 2015, Organization Science) 以及"象征性治理工具是否被用来掩护实质性回避行为"的检验设计 (Velte, 2025, Corporate Social Responsibility and Environmental Management)。其二是媒体语调分组比较的方法学基础, 承袭 Holzman, Miller, & Twedt (2023, The Accounting Review) 用媒体情感约束盈余公告披露纪律的分组均值设计思路, 以及 Frankel, Jennings, & Lee (2022, Management Science) 对机器学习与词典法情感测度互为稳健性的方法论立场 (本仓库三家 LLM 多数投票即践行该立场的中文金融语境延伸)。其三是洗稿率 (washing ratio) 方法族本身的漂绿/漂科技类比, 借鉴 climate-washing 文献对"廉价言辞 (cheap talk)"与实际行动脱节的量化范式 (Bingler, Kraus, Leippold, & Webersinke, 2022, Finance Research Letters; 2024, Journal of Banking & Finance), 将其原本用于气候披露的"言辞 vs 实质"对比结构移植到银行金融科技报道语境, 用媒体语调而非披露文本内容作为言辞代理变量。三条线交汇于同一个基本诊断问题: 当报道内容可分为"做了什么"(实质性/底层技术) 与"说了什么"(象征性/应用场景) 两类时, 语调本身是否也系统性地偏向某一类, 若是, 则该偏向本身构成一种可测度的"叙事脱耦"信号, 可作为 P1 tone 主线与 P4 locus 主线的机制/稳健性补充证据, 而非独立主假设检验对象。Reppmann, Maibaum, Edinger-Schons, & Foege (2025, Journal of Business Research) 提出企业可持续性言辞(talk)与实际行动(walk)之间存在倒U型关系、言辞过量反而抑制言行一致的实证发现,为本家族实质性vs象征性报道语调缺口测度提供了2025年的最新方法论呼应。
 
 ## VAR: tone_gap_sub_symb
 
@@ -171,4 +179,5 @@ Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022). Cheap talk and
 Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2024). How cheap talk in climate disclosures relates to climate initiatives, corporate emissions, and reputation risk. Journal of Banking & Finance, 164, 107191. https://doi.org/10.1016/j.jbankfin.2024.107191
 Gomber, P., Kauffman, R. J., Parker, C., & Weber, B. W. (2018). On the Fintech Revolution: Interpreting the Forces of Innovation, Disruption, and Transformation in Financial Services. Journal of Management Information Systems, 35(1), 220-265. https://doi.org/10.1080/07421222.2018.1440766
 Velte, P. (2025). Corporate Social Responsibility (CSR) Decoupling and Tax Avoidance: Symbolic Use of Sustainable Boards in the European Union?. Corporate Social Responsibility and Environmental Management, 32(3), 4179-4193. https://doi.org/10.1002/csr.3172
+Reppmann, M., Maibaum, F., Edinger-Schons, L. M., & Foege, J. N. (2025). Talk, but don't talk too much: How corporate sustainability communication evokes stepwise organizational change. Journal of Business Research. https://doi.org/10.1016/j.jbusres.2025.115188
 <!-- rendered-citations:end -->

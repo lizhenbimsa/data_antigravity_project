@@ -48,7 +48,21 @@ citations:
   vol: '119'
   issue: '44'
   pages_or_artno: e2203150119
-new_dois: []
+- doi: "10.1007/s11135-024-02045-y"
+  title: "An Analysis of the news coverage of Fintech in Africa: a natural language processing approach"
+  authors: "Nach, H."
+  year: 2025
+  venue: "Quality & Quantity"
+  type: "journal"
+- doi: "10.1002/bse.71079"
+  title: "Costly Signals and Cheap Talk: Measuring the Decoupling of ESG Routinisation and Greenwashing Risk"
+  authors: "Zatini, G., Torricella, N., & della Porta, A."
+  year: 2026
+  venue: "Business Strategy and the Environment"
+  type: "journal"
+new_dois:
+  - "10.1007/s11135-024-02045-y"
+  - "10.1002/bse.71079"
 ---
 
 ## CORE
@@ -60,7 +74,7 @@ new_dois: []
 计算分两步。第一步逐篇打两个连续分数: freq 侧取 stage 15 产出的 fintech_intensity_score (int 轨, 基于金科词典命中密度的连续强度度量, 与 kw 轨"去重关键词数"是同一构念的两种测量口径, 二者并列互为稳健性、不设主次); sim 侧取 stage 16 产出的 policy_cosine_sim (该文章嵌入与政策文本锚点集合的余弦相似度均值, 三轨 full/ctx/ss 分别独立测算)。第二步在 `_classify_policy_quadrants` (`pipeline/panel/runner.py`) 内按银行所在年度分别对 freq 与 sim 取 P50 分位阈值 (`groupby('year').transform(quantile)`, 阈值逐年重估, 不跨年混算), 仅对 sim 与 freq 同时非缺失的文章 (measured 掩码) 做布尔判定, 未测量文章的四象限指示显式设为 NaN 而非归零假分类 (fix omni-g-runner-03/11 修正的历史缺陷: 旧实现把 stage 15 三条优雅早退路径产出的全 NaN policy_cosine_sim 误判为"低相似", 静默把全部高词频文章错记进 Token 象限)。逐篇 0/1/NaN 指示按 (target_bank, year) 分组取 mean, pandas 的 mean 对 NaN 自动跳过, 因而占比分母等于该银行-年内 sim 与 freq 均可测的文章数, 而非报道总篇数; 若某银行-年全部文章均未测量 (如整年 policy_cosine_sim 缺失), 该格输出 NaN 而非伪零, 与本项目"无数据=未测量"的 F3 红线口径 (Allison 2001; Heckman 1979 缺失机制处理原则) 保持一致。上游进入该分类的文章全集经 24_herd_decay 语义域 semi-join 过滤到 LLM 三家投票已验证的留篇集合, 与 full-only 门控 (2026-06-29) 口径一致——即"是否算一篇银行-金科报道"只看 full 轨 `llm_verified_full`, ctx/ss 是该留篇集合内的条件测度轨, 不独立扩大或缩小分母。
 
 【文献定位】
-四象限"位置/深度"分类框架直接对应 Gomber, Koch & Siering (2017) 提出的金融科技创新分类维度中"采纳位置 (locus)"的操作化, 该文把创新按其发生于企业内部流程/外部产品/合作生态等不同位置分层, 本项目借此思路把"叙事位置"(报道措辞贴合政策 vs. 贴合具体业务) 映射为可从文本大规模测量的连续指标。象征性/实质性的行为二分渊源可追溯至组织理论中制度趋同与"解耦 (decoupling)"研究传统对采纳-实施缺口的刻画, 也呼应创新生态位研究 Adner & Kapoor (2010, *Strategic Management Journal*) 关于技术互依结构如何影响新技术世代表现的分析框架——银行在生态系统中所处的位置与其对外沟通策略密切相关。银行关系与信息生产的经典文献 Boot (2000, *Journal of Financial Intermediation*) 则为"银行对外沟通如何折射其战略姿态"提供理论背景。分位数阈值分类法本身对测量口径 (词典/嵌入模型/时间窗) 高度敏感, 大规模多分析者复现研究 Breznau et al. (2022, *Proceedings of the National Academy of Sciences*) 揭示同一数据+同一假设下不同建模选择可产生实质性不一致的结论, 提示本家族分位阈值梯度 (P25/P50/P75) 与 kw/int 双轨并行设计正是为回应这一"隐藏的不确定性宇宙"而设的稳健性检验, 单一阈值/单一强度口径下的结论不应被过度解读为唯一真值。
+四象限"位置/深度"分类框架直接对应 Gomber, Koch & Siering (2017) 提出的金融科技创新分类维度中"采纳位置 (locus)"的操作化, 该文把创新按其发生于企业内部流程/外部产品/合作生态等不同位置分层, 本项目借此思路把"叙事位置"(报道措辞贴合政策 vs. 贴合具体业务) 映射为可从文本大规模测量的连续指标。象征性/实质性的行为二分渊源可追溯至组织理论中制度趋同与"解耦 (decoupling)"研究传统对采纳-实施缺口的刻画, 也呼应创新生态位研究 Adner & Kapoor (2010, *Strategic Management Journal*) 关于技术互依结构如何影响新技术世代表现的分析框架——银行在生态系统中所处的位置与其对外沟通策略密切相关。银行关系与信息生产的经典文献 Boot (2000, *Journal of Financial Intermediation*) 则为"银行对外沟通如何折射其战略姿态"提供理论背景。分位数阈值分类法本身对测量口径 (词典/嵌入模型/时间窗) 高度敏感, 大规模多分析者复现研究 Breznau et al. (2022, *Proceedings of the National Academy of Sciences*) 揭示同一数据+同一假设下不同建模选择可产生实质性不一致的结论, 提示本家族分位阈值梯度 (P25/P50/P75) 与 kw/int 双轨并行设计正是为回应这一"隐藏的不确定性宇宙"而设的稳健性检验, 单一阈值/单一强度口径下的结论不应被过度解读为唯一真值。Nach (2025, Quality & Quantity) 用NLP文本挖掘方法分析非洲金融科技十年英文新闻报道的主题、叙事与情感演变, 为本家族基于新闻文本连续测量金科强度与政策语言相似度的方法提供直接的媒体报道文本分析先例。Zatini, Torricella, & della Porta (2026, Business Strategy and the Environment) 提出区分"低成本承诺信号(说)"与"高成本组织运营变革(做)"的解耦测量框架, 为本家族象征性合规(语言贴合政策)与实质性采纳(业务着墨)的四象限区分提供最新方法论对照。
 
 ## VAR: hidden_adopt_int_p50
 
@@ -82,4 +96,6 @@ Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital finance and FinTech: Curr
 Adner, R., & Kapoor, R. (2010). Value creation in innovation ecosystems: How the structure of technological interdependence affects firm performance in new technology generations. Strategic Management Journal, 31(3), 306-333. https://doi.org/10.1002/smj.821
 Boot, A. W. A. (2000). Relationship banking: What do we know?. Journal of Financial Intermediation, 9(1), 7-25. https://doi.org/10.1006/jfin.2000.0282
 Breznau, N., Rinke, E. M., Wuttke, A., et al. (2022). Observing many researchers using the same data and hypothesis reveals a hidden universe of uncertainty. Proceedings of the National Academy of Sciences, 119(44), e2203150119. https://doi.org/10.1073/pnas.2203150119
+Nach, H. (2025). An Analysis of the news coverage of Fintech in Africa: a natural language processing approach. Quality & Quantity. https://doi.org/10.1007/s11135-024-02045-y
+Zatini, G., Torricella, N., & della Porta, A. (2026). Costly Signals and Cheap Talk: Measuring the Decoupling of ESG Routinisation and Greenwashing Risk. Business Strategy and the Environment. https://doi.org/10.1002/bse.71079
 <!-- rendered-citations:end -->

@@ -57,7 +57,14 @@ citations:
   vol: '80'
   issue: '1'
   pages_or_artno: 146-156
-new_dois: []
+- doi: "10.3390/electronics12071632"
+  title: "TF-TDA: A Novel Supervised Term Weighting Scheme for Sentiment Analysis"
+  authors: "Alshehri, A., & Algarni, A."
+  year: 2023
+  venue: "Electronics"
+  type: "journal"
+new_dois:
+  - "10.3390/electronics12071632"
 ---
 
 ## CORE
@@ -69,7 +76,7 @@ new_dois: []
 计算分三层。第一层是 IDF 权重构建 (stage 22 `pipeline\sentiment\tone_words.py::build_idf_weights`): 在与词频统计同一份生产语料上 (调用方传入 `content_full`, 缺则回退"内容"列), 对每部词典逐词条计算 raw_idf=log10(N/(1+df)) (N=文档级去重后语料总文档数, df=含该词条的文档数, Gentzkow, Kelly & Taddy 2019 JEL §2.2 口径), 再做均值归一化 (令均值=1, 使不同词典的权重量纲可比) 与 P1/P99 Winsorize (截尾防止极端稀有词权重失控), 得到 `final_idf`, 并输出到 `22_idf_weights.json` (随当次语料在线计算, 并非离线预计算后冻结进 `config/tone_dicts.json`——后者只存词典基础极性/base_score, 不存 IDF 权重)。第二层是文章级打分: 对每篇文章的候选文本 (三轨 full/ctx/ss 各自独立扫描), 用 jiang_2021 词表做正向/负向词条匹配, 命中词条经否定翻转、程度副词强化/弱化、转折关系降权三条语言学规则调制后, 乘以该词条的 `final_idf` 权重, 再乘以极性符号 (正向 +1、负向 -1) 并求和, 得到该篇文章在该轨道下的 `jiang_2021_idf_score` (IDF 加权得分, 与消融梯度族共用同一套否定/程度/转折三规则全 powerset 消融框架 `_RULE_ABLATION_VARIANTS`, 但本身对应"全语言学规则"版本)。第三层是提及密度加权与面板聚合 (`pipeline\panel\runner.py` 步骤 3b + `pipeline\panel\encode.py::build_aggregation_dict`): 先用该篇文章的提及密度 `mention_density` (Value-weighted Exposure, Hassan et al. 2019 QJE) 对 `jiang_2021_idf_score` 做逐篇加权, 得到 `jiang_2021_idf_score_w`; 再按 (银行, 年) 分组求和 (sum), 得到本家族的银行-年 `idf_score_w_sum` 三个轨道列。列名中的 `_w` 后缀因此对应提及密度加权, 而非词条 IDF 权重本身 (IDF 权重已内嵌在无 `_w` 后缀的 `jiang_2021_idf_score` 基名之中); 读者理解本测度须区分"词条层面的 IDF 加权"与"篇章层面的提及密度加权"两层不同的加权含义。求和而非求均值的选择, 使该测度同时承载"情感强度"与"报道数量/媒体关注度"两重信息——报道越多且措辞越极端, 加总值越高, 这与家族内其它"均值型"情感测度 (如 `_tone`) 构念上互补而非替代。三轨 (full/ctx/ss) 分别对应标题+全文、标题+银行实体窗口、标题+银行∧金科同句±N窗三种文本范围, 各自独立扫描并独立求和, full 为留篇门控主轨 (2026-06-29 起 stage 21 留篇判定 = `llm_verified_full`), ctx/ss 是 conditional-on-full 的测度/稳健性轨、行宇宙为 full 留篇集的子集; 三轨各自 just-identified 并排、互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 设定。ss 轨在无银行∧金科同句共现时按镜像 ctx 的回退语义处理 (`content_ss` 退化为全文 body, `ss_is_fallback=True`, 与 ctx 共享 `n_articles` 分母口径), 保证三轨在缺失样本上有一致的优雅降级行为而非静默清零。本家族与词典消融梯度族 (7 个非-full 语言学规则变体) 正交: idf_score_w_sum 恒定在"全规则"设定下计算, 不参与消融维度的 powerset 展开, 避免梯度维度与加权维度交叉爆炸列数。
 
 【文献定位】
-本测度的方法学谱系有三条并行线索。其一是中文财经情感词典本身的构建传统: 姜富伟等 (2021) 的原始工作是本词典的直接来源, 定义了词表内容与情感极性标注; 与本仓库并存的 yao_2021/bian_2021/du_2022/you_2018 等词典构成跨词典互为稳健性的并排轨道 (镜像政治词权重梯度、词典消融梯度的先例), 六部词典的比较有 Frankel, Jennings & Lee (2022) 关于词典法与机器学习法互为稳健性的方法学讨论作为背书——该文强调不同情感测度方法在解释力上各有侧重, 不存在单一"正确"口径, 应作为并排稳健性证据而非相互替代。其二是 IDF 加权本身的信息检索渊源: Spärck Jones (1972) 首次提出用逆文档频率刻画词条特异性, 是本测度加权公式 log(N/df) 的原始理论出处; 该思路经 Jegadeesh & Wu (2013) 引入金融文本分析领域, 用词频驱动的"word power"权重取代朴素符号计数, 显著提升了情感测度对股价反应的预测力, 是本仓库为财经情感词典引入 IDF 加权这一设计决策的直接方法学先例。其三是加权方案的统计学证成: Sheridan, Ahmed & Farooque (2025/2026) 用 Fisher 精确检验为 TF-IDF 类词条加权提供了假设检验框架下的合理性论证, 说明本测度并非任意的启发式加权, 而是有统计学基础支撑的稀有词升权方案。综合三条线索, idf_score_w_sum 家族在本仓库情感测度体系中定位为"词典法 + IDF 加权"的一个具体实现分支, 与三家 LLM 投票情感 (`llm_vote_tone`)、三模型 BERT 情感互为稳健性、各自 just-identified 并排, 不构成同一识别策略下的过度识别工具组。
+本测度的方法学谱系有三条并行线索。其一是中文财经情感词典本身的构建传统: 姜富伟等 (2021) 的原始工作是本词典的直接来源, 定义了词表内容与情感极性标注; 与本仓库并存的 yao_2021/bian_2021/du_2022/you_2018 等词典构成跨词典互为稳健性的并排轨道 (镜像政治词权重梯度、词典消融梯度的先例), 六部词典的比较有 Frankel, Jennings & Lee (2022) 关于词典法与机器学习法互为稳健性的方法学讨论作为背书——该文强调不同情感测度方法在解释力上各有侧重, 不存在单一"正确"口径, 应作为并排稳健性证据而非相互替代。其二是 IDF 加权本身的信息检索渊源: Spärck Jones (1972) 首次提出用逆文档频率刻画词条特异性, 是本测度加权公式 log(N/df) 的原始理论出处; 该思路经 Jegadeesh & Wu (2013) 引入金融文本分析领域, 用词频驱动的"word power"权重取代朴素符号计数, 显著提升了情感测度对股价反应的预测力, 是本仓库为财经情感词典引入 IDF 加权这一设计决策的直接方法学先例。其三是加权方案的统计学证成: Sheridan, Ahmed & Farooque (2025/2026) 用 Fisher 精确检验为 TF-IDF 类词条加权提供了假设检验框架下的合理性论证, 说明本测度并非任意的启发式加权, 而是有统计学基础支撑的稀有词升权方案。综合三条线索, idf_score_w_sum 家族在本仓库情感测度体系中定位为"词典法 + IDF 加权"的一个具体实现分支, 与三家 LLM 投票情感 (`llm_vote_tone`)、三模型 BERT 情感互为稳健性、各自 just-identified 并排, 不构成同一识别策略下的过度识别工具组。此外, Alshehri & Algarni (2023, Electronics) 提出监督式词条判别力加权方案 TF-TDA 作为传统 TF-IDF 在情感分析任务中的改进替代, 为本家族 IDF 加权情感打分设计提供同期方法学参照。
 
 ## VAR: jiang_2021_idf_score_w_sum_ctx
 
@@ -94,4 +101,5 @@ Spärck Jones, K. (1972). A statistical interpretation of term specificity and i
 Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis. Journal of Financial Economics, 110(3), 712-729. https://doi.org/10.1016/j.jfineco.2013.08.018
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Sheridan, P., Ahmed, Z., & Farooque, A. A. (2026). A Fisher's exact test justification of the TF-IDF term-weighting scheme. The American Statistician, 80(1), 146-156. https://doi.org/10.1080/00031305.2025.2539241
+Alshehri, A., & Algarni, A. (2023). TF-TDA: A Novel Supervised Term Weighting Scheme for Sentiment Analysis. Electronics. https://doi.org/10.3390/electronics12071632
 <!-- rendered-citations:end -->

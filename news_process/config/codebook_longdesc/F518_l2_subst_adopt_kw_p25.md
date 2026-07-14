@@ -70,7 +70,21 @@ citations:
   vol: '26'
   issue: '3'
   pages_or_artno: 705-723
-new_dois: []
+- doi: "10.1007/s10490-025-10098-2"
+  title: "Substantive investment or symbolic disclosure toward digital transformation? The impact of entrepreneurial orientation and political connections"
+  authors: "Liu, L., Li, Z., & Zhu, Q."
+  year: 2026
+  venue: "Asia Pacific Journal of Management"
+  type: "journal"
+- doi: "10.1002/ijfe.3105"
+  title: "Digital Transformation Disclosure and Bank Loans: An Information Heterogeneity Perspective"
+  authors: "Liu, J., Chen, S., Su, F., & Liu, J."
+  year: 2025
+  venue: "International Journal of Finance & Economics"
+  type: "journal"
+new_dois:
+  - "10.1007/s10490-025-10098-2"
+  - "10.1002/ijfe.3105"
 ---
 
 ## CORE
@@ -84,7 +98,7 @@ new_dois: []
 无后缀主轨 (subst_adopt_kw_p25) 使用词频与相似度均为 full 文本轨 (标题+正文全文) 的信号; `_ctx`/`_ss` 两个姊妹变体则分别切到 ctx (标题+实体窗口) 与 ss (标题+银行∧金科同句±N窗) 文本轨的词频、相似度信号重新独立分类与聚合, 三者互为稳健性、各自 just-identified 并排、禁止混进同一 over-identified Hansen J 估计。⚠ 需要特别说明的是"词频轨"内部的一个非对称: kw 轨的 `fintech_distinct_keywords` 在项目里被视为 track-agnostic 元数据 (即该指标本身不区分 full/ctx/ss 三个文本窗口, 只有 int 轨 `fintech_intensity_score` 才产出真正的 `_ctx`/`_ss` 独立词频变体), 因此 `_ctx`/`_ss` 后缀列在词频侧实际上复用的是 full 轨的 kw 词频列, 只有相似度信号 (sim) 是真正切到对应文本轨的 `policy_cosine_sim_ctx`/`policy_cosine_sim_ss`; 这一"部分轨道化"处理在源码注释中被明确记录并逐条日志披露, 不构成静默口径漂移。此外, 本家族只覆盖 vintage 锚点 (相似度阈值来自动态更新的 `policy_cosine_sim`), 与之并排的还有 `_allv` 全年份静态锚点变体 (阈值改用 `policy_cosine_sim_allv`), 两个锚点变体同样是互为稳健性、不分主次的并排测度, 落在其他家族文件里, 本家族条目不涉及。
 
 【文献定位】
-四象限分类法的构念根基是组织理论里区分"名义采纳"与"实质落实"的经典脱耦 (decoupling) 传统。Westphal & Zajac (1994, ASQ) 首次系统展示公司治理层面的长期激励计划存在"采纳但不落实"现象, 揭示了单纯观测"是否宣布采纳某项措施"会高估实际治理变革的风险; 其后续研究 (1998, ASQ) 进一步刻画了公司如何通过象征性治理改革安抚股东而不必真正改变行为, 而 Fiss & Zajac (2006, AMJ) 把这一逻辑扩展为"象征管理"的一般理论, 强调框架化 (framing) 与脱耦 (decoupling) 是组织应对制度压力的两种并行机制。本项目把银行新闻报道中的"词频"信号类比为组织的"宣称/采纳"信号、"政策语义对齐"信号类比为"落实/实质"信号, 借用这一分类逻辑构造文章级的实质-象征甄别。在金融文献里, 与之平行的经验设计是 greenwashing/cheap talk 甄别: Kim & Lyon (2015, Organization Science) 区分了企业可持续性披露中的"过度渲染"(greenwash) 与"过度谦逊"(brownwash), Duchin, Gao & Xu (2025, JoF) 在资产市场层面甄别可持续性投入的真实性与漂绿的边界, 两者与本家族"词频高但语义不对齐=Token/洗科技"的构造思路同构。银行数字化转型的实证背景则参考 Kwan, Lin, Pursiainen & Tai (2024, JFQA) 关于银行数字能力压力测试的证据, 该文说明银行在报道/宣称层面的数字化投入未必与实际韧性能力对齐, 与本家族甄别报道"言行是否一致"的核心问题意识一致。本家族测度的直接上游信号 (词频=Stage 15 fintech_intensity 关键词计数; 相似度=Stage 16 article_policy_alignment 余弦相似度) 各自在其所属家族文件里另有独立方法学与文献定位, 本节聚焦四象限分类本身的构念来源, 不重复展开上游信号的构造细节。
+四象限分类法的构念根基是组织理论里区分"名义采纳"与"实质落实"的经典脱耦 (decoupling) 传统。Westphal & Zajac (1994, ASQ) 首次系统展示公司治理层面的长期激励计划存在"采纳但不落实"现象, 揭示了单纯观测"是否宣布采纳某项措施"会高估实际治理变革的风险; 其后续研究 (1998, ASQ) 进一步刻画了公司如何通过象征性治理改革安抚股东而不必真正改变行为, 而 Fiss & Zajac (2006, AMJ) 把这一逻辑扩展为"象征管理"的一般理论, 强调框架化 (framing) 与脱耦 (decoupling) 是组织应对制度压力的两种并行机制。本项目把银行新闻报道中的"词频"信号类比为组织的"宣称/采纳"信号、"政策语义对齐"信号类比为"落实/实质"信号, 借用这一分类逻辑构造文章级的实质-象征甄别。在金融文献里, 与之平行的经验设计是 greenwashing/cheap talk 甄别: Kim & Lyon (2015, Organization Science) 区分了企业可持续性披露中的"过度渲染"(greenwash) 与"过度谦逊"(brownwash), Duchin, Gao & Xu (2025, JoF) 在资产市场层面甄别可持续性投入的真实性与漂绿的边界, 两者与本家族"词频高但语义不对齐=Token/洗科技"的构造思路同构。银行数字化转型的实证背景则参考 Kwan, Lin, Pursiainen & Tai (2024, JFQA) 关于银行数字能力压力测试的证据, 该文说明银行在报道/宣称层面的数字化投入未必与实际韧性能力对齐, 与本家族甄别报道"言行是否一致"的核心问题意识一致。本家族测度的直接上游信号 (词频=Stage 15 fintech_intensity 关键词计数; 相似度=Stage 16 article_policy_alignment 余弦相似度) 各自在其所属家族文件里另有独立方法学与文献定位, 本节聚焦四象限分类本身的构念来源, 不重复展开上游信号的构造细节。刘蕾、李竹、朱勤等 (2026, Asia Pacific Journal of Management) 实证区分企业数字化转型中的实质性投入与象征性信息披露, 并检验创业导向与政治关联如何调节二者的分野, 与本家族用词频×语义对齐甄别"实质采纳 vs 空话报道"的构念高度同构; 刘军、陈爽、苏芳、刘杰 (2025, International Journal of Finance & Economics) 用文本方法把银行数字化转型披露拆分为实质性与非实质性两类, 检验其对银行贷款获取的差异化影响, 为本家族"言行是否一致"的银行金融科技报道甄别提供金融机构场景的平行证据。
 
 ## VAR: subst_adopt_kw_p25
 
@@ -108,4 +122,6 @@ Fiss, P. C., & Zajac, E. J. (2006). The Symbolic Management of Strategic Change:
 Duchin, R., Gao, J., & Xu, Q. (2025). Sustainability or Greenwashing: Evidence from the Asset Market for Industrial Pollution. The Journal of Finance. https://doi.org/10.1111/jofi.13412
 Kwan, A., Lin, C., Pursiainen, V., & Tai, M. (2024). Stress Testing Banks' Digital Capabilities: Evidence from the COVID-19 Pandemic. Journal of Financial and Quantitative Analysis, 59(6), 2618-2646. https://doi.org/10.1017/S0022109023000662
 Kim, E.-H., & Lyon, T. P. (2015). Greenwash vs. Brownwash: Exaggeration and Undue Modesty in Corporate Sustainability Disclosure. Organization Science, 26(3), 705-723. https://doi.org/10.1287/orsc.2014.0949
+Liu, L., Li, Z., & Zhu, Q. (2026). Substantive investment or symbolic disclosure toward digital transformation? The impact of entrepreneurial orientation and political connections. Asia Pacific Journal of Management. https://doi.org/10.1007/s10490-025-10098-2
+Liu, J., Chen, S., Su, F., & Liu, J. (2025). Digital Transformation Disclosure and Bank Loans: An Information Heterogeneity Perspective. International Journal of Finance & Economics. https://doi.org/10.1002/ijfe.3105
 <!-- rendered-citations:end -->

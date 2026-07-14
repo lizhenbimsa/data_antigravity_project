@@ -1,5 +1,6 @@
 ---
 family_id: F278
+novelty_exempt_rationale: "该家族是 exc_ 媒体退出剔除子样本 × negadv 规则消融变体的双重衍生家族(词典法情感测度 Yao 2021 词典上的规则消融格), 非独立新构念, 其测度定义的学术依据已在正文引文脉络段的母族词典文献(Du 2022/Bian 2021/Ma-Zhang-Zhang 2025 等)与消融规则依据文献(Ding-Liu-Yu 2008/Taboada 2011)中给出, 不需要追加独立的新颖文献锚点。"
 columns:
 - exc_yao_2021_score_negadv_ctx
 - exc_yao_2021_score_negadv_full

@@ -87,7 +87,21 @@ citations:
   vol: 98
   issue: 7
   pages_or_artno: 315-345
-new_dois: []
+- doi: "10.1002/isaf.1549"
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+  type: "journal"
+- doi: "10.1016/j.ememar.2024.101234"
+  title: "Does official media sentiment matter for the stock market? Evidence from China"
+  authors: "Xu, Z., Hua, X., & Zhang, T."
+  year: 2025
+  venue: "Emerging Markets Review"
+  type: "journal"
+new_dois:
+  - "10.1002/isaf.1549"
+  - "10.1016/j.ememar.2024.101234"
 ---
 
 ## CORE
@@ -99,7 +113,7 @@ new_dois: []
 逐篇打分分两步: 第一步是标准 Loughran-McDonald 词典查表, 对文章命中的 loughran 词典词汇按其极性 (positive/negative) 累加, 并叠加三条中文本土化语言学规则——否定翻转 (否定词紧邻情感词时翻转极性)、程度副词 (放大/缩小极性幅度)、转折连词 (转折从句后情感词权重调整), 这与 F127 (bian_2021) 等六词典家族共享同一套规则消融基础设施 (`_RULE_ABLATION_VARIANTS`); 第二步是本家族特有的 IDF 加权稳健性检验 (方法学根基可追溯至 Spärck Jones 1972, Journal of Documentation 提出的词项特异性统计解释): 在 content_full 语料上用 jieba 分词统一计算每个 loughran 词典情感词的文档频率 (DF), 转为平滑 IDF (smooth IDF, 避免零频除零), 再做均值归一化 (使 IDF 加权后的得分量级 ≈ 未加权等权版, 保证两者可共享同一判定阈值) 并 Winsorize 极端值。IDF 语料之所以统一在三轨共享的 content_full 上计算而非裸"内容"列, 是因为 fix(tone-words-idf-corpus) 发现三轨 (full/ctx/ss) 各自独立算 DF 会让标题词的文档频率被系统性低估 (标题只在 full 轨天然出现)——本项目选择让 IDF 权重字典在三轨间共享同一份基于 content_full 计算的词频统计, 只在应用到具体轨道文本时用该轨自身的词计数与规则分数相乘, 从而"IDF 稀有度"这把尺子对三轨保持同构、不因轨道切换而漂移。计算出的逐篇 loughran_idf_score{full,ctx,ss} 落在 22_tone_words.parquet, 随后在 panel runner/encode.py 里按六种聚合方式再加工为本家族 21 列: 等权均值 (canonical _full/_ctx/_ss)、Z-score 标准化均值 (_std)、羊群 (herd) 加权均值 (_hw, 出自 stage 24 herd_decay_processor 对高度相似报道的衰减加权)、媒体权威加权均值 (_mw, 出自 config/media_weights.json 按来源媒体排名分位赋权, 呼应 Holzman, Miller & Twedt 2023, The Accounting Review 关于媒体权威在情感传导中作用的发现)、提及密度加权均值 (_vw, 出自 stage 11 news_salience 的 mention_density, 篇幅/提及越密集权重越高)、以及按金科落点 (locus) 二分的子样本均值 (_app=应用场景子样本, _tech=底层技术子样本, 落点判定来自三家 LLM 投票, 呼应 P4 Gomber locus 维度构念)。
 
 【文献定位】
-本家族方法学谱系直接承袭 Loughran & McDonald (2011, The Journal of Finance) 建立的"词典法情感分析对金融文本语境敏感"这一奠基性发现——该文证明通用情感词典 (如 Harvard-IV) 在 10-K 文本中大量误判 (如"liability""tax"在金融文本中并非负面词), 从而催生了金融领域专用情感词典的研究传统; 本项目将其英文词表本土化翻译并中文语境重构为 loughran_mcdonald_zh_2026。IDF 加权分支的方法学依据是信息检索经典 Spärck Jones (1972, Journal of Documentation) 对"词项特异性" (term specificity) 的统计解释——稀有但高区分度的词项理应获得比高频常见词更大的权重, 情感词的稀有度与其区分力正相关这一原理是本家族 IDF 加权设计的直接理论来源, 这与 Du, Huang, Wermers & Wu (2022, Review of Finance) 强调"中文金融文本存在语言与领域特异性、通用情感度量会引入系统性偏误"的论点相互印证 (Du et al. 2022 是本项目六词典中 du_2022 词典的直接来源, 与 loughran 词典互为稳健性并排)。多方法三角验证的设计哲学参照 Frankel, Jennings & Lee (2022, Management Science) 对"机器学习法 vs 词典法"两类情感测度方法论差异及其经济后果的系统比较——本项目进一步将词典法内部拆分为词典—权重两个维度的梯子 (六词典 × IDF-有无 × 规则消融 × hw/mw/vw/std/app/tech 多种聚合权重), 使得任何单一测度选择都不会独立驱动主结论。IDF/TF-IDF 词袋加权这一文本分析的通用方法论基础可追溯至信息检索经典 Spärck Jones (1972, Journal of Documentation) 对"词项特异性"统计解释的原始提出, 本家族 IDF 权重的数学定义 (文档频率倒数的对数平滑) 与该文一脉相承。Barbaglia, Consoli, Manzan, Tiozzo Pezzoli & Tosetti (2025, Economic Inquiry) 近期对词典法经济文本情感分析的系统评述进一步确认了本家族所采用的"规则叠加 + 权重加权"词典法路径在当代文献中仍是词典法情感测度的主流范式, 与 LLM/BERT 等新兴方法互为稳健性、并非被取代关系。
+本家族方法学谱系直接承袭 Loughran & McDonald (2011, The Journal of Finance) 建立的"词典法情感分析对金融文本语境敏感"这一奠基性发现——该文证明通用情感词典 (如 Harvard-IV) 在 10-K 文本中大量误判 (如"liability""tax"在金融文本中并非负面词), 从而催生了金融领域专用情感词典的研究传统; 本项目将其英文词表本土化翻译并中文语境重构为 loughran_mcdonald_zh_2026。IDF 加权分支的方法学依据是信息检索经典 Spärck Jones (1972, Journal of Documentation) 对"词项特异性" (term specificity) 的统计解释——稀有但高区分度的词项理应获得比高频常见词更大的权重, 情感词的稀有度与其区分力正相关这一原理是本家族 IDF 加权设计的直接理论来源, 这与 Du, Huang, Wermers & Wu (2022, Review of Finance) 强调"中文金融文本存在语言与领域特异性、通用情感度量会引入系统性偏误"的论点相互印证 (Du et al. 2022 是本项目六词典中 du_2022 词典的直接来源, 与 loughran 词典互为稳健性并排)。多方法三角验证的设计哲学参照 Frankel, Jennings & Lee (2022, Management Science) 对"机器学习法 vs 词典法"两类情感测度方法论差异及其经济后果的系统比较——本项目进一步将词典法内部拆分为词典—权重两个维度的梯子 (六词典 × IDF-有无 × 规则消融 × hw/mw/vw/std/app/tech 多种聚合权重), 使得任何单一测度选择都不会独立驱动主结论。IDF/TF-IDF 词袋加权这一文本分析的通用方法论基础可追溯至信息检索经典 Spärck Jones (1972, Journal of Documentation) 对"词项特异性"统计解释的原始提出, 本家族 IDF 权重的数学定义 (文档频率倒数的对数平滑) 与该文一脉相承。Barbaglia, Consoli, Manzan, Tiozzo Pezzoli & Tosetti (2025, Economic Inquiry) 近期对词典法经济文本情感分析的系统评述进一步确认了本家族所采用的"规则叠加 + 权重加权"词典法路径在当代文献中仍是词典法情感测度的主流范式, 与 LLM/BERT 等新兴方法互为稳健性、并非被取代关系。Todd, Bowden & Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 系统综述金融文本情感分析文献(词典法/机器学习/深度学习三代方法),为本家族词典法+IDF加权路径在当代文献中的定位提供综述性支撑。Xu, Hua & Zhang (2025, Emerging Markets Review) 以中国官方权威媒体情感指数预测股市收益反转,证明媒体来源权威度对信息传导效力有系统性影响,支撑本家族媒体权威加权(_mw)变体的构念动机。
 
 ## VAR: loughran_idf_tone_full
 
@@ -213,4 +227,6 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
 Spärck Jones, K. (1972). A statistical interpretation of term specificity and its application in retrieval. Journal of Documentation, 28(1), 11-21. https://doi.org/10.1108/eb026526
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing enthusiasm: Media sentiment and the disciplining role of quarterly earnings announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
+Xu, Z., Hua, X., & Zhang, T. (2025). Does official media sentiment matter for the stock market? Evidence from China. Emerging Markets Review. https://doi.org/10.1016/j.ememar.2024.101234
 <!-- rendered-citations:end -->

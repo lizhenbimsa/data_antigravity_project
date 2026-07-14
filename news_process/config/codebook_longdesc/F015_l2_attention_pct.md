@@ -249,9 +249,30 @@ citations:
   vol: 60
   issue: 3
   pages_or_artno: "531-542"
+- doi: "10.1016/j.jeconbus.2024.106231"
+  type: "journal"
+  authors: "Del Sarto, N., Comeig Ramirez, I., & Gai, L."
+  year: 2025
+  title: "Impacts of FinTech funding announcements on traditional banks: An event study analysis"
+  venue: "Journal of Economics and Business"
+- doi: "10.3390/computation14050114"
+  title: "Digital Attention as a Market Salience Indicator: Predicting Fintech Market Performance with Computational Models"
+  authors: "Tsimpouka, V. K., Giannakopoulos, N. T., & Sakas, D. P."
+  year: 2026
+  venue: "Computation"
+  type: "journal"
+- doi: "10.1080/1351847X.2024.2399773"
+  title: "From text to treasure: the predictive superiority of a FinTech index in stock market returns"
+  authors: "Guo, Y., Ma, F., Wang, Y., & Zhong, J."
+  year: 2024
+  venue: "The European Journal of Finance"
+  type: "journal"
 new_dois:
 - 10.1093/rfs/hhq141
 - 10.1111/j.1475-679X.2009.00357.x
+- "10.1016/j.jeconbus.2024.106231"
+- "10.3390/computation14050114"
+- "10.1080/1351847X.2024.2399773"
 ---
 
 ## CORE
@@ -266,7 +287,7 @@ new_dois:
 
 【口径诚实声明】变体列携带三条必须随行披露的方法学限定。第一, 两阶段近似: 变体是在已去重产物之上叠加更严去重, 其存活集不严格等于在原始语料上直接按该严参数去重的存活集, 机理在于时间窗判重是保留贪心的, 而低阈值下的近重簇是高阈值簇的超集, 某篇文章可能在生产参数的小簇里被删, 却会在直接重跑的大簇里因簇锚点更早或超出窗口而存活, 两阶段流程已经永久丢弃它, 无法复活; 因此变体结果应表述为在生产去重之上施加更严扰动的保守下界, 而非等价于从头重导, 相应标记落入语料层诊断 sidecar 供 Stata 表脚注引用。第二, 跨语料盲区: 生产去重在分类之前的全语料上进行, 变体只在银行新闻子集上重判重, 银行新闻与非银行新闻之间的跨子集近似重复在本敏感性中不可见, 会系统性低估直接重跑本会捕获的剔除量, 这是对银行新闻覆盖构念的有意范围限定。第三, 开发样本警示: 当前盘上是极小年份深度的试跑样本, 变体只追加剔除很小比例的文章, 变体列与生产锚点的面板内相关必然接近一, 这是低剔除率之下的预期平凡结果, 不构成稳健性证据; 真正的稳健性结论必须来自主回归系数在各变体下的符号与显著性稳定, 且全量语料上的剔除率与相关性都可能与试跑很不相同, 当前诊断数字不可外推。另须澄清一处域别: sidecar 报告的存活篇数与存活率是全 docid 域的去重存活率诊断, 与分子的验证交存活双重收敛域不同, 两者勿混读。
 
-【文献定位】本家族在三支文献的交汇处。第一支是媒体与资产价格的因果文献: Tetlock (2007) 首次系统证明媒体内容对市场情绪与收益的预测力, Fang & Peress (2009) 证明媒体覆盖本身在股票截面上定价, Engelberg & Parsons (2011) 用地方报纸投递的地理差异分离媒体报道对交易行为的因果作用, Peress (2014) 用报纸罢工作为自然实验证明媒体在金融市场信息扩散中的因果角色。这一支确立了媒体测度作为处理变量的合法性, 也提示媒体覆盖内生于企业基本面, 识别须依赖外生变异。第二支是企业级文本暴露测度文献: Hassan et al. (2019)、Sautner et al. (2023)、Hassan et al. (2023) 把份额型文本暴露发展为跨企业跨期可比的标准测度构造, Kalyani et al. (2025) 把词组命中方法扩展到技术扩散测量, Gentzkow et al. (2019) 则给出文本即数据的方法论总纲, 强调文本测度的构造自由度必须以透明披露与敏感性检验约束, 本家族的去重梯子正是这一原则的落地。第三支是银行与金融科技文献: Chen et al. (2019)、Cheng & Qu (2020) 提供金融科技作为银行研究对象的价值与风险证据, Marchetti et al. (2025) 展示了把新闻文本聚合到银行乘年份粒度研究银行融资条件的口径先例, 与本仓库的 bank-year 聚合骨架直接同构。中国媒体市场的制度背景由 Qin et al. (2018) 提供, 中文财经文本测度的近期应用由 Ni (2024) 与 Li (2026) 提供, 商业新闻议题份额携带宏观信息的当代基准由 Bybee et al. (2024) 提供, 显著性与注意力的资产定价后果由 Chen et al. (2026) 提供。
+【文献定位】本家族在三支文献的交汇处。第一支是媒体与资产价格的因果文献: Tetlock (2007) 首次系统证明媒体内容对市场情绪与收益的预测力, Fang & Peress (2009) 证明媒体覆盖本身在股票截面上定价, Engelberg & Parsons (2011) 用地方报纸投递的地理差异分离媒体报道对交易行为的因果作用, Peress (2014) 用报纸罢工作为自然实验证明媒体在金融市场信息扩散中的因果角色。这一支确立了媒体测度作为处理变量的合法性, 也提示媒体覆盖内生于企业基本面, 识别须依赖外生变异。第二支是企业级文本暴露测度文献: Hassan et al. (2019)、Sautner et al. (2023)、Hassan et al. (2023) 把份额型文本暴露发展为跨企业跨期可比的标准测度构造, Kalyani et al. (2025) 把词组命中方法扩展到技术扩散测量, Gentzkow et al. (2019) 则给出文本即数据的方法论总纲, 强调文本测度的构造自由度必须以透明披露与敏感性检验约束, 本家族的去重梯子正是这一原则的落地。第三支是银行与金融科技文献: Chen et al. (2019)、Cheng & Qu (2020) 提供金融科技作为银行研究对象的价值与风险证据, Marchetti et al. (2025) 展示了把新闻文本聚合到银行乘年份粒度研究银行融资条件的口径先例, 与本仓库的 bank-year 聚合骨架直接同构。中国媒体市场的制度背景由 Qin et al. (2018) 提供, 中文财经文本测度的近期应用由 Ni (2024) 与 Li (2026) 提供, 商业新闻议题份额携带宏观信息的当代基准由 Bybee et al. (2024) 提供, 显著性与注意力的资产定价后果由 Chen et al. (2026) 提供。此外, Del Sarto, Comeig Ramirez, & Gai (2025, 期刊 Journal of Economics and Business) 以事件研究法证明金融科技融资公告会显著影响传统银行的股价反应, 支持金融科技相关媒体或市场信息事件对银行构成可计量的外部关注冲击这一构念前提。Tsimpouka, Giannakopoulos, & Sakas (2026, 期刊 Computation) 构造数字注意力指数并以计算模型证明其对金融科技市场绩效的预测显著性, 支持媒体、数字注意力作为金融科技市场表现代理变量的构念效度。Guo, Ma, Wang, & Zhong (2024, 期刊 The European Journal of Finance) 以《纽约时报》文本构造金融科技指数, 证明其相对结构化指标在股票市场收益预测上的优越性, 支持文本挖掘构造金融科技注意力、曝露测度的方法学传统。
 
 【识别策略定位】本家族属于注意力论文 (P2, bank_fintech_attention) 的处理变量族, 该论文的主处理变量是累积曝光强度指数, 即强度累积和的对数化, 属 extensive 边际, 本列是同族 intensive 边际的并行测度: 强度指数回答银行被金融科技叙事覆盖的总量有多大, 本列回答金融科技议题在该行媒体议程中的相对占比有多高, 两者刻画同一现象的不同边际, 各进各自的回归规格, 不同时进入一个右手边; 该论文的结果变量另定于外部财务哨兵即金融科技投资的对数, 处理变量与结果变量分属两套, 本列是处理变量侧 intensive 边际的并行 headline, 而非被解释变量。识别层面须先厘清内生性的三条来源。其一是反向因果: 银行自身的金融科技战略与投入会主动吸引甚至制造媒体报道, 议程份额部分是战略的果而非因, 直接回归会把因果方向混淆。其二是遗漏变量: 银行规模、产权属性、区域禀赋与经营绩效同时驱动金融科技投入与媒体曝光, 使份额与结果的关联混入共同的前定因素。其三是测量误差: 分子的机器验证与分母的共现硬过滤都非无误, 分类噪声按经典衰减方向系统性压低估计系数。为此仓库在面板层物化了三类工具变量引擎, 论文规格以两阶段最小二乘配合它们缓解上述内生性, 每类引擎的识别假设各不相同, 须分别论证而非一揽子宣称外生。第一类是同组剔除自身的均值工具: 以同组同侪的金融科技议程份额均值为工具, 识别假设是同侪议程只通过共同的行业级金融科技冲击影响本行, 不经其他渠道直接作用于本行结果; 这一剔除自身的构造正是 Manski (1993) 反射问题的标准应对, 把本行排除出均值以打破内生的同时性联立, 而 Bramoullé et al. (2009) 证明当采用剔除自身的邻域均值时同侪效应可借网络结构获得识别。第二类是广义 Bartik 份额转移工具: 以全国金融科技议程的时间趋势乘以本行前定期的暴露份额构造, 其识别合法性有两种互补视角, Goldsmith-Pinkham et al. (2020) 把识别力归于暴露份额的外生性, Borusyak et al. (2022) 则把识别力归于冲击本身的外生性, 两种视角对本工具的排他性约束提出不同但可交叉检验的前提, 论文须择一或并陈其识别根据。第三类是媒体来源风格暴露工具: 以本行接触的媒体来源在金融科技报道倾向上的系统性差异构造供给侧暴露, 其准实验根据是 Engelberg & Parsons (2011) 用地方报纸投递的地理差异分离媒体因果, 以及 Peress (2014) 用报纸罢工作为外生的媒体供给冲击。三类工具各自 just-identified, 每个内生回归元只配一个工具, 因此单引擎内部不做 over-identified 的 Hansen J 过度识别检验。铁律必须复述: 生产锚点与四个去重变体各自 just-identified 并排, 互为稳健性、不分主次, 严禁把任意两臂混进同一个 over-identified 的 Hansen J 检验; 这一口径与三轨、co-primary 双轨嵌入、政治词权重梯子的处理完全一致。多重检验层面, 本家族的去重梯子属于规格稳健性并排, 镜像政治词权重与词典消融先例, 不设跨模型族际错误率模板; 真正的族际错误率控制由根级 rwolf 模板承担, 其方法学根据是 Romano & Wolf (2005) 的逐步多重检验形式化数据窥探框架, 而该模板只覆盖同一构念的替代 headline 测量如跨模型比较, 本族的去重扰动是同一测量在参数维度的稳健性而非替代测量, 故不纳入该 FWER 模板。去重梯子与其他梯子之间正交不交叉, 不做参数网格的笛卡尔积展开, 避免列爆炸与虚假自由度。
 
@@ -322,4 +343,7 @@ Fang, L., & Peress, J. (2009). Media coverage and the cross-section of stock ret
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Romano, J. P., & Wolf, M. (2005). Stepwise multiple testing as formalized data snooping. Econometrica, 73(4), 1237-1282. https://doi.org/10.1111/j.1468-0262.2005.00615.x
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. The Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
+Del Sarto, N., Comeig Ramirez, I., & Gai, L. (2025). Impacts of FinTech funding announcements on traditional banks: An event study analysis. Journal of Economics and Business. https://doi.org/10.1016/j.jeconbus.2024.106231
+Tsimpouka, V. K., Giannakopoulos, N. T., & Sakas, D. P. (2026). Digital Attention as a Market Salience Indicator: Predicting Fintech Market Performance with Computational Models. Computation. https://doi.org/10.3390/computation14050114
+Guo, Y., Ma, F., Wang, Y., & Zhong, J. (2024). From text to treasure: the predictive superiority of a FinTech index in stock market returns. The European Journal of Finance. https://doi.org/10.1080/1351847X.2024.2399773
 <!-- rendered-citations:end -->

@@ -66,7 +66,21 @@ citations:
   vol: 66
   issue: 1
   pages_or_artno: 35-65
-new_dois: []
+- doi: "10.1002/isaf.1549"
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+  type: "journal"
+- doi: "10.1016/j.nlp.2025.100148"
+  title: "Financial sentiment analysis for pre-trained language models incorporating dictionary knowledge and neutral features"
+  authors: "Sun, Y., Yuan, H., & Xu, F."
+  year: 2025
+  venue: "Natural Language Processing Journal"
+  type: "journal"
+new_dois:
+  - "10.1002/isaf.1549"
+  - "10.1016/j.nlp.2025.100148"
 ---
 
 ## CORE
@@ -78,7 +92,7 @@ new_dois: []
 篇章级得分 loughran_score_negdeg{track} 在 Stage 22 (22_tone_words.parquet) 计算: 对每篇报道分词后, 用 loughran 词表标注正/负情感词, 在 negdeg 规则下调整极性与强度, 得到自归一化的篇章情感分 (每变体各自归一化, 与其余消融臂高度共线、corr 常达 0.99, 属非可加分解, 报相关而非并入同一线性式)。银行-年度聚合在 attention_media.py 完成: 先由 detect_defacto_cessation 识别疑似退出覆盖的媒体集合并置 _is_ceased_media 标志, 再对 _is_ceased_media 为 0 的存活样本按 (target_bank, year) 分组取该篇章得分均值, 落为 exc_loughran_score_negdeg{track}。该聚合是纯 CPU、零 API、$0 的确定性后处理, 不触发 LLM。计数类兄弟列 (如 n_articles_exc) 对零文章格填 0, 但本情感均值列按契约在空存活子集下保持 NaN, 绝不连带零填, 以免与真实零情感混淆。三条轨道 (full / ctx / ss) 分别聚合、并排产列。
 
 【文献定位】
-词典本体锚定 Loughran 与 McDonald (2011): 该文奠定了金融领域专用情感词表相对通用词典的测量优势, 是本家族的方法论根。Loughran 与 McDonald (2016) 的会计与金融文本分析综述系统梳理了词典法的适用边界与消融敏感性, 为本项目把语言学规则做 powerset 消融提供依据。Loughran 与 McDonald (2024) 在《Journal of Financial and Quantitative Analysis》进一步演示了词表族在复杂度测度上的可迁移性, 支撑「同一词表在不同规则配置下并排产列」的做法。Frankel、Jennings 与 Lee (2022) 在《Management Science》比较机器学习与词典法的披露情感抽取, 是「词典 / LLM / BERT 三方法互为稳健」范式的先例。van Atteveldt、van der Velden 与 Boukes (2021) 就人工标注、众包、词典与机器学习四类情感测度做效度对比, 提醒词典法在验证时须与人工基准校准。Barbaglia 等 (2025) 提供了经济文本词典法的近期实证参照。就 exc 停刊稳健性动机——媒体退出引入幸存者偏差、污染基于媒体来源的暴露度识别——本家族做保守剔除以检验系数稳定性。
+词典本体锚定 Loughran 与 McDonald (2011): 该文奠定了金融领域专用情感词表相对通用词典的测量优势, 是本家族的方法论根。Loughran 与 McDonald (2016) 的会计与金融文本分析综述系统梳理了词典法的适用边界与消融敏感性, 为本项目把语言学规则做 powerset 消融提供依据。Loughran 与 McDonald (2024) 在《Journal of Financial and Quantitative Analysis》进一步演示了词表族在复杂度测度上的可迁移性, 支撑「同一词表在不同规则配置下并排产列」的做法。Frankel、Jennings 与 Lee (2022) 在《Management Science》比较机器学习与词典法的披露情感抽取, 是「词典 / LLM / BERT 三方法互为稳健」范式的先例。van Atteveldt、van der Velden 与 Boukes (2021) 就人工标注、众包、词典与机器学习四类情感测度做效度对比, 提醒词典法在验证时须与人工基准校准。Barbaglia 等 (2025) 提供了经济文本词典法的近期实证参照。就 exc 停刊稳健性动机——媒体退出引入幸存者偏差、污染基于媒体来源的暴露度识别——本家族做保守剔除以检验系数稳定性。Todd, Bowden & Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 系统综述金融文本情感分析文献(含词典法与规则消融相关议题),并指出未来研究方向。Sun, Yuan & Xu (2025, Natural Language Processing Journal) 提出融合词典知识与中性特征的金融情感分析模型,消融实验显示词典知识嵌入对模型提升贡献最大。
 
 ## VAR: exc_loughran_score_negdeg_full
 
@@ -102,4 +116,6 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
+Sun, Y., Yuan, H., & Xu, F. (2025). Financial sentiment analysis for pre-trained language models incorporating dictionary knowledge and neutral features. Natural Language Processing Journal. https://doi.org/10.1016/j.nlp.2025.100148
 <!-- rendered-citations:end -->

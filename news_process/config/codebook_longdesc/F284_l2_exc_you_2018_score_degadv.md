@@ -1,5 +1,6 @@
 ---
 family_id: F284
+novelty_exempt_rationale: "exc_ 前缀家族是 attention_media.py C.4 停刊媒体稳健性聚合 + degadv 规则消融梯度的双重技术变体, 其测度定义依据 you_2018 母族词典与规则消融 SSOT (_RULE_ABLATION_VARIANTS), 非独立新构念, 无需单独追加新颖文献。"
 columns:
 - exc_you_2018_score_degadv_ctx
 - exc_you_2018_score_degadv_full

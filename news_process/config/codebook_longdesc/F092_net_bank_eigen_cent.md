@@ -195,7 +195,28 @@ citations:
   vol: 2
   issue: 1
   pages_or_artno: "113-120"
-new_dois: []
+- doi: "10.1016/j.jcorpfin.2023.102501"
+  type: journal
+  authors: "Fan, Y., Jiang, Y., Jin, P., & Mai, Y."
+  year: 2023
+  title: "CEO network centrality and bank risk: Evidence from US Bank holding companies"
+  venue: "Journal of Corporate Finance"
+- doi: "10.1111/abac.12341"
+  title: "Social Media Networks and Stock Price Synchronicity: Evidence from a Chinese Stock Forum"
+  authors: "Guo, F., Lyu, B., Lyu, X., & Zheng, J."
+  year: 2025
+  venue: "Abacus"
+  type: "journal"
+- doi: "10.1007/s11424-025-4338-6"
+  title: "The Benefit of Being Central: Stock Network Centrality and Stock Price Crashes"
+  authors: "Huang, C., Deng, Y., Yang, X., Cai, Y., & Zhao, X."
+  year: 2025
+  venue: "Journal of Systems Science and Complexity"
+  type: "journal"
+new_dois:
+  - "10.1016/j.jcorpfin.2023.102501"
+  - "10.1111/abac.12341"
+  - "10.1007/s11424-025-4338-6"
 ---
 
 ## CORE
@@ -207,7 +228,7 @@ bank_eigen_cent 是"银行年度新闻共现网络"上的特征向量中心度 (
 邻接矩阵在 build_adjacency_matrix (criterion='article') 内构造: 对每个 docid 分组, 取该组幸存 target_bank 集合, 组内每一无序对 {A,B} 恰好 adj[A,B] += 1 且 adj[B,A] += 1 (每篇每对严格一次), 从根上杜绝旧实现里"twin 行 1 倍或 2 倍混计"以及 co_mentioned_banks 携带 verification 已拒绝银行而产生的 phantom 边 (口径统一记于 omni-g-net-spill-01)。矩阵建好后先转成加权无向图 G (边权取共现次数), 并把年内所有幸存银行都加入图中以保留孤立节点; 另建一张倒数权重图 G_inv (边权取 1/共现次数) 供路径型指标使用, 但特征向量中心度只用原始图 G。加权图 G 建成后, 特征向量中心度按连通分量分别计算 (P1-1 修复, network-metrics-audit 2026-06-13): 先以 connected_components 拆分连通分量, 对每个不少于 _CMNT_MIN_COMPONENT_SIZE (等于 3) 个节点的分量取其子图, 调用 nx.eigenvector_centrality (weight='weight', max_iter=2000, tol=1e-06) 在分量内做幂迭代求主特征向量, 并由 networkx 在该子图范围内做 L2 归一; 幂迭代的 tol 与 max_iter 决定收敛判据 (2000 步内相邻迭代差小于 1e-06 即收敛), 分量最小 3 节点的门槛对应"最小三角"— 少于 3 节点的分量 (孤立点或单边对) 特征向量平凡、无区分度, 一律置 NaN。若某分量在 2000 步内幂迭代仍不收敛 (抛 PowerIterationFailedConvergence), 则该分量退回 degree_centrality 兜底并升为 CRITICAL 日志 (仅极端退化分量触发, 语义已偏离特征向量, 故显式告警而非静默)。任何未落入合格分量的银行, 在把节点级结果左连接回面板后缺失, 即得到 NaN, 不再写 0 或数值残渣。P1-1 之所以关键, 在于旧实现是在整图 G 上跑幂迭代: 断连图下 networkx 并不抛不收敛异常而是收敛到谱半径最大的分量, 把特征向量质量几乎全部压到该分量, 其余分量 (含最大连通分量, 若其谱半径并非最大) 的银行只得到约 1e-42 量级的数值残渣 — 这不是 NaN, 会被回归当成"中心度极低的真银行", 造成系统性偏误; 且内部 eigen_done 标志会锁死, 使针对最大连通分量的 numpy 兜底永不触发。主控实证曾观察到非主导分量节点得到 3e-42 至 5e-42 的残渣。全量 T=18 的共现网几乎必然断连, 旧口径会造成大面积污染, 同型缺陷在 network_brokerage 的分量法 (_eigenvector_centrality_by_component) 里已先行修复, 此处移植同款逻辑。分量内计算的直接代价是一条必须披露的口径: 特征向量中心度的水平仅在分量内可比 (networkx 在子图范围内做 L2 归一), 跨分量比较只在"是否身处大分量"这一意义上成立, 池化任何跨分量的水平统计都会混标尺。补充两处工程细节以便复核: 其一, docid 主路径是 both-verified 的规范口径, 仅当帧缺 docid 列时才降级到旧的 co_mentioned_banks 逐行解析路径并给出告警, 生产数据带 docid 因此走主路径; 其二, 特征向量用的是原始加权图 G (边权即共现次数, 语义为"关系越强、连接越紧"), 而非路径型指标所用的倒数权重图 G_inv (边权 1/共现次数, 把"共现越多"翻译成"距离越短"), 也不局限于最大连通分量 G_lcc (那是当前流居间、离心率、平均路径长度等 LCC-only 指标的定义域)— 三种图的分工必须分清, 特征向量只吃 G。计算收尾时函数会记录逐列的非缺失覆盖率与均值, 并对特征向量列专门给出覆盖判读 (覆盖率低于 0.5 时提示"多数置 NaN, 断连图微小分量所致"), 同时诊断零方差列 (进回归会被年份或银行固定效应吸收); 这些诊断只写日志、绝不进入产物或控制流。
 
 【文献定位】
-特征向量类中心度在金融网络研究中被反复用作"结构重要性与信息枢纽"的代理。Yu、Hu 与 Zhong (2024) 记录网络中心度经由信息扩散进入资产定价, 与本列"媒体共现声望"的信息传导直觉同源; Xu 与 Zhao (2024) 检验金融网络中节点中心度对资产价格预测的贡献, 提供了另一条平行证据; Jackson 与 Pernoud (2021) 综述金融网络中结构位置与系统性风险之间的联系, 说明中心节点在冲击传导中承担放大作用; Sadeghi 与 Feinstein (2024) 进一步为金融网络中的传染性中心度提供统计验证框架, 提醒研究者中心度估计本身带有抽样不确定性、不宜当作无误差的确定量。Nezami、Chisam 与 Palmatier (2025) 对中心度与企业绩效关系做了元分析, 为"中心度可作解释变量或控制变量"提供了跨领域的汇聚证据; 须注意该元分析背书的是中心度到绩效这条链, 并不背书本项目某些特定的聚类型测度 (如 bank_clustering), 引用时不可越界扩大其结论边界。在测度选择的规范性上, Boldi 与 Vigna (2014) 提出的中心度公理为在众多候选测度中挑选特征向量族给出了理论依据 (特征向量满足其对"重要邻居传递重要性"的公理化要求); Opsahl、Agneessens 与 Skvoretz (2010) 把度与最短路中心度推广到加权网络, 恰好对应本图 weight='weight' 的加权口径, 说明在带边权的图上直接沿用二值中心度会丢弃共现强度信息。这些文献共同支撑一个立场: 在加权、可能断连的金融共现网上, 特征向量中心度是刻画"银行是否处于信息声望高地"的合适而非唯一的测度, 它与度、居间、子图等测度构成互补而非替代的谱系, 应并排报告而非择一。
+特征向量类中心度在金融网络研究中被反复用作"结构重要性与信息枢纽"的代理。Yu、Hu 与 Zhong (2024) 记录网络中心度经由信息扩散进入资产定价, 与本列"媒体共现声望"的信息传导直觉同源; Xu 与 Zhao (2024) 检验金融网络中节点中心度对资产价格预测的贡献, 提供了另一条平行证据; Jackson 与 Pernoud (2021) 综述金融网络中结构位置与系统性风险之间的联系, 说明中心节点在冲击传导中承担放大作用; Sadeghi 与 Feinstein (2024) 进一步为金融网络中的传染性中心度提供统计验证框架, 提醒研究者中心度估计本身带有抽样不确定性、不宜当作无误差的确定量。Nezami、Chisam 与 Palmatier (2025) 对中心度与企业绩效关系做了元分析, 为"中心度可作解释变量或控制变量"提供了跨领域的汇聚证据; 须注意该元分析背书的是中心度到绩效这条链, 并不背书本项目某些特定的聚类型测度 (如 bank_clustering), 引用时不可越界扩大其结论边界。在测度选择的规范性上, Boldi 与 Vigna (2014) 提出的中心度公理为在众多候选测度中挑选特征向量族给出了理论依据 (特征向量满足其对"重要邻居传递重要性"的公理化要求); Opsahl、Agneessens 与 Skvoretz (2010) 把度与最短路中心度推广到加权网络, 恰好对应本图 weight='weight' 的加权口径, 说明在带边权的图上直接沿用二值中心度会丢弃共现强度信息。这些文献共同支撑一个立场: 在加权、可能断连的金融共现网上, 特征向量中心度是刻画"银行是否处于信息声望高地"的合适而非唯一的测度, 它与度、居间、子图等测度构成互补而非替代的谱系, 应并排报告而非择一。Fan, Jiang, Jin 与 Mai (2023, Journal of Corporate Finance) 以美国银行控股公司为样本, 用网络中心度刻画高管在关系网络中的地位并检验其与银行风险的关系, 为本列银行在信息/关系网络中所处结构位置这一构念在银行业情境下提供了新近的实证参照。Guo, Lyu, Lyu 与 Zheng (2025, Abacus) 利用中国股吧构建投资者社交媒体共现网络, 发现网络中心度与股价同步性显著负相关, 为共现网络中心度作为信息声望代理提供了新近实证支持。Huang, Deng, Yang, Cai 与 Zhao (2025, Journal of Systems Science and Complexity) 基于中国上市公司动态股票网络, 发现网络中心度更高的公司未来股价崩盘风险更低, 佐证网络中心度作为结构重要性代理与风险传导之间的联系。
 
 【识别策略定位】
 三判据 (article、win1、sent) 是规格稳健性梯子, 不是工具变量, 也不进同一 Hansen J。本家族三列 bank_eigen_cent、bank_eigen_cent_win1、bank_eigen_cent_sent 各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同判据的同构念列混进同一 over-identified 的 Hansen J 过度识别检验 (镜像三轨文本、co-primary 双轨嵌入、政治词权重梯子、词典消融梯度的同款铁律)。须特别强调: 判据后缀 (article/win1/sent, 刻画银行与银行的邻近共现) 与三轨文本后缀 (_full/_ctx/_ss, 刻画银行与金科的同现) 是两个正交的概念空间, 禁止互相复用, 更禁止混进同一 Hansen J; 前者变的是"两家银行要多近才算一条边", 后者变的是"用哪段文本判定一篇是否银行金科报道", 二者调的是完全不同的旋钮。此处还须与另一处口径联动: 网络节点全集由 full-only 留篇门控 (2026-06-29) 诱导 — 一篇报道是否算"银行金科报道"只看 llm_verified_full, 边只由 full 轨留篇集诱导, 与 _ctx/_ss 文本轨无关 — 因此中心度对门控口径本身敏感, 换门控即换节点全集, 这一识别相关的设定必须与 full-only 口径一致披露, 不得误认为三轨各自建网。当把网络中心度当作回归右手变量时, 银行间的新闻共现天然带有 Manski (1993) 反射问题意义上的同伴内生性: 中心行的舆情既受邻居影响, 又反向塑造邻居, 简单把邻居均值放进回归无法区分内生、外生与关联效应。更进一层的内生性在于共现连边本身: 一家更受关注、更"上头条"的银行会吸引更多同篇提及, 网络结构因而与被解释变量联合决定, 边不是外生给定而是从媒体报道观测推断得来, 带观测噪声; 中心度作为邻接矩阵主特征向量的分量, 是边的高度非线性函数, 会继承并放大这层噪声。Bramoullé、Djebbari 与 Fortin (2009) 给出了通过社会网络结构 (朋友的朋友、即网络的高阶邻接) 识别同伴效应的条件, 是把中心度类变量接入因果设计的经典识别路径; Boucher、Rendall、Ushchev 与 Zenou (2024) 推进了同伴效应的一般理论, 放宽了线性均值互动的限制; Grieser、Hadlock、LeSage 与 Zekhnini (2022) 在公司财务政策中实证了网络溢出的存在, 示范了空间自回归式的网络计量应用; 而 de Paula、Rasul 与 Souza (2024) 专门讨论如何从面板数据里识别网络连边本身, 恰好点出本列的隐忧 — 当网络不是外生登记的确定连边、而须从观测数据推断时, 连边的测量误差会与同伴效应的识别问题叠加, 使"先估网络再算中心度再进回归"这一链条的每一环都携带不确定性。这些共同构成把 bank_eigen_cent 接入因果设计时的方法学坐标。本列本身是网络结构的描述性构造, 任何因果识别都须另配空间或网络计量工具 (如网络工具变量、高阶邻接排除限制、从面板推断连边的先验约束), 单凭把中心度放进回归右手不构成识别, 这一点在本项目内也由"本列不进论文回归 RHS"的约定强制体现。
@@ -258,4 +279,7 @@ Manski, C. F. (1993). Identification of endogenous social effects: The reflectio
 Bonacich, P. (1987). Power and centrality: A family of measures. American Journal of Sociology, 92(5), 1170-1182. https://doi.org/10.1086/228631
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
 Bonacich, P. (1972). Factoring and weighting approaches to status scores and clique identification. The Journal of Mathematical Sociology, 2(1), 113-120. https://doi.org/10.1080/0022250X.1972.9989806
+Fan, Y., Jiang, Y., Jin, P., & Mai, Y. (2023). CEO network centrality and bank risk: Evidence from US Bank holding companies. Journal of Corporate Finance. https://doi.org/10.1016/j.jcorpfin.2023.102501
+Guo, F., Lyu, B., Lyu, X., & Zheng, J. (2025). Social Media Networks and Stock Price Synchronicity: Evidence from a Chinese Stock Forum. Abacus. https://doi.org/10.1111/abac.12341
+Huang, C., Deng, Y., Yang, X., Cai, Y., & Zhao, X. (2025). The Benefit of Being Central: Stock Network Centrality and Stock Price Crashes. Journal of Systems Science and Complexity. https://doi.org/10.1007/s11424-025-4338-6
 <!-- rendered-citations:end -->

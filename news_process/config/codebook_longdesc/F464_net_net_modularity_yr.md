@@ -119,7 +119,28 @@ citations:
   vol: 393
   issue: 6684
   pages_or_artno: 440-442
-new_dois: []
+- doi: "10.1016/j.procs.2023.08.056"
+  type: journal
+  authors: "Yang, X., Liu, Z., Li, J., & Xie, Q."
+  year: 2023
+  title: "Communities of co-occurrence network of financial firms in news"
+  venue: "Procedia Computer Science"
+- doi: "10.1038/s41598-024-55190-7"
+  title: "Community detection with Greedy Modularity disassembly strategy"
+  authors: "Rustamaji, H. C., Kusuma, W. A., Nurdiati, S., & Batubara, I."
+  year: 2024
+  venue: "Scientific Reports"
+  type: "journal"
+- doi: "10.3390/e26050378"
+  title: "Systemic Importance and Risk Characteristics of Banks Based on a Multi-Layer Financial Network Analysis"
+  authors: "Gao, Q., Fan, H., & Yu, C."
+  year: 2024
+  venue: "Entropy"
+  type: "journal"
+new_dois:
+  - "10.1016/j.procs.2023.08.056"
+  - "10.1038/s41598-024-55190-7"
+  - "10.3390/e26050378"
 ---
 
 ## CORE
@@ -139,9 +160,9 @@ new_dois: []
 值得补充的是, 本家族只落地 net_modularity_yr 这一无向加权口径, 未派生加权孪生 net_modularity_hn_yr (团投影去重/半正规化变体)。须精确澄清 _net_level_extra_metrics 这一纯函数的实际产出边界: 该函数在同一张只读年度图 G / 巨连通分量 G_lcc / 分量集上一次性返回 6 个网络级标量——模块度本身, 加上度相关性 (assortativity)、传递性 (transitivity)、直径 (diameter)、巨片占比 (giant_share)、连通分量数 (n_components) 这 5 个兄弟指标, 因此与 net_modularity_yr 严格"同批、同图、同函数"算出的兄弟列只有这 5 个。而同属网络级家族的另外 4 个指标——密度、平均聚类、平均路径、度基尼——并不在 _net_level_extra_metrics 内计算, 由本函数之外的其它计算路径产出, 不可将其误并入"与模块度同批算出"的清单。上述 5 个兄弟指标与模块度共享同一只读图对象、不重建图 (加性铁律), 因此不扰动既有 BLAS 敏感列的哈希。这一"只读复用、抽纯函数"的实现方式既保证了新增列 golden-safe, 又便于对各拓扑分支 (空图、单边、单分量、多分量) 直接单测。
 
 【文献定位】
-模块度源自复杂网络的社区检测文献, Newman & Girvan (2004) 是其奠基性定义, 把"社区结构强弱"操作化为一个可优化的标量, 随后 Clauset-Newman-Moore 的贪心算法使其在大规模网络上可高效计算——本实现正是采用该贪心变体。在金融网络这一应用侧, 近年文献把社区检测与模块度直接用于刻画金融机构的板块化: Jiang 等 (2025) 将社区检测与模块度用于银行间借贷网络的风险传染建模, 是与本列构念最贴近的近期金融应用; Li 等 (2026) 从文本风险披露中还原金融网络结构与连通度, 与本项目"从新闻文本构造银行网络"的路径同源。更广的网络结构—绩效关系上, Nezami 等 (2025) 以元分析综合了网络中心度与企业绩效的关系 (但该文献不背书任何具体的银行聚类列, 仅作构念对话对象), Yu 等 (2024) 讨论网络中心度、信息扩散与资产定价。金融网络的系统性风险视角由 Jackson & Pernoud (2021) 的综述统摄, Gao 等 (2022) 则从所有权网络的信息角色切入银行放贷, 为"银行网络结构承载信息外溢"提供了机制叙事。
+模块度源自复杂网络的社区检测文献, Newman & Girvan (2004) 是其奠基性定义, 把"社区结构强弱"操作化为一个可优化的标量, 随后 Clauset-Newman-Moore 的贪心算法使其在大规模网络上可高效计算——本实现正是采用该贪心变体。在金融网络这一应用侧, 近年文献把社区检测与模块度直接用于刻画金融机构的板块化: Jiang 等 (2025) 将社区检测与模块度用于银行间借贷网络的风险传染建模, 是与本列构念最贴近的近期金融应用; Li 等 (2026) 从文本风险披露中还原金融网络结构与连通度, 与本项目"从新闻文本构造银行网络"的路径同源。Rustamaji 等 (2024, Scientific Reports) 提出贪心模块度拆解策略以改进标准贪心模块度社区检测算法的划分质量, 与本家族采用的 CNM 贪心模块度算法方法学直接相关。Gao 等 (2024, Entropy) 基于多层金融网络分析银行系统重要性与风险特征, 为银行网络结构指标 (含模块度类社区划分测度) 在金融风险场景的应用提供近期实证参照。更广的网络结构—绩效关系上, Nezami 等 (2025) 以元分析综合了网络中心度与企业绩效的关系 (但该文献不背书任何具体的银行聚类列, 仅作构念对话对象), Yu 等 (2024) 讨论网络中心度、信息扩散与资产定价。金融网络的系统性风险视角由 Jackson & Pernoud (2021) 的综述统摄, Gao 等 (2022) 则从所有权网络的信息角色切入银行放贷, 为"银行网络结构承载信息外溢"提供了机制叙事。
 
-需要澄清本测度与既有金融网络文献在"网络来源"上的差异: 上述金融文献多以真实的借贷敞口、担保关系、所有权链条或价格连通度构造网络 (如 Jiang 等 2025 的银行间借贷网、Gao 等 2022 的所有权网), 而本项目的银行网络是"媒体共现网"——边的语义是"被同一篇/同一句报道一同提及", 承载的是媒体注意力与叙事关联, 而非资金或产权的实体连接。这一区别决定了 net_modularity_yr 的板块结构应被解读为"舆论上被打包看待的银行群组", 与借贷网络的风险传染社区不必重合, 但两者可能因共同的行业冲击或监管事件而相关。Li 等 (2026) 从文本风险披露还原金融网络的做法, 恰恰印证了"从文本构造金融网络并计算其结构指标"这一方法路径的合法性与前沿性, 是本家族方法学上最直接的同类对话。就"网络作为溢出通道"的经济学含义, Grieser 等 (2022) 与 Boucher 等 (2024)、Bramoullé 等 (2020, 2009) 一脉的同伴效应文献提供了把网络拓扑接入结果方程的规范框架, 也提醒使用者网络结构量往往内生于未观测冲击、其系数须审慎解读。
+需要澄清本测度与既有金融网络文献在"网络来源"上的差异: 上述金融文献多以真实的借贷敞口、担保关系、所有权链条或价格连通度构造网络 (如 Jiang 等 2025 的银行间借贷网、Gao 等 2022 的所有权网), 而本项目的银行网络是"媒体共现网"——边的语义是"被同一篇/同一句报道一同提及", 承载的是媒体注意力与叙事关联, 而非资金或产权的实体连接。这一区别决定了 net_modularity_yr 的板块结构应被解读为"舆论上被打包看待的银行群组", 与借贷网络的风险传染社区不必重合, 但两者可能因共同的行业冲击或监管事件而相关。Li 等 (2026) 从文本风险披露还原金融网络的做法, 恰恰印证了"从文本构造金融网络并计算其结构指标"这一方法路径的合法性与前沿性, 是本家族方法学上最直接的同类对话。Yang 等 (2023, Procedia Computer Science) 同样以新闻文本构造中国金融机构的共现网络, 并用社区检测与模块度识别机构簇, 与本家族从新闻共现构造银行网络并计算模块度的方法路径高度同源, 是最直接的近期同类应用。就"网络作为溢出通道"的经济学含义, Grieser 等 (2022) 与 Boucher 等 (2024)、Bramoullé 等 (2020, 2009) 一脉的同伴效应文献提供了把网络拓扑接入结果方程的规范框架, 也提醒使用者网络结构量往往内生于未观测冲击、其系数须审慎解读。
 
 【识别策略定位】
 本家族在计量识别中的定位需格外谨慎, 这也是它被标注"年 FE 下不可识别 (year-FE absorbed)"的原因: net_modularity_yr 是网络级年度标量, 在同一年内对所有银行取同一数值, 因此一旦回归纳入年份固定效应, 该列会被完全吸收、系数不可识别。它只能在两类设定中进入右手边: 其一是不含年 FE 的设定 (例如以时间趋势或宏观控制替代年 FE); 其二是与银行级异质性变量的交乘项 (net_modularity_yr × 银行特征), 交乘后跨银行有变异, 得以在年 FE 下存活。因此本列的主要用途是"网络环境状态量"——刻画某一年整个银行舆论网络的板块化强度, 作为溢出效应 (peer effect) 的调节或情境变量, 而非直接的处理变量。社会网络中的同伴效应识别本身就受反射问题 (reflection problem) 与内生网络的困扰, Manski 传统由 Bramoullé 等 (2009) 与其综述 Bramoullé 等 (2020)、以及 Boucher 等 (2024) 的一般理论所推进; Grieser 等 (2022) 在公司财务政策的网络效应中给出了实证范式。使用本列作情境调节时, 须承接这套识别谱系的告诫: 网络拓扑与被解释结果可能同源于未观测的行业冲击, 模块度的系数应作关联性而非因果性解读。更具体地, 反射问题指的是"个体行为与其参照群体的平均行为互为因果"这一联立性: 若把年度模块度理解为对同伴效应强度的间接刻画, 则当年被媒体切分成板块的强弱本身可能既是同伴传导的结果、又是其成因, 单靠横截面相关无法把二者拆开。Bramoullé 等 (2009) 证明了在网络结构非完全 (即存在"朋友的朋友不是朋友"的三元开放结构) 时, 内生、外生与相关效应可借助网络的高阶邻接矩阵获得识别, 这为把网络结构量接入结果方程提供了理论出口; 但该识别依赖网络外生 (edge 的形成与误差项无关) 这一强假设, 而媒体共现网的边恰恰由不可控的新闻生产过程决定, 外生性难以先验成立。因此本项目对 net_modularity_yr 的定位保守: 它进入右手边时首选作与银行特征的交乘调节项 (让识别来自跨银行的异质响应而非网络级水平本身), 或作时代情境的描述性状态量, 而不主张对其系数作结构式因果解释。Boucher 等 (2024) 的一般理论进一步表明, 同伴效应的函数形式 (线性均值 vs 更一般的分布依赖) 会显著改变可识别的参数集, 提示使用者在把模块度这类聚合网络量纳入模型时须对设定的函数形式保持透明。
@@ -191,4 +212,7 @@ Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effect
 Newman, M. E. J. (2005). A measure of betweenness centrality based on random walks. Social Networks, 27(1), 39-54. https://doi.org/10.1016/j.socnet.2004.11.009
 Newman, M. E. J., & Girvan, M. (2004). Finding and evaluating community structure in networks. Physical Review E, 69(2), 11339. https://doi.org/10.1103/PhysRevE.69.026113
 Watts, D. J., & Strogatz, S. H. (1998). Collective dynamics of 'small-world' networks. Nature, 393(6684), 440-442. https://doi.org/10.1038/30918
+Yang, X., Liu, Z., Li, J., & Xie, Q. (2023). Communities of co-occurrence network of financial firms in news. Procedia Computer Science. https://doi.org/10.1016/j.procs.2023.08.056
+Rustamaji, H. C., Kusuma, W. A., Nurdiati, S., & Batubara, I. (2024). Community detection with Greedy Modularity disassembly strategy. Scientific Reports. https://doi.org/10.1038/s41598-024-55190-7
+Gao, Q., Fan, H., & Yu, C. (2024). Systemic Importance and Risk Characteristics of Banks Based on a Multi-Layer Financial Network Analysis. Entropy. https://doi.org/10.3390/e26050378
 <!-- rendered-citations:end -->

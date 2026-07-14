@@ -12,47 +12,47 @@ upstream:
   - 22_tone_words.parquet (Stage 22 lexical_complexity 文章级篇内冗余)
   - 40_panel_yearly.parquet (Stage 40 bank-year 聚合)
 citations:
-  - doi: 10.1057/s41599-025-06094-y
-    type: journal
-    authors: Lesmy, D., Muchnik, L., & Mugerman, Y.
-    year: 2025
-    title: "Lost in the fog: Growing complexity in financial reporting — A comparative study"
-    venue: Humanities and Social Sciences Communications
-    vol: 12
-    pages_or_artno: "1-15"
-  - doi: 10.48550/arXiv.2411.04257
-    type: arxiv
-    authors: Khan, A., Underwood, R., Siebenschuh, C., Babuji, Y., Ajith, A., Hippe, K., Gokdemir, O., Brace, A., Chard, K., & Foster, I.
-    year: 2024
-    title: "LSHBloom: Memory-efficient, extreme-scale document deduplication"
-    venue: arXiv
-  - doi: 10.1093/qje/qjx045
-    type: journal
-    authors: Hansen, S., McMahon, M., & Prat, A.
-    year: 2018
-    title: "Transparency and deliberation within the FOMC: A computational linguistics approach"
-    venue: The Quarterly Journal of Economics
-    vol: 133
-    issue: 2
-    pages_or_artno: 801-870
-  - doi: 10.1007/s11142-008-9083-2
-    type: journal
-    authors: You, H., & Zhang, X.-J.
-    year: 2009
-    title: "Financial reporting complexity and investor underreaction to 10-K information"
-    venue: Review of Accounting Studies
-    vol: 14
-    issue: 4
-    pages_or_artno: 559-586
-  - doi: 10.1002/j.1538-7305.1948.tb01338.x
-    type: journal
-    authors: Shannon, C. E.
-    year: 1948
-    title: "A mathematical theory of communication"
-    venue: Bell System Technical Journal
-    vol: 27
-    issue: 3
-    pages_or_artno: 379-423
+- doi: 10.1057/s41599-025-06094-y
+  type: journal
+  authors: Lesmy, D., Muchnik, L., & Mugerman, Y.
+  year: 2025
+  title: "Lost in the fog: Growing complexity in financial reporting — A comparative study"
+  venue: Humanities and Social Sciences Communications
+  vol: 12
+  pages_or_artno: "1-15"
+- doi: 10.48550/arXiv.2411.04257
+  type: arxiv
+  authors: Khan, A., Underwood, R., Siebenschuh, C., Babuji, Y., Ajith, A., Hippe, K., Gokdemir, O., Brace, A., Chard, K., & Foster, I.
+  year: 2024
+  title: "LSHBloom: Memory-efficient, extreme-scale document deduplication"
+  venue: arXiv
+- doi: 10.1093/qje/qjx045
+  type: journal
+  authors: Hansen, S., McMahon, M., & Prat, A.
+  year: 2018
+  title: "Transparency and deliberation within the FOMC: A computational linguistics approach"
+  venue: The Quarterly Journal of Economics
+  vol: 133
+  issue: 2
+  pages_or_artno: 801-870
+- doi: 10.1007/s11142-008-9083-2
+  type: journal
+  authors: You, H., & Zhang, X.-J.
+  year: 2009
+  title: "Financial reporting complexity and investor underreaction to 10-K information"
+  venue: Review of Accounting Studies
+  vol: 14
+  issue: 4
+  pages_or_artno: 559-586
+- doi: 10.1002/j.1538-7305.1948.tb01338.x
+  type: journal
+  authors: Shannon, C. E.
+  year: 1948
+  title: "A mathematical theory of communication"
+  venue: Bell System Technical Journal
+  vol: 27
+  issue: 3
+  pages_or_artno: 379-423
 new_dois: []
 ---
 

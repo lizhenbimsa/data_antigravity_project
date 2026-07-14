@@ -11,40 +11,40 @@ upstream:
   - 21_tone_llms.parquet (deepseekv4_sentiment_confidence_full / _ctx / _ss)
   - 14_materialize_ctx.parquet (content_full / content_ctx / content_ss)
 citations:
-  - doi: 10.48550/arXiv.2408.15204
-    type: arxiv
-    authors: Gligorić, K., Zrnic, T., Lee, C., Candès, E. J., & Jurafsky, D.
-    year: 2024
-    title: "Can unconfident LLM annotations be used for confident conclusions?"
-    venue: arXiv
-  - doi: 10.18653/v1/2024.naacl-long.366
-    type: journal
-    authors: Geng, J., Cai, F., Wang, Y., Koeppl, H., Nakov, P., & Gurevych, I.
-    year: 2024
-    title: "A survey of confidence estimation and calibration in large language models"
-    venue: Proceedings of the 2024 Conference of the North American Chapter of the Association for Computational Linguistics (NAACL-HLT)
-    pages_or_artno: 6577-6595
-  - doi: 10.1145/1102351.1102430
-    type: journal
-    authors: Niculescu-Mizil, A., & Caruana, R.
-    year: 2005
-    title: "Predicting good probabilities with supervised learning"
-    venue: Proceedings of the 22nd International Conference on Machine Learning (ICML)
-    pages_or_artno: 625-632
-  - doi: 10.24963/ijcai.2020/622
-    type: journal
-    authors: Liu, Z., Huang, D., Huang, K., Li, Z., & Zhao, J.
-    year: 2020
-    title: "FinBERT: A pre-trained financial language representation model for financial text mining"
-    venue: Proceedings of the Twenty-Ninth International Joint Conference on Artificial Intelligence (IJCAI-20)
-    pages_or_artno: 4513-4519
-  - doi: 10.1257/jel.20181020
-    type: journal
-    authors: Gentzkow, M., Kelly, B., & Taddy, M.
-    year: 2019
-    title: "Text as data"
-    venue: Journal of Economic Literature
-    pages_or_artno: 535-574
+- doi: 10.48550/arXiv.2408.15204
+  type: arxiv
+  authors: Gligorić, K., Zrnic, T., Lee, C., Candès, E. J., & Jurafsky, D.
+  year: 2024
+  title: "Can unconfident LLM annotations be used for confident conclusions?"
+  venue: arXiv
+- doi: 10.18653/v1/2024.naacl-long.366
+  type: journal
+  authors: Geng, J., Cai, F., Wang, Y., Koeppl, H., Nakov, P., & Gurevych, I.
+  year: 2024
+  title: "A survey of confidence estimation and calibration in large language models"
+  venue: Proceedings of the 2024 Conference of the North American Chapter of the Association for Computational Linguistics (NAACL-HLT)
+  pages_or_artno: 6577-6595
+- doi: 10.1145/1102351.1102430
+  type: journal
+  authors: Niculescu-Mizil, A., & Caruana, R.
+  year: 2005
+  title: "Predicting good probabilities with supervised learning"
+  venue: Proceedings of the 22nd International Conference on Machine Learning (ICML)
+  pages_or_artno: 625-632
+- doi: 10.24963/ijcai.2020/622
+  type: journal
+  authors: Liu, Z., Huang, D., Huang, K., Li, Z., & Zhao, J.
+  year: 2020
+  title: "FinBERT: A pre-trained financial language representation model for financial text mining"
+  venue: Proceedings of the Twenty-Ninth International Joint Conference on Artificial Intelligence (IJCAI-20)
+  pages_or_artno: 4513-4519
+- doi: 10.1257/jel.20181020
+  type: journal
+  authors: Gentzkow, M., Kelly, B., & Taddy, M.
+  year: 2019
+  title: "Text as data"
+  venue: Journal of Economic Literature
+  pages_or_artno: 535-574
 new_dois: []
 ---
 

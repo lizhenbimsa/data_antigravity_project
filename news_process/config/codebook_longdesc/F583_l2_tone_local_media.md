@@ -12,60 +12,67 @@ upstream:
 - 14_materialize_ctx.parquet (content_full/content_ctx/content_ss)
 - config/bank_list.yaml (target_bank 实体匹配)
 citations:
-  - doi: 10.1111/1911-3846.13049
-    type: journal
-    authors: Kang, B. U., & Nam, J. S.
-    year: 2025
-    title: "Do local newspapers matter to institutional investors?"
-    venue: Contemporary Accounting Research
-    vol: 42
-    issue: 3
-    pages_or_artno: 1713-1743
-  - doi: 10.1016/j.jfineco.2021.08.015
-    type: journal
-    authors: Heese, J., Pérez-Cavazos, G., & Peter, C. D.
-    year: 2022
-    title: "When the local newspaper leaves town: The effects of local newspaper closures on corporate misconduct"
-    venue: Journal of Financial Economics
-    vol: 145
-    issue: 2
-    pages_or_artno: 445-463
-  - doi: 10.1093/rfs/hhx055
-    type: journal
-    authors: You, J., Zhang, B., & Zhang, L.
-    year: 2018
-    title: "Who captures the power of the pen?"
-    venue: Review of Financial Studies
-    vol: 31
-    issue: 1
-    pages_or_artno: 43-96
-  - doi: 10.1111/j.1540-6261.2012.01725.x
-    type: journal
-    authors: Gurun, U. G., & Butler, A. W.
-    year: 2012
-    title: "Don't believe the hype: Local media slant, local advertising, and firm value"
-    venue: Journal of Finance
-    vol: 67
-    issue: 2
-    pages_or_artno: 561-598
-  - doi: 10.1111/j.1540-6261.2007.01232.x
-    type: journal
-    authors: Tetlock, P. C.
-    year: 2007
-    title: "Giving content to investor sentiment: The role of media in the stock market"
-    venue: Journal of Finance
-    vol: 62
-    issue: 3
-    pages_or_artno: 1139-1168
-  - doi: 10.1016/j.iref.2024.01.067
-    type: journal
-    authors: Fang, Y., Wang, Q., Wang, Y., & Yuan, Y.
-    year: 2024
-    title: "Media sentiment, deposit stability and bank systemic risk: Evidence from China"
-    venue: International Review of Economics & Finance
-    vol: 91
-    pages_or_artno: 1150-1172
-new_dois: []
+- doi: 10.1111/1911-3846.13049
+  type: journal
+  authors: Kang, B. U., & Nam, J. S.
+  year: 2025
+  title: "Do local newspapers matter to institutional investors?"
+  venue: Contemporary Accounting Research
+  vol: 42
+  issue: 3
+  pages_or_artno: 1713-1743
+- doi: 10.1016/j.jfineco.2021.08.015
+  type: journal
+  authors: Heese, J., Pérez-Cavazos, G., & Peter, C. D.
+  year: 2022
+  title: "When the local newspaper leaves town: The effects of local newspaper closures on corporate misconduct"
+  venue: Journal of Financial Economics
+  vol: 145
+  issue: 2
+  pages_or_artno: 445-463
+- doi: 10.1093/rfs/hhx055
+  type: journal
+  authors: You, J., Zhang, B., & Zhang, L.
+  year: 2018
+  title: "Who captures the power of the pen?"
+  venue: Review of Financial Studies
+  vol: 31
+  issue: 1
+  pages_or_artno: 43-96
+- doi: 10.1111/j.1540-6261.2012.01725.x
+  type: journal
+  authors: Gurun, U. G., & Butler, A. W.
+  year: 2012
+  title: "Don't believe the hype: Local media slant, local advertising, and firm value"
+  venue: Journal of Finance
+  vol: 67
+  issue: 2
+  pages_or_artno: 561-598
+- doi: 10.1111/j.1540-6261.2007.01232.x
+  type: journal
+  authors: Tetlock, P. C.
+  year: 2007
+  title: "Giving content to investor sentiment: The role of media in the stock market"
+  venue: Journal of Finance
+  vol: 62
+  issue: 3
+  pages_or_artno: 1139-1168
+- doi: 10.1016/j.iref.2024.01.067
+  type: journal
+  authors: Fang, Y., Wang, Q., Wang, Y., & Yuan, Y.
+  year: 2024
+  title: "Media sentiment, deposit stability and bank systemic risk: Evidence from China"
+  venue: International Review of Economics & Finance
+  vol: 91
+  pages_or_artno: 1150-1172
+- doi: "10.1111/1911-3846.13046"
+  title: "Local newspaper closures and bank loan contracts"
+  authors: "Ma, Z., Stice, D., Stice, H., & Zhang, Y."
+  year: 2025
+  venue: "Contemporary Accounting Research"
+  type: "journal"
+new_dois:
+  - "10.1111/1911-3846.13046"
 ---
 
 ## CORE
@@ -83,7 +90,7 @@ new_dois: []
 语气得分本身的构念含义也需要澄清: PROJECT_REAUDIT_TOPTIER_T18 (2026-06-14) 复核发现验证篇的分布高度偏向正面 (正 798 / 中 33 / 负 2, 负面占比仅约 0.24%), 名义上的双极量表 [-1,1] 在实证分布上更接近单极的"正向强度/乐观度"(favorability/optimism) 而非真正的双极情感, 这一点在 `llm_vote_tone_full` 等主轨列的 dta 标签中已显式披露 ("neg degenerate")。`tone_local_media{track}` 由同一 `llm_vote_score` 聚合而来, 继承相同的分布特征——研究者在解读地方媒体语气高低时, 应理解其经验含义更接近"地方媒体对该银行金科业务的正面/乐观报道密度", 而非严格意义上的正负对称情感强度。
 
 【文献定位】
-本家族的构念传承自媒体经济学两条互补脉络。第一条脉络关注"地方性"作为媒体报道行为的独立解释变量: Gurun & Butler (2012, *Journal of Finance*) 发现本地媒体的报道倾向 (slant) 与本地广告收入存在系统性关联, 影响本地企业的融资成本与估值, 说明地方媒体并非中央媒体的缩小版复制, 而具有自身独立的经济激励结构; Heese, Pérez-Cavazos & Peter (2022, *Journal of Financial Economics*) 利用美国地方报纸停刊这一准自然实验, 证明地方新闻业的存在本身对企业不当行为具有威慑效应, 佐证了地方媒体监督职能与中央媒体不可替代。第二条脉络聚焦中国情境下媒体的科层结构与政治经济学: You, Zhang & Zhang (2018, *Review of Financial Studies*) 系统刻画了媒体所有制/层级对报道语气与治理效应的调节作用, 是本维度"中央/地方"二分类构造的直接理论来源; Fang, Wang, Wang & Yuan (2024, *International Review of Economics & Finance*) 将媒体情感度量应用于中国银行体系, 检验其对存款稳定性与系统性风险的影响, 与本项目"银行×媒体语气"面板设定高度同域, 提供了方法论上的对照基准。语气测量本身的技术谱系上溯至 Tetlock (2007, *Journal of Finance*) 关于媒体内容如何赋予投资者情绪以可度量含义的开创性框架——本项目以三家 LLM 多数投票取代其词典打分法, 但"从文本抽取语气信号并聚合到实体-期间面板"的基本方法论骨架一脉相承。
+本家族的构念传承自媒体经济学两条互补脉络。第一条脉络关注"地方性"作为媒体报道行为的独立解释变量: Gurun & Butler (2012, *Journal of Finance*) 发现本地媒体的报道倾向 (slant) 与本地广告收入存在系统性关联, 影响本地企业的融资成本与估值, 说明地方媒体并非中央媒体的缩小版复制, 而具有自身独立的经济激励结构; Heese, Pérez-Cavazos & Peter (2022, *Journal of Financial Economics*) 利用美国地方报纸停刊这一准自然实验, 证明地方新闻业的存在本身对企业不当行为具有威慑效应, 佐证了地方媒体监督职能与中央媒体不可替代。第二条脉络聚焦中国情境下媒体的科层结构与政治经济学: You, Zhang & Zhang (2018, *Review of Financial Studies*) 系统刻画了媒体所有制/层级对报道语气与治理效应的调节作用, 是本维度"中央/地方"二分类构造的直接理论来源; Fang, Wang, Wang & Yuan (2024, *International Review of Economics & Finance*) 将媒体情感度量应用于中国银行体系, 检验其对存款稳定性与系统性风险的影响, 与本项目"银行×媒体语气"面板设定高度同域, 提供了方法论上的对照基准。语气测量本身的技术谱系上溯至 Tetlock (2007, *Journal of Finance*) 关于媒体内容如何赋予投资者情绪以可度量含义的开创性框架——本项目以三家 LLM 多数投票取代其词典打分法, 但"从文本抽取语气信号并聚合到实体-期间面板"的基本方法论骨架一脉相承。Ma, Stice, Stice & Zhang (2025, Contemporary Accounting Research) 考察地方报纸停刊后借款企业贷款利差显著上升,且在银团中关联贷款人较少、贷款人本地经验不足时效应更强,佐证地方媒体监督功能对银行信贷定价的因果作用。
 
 ## VAR: tone_local_media_ctx
 
@@ -121,4 +128,5 @@ You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. Revi
 Gurun, U. G., & Butler, A. W. (2012). Don't believe the hype: Local media slant, local advertising, and firm value. Journal of Finance, 67(2), 561-598. https://doi.org/10.1111/j.1540-6261.2012.01725.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
+Ma, Z., Stice, D., Stice, H., & Zhang, Y. (2025). Local newspaper closures and bank loan contracts. Contemporary Accounting Research. https://doi.org/10.1111/1911-3846.13046
 <!-- rendered-citations:end -->

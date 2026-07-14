@@ -11,42 +11,42 @@ upstream:
   - 14_materialize_ctx.parquet (content_full, content_ctx, content_ss)
   - 文章级可读性列 avg_sentence_len{track} (由 sentiment 模块 pipeline/sentiment/tone_words.py::_compute_readability 计算、经 analyze 主路径写回; encode.py 仅做 bank-year mean 聚合)
 citations:
-  - doi: 10.1002/widm.70019
-    type: journal
-    authors: Alva Principe, R., Chiarini, N., & Viviani, M.
-    year: 2025
-    title: "Long document classification in the transformer era: A survey on challenges, advances, and open issues"
-    venue: WIREs Data Mining and Knowledge Discovery
-    vol: 15
-    issue: 2
-    pages_or_artno: e70019
-  - doi: 10.1093/rfs/hhad044
-    type: journal
-    authors: Hassan, T. A., Hollander, S., van Lent, L., Schwedeler, M., & Tahoun, A.
-    year: 2023
-    title: "Firm-level exposure to epidemic diseases: COVID-19, SARS, and H1N1"
-    venue: The Review of Financial Studies
-    vol: 36
-    issue: 12
-    pages_or_artno: 4919-4964
-  - doi: 10.1093/qje/qjz021
-    type: journal
-    authors: Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A.
-    year: 2019
-    title: "Firm-level political risk: Measurement and effects"
-    venue: The Quarterly Journal of Economics
-    vol: 134
-    issue: 4
-    pages_or_artno: 2135-2202
-  - doi: 10.1016/j.jocs.2010.12.007
-    type: journal
-    authors: Bollen, J., Mao, H., & Zeng, X.
-    year: 2011
-    title: "Twitter mood predicts the stock market"
-    venue: Journal of Computational Science
-    vol: 2
-    issue: 1
-    pages_or_artno: 1-8
+- doi: 10.1002/widm.70019
+  type: journal
+  authors: Alva Principe, R., Chiarini, N., & Viviani, M.
+  year: 2025
+  title: "Long document classification in the transformer era: A survey on challenges, advances, and open issues"
+  venue: WIREs Data Mining and Knowledge Discovery
+  vol: 15
+  issue: 2
+  pages_or_artno: e70019
+- doi: 10.1093/rfs/hhad044
+  type: journal
+  authors: Hassan, T. A., Hollander, S., van Lent, L., Schwedeler, M., & Tahoun, A.
+  year: 2023
+  title: "Firm-level exposure to epidemic diseases: COVID-19, SARS, and H1N1"
+  venue: The Review of Financial Studies
+  vol: 36
+  issue: 12
+  pages_or_artno: 4919-4964
+- doi: 10.1093/qje/qjz021
+  type: journal
+  authors: Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A.
+  year: 2019
+  title: "Firm-level political risk: Measurement and effects"
+  venue: The Quarterly Journal of Economics
+  vol: 134
+  issue: 4
+  pages_or_artno: 2135-2202
+- doi: 10.1016/j.jocs.2010.12.007
+  type: journal
+  authors: Bollen, J., Mao, H., & Zeng, X.
+  year: 2011
+  title: "Twitter mood predicts the stock market"
+  venue: Journal of Computational Science
+  vol: 2
+  issue: 1
+  pages_or_artno: 1-8
 new_dois: []
 ---
 

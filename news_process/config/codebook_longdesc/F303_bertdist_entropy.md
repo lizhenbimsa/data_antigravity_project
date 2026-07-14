@@ -155,8 +155,32 @@ citations:
   vol: 62
   issue: 3
   pages_or_artno: 1139-1168
+- doi: "10.3390/e27121234"
+  type: journal
+  authors: "Peng, C.-Y."
+  year: 2025
+  title: "Information-Processing Entropy and Heterogeneous Sentiment Reaction Windows: Evidence from S&P 500 Stocks"
+  venue: "Entropy"
+  one_sentence_zh: "该文用归一化香农熵刻画金融文本情感信息处理的不确定性并与市场对不同情感强度的异质反应窗口关联,与本家族用归一化熵测量BERT逐篇语调判断犹豫度的构造思路直接同源。"
+- doi: "10.3390/info14070420"
+  type: journal
+  authors: "Holm, A. N., Wright, D., & Augenstein, I."
+  year: 2023
+  title: "Revisiting Softmax for Uncertainty Approximation in Text Classification"
+  venue: "Information"
+  one_sentence_zh: "该文系统评估以softmax输出(含归一化熵)近似文本分类不确定性的可靠性与局限,为本家族用归一化香农熵刻画BERT分类器逐篇判断犹豫度的做法提供方法论层面的校准依据与局限提示。"
+- doi: "10.3389/frai.2025.1609097"
+  type: journal
+  authors: "Herrera-Poyatos, D., Peláez-González, C., Zuheros, C., Herrera-Poyatos, A., Tejedor, V., Herrera, F., & Montes, R."
+  year: 2025
+  title: "An overview of model uncertainty and variability in LLM-based sentiment analysis: challenges, mitigation strategies, and the role of explainability"
+  venue: "Frontiers in Artificial Intelligence"
+  one_sentence_zh: "该综述系统梳理LLM情感分析中基于熵的不确定性估计方法及其与语义一致性、模型置信度校准的关系,呼应本家族用归一化熵量化情感分类器逐篇判断模糊度的构念。"
 new_dois:
 - 10.1111/j.1540-6261.2008.01314.x
+- "10.3390/e27121234"
+- "10.3390/info14070420"
+- "10.3389/frai.2025.1609097"
 ---
 
 ## CORE
@@ -170,7 +194,7 @@ new_dois:
 为什么选熵而不是其他不确定性刻画, 也是一个需要交代的口径选择。候选方案至少有三种: 最大类概率的补 (一减去最大概率)、前两大类概率之差 (margin)、以及香农熵。前两者只用到概率分布的一到两个点, 对第三类概率的信息完全不敏感; 香农熵利用整个分布, 对「概率质量摊得有多平」给出全序刻画, 且不引入任何自由阈值参数, 与本仓库「测度先行、阈值进梯子」的总体设计一致 (对比之下, 极端负面占比族就是带阈值的测度, 所以那一族配了三阈值梯子, 而本族无需)。归一化除以 ln(K_b) 而不是统一除以 ln 三, 是把「各模型在自身类空间内的相对犹豫度」对齐到共同值域的最小干预方案; 它刻意不试图跨模型对齐分布形状, 因为那需要对概率做显式校准, 而校准参数本身样本依赖, 会破坏逐篇局部可复现性 (同样的取舍逻辑也出现在跨模型分歧族: 逐篇局部确定的标签异质性是 canonical, 样本依赖的 z 标准化离散是稳健轨)。白话地讲, 这一族列回答的问题是: 这家银行这一年的金融科技相关报道, 在人工智能情绪识别器读来, 语气是黑白分明还是模棱两可。它不关心说的是好话坏话, 只关心话说得干脆不干脆; 话说得越含糊, 投资者与储户从媒体获得的信息质量越低, 按模糊厌恶定价理论, 这本身就会影响融资成本与存款行为的敏感度。还有一点值得指出: 熵用的是概率而非离散标签, 这使它比「标签是否为中性」的哑变量口径信息更细, 一篇被判为正面但概率仅略高于其余两类的文章, 在标签口径下与斩钉截铁的正面报道不可区分, 在熵口径下则清晰分层; 这也是分布形状五族整体的立足点, 即已付费算出的概率分布里还有大量未被均值消费的形状信息。
 
 【文献定位】
-本家族在方法论谱系上处于金融文本情感测度「三角互证」框架的 BERT 一角的二阶矩延伸。词典法源头是 Loughran 与 McDonald (2011) 对通用情感词表在财务语境下系统性误判的批判与领域专用词表的建立, 其后 Loughran 与 McDonald (2016) 与 Kearney 与 Liu (2014) 的两篇综述确立了「测度方法本身是研究设计选择」的自觉; Tetlock (2007) 是媒体语调进入资产定价实证的原点。机器学习一侧, Frankel, Jennings 与 Lee (2022) 系统比较机器学习与词典法对披露情感的捕捉能力, 证明监督学习在样本外解释力上占优但可解释性受损, 这正是本项目坚持词典、LLM、BERT 三法并行互证而非单法独断的文献依据; Todd, Bowden 与 Moshfeghi (2024) 的最新综述把「从词袋到上下文嵌入」的迁移明确为该领域的主线。BERT 谱系内, Huang, Wang 与 Yang (2023) 的 FinBERT 证明金融语料预训练模型在情感与前瞻性信息抽取上全面超越词典与传统机器学习; 本家族用到的 finbert2 对应 Xu 等 (2025) 提出的中文金融专用双向编码器, 其在中文金融文本分类与检索基准上系统超越通用大模型, 是「小型专用编码器在部署场景仍有位置」论点的代表作。中文语境的特殊性由 Du, Huang, Wermers 与 Wu (2022) 确立: 中文金融情感词汇与通用中文、英文金融词汇均有系统差异, 语言与领域双重特异性要求测度工具本地化, 这同样适用于 BERT 模型的选择 (本家族三模型均为中文金融专用或中文金融微调)。Lan 等 (2025) 与 Sun, Yuan 与 Xu (2025) 代表中文金融情感的当前前沿: 前者做实体级细粒度情感, 后者把词典知识与中性特征注入预训练模型, 两者共同说明「中性/含混类的处理」是中文金融情感的活跃难点, 而本家族的熵恰是对中性与含混维度的直接量化。银行媒体情感的中国证据由 Fang, Wang, Wang 与 Yuan (2024) 提供: 媒体情感经存款稳定性渠道影响银行系统性风险, 为本项目银行×年媒体测度进入银行风险回归的设定提供了同域先例。
+本家族在方法论谱系上处于金融文本情感测度「三角互证」框架的 BERT 一角的二阶矩延伸。词典法源头是 Loughran 与 McDonald (2011) 对通用情感词表在财务语境下系统性误判的批判与领域专用词表的建立, 其后 Loughran 与 McDonald (2016) 与 Kearney 与 Liu (2014) 的两篇综述确立了「测度方法本身是研究设计选择」的自觉; Tetlock (2007) 是媒体语调进入资产定价实证的原点。机器学习一侧, Frankel, Jennings 与 Lee (2022) 系统比较机器学习与词典法对披露情感的捕捉能力, 证明监督学习在样本外解释力上占优但可解释性受损, 这正是本项目坚持词典、LLM、BERT 三法并行互证而非单法独断的文献依据; Todd, Bowden 与 Moshfeghi (2024) 的最新综述把「从词袋到上下文嵌入」的迁移明确为该领域的主线。BERT 谱系内, Huang, Wang 与 Yang (2023) 的 FinBERT 证明金融语料预训练模型在情感与前瞻性信息抽取上全面超越词典与传统机器学习; 本家族用到的 finbert2 对应 Xu 等 (2025) 提出的中文金融专用双向编码器, 其在中文金融文本分类与检索基准上系统超越通用大模型, 是「小型专用编码器在部署场景仍有位置」论点的代表作。中文语境的特殊性由 Du, Huang, Wermers 与 Wu (2022) 确立: 中文金融情感词汇与通用中文、英文金融词汇均有系统差异, 语言与领域双重特异性要求测度工具本地化, 这同样适用于 BERT 模型的选择 (本家族三模型均为中文金融专用或中文金融微调)。Lan 等 (2025) 与 Sun, Yuan 与 Xu (2025) 代表中文金融情感的当前前沿: 前者做实体级细粒度情感, 后者把词典知识与中性特征注入预训练模型, 两者共同说明「中性/含混类的处理」是中文金融情感的活跃难点, 而本家族的熵恰是对中性与含混维度的直接量化。银行媒体情感的中国证据由 Fang, Wang, Wang 与 Yuan (2024) 提供: 媒体情感经存款稳定性渠道影响银行系统性风险, 为本项目银行×年媒体测度进入银行风险回归的设定提供了同域先例。另有 Peng (2025, Entropy) 用归一化香农熵刻画金融文本情感信息处理的不确定性, 并将其与市场对不同情感强度的异质反应窗口相关联, 与本家族用归一化熵测量 BERT 逐篇语调判断犹豫度的构造思路直接同源, 为熵测度在金融情感语境下的适用性提供了独立于本仓库方法论的外部印证。Holm, Wright 与 Augenstein (2023, Information) 系统评估以 softmax 输出 (含归一化熵) 近似文本分类不确定性的可靠性与局限, 为本家族用归一化香农熵刻画 BERT 分类器逐篇判断犹豫度的做法提供方法论层面的校准依据与局限提示。Herrera-Poyatos 等 (2025, Frontiers in Artificial Intelligence) 系统梳理 LLM 情感分析中基于熵的不确定性估计方法及其与语义一致性、模型置信度校准的关系, 呼应本家族用归一化熵量化情感分类器逐篇判断模糊度的构念。
 
 【识别策略定位】
 本家族在识别设计中的角色是辅助性二阶矩测度与稳健性维度, 不是任何一篇论文的 treatment 主变量。主线论文的处理变量是语调水平类测度 (如 LLM 三家投票共识语调), 熵族的用途有三: 其一, 作为调节变量或机制变量进入异质性分析, 检验「语调效应是否在语气清晰的报道年份更强」这类信息质量交互假说, 对应 Epstein 与 Schneider (2008) 的非对称反应机制; 其二, 作为控制变量吸收语调测量误差的系统分量, 因为模型犹豫度高的格其语调均值的测量噪声机械地更大; 其三, 作为测度体系完备性的展示列进入描述性统计与附表。计量口径上须严守本仓库梯子铁律: 本家族横跨两条正交梯子, 即 per-model 三模型 (finbert_cn / fin_sent_zh / finbert2) 与三轨 (full / ctx / ss), 两条梯子上的每一个变体各自 just-identified 并排、互为稳健性、不分主次, 严禁把任意两个变体混进同一个 over-identified 的 Hansen J 检验; 该铁律与三轨、co-primary 双轨嵌入、政治词权重梯度、词典消融梯度诸族完全同款。跨模型比较另有一条水平比较禁令: finbert2 是二分类模型, 其熵在逐篇层面恒等于净语调绝对值的严格单调递减变换 (详见其 VAR 节), 与三分类模型「模糊度」构念不可比, 因此任何跨模型的比较只能比各自回归的标准化系数, 严禁直接比较熵的水平或占比的水平。行宇宙口径与全仓一致: 留篇门控为 full-only (二零二六年六月二十九日口径), 即一篇文章是否进入面板聚合宇宙只由 full 轨的 LLM 验证决定, ctx 与 ss 轨是 conditional-on-full 的测度轨, 其行宇宙是 full 留篇集的子集; 熵族三轨列的分母是各自轨内概率非缺的文章数, 不借用其他轨的分母。多重检验口径上, 本家族不进入跨模型 FWER 模板: 该模板 (逐步降压多重检验) 只覆盖对同一构念的可替换 headline 测量, 而熵族属于「规格稳健性并排」而非「同构念替代测量」, 与网络判据敏感性、词典消融梯度同款处理, 即在附表并排报告各变体的点估计与常规推断, 不做族内联合检验; 该分类沿用网络判据敏感性与词典消融梯度的既有先例口径。另须说明聚合形态的刻意从简: 熵族的聚合声明器只登记简单平均一种聚合, 不设市值加权、媒体权威加权、羊群加权臂 (per-model 语调族有这三臂), 熵作为辅助二阶矩测度, 其加权变体的信息增量不足以抵偿列空间膨胀。
@@ -243,4 +267,7 @@ Carlin, B. I., Longstaff, F. A., & Matoba, K. (2014). Disagreement and asset pri
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Epstein, L. G., & Schneider, M. (2008). Ambiguity, information quality, and asset pricing. The Journal of Finance, 63(1), 197-228. https://doi.org/10.1111/j.1540-6261.2008.01314.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Peng, C.-Y. (2025). Information-Processing Entropy and Heterogeneous Sentiment Reaction Windows: Evidence from S&P 500 Stocks. Entropy. https://doi.org/10.3390/e27121234
+Holm, A. N., Wright, D., & Augenstein, I. (2023). Revisiting Softmax for Uncertainty Approximation in Text Classification. Information. https://doi.org/10.3390/info14070420
+Herrera-Poyatos, D., Peláez-González, C., Zuheros, C., Herrera-Poyatos, A., Tejedor, V., Herrera, F., & Montes, R. (2025). An overview of model uncertainty and variability in LLM-based sentiment analysis: challenges, mitigation strategies, and the role of explainability. Frontiers in Artificial Intelligence. https://doi.org/10.3389/frai.2025.1609097
 <!-- rendered-citations:end -->

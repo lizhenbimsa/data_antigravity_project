@@ -183,7 +183,30 @@ citations:
   vol: 1
   issue: 3
   pages_or_artno: 215-239
-new_dois: []
+- doi: "10.1016/j.procs.2023.08.056"
+  title: "Communities of co-occurrence network of financial firms in news"
+  authors: "Yang, X., Liu, Z., Li, J., & Xie, Q."
+  year: 2023
+  venue: "Procedia Computer Science"
+  type: "journal"
+- doi: "10.3390/risks13110210"
+  title: "A Bibliometric Analysis on Network-Based Systemic Risk"
+  authors: "Rojas Rincón, J. S., Acosta-Prado, J. C., & Castellanos Narciso, J. E."
+  year: 2025
+  venue: "Risks"
+  type: "journal"
+  one_sentence_zh: "对2020–2025年网络化系统性风险文献做文献计量分析,印证拓扑结构分析在解释机构间关联与风险扩散中的持续活跃度。"
+- doi: "10.1371/journal.pone.0284861"
+  title: "Systemic risk prevention policies targeting systemically important banks: Does clustering pattern matter?"
+  authors: "Zhu, B., Hu, X., Deng, Y., & Lin, R."
+  year: 2023
+  venue: "PLOS ONE"
+  type: "journal"
+  one_sentence_zh: "用网络优化模型证明系统重要性银行的聚类模式与系统性风险传染密切相关,聚类程度更高的网络系统性风险显著更高。"
+new_dois:
+  - "10.1016/j.procs.2023.08.056"
+  - "10.3390/risks13110210"
+  - "10.1371/journal.pone.0284861"
 ---
 
 ## CORE
@@ -201,7 +224,7 @@ bank_clustering 是「银行共现网络结构指标」家族 F084 的 canonical
 计算采用的是加权版聚类系数: 对节点 v, 遍历所有以 v 为顶点、且三条边俱存在的三角形, 每个三角形按其三条边权先除以全网最大边权、再取三者的几何均值 (立方根乘积) 计一份「三角形强度」, 累加后除以 v 的度数所允许的三角形对数 k(k-1)/2 (k 为 v 的度), 得到落在 [0, 1] 的加权聚类值。这一「三角形强度」式加权推广, 与 Watts 与 Strogatz (1998) 的无权原始定义在无权图上退化一致, 又能吸收「共现越频繁、闭合越强」的加权信息; 它与 Barrat 等 (2004) 在刻画复杂加权网络架构时提出的、以节点强度归一的另一支加权聚类系数, 属同一问题的不同解, 二者取舍是加权网络测量文献长期讨论的建模选择, 本项目采用 networkx 内置的强度几何均值口径, 亦呼应 Opsahl 等 (2010) 对加权网络指标须显式声明权重语义、不可与无权口径混用的方法学告诫 (同一模块的 bank_strength_cent 即直接实现该文的加权度)。重要确定性注记: bank_clustering 与同族路径型指标 bank_cfbetween_cent、bank_harmonic_cent 一样, 受底层 BLAS 浮点求和次序影响, 跨次重建非逐位可复现 (memory: panel-3-network-cols-nondeterministic); 三判据各自都带一份, 故全套 9 列 (3 基名 × 无后缀 / _win1 / _sent) 在 golden 零漂移校验时须按全名 drop 排除, 稳健性叙事以「符号与秩序稳健」而非「逐位复现」为准绳。
 
 【文献定位】
-把新闻文本共现重建为金融网络、再以网络结构位置解释银行行为与绩效, 正是近年金融网络实证的活跃前沿。Li 等 (2026) 直接从文本风险披露中抽取金融网络结构与连通性, 与本项目「由报道共现建图」的思路同源, 是最贴近本族数据生成机制的方法学参照。Jackson 与 Pernoud (2021) 的系统性风险综述为「网络拓扑塑造金融体系脆弱性」提供了总纲, Duarte 与 Eisenbach (2021) 则以火线抛售外溢给出网络结构放大冲击的具体机制, 二者共同说明银行网络的局部结构 (含内聚簇) 具有实质的风险含义。就中国银行业语境, Wang 等 (2020) 刻画了金融危机与刺激计划下中国担保网络的演化, Gao 等 (2022) 论证了所有权网络在银行信贷中的信息角色, Fang 等 (2024) 更把媒体情绪、存款稳定与银行系统性风险在中国样本上串起 —— 三者支撑「银行确实嵌在可观测的网络结构中, 且该结构对信贷 / 风险有实质含义」这一前提, 也直接对接本项目由中文银行新闻建网的语料基础。在方法与构念联结上, Yu 等 (2024) 证明网络中心度经由信息扩散进入资产定价, Grieser 等 (2022) 用网络结构解释公司财务政策, Nezami 等 (2025) 以元分析汇总网络中心度与企业绩效的整体关联。这些工作合起来把 bank_clustering 定位为: 一个从媒体共现图上读出的、刻画银行局部结构内聚性的结构变量, 可作解释变量进入银行-年回归。值得强调的是, 上述文献多聚焦中心度与整体连通, 对「局部内聚 / 三元闭合」这一节点级结构侧面着墨较少, 恰是本列力图补足的构念缝隙, 也是它与既有中心度测度并排、互为稳健性而不彼此替代的意义所在。
+把新闻文本共现重建为金融网络、再以网络结构位置解释银行行为与绩效, 正是近年金融网络实证的活跃前沿。Li 等 (2026) 直接从文本风险披露中抽取金融网络结构与连通性, 与本项目「由报道共现建图」的思路同源, 是最贴近本族数据生成机制的方法学参照。Jackson 与 Pernoud (2021) 的系统性风险综述为「网络拓扑塑造金融体系脆弱性」提供了总纲, Duarte 与 Eisenbach (2021) 则以火线抛售外溢给出网络结构放大冲击的具体机制, 二者共同说明银行网络的局部结构 (含内聚簇) 具有实质的风险含义。就中国银行业语境, Wang 等 (2020) 刻画了金融危机与刺激计划下中国担保网络的演化, Gao 等 (2022) 论证了所有权网络在银行信贷中的信息角色, Fang 等 (2024) 更把媒体情绪、存款稳定与银行系统性风险在中国样本上串起 —— 三者支撑「银行确实嵌在可观测的网络结构中, 且该结构对信贷 / 风险有实质含义」这一前提, 也直接对接本项目由中文银行新闻建网的语料基础。在方法与构念联结上, Yu 等 (2024) 证明网络中心度经由信息扩散进入资产定价, Grieser 等 (2022) 用网络结构解释公司财务政策, Nezami 等 (2025) 以元分析汇总网络中心度与企业绩效的整体关联。这些工作合起来把 bank_clustering 定位为: 一个从媒体共现图上读出的、刻画银行局部结构内聚性的结构变量, 可作解释变量进入银行-年回归。值得强调的是, 上述文献多聚焦中心度与整体连通, 对「局部内聚 / 三元闭合」这一节点级结构侧面着墨较少, 恰是本列力图补足的构念缝隙, 也是它与既有中心度测度并排、互为稳健性而不彼此替代的意义所在。Yang 等 (2023, Procedia Computer Science) 用新闻文本构建中国金融机构共现网络并做社区/聚类检测, 与本族由银行报道共现建图、以聚类系数刻画媒体邻域内聚性的构造思路直接同源。Rojas Rincón 等 (2025, Risks) 对2020–2025年网络化系统性风险文献做文献计量分析, 印证拓扑结构分析在解释机构间关联与风险扩散中的持续活跃度。Zhu 等 (2023, PLOS ONE) 用网络优化模型证明系统重要性银行的聚类模式与系统性风险传染密切相关, 聚类程度更高的网络系统性风险显著更高。
 
 【识别策略定位】
 在计量识别上, 局部聚类 / 三元闭合结构不仅是描述量, 更是识别同群效应 peer effects 的关键几何。Manski (1993) 的反射问题把同群相关拆为三重来源: 内生效应 (endogenous, 个体行为受同群行为影响)、外生 / 情境效应 (contextual, 个体行为受同群外生特征影响) 与关联效应 (correlated, 同群因共处同一环境而行为相似); 当个体所处群体完全重叠、且三重效应线性叠加时, 内生效应与情境效应在期望上退化为同一线性项而无法分离, 这正是反射问题的核心。Bramoullé 等 (2009) 证明, 只要网络存在 intransitive triads (A 与 B 相连、B 与 C 相连、但 A 与 C 不相连的非闭合三元组), 由邻接矩阵 G 及其幂 G² 张成的行向量便彼此线性无关, 「朋友的朋友但非自己朋友」的外生特征可充当同群结果的结构工具, 从而打破反射问题、识别内生同群效应; 而银行与年度固定效应负责吸收 Manski 意义上的关联效应 (银行不变禀赋与全局年度冲击)。聚类系数正是三元闭合程度的直接度量: 聚类越低 (开放三元组越多), G 与 G² 的行差异越大、可用于识别的结构变异越丰富, 网络拓扑越利于 Bramoullé 式识别; 聚类越高 (邻居近乎全互连、三元组趋于闭合), 结构越逼近完全重叠的群体, 可识别空间随之收窄。因此 bank_clustering 在本面板中兼具双重角色 —— 既是可解释银行结果的结构自变量, 也是判断网络拓扑是否支持同群效应识别的诊断量。在实证接入上, 它通常与银行与年度固定效应并用: 固定效应吸收银行不变的结构禀赋与全局年度冲击, 而聚类系数的年内变异刻画一家银行媒体邻域内聚性的移动; 它也常作为调节变量, 检验同群溢出在高内聚 (信息冗余、回声室) 与低内聚 (跨簇桥接、信息多元) 结构下的强弱异质。Bramoullé 等 (2020) 的同群效应综述与 Boucher 等 (2024) 的一般化同群效应理论进一步厘清了这类基于网络几何的识别在何种条件下成立: 前者系统梳理了 intransitive triads 作为识别来源的适用与失效边界, 后者放宽 linear-in-means 假设、允许异质与非线性的同群聚合, 指出网络的局部闭合结构决定了究竟哪一种同群统计量 (均值、极值抑或加权和) 可被识别。二者共同为把 bank_clustering 用于识别叙事划定了适用边界 —— 当群体重叠过高 (聚类过高) 或链接内生 (共现由不可观测的共同冲击驱动) 时, 识别会失效。须强调本列由媒体共现构造, 边的形成本身可能内生于报道选择, 故其识别用途是「诊断网络几何是否留有识别空间」而非「直接充当外生工具」; 换言之, 它标示的是识别的可行性边界, 真正的外生变异仍须另行寻找 (如判据分轨、冲击事件或来源结构工具)。
@@ -258,4 +281,7 @@ Robins, G., & Alexander, M. (2004). Small worlds among interlocking directors: N
 Watts, D. J., & Strogatz, S. H. (1998). Collective dynamics of 'small-world' networks. Nature, 393(6684), 440-442. https://doi.org/10.1038/30918
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. The Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
+Yang, X., Liu, Z., Li, J., & Xie, Q. (2023). Communities of co-occurrence network of financial firms in news. Procedia Computer Science. https://doi.org/10.1016/j.procs.2023.08.056
+Rojas Rincón, J. S., Acosta-Prado, J. C., & Castellanos Narciso, J. E. (2025). A Bibliometric Analysis on Network-Based Systemic Risk. Risks. https://doi.org/10.3390/risks13110210
+Zhu, B., Hu, X., Deng, Y., & Lin, R. (2023). Systemic risk prevention policies targeting systemically important banks: Does clustering pattern matter?. PLOS ONE. https://doi.org/10.1371/journal.pone.0284861
 <!-- rendered-citations:end -->

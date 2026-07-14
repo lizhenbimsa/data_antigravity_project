@@ -1,5 +1,6 @@
 ---
 family_id: F254
+novelty_exempt_rationale: "exc_ 前缀的停刊媒体剔除稳健性变体家族, 是 finbert_cn 主情感测度在剔除疑似退出覆盖媒体子样本上的技术性排除变体 (镜像全样本口径), 其测度定义 (FinBERT 情感概率、价值/跟风加权) 的学术依据已在母族 finbert_cn 及其锚定文献 (Huang et al. 2023; Tetlock 2007; Hassan et al. 2019) 中给出, 非独立新构念, 无需单独追新文献。"
 columns:
 - exc_finbert_cn_正面_ctx
 - exc_finbert_cn_正面_full

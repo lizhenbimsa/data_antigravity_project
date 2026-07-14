@@ -54,7 +54,21 @@ citations:
   vol: 68
   issue: 7
   pages_or_artno: 5514-5532
-new_dois: []
+- doi: "10.1111/1467-8551.12879"
+  type: journal
+  authors: "Sun, Z., Liu, L., Johan, S., & Zhao, L."
+  year: 2024
+  title: "FinTech Adoption and Corporate Greenwashing: A Technology Affordance Perspective"
+  venue: "British Journal of Management"
+- doi: "10.1016/j.bar.2024.101512"
+  type: journal
+  authors: "Barth, M. E., Cahan, S. F., Chen, L., Venter, E. R., & Wang, R."
+  year: 2025
+  title: "Textual dimensions of sustainability information, stock price informativeness, and proprietary costs: Evidence from integrated reports"
+  venue: "The British Accounting Review"
+new_dois:
+  - "10.1111/1467-8551.12879"
+  - "10.1016/j.bar.2024.101512"
 ---
 
 ## CORE
@@ -70,7 +84,7 @@ INT 轨: 词频维使用 `fintech_intensity_score` (stage 15 产出的连续型�
 聚合层面, `_classify_policy_quadrants` 先对 sim 列与 freq 列分别在年度内做分位阈值变换 (`transform(lambda x: x.quantile(pct/100))`), 随后用 `high_freq = freq >= yfreq`、`high_sim = sim >= ysim` 两个布尔掩码组合出 `token = high_freq & ~high_sim`。关键的缺失值处理修复 (2026-06-11, fix(omni-g-runner-03/g-runner-11)) 是仅对 sim 与 freq 双双非缺失 (`measured = sim.notna() & freq.notna()`) 的文章行给出 0/1 指示, 其余文章的指示值显式置 NaN 而非旧实现中把测量失败误判为"低对齐/低词频"进而静默计入 Token 象限分子的错误做法 — 这一修复避免了 stage 15 优雅早退产生的全 NaN `policy_cosine_sim` 年份把全部高词频文章误伪造成 Token 采纳的系统性偏误。逐篇指示随后按 `(target_bank, year)` groupby `mean` 聚合为占比: `mean` 对 NaN 天然跳过, 故分母是该银行—年度内"sim 与 freq 均被成功测量"的文章篇数, 而非该银行—年度全部留篇篇数; 若某银行—年度全部文章均未测量 (例如政策对齐相似度整年计算失败), 面板输出 NaN 而非被 0 填充的伪零, 这与本项目 F3 缺失值红线 (Allison 2001; Heckman 1979 处理效应文献对"未测量"与"测量为零"须严格区分的一贯要求) 保持一致, 后续在面板导出阶段亦刻意删除了早期版本对该列族的 `fillna(0.0)` 逻辑, 以防止把结构性缺失误注入双向固定效应回归系数。
 
 【文献定位】
-Token adoption 所刻画的"言语框架贴合度"与"叙事密度"两维分离, 呼应了文本情感/文本分析方法论文献中对文本测度多维度、不可简单加总为单一分数的一般性提醒: Kearney and Liu (2014, *International Review of Financial Analysis*) 系统综述了金融文本情感测度方法, 强调不同文本构念 (情感极性、话题相似度、词频强度) 各自捕捉文本的不同侧面, 不应在缺乏理论支撑时随意合并; Todd, Bowden 和 Moshfeghi (2024, *Intelligent Systems in Accounting, Finance and Management*) 进一步综合了金融文本情感分析的方法演进, 指出基于余弦相似度的语义对齐测度与基于词频/关键词密度的强度测度是两类互补而非替代的文本信号来源, 这与本家族刻意把 `policy_cosine_sim` (语义对齐) 与 `fintech_intensity_score` (词频强度) 作为两条正交轴构造象限分类的设计思路一致。金科话语与权威政策语言的对齐关系本身是金融科技研究的核心问题域: Gomber, Koch 和 Siering (2017, *Journal of Business Economics*) 界定了数字金融/金融科技的研究范畴, 指出银行披露话语与技术采纳实践之间可能存在的错位, 为区分"话语层面的采纳"与"实践层面的采纳"提供了构念基础。此外, Boot (2000, *Journal of Financial Intermediation*) 对关系型银行业的经典综述强调银行对外沟通/信息披露既服务于监管合规信号传递, 又服务于业务实质的信息生产, 这一"信号传递 vs 信息生产"二分为 Token/Hidden/Substantive 三分类象限提供了银行业情境下的理论对照: Token 象限 (高词频、低政策相似度) 更贴近"业务实质叙事活跃但信号传递框架未贴合"的组合, 而 Hidden 象限则更贴近"信号传递框架贴合但业务实质叙事强度不高"的组合。词频强度类信号相较传统词典法的方法学优势另有 Frankel, Jennings & Lee (2022, Management Science) 的顶刊证据支撑: 该文系统比较机器学习分类器与词典法在披露文本情感抽取上的表现, 证明经监督学习/微调的分类模型能更准确捕捉披露文本的语义强度信号, 为本家族以 TF-IDF×SIF 加权词频 (而非简单词典命中计数) 构造词频侧信号提供了顶刊层级的方法学正当性。
+Token adoption 所刻画的"言语框架贴合度"与"叙事密度"两维分离, 呼应了文本情感/文本分析方法论文献中对文本测度多维度、不可简单加总为单一分数的一般性提醒: Kearney and Liu (2014, *International Review of Financial Analysis*) 系统综述了金融文本情感测度方法, 强调不同文本构念 (情感极性、话题相似度、词频强度) 各自捕捉文本的不同侧面, 不应在缺乏理论支撑时随意合并; Todd, Bowden 和 Moshfeghi (2024, *Intelligent Systems in Accounting, Finance and Management*) 进一步综合了金融文本情感分析的方法演进, 指出基于余弦相似度的语义对齐测度与基于词频/关键词密度的强度测度是两类互补而非替代的文本信号来源, 这与本家族刻意把 `policy_cosine_sim` (语义对齐) 与 `fintech_intensity_score` (词频强度) 作为两条正交轴构造象限分类的设计思路一致。金科话语与权威政策语言的对齐关系本身是金融科技研究的核心问题域: Gomber, Koch 和 Siering (2017, *Journal of Business Economics*) 界定了数字金融/金融科技的研究范畴, 指出银行披露话语与技术采纳实践之间可能存在的错位, 为区分"话语层面的采纳"与"实践层面的采纳"提供了构念基础。此外, Boot (2000, *Journal of Financial Intermediation*) 对关系型银行业的经典综述强调银行对外沟通/信息披露既服务于监管合规信号传递, 又服务于业务实质的信息生产, 这一"信号传递 vs 信息生产"二分为 Token/Hidden/Substantive 三分类象限提供了银行业情境下的理论对照: Token 象限 (高词频、低政策相似度) 更贴近"业务实质叙事活跃但信号传递框架未贴合"的组合, 而 Hidden 象限则更贴近"信号传递框架贴合但业务实质叙事强度不高"的组合。词频强度类信号相较传统词典法的方法学优势另有 Frankel, Jennings & Lee (2022, Management Science) 的顶刊证据支撑: 该文系统比较机器学习分类器与词典法在披露文本情感抽取上的表现, 证明经监督学习/微调的分类模型能更准确捕捉披露文本的语义强度信号, 为本家族以 TF-IDF×SIF 加权词频 (而非简单词典命中计数) 构造词频侧信号提供了顶刊层级的方法学正当性。Sun, Liu, Johan 和 Zhao (2024, British Journal of Management) 从技术可供性视角考察金融科技采纳与企业漂绿(话语层面姿态与实质业务行为脱耦)之间的关系, 为 Token(高强度谈论但框架未与权威语言贴合) vs Substantive 采纳姿态的区分提供最新实证支撑。Barth, Cahan, Chen, Venter 和 Wang (2025, The British Accounting Review) 用机器化文本测度沿多个独立维度(文本属性/话题内容/资本类别)刻画披露质量, 印证词频强度类与话题对齐类文本信号应作为正交轴分别构造而非简单加总的方法学取向。
 
 【三轨/梯子铁律复述】
 本家族的 full/ctx/ss 三个成员列各自 just-identified 并排, 互为稳健性、不分主次, 禁止混入同一过度识别 Hansen J 设定; full 轨与 stage 21 情感留篇门控保持一致的 full-only 语义 (2026-06-29 起, 是否计入"一篇银行金科报道"的口径判定仅看 `llm_verified_full`), ctx/ss 是 conditional-on-full 的测度/稳健性轨, 其行宇宙是 full 留篇集合的子集, 但每轨分子分母仍严格按各自轨道的 sim/freq 列独立计算 (不借用 full 轨分母)。ss 轨的回退语义镜像 ctx 轨: 当某篇文章在 stage 14 未探测到目标银行与金科词的同句共现窗口时, `content_ss` 回退为全文 body 且 `ss_is_fallback=True`, 该回退文章仍参与 ss 轨 sim/freq 的计算 (只要对应列非 NaN), 但其语义已退化为等价于 full 轨的窗口范围, 是"同句证据缺失时退而求其次用全文兜底"而非该文章被排除出 ss 轨分母。`_allv` 全年份静态锚点与非 `_allv` 的年度 vintage 主轨锚点同样各自 just-identified 并排、互为稳健性, 不构成主次关系。
@@ -102,4 +116,6 @@ Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in f
 Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital finance and FinTech: Current research and future research directions. Journal of Business Economics, 87(5), 537-580. https://doi.org/10.1007/s11573-017-0852-x
 Boot, A. W. A. (2000). Relationship banking: What do we know?. Journal of Financial Intermediation, 9(1), 7-25. https://doi.org/10.1006/jfin.2000.0282
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure Sentiment: Machine Learning vs. Dictionary Methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
+Sun, Z., Liu, L., Johan, S., & Zhao, L. (2024). FinTech Adoption and Corporate Greenwashing: A Technology Affordance Perspective. British Journal of Management. https://doi.org/10.1111/1467-8551.12879
+Barth, M. E., Cahan, S. F., Chen, L., Venter, E. R., & Wang, R. (2025). Textual dimensions of sustainability information, stock price informativeness, and proprietary costs: Evidence from integrated reports. The British Accounting Review. https://doi.org/10.1016/j.bar.2024.101512
 <!-- rendered-citations:end -->

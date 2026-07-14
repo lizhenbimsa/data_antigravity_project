@@ -66,7 +66,28 @@ citations:
   title: "Sentence-BERT: Sentence embeddings using Siamese BERT-networks"
   venue: Proceedings of EMNLP-IJCNLP 2019
   pages_or_artno: 3980-3990
-new_dois: []
+- doi: "10.1016/j.jfineco.2025.104007"
+  type: journal
+  authors: "Breitung, C., & Müller, S."
+  year: 2025
+  title: "Global Business Networks"
+  venue: "Journal of Financial Economics"
+- doi: "10.1016/j.iref.2025.104785"
+  type: journal
+  authors: "Fu, R., Gao, F., & Ma, C."
+  year: 2025
+  title: "Do peer narrative disclosures support or disrupt efficient investment?"
+  venue: "International Review of Economics & Finance"
+- doi: "10.2139/ssrn.6725723"
+  type: "wp"
+  authors: "de Bodt, E., & Eckbo, B. E."
+  year: 2026
+  title: "An improved text-based industry peer-firm identification algorithm"
+  venue: "SSRN Working Paper"
+new_dois:
+- "10.1016/j.jfineco.2025.104007"
+- "10.1016/j.iref.2025.104785"
+- "10.2139/ssrn.6725723"
 ---
 
 ## CORE
@@ -78,7 +99,7 @@ new_dois: []
 计算分三步。第一步, 对每篇报道用嵌入引擎生成一条句向量 emb(doc); 全轨 (无 _lg 后缀) 使用 canonical 主测度 Qwen3-Embedding-8B (硅基流动, 4096 维), _lg 轨使用跨厂商对偶 text-embedding-3-large (3072 维)。第二步, 把某银行-年内所有报道的句向量取算术平均, 得到该银行的文档质心 c_i; 再构造该银行的 leave-one-out 行业质心 c_{-i}, 即把全行业同年样本的银行质心均值在排除银行 i 自身后重算——闭式为 c_{-i} = (n·c − c_i)/(n−1), 其中 c 为含全部 n 家银行的总质心。之所以排除自身而非直接用含自身的行业均值, 是因为后者会使 cos(c_i, c) 混入约 1/n_t 量级的机械自相关, 且对与行业越正交的银行抬升越多, 从而系统性压缩 centroid_diff 的右尾 (此为生产口径明确弃用的行为, 与模块内 N-最近邻路径对角置 NaN、流动性度量排除自身的既有惯例一致)。当某银行-年样本内有效银行数 n<2 时, leave-one-out 行业质心无定义, 该格返回 NaN 而非强行取值。第三步, 计算 c_i 与 c_{-i} 的余弦距离 centroid_diff = 1 − cos(c_i, c_{-i})。因余弦相似度真值域为 [−1, 1], 对应距离列真值域为 [0, 2]; 生产口径已修正历史上把嵌入轨统一 clip 到 [0, 1] 的值域删失问题——负余弦不再被地板到 0, 而是如实映射到 (1, 2] 区间。需要强调, 余弦几何本身并非无争议: Steck 等 (2024) 指出正则化训练下嵌入的余弦相似度未必对应语义相似度的直觉尺度, 因此本度量在解释上只做行内跨行的相对比较 (哪家更偏离中心), 不对距离绝对水平赋予语义, 也不跨嵌入空间比较距离水平。嵌入引擎为纯 API 调用, 维度由返回矩阵形状驱动、与维度无关; 句向量表征的可行性由 Sentence-BERT (Reimers & Gurevych, 2019) 奠基, 而分布式表征"距离即语义差异"的合法性可追溯到 Levy 等 (2015) 对分布相似度的系统检讨。
 
 【文献定位】
-在金融文本计量脉络中, 以语言嵌入构造机构级经济变量已成方法学前沿。Jha, Liu 与 Manela (2026) 在《Review of Financial Studies》提出语言嵌入方法度量金融是否惠及社会, 系统论证了把海量文本投影到稠密向量空间、再以向量几何刻画机构立场的可行性与识别价值, 是本家族"以质心距离刻画银行叙事定位"的最直接顶刊参照。嵌入底座方面, 主轨 Qwen3-Embedding-8B 的技术规格见 Zhang 等 (2025), 对偶轨 text-embedding-3-large 的对比预训练底座见 Neelakantan 等 (2022); 二者分属阿里与 OpenAI 两个独立厂商与维度, 构成 co-primary 双轨。方法学铁律: 全轨与 _lg 轨各自 just-identified 并排、互为稳健性、不分主次, 严禁把两条 co-primary 距离列混入同一 over-identified Hansen J; 同理三条文本轨 (full/ctx/ss) 亦各自 just-identified 并排、禁混同一 Hansen J。差异化构念的绩效含义与非线性则由 Haans (2019) 提供解释框架。
+在金融文本计量脉络中, 以语言嵌入构造机构级经济变量已成方法学前沿。Jha, Liu 与 Manela (2026) 在《Review of Financial Studies》提出语言嵌入方法度量金融是否惠及社会, 系统论证了把海量文本投影到稠密向量空间、再以向量几何刻画机构立场的可行性与识别价值, 是本家族"以质心距离刻画银行叙事定位"的最直接顶刊参照。嵌入底座方面, 主轨 Qwen3-Embedding-8B 的技术规格见 Zhang 等 (2025), 对偶轨 text-embedding-3-large 的对比预训练底座见 Neelakantan 等 (2022); 二者分属阿里与 OpenAI 两个独立厂商与维度, 构成 co-primary 双轨。方法学铁律: 全轨与 _lg 轨各自 just-identified 并排、互为稳健性、不分主次, 严禁把两条 co-primary 距离列混入同一 over-identified Hansen J; 同理三条文本轨 (full/ctx/ss) 亦各自 just-identified 并排、禁混同一 Hansen J。差异化构念的绩效含义与非线性则由 Haans (2019) 提供解释框架。同一方法学脉络还可见于 Breitung 与 Müller (2025, Journal of Financial Economics), 该文用文本嵌入向量的余弦相似度矩阵刻画企业间业务联系并构建全球商业网络, 与本家族用嵌入余弦距离刻画银行相对行业质心的语义偏离度同属以嵌入几何度量机构级经济关系的方法学脉络。用同业 MD&A 叙事文本相似度度量同业信息趋同度, 发现同业叙事相似度越低、行业专属信息越丰富、投资效率越高, 为本家族以质心距离刻画机构叙事偏离度的构念提供最新同业文本相似度实证参照, 见 Fu, Gao 与 Ma (2025, International Review of Economics & Finance)。提出概率加权余弦相似度评分, 将向量嵌入文本网络方法与传统同业特征识别相结合以构建行业同业组, 为本家族嵌入余弦几何刻画机构行业偏离度的方法学谱系补充最新同业识别文献, 见 de Bodt 与 Eckbo (2026, SSRN Working Paper)。
 
 ## VAR: centroid_diff_emb
 
@@ -118,4 +139,7 @@ Neelakantan, A., Xu, T., Puri, R., Radford, A., Han, J. M., Tworek, J., Yuan, Q.
 Haans, R. F. J. (2019). What's the value of being different when everyone is? The effects of distinctiveness on performance in homogeneous versus heterogeneous categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978
 Levy, O., Goldberg, Y., & Dagan, I. (2015). Improving distributional similarity with lessons learned from word embeddings. Transactions of the Association for Computational Linguistics, 3, 211-225. https://doi.org/10.1162/tacl_a_00134
 Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Siamese BERT-networks. Proceedings of EMNLP-IJCNLP 2019, 3980-3990. https://doi.org/10.18653/v1/D19-1410
+Breitung, C., & Müller, S. (2025). Global Business Networks. Journal of Financial Economics. https://doi.org/10.1016/j.jfineco.2025.104007
+Fu, R., Gao, F., & Ma, C. (2025). Do peer narrative disclosures support or disrupt efficient investment?. International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2025.104785
+de Bodt, E., & Eckbo, B. E. (2026). An improved text-based industry peer-firm identification algorithm. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.6725723
 <!-- rendered-citations:end -->

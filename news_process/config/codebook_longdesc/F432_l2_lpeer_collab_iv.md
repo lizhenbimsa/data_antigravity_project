@@ -1,5 +1,6 @@
 ---
 family_id: F432
+novelty_exempt_rationale: "该家族是 P5 collab_frac_cm 内生变量的同业留一法 (LOO) 工具变量衍生族 (与 bartik_/地域 zone-LOO 等同属 iv_extensions.py 三引擎之一), 仅在 ctx/ss 两条文本轨与滞后维度上做技术变体, 非独立学术构念, 其识别逻辑依据已在 Manski (1993) reflection problem 与 Leary & Roberts (2014) 留一法同业效应文献中给出, 底层测度 collab_frac_cm 本身的构念文献归属于母族 P5 collab 家族, 故本 IV 衍生族天然豁免新颖度追新。"
 columns:
 - lpeer_collab_iv_ctx
 - lpeer_collab_iv_ctx_lag1

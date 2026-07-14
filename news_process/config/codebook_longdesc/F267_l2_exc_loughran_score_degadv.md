@@ -1,5 +1,6 @@
 ---
 family_id: F267
+novelty_exempt_rationale: "exc_loughran_score_degadv 是'停刊代理媒体剔除'(exc_) 与'L&M词典语言学规则消融'(degadv) 两重衍生变体家族, 测度定义完全依据母族 loughran/L&M 词典原始文献与项目规则消融 SSOT (rule ablation powerset), 非独立新构念, 无需追加新颖文献。"
 columns:
 - exc_loughran_score_degadv_ctx
 - exc_loughran_score_degadv_full

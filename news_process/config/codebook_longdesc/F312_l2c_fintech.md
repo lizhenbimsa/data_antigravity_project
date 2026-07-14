@@ -132,9 +132,30 @@ citations:
   vol: 87
   issue: 5
   pages_or_artno: 537-580
+- doi: "10.1016/j.ememar.2024.101237"
+  title: "FinTech: The disruptive force reducing bank competition pressure"
+  authors: "Zhang, X., & Li, Z."
+  year: 2025
+  venue: "Emerging Markets Review"
+  type: "journal"
+- doi: "10.1080/23322039.2023.2267270"
+  title: "Does financial inclusion moderate the effect of digital transformation on banks' performance in China?"
+  authors: "Yang, F., & Masron, T. A."
+  year: 2023
+  venue: "Cogent Economics & Finance"
+  type: "journal"
+- doi: "10.1080/13602381.2024.2434010"
+  title: "Beyond binary: exploring the interplay of China's digital transformation and firm performance through dual mechanism analysis"
+  authors: "Chen, S., Alexiou, C., & Lee, S."
+  year: 2024
+  venue: "Asia Pacific Business Review"
+  type: "journal"
 new_dois:
 - 10.1093/rfs/hhaa079
 - 10.1093/qje/qjz021
+- "10.1016/j.ememar.2024.101237"
+- "10.1080/23322039.2023.2267270"
+- "10.1080/13602381.2024.2434010"
 ---
 
 ## CORE
@@ -146,7 +167,7 @@ new_dois:
 fintech_share 由 falsification 阶段的 controls 模块生产, 计算链条分三步。第一步构造对照组: 以过滤前全量银行新闻底库 (该文件与上游银行新闻分类输出逐行一比一, 命名虽带 fintech 字样但实为全量底库, 额外携带金融科技标注列以便把对照组细分为关键词未匹配与匹配但被大模型拒绝两类) 减去已进入面板的金融科技文章, 得到非金融科技银行新闻集合; 减法用 anti-join 实现, 复合键为目标银行、标题与日期三元组, 且两侧先各自按该键去重再取集合差, 这一互补划分直接对标 Hassan et al. (2019) 对政治风险与非政治风险语料的处理。第二步分别聚合: 非金融科技侧按银行乘年份数出去重稿件数, 金融科技侧同样以相同复合键去重后数出去重篇数并经数据框属性通道传递给合并函数。第三步在面板上构造份额: 分子为去重金融科技篇数, 分母为去重金融科技篇数与去重非金融科技篇数之和, 即同一把尺子数出的全部银行新闻; 分母为零 (该银行该年全年零新闻) 时份额在数学上是零比零, 记为缺失而非零, 并配套 zero_coverage 指示列标记这些无定义行, 避免把未定义份额与有新闻但全为非金融科技的真实零份额混为一谈。计数基统一是该测度的命门: 早期实现曾用面板物理篇数 (同一稿件被多家媒体转载计多篇) 作分子、去重稿件数作分母, 份额被系统性抬高; 现行口径经两轮修复后分子分母份额弹性对全部统一到去重基, 仅当去重聚合不可用时才回退到物理加去重的混合基并在注释中如实披露, 且运行时逐行校验去重金融科技计数不超过物理篇数。fintech_intensity_mean 的计算分文章级与聚合级两层。文章级得分在金融科技强度阶段生产: 对每篇经邻近共现硬过滤后的金融科技文章, 在标题拼接正文的全文轨文本上统计约一千五百个金融科技词表词的词频, 按双重对数核公式打分, 即对每个出现的关键词取一加词频对数、除以一加文档长度对数、再乘以该词权重后求和; 权重为逆文档频率乘以经缩放的语义纯度余弦相似度, 后者来自关键词嵌入向量与逆文档频率加权词表质心的余弦, 嵌入走统一引擎的双 API 模型。对数词频压制复读机刷分, 长度对数分母消除长文体量偏差, 逆文档频率与语义纯度权重恢复术语区分度, 三者分别针对文本测度文献里三类已知系统偏差。文中出现的不同关键词数低于最小阈值 (默认两个) 时得分记缺失且验证标记置否, 使未验证文章在下游均值中被自动剔除而不是被当作零强度拉低均值。聚合级在面板 runner 中完成: 年份从日期列现场派生, 随后关键的一步是把文章集合半连接到羊群衰减阶段所代表的大模型已验证宇宙 — 强度阶段的输出基于规则预筛候选集, 含相当比例经语义验证被否决的假阳性文章, 若不收敛聚合域, 这些文章会污染 bank-year 均值并制造幽灵银行年; 半连接后按银行乘年份对文章级得分取算术平均得到 fintech_intensity_mean。用白话说, 这两个量的分工是: 份额回答这家银行的新闻里有多大比例在谈金融科技, 强度均值回答那些谈金融科技的新闻平均谈得有多专业 — 前者数篇数算比例, 关键是分子分母用同一把尺子数; 后者给每篇文章打一个技术含金量分再取平均, 关键是打分时既不让长文占便宜、也不让把同一个词复读一百遍的稿子刷高分、还要让真正有区分度的专业术语比人人都在用的泛化词权重更高。两个量各自的坑也不同: 份额的坑在计数口径与零的语义, 强度的坑在词表权重的退化与聚合宇宙的污染, 上文的实现细节即分别针对这两组坑设防。
 
 【文献定位】
-在方法谱系上, 本家族坐落于三支文献的交汇处。第一支是文本测度方法学: Hassan et al. (2019) 确立了从会议纪要文本构造企业层面暴露份额的范式, 其核心纪律 — 分子分母必须在同一计数域内、份额而非水平才能剥离总量混杂 — 被 fintech_share 逐条继承; Li et al. (2021) 则示范了如何用词嵌入把词典法从二元匹配升级为连续语义加权, fintech_intensity_mean 的逆文档频率乘余弦权重正是这一路线在金融科技词表上的实现。第二支是银行金融科技实证: 中国样本上的主流做法是把新闻或年报中金融科技词频加总为指数再进入银行结果回归, Cheng and Qu (2020)、Wang et al. (2021)、Lee et al. (2021)、Fang et al. (2023)、Liu et al. (2024)、Liu and Hu (2025) 构成从信用风险、风险承担、效率到流动性创造与杠杆传导的完整结果谱; 本家族相对于该谱系的增量在于把计数指数拆解为份额与强度两个语义正交的分量, 并对计数基、缺失语义与聚合域这三个在既有文献中普遍未披露的实现细节给出可审计口径。第三支是数字能力与信息披露: Kwan et al. (2024) 用外生冲击检验银行数字能力的真实价值, Liu et al. (2025) 从信息异质性角度考察数字化披露对银行信贷的影响, 二者共同说明外部可观察的数字化信号 (无论来自压力测试还是披露文本) 具有经济实质; 媒体报道份额与强度作为第三方生成的数字化信号, 与自愿披露互为镜像, 天然规避了披露操纵的内生性来源之一。Li et al. (2025) 关于文本挖掘构造银行数字化测度的做法进一步佐证本家族在构造惯例上处于该文献的常规做法区间之内。
+在方法谱系上, 本家族坐落于三支文献的交汇处。第一支是文本测度方法学: Hassan et al. (2019) 确立了从会议纪要文本构造企业层面暴露份额的范式, 其核心纪律 — 分子分母必须在同一计数域内、份额而非水平才能剥离总量混杂 — 被 fintech_share 逐条继承; Li et al. (2021) 则示范了如何用词嵌入把词典法从二元匹配升级为连续语义加权, fintech_intensity_mean 的逆文档频率乘余弦权重正是这一路线在金融科技词表上的实现。第二支是银行金融科技实证: 中国样本上的主流做法是把新闻或年报中金融科技词频加总为指数再进入银行结果回归, Cheng and Qu (2020)、Wang et al. (2021)、Lee et al. (2021)、Fang et al. (2023)、Liu et al. (2024)、Liu and Hu (2025) 构成从信用风险、风险承担、效率到流动性创造与杠杆传导的完整结果谱; 本家族相对于该谱系的增量在于把计数指数拆解为份额与强度两个语义正交的分量, 并对计数基、缺失语义与聚合域这三个在既有文献中普遍未披露的实现细节给出可审计口径。第三支是数字能力与信息披露: Kwan et al. (2024) 用外生冲击检验银行数字能力的真实价值, Liu et al. (2025) 从信息异质性角度考察数字化披露对银行信贷的影响, 二者共同说明外部可观察的数字化信号 (无论来自压力测试还是披露文本) 具有经济实质; 媒体报道份额与强度作为第三方生成的数字化信号, 与自愿披露互为镜像, 天然规避了披露操纵的内生性来源之一。Li et al. (2025) 关于文本挖掘构造银行数字化测度的做法进一步佐证本家族在构造惯例上处于该文献的常规做法区间之内。Zhang and Li (2025, Emerging Markets Review) 用中国二百七十六家银行二零一一至二零二二年新闻文本构造银行层面金融科技指数并考察其对银行间竞争压力的缓解效应, 与本家族以媒体报道文本构造银行金融科技份额与强度测度的方法学路径高度同构, 可作为文献定位段的最新佐证。Yang and Masron (2023, Cogent Economics & Finance) 考察金融普惠对中国银行数字化转型与经营绩效关系的调节效应, 采用文本挖掘构造银行数字化转型指数, 与本家族以媒体文本构造银行金融科技暴露测度的方法学路径同构。Chen, Alexiou and Lee (2024, Asia Pacific Business Review) 用双重机制分析考察中国企业数字化转型对绩效的非线性影响, 呼应本家族份额与强度两分量拆解广延/集约边际的构念设计思路。
 
 【识别策略定位】
 本家族两列在识别设计中承担双重角色。其一是伪造检验 (falsification) 的核心构件: fintech_share 所在的阶段本身就是为主线语调结论设计的打假对照实验, 假设框架为零假设 (金融科技语调的解释力完全来自一般媒体关注度) 对备择假设 (语调含金融科技特异性增量信息) 的赛马 — 把金融科技语调与非金融科技新闻覆盖量同时放进回归, 若控制一般关注度后语调依然显著, 则语调携带的确是金融科技维度的独特信息而非新闻多的副产品, 这正是 Hassan et al. (2019) 用总体风险暴露对政治风险暴露做区分效力检验的移植。配套诊断包括情感测度与非金融科技覆盖的相关矩阵 (弱相关支持备择假设) 与金融科技对非金融科技对数篇数的挤出弹性检测 (排除份额分子分母的机械负相关)。其二是处理强度的连续刻画: 相对于二元的是否有金融科技报道, fintech_share 提供银行间与银行内跨年的连续变异, fintech_intensity_mean 提供条件于有报道之后的深度变异, 二者可分别作为处理变量的稳健性替身或调节维度进入各论文规格。需要强调的聚合域纪律: fintech_intensity_mean 的聚合域已收敛到大模型验证宇宙, 与面板其余文本测度同域, 而留篇门控自二零二六年六月末起为 full-only 口径 — 一篇文章是否算作银行金融科技报道只看全文轨验证标记; fintech_share 的分子基集 (已进面板文章) 同受该门控约束, 因此换嵌入或改门控口径都会机械改变本家族取值, 属预期数值副作用而非缺陷, manuscript 披露时应说明。
@@ -182,4 +203,7 @@ Thakor, A. V. (2020). Fintech and banking: What do we know?. Journal of Financia
 Cheng, M., & Qu, Y. (2020). Does bank FinTech reduce credit risk? Evidence from China. Pacific-Basin Finance Journal, 63, 101398. https://doi.org/10.1016/j.pacfin.2020.101398
 Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level political risk: Measurement and effects. The Quarterly Journal of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021
 Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital finance and FinTech: Current research and future research directions. Journal of Business Economics, 87(5), 537-580. https://doi.org/10.1007/s11573-017-0852-x
+Zhang, X., & Li, Z. (2025). FinTech: The disruptive force reducing bank competition pressure. Emerging Markets Review. https://doi.org/10.1016/j.ememar.2024.101237
+Yang, F., & Masron, T. A. (2023). Does financial inclusion moderate the effect of digital transformation on banks' performance in China?. Cogent Economics & Finance. https://doi.org/10.1080/23322039.2023.2267270
+Chen, S., Alexiou, C., & Lee, S. (2024). Beyond binary: exploring the interplay of China's digital transformation and firm performance through dual mechanism analysis. Asia Pacific Business Review. https://doi.org/10.1080/13602381.2024.2434010
 <!-- rendered-citations:end -->

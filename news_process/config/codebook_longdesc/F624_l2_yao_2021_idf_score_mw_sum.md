@@ -78,7 +78,21 @@ citations:
   vol: '57'
   issue: '3'
   pages_or_artno: 535-574
-new_dois: []
+- doi: "10.3390/electronics12071632"
+  title: "TF-TDA: A Novel Supervised Term Weighting Scheme for Sentiment Analysis"
+  authors: "Alshehri, A., & Algarni, A."
+  year: 2023
+  venue: "Electronics"
+  type: "journal"
+- doi: "10.3390/jrfm18080412"
+  title: "News Sentiment and Stock Market Dynamics: A Machine Learning Investigation"
+  authors: "Davidovic, M., & McCleary, J."
+  year: 2025
+  venue: "Journal of Risk and Financial Management"
+  type: "journal"
+new_dois:
+  - "10.3390/electronics12071632"
+  - "10.3390/jrfm18080412"
 ---
 
 ## CORE
@@ -95,7 +109,7 @@ yao_2021 词典本身是中文金融文本情感分析中与 jiang_2021、bian_2
 `_ss` 轨遵循与 `_ctx` 轨镜像的回退语义: 当一篇文章不存在银行与金融科技词在同一句 (±N 窗口, 默认 N=1, `config/filtering.yaml::context_window.ss_sentence_radius`) 共现的情形时, `content_ss` 回退为全文正文 (与 `content_full` 相同), 对应的 `ss_is_fallback` 标记为 True; 该情形下该篇的 `_ss` 轨 idf_score 实质上退化为对全文扫描的结果, 与 `_full` 轨数值上可能一致, 但两者在面板聚合分母 (`n_articles`) 的记账上共享同一行, 不会因回退而产生额外的孤儿列或分母不一致问题。当上游金融科技关键词自动扩展 (`FINTECH_AC`) 未成功构建 (`FINTECH_AC=None`) 时, 全部 `*_is_fallback` 标记优雅降级为 True, 三轨退化为等价扫描, 不会导致管道崩溃。
 
 【文献定位】
-本家族在方法论谱系上横跨三条独立传统。一是中文金融情感词典构建传统, yao_2021 词典与 jiang_2021、bian_2021 (Bian, Jia, Li & Yan, 2021)、du_2022 (Du, Huang, Wermers & Wu, 2022, *Review of Finance*) 同属"面向中国资本市场文本定制"的第二代金融情感词典, 相对 Loughran & McDonald (2011) 原版英文词典的直接翻译移植, 更贴合中文财经报道的语用习惯与套话结构。二是词项加权/信息检索传统, 该传统的奠基性文献是 Spärck Jones (1972) 对逆文档频率的统计诠释, 她首次给出了"词项在区分文档方面的信息量应与其文档频率成反比"这一命题的形式化论证, 是当代 TF-IDF 检索权重的最初理论源头; 但本家族底层 idf_score 的计算规范在源码层面更直接的方法学出处是 Gentzkow, Kelly & Taddy (2019, *Journal of Economic Literature*) 对文本作为数据 (text as data) 这一方法论的系统梳理——该文§2.2 专门讨论了 TF-IDF 加权在经济学文本分析场景下的规范实现 (包括重复文档对文档频率的膨胀问题), 本仓库 IDF 加权稳健性检验环节的代码注释反复以此文作为直接依据; Spärck Jones (1972) 与 Gentzkow-Kelly-Taddy (2019) 因此构成本家族 IDF 加权方法学的"奠基-当代实现"两层出处, 而非互相替代关系。Jegadeesh & Wu (2013, *Journal of Financial Economics*) 的 word power 方法把类似"不同权重"的思路引入金融文本分析, 尽管其权重校准方式 (基于历史价格反应) 与本家族的纯语料统计权重不同, 但两者共同代表了词典法情感分析从"简单计数"向"信息量加权"演进的方法论趋势。三是媒体来源可信度加权传统, 这是本家族 mw 后缀真正的方法学出处: Holzman, Miller & Twedt (2023, *The Accounting Review*) 研究媒体情感对季度盈余公告披露约束作用的强化机制, 论证了不同媒体来源的权威性/覆盖广度会系统性影响其情感报道对市场行为的解释力, 因而在跨来源加总情感信号时应按来源权威性加权而非等权处理; 本家族的 media_authority_weight 正是把这一"来源分层加权"思想移植到银行-金融科技共现报道语料, 与 IDF 加权 (词层面) 相互独立、共同构成 idf_score_mw 的复合权重结构。Barbaglia et al. (2025, *Economic Inquiry*) 系统评述了基于词典的经济文本情感分析方法, 其中专门讨论了词项加权方案对测度稳健性的影响, 为本家族底层 idf_score 的加权设计提供当代方法论参照; Frankel, Jennings & Lee (2022, *Management Science*) 对比机器学习与词典法两条情感测度路线, 为本仓库同时保留裸计数、IDF 加权、媒体权威加权、LLM 三家投票、BERT 三模型等多条并行情感测度路线提供方法论合理性——各路线互为稳健性检验对象, 而非相互替代。
+本家族在方法论谱系上横跨三条独立传统。一是中文金融情感词典构建传统, yao_2021 词典与 jiang_2021、bian_2021 (Bian, Jia, Li & Yan, 2021)、du_2022 (Du, Huang, Wermers & Wu, 2022, *Review of Finance*) 同属"面向中国资本市场文本定制"的第二代金融情感词典, 相对 Loughran & McDonald (2011) 原版英文词典的直接翻译移植, 更贴合中文财经报道的语用习惯与套话结构。二是词项加权/信息检索传统, 该传统的奠基性文献是 Spärck Jones (1972) 对逆文档频率的统计诠释, 她首次给出了"词项在区分文档方面的信息量应与其文档频率成反比"这一命题的形式化论证, 是当代 TF-IDF 检索权重的最初理论源头; 但本家族底层 idf_score 的计算规范在源码层面更直接的方法学出处是 Gentzkow, Kelly & Taddy (2019, *Journal of Economic Literature*) 对文本作为数据 (text as data) 这一方法论的系统梳理——该文§2.2 专门讨论了 TF-IDF 加权在经济学文本分析场景下的规范实现 (包括重复文档对文档频率的膨胀问题), 本仓库 IDF 加权稳健性检验环节的代码注释反复以此文作为直接依据; Spärck Jones (1972) 与 Gentzkow-Kelly-Taddy (2019) 因此构成本家族 IDF 加权方法学的"奠基-当代实现"两层出处, 而非互相替代关系。Jegadeesh & Wu (2013, *Journal of Financial Economics*) 的 word power 方法把类似"不同权重"的思路引入金融文本分析, 尽管其权重校准方式 (基于历史价格反应) 与本家族的纯语料统计权重不同, 但两者共同代表了词典法情感分析从"简单计数"向"信息量加权"演进的方法论趋势。三是媒体来源可信度加权传统, 这是本家族 mw 后缀真正的方法学出处: Holzman, Miller & Twedt (2023, *The Accounting Review*) 研究媒体情感对季度盈余公告披露约束作用的强化机制, 论证了不同媒体来源的权威性/覆盖广度会系统性影响其情感报道对市场行为的解释力, 因而在跨来源加总情感信号时应按来源权威性加权而非等权处理; 本家族的 media_authority_weight 正是把这一"来源分层加权"思想移植到银行-金融科技共现报道语料, 与 IDF 加权 (词层面) 相互独立、共同构成 idf_score_mw 的复合权重结构。Barbaglia et al. (2025, *Economic Inquiry*) 系统评述了基于词典的经济文本情感分析方法, 其中专门讨论了词项加权方案对测度稳健性的影响, 为本家族底层 idf_score 的加权设计提供当代方法论参照; Frankel, Jennings & Lee (2022, *Management Science*) 对比机器学习与词典法两条情感测度路线, 为本仓库同时保留裸计数、IDF 加权、媒体权威加权、LLM 三家投票、BERT 三模型等多条并行情感测度路线提供方法论合理性——各路线互为稳健性检验对象, 而非相互替代。Alshehri & Algarni (2023, Electronics) 提出一种新的监督式词项加权方案 TF-TDA 用于情感分析, 与本家族 IDF 词项加权的方法论精神一致, 均主张对情感词按信息量/区分力差异化赋权而非等权计数。Davidovic & McCleary (2025, Journal of Risk and Financial Management) 对新闻情感与股市动态的机器学习研究发现新闻内容中仅小部分承载主观情感信息, 为本家族对报道来源可信度/权威性加权处理稀释信号问题提供当代实证参照。
 就本仓库内部定位而言, idf_score_mw_sum 与家族内 score_hw_sum (标题词加权求和)、score_w_sum (裸计数求和)、score_std (标准差) 等姊妹测度共同构成 yao_2021 词典命中信号的多角度切片, 与政治词权重敏感性梯度 (du_2022 专属, {0.0, 0.5, 1.0} 三档) 及词典消融梯度 (raw/negonly/degonly/advonly/negdeg/negadv/degadv 七变体) 均属"互为稳健性、不分主次"的并列关系。铁律: 三条文本轨 (full/ctx/ss) 各自 just-identified 并排使用, 严禁将其混入同一个 over-identified 的 Hansen J 过度识别检验, 这是仓库对三轨测度体系的统一约束, 适用于本家族全部三列; 同理, media_authority_weight 与其他权重方案 (若未来引入) 也应各自 just-identified 并排, 不预设 mw 加权优于等权版本。
 
 ## VAR: yao_2021_idf_score_mw_sum_ctx
@@ -121,4 +135,6 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment Machine learni
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing enthusiasm Media sentiment and the disciplining role of quarterly earnings announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
+Alshehri, A., & Algarni, A. (2023). TF-TDA: A Novel Supervised Term Weighting Scheme for Sentiment Analysis. Electronics. https://doi.org/10.3390/electronics12071632
+Davidovic, M., & McCleary, J. (2025). News Sentiment and Stock Market Dynamics: A Machine Learning Investigation. Journal of Risk and Financial Management. https://doi.org/10.3390/jrfm18080412
 <!-- rendered-citations:end -->

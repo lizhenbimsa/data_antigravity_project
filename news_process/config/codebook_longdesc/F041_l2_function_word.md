@@ -63,7 +63,28 @@ citations:
   title: "The first international Chinese word segmentation bakeoff"
   venue: Proceedings of the Second SIGHAN Workshop on Chinese Language Processing
   pages_or_artno: 133-143
-new_dois: []
+- doi: "10.1111/1911-3846.12825"
+  type: "journal"
+  authors: "Bochkay, K., Brown, S. V., Leone, A. J., & Tucker, J. W."
+  year: 2023
+  title: "Textual Analysis in Accounting: What's Next?"
+  venue: "Contemporary Accounting Research"
+- doi: "10.1080/10888438.2024.2422365"
+  type: "journal"
+  authors: "Crossley, S. A."
+  year: 2024
+  title: "Developing Linguistic Constructs of Text Readability Using Natural Language Processing"
+  venue: "Scientific Studies of Reading"
+- doi: "10.1017/nlp.2024.50"
+  type: "journal"
+  authors: "Pan, W., Li, X., Chen, X., & Xu, R."
+  year: 2024
+  title: "Textual form features for text readability assessment"
+  venue: "Natural Language Processing"
+new_dois:
+  - "10.1111/1911-3846.12825"
+  - "10.1080/10888438.2024.2422365"
+  - "10.1017/nlp.2024.50"
 ---
 
 ## CORE
@@ -75,7 +96,7 @@ new_dois: []
 计算入口是 lexical_complexity 模块的 compute_lexical_complexity, 对每篇文本做一次 jieba.posseg 词性标注 pass, 在同一次遍历中并行派生功能词比率与该模块的其余互补复杂度测度 (低频词率、难字率、名词化率、硬信息密度、篇内冗余等), 全部 $0 成本 (jieba 0.42.1 冻结词典, 无付费 LLM、不触 M0 门、不动 Prompt v8)。功能词判定原语是词性前缀集合 {u,p,c,r,y,e}, 刻意不含副词 (d): 副词语义偏内容侧, 保守排除以免污染"纯虚词"口径。分母 n_real 取非标点 token 数, 与本模块其余比率测度口径严格一致, 保证同一分母下各比率可横向比较; 当 n_real 为零 (空文本或纯标点) 时返回 NaN, 由下游 mean 聚合自动跳过, 短文本或空文本不污染均值。该函数本身 track-agnostic (输入单一文本, 返回 per-text 字典), 三轨 (full/ctx/ss) 的差异完全由调用方 tone_words 用各轨文本 content_full / content_ctx / content_ss 分别驱动一次实现。面板聚合在 encode 层: agg[avg_function_word{track}] = (function_word_ratio{track}, mean), 即某 bank-year 内所有留篇报道的功能词比率算术均值。
 
 【文献定位】
-功能词比率属于文本可读性/披露质量的一支, 与金融文本计量的主流传统相接。Tetlock、Saar-Tsechansky 与 Macskassy (2008) 开创了以词频统计量化媒体语言并连结公司基本面的范式; Jegadeesh 与 Wu (2013) 进一步提出以词权重刻画内容基调, 表明词层面的分布特征本身携带定价相关信息。García、Hu 与 Rohrer (2023) 则揭示金融词汇的情感与语义色彩随语境系统变化, 提示以词类分布度量文本风格须审慎处理语境依赖。Siano (2025) 展示了以 LLM 捕捉词语上下文相较于纯词袋计数的增量, 从反面界定了本家族这类词性计数测度的适用边界: 功能词比率是一个粗粒度、可复现、零成本的结构风格代理, 不宣称等同于语境感知的深度语义度量, 而是作为可读性控制变量与稳健性维度并入分析。中文分词的底层依赖 (jieba 词典与 HMM) 其精度与边界处理可追溯至 Sproat 与 Emerson (2003) 记录的中文分词评测传统, 本项目据此如实披露 jieba 词性标注属"粗近似", 功能词六类前缀映射为工程近似而非语言学权威切分。
+功能词比率属于文本可读性/披露质量的一支, 与金融文本计量的主流传统相接。Tetlock、Saar-Tsechansky 与 Macskassy (2008) 开创了以词频统计量化媒体语言并连结公司基本面的范式; Jegadeesh 与 Wu (2013) 进一步提出以词权重刻画内容基调, 表明词层面的分布特征本身携带定价相关信息。García、Hu 与 Rohrer (2023) 则揭示金融词汇的情感与语义色彩随语境系统变化, 提示以词类分布度量文本风格须审慎处理语境依赖。Siano (2025) 展示了以 LLM 捕捉词语上下文相较于纯词袋计数的增量, 从反面界定了本家族这类词性计数测度的适用边界: 功能词比率是一个粗粒度、可复现、零成本的结构风格代理, 不宣称等同于语境感知的深度语义度量, 而是作为可读性控制变量与稳健性维度并入分析。中文分词的底层依赖 (jieba 词典与 HMM) 其精度与边界处理可追溯至 Sproat 与 Emerson (2003) 记录的中文分词评测传统, 本项目据此如实披露 jieba 词性标注属"粗近似", 功能词六类前缀映射为工程近似而非语言学权威切分。Bochkay、Brown、Leone 与 Tucker (2023, Contemporary Accounting Research) 的综述系统梳理了会计文本分析领域词频类测度 (含功能词/虚词计数) 的方法学现状与未来方向, 为本家族以词性前缀计数刻画报道文本风格的做法提供了最新的方法论定位。Crossley (2024, Scientific Studies of Reading) 用自然语言处理方法系统构建可读性相关的语言学构念, 含功能词/虚词密度等词类分布特征, 为本家族以词性前缀计数刻画文本可读性风格提供最新方法论参照。Pan、Li、Chen 与 Xu (2024, Natural Language Processing) 提出文本表层形式特征, 含功能词等词类比率, 用于可读性评估, 支持本家族功能词比率作为文本结构风格粗粒度代理的定位。
 
 【口径与稳健性】
 三轨 full/ctx/ss 各自 just-identified 并排、互为稳健性、不分主次, 严禁把三轨同名列混入同一 over-identified 的 Hansen J 过度识别检验。留篇门控为 full-only (2026-06-29): 一篇报道是否计入 bank-year 分母, 只由 full 轨的 llm_verified_full 判定; ctx 与 ss 轨降为 conditional-on-full 的测度轨与稳健性轨, 其行宇宙是 full 留篇集的子集, per-track 列在该子集上照常聚合。ss 轨的回退语义镜像 ctx 轨: 当某篇无银行与金科同句共现时, content_ss 回退为全文正文、ss_is_fallback 置 True, 与 full/ctx 共享同一 n_articles 分母。已知局限须如实披露: 功能词比率是词性计数的机械代理, 受分词与词性标注误差影响; 它与本模块其余复杂度测度 (如名词化率、难字率) 度量文本风格的不同侧面, 属互补而非替代, 回归中作为可读性控制变量层叠使用时须注意共线性。
@@ -102,4 +123,7 @@ Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis.
 Tausczik, Y. R., & Pennebaker, J. W. (2010). The psychological meaning of words: LIWC and computerized text analysis methods. Journal of Language and Social Psychology, 29(1), 24-54. https://doi.org/10.1177/0261927X09351676
 Tetlock, P. C., Saar-Tsechansky, M., & Macskassy, S. (2008). More than words: Quantifying language to measure firms' fundamentals. The Journal of Finance, 63(3), 1437-1467. https://doi.org/10.1111/j.1540-6261.2008.01362.x
 Sproat, R., & Emerson, T. (2003). The first international Chinese word segmentation bakeoff. Proceedings of the Second SIGHAN Workshop on Chinese Language Processing, 133-143. https://doi.org/10.3115/1119250.1119269
+Bochkay, K., Brown, S. V., Leone, A. J., & Tucker, J. W. (2023). Textual Analysis in Accounting: What's Next?. Contemporary Accounting Research. https://doi.org/10.1111/1911-3846.12825
+Crossley, S. A. (2024). Developing Linguistic Constructs of Text Readability Using Natural Language Processing. Scientific Studies of Reading. https://doi.org/10.1080/10888438.2024.2422365
+Pan, W., Li, X., Chen, X., & Xu, R. (2024). Textual form features for text readability assessment. Natural Language Processing. https://doi.org/10.1017/nlp.2024.50
 <!-- rendered-citations:end -->

@@ -64,7 +64,21 @@ citations:
   vol: '31'
   issue: '1'
   pages_or_artno: e1549
-new_dois: []
+- doi: "10.1111/1467-8551.12879"
+  title: "FinTech Adoption and Corporate Greenwashing: A Technology Affordance Perspective"
+  authors: "Sun, Z., Liu, L., Johan, S., & Zhao, L."
+  year: 2025
+  venue: "British Journal of Management"
+  type: "journal"
+- doi: "10.1016/j.iref.2024.05.023"
+  title: "Substantive digital innovation or symbolic digital innovation: Which type of digital innovation is more conducive to corporate ESG performance?"
+  authors: "Wang, Z., & Tang, P."
+  year: 2024
+  venue: "International Review of Economics & Finance"
+  type: "journal"
+new_dois:
+  - "10.1111/1467-8551.12879"
+  - "10.1016/j.iref.2024.05.023"
 ---
 
 ## CORE
@@ -74,7 +88,7 @@ token_adopt_int_p25 家族属于文章级政策对齐 (Article-level Policy Alig
 【方法学与计算】
 token_adopt_int_p25 在盘上真实的构造分两层。第一层是文章级二值化——由两个连续型上游测度在每篇文章 (而非 bank-year 聚合均值) 上分别二值化后组合, 其一是 fintech_intensity_score (及其 _ctx/_ss 同名轨道变体), 产出于 stage 15 fintech_intensity (TF-IDF × SIF 加权的金科语义强度得分, 区别于同一象限体系内基于关键词计数的 Track A "kw" 轨); 其二是 policy_cosine_sim (及其 _ctx/_ss 同名轨道变体), 即文章文本与政策/监管语料的余弦相似度, 产出于 stage 16 article_policy_alignment (co-primary Qwen 嵌入主轨, 无后缀)。二值化阈值按年份分组 (`groupby('year')`) 分别对当年样本内的 fintech_intensity_score 与 policy_cosine_sim 逐年估计第 25 百分位切点 (而非对聚合后的 fintech_intensity_mean/article_sim_mean 计算样本内整体分位数), `_classify_policy_quadrants` 内部统一记 `high_freq = freq >= yfreq_p25`、`high_sim = sim >= ysim_p25`, Token 象限的文章级指示定义为 `high_freq & ~high_sim` (词频高且相似度不高, 即相似度低于当年 P25 切点), 记 1; 否则记 0。sim 或 freq 任一测量缺失 (NaN) 的文章不参与分类, 指示值记 NaN (`.where(measured)`), 分母因此是"已测量篇数"而非全部篇数——这是 fix(omni-g-runner-03/g-runner-11, 2026-06-11) 修正的历史缺陷: 旧实现把 `NaN >= thresh` 静默判为 False, 会在 stage 15 优雅早退产出全 NaN parquet 时把全部高词频文章误判为 Token, 制造由零测量伪造的面板值; 现行实现严格区分「未测量」(NaN) 与「测量后判为低相似度」(0), 两者在物理域分母层面不再混淆。第二层是 bank-year 聚合——盘上真正落入面板的 token_adopt_int_p25{_ctx,_ss} 列, 是把上述文章级 0/1/NaN 指示按 (target_bank, year) 做 `.mean()` 聚合 (pandas groupby mean 自动跳过 NaN) 得到的连续占比, 语义是「该行该年被测量文章中, 落入 Token 空谈象限的文章占比」, 取值范围 [0,1] 而非离散 {0,1}; 当该行该年全部文章均未测量时, 该占比列本身也是 NaN, 与 CLAUDE.md 「NaN 保持、listwise 处理」的项目通用口径一致, 不做 fillna(0) 处理。命名中的 "int" 标识该列属于「Track B (intensity 连续测度)」象限体系, 与并列的 "kw" (Track A, 基于关键词计数的离散测度) 形成方法学对照的两条独立象限化路径, 二者各自 just-identified, 互为稳健性、不分主次, 不可混入同一 over-identified 设定 (如同一 Hansen J 检验)。"p25" 标识文章级二值化所用的年度分位阈值为第 25 百分位, 是该象限体系三档阈值梯度 {P25, P50, P75} 中最宽松的一档; 项目口径上 P50 (中位数切分) 是与项目 10+ 处中位数分割惯例一致的机制检验基准档, P25/P75 是围绕该基准展开的阈值敏感性稳健性检验档——三档在计量设定上各自 just-identified 并排, 互为稳健性检验、禁止混入同一 over-identified 设定, 但在"何档作为正文机制检验的默认呈现"这一叙事选择上, 项目约定以 P50 为基准、P25/P75 供稳健性附表引用。
 【文献定位】
-Token 象限的构念定位可归入企业传播/信息披露文献中「话语热度与实质对齐脱节」的识别传统。Adner & Kapoor (2010, Strategic Management Journal) 建立的创新生态系统互依框架指出, 单一环节 (此处即"金科话语的技术强度") 的能力提升若未与互补方 (此处即"政策/监管导向") 的协同方向对齐, 并不必然转化为整合式的价值创造, 为本象限「强度高但对齐低」的构念划分提供了理论依据。Gomber, Koch & Siering (2017, Journal of Business Economics) 对数字金融/FinTech 研究现状与未来方向的系统梳理, 界定了「金融科技话语」作为可观测研究对象的边界与维度, 是本项目 locus 维度 (P4) 与本象限体系共享的构念溯源。经验层面, Fang, Wang, Wang & Zhao (2023, Economic Modelling) 考察中国银行金融科技投入与流动性创造、风险承担之间的关系, 其研究设计将金融科技投入的"强度"与投入所伴随的经营/监管取向分开处理, 为「强度」与「政策对齐」需分离度量的构念划分提供了经验层面的旁证; Lee, Li, Yu & Zhao (2021, International Review of Economics & Finance) 关于金融科技创新对中国银行业效率影响的研究同样在实证设计上区分了投入规模与转化效果两个环节, 提示单纯的话语/投入强度本身并非「实质采纳」的充分信号, 支持本象限体系不以单一强度指标而以强度×对齐交叉分类刻画"空谈"构念的设计选择。Boot (2000, Journal of Financial Intermediation) 对关系型银行业的经典综述强调, 银行的实质经营行为 (包括对监管/合规方向的响应) 往往嵌入在长期、稳定、未必高调的关系与流程中, 而非体现为高频次的对外话语宣示——这一洞见构成 Token (话语强度高) 与 Hidden (话语强度低但政策对齐高, 对应 Boot 所述"闷声干大事") 两象限区分的经济学旁证。方法论层面, Todd, Bowden & Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 对金融文本情感分析文献的系统综述指出, 单一文本测度 (如整体情感极性或关键词计数) 难以捕捉披露内容的多维语义结构, 呼应本象限体系采用「强度」×「对齐」双测度交叉分类而非单一综合指数的设计选择。
+Token 象限的构念定位可归入企业传播/信息披露文献中「话语热度与实质对齐脱节」的识别传统。Adner & Kapoor (2010, Strategic Management Journal) 建立的创新生态系统互依框架指出, 单一环节 (此处即"金科话语的技术强度") 的能力提升若未与互补方 (此处即"政策/监管导向") 的协同方向对齐, 并不必然转化为整合式的价值创造, 为本象限「强度高但对齐低」的构念划分提供了理论依据。Gomber, Koch & Siering (2017, Journal of Business Economics) 对数字金融/FinTech 研究现状与未来方向的系统梳理, 界定了「金融科技话语」作为可观测研究对象的边界与维度, 是本项目 locus 维度 (P4) 与本象限体系共享的构念溯源。经验层面, Fang, Wang, Wang & Zhao (2023, Economic Modelling) 考察中国银行金融科技投入与流动性创造、风险承担之间的关系, 其研究设计将金融科技投入的"强度"与投入所伴随的经营/监管取向分开处理, 为「强度」与「政策对齐」需分离度量的构念划分提供了经验层面的旁证; Lee, Li, Yu & Zhao (2021, International Review of Economics & Finance) 关于金融科技创新对中国银行业效率影响的研究同样在实证设计上区分了投入规模与转化效果两个环节, 提示单纯的话语/投入强度本身并非「实质采纳」的充分信号, 支持本象限体系不以单一强度指标而以强度×对齐交叉分类刻画"空谈"构念的设计选择。Boot (2000, Journal of Financial Intermediation) 对关系型银行业的经典综述强调, 银行的实质经营行为 (包括对监管/合规方向的响应) 往往嵌入在长期、稳定、未必高调的关系与流程中, 而非体现为高频次的对外话语宣示——这一洞见构成 Token (话语强度高) 与 Hidden (话语强度低但政策对齐高, 对应 Boot 所述"闷声干大事") 两象限区分的经济学旁证。方法论层面, Todd, Bowden & Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 对金融文本情感分析文献的系统综述指出, 单一文本测度 (如整体情感极性或关键词计数) 难以捕捉披露内容的多维语义结构, 呼应本象限体系采用「强度」×「对齐」双测度交叉分类而非单一综合指数的设计选择。该文从技术可供性视角考察金融科技采纳与企业漂绿行为的关系, 为「技术话语高但实质对齐低」的空谈型构念提供直接的金融科技情境经验支持, 引用格式为 Sun, Liu, Johan, & Zhao (2025, British Journal of Management)。该文区分实质性与象征性数字创新对企业ESG绩效的差异化影响, 证实象征性创新无法有效抑制漂绿, 支持本象限体系以「强度×对齐」交叉分类而非单一强度指标刻画空谈构念的设计, 引用格式为 Wang & Tang (2024, International Review of Economics & Finance)。
 
 ## VAR: token_adopt_int_p25
 
@@ -98,4 +112,6 @@ Boot, A. W. A. (2000). Relationship Banking: What Do We Know?. Journal of Financ
 Adner, R., & Kapoor, R. (2010). Value Creation in Innovation Ecosystems: How the Structure of Technological Interdependence Affects Firm Performance in New Technology Generations. Strategic Management Journal, 31(3), 306-333. https://doi.org/10.1002/smj.821
 Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital Finance and FinTech: Current Research and Future Research Directions. Journal of Business Economics, 87(5), 537-580. https://doi.org/10.1007/s11573-017-0852-x
 Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-Based Sentiment Analysis in Finance: Synthesising the Existing Literature and Exploring Future Directions. Intelligent Systems in Accounting, Finance and Management, 31(1), e1549. https://doi.org/10.1002/isaf.1549
+Sun, Z., Liu, L., Johan, S., & Zhao, L. (2025). FinTech Adoption and Corporate Greenwashing: A Technology Affordance Perspective. British Journal of Management. https://doi.org/10.1111/1467-8551.12879
+Wang, Z., & Tang, P. (2024). Substantive digital innovation or symbolic digital innovation: Which type of digital innovation is more conducive to corporate ESG performance?. International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2024.05.023
 <!-- rendered-citations:end -->

@@ -136,7 +136,28 @@ citations:
   year: 2022
   title: "Quasi-experimental shift-share research designs"
   venue: The Review of Economic Studies
-new_dois: []
+- doi: "10.1007/s10490-026-10113-0"
+  type: journal
+  authors: "Manikandan, K. S., & Balaji, V. V."
+  year: 2026
+  title: "Ownership form, strategy distinctiveness, and firm performance"
+  venue: "Asia Pacific Journal of Management"
+- doi: "10.1177/14413582251399667"
+  title: "Comparative Analysis of BERTopic Versus LDA: Topic Modelling in Marketing Research"
+  authors: "Mishra, M."
+  year: 2025
+  venue: "Australasian Marketing Journal"
+  type: "journal"
+- doi: "10.1016/j.indmarman.2024.11.010"
+  title: "Coopetition: A vehicle for business model distinctiveness"
+  authors: "Bouncken, R. B., & Fredrich, V."
+  year: 2025
+  venue: "Industrial Marketing Management"
+  type: "journal"
+new_dois:
+  - "10.1007/s10490-026-10113-0"
+  - "10.1177/14413582251399667"
+  - "10.1016/j.indmarman.2024.11.010"
 ---
 
 ## CORE
@@ -154,7 +175,7 @@ new_dois: []
 【文献定位】
 方法学上本家族站在文本即数据 (text-as-data) 的方法论综述 (Gentzkow 等 2019) 与文本化企业战略度量两条脉络的交叉处。一支是 TF-IDF/余弦的产品市场文本网络 (Hoberg 和 Phillips 2016; Hoberg 等 2014 的产品市场流动性 fluidity; Hoberg 和 Phillips 2025 对 21 世纪企业范围、规模与集中度的最新刻画); 另一支是主题模型化的企业创新与战略文本分析 (Bellstam 等 2021 用主题模型从分析师报告抽取创新度; Banker 等 2024 用文本分析刻画战略类型与成本结构; Hanley 和 Hoberg 2019 用动态主题解读金融部门新兴风险; Cong 等 2024 的可扩展文本因子)。LDA+JSD 方法臂正是"主题模型化"这一支在本项目内的落点, 与 TF-IDF char/word 的词面余弦臂、稠密语义 embedding 臂并列为对同一战略差异化构念的多重文本表征。差异度作为战略离群性的一阶度量, 其经济含义在 Haans (2019)、Su 等 (2024)、Arts 等 (2025) 的差异化-绩效/并购文献中得到理论支撑, 使本家族可以作为处理变量或稳健性协变量进入银行-金融科技的战略、绩效与并购回归。
 
-三种文本表征各有其偏倚与盲区, 这正是并排保留的理由。TF-IDF char/word 臂捕捉词面重叠, 对同义改写、领域术语的表述差异敏感, 可能把"说法不同但战略相同"误判为差异化。稠密 embedding 臂 (Qwen 与 co-primary text-embedding-3-large) 捕捉分布式语义, 对同义与近义稳健, 但可能把细粒度的战略差别平滑掉, 且嵌入空间随模型厂商 (阿里 Qwen 4096 维 / OpenAI 3072 维) 而异。LDA+JSD 臂捕捉主题层面的构成差异, 对文档级的话题混合敏感, 但受主题数 K 与语料规模影响、在短文本上估计噪声大。三臂对同一战略差异化构念给出相关但不完全一致的排序, 恰好互为偏倚对冲。Ganguli 等 (2024) 关于专利文本长期创新动态中模型选择的批判性作用、Cong 等 (2024) 的可扩展文本因子, 都强调了文本表征选择本身是一个需要稳健性检验的自由度 — 本家族的多臂并排设计正是对这一方法学告诫的直接回应。此外, 以行业向量与主题余弦相似度引导技术布局的行业向量思路 (见本项目 strategic_diff 模块源码所载中文文献出处), 是本项目全行业质心距离列 (centroid_diff_*) 的迁移来源, 与本家族的最近邻差异度构成两种互补的战略空间投影; 该迁移来源属源码内记录的方法思路, 本文档不对其单独作具名年份引用, 以免逸出白名单引文池。
+三种文本表征各有其偏倚与盲区, 这正是并排保留的理由。TF-IDF char/word 臂捕捉词面重叠, 对同义改写、领域术语的表述差异敏感, 可能把"说法不同但战略相同"误判为差异化。稠密 embedding 臂 (Qwen 与 co-primary text-embedding-3-large) 捕捉分布式语义, 对同义与近义稳健, 但可能把细粒度的战略差别平滑掉, 且嵌入空间随模型厂商 (阿里 Qwen 4096 维 / OpenAI 3072 维) 而异。LDA+JSD 臂捕捉主题层面的构成差异, 对文档级的话题混合敏感, 但受主题数 K 与语料规模影响、在短文本上估计噪声大。三臂对同一战略差异化构念给出相关但不完全一致的排序, 恰好互为偏倚对冲。Ganguli 等 (2024) 关于专利文本长期创新动态中模型选择的批判性作用、Cong 等 (2024) 的可扩展文本因子, 都强调了文本表征选择本身是一个需要稳健性检验的自由度 — 本家族的多臂并排设计正是对这一方法学告诫的直接回应。此外, 以行业向量与主题余弦相似度引导技术布局的行业向量思路 (见本项目 strategic_diff 模块源码所载中文文献出处), 是本项目全行业质心距离列 (centroid_diff_*) 的迁移来源, 与本家族的最近邻差异度构成两种互补的战略空间投影; 该迁移来源属源码内记录的方法思路, 本文档不对其单独作具名年份引用, 以免逸出白名单引文池。Manikandan 和 Balaji (2026, Asia Pacific Journal of Management) 检验企业所有权形式与战略差异度对绩效的联合影响, 与本家族把媒体文本主题构成的战略离群度接入银行绩效/并购回归的实证逻辑直接呼应, 进一步支持最优差异化理论在差异化-绩效关系上的边界条件。Mishra (2025, Australasian Marketing Journal) 对比 BERTopic 与 LDA 两种主题建模算法在营销研究文本中的表现, 发现 BERTopic 在语义捕捉上优于 LDA, 为本家族 LDA 方法臂的设定选择提供了最新的方法学参照。Bouncken 和 Fredrich (2025, Industrial Marketing Management) 基于跨行业 R&D 联盟的纵向调查数据, 发现企业可通过合作竞争 (coopetition) 学习实现商业模式差异化, 为本家族战略差异度构念的经济含义提供了实证支持。
 
 在银行-金融科技这一具体经济场景中, 本家族的战略差异度还与竞争、绩效与并购三条实证脉络相接。竞争维度上, Hoberg 等 (2014) 的产品市场流动性与 Hoberg 和 Phillips (2016、2025) 的文本网络产业刻画表明, 一家企业在文本空间中的相对位置直接关联其面临的竞争威胁强度; 一家战略高度差异化的银行, 其金融科技动作较少被同业直接复制, 因而在短期内享有更低的竞争压力, 但也可能承担更高的路径不确定性。绩效维度上, Haans (2019) 与 Su 等 (2024) 的最优差异化理论提示差异度与绩效之间可能存在倒 U 形或范畴调节关系, 使本家族适合作为非线性设定 (含平方项、与市场同质度交互项) 的核心解释变量。并购维度上, Arts 等 (2025) 关于技术差异化驱动并购的发现, 与本项目 P5 银行-金融科技并购结果变量直接呼应 — 战略差异度可作为预测银行金融科技并购倾向的文本先行指标。这些接口使本家族不止是一个描述性文本指标, 而是可嵌入结构性研究设计的战略变量; 但所有这些用法都须遵守前述五臂/三轨/N 梯子的互为稳健性纪律, 主结论锚定单一 canonical 设定并以其余表征并排复现。
 
@@ -210,4 +231,7 @@ Romano, J. P., & Wolf, M. (2005). Stepwise multiple testing as formalized data s
 Ganguli, I., Lin, J., Meursault, V., & Reynolds, N. (2024). Patent text and long-run innovation dynamics: The critical role of model selection. NBER Working Paper No. 32934 [Working Paper]. https://doi.org/10.3386/w32934
 Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik instruments: What, when, why, and how. American Economic Review, 110(8), 2586-2624. https://doi.org/10.1257/aer.20181047
 Borusyak, K., Hull, P., & Jaravel, X. (2022). Quasi-experimental shift-share research designs. The Review of Economic Studies. https://doi.org/10.1093/restud/rdab030
+Manikandan, K. S., & Balaji, V. V. (2026). Ownership form, strategy distinctiveness, and firm performance. Asia Pacific Journal of Management. https://doi.org/10.1007/s10490-026-10113-0
+Mishra, M. (2025). Comparative Analysis of BERTopic Versus LDA: Topic Modelling in Marketing Research. Australasian Marketing Journal. https://doi.org/10.1177/14413582251399667
+Bouncken, R. B., & Fredrich, V. (2025). Coopetition: A vehicle for business model distinctiveness. Industrial Marketing Management. https://doi.org/10.1016/j.indmarman.2024.11.010
 <!-- rendered-citations:end -->

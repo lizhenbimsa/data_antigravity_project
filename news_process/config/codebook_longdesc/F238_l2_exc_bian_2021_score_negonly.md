@@ -61,7 +61,21 @@ citations:
   year: 2021
   title: "A new Chinese financial sentiment dictionary for textual analysis in accounting and finance"
   venue: SSRN Working Paper
-new_dois: []
+- doi: "10.1016/j.pacfin.2025.102854"
+  title: "The colour of finance words in Chinese"
+  authors: "Yao, K., Zheng, Z., & Liu, C."
+  year: 2025
+  venue: "Pacific-Basin Finance Journal"
+  type: "journal"
+- doi: "10.1002/isaf.1549"
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+  type: "journal"
+new_dois:
+  - "10.1016/j.pacfin.2025.102854"
+  - "10.1002/isaf.1549"
 ---
 
 ## CORE
@@ -79,7 +93,7 @@ new_dois: []
 negonly 与全规则主列 (bian_2021_score) 的差 (full − negonly) 反映程度与转折规则对最终归一化语调的联合净效应, 但因两者各自 self-normalize (Σ|final| 分母随倍率变化), 且否定与程度作用于同一词时倍率乘的是翻转后幅度、含 negation×degree 交互, 该差非可加分解、不可解读为程度或转折的纯因果贡献。审计实测 corr(full, negonly) 高度共线 (接近 1), 判读为"主结果对去掉程度/转折规则不敏感"即越稳健, 而非声称某变体更优。
 
 【文献定位】
-词典法情感测度的方法论传统由 Frankel, Jennings, & Lee (2022) 系统对照: 在披露语调场景下, 词典法与机器学习法各有偏差来源, 二者应互为稳健性而非相互替代, 这正是本项目让词典、LLM、BERT 三法并排的先例。中文金融文本的领域特异性由 Du, Huang, Wermers, & Wu (2022) 论证——通用词典移植到中文金融语料会系统性失准, 需构建领域词典; Bian et al. (2021) 与 Ma, Zhang, & Zhang (2025) 分别提供了面向会计金融文本与面向国内投资者的中文细粒度情感词典, 为本家族的词典选择提供了效度支撑。lexicon-based 打分的一般框架及其在经济文本上的表现见 Barbaglia et al. (2025)。否定处理作为词典法最关键的语言学规则, 其范围检测对新闻驱动交易信号的影响由 Pröllochs, Feuerriegel, & Neumann (2016) 专门论证, 直接支撑本变体单独保留否定规则、关闭程度与转折的设计动机。
+词典法情感测度的方法论传统由 Frankel, Jennings, & Lee (2022) 系统对照: 在披露语调场景下, 词典法与机器学习法各有偏差来源, 二者应互为稳健性而非相互替代, 这正是本项目让词典、LLM、BERT 三法并排的先例。中文金融文本的领域特异性由 Du, Huang, Wermers, & Wu (2022) 论证——通用词典移植到中文金融语料会系统性失准, 需构建领域词典; Bian et al. (2021) 与 Ma, Zhang, & Zhang (2025) 分别提供了面向会计金融文本与面向国内投资者的中文细粒度情感词典, 为本家族的词典选择提供了效度支撑。lexicon-based 打分的一般框架及其在经济文本上的表现见 Barbaglia et al. (2025)。否定处理作为词典法最关键的语言学规则, 其范围检测对新闻驱动交易信号的影响由 Pröllochs, Feuerriegel, & Neumann (2016) 专门论证, 直接支撑本变体单独保留否定规则、关闭程度与转折的设计动机。Yao, Zheng, & Liu (2025, Pacific-Basin Finance Journal) 将 robust-MNIR 情感词典构建法首次扩展到非英语语境, 用中国上市公司 MD&A 文本构造中文情感词典, 发现负面词典对收益的预测力显著优于人工构造词典, 与本家族基于人工规则词典 (Bian et al. 2021) 及其否定规则消融变体的方法论议题直接相关。Todd, Bowden, & Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 系统综述金融文本情感分析文献, 专门讨论词典法中否定处理的两类主流策略 (极性反转/固定量位移) 及其局限, 为本家族仅保留否定规则 (negonly) 的消融设计提供最新方法论综述支撑。
 
 ## VAR: exc_bian_2021_score_negonly_full
 
@@ -103,4 +117,6 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.3446388
+Yao, K., Zheng, Z., & Liu, C. (2025). The colour of finance words in Chinese. Pacific-Basin Finance Journal. https://doi.org/10.1016/j.pacfin.2025.102854
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
 <!-- rendered-citations:end -->

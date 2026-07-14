@@ -65,7 +65,14 @@ citations:
   vol: 62
   issue: 3
   pages_or_artno: 1139-1168
-new_dois: []
+- doi: "10.1002/isaf.1549"
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+  type: "journal"
+new_dois:
+  - "10.1002/isaf.1549"
 ---
 
 ## CORE
@@ -79,7 +86,7 @@ new_dois: []
 三轨 full/ctx/ss 各自独立走上述留一聚合, 是三条并排的规格稳健性轨: full = 标题 prepend 后的全文正文; ctx = 标题加实体上下文窗口; ss = 标题加"银行与金融科技同句±N窗"共现文本, 其回退语义镜像 ctx (无同句共现时 ss 退化为全文 body)。三轨各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同轨的留一 IV 混进同一个 over-identified 的 Hansen J 过度识别检验; 若研究者要做过度识别, 正确做法是在同一轨内并列多个"独立情感度量"的留一 IV (词典法综合、LLM 投票语调、BERT 正面概率三者), 而非跨轨拼接。留篇门控采 full-only 口径 (2026-06-29): 一篇报道是否计入某银行-年的语料由 full 轨判定, ctx/ss 是 conditional-on-full 的子集测度; 因此三轨的城市组银行集是嵌套的, ss 轨的有效样本量通常最小。
 
 【文献定位】
-本度量把两支文献焊在一起。词典法情感测量一支: Loughran 与 McDonald (2011) 奠定了金融文本须用领域词典而非通用词典的方法论, García、Hu 与 Rohrer (2023) 进一步给金融词汇标注方向色彩, Du、Huang、Wermers 与 Wu (2022) 构建中文金融情感词典并揭示领域与语言特异性, 三者共同支撑本项目"六词典综合、逐篇归一"的 dict_avg_tone 源测度; Frankel、Jennings 与 Lee (2022) 则以机器学习对照词典法, 论证词典法在披露情感上仍具竞争力, 为把词典语调当作一条独立情感度量 (而非 LLM/BERT 的次等替身) 提供依据。媒体情绪的资产定价后果一支: Tetlock (2007) 证明媒体语调对市场有可度量的实质影响, 为"地方媒体情绪场经由同侪渠道外生推动 i"的排他性叙事提供机制基础。识别工具一支: Goldsmith-Pinkham、Sorkin 与 Swift (2020) 系统梳理 Bartik/份额-移动型工具变量的识别逻辑与检验, 留一同侪均值正是这一族空间/同侪工具的近亲, 其"排除自身、组内他体均值作外生推力"的构造与本度量同源。综合而言, city_leave1out_dict_tone 不是一个情感构念本身, 而是把词典情感这一被充分验证的测度, 经由城市-年度留一聚合改造为一件识别工具。
+本度量把两支文献焊在一起。词典法情感测量一支: Loughran 与 McDonald (2011) 奠定了金融文本须用领域词典而非通用词典的方法论, García、Hu 与 Rohrer (2023) 进一步给金融词汇标注方向色彩, Du、Huang、Wermers 与 Wu (2022) 构建中文金融情感词典并揭示领域与语言特异性, 三者共同支撑本项目"六词典综合、逐篇归一"的 dict_avg_tone 源测度; Frankel、Jennings 与 Lee (2022) 则以机器学习对照词典法, 论证词典法在披露情感上仍具竞争力, 为把词典语调当作一条独立情感度量 (而非 LLM/BERT 的次等替身) 提供依据。媒体情绪的资产定价后果一支: Tetlock (2007) 证明媒体语调对市场有可度量的实质影响, 为"地方媒体情绪场经由同侪渠道外生推动 i"的排他性叙事提供机制基础。识别工具一支: Goldsmith-Pinkham、Sorkin 与 Swift (2020) 系统梳理 Bartik/份额-移动型工具变量的识别逻辑与检验, 留一同侪均值正是这一族空间/同侪工具的近亲, 其"排除自身、组内他体均值作外生推力"的构造与本度量同源。综合而言, city_leave1out_dict_tone 不是一个情感构念本身, 而是把词典情感这一被充分验证的测度, 经由城市-年度留一聚合改造为一件识别工具。Todd, Bowden 与 Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 系统综述了金融文本情感分析(含词典法与机器学习法)的最新进展与未来方向, 为本家族以词典法综合语调作为独立情感度量源 (dict_avg_tone) 提供最新方法论定位。
 
 ## VAR: city_leave1out_dict_tone_ctx
 
@@ -103,4 +110,5 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik instruments: What, when, why, and how. American Economic Review, 110(8), 2586-2624. https://doi.org/10.1257/aer.20181047
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
 <!-- rendered-citations:end -->

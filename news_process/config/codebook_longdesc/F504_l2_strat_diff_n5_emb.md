@@ -135,7 +135,14 @@ citations:
   vol: 57
   issue: 3
   pages_or_artno: 535-574
-new_dois: []
+- doi: "10.1007/s10479-026-07305-8"
+  type: journal
+  authors: "Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y."
+  year: 2026
+  title: "Uncovering financial network structures and connectedness from textual risk disclosures"
+  venue: "Annals of Operations Research"
+new_dois:
+  - "10.1007/s10479-026-07305-8"
 ---
 
 ## CORE
@@ -153,7 +160,7 @@ new_dois: []
 在识别层面, strat_diff_n5_emb 及其对偶多作为处理变量 (treatment) 或机制变量进入 strategic_diff 论文的回归, 其外生性并非天然成立: 一家银行的新闻叙事独特性可能与其规模、业务结构、市场地位等未观测异质性相关。因此该家族的因果解读依赖固定效应吸收 (银行与年份) 与工具变量策略 (面板 IV 列族: 同组 LOO 均值、广义 Bartik、媒体来源 house-style 暴露), 由 paper_spec 的 identification.iv 与对应 2SLS 模板承接。三条工具的直觉各不相同: 同组 LOO 均值利用同类同行的差异化水平作为暴露代理, 假设同组媒体环境冲击相关而个体特质外生; 广义 Bartik 把行业层面的语义冲击按各银行的初始暴露份额加权, 承接 Goldsmith-Pinkham 等与 Borusyak 等的份额/冲击外生性框架; 媒体来源 house-style 暴露则利用不同媒体固有的叙事风格差异, 把银行被哪些媒体报道视为准随机的暴露渠道。需要清醒认识到, 新闻叙事的独特性可能同时是银行真实战略选择的结果、也是媒体报道偏好的产物, 因此把本列当作纯粹外生的处理变量会有反向因果与遗漏变量之虞 — 正是这一内生性顾虑决定了本家族在 strategic_diff 论文中必须搭配固定效应与工具变量, 而非直接做 OLS 的因果解读。一个必须反复强调的口径铁律是: 本家族天然是多轨、多模型、多邻域 N 的规格族, 但这些平行测度彼此是"各自 just-identified 并排、互为稳健性、不分主次"的关系, 严禁把 MAIN 轨与 _lg 轨、或不同 N、或不同文本轨的多个孤儿工具混进同一个 over-identified 的 Hansen J 过度识别统计里 — 那样做会用同一构念的不同测量制造虚假的过度识别自由度, 破坏检验的可解释性。两条 co-primary 嵌入轨各自并排跑 just-identified 规格, 互为跨厂商稳健性佐证, 这与项目在情感 LLM 三家、BERT 三模型、政治词权重梯子上的纪律完全一致。一个具体的操作后果是: 在编写 strategic_diff 论文的复现 do 文件时, 若研究者希望同时展示 MAIN 与 _lg 两轨的结果, 正确做法是分列两张并排的 just-identified 回归表 (或同表两栏并置), 而非把两轨工具塞进同一 ivreg2 的工具集去做过度识别检验; 后者会人为制造并不存在的过度识别自由度, 并让 Hansen J 的拒绝/不拒绝失去构念意义。因为 MAIN 与 _lg 测的是同一"战略差异化"构念的两次不同嵌入实现, 它们在总体层面共享同一潜在真值, 用一个去工具化另一个既无外生性依据、也违背 co-primary 对等互证的设计初衷。
 
 【与相邻测度的构念区分】
-本家族须与三类相邻测度严格区分。其一, 与同在 strategic_diff 模块的 TF-IDF 轨 (strat_diff_n5、strat_diff_n5_w) 和 LDA 轨 (strat_diff_n5_lda) 区分: 三类方法测的是同一"最近邻战略差异度"构念, 但表征基底不同 — char/word 级 TF-IDF 捕捉表层词汇重合、LDA 捕捉主题分布距离、嵌入捕捉稠密语义等价; 三者互为稳健性检验, 且值域口径不同 (TF-IDF/LDA∈[0,1], 嵌入∈[0,2]), 不可直接比水平, 只可比标准化系数。其二, 与相似度类列 strat_sim_max_emb 区分: 后者取"到任一同行的最大相似度"、方向相反 (相似度高=差异化低), 且值域 [−1,1]; 本家族是"到 5 个最近邻的平均距离", 是聚合而非极值口径。其三, 与全行业质心距离 centroid_diff_emb 区分: 后者度量的是银行到整个行业质心的距离 (相对全行业中心的偏离), 本家族度量的是到局部最近邻簇的距离 (相对最相似同行的偏离); 前者是全局独特性、后者是局部独特性, 在同业高度分层时两者可显著背离。Steck 等 (2024) 提醒余弦相似度在某些嵌入几何下未必对应直觉的语义相似, 这也是本项目不单押一种测度、而以 TF-IDF/LDA/嵌入三方法并置互证的方法论审慎所在。第四, 与家族外相邻族的构念边界: 本家族测的是"银行 vs 银行"的战略差异化, 与网络溢出族测的"银行∧银行"结构指标、或情感族测的语调倾向属完全不同的构念空间, 命名上虽同带 strat 前缀却不可混用; 尤其须注意 strat_fluidity (市场流动性, 承接 Hoberg 等 2014 年的产品市场威胁度量) 测的是相邻期文本变动幅度而非同期同业差异, 与本家族的横截面最近邻距离正交。
+本家族须与三类相邻测度严格区分。其一, 与同在 strategic_diff 模块的 TF-IDF 轨 (strat_diff_n5、strat_diff_n5_w) 和 LDA 轨 (strat_diff_n5_lda) 区分: 三类方法测的是同一"最近邻战略差异度"构念, 但表征基底不同 — char/word 级 TF-IDF 捕捉表层词汇重合、LDA 捕捉主题分布距离、嵌入捕捉稠密语义等价; 三者互为稳健性检验, 且值域口径不同 (TF-IDF/LDA∈[0,1], 嵌入∈[0,2]), 不可直接比水平, 只可比标准化系数。其二, 与相似度类列 strat_sim_max_emb 区分: 后者取"到任一同行的最大相似度"、方向相反 (相似度高=差异化低), 且值域 [−1,1]; 本家族是"到 5 个最近邻的平均距离", 是聚合而非极值口径。其三, 与全行业质心距离 centroid_diff_emb 区分: 后者度量的是银行到整个行业质心的距离 (相对全行业中心的偏离), 本家族度量的是到局部最近邻簇的距离 (相对最相似同行的偏离); 前者是全局独特性、后者是局部独特性, 在同业高度分层时两者可显著背离。Steck 等 (2024) 提醒余弦相似度在某些嵌入几何下未必对应直觉的语义相似, 这也是本项目不单押一种测度、而以 TF-IDF/LDA/嵌入三方法并置互证的方法论审慎所在。第四, 与家族外相邻族的构念边界: 本家族测的是"银行 vs 银行"的战略差异化, 与网络溢出族测的"银行∧银行"结构指标、或情感族测的语调倾向属完全不同的构念空间, 命名上虽同带 strat 前缀却不可混用; 尤其须注意 strat_fluidity (市场流动性, 承接 Hoberg 等 2014 年的产品市场威胁度量) 测的是相邻期文本变动幅度而非同期同业差异, 与本家族的横截面最近邻距离正交。方法学上还可与近年基于文本风险披露构造企业间语义网络的研究相互印证: Li, Yuan, Zhu, Emrouznejad, Hao, & Jin (2026, Annals of Operations Research) 用文本风险披露构造企业间语义网络与连通性测度, 与本家族以新闻文本嵌入距离刻画银行间战略差异化的最近邻思路方法学同源, 两者都把"文本语义空间中的相对位置"作为主体间关系强弱的连续代理。
 
 【已知局限与稳健性梯子】
 已知局限有四。第一, 嵌入几何依赖: 不同模型的向量空间各向异性程度不同, 余弦距离的绝对水平不可跨模型比较, 只能比经标准化的回归系数 — 这是 co-primary 双轨设计的直接后果, 也是 Steck 等 (2024) 与 Rodriguez & Spirling (2022) 反复警示的陷阱。第二, 邻域 N 的选择敏感性: N=5 是承接文献的常用设定而非唯一真值, 故物化了 N∈{10,20,30,40,50} 大邻域梯子作为稳健臂, 各 N 值各自 just-identified 并排、禁混同一 Hansen J。第三, 文本轨口径: 三轨 (full/ctx/ss) 分别对应全文、实体窗口与同句共现三种信噪权衡; full 轨信息最全但可能稀释银行金科主题, ss 轨最聚焦但在无同句共现时按镜像 ctx 的回退语义退化为全文 body (ss_is_fallback=True, 共享 n_articles 分母)。第四, 样本深度: 在 T=2 的本机开发面板上, 同年可比同行数量偏少时最近邻集合不稳定 — 当同期银行总数逼近或不足 N+1 时, 最近邻集合几乎覆盖全体同业, 差异度退化为到全行业的平均距离, 失去"局部独特性"的鉴别力; 生产 T=18、覆盖 2007–2024 全量语料的面板方能充分识别, 届时同期横截面银行数量充足, N=5 邻域才真正落在同业分布的局部。第五, 聚合口径的选择敏感性: 银行-年画像由篇级向量聚合而来, 聚合方式 (等权平均 vs 报道量加权) 会影响头部媒体密集报道年份的画像, 这一维度当前固定, 未展开为独立梯子, 属刻意的复杂度收敛而非疏漏, 后续若有必要可作为增量梯子单独物化, 但须警惕与既有轨/模型/N 维度的列数组合爆炸。第六, 嵌入缓存与确定性: 嵌入族受 NEWS_PROCESS_LLM_OFFLINE 守卫, 缓存 0-miss 时可离线零成本字节级复现, 但换嵌入模型属受控全量重生事件, 须先删盘上冻结阈值文件并披露厂商与维度变更的数值副作用。稳健性梯子因而是多维正交并置的: co-primary 双轨 (Qwen 与 text-embedding-3-large) × 三文本轨 (full/ctx/ss) × 邻域 N 梯子 × 三表征方法 (TF-IDF/LDA/嵌入); 每一维的各臂都是"互为稳健性、不分主次"的 just-identified 规格并排, 跨模型的正式族错误率控制由根级 rwolf 模板承担, 而本族内部的多轨多 N 属规格稳健性并排, 不设 FWER 模板, 更严禁把任意两臂的工具混进同一 over-identified Hansen J。
@@ -204,4 +211,5 @@ Haans, R. F. J. (2019). What's the value of being different when everyone is? Th
 Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Siamese BERT-networks. Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing, 3980-3990. https://doi.org/10.18653/v1/D19-1410
 Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous product differentiation. Journal of Political Economy, 124(5), 1423-1465. https://doi.org/10.1086/688176
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
+Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
 <!-- rendered-citations:end -->

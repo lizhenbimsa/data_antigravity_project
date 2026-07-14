@@ -57,7 +57,14 @@ citations:
   year: 1994
   title: "Substance and symbolism in CEOs' long-term incentive plans"
   venue: Administrative Science Quarterly
-new_dois: []
+- doi: "10.1016/j.ribaf.2022.101873"
+  title: "Peer effects in financial economics: A literature survey"
+  authors: "Ali-Rind, A., Boubaker, S., & Jarjir, S. L."
+  year: 2023
+  venue: "Research in International Business and Finance"
+  type: "journal"
+new_dois:
+- "10.1016/j.ribaf.2022.101873"
 ---
 
 ## CORE
@@ -67,7 +74,7 @@ new_dois: []
 【方法学与计算】
 构造分两步。第一步取分子构念: sub_frac_sc 是 ctx 轨 (标题+实体窗口文本) 下, 经三家 LLM 多数投票+关键词回退的 innovation_substantiveness 分类结果聚合到银行-年层面的"实质性"篇均占比 (verified 门控分母为该轨自身留篇集); sub_frac_ss 是 ss 轨 (标题+银行∧金科词同句±N窗) 下的镜像同名占比, 回退语义与 ctx 一致 (无同句共现则整篇作 fallback 计入全文 body, ss_is_fallback=True)。第二步在银行-年面板上, 对每个 (bank_type, year) 分组内的全部银行取该轨占比的算术均值, 再对每家银行 i 减去其自身贡献后重新平均, 得到留一均值, 即 lpeer_subst_iv_ctx / lpeer_subst_iv_ss; _lag1 两列在此基础上按面板整体错后一期, 用 t-1 期同侪 LOO 均值解释 t 期内生变量, 进一步削弱同期共同冲击对排他性的直接威胁, 也便于吸收年份固定效应后仍保留识别力。命名上四列均带 lpeer_ 紧凑前缀 (而非各论文既有的 leave_one_out_peer_ 全称), 是因为 ctx/ss 轨镜像扩列后若沿用长前缀会超出 Stata 变量名 32 字符上限产生截断歧义, lpeer_subst_iv_ss_lag1 (22 字符) 与 lpeer_subst_iv_ctx_lag1 (23 字符) 均在安全边界内, stata_export.py 的 HEURISTIC_LABELS 沿用同一命名前缀直接引名而不再另设映射表。
 【文献定位】
-本族工具变量的识别谱系上溯 Manski (1993) 对同侪效应识别中"反射问题"的经典刻画, 中游经 Leary & Roberts (2014) 在企业融资政策研究中系统化的同行均值工具实践, 亦与 Goldsmith-Pinkham, Sorkin & Swift (2020) 对 Bartik/shift-share 类工具识别假设的形式化讨论互为方法论参照 (本族与同家族并列的 bartik_subst_iv_* 工具是同一内生变量的另一识别策略, 二者构造机制不同、排他性依据不同, 详见后述与相邻测度的构念区分)。构念本身承接 Westphal & Zajac (1994, 1998) 开创、并经本项目 P3 论文延伸到中国银行业金科新闻语境的"实质性 vs 象征性"创新话语二分, sub_frac 的 LLM 分类口径与文本轨道设计参照 Bingler et al. (2024) 在气候信息披露"廉价言辞"(cheap talk) 识别中对实质性语言与言辞性语言的区分方法论, 以及 Duchin, Gao & Xu (2025) 对披露内容与实际行动脱钩现象的实证检验框架; Flammer (2021) 关于企业绿色债券认证与后续环境绩效关系的研究, 为"话语是否兑现为实质行动"这一构念提供了另一路径的外部效度参照。
+本族工具变量的识别谱系上溯 Manski (1993) 对同侪效应识别中"反射问题"的经典刻画, 中游经 Leary & Roberts (2014) 在企业融资政策研究中系统化的同行均值工具实践, 亦与 Goldsmith-Pinkham, Sorkin & Swift (2020) 对 Bartik/shift-share 类工具识别假设的形式化讨论互为方法论参照 (本族与同家族并列的 bartik_subst_iv_* 工具是同一内生变量的另一识别策略, 二者构造机制不同、排他性依据不同, 详见后述与相邻测度的构念区分)。构念本身承接 Westphal & Zajac (1994, 1998) 开创、并经本项目 P3 论文延伸到中国银行业金科新闻语境的"实质性 vs 象征性"创新话语二分, sub_frac 的 LLM 分类口径与文本轨道设计参照 Bingler et al. (2024) 在气候信息披露"廉价言辞"(cheap talk) 识别中对实质性语言与言辞性语言的区分方法论, 以及 Duchin, Gao & Xu (2025) 对披露内容与实际行动脱钩现象的实证检验框架; Flammer (2021) 关于企业绿色债券认证与后续环境绩效关系的研究, 为"话语是否兑现为实质行动"这一构念提供了另一路径的外部效度参照。Ali-Rind, Boubaker & Jarjir (2023, Research in International Business and Finance) 系统综述金融经济学中同侪效应的识别策略, 包括留一同侪均值工具与反射问题应对方案, 为本家族以同类型银行留一同侪均值构造工具变量的做法提供最新方法论综述支撑。
 四列均为 tier=standard, 不含 core 列, 因此本节不设识别策略定位与已知局限专节 (相关铁律陈述见各 VAR 节尾)。
 
 ## VAR: lpeer_subst_iv_ctx
@@ -98,4 +105,5 @@ Manski, C. F. (1993). Identification of endogenous social effects: The reflectio
 Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik instruments: What, when, why, and how. American Economic Review. https://doi.org/10.1257/aer.20181047
 Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate financial policy?. The Journal of Finance. https://doi.org/10.1111/jofi.12094
 Westphal, J. D., & Zajac, E. J. (1994). Substance and symbolism in CEOs' long-term incentive plans. Administrative Science Quarterly. https://doi.org/10.2307/2393295
+Ali-Rind, A., Boubaker, S., & Jarjir, S. L. (2023). Peer effects in financial economics: A literature survey. Research in International Business and Finance. https://doi.org/10.1016/j.ribaf.2022.101873
 <!-- rendered-citations:end -->

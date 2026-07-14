@@ -1,5 +1,6 @@
 ---
 family_id: F193
+novelty_exempt_rationale: "该家族(dict_pos_substvalid_count)正文明确自陈'并非独立构念度量,而是洗稿率(方法D词典均值臂)除法中被刻意收窄的同域分母',是 dict_pos_count 的技术性排除/有效性收窄变体(substvalid = 实质性属性可测同域筛选),其测度定义学术依据已在母族词典文献(Loughran & McDonald 2011; Du et al. 2022; Bian et al. 2021等)及洗稿率上位构念文献中给出,非独立新构念,故豁免新颖度追新引文要求。"
 columns:
 - dict_pos_substvalid_count_ctx
 - dict_pos_substvalid_count_full

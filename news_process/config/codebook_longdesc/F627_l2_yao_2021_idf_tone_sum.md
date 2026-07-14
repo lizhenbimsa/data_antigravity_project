@@ -16,6 +16,7 @@ citations:
 - {doi: '10.1257/jel.20181020', type: journal, authors: 'Gentzkow, M., Kelly, B., & Taddy, M.', year: 2019, title: 'Text as Data', venue: 'Journal of Economic Literature', vol: '57', issue: '3', pages_or_artno: '535-574'}
 - {doi: '10.1017/CBO9780511809071', type: book, authors: 'Manning, C. D., Raghavan, P., & Schütze, H.', year: 2008, title: 'Introduction to Information Retrieval', venue: 'Cambridge University Press'}
 new_dois: []
+novelty_exempt_rationale: "该家族是 yao_2021 词典语调测度的聚合算子变体(idf 加权+sum 聚合, 与同模块 mean 口径的 idf_tone 姊妹列共享同一篇章级打分, 仅聚合算子不同), 属于词典加权/聚合谱系的技术性衍生测度而非独立新构念, 其学术依据已由母族词典文献(Du 2022)及 word power/IDF 加权方法学文献(Jegadeesh & Wu 2013; Gentzkow et al. 2019)在正文中充分给出。"
 ---
 
 ## CORE

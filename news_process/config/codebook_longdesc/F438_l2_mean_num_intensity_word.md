@@ -11,125 +11,139 @@ upstream:
   - 14_materialize_ctx.parquet (content_full / content_ctx / content_ss)
   - 22_tone stage (num_intensity_word_{full,ctx,ss} 文章级列)
 citations:
-  - doi: 10.1111/jbfa.70056
-    type: journal
-    authors: Taraj, I., & Wahlström, R. R.
-    year: 2026
-    title: "Narratives contextualizing numeric disclosures: Insights from earnings calls"
-    venue: Journal of Business Finance & Accounting
-    vol: 53
-    issue: 3
-    pages_or_artno: 1263-1286
-  - doi: 10.1111/1475-679X.70058
-    type: journal
-    authors: Levy, B.
-    year: 2026
-    title: "Caution ahead: Numerical reasoning and look-ahead bias in AI models"
-    venue: Journal of Accounting Research
-    vol: 64
-    issue: 3
-    pages_or_artno: 1139-1188
-  - doi: 10.1016/j.jcorpfin.2025.102813
-    type: journal
-    authors: Campbell, J. L., Zheng, X., & Zhou, D.
-    year: 2025
-    title: "Number of numbers: Does a greater proportion of quantitative textual disclosure reduce information risk?"
-    venue: Journal of Corporate Finance
-    vol: 94
-    pages_or_artno: 102813
-  - doi: 10.1111/1467-8551.12853
-    type: journal
-    authors: Cai, W., Shi, W., & Jiang, F.
-    year: 2025
-    title: "Cheap talk? Strategy disclosure intensity, corporate risk-taking and financial performance"
-    venue: British Journal of Management
-    vol: 36
-    issue: 1
-    pages_or_artno: 361-382
-  - doi: 10.1287/mnsc.2024.05417
-    type: journal
-    authors: Siano, F.
-    year: 2025
-    title: "The news in earnings announcement disclosures: Capturing word context using LLM methods"
-    venue: Management Science
-    vol: 71
-    issue: 11
-    pages_or_artno: 9831-9855
-  - doi: 10.1057/s41599-025-06094-y
-    type: journal
-    authors: Lesmy, D., Muchnik, L., & Mugerman, Y.
-    year: 2025
-    title: "Lost in the fog: Growing complexity in financial reporting — A comparative study"
-    venue: Humanities and Social Sciences Communications
-    vol: 12
-    pages_or_artno: 848
-  - doi: 10.1103/rxxz-lk3n
-    type: journal
-    authors: Rosillo-Rodes, P., San Miguel, M., & Sánchez, D.
-    year: 2025
-    title: "Entropy and type-token ratio in gigaword corpora"
-    venue: Physical Review Research
-    vol: 7
-    issue: 3
-    pages_or_artno: 033054
-  - doi: 10.48550/arXiv.2511.17866
-    type: arxiv
-    authors: Hartley, E.
-    year: 2025
-    title: "Narratives to numbers: Large language models and economic policy uncertainty"
-    venue: arXiv
-    pages_or_artno: 2511.17866
-  - doi: 10.48550/arXiv.2511.04935
-    type: arxiv
-    authors: Isler, C.
-    year: 2025
-    title: "Words matter: Forecasting economic downside risks with corporate textual data"
-    venue: arXiv
-    pages_or_artno: 2511.04935
-  - doi: 10.1016/j.jfineco.2022.11.006
-    type: journal
-    authors: García, D., Hu, X., & Rohrer, M.
-    year: 2023
-    title: "The colour of finance words"
-    venue: Journal of Financial Economics
-    vol: 147
-    issue: 3
-    pages_or_artno: 525-549
-  - doi: 10.1016/j.jfineco.2013.08.018
-    type: journal
-    authors: Jegadeesh, N., & Wu, D.
-    year: 2013
-    title: "Word power: A new approach for content analysis"
-    venue: Journal of Financial Economics
-    vol: 110
-    issue: 3
-    pages_or_artno: 712-729
-  - doi: 10.1177/0261927X09351676
-    type: journal
-    authors: Tausczik, Y. R., & Pennebaker, J. W.
-    year: 2010
-    title: "The psychological meaning of words: LIWC and computerized text analysis methods"
-    venue: Journal of Language and Social Psychology
-    vol: 29
-    issue: 1
-    pages_or_artno: 24-54
-  - doi: 10.1111/j.1540-6261.2008.01362.x
-    type: journal
-    authors: Tetlock, P. C., Saar-Tsechansky, M., & Macskassy, S.
-    year: 2008
-    title: "More than words: Quantifying language to measure firms' fundamentals"
-    venue: The Journal of Finance
-    vol: 63
-    issue: 3
-    pages_or_artno: 1437-1467
-  - doi: 10.3115/1119250.1119269
-    type: journal
-    authors: Sproat, R., & Emerson, T.
-    year: 2003
-    title: "The first international Chinese word segmentation bakeoff"
-    venue: Proceedings of the Second SIGHAN Workshop on Chinese Language Processing
-    pages_or_artno: 133-143
-new_dois: []
+- doi: 10.1111/jbfa.70056
+  type: journal
+  authors: Taraj, I., & Wahlström, R. R.
+  year: 2026
+  title: "Narratives contextualizing numeric disclosures: Insights from earnings calls"
+  venue: Journal of Business Finance & Accounting
+  vol: 53
+  issue: 3
+  pages_or_artno: 1263-1286
+- doi: 10.1111/1475-679X.70058
+  type: journal
+  authors: Levy, B.
+  year: 2026
+  title: "Caution ahead: Numerical reasoning and look-ahead bias in AI models"
+  venue: Journal of Accounting Research
+  vol: 64
+  issue: 3
+  pages_or_artno: 1139-1188
+- doi: 10.1016/j.jcorpfin.2025.102813
+  type: journal
+  authors: Campbell, J. L., Zheng, X., & Zhou, D.
+  year: 2025
+  title: "Number of numbers: Does a greater proportion of quantitative textual disclosure reduce information risk?"
+  venue: Journal of Corporate Finance
+  vol: 94
+  pages_or_artno: 102813
+- doi: 10.1111/1467-8551.12853
+  type: journal
+  authors: Cai, W., Shi, W., & Jiang, F.
+  year: 2025
+  title: "Cheap talk? Strategy disclosure intensity, corporate risk-taking and financial performance"
+  venue: British Journal of Management
+  vol: 36
+  issue: 1
+  pages_or_artno: 361-382
+- doi: 10.1287/mnsc.2024.05417
+  type: journal
+  authors: Siano, F.
+  year: 2025
+  title: "The news in earnings announcement disclosures: Capturing word context using LLM methods"
+  venue: Management Science
+  vol: 71
+  issue: 11
+  pages_or_artno: 9831-9855
+- doi: 10.1057/s41599-025-06094-y
+  type: journal
+  authors: Lesmy, D., Muchnik, L., & Mugerman, Y.
+  year: 2025
+  title: "Lost in the fog: Growing complexity in financial reporting — A comparative study"
+  venue: Humanities and Social Sciences Communications
+  vol: 12
+  pages_or_artno: 848
+- doi: 10.1103/rxxz-lk3n
+  type: journal
+  authors: Rosillo-Rodes, P., San Miguel, M., & Sánchez, D.
+  year: 2025
+  title: "Entropy and type-token ratio in gigaword corpora"
+  venue: Physical Review Research
+  vol: 7
+  issue: 3
+  pages_or_artno: 033054
+- doi: 10.48550/arXiv.2511.17866
+  type: arxiv
+  authors: Hartley, E.
+  year: 2025
+  title: "Narratives to numbers: Large language models and economic policy uncertainty"
+  venue: arXiv
+  pages_or_artno: 2511.17866
+- doi: 10.48550/arXiv.2511.04935
+  type: arxiv
+  authors: Isler, C.
+  year: 2025
+  title: "Words matter: Forecasting economic downside risks with corporate textual data"
+  venue: arXiv
+  pages_or_artno: 2511.04935
+- doi: 10.1016/j.jfineco.2022.11.006
+  type: journal
+  authors: García, D., Hu, X., & Rohrer, M.
+  year: 2023
+  title: "The colour of finance words"
+  venue: Journal of Financial Economics
+  vol: 147
+  issue: 3
+  pages_or_artno: 525-549
+- doi: 10.1016/j.jfineco.2013.08.018
+  type: journal
+  authors: Jegadeesh, N., & Wu, D.
+  year: 2013
+  title: "Word power: A new approach for content analysis"
+  venue: Journal of Financial Economics
+  vol: 110
+  issue: 3
+  pages_or_artno: 712-729
+- doi: 10.1177/0261927X09351676
+  type: journal
+  authors: Tausczik, Y. R., & Pennebaker, J. W.
+  year: 2010
+  title: "The psychological meaning of words: LIWC and computerized text analysis methods"
+  venue: Journal of Language and Social Psychology
+  vol: 29
+  issue: 1
+  pages_or_artno: 24-54
+- doi: 10.1111/j.1540-6261.2008.01362.x
+  type: journal
+  authors: Tetlock, P. C., Saar-Tsechansky, M., & Macskassy, S.
+  year: 2008
+  title: "More than words: Quantifying language to measure firms' fundamentals"
+  venue: The Journal of Finance
+  vol: 63
+  issue: 3
+  pages_or_artno: 1437-1467
+- doi: 10.3115/1119250.1119269
+  type: journal
+  authors: Sproat, R., & Emerson, T.
+  year: 2003
+  title: "The first international Chinese word segmentation bakeoff"
+  venue: Proceedings of the Second SIGHAN Workshop on Chinese Language Processing
+  pages_or_artno: 133-143
+- doi: "10.1016/j.frl.2025.107917"
+  title: "Decoding CSR report: How report readability and tone influence M&A target and acquirer likelihood"
+  authors: "Li, Y."
+  year: 2025
+  venue: "Finance Research Letters"
+  type: "journal"
+- doi: "10.1057/s41599-024-04169-w"
+  title: "Are risk disclosures in financial reports informative? A text mining-based perspective"
+  authors: "Zhu, X., Li, J., & Wang, Y."
+  year: 2024
+  venue: "Humanities and Social Sciences Communications"
+  type: "journal"
+new_dois:
+  - "10.1016/j.frl.2025.107917"
+  - "10.1057/s41599-024-04169-w"
 ---
 
 ## CORE
@@ -153,7 +167,7 @@ new_dois: []
 从计算流程的端到端视角再复述一遍数据谱系, 有助于使用者定位每一步的口径来源。原始新闻语料经 stage 00 预处理、stage 11/12 银行与金融科技实体识别、stage 13 共现硬过滤 (只保留目标银行与至少一个金科词邻近共现的报道) 后, 在 stage 14 由 ctx_materializer 物化出 content_full / content_ctx / content_ss 三条真实文本列 (标题一律 prepend 到正文之前, 原始"内容"列不动); 数值强度阶段对三条文本列各独立调用 compute_num_intensity 与 compute_num_intensity_word (二者经 _num_intensity_both 共享一次 cn2arab 转换以省算力), 产出 num_intensity_word_{full,ctx,ss} 六列 (句级词级各三轨) 的文章级值; 最终在 stage 40 面板导出时由 encode_collab.aggregate_num_intensity_panel 把文章级词级值按媒体权威×羊群衰减权重聚合到 (target_bank, year) 粒度, 并在 export.py 打上 Stata 标签 "Num Intensity per-Word (Full/Ctx)"。整条链路无任何 LLM/嵌入调用, 是纯确定性文本计量。需要提醒的是, stage 13 的共现硬过滤已在样本框层面保证进入面板的报道都与目标银行及金融科技存在邻近共现, 因此本家族测得的数字密度是"金融科技相关的银行报道"这一特定语料上的密度, 而非银行全部报道的密度 — 这一样本框限定对解释系数至关重要: 它刻画的是当媒体在金融科技语境下谈论某银行时, 报道有多依赖定量事实。此外, 文章级中间列 (num_intensity_word_{full,ctx,ss}) 仅服务于面板聚合, 面板落盘的是银行-年粒度的加权均值列, 使用者在计量分析中直接消费的是后者。
 
 【文献定位】
-本家族坐落于计算文本分析中"定量披露密度"这一支。与语调/情绪测度族 (Tetlock, Saar-Tsechansky 与 Macskassy 2008; García, Hu 与 Rohrer 2023) 相比, 数值强度不判断文本的正负色彩, 而只计数其定量事实密度, 两者正交; 与词权重/内容分析法 (Jegadeesh 与 Wu 2013 的 word power) 相比, 本测度不做监督式词权重学习, 而是一个无监督的、可解释的密度比。与文本复杂度/可读性族 (Lesmy, Muchnik 与 Mugerman 2025; Rosillo-Rodes, San Miguel 与 Sánchez 2025 的 type-token ratio) 相比, 数字密度是内容维度而非语言难度维度, 尽管二者都以词级归一化为分母而在方法学上相邻。披露强度构念在近期公司金融研究中被独立检验 (Cai, Shi 与 Jiang 2025 关于策略披露强度与风险承担; Campbell, Zheng 与 Zhou 2025 关于数字比例与信息风险), 而大语言模型时代的文本-数字交互 (Siano 2025 对盈余披露词语语境的 LLM 捕捉; Levy 2026 对 AI 模型数值推理与前视偏差的警示; Hartley 2025) 进一步凸显了保留一个透明、确定性、可复现的数字密度基线测度的价值 — 本家族正是这样一个不依赖任何 LLM、逐位可复现的定量基线。进一步地, 数字密度与文本可读性/复杂度在方法学上相邻却在构念上正交: Lesmy, Muchnik 与 Mugerman (2025) 记录了财务报告复杂度的时序上升, Rosillo-Rodes, San Miguel 与 Sánchez (2025) 以 type-token ratio (亦是词级归一化) 刻画语料多样性, 二者都提醒我们词级分母的选择会影响测度的可比性 — 而本家族恰以词级归一化 (Sproat 与 Emerson 2003 所奠定的中文分词框架下的 jieba 词数) 为分母, 与这一支共享方法学地基但测量的是数字内容而非词汇多样性。在中文语境的特殊性上, Tausczik 与 Pennebaker (2010) 的 LIWC 传统提示词类计数 (功能词、数量词等) 的心理与信息含义, 而中文分词的歧义使得词级计数本身需要一个冻结、可复现的分词标准, 这正是项目钉死 jieba 版本的原因。
+本家族坐落于计算文本分析中"定量披露密度"这一支。与语调/情绪测度族 (Tetlock, Saar-Tsechansky 与 Macskassy 2008; García, Hu 与 Rohrer 2023) 相比, 数值强度不判断文本的正负色彩, 而只计数其定量事实密度, 两者正交; 与词权重/内容分析法 (Jegadeesh 与 Wu 2013 的 word power) 相比, 本测度不做监督式词权重学习, 而是一个无监督的、可解释的密度比。与文本复杂度/可读性族 (Lesmy, Muchnik 与 Mugerman 2025; Rosillo-Rodes, San Miguel 与 Sánchez 2025 的 type-token ratio) 相比, 数字密度是内容维度而非语言难度维度, 尽管二者都以词级归一化为分母而在方法学上相邻。披露强度构念在近期公司金融研究中被独立检验 (Cai, Shi 与 Jiang 2025 关于策略披露强度与风险承担; Campbell, Zheng 与 Zhou 2025 关于数字比例与信息风险), 而大语言模型时代的文本-数字交互 (Siano 2025 对盈余披露词语语境的 LLM 捕捉; Levy 2026 对 AI 模型数值推理与前视偏差的警示; Hartley 2025) 进一步凸显了保留一个透明、确定性、可复现的数字密度基线测度的价值 — 本家族正是这样一个不依赖任何 LLM、逐位可复现的定量基线。进一步地, 数字密度与文本可读性/复杂度在方法学上相邻却在构念上正交: Lesmy, Muchnik 与 Mugerman (2025) 记录了财务报告复杂度的时序上升, Rosillo-Rodes, San Miguel 与 Sánchez (2025) 以 type-token ratio (亦是词级归一化) 刻画语料多样性, 二者都提醒我们词级分母的选择会影响测度的可比性 — 而本家族恰以词级归一化 (Sproat 与 Emerson 2003 所奠定的中文分词框架下的 jieba 词数) 为分母, 与这一支共享方法学地基但测量的是数字内容而非词汇多样性。在中文语境的特殊性上, Tausczik 与 Pennebaker (2010) 的 LIWC 传统提示词类计数 (功能词、数量词等) 的心理与信息含义, 而中文分词的歧义使得词级计数本身需要一个冻结、可复现的分词标准, 这正是项目钉死 jieba 版本的原因。该文用 BERT 深度学习方法度量企业社会责任报告的文本复杂度与语调, 检验其对并购目标/收购方可能性的影响, 与本家族共享"文本定量密度/复杂度作为披露实质性代理"的方法学地基, 引用格式作者 Li (2025, Finance Research Letters)。该文用文本挖掘方法检验金融报告风险披露的具体性与信息含量, 以次贷危机为真实风险事件验证披露语言从模糊到具体的变化, 与本家族"数字密度刻画硬信息含量"的构念动机相呼应, 引用格式作者 Zhu, Li 与 Wang (2024, Humanities and Social Sciences Communications)。
 
 【识别策略定位】
 在计量识别中, mean_num_intensity_word 主要充当文本"实质性/硬信息含量"的处理变量或稳健性协变量, 而非结果变量。它与句级版 mean_num_intensity (以句子数为分母) 构成对"归一化分母选择"的稳健性对: 中文新闻句号使用比英文 sparse (长句多逗号), 句级分母系统性偏低、放大数字密度; 词级版改以 jieba 词数为分母规避中英文句读差异。两种分母口径互为稳健性、不分主次, 纪律上不以二者相关系数高低取舍, 而是各自独立进入各自回归、各自 just-identified 并排, 严禁把句级列与词级列混进同一条 over-identified Hansen J。此外三轨 (full/ctx/ss) 亦是识别层面的规格稳健性并排轨, 同样禁混同一过度识别式。留篇门控与 n_articles 分母遵循 full-only 口径 (2026-06-29): 一篇报道是否计入某银行-年样本, 由 full 轨的 LLM verified 判定决定, ctx/ss 降为 conditional-on-full 的测度轨, 因此三轨面板列共享同一 full 留篇集为行宇宙, 各轨 per-track 分子分母照各自轨算。
@@ -194,4 +208,6 @@ Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis.
 Tausczik, Y. R., & Pennebaker, J. W. (2010). The psychological meaning of words: LIWC and computerized text analysis methods. Journal of Language and Social Psychology, 29(1), 24-54. https://doi.org/10.1177/0261927X09351676
 Tetlock, P. C., Saar-Tsechansky, M., & Macskassy, S. (2008). More than words: Quantifying language to measure firms' fundamentals. The Journal of Finance, 63(3), 1437-1467. https://doi.org/10.1111/j.1540-6261.2008.01362.x
 Sproat, R., & Emerson, T. (2003). The first international Chinese word segmentation bakeoff. Proceedings of the Second SIGHAN Workshop on Chinese Language Processing, 133-143. https://doi.org/10.3115/1119250.1119269
+Li, Y. (2025). Decoding CSR report: How report readability and tone influence M&A target and acquirer likelihood. Finance Research Letters. https://doi.org/10.1016/j.frl.2025.107917
+Zhu, X., Li, J., & Wang, Y. (2024). Are risk disclosures in financial reports informative? A text mining-based perspective. Humanities and Social Sciences Communications. https://doi.org/10.1057/s41599-024-04169-w
 <!-- rendered-citations:end -->

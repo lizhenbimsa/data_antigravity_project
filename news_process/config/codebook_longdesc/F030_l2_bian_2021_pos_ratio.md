@@ -124,9 +124,37 @@ citations:
   vol: 66
   issue: 1
   pages_or_artno: 35-65
+- doi: "10.1016/j.jfineco.2022.11.006"
+  type: journal
+  authors: "García, D., Hu, X., & Rohrer, M."
+  year: 2023
+  title: "The colour of finance words"
+  venue: "Journal of Financial Economics"
+- doi: "10.1016/j.ribaf.2025.102881"
+  type: journal
+  authors: "Wei, L., Wei, M., Jing, H., & Jing, Z."
+  year: 2025
+  title: "Annual report tone and bank risk-taking behavior: Evidence from China"
+  venue: "Research in International Business and Finance"
+- doi: "10.1002/mde.70100"
+  title: "The Textual Tone of Annual Reports and Market Attention: Evidence From Chinese Listed Companies"
+  authors: "Li, Y."
+  year: 2026
+  venue: "Managerial and Decision Economics"
+  type: "journal"
+- doi: "10.3390/bdcc9100263"
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  venue: "Big Data and Cognitive Computing"
+  type: "journal"
 new_dois:
 - 10.1111/jofi.12027
 - 10.1111/j.1540-6261.2010.01625.x
+- "10.1016/j.jfineco.2022.11.006"
+- "10.1016/j.ribaf.2025.102881"
+- "10.1002/mde.70100"
+- "10.3390/bdcc9100263"
 ---
 
 ## CORE
@@ -144,7 +172,7 @@ new_dois:
 有两点契约值得写明。其一, 管道对部分词典存在的正负跨类重叠词按"保留且两侧同时计数"处理 (对净分贡献为零、对归一化分母贡献两倍幅值, 把该词语调拉向中性而非武断选边剔除); 但 CFSD 本身正负集合的交集为空、无跨类重叠词, 该机制对本家族是空集, 不产生任何计数影响, 使得本家族的正面计数是纯粹的单侧计数。其二, 缺失语义采用 NaN 而非零: 空文本、纯符号文本、分词后无有效 word-token、或词典加载缺失时, 文章级值一律置 NaN, 绝不以零冒充"测得无正面词", 这保证了后续均值聚合不会被伪零系统性拉低。文章级比率按六位小数舍入落盘, 三轨各成一列。面板级在 panel 编码层的单词典 pos_ratio/neg_ratio 聚合段完成: 按银行乘年份分组, 对组内文章级比率取算术均值 (pandas mean, 跳过 NaN), 得 avg_bian_2021_pos_ratio 三轨列。聚合行宇宙遵循 2026-06-29 起生效的 full-only 留篇门控: 一篇报道是否进入银行-年聚合只由全文轨 LLM 复核通过与否决定, 实体窗轨与同句轨作为 conditional-on-full 的测度轨在同一行宇宙内逐轨取值, 不另设独立的留篇判定。面板下游的直接消费者是词级情感分歧指标 (disag_bian_2021 三轨列): 以本列与负面孪生列为输入, 度量正负语调在银行-年内的对冲程度, 分母为正负比率之和、和为零时置 NaN。另一处诊断性消费在面板导出层的距离衰减敏感性检验: bian_2021 与其余五部词典一道进入 uniform 对 inverse 暴露加权的相关性诊断清单, 用于披露衰减权重设定是否影响词典族测度。
 
 【文献定位】
-本家族在文献坐标系中位于三条线的交点。第一条是金融文本词典法的主谱系: Loughran 与 McDonald (2011) 确立了领域专用词典相对通用词典的必要性, 指出通用负面词表在财务语境下大量误判, 也定义了"词数占比"这一分母口径, 本家族的 word-token 分母正是其中文实现; Garcia (2013) 确立了正负极性分离的计量形式, 本家族即其正面分量在中文银行新闻语境下的词典实现; Hansen、McMahon 与 Prat (2018) 则代表文本即数据方法在央行与金融机构沟通研究中的规范化, 说明基于透明规则的文本测度在顶级期刊识别设计中的可用性。第二条是中文金融情感词典的本土化谱系: Du 等 (2022) 系统论证了"语言与领域双重特异性", 表明把英文词典机械翻译到中文金融语境会同时丢失语言习惯与领域语义, 必须以中文金融语料重建词表, 这为项目并排使用六部中文词典而非单一译本提供了直接依据; Bian 等 (2021) 的 CFSD 是这一谱系中面向会计与金融文本分析的专门词典, 也即本家族的词表来源; Ma、Zhang 与 Zhang (2025) 构建的面向中国境内投资者的细粒度情感词典代表该谱系的最新进展, 其对词典粒度与应用场景的讨论可作为本家族词表粒度局限的对照; Sun、Yuan 与 Xu (2025) 则展示了词典知识与预训练语言模型融合的混合路线, 呼应本仓库词典轨、LLM 轨与 BERT 轨并行的三法互稳设计。第三条是银行与媒体情感的应用文献: Fang 等 (2024) 用中国银行业语料证明媒体情感影响存款稳定性并传导至系统性风险, 与本面板"银行-年媒体语调"的构念直接同域; Chen、Goldstein、Huang 与 Vashishtha (2022) 表明银行信息环境的透明度实质影响存款人行为, 为"新闻文本的正面强度是银行信息环境的可测维度"提供理论支点; Anastasiou、Katsafados 与 Tzomakas (2026) 以文本特征预测银行股价崩盘风险, 说明银行文本情感分量在风险预测语境下具有独立信息含量。方法效度层面, van Atteveldt、van der Velden 与 Boukes (2021) 对人工标注、众包、词典法与机器学习做系统比较, 提示词典法效度存在天花板, 这正是本家族被定位为稳健性旁证而非 canonical 主测度的文献依据; Li、Mai、Shen 与 Yan (2021) 的机器学习文化测度则从反面说明: 当研究需要可解释、可审计、跨研究者完全可复现的测度时, 固定词表方法仍不可替代。制度语境层面, Piotroski、Wong 与 Zhang (2017) 记录了中国企业新闻的政治性偏差结构, 提示中文财经媒体的正面基调含制度性成分, 解读本列水平值时必须结合固定效应设计。
+本家族在文献坐标系中位于三条线的交点。第一条是金融文本词典法的主谱系: Loughran 与 McDonald (2011) 确立了领域专用词典相对通用词典的必要性, 指出通用负面词表在财务语境下大量误判, 也定义了"词数占比"这一分母口径, 本家族的 word-token 分母正是其中文实现; Garcia (2013) 确立了正负极性分离的计量形式, 本家族即其正面分量在中文银行新闻语境下的词典实现; Hansen、McMahon 与 Prat (2018) 则代表文本即数据方法在央行与金融机构沟通研究中的规范化, 说明基于透明规则的文本测度在顶级期刊识别设计中的可用性。第二条是中文金融情感词典的本土化谱系: Du 等 (2022) 系统论证了"语言与领域双重特异性", 表明把英文词典机械翻译到中文金融语境会同时丢失语言习惯与领域语义, 必须以中文金融语料重建词表, 这为项目并排使用六部中文词典而非单一译本提供了直接依据; Bian 等 (2021) 的 CFSD 是这一谱系中面向会计与金融文本分析的专门词典, 也即本家族的词表来源; Ma、Zhang 与 Zhang (2025) 构建的面向中国境内投资者的细粒度情感词典代表该谱系的最新进展, 其对词典粒度与应用场景的讨论可作为本家族词表粒度局限的对照; Sun、Yuan 与 Xu (2025) 则展示了词典知识与预训练语言模型融合的混合路线, 呼应本仓库词典轨、LLM 轨与 BERT 轨并行的三法互稳设计。第三条是银行与媒体情感的应用文献: Fang 等 (2024) 用中国银行业语料证明媒体情感影响存款稳定性并传导至系统性风险, 与本面板"银行-年媒体语调"的构念直接同域; Chen、Goldstein、Huang 与 Vashishtha (2022) 表明银行信息环境的透明度实质影响存款人行为, 为"新闻文本的正面强度是银行信息环境的可测维度"提供理论支点; Anastasiou、Katsafados 与 Tzomakas (2026) 以文本特征预测银行股价崩盘风险, 说明银行文本情感分量在风险预测语境下具有独立信息含量。方法效度层面, van Atteveldt、van der Velden 与 Boukes (2021) 对人工标注、众包、词典法与机器学习做系统比较, 提示词典法效度存在天花板, 这正是本家族被定位为稳健性旁证而非 canonical 主测度的文献依据; Li、Mai、Shen 与 Yan (2021) 的机器学习文化测度则从反面说明: 当研究需要可解释、可审计、跨研究者完全可复现的测度时, 固定词表方法仍不可替代。制度语境层面, Piotroski、Wong 与 Zhang (2017) 记录了中国企业新闻的政治性偏差结构, 提示中文财经媒体的正面基调含制度性成分, 解读本列水平值时必须结合固定效应设计。García, Hu 与 Rohrer (2023, Journal of Financial Economics) 用机器学习方法系统精炼与扩充金融情感词典并证明其显著优于传统词典的样本外预测力, 为本家族精选核心情感词表决定测度信噪比的局限讨论提供最新方法论对照。Wei, Wei, Jing 与 Jing (2025, Research in International Business and Finance) 以中国上市银行年报语调测度正面基调与银行风险承担行为的关系, 为本家族银行相关文本正面语调密度的构念在中国银行业语境下提供最新应用文献支点。Li (2026, Managerial and Decision Economics) 以中国上市公司年报文本语调为测度, 检验其与市场关注度之间的关系, 为本家族银行相关文本正面语调密度构念在中国资本市场语境下提供最新应用文献支点。Chuang, He 与 Hu (2025, Big Data and Cognitive Computing) 系统比较词典法与多种词嵌入及语言模型在中文财经新闻情感分类与股价预测中的表现, 为词典法情感测度提供跨方法对照基准。
 
 【识别策略定位】
 在识别策略中, 本家族属于语调族处理变量的稳健性层而非 canonical 主轨: 主线论文 (P1, bank_fintech_tone) 的 canonical 处理变量是三家 LLM 多数投票的 llm_vote_tone_full, 词典法六部与 BERT 三模型是与之平行的两条替代方法族, 三方法互为三角验证——词典法以透明、确定性、零边际成本、可逐字节复现的规则测度身份为其提供跨方法旁证; 若 LLM 语调效应在 bian_2021 正面密度上重现同号显著, 则主结论不依赖任一测量技术的独有偏差。项目在此执行严格的并排口径铁律: 三条文本轨各自 just-identified 并排, 六部词典各自 just-identified 并排, 词典法、LLM 法与 BERT 法三法并排, 正面与负面分量成对并排, 全部互为稳健性、不分主次, 严禁把任意两个及以上变体混进同一条 over-identified 的 Hansen J 检验矩条件中——这些变体是同一构念的替代测量而非相互独立的工具变量, 混用会让过度识别检验在机械相关下失去统计含义。落到回归实践, 正确用法是每次以一个变体替换主测度重估全式并报告系数带, 或以正负分量同时进入同一条 OLS 式做极性分解, 而不是把多轨多词典塞进 GMM。
@@ -188,4 +216,8 @@ Hansen, S., McMahon, M., & Prat, A. (2018). Transparency and deliberation within
 Piotroski, J. D., Wong, T. J., & Zhang, T. (2017). Political bias in corporate news: The role of conglomeration reform in China. The Journal of Law and Economics, 60(1), 173-207. https://doi.org/10.1086/693096
 Garcia, D. (2013). Sentiment during recessions. The Journal of Finance, 68(3), 1267-1300. https://doi.org/10.1111/jofi.12027
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
+García, D., Hu, X., & Rohrer, M. (2023). The colour of finance words. Journal of Financial Economics. https://doi.org/10.1016/j.jfineco.2022.11.006
+Wei, L., Wei, M., Jing, H., & Jing, Z. (2025). Annual report tone and bank risk-taking behavior: Evidence from China. Research in International Business and Finance. https://doi.org/10.1016/j.ribaf.2025.102881
+Li, Y. (2026). The Textual Tone of Annual Reports and Market Attention: Evidence From Chinese Listed Companies. Managerial and Decision Economics. https://doi.org/10.1002/mde.70100
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 <!-- rendered-citations:end -->

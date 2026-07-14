@@ -1,5 +1,6 @@
 ---
 family_id: F253
+novelty_exempt_rationale: "exc_ 前缀家族为停刊/退出覆盖媒体稳健性剔除变体, 测度定义 (FinBERT2 正面概率及三轨三加权) 依据母族 finbert2 情感测度与其原始文献, 本身非独立新构念, 无需单独追新文献。"
 columns:
 - exc_finbert2_正面_ctx
 - exc_finbert2_正面_full
@@ -18,67 +19,67 @@ upstream:
   - 24_herd_decay.parquet (herd_weight_{full,ctx,ss}, HW 权重源)
   - 14_materialize_ctx.parquet (content_full/content_ctx/content_ss 三轨文本)
 citations:
-  - doi: 10.1145/3711896.3737219
-    type: journal
-    authors: Xu, X., Wen, F., Chu, B., Fu, Z., Lin, Q., Liu, J., Fei, B., Li, Y., Zhou, L., & Yang, Z.
-    year: 2025
-    title: "FinBERT2: A specialized bidirectional encoder for bridging the gap in finance-specific deployment of large language models"
-    venue: Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2
-    pages_or_artno: 5117-5128
-  - doi: 10.1111/1911-3846.12832
-    type: journal
-    authors: Huang, A. H., Wang, H., & Yang, Y.
-    year: 2023
-    title: "FinBERT: A large language model for extracting information from financial text"
-    venue: Contemporary Accounting Research
-    vol: 40
-    issue: 2
-    pages_or_artno: 806-841
-  - doi: 10.1287/mnsc.2021.4156
-    type: journal
-    authors: Frankel, R., Jennings, J., & Lee, J.
-    year: 2022
-    title: "Disclosure sentiment: Machine learning vs. dictionary methods"
-    venue: Management Science
-    vol: 68
-    issue: 7
-    pages_or_artno: 5514-5532
-  - doi: 10.1111/1475-679X.12123
-    type: journal
-    authors: Loughran, T., & McDonald, B.
-    year: 2016
-    title: "Textual analysis in accounting and finance: A survey"
-    venue: Journal of Accounting Research
-    vol: 54
-    issue: 4
-    pages_or_artno: 1187-1230
-  - doi: 10.1111/j.1540-6261.2010.01625.x
-    type: journal
-    authors: Loughran, T., & McDonald, B.
-    year: 2011
-    title: "When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks"
-    venue: Journal of Finance
-    vol: 66
-    issue: 1
-    pages_or_artno: 35-65
-  - doi: 10.1111/j.1540-6261.2009.01493.x
-    type: journal
-    authors: Fang, L., & Peress, J.
-    year: 2009
-    title: "Media coverage and the cross-section of stock returns"
-    venue: Journal of Finance
-    vol: 64
-    issue: 5
-    pages_or_artno: 2023-2052
-  - doi: 10.1111/j.1540-6261.2007.01232.x
-    type: journal
-    authors: Tetlock, P. C.
-    year: 2007
-    title: "Giving content to investor sentiment: The role of media in the stock market"
-    venue: Journal of Finance
-    vol: 62
-    issue: 3
-    pages_or_artno: 1139-1168
+- doi: 10.1145/3711896.3737219
+  type: journal
+  authors: Xu, X., Wen, F., Chu, B., Fu, Z., Lin, Q., Liu, J., Fei, B., Li, Y., Zhou, L., & Yang, Z.
+  year: 2025
+  title: "FinBERT2: A specialized bidirectional encoder for bridging the gap in finance-specific deployment of large language models"
+  venue: Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2
+  pages_or_artno: 5117-5128
+- doi: 10.1111/1911-3846.12832
+  type: journal
+  authors: Huang, A. H., Wang, H., & Yang, Y.
+  year: 2023
+  title: "FinBERT: A large language model for extracting information from financial text"
+  venue: Contemporary Accounting Research
+  vol: 40
+  issue: 2
+  pages_or_artno: 806-841
+- doi: 10.1287/mnsc.2021.4156
+  type: journal
+  authors: Frankel, R., Jennings, J., & Lee, J.
+  year: 2022
+  title: "Disclosure sentiment: Machine learning vs. dictionary methods"
+  venue: Management Science
+  vol: 68
+  issue: 7
+  pages_or_artno: 5514-5532
+- doi: 10.1111/1475-679X.12123
+  type: journal
+  authors: Loughran, T., & McDonald, B.
+  year: 2016
+  title: "Textual analysis in accounting and finance: A survey"
+  venue: Journal of Accounting Research
+  vol: 54
+  issue: 4
+  pages_or_artno: 1187-1230
+- doi: 10.1111/j.1540-6261.2010.01625.x
+  type: journal
+  authors: Loughran, T., & McDonald, B.
+  year: 2011
+  title: "When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks"
+  venue: Journal of Finance
+  vol: 66
+  issue: 1
+  pages_or_artno: 35-65
+- doi: 10.1111/j.1540-6261.2009.01493.x
+  type: journal
+  authors: Fang, L., & Peress, J.
+  year: 2009
+  title: "Media coverage and the cross-section of stock returns"
+  venue: Journal of Finance
+  vol: 64
+  issue: 5
+  pages_or_artno: 2023-2052
+- doi: 10.1111/j.1540-6261.2007.01232.x
+  type: journal
+  authors: Tetlock, P. C.
+  year: 2007
+  title: "Giving content to investor sentiment: The role of media in the stock market"
+  venue: Journal of Finance
+  vol: 62
+  issue: 3
+  pages_or_artno: 1139-1168
 new_dois: []
 ---
 

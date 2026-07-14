@@ -123,7 +123,14 @@ citations:
   vol: 62
   issue: 3
   pages_or_artno: 1139-1168
-new_dois: []
+- doi: "10.2139/ssrn.4412788"
+  type: wp
+  authors: "Lopez-Lira, A., & Tang, Y."
+  year: 2023
+  title: "Can ChatGPT Forecast Stock Price Movements? Return Predictability and Large Language Models"
+  venue: "SSRN Electronic Journal (forthcoming, Journal of Financial Economics)"
+new_dois:
+  - "10.2139/ssrn.4412788"
 ---
 
 ## CORE
@@ -135,7 +142,7 @@ new_dois: []
 聚合域是本家族最关键的方法学决策。依据 fix(omni-g-geography-06, 2026-06-11) 的口径, bert_avg_pos/neg 全族 (含 _std、_vw、_mw、_hw 及 _tech、_app 分类维度) 只在三分类模型子集 (THREE_CLASS_MODELS) 上取行均值, 与 bert_avg_neu 同聚合域。原因是: 二分类的 finbert2 把中性概率质量重归一进正负两类 (其 pos+neg 恒等于 1), 与三分类模型的正面概率处于不可比的类空间; 若混入平均, 会使 bert_avg_pos 系统性上偏, 且 bert_avg_{pos,neu,neg} 不再构成概率单纯形。修复后三类同域, pos+neu+neg 约等于 1 的恒等式在三分类族内成立; finbert2 的逐模型列则完整保留为二分类稳健轨单独使用, 不并入本家族集成。计算链路上, 逐模型列由 _safe_mean 函数取"存在列的行均值", 因此当某轨 (尤其 ss) 上游未落盘时优雅返回 NaN 而不使阶段崩溃。加权变体 (_vw 密度权、_mw 媒体权、_hw 羊群权) 的权重在 runner 步骤 3b/3c/3d 于文章级预计算, 再在银行-年聚合时进入分子分母; 分类变体 (_tech/_app) 只在被判为技术类/应用类的报道子集上求条件均值; 标准分变体 (_z) 在 standardize_panel_variables 中做年内截面 z-score。留篇门控遵循 full-only 口径 (2026-06-29): 一篇报道是否计入银行-年样本, 只由 llm_verified_full 判定, ctx/ss 轨为 conditional-on-full 的测度/稳健性轨, 其行宇宙是 full 留篇集的子集。
 
 【文献定位】
-BERT 法的直接方法学锚是 Huang, Wang & Yang (2023): 他们提出并验证了 FinBERT 作为从金融文本抽取信息的大型语言模型, 本家族的跨模型 argmax/概率集成即沿此路线, 并以多模型行均值降低单模型判读噪声。Devlin et al. (2018) 是 BERT 双向 transformer 预训练架构的原始出处, 界定了本家族分类器的底层机制。Frankel, Jennings & Lee (2022) 在 Management Science 上系统比较了机器学习与词典法的披露情感测量, 支持本项目让 BERT 集成与词典、LLM 三法互为稳健性并列的设计。Loughran & McDonald (2011) 奠定了金融文本情感测量应使用领域适配词表的传统, 提示正负极性在金融语境中的非对称性 (负面词信号更强), 这也是本家族分正负两侧分别建列的动因。Du et al. (2022) 针对中文金融情感构建了领域专用词典, 界定了中文语料下情感判读的语言与领域特异性, 与本项目的中文银行/金科语料直接呼应。Punetha & Jain (2025) 聚焦否定处理这一情感分析长期难题, 说明负面极性判读的技术敏感性, 为本家族保留独立 neg 侧提供近期文献支撑。加权变体的文献定位分别是: Hassan et al. (2019) 的公司层面政治风险测度以提及密度刻画信息暴露强度, 对应 _vw 密度权; Tetlock (2007) 关于媒体报道语调对股票市场的作用, 界定了 _mw 媒体权威来源加权的构念背景, 即报道来源的媒体属性调节情感信号的市场相关性。至于 _hw 羊群衰减权, 它刻画的是同质化、跟风重复报道对情感信号的稀释与去重, 本质上是报道级别的重复计数校正, 属规格稳健性处理, 不额外锚定引文池外的文献。凡涉三轨 (full/ctx/ss)、正负两侧、三类加权 (VW/MW/HW)、以及技术/应用分类维度, 各口径均为规格稳健性并排, 各自 just-identified、互为稳健性、不分主次, 禁混进同一 over-identified Hansen J。
+BERT 法的直接方法学锚是 Huang, Wang & Yang (2023): 他们提出并验证了 FinBERT 作为从金融文本抽取信息的大型语言模型, 本家族的跨模型 argmax/概率集成即沿此路线, 并以多模型行均值降低单模型判读噪声。Devlin et al. (2018) 是 BERT 双向 transformer 预训练架构的原始出处, 界定了本家族分类器的底层机制。Frankel, Jennings & Lee (2022) 在 Management Science 上系统比较了机器学习与词典法的披露情感测量, 支持本项目让 BERT 集成与词典、LLM 三法互为稳健性并列的设计。Loughran & McDonald (2011) 奠定了金融文本情感测量应使用领域适配词表的传统, 提示正负极性在金融语境中的非对称性 (负面词信号更强), 这也是本家族分正负两侧分别建列的动因。Du et al. (2022) 针对中文金融情感构建了领域专用词典, 界定了中文语料下情感判读的语言与领域特异性, 与本项目的中文银行/金科语料直接呼应。Punetha & Jain (2025) 聚焦否定处理这一情感分析长期难题, 说明负面极性判读的技术敏感性, 为本家族保留独立 neg 侧提供近期文献支撑。加权变体的文献定位分别是: Hassan et al. (2019) 的公司层面政治风险测度以提及密度刻画信息暴露强度, 对应 _vw 密度权; Tetlock (2007) 关于媒体报道语调对股票市场的作用, 界定了 _mw 媒体权威来源加权的构念背景, 即报道来源的媒体属性调节情感信号的市场相关性。至于 _hw 羊群衰减权, 它刻画的是同质化、跟风重复报道对情感信号的稀释与去重, 本质上是报道级别的重复计数校正, 属规格稳健性处理, 不额外锚定引文池外的文献。Lopez-Lira & Tang (2023, SSRN Electronic Journal, forthcoming Journal of Financial Economics) 证明大语言模型可直接从新闻文本生成情感信号并预测股价收益的可预测性, 与本家族用 BERT 分类器判读报道情感、并与 LLM 投票法互为稳健性的三角测量设计相呼应。凡涉三轨 (full/ctx/ss)、正负两侧、三类加权 (VW/MW/HW)、以及技术/应用分类维度, 各口径均为规格稳健性并排, 各自 just-identified、互为稳健性、不分主次, 禁混进同一 over-identified Hansen J。
 
 ## VAR: bert_avg_neg_app_ctx
 
@@ -461,4 +468,5 @@ Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level poli
 Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2018). BERT: Pre-training of deep bidirectional transformers for language understanding. arXiv [Preprint]. https://doi.org/10.48550/arXiv.1810.04805
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Lopez-Lira, A., & Tang, Y. (2023). Can ChatGPT Forecast Stock Price Movements? Return Predictability and Large Language Models. SSRN Electronic Journal (forthcoming, Journal of Financial Economics) [Working Paper]. https://doi.org/10.2139/ssrn.4412788
 <!-- rendered-citations:end -->

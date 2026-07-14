@@ -75,7 +75,21 @@ citations:
   vol: '108'
   issue: '9'
   pages_or_artno: 2442-2476
-new_dois: []
+- doi: "10.1016/j.enpol.2023.113917"
+  title: "Is the tone of the government-controlled media valuable for capital market? Evidence from China's new energy industry"
+  authors: "Xu, Z., Li, J., Hua, X., & Ren, P."
+  year: 2024
+  venue: "Energy Policy"
+  type: "journal"
+- doi: "10.1016/j.ememar.2024.101234"
+  title: "Does official media sentiment matter for the stock market? Evidence from China"
+  authors: "Xu, Z., Hua, X., & Zhang, T."
+  year: 2025
+  venue: "Emerging Markets Review"
+  type: "journal"
+new_dois:
+  - "10.1016/j.enpol.2023.113917"
+  - "10.1016/j.ememar.2024.101234"
 ---
 
 ## CORE
@@ -93,7 +107,7 @@ new_dois: []
 聚合分母上须注意: `tone_nonmkt_media{track}` 是"文章级子样本均值", 分母是该 bank-year 单元中 `_is_market==0` 且该轨情感分非缺失的文章数, 与 `n_articles`/`fintech_share` 等篇数类指标的分母 (全篇或留篇门控集) 不是同一集合; 当某 bank-year 单元当年报道全部来自市场化媒体 (即 `_is_market==0` 子样本为空) 时, `tone_nonmkt_media{track}` 取值缺失 (NaN), 属预期行为而非数据缺陷, 使用者做回归前应检视缺失模式是否与银行规模/地域相关。
 
 【文献定位】
-本列族的构念定位直接对接 You, Zhang & Zhang (2018, RFS) 关于中国媒体"谁执笔"的所有权异质性框架, 将其市场化/非市场化二分应用到银行金融科技报道的情感测度上; 语调本身的测量哲学承袭 Tetlock (2007, JF) 与 Fang & Peress (2009, JF) 确立的"媒体语调作为信息含量/投资者情绪代理"传统, 以及 Peress (2014, JF) 关于媒体信息扩散对定价效率因果作用的证据基础。Holzman, Miller & Twedt (2023, TAR) 提供了本家族「媒体权威性加权」姊妹列族 (`llm_vote_tone_mw{track}`) 的方法学锚点, 也间接印证媒体来源异质性 (权威度、所有权) 对语调测度解释力的调节作用, 支撑本处按来源属性拆分的必要性。中国情境下的经验证据参照 Qin, Strömberg & Wu (2018, AER) 关于中国媒体偏向的系统性证据, 以及同域的 Fang, Wang, Wang & Yuan (2024, IREF) 银行层面媒体情感与存款稳定性/系统性风险研究, 后者直接支撑本家族服务于银行研究场景的建模选择。
+本列族的构念定位直接对接 You, Zhang & Zhang (2018, RFS) 关于中国媒体"谁执笔"的所有权异质性框架, 将其市场化/非市场化二分应用到银行金融科技报道的情感测度上; 语调本身的测量哲学承袭 Tetlock (2007, JF) 与 Fang & Peress (2009, JF) 确立的"媒体语调作为信息含量/投资者情绪代理"传统, 以及 Peress (2014, JF) 关于媒体信息扩散对定价效率因果作用的证据基础。Holzman, Miller & Twedt (2023, TAR) 提供了本家族「媒体权威性加权」姊妹列族 (`llm_vote_tone_mw{track}`) 的方法学锚点, 也间接印证媒体来源异质性 (权威度、所有权) 对语调测度解释力的调节作用, 支撑本处按来源属性拆分的必要性。中国情境下的经验证据参照 Qin, Strömberg & Wu (2018, AER) 关于中国媒体偏向的系统性证据, 以及同域的 Fang, Wang, Wang & Yuan (2024, IREF) 银行层面媒体情感与存款稳定性/系统性风险研究, 后者直接支撑本家族服务于银行研究场景的建模选择。Xu, Li, Hua & Ren (2024, Energy Policy) 用 BERT 量化中国政府控制媒体语调对新能源企业股价的影响, 为本家族按媒体所有权 (市场化/非市场化) 拆分语调测度的构念提供了同期中国情境下的方法学与实证支撑; Xu, Hua & Zhang (2025, Emerging Markets Review) 构造官方媒体情绪指数并考察其对中国股市收益反转与散户交易行为的预测力, 呼应本家族非市场化媒体语调测度所依托的"官方媒体语调具有独特信息/情绪功能"这一构念。
 
 ## VAR: tone_nonmkt_media_ctx
 
@@ -118,4 +132,6 @@ Peress, J. (2014). The Media and the Diffusion of Information in Financial Marke
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media Sentiment, Deposit Stability and Bank Systemic Risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Qin, B., Strömberg, D., & Wu, Y. (2018). Media Bias in China. American Economic Review, 108(9), 2442-2476. https://doi.org/10.1257/aer.20170947
+Xu, Z., Li, J., Hua, X., & Ren, P. (2024). Is the tone of the government-controlled media valuable for capital market? Evidence from China's new energy industry. Energy Policy. https://doi.org/10.1016/j.enpol.2023.113917
+Xu, Z., Hua, X., & Zhang, T. (2025). Does official media sentiment matter for the stock market? Evidence from China. Emerging Markets Review. https://doi.org/10.1016/j.ememar.2024.101234
 <!-- rendered-citations:end -->

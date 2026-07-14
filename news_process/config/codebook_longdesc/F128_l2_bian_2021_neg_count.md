@@ -62,7 +62,28 @@ citations:
   vol: 53
   issue: 2
   pages_or_artno: 405-459
-new_dois: []
+- doi: "10.1108/JED-06-2025-0296"
+  type: "journal"
+  authors: "Pham, X. T. T., Huynh, D. T., Nguyen, N. T. K., & Luu, T. B."
+  year: 2025
+  title: "Investor negativity derived from news shapes firm distress dynamics under bounded rationality"
+  venue: "Journal of Economics and Development"
+- doi: "10.1016/j.iref.2024.103583"
+  title: "Media attention, negative reports and textual information of banks' ESG disclosure"
+  authors: "Zhou, W., Chen, F., Zhu, Y., Xiang, L., & Lei, L."
+  year: 2024
+  venue: "International Review of Economics & Finance, 96, 103583"
+  type: "journal"
+- doi: "10.3390/businesses4010007"
+  title: "Negative Media Coverage and Corporate ESG Performance: Evidence from China"
+  authors: "Ge, C."
+  year: 2024
+  venue: "Businesses, 4(1), 96-114"
+  type: "journal"
+new_dois:
+  - "10.1108/JED-06-2025-0296"
+  - "10.1016/j.iref.2024.103583"
+  - "10.3390/businesses4010007"
 ---
 
 ## CORE
@@ -74,7 +95,7 @@ new_dois: []
 计算链路分两层。篇章层在 stage 22 tone_words 完成: 对每篇报道的分词序列, 以状态机顺序扫描, 遇否定词设置翻转窗口、遇程度副词设置倍率、遇转折连词激活从句级加权、遇句末标点重置全部句法状态 (Ding et al. 2008 的从句级作用域), 命中 Bian et al. (2021) 词典的情感词按 base×degree×negation×adversative 累加得篇章语调 bian_2021_score{track}; 该分数经加权绝对值之和归一化后恒落在 [-1, +1]。面板层在 runner.py 把 bian_2021_score{track} < 0 物化为篇章级二值指示 _is_bian_2021_negative{track} (严格小于零方判负, 零分即中性不计入), encode.py 再以 groupby-sum 聚合到 bank-year, 得到本家族三列。单位是篇数、非负整数, 语义是"该行该年被 Bian2021 词典判为负面语气的报道有多少篇", 而非负面词的词频总数。留篇宇宙统一遵循 2026-06-29 起的 full-only 门控: 一篇报道是否进入银行金科语料只由 llm_verified_full 决定, ctx/ss 轨在此留篇集之上做 conditional-on-full 的逐轨重算, 三轨分母各自独立、不交叉借用。作为计数型中间量, neg_count 主要服务下游: 一是喂入词级/篇级的分歧 (disagreement) 指标, 二是与 n_articles_llm_valid{track} 作分母构成行业负面冲击 industry_neg_shock 及其滞后轨的分子。
 
 【文献定位】
-把 neg_count 建成一个显式的计数列, 直接呼应 Cohn, Liu, & Wardlaw (2022) 关于金融研究中计数型与类计数型变量的方法论提醒: 这类变量在分布形态 (零膨胀、右偏) 与恰当估计上不同于连续得分, 需以计数身份披露并谨慎选择估计量, 而非默认套用线性均值框架——本家族刻意与 bian_2021_tone 的连续语调分开落列, 正是为此提供计数原语。词典本身的效度与适用性由 Bian et al. (2021) 提供: 该词典针对中文会计与金融文本从大规模语料归纳构建, 是本项目采用它判定负面语气的直接依据。方法学上, 负面语气识别的核心难点在否定处理, Pröllochs, Feuerriegel, & Neumann (2016) 论证了否定范围检测对新闻驱动交易情感测度准确性的实质影响, 本项目状态机的否定窗口与句末重置即是对该关切的工程回应。Todd, Bowden, & Moshfeghi (2024) 对金融文本情感分析文献的综述, 说明词典法在可解释性与领域适配上仍是与机器学习法并存的一支, 支持本项目以多词典并列作稳健性面的设计。Ma, Zhang, & Zhang (2025) 新近构建的中文细粒度投资者情感词典进一步印证: 中文金融语料的情感测度高度依赖领域专用词表, 通用词典存在系统性偏差, 这也是本家族保留 Bian2021 等多部中文词典的现实理由。就构念指向的负面信息而言, Piotroski, Wong, & Zhang (2015) 关于中国上市公司负面信息被政治性压制的证据提示: 在中国制度语境下, 媒体负面报道的可见性本身受抑制, 因而对负面报道数量做绝对计数、而非仅看相对占比, 具有独立的信息价值。
+把 neg_count 建成一个显式的计数列, 直接呼应 Cohn, Liu, & Wardlaw (2022) 关于金融研究中计数型与类计数型变量的方法论提醒: 这类变量在分布形态 (零膨胀、右偏) 与恰当估计上不同于连续得分, 需以计数身份披露并谨慎选择估计量, 而非默认套用线性均值框架——本家族刻意与 bian_2021_tone 的连续语调分开落列, 正是为此提供计数原语。词典本身的效度与适用性由 Bian et al. (2021) 提供: 该词典针对中文会计与金融文本从大规模语料归纳构建, 是本项目采用它判定负面语气的直接依据。方法学上, 负面语气识别的核心难点在否定处理, Pröllochs, Feuerriegel, & Neumann (2016) 论证了否定范围检测对新闻驱动交易情感测度准确性的实质影响, 本项目状态机的否定窗口与句末重置即是对该关切的工程回应。Todd, Bowden, & Moshfeghi (2024) 对金融文本情感分析文献的综述, 说明词典法在可解释性与领域适配上仍是与机器学习法并存的一支, 支持本项目以多词典并列作稳健性面的设计。Ma, Zhang, & Zhang (2025) 新近构建的中文细粒度投资者情感词典进一步印证: 中文金融语料的情感测度高度依赖领域专用词表, 通用词典存在系统性偏差, 这也是本家族保留 Bian2021 等多部中文词典的现实理由。就构念指向的负面信息而言, Piotroski, Wong, & Zhang (2015) 关于中国上市公司负面信息被政治性压制的证据提示: 在中国制度语境下, 媒体负面报道的可见性本身受抑制, 因而对负面报道数量做绝对计数、而非仅看相对占比, 具有独立的信息价值。Pham, Huynh, Nguyen, & Luu (2025, Journal of Economics and Development) 以新闻衍生的投资者负面情绪计数刻画企业困境动态, 呼应本家族把负面报道逐篇计数、而非只看净语调均值的测度设计初衷。研究媒体关注度与负面报道数量对银行ESG信息披露文本情感与可读性的影响, 机制分析显示负面报道会抑制银行主动风险承担, 见 Zhou, Chen, Zhu, Xiang, & Lei (2024, International Review of Economics & Finance)。以中国A股上市公司为样本, 用双向固定效应模型考察负面媒体报道数量对企业ESG表现的影响及融资约束中介机制, 见 Ge (2024, Businesses)。
 
 ## VAR: bian_2021_neg_count_full
 
@@ -98,4 +119,7 @@ Cohn, J. B., Liu, Z., & Wardlaw, M. I. (2022). Count (and count-like) data in fi
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
 Piotroski, J. D., Wong, T. J., & Zhang, T. (2015). Political incentives to suppress negative information: Evidence from Chinese listed firms. Journal of Accounting Research, 53(2), 405-459. https://doi.org/10.1111/1475-679X.12071
+Pham, X. T. T., Huynh, D. T., Nguyen, N. T. K., & Luu, T. B. (2025). Investor negativity derived from news shapes firm distress dynamics under bounded rationality. Journal of Economics and Development. https://doi.org/10.1108/JED-06-2025-0296
+Zhou, W., Chen, F., Zhu, Y., Xiang, L., & Lei, L. (2024). Media attention, negative reports and textual information of banks' ESG disclosure. International Review of Economics & Finance, 96, 103583. https://doi.org/10.1016/j.iref.2024.103583
+Ge, C. (2024). Negative Media Coverage and Corporate ESG Performance: Evidence from China. Businesses, 4(1), 96-114. https://doi.org/10.3390/businesses4010007
 <!-- rendered-citations:end -->

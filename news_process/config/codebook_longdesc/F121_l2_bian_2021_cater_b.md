@@ -64,7 +64,14 @@ citations:
   vol: 37
   issue: 2
   pages_or_artno: 267-307
-new_dois: []
+- doi: "10.1016/j.frl.2024.105227"
+  type: journal
+  authors: "Kirtac, K., & Germano, G."
+  year: 2024
+  title: "Sentiment trading with large language models"
+  venue: Finance Research Letters
+new_dois:
+  - "10.1016/j.frl.2024.105227"
 ---
 
 ## CORE
@@ -76,7 +83,7 @@ new_dois: []
 计算在面板装配阶段 (runner.py 步骤 8d, algo_cater 计算块) 一次性展开, 属零额外 API 调用的纯后处理列。逐轨公式为 bian_2021_cater_b{track} 等于 bian_2021_tone{track} 减去 (bert_avg_pos{track} 减 bert_avg_neg{track})。其中 bian_2021_tone 来自 stage 22 词典语调 (Bian 词典正负词计数经否定翻转、程度副词、转折三条语言学规则调制后自归一化的极性分), bert_avg_pos 与 bert_avg_neg 来自 stage 23 中文金融 BERT 逐篇正负类概率的银行-年均值, 其差即 BERT 净语调, 理论域 [-1,1]。需要精确说明其成员组成: bert_avg_pos/neg 只在两家三分类中文金融 BERT (finbert_cn、fin_sent_zh) 上取均值, 二分类模型 finbert2 被刻意排除在这一聚合之外 (源码 geography.py 的 _BERT3 只纳入落在 THREE_CLASS_MODELS 中的模型)。排除的理由是类空间一致性: finbert2 仅输出正负两类、其正负概率恒和为一, 若把它并入 pos/neg 均值会把本应归入中性的概率质量重归一进正负两侧, 导致 bert_avg_pos 系统性上偏、且 bert_avg_pos/neu/neg 三者不再构成概率单纯形 (盘上实测三类和一度冲到 1.33), 故聚合域统一收敛到三分类族以使 pos+neu+neg≈1 的恒等式成立。finbert2 并非丢弃, 而是以其逐模型列 (finbert2_pos/neg 及各权重变体, 以及本仓 cater_finbert2 逐模型稳健轨) 单独保留为二分类稳健轨。两端分别落在约 [-1,1] 区间, 故差值理论域约 [-2,2], 但在真实语料上二者高度同向, 差值实测集中于 0 附近, 尾部才承载迎合信号。任一端在某银行-年缺列 (如 BERT 集成因模型缺席而无净语调、或该轨无词典命中) 时, 该轨差值置 NaN, 不做单边外推。三轨 full/ctx/ss 分别以三套文本载荷 (full 为标题拼正文全文; ctx 为标题拼实体窗口; ss 为标题拼银行与金科同句正负窗) 独立计算, 词典端与 BERT 端在每一轨内严格同轨相减, 不跨轨借用。ss 轨遵循镜像 ctx 的回退语义: 当某篇不存在银行与金融科技的同句共现时, content_ss 回退为全文正文、ss_is_fallback 置真, 与 ctx 共享分母口径。留篇门控为 full-only (2026-06-29 口径): 一篇报道是否计入银行金科报道全集只看 llm_verified_full 是否为真, ctx 与 ss 因而是 conditional-on-full 的测度轨与稳健性轨, 其行宇宙是 full 留篇集的子集, 但每轨的差值列照各自轨的文本独立计算。
 
 【文献定位】
-本测度的方法学正当性首先落在词典法与机器学习法孰优孰劣、以及二者分歧本身是否携带信息这一议题上。Frankel 等 (2022) 在 Management Science 上系统比较了披露文本上的机器学习情感与词典情感, 论证两类方法在同一语料上给出的语调排序会系统性分歧, 且分歧并非纯噪声而与文本特征相关 —— 这正是把 "词典减深层模型" 显式物化为一个测度的直接依据。Bian 等 (2021) 构造的中文财经情感词典是本族词典端的命名来源, 其相对于英文 Loughran-McDonald 体系在中文会计金融文本上的域特异性优势, 与 Du 等 (2022) 在 Review of Finance 上关于中文财经情感词典语言与领域特异性的论证互为支撑, 共同说明选用本土词典而非直译词表的必要。van Atteveldt 等 (2021) 以人工标注为金标准同台比较词典法、众包与机器学习法, 揭示词典法与机器学习法各自的系统性偏差方向不同, 为本测度差值的符号解释提供了外部效度参照。Barbaglia 等 (2025) 与 Taboada 等 (2011) 则从经济文本与通用文本两侧夯实了基于词典的极性计算流程本身的规范性。需要强调, 本族三轨 (full/ctx/ss) 各自 just-identified 并排、互为稳健性、不分主次, 严禁把三轨混进同一 over-identified 的 Hansen J 过度识别检验; 同理 _b (对 BERT) 与无 _b (对 LLM) 两族、以及三家 BERT 各自的子测度, 亦是各自 just-identified 的并排稳健性轨, 不得混入同一过度识别式。
+本测度的方法学正当性首先落在词典法与机器学习法孰优孰劣、以及二者分歧本身是否携带信息这一议题上。Frankel 等 (2022) 在 Management Science 上系统比较了披露文本上的机器学习情感与词典情感, 论证两类方法在同一语料上给出的语调排序会系统性分歧, 且分歧并非纯噪声而与文本特征相关 —— 这正是把 "词典减深层模型" 显式物化为一个测度的直接依据。Bian 等 (2021) 构造的中文财经情感词典是本族词典端的命名来源, 其相对于英文 Loughran-McDonald 体系在中文会计金融文本上的域特异性优势, 与 Du 等 (2022) 在 Review of Finance 上关于中文财经情感词典语言与领域特异性的论证互为支撑, 共同说明选用本土词典而非直译词表的必要。van Atteveldt 等 (2021) 以人工标注为金标准同台比较词典法、众包与机器学习法, 揭示词典法与机器学习法各自的系统性偏差方向不同, 为本测度差值的符号解释提供了外部效度参照。Barbaglia 等 (2025) 与 Taboada 等 (2011) 则从经济文本与通用文本两侧夯实了基于词典的极性计算流程本身的规范性。需要强调, 本族三轨 (full/ctx/ss) 各自 just-identified 并排、互为稳健性、不分主次, 严禁把三轨混进同一 over-identified 的 Hansen J 过度识别检验; 同理 _b (对 BERT) 与无 _b (对 LLM) 两族、以及三家 BERT 各自的子测度, 亦是各自 just-identified 的并排稳健性轨, 不得混入同一过度识别式。Kirtac 与 Germano (2024, Finance Research Letters) 在近百万篇美股财经新闻上系统比较 Loughran-McDonald 词典与 BERT、GPT 系深度模型的情感判读及其收益预测力差异, 实证支持词典法与深层模型之间存在系统性、可利用的分歧, 呼应本族把二者落差显式物化为迎合测度的构念动机。
 
 ## VAR: bian_2021_cater_b_ctx
 
@@ -100,4 +107,5 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
+Kirtac, K., & Germano, G. (2024). Sentiment trading with large language models. Finance Research Letters. https://doi.org/10.1016/j.frl.2024.105227
 <!-- rendered-citations:end -->

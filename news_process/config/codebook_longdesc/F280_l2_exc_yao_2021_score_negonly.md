@@ -1,5 +1,6 @@
 ---
 family_id: F280
+novelty_exempt_rationale: "exc_ 前缀为停刊媒体稳健性排除聚合、negonly 为词典规则消融变体, 是 yao_2021 词典族的双重技术变体, 测度定义依据母族词典与消融/排除机制本身, 非独立新构念, 无需追加新文献。"
 columns:
 - exc_yao_2021_score_negonly_ctx
 - exc_yao_2021_score_negonly_full

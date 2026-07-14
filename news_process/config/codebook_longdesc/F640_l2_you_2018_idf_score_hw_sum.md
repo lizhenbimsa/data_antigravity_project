@@ -57,7 +57,31 @@ citations:
   vol: "26"
   issue: "3"
   pages_or_artno: "673-719"
-new_dois: []
+- doi: "10.1002/isaf.1549"
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+  type: "journal"
+  one_sentence_zh: "该文系统综述了金融文本情感/语调测度(含词典法与IDF类词汇加权思路)的方法学演进与未来方向,可作为本家族IDF加权情感构念的最新文献定位补充。"
+- doi: "10.1177/21582440231219358"
+  title: "A Micro-Level Evidence of how Investor and Manager Herding Behavior Influence the Firm Financial Performance"
+  authors: "Shah, S. S. H., Khan, M. A., Ahmed, M., Meyer, D. F., & Oláh, J."
+  year: 2024
+  venue: "Sage Open"
+  type: "journal"
+  one_sentence_zh: "该文以微观层面证据考察投资者与管理者羊群行为对企业财务绩效的影响,为本家族 herd-decay 加权路径 (herd_weight) 所刻画的报道羊群/转抄现象提供了行为金融学层面的最新实证文献支撑。"
+- doi: "10.1177/21582440251319995"
+  title: "Thematic Review and Discussion of Research on Herd Behavior in Capital Markets: Highlighting the Gaps and Proposing Future Research Avenues"
+  authors: "Bharti, Soti, N., & Kumar, A."
+  year: 2025
+  venue: "Sage Open"
+  type: "journal"
+  one_sentence_zh: "该文系统综述资本市场羊群行为研究的主题演进、缺口与未来方向,可作为本家族羊群衰减权重 (herd-decay weight) 构念的最新文献定位补充。"
+new_dois:
+  - "10.1002/isaf.1549"
+  - "10.1177/21582440231219358"
+  - "10.1177/21582440251319995"
 ---
 
 ## CORE
@@ -67,7 +91,7 @@ new_dois: []
 【方法学与计算】
 计算链条分三段。第一段 (阶段 22 `tone_words.py`): 对每篇经留篇门控 (阶段 21 `llm_verified_full == True`, full-only 门控, 2026-06-29 起 ctx/ss 行宇宙为 full 留篇集的子集) 保留的文章, 用 jieba 分词后, 先对整个语料 (以 `content_full`/`内容` 为 IDF 语料口径, 三轨共享同一套 IDF 权重表 — IDF 是语料级统计量, 不逐轨重算) 计算每个词的原始 IDF: raw_idf(w) = log₁₀(N / (1 + df(w))), 再对该词典全部词的 raw_idf 做均值归一化 normalized_idf(w) = raw_idf(w) / mean(raw_idf), 最后按 [P1, P99] Winsorize 截尾得到 final_idf(w); `_build_idf_weighted_dict` 用该权重对 you_2018 词典基分逐词相乘 (正面词 +1.0 × idf_weight, 负面词 −1.0 × idf_weight, 命中双侧重叠词表 `_BOTH_SIDED_BY_DICT['you_2018']` 的词按用户 2026-06-24 决策两侧对称计入而非武断消歧), 得到逐轨情感得分 `you_2018_idf_score{track}` (经 `_compute_sentiment_with_rules` 应用否定翻转/程度副词/转折三条语言学规则后归一化)。第二段 (阶段 24 `herd_decay.py`): 独立于情感打分, 用 TF-IDF 余弦相似度扫描每篇文章在其发布年内、按目标银行分组的历史报道, 对相似历史报道数越多的文章赋予越低的 `herd_weight_{track} = 1/(1+相似历史报道计数)` (羊群/转抄程度越高、独立信息含量越低, 权重越小), full/ctx/ss 三轨各自独立扫描 (ctx/ss 在其原始文本回退为全文时, 该轨 herd_weight 会退化为与 full 轨逐位相同, 属预期退化而非 bug)。第三段 (阶段 40 面板导出 `runner.py`/`encode.py`): 文章级相乘 `you_2018_idf_score_hw{track} = you_2018_idf_score{track} × herd_weight_{track}` (runner.py), 再在 `groupby(['银行','年份'])` 内对该乘积求和得到本家族三列 `you_2018_idf_score_hw_sum{track}` (encode.py `agg[...] = (..., 'sum')`), 下游据此与 `hw_denom{track}` (羊群权重加总的分母口径) 相除得到最终的羊群衰减加权 IDF 语调均值 `you_2018_idf_tone_hw{track}`, 该均值列另在 `geography.py` 参与跨词典聚合 `dict_avg_idf_tone_hw{track}`。三轨口径遵循全库统一定义: full=标题+正文, ctx=标题+实体窗口, ss=标题+银行∧金科同句±N窗 (ss 回退语义镜像 ctx: 无银行∧金科同句共现时 `content_ss` 回退为全文 body, `ss_is_fallback=True`); full/ctx/ss 三轨各自 just-identified 并排、互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 估计式。
 【文献定位】
-you_2018 词典的方法学母本是 You, Zhang & Zhang (2018, *The Review of Financial Studies*) 关于媒体语调差异化影响力的实证框架, 本项目将其情感词表移植入中文语境并入六词典并排体系。IDF 加权情感打分的理论依据是词频-逆文档频率对词汇「区分度」的经典刻画, 溯源至 Spärck Jones (1972, *Journal of Documentation*) 首次提出 IDF 统计解释、并经 Jegadeesh & Wu (2013, *Journal of Financial Economics*) "Word power" 一文将 IDF 加权思想系统应用于金融文本情感/语调测度的构造 (对高信息含量、低泛用度的词汇赋予更高权重, 抑制停用词式套话对语调分数的稀释) —— 本家族的 `idf` 中缀正是这一传统在中文金融新闻场景下的直接实现。词典法本身 (lexicon-based sentiment scoring, 与本项目并排的 LLM 三家投票法、BERT 三模型法互为稳健性) 的方法学定位另见 Frankel, Jennings & Lee (2022, *Management Science*) 对词典法与机器学习法互为稳健性的系统比较, 以及 Du, Huang, Wermers & Wu (2022, *Review of Finance*) 关于中文金融情感词典本土化构造 (语言/领域特定性) 的论述, 后者也是本项目六词典之一 du_2022 与政治词权重敏感性梯度的直接方法学来源, 与 you_2018 同属「中文金融情感词典族」并排比较对象。
+you_2018 词典的方法学母本是 You, Zhang & Zhang (2018, *The Review of Financial Studies*) 关于媒体语调差异化影响力的实证框架, 本项目将其情感词表移植入中文语境并入六词典并排体系。IDF 加权情感打分的理论依据是词频-逆文档频率对词汇「区分度」的经典刻画, 溯源至 Spärck Jones (1972, *Journal of Documentation*) 首次提出 IDF 统计解释、并经 Jegadeesh & Wu (2013, *Journal of Financial Economics*) "Word power" 一文将 IDF 加权思想系统应用于金融文本情感/语调测度的构造 (对高信息含量、低泛用度的词汇赋予更高权重, 抑制停用词式套话对语调分数的稀释) —— 本家族的 `idf` 中缀正是这一传统在中文金融新闻场景下的直接实现。词典法本身 (lexicon-based sentiment scoring, 与本项目并排的 LLM 三家投票法、BERT 三模型法互为稳健性) 的方法学定位另见 Frankel, Jennings & Lee (2022, *Management Science*) 对词典法与机器学习法互为稳健性的系统比较, 以及 Du, Huang, Wermers & Wu (2022, *Review of Finance*) 关于中文金融情感词典本土化构造 (语言/领域特定性) 的论述, 后者也是本项目六词典之一 du_2022 与政治词权重敏感性梯度的直接方法学来源, 与 you_2018 同属「中文金融情感词典族」并排比较对象。此外 Todd, Bowden & Moshfeghi (2024, *Intelligent Systems in Accounting, Finance and Management*) 系统综述了金融文本情感/语调测度(含词典法与 IDF 类词汇加权思路)的方法学演进与未来方向, 可作为本家族 IDF 加权情感构念的最新文献定位补充。该文以微观层面证据考察投资者与管理者羊群行为对企业财务绩效的影响, 为本家族 herd-decay 加权路径 (herd_weight) 所刻画的报道羊群/转抄现象提供了行为金融学层面的最新实证文献支撑, 引用格式为 Shah, Khan, Ahmed, Meyer & Oláh (2024, Sage Open)。该文系统综述资本市场羊群行为研究的主题演进、缺口与未来方向, 可作为本家族羊群衰减权重 (herd-decay weight) 构念的最新文献定位补充, 引用格式为 Bharti, Soti & Kumar (2025, Sage Open)。
 
 ## VAR: you_2018_idf_score_hw_sum_ctx
 
@@ -90,4 +114,7 @@ Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis.
 Spärck Jones, K. (1972). A statistical interpretation of term specificity and its application in retrieval. Journal of Documentation, 28(1), 11-21. https://doi.org/10.1108/eb026526
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
+Shah, S. S. H., Khan, M. A., Ahmed, M., Meyer, D. F., & Oláh, J. (2024). A Micro-Level Evidence of how Investor and Manager Herding Behavior Influence the Firm Financial Performance. Sage Open. https://doi.org/10.1177/21582440231219358
+Bharti, Soti, N., & Kumar, A. (2025). Thematic Review and Discussion of Research on Herd Behavior in Capital Markets: Highlighting the Gaps and Proposing Future Research Avenues. Sage Open. https://doi.org/10.1177/21582440251319995
 <!-- rendered-citations:end -->

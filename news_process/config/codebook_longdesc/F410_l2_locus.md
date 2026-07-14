@@ -72,7 +72,15 @@ citations:
   vol: '21'
   issue: '4'
   pages_or_artno: 724-735
-new_dois: []
+- doi: "10.1016/j.jbusres.2025.115188"
+  type: journal
+  authors: "Reppmann, M., Maibaum, F., Edinger-Schons, L. M., & Foege, J. N."
+  year: 2025
+  title: "Talk, but don't talk too much: How corporate sustainability communication evokes stepwise organizational change"
+  venue: Journal of Business Research
+  one_sentence_zh: "该文用文本衍生指标刻画企业可持续性传播中言语(talk)与实际行动(walk)之间的脱耦关系,呈倒U型非线性,为本家族用同一语料不同取材范围(full/ctx)衡量说做不一致的构念思路提供了直接的当代方法论先例。"
+new_dois:
+  - "10.1016/j.jbusres.2025.115188"
 ---
 
 ## CORE
@@ -82,7 +90,7 @@ new_dois: []
 【方法学与计算】
 计算的第一步发生在文章级 (`encode_collab.py::derive_residual_signals`): 先对 full 轨与 ctx 轨的 innovation_locus 原始标签做归一化 (`_normalize_label`), 再用 `_both_valid_mask` 判定两轨标签是否都落在 canonical 集合 {底层技术, 应用场景} 内 (both_valid); 只有两轨都给出有效、可比较的标签, 该文章才进入分母域, 这一口径经 2026-06-11 的 omni-g-encode-collab-02 修复从"非空即可"收紧为"isin 白名单", 目的是保证下方三个不变式在构造上可证: (i) freerider + quietworker ≤ 1 互斥; (ii) freerider + quietworker == disagree 恒等 (由 both_valid 的白名单口径保证, 脏标签或非 canonical 值不会进分母, 从而不会推高 disagree 却不落进两个子类); (iii) 任一轨为缺失值或非 canonical 脏标签, 三个文章级布尔列全部记为 False 而非 NaN, 避免缺标签文章被系统性误记为"不分歧"。三个文章级信号的精确定义为: locus_disagree = (full 标签 != ctx 标签) 且两轨均 both_valid; locus_freerider = full 标签 == 底层技术 (基线) 且 ctx 标签 == 应用场景 (对照); locus_quietworker = full 标签 == 应用场景 且 ctx 标签 == 底层技术。直觉上, freerider 对应"通篇叙事描绘成底层技术布局, 但聚焦到该银行本身时其实只是应用场景层面的采购或合作" (说得比做得大), quietworker 对应反过来"整体叙事只当作一次应用场景报道, 但聚焦到该银行的实体窗口其实透露出底层技术自主投入的信息" (做得比说得多, 未被充分渲染)。第二步在面板聚合 (`aggregate_d4_panel`) 把三个文章级布尔列在 bank-year 分组内求和, 除以该组内 both_valid 文章数 n_bothvalid; n_bothvalid < 5 (含 0) 时三个 frac 列一律置 NaN, 该小样本门槛与文章级信号的 both_valid 分母域保持同一集合, 避免"分子有效域"与"分母物理域"错配造成的系统性下偏 (2026-06-11 omni-g-encode-collab-01 修复); 上游标签列若缺失导致无法重建 both_valid, 则回退到 legacy 的物理文章数分母, 并额外产出 n_articles_locus_bothvalid 供论文披露覆盖率。ss 轨 (银行∧金科同句窗口) 是纯情感轨, 不产 innovation_locus 属性标签, 因此本家族只比较 full 与 ctx 两轨, 不产 `_ss` 残差列, 这是刻意设计而非遗漏; 三条 frac 之间也不构成 over-identified 的同一识别策略, 三个分类维度 (subst/locus/collab) 各自 just-identified 并排, 互为稳健性、不分主次, 禁止混进同一 over-identified Hansen J。
 【文献定位】
-本家族的方法论根基是"说一套做一套"型解耦 (decoupling) 测度传统, 在治理与社会责任文献中已有系统梳理 (与本模块另行引注的 decoupling 综述同族); 具体到金融科技的 locus 二分框架, 直接取自 Gomber, Koch & Siering (2017, Journal of Business Economics) 对金融科技研究议程按底层使能技术与前台应用场景的划分, 后者在信息系统领域的组织逻辑分层思路可追溯到 Yoo, Henfridsson & Lyytinen (2010, Information Systems Research) 对数字创新分层组织逻辑的论述。跨轨标签不一致的构念定位则借鉴投资者/分析师分歧 (disagreement) 文献: Hong & Stein (2007, Journal of Economic Perspectives) 综述了分歧如何在股票市场中系统性地影响定价与交易量, Carlin, Longstaff & Matoba (2014, Journal of Financial Economics) 与 Cen, Wei & Yang (2017, Management Science) 分别在资产定价与反应不足框架下把分歧度量化为可预测收益的横截面变量, Li & Luan (2025, Review of Accounting Studies) 进一步把新闻文本衍生的分歧度量与股票收益相联系, 为本家族"用同一语料的不同取材范围衍生分歧信号"的思路提供了直接的方法论先例。跨评注者/跨口径标注不一致本身的度量传统另参 Uma, Fornaciari, Hovy, Paun, Plank & Poesio (2021, Journal of Artificial Intelligence Research) 对标注分歧建模的系统综述, 该文把"分歧"本身视为可建模信号而非噪声待去除, 与本家族把 full/ctx 分歧当作独立研究变量 (而非仅用于稳健性剔除) 的立场一致。
+本家族的方法论根基是"说一套做一套"型解耦 (decoupling) 测度传统, 在治理与社会责任文献中已有系统梳理 (与本模块另行引注的 decoupling 综述同族); 具体到金融科技的 locus 二分框架, 直接取自 Gomber, Koch & Siering (2017, Journal of Business Economics) 对金融科技研究议程按底层使能技术与前台应用场景的划分, 后者在信息系统领域的组织逻辑分层思路可追溯到 Yoo, Henfridsson & Lyytinen (2010, Information Systems Research) 对数字创新分层组织逻辑的论述。跨轨标签不一致的构念定位则借鉴投资者/分析师分歧 (disagreement) 文献: Hong & Stein (2007, Journal of Economic Perspectives) 综述了分歧如何在股票市场中系统性地影响定价与交易量, Carlin, Longstaff & Matoba (2014, Journal of Financial Economics) 与 Cen, Wei & Yang (2017, Management Science) 分别在资产定价与反应不足框架下把分歧度量化为可预测收益的横截面变量, Li & Luan (2025, Review of Accounting Studies) 进一步把新闻文本衍生的分歧度量与股票收益相联系, 为本家族"用同一语料的不同取材范围衍生分歧信号"的思路提供了直接的方法论先例。跨评注者/跨口径标注不一致本身的度量传统另参 Uma, Fornaciari, Hovy, Paun, Plank & Poesio (2021, Journal of Artificial Intelligence Research) 对标注分歧建模的系统综述, 该文把"分歧"本身视为可建模信号而非噪声待去除, 与本家族把 full/ctx 分歧当作独立研究变量 (而非仅用于稳健性剔除) 的立场一致。此外, Reppmann, Maibaum, Edinger-Schons & Foege (2025, Journal of Business Research) 用文本衍生指标刻画企业可持续性传播中言语与实际行动之间的脱耦关系, 呈倒U型非线性, 为本家族用同一语料不同取材范围衡量说做不一致的构念思路提供了直接的当代方法论先例。
 
 ## VAR: locus_disagree_frac
 
@@ -107,4 +115,5 @@ Cen, L., Wei, K. C. J., & Yang, L. (2017). Disagreement, underreaction, and stoc
 Li, S. Z., & Luan, Z. (2025). News-based investor disagreement and stock returns. Review of Accounting Studies, 30(3), 2312-2375. https://doi.org/10.1007/s11142-025-09897-1
 Uma, A. N., Fornaciari, T., Hovy, D., Paun, S., Plank, B., & Poesio, M. (2021). Learning from disagreement: A survey. Journal of Artificial Intelligence Research, 72, 1385-1470. https://doi.org/10.1613/jair.1.12752
 Yoo, Y., Henfridsson, O., & Lyytinen, K. (2010). The new organizing logic of digital innovation: An agenda for information systems research. Information Systems Research, 21(4), 724-735. https://doi.org/10.1287/isre.1100.0322
+Reppmann, M., Maibaum, F., Edinger-Schons, L. M., & Foege, J. N. (2025). Talk, but don't talk too much: How corporate sustainability communication evokes stepwise organizational change. Journal of Business Research. https://doi.org/10.1016/j.jbusres.2025.115188
 <!-- rendered-citations:end -->

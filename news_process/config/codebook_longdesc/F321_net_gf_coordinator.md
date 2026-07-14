@@ -183,7 +183,21 @@ citations:
   vol: 1
   issue: 3
   pages_or_artno: "215-239"
-new_dois: []
+- doi: "10.1111/acfi.13091"
+  title: "How do co-shareholding networks affect negative media coverage? Evidence from China"
+  authors: "Wang, L., Hou, W., & Liu, Y."
+  year: 2023
+  venue: "Accounting & Finance"
+  type: "journal"
+- doi: "10.3390/jrfm16040226"
+  title: "Enhancing Financial Market Analysis and Prediction with Emotion Corpora and News Co-Occurrence Network"
+  authors: "McCarthy, S., & Alaghband, G."
+  year: 2023
+  venue: "Journal of Risk and Financial Management"
+  type: "journal"
+new_dois:
+  - "10.1111/acfi.13091"
+  - "10.3390/jrfm16040226"
 ---
 
 ## CORE
@@ -204,7 +218,7 @@ gf_coordinator 家族刻画的构念是目标银行在年度银行共现新闻�
 
 【文献定位】
 
-本家族在文献坐标系中处于三条线索的交汇点。第一条是经纪与结构洞的社会网络理论传统: Gould 与 Fernandez (1989) 提供角色分解算法本身; Burt (2004) 证明占据结构洞 (即跨越不直接相连的对手方) 的行动者获得信息与创新优势, 为经纪位置的价值假说提供了经典因果叙事; Zádor, Zhu, Smith 与 Gorgoni (2022) 则将 Gould-Fernandez 计数推广到加权与规范化情形, 并系统讨论了原始计数对网络规模与度分布的敏感性——本项目保留原始未加权计数作为 canonical, 该文是理解其量纲局限与未来加权扩展方向的直接参照。第二条是金融网络与系统性风险文献: Jackson 与 Pernoud (2021) 的综述确立了银行间网络结构 (包括中介位置) 与传染及系统性风险的理论联系; Han, Kim 与 Nanda (2024) 在机构经纪网络中证明经纪位置直接影响流动性供给, 是"银行经纪角色具有实质经济后果"最贴近的实证锚; Li 等 (2026) 从文本风险披露中重建金融网络结构与关联度, 与本项目从新闻文本构建银行网络的做法在数据来源层面同构, 为文本源网络的效度提供方法学佐证。第三条是媒体与银行的信息生态: You, Zhang 与 Zhang (2018) 揭示中国媒体报道版图受制度性力量塑造, 提示共现网络的群际结构可能部分反映媒体制度而非纯粹的经济关联; Xu (2024) 证明财经记者自身的社会网络系统性地扭曲新闻内容, 是共现边形成机制中媒体侧噪声的直接证据。这三条线索共同界定了本测度的解释边界: 它是媒体叙事空间中的结构角色, 与真实银行间敞口网络 (如同业拆借、支付清算) 的经纪结构相关但不等同, 论文写作引用时须保持"叙事网络"限定语。
+本家族在文献坐标系中处于三条线索的交汇点。第一条是经纪与结构洞的社会网络理论传统: Gould 与 Fernandez (1989) 提供角色分解算法本身; Burt (2004) 证明占据结构洞 (即跨越不直接相连的对手方) 的行动者获得信息与创新优势, 为经纪位置的价值假说提供了经典因果叙事; Zádor, Zhu, Smith 与 Gorgoni (2022) 则将 Gould-Fernandez 计数推广到加权与规范化情形, 并系统讨论了原始计数对网络规模与度分布的敏感性——本项目保留原始未加权计数作为 canonical, 该文是理解其量纲局限与未来加权扩展方向的直接参照。第二条是金融网络与系统性风险文献: Jackson 与 Pernoud (2021) 的综述确立了银行间网络结构 (包括中介位置) 与传染及系统性风险的理论联系; Han, Kim 与 Nanda (2024) 在机构经纪网络中证明经纪位置直接影响流动性供给, 是"银行经纪角色具有实质经济后果"最贴近的实证锚; Li 等 (2026) 从文本风险披露中重建金融网络结构与关联度, 与本项目从新闻文本构建银行网络的做法在数据来源层面同构, 为文本源网络的效度提供方法学佐证。第三条是媒体与银行的信息生态: You, Zhang 与 Zhang (2018) 揭示中国媒体报道版图受制度性力量塑造, 提示共现网络的群际结构可能部分反映媒体制度而非纯粹的经济关联; Xu (2024) 证明财经记者自身的社会网络系统性地扭曲新闻内容, 是共现边形成机制中媒体侧噪声的直接证据。这三条线索共同界定了本测度的解释边界: 它是媒体叙事空间中的结构角色, 与真实银行间敞口网络 (如同业拆借、支付清算) 的经纪结构相关但不等同, 论文写作引用时须保持"叙事网络"限定语。该文证明中国上市公司在共同持股网络中的居间/结构洞位置分别经由信息共享与信息控制渠道降低负面媒体报道, 为本家族"网络结构位置具有媒体叙事后果"的核心假说提供最贴近的中国语境实证锚, 引用格式为 Wang, Hou, & Liu (2023, Accounting & Finance)。该文基于逾五十万篇金融新闻构建企业新闻共现网络并耦合情绪语料, 证明新闻共现结构与市场情绪及价格变动存在中度以上相关, 为本家族以新闻共现图刻画银行间叙事关联的构建方法提供直接的方法学先例, 引用格式为 McCarthy & Alaghband (2023, Journal of Risk and Financial Management)。
 
 【识别策略定位】
 
@@ -257,4 +271,6 @@ Burt, R. S. (2004). Structural holes and good ideas. American Journal of Sociolo
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
 Gould, R. V., & Fernandez, R. M. (1989). Structures of mediation: A formal approach to brokerage in transaction networks. Sociological Methodology, 19, 89-126. https://doi.org/10.2307/270949
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
+Wang, L., Hou, W., & Liu, Y. (2023). How do co-shareholding networks affect negative media coverage? Evidence from China. Accounting & Finance. https://doi.org/10.1111/acfi.13091
+McCarthy, S., & Alaghband, G. (2023). Enhancing Financial Market Analysis and Prediction with Emotion Corpora and News Co-Occurrence Network. Journal of Risk and Financial Management. https://doi.org/10.3390/jrfm16040226
 <!-- rendered-citations:end -->

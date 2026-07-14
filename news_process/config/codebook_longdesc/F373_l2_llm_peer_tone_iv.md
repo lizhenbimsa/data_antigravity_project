@@ -162,7 +162,31 @@ citations:
   vol: 60
   issue: 3
   pages_or_artno: 531-542
-new_dois: []
+- doi: "10.2139/ssrn.5668511"
+  type: "wp"
+  authors: "Han, S."
+  year: 2025
+  title: "Mining Causality: AI-Assisted Search for Instrumental Variables"
+  venue: "SSRN Working Paper"
+  one_sentence_zh: "该工作论文提出用大语言模型通过叙事与反事实推理搜索工具变量并将方法应用于同业效应案例, 呼应本家族以大语言模型识别的同行滞后语调作为工具变量的识别设计。"
+- doi: "10.1111/1475-679X.12510"
+  type: "journal"
+  authors: "Banerjee, S., Dasgupta, S., Shi, R., & Yan, J."
+  year: 2024
+  title: "Information Complementarities and the Dynamics of Transparency Shock Spillovers"
+  venue: "Journal of Accounting Research"
+  one_sentence_zh: "该文利用标普500公司财务舞弊被曝光的交错时点识别信息互补性在同行间的透明度冲击溢出效应, 发现\"近\"同行的隐含资本成本上升幅度大于\"远\"同行, 为本家族以滞后同行冲击识别聚焦银行结局的溢出渠道提供了同行信息溢出的最新经验佐证。"
+- doi: "10.1002/mde.3727"
+  type: "journal"
+  authors: "Qin, X., Zhang, S. Q., Liao, X., Niu, H., & Dnes, A."
+  year: 2023
+  title: "The peer contagion effects and firms' innovation: Evidence from China"
+  venue: "Managerial and Decision Economics"
+  one_sentence_zh: "该文基于中国上市公司数据检验同行传染效应对企业创新的影响, 发现宏观市场化程度与中观行业竞争强化该效应而微观管理能力抑制之, 呼应本家族以同行滞后语调作为工具变量时需考量的同行传染异质性来源。"
+new_dois:
+  - "10.2139/ssrn.5668511"
+  - "10.1111/1475-679X.12510"
+  - "10.1002/mde.3727"
 ---
 
 ## CORE
@@ -180,7 +204,7 @@ new_dois: []
 关于阈值后缀, 必须精确复述一条承重事实: 五档阈值零点七零、零点七五、零点八零、零点八五、零点九零, 自修复编号零四与零五起已经完全惰性。该阈值原本是做银行简称名义归一时字符串匹配的宽严程度, 也就是把银行简称吸附成规范名时容许多大的相似度, 并不是同行语义相似度的阈值。早期存在一条兜底吸附, 曾把中国农业银行与中国农业发展银行因相似度约零点八五七错配成同一实体; 修复后该兜底整体移除, 名义归一只保留精确匹配、变体表映射、唯一子串三条策略, 三者都不消费这个阈值。因此五档后缀列在盘面上结构性逐位相同, 属于保留下来的档位脚手架, 而不是活跃的敏感性梯子。写作与解读时严禁把阈值扫描标注成同行相似度阈值敏感性或不同同行识别宽严度下的稳健性, 那是命名勘误的历史包袱, 会让审稿人误以为其中存在统计上独立的识别变异。
 
 【文献定位】
-本测度坐落在三支文献的交汇处。其一是媒体语调计量与情感构念: Tetlock (2007) 奠定媒体悲观情绪对市场有可测度影响的经典范式, Shapiro 等 (2022) 给出把新闻文本系统转成情感指数的方法, Du 等 (2022) 提供中文金融语境下领域专用情感词典这一效度基准。本家族底层情感由三家模型投票生成而非词典, 方法学承接 de Kok (2025) 的生成式模型文本分析范式, 但上述情感计量文献界定了语调这一构念的效度边界与解读口径。其二是同业效应识别: Manski (1993) 的反射问题是采用滞后一期的根本理由, Bramoullé 等 (2009) 论证借社会网络结构可识别同业效应, Bramoullé 等 (2020) 的综述系统梳理网络同业效应识别的假设谱系, Luo 等 (2025) 给出用工具变量识别因果同业效应的新近处理, 四者共同构成本工具识别论证的骨架。Leary 与 Roberts (2014) 尤为关键: 他们正因同行结果均值难以满足排除约束这一隐忧, 在公司财务政策研究中转用同行的特质收益冲击; 本模块以滞后一期加文章级剔除缓解同一隐忧, 并据此要求论文明确披露剩余识别假设, 而不是宣称已彻底解决。其三是弱工具诊断与稳健推断: Stock 与 Yogo (2005) 的弱工具临界值、Kleibergen 与 Paap (2006) 的稳健秩检验统计量、Montiel Olea 与 Pflueger (2013) 的稳健有效统计量、Andrews 等 (2019) 对弱工具理论与实践的综述, 是任何两阶段最小二乘落地都必备的体检项。银行金融科技这一具体情境由 Cheng 与 Qu (2020) 关于中国银行金融科技与信用风险的证据锚定。
+本测度坐落在三支文献的交汇处。其一是媒体语调计量与情感构念: Tetlock (2007) 奠定媒体悲观情绪对市场有可测度影响的经典范式, Shapiro 等 (2022) 给出把新闻文本系统转成情感指数的方法, Du 等 (2022) 提供中文金融语境下领域专用情感词典这一效度基准。本家族底层情感由三家模型投票生成而非词典, 方法学承接 de Kok (2025) 的生成式模型文本分析范式, 但上述情感计量文献界定了语调这一构念的效度边界与解读口径。其二是同业效应识别: Manski (1993) 的反射问题是采用滞后一期的根本理由, Bramoullé 等 (2009) 论证借社会网络结构可识别同业效应, Bramoullé 等 (2020) 的综述系统梳理网络同业效应识别的假设谱系, Luo 等 (2025) 给出用工具变量识别因果同业效应的新近处理, 四者共同构成本工具识别论证的骨架。Leary 与 Roberts (2014) 尤为关键: 他们正因同行结果均值难以满足排除约束这一隐忧, 在公司财务政策研究中转用同行的特质收益冲击; 本模块以滞后一期加文章级剔除缓解同一隐忧, 并据此要求论文明确披露剩余识别假设, 而不是宣称已彻底解决。其三是弱工具诊断与稳健推断: Stock 与 Yogo (2005) 的弱工具临界值、Kleibergen 与 Paap (2006) 的稳健秩检验统计量、Montiel Olea 与 Pflueger (2013) 的稳健有效统计量、Andrews 等 (2019) 对弱工具理论与实践的综述, 是任何两阶段最小二乘落地都必备的体检项。银行金融科技这一具体情境由 Cheng 与 Qu (2020) 关于中国银行金融科技与信用风险的证据锚定。Han (2025, SSRN Working Paper) 提出用大语言模型通过叙事与反事实推理搜索工具变量并将方法应用于同业效应案例, 呼应本家族以大语言模型识别的同行滞后语调作为工具变量的识别设计。Banerjee, Dasgupta, Shi 与 Yan (2024, Journal of Accounting Research) 利用标普500公司财务舞弊被曝光的交错时点识别信息互补性在同行间的透明度冲击溢出效应, 发现"近"同行的隐含资本成本上升幅度大于"远"同行, 为本家族以滞后同行冲击识别聚焦银行结局的溢出渠道提供了同行信息溢出的最新经验佐证。Qin, Zhang, Liao, Niu 与 Dnes (2023, Managerial and Decision Economics) 基于中国上市公司数据检验同行传染效应对企业创新的影响, 发现宏观市场化程度与中观行业竞争强化该效应而微观管理能力抑制之, 呼应本家族以同行滞后语调作为工具变量时需考量的同行传染异质性来源。
 
 【识别策略定位】
 在 papers/llm_peer 论文里, 本家族是识别策略的主工具变量, 也就是规格里的工具变量条目。其中 llm_peer_tone_iv_full 为主工具, llm_peer_tone_iv_full_75 被规格列为备用工具; 二者因阈值惰性而在盘面逐位等价, 故备用身份只是声明式冗余, 而非统计上独立的第二枚工具。第一阶段的内生变量是焦点银行自身的媒体语调, 第二阶段结局为外部财务与创新面板哨兵, 其中银行盈利能力为标题结局, 金融科技实际投入、引用加权专利、市场估值为次要结局, 均为待接入的外部哨兵列, 接入前以缺失占位行保留而不静默剔除。识别的核心命题是同行上一年语调只经同行渠道影响焦点银行当年结局。三条文本轨、五档阈值都是并排规格, 每一格自成一枚恰好识别的工具。铁律须逐字复述: 三条文本轨高度共线, 各自恰好识别并排、互为稳健性、不分主次, 严禁把三轨混进同一过度识别的 Hansen J 检验, 混入会人为制造伪过度识别、令统计量失去意义; 五档阈值同理, 且因逐位相同, 强行同入必致设计矩阵共线奇异。声量工具是并列的另一枚工具、保持整体平均、未做文章级剔除, 不属本家族, 若与本家族语调工具联用亦须审慎避免共线。
@@ -311,4 +335,7 @@ Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media i
 Kleibergen, F., & Paap, R. (2006). Generalized reduced rank tests using the singular value decomposition. Journal of Econometrics, 133(1), 97-126. https://doi.org/10.1016/j.jeconom.2005.02.011
 Stock, J. H., & Yogo, M. (2005). Testing for weak instruments in linear IV regression. Identification and Inference for Econometric Models: Essays in Honor of Thomas Rothenberg (Cambridge University Press). https://doi.org/10.1017/CBO9780511614491.006
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. The Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
+Han, S. (2025). Mining Causality: AI-Assisted Search for Instrumental Variables. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.5668511
+Banerjee, S., Dasgupta, S., Shi, R., & Yan, J. (2024). Information Complementarities and the Dynamics of Transparency Shock Spillovers. Journal of Accounting Research. https://doi.org/10.1111/1475-679X.12510
+Qin, X., Zhang, S. Q., Liao, X., Niu, H., & Dnes, A. (2023). The peer contagion effects and firms' innovation: Evidence from China. Managerial and Decision Economics. https://doi.org/10.1002/mde.3727
 <!-- rendered-citations:end -->

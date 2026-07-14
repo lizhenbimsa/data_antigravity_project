@@ -56,7 +56,23 @@ citations:
   vol: '68'
   issue: '7'
   pages_or_artno: 5514-5532
-new_dois: []
+- doi: "10.1016/j.eswa.2024.125739"
+  title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
+  authors: "Ma, Yuanyuan; Zhang, Tianjie; Zhang, Pingping"
+  year: 2025
+  venue: "Expert Systems with Applications"
+  type: "journal"
+  one_sentence_zh: "该文构建面向中国境内投资者的中文细粒度情感词典 (CN-FSD), 与本家族姜富伟词典同属中文财经文本情感词典构建方法论谱系, 佐证词典法情感测度在中文语境下仍是活跃研究方向。"
+- doi: "10.1002/fut.70037"
+  title: "Media Sentiment and Volatility Index Futures Returns: Evidence from Textual Analysis of News, Blogs, and Online Discussions"
+  authors: "Wu, Ming-Hung; Chen, Chun-Yo; Cheng, Nai-Wen; Tsai, Wei-Che"
+  year: 2025
+  venue: "Journal of Futures Markets"
+  type: "journal"
+  one_sentence_zh: "该文对新闻、博客、论坛文本做情感总量式文本分析并检验其对波动率期货收益的预测力, 呼应本家族 tone_sum 度量所承载的\"媒体情绪总暴露量\"构念定位。"
+new_dois:
+  - "10.1016/j.eswa.2024.125739"
+  - "10.1002/fut.70037"
 ---
 
 ## CORE
@@ -68,7 +84,7 @@ new_dois: []
 逐篇分子 jiang_2021_score_{track} 由 pipeline\sentiment\tone_words.py 的状态机打分函数产出: 先用姜富伟词典对切词结果做正负极性标注 (base_score), 再依次叠加否定规则 (否定词翻转极性)、程度副词六级乘子 (degree_multiplier)、转折句式加成 (ADVERSATIVE_BOOST) 三条语言学规则得到 final_score, 逐词累加得 total_score = Σ final_score, 并以加权幅度和 total_abs_score = Σ|final_score| 归一化, 得 normalized_score = total_score / total_abs_score ∈ [-1, 1] (若 total_abs_score = 0, 即全文无匹配词, 该篇取 0.0)。这一逐篇归一化分即 jiang_2021_score_{track}, 是 tone_sum 与 tone (均值)、tone_std (标准差) 三个聚合口径共享的唯一分子来源, 三者仅聚合算子不同 (sum / mean / std)。聚合层 pipeline\panel\encode.py::build_aggregation_dict 对 full/ctx/ss 三轨分别执行相同的 groupby-sum, 三轨 SSOT 为同一份聚合字典构造循环, 不存在轨间口径漂移。行样本口径遵循 2026-06-29 起生效的留篇门控: 是否计入某篇报道由 llm_verified_full (仅看 full 轨 LLM 判定) 决定, ctx/ss 轨的 tone_sum 行样本因此是 full 留篇集合的子集而非独立样本, 三轨互为稳健性测度、不分主次, 严禁把三轨并入同一 over-identified 的 Hansen J 检验中联合识别。ss 轨若某 bank-year 内无任何一篇报道满足"银行∧金科同句共现", 该篇的 content_ss 回退为全文 body (ss_is_fallback=True), 语义上镜像 ctx 轨的回退规则, 但仍计入 tone_sum 的求和分母 (即回退不改变是否入样本, 只改变该篇文本窗口)。
 
 【文献定位】
-词典求和法情感度量的方法论根基见 Tetlock (2007, Journal of Finance) 对媒体情绪与股票回报关系的开创性研究, 该文首次系统论证媒体文本中情绪总量对资产定价的解释力; 中文财经语境下姜富伟等 (2021, 《经济学(季刊)》) 构建的情感词典专门针对中国财经媒体报道的用词习惯与语言结构标注正负极性词表, 是本项目词典法六部词典之一, 亦是本家族的直接词源。Du et al. (2022, Review of Finance) 进一步指出中文金融文本情感分析须兼顾语言特异性 (与英文 Loughran-McDonald 词典不可简单迻译), 为本项目并行维护姜富伟、Du 等多部中文词典、并对每部词典分别输出 sum/mean/std 三种聚合口径提供了方法论依据。Frankel, Jennings & Lee (2022, Management Science) 系统比较机器学习与词典法情感度量的信息含量, 指出二者互为稳健性检验而非互相替代, 与本项目"词典法/LLM 投票法/BERT 分类法三方法并排、互为稳健"的设计哲学一致——tone_sum 与 tone (均值) 同属词典法内部的聚合口径梯度, 二者也应互为稳健性看待, 不应把 sum 简单等同于 mean 的加权放大版本。
+词典求和法情感度量的方法论根基见 Tetlock (2007, Journal of Finance) 对媒体情绪与股票回报关系的开创性研究, 该文首次系统论证媒体文本中情绪总量对资产定价的解释力; 中文财经语境下姜富伟等 (2021, 《经济学(季刊)》) 构建的情感词典专门针对中国财经媒体报道的用词习惯与语言结构标注正负极性词表, 是本项目词典法六部词典之一, 亦是本家族的直接词源。Du et al. (2022, Review of Finance) 进一步指出中文金融文本情感分析须兼顾语言特异性 (与英文 Loughran-McDonald 词典不可简单迻译), 为本项目并行维护姜富伟、Du 等多部中文词典、并对每部词典分别输出 sum/mean/std 三种聚合口径提供了方法论依据。Frankel, Jennings & Lee (2022, Management Science) 系统比较机器学习与词典法情感度量的信息含量, 指出二者互为稳健性检验而非互相替代, 与本项目"词典法/LLM 投票法/BERT 分类法三方法并排、互为稳健"的设计哲学一致——tone_sum 与 tone (均值) 同属词典法内部的聚合口径梯度, 二者也应互为稳健性看待, 不应把 sum 简单等同于 mean 的加权放大版本。Ma, Zhang & Zhang (2025, Expert Systems with Applications) 构建面向中国境内投资者的中文细粒度情感词典 (CN-FSD), 与本家族姜富伟词典同属中文财经文本情感词典构建方法论谱系, 佐证词典法情感测度在中文语境下仍是活跃研究方向。Wu, Chen, Cheng & Tsai (2025, Journal of Futures Markets) 对新闻、博客、论坛文本做情感总量式文本分析并检验其对波动率期货收益的预测力, 呼应本家族 tone_sum 度量所承载的"媒体情绪总暴露量"构念定位。
 
 ## VAR: jiang_2021_tone_sum_ctx
 
@@ -90,4 +106,6 @@ new_dois: []
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Tetlock, Paul C. (2007). Giving Content to Investor Sentiment: The Role of Media in the Stock Market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
+Ma, Yuanyuan; Zhang, Tianjie; Zhang, Pingping. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications. https://doi.org/10.1016/j.eswa.2024.125739
+Wu, Ming-Hung; Chen, Chun-Yo; Cheng, Nai-Wen; Tsai, Wei-Che. (2025). Media Sentiment and Volatility Index Futures Returns: Evidence from Textual Analysis of News, Blogs, and Online Discussions. Journal of Futures Markets. https://doi.org/10.1002/fut.70037
 <!-- rendered-citations:end -->

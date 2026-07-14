@@ -213,8 +213,22 @@ citations:
   vol: 60
   issue: 3
   pages_or_artno: 531-542
+- doi: "10.1257/jep.20231370"
+  title: "A Practical Guide to Shift-Share Instruments"
+  authors: "Borusyak, K., Hull, P., & Jaravel, X."
+  year: 2025
+  venue: "Journal of Economic Perspectives"
+  type: "journal"
+- doi: "10.3390/systems13100918"
+  title: "Peer Effects of Bank Digital Transformation Through Shareholder Networks"
+  authors: "He, L., Zhu, S., Zhang, M., & Dong, X."
+  year: 2025
+  venue: "Systems"
+  type: "journal"
 new_dois:
-- 10.1111/jofi.12094
+- "10.1111/jofi.12094"
+- "10.1257/jep.20231370"
+- "10.3390/systems13100918"
 ---
 
 ## CORE
@@ -235,7 +249,9 @@ new_dois:
 第一, 本族与 lpeer_ 前缀的 ctx/ss 轨镜像列 (lpeer_attention_iv_ctx 等, 属另一家族) 的关系: 本族十列全部基于 full 轨内生变量 (attention_index_full、benefit_mean_full 显式带后缀; sub_frac、tech_frac、collab_frac 无后缀即 full 轨, 属历史命名产物而非「主轨特权」)。ctx 轨 (标题加实体窗口) 与 ss 轨 (银行与金科词同句窗口) 的同名 LOO 工具以紧凑前缀 lpeer_ 另行物化, 三轨互为稳健性、不分主次, 各自 just-identified 并排进各自的 2SLS; 铁律是严禁把 full/ctx/ss 任意两轨的 LOO 工具拼进同一个 over-identified 方程做 Hansen J — 三轨源自同一批文章的三种文本窗口, 共同冲击同源同污染, 过度识别检验在此设定下零功效, 通过了也不构成排他性证据。第二, 与 zone_leave1out_benefit_iv 的区分: 后者同引擎但分组维度换成 bank_zone (经济圈), 是分组判据敏感性臂, 与本族 bank_type 分组各自 just-identified 并排, 同样禁混 Hansen J。第三, 与 bartik_*_iv 的区分: Bartik 族的移位部分虽然也是组年 LOO 均值, 但乘上了基期冻结份额, 识别论证依赖份额外生性而非同业均值排他性, 两族是不同识别假设下的独立工具, 跨族互证是设计意图, 但合并进同一方程做过度识别检验时必须逐篇论证两套排他性假设可同时成立。第四, 与 llm_peer_tone_iv、emb_peer_tone 系 W 矩阵溢出列的区分: 那些列的「同行」由 LLM 识别的竞争对手集合或嵌入相似度矩阵定义, 是连续加权网络; 本族的同行是离散监管类型分组, 构念上一个是「市场感知的竞争邻居」, 一个是「监管同类」, 不可互换解释。第五, 内生变量自身的口径约束向上传导: 五个内生列全部继承 stage 21 的 full-only 留篇门控 (2026-06-29 口径, 一篇文章是否计入银行金科报道宇宙只看 full 轨 LLM 验证), 因此本族工具的有效样本结构也随 full 轨门控收缩, 这是设计内行为而非缺陷。
 
 【已知局限与稳健性梯子】
-局限一, 排他性不可检验且先天承压: 同业均值工具的排他性在 Leary 与 Roberts (2014) 原文中已被作者本人明确标注为局限, 本仓所有消费论文必须如实披露「同业指标可能经由共同需求冲击直接进入结果方程」的风险, 勿过度宣称。局限二, 完全组结构下反射问题无法根除: 年份固定效应加滞后只是缓解, 不是 Bramoullé 等 (2009) 意义的拓扑识别; 若审稿人要求, 跨谱系工具 (Bartik、outlet) 是指定的替代识别路径。局限三, 弱工具风险随组规模波动: 类型分组组数少 (约六类), 组内银行数不均, 小组年格上剩余同业可能刚过 min_peers 门槛, 一阶段 F 值须逐表报告, 低于 Stock 与 Yogo (2005) 临界值时切换 Anderson-Rubin 推断或 Wang 与 Zhang (2024) 型 bootstrap。局限四, T=2 开发样本退化: 当前磁盘面板仅 2017-2018 两年, _lag1 变体只有 2018 年有值, 组年格稀薄导致 NaN 占比偏高, 这是试跑窗口的机械后果, 全量语料 (2007-2024, T=18) 下自然恢复, 审计时禁用 T=2 表现推断生产行为。局限五, 测量误差传导: 内生变量本身是 LLM 分类或嵌入投影的文本测度 (Gentzkow 等 (2019) 意义下的 text-as-data 生成变量), 其测量误差会同时进入工具 (同业均值) 与处理变量, 经典衰减偏误的方向分析在生成回归变量设定下更复杂, 论文须在稳健性节讨论。稳健性梯子的完整形态: 轨道维度 full/lpeer_ctx/lpeer_ss 三臂, 分组判据维度 bank_type/bank_zone 两臂, 时点维度当期/滞后一期两臂, 工具谱系维度 LOO/Bartik/outlet 三族 — 全部遵循「各自 just-identified 并排、互为稳健性不分主次、禁混同一 over-identified Hansen J」的全仓铁律; 运行日志在 8z 步骤打出的 METHOD banner 亦复述此约束。局限六, 组构成随年份漂移: 样本银行的进入退出与类型归属调整会改变各组年格的同业集合, LOO 均值的年际变动因此混入组构成效应与真实叙事变动两种来源; 由于分组判据是缓慢变动的监管分类, 该问题在本设定下二阶, 但涉及城商行农商行合并重组密集年份时论文须做剔除重组银行的敏感性。局限七, 留篇门控的样本选择传导: 内生变量的分母随 full-only 门控收缩, 若门控通过率与银行类型相关 (大行报道更易通过验证), 则组均值的测量精度在类型间不均, 属异方差性质的测量问题而非偏误来源, 聚类稳健推断可覆盖, 但报告一阶段时宜按类型分组披露有效观测的分布。局限八, 分组维度与固定效应的共线约束须预分析确认: 本族分组维度 bank_type 与回归常配的类型固定效应在组间水平上完全共线, 一旦模型纳入类型固定效应, 工具的识别变异被压缩到「类型 x 年」交互层, 组间的长期水平差异被固定效应吸收殆尽, 剩余的一阶段解释力全部来自同组内跨年的相对波动。这一约束在两年开发窗口上尤为致命 (T=2 时类型 x 年格几乎无跨年变异可用), 生产 T=18 语料下每个类型有十八年的组年序列, 交互层变异才充分。因此论文预分析阶段必须报告纳入与不纳入类型固定效应两种设定下的一阶段偏 R 方与 Kleibergen-Paap F, 若类型固定效应下工具塌陷, 则须显式声明识别依赖组间水平差异这一较强假设, 或改以年份固定效应加类型层聚类的较弱设定, 并在稳健性节交代两种设定的系数异同。
+局限一, 排他性不可检验且先天承压: 同业均值工具的排他性在 Leary 与 Roberts (2014) 原文中已被作者本人明确标注为局限, 本仓所有消费论文必须如实披露「同业指标可能经由共同需求冲击直接进入结果方程」的风险, 勿过度宣称。局限二, 完全组结构下反射问题无法根除: 年份固定效应加滞后只是缓解, 不是 Bramoullé 等 (2009) 意义的拓扑识别; 若审稿人要求, 跨谱系工具 (Bartik、outlet) 是指定的替代识别路径。局限三, 弱工具风险随组规模波动: 类型分组组数少 (约六类), 组内银行数不均, 小组年格上剩余同业可能刚过 min_peers 门槛, 一阶段 F 值须逐表报告, 低于 Stock 与 Yogo (2005) 临界值时切换 Anderson-Rubin 推断或 Wang 与 Zhang (2024) 型 bootstrap。局限四, T=2 开发样本退化: 当前磁盘面板仅 2017-2018 两年, _lag1 变体只有 2018 年有值, 组年格稀薄导致 NaN 占比偏高, 这是试跑窗口的机械后果, 全量语料 (2007-2024, T=18) 下自然恢复, 审计时禁用 T=2 表现推断生产行为。局限五, 测量误差传导: 内生变量本身是 LLM 分类或嵌入投影的文本测度 (Gentzkow 等 (2019) 意义下的 text-as-data 生成变量), 其测量误差会同时进入工具 (同业均值) 与处理变量, 经典衰减偏误的方向分析在生成回归变量设定下更复杂, 论文须在稳健性节讨论。稳健性梯子的完整形态: 轨道维度 full/lpeer_ctx/lpeer_ss 三臂, 分组判据维度 bank_type/bank_zone 两臂, 时点维度当期/滞后一期两臂, 工具谱系维度 LOO/Bartik/outlet 三族 — 全部遵循「各自 just-identified 并排、互为稳健性不分主次、禁混同一 over-identified Hansen J」的全仓铁律; 运行日志在 8z 步骤打出的 METHOD banner 亦复述此约束。局限六, 组构成随年份漂移: 样本银行的进入退出与类型归属调整会改变各组年格的同业集合, LOO 均值的年际变动因此混入组构成效应与真实叙事变动两种来源; 由于分组判据是缓慢变动的监管分类, 该问题在本设定下二阶, 但涉及城商行农商行合并重组密集年份时论文须做剔除重组银行的敏感性。局限七, 留篇门控的样本选择传导: 内生变量的分母随 full-only 门控收缩, 若门控通过率与银行类型相关 (大行报道更易通过验证), 则组均值的测量精度在类型间不均, 属异方差性质的测量问题而非偏误来源, 聚类稳健推断可覆盖, 但报告一阶段时宜按类型分组披露有效观测的分布。Borusyak、Hull 与 Jaravel (2025, Journal of Economic Perspectives) 系统梳理移位份额工具的两种外生性识别视角 (份额外生 vs 冲击外生) 及其诊断实践, 与本家族相邻的广义 Bartik IV 谱系直接呼应; He、Zhu、Zhang 与 Dong (2025, Systems) 基于共同股东网络构造中国商业银行数字化转型的同业传导测度, 实证支持同业指标经由网络渠道外溢至焦点银行这一本族一阶段机制的现实基础。
+
+局限八, 分组维度与固定效应的共线约束须预分析确认: 本族分组维度 bank_type 与回归常配的类型固定效应在组间水平上完全共线, 一旦模型纳入类型固定效应, 工具的识别变异被压缩到「类型 x 年」交互层, 组间的长期水平差异被固定效应吸收殆尽, 剩余的一阶段解释力全部来自同组内跨年的相对波动。这一约束在两年开发窗口上尤为致命 (T=2 时类型 x 年格几乎无跨年变异可用), 生产 T=18 语料下每个类型有十八年的组年序列, 交互层变异才充分。因此论文预分析阶段必须报告纳入与不纳入类型固定效应两种设定下的一阶段偏 R 方与 Kleibergen-Paap F, 若类型固定效应下工具塌陷, 则须显式声明识别依赖组间水平差异这一较强假设, 或改以年份固定效应加类型层聚类的较弱设定, 并在稳健性节交代两种设定的系数异同。
 
 【文献定位】
 本族的文献坐标系由三层构成。方法层: Manski (1993) 反射问题奠定同行效应识别的批评基准; Bramoullé 等 (2009) 给出网络拓扑识别条件; Leary 与 Roberts (2014) 是同行均值工具在公司金融的落地范式与排他性诚实披露的先例; Goldsmith-Pinkham 等 (2020) 与 Borusyak 等 (2022) 界定了相邻 Bartik 族的两种外生性视角, 本族借其框架厘清自身不同的识别依赖; Stock 与 Yogo (2005) 与 Wang 与 Zhang (2024) 提供弱工具诊断与稳健推断工具箱; Luo 等 (2025) 与 Nibbering 与 Oosterveen (2025) 代表同行效应 IV 识别的前沿刻画。测度层: Hassan 等 (2019) 确立公司层文本暴露测度范式, Da 等 (2011) 与 Fang 与 Peress (2009) 确立注意力与媒体覆盖对金融结果的实证意义, Cookson 等 (2024) 把媒体信号的信息含量推进到社交媒体时代, Qin 等 (2018) 提供中国媒体市场结构与报道偏差的制度背景 — 这对以中文银行新闻为语料的本仓尤为关键, 因为中国媒体的党媒/市场化分层意味着「同类型银行被报道的方式」有系统性的媒体端成分, 恰是同业暴露传导的现实通道。应用层: Chen 等 (2019) 与 Hau 等 (2024) 代表金融科技创新价值与信贷增长的因果证据谱系, Gomber 等 (2018) 提供 locus 维度的概念框架, Zhang 等 (2024) 与 Dehghani 等 (2026) 支撑 collab 维度的开放式创新构念, Kalyani 等 (2025) 的技术扩散测度与 Grieser 等 (2022)、Schwenkler 与 Zheng (2025) 的同伴联动证据共同支撑「同业文本指标存在真实传导」的一阶段经济机制。本族十列即处在这三层文献的交点上: 用方法层的工具化策略, 处理测度层生成的文本变量, 服务应用层的因果问题。
@@ -314,4 +330,6 @@ Fang, L., & Peress, J. (2009). Media coverage and the cross-section of stock ret
 Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effects through social networks. Journal of Econometrics, 150(1), 41-55. https://doi.org/10.1016/j.jeconom.2008.12.021
 Stock, J. H., & Yogo, M. (2005). Testing for weak instruments in linear IV regression. Identification and Inference for Econometric Models: Essays in Honor of Thomas Rothenberg (Cambridge University Press). https://doi.org/10.1017/CBO9780511614491.006
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. The Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
+Borusyak, K., Hull, P., & Jaravel, X. (2025). A Practical Guide to Shift-Share Instruments. Journal of Economic Perspectives. https://doi.org/10.1257/jep.20231370
+He, L., Zhu, S., Zhang, M., & Dong, X. (2025). Peer Effects of Bank Digital Transformation Through Shareholder Networks. Systems. https://doi.org/10.3390/systems13100918
 <!-- rendered-citations:end -->

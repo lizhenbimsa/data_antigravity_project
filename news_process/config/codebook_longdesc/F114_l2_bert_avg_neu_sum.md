@@ -79,7 +79,14 @@ citations:
   year: 2019
   title: "BERT: Pre-training of deep bidirectional transformers for language understanding"
   venue: arXiv
-new_dois: []
+- doi: "10.1002/isaf.1549"
+  type: journal
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+new_dois:
+  - "10.1002/isaf.1549"
 ---
 
 ## CORE
@@ -93,7 +100,7 @@ new_dois: []
 逐篇打分沿用 BERT 双向 Transformer 编码器的序列分类范式 (Devlin et al., 2019), 在金融文本上以 FinBERT 类专用模型完成三分类 softmax 输出 (Huang et al., 2023)。中性类概率是 softmax 三维输出中对应"中性/不确定"维度的分量, 天然落在 [0,1] 且三维之和为 1。逐篇中性概率在 bank-year 内按报道求和即得 {b}_neu_sum; 该量的量纲是"篇数 × 平均中性概率", 因此与报道体量正相关。跨模型均值这一步遵循项目一贯的多模型互为稳健性口径: 三分类 BERT 各模型的逐模型中性求和列并排、地位对等, 跨模型均值只是把它们汇成一个便于建模的综合信号, 但在识别层, 各模型的 per-model 子测度各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同模型 (或不同轨道) 的中性列混进同一 over-identified 的 Hansen J 过度识别检验。per-model 独立降级: 某个 BERT 模型缺席只掉它自身的中性列, 不连坐其他模型, 也不同于 co-primary 嵌入的 both-or-neither 联动。中性侧作为一个刻意保留的语义维度而非噪声, 与近年把"中性特征"显式纳入金融情感建模的做法一致 (Sun et al., 2025)。
 
 【文献定位】
-金融文本情感测度的方法学谱系可归为词典法与机器学习/深度学习法两支。Loughran and McDonald (2011) 确立了面向金融文本的领域词典范式, 并在 Loughran and McDonald (2016) 的综述中系统梳理了文本分析在会计金融中的效度边界; Tetlock (2007) 则较早论证了媒体语气 (尤其悲观/负面成分) 对市场的预测含义, 为"把报道情感聚合成公司—时间面板信号"提供了经典模板。相较词典法, 以 BERT 为代表的预训练语言模型能捕捉否定、程度、语境依赖等词典难以刻画的结构, Frankel et al. (2022) 在顶刊层面直接比较了机器学习与词典法在披露情感度量上的相对优劣, 支持在主测度之外并置深度学习测度作为互为稳健性的一轨。Eisfeldt and Schubert (2025) 从更宏观的视角综述了生成式 AI 与深度文本模型在金融研究中的角色。本家族正是这一谱系中的 BERT 侧中性维度: 它既不是极性方向信号, 也不是词典法产物, 而是三分类 BERT 中性类的跨模型、跨报道累积量, 与项目内的 LLM 三家投票情感、六词典法情感各自独立并排、互为稳健性, 三法之间不分主次、不混同一过度识别检验。
+金融文本情感测度的方法学谱系可归为词典法与机器学习/深度学习法两支。Loughran and McDonald (2011) 确立了面向金融文本的领域词典范式, 并在 Loughran and McDonald (2016) 的综述中系统梳理了文本分析在会计金融中的效度边界; Tetlock (2007) 则较早论证了媒体语气 (尤其悲观/负面成分) 对市场的预测含义, 为"把报道情感聚合成公司—时间面板信号"提供了经典模板。相较词典法, 以 BERT 为代表的预训练语言模型能捕捉否定、程度、语境依赖等词典难以刻画的结构, Frankel et al. (2022) 在顶刊层面直接比较了机器学习与词典法在披露情感度量上的相对优劣, 支持在主测度之外并置深度学习测度作为互为稳健性的一轨。Eisfeldt and Schubert (2025) 从更宏观的视角综述了生成式 AI 与深度文本模型在金融研究中的角色。本家族正是这一谱系中的 BERT 侧中性维度: 它既不是极性方向信号, 也不是词典法产物, 而是三分类 BERT 中性类的跨模型、跨报道累积量, 与项目内的 LLM 三家投票情感、六词典法情感各自独立并排、互为稳健性, 三法之间不分主次、不混同一过度识别检验。Todd, Bowden, and Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 系统综述了金融文本情感分析文献, 指出多数模型在中性类上的分类表现普遍弱于正负两极, 为本家族聚焦中性概率累积量这一构念提供了方法学脉络支持。
 
 ## VAR: bert_avg_neu_sum_full
 
@@ -119,4 +126,5 @@ Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance:
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2019). BERT: Pre-training of deep bidirectional transformers for language understanding. arXiv [Preprint]. https://doi.org/10.48550/arXiv.1810.04805
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
 <!-- rendered-citations:end -->

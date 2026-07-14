@@ -262,7 +262,37 @@ citations:
   vol: 1
   issue: 3
   pages_or_artno: 215-239
-new_dois: []
+- doi: "10.1111/acfi.13091"
+  type: journal
+  authors: "Wang, L., Hou, W., & Liu, Y."
+  year: 2023
+  title: "How do co-shareholding networks affect negative media coverage? Evidence from China"
+  venue: "Accounting & Finance"
+- doi: "10.1007/s44176-024-00031-0"
+  type: journal
+  authors: "Guan, F."
+  year: 2024
+  title: "Ego-network characteristics moderates the interaction of structural hole and centrality on market performance: based on coopetition network"
+  venue: "Management System Engineering"
+- doi: "10.1016/j.emj.2024.05.005"
+  title: "Don't ignore either side: The differential impact of ego-network density of the focal firm and partner on technological invasion"
+  authors: "Tang, L., Wang, T., Guan, F., & Sun, L."
+  year: 2025
+  venue: "European Management Journal"
+  type: "journal"
+  one_sentence_zh: "发现焦点企业自我网络密度与技术侵入呈倒U型关系、而伙伴企业自我网络密度呈负向关系,为本列'自我网络密度'构念在联盟情境下的非线性经济后果提供了2025年最新实证对照。"
+- doi: "10.1080/09537325.2023.2217458"
+  title: "How does ego-network structure affect innovation within industrial clusters? The moderating effect of ego-network density"
+  authors: "Huang, C.-H., & Hsueh, C.-C."
+  year: 2023
+  venue: "Technology Analysis & Strategic Management"
+  type: "journal"
+  one_sentence_zh: "考察产业集群内自我网络密度对结构洞与中心度影响创新绩效的调节作用,支持本列'密度需与其他结构量联合解读、不宜单独作为回归右手侧'的处理原则。"
+new_dois:
+  - "10.1111/acfi.13091"
+  - "10.1007/s44176-024-00031-0"
+  - "10.1016/j.emj.2024.05.005"
+  - "10.1080/09537325.2023.2217458"
 ---
 
 ## CORE
@@ -298,7 +328,7 @@ new_dois: []
 
 除结构洞三兄弟外, 还须与几个语义相近但轴线不同的指标划清界限。与核数 (coreness, 生产者内 bank_coreness) 的区分在于层级: coreness 是 Seidman (1983) 最小度嵌套分解所赋予的全局层级标签, 回答"这家银行属于网络第几层核", 是一个跨越整张图的全局位置量; 自我网络密度只看焦点银行一跳邻域内部的连通, 是纯局部量, 高 coreness 的银行未必有高自我网络密度。与平均邻居度 (bank_avg_nbr_deg) 的区分在于对象: 后者测"我的邻居们各自有多少朋友" (邻居的受欢迎程度), 而自我网络密度测"我的邻居们彼此是不是朋友" (邻居间的相互连通), 二者刻画的是邻域的两个正交侧面, 可以一个高一个低。与集体影响力 (bank_ci) 的区分在于机制: CI 把焦点银行度数与其若干跳外邻居度数相乘, 是传播影响力 (谁是最优扩散种子) 的代理, 与"局部是否闭合"无直接关系。最后须与网络级年度指标 (net_avg_cluster_yr、net_transitivity_yr) 区分粒度: 后者是把全网所有节点的聚类/传递性求年度平均后落到面板每一行 (同年所有银行取同一值), 属年份级标量; 自我网络密度是逐银行逐年的局部量, 承载银行间横截面异质。理解这一整套区分, 才能在回归里避免把高度共线的结构洞族测度、与语义不同的核层型或传播型指标错误地并入同一识别式; 也才能把"闭合轴" (聚类/密度/约束) 与"居中轴" (度数/介数/接近度) 以及 Newman (2005) 那类基于随机游走当前流的路径型中心度, 分辨为互补而非替代的刻画。
 
-最后还须在"网络从何而来"这一更根本的层面, 把本列的底层邻接与项目内外两类相邻网络基底区分开。项目内, 银行间除了本家族依托的报道共现网, 还有认知邻近网 (以银行报道文本的 TF-IDF 相似度为边权) 与嵌入同业网 (以付费嵌入向量余弦为边权): 共现网的边是离散的联合曝光事件计数, 回答"谁和谁被一同报道"; 认知/嵌入网的边是连续的语言相似度, 回答"谁和谁被以相似的方式报道"。两类基底可以给出完全不同的邻居集——两家从不同篇现身、但被媒体用几乎相同话语框架书写的银行, 在共现网中无边、在认知网中却高度邻近——因此从共现网读出的自我网络密度, 不能与认知/嵌入网上的任何结构量互换解读。这一"共现计数 vs 文本相似"的分野在文献里有清晰对应: Hoberg 和 Phillips (2016) 用产品描述文本相似度构造的产业网络属后者的经典范式, Li 等 (2026) 从风险披露文本中恢复金融网络连通结构亦属同一传统; 本列则站在共现计数一侧。项目外, 还须与真实敞口网络划界: Wang 等 (2020) 刻画的中国企业间担保网络、以及同业拆借与股权网络, 边代表真金白银的合同性风险敞口; 媒体共现网的边只代表舆论注意力层面的联合曝光, 二者对系统性风险的含义不同 (前者传导违约损失, 后者传导预期与关注)。把本列的高低误读为"资产负债表意义上的抱团"是构念漂移; 正确的表述是"媒体注意力结构意义上的局部闭合", 其与真实敞口网络结构量的相关性本身是一个待检验的实证问题, 而非可默认的前提。
+最后还须在"网络从何而来"这一更根本的层面, 把本列的底层邻接与项目内外两类相邻网络基底区分开。项目内, 银行间除了本家族依托的报道共现网, 还有认知邻近网 (以银行报道文本的 TF-IDF 相似度为边权) 与嵌入同业网 (以付费嵌入向量余弦为边权): 共现网的边是离散的联合曝光事件计数, 回答"谁和谁被一同报道"; 认知/嵌入网的边是连续的语言相似度, 回答"谁和谁被以相似的方式报道"。两类基底可以给出完全不同的邻居集——两家从不同篇现身、但被媒体用几乎相同话语框架书写的银行, 在共现网中无边、在认知网中却高度邻近——因此从共现网读出的自我网络密度, 不能与认知/嵌入网上的任何结构量互换解读。这一"共现计数 vs 文本相似"的分野在文献里有清晰对应: Hoberg 和 Phillips (2016) 用产品描述文本相似度构造的产业网络属后者的经典范式, Li 等 (2026) 从风险披露文本中恢复金融网络连通结构亦属同一传统; 本列则站在共现计数一侧。Wang, Hou 和 Liu (2023, Accounting & Finance) 证明公司在共同持股网络中的结构洞(邻居互不连通、低密度)位置可通过信息控制机制降低负面媒体报道, 为本列"自我网络密度低=经纪/信息控制优势"在媒体覆盖情境下的经济含义提供直接实证对照。Guan (2024, Management System Engineering) 发现自我网络密度会调节结构洞与中心度对市场绩效的交互效应, 支持本列在结构洞轴线以外还需与度数等其他结构量联合解读的处理原则。Tang, Wang, Guan 和 Sun (2025, European Management Journal) 发现焦点企业自我网络密度与技术侵入呈倒U型关系、而伙伴企业自我网络密度呈负向关系,为本列自我网络密度构念在联盟情境下的非线性经济后果提供了2025年最新实证对照。Huang 和 Hsueh (2023, Technology Analysis & Strategic Management) 考察产业集群内自我网络密度对结构洞与中心度影响创新绩效的调节作用,支持本列密度需与其他结构量联合解读、不宜单独作为回归右手侧的处理原则。项目外, 还须与真实敞口网络划界: Wang 等 (2020) 刻画的中国企业间担保网络、以及同业拆借与股权网络, 边代表真金白银的合同性风险敞口; 媒体共现网的边只代表舆论注意力层面的联合曝光, 二者对系统性风险的含义不同 (前者传导违约损失, 后者传导预期与关注)。把本列的高低误读为"资产负债表意义上的抱团"是构念漂移; 正确的表述是"媒体注意力结构意义上的局部闭合", 其与真实敞口网络结构量的相关性本身是一个待检验的实证问题, 而非可默认的前提。
 
 【已知局限与稳健性梯子】
 本家族的稳健性设计核心是"网络构造判据敏感性"(2026-07-03 引入): 同一自我网络密度按银行∧银行共现判据分三轨计算——同篇 (无后缀 canonical, 现行口径)、±1 句窗 (_win1)、严格同句 (_sent)。判据主体是银行与银行的邻近共现, 判定原语为 entity_context.map_bank_sentence_positions 加 bank_pairs_within_sentence_window, 扫描文本恒为 prepend_title 拼接后的标题加正文 (标题自成第 0 句, match_in_title 恒真, 镜像 stage 13 的标题盲区修复)。判据分轨路径还内置 phantom 边防线: 每个多银行 docid 分组内只让该篇幸存的 target_bank 别名入参定位, 非幸存银行不参与句级扫描、不可能凭空成边, 从而保证三判据轨的节点全集严格一致、边集随判据收紧单调变严。必须钉死的一条铁律是: 判据后缀 (_win1/_sent) 与三轨文本后缀 (_full/_ctx/_ss) 是两个正交的概念空间——前者刻画银行∧银行边的严格程度, 后者刻画银行∧金科文本窗口, 两者禁混进同一 over-identified Hansen J。三判据之间也同理: article、win1、sent 三者各自 just-identified 并排、互为稳健性、不分主次, 禁混进同一 over-identified Hansen J; 它们属于规格稳健性并排 (镜像政治词权重梯度、词典消融梯度的先例), 刻意不设 FWER 模板——因为 Romano 和 Wolf (2005) 式的跨模型 rwolf 步降检验先例只覆盖"同一构念的替代 headline 测量", 而三判据是同一构念在不同边定义下的规格变体, 不属该模板适用域。判据轨呈嵌套关系: 严格同句的边集是 ±1 句窗边集的子集, 后者又是同篇边集的子集; 但自我网络密度不是判据的单调变换, 因为收紧判据同时缩小分子 (邻居间边) 与分母 (焦点银行度数 k), 比值可上可下, 且更多银行因 k 降至一以下而落 NaN, 可计算样本随之收缩——这正是判据梯子作为真实稳健性 (而非机械重标度) 的价值所在。
@@ -354,4 +384,8 @@ Manski, C. F. (1993). Identification of endogenous social effects: The reflectio
 Gould, R. V., & Fernandez, R. M. (1989). Structures of mediation: A formal approach to brokerage in transaction networks. Sociological Methodology, 19, 89-126. https://doi.org/10.2307/270949
 Seidman, S. B. (1983). Network structure and minimum degree. Social Networks, 5(3), 269-287. https://doi.org/10.1016/0378-8733(83)90028-X
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
+Wang, L., Hou, W., & Liu, Y. (2023). How do co-shareholding networks affect negative media coverage? Evidence from China. Accounting & Finance. https://doi.org/10.1111/acfi.13091
+Guan, F. (2024). Ego-network characteristics moderates the interaction of structural hole and centrality on market performance: based on coopetition network. Management System Engineering. https://doi.org/10.1007/s44176-024-00031-0
+Tang, L., Wang, T., Guan, F., & Sun, L. (2025). Don't ignore either side: The differential impact of ego-network density of the focal firm and partner on technological invasion. European Management Journal. https://doi.org/10.1016/j.emj.2024.05.005
+Huang, C.-H., & Hsueh, C.-C. (2023). How does ego-network structure affect innovation within industrial clusters? The moderating effect of ego-network density. Technology Analysis & Strategic Management. https://doi.org/10.1080/09537325.2023.2217458
 <!-- rendered-citations:end -->

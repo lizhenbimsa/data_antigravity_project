@@ -64,7 +64,21 @@ citations:
   vol: '78'
   issue: '1'
   pages_or_artno: 35-71
-new_dois: []
+- doi: "10.1016/j.frl.2023.104865"
+  title: "Media sentiment and management earnings forecasts: Evidence from China"
+  authors: "Chen, T., Chiu, P.-C., & Wang, Y."
+  year: 2024
+  venue: "Finance Research Letters"
+  type: "journal"
+- doi: "10.1016/j.ememar.2024.101234"
+  title: "Does official media sentiment matter for the stock market? Evidence from China"
+  authors: "Xu, Z., Hua, X., & Zhang, T."
+  year: 2025
+  venue: "Emerging Markets Review"
+  type: "journal"
+new_dois:
+  - "10.1016/j.frl.2023.104865"
+  - "10.1016/j.ememar.2024.101234"
 ---
 
 ## CORE
@@ -74,7 +88,7 @@ tone_other_media{track} 度量的是"剩余媒体渠道"(既非财经专业媒�
 【方法学与计算】
 产出路径分两段。第一段在 21_tone_llms.parquet 里, 由三家 LLM (gpt54nano/gemini31/deepseekv4) 对每篇文章逐轨 (full/ctx/ss) 投票产出 llm_vote_score{track} 这一篇章级语调分数; 第二段在 pipeline/panel/attention_media.py 里做面板聚合: 先用 _classify_content 规则把 df["媒体(中文)"] (原始媒体来源中文名) 分成 fin/comp/other 三类互斥标签, 写入临时列 _media_type; 再对每个 track (full/ctx/ss 依次遍历, 缺列 `if src not in df.columns: continue` 优雅跳过而非报错), 取 `_media_type == 'other'` 的子集, 按 (target_bank, year) groupby 后对 llm_vote_score{track} 取算术均值, 命名为 tone_other_media{track}, 再 left-merge 进 panel 主表。分母是"该银行该年、该 track 下由 other 类媒体产出且落入该 track 有效样本的篇数"; 若某银行-年在 other 媒体上恰好零篇覆盖, 该格为 NaN 而非 0 (均值算子对空组返回缺失, 不做人为填零, 避免把"无覆盖"误读为"零语调")。三轨遵循与家族兄弟 tone_fin_media / tone_comp_media 完全一致的三轨铁律: full/ctx/ss 各自基于同一批文章的不同文本窗口 (全文 / 实体上下文窗 / 银行∧金科同句窗) 独立跑一遍 LLM 打分再独立聚合, 三者是各自 just-identified 并排的稳健性配置, 互为稳健性、不分主次, 禁止把三轨混进同一个 over-identified 的 Hansen J 检验框架。ss 轨遵循全仓统一的回退语义 (镜像 ctx): 当某篇文章不存在银行∧金科同句共现窗口时, content_ss 退化为全文正文, 对应 ss_is_fallback 标记为 True, 但该篇文章依旧计入 n_articles 分母, 因此 tone_other_media_ss 在覆盖率上并不会因回退而系统性缩水, 只是退化样本在语义上更接近 full 轨。
 【文献定位】
-情感度量本身植根于 Tetlock (2007) 开创的"用媒体语调预测/刻画市场反应"范式, 该文首次系统证明报纸语调是可从文本中提取的定量信号; 本家族沿用其"语调作为可聚合的连续测度"思路, 但在中国银行业语境下引入媒体类型异质性的切片。You, Zhang & Zhang (2018) 的"谁在执笔"研究证明中国媒体报道存在系统性的渠道差异, 且这种差异部分源自记者与被报道公司之间的利益关联, 为把媒体按类型切片、检验语调是否随渠道系统变化提供了直接的理论支持——tone_gap_fin_other / tone_gap_comp_other 正是在这一逻辑下构造的诊断量。Holzman, Miller & Twedt (2023, *The Accounting Review*) 进一步表明媒体情绪本身会与企业信息披露事件 (如季度盈余公告) 交互放大或抑制市场反应, 说明"媒体语调"并非中性传声筒而是带有自身编辑倾向的中介变量, 这构成本家族切片设计 (专业财经媒体 vs 综合大报 vs 其余渠道) 的方法学依据: 若 other 类媒体的平均语调系统性偏离 fin/comp 两类, 则说明媒体类型本身携带信息, 需要在回归中加以控制或作为异质性来源单独讨论。中国场景下的应用先例可见 Fang, Wang, Wang & Yuan (2024) 对媒体情感与银行系统性风险关系的实证, 该文同样采用银行-年层面的媒体语调聚合口径, 与本家族在聚合粒度上高度可比。本家族及其上游 llm_vote_score 与 P2 注意力测度族 (Hassan et al. 2019 firm-level political risk 方法学脉络下的 attention_index 系列) 共享同一批文章池, 但语调聚合 (本家族) 与注意力强度聚合 (attention_index) 是两个正交维度, 前者回答"报道得正面还是负面", 后者回答"报道得多还是少"。
+情感度量本身植根于 Tetlock (2007) 开创的"用媒体语调预测/刻画市场反应"范式, 该文首次系统证明报纸语调是可从文本中提取的定量信号; 本家族沿用其"语调作为可聚合的连续测度"思路, 但在中国银行业语境下引入媒体类型异质性的切片。You, Zhang & Zhang (2018) 的"谁在执笔"研究证明中国媒体报道存在系统性的渠道差异, 且这种差异部分源自记者与被报道公司之间的利益关联, 为把媒体按类型切片、检验语调是否随渠道系统变化提供了直接的理论支持——tone_gap_fin_other / tone_gap_comp_other 正是在这一逻辑下构造的诊断量。Holzman, Miller & Twedt (2023, *The Accounting Review*) 进一步表明媒体情绪本身会与企业信息披露事件 (如季度盈余公告) 交互放大或抑制市场反应, 说明"媒体语调"并非中性传声筒而是带有自身编辑倾向的中介变量, 这构成本家族切片设计 (专业财经媒体 vs 综合大报 vs 其余渠道) 的方法学依据: 若 other 类媒体的平均语调系统性偏离 fin/comp 两类, 则说明媒体类型本身携带信息, 需要在回归中加以控制或作为异质性来源单独讨论。中国场景下的应用先例可见 Fang, Wang, Wang & Yuan (2024) 对媒体情感与银行系统性风险关系的实证, 该文同样采用银行-年层面的媒体语调聚合口径, 与本家族在聚合粒度上高度可比。本家族及其上游 llm_vote_score 与 P2 注意力测度族 (Hassan et al. 2019 firm-level political risk 方法学脉络下的 attention_index 系列) 共享同一批文章池, 但语调聚合 (本家族) 与注意力强度聚合 (attention_index) 是两个正交维度, 前者回答"报道得正面还是负面", 后者回答"报道得多还是少"。 Chen, Chiu & Wang (2024, Finance Research Letters) 该文以2007-2022年中国A股上市公司为样本, 发现媒体情绪与管理层盈余预测的发布倾向及预测精度存在系统性关联, 为按媒体渠道类型切片语调测度提供了中国场景下的实证支持。 Xu, Hua & Zhang (2025, Emerging Markets Review) 该文用文本分析结合BERT构建中国官方媒体情绪指数, 发现负面官方媒体情绪主要通过散户交易渠道预测市场收益反转, 说明媒体渠道类型 (官方vs其余) 携带异质信息, 支持本家族按渠道切片语调的构念设计。
 
 ## VAR: tone_other_media_ctx
 
@@ -97,4 +111,6 @@ You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The 
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level political risk: Measurement and effects. Quarterly Journal of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021
 Gentzkow, M., & Shapiro, J. M. (2010). What drives media slant? Evidence from U.S. daily newspapers. Econometrica, 78(1), 35-71. https://doi.org/10.3982/ECTA7195
+Chen, T., Chiu, P.-C., & Wang, Y. (2024). Media sentiment and management earnings forecasts: Evidence from China. Finance Research Letters. https://doi.org/10.1016/j.frl.2023.104865
+Xu, Z., Hua, X., & Zhang, T. (2025). Does official media sentiment matter for the stock market? Evidence from China. Emerging Markets Review. https://doi.org/10.1016/j.ememar.2024.101234
 <!-- rendered-citations:end -->

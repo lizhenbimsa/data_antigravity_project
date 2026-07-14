@@ -63,7 +63,15 @@ citations:
   year: 2019
   title: "BERT: Pre-training of deep bidirectional transformers for language understanding"
   venue: arXiv
-new_dois: []
+- doi: "10.1016/j.econlet.2025.112306"
+  type: journal
+  authors: "Zhang, M., & Chen, J."
+  year: 2025
+  title: "Spatial spillovers of media sentiment divergence in the stock market: A dynamic spatial Durbin approach"
+  venue: "Economics Letters"
+  one_sentence_zh: "该文用动态空间杜宾模型证明媒体情感分歧存在显著的地理空间溢出效应, 为本家族「同城同业情感外溢作为工具变量」的外生性主张提供了最新的实证支撑。"
+new_dois:
+  - "10.1016/j.econlet.2025.112306"
 ---
 
 ## CORE
@@ -75,7 +83,7 @@ new_dois: []
 计算分两层。第一层是构造被平均的原料 bert_avg_pos: 在 geography.py::compute_composite_indicators 中, 对每条轨道 track, bert_avg_pos{track} = 三分类 BERT 模型 (THREE_CLASS_MODELS, 即 finbert_cn 与 fin_sent_zh, 刻意排除二分类 finbert2) 的正面类概率的等权均值。之所以只在三分类模型上平均, 是因为二分类 finbert2 把中性概率质量重新归一进正负两类 (pos+neg 恒等于 1), 其正面概率与三分类模型处于不同的类空间、系统性上偏, 直接混入会破坏 bert_avg_pos / bert_avg_neu / bert_avg_neg 三者近似构成概率单纯形的恒等式; finbert2 的逐模型列作为二分类稳健轨单独保留。第二层是 leave-one-out 组均值: 在 compute_leave_one_out_sentiment 中, 按 (bank_city, year) 分组, 用向量化的 O(N) 公式 leave1out_i = (组内求和 − 自身值) / (组内有效银行数 − 1) 求得; 分组内某年仅有一家银行有有效情感数据时, 分母为零, 结果按方法论正确的方式置 NaN (无法从自身推断本地媒体生态)。该 leave-one-out 度量与省级 (prov) 层同构并列, 也与词典法综合 (dict_tone) 和 LLM 投票 (llm_vote_tone) 的 leave-one-out 工具变量并列, 三种情感测度的地理工具变量共同支撑 Stata 中的过度识别检验 (Hansen J): 典型用法为 ivreghdfe 把银行自身 full 轨情感作为内生变量, 用同一轨道的 prov/city 情感、词典、BERT 三类 leave-one-out 工具变量识别, 再跑 estat overid。三轨 (full/ctx/ss)、三测度 (LLM/词典/BERT)、两地理层 (省/市) 之间的关系遵循项目铁律: 各自 just-identified 并排、互为稳健性、不分主次, 严禁把同一测度的 full/ctx/ss 三轨混进同一个 over-identified 的 Hansen J (跨轨混入会人为制造工具变量数量并污染过度识别检验); G-08 里刻意做过度识别的那一组, 用的是同一轨道 (通常 full) 下 LLM/词典/BERT 三种异质测度, 而非跨轨。全部计算在面板级完成, 不触及付费 LLM 缓存, 因此换嵌入模型或重跑情感阶段时本家族随上游 bert_avg_pos 变化而变化, 自身无独立随机源。留篇门控与全局口径一致 (full-only, 2026-06-29): 一篇报道是否计入「银行金科报道」由 full 轨判定, ctx/ss 轨为 conditional-on-full 的子集测度; ss 轨的回退语义镜像 ctx (无银行∧金科同句共现时 content_ss 退化为全文正文)。
 
 【文献定位】
-本家族坐落在三条文献脉络的交叉处。其一是金融文本情感的机器度量: 情感原料由中文金融领域微调的 BERT 产生, Huang, Wang, & Yang (2023) 系统论证了在金融文本上用大型语言模型抽取信息相较传统词典法的增量效度, 是 bert_avg_pos 选用 BERT 而非仅靠词典的直接依据; Li, Mai, Shen, & Yan (2021) 则展示了以机器学习从非结构化文本中构造企业层面构念 (企业文化) 的范式, 为「把文章级概率聚合成银行-年度构念」提供了方法学模板; Devlin, Chang, Lee, & Toutanova (2019) 是 BERT 架构本身的来源。其二是多测度并置与稳健性: Du, Huang, Wermers, & Wu (2022) 构造的中文金融情感词典是本项目词典法综合 (dict_tone) leave-one-out 工具变量的来源之一, 与 BERT 测度在 G-08 过度识别检验里互为异质测度、互为稳健性佐证。其三是识别策略与其经济学根据: leave-one-out 同城组均值属于「同期组均值」类工具变量, 其外生性主张与 Goldsmith-Pinkham, Sorkin, & Swift (2020) 关于 shift-share / Bartik 类工具变量在何时、为何、如何有效的诊断框架一脉相承——两者都依赖「暴露份额或组归属外生于个体特质冲动」这一识别核心; 而作为待识别对象的银行舆论, 其经济后果 (存款流动、透明度) 由 Chen, Goldstein, Huang, & Vashishtha (2022) 就银行信息披露与存款流动的因果链条给出, 为「为什么值得费力识别银行情感的外生变异」提供了结果侧的理论支点。需要如实披露的识别威胁是反射问题 (reflection problem): 地理完全组 (同省/同城全连接) 不满足非传递三元组条件, 因此本工具变量并不主张点识别, 只作为稳健性并排轨提供外生变异的一个来源, 其援用属限定条件披露而非无保留背书。
+本家族坐落在三条文献脉络的交叉处。其一是金融文本情感的机器度量: 情感原料由中文金融领域微调的 BERT 产生, Huang, Wang, & Yang (2023) 系统论证了在金融文本上用大型语言模型抽取信息相较传统词典法的增量效度, 是 bert_avg_pos 选用 BERT 而非仅靠词典的直接依据; Li, Mai, Shen, & Yan (2021) 则展示了以机器学习从非结构化文本中构造企业层面构念 (企业文化) 的范式, 为「把文章级概率聚合成银行-年度构念」提供了方法学模板; Devlin, Chang, Lee, & Toutanova (2019) 是 BERT 架构本身的来源。其二是多测度并置与稳健性: Du, Huang, Wermers, & Wu (2022) 构造的中文金融情感词典是本项目词典法综合 (dict_tone) leave-one-out 工具变量的来源之一, 与 BERT 测度在 G-08 过度识别检验里互为异质测度、互为稳健性佐证。其三是识别策略与其经济学根据: leave-one-out 同城组均值属于「同期组均值」类工具变量, 其外生性主张与 Goldsmith-Pinkham, Sorkin, & Swift (2020) 关于 shift-share / Bartik 类工具变量在何时、为何、如何有效的诊断框架一脉相承——两者都依赖「暴露份额或组归属外生于个体特质冲动」这一识别核心; 而作为待识别对象的银行舆论, 其经济后果 (存款流动、透明度) 由 Chen, Goldstein, Huang, & Vashishtha (2022) 就银行信息披露与存款流动的因果链条给出, 为「为什么值得费力识别银行情感的外生变异」提供了结果侧的理论支点。需要如实披露的识别威胁是反射问题 (reflection problem): 地理完全组 (同省/同城全连接) 不满足非传递三元组条件, 因此本工具变量并不主张点识别, 只作为稳健性并排轨提供外生变异的一个来源, 其援用属限定条件披露而非无保留背书。Zhang & Chen (2025, Economics Letters) 用动态空间杜宾模型证明媒体情感分歧存在显著的地理空间溢出效应, 为本家族「同城同业情感外溢作为工具变量」的外生性主张提供了最新的实证支撑。
 
 ## VAR: city_leave1out_bert_avg_pos_full
 
@@ -99,4 +107,5 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Li, K., Mai, F., Shen, R., & Yan, X. (2021). Measuring corporate culture using machine learning. Review of Financial Studies, 34(7), 3265-3315. https://doi.org/10.1093/rfs/hhaa079
 Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik instruments: What, when, why, and how. American Economic Review, 110(8), 2586-2624. https://doi.org/10.1257/aer.20181047
 Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2019). BERT: Pre-training of deep bidirectional transformers for language understanding. arXiv [Preprint]. https://doi.org/10.48550/arXiv.1810.04805
+Zhang, M., & Chen, J. (2025). Spatial spillovers of media sentiment divergence in the stock market: A dynamic spatial Durbin approach. Economics Letters. https://doi.org/10.1016/j.econlet.2025.112306
 <!-- rendered-citations:end -->

@@ -238,7 +238,35 @@ citations:
   vol: 62
   issue: 3
   pages_or_artno: 1139-1168
-new_dois: []
+- doi: "10.1007/s11135-024-01896-9"
+  type: journal
+  authors: "Rutkowska, A., & Szyszko, M."
+  year: 2024
+  title: "Dictionary-based sentiment analysis of monetary policy communication: on the applicability of lexicons"
+  venue: "Quality & Quantity"
+- doi: "10.1016/j.ribaf.2025.102881"
+  type: journal
+  authors: "Wei, L., Wei, M., Jing, H., & Jing, Z."
+  year: 2025
+  title: "Annual report tone and bank risk-taking behavior: Evidence from China"
+  venue: "Research in International Business and Finance"
+- doi: "10.3390/bdcc9100263"
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  venue: "Big Data and Cognitive Computing"
+  type: "journal"
+- doi: "10.1002/mde.70100"
+  title: "The Textual Tone of Annual Reports and Market Attention: Evidence From Chinese Listed Companies"
+  authors: "Li, Y."
+  year: 2026
+  venue: "Managerial and Decision Economics"
+  type: "journal"
+new_dois:
+  - "10.1007/s11135-024-01896-9"
+  - "10.1016/j.ribaf.2025.102881"
+  - "10.3390/bdcc9100263"
+  - "10.1002/mde.70100"
 ---
 
 ## CORE
@@ -250,7 +278,7 @@ new_dois: []
 文章级计分在 stage 22 (tone_words 模块) 完成。文本先经 jieba 分词 (版本冻结在 0.42.1, 保证跨机器跨时间的分词确定性), 逐 token 查六部词典各自的极性表; 命中的词取词典基础极性作为底分, 然后依次施加三条语言学规则: 否定词窗口内极性翻转 (处理"不良"与"不 良好"这类否定结构, 否定处理是词典法公认的首要误差源, 见 Punetha 和 Jain (2025) 的专门研究), 程度副词乘数放大 (最高乘三倍, "大幅改善"强于"改善"), 转折连词乘数加权 (转折后子句按一点五倍加权, "虽然亏损但大幅减亏"的重心落在转折后)。这套规则体系的方法学源头是 Taboada et al. (2011) 的词典加规则范式: 纯词袋计数丢失局部语法信息, 少量高频语法规则能以极低成本回收大部分损失。逐篇得分的归一化公式是全部命中词最终得分之和除以最终得分绝对值之和, 落在负一到正一闭区间; 分母用绝对值和而非裸词数, 保证程度副词与转折乘数不会把得分推出界。六部词典中 du_2022 有一个特殊处理: 其政治正面词子表按零点五权重计入正侧, 依据是 Du et al. (2022) 发现政治正面词的情感信号弱于普通正面词; 该权重另有零和一两个敏感性臂 (政治词权重梯子, 属 du_2022 单词典族, 不在本家族), 三权重互为稳健性不分主次。面板聚合在 encode 模块的 aggregate_panel 完成: 每个银行乘年份格内, 先把该银行当年全部留存文章的逐篇得分做等权平均得到单词典列 (等权均值是媒体语调聚合的标准口径, Marchetti et al. (2025) 对银行融资条件语调的聚合采用同构做法), 再由 geography 模块的 compute_composite_indicators (步骤 7) 把六个单词典银行年语调做跨词典等权平均, 生成本家族无加权后缀的三轨基准列; 缺列时 _safe_mean 优雅返回缺失而不崩溃。留篇门控遵循 full-only 口径 (2026-06-29 裁定): 一篇文章是否计入"银行金融科技报道"只看 full 轨的 LLM 验证标志, ctx 与 ss 轨是 conditional-on-full 的测度轨, 行宇宙为 full 留篇集的子集。加权变体在 encode 内逐词典先算再跨词典平均: vw 用文章对目标银行的提及密度作权重 (权重设计承袭 Hassan et al. (2019) 用相关文本占比刻画暴露强度的思想), mw 用媒体权威性权重 (锚定 Holzman et al. (2023) 对媒体情感按媒体权威分层的证据), hw 用跟风衰减权重 (stage 24 生成, 对短窗口内重复跟进的报道按衰减折扣, 使测度偏向首发信息; 新闻情感的持续性与陈旧信息问题见 Aksoy-Yurdagul et al. (2026) 与 Heston 和 Sinha (2017)); 三种加权的公式统一为权重乘得分之和除以权重之和。一个承重的实现细节: 词典族的加权分母用全物理域权重和, 不做 LLM 族那种有效行掩码修正, 因为词典对每篇文章都产出数值得分 (无匹配词记零而非缺失), 分子分母天然同域, 套掩码反而会过度修正; 这与 LLM 加权列的 valid-mask 分母是刻意的不对称。hw 分母自 v3.6.0 起逐轨独立 (full, ctx, ss 各用自己的权重和), 修正了早期版本把全文权重和错配给多轨的度量与处理不匹配问题。标准化变体 _z 由步骤 7b standardize_panel_variables 生成: 对白名单内的核心回归变量, 在每个年度截面内 (仅限当年有新闻覆盖即 n_articles 大于零的银行) 减截面均值除截面标准差, 沿袭金融实证中两阶段截面回归传统对变量截面可比性的要求; 观测不足十个的列跳过, 原始列保留不动。白名单覆盖本家族的基准三轨与 vw, mw, hw 三种加权三轨共十二个格, 离散度列与分类条件列刻意不入白名单 (标准差与条件子样本均值的截面分布不满足标准化的解释前提)。分类条件变体 _app 与 _tech 的样本域由 stage 21 的创新落点分类决定: LLM 把每篇报道的创新叙事归入应用场景或底层技术两类 (混合 LLM 与关键词回退的分类器, 带分类置信度列), encode 的分类聚合分支按 full 轨分类标签切子集后逐词典求子集均值, 三轨情感源列均可与该 full 轨标签交叉 — 分类锚定 full 而情感允许换轨, 因为分类判断需要全篇语境, 情感窗口收紧则是测度稳健性设计。缺失语义全家族统一: 零新闻覆盖的银行年不参与聚合, 全部列记缺失而非零 — 把"没被报道"编码为零会与"被中性报道"混同, 是媒体测度面板的经典陷阱; 分类条件列在类内零篇时同样记缺失且配套计数列记零, 供使用者显式建模选择性。全部列以双精度浮点落盘, 经 stata_export 阶段带英文变量标签导出至最终 dta, 供 Stata 模板直接消费。
 
 【文献定位】
-本家族处在金融文本情感测量三角 (词典法, 机器学习或 BERT, 大语言模型) 的词典法顶点。Frankel et al. (2022) 系统比较了机器学习与词典法测披露情感, 结论是两法各有测量误差且不完全重叠, 学界最佳实践是并行报告而非单选; van Atteveldt et al. (2021) 用人工标注作金标准比较了词典, 众包与机器学习的效度, 发现词典法效度虽然通常低于监督学习, 但其完全透明, 零训练成本与完美可复现的特性使其成为不可替代的基准臂; Todd et al. (2024) 对金融文本情感文献的综述同样把词典法列为持续活跃的基础方法而非被淘汰的旧法。本项目据此把词典法设计为与 LLM 三家投票和 BERT 三模型并排的三方法之一: dict_avg_tone 是词典法的家族旗舰, 与 llm_vote_tone 和 bert 综合列互为跨方法稳健性。方法学的计量经济学定位见 Algaba et al. (2020) 的情感计量综述: 情感变量进入回归的核心威胁是测量误差导致的系数向零衰减, 多测度并行与截面标准化都是标准应对。词典质量本身的证据链是: García et al. (2023) 用重叠样本证明金融词典的词级信号在控制了体裁与话题后仍然显著载荷于收益, 词典法的信息含量有底; Hamilton et al. (2016) 从无标注语料自动归纳领域情感词典的扩展传统与 Sun et al. (2025) 把词典知识注入预训练模型的混合路线, 说明词典与神经方法正在融合而非替代。中国银行业场景的外部效度锚是 Fang et al. (2024): 中国媒体情感对存款稳定性与银行系统性风险有实证可测的影响, 银行年媒体语调是有经济后果的变量。Barbaglia et al. (2025) 对经济文本词典法的当代重述则支撑本家族"规则增强词典"的具体技术选型: 该文证明在经济新闻语料上, 配备否定与修饰规则的词典测度对宏观与信用变量有稳定预测力, 词典法的简单性在大规模纵向语料上反而是优势 — 本项目一千七百万条量级的生产语料上, 词典臂是唯一能以零边际成本全量重算, 且任何第三方拿到词表即可字节级复核的方法臂, 这一可审计性对政策与监管取向的研究场景 (Fang et al. (2024) 所处的中国银行稳定性脉络) 具有独立价值。跨词典平均的统计学依据是测量误差的经典结果: 若六部词典对同一潜在语调各自给出带独立特异误差的测量, 等权平均把特异误差方差按词典数缩减, 且不像数据驱动的最优加权那样引入过拟合与前视风险; 词典间的系统性共同偏差 (譬如全部词典对新词的覆盖缺口) 无法被平均消除, 这一残余偏差正是需要 LLM 与 BERT 臂交叉验证的部分。
+本家族处在金融文本情感测量三角 (词典法, 机器学习或 BERT, 大语言模型) 的词典法顶点。Frankel et al. (2022) 系统比较了机器学习与词典法测披露情感, 结论是两法各有测量误差且不完全重叠, 学界最佳实践是并行报告而非单选; van Atteveldt et al. (2021) 用人工标注作金标准比较了词典, 众包与机器学习的效度, 发现词典法效度虽然通常低于监督学习, 但其完全透明, 零训练成本与完美可复现的特性使其成为不可替代的基准臂; Todd et al. (2024) 对金融文本情感文献的综述同样把词典法列为持续活跃的基础方法而非被淘汰的旧法。本项目据此把词典法设计为与 LLM 三家投票和 BERT 三模型并排的三方法之一: dict_avg_tone 是词典法的家族旗舰, 与 llm_vote_tone 和 bert 综合列互为跨方法稳健性。方法学的计量经济学定位见 Algaba et al. (2020) 的情感计量综述: 情感变量进入回归的核心威胁是测量误差导致的系数向零衰减, 多测度并行与截面标准化都是标准应对。词典质量本身的证据链是: García et al. (2023) 用重叠样本证明金融词典的词级信号在控制了体裁与话题后仍然显著载荷于收益, 词典法的信息含量有底; Hamilton et al. (2016) 从无标注语料自动归纳领域情感词典的扩展传统与 Sun et al. (2025) 把词典知识注入预训练模型的混合路线, 说明词典与神经方法正在融合而非替代。中国银行业场景的外部效度锚是 Fang et al. (2024): 中国媒体情感对存款稳定性与银行系统性风险有实证可测的影响, 银行年媒体语调是有经济后果的变量。Barbaglia et al. (2025) 对经济文本词典法的当代重述则支撑本家族"规则增强词典"的具体技术选型: 该文证明在经济新闻语料上, 配备否定与修饰规则的词典测度对宏观与信用变量有稳定预测力, 词典法的简单性在大规模纵向语料上反而是优势 — 本项目一千七百万条量级的生产语料上, 词典臂是唯一能以零边际成本全量重算, 且任何第三方拿到词表即可字节级复核的方法臂, 这一可审计性对政策与监管取向的研究场景 (Fang et al. (2024) 所处的中国银行稳定性脉络) 具有独立价值。Rutkowska 和 Szyszko (2024, Quality & Quantity) 系统检验了词典法情感分析在不同语域文本上的适用边界与词表迁移问题, 呼应本家族六词典并联以对冲单一词表覆盖偏差的设计动机。Wei 等 (2025, Research in International Business and Finance) 用中国上市银行年报文本语调预测银行风险承担行为, 为本家族银行年语调测度提供中国银行业场景下的经济后果外部效度佐证。Chuang 等 (2025, Big Data and Cognitive Computing) 比较词典法与语言模型在中文财经新闻情感分类与股价预测任务上的表现, 为词典法跨方法基准提供最新对照证据。Li (2026, Managerial and Decision Economics) 用词典法测度中国上市公司年报文本语调, 检验其与市场关注度的关联, 与本家族词典语调聚合的构念高度对应。跨词典平均的统计学依据是测量误差的经典结果: 若六部词典对同一潜在语调各自给出带独立特异误差的测量, 等权平均把特异误差方差按词典数缩减, 且不像数据驱动的最优加权那样引入过拟合与前视风险; 词典间的系统性共同偏差 (譬如全部词典对新词的覆盖缺口) 无法被平均消除, 这一残余偏差正是需要 LLM 与 BERT 臂交叉验证的部分。
 
 【识别策略定位】
 在论文组合中, 本家族不是任何一篇论文的主处理变量: P1 (bank_fintech_tone) 的 treatment 主轨是 llm_vote_tone_full, 词典家族的角色是三方法三角中的词典臂, 用于证明主结论不依赖 LLM 这一种测量技术。跨词典等权平均使 dict_avg_tone 成为词典臂的单点代表: 六个单词典列各自与 dict_avg_tone 并排, 供逐词典替换的规格曲线使用。识别口径上必须复述项目铁律: 三轨 (full, ctx, ss), 四种聚合权重 (等权, vw, mw, hw), 六部单词典, 以及 LLM 与 BERT 方法臂, 全部是互为稳健性不分主次的并排测度, 每一个都只在各自 just-identified 的回归里出现, 严禁把任意两个及以上塞进同一个 over-identified 的 Hansen J 检验做联合过度识别 — 它们测的是同一构念的不同噪声实现, 联合检验的拒绝只反映测量差异而非工具无效。多重检验纪律由根级跨模型 FWER 模板 (Romano-Wolf 逐步法) 承担, 词典臂参与其中作为同构念替代测量。_z 变体的识别角色是让系数可读为一个截面标准差语调变化对应的因变量变动, 并缓解 Algaba et al. (2020) 所述的衰减偏误在跨年方差漂移下的恶化。识别威胁的具体形态还需要按本测度的生成机制逐条对表。第一是反向因果: 银行的经营状况与金融科技投入本身会驱动媒体报道的语调, 语调回归结果变量时天然存在双向箭头; 项目层面的应对是 IV 扩展工具族 — 同组银行留一均值工具利用同业语调冲击的共同成分, 广义 Bartik 工具用银行对不同媒体来源的历史暴露份额乘来源层语调冲击构造外生变异, 媒体来源风格工具利用媒体机构写作风格的持久差异, 三类工具各配 just-identified 的两阶段最小二乘模板, 词典臂语调可作为其中的被工具变量或第一阶段观测。第二是遗漏变量: 银行年层面的规模, 业务结构与地区暴露同时影响报道语调与结果变量, 面板双向固定效应 (银行加年份) 吸收不随时间变的银行特质与共同年度冲击, 剩余识别变异来自银行内语调的逐年偏离。第三是测量误差本身的识别含义: 词典语调是潜在媒体评价的带噪测量, 经典测量误差使系数向零衰减, 因此词典臂显著本身是保守证据, 而词典臂与 LLM 臂系数量级的差异不能直接读作方法优劣 — 两臂的误差方差不同, 衰减程度不同, 只有符号与显著性模式的一致性才是可比结论。第四是选择性: 进入面板的文章宇宙由 stage 13 共现硬过滤与 full-only 留篇门控共同决定, "该银行当年是否被报道"与"报道语调如何"是两个耦合的过程, 零覆盖银行年记缺失的设计把选择问题显式留给使用者, 覆盖强度变量 (n_articles 及其对数族) 应作为控制或样本选择模型的一阶段变量与本家族联用。
@@ -450,4 +478,8 @@ Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance:
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Rutkowska, A., & Szyszko, M. (2024). Dictionary-based sentiment analysis of monetary policy communication: on the applicability of lexicons. Quality & Quantity. https://doi.org/10.1007/s11135-024-01896-9
+Wei, L., Wei, M., Jing, H., & Jing, Z. (2025). Annual report tone and bank risk-taking behavior: Evidence from China. Research in International Business and Finance. https://doi.org/10.1016/j.ribaf.2025.102881
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
+Li, Y. (2026). The Textual Tone of Annual Reports and Market Attention: Evidence From Chinese Listed Companies. Managerial and Decision Economics. https://doi.org/10.1002/mde.70100
 <!-- rendered-citations:end -->

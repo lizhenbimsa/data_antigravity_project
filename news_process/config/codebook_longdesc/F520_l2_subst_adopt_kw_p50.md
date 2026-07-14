@@ -67,7 +67,21 @@ citations:
   vol: '164'
   issue: ''
   pages_or_artno: '107191'
-new_dois: []
+- doi: "10.1057/s41599-024-02921-w"
+  title: "Does corporate digital transformation restrain ESG decoupling? Evidence from China"
+  authors: "Chen, X., Wan, P., Ma, Z., & Yang, Y."
+  year: 2024
+  venue: "Humanities and Social Sciences Communications"
+  type: "journal"
+- doi: "10.1111/eufm.12424"
+  title: "How valuable is FinTech adoption for traditional banks?"
+  authors: "Bian, W., Wang, S., & Xie, X."
+  year: 2023
+  venue: "European Financial Management"
+  type: "journal"
+new_dois:
+  - "10.1057/s41599-024-02921-w"
+  - "10.1111/eufm.12424"
 ---
 
 ## CORE
@@ -83,7 +97,7 @@ p50 后缀表明该指标是"象征/实质"象限判定所依赖的连续测度 
 分位阈值 P50 的计算样本口径为逐年重算 (按 year 分组分别对 policy_cosine_sim 与 fintech_distinct_keywords 取分位数), 而非全语料一次性阈值——这一设计使得"实质采纳"的判定标准随年度分布内生调整 (某年度金科报道整体更密集时, 当年的高频门槛相应抬高), 而非跨年固定的绝对切点; 解读跨年趋势时需注意分母基准本身逐年浮动这一特性。p25/p75 阈值变体同样逐年独立重算切点、独立生成三分类标签, 不与 p50 共享中间量, 因此三档阈值互为并排稳健性检验而非同一构造的派生列。
 
 【文献定位】
-本家族的理论根基直接来自 Westphal & Zajac (1994, 1998) 与 Fiss & Zajac (2006) 建立的"实质—象征"二分传统: 前两篇论文以 CEO 长期激励计划与公司治理改革为经验场景, 揭示组织对外部治理压力的响应存在系统性的实质—象征分野, 且这种分野本身是可测量、可预测的组织现象而非测量噪声; 后一篇进一步说明战略变革的"意义赋予"过程如何通过框定 (framing) 与解耦 (decoupling) 两种机制共同塑造利益相关者对变革的感知, 为本家族"报道语言可能脱耦于实际业务采纳"的识别策略提供了直接的构念先例。Kim & Lyon (2015) 将该框架推进到"漂绿/漂棕"(greenwash/brownwash) 的对称形式, 说明夸大 (greenwash) 与过度谦抑 (brownwash) 是同一解耦逻辑的两个方向, 提醒本家族在解读"未达到实质阈值"的报道时不应默认其为策略性掩饰, 也可能是真实的保守披露。Duchin, Gao & Xu (2025, 顶刊 Journal of Finance) 提供了金融市场层面区分"真实可持续行动"与"漂绿"的资产定价证据, 印证了实质—象征区分在金融经济学语境下的可检验性与经济后果显著性, 是本家族方法论从公司治理领域迁移到银行金融科技领域的合法性支撑之一。Bingler, Kraus, Leippold & Webersinke (2024, Journal of Banking & Finance) 则展示了基于语言模型的"廉价谈话" (cheap talk) 侦测方法学如何应用于企业气候披露的实质性甄别, 为本家族依赖关键词/语言信号进行采纳类型判定的操作化路径 (kw track) 提供了同源方法学参照, 说明"文本信号驱动的实质性分类"在临近领域已具备成熟的方法学先例, 而非本项目独创的临时启发式。
+本家族的理论根基直接来自 Westphal & Zajac (1994, 1998) 与 Fiss & Zajac (2006) 建立的"实质—象征"二分传统: 前两篇论文以 CEO 长期激励计划与公司治理改革为经验场景, 揭示组织对外部治理压力的响应存在系统性的实质—象征分野, 且这种分野本身是可测量、可预测的组织现象而非测量噪声; 后一篇进一步说明战略变革的"意义赋予"过程如何通过框定 (framing) 与解耦 (decoupling) 两种机制共同塑造利益相关者对变革的感知, 为本家族"报道语言可能脱耦于实际业务采纳"的识别策略提供了直接的构念先例。Kim & Lyon (2015) 将该框架推进到"漂绿/漂棕"(greenwash/brownwash) 的对称形式, 说明夸大 (greenwash) 与过度谦抑 (brownwash) 是同一解耦逻辑的两个方向, 提醒本家族在解读"未达到实质阈值"的报道时不应默认其为策略性掩饰, 也可能是真实的保守披露。Duchin, Gao & Xu (2025, 顶刊 Journal of Finance) 提供了金融市场层面区分"真实可持续行动"与"漂绿"的资产定价证据, 印证了实质—象征区分在金融经济学语境下的可检验性与经济后果显著性, 是本家族方法论从公司治理领域迁移到银行金融科技领域的合法性支撑之一。Bingler, Kraus, Leippold & Webersinke (2024, Journal of Banking & Finance) 则展示了基于语言模型的"廉价谈话" (cheap talk) 侦测方法学如何应用于企业气候披露的实质性甄别, 为本家族依赖关键词/语言信号进行采纳类型判定的操作化路径 (kw track) 提供了同源方法学参照, 说明"文本信号驱动的实质性分类"在临近领域已具备成熟的方法学先例, 而非本项目独创的临时启发式。基于中国上市公司文本分析证据, 陈曦、万攀兵、马壮壮与杨圆圆 (2024, Humanities and Social Sciences Communications) 研究数字化转型如何缓解ESG披露话语与实质行动之间的解耦, 为本家族"实质—象征"文本分类方法论提供了同源的最新经验参照; 边卫红、王胜邦与谢星 (2023, European Financial Management) 利用机器学习文本挖掘方法统计银行年报中金融科技相关词汇的提及强度, 检验金科采纳对传统银行价值的影响, 与本家族基于文本关键词信号判定采纳类型的操作化路径高度同源。
 
 ## VAR: subst_adopt_kw_p50
 
@@ -110,4 +124,6 @@ Fiss, P. C., & Zajac, E. J. (2006). The Symbolic Management of Strategic Change:
 Kim, E.-H., & Lyon, T. P. (2015). Greenwash vs. Brownwash: Exaggeration and Undue Modesty in Corporate Sustainability Disclosure. Organization Science, 26(3), 705-723. https://doi.org/10.1287/orsc.2014.0949
 Duchin, R., Gao, J., & Xu, Q. (2025). Sustainability or Greenwashing: Evidence from the Asset Market for Industrial Pollution. The Journal of Finance. https://doi.org/10.1111/jofi.13412
 Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2024). How Cheap Talk in Climate Disclosures Relates to Climate Initiatives, Corporate Emissions, and Reputation Risk. Journal of Banking & Finance, 164, 107191. https://doi.org/10.1016/j.jbankfin.2024.107191
+Chen, X., Wan, P., Ma, Z., & Yang, Y. (2024). Does corporate digital transformation restrain ESG decoupling? Evidence from China. Humanities and Social Sciences Communications. https://doi.org/10.1057/s41599-024-02921-w
+Bian, W., Wang, S., & Xie, X. (2023). How valuable is FinTech adoption for traditional banks?. European Financial Management. https://doi.org/10.1111/eufm.12424
 <!-- rendered-citations:end -->

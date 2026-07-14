@@ -175,7 +175,28 @@ citations:
   vol: 1
   issue: 3
   pages_or_artno: 215-239
-new_dois: []
+- doi: "10.1080/2833115x.2026.2662558"
+  type: journal
+  authors: "Lei, J., Campbell-Verduyn, M., Steglich, C., & Wittek, R."
+  year: 2026
+  title: "The evolution of global bank-to-nonbank networks, 2002–2022: a stochastic actor-oriented analysis"
+  venue: "Finance and Space"
+- doi: "10.1016/j.jbusres.2025.115452"
+  title: "Structural holes and firm innovation in industrial clusters: A dual embeddedness perspective"
+  authors: "You, S., Wang, L., Zhou, K. Z., & Jia, L."
+  year: 2025
+  venue: "Journal of Business Research"
+  type: "journal"
+- doi: "10.1007/s44163-025-00350-5"
+  title: "Deciphering news sentiment and stock price relationships in Indonesian companies: an AI-based exploration of industry affiliation and news co-occurrence"
+  authors: "Alamsyah, A., Ramadhani, D. P., Kristanti, F. T., Nasution, A. H., Mohamad, M. S. bin, Sokkalingam, R., Widiyanesti, S., & Saputra, M. A. A."
+  year: 2025
+  venue: "Discover Artificial Intelligence"
+  type: "journal"
+new_dois:
+  - "10.1080/2833115x.2026.2662558"
+  - "10.1016/j.jbusres.2025.115452"
+  - "10.1007/s44163-025-00350-5"
 ---
 
 ## CORE
@@ -184,7 +205,7 @@ new_dois: []
 
 本家族测度的构念是银行在年度新闻共现网络中扮演的经纪角色总量, 理论源头是 Gould (1989) 与 Fernandez 合作提出的交易网络中介结构形式化框架 (Gould 与 Fernandez (1989))。该框架的核心洞见是: 网络中介 (brokerage) 不是一个同质概念, 而应按中介三方的群体归属分解为不同的结构角色。给定一条由中间人 i 连接两个互不相识端点 a 与 c 的二步路径 (2-path), 按三个节点所属群体的异同组合, 原始有向版本可区分出协调人 (coordinator, 三方同群)、巡回经纪人 (itinerant broker, 两端同群而中间人异群)、守门人 (gatekeeper, 信息流入本群时把关)、代表人 (representative, 信息流出本群时代言) 与联络人 (liaison, 三方分属三个不同群体) 五种角色。这一分解把"谁在群体之间搭桥"从"谁在网络中居中"里剥离出来: 一个节点可以拥有很高的中心度却完全不做跨群中介, 也可以度数平平却是两个群体之间唯一的信息闸门。用白话说, 传统中心度回答"你认识多少人、你离大家多近", 而经纪角色回答"有多少对彼此不相识的人必须经过你才能搭上话, 以及这些被你撮合的双方分别来自哪个圈子"; 前者是知名度, 后者是掮客地位, 两者在理论机制与经验分布上都可以脱钩。社会学与组织研究的后续经典进一步论证了跨群桥接位置的信息优势, 如 Burt (2004) 证明跨越结构洞的个体更可能产出被组织采纳的好想法; Zádor 等 (2022) 则将 Gould-Fernandez 角色计数推广到加权与归一化情形, 说明该测度族至今仍是网络方法论的活跃前沿。
 
-在本项目语境下, 网络的基底是中文财经新闻的银行共现图: 节点为通过实体验证的目标银行, 边为两家银行在同一报道语境中被共同提及的事件, 逐年切片构图。共现网络承载的经济含义是媒体信息空间中的"共同曝光"结构 —— 两家银行被同篇报道并置, 意味着记者、监管叙事或市场事件把它们放进了同一个信息束, 投资者与储户在阅读时会同时更新对两者的信念。金融文献已经证明这类文本派生网络具有真实的经济内容: Hoberg 与 Phillips 的文本网络传统之外, Li 等 (2026) 直接从风险披露文本中恢复金融网络结构与关联度; Xu (2024) 证明财经记者的社会网络会系统性地塑造新闻偏向; You, Zhang 与 Zhang (2018) 在中国场景下证明媒体报道权力受制度约束并影响公司治理结果。银行的"群"在本实现中取银行类型分组 (国有大行、股份制、城商行、农商行、民营、外资及其他), 因此 gf_total 回答的问题是: 某银行在多大程度上充当了不同类型银行群体之间 (以及群体内部) 的媒体信息中介。中国银行体系恰好具有强分层结构 —— 类型即监管地位、股东背景与业务半径的代理 —— 使得按类型分组的经纪角色分解有清晰的制度含义: 一家在报道中频繁把国有大行与城商行"并置"起来的股份制银行, 处在跨层信息扩散的枢纽位; Wang, Zhang 与 Yang (2020) 对中国担保网络演化的研究表明, 这类跨群桥接位置在危机与刺激周期中的系统性意义尤其突出。
+在本项目语境下, 网络的基底是中文财经新闻的银行共现图: 节点为通过实体验证的目标银行, 边为两家银行在同一报道语境中被共同提及的事件, 逐年切片构图。共现网络承载的经济含义是媒体信息空间中的"共同曝光"结构 —— 两家银行被同篇报道并置, 意味着记者、监管叙事或市场事件把它们放进了同一个信息束, 投资者与储户在阅读时会同时更新对两者的信念。金融文献已经证明这类文本派生网络具有真实的经济内容: Hoberg 与 Phillips 的文本网络传统之外, Li 等 (2026) 直接从风险披露文本中恢复金融网络结构与关联度; Xu (2024) 证明财经记者的社会网络会系统性地塑造新闻偏向; You, Zhang 与 Zhang (2018) 在中国场景下证明媒体报道权力受制度约束并影响公司治理结果。银行的"群"在本实现中取银行类型分组 (国有大行、股份制、城商行、农商行、民营、外资及其他), 因此 gf_total 回答的问题是: 某银行在多大程度上充当了不同类型银行群体之间 (以及群体内部) 的媒体信息中介。中国银行体系恰好具有强分层结构 —— 类型即监管地位、股东背景与业务半径的代理 —— 使得按类型分组的经纪角色分解有清晰的制度含义: 一家在报道中频繁把国有大行与城商行"并置"起来的股份制银行, 处在跨层信息扩散的枢纽位; Wang, Zhang 与 Yang (2020) 对中国担保网络演化的研究表明, 这类跨群桥接位置在危机与刺激周期中的系统性意义尤其突出。以中国产业集群221家企业匹配调查数据证明, 占据更多结构洞对企业创新反而有害, 该负向效应受社会与政治嵌入性调节, 为经纪/结构洞类测度的边际收益非单调性提供了最新经验证据, 引自 You, Wang, Zhou 与 Jia (2025, Journal of Business Research)。基于19万余篇印尼财经新闻构建行业归属与新闻共现网络, 以AI情感分析与网络关联度量刻画公司间媒体共同曝光如何传导至股价, 直接支持本家族以新闻共现图作为经济内容承载基底的构念前提, 引自 Alamsyah 等 (2025, Discover Artificial Intelligence)。
 
 【方法学与计算】
 
@@ -194,7 +215,7 @@ new_dois: []
 
 【文献定位】
 
-本家族在文献中的位置由三条线索交汇而成。第一条是网络中心度与企业绩效的实证传统: Freeman (1978) 奠定了度、介数、接近度等中心度概念的公理化澄清, 是本模块 Part A 节点级指标的总源头; Nezami, Chisam 与 Palmatier (2025) 的元分析汇总了数百个中心度-绩效效应量, 证实网络位置与企业绩效的关联稳健存在但高度依赖测度选择与情境, 这正是本项目将经纪角色与声望型中心度并列落盘、供规格曲线检验的动机。第二条是金融网络与系统性风险文献: Jackson 与 Pernoud (2021) 的综述系统化了金融网络中风险传染的理论机制, Yu, Hu 与 Zhong (2024) 证明网络中心度通过信息扩散渠道进入资产定价, Han, Kim 与 Nanda (2024) 则直接以机构经纪网络解释流动性供给 —— 经纪位置而非单纯连接数才是信息与流动性中介的关键, 与 Gould-Fernandez 分解的构念内核一致。第三条是媒体文本网络: Li 等 (2026) 与 Xu (2024) 分别从披露文本与记者社交网络两端证明文本派生网络承载真实金融关联, 为"新闻共现图是有经济内容的网络基底"这一前提提供了外部效度。本家族把第一、三条线索的测度工具装配到第二条线索的银行研究对象上, 服务于 brokerage_network 论文模块的核心问题: 银行在媒体信息网络中的经纪位置是否影响其经营结果。就方法谱系而言, 本家族在同类文本网络研究中的边际贡献有二: 一是把群体感知的角色分解引入银行新闻共现图 —— 既有银行网络研究多止步于群体盲的中心度排名, 而中国银行业的类型分层使"桥接谁与谁"本身携带制度信息; 二是与同模块的判据梯子、二分图经纪族、溢出族构成一张互为稳健性的测度网, 使经纪假说可以在多个正交的操作化维度上接受一致性检验, 而非依赖单一测度的显著性。
+本家族在文献中的位置由三条线索交汇而成。Lei, Campbell-Verduyn, Steglich 与 Wittek (2026, Finance and Space) 用随机行动者导向模型刻画银行与非银行金融机构网络连接二十年间的演化机制, 为本家族逐年切片重建银行共现网络、并以经纪角色刻画结构位置动态变化的做法提供了同类网络动态建模的外部参照。第一条是网络中心度与企业绩效的实证传统: Freeman (1978) 奠定了度、介数、接近度等中心度概念的公理化澄清, 是本模块 Part A 节点级指标的总源头; Nezami, Chisam 与 Palmatier (2025) 的元分析汇总了数百个中心度-绩效效应量, 证实网络位置与企业绩效的关联稳健存在但高度依赖测度选择与情境, 这正是本项目将经纪角色与声望型中心度并列落盘、供规格曲线检验的动机。第二条是金融网络与系统性风险文献: Jackson 与 Pernoud (2021) 的综述系统化了金融网络中风险传染的理论机制, Yu, Hu 与 Zhong (2024) 证明网络中心度通过信息扩散渠道进入资产定价, Han, Kim 与 Nanda (2024) 则直接以机构经纪网络解释流动性供给 —— 经纪位置而非单纯连接数才是信息与流动性中介的关键, 与 Gould-Fernandez 分解的构念内核一致。第三条是媒体文本网络: Li 等 (2026) 与 Xu (2024) 分别从披露文本与记者社交网络两端证明文本派生网络承载真实金融关联, 为"新闻共现图是有经济内容的网络基底"这一前提提供了外部效度。本家族把第一、三条线索的测度工具装配到第二条线索的银行研究对象上, 服务于 brokerage_network 论文模块的核心问题: 银行在媒体信息网络中的经纪位置是否影响其经营结果。就方法谱系而言, 本家族在同类文本网络研究中的边际贡献有二: 一是把群体感知的角色分解引入银行新闻共现图 —— 既有银行网络研究多止步于群体盲的中心度排名, 而中国银行业的类型分层使"桥接谁与谁"本身携带制度信息; 二是与同模块的判据梯子、二分图经纪族、溢出族构成一张互为稳健性的测度网, 使经纪假说可以在多个正交的操作化维度上接受一致性检验, 而非依赖单一测度的显著性。
 
 【识别策略定位】
 
@@ -246,4 +267,7 @@ Andrews, I., Stock, J. H., & Sun, L. (2019). Weak instruments in instrumental va
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
 Gould, R. V., & Fernandez, R. M. (1989). Structures of mediation: A formal approach to brokerage in transaction networks. Sociological Methodology, 19, 89-126. https://doi.org/10.2307/270949
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
+Lei, J., Campbell-Verduyn, M., Steglich, C., & Wittek, R. (2026). The evolution of global bank-to-nonbank networks, 2002–2022: a stochastic actor-oriented analysis. Finance and Space. https://doi.org/10.1080/2833115x.2026.2662558
+You, S., Wang, L., Zhou, K. Z., & Jia, L. (2025). Structural holes and firm innovation in industrial clusters: A dual embeddedness perspective. Journal of Business Research. https://doi.org/10.1016/j.jbusres.2025.115452
+Alamsyah, A., Ramadhani, D. P., Kristanti, F. T., Nasution, A. H., Mohamad, M. S. bin, Sokkalingam, R., Widiyanesti, S., & Saputra, M. A. A. (2025). Deciphering news sentiment and stock price relationships in Indonesian companies: an AI-based exploration of industry affiliation and news co-occurrence. Discover Artificial Intelligence. https://doi.org/10.1007/s44163-025-00350-5
 <!-- rendered-citations:end -->

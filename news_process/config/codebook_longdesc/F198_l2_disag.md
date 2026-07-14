@@ -74,7 +74,14 @@ citations:
   vol: 21
   issue: 2
   pages_or_artno: 109-128
-new_dois: []
+- doi: "10.1093/rfs/hhag042"
+  type: journal
+  authors: "Bali, T. G., Kelly, B. T., Mörke, M., & Rahman, J."
+  year: 2026
+  title: "Machine Forecast Disagreement"
+  venue: "The Review of Financial Studies"
+new_dois:
+- "10.1093/rfs/hhag042"
 ---
 
 ## CORE
@@ -86,7 +93,7 @@ new_dois: []
 计算落在 runner.py 步骤 8b (标记为 disag) 的 (a) 词典综合分支, 采用闭式公式 disag = 根号下 (1 减去 ((P 减 N) 除以 (P 加 N)) 的平方), 其中 P = avg_pos_ratio、N = avg_neg_ratio, 二者是银行-年度对篇章级正/负面词占比取的算术均值 (float 比率, 非整数计数)。令净极性 r = (P − N) / (P + N) ∈ [−1, 1] 为该银行-年度报道正负面词密度的规范化倾斜, 则 disag = 根号 (1 − r²)。该式几何上是单位圆上给定横坐标 r 时的纵向半弦长: r = 0 (平均正面词占比与平均负面词占比持平, 舆论最撕裂) 时 disag 取最大值 1; r = ±1 (报道用词几乎纯正或纯负) 时 disag 取最小值 0; 函数关于 r = 0 对称且随 |r| 单调递减, 因而它只吃"正负面词密度是否平衡"这一信息、对总体是偏正还是偏负不敏感, 这正是与 tone 均值测度解耦的数学根源。工程细节上, 引擎先把 P、N 转成 float64 再做除法与开方 (对本家族的比率输入是 no-op, 该转型主要为兄弟计数轨防整数回绕); 当 P + N = 0 (该银行-年度在该轨的平均正、负面词占比同时为 0, 即无任何情感词命中或全为缺失) 时公式退化为 0/0, 引擎置 NaN 而非 0, 以区分"无分歧的一致舆论"与"无从判断的空样本", 这一缺失语义与全流水线把未报道年份标 NaN 而非 0 的口径一致。P 与 N 严格逐轨取自各轨自身的 avg_pos_ratio / avg_neg_ratio, 不跨轨借分母; 且本家族分支与同函数产出的 disag_llm (吃 pos_count / neg_count 篇章计数)、disag_bert (吃 bert 概率均值)、各单词典 disag_{dict} 是并列而各自独立的输入版本, 切勿混淆。
 
 【文献定位】
-情感分歧作为独立于均值的信息维度, 在资产定价与文本金融文献中有稳固的理论与实证根基。Hong 与 Stein (2007) 在其观点分歧综述中系统论证了投资者意见分歧如何独立于基本面均值驱动交易量、波动与收益, 奠定了把分歧当作一等信息变量的范式。Carlin、Longstaff 与 Matoba (2014) 用抵押证券市场数据实证了分歧本身对风险溢价与预期收益的定价作用, 表明分歧不是均值信号的噪声残余而是自带信息含量。Cen、Wei 与 Yang (2017) 进一步刻画了分歧与市场反应不足、随后收益之间的关系, 说明高分歧期的信息消化更慢。文本度量侧, Cookson 与 Niessner (2020) 从投资者社交网络直接构造基于文本的分歧代理, 系统区分了同类内部分歧与跨类分歧, 是本家族用篇章级正负面词密度分布刻画分歧的直接方法学参照; Li 与 Luan (2025) 则把新闻文本分歧与横截面股票收益联系起来, 佐证了本指数以新闻语调对立为原料的合理性。方法学上, 本指数把当年围绕同一银行的众多报道各自的正/负面词占比视为一组彼此可能对立的语调信号, 而这些信号在同一实体上呈现的散布本身即为一种可度量的分歧信息, 这与 Uma 等 (2021) 关于"从分歧中学习"的综述所倡导的把分歧当作信息而非纯噪声的一般立场相呼应 (此处援引其对分歧信息性的立场, 与本家族基于词典比率、而非多标注者投票的具体实现无关)。银行间同行网络会让分歧沿关联传导, Grieser 等 (2022) 关于企业金融政策网络效应的证据提示本指数可与同行溢出、网络中心度族联合解读。
+情感分歧作为独立于均值的信息维度, 在资产定价与文本金融文献中有稳固的理论与实证根基。Hong 与 Stein (2007) 在其观点分歧综述中系统论证了投资者意见分歧如何独立于基本面均值驱动交易量、波动与收益, 奠定了把分歧当作一等信息变量的范式。Carlin、Longstaff 与 Matoba (2014) 用抵押证券市场数据实证了分歧本身对风险溢价与预期收益的定价作用, 表明分歧不是均值信号的噪声残余而是自带信息含量。Cen、Wei 与 Yang (2017) 进一步刻画了分歧与市场反应不足、随后收益之间的关系, 说明高分歧期的信息消化更慢。文本度量侧, Cookson 与 Niessner (2020) 从投资者社交网络直接构造基于文本的分歧代理, 系统区分了同类内部分歧与跨类分歧, 是本家族用篇章级正负面词密度分布刻画分歧的直接方法学参照; Li 与 Luan (2025) 则把新闻文本分歧与横截面股票收益联系起来, 佐证了本指数以新闻语调对立为原料的合理性。方法学上, 本指数把当年围绕同一银行的众多报道各自的正/负面词占比视为一组彼此可能对立的语调信号, 而这些信号在同一实体上呈现的散布本身即为一种可度量的分歧信息, 这与 Uma 等 (2021) 关于"从分歧中学习"的综述所倡导的把分歧当作信息而非纯噪声的一般立场相呼应 (此处援引其对分歧信息性的立场, 与本家族基于词典比率、而非多标注者投票的具体实现无关)。银行间同行网络会让分歧沿关联传导, Grieser 等 (2022) 关于企业金融政策网络效应的证据提示本指数可与同行溢出、网络中心度族联合解读。Bali、Kelly、Mörke 与 Rahman (2026, The Review of Financial Studies) 提出以异质机器学习模型的收益预测离散度构造分歧测度并证明其对未来收益的预测力, 呼应本家族用正负面词占比失衡刻画舆论撕裂的"分歧独立于均值信号"这一构念逻辑。
 
 ## VAR: disag_full
 
@@ -111,4 +118,5 @@ Cookson, J. A., & Niessner, M. (2020). Why don't we agree? Evidence from a socia
 Cen, L., Wei, K. C. J., & Yang, L. (2017). Disagreement, underreaction, and stock returns. Management Science, 63(4), 1214-1231. https://doi.org/10.1287/mnsc.2015.2405
 Carlin, B. I., Longstaff, F. A., & Matoba, K. (2014). Disagreement and asset prices. Journal of Financial Economics, 114(2), 226-238. https://doi.org/10.1016/j.jfineco.2014.06.007
 Hong, H., & Stein, J. C. (2007). Disagreement and the stock market. Journal of Economic Perspectives, 21(2), 109-128. https://doi.org/10.1257/jep.21.2.109
+Bali, T. G., Kelly, B. T., Mörke, M., & Rahman, J. (2026). Machine Forecast Disagreement. The Review of Financial Studies. https://doi.org/10.1093/rfs/hhag042
 <!-- rendered-citations:end -->

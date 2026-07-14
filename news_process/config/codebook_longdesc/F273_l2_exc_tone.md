@@ -64,7 +64,21 @@ citations:
   vol: 62
   issue: 3
   pages_or_artno: 1139-1168
-new_dois: []
+- doi: "10.1017/s0022109025101749"
+  title: "When Spotlights Fade: Local Newspaper Closures and Financial Advisor Misconduct"
+  authors: "Li, Z., Peng, Q., & Zhang, R.-Z."
+  year: 2025
+  venue: "Journal of Financial and Quantitative Analysis"
+  type: "journal"
+- doi: "10.1111/1911-3846.13046"
+  title: "Local newspaper closures and bank loan contracts"
+  authors: "Ma, Z., Stice, D., Stice, H., & Zhang, Y."
+  year: 2025
+  venue: "Contemporary Accounting Research"
+  type: "journal"
+new_dois:
+  - "10.1017/s0022109025101749"
+  - "10.1111/1911-3846.13046"
 ---
 
 ## CORE
@@ -76,7 +90,7 @@ new_dois: []
 计算链路完全承接主语调轨: 上游 stage 21 (tone_llms) 已对每篇报道产出三家大模型 (gpt-5.4-nano / gemini-3.1-flash-lite / deepseek-v4-flash) 多数投票共识得到的篇级语调 llm_vote_score{track}, 数值域约 [-1, 1], 负面为负、正面为正。_is_ceased_media 的判定发生在 attention_media.py::detect_defacto_cessation: 先在银行-fintech 文章子集上按媒体来源计算 first_year/last_year/n_articles, 把 last_year 早于「样本最大年份 − threshold_gap (默认 2)」且历史报道量 ≥10 篇的来源标记为 data_ceased (数据驱动的话题覆盖退出候选); 再用 NPPA (国家新闻出版署) 报刊名录做交叉验证, 得到 confirmed = data_ceased ∩ nppa_ceased (数据信号与 NPPA 登记的注销/停办/休刊状态双重吻合) 与 suspected = data_ceased − nppa_ceased (只有数据信号、未在 NPPA 名录里找到对应停办登记)。最终进入排除集的 ceased_all = confirmed ∪ suspected —— 必须明确披露的一点是, NPPA 交叉验证只改变报告 (cessation_report) 里的分类标签, 并不收窄排除集本身: 未经 NPPA 证实的 suspected 部分照样全量计入 ceased_all, 也就照样把对应媒体的报道剔出 exc_tone 的分子分母。因此 _is_ceased_media == 1 里既包含「NPPA 登记证实确已停办」的来源, 也包含「仅因话题覆盖退出信号被保守判定、未经外部登记证实」的来源, 后者可能只是不再报道银行金科话题而并未停刊。本家族在 attention_media.py 的话题覆盖退出稳健性块 (C.3) 中, 先用 df_alive = df[df['_is_ceased_media'] == 0] 过滤掉被判定退出的媒体的行, 再对每条轨道 (_full / _ctx / _ss) 按 (target_bank, year) 分组取 llm_vote_score{track} 的算术均值, 落为 exc_tone{track} 列, 左连接回主面板。三轨的源列若在存续子集里缺失 (例如某轨未产出), 有 if src in df_alive.columns 守卫优雅跳过, 不会连坐其余两轨。需要强调聚合口径与零填契约的边界: 兄弟列 n_articles_exc (排除疑似退出覆盖媒体后的文章计数) 属计数类, 遵循「Σ over ∅ = 0」契约, 零文章的 bank-year 补 0 并恢复整型; 而 exc_tone{track} 属情感均值类, 空集上的均值无定义, 按契约保持 NaN 而不零填 —— 二者填充语义刻意不同, 混淆会使「无报道」与「中性报道」不可区分。留篇门控与主口径一致 (2026-06-29 full-only): 一篇报道是否计入「银行金科报道」宇宙只看 full 轨的 llm_verified_full, ctx/ss 是 conditional-on-full 的子集轨, 因此三条 exc_tone 轨的行宇宙同源, 差异只在文本窗口。
 
 【文献定位】
-本测度落在「媒体语调 → 银行 (存款人/资本市场) 反应」这条实证链上, 但其独特贡献是把「媒体来源构成」作为一个可操纵的稳健性维度显式暴露出来。Tetlock (2007) 奠定了媒体语调进入投资者情绪并预测市场走势的范式, Shapiro 等 (2022) 从计量角度系统化了新闻情感指数的构造与验证, Holzman 等 (2023) 进一步指出媒体情感的定价作用会被硬信息 (季度盈余公告) 的到来所约束 —— 这些工作共同说明语调测度对「哪些媒体、在什么约束下发声」高度敏感。在中国银行业情境下, Fang 等 (2024) 直接把媒体情感与存款稳定性、银行系统性风险相连, 与本项目的银行-年面板对象同域, 为「剔除疑似退出话题覆盖媒体后语调是否仍稳健地关联银行结果」提供了直接的构念对照。综合看, exc_tone 家族不是一个新构念, 而是主语调 (llm_vote_tone) 的一条媒体样本稳健性臂: 它与主测度互为稳健性、不分主次, 各自 just-identified 并排使用, 严禁把「含全部媒体」与「排除疑似退出话题覆盖媒体」两个版本混进同一个 over-identified Hansen J 过度识别式 —— 二者高度共线, 混入只会人为制造识别假象, 正确用法是并排报告系数稳定性。再次强调: exc_* 系列的排除口径是「疑似退出银行-fintech 话题覆盖媒体」的保守代理, 而非经证实的报纸停刊 (publication cessation), 论文行文中应避免使用「停刊媒体」这一确证性措辞, 应表述为「疑似退出话题覆盖的媒体」或「话题覆盖退出代理」。
+本测度落在「媒体语调 → 银行 (存款人/资本市场) 反应」这条实证链上, 但其独特贡献是把「媒体来源构成」作为一个可操纵的稳健性维度显式暴露出来。Tetlock (2007) 奠定了媒体语调进入投资者情绪并预测市场走势的范式, Shapiro 等 (2022) 从计量角度系统化了新闻情感指数的构造与验证, Holzman 等 (2023) 进一步指出媒体情感的定价作用会被硬信息 (季度盈余公告) 的到来所约束 —— 这些工作共同说明语调测度对「哪些媒体、在什么约束下发声」高度敏感。在中国银行业情境下, Fang 等 (2024) 直接把媒体情感与存款稳定性、银行系统性风险相连, 与本项目的银行-年面板对象同域, 为「剔除疑似退出话题覆盖媒体后语调是否仍稳健地关联银行结果」提供了直接的构念对照。综合看, exc_tone 家族不是一个新构念, 而是主语调 (llm_vote_tone) 的一条媒体样本稳健性臂: 它与主测度互为稳健性、不分主次, 各自 just-identified 并排使用, 严禁把「含全部媒体」与「排除疑似退出话题覆盖媒体」两个版本混进同一个 over-identified Hansen J 过度识别式 —— 二者高度共线, 混入只会人为制造识别假象, 正确用法是并排报告系数稳定性。Li, Peng, & Zhang (2025, Journal of Financial and Quantitative Analysis) 利用约95万名理财顾问的个体记录发现, 当地报纸停刊后所在县域理财顾问违规概率与严重程度显著上升, 证实媒体监督退出会削弱金融不当行为的外部约束, 为本家族「疑似退出话题覆盖媒体」稳健性剔除臂提供了媒体退出即监督缺位的直接实证支持。Ma, Stice, Stice, & Zhang (2025, Contemporary Accounting Research) 研究发现当地报纸停刊后借款人贷款利差上升、契约条款收紧, 银行作为报道读者失去低成本信息中介后被迫加强其他监督渠道, 揭示媒体来源退出对银行-借款人信息环境的系统性冲击, 呼应本家族把媒体覆盖构成变动显式作为稳健性操纵维度的构念动机。再次强调: exc_* 系列的排除口径是「疑似退出银行-fintech 话题覆盖媒体」的保守代理, 而非经证实的报纸停刊 (publication cessation), 论文行文中应避免使用「停刊媒体」这一确证性措辞, 应表述为「疑似退出话题覆盖的媒体」或「话题覆盖退出代理」。
 
 ## VAR: exc_tone_full
 
@@ -100,4 +114,6 @@ Shapiro, A. H., Sudhof, M., & Wilson, D. J. (2022). Measuring news sentiment. Jo
 You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Fang, L., & Peress, J. (2009). Media coverage and the cross-section of stock returns. The Journal of Finance, 64(5), 2023-2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Li, Z., Peng, Q., & Zhang, R.-Z. (2025). When Spotlights Fade: Local Newspaper Closures and Financial Advisor Misconduct. Journal of Financial and Quantitative Analysis. https://doi.org/10.1017/s0022109025101749
+Ma, Z., Stice, D., Stice, H., & Zhang, Y. (2025). Local newspaper closures and bank loan contracts. Contemporary Accounting Research. https://doi.org/10.1111/1911-3846.13046
 <!-- rendered-citations:end -->

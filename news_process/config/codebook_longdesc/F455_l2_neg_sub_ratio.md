@@ -55,7 +55,21 @@ citations:
   vol: '133'
   issue: '2'
   pages_or_artno: 801-870
-new_dois: []
+- doi: "10.1007/s10614-026-11328-5"
+  title: "DeepGreen: Effective LLM-Driven Greenwashing Monitoring System Designed for Empirical Testing — Evidence from China"
+  authors: "Xu, C., Liu, J., Li, Z., & Lin, C."
+  year: 2026
+  venue: "Computational Economics"
+  type: "journal"
+- doi: "10.1016/j.jenvman.2023.118950"
+  title: "Symbol or substance? Environmental regulations and corporate environmental actions decoupling"
+  authors: "Tang, P., Wang, C., Jiang, Q., Liu, X., & Wang, J."
+  year: 2023
+  venue: "Journal of Environmental Management"
+  type: "journal"
+new_dois:
+  - "10.1007/s10614-026-11328-5"
+  - "10.1016/j.jenvman.2023.118950"
 ---
 
 ## CORE
@@ -71,7 +85,7 @@ new_dois: []
 三轨 (full/ctx/ss) 分别以各自独立的文本窗口重复上述全部裁定与聚合: `_full`=标题+正文全文, `_ctx`=标题+银行/金科实体窗口, `_ss`=标题+银行∧金科同句±N窗口 (`ss_sentence_radius` 默认1); 三者互不借用彼此的分子分母, 严格逐轨独立计算。`_ss` 轨在无银行∧金科同句共现时按标准回退语义退化为 `content_full` (镜像 `_ctx` 回退, `ss_is_fallback=True`), 该回退发生在文本物化层 (stage 14), `neg_sub_ratio_ss` 本身不因此单独失真, 但其样本构成会包含较高比例的回退篇目, 解读跨行比较时须留意。三轨在识别策略上各自 just-identified 并排、互为稳健性、不分主次, 禁止把三轨同名系数混入同一 over-identified 的 Hansen J 过度识别检验; full 轨对应 2026-06-29 之后确立的 full-only 留篇门控 canonical (`llm_verified_full==True` 决定"是否算一篇银行-金科报道"), ctx/ss 是 conditional-on-full 的测度/稳健性轨, 行宇宙是 full 留篇集的子集, 三轨列仍各自照算不借用彼此分母。
 
 【文献定位】
-substantive/symbolic 二分类学的方法论根源是组织行为与公司治理文献对改革"言行不一"现象的经典区分, 本测度族将其迁移到新闻文本自动化裁定场景, 并与企业传播/漂绿(greenwashing)文献中的 decoupling 概念对齐: Kim & Lyon (2015, *Organization Science*) 系统区分了企业披露中的"过度渲染 (greenwash)"与"过度谦虚 (brownwash)"两类言行脱钩, `washing_ratio`/`neg_sub_ratio` 一正一负两个方向的实质性占比正是这一 decoupling 逻辑在情感极性分层下的操作化。文本/披露的"廉价谈话 (cheap talk)"识别方法直接借鉴气候披露文本分析文献: Bingler, Kraus, Leippold & Webersinke (2022, *Finance Research Letters*; 2024, *Journal of Banking & Finance*) 用 ClimateBert 及后续模型区分企业气候披露中"言辞"与"可核实行动"的脱钩程度, 是本测度计算管线中已直接沿用的"洗稿率(washing ratio)"概念与命名的直接方法学出处 (见 `pipeline/panel/export.py` 内嵌注释)。用 LLM 对海量新闻文本做结构化裁定 (议题实质性/情感极性) 这一自动化文本分析路径, 承袭计算语言学在宏观/公司新闻文本挖掘中的应用范式 (Hansen, McMahon & Prat, 2018, *The Quarterly Journal of Economics*, 计算语言学方法解构 FOMC 会议记录的透明度效应, 是文本自动裁定用于制度/政策分析的代表性先例)。新闻内容的宏观-微观信息互补/替代关系 (Hirshleifer & Sheng, 2022, *Journal of Financial Economics*) 为解读"哪类报道承载增量信息、哪类只是重复噪音"提供了理论参照: `neg_sub_ratio` 低意味着该期负面新闻更接近对既有负面预期的重复渲染而非新增实质信息, 与该文对宏观/微观新闻信息含量区分的框架相呼应。
+substantive/symbolic 二分类学的方法论根源是组织行为与公司治理文献对改革"言行不一"现象的经典区分, 本测度族将其迁移到新闻文本自动化裁定场景, 并与企业传播/漂绿(greenwashing)文献中的 decoupling 概念对齐: Kim & Lyon (2015, *Organization Science*) 系统区分了企业披露中的"过度渲染 (greenwash)"与"过度谦虚 (brownwash)"两类言行脱钩, `washing_ratio`/`neg_sub_ratio` 一正一负两个方向的实质性占比正是这一 decoupling 逻辑在情感极性分层下的操作化。文本/披露的"廉价谈话 (cheap talk)"识别方法直接借鉴气候披露文本分析文献: Bingler, Kraus, Leippold & Webersinke (2022, *Finance Research Letters*; 2024, *Journal of Banking & Finance*) 用 ClimateBert 及后续模型区分企业气候披露中"言辞"与"可核实行动"的脱钩程度, 是本测度计算管线中已直接沿用的"洗稿率(washing ratio)"概念与命名的直接方法学出处 (见 `pipeline/panel/export.py` 内嵌注释)。用 LLM 对海量新闻文本做结构化裁定 (议题实质性/情感极性) 这一自动化文本分析路径, 承袭计算语言学在宏观/公司新闻文本挖掘中的应用范式 (Hansen, McMahon & Prat, 2018, *The Quarterly Journal of Economics*, 计算语言学方法解构 FOMC 会议记录的透明度效应, 是文本自动裁定用于制度/政策分析的代表性先例)。新闻内容的宏观-微观信息互补/替代关系 (Hirshleifer & Sheng, 2022, *Journal of Financial Economics*) 为解读"哪类报道承载增量信息、哪类只是重复噪音"提供了理论参照: `neg_sub_ratio` 低意味着该期负面新闻更接近对既有负面预期的重复渲染而非新增实质信息, 与该文对宏观/微观新闻信息含量区分的框架相呼应。近年 LLM 驱动的文本裁定方法进一步扩展了这一脉络: Xu, Liu, Li & Lin (2026, Computational Economics) 提出双阶段 LLM 驱动的漂绿监测系统 DeepGreen, 在中国 A 股年报文本上区分实质性绿色改进与象征性表述, 与本测度用 LLM 裁定报道「实质性 vs 象征性」的方法学高度对应; Tang, Wang, Jiang, Liu & Wang (2023, Journal of Environmental Management) 以中国上市公司为样本考察环境规制强度如何加剧披露言辞与实际环境行动之间的脱钩(言过其实、行动不足), 为本测度「言辞-实质脱钩」的构念提供直接经验对照。
 
 ## VAR: neg_sub_ratio_full
 
@@ -100,4 +114,6 @@ Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2024). How cheap talk
 Kim, E.-H., & Lyon, T. P. (2015). Greenwash vs. brownwash: Exaggeration and undue modesty in corporate sustainability disclosure. Organization Science, 26(3), 705-723. https://doi.org/10.1287/orsc.2014.0949
 Hirshleifer, D., & Sheng, J. (2022). Macro news and micro news: Complements or substitutes?. Journal of Financial Economics, 145(3), 1006-1024. https://doi.org/10.1016/j.jfineco.2021.09.012
 Hansen, S., McMahon, M., & Prat, A. (2018). Transparency and deliberation within the FOMC: a computational linguistics approach. The Quarterly Journal of Economics, 133(2), 801-870. https://doi.org/10.1093/qje/qjx045
+Xu, C., Liu, J., Li, Z., & Lin, C. (2026). DeepGreen: Effective LLM-Driven Greenwashing Monitoring System Designed for Empirical Testing — Evidence from China. Computational Economics. https://doi.org/10.1007/s10614-026-11328-5
+Tang, P., Wang, C., Jiang, Q., Liu, X., & Wang, J. (2023). Symbol or substance? Environmental regulations and corporate environmental actions decoupling. Journal of Environmental Management. https://doi.org/10.1016/j.jenvman.2023.118950
 <!-- rendered-citations:end -->

@@ -26,6 +26,7 @@ unit: 语调得分 (连续, 理论区间约 [-1,1]; 文章级由状态机计分�
 formula: 状态机逐词扫描 yao_2021 词典命中词, 按指定语言学规则子集 (否定翻转 / 程度副词 / 转折让步, 全 powerset 的某一非-full 子集) 计算每词 final 极性并按 Σ|final| 自归一化 → 文章级语调 → bank-year 均值聚合
 producer: pipeline\sentiment\tone_words.py (状态机与消融变体枚举) ; pipeline\panel\export.py (面板聚合) ; pipeline\panel\stata_export.py (Stata 标签层)
 upstream: []
+novelty_exempt_rationale: "该家族是 yao_2021 词典语调测度的规则消融梯度变体 (7 非-full 语言学规则组合 × 3 轨), 属于母族 canonical yao_2021_tone 的技术敏感性检验分支, 非独立新构念, 其测度定义学术依据已在 CORE 正文引用的 Loughran & McDonald (2011/2016)、Taboada et al. (2011)、Pröllochs et al. (2016) 等词典法/否定辖域/转折调制文献中给出, 不需追加独立新颖度文献。"
 citations:
 - {doi: "10.1111/j.1540-6261.2010.01625.x", type: journal, authors: "Loughran, T., & McDonald, B.", year: 2011, title: "When Is a Liability Not a Liability? Textual Analysis, Dictionaries, and 10-Ks", venue: "Journal of Finance", vol: "66", issue: "1", pages_or_artno: "35-65"}
 - {doi: "10.1111/1475-679X.12123", type: journal, authors: "Loughran, T., & McDonald, B.", year: 2016, title: "Textual Analysis in Accounting and Finance: A Survey", venue: "Journal of Accounting Research", vol: "54", issue: "4", pages_or_artno: "1187-1230"}

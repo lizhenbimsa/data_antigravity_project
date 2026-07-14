@@ -82,7 +82,14 @@ citations:
   vol: 21
   issue: 2
   pages_or_artno: 109-128
-new_dois: []
+- doi: "10.1016/j.jfineco.2024.103816"
+  type: journal
+  authors: "Goldman, E., Gupta, N., & Israelsen, R. D."
+  year: 2024
+  title: "Political polarization in financial news"
+  venue: "Journal of Financial Economics"
+new_dois:
+  - "10.1016/j.jfineco.2024.103816"
 ---
 
 ## CORE
@@ -94,7 +101,7 @@ new_dois: []
 计算入口在 pipeline\panel\runner.py 的步骤 8b (disag 段, 单 BERT 概率均值支路)。这里须先厘清一个关键口径, 以免与"逐篇分类计数"混淆: finbert2 的 disag 输入不是 argmax 判正、判负的篇数, 而是逐篇正类概率、负类概率各自在该单元上的均值。具体地, stage 23 对每篇报道给出 finbert2 的正类概率与负类概率, encode 层 (pipeline\panel\encode.py) 把它们各自按 mean 聚合到银行-年-轨道单元, 得到两个平均概率 P (finbert2_pos, 该单元正类概率均值) 与 N (finbert2_neg, 该单元负类概率均值)。本仓库刻意不用 argmax 判正篇数一类的计数量作分歧输入: 以语调 argmax 为条件挑篇会引入以情感为条件的内生样本选择, encode 层对此有明令禁用。取到 P 与 N 后代入离散度闭式: disag = 根号下 (1 减去 ((P 减 N) 除以 (P 加 N)) 的平方)。该式是一个规范到 [0, 1] 的极化指标: 当平均概率完全一边倒 (P 或 N 之一趋近于零) 时, 括号内比值趋近正负一, 平方趋近一, 整体趋近零, 表示零分歧; 当平均正、负概率恰好持平 (P 等于 N) 时, 比值为零, 整体取一, 表示最大分歧。分母 P 加 N 为零 (该单元无任何 finbert2 概率可聚合) 时置 NaN, 而非零, 以免把"没有可判读报道"误当成"完全一致"。需特别指出, finbert2 是二分类 (Bernoulli) 模型, 无独立中性类, 逐篇正、负类概率互补相加约等于一, 故对 finbert2 而言 P 加 N 约等于一 (是概率量而非篇数, 分母不等于该单元的文章篇数); 在这一近似下 disag 化简为 2 乘以根号下 (P 乘以 (1 减 P)), 其中 P 为平均正类概率——即以平均概率为参数的伯努利标准差的两倍, 是平均正类概率围绕 0.5 的对称山形函数。这一化简是 finbert2 相对三分类模型的构念特殊性: 它的 disag 与平均正类概率逐单调对应, 读数应作二分类极化解读, 不宜与三分类模型的同名列比较水平, 只比标准化后的回归系数。
 
 【文献定位】
-在测量层面, 本家族属于机器学习情感度量而非词典度量。Huang、Wang 与 Yang (2023) 论证了微调 BERT 在金融文本情感抽取上相对词典法的增益与边界; Frankel、Jennings 与 Lee (2022) 在顶刊 Management Science 上系统比较了机器学习情感与词典情感, 指出两类方法在不同任务上各有优劣、宜互为稳健性并置而非彼此替代——这正是本仓库把 finbert2 与另两家 BERT、与词典法、与 LLM 投票法平行保留的方法学依据。finbert2 模型本身取自 Xu 等 (2025) 的领域专用双向编码器工作。在构念层面, 以新闻文本的正负分歧作为主体级别信号已有实证先例: Li 与 Luan (2025) 直接用新闻构造投资者分歧并检验其对股票收益的解释力, Cookson 与 Niessner (2020) 则从投资者社会网络出发刻画分歧的来源与后果。本家族把这一构念下沉到银行-年面板, 作为媒体报道口径撕裂程度的稳健性测度轨。
+在测量层面, 本家族属于机器学习情感度量而非词典度量。Huang、Wang 与 Yang (2023) 论证了微调 BERT 在金融文本情感抽取上相对词典法的增益与边界; Frankel、Jennings 与 Lee (2022) 在顶刊 Management Science 上系统比较了机器学习情感与词典情感, 指出两类方法在不同任务上各有优劣、宜互为稳健性并置而非彼此替代——这正是本仓库把 finbert2 与另两家 BERT、与词典法、与 LLM 投票法平行保留的方法学依据。finbert2 模型本身取自 Xu 等 (2025) 的领域专用双向编码器工作。在构念层面, 以新闻文本的正负分歧作为主体级别信号已有实证先例: Li 与 Luan (2025) 直接用新闻构造投资者分歧并检验其对股票收益的解释力, Cookson 与 Niessner (2020) 则从投资者社会网络出发刻画分歧的来源与后果。本家族把这一构念下沉到银行-年面板, 作为媒体报道口径撕裂程度的稳健性测度轨。Goldman、Gupta 与 Israelsen (2024, Journal of Financial Economics) 直接度量不同新闻源对同一公司财经报道的分歧程度, 并证明这种报道分歧本身能预测异常交易量, 为本家族用新闻文本聚合出的银行层面分歧指数提供了同期实证先例。
 
 ## VAR: disag_finbert2_full
 
@@ -120,4 +127,5 @@ Cookson, J. A., & Niessner, M. (2020). Why don't we agree? Evidence from a socia
 Cen, L., Wei, K. C. J., & Yang, L. (2017). Disagreement, underreaction, and stock returns. Management Science, 63(4), 1214-1231. https://doi.org/10.1287/mnsc.2015.2405
 Carlin, B. I., Longstaff, F. A., & Matoba, K. (2014). Disagreement and asset prices. Journal of Financial Economics, 114(2), 226-238. https://doi.org/10.1016/j.jfineco.2014.06.007
 Hong, H., & Stein, J. C. (2007). Disagreement and the stock market. Journal of Economic Perspectives, 21(2), 109-128. https://doi.org/10.1257/jep.21.2.109
+Goldman, E., Gupta, N., & Israelsen, R. D. (2024). Political polarization in financial news. Journal of Financial Economics. https://doi.org/10.1016/j.jfineco.2024.103816
 <!-- rendered-citations:end -->

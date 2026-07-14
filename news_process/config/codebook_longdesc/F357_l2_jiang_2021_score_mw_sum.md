@@ -56,7 +56,15 @@ citations:
   vol: 15
   issue: 2
   pages_or_artno: 121-140
-new_dois: []
+- doi: "10.1016/j.heliyon.2024.e30211"
+  title: "Sentimental showdown: News media vs. social media in stock markets"
+  authors: "Nyakurukwa, K., & Seetharam, Y."
+  year: 2024
+  venue: "Heliyon"
+  type: "journal"
+  one_sentence_zh: "该文比较新闻媒体与社交媒体情感对股票市场的差异化影响,为按媒体来源权威度/类型对情感信号加权提供了新近的方法学与实证依据。"
+new_dois:
+  - "10.1016/j.heliyon.2024.e30211"
 ---
 
 ## CORE
@@ -68,7 +76,7 @@ new_dois: []
 计算须分清三个阶段各自的职责, 不可把媒体权威加权乘法误挂在词典打分阶段。第一步在情感词典阶段 (stage 22 tone_words) 完成: 对每篇报道先按 jiang_2021 词典匹配正负情感词, 得到逐篇未加权净极性分 jiang_2021_score{track}; 须强调 22_tone_words.parquet 落盘的只是这一未加权逐篇极性分, 其中不含任何媒体权威权重, 也不存在名为 jiang_2021_score_mw 的逐篇落盘列。第二步的加权乘法实际发生在面板装配阶段, 由 panel runner 步骤 3c 现算: runner 把 stage 22 的未加权极性分 jiang_2021_score{track} 与该篇报道所属媒体来源对应的媒体权威度权重 media_authority_weight 逐行相乘, 得到加权逐篇分 jiang_2021_score_mw{track}, 这是运行期的中间量, 而非 stage 22 的落盘列。媒体权威度权重刻画发布该篇报道的媒体来源的相对权威性/影响力, 使权威媒体刊发的报道对全年聚合贡献更大, 这与文本金融研究中按信息来源可信度/传播力对逐篇信号加权的思路一致。第三步在面板聚合阶段 (encode.py 的 media-authority-weighted F 段) 完成: 对同一银行-年-轨道内所有留篇报道的 jiang_2021_score_mw{track} 直接求和, 即得 jiang_2021_score_mw_sum{track}。完整链路是「stage 22 出未加权分 → 媒体权威度权重表出 media_authority_weight → panel runner 步骤 3c 做加权乘法 → encode.py F 段做银行-年求和」四环, 加权环节位于面板 runner 而非词典阶段, 这一归属决定复算加权口径时应去哪个阶段核对源列。随后同段以 sum_media_authority_weight 为分母作除法, 派生出归一化的 jiang_2021_tone_mw{track}, 故本家族三列在数学上是该 MW 语调的分子。单位为无量纲加权得分和: 词典极性分本身无量纲, 乘以同样无量纲的媒体权威权重后求和, 结果不落在固定区间, 量纲随报道条数与媒体权威分布伸缩, 只可在同口径下横向比较、不可与归一化语调直接比水平。留篇口径遵循 full-only 门控 (2026-06-29): 一篇报道是否计入银行-年宇宙由 full 轨的 LLM 判定决定, ctx 与 ss 轨为条件于 full 留篇集的子集测度, 三轨各自逐轨算列, 不借用彼此分母。
 
 【文献定位】
-词典来源姜富伟、孟令超、唐国豪 (2021) 发表于《经济学(季刊)》, 构建了面向中文财经文本的情感词典并验证其对股票回报的预测力, 是本家族极性分的唯一词典依据。将词典法置于更广的效度谱系中, van Atteveldt et al. (2021) 系统比较人工标注、众包、词典法与机器学习, 指出词典法在特定语域下的偏差与适用边界, 为本项目把词典轨与 LLM 轨、BERT 轨并置为互为稳健性证据提供了方法学理由; Frankel, Jennings & Lee (2022) 在顶刊 Management Science 上以披露文本对比机器学习与词典法情感测度, 是本仓「多方法互为稳健、不分主次」设计的直接先例, 也提示按信息来源特征 (如权威度) 对文本信号加权是情感聚合中常见且有理论支撑的做法。就中文金融语域的词典专用性而言, Du et al. (2022) 在 Review of Finance 论证语言与领域专用性对中文金融情感测度的必要性, 与 jiang_2021 词典同属为中文金融文本定制情感资源的谱系; Ma, Zhang & Zhang (2025) 面向中国境内投资者构建细粒度中文情感词典, 代表该谱系向更细颗粒度演进的近期进展, 二者共同说明中文金融情感词典并非单一权威来源, 而是需要多套词典互相印证。需强调铁律: 本 MW 加权和只是 jiang_2021 词典轨内部的一种加权口径 (相对于等权 tone、提及密度加权 vw、跟风衰减加权 hw), 各加权口径互为稳健性、各自 just-identified 并排, 禁混进同一 over-identified Hansen J; 同理三轨 full/ctx/ss 亦各自 just-identified 并排、禁混同一 Hansen J, jiang_2021 词典轨与 LLM/BERT 情感轨之间同样只作互为稳健性对照而不合并识别。
+词典来源姜富伟、孟令超、唐国豪 (2021) 发表于《经济学(季刊)》, 构建了面向中文财经文本的情感词典并验证其对股票回报的预测力, 是本家族极性分的唯一词典依据。将词典法置于更广的效度谱系中, van Atteveldt et al. (2021) 系统比较人工标注、众包、词典法与机器学习, 指出词典法在特定语域下的偏差与适用边界, 为本项目把词典轨与 LLM 轨、BERT 轨并置为互为稳健性证据提供了方法学理由; Frankel, Jennings & Lee (2022) 在顶刊 Management Science 上以披露文本对比机器学习与词典法情感测度, 是本仓「多方法互为稳健、不分主次」设计的直接先例, 也提示按信息来源特征 (如权威度) 对文本信号加权是情感聚合中常见且有理论支撑的做法。就中文金融语域的词典专用性而言, Du et al. (2022) 在 Review of Finance 论证语言与领域专用性对中文金融情感测度的必要性, 与 jiang_2021 词典同属为中文金融文本定制情感资源的谱系; Ma, Zhang & Zhang (2025) 面向中国境内投资者构建细粒度中文情感词典, 代表该谱系向更细颗粒度演进的近期进展, 二者共同说明中文金融情感词典并非单一权威来源, 而是需要多套词典互相印证。需强调铁律: 本 MW 加权和只是 jiang_2021 词典轨内部的一种加权口径 (相对于等权 tone、提及密度加权 vw、跟风衰减加权 hw), 各加权口径互为稳健性、各自 just-identified 并排, 禁混进同一 over-identified Hansen J; 同理三轨 full/ctx/ss 亦各自 just-identified 并排、禁混同一 Hansen J, jiang_2021 词典轨与 LLM/BERT 情感轨之间同样只作互为稳健性对照而不合并识别。此外, Nyakurukwa & Seetharam (2024, Heliyon) 比较新闻媒体与社交媒体情感对股票市场的差异化影响, 为按媒体来源权威度/类型对情感信号加权提供了新近的方法学与实证依据, 与本列的媒体权威加权 (MW) 构念直接相关。
 
 ## VAR: jiang_2021_score_mw_sum_ctx
 
@@ -91,4 +99,5 @@ Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-graine
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
+Nyakurukwa, K., & Seetharam, Y. (2024). Sentimental showdown: News media vs. social media in stock markets. Heliyon. https://doi.org/10.1016/j.heliyon.2024.e30211
 <!-- rendered-citations:end -->

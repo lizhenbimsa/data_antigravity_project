@@ -66,7 +66,21 @@ citations:
   title: 'Sentence-BERT: Sentence embeddings using Siamese BERT-networks'
   venue: Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing
   pages_or_artno: 3980-3990
-new_dois: []
+- doi: "10.1016/j.jfineco.2025.104007"
+  title: "Global Business Networks"
+  authors: "Breitung, C., & Müller, S."
+  year: 2025
+  venue: "Journal of Financial Economics"
+  type: "journal"
+- doi: "10.1371/journal.pone.0284567"
+  title: "Identify novel elements of knowledge with word embedding"
+  authors: "Yin, D., Wu, Z., Yokota, K., Matsumoto, K., & Shibayama, S."
+  year: 2023
+  venue: "PLOS ONE"
+  type: "journal"
+new_dois:
+  - "10.1016/j.jfineco.2025.104007"
+  - "10.1371/journal.pone.0284567"
 ---
 
 ## CORE
@@ -83,7 +97,7 @@ top-k N 是一个可调超参数——邻域窗口选得太窄 (N 很小, 如 N=
 关于留篇门控口径: 参与最近邻计算的文章全集口径是 full-only——stage 21 情感 LLM 只依据 full 轨 llm_verified_full 标志判定"是否为一篇有效的银行-金融科技报道", ctx/ss 轨的最近邻计算复用同一行宇宙 (full 留篇集的子集), 而非各轨独立扩样, 这与 CLAUDE.md 中"留篇门控 = full-only" (2026-06-29 切换) 的口径完全一致。ss 轨的回退语义镜像 ctx 轨: 若某篇报道找不到银行与金融科技词在同一句 (±N 句窗) 共现, 则该篇的 content_ss 退化为全文 body (与 content_full 相同), 并置 ss_is_fallback=True, 在此情形下该篇的 ss 轨嵌入与 full 轨高度相关, 是设计内的优雅降级而非缺陷。
 
 【文献定位】
-本家族最直接的方法学出处是 Guzman 与 Li (2023) 发表于顶刊 Management Science 的《Measuring Founding Strategy》, 该文首次系统性地用文本嵌入空间中的最近邻距离测量企业战略的差异化/独特性程度, 并证明这一文本距离测度能够预测企业存续与融资结果, 是本仓库 strat_diff_n{N}_emb 全系列命名与构造逻辑的直接出处 (见 producer 源码注释 "strat_diff_n{N} 最近邻距离出处")。第二支重要文献是 Hoberg 与 Phillips (2016) 发表于顶刊 Journal of Political Economy 的《Text-Based Network Industries and Endogenous Product Differentiation》, 该文奠定了"用文本余弦相似度矩阵内生刻画产品/战略差异化边界"的方法论范式, 是本测度将"最近邻距离"应用于媒体文本场景的更早期理论根基, 也是 TNIC 文本产业分类的方法起点。第三支是组织理论中"最优区分度" (optimal distinctiveness) 文献: Haans (2019) 发表于顶刊 Strategic Management Journal 的研究指出, 企业在同质化程度不同的品类中, 差异化对绩效的边际效应并非线性单调, 而是存在"过犹不及"的非线性关系——这一发现提示在使用 strat_diff 类测度做后续回归分析时, 应审慎考虑其与绩效结果的非线性/倒 U 型关系, 而非默认"差异化越高越好"的单调假设。Su, Gao 与 Tan (2024, Strategic Management Journal) 进一步在动态复杂环境下讨论企业如何在竞争压力与制度压力之间为最优区分度定位, 为解释银行在金融科技报道中的差异化选择提供了制度理论视角。文本嵌入模型本身的方法学有效性参考 Reimers 与 Gurevych (2019) 的 Sentence-BERT 工作 (句向量嵌入的标准范式) 以及 Rodriguez 与 Spirling (2022) 关于词/句嵌入在应用社会科学研究中"何时可靠、何时不可靠"的方法论评估, 二者共同支撑了本仓库选用句向量余弦相似度而非词袋/TF-IDF 作为最近邻距离底层度量的合理性。
+本家族最直接的方法学出处是 Guzman 与 Li (2023) 发表于顶刊 Management Science 的《Measuring Founding Strategy》, 该文首次系统性地用文本嵌入空间中的最近邻距离测量企业战略的差异化/独特性程度, 并证明这一文本距离测度能够预测企业存续与融资结果, 是本仓库 strat_diff_n{N}_emb 全系列命名与构造逻辑的直接出处 (见 producer 源码注释 "strat_diff_n{N} 最近邻距离出处")。第二支重要文献是 Hoberg 与 Phillips (2016) 发表于顶刊 Journal of Political Economy 的《Text-Based Network Industries and Endogenous Product Differentiation》, 该文奠定了"用文本余弦相似度矩阵内生刻画产品/战略差异化边界"的方法论范式, 是本测度将"最近邻距离"应用于媒体文本场景的更早期理论根基, 也是 TNIC 文本产业分类的方法起点。第三支是组织理论中"最优区分度" (optimal distinctiveness) 文献: Haans (2019) 发表于顶刊 Strategic Management Journal 的研究指出, 企业在同质化程度不同的品类中, 差异化对绩效的边际效应并非线性单调, 而是存在"过犹不及"的非线性关系——这一发现提示在使用 strat_diff 类测度做后续回归分析时, 应审慎考虑其与绩效结果的非线性/倒 U 型关系, 而非默认"差异化越高越好"的单调假设。Su, Gao 与 Tan (2024, Strategic Management Journal) 进一步在动态复杂环境下讨论企业如何在竞争压力与制度压力之间为最优区分度定位, 为解释银行在金融科技报道中的差异化选择提供了制度理论视角。文本嵌入模型本身的方法学有效性参考 Reimers 与 Gurevych (2019) 的 Sentence-BERT 工作 (句向量嵌入的标准范式) 以及 Rodriguez 与 Spirling (2022) 关于词/句嵌入在应用社会科学研究中"何时可靠、何时不可靠"的方法论评估, 二者共同支撑了本仓库选用句向量余弦相似度而非词袋/TF-IDF 作为最近邻距离底层度量的合理性。此外, Breitung 与 Müller (2025, Journal of Financial Economics) 该文用文本嵌入构造全球企业相似度网络, 延续 Hoberg 与 Phillips 文本相似度范式并扩展到跨国、嵌入向量层面, 与本家族用银行年度报道嵌入构造同业最近邻距离的方法学直接呼应。Yin、Wu、Yokota、Matsumoto 与 Shibayama (2023, PLOS ONE) 该文用词嵌入空间中的新颖元素识别衡量科学文献的新颖度, 为本家族以嵌入最近邻距离度量银行报道叙事独特性/新颖度提供了跨领域的方法学参照。
 
 ## VAR: strat_diff_n30_emb
 
@@ -122,4 +136,6 @@ Haans, R. F. J. (2019). What's the value of being different when everyone is? Th
 Su, J., Gao, X., & Tan, J. (2024). Positioning for optimal distinctiveness; How firms manage competitive and institutional pressures under dynamic and complex environment. Strategic Management Journal, 45(2), 333-361. https://doi.org/10.1002/smj.3549
 Rodriguez, P. L., & Spirling, A. (2022). Word embeddings: What works, what doesn't, and how to tell the difference for applied research. The Journal of Politics, 84(1), 101-115. https://doi.org/10.1086/715162
 Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Siamese BERT-networks. Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing No. 3980-3990 [Working Paper]. https://doi.org/10.18653/v1/D19-1410
+Breitung, C., & Müller, S. (2025). Global Business Networks. Journal of Financial Economics. https://doi.org/10.1016/j.jfineco.2025.104007
+Yin, D., Wu, Z., Yokota, K., Matsumoto, K., & Shibayama, S. (2023). Identify novel elements of knowledge with word embedding. PLOS ONE. https://doi.org/10.1371/journal.pone.0284567
 <!-- rendered-citations:end -->

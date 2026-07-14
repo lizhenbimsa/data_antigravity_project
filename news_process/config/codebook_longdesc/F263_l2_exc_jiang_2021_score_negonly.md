@@ -1,5 +1,6 @@
 ---
 family_id: F263
+novelty_exempt_rationale: "停刊稳健性(exc_)与词典规则消融(negonly)双重交叉的技术变体家族, 测度定义依据母族姜富伟(2021)词典与消融梯度框架, 非独立新构念, 无需追加新文献。"
 columns:
 - exc_jiang_2021_score_negonly_ctx
 - exc_jiang_2021_score_negonly_full

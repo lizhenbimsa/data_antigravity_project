@@ -63,7 +63,14 @@ citations:
   vol: 37
   issue: 2
   pages_or_artno: 267-307
-new_dois: []
+- doi: "10.1111/jfir.70039"
+  title: "Social media sentiment, investor herding and informational efficiency"
+  authors: "Yang, N., Fernandez-Perez, A., & Indriawan, I."
+  year: 2026
+  venue: "Journal of Financial Research"
+  type: "journal"
+new_dois:
+  - "10.1111/jfir.70039"
 ---
 
 ## CORE
@@ -75,7 +82,7 @@ new_dois: []
 计算链路分三段。第一段在 stage 22 词典法内: 对每篇报道分词后, 在 Bian et al. (2021) 词典上做逐词匹配, 命中情感词依次施加三条语言学规则 —— 否定词在其后固定窗口内翻转极性、程度副词按倍率缩放幅值、转折词在从句作用域内按转折权重放大后半句, 遇句末标点重置规则状态; 由此得到每个情感词的 final_score, 文章级得分归一化为 Σ(final_score)/Σ|final_score|, 落在 [-1, +1], 正值偏正面、负值偏负面。此归一化口径与仅取原始词典极性计数的 msent 计数口径互为稳健性, 二者刻意不混用。第二段在 stage 24 羊群衰减处理: 对同一目标银行的报道按发布年度截断, 用 TF-IDF 余弦相似度统计每篇报道在同年早前存在多少篇高度相似 (疑似转抄、回声式跟风) 的报道, 记为 n_similar_articles, 再令 herd_weight = 1/(1 + n_similar_articles); 转抄越多则权重越低, 越接近独立首发则权重越接近 1。第三段在面板聚合 (runner 步骤 3d 逐篇相乘, encode 的 build_aggregation_dict 求和): 文章级 bian_2021_score 乘以同轨 herd_weight 得到 bian_2021_score_hw, 再在银行-年度分组内求和得到本列。留篇门控采用 full-only 口径 (2026-06-29): 一篇报道是否计入某银行某年的报道宇宙, 由其 full 轨是否被判为一篇银行金科报道决定, 三轨在该留篇集合上分别计列。
 
 【文献定位】
-本测度的方法学谱系由三支文献锚定。词典本身取 Bian et al. (2021): 通用英文金融词典 (如 Loughran-McDonald) 直译到中文会因语言与制度差异失准, 该文据此构建中文金融领域专用情感词典。词典的领域特异性价值由 Du et al. (2022) 在顶刊层面进一步确证 —— 他们指出语言与领域特异性对中文金融情感度量至关重要, 通用词典在中文语料上系统性偏误, 这正是本管道选用中文金融专用词典 (Bian 2021 与 Du 2022 等) 而非直译词典的依据。逐词施加否定、程度、转折规则并作从句级作用域重置, 遵循 Taboada et al. (2011) 确立的词典法情感分析范式。而将词典法结果单独成轨、与机器学习及大模型法并置互证, 呼应 Frankel, Jennings 与 Lee (2022) 关于披露情感的机器学习法与词典法互为稳健性的先例, 以及 van Atteveldt, van der Velden 与 Boukes (2021) 对人工标注、词典法与机器学习法效度的横向比较; Barbaglia et al. (2025) 亦重申词典法在经济文本上的可解释与可复现优势。需强调本家族的六部词典 (Bian 2021 与 Jiang 2021、Yao 2021、Du 2022、You 2018、Loughran) 各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同词典或不同聚合权重混进同一 over-identified Hansen J 检验。
+本测度的方法学谱系由三支文献锚定。词典本身取 Bian et al. (2021): 通用英文金融词典 (如 Loughran-McDonald) 直译到中文会因语言与制度差异失准, 该文据此构建中文金融领域专用情感词典。词典的领域特异性价值由 Du et al. (2022) 在顶刊层面进一步确证 —— 他们指出语言与领域特异性对中文金融情感度量至关重要, 通用词典在中文语料上系统性偏误, 这正是本管道选用中文金融专用词典 (Bian 2021 与 Du 2022 等) 而非直译词典的依据。逐词施加否定、程度、转折规则并作从句级作用域重置, 遵循 Taboada et al. (2011) 确立的词典法情感分析范式。而将词典法结果单独成轨、与机器学习及大模型法并置互证, 呼应 Frankel, Jennings 与 Lee (2022) 关于披露情感的机器学习法与词典法互为稳健性的先例, 以及 van Atteveldt, van der Velden 与 Boukes (2021) 对人工标注、词典法与机器学习法效度的横向比较; Barbaglia et al. (2025) 亦重申词典法在经济文本上的可解释与可复现优势。需强调本家族的六部词典 (Bian 2021 与 Jiang 2021、Yao 2021、Du 2022、You 2018、Loughran) 各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同词典或不同聚合权重混进同一 over-identified Hansen J 检验。Yang, Fernandez-Perez 与 Indriawan (2026, Journal of Financial Research) 实证考察投资者羊群行为如何削弱情感信息在市场中的传导效率, 为本家族以转抄相似度构造羊群降权乘子 (herd_weight) 的设计动机提供了最新顶刊佐证。
 
 ## VAR: bian_2021_score_hw_sum_full
 
@@ -99,4 +106,5 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
+Yang, N., Fernandez-Perez, A., & Indriawan, I. (2026). Social media sentiment, investor herding and informational efficiency. Journal of Financial Research. https://doi.org/10.1111/jfir.70039
 <!-- rendered-citations:end -->

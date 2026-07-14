@@ -67,7 +67,23 @@ citations:
   vol: 36
   issue: 9
   pages_or_artno: 3603-3642
-new_dois: []
+- doi: "10.3390/jrfm18120660"
+  title: "News vs. Social Media: Sentiment Impact on Stock Performance of Big Tech Companies"
+  authors: "Kim-Hahm, H., Abou-Zaid, A. S., & Mohd, A."
+  year: 2025
+  venue: "Journal of Risk and Financial Management"
+  type: "journal"
+  one_sentence_zh: "比较传统新闻媒体与社交媒体情绪对大型科技股回报的影响, 发现两类文本情绪来源在信息含量与市场反应上存在系统差异, 印证媒体来源异质性对文本情绪测度可信度的调节作用。"
+- doi: "10.3390/jrfm18010016"
+  title: "Economic News, Social Media Sentiments, and Stock Returns: Which Is a Bigger Driver?"
+  authors: "Verma, R., & Verma, P."
+  year: 2025
+  venue: "Journal of Risk and Financial Management"
+  type: "journal"
+  one_sentence_zh: "经验证明经济新闻情绪相较社交媒体情绪信息含量更高、对股票回报驱动更强, 支持以媒体权威/来源可信度对新闻文本情绪加权的构造思路。"
+new_dois:
+  - "10.3390/jrfm18120660"
+  - "10.3390/jrfm18010016"
 ---
 
 ## CORE
@@ -79,7 +95,7 @@ new_dois: []
 计算分四步, 须逐步厘清各阶段归属, 不可把两重加权混记到同一函数。第一步在文章层求逐篇 IDF 加权语调得分 jiang_2021_idf_score{track} (stage 22 tone_words): 用注入态 tone tokenizer 切词, 命中 jiang_2021 词典的褒贬词按极性归入正、负两侧, 每个命中词的幅值先乘以其语料级 IDF 权重, 正负两侧分别求加权和后作归一化, 得到落在闭区间 [-1,1] 的连续得分。IDF 权重由 build_idf_weights 在全语料上一次性估计: 以平滑逆文档频率 log10(N/(1+df(w))) 为原始权重, 除以全体情感词原始权重均值做归一化 (使加权版得分量级与等权版可比), 再做 P1/P99 Winsorization 抑制极端稀有词或极高频词的杠杆; 文档频率与文档总数均在按文本内容去重后的唯一文档集上统计, 避免同一篇报道展开成多家银行多行时虚增计数。三轨 (full/ctx/ss) 共享同一份基于 content_full 语料估计的 IDF 权重, 不按轨分别估权, 保证跨轨权重口径一致。第二步在面板装配阶段 (panel runner 步骤3c, 媒体权威加权 MW; 与步骤3b 的提及密度加权 VW 是两个互不相关的加权分支) 计算 media_authority_weight = raw_authority / mean(raw_authority): 报道所属媒体名先做精确匹配、再做去括号后缀的模糊匹配, 未评级媒体赋默认权重, 全样本均值归一化使权重中心恒为 1, 从而加权和在总体量纲上与等权和可比。第三步逐篇相乘, 得文章级双重加权得分 jiang_2021_idf_score{track} × media_authority_weight (该乘积是 runner 步骤3c 现算的中间量, 并非 stage 22 落盘列)。第四步在 encode.py 的 bank-year 聚合中对该双重加权得分求和, 即得本列 jiang_2021_idf_score_mw_sum{track}; 随后同段以 sum_media_authority_weight{track} 为分母作除法, 派生出归一化的 jiang_2021_idf_tone_mw{track}, 故本家族三列在数学上是该加权均值语调的分子。三轨文本域各自独立走完这条链路: full 轨 = 标题 prepend + 全文正文, ctx 轨 = 标题 + 银行/金融科技实体上下文窗 (stage 14 ctx_materializer 物化), ss 轨 = 标题 + 银行与金科同句共现窗 (半径由 config filtering.yaml::context_window.ss_sentence_radius 控制, 默认 ±1 句)。留篇口径遵循 full-only 门控 (2026-06-29): 一篇报道是否计入某银行-年的"银行金科报道"总体只看 full 轨的 llm_verified_full 判定, ctx/ss 是 conditional-on-full 的子集测度, 行宇宙为 full 留篇集的子集, 但 per-track 分子仍逐轨照算, 不借用彼此分母。
 
 【文献定位】
-词典来源姜富伟、孟令超与唐国豪 (2021) 在《经济学(季刊)》构建了面向中国媒体文本的情绪词典并验证其对股票回报的预测力, 是本家族极性判据的原始出处, 也是本项目六部并置中文情感词典之一。IDF 重加权这一构造维度的方法学根据可追溯至两处经典文献: Spärck Jones (1972) 首次提出以逆文档频率刻画词条特异性、抑制高频套话词权重, 是全部 IDF 加权测度的共同源头; Jegadeesh 与 Wu (2013) 在 Journal of Financial Economics 将词权重内容分析范式引入金融文本, 是本家族"以 IDF 为稀有高信息量词赋权"这一设计的直接金融学先例, 也是本家族的顶刊锚点之一。就中文金融词典本身的构造效度, Du、Huang、Wermers 与 Wu (2022) 在 Review of Finance 系统论证了语言与领域专用性对中文金融情感测度的必要性, 与本项目并置多部中文词典 (含 jiang_2021) 互为稳健性的整体设计同源。Barbaglia、Consoli、Manzan、Tiozzo Pezzoli 与 Tosetti (2025) 在 Economic Inquiry 给出经济文本词典法情感分析的系统流程与验证证据, 印证了"逐词命中 → 篇章净极性 → 单元加权求和"这一构造链路在当代文献中的规范性。方法论三角的另两支由 Cao、Jiang、Yang 与 Zhang (2023) 在 The Review of Financial Studies 关于机器 (LLM) 阅读企业披露的研究间接界定, 提示词典法、LLM 法与 BERT 法各有其效度边界, 应互为稳健性对照而非相互替代。须强调铁律: 本家族所属的 IDF 加权与媒体权威加权 (MW) 是加权口径梯子中的两层维度, 与等权聚合、提及密度加权 (VW)、羊群衰减加权 (HW) 各自 just-identified 并排, 互为稳健性、不分主次, 严禁把不同加权口径的分子混进同一 over-identified Hansen J 过度识别检验; 三轨 full/ctx/ss 同样各自 just-identified 并排, 禁混同一 over-identified Hansen J; 六部并置词典 (jiang_2021 与 bian_2021/yao_2021/du_2022/you_2018/loughran) 之间亦互为稳健性、不分主次。
+词典来源姜富伟、孟令超与唐国豪 (2021) 在《经济学(季刊)》构建了面向中国媒体文本的情绪词典并验证其对股票回报的预测力, 是本家族极性判据的原始出处, 也是本项目六部并置中文情感词典之一。IDF 重加权这一构造维度的方法学根据可追溯至两处经典文献: Spärck Jones (1972) 首次提出以逆文档频率刻画词条特异性、抑制高频套话词权重, 是全部 IDF 加权测度的共同源头; Jegadeesh 与 Wu (2013) 在 Journal of Financial Economics 将词权重内容分析范式引入金融文本, 是本家族"以 IDF 为稀有高信息量词赋权"这一设计的直接金融学先例, 也是本家族的顶刊锚点之一。就中文金融词典本身的构造效度, Du、Huang、Wermers 与 Wu (2022) 在 Review of Finance 系统论证了语言与领域专用性对中文金融情感测度的必要性, 与本项目并置多部中文词典 (含 jiang_2021) 互为稳健性的整体设计同源。Barbaglia、Consoli、Manzan、Tiozzo Pezzoli 与 Tosetti (2025) 在 Economic Inquiry 给出经济文本词典法情感分析的系统流程与验证证据, 印证了"逐词命中 → 篇章净极性 → 单元加权求和"这一构造链路在当代文献中的规范性。方法论三角的另两支由 Cao、Jiang、Yang 与 Zhang (2023) 在 The Review of Financial Studies 关于机器 (LLM) 阅读企业披露的研究间接界定, 提示词典法、LLM 法与 BERT 法各有其效度边界, 应互为稳健性对照而非相互替代。须强调铁律: 本家族所属的 IDF 加权与媒体权威加权 (MW) 是加权口径梯子中的两层维度, 与等权聚合、提及密度加权 (VW)、羊群衰减加权 (HW) 各自 just-identified 并排, 互为稳健性、不分主次, 严禁把不同加权口径的分子混进同一 over-identified Hansen J 过度识别检验; 三轨 full/ctx/ss 同样各自 just-identified 并排, 禁混同一 over-identified Hansen J; 六部并置词典 (jiang_2021 与 bian_2021/yao_2021/du_2022/you_2018/loughran) 之间亦互为稳健性、不分主次。Kim-Hahm, Abou-Zaid 与 Mohd (2025, Journal of Risk and Financial Management) 比较传统新闻媒体与社交媒体情绪对大型科技股回报的影响, 发现两类文本情绪来源在信息含量与市场反应上存在系统差异, 印证媒体来源异质性对文本情绪测度可信度的调节作用。Verma 与 Verma (2025, Journal of Risk and Financial Management) 经验证明经济新闻情绪相较社交媒体情绪信息含量更高、对股票回报驱动更强, 支持以媒体权威/来源可信度对新闻文本情绪加权的构造思路。
 
 ## VAR: jiang_2021_idf_score_mw_sum_ctx
 
@@ -103,4 +119,6 @@ Spärck Jones, K. (1972). A statistical interpretation of term specificity and i
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
 Cao, S., Jiang, W., Yang, B., & Zhang, A. L. (2023). How to talk when a machine is listening: Corporate disclosure in the age of AI. The Review of Financial Studies, 36(9), 3603-3642. https://doi.org/10.1093/rfs/hhad021
+Kim-Hahm, H., Abou-Zaid, A. S., & Mohd, A. (2025). News vs. Social Media: Sentiment Impact on Stock Performance of Big Tech Companies. Journal of Risk and Financial Management. https://doi.org/10.3390/jrfm18120660
+Verma, R., & Verma, P. (2025). Economic News, Social Media Sentiments, and Stock Returns: Which Is a Bigger Driver?. Journal of Risk and Financial Management. https://doi.org/10.3390/jrfm18010016
 <!-- rendered-citations:end -->

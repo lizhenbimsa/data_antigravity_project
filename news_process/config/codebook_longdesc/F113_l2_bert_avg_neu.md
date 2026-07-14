@@ -76,7 +76,14 @@ citations:
   vol: 62
   issue: 3
   pages_or_artno: 1139-1168
-new_dois: []
+- doi: "10.1002/isaf.1549"
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+  type: "journal"
+new_dois:
+  - "10.1002/isaf.1549"
 ---
 
 ## CORE
@@ -88,7 +95,7 @@ new_dois: []
 计算公式为对三分类模型子集 THREE_CLASS_MODELS 上的逐模型中性概率列取简单行均值: bert_avg_neu = mean_b({b}_neu)。关键实现细节有三。其一是聚合域的严格纪律: 修复 (omni-g-geography-06) 后, pos/neg/neu 一律只在三分类模型 (如 finbert_cn、fin_sent_zh) 上平均, 而二分类的 finbert2 被排除在集成之外——因为二分类模型把中性概率质量重归一进 pos/neg (pos+neg≡1), 若混入会破坏三类和为一的单纯形约束并系统性上偏 pos。finbert2 的逐模型列作为二分类稳健轨单独保留, 不进本集成。其二是缺列优雅降级: 底层 _safe_mean 只对面板中实际存在的逐模型列取均值, 任一模型的某轨列未落盘时不报错、退化为在现存列上求均值, 全缺时返回 NaN; 因此本家族在开发期 T=2 语料或某模型缺席时不会使阶段崩溃, per-model 独立降级 (缺 finbert2 仅掉其自身族, 而非 co-primary 嵌入那种 both-or-neither 连坐)。其三是集成语义: 跨模型行均值是「均值-ensemble」, 与跨模型多数投票 (LLM 侧的共识 headline) 是不同的聚合范式, 目的是降低单一模型的测量噪声, 而非产生一个门控判定。中性概率本身取值于 [0,1], 是无量纲后验概率, 不做任何归一化或标准化。三个中文 BERT 模型互为稳健性、不分主次: 各模型的逐模型子测度并排作为跨厂商/跨架构稳健轨, 各自 just-identified 并排, 严禁把不同模型的中性概率混进同一个 over-identified Hansen J 过度识别式; 本集成列是它们的均值展示轨, 跨模型一致性另由 Krippendorff α / Cohen κ 与根级跨模型 FWER 模板承担。
 
 【文献定位】
-本家族坐落在金融文本情感测度的机器学习转向脉络上。Devlin et al. (2018) 提出的 BERT 双向 Transformer 预训练是本家族全部逐模型打分器的架构基础; Huang et al. (2023) 的 FinBERT 证明领域微调的大型语言模型在抽取金融文本信息上系统性优于通用词典法, 为采用 BERT 概率而非纯词典计数提供直接依据。Frankel et al. (2022) 在 Management Science 上系统比较了机器学习与词典法的披露情感测度, 指出二者在不同语域下各有偏误、宜互为稳健而非彼此替代——这正是本项目让 BERT 概率轨与词典法情感轨、LLM 投票轨三足并立的方法论根据。Loughran and McDonald (2016) 对会计与金融文本分析方法的权威综述界定了情感词典与分类器的适用边界, 并强调中性/非情感类的处理直接影响测度效度。Sun et al. (2025) 更直接地把「中性特征」显式建模进预训练语言模型的金融情感分析, 呼应本家族把中性类概率单列为一等测度而非丢弃残差的取向。Tetlock (2007) 奠定了媒体语调对市场的信息传导框架, 说明报道中性/情绪成分的此消彼长本身即具经济后果。分类维度上的技术导向 (_tech) 与应用导向 (_app) 子样本区分, 概念上对应 Gomber et al. (2018) 对金融科技功能谱系的划分——基础技术层与面向用户的应用/服务层承载不同的叙事语域与情感基线。
+本家族坐落在金融文本情感测度的机器学习转向脉络上。Devlin et al. (2018) 提出的 BERT 双向 Transformer 预训练是本家族全部逐模型打分器的架构基础; Huang et al. (2023) 的 FinBERT 证明领域微调的大型语言模型在抽取金融文本信息上系统性优于通用词典法, 为采用 BERT 概率而非纯词典计数提供直接依据。Frankel et al. (2022) 在 Management Science 上系统比较了机器学习与词典法的披露情感测度, 指出二者在不同语域下各有偏误、宜互为稳健而非彼此替代——这正是本项目让 BERT 概率轨与词典法情感轨、LLM 投票轨三足并立的方法论根据。Loughran and McDonald (2016) 对会计与金融文本分析方法的权威综述界定了情感词典与分类器的适用边界, 并强调中性/非情感类的处理直接影响测度效度。Sun et al. (2025) 更直接地把「中性特征」显式建模进预训练语言模型的金融情感分析, 呼应本家族把中性类概率单列为一等测度而非丢弃残差的取向。Tetlock (2007) 奠定了媒体语调对市场的信息传导框架, 说明报道中性/情绪成分的此消彼长本身即具经济后果。分类维度上的技术导向 (_tech) 与应用导向 (_app) 子样本区分, 概念上对应 Gomber et al. (2018) 对金融科技功能谱系的划分——基础技术层与面向用户的应用/服务层承载不同的叙事语域与情感基线。Todd, Bowden, & Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 系统综述金融文本情感分析文献并指出中性/非情感类处理是测度效度的关键未决问题, 呼应本家族将中性类概率单列为一等测度而非弃之为残差的取向。
 
 ## VAR: bert_avg_neu_full
 
@@ -143,4 +150,5 @@ Gomber, P., Kauffman, R. J., Parker, C., & Weber, B. W. (2018). On the fintech r
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
 Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2018). BERT: Pre-training of deep bidirectional transformers for language understanding. arXiv [Preprint]. https://doi.org/10.48550/arXiv.1810.04805
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
 <!-- rendered-citations:end -->

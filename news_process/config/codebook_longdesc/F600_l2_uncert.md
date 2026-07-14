@@ -11,51 +11,51 @@ upstream:
   - 14_materialize_ctx.parquet (content_full / content_ctx / content_ss)
   - 22_tone_words.parquet
 citations:
-  - doi: 10.1080/01621459.2025.2526700
-    type: journal
-    authors: Rambachan, A., & Roth, J.
-    year: 2025
-    title: "Design-based uncertainty for quasi-experiments"
-    venue: Journal of the American Statistical Association
-    vol: 121
-    issue: 553
-    pages_or_artno: 477-491
-  - doi: 10.1111/fire.12430
-    type: journal
-    authors: Black, J. R., Irtisam, R., & Jain, P. K.
-    year: 2025
-    title: "Textual uncertainty in financial disclosures and information asymmetry among investors"
-    venue: Financial Review
-    vol: 60
-    issue: 3
-    pages_or_artno: 799-829
-  - doi: 10.1111/jofi.13293
-    type: journal
-    authors: Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A.
-    year: 2024
-    title: "The global impact of Brexit uncertainty"
-    venue: The Journal of Finance
-    vol: 79
-    issue: 1
-    pages_or_artno: 413-458
-  - doi: 10.1257/aer.20131193
-    type: journal
-    authors: Jurado, K., Ludvigson, S. C., & Ng, S.
-    year: 2015
-    title: "Measuring uncertainty"
-    venue: American Economic Review
-    vol: 105
-    issue: 3
-    pages_or_artno: 1177-1216
-  - doi: 10.3982/ECTA6248
-    type: journal
-    authors: Bloom, N.
-    year: 2009
-    title: "The impact of uncertainty shocks"
-    venue: Econometrica
-    vol: 77
-    issue: 3
-    pages_or_artno: 623-685
+- doi: 10.1080/01621459.2025.2526700
+  type: journal
+  authors: Rambachan, A., & Roth, J.
+  year: 2025
+  title: "Design-based uncertainty for quasi-experiments"
+  venue: Journal of the American Statistical Association
+  vol: 121
+  issue: 553
+  pages_or_artno: 477-491
+- doi: 10.1111/fire.12430
+  type: journal
+  authors: Black, J. R., Irtisam, R., & Jain, P. K.
+  year: 2025
+  title: "Textual uncertainty in financial disclosures and information asymmetry among investors"
+  venue: Financial Review
+  vol: 60
+  issue: 3
+  pages_or_artno: 799-829
+- doi: 10.1111/jofi.13293
+  type: journal
+  authors: Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A.
+  year: 2024
+  title: "The global impact of Brexit uncertainty"
+  venue: The Journal of Finance
+  vol: 79
+  issue: 1
+  pages_or_artno: 413-458
+- doi: 10.1257/aer.20131193
+  type: journal
+  authors: Jurado, K., Ludvigson, S. C., & Ng, S.
+  year: 2015
+  title: "Measuring uncertainty"
+  venue: American Economic Review
+  vol: 105
+  issue: 3
+  pages_or_artno: 1177-1216
+- doi: 10.3982/ECTA6248
+  type: journal
+  authors: Bloom, N.
+  year: 2009
+  title: "The impact of uncertainty shocks"
+  venue: Econometrica
+  vol: 77
+  issue: 3
+  pages_or_artno: 623-685
 new_dois: []
 ---
 

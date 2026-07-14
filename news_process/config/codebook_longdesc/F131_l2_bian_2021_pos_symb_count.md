@@ -12,47 +12,71 @@ upstream:
   - 21_tone_llms.parquet (innovation_substantiveness_full)
   - 22_tone_words.parquet (bian_2021_score_full / _ctx / _ss)
 citations:
-  - doi: 10.1016/j.eswa.2024.125739
-    type: journal
-    authors: Ma, Y., Zhang, T., & Zhang, P.
-    year: 2025
-    title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
-    venue: Expert Systems with Applications
-    vol: 264
-    pages_or_artno: 125739
-  - doi: 10.1016/j.frl.2022.102776
-    type: journal
-    authors: Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N.
-    year: 2022
-    title: "Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures"
-    venue: Finance Research Letters
-    vol: 47
-    pages_or_artno: 102776
-  - doi: 10.2139/ssrn.3446388
-    type: wp
-    authors: Bian, S., Jia, D., Li, F., & Yan, Z.
-    year: 2021
-    title: "A new Chinese financial sentiment dictionary for textual analysis in accounting and finance"
-    venue: SSRN Working Paper No. 3446388
-  - doi: 10.1016/j.jacceco.2015.09.002
-    type: journal
-    authors: Lang, M., & Stice-Lawrence, L.
-    year: 2015
-    title: "Textual analysis and international financial reporting: Large sample evidence"
-    venue: Journal of Accounting and Economics
-    vol: 60
-    issue: 2-3
-    pages_or_artno: 110-135
-  - doi: 10.1016/j.jacceco.2008.02.003
-    type: journal
-    authors: Li, F.
-    year: 2008
-    title: "Annual report readability, current earnings, and earnings persistence"
-    venue: Journal of Accounting and Economics
-    vol: 45
-    issue: 2-3
-    pages_or_artno: 221-247
-new_dois: []
+- doi: 10.1016/j.eswa.2024.125739
+  type: journal
+  authors: Ma, Y., Zhang, T., & Zhang, P.
+  year: 2025
+  title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
+  venue: Expert Systems with Applications
+  vol: 264
+  pages_or_artno: 125739
+- doi: 10.1016/j.frl.2022.102776
+  type: journal
+  authors: Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N.
+  year: 2022
+  title: "Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures"
+  venue: Finance Research Letters
+  vol: 47
+  pages_or_artno: 102776
+- doi: 10.2139/ssrn.3446388
+  type: wp
+  authors: Bian, S., Jia, D., Li, F., & Yan, Z.
+  year: 2021
+  title: "A new Chinese financial sentiment dictionary for textual analysis in accounting and finance"
+  venue: SSRN Working Paper No. 3446388
+- doi: 10.1016/j.jacceco.2015.09.002
+  type: journal
+  authors: Lang, M., & Stice-Lawrence, L.
+  year: 2015
+  title: "Textual analysis and international financial reporting: Large sample evidence"
+  venue: Journal of Accounting and Economics
+  vol: 60
+  issue: 2-3
+  pages_or_artno: 110-135
+- doi: 10.1016/j.jacceco.2008.02.003
+  type: journal
+  authors: Li, F.
+  year: 2008
+  title: "Annual report readability, current earnings, and earnings persistence"
+  venue: Journal of Accounting and Economics
+  vol: 45
+  issue: 2-3
+  pages_or_artno: 221-247
+- doi: "10.1016/j.frl.2026.109684"
+  title: "AI washing: Strategic disclosure and backlash"
+  authors: "Song, X., Hou, W., Ouyang, Z., & Hao, F."
+  year: 2026
+  venue: "Finance Research Letters"
+  type: "journal"
+  one_sentence_zh: "该文用文本分类识别企业未兑现实质投入的AI概念炒作(AI washing)并发现市场终将惩罚言过其实的叙事,与本家族用词典正面语调交乘象征性分类构造洗稿计数的思路高度呼应。"
+- doi: "10.1111/1467-8551.12879"
+  title: "FinTech Adoption and Corporate Greenwashing: A Technology Affordance Perspective"
+  authors: "Sun, Z., Liu, L., Johan, S., & Zhao, L."
+  year: 2025
+  venue: "British Journal of Management"
+  type: "journal"
+  one_sentence_zh: "该文以技术可供性视角考察金融科技采纳如何影响企业漂绿行为,揭示金融科技赋能下企业在言辞层面积极表态与实质环境行动之间可能出现的脱耦,呼应本家族用词典正面语调交乘象征性分类捕捉「言过其实」报道的构造思路。"
+- doi: "10.1016/j.frl.2025.107603"
+  title: "Fintech development and corporate hypocrisy: Evidence from social responsibility decoupling"
+  authors: "Chen, X., Ji, F., Kong, D., & Tan, Z."
+  year: 2025
+  venue: "Finance Research Letters"
+  type: "journal"
+  one_sentence_zh: "该文发现金融科技发展会加剧企业社会责任的言行脱耦(即企业在传播上标榜担当却伴随更多实质违规),为本家族「正面语调×象征性分类」这一脱耦分子构造提供了金融科技情境下的最新实证支撑。"
+new_dois:
+  - "10.1016/j.frl.2026.109684"
+  - "10.1111/1467-8551.12879"
+  - "10.1016/j.frl.2025.107603"
 ---
 
 ## CORE
@@ -64,7 +88,7 @@ new_dois: []
 篇章级判定分两步交乘。第一步词典极性: 上游 stage 22 (tone_words) 对每篇报道按 Bian et al. (2021) 词典算出逐轨情感分 bian_2021_score{track}, 大于零即记为正面 (词级正负词加权净分, 归一化)。第二步象征性判定: stage 21 的大模型对每篇报道给出 innovation_substantiveness 的类别标签 (实质性 / 象征性 / 不适用), 落在象征性者记为象征侧。runner.py 的洗稿率 K 块把两个布尔逐元素求交, 生成篇章级指示列 _is_bian_2021_pos_symb{track} (方法 D2, 单词典臂); encode.py 的聚合规格再按银行-年对该指示列 sum, 得到本家族三列。一个关键且承重的口径细节: 象征性判据恒取 innovation_substantiveness_full 这一 full 轨标签 (track-agnostic), 三列共用同一象征掩码, 逐轨变化的只有词典极性符号那一侧。这与全项目 full-only 留篇门控 (2026-06-29) 一致——一篇报道是否算「一篇银行金科报道」只看 full 轨大模型核验, ctx/ss 是 conditional-on-full 的子集测度; 象征侧既然来自 full 轨分类, 就不随文本轨切换而重判。词典极性侧则真正逐轨: full 用标题拼接后的全文, ctx 用标题加实体窗口文本, ss 用标题加银行与金科同句共现窗口文本。词级极性判定采用词典裸计数经语言学规则调整后的净分符号, 缺列 (某轨词典分不存在) 由 valid_agg 自动跳过而非报错, NaN 情感经 fillna 视为非正、永不误入分子。三轨互为稳健性、各自 just-identified 并排, 禁混进同一 over-identified Hansen J; 象征掩码的 full-only 属性也意味着不应把三列当作三套独立象征测度对待, 它们只在词典极性通道上分轨。
 
 【文献定位】
-测度的词典脊柱来自 Bian et al. (2021), 该词典是面向中文会计与金融文本、覆盖正负情感词的专用情感词典, 相较通用词典更贴合中国资本市场语料的表达习惯; 与之同源的中文细粒度情感词典构造思路见 Ma et al. (2025) 对国内投资者情感词典 CN-FSD 的系统化构建, 二者共同支撑「中文金融语料需专用词典而非英文词典直译」的方法论立场。象征侧的构念根植于实质性-象征性脱耦研究: Bingler et al. (2022) 以 ClimateBert 揭示企业气候披露中「廉价表态与挑肥拣瘦」的象征化倾向, 正是本家族把「正面但象征」单独数出来的直接动机——语调为正不等于实质投入, 需要一个能把象征包装从实质行动中剥离的计数。词典法文本测度的大样本可行性与效度边界由会计文本分析经典确立: Lang & Stice-Lawrence (2015) 在跨国大样本上论证了基于词表的文本度量的可比性与稳健性, Li (2008) 则奠定了年报文本特征与基本面之间可检验关联的范式。本家族即在这一谱系下, 把「词典极性 × 象征分类」的交乘计数作为脱耦分子的单词典实现。
+测度的词典脊柱来自 Bian et al. (2021), 该词典是面向中文会计与金融文本、覆盖正负情感词的专用情感词典, 相较通用词典更贴合中国资本市场语料的表达习惯; 与之同源的中文细粒度情感词典构造思路见 Ma et al. (2025) 对国内投资者情感词典 CN-FSD 的系统化构建, 二者共同支撑「中文金融语料需专用词典而非英文词典直译」的方法论立场。象征侧的构念根植于实质性-象征性脱耦研究: Bingler et al. (2022) 以 ClimateBert 揭示企业气候披露中「廉价表态与挑肥拣瘦」的象征化倾向, 正是本家族把「正面但象征」单独数出来的直接动机——语调为正不等于实质投入, 需要一个能把象征包装从实质行动中剥离的计数。词典法文本测度的大样本可行性与效度边界由会计文本分析经典确立: Lang & Stice-Lawrence (2015) 在跨国大样本上论证了基于词表的文本度量的可比性与稳健性, Li (2008) 则奠定了年报文本特征与基本面之间可检验关联的范式。本家族即在这一谱系下, 把「词典极性 × 象征分类」的交乘计数作为脱耦分子的单词典实现。近期研究进一步把这类脱耦刻画延伸到 AI 概念叙事领域: Song, Hou, Ouyang & Hao (2026, Finance Research Letters) 用文本分类识别企业未兑现实质投入的 AI 概念炒作 (AI washing), 并发现市场终将惩罚言过其实的叙事, 这与本家族用词典正面语调交乘象征性分类构造洗稿计数的思路高度呼应。Sun, Liu, Johan & Zhao (2025, British Journal of Management) 以技术可供性视角考察金融科技采纳如何影响企业漂绿行为, 揭示金融科技赋能下企业在言辞层面积极表态与实质环境行动之间可能出现的脱耦, 呼应本家族用词典正面语调交乘象征性分类捕捉「言过其实」报道的构造思路; Chen, Ji, Kong & Tan (2025, Finance Research Letters) 发现金融科技发展会加剧企业社会责任的言行脱耦 (即企业在传播上标榜担当却伴随更多实质违规), 为本家族「正面语调×象征性分类」这一脱耦分子构造提供了金融科技情境下的最新实证支撑。
 
 ## VAR: bian_2021_pos_symb_count_full
 
@@ -87,4 +111,7 @@ Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022). Cheap talk and
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Lang, M., & Stice-Lawrence, L. (2015). Textual analysis and international financial reporting: Large sample evidence. Journal of Accounting and Economics, 60(2-3), 110-135. https://doi.org/10.1016/j.jacceco.2015.09.002
 Li, F. (2008). Annual report readability, current earnings, and earnings persistence. Journal of Accounting and Economics, 45(2-3), 221-247. https://doi.org/10.1016/j.jacceco.2008.02.003
+Song, X., Hou, W., Ouyang, Z., & Hao, F. (2026). AI washing: Strategic disclosure and backlash. Finance Research Letters. https://doi.org/10.1016/j.frl.2026.109684
+Sun, Z., Liu, L., Johan, S., & Zhao, L. (2025). FinTech Adoption and Corporate Greenwashing: A Technology Affordance Perspective. British Journal of Management. https://doi.org/10.1111/1467-8551.12879
+Chen, X., Ji, F., Kong, D., & Tan, Z. (2025). Fintech development and corporate hypocrisy: Evidence from social responsibility decoupling. Finance Research Letters. https://doi.org/10.1016/j.frl.2025.107603
 <!-- rendered-citations:end -->

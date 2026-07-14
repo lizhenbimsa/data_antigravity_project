@@ -79,7 +79,14 @@ citations:
   vol: '53'
   issue: '2'
   pages_or_artno: 405-459
-new_dois: []
+- doi: "10.1186/s40854-025-00764-1"
+  title: "Geographical distance and stock price synchronization: evidence from China"
+  authors: "Xiong, X., Ruan, C., & Meng, Y."
+  year: 2025
+  venue: "Financial Innovation"
+  type: "journal"
+new_dois:
+  - "10.1186/s40854-025-00764-1"
 ---
 
 ## CORE
@@ -90,7 +97,7 @@ F483 是「银行总部—报道媒体」地理接近度族, 刻画在 50/100/15
 计算分两层。第一层是几何覆盖层, 只用 `prox_{d}km_frac` (d∈{50,100,150,200}) 表达, 与情感/文本无关: 先用 haversine 公式计算银行总部城市坐标与每篇报道所属媒体来源城市 (或省份省会回退, Level-3 插补) 坐标之间的球面距离, 再统计落在半径 d 公里内的文章数 `n_within(d)`, 除以该 bank-year 内媒体侧可地理编码的文章总数 `n_geocoded` (即坐标查得成功的文章数, 不是全部文章数 n_total — 这是 2026-06-10 metric-audit 修复的分母口径: 若把未能定位的文章计入分母, 会人为稀释地理覆盖度, 造成 valid-vs-physical 域不匹配)。四个半径满足拓扑单调关系 prox_50km_frac ≤ prox_100km_frac ≤ prox_150km_frac ≤ prox_200km_frac (同心圈嵌套, 该单调性在 producer 内有断言校验)。第二层是圈内情感构成层, 由 `prox_{d}km_pos_frac{sfx}` / `prox_{d}km_neg_frac{sfx}` 表达: 在落入半径 d 公里圈内的文章子集上, 取该轨 (full/ctx/ss) 文章级二值指标 `is_positive{track}` / `is_negative{track}` (来自 stage 21 三家 LLM 多数投票, encode.py 产出) 的均值, 即圈内正面/负面文章占比。命名上刻意保留历史惯用法: 无后缀 (即 `pos_frac`/`neg_frac` 不带 `_ctx`/`_ss`) 隐式对应 full 轨, `_ctx`/`_ss` 后缀分别显式对应 ctx 轨与 ss 轨, 这是项目"隐式 full + 显式 ctx/ss"命名对角线的一贯约定, 目的是零重命名地兼容既有下游 Stata 模板与 golden 快照。文章级 `is_positive{track}`/`is_negative{track}` 是 nullable 整数类型 (NA=测量失败或三家平局), 聚合前先转 float64 归一, 避免 pandas 把混入 pd.NA 的列错误推断为 object dtype。若某 bank-year 该 bank-year 媒体侧全部不可地理编码 (`n_geocoded=0`), 家族内全部诊断列 (frac/is_local/n_media/n_articles 及 pos_frac/neg_frac 各轨) 记为 NaN 而非 0 — 这是"圈内有无媒体尚属未知"与"确知圈内为空"两种不同缺失语义之间的区分 (omni-g-geography-02 修复), 若圈内确有 0 篇但媒体本身可定位, 则 frac 正常记 0。若圈内 `n_within(d)=0` (可定位但均在圈外) 而对应 `is_positive{track}`/`is_negative{track}` 源列缺失, pos_frac/neg_frac 同样优雅降级为 NaN, 不外推填补。
 【文献定位】
 本族与 Gurun & Butler (2012) 的本地媒体倾向性设计同构, 也呼应 Chao et al. 系一类空间/生态多层级分解思路在地理维度上的类比应用; 与 Piotroski, Wong & Zhang (2015, Journal of Accounting Research) 关于负面信息压制的政治经济学发现相关联 — 若本地媒体存在系统性负面信息抑制, `neg_frac` 会在近圈 (50km) 与远圈 (200km) 之间呈现非单调差异, 可作为地方保护主义假说的间接证据。三轨 (full/ctx/ss) 意在把"整篇文章基调"(full)、"银行实体窗口基调"(ctx)、"银行-金科同句共现基调"(ss) 三种情感提取口径并排放入同一地理接近度结构中, 检验地理邻近对基调的影响是否稳健于文本口径的选择, 而不是某一口径独有的产物。
-凡涉及本族 full/ctx/ss 三轨的比较, 三轨各自 just-identified 并排、互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 检验; ss 轨的回退语义镜像 ctx 轨 (银行∧金科同句未共现时 content_ss 退化为全文 body, `ss_is_fallback=True`, 与全文共享 n_articles 分母), 但本族 pos_frac/neg_frac 并不直接消费 content_ss 文本, 而是消费三轨情感分类结果 is_positive{track}/is_negative{track}; 若上游 stage 21 采用 full-only 留篇门控 (2026-06-29 起生产口径), 则本族 ctx/ss 轨的 `n_within(d)` 分母集合是 full 留篇集的子集, 属 conditional-on-full 测度, 与 full 轨的样本宇宙对齐而非独立扩样。四个距离阈值 (50/100/150/200km) 亦互为稳健性梯度, 不预设"更近即更强"的单调因果结论, 仅作接近度定义的敏感性展示。
+凡涉及本族 full/ctx/ss 三轨的比较, 三轨各自 just-identified 并排、互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 检验; ss 轨的回退语义镜像 ctx 轨 (银行∧金科同句未共现时 content_ss 退化为全文 body, `ss_is_fallback=True`, 与全文共享 n_articles 分母), 但本族 pos_frac/neg_frac 并不直接消费 content_ss 文本, 而是消费三轨情感分类结果 is_positive{track}/is_negative{track}; 若上游 stage 21 采用 full-only 留篇门控 (2026-06-29 起生产口径), 则本族 ctx/ss 轨的 `n_within(d)` 分母集合是 full 留篇集的子集, 属 conditional-on-full 测度, 与 full 轨的样本宇宙对齐而非独立扩样。四个距离阈值 (50/100/150/200km) 亦互为稳健性梯度, 不预设"更近即更强"的单调因果结论, 仅作接近度定义的敏感性展示。Xiong, Ruan & Meng (2025, Financial Innovation) 基于中国沪深上市公司数据发现机构投资者与企业间地理距离越大, 股价同步性越高(源于信息不对称加剧), 为中国情境下地理邻近性影响信息环境提供了实证支持, 与F483的空间接近度分档设计相呼应。
 
 ## VAR: prox_100km_frac
 
@@ -238,4 +245,5 @@ Chen, Q., Goldstein, I., Huang, Z., & Vashishtha, R. (2022). Bank transparency a
 Guo, L., Zhu, H., Zhang, C., Liu, Y., & Yang, C. (2024). Does improved credit access promote pollution reduction? The role of bank proximity. Economic Analysis and Policy, 84, 78-97. https://doi.org/10.1016/j.eap.2024.08.019
 Boschma, R. (2005). Proximity and innovation: A critical assessment. Regional Studies, 39(1), 61-74. https://doi.org/10.1080/0034340052000320887
 Piotroski, J. D., Wong, T. J., & Zhang, T. (2015). Political incentives to suppress negative information: Evidence from Chinese listed firms. Journal of Accounting Research, 53(2), 405-459. https://doi.org/10.1111/1475-679X.12071
+Xiong, X., Ruan, C., & Meng, Y. (2025). Geographical distance and stock price synchronization: evidence from China. Financial Innovation. https://doi.org/10.1186/s40854-025-00764-1
 <!-- rendered-citations:end -->

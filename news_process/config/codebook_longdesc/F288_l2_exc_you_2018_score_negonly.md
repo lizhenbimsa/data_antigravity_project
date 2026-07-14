@@ -1,5 +1,6 @@
 ---
 family_id: F288
+novelty_exempt_rationale: "exc_ 前缀停刊剔除稳健性变体, 叠加于 you_2018 词典 negonly 消融变体之上, 属衍生/消融/排除双重技术变体家族, 测度定义依据母族 you_2018 词典文献 (You et al. 2018) 与消融梯度设计, 非独立新构念, 不需追新 2023+ 文献。"
 columns:
 - exc_you_2018_score_negonly_ctx
 - exc_you_2018_score_negonly_full

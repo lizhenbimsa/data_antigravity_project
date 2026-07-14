@@ -56,7 +56,21 @@ citations:
   vol: 43
   issue: 1
   pages_or_artno: 127-153
-new_dois: []
+- doi: "10.1016/j.eswa.2024.125739"
+  title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
+  authors: "Ma, Y., Zhang, T., & Zhang, P."
+  year: 2025
+  venue: "Expert Systems with Applications"
+  type: "journal"
+- doi: "10.1111/eufm.12509"
+  title: "Identifying greenwashing in corporate-social responsibility reports using natural-language processing"
+  authors: "Gorovaia, N., & Makrominas, M."
+  year: 2024
+  venue: "European Financial Management"
+  type: "journal"
+new_dois:
+  - "10.1016/j.eswa.2024.125739"
+  - "10.1111/eufm.12509"
 ---
 
 ## CORE
@@ -68,7 +82,7 @@ new_dois: []
 计算分两步落在 runner.py。第一步在篇章级: 对每篇文章、每条轨道构造 _svd_du_2022_pos{track} 指示列, 其值 = 1[du_2022_score{track} > 0] 与 1[innovation_substantiveness_full ∈ {实质性, 象征性}] 的逻辑与再转整数。此处有一个必须写清的口径不对称: 词典正面判定 du_2022_score{track} 是逐轨的 (full/ctx/ss 各用自身轨道的词典打分), 但实质性测量掩码恒取 innovation_substantiveness_full 单一来源 (full 轨), 三列共享同一实质性门。须辨明这里有两个彼此独立、不可混为一谈的机制: 其一是项目 2026-06-29 确立的 full-only 留篇门控, 它专指"一篇文章是否算作一篇银行金科报道 (是否留篇进入行宇宙)"由 llm_verified_full == True 单独裁定, 与本计数无直接接线; 其二是本计数自身的实质性掩码之所以只取 full 轨, 并非因为 innovation_substantiveness 这一 LLM 分类维度缺乏 ctx/ss 逐轨副本 — stage 21 实际上齐全产出 innovation_substantiveness_full / _ctx / _ss 三轨列, runner.py 亦确有消费 innovation_substantiveness_ctx 的下游分支 (P3 的 _sc 4-way 稳健性变体) — 而是 runner.py 中记载的 v3.2.0 BREAKING 设计决策: 洗稿率 washing 系列指标单独选用 _full 作为唯一 main spec 分母口径, 刻意不为 washing/substvalid 分母再展开 ctx/ss 逐轨版本, 以避免与三轨本身的稳健性梯度混淆。三列共用 full 轨实质性门, 根源是这一显式的口径取舍, 而非数据不可得。在此约束下, 轨道差异只体现在词典正面性一侧。第二步在聚合级: _pool_svd_substvalid_counts 按 (target_bank, year) 对全部 _svd_* 篇章指示求和, 并把列名从 _svd_du_2022_pos{track} 重写为 du_2022_pos_substvalid_count{track}。零新闻的 bank-year 经 balance_panel 笛卡尔补全后计数填 0, 下游 _safe_ratio 遇 0 分母安全返回 NaN 而非除零崩溃。之所以要"只数判出来的那批", 是因为分子 (正面且象征性) 隐含要求实质性已测量: 若旧实现用全部正面文章作分母, 则大模型实质性分类失败率越高、洗稿率被稀释得越低, 制造出与事实相反的假象 (fix omni-g-runner-10/g-runner-14 修正的正是这一 valid 分子 / physical 分母失配)。
 
 【文献定位】
-du_2022 词典本身来自 Du et al. (2022, Review of Finance), 该文构建了领域与语言双重专用的中文金融情感词典, 论证通用英文词典直译到中文金融语料会系统性失真; 本家族的正面判定即以其正面词表 (含 political_positive 以 0.5 权重计入) 打分为准。词典法情感度量的方法学规范可追溯至 Loughran & McDonald (2011, Journal of Finance) 对 10-K 文本词典构建与负债类词误判的经典处理, 以及 Gentzkow et al. (2019, Journal of Economic Literature) 对"文本即数据"高维稀疏计数方法的系统综述 — 本计数正是一个受语义掩码约束的文档级计数统计量。构念一侧, Westphal & Zajac (1998) 的象征性治理框架与 Bingler et al. (2024, Journal of Banking & Finance) 的"廉价言辞" (cheap talk) 披露研究共同支撑了"正面表态未必对应实质投入"这一识别动机, 使本分母计数在语义上锚定于洗稿率而非泛化的情感计数。
+du_2022 词典本身来自 Du et al. (2022, Review of Finance), 该文构建了领域与语言双重专用的中文金融情感词典, 论证通用英文词典直译到中文金融语料会系统性失真; 本家族的正面判定即以其正面词表 (含 political_positive 以 0.5 权重计入) 打分为准。词典法情感度量的方法学规范可追溯至 Loughran & McDonald (2011, Journal of Finance) 对 10-K 文本词典构建与负债类词误判的经典处理, 以及 Gentzkow et al. (2019, Journal of Economic Literature) 对"文本即数据"高维稀疏计数方法的系统综述 — 本计数正是一个受语义掩码约束的文档级计数统计量。构念一侧, Westphal & Zajac (1998) 的象征性治理框架与 Bingler et al. (2024, Journal of Banking & Finance) 的"廉价言辞" (cheap talk) 披露研究共同支撑了"正面表态未必对应实质投入"这一识别动机, 使本分母计数在语义上锚定于洗稿率而非泛化的情感计数。Ma, Zhang, & Zhang (2025, Expert Systems with Applications) 构建面向中国国内投资者的细粒度中文情感词典 (CN-FSD), 验证词典法情感测度在中文金融文本上的领域适配性, 呼应本家族 du_2022 词典正面判定的方法学谱系。Gorovaia & Makrominas (2024, European Financial Management) 用自然语言处理方法识别企业社会责任报告中的漂绿(即正面披露与实质行动脱钩)现象, 直接支撑本家族"正面且象征性"洗稿率分母背后的实质—象征二分构念。
 
 ## VAR: du_2022_pos_substvalid_count_full
 
@@ -91,4 +105,6 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Westphal, J. D., & Zajac, E. J. (1998). The symbolic management of stockholders: Corporate governance reforms and shareholder reactions. Administrative Science Quarterly, 43(1), 127-153. https://doi.org/10.2307/2393593
+Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications. https://doi.org/10.1016/j.eswa.2024.125739
+Gorovaia, N., & Makrominas, M. (2024). Identifying greenwashing in corporate-social responsibility reports using natural-language processing. European Financial Management. https://doi.org/10.1111/eufm.12509
 <!-- rendered-citations:end -->

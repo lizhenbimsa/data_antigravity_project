@@ -131,7 +131,28 @@ citations:
   vol: 60
   issue: 3
   pages_or_artno: 531-542
-new_dois: []
+- doi: "10.1016/j.najef.2024.102307"
+  title: "Text Spillover: Measuring connectedness of financial institutions based on news text data"
+  authors: "Klaucke, Konstantin"
+  year: 2025
+  venue: "The North American Journal of Economics and Finance"
+  type: "journal"
+- doi: "10.1016/j.jfineco.2025.104007"
+  title: "Global Business Networks"
+  authors: "Breitung, Christian, & Müller, Sebastian"
+  year: 2025
+  venue: "Journal of Financial Economics"
+  type: "journal"
+- doi: "10.3390/systems13121110"
+  title: "Structure and Evolution of the Global Financial Services Greenfield FDI Network: Complex System Analysis Based on the TERGM Model"
+  authors: "Zhang, Guoli, Qu, Ruxiao, Wang, Lujian, & Lu, Fang"
+  year: 2025
+  venue: "Systems"
+  type: "journal"
+new_dois:
+  - "10.1016/j.najef.2024.102307"
+  - "10.1016/j.jfineco.2025.104007"
+  - "10.3390/systems13121110"
 ---
 
 ## CORE
@@ -147,7 +168,7 @@ new_dois: []
 计算发生在纯拓扑层, 全程无随机数、无谱分解、无浮点迭代求解, 因此是确定性且 golden-safe 的 — 它不进入本项目已知的 BLAS 浮点漂移列排除集 (那三个基名 bank_clustering / bank_cfbetween_cent / bank_harmonic_cent 才逐位不可复现), 换言之本家族的三列在受控重生下逐位稳定。计算逻辑抽在 _net_level_extra_metrics 独立纯函数内, 只读复用已建的图对象 G, 不重建图, 遵循加性铁律以免扰动既有列的哈希。结果是年度网络级标量, 在落面板时被广播到该年所有银行行上 — 这意味着它在含年度固定效应的设定里会被年 FE 完全吸收 (年内对所有银行恒定), 只能作为不含年 FE 的结构控制或与银行层变量的交乘项进入回归, 这一点在 producer 源码注释中被明确标注 (§3.1 Q4)。另一处必须披露的方法学局限是「clique 膨胀」: 一篇同时提及 N 家银行的报道会在这 N 家之间投影出一个完全子图 (clique), 使三角闭合被机械抬高, 从而向上虚增全局传递性与模块度; transitivity 因忽略边权而无加权孪生列 (modularity 尚可有 net_modularity_hn_yr 加权版), 使用者须知道高传递性可能部分来自多银行长报道的 clique 投影而非真实的三方独立闭合。
 
 【文献定位】
-全局传递性与小世界结构的构念根源在 Watts 和 Strogatz (1998): 他们指出真实网络往往兼具高聚类 (高传递性) 与短路径长度, 传递性正是刻画「局部抱团」的核心量。将传递性置于社群结构谱系中理解, 可参照 Newman 和 Girvan (2004) 及 Clauset、Newman 和 Moore (2004) 的社群检测框架 — 高传递性网络通常对应清晰的社群划分, 与本家族并列的 net_modularity_yr 恰用后者的贪婪算法度量社群强度, 两者互为补充但口径正交。在金融与组织研究中, 网络结构指标作为解释变量的合法性由多支文献支撑: Nezami、Chisam 和 Palmatier (2025) 对网络中心度与企业绩效关系做了元分析, 提示网络位置对绩效的解释力真实但异质 (该白名单条目明确注记不背书具体的 bank_clustering 用法, 此处仅援引其构念层结论); Yu、Hu 和 Zhong (2024) 论证金融网络的中心度通过信息扩散影响资产定价; Li 等 (2026) 则直接从文本风险披露中抽取金融网络结构与连通性, 与本项目从新闻共现文本重构银行网络的方法论同源。在系统性风险语境下, Jackson 和 Pernoud (2021) 的综述与 Duarte 和 Eisenbach (2021) 的火线抛售溢出研究表明, 网络的闭合与连通拓扑是传染放大的结构基础, 为把年度传递性作为系统性风险环境的代理变量提供了理论支点。需要说明的是, 本项目的银行共现网络是一张「舆论关注网」而非资金往来网或担保网, 边的语义是「被媒体放在一起谈论」, 因此它捕捉的是投资者与公众注意力层面的银行关联结构, 而非资产负债表意义上的直接风险敞口。这一区分很重要: 高传递性在本网络中意味着某年银行舆论呈现明显的抱团三角闭合, 可能反映行业性的集体叙事 (例如整个板块被同一政策或同一风险事件裹挟), 而这类叙事传染本身正是文本情感溢出研究关心的对象。把注意力网络的传递性与资金网络的传递性并置理解, 有助于避免把「一起被报道」误读为「一起有敞口」。
+全局传递性与小世界结构的构念根源在 Watts 和 Strogatz (1998): 他们指出真实网络往往兼具高聚类 (高传递性) 与短路径长度, 传递性正是刻画「局部抱团」的核心量。将传递性置于社群结构谱系中理解, 可参照 Newman 和 Girvan (2004) 及 Clauset、Newman 和 Moore (2004) 的社群检测框架 — 高传递性网络通常对应清晰的社群划分, 与本家族并列的 net_modularity_yr 恰用后者的贪婪算法度量社群强度, 两者互为补充但口径正交。在金融与组织研究中, 网络结构指标作为解释变量的合法性由多支文献支撑: Nezami、Chisam 和 Palmatier (2025) 对网络中心度与企业绩效关系做了元分析, 提示网络位置对绩效的解释力真实但异质 (该白名单条目明确注记不背书具体的 bank_clustering 用法, 此处仅援引其构念层结论); Yu、Hu 和 Zhong (2024) 论证金融网络的中心度通过信息扩散影响资产定价; Li 等 (2026) 则直接从文本风险披露中抽取金融网络结构与连通性, 与本项目从新闻共现文本重构银行网络的方法论同源; Klaucke (2025, The North American Journal of Economics and Finance) 同样用新闻文本构造金融机构间的连通性测度, 与本家族从新闻共现文本自下而上重构银行网络并计算全局传递性的方法论直接同源。在系统性风险语境下, Jackson 和 Pernoud (2021) 的综述与 Duarte 和 Eisenbach (2021) 的火线抛售溢出研究表明, 网络的闭合与连通拓扑是传染放大的结构基础, 为把年度传递性作为系统性风险环境的代理变量提供了理论支点。需要说明的是, 本项目的银行共现网络是一张「舆论关注网」而非资金往来网或担保网, 边的语义是「被媒体放在一起谈论」, 因此它捕捉的是投资者与公众注意力层面的银行关联结构, 而非资产负债表意义上的直接风险敞口。这一区分很重要: 高传递性在本网络中意味着某年银行舆论呈现明显的抱团三角闭合, 可能反映行业性的集体叙事 (例如整个板块被同一政策或同一风险事件裹挟), 而这类叙事传染本身正是文本情感溢出研究关心的对象。把注意力网络的传递性与资金网络的传递性并置理解, 有助于避免把「一起被报道」误读为「一起有敞口」。
 
 【构念的时间维度与经济含义】
 由于本指标按自然年聚合, 它天然承载了银行舆论网络的年度演化信息。一个可检验的经济假说是: 在行业冲击年份 (如互联网金融整顿、某类系统性事件爆发), 媒体倾向于把更多银行卷入同一篇叙事, 从而抬高共现网络的稠密度与三角闭合, 使当年的全局传递性上升; 而在平稳年份, 报道更分散、更聚焦单家银行, 传递性回落。因此本家族的跨年时间序列本身就是一个关于「银行舆论一体化程度」的宏观信号, 可与金融科技强度、行业负面冲击等年度变量对照阅读。不过, 正因它在年内对所有银行恒定并被年 FE 吸收, 其经济含义主要在两种设定下释放: 其一, 在不含年 FE 的模型中作为刻画舆论网络结构环境的年度控制; 其二, 与银行层处理变量 (如某家银行的金融科技暴露、情感倾向) 交乘, 检验「网络越抱团时, 银行个体特征对结果的边际影响是否被放大或衰减」这类调节假说。后一种用法与 Grieser 等 (2022) 和 Leary 与 Roberts (2014) 在公司金融中把网络结构作为溢出调节量的思路一脉相承。
@@ -156,7 +177,7 @@ new_dois: []
 在数据构造层面还有若干须向使用者交代的性质。第一, 边的累加对同一年内的重复共现是叠加计数的 (每篇每对 +1), 但传递性忽略边权, 因此重复共现只影响强度类指标而不影响本家族 — 本家族只关心该年是否存在过至少一次共现所形成的拓扑三角。第二, 只含单家银行的报道不产生任何边, 不进入网络构造, 因此本指标只由多银行报道驱动; 若某年多银行报道极少 (如开发态 T=2 的稀疏样本), 图可能几乎无边, 传递性退化为零或 NaN, 这属预期而非缺陷, 生产态 T=18 的全量语料下不会出现此类退化。第三, 判据分轨路径在缺少 docid 或正文列时会 fail-soft 地把该年邻接置为全零 (节点保留、无边) 并发出告警, 而非崩溃整个 stage, 这一容错设计镜像了 FINTECH_AC=None 时的优雅降级先例。第四, 当同一 docid 组内多行的正文文本不一致时, 判据分轨路径会 loud 告警并取组首行 (F0.18 实测应为零组), 保证单条脏数据不至于污染整年网络。这些设计共同确保本家族在从开发态到生产态的规模跨越中行为一致、可审、可复现。
 
 【与文本网络重构文献的方法论对话】
-本家族从新闻共现文本自下而上重构银行关系网络的做法, 与近年兴起的「文本网络」测量文献直接对话。Li 等 (2026) 从企业的文本风险披露中抽取金融网络的结构与连通性, 与本项目从媒体报道共现抽取银行网络在方法论上高度同源: 两者都把「文本中的共同出现」视为潜在经济关联的可观测代理, 再用网络科学工具刻画其结构。这类方法的核心优势是覆盖面广、时效性强, 不依赖往往滞后且不完整的官方关系数据; 其代价是共现关系语义模糊 — 「一起被报道」既可能反映真实的业务关联, 也可能只是记者的叙事便利。全局传递性作为二阶结构量, 在一定程度上对这种测量噪声有平滑作用: 单条噪声边难以同时闭合出多个三角, 因此传递性比单条边的存在与否更稳健地反映网络的系统性抱团倾向。这也是本项目在节点级中心度之外额外引入网络级传递性作为结构控制的理由之一 — 它提供了对「整体网络有多闭合」这一维度的、相对抗噪的年度刻画。
+本家族从新闻共现文本自下而上重构银行关系网络的做法, 与近年兴起的「文本网络」测量文献直接对话。Li 等 (2026) 从企业的文本风险披露中抽取金融网络的结构与连通性, 与本项目从媒体报道共现抽取银行网络在方法论上高度同源: 两者都把「文本中的共同出现」视为潜在经济关联的可观测代理, 再用网络科学工具刻画其结构。这类方法的核心优势是覆盖面广、时效性强, 不依赖往往滞后且不完整的官方关系数据; 其代价是共现关系语义模糊 — 「一起被报道」既可能反映真实的业务关联, 也可能只是记者的叙事便利。全局传递性作为二阶结构量, 在一定程度上对这种测量噪声有平滑作用: 单条噪声边难以同时闭合出多个三角, 因此传递性比单条边的存在与否更稳健地反映网络的系统性抱团倾向。这也是本项目在节点级中心度之外额外引入网络级传递性作为结构控制的理由之一 — 它提供了对「整体网络有多闭合」这一维度的、相对抗噪的年度刻画。同样从文本抽取网络结构的做法也见于 Breitung 和 Müller (2025, Journal of Financial Economics), 用GPT-3从企业文本描述中生成63,000余家全球公司的时变商业网络, 方法论上与本项目从新闻共现文本构造银行网络同源; 而 Zhang、Qu、Wang 和 Lu (2025, Systems) 用时序指数随机图模型刻画全球金融服务业绿地FDI网络的传递闭合与聚类结构演化, 佐证传递性作为金融网络结构量的经验适用性。
 
 【识别、内生性与稳健性推断的完整叙事】
 把网络结构指标引入因果推断链条时, 除前述反射问题外, 还须正视网络本身的内生性: 银行的舆论共现结构可能与不可观测的行业冲击、政策周期共同决定, 使传递性与结果变量之间存在遗漏变量偏误。本项目对此的应对是分层的。第一层是设定层面: 承认本指标在年 FE 下被吸收, 主张其只作为不含年 FE 的结构环境控制或交乘调节量, 从而不把它当作可干预的处理变量做因果宣称。第二层是识别层面: 沿 Bramoullé、Djebbari 和 Fortin (2009) 的思路, 网络的非传递性 (传递性严格小于一) 本身提供了识别同侪效应的结构工具, 而 Boucher、Rendall、Ushchev 和 Zenou (2024) 与 Bramoullé、Djebbari 和 Fortin (2020) 进一步刻画了这类识别策略在更一般同侪机制下的适用边界。第三层是推断层面: 在把网络指标纳入回归后, 标准误须考虑网络自相关与聚类结构, 本项目在稳健性 battery 中对相关设定采用聚类稳健与自助 (bootstrap) 推断, 并对多重比较施加族错误率控制。第四层是稳健性梯子层面: 本家族的三个判据变体构成一条完整的判据敏感性梯子, 让使用者能直接观察主结论是否随「共现口径松紧」而漂移; 与本项目其它稳健性族 (三轨文本、co-primary 双轨嵌入、词典消融、政治词权重、per-model) 一样, 判据梯子内各臂各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J。四层叠加, 使本家族既能作为信息量充分的网络结构度量进入实证, 又不越界成为无根据的因果宣称。使用者在援引本家族任一列时, 应连同披露其判据口径、年 FE 吸收性质与 clique 膨胀风险, 方为可审、可复现的规范用法。
@@ -204,4 +225,7 @@ Clauset, A., Newman, M. E. J., & Moore, C. (2004). Finding community structure i
 Newman, M. E. J., & Girvan, M. (2004). Finding and evaluating community structure in networks. Physical Review E, 69(2), 11339. https://doi.org/10.1103/PhysRevE.69.026113
 Watts, D. J., & Strogatz, S. H. (1998). Collective dynamics of 'small-world' networks. Nature, 393(6684), 440-442. https://doi.org/10.1038/30918
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
+Klaucke, Konstantin. (2025). Text Spillover: Measuring connectedness of financial institutions based on news text data. The North American Journal of Economics and Finance. https://doi.org/10.1016/j.najef.2024.102307
+Breitung, Christian, & Müller, Sebastian. (2025). Global Business Networks. Journal of Financial Economics. https://doi.org/10.1016/j.jfineco.2025.104007
+Zhang, Guoli, Qu, Ruxiao, Wang, Lujian, & Lu, Fang. (2025). Structure and Evolution of the Global Financial Services Greenfield FDI Network: Complex System Analysis Based on the TERGM Model. Systems. https://doi.org/10.3390/systems13121110
 <!-- rendered-citations:end -->

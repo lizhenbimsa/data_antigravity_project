@@ -179,7 +179,28 @@ citations:
   vol: 63
   issue: 3
   pages_or_artno: 1437-1467
-new_dois: []
+- doi: "10.1111/fima.70003"
+  type: journal
+  authors: "Abbassi, W., Ben-Nasr, H., Boubaker, S., & Eshraghi, A."
+  year: 2025
+  title: "Financial Statement Readability and Firm Debt Choice"
+  venue: "Financial Management"
+- doi: "10.1177/27533743251349221"
+  title: "Text Analysis of Corporate Cryptocurrency Disclosures in Varying Market Conditions"
+  authors: "Elitzur, R., & Rotenberg, W."
+  year: 2025
+  venue: "Journal of Alternative Finance"
+  type: "journal"
+- doi: "10.1057/s41599-025-05560-x"
+  title: "Lexical richness in Chinese university students' EFL writing: a corpus-based comparison"
+  authors: "Yang, Y., & He, X."
+  year: 2025
+  venue: "Humanities and Social Sciences Communications"
+  type: "journal"
+new_dois:
+  - "10.1111/fima.70003"
+  - "10.1177/27533743251349221"
+  - "10.1057/s41599-025-05560-x"
 ---
 
 ## CORE
@@ -191,7 +212,7 @@ new_dois: []
 文章级计算的核心是对一篇报道做一次 jieba.posseg 词性标注 pass。为保证确定性, 分词与词频读取都走一个独立、未被任何领域词注入污染的 jieba Tokenizer 实例 (即 jieba-isolation 隔离), 使同一段文本无论全局分词器处于何种注入态, 都恒定返回同一取值, 不受其它阶段 add_word 领域词注入所带来的词频与切分漂移。具体流程是: 一篇报道先被切成"词与词性"配对序列, 剔除词性标为标点或未知 (x) 的 token, 得到实词序列, 其长度记为 n_real, 充当所有比率的公共分母; 若 n_real 为零 (空文本或纯标点), 则整篇直接返回 NaN。分子 n_rare 统计同时满足两个条件的实词: 其一, 该词在冻结词典中的正词频不高于 cutoff 阈值 (词典外的 OOV 词其词频记为零, 因而也被判为低频); 其二, 该词不是纯数字或纯拉丁字母的 token。第二个排除谓词是关键的构念纯化 (修 omni-g-numlex-04): 阿拉伯数字、年份、英文缩写、带百分号的数值这类 token, 因为不在中文词典而词频为零, 会机械地命中"低频"判据, 但它们与词汇难度这一构念毫无关系, 且与数字密度测度机械同源, 若计入就会同时污染两个构念的独立性, 故一律排除; 与此同时分母 n_real 的口径保持不变, 与家族内其余各比率完全一致, 保证各比率可比。cutoff 阈值由 jieba 冻结词典正词频分布的第 20 百分位派生而来; 但由于低频侧存在巨量并列 (词频恰等于 2 的词约有四万个、词频恰等于 3 的词约有十六万个), 这个百分位在 jieba 0.42.1 上的实测落点恰为 3.0, 并由门控测试锚死 _rare_word_cutoff 恒等于 3.0, 以防词典升级带来的阈值漂移。文章级比率等于 n_rare 除以 n_real, 结果保留六位小数; 面板聚合采用 'mean' 聚合器, 它会自动跳过短文本或空文本产生的 NaN, 因而这些无效样本不会污染银行-年均值。三轨的驱动逻辑值得强调: 文章级函数本身对轨道无感, 输入单一文本、输出一份 per-text 字典, 三轨的 per-track 循环由调用方 tone_words 用 content_full、content_ctx、content_ss 三份文本各调用一次实现, 因而底层计算完全一致, 三轨之间的差异纯粹来自输入文本的取材范围。面板聚合口径需要专门说明: 家族列取的是"文章级比率在银行-年内的算术平均" (即先算每篇的比率再取均值), 而不是"银行-年内所有报道合并成一个超级文档后再算一次比率" (即先合并分子分母再算比率); 两种口径在数学上并不等价, 前者给每篇报道等权、后者给长报道更大权重, 本家族一律采用前者 (mean-of-ratios), 与 lexical_complexity 家族其余成员保持口径统一, 也与 encode 层的 'mean' 聚合契约一致。这样做的一个直接好处是: 单篇极短或极长的报道不会主导某个银行-年的取值, 度量更贴近"这一年关于该银行的报道通常有多难读"这一群体平均的解读。文章级比率保留六位小数, 是为了在跨运行复现时消除浮点尾数的抖动, 与 jieba-isolation 隔离一起, 共同保证本族列在冻结环境下逐位可复现。
 
 【文献定位】
-本家族嵌在会计与金融的文本可读性与复杂度测量传统之中。以词频权重承载信息含量的文本经济学谱系 (词频与逆文档频率的思路), 为"用词的稀有度反映信息量与阅读成本"提供了方法学底座。在披露可读性一侧, Li (2008) 最早把年报可读性 (Fog 指数) 与当期盈余、盈余持续性联系起来, 开辟了可读性影响信息处理的实证路线; Loughran 与 McDonald (2014) 则系统批判了 Fog 指数在金融文本上的失灵, 指出其中的复杂词计数在金融语境高度失真, 并提出以文件体量等更稳健的可读性代理, 二者共同界定了本项目"报道难读程度"这一构念的测量边界与陷阱。Bonsall、Leone、Miller 与 Rennekamp (2017) 提出的 Bog 指数从句法层面细化了可读性, Bushee、Gow 与 Taylor (2018) 对披露语言复杂度做了"混淆抑或信息"的两面性辨析, Ertugrul、Lei、Qiu 与 Wan (2017) 提供了可读性与借款成本相关的证据——它们共同表明文本复杂度既可能是刻意混淆的产物, 也可能是必要专业性的自然结果, 因此本家族刻意不预设符号, 把低频词率当作中性的词汇难度信号交给下游识别策略处理。在词内容分析一侧, Tetlock、Saar-Tsechansky 与 Macskassy (2008) 以及 Jegadeesh 与 Wu (2013) 确立了"以词衡量企业基本面与情感"的范式, García、Hu 与 Rohrer (2023) 进一步刻画了金融词汇的语义色彩, 这些工作把"词"本身作为经济信息的载体, 与本家族用词频稀有度提取信息负荷的思路同源。中文语境下的对应工作尤为贴近本项目: Xu、Yao 与 Chen (2019) 系统构建并检验了中文年报可读性测度, 为中文文本难度的度量提供了本土参照; Li、Yang 与 Zhang (2023) 检验招股书可读性对债券发行定价的作用, Li、Yang、Xue 与 Liu (2024)、Jiang、Hu 与 Wang (2024)、Du、Li、Kuo 与 Li (2025) 则分别把中文年报可读性与商业信用融资、机构共同持股、企业研发投资相连, 共同证明中文披露可读性具有实质经济后果。在近期方法学一侧, Loughran 与 McDonald (2024) 提出了企业复杂度的直接测度, Lesmy、Muchnik 与 Mugerman (2025) 以比较研究记录了财务报告复杂度的持续增长趋势, Siano (2025) 展示了以大模型捕捉词语上下文的新闻披露测量, Rosillo-Rodes、San Miguel 与 Sánchez (2025) 从熵与类符-形符比角度刻画大规模语料的词汇统计规律。这些近作共同勾勒出本家族的坐标: 它位于"传统词频稀有度"与"新一代语境嵌入"之间, 以最低成本、最强可复现性承担词汇难度的基线测量。
+本家族嵌在会计与金融的文本可读性与复杂度测量传统之中。以词频权重承载信息含量的文本经济学谱系 (词频与逆文档频率的思路), 为"用词的稀有度反映信息量与阅读成本"提供了方法学底座。在披露可读性一侧, Li (2008) 最早把年报可读性 (Fog 指数) 与当期盈余、盈余持续性联系起来, 开辟了可读性影响信息处理的实证路线; Loughran 与 McDonald (2014) 则系统批判了 Fog 指数在金融文本上的失灵, 指出其中的复杂词计数在金融语境高度失真, 并提出以文件体量等更稳健的可读性代理, 二者共同界定了本项目"报道难读程度"这一构念的测量边界与陷阱。Bonsall、Leone、Miller 与 Rennekamp (2017) 提出的 Bog 指数从句法层面细化了可读性, Bushee、Gow 与 Taylor (2018) 对披露语言复杂度做了"混淆抑或信息"的两面性辨析, Ertugrul、Lei、Qiu 与 Wan (2017) 提供了可读性与借款成本相关的证据——它们共同表明文本复杂度既可能是刻意混淆的产物, 也可能是必要专业性的自然结果, 因此本家族刻意不预设符号, 把低频词率当作中性的词汇难度信号交给下游识别策略处理。在词内容分析一侧, Tetlock、Saar-Tsechansky 与 Macskassy (2008) 以及 Jegadeesh 与 Wu (2013) 确立了"以词衡量企业基本面与情感"的范式, García、Hu 与 Rohrer (2023) 进一步刻画了金融词汇的语义色彩, 这些工作把"词"本身作为经济信息的载体, 与本家族用词频稀有度提取信息负荷的思路同源。中文语境下的对应工作尤为贴近本项目: Xu、Yao 与 Chen (2019) 系统构建并检验了中文年报可读性测度, 为中文文本难度的度量提供了本土参照; Li、Yang 与 Zhang (2023) 检验招股书可读性对债券发行定价的作用, Li、Yang、Xue 与 Liu (2024)、Jiang、Hu 与 Wang (2024)、Du、Li、Kuo 与 Li (2025) 则分别把中文年报可读性与商业信用融资、机构共同持股、企业研发投资相连, 共同证明中文披露可读性具有实质经济后果。在近期方法学一侧, Loughran 与 McDonald (2024) 提出了企业复杂度的直接测度, Lesmy、Muchnik 与 Mugerman (2025) 以比较研究记录了财务报告复杂度的持续增长趋势, Siano (2025) 展示了以大模型捕捉词语上下文的新闻披露测量, Rosillo-Rodes、San Miguel 与 Sánchez (2025) 从熵与类符-形符比角度刻画大规模语料的词汇统计规律; Abbassi、Ben-Nasr、Boubaker 与 Eshraghi (2025, Financial Management) 则考察财务报表可读性对企业债务融资选择的影响, 为披露文本难度 (与本家族罕见词率同属可读性与复杂度测量谱系) 如何传导至融资结果提供了 2025 年的最新实证证据。这些近作共同勾勒出本家族的坐标: 它位于"传统词频稀有度"与"新一代语境嵌入"之间, 以最低成本、最强可复现性承担词汇难度的基线测量。近期还有两支旁证值得一提: Elitzur 与 Rotenberg (2025, Journal of Alternative Finance) 研究企业加密货币相关信息披露文本在不同市场条件下的可读性与复杂度差异, 发现涉及加密货币的段落比同一报告其余部分更易读, 提示企业存在选择性简化叙述的策略, 为"披露主体可能对特定新兴议题段落做差异化文本处理"提供了跨市场证据; Yang 与 He (2025, Humanities and Social Sciences Communications) 以语料库方法比较中国大学生英语写作中的词汇丰富度 (含词汇稀有度与复杂度维度), 为中文语境下以低频词占比刻画文本词汇难度提供方法学参照。
 
 【识别策略定位】
 本家族在识别策略上的定位可以分五层来理解。第一层是成本与正交性: 它是零成本、纯词典派生的词汇难度信号, 与需要付费大模型或嵌入接口的语境测度 (例如 Siano (2025) 式的大模型上下文捕捉) 相互正交——更换 canonical 嵌入模型 (由 Google 系嵌入迁至阿里 Qwen)、更换情感大模型三家投票里的任一厂商, 都不会改动本族的任何一个取值, 因为整条计算链只依赖冻结的 jieba 0.42.1 词典及其确定性派生, 与嵌入空间、与情感大模型完全解耦。正因如此, 它可以作为跨版本稳定、不随模型漂移的可读性代理稳定地进入回归方程, 承担"锚"的角色: 当论文需要一个不随测量技术升级而共动的文本难度控制变量时, 低频词率恰好满足这一要求, 也因此能充当"换模型稳健性检验"里的安慰剂式对照——它对更换嵌入或情感大模型本应毫无反应, 一旦有反应反而提示接线错误。第二层是构念的重构 (reframe): 本族被明确定位为"第三方新闻报道的词汇难度", 而不是企业自我披露的信息具体性——语料是媒体报道而非年报或 10-K, 因此论文措辞必须与此一致, 不能直接照搬年报可读性文献的因果解读。报道的难读可能有三种彼此无法在测度上自动区分的来源: 一是媒体的专业化叙述 (记者认真拆解某项金融科技的机制), 二是议题本身的技术门槛 (区块链、隐私计算、监管沙盒等术语天然生僻), 三是通稿式的机构语言堆砌; 归因因此须由识别设计承担而非由测度本身承担。第三层是它在论文组合中的角色: 作为 bank_news_clarity (银行新闻清晰度, provisional) 一线的核心构念之一, 低频词率既可以作为解释变量直接刻画报道的可读性渠道 (难读的报道是否延缓了信息进入价格、抬高了融资成本), 也可以作为可读性控制变量, 吸收文本难度对其它测度 (如情感、注意力) 的混杂影响, 使那些测度的系数不被"这一年关于该银行的报道恰好更难读"这一维度污染; 作为解释变量时须结合报道后的市场反应、分析师行为或融资成本共同识别符号, 作为控制变量时则以中性姿态进入、不承载因果解读。第四层是留篇门控与行宇宙: 行宇宙的口径严格遵循 full-only 留篇门控 (2026-06-29), 一篇报道是否计入"银行金科报道", 只看 full 轨的大模型核验结果 (llm_verified_full 为真), 而 ctx 与 ss 两轨是条件在 full 留篇集之上的 conditional-on-full 测度与稳健性轨, 它们的 per-track 列在这个固定子集内照常计算。这一点在识别上尤为关键: 因为三轨共享同一个由 full 决定的行宇宙, full 轨与 ctx/ss 轨之间的差异是纯粹的测量差异 (取材范围不同), 而不是样本构成差异 (留篇集不同), 因此把三轨并排解读为"取材敏感性"是干净的, 不会与样本选择效应混淆; 分母 n_articles 亦按 full-only 留篇集统计并由三轨共享。第五层是确定性与解释的双向性: 度量的确定性来自 jieba-isolation 隔离与冻结词典, 对全局分词器的注入保持字节不变, 因此本族列可以作为 golden 可复现测试中的确定性锚定成分, 不引入非确定漂移 (与政治词权重、BERT 分布形状等纯后处理 $0 测度同属可逐位复现层)。需要额外提醒的是, 罕见词率在解释上是双向的: 一方面, 高罕见词率可能对应真实的技术含量与专业深度 (报道认真讨论了某项金融科技的机制), 是信息丰富的信号; 另一方面, 它也可能对应刻意的术语堆砌与信息模糊 (用生僻词包装以掩盖实质), 是混淆的信号——这正是 Bushee、Gow 与 Taylor (2018) 所辨析的"混淆抑或信息"两面性。本族因此刻意不预设方向, 把符号的确定交给具体论文的识别设计 (例如结合报道后的市场反应、分析师行为或融资成本来判断难读到底帮助还是妨碍了信息处理), 而不在测度层面强加解读; 这也意味着做稳健性并排时应把三阈值、三轨各自 just-identified 地并排报告, 而不是把它们塞进同一个 over-identified 设定去追求单一"最优"系数。
@@ -266,4 +287,7 @@ Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis.
 You, H., & Zhang, X.-J. (2009). Financial reporting complexity and investor underreaction to 10-K information. Review of Accounting Studies, 14(4), 559-586. https://doi.org/10.1007/s11142-008-9083-2
 Li, F. (2008). Annual report readability, current earnings, and earnings persistence. Journal of Accounting and Economics, 45(2-3), 221-247. https://doi.org/10.1016/j.jacceco.2008.02.003
 Tetlock, P. C., Saar-Tsechansky, M., & Macskassy, S. (2008). More than words: Quantifying language to measure firms' fundamentals. The Journal of Finance, 63(3), 1437-1467. https://doi.org/10.1111/j.1540-6261.2008.01362.x
+Abbassi, W., Ben-Nasr, H., Boubaker, S., & Eshraghi, A. (2025). Financial Statement Readability and Firm Debt Choice. Financial Management. https://doi.org/10.1111/fima.70003
+Elitzur, R., & Rotenberg, W. (2025). Text Analysis of Corporate Cryptocurrency Disclosures in Varying Market Conditions. Journal of Alternative Finance. https://doi.org/10.1177/27533743251349221
+Yang, Y., & He, X. (2025). Lexical richness in Chinese university students' EFL writing: a corpus-based comparison. Humanities and Social Sciences Communications. https://doi.org/10.1057/s41599-025-05560-x
 <!-- rendered-citations:end -->

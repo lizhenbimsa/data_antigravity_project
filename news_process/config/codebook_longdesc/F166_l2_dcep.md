@@ -102,7 +102,14 @@ citations:
   vol: 110
   issue: 9
   pages_or_artno: 2964-2996
-new_dois: []
+- doi: "10.1016/j.jcorpfin.2025.102847"
+  type: journal
+  authors: "Zhang, G., & Chan, K. C."
+  year: 2025
+  title: "Central bank digital currency and corporate cash holdings: Evidence from China's e-CNY pilot"
+  venue: "Journal of Corporate Finance"
+new_dois:
+  - "10.1016/j.jcorpfin.2025.102847"
 ---
 
 ## CORE
@@ -114,7 +121,7 @@ new_dois: []
 计算链路以处理队列为起点: 先在名册中确定每家银行的首次处理年 dcep_treat_year, 再令 dcep_rel_year = 日历年 − dcep_treat_year 得到事件时 k。dcep_treated 是时不变的处理组指示 (曾进入试点即恒为 1), dcep_post 是随时间开合的处理期指示 (k ≥ 0 记 1), 两者相乘即经典 2×2 双重差分的交互项。事件研究部分把 k 离散成一组互斥的哑变量: dcep_lag0 (k=0, 处理当年)、dcep_lag1/2/3 (k=+1/+2/+3)、dcep_lag4plus (k≥4 的右端归并箱)、dcep_lead2/3 (k=−2/−3) 与 dcep_lead4plus (k≤−4 的左端归并箱)。此处刻意不设 dcep_lead1: 相对年 k=−1 是被省略的参照期 (baseline), 所有事件时系数都相对它读数, 这是现代事件研究的规范做法, 也是为何这一族没有 k=−1 列而不是遗漏。右/左两端采用归并箱 (bin-and-truncate) 而非无限延伸的单期哑变量, 是为了在样本两翼观测稀薄处避免估计爆炸并吸收长期趋势, 符合 Borusyak, Jaravel & Spiess (2024) 对端点处理的建议口径。dcep_ddd_digfront 则在双重差分之上叠加第三重差分: 以数字前沿 (digital frontier) 禀赋维度 digfront 与处理×处理期交互, 目的是把"恰好处于数字化前沿的银行本就会走的轨迹"从政策效应中差分掉。所有列的取值合规性由 pipeline\audit\stata_audit.py 强制审计——该审计把凡以 dcep_ 前缀命名者纳入哑变量检查, 仅豁免 dcep_treat_year 与 dcep_rel_year 两列 (前者是年份码、后者是可正可负的相对年), 其余列若出现 0/1 以外取值即判 FAIL; 处理期与处理组指示还与 n_articles 非负、情感列值域等一并进入面板落盘前的机械闸。列的英文标签与最终装配在 pipeline\panel\export.py 完成, 该文件把 dcep_treated/post/treat_year 归入"DID 政策冲击"块、把 rel_year 与 leads/lags 归入"Event Study 动态效应"块; 该块在 export.py 源码中以一行代码注释标注了 Callaway & Sant'Anna (2021) 的方法出处 (注释位于标签装配块上方, 标签字符串本身并不含该引注)。
 
 【文献定位】
-本家族的方法学根基是 2020 年以来那场关于错时双重差分的计量革命。传统做法把处理组×处理期交互项塞进双向固定效应 (TWFE) 回归读取一个平均效应, 但 Goodman-Bacon (2021) 的分解证明: 在错时采纳下, TWFE 估计量其实是所有可能的 2×2 比较的加权和, 且当处理效应随时间演化时会出现"以已处理单位充当对照"的坏比较, 携带负权重, 从而使总估计量偏离任何有意义的加权平均。de Chaisemartin & D'Haultfœuille (2020, AER) 在异质处理效应框架下独立给出同一诊断并提出稳健估计量。正因如此, 本家族刻意提供逐期动态分解而非单一 post 交互, 使下游可采用 Callaway & Sant'Anna (2021) 的多期分组估计量、Sun & Abraham (2021) 的交互加权事件研究等对队列异质性稳健的方法, 而不必依赖有偏的朴素 TWFE。Baker, Larcker & Wang (2022) 在金融学语境下系统检验了这些偏误对已发表实证结论的影响, 强调金融面板研究应默认采用稳健估计量, 这正是本家族在设计上留出 leads/lags 与 treat_year 队列信息的动机。事件研究的 leads (dcep_lead*) 承担平行趋势诊断: 处理前各期系数应统计不可区分于零。但 Roth (2022) 警示, 简单地"目视 leads 是否为零"作为预检验会引入选择偏误并扭曲后续推断; Rambachan & Roth (2023) 进而提出以对预趋势违背幅度设界的方式做更可信的敏感性分析。Roth, Sant'Anna, Bilinski & Poe (2023) 对这一整条文献做了权威综述, 是理解本家族各列如何协同服务于识别的入口。需要强调的是, 这一族 leads/lags 是同一事件研究设定内互斥的时间分箱, 属于对单一动态路径的分解, 并非本仓库其它家族中"互为稳健性、不分主次、禁混进同一 over-identified Hansen J"意义上的并排稳健性梯子——它们本就应当同时进入同一回归的右手边共同刻画动态效应, 这一点与三轨或 co-primary 双轨的正交并排口径不同, 使用时不可混淆。
+本家族的方法学根基是 2020 年以来那场关于错时双重差分的计量革命。传统做法把处理组×处理期交互项塞进双向固定效应 (TWFE) 回归读取一个平均效应, 但 Goodman-Bacon (2021) 的分解证明: 在错时采纳下, TWFE 估计量其实是所有可能的 2×2 比较的加权和, 且当处理效应随时间演化时会出现"以已处理单位充当对照"的坏比较, 携带负权重, 从而使总估计量偏离任何有意义的加权平均。de Chaisemartin & D'Haultfœuille (2020, AER) 在异质处理效应框架下独立给出同一诊断并提出稳健估计量。正因如此, 本家族刻意提供逐期动态分解而非单一 post 交互, 使下游可采用 Callaway & Sant'Anna (2021) 的多期分组估计量、Sun & Abraham (2021) 的交互加权事件研究等对队列异质性稳健的方法, 而不必依赖有偏的朴素 TWFE。Baker, Larcker & Wang (2022) 在金融学语境下系统检验了这些偏误对已发表实证结论的影响, 强调金融面板研究应默认采用稳健估计量, 这正是本家族在设计上留出 leads/lags 与 treat_year 队列信息的动机。事件研究的 leads (dcep_lead*) 承担平行趋势诊断: 处理前各期系数应统计不可区分于零。但 Roth (2022) 警示, 简单地"目视 leads 是否为零"作为预检验会引入选择偏误并扭曲后续推断; Rambachan & Roth (2023) 进而提出以对预趋势违背幅度设界的方式做更可信的敏感性分析。Roth, Sant'Anna, Bilinski & Poe (2023) 对这一整条文献做了权威综述, 是理解本家族各列如何协同服务于识别的入口。需要强调的是, 这一族 leads/lags 是同一事件研究设定内互斥的时间分箱, 属于对单一动态路径的分解, 并非本仓库其它家族中"互为稳健性、不分主次、禁混进同一 over-identified Hansen J"意义上的并排稳健性梯子——它们本就应当同时进入同一回归的右手边共同刻画动态效应, 这一点与三轨或 co-primary 双轨的正交并排口径不同, 使用时不可混淆。Zhang & Chan (2025, Journal of Corporate Finance) 利用中国数字人民币 e-CNY 试点在城市间的错时推行构造双重差分设计, 与本家族刻画同一政策冲击的处理组与事件时哑变量体系构念高度对应, 提供了该错时试点设计在公司金融语境下的最新应用范例。
 
 ## VAR: dcep_treated
 
@@ -191,4 +198,5 @@ Callaway, B., & Sant'Anna, P. H. C. (2021). Difference-in-differences with multi
 Sun, L., & Abraham, S. (2021). Estimating dynamic treatment effects in event studies with heterogeneous treatment effects. Journal of Econometrics, 225(2), 175-199. https://doi.org/10.1016/j.jeconom.2020.09.006
 Goodman-Bacon, A. (2021). Difference-in-differences with variation in treatment timing. Journal of Econometrics, 225(2), 254-277. https://doi.org/10.1016/j.jeconom.2021.03.014
 de Chaisemartin, C., & D'Haultfœuille, X. (2020). Two-way fixed effects estimators with heterogeneous treatment effects. American Economic Review, 110(9), 2964-2996. https://doi.org/10.1257/aer.20181169
+Zhang, G., & Chan, K. C. (2025). Central bank digital currency and corporate cash holdings: Evidence from China's e-CNY pilot. Journal of Corporate Finance. https://doi.org/10.1016/j.jcorpfin.2025.102847
 <!-- rendered-citations:end -->

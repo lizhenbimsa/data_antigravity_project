@@ -65,7 +65,28 @@ citations:
   vol: 63
   issue: 1
   pages_or_artno: 125-143
-new_dois: []
+- doi: "10.1111/jfir.70039"
+  type: journal
+  authors: "Yang, N., Fernandez-Perez, A., & Indriawan, I."
+  year: 2026
+  title: "Social media sentiment, investor herding and informational efficiency"
+  venue: "Journal of Financial Research"
+- doi: "10.1016/j.iref.2024.01.067"
+  title: "Media sentiment, deposit stability and bank systemic risk: Evidence from China"
+  authors: "Fang, Y., Wang, Q., Wang, Y., & Yuan, Y."
+  year: 2024
+  venue: "International Review of Economics & Finance"
+  type: "journal"
+- doi: "10.1016/j.eswa.2024.125739"
+  title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
+  authors: "Ma, Y., Zhang, T., & Zhang, P."
+  year: 2025
+  venue: "Expert Systems with Applications"
+  type: "journal"
+new_dois:
+  - "10.1111/jfir.70039"
+  - "10.1016/j.iref.2024.01.067"
+  - "10.1016/j.eswa.2024.125739"
 ---
 
 ## CORE
@@ -77,7 +98,7 @@ new_dois: []
 计算链路分三段。第一段在 stage 22 词典法内: 对每篇报道分词后, 在 You et al. (2018) 词典上做逐词匹配, 命中情感词依次施加三条语言学规则 —— 否定词在其后固定窗口内翻转极性、程度副词按倍率缩放幅值、转折词在从句作用域内按转折权重放大后半句, 遇句末标点重置规则状态; 由此得到每个情感词的 final_score, 文章级得分归一化为 Σ(final_score)/Σ|final_score|, 落在 [-1, +1], 正值偏正面、负值偏负面。此归一化口径与仅取原始词典极性计数的 msent 计数口径互为稳健性, 二者刻意不混用。词典消歧口径: you_2018 词典 positive∩negative 跨类重叠 5 词, 按 2026-06-24 用户决策「保留并两侧计数」处理 —— 重叠词同时计入 pos 与 neg (对该词典个体 you_2018_score 净语调拉向中性、不武断选边), 运行时词条数为原始 |pos∪neg|, 而聚合测度所用的固定 union 词典因重叠词以 (+1,−1) 平衡双票喂入而极性 margin 守恒、逐位不变。第二段在 stage 24 羊群衰减处理: 对同一目标银行的报道按发布年度截断, 用 TF-IDF 余弦相似度统计每篇报道在同年早前存在多少篇高度相似 (疑似转抄、回声式跟风) 的报道, 记为 n_similar_articles, 再令 herd_weight = 1/(1 + n_similar_articles); 转抄越多则权重越低, 越接近独立首发则权重越接近 1。第三段在面板聚合 (runner 步骤 3d 逐篇相乘, encode 的 build_aggregation_dict 求和): 文章级 you_2018_score 乘以同轨 herd_weight 得到 you_2018_score_hw, 再在银行-年度分组内求和得到本列。留篇门控采用 full-only 口径 (2026-06-29): 一篇报道是否计入某银行某年的报道宇宙, 由其 full 轨是否被判为一篇银行金科报道决定, 三轨在该留篇集合上分别计列。
 
 【文献定位】
-本测度的方法学谱系由数支文献锚定。词典本身取 You, Zhang 与 Zhang (2018, The Review of Financial Studies) —— 该顶刊文献构建了面向中国资本市场的中文财经文本情感词典, 证明媒体笔调 (media tone) 对公司层面结果具有独立于事实内容的预测力; 本家族沿用其词典完成对银行-金融科技报道文本的情感极性打分, 是该文方法学在银行业金融科技情境下的直接应用。词典的领域特异性价值进一步由 Du et al. (2022, Review of Finance) 确证 —— 该文指出语言与领域特异性对中文金融情感度量至关重要, 通用词典 (如直译版 Loughran-McDonald) 在中文语料上系统性偏误, 这正是本管道并置多部中文金融专用词典 (you_2018、bian_2021、du_2022 等) 而非仅依赖直译词典的依据。逐词施加否定、程度、转折规则并作从句级作用域重置, 遵循 Taboada et al. (2011) 确立的词典法情感分析范式。而将词典法结果单独成轨、与机器学习及大模型法并置互证, 呼应 Frankel, Jennings 与 Lee (2022) 关于披露情感的机器学习法与词典法互为稳健性的先例, 以及 van Atteveldt, van der Velden 与 Boukes (2021) 对人工标注、词典法与机器学习法效度的横向比较; Barbaglia et al. (2025) 亦重申词典法在经济文本上的可解释与可复现优势。需强调本家族的六部词典 (you_2018 与 jiang_2021、yao_2021、bian_2021、du_2022、loughran) 各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同词典或不同聚合权重混进同一 over-identified Hansen J 检验。
+本测度的方法学谱系由数支文献锚定。词典本身取 You, Zhang 与 Zhang (2018, The Review of Financial Studies) —— 该顶刊文献构建了面向中国资本市场的中文财经文本情感词典, 证明媒体笔调 (media tone) 对公司层面结果具有独立于事实内容的预测力; 本家族沿用其词典完成对银行-金融科技报道文本的情感极性打分, 是该文方法学在银行业金融科技情境下的直接应用。词典的领域特异性价值进一步由 Du et al. (2022, Review of Finance) 确证 —— 该文指出语言与领域特异性对中文金融情感度量至关重要, 通用词典 (如直译版 Loughran-McDonald) 在中文语料上系统性偏误, 这正是本管道并置多部中文金融专用词典 (you_2018、bian_2021、du_2022 等) 而非仅依赖直译词典的依据。逐词施加否定、程度、转折规则并作从句级作用域重置, 遵循 Taboada et al. (2011) 确立的词典法情感分析范式。而将词典法结果单独成轨、与机器学习及大模型法并置互证, 呼应 Frankel, Jennings 与 Lee (2022) 关于披露情感的机器学习法与词典法互为稳健性的先例, 以及 van Atteveldt, van der Velden 与 Boukes (2021) 对人工标注、词典法与机器学习法效度的横向比较; Barbaglia et al. (2025) 亦重申词典法在经济文本上的可解释与可复现优势。需强调本家族的六部词典 (you_2018 与 jiang_2021、yao_2021、bian_2021、du_2022、loughran) 各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同词典或不同聚合权重混进同一 over-identified Hansen J 检验。此外, Yang, Fernandez-Perez 与 Indriawan (2026, Journal of Financial Research) 证明社媒情感通过投资者羊群行为影响信息效率, 为本家族在情感得分之外叠加羊群衰减权重 (herd_weight) 这一构造思路提供了羊群行为与情感测度交互影响资本市场结果的实证支撑。Fang, Wang, Wang 与 Yuan (2024, International Review of Economics & Finance) 构建银行层面媒体情感指数, 证明负面媒体情感通过削弱存款稳定性推高中国银行系统性风险, 为本家族用词典法情感测度银行相关报道语调的构念效度提供最新中国银行业实证支撑。Ma, Zhang 与 Zhang (2025, Expert Systems with Applications) 面向中国投资者构建细粒度中文情感词典并验证其对市场异动的预测力, 与 You et al. (2018) 词典法路线同属中文金融文本情感词典构建谱系, 印证领域专用词典相较通用/直译词典的必要性。
 
 ## VAR: you_2018_score_hw_sum_full
 
@@ -101,4 +122,7 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
+Yang, N., Fernandez-Perez, A., & Indriawan, I. (2026). Social media sentiment, investor herding and informational efficiency. Journal of Financial Research. https://doi.org/10.1111/jfir.70039
+Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2024.01.067
+Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications. https://doi.org/10.1016/j.eswa.2024.125739
 <!-- rendered-citations:end -->

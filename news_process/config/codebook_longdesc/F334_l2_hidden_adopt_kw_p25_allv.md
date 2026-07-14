@@ -11,41 +11,41 @@ upstream:
   - 15_fintech_intensity.parquet (fintech_distinct_keywords, policy_cosine_sim_allv[_ctx/_ss])
   - 24_herd_decay.parquet (verified 语义精筛集, 用于 _filter_to_verified_universe 半连接对齐)
 citations:
-  - doi: 10.1017/S0022109023000662
-    type: journal
-    authors: Kwan, A., Lin, C., Pursiainen, V., & Tai, M.
-    year: 2024
-    title: "Stress testing banks' digital capabilities: Evidence from the COVID-19 pandemic"
-    venue: Journal of Financial and Quantitative Analysis
-    vol: 59
-    issue: 6
-    pages_or_artno: 2618-2646
-  - doi: 10.1073/pnas.2203150119
-    type: journal
-    authors: Breznau, N., Rinke, E. M., Wuttke, A., Nguyen, H. H. V., Adem, M., Adriaans, J., et al.
-    year: 2022
-    title: "Observing many researchers using the same data and hypothesis reveals a hidden universe of uncertainty"
-    venue: Proceedings of the National Academy of Sciences
-    vol: 119
-    issue: 44
-    pages_or_artno: "e2203150119"
-  - doi: 10.1111/ecin.12992
-    type: journal
-    authors: Huntington-Klein, N., Arenas, A., Beam, E., Bertoni, M., Bloem, J. R., Burli, P., Chen, N., Grieco, P., Ekpe, G., Pugatch, T., Saavedra, M., & Stopnitzky, Y.
-    year: 2021
-    title: "The influence of hidden researcher decisions in applied microeconomics"
-    venue: Economic Inquiry
-    vol: 59
-    issue: 3
-    pages_or_artno: 944-960
-  - doi: 10.1086/730053
-    type: journal
-    authors: Fan, H., Liu, Y., Qian, N., & Wen, J.
-    year: 2024
-    title: "Technological adoption and taxation: The case of China's Golden Tax reform"
-    venue: Tax Policy and the Economy
-    vol: 38
-    pages_or_artno: 101-122
+- doi: 10.1017/S0022109023000662
+  type: journal
+  authors: Kwan, A., Lin, C., Pursiainen, V., & Tai, M.
+  year: 2024
+  title: "Stress testing banks' digital capabilities: Evidence from the COVID-19 pandemic"
+  venue: Journal of Financial and Quantitative Analysis
+  vol: 59
+  issue: 6
+  pages_or_artno: 2618-2646
+- doi: 10.1073/pnas.2203150119
+  type: journal
+  authors: Breznau, N., Rinke, E. M., Wuttke, A., Nguyen, H. H. V., Adem, M., Adriaans, J., et al.
+  year: 2022
+  title: "Observing many researchers using the same data and hypothesis reveals a hidden universe of uncertainty"
+  venue: Proceedings of the National Academy of Sciences
+  vol: 119
+  issue: 44
+  pages_or_artno: "e2203150119"
+- doi: 10.1111/ecin.12992
+  type: journal
+  authors: Huntington-Klein, N., Arenas, A., Beam, E., Bertoni, M., Bloem, J. R., Burli, P., Chen, N., Grieco, P., Ekpe, G., Pugatch, T., Saavedra, M., & Stopnitzky, Y.
+  year: 2021
+  title: "The influence of hidden researcher decisions in applied microeconomics"
+  venue: Economic Inquiry
+  vol: 59
+  issue: 3
+  pages_or_artno: 944-960
+- doi: 10.1086/730053
+  type: journal
+  authors: Fan, H., Liu, Y., Qian, N., & Wen, J.
+  year: 2024
+  title: "Technological adoption and taxation: The case of China's Golden Tax reform"
+  venue: Tax Policy and the Economy
+  vol: 38
+  pages_or_artno: 101-122
 new_dois: []
 ---
 

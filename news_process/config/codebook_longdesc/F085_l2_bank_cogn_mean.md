@@ -128,7 +128,14 @@ citations:
   vol: 60
   issue: 3
   pages_or_artno: 531-542
-new_dois: []
+- doi: "10.1007/s40821-024-00270-x"
+  type: journal
+  authors: "Marra, A., Cucculelli, M., & Cartone, A."
+  year: 2024
+  title: "So far, yet so close. Using networks of words to measure proximity and spillovers between firms"
+  venue: "Eurasian Business Review"
+new_dois:
+  - "10.1007/s40821-024-00270-x"
 ---
 
 ## CORE
@@ -146,7 +153,7 @@ new_dois: []
 关于向量化的几处设计值得展开。TF-IDF 的逆文档频率项会压低在多数银行超级文档中普遍出现的字符 n-gram (如通用金融套话、监管高频词) 的权重, 抬高只在少数银行文本里出现的判别性 n-gram 的权重, 从而让余弦相似度更多由这家银行独有的话语指纹驱动, 而非通用词噪声; max_df 设为 0.95 进一步剔除出现在超过 95% 银行中、几乎无判别力的高频项, min_df 取 2 与有效银行数的较小值则剔除仅在单一银行出现、无法支撑跨行比较的孤立 n-gram。char_wb 分析器只在词边界内滑动字符窗口而不跨越空白拼接, 配合 2 到 4 元窗口, 在中文语境下等价于捕获单字、双字词与三四字短语的搭配, 既回避了分词器的边界误差与未登录词问题, 又保留足够的语义颗粒度。稀疏矩阵上的余弦相似度只在非零特征的交集上做内积, 内存与计算都可控; float32 在精度与内存之间取平衡, 也正是值域断言把容差放宽到 1e-6 的原因——float32 舍入可能让边界值略微越过 1.0。合并回面板时按 target_bank 与 year 做左连接, 未能进入向量化 (文本过短或当年有效银行不足两家) 的银行-年格自然落 NaN, 全程不做任何伪零填充, 以免把无法计算误读成相似度为零, 这与全仓网络列去伪零的口径一致。
 
 【文献定位】
-本测度处在三条文献脉络的交叉点上。其一是文本相似度与余弦方法脉络: 用中文金融文本的 TF-IDF 余弦对齐来度量主体间接近度, 最贴近的先例是 Liu, Cao 与 Wen (2024) 对企业与政府文本相似度的测量与定价研究, 其正是在中国情境下以文本余弦刻画主体间对齐并接入资产定价; 方法论上余弦相似度并非无懈可击, Steck 等 (2024) 与 You (2025) 分别指出余弦相似度在某些 (尤其是学习到的稠密嵌入) 空间中可能失真、"看似度量相似其实未必", 提醒使用者对余弦读数保持审慎; Levy, Goldberg 与 Dagan (2015) 关于分布式相似度的经验、Opitz 等 (2025) 对可解释文本嵌入与相似度解释的综述, 以及 Mainali 等 (2022) 对共现与相似度指数的改进, 共同界定了"文本相似度作为构念代理"的方法边界。本项目在 TF-IDF 这一稀疏、非负、可解释的空间内使用余弦, 值域良态落在 0 到 1, 相对稠密嵌入更少踩中上述失真陷阱, 但它终究仍是表层话语度量。其二是同行效应与网络计量脉络: 认知邻近度所服务的更大模块是同行网络与信息经纪, Leary 与 Roberts (2014) 证明同行企业确实影响公司金融政策, Grieser 等 (2022) 刻画公司金融政策中的网络效应, Manski (1993) 的反射问题、Bramoullé, Djebbari 与 Fortin (2009) 关于社会网络中同行效应的识别、以及 Boucher 等 (2024) 的同行效应一般理论, 共同规定了在网络中做因果识别时必须处理的内生性与反射难题。其三是中国银行业媒体情境脉络: Fang 等 (2024) 关于媒体情绪、存款稳定与银行系统性风险的中国证据, 与 Han 等 (2024) 的机构经纪网络研究, 说明媒体话语在银行网络中的传导具有现实经济后果, 为把"新闻话语趋同"纳入银行面板提供了外部相关性。
+本测度处在三条文献脉络的交叉点上。其一是文本相似度与余弦方法脉络: 用中文金融文本的 TF-IDF 余弦对齐来度量主体间接近度, 最贴近的先例是 Liu, Cao 与 Wen (2024) 对企业与政府文本相似度的测量与定价研究, 其正是在中国情境下以文本余弦刻画主体间对齐并接入资产定价; 方法论上余弦相似度并非无懈可击, Steck 等 (2024) 与 You (2025) 分别指出余弦相似度在某些 (尤其是学习到的稠密嵌入) 空间中可能失真、"看似度量相似其实未必", 提醒使用者对余弦读数保持审慎; Levy, Goldberg 与 Dagan (2015) 关于分布式相似度的经验、Opitz 等 (2025) 对可解释文本嵌入与相似度解释的综述, 以及 Mainali 等 (2022) 对共现与相似度指数的改进, 共同界定了"文本相似度作为构念代理"的方法边界。Marra, Cucculelli 与 Cartone (2024, Eurasian Business Review) 用词语网络刻画企业间文本邻近度并度量溢出效应, 与本家族用 TF-IDF 银行超级文档余弦相似度刻画认知邻近度的操作化思路高度一致, 可作为该测度在企业层面的直接文献先例。本项目在 TF-IDF 这一稀疏、非负、可解释的空间内使用余弦, 值域良态落在 0 到 1, 相对稠密嵌入更少踩中上述失真陷阱, 但它终究仍是表层话语度量。其二是同行效应与网络计量脉络: 认知邻近度所服务的更大模块是同行网络与信息经纪, Leary 与 Roberts (2014) 证明同行企业确实影响公司金融政策, Grieser 等 (2022) 刻画公司金融政策中的网络效应, Manski (1993) 的反射问题、Bramoullé, Djebbari 与 Fortin (2009) 关于社会网络中同行效应的识别、以及 Boucher 等 (2024) 的同行效应一般理论, 共同规定了在网络中做因果识别时必须处理的内生性与反射难题。其三是中国银行业媒体情境脉络: Fang 等 (2024) 关于媒体情绪、存款稳定与银行系统性风险的中国证据, 与 Han 等 (2024) 的机构经纪网络研究, 说明媒体话语在银行网络中的传导具有现实经济后果, 为把"新闻话语趋同"纳入银行面板提供了外部相关性。
 
 值得强调的是, 本项目选择 TF-IDF 而非稠密嵌入来操作化认知邻近度, 恰好规避了 Steck 等 (2024) 与 You (2025) 所警示的稠密空间余弦失真: 在学习到的嵌入空间里, 余弦读数会被表示学习的正则化与各向异性扭曲, 未必对应人类直觉的相似; 而 TF-IDF 是稀疏、非负、每一维都对应可解释字符 n-gram 的空间, 余弦的几何含义清晰、值域良态。Mainali 等 (2022) 对共现与相似度指数的改进则从统计角度提醒: 两两相似度的绝对水平会受样本组成 (当年进入向量化的银行集合) 影响, 这也是本测度逐年独立、且不宜跨年横比水平的方法学根据之一。同行网络脉络方面, 认知邻近度并不直接承担 Leary 与 Roberts (2014)、Grieser 等 (2022) 意义上的同行处理效应识别, 而是作为同期话语环境控制服务于该识别; Boucher 等 (2024) 的一般理论与 Bramoullé 等 (2009) 的网络识别结果共同界定了在网络中区分内生同行效应、外生情境效应与相关效应的条件, 本测度的同期控制角色正是为了净化其中的相关效应通道。
 
@@ -201,4 +208,5 @@ Levy, O., Goldberg, Y., & Dagan, I. (2015). Improving distributional similarity 
 Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate financial policy?. The Journal of Finance, 69(1), 139-178. https://doi.org/10.1111/jofi.12094
 Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effects through social networks. Journal of Econometrics, 150(1), 41-55. https://doi.org/10.1016/j.jeconom.2008.12.021
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. The Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
+Marra, A., Cucculelli, M., & Cartone, A. (2024). So far, yet so close. Using networks of words to measure proximity and spillovers between firms. Eurasian Business Review. https://doi.org/10.1007/s40821-024-00270-x
 <!-- rendered-citations:end -->

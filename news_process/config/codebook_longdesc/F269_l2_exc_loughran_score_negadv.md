@@ -1,5 +1,6 @@
 ---
 family_id: F269
+novelty_exempt_rationale: "exc_ 前缀停刊稳健性聚合 + negadv 规则消融变体的双重衍生家族, 测度定义依据母族词典 (Loughran & McDonald 中译) 及既有稳健性口径文献, 非独立新构念, 无需追新引文。"
 columns:
 - exc_loughran_score_negadv_ctx
 - exc_loughran_score_negadv_full

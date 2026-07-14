@@ -46,7 +46,21 @@ citations:
   year: 2021
   title: A new Chinese financial sentiment dictionary for textual analysis in accounting and finance
   venue: SSRN Working Paper
-new_dois: []
+- doi: "10.1111/eufm.12509"
+  title: "Identifying greenwashing in corporate-social responsibility reports using natural-language processing"
+  authors: "Gorovaia, N., & Makrominas, M."
+  year: 2025
+  venue: "European Financial Management"
+  type: "journal"
+- doi: "10.1016/j.techfore.2025.124511"
+  title: "Unveiling AI washing: Bridging corporate technological gaps through a cognitive dissonance lens"
+  authors: "Sun, Z., Wen, Y., Zhao, L., Almugren, I., & Galgotia, A."
+  year: 2026
+  venue: "Technological Forecasting and Social Change"
+  type: "journal"
+new_dois:
+  - "10.1111/eufm.12509"
+  - "10.1016/j.techfore.2025.124511"
 ---
 
 ## CORE
@@ -73,7 +87,7 @@ new_dois: []
 ## VAR: loughran_pos_substvalid_count_ss
 
 【变体差分】
-本列是家族在 ss (same-sentence) 轨下的实现: 分子端 loughran_score_ss 基于"标题 + 目标银行∧金科关键词同句 (±N 句窗口, 默认 N=1, 由 config/filtering.yaml::context_window.ss_sentence_radius 控制) 拼接文本"打分, 是三轨中文本范围最窄、判据最严格的一支——要求银行与金科词汇在同一句 (或邻近窗口) 内共现才纳入该轨的"实体窗口"文本, 因此对语调符号的敏感度与 ctx 轨、full 轨都可能不同。回退语义镜像 ctx 轨: 若某篇报道不存在银行∧金科同句共现 (常见于 dev T=2 小样本下), content_ss 回退为全文 body 且 ss_is_fallback=True, 此时 loughran_score_ss 实际读取的文本与 full 轨相同, 但仍由独立调用产生独立数值, 且该回退状态由 n_articles 分母共享的方式在下游标注 (与 ctx 轨共享同一套 fallback 记账口径)。分母端同样固定借用 innovation_substantiveness_full 掩码, 与 _ctx、_full 两列一致, 三列的分母口径不因分子轨道收窄而收窄。本列与另两轨互为稳健性并排, 是词典法洗稿率分母族里判据最严格因而通常样本量 (非零计数的 bank-year) 最小的一支, 在 dev T=2 小样本上可能出现较多零值或 fallback 主导的退化观测, 属该判据下的预期表现而非缺陷; 与 _full、_ctx 一样, 禁止混入同一 over-identified Hansen J 设定。判据后缀须与三轨文本后缀区分开: ss 轨的"同句"判据是分子端 loughran_score_ss 打分文本的构造规则, 与网络结构指标族 (如 bank_clustering 等) 中另一套独立的 {同篇/±1句窗/严格同句} 判据后缀体系 (config/panel.yaml::network_criteria) 是完全不同的两套后缀命名空间, 不可混淆; 本列后缀 `_ss` 属于三轨文本架构 (full/ctx/ss), 语义固定为"标题+银行∧金科同句±N窗", 不随下游网络指标的判据梯子变化。使用建议上, ss 轨因判据最严格、样本覆盖面最窄, 在生产全量语料 (T=18, 17,000,000+ 条报道) 下预期仍能保留可观的非零观测, 但在本机 dev T=2 (110 家银行 × 2 年) 小样本上很可能出现大量 fallback 触发 (回退为全文口径) 或零计数——这是判据本身在稀疏样本下的预期退化, 不应被误读为代码缺陷或数据丢失; 生产语料上的实际非零率须以实测为准, 不应据 dev 样本外推。
+本列是家族在 ss (same-sentence) 轨下的实现: 分子端 loughran_score_ss 基于"标题 + 目标银行∧金科关键词同句 (±N 句窗口, 默认 N=1, 由 config/filtering.yaml::context_window.ss_sentence_radius 控制) 拼接文本"打分, 是三轨中文本范围最窄。相关方法脉络上, Gorovaia & Makrominas (2025, European Financial Management) 用自然语言处理与词典法从企业社会责任报告文本中识别"洗绿"的语言标记, 呼应本家族以词典正面判定与实质性掩码构造洗稿率分母的方法学思路; Sun, Wen, Zhao, Almugren & Galgotia (2026, Technological Forecasting and Social Change) 以认知失调理论量化企业"AI 洗白"(话术与实际技术能力的落差) 对技术差距的影响, 与本家族"象征性 vs 实质性"披露区分构念直接对应、判据最严格的一支——要求银行与金科词汇在同一句 (或邻近窗口) 内共现才纳入该轨的"实体窗口"文本, 因此对语调符号的敏感度与 ctx 轨、full 轨都可能不同。回退语义镜像 ctx 轨: 若某篇报道不存在银行∧金科同句共现 (常见于 dev T=2 小样本下), content_ss 回退为全文 body 且 ss_is_fallback=True, 此时 loughran_score_ss 实际读取的文本与 full 轨相同, 但仍由独立调用产生独立数值, 且该回退状态由 n_articles 分母共享的方式在下游标注 (与 ctx 轨共享同一套 fallback 记账口径)。分母端同样固定借用 innovation_substantiveness_full 掩码, 与 _ctx、_full 两列一致, 三列的分母口径不因分子轨道收窄而收窄。本列与另两轨互为稳健性并排, 是词典法洗稿率分母族里判据最严格因而通常样本量 (非零计数的 bank-year) 最小的一支, 在 dev T=2 小样本上可能出现较多零值或 fallback 主导的退化观测, 属该判据下的预期表现而非缺陷; 与 _full、_ctx 一样, 禁止混入同一 over-identified Hansen J 设定。判据后缀须与三轨文本后缀区分开: ss 轨的"同句"判据是分子端 loughran_score_ss 打分文本的构造规则, 与网络结构指标族 (如 bank_clustering 等) 中另一套独立的 {同篇/±1句窗/严格同句} 判据后缀体系 (config/panel.yaml::network_criteria) 是完全不同的两套后缀命名空间, 不可混淆; 本列后缀 `_ss` 属于三轨文本架构 (full/ctx/ss), 语义固定为"标题+银行∧金科同句±N窗", 不随下游网络指标的判据梯子变化。使用建议上, ss 轨因判据最严格、样本覆盖面最窄, 在生产全量语料 (T=18, 17,000,000+ 条报道) 下预期仍能保留可观的非零观测, 但在本机 dev T=2 (110 家银行 × 2 年) 小样本上很可能出现大量 fallback 触发 (回退为全文口径) 或零计数——这是判据本身在稀疏样本下的预期退化, 不应被误读为代码缺陷或数据丢失; 生产语料上的实际非零率须以实测为准, 不应据 dev 样本外推。
 
 <!-- rendered-citations:end -->
 
@@ -82,4 +96,6 @@ Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textua
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.3446388
+Gorovaia, N., & Makrominas, M. (2025). Identifying greenwashing in corporate-social responsibility reports using natural-language processing. European Financial Management. https://doi.org/10.1111/eufm.12509
+Sun, Z., Wen, Y., Zhao, L., Almugren, I., & Galgotia, A. (2026). Unveiling AI washing: Bridging corporate technological gaps through a cognitive dissonance lens. Technological Forecasting and Social Change. https://doi.org/10.1016/j.techfore.2025.124511
 <!-- rendered-citations:end -->

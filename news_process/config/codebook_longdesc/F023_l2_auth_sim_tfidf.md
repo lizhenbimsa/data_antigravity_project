@@ -73,7 +73,14 @@ citations:
   vol: 4
   issue: 11
   pages_or_artno: 1208-1214
-new_dois: []
+- doi: "10.1016/j.econmod.2025.107121"
+  title: "Monetary policy analysis using natural language processing: Evaluating the People's Bank of China's minutes and report summary with the Taylor Rule"
+  authors: "Su, S., Ahmad, A. H., Wood, J., & Jia, S."
+  year: 2025
+  venue: "Economic Modelling, 149, 107121"
+  type: "journal"
+new_dois:
+  - "10.1016/j.econmod.2025.107121"
 ---
 
 ## CORE
@@ -85,7 +92,7 @@ new_dois: []
 计算分四步。第一步文本聚合: 把目标银行一整年的全部相关新闻碎片按轨道拼接成一份长文档, 消除文章级的特质性白噪音, 得到 Firm-Year 级的结构化画像。第二步锚点构造: 把权威政策语料按发布年份 (vintage) 切分, 年度 t 的"标准答案"只拼接发布年份 ≤ t 的政策文件, 这一前视守卫消除"用尚未出台的政策当标答"的构造偏误; 无 ≤ t 政策文档的早年份 (前视守卫年份) 该指标置 NaN。第三步幽灵锚点比对: 把政策标答文本当作第 (N+1) 个虚拟"幽灵银行"挂到银行文本列表末尾, 送入与战略差异模块绝对同构的 TF-IDF 矩阵提取器, 取对称余弦矩阵最后一列即各银行相对该锚点的相似度。第四步汇总挂载至 target_bank × year 面板。本家族专指其中的词级 (word) 变体: 向量化器采用 jieba 词级分词器 (token_pattern=None, 领域复合词如"金融科技""区块链"整词保留), 参数 max_features=5000 控制词表规模, min_df=1 保留所有出现过的词以防小样本清空词表, max_df=0.95 排除出现在 95% 以上文档的超高频停用性词 (词表被清空时降级为 max_df=1.0 不过滤), sublinear_tf=True 以 log(1+tf) 抑制词频极端值, 最终取 TF-IDF 向量的余弦相似度, 取值域 [0,1]。词级 TF-IDF 属稀疏词袋测度, 依赖分词质量但语义粒度高于字符 n-gram; 它与同模块的字符级 auth_sim_tfidf_c (char_wb 2-4 gram, 不依赖分词)、主题级 auth_sim_lda (LDA-JSD)、以及 co-primary 嵌入级 auth_sim_emb / auth_sim_emb_lg 是四条并行的相似度测度轨, 各自捕捉不同的语义层次, 互为稳健性、不分主次, 各自 just-identified 并排, 禁混进同一 over-identified Hansen J。此外家族在 vintage 主轨之外并列产出全年份静态锚点的 _allv 稳健孪生 (含未来政策文本, 仅作 anchor-robustness 对照, 绝不替换 vintage 主轨), 三个 _w 主列不带 _allv 后缀。
 
 【文献定位】
-词级 TF-IDF 余弦是分布式语义假设的稀疏经典实现, 其有效性根植于以词共现刻画语义相近的思想; Levy, Goldberg, Dagan (2015) 系统比较词袋加权与稠密嵌入后指出, 恰当的加权与归一化 (与本家族 sublinear_tf、余弦归一同源) 能让计数型表示逼近嵌入的相似度判别力, 为本家族保留 TF-IDF 稀疏轨提供了方法论辩护。相似度测度本身存在几何陷阱: Steck, Ekanadham, Kallus (2024) 与 You (2025) 分别从嵌入的正则化不变性与角度语义漂移两个角度警示, 余弦相似度的数值在某些表示空间下会脱离"语义相近"的直觉; 本家族以词级 TF-IDF、字符级 TF-IDF、LDA、嵌入四轨并行, 正是把这一警示转化为多测度交叉验证的设计原则, 而非依赖任一单轨。在测度设计层面, Mainali et al. (2022) 论证共现型相似度指数须校正样本规模与边际频率的机械成分, 提醒读者本家族的年度聚合语料长度差异可能带来水平不可比、须以标准化系数而非原始相似度水平作跨行比较。相似度估计的可扩展性有其算法史: Charikar (2002) 的 SimHash 舍入技术奠定了从随机投影角度逼近余弦相似度的经典路径, 是理解相似度测度计算复杂度权衡的基石; 而 Opitz et al. (2025) 的可解释文本相似度综述则勾勒了从稀疏词袋到可解释嵌入的方法谱系, 为本家族在四轨中定位词级 TF-IDF 的可解释性优势 (每一维直接对应可读词项) 提供了坐标。最后, 三轨与四测度构成的规格空间须以规格曲线的纪律呈现: Simonsohn, Simmons, Nelson (2020) 主张把合理的分析自由度全部物化并联合报告, 本家族的三轨 × 四测度 × vintage/_allv 锚点的并排即遵循这一披露原则, 避免择优汇报。
+词级 TF-IDF 余弦是分布式语义假设的稀疏经典实现, 其有效性根植于以词共现刻画语义相近的思想; Levy, Goldberg, Dagan (2015) 系统比较词袋加权与稠密嵌入后指出, 恰当的加权与归一化 (与本家族 sublinear_tf、余弦归一同源) 能让计数型表示逼近嵌入的相似度判别力, 为本家族保留 TF-IDF 稀疏轨提供了方法论辩护。相似度测度本身存在几何陷阱: Steck, Ekanadham, Kallus (2024) 与 You (2025) 分别从嵌入的正则化不变性与角度语义漂移两个角度警示, 余弦相似度的数值在某些表示空间下会脱离"语义相近"的直觉; 本家族以词级 TF-IDF、字符级 TF-IDF、LDA、嵌入四轨并行, 正是把这一警示转化为多测度交叉验证的设计原则, 而非依赖任一单轨。在测度设计层面, Mainali et al. (2022) 论证共现型相似度指数须校正样本规模与边际频率的机械成分, 提醒读者本家族的年度聚合语料长度差异可能带来水平不可比、须以标准化系数而非原始相似度水平作跨行比较。相似度估计的可扩展性有其算法史: Charikar (2002) 的 SimHash 舍入技术奠定了从随机投影角度逼近余弦相似度的经典路径, 是理解相似度测度计算复杂度权衡的基石; 而 Opitz et al. (2025) 的可解释文本相似度综述则勾勒了从稀疏词袋到可解释嵌入的方法谱系, 为本家族在四轨中定位词级 TF-IDF 的可解释性优势 (每一维直接对应可读词项) 提供了坐标。最后, 三轨与四测度构成的规格空间须以规格曲线的纪律呈现: Simonsohn, Simmons, Nelson (2020) 主张把合理的分析自由度全部物化并联合报告, 本家族的三轨 × 四测度 × vintage/_allv 锚点的并排即遵循这一披露原则, 避免择优汇报。该文以词向量余弦相似度量化中国人民银行政策文本随时间的语义贴合与演变, 为本家族的 vintage 政策锚点余弦相似度构造提供了中国央行语境下的方法论近邻, 引用格式 Su, Ahmad, Wood, & Jia (2025, Economic Modelling)。
 
 ## VAR: auth_sim_tfidf_w_full
 
@@ -111,4 +118,5 @@ Mainali, K. P., Slud, E., Singer, M. C., & Fagan, W. F. (2022). A better index f
 Levy, O., Goldberg, Y., & Dagan, I. (2015). Improving distributional similarity with lessons learned from word embeddings. Transactions of the Association for Computational Linguistics, 3, 211-225. https://doi.org/10.1162/tacl_a_00134
 Charikar, M. S. (2002). Similarity estimation techniques from rounding algorithms. Proceedings of the Thirty-Fourth Annual ACM Symposium on Theory of Computing (STOC '02), 380-388. https://doi.org/10.1145/509907.509965
 Simonsohn, U., Simmons, J. P., & Nelson, L. D. (2020). Specification curve analysis. Nature Human Behaviour, 4(11), 1208-1214. https://doi.org/10.1038/s41562-020-0912-z
+Su, S., Ahmad, A. H., Wood, J., & Jia, S. (2025). Monetary policy analysis using natural language processing: Evaluating the People's Bank of China's minutes and report summary with the Taylor Rule. Economic Modelling, 149, 107121. https://doi.org/10.1016/j.econmod.2025.107121
 <!-- rendered-citations:end -->

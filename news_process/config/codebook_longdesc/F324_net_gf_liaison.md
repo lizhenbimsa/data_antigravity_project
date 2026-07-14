@@ -183,7 +183,30 @@ citations:
   vol: 1
   issue: 3
   pages_or_artno: "215-239"
-new_dois: []
+- doi: "10.1111/acfi.13091"
+  type: journal
+  authors: "Wang, L., Hou, W., & Liu, Y."
+  year: 2023
+  title: "How do co-shareholding networks affect negative media coverage? Evidence from China"
+  venue: "Accounting & Finance"
+- doi: "10.1002/smj.3538"
+  title: "Network advantage: Uncontested structural holes and organizational performance in market crises"
+  authors: "Shipilov, A., Li, S. X., Bothner, M. S., & Truong, N."
+  year: 2023
+  venue: "Strategic Management Journal"
+  type: "journal"
+  one_sentence_zh: "以投资银行纵向数据考察独占型与共享型结构洞在2000年互联网泡沫与2008年金融危机中对组织绩效影响的差异,发现唯有独占型结构洞在危机期仍带来绩效优势。"
+- doi: "10.1080/1540496X.2025.2562336"
+  title: "Analyst Network: Implications for Systemic Risk of Non-Financial Firms in China"
+  authors: "Xiang, Y., & Borjigin, S."
+  year: 2025
+  venue: "Emerging Markets Finance and Trade"
+  type: "journal"
+  one_sentence_zh: "以2003-2022年中国上市公司为样本,发现分析师网络中处于中心位置的企业系统性风险更低,信息网络通过提升信息透明度与治理水平传导这一效应。"
+new_dois:
+- "10.1111/acfi.13091"
+- "10.1002/smj.3538"
+- "10.1080/1540496X.2025.2562336"
 ---
 
 ## CORE
@@ -198,7 +221,7 @@ new_dois: []
 角色枚举的时间复杂度对单个经纪银行为其度数的平方乘以邻接查询常数, 全年全网为各节点度数平方之和的量级; 在银行数百量级、年度图远未饱和的生产语料下逐年计算开销可忽略, 且与谱类指标不同不需要任何线性代数库, 纯 Python 整数路径保证了跨平台逐位一致。确定性设计有三处显式落点: 邻居按名称排序后枚举 (canonical 序), 无序对只按索引上三角走一遍 (不重复计正逆), 分组映射为只读字典 — 三者合并保证同输入必同输出, 这使 gf 五列成为网络列族中少数可直接进入 golden 逐位校验、无需列入 BLAS 漂移排除清单的列。工程边界上, 判据参数与落列后缀在函数入口做配套断言 (article 对空后缀、win1 对 _win1、sent 对 _sent), 错配立即抛错而非静默串列; networkx 缺装时整个网络步骤优雅跳过并落警告, 分组文件缺失时仅 gf 五列置 NaN 而其余二十八个结构指标照常产出, 两级降级互不连坐。列名、判据标签与 Stata 变量标签由 NETWORK_METRIC_BASES 单一事实源机械派生, stata_export 与 gate 测试 import 复用同一元组防漂移, 任何对本家族的增删必须从该元组入手而非散改字符串。
 
 【文献定位】
-本家族在方法与实证两个层面各有清晰的文献锚点。方法层面, Gould 与 Fernandez (1989) 是角色分解算法的唯一出处; Freeman (1978) 的中心度概念澄清则是理解经纪与中心度之区分的前提 — 中介中心度衡量的是节点落在最短路径上的频率, 与群体归属无关, 而 GF 分解的全部信息增量恰在于把桥接行为按群体语义切开。Zádor 等 (2022) 系统讨论了经典 GF 计数的两个已知短板 (不加权、不归一) 并提出加权归一化改进, 本项目刻意保留经典未加权计数作为 canonical 口径, 将该文作为局限披露与未来稳健性方向的方法学参照。实证层面, 经纪与中心度位置影响金融主体行为与绩效的证据链包括: Han, Kim 与 Nanda (2024) 发现机构经纪网络实质性促进流动性供给; Yu, Hu 与 Zhong (2024) 表明网络中心度经由信息扩散渠道进入资产定价; Nezami, Chisam 与 Palmatier (2025) 的元分析确认中心度与企业绩效的稳健正相关但强调效应量对网络构造口径敏感; Grieser 等 (2022) 证明公司金融政策存在显著网络效应。银行与金融网络方向, Jackson 与 Pernoud (2021) 的系统性风险综述确立了银行间网络结构 (含跨群桥接位置) 对风险传染的核心作用; Gao, Ru 与 Yang (2022) 以中国股权网络证明网络信息在银行信贷决策中的作用; Wang, Zhang 与 Yang (2020) 刻画了中国担保网络在危机与刺激期的演化, 为中国银行间以群体为界的网络结构提供了直接背景。媒体文本建网这一数据来源的合法性由文本网络文献支撑: Li 等 (2026) 从文本风险披露中恢复金融网络结构与关联度, Xu (2024) 证明财经记者社交网络塑造新闻偏差 — 后者同时提醒共现网络部分内生于媒体生产过程; You, Zhang 与 Zhang (2018) 关于中国媒体笔杆子被俘获的证据, 与 Fang 等 (2024) 关于媒体情绪影响中国银行存款稳定与系统性风险的发现, 共同确立了媒体叙事对中国银行业结果变量的实质传导。Hirshleifer, Peng 与 Wang (2025) 与 Cookson 等 (2026) 则从新闻在网络中的扩散与社交媒体挤兑催化两个方向, 说明银行在信息网络中的位置本身即是风险与关注的传导管道 — 这正是把 liaison 位置作为面板解释性结构控制的经济学动机。
+本家族在方法与实证两个层面各有清晰的文献锚点。方法层面, Gould 与 Fernandez (1989) 是角色分解算法的唯一出处; Freeman (1978) 的中心度概念澄清则是理解经纪与中心度之区分的前提 — 中介中心度衡量的是节点落在最短路径上的频率, 与群体归属无关, 而 GF 分解的全部信息增量恰在于把桥接行为按群体语义切开。Zádor 等 (2022) 系统讨论了经典 GF 计数的两个已知短板 (不加权、不归一) 并提出加权归一化改进, 本项目刻意保留经典未加权计数作为 canonical 口径, 将该文作为局限披露与未来稳健性方向的方法学参照。实证层面, 经纪与中心度位置影响金融主体行为与绩效的证据链包括: Han, Kim 与 Nanda (2024) 发现机构经纪网络实质性促进流动性供给; Yu, Hu 与 Zhong (2024) 表明网络中心度经由信息扩散渠道进入资产定价; Nezami, Chisam 与 Palmatier (2025) 的元分析确认中心度与企业绩效的稳健正相关但强调效应量对网络构造口径敏感; Grieser 等 (2022) 证明公司金融政策存在显著网络效应。银行与金融网络方向, Jackson 与 Pernoud (2021) 的系统性风险综述确立了银行间网络结构 (含跨群桥接位置) 对风险传染的核心作用; Gao, Ru 与 Yang (2022) 以中国股权网络证明网络信息在银行信贷决策中的作用; Wang, Zhang 与 Yang (2020) 刻画了中国担保网络在危机与刺激期的演化, 为中国银行间以群体为界的网络结构提供了直接背景。媒体文本建网这一数据来源的合法性由文本网络文献支撑: Li 等 (2026) 从文本风险披露中恢复金融网络结构与关联度, Xu (2024) 证明财经记者社交网络塑造新闻偏差 — 后者同时提醒共现网络部分内生于媒体生产过程; You, Zhang 与 Zhang (2018) 关于中国媒体笔杆子被俘获的证据, 与 Fang 等 (2024) 关于媒体情绪影响中国银行存款稳定与系统性风险的发现, 共同确立了媒体叙事对中国银行业结果变量的实质传导。Hirshleifer, Peng 与 Wang (2025) 与 Cookson 等 (2026) 则从新闻在网络中的扩散与社交媒体挤兑催化两个方向, 说明银行在信息网络中的位置本身即是风险与关注的传导管道 — 这正是把 liaison 位置作为面板解释性结构控制的经济学动机。Wang, Hou 与 Liu (2023, Accounting & Finance) 以中国上市公司为样本, 证明企业在共同持股网络中的中心度与结构洞位置系统影响其获得的负面媒体报道量, 为本家族将银行媒体共现网络中的结构位置 (含跨群经纪角色) 作为解释媒体叙事暴露的结构性协变量提供了直接的中国情境实证支持。Shipilov, Li, Bothner 与 Truong (2023, Strategic Management Journal) 以投资银行纵向数据考察独占型与共享型结构洞在2000年互联网泡沫与2008年金融危机中对组织绩效影响的差异,发现唯有独占型结构洞在危机期仍带来绩效优势,为经纪与结构洞位置的价值随宏观冲击状态切换提供了实证支持;Xiang 与 Borjigin (2025, Emerging Markets Finance and Trade) 以2003-2022年中国上市公司为样本,发现分析师网络中处于中心位置的企业系统性风险更低,信息网络通过提升信息透明度与治理水平传导这一效应,为本项目将银行网络结构位置与系统性风险及信息透明度相联系的经济学动机补充了中国情境证据。
 
 【识别策略定位】
 本家族在诸论文规格中的定位是网络结构控制变量与机制调节变量, 不是任何一篇论文的处理变量或主结局。将其纳入回归的首要目的, 是在估计媒体情感或金融科技测度对银行结果的效应时, 吸收银行在媒体叙事网络中的结构位置差异 — 一家常年充当跨类型叙事桥梁的银行, 其被报道的强度、题材与语调分布均系统异于网络边缘银行, 遗漏该维度会使情感系数混入结构位置效应。识别上须直面网络计量的两大经典难题。其一是 Manski (1993) 的反射问题: 同群银行的结果与特征互为函数, 天真回归无法分离内生社会效应与外生特征效应; Bramoullé, Djebbari 与 Fortin (2009) 证明网络的不完全传递性 (朋友的朋友不是朋友) 可提供识别力, 而 liaison 计数恰恰以端点不直连为定义要件, 其变异正来自网络中的开放三元组, 与该识别逻辑同构。Boucher 等 (2024) 的一般化同伴效应理论进一步说明线性均值模型只是特例, 结构位置变量进入回归的函数形式本身即是规格选择。其二是网络内生性: 共现网络由媒体选题生成, 而选题与银行不可观测冲击相关。本项目的缓解路径是分层的 — 银行与年份双向固定效应吸收持久位置与年度网络整体形态 (gf 列是节点级测度, 年固定效应下仍有组内变异, 与被年固定效应完全吸收的 net 级年度广播列不同); IV 扩展族 (同组留一均值、广义 Bartik、媒体 house-style 暴露) 为情感处理变量提供外生变异; 判据梯子 (下述) 检验建边口径这一研究者自由度。gf 列自身不设工具变量, 其系数一律作条件相关而非因果解读, 相应论文稿的稳健性叙事亦按此披露。
@@ -245,4 +268,7 @@ Burt, R. S. (2004). Structural holes and good ideas. American Journal of Sociolo
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
 Gould, R. V., & Fernandez, R. M. (1989). Structures of mediation: A formal approach to brokerage in transaction networks. Sociological Methodology, 19, 89-126. https://doi.org/10.2307/270949
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
+Wang, L., Hou, W., & Liu, Y. (2023). How do co-shareholding networks affect negative media coverage? Evidence from China. Accounting & Finance. https://doi.org/10.1111/acfi.13091
+Shipilov, A., Li, S. X., Bothner, M. S., & Truong, N. (2023). Network advantage: Uncontested structural holes and organizational performance in market crises. Strategic Management Journal. https://doi.org/10.1002/smj.3538
+Xiang, Y., & Borjigin, S. (2025). Analyst Network: Implications for Systemic Risk of Non-Financial Firms in China. Emerging Markets Finance and Trade. https://doi.org/10.1080/1540496X.2025.2562336
 <!-- rendered-citations:end -->

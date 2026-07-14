@@ -80,7 +80,28 @@ citations:
   vol: 69
   issue: 4
   pages_or_artno: 1643-1671
-new_dois: []
+- doi: "10.1016/j.ribaf.2025.103096"
+  type: journal
+  authors: "Duan, Y., Fan, X., & Wang, Z."
+  year: 2025
+  title: "Text readability of regulatory policies and bank profit efficiency"
+  venue: "Research in International Business and Finance"
+- doi: "10.1017/nlp.2024.50"
+  title: "Textual form features for text readability assessment"
+  authors: "Pan, W., Li, X., Chen, X., & Xu, R."
+  year: 2024
+  venue: "Natural Language Processing"
+  type: "journal"
+- doi: "10.1080/23311886.2025.2524004"
+  title: "Can ChatGPT improve the readability of financial reporting by the public sector entities? The case of Lisbon municipality"
+  authors: "Albuquerque, F., & Gomes dos Santos, P."
+  year: 2025
+  venue: "Cogent Social Sciences"
+  type: "journal"
+new_dois:
+  - "10.1016/j.ribaf.2025.103096"
+  - "10.1017/nlp.2024.50"
+  - "10.1080/23311886.2025.2524004"
 ---
 
 ## CORE
@@ -92,7 +113,7 @@ new_dois: []
 文章级 char_per_word 的计算见 tone_words.py 的可读性代理函数: 先以 jieba 对报道正文分词, 随后彻底剔除标点与空白 token (标点集覆盖 ASCII 标点与全角中文标点、换行/制表/回车), 仅保留真实词汇 token (real_tokens); 分子为所有真实 token 的字符长度之和 total_chars, 分母为真实 token 数 n_real_tokens (以 max(len, 1) 防零除), 商即平均词长, 保留四位小数。之所以先剔标点, 是为了防止无意义标点被当作独立"词"稀释或夸大字符/词计数——这一去标点口径与同族 type_token_ratio 严格一致, 保证词长与词汇丰富度共享同一分词底盘。面板聚合在 encode.py 的可读性控制块 (H 段, 注明依据 Loughran & McDonald 2014) 完成: avg_cpw{track} = 该 bank-year 内所有留篇文章 char_per_word{track} 的算术均值。此处须精确澄清本列的缺失语义, 以免与"填 NaN 后由 mean 跳过"的一般口径混淆: 文章级 char_per_word 恒为数值, 从不产出 NaN——分母以 max(len(real_tokens), 1) 兜底, 故真实词 token 为空时商为 total_chars/1=0.0; 整篇空文本走哨兵初始化路径亦显式置 char_per_word=0.0。换言之极短或空文本得到的是一个真实计算出的 0.0 并计入年度均值, 而非一个被聚合层跳过的缺失值。pandas 的 mean 聚合在泛化意义上确会跳过 NaN, 但对本列而言 producer 已在文章级把 NaN 来源消除, 该跳过分支在本列上实际不被触发。因此该列是一个纯 $0 后处理测度 (无 LLM、无 API、无嵌入调用), 在 prompt 与 jieba 版本冻结下逐位可复现。留篇口径遵循 2026-06-29 起的 full-only 门控: 一篇报道是否计入某银行某年的分母, 只由 llm_verified_full 判定; full 轨在留篇全集上计算, ctx/ss 轨则在其 full 留篇子集上以各自轨文本条件计算 (conditional-on-full), 三轨共享同一 n_articles 分母定义但各读各轨文本。
 
 【文献定位】
-avg_cpw 属于文本即数据 (text-as-data) 范式下的语言学特征工程。Gentzkow、Kelly 与 Taddy (2019) 把文本特征提取组织为从词计数到高维表征的统一框架, avg_cpw 处在其中最轻量、最可解释的"表层语言学度量"一端。Bochkay、Brown、Leone 与 Tucker (2023) 的会计文本分析综述进一步把词典/词袋方法与上下文化预训练模型并置, 为本项目"词典 (stage 22) 与 BERT (stage 23) 与 LLM (stage 21) 三类方法并行"的总体架构提供了综述级定位——avg_cpw 是其中词典法一侧的非极性 (non-polarity) 语言学控制变量, 服务于"控制文本复杂度后情感信号是否稳健"这一识别关切。可读性度量本身的方法学争议由 Loughran 与 McDonald (2014, 2016) 与 Bonsall、Leone、Miller 与 Rennekamp (2017) 的 plain-English 度量所刻画: 后者论证综合可读性 (含用词) 优于单一 Fog, avg_cpw 取"词长"这一 plain-English 子维度作银行媒体语料的近似。文本复杂度的经济后果在近期文献中持续被验证: Yu 与 Zhao (2024) 发现披露文本复杂度影响分析师对信息的加权, Lesmy、Muchnik 与 Mugerman (2025) 记录了财务报告复杂度的跨期增长及其对可理解性的侵蚀; 二者共同支撑"词长是有经济含义的报道属性"这一前提。需强调 avg_cpw 是词长而非词汇多样性: Bestgen (2025) 对移动平均 type-token ratio 的评估提醒, 词长与词汇丰富度是两个不可相互替代的复杂度轴, 这正是本项目将 cpw、ttr、sentence_len 分列三个面板列而非合成单一可读性分的方法学理由。
+avg_cpw 属于文本即数据 (text-as-data) 范式下的语言学特征工程。Gentzkow、Kelly 与 Taddy (2019) 把文本特征提取组织为从词计数到高维表征的统一框架, avg_cpw 处在其中最轻量、最可解释的"表层语言学度量"一端。Bochkay、Brown、Leone 与 Tucker (2023) 的会计文本分析综述进一步把词典/词袋方法与上下文化预训练模型并置, 为本项目"词典 (stage 22) 与 BERT (stage 23) 与 LLM (stage 21) 三类方法并行"的总体架构提供了综述级定位——avg_cpw 是其中词典法一侧的非极性 (non-polarity) 语言学控制变量, 服务于"控制文本复杂度后情感信号是否稳健"这一识别关切。可读性度量本身的方法学争议由 Loughran 与 McDonald (2014, 2016) 与 Bonsall、Leone、Miller 与 Rennekamp (2017) 的 plain-English 度量所刻画: 后者论证综合可读性 (含用词) 优于单一 Fog, avg_cpw 取"词长"这一 plain-English 子维度作银行媒体语料的近似。文本复杂度的经济后果在近期文献中持续被验证: Yu 与 Zhao (2024) 发现披露文本复杂度影响分析师对信息的加权, Lesmy、Muchnik 与 Mugerman (2025) 记录了财务报告复杂度的跨期增长及其对可理解性的侵蚀; 二者共同支撑"词长是有经济含义的报道属性"这一前提。需强调 avg_cpw 是词长而非词汇多样性: Bestgen (2025) 对移动平均 type-token ratio 的评估提醒, 词长与词汇丰富度是两个不可相互替代的复杂度轴, 这正是本项目将 cpw、ttr、sentence_len 分列三个面板列而非合成单一可读性分的方法学理由。Duan、Fan 与 Wang (2025, Research in International Business and Finance) 以中国银行业 2009 至 2023 年样本证明监管政策文本可读性显著影响银行利润效率, 为本家族用词复杂度是有经济后果的银行相关文本属性这一前提提供了中国银行业情境下的最新实证支持。Pan, Li, Chen 与 Xu (2024, Natural Language Processing) 提出并系统评估词长、句长等表层文本形式特征在可读性评估中的预测力, 为本家族以平均词长作可读性代理提供计算语言学方法论支持。Albuquerque 与 Gomes dos Santos (2025, Cogent Social Sciences) 以里斯本市政财务报告为案例, 考察生成式AI能否降低金融文本用词复杂度、提升可读性, 呼应本家族词长指标的经济后果关切。
 
 ## VAR: avg_cpw_full
 
@@ -118,4 +139,7 @@ Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic L
 Bonsall, S. B., IV, Leone, A. J., Miller, B. P., & Rennekamp, K. (2017). A plain English measure of financial reporting readability. Journal of Accounting and Economics, 63(2-3), 329-357. https://doi.org/10.1016/j.jacceco.2017.03.002
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
 Loughran, T., & McDonald, B. (2014). Measuring readability in financial disclosures. The Journal of Finance, 69(4), 1643-1671. https://doi.org/10.1111/jofi.12162
+Duan, Y., Fan, X., & Wang, Z. (2025). Text readability of regulatory policies and bank profit efficiency. Research in International Business and Finance. https://doi.org/10.1016/j.ribaf.2025.103096
+Pan, W., Li, X., Chen, X., & Xu, R. (2024). Textual form features for text readability assessment. Natural Language Processing. https://doi.org/10.1017/nlp.2024.50
+Albuquerque, F., & Gomes dos Santos, P. (2025). Can ChatGPT improve the readability of financial reporting by the public sector entities? The case of Lisbon municipality. Cogent Social Sciences. https://doi.org/10.1080/23311886.2025.2524004
 <!-- rendered-citations:end -->

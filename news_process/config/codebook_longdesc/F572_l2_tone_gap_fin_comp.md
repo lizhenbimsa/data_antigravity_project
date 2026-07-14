@@ -69,7 +69,21 @@ citations:
   vol: "37"
   issue: "30"
   pages_or_artno: "24883-24892"
-new_dois: []
+- doi: "10.1016/j.heliyon.2024.e30211"
+  title: "Sentimental showdown: News media vs. social media in stock markets"
+  authors: "Nyakurukwa, K., & Seetharam, Y."
+  year: 2024
+  venue: "Heliyon"
+  type: "journal"
+- doi: "10.1016/j.enpol.2023.113917"
+  title: "Is the tone of the government-controlled media valuable for capital market? Evidence from China's new energy industry"
+  authors: "Xu, Z., Li, J., Hua, X., & Ren, P."
+  year: 2024
+  venue: "Energy Policy"
+  type: "journal"
+new_dois:
+  - "10.1016/j.heliyon.2024.e30211"
+  - "10.1016/j.enpol.2023.113917"
 ---
 
 ## CORE
@@ -79,7 +93,7 @@ new_dois: []
 【方法学与计算】
 分子分母的构造分两步。第一步在文章级 (article-level) 依据 pipeline\panel\attention_media.py 内的 _media_type 分类逻辑, 把该银行-金科共现文章按报道该文章的媒体名称归入 fin / comp / other 三类之一 (三分类互斥穷尽, 分类字典与判据见同模块内的媒体名单常量, 本家族不复述判据细节, 只承接其输出)。第二步在 (target_bank, year) 面板格内, 分别对归入 fin 类和归入 comp 类的文章计算 llm_vote_score{track} 的组内均值, 得到 tone_fin_media{track} 与 tone_comp_media{track} 两个中间面板列, 再相减得到 tone_gap_fin_comp{track} = tone_fin_media{track} − tone_comp_media{track}。这里的 llm_vote_score{track} 是三家 LLM (gpt-5.4-nano / gemini-3.1-flash-lite / deepseek-v4-flash) 多数投票情感的数值编码, 与家族命名前缀 "l2" 对应的二级 (面板级) 派生列一致, 不是文章级原始概率。三个轨道 (full/ctx/ss) 各自独立走完上述两步, 互不借用彼此的中间列; 任一轨道的源列 llm_vote_score{track} 若在上游面板缺失 (attention_media.py 内 `if src not in df.columns: continue` 的优雅跳过判据), 该轨道对应的 tone_gap_fin_comp{track} 及其两个中间均值列整体缺失, 不会用其他轨道回填。分组均值的样本量取决于 fin_media_frac 与 comp_media_frac 所反映的该 bank-year 格内两类媒体覆盖的文章数, 当某一类媒体在该格内零覆盖时, 对应的组内均值为缺失, 缺口列随之缺失 (而非置零), 这一点在解读面板稀疏格 (尤其 T=2 开发库中的小样本格) 时需要特别注意, 缺失不代表语调持平。
 【文献定位】
-将媒体报道按类型分组后比较组间语调差异, 方法论上承袭 Tetlock (2007, Journal of Finance) 开创的"媒体情感作为可度量、可用于预测市场行为的信号"范式, 但本家族更进一步吸收了 You, Zhang & Zhang (2018) 与 Qin, Strömberg & Wu (2018) 关于媒体异质性 (media heterogeneity) 的核心洞见: 把媒体简单聚合为单一情感均值会掩盖不同媒体类型在报道立场上的系统性分歧, 而这种分歧本身就承载了识别信息 (例如财经媒体相对综合媒体更负面, 可能反映专业读者更早捕捉到风险信号; 反之则可能反映宣传性报道对负面消息的稀释)。中国银行业媒体情感与银行系统性风险的关联在 Fang, Wang, Wang & Yuan (2024, International Review of Economics & Finance) 中已有直接的中国场景证据, 为本家族在中国银行样本上的构念效度提供了同域支撑。三个语调子测度 (fin/comp 组均值本身) 采用的是三家 LLM 多数投票口径, 这一测度选择处在一条更宽的方法学谱系延长线上: Frankel, Jennings & Lee (2022, Management Science) 系统比较了传统机器学习分类器与词典法在披露情感测度上的表现差异, 其核心结论是基于统计学习的分类方法相较固定词典更能捕捉语境依赖的措辞含义, 这一"学习型方法优于规则型词典"的判断为本家族选择模型化 (而非纯词典) 情感测度路径提供了方法学上的先导依据, 但需明确该文比较的是传统机器学习分类器与词典法, 并非专门针对大语言模型, 本家族实际采用的三家 LLM 多数投票口径是在这一"学习型优于规则型"谱系上的进一步延伸, 而非该文直接验证的对象; 与 Lan, Wu, Xu, Feng & Zhang (2025, Neural Computing and Applications) 关于中文金融细粒度情感分析的近期证据结合来看, 才更直接支撑基于大模型的情感判定在中文金融文本上相较传统词典法具备更细粒度的语境识别能力这一具体论断。
+将媒体报道按类型分组后比较组间语调差异, 方法论上承袭 Tetlock (2007, Journal of Finance) 开创的"媒体情感作为可度量、可用于预测市场行为的信号"范式, 但本家族更进一步吸收了 You, Zhang & Zhang (2018) 与 Qin, Strömberg & Wu (2018) 关于媒体异质性 (media heterogeneity) 的核心洞见: 把媒体简单聚合为单一情感均值会掩盖不同媒体类型在报道立场上的系统性分歧, 而这种分歧本身就承载了识别信息 (例如财经媒体相对综合媒体更负面, 可能反映专业读者更早捕捉到风险信号; 反之则可能反映宣传性报道对负面消息的稀释)。中国银行业媒体情感与银行系统性风险的关联在 Fang, Wang, Wang & Yuan (2024, International Review of Economics & Finance) 中已有直接的中国场景证据, 为本家族在中国银行样本上的构念效度提供了同域支撑。三个语调子测度 (fin/comp 组均值本身) 采用的是三家 LLM 多数投票口径, 这一测度选择处在一条更宽的方法学谱系延长线上: Frankel, Jennings & Lee (2022, Management Science) 系统比较了传统机器学习分类器与词典法在披露情感测度上的表现差异, 其核心结论是基于统计学习的分类方法相较固定词典更能捕捉语境依赖的措辞含义, 这一"学习型方法优于规则型词典"的判断为本家族选择模型化 (而非纯词典) 情感测度路径提供了方法学上的先导依据, 但需明确该文比较的是传统机器学习分类器与词典法, 并非专门针对大语言模型, 本家族实际采用的三家 LLM 多数投票口径是在这一"学习型优于规则型"谱系上的进一步延伸, 而非该文直接验证的对象; 与 Lan, Wu, Xu, Feng & Zhang (2025, Neural Computing and Applications) 关于中文金融细粒度情感分析的近期证据结合来看, 才更直接支撑基于大模型的情感判定在中文金融文本上相较传统词典法具备更细粒度的语境识别能力这一具体论断。Nyakurukwa & Seetharam (2024, Heliyon) 对比新闻媒体与社交媒体情感对股票收益的影响, 发现两类媒体情感相互关联且需联合建模, 为本家族"不同媒体来源情感系统性有别、不可简单聚合"的构念提供跨媒体类型的最新实证支撑。Xu, Li, Hua & Ren (2024, Energy Policy) 以中国新能源行业为样本检验官方管控媒体报道语调对资本市场的信息价值, 佐证中国语境下媒体类型 (官方/专业 vs 大众) 差异会系统性影响报道语调及其市场含义, 呼应本家族 fin/comp 媒体语调缺口的构念动机。
 
 ## VAR: tone_gap_fin_comp_ctx
 
@@ -103,4 +117,6 @@ Qin, B., Strömberg, D., & Wu, Y. (2018). Media Bias in China. American Economic
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media Sentiment, Deposit Stability and Bank Systemic Risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure Sentiment: Machine Learning vs. Dictionary Methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Lan, Y., Wu, Y., Xu, W., Feng, W., & Zhang, Y. (2025). Chinese Fine-Grained Financial Sentiment Analysis with Large Language Models. Neural Computing and Applications, 37(30), 24883-24892. https://doi.org/10.1007/s00521-024-10603-6
+Nyakurukwa, K., & Seetharam, Y. (2024). Sentimental showdown: News media vs. social media in stock markets. Heliyon. https://doi.org/10.1016/j.heliyon.2024.e30211
+Xu, Z., Li, J., Hua, X., & Ren, P. (2024). Is the tone of the government-controlled media valuable for capital market? Evidence from China's new energy industry. Energy Policy. https://doi.org/10.1016/j.enpol.2023.113917
 <!-- rendered-citations:end -->

@@ -66,7 +66,28 @@ citations:
   vol: 62
   issue: 3
   pages_or_artno: 1139-1168
-new_dois: []
+- doi: "10.1093/rfs/hhad021"
+  type: journal
+  authors: "Cao, S., Jiang, W., Yang, B., & Zhang, A. L."
+  year: 2023
+  title: "How to Talk When a Machine Is Listening: Corporate Disclosure in the Age of AI"
+  venue: "The Review of Financial Studies"
+- doi: "10.1016/j.frl.2024.105227"
+  title: "Sentiment trading with large language models"
+  authors: "Kirtac, K., & Germano, G."
+  year: 2024
+  venue: "Finance Research Letters"
+  type: "journal"
+- doi: "10.1080/16081625.2025.2551345"
+  title: "Unlocking disclosure narratives: readability, length, and sentiment cues as indicators of bankrupt Japanese companies"
+  authors: "Tsunogaya, N., Shinozawa, Y., & Togashi, A."
+  year: 2025
+  venue: "Asia-Pacific Journal of Accounting & Economics"
+  type: "journal"
+new_dois:
+  - "10.1093/rfs/hhad021"
+  - "10.1016/j.frl.2024.105227"
+  - "10.1080/16081625.2025.2551345"
 ---
 
 ## CORE
@@ -78,7 +99,7 @@ new_dois: []
 计算落在面板总装阶段 (stage 40, runner.py 步骤 8d 的 algo_cater 块), 而非情感打分阶段本身——它是纯后处理的两列相减, 不重新调用任何模型或 API。逐轨公式为 cater_finbert_cn{track} = dict_avg_tone{track} − (finbert_cn_pos{track} − finbert_cn_neg{track}), 其中 dict_avg_tone 是六部中文金融词典的篇均综合净语调 (来自 stage 22 tone_words), finbert_cn_pos/finbert_cn_neg 是 FinBERT_CN 模型在该轨上的正/负类概率均值 (来自 stage 23 tone_berts), 二者之差即模型侧 net tone。两侧都已在各自阶段完成篇章级到银行年度的聚合, 分母口径统一采用 stage 21 语义精筛后的 verified 篇集 (经 24_herd_decay 传导); 留篇门控遵循 full-only 口径 (2026-06-29): 一篇是否算作银行金融科技报道只看 full 轨的 llm_verified_full, ctx/ss 是条件于 full 留篇集的子集测度。三轨 full/ctx/ss 用完全相同的减法内核逐轨独立计算: full = 标题 prepend 加全文正文; ctx = 标题加实体上下文窗口; ss = 标题加银行与金融科技同句共现窗口 (回退语义镜像 ctx——无同句共现时 content_ss 退化为全文 body 并置 ss_is_fallback)。任一侧输入列缺失时该轨该列静默不产出而非零填充, 保留自然缺失 NaN (listwise 原则)。三轨各自 just-identified 并排、互为稳健性不分主次, 严禁把三轨混进同一 over-identified Hansen J。
 
 【文献定位】
-本测度的方法学锚点是词典法与机器学习法在金融文本情感测量上的系统性分歧这一实证事实。Frankel, Jennings 和 Lee (2022) 在其披露情感研究中直接比较了机器学习与词典方法, 表明两者对同一文本的情绪判断可以显著背离, 且这一背离本身携带增量信息——这正是本家族把"词典减模型"当作一个可解释变量而非误差的依据。Loughran 和 McDonald (2016) 的综述系统梳理了词表法在金融会计文本分析中的适用边界与失真来源, 为词典侧读数的偏差方向提供了先验。深层模型侧的 FinBERT_CN 是一个独立的中文金融领域微调语言模型, 它与 Huang, Wang 和 Yang (2023) 所刻画的英文 FinBERT 并非同一模型, 只是同属"在通用预训练语言模型之上叠加金融领域微调"这一更宽的方法学路径 (该路径的更早源头可追溯到金融领域情感建模与领域自适应的一系列工作, 本家族不以某一篇为唯一开创者)。Huang 等 (2023) 的价值在于系统论证了此类领域微调模型相对纯词表法在捕捉上下文与否定/转折等语义结构上的增量, 本测度据此把 FinBERT_CN 读数与词典侧读数的落差合理归因于表层修辞而非模型噪声, 而不主张 finbert_cn 出自该文所开创的谱系。词典侧的中文金融情感词表则以 Du, Huang, Wermers 和 Wu (2022) 的领域专用词典为代表, 说明了语言与领域特异性如何塑造词表读数。更早的 Tetlock (2007) 奠定了媒体文本语调进入金融实证的范式基础, 而 Gilardi, Alizadeh 和 Kubli (2023) 则从另一端提示大模型类标注器与规则型标注器在一致性上的差异, 二者共同界定了本测度所处的测量范式对照坐标。
+本测度的方法学锚点是词典法与机器学习法在金融文本情感测量上的系统性分歧这一实证事实。Frankel, Jennings 和 Lee (2022) 在其披露情感研究中直接比较了机器学习与词典方法, 表明两者对同一文本的情绪判断可以显著背离, 且这一背离本身携带增量信息——这正是本家族把"词典减模型"当作一个可解释变量而非误差的依据。Loughran 和 McDonald (2016) 的综述系统梳理了词表法在金融会计文本分析中的适用边界与失真来源, 为词典侧读数的偏差方向提供了先验。深层模型侧的 FinBERT_CN 是一个独立的中文金融领域微调语言模型, 它与 Huang, Wang 和 Yang (2023) 所刻画的英文 FinBERT 并非同一模型, 只是同属"在通用预训练语言模型之上叠加金融领域微调"这一更宽的方法学路径 (该路径的更早源头可追溯到金融领域情感建模与领域自适应的一系列工作, 本家族不以某一篇为唯一开创者)。Huang 等 (2023) 的价值在于系统论证了此类领域微调模型相对纯词表法在捕捉上下文与否定/转折等语义结构上的增量, 本测度据此把 FinBERT_CN 读数与词典侧读数的落差合理归因于表层修辞而非模型噪声, 而不主张 finbert_cn 出自该文所开创的谱系。词典侧的中文金融情感词表则以 Du, Huang, Wermers 和 Wu (2022) 的领域专用词典为代表, 说明了语言与领域特异性如何塑造词表读数。更早的 Tetlock (2007) 奠定了媒体文本语调进入金融实证的范式基础, 而 Gilardi, Alizadeh 和 Kubli (2023) 则从另一端提示大模型类标注器与规则型标注器在一致性上的差异, 二者共同界定了本测度所处的测量范式对照坐标。Cao, Jiang, Yang 和 Zhang (2023, The Review of Financial Studies) 首次系统证明公司在知晓算法读者日益增多后会主动调整文本措辞以迎合机器抓取, 是本家族"算法迎合度"这一构念的直接命名与实证源头。Kirtac 和 Germano (2024, Finance Research Letters) 比较大语言模型情感打分与传统词典法(Loughran-McDonald)在预测股票收益上的表现差异, 发现二者读数系统性背离且大语言模型侧携带增量信息, 为本家族"词典减模型"落差型测量提供了词典与大语言模型分歧本身具信息量的最新实证支持。Tsunogaya, Shinozawa 和 Togashi (2025, Asia-Pacific Journal of Accounting & Economics) 对比词典法与机器学习法两种情感测量路径在公司叙事性披露中的表现, 发现主题型情感模型无论采用哪种测量范式均优于句法型模型, 呼应本家族把词典侧与深度模型侧读数差异当作可解释残差而非噪声的处理思路。
 
 ## VAR: cater_finbert_cn_ctx
 
@@ -102,4 +123,7 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Cao, S., Jiang, W., Yang, B., & Zhang, A. L. (2023). How to Talk When a Machine Is Listening: Corporate Disclosure in the Age of AI. The Review of Financial Studies. https://doi.org/10.1093/rfs/hhad021
+Kirtac, K., & Germano, G. (2024). Sentiment trading with large language models. Finance Research Letters. https://doi.org/10.1016/j.frl.2024.105227
+Tsunogaya, N., Shinozawa, Y., & Togashi, A. (2025). Unlocking disclosure narratives: readability, length, and sentiment cues as indicators of bankrupt Japanese companies. Asia-Pacific Journal of Accounting & Economics. https://doi.org/10.1080/16081625.2025.2551345
 <!-- rendered-citations:end -->

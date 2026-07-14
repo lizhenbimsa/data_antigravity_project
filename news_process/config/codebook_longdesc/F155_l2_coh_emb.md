@@ -75,7 +75,28 @@ citations:
   venue: Transactions of the Association for Computational Linguistics
   vol: 3
   pages_or_artno: 211-225
-new_dois: []
+- doi: "10.18653/v1/2025.emnlp-main.179"
+  type: journal
+  authors: "Tang, Y., & Yang, Y."
+  year: 2025
+  title: "FinMTEB: Finance Massive Text Embedding Benchmark"
+  venue: "Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing (EMNLP)"
+- doi: "10.18653/v1/2024.findings-naacl.168"
+  title: "Beyond Surface Similarity: Detecting Subtle Semantic Shifts in Financial Narratives"
+  authors: "Liu, J., Yang, Y., & Tam, K. Y."
+  year: 2024
+  venue: "Findings of the Association for Computational Linguistics: NAACL 2024"
+  type: "wp"
+- doi: "10.3389/frai.2026.1752103"
+  title: "FinTextSim: a domain-specific sentence-transformer for extracting predictive latent topics from financial disclosures"
+  authors: "Jehnen, S., Villalba-Díez, J., & Ordieres-Meré, J."
+  year: 2026
+  venue: "Frontiers in Artificial Intelligence"
+  type: "journal"
+new_dois:
+  - "10.18653/v1/2025.emnlp-main.179"
+  - "10.18653/v1/2024.findings-naacl.168"
+  - "10.3389/frai.2026.1752103"
 ---
 
 ## CORE
@@ -89,7 +110,7 @@ new_dois: []
 本家族是四方法连贯性 (TF-IDF char / TF-IDF word / LDA+JSD / Embedding) 中的稠密嵌入方法, 也是唯一能捕获同义替换与上下文语义的方法: TF-IDF 词袋无法识别改写, LDA 落在主题分布层, 而嵌入把文本压进连续语义空间后比对。本家族在两个正交维度上展开为六列: 三条文本轨 (full/ctx/ss) 乘以两条 co-primary 嵌入模型轨。co-primary 双轨遵循全仓铁律: 无后缀 (MAIN) 槽为 Qwen/Qwen3-Embedding-8B (硅基流动, 4096 维), _lg 槽为 text-embedding-3-large (3072 维); 两轨同为主测度、互为稳健性、严格 parity (both-or-neither: 任一嵌入失败则同族两列一并置空, 不留单边孤儿列), 实现里以 `if not coh_emb or not coh_emb_lg` 联锁清零保证。⚠ 三条文本轨与两条模型轨均属规格稳健性并排: 各自 just-identified 并排、互为稳健性不分主次, 严禁把不同轨或不同嵌入模型的列混进同一 over-identified Hansen J。ss 轨回退语义镜像 ctx: 无银行∧金科同句共现时 content_ss 退化为全文正文并标 fallback。
 
 【文献定位】
-方法谱系上, 本家族站在把"文本相似度"作为经济计量测度这一日益成熟的传统里。Jha, Liu 与 Manela (2026, Review of Financial Studies) 系统展示了用语言嵌入把金融文本映射到语义空间、再以向量几何量化构念的路径, 与本测度以银行年度画像向量做年际比对同源; 该顶刊文亦是本项目 benefit 家族的嵌入方法锚。Cohen, Malloy 与 Nguyen (2020, Journal of Finance) 的"懒惰价格"研究用相邻年度公司文件的文本相似度度量披露变化并预测收益, 与本家族"相邻期语义连贯性"在构念上高度平行——都把年际文本变动本身当作有信息含量的信号。Zheng, Ng, Zheng 与 Tam (2024, Journal of Management Information Systems) 以词嵌入刻画金融文本情感演化, 印证嵌入空间足以承载金融叙事的时序动态。方法本体上, Reimers 与 Gurevych (2019) 的 Sentence-BERT 奠定了把整段文本压成可比句向量的范式, Levy, Goldberg 与 Dagan (2015) 厘清了分布式相似度与嵌入的关系, 而本项目采用的 Qwen3 嵌入 (Zhang et al. 2025) 与 OpenAI 对比预训练嵌入 (Neelakantan et al. 2022) 分别是 MAIN 与 _lg 两条 co-primary 轨的模型来源。⚠ 已知局限: 余弦相似度作为"语义接近"的代理并非无争议——Steck, Ekanadham 与 Kallus (2024) 指出嵌入余弦在特定训练与正则条件下未必如实反映语义相似度, 因此本家族刻意与 TF-IDF/LDA 三条非嵌入连贯性方法并置作收敛效度交叉验证, 而非单点依赖嵌入余弦; 这也是保留 co-primary 双模型互证的动机之一。
+方法谱系上, 本家族站在把"文本相似度"作为经济计量测度这一日益成熟的传统里。Jha, Liu 与 Manela (2026, Review of Financial Studies) 系统展示了用语言嵌入把金融文本映射到语义空间、再以向量几何量化构念的路径, 与本测度以银行年度画像向量做年际比对同源; 该顶刊文亦是本项目 benefit 家族的嵌入方法锚。Cohen, Malloy 与 Nguyen (2020, Journal of Finance) 的"懒惰价格"研究用相邻年度公司文件的文本相似度度量披露变化并预测收益, 与本家族"相邻期语义连贯性"在构念上高度平行——都把年际文本变动本身当作有信息含量的信号。Zheng, Ng, Zheng 与 Tam (2024, Journal of Management Information Systems) 以词嵌入刻画金融文本情感演化, 印证嵌入空间足以承载金融叙事的时序动态。方法本体上, Reimers 与 Gurevych (2019) 的 Sentence-BERT 奠定了把整段文本压成可比句向量的范式, Levy, Goldberg 与 Dagan (2015) 厘清了分布式相似度与嵌入的关系, 而本项目采用的 Qwen3 嵌入 (Zhang et al. 2025) 与 OpenAI 对比预训练嵌入 (Neelakantan et al. 2022) 分别是 MAIN 与 _lg 两条 co-primary 轨的模型来源。Tang 与 Yang (2025, 2025年经验方法自然语言处理会议 EMNLP) 构建金融领域文本嵌入大规模基准, 系统评估通用与金融专用嵌入模型在语义相似度任务上的表现差异, 为本家族选用通用预训练嵌入模型 (Qwen3/text-embedding-3-large) 计算银行年度画像相邻期余弦连贯性提供了嵌入模型选型与金融文本适配性的方法学参照。⚠ 已知局限: 余弦相似度作为"语义接近"的代理并非无争议——Steck, Ekanadham 与 Kallus (2024) 指出嵌入余弦在特定训练与正则条件下未必如实反映语义相似度, 因此本家族刻意与 TF-IDF/LDA 三条非嵌入连贯性方法并置作收敛效度交叉验证, 而非单点依赖嵌入余弦; 这也是保留 co-primary 双模型互证的动机之一。Liu, Yang 与 Tam (2024, 计算语言学协会发现: NAACL 2024) 提出 Financial-STS 任务, 衡量同一公司不同期财报叙事间的细微语义偏移, 发现通用预训练嵌入模型难以捕获这种年际语义变化, 与本家族用嵌入余弦刻画银行年际语义连贯性的构念直接平行。Jehnen, Villalba-Díez 与 Ordieres-Meré (2026, 人工智能前沿) 针对金融文本套话噪声与专业术语稀释语义重合的问题微调领域专用句向量模型, 显著提升同主题文本的簇内相似度, 为本家族选用通用预训练嵌入而非领域微调模型计算银行年度画像连贯性提供了对照参照。
 
 ## VAR: coh_emb_full
 
@@ -130,4 +151,7 @@ Neelakantan, A., Xu, T., Puri, R., Radford, A., Han, J. M., Tworek, J., Yuan, Q.
 Cohen, L., Malloy, C., & Nguyen, Q. (2020). Lazy prices. Journal of Finance, 75(3), 1371-1415. https://doi.org/10.1111/jofi.12885
 Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Siamese BERT-networks. Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP), 3980-3990. https://doi.org/10.18653/v1/D19-1410
 Levy, O., Goldberg, Y., & Dagan, I. (2015). Improving distributional similarity with lessons learned from word embeddings. Transactions of the Association for Computational Linguistics, 3, 211-225. https://doi.org/10.1162/tacl_a_00134
+Tang, Y., & Yang, Y. (2025). FinMTEB: Finance Massive Text Embedding Benchmark. Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing (EMNLP). https://doi.org/10.18653/v1/2025.emnlp-main.179
+Liu, J., Yang, Y., & Tam, K. Y. (2024). Beyond Surface Similarity: Detecting Subtle Semantic Shifts in Financial Narratives. Findings of the Association for Computational Linguistics: NAACL 2024 [Working Paper]. https://doi.org/10.18653/v1/2024.findings-naacl.168
+Jehnen, S., Villalba-Díez, J., & Ordieres-Meré, J. (2026). FinTextSim: a domain-specific sentence-transformer for extracting predictive latent topics from financial disclosures. Frontiers in Artificial Intelligence. https://doi.org/10.3389/frai.2026.1752103
 <!-- rendered-citations:end -->

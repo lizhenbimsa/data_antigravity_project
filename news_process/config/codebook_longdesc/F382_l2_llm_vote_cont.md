@@ -166,7 +166,21 @@ citations:
   vol: 73
   issue: 4
   pages_or_artno: 1237-1282
-new_dois: []
+- doi: "10.3390/electronics14173404"
+  title: "Integrated Survey Classification and Trend Analysis via LLMs: An Ensemble Approach for Robust Literature Synthesis"
+  authors: "Bernasconi, E., Redavid, D., & Ferilli, S."
+  year: 2025
+  venue: "Electronics"
+  type: "journal"
+- doi: "10.3389/frai.2025.1609097"
+  title: "An overview of model uncertainty and variability in LLM-based sentiment analysis: challenges, mitigation strategies, and the role of explainability"
+  authors: "Herrera-Poyatos, D., Peláez-González, C., Zuheros, C., Herrera-Poyatos, A., Tejedor, V., Herrera, F., & Montes, R."
+  year: 2025
+  venue: "Frontiers in Artificial Intelligence"
+  type: "journal"
+new_dois:
+  - "10.3390/electronics14173404"
+  - "10.3389/frai.2025.1609097"
 ---
 
 ## CORE
@@ -194,7 +208,7 @@ new_dois: []
 把上述三步落到面板生成的实际数据流上: stage 21 产出的篇级 21_tone_llms.parquet 携带每篇每轨的共识情感、三家逐模型标签、一致率 llm_agreement_rate{track} 与验证位; runner 在步骤 3b/3c/3d 先把篇级连续码分别乘上 mention_density (vw)、media_authority_weight (mw)、herd_weight{track} 及其阈值网格权重 (hw / hw_thrNN), 生成一批预乘列; encode 的 build_aggregation_dict 再把这些预乘列按 sum 注册进聚合字典, 同时经 _build_llm_valid_masked_weights 注册对应的匹配分母列 (_wd_{wtag}_llm{track}, 只覆盖 llm_vote_score{track}.notna() 的篇); aggregate_panel 一次 groupby 完成全部 sum/mean 聚合后, 再以"加权和 ÷ 匹配分母"两列相除得到最终的 llm_vote_cont_{vw,mw,hw}{track} 及阈值档列。等权列则直接由篇级 llm_vote_cont{track} 的 mean 得到, 无需分母修正。整条链路对无效篇的处理是一致的: 无效篇在篇级即落 NaN/<NA>, 既不进分子也不进匹配分母, 从而在等权与加权口径下都不污染银行-年均值。所有银行-年的取值范围、均值、标准差与缺失率等实测分布统计, 一律由 codebook 生成期在各列的【动态统计】段按面板实测自动注入, 本长文严禁手填任何具体数字。
 
 【论文组合中的用途与效度证据】
-在项目的多论文组合里, 本家族主要服务 P1 (bank_fintech_tone) 作为连续处理变量, 并经 tech/app 位置子样本延伸至 P4 (Gomber 一脉创新位置区分) 的技术—应用语调差构造。相较离散 headline llm_vote_tone_full, 连续码的增量价值在于它把"报道语调的共识强度"变成可回归的变异源: 当银行融资成本、存款流或金科投资等结果对"语调有多确定"而非仅"语调是正是负"敏感时, 连续码能识别出离散码无法捕捉的边际。效度上, 本家族的构念效度由多条外部证据支撑: LLM 集成投票相较单模型能提升内容分类的稳定性与准确性 (Kamen & Kamen, 2025; Chen et al., 2025); 大语言模型在文本标注任务上可媲美甚至超过众包人工编码 (Gilardi et al., 2023), 且已有系统性基准评估其替代人工编码员的边界 (Haman, 2026); 在金融文本域, LLM 方法能捕捉词序上下文、优于纯词袋 (Siano, 2025; Frankel 一脉), 中文金融情感的细粒度 LLM 分析亦有专门证据 (Lan et al., 2025); 无金标准时的 LLM 标注效度可经 κ/α 一致性设计验证 (Hansen, 2026)。这些证据共同构成本家族从"AI 打标"到"可信实证变量"的效度桥。
+在项目的多论文组合里, 本家族主要服务 P1 (bank_fintech_tone) 作为连续处理变量, 并经 tech/app 位置子样本延伸至 P4 (Gomber 一脉创新位置区分) 的技术—应用语调差构造。相较离散 headline llm_vote_tone_full, 连续码的增量价值在于它把"报道语调的共识强度"变成可回归的变异源: 当银行融资成本、存款流或金科投资等结果对"语调有多确定"而非仅"语调是正是负"敏感时, 连续码能识别出离散码无法捕捉的边际。效度上, 本家族的构念效度由多条外部证据支撑: LLM 集成投票相较单模型能提升内容分类的稳定性与准确性 (Kamen & Kamen, 2025; Chen et al., 2025); 大语言模型在文本标注任务上可媲美甚至超过众包人工编码 (Gilardi et al., 2023), 且已有系统性基准评估其替代人工编码员的边界 (Haman, 2026); 在金融文本域, LLM 方法能捕捉词序上下文、优于纯词袋 (Siano, 2025; Frankel 一脉), 中文金融情感的细粒度 LLM 分析亦有专门证据 (Lan et al., 2025); 无金标准时的 LLM 标注效度可经 κ/α 一致性设计验证 (Hansen, 2026)。这些证据共同构成本家族从"AI 打标"到"可信实证变量"的效度桥。Bernasconi、Redavid 与 Ferilli (2025, Electronics) 该文提出面向文献综合的 LLM 集成分类与趋势分析方法, 验证多次推理集成投票相较单模型单次判断能提升分类稳定性, 支持本家族三家 LLM 多数投票共识设计的方法学基础。Herrera-Poyatos 等人 (2025, Frontiers in Artificial Intelligence) 该综述系统梳理 LLM 情感分析中的模型不确定性与结果变异性来源、缓解策略及可解释性角色, 为本家族用投票一致率显式量化标注置信度这一设计提供文献支撑。
 
 【白话总述】
 用最直白的话讲, 这一整个家族回答的是一个问题: 某家银行在某一年被媒体报道搞金融科技时, 整体口碑是好是坏、这个好坏判断三个 AI 裁判有多一致? 分值在 -1 到 +1 之间, 越接近 +1 表示又正面又一致, 越接近 -1 表示又负面又一致, 接近 0 则要么是中性、要么是三个 AI 吵得没定论。家族里三十多列不是三十多个不同的东西, 而是同一个口碑分换了三种读文本的口径 (读全文 / 只读实体附近 / 只读同句)、三种给报道分权重的办法 (报道得多的更重 / 权威媒体更重 / 抄稿的打折)、四档抄稿判定松紧、以及按"讲底层技术"还是"讲应用场景"分两拨。它们互相是稳健性检查, 谁也不比谁更权威, 主结论只有在这一整排口径上都站得住, 才算不是靠某一种算法凑出来的。
@@ -450,4 +464,6 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Gomber, P., Kauffman, R. J., Parker, C., & Weber, B. W. (2018). On the fintech revolution: Interpreting the forces of innovation, disruption, and transformation in financial services. Journal of Management Information Systems, 35(1), 220-265. https://doi.org/10.1080/07421222.2018.1440766
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Romano, J. P., & Wolf, M. (2005). Stepwise multiple testing as formalized data snooping. Econometrica, 73(4), 1237-1282. https://doi.org/10.1111/j.1468-0262.2005.00615.x
+Bernasconi, E., Redavid, D., & Ferilli, S. (2025). Integrated Survey Classification and Trend Analysis via LLMs: An Ensemble Approach for Robust Literature Synthesis. Electronics. https://doi.org/10.3390/electronics14173404
+Herrera-Poyatos, D., Peláez-González, C., Zuheros, C., Herrera-Poyatos, A., Tejedor, V., Herrera, F., & Montes, R. (2025). An overview of model uncertainty and variability in LLM-based sentiment analysis: challenges, mitigation strategies, and the role of explainability. Frontiers in Artificial Intelligence. https://doi.org/10.3389/frai.2025.1609097
 <!-- rendered-citations:end -->

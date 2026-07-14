@@ -189,7 +189,28 @@ citations:
   vol: 1
   issue: 3
   pages_or_artno: "215-239"
-new_dois: []
+- doi: "10.1371/journal.pone.0335506"
+  type: journal
+  authors: "Bonato, A., Chavez Palan, J., & Szava, A."
+  year: 2025
+  title: "Leaders in the global banking network: Analysis of the Bank for International Settlements network data"
+  venue: "PLOS ONE"
+- doi: "10.1007/s11424-025-4338-6"
+  title: "The Benefit of Being Central: Stock Network Centrality and Stock Price Crashes"
+  authors: "Huang, C., Deng, Y., Yang, X., Cai, Y., & Zhao, X."
+  year: 2025
+  venue: "Journal of Systems Science and Complexity"
+  type: "journal"
+- doi: "10.1016/j.najef.2024.102307"
+  title: "Text Spillover: Measuring connectedness of financial institutions based on news text data"
+  authors: "Klaucke, K."
+  year: 2025
+  venue: "The North American Journal of Economics and Finance"
+  type: "journal"
+new_dois:
+  - "10.1371/journal.pone.0335506"
+  - "10.1007/s11424-025-4338-6"
+  - "10.1016/j.najef.2024.102307"
 ---
 
 ## CORE
@@ -201,7 +222,7 @@ new_dois: []
 生产函数为 network_spillover.py 中的 compute_bank_network_centrality, 属 33 个网络结构指标基名 SSOT 元组 NETWORK_METRIC_BASES 中 Part A 节点级组的第 7 项。逐年计算流程为: 第一步按共现判据 criterion 构建年度邻接矩阵 (build_adjacency_matrix), canonical 路径是「同篇共现」— 只要两家银行的验证通过提及出现在同一 docid 内即计一条共现; 第二步据邻接矩阵建 networkx 无向图, 正权边逐条写入, 并补挂全部孤立银行节点; 第三步调用 nx.subgraph_centrality(G)。此处有一个必须写进 codebook 的实现细节: networkx 的子图中心度实现不接受边权参数, 计算发生在二值化拓扑上 — 也就是说本列刻画的是「共现结构的形状」而非「共现的强度」, 强度维度由同组的加权度中心度 (bank_strength_cent, Opsahl 等 (2010) 加权推广) 承接, 两列构念互补而非冗余。孤立节点的子图中心度依定义等于 e 的零次幂即 1, 构成本列的理论下界; 数值上界随网络规模与稠密度指数增长 (主特征值进入 e 的指数位), 因此生产代码用 try/except 捕获 OverflowError、ValueError 与线性代数异常, 溢出年份整年置 NaN 并落 WARNING 日志, 绝不静默写入无穷大或残缺值。判据敏感性设计 (2026-07-03 网络三轨与判据敏感性扩展) 为本家族生成三个判据变体: 无后缀 canonical 为同篇判据; _win1 为 ±1 句窗判据 (两家银行的提及句距不超过 win_radius, 配置键 panel.yaml 下 network_criteria.win_radius, 默认 1); _sent 为严格同句判据 (句距为零)。判据分轨路径在 docid 组内逐句重扫原文, 判据原语为 entity_context 模块的 map_bank_sentence_positions 与 bank_pairs_within_sentence_window, 审计脚本与生产共用同一原语保证审计等于生产; 扫描文本为 prepend_title 口径, 标题被当作第 0 句参与判定, 镜像 stage 13 的 match_in_title 生产口径; 银行提及判定复用与 stage 11、13 相同的否定词典与短名排除事实源, 禁裸 Aho-Corasick 匹配。生产函数对 criterion 与落列后缀做硬配对校验 (article 对空后缀、win1 对 _win1、sent 对 _sent), 错配即 raise, 从机制上排除「判据算错列」这一类静默污染。需要特别强调两条口径铁律: 其一, 判据后缀与三轨文本后缀 (_full/_ctx/_ss, 银行∧金融科技口径) 是两个正交的概念空间 — 判据主体是银行∧银行共现, 与情感三轨的银行∧金科邻近完全不同, codebook 推断入口须先剥判据后缀再匹配; 其二, network_criteria.win_radius 与 stage 13 的 cooccurrence_filter.sentence_radius 是两个互不联动的配置键, 前者管银行间建网判据, 后者管文章留存硬过滤, 混淆两键属 P0 级口径错误。上游文章宇宙与 full-only 留篇门控 (2026-06-29 口径) 保持一致: 进入展开帧的报道即 stage 21 门控后的留存集, 因此本列与面板中 n_articles 分母族共享同一篇章宇宙, 无独立的行选择。
 
 【文献定位】
-本家族在文献坐标系中位于三条研究线的交点。第一条是网络中心度测量理论本身: Freeman (1978) 的概念澄清奠定了度、介数、接近度三分法; Estrada 与 Rodríguez-Velázquez (2005) 引入子图中心度并证明其对区分度中心度无法分辨的节点位置具有更细的分辨率 — 两个度数相同的节点若一个嵌在三角形密集区、另一个挂在树状边缘, 子图中心度能将其分开而度中心度不能; Newman (2005) 的随机游走介数与 Boldi 与 Vigna (2014) 的公理化则共同说明「游走计数」类测度与「最短路径」类测度回答的是不同问题, 本仓将两类并置正是对这一理论分歧的实证回应。第二条是金融网络与系统性关联研究: Wang、Zhang 与 Yang (2020) 刻画了中国担保网络在金融危机与刺激计划下的演化, 说明中国银行体系的网络结构本身是随宏观政策周期剧烈变动的研究对象, 逐年重建网络 (而非用全样本池化网) 是必要而非可选; Gao、Ru 与 Yang (2022) 证明所有权网络在中国银行信贷决策中承载真实信息, 支持「网络位置影响银行行为」这一本家族赖以成立的前提; Sadeghi 与 Feinstein (2024) 提出金融网络传染中心度的统计显著性检验框架, 提示中心度点估计须辅以对网络抽样噪声的稳健性讨论。第三条是中心度作为资产定价与绩效解释变量的应用计量: Yu、Hu 与 Zhong (2024) 发现网络中心度经由信息扩散渠道进入资产定价; Xu 与 Zhao (2024) 系统比较了金融网络中不同节点中心度对价格预测的边际贡献, 其结论 — 不同中心度族的预测力不可互相替代 — 直接支持本仓 33 指标并排的设计; Nezami、Chisam 与 Palmatier (2025) 对中心度与企业绩效关系做了元分析, 给出跨研究的效应量基准, 为解读本列回归系数的经济显著性提供外部标尺。
+本家族在文献坐标系中位于三条研究线的交点。第一条是网络中心度测量理论本身: Freeman (1978) 的概念澄清奠定了度、介数、接近度三分法; Estrada 与 Rodríguez-Velázquez (2005) 引入子图中心度并证明其对区分度中心度无法分辨的节点位置具有更细的分辨率 — 两个度数相同的节点若一个嵌在三角形密集区、另一个挂在树状边缘, 子图中心度能将其分开而度中心度不能; Newman (2005) 的随机游走介数与 Boldi 与 Vigna (2014) 的公理化则共同说明「游走计数」类测度与「最短路径」类测度回答的是不同问题, 本仓将两类并置正是对这一理论分歧的实证回应。第二条是金融网络与系统性关联研究: Wang、Zhang 与 Yang (2020) 刻画了中国担保网络在金融危机与刺激计划下的演化, 说明中国银行体系的网络结构本身是随宏观政策周期剧烈变动的研究对象, 逐年重建网络 (而非用全样本池化网) 是必要而非可选; Gao、Ru 与 Yang (2022) 证明所有权网络在中国银行信贷决策中承载真实信息, 支持「网络位置影响银行行为」这一本家族赖以成立的前提; Sadeghi 与 Feinstein (2024) 提出金融网络传染中心度的统计显著性检验框架, 提示中心度点估计须辅以对网络抽样噪声的稳健性讨论。第三条是中心度作为资产定价与绩效解释变量的应用计量: Yu、Hu 与 Zhong (2024) 发现网络中心度经由信息扩散渠道进入资产定价; Xu 与 Zhao (2024) 系统比较了金融网络中不同节点中心度对价格预测的边际贡献, 其结论 — 不同中心度族的预测力不可互相替代 — 直接支持本仓 33 指标并排的设计; Nezami、Chisam 与 Palmatier (2025) 对中心度与企业绩效关系做了元分析, 给出跨研究的效应量基准, 为解读本列回归系数的经济显著性提供外部标尺。此外, Bonato, Chavez Palan, & Szava (2025, PLOS ONE) 用银行间网络中心度识别全球银行体系中的隐性领导者与高暴露节点, 支持本家族以共现网络位置刻画银行系统重要性的构念思路。Huang, Deng, Yang, Cai, & Zhao (2025, Journal of Systems Science and Complexity) 用符号化与互信息法构建2006-2021年中国上市公司动态股票网络, 发现网络中心度更高的公司未来股价崩盘风险更低, 机制是中心位置提升投资效率并抑制盈余管理导致的坏消息囤积, 为「网络位置具有实质经济信息」这一前提提供了中国市场的补充证据。Klaucke (2025, The North American Journal of Economics and Finance) 用近4.7万条新闻文本中金融机构的共现构造文本溢出指数, 并与Diebold-Yilmaz溢出指数对照验证, 证明媒体文本共现网络可作为传统数值型关联度量的可行替代或补充, 与本家族「用文本共现代理银行网络位置」的建网思路直接呼应。
 
 【识别策略定位】
 本列在计量识别链条中的定位是「网络位置测度」而非「处理变量」: 各论文主轨 treatment 是情感与属性变量 (如 llm_vote_tone_full), 子图中心度进入方程的典型角色是调节变量、异质性切分维度或网络暴露控制项。这一定位由社会网络计量的根本困难决定: Bramoullé、Djebbari 与 Fortin (2009) 证明同伴效应在网络数据下的识别依赖排除性网络结构 (朋友的朋友非朋友), 而媒体共现网络的稠密传递性使这类排除约束通常不满足; 把中心度直接当因果处理解读会同时遭遇反射问题、关联同质性与共同冲击三重混淆。Grieser 等 (2022) 在公司金融政策网络效应研究中展示的空间计量处理与 Hughes (2026) 针对带固定效应非线性网络模型的刀切偏差修正, 代表了当前对这类偏误的前沿修补; de Paula、Rasul 与 Souza (2024) 则从面板数据反向识别网络连边本身, 提示媒体共现网络作为「观测到的代理网」与「真实经济网」之间存在测量误差层, 系数解释须限定在叙事网络位置的语义上。与此对应, 本仓为网络指标族配套的稳健性阶梯不走工具变量路线, 而走测量口径并排路线: 三判据 (同篇/±1 句窗/严格同句) 各自 just-identified 并排、互为稳健性、不分主次, 铁律禁止把多个判据变体混进同一个 over-identified 的 Hansen J 检验 — 三个变体测的是同一构念在不同精度-召回权衡下的实现, 把它们当多工具堆叠等于假装拥有三条独立排除约束, 是对过度识别检验的滥用。判据梯子属「规格稳健性并排」范畴 (镜像政治词权重梯子与词典消融梯子先例), 刻意不设跨判据 FWER 模板: 跨模型 rwolf 先例仅覆盖同构念替代 headline 测量的多重检验, 判据梯子的目的不是挑选赢家而是展示结论对建网口径的不敏感。在具体的方程设定层面, 本列的推荐用法有三种形态: 一是作为银行层异质性的切分变量 — 按年度截面中位数把银行分为核心嵌入组与边缘组, 检验情感处理效应是否在网络核心银行更强或更弱, 这对应信息扩散与同伴压力两类竞争机制的区分; 二是作为交互项进入主方程 — 处理变量乘标准化子图中心度, 系数解读为「网络嵌入每提高一个标准差, 处理效应的边际变化」; 三是作为控制变量吸收网络位置与结果变量的共同相关。三种形态都要求配套银行固定效应与年份固定效应, 其中年份固定效应会自动吸收全部年度广播的网络级指标 (net 前缀族), 因此节点级的本列与网络级指标不会在同一方程内竞争解释力。此外须注意逐年重建网络带来的组内动态: 本列的年际变动同时来自银行自身报道行为的变化与整张网络稠密度的漂移, 若研究问题只关心前者, 建议以年内截面标准化后的名次量进入方程, 把网络级漂移从组内变异中剥离。在双向固定效应设定下还应对识别变异的来源做一次显式分解: 银行固定效应吸收的是「国有大行恒居核心、区域小行恒居边缘」这类持久位置差, 年份固定效应吸收的是全网稠密化或萎缩的共同冲击, 真正剩给系数的是「某银行在某年相对自身常态、相对当年全网基准的位置偏移」— 这个残余变异的信噪比在指数加权的本列上尤其值得警惕, 因为头部银行的一次偶发共现结构变化在指数尺度上被急剧放大, 稳健做法是同时报告名次化与对数化两套组内变换的结果。比识别策略更根本的是网络形成本身的内生性: 媒体是否把两家银行写进同一篇报道, 与两行同期的战略动作、监管事件、财务表现同时相关, 因而「边」本身可能与结果方程的扰动项相关; 文献中的常规缓解手段包括用滞后一期的预定网络计算位置、把事件窗内的报道从建网语料中剔除, 以及 de Paula、Rasul 与 Souza (2024) 式的把连边估计与效应估计在面板中分离的结构化路线, 本仓的选择是最保守的一种 — 不给节点级中心度赋予因果地位, 把上述手段留给具体论文按研究问题裁量。测量误差的方向性也须写明: 若把叙事网视为「真实经济网加媒体噪声」, 经典测量误差会把交互项与切分估计推向零, 结论偏保守; 但媒体的可见度偏差是系统性的 — 大行的弱关联更容易被报道成连边 — 这属非经典误差, 偏误方向先验不定, 只能靠银行固定效应、规模控制与三判据梯子从不同精度端夹逼同一结论来间接约束。最后是推断层面: 网络生成的截面依赖使按银行聚类的标准误只覆盖同行内的时间相关, 不覆盖共现相连银行之间的横截面相关, 论文应以年份聚类或双向聚类做推断敏感性; 若设定含滞后被解释变量或滞后网络位置, 短面板动态偏误须另行处理, Hughes (2026) 针对带固定效应非线性网络模型的刀切修正给出了可移植的模板。
@@ -249,4 +270,7 @@ Watts, D. J., & Strogatz, S. H. (1998). Collective dynamics of 'small-world' net
 Bonacich, P. (1987). Power and centrality: A family of measures. American Journal of Sociology, 92(5), 1170-1182. https://doi.org/10.1086/228631
 Seidman, S. B. (1983). Network structure and minimum degree. Social Networks, 5(3), 269-287. https://doi.org/10.1016/0378-8733(83)90028-X
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
+Bonato, A., Chavez Palan, J., & Szava, A. (2025). Leaders in the global banking network: Analysis of the Bank for International Settlements network data. PLOS ONE. https://doi.org/10.1371/journal.pone.0335506
+Huang, C., Deng, Y., Yang, X., Cai, Y., & Zhao, X. (2025). The Benefit of Being Central: Stock Network Centrality and Stock Price Crashes. Journal of Systems Science and Complexity. https://doi.org/10.1007/s11424-025-4338-6
+Klaucke, K. (2025). Text Spillover: Measuring connectedness of financial institutions based on news text data. The North American Journal of Economics and Finance. https://doi.org/10.1016/j.najef.2024.102307
 <!-- rendered-citations:end -->

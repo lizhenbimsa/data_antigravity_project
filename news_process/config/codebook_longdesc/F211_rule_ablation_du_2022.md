@@ -1,5 +1,6 @@
 ---
 family_id: F211
+novelty_exempt_rationale: "该家族是 du_2022 中文金融情感词典语调测度在三条语言学规则 (否定翻转/程度副词/转折) powerset 子集下的消融变体阵列 (raw/negonly/degonly/advonly/negdeg/negadv/degadv × full/ctx/ss), 不改变词典本身、只改变规则开关组合, 属于技术性稳健性梯子而非独立新构念; 其测度定义的学术依据已在母族词典文献 Du et al. (2022) 及语言学规则文献 (Taboada et al. 2011 等) 中给出, 无需为消融变体本身追加独立新颖引文。"
 columns:
 - du_2022_advonly_tone_ctx
 - du_2022_advonly_tone_full

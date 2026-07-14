@@ -230,7 +230,28 @@ citations:
   vol: 60
   issue: 3
   pages_or_artno: 531-542
-new_dois: []
+- doi: "10.1016/j.najef.2025.102444"
+  title: "From collapse to contagion: How bank failures influence stock markets"
+  authors: "Brož, V., & Teplý, P."
+  year: 2025
+  venue: "The North American Journal of Economics and Finance"
+  type: "journal"
+- doi: "10.1016/j.gfj.2024.101044"
+  title: "Bank scandal contagion: Evidence from the Wells Fargo cross-selling scandal"
+  authors: "Noel, M. D., & Osman, S. M. I."
+  year: 2024
+  venue: "Global Finance Journal"
+  type: "journal"
+- doi: "10.1016/j.frl.2023.104696"
+  title: "The spillover effect of bank distress: Evidence from the takeover of Baoshang Bank in China"
+  authors: "Xu, Y., Liu, Z., & Zhang, L."
+  year: 2024
+  venue: "Finance Research Letters"
+  type: "journal"
+new_dois:
+  - "10.1016/j.najef.2025.102444"
+  - "10.1016/j.gfj.2024.101044"
+  - "10.1016/j.frl.2023.104696"
 ---
 
 ## CORE
@@ -254,7 +275,7 @@ new_dois: []
 用大白话概括: 这一族变量回答的问题是"这一年, 除了我之外的整个银行业, 在媒体上被骂得有多凶"。做法是先给每家银行算一个"被骂比例" — 当年被大模型判定为负面的报道篇数, 除以当年被大模型有效判定过的报道总篇数; 报道太少的银行 (不足五篇) 不算数, 因为一两篇报道算出来的比例不是零就是一, 太极端, 会把全行业的数带偏。然后对每家银行, 把同一年其他所有算得出比例的银行的比例加起来取平均, 唯独不算它自己 — 不算自己是为了避免"自己骂自己再解释自己"的循环。为什么还要一套滞后一年的版本: 因为在最常用的"银行固定效应加年份固定效应"回归里, 同年版本有一个致命的代数陷阱 — 年份固定效应把"全行业当年的总水平"吸干净之后, 这个变量剩下的信息恰好就是"自己的被骂比例乘以负号", 回归跑出来的系数看着是行业效应, 实际上是自己效应换了个符号, 完全不是想要的东西; 滞后一年的版本没有这个陷阱, 因为"去年的行业水平"不会被"今年的年份效应"吸走。所以速查规则只有一条: 回归里带年份固定效应, 就只能用带 lag1 的三列; 不带年份固定效应的描述性回归, 才可以用同期三列。三个文本轨道的直觉: full 是"整篇文章怎么写", ctx 是"提到这家银行的那几句怎么写", ss 是"银行和金融科技出现在同一句话里的那几句怎么写", 从宽到窄, 越窄越贴金融科技主题但覆盖越少; 三个轨道地位平等, 分别跑回归互相印证, 不允许打包塞进同一个过度识别检验。
 
 【文献定位】
-在文献坐标系中, 本家族处于三个研究传统的交点。方法论上, 它属于以文本测度经济暴露的度量传统 — Hassan 等 (2019) 用电话会议文本构造企业级政治风险暴露的范式确立了"文本份额比率作为暴露测度"的合法性, 本家族把该思想应用于中文银行新闻的负面份额; Bloom (2009) 则提供了"不确定性冲击具有实质宏观后果"的基准证据, 支撑负面舆论冲击作为解释变量的经济意义。识别论上, 它继承 Manski (1993) 反射问题与 Bramoullé 等 (2009, 2020)、Boucher 等 (2024) 的网络同伴效应识别理论, 并按 Borusyak 与 Hull (2023) 及 Borusyak 等 (2025) 的当代冲击暴露设计标准披露自身的识别边界。应用上, 它服务于媒体与银行稳定文献 (Fang 等 2024; Cookson 等 2026; You 等 2018) 与银行冲击传导文献 (Khwaja 与 Mian 2008; Amiti 与 Weinstein 2018; Bai 等 2022; Greenstone 等 2020) 的交叉议题, 并作为 Han 等 (2024) 式信息经纪网络分析 (本模块另产出媒体-银行二分图中心度) 中"冲击放大机制"检验的暴露分量。六列的完整梯子设计 (三轨乘以同期与滞后) 使研究者能在披露识别局限的前提下, 系统展示结论对文本轨道与动态时序选择的不敏感性。
+在文献坐标系中, 本家族处于三个研究传统的交点。方法论上, 它属于以文本测度经济暴露的度量传统 — Hassan 等 (2019) 用电话会议文本构造企业级政治风险暴露的范式确立了"文本份额比率作为暴露测度"的合法性, 本家族把该思想应用于中文银行新闻的负面份额; Bloom (2009) 则提供了"不确定性冲击具有实质宏观后果"的基准证据, 支撑负面舆论冲击作为解释变量的经济意义。识别论上, 它继承 Manski (1993) 反射问题与 Bramoullé 等 (2009, 2020)、Boucher 等 (2024) 的网络同伴效应识别理论, 并按 Borusyak 与 Hull (2023) 及 Borusyak 等 (2025) 的当代冲击暴露设计标准披露自身的识别边界。应用上, 它服务于媒体与银行稳定文献 (Fang 等 2024; Cookson 等 2026; You 等 2018) 与银行冲击传导文献 (Khwaja 与 Mian 2008; Amiti 与 Weinstein 2018; Bai 等 2022; Greenstone 等 2020) 的交叉议题, 并作为 Han 等 (2024) 式信息经纪网络分析 (本模块另产出媒体-银行二分图中心度) 中"冲击放大机制"检验的暴露分量。六列的完整梯子设计 (三轨乘以同期与滞后) 使研究者能在披露识别局限的前提下, 系统展示结论对文本轨道与动态时序选择的不敏感性。此外, Brož 与 Teplý (2025, The North American Journal of Economics and Finance) 实证检验单家银行倒闭事件如何通过股票市场溢出为行业层面的负面冲击, 为本家族行业负面舆论压力构念中个体负面事件外溢至同业的经济机制提供了2025年的最新证据。以富国银行交叉销售丑闻为准实验, 证明单一银行负面事件会通过声誉渠道向同业传染负面情绪, 为本家族行业负面舆论压力构念提供丑闻传染机制的实证支持, 见 Noel 与 Osman (2024, Global Finance Journal)。利用包商银行被接管这一中国准自然实验, 证明单家银行的困境事件会显著提高同业银行贷款组合风险, 为行业级负面冲击的同业传导提供中国场景的直接证据, 见 Xu、Liu 与 Zhang (2024, Finance Research Letters)。
 
 ## VAR: industry_neg_shock
 
@@ -312,4 +333,7 @@ Bloom, N. (2009). The impact of uncertainty shocks. Econometrica, 77(3), 623-685
 Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effects through social networks. Journal of Econometrics, 150(1), 41-55. https://doi.org/10.1016/j.jeconom.2008.12.021
 Khwaja, A. I., & Mian, A. (2008). Tracing the impact of bank liquidity shocks: Evidence from an emerging market. American Economic Review, 98(4), 1413-1442. https://doi.org/10.1257/aer.98.4.1413
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
+Brož, V., & Teplý, P. (2025). From collapse to contagion: How bank failures influence stock markets. The North American Journal of Economics and Finance. https://doi.org/10.1016/j.najef.2025.102444
+Noel, M. D., & Osman, S. M. I. (2024). Bank scandal contagion: Evidence from the Wells Fargo cross-selling scandal. Global Finance Journal. https://doi.org/10.1016/j.gfj.2024.101044
+Xu, Y., Liu, Z., & Zhang, L. (2024). The spillover effect of bank distress: Evidence from the takeover of Baoshang Bank in China. Finance Research Letters. https://doi.org/10.1016/j.frl.2023.104696
 <!-- rendered-citations:end -->

@@ -33,161 +33,175 @@ upstream:
 - 14_materialize_ctx.parquet (content_full / content_ctx / content_ss 三轨文本)
 - 40_panel_yearly.parquet (bank-year 聚合与加权分母)
 citations:
-  - doi: 10.1146/annurev-economics-120925-105620
-    type: journal
-    authors: Ludwig, J., Mullainathan, S., & Rambachan, A.
-    year: 2026
-    title: "Large language models: An applied econometric framework"
-    venue: Annual Review of Economics
-  - doi: 10.1007/s00521-024-10603-6
-    type: journal
-    authors: Lan, Y., Wu, Y., Xu, W., Feng, W., & Zhang, Y.
-    year: 2025
-    title: "Chinese fine-grained financial sentiment analysis with large language models"
-    venue: Neural Computing and Applications
-    vol: 37
-    issue: 30
-    pages_or_artno: 24883-24892
-  - doi: 10.48550/arXiv.2502.18036
-    type: arxiv
-    authors: Chen, Z., Lu, X., Li, J., Chen, P., Li, Z., Sun, K., Luo, Y., Mao, Q., Li, M., Xiao, L., Yang, D., Huang, X., Ban, Y., Sun, H., & Yu, P. S.
-    year: 2025
-    title: "Harnessing multiple large language models: A survey on LLM ensemble"
-    venue: arXiv
-  - doi: 10.1016/j.frl.2024.105227
-    type: journal
-    authors: Kirtac, K., & Germano, G.
-    year: 2024
-    title: "Sentiment trading with large language models"
-    venue: Finance Research Letters
-    vol: 62
-    pages_or_artno: 105227
-  - doi: 10.1016/j.mlwa.2023.100508
-    type: journal
-    authors: Fatouros, G., Soldatos, J., Kouroumali, K., Makridis, G., & Kyriazis, D.
-    year: 2023
-    title: "Transforming sentiment analysis in the financial domain with ChatGPT"
-    venue: Machine Learning with Applications
-    vol: 14
-    pages_or_artno: 100508
-  - doi: 10.1073/pnas.2305016120
-    type: journal
-    authors: Gilardi, F., Alizadeh, M., & Kubli, M.
-    year: 2023
-    title: "ChatGPT outperforms crowd workers for text-annotation tasks"
-    venue: Proceedings of the National Academy of Sciences
-    vol: 120
-    issue: 30
-    pages_or_artno: e2305016120
-  - doi: 10.1111/1911-3846.12832
-    type: journal
-    authors: Huang, A. H., Wang, H., & Yang, Y.
-    year: 2023
-    title: "FinBERT: A large language model for extracting information from financial text"
-    venue: Contemporary Accounting Research
-    vol: 40
-    issue: 2
-    pages_or_artno: 806-841
-  - doi: 10.1287/mnsc.2021.4156
-    type: journal
-    authors: Frankel, R., Jennings, J., & Lee, J.
-    year: 2022
-    title: "Disclosure sentiment: Machine learning vs. dictionary methods"
-    venue: Management Science
-    vol: 68
-    issue: 7
-    pages_or_artno: 5514-5532
-  - doi: 10.1093/rof/rfab036
-    type: journal
-    authors: Du, Z., Huang, A. G., Wermers, R., & Wu, W.
-    year: 2022
-    title: "Language and domain specificity: A Chinese financial sentiment dictionary"
-    venue: Review of Finance
-    vol: 26
-    issue: 3
-    pages_or_artno: 673-719
-  - doi: 10.1080/19312458.2020.1869198
-    type: journal
-    authors: van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M.
-    year: 2021
-    title: "The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms"
-    venue: Communication Methods and Measures
-    vol: 15
-    issue: 2
-    pages_or_artno: 121-140
-  - doi: 10.1111/joes.12370
-    type: journal
-    authors: Algaba, A., Ardia, D., Bluteau, K., Borms, S., & Boudt, K.
-    year: 2020
-    title: "Econometrics meets sentiment: An overview of methodology and applications"
-    venue: Journal of Economic Surveys
-    vol: 34
-    issue: 3
-    pages_or_artno: 512-547
-  - doi: 10.1093/qje/qjz021
-    type: journal
-    authors: Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A.
-    year: 2019
-    title: "Firm-level political risk: Measurement and effects"
-    venue: Quarterly Journal of Economics
-    vol: 134
-    issue: 4
-    pages_or_artno: 2135-2202
-  - doi: 10.1111/1475-679X.12123
-    type: journal
-    authors: Loughran, T., & McDonald, B.
-    year: 2016
-    title: "Textual analysis in accounting and finance: A survey"
-    venue: Journal of Accounting Research
-    vol: 54
-    issue: 4
-    pages_or_artno: 1187-1230
-  - doi: 10.1111/j.1540-6261.2007.01232.x
-    type: journal
-    authors: Tetlock, P. C.
-    year: 2007
-    title: "Giving content to investor sentiment: The role of media in the stock market"
-    venue: Journal of Finance
-    vol: 62
-    issue: 3
-    pages_or_artno: 1139-1168
-  - doi: 10.1111/j.1468-0262.2005.00615.x
-    type: journal
-    authors: Romano, J. P., & Wolf, M.
-    year: 2005
-    title: "Stepwise multiple testing as formalized data snooping"
-    venue: Econometrica
-    vol: 73
-    issue: 4
-    pages_or_artno: 1237-1282
-  - doi: 10.1257/aer.20181047
-    type: journal
-    authors: Goldsmith-Pinkham, P., Sorkin, I., & Swift, H.
-    year: 2020
-    title: "Bartik instruments: What, when, why, and how"
-    venue: American Economic Review
-    vol: 110
-    issue: 8
-    pages_or_artno: 2586-2624
-  - doi: 10.1002/jae.2508
-    type: journal
-    authors: MacKinnon, J. G., & Webb, M. D.
-    year: 2017
-    title: "Wild bootstrap inference for wildly different cluster sizes"
-    venue: Journal of Applied Econometrics
-    vol: 32
-    issue: 2
-    pages_or_artno: 233-254
-  - doi: 10.1016/j.jeconom.2024.105727
-    type: journal
-    authors: Wang, W., & Zhang, Y.
-    year: 2024
-    title: "Wild bootstrap inference for instrumental variables regressions with weak and few clusters"
-    venue: Journal of Econometrics
-    vol: 241
-    issue: 1
-    pages_or_artno: 105727
-new_dois: []
+- doi: 10.1146/annurev-economics-120925-105620
+  type: journal
+  authors: Ludwig, J., Mullainathan, S., & Rambachan, A.
+  year: 2026
+  title: "Large language models: An applied econometric framework"
+  venue: Annual Review of Economics
+- doi: 10.1007/s00521-024-10603-6
+  type: journal
+  authors: Lan, Y., Wu, Y., Xu, W., Feng, W., & Zhang, Y.
+  year: 2025
+  title: "Chinese fine-grained financial sentiment analysis with large language models"
+  venue: Neural Computing and Applications
+  vol: 37
+  issue: 30
+  pages_or_artno: 24883-24892
+- doi: 10.48550/arXiv.2502.18036
+  type: arxiv
+  authors: Chen, Z., Lu, X., Li, J., Chen, P., Li, Z., Sun, K., Luo, Y., Mao, Q., Li, M., Xiao, L., Yang, D., Huang, X., Ban, Y., Sun, H., & Yu, P. S.
+  year: 2025
+  title: "Harnessing multiple large language models: A survey on LLM ensemble"
+  venue: arXiv
+- doi: 10.1016/j.frl.2024.105227
+  type: journal
+  authors: Kirtac, K., & Germano, G.
+  year: 2024
+  title: "Sentiment trading with large language models"
+  venue: Finance Research Letters
+  vol: 62
+  pages_or_artno: 105227
+- doi: 10.1016/j.mlwa.2023.100508
+  type: journal
+  authors: Fatouros, G., Soldatos, J., Kouroumali, K., Makridis, G., & Kyriazis, D.
+  year: 2023
+  title: "Transforming sentiment analysis in the financial domain with ChatGPT"
+  venue: Machine Learning with Applications
+  vol: 14
+  pages_or_artno: 100508
+- doi: 10.1073/pnas.2305016120
+  type: journal
+  authors: Gilardi, F., Alizadeh, M., & Kubli, M.
+  year: 2023
+  title: "ChatGPT outperforms crowd workers for text-annotation tasks"
+  venue: Proceedings of the National Academy of Sciences
+  vol: 120
+  issue: 30
+  pages_or_artno: e2305016120
+- doi: 10.1111/1911-3846.12832
+  type: journal
+  authors: Huang, A. H., Wang, H., & Yang, Y.
+  year: 2023
+  title: "FinBERT: A large language model for extracting information from financial text"
+  venue: Contemporary Accounting Research
+  vol: 40
+  issue: 2
+  pages_or_artno: 806-841
+- doi: 10.1287/mnsc.2021.4156
+  type: journal
+  authors: Frankel, R., Jennings, J., & Lee, J.
+  year: 2022
+  title: "Disclosure sentiment: Machine learning vs. dictionary methods"
+  venue: Management Science
+  vol: 68
+  issue: 7
+  pages_or_artno: 5514-5532
+- doi: 10.1093/rof/rfab036
+  type: journal
+  authors: Du, Z., Huang, A. G., Wermers, R., & Wu, W.
+  year: 2022
+  title: "Language and domain specificity: A Chinese financial sentiment dictionary"
+  venue: Review of Finance
+  vol: 26
+  issue: 3
+  pages_or_artno: 673-719
+- doi: 10.1080/19312458.2020.1869198
+  type: journal
+  authors: van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M.
+  year: 2021
+  title: "The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms"
+  venue: Communication Methods and Measures
+  vol: 15
+  issue: 2
+  pages_or_artno: 121-140
+- doi: 10.1111/joes.12370
+  type: journal
+  authors: Algaba, A., Ardia, D., Bluteau, K., Borms, S., & Boudt, K.
+  year: 2020
+  title: "Econometrics meets sentiment: An overview of methodology and applications"
+  venue: Journal of Economic Surveys
+  vol: 34
+  issue: 3
+  pages_or_artno: 512-547
+- doi: 10.1093/qje/qjz021
+  type: journal
+  authors: Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A.
+  year: 2019
+  title: "Firm-level political risk: Measurement and effects"
+  venue: Quarterly Journal of Economics
+  vol: 134
+  issue: 4
+  pages_or_artno: 2135-2202
+- doi: 10.1111/1475-679X.12123
+  type: journal
+  authors: Loughran, T., & McDonald, B.
+  year: 2016
+  title: "Textual analysis in accounting and finance: A survey"
+  venue: Journal of Accounting Research
+  vol: 54
+  issue: 4
+  pages_or_artno: 1187-1230
+- doi: 10.1111/j.1540-6261.2007.01232.x
+  type: journal
+  authors: Tetlock, P. C.
+  year: 2007
+  title: "Giving content to investor sentiment: The role of media in the stock market"
+  venue: Journal of Finance
+  vol: 62
+  issue: 3
+  pages_or_artno: 1139-1168
+- doi: 10.1111/j.1468-0262.2005.00615.x
+  type: journal
+  authors: Romano, J. P., & Wolf, M.
+  year: 2005
+  title: "Stepwise multiple testing as formalized data snooping"
+  venue: Econometrica
+  vol: 73
+  issue: 4
+  pages_or_artno: 1237-1282
+- doi: 10.1257/aer.20181047
+  type: journal
+  authors: Goldsmith-Pinkham, P., Sorkin, I., & Swift, H.
+  year: 2020
+  title: "Bartik instruments: What, when, why, and how"
+  venue: American Economic Review
+  vol: 110
+  issue: 8
+  pages_or_artno: 2586-2624
+- doi: 10.1002/jae.2508
+  type: journal
+  authors: MacKinnon, J. G., & Webb, M. D.
+  year: 2017
+  title: "Wild bootstrap inference for wildly different cluster sizes"
+  venue: Journal of Applied Econometrics
+  vol: 32
+  issue: 2
+  pages_or_artno: 233-254
+- doi: 10.1016/j.jeconom.2024.105727
+  type: journal
+  authors: Wang, W., & Zhang, Y.
+  year: 2024
+  title: "Wild bootstrap inference for instrumental variables regressions with weak and few clusters"
+  venue: Journal of Econometrics
+  vol: 241
+  issue: 1
+  pages_or_artno: 105727
+- doi: "10.1007/s10791-025-09573-7"
+  type: journal
+  authors: "Chen, W., Liu, W., Zheng, J., & Zhang, X."
+  year: 2025
+  title: "Leveraging large language model as news sentiment predictor in stock markets: a knowledge-enhanced strategy"
+  venue: "Discover Computing"
+- doi: "10.1007/978-3-031-97992-7_62"
+  title: "Fuzzy Ensemble of Large Language Models for Financial Sentiment Analysis"
+  authors: "Stefanova, T., & Georgiev, S."
+  year: 2025
+  venue: "Lecture Notes in Networks and Systems (Intelligent and Fuzzy Systems)"
+  type: "wp"
+new_dois:
+  - "10.1007/s10791-025-09573-7"
+  - "10.1007/978-3-031-97992-7_62"
 ---
 
 ## CORE
@@ -208,7 +222,7 @@ new_dois: []
 计算链路分三层。第一层是逐篇打分 (stage 21): 三家 LLM 在冻结的 Prompt v8 (字节级冻结, prompt_version='v8-2026-05-17', temperature=0.0) 下对同一篇三轨文本分别打分, 命中同一确定性缓存键即可离线 $0 复现。第二层是 bank-year 聚合 (encode.py): 对每家模型, 把该银行该年内所有留篇报道的逐篇语调按聚合口径汇总为 {model}_tone{track} — 等权轨取算术均值, 加权轨取 Σ(w·tone)/Σw。第三层是跨模型综合 (geography.py): 对三家的 bank-year 值以 _safe_mean 取行均值, 只对该行实际存在的模型列求平均, 缺列 (如某家模型该轨未落盘) 优雅返回 NaN 而不使阶段崩溃 — 这保证了 per-model 独立降级: 某一家缺席仅拉低该行的有效模型基数, 不像 co-primary 嵌入那样触发 both-or-neither 同置 NaN。等权 canonical 的公式即 llm_models_avg_tone{track} = mean(gpt54nano_tone{track}, gemini31_tone{track}, deepseekv4_tone{track})。加权变体在第二层改换聚合权重: vw (value/salience 加权) 按新闻显著性权重加权, 权重取自 stage 11 news_salience 物化的报道显著性代理 (提及密度、版位、导语、署名等), 概念上对标 Hassan 等 (2019) 的 firm-level 提及计数加权与价值加权文本测度; mw (media-authority 加权) 按媒体权威分层加权 (compute_media_authority_weights), 给权威媒体的报道更高权重; hw (herd 加权) 按 stage 24 herd_decay 产出的羊群/新颖度衰减权重加权, 对重复转载、陈旧信息做折价, 概念上呼应 Tetlock (2007) 及媒体信息新颖性文献对「陈旧新闻」信息含量的折减。tech 与 app 是分类维度条件子样本: 仅在该银行该年被判为「技术型金科」(n_articles_tech) 或「应用型金科」(n_articles_app) 的报道子集上重算集成语调, 用于分辨语调是否随金科叙事类型而异。std 是跨模型对每家 within-bank-year 语调离散度 ({model}_tone_std) 取行均值, 度量的是「同一银行年内报道语调有多分散」而非语调水平本身。_z 是把 canonical 轨做逐年度截面标准化后的版本: standardize_panel_variables 对每个 year 分组 (仅 n_articles>0 且年内有效样本≥3), 在该年度截面内减年均值除年标准差, 各年各自定标 (分段仿射, 各年 scale 不同, 非全样本单一线性变换) — 这是 Fama-MacBeth 式的逐横截面标准化, 目的是剔除年度共同成分、令同一年内不同银行的语调以年内标准差为单位可比, 便于跨测度、跨论文进入回归或森林图。
 
 【文献定位】
-本家族坐落于金融文本情感测量的方法学谱系。词典法一脉 (Loughran & McDonald, 2011, 2016; Du 等, 2022 的中文金融情感词典) 强调可复现、可审计但受限于词表覆盖与规则脆性; 机器学习/BERT 一脉 (Huang 等, 2023 的 FinBERT; Frankel 等, 2022 对 ML 与词典法的正面比较) 提升了语境敏感度; 大模型一脉 (Fatouros 等, 2023; Kirtac & Germano, 2024; Lan 等, 2025 的中文细粒度金融情感; Gilardi 等, 2023) 进一步以零样本/少样本指令跟随逼近人类标注。van Atteveldt 等 (2021) 与 Algaba 等 (2020) 从效度与计量整合角度指出: 任何单一自动情感测度都带测量误差, 多方法/多标注者三角互证是提升构念效度的正道。本家族正是这一思想在 LLM 内部的落地 — 三家跨厂商大模型互为独立标注者, 均值-ensemble 是其一阶共识。更具体地, Frankel 等 (2022) 以正面比较表明机器学习情感在预测披露后果上系统性优于词典法, 而 Huang 等 (2023) 的 FinBERT 进一步证明领域预训练能显著提升金融文本情感抽取; 大模型则在此基础上以指令跟随把「无需领域微调即可零样本迁移」推向前沿 (Fatouros 等, 2023 对金融域 ChatGPT 情感的改造; Kirtac & Germano, 2024 将 LLM 情感直接接入交易信号)。在中文金融语域, Lan 等 (2025) 证明大模型可做细粒度 (实体级) 情感分析, Du 等 (2022) 则提供了对照的中文金融情感词典基准。本家族在三家大模型内部取均值, 与这些跨方法基准 (词典均值 dict_avg_tone、BERT 均值 bert_avg) 并列, 构成一个「方法内集成 × 跨方法三角」的双层稳健性结构。至于集成本身的方法论, Chen 等 (2025) 系统综述了 LLM ensemble 的诸种策略 (投票、平均、路由、级联), 本家族采用最透明的算术平均, 兼容后续对投票轨 (llm_vote_tone) 的对照。
+本家族坐落于金融文本情感测量的方法学谱系。词典法一脉 (Loughran & McDonald, 2011, 2016; Du 等, 2022 的中文金融情感词典) 强调可复现、可审计但受限于词表覆盖与规则脆性; 机器学习/BERT 一脉 (Huang 等, 2023 的 FinBERT; Frankel 等, 2022 对 ML 与词典法的正面比较) 提升了语境敏感度; 大模型一脉 (Fatouros 等, 2023; Kirtac & Germano, 2024; Lan 等, 2025 的中文细粒度金融情感; Gilardi 等, 2023) 进一步以零样本/少样本指令跟随逼近人类标注。van Atteveldt 等 (2021) 与 Algaba 等 (2020) 从效度与计量整合角度指出: 任何单一自动情感测度都带测量误差, 多方法/多标注者三角互证是提升构念效度的正道。本家族正是这一思想在 LLM 内部的落地 — 三家跨厂商大模型互为独立标注者, 均值-ensemble 是其一阶共识。更具体地, Frankel 等 (2022) 以正面比较表明机器学习情感在预测披露后果上系统性优于词典法, 而 Huang 等 (2023) 的 FinBERT 进一步证明领域预训练能显著提升金融文本情感抽取; 大模型则在此基础上以指令跟随把「无需领域微调即可零样本迁移」推向前沿 (Fatouros 等, 2023 对金融域 ChatGPT 情感的改造; Kirtac & Germano, 2024 将 LLM 情感直接接入交易信号)。在中文金融语域, Lan 等 (2025) 证明大模型可做细粒度 (实体级) 情感分析, Du 等 (2022) 则提供了对照的中文金融情感词典基准。本家族在三家大模型内部取均值, 与这些跨方法基准 (词典均值 dict_avg_tone、BERT 均值 bert_avg) 并列, 构成一个「方法内集成 × 跨方法三角」的双层稳健性结构。至于集成本身的方法论, Chen 等 (2025) 系统综述了 LLM ensemble 的诸种策略 (投票、平均、路由、级联), 本家族采用最透明的算术平均, 兼容后续对投票轨 (llm_vote_tone) 的对照。此外, Chen, Liu, Zheng, & Zhang (2025, Discover Computing) 提出以知识增强策略将大语言模型用作新闻情感预测器, 进一步支持本家族「以大模型对新闻文本逐篇打分、再跨模型集成为语调测度」这一方法学定位的合理性。Stefanova & Georgiev (2025, Lecture Notes in Networks and Systems) 提出对多个大语言模型的输出以模糊逻辑方式集成, 用于金融情感分析, 与本家族三家大模型均值-ensemble 的跨模型集成思路直接呼应。
 
 【识别策略定位】
 在识别层面, 本家族的核心纪律是: LLM 三家的 per-model 子测度 (gpt54nano/gemini31/deepseekv4 各自的语调) 与本家族的均值-ensemble, 属「互为稳健性、不分主次」的并排轨; 三轨 (full/ctx/ss)、三套加权 (vw/mw/hw)、两个分类维度 (tech/app) 亦同理。铁律是: 这些并排轨各自 just-identified 并排进入分析, 严禁把它们混进同一个 over-identified 的 Hansen J 过度识别检验 — 因为它们测的是同一构念的高度共线替代, 混入同一 GMM 会人为制造伪过度识别、扭曲 J 统计量。真正的跨模型族错误率控制 (FWER) 由根级模板 27_tableA12_cross_model_fwer 以 Romano & Wolf (2005) 步降式多重检验实现; paper_spec 中的 cross_model 声明是文档性的, 运行时无消费者。作为生成回归元 (generated regressor) 的大模型情感, 其测量误差的计量后果由 Ludwig 等 (2026) 的应用计量框架给出系统刻画 — 集成平均是缓解 (而非消除) 该问题的一种手段。进一步展开, 本家族在识别设计中承担的是「测量稳健性」而非「因果外生性」的角色: 它以并排轨证明「语调结论不由某一测量技术 (投票/均值)、某一模型 (三家之一)、某一语境范围 (三轨)、某一聚合权重 (等权/vw/mw/hw) 驱动」, 但语调本身相对结果变量的内生性 (反向因果、遗漏变量、媒体选择性报道) 须由另一套工具变量设计承接。本项目的 IV 扩展 (iv_extensions.py, runner 步骤 8z) 提供三引擎: 同组 leave-one-out 同伴均值 (剔除自身后同类银行的语调暴露, 阻断自身特异冲击回流)、广义 Bartik (以基期媒体来源份额 × 全国语调变动构造份额-移动工具, 方法学依据见 Goldsmith-Pinkham 等 2020 的 Bartik 工具解剖)、以及媒体来源 house-style 暴露 (以外生的媒体文体倾向作暴露)。本家族任一并排轨都可作为这些 IV 设计的内生自变量, 其测量稳健性与 IV 的外生性识别是两条正交的防线, 不可互相替代 — 前者答「测量对不对」, 后者答「关系是不是因果」。此外, 本家族列在推断层面须与聚类稳健标准误、必要时的 wild bootstrap (MacKinnon & Webb, 2017; 弱工具与少簇情形见 Wang & Zhang, 2024) 配套, 以应对银行-年度面板在 T 短、簇不平衡下的推断偏差; 跨模型/跨方法的族错误率控制则统一交由 Romano & Wolf (2005) 步降法在根级模板 27_tableA12 执行, 而非在本家族内部临时校正。这一「测量稳健性并排 + 外生性 IV + 步降 FWER + wild bootstrap 推断」的四层识别纪律, 是本家族列进入任何主回归时的完整规程。
@@ -368,4 +382,6 @@ Romano, J. P., & Wolf, M. (2005). Stepwise multiple testing as formalized data s
 Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik instruments: What, when, why, and how. American Economic Review, 110(8), 2586-2624. https://doi.org/10.1257/aer.20181047
 MacKinnon, J. G., & Webb, M. D. (2017). Wild bootstrap inference for wildly different cluster sizes. Journal of Applied Econometrics, 32(2), 233-254. https://doi.org/10.1002/jae.2508
 Wang, W., & Zhang, Y. (2024). Wild bootstrap inference for instrumental variables regressions with weak and few clusters. Journal of Econometrics, 241(1), 105727. https://doi.org/10.1016/j.jeconom.2024.105727
+Chen, W., Liu, W., Zheng, J., & Zhang, X. (2025). Leveraging large language model as news sentiment predictor in stock markets: a knowledge-enhanced strategy. Discover Computing. https://doi.org/10.1007/s10791-025-09573-7
+Stefanova, T., & Georgiev, S. (2025). Fuzzy Ensemble of Large Language Models for Financial Sentiment Analysis. Lecture Notes in Networks and Systems (Intelligent and Fuzzy Systems) [Working Paper]. https://doi.org/10.1007/978-3-031-97992-7_62
 <!-- rendered-citations:end -->

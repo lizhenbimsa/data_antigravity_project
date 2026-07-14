@@ -65,7 +65,21 @@ citations:
   vol: '145'
   issue: '2'
   pages_or_artno: 445-463
-new_dois: []
+- doi: "10.1111/1475-679x.12560"
+  type: journal
+  authors: "Xu, G."
+  year: 2024
+  title: "News Bias in Financial Journalists' Social Networks"
+  venue: "Journal of Accounting Research"
+- doi: "10.1287/mnsc.2023.02247"
+  type: journal
+  authors: "Dyer, T., Lang, M. H., & Oh, J."
+  year: 2025
+  title: "Media Conglomeration, Local News, and Capital Market Consequences"
+  venue: "Management Science"
+new_dois:
+- "10.1111/1475-679x.12560"
+- "10.1287/mnsc.2023.02247"
 ---
 
 ## CORE
@@ -81,7 +95,7 @@ You & Zhang & Zhang (2018, RFS) 与 Qin, Strömberg & Wu (2018, AER) 的中国�
 三列本身的计算是: 取 `_is_homeprov==0` 的子样本 (异地报道), 按 `[target_bank, year]` 分组, 对该轨道情感原始得分列 `llm_vote_score{track}` 取算术均值, 得到 `tone_nonprov_media{track}`。这里的 `llm_vote_score` 是三家 LLM (gpt54nano/gemini31/deepseekv4) 多数投票的连续情感得分 (非离散标签), 与家族名前缀 `tone_` 一致的其余地理测度 (`tone_homeprov_media`/`tone_homecity_media`/`tone_noncity_media`) 共享同一 `_is_homeprov`/`_is_homecity` 判定逻辑与同一情感来源列, 仅子样本过滤条件与分组标签不同。三轨 (`_full`/`_ctx`/`_ss`) 的差异纯粹来自源列切换 (`llm_vote_score_full`/`_ctx`/`_ss`), 三者在同一子样本掩码下各自独立聚合, 不存在轨间加权或合并; 若某轨源列在文章级表中缺失, 该轨整体优雅跳过 (`if src_tone not in df.columns: continue`), 不产生该轨列而非填 NaN 占位。
 
 【文献定位】
-本家族的理论根基是 Gentzkow & Shapiro (2010, Econometrica) 的媒体偏向驱动因素研究 ——他们用美国日报数据证明媒体报道立场系统性向本地读者需求/既有偏好倾斜, 并将其归因于广告收入依赖、所有权结构与受众地缘特征三条制度性传导渠道。本项目将这一"地理邻近性驱动报道立场"的美国场景发现, 移植到中国银行业媒体报道语境, 并叠加中国特有的媒体制度背景: You, Zhang & Zhang (2018, RFS) 证明中国财经媒体存在"以负面报道换取广告/公关费"的寻租行为 (media capture), Qin, Strömberg & Wu (2018, AER) 证明官方媒体在政治敏感议题上系统性压低负面报道比例, 二者均暗示地理邻近性 (尤其省级行政关系) 是中国语境下媒体独立性受损的重要传导渠道之一。Fang, Wang, Wang & Yuan (2024, IREF) 是在同一"中国银行业+媒体情感"经验设定下的直接同域文献, 其发现媒体情感通过存款稳定性传导至银行系统性风险, 为本项目将地理拆分后的媒体语调纳入银行层面面板回归 (作为治理/声誉溢价的控制或识别工具) 提供了实证先例。Tetlock (2007, JF) 是"媒体语调作为独立信息载体"这条经典文献线索的方法学锚点; Heese, Pérez-Cavazos & Peter (2022, JFE) 用美国地方报纸倒闭作为准自然实验, 证明本地新闻监督缺位后企业不当行为上升, 揭示"本地媒体存在" (local media presence) 本身构成公司治理外部约束的一环, 与本家族"异地媒体是否仍能提供独立于本地关系网络的语调信号"这一构念形成互补参照: 前者关注本地媒体"退出"对治理的负外部性, 后者关注本地媒体"在场但可能被俘获"对语调水平的正向扭曲, 二者共同支撑"地理邻近性系统性影响媒体报道质量与立场"这一跨制度背景的一般性发现, 尤其对应本维度⑨同一代码块内伴生的 `neg_frac_{home,non}prov{track}` (负面比例) 指标族, 互补构成"语调水平"与"负面尾部过滤"两个正交的地方偏袒检验角度。
+本家族的理论根基是 Gentzkow & Shapiro (2010, Econometrica) 的媒体偏向驱动因素研究 ——他们用美国日报数据证明媒体报道立场系统性向本地读者需求/既有偏好倾斜, 并将其归因于广告收入依赖、所有权结构与受众地缘特征三条制度性传导渠道。本项目将这一"地理邻近性驱动报道立场"的美国场景发现, 移植到中国银行业媒体报道语境, 并叠加中国特有的媒体制度背景: You, Zhang & Zhang (2018, RFS) 证明中国财经媒体存在"以负面报道换取广告/公关费"的寻租行为 (media capture), Qin, Strömberg & Wu (2018, AER) 证明官方媒体在政治敏感议题上系统性压低负面报道比例, 二者均暗示地理邻近性 (尤其省级行政关系) 是中国语境下媒体独立性受损的重要传导渠道之一。Fang, Wang, Wang & Yuan (2024, IREF) 是在同一"中国银行业+媒体情感"经验设定下的直接同域文献, 其发现媒体情感通过存款稳定性传导至银行系统性风险, 为本项目将地理拆分后的媒体语调纳入银行层面面板回归 (作为治理/声誉溢价的控制或识别工具) 提供了实证先例。Tetlock (2007, JF) 是"媒体语调作为独立信息载体"这条经典文献线索的方法学锚点; Heese, Pérez-Cavazos & Peter (2022, JFE) 用美国地方报纸倒闭作为准自然实验, 证明本地新闻监督缺位后企业不当行为上升, 揭示"本地媒体存在" (local media presence) 本身构成公司治理外部约束的一环, 与本家族"异地媒体是否仍能提供独立于本地关系网络的语调信号"这一构念形成互补参照: 前者关注本地媒体"退出"对治理的负外部性, 后者关注本地媒体"在场但可能被俘获"对语调水平的正向扭曲, 二者共同支撑"地理邻近性系统性影响媒体报道质量与立场"这一跨制度背景的一般性发现, 尤其对应本维度⑨同一代码块内伴生的 `neg_frac_{home,non}prov{track}` (负面比例) 指标族, 互补构成"语调水平"与"负面尾部过滤"两个正交的地方偏袒检验角度。Xu (2024, Journal of Accounting Research) 证明财经记者的社交网络关系会系统性引入报道偏向, 为F590所依赖的地理邻近性驱动媒体语调偏袒机制提供了记者层面关系俘获渠道的最新实证补充。Dyer, Lang & Oh (2025, Management Science) 考察媒体集团化对本地新闻覆盖与资本市场后果的影响, 为F590区分本地/异地媒体语调的构念划分提供了本地新闻供给变化如何影响公司信息环境的最新证据支持。
 
 三轨口径铁律 (与 CLAUDE.md「三轨 full/ctx/ss」条款一致): `tone_nonprov_media_full`/`_ctx`/`_ss` 三者各自基于独立的情感源轨道 (标题+正文全文 / 标题+实体窗口 / 标题+银行∧金科同句±N窗) just-identified 并排计算, 互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 或同一 RHS 回归设定。`_ss` 轨的回退语义镜像 `_ctx`: 当某篇报道不存在银行∧金科同句共现时, 其 `content_ss` 退化为全文 body (`ss_is_fallback=True`), 情感源列 `llm_vote_score_ss` 的取值口径随之继承该退化, 但地理判定 `_is_homeprov` 本身与轨道无关 (基于报道来源省份, 不依赖情感文本窗口), 故三轨仅在"取哪一列语调均值"上分叉, 分组子样本 (哪些篇属于异地) 三轨完全一致。留篇门控 (2026-06-29 起 full-only) 意味着"是否算作一篇有效银行-金科报道"仅由 `llm_verified_full` 判定, ctx/ss 两轨的 `tone_nonprov_media_ctx`/`_ss` 行宇宙是 full 留篇集合的条件子集 (conditional-on-full), 而非独立样本框架下的平行測度。
 
@@ -113,4 +127,6 @@ Qin, B., Strömberg, D., & Wu, Y. (2018). Media bias in China. American Economic
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Heese, J., Pérez-Cavazos, G., & Peter, C. D. (2022). When the local newspaper leaves town: The effects of local newspaper closures on corporate misconduct. Journal of Financial Economics, 145(2), 445-463. https://doi.org/10.1016/j.jfineco.2021.08.015
+Xu, G. (2024). News Bias in Financial Journalists' Social Networks. Journal of Accounting Research. https://doi.org/10.1111/1475-679x.12560
+Dyer, T., Lang, M. H., & Oh, J. (2025). Media Conglomeration, Local News, and Capital Market Consequences. Management Science. https://doi.org/10.1287/mnsc.2023.02247
 <!-- rendered-citations:end -->

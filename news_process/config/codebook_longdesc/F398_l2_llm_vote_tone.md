@@ -215,7 +215,28 @@ citations:
   vol: 73
   issue: 4
   pages_or_artno: 1237-1282
-new_dois: []
+- doi: "10.1145/3688399"
+  title: "Designing Heterogeneous LLM Agents for Financial Sentiment Analysis"
+  authors: "Xing, F."
+  year: 2025
+  venue: "ACM Transactions on Management Information Systems"
+  type: "journal"
+- doi: "10.48550/arxiv.2510.15929"
+  title: "Comparing LLMs for Sentiment Analysis in Financial Market News"
+  authors: "Teles, L. E. P., & Figueiredo, C. M. S."
+  year: 2025
+  venue: "arXiv"
+  type: "arxiv"
+- doi: "10.48550/arxiv.2409.00094"
+  title: "Examining Independence in Ensemble Sentiment Analysis: A Study on the Limits of Large Language Models Using the Condorcet Jury Theorem"
+  authors: "Lefort, B., Benhamou, E., Ohana, J.-J., Guez, B., Saltiel, D., & Jacquot, T."
+  year: 2024
+  venue: "arXiv"
+  type: "arxiv"
+new_dois:
+  - "10.1145/3688399"
+  - "10.48550/arxiv.2510.15929"
+  - "10.48550/arxiv.2409.00094"
 ---
 
 ## CORE
@@ -227,7 +248,7 @@ new_dois: []
 文章级语调的判定采用三家异构大语言模型的多数投票共识机制。这三家分别是 gpt54nano (OpenAI 系, 经 yunwu 路由)、gemini31 (Google 系, 经 yunwu 路由) 与 deepseekv4 (DeepSeek 系, 直连官方端点)。对每一篇报道, 三家模型各自独立给出正面、中性或负面的判定, 再按简单多数把结果折算为离散投票分 llm_vote_score, 取值落在负一、零、正一三个刻度上。之所以坚持用三家集成投票而非依赖单一模型, 理据有三层: 其一, Gilardi 等 (2023) 用实验证明大语言模型在文本标注任务上的准确度已经超过众包标注工人, 使自动化标注在效度上站得住脚; 其二, Kamen 与 Kamen (2025) 表明多数投票的集成策略在内容归类任务上稳定优于任何单一模型, 能有效抵消个别模型的系统性偏差; 其三, Carlson 与 Burbano (2026) 就管理学研究中使用大语言模型标注数据给出了基础守则与警示, 强调必须以多模型交叉与人工基准双重锚定测量效度, 不能盲信单模型输出。银行—年度层面的聚合默认采用等权算术平均, 即 llm_vote_tone{track}, 同时物化组内求和 (llm_vote_tone_sum) 与组内标准差 (llm_vote_tone_std, 即语调离散度或分歧度) 两个伴生统计量。除等权之外, 家族还额外物化三套加权聚合口径, 用来回答"哪一类报道更应当被计入语调": 其一是显著度或提及密度加权 vw, 让更密集提及银行金科的报道获得更大权重, 呼应 Hassan 等 (2019) 以提及频次刻画实体暴露强度的思路; 其二是媒体权威度加权 mw, 依据 media_weights.json 中的来源评级对高声望媒体加权 (原始权重除以均值归一, 使量级近似等权); 其三是羊群衰减加权 hw, 权重来自阶段 24 herd_decay_processor 的注意力衰减机制, 使短时间内扎堆涌现的同质报道被降权。此外, 家族还沿两条创新属性维度做条件均值切分: 依 Westphal 与 Zajac (1994) 的实质—象征二分, 产出实质性 (sub) 与象征性 (symb) 报道各自的语调; 依 Gomber 等 (2018) 的金科创新落点二分, 产出底层技术 (tech) 与应用场景 (app) 报道各自的语调。
 
 【文献定位】
-把大语言模型的投票分当作回归变量放进计量模型, 本质上是把一种"生成式测量"接入了因果推断框架, 因此本家族的方法学定位必须锚定在近年关于"大语言模型作为标注器与生成回归元"的规范讨论之上。Ludwig、Mullainathan 与 Rambachan (2025) 提出了大语言模型的应用计量框架, 明确指出由模型生成的变量携带测量误差, 在下游推断中必须显式处理、不能当作无误差的观测值。Egami 等 (2023) 的"设计式监督学习"给出了用不完美代理变量做下游推断的纠偏路径, 为把 LLM 输出接入回归提供了统计学保证。Frankel、Jennings 与 Lee (2022) 与 Huang、Wang 与 Yang (2023) 则分别比较了机器学习、大模型与传统词典法在金融文本情感测量上的相对优劣, 支撑了本项目"以 LLM 投票为主测度、以词典法与 BERT 为并行稳健测度"的三角化设计思想。相对于纯词典法 (例如 Du 等 2022 的中文金融情感词典、Loughran 与 McDonald 2011 的英文金融词典), LLM 投票的优势在于能够捕捉否定、转折、反讽与强烈语境依赖的语义, 这是简单关键词计分无法企及的; 但其代价是可复现性高度依赖缓存冻结, 一旦更换模型或改写提示词, 数值就会漂移, 因此必须以字节级冻结的缓存作为确定性锚。相对于宏观层面的新闻情感指数 (例如 Shapiro、Sudhof 与 Wilson 2022 的经济新闻情感测量), 本家族是实体归因的银行级测度, 只把与目标银行邻近共现的报道计入, 而非笼统汇总全市场新闻。
+把大语言模型的投票分当作回归变量放进计量模型, 本质上是把一种"生成式测量"接入了因果推断框架, 因此本家族的方法学定位必须锚定在近年关于"大语言模型作为标注器与生成回归元"的规范讨论之上。Ludwig、Mullainathan 与 Rambachan (2025) 提出了大语言模型的应用计量框架, 明确指出由模型生成的变量携带测量误差, 在下游推断中必须显式处理、不能当作无误差的观测值。Egami 等 (2023) 的"设计式监督学习"给出了用不完美代理变量做下游推断的纠偏路径, 为把 LLM 输出接入回归提供了统计学保证。Frankel、Jennings 与 Lee (2022) 与 Huang、Wang 与 Yang (2023) 则分别比较了机器学习、大模型与传统词典法在金融文本情感测量上的相对优劣, 支撑了本项目"以 LLM 投票为主测度、以词典法与 BERT 为并行稳健测度"的三角化设计思想。相对于纯词典法 (例如 Du 等 2022 的中文金融情感词典、Loughran 与 McDonald 2011 的英文金融词典), LLM 投票的优势在于能够捕捉否定、转折、反讽与强烈语境依赖的语义, 这是简单关键词计分无法企及的; 但其代价是可复现性高度依赖缓存冻结, 一旦更换模型或改写提示词, 数值就会漂移, 因此必须以字节级冻结的缓存作为确定性锚。相对于宏观层面的新闻情感指数 (例如 Shapiro、Sudhof 与 Wilson 2022 的经济新闻情感测量), 本家族是实体归因的银行级测度, 只把与目标银行邻近共现的报道计入, 而非笼统汇总全市场新闻。此外, Xing (2025, ACM Transactions on Management Information Systems) 提出了基于分工协作的异质大语言模型代理框架用于金融文本情感分析, 呼应本家族以三家异构 LLM 多数投票汇聚语调判定的集成设计思路。Teles 与 Figueiredo (2025, arXiv) 比较了多个大语言模型在金融市场新闻情感分类任务上的表现, 为本家族多模型投票式情感测度提供了跨模型基准依据; Lefort、Benhamou、Ohana、Guez、Saltiel 与 Jacquot (2024, arXiv) 则以孔多塞陪审团定理检验了多 LLM 情感集成投票的独立性假设是否成立, 为本家族多数投票式语调测度提供了理论边界。
 
 【识别策略定位】
 在主线论文 bank_fintech_tone (代号 P1) 与方法学论文 llm_peer 中, canonical 列 llm_vote_tone_full 被明确登记为正文级主处理变量, 也就是 treatment.primary。P1 用它检验媒体语调对银行融资成本等结果变量的因果影响; llm_peer 则以它为核心构念, 演示同行工具变量与生成回归元的纠偏方法。在识别层面, 家族内部的加权、阈值、轨道与属性切分诸变体共同构成一条"规格稳健性梯子": 它们各自都是恰好识别 (just-identified) 的, 互为稳健性、不分主次, 用来证明主结论不会被任何一种聚合口径 (等权对比 vw、mw、hw 三种加权)、任何一个文本窗口 (full、ctx、ss 三轨) 或任何一个注意力衰减阈值 (thr25 至 thr45 四档) 的取舍所驱动。这里有一条必须严守的铁律: 这些并排的替代轨道绝对不能被混进同一个过度识别 (over-identified) 的 Hansen J 检验里去, 因为它们测量的是同一个构念的不同口径而非彼此独立的工具变量, 一旦混入就会伪造出虚假的过度识别自由度、让 J 统计量失去意义。真正意义上的跨模型族错误率控制走的是根级 rwolf 模板 (对应 Table A12), 其理论依据是 Romano 与 Wolf (2005) 关于逐步多重检验作为形式化数据窥探的经典结果——只有当多条系数估计确实构成一个"同一构念、不同测量"的族时, 才应对它们施加族错误率的联合控制, 而这恰恰不同于把它们当作过度识别工具塞进单一 J 统计量。至于工具变量族——同组留一均值、广义 Bartik 与媒体来源暴露三套引擎——则由独立的 iv_extensions 模块单独构造, 完全不属于本家族的范畴, 不可与本家族的稳健性轨混为一谈。还须特别指出, 当 canonical 列作为处理变量出现在方程右侧时, 它本质上是一个"生成回归元": 由三家大语言模型投票生成的离散分携带不可忽略的测量误差, 若直接当作无误差观测代入, 会招致经典的衰减偏误与推断失真。Ludwig、Mullainathan 与 Rambachan (2025) 的应用计量框架正是为此而设, 明确要求把模型生成变量的误差结构纳入识别假设; Egami 等 (2023) 的设计式监督学习则给出用不完美代理做下游推断时的偏误校正与置信区间构造路径。因此本家族在识别层面既要横向铺开规格稳健性梯子以排除口径依赖, 又要纵向正视生成测量误差以保证系数解释的无偏性, 两者缺一不可。
@@ -703,4 +724,7 @@ Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textua
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Westphal, J. D., & Zajac, E. J. (1994). Substance and symbolism in CEOs' long-term incentive plans. Administrative Science Quarterly, 39(3), 367-390. https://doi.org/10.2307/2393295
 Romano, J. P., & Wolf, M. (2005). Stepwise multiple testing as formalized data snooping. Econometrica, 73(4), 1237-1282. https://doi.org/10.1111/j.1468-0262.2005.00615.x
+Xing, F. (2025). Designing Heterogeneous LLM Agents for Financial Sentiment Analysis. ACM Transactions on Management Information Systems. https://doi.org/10.1145/3688399
+Teles, L. E. P., & Figueiredo, C. M. S. (2025). Comparing LLMs for Sentiment Analysis in Financial Market News. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2510.15929
+Lefort, B., Benhamou, E., Ohana, J.-J., Guez, B., Saltiel, D., & Jacquot, T. (2024). Examining Independence in Ensemble Sentiment Analysis: A Study on the Limits of Large Language Models Using the Condorcet Jury Theorem. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2409.00094
 <!-- rendered-citations:end -->

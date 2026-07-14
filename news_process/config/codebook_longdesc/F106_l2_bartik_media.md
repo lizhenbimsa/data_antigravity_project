@@ -63,7 +63,28 @@ citations:
   vol: 69
   issue: 5
   pages_or_artno: 2007-2043
-new_dois: []
+- doi: "10.1111/jofi.13287"
+  type: journal
+  authors: "Fedyk, A."
+  year: 2024
+  title: "Front-Page News: The Effect of News Positioning on Financial Markets"
+  venue: "Journal of Finance"
+- doi: "10.1111/1911-3846.13046"
+  type: journal
+  authors: "Ma, Z., Stice, D., Stice, H., & Zhang, Y."
+  year: 2025
+  title: "Local newspaper closures and bank loan contracts"
+  venue: "Contemporary Accounting Research"
+- doi: "10.1287/mnsc.2023.02247"
+  title: "Media Conglomeration, Local News, and Capital Market Consequences"
+  authors: "Dyer, T., Lang, M., & Oh, J."
+  year: 2025
+  venue: "Management Science"
+  type: "journal"
+new_dois:
+  - "10.1111/jofi.13287"
+  - "10.1111/1911-3846.13046"
+  - "10.1287/mnsc.2023.02247"
 ---
 
 ## CORE
@@ -75,7 +96,7 @@ new_dois: []
 计算分两步。第一步 (本家族两列): 对每家银行 i, 取其基期报道集合, 先将来源媒体映射为 fin / comp / other 三类, 剔除 other 后分别累计财经与综合两类的报道计数 n_fin(i) 与 n_comp(i), 令 share_fin(i)=n_fin(i)/(n_fin(i)+n_comp(i)), share_comp(i)=1−share_fin(i); 分母显式排除 other, 与 type/scale 维度 total=sum-over-non-other 的口径一致, 而非以银行基期全部媒体计数为分母。份额与 IV 的构造在 pipeline\panel\runner.py 内由 compute_bartik_iv_fintech (category_col=_media_type, media_map={fin,comp,other}) 完成, 而非属性维度所用的 compute_bartik_iv。第二步 (下游 IV, 非本家族列): 对每个媒体类型 k 计算其全国报道量的增长「移位」项 g_{k,t}, 通常采用 leave-one-out 口径 (剔除银行 i 自身以缓解份额与移位同时内生的反射性), 再令 bartik_media_iv(i,t)=Σ_k share_k(i)·g_{k,t}。之所以把份额冻结在基期, 是因为 shift-share 工具的可识别性依赖「份额外生」或「移位外生」二者之一: 本设计走份额固定路线, 让外生变动全部来自各媒体类型层面的共同冲击, 而单家银行既无法左右财经媒体或综合媒体的全国总量走势, 其基期结构相对当期处理又是前定的。留篇门控与三轨口径需在此厘清: pipeline 的留篇判定采 full-only 口径 (2026-06-29), 即一篇报道是否计入银行金科报道集合只看 full 轨的 LLM 验证结果; 媒体维度 Bartik 的 full/ctx 双轨差异出现在下游 IV 列 (bartik_media_iv_full/ctx), 而本家族的两列基期份额是这两条 IV 轨共享的同一份基期结构原语, 本身不带轨道后缀。铁律层面: Bartik 各维度支、full/ctx 双轨、co-primary 双轨嵌入下游若进入 2SLS, 须各自 just-identified 并排、互为稳健性不分主次, 严禁把不同维度或不同轨道的工具混进同一 over-identified Hansen J 过度识别检验 (跨轨/跨维度混装会污染过度识别统计量的解释)。
 
 【文献定位】
-移位-份额工具的现代计量基础由 Adão, Kolesár, and Morales (2019) 与 Borusyak, Hull, and Jaravel (2025) 奠定: 前者在 Quarterly Journal of Economics 上系统刻画了 shift-share 设计的推断问题与份额相关导致的标准误偏误, 后者在 Journal of Economic Perspectives 给出「份额×移位」的实操检查表, 明确处理不完全份额 (incomplete shares) 与重归一化选择的正确做法——本家族两列相加为 1 的归一化正对应其对完备份额的建议。用媒体作为信息传导外生冲击源的思路植根于金融媒体经济学: Peress (2014) 利用报纸罢工这一外生的媒体供给中断, 在 The Journal of Finance 上识别出媒体对金融市场信息扩散的因果作用; Heese, Pérez-Cavazos, and Peter (2022) 与 Gao, Lee, and Murphy (2020) 则以地方报纸关闭为外生冲击, 分别识别其对公司不当行为与地方公共财政的实质影响, 三者共同确立了「媒体覆盖的外生变动可作识别杠杆」的经验范式。就中国银行业同域证据而言, Fang, Wang, Wang, and Yuan (2024) 记录了银行级媒体情感对存款稳定与系统性风险的作用, 支持把银行媒体暴露作为有实质经济后果的处理变量。本家族按媒体类型 (财经 vs 综合) 切分基期结构, 正是把上述「媒体外生冲击」思路细化到不同媒体子市场的暴露组合, 使 Bartik 工具能利用财经与综合两类媒体报道量的差异化增长节奏来撬动银行暴露的外生变动。
+移位-份额工具的现代计量基础由 Adão, Kolesár, and Morales (2019) 与 Borusyak, Hull, and Jaravel (2025) 奠定: 前者在 Quarterly Journal of Economics 上系统刻画了 shift-share 设计的推断问题与份额相关导致的标准误偏误, 后者在 Journal of Economic Perspectives 给出「份额×移位」的实操检查表, 明确处理不完全份额 (incomplete shares) 与重归一化选择的正确做法——本家族两列相加为 1 的归一化正对应其对完备份额的建议。用媒体作为信息传导外生冲击源的思路植根于金融媒体经济学: Peress (2014) 利用报纸罢工这一外生的媒体供给中断, 在 The Journal of Finance 上识别出媒体对金融市场信息扩散的因果作用; Heese, Pérez-Cavazos, and Peter (2022) 与 Gao, Lee, and Murphy (2020) 则以地方报纸关闭为外生冲击, 分别识别其对公司不当行为与地方公共财政的实质影响, 三者共同确立了「媒体覆盖的外生变动可作识别杠杆」的经验范式。就中国银行业同域证据而言, Fang, Wang, Wang, and Yuan (2024) 记录了银行级媒体情感对存款稳定与系统性风险的作用, 支持把银行媒体暴露作为有实质经济后果的处理变量。本家族按媒体类型 (财经 vs 综合) 切分基期结构, 正是把上述「媒体外生冲击」思路细化到不同媒体子市场的暴露组合, 使 Bartik 工具能利用财经与综合两类媒体报道量的差异化增长节奏来撬动银行暴露的外生变动。近期文献进一步充实了这一识别逻辑: Fedyk (2024, Journal of Finance) 利用彭博终端头条位置的外生变动识别新闻显著度对信息扩散速度的因果作用, 为本家族按媒体类型切分基期报道暴露、进而构造媒体维度 Bartik 工具提供了媒体显著度可作外生识别杠杆的最新证据; Ma, Stice, Stice, and Zhang (2025, Contemporary Accounting Research) 以地方报纸关闭作为外生媒体监督供给冲击, 识别其对银行贷款合同利差与契约严格度的因果影响, 呼应本家族以媒体报道类型基期份额构造银行外生媒体暴露工具的识别逻辑。Dyer, Lang, and Oh (2025, Management Science) 考察媒体整合导致的地方财经报道供给结构性变化及其资本市场后果, 支持把媒体类型报道量的差异化演变作为撬动银行媒体暴露的外生识别杠杆。
 
 ## VAR: bartik_media_share_comp
 
@@ -94,4 +115,7 @@ Heese, J., Pérez-Cavazos, G., & Peter, C. D. (2022). When the local newspaper l
 Gao, P., Lee, C., & Murphy, D. (2020). Financing dies in darkness? The impact of newspaper closures on public finance. Journal of Financial Economics, 135(2), 445-467. https://doi.org/10.1016/j.jfineco.2019.06.003
 Adão, R., Kolesár, M., & Morales, E. (2019). Shift-share designs: Theory and inference. Quarterly Journal of Economics, 134(4), 1949-2010. https://doi.org/10.1093/qje/qjz025
 Peress, J. (2014). The media and the diffusion of information in financial markets: Evidence from newspaper strikes. The Journal of Finance, 69(5), 2007-2043. https://doi.org/10.1111/jofi.12179
+Fedyk, A. (2024). Front-Page News: The Effect of News Positioning on Financial Markets. Journal of Finance. https://doi.org/10.1111/jofi.13287
+Ma, Z., Stice, D., Stice, H., & Zhang, Y. (2025). Local newspaper closures and bank loan contracts. Contemporary Accounting Research. https://doi.org/10.1111/1911-3846.13046
+Dyer, T., Lang, M., & Oh, J. (2025). Media Conglomeration, Local News, and Capital Market Consequences. Management Science. https://doi.org/10.1287/mnsc.2023.02247
 <!-- rendered-citations:end -->

@@ -89,7 +89,21 @@ citations:
   vol: 78
   issue: 1
   pages_or_artno: 35-71
-new_dois: []
+- doi: "10.1016/j.iref.2025.104174"
+  type: journal
+  authors: "Wang, Z., & Zheng, D."
+  year: 2025
+  title: "Media heterogeneity and corporate ESG performance: evidence from China"
+  venue: "International Review of Economics & Finance"
+- doi: "10.1016/j.jaccpubpol.2025.107371"
+  type: journal
+  authors: "Wang, X., Shao, W., Zhu, L., & Kong, D."
+  year: 2025
+  title: "Media competition and earnings management: evidence from China's county newspaper conglomeration reform"
+  venue: "Journal of Accounting and Public Policy"
+new_dois:
+  - "10.1016/j.iref.2025.104174"
+  - "10.1016/j.jaccpubpol.2025.107371"
 ---
 
 ## CORE
@@ -101,7 +115,7 @@ new_dois: []
 所有分子分母均在 stage 13 共现硬过滤后的银行-fintech 文章子集上计算, 行的口径是 article×bank (一篇涉及多家银行的文章在各银行下分别计入一行, 非 docid 去重), 与家族 n_articles 口径一致; 留篇是否算作"一篇银行-fintech 报道"遵循 2026-06-29 起的 full-only 门控 (只看 llm_verified_full == True), ctx/ss 派生量为 conditional-on-full 的子集轨。分类名单来自项目媒体分类配置, 其中官方/市场化两维源自 NPPA (国家新闻出版) 数据库并按主管/主办单位双判据构造: 官方以主管单位为党政机关为判据, 市场化以主办单位为企业/商业集团为判据。这两条判据在实证上并不互斥 (实测重叠 386 家, 约 82% 市场化媒体同时被官方名单覆盖), 因此代码采取结构性互斥的净化构造——official 取 OFFICIAL 减 MARKET (纯官方), market 取 MARKET 减 OFFICIAL (纯市场化), 双判据媒体不计入任一处理组而落入各自对照, 保证 official_media_frac 与 market_media_frac 之和不超过 1。深度期刊与高频日报按 NPPA 出版周期判据划分 (日刊 vs 周报及以下的低频出版物), 二者互斥且和不超过 1。地理邻近性以银行注册地的省/市与媒体来源省/市匹配得到, 来源地不可知的报道被置为 NaN 而非强制归入异地, 并保证同省包含同城 (homeprov ≥ homecity 的单调约束在文末校验)。停刊代理集合由数据驱动的隐性覆盖退出检测得到 (媒体在样本中的 last_year 早于样本末年减去缺口阈值即标疑似退出), 经 NPPA 交叉验证仅改报告标签、不收窄排除集。各占比一律 groupby(target_bank, year).mean() 直接得到, 缺失单元按左连接保留 NaN、按契约不做零填充。
 
 【文献定位】
-本家族的构念根基是媒体金融学关于"来源属性调节信息含量"的实证传统。Gentzkow 与 Shapiro (2010) 证明媒体倾向 (slant) 具有由需求侧驱动的稳定组织特征, 为按来源属性分层、并把媒体结构视为可暴露的固定风格提供了方法论依据; Gurun 与 Butler (2012) 直接刻画本地媒体因本地广告收入而对本地企业系统性正面倾斜, 是同省/同城两列的母锚。财经专业媒体与信息中介功能的作用, 呼应 Call 等 (2022) 对财经记者作为信息中介的调查证据, 以及 Peress (2014) 借报纸罢工这一自然实验识别媒体对金融市场信息扩散的因果作用。停刊/覆盖退出维度直接承接报纸关停的因果文献: Heese 等 (2022) 记录本地报纸关停后地方公司违规上升, Gao 等 (2020) 记录关停抬高地方公共财政成本, 二者共同论证"覆盖退出"作为监督真空代理的合理性, 也正是把疑似退出媒体保守剔除以做样本选择稳健性的因果依据。就中国银行业情境, Fang 等 (2024) 提供了银行级媒体情感影响存款稳定与系统性风险的同域证据, Gutknecht (2025) 则示范了媒体报道构成与企业风险的近期关联。需强调, 本家族九维属规格稳健性并排关系: 各维度分类彼此正交或互斥、各自 just-identified 并排, 互为稳健性、不分主次, 禁止把不同维度的份额混进同一 over-identified 的 Hansen J 检验; 三轨 (full/ctx/ss) 的情感均值副产品同理各自并排、禁混同一过度识别检验。
+本家族的构念根基是媒体金融学关于"来源属性调节信息含量"的实证传统。Gentzkow 与 Shapiro (2010) 证明媒体倾向 (slant) 具有由需求侧驱动的稳定组织特征, 为按来源属性分层、并把媒体结构视为可暴露的固定风格提供了方法论依据; Gurun 与 Butler (2012) 直接刻画本地媒体因本地广告收入而对本地企业系统性正面倾斜, 是同省/同城两列的母锚。财经专业媒体与信息中介功能的作用, 呼应 Call 等 (2022) 对财经记者作为信息中介的调查证据, 以及 Peress (2014) 借报纸罢工这一自然实验识别媒体对金融市场信息扩散的因果作用。停刊/覆盖退出维度直接承接报纸关停的因果文献: Heese 等 (2022) 记录本地报纸关停后地方公司违规上升, Gao 等 (2020) 记录关停抬高地方公共财政成本, 二者共同论证"覆盖退出"作为监督真空代理的合理性, 也正是把疑似退出媒体保守剔除以做样本选择稳健性的因果依据。就中国银行业情境, Fang 等 (2024) 提供了银行级媒体情感影响存款稳定与系统性风险的同域证据, Gutknecht (2025) 则示范了媒体报道构成与企业风险的近期关联。需强调, 本家族九维属规格稳健性并排关系: 各维度分类彼此正交或互斥、各自 just-identified 并排, 互为稳健性、不分主次, 禁止把不同维度的份额混进同一 over-identified 的 Hansen J 检验; 三轨 (full/ctx/ss) 的情感均值副产品同理各自并排、禁混同一过度识别检验。就近期中国情境证据而言, Wang 与 Zheng (2025, International Review of Economics & Finance) 区分市场化媒体与官方/国有媒体报道对企业 ESG 表现的异质性影响, 为本家族 official/market 两列的政治取向净化构造提供了最新的中国情境实证支撑; Wang、Shao、Zhu 与 Kong (2025, Journal of Accounting and Public Policy) 以中国县级报业整合改革为外生冲击, 考察媒体竞争结构变化 (含官方/商业报纸重组、覆盖退出) 对企业盈余管理的治理效应, 呼应本家族 ceased_media_frac 覆盖退出维度与 official/market 净化构造的现实制度背景。
 
 ## VAR: ceased_media_frac
 
@@ -157,4 +171,6 @@ Gao, P., Lee, C., & Murphy, D. (2020). Financing dies in darkness? The impact of
 Peress, J. (2014). The media and the diffusion of information in financial markets: Evidence from newspaper strikes. The Journal of Finance, 69(5), 2007-2043. https://doi.org/10.1111/jofi.12179
 Gurun, U. G., & Butler, A. W. (2012). Don't believe the hype: Local media slant, local advertising, and firm value. The Journal of Finance, 67(2), 561-598. https://doi.org/10.1111/j.1540-6261.2012.01725.x
 Gentzkow, M., & Shapiro, J. M. (2010). What drives media slant? Evidence from U.S. daily newspapers. Econometrica, 78(1), 35-71. https://doi.org/10.3982/ECTA7195
+Wang, Z., & Zheng, D. (2025). Media heterogeneity and corporate ESG performance: evidence from China. International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2025.104174
+Wang, X., Shao, W., Zhu, L., & Kong, D. (2025). Media competition and earnings management: evidence from China's county newspaper conglomeration reform. Journal of Accounting and Public Policy. https://doi.org/10.1016/j.jaccpubpol.2025.107371
 <!-- rendered-citations:end -->

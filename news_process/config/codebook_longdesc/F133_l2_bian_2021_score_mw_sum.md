@@ -64,7 +64,14 @@ citations:
   vol: 37
   issue: 2
   pages_or_artno: 267-307
-new_dois: []
+- doi: "10.1016/j.eswa.2024.125739"
+  type: "journal"
+  authors: "Ma, Y., Zhang, T., & Zhang, P."
+  year: 2025
+  title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
+  venue: "Expert Systems with Applications"
+new_dois:
+  - "10.1016/j.eswa.2024.125739"
 ---
 
 ## CORE
@@ -76,7 +83,7 @@ new_dois: []
 计算分三步。第一步在 stage 22 (tone_words) 的文章级层面, 对每篇报道用 Bian 2021 词典逐词打分并施加全套语言学规则得净极性得分 bian_2021_score{track}: 该 canonical 无后缀分数并非简单的正负词裸计数比 (neg − pos)/(pos + neg), 而是由 tone_words._compute_sentiment_with_rules 对命中词依次施加否定翻转、程度副词六级放缩、转折连词 ×1.5、句末重置等规则后, 取最终逐词得分的自归一化比 Σ(final_score)/Σ|final_score|, 取值落在 [−1, 1], 无有效极性词时按缺省口径处理为缺失或零。零规则的裸计数比 (neg − pos)/(pos + neg) 另有其列 (msent_score 变体), 与本家族口径不同, 不可混同。此规则化正是本 codebook 把规则消融梯度列为 load-bearing 的直接体现: canonical 分数走全语言学规则, 各消融变体仅在关闭部分规则时才退化为更接近计数比的形态。第二步在面板装配 (runner 步骤3c, 媒体权威加权 MW; 与步骤3b 的提及密度加权 VW 无关) 计算 media_authority_weight = raw_authority / mean(raw_authority): 媒体名先做精确匹配、再做去括号后缀的模糊匹配, 未评级媒体赋默认权重, 全样本均值归一化保证权重中心为 1; 随后逐篇相乘得文章级加权得分 bian_2021_score_mw{track} = bian_2021_score{track} × media_authority_weight。第三步在 encode 的 bank-year 聚合中对该加权得分求和, 得本列 bian_2021_score_mw_sum{track}。三轨 full / ctx / ss 各自独立走完这条链路: full 轨文本 = 标题 prepend + 全文正文, ctx 轨 = 标题 + 银行/金科实体上下文窗, ss 轨 = 标题 + 银行与金科同句共现窗 (ss 无同句共现时回退镜像 ctx 语义、以全文 body 兜底并置 ss_is_fallback)。留篇门控为 full-only (2026-06-29): 一篇报道是否计入某 bank-year 的"银行金科报道"总体只看 full 轨的 llm_verified_full; ctx/ss 是 conditional-on-full 的子集测度, 行宇宙为 full 留篇集的子集, 但 per-track 分子仍逐轨照算。
 
 【文献定位】
-词典法情感度量是本列的方法学根基。Barbaglia et al. (2025) 系统论证了在经济金融文本上词典法相对纯机器学习的可解释性与可复现优势, 并给出以词表极性合成篇章语调的规范流程, 与本列"逐词计数 → 篇章净极性 → 单元加权求和"的构造同源。van Atteveldt et al. (2021) 通过与人工标注、众包编码、机器学习的系统比对, 界定了词典法效度的边界与适用条件, 提示本列这类词典分数应作为多测度体系中的一员而非唯一真值。Frankel et al. (2022) 比较了披露文本上词典法与机器学习法的一致性, 为本项目"词典 / LLM / BERT 三法互为稳健性、不分主次"的设计提供了直接先例。Du et al. (2022) 在 Review of Finance 上构建并验证了另一部中文金融情感词典, 强调领域特异性与语言特异性对中文金融文本极性判定的决定性影响, 印证了本家族选用 Bian 2021 这类领域内词典而非通用词表的必要性; Bian et al. (2021) 则是本家族极性判据的原始出处。Taboada et al. (2011) 奠定了词典法中否定、程度、转折等语言学规则的处理范式, 是本项目规则消融梯度的方法学背景。需强调本列所属的媒体权威加权仅是加权口径梯子中的一臂: MW (媒体权威权重)、VW (提及密度权)、HW (羊群衰减权) 与等权聚合各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同加权口径的分子混进同一 over-identified Hansen J; 同理三轨 full/ctx/ss 亦各自 just-identified 并排、禁混同一 over-identified Hansen J。
+词典法情感度量是本列的方法学根基。Barbaglia et al. (2025) 系统论证了在经济金融文本上词典法相对纯机器学习的可解释性与可复现优势, 并给出以词表极性合成篇章语调的规范流程, 与本列"逐词计数 → 篇章净极性 → 单元加权求和"的构造同源。van Atteveldt et al. (2021) 通过与人工标注、众包编码、机器学习的系统比对, 界定了词典法效度的边界与适用条件, 提示本列这类词典分数应作为多测度体系中的一员而非唯一真值。Frankel et al. (2022) 比较了披露文本上词典法与机器学习法的一致性, 为本项目"词典 / LLM / BERT 三法互为稳健性、不分主次"的设计提供了直接先例。Du et al. (2022) 在 Review of Finance 上构建并验证了另一部中文金融情感词典, 强调领域特异性与语言特异性对中文金融文本极性判定的决定性影响, 印证了本家族选用 Bian 2021 这类领域内词典而非通用词表的必要性; Bian et al. (2021) 则是本家族极性判据的原始出处。Taboada et al. (2011) 奠定了词典法中否定、程度、转折等语言学规则的处理范式, 是本项目规则消融梯度的方法学背景。需强调本列所属的媒体权威加权仅是加权口径梯子中的一臂: MW (媒体权威权重)、VW (提及密度权)、HW (羊群衰减权) 与等权聚合各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同加权口径的分子混进同一 over-identified Hansen J; 同理三轨 full/ctx/ss 亦各自 just-identified 并排、禁混同一 over-identified Hansen J。Ma, Zhang, & Zhang (2025, Expert Systems with Applications) 构建面向中国投资者的细粒度中文情感词典并验证其对市场异动的预测力, 呼应本家族选用领域特异中文金融词典 (Bian 2021) 而非通用词表的构念依据。
 
 ## VAR: bian_2021_score_mw_sum_full
 
@@ -100,4 +107,5 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
+Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications. https://doi.org/10.1016/j.eswa.2024.125739
 <!-- rendered-citations:end -->

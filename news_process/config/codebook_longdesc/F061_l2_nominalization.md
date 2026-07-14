@@ -72,7 +72,15 @@ citations:
   vol: 69
   issue: 4
   pages_or_artno: 1643-1671
-new_dois: []
+- doi: "10.1108/arj-03-2023-0094"
+  title: "Fighting through the Flesch and Fog: the readability of risk disclosures"
+  authors: "Toerien, F. E., & du Toit, E."
+  year: 2024
+  venue: "Accounting Research Journal"
+  type: "journal"
+  one_sentence_zh: "该文在南非上市公司风险披露语境下实证发现文本可读性随会计准则修订而持续恶化, 为本家族以词性驱动的名词化率刻画披露语言复杂度提供了2023-2026年最新的外部效度佐证。"
+new_dois:
+  - "10.1108/arj-03-2023-0094"
 ---
 
 ## CORE
@@ -84,7 +92,7 @@ new_dois: []
 文章级测度由 lexical_complexity 模块的 compute_lexical_complexity 完成: 对一篇报道做单次 jieba.posseg (0.42.1 冻结版) 词性标注 pass, 遍历标注结果, 分子 n_nominal 计入两类词——其一是词性标签直接为 vn (动名词) 或 an (形名词) 的词, 其二是名词性词 (词性首字母为 n) 且词末字落在名词化后缀集合 {性, 化, 度, 型, 制} 内 (例如"安全性""数字化""集中度""平台型""监管制"这类由动词/形容词派生的抽象名词); 分母 n_real 为该篇的实词总数。二者相除得到取值于 [0,1] 的名词化率, 短文本或空文本在实词数为零时返回 NaN。此测度全程 $0: 不调付费 LLM、不新增 PyPI 依赖、不触 M0 审批门、不动 Prompt v8 冻结锚, 分词与词性一律走独立未注入的 pristine jieba Tokenizer 实例, 因而任何其它模块对全局分词器的领域词注入都不改变本测度取值, 保证跨运行确定性。银行-年面板列由 encode 层对文章级 nominalization_ratio{track} 做 'mean' 聚合得到, 'mean' 天然跳过 NaN, 故短文本或缺轨文本不污染分母。诚实限定须随论文如实披露: jieba.posseg 走词典加 HMM, vn/an 与专名词性 (nr/ns/nt/nz) 的边界与歧义精度低于专用 NER, 名词化判据中"名词首字母 n 且后缀命中"的规则会把被 jieba 误标为专名的少量人名 (如把"赵性"误判 nr) 计入分子, 造成小幅高估, 属上界噪声估计; 措辞应为"以 jieba 词性近似名词化类别", 不得声称等同金融文本的规范句法解析。名词化后缀集合亦是可复现的中文近似, 而非穷尽的形态学清单, 未来可用更完整的派生后缀表做 drop-in 替换。
 
 【文献定位】
-本家族的直接构念锚是 Bonsall 等 (2017) 的 Bog Index 及其对名词化作为晦涩化句法成分的操作化, 顶刊定位则由 Loughran 与 McDonald (2014, 发表于 Journal of Finance) 奠定——该文确立了"金融披露可读性应以机械、可复现的词汇/句法代理测量"的方法论底线, 是本家族把英文可读性研究范式迁移到中文新闻语料时最核心的合法性来源。Bushee, Gow 与 Taylor (2018) 进一步区分了语言复杂度的"晦涩"与"信息"两种成因, 提醒名词化等表面特征既可能是刻意模糊, 也可能是内容本身专业性的自然结果, 故本测度在回归中定位为文本风格控制变量而非因果处理变量。Loughran 与 McDonald (2016) 的综述、Gentzkow, Kelly 与 Taddy (2019) 关于"文本即数据"的方法学纲领, 共同支撑本项目以词典/词性驱动的低成本文本测度族来刻画报道语言风格。近期证据方面, Li, Yang 与 Zhang (2023) 在中国债券招募说明书语境下发现文本可读性影响发行定价, Lesmy, Muchnik 与 Mugerman (2025) 则跨市场记录了财务报告复杂度的持续上升, 二者印证了披露文本语言复杂度维度在中国与跨国场景下的持续经济相关性, 从而为在中文银行新闻中测量名词化率提供了外部效度旁证。
+本家族的直接构念锚是 Bonsall 等 (2017) 的 Bog Index 及其对名词化作为晦涩化句法成分的操作化, 顶刊定位则由 Loughran 与 McDonald (2014, 发表于 Journal of Finance) 奠定——该文确立了"金融披露可读性应以机械、可复现的词汇/句法代理测量"的方法论底线, 是本家族把英文可读性研究范式迁移到中文新闻语料时最核心的合法性来源。Bushee, Gow 与 Taylor (2018) 进一步区分了语言复杂度的"晦涩"与"信息"两种成因, 提醒名词化等表面特征既可能是刻意模糊, 也可能是内容本身专业性的自然结果, 故本测度在回归中定位为文本风格控制变量而非因果处理变量。Loughran 与 McDonald (2016) 的综述、Gentzkow, Kelly 与 Taddy (2019) 关于"文本即数据"的方法学纲领, 共同支撑本项目以词典/词性驱动的低成本文本测度族来刻画报道语言风格。近期证据方面, Li, Yang 与 Zhang (2023) 在中国债券招募说明书语境下发现文本可读性影响发行定价, Lesmy, Muchnik 与 Mugerman (2025) 则跨市场记录了财务报告复杂度的持续上升, 二者印证了披露文本语言复杂度维度在中国与跨国场景下的持续经济相关性, 从而为在中文银行新闻中测量名词化率提供了外部效度旁证。Toerien 与 du Toit (2024, Accounting Research Journal) 在南非上市公司风险披露语境下实证发现文本可读性随会计准则修订而持续恶化, 为本家族以词性驱动的名词化率刻画披露语言复杂度提供了2023-2026年最新的外部效度佐证。
 
 ## VAR: avg_nominalization_full
 
@@ -109,4 +117,5 @@ Bushee, B. J., Gow, I. D., & Taylor, D. J. (2018). Linguistic complexity in firm
 Bonsall, S. B., IV, Leone, A. J., Miller, B. P., & Rennekamp, K. (2017). A plain English measure of financial reporting readability. Journal of Accounting and Economics, 63(2-3), 329-357. https://doi.org/10.1016/j.jacceco.2017.03.002
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
 Loughran, T., & McDonald, B. (2014). Measuring readability in financial disclosures. Journal of Finance, 69(4), 1643-1671. https://doi.org/10.1111/jofi.12162
+Toerien, F. E., & du Toit, E. (2024). Fighting through the Flesch and Fog: the readability of risk disclosures. Accounting Research Journal. https://doi.org/10.1108/arj-03-2023-0094
 <!-- rendered-citations:end -->

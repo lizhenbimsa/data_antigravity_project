@@ -110,7 +110,35 @@ citations:
   vol: 62
   issue: 3
   pages_or_artno: 1139-1168
-new_dois: []
+- doi: "10.1016/j.ememar.2025.101309"
+  type: journal
+  authors: "Huang, R., Chen, X., & Wu, C."
+  year: 2025
+  title: "The textual similarity of news content and stock return synchronicity"
+  venue: "Emerging Markets Review"
+- doi: "10.1016/j.jeconbus.2025.106258"
+  type: journal
+  authors: "Wang, Y., Chen, R., Gao, X., & Qi, W."
+  year: 2025
+  title: "Text similarity in analyst reports and stock price synchronization"
+  venue: "Journal of Economics and Business"
+- doi: "10.1016/j.irfa.2024.103579"
+  type: journal
+  authors: "Duan, J., Kou, F., Wang, Z., & Wei, Y."
+  year: 2024
+  title: "When echoes surpass voices: Market reaction to forwarded news"
+  venue: "International Review of Financial Analysis"
+- doi: "10.2308/tar-2023-0191"
+  type: journal
+  authors: "Merkley, K. J., Pacelli, J., Sun, F., & Twedt, B. J."
+  year: 2024
+  title: "Common Media Holding Companies and the Uniqueness of Business Press Content"
+  venue: "The Accounting Review"
+new_dois:
+  - "10.1016/j.ememar.2025.101309"
+  - "10.1016/j.jeconbus.2025.106258"
+  - "10.1016/j.irfa.2024.103579"
+  - "10.2308/tar-2023-0191"
 ---
 
 ## CORE
@@ -124,7 +152,7 @@ new_dois: []
 逐篇字面陈旧度的计算口径必须精确复述, 因为其中若干设定是可复现性与效度的承重点。第一, 指纹构造采用字符级 3-gram shingle (_char_shingles): 直接在字符序列上滑动取三字窗口, 对中文友好且不依赖分词, 从而规避了 jieba 切词歧义对相似度的扰动; shingle 集合再经 MinHash (num_perm=128 个置换哈希) 压缩为定长签名, 两篇文章 MinHash 签名的相符比例是其 shingle 集合真实 Jaccard 相似度的无偏近似。第二, 近邻检索用 MinHashLSHForest (局部敏感哈希森林): 若对全语料两两比对, 40 万篇 × 7 天窗口约 5000 个候选将产生约 20 亿次比较不可行, LSH 森林把该复杂度降到约 7N, 使工业规模的重复检测可行。第三, 窗口为日粒度的 [d-7d, d), 且严格排除同日行: 流水线会把同一篇报道 (同 docid) 按其匹配到的多家银行复制成多行, 若窗口含同日更早行, 则重复行内部相似度恒为 1.0, 使字面陈旧度机械等于 1.0, 高陈旧信号几乎纯由该复制副作用驱动, 且哪一行取到 1.0 依赖任意输入行序; 排除同日后, 字面轨与语义轨的窗口与 NaN 口径一致。第四, 窗口为空 (含语料首周、或近邻仅为同日行) 的文章其连续得分为 NaN, 在下游聚合中被 skip, 不计入分母; 有窗口但 LSH 查询无任何命中的文章得分为 0.0 (确有窗口而无相似旧闻, 属真实的"零陈旧"而非缺失)。第五, 计算前按日期稳定排序 (kind='stable'), 计算后以逆置换 stale[np.argsort(sort_idx)] 还原原始行序, 与按位置赋值对齐——这是防整列错位的 P0 承重步骤, 在大量同时间戳并列下非稳定排序会使得分随输入序漂移。第六, 阈值二值化在 aggregate_to_bank_year 内向量化完成: high 列 = 1[stale > 0.9], 并把 stale 为 NaN 的行的 high 列同置 NaN, 使得均值 (占比) 自动跳过缺失; 随后按 (target_bank, year) 分组取 mean, 即得占比。分母因此是"字面陈旧度非 NaN 的有效文章数", 与面板其余 highstale 列同口径。
 
 【文献定位】
-本家族在方法学上立足于金融文本分析这一成熟范式。Gentzkow, Kelly & Taddy (2019) 的"文本作为数据"系统梳理了把非结构化文本转为可计量特征的方法谱系, 为本家族把报道流转为"字面重复度"这一定量特征提供了总纲。在金融文本的具体度量上, Loughran & McDonald (2020) 综述了词典法与相似度法在金融领域的应用与陷阱, 提示文本度量须谨慎对待领域特异性。与本家族最贴近的实证锚点是 Cohen, Malloy & Nguyen (2020) 的"惰性价格": 他们以公司年报相邻年度之间的文本相似度作为"是否改动了披露"的度量, 发现文本高度雷同 (即字面陈旧) 的公司蕴含可预测的负向市场信息——这与本家族"字面重复度越高、增量信息越少"的经济学直觉同构, 只是把度量域从年报相邻年迁移到银行报道流的七天滚动窗。Dyer, Lang & Stice-Lawrence (2017)、Lang & Stice-Lawrence (2015) 以大样本刻画了披露文本的模板化与套话膨胀趋势, Cazier & Pfeiffer (2016) 与 Li (2008) 则从可读性与文本长度角度补充了"文本冗余不等于信息"的证据; 这些工作共同支撑了"字面重复是信息含量的负向代理"这一判断。信息中介与处理成本维度上, Blankespoor, deHaan & Marinovic (2020) 综述了披露处理成本如何塑造投资者信息选择与市场结果, 并明确把媒体等信息中介的再传播、再加工纳入决定处理成本的环节——旧闻重印恰恰是提高处理成本、稀释信息环境的一种机制, 通稿转载即是媒体中介过程在报道流上留下的字面指纹。而 Cao et al. (2023) 关于"机器在听时如何说话"的研究则提醒: 当披露/报道日益被算法消费, 文本的模板化与重复本身成为策略性行为的产物, 使字面陈旧度的度量在当代更具意义。在金融学母题上, Tetlock (2011) 的"陈旧新闻是否被反应"与 Tetlock (2007) 的"媒体赋予投资者情绪内容"共同构成本构念的经济学根基: 本家族把银行层面的字面高陈旧占比作为该银行媒体信息环境"新鲜度稀释"的代理, 服务于新闻情感/关注度对银行行为影响这一研究线中的稳健性与信息质量刻画。
+本家族在方法学上立足于金融文本分析这一成熟范式。Gentzkow, Kelly & Taddy (2019) 的"文本作为数据"系统梳理了把非结构化文本转为可计量特征的方法谱系, 为本家族把报道流转为"字面重复度"这一定量特征提供了总纲。在金融文本的具体度量上, Loughran & McDonald (2020) 综述了词典法与相似度法在金融领域的应用与陷阱, 提示文本度量须谨慎对待领域特异性。与本家族最贴近的实证锚点是 Cohen, Malloy & Nguyen (2020) 的"惰性价格": 他们以公司年报相邻年度之间的文本相似度作为"是否改动了披露"的度量, 发现文本高度雷同 (即字面陈旧) 的公司蕴含可预测的负向市场信息——这与本家族"字面重复度越高、增量信息越少"的经济学直觉同构, 只是把度量域从年报相邻年迁移到银行报道流的七天滚动窗。Dyer, Lang & Stice-Lawrence (2017)、Lang & Stice-Lawrence (2015) 以大样本刻画了披露文本的模板化与套话膨胀趋势, Cazier & Pfeiffer (2016) 与 Li (2008) 则从可读性与文本长度角度补充了"文本冗余不等于信息"的证据; 这些工作共同支撑了"字面重复是信息含量的负向代理"这一判断。信息中介与处理成本维度上, Blankespoor, deHaan & Marinovic (2020) 综述了披露处理成本如何塑造投资者信息选择与市场结果, 并明确把媒体等信息中介的再传播、再加工纳入决定处理成本的环节——旧闻重印恰恰是提高处理成本、稀释信息环境的一种机制, 通稿转载即是媒体中介过程在报道流上留下的字面指纹。而 Cao et al. (2023) 关于"机器在听时如何说话"的研究则提醒: 当披露/报道日益被算法消费, 文本的模板化与重复本身成为策略性行为的产物, 使字面陈旧度的度量在当代更具意义。在金融学母题上, Tetlock (2011) 的"陈旧新闻是否被反应"与 Tetlock (2007) 的"媒体赋予投资者情绪内容"共同构成本构念的经济学根基: 本家族把银行层面的字面高陈旧占比作为该银行媒体信息环境"新鲜度稀释"的代理, 服务于新闻情感/关注度对银行行为影响这一研究线中的稳健性与信息质量刻画。近年文献进一步在文本相似度与股价同步性这一具体渠道上提供了支持: Huang, Chen & Wu (2025, Emerging Markets Review) 以新闻报道文本相似度度量信息重复程度并检验其与股价同步性的关系, 与本家族用字面相似度刻画报道陈旧、重复的思路直接同构; Wang, Chen, Gao & Qi (2025, Journal of Economics and Business) 发现文本相似度越高的分析师报告对应的信息含量越低、股价同步性越高, 支持本家族以字面重复度作为信息新鲜度负向代理的经济学逻辑。Duan, Kou, Wang & Wei (2024, International Review of Financial Analysis) 研究转发/重复传播的新闻相较原创新闻引发更强的市场反应, 与本家族字面重复度捕捉旧闻重印信息含量的思路相呼应。Merkley, Pacelli, Sun & Twedt (2024, The Accounting Review) 发现同一媒体控股公司旗下媒体报道趋同、字面与语气相似度更高, 并阻碍价格形成, 支持以文本相似度衡量报道重复对信息环境的稀释效应。
 
 【识别策略定位】
 本家族的三列并非三个相互竞争的"更好/更差"测度, 而是沿文本轨这一单一维度展开的规格稳健性网格: full/ctx/ss 三轨。按 CLAUDE.md 铁律, 三轨各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同轨的列混进同一个 over-identified Hansen J 过度识别检验。与语义家族不同, 字面家族没有 co-primary 双轨嵌入维度 (MinHash 无 _lg 孪生), 因此其稳健性网格只有文本轨一维, 更为简洁。识别上, 字面高陈旧占比可作为银行信息环境的控制变量或机制变量: 当研究媒体情感/关注度对银行融资成本、金融科技投资等结果的影响时, 高陈旧占比刻画了"该银行报道中有多大比例只是旧闻的字面重印", 用以吸收报道量背后信息含量的异质性。其留篇域与面板行宇宙沿用 full-only 门控口径 (2026-06-29): 一篇报道是否被判为"一篇银行金融科技报道"只看 full 轨的 llm_verified_full, ctx/ss 轨降为 conditional-on-full 的测度/稳健性轨, 面板平均域收缩到 verified 面板语料。因此 full 轨占比与 ctx/ss 轨占比在样本框上并非对称: 后两轨是在 full 留篇集子集上按各自轨文本重算的规格稳健性对照。须再次强调聚合域的双口径: 计算逐篇陈旧度的"参照窗口" (过去七天信息环境基准) 用 stage 13 预筛全集以保证背景完整, 而 bank-year"平均域"则收缩到 verified 面板语料 (与 tone/herd/intensity 兄弟列聚合口径一致), 二者刻意不同。
@@ -171,4 +199,8 @@ Lang, M., & Stice-Lawrence, L. (2015). Textual analysis and international financ
 Tetlock, P. C. (2011). All the news that's fit to reprint: Do investors react to stale information?. The Review of Financial Studies, 24(5), 1481-1512. https://doi.org/10.1093/rfs/hhq141
 Li, F. (2008). Annual report readability, current earnings, and earnings persistence. Journal of Accounting and Economics, 45(2-3), 221-247. https://doi.org/10.1016/j.jacceco.2008.02.003
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Huang, R., Chen, X., & Wu, C. (2025). The textual similarity of news content and stock return synchronicity. Emerging Markets Review. https://doi.org/10.1016/j.ememar.2025.101309
+Wang, Y., Chen, R., Gao, X., & Qi, W. (2025). Text similarity in analyst reports and stock price synchronization. Journal of Economics and Business. https://doi.org/10.1016/j.jeconbus.2025.106258
+Duan, J., Kou, F., Wang, Z., & Wei, Y. (2024). When echoes surpass voices: Market reaction to forwarded news. International Review of Financial Analysis. https://doi.org/10.1016/j.irfa.2024.103579
+Merkley, K. J., Pacelli, J., Sun, F., & Twedt, B. J. (2024). Common Media Holding Companies and the Uniqueness of Business Press Content. The Accounting Review. https://doi.org/10.2308/tar-2023-0191
 <!-- rendered-citations:end -->

@@ -75,7 +75,14 @@ citations:
   vol: 21
   issue: 2
   pages_or_artno: 109-128
-new_dois: []
+- doi: "10.1093/rfs/hhac075"
+  type: journal
+  authors: "Daniel, K., Klos, A., & Rottke, S."
+  year: 2023
+  title: "The Dynamics of Disagreement"
+  venue: "Review of Financial Studies"
+new_dois:
+- "10.1093/rfs/hhac075"
 ---
 
 ## CORE
@@ -87,7 +94,7 @@ new_dois: []
 计算的原始输入是 You et al. (2018) 中文金融情感词典在报道文本上的词级命中: 上游 stage 22 tone_words 先对每篇报道数出该词典的正面词、负面词命中并归一化为命中比率, 再逐轨聚合到银行-年度得到两列 avg_you_2018_pos_ratio 与 avg_you_2018_neg_ratio; 24_herd_decay.parquet 的 df_exploded 只用于界定"哪些报道进入该银行该年度"的留篇宇宙与聚合分母。对某银行某年度, 记该词典正面词命中比率 (avg_you_2018_pos_ratio) 为 P、负面词命中比率 (avg_you_2018_neg_ratio) 为 N。二者是 float 词级比率, 而非任何投票计数或篇章计数——这是本家族与 disag_llm (LLM 投票篇章计数) / disag_bert (BERT 概率均值) 两族在原语层面的根本区别。分歧指数定义为 disag = sqrt(1 − ((P − N) / (P + N))^2)。这个式子的几何含义清晰: 令 r = (P − N) / (P + N) 为方向性净比率 (∈ [−1, 1]), 则 disag = sqrt(1 − r^2) 恰是以 r 为横坐标的单位圆纵高。当词典命中一边倒 (P = 0 或 N = 0) 时 r = ±1, disag = 0, 表示零分歧; 当正负词命中比率相等 (P = N) 时 r = 0, disag 取最大值 1, 表示最大撕裂。该构造与本阶段步骤 7i 的 Janis-Fadner 系数共用同一对量 P、N 但语义正交: J-F 刻画的是净倾向的强度与符号, disag 刻画的是倾向的不确定性, 两者是同一分布的"一阶矩方向"与"离散度"两面。producer 落地于 pipeline/panel/runner.py 步骤 8b (disag) 的单词典分支 (for d in DICT_NAMES, d='you_2018'), 属纯后处理算术, 本阶段不再调用任何 LLM 或嵌入 API; 由于输入本就是 float 比率, runner 内对计数轨所做的 Int8→float64 防回绕转换对本列是 no-op。取值恒在 [0, 1] 闭区间, 无量纲。当 P + N = 0 (该单元词典正负词均零命中或无报道) 时分母为零, 结果按缺失 (NaN) 处理而非填零, 与全流水线"没报道标缺失、不标零"的口径一致。
 
 【文献定位】
-本家族坐落于"分歧与资产定价"这一成熟文献带的媒体测度侧。Hong and Stein (2007) 从理论上论证投资者意见分歧是理解交易量、动量与崩盘的核心状态变量; Carlin, Longstaff, and Matoba (2014) 用抵押证券市场的直接分歧代理验证了分歧与预期收益、收益波动、交易量同向相关; Cen, Wei, and Yang (2017) 进一步指出分析师层面的分歧伴随反应不足与可预测的横截面收益。到了以文本为原料的近端, Cookson and Niessner (2020) 把分歧分解为"跨投资风格"与"同风格内"两部分, 为"分歧不是噪声、而是可结构化的信号"提供了范式; Li and Luan (2025) 直接以基于新闻的投资者分歧构造测度并检验其对股票收益的解释力, 与本家族"用媒体报道的语调分裂构造银行层面分歧"的做法最为贴近。方法层面, Frankel, Jennings, and Lee (2022, Management Science) 系统比较了机器学习与词典法在披露情感抽取上的一致与背离, 提示任何情感聚合量都应交代其抽取引擎的口径依赖——本家族因此明确其 P、N 来自 You et al. (2018) 中文金融情感词典的词级正/负命中比率 (stage 22 tone_words 词典轨), 而非 stage 21 三家 LLM 投票或 stage 23 BERT 概率轨。这一交代至关重要: 全仓另有 disag_llm (LLM 投票篇章计数) 与 disag_bert (BERT 概率均值) 两族分歧列, 三者度量同一"情感撕裂"构念但抽取引擎不同, 恰是 Frankel et al. (2022) 所论"引擎选择会改变情感读数"的具体落地——它们互为稳健性、不分主次, 各自 just-identified 并排, 严禁混进同一 over-identified 的 Hansen J。本家族只承载词典引擎这一支, 使用时不得与 disag_llm / disag_bert 在构念来源上混淆。同理, 本家族的三条轨道 (full/ctx/ss) 亦各自 just-identified 并排, 互为稳健性、不分主次, 严禁把不同轨的 disag 混进同一 over-identified 的 Hansen J 统计量。
+本家族坐落于"分歧与资产定价"这一成熟文献带的媒体测度侧。Hong and Stein (2007) 从理论上论证投资者意见分歧是理解交易量、动量与崩盘的核心状态变量; Carlin, Longstaff, and Matoba (2014) 用抵押证券市场的直接分歧代理验证了分歧与预期收益、收益波动、交易量同向相关; Cen, Wei, and Yang (2017) 进一步指出分析师层面的分歧伴随反应不足与可预测的横截面收益。到了以文本为原料的近端, Cookson and Niessner (2020) 把分歧分解为"跨投资风格"与"同风格内"两部分, 为"分歧不是噪声、而是可结构化的信号"提供了范式; Li and Luan (2025) 直接以基于新闻的投资者分歧构造测度并检验其对股票收益的解释力, 与本家族"用媒体报道的语调分裂构造银行层面分歧"的做法最为贴近。方法层面, Frankel, Jennings, and Lee (2022, Management Science) 系统比较了机器学习与词典法在披露情感抽取上的一致与背离, 提示任何情感聚合量都应交代其抽取引擎的口径依赖——本家族因此明确其 P、N 来自 You et al. (2018) 中文金融情感词典的词级正/负命中比率 (stage 22 tone_words 词典轨), 而非 stage 21 三家 LLM 投票或 stage 23 BERT 概率轨。Daniel, Klos, and Rottke (2023, Review of Financial Studies) 利用信息冲击后乐观者与悲观者估值分化的动态演变来刻画分歧强度随时间收敛的过程, 与本家族用媒体报道正负情感词命中比率构造的银行-年度分歧指数在"分歧作为可测度且随信息演化的独立状态变量"这一构念上相呼应。这一交代至关重要: 全仓另有 disag_llm (LLM 投票篇章计数) 与 disag_bert (BERT 概率均值) 两族分歧列, 三者度量同一"情感撕裂"构念但抽取引擎不同, 恰是 Frankel et al. (2022) 所论"引擎选择会改变情感读数"的具体落地——它们互为稳健性、不分主次, 各自 just-identified 并排, 严禁混进同一 over-identified 的 Hansen J。本家族只承载词典引擎这一支, 使用时不得与 disag_llm / disag_bert 在构念来源上混淆。同理, 本家族的三条轨道 (full/ctx/ss) 亦各自 just-identified 并排, 互为稳健性、不分主次, 严禁把不同轨的 disag 混进同一 over-identified 的 Hansen J 统计量。
 
 ## VAR: disag_you_2018_full
 
@@ -112,4 +119,5 @@ You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. Revi
 Cen, L., Wei, K. C. J., & Yang, L. (2017). Disagreement, underreaction, and stock returns. Management Science, 63(4), 1214-1231. https://doi.org/10.1287/mnsc.2015.2405
 Carlin, B. I., Longstaff, F. A., & Matoba, K. (2014). Disagreement and asset prices. Journal of Financial Economics, 114(2), 226-238. https://doi.org/10.1016/j.jfineco.2014.06.007
 Hong, H., & Stein, J. C. (2007). Disagreement and the stock market. Journal of Economic Perspectives, 21(2), 109-128. https://doi.org/10.1257/jep.21.2.109
+Daniel, K., Klos, A., & Rottke, S. (2023). The Dynamics of Disagreement. Review of Financial Studies. https://doi.org/10.1093/rfs/hhac075
 <!-- rendered-citations:end -->

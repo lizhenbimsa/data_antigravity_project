@@ -94,7 +94,14 @@ citations:
   year: 1991
   title: "Who benefits from state and local economic development policies?"
   venue: W.E. Upjohn Institute for Employment Research
-new_dois: []
+- doi: "10.1111/1911-3846.13046"
+  type: journal
+  authors: "Ma, Z., Stice, D., Stice, H., & Zhang, Y."
+  year: 2025
+  title: "Local newspaper closures and bank loan contracts"
+  venue: "Contemporary Accounting Research"
+new_dois:
+  - "10.1111/1911-3846.13046"
 ---
 
 ## CORE
@@ -106,7 +113,7 @@ new_dois: []
 两列由 iv_did.py 的 compute_bartik_iv_fintech 在 runner 步骤 7e「稳健性 5: 地理邻近性」处产出。判定链路: 先由 config/bank_addresses.json 取每家银行注册省份, 再把每篇报道的媒体省份列 (国家地区/省份) 与之比对, 相等记为 local、否则记为 nonlocal, 写入文章级临时列; 随后仅取处理前基期 T0 的报道, 按银行 × 类别计数, 除以该银行基期内 local 与 nonlocal 两类计数之和 (分母只含被保留的两类, 不含 other/未映射) 得到份额。因此对任一在基期有报道的银行, share_local 与 share_nonlocal 严格互补、相加为 1; 若某银行基期内没有任何可识别报道, 两列同置 NaN, 而非旧实现的 fillna(0) 伪零暴露——这一缺失语义与主 Bartik (type/scale) 完全同口径, 避免制造「零本地暴露」的虚假观测。基期取 T0 = max(panel.year.min, 2010), 并强制 T0 小于政策冲击里程碑 2019 (DCEP 试点): 若计算所得基期落入或越过里程碑年, 直接 raise, 以严守份额在处理前期固定的外生性公理 (Goldsmith-Pinkham, Sorkin & Swift (2020) 的核心可信度条件)。份额分母所依据的基期报道集, 是经 full-only 留篇门控 (2026-06-29) 保留下来的银行金科报道全文轨集合, 与 n_articles 的 full-only 口径一致; 份额本身是 track-agnostic 的元数据式度量 (只依赖报道来源省份与银行注册地, 不依赖情感或三轨文本剪裁), 故这两列没有 full/ctx/ss 三轨孪生, 也没有 co-primary 嵌入的 _lg 孪生。份额下游与 local/nonlocal 各类的 leave-one-out 年度情感冲击相乘、跨类求和, 得到 bartik_geoprox_iv_full/_ctx/_ss 三条工具轨。
 
 【文献定位】
-方法学上, shift-share 工具的可信度可从两条互补路径论证: 一是份额外生 (Goldsmith-Pinkham, Sorkin & Swift (2020) 的基期份额外生 + Rotemberg 权重诊断), 二是冲击外生 (Borusyak, Hull & Jaravel (2022) 的准实验视角与 Adão, Kolesár & Morales (2019) 的等价推断与标准误校正)。Borusyak, Hull & Jaravel (2025) 给出的实操检查表进一步明确了不完全份额与重归一化选择的正确处理, Apfel (2024) 则讨论了放松排他性约束的条件。就本项目而言, 地理邻近仅作为主 Bartik (银行类型) 的稳健性维度之一并列存在: 各维度、各轨工具「各自 just-identified 并排、互为稳健性、不分主次」, 严禁把不同维度或不同轨 (full/ctx/ss) 的工具拼进同一个 over-identified 的 Hansen J 检验——它们源自同一批报道的同构剪裁, 组内共同冲击逐字污染各轨, J 对真实威胁功效近零且拖垮弱工具诊断 (Hahn, Kuersteiner, Santos & Willigrod (2024) 提供了 shift-share 过度识别的计量支撑)。名义上, 「Bartik」加权范式的源头是 Bartik (1991); 而本地/异地媒体生态差异所对应的实体经济通道, 由本地金融发展 (Guiso, Sapienza & Zingales (2004))、本地偏好 (Coval & Moskowitz (1999)) 与银行资金地理流动 (Aguirregabiria, Clark & Wang (2025)) 三支文献共同锚定。
+方法学上, shift-share 工具的可信度可从两条互补路径论证: 一是份额外生 (Goldsmith-Pinkham, Sorkin & Swift (2020) 的基期份额外生 + Rotemberg 权重诊断), 二是冲击外生 (Borusyak, Hull & Jaravel (2022) 的准实验视角与 Adão, Kolesár & Morales (2019) 的等价推断与标准误校正)。Borusyak, Hull & Jaravel (2025) 给出的实操检查表进一步明确了不完全份额与重归一化选择的正确处理, Apfel (2024) 则讨论了放松排他性约束的条件。就本项目而言, 地理邻近仅作为主 Bartik (银行类型) 的稳健性维度之一并列存在: 各维度、各轨工具「各自 just-identified 并排、互为稳健性、不分主次」, 严禁把不同维度或不同轨 (full/ctx/ss) 的工具拼进同一个 over-identified 的 Hansen J 检验——它们源自同一批报道的同构剪裁, 组内共同冲击逐字污染各轨, J 对真实威胁功效近零且拖垮弱工具诊断 (Hahn, Kuersteiner, Santos & Willigrod (2024) 提供了 shift-share 过度识别的计量支撑)。名义上, 「Bartik」加权范式的源头是 Bartik (1991); 而本地/异地媒体生态差异所对应的实体经济通道, 由本地金融发展 (Guiso, Sapienza & Zingales (2004))、本地偏好 (Coval & Moskowitz (1999)) 与银行资金地理流动 (Aguirregabiria, Clark & Wang (2025)) 三支文献共同锚定。Ma, Stice, Stice & Zhang (2025, Contemporary Accounting Research) 证实本地报纸关闭会削弱银行对借款企业的软信息获取并导致贷款契约条款收紧, 为本家族「本地媒体生态是银行信息暴露的外生结构性来源」这一构念提供了最新的因果证据支撑。
 
 ## VAR: bartik_geoprox_share_local
 
@@ -129,4 +136,5 @@ Adão, R., Kolesár, M., & Morales, E. (2019). Shift-share designs: Theory and i
 Guiso, L., Sapienza, P., & Zingales, L. (2004). Does local financial development matter?. Quarterly Journal of Economics, 119(3), 929-969. https://doi.org/10.1162/0033553041502162
 Coval, J. D., & Moskowitz, T. J. (1999). Home bias at home: Local equity preference in domestic portfolios. Journal of Finance, 54(6), 2045-2073. https://doi.org/10.1111/0022-1082.00181
 Bartik, T. J. (1991). Who benefits from state and local economic development policies?. W.E. Upjohn Institute for Employment Research. https://doi.org/10.17848/9780585223940
+Ma, Z., Stice, D., Stice, H., & Zhang, Y. (2025). Local newspaper closures and bank loan contracts. Contemporary Accounting Research. https://doi.org/10.1111/1911-3846.13046
 <!-- rendered-citations:end -->

@@ -57,7 +57,21 @@ citations:
   vol: 54
   issue: 4
   pages_or_artno: 1187-1230
-new_dois: []
+- doi: "10.1016/j.jbankfin.2024.107191"
+  title: "How cheap talk in climate disclosures relates to climate initiatives, corporate emissions, and reputation risk"
+  authors: "Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N."
+  year: 2024
+  venue: "Journal of Banking & Finance"
+  type: "journal"
+- doi: "10.1111/eufm.12509"
+  title: "Identifying greenwashing in corporate-social responsibility reports using natural-language processing"
+  authors: "Gorovaia, N., & Makrominas, M."
+  year: 2024
+  venue: "European Financial Management"
+  type: "journal"
+new_dois:
+  - "10.1016/j.jbankfin.2024.107191"
+  - "10.1111/eufm.12509"
 ---
 
 ## CORE
@@ -69,7 +83,7 @@ new_dois: []
 计算分两层。文章层: 对每一篇进入银行-年宇宙的报道, 先由六词典均值 (config 词典族的逐词打分再取跨词典均值) 给出极性判别, 得到指示列 _is_dict_positive; 再由象征性/实质性判别信号确定该篇正面情绪是否属象征性, 得到 _is_dict_pos_symb (取值 0/1)。面板层: 在 encode.py 的洗稿率聚合块 (源码 K 段) 内, 对每条银行-年逐轨执行 agg[f'dict_pos_symb_count{track}'] = (f'_is_dict_pos_symb{track}', 'sum'), 即对该银行-年内所有留篇报道的象征性正面指示做求和, 得到本列的篇数计数。下游 runner.py 的方法 D (词典均值) 把本列作为分子, 以 dict_pos_substvalid_count (词典判正且实质有效的篇数) 经 _svd_denom 加固后为分母, 用 _safe_ratio 计出 washing_ratio_dict, 度量词典口径下正面报道的象征化比重。本列是计数而非比率, 单位为篇数, 因此天然随该银行-年留篇总量放缩, 使用时须结合同轨分母或篇数控制。词典法与另两条并行臂 (LLM 投票臂的 pos_symb_count、单模型 BERT 臂的 bert_pos_symb_count) 互为稳健性: 三法各自 just-identified 并排, 不分主次, 严禁把不同方法的洗稿率分子混进同一 over-identified Hansen J。这一并排原则与词典选择本身的稳健性同构——中文金融情感词典的构造与领域专用性对结果的敏感性由 Du 等 (2022) 论证, 提示单一词典的极性判别须以多词典均值降低特异性风险。
 
 【文献定位】
-方法学定位落在金融文本情感测量的三角框架内。词典法的规范性与陷阱由 Loughran 与 McDonald (2016) 的综述系统梳理, 强调通用情感词典迁移到金融文本时的误判风险与领域专用词典的必要性, 这为本家族坚持金融领域中文词典族、并以跨词典均值稳健化提供了方法依据。词典法与机器学习/大模型法孰优的争论上, Frankel、Jennings 与 Lee (2022) 在 Management Science 的研究直接比较了词典法与机器学习情感度量, 表明两类方法在不同情境下各有优势、宜互为印证而非彼此取代——这正是本项目在 dict/LLM/BERT 三臂并置洗稿率分子的直接支撑。BERT 类判别器一侧, Huang、Wang 与 Yang (2023) 的 FinBERT 提供了与词典臂平行的深度学习正负极性来源, 使象征性正面计数得以在词典、LLM、BERT 三口径下交叉验证。实质与象征的拆解思想则以 Bingler 等 (2022) 对气候披露「便宜话」的刻画为构念母版。综合而言, 本家族既非纯情感强度指标、也非纯文本篇幅指标, 而是「正面情绪中象征化成分」这一构念的词典臂计数底料。
+方法学定位落在金融文本情感测量的三角框架内。词典法的规范性与陷阱由 Loughran 与 McDonald (2016) 的综述系统梳理, 强调通用情感词典迁移到金融文本时的误判风险与领域专用词典的必要性, 这为本家族坚持金融领域中文词典族、并以跨词典均值稳健化提供了方法依据。词典法与机器学习/大模型法孰优的争论上, Frankel、Jennings 与 Lee (2022) 在 Management Science 的研究直接比较了词典法与机器学习情感度量, 表明两类方法在不同情境下各有优势、宜互为印证而非彼此取代——这正是本项目在 dict/LLM/BERT 三臂并置洗稿率分子的直接支撑。BERT 类判别器一侧, Huang、Wang 与 Yang (2023) 的 FinBERT 提供了与词典臂平行的深度学习正负极性来源, 使象征性正面计数得以在词典、LLM、BERT 三口径下交叉验证。实质与象征的拆解思想则以 Bingler 等 (2022) 对气候披露「便宜话」的刻画为构念母版。综合而言, 本家族既非纯情感强度指标、也非纯文本篇幅指标, 而是「正面情绪中象征化成分」这一构念的词典臂计数底料。用 ClimateBERT 识别企业气候披露中的「便宜话」象征性表述, 并证明其与后续负面新闻覆盖、排放增长及声誉风险显著相关, 为象征性正面表述与实质承诺的可分辨性提供实证支撑, 这一发现见 Bingler, Kraus, Leippold & Webersinke (2024, Journal of Banking & Finance)。用自然语言处理量化企业社会责任报告的语气与可读性, 识别有环境违规记录企业的披露文本呈现系统性象征化措辞特征, 支撑正面情感中「象征性成分」这一构念的可测量性, 这一发现见 Gorovaia & Makrominas (2024, European Financial Management)。
 
 ## VAR: dict_pos_symb_count_full
 
@@ -92,4 +106,6 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022). Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures. Finance Research Letters, 47, 102776. https://doi.org/10.1016/j.frl.2022.102776
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
+Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2024). How cheap talk in climate disclosures relates to climate initiatives, corporate emissions, and reputation risk. Journal of Banking & Finance. https://doi.org/10.1016/j.jbankfin.2024.107191
+Gorovaia, N., & Makrominas, M. (2024). Identifying greenwashing in corporate-social responsibility reports using natural-language processing. European Financial Management. https://doi.org/10.1111/eufm.12509
 <!-- rendered-citations:end -->

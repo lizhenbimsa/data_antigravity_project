@@ -14,61 +14,77 @@ upstream:
   - 21_tone_llms.parquet (LLM 三家投票留篇集, full-only 门控)
   - 40_panel_yearly.parquet (bank-year 面板骨架, 在册银行清单)
 citations:
-  - doi: 10.1007/s11142-025-09892-6
-    type: journal
-    authors: Cao, Y., Chen, L., Tucker, J. W., & Wan, C.
-    year: 2025
-    title: "Can generative AI help identify peer firms?"
-    venue: Review of Accounting Studies
-    vol: 30
-    issue: 4
-    pages_or_artno: 3344-3386
-  - doi: 10.1086/688176
-    type: journal
-    authors: Hoberg, G., & Phillips, G.
-    year: 2016
-    title: "Text-based network industries and endogenous product differentiation"
-    venue: Journal of Political Economy
-    vol: 124
-    issue: 5
-    pages_or_artno: 1423-1465
-  - doi: 10.1111/jofi.12094
-    type: journal
-    authors: Leary, M. T., & Roberts, M. R.
-    year: 2014
-    title: "Do peer firms affect corporate financial policy?"
-    venue: The Journal of Finance
-    vol: 69
-    issue: 1
-    pages_or_artno: 139-178
-  - doi: 10.2307/2298123
-    type: journal
-    authors: Manski, C. F.
-    year: 1993
-    title: "Identification of endogenous social effects: The reflection problem"
-    venue: The Review of Economic Studies
-    vol: 60
-    issue: 3
-    pages_or_artno: 531-542
-  - doi: 10.1016/j.jeconom.2008.12.021
-    type: journal
-    authors: Bramoullé, Y., Djebbari, H., & Fortin, B.
-    year: 2009
-    title: "Identification of peer effects through social networks"
-    venue: Journal of Econometrics
-    vol: 150
-    issue: 1
-    pages_or_artno: 41-55
-  - doi: 10.1287/mnsc.2023.03253
-    type: journal
-    authors: de Kok, T.
-    year: 2025
-    title: "ChatGPT for textual analysis? How to use generative LLMs in accounting research"
-    venue: Management Science
-    vol: 71
-    issue: 9
-    pages_or_artno: 7888-7906
-new_dois: []
+- doi: 10.1007/s11142-025-09892-6
+  type: journal
+  authors: Cao, Y., Chen, L., Tucker, J. W., & Wan, C.
+  year: 2025
+  title: "Can generative AI help identify peer firms?"
+  venue: Review of Accounting Studies
+  vol: 30
+  issue: 4
+  pages_or_artno: 3344-3386
+- doi: 10.1086/688176
+  type: journal
+  authors: Hoberg, G., & Phillips, G.
+  year: 2016
+  title: "Text-based network industries and endogenous product differentiation"
+  venue: Journal of Political Economy
+  vol: 124
+  issue: 5
+  pages_or_artno: 1423-1465
+- doi: 10.1111/jofi.12094
+  type: journal
+  authors: Leary, M. T., & Roberts, M. R.
+  year: 2014
+  title: "Do peer firms affect corporate financial policy?"
+  venue: The Journal of Finance
+  vol: 69
+  issue: 1
+  pages_or_artno: 139-178
+- doi: 10.2307/2298123
+  type: journal
+  authors: Manski, C. F.
+  year: 1993
+  title: "Identification of endogenous social effects: The reflection problem"
+  venue: The Review of Economic Studies
+  vol: 60
+  issue: 3
+  pages_or_artno: 531-542
+- doi: 10.1016/j.jeconom.2008.12.021
+  type: journal
+  authors: Bramoullé, Y., Djebbari, H., & Fortin, B.
+  year: 2009
+  title: "Identification of peer effects through social networks"
+  venue: Journal of Econometrics
+  vol: 150
+  issue: 1
+  pages_or_artno: 41-55
+- doi: 10.1287/mnsc.2023.03253
+  type: journal
+  authors: de Kok, T.
+  year: 2025
+  title: "ChatGPT for textual analysis? How to use generative LLMs in accounting research"
+  venue: Management Science
+  vol: 71
+  issue: 9
+  pages_or_artno: 7888-7906
+- doi: "10.1016/j.jeconom.2022.10.004"
+  title: "Peer effects and endogenous social interactions"
+  authors: "Jochmans, K."
+  year: 2023
+  venue: "Journal of Econometrics"
+  type: "journal"
+  one_sentence_zh: "提出无需为同行选择过程建模、仅利用固有约束构造条件矩条件来处理同行自选择问题的新方法, 深化 Manski 反射问题在内生社交网络下的可识别性讨论。"
+- doi: "10.1016/j.jeconom.2023.02.013"
+  title: "Efficient peer effects estimators with group effects"
+  authors: "Kuersteiner, G. M., Prucha, I. R., & Zeng, Y."
+  year: 2023
+  venue: "Journal of Econometrics"
+  type: "journal"
+  one_sentence_zh: "为群组内同行效应线性模型 (含未观测随机组效应与可观测固定组效应) 提出高效 GMM 估计量族, 为 llm_peer_count 下游同行均值 IV 的估计效率提供最新方法论参照。"
+new_dois:
+  - "10.1016/j.jeconom.2022.10.004"
+  - "10.1016/j.jeconom.2023.02.013"
 ---
 
 ## CORE
@@ -83,7 +99,7 @@ llm_peer_count 本身不是模型估计使用的工具变量, 而是一个诊断
 
 从识别策略的角度看, 本家族服务于 llm_peer_iv.py 模块实现的"同行网络语调 IV"识别设计: 该设计的方法论参照系是 Hoberg & Phillips (2016) 提出的 TNIC (Text-based Network Industry Classification) 文本网络产业分类方法论, 后者用文本相似度而非人工行业代码来界定产品市场竞争同行; 但本模块与 TNIC 在实现路径上有实质差异——TNIC 计算的是连续的文本余弦相似度并配以阈值切分, 本模块则是让生成式 LLM 在给定候选银行清单与业务画像描述的前提下, 一次性直接输出该焦点银行的二元同行名单 (而非对每一对银行输出连续相似度分数), 属于"生成式判定"而非"连续打分+阈值切分"的范式, 二者只在"用文本/语义信息界定同行, 而非沿用人工行业代码"这一大方向上呼应, 具体计算机制并不相同。这一"让 LLM 直接判定同行归属"的做法呼应 Cao, Chen, Tucker & Wan (2025, Review of Accounting Studies) 关于生成式 AI 能否识别同行企业的直接研究发现——该文的核心结论是 LLM 在识别产品市场竞争同行方面相较传统文本网络方法具有增量信息含量, 这正是本模块选择以 LLM 直接查证同行名单、而非沿用连续文本相似度网络方法的方法学依据。de Kok (2025, Management Science) 则为"用生成式 LLM 做会计与金融文本分析任务"这一大类方法论提供了操作规范参照, 包括温度设为 0、prompt 版本冻结、结果可复现缓存等实践, 本项目在 stage 21 情感 LLM 与 llm_peer 查证任务上均遵循同一套确定性锚点纪律 (对照 CLAUDE.md「确定性/golden」条目)。
 
-在同行效应识别的理论脉络上, llm_peer_count 及其派生的同行语调 IV 面对的核心挑战是 Manski (1993, The Review of Economic Studies) 提出的"反射问题" (reflection problem): 当同一群体内的个体相互影响、又共同受到相同的外生冲击时, 无法从群体均值行为反推因果方向。本模块的应对策略是以滞后一期同行语调 (而非同期) 作为工具, 并在计算同行均值时做文章级 leave-out (剔除与焦点银行在同一篇报道中被共同提及的文章), 以缓解"共享报道"带来的机械相关。这一策略的局限性直接呼应 Leary & Roberts (2014, The Journal of Finance) 对同行效应工具变量的经典讨论——该文指出同行结果的均值本身很难满足排除约束 (同行均值容易通过未观测的共同冲击渠道而非纯粹的同行传导渠道影响焦点企业结果), 因此转而借助同行特质性收益冲击构造工具。本模块的滞后+leave-out 组合是在数据可得性约束下对这一批评的部分回应, 但剩余的识别假设——"在情感持续性 (sentiment persistence) 的前提下, 同行 t-1 期的特质性报道冲击对焦点银行 t 期结果仅经由同行渠道发生作用, 不存在遗漏的共同冲击渠道"——仍然是一个需要在论文中明确披露、无法被数据本身检验的先验假设。Bramoullé, Djebbari & Fortin (2009, Journal of Econometrics) 进一步从网络计量经济学角度给出了同行效应可识别的结构条件 (网络结构的传递性中断点), 为理解 peer_map 这一离散、二元的同行认定方式如何影响下游同行效应可识别性提供了背景; 需要明确的是, 本家族的 `_70`/`_75`/`_80`/`_85`/`_90` 后缀并不改变 peer_map 的网络稀疏度 (五档结构性逐位相同), Bramoullé et al. 的结构条件讨论应理解为对 peer_map 本身 (相对于其它同行认定方式) 的一般性理论背景, 而非本家族阈值后缀之间的对比框架。
+在同行效应识别的理论脉络上, llm_peer_count 及其派生的同行语调 IV 面对的核心挑战是 Manski (1993, The Review of Economic Studies) 提出的"反射问题" (reflection problem): 当同一群体内的个体相互影响、又共同受到相同的外生冲击时, 无法从群体均值行为反推因果方向。本模块的应对策略是以滞后一期同行语调 (而非同期) 作为工具, 并在计算同行均值时做文章级 leave-out (剔除与焦点银行在同一篇报道中被共同提及的文章), 以缓解"共享报道"带来的机械相关。提出无需为同行选择过程建模、仅利用固有约束构造条件矩条件来处理同行自选择问题的新方法, 深化 Manski 反射问题在内生社交网络下的可识别性讨论, 引用格式 Jochmans (2023, Journal of Econometrics)。为群组内同行效应线性模型 (含未观测随机组效应与可观测固定组效应) 提出高效 GMM 估计量族, 为 llm_peer_count 下游同行均值 IV 的估计效率提供最新方法论参照, 引用格式 Kuersteiner, Prucha, & Zeng (2023, Journal of Econometrics)。这一策略的局限性直接呼应 Leary & Roberts (2014, The Journal of Finance) 对同行效应工具变量的经典讨论——该文指出同行结果的均值本身很难满足排除约束 (同行均值容易通过未观测的共同冲击渠道而非纯粹的同行传导渠道影响焦点企业结果), 因此转而借助同行特质性收益冲击构造工具。本模块的滞后+leave-out 组合是在数据可得性约束下对这一批评的部分回应, 但剩余的识别假设——"在情感持续性 (sentiment persistence) 的前提下, 同行 t-1 期的特质性报道冲击对焦点银行 t 期结果仅经由同行渠道发生作用, 不存在遗漏的共同冲击渠道"——仍然是一个需要在论文中明确披露、无法被数据本身检验的先验假设。Bramoullé, Djebbari & Fortin (2009, Journal of Econometrics) 进一步从网络计量经济学角度给出了同行效应可识别的结构条件 (网络结构的传递性中断点), 为理解 peer_map 这一离散、二元的同行认定方式如何影响下游同行效应可识别性提供了背景; 需要明确的是, 本家族的 `_70`/`_75`/`_80`/`_85`/`_90` 后缀并不改变 peer_map 的网络稀疏度 (五档结构性逐位相同), Bramoullé et al. 的结构条件讨论应理解为对 peer_map 本身 (相对于其它同行认定方式) 的一般性理论背景, 而非本家族阈值后缀之间的对比框架。
 
 与相邻测度的构念区分上, llm_peer_count 与面板中另一族"Bartik 型" IV (`bartik_*_iv`) 和"LOO 同组均值" IV (`leave_one_out_peer_*_iv`) 分属不同的同行识别原语: LOO 均值 IV 用的是同一类型-年份分组内的算术平均, 不依赖 LLM 查证; Bartik IV 用的是初始暴露份额与后续冲击的交互构造, 同样不经过 LLM 查证环节; 唯有 llm_peer 系列 (`llm_peer_tone_iv_*`/`llm_peer_coverage_iv`/`llm_peer_count*`/`llm_peer_n_effective`/`llm_peer_queried`) 共享同一份 LLM 直接输出的二元同行名单 peer_map。三条同行识别路径在 IV 扩展模块 (`pipeline/panel/iv_extensions.py`) 中并列产出, 服务于"同一因果问题、多套识别策略互证"的稳健性设计思路, 不应互相替代或加总, 各自的有效性依赖各自独立的排除约束论证。
 
@@ -150,4 +166,6 @@ Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate financial 
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. The Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
 Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effects through social networks. Journal of Econometrics, 150(1), 41-55. https://doi.org/10.1016/j.jeconom.2008.12.021
 de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
+Jochmans, K. (2023). Peer effects and endogenous social interactions. Journal of Econometrics. https://doi.org/10.1016/j.jeconom.2022.10.004
+Kuersteiner, G. M., Prucha, I. R., & Zeng, Y. (2023). Efficient peer effects estimators with group effects. Journal of Econometrics. https://doi.org/10.1016/j.jeconom.2023.02.013
 <!-- rendered-citations:end -->

@@ -13,50 +13,50 @@ upstream:
   - pipeline/panel/encode.py (银行-年 mean 聚合 → avg_redund_han_log_length<track>)
   - 40_panel_yearly.parquet
 citations:
-  - doi: 10.1057/s41599-025-06094-y
-    type: journal
-    authors: Lesmy, D., Muchnik, L., & Mugerman, Y.
-    year: 2025
-    title: "Lost in the fog: Growing complexity in financial reporting — a comparative study"
-    venue: Humanities and Social Sciences Communications
-    vol: 12
-    pages_or_artno: "826"
-  - doi: 10.1002/smj.3586
-    type: journal
-    authors: Miller, C. D., & Wang, R. D.
-    year: 2024
-    title: "Product digitization and differentiation strategy change: Evidence from the book publishing industry"
-    venue: Strategic Management Journal
-    vol: 45
-    issue: 7
-    pages_or_artno: 1241-1272
-  - doi: 10.1016/j.jcae.2023.100395
-    type: journal
-    authors: Yu, X., & Zhao, Y.
-    year: 2024
-    title: "Textual disclosure complexity and analysts' weighting of information"
-    venue: Journal of Contemporary Accounting & Economics
-    vol: 20
-    issue: 1
-    pages_or_artno: "100395"
-  - doi: 10.1007/s11142-008-9083-2
-    type: journal
-    authors: You, H., & Zhang, X.-J.
-    year: 2009
-    title: "Financial reporting complexity and investor underreaction to 10-K information"
-    venue: Review of Accounting Studies
-    vol: 14
-    issue: 4
-    pages_or_artno: 559-586
-  - doi: 10.1002/j.1538-7305.1948.tb01338.x
-    type: journal
-    authors: Shannon, C. E.
-    year: 1948
-    title: "A mathematical theory of communication"
-    venue: Bell System Technical Journal
-    vol: 27
-    issue: 3
-    pages_or_artno: 379-423
+- doi: 10.1057/s41599-025-06094-y
+  type: journal
+  authors: Lesmy, D., Muchnik, L., & Mugerman, Y.
+  year: 2025
+  title: "Lost in the fog: Growing complexity in financial reporting — a comparative study"
+  venue: Humanities and Social Sciences Communications
+  vol: 12
+  pages_or_artno: "826"
+- doi: 10.1002/smj.3586
+  type: journal
+  authors: Miller, C. D., & Wang, R. D.
+  year: 2024
+  title: "Product digitization and differentiation strategy change: Evidence from the book publishing industry"
+  venue: Strategic Management Journal
+  vol: 45
+  issue: 7
+  pages_or_artno: 1241-1272
+- doi: 10.1016/j.jcae.2023.100395
+  type: journal
+  authors: Yu, X., & Zhao, Y.
+  year: 2024
+  title: "Textual disclosure complexity and analysts' weighting of information"
+  venue: Journal of Contemporary Accounting & Economics
+  vol: 20
+  issue: 1
+  pages_or_artno: "100395"
+- doi: 10.1007/s11142-008-9083-2
+  type: journal
+  authors: You, H., & Zhang, X.-J.
+  year: 2009
+  title: "Financial reporting complexity and investor underreaction to 10-K information"
+  venue: Review of Accounting Studies
+  vol: 14
+  issue: 4
+  pages_or_artno: 559-586
+- doi: 10.1002/j.1538-7305.1948.tb01338.x
+  type: journal
+  authors: Shannon, C. E.
+  year: 1948
+  title: "A mathematical theory of communication"
+  venue: Bell System Technical Journal
+  vol: 27
+  issue: 3
+  pages_or_artno: 379-423
 new_dois: []
 ---
 

@@ -132,9 +132,23 @@ citations:
   vol: 66
   issue: 1
   pages_or_artno: 35-65
+- doi: "10.1186/s40854-025-00887-5"
+  title: "Exploring the relationship between bank liquidity risk and the media sentiment index via big data technology: a study during the COVID-19 pandemic and the Russia–Ukraine conflict"
+  authors: "Ullah, M., Sohag, K., & Hassan, M. K."
+  year: 2026
+  venue: "Financial Innovation"
+  type: "journal"
+- doi: "10.3390/risks12110171"
+  title: "News Sentiment and Liquidity Risk Forecasting: Insights from Iranian Banks"
+  authors: "Mirashk, H., Albadvi, A., Kargari, M., & Rastegar, M. A."
+  year: 2024
+  venue: "Risks"
+  type: "journal"
 new_dois:
 - 10.1111/jofi.12027
 - 10.1111/j.1540-6261.2010.01625.x
+- "10.1186/s40854-025-00887-5"
+- "10.3390/risks12110171"
 ---
 
 ## CORE
@@ -181,7 +195,7 @@ new_dois:
 
 第三, 二值极性: CFSD 词条只有正、负 1 两档, 无强度分级, 「亏损」与「破产」同权; 这是词典本体属性, 由 LLM 与 BERT 的连续得分轨在方法族层面补偿, 也正是 Ma et al. (2025) 细粒度词典与 Sun et al. (2025) 词典-神经混合方法所针对的局限。第四, 语域迁移误差: CFSD 构建于会计与金融文本语料, 而本管道扫描的是媒体新闻语料, 两种语域在措辞习惯、行话密度与修辞方式上存在差异, 词表在新闻语域下的命中精度未必等同于其在原始建构语域的表现, 这一语域-构念错配是所有词典法移植使用的共性风险 (van Atteveldt et al. 2021), 只能靠与 LLM、BERT 方法族的三角一致性来约束, 不能靠词典法自证。
 
-第五, 等权篇均的小样本噪声: 报道量极少的银行-年, 单篇极端值即可主导均值 (本族不设最小篇数守门, 与 industry_neg_shock 默认按最小有效篇数守门的口径不同), 且密度测度对极短文本尤其敏感——一篇仅数个 word-token 的短文若恰含一个负面词, 其比率会出现尖峰, 在等权平均下被过度加权; 回归中应控制报道量、或对低篇数单元做敏感性剔除、或在文章级做缩尾。第六, 回退语义带来的轨间收敛: ss 轨镜像 ctx 的回退设计, 无银行与金科同句共现的文章其 content_ss 回退为全文 body 并打 fallback 标记, 这类行上 ss 密度与 full 密度机械趋同, 属设计内语义而非泄漏, 严格窗口子样本分析应按 fallback 标记切分。第七, 语用盲区: 否定窗口仅两个分词单元, 长程否定、反讽、引述他人负面言论等均超出词典法能力 (Punetha 与 Jain 2025), 故本列结论只在与 LLM、BERT 轨一致时才可承重。第八, 命名年份口径: 项目键名 bian_2021 锚定 SSRN 3446388 的 2021 年 6 月版本, 而该词典早期以 2019 年在数据仓库流通, 复现与引用须统一以本 codebook 登记的版次为准, 避免年份漂移导致误取不同词表快照。
+第五, 等权篇均的小样本噪声: 报道量极少的银行-年, 单篇极端值即可主导均值 (本族不设最小篇数守门, 与 industry_neg_shock 默认按最小有效篇数守门的口径不同), 且密度测度对极短文本尤其敏感——一篇仅数个 word-token 的短文若恰含一个负面词, 其比率会出现尖峰, 在等权平均下被过度加权; 回归中应控制报道量、或对低篇数单元做敏感性剔除、或在文章级做缩尾。第六, 回退语义带来的轨间收敛: ss 轨镜像 ctx 的回退设计, 无银行与金科同句共现的文章其 content_ss 回退为全文 body 并打 fallback 标记, 这类行上 ss 密度与 full 密度机械趋同, 属设计内语义而非泄漏, 严格窗口子样本分析应按 fallback 标记切分。第七, 语用盲区: 否定窗口仅两个分词单元, 长程否定、反讽、引述他人负面言论等均超出词典法能力 (Punetha 与 Jain 2025), 故本列结论只在与 LLM、BERT 轨一致时才可承重。第八, 命名年份口径: 项目键名 bian_2021 锚定 SSRN 3446388 的 2021 年 6 月版本, 而该词典早期以 2019 年在数据仓库流通, 复现与引用须统一以本 codebook 登记的版次为准, 避免年份漂移导致误取不同词表快照。近期应用文献进一步印证了负面词密度对银行风险的预警效度: Ullah, Sohag, & Hassan (2026, Financial Innovation) 用大数据技术构建媒体正负情感指数, 发现负面情感指数与银行流动性风险显著正相关, 支持负面词密度作为银行风险预警信号的效度; Mirashk, Albadvi, Kargari, & Rastegar (2024, Risks) 以伊朗银行海量经济新闻为语料, 验证新闻情感 (含负面测度) 对银行流动性覆盖率方向性预测的增量信息含量。
 
 稳健性梯子汇总: 词典维度六臂、文本轨道三臂、极性侧两臂 (与 pos_ratio 镜像)、方法族三臂 (词典、LLM、BERT), 各梯子正交不交叉、各臂各自 just-identified 并排、互为稳健性不分主次, 一律禁混进同一 over-identified Hansen J——尤其禁止把六词典或三轨的密度列同时纳入一个过度识别的 GMM 矩条件集合。开发盘 T 等于 2 的试跑环境下轨间零方差或整列缺测属预期退化, 生产口径以 T 等于 18 全量语料为准。
 
@@ -215,4 +229,6 @@ Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection 
 Piotroski, J. D., Wong, T. J., & Zhang, T. (2015). Political incentives to suppress negative information: Evidence from Chinese listed firms. Journal of Accounting Research, 53(2), 405-459. https://doi.org/10.1111/1475-679X.12071
 Garcia, D. (2013). Sentiment during recessions. The Journal of Finance, 68(3), 1267-1300. https://doi.org/10.1111/jofi.12027
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
+Ullah, M., Sohag, K., & Hassan, M. K. (2026). Exploring the relationship between bank liquidity risk and the media sentiment index via big data technology: a study during the COVID-19 pandemic and the Russia–Ukraine conflict. Financial Innovation. https://doi.org/10.1186/s40854-025-00887-5
+Mirashk, H., Albadvi, A., Kargari, M., & Rastegar, M. A. (2024). News Sentiment and Liquidity Risk Forecasting: Insights from Iranian Banks. Risks. https://doi.org/10.3390/risks12110171
 <!-- rendered-citations:end -->

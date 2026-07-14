@@ -195,7 +195,28 @@ citations:
   vol: 1
   issue: 3
   pages_or_artno: 215-239
-new_dois: []
+- doi: "10.1007/s11424-025-4338-6"
+  type: journal
+  authors: "Huang, C., Deng, Y., Yang, X., Cai, Y., & Zhao, X."
+  year: 2025
+  title: "The Benefit of Being Central: Stock Network Centrality and Stock Price Crashes"
+  venue: "Journal of Systems Science and Complexity"
+- doi: "10.1057/s41599-025-04419-5"
+  title: "University digital media co-occurrence networks reveal structure and dynamics of brand visibility in the attention economy"
+  authors: "Petersen, A. M."
+  year: 2025
+  venue: "Humanities and Social Sciences Communications"
+  type: "journal"
+- doi: "10.1016/j.jcorpfin.2023.102501"
+  title: "CEO network centrality and bank risk: Evidence from US Bank holding companies"
+  authors: "Fan, Y., Jiang, Y., Jin, P., & Mai, Y."
+  year: 2023
+  venue: "Journal of Corporate Finance"
+  type: "journal"
+new_dois:
+  - "10.1007/s11424-025-4338-6"
+  - "10.1057/s41599-025-04419-5"
+  - "10.1016/j.jcorpfin.2023.102501"
 ---
 
 ## CORE
@@ -219,7 +240,7 @@ bank_degree_cent 是 F088 家族的 canonical 列, 度量一家银行在年度"�
 【文献定位】
 度中心度是社会网络分析中历史最悠久、被引最广的中心性度量。Freeman (1978) 在其对中心性构念的系统澄清中区分了度 (degree)、中介 (betweenness) 与接近 (closeness) 三大类, 并明确指出度中心度捕捉的是"活动性/可及性"这一维度: 高度节点直接触达的邻居最多。Bonacich (1987) 进一步把度中心度置于一个更大的"中心性度量家族"中, 说明当把邻居的重要性也纳入加权时, 度中心度是特征向量中心度等一族测度在权重参数取零阶时的退化特例——这为本项目在同一网络上并置度、特征向量 (bank_eigen_cent)、Katz、子图 (Estrada & Rodríguez-Velázquez, 2005)、当前流中介 (Newman, 2005) 等多种中心度提供了统一的谱系依据。Opsahl et al. (2010) 则给出了度中心度向加权网络推广的规范框架, 说明为何本项目要把"广度"(度) 与"频度"(强度) 拆成两列分别度量。Boldi 与 Vigna (2014) 从公理化角度比较了各类中心性对节点增删、边加密等操作的响应性质, 为审慎解释"度中心度上升意味着什么"提供了理论边界。由于本项目的共现图是二模隶属网络的一模投影, Faust (1997) 关于隶属网络中心性的专门讨论尤为切题: 她指出隶属网络投影后的中心度会系统性地被"事件规模" (此处即文章提及的银行数) 塑形, 这为本项目审慎解读度中心度水平、以及保留 hyperedge_normalize 归一选项提供了直接的方法学依据。
 
-在金融与银行网络的应用脉络里, 中心性与结果变量的关系有大量近期证据。Nezami et al. (2025) 的元分析系统汇总了网络中心度与企业绩效之间的关联, 表明中心性对绩效的效应在方向与强度上依中心性类型、网络类型与情境而异——这提示 bank_degree_cent 作为单一测度不宜被过度解读为"越中心越好", 而应放在多测度、多判据的稳健性矩阵中审视。Yu et al. (2024) 与 Xu 和 Zhao (2024) 分别在信息扩散/资产定价与资产价格预测的框架下论证了节点在金融网络中的中心位置具有信息含量; Sadeghi 与 Feinstein (2024) 则从统计验证角度讨论金融网络中传染性中心度的可靠性。这些工作共同支撑了本项目的核心设想: 银行在媒体共现网络中的度中心度, 是其在信息生态中结构位置的一个可观测代理。
+在金融与银行网络的应用脉络里, 中心性与结果变量的关系有大量近期证据。Nezami et al. (2025) 的元分析系统汇总了网络中心度与企业绩效之间的关联, 表明中心性对绩效的效应在方向与强度上依中心性类型、网络类型与情境而异——这提示 bank_degree_cent 作为单一测度不宜被过度解读为"越中心越好", 而应放在多测度、多判据的稳健性矩阵中审视。Yu et al. (2024) 与 Xu 和 Zhao (2024) 分别在信息扩散/资产定价与资产价格预测的框架下论证了节点在金融网络中的中心位置具有信息含量; Sadeghi 与 Feinstein (2024) 则从统计验证角度讨论金融网络中传染性中心度的可靠性。这些工作共同支撑了本项目的核心设想: 银行在媒体共现网络中的度中心度, 是其在信息生态中结构位置的一个可观测代理。Huang, Deng, Yang, Cai 和 Zhao (2025, Journal of Systems Science and Complexity) 用股票共现/关联网络的中心度度量预测股价崩盘风险, 为本家族把媒体共现网络的度中心度视作银行结构位置代理、并与下游结果变量关联的解读思路提供了近期同类实证支撑。Petersen (2025, Humanities and Social Sciences Communications) 用大学官方名称在数字媒体报道中的共现网络刻画机构品牌可见度与联盟效应的结构与动态, 为本家族以媒体共现图度量结构位置的构念提供近期跨领域佐证。Fan, Jiang, Jin 和 Mai (2023, Journal of Corporate Finance) 发现CEO在关系网络中的中心度与银行风险负相关 (信息流动与CEO权力为两条渠道), 为银行机构层面的网络中心度与经营结果关联提供直接的银行业实证支持。
 
 在更贴近本项目对象的金融中介与网络效应文献中, Grieser et al. (2022) 记录了公司财务政策沿网络传导的显著网络效应, 说明一个机构在同业网络中的结构位置会实质影响其决策与结果; Han et al. (2024) 对机构经纪网络如何促成流动性提供的研究, 则从中介/经纪的角度补充了"位置即资源"的机制叙事——这两条脉络共同提示: 度中心度所刻画的连接广度只是网络位置的一个侧面, 桥梁地位、经纪角色与结构洞是与之互补而非替代的维度 (故本项目在同一网络上并置了 gf_ 系列 Gould-Fernandez 经纪角色与 constraint/effective_size 等结构洞测度)。文本网络方面, Hoberg 和 Phillips (2016) 用文本相似度构建企业间"产品市场邻近"网络的思路, 直接启发了本项目 W-轨嵌入相似度网络的构造, 但也正因如此需要与共现网络严格区分: 前者的边是语义相似, 后者的边是被媒体共同提及, 两族基底图不同、不可混用。
 
@@ -285,4 +306,7 @@ Manski, C. F. (1993). Identification of endogenous social effects: The reflectio
 Bonacich, P. (1987). Power and centrality: A family of measures. American Journal of Sociology, 92(5), 1170-1182. https://doi.org/10.1086/228631
 Seidman, S. B. (1983). Network structure and minimum degree. Social Networks, 5(3), 269-287. https://doi.org/10.1016/0378-8733(83)90028-X
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
+Huang, C., Deng, Y., Yang, X., Cai, Y., & Zhao, X. (2025). The Benefit of Being Central: Stock Network Centrality and Stock Price Crashes. Journal of Systems Science and Complexity. https://doi.org/10.1007/s11424-025-4338-6
+Petersen, A. M. (2025). University digital media co-occurrence networks reveal structure and dynamics of brand visibility in the attention economy. Humanities and Social Sciences Communications. https://doi.org/10.1057/s41599-025-04419-5
+Fan, Y., Jiang, Y., Jin, P., & Mai, Y. (2023). CEO network centrality and bank risk: Evidence from US Bank holding companies. Journal of Corporate Finance. https://doi.org/10.1016/j.jcorpfin.2023.102501
 <!-- rendered-citations:end -->

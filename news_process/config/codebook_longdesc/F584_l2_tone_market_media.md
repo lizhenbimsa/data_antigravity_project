@@ -56,7 +56,21 @@ citations:
   vol: '78'
   issue: '1'
   pages_or_artno: 35-71
-new_dois: []
+- doi: "10.1016/j.ememar.2024.101234"
+  title: "Does official media sentiment matter for the stock market? Evidence from China"
+  authors: "Xu, Z., Hua, X., & Zhang, T."
+  year: 2025
+  venue: "Emerging Markets Review"
+  type: "journal"
+- doi: "10.1016/j.enpol.2023.113917"
+  title: "Is the tone of the government-controlled media valuable for capital market? Evidence from China's new energy industry"
+  authors: "Xu, Z., Li, J., Hua, X., & Ren, P."
+  year: 2024
+  venue: "Energy Policy"
+  type: "journal"
+new_dois:
+  - "10.1016/j.ememar.2024.101234"
+  - "10.1016/j.enpol.2023.113917"
 ---
 
 ## CORE
@@ -72,7 +86,7 @@ new_dois: []
 三轨 (full/ctx/ss) 是本项目情感测量的正交稳健性设计, 而非从属或替代关系: full 轨以标题+正文全文作为 LLM 输入; ctx 轨以标题+围绕目标实体的窗口文本作为输入; ss 轨以标题+银行与金科词同句 (±N 句窗口, 默认基数 N=1) 共现文本作为输入, 若某篇文章不存在银行∧金科同句共现, 则 ss 轨回退为全文 body (镜像 ctx 轨回退语义), 并以 `ss_is_fallback` 标记该行是否处于回退状态, 分母 `n_articles` 与回退状态共享口径。三轨各自独立计算、并排呈现, 依项目铁律各自 just-identified、互为稳健性、不分主次, 严禁在同一个 over-identified 的 Hansen J 检验中把三轨混入同一组过度识别工具变量。留篇门控口径遵循 2026-06-29 起生效的 full-only 铁律: 一篇文章是否被判定为"一篇有效的银行-金科报道"只看 `llm_verified_full == True`, ctx/ss 轨的行宇宙是 full 轨留篇集合的子集, 在此子集之上再各自独立计算 per-track 的市场化媒体语调均值, 因此 ctx/ss 轨样本量恒不大于 full 轨。
 
 【文献定位】
-本家族的理论基础直接来自 You, Zhang & Zhang (2018, The Review of Financial Studies) 关于中国媒体政治属性与公司治理效力的经典发现——市场化媒体因摆脱了官方宣传导向的激励约束, 其负面报道更能反映企业真实经营状况并触发实质性治理反应, 这一构念被本项目移植到银行-金融科技情境, 用以检验"谁在报道银行金融科技化"这一媒体所有制维度是否系统性调节语调-结果关系。在方法论谱系上, 本家族与 Fang & Peress (2009, JF) "媒体覆盖度降低信息不对称"、Tetlock (2007, JF) "媒体语调蕴含投资者情绪信息"共享同一文本情感测度框架 (`llm_vote_score`), 但本家族关注的不是覆盖度或整体语调水平, 而是媒体来源异质性对语调的调节效应, 概念上更接近 Gentzkow & Shapiro (2010, Econometrica) 关于媒体立场系统性受供给侧激励结构塑造 ("媒体倾向由什么驱动") 的论证逻辑——市场化媒体与官方媒体面对同一新闻事件产生系统性不同的语调, 根源在于二者不同的收入结构与问责机制, 而非随机噪音。此外, Holzman, Miller & Twedt (2023, The Accounting Review) 关于媒体权威性加权语调对盈余公告纪律效应的研究, 为本项目"媒体异质性应纳入语调测度"的整体设计提供了直接的方法学锚点 (本项目另设 `llm_vote_tone_mw{track}` 媒体权威加权语调族, 与本家族的媒体来源子群体切分是并列而非包含关系)。
+本家族的理论基础直接来自 You, Zhang & Zhang (2018, The Review of Financial Studies) 关于中国媒体政治属性与公司治理效力的经典发现——市场化媒体因摆脱了官方宣传导向的激励约束, 其负面报道更能反映企业真实经营状况并触发实质性治理反应, 这一构念被本项目移植到银行-金融科技情境, 用以检验"谁在报道银行金融科技化"这一媒体所有制维度是否系统性调节语调-结果关系。在方法论谱系上, 本家族与 Fang & Peress (2009, JF) "媒体覆盖度降低信息不对称"、Tetlock (2007, JF) "媒体语调蕴含投资者情绪信息"共享同一文本情感测度框架 (`llm_vote_score`), 但本家族关注的不是覆盖度或整体语调水平, 而是媒体来源异质性对语调的调节效应, 概念上更接近 Gentzkow & Shapiro (2010, Econometrica) 关于媒体立场系统性受供给侧激励结构塑造 ("媒体倾向由什么驱动") 的论证逻辑——市场化媒体与官方媒体面对同一新闻事件产生系统性不同的语调, 根源在于二者不同的收入结构与问责机制, 而非随机噪音。此外, Holzman, Miller & Twedt (2023, The Accounting Review) 关于媒体权威性加权语调对盈余公告纪律效应的研究, 为本项目"媒体异质性应纳入语调测度"的整体设计提供了直接的方法学锚点 (本项目另设 `llm_vote_tone_mw{track}` 媒体权威加权语调族, 与本家族的媒体来源子群体切分是并列而非包含关系)。近年文献进一步细化了这一构念的证据基础: Xu, Hua & Zhang (2025, Emerging Markets Review) 实证检验中国官方媒体语调对股市反应的预测力,为本家族官方vs市场化媒体二分构念提供2025年最新证据; Xu, Li, Hua & Ren (2024, Energy Policy) 以中国新能源行业为例检验政府控制媒体语调对资本市场的信息价值,呼应本家族官方媒体与市场化媒体语调对比的操作化设计。
 
 ## VAR: tone_market_media_ctx
 
@@ -101,4 +115,6 @@ Fang, L., & Peress, J. (2009). Media Coverage and the Cross-Section of Stock Ret
 Tetlock, P. C. (2007). Giving Content to Investor Sentiment; The Role of Media in the Stock Market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
 Gentzkow, M., & Shapiro, J. M. (2010). What Drives Media Slant? Evidence from U.S. Daily Newspapers. Econometrica, 78(1), 35-71. https://doi.org/10.3982/ECTA7195
+Xu, Z., Hua, X., & Zhang, T. (2025). Does official media sentiment matter for the stock market? Evidence from China. Emerging Markets Review. https://doi.org/10.1016/j.ememar.2024.101234
+Xu, Z., Li, J., Hua, X., & Ren, P. (2024). Is the tone of the government-controlled media valuable for capital market? Evidence from China's new energy industry. Energy Policy. https://doi.org/10.1016/j.enpol.2023.113917
 <!-- rendered-citations:end -->

@@ -77,7 +77,15 @@ citations:
   year: 1991
   title: "Who benefits from state and local economic development policies?"
   venue: W.E. Upjohn Institute for Employment Research
-new_dois: []
+- doi: "10.1093/ectj/utae003"
+  title: "Design-based identification with formula instruments: a review"
+  authors: "Borusyak, K., Hull, P., & Jaravel, X."
+  year: 2024
+  venue: "The Econometrics Journal"
+  type: "journal"
+  one_sentence_zh: "该文系统评述基于设计的公式工具变量(含shift-share/Bartik型)识别框架,为F105媒体权威度shift-share构造的份额-冲击正交性假设提供最新方法论依据。"
+new_dois:
+  - "10.1093/ectj/utae003"
 ---
 
 ## CORE
@@ -93,7 +101,7 @@ new_dois: []
 需要强调基期敏感性与外生性守卫: 基期若落入 2019 (DCEP 沙盒里程碑) 及之后, share 已处于后处理区间, 违反份额外生性公理, 代码会直接抛错或将敏感性变体置 NaN。三 share 列本身不含 full/ctx/ss 轨道分叉 (轨道差异只体现在下游 IV 的情感 shift 上), 也不含滞后或阈值梯子后缀, 属于"每档一列"的静态结构分量。
 
 【文献定位】
-shift-share/Bartik 工具变量的当代计量基础由三条互补路线奠定: Goldsmith-Pinkham, Sorkin & Swift (2020) 从份额外生性 (share exposure) 视角给出识别条件与 Rotemberg 权重诊断, 本项目"share 必须在前处理期固定"的公理与删除 28 类内生 IV 维度的决策直接引用该文; Adão, Kolesár & Morales (2019) 从冲击 (shift) 相关性视角刻画推断偏误并给出稳健标准误; Borusyak, Hull & Jaravel (2022) 则将两条路线统一到准实验 shift-share 框架, 其后 Borusyak, Hull & Jaravel (2025) 给出面向应用者的操作检查表, 明确 share×shift 的构造、incomplete-shares 与重归一化选择。媒体权威作为一条份额维度, 其合法性依赖档位在前处理期固定这一条件, 与上述份额外生路线一致。Apfel (2024) 讨论了在部分份额可能违反排他性时如何放松约束, 为本维度的稳健性叙事提供退路。有效工具的弱识别推断则参照 Lee, McCrary, Moreira & Porter (2022) 的 valid t-ratio 框架。范式源头为 Bartik (1991) 的 share×shift 加权思想。
+shift-share/Bartik 工具变量的当代计量基础由三条互补路线奠定: Goldsmith-Pinkham, Sorkin & Swift (2020) 从份额外生性 (share exposure) 视角给出识别条件与 Rotemberg 权重诊断, 本项目"share 必须在前处理期固定"的公理与删除 28 类内生 IV 维度的决策直接引用该文; Adão, Kolesár & Morales (2019) 从冲击 (shift) 相关性视角刻画推断偏误并给出稳健标准误; Borusyak, Hull & Jaravel (2022) 则将两条路线统一到准实验 shift-share 框架, 其后 Borusyak, Hull & Jaravel (2025) 给出面向应用者的操作检查表, 明确 share×shift 的构造、incomplete-shares 与重归一化选择。媒体权威作为一条份额维度, 其合法性依赖档位在前处理期固定这一条件, 与上述份额外生路线一致。Apfel (2024) 讨论了在部分份额可能违反排他性时如何放松约束, 为本维度的稳健性叙事提供退路。有效工具的弱识别推断则参照 Lee, McCrary, Moreira & Porter (2022) 的 valid t-ratio 框架。范式源头为 Bartik (1991) 的 share×shift 加权思想。Borusyak, Hull & Jaravel (2024, The Econometrics Journal) 系统评述了基于设计的公式工具变量 (含 shift-share/Bartik 型) 识别框架, 为本家族媒体权威度 shift-share 构造的份额-冲击正交性假设提供了最新方法论依据。
 
 方法学铁律: 本项目共保留 type/scale/fintech/media/geoprox/mauth 六类核心 Bartik 维度, 媒体权威 (mauth) 属其中的稳健性维度之一。六维度各自 just-identified 并排、互为稳健性、不分主次, 严禁把多维度的 share×shift 工具混入同一 over-identified 方程做 Hansen J 过度识别检验 (过度识别的联合矩条件会把维度间的构念差异误当作可检验的过度识别约束, 参见 Hahn, Kuersteiner, Santos & Willigrod (2024) 对 shift-share 过度识别的讨论)。媒体权威三档份额之间同理: high/mid/low 是同一 share 向量的互补分量, 只应整体进入某一维度的一阶段, 不得跨维度拼装。
 
@@ -121,4 +129,5 @@ Lee, D. S., McCrary, J., Moreira, M. J., & Porter, J. (2022). Valid t-ratio infe
 Adão, R., Kolesár, M., & Morales, E. (2019). Shift-share designs: Theory and inference. Quarterly Journal of Economics, 134(4), 1949-2010. https://doi.org/10.1093/qje/qjz025
 Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik instruments: What, when, why, and how. American Economic Review, 110(8), 2586-2624. https://doi.org/10.1257/aer.20181047
 Bartik, T. J. (1991). Who benefits from state and local economic development policies?. W.E. Upjohn Institute for Employment Research. https://doi.org/10.17848/9780585223940
+Borusyak, K., Hull, P., & Jaravel, X. (2024). Design-based identification with formula instruments: a review. The Econometrics Journal. https://doi.org/10.1093/ectj/utae003
 <!-- rendered-citations:end -->

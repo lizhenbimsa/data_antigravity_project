@@ -1,5 +1,6 @@
 ---
 family_id: F130
+novelty_exempt_rationale: "该家族是洗稿率(washing ratio)指标的同域分母技术变体(仅数'Bian词典正面且实质性已测量'的报道篇数),非独立学术构念,其测度定义依据已在母族词典文献(Bian et al. 2021)与洗稿率/cheap-talk母指标文献中给出,故豁免新颖度追新。"
 columns:
 - bian_2021_pos_substvalid_count_ctx
 - bian_2021_pos_substvalid_count_full

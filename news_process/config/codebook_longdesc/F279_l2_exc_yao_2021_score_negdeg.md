@@ -5,6 +5,7 @@ columns:
 - exc_yao_2021_score_negdeg_full
 - exc_yao_2021_score_negdeg_ss
 unit: 无量纲情感倾向得分 (词典法, 自归一化区间 [-1, 1])
+novelty_exempt_rationale: "该家族是 yao_2021 词典规则消融梯度 (negdeg, 否定+程度) 叠加 exc_ 停刊媒体排除的技术变体, 非独立新构念, 其测度定义的学术依据已在母族词典文献 (Du et al. 2022 Review of Finance 等) 中给出, 无需单独追新 2023+ 文献。"
 formula: "exc_yao_2021_score_negdeg{track} = mean_over(article ∈ bank-year, media ∉ ceased_set) yao_2021_score_negdeg{track}; 其中 yao_2021_score_negdeg = (Σ pos_final - Σ neg_final)/(Σ|pos_final|+Σ|neg_final|), 规则集 = 否定翻转 ON + 程度副词 ON + 转折 OFF"
 producer: news_process/pipeline/panel/attention_media.py (exc_* 动态发现聚合; 上游文章列 news_process/pipeline/sentiment/tone_words.py::compute_dict_scores)
 upstream:

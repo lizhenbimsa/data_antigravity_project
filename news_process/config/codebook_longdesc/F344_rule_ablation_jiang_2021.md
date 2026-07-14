@@ -1,5 +1,6 @@
 ---
 family_id: F344
+novelty_exempt_rationale: "该家族是 jiang_2021 词典的语言学规则消融变体 (rule_ablation, producer 为 _RULE_ABLATION_VARIANTS 全 powerset 物化), 非独立新构念, 测度定义依据已在 frontmatter 已引用的母族词典原始文献 (姜富伟等 2021 及 Du et al. 2022 等) 中给出, 无需追加 2023+ 新文献。"
 columns:
 - jiang_2021_advonly_tone_ctx
 - jiang_2021_advonly_tone_full

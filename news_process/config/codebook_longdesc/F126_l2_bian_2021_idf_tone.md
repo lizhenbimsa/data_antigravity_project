@@ -126,7 +126,35 @@ citations:
   vol: 28
   issue: 1
   pages_or_artno: 11-21
-new_dois: []
+- doi: "10.1002/isaf.1549"
+  type: journal
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+- doi: "10.1016/j.ememar.2024.101234"
+  type: journal
+  authors: "Xu, Z., Hua, X., & Zhang, T."
+  year: 2025
+  title: "Does official media sentiment matter for the stock market? Evidence from China"
+  venue: "Emerging Markets Review"
+- doi: "10.1016/j.eswa.2024.125739"
+  type: journal
+  authors: "Ma, Y., Zhang, T., & Zhang, P."
+  year: 2025
+  title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
+  venue: "Expert Systems with Applications"
+- doi: "10.1016/j.jempfin.2024.101534"
+  type: journal
+  authors: "Peng, Y., Shi, L., Shi, X., & Tan, S."
+  year: 2024
+  title: "Tone or term: Machine-learning text analysis, featured vocabulary extraction, and evidence from bond pricing in China"
+  venue: "Journal of Empirical Finance"
+new_dois:
+  - "10.1002/isaf.1549"
+  - "10.1016/j.ememar.2024.101234"
+  - "10.1016/j.eswa.2024.125739"
+  - "10.1016/j.jempfin.2024.101534"
 ---
 
 ## CORE
@@ -138,7 +166,7 @@ new_dois: []
 计算分两层。第一层 (文章级, tone_words.py) 先在含标题的 content_full 语料上统一计算一次 IDF: 对词典中每个情感词 w, 原始权重 raw_idf(w) = log10(N / (1 + df(w))) (smooth IDF, N 为去重后唯一文档数), 再对各词典内部做均值归一化 (使 IDF 加权后的量级与等权版可比、可共享阈值), 最后对归一化权重做 P1–P99 Winsorize 以抑制极端稀有词的杠杆。三轨 (full/ctx/ss) 共享同一份 content_full 语料的 IDF 权重, 以保证 IDF 的文档频率语料与 TF 打分语料同构、标题词的 df 不被低估; 权重快照落盘为 22_idf_weights.json 以满足可复现要求。得到权重后, 把词典 base_score 乘以 IDF 权重构成加权词典 (正面词 +1×idf, 负面词 −1×idf), 再在此加权词典上跑与原始语调完全相同的否定/程度/转折规则打分, 输出 bian_2021_idf_score{track}。IDF 仅缩放极性贡献的幅值、不改变词的极性归属, 跨类重叠词的计数口径与 raw 语调保持一致。第二层 (面板级, encode.py::build_aggregation_dict) 把文章级 IDF 分数聚合到银行-年: 基础列取类内等权均值, 另派生离散度 (_std)、三种加权口径 (_vw/_mw/_hw) 与两种金科创新定位分组 (_tech/_app), 每一变体在 full/ctx/ss 三轨上分别落列, 共 7 变体 × 3 轨 = 21 列。三轨语义遵循全项目统一口径: full = 标题前置 + 全文正文, ctx = 标题 + 银行实体上下文窗口, ss = 标题 + 银行与金科同句共现 ±N 窗; 且自 2026-06-29 起留篇门控为 full-only, 即一篇报道是否计入"银行金科报道"只看 full 轨的 LLM 判定, ctx/ss 降为 conditional-on-full 的稳健性轨, ss 轨在无同句共现时回退镜像 ctx (content_ss 退化为全文正文, ss_is_fallback=True), 与 full 分母共享。
 
 【文献定位】
-IDF 加权的思想源头是 Spärck Jones (1972) 关于词项特异性的统计解释与 Salton 与 Buckley (1988) 的词项加权方法, 二者奠定了信息检索中 TF-IDF 的理论基础; Jegadeesh 与 Wu (2013) 首次系统地把词级信息量加权引入金融文本内容分析 ("word power"), 是本家族在金融领域最直接的方法学先例。词典法语调测度的规范框架由 Loughran 与 McDonald (2011) 确立, 中文金融语境的领域特异性词典则由 Bian et al. (2021) 与 Du et al. (2022) 分别提供。作为顶刊锚, Holzman、Miller 与 Twedt (2023, 发表于 The Accounting Review) 论证了媒体情感在盈余公告纪律作用中的经济后果, 并系统采用媒体权威度加权的语调聚合, 正是本家族 _mw 变体的直接方法学依据; Tetlock (2007, Journal of Finance) 关于媒体语气影响市场的经典发现则为语调聚合的构念效度提供了顶刊层面的支撑。Frankel、Jennings 与 Lee (2022) 关于词典法与机器学习法互为稳健的证据, 以及 Barbaglia et al. (2025) 对基于词典的经济文本情感分析的最新评估, 共同支持本项目把 IDF 加权语调与原始词频语调、LLM 投票、BERT 概率并排作为互为稳健性测度的做法。⚠ 口径铁律: 本家族的三轨 (full/ctx/ss)、三种加权 (vw/mw/hw)、两种定位分组 (tech/app) 各自 just-identified 并排, 互为稳健性、不分主次, 严禁把不同轨/不同加权/不同分组的列混进同一 over-identified 的 Hansen J 过度识别检验。
+IDF 加权的思想源头是 Spärck Jones (1972) 关于词项特异性的统计解释与 Salton 与 Buckley (1988) 的词项加权方法, 二者奠定了信息检索中 TF-IDF 的理论基础; Jegadeesh 与 Wu (2013) 首次系统地把词级信息量加权引入金融文本内容分析 ("word power"), 是本家族在金融领域最直接的方法学先例。词典法语调测度的规范框架由 Loughran 与 McDonald (2011) 确立, 中文金融语境的领域特异性词典则由 Bian et al. (2021) 与 Du et al. (2022) 分别提供。作为顶刊锚, Holzman、Miller 与 Twedt (2023, 发表于 The Accounting Review) 论证了媒体情感在盈余公告纪律作用中的经济后果, 并系统采用媒体权威度加权的语调聚合, 正是本家族 _mw 变体的直接方法学依据; Tetlock (2007, Journal of Finance) 关于媒体语气影响市场的经典发现则为语调聚合的构念效度提供了顶刊层面的支撑。Frankel、Jennings 与 Lee (2022) 关于词典法与机器学习法互为稳健的证据, 以及 Barbaglia et al. (2025) 对基于词典的经济文本情感分析的最新评估, 共同支持本项目把 IDF 加权语调与原始词频语调、LLM 投票、BERT 概率并排作为互为稳健性测度的做法。⚠ 口径铁律: 本家族的三轨 (full/ctx/ss)、三种加权 (vw/mw/hw)、两种定位分组 (tech/app) 各自 just-identified 并排, 互为稳健性、不分主次, 严禁把不同轨/不同加权/不同分组的列混进同一 over-identified 的 Hansen J 过度识别检验。Todd、Bowden 与 Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 系统综述金融文本情感分析文献 (含词典法与 IDF 等词级加权方法), 为本家族词典法叠加 IDF 加权语调测度提供最新的方法学定位坐标; 徐、华与张 (Xu, Hua, & Zhang, 2025, Emerging Markets Review) 构建中国官方媒体情感指数并证明其预测股市反转与交易行为, 为本家族在中国语境下的媒体语调测度提供最新实证支撑。Ma、Zhang 与 Zhang (2025, Expert Systems with Applications) 构建面向中国境内投资者的细粒度中文情感词典(CN-FSD),证明细粒度情感指标较传统极性/粗粒度词典更能预测中国股市波动与异常现象,为本家族中文金融情感词典叠加词级加权的构念提供最新方法学同源支撑。Peng、Shi、Shi 与 Tan (2024, Journal of Empirical Finance) 用机器学习方法从中国债券定价相关文本中抽取特征词并区分"语调"与"词项"的信息含量,论证词级特征加权(而非等权词频)对中国金融文本信息量提取的增量价值,呼应本家族 IDF 词级加权相对原始等权词频语调的构念动机。
 
 ## VAR: bian_2021_idf_tone_full
 
@@ -257,4 +285,8 @@ Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media i
 Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level political risk: Measurement and effects. Quarterly Journal of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021
 Salton, G., & Buckley, C. (1988). Term-weighting approaches in automatic text retrieval. Information Processing & Management, 24(5), 513-523. https://doi.org/10.1016/0306-4573(88)90021-0
 Spärck Jones, K. (1972). A statistical interpretation of term specificity and its application in retrieval. Journal of Documentation, 28(1), 11-21. https://doi.org/10.1108/eb026526
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
+Xu, Z., Hua, X., & Zhang, T. (2025). Does official media sentiment matter for the stock market? Evidence from China. Emerging Markets Review. https://doi.org/10.1016/j.ememar.2024.101234
+Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications. https://doi.org/10.1016/j.eswa.2024.125739
+Peng, Y., Shi, L., Shi, X., & Tan, S. (2024). Tone or term: Machine-learning text analysis, featured vocabulary extraction, and evidence from bond pricing in China. Journal of Empirical Finance. https://doi.org/10.1016/j.jempfin.2024.101534
 <!-- rendered-citations:end -->

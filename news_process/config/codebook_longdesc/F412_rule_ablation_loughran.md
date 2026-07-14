@@ -1,5 +1,6 @@
 ---
 family_id: F412
+novelty_exempt_rationale: "该家族是 loughran 词典语调测度在否定/程度副词/转折三条语言学规则 powerset 上的消融变体家族 (rule_ablation_ 前缀), 测度定义依据已在母族 Loughran & McDonald (2011/2016) 词典原始文献中给出, 非独立新构念, 无需追加新文献。"
 columns:
 - loughran_advonly_tone_ctx
 - loughran_advonly_tone_full

@@ -57,7 +57,21 @@ citations:
   vol: 63
   issue: 1
   pages_or_artno: 125-143
-new_dois: []
+- doi: "10.1002/isaf.1549"
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+  type: "journal"
+- doi: "10.1007/s11135-024-01896-9"
+  title: "Dictionary-based sentiment analysis of monetary policy communication: on the applicability of lexicons"
+  authors: "Rutkowska, A., & Szyszko, M."
+  year: 2024
+  venue: "Quality & Quantity"
+  type: "journal"
+new_dois:
+  - "10.1002/isaf.1549"
+  - "10.1007/s11135-024-01896-9"
 ---
 
 ## CORE
@@ -69,7 +83,7 @@ new_dois: []
 计算分两级。文章级由 stage 22 tone_words 产出 loughran_score_raw 的三轨版本 (full/ctx/ss), 其打分逐词累加词典基础极性得到 Σfinal_score, 再除以该篇全部命中词的加权幅度绝对值和 Σ|final_score|, 得到落在闭区间 [-1, 1] 的逐篇倾向分 (幅度归一化口径, 而非命中词计数比率), 分母为零时该篇留空; raw 端点意味着此处不做否定语境翻转、不按程度副词缩放、不因转折词调整权重, 仅以词典基础极性直接累加幅度归一化。该幅度归一化口径与另一同为零规则的 msent_score 计数比率 (neg-pos)/(pos+neg) 是两套不同构造, 源码明确警示二者勿混淆。面板级由 attention_media.py 承接: 该模块是 panel runner 在步骤 6b/6b-2/6c 调用的库函数, 无独立入口, 复用 encode 的 logger 写入共享的 40_panel_export_main 日志。停刊检测借助一组情感列前缀 (_SCORE_PATTERNS) 动态发现待聚合的分值列, loughran_score_ 为其中之一; 检测识别出样本期内停刊的来源后, 将其报道排除在 exc 子样本之外, 再在幸存来源上按银行-年重新求均值, 得到 exc_loughran_score_raw 的三轨面板列。需要强调, 前缀表曾在新增第 6 部 loughran 词典时漏列该前缀, 导致 exc_loughran_* 与 bal_loughran_* 两族相对其余五部词典缺列; 修补后六部词典走完全相同的动态发现路径, exc_loughran_* 一族的列后缀结构 (三轨 × 规则消融梯度各变体) 与 exc_jiang_2021_* 等其余五部词典对齐一致, 不再相对其余词典缺列。留篇与门控口径遵循 full-only 原则: 一篇是否计为银行金科报道只看 full 轨的 LLM 判定, ctx 与 ss 轨为条件于 full 留篇集的子集测度。
 
 【文献定位】
-词典法金融情感的方法学基石是 Loughran and McDonald (2011), 该文首次系统论证通用情绪词表在金融文本上的失真, 并给出金融领域专用正负面词表, 成为此后十余年文本情感研究的事实标准; 本家族的 loughran 词典正是其词表的中文主译。Loughran and McDonald (2016) 的综述进一步梳理了词典法在会计金融中的适用边界与消融敏感性, 为本项目将规则消融物化为并排稳健性梯子提供依据。Frankel, Jennings, and Lee (2022) 在 Management Science 上直接比较机器学习与词典法的披露情感测量, 支持将词典法作为与 LLM、BERT 三方法互为稳健的一轨而非唯一真值。van Atteveldt, van der Velden, and Boukes (2021) 从效度角度比较人工标注、众包、词典与机器学习, 提示词典法在特定语域下系统偏差的存在, 正是本项目保留停刊/平衡两类来源结构稳健性子样本的动因。Barbaglia et al. (2025) 展示经济文本上基于词典的情感抽取, 佐证 raw 零规则端点作为最保守读数的合理性。
+词典法金融情感的方法学基石是 Loughran and McDonald (2011), 该文首次系统论证通用情绪词表在金融文本上的失真, 并给出金融领域专用正负面词表, 成为此后十余年文本情感研究的事实标准; 本家族的 loughran 词典正是其词表的中文主译。Loughran and McDonald (2016) 的综述进一步梳理了词典法在会计金融中的适用边界与消融敏感性, 为本项目将规则消融物化为并排稳健性梯子提供依据。Frankel, Jennings, and Lee (2022) 在 Management Science 上直接比较机器学习与词典法的披露情感测量, 支持将词典法作为与 LLM、BERT 三方法互为稳健的一轨而非唯一真值。van Atteveldt, van der Velden, and Boukes (2021) 从效度角度比较人工标注、众包、词典与机器学习, 提示词典法在特定语域下系统偏差的存在, 正是本项目保留停刊/平衡两类来源结构稳健性子样本的动因。Barbaglia et al. (2025) 展示经济文本上基于词典的情感抽取, 佐证 raw 零规则端点作为最保守读数的合理性。Todd, Bowden, & Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 系统综述金融文本情感分析文献(含词典法与LM词表的局限),并指出未来研究方向。Rutkowska & Szyszko (2024, Quality & Quantity) 检验多套词典(含LM词典)在货币政策文本情感测度上的适用性与稳健性差异。
 
 ## VAR: exc_loughran_score_raw_ctx
 
@@ -92,4 +106,6 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
+Rutkowska, A., & Szyszko, M. (2024). Dictionary-based sentiment analysis of monetary policy communication: on the applicability of lexicons. Quality & Quantity. https://doi.org/10.1007/s11135-024-01896-9
 <!-- rendered-citations:end -->

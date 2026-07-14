@@ -7,6 +7,7 @@ columns:
 unit: 无量纲情感倾向得分 (bank-year 级均值, 值域约 [-1, 1]; 分母仅计存活媒体报道)
 formula: "exc_jiang_2021_score_degadv{track} = mean over articles with _is_ceased_media==0 in (target_bank, year) of jiang_2021_score_degadv{track}; 文章级 jiang_2021_score_degadv = 自归一化词典情感, 施加程度副词(deg)+转折(adv)两条语言学规则, 不施否定翻转(neg)"
 producer: news_process/pipeline/panel/attention_media.py (停刊稳健性聚合; 文章级源列产自 pipeline/sentiment/tone_words.py 词典消融梯度)
+novelty_exempt_rationale: "消融/排除复合变体家族 (exc_ 停刊剔除前缀 × degadv 语言学规则消融梯度), 测度定义依据母族姜富伟(2021)词典及规则消融梯度 SSOT, 非独立新构念, 无需追新文献。"
 upstream:
 - 22_tone_words.parquet (jiang_2021_score_degadv_full / _ctx / _ss)
 - 14_materialize_ctx.parquet (content_full / content_ctx / content_ss)

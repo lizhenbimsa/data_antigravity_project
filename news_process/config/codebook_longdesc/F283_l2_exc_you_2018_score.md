@@ -72,7 +72,21 @@ citations:
   vol: 124
   issue: 2
   pages_or_artno: 373-394
-new_dois: []
+- doi: "10.1111/1475-679x.12560"
+  title: "News Bias in Financial Journalists' Social Networks"
+  authors: "Xu, G."
+  year: 2024
+  venue: "Journal of Accounting Research"
+  type: "journal"
+- doi: "10.1111/jfir.70039"
+  title: "Social media sentiment, investor herding and informational efficiency"
+  authors: "Yang, N., Fernandez-Perez, A., & Indriawan, I."
+  year: 2026
+  venue: "Journal of Financial Research"
+  type: "journal"
+new_dois:
+  - "10.1111/1475-679x.12560"
+  - "10.1111/jfir.70039"
 ---
 
 ## CORE
@@ -84,7 +98,7 @@ new_dois: []
 计算分三层。第一层是文章级词典打分: 在 stage 22 (tone_words) 上, 对每篇报道用 you_2018 词表统计正负面词命中并归一化, 得到 you_2018_score{track} (取值区间随归一化落在正负之间, 正值偏正面、负值偏负面)。第二层是加权变体的预乘: 在 runner 步骤 3b 用提及密度 mention_density 作价值加权 (value-weighted exposure) 得到 _w 源列, 在步骤 3d 用 stage 24 的羊群衰减权重 herd_weight{track} 作注意力加权得到 _hw 源列; 无后缀的 score 变体则不预乘、保留等权文章。第三层是停刊稳健性聚合: attention_media 先经 detect_defacto_cessation 识别在样本期内疑似停止覆盖的媒体 (排除集 = confirmed 与 suspected 并集, 未经 NPPA 证实的 suspected 一律保守纳入排除集), 标记 _is_ceased_media, 再在存活子集 (_is_ceased_media==0) 上按 target_bank、year 分组对相应源列取均值, 输出 exc_ 前缀的三种权重 × 三轨共九列。须强调该口径是"话题覆盖退出"的保守代理而非经证实的报纸停刊, 论文表述应称稳健性口径 (survivorship / 幸存者偏差检验), 不可等同严格出版停刊。留篇门控沿用 full-only 口径 (2026-06-29): 一篇是否算"银行金科报道"只看 full 轨 llm_verified 判定, ctx/ss 为 conditional-on-full 的稳健轨, 行宇宙是 full 留篇集的子集。三轨含义: full 为标题加全文正文, ctx 为标题加实体窗口, ss 为标题加银行与金科同句共现窗; ss 回退语义镜像 ctx, 无同句共现时回退全文。
 
 【文献定位】
-情感词典法在财经文本上的效度是本族方法学的支点: van Atteveldt、van der Velden 与 Boukes (2021) 系统比较人工标注、众包、词典与机器学习, 论证词典法在成本与可解释性上的位置; Barbaglia 等 (2025) 与 Ma 等 (2025) 分别给出经济文本与中文投资者细粒度词典的近期构造范式, 支撑以词表打分聚合的做法。Frankel、Jennings 与 Lee (2022) 比较词典法与机器学习情感, 为"多方法互为稳健性、不分主次"提供先例。You、Zhang 与 Zhang (2018) 是 you_2018 词表的构念母锚, Hwang 与 Kim (2017) 则从写作质量与市场反应角度补足"笔杆子"文本信号的经济后果证据。停刊稳健性的动机在于媒体来源消失会引入幸存者偏差, 使情感指标向存活媒体倾斜并污染基于媒体暴露的工具变量, 故以剔除疑似退出媒体的子集重算作为系数稳定性检验。三轨 (full/ctx/ss) 与三种权重 (等权/羊群加权/提及密度加权) 各自 just-identified 并排、互为稳健性不分主次, 禁混进同一 over-identified Hansen J; 本族与规则消融梯度、政治词权重梯度正交, 不交叉。
+情感词典法在财经文本上的效度是本族方法学的支点: van Atteveldt、van der Velden 与 Boukes (2021) 系统比较人工标注、众包、词典与机器学习, 论证词典法在成本与可解释性上的位置; Barbaglia 等 (2025) 与 Ma 等 (2025) 分别给出经济文本与中文投资者细粒度词典的近期构造范式, 支撑以词表打分聚合的做法。Frankel、Jennings 与 Lee (2022) 比较词典法与机器学习情感, 为"多方法互为稳健性、不分主次"提供先例。You、Zhang 与 Zhang (2018) 是 you_2018 词表的构念母锚, Hwang 与 Kim (2017) 则从写作质量与市场反应角度补足"笔杆子"文本信号的经济后果证据。停刊稳健性的动机在于媒体来源消失会引入幸存者偏差, 使情感指标向存活媒体倾斜并污染基于媒体暴露的工具变量, 故以剔除疑似退出媒体的子集重算作为系数稳定性检验。三轨 (full/ctx/ss) 与三种权重 (等权/羊群加权/提及密度加权) 各自 just-identified 并排、互为稳健性不分主次, 禁混进同一 over-identified Hansen J; 本族与规则消融梯度、政治词权重梯度正交, 不交叉。发现与公司管理层有社交网络联系的财经记者在报道中会引入系统性媒体偏向, 为本家族剔除疑似退出媒体的停刊稳健性口径提供媒体来源异质性的文献支点, 引自 Xu (2024, Journal of Accounting Research)。证明情感驱动的投资者羊群行为会降低市场信息效率, 为本家族 _hw 羊群衰减加权变体的构念动机 (校正报道潮聚集期彼此高度相似文章的机械放大) 提供近期实证依据, 引自 Yang、Fernandez-Perez 与 Indriawan (2026, Journal of Financial Research)。
 
 ## VAR: exc_you_2018_score_ctx
 
@@ -138,4 +152,6 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Hwang, B.-H., & Kim, H. H. (2017). It pays to write well. Journal of Financial Economics, 124(2), 373-394. https://doi.org/10.1016/j.jfineco.2017.01.006
+Xu, G. (2024). News Bias in Financial Journalists' Social Networks. Journal of Accounting Research. https://doi.org/10.1111/1475-679x.12560
+Yang, N., Fernandez-Perez, A., & Indriawan, I. (2026). Social media sentiment, investor herding and informational efficiency. Journal of Financial Research. https://doi.org/10.1111/jfir.70039
 <!-- rendered-citations:end -->

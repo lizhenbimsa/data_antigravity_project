@@ -53,7 +53,23 @@ citations:
   vol: '53'
   issue: '2'
   pages_or_artno: 405-459
-new_dois: []
+- doi: "10.1016/j.heliyon.2024.e30211"
+  title: "Sentimental showdown: News media vs. social media in stock markets"
+  authors: "Nyakurukwa, K., & Seetharam, Y."
+  year: 2024
+  venue: "Heliyon"
+  type: "journal"
+  one_sentence_zh: "比较新闻媒体与社交媒体情感对股票收益影响力的跨市场差异,为media_hhi家族里\"来源结构影响语调-结果关系解读\"的稳健性论证提供2024年新近文献支撑。"
+- doi: "10.1057/s41299-025-00217-6"
+  title: "How Negative Media Sentiment Regarding Social Stability Influences Hostile and Friendly Takeover Outcomes"
+  authors: "Wang, X., Shen, J., Rainville, A., Lo, J. Y., & Xia, J."
+  year: 2025
+  venue: "Corporate Reputation Review"
+  type: "journal"
+  one_sentence_zh: "检验负面媒体情感对企业并购结局的影响,呼应sum_media_authority_weight所刻画的媒体权威性差异化市场冲击这一构念的2025年最新证据。"
+new_dois:
+  - "10.1016/j.heliyon.2024.e30211"
+  - "10.1057/s41299-025-00217-6"
 ---
 
 ## CORE
@@ -78,11 +94,13 @@ media_hhi 是本家族内唯一的集中度测度, 无同族姊妹变体、无�
 ## VAR: sum_media_authority_weight
 
 【变体差分】
-sum_media_authority_weight 是本家族内权威性权重之和这一测度线索下的唯一落盘列 (对应的均值归一化中间列 `media_authority_weight` 是篇章级列, 不落盘到 bank-year 面板); 它区别于 media_hhi 的核心差分是"依赖外部权重表"这一测度选择本身 — 权威性评分来自 `config/media_weights.json` 静态表 (10–100 分区间, 精确匹配 → 去括号归一化匹配 → default 三级回退取得原始权重, 再做全样本均值归一化), 而非任何情感/语调判定结果, 因此该列同样不区分三轨 (它统计的是"报道来源的权威性", 与情感抽取窗口无关); 但与 media_hhi 不同的是, sum_media_authority_weight 在下游被结构性复用为 MW-Tone 加权语调族的分母部件 (`llm_vote_tone_mw{track}` 等), 而 media_hhi 无此下游复用关系, 是纯粹的独立协变量。解读 sum_media_authority_weight 时须注意其量级混杂性: 数值越大既可能因为该银行-年报道篇数本身多, 也可能因为篇均权威性评分高 (来源偏权威财经媒体), 单独看该列无法区分这两种驱动力, 若需分解应联合 n_articles 与 sum_media_authority_weight/n_articles (篇均权威性) 一并考察; 与后续 `media_authority_weight_tier` (3 级离散声誉分类权重, 并行存在于 `encode.py`、作 paper Table A8 敏感性检验、不覆盖本列所用的连续型主口径权重) 互为稳健性、不分主次, 二者不应混入同一过度识别设定联合估计。
+sum_media_authority_weight 是本家族内权威性权重之和这一测度线索下的唯一落盘列 (对应的均值归一化中间列 `media_authority_weight` 是篇章级列, 不落盘到 bank-year 面板); 它区别于 media_hhi 的核心差分是"依赖外部权重表"这一测度选择本身 — 权威性评分来自 `config/media_weights.json` 静态表 (10–100 分区间, 精确匹配 → 去括号归一化匹配 → default 三级回退取得原始权重, 再做全样本均值归一化), 而非任何情感/语调判定结果, 因此该列同样不区分三轨 (它统计的是"报道来源的权威性", 与情感抽取窗口无关); 但与 media_hhi 不同的是, sum_media_authority_weight 在下游被结构性复用为 MW-Tone 加权语调族的分母部件 (`llm_vote_tone_mw{track}` 等), 而 media_hhi 无此下游复用关系, 是纯粹的独立协变量。解读 sum_media_authority_weight 时须注意其量级混杂性: 数值越大既可能因为该银行-年报道篇数本身多, 也可能因为篇均权威性评分高 (来源偏权威财经媒体), 单独看该列无法区分这两种驱动力, 若需分解应联合 n_articles 与 sum_media_authority_weight/n_articles (篇均权威性) 一并考察; 与后续 `media_authority_weight_tier` (3 级离散声誉分类权重, 并行存在于 `encode.py`、作 paper Table A8 敏感性检验、不覆盖本列所用的连续型主口径权重) 互为稳健性、不分主次, 二者不应混入同一过度识别设定联合估计。Nyakurukwa & Seetharam (2024, Heliyon) 比较新闻媒体与社交媒体情感对股票收益影响力的跨市场差异,为media_hhi家族里来源结构影响语调-结果关系解读的稳健性论证提供2024年新近文献支撑。Wang, Shen, Rainville, Lo & Xia (2025, Corporate Reputation Review) 检验负面媒体情感对企业并购结局的影响,呼应sum_media_authority_weight所刻画的媒体权威性差异化市场冲击这一构念的2025年最新证据。
 <!-- rendered-citations:begin -->
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
 Gentzkow, M., & Shapiro, J. M. (2010). What Drives Media Slant? Evidence from U.S. Daily Newspapers. Econometrica, 78(1), 35-71. https://doi.org/10.3982/ECTA7195
 Heese, J., Pérez-Cavazos, G., & Peter, C. D. (2022). When the Local Newspaper Leaves Town The Effects of Local Newspaper Closures on Corporate Misconduct. Journal of Financial Economics, 145(2), 445-463. https://doi.org/10.1016/j.jfineco.2021.08.015
 Peress, J. (2014). The Media and the Diffusion of Information in Financial Markets Evidence from Newspaper Strikes. The Journal of Finance, 69(5), 2007-2043. https://doi.org/10.1111/jofi.12179
 Piotroski, J. D., Wong, T. J., & Zhang, T. (2015). Political Incentives to Suppress Negative Information Evidence from Chinese Listed Firms. Journal of Accounting Research, 53(2), 405-459. https://doi.org/10.1111/1475-679X.12071
+Nyakurukwa, K., & Seetharam, Y. (2024). Sentimental showdown: News media vs. social media in stock markets. Heliyon. https://doi.org/10.1016/j.heliyon.2024.e30211
+Wang, X., Shen, J., Rainville, A., Lo, J. Y., & Xia, J. (2025). How Negative Media Sentiment Regarding Social Stability Influences Hostile and Friendly Takeover Outcomes. Corporate Reputation Review. https://doi.org/10.1057/s41299-025-00217-6
 <!-- rendered-citations:end -->

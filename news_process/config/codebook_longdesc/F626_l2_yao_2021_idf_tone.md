@@ -81,7 +81,28 @@ citations:
   vol: "35"
   issue: "1"
   pages_or_artno: "220–265"
-new_dois: []
+- doi: "10.1111/1911-3846.12825"
+  type: journal
+  authors: "Bochkay, K., Brown, S. V., Leone, A. J., & Tucker, J. W."
+  year: 2023
+  title: "Textual Analysis in Accounting: What's Next?"
+  venue: "Contemporary Accounting Research"
+- doi: "10.1016/j.eswa.2024.125739"
+  type: journal
+  authors: "Ma, Y., Zhang, T., & Zhang, P."
+  year: 2025
+  title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
+  venue: "Expert Systems with Applications"
+- doi: "10.1016/j.ememar.2024.101234"
+  type: journal
+  authors: "Xu, Z., Hua, X., & Zhang, T."
+  year: 2025
+  title: "Does official media sentiment matter for the stock market? Evidence from China"
+  venue: "Emerging Markets Review"
+new_dois:
+  - "10.1111/1911-3846.12825"
+  - "10.1016/j.eswa.2024.125739"
+  - "10.1016/j.ememar.2024.101234"
 ---
 
 ## CORE
@@ -101,7 +122,7 @@ bank-year 层聚合再分裂出五条并排子测度: canonical `yao_2021_idf_to
 三轨 (full=标题+正文全文、ctx=标题+实体窗口、ss=标题+银行∧金科同句±N窗) 是本家族与仓库内几乎所有情感测度共享的正交切分维度, 与上述 IDF 加权/权重方案/分类子集三条维度彼此独立、可自由组合 (例如 `yao_2021_idf_tone_hw_ss` = 同句轨 × 羊群加权); ss 轨在无银行∧金科同句共现时回退为全文 body 并置 `ss_is_fallback=True` (镜像 ctx 回退语义)。铁律: 三轨之间、五条权重/子集变体之间, 均只应各自并排作为稳健性检验或互补测度, 不得混入同一过度识别 (over-identified) 的 Hansen J 检验设定。
 
 【文献定位】
-IDF 加权词典法情感测度植根于两条方法学脉络的交汇: 一是信息检索传统下的词特异性加权 —— Spärck Jones (1972) 首次系统提出以逆文档频率刻画词的检索区分力, 该统计解释后被广泛移植入文本情感分析, 成为 tf-idf 词加权范式的奠基性引用; 二是金融文本分析中显式采用信息量加权而非等权词典计数的先例 —— Jegadeesh & Wu (2013, *Journal of Financial Economics*) 的 "word power" 方法证明, 以词在语料库中的相对信息含量 (而非固定词典赋分) 度量文档语调, 相比等权 Loughran-McDonald 式词典法能更贴近市场对披露文本的实际定价反应, 是本家族 IDF 加权设计的核心方法学锚点。就中文金融文本而言, Du et al. (2022, *Review of Finance*) 系统论证了语言与领域特异性对情感词典效度的重要性, 构建了专用中文金融情感词典并证明领域特异词典优于通用/翻译词典, 为本仓库六部词典 (含 Yao 2021) 并排互为稳健性的设计取向提供了直接的实证支撑 —— 单一词典 (无论加权与否) 都可能因词库覆盖偏误而产生测度误差, 多词典 × 多权重方案的并排设计正是针对这一已知局限的稳健性对冲。Frankel, Jennings & Lee (2022, *Management Science*) 进一步比较了机器学习与词典法两条情感测度路径的分歧来源, 指出词加权方案的选择本身即是词典法测度误差的重要来源之一, 呼应本家族将等权版与 IDF 加权版并列作为两种设计选择下的敏感性检验、而非孰优孰劣替代关系的处理方式。
+IDF 加权词典法情感测度植根于两条方法学脉络的交汇: 一是信息检索传统下的词特异性加权 —— Spärck Jones (1972) 首次系统提出以逆文档频率刻画词的检索区分力, 该统计解释后被广泛移植入文本情感分析, 成为 tf-idf 词加权范式的奠基性引用; 二是金融文本分析中显式采用信息量加权而非等权词典计数的先例 —— Jegadeesh & Wu (2013, *Journal of Financial Economics*) 的 "word power" 方法证明, 以词在语料库中的相对信息含量 (而非固定词典赋分) 度量文档语调, 相比等权 Loughran-McDonald 式词典法能更贴近市场对披露文本的实际定价反应, 是本家族 IDF 加权设计的核心方法学锚点。就中文金融文本而言, Du et al. (2022, *Review of Finance*) 系统论证了语言与领域特异性对情感词典效度的重要性, 构建了专用中文金融情感词典并证明领域特异词典优于通用/翻译词典, 为本仓库六部词典 (含 Yao 2021) 并排互为稳健性的设计取向提供了直接的实证支撑 —— 单一词典 (无论加权与否) 都可能因词库覆盖偏误而产生测度误差, 多词典 × 多权重方案的并排设计正是针对这一已知局限的稳健性对冲。Frankel, Jennings & Lee (2022, *Management Science*) 进一步比较了机器学习与词典法两条情感测度路径的分歧来源, 指出词加权方案的选择本身即是词典法测度误差的重要来源之一, 呼应本家族将等权版与 IDF 加权版并列作为两种设计选择下的敏感性检验、而非孰优孰劣替代关系的处理方式。此外, Bochkay, Brown, Leone & Tucker (2023, Contemporary Accounting Research) 的综述系统评估了会计文本分析领域词权重方案 (含 IDF/tf-idf 式信息量加权) 相较等权词典计数的方法学演进与未来方向, 为本家族 IDF 加权分支的设计选择提供了最新的方法学脉络佐证。Ma, Zhang & Zhang (2025, Expert Systems with Applications) 构建面向中国境内投资者的细粒度中文情感词典 CN-FSD 并验证其应用效度, 为本仓库多词典 (含 Yao 2021) 并排稳健性设计中的中文金融情感词典谱系提供最新方法学同侪佐证; Xu, Hua & Zhang (2025, Emerging Markets Review) 以文本分析与深度学习构建中国官方媒体情感指数并检验其对股市的解释力, 呼应本家族媒体语调加权测度对中国市场语境下媒体语调信息含量的实证关切。
 
 ## VAR: yao_2021_idf_tone_full
 
@@ -215,4 +236,7 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514–5532. https://doi.org/10.1287/mnsc.2021.4156
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing enthusiasm: Media sentiment and the disciplining role of quarterly earnings announcements. The Accounting Review, 98(7), 315–345. https://doi.org/10.2308/TAR-2020-0104
 Gomber, P., Kauffman, R. J., Parker, C., & Weber, B. W. (2018). On the fintech revolution: Interpreting the forces of innovation, disruption, and transformation in financial services. Journal of Management Information Systems, 35(1), 220–265. https://doi.org/10.1080/07421222.2018.1440766
+Bochkay, K., Brown, S. V., Leone, A. J., & Tucker, J. W. (2023). Textual Analysis in Accounting: What's Next?. Contemporary Accounting Research. https://doi.org/10.1111/1911-3846.12825
+Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications. https://doi.org/10.1016/j.eswa.2024.125739
+Xu, Z., Hua, X., & Zhang, T. (2025). Does official media sentiment matter for the stock market? Evidence from China. Emerging Markets Review. https://doi.org/10.1016/j.ememar.2024.101234
 <!-- rendered-citations:end -->

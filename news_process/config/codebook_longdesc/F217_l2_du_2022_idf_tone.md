@@ -111,7 +111,21 @@ citations:
   vol: 28
   issue: 1
   pages_or_artno: 11-21
-new_dois: []
+- doi: "10.1016/j.jfineco.2022.11.006"
+  title: "The colour of finance words"
+  authors: "García, D., Hu, X., & Rohrer, M."
+  year: 2023
+  venue: "Journal of Financial Economics"
+  type: "journal"
+- doi: "10.1016/j.pacfin.2025.102854"
+  title: "The colour of finance words in Chinese"
+  authors: "Yao, K., Zheng, Z., & Liu, C."
+  year: 2025
+  venue: "Pacific-Basin Finance Journal"
+  type: "journal"
+new_dois:
+  - "10.1016/j.jfineco.2022.11.006"
+  - "10.1016/j.pacfin.2025.102854"
 ---
 
 ## CORE
@@ -123,7 +137,7 @@ new_dois: []
 计算分两阶段。第一阶段在文章级 (stage 22, tone_words.py) 完成: 对全语料按唯一文档去重后统计每个情感词的文档频率 df(w) 与总文档数 N, 以平滑公式 raw_idf(w)=log10(N/(1+df(w))) 得到原始 IDF, 再做两步稳定化处理 —— 均值归一化 (normalized_idf=raw_idf/mean_idf, 使加权后得分量级与等权版相当, 可共享阈值) 与 P1/P99 Winsorization (削平最极端 1% 权重, 防止某个超稀有词一词定乾坤)。归一化后的权重乘入词典 base_score, 再叠加与之正交的语言学规则乘子 (否定翻转、程度副词、转折), 逐篇归一得到 du_2022_idf_score。⚠ 一个承重口径: IDF 权重在含标题的 content_full 语料上统一计算一次, full/ctx/ss 三轨共享同一份权重 (绝不按轨分语料重算), 只有分子的词频匹配按各轨文本进行。第二阶段在面板级 (stage 40, encode.py) 把文章级 idf_score 聚合到 bank-year, 衍生出等权均值 (无后缀 canonical)、组内标准差 (std)、以及三种加权聚合 (vw 提及密度加权 / mw 媒体权威加权 / hw 跟风衰减加权), 并对技术类 (tech) 与应用类 (app) 两个金融科技分类子集分别再算等权均值。这 7 种聚合口径各自 just-identified 并排, 互为稳健性、不分主次, 严禁把不同聚合口径混进同一 over-identified Hansen J 过度识别检验。留篇与行宇宙口径遵循全项目 full-only 门控 (2026-06-29): 一篇报道是否计入 bank-year 由 full 轨留篇判定, ctx/ss 轨是 conditional-on-full 的稳健性测度; ss 轨在无「银行∧金科同句共现」时回退为全文正文, 镜像 ctx 的回退公理。三轨各自 just-identified 并排, 同样禁混同一 Hansen J。
 
 【文献定位】
-方法学上, 本家族坐落在金融文本情感测量的词典法一支。Loughran 与 McDonald (2011) 奠定了「用领域特定词典而非通用心理学词典读财务文本」的范式, Du 等 (2022) 将其精神迁移到中文金融语境并给出 du_2022 词典。等权词典法的一个已知弱点是把高频功能词与稀有信息词同等对待, Spärck Jones (1972) 的 IDF 与 Jegadeesh 与 Wu (2013) 的词力量框架正是对此的修正 —— 后者证明按词的区分度赋权能显著提升情感度量对未来收益的预测力。在聚合层面, Tetlock (2007) 开创了把媒体语调先分后合聚合为市场级情绪指标的做法, 是本家族 vw 提及密度加权臂的直接锚点; Holzman、Miller 与 Twedt (2023) 论证按媒体权威性加权能凸显更具定价含义的语调信号, 是 mw 媒体权威加权臂的直接锚点; Tetlock (2011) 论证陈旧信息 (含对同一事件的重复转载) 相对首发原创报道的信息含量系统性递减、投资者对陈旧信息的反应也随之减弱, 为 hw 跟风衰减加权臂 (对同一事件的重复、跟风报道逐步衰减其权重) 提供直接锚点。Garcia (2013) 则展示词典语调在不同宏观状态下具有异质的信息含量, 提示加权聚合口径的结论仍需在不同市场状态下检验其稳健性。Frankel、Jennings 与 Lee (2022) 系统比较了词典法与机器学习情感度量, 为本项目「词典 / LLM / BERT 三法互为稳健」的整体设计提供了方法论对照: IDF 加权词典轨正是词典法内部的一条稳健性支路, 与规则消融梯度、政治词权重梯度正交并列, 共同支撑主结论不被任一测量选择驱动的论证。
+方法学上, 本家族坐落在金融文本情感测量的词典法一支。Loughran 与 McDonald (2011) 奠定了「用领域特定词典而非通用心理学词典读财务文本」的范式, Du 等 (2022) 将其精神迁移到中文金融语境并给出 du_2022 词典。等权词典法的一个已知弱点是把高频功能词与稀有信息词同等对待, Spärck Jones (1972) 的 IDF 与 Jegadeesh 与 Wu (2013) 的词力量框架正是对此的修正 —— 后者证明按词的区分度赋权能显著提升情感度量对未来收益的预测力。在聚合层面, Tetlock (2007) 开创了把媒体语调先分后合聚合为市场级情绪指标的做法, 是本家族 vw 提及密度加权臂的直接锚点; Holzman、Miller 与 Twedt (2023) 论证按媒体权威性加权能凸显更具定价含义的语调信号, 是 mw 媒体权威加权臂的直接锚点; Tetlock (2011) 论证陈旧信息 (含对同一事件的重复转载) 相对首发原创报道的信息含量系统性递减、投资者对陈旧信息的反应也随之减弱, 为 hw 跟风衰减加权臂 (对同一事件的重复、跟风报道逐步衰减其权重) 提供直接锚点。Garcia (2013) 则展示词典语调在不同宏观状态下具有异质的信息含量, 提示加权聚合口径的结论仍需在不同市场状态下检验其稳健性。Frankel、Jennings 与 Lee (2022) 系统比较了词典法与机器学习情感度量, 为本项目「词典 / LLM / BERT 三法互为稳健」的整体设计提供了方法论对照: IDF 加权词典轨正是词典法内部的一条稳健性支路, 与规则消融梯度、政治词权重梯度正交并列, 共同支撑主结论不被任一测量选择驱动的论证。García、Hu 与 Rohrer (2023, Journal of Financial Economics) 系统度量金融文本中哪些词真正携带定价相关信息、哪些是信息量稀薄的套话词, 为本家族按词级信息量 (IDF) 重新加权情感词典的做法提供了2023年的直接方法学支撑。Yao、Zheng 与 Liu (2025, Pacific-Basin Finance Journal) 将"金融词语颜色"(词的信息含量差异化) 框架迁移到中文语境, 与本家族在中文金融新闻上做 IDF 词级信息量加权的构念直接对应。
 
 ## VAR: du_2022_idf_tone_app_ctx
 
@@ -240,4 +254,6 @@ Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textua
 Tetlock, P. C. (2011). All the news that's fit to reprint: Do investors react to stale information?. Review of Financial Studies, 24(5), 1481-1512. https://doi.org/10.1093/rfs/hhq141
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Spärck Jones, K. (1972). A statistical interpretation of term specificity and its application in retrieval. Journal of Documentation, 28(1), 11-21. https://doi.org/10.1108/eb026526
+García, D., Hu, X., & Rohrer, M. (2023). The colour of finance words. Journal of Financial Economics. https://doi.org/10.1016/j.jfineco.2022.11.006
+Yao, K., Zheng, Z., & Liu, C. (2025). The colour of finance words in Chinese. Pacific-Basin Finance Journal. https://doi.org/10.1016/j.pacfin.2025.102854
 <!-- rendered-citations:end -->

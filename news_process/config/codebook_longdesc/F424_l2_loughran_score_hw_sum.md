@@ -1,5 +1,6 @@
 ---
 family_id: F424
+novelty_exempt_rationale: "该家族是 loughran 词典情感得分的羊群加权 (herd-weighted) 聚合变体, 与同族简单求和/idf 加权求和互为正交聚合权重方案, 属技术性聚合变体而非独立新构念, 其测度定义的学术依据已在母族词典 (Loughran & McDonald 系列) 及正文引文中给出, 无需另追新文献。"
 columns:
 - loughran_score_hw_sum_ctx
 - loughran_score_hw_sum_full

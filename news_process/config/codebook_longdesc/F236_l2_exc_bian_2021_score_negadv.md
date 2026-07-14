@@ -1,5 +1,6 @@
 ---
 family_id: F236
+novelty_exempt_rationale: "exc_ 停刊剔除 × negadv 规则消融的双重稳健性变体家族, 测度定义依据母族 bian_2021 词典及其规则消融/停刊代理设计, 非独立新构念, 不需要独立追新文献。"
 columns:
 - exc_bian_2021_score_negadv_ctx
 - exc_bian_2021_score_negadv_full

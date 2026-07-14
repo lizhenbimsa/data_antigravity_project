@@ -1,5 +1,6 @@
 ---
 family_id: F275
+novelty_exempt_rationale: "exc_ 前缀家族是'剔除疑似退出覆盖媒体'的样本稳健性衍生变体, 其情感测度定义直接沿用母族 yao_2021 词典 (及三重轨道/加权梯子), 本身不构成独立新构念, 学术依据已由母族词典文献及词典法情感分析文献覆盖, 无需单独追新引文。"
 columns:
 - exc_yao_2021_score_ctx
 - exc_yao_2021_score_full

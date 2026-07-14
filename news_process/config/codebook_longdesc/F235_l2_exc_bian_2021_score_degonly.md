@@ -1,5 +1,6 @@
 ---
 family_id: F235
+novelty_exempt_rationale: "exc_ 停刊剔除臂 × degonly 规则消融臂的双重稳健性变体家族, 测度定义依据母族 Bian et al. (2021) 词典与规则消融梯度/媒体覆盖退出检测方法, 非独立新构念, 不需追加新文献。"
 columns:
 - exc_bian_2021_score_degonly_ctx
 - exc_bian_2021_score_degonly_full

@@ -57,7 +57,21 @@ citations:
   vol: 37
   issue: 2
   pages_or_artno: 267-307
-new_dois: []
+- doi: "10.1371/journal.pone.0305148"
+  title: "News source bias and sentiment on social media"
+  authors: "Knutson, B., Hsu, T. W., Ko, M., & Tsai, J. L."
+  year: 2024
+  venue: "PLOS ONE"
+  type: "journal"
+- doi: "10.1016/j.frl.2023.104865"
+  title: "Media sentiment and management earnings forecasts: Evidence from China"
+  authors: "Chen, T., Chiu, P.-C., & Wang, Y."
+  year: 2024
+  venue: "Finance Research Letters"
+  type: "journal"
+new_dois:
+  - "10.1371/journal.pone.0305148"
+  - "10.1016/j.frl.2023.104865"
 ---
 
 ## CORE
@@ -69,7 +83,7 @@ new_dois: []
 计算分三层。第一层是文章级词典打分的规则消融: 在 stage 22 (tone_words) 上, `_RULE_ABLATION_VARIANTS` 谱系统一物化词典打分在三条语言学规则 (否定翻转 apply_negation、程度副词 apply_degree、转折 apply_adversative) 全 powerset 组合下的变体, 每个组合各产一个后缀; raw 对应 (False, False, False), 即三条规则全部关闭的零规则基线, 是该消融谱系中"最原始"的一端, 全启用的对照臂是不带消融后缀的规范列 `you_2018_score{track}` (不在本谱内, 单独物化)。you_2018_score_raw{track} 即在该基线设定下对每篇银行金科报道统计 you_2018 词表正负面词命中并归一化得到的文章级得分。第二层是覆盖退出识别: attention_media 用 detect_defacto_cessation 识别样本期内疑似停止覆盖该话题的媒体, 排除集取 confirmed 与 suspected 的并集 (未经权威证实的 suspected 一律保守纳入排除集, 而非等待证实才剔除), 标记 `_is_ceased_media`。第三层是存活子集聚合: 在 `_is_ceased_media==0` 的存活媒体子集上, 按 target_bank、year 分组对 you_2018_score_raw{track} 取均值, 得到 exc_you_2018_score_raw{track} 三轨列。留篇门控沿用 full-only 口径 (2026-06-29): 一篇报道是否计入"银行金科报道"行宇宙只看 full 轨的 llm_verified 判定, ctx/ss 是 conditional-on-full 的稳健测量轨, 行宇宙是 full 留篇集的子集, per-track 情感值仍照各自文本轨分别计算。三轨含义: full 为标题 prepend 加全文正文, ctx 为标题加目标银行实体窗口, ss 为标题加银行与金科在同一句子共现的窗口 (半径由 `config/filtering.yaml::context_window.ss_sentence_radius` 控制, 默认 1); ss 回退语义镜像 ctx, 缺银行∧金科同句共现时 content_ss 回退为全文正文, `ss_is_fallback` 置真并共享 `n_articles` 分母, 保证优雅降级不产生单边孤儿。
 
 【文献定位】
-本族方法学立足两条独立支点。其一是消融本身的方法论正当性: 词典法情感测量对具体语言学规则的选择带有研究者自由度, van Atteveldt、van der Velden 与 Boukes (2021, *Communication Methods and Measures*) 系统比较人工标注、众包、词典与机器学习四类方法, 指出词典法在成本与可解释性上的相对位置及其构念效度边界, 为对词典内部规则做敏感性检验 (而非只信一种规则设定) 提供了必要性依据; Taboada、Brooke、Tofiloski、Voll 与 Stede (2011, *Computational Linguistics*) 系统论述基于词表的情感分析方法, 明确否定处理、强化词/程度副词与转折结构是词典法打分中最核心的三类语言学修饰规则, 为本族选取这三条规则做消融、以 raw 为其零假设基线的设计提供了方法论对应。其二是词表本身的构念来源与并行方法证据: You、Zhang 与 Zhang (2018, *Review of Financial Studies*) 是 you_2018 词表的学术母锚; Barbaglia、Consoli、Manzan、Tiozzo Pezzoli 与 Tosetti (2025, *Economic Inquiry*) 给出经济文本词典法情感分析的近期系统范式; Frankel、Jennings 与 Lee (2022, *Management Science*) 比较词典法与机器学习情感测度, 为"多方法互为稳健性、不分主次"提供先例, 呼应本族与 stage 21 三家 LLM 投票、stage 23 三模型 BERT 之间的并行不分主次关系。停刊稳健性的动机在于媒体来源在样本期内消失会引入幸存者偏差, 使基于媒体暴露的情感指标与工具变量向存活媒体系统性倾斜, 故以剔除疑似退出媒体的子集重算作为系数稳定性检验。规则消融的七个非-full 组合 (raw/negonly/degonly/advonly/negdeg/negadv/degadv) 高度共线 (相邻级差 corr 常 ≈0.99), 论文表述须报相关系数与逐级变号占比, 定性为"定性不变"而非声称某规则组合更优; 消融梯度与三轨、与停刊剔除维度正交, 不交叉相乘出爆炸列数。三轨 (full/ctx/ss) 与规则消融梯度各自 just-identified 并排, 互为稳健性不分主次, 禁混进同一 over-identified Hansen J; 本族与政治词权重梯度亦正交、不交叉。
+本族方法学立足两条独立支点。其一是消融本身的方法论正当性: 词典法情感测量对具体语言学规则的选择带有研究者自由度, van Atteveldt、van der Velden 与 Boukes (2021, *Communication Methods and Measures*) 系统比较人工标注、众包、词典与机器学习四类方法, 指出词典法在成本与可解释性上的相对位置及其构念效度边界, 为对词典内部规则做敏感性检验 (而非只信一种规则设定) 提供了必要性依据; Taboada、Brooke、Tofiloski、Voll 与 Stede (2011, *Computational Linguistics*) 系统论述基于词表的情感分析方法, 明确否定处理、强化词/程度副词与转折结构是词典法打分中最核心的三类语言学修饰规则, 为本族选取这三条规则做消融、以 raw 为其零假设基线的设计提供了方法论对应。其二是词表本身的构念来源与并行方法证据: You、Zhang 与 Zhang (2018, *Review of Financial Studies*) 是 you_2018 词表的学术母锚; Barbaglia、Consoli、Manzan、Tiozzo Pezzoli 与 Tosetti (2025, *Economic Inquiry*) 给出经济文本词典法情感分析的近期系统范式; Frankel、Jennings 与 Lee (2022, *Management Science*) 比较词典法与机器学习情感测度, 为"多方法互为稳健性、不分主次"提供先例, 呼应本族与 stage 21 三家 LLM 投票、stage 23 三模型 BERT 之间的并行不分主次关系。停刊稳健性的动机在于媒体来源在样本期内消失会引入幸存者偏差, 使基于媒体暴露的情感指标与工具变量向存活媒体系统性倾斜, 故以剔除疑似退出媒体的子集重算作为系数稳定性检验。规则消融的七个非-full 组合 (raw/negonly/degonly/advonly/negdeg/negadv/degadv) 高度共线 (相邻级差 corr 常 ≈0.99), 论文表述须报相关系数与逐级变号占比, 定性为"定性不变"而非声称某规则组合更优; 消融梯度与三轨、与停刊剔除维度正交, 不交叉相乘出爆炸列数。三轨 (full/ctx/ss) 与规则消融梯度各自 just-identified 并排, 互为稳健性不分主次, 禁混进同一 over-identified Hansen J; 本族与政治词权重梯度亦正交、不交叉。此外, 该文分析社交媒体上不同新闻来源的偏向性与情感差异, 为按媒体来源子集 (如剔除疑似退出媒体) 重新聚合情感测度提供了媒体来源异质性的方法学支撑, 引 Knutson、Hsu、Ko 与 Tsai (2024, PLOS ONE); 该文以中国媒体情感度量管理层盈余预测行为, 提供了中文财经语境下词典法媒体情感测度与幸存者偏差敏感性检验并行的近期实证先例, 引 Chen、Chiu 与 Wang (2024, Finance Research Letters)。
 
 ## VAR: exc_you_2018_score_raw_ctx
 
@@ -98,4 +112,6 @@ Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025)
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
+Knutson, B., Hsu, T. W., Ko, M., & Tsai, J. L. (2024). News source bias and sentiment on social media. PLOS ONE. https://doi.org/10.1371/journal.pone.0305148
+Chen, T., Chiu, P.-C., & Wang, Y. (2024). Media sentiment and management earnings forecasts: Evidence from China. Finance Research Letters. https://doi.org/10.1016/j.frl.2023.104865
 <!-- rendered-citations:end -->

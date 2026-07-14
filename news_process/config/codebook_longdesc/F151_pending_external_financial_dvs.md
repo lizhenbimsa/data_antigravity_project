@@ -82,7 +82,21 @@ citations:
   vol: 22
   issue: 1
   pages_or_artno: 435-480
-new_dois: []
+- doi: "10.3390/fintech5010014"
+  title: "Fintech Adoption and Bank Risk, Efficiency and Stability: Evidence from Panel Data of Selected Asian Economies"
+  authors: "Uddin, H., & Barai, M. K."
+  year: 2026
+  venue: "FinTech"
+  type: "journal"
+- doi: "10.5089/9798400265167.001"
+  title: "Does FinTech Increase Bank Risk Taking?"
+  authors: "Elekdag, S. A., Emrullahu, D., & Ben Naceur, S."
+  year: 2024
+  venue: "IMF Working Papers"
+  type: "wp"
+new_dois:
+  - "10.3390/fintech5010014"
+  - "10.5089/9798400265167.001"
 ---
 
 ## CORE
@@ -134,7 +148,7 @@ new_dois: []
 ## VAR: z_score
 
 【变体差分】
-本列是两篇 provisional 论文共享的主结果变量, 区别于家族内盈利/估值型结果之处在于它是一个风险/稳定性口径的复合指数, 度量的是银行离破产有多远而非赚了多少。语义为标准的银行稳定性 Z-score (通常定义为资产收益率均值加资本资产比之和、除以资产收益率的标准差), 值越高表示破产距离越远、稳定性越强, 是银行风险文献里最常用的破产风险逆向测度, 对标 Koranteng 与 You (2024) 关于金科与金融稳定的空间计量证据。bank_media_disagreement (媒体分歧轨) 与 bank_news_clarity (新闻清晰度轨) 两篇均以 z_score 为主 outcome/DV: 媒体分歧或新闻清晰度经不确定性与信息质量渠道影响银行的破产风险。需特别注意一条铁律: 依 CLAUDE.md, provisional .do 模板里的 z_score (以及 NPL、RWA) 是占位变量名, 刻意保留待外部财务面板接入后填实, 绝不得误删。两篇虽共享 z_score 这一 DV 名称, 但处理变量不同 (媒体分歧度 vs 新闻清晰度), 两套结果各自 just-identified 并排、互为不同构念不分主次, 严禁混进同一 over-identified Hansen J。本列当前 tier=pending 不实存, 稳定性面板接入后升 core; 与 roa 的跨篇共享同理, 共享名称保证外部面板一次构造两篇共用。
+本列是两篇 provisional 论文共享的主结果变量, 区别于家族内盈利/估值型结果之处在于它是一个风险/稳定性口径的复合指数, 度量的是银行离破产有多远而非赚了多少。语义为标准的银行稳定性 Z-score (通常定义为资产收益率均值加资本资产比之和、除以资产收益率的标准差), 值越高表示破产距离越远、稳定性越强, 是银行风险文献里最常用的破产风险逆向测度, 对标 Koranteng 与 You (2024) 关于金科与金融稳定的空间计量证据。bank_media_disagreement (媒体分歧轨) 与 bank_news_clarity (新闻清晰度轨) 两篇均以 z_score 为主 outcome/DV: 媒体分歧或新闻清晰度经不确定性与信息质量渠道影响银行的破产风险。需特别注意一条铁律: 依 CLAUDE.md, provisional .do 模板里的 z_score (以及 NPL、RWA) 是占位变量名, 刻意保留待外部财务面板接入后填实, 绝不得误删。两篇虽共享 z_score 这一 DV 名称, 但处理变量不同 (媒体分歧度 vs 新闻清晰度), 两套结果各自 just-identified 并排、互为不同构念不分主次, 严禁混进同一 over-identified Hansen J。本列当前 tier=pending 不实存, 稳定性面板接入后升 core; 与 roa 的跨篇共享同理, 共享名称保证外部面板一次构造两篇共用。用9个亚洲国家85家银行2014-2024年面板数据, 以Z-score与稳定性比率度量金科采纳对银行风险、效率与稳定性的影响, 为z_score列的构念提供最新跨国证据 (Uddin & Barai, 2026, FinTech)。用覆盖逾万家金融机构的全球金科活动数据库检验金科渗透与金融机构风险承担的关系, 发现支持竞争—脆弱性假说的稳健证据, 为z_score/roa等银行风险稳定性哨兵列提供识别参照 (Elekdag, Emrullahu, & Ben Naceur, 2024, IMF Working Papers)。
 
 <!-- rendered-citations:begin -->
 Alfhaili, F. A., Bakoush, M., & Wolfe, S. (2026). Investing in fintech equity and bank innovation. Journal of International Financial Markets, Institutions and Money, 108, 102306. https://doi.org/10.1016/j.intfin.2026.102306
@@ -145,4 +159,6 @@ Arora, A., Belenzon, S., & Sheer, L. (2021). Matching patents to Compustat firms
 Thakor, A. V. (2020). Fintech and banking: What do we know?. Journal of Financial Intermediation, 41, 100833. https://doi.org/10.1016/j.jfi.2019.100833
 Ertugrul, M., Lei, J., Qiu, J., & Wan, C. (2017). Annual report readability, tone ambiguity, and the cost of borrowing. Journal of Financial and Quantitative Analysis, 52(2), 811-836. https://doi.org/10.1017/S0022109017000187
 Petersen, M. A. (2009). Estimating standard errors in finance panel data sets: Comparing approaches. Review of Financial Studies, 22(1), 435-480. https://doi.org/10.1093/rfs/hhn053
+Uddin, H., & Barai, M. K. (2026). Fintech Adoption and Bank Risk, Efficiency and Stability: Evidence from Panel Data of Selected Asian Economies. FinTech. https://doi.org/10.3390/fintech5010014
+Elekdag, S. A., Emrullahu, D., & Ben Naceur, S. (2024). Does FinTech Increase Bank Risk Taking?. IMF Working Papers [Working Paper]. https://doi.org/10.5089/9798400265167.001
 <!-- rendered-citations:end -->

@@ -1,5 +1,6 @@
 ---
 family_id: F258
+novelty_exempt_rationale: "exc_ 前缀家族是姜富伟等(2021)词典情感得分在'剔除疑似退出覆盖媒体'存活子样本上的幸存者偏差稳健性变体, 测度定义依据母族词典与其原始文献, 非独立新构念, 无需追加新文献。"
 columns:
 - exc_jiang_2021_score_ctx
 - exc_jiang_2021_score_full

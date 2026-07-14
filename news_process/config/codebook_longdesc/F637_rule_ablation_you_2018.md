@@ -1,5 +1,6 @@
 ---
 family_id: F637
+novelty_exempt_rationale: "消融变体家族(rule_ablation_you_2018): 21列是对you_2018词典在neg/deg/adv三条语言学规则维度上的非全集组合穷举,测度定义依据已在母族You et al.(2018)词典文献与Taboada et al.(2011)语境价化转移理论中给出,本家族仅是方法学稳健性梯度,非独立新构念,无需追加2023+文献。"
 columns:
 - you_2018_advonly_tone_ctx
 - you_2018_advonly_tone_full

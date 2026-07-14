@@ -84,7 +84,21 @@ citations:
   vol: 76
   issue: 5
   pages_or_artno: 378-382
-new_dois: []
+- doi: "10.1038/s42256-025-01169-6"
+  title: "When large language models are reliable for judging empathic communication"
+  authors: "Kumar, A., Poungpeth, N., Yang, D., Farrell, E., Lambert, B. L., & Groh, M."
+  year: 2026
+  venue: "Nature Machine Intelligence"
+  type: "journal"
+- doi: "10.1177/25152459251325174"
+  title: "A Primer for Evaluating Large Language Models in Social-Science Research"
+  authors: "Abdurahman, S., Salkhordeh Ziabari, A., Moore, A. K., Bartels, D. M., & Dehghani, M."
+  year: 2025
+  venue: "Advances in Methods and Practices in Psychological Science"
+  type: "journal"
+new_dois:
+  - "10.1038/s42256-025-01169-6"
+  - "10.1177/25152459251325174"
 ---
 
 ## CORE
@@ -100,7 +114,7 @@ new_dois: []
 本家族严格遵守项目的三轨与留篇口径铁律。三条轨道文本在 Stage 14 (ctx_materializer) 物化: full 轨 = 标题 prepend 后拼全文正文; ctx 轨 = 标题 + 实体上下文窗口; ss 轨 = 标题 + 银行与金融科技同句共现的 ±N 句窗 (窗半径读 config/filtering.yaml 的 ss_sentence_radius, 默认 1)。ss 轨采用镜像 ctx 的回退语义: 当某篇不存在银行与金融科技的同句共现时, content_ss 回退为全文正文, ss_is_fallback=True。留篇门控为 full-only (2026-06-29 口径): 一篇报道是否被判为"银行金融科技报道"只看 llm_verified_full 是否为真; ctx 与 ss 轨降为 conditional-on-full 的测度与稳健性轨, 其行宇宙是 full 留篇集的子集, 各轨的一致率在各自轨的 verified 留篇篇数上收缩计算。三条轨道互为稳健性、不分主次, 各自 just-identified 并排; 铁律: 三轨禁混进同一 over-identified Hansen J 检验。
 
 【文献定位】
-本家族的方法学根系在多评分者名义尺度一致性文献。原始一致率 (raw / observed agreement) 是最直接的一致性刻画, 由 Fleiss (1971) 系统化为多评分者情形。但原始一致率不做机会一致 (chance agreement) 校正, 因而存在著名的"高一致率、低 kappa"悖论: 当类别边际分布高度不均衡时, 观测一致率可以很高而机会校正系数却塌向零 (Feinstein & Cicchetti, 1990)。本家族刻意保留原始一致率口径而非机会校正系数, 原因有三: 其一, 本列的用途是银行-年层的相对诊断而非跨研究的绝对信度报告, 原始比率的可解释性 (三家中有几家同向) 对面板诊断更透明; 其二, 机会校正系数 (如 Gwet 的 AC 系列、加权与不完整数据下的贝叶斯校正) 各有其边际假设与方差估计的复杂性 (Gwet, 2008; van Oest & Girard, 2021), 在银行-年格子内篇数很小时估计极不稳定; 其三, 面向类别流行度校正的新一代系数 (Almehrizi, 2026) 与对多类别、层级分类的 Fleiss kappa 推广 (Moons & Vandervieren, 2025) 表明机会校正本身是一个开放的方法学谱系, 把其中任一具体系数固化进面板反而牺牲透明度。作为稳健性梯子, 项目在别处以 Krippendorff α 与 Cohen κ 承接机会校正维度的模型间一致性诊断, 本家族与之正交互补。将模型间分歧本身作为可用信号 (而非纯噪声) 的做法, 亦与近年新闻驱动投资者分歧文献一脉相承 (Li & Luan, 2025): 银行-年层的情感标注分歧, 可解读为该行当年媒体叙事内在模糊度的代理。
+本家族的方法学根系在多评分者名义尺度一致性文献。原始一致率 (raw / observed agreement) 是最直接的一致性刻画, 由 Fleiss (1971) 系统化为多评分者情形。但原始一致率不做机会一致 (chance agreement) 校正, 因而存在著名的"高一致率、低 kappa"悖论: 当类别边际分布高度不均衡时, 观测一致率可以很高而机会校正系数却塌向零 (Feinstein & Cicchetti, 1990)。本家族刻意保留原始一致率口径而非机会校正系数, 原因有三: 其一, 本列的用途是银行-年层的相对诊断而非跨研究的绝对信度报告, 原始比率的可解释性 (三家中有几家同向) 对面板诊断更透明; 其二, 机会校正系数 (如 Gwet 的 AC 系列、加权与不完整数据下的贝叶斯校正) 各有其边际假设与方差估计的复杂性 (Gwet, 2008; van Oest & Girard, 2021), 在银行-年格子内篇数很小时估计极不稳定; 其三, 面向类别流行度校正的新一代系数 (Almehrizi, 2026) 与对多类别、层级分类的 Fleiss kappa 推广 (Moons & Vandervieren, 2025) 表明机会校正本身是一个开放的方法学谱系, 把其中任一具体系数固化进面板反而牺牲透明度。作为稳健性梯子, 项目在别处以 Krippendorff α 与 Cohen κ 承接机会校正维度的模型间一致性诊断, 本家族与之正交互补。将模型间分歧本身作为可用信号 (而非纯噪声) 的做法, 亦与近年新闻驱动投资者分歧文献一脉相承 (Li & Luan, 2025): 银行-年层的情感标注分歧, 可解读为该行当年媒体叙事内在模糊度的代理。将大语言模型标注可靠性置于跨领域视角下考察, Kumar, Poungpeth, Yang, Farrell, Lambert, & Groh (2026, Nature Machine Intelligence) 对比人类专家、众包与大语言模型在共情沟通标注任务上的可靠性, 发现LLM标注在多个评估框架下接近专家一致性水平, 为本家族以LLM多数投票一致率作为标注质量诊断量提供了跨领域方法学支撑。Abdurahman, Salkhordeh Ziabari, Moore, Bartels, & Dehghani (2025, Advances in Methods and Practices in Psychological Science) 提出评估大语言模型作为社会科学数据标注者的系统性方法框架, 主张以人机一致率与多标注者分歧诊断标注可信度, 呼应本家族以情感投票一致率作为银行-年层测量不确定性诊断量的设计取向。
 
 ## VAR: avg_agreement_rate_s_full
 
@@ -126,4 +140,6 @@ van Oest, R., & Girard, J. M. (2021). Weighting schemes and incomplete data: A g
 Gwet, K. L. (2008). Computing inter-rater reliability and its variance in the presence of high agreement. British Journal of Mathematical and Statistical Psychology, 61(1), 29-48. https://doi.org/10.1348/000711006x126600
 Feinstein, A. R., & Cicchetti, D. V. (1990). High agreement but low kappa: I. The problems of two paradoxes. Journal of Clinical Epidemiology, 43(6), 543-549. https://doi.org/10.1016/0895-4356(90)90158-l
 Fleiss, J. L. (1971). Measuring nominal scale agreement among many raters. Psychological Bulletin, 76(5), 378-382. https://doi.org/10.1037/h0031619
+Kumar, A., Poungpeth, N., Yang, D., Farrell, E., Lambert, B. L., & Groh, M. (2026). When large language models are reliable for judging empathic communication. Nature Machine Intelligence. https://doi.org/10.1038/s42256-025-01169-6
+Abdurahman, S., Salkhordeh Ziabari, A., Moore, A. K., Bartels, D. M., & Dehghani, M. (2025). A Primer for Evaluating Large Language Models in Social-Science Research. Advances in Methods and Practices in Psychological Science. https://doi.org/10.1177/25152459251325174
 <!-- rendered-citations:end -->

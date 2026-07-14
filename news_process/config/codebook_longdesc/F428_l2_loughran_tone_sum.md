@@ -14,7 +14,21 @@ citations:
 - {doi: "10.1111/1475-679X.12123", type: journal, authors: "Loughran, T., & McDonald, B.", year: 2016, title: "Textual Analysis in Accounting and Finance: A Survey", venue: "Journal of Accounting Research", vol: "54", issue: "4", pages_or_artno: "1187-1230"}
 - {doi: "10.1287/mnsc.2021.4156", type: journal, authors: "Frankel, R., Jennings, J., & Lee, J.", year: 2022, title: "Disclosure Sentiment: Machine Learning vs. Dictionary Methods", venue: "Management Science", vol: "68", issue: "7", pages_or_artno: "5514-5532"}
 - {doi: "10.1016/j.eswa.2024.125739", type: journal, authors: "Ma, Y., Zhang, T., & Zhang, P.", year: 2025, title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application", venue: "Expert Systems with Applications", vol: "264", pages_or_artno: "125739"}
-new_dois: []
+- doi: "10.1016/j.procs.2025.04.477"
+  title: "Enhancing Financial Sentiment Analysis: Integrating the Loughran-McDonald Dictionary with BERT for Advanced Market Predictive Insights"
+  authors: "Sheetal, R., & Aithal, P. K."
+  year: 2025
+  venue: "Procedia Computer Science"
+  type: "journal"
+- doi: "10.1142/s2282717x25500069"
+  title: "When Words Backfire: Tone Management and Crash Risk in Banking"
+  authors: "Meles, A., Pellegrino, L. R., & Rega, F. G."
+  year: 2025
+  venue: "Journal of Financial Management, Markets and Institutions"
+  type: "journal"
+new_dois:
+  - "10.1016/j.procs.2025.04.477"
+  - "10.1142/s2282717x25500069"
 ---
 
 ## CORE
@@ -30,7 +44,7 @@ new_dois: []
 三轨 (full/ctx/ss) 是互为稳健性、不分主次的并排测度轨道: 三者各自作为 just-identified 回归设定并排使用, 严禁将三轨的 tone_sum 混入同一个 over-identified Hansen J 检验框架 (与 CLAUDE.md「当前状态铁律」三轨口径一致)。此外该家族的原始计数与归一化 loughran_tone 之间, 以及未来若引入的政治词权重梯度、词典消融梯度等, 均需保持各自独立、并排比较, 不应交叉混用同一识别方程。
 
 【文献定位】
-Loughran & McDonald (2011) 在 The Journal of Finance 提出金融文本情感词典应针对领域专属语义构造 (而非直接借用通用心理学词典), 是本词典族方法学的顶刊锚点; 其 2016 年 Journal of Accounting Research 综述进一步系统化了文本分析在会计与金融研究中的应用规范, 为本家族的词典法定位提供方法论背景。Du et al. (2022, Review of Finance) 针对中文金融文本构造领域专属情感词典, 并证明通用词典直译到中文语境会产生系统性偏误, 这一发现是本项目在词典层面采用多词典并排 (6 部) 而非单一词典的直接理据, 也是本 loughran 家族之外仍并行维护 du_2022/jiang_2021/yao_2021/bian_2021/you_2018 五部词典的方法论依据。Frankel, Jennings & Lee (2022, Management Science) 系统比较了词典法与机器学习法在文本情感测量上的表现差异, 为本项目将词典法 tone_sum/tone 与 LLM 三家投票、BERT 三模型并列作为"互为稳健性"轨道提供了实证支持。Ma, Zhang & Zhang (2025, Expert Systems with Applications) 近期构造中文细粒度情感词典并验证其在中国投资者语境下的效度, 佐证了中文金融文本情感测量仍处于活跃方法学演进期, 本家族的多词典并排策略与之呼应。
+Loughran & McDonald (2011) 在 The Journal of Finance 提出金融文本情感词典应针对领域专属语义构造 (而非直接借用通用心理学词典), 是本词典族方法学的顶刊锚点; 其 2016 年 Journal of Accounting Research 综述进一步系统化了文本分析在会计与金融研究中的应用规范, 为本家族的词典法定位提供方法论背景。Du et al. (2022, Review of Finance) 针对中文金融文本构造领域专属情感词典, 并证明通用词典直译到中文语境会产生系统性偏误, 这一发现是本项目在词典层面采用多词典并排 (6 部) 而非单一词典的直接理据, 也是本 loughran 家族之外仍并行维护 du_2022/jiang_2021/yao_2021/bian_2021/you_2018 五部词典的方法论依据。Frankel, Jennings & Lee (2022, Management Science) 系统比较了词典法与机器学习法在文本情感测量上的表现差异, 为本项目将词典法 tone_sum/tone 与 LLM 三家投票、BERT 三模型并列作为"互为稳健性"轨道提供了实证支持。Ma, Zhang & Zhang (2025, Expert Systems with Applications) 近期构造中文细粒度情感词典并验证其在中国投资者语境下的效度, 佐证了中文金融文本情感测量仍处于活跃方法学演进期, 本家族的多词典并排策略与之呼应。Sheetal & Aithal (2025, Procedia Computer Science) 该文将 Loughran-McDonald 词典法与 BERT 深度学习模型融合用于金融文本情感分析, 佐证词典法与机器学习法并排互验的方法论定位。Meles, Pellegrino & Rega (2025, Journal of Financial Management, Markets and Institutions) 该文用词典法测度银行管理层文本语调, 发现策略性乐观语调与银行未来股价崩盘风险正相关, 支持语调测度在银行情境下的构念效度。
 
 ## VAR: loughran_tone_sum_full
 
@@ -56,5 +70,7 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and Domain Specific
 Loughran, T., & McDonald, B. (2016). Textual Analysis in Accounting and Finance: A Survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure Sentiment: Machine Learning vs. Dictionary Methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications, 264, 125739. https://doi.org/10.1016/j.eswa.2024.125739
+Sheetal, R., & Aithal, P. K. (2025). Enhancing Financial Sentiment Analysis: Integrating the Loughran-McDonald Dictionary with BERT for Advanced Market Predictive Insights. Procedia Computer Science. https://doi.org/10.1016/j.procs.2025.04.477
+Meles, A., Pellegrino, L. R., & Rega, F. G. (2025). When Words Backfire: Tone Management and Crash Risk in Banking. Journal of Financial Management, Markets and Institutions. https://doi.org/10.1142/s2282717x25500069
 <!-- rendered-citations:end -->
 </content>

@@ -46,6 +46,12 @@ citations:
   vol: 26
   issue: 3
   pages_or_artno: 673-719
+- doi: "10.1111/jfir.70039"
+  type: journal
+  authors: "Yang, N., Fernandez-Perez, A., & Indriawan, I."
+  year: 2026
+  title: "Social media sentiment, investor herding and informational efficiency"
+  venue: "Journal of Financial Research"
 - doi: 10.1016/j.jfineco.2017.01.006
   type: journal
   authors: Hwang, B.-H., & Kim, H. H.
@@ -77,7 +83,8 @@ citations:
   year: 2008
   title: "Introduction to information retrieval"
   venue: Cambridge University Press
-new_dois: []
+new_dois:
+- "10.1111/jfir.70039"
 ---
 
 ## CORE
@@ -93,7 +100,7 @@ du_2022 词典本身取自 Du 等 (2022) 在 Review of Finance 发表的中文�
 留篇口径遵循 full-only 门控 (2026-06-29): 一篇报道是否算作"银行金融科技报道"只由 full 轨的 LLM 判定决定; ctx / ss 轨降为 conditional-on-full 的测度轨与稳健性轨, 其行宇宙是 full 留篇集的子集, 但每轨的 hw_sum 仍按各自轨道的篇级数值独立累加, n_articles 分母共享 full 口径。
 
 【文献定位】
-在中文金融文本计量谱系里, 本家族属于"词典 × 词级 IDF 权重 × 报道级衰减权重"三重加权的聚合测度。它与纯计数式情感 (MSENT)、未加 IDF 的等权均值语调互为稳健性: 前者对高频泛化情感词敏感, 本测度则通过 IDF 压低泛词、放大稀有判别词的贡献, 呼应 Jegadeesh & Wu (2013) 用词的判别力而非简单频次刻画内容的思路, 以及 Hwang & Kim (2017) 关于文本表达质量本身携带定价相关信息的证据。词典选择上, du_2022 (Du 等, 2022) 是面向中文金融的领域特化词典, 与近年的细粒度中文投资者情感词典 (Ma 等, 2025) 及融合词典知识的预训练情感模型 (Sun 等, 2025) 构成方法学光谱的两端 —— 前者可解释、可复现、零训练成本, 后者数据驱动、上下文敏感。领域特异性词典的构建逻辑亦与从无标注语料归纳领域情感词库的做法 (Hamilton 等, 2016) 相通。此外, 把定量披露的信息含量单列度量 (Campbell 等, 2025) 提示: 情感之外的文本"分量"维度同样值得作为并排稳健性轨, 而本家族的 IDF 与 herd 双权重正是对"报道分量"的两种操作化。三轨 (full/ctx/ss) 各自 just-identified 并排、互为稳健性、不分主次, 禁混进同一 over-identified 的 Hansen J 检验。
+在中文金融文本计量谱系里, 本家族属于"词典 × 词级 IDF 权重 × 报道级衰减权重"三重加权的聚合测度。它与纯计数式情感 (MSENT)、未加 IDF 的等权均值语调互为稳健性: 前者对高频泛化情感词敏感, 本测度则通过 IDF 压低泛词、放大稀有判别词的贡献, 呼应 Jegadeesh & Wu (2013) 用词的判别力而非简单频次刻画内容的思路, 以及 Hwang & Kim (2017) 关于文本表达质量本身携带定价相关信息的证据。词典选择上, du_2022 (Du 等, 2022) 是面向中文金融的领域特化词典, 与近年的细粒度中文投资者情感词典 (Ma 等, 2025) 及融合词典知识的预训练情感模型 (Sun 等, 2025) 构成方法学光谱的两端 —— 前者可解释、可复现、零训练成本, 后者数据驱动、上下文敏感。领域特异性词典的构建逻辑亦与从无标注语料归纳领域情感词库的做法 (Hamilton 等, 2016) 相通。此外, 把定量披露的信息含量单列度量 (Campbell 等, 2025) 提示: 情感之外的文本"分量"维度同样值得作为并排稳健性轨, 而本家族的 IDF 与 herd 双权重正是对"报道分量"的两种操作化。三轨 (full/ctx/ss) 各自 just-identified 并排、互为稳健性、不分主次, 禁混进同一 over-identified 的 Hansen J 检验。Yang, Fernandez-Perez & Indriawan (2026, Journal of Financial Research) 实证媒体与社交媒体情感会通过投资者跟风放大对信息效率的影响, 与本家族用 herd-decay 权重压低跟风冗余报道情感贡献的构造逻辑形成正反两面的方法学呼应: 前者刻画跟风如何放大情感的市场后果, 后者则在测度构造阶段主动压低跟风带来的情感冗余, 二者共同印证跟风效应是情感测度中不可忽视的一个维度。
 
 ## VAR: du_2022_idf_score_hw_sum_ctx
 
@@ -115,6 +122,7 @@ Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-graine
 Sun, Y., Yuan, H., & Xu, F. (2025). Financial sentiment analysis for pre-trained language models incorporating dictionary knowledge and neutral features. Natural Language Processing Journal, 11, 100148. https://doi.org/10.1016/j.nlp.2025.100148
 Campbell, J. L., Zheng, X., & Zhou, D. (2025). Number of numbers: Does a greater proportion of quantitative textual disclosure reduce information risk?. Journal of Corporate Finance, 94, 102813. https://doi.org/10.1016/j.jcorpfin.2025.102813
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
+Yang, N., Fernandez-Perez, A., & Indriawan, I. (2026). Social media sentiment, investor herding and informational efficiency. Journal of Financial Research. https://doi.org/10.1111/jfir.70039
 Hwang, B.-H., & Kim, H. H. (2017). It pays to write well. Journal of Financial Economics, 124(2), 373-394. https://doi.org/10.1016/j.jfineco.2017.01.006
 Hamilton, W. L., Clark, K., Leskovec, J., & Jurafsky, D. (2016). Inducing domain-specific sentiment lexicons from unlabeled corpora. Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing, 595-605. https://doi.org/10.18653/v1/d16-1057
 Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis. Journal of Financial Economics, 110(3), 712-729. https://doi.org/10.1016/j.jfineco.2013.08.018

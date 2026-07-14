@@ -165,7 +165,21 @@ citations:
   vol: 1
   issue: 3
   pages_or_artno: 215-239
-new_dois: []
+- doi: "10.1371/journal.pone.0335506"
+  title: "Leaders in the global banking network: Analysis of the Bank for International Settlements network data"
+  authors: "Bonato, A., Chavez Palan, J., & Szava, A."
+  year: 2025
+  venue: "PLOS One"
+  type: "journal"
+- doi: "10.3390/encyclopedia6010011"
+  title: "Network Centrality and Information Cascades in Executive and Director Networks"
+  authors: "Jiang, L., Rundo, J., Shi, L., & Zhou, N."
+  year: 2026
+  venue: "Encyclopedia"
+  type: "journal"
+new_dois:
+  - "10.1371/journal.pone.0335506"
+  - "10.3390/encyclopedia6010011"
 ---
 
 ## CORE
@@ -186,7 +200,7 @@ new_dois: []
 同族十八个节点级指标覆盖不同的"重要性"语义, 本列的独特构念边界须与近邻逐一划清。与接近中心度 (bank_closeness_cent) 的区别最细也最关键: 两者同在倒数图上刻画可达性, 但接近中心度是平均距离的倒数, 在断连图上依赖 networkx 的分量内归一化约定, 孤立分量内的小团体可能获得虚高取值; 调和中心度是倒数距离的和, 不可达对贡献零, 断连惩罚内生于定义, 无需任何约定 (Boldi 与 Vigna (2014) 的公理化对比正是围绕这一点)。与中介中心度 (bank_between_cent) 的区别是"位于通路上"与"离所有人近"的区别: 中介量桥梁地位 (多少最短路必须经过它), 调和量抵达效率; 一家挂在枢纽旁的卫星银行可以调和很高而中介近零。与电流中介 (bank_cfbetween_cent) 的区别在路径语义: 后者按 Newman (2005) 的随机游走电导语义在原始强度图上计算, 不走倒数图, 与本列不共享距离变换。与度和强度中心度 (bank_degree_cent, bank_strength_cent) 的区别是局部与全局: 度类只看直接邻居, 调和聚合全网最短路, 两家度数相同的银行可因所处分量规模不同而调和差异巨大。与特征向量和 Katz 中心度的区别是递归声望语义 (邻居的重要性加权) 对阵纯距离语义, 且特征向量列对微小连通分量置缺失值而本列对孤立节点置零, 缺失结构不同。与离心率 (bank_eccentricity) 的区别是最坏情形对阵调和平均: 离心率只看最远可达节点且仅对最大连通分量计算。最后, 本家族与判据无关的网络级列 (如年度密度、巨分量占比) 层级不同, 与 GF 经纪角色列 (Gould-Fernandez 分组经纪) 构念不同, 均不可替换使用。
 
 【已知局限与稳健性梯子】
-第一, 构念层局限: 新闻共现是叙事关联而非合约关联, 两家银行同篇出现可能因真实业务关联、同类政策冲击、也可能仅因编辑排版惯例 (行业综述例行罗列各大行); 因此本列应解释为信息叙事网络位置, 向资产负债表关联外推须谨慎, 并建议与 Gao, Ru 与 Yang (2022) 式股权网络或 Wang, Zhang 与 Yang (2020) 式担保网络证据互证。第二, 测量层局限: 边权由报道计数驱动, 大银行媒体覆盖高, 中心度与银行规模正相关是机械成分, 回归中须以银行固定效应与规模控制吸收; 调和中心度未归一化, 其水平随当年入网银行数与语料规模漂移, 跨年水平比较须依赖年份固定效应, 不宜直接比较原始水平。第三, 数值层局限: 本列属 BLAS 浮点漂移九列之一, 跨次重建非逐位可复现, 任何 golden 字节级校验须按全名剔除; 孤立银行取零而非缺失, 使用者若视"不在网络中"为信息缺失应自行掩码。第四, 开发环境退化: 当前盘上为两年开发切片, 网络逐年重建导致早年小网络上路径类指标方差压缩, 属预期退化, 生产十八年语料下正常。第五, 报告口径: 涉及本列的描述统计与回归系数一律由引擎在生成期注入动态统计段, 本文不手填任何面板实测数字; 判据梯子的三列建议在同一表内相邻列并排呈现以便读者直观比对判据敏感性方向。第六, 稳健性梯子: 家族内生的判据梯子 (同篇、句窗一、同句) 是主报告应并排展示的第一梯子, 三档各自 just-identified、互为稳健性不分主次, 禁混同一 over-identified Hansen J; 第二梯子是同族异构念指标并排 (调和对阵接近、中介、度), 检验结论是否被单一测度选择驱动, 呼应 Nezami, Chisam 与 Palmatier (2025) 元分析对测度依赖性的警示; 第三梯子是与情感三轨、co-primary 双轨嵌入等其他家族梯子的正交关系 — 各梯子之间不交叉组合、不进入同一过度识别系统, 主结论应在每一梯子内部单独复核。
+第一, 构念层局限: 新闻共现是叙事关联而非合约关联, 两家银行同篇出现可能因真实业务关联、同类政策冲击、也可能仅因编辑排版惯例 (行业综述例行罗列各大行); 因此本列应解释为信息叙事网络位置, 向资产负债表关联外推须谨慎, 并建议与 Gao, Ru 与 Yang (2022) 式股权网络或 Wang, Zhang 与 Yang (2020) 式担保网络证据互证。第二, 测量层局限: 边权由报道计数驱动, 大银行媒体覆盖高, 中心度与银行规模正相关是机械成分, 回归中须以银行固定效应与规模控制吸收; 调和中心度未归一化, 其水平随当年入网银行数与语料规模漂移, 跨年水平比较须依赖年份固定效应, 不宜直接比较原始水平。第三, 数值层局限: 本列属 BLAS 浮点漂移九列之一, 跨次重建非逐位可复现, 任何 golden 字节级校验须按全名剔除; 孤立银行取零而非缺失, 使用者若视"不在网络中"为信息缺失应自行掩码。第四, 开发环境退化: 当前盘上为两年开发切片, 网络逐年重建导致早年小网络上路径类指标方差压缩, 属预期退化, 生产十八年语料下正常。第五, 报告口径: 涉及本列的描述统计与回归系数一律由引擎在生成期注入动态统计段, 本文不手填任何面板实测数字; 判据梯子的三列建议在同一表内相邻列并排呈现以便读者直观比对判据敏感性方向。第六, 稳健性梯子: 家族内生的判据梯子 (同篇、句窗一、同句) 是主报告应并排展示的第一梯子, 三档各自 just-identified、互为稳健性不分主次, 禁混同一 over-identified Hansen J; 第二梯子是同族异构念指标并排 (调和对阵接近、中介、度), 检验结论是否被单一测度选择驱动, 呼应 Nezami, Chisam 与 Palmatier (2025) 元分析对测度依赖性的警示; 补充证据上, Bonato, Chavez Palan 与 Szava (2025, PLOS One) 提出对抗网络方法定位全球银行网络中的关键影响国家, 支撑本家族网络位置即信息与风险传导代理的解释路径, Jiang, Rundo, Shi 与 Zhou (2026, Encyclopedia) 系统梳理度、中介、接近、特征向量等中心度维度如何驱动高管与董事网络中的信息级联, 呼应本家族多测度并排而非独尊单一中心度的设计理由; 第三梯子是与情感三轨、co-primary 双轨嵌入等其他家族梯子的正交关系 — 各梯子之间不交叉组合、不进入同一过度识别系统, 主结论应在每一梯子内部单独复核。
 
 ## VAR: bank_harmonic_cent
 
@@ -222,4 +236,6 @@ Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effect
 Newman, M. E. J. (2005). A measure of betweenness centrality based on random walks. Social Networks, 27(1), 39-54. https://doi.org/10.1016/j.socnet.2004.11.009
 Watts, D. J., & Strogatz, S. H. (1998). Collective dynamics of 'small-world' networks. Nature, 393(6684), 440-442. https://doi.org/10.1038/30918
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
+Bonato, A., Chavez Palan, J., & Szava, A. (2025). Leaders in the global banking network: Analysis of the Bank for International Settlements network data. PLOS One. https://doi.org/10.1371/journal.pone.0335506
+Jiang, L., Rundo, J., Shi, L., & Zhou, N. (2026). Network Centrality and Information Cascades in Executive and Director Networks. Encyclopedia. https://doi.org/10.3390/encyclopedia6010011
 <!-- rendered-citations:end -->

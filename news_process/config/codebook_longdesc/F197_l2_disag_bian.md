@@ -62,7 +62,14 @@ citations:
   year: 2021
   title: "A new Chinese financial sentiment dictionary for textual analysis in accounting and finance"
   venue: SSRN Working Paper
-new_dois: []
+- doi: "10.1007/s11142-025-09897-1"
+  type: journal
+  authors: "Li, S. Z., & Luan, Z."
+  year: 2025
+  title: "News-based investor disagreement and stock returns"
+  venue: "Review of Accounting Studies"
+new_dois:
+  - "10.1007/s11142-025-09897-1"
 ---
 
 ## CORE
@@ -74,7 +81,7 @@ new_dois: []
 计算公式为 disag = 根号下 (1 减去 ((P 减 N) 除以 (P 加 N)) 的平方), 其中 P 为跨篇正面词级比率均值 avg_bian_2021_pos_ratio、N 为跨篇负面词级比率均值 avg_bian_2021_neg_ratio。可以把 (P 减 N) 除以 (P 加 N) 理解成一个落在负一到正一之间的"净倾向比率": 正负比率中负面压倒时趋向负一, 正面压倒时趋向正一, 正负相等时取零。把这个比率平方后用一减去、再开方, 就把"倾向的绝对强度"翻转成"倾向的模糊程度"——净倾向越接近零 (最分裂), 指数越接近一; 净倾向越接近正负一 (最一致), 指数越接近零。这一函数形式与 Janis-Fadner 系数、log_sent 等 stage 40 步骤 7i/8b/8c 的同族衍生指标共享同一批正负计数原语, 但各自的非线性变换不同, 刻画的构念侧面也不同 (分歧 vs 净失衡 vs 覆盖加权语调)。边界处理上, 当某银行某年 P 加 N 等于零 (即该口径下正负词级比率均值之和为零、无任何情感词命中) 时, 分歧指数置为缺失值 NaN 而非零, 以避免把"无信息"误当成"高度一致", 这一点对下游回归的分子分母口径对齐至关重要。
 
 【文献定位】
-本指数在方法学上承袭金融学"分歧度"(disagreement / difference of opinion) 文献。Hong 与 Stein (2007) 系统梳理了投资者意见分歧如何进入资产定价, 指出分歧度是独立于均值信念的二阶矩信息; Carlin、Longstaff 与 Matoba (2014) 进一步用实证证据表明分歧度对资产价格与流动性有可度量的解释力; Cen、Wei 与 Yang (2017) 则展示分析师层面的分歧度与反应不足、随后收益之间的关联。与这些主要基于分析师预测离散度或调查数据的分歧度量不同, 本家族沿用 Cookson 与 Niessner (2020) 开创的"从文本信号直接分解分歧"的思路, 把分歧度从投资者社群网络的观点差异, 迁移到单一媒体语料内部正负叙事的相对失衡上, 因而属于"文本内生分歧"(within-text sentiment dispersion) 的操作化。词典选择上采用 Bian 等 (2021) 的中文金融情感词典, 是因其针对中文会计与金融文本专门构建、覆盖行业术语, 相较通用情感词典在本语料上误匹配更少。同时须承认词典法本身的局限: Frankel、Jennings 与 Lee (2022) 在《Management Science》上系统比较了机器学习与词典法的情感抽取效力, 提示词典法在捕捉语境化、反讽化表达上弱于监督式模型——这正是本项目为何将词典分歧度定位为与 LLM 三家投票、BERT 三模型等多套测度"互为稳健性、不分主次"的一条并排轨道, 而非唯一权威口径。三套测度各自 just-identified 并排, 严禁混进同一 over-identified 的 Hansen J 检验。
+本指数在方法学上承袭金融学"分歧度"(disagreement / difference of opinion) 文献。Hong 与 Stein (2007) 系统梳理了投资者意见分歧如何进入资产定价, 指出分歧度是独立于均值信念的二阶矩信息; Carlin、Longstaff 与 Matoba (2014) 进一步用实证证据表明分歧度对资产价格与流动性有可度量的解释力; Cen、Wei 与 Yang (2017) 则展示分析师层面的分歧度与反应不足、随后收益之间的关联。与这些主要基于分析师预测离散度或调查数据的分歧度量不同, 本家族沿用 Cookson 与 Niessner (2020) 开创的"从文本信号直接分解分歧"的思路, 把分歧度从投资者社群网络的观点差异, 迁移到单一媒体语料内部正负叙事的相对失衡上, 因而属于"文本内生分歧"(within-text sentiment dispersion) 的操作化。词典选择上采用 Bian 等 (2021) 的中文金融情感词典, 是因其针对中文会计与金融文本专门构建、覆盖行业术语, 相较通用情感词典在本语料上误匹配更少。同时须承认词典法本身的局限: Frankel、Jennings 与 Lee (2022) 在《Management Science》上系统比较了机器学习与词典法的情感抽取效力, 提示词典法在捕捉语境化、反讽化表达上弱于监督式模型——这正是本项目为何将词典分歧度定位为与 LLM 三家投票、BERT 三模型等多套测度"互为稳健性、不分主次"的一条并排轨道, 而非唯一权威口径。三套测度各自 just-identified 并排, 严禁混进同一 over-identified 的 Hansen J 检验。Li 与 Luan (2025, Review of Accounting Studies) 用新闻文本直接构造投资者分歧度量并检验其对股票收益的预测力, 方法路径与本家族从媒体正负词级比率推导分歧指数的思路高度一致, 是文本内生分歧构念的最新期刊证据。
 
 ## VAR: disag_bian_2021_full
 
@@ -98,4 +105,5 @@ Cen, L., Wei, K. C. J., & Yang, L. (2017). Disagreement, underreaction, and stoc
 Carlin, B. I., Longstaff, F. A., & Matoba, K. (2014). Disagreement and asset prices. Journal of Financial Economics, 114(2), 226-238. https://doi.org/10.1016/j.jfineco.2014.06.007
 Hong, H., & Stein, J. C. (2007). Disagreement and the stock market. Journal of Economic Perspectives, 21(2), 109-128. https://doi.org/10.1257/jep.21.2.109
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.3446388
+Li, S. Z., & Luan, Z. (2025). News-based investor disagreement and stock returns. Review of Accounting Studies. https://doi.org/10.1007/s11142-025-09897-1
 <!-- rendered-citations:end -->

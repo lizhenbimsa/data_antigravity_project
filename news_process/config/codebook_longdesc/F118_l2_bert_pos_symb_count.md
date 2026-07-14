@@ -71,7 +71,14 @@ citations:
   year: 2019
   title: "BERT: Pre-training of deep bidirectional transformers for language understanding"
   venue: arXiv
-new_dois: []
+- doi: "10.1093/rfs/hhad021"
+  type: journal
+  authors: "Cao, S., Jiang, W., Yang, B., & Zhang, A. L."
+  year: 2023
+  title: "How to Talk When a Machine Is Listening: Corporate Disclosure in the Age of AI"
+  venue: "Review of Financial Studies"
+new_dois:
+  - "10.1093/rfs/hhad021"
 ---
 
 ## CORE
@@ -83,7 +90,7 @@ new_dois: []
 计算分两层。第一层在报道层 (article level) 构造二值指示列 _is_bert_pos_symb: 一篇报道当且仅当同时满足两个条件才置 1 — 其一, 被 BERT 三模型 (finbert_cn / fin_sent_zh / finbert2) 以 argmax 多数票集成判为正面 (对应中间列 _is_bert_positive == 1); 其二, 该篇被内容属性判据判为象征性而非实质性。这里必须精确区分集成口径: BERT 概率来自 stage 23 (tone_berts) 的逐篇三分类打分, 但集成并非对情感概率取平均 — 因三模型概率尺度不可比 (finbert2 为二分类 Bernoulli, 其余为三分类), 直接平均概率会被尺度差污染。故实现改为先对每个模型在该篇上取 argmax 得到二值正面标签, 再计算"投正面 (argmax) 的模型占比"(尺度不变), 以该占比 > 0.5 作多数票判定正面。因此 _is_bert_positive 是逐模型 argmax 二值标签的多数票结果, 不是概率均值过阈值 (per-model 独立降级: 若 finbert2 因本地模型缺失而缺席, 仅掉自身一票, 不触发 co-primary 嵌入式的 both-or-neither 连坐)。第二层在 encode.py 的 K 段聚合把报道层指示列按银行—年度做 groupby 求和 (pandas agg 'sum'), 得到 bert_pos_symb_count{track}, 因此本列量纲是非负整数篇数计数, 不是比率、不是归一化分值。该计数随后在 runner.py 被 washing_ratio_bert 消费为分子, 分母是经实质验证的正面篇数 bert_pos_substvalid_count (在其缺失时安全回退到 bert_pos_count), 通过 _safe_ratio 得到 BERT 洗稿率。因此理解本列的正确姿势是: 它是一个中间计数积木, 既可单独作为象征性叙事强度的规模度量, 又是下游洗稿率的分子输入。由于 BERT 集成方法 (E) 与单模型 (E2)、词典均值 (D)、单词典 (D2)、LLM 投票 (A)、高置信子样本 (F) 等并行的多方法象征计数互为稳健性、不分主次, 各方法自成一条 just-identified 的并排证据, 严禁把不同方法的象征计数混入同一条 over-identified 的 Hansen J 过度识别检验 — 这一铁律与本仓三轨、co-primary 双轨嵌入、per-model 稳健性梯子的处置口径完全一致。
 
 【文献定位】
-本家族坐落在金融文本机器度量与"实质—象征"披露质量两条文献的交汇处。在文本度量一侧, Loughran & McDonald (2016) 对会计金融领域文本分析做了权威综述, 确立了词典法与机器学习法各有偏误、需交叉验证的方法论基线; Huang et al. (2023) 提出的 FinBERT 证明了预训练 Transformer 在金融文本情感抽取上相对词典法的增益, 是本家族 BERT 集成分量的直接方法学依托; Bochkay et al. (2023) 进一步梳理了会计文本分析"下一步"的方向, 强调从单纯的极性打分转向对披露内容质量 (如实质性、可核验性) 的刻画 — 这正是本家族在正面极性之上再叠加象征性判据的动机。Devlin et al. (2019) 的 BERT 原始工作提供了底层双向 Transformer 架构。在中文金融文本一侧, Du et al. (2022) 构建的中文金融情感词典与领域特异性发现, 支撑了本仓多方法三角化 (词典 / BERT / LLM) 的整体设计。而象征性构念的组织理论根基则回到 Westphal & Zajac (1994) 与 Bingler et al. (2022) 揭示的"廉价表态、挑肥拣瘦"机制。三轨 (full / ctx / ss) 各自 just-identified 并排、互为稳健性不分主次, 严禁混入同一 over-identified Hansen J。
+本家族坐落在金融文本机器度量与"实质—象征"披露质量两条文献的交汇处。在文本度量一侧, Loughran & McDonald (2016) 对会计金融领域文本分析做了权威综述, 确立了词典法与机器学习法各有偏误、需交叉验证的方法论基线; Huang et al. (2023) 提出的 FinBERT 证明了预训练 Transformer 在金融文本情感抽取上相对词典法的增益, 是本家族 BERT 集成分量的直接方法学依托; Bochkay et al. (2023) 进一步梳理了会计文本分析"下一步"的方向, 强调从单纯的极性打分转向对披露内容质量 (如实质性、可核验性) 的刻画 — 这正是本家族在正面极性之上再叠加象征性判据的动机。Devlin et al. (2019) 的 BERT 原始工作提供了底层双向 Transformer 架构。在中文金融文本一侧, Du et al. (2022) 构建的中文金融情感词典与领域特异性发现, 支撑了本仓多方法三角化 (词典 / BERT / LLM) 的整体设计。而象征性构念的组织理论根基则回到 Westphal & Zajac (1994) 与 Bingler et al. (2022) 揭示的"廉价表态、挑肥拣瘦"机制。三轨 (full / ctx / ss) 各自 just-identified 并排、互为稳健性不分主次, 严禁混入同一 over-identified Hansen J。此外, Cao, Jiang, Yang, & Zhang (2023, Review of Financial Studies) 发现企业在算法/机器读者比重上升时会策略性调整文本语气以迎合机器判读, 为本家族用 BERT 机器判定捕捉正面而空洞的象征性披露提供了机器可读性驱动语言策略操纵的最新实证支撑。
 
 ## VAR: bert_pos_symb_count_ctx
 
@@ -108,4 +115,5 @@ Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance:
 Westphal, J. D., & Zajac, E. J. (1994). Substance and symbolism in CEOs' long-term incentive plans. Administrative Science Quarterly, 39(3), 367-390. https://doi.org/10.2307/2393295
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2019). BERT: Pre-training of deep bidirectional transformers for language understanding. arXiv [Preprint]. https://doi.org/10.48550/arXiv.1810.04805
+Cao, S., Jiang, W., Yang, B., & Zhang, A. L. (2023). How to Talk When a Machine Is Listening: Corporate Disclosure in the Age of AI. Review of Financial Studies. https://doi.org/10.1093/rfs/hhad021
 <!-- rendered-citations:end -->

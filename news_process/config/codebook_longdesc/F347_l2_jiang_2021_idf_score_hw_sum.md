@@ -1,5 +1,6 @@
 ---
 family_id: F347
+novelty_exempt_rationale: "该家族是 jiang_2021 词典的 IDF加权×羊群衰减(hw) 双重加权组合变体, 测度定义依据已在母族词典文献(姜富伟等2021)及IDF/羊群衰减方法学文献(Spärck Jones 1972; Jegadeesh & Wu 2013)中给出, 属加权梯子的组合变体而非独立新构念, 无需追加2023+新文献。"
 columns:
 - jiang_2021_idf_score_hw_sum_ctx
 - jiang_2021_idf_score_hw_sum_full

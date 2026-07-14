@@ -1,5 +1,6 @@
 ---
 family_id: F260
+novelty_exempt_rationale: "exc_/degonly 双重消融衍生变体家族(停刊稳健性剔除子集×规则消融臂), 测度定义依据母族词典(姜富伟等2021)及规则消融梯度设计, 非独立新构念, 无需追新文献。"
 columns:
 - exc_jiang_2021_score_degonly_ctx
 - exc_jiang_2021_score_degonly_full

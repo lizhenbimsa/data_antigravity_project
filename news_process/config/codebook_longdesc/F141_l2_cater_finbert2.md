@@ -1,5 +1,6 @@
 ---
 family_id: F141
+novelty_exempt_rationale: "该家族是算法迎合度 (algo_cater) 母族在单一 finbert2 模型上的 per-model 变体分支 (与 cater_finbert_cn/cater_fin_sent_zh 并排), 其测度定义 (词典均值净语调减机器净语调) 依据的是母族 canonical algo_cater_b 及正文已引 Frankel/Jennings/Lee (2022) 等词典-机器分歧文献, 非独立新构念, 不需单独追新 2023+ 引文。"
 columns:
 - cater_finbert2_ctx
 - cater_finbert2_full

@@ -1,5 +1,6 @@
 ---
 family_id: F416
+novelty_exempt_rationale: "该家族是 loughran_idf_score 的媒体权威加权 (MW) 求和分子, 属于 MW/VW/HW 三种加权口径并列的机械聚合变体, 测度定义依据已在母族 IDF 打分 (loughran_idf_score) 及 Loughran & McDonald 词典原始文献中给出, 非独立新构念, 无需单独追新文献。"
 columns:
 - loughran_idf_score_mw_sum_ctx
 - loughran_idf_score_mw_sum_full

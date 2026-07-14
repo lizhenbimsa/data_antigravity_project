@@ -73,7 +73,21 @@ citations:
   vol: 37
   issue: 2
   pages_or_artno: 267-307
-new_dois: []
+- doi: "10.1111/1911-3846.13046"
+  title: "Local newspaper closures and bank loan contracts"
+  authors: "Ma, Z., Stice, D., Stice, H., & Zhang, Y."
+  year: 2025
+  venue: "Contemporary Accounting Research"
+  type: "journal"
+- doi: "10.1017/s0022109025101749"
+  title: "When Spotlights Fade: Local Newspaper Closures and Financial Advisor Misconduct"
+  authors: "Li, Z., Peng, Q., & Zhang, R.-Z."
+  year: 2025
+  venue: "Journal of Financial and Quantitative Analysis"
+  type: "journal"
+new_dois:
+  - "10.1111/1911-3846.13046"
+  - "10.1017/s0022109025101749"
 ---
 
 ## CORE
@@ -87,7 +101,7 @@ new_dois: []
 
 【方法学与计算】逐篇 raw 得分自归一化 (分母 Σpos+Σneg 随命中词集变化), 因此跨规则级的相邻级差不是"某条规则的纯贡献", 只作 ablation 稳健性对照; 披露时须报四级相关系数与逐级变号占比, 论文口径表述为"主结论定性不变"。bank-year 聚合是对存活媒体子集的简单等权均值, 无篇幅加权。计数零填契约不适用于本族: exc_*tone/score 属情感类, 对零存活报道的 bank-year 保持 NaN (不零填), 与兄弟计数列 n_articles_exc (Σ over ∅ = 0, 零填并恢复整型) 的填充语义刻意不同。三轨 full/ctx/ss 逐轨独立计算, 缺轨优雅跳过 (graceful skip), 不借用其它轨的分母。留篇门控为 full-only (2026-06-29): 是否判为"一篇银行金科报道"只看 full 轨的 LLM 判定, ctx/ss 降为 conditional-on-full 的稳健性轨, 但本词典族各轨的极性得分仍逐轨照算。
 
-【文献定位】词典法情感测度的方法论根基, Taboada 等 (2011) 系统论证了词典法 (lexicon-based) 相对机器学习的可复现、可移植与领域稳健优势, 并把否定处理与程度加强 (intensification) 明确为词典法的核心增强步骤 —— 这正是本族 raw 变体所刻意关闭的三条规则, 使 raw 成为衡量"规则增强究竟带来多少边际改变"的零点参照。Frankel 等 (2022, Management Science) 在披露文本上直接对撞机器学习与词典法, 发现两类方法在多数应用中高度相关, 支持把词典法作为可审计、低成本的主力测度之一。中文金融语境的词典构建, Du 等 (2022, Review of Finance) 强调语言与领域特异性 (language and domain specificity), 论证通用英文词典迁移到中文金融文本会系统失真, 这是本项目选用中文本土金融词典 (姚加权等 2021、Du 等 2022、卞等 2021 等) 并列互证的直接依据。Ma 等 (2025) 进一步构建面向中国国内投资者的细粒度中文情绪词典, Barbaglia 等 (2025) 给出经济文本的词典法情感范式, 两者共同表明词典法在近年仍是可信的基准测度。测度效度上, van Atteveldt 等 (2021) 用人工标注、众包、词典法与机器学习四路对撞, 提示词典法在极性判别上的系统性偏差需靠多词典/多方法互证来缓释 —— 本项目以六部词典 × 规则消融梯度 × exc 稳健性口径并列, 正是对该效度关切的工程回应。Derrien 等 (2025, Journal of Finance) 则从新闻信息如何经由未来现金流预期进入公司价值这一角度, 佐证媒体报道情感的经济含义, 支撑本族作为 bank-year 面板情感自变量的外部效度。
+【文献定位】词典法情感测度的方法论根基, Taboada 等 (2011) 系统论证了词典法 (lexicon-based) 相对机器学习的可复现、可移植与领域稳健优势, 并把否定处理与程度加强 (intensification) 明确为词典法的核心增强步骤 —— 这正是本族 raw 变体所刻意关闭的三条规则, 使 raw 成为衡量"规则增强究竟带来多少边际改变"的零点参照。Frankel 等 (2022, Management Science) 在披露文本上直接对撞机器学习与词典法, 发现两类方法在多数应用中高度相关, 支持把词典法作为可审计、低成本的主力测度之一。中文金融语境的词典构建, Du 等 (2022, Review of Finance) 强调语言与领域特异性 (language and domain specificity), 论证通用英文词典迁移到中文金融文本会系统失真, 这是本项目选用中文本土金融词典 (姚加权等 2021、Du 等 2022、卞等 2021 等) 并列互证的直接依据。Ma 等 (2025) 进一步构建面向中国国内投资者的细粒度中文情绪词典, Barbaglia 等 (2025) 给出经济文本的词典法情感范式, 两者共同表明词典法在近年仍是可信的基准测度。测度效度上, van Atteveldt 等 (2021) 用人工标注、众包、词典法与机器学习四路对撞, 提示词典法在极性判别上的系统性偏差需靠多词典/多方法互证来缓释 —— 本项目以六部词典 × 规则消融梯度 × exc 稳健性口径并列, 正是对该效度关切的工程回应。Derrien 等 (2025, Journal of Finance) 则从新闻信息如何经由未来现金流预期进入公司价值这一角度, 佐证媒体报道情感的经济含义, 支撑本族作为 bank-year 面板情感自变量的外部效度。Ma, Stice, Stice & Zhang (2025, Contemporary Accounting Research) 发现本地报纸停刊会削弱对借款人的监督, 银行随后在贷款合同中提高监控条款要求, 为本家族 exc 前缀所依据的"停刊媒体等于监督与信息缺失"这一核心构念提供了直接的银行情境证据。Li, Peng & Zhang (2025, Journal of Financial and Quantitative Analysis) 用近95万名financial advisor记录证明本地报纸停刊后失当行为显著上升, 佐证媒体停刊作为信息与监督缺口代理变量的因果效度, 支撑本家族用停刊代理检测剔除疑似退出覆盖媒体的稳健性设计动机。
 
 ## VAR: exc_yao_2021_score_raw_ctx
 
@@ -112,4 +126,6 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
+Ma, Z., Stice, D., Stice, H., & Zhang, Y. (2025). Local newspaper closures and bank loan contracts. Contemporary Accounting Research. https://doi.org/10.1111/1911-3846.13046
+Li, Z., Peng, Q., & Zhang, R.-Z. (2025). When Spotlights Fade: Local Newspaper Closures and Financial Advisor Misconduct. Journal of Financial and Quantitative Analysis. https://doi.org/10.1017/s0022109025101749
 <!-- rendered-citations:end -->

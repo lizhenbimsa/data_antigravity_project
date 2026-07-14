@@ -15,7 +15,14 @@ citations:
 - {doi: "10.1007/s11747-014-0403-8", type: journal, authors: "Henseler, J., Ringle, C. M., & Sarstedt, M.", year: 2015, title: "A New Criterion for Assessing Discriminant Validity in Variance-Based Structural Equation Modeling", venue: "Journal of the Academy of Marketing Science", vol: "43", issue: "1", pages_or_artno: "115-135"}
 - {doi: "10.1007/BF02310555", type: journal, authors: "Cronbach, L. J.", year: 1951, title: "Coefficient Alpha and the Internal Structure of Tests", venue: "Psychometrika", vol: "16", issue: "3", pages_or_artno: "297-334"}
 - {doi: "10.1177/001316446002000104", type: journal, authors: "Cohen, J.", year: 1960, title: "A Coefficient of Agreement for Nominal Scales", venue: "Educational and Psychological Measurement", vol: "20", issue: "1", pages_or_artno: "37-46"}
-new_dois: []
+- doi: "10.1111/fire.70002"
+  title: "Tone Distance: Managerial Tone Divergence and Market Reaction to Earnings Announcements"
+  authors: "Angelo, B., Johnston, M., Singh, A., & Wan, Y. Q."
+  year: 2025
+  venue: "Financial Review"
+  type: "journal"
+new_dois:
+  - "10.1111/fire.70002"
 ---
 
 ## CORE
@@ -29,7 +36,7 @@ modal_weak_frac 家族衡量一篇报道 (逐轨: 标题+正文全文 full / 标
 三轨口径必须与项目铁律对齐: full=标题+正文全文, ctx=标题+实体识别窗口, ss=标题+银行∧金科同句共现窗口 (`config/filtering.yaml::context_window.ss_sentence_radius`, 默认 1)。ss 轨的回退语义严格镜像 ctx: 当一篇文章不存在银行∧金科同句共现时, `content_ss` 退化为全文 body、`ss_is_fallback` 标记为 True, 与 ctx 共享同一 `n_articles` 分母口径, 因而 modal_weak_frac_ss 在回退样本上实质上退化为对全文本的度量, 不是零值或缺失。三轨彼此是互为稳健性、不分主次的并排测度——full 是留篇门控口径 (2026-06-29 起 stage 21 是否判定"一篇银行金科报道"只看 `llm_verified_full`), ctx/ss 是 conditional-on-full 的稳健性轨, 三者各自 just-identified, 禁止在同一 over-identified Hansen J 设定中混用三轨列作为过度识别工具变量或联合矩条件——这是与嵌入双轨、政治词权重梯度、词典消融梯度共享的一条项目级识别铁律, 目的是避免研究者无意间把"同一构念的三种测量方式"错误地当成三个独立识别来源。
 
 【文献定位】
-L&M (2011, Journal of Finance) 首次系统证明基于词典的文本情感/确定性测度能捕捉 10-K 文件中传统金融词典 (如 Harvard-IV) 无法捕捉到的会计语境特异信号, 弱势情态词是其六类非情感词典之一, 用以刻画措辞的确定性程度而非情感极性。Loughran & McDonald (2016, Journal of Accounting Research) 的综述进一步系统梳理了文本分析方法在会计与金融研究中的扩散路径与方法学陷阱, 为跨语料 (含本项目的中文财经新闻迁移) 词典复用提供了方法论正当性依据。Bochkay, Brown, Leone & Tucker (2023, Contemporary Accounting Research) 综述了会计文本分析的前沿方向, 呼应本项目在 L&M 词典基础上叠加 LLM 三家投票、BERT 三模型等多方法互证架构的设计取向——词典法 (含本家族) 与机器学习法在本项目中定位为互为稳健性、不设主次的并排测度体系, 而非相互替代。本家族的下游判别效度审计 (`lm_discriminant_validity.py`, stage 39e) 采用 Henseler, Ringle & Sarstedt (2015, Journal of the Academy of Marketing Science) 提出的 HTMT (Heterotrait-Monotrait ratio) 准则, 对 8 维构念 (L&M 6 子集 + clarity_score + num_intensity) 两两计算异质-同质比, 双门槛 0.85 (strict) / 0.90 (lenient), 目的是验证 modal_weak_frac 等 6 个 L&M 子集彼此之间、以及与项目内已建立的清晰度/数字密集度测度之间不存在系统性构念重叠 (即测的不是同一件事)。审计另辅以 Cronbach (1951, Psychometrika) 的 α 系数评估各子词典内部一致性, 以及 Cohen (1960, Educational and Psychological Measurement) 的 κ 系数用于跨维度类别一致性诊断的方法学参照。审计输出按 full/ctx/ss 三轨各写一份 8×8 HTMT 矩阵与 1,000 次重复 (seed=42) 置换零分布 CSV, 落于 `eval_reports/74_lm_htmt_matrix_{full,ctx,ss}.csv` 与 `eval_reports/74_lm_permutation_{full,ctx,ss}.csv`, ss 轨在相关列缺失时优雅跳过而不中断整体审计流程。
+L&M (2011, Journal of Finance) 首次系统证明基于词典的文本情感/确定性测度能捕捉 10-K 文件中传统金融词典 (如 Harvard-IV) 无法捕捉到的会计语境特异信号, 弱势情态词是其六类非情感词典之一, 用以刻画措辞的确定性程度而非情感极性。Loughran & McDonald (2016, Journal of Accounting Research) 的综述进一步系统梳理了文本分析方法在会计与金融研究中的扩散路径与方法学陷阱, 为跨语料 (含本项目的中文财经新闻迁移) 词典复用提供了方法论正当性依据。Bochkay, Brown, Leone & Tucker (2023, Contemporary Accounting Research) 综述了会计文本分析的前沿方向, 呼应本项目在 L&M 词典基础上叠加 LLM 三家投票、BERT 三模型等多方法互证架构的设计取向——词典法 (含本家族) 与机器学习法在本项目中定位为互为稳健性、不设主次的并排测度体系, 而非相互替代。本家族的下游判别效度审计 (`lm_discriminant_validity.py`, stage 39e) 采用 Henseler, Ringle & Sarstedt (2015, Journal of the Academy of Marketing Science) 提出的 HTMT (Heterotrait-Monotrait ratio) 准则, 对 8 维构念 (L&M 6 子集 + clarity_score + num_intensity) 两两计算异质-同质比, 双门槛 0.85 (strict) / 0.90 (lenient), 目的是验证 modal_weak_frac 等 6 个 L&M 子集彼此之间、以及与项目内已建立的清晰度/数字密集度测度之间不存在系统性构念重叠 (即测的不是同一件事)。审计另辅以 Cronbach (1951, Psychometrika) 的 α 系数评估各子词典内部一致性, 以及 Cohen (1960, Educational and Psychological Measurement) 的 κ 系数用于跨维度类别一致性诊断的方法学参照。审计输出按 full/ctx/ss 三轨各写一份 8×8 HTMT 矩阵与 1,000 次重复 (seed=42) 置换零分布 CSV, 落于 `eval_reports/74_lm_htmt_matrix_{full,ctx,ss}.csv` 与 `eval_reports/74_lm_permutation_{full,ctx,ss}.csv`, ss 轨在相关列缺失时优雅跳过而不中断整体审计流程。Angelo, Johnston, Singh & Wan (2025, Financial Review) 提出管理层语气分歧度测度并检验其与盈余公告市场反应的关联, 呼应本家族用弱势模态词密度刻画报道措辞确定性/含蓄程度这一构念取向。
 
 白话: 这组指标数的是一篇报道里"可能""或许""大概"这类"说话留余地"的词占了多大比例。记者或消息源在拿不准的事情上往往会不自觉地多用这类词, 所以这个比例某种程度上反映了报道语气的确定性高低, 跟正面/负面的情感判断是两回事。同一篇文章按标题+全文、标题+实体附近、标题+银行和金科词同句出现这三种不同的"取文范围"各算一遍, 三个数字谁也不比谁更权威, 都是彼此印证的稳健性检验, 不能把它们混在一起当作三个独立的证据来源使用。
 
@@ -55,4 +62,5 @@ Bochkay, K., Brown, S. V., Leone, A. J., & Tucker, J. W. (2023). Textual Analysi
 Henseler, J., Ringle, C. M., & Sarstedt, M. (2015). A New Criterion for Assessing Discriminant Validity in Variance-Based Structural Equation Modeling. Journal of the Academy of Marketing Science, 43(1), 115-135. https://doi.org/10.1007/s11747-014-0403-8
 Cronbach, L. J. (1951). Coefficient Alpha and the Internal Structure of Tests. Psychometrika, 16(3), 297-334. https://doi.org/10.1007/BF02310555
 Cohen, J. (1960). A Coefficient of Agreement for Nominal Scales. Educational and Psychological Measurement, 20(1), 37-46. https://doi.org/10.1177/001316446002000104
+Angelo, B., Johnston, M., Singh, A., & Wan, Y. Q. (2025). Tone Distance: Managerial Tone Divergence and Market Reaction to Earnings Announcements. Financial Review. https://doi.org/10.1111/fire.70002
 <!-- rendered-citations:end -->

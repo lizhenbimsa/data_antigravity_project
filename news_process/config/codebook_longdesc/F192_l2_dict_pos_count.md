@@ -62,7 +62,14 @@ citations:
   vol: 66
   issue: 1
   pages_or_artno: 35-65
-new_dois: []
+- doi: "10.1002/isaf.1549"
+  type: journal
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+new_dois:
+  - "10.1002/isaf.1549"
 ---
 
 ## CORE
@@ -74,7 +81,7 @@ new_dois: []
 计算分两级。文章级: 词典法对一篇报道给出 pos/neg/neutral 三态判定。这里采用的是"多词典均值共识"口径, 即不依赖任何单一词典, 而是先各词典独立算分再取均值后定极性, 从而降低单部词典覆盖偏倚对判定的影响 (对应源码方法 D "词典均值"; 单部词典的对应族是方法 D2 的 {dict}_pos_count)。银行-年级: 对该单元内所有留篇报道的 _is_dict_positive{track} 做 sum。分母口径遵循留篇门控 = full-only 铁律 (2026-06-29): 一篇报道是否算作"一篇银行金科报道"只由 llm_verified_full == True 决定, ctx/ss 轨降为 conditional-on-full 的测度轨, 其行宇宙是 full 留篇集的子集, 但每轨的正面篇数各自按本轨文本重新判定。词典法本身是确定性的 (给定冻结的 jieba==0.42.1 分词与冻结词典), 不调用付费 LLM, 因此该家族在离线复现下逐字节稳定。
 
 【文献定位】
-词典法作为金融文本情感测量的基石可追溯至 Loughran & McDonald (2011), 他们指出通用心理学词典 (如 Harvard IV) 在金融语境下系统误判, 主张构建领域专用词典; Loughran & McDonald (2016) 的综述进一步把词典法确立为可复制、透明、无监督的主流测度范式。本项目在中文语境下沿用这一逻辑: 词典均值口径融合了包括 Du et al. (2022) 与 Bian et al. (2021) 在内的多部为中文金融文本专门构建的情感词典, 以对冲任一单部词典的领域偏差。Frankel et al. (2022) 系统比较了词典法与机器学习法在披露情感度量上的差异, 论证二者各有系统性偏误、宜并置互证而非彼此替代; Huang et al. (2023) 的 FinBERT 则代表基于深度模型的第三条测量路径。本项目正是据此把词典 (方法 D)、LLM 投票、BERT 三条测量轨并置为互为稳健性、不分主次的测量三角——三法各自 just-identified 并排, 严禁把跨方法的篇数计数混进同一 over-identified Hansen J。dict_pos_count 家族是这三角中"词典均值"一支在正面篇数维度的落点。
+词典法作为金融文本情感测量的基石可追溯至 Loughran & McDonald (2011), 他们指出通用心理学词典 (如 Harvard IV) 在金融语境下系统误判, 主张构建领域专用词典; Loughran & McDonald (2016) 的综述进一步把词典法确立为可复制、透明、无监督的主流测度范式。本项目在中文语境下沿用这一逻辑: 词典均值口径融合了包括 Du et al. (2022) 与 Bian et al. (2021) 在内的多部为中文金融文本专门构建的情感词典, 以对冲任一单部词典的领域偏差。Frankel et al. (2022) 系统比较了词典法与机器学习法在披露情感度量上的差异, 论证二者各有系统性偏误、宜并置互证而非彼此替代; Huang et al. (2023) 的 FinBERT 则代表基于深度模型的第三条测量路径。本项目正是据此把词典 (方法 D)、LLM 投票、BERT 三条测量轨并置为互为稳健性、不分主次的测量三角——三法各自 just-identified 并排, 严禁把跨方法的篇数计数混进同一 over-identified Hansen J。dict_pos_count 家族是这三角中"词典均值"一支在正面篇数维度的落点。Todd, Bowden, & Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 的综述系统梳理了金融文本情感测量的词典法与机器学习法各自的适用边界与互补关系, 为本家族采用多词典均值共识判正的设计选择提供了最新文献定位。
 
 ## VAR: dict_pos_count_full
 
@@ -98,4 +105,5 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
 <!-- rendered-citations:end -->

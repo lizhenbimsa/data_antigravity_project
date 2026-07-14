@@ -1,5 +1,6 @@
 ---
 family_id: F250
+novelty_exempt_rationale: "exc_ 前缀家族是 du_2022 词典情感主测度叠加停刊媒体排除约束与政治词权重梯子(polw10)的消融/稳健性变体, 测度定义的学术依据已在母族 Du et al. (2022) 词典文献及既有引文池中给出, 非独立新构念, 无需追加 2023+ 新引文。"
 columns:
 - exc_du_2022_score_polw10_ctx
 - exc_du_2022_score_polw10_full

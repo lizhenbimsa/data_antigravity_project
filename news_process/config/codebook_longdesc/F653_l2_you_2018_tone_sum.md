@@ -57,7 +57,28 @@ citations:
   vol: '62'
   issue: '3'
   pages_or_artno: 1139-1168
-new_dois: []
+- doi: "10.1111/acfi.13328"
+  type: journal
+  authors: "Ni, Yingzhao"
+  year: 2024
+  title: "Media coverage and disclosure of short-termism tone: Evidence from China"
+  venue: "Accounting & Finance"
+- doi: "10.1016/j.iref.2024.01.067"
+  title: "Media sentiment, deposit stability and bank systemic risk: Evidence from China"
+  authors: "Fang, Yi; Wang, Qi; Wang, Yanru; Yuan, Yan"
+  year: 2024
+  venue: "International Review of Economics & Finance"
+  type: "journal"
+- doi: "10.1016/j.eswa.2024.125739"
+  title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
+  authors: "Ma, Yuanyuan; Zhang, Tianjie; Zhang, Pingping"
+  year: 2025
+  venue: "Expert Systems with Applications"
+  type: "journal"
+new_dois:
+  - "10.1111/acfi.13328"
+  - "10.1016/j.iref.2024.01.067"
+  - "10.1016/j.eswa.2024.125739"
 ---
 
 ## CORE
@@ -73,7 +94,7 @@ article-level `you_2018_score{track}` 的计算发生在 stage 22 (`pipeline/sen
 在 stage 40/`pipeline/panel/encode.py` 的 bank-year 聚合中, `_tone_sum{track}` 由 pandas groupby-agg 对该 bank-year 分组内所有留篇报道的 `you_2018_score{track}` 取 `sum`, 与 `_tone{track}`(mean)、`_tone_std{track}`(std) 共用同一分组和同一源列, 三者是同一底层分布的三个描述统计量、不构成独立测度。留篇门控 (2026-06-29 起) 遵循 full-only 铁律: 一篇报道是否计入某银行-年度的 you_2018 语调分组, 仅由 `llm_verified_full == True` 判定; `_ctx`/`_ss` 两条轨的行宇宙是 full 留篇集合的子集, 在该子集上各轨独立按 ctx/ss 文本重新跑一遍 you_2018 词典打分再求和, 不与 full 轨共享篇数以外的任何计算结果。
 
 【文献定位】
-you_2018 词典源自 You, Zhang & Zhang (2018, *The Review of Financial Studies*)「Who Captures the Power of the Pen?」, 该文构造中文金融情感词典并用于识别媒体报道对企业信息环境的塑造作用, 是本仓引用最广的中文金融情感词典锚点之一 (家族命名直接沿用其作者-年份)。词典法与机器学习法 (LLM/BERT) 的互补关系呼应 Frankel, Jennings & Lee (2022, *Management Science*)「Disclosure Sentiment: Machine Learning vs. Dictionary Methods」的核心论点: 词典法透明、可复现、无需训练数据, 但对语境/反讽/长距离否定不敏感; 机器学习法则相反。词典法内部的否定翻转、程度副词加权、转折降权三条语言学规则的设计脉络参见 Taboada et al. (2011, *Computational Linguistics*)「Lexicon-based methods for sentiment analysis」对 lexicon-based 情感分析中"取反+强化词+转折词"标准处理框架的系统梳理; 本仓 you_2018 计算引擎的 negation/degree/adversative 三段式流水线正是该框架在中文金融文本上的具体落地。you_2018 词典与本仓另一常用中文金融情感词典 du_2022 (Du, Huang, Wermers & Wu, 2022, *Review of Finance*)「Language and Domain Specificity: A Chinese Financial Sentiment Dictionary」并列构成六部词典消融梯度的两个代表性节点, 二者构词范围、正负词数比例不同 (you_2018 正 1,425/负 1,583 略偏负; du_2022 另含政治正面词敏感性三权重梯度, you_2018 无此维度), 详细差异属家族间对比不在本家族内部展开。
+you_2018 词典源自 You, Zhang & Zhang (2018, *The Review of Financial Studies*)「Who Captures the Power of the Pen?」, 该文构造中文金融情感词典并用于识别媒体报道对企业信息环境的塑造作用, 是本仓引用最广的中文金融情感词典锚点之一 (家族命名直接沿用其作者-年份)。词典法与机器学习法 (LLM/BERT) 的互补关系呼应 Frankel, Jennings & Lee (2022, *Management Science*)「Disclosure Sentiment: Machine Learning vs. Dictionary Methods」的核心论点: 词典法透明、可复现、无需训练数据, 但对语境/反讽/长距离否定不敏感; 机器学习法则相反。词典法内部的否定翻转、程度副词加权、转折降权三条语言学规则的设计脉络参见 Taboada et al. (2011, *Computational Linguistics*)「Lexicon-based methods for sentiment analysis」对 lexicon-based 情感分析中"取反+强化词+转折词"标准处理框架的系统梳理; 本仓 you_2018 计算引擎的 negation/degree/adversative 三段式流水线正是该框架在中文金融文本上的具体落地。you_2018 词典与本仓另一常用中文金融情感词典 du_2022 (Du, Huang, Wermers & Wu, 2022, *Review of Finance*)「Language and Domain Specificity: A Chinese Financial Sentiment Dictionary」并列构成六部词典消融梯度的两个代表性节点, 二者构词范围、正负词数比例不同 (you_2018 正 1,425/负 1,583 略偏负; du_2022 另含政治正面词敏感性三权重梯度, you_2018 无此维度), 详细差异属家族间对比不在本家族内部展开。倪盈昭 (2024, Accounting & Finance) 用词典法度量中国上市公司披露文本中的短期主义语调, 检验媒体报道对语调的塑造作用, 呼应本家族以词典法逐篇打分再按银行-年度求和刻画媒体语调存量的构念。方毅、王琦、王艳如、袁琰 (2024, International Review of Economics & Finance) 该文构造中国银行层面媒体语调指数, 检验负面媒体情感通过存款外流渠道推高银行系统性风险, 呼应本家族以词典法媒体语调度量银行媒体暴露的构念。马媛媛、张天杰、张萍萍 (2025, Expert Systems with Applications) 该文构造面向中国散户投资者的细粒度中文情感词典 CN-FSD, 延续词典法情感度量在中文金融文本上的构念传统, 与本家族 you_2018 词典法路线互为方法学参照。
 
 ## VAR: you_2018_tone_sum_full
 
@@ -102,4 +123,7 @@ Du, Z.; Huang, A. G.; Wermers, R.; Wu, W. (2022). Language and Domain Specificit
 Frankel, R.; Jennings, J.; Lee, J. (2022). Disclosure Sentiment: Machine Learning vs. Dictionary Methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Taboada, M.; Brooke, J.; Tofiloski, M.; Voll, K.; Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
 Tetlock, Paul C. (2007). Giving Content to Investor Sentiment: The Role of Media in the Stock Market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Ni, Yingzhao. (2024). Media coverage and disclosure of short-termism tone: Evidence from China. Accounting & Finance. https://doi.org/10.1111/acfi.13328
+Fang, Yi; Wang, Qi; Wang, Yanru; Yuan, Yan. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2024.01.067
+Ma, Yuanyuan; Zhang, Tianjie; Zhang, Pingping. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications. https://doi.org/10.1016/j.eswa.2024.125739
 <!-- rendered-citations:end -->

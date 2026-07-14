@@ -83,7 +83,14 @@ citations:
   vol: 45
   issue: 2-3
   pages_or_artno: 221-247
-new_dois: []
+- doi: "10.1016/j.jcae.2023.100395"
+  title: "Textual disclosure complexity and analysts' weighting of information"
+  authors: "Yu, X., & Zhao, L."
+  year: 2024
+  venue: "Journal of Contemporary Accounting & Economics"
+  type: "journal"
+new_dois:
+- "10.1016/j.jcae.2023.100395"
 ---
 
 ## CORE
@@ -95,7 +102,7 @@ new_dois: []
 计算原语落在 pipeline/sentiment/lexical_complexity.py。分子 = 逐 token 匹配一张独立的逆接连词冻结词表 _ADVERSATIVE_WORDS (含但、但是、然而、却、可是、不过、尽管、虽然、虽、反而、相反、只是、反倒、岂料、殊不知、竟然、不料、尽管如此、话虽如此、即便、即使、纵然、哪怕) 的命中计数; 分母 = 同一轨文本切出的有效词 token 数。三轨的原始文本在 stage 14 ctx_materializer 物化 (content_full = 标题 prepend + 全文正文; content_ctx = 标题 + 银行实体上下文窗口; content_ss = 标题 + 银行与金融科技同句共现窗口), stage 22 tone_words 逐篇对三轨分别调度计数原语, 产出逐篇文章级 adversative_ratio{track} 三列; tone_words 本身只做逐篇调度、不含任何 groupby 或银行-年聚合逻辑。银行-年层面的 avg 前缀均值列 avg_adversative{track} 由下游 stage 40 panel export (pipeline/panel/encode.py) 以 mean_over_articles(adversative_ratio{track}) 在留篇集合内 groupby 聚合产出, 这是文章级测度与面板列的职责分界。一个关键工程铁律是: 本模块的分词、词性、词频一律走一个从不暴露注入入口的私有未注入 jieba.Tokenizer 单例, 而不读全局 jieba.dt。原因是任何模块的 add_word 都会改写全局分词器的 FREQ 表并把领域词以 x 词性回退当标点剔出分母, 使同一文本在注入前后给出两套值、破坏确定性; 私有 Tokenizer 与 tone_words 情感轨各自持有独立分词器, 两端隔离后即便全局 jieba 被第三方污染也不影响本族取值。整条链路纯 CPU、无 LLM、无网络、零成本, 确定性仅来自 jieba==0.42.1 版本冻结与词表文件, 无缓存锚点。另一处刻意设计是: 本逆接词表独立维护, 刻意不复用 config/sentiment.yaml 中驱动情感转折 boost 的 adversative_words 表 — 复用会让本右手侧结构变量与情感轨机械同源、污染度量纯度 (缺口报告 G5 的裁决)。
 
 【文献定位】
-逆接密度承接文本可读性与文本即数据两条脉络。可读性一支上, Li (2008) 以年报文本长度与句法复杂度预测盈余持续性, 开启用语篇结构量化披露复杂度的范式; Loughran and McDonald (2014) 指出传统 Fog 指数在金融文本上失效、主张更贴合语料的可读性代理; Bonsall et al. (2017) 进一步提出 Plain English 综合度量, 把连接词与句法负担纳入复杂度评分; Li et al. (2023) 在中国债券招募说明书语境下验证中文披露可读性对发行定价的作用, 为本项目的中文语料口径提供直接同域参照。文本即数据一支上, Gentzkow, Kelly and Taddy (2019) 系统梳理了从计数特征到语义嵌入的文本量化方法学, 逆接连词占比正属其中最透明的高频结构计数特征; Loughran and McDonald (2016) 与 Bochkay et al. (2023) 两篇综述则界定了此类词典与结构计数测度在会计金融实证中的效度边界与前沿方向。就语篇具体性而言, Hope, Hu and Lu (2016) 论证了披露具体性 (specificity) 的信息价值, 与逆接密度所刻画的两面性构念相邻但正交 — 逆接标记度量的是立场对冲而非硬信息含量。逆接连词表本身的语言学锚点取自 Ding-Liu-Yu (2008) 的短语级情感分析框架与徐巍-姚振晔-陈冬华 (2021) 对副词连词占比的中文实证, 两者在正文以作者-年份形式引述, 未纳入 DOI 引文块。三条轨道 full/ctx/ss 各自 just-identified 并排, 互为稳健性、不分主次, 严禁混入同一 over-identified 的 Hansen J 检验。
+逆接密度承接文本可读性与文本即数据两条脉络。可读性一支上, Li (2008) 以年报文本长度与句法复杂度预测盈余持续性, 开启用语篇结构量化披露复杂度的范式; Loughran and McDonald (2014) 指出传统 Fog 指数在金融文本上失效、主张更贴合语料的可读性代理; Bonsall et al. (2017) 进一步提出 Plain English 综合度量, 把连接词与句法负担纳入复杂度评分; Li et al. (2023) 在中国债券招募说明书语境下验证中文披露可读性对发行定价的作用, 为本项目的中文语料口径提供直接同域参照。文本即数据一支上, Gentzkow, Kelly and Taddy (2019) 系统梳理了从计数特征到语义嵌入的文本量化方法学, 逆接连词占比正属其中最透明的高频结构计数特征; Loughran and McDonald (2016) 与 Bochkay et al. (2023) 两篇综述则界定了此类词典与结构计数测度在会计金融实证中的效度边界与前沿方向。就语篇具体性而言, Hope, Hu and Lu (2016) 论证了披露具体性 (specificity) 的信息价值, 与逆接密度所刻画的两面性构念相邻但正交 — 逆接标记度量的是立场对冲而非硬信息含量。逆接连词表本身的语言学锚点取自 Ding-Liu-Yu (2008) 的短语级情感分析框架与徐巍-姚振晔-陈冬华 (2021) 对副词连词占比的中文实证, 两者在正文以作者-年份形式引述, 未纳入 DOI 引文块。三条轨道 full/ctx/ss 各自 just-identified 并排, 互为稳健性、不分主次, 严禁混入同一 over-identified 的 Hansen J 检验。Yu and Zhao (2024, Journal of Contemporary Accounting & Economics) 以文本复杂度(含句法连接结构)度量披露文本的可读性并考察其对分析师信息加权行为的影响, 与本家族逆接连词占比作为文本复杂度代理变量的构念直接相关。
 
 ## VAR: avg_adversative_full
 
@@ -121,4 +128,5 @@ Hope, O.-K., Hu, D., & Lu, H. (2016). The benefits of specific risk-factor discl
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
 Loughran, T., & McDonald, B. (2014). Measuring readability in financial disclosures. The Journal of Finance, 69(4), 1643-1671. https://doi.org/10.1111/jofi.12162
 Li, F. (2008). Annual report readability, current earnings, and earnings persistence. Journal of Accounting and Economics, 45(2-3), 221-247. https://doi.org/10.1016/j.jacceco.2008.02.003
+Yu, X., & Zhao, L. (2024). Textual disclosure complexity and analysts' weighting of information. Journal of Contemporary Accounting & Economics. https://doi.org/10.1016/j.jcae.2023.100395
 <!-- rendered-citations:end -->

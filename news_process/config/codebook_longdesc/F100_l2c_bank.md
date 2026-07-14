@@ -124,6 +124,35 @@ citations:
   venue: Journal of Theoretical Biology
   vol: 13
   pages_or_artno: 131-144
+- doi: "10.1016/j.pacfin.2024.102324"
+  type: journal
+  authors: "Chen, X., He, G., & Li, Q."
+  year: 2024
+  title: "Can Fintech development improve the financial inclusion of village and township banks? Evidence from China"
+  venue: "Pacific-Basin Finance Journal"
+- doi: "10.1016/j.econmod.2024.106777"
+  type: journal
+  authors: "Lu, Y., Li, L., Zhan, H., & Zhan, M."
+  year: 2024
+  title: "Fintech, information heterogeneity, and the regional distribution effects of corporate financing constraints"
+  venue: "Economic Modelling"
+- doi: "10.1002/jae.70045"
+  title: "Count Data Models With Heterogeneous Peer Effects Under Rational Expectations"
+  authors: "Houndetoungan, A."
+  year: 2026
+  venue: "Journal of Applied Econometrics"
+  type: "journal"
+- doi: "10.1057/s41599-025-04373-2"
+  title: "Commercial banks performance, ownership types and operations efficiency decomposition in China: a comparative analysis"
+  authors: "Zhu, C., & Wang, R."
+  year: 2025
+  venue: "Humanities and Social Sciences Communications"
+  type: "journal"
+new_dois:
+  - "10.1016/j.pacfin.2024.102324"
+  - "10.1016/j.econmod.2024.106777"
+  - "10.1002/jae.70045"
+  - "10.1057/s41599-025-04373-2"
 ---
 
 ## CORE
@@ -135,7 +164,7 @@ citations:
 bank_type 的计算链路是一个两步纯查表过程。第一步在分组映射加载函数中完成: 逐家银行读取地址主档的官方分类字段, 经固定字典压缩为六短码, 查不到或字段为空的银行落入 other; 同一函数同时产出规模映射, 供平行的规模维度分组使用但不属于本家族。第二步在通用 Bartik 引擎的第一步内完成: 以面板的银行名列映射该字典并以 other 填充缺失, 直接把标签写为面板列, 生成时点在 runner 步骤 7e, 即 Bartik 工具变量族构建的最前端。bank_zone 的计算链路在经济圈留一法函数的第一步完成, 生成时点为 runner 步骤 7f: 面板的总部省份列经省份到经济圈字典映射, 映射失败填 other, 结果同时打到面板与文章级展开表两侧, 后者通过目标银行名回连面板标签, 保证文章级聚合与面板级标签同源。两列生成后由三大消费族接手。其一是 Bartik 移测份额工具变量族: bank_type 定义暴露维度, 基期各类型份额经由文章级共同提及银行列计算跨组暴露而得, 即以每家银行基期报道中共同被提及银行落入各类型的相对频次为该行对各类型冲击的暴露权重, 随后被冻结为逐类型份额列并与逐年类型层面冲击相乘汇总成工具变量, 三条文本轨各得一列; 面板年份早于基期末年的行被前视掩码置为缺失, 全程以双精度浮点算术执行以防整型分组降型回绕, 引擎日志逐轨披露工具覆盖率与区分度, 并把地址主档的读取路径、银行家数及落入真实类型组而非兜底组的家数写入溯源日志, 使份额外生性论证的实证根可审计。其二是同组留一均值工具变量族: 通用留一引擎默认以 bank_type 为分组列, 对任一内生面板变量计算同类型同年剔除自身后的组均值, 剔除自身后组内有效同业数低于最小同业阈值 (默认为二) 的格点置缺失, 分组标签为 other 或缺失的银行被伪组拒绝直接置缺失; 引擎默认同时产出滞后一期变体, 以规避同期反射问题, 面板首年自然缺失。经济圈留一法与之同构但分组换为 bank_zone, 组内最小规模阈值默认为三, other 伪经济圈的文章不进入圈层聚合、其银行的圈层留一输出缺失, 该口径与 Bartik 引擎排除 other 的处理镜像一致。其三是异质性与调节分析族: 国有大行哑变量直接由 bank_type 等于 soe 派生; 数字化前沿哑变量按基年内 bank_type 分组的覆盖量中位数一次性切分且组员资格跨年冻结; 多篇论文的验证轨模板将 bank_type 作为分样本与交互项维度进入异质性正文表。需要特别写明口径的一点是: 两列本身为轨道无关的元数据标签, 不带 full、ctx、ss 后缀, 属于双轨铁律中唯一豁免的 track-agnostic 类; 三轨纪律作用于其下游, 即以它们为分组键产出的每一族工具变量都严格逐轨成列, full、ctx、ss 三轨各自 just-identified 并排、互为稳健性、不分主次, 禁混进同一 over-identified Hansen J; ss 轨消费的同句共现打分列缺失时该轨优雅置缺失 (镜像 ctx 轨), 而 ss 文本本身的回退语义遵循全仓口径, 即无银行与金科同句共现时回退全文并以回退指示列标记。留篇门控与 full-only 口径 (二〇二六年六月二十九日起) 在上游文章级已经固化, 本家族两列作为面板级标签不改动也不绕过该门控, 其下游分轨工具变量消费的正是门控后逐轨打分列。
 
 【文献定位】
-本家族在方法论文献中的锚点由其两大消费场景决定。份额视角的现代 Bartik 文献是第一支柱, 其谱系可以完整追至源头: Bartik (1991) 在州与地方经济发展政策评估中首创以基期产业构成份额乘以全国性行业增量合成地方劳动力需求冲击的做法, 这一「基期份额乘外生增量」的构造范式正是本项目类型维度移测份额工具的方法源头, 区别仅在于本项目把产业份额换成了基期报道共同提及网络中各银行类型的相对暴露份额。Goldsmith-Pinkham et al. (2020) 系统阐明移测份额工具变量的识别内容等价于以基期暴露份额为工具, 排他性约束的实质是基期份额相对结果残差的外生性, 并给出份额层面的诊断议程, 包括 Rotemberg 权重分解各份额对工具变量估计量的贡献、检查负权重与权重集中度。与之互补的第二条识别路径由 Borusyak et al. (2022) 正式化: 当冲击 (shift) 层面可以论证为准随机分派时, 即便份额内生, 移测份额工具仍可经等价的冲击层面回归获得识别; Borusyak et al. (2025) 进一步给出实操核对清单, 帮助研究者判定自己的设计属于「少份额且份额外生」还是「多冲击且冲击外生」路径并匹配对应诊断。本项目的类型 Bartik 属于前一路径, 类型数少而份额在基期冻结, 因而论文披露以份额外生论证与 Rotemberg 权重表为主轴, 这也是 bank_type 生成于 Bartik 引擎最前端的设计原因。推断层面, Adão et al. (2019) 证明当不同单元的暴露份额相关时, 常规按单元聚类的标准误会严重低估移测份额设计的抽样不确定性, 并给出暴露稳健推断程序, 该警告对本家族尤其切身, 因为同类型银行的份额向量天然高度相似。面向财务与银行实证读者的落地参照是 Breuer (2022), 其以会计与金融面板为语境演示了在单元乘时间固定效应设计中构造差异暴露 Bartik 工具的完整流程, 为本项目把该方法移植到银行年度面板提供领域内先例。项目对该框架的落实直接体现在 bank_type 的用法上: 类型份额在基期一次性冻结、绝不逐年更新, 面板年份早于基期的格点被前视掩码清空, 数字化前沿等派生分组同样执行基年一次切分且跨年冻结的前定公理, 相关修复在源码中显式引注该文并留有修复台账。同群效应识别文献是第二支柱: Manski (1993) 提出的反射问题指出, 当个体结果依赖于组内均值结果时, 同期组均值回归无法分离内生社会效应、外生情境效应与相关效应。留一均值工具变量族的两个设计细节直接回应这一批评: 其一, 留一构造从组均值中剔除银行自身贡献, 切断机械自相关; 其二, 引擎默认加产滞后一期变体, 以时间错位规避同期反射, 源码文档字符串明示这一动机。Bramoullé et al. (2009) 把这一识别问题从完全组结构推广到一般网络结构, 证明只要参照组之间存在部分重叠而非完全重合, 朋友的朋友的特征即可充当排他工具, 线性均值模型便可点识别; 该结果反过来照亮了本家族分组设计的一个结构性事实, 即 bank_type 与 bank_zone 定义的是互斥划分而非重叠网络, 组内完全参照恰是 Manski 批评最尖锐的情形, 因此本项目不依赖组结构本身供给排他变异, 而是靠留一剔除、时间滞后与跨组暴露份额三重机制外挂识别力, 这一定位在论文识别小节须如实陈述。第三支柱是分组结构本身的测量学: 一个分类体系对识别的贡献不仅取决于类别定义是否外生, 还取决于单元在类别间分布的均匀程度, Pielou (1966) 对按类型归类的集合提出的多样性与均匀度测量, 为刻画本家族分组的组规模不均问题提供了经典参照, 即国有大行组组员极少而城商行组组员众多这类高度不均的类别分布, 会使不同类型的留一工具在有效同业数与一阶段强度上系统性不对称, 这正是最小同业阈值与组规模阈值这两道守卫存在的原因。
+本家族在方法论文献中的锚点由其两大消费场景决定。份额视角的现代 Bartik 文献是第一支柱, 其谱系可以完整追至源头: Bartik (1991) 在州与地方经济发展政策评估中首创以基期产业构成份额乘以全国性行业增量合成地方劳动力需求冲击的做法, 这一「基期份额乘外生增量」的构造范式正是本项目类型维度移测份额工具的方法源头, 区别仅在于本项目把产业份额换成了基期报道共同提及网络中各银行类型的相对暴露份额。Goldsmith-Pinkham et al. (2020) 系统阐明移测份额工具变量的识别内容等价于以基期暴露份额为工具, 排他性约束的实质是基期份额相对结果残差的外生性, 并给出份额层面的诊断议程, 包括 Rotemberg 权重分解各份额对工具变量估计量的贡献、检查负权重与权重集中度。与之互补的第二条识别路径由 Borusyak et al. (2022) 正式化: 当冲击 (shift) 层面可以论证为准随机分派时, 即便份额内生, 移测份额工具仍可经等价的冲击层面回归获得识别; Borusyak et al. (2025) 进一步给出实操核对清单, 帮助研究者判定自己的设计属于「少份额且份额外生」还是「多冲击且冲击外生」路径并匹配对应诊断。本项目的类型 Bartik 属于前一路径, 类型数少而份额在基期冻结, 因而论文披露以份额外生论证与 Rotemberg 权重表为主轴, 这也是 bank_type 生成于 Bartik 引擎最前端的设计原因。推断层面, Adão et al. (2019) 证明当不同单元的暴露份额相关时, 常规按单元聚类的标准误会严重低估移测份额设计的抽样不确定性, 并给出暴露稳健推断程序, 该警告对本家族尤其切身, 因为同类型银行的份额向量天然高度相似。面向财务与银行实证读者的落地参照是 Breuer (2022), 其以会计与金融面板为语境演示了在单元乘时间固定效应设计中构造差异暴露 Bartik 工具的完整流程, 为本项目把该方法移植到银行年度面板提供领域内先例。项目对该框架的落实直接体现在 bank_type 的用法上: 类型份额在基期一次性冻结、绝不逐年更新, 面板年份早于基期的格点被前视掩码清空, 数字化前沿等派生分组同样执行基年一次切分且跨年冻结的前定公理, 相关修复在源码中显式引注该文并留有修复台账。同群效应识别文献是第二支柱: Manski (1993) 提出的反射问题指出, 当个体结果依赖于组内均值结果时, 同期组均值回归无法分离内生社会效应、外生情境效应与相关效应。留一均值工具变量族的两个设计细节直接回应这一批评: 其一, 留一构造从组均值中剔除银行自身贡献, 切断机械自相关; 其二, 引擎默认加产滞后一期变体, 以时间错位规避同期反射, 源码文档字符串明示这一动机。Bramoullé et al. (2009) 把这一识别问题从完全组结构推广到一般网络结构, 证明只要参照组之间存在部分重叠而非完全重合, 朋友的朋友的特征即可充当排他工具, 线性均值模型便可点识别; 该结果反过来照亮了本家族分组设计的一个结构性事实, 即 bank_type 与 bank_zone 定义的是互斥划分而非重叠网络, 组内完全参照恰是 Manski 批评最尖锐的情形, 因此本项目不依赖组结构本身供给排他变异, 而是靠留一剔除、时间滞后与跨组暴露份额三重机制外挂识别力, 这一定位在论文识别小节须如实陈述。以类型分组为视角的近期实证亦印证该分类的经济含义: Chen, He, & Li (2024, Pacific-Basin Finance Journal) 以村镇银行为代表的银行类型分组视角检验金融科技对普惠金融的异质性影响, 印证 bank_type 官方机构分类维度在中国银行业金融科技研究中携带的经济含义; 而 Lu, Li, Zhan, & Zhan (2024, Economic Modelling) 利用中国银企关系数据揭示金融科技对企业融资约束的区域分布效应因地区标准化信息可得性而异, 支持 bank_zone 以跨省经济圈刻画区域共同冲击边界的构念动机。Houndetoungan (2026, Journal of Applied Econometrics) 提出理性预期下考虑组内异质同群效应的计数数据模型估计方法, 为本家族留一均值同群效应工具变量族提供更细粒度的异质性同群效应识别参照。Zhu & Wang (2025, Humanities and Social Sciences Communications) 以两阶段网络DEA分解中国商业银行按所有制类型 (内资/外资等) 划分的经营效率差异, 印证 bank_type 官方机构分类维度在银行绩效异质性研究中的经济含义。第三支柱是分组结构本身的测量学: 一个分类体系对识别的贡献不仅取决于类别定义是否外生, 还取决于单元在类别间分布的均匀程度, Pielou (1966) 对按类型归类的集合提出的多样性与均匀度测量, 为刻画本家族分组的组规模不均问题提供了经典参照, 即国有大行组组员极少而城商行组组员众多这类高度不均的类别分布, 会使不同类型的留一工具在有效同业数与一阶段强度上系统性不对称, 这正是最小同业阈值与组规模阈值这两道守卫存在的原因。
 
 【识别策略定位】
 在整个项目的识别版图中, 本家族处于工具变量与调节维度的坐标原点位置。第一, 它定义了排他性约束的讨论单位: 类型层面或圈层层面的共同冲击影响个体银行结果的通道, 被假定完全经由同组其他银行的可观测新闻测度, 而基期类型份额与总部省份的经济圈归属均在样本期前或样本期外决定, 与逐年新闻实现值无关, 这是两族工具第一阶段相关性与排他性论证的共同前提。第二, 它组织了粒度阶梯: 同一留一引擎的分组列可替换为 bank_type、bank_zone 或省份列, 形成类型、经济圈、省份三层粒度的平行工具族, 省级组粒度细但组内银行数易不足, 经济圈跨省聚合样本更充足且捕捉区域共同冲击, 类型组则捕捉制度同质性冲击; 三层分组产出的工具各自 just-identified 并排、互为稳健性、不分主次, 禁混进同一 over-identified Hansen J, 这与三轨、co-primary 双轨嵌入、词典消融与政治词权重梯子共用同一条全仓铁律。第三, 它约束了时间结构: 滞后一期变体与基期冻结份额共同保证工具的信息集先于结果实现, 面板首年与基期前行的缺失是设计性缺失而非数据质量问题。第四, 它是异质性推断的分层键: 类型维度的分样本回归与交互项检验回答的是效应在制度位置不同的银行间是否同质, 这一用途使 bank_type 成为多个验证轨模板正文表的调节主变量, 也是其被列为 core 列的直接依据。第五, 模板层面的落地形态是守卫式多类别分样本: 验证轨模板对 bank_type 逐类别枚举取值、每类别以最小行数守卫过阈才跑该类别的分样本回归 (吸收银行与年份双固定效应、按银行聚类), 列缺失或类别过小时显式跳过并留日志, 保证异质性表在开发窗口与生产窗口都不因某一类别退化而整表崩溃; 这一守卫设计本身就是对前述组规模不均局限的工程化回应。第六, 在识别路径谱系上须明确站位: 按 Borusyak et al. (2025) 的核对清单, 本项目的类型 Bartik 属于份额外生路径而非冲击外生路径, 因为类型层面冲击由样本内新闻测度逐年聚合而来、并不天然满足准随机分派, 识别重量全部压在基期份额的前定性上; 相应地, 论文披露侧重 Rotemberg 权重与基期前安慰剂, 而非冲击层面等价回归。若审稿人质疑某一类型份额的排他性, 备用路径是 Apfel (2024) 提出的放松排他约束方案, 即允许一部分份额违反排他性而以其余份额识别, 该方案在类型数有限的本设计中对应「逐一剔除单个类型份额重估」的敏感性检验, 已列入稳健性菜单而非主规格。第七, 本家族与工具变量族之间存在严格的单向依赖: 标签列先于一切工具生成、且生成过程不读取任何情感或注意力测度, 这一时序与信息集隔离是全部下游排他性论证的公共前提, 任何把标签生成挪到测度之后或让映射表依赖语料实现值的改动都属识别层面的破坏性变更, 须整族重审。
@@ -170,4 +199,8 @@ Manski, C. F. (1993). Identification of endogenous social effects: The reflectio
 Bartik, T. J. (1991). Who benefits from state and local economic development policies?. W.E. Upjohn Institute. https://doi.org/10.17848/9780585223940
 Fotheringham, A. S., & Wong, D. W. S. (1991). The modifiable areal unit problem in multivariate statistical analysis. Environment and Planning A: Economy and Space, 23(7), 1025-1044. https://doi.org/10.1068/a231025
 Pielou, E. C. (1966). The measurement of diversity in different types of biological collections. Journal of Theoretical Biology, 13, 131-144. https://doi.org/10.1016/0022-5193(66)90013-0
+Chen, X., He, G., & Li, Q. (2024). Can Fintech development improve the financial inclusion of village and township banks? Evidence from China. Pacific-Basin Finance Journal. https://doi.org/10.1016/j.pacfin.2024.102324
+Lu, Y., Li, L., Zhan, H., & Zhan, M. (2024). Fintech, information heterogeneity, and the regional distribution effects of corporate financing constraints. Economic Modelling. https://doi.org/10.1016/j.econmod.2024.106777
+Houndetoungan, A. (2026). Count Data Models With Heterogeneous Peer Effects Under Rational Expectations. Journal of Applied Econometrics. https://doi.org/10.1002/jae.70045
+Zhu, C., & Wang, R. (2025). Commercial banks performance, ownership types and operations efficiency decomposition in China: a comparative analysis. Humanities and Social Sciences Communications. https://doi.org/10.1057/s41599-025-04373-2
 <!-- rendered-citations:end -->

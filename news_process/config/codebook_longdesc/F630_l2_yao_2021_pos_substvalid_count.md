@@ -16,6 +16,7 @@ citations:
 - {doi: "10.1016/j.jfineco.2022.07.009", type: journal, authors: "Chen, Q., Goldstein, I., Huang, Z., & Vashishtha, R.", year: 2022, title: "Bank transparency and deposit flows", venue: "Journal of Financial Economics", vol: "146", issue: "2", pages_or_artno: "475-501"}
 - {doi: "10.5465/amj.2006.23478255", type: journal, authors: "Fiss, P. C., & Zajac, E. J.", year: 2006, title: "The symbolic management of strategic change: Sensegiving via framing and decoupling", venue: "Academy of Management Journal", vol: "49", issue: "6", pages_or_artno: "1173-1193"}
 new_dois: []
+novelty_exempt_rationale: "该家族是洗稿率方法D2的'同域分母'修正列(_svd_前缀),非独立提出的情感测度,而是既有pos_count/pos_symb_count分子分母定义域匹配的技术性衍生指示列,其测度依据已在词典原始文献(Yao 2021)与洗稿率母族构念中给出,属衍生/一致性修正变体家族。"
 ---
 
 ## CORE

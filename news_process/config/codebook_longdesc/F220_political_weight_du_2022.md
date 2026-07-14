@@ -1,5 +1,6 @@
 ---
 family_id: F220
+novelty_exempt_rationale: "政治词权重敏感性梯子 (w_pol∈{0.0,0.5,1.0}) 是 du_2022 词典语调测度的消融/敏感性检验变体族, 非独立新构念, 其测度定义与权重取值依据已在母族文献 Du et al. (2022, Review of Finance) 中给出, 无需额外追新文献。"
 columns:
 - du_2022_polw00_tone_ctx
 - du_2022_polw00_tone_full

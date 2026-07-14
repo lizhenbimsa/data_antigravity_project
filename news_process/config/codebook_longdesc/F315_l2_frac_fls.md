@@ -117,7 +117,28 @@ citations:
   title: "The first international Chinese word segmentation bakeoff"
   venue: "Proceedings of the Second SIGHAN Workshop on Chinese Language Processing"
   pages_or_artno: "133-143"
-new_dois: []
+- doi: "10.1002/isaf.1549"
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+  type: "journal"
+- doi: "10.1111/jbfa.70010"
+  title: "Forward-Looking Statements and Investor Trading"
+  authors: "Chen, J.-C., Jain, P. K., & Silveri, S. (Dino)"
+  year: 2025
+  venue: "Journal of Business Finance & Accounting"
+  type: "journal"
+- doi: "10.1016/j.heliyon.2023.e15329"
+  title: "Forward looking statement, investor sentiment and stock liquidity"
+  authors: "Li, C., Yan, Y., Liu, X., Wan, S., Xu, Y., & Lin, H."
+  year: 2023
+  venue: "Heliyon"
+  type: "journal"
+new_dois:
+  - "10.1002/isaf.1549"
+  - "10.1111/jbfa.70010"
+  - "10.1016/j.heliyon.2023.e15329"
 ---
 
 ## CORE
@@ -129,7 +150,7 @@ new_dois: []
 判定规则采用句子级双门控: 一个句子被判为 FLS, 当且仅当该句同时含有至少一个未来动作词 (D_future, 如将、拟、预计、计划、有望、力争、致力于、展望) 与至少一个未来时间标记 (D_time, 如未来、明年、下季、三年内、中长期、下一阶段)。双门结构对中文语料有特殊的语言学必要性: 中文动词没有屈折形态的时态标记, 英文文献可以借助 will 与 shall 等助动词或动词将来时形态识别前瞻句, 中文的未来指向只能通过词汇手段表达, 而单个未来动作词 (如计划、预计) 在中文里同时承担名词与动词功能且常出现在回顾性语境 (如报道去年制定的计划的执行情况), 仅凭单门误报率高; 要求未来时间标记同句共现相当于给动作词加上一个显性的时间锚, 把判定收敛到真正谈论未来的句子上。这是把 Li (2010) 的英文 FLS 判定思想向中文语法特点做的适配性重构, 而非词表的简单翻译。双门控词表当前版本 v0.1.6 含 future 词 68 个加 time 词 53 个共 121 词, 已从模块内联 frozenset 外置到 config/tone_dicts.json 顶层条目 forward_looking_statements 作为单一事实源, 模块 import 时一次性加载为模块级 frozenset; 文件或条目缺失时静默降级为空集, 此时双门永不触发, 非空文本的 frac_fls 恒为零、空文本为缺失值, 该降级仅为防御性设计, 因 tone_dicts.json 是项目核心必备文件。词表准入受 G-A2.1 门控约束: 词表规模不低于一百词, 且在五百句人工标注上精确率不低于零点八; v0.1.5 到 v0.1.6 的修订删除了十个非未来指向词 (进行体动词、裸时距、当期词), 变更披露见词表条目的元数据, 词表成员由专项测试锁定。计算流程为: 先用中文分句器 cn_split_sentence 把文本切成句子序列, 分母 n_sentences 即句子总数; 对每句用 jieba 分词得到 token 集合, 与两个词表 frozenset 求交判定两门; 分子 n_fls_sentences 为双门同时命中的句数; 比值即 frac_fls, 值域零到一; 空文本或分句结果为零句时返回缺失值而非零, 以区分无内容与有内容但无前瞻两种状态。匹配层有两处经审计加固的细节。其一是 P-038 修复: 早期实现用子串匹配, 单字词如望、将会误命中希望、绝望、瞭望、将其等非前瞻语境, 修复后改为 jieba 精确 token 匹配, 依赖 jieba 分词器单例缓存, 每句约零点一毫秒。其二是长标记补漏: jieba 默认词典常把多字标记切碎, 例如下一财年被切为三段、中长期目标被切为两段, 成分若不在词表则整词漏判, 因此对长度不低于三字的词表词追加原句字面子串匹配作为补充; 该补充是纯加性的, 只会把门控置真不会取消任何 token 命中, 而一字与二字短词仍仅走精确分词匹配以保持 P-038 建立的精度, 句内空格统一剥除以兼容含空格的时间表达。分词依赖 jieba 0.42.1 冻结锚点, 保证跨机器逐位可复现; Sproat 与 Emerson (2003) 组织的首届中文分词评测早已表明分词方案差异会系统性影响下游词元匹配, 冻结分词器版本正是对这一测量学风险的工程回应。三轨调用发生在 stage 22 的逐篇分析函数内, 对 content_full 与 content_ctx 与 content_ss 各调用一次同一个 track-agnostic 的计算函数, 轨道差异完全由输入文本驱动, 判定逻辑三轨逐字节一致。面板聚合在 panel 构建的 encode_collab 步骤完成: 按银行-年分组对文章级列取简单均值, 输出列与文章级源列同名 (dst 等于 src, 无前缀改写, 刻意区别于 avg_ 前缀范式), 与下游 Stata 模板和 codebook 的既有列名契约一致; 聚合的文章宇宙遵循全流水线的 full-only 留篇门控口径 (2026-06-29): 一篇文章是否计入银行金融科技报道宇宙只由 full 轨的 LLM 验证结论决定, ctx 与 ss 轨列在该宇宙上条件计算。计算的确定性保障有三层: 词表层由外置单一事实源与成员锁定测试保证任何修订都显式留痕; 分词层由 jieba 0.42.1 版本冻结保证同一文本在任何机器任何时点切出同一 token 序列; 数值层分子分母均为整数计数, 比值无浮点累加次序问题, 因此本家族不在 BLAS 浮点漂移的非确定列清单内, golden 对照可做逐位复现。缺失值语义需要特别说明: 空文本与零句文本返回缺失值而非零, 这一选择把没有可判定内容与有内容但无前瞻严格区分开, 面板均值聚合时缺失文章自动退出分子分母, 不会把无内容文章稀释为伪低前瞻。
 
 【文献定位】
-本家族在方法谱系上位于词典规则法与机器学习法两条 FLS 操作化路径的词典端。Li (2010) 是机器学习端的奠基, Muslu 等 (2015) 是关键词规则端的代表, 二者对同一构念给出了收敛的实证结论, 支持路径选择主要是成本与可复现性的权衡而非效度分歧。Loughran 与 McDonald (2011) 确立的领域专用词典原则 (通用词典移植到财务语境会产生系统性误分类) 是本家族自建中文双门控词表而非翻译英文 FLS 词表的直接理由; 其后续综述 Loughran 与 McDonald (2016) 与 Loughran 与 McDonald (2020) 反复强调词典法的透明性与可审计性优势, 并把测量误差的来源分解为词表覆盖与语境歧义两类, 本家族的双门设计与长标记补漏分别针对这两类误差。Gentzkow, Kelly 与 Taddy (2019) 的文本即数据框架把词典测度视为高维文本到低维统计量的映射, 提醒任何单一映射都应配备并排的替代规格, 这正是本项目为 FLS 配置单门稳健臂与三轨并排的方法论出处。近期文献把 FLS 测度推进到中文语料与更细的属性维度: Abedin, Goldstein, Huang 与 Zeng (2024) 用中国上市公司 MD&A 文本证明前瞻披露强度影响股票流动性且其效应被可读性与语气调节, 为中文语境下 FLS 构念的市场后果提供了直接实证; Liu, Zhang 与 Wu (2026) 用机器学习方法测度中国年报前瞻陈述并发现其缓解融资约束, 说明中文 FLS 强度与实体经济结果相连; Wu (2026) 区分带时间框架与不带时间框架的前瞻披露并发现二者的决定因素与市场反应系统不同, 该区分与本家族双门对单门的设计几乎一一对应: 双门 canonical 恰好捕捉带时间框架的前瞻句, 单门臂则纳入无时间框架的弱前瞻句。Brown 与 Tucker (2011) 对 MD&A 逐年修改幅度的大样本测度则从披露动态角度补充了背景: 前瞻文本是披露中信息增量最集中也最易模板化的部分, 这提示 FLS 比例应与本管线的套话比率、陈旧度等文本再利用测度联合解读而非孤立使用。
+本家族在方法谱系上位于词典规则法与机器学习法两条 FLS 操作化路径的词典端。Li (2010) 是机器学习端的奠基, Muslu 等 (2015) 是关键词规则端的代表, 二者对同一构念给出了收敛的实证结论, 支持路径选择主要是成本与可复现性的权衡而非效度分歧。Loughran 与 McDonald (2011) 确立的领域专用词典原则 (通用词典移植到财务语境会产生系统性误分类) 是本家族自建中文双门控词表而非翻译英文 FLS 词表的直接理由; 其后续综述 Loughran 与 McDonald (2016) 与 Loughran 与 McDonald (2020) 反复强调词典法的透明性与可审计性优势, 并把测量误差的来源分解为词表覆盖与语境歧义两类, 本家族的双门设计与长标记补漏分别针对这两类误差。Gentzkow, Kelly 与 Taddy (2019) 的文本即数据框架把词典测度视为高维文本到低维统计量的映射, 提醒任何单一映射都应配备并排的替代规格, 这正是本项目为 FLS 配置单门稳健臂与三轨并排的方法论出处。近期文献把 FLS 测度推进到中文语料与更细的属性维度: Abedin, Goldstein, Huang 与 Zeng (2024) 用中国上市公司 MD&A 文本证明前瞻披露强度影响股票流动性且其效应被可读性与语气调节, 为中文语境下 FLS 构念的市场后果提供了直接实证; Liu, Zhang 与 Wu (2026) 用机器学习方法测度中国年报前瞻陈述并发现其缓解融资约束, 说明中文 FLS 强度与实体经济结果相连; Wu (2026) 区分带时间框架与不带时间框架的前瞻披露并发现二者的决定因素与市场反应系统不同, 该区分与本家族双门对单门的设计几乎一一对应: 双门 canonical 恰好捕捉带时间框架的前瞻句, 单门臂则纳入无时间框架的弱前瞻句。Brown 与 Tucker (2011) 对 MD&A 逐年修改幅度的大样本测度则从披露动态角度补充了背景: 前瞻文本是披露中信息增量最集中也最易模板化的部分, 这提示 FLS 比例应与本管线的套话比率、陈旧度等文本再利用测度联合解读而非孤立使用。Todd, Bowden 与 Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 系统综述金融文本情感分析文献并展望未来方向, 呼应本家族把词典规则法前瞻句测度置于文本即数据方法谱系中的定位。Chen, Jain 与 Silveri (2025, Journal of Business Finance & Accounting) 用10-K/10-Q文本分析发现前瞻性陈述与投资者交易成本降低相关,主要通过降低做市商库存成本实现。Li, Yan, Liu, Wan, Xu 与 Lin (2023, Heliyon) 以中国A股上市公司为样本发现前瞻性信息披露水平越高股票流动性越好,投资者情绪是其中的传导机制。
 
 【识别策略定位】
 在本项目多论文组合的识别框架中, frac_fls 家族不承担任何论文的主处理变量 (treatment headline) 角色, 而是三重身份的辅助测度。第一重是叙事属性控制变量: P1 至 P5 主线的处理变量多为 full 轨情感与属性变量, 媒体对银行金融科技的报道语气与报道的时间取向天然相关 (战略宣示类报道往往同时更正面也更前瞻), 在回归中加入 frac_fls 可以把语气效应从前瞻叙事效应中剥离, 缓解把预期驱动误认为情感驱动的混淆。第二重是机制与异质性切割变量: 按银行-年的 FLS 强度高低分组, 可以检验金融科技报道效应是经由事前预期渠道 (前瞻叙事改变投资者与同业对该银行转型的预期) 还是事后确认渠道 (落地成果报道改变基本面评估) 传导, Muslu 等 (2015) 关于前瞻披露改善信息环境的结论为预期渠道提供了先验。第三重是安慰剂与效度佐证: 前瞻句占比是纯语言形式测度, 不依赖 LLM 判断, 其与 LLM 情感测度的低相关是两族测度各自构念效度的旁证。此外在事件研究与动态设定中, 银行-年 FLS 均值的时间路径本身有解释价值: 若某银行的金融科技报道在处理事件前以前瞻叙事为主、事件后转向落地叙事, 该转折点为平行趋势诊断与预期效应 (anticipation effect) 的排查提供了文本侧证据, Bozanic 等 (2018) 关于前瞻陈述时间跨度属性的分析正是这类解读的理论支点。因为分子分母都来自确定性词表匹配, 该家族列在工具变量设定中也天然满足可复现性要求, 但项目不将其用作工具, 因为媒体前瞻叙事与银行不可观测的战略冲击存在明显的排他性约束疑虑。使用时须遵守本项目铁律: 三轨 full 与 ctx 与 ss 各自 just-identified 并排、互为稳健性不分主次, 禁止把多轨同时塞进同一个 over-identified 的 Hansen J 检验; 双门 canonical 与单门 fonly 稳健臂同理二臂并排, 禁混同一 Hansen J。
@@ -168,4 +189,7 @@ Brown, S. V., & Tucker, J. W. (2011). Large-sample evidence on firms' year-over-
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Li, F. (2010). The information content of forward-looking statements in corporate filings: A naïve Bayesian machine learning approach. Journal of Accounting Research, 48(5), 1049-1102. https://doi.org/10.1111/j.1475-679X.2010.00382.x
 Sproat, R., & Emerson, T. (2003). The first international Chinese word segmentation bakeoff. Proceedings of the Second SIGHAN Workshop on Chinese Language Processing, 133-143. https://doi.org/10.3115/1119250.1119269
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
+Chen, J.-C., Jain, P. K., & Silveri, S. (Dino). (2025). Forward-Looking Statements and Investor Trading. Journal of Business Finance & Accounting. https://doi.org/10.1111/jbfa.70010
+Li, C., Yan, Y., Liu, X., Wan, S., Xu, Y., & Lin, H. (2023). Forward looking statement, investor sentiment and stock liquidity. Heliyon. https://doi.org/10.1016/j.heliyon.2023.e15329
 <!-- rendered-citations:end -->

@@ -7,6 +7,7 @@ columns:
 unit: 无量纲情感得分 (自归一化, 值域约 [-1, 1]; bank-year 层面为存活媒体子集上的算术均值)
 formula: "exc_loughran_score_negonly_{trk} = mean_文章所属媒体的 _is_ceased_media 取 0 (即非疑似退出媒体) ( loughran_score_negonly_{trk} ); 其中文章级 loughran_score_negonly 由 _compute_sentiment_with_rules(apply_negation=True, apply_degree=False, apply_adversative=False) 产出, 是逐 token 状态机施加否定翻转规则 (关闭程度副词与转折) 后的自归一化幅度加权得分 self-normalized Σ(final)/Σ|final| ∈ [-1,1] (含 HowNet 六级权重体系与词典权重), 并非正负词计数比值; 计数比值口径对应的是同阶段另一列 msent_negonly = (neg-pos)/(pos+neg), 与本列口径不同不可混用"
 producer: news_process/pipeline/panel/attention_media.py
+novelty_exempt_rationale: "该家族为停刊剔除(exc_)×词典消融(negonly)双重稳健性变体, 是 loughran 词典主测度在媒体存活性与语言学规则两个正交扰动维度上的稳健性并排臂, 非独立新构念, 其测度定义学术依据已在 Loughran & McDonald (2011/2016/2024) 等母族文献中给出。"
 upstream:
 - 22_tone_words.parquet (loughran_score_negonly_full / _ctx / _ss)
 - 14_materialize_ctx.parquet (content_full / content_ctx / content_ss)

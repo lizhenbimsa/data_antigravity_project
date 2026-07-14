@@ -229,7 +229,21 @@ citations:
   vol: 163
   issue: 4148
   pages_or_artno: "688"
-new_dois: []
+- doi: "10.2139/ssrn.5279231"
+  type: "wp"
+  authors: "Cao, Z., Geman, H., & Wunkaew, W."
+  year: 2025
+  title: "The Hype Index: an NLP-driven Measure of Market News Attention"
+  venue: "SSRN"
+- doi: "10.2139/ssrn.4768558"
+  type: "wp"
+  authors: "Guo, X., Macaulay, A., & Song, W."
+  year: 2024
+  title: "The Allocation of Corporate News"
+  venue: "SSRN Electronic Journal"
+new_dois:
+  - "10.2139/ssrn.5279231"
+  - "10.2139/ssrn.4768558"
 ---
 
 ## CORE
@@ -284,7 +298,7 @@ P2 论文的主处理变量是 attention_index_full (extensive 累积曝光, 由
 
 缺失契约: 零 verified 金融科技报道的银行年置缺失 (无报道即无来源分布可言), 这与同族量级列 (index、pct、density) 在零金融科技银行年填真实零的口径刻意不对称 —— 真零曝光是信息性的、可入回归, 而集中度在无报道时不可定义、强行填零会把"不可定义"伪装成"低集中"。篇数为零与本列缺失的等价关系由回归测试锁定: 经盘面实测 verified 集是金融科技子集的子集, 故门控后媒体来源分布的非空银行年集合与强度分子帧的非空银行年集合恒一致, 保证 n_fintech_articles 为零当且仅当本列缺失。诊断配套: n_outlets 列记录参与计算的独立媒体家数, 至少两家本列才有跨格变异; 少篇格的集中度机械偏高, 稳健性建议按篇数或家数设门槛复跑并报告结果稳定性。
 
-构念谱系: 份额平方和即 Simpson (1949) 在生态多样性测量中提出的经典统计量, 在媒体覆盖测量的多样性—均衡性—差异性三维框架中对应均衡性维度 (Färber 等 (2023)); 来源与受众结构携带独立于信号均值的信息这一近期证据见 Cookson 等 (2024); 覆盖本身被市场定价的基准事实见 Fang & Peress (2009), 与检索量式直接注意力代理的对照见 Da 等 (2011); 而覆盖供给结构本身内生于记者与管理层关系网络的证据见 Li 等 (2025), 故本列宜作调节或条件变量而非外生回归元。与近邻列的差分: 对 attention_intensity_sd 族 (篇间内容强度的二阶矩, 随机对象是每篇写得多深而非由谁来写) 构念正交; 对 attention_pct_full (议程份额, 分母为未门控的全部银行新闻) 构念与样本口径皆不同; 对 media_hhi (媒体维度族在情感文章帧全部留存报道上算的来源集中度, 未限 verified 金融科技子集) 样本口径不同; 三者均不可与本列互替, 同表并列时须在表注中写明口径差。计量用法: 作覆盖结构的调节与异质性变量进入 P2 设计, 不作主处理; 因量纲为纯数且分布通常右偏于高集中端, 建议标准化后解读边际效应; 与三轨及各梯子臂各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J。局限提醒: 刊名层粒度会低估集团层集中, 去重参数 (信息到达构念的去重基, Jaccard 阈值为概率性近似且整体偏保守) 影响篇数进而影响份额, 开发盘 T=2 浅样本下的格间波动属预期退化, 生产 T=18 语料上方具设计功效。
+构念谱系: 份额平方和即 Simpson (1949) 在生态多样性测量中提出的经典统计量, 在媒体覆盖测量的多样性—均衡性—差异性三维框架中对应均衡性维度 (Färber 等 (2023)); 来源与受众结构携带独立于信号均值的信息这一近期证据见 Cookson 等 (2024); 覆盖本身被市场定价的基准事实见 Fang & Peress (2009), 与检索量式直接注意力代理的对照见 Da 等 (2011); 而覆盖供给结构本身内生于记者与管理层关系网络的证据见 Li 等 (2025), 故本列宜作调节或条件变量而非外生回归元。与近邻列的差分: 对 attention_intensity_sd 族 (篇间内容强度的二阶矩, 随机对象是每篇写得多深而非由谁来写) 构念正交; 对 attention_pct_full (议程份额, 分母为未门控的全部银行新闻) 构念与样本口径皆不同; 对 media_hhi (媒体维度族在情感文章帧全部留存报道上算的来源集中度, 未限 verified 金融科技子集) 样本口径不同; 三者均不可与本列互替, 同表并列时须在表注中写明口径差。计量用法: 作覆盖结构的调节与异质性变量进入 P2 设计, 不作主处理; 因量纲为纯数且分布通常右偏于高集中端, 建议标准化后解读边际效应; 与三轨及各梯子臂各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J。局限提醒: 刊名层粒度会低估集团层集中, 去重参数 (信息到达构念的去重基, Jaccard 阈值为概率性近似且整体偏保守) 影响篇数进而影响份额, 开发盘 T=2 浅样本下的格间波动属预期退化, 生产 T=18 语料上方具设计功效。近期方法学文献进一步丰富了该测度谱系: Cao, Geman, & Wunkaew (2025, SSRN) 提出基于新闻计数份额与市值调整的 Hype Index, 把媒体覆盖强度与语调情感解耦, 用 NLP 方法量化个股与行业获得的相对媒体关注度; Guo, Macaulay, & Song (2024, SSRN Electronic Journal) 记录公司新闻报道在企业间高度集中于大公司的分布结构, 并表明媒体覆盖对小公司融资与投资的边际影响更大, 为覆盖集中度构念提供实证依据。
 
 ## VAR: attention_gap_full_ctx
 
@@ -317,4 +331,6 @@ Fang, L., & Peress, J. (2009). Media coverage and the cross-section of stock ret
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Bartik, T. J. (1991). Who benefits from state and local economic development policies?. W.E. Upjohn Institute for Employment Research. https://doi.org/10.17848/9780585223940
 Simpson, E. H. (1949). Measurement of diversity. Nature, 163(4148), 688. https://doi.org/10.1038/163688a0
+Cao, Z., Geman, H., & Wunkaew, W. (2025). The Hype Index: an NLP-driven Measure of Market News Attention. SSRN [Working Paper]. https://doi.org/10.2139/ssrn.5279231
+Guo, X., Macaulay, A., & Song, W. (2024). The Allocation of Corporate News. SSRN Electronic Journal [Working Paper]. https://doi.org/10.2139/ssrn.4768558
 <!-- rendered-citations:end -->

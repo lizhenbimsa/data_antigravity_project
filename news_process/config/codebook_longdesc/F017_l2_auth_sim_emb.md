@@ -15,61 +15,61 @@ upstream:
   - config/authoritative_corpus.txt (权威政策语料, 按 vintage 年份切分)
   - 25_article_sbert.parquet (co-primary 嵌入引擎共享口径)
 citations:
-  - doi: 10.48550/arXiv.2506.05176
-    type: arxiv
-    authors: Zhang, Y., Li, M., Long, D., Zhang, X., Lin, H., Yang, B., Xie, P., Yang, A., Liu, D., Lin, J., Huang, F., & Zhou, J.
-    year: 2025
-    title: "Qwen3 Embedding: Advancing text embedding and reranking through foundation models"
-    venue: arXiv
-  - doi: 10.48550/arXiv.2401.00368
-    type: arxiv
-    authors: Wang, L., Yang, N., Huang, X., Yang, L., Majumder, R., & Wei, F.
-    year: 2024
-    title: "Improving text embeddings with large language models"
-    venue: arXiv
-  - doi: 10.1016/j.econlet.2024.111823
-    type: journal
-    authors: Liu, Y., Cao, Z., & Wen, F.
-    year: 2024
-    title: "Textual similarity between firm and government: Measurement and pricing"
-    venue: Economics Letters
-    vol: 241
-    pages_or_artno: 111823
-  - doi: 10.1093/rfs/hhaf012
-    type: journal
-    authors: Jha, M., Liu, H., & Manela, A.
-    year: 2026
-    title: "Does finance benefit society? A language embedding approach"
-    venue: The Review of Financial Studies
-    vol: 39
-    issue: 5
-    pages_or_artno: 1227-1266
-  - doi: 10.1145/3589335.3651526
-    type: journal
-    authors: Steck, H., Ekanadham, C., & Kallus, N.
-    year: 2024
-    title: "Is cosine-similarity of embeddings really about similarity?"
-    venue: Companion Proceedings of the ACM Web Conference 2024
-    pages_or_artno: 887-890
-  - doi: 10.48550/arXiv.2504.16318
-    type: arxiv
-    authors: You, K.
-    year: 2025
-    title: "Semantics at an angle: When cosine similarity works until it doesn't"
-    venue: arXiv
-  - doi: 10.48550/arXiv.2201.10005
-    type: arxiv
-    authors: Neelakantan, A., Xu, T., Puri, R., Radford, A., Han, J. M., Tworek, J., Yuan, Q., Tezak, N., Kim, J. W., Hallacy, C., Heidecke, J., Shyam, P., Power, B., Nekoul, T. E., Sastry, G., Krueger, G., Schnurr, D., Such, F. P., Hsu, K., & Weng, L.
-    year: 2022
-    title: "Text and code embeddings by contrastive pre-training"
-    venue: arXiv
-  - doi: 10.18653/v1/2023.eacl-main.148
-    type: journal
-    authors: Muennighoff, N., Tazi, N., Magne, L., & Reimers, N.
-    year: 2023
-    title: "MTEB: Massive text embedding benchmark"
-    venue: Proceedings of the 17th Conference of the European Chapter of the Association for Computational Linguistics
-    pages_or_artno: 2014-2037
+- doi: 10.48550/arXiv.2506.05176
+  type: arxiv
+  authors: Zhang, Y., Li, M., Long, D., Zhang, X., Lin, H., Yang, B., Xie, P., Yang, A., Liu, D., Lin, J., Huang, F., & Zhou, J.
+  year: 2025
+  title: "Qwen3 Embedding: Advancing text embedding and reranking through foundation models"
+  venue: arXiv
+- doi: 10.48550/arXiv.2401.00368
+  type: arxiv
+  authors: Wang, L., Yang, N., Huang, X., Yang, L., Majumder, R., & Wei, F.
+  year: 2024
+  title: "Improving text embeddings with large language models"
+  venue: arXiv
+- doi: 10.1016/j.econlet.2024.111823
+  type: journal
+  authors: Liu, Y., Cao, Z., & Wen, F.
+  year: 2024
+  title: "Textual similarity between firm and government: Measurement and pricing"
+  venue: Economics Letters
+  vol: 241
+  pages_or_artno: 111823
+- doi: 10.1093/rfs/hhaf012
+  type: journal
+  authors: Jha, M., Liu, H., & Manela, A.
+  year: 2026
+  title: "Does finance benefit society? A language embedding approach"
+  venue: The Review of Financial Studies
+  vol: 39
+  issue: 5
+  pages_or_artno: 1227-1266
+- doi: 10.1145/3589335.3651526
+  type: journal
+  authors: Steck, H., Ekanadham, C., & Kallus, N.
+  year: 2024
+  title: "Is cosine-similarity of embeddings really about similarity?"
+  venue: Companion Proceedings of the ACM Web Conference 2024
+  pages_or_artno: 887-890
+- doi: 10.48550/arXiv.2504.16318
+  type: arxiv
+  authors: You, K.
+  year: 2025
+  title: "Semantics at an angle: When cosine similarity works until it doesn't"
+  venue: arXiv
+- doi: 10.48550/arXiv.2201.10005
+  type: arxiv
+  authors: Neelakantan, A., Xu, T., Puri, R., Radford, A., Han, J. M., Tworek, J., Yuan, Q., Tezak, N., Kim, J. W., Hallacy, C., Heidecke, J., Shyam, P., Power, B., Nekoul, T. E., Sastry, G., Krueger, G., Schnurr, D., Such, F. P., Hsu, K., & Weng, L.
+  year: 2022
+  title: "Text and code embeddings by contrastive pre-training"
+  venue: arXiv
+- doi: 10.18653/v1/2023.eacl-main.148
+  type: journal
+  authors: Muennighoff, N., Tazi, N., Magne, L., & Reimers, N.
+  year: 2023
+  title: "MTEB: Massive text embedding benchmark"
+  venue: Proceedings of the 17th Conference of the European Chapter of the Association for Computational Linguistics
+  pages_or_artno: 2014-2037
 new_dois: []
 ---
 

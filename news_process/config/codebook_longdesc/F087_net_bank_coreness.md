@@ -230,7 +230,28 @@ citations:
   vol: 2
   issue: 1
   pages_or_artno: 113-120
-new_dois: []
+- doi: "10.1080/00036846.2024.2302932"
+  type: journal
+  authors: "Ma, Y., & Zhao, J."
+  year: 2024
+  title: "Do interfund network centralities affect fund systematic risk? Evidence from China open-ended funds"
+  venue: "Applied Economics"
+- doi: "10.1080/00036846.2025.2597474"
+  title: "Beyond single-network assumptions: structural uncertainty and systemic risk in financial networks"
+  authors: "Pang, C., Fan, H., Wu, J., Gao, Q., & Chen, N."
+  year: 2025
+  venue: "Applied Economics"
+  type: "journal"
+- doi: "10.1111/abac.12341"
+  title: "Social Media Networks and Stock Price Synchronicity: Evidence from a Chinese Stock Forum"
+  authors: "Guo, F., Lyu, B., Lyu, X., & Zheng, J."
+  year: 2024
+  venue: "Abacus"
+  type: "journal"
+new_dois:
+  - "10.1080/00036846.2024.2302932"
+  - "10.1080/00036846.2025.2597474"
+  - "10.1111/abac.12341"
 ---
 
 ## CORE
@@ -238,7 +259,7 @@ new_dois: []
 【构念与来源】
 本家族刻画的是银行在年度新闻共现网络中的核性 (coreness), 即该银行嵌入网络凝聚核心的深度。核性以 k-核序数 (k-core number) 操作化: 给定一个无向图, 其 k-核是反复删除所有度数小于 k 的节点后仍留存的最大子图; 一个节点的核序数则是使它仍属于该 k-核的最大 k 值。核序数由 Seidman (1983) 在研究网络结构与最小度时提出, 是刻画凝聚子群与网络稳固内核的经典拓扑量, 直觉上回答的问题是: 这家银行所处的邻域有多致密、多难被外围修剪剥离。度数高但邻居全是悬挂末梢的银行, 会在逐层剥离中迅速掉核, 核序数低; 反之, 一家银行即便度数不算最高, 只要它与一批彼此也高度互连的同侪共处于一个致密团块, 就会获得高核序数。因此核性度量的不是"认识多少家"(那是度中心度, Freeman 1978), 而是"处在多深的抱团核心里"。核序数在算法上等价于图的退化序 (degeneracy ordering) 中每个节点被剥离时的层壳编号: 反复摘除当前最小度节点并记录其被摘时的度, 即得逐节点的 k-壳层级, 这一构造保证核性是良定义、确定且与节点标注顺序无关的整数序。
 
-数据来源为本项目的中文银行新闻语料。构念的网络底座是年度银行共现图: 节点为银行, 边为两家银行在同一年被同一批新闻共同提及的关系。为何用"共现"承载银行间关系? 因为新闻媒体在报道一则事件、一项监管动作或一类业务时, 往往把处境相近、业务关联或同受一事牵动的银行并置于同一篇报道, 这种并置本身就是市场与舆论把它们归为"同一议题簇"的外显信号; 把海量报道里"谁与谁一起被谈论"的成对信号累加成年度网络, 银行在其中的核性便代理了它嵌入公众关注与信息传播结构的深度。这一"从非结构化文本还原可计算网络结构"的方法思路与 Li et al. (2026) 从文本风险披露中提取金融网络结构、度量连通性的做法同源, 二者都主张把文本里的共同出现信号提炼为网络结构量, 只是本项目的语料是新闻而非风险披露, 度量对象是银行的位置深度而非系统连通性水平。银行共现网络一经建立, 银行的核性即成为其在信息-关注结构中所处位置的稳健刻画, 与资产定价、系统性风险等经济后果的网络中心度文献 (Yu, Hu, & Zhong 2024; Xu & Zhao 2024; Nezami, Chisam, & Palmatier 2025) 在构念层面相衔接: 处在网络核心深处的银行, 其信息更易被扩散、其风险更易被联想传染、其估值更易被同侪牵动。
+数据来源为本项目的中文银行新闻语料。构念的网络底座是年度银行共现图: 节点为银行, 边为两家银行在同一年被同一批新闻共同提及的关系。为何用"共现"承载银行间关系? 因为新闻媒体在报道一则事件、一项监管动作或一类业务时, 往往把处境相近、业务关联或同受一事牵动的银行并置于同一篇报道, 这种并置本身就是市场与舆论把它们归为"同一议题簇"的外显信号; 把海量报道里"谁与谁一起被谈论"的成对信号累加成年度网络, 银行在其中的核性便代理了它嵌入公众关注与信息传播结构的深度。这一"从非结构化文本还原可计算网络结构"的方法思路与 Li et al. (2026) 从文本风险披露中提取金融网络结构、度量连通性的做法同源, 二者都主张把文本里的共同出现信号提炼为网络结构量, 只是本项目的语料是新闻而非风险披露, 度量对象是银行的位置深度而非系统连通性水平。银行共现网络一经建立, 银行的核性即成为其在信息-关注结构中所处位置的稳健刻画, 与资产定价、系统性风险等经济后果的网络中心度文献 (Yu, Hu, & Zhong 2024; Xu & Zhao 2024; Nezami, Chisam, & Palmatier 2025) 在构念层面相衔接: 处在网络核心深处的银行, 其信息更易被扩散、其风险更易被联想传染、其估值更易被同侪牵动。在相邻的基金网络情境中, Ma & Zhao (2024, Applied Economics) 实证发现基金间网络中心度 (度中心度与接近中心度) 显著提升基金的系统性风险, 支持网络位置越居中越难以幸免于系统冲击的机制, 与本家族把银行核性作为系统重要性媒体侧代理的构念定位相衔接。Pang, Fan, Wu, Gao, & Chen (2025, Applied Economics) 该文主张系统性风险评估须显式处理金融网络结构本身的不确定性, 而非假设网络被单一、精确观测, 呼应本家族核性构念对判据梯子与边定义敏感性的强调。Guo, Lyu, Lyu, & Zheng (2024, Abacus) 该文以中国股票论坛社交网络数据构造公司间网络中心度, 发现其与股价同步性显著负相关, 为本项目从中文媒体文本构造银行共现网络、以网络位置代理信息结构的思路提供同源实证参照。
 
 【方法学与计算】
 计算在 pipeline\panel\network_spillover.py 的 compute_bank_network_centrality 内完成, 是该函数产出的 33 个结构指标之一 (节点级 18 个中的第 18 项)。流程为逐年重建网络后取拓扑量。边集构造走 build_adjacency_matrix: 在无后缀 canonical 口径 (criterion='article') 下, 对每个 docid (一篇文章) 取其在 both-verified 展开帧中幸存的 target_bank 集合, 集合内每一无序银行对恰计一次共现, 对称累加进邻接矩阵; 这一"按文章聚合、每篇每对加一"的口径修正了旧实现中同一对因两条孪生行去留不同而 1 倍/2 倍任意混计、以及验证已拒绝银行仍以幽灵边入网的问题。节点全集取该年幸存 target_bank 的并集, 含孤立节点。由邻接矩阵建 networkx 无向图 G 后, 核性直接调用 nx.core_number(G) 求得, 孤立银行 (度为 0) 取核序数 0。
@@ -304,4 +325,7 @@ Manski, C. F. (1993). Identification of endogenous social effects: The reflectio
 Seidman, S. B. (1983). Network structure and minimum degree. Social Networks, 5(3), 269-287. https://doi.org/10.1016/0378-8733(83)90028-X
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
 Bonacich, P. (1972). Factoring and weighting approaches to status scores and clique identification. The Journal of Mathematical Sociology, 2(1), 113-120. https://doi.org/10.1080/0022250X.1972.9989806
+Ma, Y., & Zhao, J. (2024). Do interfund network centralities affect fund systematic risk? Evidence from China open-ended funds. Applied Economics. https://doi.org/10.1080/00036846.2024.2302932
+Pang, C., Fan, H., Wu, J., Gao, Q., & Chen, N. (2025). Beyond single-network assumptions: structural uncertainty and systemic risk in financial networks. Applied Economics. https://doi.org/10.1080/00036846.2025.2597474
+Guo, F., Lyu, B., Lyu, X., & Zheng, J. (2024). Social Media Networks and Stock Price Synchronicity: Evidence from a Chinese Stock Forum. Abacus. https://doi.org/10.1111/abac.12341
 <!-- rendered-citations:end -->

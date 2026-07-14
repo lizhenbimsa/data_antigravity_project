@@ -66,6 +66,7 @@ citations:
   issue: 1
   pages_or_artno: 125-143
 new_dois: []
+novelty_exempt_rationale: "该家族是 jiang_2021 词典情感得分的羊群衰减加权求和聚合变体(hw_sum), 与同族的简单均值、idf 加权聚合并列为聚合权重梯子的一支, 其测度定义依据已在母族词典文献(Jiang et al. 2021)与羊群衰减机制原理中给出, 属技术性聚合变体而非独立新构念, 无需单独追新文献。"
 ---
 
 ## CORE

@@ -11,31 +11,31 @@ upstream:
   - 14_materialize_ctx.parquet (content_full / content_ctx / content_ss)
   - strategic_diff 内部 _aggregate_bank_year_texts 产出的 bank-year 聚合文本
 citations:
-  - doi: 10.1111/jofi.12885
-    type: journal
-    authors: Cohen, L., Malloy, C., & Nguyen, Q.
-    year: 2020
-    title: "Lazy prices"
-    venue: The Journal of Finance
-    vol: 75
-    issue: 3
-    pages_or_artno: 1371-1415
-  - doi: 10.1016/j.jcorpfin.2021.102097
-    type: journal
-    authors: Haw, I.-M., Song, B. Y., Tan, W., & Wang, W.
-    year: 2021
-    title: "Bankruptcy, overlapping directors, and bank loan pricing"
-    venue: Journal of Corporate Finance
-    vol: 71
-    pages_or_artno: "Article 102097"
-  - doi: 10.1016/j.gfj.2021.100672
-    type: journal
-    authors: Togan Egrican, A.
-    year: 2021
-    title: "Overlapping board connections with banker directors and corporate loan terms: Evidence from syndicated loans"
-    venue: Global Finance Journal
-    vol: 50
-    pages_or_artno: "Article 100672"
+- doi: 10.1111/jofi.12885
+  type: journal
+  authors: Cohen, L., Malloy, C., & Nguyen, Q.
+  year: 2020
+  title: "Lazy prices"
+  venue: The Journal of Finance
+  vol: 75
+  issue: 3
+  pages_or_artno: 1371-1415
+- doi: 10.1016/j.jcorpfin.2021.102097
+  type: journal
+  authors: Haw, I.-M., Song, B. Y., Tan, W., & Wang, W.
+  year: 2021
+  title: "Bankruptcy, overlapping directors, and bank loan pricing"
+  venue: Journal of Corporate Finance
+  vol: 71
+  pages_or_artno: "Article 102097"
+- doi: 10.1016/j.gfj.2021.100672
+  type: journal
+  authors: Togan Egrican, A.
+  year: 2021
+  title: "Overlapping board connections with banker directors and corporate loan terms: Evidence from syndicated loans"
+  venue: Global Finance Journal
+  vol: 50
+  pages_or_artno: "Article 100672"
 new_dois: []
 ---
 

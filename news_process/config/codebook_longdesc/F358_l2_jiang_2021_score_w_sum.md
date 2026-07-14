@@ -57,7 +57,21 @@ citations:
   vol: 15
   issue: 2
   pages_or_artno: 121-140
-new_dois: []
+- doi: "10.1016/j.frl.2024.105227"
+  title: "Sentiment trading with large language models"
+  authors: "Kirtac, K., & Germano, G."
+  year: 2024
+  venue: "Finance Research Letters"
+  type: "journal"
+- doi: "10.1016/j.eswa.2024.125739"
+  title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
+  authors: "Ma, Y., Zhang, T., & Zhang, P."
+  year: 2025
+  venue: "Expert Systems with Applications"
+  type: "journal"
+new_dois:
+  - "10.1016/j.frl.2024.105227"
+  - "10.1016/j.eswa.2024.125739"
 ---
 
 ## CORE
@@ -69,7 +83,7 @@ new_dois: []
 计算须辨明三个阶段的分工, 不可把加权乘法误挂在情感词典阶段。第一步在情感词典阶段 (stage 22 tone_words) 完成: 对每篇报道先按姜富伟等 (2021) 词典匹配正负情感词, 并叠加本仓统一的三条语言学规则 (否定翻转/程度副词/转折) 得到逐篇净极性分 jiang_2021_score{track}; 须强调 22_tone_words.parquet 落盘的只是这一未加权逐篇极性分, 其中并不含任何提及密度权重, 也不存在名为 jiang_2021_score_w 的逐篇落盘列。第二步的加权乘法实际发生在面板装配阶段, 由 panel runner 步骤 3b 执行: runner 把 stage 22 的未加权极性分 jiang_2021_score{track} 与来自 stage 11 news_bank.py 独立计算 (与体裁显著性特征组 news_salience 并列而非从属) 的逐篇提及密度权重 mention_density 逐行相乘, 现算出加权逐篇分 jiang_2021_score_w{track}, 此列是运行期的中间量而非 stage 22 的落盘列。提及密度权重来自 news_salience, 度量目标银行在该篇文本中被提及的相对强度, 使着墨越重的报道对全年聚合贡献越大, 这与 Hassan et al. (2019, QJE) 以文档相关度/提及强度对逐篇信号赋权的做法一脉相承。第三步在面板聚合阶段 (encode.py 的 value-weighted F 段) 完成: 对同一银行-年-轨道内所有留篇报道由步骤 3b 现算的 jiang_2021_score_w{track} 直接求和, 即得 jiang_2021_score_w_sum{track}。故完整链路是「stage 22 出未加权分 → stage 11 news_salience 出 mention_density → panel runner 步骤 3b 做加权乘法 → encode.py F 段做银行-年求和」四环, 加权环节位于面板 runner 而非词典阶段, 这一归属直接影响复算加权口径时应去哪个阶段核对源列。随后同段以 sum_mention_density 为分母作除法, 派生出归一化的 jiang_2021_tone_vw{track}, 故本家族三列在数学上是该 VW 语调的分子。单位为无量纲加权得分和: 词典极性分本身无量纲, 乘以同样无量纲的提及密度权重后求和, 结果不落在固定区间, 其量纲随报道条数与提及强度伸缩, 因而只可在同口径下横向比较、不可与归一化语调直接比水平。留篇口径遵循 full-only 门控 (2026-06-29): 一篇报道是否计入银行-年宇宙由 full 轨的 LLM 判定决定, ctx 与 ss 轨为条件于 full 留篇集的子集测度, 三轨各自逐轨算列。本家族与词典轨内其他加权口径 (等权 tone_sum、媒体权威加权 score_mw_sum、跟风衰减加权 score_hw_sum) 并排存在, 均以同一逐篇未加权分 jiang_2021_score{track} 为起点, 只是权重来源不同 (提及密度 vs 媒体权威 vs 跟风衰减), 各口径互为稳健性、不分主次, 各自 just-identified, 禁混进同一 over-identified Hansen J。
 
 【文献定位】
-词典来源姜富伟、孟令超、唐国豪 (2021) 以媒体文本情绪预测股票回报为切入点, 构建并验证了面向中文财经语料的情绪词典, 是本家族极性分的唯一词典依据 (DOI: 10.13821/j.cnki.ceq.2021.04.10)。将词典法置于更广的效度谱系中, van Atteveldt et al. (2021) 系统比较人工标注、众包、词典法与机器学习, 指出词典法在特定语域下的偏差与适用边界, 为本项目把词典轨与 LLM 轨、BERT 轨并置为互为稳健性证据提供了方法学理由; Frankel, Jennings & Lee (2022) 在 Management Science 上以披露文本对比机器学习与词典法情感, 是本仓「三方法互为稳健、不分主次」设计的直接先例。就中文金融语域的词典专用性, Du, Huang, Wermers & Wu (2022) 在顶刊 Review of Finance 论证语言与领域专用性对中文金融情感测度的必要性 (语言/领域越贴近目标语料, 词典越能捕捉细微极性), 与姜富伟等词典同属为中文财经文本定制情感资源的谱系, 也是本仓政治词权重敏感性设计的既有依据源。就机器可读文本情绪与资本市场关系这一更宏观脉络, Cao, Jiang, Yang & Zhang (2023) 发表于顶刊 The Review of Financial Studies 的研究考察企业在 AI 阅读者存在时如何调整信息披露语调, 与本家族「文本情绪 → 银行-年面板测度」的构念方向一致, 佐证情绪型文本特征在中国及跨市场语境下具有稳定的实证相关性, 是本家族 value-weighted 聚合口径的顶刊文献锚点。需强调铁律: 本 VW 加权和只是词典轨内部的一种加权口径 (相对于等权 tone 与媒体权威加权 mw、跟风衰减加权 hw), 各加权口径互为稳健性、各自 just-identified 并排, 禁混进同一 over-identified Hansen J; 同理三轨 full/ctx/ss 亦各自 just-identified 并排、禁混同一 Hansen J, 词典轨与 LLM/BERT 轨之间同样只作互为稳健性对照而不合并识别。
+词典来源姜富伟、孟令超、唐国豪 (2021) 以媒体文本情绪预测股票回报为切入点, 构建并验证了面向中文财经语料的情绪词典, 是本家族极性分的唯一词典依据 (DOI: 10.13821/j.cnki.ceq.2021.04.10)。将词典法置于更广的效度谱系中, van Atteveldt et al. (2021) 系统比较人工标注、众包、词典法与机器学习, 指出词典法在特定语域下的偏差与适用边界, 为本项目把词典轨与 LLM 轨、BERT 轨并置为互为稳健性证据提供了方法学理由; Frankel, Jennings & Lee (2022) 在 Management Science 上以披露文本对比机器学习与词典法情感, 是本仓「三方法互为稳健、不分主次」设计的直接先例。就中文金融语域的词典专用性, Du, Huang, Wermers & Wu (2022) 在顶刊 Review of Finance 论证语言与领域专用性对中文金融情感测度的必要性 (语言/领域越贴近目标语料, 词典越能捕捉细微极性), 与姜富伟等词典同属为中文财经文本定制情感资源的谱系, 也是本仓政治词权重敏感性设计的既有依据源。就机器可读文本情绪与资本市场关系这一更宏观脉络, Cao, Jiang, Yang & Zhang (2023) 发表于顶刊 The Review of Financial Studies 的研究考察企业在 AI 阅读者存在时如何调整信息披露语调, 与本家族「文本情绪 → 银行-年面板测度」的构念方向一致, 佐证情绪型文本特征在中国及跨市场语境下具有稳定的实证相关性, 是本家族 value-weighted 聚合口径的顶刊文献锚点。需强调铁律: 本 VW 加权和只是词典轨内部的一种加权口径 (相对于等权 tone 与媒体权威加权 mw、跟风衰减加权 hw), 各加权口径互为稳健性、各自 just-identified 并排, 禁混进同一 over-identified Hansen J; 同理三轨 full/ctx/ss 亦各自 just-identified 并排、禁混同一 Hansen J, 词典轨与 LLM/BERT 轨之间同样只作互为稳健性对照而不合并识别。Kirtac and Germano (2024, Finance Research Letters) 提出并检验基于大语言模型的金融文本情绪交易信号,证明其相对传统词典法在预测股票收益上的增量效力,呼应本家族词典法情感测度作为多方法互为稳健性对照之一的定位。Ma, Zhang and Zhang (2025, Expert Systems with Applications) 面向中国境内投资者构建细粒度中文情感词典并验证其在预测市场波动与异常现象上的效力,与姜富伟等(2021)同属为中文财经语料定制情感词典资源的谱系。
 
 ## VAR: jiang_2021_score_w_sum_ctx
 
@@ -92,4 +106,6 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Cao, S., Jiang, W., Yang, B., & Zhang, A. L. (2023). How to talk when a machine is listening: Corporate disclosure in the age of AI. The Review of Financial Studies, 36(9), 3603-3642. https://doi.org/10.1093/rfs/hhad021
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
+Kirtac, K., & Germano, G. (2024). Sentiment trading with large language models. Finance Research Letters. https://doi.org/10.1016/j.frl.2024.105227
+Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications. https://doi.org/10.1016/j.eswa.2024.125739
 <!-- rendered-citations:end -->

@@ -1,5 +1,6 @@
 ---
 family_id: F268
+novelty_exempt_rationale: "停刊稳健性(exc_)×词典(loughran)×规则消融(degonly)三重派生变体家族, 其测度定义依据母族 Loughran & McDonald 词典文献与规则消融梯子既有方法论, 非独立新构念, 无需追新文献"
 columns:
 - exc_loughran_score_degonly_ctx
 - exc_loughran_score_degonly_full

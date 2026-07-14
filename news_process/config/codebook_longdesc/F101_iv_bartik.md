@@ -225,7 +225,28 @@ citations:
   vol: 60
   issue: 3
   pages_or_artno: 531-542
-new_dois: []
+- doi: "10.1016/j.iref.2024.01.067"
+  type: journal
+  authors: "Fang, Y., Wang, Q., Wang, Y., & Yuan, Y."
+  year: 2024
+  title: "Media sentiment, deposit stability and bank systemic risk: Evidence from China"
+  venue: "International Review of Economics & Finance"
+- doi: "10.1080/00036846.2025.2475245"
+  type: journal
+  authors: "Xu, M., He, M., & Tang, X."
+  year: 2025
+  title: "Bank competition and labor share: evidence from China"
+  venue: "Applied Economics"
+- doi: "10.1016/j.jcorpfin.2025.102935"
+  type: journal
+  authors: "Bao, Y., & Goetz, M. R."
+  year: 2026
+  title: "Local peer effects and corporate investment"
+  venue: "Journal of Corporate Finance"
+new_dois:
+  - "10.1016/j.iref.2024.01.067"
+  - "10.1080/00036846.2025.2475245"
+  - "10.1016/j.jcorpfin.2025.102935"
 ---
 
 ## CORE
@@ -240,7 +261,7 @@ new_dois: []
 三台引擎在实现层共享一套数据契约, 该契约的每一条都直接决定使用者能否正确解读列值。第一, 行宇宙与留篇门控: 文章级输入 df_exploded 的行宇宙由 full-only 留篇门控决定 — 自二零二六年六月二十九日起, 一篇文章是否被判为银行金融科技报道只看全文轨的大模型确认旗标, ctx 与 ss 轨降为 conditional-on-full 的测度轨, 其列在 full 留篇集的子集上取值; 因此本家族三条轨的工具共享同一篇章分母, 轨间差异纯粹来自测量窗口而非样本构成, 这是三轨可以互为稳健性对照的前提。第二, 双维命名契约: 列名尾缀 _full, _ctx, _ss 一律标注 shift 源测度的文本轨; share 侧的判据信息编码在前缀里 (fintech_lf 对 fintech_lc 的定位分类判据轨、geoprox 的省份判据、mauth 的评分档位), 两个维度独立正交, 任何按尾缀推断份额判据的读法都是错读。第三, 份额归一化跨族可比契约: 全部前缀族统一执行兜底类别双侧排除后归一, 保证保留份额行和为一 — 该口径经专项修复统一 (media 族修复前行和仅约七成), 使跨工具二阶段系数的量级可比。第四, 变量标签契约: 导出层为每列登记英文变量标签, 注明前缀族、份额判据与 shift 轨, 契约别名列与本体列双名登记; Stata 模板按 paper_spec 的 identification.iv 声明名引用, 改名须同步三处 (引擎输出、标签表、模板占位符), 否则模板实例化断链。第五, 日志自证契约: 每次构造在日志中落基期文章数与全量占比、各组份额分布、逐轨有效行数与均值标准差, 以及方法论引用清单, 使任何一次面板生产都能从日志复核工具的构造根据; 这些日志量全部算后即弃, 不参与数值计算, 属 golden-safe 口径。
 
 【文献定位】
-方法学谱系上, Goldsmith-Pinkham, Sorkin & Swift (2020) 证明 Bartik 工具在数值上等价于以基期份额为工具的广义矩估计, 并给出 Rotemberg 权重分解以定位哪些份额维度主导识别; 本家族在日志层内置了该诊断的近似实现, 并注明正式论文须以 Stata 的 bartik_weight 官方包复算。Borusyak, Hull & Jaravel (2022) 给出冲击外生性框架下的等价估计与推断; Adão, Kolesár & Morales (2019) 证明 shift-share 设计中残差在份额结构相近的观测间相关, 常规聚类标准误严重低估, 须用其提出的份额感知推断; Borusyak, Hull & Jaravel (2025) 的实践指南则把两条识别路径的核对清单 (不完整份额处理、重归一化选择、基期前定性论证) 系统化, 本家族的实现逐条对表。推断补强侧, Lee, McCrary, Moreira & Porter (2022) 的有效 t 比值临界值、Stock & Yogo (2005) 与 Andrews, Stock & Sun (2019) 的弱工具诊断谱系、Wang & Zhang (2024) 的少簇 wild bootstrap 共同构成模板层的弱工具与少簇防线; 工具族数量达到阈值后主表强制使用 Romano & Wolf (2005) 的逐步降压多重检验校正。构念源头侧, shift 源测度分别锚定 Hassan, Hollander, van Lent & Tahoun (2019) 的公司层文本暴露范式 (注意力族)、媒体经济学关于媒体类型与倾向的证据 (Qin, Strömberg & Wu 2018 提供中国媒体分层的制度事实, 支撑 media 与 mauth 族的份额维度)、以及 Engelberg & Parsons (2011) 用地理媒体覆盖差异分离媒体因果效应的设计 (geoprox 族的直接先例)。同业效应识别的一般理论中, Manski (1993) 的反射问题与 Bramoullé, Djebbari & Fortin (2009) 的网络识别条件解释了为何裸的组均值不能当工具、必须叠加基期冻结份额与 LOO 剔除; Gabaix & Koijen (2024) 的颗粒工具变量与 Luo 等 (2025) 的同伴效应工具化框架是本家族 LOO shift 构造的近缘方法; Breuer (2022) 面向财务与会计实证场景给出的 Bartik 应用入门, 逐项讨论了份额来源选择、基期锚定与工具报告规范, 为本家族在中文银行金融科技新闻场景的移植提供了最贴近的操作对照与陷阱清单。
+方法学谱系上, Goldsmith-Pinkham, Sorkin & Swift (2020) 证明 Bartik 工具在数值上等价于以基期份额为工具的广义矩估计, 并给出 Rotemberg 权重分解以定位哪些份额维度主导识别; 本家族在日志层内置了该诊断的近似实现, 并注明正式论文须以 Stata 的 bartik_weight 官方包复算。Borusyak, Hull & Jaravel (2022) 给出冲击外生性框架下的等价估计与推断; Adão, Kolesár & Morales (2019) 证明 shift-share 设计中残差在份额结构相近的观测间相关, 常规聚类标准误严重低估, 须用其提出的份额感知推断; Borusyak, Hull & Jaravel (2025) 的实践指南则把两条识别路径的核对清单 (不完整份额处理、重归一化选择、基期前定性论证) 系统化, 本家族的实现逐条对表。推断补强侧, Lee, McCrary, Moreira & Porter (2022) 的有效 t 比值临界值、Stock & Yogo (2005) 与 Andrews, Stock & Sun (2019) 的弱工具诊断谱系、Wang & Zhang (2024) 的少簇 wild bootstrap 共同构成模板层的弱工具与少簇防线; 工具族数量达到阈值后主表强制使用 Romano & Wolf (2005) 的逐步降压多重检验校正。构念源头侧, shift 源测度分别锚定 Hassan, Hollander, van Lent & Tahoun (2019) 的公司层文本暴露范式 (注意力族)、媒体经济学关于媒体类型与倾向的证据 (Qin, Strömberg & Wu 2018 提供中国媒体分层的制度事实, 支撑 media 与 mauth 族的份额维度)、以及 Engelberg & Parsons (2011) 用地理媒体覆盖差异分离媒体因果效应的设计 (geoprox 族的直接先例)。Fang, Wang, Wang & Yuan (2024, International Review of Economics & Finance) 用中国银行层面媒体情感指数识别其对系统性风险的因果传导, 为本家族 media/mauth 前缀族的份额判据 (媒体类型与权威性刻画银行舆论暴露异质性) 提供了同类制度背景下的中国银行媒体情感测量先例。Xu, He & Tang (2025, Applied Economics) 利用中国银行业竞争度构造的准工具变量识别策略, 考察银行业竞争对劳动收入份额的因果影响, 与本家族 Bartik/shift-share 工具变量在中国银行业场景下的应用高度相关。Bao & Goetz (2026, Journal of Corporate Finance) 采用留一法 (leave-one-out) 同伴均值构造工具变量识别本地同伴效应对企业投资的因果影响, 方法论上与本家族 LOO/Bartik 工具变量构造直接呼应。同业效应识别的一般理论中, Manski (1993) 的反射问题与 Bramoullé, Djebbari & Fortin (2009) 的网络识别条件解释了为何裸的组均值不能当工具、必须叠加基期冻结份额与 LOO 剔除; Gabaix & Koijen (2024) 的颗粒工具变量与 Luo 等 (2025) 的同伴效应工具化框架是本家族 LOO shift 构造的近缘方法; Breuer (2022) 面向财务与会计实证场景给出的 Bartik 应用入门, 逐项讨论了份额来源选择、基期锚定与工具报告规范, 为本家族在中文银行金融科技新闻场景的移植提供了最贴近的操作对照与陷阱清单。
 
 【识别策略定位】
 本家族的识别主张单边押注份额外生性路径: 银行在基期与哪些类型的同业共现、其基期报道落在哪些属性类别, 被论证为先于样本期内政策冲击与结果实现的前定暴露结构。三重护栏在代码层强制执行这一主张。其一, 基期外生性红线: T0 若不早于 2019 里程碑直接抛错, 基期敏感性变体的基期若触线则整列置缺失并告警, 不允许份额测自后处理期。其二, share 前视掩码: 早于基期末年的面板行工具置缺失, 承认份额外生性论证对这些行结构性失效。其三, v6 修剪: 早期版本曾生产二十九个维度族, 经逐维审查后二十八类因份额取自文章特征、编辑事后决策或时间切分等后定属性而被整族删除, 仅保留六类核心维度 (银行类型、银行规模、金融科技定位、媒体三方类型、媒体权威性、地理邻近), 另加步骤 8z 复用 type 份额的三个测度族; 保留族数仍多于单一工具, 故论文主表配 Romano-Wolf 校正压制多工具挑选空间。必须复述的口径铁律: shift 是同组其他银行的内生 LOO 情感或属性均值, 不是准随机外生冲击, 因此 Borusyak-Hull-Jaravel 意义上的冲击外生性路径对本家族不可用, 一切识别重量压在 GPSS 份额路径上, 论文须以基期前定性与 Rotemberg 权重集中度论证支撑; Hahn, Kuersteiner, Santos & Willigrod (2024) 进一步表明 shift-share 设计中的过度识别检验在共同冲击下失效, 这为下述禁混铁律提供计量支撑。份额外生性路径的可检验含义是有限的: 它不允许直接检验排他性, 只允许检验基期份额与银行基期可观测特征的条件独立 (平衡性检验) 与处理前平行趋势, 因此本家族把识别辩护的重量放在两处程序化产物上 — 基期份额分量的落盘 (供平衡性回归) 与 Rotemberg 权重的日志级近似分解 (供识别集中度诊断)。按 Goldsmith-Pinkham, Sorkin & Swift (2020) 的框架, 若某一份额维度承载了绝大部分正的 Rotemberg 权重, 则识别实际由该单一维度驱动, 论文须针对该维度而非全份额向量论证前定性; 若出现显著为负的 Rotemberg 权重, 则不同维度的隐含二阶段估计相互抵消, 提示识别脆弱, 须按 Borusyak, Hull & Jaravel (2025) 实践指南的核对清单逐项复核不完整份额处理与重归一化选择。本家族保留的六类核心维度并非任意挑选: 每一类的份额判据 (监管类型、企业规模、注册地省份、媒体三档、媒体三方类型、创新定位) 均须满足"编纂期或样本期前既定、不随当年报道实现变动"的形式门槛, v6 修剪删去的二十八类恰因份额取自文章事后特征或编辑决策而不满足该门槛, 这条筛选标准本身就是份额外生性路径在维度选择层的具体化。
@@ -477,4 +498,7 @@ Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effect
 Romano, J. P., & Wolf, M. (2005). Stepwise multiple testing as formalized data snooping. Econometrica, 73(4), 1237-1282. https://doi.org/10.1111/j.1468-0262.2005.00615.x
 Stock, J. H., & Yogo, M. (2005). Testing for weak instruments in linear IV regression. Identification and inference for econometric models: Essays in honor of Thomas Rothenberg (Cambridge University Press). https://doi.org/10.1017/CBO9780511614491.006
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. The Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
+Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2024.01.067
+Xu, M., He, M., & Tang, X. (2025). Bank competition and labor share: evidence from China. Applied Economics. https://doi.org/10.1080/00036846.2025.2475245
+Bao, Y., & Goetz, M. R. (2026). Local peer effects and corporate investment. Journal of Corporate Finance. https://doi.org/10.1016/j.jcorpfin.2025.102935
 <!-- rendered-citations:end -->

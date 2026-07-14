@@ -81,7 +81,14 @@ citations:
   vol: 62
   issue: 3
   pages_or_artno: 1139-1168
-new_dois: []
+- doi: "10.1002/isaf.1549"
+  type: journal
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+new_dois:
+  - "10.1002/isaf.1549"
 ---
 
 ## CORE
@@ -93,7 +100,7 @@ new_dois: []
 计算链条分三段。第一段在 stage 22 (22_tone_words.parquet): 对每一篇报道、每一部词典 d, 依据该词典的正负词表并施加统一的三条语言学规则 (否定翻转、程度副词加权、转折削弱) 算出逐篇分值 {d}_score{track}。第二段在面板聚合 (encode.py): 以 sum 聚合把银行—年内全部报道的 {d}_score{track} 相加, 得到六个逐词典求和列 {d}_tone_sum{track}; 六部词典为 jiang_2021、yao_2021、bian_2021、du_2022、you_2018、loughran (本仓库 tone_dicts.json 中 JSON 键 loughran_mcdonald_zh_2026、别名 loughran 的词典轨, 系将 Loughran 与 McDonald 2011 英文金融情感词表逐词中译并面向中文银行业媒体语料做本土化扩展的版本, 沿用其八类情感框架)。第三段在 geography.py: 用 _safe_mean 对这六个逐词典求和列做跨词典算术平均, 落成本家族列 dict_avg_tone_sum{track}。_safe_mean 对缺席的源列优雅返回 NaN, 因此在 golden 重生之前若某轨或某词典的源列尚未落盘, 该综合列不会崩溃而是按可得词典求平均。跨词典求平均的动机与稳健文本测度的主张一致 (Loughran & McDonald 2011; García, Hu & Rohrer 2023): 任何单一词表都带有其构造语料与领域的特异偏差, 六部词典的均值削平了词表选择这一研究者自由度, 使综合测度对「换一部词典结论就变」的批评更有抵抗力。van Atteveldt、van der Velden 与 Boukes (2021) 在方法论层面比较了人工标注、众包、词典与机器学习四条路径, 指出词典法虽召回稳定但对领域漂移敏感 —— 跨词典平均正是对这一敏感性的低成本对冲。
 
 【文献定位】
-本测度处在「财务文本情感测量三角」中的词典法顶点。相对基于机器学习的判别法 (Frankel, Jennings & Lee 2022 比较了词典法与机器学习在披露情感上的分歧) 与本仓库并行的 BERT、三家 LLM 投票法, 词典法的优势在于完全透明、零推断成本、逐词可追溯, 劣势在于无法捕捉上下文与反讽。García 等 (2023) 用大样本证明金融词汇的情感色彩本身具有可度量的横截面结构, 为词典法的效度提供了新证据。Du、Huang、Wermers 与 Wu (2022) 与 Bian、Jia、Li 与 Yan (2021) 分别构造了面向中文金融语料的情感词典, 二者均进入本家族的六部词典集合, 确保综合测度在中文媒体语境下不被英文词表 (Loughran) 的语义错位主导。在识别与推断纪律上须复述本仓库铁律: 求和口径 (本家族) 与均值口径 (dict_avg_tone)、IDF 加权口径 (dict_avg_idf_tone)、规则消融梯度各变体, 以及三条文本轨 full/ctx/ss, 彼此「各自 just-identified 并排、互为稳健性、不分主次」, 严禁把它们混进同一条 over-identified 的 Hansen J 过度识别检验 —— 它们是同一构念的替代测量而非可叠加的独立工具变量。
+本测度处在「财务文本情感测量三角」中的词典法顶点。相对基于机器学习的判别法 (Frankel, Jennings & Lee 2022 比较了词典法与机器学习在披露情感上的分歧) 与本仓库并行的 BERT、三家 LLM 投票法, 词典法的优势在于完全透明、零推断成本、逐词可追溯, 劣势在于无法捕捉上下文与反讽。García 等 (2023) 用大样本证明金融词汇的情感色彩本身具有可度量的横截面结构, 为词典法的效度提供了新证据。Du、Huang、Wermers 与 Wu (2022) 与 Bian、Jia、Li 与 Yan (2021) 分别构造了面向中文金融语料的情感词典, 二者均进入本家族的六部词典集合, 确保综合测度在中文媒体语境下不被英文词表 (Loughran) 的语义错位主导。在识别与推断纪律上须复述本仓库铁律: 求和口径 (本家族) 与均值口径 (dict_avg_tone)、IDF 加权口径 (dict_avg_idf_tone)、规则消融梯度各变体, 以及三条文本轨 full/ctx/ss, 彼此「各自 just-identified 并排、互为稳健性、不分主次」, 严禁把它们混进同一条 over-identified 的 Hansen J 过度识别检验 —— 它们是同一构念的替代测量而非可叠加的独立工具变量。Todd、Bowden 与 Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 的综述系统梳理了金融文本情感分析中词典法与机器学习法的方法学谱系与局限, 为本家族采用跨词典求和口径捕捉媒体情感累积存量提供了最新的方法学定位依据。
 
 ## VAR: dict_avg_tone_sum_full
 
@@ -119,4 +126,5 @@ van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validit
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
 <!-- rendered-citations:end -->

@@ -1,5 +1,6 @@
 ---
 family_id: F237
+novelty_exempt_rationale: "F237 是 exc_ 前缀的媒体退出稳健性排除变体 × negdeg 规则消融臂, 属于 bian_2021 词典母族的派生/消融子变体 (非独立构念), frontmatter 已含 5 篇文献且含 2025 (Barbaglia et al., Economic Inquiry) 与 2022 (Frankel et al., Management Science; Du et al., Review of Finance) 三篇 2022+ 文献, 覆盖词典法情感分析、效价转移词处理、中文财经词典构建与词典-ML比较等全部构念维度, 母族文献已充分覆盖, 无需为该 exc_/negdeg 消融格点单独补充引文。"
 columns:
 - exc_bian_2021_score_negdeg_ctx
 - exc_bian_2021_score_negdeg_full

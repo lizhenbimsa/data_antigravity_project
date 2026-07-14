@@ -1,5 +1,6 @@
 ---
 family_id: F277
+novelty_exempt_rationale: "exc_ 停刊稳健性聚合 × degonly 规则消融的双重派生变体家族, 测度定义依据母族 yao_2021 词典及规则消融/停刊排除机制的既有文献支撑, 非独立新构念, 无需追新文献。"
 columns:
 - exc_yao_2021_score_degonly_ctx
 - exc_yao_2021_score_degonly_full

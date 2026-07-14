@@ -87,7 +87,28 @@ citations:
   vol: 68
   issue: 7
   pages_or_artno: 5514-5532
-new_dois: []
+- doi: "10.1002/isaf.1549"
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+  type: "journal"
+- doi: "10.1109/ssci52147.2023.10371970"
+  title: "FinSenticNet: A Concept-Level Lexicon for Financial Sentiment Analysis"
+  authors: "Du, K., Xing, F., Mao, R., & Cambria, E."
+  year: 2023
+  venue: "2023 IEEE Symposium Series on Computational Intelligence (SSCI)"
+  type: "wp"
+- doi: "10.1016/j.ribaf.2025.102881"
+  title: "Annual report tone and bank risk-taking behavior: Evidence from China"
+  authors: "Wei, L., Wei, M., Jing, H., & Jing, Z."
+  year: 2025
+  venue: "Research in International Business and Finance"
+  type: "journal"
+new_dois:
+  - "10.1002/isaf.1549"
+  - "10.1109/ssci52147.2023.10371970"
+  - "10.1016/j.ribaf.2025.102881"
 ---
 
 ## CORE
@@ -99,7 +120,7 @@ new_dois: []
 逐篇 idf 加权得分 you_2018_idf_score{track}(a) 在 stage 22 tone_words.py 中计算: 先用 you_2018 正负词表在文章分词结果上做词典匹配(同时应用否定翻转/程度副词/转折等语言学规则, 与等权口径一致), 再将每个命中词的 ±1 极性乘以该词在全语料上的 idf 权重后求和/归一, 得到单篇 idf 加权语调分。bank-year 面板聚合层(pipeline/panel/encode.py)在此之上派生出本家族 21 列: (1) 无后缀基线列 you_2018_idf_tone{track} 是该 bank-year 内全部留篇文章 idf 语调分的等权算术平均, 是本家族的 canonical 测度; (2) _std 后缀是同一集合的标准差, 度量语调的篇间离散度而非水平; (3) _vw/_mw/_hw 三个加权变体分别用文章的媒体提及密度(mention_density, 出自 stage 11 news_salience)、媒体权威分层权重(Holzman et al. 2023 的三级媒体声誉权重)、以及 herd-decay 时间衰减权重(stage 24, 越晚近报道权重越高的衰减核)对逐篇 idf 语调分加权求和后除以对应权重和, 三者是彼此正交、互为稳健性的聚合方式选择, 不构成同一构念的层级关系; (4) _app/_tech 是按 innovation_locus_full(P4 Gomber(2018)框架下的"底层技术"vs"应用场景"金融科技创新定位分类, 判据固定用 full 轨文本分类结果)切分子样本后重新计算的等权均值, 与切分该 idf 语调分本身所用的轨道(full/ctx/ss)是两个独立维度, 不可混淆——例如 you_2018_idf_tone_app_ctx 是"ctx 轨文本算出的 idf 语调分, 限定在 full 轨判定为应用场景类的文章子集"。
 
 【文献定位】
-idf 词权思路的方法学锚点是 Gentzkow, Kelly & Taddy (2019, JEL)《Text as data》对 text-as-data 文献中 tf-idf 类词加权技术的系统综述, 以及 Spärck Jones (1972) 提出的逆文档频率(idf)统计解释这一信息检索经典定义本身。you_2018_idf_tone 与家族外的等权 you_2018_tone(若存在)/等权其余五词典构成"等权计数 vs idf 加权"的方法学梯子, 二者互为稳健性稳健性检验、不设主次: 等权口径假设每个命中词信息量相同, idf 口径假设高频泛用词信息量更低, 两种假设在文献中均有支持, 因此并排报告。_mw 变体的方法学依据是 Holzman, Miller & Twedt (2023, The Accounting Review) 对媒体声誉分级加权在语调可信度上的作用的实证发现; _app/_tech 分类判据的方法学依据是 Gomber, Kauffman, Parker & Weber (2018, JMIS) 对金融科技创新"底层技术 vs 应用场景"二分框架的界定, 该框架是本项目 P4(bank_fintech_locus)论文主轨的构念基础。
+idf 词权思路的方法学锚点是 Gentzkow, Kelly & Taddy (2019, JEL)《Text as data》对 text-as-data 文献中 tf-idf 类词加权技术的系统综述, 以及 Spärck Jones (1972) 提出的逆文档频率(idf)统计解释这一信息检索经典定义本身。you_2018_idf_tone 与家族外的等权 you_2018_tone(若存在)/等权其余五词典构成"等权计数 vs idf 加权"的方法学梯子, 二者互为稳健性稳健性检验、不设主次: 等权口径假设每个命中词信息量相同, idf 口径假设高频泛用词信息量更低, 两种假设在文献中均有支持, 因此并排报告。_mw 变体的方法学依据是 Holzman, Miller & Twedt (2023, The Accounting Review) 对媒体声誉分级加权在语调可信度上的作用的实证发现; _app/_tech 分类判据的方法学依据是 Gomber, Kauffman, Parker & Weber (2018, JMIS) 对金融科技创新"底层技术 vs 应用场景"二分框架的界定, 该框架是本项目 P4(bank_fintech_locus)论文主轨的构念基础。Todd, Bowden & Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 系统综述了金融文本情感分析(含词典法与idf/tf-idf类词权加权技术)近年发展与未来方向, 为本家族idf加权语调测度提供最新方法学脉络锚点。Du, Xing, Mao & Cambria (2023, 2023 IEEE Symposium Series on Computational Intelligence) 提出面向金融文本的概念级情感词库FinSenticNet, 用图卷积网络建模多词金融概念间关系, 在情感分类任务上超越通用及既有金融词典基线, 为本家族idf加权词典法提供近年概念级词权构建的方法学参照。Wei, Wei, Jing & Jing (2025, Research in International Business and Finance) 以中国银行业年报语调为研究对象, 检验文本语调测度与银行风险承担行为的关系, 为本家族基于中文金融文本的语调测度提供同语境(中国银行业)近年实证锚点。
 
 三轨/加权梯子铁律: full/ctx/ss 三个文本轨道, vw/mw/hw 三种加权口径, 与 app/tech 二分类判据均是各自独立、just-identified 并排的稳健性维度, 不得混入同一个 over-identified 的 Hansen J 检验框架中联合识别; 三轨之间互为稳健性、不分主次, 各自独立进入回归而非合并为单一右手边变量。留篇门控口径遵循 2026-06-29 起生效的 full-only 规则: 一篇报道是否计入"银行—金融科技共现报道"样本仅由 llm_verified_full 判定, ctx/ss 轨的语调数值是在 full 轨留篇集合的子集上计算的条件测度/稳健性轨, 而非独立样本; you_2018_idf_tone_ctx/_ss 的行宇宙始终是 you_2018_idf_tone_full 留篇集合的子集。ss 轨遵循镜像 ctx 的回退语义: 若某篇文章在标题窗口内不存在银行∧金融科技同句共现, 则 content_ss 回退为全文正文(与 content_full 相同文本), ss_is_fallback 置为 True, 此时该篇的 you_2018_idf_score_ss 数值上等于按同一词典对全文计算的结果, 不代表真实的"同句窗口"语调; bank-year 聚合分母(n_articles)在 full/ctx/ss 之间共享同一计数口径。
 
@@ -215,4 +236,7 @@ Spärck Jones, K. (1972). A statistical interpretation of term specificity and i
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing enthusiasm: Media sentiment and the disciplining role of quarterly earnings announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
 Gomber, P., Kauffman, R. J., Parker, C., & Weber, B. W. (2018). On the fintech revolution: Interpreting the forces of innovation, disruption, and transformation in financial services. Journal of Management Information Systems, 35(1), 220-265. https://doi.org/10.1080/07421222.2018.1440766
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
+Du, K., Xing, F., Mao, R., & Cambria, E. (2023). FinSenticNet: A Concept-Level Lexicon for Financial Sentiment Analysis. 2023 IEEE Symposium Series on Computational Intelligence (SSCI) [Working Paper]. https://doi.org/10.1109/ssci52147.2023.10371970
+Wei, L., Wei, M., Jing, H., & Jing, Z. (2025). Annual report tone and bank risk-taking behavior: Evidence from China. Research in International Business and Finance. https://doi.org/10.1016/j.ribaf.2025.102881
 <!-- rendered-citations:end -->

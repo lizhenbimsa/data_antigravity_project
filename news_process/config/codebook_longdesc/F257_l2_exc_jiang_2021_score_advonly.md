@@ -1,5 +1,6 @@
 ---
 family_id: F257
+novelty_exempt_rationale: "停刊代理剔除(exc_)×语言学规则消融(advonly)双重变体家族, 测度定义依据姜富伟(2021)母族词典与规则消融方法论(Taboada et al. 2011), 非独立新构念, 无需追加2023+新颖引文。"
 columns:
 - exc_jiang_2021_score_advonly_ctx
 - exc_jiang_2021_score_advonly_full

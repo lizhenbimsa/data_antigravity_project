@@ -66,7 +66,14 @@ citations:
   vol: '150'
   issue: '1'
   pages_or_artno: 41-55
-new_dois: []
+- doi: "10.1016/j.iref.2022.09.007"
+  type: journal
+  authors: "Chen, R., Huang, J., Jin, C., Yang, Y., & Chen, B."
+  year: 2023
+  title: "Multidimensional attention to Fintech, trading behavior and stock returns"
+  venue: "International Review of Economics & Finance"
+new_dois:
+- "10.1016/j.iref.2022.09.007"
 ---
 
 ## CORE
@@ -90,7 +97,7 @@ F320 (`ft_vol_yr`/`ft_vol_prov`/`ft_vol_city`) 是"金融科技媒体覆盖总�
 三列共同遵循的 NaN 语义契约: panel 是 balance_panel 笛卡尔积, 可能含 12_full universe 之外的 bank-year (该银行该年完全无任何银行新闻覆盖, `has_coverage=0`); 这类行经 panel LEFT-join 后天然得全 NaN。这与"有新闻但零金融科技新闻"的情形刻意不对称处理: 前者是"注意力不可测" (无信息, 应做 NaN 并在回归中 listwise 删除), 后者是"真零曝光" (有信息, 保留为信息性零, ln(1+0)=0)。两者混淆会低估或高估金融科技媒体覆盖的实际零值比例, 该契约在 `test_attention_treatments::test_panel_superset_rows_are_nan` 中被锁定测试。
 
 【文献定位】
-本族的核心构念直接来自 Fang & Peress (2009, *The Journal of Finance*) 提出的媒体覆盖度量范式: 该文以"是否被全国性/地方性报纸报道"以及报道次数刻画投资者关注广度, 发现媒体覆盖的缺失本身预测未来超额收益, 确立了"覆盖计数"作为关注度代理变量的合法性, 是本族 extensive-margin 设计思路的直接理论来源。与之互补的 Da, Engelberg & Gao (2011, *The Journal of Finance*) 则用 Google 搜索量构造"投资者关注指数" (Search Volume Index), 二者共同构成"媒体侧覆盖 vs. 需求侧关注"两条平行的关注度测度传统, 本族选择前者 (供给侧媒体覆盖计数) 而非后者。Tetlock (2007, *The Journal of Finance*) 与 Engelberg & Parsons (2011, *The Journal of Finance*) 进一步论证媒体报道 (而非仅仅是媒体所报道的公司基本面) 对交易行为与股价具有独立于信息内容的因果影响, 为把"报道规模"本身 (而非报道内容的情感极性, 后者在本项目中由 stage 21/22/23 情感族单独测度) 作为一个独立可解释变量提供了理论支撑。地理维度的 leave-one-out 加权设计所处理的反身性问题, 呼应 Manski (1993, *The Review of Economic Studies*) 对社会效应识别中"反射问题"的经典论述, 以及后续 Bramoullé, Djebbari & Fortin (2009, *Journal of Econometrics*) 关于社会网络中同侪效应识别的方法论传统 — 二者共同提示: 任何把"个体所处群体环境"作为解释变量的设计, 都必须先从群体均值中剔除个体自身贡献, 否则估计系数无法与真实的环境外溢效应区分开。
+本族的核心构念直接来自 Fang & Peress (2009, *The Journal of Finance*) 提出的媒体覆盖度量范式: 该文以"是否被全国性/地方性报纸报道"以及报道次数刻画投资者关注广度, 发现媒体覆盖的缺失本身预测未来超额收益, 确立了"覆盖计数"作为关注度代理变量的合法性, 是本族 extensive-margin 设计思路的直接理论来源。与之互补的 Da, Engelberg & Gao (2011, *The Journal of Finance*) 则用 Google 搜索量构造"投资者关注指数" (Search Volume Index), 二者共同构成"媒体侧覆盖 vs. 需求侧关注"两条平行的关注度测度传统, 本族选择前者 (供给侧媒体覆盖计数) 而非后者。Tetlock (2007, *The Journal of Finance*) 与 Engelberg & Parsons (2011, *The Journal of Finance*) 进一步论证媒体报道 (而非仅仅是媒体所报道的公司基本面) 对交易行为与股价具有独立于信息内容的因果影响, 为把"报道规模"本身 (而非报道内容的情感极性, 后者在本项目中由 stage 21/22/23 情感族单独测度) 作为一个独立可解释变量提供了理论支撑。地理维度的 leave-one-out 加权设计所处理的反身性问题, 呼应 Manski (1993, *The Review of Economic Studies*) 对社会效应识别中"反射问题"的经典论述, 以及后续 Bramoullé, Djebbari & Fortin (2009, *Journal of Econometrics*) 关于社会网络中同侪效应识别的方法论传统 — 二者共同提示: 任何把"个体所处群体环境"作为解释变量的设计, 都必须先从群体均值中剔除个体自身贡献, 否则估计系数无法与真实的环境外溢效应区分开。此外, Chen, Huang, Jin, Yang & Chen (2023, International Review of Economics & Finance) 构建多维度金融科技关注度指数(含媒体报道维度)并证明其对交易行为与股票收益具有增量解释力, 为本族以媒体覆盖规模刻画金融科技曝光度的构念提供了2023年最新实证支撑。
 
 ## VAR: ft_vol_city
 
@@ -114,4 +121,5 @@ Tetlock, P. C. (2007). Giving Content to Investor Sentiment: The Role of Media i
 Engelberg, J. E., & Parsons, C. A. (2011). The Causal Impact of Media in Financial Markets. The Journal of Finance, 66(1), 67-97. https://doi.org/10.1111/j.1540-6261.2010.01626.x
 Manski, C. F. (1993). Identification of Endogenous Social Effects: The Reflection Problem. The Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
 Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of Peer Effects through Social Networks. Journal of Econometrics, 150(1), 41-55. https://doi.org/10.1016/j.jeconom.2008.12.021
+Chen, R., Huang, J., Jin, C., Yang, Y., & Chen, B. (2023). Multidimensional attention to Fintech, trading behavior and stock returns. International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2022.09.007
 <!-- rendered-citations:end -->

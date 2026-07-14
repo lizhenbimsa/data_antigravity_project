@@ -144,7 +144,14 @@ citations:
   vol: 73
   issue: 4
   pages_or_artno: 1237-1282
-new_dois: []
+- doi: "10.1016/j.najef.2024.102307"
+  type: journal
+  authors: "Klaucke, K."
+  year: 2025
+  title: "Text Spillover: Measuring connectedness of financial institutions based on news text data"
+  venue: "The North American Journal of Economics and Finance"
+new_dois:
+  - "10.1016/j.najef.2024.102307"
 ---
 
 ## CORE
@@ -162,7 +169,7 @@ new_dois: []
 关于取值范围与经济解读: 因节点情感 llm_vote_tone 取值约在 [-1,1] (负面到正面), 而 W 与 W² 行归一后是同行的凸组合权重, 故 peer_tone 与 peer_tone_2nd 都落在同行情感的凸包内、量纲与 llm_vote_tone 一致 (无量纲连续值)。一个较正的 peer_tone 意味着焦点银行去年的共现同行整体被媒体正面报道, 焦点银行处于"友善舆论邻里"; 较负则处于"负面舆论邻里", 可能承受同业负面消息的连带压力 (如挤兑传染的舆论前兆)。这一横向传导的下游经济后果 —— 存款稳定、融资成本、系统性风险 —— 在中国银行样本上有直接证据 (Fang, Wang, Wang & Yuan, 2024), 也与社群情感信号本身可定价的发现 (Cookson, Lu, Mullins & Niessner, 2024) 一致, 说明本家族并非纯统计构造而承载可检验的经济机制。
 
 【文献定位】
-本家族坐落在三支文献的交汇处。一是媒体情感的信息与定价文献: Tetlock (2007) 证明媒体语调对市场有内容性影响, Shapiro, Sudhof & Wilson (2022) 给出可复现、可迁移的新闻情感测度范式 (本家族节点情感的测量学参照), Holzman, Miller & Twedt (2023) 刻画媒体情感与硬信息披露 (季度盈余公告) 的相互纪律作用, 说明媒体语调并非独立于基本面而是与之动态互纠; 在中国情境下, Xu, Hua & Zhang (2025) 证明官方媒体语调对股市有解释力, Fang, Wang, Wang & Yuan (2024) 直接在银行层面把媒体情感与存款稳定、系统性风险相连 —— 后者与本项目"银行×媒体情感"对象、语种完全同域, 是本家族外部效度最贴近的锚, 也提示 peer_tone 的下游结局 (融资成本、存款流) 有坚实的经济渠道。二是同行网络与共现传导文献: Grieser 等 (2022) 的网络效应证明网络结构承载识别信息、Lee, Ma & Wang (2015) 基于投资者共搜的 search-based peer firms 证明"感知同行"可由行为数据揭示、Ge, Li & Zheng (2025) 关于中国新闻共现动量溢出、Schwenkler & Zheng (2025) 关于新闻驱动的同行共动, 共同支撑"用新闻共现构造同行集"的效度并说明共现网络能传导可定价的横向信号。三是社会信号与舆论传染文献: Cookson, Lu, Mullins & Niessner (2024) 的 social signal 说明社群层面的情感聚合本身可定价, 为把个体情感升维为网络加权聚合提供微观依据。节点情感的测量学基础另由 Du, Huang, Wermers & Wu (2022) 的中文金融情感词典代表, 本项目 LLM 投票轨与其词典轨互为稳健性。三支文献的交汇点正是本家族的贡献所在: 既有的银行媒体情感研究多止于"银行 i 自身的语调 → 银行 i 的结果", 属单节点信号; 既有的同行网络研究多聚焦财务政策 (投资、杠杆、股利) 的横向模仿, 节点值是财务量而非舆论量。本家族把"舆论量"放进"同行网络"的节点, 得到一个既承载媒体信息、又承载网络传导结构的复合度量, 用以检验银行是否会因同业去年的舆论境况 (而非仅自身舆论) 而调整行为 —— 这在银行业尤为重要, 因为存款人、监管者、投资者对"谁像谁"的类比推断, 会让一家健康银行因同业负面新闻而承压。空间计量方法学上, 行随机 W 的空间滞后 W×y 是新兴市场金融溢出研究的标准工具 (Ahmad 等, 2024), 而把它用于媒体情感节点则是本项目对该方法的领域迁移。
+本家族坐落在三支文献的交汇处。一是媒体情感的信息与定价文献: Tetlock (2007) 证明媒体语调对市场有内容性影响, Shapiro, Sudhof & Wilson (2022) 给出可复现、可迁移的新闻情感测度范式 (本家族节点情感的测量学参照), Holzman, Miller & Twedt (2023) 刻画媒体情感与硬信息披露 (季度盈余公告) 的相互纪律作用, 说明媒体语调并非独立于基本面而是与之动态互纠; 在中国情境下, Xu, Hua & Zhang (2025) 证明官方媒体语调对股市有解释力, Fang, Wang, Wang & Yuan (2024) 直接在银行层面把媒体情感与存款稳定、系统性风险相连 —— 后者与本项目"银行×媒体情感"对象、语种完全同域, 是本家族外部效度最贴近的锚, 也提示 peer_tone 的下游结局 (融资成本、存款流) 有坚实的经济渠道。二是同行网络与共现传导文献: Grieser 等 (2022) 的网络效应证明网络结构承载识别信息、Lee, Ma & Wang (2015) 基于投资者共搜的 search-based peer firms 证明"感知同行"可由行为数据揭示、Ge, Li & Zheng (2025) 关于中国新闻共现动量溢出、Schwenkler & Zheng (2025) 关于新闻驱动的同行共动, 共同支撑"用新闻共现构造同行集"的效度并说明共现网络能传导可定价的横向信号。三是社会信号与舆论传染文献: Cookson, Lu, Mullins & Niessner (2024) 的 social signal 说明社群层面的情感聚合本身可定价, 为把个体情感升维为网络加权聚合提供微观依据。节点情感的测量学基础另由 Du, Huang, Wermers & Wu (2022) 的中文金融情感词典代表, 本项目 LLM 投票轨与其词典轨互为稳健性。三支文献的交汇点正是本家族的贡献所在: 既有的银行媒体情感研究多止于"银行 i 自身的语调 → 银行 i 的结果", 属单节点信号; 既有的同行网络研究多聚焦财务政策 (投资、杠杆、股利) 的横向模仿, 节点值是财务量而非舆论量。本家族把"舆论量"放进"同行网络"的节点, 得到一个既承载媒体信息、又承载网络传导结构的复合度量, 用以检验银行是否会因同业去年的舆论境况 (而非仅自身舆论) 而调整行为 —— 这在银行业尤为重要, 因为存款人、监管者、投资者对"谁像谁"的类比推断, 会让一家健康银行因同业负面新闻而承压。空间计量方法学上, 行随机 W 的空间滞后 W×y 是新兴市场金融溢出研究的标准工具 (Ahmad 等, 2024), 而把它用于媒体情感节点则是本项目对该方法的领域迁移。Klaucke (2025, The North American Journal of Economics and Finance) 用新闻文本构造金融机构间的连接性/溢出度量, 与本家族用新闻共现网络刻画银行同行舆论传导的操作化思路直接同源, 为文本溢出网络的效度提供最新佐证。
 
 【方法学补充: 逐轨与逐年的独立性】
 须再澄清两个方法学不变量, 它们决定了家族六列如何相互关系。其一, 逐年独立: 每个目标年 t 的邻接、权重、情感向量都只从 t-1 单年数据构造, 年份间不共享 W, 故某年共现稀疏不会污染其它年 —— 这既是 lag1 设定的自然结果, 也让面板在纵向上可解释为"每年的同行舆论快照"。其二, 逐轨仅在节点分叉: full/ctx/ss 三轨的分叉点唯一地落在"节点取哪条 llm_vote_tone", 网络的邻接与行随机权重恒由 full 口径的 co-mention 构造; 这一设计选择意味着三轨列的差异纯粹反映"节点情感测量的文本范围"敏感性, 而非"网络结构"敏感性, 使三轨成为节点测量的干净稳健性梯子, 不与网络结构的稳健性混淆。这也是为何本家族不设"逐轨重建邻接"的变体: 那会同时改变节点与结构两个维度, 破坏梯子的正交性。
@@ -228,4 +235,5 @@ Lee, C. M. C., Ma, P., & Wang, C. C. Y. (2015). Search-based peer firms: Aggrega
 Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effects through social networks. Journal of Econometrics, 150(1), 41-55. https://doi.org/10.1016/j.jeconom.2008.12.021
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Romano, J. P., & Wolf, M. (2005). Stepwise multiple testing as formalized data snooping. Econometrica, 73(4), 1237-1282. https://doi.org/10.1111/j.1468-0262.2005.00615.x
+Klaucke, K. (2025). Text Spillover: Measuring connectedness of financial institutions based on news text data. The North American Journal of Economics and Finance. https://doi.org/10.1016/j.najef.2024.102307
 <!-- rendered-citations:end -->

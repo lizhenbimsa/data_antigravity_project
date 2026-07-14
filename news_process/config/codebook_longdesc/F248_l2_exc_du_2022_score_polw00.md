@@ -58,6 +58,7 @@ citations:
   issue: 3
   pages_or_artno: 1139-1168
 new_dois: []
+novelty_exempt_rationale: "exc_ 前缀的停刊媒体排除稳健性变体家族, 叠加于已是消融臂的 du_2022_score_polw00 (政治词零权重), 其测度定义 (词典/归一化公式/三条语言学规则) 依据母族与词典原始文献 Du et al. (2022), 停刊排除逻辑本身是聚合层稳健性设计而非独立学术构念, 无需追加新文献。"
 ---
 
 ## CORE

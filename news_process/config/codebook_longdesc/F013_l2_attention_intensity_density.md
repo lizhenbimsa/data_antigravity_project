@@ -76,7 +76,14 @@ citations:
   vol: 62
   issue: 3
   pages_or_artno: 1139-1168
-new_dois: []
+- doi: "10.1016/j.jfineco.2023.103745"
+  type: journal
+  authors: "Babina, T., Fedyk, A., He, A., & Hodson, J."
+  year: 2024
+  title: "Artificial intelligence, firm growth, and product innovation"
+  venue: "Journal of Financial Economics"
+new_dois:
+  - "10.1016/j.jfineco.2023.103745"
 ---
 
 ## CORE
@@ -90,7 +97,7 @@ new_dois: []
 计算公式为 attention_intensity_density_{track} = Σ_d fintech_intensity_score_{track} / N_all, 其中 d 遍历该银行-年经 restrict_to_verified 门控后落在 stage-21 verified 集内的金科文章 (分子域门控, 见上文样本域披露), track ∈ {full, ctx, ss}; 分母 N_all 为未门控的全部新闻篇数。生产函数 compute_attention_treatments 内对该列施加值域守卫 [0, +inf): 由于强度非负、篇数为正, 密度恒非负但不设上界 (故命名用「density」而非「share」, 明确它不是有界 [0,1] 份额)。三轨的分子严格逐轨取用各自轨道的强度打分: full 轨用 fintech_intensity_score_full (标题 prepend 后的全文正文), ctx 轨用 _ctx (标题加实体上下文窗口), ss 轨用 _ss (标题加银行∧金科同句共现窗口); 分母 N_all 三轨共享同一议程分母。缺列时生产函数以 `if col not in panel.columns: continue` 优雅跳过, 不伪造零值。该密度概念上对应 Hassan et al. (2019) 政治风险测度里 intensive 归一化份额 (命中量除以文本总量) 的思路, 而非 Fang & Peress (2009) 式的覆盖量本身; 二者的区分在本仓库的 metric-audit 中被显式锚定并写入生产函数注释, 避免把广延曝光误当强度份额。
 
 【文献定位】
-金融媒体覆盖对资产价格与真实企业行为具有可度量后果, 是这条测度线的文献母体: Fang & Peress (2009) 证明媒体覆盖度进入股票横截面定价, Da et al. (2011) 用搜索量给「投资者注意力」一个可观测代理, Tetlock (2007) 则把媒体内容 (语气) 与市场反应联系起来。本密度列在这一谱系里取「强度归一化」而非「体量」路线, 方法论直接呼应 Hassan et al. (2019) 把公司层暴露定义为命中片段占文本比重的做法, 以及 Sautner et al. (2023) 把气候暴露构造为归一化文本频次的范式。文本作为数据的一般方法学基础见 Gentzkow et al. (2019); Bybee et al. (2024) 从商业新闻中提取主题强度并与宏观周期关联, 为「新闻强度密度」这类聚合量提供了近期的度量学支撑。三轨 (full/ctx/ss) 在本家族内互为稳健性、不分主次, 各自 just-identified 并排进入各自回归, 严禁把不同轨道混入同一 over-identified Hansen J 检验; 留篇门控采用 full-only 口径 (2026-06-29), 即某文章是否算作一篇银行金科报道只看 full 轨判定, ctx/ss 为条件于 full 留篇集的测度轨与稳健性轨。
+金融媒体覆盖对资产价格与真实企业行为具有可度量后果, 是这条测度线的文献母体: Fang & Peress (2009) 证明媒体覆盖度进入股票横截面定价, Da et al. (2011) 用搜索量给「投资者注意力」一个可观测代理, Tetlock (2007) 则把媒体内容 (语气) 与市场反应联系起来。本密度列在这一谱系里取「强度归一化」而非「体量」路线, 方法论直接呼应 Hassan et al. (2019) 把公司层暴露定义为命中片段占文本比重的做法, 以及 Sautner et al. (2023) 把气候暴露构造为归一化文本频次的范式。文本作为数据的一般方法学基础见 Gentzkow et al. (2019); Bybee et al. (2024) 从商业新闻中提取主题强度并与宏观周期关联, 为「新闻强度密度」这类聚合量提供了近期的度量学支撑。三轨 (full/ctx/ss) 在本家族内互为稳健性、不分主次, 各自 just-identified 并排进入各自回归, 严禁把不同轨道混入同一 over-identified Hansen J 检验; 留篇门控采用 full-only 口径 (2026-06-29), 即某文章是否算作一篇银行金科报道只看 full 轨判定, ctx/ss 为条件于 full 留篇集的测度轨与稳健性轨。Babina, Fedyk, He & Hodson (2024, Journal of Financial Economics) 构造企业层面人工智能投资强度的文本/记录派生测度并将其加总为强度指标, 方法论上呼应本家族把逐篇金科技术强度加总并按篇数归一为密度的强度量化思路。
 
 ## VAR: attention_intensity_density_full
 
@@ -115,4 +122,5 @@ Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level poli
 Da, Z., Engelberg, J., & Gao, P. (2011). In search of attention. The Journal of Finance, 66(5), 1461-1499. https://doi.org/10.1111/j.1540-6261.2011.01679.x
 Fang, L., & Peress, J. (2009). Media coverage and the cross-section of stock returns. The Journal of Finance, 64(5), 2023-2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Babina, T., Fedyk, A., He, A., & Hodson, J. (2024). Artificial intelligence, firm growth, and product innovation. Journal of Financial Economics. https://doi.org/10.1016/j.jfineco.2023.103745
 <!-- rendered-citations:end -->

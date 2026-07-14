@@ -60,9 +60,30 @@ citations:
   vol: 21
   issue: 4
   pages_or_artno: 1005-1045
+- doi: "10.1016/j.jacceco.2023.101635"
+  type: "journal"
+  authors: "Aghamolla, C., & Smith, K."
+  year: 2023
+  title: "Strategic complexity in disclosure"
+  venue: "Journal of Accounting and Economics"
+- doi: "10.1016/j.heliyon.2024.e30053"
+  type: "journal"
+  authors: "Yang, J., Zhang, T., Tsai, C.-Y., Lu, Y., & Yao, L."
+  year: 2024
+  title: "Evolution and emerging trends of named entity recognition: Bibliometric analysis from 2000 to 2023"
+  venue: "Heliyon"
+- doi: "10.1111/1911-3846.12825"
+  type: "journal"
+  authors: "Bochkay, K., Brown, S. V., Leone, A. J., & Tucker, J. W."
+  year: 2022
+  title: "Textual Analysis in Accounting: What's Next?"
+  venue: "Contemporary Accounting Research"
 new_dois:
 - 10.1111/1475-679X.12123
 - 10.1007/s11142-016-9371-1
+- "10.1016/j.jacceco.2023.101635"
+- "10.1016/j.heliyon.2024.e30053"
+- "10.1111/1911-3846.12825"
 ---
 
 ## CORE
@@ -74,7 +95,7 @@ new_dois:
 逐篇计算落在 lexical_complexity.py: 对分词后的文本, 先剔除停用词与功能词得到实词序列, 再按专有名词判据标注其中的具名实体词元, named_entity_ratio = 具名实体词元数 / 实词词元数。分母由 _safe_div 守护, 只有实词数严格大于零时才返回比值 (round 6 位), 否则返回 NaN, 避免 0 分母伪造出 0 密度; 空文本或无效文本经 _empty_result 统一返回全 NaN, 保证跨行 dict 结构一致。该逐篇键经 LEXICAL_COMPLEXITY_KEYS 自动物化为 named_entity_ratio_full / _ctx / _ss 三个文章级列 (tone_words 三轨), 其中 ss 轨为 v3.9.0 起新增的"银行与金科同句共现"轨。面板层由 encode 把留篇集内每一轨的逐篇比值取篇均, 得到本家族三列 avg_named_entity_full / _ctx / _ss。留篇门控采 full-only 口径 (2026-06-29): 一篇报道是否计入银行-年宇宙, 只由 llm_verified_full 判定; ctx 与 ss 轨降为 conditional-on-full 的测度/稳健性轨, 其行宇宙是 full 留篇集的子集, 但 per-track 篇均仍按各轨自身非空篇数独立计算。三轨文本口径: full = 标题 prepend + 全文正文; ctx = 标题 + 实体窗口; ss = 标题 + 银行与金科同句 ±N 窗; ss 的回退语义镜像 ctx——当某篇不存在银行与金科同句共现时, content_ss 退化为全文 body 且 ss_is_fallback=True, FINTECH_AC 为空时三轨的 *_is_fallback 全 True 优雅降级。三轨各自 just-identified 并排、互为稳健性、不分主次, 严禁把三轨列混进同一 over-identified Hansen J 检验; 本家族属非嵌入的词法测度, 无 co-primary 的 _lg 孪生列。
 
 【文献定位】
-在测量方法学上, 本家族承接 Loughran 与 McDonald (2016) 对会计金融文本分析的系统综述: 该文强调词法层面的可复现测度须公开分词与判据、须与长度等机械混淆量分离核算, 也提醒具体性类指标对分词器与专名边界高度敏感——这正是本项目把具名实体密度与数值强度、与套话率分列并各自披露机械相关的方法学依据。构念的经济学含义则锚在 Hope, Hu 与 Lu (2016): 具体实体披露降低信息不对称、提升披露可核验性, 为把"报道点名了哪些具体主体"当作一条有信息价值的文本维度提供了实证支撑。更下游地, 具名实体的识别、消歧与解析本身是活跃的技术领域: Binette 与 Steorts (2022) 综述实体解析的统计框架, Sevgili 等 (2022) 综述基于深度学习的神经实体链接, Zhu 等 (2024) 针对实体级金融情感给出上下文学习纠错基准, 而 Engelberg 等 (2025) 的实体消隐 (entity neutering) 实验则从反面提示: 抹去具名实体会系统性改变文本承载的信息, 这与本家族把实体密度视作独立信息维度的立场互为印证。需要说明的是, 本项目的具名实体判据是词法启发式而非训练式实体链接, 因此上述链接/解析文献是构念定位与效度参照, 而非本列的实现细节。
+在测量方法学上, 本家族承接 Loughran 与 McDonald (2016) 对会计金融文本分析的系统综述: 该文强调词法层面的可复现测度须公开分词与判据、须与长度等机械混淆量分离核算, 也提醒具体性类指标对分词器与专名边界高度敏感——这正是本项目把具名实体密度与数值强度、与套话率分列并各自披露机械相关的方法学依据。构念的经济学含义则锚在 Hope, Hu 与 Lu (2016): 具体实体披露降低信息不对称、提升披露可核验性, 为把"报道点名了哪些具体主体"当作一条有信息价值的文本维度提供了实证支撑。更下游地, 具名实体的识别、消歧与解析本身是活跃的技术领域: Binette 与 Steorts (2022) 综述实体解析的统计框架, Sevgili 等 (2022) 综述基于深度学习的神经实体链接, Zhu 等 (2024) 针对实体级金融情感给出上下文学习纠错基准, 而 Engelberg 等 (2025) 的实体消隐 (entity neutering) 实验则从反面提示: 抹去具名实体会系统性改变文本承载的信息, 这与本家族把实体密度视作独立信息维度的立场互为印证。需要说明的是, 本项目的具名实体判据是词法启发式而非训练式实体链接, 因此上述链接/解析文献是构念定位与效度参照, 而非本列的实现细节。Aghamolla 与 Smith (2023, Journal of Accounting and Economics) 建立经理人策略性选择披露复杂度的模型, 说明具体与复杂措辞在传递信息与掩饰负面消息之间的权衡, 为本家族把具名实体密度视为披露具体性一维的构念提供了2023年最新的理论支撑。Yang, Zhang, Tsai, Lu 与 Yao (2024, Heliyon) 对2000-2023年具名实体识别研究做文献计量分析, 梳理该技术领域的演进与新兴趋势, 为本家族采用词法启发式具名实体判据提供方法学背景。Bochkay, Brown, Leone 与 Tucker (2022, Contemporary Accounting Research) 系统综述会计学文本分析方法的最新进展与未来方向, 呼应本家族把具名实体密度作为披露具体性可复现文本测度的方法学定位。
 
 ## VAR: avg_named_entity_ctx
 
@@ -98,4 +119,7 @@ Binette, O., & Steorts, R. C. (2022). (Almost) all of entity resolution. Science
 Sevgili, Ö., Shelmanov, A., Arkhipov, M., Panchenko, A., & Biemann, C. (2022). Neural entity linking: A survey of models based on deep learning. Semantic Web, 13(3), 527-570. https://doi.org/10.3233/sw-222986
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
 Hope, O.-K., Hu, D., & Lu, H. (2016). The benefits of specific risk-factor disclosures. Review of Accounting Studies, 21(4), 1005-1045. https://doi.org/10.1007/s11142-016-9371-1
+Aghamolla, C., & Smith, K. (2023). Strategic complexity in disclosure. Journal of Accounting and Economics. https://doi.org/10.1016/j.jacceco.2023.101635
+Yang, J., Zhang, T., Tsai, C.-Y., Lu, Y., & Yao, L. (2024). Evolution and emerging trends of named entity recognition: Bibliometric analysis from 2000 to 2023. Heliyon. https://doi.org/10.1016/j.heliyon.2024.e30053
+Bochkay, K., Brown, S. V., Leone, A. J., & Tucker, J. W. (2022). Textual Analysis in Accounting: What's Next?. Contemporary Accounting Research. https://doi.org/10.1111/1911-3846.12825
 <!-- rendered-citations:end -->

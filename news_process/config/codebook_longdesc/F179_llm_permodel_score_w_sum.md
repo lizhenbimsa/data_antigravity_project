@@ -77,7 +77,21 @@ citations:
   vol: 62
   issue: 3
   pages_or_artno: 1139-1168
-new_dois: []
+- doi: "10.1111/1911-3846.12832"
+  title: "FinBERT: A Large Language Model for Extracting Information from Financial Text"
+  authors: "Huang, A. H., Wang, H., & Yang, Y."
+  year: 2023
+  venue: "Contemporary Accounting Research"
+  type: "journal"
+- doi: "10.1016/j.frl.2024.105227"
+  title: "Sentiment trading with large language models"
+  authors: "Kirtac, K., & Germano, G."
+  year: 2024
+  venue: "Finance Research Letters"
+  type: "journal"
+new_dois:
+  - "10.1111/1911-3846.12832"
+  - "10.1016/j.frl.2024.105227"
 ---
 
 ## CORE
@@ -89,7 +103,7 @@ new_dois: []
 计算链路分两级。文章级: 阶段 21 tone_llms 对每篇报道以全文 (_full)、实体上下文窗 (_ctx)、银行与金融科技同句共现窗 (_ss) 三种输入分别请求三家模型, 每家独立返回真伪精筛与情感判定, 落为逐篇逐轨的 {short}_score{track} ∈ {−1,0,+1}。随后在面板 runner 步骤 3b, 以每篇的 mention_density (目标银行提及密度, 曝光强度代理) 为权 w, 逐篇构造加权列 {short}_score_w{track} = {short}_score{track} × w。银行-年级: encode 阶段对该加权列按 bank-year 做 'sum' 聚合, 得 {short}_score_w_sum{track}。零新闻的 bank-year 单元按「空集求和 = 0」契约填 0 而非缺失, 与 sum_mention_density 等兄弟权重和列口径一致。提及密度加权借鉴 Hassan et al. (2019) 的公司层暴露测量思想: 一篇高强度提及目标主体的报道, 对该主体当年舆论基调的贡献应大于一带而过的提及, 因此以提及密度而非等权累加更贴合曝光的经济学含义。三家模型的逐篇判定共用同一冻结 Prompt (v8 字节级冻结)、temperature=0 确定性推理与统一缓存键, 确保可复现 (de Kok, 2025 所倡导的 temperature=0 / prompt 冻结 / 缓存范式)。留篇门控采用 full-only 口径: 一篇是否算作「银行金融科技报道」只由 full 轨 verified 判定, ctx/ss 降为 conditional-on-full 的稳健性轨, per-model 各列在此留篇宇宙内各自计算。
 
 【文献定位】
-本家族坐落在「以大模型做金融文本标注」这一近年迅速成熟的方法脉络上。Gilardi et al. (2023) 在 PNAS 上证明零样本 ChatGPT 在多项文本标注任务上的准确率与一致性可超过众包标注者, 为以 LLM 替代人工情感标注提供了效度背书; de Kok (2025) 在 Management Science 上系统梳理了在会计与金融研究中稳健使用生成式 LLM 的工程规范 (确定性温度、提示冻结、结果缓存), 正是本流水线 per-model 判定可复现性的方法论依据。Ludwig, Mullainathan, & Rambachan (2026) 在 Annual Review of Economics 上提出把 LLM 输出视作带测量误差的生成变量并纳入计量框架, 呼应了本家族「保留 per-model 分子、显式暴露测量异质性」的设计取向。与词典法、监督式 BERT 并置, LLM 一脉构成 Frankel, Jennings, & Lee (2022) 所论「机器学习 vs 词典法」情感测量的第三角: 本项目刻意保留三家模型各自的 per-model 子测度, 使 gpt54nano / gemini31 / deepseekv4 互为跨厂商稳健性, 不分主次。价值加权的经济学基础见 Hassan et al. (2019) 的暴露测量与 Tetlock (2007) 关于媒体语调对市场影响的经典证据; 中文金融文本的领域特异性则由 Du et al. (2022) 在 Review of Finance 上论证, 提示中文语料的情感判定须对领域词与政治语境敏感, 这也是本项目在词典轨之外并置多家 LLM 的原因之一。铁律: 三家 per-model 子测度、三条文本轨各自 just-identified 并排, 互为稳健性、不分主次, 严禁把它们混进同一 over-identified 的 Hansen J 检验 (跨模型联合识别会伪造过度识别自由度)。真正的跨模型族级 FWER 校正走根级 rwolf 模板, 而非在结构方程里堆叠工具。
+本家族坐落在「以大模型做金融文本标注」这一近年迅速成熟的方法脉络上。Gilardi et al. (2023) 在 PNAS 上证明零样本 ChatGPT 在多项文本标注任务上的准确率与一致性可超过众包标注者, 为以 LLM 替代人工情感标注提供了效度背书; de Kok (2025) 在 Management Science 上系统梳理了在会计与金融研究中稳健使用生成式 LLM 的工程规范 (确定性温度、提示冻结、结果缓存), 正是本流水线 per-model 判定可复现性的方法论依据。Ludwig, Mullainathan, & Rambachan (2026) 在 Annual Review of Economics 上提出把 LLM 输出视作带测量误差的生成变量并纳入计量框架, 呼应了本家族「保留 per-model 分子、显式暴露测量异质性」的设计取向。与词典法、监督式 BERT 并置, LLM 一脉构成 Frankel, Jennings, & Lee (2022) 所论「机器学习 vs 词典法」情感测量的第三角: 本项目刻意保留三家模型各自的 per-model 子测度, 使 gpt54nano / gemini31 / deepseekv4 互为跨厂商稳健性, 不分主次。价值加权的经济学基础见 Hassan et al. (2019) 的暴露测量与 Tetlock (2007) 关于媒体语调对市场影响的经典证据; 中文金融文本的领域特异性则由 Du et al. (2022) 在 Review of Finance 上论证, 提示中文语料的情感判定须对领域词与政治语境敏感, 这也是本项目在词典轨之外并置多家 LLM 的原因之一。铁律: 三家 per-model 子测度、三条文本轨各自 just-identified 并排, 互为稳健性、不分主次, 严禁把它们混进同一 over-identified 的 Hansen J 检验 (跨模型联合识别会伪造过度识别自由度)。真正的跨模型族级 FWER 校正走根级 rwolf 模板, 而非在结构方程里堆叠工具。Huang, Wang, & Yang (2023, Contemporary Accounting Research) 提出面向金融文本的领域适配大模型 FinBERT, 为本家族多 LLM 并置判定语调的方法论提供金融文本大模型基准参照; Kirtac & Germano (2024, Finance Research Letters) 系统比较多种大语言模型与词典法在近百万篇金融新闻上的情感判定与交易表现, 支持本家族以多家 LLM 互为稳健性并置构念的正当性。
 
 ## VAR: deepseekv4_score_w_sum_ctx
 
@@ -144,4 +158,6 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level political risk: Measurement and effects. Quarterly Journal of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A Large Language Model for Extracting Information from Financial Text. Contemporary Accounting Research. https://doi.org/10.1111/1911-3846.12832
+Kirtac, K., & Germano, G. (2024). Sentiment trading with large language models. Finance Research Letters. https://doi.org/10.1016/j.frl.2024.105227
 <!-- rendered-citations:end -->

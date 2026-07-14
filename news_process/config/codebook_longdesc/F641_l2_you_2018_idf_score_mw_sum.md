@@ -68,7 +68,28 @@ citations:
   vol: '68'
   issue: '7'
   pages_or_artno: 5514-5532
-new_dois: []
+- doi: "10.1002/isaf.1549"
+  type: journal
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+- doi: "10.1016/j.ememar.2024.101234"
+  type: journal
+  authors: "Xu, Z., Hua, X., & Zhang, T."
+  year: 2025
+  title: "Does official media sentiment matter for the stock market? Evidence from China"
+  venue: "Emerging Markets Review"
+- doi: "10.1002/fut.70090"
+  type: journal
+  authors: "Han, Q., Hsieh, P., & Zhang, L."
+  year: 2026
+  title: "Commodity Futures Report Text Sentiment and Returns"
+  venue: "Journal of Futures Markets"
+new_dois:
+  - "10.1002/isaf.1549"
+  - "10.1016/j.ememar.2024.101234"
+  - "10.1002/fut.70090"
 ---
 
 ## CORE
@@ -80,7 +101,7 @@ new_dois: []
 计算链条分两段。第一段 (阶段 22 `tone_words.py`): 对每篇经留篇门控 (阶段 21 `llm_verified_full == True`, full-only 门控, 2026-06-29 起 ctx/ss 行宇宙为 full 留篇集的子集) 保留的文章, 用 jieba 分词后, 先对整个语料计算每个词的原始 IDF: raw_idf(w) = log₁₀(N / (1 + df(w))), 再对该词典全部词的 raw_idf 做均值归一化, 最后按 [P1, P99] Winsorize 截尾得到最终 IDF 权重; `_build_idf_weighted_dict` 用该权重对 you_2018 词典基分逐词相乘 (正面词 +1.0 × idf_weight, 负面词 −1.0 × idf_weight, 命中双侧重叠词表 `_BOTH_SIDED_BY_DICT['you_2018']` 的词按用户 2026-06-24 决策两侧对称计入而非武断消歧, 该词典有 5 个此类重叠词), 得到逐轨情感得分 `you_2018_idf_score{track}` (经 `_compute_sentiment_with_rules` 应用否定翻转/程度副词/转折三条语言学规则后归一化)。第二段 (阶段 40 面板导出 `runner.py`/`encode.py`): `compute_media_authority_weights` (runner.py, 步骤 3c) 依据文章 `媒体(中文)` 字段查 `media_weights.json` 产出 `media_authority_weight` 列 (缺省填 1.0, 即无匹配媒体退化为等权), 文章级相乘 `you_2018_idf_score_mw{track} = you_2018_idf_score{track} × media_authority_weight` (runner.py:797-821), 再在 `groupby(['银行','年份'])` 内对该乘积求和得到本家族三列 `you_2018_idf_score_mw_sum{track}` (encode.py:1096, `agg[...] = (..., 'sum')`)。三轨口径遵循全库统一定义: full=标题+正文, ctx=标题+实体窗口, ss=标题+银行∧金科同句±N窗 (ss 回退语义镜像 ctx: 无银行∧金科同句共现时 `content_ss` 回退为全文 body, `ss_is_fallback=True`, 与 `n_articles` 分母口径共享); media_authority_weight 是文章级、与轨道无关的静态权重 (不逐轨重算, 只按发文媒体查表), 因此三轨得分的差异完全来自 `you_2018_idf_score{track}` 本身随轨道文本变化, 而非媒体权威性权重本身随轨道变化。full/ctx/ss 三轨各自 just-identified 并排、互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 估计式。
 
 【文献定位】
-you_2018 词典的方法学母本是 You, Zhang & Zhang (2018, The Review of Financial Studies) 关于媒体语调差异化影响力的实证框架, 本项目将其情感词表移植入中文语境并入六词典并排体系。IDF 加权情感打分的理论依据是词频-逆文档频率对词汇「区分度」的经典刻画, 溯源至 Spärck Jones (1972, Journal of Documentation) 首次提出 IDF 统计解释、并经 Jegadeesh & Wu (2013, Journal of Financial Economics) "Word power" 一文将 IDF 加权思想系统应用于金融文本情感测度的构造。Sheridan, Ahmed & Farooque (2025/2026, The American Statistician) 从统计推断视角为 TF-IDF 加权方案提供了 Fisher 精确检验意义下的理论正当性, 说明 IDF 权重并非纯经验启发式而具备可推导的统计学基础。本家族的 `mw` 加权乘子来自 Holzman, Miller & Twedt (2023, The Accounting Review)《Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements》Appendix A 提出的"按媒体对市场反应的边际贡献差异化加权情感"这一方法学洞见 (本项目代码注释与日志中记录该出处, DOI: 10.2308/TAR-2020-0104, 未收录于本家族白名单引文池, 故此处不作结构化引文条目, 仅作方法学溯源陈述); 该论文本身未进入本家族结构化 citations 列表, 但其"媒体影响力异质性应被显式建模而非等权处理"的核心主张是本家族存在的直接方法学依据。本家族与仓库内另一部政治词权重敏感性词典 Du, Huang, Wermers & Wu (2022, Review of Finance) 属同一"中文金融情感词典矩阵"内的平行成员——两部词典在构念上均服务于金融文本情感极性判定, 但覆盖词表与构建语料不同, 互为跨词典稳健性对照。方法论定位上, 本家族的词典法 IDF 加权得分与 Frankel, Jennings & Lee (2022, Management Science) 所讨论的"机器学习 vs. 词典法"情感测度谱系相呼应: 词典法 (含本家族) 相对机器学习/LLM 法更透明、可复现、无需训练数据, 但对语境与反讽的敏感度较低, 该差异构成三条情感测度轨道 (LLM/词典/BERT) 互为稳健性、不分主次的方法学依据。
+you_2018 词典的方法学母本是 You, Zhang & Zhang (2018, The Review of Financial Studies) 关于媒体语调差异化影响力的实证框架, 本项目将其情感词表移植入中文语境并入六词典并排体系。IDF 加权情感打分的理论依据是词频-逆文档频率对词汇「区分度」的经典刻画, 溯源至 Spärck Jones (1972, Journal of Documentation) 首次提出 IDF 统计解释、并经 Jegadeesh & Wu (2013, Journal of Financial Economics) "Word power" 一文将 IDF 加权思想系统应用于金融文本情感测度的构造。Sheridan, Ahmed & Farooque (2025/2026, The American Statistician) 从统计推断视角为 TF-IDF 加权方案提供了 Fisher 精确检验意义下的理论正当性, 说明 IDF 权重并非纯经验启发式而具备可推导的统计学基础。本家族的 `mw` 加权乘子来自 Holzman, Miller & Twedt (2023, The Accounting Review)《Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements》Appendix A 提出的"按媒体对市场反应的边际贡献差异化加权情感"这一方法学洞见 (本项目代码注释与日志中记录该出处, DOI: 10.2308/TAR-2020-0104, 未收录于本家族白名单引文池, 故此处不作结构化引文条目, 仅作方法学溯源陈述); 该论文本身未进入本家族结构化 citations 列表, 但其"媒体影响力异质性应被显式建模而非等权处理"的核心主张是本家族存在的直接方法学依据。本家族与仓库内另一部政治词权重敏感性词典 Du, Huang, Wermers & Wu (2022, Review of Finance) 属同一"中文金融情感词典矩阵"内的平行成员——两部词典在构念上均服务于金融文本情感极性判定, 但覆盖词表与构建语料不同, 互为跨词典稳健性对照。方法论定位上, 本家族的词典法 IDF 加权得分与 Frankel, Jennings & Lee (2022, Management Science) 所讨论的"机器学习 vs. 词典法"情感测度谱系相呼应: 词典法 (含本家族) 相对机器学习/LLM 法更透明、可复现、无需训练数据, 但对语境与反讽的敏感度较低, 该差异构成三条情感测度轨道 (LLM/词典/BERT) 互为稳健性、不分主次的方法学依据。Todd, Bowden & Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 系统综述金融文本情感分析方法谱系 (词典法/机器学习法/深度学习法), 为本家族所属的词典法 IDF 加权情感测度在方法学谱系中的定位提供最新的文献综述依据。Xu, Hua & Zhang (2025, Emerging Markets Review) 构建官方媒体情感指数并证实其对中国股市散户交易行为与收益反转具有显著解释力, 呼应本家族媒体权威性加权构念中"不同来源媒体报道影响力应差异化建模"的核心主张。Han, Hsieh & Zhang (2026, Journal of Futures Markets) 对分析师研究报告文本情感进行加权测度并检验其对期货收益的预测力, 为本家族词典法文本情感加权测度在金融文本分析谱系中的适用性提供最新的跨市场证据。
 
 ## VAR: you_2018_idf_score_mw_sum_ctx
 
@@ -104,4 +125,7 @@ Spärck Jones, K. (1972). A statistical interpretation of term specificity and i
 Sheridan, P., Ahmed, Z., & Farooque, A. A. (2026). A Fisher's exact test justification of the TF-IDF term-weighting scheme. The American Statistician, 80(1), 146-156. https://doi.org/10.1080/00031305.2025.2539241
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
+Xu, Z., Hua, X., & Zhang, T. (2025). Does official media sentiment matter for the stock market? Evidence from China. Emerging Markets Review. https://doi.org/10.1016/j.ememar.2024.101234
+Han, Q., Hsieh, P., & Zhang, L. (2026). Commodity Futures Report Text Sentiment and Returns. Journal of Futures Markets. https://doi.org/10.1002/fut.70090
 <!-- rendered-citations:end -->

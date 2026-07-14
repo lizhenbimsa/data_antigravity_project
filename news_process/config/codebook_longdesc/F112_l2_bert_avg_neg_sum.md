@@ -62,7 +62,28 @@ citations:
   year: 2018
   title: "BERT: Pre-training of deep bidirectional transformers for language understanding"
   venue: arXiv
-new_dois: []
+- doi: "10.1057/s41310-025-00287-2"
+  type: journal
+  authors: "Belhoula, M. M., Lassoued, N., Khanchel, I., & Ghraidi, D."
+  year: 2025
+  title: "Beyond numbers: negative disclosure tone, bank risk, and ownership structure in Middle East and North African Banks"
+  venue: "International Journal of Disclosure and Governance"
+- doi: "10.1007/s10799-024-00428-z"
+  type: journal
+  authors: "Jiang, F., Liu, Y., Meng, L., & Zhang, H."
+  year: 2024
+  title: "Deep learning, textual sentiment, and financial market"
+  venue: "Information Technology and Management"
+- doi: "10.1016/j.iref.2024.01.067"
+  type: journal
+  authors: "Fang, Y., Wang, Q., Wang, Y., & Yuan, Y."
+  year: 2024
+  title: "Media sentiment, deposit stability and bank systemic risk: Evidence from China"
+  venue: "International Review of Economics & Finance"
+new_dois:
+  - "10.1057/s41310-025-00287-2"
+  - "10.1007/s10799-024-00428-z"
+  - "10.1016/j.iref.2024.01.067"
 ---
 
 ## CORE
@@ -74,7 +95,7 @@ new_dois: []
 计算分两层。第一层在文章级由 stage 23 (23_tone_berts) 完成: 三家中文/金融 BERT 分类器 finbert_cn、fin_sent_zh、finbert2 各自对每篇报道输出三分类 (正/中/负) 的 softmax 概率, 其中负面类概率记为 P_b(negative | article)。第二层在面板聚合阶段完成: 对每家 BERT 模型 b, 先在银行-年内对全部命中报道的负面概率求和得到 {b}_neg_sum{track} (体量口径, 不除以篇数), 再由 producer news_process/pipeline/panel/geography.py 用 _safe_mean 对 _BERT3 集合内两家三分类模型的求和值取横向平均, 生成 bert_avg_neg_sum{track}。这里的 track ∈ {full, ctx, ss} 是三条文本轨道, 决定「喂给 BERT 的是哪一段文本」而非改变聚合公式。为何刻意把 finbert2 排除在本平均之外, 有一条明确的源码级理由 (fix omni-g-geography-06, 2026-06-11): finbert2 是二分类 (仅正/负, 无中性类) 模型, 若把它并入 pos/neg 的横向平均, 会发生「类空间混合」——finbert2 把本应属于中性的概率质量强制重归一进正负两极 (盘上实测其正类均值约 0.912, 远高于三分类的 0.690/0.817), 致使 pos/neg 系统性上偏, 且 pos+neu+neg 不再构成合法的概率单纯形 (实测三类和最高达 1.33)。修复后 pos/neg/neu 统一只在 THREE_CLASS_MODELS 域上平均, 概率单纯形恒等式在三分类族重新成立; finbert2 的逐模型列 (finbert2_neg_* 及其 _vw/_mw/_hw 变体) 完整保留, 作为二分类稳健轨单独使用, 而非并入本综合列。_safe_mean 在某一模型列缺失 (如某家三分类模型未落盘时) 时按可得子集取均值, 属 per-model 独立降级, 不牵连其余模型, 也不同于 co-primary 嵌入双轨那种「both-or-neither」的同生共死约束。就稳健性口径而言, 参与本平均的两家三分类 BERT 与单列使用的 finbert2 均是 co-equal 的互为稳健性轨: 它们各自 just-identified 并排、不分主次, 严禁把不同模型的负面总量混进同一个 over-identified 的 Hansen J 过度识别检验里; 本家族提供的两家横向平均是一个便于展示的综合视图, 真正的跨模型一致性/FWER 校正由根级 rwolf 模板承担, 而非在此列上做联合工具变量。也正因 finbert2 的二分类概率与三分类的负面概率在水平上不严格可比, 才把它排除出本水平型平均而只作单列结构解读。
 
 【文献定位】
-本家族坐落在「金融文本情感度量」三角 (词典法/BERT 机器学习法/大模型法) 的 BERT 一支。Huang, Wang & Yang (2023) 提出的 FinBERT 证明了在金融语料上微调的双向编码器在情感抽取上系统优于通用词典, 是本家族选用 BERT 概率而非词频计数的直接方法学依据; Devlin 等 (2018) 的 BERT 原始工作则奠定了这些分类器的架构基础。Bochkay 等 (2023) 在会计文本分析综述中特别指出, 机器学习情感度量的下一步是把「概率而非硬标签」和「体量而非仅均值」纳入面板设计——本家族的求和口径正回应了这一方向。Frankel、Jennings & Lee (2022) 在顶刊上比较了机器学习与词典法情感, 提示两类度量各有偏误, 支撑本项目「BERT 与词典、大模型互为稳健性并排」的整体设计。最后, Piotroski、Wong & Zhang (2015) 关于中国上市公司负面信息被政治性压制的证据, 提醒本家族在中国媒体制度下解读「负面总量」时须警惕系统性的下偏与截断, 这也是把三家模型、三条轨道并排作为稳健性梯子的现实理由。
+本家族坐落在「金融文本情感度量」三角 (词典法/BERT 机器学习法/大模型法) 的 BERT 一支。Huang, Wang & Yang (2023) 提出的 FinBERT 证明了在金融语料上微调的双向编码器在情感抽取上系统优于通用词典, 是本家族选用 BERT 概率而非词频计数的直接方法学依据; Devlin 等 (2018) 的 BERT 原始工作则奠定了这些分类器的架构基础。Bochkay 等 (2023) 在会计文本分析综述中特别指出, 机器学习情感度量的下一步是把「概率而非硬标签」和「体量而非仅均值」纳入面板设计——本家族的求和口径正回应了这一方向。Frankel、Jennings & Lee (2022) 在顶刊上比较了机器学习与词典法情感, 提示两类度量各有偏误, 支撑本项目「BERT 与词典、大模型互为稳健性并排」的整体设计。最后, Piotroski、Wong & Zhang (2015) 关于中国上市公司负面信息被政治性压制的证据, 提醒本家族在中国媒体制度下解读「负面总量」时须警惕系统性的下偏与截断, 这也是把三家模型、三条轨道并排作为稳健性梯子的现实理由。Belhoula, Lassoued, Khanchel & Ghraidi (2025, International Journal of Disclosure and Governance) 用文本情绪工具量化银行年报/信息披露中的负面语调并检验其与银行风险的关系, 为本家族「负面情绪概率质量总量」度量银行舆情压力提供了2025年最新的跨国银行业实证支持。Jiang, Liu, Meng & Zhang (2024, Information Technology and Management) 用深度学习(含BERT类模型)从金融文本构建情绪指标, 证明其对金融市场的预测力显著优于传统词典法, 为本家族选用BERT概率而非词频的度量口径提供2024年最新方法学支持。Fang, Wang, Wang & Yuan (2024, International Review of Economics & Finance) 基于90万余篇中国银行相关新闻构建媒体负面情绪指数, 证明负面媒体情绪显著推高银行系统性风险与存款稳定性压力, 为本家族「负面情绪概率质量总量」度量银行舆情暴露的构念提供中国银行业2024年实证支持。
 
 ## VAR: bert_avg_neg_sum_full
 
@@ -98,4 +119,7 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 Piotroski, J. D., Wong, T. J., & Zhang, T. (2015). Political incentives to suppress negative information: Evidence from Chinese listed firms. Journal of Accounting Research, 53(2), 405-459. https://doi.org/10.1111/1475-679X.12071
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2018). BERT: Pre-training of deep bidirectional transformers for language understanding. arXiv [Preprint]. https://doi.org/10.48550/arXiv.1810.04805
+Belhoula, M. M., Lassoued, N., Khanchel, I., & Ghraidi, D. (2025). Beyond numbers: negative disclosure tone, bank risk, and ownership structure in Middle East and North African Banks. International Journal of Disclosure and Governance. https://doi.org/10.1057/s41310-025-00287-2
+Jiang, F., Liu, Y., Meng, L., & Zhang, H. (2024). Deep learning, textual sentiment, and financial market. Information Technology and Management. https://doi.org/10.1007/s10799-024-00428-z
+Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2024.01.067
 <!-- rendered-citations:end -->

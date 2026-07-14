@@ -1,5 +1,6 @@
 ---
 family_id: F204
+novelty_exempt_rationale: "disag_ 前缀家族, 是情感分歧指数按三家LLM(gemini31/gpt54nano/deepseekv4)分厂商拆分的稳健性变体, 测度定义(disag=√(1-r²))与学术依据已在CORE正文引用的Cookson & Niessner (2020)等分歧文献中给出, 本列仅是同一构念在不同模型口径下的重算, 非独立新构念, 无需为其单独追加新颖文献。"
 columns:
 - disag_gemini31_ctx
 - disag_gemini31_full

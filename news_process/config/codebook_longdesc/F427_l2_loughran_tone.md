@@ -31,162 +31,183 @@ upstream:
 - 24_herd_decay_processor.parquet (herd_weight{track}, 供 hw 加权)
 - 40_panel_yearly.parquet (bank-year 聚合宿主)
 citations:
-  - doi: 10.1016/j.eswa.2024.125739
-    type: journal
-    authors: Ma, Y., Zhang, T., & Zhang, P.
-    year: 2025
-    title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
-    venue: Expert Systems with Applications
-    vol: 264
-    pages_or_artno: 125739
-  - doi: 10.2139/ssrn.5220056
-    type: wp
-    authors: Marchetti, S., Tarducci, E., & Branzoli, N.
-    year: 2025
-    title: "Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy"
-    venue: SSRN Working Paper
-  - doi: 10.1111/ecin.13264
-    type: journal
-    authors: Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E.
-    year: 2025
-    title: "Sentiment analysis of economic text: A lexicon-based approach"
-    venue: Economic Inquiry
-    vol: 63
-    issue: 1
-    pages_or_artno: 125-143
-  - doi: 10.1093/rof/rfac052
-    type: journal
-    authors: Goldstein, I.
-    year: 2023
-    title: "Information in financial markets and its real effects"
-    venue: Review of Finance
-    vol: 27
-    issue: 1
-    pages_or_artno: 1-32
-  - doi: 10.2308/TAR-2020-0104
-    type: journal
-    authors: Holzman, E. R., Miller, B. P., & Twedt, B. J.
-    year: 2023
-    title: "Curbing enthusiasm: Media sentiment and the disciplining role of quarterly earnings announcements"
-    venue: The Accounting Review
-    vol: 98
-    issue: 7
-    pages_or_artno: 315-345
-  - doi: 10.1287/mnsc.2021.4156
-    type: journal
-    authors: Frankel, R., Jennings, J., & Lee, J.
-    year: 2022
-    title: "Disclosure sentiment: Machine learning vs. dictionary methods"
-    venue: Management Science
-    vol: 68
-    issue: 7
-    pages_or_artno: 5514-5532
-  - doi: 10.1093/rof/rfab036
-    type: journal
-    authors: Du, Z., Huang, A. G., Wermers, R., & Wu, W.
-    year: 2022
-    title: "Language and domain specificity: A Chinese financial sentiment dictionary"
-    venue: Review of Finance
-    vol: 26
-    issue: 3
-    pages_or_artno: 673-719
-  - doi: 10.2139/ssrn.3446388
-    type: wp
-    authors: Bian, S., Jia, D., Li, F., & Yan, Z.
-    year: 2021
-    title: "A new Chinese financial sentiment dictionary for textual analysis in accounting and finance"
-    venue: SSRN Working Paper No. 3446388
-  - doi: 10.1080/19312458.2020.1869198
-    type: journal
-    authors: van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M.
-    year: 2021
-    title: "The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms"
-    venue: Communication Methods and Measures
-    vol: 15
-    issue: 2
-    pages_or_artno: 121-140
-  - doi: 10.1111/joes.12370
-    type: journal
-    authors: Algaba, A., Ardia, D., Bluteau, K., Borms, S., & Boudt, K.
-    year: 2020
-    title: "Econometrics meets sentiment: An overview of methodology and applications"
-    venue: Journal of Economic Surveys
-    vol: 34
-    issue: 3
-    pages_or_artno: 512-547
-  - doi: 10.1093/qje/qjz021
-    type: journal
-    authors: Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A.
-    year: 2019
-    title: "Firm-level political risk: Measurement and effects"
-    venue: Quarterly Journal of Economics
-    vol: 134
-    issue: 4
-    pages_or_artno: 2135-2202
-  - doi: 10.1080/07421222.2018.1440766
-    type: journal
-    authors: Gomber, P., Kauffman, R. J., Parker, C., & Weber, B. W.
-    year: 2018
-    title: "On the fintech revolution: Interpreting the forces of innovation, disruption, and transformation in financial services"
-    venue: Journal of Management Information Systems
-    vol: 35
-    issue: 1
-    pages_or_artno: 220-265
-  - doi: 10.1093/rfs/hhx055
-    type: journal
-    authors: You, J., Zhang, B., & Zhang, L.
-    year: 2018
-    title: "Who captures the power of the pen?"
-    venue: The Review of Financial Studies
-    vol: 31
-    issue: 1
-    pages_or_artno: 43-96
-  - doi: 10.1111/1475-679X.12123
-    type: journal
-    authors: Loughran, T., & McDonald, B.
-    year: 2016
-    title: "Textual analysis in accounting and finance: A survey"
-    venue: Journal of Accounting Research
-    vol: 54
-    issue: 4
-    pages_or_artno: 1187-1230
-  - doi: 10.1162/COLI_a_00049
-    type: journal
-    authors: Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M.
-    year: 2011
-    title: "Lexicon-based methods for sentiment analysis"
-    venue: Computational Linguistics
-    vol: 37
-    issue: 2
-    pages_or_artno: 267-307
-  - doi: 10.1111/j.1540-6261.2010.01625.x
-    type: journal
-    authors: Loughran, T., & McDonald, B.
-    year: 2011
-    title: "When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks"
-    venue: The Journal of Finance
-    vol: 66
-    issue: 1
-    pages_or_artno: 35-65
-  - doi: 10.1111/j.1540-6261.2007.01232.x
-    type: journal
-    authors: Tetlock, P. C.
-    year: 2007
-    title: "Giving content to investor sentiment: The role of media in the stock market"
-    venue: The Journal of Finance
-    vol: 62
-    issue: 3
-    pages_or_artno: 1139-1168
-  - doi: 10.1111/j.1468-0262.2005.00615.x
-    type: journal
-    authors: Romano, J. P., & Wolf, M.
-    year: 2005
-    title: "Stepwise multiple testing as formalized data snooping"
-    venue: Econometrica
-    vol: 73
-    issue: 4
-    pages_or_artno: 1237-1282
-new_dois: []
+- doi: 10.1016/j.eswa.2024.125739
+  type: journal
+  authors: Ma, Y., Zhang, T., & Zhang, P.
+  year: 2025
+  title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
+  venue: Expert Systems with Applications
+  vol: 264
+  pages_or_artno: 125739
+- doi: 10.2139/ssrn.5220056
+  type: wp
+  authors: Marchetti, S., Tarducci, E., & Branzoli, N.
+  year: 2025
+  title: "Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy"
+  venue: SSRN Working Paper
+- doi: 10.1111/ecin.13264
+  type: journal
+  authors: Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E.
+  year: 2025
+  title: "Sentiment analysis of economic text: A lexicon-based approach"
+  venue: Economic Inquiry
+  vol: 63
+  issue: 1
+  pages_or_artno: 125-143
+- doi: 10.1093/rof/rfac052
+  type: journal
+  authors: Goldstein, I.
+  year: 2023
+  title: "Information in financial markets and its real effects"
+  venue: Review of Finance
+  vol: 27
+  issue: 1
+  pages_or_artno: 1-32
+- doi: 10.2308/TAR-2020-0104
+  type: journal
+  authors: Holzman, E. R., Miller, B. P., & Twedt, B. J.
+  year: 2023
+  title: "Curbing enthusiasm: Media sentiment and the disciplining role of quarterly earnings announcements"
+  venue: The Accounting Review
+  vol: 98
+  issue: 7
+  pages_or_artno: 315-345
+- doi: 10.1287/mnsc.2021.4156
+  type: journal
+  authors: Frankel, R., Jennings, J., & Lee, J.
+  year: 2022
+  title: "Disclosure sentiment: Machine learning vs. dictionary methods"
+  venue: Management Science
+  vol: 68
+  issue: 7
+  pages_or_artno: 5514-5532
+- doi: 10.1093/rof/rfab036
+  type: journal
+  authors: Du, Z., Huang, A. G., Wermers, R., & Wu, W.
+  year: 2022
+  title: "Language and domain specificity: A Chinese financial sentiment dictionary"
+  venue: Review of Finance
+  vol: 26
+  issue: 3
+  pages_or_artno: 673-719
+- doi: 10.2139/ssrn.3446388
+  type: wp
+  authors: Bian, S., Jia, D., Li, F., & Yan, Z.
+  year: 2021
+  title: "A new Chinese financial sentiment dictionary for textual analysis in accounting and finance"
+  venue: SSRN Working Paper No. 3446388
+- doi: 10.1080/19312458.2020.1869198
+  type: journal
+  authors: van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M.
+  year: 2021
+  title: "The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms"
+  venue: Communication Methods and Measures
+  vol: 15
+  issue: 2
+  pages_or_artno: 121-140
+- doi: 10.1111/joes.12370
+  type: journal
+  authors: Algaba, A., Ardia, D., Bluteau, K., Borms, S., & Boudt, K.
+  year: 2020
+  title: "Econometrics meets sentiment: An overview of methodology and applications"
+  venue: Journal of Economic Surveys
+  vol: 34
+  issue: 3
+  pages_or_artno: 512-547
+- doi: 10.1093/qje/qjz021
+  type: journal
+  authors: Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A.
+  year: 2019
+  title: "Firm-level political risk: Measurement and effects"
+  venue: Quarterly Journal of Economics
+  vol: 134
+  issue: 4
+  pages_or_artno: 2135-2202
+- doi: 10.1080/07421222.2018.1440766
+  type: journal
+  authors: Gomber, P., Kauffman, R. J., Parker, C., & Weber, B. W.
+  year: 2018
+  title: "On the fintech revolution: Interpreting the forces of innovation, disruption, and transformation in financial services"
+  venue: Journal of Management Information Systems
+  vol: 35
+  issue: 1
+  pages_or_artno: 220-265
+- doi: 10.1093/rfs/hhx055
+  type: journal
+  authors: You, J., Zhang, B., & Zhang, L.
+  year: 2018
+  title: "Who captures the power of the pen?"
+  venue: The Review of Financial Studies
+  vol: 31
+  issue: 1
+  pages_or_artno: 43-96
+- doi: 10.1111/1475-679X.12123
+  type: journal
+  authors: Loughran, T., & McDonald, B.
+  year: 2016
+  title: "Textual analysis in accounting and finance: A survey"
+  venue: Journal of Accounting Research
+  vol: 54
+  issue: 4
+  pages_or_artno: 1187-1230
+- doi: 10.1162/COLI_a_00049
+  type: journal
+  authors: Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M.
+  year: 2011
+  title: "Lexicon-based methods for sentiment analysis"
+  venue: Computational Linguistics
+  vol: 37
+  issue: 2
+  pages_or_artno: 267-307
+- doi: 10.1111/j.1540-6261.2010.01625.x
+  type: journal
+  authors: Loughran, T., & McDonald, B.
+  year: 2011
+  title: "When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks"
+  venue: The Journal of Finance
+  vol: 66
+  issue: 1
+  pages_or_artno: 35-65
+- doi: 10.1111/j.1540-6261.2007.01232.x
+  type: journal
+  authors: Tetlock, P. C.
+  year: 2007
+  title: "Giving content to investor sentiment: The role of media in the stock market"
+  venue: The Journal of Finance
+  vol: 62
+  issue: 3
+  pages_or_artno: 1139-1168
+- doi: 10.1111/j.1468-0262.2005.00615.x
+  type: journal
+  authors: Romano, J. P., & Wolf, M.
+  year: 2005
+  title: "Stepwise multiple testing as formalized data snooping"
+  venue: Econometrica
+  vol: 73
+  issue: 4
+  pages_or_artno: 1237-1282
+- doi: "10.1002/isaf.1549"
+  title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
+  authors: "Todd, A., Bowden, J., & Moshfeghi, Y."
+  year: 2024
+  venue: "Intelligent Systems in Accounting, Finance and Management"
+  type: "journal"
+- doi: "10.1017/S0022109023000716"
+  title: "Measuring Firm Complexity"
+  authors: "Loughran, T., & McDonald, B."
+  year: 2023
+  venue: "Journal of Financial and Quantitative Analysis"
+  type: "journal"
+- doi: "10.1016/j.procs.2025.04.477"
+  title: "Enhancing Financial Sentiment Analysis: Integrating the LoughranMcDonald Dictionary with BERT for Advanced Market Predictive Insights"
+  authors: "Sheetal, R., & Aithal, P. K."
+  year: 2025
+  venue: "Procedia Computer Science"
+  type: "wp"
+new_dois:
+  - "10.1002/isaf.1549"
+  - "10.1017/S0022109023000716"
+  - "10.1016/j.procs.2025.04.477"
 ---
 
 ## CORE
@@ -198,7 +219,7 @@ new_dois: []
 逐篇打分在 tone_words.py::compute_dict_scores 里完成。对每一篇报道的每一条轨道文本, 引擎先做中文分词, 再扫描分词序列, 对命中词典的情感词赋予极性符号 (正面记 +1、负面记 -1), 并逐词施加三条确定性的语言学规则: 否定词窗口内的极性翻转 (让"不乐观"不被算成正面)、程度副词对幅值的放大 (让"非常好"比"好"权重更高, 上限约 ×3.0)、转折连词之后从句的加权 (让"但是"之后的话语更受重视, ×1.5)。逐篇归一化分值 normalized_score = Σ_j sign_j · final_score_j / Σ_j |final_score_j|, 分子是带符号的加权分值之和, 分母是加权幅度绝对值之和, 因而分值严格有界于闭区间负一到正一。这套归一化于 2026-06-11 做过一次修订, 把旧版分母 (裸匹配词数) 改为加权幅度绝对值之和, 修正了旧口径下分子被程度与转折规则放大后值域溢出 ±1 的缺陷 (据当时一次性核查披露, 修订前盘面上有相当比例文章的裸分值绝对量大于一, 此为历史修订动因的口头记录、非当前源码可复核的既定统计量, 仅作背景交代)。该逐篇分值即各轨的 loughran_score 列。面板 canonical 列各轨 loughran_tone 等于留篇集合内该轨逐篇分值的算术平均, 由 encode.py 在 bank-year 分组上以 mean 聚合而得, 聚合口径与 Tetlock (2007)、Marchetti et al. (2025) 的"媒体语调-实体-时间"面板一致。这里有一处方法学要点须澄清本家族的打分口径: 本家族逐篇分值只用 loughran 这一部词典 (JSON 键 loughran_mcdonald_zh_2026 的 positive/negative 数组) 单独驱动, frontmatter 的 loughran_score 公式即单词典口径, 并非把六部词典合并后按多数票定极性的 union 综合分。该 loughran 中文主译本本身在 2026-06-24 极性消歧时对 23 个跨类的多义词采取"两侧保留、pos/neg 各计一次、分子净贡献相互抵为零"的处理 (见 tone_dicts.json 该词典 _description), 即这类歧义词不再被单侧剔除, 而是以平衡的双计数进入分子分母、令 margin 守恒; 因此本家族既不存在"把六部词典并成 union"的合并步骤, 也不存在"平票即整词剔除"的口径 — 那是跨词典综合测度另设的机制, 与本单词典家族无关。词典法与机器学习/大语言模型法之间的取舍见 Frankel et al. (2022)、van Atteveldt et al. (2021)、Algaba et al. (2020): 词典法透明、可复现、无训练数据泄漏, 但对否定、程度与领域漂移敏感, 故本项目以规则增强 (对应 Taboada et al. 2011 的 lexicon-based 范式) 加以缓解, 并保留纯计数消融臂 (negonly) 作对照。
 
 【文献定位】
-本家族在文献版图上的坐标是"媒体金融情感的词典法测度"。Tetlock (2007) 最早把词典情感与股市回报系统关联, 奠定"媒体语调可定价"的实证起点; Loughran & McDonald (2011, 2016) 确立了金融领域专用词典的方法学规范, 是本家族词表的直接来源; Hassan et al. (2019) 提供了以文本中关注度密度加权信号的方法学范式, 对应本家族的 vw 变体; Holzman et al. (2023) 论证了按媒体权威性加权语调所携带的额外定价含义, 对应 mw 变体; You et al. (2018) 在中国情境下刻画了媒体"笔杆子"影响力的横截面异质性, 为 mw 权威加权在中国的制度基础提供支撑; Goldstein (2023) 综述了金融市场中信息的真实效应, 为"银行语调经由存款人/投资者关注传导至融资成本与风险"这一因果链提供理论支点。在中文词典这一支上, Du et al. (2022)、Bian et al. (2021) 与 Ma et al. (2025) 分别代表了含政治正面词的金融词典、LM 中文扩展词典与面向散户投资者的细粒度词典, 本项目把它们与 loughran 中文主译本并列, 使跨词典的稳健性论证在中英来源、构造判据与粒度上都有覆盖。词典法与语义模型 (LLM/BERT) 的三方法互证先例见 Frankel et al. (2022)。
+本家族在文献版图上的坐标是"媒体金融情感的词典法测度"。Tetlock (2007) 最早把词典情感与股市回报系统关联, 奠定"媒体语调可定价"的实证起点; Loughran & McDonald (2011, 2016) 确立了金融领域专用词典的方法学规范, 是本家族词表的直接来源; Hassan et al. (2019) 提供了以文本中关注度密度加权信号的方法学范式, 对应本家族的 vw 变体; Holzman et al. (2023) 论证了按媒体权威性加权语调所携带的额外定价含义, 对应 mw 变体; You et al. (2018) 在中国情境下刻画了媒体"笔杆子"影响力的横截面异质性, 为 mw 权威加权在中国的制度基础提供支撑; Goldstein (2023) 综述了金融市场中信息的真实效应, 为"银行语调经由存款人/投资者关注传导至融资成本与风险"这一因果链提供理论支点。在中文词典这一支上, Du et al. (2022)、Bian et al. (2021) 与 Ma et al. (2025) 分别代表了含政治正面词的金融词典、LM 中文扩展词典与面向散户投资者的细粒度词典, 本项目把它们与 loughran 中文主译本并列, 使跨词典的稳健性论证在中英来源、构造判据与粒度上都有覆盖。词典法与语义模型 (LLM/BERT) 的三方法互证先例见 Frankel et al. (2022)。Todd, Bowden & Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 该2024年综述系统梳理了金融文本情感分析文献 (含 Loughran-McDonald 等词典法与机器学习法的对比与未来方向), 为本家族以词典法测度媒体语调提供了最新的方法学定位坐标。Loughran与McDonald本人基于其词典衍生构建企业复杂度文本测度, 是LM框架的最新权威延伸, 见 Loughran & McDonald (2023, Journal of Financial and Quantitative Analysis)。将Loughran-McDonald词典法与BERT深度学习结合用于金融文本情感分析, 验证词典法在现代NLP流水线中的持续适用性, 见 Sheetal & Aithal (2025, Procedia Computer Science)。
 
 【识别策略定位】
 loughran_tone_full 是本家族的 core 列, 作为跨词典稳健性谱系的成员进入主线论文 bank_fintech_tone 的处理变量 (treatment) 族。识别策略上, 它与 du_2022、jiang_2021、yao_2021、bian_2021 等其它词典的同轨 tone 各自是对"同一个媒体情感构念"的替代测量 (alternative measurement): 每一个测度各自 just-identified、并排陈列, 互为稳健性、不分主次, 严禁把不同词典 (或同一词典的不同加权、不同子集、不同轨道) 混入同一个 over-identified 的 Hansen J 过度识别检验里去当多个工具用 [CLAUDE.md 铁律]。之所以定这条铁律, 是因为这些测度彼此高度共线、量的是同一件事, 硬凑进一个过度识别方程只会制造虚假的自由度、扭曲 J 统计量; 正确做法是逐个替换主测度、看系数与显著性是否稳。跨词典结论的一致性由根级跨模型/跨测度稳健性模板复核, 多重假设检验的族错误率 (FWER) 控制沿用 Romano & Wolf (2005) 的 stepwise 逻辑, 避免"多量几部词典总能撞出一个显著"的数据窥探问题。
@@ -388,4 +409,7 @@ Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-ba
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Romano, J. P., & Wolf, M. (2005). Stepwise multiple testing as formalized data snooping. Econometrica, 73(4), 1237-1282. https://doi.org/10.1111/j.1468-0262.2005.00615.x
+Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
+Loughran, T., & McDonald, B. (2023). Measuring Firm Complexity. Journal of Financial and Quantitative Analysis. https://doi.org/10.1017/S0022109023000716
+Sheetal, R., & Aithal, P. K. (2025). Enhancing Financial Sentiment Analysis: Integrating the LoughranMcDonald Dictionary with BERT for Advanced Market Predictive Insights. Procedia Computer Science [Working Paper]. https://doi.org/10.1016/j.procs.2025.04.477
 <!-- rendered-citations:end -->

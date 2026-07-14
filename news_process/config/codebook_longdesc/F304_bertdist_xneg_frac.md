@@ -233,7 +233,14 @@ citations:
   vol: 73
   issue: 4
   pages_or_artno: "1237-1282"
-new_dois: []
+- doi: 10.1016/j.ribaf.2025.102881
+  type: journal
+  authors: Wei, L., Wei, M., Jing, H., & Jing, Z.
+  year: 2025
+  title: "Annual report tone and bank risk-taking behavior: Evidence from China"
+  venue: Research in International Business and Finance
+new_dois:
+  - "10.1016/j.ribaf.2025.102881"
 ---
 
 ## CORE
@@ -256,6 +263,8 @@ new_dois: []
 
 【与相邻测度的构念区分】
 与本家族最近邻的测度有六类, 须逐一划界。其一, 逐模型负面概率均值列 (模型名加 neg 后缀族): 那是负面概率的一阶矩, 对全体报道的负面强度取平均, 而本家族是越过高阈值的报道占比, 是尾部质量测度; 一组温和偏负的报道会推高前者却完全不触碰后者。其二, 逐模型净语调 (net_tone 族): 正负概率之差的均值, 双向对称测度, 正面报道的增加会改变它, 却不影响本家族。其三, 语调熵 (tone_entropy 族): 测量模型判类的犹豫程度, 是不确定性构念, 与负面方向无关; 一篇被模型以接近均匀概率判类的报道熵最高, 却几乎必然不计入极端负面。其四, 净语调偏度 (net_tone_skew 族): 刻画银行年度内报道语调分布的不对称性, 是相对形状测度, 与占比的绝对水平正交。其五, 跨模型分歧列 (bert_xmodel 双轨): 测量三个模型互相之间的标签不一致度, 构念是测量分歧而非情绪本身。其六, LLM 路线与词典路线的负面测度 (LLM 逐家语调、词典负面词占比): 测量技术完全独立, 与本家族构成方法三角验证的另外两角, 而非同族变体。此外须与共现面板管道中的报道计数类负面指标区分: 那些是事件计数, 本家族是条件占比, 分母口径不同。
+
+Wei, Wei, Jing & Jing (2025, Research in International Business and Finance) 利用中国上市银行年报文本语调构造情绪测度, 检验负面语调与银行风险承担行为之间的关系, 为本家族极端负面占比测度在银行文本情绪—风险行为传导机制上的应用提供了2025年最新的同类中国银行文本情绪证据。
 
 【已知局限与稳健性梯子】
 第一, 阈值的跨模型不可比性是本家族最重要的解释边界。三个模型的概率输出未经联合校准, finbert2 是二分类模型, 正负概率和接近一, 没有中性类分走概率质量, 其负面概率的分布整体右移, 同一阈值切出的"极端"篇数与三分类模型不可比; 因此任何叙述都不得写成"模型甲的极端负面占比高于模型乙", 只能写成"在模型甲的测量下该效应的标准化系数如何"。第二, 阈值选择本身是研究者自由度, 应对方式即三档梯子: canonical 取零点九零, 宽臂零点八零把中度负面纳入尾部、占比更高更平滑, 严臂零点九五只留最极端报道、更稀疏方差更大; 主结论须在三臂下方向一致、显著性格局相近方可声称对阈值稳健。第三, 概率来自滑动窗口置信度加权池化, 超长报道的窗口聚合是近似而非全文一次前向, 长文的极端判定可能被稀释; 三轨中 ctx 与 ss 文本更短, 受此影响更小, 构成天然的敏感性检查。第四, 报道少的银行年度格点占比波动剧烈, 一篇极端报道即可使小分母格点跳变, 回归中应配合报道量控制或加权; 开发环境短面板上部分格点稀疏属预期退化, 生产全量语料下缓解。第五, 留篇门控为 full-only, ctx 与 ss 轨的占比继承 full 留篇集, 若门控模型对极端负面报道的验证通过率存在系统差异, 三轨会同向受影响, 这是三法三角验证而非单轨内部能解决的问题。第六, 本家族确定性来自模型权重与阈值比较, 不含随机采样环节, 离线重跑可复现; 重跑阶段二十三须置 HF 离线开关, finbert2 缺席时其九列整族缺失属合法降级而非数据损坏。
@@ -425,4 +434,5 @@ Piotroski, J. D., Wong, T. J., & Zhang, T. (2015). Political incentives to suppr
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Romano, J. P., & Wolf, M. (2005). Stepwise multiple testing as formalized data snooping. Econometrica, 73(4), 1237-1282. https://doi.org/10.1111/j.1468-0262.2005.00615.x
+Wei, L., Wei, M., Jing, H., & Jing, Z. (2025). Annual report tone and bank risk-taking behavior: Evidence from China. Research in International Business and Finance. https://doi.org/10.1016/j.ribaf.2025.102881
 <!-- rendered-citations:end -->

@@ -205,9 +205,25 @@ citations:
   vol: 60
   issue: 3
   pages_or_artno: 531-542
+- doi: "10.1057/s41283-026-00203-0"
+  title: "Multidimensional digital transformation and bank performance in china"
+  authors: "Yang, L., & Yang, P."
+  year: 2026
+  venue: "Risk Management"
+  type: "journal"
+  one_sentence_zh: "用多维度指标测量中国银行的数字化转型程度并检验其对银行经营绩效的影响, 呼应本家族关于金融科技对银行经营净效应存在正反两读的文献定位。"
+- doi: "10.2139/ssrn.5201335"
+  title: "Word2Prices: Embedding Central Bank Communications for Inflation Prediction"
+  authors: "Araujo, D., Bokan, N., Comazzi, F., & Lenza, M."
+  year: 2025
+  venue: "SSRN Electronic Journal"
+  type: "wp"
+  one_sentence_zh: "用词嵌入表征央行沟通文本并证明其预测力优于词典法与情感指标, 为本家族嵌入投影方法优于词典/情感测度的方法论选择提供跨领域佐证。"
 new_dois:
 - 10.3386/w33344
 - 10.1177/0003122419877135
+- "10.1057/s41283-026-00203-0"
+- "10.2139/ssrn.5201335"
 ---
 
 ## CORE
@@ -222,7 +238,7 @@ new_dois:
 用大白话讲, 这个指标做的事是: 先写好十对意思针锋相对的句子, 一半说金融科技让银行经营变好, 一半说让银行经营变坏; 把这两组句子都变成高维数字向量, 相减得到一根指向利好经营方向的箭头; 再把每篇新闻也变成向量, 看它跟这根箭头的夹角——夹角小 (余弦大) 说明这篇新闻的说法偏向利好, 夹角大说明偏向损害; 最后把一家银行一年里所有新闻的分数取平均, 就是这家银行这一年在媒体眼中金融科技帮不帮它赚钱的总印象分。之所以要做两套模型 (国产 Qwen 与 OpenAI 各算一遍) 和三种读法 (读全文、只读提到这家银行的段落、只读银行和金融科技出现在同一句里的话), 是为了证明结论不是某一个模型或某一种读法碰巧算出来的。
 
 【文献定位】
-本家族处在三支文献的交点上。第一支是经济学文本方法文献: Gentzkow, Kelly & Taddy (2019) 确立了文本即数据的通用框架, Ash & Hansen (2023) 系统评述了嵌入表征相对词袋与词典方法在捕捉语义方向上的优势; 在金融应用侧, Li, Mai, Shen & Yan (2021) 用词嵌入从盈余电话会议文本中测量企业文化, Gabaix, Koijen, Richmond & Yogo (2025) 把嵌入表征推广到资产层面, 而 Jha, Liu & Manela (2026) 的双极锚点投影是其中与本测度数学结构完全同构的直接母锚; Kozlowski, Taddy & Evans (2019) 则提供了差分向量定义语义维度的社会科学理论基础。嵌入模型选择上, Tang & Yang (2025) 的金融文本嵌入基准 FinMTEB 说明通用嵌入在金融域的表现存在系统差异, 这正是本项目坚持双嵌入模型 co-primary 并行而非单模型独断的文献理由; Zhang et al. (2025) 是 canonical 槽 Qwen3 嵌入模型的技术报告。第二支是媒体与银行文献: Cookson, Lu, Mullins & Niessner (2024) 证明媒体信号中注意力与情感是可分离的两个维度, 支持本项目把态度测度 (本家族) 与覆盖强度测度 (fintech_intensity 族) 并行产出而非合并; Cookson, Fox, Gil-Bazo, Imbet & Schiller (2026) 证明媒体与社交叙事能实质性驱动银行挤兑, Fang, Wang, Wang & Yuan (2024) 在中国场景下证明媒体情感影响存款稳定性与银行系统性风险, 共同确立媒体态度对银行经营后果的因果相关性。第三支是金融科技与银行经营文献: Berg, Fuster & Puri (2022) 综述了金融科技信贷的效率与风险两面性, Cheng & Qu (2020) 用中国银行数据检验银行金科投入对信用风险的影响, 说明金融科技对银行经营的净效应在文献中本就存在正反两读, 这正是需要一条连续双极态度轴而非二值分类的原因。此外, 符号管理与脱耦文献 (Westphal 2023; Duchin, Gao & Xu 2025; Chen, Wan & Ma 等 2024; Gutknecht 2025) 提示媒体叙事的效益宣称可能与实质行动脱节, 为把本测度与实质性投入测度对照使用提供理论动机。
+本家族处在三支文献的交点上。第一支是经济学文本方法文献: Gentzkow, Kelly & Taddy (2019) 确立了文本即数据的通用框架, Ash & Hansen (2023) 系统评述了嵌入表征相对词袋与词典方法在捕捉语义方向上的优势; 在金融应用侧, Li, Mai, Shen & Yan (2021) 用词嵌入从盈余电话会议文本中测量企业文化, Gabaix, Koijen, Richmond & Yogo (2025) 把嵌入表征推广到资产层面, 而 Jha, Liu & Manela (2026) 的双极锚点投影是其中与本测度数学结构完全同构的直接母锚; Kozlowski, Taddy & Evans (2019) 则提供了差分向量定义语义维度的社会科学理论基础。嵌入模型选择上, Tang & Yang (2025) 的金融文本嵌入基准 FinMTEB 说明通用嵌入在金融域的表现存在系统差异, 这正是本项目坚持双嵌入模型 co-primary 并行而非单模型独断的文献理由; Zhang et al. (2025) 是 canonical 槽 Qwen3 嵌入模型的技术报告。第二支是媒体与银行文献: Cookson, Lu, Mullins & Niessner (2024) 证明媒体信号中注意力与情感是可分离的两个维度, 支持本项目把态度测度 (本家族) 与覆盖强度测度 (fintech_intensity 族) 并行产出而非合并; Cookson, Fox, Gil-Bazo, Imbet & Schiller (2026) 证明媒体与社交叙事能实质性驱动银行挤兑, Fang, Wang, Wang & Yuan (2024) 在中国场景下证明媒体情感影响存款稳定性与银行系统性风险, 共同确立媒体态度对银行经营后果的因果相关性。第三支是金融科技与银行经营文献: Berg, Fuster & Puri (2022) 综述了金融科技信贷的效率与风险两面性, Cheng & Qu (2020) 用中国银行数据检验银行金科投入对信用风险的影响, 说明金融科技对银行经营的净效应在文献中本就存在正反两读, 这正是需要一条连续双极态度轴而非二值分类的原因。Yang & Yang (2026, Risk Management) 用多维度指标测量中国银行的数字化转型程度并检验其对银行经营绩效的影响, 呼应本家族关于金融科技对银行经营净效应存在正反两读的文献定位。Araujo, Bokan, Comazzi & Lenza (2025, SSRN Electronic Journal) 用词嵌入表征央行沟通文本并证明其预测力优于词典法与情感指标, 为本家族嵌入投影方法优于词典/情感测度的方法论选择提供跨领域佐证。此外, 符号管理与脱耦文献 (Westphal 2023; Duchin, Gao & Xu 2025; Chen, Wan & Ma 等 2024; Gutknecht 2025) 提示媒体叙事的效益宣称可能与实质行动脱节, 为把本测度与实质性投入测度对照使用提供理论动机。
 
 【识别策略定位】
 benefit_mean_full 是 benefit_society 论文 paper_spec 声明的 treatment 主列 (正文级主处理变量), 其成果变量为银行盈利能力 roa (外部财务面板接入时构造)。识别框架上, 本测度是嵌入派生的生成式回归量 (generated regressor): Ludwig, Mullainathan & Rambachan (2025) 的应用计量框架指出, 由机器学习模型生成的测度进入回归右侧时须正视其测度误差与模型依赖, 本项目的对齐方式是三条。其一, 回归以 bank 与 year 双固定效应吸收投影得分的任何固定水平偏移, 使识别只依赖组内变异, 锚点集或嵌入空间的整体平移不进入估计; 其二, 缺失得分行 listwise 处理, 不以零或均值填补, 避免把无信号伪装成中性态度; 其三, 模型依赖以 co-primary 双嵌入与 27c 替代锚点与 placebo 审计正面暴露而非掩盖。面板级 IV 扩展 (同组 leave-one-out 均值、广义 Bartik、媒体来源 house-style 暴露三引擎) 为处理变量内生性提供工具变量族, 三引擎分别针对三类内生性威胁: leave-one-out 同组均值利用同类银行媒体态度的共同成分作外生变异源, 其构造刻意剔除自身观测以规避 Manski (1993) 反射问题中被解释者与解释者同集合导致的机械相关; 广义 Bartik 工具沿 Goldsmith-Pinkham, Sorkin & Swift (2020) 的份额乘漂移逻辑, 以银行既定的媒体来源结构份额与来源层面态度漂移的乘积作预测变异, 其识别假设 (份额外生) 须在论文正文按该文的诊断清单披露; 媒体来源 house-style 暴露则利用不同媒体机构文风与立场的持久差异 (媒体报道立场影响资产价格的经典证据链自 Tetlock 2007 起确立), 银行被哪些媒体覆盖的历史构成对其当年态度得分形成与银行自身基本面正交的暴露。三 IV 与 OLS 主规格同样服从并排纪律: 每个工具各自 just-identified 单独入 2SLS, 不把多个工具堆进同一条过度识别方程去做联合 Hansen J, 这既是全项目铁律, 也因三工具的排除约束各自成立与否是三个独立的经济学论断, 联合检验的拒绝无法归因。口径铁律必须在此复述: 三轨 full, ctx, ss 之间、canonical 与 _lg 两个 co-primary 嵌入之间, 各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同轨或不同嵌入模型的同构念测度混进同一个 over-identified 的 Hansen J 检验; 每条轨每个模型各进各的回归, 结论以跨规格符号与显著性的一致性呈现, 而不是以联合过度识别检验呈现。跨嵌入模型比较系数时须做标准化 (两个嵌入空间的余弦投影原始尺度不可比), 只比标准化 beta 不比原始水平。推断层面的配套约定: 面板回归按银行聚类稳健标准误, 深度受限的开发面板 (T 为二) 不用于任何推断结论; 多规格并排产生的多重检验问题不靠事后挑选处理, 而是在跨模型稳健性附表框架下用 Romano & Wolf (2005) 逐步降压族错误率程序控制 (该程序以自举重采样保留检验统计量间的相依结构, 比 Bonferroni 类校正在高度相关的同构念规格族上功效损失小得多, 恰合本家族六列高相关的情形), 与项目内其他同构念替代测量族的做法一致。另须区分处理变量与成果变量两套体系: 本家族全部六列都属处理变量测度体系, 成果变量 (roa 等财务指标) 是外部财务面板的哨兵列, 两套体系在 paper_spec 中各自声明, 不可互换角色。
@@ -287,4 +303,6 @@ Kim, E.-H., & Lyon, T. P. (2015). Greenwash vs. brownwash: Exaggeration and undu
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Romano, J. P., & Wolf, M. (2005). Stepwise multiple testing as formalized data snooping. Econometrica, 73(4), 1237-1282. https://doi.org/10.1111/j.1468-0262.2005.00615.x
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. The Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
+Yang, L., & Yang, P. (2026). Multidimensional digital transformation and bank performance in china. Risk Management. https://doi.org/10.1057/s41283-026-00203-0
+Araujo, D., Bokan, N., Comazzi, F., & Lenza, M. (2025). Word2Prices: Embedding Central Bank Communications for Inflation Prediction. SSRN Electronic Journal [Working Paper]. https://doi.org/10.2139/ssrn.5201335
 <!-- rendered-citations:end -->

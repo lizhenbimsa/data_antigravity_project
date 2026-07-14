@@ -61,7 +61,21 @@ citations:
   vol: '15'
   issue: '2'
   pages_or_artno: 121-140
-new_dois: []
+- doi: "10.1016/j.heliyon.2024.e30211"
+  title: "Sentimental showdown: News media vs. social media in stock markets"
+  authors: "Nyakurukwa, K., Seetharam, Y."
+  year: 2024
+  venue: "Heliyon"
+  type: "journal"
+- doi: "10.3390/bdcc9100263"
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  authors: "Chuang, H.-M., He, H.-C., Hu, M.-C."
+  year: 2025
+  venue: "Big Data and Cognitive Computing"
+  type: "journal"
+new_dois:
+  - "10.1016/j.heliyon.2024.e30211"
+  - "10.3390/bdcc9100263"
 ---
 
 ## CORE
@@ -73,7 +87,7 @@ new_dois: []
 计算分两步。第一步是媒体分类: producer 在文章级构造 `_media_type` 列, 依据媒体来源名称在预设名录中的归属, 把每篇报道标记为 `fin`/`comp`/`other` 三者之一, 这一分类与文章内容、情感分无关, 纯粹基于媒体机构属性; 随后按 `(target_bank, year)` 分组统计 `_is_comp` 哑元的组内均值得到 `comp_media_frac` (综合类媒体占比, 邻近家族列, 非本家族)。第二步是分类内情感聚合: 对每个三轨情感分来源列 `llm_vote_score{track}` (`track` ∈ `{_full, _ctx, _ss}`), producer 先筛出 `_media_type == 'comp'` 的子样本, 再按 `(target_bank, year)` 分组取该轨情感分的均值, 得到 `tone_comp_media{track}`。三轨分别对应 stage 21 情感 LLM 在全文、实体上下文窗口、银行∧金科同句共现窗口三种文本切分口径下产出的情感分, 三者是各自独立、just-identified 并排的稳健性口径, 互为稳健性、不分主次, 分析中禁止把三轨情感分混入同一个 over-identified 模型 (如同一 Hansen J 过识别检验) 中联合使用。若某轨的源列 `llm_vote_score{track}` 在上游 stage 21 输出中缺席 (例如离线复现未覆盖某轨), producer 用 `if src not in df.columns: continue` 优雅跳过整轨, 该轨对应的三个媒体类型情感列 (`tone_fin/comp/other_media{track}`) 及其缺口列同步不产出, 不会静默填充误导性的零或全体均值。留篇口径遵循全仓 full-only 门控铁律 (2026-06-29 生效): 一篇报道是否计入"银行-金科相关报道"的样本全集, 仅由 `llm_vote_score_full` 所在轨 (即 `llm_verified_full`) 判定, ctx/ss 轨的 `tone_comp_media` 是在 full-only 判定后的行宇宙子集上、按各自轨道文本重新计算情感分, 而非独立扩样。`_ss` 轨的回退语义镜像 `_ctx`: 当某篇报道内银行实体与金科词未出现在同一句 (窗口半径由 `config/filtering.yaml::context_window.ss_sentence_radius` 控制, 默认 1) 时, `content_ss` 退化为全文正文 (`ss_is_fallback=True`), 该篇的 `llm_vote_score_ss` 仍基于此退化文本计算, 不会因缺乏严格同句共现而被排除出 `tone_comp_media_ss` 的均值分母。若某 bank-year 组合内 `_media_type=='comp'` 的文章数为零 (即该银行当年没有被综合类媒体报道), 对应三个轨道的 `tone_comp_media{track}` 在 `merge(..., how='left')` 之后均为缺失值 (NaN), 这是分组均值在空组上的自然结果, 不代表零情感或中性情感, 使用时须与 `comp_media_frac==0` 联合判读避免误读为"情感中性"。
 
 【文献定位】
-媒体渠道异质性影响文本语调与市场反应的命题在实证金融与传播学交叉文献中有稳固根基。Tetlock (2007, *Journal of Finance*) 首次系统证明报纸文本语调蕴含独立于基本面的可预测信息, 为"媒体语调是一种可计量的经济信号"确立了方法论基准, 本家族对综合类媒体情感的单独提取正是延续这一传统, 把渠道异质性作为语调信号的一个调节维度。Peress (2014, *Journal of Finance*) 利用报纸罢工的准自然实验证明媒体在信息扩散中扮演因果角色而非被动传声筒, 意味着不同类型媒体的语调差异本身具有经济后果而非纯噪声。Gentzkow & Shapiro (2010, *Econometrica*) 的媒体立场模型表明媒体机构的编辑倾向具有跨时间的稳定性, 为把媒体类型 (而非单篇文章特征) 作为语调差异的组织维度提供了理论支撑——即综合类与财经类媒体的语调差异预期是系统性、持续性的机构特征, 而非随机噪声。就中国情境与银行业设定而言, Fang, Wang, Wang & Yuan (2024, *International Review of Economics & Finance*) 直接在中国银行样本上考察媒体情感对存款稳定性与系统性风险的影响, 是本家族最直接的同域实证参照; Marchetti, Tarducci & Branzoli (2025, SSRN) 提出的银行×年语气聚合方法与本家族"按银行-年分组取媒体子样本情感均值"的聚合逻辑高度一致。三家 LLM 多数投票情感分本身的方法学基础见 van Atteveldt, van der Velden & Boukes (2021, *Communication Methods and Measures*) 对情感分析多方法效度比较的系统评估, 该文强调不同标注/分类方法 (人工标注、众包、词典法、机器学习) 在效度上的差异性, 支持本项目采用多家 LLM 投票而非单一方法降低测量误差的设计选择。
+媒体渠道异质性影响文本语调与市场反应的命题在实证金融与传播学交叉文献中有稳固根基。Tetlock (2007, *Journal of Finance*) 首次系统证明报纸文本语调蕴含独立于基本面的可预测信息, 为"媒体语调是一种可计量的经济信号"确立了方法论基准, 本家族对综合类媒体情感的单独提取正是延续这一传统, 把渠道异质性作为语调信号的一个调节维度。Peress (2014, *Journal of Finance*) 利用报纸罢工的准自然实验证明媒体在信息扩散中扮演因果角色而非被动传声筒, 意味着不同类型媒体的语调差异本身具有经济后果而非纯噪声。Gentzkow & Shapiro (2010, *Econometrica*) 的媒体立场模型表明媒体机构的编辑倾向具有跨时间的稳定性, 为把媒体类型 (而非单篇文章特征) 作为语调差异的组织维度提供了理论支撑——即综合类与财经类媒体的语调差异预期是系统性、持续性的机构特征, 而非随机噪声。就中国情境与银行业设定而言, Fang, Wang, Wang & Yuan (2024, *International Review of Economics & Finance*) 直接在中国银行样本上考察媒体情感对存款稳定性与系统性风险的影响, 是本家族最直接的同域实证参照; Marchetti, Tarducci & Branzoli (2025, SSRN) 提出的银行×年语气聚合方法与本家族"按银行-年分组取媒体子样本情感均值"的聚合逻辑高度一致。三家 LLM 多数投票情感分本身的方法学基础见 van Atteveldt, van der Velden & Boukes (2021, *Communication Methods and Measures*) 对情感分析多方法效度比较的系统评估, 该文强调不同标注/分类方法 (人工标注、众包、词典法、机器学习) 在效度上的差异性, 支持本项目采用多家 LLM 投票而非单一方法降低测量误差的设计选择。Nyakurukwa 和 Seetharam (2024, Heliyon) 对比新闻媒体与社交媒体情感对四国股市回报的差异化影响, 佐证不同媒体渠道情感信号系统性有别的构念。Chuang, He 和 Hu (2025, Big Data and Cognitive Computing) 以中文财经新闻为语料, 系统比较多种词嵌入与大语言模型在情感分类与股价预测任务上的表现, 支持本项目多模型情感聚合的方法学选择。
 
 ## VAR: tone_comp_media_ctx
 
@@ -97,4 +111,6 @@ Gentzkow, M., Shapiro, J. M. (2010). What drives media slant - Evidence from U.S
 Fang, Y., Wang, Q., Wang, Y., Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk - Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Marchetti, S., Tarducci, E., Branzoli, N. (2025). Measuring tone shifts in media coverage - An empirical application to bank financing conditions in Italy. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.5220056
 van Atteveldt, W., van der Velden, M. A. C. G., Boukes, M. (2021). The validity of sentiment analysis - Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
+Nyakurukwa, K., Seetharam, Y. (2024). Sentimental showdown: News media vs. social media in stock markets. Heliyon. https://doi.org/10.1016/j.heliyon.2024.e30211
+Chuang, H.-M., He, H.-C., Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 <!-- rendered-citations:end -->

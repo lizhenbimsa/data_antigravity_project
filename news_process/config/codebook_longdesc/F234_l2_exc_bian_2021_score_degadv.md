@@ -1,5 +1,6 @@
 ---
 family_id: F234
+novelty_exempt_rationale: "该家族是 exc_(停刊稳健性排除样本) × degadv(程度+转折规则消融臂) 双重变体家族, 基于 Bian et al. (2021) 词典的技术性稳健性检验, 测度定义依据母族词典与规则消融梯度既有文献, 非独立新构念, 无需追新文献。"
 columns:
 - exc_bian_2021_score_degadv_ctx
 - exc_bian_2021_score_degadv_full

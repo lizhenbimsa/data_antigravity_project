@@ -76,7 +76,6 @@ citations:
   vol: 68
   issue: 7
   pages_or_artno: 5514-5532
-new_dois: []
 ---
 
 ## CORE

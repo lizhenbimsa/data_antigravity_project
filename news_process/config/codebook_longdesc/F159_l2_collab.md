@@ -249,7 +249,21 @@ citations:
   vol: 70
   issue: 4
   pages_or_artno: 213-220
-new_dois: []
+- doi: "10.1016/j.ribaf.2025.102993"
+  title: "Competition or cooperation? Disentangling the Bank-FinTech interaction through a hybrid literature review"
+  authors: "Costa, D., Querci, F., & Santulli, R."
+  year: 2025
+  venue: "Research in International Business and Finance"
+  type: "journal"
+- doi: "10.1108/ijbm-02-2023-0071"
+  title: "Enhancing online visibility through strategic alliances: the case of bank-FinTech relationships"
+  authors: "Cosma, S., & Pennetta, D."
+  year: 2024
+  venue: "International Journal of Bank Marketing"
+  type: "journal"
+new_dois:
+  - "10.1016/j.ribaf.2025.102993"
+  - "10.1108/ijbm-02-2023-0071"
 ---
 
 ## CORE
@@ -269,7 +283,7 @@ collab_frac 是 P5 论文 (bank_fintech_collab) paper_spec 中 treatment 的主�
 与 indep_frac 的关系是同一分类的两个类别占比, 分母同为 n_articles_llm_valid, 但因协同维度缺标篇的存在二者之和小于等于一, 不能把其中一列当作另一列的线性恒等变换使用。与 collab_frac_cm 及 collab_frac_cm_ss 的区分是文本口径: 后两者是 ctx 与 ss 口径的对角轨 (ctx 分子配 ctx 分母, ss 分子配 ss 分母), 属 conditional-on-full 稳健轨, 主列恒为 full 口径的 collab_frac。与 sub_frac 及 tech_frac 的区分是构念维度: 三者同属 LLM 分类维度三元组, 分别对应实质性对象征性, 底层技术对应用场景, 自主研发对外部协同, 三个维度在八格 cell_id 分解中各占一位, 协同维是最低位。与 tone_gap_indep_collab 的区分是度量类型: 后者是自主研发组与外部协同组的大模型投票情感均值之差 (带最小五篇守门), 度量的是情感纯度差距而非构念占比。与 llm_agreement_rate 族的区分是分歧主体: 该族度量三家模型之间的判读分歧, 而本家族 D4 三残差度量的是同一共识标签跨全文与实体近邻两个文本取材口径的分歧, 前者是评审者间信度问题 (Uma 等 2021 综述意义上的标注分歧), 后者是叙事结构问题; 两类分歧可以同时存在于同一篇文章且互不蕴含, 模型间高度一致的标签仍可跨口径翻转, 反之亦然。与金融学分歧文献里的投资者分歧构念 (Carlin 等 2014 的机构预测离散度, Li 与 Luan 2025 的新闻分歧) 的区分是分歧的承载主体与定价含义: 那一支度量的是市场参与者对同一资产的信念离散并检验其风险溢价含义, 本家族 disagree 列度量的是同一文本内部两个取材尺度对事实归类的不一致, 它先是测量结构量, 只有叠加解耦理论解释后才升格为行为信号, 引用该支文献是为论证叙事分歧可携带信息这一前提, 而非宣称二者同构。与曝光类度量 (n_articles, fintech_share, attention 族) 的区分是条件结构: 曝光类回答该银行被报道了多少, 本家族回答的是在被报道且被判定为银行金科关联报道的条件下, 叙事把创新来源归到哪边, 因此本家族全部占比列都是 conditional-on-coverage 量, 银行间曝光深度差异已被分母吸收, 但条件化也意味着零覆盖格子是缺失而非零, 样本进入本身可能有选择。与 IV 扩展引擎产出的 leave-one-out 同组协同均值列的区分是角色: 后者是为识别而造的工具变量, 度量对象是同业而非本行, 只应出现在第一阶段与工具位, 绝不可当作本行协同倾向的替代测度直接解读。最后, 与基于交易事件的协同度量 (并购公告, 股权投资记录) 的区分是数据生成过程: 本家族捕捉媒体叙事中的协同呈现, 涵盖未落地为交易的合作意向与框架协议, 也因此携带媒体选择与框架化偏差, 这既是局限也是 D4 残差族得以存在的构念空间。
 
 【文献定位】
-本家族在三支文献的交汇处。第一支是开放式创新与联盟战略文献: Zhang 等 (2024) 的元分析框架确立了外部开放度的前因后果谱系, Chen 等 (2025) 与 Burford 等 (2025) 把联盟与生态协同和技术互依, 并购动因连接起来, Dehghani 等 (2026) 则直接考察金融机构知识产权管理实践中的开放式创新模式, 为协同维度在金融科技语境下的效度提供最新锚点。第二支是银行金科互动的金融经济学实证: Puri 等 (2024), Alfhaili 等 (2025, 2026), Kueschnig 与 Schertler (2024), Zheng 与 Mao (2024) 与 Wu 等 (2025) 分别覆盖股权投资, 收购, 战略合作三类外部协同形态及其风险与绩效后果, Lerner 等 (2024) 提供金融创新专利归属的长时段证据, 本家族把这些交易层构念前移到媒体叙事层。第三支是文本测度方法学: Gentzkow 等 (2019) 确立文本即数据的一般框架, de Kok (2025) 讨论生成式大模型作为文本标注引擎的可复现性要求 (温度取零, 提示词冻结, 逐篇缓存正是本管线的实现), Uma 等 (2021) 为多标注者分歧的建模提供分类学。D4 残差族另有专属理论锚: Fiss 与 Zajac (2006) 的象征性管理与解耦理论预言组织对外话语与贴近行动的信息可以系统性分离, freerider 与 quietworker 两列正是该解耦构念在协同维度上的方向化操作化; 而 disagree 列与新闻文本分歧度量文献相通, Hong 与 Stein (2007) 给出分歧作为资产定价基本要素的理论综述, Li 与 Luan (2025) 证明基于新闻的投资者分歧度量携带定价信息, 支持把叙事层分歧本身当作研究变量而非纯测量噪声。
+本家族在三支文献的交汇处。第一支是开放式创新与联盟战略文献: Zhang 等 (2024) 的元分析框架确立了外部开放度的前因后果谱系, Chen 等 (2025) 与 Burford 等 (2025) 把联盟与生态协同和技术互依, 并购动因连接起来, Dehghani 等 (2026) 则直接考察金融机构知识产权管理实践中的开放式创新模式, 为协同维度在金融科技语境下的效度提供最新锚点。Costa, Querci 与 Santulli (2025, Research in International Business and Finance) 通过混合式文献综述系统梳理银行与金融科技公司互动中的竞争与合作两条路径, 为本家族协同模式构念的产业背景提供最新文献定位; Cosma 与 Pennetta (2024, International Journal of Bank Marketing) 以意大利金融科技公司样本考察股权型与合约型银行战略联盟对其线上可见度的差异化效应, 为外部协同的具体治理形式 (股权对合约) 提供实证锚点。第二支是银行金科互动的金融经济学实证: Puri 等 (2024), Alfhaili 等 (2025, 2026), Kueschnig 与 Schertler (2024), Zheng 与 Mao (2024) 与 Wu 等 (2025) 分别覆盖股权投资, 收购, 战略合作三类外部协同形态及其风险与绩效后果, Lerner 等 (2024) 提供金融创新专利归属的长时段证据, 本家族把这些交易层构念前移到媒体叙事层。第三支是文本测度方法学: Gentzkow 等 (2019) 确立文本即数据的一般框架, de Kok (2025) 讨论生成式大模型作为文本标注引擎的可复现性要求 (温度取零, 提示词冻结, 逐篇缓存正是本管线的实现), Uma 等 (2021) 为多标注者分歧的建模提供分类学。D4 残差族另有专属理论锚: Fiss 与 Zajac (2006) 的象征性管理与解耦理论预言组织对外话语与贴近行动的信息可以系统性分离, freerider 与 quietworker 两列正是该解耦构念在协同维度上的方向化操作化; 而 disagree 列与新闻文本分歧度量文献相通, Hong 与 Stein (2007) 给出分歧作为资产定价基本要素的理论综述, Li 与 Luan (2025) 证明基于新闻的投资者分歧度量携带定价信息, 支持把叙事层分歧本身当作研究变量而非纯测量噪声。
 
 【已知局限与稳健性梯子】
 第一, 媒体选择偏差: 进入语料的是被报道的创新而非创新总体, 大银行与话题性合作被系统性过度代表; 以大模型有效篇数为分母的占比构造部分中和了规模性曝光差异, 但报道议题结构漂移仍可能与银行特征相关, 论文侧以银行与年份固定效应及媒体来源暴露工具变量缓解。第二, 大模型判读的测量误差非经典且可能跨厂商相关: 三家模型若共享训练语料或提示词敏感性, 其误差不独立, 多数决共识只能压缩独立噪声而压不掉共同偏误; 应对是 per-model 跨厂商梯子 (三家各自 just-identified 并排, 互为稳健性, 不分主次, 禁混同一 over-identified Hansen J), 人工盲标双编码协议与跨模型一致性系数, 以及 Romano 与 Wolf (2005) 式族错误率控制。一致性系数的报告口径本身有陷阱: 项目采用名义且缺标感知的 Krippendorff alpha 以容纳不同模型标签空间的类目数差异, 另报 Cohen 系列 kappa 时必须先把缺标哨兵码重映射为非负码, 否则负值哨兵与负面类目冲突会污染系数; 系数量级的解读参照 Landis 与 Koch (1977) 的惯例区间但只作描述性基准, 不作为通过与否的机械阈值, 加权处理有序分歧的方案见 Cohen (1968) 传统, 本维度为二值名义标签故不加权。第三, 平局保守降级方向性: 平局归自主研发使 collab_frac 在边际上偏向低估外部协同占比, 属保守偏误, 方向可知且在跨模型臂间同构。与之相邻的构念压缩局限: 二值标签空间对混合形态报道 (同一篇既述自研投入又述外部签约) 强制单标签, 判读将取叙事主线, 该强制在构念上等价于把连续的开放度压缩为二分, 与 Laursen 与 Salter (2006) 连续广度深度度量相比损失了强度信息, 论文解释系数时应以叙事主线占比而非开放度水平措辞。另须提示占比变量的计量性质: 分子是小计数, 分母亦有限, 占比在小分母格子呈粗粒化跳变 (五篇分母下只能取六个值), 对数或比率变换在零附近的问题与 Cohn 等 (2022) 对计数类结局的告诫同源, 处理侧使用时以线性规格加固定效应为主, 避免对占比做非线性变换后再解释边际效应。第四, D4 残差的分母覆盖依赖 ctx 口径实体上下文抽取质量, both_valid 覆盖率不足时占比虽经最小五篇守门与质量旗标披露, 仍应在解释时对照 n_articles_collab_bothvalid 列报告覆盖率。第五, 开发盘小样退化: 极小年份深度下大量格子触发最小样本门置缺失属预期行为, 不构成生产口径下的推断依据。第五之外还有一处口径细节: ctx 口径的实体窗口截断可能遗漏远离银行名称但语义相关的协同描述, 使 ctx 标签在长篇多主体报道中相对全文标签更保守, 这一机制性差异意味着 D4 残差不可全部归因于叙事解耦, 解释时应与覆盖率披露并读。第六, 构念边界: 协同标签判读的是报道叙事呈现而非法律意义上的合作关系, freerider 与 quietworker 的言行解耦解释 (Fiss 与 Zajac 2006) 应表述为疑似信号而非行为指控; 同理, 主列的高协同占比也不等于合作规模或投入强度, 它是篇数占比而非金额加权量, 与 Zheng 与 Mao (2024) 等交易金额口径的度量在解释上应互补而非互替。梯子全景: 本家族的稳健性结构包括共识对三家 per-model 的厂商梯子, full 对 ctx 对 ss 的文本口径轨 (D4 残差有意仅 full 对 ctx), canonical 占比对 D4 残差诊断的测度族并排; 以上每一维度均为规格稳健性并排, 各臂各自 just-identified, 互为稳健性不分主次, 严禁混入同一 over-identified Hansen J, 亦刻意不做各梯子维度之间的交叉展开以避免规格组合爆炸。
@@ -323,4 +337,6 @@ Hagedoorn, J. (2002). Inter-firm R&D partnerships: An overview of major trends a
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
 Landis, J. R., & Koch, G. G. (1977). The measurement of observer agreement for categorical data. Biometrics, 33(1), 159-174. https://doi.org/10.2307/2529310
 Cohen, J. (1968). Weighted kappa: Nominal scale agreement provision for scaled disagreement or partial credit. Psychological Bulletin, 70(4), 213-220. https://doi.org/10.1037/h0026256
+Costa, D., Querci, F., & Santulli, R. (2025). Competition or cooperation? Disentangling the Bank-FinTech interaction through a hybrid literature review. Research in International Business and Finance. https://doi.org/10.1016/j.ribaf.2025.102993
+Cosma, S., & Pennetta, D. (2024). Enhancing online visibility through strategic alliances: the case of bank-FinTech relationships. International Journal of Bank Marketing. https://doi.org/10.1108/ijbm-02-2023-0071
 <!-- rendered-citations:end -->

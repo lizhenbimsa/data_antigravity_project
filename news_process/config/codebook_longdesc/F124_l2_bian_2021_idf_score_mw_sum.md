@@ -1,5 +1,6 @@
 ---
 family_id: F124
+novelty_exempt_rationale: "该家族是 bian_2021 词典 IDF 加权情感得分的媒体权威度加权 (mw) × Bank-Year 合计变体, 属于词典法情感测度族内的加权/聚合稳健性轨 (与 vw/hw/等权版并列), 其测度定义的学术依据已在母族词典文献 (Bian et al. 2021) 与 IDF 加权方法文献 (Spärck Jones 1972; Jegadeesh & Wu 2013) 中给出, 非独立新构念, 无需为加权/聚合变体本身另觅新文献。"
 columns:
 - bian_2021_idf_score_mw_sum_ctx
 - bian_2021_idf_score_mw_sum_full

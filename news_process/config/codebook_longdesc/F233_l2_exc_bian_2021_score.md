@@ -1,5 +1,6 @@
 ---
 family_id: F233
+novelty_exempt_rationale: "exc_ 前缀家族为'剔除疑似退出覆盖媒体'这一样本选择稳健性稳健变体, 测度定义与词典依据均沿用母族 bian_2021_score 及 Bian et al.(2021) 词典原始文献, 非独立新构念, 无需追新文献。"
 columns:
 - exc_bian_2021_score_ctx
 - exc_bian_2021_score_full

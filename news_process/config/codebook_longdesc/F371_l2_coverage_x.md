@@ -19,7 +19,21 @@ citations:
 - {doi: "10.1017/CBO9780511614491.006", type: book, authors: "Stock, J. H., & Yogo, M.", year: 2005, title: "Testing for weak instruments in linear IV regression", venue: "Identification and Inference for Econometric Models (Cambridge University Press)", pages_or_artno: "80-108"}
 - {doi: "10.1146/annurev-economics-080218-025643", type: journal, authors: "Andrews, I., Stock, J. H., & Sun, L.", year: 2019, title: "Weak instruments in instrumental variables regression: Theory and practice", venue: "Annual Review of Economics", vol: "11", pages_or_artno: "727-753"}
 - {doi: "10.48550/arXiv.2504.05658", type: arxiv, authors: "Luo, S., Shuai, K., Zhang, Y., Li, W., & He, Y.", year: 2025, title: "Identification and estimation of causal peer effects using instrumental variables", venue: "arXiv"}
-new_dois: []
+- doi: "10.1111/jofi.13377"
+  title: "Business News and Business Cycles"
+  authors: "Bybee, L., Kelly, B., Manela, A., & Xiu, D."
+  year: 2024
+  venue: "The Journal of Finance"
+  type: "journal"
+- doi: "10.2139/ssrn.5668511"
+  title: "Mining Causality: AI-Assisted Search for Instrumental Variables"
+  authors: "Han, S."
+  year: 2025
+  venue: "SSRN Working Paper"
+  type: "wp"
+new_dois:
+  - "10.1111/jofi.13377"
+  - "10.2139/ssrn.5668511"
 ---
 
 ## CORE
@@ -34,7 +48,7 @@ new_dois: []
 识别策略上, 本族的因果论证依据 Manski (1993, The Review of Economic Studies) 提出的"反射问题" (reflection problem): 同期同行结果与焦点银行结果同时决定, 简单相关无法区分同行影响焦点银行还是反之。llm_peer_iv.py 的应对策略是使用滞后一期同行特质冲击 (体现在 tone IV 的 lag 处理与 leave-out 设计上), 而 coverage 族作为该策略的伴随诊断项, 其数值大小直接反映了"同行圈子被媒体同时提及的密集程度"——数值越高, 意味着焦点银行与其同行越容易共享同一批报道来源, tone IV 排除约束 (同行报道冲击只通过同行渠道而非直接机制影响焦点银行结果) 的可信度就越需要审慎讨论, 这也是 Leary & Roberts (2014, The Journal of Finance) 指出的同行均值 IV 的经典局限——同行结果均值本身很难完全满足排除约束, 需要额外的机制说明或稳健性检验来支撑。
 
 【文献定位】
-本族方法论直接继承三条文献脉络。识别同行主体用 LLM 而非传统的行业代码或专利文本相似度, 依据 Cao, Chen, Tucker & Wan (2025, Review of Accounting Studies) 关于生成式 AI 识别产品市场同行的研究, 该文发现 LLM 输出的同行集合在预测未来业绩共动性上优于传统 SIC/NAICS 分类; 同行集合规模的 TNIC 上限设定则参照 Hoberg & Phillips (2016, Journal of Political Economy) 的文本网络行业分类方法论。工具变量设计的反射问题规避思路来自 Manski (1993, The Review of Economic Studies) 的经典论证, 而对同行均值型 IV 排除约束局限性的自觉披露则遵循 Leary & Roberts (2014, The Journal of Finance) 在公司金融同行效应文献中的做法。弱工具诊断与推断层面, Stock & Yogo (2005) 与 Andrews, Stock & Sun (2019, Annual Review of Economics) 提供了本族及其姊妹 tone IV 族在下游 2SLS 应用时应参照的弱工具判定标准; Luo, Shuai, Zhang, Li & He (2025, arXiv) 关于工具变量估计因果同行效应的最新方法论进展, 为本族"LLM 识别同行 + 声量/情感双轨 IV"这一组合设计提供了当代文献坐标。整体上, 本族六列服务于同一个方法学定位: 它们不是任何一篇主线论文 (P1-P5) 的处理变量或结果变量, 而是 `llm_peer` 方法学 paper 模块用来支撑 tone IV 有效性论证的辅助测度族。
+本族方法论直接继承三条文献脉络。识别同行主体用 LLM 而非传统的行业代码或专利文本相似度, 依据 Cao, Chen, Tucker & Wan (2025, Review of Accounting Studies) 关于生成式 AI 识别产品市场同行的研究, 该文发现 LLM 输出的同行集合在预测未来业绩共动性上优于传统 SIC/NAICS 分类; 同行集合规模的 TNIC 上限设定则参照 Hoberg & Phillips (2016, Journal of Political Economy) 的文本网络行业分类方法论。工具变量设计的反射问题规避思路来自 Manski (1993, The Review of Economic Studies) 的经典论证, 而对同行均值型 IV 排除约束局限性的自觉披露则遵循 Leary & Roberts (2014, The Journal of Finance) 在公司金融同行效应文献中的做法。弱工具诊断与推断层面, Stock & Yogo (2005) 与 Andrews, Stock & Sun (2019, Annual Review of Economics) 提供了本族及其姊妹 tone IV 族在下游 2SLS 应用时应参照的弱工具判定标准; Luo, Shuai, Zhang, Li & He (2025, arXiv) 关于工具变量估计因果同行效应的最新方法论进展, 为本族"LLM 识别同行 + 声量/情感双轨 IV"这一组合设计提供了当代文献坐标。整体上, 本族六列服务于同一个方法学定位: 它们不是任何一篇主线论文 (P1-P5) 的处理变量或结果变量, 而是 `llm_peer` 方法学 paper 模块用来支撑 tone IV 有效性论证的辅助测度族。此外, Bybee, Kelly, Manela & Xiu (2024, The Journal of Finance) 用大规模文本分析度量媒体新闻报道声量并验证其宏观与公司层面信息含量, 为本族以 log1p(报道条数) 刻画同行媒体声量的做法提供了新闻覆盖度量效度的当代文献支撑; Han (2025, SSRN Working Paper) 提出用大语言模型辅助搜寻满足排除约束的工具变量, 与本族用 LLM 识别产品市场同行圈子并构造声量/情感辅助工具变量的设计思路属同一方法学前沿脉络。
 
 ## VAR: llm_peer_coverage_iv
 
@@ -80,4 +94,6 @@ Manski, C. F. (1993). Identification of endogenous social effects: The reflectio
 Stock, J. H., & Yogo, M. (2005). Testing for weak instruments in linear IV regression. Identification and Inference for Econometric Models (Cambridge University Press). https://doi.org/10.1017/CBO9780511614491.006
 Andrews, I., Stock, J. H., & Sun, L. (2019). Weak instruments in instrumental variables regression: Theory and practice. Annual Review of Economics, 11, 727-753. https://doi.org/10.1146/annurev-economics-080218-025643
 Luo, S., Shuai, K., Zhang, Y., Li, W., & He, Y. (2025). Identification and estimation of causal peer effects using instrumental variables. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2504.05658
+Bybee, L., Kelly, B., Manela, A., & Xiu, D. (2024). Business News and Business Cycles. The Journal of Finance. https://doi.org/10.1111/jofi.13377
+Han, S. (2025). Mining Causality: AI-Assisted Search for Instrumental Variables. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.5668511
 <!-- rendered-citations:end -->

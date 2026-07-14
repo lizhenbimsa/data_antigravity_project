@@ -1,5 +1,6 @@
 ---
 family_id: F285
+novelty_exempt_rationale: "该家族是 you_2018 词典情感打分在语言学规则消融梯度 (_RULE_ABLATION_VARIANTS) 下的 degonly (仅程度副词加权) 技术变体, 测度定义与文献依据已在母族 you_2018 词典及其规则消融梯度正文中给出, 非独立新构念, 不需单独追新文献。"
 columns:
 - exc_you_2018_score_degonly_ctx
 - exc_you_2018_score_degonly_full

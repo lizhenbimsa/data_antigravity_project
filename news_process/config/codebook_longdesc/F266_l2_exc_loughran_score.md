@@ -10,6 +10,7 @@ columns:
 - exc_loughran_score_w_ctx
 - exc_loughran_score_w_full
 - exc_loughran_score_w_ss
+novelty_exempt_rationale: "exc_ 前缀的排除疑似退出覆盖媒体稳健性变体家族, 测度定义依据母族 loughran 词典情感得分及其排除口径方法学 (已在正文引文中充分锚定), 非独立新构念, 不需要追新文献。"
 unit: 无量纲 (剔除疑似退出覆盖媒体后, 银行-年度内 Loughran & McDonald 2011 词典中文主译情感得分的组内均值; 基线臂落在 [-1,1], 加权臂为得分×权重的均值不再归一)
 formula: "loughran_score{track} = Σ(final_score)/Σ|final_score| ∈ [-1,1] (L&M 2011 词典中文主译极性 + 否定/程度/转折全语言学规则); loughran_score_w{track} = loughran_score{track} × mention_density_weight (VW); loughran_score_hw{track} = loughran_score{track} × herd_weight{track} (HW); exc_loughran_score[_hw|_w]{track} = mean_{article ∈ bank-year ∧ media ∉ ceased_set} (对应文章级得分); ceased_set = confirmed ∪ suspected (last_year < sample_max - 2 ∧ n_articles ≥ 10)"
 producer: news_process/pipeline/panel/attention_media.py (停刊稳健性块 C.4, mean over df_alive; ceased 判定见 detect_defacto_cessation)

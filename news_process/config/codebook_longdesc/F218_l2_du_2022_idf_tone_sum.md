@@ -57,7 +57,21 @@ citations:
   vol: 66
   issue: 1
   pages_or_artno: 35-65
-new_dois: []
+- doi: "10.1016/j.eswa.2024.125739"
+  title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
+  authors: "Ma, Y., Zhang, T., & Zhang, P."
+  year: 2025
+  venue: "Expert Systems with Applications"
+  type: "journal"
+- doi: "10.1080/1540496X.2025.2474720"
+  title: "A News Sentiment Index and Its Asymmetric Effect on Market Liquidity for the Chinese Stock Market"
+  authors: "Wang, Z., Gao, D., Wang, X., & Wang, S."
+  year: 2025
+  venue: "Emerging Markets Finance and Trade"
+  type: "journal"
+new_dois:
+  - "10.1016/j.eswa.2024.125739"
+  - "10.1080/1540496x.2025.2474720"
 ---
 
 ## CORE
@@ -73,7 +87,7 @@ du_2022 词典本身取自 Du et al. (2022) 发表于 Review of Finance 的中�
 留篇门控遵循 full-only 口径 (2026-06-29): 某篇是否计入"一篇银行金科报道"仅由 llm_verified_full 判定, ctx/ss 轨为 conditional-on-full 测度, 其行宇宙是 full 留篇集的子集, 但 per-track 列各自照算。求和聚合对缺失源列由 valid_agg 按存在性自动过滤: 若某轨源列 (如 du_2022_idf_score_ss) 未产出则该轨优雅跳过而不借用他轨分母。
 
 【文献定位】
-本测度处在金融文本情感的词典法测量传统内。词典法的现代规范由 Loughran 和 McDonald (2011) 在《Journal of Finance》确立: 通用情感词表在金融语境中系统性误判 (如"liability"), 须构建领域词典, 这一诊断正是 du_2022 面向中文金融文本重建词表的直接动因。Garcia (2013) 将词频计数式的媒体语气引入资产定价, 证明报纸情感在衰退期对收益的预测边际最大, 为"对全部报道语气求和以捕捉累积媒体调性"提供了外延量口径的先例。IDF 加权则将信息检索与文本计量中经典的逆文档频率 (稀有词信息量) 思想嫁接到词典法上, 使少数高诊断性词主导语气, 而非被海量套话稀释。Barbaglia et al. (2025) 系统比较了经济文本的词典法路线, 论证在可解释性与跨语料稳定性上词典法相对黑箱模型的独立价值, 支持本项目以词典轨与 LLM 轨、BERT 轨并列互证的设计。Frankel, Jennings 和 Lee (2022) 直接比较词典法与机器学习法的披露情感, 结论是两法各有系统性偏差、宜互为稳健性对照而非彼此替代——这正是本项目将 du_2022 的 IDF 加权轨作为词频加权稳健性检验轨、与主 tone 轨并排的方法学依据。就三轨 (full/ctx/ss) 而言, 三者各自 just-identified 并排、互为稳健性、不分主次, 严禁混入同一 over-identified 的 Hansen J 检验。
+本测度处在金融文本情感的词典法测量传统内。词典法的现代规范由 Loughran 和 McDonald (2011) 在《Journal of Finance》确立: 通用情感词表在金融语境中系统性误判 (如"liability"), 须构建领域词典, 这一诊断正是 du_2022 面向中文金融文本重建词表的直接动因。Garcia (2013) 将词频计数式的媒体语气引入资产定价, 证明报纸情感在衰退期对收益的预测边际最大, 为"对全部报道语气求和以捕捉累积媒体调性"提供了外延量口径的先例。IDF 加权则将信息检索与文本计量中经典的逆文档频率 (稀有词信息量) 思想嫁接到词典法上, 使少数高诊断性词主导语气, 而非被海量套话稀释。Barbaglia et al. (2025) 系统比较了经济文本的词典法路线, 论证在可解释性与跨语料稳定性上词典法相对黑箱模型的独立价值, 支持本项目以词典轨与 LLM 轨、BERT 轨并列互证的设计。Frankel, Jennings 和 Lee (2022) 直接比较词典法与机器学习法的披露情感, 结论是两法各有系统性偏差、宜互为稳健性对照而非彼此替代——这正是本项目将 du_2022 的 IDF 加权轨作为词频加权稳健性检验轨、与主 tone 轨并排的方法学依据。就三轨 (full/ctx/ss) 而言, 三者各自 just-identified 并排、互为稳健性、不分主次, 严禁混入同一 over-identified 的 Hansen J 检验。Ma, Zhang 和 Zhang (2025, Expert Systems with Applications) 构建了面向中国境内投资者的细粒度中文情感词典 (CN-FSD, 含喜怒哀惧四类共6155词), 用改进PMI算法与词频统计对情感词赋权分级, 与本家族对du_2022词典做IDF稀有词加权、以幅值区分诊断力的思路互为呼应。Wang, Gao, Wang 和 Wang (2025, Emerging Markets Finance and Trade) 构建中国股市新闻情感指数并考察其对市场流动性的非对称影响, 采用对全部相关报道语气累积求和的外延量口径, 与本家族bank-year内逐篇净语调求和的设计逻辑一致。
 
 ## VAR: du_2022_idf_tone_sum_full
 
@@ -96,4 +110,6 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Garcia, D. (2013). Sentiment during recessions. The Journal of Finance, 68(3), 1267-1300. https://doi.org/10.1111/jofi.12027
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
+Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications. https://doi.org/10.1016/j.eswa.2024.125739
+Wang, Z., Gao, D., Wang, X., & Wang, S. (2025). A News Sentiment Index and Its Asymmetric Effect on Market Liquidity for the Chinese Stock Market. Emerging Markets Finance and Trade. https://doi.org/10.1080/1540496X.2025.2474720
 <!-- rendered-citations:end -->

@@ -30,6 +30,20 @@ citations:
   vol: 26
   issue: 3
   pages_or_artno: 673-719
+- doi: "10.1016/j.eswa.2024.125739"
+  title: "The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application"
+  authors: "Ma, Y., Zhang, T., & Zhang, P."
+  year: 2025
+  venue: "Expert Systems with Applications, 264, 125739"
+  type: "journal"
+  one_sentence_zh: "构建面向中国境内投资者的细粒度中文情感词典(CN-FSD)并验证其在金融文本情感测度上的应用效果, 与本家族 du_2022 中文金融情感词典构念直接相关。"
+- doi: "10.1080/00031305.2025.2539241"
+  title: "A Fisher's Exact Test Justification of the TF–IDF Term-Weighting Scheme"
+  authors: "Sheridan, P., Ahmed, Z., & Farooque, A. A."
+  year: 2025
+  venue: "The American Statistician, 80(1), 146-156"
+  type: "journal"
+  one_sentence_zh: "为 TF-IDF 词项加权方案提供基于 Fisher 精确检验的统计学理论依据, 支撑本家族逐词 IDF 权重构造的方法学正当性。"
 - doi: 10.18653/v1/d16-1057
   type: journal
   authors: Hamilton, W. L., Clark, K., Leskovec, J., & Jurafsky, D.
@@ -52,7 +66,9 @@ citations:
   year: 2008
   title: "Introduction to information retrieval"
   venue: Cambridge University Press
-new_dois: []
+new_dois:
+  - "10.1016/j.eswa.2024.125739"
+  - "10.1080/00031305.2025.2539241"
 ---
 
 ## CORE
@@ -68,7 +84,7 @@ new_dois: []
 IDF 加权本身是 Gentzkow、Kelly 与 Taddy 文本即数据方法学谱系下的稳健性检验设计: 罕见词往往携带更强的区分性信息, 故给予更高权重, 与均权 raw 词频构成互为稳健性的并排臂。IDF 权重只缩放幅值、不改变词的极性归属, 因此政治词 0.5 权重、否定/程度/转折三规则均在 IDF 之上正交叠加, 三者的语义边界互不侵占。
 
 【文献定位】
-词典来源锚定 Du 等 (2022, Review of Finance) 这一顶刊文, 其对中文金融文本语言与领域特异性的论证, 以及政治正面词信号偏弱的实证发现, 是本管道对该类词降权处理的直接依据。IDF/词权重的内容分析传统可上溯 Jegadeesh 与 Wu (2013) 在 Journal of Financial Economics 提出的 word power 方法 (以词项权重刻画文本信息含量), 以及 Manning、Raghavan 与 Schütze (2008) 对逆文档频率的信息检索经典化处理; 领域特异性情感词表的语料驱动归纳则见 Hamilton 等 (2016)。把 IDF 加权轨与 raw 词频轨并排, 而非以其替换主轨, 与 Brodeur 等 (2026, Nature) 对经济学与政治学研究可复现性与稳健性的呼吁一致: 测度设计的每一个自由度都应以并排稳健性臂而非单点选择来承载。铁律层面, 三轨 (full/ctx/ss) 各自 just-identified 并排、互为稳健性、不分主次, 严禁把三轨或 IDF 与 raw 混进同一 over-identified Hansen J 的过度识别集。
+词典来源锚定 Du 等 (2022, Review of Finance) 这一顶刊文, 其对中文金融文本语言与领域特异性的论证, 以及政治正面词信号偏弱的实证发现, 是本管道对该类词降权处理的直接依据。IDF/词权重的内容分析传统可上溯 Jegadeesh 与 Wu (2013) 在 Journal of Financial Economics 提出的 word power 方法 (以词项权重刻画文本信息含量), 以及 Manning、Raghavan 与 Schütze (2008) 对逆文档频率的信息检索经典化处理; 领域特异性情感词表的语料驱动归纳则见 Hamilton 等 (2016)。把 IDF 加权轨与 raw 词频轨并排, 而非以其替换主轨, 与 Brodeur 等 (2026, Nature) 对经济学与政治学研究可复现性与稳健性的呼吁一致: 测度设计的每一个自由度都应以并排稳健性臂而非单点选择来承载。铁律层面, 三轨 (full/ctx/ss) 各自 just-identified 并排、互为稳健性、不分主次, 严禁把三轨或 IDF 与 raw 混进同一 over-identified Hansen J 的过度识别集。此外, Ma, Zhang 和 Zhang (2025, Expert Systems with Applications) 构建面向中国境内投资者的细粒度中文情感词典(CN-FSD)并验证其在金融文本情感测度上的应用效果, 与本家族 du_2022 中文金融情感词典构念直接相关; Sheridan, Ahmed 和 Farooque (2025, The American Statistician) 为 TF-IDF 词项加权方案提供基于 Fisher 精确检验的统计学理论依据, 支撑本家族逐词 IDF 权重构造的方法学正当性。
 
 ## VAR: du_2022_idf_score_w_sum_full
 
@@ -88,6 +104,8 @@ IDF 加权本身是 Gentzkow、Kelly 与 Taddy 文本即数据方法学谱系下
 <!-- rendered-citations:begin -->
 Brodeur, A., Mikola, D., Cook, N., et al. (2026). Reproducibility and robustness of economics and political science research. Nature, 652(8108), 151-156. https://doi.org/10.1038/s41586-026-10251-x
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
+Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications, 264, 125739. https://doi.org/10.1016/j.eswa.2024.125739
+Sheridan, P., Ahmed, Z., & Farooque, A. A. (2025). A Fisher's Exact Test Justification of the TF–IDF Term-Weighting Scheme. The American Statistician, 80(1), 146-156. https://doi.org/10.1080/00031305.2025.2539241
 Hamilton, W. L., Clark, K., Leskovec, J., & Jurafsky, D. (2016). Inducing domain-specific sentiment lexicons from unlabeled corpora. Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing, 595-605. https://doi.org/10.18653/v1/d16-1057
 Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis. Journal of Financial Economics, 110(3), 712-729. https://doi.org/10.1016/j.jfineco.2013.08.018
 Manning, C. D., Raghavan, P., & Schütze, H. (2008). Introduction to information retrieval. Cambridge University Press. https://doi.org/10.1017/CBO9780511809071

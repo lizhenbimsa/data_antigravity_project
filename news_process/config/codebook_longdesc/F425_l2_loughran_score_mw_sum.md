@@ -75,7 +75,14 @@ citations:
   vol: 37
   issue: 2
   pages_or_artno: 267-307
-new_dois: []
+- doi: "10.1111/eufm.70025"
+  type: journal
+  authors: "Jacobs, H., & Lauber, A."
+  year: 2025
+  title: "Media Sentiment and Price Run-Ups"
+  venue: "European Financial Management"
+new_dois:
+  - "10.1111/eufm.70025"
 ---
 
 ## CORE
@@ -87,7 +94,7 @@ new_dois: []
 计算分三步。第一步在 stage 22 (tone_words) 的文章级层面, 对每篇报道用 loughran 词典逐词打分并施加全套语言学规则得净极性得分 loughran_score{track}: 该 canonical 无后缀分数并非简单的正负词裸计数比 (neg − pos)/(pos + neg), 而是由 tone_words._compute_sentiment_with_rules 对命中词依次施加否定翻转、程度副词六级放缩、转折连词 ×1.5、句末重置等规则后, 取最终逐词得分的自归一化比 Σ(final_score)/Σ|final_score|, 取值落在 [−1, 1], 无有效极性词时按缺省口径处理为缺失或零。零规则的裸计数比 (neg − pos)/(pos + neg) 另有其列 (msent_score 变体), 与本家族口径不同, 不可混同。词典加载时对 loughran 的 positive∩negative 跨类重叠词做了两阶段处理: 原始 61 个重叠词经 2026-06-24「两侧保留判断」消歧, 38 词已归单侧, 余 23 词判定为不可约简、按用户决策"保留并两侧计数" (登记入 _BOTH_SIDED_BY_DICT), 打分时对该 23 词同时计入 pos/neg, 使该词典个体的 loughran_score 净语调拉向中性而非武断选边; union/msent/ratio 等固定词典聚合测度不受影响, 因重叠词以 (+1,−1) 平衡双票喂入 build_union_dictionary, 极性 margin 守恒。第二步在面板装配 (runner 步骤3c, 媒体权威加权 MW; 与步骤3b 的提及密度加权 VW 无关) 计算 media_authority_weight = raw_authority / mean(raw_authority): 媒体名先做精确匹配、再做去括号后缀的模糊匹配, 未评级媒体赋默认权重, 全样本均值归一化保证权重中心为 1; 随后逐篇相乘得文章级加权得分 loughran_score_mw{track} = loughran_score{track} × media_authority_weight。第三步在 encode 的 bank-year 聚合中对该加权得分求和, 得本列 loughran_score_mw_sum{track}。三轨 full / ctx / ss 各自独立走完这条链路: full 轨文本 = 标题 prepend + 全文正文, ctx 轨 = 标题 + 银行/金科实体上下文窗, ss 轨 = 标题 + 银行与金科同句共现窗 (ss 无同句共现时回退镜像 ctx 语义、以全文 body 兜底并置 ss_is_fallback)。留篇门控为 full-only (2026-06-29): 一篇报道是否计入某 bank-year 的"银行金科报道"总体只看 full 轨的 llm_verified_full; ctx/ss 是 conditional-on-full 的子集测度, 行宇宙为 full 留篇集的子集, 但 per-track 分子仍逐轨照算。零新闻或该轨无留篇报道的银行-年按 Σ over ∅ = 0 落 0, 与其他权重和兄弟列保持同一"和"契约, 不残留为点号缺失。
 
 【文献定位】
-Loughran & McDonald (2011) 是本列极性判据的原始出处: 该文在《Journal of Finance》上证明通用英文情感词表 (如 Harvard IV-4) 大量误判金融/法律文本中的中性词 (如 "liability"、"tax"、"cost") 为负面, 提出面向 10-K 文本量身定制的正负词表, 是文本金融领域最广泛采用的词典之一; 本仓的中文主译本正是把这一构念移植到中文金融新闻语域, 承袭其"领域专用词表优于通用词表"的核心主张。Loughran & McDonald (2016) 在《Journal of Accounting Research》系统综述会计与金融领域文本分析方法, 讨论了词典构建、语言学规则处理 (否定、程度、转折) 与常见陷阱, 是本项目消融梯度设计 (否定翻转/程度副词/转折规则可独立开关) 的方法学依据; Loughran & McDonald (2020) 在《Annual Review of Financial Economics》进一步综述文本分析在金融研究中的应用谱系, 确认词典法作为主流方法之一的地位。就词典法与其他情感测度方法的关系, Barbaglia et al. (2025) 系统论证了在经济金融文本上词典法相对纯机器学习的可解释性与可复现优势, 并给出以词表极性合成篇章语调的规范流程, 与本列"逐词计数 → 篇章净极性 → 单元加权求和"的构造同源; van Atteveldt et al. (2021) 通过与人工标注、众包编码、机器学习的系统比对, 界定了词典法效度的边界与适用条件, 提示本列这类词典分数应作为多测度体系中的一员而非唯一真值; Frankel et al. (2022) 比较了披露文本上词典法与机器学习法的一致性, 为本项目"词典 / LLM / BERT 三法互为稳健性、不分主次"的设计提供了直接先例。Taboada et al. (2011) 奠定了词典法中否定、程度、转折等语言学规则的处理范式, 是本项目规则消融梯度的方法学背景, 与 Loughran & McDonald (2016) 的综述互为呼应。需强调本列所属的媒体权威加权仅是加权口径梯子中的一臂: MW (媒体权威权重)、VW (提及密度权)、HW (羊群衰减权) 与等权聚合各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同加权口径的分子混进同一 over-identified Hansen J; 同理三轨 full/ctx/ss 亦各自 just-identified 并排、禁混同一 over-identified Hansen J, loughran 词典轨与词典家族内其余五部词典 (jiang_2021/yao_2021/bian_2021/du_2022/you_2018)、以及词典法整体与 LLM/BERT 两法之间, 同样只作互为稳健性对照而不合并识别。
+Loughran & McDonald (2011) 是本列极性判据的原始出处: 该文在《Journal of Finance》上证明通用英文情感词表 (如 Harvard IV-4) 大量误判金融/法律文本中的中性词 (如 "liability"、"tax"、"cost") 为负面, 提出面向 10-K 文本量身定制的正负词表, 是文本金融领域最广泛采用的词典之一; 本仓的中文主译本正是把这一构念移植到中文金融新闻语域, 承袭其"领域专用词表优于通用词表"的核心主张。Loughran & McDonald (2016) 在《Journal of Accounting Research》系统综述会计与金融领域文本分析方法, 讨论了词典构建、语言学规则处理 (否定、程度、转折) 与常见陷阱, 是本项目消融梯度设计 (否定翻转/程度副词/转折规则可独立开关) 的方法学依据; Loughran & McDonald (2020) 在《Annual Review of Financial Economics》进一步综述文本分析在金融研究中的应用谱系, 确认词典法作为主流方法之一的地位。就词典法与其他情感测度方法的关系, Barbaglia et al. (2025) 系统论证了在经济金融文本上词典法相对纯机器学习的可解释性与可复现优势, 并给出以词表极性合成篇章语调的规范流程, 与本列"逐词计数 → 篇章净极性 → 单元加权求和"的构造同源; van Atteveldt et al. (2021) 通过与人工标注、众包编码、机器学习的系统比对, 界定了词典法效度的边界与适用条件, 提示本列这类词典分数应作为多测度体系中的一员而非唯一真值; Frankel et al. (2022) 比较了披露文本上词典法与机器学习法的一致性, 为本项目"词典 / LLM / BERT 三法互为稳健性、不分主次"的设计提供了直接先例。Taboada et al. (2011) 奠定了词典法中否定、程度、转折等语言学规则的处理范式, 是本项目规则消融梯度的方法学背景, 与 Loughran & McDonald (2016) 的综述互为呼应。Jacobs & Lauber (2025, European Financial Management) 用词典法构造的媒体语调度量考察价格急涨前后的媒体情绪动态, 为本列以媒体权威加权词典语调刻画声量×极性合成信号提供了2023年后的方法学新近佐证。需强调本列所属的媒体权威加权仅是加权口径梯子中的一臂: MW (媒体权威权重)、VW (提及密度权)、HW (羊群衰减权) 与等权聚合各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同加权口径的分子混进同一 over-identified Hansen J; 同理三轨 full/ctx/ss 亦各自 just-identified 并排、禁混同一 over-identified Hansen J, loughran 词典轨与词典家族内其余五部词典 (jiang_2021/yao_2021/bian_2021/du_2022/you_2018)、以及词典法整体与 LLM/BERT 两法之间, 同样只作互为稳健性对照而不合并识别。
 
 ## VAR: loughran_score_mw_sum_full
 
@@ -112,4 +119,5 @@ Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025)
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
+Jacobs, H., & Lauber, A. (2025). Media Sentiment and Price Run-Ups. European Financial Management. https://doi.org/10.1111/eufm.70025
 <!-- rendered-citations:end -->
