@@ -35,9 +35,36 @@ v8 升级（2026-06-11, fix(omni-g-val-prompt-02)）：
     各变体仍在自身扰动维度内保持 collab 判定标准实质不变。配套接入
     PASS_THRESHOLD_INNOVATION_COLLAB_MODE 进 pass criteria（此前为死阈值）。
     同时（fix omni-g-val-prompt-01/03/04/05）：ctx/ss 轨变体 prompt 构造前剥离
-    stage 13 prepend 的标题（镜像生产 tonellms-01）；pass/fail 裁决改三轨
-    AND（full / ctx / ss 各自评估，JSON 报 per-track）；变体 locus 空票回退与
+    stage 14 prepend 的标题（镜像生产 tonellms-01; fix(D5, 2026-07-14): 原写
+    "stage 13"是重编号残留, 标题 prepend 实际在 stage 14 ctx_materializer 完成,
+    stage 13 只做共现硬过滤不物化文本）；pass/fail 裁决改三轨
+    AND（full / ctx / ss 各自评估，JSON 报 per-track；fix(WP-R1.1②, 2026-07-14):
+    总判定其后已改回 full 轨单轨驱动，见下段）；变体 locus 空票回退与
     生产 keyword 分类器对齐；API 全失败行加掩码不计入措辞不一致。
+
+WP-R1.1 收口（2026-07-14, S9 全文修复 + §10 WP-R1.1 ①②③）：
+    ① 修正过时注释 "P1 main spec = llm_vote_tone_ctx"（fix(WP-R1.1①)）：full-only
+    门控已于 2026-06-29 切为全项目主轨（非仅 P1），该历史前提不再成立。
+    ② 总判定 `passed` 由「full/ctx/ss 三轨 AND」改回「full 轨 7 项 criteria 驱动」
+    （fix(WP-R1.1②)，唯一计算点见 main() Step 7 `passed = passed_by_track.get(
+    '_full', False)`）；ctx/ss 轨仍各自照算全部 7 项 criteria 并各自存入
+    passed_ctx/passed_ss，语义降级为 conditional-on-full 的稳健性/限界披露，不再
+    参与总判定 AND。散布的 banner/日志/docstring 措辞已同批改齐（§0-5 原子打包
+    纪律：计算点与描述它的全部文字必须同一 commit）。
+    ③ `run_variant_llms` 内 `fetch_llm_async` 调用补显式传 `prompt_version`
+    （fix(WP-R1.1③)，此前未传 → 落缺省 'v0' 命名空间）：构造 =
+    f"{生产 PROMPT_VERSION}#sens-{variant_name}"（变体 prompt 全文本身已因文本
+    不同产生不同缓存键哈希，此处补版本串是为命名空间可读溯源，非改变缓存行为的
+    必要条件）。
+    ④ S9 附带：4 变体头部 "两项/两阶段" 误述改 "三项/三阶段"（v8 三阶段 schema
+    升级时的措辞残留）；2 个 `*_reason` 字段（innovation_substantiveness_reason /
+    innovation_collab_mode_reason）× 4 变体 = 8 处补齐 "须引用文章具体内容"（对齐
+    unified_cot.txt:105,111 生产口径）；热力图补 call_failure 掩码；新增
+    `n_undefined_flagged`（平局旗标披露，选最小实现 = 报数量而非掩码排除，命名
+    如实反映"未剔除仅计数"，不用 "excluded" 字样以免误导）；docstring 阈值/重试
+    文本与 config 现值对齐（0.70/0.70/retries=80，见 config/validation.yaml:62-69
+    与 config/sentiment.yaml:13 — 此前 docstring 仍写 W6 修正前的 0.75/0.80 及
+    validation.yaml "刻意取 1" 的已废止旧口径）。
 
 输入：
     阶段21输出 21_tone_llms_full.parquet（含三轨 LLM 判定列）
@@ -52,8 +79,11 @@ v8 升级（2026-06-11, fix(omni-g-val-prompt-02)）：
     担心 LLM 的判定结果是"prompt 怎么写"碰巧决定的。本检验把同一个任务
     用 4 种不同说法重写 (换角色口吻 / 换段落顺序 / 大幅精简 / 整句改写),
     意思完全不变, 再让 LLM 对同一批文章重判。如果 5 个版本 (原版+4 变体)
-    给出的答案高度一致 (一致率/κ/α 全过阈值, 且 full / ctx / ss 三条轨道都要
-    过), 就说明结果反映的是文章本身, 不是 prompt 措辞的偶然产物。
+    给出的答案高度一致 (一致率/κ/α 全过阈值, 且 full 轨道全过), 就说明结果
+    反映的是文章本身, 不是 prompt 措辞的偶然产物; ctx/ss 轨仍各自照算全部
+    指标, 但降级为 conditional-on-full 的稳健性/限界披露 (fix(WP-R1.1②,
+    2026-07-14): full-only 已于 2026-06-29 切为全项目主轨, 此前"三轨都要过"
+    的口径已废止)。
 
 ========================================================================
 【阶段功能权威说明 — 2026-06-15 三层核查定稿】
@@ -72,9 +102,9 @@ v8 升级（2026-06-11, fix(omni-g-val-prompt-02)）：
 3. 对每变体 `run_variant_llms` 异步发三轨 × 3 模型请求; `aggregate_variant_results` 用 `_aggregate_track` 聚合 (locus 直接复用生产模块级 `_resolve_locus_track` 保证规则同源; substantiveness/collab 用 majority_vote_categorical conservative); call_failure/undefined 旗标保留。
 4. 分轨算: pairwise (变体 vs V0 的验证一致率/情感一致率/Cohen's κ + 三创新维度 κ) + 多变体 (5 编码者 = V0+4 变体的 Krippendorff's α + Fleiss' κ, `compute_fleiss_kappa` 内联实现 line 472) + 跨变体方差。
 
-**关键算法/公式**: Fleiss' κ = (P̄−P_e)/(1−P_e) 推广到 5 编码者。compute_cohens_kappa / compute_krippendorffs_alpha 复用 `validation.llms_evaluation`。失败行掩码 (fix omni-g-val-prompt-05): 变体 API 全失败行剔除, 不计为'措辞不一致'; 全失败→指标 NaN (fail-loud)。阈值: 验证一致率≥0.85 / 情感≥0.80 / κ≥0.70 / α≥0.667 / substantiveness≥0.75 / locus≥0.80 / collab≥0.70。gate = full/ctx/ss 三轨各自全 criteria AND (fix omni-g-val-prompt-03: 此前仅 full 进 gate, 而 P1 主 spec=ctx 轨, 会误报)。
+**关键算法/公式**: Fleiss' κ = (P̄−P_e)/(1−P_e) 推广到 5 编码者。compute_cohens_kappa / compute_krippendorffs_alpha 复用 `validation.llms_evaluation`。失败行掩码 (fix omni-g-val-prompt-05): 变体 API 全失败行剔除, 不计为'措辞不一致'; 全失败→指标 NaN (fail-loud)。阈值 (与 config/validation.yaml:62-69 现值对齐, fix(S9, 2026-07-14): 此前文本仍写 W6 修正前的 0.75/0.80 旧值): 验证一致率≥0.85 / 情感≥0.80 / κ≥0.70 / α≥0.667 / substantiveness≥0.70 / locus≥0.70 / collab≥0.70。gate = full 轨 7 项 criteria 驱动总判定 (fix(WP-R1.1②, 2026-07-14): 此前 fix omni-g-val-prompt-03 曾改为 full/ctx/ss 三轨各自全 criteria AND, 缘由是彼时 P1 主 spec=ctx 轨; full-only 已于 2026-06-29 切为全项目主轨后该前提不再成立, 总判定改回 full 单轨驱动; ctx/ss 仍各自照算全部 criteria 供 conditional-on-full 披露, 不再进总判定)。
 
-**外部依赖**: LLM API, 4 变体 × 1000 × 3 模型 × 3 轨 = 最多 36000 请求; aiohttp 异步限流。确定性锚点 = `_llm_cache_validation.db` (验证变体库, LLMCache; 变体 prompt 与生产不同 → 增量付费请求, 冷缓存需线上跑)。PROMPT_MAX_RETRIES 缺省已对齐生产 MAX_RETRIES (validation.yaml 可显式取 1 防长尾卡死, 已披露)。timeout=43200s (12h)。matplotlib κ 热力图 (5 编码者 panel)。
+**外部依赖**: LLM API, 4 变体 × 1000 × 3 模型 × 3 轨 = 最多 36000 请求; aiohttp 异步限流。确定性锚点 = `_llm_cache_validation.db` (验证变体库, LLMCache; 变体 prompt 与生产不同 → 增量付费请求, 冷缓存需线上跑)。PROMPT_MAX_RETRIES 缺省已对齐生产 MAX_RETRIES (fix(S9, 2026-07-14): validation.yaml 现值 = 80, 与生产 stage 21 MAX_RETRIES 一致 [2026-06-23 统一决策], 此前文本仍写已废止的"刻意取 1 防长尾卡死"旧口径, 见 config/sentiment.yaml:13)。timeout=43200s (12h)。matplotlib κ 热力图 (5 编码者 panel)。
 
 **学术依据**: Carlson & Burbano (2026, SMJ §3.5) generating families of related prompts; 框架引 Westphal & Zajac 1994/1998 ASQ + Gomber 2018 JMIS + Chesbrough 2003 + Laursen & Salter 2006 SMJ。
 
@@ -82,7 +112,7 @@ v8 升级（2026-06-11, fix(omni-g-val-prompt-02)）：
 
 **这一步在做什么**: 同一道判断题, 用 5 种不同的问法去问 AI — 原版问法, 加上换个口吻、换段落顺序、大幅精简、整句重写这 4 个变体, 意思一字不差。然后看 AI 对同一批新闻给出的 5 套答案一不一致。
 
-**为什么需要它**: 用 AI 做研究有个隐忧: 结果会不会只是'指令 (prompt) 碰巧那么写'才出来的? 换个说法就翻盘? 这就像同一道题, 老师换个措辞问, 学生答案就全变了, 那这答案就不可靠。如果 5 个版本的答案高度一致 (各项一致率、κ、α 都过线, 而且整篇/上下文/同句三条文本轨道都要过), 就证明结果反映的是新闻本身, 不是问法的偶然产物。
+**为什么需要它**: 用 AI 做研究有个隐忧: 结果会不会只是'指令 (prompt) 碰巧那么写'才出来的? 换个说法就翻盘? 这就像同一道题, 老师换个措辞问, 学生答案就全变了, 那这答案就不可靠。如果 5 个版本的答案高度一致 (各项一致率、κ、α 都过线, 且"整篇"这条主文本轨道过线), 就证明结果反映的是新闻本身, 不是问法的偶然产物; "上下文"/"同句"两条轨道仍各自照算全部指标, 但只作为 conditional-on-full 的稳健性/限界佐证, 不再决定总判定 (fix(WP-R1.1②, 2026-07-14): full-only 已切全项目主轨)。
 
 **对面板和论文的影响**: 这是 AI 标注可信度的另一根支柱 (和涂名检验互补: 涂名查'是否看名字', 这里查'是否看问法')。如果 AI 判定随 prompt 措辞飘忽, 那银行-年度面板里所有 AI 派生的情感、创新属性变量都成了'问法的产物', 论文核心结论会崩。通过这一关, 才能在论文里写'我们的 LLM 标注对 prompt 措辞稳健'。它是全流水线最贵的检验 (要跑约 3.6 万次 AI 调用), 因此配了 12 小时的超长超时。
 ========================================================================
@@ -98,6 +128,7 @@ import aiohttp
 import matplotlib
 import numpy as np
 import pandas as pd
+import yaml
 
 matplotlib.use('Agg')
 from importlib import import_module
@@ -170,8 +201,10 @@ PROMPT_REQUEST_TIMEOUT_SECONDS = float(
 )
 # fix(omni-g-val-prompt-05, 2026-06-11): 缺省值改为与生产 stage 21 MAX_RETRIES 对齐
 # (此前缺省 1 → 变体调用失败率系统性高于 baseline)。config 显式 max_retries 仍可下调
-# (validation.yaml 当前刻意取 1 防 24k 请求长尾重试卡死, 该取舍已在 YAML 注释与 JSON
-# 报告 prompt_max_retries 字段中披露); 失败行另由 call_failure 掩码剔除, 不再偏置 κ。
+# fix(S9, 2026-07-14): validation.yaml 现值已改为 80 (2026-06-23 统一决策: 与生产
+# stage 21 MAX_RETRIES 一致), 上面"当前刻意取 1 防长尾卡死"是该决策之前的旧口径,
+# 现已废止 (config 结构仍保留显式下调能力, 该取舍在 YAML 注释与 JSON 报告
+# prompt_max_retries 字段中披露); 失败行另由 call_failure 掩码剔除, 不再偏置 κ。
 PROMPT_MAX_RETRIES = max(1, min(
     _tone_llms.MAX_RETRIES,
     int(PS_CFG.get('max_retries', _tone_llms.MAX_RETRIES)),
@@ -212,7 +245,7 @@ def _build_prompt_llm_timeout() -> aiohttp.ClientTimeout:
 VARIANT_PROMPTS = {
     # ── V1: 角色改写 (Role-Based Variation) ──
     # 改变角色定义和语气，移除元方法描述
-    "V1_role": """你是一名中国银行业数字化转型分析师，具备丰富的银行金融科技战略评估与中文财经文本分析经验。请依次完成以下两项分析任务。
+    "V1_role": """你是一名中国银行业数字化转型分析师，具备丰富的银行金融科技战略评估与中文财经文本分析经验。请依次完成以下三项分析任务。
 
 【任务一：银行金融科技新闻验证】
 
@@ -267,20 +300,20 @@ VARIANT_PROMPTS = {
   "sentiment_reason": "简明说明情感判定依据",
   "sentiment": "正面/中性/负面（false 时固定填\\"中性\\"）",
   "sentiment_confidence": 0.0~1.0,
-  "innovation_substantiveness_reason": "简明说明实质/象征判定依据（false 时填 null）",
+  "innovation_substantiveness_reason": "简明说明实质/象征判定依据，须引用文章具体内容（false 时填 null）",
   "innovation_substantiveness": "实质性/象征性（false 时填 null）",
   "innovation_substantiveness_confidence": 0.0~1.0,
   "innovation_locus_reason": "简明说明位点判定依据（false 时填 null）",
   "innovation_locus": "底层技术/应用场景（false 时填 null）",
   "innovation_locus_confidence": 0.0~1.0,
-  "innovation_collab_mode_reason": "简明说明协作模式判定依据（false 时填 null）",
+  "innovation_collab_mode_reason": "简明说明协作模式判定依据，须引用文章具体内容（false 时填 null）",
   "innovation_collab_mode": "自主研发/外部协同（false 时填 null）",
   "innovation_collab_mode_confidence": 0.0~1.0
 }}""",
 
     # ── V2: 结构重组 (Structural Variation) ──
     # 调换前两阶段顺序（先情感后验证），第三阶段创新属性紧随；去除 XML 标签、使用编号列表 + Markdown 标题
-    "V2_structure": """你是资深金融科技研究员，精通银行数字化转型与中文财经文本情感分析。请严格按以下顺序完成两阶段分析。
+    "V2_structure": """你是资深金融科技研究员，精通银行数字化转型与中文财经文本情感分析。请严格按以下顺序完成三阶段分析。
 
 ## 第一步：情感倾向预判
 
@@ -344,20 +377,20 @@ VARIANT_PROMPTS = {
   "sentiment_reason": "简明说明情感判定依据",
   "sentiment": "正面/中性/负面（false 时固定填\\"中性\\"）",
   "sentiment_confidence": 0.0~1.0,
-  "innovation_substantiveness_reason": "简明说明实质/象征判定依据（false 时填 null）",
+  "innovation_substantiveness_reason": "简明说明实质/象征判定依据，须引用文章具体内容（false 时填 null）",
   "innovation_substantiveness": "实质性/象征性（false 时填 null）",
   "innovation_substantiveness_confidence": 0.0~1.0,
   "innovation_locus_reason": "简明说明位点判定依据（false 时填 null）",
   "innovation_locus": "底层技术/应用场景（false 时填 null）",
   "innovation_locus_confidence": 0.0~1.0,
-  "innovation_collab_mode_reason": "简明说明协作模式判定依据（false 时填 null）",
+  "innovation_collab_mode_reason": "简明说明协作模式判定依据，须引用文章具体内容（false 时填 null）",
   "innovation_collab_mode": "自主研发/外部协同（false 时填 null）",
   "innovation_collab_mode_confidence": 0.0~1.0
 }}""",
 
     # ── V3: 精简压缩 (Complexity Reduction) ──
     # 删除所有冗余修辞和示例枚举，保留最小必要指令
-    "V3_concise": """请完成以下两项分析。
+    "V3_concise": """请完成以下三项分析。
 
 一、验证：判断本文是否为【{target_bank}】的金融科技实质性新闻。
 判 true 须同时满足：(1) 正文实质涉及该银行，(2) 核心议题为金融科技，(3) 该银行与金融科技有可证实的实质联系。
@@ -387,13 +420,13 @@ VARIANT_PROMPTS = {
   "sentiment_reason": "简明说明情感判定依据",
   "sentiment": "正面/中性/负面（false 时固定填\\"中性\\"）",
   "sentiment_confidence": 0.0~1.0,
-  "innovation_substantiveness_reason": "简明说明实质/象征判定依据（false 时填 null）",
+  "innovation_substantiveness_reason": "简明说明实质/象征判定依据，须引用文章具体内容（false 时填 null）",
   "innovation_substantiveness": "实质性/象征性（false 时填 null）",
   "innovation_substantiveness_confidence": 0.0~1.0,
   "innovation_locus_reason": "简明说明位点判定依据（false 时填 null）",
   "innovation_locus": "底层技术/应用场景（false 时填 null）",
   "innovation_locus_confidence": 0.0~1.0,
-  "innovation_collab_mode_reason": "简明说明协作模式判定依据（false 时填 null）",
+  "innovation_collab_mode_reason": "简明说明协作模式判定依据，须引用文章具体内容（false 时填 null）",
   "innovation_collab_mode": "自主研发/外部协同（false 时填 null）",
   "innovation_collab_mode_confidence": 0.0~1.0
 }}""",
@@ -401,7 +434,7 @@ VARIANT_PROMPTS = {
     # ── V4: 判定改写 (Paraphrase Variation) ──
     # 用完全不同的句式和词汇表达相同的验证三条件
     "V4_paraphrase": """<role>
-你是资深金融科技研究员，精通银行数字化转型与中文财经文本情感分析。请严格遵循思维链（Chain-of-Thought）完成以下两阶段序贯分析。
+你是资深金融科技研究员，精通银行数字化转型与中文财经文本情感分析。请严格遵循思维链（Chain-of-Thought）完成以下三阶段序贯分析。
 </role>
 
 <step1_verification>
@@ -475,13 +508,13 @@ C. **银行与技术的因果关联**：存在可验证的证据表明该银行�
   "sentiment_reason": "简明说明情感判定依据",
   "sentiment": "正面/中性/负面（false 时固定填\\"中性\\"）",
   "sentiment_confidence": 0.0~1.0,
-  "innovation_substantiveness_reason": "简明说明实质/象征判定依据（false 时填 null）",
+  "innovation_substantiveness_reason": "简明说明实质/象征判定依据，须引用文章具体内容（false 时填 null）",
   "innovation_substantiveness": "实质性/象征性（false 时填 null）",
   "innovation_substantiveness_confidence": 0.0~1.0,
   "innovation_locus_reason": "简明说明位点判定依据（false 时填 null）",
   "innovation_locus": "底层技术/应用场景（false 时填 null）",
   "innovation_locus_confidence": 0.0~1.0,
-  "innovation_collab_mode_reason": "简明说明协作模式判定依据（false 时填 null）",
+  "innovation_collab_mode_reason": "简明说明协作模式判定依据，须引用文章具体内容（false 时填 null）",
   "innovation_collab_mode": "自主研发/外部协同（false 时填 null）",
   "innovation_collab_mode_confidence": 0.0~1.0
 }}
@@ -593,10 +626,20 @@ async def run_variant_llms(
 
     Returns:
         dict: {row_idx: {'full': {...}, 'ctx': {...}, 'ss': {...}}}
+
+    fix(WP-R1.1③, 2026-07-14): fetch_llm_async 调用补显式传 prompt_version (此前
+    未传 → 落缺省 'v0' 命名空间, 与生产/其他变体的缓存条目混入同一无版本溯源桶)。
+    变体 prompt 全文本身已因文本不同产生不同缓存键哈希 (真正区分缓存条目的是键),
+    此处补版本串是为命名空间可读溯源 (audit trail: 该缓存条目来自哪个变体),
+    并非改变缓存行为的必要条件。构造 = f"{生产 PROMPT_VERSION}#sens-{variant_name}"
+    (播种前定稿, 播种后再补传 = 键变 = 36k 变体库作废, 见 §10 WP-R1.1 顺序铁律)。
     """
     semaphore = asyncio.Semaphore(PROMPT_MAX_CONCURRENCY)
     # 三轨投票桶 (full=全文 / ctx=实体窗口 / ss=银行+金科同句共现)
     results_map = {i: {'full': {}, 'ctx': {}, 'ss': {}} for i in df.index}
+    # fix(WP-R1.1③, 2026-07-14): 见上方 docstring — 每变体固定一个可溯源的
+    # prompt_version, 全部三轨 × 全部模型请求统一传入。
+    variant_prompt_version = f"{_tone_llms.PROMPT_VERSION}#sens-{variant_name}"
 
     # 三轨化: 任务总数 ×3 (此前 ×2)
     total_tasks = len(df) * len(models) * 3
@@ -621,13 +664,15 @@ async def run_variant_llms(
             co_banks = str(row.get('co_mentioned_banks', '无'))
             title = str(row.get('标题', ''))
             # fix(omni-g-val-prompt-01, 2026-06-11): 镜像生产 iter_article_track_prompts
-            # (tonellms-01) — content_ctx 已由 stage 13 prepend 标题, 而变体模板另以
-            # {title} 字段注入标题; 不剥离则变体 ctx 轨标题注入 2 次 (V0 baseline 仅
-            # 1 次), baseline↔variant 差异混入双重注入噪声而非纯措辞敏感度。
+            # (tonellms-01) — content_ctx 已由 stage 14 prepend 标题 (fix(D5,
+            # 2026-07-14): 原写"stage 13"是重编号残留, prepend 实际在 stage 14
+            # ctx_materializer 完成), 而变体模板另以 {title} 字段注入标题; 不剥离则
+            # 变体 ctx 轨标题注入 2 次 (V0 baseline 仅 1 次), baseline↔variant 差异
+            # 混入双重注入噪声而非纯措辞敏感度。
             content_ctx = _strip_prepended_title(
                 str(row.get('content_ctx', content_full)), title
             )
-            # ss 轨同构 (content_ss 同由 stage 13 prepend 标题, 同样需剥离再由
+            # ss 轨同构 (content_ss 同由 stage 14 prepend 标题, 同样需剥离再由
             # {title} 字段注入 1 次); 缺列优雅回退全文 (镜像 ss_is_fallback)。
             content_ss = _strip_prepended_title(
                 str(row.get('content_ss', content_full)), title
@@ -652,6 +697,8 @@ async def run_variant_llms(
                             model_availability=model_availability,
                             request_timeout=request_timeout,
                             max_retries=PROMPT_MAX_RETRIES,
+                            # fix(WP-R1.1③, 2026-07-14): 显式传版本串, 不再落缺省 'v0'
+                            prompt_version=variant_prompt_version,
                         )
                     )
 
@@ -785,6 +832,228 @@ def random_sample(df: pd.DataFrame, sample_size: int, seed: int) -> pd.DataFrame
     return df.sample(n=n, random_state=seed)
 
 
+# ============================================================================
+# 5b. WP-R1.2 两阶段整群分层抽样器 (fix(WP-R1.2, 2026-07-14))
+# ============================================================================
+# 背景: `random_sample` 是现行简单随机抽样 (§10 WP-R1.2 原文: "现行实现是简单随机
+# (random_sample, seed=42), 分层器为新增工作项")。措辞敏感性/半径敏感性生产重跑
+# (批次 E, M0 门后) 需要按 年 × bank_type_id 做两阶段整群分层抽样, 让 ~1000 篇
+# 样本在年份和银行类型两个维度上有覆盖保证, 而非纯随机可能在小格上挂零。
+#
+# 构造: 阶段一按 (年, bank_type_id) 定义"格" (cell), 只对全部非空格生效 (不枚举
+# 笛卡尔积补空格); 确定性抽 ~n_cells 个格。阶段二每格内确定性抽 per_cell 篇。
+# 两阶段均不足则全取 (全部披露进 frame_meta, 不静默降级)。
+#
+# 设计: 禁用的两条分层维度候选 (决策记录, 防后人重提):
+#   - 媒体类型分层: stage 00 全量普查显示过滤后"报纸"占比 92.93% (见 CLAUDE.md
+#     "原始语料普查"段), 按媒体类型分层在该维度上几乎退化为单一类别, 空转。
+#   - 银行规模分层: 现有 `config/bank_list.yaml` schema 无资产规模/营收等规模列
+#     (仅 is_soe/bank_type_id/implicit_guarantee_tier/listed 等类别属性), 无可
+#     用连续规模指标可分层, 故不做。
+#
+# 防误用: 本函数不改动既有 `random_sample` (向后兼容, main() 现行 dev 路径仍调
+# random_sample, 见 main() Step 2 `df_sample = random_sample(...)` 调用处注释里
+# 的显式切换点标注); 帧的行级固化 (`export_sampling_frame`) 留待生产窗口 (批次 E)
+# 调用, 供 WP-R1 变体重跑与 WP-R4 radius 敏感性共用同一抽样帧。
+#
+# 白话: 简单随机抽样可能在某个年份或某类银行上一篇都抽不到, 导致那部分完全没
+# 检验覆盖。这里改成"先按年份+银行类型分成很多小格子, 再从格子里各抽固定篇数"
+# 的两阶段做法, 保证每个被选中的格子都有样本; 格子数不够、格内篇数不够时如实
+# 记录"缺口", 不假装凑够。
+
+def _load_bank_type_map() -> dict:
+    """从 `config/bank_list.yaml` 解析 target_bank -> bank_type_id 映射 (1-8,
+    见该文件 `bank_type_definitions` 段; 键名 `target_bank`/`bank_type_id`
+    取自其 `banks` 列表逐条 flow-style 记录, 与 innovation_proxy_triangulation.py
+    ::_load_bank_exclusion_names 同一读取范式)。"""
+    bank_list_path = os.path.join(_PROJECT_PARENT, 'news_process', 'config', 'bank_list.yaml')
+    with open(bank_list_path, encoding='utf-8') as f:
+        doc = yaml.safe_load(f)
+    return {b['target_bank']: int(b['bank_type_id']) for b in doc['banks']}
+
+
+def stratified_two_stage_sample(
+    df: pd.DataFrame,
+    *,
+    n_cells: int = 70,
+    per_cell: int = 14,
+    seed: int = 42,
+    bank_type_map: dict | None = None,
+) -> tuple[pd.DataFrame, dict]:
+    """WP-R1.2 两阶段整群分层抽样 (年 × bank_type_id)。
+
+    供批次 E (M0 门后) 生产窗口两处消费: ① WP-R1 措辞敏感性变体重跑抽样;
+    ② WP-R4 上下文半径敏感性抽样 (与 WP-R1 共用同一抽样帧 —— 同一 (df, 参数,
+    seed) 调用本函数逐字节复现同一批文章, 不需要另外传递行级 ID 列表)。
+
+    阶段一 (整群定义): 按 (年, bank_type_id) 定义格, 只对数据中实际出现的
+    非空格生效 (不为空缺组合补空格)。若非空格总数 <= n_cells, 全取并在
+    frame_meta 披露 `cell_shortfall=True`；否则用 `seed` 派生的 RandomState
+    在排序后的格清单上做无放回抽样, 确定性选出恰 n_cells 个格。
+
+    阶段二 (格内抽样): 每个被选中格内, 若可用篇数 <= per_cell 则全取
+    (缺口计入该格的 `shortfall` 标记); 否则用该格自身 (seed, 年, bank_type_id)
+    派生的独立 RandomState 无放回抽 per_cell 篇 —— 与其他格互不干扰, 阶段一
+    选中了哪些格不影响阶段二内部的抽样结果。
+
+    确定性: 全程只用 `numpy.random.RandomState(seed)` 系列 (不用全局 `random`
+    模块、不依赖 wall-clock), 且候选集合 (格清单/组内行号) 抽样前均显式
+    sort, 故同一 (df, n_cells, per_cell, seed, bank_type_map) 输入逐字节
+    (bit-for-bit) 复现同一 sampled_df + frame_meta。
+
+    Args:
+        df: 文章级 DataFrame, 须含 'target_bank' 列; 年份维度取 'year' 列
+            (若存在) 否则从 '日期' 列 (`pd.to_datetime(...).dt.year`) 派生
+            (镜像 `pipeline/panel/encode.py:695` 等既有派生范式), 两者皆缺
+            则 fail-loud (ValueError)。
+        n_cells: 阶段一目标格数 (默认 70, 对应计划 "~70 个 bank-year 格")。
+        per_cell: 阶段二每格目标篇数 (默认 14, 70×14≈980 ≈ 计划 "≈1000 篇")。
+        seed: 确定性种子 (默认 42, 与 `random_sample`/`RANDOM_SEED` 同源惯例)。
+        bank_type_map: 可选显式 target_bank -> bank_type_id 映射 (测试注入用;
+            生产/默认调用留 None, 由 `_load_bank_type_map()` 从
+            `config/bank_list.yaml` 解析)。映射缺失的银行 (含 bank_type_map
+            未覆盖、或 target_bank 本身为 NaN/空串) 一律归入
+            `bank_type_id=0` ("未知"格, 与 yaml 定义的 1-8 空间不重叠的安全
+            哨兵值), 计数披露进 frame_meta['n_unknown_bank_type']。
+
+    Returns:
+        tuple[pd.DataFrame, dict]:
+            sampled_df — 抽中的行 (保留原始列与原始 index, 不含本函数内部
+                临时分层列)。
+            frame_meta — 抽样帧披露字典:
+                {'n_cells_requested', 'per_cell_requested', 'seed',
+                 'n_cells_available', 'n_cells_selected', 'cell_shortfall',
+                 'n_cells_with_row_shortfall', 'n_unknown_bank_type',
+                 'n_dropped_year_na', 'n_sampled_total',
+                 'cells': [{'year', 'bank_type_id', 'n_available',
+                            'n_sampled', 'shortfall'}, ...]}
+                (`cells` 按 (year, bank_type_id) 升序排列, 与阶段一格清单
+                排序一致, 逐次调用顺序不变)。
+    """
+    if n_cells <= 0 or per_cell <= 0:
+        raise ValueError(
+            f"stratified_two_stage_sample: n_cells/per_cell 须为正整数, "
+            f"实收 n_cells={n_cells}, per_cell={per_cell}"
+        )
+    if bank_type_map is None:
+        bank_type_map = _load_bank_type_map()
+    if 'target_bank' not in df.columns:
+        raise ValueError("stratified_two_stage_sample: df 缺 'target_bank' 列, 无法定义 bank_type_id 分层维度")
+
+    work = df.copy()
+
+    # ── 年份维度: 'year' 列优先, 否则从 '日期' 派生 (镜像 encode.py 既有范式) ──
+    if 'year' in work.columns:
+        year_series = pd.to_numeric(work['year'], errors='coerce')
+    elif '日期' in work.columns:
+        year_series = pd.to_datetime(work['日期'], errors='coerce').dt.year
+    else:
+        raise ValueError(
+            "stratified_two_stage_sample: df 缺 'year' 与 '日期' 列, 无法定义年份分层维度"
+        )
+    work['_wpr12_year'] = year_series
+    n_dropped_year_na = int(work['_wpr12_year'].isna().sum())
+    work = work.loc[work['_wpr12_year'].notna()].copy()
+    work['_wpr12_year'] = work['_wpr12_year'].astype(int)
+
+    # ── bank_type_id 维度: 映射缺失一律归 0 ("未知"格), 计数披露 ──
+    work['_wpr12_bank_type_id'] = work['target_bank'].map(bank_type_map)
+    n_unknown_bank_type = int(work['_wpr12_bank_type_id'].isna().sum())
+    work['_wpr12_bank_type_id'] = work['_wpr12_bank_type_id'].fillna(0).astype(int)
+
+    _internal_cols = ['_wpr12_year', '_wpr12_bank_type_id']
+    _orig_cols = [c for c in df.columns]
+
+    # ── 阶段一: 按 (年, bank_type_id) 定义格, 只取非空格, 排序后确定性抽 n_cells 个 ──
+    grouped = work.groupby(['_wpr12_year', '_wpr12_bank_type_id'], sort=True)
+    cell_keys = sorted(grouped.groups.keys())
+    n_cells_available = len(cell_keys)
+
+    if n_cells_available <= n_cells:
+        selected_cells = list(cell_keys)
+        cell_shortfall = True
+    else:
+        rng_cell_select = np.random.RandomState(seed)
+        chosen_idx = sorted(
+            rng_cell_select.choice(n_cells_available, size=n_cells, replace=False).tolist()
+        )
+        selected_cells = [cell_keys[i] for i in chosen_idx]
+        cell_shortfall = False
+
+    # ── 阶段二: 每个选中格内独立 (不依赖阶段一选中了哪些其他格) 确定性抽 per_cell 篇 ──
+    sampled_parts = []
+    cell_records = []
+    n_cells_with_row_shortfall = 0
+    for yr, bt in selected_cells:
+        g = grouped.get_group((yr, bt))
+        n_available = len(g)
+        row_shortfall = n_available <= per_cell
+        if row_shortfall:
+            g_sampled = g
+            n_sampled = n_available
+            n_cells_with_row_shortfall += 1
+        else:
+            # 每格独立种子 (与全局 seed + 格坐标确定性派生), 使阶段二结果不受
+            # 阶段一"选中了哪些格"影响 (WP-R4 若用不同 n_cells 复用同一格,
+            # 组内抽样结果仍逐字节一致)。
+            cell_seed = (int(seed) * 1_000_003 + int(yr) * 97 + int(bt) * 31) % (2 ** 31 - 1)
+            rng_cell = np.random.RandomState(cell_seed)
+            chosen = sorted(rng_cell.choice(n_available, size=per_cell, replace=False).tolist())
+            g_sampled = g.iloc[chosen]
+            n_sampled = per_cell
+        sampled_parts.append(g_sampled)
+        cell_records.append({
+            'year': int(yr), 'bank_type_id': int(bt),
+            'n_available': int(n_available), 'n_sampled': int(n_sampled),
+            'shortfall': bool(row_shortfall),
+        })
+
+    if sampled_parts:
+        sampled_df = pd.concat(sampled_parts, axis=0)[_orig_cols]
+    else:
+        sampled_df = work.drop(columns=_internal_cols).iloc[0:0][_orig_cols]
+
+    frame_meta = {
+        'n_cells_requested': int(n_cells),
+        'per_cell_requested': int(per_cell),
+        'seed': int(seed),
+        'n_cells_available': int(n_cells_available),
+        'n_cells_selected': int(len(selected_cells)),
+        'cell_shortfall': bool(cell_shortfall),
+        'n_cells_with_row_shortfall': int(n_cells_with_row_shortfall),
+        'n_unknown_bank_type': int(n_unknown_bank_type),
+        'n_dropped_year_na': int(n_dropped_year_na),
+        'n_sampled_total': int(len(sampled_df)),
+        'cells': cell_records,
+    }
+    return sampled_df, frame_meta
+
+
+def export_sampling_frame(frame_meta: dict, path: str) -> None:
+    """把 `stratified_two_stage_sample` 返回的抽样帧固化为 sidecar CSV。
+
+    生产窗口 (批次 E, M0 门后) 调用: 写到 `validation/eval_reports/` 下,
+    供审计/复核以及 WP-R4 (上下文半径敏感性) 共用同一抽样帧 —— WP-R4 只需
+    以相同 (n_cells, per_cell, seed) 重新调用 `stratified_two_stage_sample`
+    即可确定性复现同一批文章, 本 CSV 是审计可读的帧清单存档, 不是复现所
+    必需的输入。
+
+    Args:
+        frame_meta: `stratified_two_stage_sample` 返回的第二个元素。
+        path: 输出 CSV 路径 (调用方负责传入生产/eval_reports 目录下的路径;
+            本函数按需创建父目录)。
+
+    白话: 抽样做完之后, 把"抽了哪些年份+银行类型格子、每格抽了几篇"记一张
+    表存起来, 方便以后复核或给半径敏感性检验直接照抄同一批格子。
+    """
+    cells = frame_meta.get('cells', [])
+    frame_df = pd.DataFrame(cells, columns=['year', 'bank_type_id', 'n_available', 'n_sampled', 'shortfall'])
+    out_dir = os.path.dirname(os.path.abspath(path))
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+    frame_df.to_csv(path, index=False, encoding='utf-8-sig')
+
+
 def extract_baseline(df_sample: pd.DataFrame) -> pd.DataFrame:
     """从样本中提取已有的三轨 LLM 判定作为 baseline (V0)。"""
     df = df_sample.copy()
@@ -850,6 +1119,9 @@ def compute_pairwise_consistency(
     语义变更披露: fix(omni-g-val-prompt-05, 2026-06-11) — 变体 API 全失败行
     (call_failure=1, final_v/final_s 为默认值而非真实 LLM 判定) 掩码剔除,
     不再把 API 噪声计为"措辞不一致"; 剔除量经 n_call_failures_excluded 披露。
+    fix(S9, 2026-07-14) — 情感平局/空票 (undefined=1) 旗标披露: 选"报数量"而非
+    "掩码剔除"作为最小实现 (二选一, 见模块头 WP-R1.1 收口段落); 不影响 κ/α 计算,
+    仅经 n_undefined_flagged 透明披露 (命名刻意不用 "excluded", 因未剔除样本)。
     """
     # fix(omni-g-val-prompt-05, 2026-06-11): 失败行掩码 (旗标列缺失时向后兼容不掩码)
     fail_col = f'{variant_key}_call_failure{track}'
@@ -859,9 +1131,14 @@ def compute_pairwise_consistency(
         n_call_failures = int((~ok_mask).sum())
         df = df.loc[ok_mask]
 
+    # fix(S9, 2026-07-14): undefined (情感平局/空票) 计数, 不掩码 (见上方 docstring)
+    undef_col = f'{variant_key}_undefined{track}'
+    n_undefined = int(df[undef_col].fillna(0).astype(int).sum()) if undef_col in df.columns else 0
+
     result_meta = {
         'n_compared': int(len(df)),
         'n_call_failures_excluded': n_call_failures,
+        'n_undefined_flagged': n_undefined,
     }
     if len(df) == 0:
         # 全部行均为 API 失败 → 无可比样本, 指标 NaN (fail-loud 而非伪 0/伪 1)
@@ -1080,11 +1357,19 @@ def evaluate_track_criteria(
     variant_keys: list,
     track: str,
 ) -> tuple:
-    """对单一轨道评估全部 pass criteria。
+    """对单一轨道评估全部 pass criteria（full/ctx/ss 各自独立算好全部 7 项 criteria；
+    是否进入总判定由调用方决定，见 main() Step 7）。
 
-    fix(omni-g-val-prompt-03, 2026-06-11): 此前裁决仅基于 full 轨, 而 P1 主线
-    main spec = llm_vote_tone_ctx (ctx 轨) — full 过而 ctx 不过时会误报通过。
-    抽出单轨评估函数, 由 main() 对 full/ctx/ss 各评一次并取 AND。
+    fix(omni-g-val-prompt-03, 2026-06-11): 此前裁决仅基于 full 轨, 而彼时 P1 主线
+    main spec 在 ctx 轨 (llm_vote_tone_ctx) — full 过而 ctx 不过时会误报通过。
+    抽出单轨评估函数, 由 main() 对 full/ctx/ss 各评一次 (当时总判定取三轨 AND)。
+    fix(WP-R1.1①, 2026-07-14): 上一句"P1 主线 main spec 在 ctx 轨"是 06-11 的历史
+    前提 — full-only 门控已于 2026-06-29 切 full 轨为全项目主轨 (非仅 P1), 该前提
+    现已不成立。
+    fix(WP-R1.1②, 2026-07-14): 总判定相应改回 full 轨单轨驱动 (7 项 criteria 全过
+    即总判定通过); ctx/ss 轨仍各自照算全部 criteria 并报 passed_ctx/passed_ss,
+    但降级为 conditional-on-full 的稳健性/限界披露, 不再参与总判定 AND
+    (计算点见 main() Step 7 `passed = passed_by_track.get('_full', False)`)。
     fix(omni-g-val-prompt-02, 2026-06-11): 接入 PASS_THRESHOLD_INNOVATION_COLLAB_MODE
     (v8 第三维度, 此前为从未消费的死阈值)。
 
@@ -1153,8 +1438,11 @@ def generate_reports(
 
     fix(omni-g-val-prompt-03, 2026-06-11): 新增可选 passed_by_track
     ({'_full': bool, '_ctx': bool, '_ss': bool}), JSON 报 per-track 裁决
-    (passed_full / passed_ctx / passed_ss); 总 `passed` = 三轨 AND (由 main()
+    (passed_full / passed_ctx / passed_ss); 当时总 `passed` = 三轨 AND (由 main()
     计算)。未传时各字段为 null。
+    fix(WP-R1.1②, 2026-07-14): 总 `passed` 已改为仅取 passed_by_track['_full']
+    (full-only 已于 2026-06-29 切为全项目主轨); passed_ctx/passed_ss 仍照旧全量
+    输出, 语义降级为 conditional-on-full 的稳健性/限界披露, 不再参与总判定。
     """
 
     # ── 7.1 JSON 报告 ──
@@ -1183,8 +1471,11 @@ def generate_reports(
         'prompt_max_retries': PROMPT_MAX_RETRIES,
         'production_max_retries': _tone_llms.MAX_RETRIES,
         'passed': passed,
-        # fix(omni-g-val-prompt-03, 2026-06-11): per-track 裁决 — P1 主 spec 在 ctx 轨
-        # (llm_vote_tone_ctx), 总判定 = full AND ctx AND ss (三轨), 不再仅 full 轨
+        # fix(omni-g-val-prompt-03, 2026-06-11): per-track 裁决新增 (当时 P1 主 spec
+        # 在 ctx 轨, 故总判定曾取 full AND ctx AND ss 三轨)。
+        # fix(WP-R1.1②, 2026-07-14): full-only 已于 2026-06-29 切为全项目主轨 — 总
+        # 判定 `passed` 现仅取 passed_full; passed_ctx/passed_ss 仍各自全量计算并
+        # 输出, 但降级为 conditional-on-full 的稳健性/限界披露字段, 不再进总判定 AND。
         'passed_full': None if passed_by_track is None else bool(passed_by_track.get('_full')),
         'passed_ctx': None if passed_by_track is None else bool(passed_by_track.get('_ctx')),
         'passed_ss': None if passed_by_track is None else bool(passed_by_track.get('_ss')),
@@ -1356,10 +1647,19 @@ def _generate_heatmap(df: pd.DataFrame, variant_keys: list, report_dir: str):
                 col_i = f'{key_i}_verified{track}'
                 col_j = f'{key_j}_verified{track}'
                 if col_i in df.columns and col_j in df.columns:
-                    arr_i = df[col_i].astype(int).values
-                    arr_j = df[col_j].astype(int).values
-                    result = compute_cohens_kappa(arr_i, arr_j)
-                    kappa_matrix[i, j] = result['kappa']
+                    # fix(S9, 2026-07-14): call_failure 掩码 (镜像
+                    # compute_pairwise_consistency), 否则热力图 κ 把变体 API 全
+                    # 失败的默认值行误计为"措辞不一致" (V0_baseline 无该旗标列)。
+                    mask = pd.Series(True, index=df.index)
+                    for _k in (key_i, key_j):
+                        _fc = f'{_k}_call_failure{track}'
+                        if _fc in df.columns:
+                            mask &= df[_fc].fillna(0).astype(int) == 0
+                    arr_i = df.loc[mask, col_i].astype(int).values
+                    arr_j = df.loc[mask, col_j].astype(int).values
+                    if len(arr_i) > 0:
+                        result = compute_cohens_kappa(arr_i, arr_j)
+                        kappa_matrix[i, j] = result['kappa']
 
         ax = axes[ax_idx]
         im = ax.imshow(kappa_matrix, cmap='Blues', vmin=0.6, vmax=1.0)
@@ -1448,7 +1748,8 @@ def main():
         _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
         logger.info(f"     · PID={os.getpid()} | RUN_ID={_run_id or '(未设置)'}")
         logger.info("     · 成本/确定性: 调 LLM API (变体 prompt ≠ 生产 → 增量付费请求, 冷缓存需线上跑); "
-                    "确定性锚点 = _llm_cache_validation.db; NEWS_PROCESS_LLM_OFFLINE=1 时缓存 miss 抛错而非偷跑。")
+                    "确定性锚点 = _llm_cache_validation.db; fix(S9, 2026-07-14): NEWS_PROCESS_LLM_OFFLINE=1 时"
+                    "本阶段整体优雅跳过 (main() 顶部早退, 勿与 stage21 miss→raise 混淆)。")
         logger.info("     · 全流水线最贵检验 (最多 4 变体 × N × 3 模型 × 3 轨 请求); "
                     "validation-only, 不写 panel/parquet (EXPECTED_NO_OUTPUT)。")
     except Exception as e:  # noqa: BLE001
@@ -1537,10 +1838,13 @@ def main():
         f"substantiveness κ≥{sig4(PASS_THRESHOLD_INNOVATION_SUBSTANTIVENESS)} / "
         f"locus κ≥{sig4(PASS_THRESHOLD_INNOVATION_LOCUS)} / "
         f"collab κ≥{sig4(PASS_THRESHOLD_INNOVATION_COLLAB_MODE)}")
-    logger.info("【判读】各指标越高=越稳健 (=好); gate = full/ctx/ss 三轨各自全 criteria AND (P1 主 spec 在 ctx 轨);")
+    logger.info("【判读】各指标越高=越稳健 (=好); gate = full 轨 7 项 criteria 驱动总判定 (fix(WP-R1.1②,")
+    logger.info("        2026-07-14): full-only 已切全项目主轨, 非仅 P1); ctx/ss 各自照算全部 criteria,")
+    logger.info("        结果供 conditional-on-full 披露, 不进总判定;")
     logger.info("        过线 → 可在论文写'LLM 标注对 prompt 措辞稳健'; 不过线 → AI 派生情感/创新变量恐成'问法的产物'。")
     logger.info("【确定性】调 LLM API (变体 prompt 与生产不同 → 增量付费请求, 冷缓存需线上跑); 确定性锚点 = _llm_cache_validation.db;")
-    logger.info("          NEWS_PROCESS_LLM_OFFLINE=1 时缓存 miss 抛错而非偷跑 API。全流水线最贵检验, timeout=43200s (12h)。")
+    logger.info("          fix(S9, 2026-07-14): NEWS_PROCESS_LLM_OFFLINE=1 时本阶段整体优雅跳过 (勿与 stage21 miss→raise 混淆)。"
+                "全流水线最贵检验, timeout=43200s (12h)。")
     logger.info("=" * 72)
 
     log_memory_usage(logger, "模块启动")
@@ -1604,6 +1908,15 @@ def main():
     phase_durations['①加载+抽样+baseline'] = time.time() - _t_load
 
     # ── Step 2: 随机抽样 ──
+    # fix(WP-R1.2, 2026-07-14): 生产窗口 (批次 E, M0 门后) 切换点标注 ——
+    # 新增的两阶段整群分层抽样器 `stratified_two_stage_sample` (年 ×
+    # bank_type_id) 尚未接线到本 dev 路径 (本机 T=2 数据不足以体现分层收益,
+    # 且计划要求"帧固化留生产窗口")。生产重跑时若采用分层抽样, 唯一需要
+    # 改动的一行就是下方 `df_sample = random_sample(...)`, 改为:
+    #   df_sample, _frame_meta = stratified_two_stage_sample(df_full, seed=RANDOM_SEED)
+    # 随后可选调用 `export_sampling_frame(_frame_meta, <eval_reports 路径>)`
+    # 固化帧供 WP-R4 共用。本次改动不做此切换 (§10 WP-R1.2 原文: "帧固化留
+    # 生产窗口"), 仅新增函数与本注释。
     logger.info(f"Step 2: 随机抽样 N={SAMPLE_SIZE}, seed={RANDOM_SEED} ...")
     df_sample = random_sample(df_full, SAMPLE_SIZE, RANDOM_SEED)
     logger.info(f"  抽样完成: {len(df_sample):,} 条")
@@ -1715,11 +2028,18 @@ def main():
         variance_results[track] = var
         logger.info(f"    True rate σ={sig4(var['true_rate_std'])}")
 
-    # ── Step 7: 通过/未通过判定（三轨 AND） ──
-    # fix(omni-g-val-prompt-03, 2026-06-11): 此前仅 full 轨进 gate, 而 P1 主线
-    # main spec = llm_vote_tone_ctx (ctx 轨) — full 过 ctx 不过会误报通过。
-    # 改为 full / ctx / ss 各自评估全部 criteria, 总判定 = 三轨 AND, JSON 报 per-track。
-    logger.info("Step 7: 通过/未通过判定（full / ctx / ss 三轨均须通过）...")
+    # ── Step 7: 通过/未通过判定（full 轨驱动, ctx/ss 供 conditional-on-full 披露） ──
+    # fix(omni-g-val-prompt-03, 2026-06-11): 此前仅 full 轨进 gate, 而彼时 P1 主线
+    # main spec 在 ctx 轨 (llm_vote_tone_ctx) — full 过 ctx 不过会误报通过。
+    # 改为 full / ctx / ss 各自评估全部 criteria, 当时总判定取三轨 AND, JSON 报 per-track。
+    # fix(WP-R1.1①, 2026-07-14): 上一句"P1 主线 main spec 在 ctx 轨"是 06-11 的历史
+    # 前提, full-only 门控已于 2026-06-29 切 full 轨为全项目主轨 (非仅 P1), 该前提
+    # 已不成立。
+    # fix(WP-R1.1②, 2026-07-14): 总判定 (下方 `passed=`) 相应改回 full 轨单轨驱动
+    # (7 项 criteria 全过即总判定通过); ctx/ss 轨仍各自照算全部 criteria 并报
+    # passed_ctx/passed_ss, 但降级为 conditional-on-full 的稳健性/限界披露, 不再
+    # 进总判定 AND。
+    logger.info("Step 7: 通过/未通过判定（full 轨 7 项 criteria 驱动总判定; ctx/ss 各自照算供披露）...")
     phase_durations['③一致性指标计算 (Step 6)'] = time.time() - _t_metrics
 
     summary_by_track = {}
@@ -1737,14 +2057,24 @@ def main():
         logger.info(f"    {track_label} 轨道判定: "
                     f"{'✅ 通过' if passed_by_track[track] else '❌ 未通过'}")
 
-    # 总判定 = 全部有效轨道 AND (full/ctx 必含, ss 物化时一并纳入)
-    passed = all(passed_by_track[track] for track in active_tracks)
+    # fix(WP-R1.1②, 2026-07-14): 总判定改为 full 轨单轨驱动 (full-only 已于
+    # 2026-06-29 切为全项目主轨; 此前是三轨 AND)。ctx/ss 轨仍已在上面
+    # evaluate_track_criteria 各自照算全部 7 项 criteria 并存入 passed_by_track,
+    # 供 conditional-on-full 的稳健性/限界披露 (JSON passed_ctx/passed_ss), 但不再
+    # 参与本行总判定 —— 这是本模块唯一的总判定计算点。
+    passed = passed_by_track.get('_full', False)
 
     if passed:
-        track_names = '/'.join(t.lstrip('_') for t in active_tracks)
-        logger.info(f"  ✅ 判定: 通过 ({track_names} 三轨) — Prompt 措辞改写对标注结果无实质影响")
+        _cond_names = [t.lstrip('_') for t in active_tracks if t != '_full']
+        _cond_note = ', '.join(
+            f"{t}={'过线' if passed_by_track.get(f'_{t}') else '未过线'}" for t in _cond_names
+        )
+        logger.info(
+            f"  ✅ 判定: 通过 (full 轨 7 项 criteria 全过) — Prompt 措辞改写对 full 轨"
+            f"标注结果无实质影响" + (f"; ctx/ss 供 conditional-on-full 披露 ({_cond_note})" if _cond_note else "")
+        )
     else:
-        logger.info("  ❌ 判定: 未通过 — 至少一条轨道有指标低于阈值，需审查变体敏感性")
+        logger.info("  ❌ 判定: 未通过 (full 轨未过全部 7 项 criteria) — 需审查变体敏感性")
 
     # ── Step 8: 生成报告 ──
     logger.info("Step 8: 生成报告 ...")
@@ -1774,8 +2104,14 @@ def main():
         logger.info(f"    Krippendorff's α: {sig4(s['krippendorffs_alpha'])}")
         logger.info(f"    Fleiss' κ: {sig4(multi_results[track]['fleiss_kappa'])}")
         logger.info(f"    轨道判定: {'✅ 通过' if passed_by_track[track] else '❌ 未通过'}")
-    logger.info(f"  总判定 ({' AND '.join(t.lstrip('_') for t in active_tracks)}): "
-                f"{'✅ 通过' if passed else '❌ 未通过'}")
+    # fix(WP-R1.1②, 2026-07-14): 总判定文案改为 full-only 语义 (此前误写
+    # "总判定 (full AND ctx AND ss)", 而 passed 实已仅取 full 轨)
+    _other_tracks = [t.lstrip('_') for t in active_tracks if t != '_full']
+    logger.info(
+        f"  总判定 (full 轨 7 项 criteria 驱动"
+        + (f"; {'/'.join(_other_tracks)} 仅供 conditional-on-full 披露不进总判定" if _other_tracks else "")
+        + f"): {'✅ 通过' if passed else '❌ 未通过'}"
+    )
     logger.info("=" * 70)
 
     # ── 黄金范式【结果分析】(逐指标对照阈值/预期方向给好-坏-临界判读) ──
@@ -1861,14 +2197,16 @@ def main():
             f"  ⚠ 变体 max_retries={PROMPT_MAX_RETRIES} < 生产 {_tone_llms.MAX_RETRIES} "
             f"(validation.yaml 刻意下调防长尾卡死; 失败行已掩码剔除, 不偏置 κ)")
 
-    # 总裁决判读: 三轨 AND 才算通过, 否则核心结论恐成"问法的产物"
+    # fix(WP-R1.1②, 2026-07-14): 总裁决判读改为 full 轨驱动 (full-only 已于
+    # 2026-06-29 切为全项目主轨); ctx/ss 供 conditional-on-full 披露, 不再是
+    # "三轨 AND 才算通过"
     if passed:
         logger.info(
-            "  ✅ 总判读: 全部有效轨道各项指标过线 — LLM 标注对 prompt 措辞稳健, "
-            "可在论文声明'标注结果反映新闻本身而非问法偶然产物'")
+            "  ✅ 总判读: full 轨 7 项 criteria 全过线 — LLM 标注对 prompt 措辞稳健 (full 轨), "
+            "可在论文声明'标注结果反映新闻本身而非问法偶然产物'; ctx/ss 供 conditional-on-full 稳健性披露")
     else:
         logger.info(
-            "  ❌ 总判读: 至少一条轨道有指标低于阈值 — AI 派生情感/创新变量可能随措辞飘忽, "
+            "  ❌ 总判读: full 轨至少一项指标低于阈值 — AI 派生情感/创新变量可能随措辞飘忽, "
             "须审查未过线维度/变体, 否则面板下游结论存效度风险")
     logger.info("-" * 72)
 
