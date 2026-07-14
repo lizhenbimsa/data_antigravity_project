@@ -4,6 +4,13 @@
 > 锁定时间：2026-05-05
 > 与 v5 之前的 panel 不可直接对比；以下四项为根本性方法学变更，**必须**在论文方法章节如实声明。
 
+> **⚠ 2026-07-14 修订指针 (平局语义已被逆转, M4 收口)**: 本文档下文所有"平局标
+> `undefined` / 不降级中性 / 平局行编码为 missing"的表述均为 **v6 时代历史口径**,
+> 已被 2026-06-23 用户决策逆转——生产现行为 `tie_strategy='neutral'`: 三家平局/
+> 空票 → 最多 80 轮确定性 tie-retry, 仍未破局则**保守编码为中性** (verified 轨
+> 不再产 `llm_undefined`)。10 篇 manuscript 已按现行语义改写 (计划 §1-M4);
+> 本文档作为 changelog 保留历史原文不改, 引用时以本指针为准。
+>
 > **⚠ 2026-06-29 修订 (verified gate 改 full-only)**: stage 21 文章留篇 (进入 21_tone_llms.parquet / 下游 panel) 的判据由"任一轨 (full/ctx/ss) verified"的**并集**改为**仅全文轨 `llm_verified_full`** (用户决策; ctx/ss 窗口截断可能漏信息)。Methods 章节须如实改写为: **是否纳入分析由全文轨 3-LLM 多数决 (verified_full) 决定**; ctx/ss 的 per-track verified 仅控制该轨情感分在已纳入文章内是否缺失 (conditional-on-full), 不再独立决定纳入。P1 (bank_fintech_tone) 与 bank_news_clarity 的 headline 主轨同步由 `_ctx` 切 `_full`; `_ctx` (entity-attributed, Tetlock 2007/L&M 2016) 降为首要 robustness 孪生。三轨"各自 just-identified、禁混同一 Hansen J"不变。
 
 ---

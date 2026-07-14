@@ -234,10 +234,12 @@ Tobin Q 预期呈正向\emph{条件关联}; 按审计裁决
 \code{api.deepseek.com}; 所有调用 \code{temperature=0}、\code{seed=42},
 并使用字节级冻结 prompt (版本 v8)。
 家族间一致性以 Cohen's $\kappa$ 与 Krippendorff's $\alpha$ 报告;
-多数投票得最终标签, 平局标 \code{undefined} (非 \code{neutral})。
+多数投票得最终标签; 平局/空票触发最多 80 轮确定性重试, 仍未破局则
+保守编码为\code{中性} (而非遗留为 undefined)。
 
 \subsection{篇章级编码 (F2: 去污染)}
-三家族全部失败 / 三方分裂者编为\emph{缺失} (非 \code{neutral});
+三家族全部失败者编为\emph{缺失} (非 \code{neutral}); 三票分裂/空票
+不计入缺失, 触发最多 80 轮确定性重试仍未破局则保守编码为\code{中性};
 银行--金融科技相关性未通过多数验证者亦视为缺失。
 此举消除了 v6 之前 81.7\,\% ``中性'' 标签的污染。
 

@@ -331,8 +331,11 @@ Inter-family agreement is reported as Cohen's $\kappa$ (labels
 remapped to non-negative codes before computation) and Krippendorff's
 $\alpha$ (nominal, missing-label-aware, tolerant of two- vs.\
 three-class label sets); majority vote across families produces the
-final sentiment label, with ties marked as \code{undefined} (not
-\code{neutral}).
+final sentiment label. Ties or no-vote outcomes trigger up to 80
+rounds of deterministic tie-breaking retries (temperature=0,
+re-querying the same models); if still unresolved after exhausting
+retries, they are conservatively coded as \code{neutral} (rather than
+left as undefined).
 
 Beyond the majority-vote consensus (\code{llm\_vote\_tone\_full}, the
 headline treatment per the paper specification), we retain each
@@ -351,12 +354,15 @@ controlled by Romano--Wolf step-down resampling
 ``all-three-significant'' narration.
 
 \subsection{Article-Level Coding (F2: Decontamination)}
-Articles where (a)~all three LLM families fail to return a valid response
-(\code{llm\_call\_failure=1}) or (b)~the three sentiment votes split
-three ways with no majority (\code{llm\_undefined=1}) are coded as
-\emph{missing} rather than neutral. Articles where the bank--FinTech
-relevance fails majority verification on the full-text track
-(\code{llm\_verified\_full=False})
+Articles where all three LLM families fail to return a valid response
+(\code{llm\_call\_failure=1}) are coded as \emph{missing} rather than
+neutral. Sentiment ties or no-vote outcomes (\code{llm\_undefined=1})
+are not treated as missing: they trigger up to 80 rounds of
+deterministic tie-breaking retries and, if still unresolved, are
+conservatively coded as neutral (\code{llm\_undefined} is therefore
+structurally 0 on the retained track). Articles where the
+bank--FinTech relevance fails majority verification on the full-text
+track (\code{llm\_verified\_full=False})
 likewise have their sentiment treated as missing. This is a deliberate
 departure from prior versions of the panel which coerced these to
 ``neutral'' and conflated 81.7\,\% of the neutral labels with measurement

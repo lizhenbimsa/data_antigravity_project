@@ -284,13 +284,18 @@ Google models are routed through yunwu.ai (\code{/v1/chat/completions},
 OpenAI-compatible); DeepSeek is called directly at
 \code{api.deepseek.com}. All calls use \code{temperature=0} and
 \code{seed=42} with a byte-frozen prompt (version v8). Inter-family agreement reported as
-Cohen's $\kappa$ and Krippendorff's $\alpha$; majority vote with ties marked
-\code{undefined} (not \code{neutral}).
+Cohen's $\kappa$ and Krippendorff's $\alpha$; majority vote produces the
+final label, with ties or no-vote outcomes triggering up to 80 rounds of
+deterministic tie-breaking retries and, if still unresolved, conservatively
+coded as \code{neutral} (rather than left as undefined).
 
 \subsection{Article-Level Coding (F2: Decontamination)}
-Articles where all three families fail or split three ways are coded
-\emph{missing}, not \code{neutral}. Bank--FinTech relevance failing
-majority verification is also missing. This eliminates the 81.7\,\%
+Articles where all three families fail are coded \emph{missing}, not
+\code{neutral}. Sentiment ties or no-vote outcomes are not treated as
+missing: they trigger up to 80 rounds of deterministic tie-breaking
+retries and, if still unresolved, are conservatively coded as neutral.
+Bank--FinTech relevance failing majority verification is also missing.
+This eliminates the 81.7\,\%
 contamination in pre-v6 ``neutral'' labels.
 
 Article retention is gated on the full-text track only
@@ -338,7 +343,8 @@ sentiment LLMs are disjoint pipeline components.
 
 The dual-track design is not decorative: in the Qwen embedding space
 the negative pole of one of the ten frozen anchor pairs (anchor
-pair~9) projects with an inverted sign relative to the \code{\_lg}
+pair~3, the credit-quality dimension) projects with an inverted sign
+relative to the \code{\_lg}
 space, while the axis-sharpness diagnostic still passes. Rather than
 re-tuning the frozen anchors post hoc, we keep both co-primary tracks
 exactly as specified and read the affected measure jointly across the
@@ -719,7 +725,7 @@ regulatory communication) is distinctive \parencite{you2018pen};
 extrapolation to other banking systems warrants caution. Fourth, the
 measure depends on embedding-model choice: the dual-vendor co-primary
 architecture absorbs single-model failure modes (including the
-disclosed sign flip of anchor pair 9), but sensitivity beyond the two
+disclosed sign flip of anchor pair 3), but sensitivity beyond the two
 vendors is not exhausted.
 
 \printbibliography

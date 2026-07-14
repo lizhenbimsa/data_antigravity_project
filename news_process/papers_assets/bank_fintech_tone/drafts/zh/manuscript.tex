@@ -242,8 +242,9 @@ hub 银行异质性 (\code{bank\_is\_hub}) 须待生产 T=18 面板。
 保证输出确定且可经缓存复现。
 家族间一致性以 Cohen's $\kappa$ (计算前先把标签重映射为非负码)
 与 Krippendorff's $\alpha$ (名义尺度、缺标感知、兼容二分类与三分类
-标签集) 报告; 最终情感标签为家族多数投票, 平局标记为
-\code{undefined} (而非 \code{neutral})。
+标签集) 报告; 最终情感标签为家族多数投票; 平局或空票触发最多 80 轮
+确定性重试 (温度=0 下重新请求同一批模型), 仍未破局则保守编码为
+\code{中性} (而非遗留为 undefined)。
 
 除多数投票共识 (\code{llm\_vote\_tone\_full}, 即 spec 规定的
 headline 处理变量) 外,
@@ -258,11 +259,12 @@ $z$-score 标准化。per-model 设定族的族错误率 (family-wise error)
 Table~A12), 而非以"三家都显著"的叙述性说法代替正式检验。
 
 \subsection{篇章级编码 (F2: 中性标签去污染)}
-若某文章 (a)~三家族 LLM 全部调用失败 (\code{llm\_call\_failure=1})
-或 (b)~三票分裂为三方互不一致 (\code{llm\_undefined=1}),
-则该文章情感编码为\emph{缺失}, 而非 \code{neutral}。
-若银行—金融科技相关性在全文轨上的多数验证未通过
-(\code{llm\_verified\_full=False}), 情感同样视为缺失。
+若某文章三家族 LLM 全部调用失败 (\code{llm\_call\_failure=1}),
+则该文章情感编码为\emph{缺失}, 而非 \code{neutral}。三票分裂为三方
+互不一致或全无可解析情感票 (平局/空票) 不计入缺失: 触发最多 80 轮
+确定性重试, 仍未破局则保守编码为\code{中性} (\code{llm\_undefined}
+因此在留篇轨上恒为 0)。若银行—金融科技相关性在全文轨上的多数验证
+未通过 (\code{llm\_verified\_full=False}), 情感仍视为缺失。
 此设定相比早期版本是有意调整: 旧版强制兜底为"中性",
 导致 81.7\,\% 的中性标签实际是测量失败或验证拒绝。
 
