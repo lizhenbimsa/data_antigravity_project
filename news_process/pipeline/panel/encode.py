@@ -2126,7 +2126,12 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         # v3.5.1 A1 + A3 supplementation (与 apply_v3_5_0 并存, 修 C2).
         # idempotent panel schema 加列; 失败 graceful (不 raise, 保证 v3.5.0 baseline 不破).
         try:
-            _v3_5_1_diag = _ec.apply_v3_5_1(df, panel, prompt_v8_sha256=None)
+            # fix(M1-③, 2026-07-14): 原恒传 None (runtime producer 缺席, 锚点靠
+            # aba2196c 人工一次性播种) → 改为每次实算盘上 prompt raw 字节 sha256
+            # 传入; 失败返回 None 时 preserve-if-set 保留旧锚, 行为向后安全。
+            _v3_5_1_diag = _ec.apply_v3_5_1(
+                df, panel,
+                prompt_v8_sha256=_ec.compute_prompt_v8_raw_sha256())
             panel.attrs['v3_5_1_diagnostics'] = _v3_5_1_diag
             n_clarity = len(_v3_5_1_diag.get('v3_5_1_clarity_added', []))
             n_ni = len(_v3_5_1_diag.get('v3_5_1_num_intensity_added', []))

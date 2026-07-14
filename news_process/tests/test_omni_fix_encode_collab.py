@@ -307,25 +307,34 @@ class TestApplyV352Idempotent:
 # ============================================================================
 
 class TestFrozenMedianSidecar:
-    SIDECAR = os.path.join('data', 'processed', 'v3_5_1_constants.json')
+    # fix(M1, 2026-07-14): writer 切 config 绝对路径后, 旧 chdir + cwd 相对
+    # SIDECAR 隔离失效 → 改 env LLM_ARCHIVE_SIDECAR_PATH 重定向到 tmp
+    # (解析链最高优先级), 防测试直写生产冻结锚; chdir 保留兜其他副作用。
+
+    @staticmethod
+    def _isolate_sidecar(tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        sidecar_file = tmp_path / 'v3_5_1_constants.json'
+        monkeypatch.setenv('LLM_ARCHIVE_SIDECAR_PATH', str(sidecar_file))
+        return sidecar_file
 
     def _df(self, amb_values):
         rows = [('A', 2017, v, v) for v in amb_values]
         return _mk_clarity_df(rows)
 
     def test_first_run_computes_and_persists(self, tmp_path, monkeypatch):
-        monkeypatch.chdir(tmp_path)
+        sidecar_file = self._isolate_sidecar(tmp_path, monkeypatch)
         df = self._df([0.1, 0.2, 0.3, 0.4])
         panel = _mk_panel([('A', 2017)])
         diag = ec.apply_v3_5_1(df, panel)
         assert diag['median_amb_d0'] == 0.25  # in-sample 首跑
-        with open(self.SIDECAR, encoding='utf-8') as f:
+        with open(sidecar_file, encoding='utf-8') as f:
             sidecar = json.load(f)
         assert sidecar['median_amb_d0'] == 0.25
         assert sidecar['median_amb_d0_ctx'] == 0.25
 
     def test_second_run_uses_frozen_threshold(self, tmp_path, monkeypatch):
-        monkeypatch.chdir(tmp_path)
+        sidecar_file = self._isolate_sidecar(tmp_path, monkeypatch)
         panel1 = _mk_panel([('A', 2017)])
         ec.apply_v3_5_1(self._df([0.1, 0.2, 0.3, 0.4]), panel1)  # 冻结 0.25
         # 第二跑: 样本组成漂移 (in-sample median 应为 0.85), 但须用冻结 0.25
@@ -335,7 +344,7 @@ class TestFrozenMedianSidecar:
         assert diag2['median_amb_d0'] == 0.25  # 冻结值, 非 0.85
         # 二值化用冻结阈值: 4/4 篇 ≥ 0.25 → 1.0 (若误用 0.85 则为 0.5)
         assert panel2['frac_amb_articles_full'].iloc[0] == 1.0
-        with open(self.SIDECAR, encoding='utf-8') as f:
+        with open(sidecar_file, encoding='utf-8') as f:
             sidecar = json.load(f)
         assert sidecar['median_amb_d0'] == 0.25  # sidecar 不被第二跑覆盖
 

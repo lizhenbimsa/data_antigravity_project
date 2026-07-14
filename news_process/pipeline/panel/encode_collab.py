@@ -1198,14 +1198,39 @@ def aggregate_num_intensity_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict
     return {'v3_5_1_num_intensity_added': out_cols}
 
 
+def compute_prompt_v8_raw_sha256() -> Optional[str]:
+    """fix(M1-③, 2026-07-14): runtime producer — sidecar 的 prompt_v8_sha256 锚
+    不再依赖人工一次性播种 (aba2196c), 每次 panel build 从盘上 prompt 文件的
+    **raw 磁盘字节** 实算 sha256 (口径=raw CRLF, 见计划 §0-3; LF 归一口径是
+    缓存键域, 两口径并存各有用途, gate 测试双口径各锁一条)。
+
+    失败返回 None (graceful): preserve-if-set 语义会保留 sidecar 既有锚值,
+    绝不因本函数失败清空锚点。
+    """
+    try:
+        import hashlib
+        from pathlib import Path as _Path
+
+        from news_process.core.config import load_config as _load_config
+        _p = _load_config().get('tone_llm_processing', {}).get('prompt_template_file')
+        if not _p or not _Path(_p).exists():
+            return None
+        return hashlib.sha256(_Path(_p).read_bytes()).hexdigest()
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def apply_v3_5_1(df: pd.DataFrame, panel: pd.DataFrame,
                  prompt_v8_sha256: Optional[str] = None) -> dict:
     """v3.5.1 A1 + A3 panel 聚合一站入口 (与 apply_v3_5_0 并存, 修 C2).
 
     顺序: 读 sidecar 冻结 median → A1 clarity → A3 num_intensity → 写 sidecar JSON.
 
-    Sidecar JSON path: ``data/processed/v3_5_1_constants.json`` (修 C1' + R7-H1
-    双 anchor: prompt_v8_sha256 + stage21_last_run_timestamp).
+    Sidecar JSON path: 经 config ``paths.output_dir`` 解析的绝对路径, 与读侧
+    ``manifest._resolve_sidecar_path`` 同一解析函数 (env ``LLM_ARCHIVE_SIDECAR_PATH``
+    可 override, 供测试隔离) — fix(M1, 2026-07-14) 前为 cwd 相对字面串
+    ``data/processed/v3_5_1_constants.json``, 写/读双脑分裂曾产生第二副本。
+    (修 C1' + R7-H1 双 anchor: prompt_v8_sha256 + stage21_last_run_timestamp).
 
     fix(omni-known-open-2, 2026-06-11) frozen-median 接线 (防泄漏机制): clarity 二值化
     阈值 median_amb_d0 / median_amb_d0_ctx / median_amb_d0_ss 优先读 sidecar 已冻结值传入
@@ -1257,7 +1282,14 @@ def apply_v3_5_1(df: pd.DataFrame, panel: pd.DataFrame,
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"  ⚠ apply_v3_5_1 banner 日志失败 (graceful): {_e}")
 
-    sidecar_path = 'data/processed/v3_5_1_constants.json'
+    # fix(M1, 2026-07-14): 写/读路径双脑分裂 — 写侧原为 cwd 相对字面串, 读侧
+    # (manifest._resolve_sidecar_path) 为 config 绝对路径; 以 news_process 为 cwd
+    # 的运行曾新生第二副本 (sha=null) → 写侧改用与读侧同一解析函数, 单点收敛。
+    # env LLM_ARCHIVE_SIDECAR_PATH 优先 (测试隔离用, 防测试直写生产冻结锚 —
+    # 旧 chdir 隔离在绝对路径下失效, 相关测试已同批切 env 隔离)。
+    from news_process.pipeline.llm_archive.manifest import _resolve_sidecar_path
+    sidecar_path = str(_resolve_sidecar_path())
+    logger.info(f"  · sidecar 路径 (M1 同源化, config 绝对解析): {sidecar_path}")
     # P0-B (2026-05-25): preserve-if-set — 若 caller 未显式传 prompt_v8_sha256
     # 但已有 sidecar 含非 null SHA, 保留旧值 (避免 stage 21 重跑无声 wipe
     # 已手动锚定的 SHA). 仅当 caller 显式传 SHA 时覆盖.

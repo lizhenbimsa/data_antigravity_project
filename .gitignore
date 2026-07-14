@@ -53,6 +53,11 @@ news_process/.test_tmp/
 # 数据文件 (全局排除大型二进制/数据文件)
 # ============================================================
 *.csv
+# fix(WP-R3-P1, 2026-07-14): locus 词表双编码原始表 (A/B 全量标注+仲裁, κ=0.8375
+# 的唯一证据载体, 不可再生) — WP-R3.4 立法意图="持久存档与版本化", 故 negation
+# 入库与 fintech_locus_split.yaml 同座 config/ (计划原文 eval_reports 落点因
+# 该目录不入库惯例改此处, 属文档化偏离)。
+!news_process/config/locus_split_double_coding_2026-07-14.csv
 *.parquet
 *.xlsx
 *.xls
@@ -96,7 +101,15 @@ news_process/company_tax_bank/logs/
 # 处理后的数据 & 原始数据
 # ============================================================
 # Phase 8 (2026-05-04): data_processed/ 重命名为 data/processed/
-news_process/data/
+# fix(M1-P0, 2026-07-14): 整目录规则改 ** 形态并为 v3_5_1_constants.json 开唯一
+# negation 例外 — M1 把冻结 sidecar (3 个防泄漏 median + prompt_v8_sha256 锚)
+# 迁到 config output_dir 后, 旧整目录规则会使其零 git 跟踪副本 → 新 clone 各自
+# in-sample 重冻结 = 跨环境阈值分叉 (非 golden-safe)。除该文件外语义与旧规则
+# 逐字节等价 (parquet/dta/db 等一切其余内容仍全部忽略)。
+news_process/data/**
+!news_process/data/processed/
+news_process/data/processed/**
+!news_process/data/processed/v3_5_1_constants.json
 news_process/data_excel/
 # 2026-07-07: 银企共现面板流水线产物 (~13GB dta/parquet, 镜像 data/processed 不入库惯例)
 news_process/company_listed_bank/data/
@@ -143,6 +156,10 @@ news_process/papers/**/*.epub
 news_process/papers/**/*.md
 # v3.2.0 M6/M7 (plan v14 §9.2): Stata 模板 README (双语) 允许入库
 !news_process/papers/_common/stata_templates/README.md
+# fix(S14-P1, 2026-07-14): AI 披露模板是方法学 SSOT (6 系列, 被 CLAUDE.md 与
+# 全部 manuscript 附录消费), S14/WP-R5.4/D2 的承重披露改动落于此 — 原整类
+# *.md 规则使其从未入库, by-name add 被静默忽略 → 补 negation 例外入库。
+!news_process/papers/_common/AI_DISCLOSURE_TEMPLATES.md
 *.pdf
 
 # ============================================================

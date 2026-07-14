@@ -25,12 +25,117 @@
       "bytes": 327591,
       "record_count": 14,
       "sha256": "4c1ed3bd8450f6a6cc91319b60cfa04778e0e8d3a6b84ab6b1e02efbcf86d997"
+    },
+    "2026-05-30.jsonl": {
+      "bytes": 104423846,
+      "record_count": 2808,
+      "sha256": "c1c8457a5ada6dbcc7bd61e44b30d941488a9b59de6980039e39c6ef0b3e636c"
+    },
+    "2026-05-31.jsonl": {
+      "bytes": 258265390,
+      "record_count": 19823,
+      "sha256": "099959d64003d5dc49b6378c486aad62d51d83c86fdf46eb5fcc598756f099b6"
+    },
+    "2026-06-02.jsonl": {
+      "bytes": 35589862,
+      "record_count": 926,
+      "sha256": "2616a7e78f73e671da2a0d879bbc98c16e7ca442c87344db38c1c9ab4dc43b2c"
+    },
+    "2026-06-03.jsonl": {
+      "bytes": 10853059,
+      "record_count": 238,
+      "sha256": "acb379d76f976d530895a89455a0a7ff90eca28e1abf714a37a322357e6343ee"
+    },
+    "2026-06-05.jsonl": {
+      "bytes": 41010694,
+      "record_count": 3216,
+      "sha256": "3f599aa644449cc6e43383a0281cb29ec45474c273198ce7988c19ac47514b86"
+    },
+    "2026-06-08.jsonl": {
+      "bytes": 63122,
+      "record_count": 2,
+      "sha256": "9532a7bfdf7448e641df54ee963332bdb9c29b2fd6a81655f267b6525c5f2d61"
+    },
+    "2026-06-10.jsonl": {
+      "bytes": 639980,
+      "record_count": 15,
+      "sha256": "a926864fe93c26fd8ec6273ffb1f6129744201f05cddd10d78745c0bd8179b2b"
+    },
+    "2026-06-13.jsonl": {
+      "bytes": 7812704,
+      "record_count": 158,
+      "sha256": "b72f04b82f698ff60c1b14086791edc47f687ca05f42d80ecd1ff77e294cf432"
+    },
+    "2026-06-15.jsonl": {
+      "bytes": 139557355,
+      "record_count": 7289,
+      "sha256": "b04f6dc2ba70f1c84bf8bed43d565840719d9b971e57a2b996ccb36643f5cb21"
+    },
+    "2026-06-16.jsonl": {
+      "bytes": 21566462,
+      "record_count": 459,
+      "sha256": "0f94e932f99f31b18180f61c1f95def9dcb3d6303c34804bedc3ab33a4252b34"
+    },
+    "2026-06-17.jsonl": {
+      "bytes": 203349549,
+      "record_count": 15429,
+      "sha256": "2ede8916cb8ebfbe1fd7f04b0a309648b9dea542f220dc6160641533a0c95843"
+    },
+    "2026-06-23.jsonl": {
+      "bytes": 101938810,
+      "record_count": 5772,
+      "sha256": "498a60aa4e533e44ac5bd03a9f0ba0a293cf961ac2ecb20750be600fd1780e63"
+    },
+    "2026-06-24.jsonl": {
+      "bytes": 34251042,
+      "record_count": 978,
+      "sha256": "b157f2a4df102cc92fefd84470127065d8ea05e971075d265ee43b3096cc17cb"
+    },
+    "2026-06-25.jsonl": {
+      "bytes": 385145234,
+      "record_count": 33512,
+      "sha256": "c8266bf70c51f8f71a7d66f27fb6881ba1f1abc8d179551b9369db9ea0ffc81f"
+    },
+    "2026-06-26.jsonl": {
+      "bytes": 531827371,
+      "record_count": 45088,
+      "sha256": "6be9b94a6a341055b51a84c16fbdc2b1fb96a9840aac45fe22edafb78f75e0c7"
+    },
+    "2026-06-27.jsonl": {
+      "bytes": 534050814,
+      "record_count": 7994,
+      "sha256": "fbfec6ed86afa1c5607b7f2dc5ec86047392b38808a0bd5efadaab3832d8be8e"
+    },
+    "2026-06-28.jsonl": {
+      "bytes": 984772518,
+      "record_count": 23890,
+      "sha256": "338063f1da4f4aa1e88deb252d8550654ab2aeedfc6beaf93e5b1154946a021c"
+    },
+    "2026-06-29.jsonl": {
+      "bytes": 176569020,
+      "record_count": 2053,
+      "sha256": "df4c07b0fc97cda6852d7b436dc01d32b726e438cefef5d6dc2f5abe381e2104"
+    },
+    "2026-07-02.jsonl": {
+      "bytes": 4450569,
+      "record_count": 48,
+      "sha256": "be4f086448a9c798f603928c8401b887c3981b3374da463a8fea15b46cdded9f"
+    },
+    "2026-07-03.jsonl": {
+      "bytes": 23165320,
+      "record_count": 244,
+      "sha256": "d4527e861f50fe4a9b98ab07e32902317324491208f6e7ceb00258734a9cad7d"
+    },
+    "2026-07-05.jsonl": {
+      "bytes": 20464205,
+      "record_count": 1667,
+      "sha256": "c1c9349bdc2e30234ef6844e7326d2a84b9a9b60c04aa7cf492238ce50a2a835"
     }
   },
-  "generated_at_utc": "2026-05-30T00:03:19.068334+00:00",
+  "generated_at_utc": "2026-07-14T03:29:21.378019+00:00",
   "prompt_sha256": "0430ba3c1b2a289e5f022081953e7748f35dfa9e3e1ac9303f6d0f1871cc858c",
-  "prompt_version_anchor": "v8",
+  "prompt_version_anchor": "v8-2026-05-17",
   "schema_version": "v1",
-  "total_bytes": 348009536,
-  "total_records": 25638
+  "total_bytes": 3967776462,
+  "total_records": 197247
 }

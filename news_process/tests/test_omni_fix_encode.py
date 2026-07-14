@@ -47,9 +47,15 @@ from news_process.pipeline.panel.encode import (
 @pytest.fixture(autouse=True)
 def _isolate_cwd_relative_writes(tmp_path, monkeypatch):
     """与 test_40_panel_export_main 同款隔离: aggregate_panel →
-    encode_collab.apply_v3_5_1 会向 cwd 相对路径写 sidecar JSON
-    (data/processed/v3_5_1_constants.json); chdir 到临时目录防污染冻结锚点。"""
+    encode_collab.apply_v3_5_1 写 sidecar JSON。
+
+    fix(M1, 2026-07-14): writer 已切 config 绝对路径 (manifest._resolve_sidecar_path
+    同源), 旧 chdir 隔离失效 → 改设 env ``LLM_ARCHIVE_SIDECAR_PATH`` 重定向到
+    tmp (该 env 在解析链最高优先级), 防测试直写生产冻结锚; chdir 保留兜其他
+    cwd 相对副作用。"""
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv('LLM_ARCHIVE_SIDECAR_PATH',
+                       str(tmp_path / 'v3_5_1_constants.json'))
 
 
 # ============================================================================

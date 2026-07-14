@@ -240,7 +240,8 @@ class TestManifest:
         manifest = json.loads(
             (tmp_archive.root / 'manifest.json').read_text(encoding='utf-8'))
         assert manifest['prompt_sha256'] == sha
-        assert manifest['prompt_version_anchor'] == 'v8'  # 人读 token 仍保留
+        # fix(M2, 2026-07-14): anchor 与缓存键完整 token 对齐 ('v8'→'v8-2026-05-17')
+        assert manifest['prompt_version_anchor'] == 'v8-2026-05-17'  # 人读 token 仍保留
 
     def test_verify_manifest_missing_returns_false(self, tmp_path):
         """manifest.json 本身不存在 → False + 单条错误 (manifest.py:162)."""

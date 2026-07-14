@@ -58,12 +58,14 @@ def test_golden_v0_archived_path_documented():
 def test_apply_v3_5_1_idempotent(tmp_path, monkeypatch):
     """双 idempotent: 重复调用 apply_v3_5_1 panel 结果不变."""
     from news_process.pipeline.panel.encode_collab import apply_v3_5_1
-    # 测试隔离 (audit/goal-2026-05-29 R1): apply_v3_5_1 把 sidecar JSON 写到相对路径
-    # 'data/processed/v3_5_1_constants.json' (含 datetime.now() 时间戳)。pytest 从仓库根
-    # 运行时该相对路径解析到受 git 跟踪的 sidecar, 每次跑都会刷新时间戳 → 污染工作树
-    # (非确定性 + dirty tree)。本测试只断言 panel 聚合列的幂等性, 与 sidecar 内容无关,
-    # 故 chdir 到 tmp_path 把副作用写入重定向到临时目录, 不改动生产逻辑/断言。
+    # 测试隔离 (audit/goal-2026-05-29 R1; fix M1 2026-07-14 升级): apply_v3_5_1
+    # 写 sidecar JSON (含 datetime.now() 时间戳)。M1 后 writer 走 config 绝对路径,
+    # 旧 chdir 隔离失效 → 改设 env LLM_ARCHIVE_SIDECAR_PATH 重定向到 tmp, 防测试
+    # 直写生产冻结锚; chdir 保留兜其他 cwd 相对副作用。本测试只断言 panel 聚合列
+    # 的幂等性, 与 sidecar 内容无关。
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv('LLM_ARCHIVE_SIDECAR_PATH',
+                       str(tmp_path / 'v3_5_1_constants.json'))
     df = pd.DataFrame([
         {'target_bank': 'A', 'year': 2020,
          'clarity_frac_ambiguous_full': 0.05, 'clarity_frac_definite_full': 0.10,
@@ -96,7 +98,12 @@ def test_sidecar_json_path_exists_or_created():
 
     实际 sidecar 在 D0 首次跑 apply_v3_5_1 时写入; 本测试验证 stub 存在 + 必要字段.
     """
-    sidecar_path = REPO_ROOT / 'data' / 'processed' / 'v3_5_1_constants.json'
+    # fix(M1, 2026-07-14): 权威 sidecar 已由 repo 根迁移到 config output_dir
+    # 路径, 并经 .gitignore negation 例外保持 git 跟踪 (M1-P0: 三 median 是
+    # 防泄漏冻结阈值, 必须有版本控制副本, 否则新 clone 各自重冻结分叉);
+    # 本测试改经解析 SSOT 定位, 不再锚 REPO_ROOT 旧位置。
+    from news_process.pipeline.llm_archive.manifest import _resolve_sidecar_path
+    sidecar_path = _resolve_sidecar_path()
     if not sidecar_path.exists():
         pytest.skip(f"sidecar JSON 未生成 (D0 day apply_v3_5_1 首次跑时写入)")
     with open(sidecar_path, 'r', encoding='utf-8') as f:

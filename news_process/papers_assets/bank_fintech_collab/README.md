@@ -38,7 +38,7 @@
 
 ## Pre-registration
 
-本 paper 锚定 prompt v8 字节级冻结（v8 = v7 严格超集，additive supplementation per Nosek et al. 2018 PNAS；v8 SHA256 详见 CLAUDE.md 顶部「冻结锚点」段 (Prompt v8 字节级冻结)；SHA256 由 stage 21/面板首跑时写入运行期 sidecar `data/processed/v3_5_1_constants.json::prompt_v8_sha256` (`pipeline/panel/encode_collab.py` 生成产物, gitignore, 非随包分发的静态文件)。专属 git tag `prompt-v8-supplementation-released` 尚未打，唯一已打的 prompt tag 是 `prompt-v7-released`）。W&Z 框架边界论证（collab mode 维度与 P3 substance / P4 locus 概念正交、不构成同一构念的重复测量）原 wz_framework_boundary_justification.md §4 已随 docs/ 目录整体删除 commit 1698bda5 而不存在。
+本 paper 锚定 prompt v8 字节级冻结（v8 = v7 严格超集，additive supplementation per Nosek et al. 2018 PNAS；v8 SHA256 详见 CLAUDE.md 顶部「冻结锚点」段 (Prompt v8 字节级冻结)；SHA256 由 stage 21/面板首跑时写入运行期 sidecar `news_process/data/processed/v3_5_1_constants.json::prompt_v8_sha256` (`pipeline/panel/encode_collab.py` 生成产物; M1-P0 2026-07-14: 该 sidecar 承载三个防泄漏冻结 median, 已经 .gitignore negation 例外恢复 git 跟踪, 且 sha 锚由 runtime producer 每次 panel build 实算兜底)。专属 git tag `prompt-v8-supplementation-released` 尚未打，唯一已打的 prompt tag 是 `prompt-v7-released`）。W&Z 框架边界论证（collab mode 维度与 P3 substance / P4 locus 概念正交、不构成同一构念的重复测量）原 wz_framework_boundary_justification.md §4 已随 docs/ 目录整体删除 commit 1698bda5 而不存在。
 
 ## 投稿路径
 

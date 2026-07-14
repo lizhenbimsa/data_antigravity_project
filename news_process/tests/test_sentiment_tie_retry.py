@@ -146,6 +146,12 @@ def _fake_session(content_text):
 def test_force_refresh_skips_cache_read_but_writes_back(tmp_path, monkeypatch):
     """force_refresh=True: 即便缓存已有旧票也不读, 走实时 API; 新票回写覆盖."""
     monkeypatch.setattr(tone_llms, "LLM_OFFLINE", False)
+    # fix(archive-leak, 2026-07-14): 本测试真调 fetch_llm_async 且 fake session
+    # 返回 200 → 生产 append-only 归档被真实写入 (m1/'P' mock 记录曾自 2026-06-24
+    # 起累计泄漏 146 条进 data/llm_archive/responses/, 已record级清洗) → 必须关
+    # 归档开关 (镜像 test_omni_fix_tonellms 隔离写法), 否则每次全量 pytest 都
+    # 污染归档并使 verify_manifest 翻红。
+    monkeypatch.setattr(tone_llms, "_LLM_ARCHIVE_AVAILABLE", False)
     cache = LLMCache(str(tmp_path / "c.db"))
     cfg = {"model_name": "m1", "short_name": "m1",
            "base_url": "http://x", "api_key": "k"}
@@ -179,6 +185,9 @@ def test_force_refresh_skips_cache_read_but_writes_back(tmp_path, monkeypatch):
 def test_no_force_refresh_hits_cache(tmp_path, monkeypatch):
     """对照: force_refresh=False (默认) 仍命中缓存短路, 不打 API."""
     monkeypatch.setattr(tone_llms, "LLM_OFFLINE", False)
+    # fix(archive-leak, 2026-07-14): 防御性同款隔离 (本测试命中缓存不 POST 理论
+    # 上不归档; 若未来行为变化走到网络分支, 归档开关兜底防泄漏)。
+    monkeypatch.setattr(tone_llms, "_LLM_ARCHIVE_AVAILABLE", False)
     cache = LLMCache(str(tmp_path / "c.db"))
     cfg = {"model_name": "m1", "short_name": "m1",
            "base_url": "http://x", "api_key": "k"}

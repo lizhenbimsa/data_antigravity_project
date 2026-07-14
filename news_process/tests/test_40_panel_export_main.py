@@ -47,11 +47,14 @@ bp = _BpFacade()
 
 @pytest.fixture(autouse=True)
 def _isolate_cwd_relative_writes(tmp_path, monkeypatch):
-    """测试隔离: ``aggregate_panel`` → ``encode_collab.apply_v3_5_1`` 会向 **cwd 相对**
-    路径 ``data/processed/v3_5_1_constants.json`` 写 sidecar。本套用例只验证面板结构,
-    不关心该副作用; chdir 到临时目录, 避免污染受跟踪的冻结锚点文件 (流水线使用的
-    绝对 CONFIG 路径不受影响)。"""
+    """测试隔离: ``aggregate_panel`` → ``encode_collab.apply_v3_5_1`` 写 sidecar。
+
+    fix(M1, 2026-07-14): writer 已切 config 绝对路径 (与 manifest._resolve_sidecar_path
+    同源), 旧 chdir 隔离失效 → 改设 env ``LLM_ARCHIVE_SIDECAR_PATH`` 重定向到 tmp,
+    防测试直写生产冻结锚; chdir 保留兜其他 cwd 相对副作用。"""
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv('LLM_ARCHIVE_SIDECAR_PATH',
+                       str(tmp_path / 'v3_5_1_constants.json'))
 
 
 # ============================================================================

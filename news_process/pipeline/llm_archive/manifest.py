@@ -6,9 +6,9 @@ v3.7.0 Manifest 格式 (per-file SHA-256 + 全局 metadata):
 
     {
       "schema_version": "v1",
-      "archive_frozen_date": "2026-05-18",
+      "archive_frozen_date": "2026-05-18",   # 首个 5 文件冻结批次日期 (M2: 归档持续追加, 非终止日)
       "generated_at_utc": "2026-05-18T13:45:00+00:00",
-      "prompt_version_anchor": "v8",
+      "prompt_version_anchor": "v8-2026-05-17",   # M2 (2026-07-14): 与缓存键完整 token 对齐
       "files": {
         "2026-05-18.jsonl": {
           "sha256": "abc123...",
@@ -61,7 +61,9 @@ def _log_archive_env_and_config(
     action: str,
     root: Path,
     *,
-    prompt_version_anchor: str = 'v8',
+    # fix(M2, 2026-07-14): anchor 人读 token 与完整 token 对齐 ('v8'→'v8-2026-05-17');
+    # archive_frozen_date 语义披露 = 首个 5 文件冻结批次日期, 归档实为持续追加登记
+    prompt_version_anchor: str = 'v8-2026-05-17',
     archive_frozen_date: str = '2026-05-18',
     sidecar: Optional[Path] = None,
 ) -> None:
@@ -141,7 +143,9 @@ def _sha_and_count_in_one_pass(path: Path) -> tuple[str, int, int]:
 def compute_manifest(
     root: Optional[Path] = None,
     *,
-    prompt_version_anchor: str = 'v8',
+    # fix(M2, 2026-07-14): 'v8'→'v8-2026-05-17' (人读 token 与缓存键完整 token 对齐);
+    # archive_frozen_date='2026-05-18' = 首个 5 文件冻结批次日期 (归档持续追加, 非终止日)
+    prompt_version_anchor: str = 'v8-2026-05-17',
     prompt_sha256: Optional[str] = None,
     archive_frozen_date: str = '2026-05-18',
 ) -> dict:
@@ -189,6 +193,9 @@ def compute_manifest(
 
 def _resolve_sidecar_path() -> Path:
     """fix(omni-g-tonellms-05, 2026-06-11): sidecar 路径经 config 解析为绝对路径。
+
+    fix(M1, 2026-07-14): 写侧 encode_collab.apply_v3_5_1 已同步改用本函数解析
+    (原为 cwd 相对字面串), 写/读双脑分裂闭环 — 本函数自此为 sidecar 路径唯一 SSOT。
 
     仿 ``archive._resolve_archive_root`` (audit S3 写/验同源原则), 解析顺序:
     1. env var ``LLM_ARCHIVE_SIDECAR_PATH`` (CI / 测试 override);
@@ -254,7 +261,8 @@ _read_prompt_version_anchor_from_sidecar = _read_prompt_sha256_from_sidecar
 def write_manifest(
     root: Optional[Path] = None,
     *,
-    prompt_version_anchor: str = 'v8',
+    # fix(M2, 2026-07-14): 同 compute_manifest — token 对齐 + 冻结日期语义披露
+    prompt_version_anchor: str = 'v8-2026-05-17',
     archive_frozen_date: str = '2026-05-18',
 ) -> Path:
     """生成并写入 manifest.json 到 archive 根目录.
@@ -263,7 +271,8 @@ def write_manifest(
     - root=None 时走 _default_root() (= _resolve_archive_root), 与写入端同源
       (修早期 cwd-相对 DEFAULT_ARCHIVE_ROOT 致 verify 扫错目录的路径漂移)。
     - prompt 的 SHA-256 指纹从 v3.5.1 sidecar 读 (修早期读错 key 的 dead branch),
-      记入 manifest['prompt_sha256']; prompt_version_anchor 保留人读 token 'v8'。
+      记入 manifest['prompt_sha256']; prompt_version_anchor 保留人读 token
+      (fix M2, 2026-07-14: 'v8'→'v8-2026-05-17', 与缓存键完整 token 对齐)。
     """
     _t0 = time.time()
     prompt_sha256 = _read_prompt_sha256_from_sidecar()
