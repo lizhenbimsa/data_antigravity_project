@@ -37,11 +37,14 @@ _DOLLAR_MACRO_RE = re.compile(r'\$[A-Za-z_{]')
 
 
 def _assert_neutralized(text: str):
-    """规则① 全角中和三断言 + 规则④ 空白前导 // 断言。"""
+    """规则① 全角中和三断言 + 规则④ 空白前导 // 断言 (+2026-07-15 批次 A: 花括号/块注释)。"""
     assert '`' not in text, f'ASCII 反引号残留: {text!r}'
     assert '\\' not in text, f'ASCII 反斜杠残留: {text!r}'
     assert not _DOLLAR_MACRO_RE.search(text), f'$+宏名起始序列残留: {text!r}'
     assert not re.search(r'(?:(?<=\s)|^)/{2,}', text), f'空白前导 // 残留: {text!r}'
+    assert '{' not in text, f'ASCII 左花括号残留: {text!r}'
+    assert '}' not in text, f'ASCII 右花括号残留: {text!r}'
+    assert '/*' not in text, f'块注释开启符残留: {text!r}'
 
 
 # ---------------------------------------------------------------------------
@@ -63,8 +66,22 @@ class TestNotesTextFuzz:
         assert out.endswith('$')       # 行尾 $ 保真
         _assert_neutralized(out)
         out2 = _stata_notes_text('macro $gprobe and ${brace} and $_x')
-        assert '＄gprobe' in out2 and '＄{brace}' in out2 and '＄_x' in out2
+        # 2026-07-15 批次 A: ①-c 执行序移到 ①-b2 之前 → ${brace} 双中和 ＄｛brace｝
+        assert '＄gprobe' in out2 and '＄｛brace｝' in out2 and '＄_x' in out2
         _assert_neutralized(out2)
+
+    def test_brace_full_neutralization(self):
+        # ①-b2 (2026-07-15): 裸花括号集合记法全量中和, 行尾孤立 { r(198) 防线
+        out = _stata_notes_text("sfx in {'', _hw}")
+        assert out == "sfx in ｛'', _hw｝"
+        _assert_neutralized(out)
+
+    def test_block_comment_opener_neutralization(self):
+        # ④-b (2026-07-15): '*_full/*_ctx' 字面含 /* 序列, 全量中和防块注释吞文
+        out = _stata_notes_text('*_full/*_ctx/*_ss')
+        assert out == '*_full／＊_ctx／＊_ss'
+        assert '/*' not in out and '／＊' in out
+        _assert_neutralized(out)
 
     def test_backslash_full_neutralization(self):
         # \$ / \\ / 尾 \ — probe 实锤反斜杠保护在 notes 语境不生效 → 全量中和
