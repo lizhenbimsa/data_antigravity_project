@@ -48,3 +48,24 @@
 - **执行插曲 (无数据后果)**: ① 第二批首个 do (shareholderw) 完整跑完 (`exit, clear` 已回显、dta 已保存) 后 Stata 进程僵死不退, `-Wait` 卡死 → 手工击杀僵尸并停掉旧批任务, 改用「起进程→轮询 log DONE 标记→兜底击杀」策略跑完剩余 6 份; ② supervisorw 存在理论上的双跑竞态窗口, 已由值哈希对账证实无损 (PASS)。
 - sidecar 指纹: 两侧线 `data/_notes_applied_fingerprint.json` 已写 (逐 dta sha256/行列/值哈希/label 哈希/notes 条数/家族清单/PASS)。
 - 主项目零污染实证 (计划 §6-P4 附加项): `check_longdesc_whitelist.py --longdesc-dir config/codebook_longdesc` 复跑 EXIT=0, novelty 2536/5070 = 50.0% 不变。
+
+## 终审补记 (2026-07-15, 终审 P2 整改后收口)
+
+### (a) LB017 弱化重注事件与对账结果
+
+终审 P2 整改将 `LB017_abbreviation_naming_convention.md` 的 Fišar 2024 引申句弱化 (删除"变量命名的随意性正是复现失败的高发源头之一"这一超出原文粒度的断言, 改为"构件标准化/可追溯性"层面表述; 弱化后 1262 汉字 ≥1000, LB 两门禁复跑 EXIT=0), 导致 10 份 LB dta 内已注入的 LB017 notes 段与 md 出现一句漂移。处置 = 对 10 份 `company_listed_bank/data/*.dta` 按首轮同款工具链**幂等重注** (TB 5 份不含 LB017, 不动):
+
+- 基于弱化后 md 全文重切段、重新生成 10 个 `_notes_inject_*.do` (保留 `capture notes drop _dta` 幂等头 + `version 19` + `save, replace` + `exit, clear`), StataMP-64 一律 `/b`; 注入前快照按 round2 重打 (`_notes_preinject_snapshot.json` 各条目标记 `round=reinject-LB017-2026-07-15`)。
+- 10/10 log 扫描 `r(###)` = 0 条, `NOTES_DTA_DONE=24` 与期望切段数逐一相等。
+- 对账 **10/10 ALL_PASS**: 行 (105,032)/列/值哈希/label 哈希与重注前逐位相等; notes 条数 = 24+1 (note0 计数标记); **段级精确对账** = 用同一 `_stata_notes_text`+`_split_note_segments` 重算全部期望段, strip 归一后与 `meta.notes` 多重集全等 (LB017 弱化后新句在场由段级全等蕴含); 旧句"高发源头"全部 10 份 dta notes 0 命中。
+- `company_listed_bank/data/_notes_applied_fingerprint.json` 已刷新 (逐 dta sha256/notes_count, method 标注"LB017 弱化后幂等重注"); TB 侧指纹不动。
+
+### (b) 终审三条 P3 观察 (对账口径铁律, 后续复用须知)
+
+1. **Stata 会 trim note 段首尾空白** → 逐字节对账须先做首尾空白归一 (本轮段级对账即 `seg.strip()` vs `note.strip()`)。
+2. **pyreadstat `meta.notes` 是 characteristics 存储序, 非 note 编号序** → 不能按列表顺序拼接重建全文, 跨段句子会被打散 (本轮"新句 substring 直查"曾因此假红一次); 正确姿态 = 期望段集合 vs 实际段集合的多重集比对 (排序后全等)。
+3. **注入流程会触碰 md 的 mtime** (重切段读取/渲染物化) → 以 mtime 判"文档未变"不可靠, 一律以内容哈希为准。
+
+### (c) 主项目 51 号指纹失锚
+
+主项目 51 号 dta 指纹失锚问题已由主会话重算回写收口, 不属本侧线范围, 此处仅存目备查。
