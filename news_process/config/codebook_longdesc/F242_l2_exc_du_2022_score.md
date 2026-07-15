@@ -14,7 +14,7 @@ unit: 无量纲情感得分 (银行-年均值; 基线归一化轨 ∈ [-1, +1], 
 formula: "exc_du_2022_score{sfx}{track} = mean_{i ∈ 非停刊媒体报道} du_2022_score{sfx}{track}_i; sfx ∈ {空, _hw (跟风衰减权), _w (价值权/提及密度)}; track ∈ {_full, _ctx, _ss}; 分母 = 该银行-年 _is_ceased_media==0 的报道数"
 producer: news_process/pipeline/panel/attention_media.py::compute_media_heterogeneity
 upstream:
-- 22_tone_words.parquet (article: du_2022_score{track} 原始未加权情感得分; _hw/_w 两加权变体不落盘该 parquet, 由 runner.py 步骤 3b/3d 在 panel 构建阶段现算, 见下两条)
+- "22_tone_words.parquet (article: du_2022_score{track} 原始未加权情感得分; _hw/_w 两加权变体不落盘该 parquet, 由 runner.py 步骤 3b/3d 在 panel 构建阶段现算, 见下两条)"
 - 24_herd_decay_processor.parquet (herd_weight{track}, 供 pipeline/panel/runner.py 步骤 3d 现算 du_2022_score_hw{track} = du_2022_score{track} × herd_weight{track})
 - 11_news_bank.py (mention_density 提及密度, 供 runner.py 步骤 3b 现算 du_2022_score_w{track} = du_2022_score{track} × mention_density)
 - attention_media.py::detect_defacto_cessation (_is_ceased_media 停刊代理标记, 由本 producer 自身在运行期对传入 df 现场计算赋值, 非从 40_article_bank_level.parquet 读入的既有列)

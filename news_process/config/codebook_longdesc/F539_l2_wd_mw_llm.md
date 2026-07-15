@@ -8,7 +8,7 @@ unit: 无量纲权重之和 (银行-年层面, media_authority_weight 在"三家
 formula: 'sum_wd_mw_llm{track} = sum(_wd_mw_llm{track}), 其中 _wd_mw_llm{track} 是文章级 valid-mask 权重列, 仅当 llm_vote_score{track} 非缺失 (三家 LLM 多数投票共识成功打分) 时取值 media_authority_weight, 否则置为 NaN (pandas .where 无 other 参数时的默认填充, 非 0), sum 聚合时自动跳过 NaN 行, 效果上等价于该行不参与分母求和; 源自 pipeline/panel/runner.py::_build_llm_valid_masked_weights(df, mw, "mw") 对 grp="llm" 的产出, 聚合见 pipeline/panel/encode.py: for track in [_full,_ctx,_ss]: for wtag in (vw,mw,hw): for grp in [llm, *LLM_MODELS, prob]: agg[f"sum_wd_{wtag}_{grp}{track}"]=(f"_wd_{wtag}_{grp}{track}","sum")'
 producer: pipeline\panel\runner.py::_build_llm_valid_masked_weights ; pipeline\panel\encode.py ; pipeline\audit\stata_audit.py
 upstream:
-- 21_tone_llms.parquet (llm_vote_score{track}: 三家 LLM 多数投票共识得分, gpt-5.4-nano/gemini-3.1-flash-lite/deepseek-v4-flash; 其缺失/有效状态决定本列掩码)
+- "21_tone_llms.parquet (llm_vote_score{track}: 三家 LLM 多数投票共识得分, gpt-5.4-nano/gemini-3.1-flash-lite/deepseek-v4-flash; 其缺失/有效状态决定本列掩码)"
 - media_authority_weight (文章级媒体权威权重, 来源报社/来源等级映射, Holzman et al. 2023 TAR 加权设计)
 - 14_materialize_ctx.parquet (content_ctx/content_ss 三轨文本物化)
 citations:

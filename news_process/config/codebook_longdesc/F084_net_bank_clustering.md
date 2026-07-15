@@ -8,7 +8,7 @@ unit: 网络结构指标 (无量纲, 取值 [0,1])
 formula: "bank_clustering = nx.clustering(G, weight='weight') 上银行节点的加权局部聚类系数; G = 年度银行共现加权无向图 (节点=当年幸存 target_bank, 边=两行共现, 边权=同语境共现篇数); 判据变体 {同篇 (无后缀) / ±win_radius 句窗 _win1 / 严格同句 _sent}"
 producer: news_process/pipeline/panel/network_spillover.py::compute_bank_network_centrality (build_adjacency_matrix 建图) ; news_process/pipeline/panel/codebook.py (标签推断)
 upstream:
-- 40_article_bank_level.parquet (篇章级展开帧 df_exploded: docid / target_bank / year / 内容 / 标题)
+- "40_article_bank_level.parquet (篇章级展开帧 df_exploded: docid / target_bank / year / 内容 / 标题)"
 - config/panel.yaml::network_criteria (win_radius=1, match_in_title=true)
 citations:
 - doi: 10.1007/s10479-026-07305-8

@@ -8,8 +8,8 @@ unit: 情感倾向差值 (无量纲, 两个归一化 tone 之差, 取值近似 [
 formula: "cater_gemini31{track} = dict_avg_tone{track} - gemini31_tone{track}"
 producer: news_process/pipeline/panel/runner.py (步骤 8d, 算法迎合度全展开的逐模型分支); 标签 news_process/pipeline/panel/export.py
 upstream:
-- 22_tone_words.parquet (dict_avg_tone{track}: 六词典综合词典语调)
-- 21_tone_llms.parquet (gemini31_tone{track}: 单家 LLM gemini-3.1-flash-lite 篇章级语调)
+- "22_tone_words.parquet (dict_avg_tone{track}: 六词典综合词典语调)"
+- "21_tone_llms.parquet (gemini31_tone{track}: 单家 LLM gemini-3.1-flash-lite 篇章级语调)"
 - 24_herd_decay.parquet (df_exploded, article×bank verified 集, 面板聚合前主输入)
 citations:
 - doi: 10.1093/rfs/hhad021

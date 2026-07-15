@@ -8,7 +8,7 @@ unit: 比率 (正面词次占 word-token 数之比, 无量纲; 文章级 ∈ [0,
 formula: "avg_you_2018_pos_ratio{trk} = mean_over_articles(you_2018_pos_ratio{trk}), trk ∈ {full, ctx, ss}; 文章级 you_2018_pos_ratio = pos_count / n_word_tokens; pos_count = 经否定/程度/转折状态机处理后最终极性为正的 you_2018 词典命中词次数, 外加该词典 5 个 positive∩negative 跨类重叠词的命中次 (2026-06-24「保留并两侧计数」决策: 重叠词命中同时 +1 计入 pos_count 与 neg_count, 与翻号及幅度无关); n_word_tokens = 剔除纯标点/纯数字 token 后的词元数; n_word_tokens = 0 或空文本或词典缺失 → NaN"
 producer: news_process/pipeline/sentiment/tone_words.py::_analyze_single_article (打分内核 _compute_sentiment_with_rules); 面板聚合 news_process/pipeline/panel/encode.py (avg_{d}_pos_ratio{track} = ({d}_pos_ratio{track}, 'mean')); Stata 标签 news_process/pipeline/panel/export.py + stata_export.py
 upstream:
-- config/tone_dicts.json (you_2018 词典: positive 1,425 / negative 1,583 / definite 388 / ambiguous 178 [后两类 v3.5.1 起供 clarity 用, 不入 pos_ratio]; positive∩negative 跨类重叠 5 词两侧计数)
+- "config/tone_dicts.json (you_2018 词典: positive 1,425 / negative 1,583 / definite 388 / ambiguous 178 [后两类 v3.5.1 起供 clarity 用, 不入 pos_ratio]; positive∩negative 跨类重叠 5 词两侧计数)"
 - 14_materialize_ctx.parquet (content_full / content_ctx / content_ss + *_is_fallback)
 - 22_words_tone.parquet (文章级 you_2018_pos_ratio_{full,ctx,ss})
 - 21_tone_llms.parquet (llm_verified_full 留篇门控, full-only 口径 2026-06-29)

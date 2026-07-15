@@ -8,7 +8,7 @@ unit: 网络结构约束指标 (无量纲)
 formula: "bank_constraint = Σ_j (p_ij + Σ_q p_iq*p_qj)^2 (Burt 1992 network constraint); p_ij = 节点 i 投向邻居 j 的关系比例, 边权 = 年度银行∧银行共现文章数; degree<2 → NaN; 判据变体: 无后缀 (同篇) / _win1 (±1 句窗) / _sent (严格同句)"
 producer: pipeline\panel\network_spillover.py::compute_bank_network_centrality (nx.constraint on raw-weight graph); 判据后缀归一 pipeline\panel\codebook.py
 upstream:
-- 24_herd_decay.parquet (stage-21 verified 宇宙, 篇章级 df_exploded: docid / target_bank / year / 内容 / 标题)
+- "24_herd_decay.parquet (stage-21 verified 宇宙, 篇章级 df_exploded: docid / target_bank / year / 内容 / 标题)"
 - config/bank_names + config/bank_name_exclusions.json (win1/sent 判据的银行别名字典 + 否定 AC + 短名排除扫描上下文)
 - config/panel.yaml::network_criteria.win_radius (win1 判据的句窗半径, 默认 1)
 citations:

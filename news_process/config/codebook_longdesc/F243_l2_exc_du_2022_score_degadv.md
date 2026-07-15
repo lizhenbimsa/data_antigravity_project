@@ -8,7 +8,7 @@ unit: 无量纲情感倾向得分 (bank-year 均值; 剔疑似停刊媒体子样
 formula: "exc_du_2022_score_degadv{track} = mean_文章 i 所属媒体的 _is_ceased_media_i 取 0 (即非疑似退出媒体) du_2022_score_degadv{track}_i;  其中 du_2022_score_degadv = (Σ pos_weighted − Σ neg) / (Σ pos_weighted + Σ neg), 计算时启用程度副词缩放与转折(adversative)规则、关闭否定翻转规则; pos_weighted = pos_ordinary + 0.5 * pos_political (du_2022 生产口径政治词权重)"
 producer: news_process/pipeline/panel/attention_media.py::compute_media_heterogeneity (停刊稳健性 (C.4) 动态发现循环, exc_{src} = df_alive 上的 bank-year 均值)
 upstream:
-- 22_tone_words.parquet (article: du_2022_score_degadv_full / _ctx / _ss)
+- "22_tone_words.parquet (article: du_2022_score_degadv_full / _ctx / _ss)"
 - 14_materialize_ctx.parquet (content_full / content_ctx / content_ss 三轨文本)
 - attention_media.detect_defacto_cessation (_is_ceased_media 停刊代理标记)
 citations:

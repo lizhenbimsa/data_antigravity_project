@@ -8,7 +8,7 @@ unit: 0/1 枢纽指示 (年内 top ~10% 度中心度阈值, dtype double)
 formula: "bank_is_hub = 1 if bank_degree_cent >= cutoff else 0; cutoff = 年度共现网络内第 max(1, int(0.10*N)) 名银行的度中心度 (并列同判); 退化守卫: cutoff<=0 或全体同度 → 全置 0; 判据变体 {同篇(无后缀)/±1句窗 _win1/严格同句 _sent}"
 producer: news_process/pipeline/panel/network_spillover.py::compute_bank_network_centrality (runner 步骤 7g/7g_win1/7g_sent; 基名注册于 NETWORK_METRIC_BASES SSOT)
 upstream:
-- 41_panel_encode_aggregate (篇章级 df_exploded: docid/target_bank/year, both-verified 主路径)
+- "41_panel_encode_aggregate (篇章级 df_exploded: docid/target_bank/year, both-verified 主路径)"
 - 14_materialize_ctx 系文本列 (标题/内容; _win1/_sent 判据 docid 组内句级重扫, prepend_title 标题=第 0 句)
 - config/panel.yaml::network_criteria.win_radius (默认 1; 与 filtering.yaml::cooccurrence_filter.sentence_radius 是不同键)
 citations:

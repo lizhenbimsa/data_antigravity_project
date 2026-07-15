@@ -26,7 +26,7 @@ columns:
 - llm_models_avg_tone_vw_full
 - llm_models_avg_tone_vw_ss
 unit: 语调得分 (连续, 约 [-1,1]; bank-year 聚合后的银行-年度均值)
-formula: "llm_models_avg_tone{track} = rowmean_over_LLM_MODELS({model}_tone{track}); model ∈ {gpt54nano, gemini31, deepseekv4}; track ∈ {_full,_ctx,_ss}; 加权变体 {vw,mw,hw} 以 Σ(w·tone)/Σw 加权聚合再跨模型取行均值; {tech,app} 为分类维度子样本条件; _std 为跨模型对每家 within-bank-year 语调离散度取行均值; _z 为逐年度截面 (per-year groupby, 仅 n_articles>0 且年内有效样本≥3) 减年均值除年标准差的 Fama-MacBeth 式截面标准化轨 (各年 scale 不同, 分段仿射)"
+formula: "llm_models_avg_tone_track = rowmean_over_LLM_MODELS(model_tone_track); model 取值 gpt54nano/gemini31/deepseekv4 三者之一; track 取值 full/ctx/ss 三者之一; 加权变体 vw/mw/hw 以 Σ(w·tone)/Σw 加权聚合再跨模型取行均值; tech/app 为分类维度子样本条件; _std 为跨模型对每家 within-bank-year 语调离散度取行均值; _z 为逐年度截面 (per-year groupby, 仅 n_articles>0 且年内有效样本≥3) 减年均值除年标准差的 Fama-MacBeth 式截面标准化轨 (各年 scale 不同, 分段仿射)"
 producer: news_process/pipeline/panel/geography.py::compute_composite_indicators (跨模型行均值综合); news_process/pipeline/panel/encode.py (上游逐模型 bank-year 聚合与加权分母); news_process/pipeline/panel/export.py (Stata 标签)
 upstream:
 - 21_tone_llms.parquet (三家 LLM 逐篇 {model}_tone{track} 情感码)

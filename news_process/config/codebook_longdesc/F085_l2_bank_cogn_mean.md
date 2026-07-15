@@ -10,7 +10,7 @@ producer: "news_process/pipeline/panel/network_spillover.py::compute_cognitive_p
 upstream:
 - 14_materialize_ctx.parquet (content_ctx / content_ss + ctx_is_fallback / ss_is_fallback; ctx 与 ss 两轨超级文档源)
 - 篇章级展开帧 df_exploded (原始 标题 / 内容 列 + target_bank + year; full 轨超级文档源)
-- 41_panel_encode_aggregate (bank-year 面板骨架: target_bank × year 键, 供 merge 落列)
+- "41_panel_encode_aggregate (bank-year 面板骨架: target_bank × year 键, 供 merge 落列)"
 citations:
 - doi: 10.48550/arXiv.2504.16318
   type: arxiv

@@ -8,7 +8,7 @@ unit: 介数中心度 (无量纲, networkx 默认归一化 ∈ [0,1])
 formula: "bank_between_cent = 年度银行共现网络倒数权重图 G_inv (edge_weight = 1/共现篇数) 上的 Freeman 最短路径介数中心度 nx.betweenness_centrality(G_inv, weight='weight') (归一化); 判据变体后缀 {同篇 article 无后缀 / ±win_radius 句窗 _win1 / 严格同句 _sent} 仅收紧银行∧银行邻接边集, 节点全集在三判据下恒等"
 producer: pipeline\panel\network_spillover.py::compute_bank_network_centrality (runner 步骤 7g / 7g_win1 / 7g_sent); 消费方 papers\_common\derivative_replication.py (brokerage_network .do 模板占位 CENTRALITY_BTW / PRIMARY_CENT / MEDIATOR_CENT)
 upstream:
-- 24_herd_decay.parquet (df_exploded: 篇章级 target_bank + docid + year + 内容 + 标题; 网络邻接构造的唯一文本/共现输入, 已过 full-only 留篇门控的验证集)
+- "24_herd_decay.parquet (df_exploded: 篇章级 target_bank + docid + year + 内容 + 标题; 网络邻接构造的唯一文本/共现输入, 已过 full-only 留篇门控的验证集)"
 - 40_panel_yearly.parquet (bank-year 面板骨架; 33 指标按 (bank, year) 键 merge 回填)
 citations:
 - doi: 10.1007/s10479-026-07305-8

@@ -10,7 +10,7 @@ unit: 二分图网络中心度 (无量纲; degree/closeness/clustering/redundanc
 formula: "brok_bip_degree_cent = deg(bank) / n_media_year (nx.bipartite.degree_centrality); brok_bip_between_cent = nx.bipartite.betweenness_centrality(G, bank_nodes); brok_bip_closeness_cent = nx.bipartite.closeness_centrality(LCC 子图, 仅 LCC 内银行, 否则 NaN); brok_bip_clustering_ra = nx.bipartite.clustering(G, mode='dot'); brok_bip_node_redundancy = nx.bipartite.node_redundancy(G, 仅 degree>=2 银行, 否则 NaN); G = 年度媒体-银行二分加权图, 边权 = 该媒体该年报道该银行的文章数 (between/clustering/redundancy 按 networkx API 约束丢边权, 为无权拓扑测度)"
 producer: news_process/pipeline/panel/network_brokerage.py::_bipartite_bank_metrics (由 compute_brokerage_centrality 逐年调用, Stage 40 步骤 7h-brok; Stata 标签见 pipeline/panel/export.py)
 upstream:
-- 11_news_bank.parquet (df_exploded 篇章级: 媒体(中文) x target_bank x year)
+- "11_news_bank.parquet (df_exploded 篇章级: 媒体(中文) x target_bank x year)"
 - 40_panel_yearly.parquet (left join 合并, 无匹配 Bank-Year 为 NaN)
 citations:
 - doi: 10.1007/s10479-026-07305-8

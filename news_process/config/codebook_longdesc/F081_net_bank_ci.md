@@ -8,7 +8,7 @@ unit: "无量纲结构指标 (约束逆 = 1/Burt 网络约束); 正值、右偏�
 formula: "bank_ci = 1 / bank_constraint (当 bank_constraint 有定义且 > 0, 否则 NaN); bank_constraint = networkx.constraint(G, weight='weight') 的 Burt (1992) 加权聚合约束, 节点度 < 2 → NaN; G = 年度银行∧银行共现网络 (无向, 边权 = 年内共现次数); 判据变体 {同篇 (无后缀 canonical) / ±win_radius 句窗 _win1 / 严格同句 _sent}"
 producer: "news_process/pipeline/panel/network_spillover.py::compute_bank_network_centrality (面板 runner 步骤 7h-cent; 33 指标基名 SSOT = NETWORK_METRIC_BASES; codebook 条目 pipeline/panel/codebook.py)"
 upstream:
-- 24_herd_decay.parquet (stage-21 verified 宇宙, 篇章级 df_exploded: docid / target_bank / year / 内容 / 标题)
+- "24_herd_decay.parquet (stage-21 verified 宇宙, 篇章级 df_exploded: docid / target_bank / year / 内容 / 标题)"
 - config/bank_names + config/bank_name_exclusions.json (win1/sent 判据的银行别名字典 + 否定 AC + 短名排除扫描上下文)
 - config/panel.yaml::network_criteria.win_radius (win1 判据的句窗半径, 默认 1)
 citations:

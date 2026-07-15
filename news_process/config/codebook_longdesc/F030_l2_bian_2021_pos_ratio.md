@@ -8,7 +8,7 @@ unit: 比率 (正面词占 word-token 数之比, 无量纲, 值域 [0,1]; 面板
 formula: "文章级: bian_2021_pos_ratio_trk = pos_cnt_trk / n_word_tokens_trk, trk ∈ {full, ctx, ss}; 分子 = bian_2021 (CFSD) 词典命中且经语言学规则 (否定翻转窗口 2 / 程度副词六级权重 / 转折加权) 处理后 final_score > 0 的 token 数, 分母 = 剔除纯标点/纯数字 token 后的 word-token 数, round 6 位; 空文本/无 word-token/词典缺失 → NaN。面板级: avg_bian_2021_pos_ratio_trk = 银行-年组内文章级比率的算术均值 (pandas mean, skipna), 行宇宙 = llm_verified_full 留篇门控 (full-only, 2026-06-29)"
 producer: news_process/pipeline/sentiment/tone_words.py::_analyze_single_article + _compute_sentiment_with_rules (文章级三轨) ; news_process/pipeline/panel/encode.py 单词典 pos_ratio/neg_ratio 聚合段 (面板 avg_ 均值)
 upstream:
-- config/tone_dicts.json (bian_2021 词典本体, CFSD 2,595 词: 正面 1,107 / 负面 1,488)
+- "config/tone_dicts.json (bian_2021 词典本体, CFSD 2,595 词: 正面 1,107 / 负面 1,488)"
 - 14_materialize_ctx.parquet (content_full/content_ctx/content_ss 三轨文本物化)
 - 21_tone_llms.parquet (llm_verified_full 留篇门控 + stage 22 输入)
 - 22_tone_words.parquet (文章级 bian_2021_pos_ratio 三轨中间列)

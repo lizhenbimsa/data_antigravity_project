@@ -6,7 +6,7 @@ unit: 比率/占比 (proportion, 值域 [0,1]; 银行-年内中央级媒体报�
 formula: "central_media_frac(bank,year) = mean_over_articles( 1[媒体(中文) ∈ CENTRAL] ); CENTRAL = media_classification.json['central_media']; 按 (target_bank, year) 分组求 _is_central 指示变量的组内均值"
 producer: news_process/pipeline/panel/attention_media.py::compute_media_heterogeneity (维度④) ; news_process/pipeline/panel/export.py (标签落地)
 upstream:
-- 24_herd_decay.parquet (article-level df_exploded: stage-21 full-only verified 留篇集; 提供 target_bank / year / 媒体(中文))
+- "24_herd_decay.parquet (article-level df_exploded: stage-21 full-only verified 留篇集; 提供 target_bank / year / 媒体(中文))"
 - config/media_classification.json (central_media 名单)
 citations:
 - doi: 10.1111/1475-679X.12560

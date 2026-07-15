@@ -8,7 +8,7 @@ unit: 无量纲得分之媒体权威加权和 (银行-年层面, 文章级 llm_v
 formula: 'llm_vote_score_mw_sum{track} = sum(llm_vote_score_mw{track}), 其中 llm_vote_score_mw{track} = llm_vote_score{track} * media_authority_weight (文章级); 分子来自 pipeline/panel/encode.py 聚合块 for track in [_full,_ctx,_ss]: agg[f"llm_vote_score_mw_sum{track}"] = (f"llm_vote_score_mw{track}", "sum")'
 producer: pipeline\panel\encode.py ; pipeline\audit\stata_audit.py
 upstream:
-- 21_tone_llms.parquet (llm_vote_score{track}: 三家 LLM 多数投票共识得分, gpt-5.4-nano/gemini-3.1-flash-lite/deepseek-v4-flash)
+- "21_tone_llms.parquet (llm_vote_score{track}: 三家 LLM 多数投票共识得分, gpt-5.4-nano/gemini-3.1-flash-lite/deepseek-v4-flash)"
 - media_authority_weight (文章级媒体权威权重, 来源报社/来源等级映射)
 - 14_materialize_ctx.parquet (content_ctx/content_ss 三轨文本物化)
 citations:

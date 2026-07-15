@@ -10,8 +10,8 @@ formula: "exc_jiang_2021_score_negonly{track} = mean_文章 i 所属媒体的 _i
 producer: news_process/pipeline/panel/attention_media.py
 upstream:
 - 14_materialize_ctx.parquet (content_full / content_ctx / content_ss)
-- 22_tone_words.parquet (article: jiang_2021_score_negonly_full / _ctx / _ss)
-- 40_panel_export_main (attention_media: detect_defacto_cessation → _is_ceased_media)
+- "22_tone_words.parquet (article: jiang_2021_score_negonly_full / _ctx / _ss)"
+- "40_panel_export_main (attention_media: detect_defacto_cessation → _is_ceased_media)"
 citations:
 - doi: 10.1111/ecin.13264
   type: journal

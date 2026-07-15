@@ -8,8 +8,8 @@ unit: 无量纲相关系数 (度-度 Pearson 相关, 取值域 [-1, 1])
 formula: "net_assortativity_yr = 年度银行共现网络上度-度 Pearson 相关系数 (networkx degree_assortativity_coefficient); 三判据变体 {同篇 (无后缀 canonical) / ±1 句窗 _win1 / 严格同句 _sent} 各自独立重建邻接后计算"
 producer: news_process/pipeline/panel/network_spillover.py::compute_bank_network_centrality ; news_process/pipeline/panel/export.py (标签块)
 upstream:
-- 11_news_bank.parquet (银行实体命中: 逐篇被提及银行集合)
-- 14_materialize_ctx.parquet (content_full: 供 _win1/_sent 判据的分句扫描文本源)
+- "11_news_bank.parquet (银行实体命中: 逐篇被提及银行集合)"
+- "14_materialize_ctx.parquet (content_full: 供 _win1/_sent 判据的分句扫描文本源)"
 citations:
 - doi: 10.1007/s11747-024-01043-8
   type: journal

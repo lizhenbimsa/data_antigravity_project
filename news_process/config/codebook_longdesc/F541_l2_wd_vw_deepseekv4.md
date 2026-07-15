@@ -8,7 +8,7 @@ unit: 无量纲权重和 (提及密度 mention_density 的银行-年加总, 分�
 formula: 'sum_wd_vw_deepseekv4{track} = Σ_i mention_density_i · 1[deepseekv4_score{track}_i is not NA], 加总遍历该银行-年全部留存文章 i; 即"valid-mask 提及密度权重和" = 仅对 DeepSeek V4 Flash 该轨评分非缺失的文章求提及密度之和'
 producer: pipeline/panel/runner.py::_build_llm_valid_masked_weights (文章级 _wd_vw_deepseekv4{track} 掩码列, 步骤 3b 调用, weight=mention_density, wtag=''vw'', grp=''deepseekv4'') → pipeline/panel/encode.py::build_aggregation_dict (bank-year groupby sum, 列名 sum_wd_vw_{grp}{track}, 位于 1197-1203 行 encode-01 fix 段 三轨×wtag×grp 循环注册)
 upstream:
-- 11_news_bank.py (mention_density 文章级来源: 目标银行提及次数密度)
+- "11_news_bank.py (mention_density 文章级来源: 目标银行提及次数密度)"
 - 21_tone_llms.py (deepseekv4_score{track} 三轨文章级评分, DeepSeek V4 Flash 单模型, prompt v8, temperature=0.0)
 - 14_materialize_ctx.py (content_ctx/content_ss 三轨文本物化, ctx/ss 轨 deepseekv4_score 依赖此产物)
 citations:

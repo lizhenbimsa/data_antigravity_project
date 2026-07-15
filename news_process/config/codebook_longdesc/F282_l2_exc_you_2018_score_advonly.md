@@ -10,7 +10,7 @@ producer: news_process/pipeline/panel/attention_media.py (exc_ 停刊稳健性�
 upstream:
 - 22_tone_words.parquet (you_2018_score_advonly_full / _ctx / _ss)
 - 14_materialize_ctx.parquet (content_full / content_ctx / content_ss + *_is_fallback)
-- config/tone_dicts.json (you_2018 词典: positive 1,425 / negative 1,583; positive∩negative 跨类重叠词两侧计数)
+- "config/tone_dicts.json (you_2018 词典: positive 1,425 / negative 1,583; positive∩negative 跨类重叠词两侧计数)"
 - _is_ceased_media (attention_media 内 detect_defacto_cessation 派生的隐性停刊标记)
 citations:
 - doi: 10.1016/j.eswa.2024.125739

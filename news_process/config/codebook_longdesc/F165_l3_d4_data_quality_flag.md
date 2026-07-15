@@ -6,7 +6,7 @@ unit: 分类字符串标志 (无量纲; 取值域 {ok, insufficient}, 刻意以�
 formula: "d4_data_quality_flag = 'ok' if global_ctx_coverage(innovation_collab_mode_ctx) >= threshold_low else 'insufficient' (单一全局标量, 对整个 df 算一次 notna().mean() 后广播到面板每一行); threshold_low = baseline['mean'] - 2.0*baseline['std'] (从 v3_4_0_ctx_coverage_baseline.json 的 mean/std 派生, 非直接取 json 记录值), 基线文件缺失时回退固定 0.5"
 producer: pipeline\panel\encode_collab.py::aggregate_d4_panel ; 取值映射与落盘 pipeline\panel\stata_export.py
 upstream:
-- 21_tone_llms.parquet (full/ctx 属性标签: substantiveness / locus / collab_mode)
+- "21_tone_llms.parquet (full/ctx 属性标签: substantiveness / locus / collab_mode)"
 - 14_materialize_ctx.parquet (content_ctx — ctx 轨文本供属性标注)
 - config/v3_4_0_ctx_coverage_baseline.json (ctx 覆盖率基线阈值)
 citations:

@@ -8,7 +8,7 @@ unit: 比率 (正面词次占 word-token 数之比, 无量纲; 文章级 ∈ [0,
 formula: "avg_du_2022_pos_ratio{trk} = mean_over_articles(du_2022_pos_ratio{trk}), trk ∈ {full, ctx, ss}; 文章级 du_2022_pos_ratio = pos_count / n_word_tokens, pos_count = 经否定/程度/转折状态机处理后最终极性为正的 du_2022 词典命中词次数 (计数口径, 与幅度无关), n_word_tokens = 剔除纯标点/纯数字 token 后的词元数; n_word_tokens = 0 或空文本或词典缺失 → NaN"
 producer: news_process/pipeline/sentiment/tone_words.py::_analyze_single_article (打分内核 _compute_sentiment_with_rules); 面板聚合 news_process/pipeline/panel/encode.py (avg_{d}_pos_ratio{track} = ({d}_pos_ratio{track}, 'mean')); Stata 标签 news_process/pipeline/panel/export.py + stata_export.py
 upstream:
-- config/tone_dicts.json (du_2022 词典: positive 2,235 / political_positive 1,434 [打分权重 0.5] / negative 2,986)
+- "config/tone_dicts.json (du_2022 词典: positive 2,235 / political_positive 1,434 [打分权重 0.5] / negative 2,986)"
 - 14_materialize_ctx.parquet (content_full / content_ctx / content_ss + *_is_fallback)
 - 22_words_tone.parquet (文章级 du_2022_pos_ratio_{full,ctx,ss})
 - 21_tone_llms.parquet (llm_verified_full 留篇门控, full-only 口径 2026-06-29)

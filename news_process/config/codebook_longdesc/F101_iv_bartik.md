@@ -46,7 +46,7 @@ unit: 工具变量 (与该族 shift 源测度同量纲; share 列为 [0,1] 份�
 formula: "BIV_{i,t} = Σ_g share_{i,g,T0} × shift_{g,t}^{LOO(i)}; share 为基期 T0 冻结份额 (T0 = max(panel.year.min, 2010), 强制 < 2019 政策冲击里程碑), shift 为组 g 内剔除银行 i 自身后其余银行文章级测度的年度均值"
 producer: pipeline/panel/iv_did.py::compute_bartik_iv + compute_bartik_iv_fintech (runner 步骤 7e) ; pipeline/panel/iv_extensions.py::compute_bartik_shift_iv (runner 步骤 8z) ; pipeline/panel/runner.py (T0 解析 + _t0/_t1/_t01 基期敏感性编排)
 upstream:
-- 40_article_bank_level (df_exploded 文章级: target_bank / co_mentioned_banks / year)
+- "40_article_bank_level (df_exploded 文章级: target_bank / co_mentioned_banks / year)"
 - 21_tone_llms.parquet (llm_vote_score_full/_ctx/_ss; innovation_substantiveness_* / innovation_collab_mode_* / innovation_locus_full/_ctx)
 - 15_fintech_intensity.parquet (fintech_intensity_score_full/_ctx/_ss)
 - config/bank_addresses.json (NFRA 类型 type_map / 企业规模 scale_map / 注册地省份)

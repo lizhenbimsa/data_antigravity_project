@@ -8,8 +8,8 @@ unit: 无量纲 (加权平均最近邻度 ANND; 正实数, 有边节点下界为
 formula: "bank_avg_nbr_deg = k_nn,i^w = (1/s_i) · Σ_{j∈N(i)} w_ij · k_j, 其中 s_i = Σ_{j∈N(i)} w_ij 为节点 i 的加权度 (强度), k_j 为邻居 j 的无权度; 实现 = nx.average_neighbor_degree(G, weight='weight'), G.degree(i)=0 → NaN。判据变体 {同篇 (无后缀 canonical) / ±1 句窗 _win1 / 严格同句 _sent} 仅改边集, 不改节点集"
 producer: news_process/pipeline/panel/network_spillover.py::compute_bank_network_centrality (Part B 指标 17 Average Neighbor Degree); 判据后缀标签推断 news_process/pipeline/panel/codebook.py::_strip_criteria_suffix
 upstream:
-- 24_herd_decay.parquet (article×bank 级 df_exploded: docid / target_bank / year / 内容 / 标题 — 共现网络节点与边的原语输入)
-- bank-year 面板骨架 (runner 内存对象: pipeline/panel/runner.py 在面板构建流程内调用 compute_bank_network_centrality 并入指标列, 随后才导出为 40_panel_yearly.parquet — 该 parquet 是下游产物而非输入)
+- "24_herd_decay.parquet (article×bank 级 df_exploded: docid / target_bank / year / 内容 / 标题 — 共现网络节点与边的原语输入)"
+- "bank-year 面板骨架 (runner 内存对象: pipeline/panel/runner.py 在面板构建流程内调用 compute_bank_network_centrality 并入指标列, 随后才导出为 40_panel_yearly.parquet — 该 parquet 是下游产物而非输入)"
 - "config/bank_names.json (CONFIG['paths']['bank_names_file'], 见 config/paths.yaml: _win1/_sent 判据句级重扫所需银行别名字典) + config/bank_name_exclusions.json (load_exclusion_patterns: 否定 AC + 短名排除)"
 citations:
 - doi: 10.1007/s10479-026-07305-8

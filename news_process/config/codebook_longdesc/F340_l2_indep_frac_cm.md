@@ -7,7 +7,7 @@ unit: 比率/占比 (proportion, [0,1]; 分子分母同轨 article 计数比, �
 formula: 'indep_frac_cm = n_articles_indep_cm_ctx / n_articles_llm_valid_ctx (ctx 轨, n_articles_llm_valid_ctx>0 时取值否则 NaN); indep_frac_cm_ss = n_articles_indep_cm_ss / n_articles_llm_valid_ss (ss 轨, 分母同轨独立, 非共享 full 分母)'
 producer: pipeline\panel\encode.py (_aggregate_ctx_diagonal + 对角线聚合块 L2035-L2079); pipeline\panel\codebook.py (L1235-L1271 条目登记表, generate_codebook 依 panel.columns 存在性优雅跳过)
 upstream:
-- 21_tone_llms (LLM 三维度分类之 collab_mode 维: indep/collab 二分类判定, 逐条 article-track)
+- "21_tone_llms (LLM 三维度分类之 collab_mode 维: indep/collab 二分类判定, 逐条 article-track)"
 - 14_materialize_ctx (content_ctx / content_ss 文本物化, 上游三轨口径)
 - 13_cooccurrence_filter (银行-金科硬过滤, 决定进入 LLM 判定的行宇宙)
 citations:

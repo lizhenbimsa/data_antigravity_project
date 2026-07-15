@@ -8,8 +8,8 @@ unit: 比率 (proportion, [0,1]; 分子分母均为文章计数, 无量纲)
 formula: 'washing_ratio_gemini31{track} = count(gemini31_score{track}>0 且 innovation_substantiveness_full=="象征性") / count(gemini31_score{track}>0 且 innovation_substantiveness_full ∈ {"象征性","实质性"} 即已测出的样本), 按 track ∈ {full, ctx, ss} 分别计算, 银行-年聚合层面的比率; 面板列名对应 `washing_ratio_{llm}{_sfx}`, llm=gemini31'
 producer: pipeline\panel\runner.py 方法 A2 单模型 (篇章级标记 L1001-1015, `_is_{llm}_positive{track}`=`{llm}_score{track}>0`、`_is_{llm}_pos_symb{track}`、`_svd_{llm}_pos{track}`; 面板聚合 L2209-2218, `vn=f'washing_ratio_{llm}{_sfx}'`) ; pipeline\panel\export.py (变量标签)
 upstream:
-- 21_tone_llms (gemini31_score{track}: LLM 单一厂商模型 gemini31(gemini-3.1-flash-lite, 走 yunwu) 在该 track 上的情感分数, `>0` 判正; 与三家多数投票共识 is_positive{track} 是不同列, 后者对应无后缀 washing_ratio 家族而非本家族)
-- 21_tone_llms (innovation_substantiveness_full: LLM 判定报道内容是"实质性"创新举措还是"象征性"宣传姿态; pipeline/sentiment/tone_llms.py 同时写出 innovation_substantiveness_full/_ctx/_ss 三轨完整孪生列, 本家族公式仅取其中 _full 版本作实质性判定的锚定轨道, 这是家族公式的选择而非该列本身"无 ctx/ss 孪生")
+- "21_tone_llms (gemini31_score{track}: LLM 单一厂商模型 gemini31(gemini-3.1-flash-lite, 走 yunwu) 在该 track 上的情感分数, `>0` 判正; 与三家多数投票共识 is_positive{track} 是不同列, 后者对应无后缀 washing_ratio 家族而非本家族)"
+- "21_tone_llms (innovation_substantiveness_full: LLM 判定报道内容是'实质性'创新举措还是'象征性'宣传姿态; pipeline/sentiment/tone_llms.py 同时写出 innovation_substantiveness_full/_ctx/_ss 三轨完整孪生列, 本家族公式仅取其中 _full 版本作实质性判定的锚定轨道, 这是家族公式的选择而非该列本身'无 ctx/ss 孪生')"
 citations:
 - doi: '10.1111/jofi.13412'
   type: journal

@@ -8,7 +8,7 @@ unit: 无量纲分歧指数 (∈ [0, 1], 0=完全一致, 1=最大分歧)
 formula: "disag_llm{track} = sqrt(1 - ((pos_count{track} - neg_count{track}) / (pos_count{track} + neg_count{track}))^2); 分母为 0 时置 NaN"
 producer: news_process/pipeline/panel/runner.py (8b 情感意见分歧块, _compute_disag); 标签映射见 pipeline/panel/export.py
 upstream:
-- 21_tone_llms.parquet (pos_count/neg_count 三轨: LLM 三家投票共识篇章计数)
+- "21_tone_llms.parquet (pos_count/neg_count 三轨: LLM 三家投票共识篇章计数)"
 - 40_panel_yearly.parquet (bank-year 聚合)
 citations:
 - doi: 10.1287/mnsc.2023.03253

@@ -17,7 +17,7 @@ producer: news_process/pipeline/panel/attention_media.py
 upstream:
 - 22_tone_words.parquet (jiang_2021_score{,_w,_hw}{_full,_ctx,_ss} 文章级)
 - 24_herd_decay_processor.parquet (herd_weight 三轨, 供 _hw 加权口径参照)
-- 40_panel_export_main (attention_media 步骤 6b/6c: 停刊代理检测 + 存活子样本聚合)
+- "40_panel_export_main (attention_media 步骤 6b/6c: 停刊代理检测 + 存活子样本聚合)"
 citations:
 - doi: 10.1287/mnsc.2021.4156
   type: journal

@@ -9,7 +9,7 @@ formula: "dict_pos_count{track} = Σ_{i ∈ bank-year} _is_dict_positive_i{track
 producer: "news_process/pipeline/panel/runner.py (washing_cols 块: 由 stage 22 的 {d}_score{track} 现算文章级 _is_dict_positive{track} 并作方法 D 银行-年 sum 聚合) ; news_process/pipeline/panel/encode.py (方法 D 计数域协同, washing_ratio_dict 下游消费)"
 upstream:
 - 14_materialize_ctx.parquet (content_full / content_ctx / content_ss)
-- 22_tone_words.parquet (六词典逐词典文章级极性打分 {d}_score{track}; 注: 文章级 _is_dict_positive{track} 指示列不在本 parquet, 而在 runner.py washing_cols 块由这些 score 列现算)
+- "22_tone_words.parquet (六词典逐词典文章级极性打分 {d}_score{track}; 注: 文章级 _is_dict_positive{track} 指示列不在本 parquet, 而在 runner.py washing_cols 块由这些 score 列现算)"
 citations:
 - doi: 10.1111/1911-3846.12832
   type: journal

@@ -8,7 +8,7 @@ unit: 无量纲比率 (∈ [0,1]; 自我网络中邻居间实际边数占最大�
 formula: "bank_ego_density = ego_edges / [k(k-1)/2]; k = 焦点银行在年度共现网中的度数, ego_edges = 其 k 个邻居两两之间实际存在的边数 (二值拓扑, 忽略边权); k <= 1 -> NaN。判据变体 {同篇 (无后缀)/±1 句窗 _win1/严格同句 _sent}"
 producer: news_process/pipeline/panel/network_spillover.py::compute_bank_network_centrality (panel runner 步骤 7h; ego_density = 函数内 Part B、计算内部编号 (12), 手工邻居对枚举) ; build_adjacency_matrix (判据分轨 article/win1/sent) ; 标签 pipeline/panel/codebook.py::_infer_label
 upstream:
-- 24_herd_decay.parquet (df_exploded: docid + target_bank + year + 内容 + 标题; full-only 留篇 verified 集)
+- "24_herd_decay.parquet (df_exploded: docid + target_bank + year + 内容 + 标题; full-only 留篇 verified 集)"
 - 40_panel_yearly.parquet (bank-year 面板骨架, 追加 33 网络列)
 citations:
 - doi: 10.1016/j.jfineco.2025.104218

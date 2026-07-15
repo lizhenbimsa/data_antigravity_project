@@ -14,7 +14,7 @@ upstream:
 - 篇章级展开帧 df_exploded (原始 标题 / 内容 列 + target_bank + year + docid; full 轨超级文档源, 提供滞后年 t-1 文本)
 - 14_materialize_ctx.parquet (content_ctx / content_ss + ctx_is_fallback / ss_is_fallback; ctx / ss 两条 diag W-轨超级文档源)
 - 21_tone_llms 留篇集 (full-only 门控行宇宙, 2026-06-29; sim 本身 track-agnostic, 但参与聚合的文章集由 llm_verified_full 判定)
-- 41_panel_encode_aggregate (bank-year 面板骨架: target_bank × year 键, 供嵌入相似度均值 merge 落列)
+- "41_panel_encode_aggregate (bank-year 面板骨架: target_bank × year 键, 供嵌入相似度均值 merge 落列)"
 - data/processed/_llm_cache.db (嵌入 API 结果缓存; 命中即 $0 离线复现, 离线 miss 触发 RuntimeError)
 citations:
 - doi: 10.1093/rfs/hhaf012

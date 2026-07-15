@@ -11,7 +11,7 @@ producer: news_process/pipeline/panel/attention_media.py (C.4 exc_* 停刊稳健
 upstream:
 - 14_materialize_ctx.parquet (content_full / content_ctx / content_ss + *_is_fallback)
 - 22_tone_words.parquet (yao_2021_score_degonly_{full,ctx,ss})
-- 40_panel: 隐性停刊检测 detect_defacto_cessation (_is_ceased_media 标记)
+- "40_panel: 隐性停刊检测 detect_defacto_cessation (_is_ceased_media 标记)"
 citations:
 - doi: 10.1111/jofi.13498
   type: journal

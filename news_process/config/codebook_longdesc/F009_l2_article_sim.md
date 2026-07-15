@@ -11,7 +11,7 @@ unit: 余弦相似度的组内样本标准差 (无量纲, 定义域 [0, ~0.7])
 formula: "article_sim_std{track,emb} = std_{i in (bank,year)}(policy_cosine_sim_i); 分子=文章级政策对齐余弦相似度, 组=同一 (target_bank, year), 聚合域=LLM-verified 篇集 (semi-join 24_herd_decay)"
 producer: news_process/pipeline/panel/runner.py (bank-year 聚合) ; news_process/pipeline/panel/export.py (列命名/标签)
 upstream:
-- 16_article_alignment.parquet (16_article_policy_alignment.py: 文章级 policy_cosine_sim + _lg + 三轨)
+- "16_article_alignment.parquet (16_article_policy_alignment.py: 文章级 policy_cosine_sim + _lg + 三轨)"
 - 24_herd_decay.parquet (LLM-verified (docid, target_bank) 聚合域)
 - 40_panel_yearly.parquet
 citations:

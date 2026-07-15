@@ -8,8 +8,8 @@ unit: 情感倾向差值 (无量纲, 两个归一化 tone 之差, 取值近似 [
 formula: "algo_cater{track} = dict_avg_tone{track} - llm_vote_tone{track}"
 producer: news_process/pipeline/panel/runner.py (步骤 8d, 算法迎合度全展开); 标签 news_process/pipeline/panel/export.py
 upstream:
-- 22_tone_words.parquet (dict_avg_tone{track}: 六词典综合词典语调)
-- 21_tone_llms.parquet (llm_vote_tone{track}: 三家 LLM 多数投票共识语调)
+- "22_tone_words.parquet (dict_avg_tone{track}: 六词典综合词典语调)"
+- "21_tone_llms.parquet (llm_vote_tone{track}: 三家 LLM 多数投票共识语调)"
 - 24_herd_decay.parquet (df_exploded, article×bank verified 集, 面板聚合前主输入)
 citations:
 - doi: 10.1007/s13278-024-01270-5

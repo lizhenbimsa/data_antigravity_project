@@ -11,7 +11,7 @@ columns:
 - gpt54nano_tech_frac_full
 - gpt54nano_tech_frac_ss
 unit: 比率/占比 (proportion, 取值域 [0,1]; 单一 LLM 模型层面的技术定位篇数占比)
-formula: "{model}_tech_frac_{track} = (该模型在该轨判为技术定位类的篇数) / (该模型在该轨的 verified 篇数); model ∈ {gpt54nano, gemini31, deepseekv4}, track ∈ {full, ctx, ss}"
+formula: "model_tech_frac_track = (该模型在该轨判为技术定位类的篇数) / (该模型在该轨的 verified 篇数); model 取值 gpt54nano/gemini31/deepseekv4 三者之一, track 取值 full/ctx/ss 三者之一"
 producer: news_process/pipeline/sentiment/tone_llms.py (阶段21 三家逐条分类) ; news_process/pipeline/panel/encode.py (encode 层聚合 LLM_CLASS_SPEC)
 upstream:
 - 14_materialize_ctx.parquet (content_full / content_ctx / content_ss)

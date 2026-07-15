@@ -11,7 +11,7 @@ unit: 语调得分 (连续, 有界于 [-1,1]; bank-year 面板列, 相似度加�
 formula: "emb_peer_tone_lag1{_lg}{_trk}(i,t) = Σ_j W_emb(i,j; t-1)·1{tone_j 观测}·llm_vote_tone_{trk}(j,t-1) / Σ_j W_emb(i,j; t-1)·1{tone_j 观测}; 其中 W_emb = row_stochastic_normalize(clip(cosine(E_i, E_j), 0, ·)), 对角线置零; E_i = 银行 i 在 t-1 年新闻超级文档 (标题+正文, docid 升序确定性拼接) 的嵌入向量 (MAIN=Qwen3-Embedding-8B 4096 维 / _lg=text-embedding-3-large 3072 维, 分块 token 加权 mean pooling); 分母=0 (无观测 tone 同行) → NaN"
 producer: news_process/pipeline/panel/network_spillover.py::compute_embedding_peer_network (单遍内核 = _compute_embedding_peer_network_pass, w_track='full'; Stata 标签见 pipeline/panel/stata_export.py::HEURISTIC_LABELS)
 upstream:
-- 40_article_bank_level (df_exploded 文章级展开帧: target_bank/year/标题/内容)
+- "40_article_bank_level (df_exploded 文章级展开帧: target_bank/year/标题/内容)"
 - 21_tone_llms → panel 列 llm_vote_tone_{full,ctx,ss} (三家 LLM 多数投票共识, t-1 年取值)
 - data/processed/_llm_cache.db (嵌入 API 缓存; NEWS_PROCESS_LLM_OFFLINE=1 下 miss→raise)
 - config/features.yaml::embedding_api (MAIN spec) 与 embedding_large (_lg spec)
