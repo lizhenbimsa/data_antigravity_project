@@ -1,0 +1,151 @@
+{
+ "tier_signoff": {
+  "date": null,
+  "method": "P1 骨架占位 — 未签收 (镜像主项目 config/codebook_longdesc/_index.json::tier_signoff schema, 待 P2 撰写批次收尾时填入)",
+  "user_ack": false,
+  "signed_manifest_sha": null
+ },
+ "structural_whitelist": [
+  "company_tax_name",
+  "usci",
+  "year"
+ ],
+ "families": {
+  "TB001": {
+   "file": "TB001_core_fixed_columns_skeleton.md",
+   "columns": [
+    "company_tax_name", "usci", "year", "is_bank_company",
+    "n_cooc_full", "n_cooc_ctx", "n_cooc_ss",
+    "n_cooc_full_v", "n_cooc_ctx_v", "n_cooc_ss_v", "n_cooc_ss_strict",
+    "n_banks_full", "n_banks_ctx", "n_banks_ss",
+    "cooc_hhi_full", "cooc_hhi_ctx", "cooc_hhi_ss",
+    "cooc_wt_base_full", "cooc_wt_base_ctx", "cooc_wt_base_ss"
+   ],
+   "tier_by_col": {
+    "n_cooc_full": "core", "n_cooc_ctx": "core", "n_cooc_ss": "core",
+    "cooc_hhi_full": "core", "cooc_hhi_ctx": "core", "cooc_hhi_ss": "core"
+   },
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "TB003": {
+   "file": "TB003_cw_ce_weighted_measure_formula.md",
+   "columns": ["cw_X_t_construction", "ce_X_t_construction"],
+   "tier_by_col": {
+    "cw_X_t_construction": "core", "ce_X_t_construction": "core"
+   },
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "TB009": {
+   "file": "TB009_dual_altweight_panel_overview.md",
+   "columns": [
+    "company_tax_bank_branch_cityw_panel", "company_tax_bank_branch_countyw_panel"
+   ],
+   "tier_by_col": {
+    "company_tax_bank_branch_cityw_panel": "core",
+    "company_tax_bank_branch_countyw_panel": "core"
+   },
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "TB002": {
+   "file": "TB002_pair_longtable_schema.md",
+   "columns": ["company", "bank", "year", "track", "n_docs", "n_docs_v", "n_docs_strict", "n_docs_frac", "n_docs_frac_v", "n_docs_longhit"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "TB004": {
+   "file": "TB004_d17_obligations_ablation_preanswer.md",
+   "columns": ["bert_avg_neu", "rule_ablation_variants", "pair_reconstruction_channel"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "TB005": {
+   "file": "TB005_usage_notes_five_points.md",
+   "columns": ["cw_X_t_usage_note", "cluster_bank_undefined", "ppml_recommendation", "three_track_no_monotone", "weight_endogeneity_note"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "TB006": {
+   "file": "TB006_matching_precision_stratified_sampling.md",
+   "columns": ["n_docs_longhit", "variant_length_stratum"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "TB007": {
+   "file": "TB007_known_limitations_tax_specific.md",
+   "columns": ["n_docs_longhit", "company_tax_name", "county_key_ok", "is_bank_company"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "TB008": {
+   "file": "TB008_known_limitations_inherited.md",
+   "columns": ["n_docs", "n_docs_frac", "cooc_wt_base_full"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "TB010": {
+   "file": "TB010_branch_cityw_construction.md",
+   "columns": ["company_tax_bank_branch_cityw_panel", "rel_n_banks", "rel_hhi"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "TB011": {
+   "file": "TB011_branch_countyw_construction_keygap.md",
+   "columns": ["company_tax_bank_branch_countyw_panel", "county_key_ok", "rel_n_banks"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "TB012": {
+   "file": "TB012_quasi_county_identity_note.md",
+   "columns": ["county_key_ok", "rel_hhi"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "TB013": {
+   "file": "TB013_yearly_relation_coverage_methodology.md",
+   "columns": ["weight_source_yearly_relation_count"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "TB014": {
+   "file": "TB014_excluded_columns_audit_methodology.md",
+   "columns": ["excluded_columns_reason_code"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "TB015": {
+   "file": "TB015_data_lineage_licensing_disclosure.md",
+   "columns": ["data_lineage_disclosure", "redistribution_downgrade_path"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "TB016": {
+   "file": "TB016_abbreviation_naming_convention.md",
+   "columns": ["dta_short_name_mapping"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "TB017": {
+   "file": "TB017_stata_merge_full_skeleton_usage.md",
+   "columns": ["usci", "year", "full_skeleton_truncation"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  }
+ }
+}

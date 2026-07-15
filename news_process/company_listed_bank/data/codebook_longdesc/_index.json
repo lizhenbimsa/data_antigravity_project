@@ -1,0 +1,178 @@
+{
+ "tier_signoff": {
+  "date": null,
+  "method": "P1 骨架占位 — 未签收 (镜像主项目 config/codebook_longdesc/_index.json::tier_signoff schema, 待 P2 撰写批次收尾时填入)",
+  "user_ack": false,
+  "signed_manifest_sha": null
+ },
+ "structural_whitelist": [
+  "company_listed_name",
+  "stock_code",
+  "year"
+ ],
+ "families": {
+  "LB001": {
+   "file": "LB001_core_fixed_columns_skeleton.md",
+   "columns": [
+    "company_listed_name", "stock_code", "year", "is_bank_company",
+    "n_cooc_full", "n_cooc_ctx", "n_cooc_ss",
+    "n_cooc_full_v", "n_cooc_ctx_v", "n_cooc_ss_v", "n_cooc_ss_strict",
+    "n_banks_full", "n_banks_ctx", "n_banks_ss",
+    "cooc_hhi_full", "cooc_hhi_ctx", "cooc_hhi_ss",
+    "cooc_wt_base_full", "cooc_wt_base_ctx", "cooc_wt_base_ss"
+   ],
+   "tier_by_col": {
+    "n_cooc_full": "core", "n_cooc_ctx": "core", "n_cooc_ss": "core",
+    "cooc_hhi_full": "core", "cooc_hhi_ctx": "core", "cooc_hhi_ss": "core"
+   },
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "LB003": {
+   "file": "LB003_cw_ce_weighted_measure_formula.md",
+   "columns": ["cw_X_t_construction", "ce_X_t_construction"],
+   "tier_by_col": {
+    "cw_X_t_construction": "core", "ce_X_t_construction": "core"
+   },
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "LB007": {
+   "file": "LB007_seven_altweight_panel_overview.md",
+   "columns": [
+    "company_bank_loanw_panel", "company_bank_branchw_panel",
+    "company_bank_boardw_panel", "company_bank_supervisorw_panel",
+    "company_bank_execw_panel", "company_bank_dsgw_panel",
+    "company_bank_shareholderw_panel"
+   ],
+   "tier_by_col": {
+    "company_bank_loanw_panel": "core", "company_bank_shareholderw_panel": "core"
+   },
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "LB012": {
+   "file": "LB012_frozenw_baseperiod_construction.md",
+   "columns": [
+    "company_bank_frozenw_panel", "base_year_full", "base_year_ctx", "base_year_ss",
+    "frozen_n_banks_full", "frozen_n_banks_ctx", "frozen_n_banks_ss"
+   ],
+   "tier_by_col": {
+    "company_bank_frozenw_panel": "core"
+   },
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "LB014": {
+   "file": "LB014_mainbankw_topone_construction.md",
+   "columns": [
+    "company_bank_mainbankw_panel",
+    "main_bank_full", "main_bank_ctx", "main_bank_ss",
+    "main_bank_share_full", "main_bank_share_ctx", "main_bank_share_ss",
+    "main_bank_tie_full", "main_bank_tie_ctx", "main_bank_tie_ss"
+   ],
+   "tier_by_col": {
+    "company_bank_mainbankw_panel": "core"
+   },
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "LB002": {
+   "file": "LB002_pair_longtable_schema.md",
+   "columns": ["company", "bank", "year", "track", "n_docs", "n_docs_v",
+    "n_docs_strict", "n_docs_frac", "n_docs_frac_v", "n_docs_longhit"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "LB004": {
+   "file": "LB004_d17_obligations_and_ablation.md",
+   "columns": ["bert_avg_neu", "rule_ablation_variants_conceptual",
+    "allv_anchor_carrier_conceptual"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "LB005": {
+   "file": "LB005_match_precision_stratified_sampling.md",
+   "columns": ["match_precision_le2char_stratum", "match_precision_3char_stratum",
+    "match_precision_ge4char_stratum", "n_docs_longhit"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "LB006": {
+   "file": "LB006_known_limitations_summary.md",
+   "columns": ["known_limitations_summary_conceptual"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "LB008": {
+   "file": "LB008_loanw_construction_disclosure.md",
+   "columns": ["company_bank_loanw_panel", "cw_X_t_loanw", "ce_X_t_loanw"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "LB009": {
+   "file": "LB009_branchw_construction.md",
+   "columns": ["company_bank_branchw_panel", "cw_X_t_branchw", "ce_X_t_branchw"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "LB010": {
+   "file": "LB010_governance_fourarm_weights.md",
+   "columns": ["company_bank_boardw_panel", "company_bank_supervisorw_panel",
+    "company_bank_execw_panel", "company_bank_dsgw_panel"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "LB011": {
+   "file": "LB011_shareholderw_construction.md",
+   "columns": ["company_bank_shareholderw_panel", "cw_X_t_shareholderw", "ce_X_t_shareholderw"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "LB013": {
+   "file": "LB013_frozenw_publication_obligations.md",
+   "columns": ["base_year_full", "base_year_ctx", "base_year_ss",
+    "frozenw_publication_obligations_conceptual"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "LB015": {
+   "file": "LB015_mainbankw_diagnostics.md",
+   "columns": ["main_bank_share_full", "main_bank_share_ctx", "main_bank_share_ss",
+    "main_bank_tie_full", "main_bank_tie_ctx", "main_bank_tie_ss"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "LB016": {
+   "file": "LB016_altagg_deliberately_not_done.md",
+   "columns": ["deliberately_not_done_ladder_conceptual"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "LB017": {
+   "file": "LB017_abbreviation_naming_convention.md",
+   "columns": ["dta_shortname_mapping_table_conceptual"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  },
+  "LB018": {
+   "file": "LB018_data_lineage_licensing_disclosure.md",
+   "columns": ["data_provenance_disclosure_conceptual"],
+   "tier_by_col": {},
+   "status": "draft",
+   "batch": "P2-2026-07-15"
+  }
+ }
+}
