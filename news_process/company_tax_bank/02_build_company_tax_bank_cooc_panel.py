@@ -604,6 +604,12 @@ def write_outputs(panel: pd.DataFrame, registry: dict, out_dta: Path, scheme_wor
     panel.to_parquet(_pq_tmp)  # 伴生用未缩写全名 (parquet 恒出)
     _pq_tmp.replace(_pq)
     if emit_dta:  # WP-S3: --no-emit-dta (dev 快速模式) 跳过 dta 落盘; 默认 True → 生产照出
+        # 2026-07-15 审计防呆: labels.get(c, c) 静默兜底会把未登记标签的列以列名充当 label 落盘 —
+        # 写盘前 loud 披露未命中清单 (当前实测 0 命中, 对现有列集 no-op; 保守 warning 级不硬崩)。
+        _unlabeled = [c for c in dta.columns if c not in labels]
+        if _unlabeled:
+            logger.warning("write_outputs: %d 列未命中 labels, 以列名充当 dta label: %s",
+                           len(_unlabeled), _unlabeled)
         _dta_tmp = out_dta.with_name(out_dta.name + ".tmp")
         pyreadstat.write_dta(dta, str(_dta_tmp), column_labels=[labels.get(c, c) for c in dta.columns])
         _dta_tmp.replace(out_dta)

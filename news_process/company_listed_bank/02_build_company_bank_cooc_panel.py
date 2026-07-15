@@ -933,6 +933,12 @@ def write_outputs(panel: pd.DataFrame, registry: dict, out_dta: Path, scheme_wor
     assert len(set(dta.columns)) == len(dta.columns), "dta 变量名碰撞"
     # F8 (2026-07-10 crash-safe): 先写 .tmp 再 Path.replace 原子改名 — kill/崩于写盘中途不留半写供 Stata 误读;
     # 最终字节等价就地写 → golden 中性 (dta 头含时间戳, golden gate 走 registry sha/列内容哈希非 dta 字节)。
+    # 2026-07-15 审计防呆: labels.get(c, c) 静默兜底会把未登记标签的列以列名充当 label 落盘 —
+    # 写盘前 loud 披露未命中清单 (当前实测 0 命中, 对现有列集 no-op; 保守 warning 级不硬崩)。
+    _unlabeled = [c for c in dta.columns if c not in labels]
+    if _unlabeled:
+        logger.warning("write_outputs: %d 列未命中 labels, 以列名充当 dta label: %s",
+                       len(_unlabeled), _unlabeled)
     _dta_tmp = out_dta.with_name(out_dta.name + ".tmp")
     pyreadstat.write_dta(dta, str(_dta_tmp), column_labels=[labels.get(c, c) for c in dta.columns])
     _dta_tmp.replace(out_dta)
