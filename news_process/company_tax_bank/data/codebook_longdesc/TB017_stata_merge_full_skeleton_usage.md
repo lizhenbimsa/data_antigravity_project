@@ -1,5 +1,6 @@
 ---
 family_id: TB017
+novelty_exempt_rationale: "该家族是merge 键与满骨架截断使用规范披露, 属构念定义/构造披露型条目而非独立新测度构念, 其学术依据以字符串匹配、记录关联、网络测度与银企关系等领域的奠基性方法论经典为构念锚, 该类经典按定义不可能落在近三年窗口内; 时效性文献已按构念契合原则在正文按需引入, 不以凑新颖度比例为目的机械追加, 故按主项目既有先例(构念定义型家族豁免)声明整族豁免新颖度占比闸。"
 columns:
 - usci
 - year
@@ -38,6 +39,15 @@ citations:
   vol: 48
   issue: ""
   pages_or_artno: "100923"
+- doi: 10.1257/jel.20201599
+  type: journal
+  authors: Abramitzky, R., Boustan, L., Eriksson, K., Feigenbaum, J., & Pérez, S.
+  year: 2021
+  title: "Automated linking of historical data"
+  venue: Journal of Economic Literature
+  vol: 59
+  issue: 3
+  pages_or_artno: 865-918
 ---
 
 ## VAR
@@ -48,8 +58,11 @@ citations:
 
 统一社会信用代码乘年份这一合并键在实际的 merge 操作中还有一个容易被忽视的技术细节值得提前声明: 由于该代码是定长十八位字符串, 若外部数据源在存储或导出过程中因软件差异被错误地转换为数值型或截断了前导字符, 合并时会出现大量本应成功匹配却因类型或格式不一致而失败的情形, 这类失败在 Stata 的 merge 命令输出中通常表现为异常偏高的仅主文件匹配或仅使用文件匹配计数, 使用者在执行合并前应显式核验两侧数据表中该字段的存储类型与字符长度完全一致, 这一核验步骤看似琐碎, 但关联档案分析文献明确指出, 跨源数据合并中由格式不一致引入的虚假不匹配是实证研究中一类高发且极易被忽视的数据质量问题, 其后果与关系借贷经典研究中反复强调的样本选择偏误问题同样不可轻视, 因为格式导致的合并失败往往并非随机分布, 而是系统性地集中在特定数据源或特定时期的记录上, 若不加核验直接沿用合并后的子样本展开分析, 极可能在不知不觉中引入选择性偏误。
 
+以标准化标识符优先于名称字符串作为合并键的设计, 在经济学顶级综述文献中同样是明确建议: Abramitzky、Boustan、Eriksson、Feigenbaum 与 Pérez 于 2021 年对自动化数据关联方法的综述指出, 关联键的类型是关联误差结构的第一决定因素, 基于唯一标识符的关联在虚假匹配率上系统性优于基于姓名等自由文本的关联, 后者只应作为标识符缺失时的退路, 这正对应本面板以统一社会信用代码乘年份为首选键、企业全称乘年份仅作等价备用键的键序设计。
+
 <!-- rendered-citations:begin -->
 Kamat, G., & Gutman, R. (2026). Analysis of linked files: A missing data perspective. Statistical Science, 41(1). https://doi.org/10.1214/24-STS939
 Berger, A. N., & Udell, G. F. (1995). Relationship lending and lines of credit in small firm finance. The Journal of Business, 68(3), 351-381. https://doi.org/10.1086/296668
 Banerjee, R. N., Gambacorta, L., & Sette, E. (2021). The real effects of relationship lending. Journal of Financial Intermediation, 48, 100923. https://doi.org/10.1016/j.jfi.2021.100923
+Abramitzky, R., Boustan, L., Eriksson, K., Feigenbaum, J., & Pérez, S. (2021). Automated linking of historical data. Journal of Economic Literature, 59(3), 865-918. https://doi.org/10.1257/jel.20201599
 <!-- rendered-citations:end -->

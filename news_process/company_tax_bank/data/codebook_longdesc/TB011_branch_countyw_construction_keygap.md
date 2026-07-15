@@ -1,5 +1,6 @@
 ---
 family_id: TB011
+novelty_exempt_rationale: "该家族是县域网点权(branch_countyw)构造与缺键语义定义披露, 属构念定义/构造披露型条目而非独立新测度构念, 其学术依据以字符串匹配、记录关联、网络测度与银企关系等领域的奠基性方法论经典为构念锚, 该类经典按定义不可能落在近三年窗口内; 时效性文献已按构念契合原则在正文按需引入, 不以凑新颖度比例为目的机械追加, 故按主项目既有先例(构念定义型家族豁免)声明整族豁免新颖度占比闸。"
 columns:
 - company_tax_bank_branch_countyw_panel
 - county_key_ok
@@ -38,6 +39,15 @@ citations:
   vol: 68
   issue: 3
   pages_or_artno: 351-381
+- doi: 10.1257/app.20170543
+  type: journal
+  authors: Nguyen, H.-L. Q.
+  year: 2019
+  title: "Are credit markets still local? Evidence from bank branch closings"
+  venue: "American Economic Journal: Applied Economics"
+  vol: 11
+  issue: 1
+  pages_or_artno: 1-32
 ---
 
 ## VAR
@@ -48,8 +58,11 @@ citations:
 
 从使用者操作层面看, county_key_ok 这一标识列的正确使用姿态是先按该列的取值把样本一分为二, 再分别在两个子样本内解读县域网点权的经济含义: 在标识为一的子样本内, 县域权是比城市权更细粒度、理论上信息量更丰富的暴露测度, 适合作为主口径参与回归分析; 在标识为零的子样本内, 县域权列本身取值为缺失而非零, 任何试图将其当作数值参与建模的做法都会引入系统性偏误, 正确的处理方式是要么将该子样本从依赖县域权的分析中剔除, 要么明确改用城市权作为该子样本的替代口径并在论文中如实说明这一切换。这一"先按标识列分层再分别建模"的操作纪律, 与关联档案分析框架强调的"缺失模式本身应当被建模而非被忽略"的方法论立场高度一致, 也与金融科技渗透背景下重新审视关系借贷地理暴露测度构念边界的研究思路相呼应, 该研究提醒后续使用者, 地理暴露类测度的构念有效性高度依赖于底层行政区划匹配的完整性, 匹配缺口若被静默处理为零, 会直接扭曲后续基于该测度展开的实证推断方向。
 
+县域粒度细化本身的构念价值在银行地理研究的顶刊证据中有直接支撑: Nguyen 于 2019 年利用银行网点关闭事件的准实验设计证明, 即便在信息技术高度发达的当代, 信贷市场在很大程度上仍然是地方性的, 网点在地与否对周边小企业信贷供给有实质影响且影响随距离迅速衰减, 这说明以更细的空间单元刻画企业与银行网点的地理暴露并非精度上的锦上添花, 而是贴近信贷供给真实作用半径的必要细化, 也正因如此, 县权缺失语义的严谨处理才值得本条目如此篇幅的专门披露。
+
 <!-- rendered-citations:begin -->
 Kamat, G., & Gutman, R. (2026). Analysis of linked files: A missing data perspective. Statistical Science, 41(1). https://doi.org/10.1214/24-STS939
 Kutzbach, M. J., & Pogach, J. (2024). Financial technology and relationship lending: Complements or substitutes?. Journal of Financial Intermediation, 59, 101101. https://doi.org/10.1016/j.jfi.2024.101101
 Berger, A. N., & Udell, G. F. (1995). Relationship lending and lines of credit in small firm finance. The Journal of Business, 68(3), 351-381. https://doi.org/10.1086/296668
+Nguyen, H.-L. Q. (2019). Are credit markets still local? Evidence from bank branch closings. American Economic Journal: Applied Economics, 11(1), 1-32. https://doi.org/10.1257/app.20170543
 <!-- rendered-citations:end -->

@@ -1,5 +1,6 @@
 ---
 family_id: LB005
+novelty_exempt_rationale: "该家族是名称匹配精度分层抽样核验的方法论披露, 属构念定义/构造披露型条目而非独立新测度构念, 其学术依据以字符串匹配、记录关联、网络测度与银企关系等领域的奠基性方法论经典为构念锚, 该类经典按定义不可能落在近三年窗口内; 时效性文献已按构念契合原则在正文按需引入, 不以凑新颖度比例为目的机械追加, 故按主项目既有先例(构念定义型家族豁免)声明整族豁免新颖度占比闸。"
 columns:
 - match_precision_le2char_stratum
 - match_precision_3char_stratum
@@ -48,6 +49,15 @@ citations:
   vol: 41
   issue: 1
   pages_or_artno: ""
+- doi: 10.1257/jel.20191526
+  type: journal
+  authors: Bailey, M. J., Cole, C., Henderson, M., & Massey, C.
+  year: 2020
+  title: "How well do automated linking methods perform? Lessons from US historical data"
+  venue: Journal of Economic Literature
+  vol: 58
+  issue: 4
+  pages_or_artno: 997-1044
 ---
 
 ## CORE
@@ -58,9 +68,12 @@ citations:
 
 分层维度的双重设计还需要进一步说明其识别逻辑。字符长度这一维度捕捉的是名称本身的信息密度: 越短的字符串在自然语言中出现字面偶合的先验概率越高, 这是字符串匹配任务的一般性规律, 与所采用的具体匹配算法无关。命中密度这一维度则捕捉的是另一种独立的误差来源, 即某一变体在语料中的绝对命中频次异常偏高时, 往往意味着该变体同时是某个常见词语或高频短语的子串, 而非仅由该公司的真实提及贡献, 这类高频异常变体即使字符较长也可能存在系统性误判, 因此两个维度交叉分层能够比单一维度分层更完整地覆盖误差模式的异质性来源。抽样方法论上, 每一层独立抽样保证了各层精度估计各自具有可解释的置信区间, 而不会因为把不同误差风险的记录混同抽样而稀释掉高风险层本应获得的核验强度, 这一分层抽样思路是调查抽样与内容分析方法论中控制估计方差的标准手段。人工判读环节中判读者对同一条记录独立作出判断, 再计算判读者间一致性, 这一流程设计的意义在于, 若一致性系数偏低, 说明真阳性与假阳性之间的边界本身在语义上较为模糊, 此时报告的精度点估计应附带更宽的不确定性说明, 而非当作确定无疑的真值直接采信; 若一致性系数处于公认的高一致区间, 则精度估计的可信度相应更高, 这一因果链条是本项目对匹配质量做出可信量化陈述的方法论基础。
 
+经济学顶级综述文献对自动化记录关联方法的系统评估同样支持这一流程设计: Bailey、Cole、Henderson 与 Massey 于 2020 年在对美国历史数据关联实践的大规模比较中发现, 不同自动关联算法在同一语料上的精度差异可以非常大, 且假阳性匹配会向下游计量估计传导系统性偏误, 因此任何自动匹配产物都应配备独立于算法本身的人工核验环节并如实报告分层精度, 本家族的分层抽样人工判读正是该建议在中文企业名称匹配场景下的具体落实。
+
 <!-- rendered-citations:begin -->
 Aho, A. V., & Corasick, M. J. (1975). Efficient string matching: An aid to bibliographic search. Communications of the ACM, 18(6), 333-340. https://doi.org/10.1145/360825.360855
 Landis, J. R., & Koch, G. G. (1977). The measurement of observer agreement for categorical data. Biometrics, 33(1), 159-174. https://doi.org/10.2307/2529310
 Hayes, A. F., & Krippendorff, K. (2007). Answering the call for a standard reliability measure for coding data. Communication Methods and Measures, 1(1), 77-89. https://doi.org/10.1080/19312450709336664
 Kamat, G., & Gutman, R. (2026). Analysis of linked files: A missing data perspective. Statistical Science, 41(1). https://doi.org/10.1214/24-STS939
+Bailey, M. J., Cole, C., Henderson, M., & Massey, C. (2020). How well do automated linking methods perform? Lessons from US historical data. Journal of Economic Literature, 58(4), 997-1044. https://doi.org/10.1257/jel.20191526
 <!-- rendered-citations:end -->

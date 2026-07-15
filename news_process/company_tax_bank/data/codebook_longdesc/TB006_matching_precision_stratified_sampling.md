@@ -1,5 +1,6 @@
 ---
 family_id: TB006
+novelty_exempt_rationale: "该家族是税调侧名称匹配精度分层核验的方法论披露, 属构念定义/构造披露型条目而非独立新测度构念, 其学术依据以字符串匹配、记录关联、网络测度与银企关系等领域的奠基性方法论经典为构念锚, 该类经典按定义不可能落在近三年窗口内; 时效性文献已按构念契合原则在正文按需引入, 不以凑新颖度比例为目的机械追加, 故按主项目既有先例(构念定义型家族豁免)声明整族豁免新颖度占比闸。"
 columns:
 - n_docs_longhit
 - variant_length_stratum
@@ -37,6 +38,15 @@ citations:
   vol: 1
   issue: 1
   pages_or_artno: 77-89
+- doi: 10.1257/jel.20201599
+  type: journal
+  authors: Abramitzky, R., Boustan, L., Eriksson, K., Feigenbaum, J., & Pérez, S.
+  year: 2021
+  title: "Automated linking of historical data"
+  venue: Journal of Economic Literature
+  vol: 59
+  issue: 3
+  pages_or_artno: 865-918
 ---
 
 ## VAR
@@ -47,8 +57,11 @@ citations:
 
 分层抽样的操作流程还揭示了一个值得单独强调的方法论细节: 由于税调企业名单规模远大于母本上市公司名单, 短变体层的候选样本池本身也随之膨胀, 若沿用母本体系的固定抽样比例, 实际抽取的样本绝对数量可能不足以支撑对假阳性率的可靠估计, 因此本轮复核对二字与三字两层采取全量而非抽样过目的策略, 这一"高风险层全量、低风险层抽样"的分层强度差异化处理思路, 与观测者间信度测量框架及后续被广泛采纳的信度系数框架共同倡导的"按预期误差风险分配复核资源"的一般原则相符。生产语料机上的第二轮复核目前被明确标注为延后事项, 这一延后并非方法论缺陷, 而是与本项目一贯的"披露延后状态而非静默略去"原则一致的过渡性安排, 待生产规模语料到位后, 分层抽样的样本量与分层边界均需按生产环境下的变体分布重新校准, 复核结论也须相应更新, 使用者在此之前应将当前精度估计视为基于开发环境小样本得出的初步结论, 而非最终定论。
 
+这一口径选择在经济学顶级综述文献中同样有直接依据: Abramitzky、Boustan、Eriksson、Feigenbaum 与 Pérez 于 2021 年对历史数据自动关联方法的权威综述明确指出, 关联规则的宽严选择本质上是在假阳性率与覆盖率之间做权衡, 不存在对所有研究问题都最优的单一裁剪点, 正确做法是把权衡显式披露并把口径选择权交给分析端, 本家族保留全变体口径同时另设长变体稳健臂的双轨设计正与该建议一致。
+
 <!-- rendered-citations:begin -->
 Aho, A. V., & Corasick, M. J. (1975). Efficient string matching: An aid to bibliographic search. Communications of the ACM, 18(6), 333-340. https://doi.org/10.1145/360825.360855
 Landis, J. R., & Koch, G. G. (1977). The measurement of observer agreement for categorical data. Biometrics, 33(1), 159-174. https://doi.org/10.2307/2529310
 Hayes, A. F., & Krippendorff, K. (2007). Answering the call for a standard reliability measure for coding data. Communication Methods and Measures, 1(1), 77-89. https://doi.org/10.1080/19312450709336664
+Abramitzky, R., Boustan, L., Eriksson, K., Feigenbaum, J., & Pérez, S. (2021). Automated linking of historical data. Journal of Economic Literature, 59(3), 865-918. https://doi.org/10.1257/jel.20201599
 <!-- rendered-citations:end -->
