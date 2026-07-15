@@ -120,6 +120,7 @@ G1 (81/82 shim `sys.exit(main())`, ⑤⑥ EXIT 可信) · G2a (⑦⑧ 五键快�
 - [ ] **H1-cap**: 与用户定夺生产 cap 语义 (kill-at-cap vs 健康推进放行)。
 - [ ] **R2**: 主管道运行窗内禁止并发重生 `build/codebook/variable_codebook.json`; 或落地原子写+46 侧校验后解除。
 - [ ] **D2**: 下轮主管道复跑核 sidecar 6 警归零 (再现则立案)。
+- [x→修正案] **H1/H1-cap (2026-07-15 第三轮定谳)**: 慢化根因 = AC PROCTHROTTLEMAX=95% 限频 (争用仅 ~7-9%), 独占硬义务与 ×3 争用系数的经验基础失效; 预算/cap 以第三轮计划 §3-N7/N8 + 用户决策为准, 见 EIGHT_ENTRYPOINT_SEQUENTIAL_THIRDRUN_AUDIT_AND_REMEDIATION_PLAN_2026-07-15.md。(D2 归零已于第三轮兑现。)
 - [ ] (承接上轮 §7 十一项全部有效, 特别 G2 三参数重生 27 号 / G12 建碁 longhit 臂 / G13 LDA 压测 / 离线冷缓存前置。)
 
 ## 7-bis. 实施记录 (2026-07-15 凌晨, 用户完全授权后)
