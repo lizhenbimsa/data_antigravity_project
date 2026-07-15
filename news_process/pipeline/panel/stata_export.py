@@ -1294,10 +1294,27 @@ def _stata_notes_text(text: str) -> str:
     t = t.replace('\\', '＼')
     # ①-b 反引号全量中和
     t = t.replace('`', '｀')
-    # ①-c $ 窄面中和 (仅后接合法宏名起始字符时危险)
+    # ①-b2 花括号全量中和 (2026-07-15 追加: notes 正文含裸 {a,b,c} 集合记法或
+    #    upstream/formula 字段误解析残留时, 若该 { 恰好因 max_seg_bytes 切段/
+    #    do 回显 linesize 折行落在物理行行尾, Stata do-file 解析器把行尾孤立
+    #    { 误判为块起始, 导致 program error: matching close brace not found
+    #    (r(198), 三 dta notes 注入全灭实证复现)。中和为全角 ｛｝ 消除该类风险,
+    #    与反斜杠/反引号同级全量处理, 不做窄面例外 (probe 未发现正当窄面场景)。
+    t = t.replace('{', '｛').replace('}', '｝')
+    # ①-c $ 窄面中和 (仅后接合法宏名起始字符时危险; { 已全量中和, 此分支的
+    #    {  子情形自本步起恒不可达, 保留 [A-Za-z_{] 仅为未来若窄化 ①-b2 兼容)
     t = re.sub(r'\$(?=[A-Za-z_{])', '＄', t)
     # ④ 空白前导 (或文首) 的 // 连跑 → 全角 (notes 行内 text 前恒有 ": " 空白)
     t = re.sub(r'(?:(?<=\s)|^)/{2,}', lambda m: '／' * len(m.group(0)), t)
+    # ④-b /* 块注释开启符全量中和 (2026-07-15 追加: 与 // 行注释不同, Stata /*
+    #    块注释无需前导空白、可出现在物理行任意位置, 且延续到下一个 */ 为止
+    #    (可能跨越多个 notes 段甚至跨越到后续变量的 { } 块), 实证复现: 正文
+    #    "*_full/*_ctx/*_ss" 字面含 /*_ctx 序列被 Stata 解释为块注释开始, 吞掉
+    #    后续内容直至某处 */, 连带吃掉本应闭合当前 if _rc==0 { } 块的右花括号,
+    #    级联触发 program error: matching close brace not found (r(198))。
+    #    全量替换 (不设窄面例外, 与 //规则的"仅当分隔符恰好独立出现"精神一致
+    #    但 /* 本身无正当散文场景需要保真)。
+    t = t.replace('/*', '／＊')
     # ⑤ P2 整改 (2026-07-11): 对账 marker 中和 — 正文若字面含
     #    'NOTES_APPLIED_PART<d>=' / 'NOTES_MASTER_DONE=' (如引用本机制文档),
     #    经 do 回显 + linesize 折行可在 log 里伪造/覆盖对账计数 (last-wins) →
