@@ -21,6 +21,12 @@ citations:
   vol: 53
   issue: 1
   pages_or_artno: "79-104"
+- doi: "10.1016/j.procs.2023.08.056"
+  type: "journal"
+  authors: "Xuenan Yang, Zihan Liu, Jingyu Li, Qiwei Xie"
+  year: 2023
+  title: "Communities of co-occurrence network of financial firms in news"
+  venue: "Procedia Computer Science"
 - doi: 10.1093/rfs/hhae026
   type: journal
   authors: Han, M., Kim, S. H., & Nanda, V.
@@ -214,12 +220,15 @@ citations:
   venue: "Journal of Systems Science and Complexity"
   type: "journal"
 new_dois:
-  - "10.1016/j.jcorpfin.2023.102501"
-  - "10.1111/abac.12341"
-  - "10.1007/s11424-025-4338-6"
+- "10.1016/j.procs.2023.08.056"
+- "10.1016/j.jcorpfin.2023.102501"
+- "10.1111/abac.12341"
+- "10.1007/s11424-025-4338-6"
 ---
 
 ## CORE
+
+基于新闻文本构建中国金融机构共现网络并用社区发现方法识别银行、证券、保险等行业聚簇, 与本家族银行新闻共现图特征向量中心度构念高度同源, 已通过 CrossRef API 核验题名/作者/年份/期刊完全吻合。
 
 【构念与来源】
 bank_eigen_cent 是"银行年度新闻共现网络"上的特征向量中心度 (eigenvector centrality), 为本家族的 canonical 列 (同篇判据, 落列无后缀)。构念回答一个递归式的重要性问题: 一家银行是否"重要", 不只看它与多少家同业在新闻里被一同提及 (那是度中心度 degree), 而要看与它共现的同业本身是否也重要 — 中心的邻居越多、邻居越中心, 该行的特征向量中心度越高。形式上, 若把年度加权共现图的邻接矩阵记作 A, 则特征向量中心度就是与最大特征值 (Perron-Frobenius 主特征值) 相配的主特征向量各分量: 一个节点的分值正比于其邻居分值的加权和, 因而"地位由邻居地位递归定义"。这一思想源自 Bonacich (1972) 的因子化与加权状态分数, 后经 Bonacich (1987) 系统化为一族权力与中心度测度 (其中引入负参数还可刻画"依附于弱者反而更有权力"的情形, 本项目只取标准正向特征向量一支); Freeman (1978) 对度、接近性、居间性三大中心度族做了概念澄清, 本项目 33 个网络结构指标即以该谱系为骨架, 特征向量中心度落在"声望与地位"一支, 与桥梁型的居间度、拓扑型的度中心度并列而不重叠。为什么用新闻共现来建这张网: 当两家银行在同一篇金融科技报道里被一并讨论, 说明它们在公众信息环境中被投射到同一议题空间 (同一监管动作、同一技术浪潮、同一业务竞合), 共现频次因而是"信息层面的同侪关联强度"的可观测代理; 把这些两两关联累积成年度图, 特征向量中心度即刻画"哪家银行处于媒体信息声望的高地"。数据来源方面: 网络的节点全集等于某年通过 stage 21 语义留篇门控 (full-only 口径, 2026-06-29) 后, 在篇章级 both-verified 帧 (df_exploded, 即 24_herd_decay) 中幸存的 target_bank; 边等于同一篇报道 (同一 docid) 内所有幸存银行之间的两两共现, 每篇每对无序对权重 +1, 邻接矩阵对称; 边权则等于年内该对共现的累计篇数。这里的 both-verified 指同一文章下、通过 stage 21 语义核验而幸存的目标银行行集合 (即真正被判定为"银行金科报道主体"的银行), 从而杜绝把核验已拒绝的银行也当节点或成边。由此得到逐年的加权无向共现图 (networkx Graph)。留篇门控是 full 轨的单一裁决: 一篇报道是否算"银行金科报道"只看 llm_verified_full, 因此共现网的边只由 full 轨留篇集诱导, 与 _ctx/_ss 文本轨无关; 这一口径必须与 full-only 门控保持一致, 不得误认为三轨各自建网, 也不得把 _ctx/_ss 的留篇集混入网络构造。
@@ -259,6 +268,7 @@ bank_eigen_cent 须与四类相邻测度严格区分, 以免在解读或建模�
 
 <!-- rendered-citations:begin -->
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
+Xuenan Yang, Zihan Liu, Jingyu Li, Qiwei Xie. (2023). Communities of co-occurrence network of financial firms in news. Procedia Computer Science. https://doi.org/10.1016/j.procs.2023.08.056
 Han, M., Kim, S. H., & Nanda, V. (2024). Institutional brokerage networks: Facilitating liquidity provision. Review of Financial Studies, 37(9), 2903-2935. https://doi.org/10.1093/rfs/hhae026
 Boucher, V., Rendall, M., Ushchev, P., & Zenou, Y. (2024). Toward a general theory of peer effects. Econometrica, 92(2), 543-565. https://doi.org/10.3982/ECTA21048
 Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223

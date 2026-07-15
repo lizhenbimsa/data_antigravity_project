@@ -21,6 +21,12 @@ citations:
   vol: 357
   issue: 1
   pages_or_artno: 89-111
+- doi: "10.3390/bdcc9100263"
+  type: "journal"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  venue: "Big Data and Cognitive Computing"
 - doi: 10.1016/j.eswa.2024.125739
   type: journal
   authors: Ma, Y., Zhang, T., & Zhang, P.
@@ -145,6 +151,7 @@ citations:
   venue: "Risks"
   type: "journal"
 new_dois:
+- "10.3390/bdcc9100263"
 - 10.1111/jofi.12027
 - 10.1111/j.1540-6261.2010.01625.x
 - "10.1186/s40854-025-00887-5"
@@ -216,6 +223,7 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Anastasiou, D., Katsafados, A., & Tzomakas, C. (2026). Banks' stock price crash risk prediction with textual analysis: A machine learning approach. Annals of Operations Research, 357(1), 89-111. https://doi.org/10.1007/s10479-025-06567-y
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications, 264, 125739. https://doi.org/10.1016/j.eswa.2024.125739
 Sun, Y., Yuan, H., & Xu, F. (2025). Financial sentiment analysis for pre-trained language models incorporating dictionary knowledge and neutral features. Natural Language Processing Journal, 11, 100148. https://doi.org/10.1016/j.nlp.2025.100148
 Punetha, N., & Jain, G. (2025). Advancing sentiment analysis by addressing negation handling challenge via unsupervised mathematical approach. Social Network Analysis and Mining, 15(1), Article 20. https://doi.org/10.1007/s13278-025-01416-z

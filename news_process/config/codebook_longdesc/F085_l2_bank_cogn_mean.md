@@ -19,6 +19,12 @@ citations:
   title: "Semantics at an angle: When cosine similarity works until it doesn't"
   venue: arXiv
   pages_or_artno: "arXiv:2504.16318"
+- doi: "10.3390/bdcc9100263"
+  type: "journal"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  venue: "Big Data and Cognitive Computing"
 - doi: 10.18653/v1/2025.emnlp-main.1135
   type: journal
   authors: "Opitz, J., Moeller, L., Michail, A., Padó, S., & Clematide, S."
@@ -135,6 +141,7 @@ citations:
   title: "So far, yet so close. Using networks of words to measure proximity and spillovers between firms"
   venue: "Eurasian Business Review"
 new_dois:
+  - "10.3390/bdcc9100263"
   - "10.1007/s40821-024-00270-x"
 ---
 
@@ -195,6 +202,7 @@ Manski (1993) 把社会互动效应拆为三条通道: 内生效应 (同行的�
 
 <!-- rendered-citations:begin -->
 You, K. (2025). Semantics at an angle: When cosine similarity works until it doesn't. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2504.16318
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 Opitz, J., Moeller, L., Michail, A., Padó, S., & Clematide, S. (2025). Interpretable text embeddings and text similarity explanation: A survey. Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing, 22314-22330. https://doi.org/10.18653/v1/2025.emnlp-main.1135
 Boucher, V., Rendall, M., Ushchev, P., & Zenou, Y. (2024). Toward a general theory of peer effects. Econometrica, 92(2), 543-565. https://doi.org/10.3982/ECTA21048
 Liu, Y., Cao, Z., & Wen, F. (2024). Textual similarity between firm and government: Measurement and pricing. Economics Letters, 241, 111823. https://doi.org/10.1016/j.econlet.2024.111823

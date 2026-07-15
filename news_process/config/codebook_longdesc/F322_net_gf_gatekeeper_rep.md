@@ -20,6 +20,18 @@ citations:
   venue: Journal of Financial Economics
   vol: 176
   pages_or_artno: "104218"
+- doi: "10.3390/bdcc9100263"
+  type: "journal"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  venue: "Big Data and Cognitive Computing"
+- doi: "10.1016/j.procs.2023.08.056"
+  type: "journal"
+  authors: "Yang, X., Liu, Z., Li, J., & Xie, Q."
+  year: 2023
+  title: "Communities of co-occurrence network of financial firms in news"
+  venue: "Procedia Computer Science"
 - doi: 10.1007/s10479-026-07305-8
   type: journal
   authors: Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y.
@@ -164,6 +176,8 @@ citations:
   venue: "Data Science in Finance and Economics"
   type: "journal"
 new_dois:
+  - "10.3390/bdcc9100263"
+  - "10.1016/j.procs.2023.08.056"
   - "10.3934/dsfe.2025021"
 ---
 
@@ -204,6 +218,8 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Cookson, J. A., Fox, C., Gil-Bazo, J., Imbet, J. F., & Schiller, C. (2026). Social media as a bank run catalyst. Journal of Financial Economics, 176, 104218. https://doi.org/10.1016/j.jfineco.2025.104218
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
+Yang, X., Liu, Z., Li, J., & Xie, Q. (2023). Communities of co-occurrence network of financial firms in news. Procedia Computer Science. https://doi.org/10.1016/j.procs.2023.08.056
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
 Hirshleifer, D., Peng, L., & Wang, Q. (2025). News diffusion in social networks and stock market reactions. The Review of Financial Studies, 38(3), 883-937. https://doi.org/10.1093/rfs/hhae025
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8

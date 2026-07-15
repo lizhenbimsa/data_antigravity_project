@@ -24,6 +24,24 @@ citations:
   vol: 39
   issue: 5
   pages_or_artno: 1227-1266
+- doi: "10.3390/bdcc9100263"
+  type: "journal"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  venue: "Big Data and Cognitive Computing"
+- doi: "10.3390/bs16050762"
+  type: "journal"
+  authors: "Deng, X., & Li, Y."
+  year: 2026
+  title: "Measuring Psychological Constructs from Social Media Text Using the Word Embedding Projection Approach"
+  venue: "Behavioral Sciences"
+- doi: "10.1007/s10479-026-07200-2"
+  type: "journal"
+  authors: "Kosmidou, K., Kousenidis, D. V., Ladas, A. C., Negkakis, C. I., & Negkakis, I. C."
+  year: 2026
+  title: "ESG anchor words and risk"
+  venue: "Annals of Operations Research"
 - doi: 10.1016/j.jfineco.2025.104218
   type: journal
   authors: Cookson, J. A., Fox, C., Gil-Bazo, J., Imbet, J. F., & Schiller, C.
@@ -220,13 +238,18 @@ citations:
   type: "wp"
   one_sentence_zh: "用词嵌入表征央行沟通文本并证明其预测力优于词典法与情感指标, 为本家族嵌入投影方法优于词典/情感测度的方法论选择提供跨领域佐证。"
 new_dois:
+- "10.3390/bdcc9100263"
 - 10.3386/w33344
 - 10.1177/0003122419877135
 - "10.1057/s41283-026-00203-0"
+- "10.3390/bs16050762"
+- "10.1007/s10479-026-07200-2"
 - "10.2139/ssrn.5201335"
 ---
 
 ## CORE
+
+提出词嵌入投影方法(WEPA), 用理论驱动的双极锚点词定义构念轴并将文本投影其上得到连续构念分, 方法论与本家族的双极锚点投影法高度同构。 研究企业文本中锚点词的语气如何揭示其ESG披露策略, 为本家族关于媒体叙事效益宣称与实质行动可能脱耦的讨论提供跨领域佐证。
 
 【构念与来源】
 本家族测量的构念是媒体报道对银行金融科技经营效益的态度, 即一年之内, 媒体在报道某家银行的金融科技或数字化转型活动时, 整体上把这些活动描述为利好该银行自身经营 (提升效率、降低成本、改善风控、拓展客源), 还是损害其经营 (加剧风险、抬高投入、冲击既有业务、引发合规问题)。它回答的不是这家银行被报道了多少 (注意力维度) 或报道语气是否正面 (通用情感维度), 而是一个更窄也更贴近理论的问题: 在媒体叙事中, 金融科技对这家银行到底是资产还是负债。方法论直接移植 Jha, Liu & Manela (2026) 发表于 Review of Financial Studies 的双极锚点语言嵌入框架。该文为回答金融是否有益社会这一问题, 用两组语义上严格对立的锚点句在嵌入空间中差分出一条金融利好社会到金融损害社会的连续语义轴, 再把大规模文本投影到该轴上得到连续态度分。本项目做了一次构念替换: 把社会效益维度换成银行自身经营效益维度, 锚点句改为围绕金融科技对银行经营影响的正负对偶陈述, 其余数学结构逐式保留 (文章级投影对应其第 1.3.2 节式一, bank-year 聚合对应式二)。更上游的方法论先例是 Kozlowski, Taddy & Evans (2019) 的文化几何学: 任何语义维度都可以由成对反义锚点的嵌入差分向量在向量空间中定义, 文本沿该向量的投影即其在该维度上的取态。数据来源是本项目的中文银行金融科技新闻语料: 经 stage 13 银行与金科词邻近共现硬过滤后的文章集, 在 panel runner 中展开为文章-银行级 df_exploded, 三轨文本 (content_full, content_ctx, content_ss) 由 stage 14 ctx_materializer 统一物化。行宇宙的留篇口径与全面板一致, 即 2026-06-29 切换后的 full-only 门控: 一篇文章是否算作银行金科报道只看 llm_verified_full, ctx 与 ss 是 conditional-on-full 的测度轨与稳健轨, 其行宇宙是 full 留篇集的子集。家族六列 = 三轨乘双嵌入模型, 其中 benefit_mean_full 是 benefit_society 论文 paper_spec 的 treatment 主列, benefit_mean_lg_full 是其 co-primary 嵌入对偶, 两者同为 core 列。
@@ -281,6 +304,9 @@ benefit_mean_full 是 benefit_society 论文 paper_spec 声明的 treatment 主�
 
 <!-- rendered-citations:begin -->
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
+Deng, X., & Li, Y. (2026). Measuring Psychological Constructs from Social Media Text Using the Word Embedding Projection Approach. Behavioral Sciences. https://doi.org/10.3390/bs16050762
+Kosmidou, K., Kousenidis, D. V., Ladas, A. C., Negkakis, C. I., & Negkakis, I. C. (2026). ESG anchor words and risk. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07200-2
 Cookson, J. A., Fox, C., Gil-Bazo, J., Imbet, J. F., & Schiller, C. (2026). Social media as a bank run catalyst. Journal of Financial Economics, 176, 104218. https://doi.org/10.1016/j.jfineco.2025.104218
 Ludwig, J., Mullainathan, S., & Rambachan, A. (2025). Large language models: An applied econometric framework. NBER Working Paper No. 33344 [Working Paper]. https://doi.org/10.3386/w33344
 Duchin, R., Gao, J., & Xu, Q. (2025). Sustainability or greenwashing: Evidence from the asset market for industrial pollution. The Journal of Finance, 80(2), 699-754. https://doi.org/10.1111/jofi.13412

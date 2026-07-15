@@ -23,6 +23,12 @@ citations:
   venue: Journal of Financial Economics
   vol: 176
   pages_or_artno: "104218"
+- doi: "10.1016/j.econlet.2023.111170"
+  type: "journal"
+  authors: "Dosumu, O. E., Sakariyahu, R., Oyekola, O., & Lawal, R."
+  year: 2023
+  title: "Panic bank runs, global market contagion and the financial consequences of social media"
+  venue: "Economics Letters"
 - doi: 10.1257/jep.20231370
   type: journal
   authors: Borusyak, K., Hull, P., & Jaravel, X.
@@ -249,12 +255,15 @@ citations:
   venue: "Finance Research Letters"
   type: "journal"
 new_dois:
-  - "10.1016/j.najef.2025.102444"
-  - "10.1016/j.gfj.2024.101044"
-  - "10.1016/j.frl.2023.104696"
+- "10.1016/j.econlet.2023.111170"
+- "10.1016/j.najef.2025.102444"
+- "10.1016/j.gfj.2024.101044"
+- "10.1016/j.frl.2023.104696"
 ---
 
 ## CORE
+
+利用2023年美国银行业动荡的推特数据发现社交媒体负面情绪跨94国市场传染,为行业层面银行负面舆论冲击的跨主体外溢机制提供了独立的实证证据。
 
 【构念与来源】
 本家族测度的构念是"行业负面舆论压力" (industry-level negative media pressure): 银行 i 在年份 t 所处的银行业整体负面媒体环境的强度, 操作化为同年除自身之外全部同行银行的负面报道占比的等权均值 (Leave-One-Out, 下称 LOO)。构念的经济学动机来自三条相互交织的文献脉络。第一条是媒体情绪与银行稳定文献: 媒体对银行业的负面报道并非中性的信息记录, 而是能够实质性地改变储户与投资者行为的传导渠道。Fang 等 (2024) 用中国数据证明媒体情绪显著影响存款稳定性并放大银行系统性风险; Cookson 等 (2026) 进一步表明, 在社交媒体时代负面叙事的扩散速度足以成为银行挤兑的直接催化剂。这意味着"全行业被负面报道笼罩"本身构成一种可测量的外部压力状态, 与单家银行自身被负面报道是两个不同层次的构念。第二条是中国媒体制度背景文献: You、Zhang 与 Zhang (2018) 揭示了中国市场化媒体与官方媒体在"笔杆子权力"上的分化, 媒体负面报道对公司治理与市场定价有真实约束力; Xu (2024) 则提醒财经记者的社交网络会系统性地塑造新闻偏向, 因此行业层面聚合 (跨媒体、跨银行取均值) 相比单篇报道信号更能平滑单个记者或单家媒体的特异性偏差。Ge、Li 与 Zheng (2025) 用中国新闻共现数据证明新闻信号在关联主体之间存在可检验的动量溢出, 为"以新闻测度行业间传染压力"的效度提供了中国语境下的直接证据。第三条是银行冲击传导文献: Khwaja 与 Mian (2008) 及 Amiti 与 Weinstein (2018) 确立了银行层面特异性冲击向实体经济传导的识别范式, Greenstone、Mas 与 Nguyen (2020) 度量了信贷市场冲击的宏观后果, Bai 等 (2022) 专门考察了中国流动性紧缩期冲击沿借贷关系的传导。本测度把这一"冲击暴露"思想移植到舆论维度: 银行的经营结果 (融资成本、存款流动、金融科技投入等) 不仅取决于自身的媒体形象, 也取决于其所处行业在当年承受的舆论冲击总量。数据来源上, 分子 neg_count_{trk} 来自 stage 21 三家大模型 (gpt54nano、gemini31、deepseekv4) 独立打分后多数投票判定为负面的文章篇数, 经 41_panel_encode_aggregate 聚合到银行-年格; 分母 n_articles_llm_valid_{trk} 是同一聚合阶段产出的该轨 LLM 有效判定篇数。留篇门控遵循 2026-06-29 起的 full-only 口径: 一篇文章是否计入"银行金融科技报道宇宙"只由 full 轨的 llm_verified_full 判定, ctx 与 ss 轨是 conditional-on-full 的测度轨, 其行宇宙是 full 留篇集的子集, 各轨情感列在该子集上逐轨计算。
@@ -309,6 +318,7 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Cookson, J. A., Fox, C., Gil-Bazo, J., Imbet, J. F., & Schiller, C. (2026). Social media as a bank run catalyst. Journal of Financial Economics, 176, 104218. https://doi.org/10.1016/j.jfineco.2025.104218
+Dosumu, O. E., Sakariyahu, R., Oyekola, O., & Lawal, R. (2023). Panic bank runs, global market contagion and the financial consequences of social media. Economics Letters. https://doi.org/10.1016/j.econlet.2023.111170
 Borusyak, K., Hull, P., & Jaravel, X. (2025). A practical guide to shift-share instruments. Journal of Economic Perspectives, 39(1), 181-204. https://doi.org/10.1257/jep.20231370
 Ge, S., Li, S., & Zheng, H. (2025). Diamond cuts diamond: News co-mention momentum spillover prevails in China. Journal of Banking & Finance, 171, Article 107356. https://doi.org/10.1016/j.jbankfin.2024.107356
 Boucher, V., Rendall, M., Ushchev, P., & Zenou, Y. (2024). Toward a general theory of peer effects. Econometrica, 92(2), 543-565. https://doi.org/10.3982/ECTA21048

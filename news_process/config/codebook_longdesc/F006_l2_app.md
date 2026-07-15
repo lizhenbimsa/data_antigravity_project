@@ -17,6 +17,12 @@ citations:
   year: 2026
   title: "Large language models: An applied econometric framework"
   venue: Annual Review of Economics
+- doi: "10.1080/1351847x.2024.2399773"
+  type: "journal"
+  authors: "Guo, Y., Ma, F., Wang, Y., & Zhong, J."
+  year: 2024
+  title: "From text to treasure: the predictive superiority of a FinTech index in stock market returns"
+  venue: "The European Journal of Finance"
 - doi: 10.1002/smj.70023
   type: journal
   authors: Carlson, N. A., & Burbano, V.
@@ -266,12 +272,15 @@ citations:
   venue: "Financial Innovation"
   type: "journal"
 new_dois:
-  - "10.1080/01621459.2026.2689629"
-  - "10.1016/j.techfore.2026.124581"
-  - "10.1186/s40854-023-00524-z"
+- "10.1080/1351847x.2024.2399773"
+- "10.1080/01621459.2026.2689629"
+- "10.1016/j.techfore.2026.124581"
+- "10.1186/s40854-023-00524-z"
 ---
 
 ## CORE
+
+该文用文本挖掘构建基于媒体报道的金融科技指数, 并证明其对股票市场收益具有优于传统指标的预测力, 为本家族从媒体话语中提取金融科技叙事结构(而非依赖财务/专利数据)的方法论取向提供了平行证据。
 
 【构念与来源】
 app_frac 家族度量的构念是银行金融科技媒体叙事的创新位点 (innovation locus) 结构: 在一家银行给定年度全部被验证为银行金融科技报道、且大语言模型成功完成打分的新闻中, 创新位点被分类为"应用场景"的报道所占的比例。这里的"应用场景"指报道主题落在支付结算、消费信贷、财富管理、场景金融等直接面向业务功能的金融科技应用一侧; 与之对照的"底层技术"指报道主题落在区块链、人工智能、云计算、大数据基础设施等使能技术一侧。构念的直接理论出处是 Gomber, Koch & Siering (2017) 提出的数字金融立方体 (Digital Finance Cube) 框架, 该框架把数字金融研究对象沿数字金融业务功能、数字金融技术与技术概念、数字金融机构三个维度做正交切分, 其中"业务功能维"与"技术维"的区分构成本家族二元分类的骨架: 一条银行金科新闻要么在讲银行把某项使能技术引入自身技术栈 (技术维), 要么在讲银行把金融科技能力落到某个具体业务功能上 (业务功能维)。信息系统文献为这一区分提供了更一般的组织理论基础: Yoo, Henfridsson & Lyytinen (2010) 的分层模块化架构 (layered modular architecture) 指出数字创新天然分布在设备、网络、服务、内容等松耦合层上, 处于不同层的创新有不同的组织逻辑与价值捕获方式; Adner & Kapoor (2010) 则从创新生态系统角度论证, 上游组件技术与下游应用互补资产在生态位上的位置差异会系统性地改变技术代际更替中的企业绩效, 这正是"银行在技术层还是在应用层发力会带来差异化创新产出"这一研究假设的战略管理学根基。银行业实证文献进一步表明位点差异有真实的经济后果: Pierri & Timmer (2022) 发现危机前的银行技术采用强度显著影响危机期的贷款表现; Kwan, Lin, Pursiainen & Tai (2024) 用移动应用质量对银行数字能力做压力测试, 属于典型的应用场景侧测度; He, Jiang, Xu & Yin (2026) 把银行 IT 支出拆分为面向贷款技术的投资并考察其配置逻辑; Vives & Ye (2025) 在理论上刻画信息技术如何改变贷款人竞争格局。本家族与这些基于财务支出、应用评分或专利的技术强度测度互补: 它不度量银行"花了多少钱、拿了多少专利", 而是从媒体叙事中提取银行金融科技活动被公众话语感知到的位点结构。数据来源是本管道 stage 13 银行与金融科技词邻近共现硬过滤、stage 14 三轨文本物化之后的中文银行金融科技新闻语料 (生产口径约一千七百万条原始报道过滤后的留存集, 2007 至 2024 年, 110 家银行), 文章级创新位点标签在 stage 21 由三家大语言模型分类产生, 面板层在 stage 40 聚合为银行-年占比。
@@ -308,6 +317,7 @@ ss 轨列, 后缀 _ls 读作 locus-ss, tier=standard。差分要素: 分类输�
 
 <!-- rendered-citations:begin -->
 Ludwig, J., Mullainathan, S., & Rambachan, A. (2026). Large language models: An applied econometric framework. Annual Review of Economics. https://doi.org/10.1146/annurev-economics-120925-105620
+Guo, Y., Ma, F., Wang, Y., & Zhong, J. (2024). From text to treasure: the predictive superiority of a FinTech index in stock market returns. The European Journal of Finance. https://doi.org/10.1080/1351847x.2024.2399773
 Carlson, N. A., & Burbano, V. (2026). The use of LLMs to annotate data in management research: Foundational guidelines and warnings. Strategic Management Journal, 47(3), 699-725. https://doi.org/10.1002/smj.70023
 He, Z., Jiang, S., Xu, D., & Yin, X. (2026). Investing in lending technology: IT spending in banking. Management Science. https://doi.org/10.1287/mnsc.2024.04608
 Alfhaili, F. A., Bakoush, M., & Wolfe, S. (2026). Investing in fintech equity and bank innovation. Journal of International Financial Markets, Institutions and Money, 108, 102306. https://doi.org/10.1016/j.intfin.2026.102306

@@ -18,6 +18,18 @@ citations:
   year: 2026
   title: "The textual tone of annual reports and market attention: Evidence from Chinese listed companies"
   venue: Managerial and Decision Economics
+- doi: "10.1287/mnsc.2023.02247"
+  type: "journal"
+  authors: "Dyer, T., Lang, M., & Oh, J."
+  year: 2025
+  title: "Media Conglomeration, Local News, and Capital Market Consequences"
+  venue: "Management Science"
+- doi: "10.1002/smj.3600"
+  type: "journal"
+  authors: "Meyer, T., Kerkhof, A., Cennamo, C., & Kretschmer, T."
+  year: 2024
+  title: "Competing for attention on digital platforms: The case of news outlets"
+  venue: "Strategic Management Journal"
 - doi: 10.1016/j.jempfin.2025.101670
   type: journal
   authors: Chen, Z., Li, Z., Liu, J., & Liu, X.
@@ -242,11 +254,15 @@ citations:
   title: "The Allocation of Corporate News"
   venue: "SSRN Electronic Journal"
 new_dois:
-  - "10.2139/ssrn.5279231"
-  - "10.2139/ssrn.4768558"
+- "10.1287/mnsc.2023.02247"
+- "10.1002/smj.3600"
+- "10.2139/ssrn.5279231"
+- "10.2139/ssrn.4768558"
 ---
 
 ## CORE
+
+研究本地媒体所有权集中化(报业集团整合)如何削弱本地新闻覆盖的独立性与信息含量,并进而影响被覆盖公司的资本市场结果(如信息不对称与融资成本),为本家族的来源集中度构念提供直接的实证对照。 考察新闻媒体在数字平台上争夺读者注意力的竞争动态与由此产生的报道供给结构,呼应本家族用媒体来源分布集中度刻画'由谁来写'这一供给侧结构问题的构念。
 
 【构念与来源】
 本家族 (F011, 家族键 l2c_attention) 是 P2 论文 bank_fintech_attention 注意力处理变量族中的结构与归因派生支, 共三列: 跨媒体曝光集中度 attention_disp_full (家族 canonical, core 列)、归因纯度 attention_attr_share 与归因借位 attention_gap_full_ctx。它们与同一生产函数产出的量级测度 (attention_index 累积曝光、attention_pct 议程份额、attention_intensity_density 强度密度) 构成互补分工: 量级测度回答"这家银行的金融科技议题被媒体报道了多少", 本家族回答两个更深一层的结构问题。其一是供给结构问题: 这些报道由怎样的媒体结构供给, 是集中在少数几家媒体手里反复出现, 还是广泛分散于众多相互独立的媒体; 这是集中度维度。其二是内容归因问题: 报道正文里的金融科技内容, 有多大比例真正归因于目标银行自身的业务与动作, 而不是借了同篇报道中其他主体、行业综述段落或政策背景铺陈的"光"; 这是归因维度。前者由集中度列承载, 后者由归因占比与归因差两列以相对与绝对两种口径共同承载。三列同产于面板 runner 步骤 6b-2 的处理变量物化函数, 共享同一个银行乘年份分组、同一个 stage-21 verified 样本宇宙与同一套缺失契约, 因此在构念上是一组而非三个孤立测度。
@@ -306,6 +322,8 @@ P2 论文的主处理变量是 attention_index_full (extensive 累积曝光, 由
 
 <!-- rendered-citations:begin -->
 Li, Y. (2026). The textual tone of annual reports and market attention: Evidence from Chinese listed companies. Managerial and Decision Economics. https://doi.org/10.1002/mde.70100
+Dyer, T., Lang, M., & Oh, J. (2025). Media Conglomeration, Local News, and Capital Market Consequences. Management Science. https://doi.org/10.1287/mnsc.2023.02247
+Meyer, T., Kerkhof, A., Cennamo, C., & Kretschmer, T. (2024). Competing for attention on digital platforms: The case of news outlets. Strategic Management Journal. https://doi.org/10.1002/smj.3600
 Chen, Z., Li, Z., Liu, J., & Liu, X. (2026). Information salience, investor attention, and stock price crash risk. Journal of Empirical Finance, 85, 101670. https://doi.org/10.1016/j.jempfin.2025.101670
 Kalyani, A., Bloom, N., Carvalho, M., Hassan, T. A., Lerner, J., & Tahoun, A. (2025). The diffusion of new technologies. The Quarterly Journal of Economics, 140(2), 1299-1365. https://doi.org/10.1093/qje/qjaf002
 Gutknecht, D. (2025). Media coverage of corporate social irresponsibility and firm equity risk. Review of Quantitative Finance and Accounting, 65(4), 1373-1403. https://doi.org/10.1007/s11156-024-01383-0

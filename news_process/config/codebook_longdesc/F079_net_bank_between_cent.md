@@ -17,6 +17,18 @@ citations:
   year: 2026
   title: "Uncovering financial network structures and connectedness from textual risk disclosures"
   venue: Annals of Operations Research
+- doi: "10.1080/1540496x.2025.2562336"
+  type: "journal"
+  authors: "Xiang, Y., & Borjigin, S."
+  year: 2025
+  title: "Analyst Network: Implications for Systemic Risk of Non-Financial Firms in China"
+  venue: "Emerging Markets Finance and Trade"
+- doi: "10.1111/1467-8551.12849"
+  type: "journal"
+  authors: "Chen, S., Cumming, D., Liu, X., Ma, H., & Yan, C."
+  year: 2024
+  title: "Alumni Network Centrality and Competitive Aggressiveness"
+  venue: "British Journal of Management"
 - doi: 10.1007/s11747-024-01043-8
   type: journal
   authors: Nezami, M., Chisam, N., & Palmatier, R. W.
@@ -198,12 +210,16 @@ citations:
   venue: "Discover Artificial Intelligence"
   type: "journal"
 new_dois:
-  - "10.1287/mnsc.2023.4891"
-  - "10.1007/s40822-026-00371-0"
-  - "10.1007/s44163-025-00350-5"
+- "10.1080/1540496x.2025.2562336"
+- "10.1111/1467-8551.12849"
+- "10.1287/mnsc.2023.4891"
+- "10.1007/s40822-026-00371-0"
+- "10.1007/s44163-025-00350-5"
 ---
 
 ## CORE
+
+该文用中国上市公司分析师网络中心度衡量企业在信息网络中的居中地位, 发现居中企业系统性风险更低, 机制为信息透明度与公司治理提升, 与本家族用媒体共现网络介数中心度刻画银行结构位置的思路高度平行。 该文用高管校友网络的中心度衡量企业在人际关系网络中的结构位置, 并考察其对企业竞争行为的影响, 为网络结构位置度量 (含介数类中心度) 应用于企业层面结果变量提供了另一实证范式。
 
 【构念与来源】
 本家族度量的是介数中心度 (betweenness centrality) —— 一家银行在年度新闻共现网络中占据"桥梁 / 中介"位置的程度。构念源头是 Freeman (1978) 对社会网络中心度的经典厘清: 介数中心度衡量一个节点落在其他所有节点对之间最短路径上的相对频次, 数值越高, 说明信息或资源在网络里流转时越是必须途经该节点, 它越是叙事结构中的"咽喉"或"守门人"。在本项目里, 节点是银行, 边是"两家银行在同一批新闻报道里被共同提及"这一媒体共现关系。因此 bank_between_cent 捕捉的既不是银行的资产规模也不是市场份额, 而是它在媒体话语结构中的经纪地位: 当两簇本来不直接同框的银行, 要靠某家银行才被叙事连在一起时, 这家银行的介数值就高; 反过来, 一家银行即便被频繁报道, 只要它总与同一批银行扎堆出现、从不充当跨群的连接点, 其介数也可以很低。这一"居中即有信息优势"的直觉, 与结构洞理论强调的跨群桥接收益、以及 Grieser 等 (2022) 在公司财务政策网络效应中论证的"中介节点会放大同群溢出"是一脉相承的; 而把银行系统当作一张互联网络来理解风险与信息传导, 正是 Jackson 与 Pernoud (2021) 系统性风险综述、以及 Fang 等 (2024) 关于媒体情绪经由网络影响银行系统性风险与存款稳定性的研究所奠定的分析范式。
@@ -244,6 +260,8 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
+Xiang, Y., & Borjigin, S. (2025). Analyst Network: Implications for Systemic Risk of Non-Financial Firms in China. Emerging Markets Finance and Trade. https://doi.org/10.1080/1540496x.2025.2562336
+Chen, S., Cumming, D., Liu, X., Ma, H., & Yan, C. (2024). Alumni Network Centrality and Competitive Aggressiveness. British Journal of Management. https://doi.org/10.1111/1467-8551.12849
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
 Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223
 Xu, Y., & Zhao, X. (2024). How does node centrality in a financial network affect asset price prediction?. The North American Journal of Economics and Finance, 73, 102163. https://doi.org/10.1016/j.najef.2024.102163

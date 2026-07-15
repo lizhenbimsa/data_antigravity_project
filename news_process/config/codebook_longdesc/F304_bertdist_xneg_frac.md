@@ -44,6 +44,18 @@ citations:
   venue: Journal of Financial Economics
   vol: 176
   pages_or_artno: "104218"
+- doi: "10.3390/jrfm19050302"
+  type: "journal"
+  authors: "Lizelle Ann V. Cruz"
+  year: 2026
+  title: "Sentiment as Early Warning: A Systemic Risk Index for the Philippines"
+  venue: "Journal of Risk and Financial Management"
+- doi: "10.1007/s10479-025-06567-y"
+  type: "journal"
+  authors: "Dimitris Anastasiou, Apostolos Katsafados, Christos Tzomakas"
+  year: 2025
+  title: "Banks' stock price crash risk prediction with textual analysis: a machine learning approach"
+  venue: "Annals of Operations Research"
 - doi: 10.1007/s11156-024-01383-0
   type: journal
   authors: Gutknecht, D.
@@ -240,10 +252,14 @@ citations:
   title: "Annual report tone and bank risk-taking behavior: Evidence from China"
   venue: Research in International Business and Finance
 new_dois:
-  - "10.1016/j.ribaf.2025.102881"
+- "10.3390/jrfm19050302"
+- "10.1007/s10479-025-06567-y"
+- "10.1016/j.ribaf.2025.102881"
 ---
 
 ## CORE
+
+该研究用金融领域情感模型集成从新闻标题构建高频系统性风险情绪指数,发现情绪急剧恶化往往领先于重大金融压力事件数周出现,呼应了极端负面尾部占比作为阈值型风险信号的构念。 该研究以机器学习文本分析方法从银行相关文本中提取情感信号预测银行股价崩盘风险,支持负面情绪尾部信息(而非均值语调)对银行类阈值触发型后果具有更强解释力的构念。
 
 【构念与来源】
 本家族测度的构念是媒体报道情绪分布的极端负面尾部占比 (extreme negative fraction), 即在一家银行一个年度的全部有效报道中, 被中文金融领域 BERT 情感模型以高置信度判定为负面的报道所占的比例。它回答的问题与均值语调截然不同: 均值语调问的是"这一年媒体对这家银行的总体口风偏正还是偏负", 而极端负面占比问的是"这一年里有多大比例的报道属于几乎不留余地的强烈唱衰"。这一区分具有实质经济含义。文本情绪研究的开山工作已经确认负面词语承载了金融文本中最主要的信息含量, Tetlock (2007) 发现媒体悲观情绪对市场价格与交易量有可测度的预测力, Loughran & McDonald (2011) 则表明负面词表是词典法中最稳健、噪声最低的一支。但均值测度天然掩盖分布形状: 两家银行可以拥有完全相同的年度平均语调, 其中一家的报道全部温和中性略偏负, 另一家则是多数正面报道与少数极端负面报道的混合。对于存款人挤兑、监管介入、同业信任这类具有阈值触发性质的后果变量, 起作用的往往正是后一种"少数极端坏消息"而非前一种"普遍轻微不满"。Chen, Goldstein, Huang & Vashishtha (2022) 关于银行透明度与存款流动的证据, 以及 Cookson, Fox, Gil-Bazo, Imbet & Schiller (2026) 关于社交媒体作为挤兑催化剂的研究, 都指向储户对负面信息的反应是高度非线性的: 温和的坏消息可以被忽略, 而极端负面叙事一旦越过某个显著性门槛, 就可能引发提款、传染与自我实现的流动性螺旋; Jiang, Matvos, Piskorski & Seru (2024) 对二〇二三年美国银行动荡的分析同样强调未保险存款人对尾部风险信号的敏感。在中国语境下这一尾部测度还有一层额外的信息经济学价值: Piotroski, Wong & Zhang (2015) 证明政治激励会系统性压制负面信息的发布, Qin, Strömberg & Wu (2018) 与 You, Zhang & Zhang (2018) 分别刻画了中国媒体的偏倚结构与市场化媒体的监督功能。在负面报道整体受抑的环境中, 一篇仍然以极高负面概率见报的文章, 其越过审查与自我审查成本的事实本身就构成更强的信号, 因此极端负面占比在中国银行业样本中的信息密度可能高于负面报道比例的一般水平。本家族数据来源为 pipeline 阶段二十三: 三个中文金融 BERT 模型对每篇银行金融科技报道输出逐类概率, 本家族只消费其中的负面类概率列, 在阶段四十的面板构造中以纯后处理方式派生, 不重跑任何模型推理, 属于零额外成本的分布形状测度族。
@@ -412,6 +428,8 @@ Wei, Wei, Jing & Jing (2025, Research in International Business and Finance) 利
 
 <!-- rendered-citations:begin -->
 Cookson, J. A., Fox, C., Gil-Bazo, J., Imbet, J. F., & Schiller, C. (2026). Social media as a bank run catalyst. Journal of Financial Economics, 176, 104218. https://doi.org/10.1016/j.jfineco.2025.104218
+Lizelle Ann V. Cruz. (2026). Sentiment as Early Warning: A Systemic Risk Index for the Philippines. Journal of Risk and Financial Management. https://doi.org/10.3390/jrfm19050302
+Dimitris Anastasiou, Apostolos Katsafados, Christos Tzomakas. (2025). Banks' stock price crash risk prediction with textual analysis: a machine learning approach. Annals of Operations Research. https://doi.org/10.1007/s10479-025-06567-y
 Gutknecht, D. (2025). Media coverage of corporate social irresponsibility and firm equity risk. Review of Quantitative Finance and Accounting, 65(4), 1373-1403. https://doi.org/10.1007/s11156-024-01383-0
 Lan, Y., Wu, Y., Xu, W., Feng, W., & Zhang, Y. (2025). Chinese fine-grained financial sentiment analysis with large language models. Neural Computing and Applications, 37(30), 24883-24892. https://doi.org/10.1007/s00521-024-10603-6
 Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications, 264, 125739. https://doi.org/10.1016/j.eswa.2024.125739

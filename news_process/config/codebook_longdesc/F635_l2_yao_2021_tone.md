@@ -38,6 +38,12 @@ citations:
   venue: Expert Systems with Applications
   vol: 264
   pages_or_artno: 125739
+- doi: "10.3390/bdcc9100263"
+  type: "journal"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  venue: "Big Data and Cognitive Computing"
 - doi: 10.1111/ecin.13264
   type: journal
   authors: Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E.
@@ -202,13 +208,16 @@ citations:
   venue: "Heliyon"
   type: "journal"
 new_dois:
-  - "10.1016/j.iref.2024.01.067"
-  - "10.1007/s11135-024-01896-9"
-  - "10.1016/j.ribaf.2025.102881"
-  - "10.1016/j.heliyon.2024.e30211"
+- "10.3390/bdcc9100263"
+- "10.1016/j.iref.2024.01.067"
+- "10.1007/s11135-024-01896-9"
+- "10.1016/j.ribaf.2025.102881"
+- "10.1016/j.heliyon.2024.e30211"
 ---
 
 ## CORE
+
+该文用中文金融新闻构建情感分类与股价预测联合框架, 系统比较五类词嵌入与17种传统/深度/Transformer模型及大语言模型微调方案, 为词典法与LLM/BERT语调测度互为稳健性的多方法设计提供近期方法学参照。
 
 【构念与来源】
 本家族度量的是同一 bank-year 单元内, 以「姚加权等 (2021) 金融领域中文情绪词典」(下称 yao_2021 词典) 为极性判据算出的新闻语调 (tone), 即某银行在某一年度被媒体报道时, 正面用词与负面用词的净倾向, 以及围绕这一净倾向派生的若干加权均值、横截面离散度与创新落点子样本变体。这里的「语调」不是抽象情绪, 而是一个可回归的连续标量: 报道整体越偏正面褒扬, 值越接近 +1; 越偏负面质疑, 值越接近 -1; 中性或正负相抵则趋近 0。需要提醒的是, 在本项目的实证语料上, 名义双极 [-1,1] 的分布实为单极偏正 (favorability/optimism 口径) —— 媒体对银行金科报道整体偏正向, 因此该测度更宜解读为「褒扬强度」而非对称的褒贬轴, 面板诊断对 tone 均值是否为正设有研判提示。yao_2021 词典是六部并行的中文金融情感词典之一, 与 loughran (Loughran-McDonald 2011 主译第六部)、jiang_2021、bian_2021、du_2022、you_2018 一同在项目 stage 22 (tone_words) 被并列应用, 词条与极性权重的单一事实源是 config/tone_dicts.json, 而非各词典原始发布的散料文件。之所以同时上六部词典而非只取一部, 是因为词典法本身是一种「测量工具」而非「真值」: 盘上实证显示逐篇最优词典会在观测间漂移 (以逐篇匹配数计, yao 约 51%、du 约 41% 的篇章各自胜出), 说明没有哪一部词典对全部报道普适地最优。把六部词典各自算出的 tone 并排为互为稳健性的平行测量, 是防止主结论被单一词典的构念偏差、词表覆盖缺口或语域漂移所驱动的必要设计。yao_2021 家族在这一并排结构里承担「一部独立词典」的角色, 其 canonical 列 yao_2021_tone_full 是本家族 21 列的核心测度, 其余 20 列都是它在文本轨、加权方案、汇总统计量与子样本维度上的规格变体。本家族的最终对象是银行金融科技舆论环境: 银行既是金融科技的采纳者也是被颠覆者, 媒体对其金科战略的语调构成一种外部信息环境与声誉纪律, 这一构念定位与下方文献脉络一致。
@@ -335,6 +344,7 @@ yao_2021 家族须与三类相邻测度严格区分, 以免在稳健性表里被
 
 <!-- rendered-citations:begin -->
 Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications, 264, 125739. https://doi.org/10.1016/j.eswa.2024.125739
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing enthusiasm: Media sentiment and the disciplining role of quarterly earnings announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036

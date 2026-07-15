@@ -51,6 +51,12 @@ citations:
   venue: Economics Letters
   vol: 260
   pages_or_artno: "112803"
+- doi: "10.1111/acfi.13328"
+  type: "journal"
+  authors: "Ni, Y."
+  year: 2024
+  title: "Media coverage and disclosure of short‐termism tone: Evidence from China"
+  venue: "Accounting & Finance"
 - doi: 10.1016/j.eswa.2024.125739
   type: journal
   authors: Ma, Y., Zhang, T., & Zhang, P.
@@ -263,13 +269,16 @@ citations:
   venue: "Managerial and Decision Economics"
   type: "journal"
 new_dois:
-  - "10.1007/s11135-024-01896-9"
-  - "10.1016/j.ribaf.2025.102881"
-  - "10.3390/bdcc9100263"
-  - "10.1002/mde.70100"
+- "10.1111/acfi.13328"
+- "10.1007/s11135-024-01896-9"
+- "10.1016/j.ribaf.2025.102881"
+- "10.3390/bdcc9100263"
+- "10.1002/mde.70100"
 ---
 
 ## CORE
+
+该文利用文本语调(tone)测度方法, 考察中国上市公司媒体报道与短期主义披露语调之间的关系, 与本测度族基于词典的语调打分构念高度相关。
 
 【构念与来源】
 本家族测度的构念是银行金融科技新闻报道的词典法语调 (dictionary-based tone): 对每一篇进入样本的银行与金融科技共现报道, 用情感词典逐词计分并归一化为区间约在负一到正一之间的极性得分, 再在银行乘年份的面板格内做均值聚合, 得到该银行当年被媒体报道时的平均情感倾向。得分为正表示该银行金融科技相关报道整体偏正面, 为负表示整体偏负面, 接近零表示中性或正负相抵。家族名中的关键词是跨词典综合 (dict average): 本家族不依赖任何单一词典, 而是把六部中文金融情感词典的银行年语调逐格做等权算术平均, 从而把单一词典的词表覆盖偏差与编纂口味平均掉。六部词典在代码单一事实源 (encode 模块的词典名列表) 中登记为姜富伟等中文金融词典, 姚加权等词典, 边江泽等词典 (Bian et al. (2021) 会计金融中文情感词典), Du et al. (2022) 发表于金融评论的中文金融情感词典, 游家兴等媒体报道词典 (You et al. (2018) 关于中国财经媒体笔杆子俘获的研究所配套的词表传统), 以及 Loughran 与 McDonald 金融词典的中文主译全本 (Loughran 和 McDonald (2011) 原典, 项目内以词表主译落地, 单一事实源为 tone_dicts.json)。词典法测量金融文本语调的范式由 Tetlock (2007) 与 Loughran 和 McDonald (2011) 奠基: 前者证明媒体悲观语调对市场有系统性预测力, 后者证明通用词典在金融语境会系统性误判, 领域专用词典是必需品。中文语境的领域专用性论证由 Du et al. (2022) 给出: 中文金融文本的情感词分布与英文和通用中文都显著不同, 直接翻译或借用通用词典会引入大量噪声, 这正是本家族坚持六部中文金融专用词典并联的原因。近年的细粒度中文词典工作 (Ma et al. (2025) 的 CN-FSD) 进一步表明中文金融情感词典仍在演进, 多词典平均是对"词典代际差异"这一测量不确定性来源的直接对冲。数据来源链条是: 原始媒体报道语料经 stage 13 银行与金融科技词邻近共现硬过滤 (只保留目标银行与至少一个金融科技词在正负一句窗口内共现的文章, 标题参与匹配; 银行侧判定带否定与短名过滤以剔除误匹配, 金融科技侧为词表裸匹配, 这一判定不对称是全项目统一口径), stage 14 物化三轨文本 (标题 prepend 进正文, 原始内容列不动), stage 22 逐词典计分, 面板聚合阶段按银行乘年份收拢。语料的经济学身份是"银行乘金融科技"交叉叙事的媒体切片, 因此本家族语调不是银行的一般媒体形象, 而是特定于其金融科技活动的媒体评价 — 这一构念窄化是与一般银行声誉测度的根本区别。词典列名与别名的单一事实源在 tone_words 模块的词典列别名映射与 tone_dicts.json 词表文件: loughran 词典在 v3.10.0 加入为第六部 (Loughran 和 McDonald (2011) 词表的中文主译全本, 正面与负面两侧均译), 加入的同时删除了旧的非情感占位词表, 凡涉 L&M 词表内容一律以 tone_dicts.json 落盘版本为准而不回读词典源料。
@@ -456,6 +465,7 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Aksoy-Yurdagul, D., Buchner, A., & Zareei, A. (2026). The persistence of news sentiment: Implications for return predictability. Economics Letters, 260, 112803. https://doi.org/10.1016/j.econlet.2025.112803
+Ni, Y. (2024). Media coverage and disclosure of short‐termism tone: Evidence from China. Accounting & Finance. https://doi.org/10.1111/acfi.13328
 Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications, 264, 125739. https://doi.org/10.1016/j.eswa.2024.125739
 Sun, Y., Yuan, H., & Xu, F. (2025). Financial sentiment analysis for pre-trained language models incorporating dictionary knowledge and neutral features. Natural Language Processing Journal, 11, 100148. https://doi.org/10.1016/j.nlp.2025.100148
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264

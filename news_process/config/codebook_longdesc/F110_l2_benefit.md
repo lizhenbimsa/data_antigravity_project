@@ -37,6 +37,12 @@ citations:
   vol: 39
   issue: 5
   pages_or_artno: 1227-1266
+- doi: "10.1080/07421222.2023.2301176"
+  type: "journal"
+  authors: "Zheng, J., Ng, K. C., Zheng, R., & Tam, K. Y."
+  year: 2024
+  title: "The Effects of Sentiment Evolution in Financial Texts: A Word Embedding Approach"
+  venue: "Journal of Management Information Systems"
 - doi: 10.48550/arXiv.2506.05176
   type: arxiv
   authors: Zhang, Y., Li, M., Long, D., Zhang, X., Lin, H., Yang, B., Xie, P., Yang, A., Liu, D., Lin, J., Huang, F., & Zhou, J.
@@ -222,10 +228,13 @@ new_dois:
 - 10.1177/0003122419877135
 - "10.1111/eufm.12509"
 - "10.1057/s41310-026-00371-1"
+- "10.1080/07421222.2023.2301176"
 - "10.3390/bdcc9100263"
 ---
 
 ## CORE
+
+该文用词嵌入方法追踪金融文本中情感表达随时间的演化及其对企业结果的影响,为本家族以嵌入投影法测度报道态度随语料演化的稳健性提供了同期方法论近邻证据。
 
 【构念与来源】
 本家族测量的构念是"媒体报道对银行金融科技活动之经营效益的态度分布形状"。它不是问媒体报道了多少金融科技 (那是注意力/曝光测度), 也不是问报道笼统上是正面还是负面 (那是通用情感测度), 而是沿着一条特定的语义轴发问: 在这篇报道的叙述里, 金融科技或数字化转型对这家银行自身的经营活动究竟是"利好"还是"损害"。方法论蓝本是 Jha, Liu 与 Manela (2026) 在其"金融是否有益社会"研究中提出的双极连续余弦投影框架: 研究者先书写若干对语义严格对偶的正极与负极锚点句 (每对之间只改动承载态度方向的关键词, 即所谓 single-word-change 对偶), 把两极锚点句分别嵌入到高维语义空间, 以正极均值向量减负极均值向量得到一条"利好经营"方向轴, 再把每篇新闻的嵌入向量对这条轴做余弦投影, 得到一个连续的文章级态度分值。该做法的更上游思想来自文化社会学中的"文化几何学"传统: Kozlowski, Taddy 与 Evans (2019) 论证了在词嵌入空间中用正负端点的差分向量可以稳定地定义诸如富裕对贫穷、高雅对通俗这类语义维度, 并且维度方向对语料扰动具有可复现性。本家族把这一"差分向量即语义维度"的思想移植到银行金融科技语境: 正极锚点句形如"金融科技提升该银行的经营效率", 负极锚点句形如"金融科技降低该银行的经营效率" (fix(D10, 2026-07-14): 示例句原带"了"字, 与实际锚点设计规则相悖——锚点须表达一般性态度/信念而非描述已完成的过去事件, 见 pipeline/features/benefit_society.py 锚点表附近注释; 十对真实锚点均无"了"字, 此处示例已订正对齐), 共十对严格对偶, 差分平均后构成本家族全部十八列的共同投影轴。家族内三个基名分工明确: benefit_pos_frac 是 bank-year 内投影得分高于阈值中心的文章占比, 捕捉"利好叙事的相对频率"; benefit_neg_frac 是低于阈值中心的文章占比, 捕捉"损害叙事的相对频率"; benefit_std 是 bank-year 内文章投影得分的样本标准差, 捕捉"媒体在该银行金融科技效益问题上的态度分歧程度"。三者与同族的连续均值测度 benefit_mean (另族登记) 互补: 均值刻画位置, 占比对刻画两尾质量, 标准差刻画散布, 合起来近似还原了 bank-year 内态度分布的形状。数据来源是本项目银行金融科技新闻语料经 stage 13 共现硬过滤与 stage 14 三轨文本物化之后的文章集合, 生产语料为 2007 至 2024 年约一千七百万条中文媒体报道过滤后的银行金融科技子集; 开发盘上仅有两年试跑切片, 覆盖率与方差结构均不能外推到生产规模。
@@ -337,6 +346,7 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
+Zheng, J., Ng, K. C., Zheng, R., & Tam, K. Y. (2024). The Effects of Sentiment Evolution in Financial Texts: A Word Embedding Approach. Journal of Management Information Systems. https://doi.org/10.1080/07421222.2023.2301176
 Zhang, Y., Li, M., Long, D., Zhang, X., Lin, H., Yang, B., Xie, P., Yang, A., Liu, D., Lin, J., Huang, F., & Zhou, J. (2025). Qwen3 Embedding: Advancing text embedding and reranking through foundation models. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2506.05176
 Tang, Y., & Yang, Y. (2025). FinMTEB: Finance massive text embedding benchmark. Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing, 3620-3638. https://doi.org/10.18653/v1/2025.emnlp-main.179
 Gabaix, X., Koijen, R. S. J., Richmond, R. J., & Yogo, M. (2025). Asset embeddings. NBER Working Paper No. 33651 [Working Paper]. https://doi.org/10.3386/w33651

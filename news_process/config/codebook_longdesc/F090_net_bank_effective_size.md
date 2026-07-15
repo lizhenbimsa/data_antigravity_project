@@ -17,6 +17,18 @@ citations:
   year: 2026
   title: "Uncovering financial network structures and connectedness from textual risk disclosures"
   venue: Annals of Operations Research
+- doi: "10.1016/j.jbusres.2025.115452"
+  type: "journal"
+  authors: "You, S., Wang, L., Zhou, K. Z., & Jia, L."
+  year: 2025
+  title: "Structural holes and firm innovation in industrial clusters: A dual embeddedness perspective"
+  venue: "Journal of Business Research"
+- doi: "10.1016/j.pacfin.2025.102826"
+  type: "journal"
+  authors: "Guo, M., Long, W., Zhong, Y., & Zhang, W."
+  year: 2025
+  title: "Who knows more? The role of structural hole spanners in accurate information identification on social media"
+  venue: "Pacific-Basin Finance Journal"
 - doi: 10.1007/s11747-024-01043-8
   type: journal
   authors: Nezami, M., Chisam, N., & Palmatier, R. W.
@@ -176,12 +188,16 @@ citations:
   venue: "Asia Pacific Journal of Management"
   type: "journal"
 new_dois:
-  - "10.1080/2833115x.2026.2662558"
-  - "10.1016/j.najef.2024.102307"
-  - "10.1007/s10490-026-10116-x"
+- "10.1016/j.jbusres.2025.115452"
+- "10.1016/j.pacfin.2025.102826"
+- "10.1080/2833115x.2026.2662558"
+- "10.1016/j.najef.2024.102307"
+- "10.1007/s10490-026-10116-x"
 ---
 
 ## CORE
+
+该文提出双嵌入视角,发现在产业集群情境下占据结构洞(高有效规模型经纪位置)对企业创新可能有害,修正了结构洞理论对经纪收益的传统假设,与F090有效规模测度的构念直接相关。 该文在社交媒体金融信息网络中识别结构洞跨越者(非冗余信息触达者),证明其信息识别准确性显著更高且可转化为超额投资回报,为有效规模一类结构洞测度的经济含义提供了金融市场的最新实证支撑。
 
 【构念与来源】
 本家族刻画的是每一家目标银行在"银行∧银行新闻共现网络"中的有效规模, 即 Burt (2004) 结构洞理论中的 effective size 概念在中国银行业金融科技新闻语料上的落地。有效规模回答的问题是: 一家银行在同一批新闻里与多少家其它银行被一起提及, 而这些被共同提及的同行之间又有多少是"彼此重复的"。若一家银行的所有共现同行彼此之间也高度互相共现, 那么它们所承载的信息在很大程度上是冗余的, 该银行真正能触达的"非重复"信息源就少; 反之, 若它的共现同行彼此互不相干、分处不同的信息簇, 该银行就跨越了多个结构洞, 其有效规模接近其原始共现邻居数。构念的经济学含义是: 有效规模高的银行处在信息不重叠、跨群桥接的位置上, 更可能率先接触到异质的金融科技动向、监管信号与同业创新, 而有效规模低的银行则被锁在一个内部高度冗余的小圈子里。数据来源是本项目的中文银行与金融科技新闻语料, 经 stage 13 银行∧金科邻近共现硬过滤、stage 21 full-only 留篇门控清洗后, 进入 24_herd_decay 的 verified 篇章级宇宙 (df_exploded), 每一行是一篇文章对一家目标银行的命中记录, 携带 docid、target_bank、year 与标题正文文本。网络的"节点"是当年在该 verified 宇宙中存活的目标银行, "边"是这些银行在同一篇报道中被共同提及的事实。需要强调, 此处的判据主体是银行与银行的共现 (bank∧bank), 与 stage 13 用于留篇的银行与金融科技词的共现 (bank∧fintech) 是两个正交的概念空间, 边权与节点集均由前者决定。之所以选择新闻共现而非监管报表或持股关系来构造银行间网络, 是因为本项目的研究对象是媒体信息环境对银行金融科技行为的塑造: 两家银行被同一篇报道并列书写, 意味着它们在公众与市场的认知里被归入同一叙事框架 (同一波监管风向、同一类创新竞争、同一场风险事件), 这种"叙事共现"恰是信息溢出与同群比较发生的天然界面。有效规模由此度量的是"一家银行在媒体叙事网络里所处的桥接位置能触达多广的非重叠信息面"。落到面板, 本家族三列均为 bank-year 粒度: 网络逐年重建, 有效规模按 target_bank 与 year 左连接进 40_panel_yearly 面板, 因此同一家银行在不同年份可有不同的有效规模, 反映其网络位置随媒体叙事结构的年度演化。直观上, 有效规模高的银行像是横跨多个不相往来的新闻小圈子的"信息枢纽", 有效规模低的银行则被困在一个成员彼此高度重复报道的封闭簇内。
@@ -221,6 +237,8 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
+You, S., Wang, L., Zhou, K. Z., & Jia, L. (2025). Structural holes and firm innovation in industrial clusters: A dual embeddedness perspective. Journal of Business Research. https://doi.org/10.1016/j.jbusres.2025.115452
+Guo, M., Long, W., Zhong, Y., & Zhang, W. (2025). Who knows more? The role of structural hole spanners in accurate information identification on social media. Pacific-Basin Finance Journal. https://doi.org/10.1016/j.pacfin.2025.102826
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
 Han, M., Kim, S. H., & Nanda, V. K. (2024). Institutional brokerage networks: Facilitating liquidity provision. Review of Financial Studies, 37(9), 2903-2935. https://doi.org/10.1093/rfs/hhae026
 Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223

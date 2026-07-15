@@ -63,6 +63,12 @@ citations:
   vol: 15
   issue: 1
   pages_or_artno: Article 20
+- doi: "10.3390/bdcc9100263"
+  type: "journal"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  venue: "Big Data and Cognitive Computing"
 - doi: 10.1111/1911-3846.12832
   type: journal
   authors: Huang, A. H., Wang, H., & Yang, Y.
@@ -130,6 +136,7 @@ citations:
   title: "Can ChatGPT Forecast Stock Price Movements? Return Predictability and Large Language Models"
   venue: "SSRN Electronic Journal (forthcoming, Journal of Financial Economics)"
 new_dois:
+  - "10.3390/bdcc9100263"
   - "10.2139/ssrn.4412788"
 ---
 
@@ -461,6 +468,7 @@ BERT 法的直接方法学锚是 Huang, Wang & Yang (2023): 他们提出并验�
 
 <!-- rendered-citations:begin -->
 Punetha, N., & Jain, G. (2025). Advancing sentiment analysis by addressing negation handling challenge via unsupervised mathematical approach. Social Network Analysis and Mining, 15(1), Article 20. https://doi.org/10.1007/s13278-025-01416-z
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A large language model for extracting information from financial text. Contemporary Accounting Research, 40(2), 806-841. https://doi.org/10.1111/1911-3846.12832
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036

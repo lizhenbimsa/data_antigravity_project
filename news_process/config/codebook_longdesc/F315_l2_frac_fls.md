@@ -21,6 +21,12 @@ citations:
   vol: 19
   issue: 6
   pages_or_artno: "Article 391"
+- doi: "10.3390/bdcc9100263"
+  type: "journal"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  venue: "Big Data and Cognitive Computing"
 - doi: 10.1142/S1094406025500064
   type: journal
   authors: "Liu, T., Zhang, J., & Wu, J."
@@ -136,6 +142,7 @@ citations:
   venue: "Heliyon"
   type: "journal"
 new_dois:
+  - "10.3390/bdcc9100263"
   - "10.1002/isaf.1549"
   - "10.1111/jbfa.70010"
   - "10.1016/j.heliyon.2023.e15329"
@@ -178,6 +185,7 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Wu, Y. (2026). Forward-looking disclosure with and without time frames: Determinants, market responses, and implications. Journal of Risk and Financial Management, 19(6), Article 391. https://doi.org/10.3390/jrfm19060391
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 Liu, T., Zhang, J., & Wu, J. (2026). Forward-looking statements in annual reports and firms' financing constraints: A machine learning approach. The International Journal of Accounting, 61(1), Article 2550006. https://doi.org/10.1142/S1094406025500064
 Abedin, M. Z., Goldstein, M. A., Huang, Q., & Zeng, H. (2024). Forward-looking disclosure effects on stock liquidity in China: Evidence from MD&A text analysis. International Review of Financial Analysis, 95, Article 103484. https://doi.org/10.1016/j.irfa.2024.103484
 Loughran, T., & McDonald, B. (2020). Textual analysis in finance. Annual Review of Financial Economics, 12(1), 357-375. https://doi.org/10.1146/annurev-financial-012820-032249

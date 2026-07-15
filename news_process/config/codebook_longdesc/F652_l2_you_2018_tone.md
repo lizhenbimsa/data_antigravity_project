@@ -39,6 +39,12 @@ citations:
   venue: Expert Systems with Applications
   vol: 264
   pages_or_artno: 125739
+- doi: "10.3390/bdcc9100263"
+  type: "journal"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  venue: "Big Data and Cognitive Computing"
 - doi: 10.1111/ecin.13264
   type: journal
   authors: Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E.
@@ -187,13 +193,16 @@ citations:
   title: "Media tone disagreement and the cross-section of stock returns: Evidence from China"
   venue: "International Review of Economics & Finance"
 new_dois:
-  - "10.1002/isaf.1549"
-  - "10.1016/j.ememar.2024.101234"
-  - "10.1016/j.pacfin.2025.102717"
-  - "10.1016/j.iref.2025.104751"
+- "10.3390/bdcc9100263"
+- "10.1002/isaf.1549"
+- "10.1016/j.ememar.2024.101234"
+- "10.1016/j.pacfin.2025.102717"
+- "10.1016/j.iref.2025.104751"
 ---
 
 ## CORE
+
+该文系统比较词嵌入方法与大语言模型在中文财经新闻情感分类与短期股价预测上的表现,为词典法与机器学习/LLM法的测量三角提供了最新的方法学参照。
 
 【构念与来源】
 本家族度量的是银行金融科技新闻在文章层被 You et al. (2018) 中文金融情感词典判定的语调极性, 再按银行年聚合而成的连续测度。构念上它回答的问题是: 在某一银行某一年被媒体报道的金融科技相关叙事, 整体上偏正面(利好、进取、成效)还是偏负面(风险、亏损、监管收紧)。之所以以 You et al. (2018) 为命名锚, 是因为该文 "Who Captures the Power of the Pen?" 系统构建并验证了适配中国媒体语境的中文金融情感词表, 并揭示了官方媒体与市场化媒体在报道语气上的系统差异——这一"笔的权力"分布差异, 正是本家族后续引入媒体权威加权轨(见下)的直接理论来源。词典法情感测度在会计与金融文本分析中已是主流范式之一, Loughran & McDonald (2011) 奠定了以领域专用词表替代通用心理学词表的方法论转向, Loughran & McDonald (2016) 的综述进一步确立了词典法与统计学习法并置、互为验证的实证规范。本项目对中文语料的处理, 在词表选择上不依赖单一来源, 而是把 You et al. (2018) 与 Du et al. (2022)、以及其他若干中文金融词典并列为一组"六词典"消融梯度, 使任一词表的构造偏差不至于单独驱动主结论。
@@ -332,6 +341,7 @@ _std 变体把聚合算子由加权均值改为银行年组内文章语气分数
 
 <!-- rendered-citations:begin -->
 Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications, 264, 125739. https://doi.org/10.1016/j.eswa.2024.125739
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
 Marchetti, S., Tarducci, E., & Branzoli, N. (2025). Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.5220056
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing enthusiasm: Media sentiment and the disciplining role of quarterly earnings announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104

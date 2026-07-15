@@ -20,6 +20,12 @@ citations:
   venue: Journal of Financial Economics
   vol: 176
   pages_or_artno: "104218"
+- doi: "10.1016/j.jbankfin.2026.107694"
+  type: "journal"
+  authors: "Kazinnik, S., Killen, C., Scidá, D., & Wu, J. Y."
+  year: 2026
+  title: "News and networks: Using financial news coverage to measure bank interconnectedness"
+  venue: "Journal of Banking & Finance"
 - doi: 10.1007/s10479-026-07305-8
   type: journal
   authors: Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y.
@@ -303,13 +309,16 @@ citations:
   title: "How do co-shareholding networks affect negative media coverage? Evidence from China"
   venue: "Accounting & Finance"
 new_dois:
-  - "10.1111/abac.12341"
-  - "10.1016/j.frl.2024.105780"
-  - "10.1007/s44163-025-00350-5"
-  - "10.1111/acfi.13091"
+- "10.1016/j.jbankfin.2026.107694"
+- "10.1111/abac.12341"
+- "10.1016/j.frl.2024.105780"
+- "10.1007/s44163-025-00350-5"
+- "10.1111/acfi.13091"
 ---
 
 ## CORE
+
+该文用金融新闻报道中银行共同提及构建文本网络并以中心度测度银行间关联度,与本家族用媒体共现网络刻画银行强度中心度的构念高度同源。
 
 【构念与来源】
 本家族测量的构念是银行在年度媒体共现网络中的加权连接强度, 即节点强度中心度 (node strength centrality)。其底层直觉是: 当两家银行反复被同一批新闻报道共同提及时, 二者在媒体信息空间中形成一条可量化的联系通道 — 这种通道既可能反映真实的业务与同业关联 (同一监管事件、同一银团、同类金融科技合作), 也可能反映媒体叙事把两家银行归入同一认知类别 (如同为股份制银行、同陷某类风险事件), 无论哪种机制, 通道的存在与强度都刻画了信息、情绪与关注度在银行间扩散的潜在路径。Freeman (1978) 对中心度概念做了奠基性澄清, 把节点重要性区分为度 (直接连接数)、中介 (桥梁地位)、接近 (到全网的距离) 三种互不可替代的语义; 在无权图中, 度中心度只回答一家银行认识多少邻居。但媒体共现网络天然是加权的: 两家银行一年内共现一篇与共现上百篇, 联系强度不可同日而语。Barrat et al. (2004) 系统论证了加权网络的结构性质不能由无权拓扑还原, 并把节点强度 (与该节点相连全部边权之和) 确立为加权网络的一阶节点统计量; Opsahl et al. (2010) 进一步把度与强度统一进一个可调参数族, 指出强度是加权度中心度在纯权重端的极限情形。本家族的 bank_strength_cent 即取 Opsahl 意义上的 node strength 构念: 对每家银行, 把它在当年共现网络中所有边的权重求和, 得到该银行经由媒体共同报道积累的总连接强度, 再做年内最大值归一 (细节与口径警示见方法学段)。数据来源上, 网络的原材料是本项目新闻处理流水线的篇章级展开帧: 经 stage 13 银行与金融科技词邻近共现硬过滤、stage 21 三家 LLM 投票留篇门控 (full-only 口径, 2026-06-29 起只看 llm_verified_full 判定一篇是否为银行金融科技报道) 之后幸存的文章宇宙, 按 docid 与目标银行展开为文章银行对。也就是说, 本网络不是全体银行新闻的共现网, 而是银行金融科技语料上的共现网 — 节点是当年至少出现在一篇幸存报道中的目标银行, 边是判据意义下的共同被提及关系。这一构造在方法论上与 Hoberg and Phillips (2016) 用文本相似度内生刻画产品市场网络一脉相承: 关系不由外生名录给定, 而由文本证据逐年重估; 也与 Li et al. (2026) 从风险披露文本中恢复金融网络结构、Wang et al. (2020) 从担保关系数据刻画中国银行企业网络演化的思路同属从非结构化或半结构化数据中构建金融关联的谱系。
@@ -346,6 +355,7 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Cookson, J. A., Fox, C., Gil-Bazo, J., Imbet, J. F., & Schiller, C. (2026). Social media as a bank run catalyst. Journal of Financial Economics, 176, 104218. https://doi.org/10.1016/j.jfineco.2025.104218
+Kazinnik, S., Killen, C., Scidá, D., & Wu, J. Y. (2026). News and networks: Using financial news coverage to measure bank interconnectedness. Journal of Banking & Finance. https://doi.org/10.1016/j.jbankfin.2026.107694
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research, Advance online publication. https://doi.org/10.1007/s10479-026-07305-8
 Hughes, D. W. (2026). A jackknife bias correction for nonlinear network data models with fixed effects. Journal of Econometrics, 253, 106130. https://doi.org/10.1016/j.jeconom.2025.106130
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8

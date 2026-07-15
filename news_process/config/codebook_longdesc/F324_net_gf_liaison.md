@@ -20,6 +20,24 @@ citations:
   venue: Journal of Financial Economics
   vol: 176
   pages_or_artno: "104218"
+- doi: "10.3390/bdcc9100263"
+  type: "journal"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  venue: "Big Data and Cognitive Computing"
+- doi: "10.1016/j.irfa.2023.102701"
+  type: "journal"
+  authors: "Kostaris, K., & Andrikopoulos, A."
+  year: 2023
+  title: "Brokers in beneficial ownership: A network approach"
+  venue: "International Review of Financial Analysis"
+- doi: "10.1108/pap-03-2024-0042"
+  type: "journal"
+  authors: "Meyer, D. R."
+  year: 2025
+  title: "The network role of China's state banks in Hong Kong and the Greater Bay Area"
+  venue: "Public Administration and Policy"
 - doi: 10.1007/s10479-026-07305-8
   type: journal
   authors: Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y.
@@ -204,12 +222,17 @@ citations:
   type: "journal"
   one_sentence_zh: "以2003-2022年中国上市公司为样本,发现分析师网络中处于中心位置的企业系统性风险更低,信息网络通过提升信息透明度与治理水平传导这一效应。"
 new_dois:
+- "10.3390/bdcc9100263"
 - "10.1111/acfi.13091"
 - "10.1002/smj.3538"
+- "10.1016/j.irfa.2023.102701"
+- "10.1108/pap-03-2024-0042"
 - "10.1080/1540496X.2025.2562336"
 ---
 
 ## CORE
+
+以受益所有权网络考察经纪人在股东与目标公司之间的连接作用,发现网络呈现小世界特征,经纪位置对信息与控制传导具有实证意义。 考察中国国有银行在香港与大湾区网络中的经纪(tertius gaudens)角色,揭示其如何通过占据居间位置掌控跨区域金融联系。
 
 【构念与来源】
 本家族测量的构念是银行在媒体报道共现网络中的联络人经纪地位, 即 Gould 与 Fernandez (1989) 经纪角色分解框架中的 liaison 角色计数。经纪的社会学含义是: 当两个彼此没有直接联系的行动者需要经由第三方才能连通时, 这个居间的第三方就占据了经纪位置; Gould 与 Fernandez (1989) 的关键贡献在于指出, 经纪并非单一同质的位置, 而应按照三方各自的群体归属进一步分解为性质迥异的角色类型。在他们的原始有向交易网框架里共有五种角色: 协调人 (三方同群)、巡回经纪人 (两端同群而居间者外群)、守门人 (居间者与接收端同群)、代表 (居间者与发送端同群)、联络人 (三方分属三个互不相同的群体)。其中联络人角色最为特殊: 它刻画的是纯粹的跨群桥接 — 居间银行既不属于信息来源一端的群体, 也不属于信息去向一端的群体, 而是以第三方群体成员的身份沟通两个彼此隔绝的群体。在群体边界构成信息与资源流动摩擦的场景下, 联络人位置被认为承载了最强的结构洞跨越收益与最重的中介负担, 这一逻辑与 Burt (2004) 关于跨越结构洞者更易获得好想法与绩效溢价的经典发现一脉相承。本项目将该构念移植到中国银行业的新闻共现语境: 图的节点是样本银行, 边表示两家银行在同一媒体报道中被共同提及 (共现), 群体归属取国家金融监督管理总局口径的银行类型七分类 (国有大型商业银行、股份制商业银行、城市商业银行、农村商业银行、民营银行、外资法人银行及其他), 经由 iv_did 模块的 load_bank_group_maps 从 config/bank_addresses.json 读入并映射为 soe/joint/city/rural/private/foreign/other 短标签。于是 gf_liaison 的白话含义是: 在当年的媒体共现网络里, 这家银行有多少次充当了两家彼此从未同篇共现、且分属另外两个不同类型群体的银行之间的唯一媒体叙事桥梁。举例而言, 若一家股份制银行的报道邻居中同时有一家城商行与一家农商行, 而这两家银行彼此从不同篇出现, 则该股份制银行为这一对银行贡献一次 liaison 计数 — 三方类型两两互异, 且两端确须经它才在媒体叙事空间中连通。
@@ -249,6 +272,9 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Cookson, J. A., Fox, C., Gil-Bazo, J., Imbet, J. F., & Schiller, C. (2026). Social media as a bank run catalyst. Journal of Financial Economics, 176, 104218. https://doi.org/10.1016/j.jfineco.2025.104218
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
+Kostaris, K., & Andrikopoulos, A. (2023). Brokers in beneficial ownership: A network approach. International Review of Financial Analysis. https://doi.org/10.1016/j.irfa.2023.102701
+Meyer, D. R. (2025). The network role of China's state banks in Hong Kong and the Greater Bay Area. Public Administration and Policy. https://doi.org/10.1108/pap-03-2024-0042
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
 Hirshleifer, D., Peng, L., & Wang, Q. (2025). News diffusion in social networks and stock market reactions. The Review of Financial Studies, 38(3), 883-937. https://doi.org/10.1093/rfs/hhae025
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8

@@ -21,6 +21,12 @@ citations:
   vol: 32
   issue: 3
   pages_or_artno: 245-251
+- doi: "10.3390/e26050378"
+  type: "journal"
+  authors: "Gao, Q., Fan, H., & Yu, C."
+  year: 2024
+  title: "Systemic Importance and Risk Characteristics of Banks Based on a Multi-Layer Financial Network Analysis"
+  venue: "Entropy"
 - doi: 10.1007/s10479-026-07305-8
   type: journal
   authors: Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y.
@@ -192,13 +198,16 @@ citations:
   title: "Transfer entropy, multidimensional multiple correlation network, and risk contagion of bank capital shortage"
   venue: "Humanities and Social Sciences Communications"
 new_dois:
-  - "10.1111/1475-679x.12560"
-  - "10.1111/acfi.13091"
-  - "10.1016/j.heliyon.2024.e26952"
-  - "10.1057/s41599-026-07085-3"
+- "10.3390/e26050378"
+- "10.1111/1475-679x.12560"
+- "10.1111/acfi.13091"
+- "10.1016/j.heliyon.2024.e26952"
+- "10.1057/s41599-026-07085-3"
 ---
 
 ## CORE
+
+该文构建中国银行间多层金融网络(含银行-银行、银行-资产等关系层)并用改进PageRank算法识别系统重要性银行及网络拓扑风险特征,为文本共现投影网络上度量银行间路径紧凑度提供同源的银行网络拓扑构造与系统性风险分析参照。
 
 【构念与来源】
 本家族刻画年度银行共现网络的全局形状指标之一: 平均最短路径长度 (average shortest path length, 又称特征路径长度 characteristic path length)。构念对象不是单家银行, 而是整张"某一年度里被媒体报道共同提及的银行两两邻近关系"所构成的图。网络的节点是当年出现在语料中的银行实体, 无向边则表示两家银行在同一批媒体报道中以满足既定判据的方式邻近共现 (银行∧银行共现, 与三轨文本口径的银行∧金科共现是两个不同概念, 见下文构念区分)。在这张年度图上, net_avg_path_yr 取所有可达节点对之间加权最短路距离的算术平均, 并把计算限定在最大连通分量 (largest connected component, LCC) 之内 — 因为一旦图不连通, 跨分量的路径长度为无穷, 直接对全图取均值会发散。此处的"距离"不是无权的边跳数, 而是共现频次的倒数: 两家银行被同一媒体叙事一同提及的次数越多, 其间边距离越短, 故本指标度量的是"沿共现强度看的有效拓扑距离" (即 Opsahl et al., 2010 加权最短路框架中以 1/w 为单边距离的 α=1 特例), 对共现强弱敏感。因此本指标度量的是"在当年被媒体一同提及而彼此关联的银行群体里, 任意两家银行在共现关系网上要经过几步才能相连"的典型距离。数值越小, 说明这张年度共现网越紧凑、信息在银行群体间传导的拓扑捷径越短; 数值越大, 则说明网络越松散、越像稀疏的链状或星状结构。该构念承袭 Watts & Strogatz (1998) 对"小世界"网络的刻画: 小世界的两大标志正是高聚类系数 (由同家族相邻的 net_avg_cluster_yr 度量) 与短的特征路径长度 (即本指标)。把这一经典拓扑量搬到"银行被同一媒体叙事捆绑提及"的语义共现网上, 目的是获得一个不依赖任何单家银行属性、纯粹刻画年度媒体关注结构的宏观形状变量。
@@ -247,6 +256,7 @@ net_avg_path_yr 是年内广播常数: 它对当年全部银行取同一数值, 
 
 <!-- rendered-citations:begin -->
 Opsahl, T., Agneessens, F., & Skvoretz, J. (2010). Node centrality in weighted networks: Generalizing degree and shortest paths. Social Networks, 32(3), 245-251. https://doi.org/10.1016/j.socnet.2010.03.006
+Gao, Q., Fan, H., & Yu, C. (2024). Systemic Importance and Risk Characteristics of Banks Based on a Multi-Layer Financial Network Analysis. Entropy. https://doi.org/10.3390/e26050378
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
 Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223

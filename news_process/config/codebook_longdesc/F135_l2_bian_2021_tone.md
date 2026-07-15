@@ -37,6 +37,18 @@ citations:
   year: 2026
   title: "The textual tone of annual reports and market attention: Evidence from Chinese listed companies"
   venue: Managerial and Decision Economics
+- doi: "10.1016/j.ememar.2024.101234"
+  type: "journal"
+  authors: "Xu, Z., Hua, X., & Zhang, T."
+  year: 2025
+  title: "Does official media sentiment matter for the stock market? Evidence from China"
+  venue: "Emerging Markets Review"
+- doi: "10.1038/s41598-025-03875-y"
+  type: "journal"
+  authors: "Sun, Y., Yu, Z., Sun, Y., Xu, Y., & Song, B."
+  year: 2025
+  title: "A novel approach for multiclass sentiment analysis on Chinese social media with ERNIE-MCBMA"
+  venue: "Scientific Reports"
 - doi: 10.1007/s00521-024-10603-6
   type: journal
   authors: Lan, Y., Wu, Y., Xu, W., Feng, W., & Zhang, Y.
@@ -258,12 +270,16 @@ citations:
   venue: "Journal of Forecasting"
   type: "journal"
 new_dois:
-  - "10.1016/j.iref.2024.01.067"
-  - "10.1016/j.ribaf.2025.102881"
-  - "10.1002/for.3089"
+- "10.1016/j.ememar.2024.101234"
+- "10.1038/s41598-025-03875-y"
+- "10.1016/j.iref.2024.01.067"
+- "10.1016/j.ribaf.2025.102881"
+- "10.1002/for.3089"
 ---
 
 ## CORE
+
+该文构建中国官方媒体语调指数并检验其对股票市场收益反转、交易量与投资者情绪的影响,为词典/规则法媒体语调测度在中国场景的资本市场后果提供了最新顶刊证据,呼应本家族语调影响银行经营与融资环境的理论渠道。 该文提出融合ERNIE预训练模型与多通道CNN-BiLSTM-注意力机制的中文社交媒体多分类情感分析框架,代表词典法之外基于深度学习的中文情感测量前沿路线,可作为词典与LLM/BERT情感测度方法学谱系对照的补充参照。
 
 【构念与来源】
 本家族测量的构念是"目标银行的金融科技相关媒体报道语调" (media tone), 具体以 Bian et al. (2021) 中文金融情感词典打分。语调在本项目的理论框架里是银行金融科技转型的媒体呈现维度: 一家银行在某年被媒体如何报道其金融科技活动, 报道倾向是肯定还是质疑, 会通过投资者情绪、存款人信心与监管注意力等渠道影响该行的融资成本与经营行为 (Tetlock, 2007; Holzman et al., 2023)。词典法测语调的传统由 Loughran and McDonald (2011) 在英文财务文本上确立, 其核心论点是通用情感词典在财务领域系统性失真, 必须使用领域专属词表; 该传统随后被系统综述为财务文本分析的基准方法学 (Loughran and McDonald, 2016; Algaba et al., 2020)。中文语境下的对应工作包括 You et al. (2018) 的中国媒体报道研究、Du et al. (2022) 的中文金融情感词典, 以及 Ma et al. (2025) 的细粒度投资者情感词典; 本家族使用的 Bian et al. (2021) 词典是这一谱系中"Loughran-McDonald 词表中文本土化扩充版"的代表, 由作者在会计与金融文本分析场景下针对中文语料重制正负词表。项目内该词典的单一事实源是 config/tone_dicts.json 中的 bian_2021 键, 收录 positive 词 1,107 个、negative 词 1,488 个, 加载序位是六部词典中的第三部 (另五部为 jiang_2021、yao_2021、du_2022、you_2018 与 loughran_mcdonald_zh_2026 中文主译本)。需要说明一处年份口径: 词典键名与正文引注均按 bian_2021 记, 对应 SSRN 工作论文编号 3446388, 该预印本存在多个修订版本, 引用口径以 DOI 解析记录为准。数据来源是本项目的中文银行×金融科技新闻语料: 原始媒体报道经 stage 13 银行与金科词邻近共现硬过滤、stage 14 三轨文本物化后, 在 stage 22 (tone_words) 对每篇文章逐轨打分, 最终由 panel 聚合层压缩为银行-年 (bank-year) 面板变量。分析单元是银行-年, 生产语料覆盖 2007 至 2024 共 18 年, 样本银行约一百一十家; 开发盘为两年浅切片, 涉及面板取值分布的一切实测数字以引擎注入的动态统计为准。选择银行-年而非文章级作为回归单元有三点考虑: 其一, 下游结果变量 (融资成本、金科投资等) 是年度财务量, 处理与结果须同频; 其二, 单篇报道语调噪声大, 年度均值经大数定律平滑后测量误差衰减; 其三, 银行-年口径允许双向固定效应吸收银行恒定特征与年度宏观冲击, 是媒体语调文献的标准面板设计 (Marchetti et al., 2025)。之所以在 LLM 与 BERT 之外仍保留词典支柱并为其配齐六部词表, 是因为词典法是三支柱中唯一"打分过程可被审稿人逐词复核"的方法: 每篇文章的得分都能还原为一张命中词明细表, 这对以中文媒体文本为核心证据的论文是不可替代的可信度资产 (van Atteveldt et al., 2021)。
@@ -390,6 +406,8 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Li, Y. (2026). The textual tone of annual reports and market attention: Evidence from Chinese listed companies. Managerial and Decision Economics. https://doi.org/10.1002/mde.70100
+Xu, Z., Hua, X., & Zhang, T. (2025). Does official media sentiment matter for the stock market? Evidence from China. Emerging Markets Review. https://doi.org/10.1016/j.ememar.2024.101234
+Sun, Y., Yu, Z., Sun, Y., Xu, Y., & Song, B. (2025). A novel approach for multiclass sentiment analysis on Chinese social media with ERNIE-MCBMA. Scientific Reports. https://doi.org/10.1038/s41598-025-03875-y
 Lan, Y., Wu, Y., Xu, W., Feng, W., & Zhang, Y. (2025). Chinese fine-grained financial sentiment analysis with large language models. Neural Computing and Applications, 37(30), 24883-24892. https://doi.org/10.1007/s00521-024-10603-6
 Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications, 264, 125739. https://doi.org/10.1016/j.eswa.2024.125739
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264

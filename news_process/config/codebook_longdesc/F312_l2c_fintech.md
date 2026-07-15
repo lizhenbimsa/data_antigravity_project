@@ -22,6 +22,12 @@ citations:
   vol: 30
   issue: 4
   pages_or_artno: 4004-4038
+- doi: "10.3390/bdcc9100263"
+  type: "journal"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  venue: "Big Data and Cognitive Computing"
 - doi: 10.1016/j.ribaf.2024.102613
   type: journal
   authors: Liu, H., & Hu, J.
@@ -151,6 +157,7 @@ citations:
   venue: "Asia Pacific Business Review"
   type: "journal"
 new_dois:
+- "10.3390/bdcc9100263"
 - 10.1093/rfs/hhaa079
 - 10.1093/qje/qjz021
 - "10.1016/j.ememar.2024.101237"
@@ -190,6 +197,7 @@ fintech_share 由 falsification 阶段的 controls 模块生产, 计算链条分
 
 <!-- rendered-citations:begin -->
 Liu, J., Chen, S., Su, F., & Liu, J. (2025). Digital transformation disclosure and bank loans: An information heterogeneity perspective. International Journal of Finance & Economics, 30(4), 4004-4038. https://doi.org/10.1002/ijfe.3105
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 Liu, H., & Hu, J. (2025). Bank Fintech and firm leverage adjustment speed: Evidence from China. Research in International Business and Finance, 73, 102613. https://doi.org/10.1016/j.ribaf.2024.102613
 Li, T., Stasinakis, C., Yeo, W. M., & Da Silva Fernandes, F. (2025). Fintech, financial development and banking efficiency: Evidence from Chinese commercial banks. The European Journal of Finance, 31(10), 1245-1295. https://doi.org/10.1080/1351847X.2025.2468481
 Kwan, A., Lin, C., Pursiainen, V., & Tai, M. (2024). Stress testing banks' digital capabilities: Evidence from the COVID-19 pandemic. Journal of Financial and Quantitative Analysis, 59(6), 2618-2646. https://doi.org/10.1017/S0022109023000662

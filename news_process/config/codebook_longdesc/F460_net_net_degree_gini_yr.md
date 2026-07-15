@@ -18,6 +18,12 @@ citations:
   title: "Uncovering financial network structures and connectedness from textual risk disclosures"
   venue: Annals of Operations Research
   pages_or_artno: Advance online publication
+- doi: "10.1016/j.procs.2023.08.056"
+  type: "journal"
+  authors: "Yang, X., Liu, Z., Li, J., & Xie, Q."
+  year: 2023
+  title: "Communities of co-occurrence network of financial firms in news"
+  venue: "Procedia Computer Science"
 - doi: 10.1016/j.jfineco.2025.104218
   type: journal
   authors: Cookson, J. A., Fox, C., Gil-Bazo, J., Imbet, J. F., & Schiller, C.
@@ -148,6 +154,7 @@ citations:
   title: "Detecting cross-firm momentum effects via shared analyst coverage: The role of leaders"
   venue: "Journal of International Financial Markets, Institutions and Money"
 new_dois:
+  - "10.1016/j.procs.2023.08.056"
   - "10.1007/s11846-023-00689-y"
   - "10.3390/jrfm17080325"
   - "10.1016/j.intfin.2025.102237"
@@ -194,6 +201,7 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research, Advance online publication. https://doi.org/10.1007/s10479-026-07305-8
+Yang, X., Liu, Z., Li, J., & Xie, Q. (2023). Communities of co-occurrence network of financial firms in news. Procedia Computer Science. https://doi.org/10.1016/j.procs.2023.08.056
 Cookson, J. A., Fox, C., Gil-Bazo, J., Imbet, J. F., & Schiller, C. (2026). Social media as a bank run catalyst. Journal of Financial Economics, 176, 104218. https://doi.org/10.1016/j.jfineco.2025.104218
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
 Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223

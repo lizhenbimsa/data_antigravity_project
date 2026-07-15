@@ -24,6 +24,12 @@ citations:
   title: "FinBERT2: A specialized bidirectional encoder for bridging the gap in finance-specific deployment of large language models"
   venue: Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2 (KDD '25)
   pages_or_artno: 5117-5128
+- doi: "10.3390/bdcc9100263"
+  type: "journal"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  venue: "Big Data and Cognitive Computing"
 - doi: 10.1016/j.gfj.2025.101126
   type: journal
   authors: Garcia, J.
@@ -177,6 +183,7 @@ citations:
   venue: "Frontiers in Artificial Intelligence"
   one_sentence_zh: "该综述系统梳理LLM情感分析中基于熵的不确定性估计方法及其与语义一致性、模型置信度校准的关系,呼应本家族用归一化熵量化情感分类器逐篇判断模糊度的构念。"
 new_dois:
+- "10.3390/bdcc9100263"
 - 10.1111/j.1540-6261.2008.01314.x
 - "10.3390/e27121234"
 - "10.3390/info14070420"
@@ -252,6 +259,7 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Xu, X., Wen, F., Chu, B., Fu, Z., Lin, Q., Liu, J., Fei, B., Li, Y., Zhou, L., & Yang, Z. (2025). FinBERT2: A specialized bidirectional encoder for bridging the gap in finance-specific deployment of large language models. Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2 (KDD '25), 5117-5128. https://doi.org/10.1145/3711896.3737219
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 Garcia, J. (2025). Beyond the headlines: Sentiment divergence and financial distress. Global Finance Journal, 66, 101126. https://doi.org/10.1016/j.gfj.2025.101126
 Sun, Y., Yuan, H., & Xu, F. (2025). Financial sentiment analysis for pre-trained language models incorporating dictionary knowledge and neutral features. Natural Language Processing Journal, 11, 100148. https://doi.org/10.1016/j.nlp.2025.100148
 Lan, Y., Wu, Y., Xu, W., Feng, W., & Zhang, Y. (2025). Chinese fine-grained financial sentiment analysis with large language models. Neural Computing and Applications, 37(30), 24883-24892. https://doi.org/10.1007/s00521-024-10603-6

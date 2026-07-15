@@ -23,6 +23,12 @@ citations:
   vol: 61
   issue: 2
   pages_or_artno: 513-531
+- doi: "10.2139/ssrn.5199096"
+  type: "wp"
+  authors: "Lefort, B., Benhamou, E., Ohana, J.-J., Guez, B., Saltiel, D., & Jacquot, T."
+  year: 2025
+  title: "Examining Independence in Ensemble Sentiment Analysis: A Study on the Limits of Large Language Models Using the Condorcet Jury Theorem"
+  venue: "SSRN Working Paper"
 - doi: 10.1145/3711896.3737219
   type: journal
   authors: Xu, X., Wen, F., Chu, B., Fu, Z., Lin, Q., Liu, J., Fei, B., Li, Y., Zhou, L., & Yang, Z.
@@ -179,10 +185,13 @@ new_dois:
 - 10.1111/jofi.12852
 - 10.1111/0022-1082.00490
 - "10.3389/frai.2025.1609097"
+- "10.2139/ssrn.5199096"
 - "10.1002/isaf.1549"
 ---
 
 ## CORE
+
+该文实证检验多个大语言模型/金融情感分类器(如FinBERT、DistilRoBERTa、GPT-4)在集成投票中的独立性假设是否成立,发现孔多塞陪审团定理的独立性前提并不适用,模型间判读存在系统性相关的分歧,与本文跨模型判读分歧构念直接呼应。
 
 【构念与来源】
 本家族度量的构念是同一篇银行金融科技报道在多个独立 BERT 情感分类器之间引起的判读分歧, 即文本本身对机器分类器而言的判读难度或情感模糊度。直觉上, 一篇立场鲜明、措辞清晰的报道, 无论交给哪一个训练充分的中文金融情感模型, 都应得到方向一致的判定; 而一篇夹叙夹议、正负信息混杂、或者语用上高度依赖上下文的报道, 不同模型给出的正负判定就容易互相冲突。把这种逐篇的跨模型冲突程度在银行年层面取均值, 得到的就是该银行该年度媒体报道语料的平均判读难度, 它既是一个测量质量诊断量, 也是一个可以独立进入回归的文本属性测度。家族由两支孪生测度乘以三条文本轨道构成六列: 标签基的符号不一致占比 bert_xmodel_lblhet 与连续幅度的 z 标准化跨模型标准差 bert_xmodel_disp, 各自有无后缀的 full 轨、_ctx 轨与 _ss 轨变体。canonical 定音在 bert_xmodel_lblhet 的 full 轨列, disp 是其连续幅度版的稳健孪生轨, 双轨互为稳健性、不分主次。数据来源是流水线 stage 23 三个 BERT 情感模型对每篇文章逐轨输出的正面与负面概率列: 两个三分类中文金融情感模型与一个私有微调的二分类模型, 三个模型的成员资格由单一事实源常量集中声明, 本家族的计算模块以参数注入方式接收模型清单, 不反向依赖聚合层。值得强调的是, 本家族属于二〇二六年七月落地的 BERT 分布形状五族扩展中的跨模型双轨一族: 整个五族都是对 stage 23 已落盘概率列的零成本纯后处理, 不新增任何模型推断调用, 不触碰付费 LLM 缓存, 也不改动上游任何一列既有输出。构念上, 本测度与金融学中广为研究的意见分歧构念存在直接类比: 分析师盈利预测的横截面分散度被用作投资者意见分歧的代理并被证明与横截面收益相关 (Diether, Malloy 与 Scherbina, 2002), 社交媒体投资者之间的观点分歧被证明能预测异常交易量 (Cookson 与 Niessner, 2020)。但必须写明的是, 本列的构造是本项目自行定义的, 与上述文献只是构念层面的直接类比, 标准化与聚合方案均不同, 不可表述为按某某方法计算; 更根本的差别在于, 上述文献度量的是人类主体之间的意见分歧, 本家族度量的是机器分类器之间对同一文本的判读分歧, 分歧的主体从投资者换成了模型, 承载的解释也从信念异质性变成了文本模糊度与测量不确定性。
@@ -234,6 +243,7 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Frijns, B., Indriawan, I., Tourani-Rad, A., & Zhang, H. (2026). Analyst forecast dispersion and market quality surrounding the FOMC announcement. Financial Review, 61(2), 513-531. https://doi.org/10.1111/fire.70030
+Lefort, B., Benhamou, E., Ohana, J.-J., Guez, B., Saltiel, D., & Jacquot, T. (2025). Examining Independence in Ensemble Sentiment Analysis: A Study on the Limits of Large Language Models Using the Condorcet Jury Theorem. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.5199096
 Xu, X., Wen, F., Chu, B., Fu, Z., Lin, Q., Liu, J., Fei, B., Li, Y., Zhou, L., & Yang, Z. (2025). FinBERT2: A specialized bidirectional encoder for bridging the gap in finance-specific deployment of large language models. Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2 (KDD '25), 5117-5128. https://doi.org/10.1145/3711896.3737219
 Schlee, M., Weisser, C., Kivimäki, T., Mashiku, M., & Saefken, B. (2025). LabelFusion: Fusing large language models with transformer encoders for robust financial news classification. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2512.10793
 Cookson, J. A., Lu, R., Mullins, W., & Niessner, M. (2024). The social signal. Journal of Financial Economics, 158, 103870. https://doi.org/10.1016/j.jfineco.2024.103870

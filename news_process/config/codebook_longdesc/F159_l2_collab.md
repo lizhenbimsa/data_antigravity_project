@@ -20,6 +20,12 @@ citations:
   venue: Technological Forecasting and Social Change
   vol: 226
   pages_or_artno: "124581"
+- doi: "10.3390/jrfm18100587"
+  type: "journal"
+  authors: "Gigante, G., Galotta, L., & Scarlini, F."
+  year: 2025
+  title: "Market Reactions to Fintech M&A: Evidence from Event Study Analysis of Financial Institutions"
+  venue: "Journal of Risk and Financial Management"
 - doi: 10.1016/j.intfin.2026.102306
   type: journal
   authors: Alfhaili, F. A., Bakoush, M., & Wolfe, S.
@@ -262,11 +268,14 @@ citations:
   venue: "International Journal of Bank Marketing"
   type: "journal"
 new_dois:
-  - "10.1016/j.ribaf.2025.102993"
-  - "10.1108/ijbm-02-2023-0071"
+- "10.3390/jrfm18100587"
+- "10.1016/j.ribaf.2025.102993"
+- "10.1108/ijbm-02-2023-0071"
 ---
 
 ## CORE
+
+该文用事件研究法考察2008-2024年90起银行、资管与投行收购金融科技公司交易的短期市场反应及其交易层面与公司层面驱动因素, 为银行外部协同(并购路径)构念提供最新实证锚点。
 
 【构念与来源】
 本家族度量的核心构念是银行金融科技创新的协同模式 (collaboration mode), 即媒体报道所呈现的某项银行金科创新到底是银行在组织边界内自主研发完成, 还是通过与外部机构 (金融科技公司, 互联网平台, 科研院所等) 协同合作完成。构念源头是 Chesbrough 于 2003 年提出的开放式创新框架: 有价值的创意既可以来自企业内部也可以来自外部, 企业获取技术能力存在内部研发与外部获取两条基本路径, 两条路径在治理结构, 知识产权归属, 吸收能力要求与信息披露激励上系统性不同。该框架二十余年的实证积累已由 Zhang 等 (2024) 的元分析系统整理, 确认外部开放度与创新产出之间稳健但有条件的正向关系; 更早的奠基性操作化见 Laursen 与 Salter (2006) 对外部搜索广度与深度的度量以及 Hagedoorn (2002) 对企业间研发伙伴关系长期趋势的记录。落到银行业语境, Vives (2019) 指出数字化冲击迫使传统银行在自建技术栈与借力金融科技生态之间作出战略选择; 近年的实证文献分别度量了这一选择的各种外部协同形态: 银行对金融科技公司的风险投资与股权投资 (Puri 等 2024; Alfhaili 等 2026), 金融科技并购及其市场反应 (Alfhaili 等 2025; Kueschnig 与 Schertler 2024; Zheng 与 Mao 2024), 银行与金科公司的战略合作协议 (Wu 等 2025, 中国样本), 以及更一般的生态联盟战略 (Chen 等 2025; Burford 等 2025)。本家族与上述基于交易事件或专利归属 (Lerner 等 2024 用专利受让人区分金融创新的内部产出与外部来源) 的度量互补: 它以媒体新闻文本为原始数据 (Gentzkow 等 2019 意义上的 text-as-data 范式), 用大语言模型逐篇判读报道叙事中呈现的协同模式 (de Kok 2025 系统讨论了生成式大模型在财务会计文本分析中的方法学定位), 因此能覆盖未形成正式交易记录的合作叙事, 也天然携带媒体如何呈现银行创新来源的话语维度。家族含四列: canonical 主列 collab_frac 度量协同模式构念水平 (bank-year 内外部协同报道占比), 其余三列 collab_disagree_frac, collab_freerider_frac, collab_quietworker_frac 是 v3.5.0 D4 跨文本口径残差族, 度量同一篇文章在全文口径与实体近邻上下文口径下协同标签的一致性结构, 兼具测量诊断与言行解耦信号两重身份。用白话说, 这一族变量回答的问题是: 在媒体眼中, 这家银行搞金融科技靠的是自己的技术团队还是靠外面找伙伴, 以及同一篇报道从整体读和贴着这家银行的名字附近读, 给出的答案是否一致。前一个问题由主列回答, 后一个问题由三条残差列回答。之所以值得从媒体叙事而非仅从交易记录度量协同模式, 是因为叙事先于交易且覆盖面更广: 许多合作以框架协议, 联合实验室, 试点项目等形态见诸报端却不进入并购或股权数据库; 同时叙事本身构成银行对外的战略信号发布, 其与近距离事实的偏离正是象征性管理理论 (Fiss 与 Zajac 2006) 关心的对象, 这为残差族提供了独立于测量误差解释的构念空间。
@@ -310,6 +319,7 @@ collab_frac 是 P5 论文 (bank_fintech_collab) paper_spec 中 treatment 的主�
 
 <!-- rendered-citations:begin -->
 Dehghani, M. A., Brauneis, A., & Karavidas, D. (2026). Patent strategies in the age of FinTech: Understanding IP management practices and open innovation across financial institutions. Technological Forecasting and Social Change, 226, 124581. https://doi.org/10.1016/j.techfore.2026.124581
+Gigante, G., Galotta, L., & Scarlini, F. (2025). Market Reactions to Fintech M&A: Evidence from Event Study Analysis of Financial Institutions. Journal of Risk and Financial Management. https://doi.org/10.3390/jrfm18100587
 Alfhaili, F. A., Bakoush, M., & Wolfe, S. (2026). Investing in fintech equity and bank innovation. Journal of International Financial Markets, Institutions and Money, 108, 102306. https://doi.org/10.1016/j.intfin.2026.102306
 Borusyak, K., Hull, P., & Jaravel, X. (2025). A practical guide to shift-share instruments. Journal of Economic Perspectives, 39(1), 181-204. https://doi.org/10.1257/jep.20231370
 Alfhaili, F. A., Bakoush, M., & Wolfe, S. (2025). The role of banks' business models in their FinTech acquisitions. Journal of Financial Services Research. https://doi.org/10.1007/s10693-024-00442-w

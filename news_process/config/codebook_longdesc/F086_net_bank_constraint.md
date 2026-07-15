@@ -18,6 +18,12 @@ citations:
   year: 2026
   title: "Uncovering financial network structures and connectedness from textual risk disclosures"
   venue: Annals of Operations Research
+- doi: "10.3390/su16104190"
+  type: "journal"
+  authors: "Feng, H., Zhang, Z., Wang, Q., & Yang, L."
+  year: 2024
+  title: "Does a Company's Position within the Interlocking Director Network Influence Its ESG Performance?—Empirical Evidence from Chinese Listed Companies"
+  venue: "Sustainability"
 - doi: 10.1016/j.jeconom.2025.106130
   type: journal
   authors: Hughes, D. W.
@@ -236,13 +242,16 @@ citations:
   venue: "Journal of Business Research"
   type: "journal"
 new_dois:
-  - "10.1086/730630"
-  - "10.1287/mnsc.2024.06313"
-  - "10.1002/smj.3679"
-  - "10.1016/j.jbusres.2025.115452"
+- "10.3390/su16104190"
+- "10.1086/730630"
+- "10.1287/mnsc.2024.06313"
+- "10.1002/smj.3679"
+- "10.1016/j.jbusres.2025.115452"
 ---
 
 ## CORE
+
+以中国上市公司为样本,研究公司在董事联结网络中的结构位置(涉及结构洞/网络约束相关直觉)如何影响其ESG表现,为银行等金融机构网络结构位置指标的经济后果提供了同类实证参照。
 
 【构念与来源】
 bank_constraint 家族度量的是一家银行在"年度新闻共现网络"中所承受的结构性约束 (network constraint), 它是 Burt (1992) 结构洞 (structural holes) 理论的核心节点级指标, 用来刻画某个节点的关系是否被少数彼此又互相连通的邻居所"锁定"。构念直觉可以这样把握: 若一家银行在新闻里频繁并列出现的那几个伙伴银行, 彼此之间也高度互联, 而这家银行又把它有限的关系投入几乎全部集中于这几个互联伙伴, 那么它就嵌在一个封闭、冗余的局部三角结构里 — 信息来回流转但少有新意, 约束高、可供套利的结构洞少; 反过来, 若它的伙伴彼此并不往来、它的关系投入又分散到互不相识的多个方向, 那么这家银行就跨越了结构洞、居于经纪 (brokerage) 位置, 约束低。用大白话说, constraint 回答的是"这家银行在新闻场里的人脉是不是全挤在一个小圈子里、圈里人还彼此都熟": 是, 就约束高、被圈住; 不是, 关系摊得开、圈子之间还得靠它牵线, 就约束低、有周旋余地。这一"约束高等于被封闭三角包裹、约束低等于跨越结构洞"的语义, 使 constraint 与同一 producer 内的 effective_size (有效规模) 与 bank_ci (定义上恰为 constraint 的倒数) 共同构成一组结构洞测度; 它们与纯拓扑的度中心度 (degree)、以最短路为基底的中介与接近中心度 (betweenness, closeness) 从彼此不同的维度刻画节点地位, 因而在信息量上互补而非重复。Freeman (1978) 对中心度概念的经典厘清指出, "中心"其实对应度、中介、接近三种彼此不可通约的直觉; 结构洞类指标则再引入第四种直觉 — 邻居之间是否互相认识, 即本家族所要捕捉的对象。约束值在数学上并非限定于零到一区间: 当一家银行只与少数几个彼此紧密互联的邻居相连时, 直接投入与间接投入叠加后平方求和可以超过一, 这一点在解释绝对水平时需留意, 也是它与取值天然落在零到一之间的聚类系数、密度类指标的又一区别。
@@ -293,6 +302,7 @@ constraint 需与一整组语义相近但口径不同的测度严格区分, 逐�
 
 <!-- rendered-citations:begin -->
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
+Feng, H., Zhang, Z., Wang, Q., & Yang, L. (2024). Does a Company's Position within the Interlocking Director Network Influence Its ESG Performance?—Empirical Evidence from Chinese Listed Companies. Sustainability. https://doi.org/10.3390/su16104190
 Hughes, D. W. (2026). A jackknife bias correction for nonlinear network data models with fixed effects. Journal of Econometrics, 253, 106130. https://doi.org/10.1016/j.jeconom.2025.106130
 Kirkley, A. (2025). Fast nonparametric inference of network backbones for weighted graph sparsification. Physical Review X, 15(3), Article 031013. https://doi.org/10.1103/4pg6-mtmt
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8

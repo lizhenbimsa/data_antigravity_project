@@ -19,6 +19,12 @@ citations:
   year: 2026
   title: "Uncovering financial network structures and connectedness from textual risk disclosures"
   venue: Annals of Operations Research
+- doi: "10.1002/csr.70661"
+  type: "journal"
+  authors: "Huangfu, X."
+  year: 2026
+  title: "Board Networks and Corporate Transparency: How Independent Director Centrality Drives ESG Disclosure Quality"
+  venue: "Corporate Social Responsibility and Environmental Management"
 - doi: 10.1016/j.jeconom.2025.106130
   type: journal
   authors: Hughes, D. W.
@@ -392,13 +398,16 @@ citations:
   venue: "The North American Journal of Economics and Finance"
   type: "journal"
 new_dois:
-  - "10.1093/rfs/hhae025"
-  - "10.1287/mnsc.2023.4891"
-  - "10.1016/j.iref.2025.104355"
-  - "10.1016/j.najef.2025.102577"
+- "10.1002/csr.70661"
+- "10.1093/rfs/hhae025"
+- "10.1287/mnsc.2023.4891"
+- "10.1016/j.iref.2025.104355"
+- "10.1016/j.najef.2025.102577"
 ---
 
 ## CORE
+
+该文用S&P 500公司面板证明独立董事网络中心度提升ESG披露质量、且效应在媒体关注度更高时增强, 为网络中心度测度与媒体关注交互影响公司信息环境提供了2026年的实证参照, 可与本家族媒体共现网络中心度构念互为对照。
 
 【构念与来源】
 本家族测度的构念是银行在年度媒体共现网络中的 Katz 中心度, 回答的问题是: 在中文财经媒体的报道生态里, 一家银行不仅自己被频繁地与其他银行同篇提及, 而且它的共现邻居本身又与更多银行相连时, 它在整个报道网络中占据的全局性显要位置有多突出。用大白话讲: 度中心度数的是这家银行认识多少邻居, 而 Katz 中心度还进一步追问这些邻居各自又认识谁、邻居的邻居又认识谁, 把所有长度的间接关联链条全部纳入, 只是链条越长打的折扣越重。这一构念的思想源头是 Katz 在二十世纪五十年代提出的地位指数, 后经 Bonacich (1987) 系统化为带衰减参数与基线项的幂中心度家族, 与 Bonacich (1972) 的特征向量中心度构成同一谱系: 当衰减参数趋近于邻接矩阵主特征值的倒数时, Katz 中心度收敛到特征向量中心度; 当衰减参数趋近于零时, 它退化为度中心度的仿射变换。因此 Katz 中心度可以理解为在局部连接数与全局声望之间连续插值的测度, 项目在 dta 导出标签中以宏观经济学网络文献的惯用引法标注这一测度族, 呼应生产网络冲击传导研究中 Katz-Bonacich 向量作为影响力向量的经典地位。数据来源是本项目 2007 至 2024 年中文银行金融科技新闻语料: 上游 stage 21 产出的篇章级留篇集给出每篇文章 (docid) 与其中通过双重验证 (both-verified) 的目标银行集合, 由此把每一年份的所有文章折叠成一张银行与银行之间的加权无向共现网络, 节点是当年至少出现在一篇留存文章中的银行, 边权是两家银行被同一篇文章共同提及的文章篇数。留篇门控遵循 2026-06-29 的 full-only 口径: 一篇文章是否算作银行金融科技报道, 只看 full 轨的 llm_verified_full 判定, 因此共现网络的文章宇宙与面板 n_articles 分母同源, 不存在 ctx 或 ss 轨单独扩充或收缩网络样本的通道。以媒体文本构造经济主体间网络的做法在文献中已有坚实先例: Hoberg 与 Phillips (2016) 用产品描述文本相似度构造企业竞争网络并证明文本网络能捕捉传统行业分类遗漏的经济关联, Li 等 (2026) 从风险披露文本中恢复金融机构间的关联结构, 而 You 等 (2018) 与 Fang 等 (2024) 则分别证明中国媒体报道的立场与情感对资本市场和银行系统性风险具有真实的信息含量, Xu (2024) 进一步说明财经记者自身的社会网络会系统性地塑造报道的联结结构。这些工作共同支撑本家族的前提假设: 媒体共现不是噪声, 而是承载银行间业务关联、事件关联与公众认知关联的可测信号。Fang, Lin & Lu (2025, International Review of Economics & Finance) 该文用中文银行媒体文本共现构建网络并以负面新闻指数衡量系统性风险, 直接支持本家族以媒体共现网络刻画银行结构位置的构念前提。Wang & Borjigin (2026, The North American Journal of Economics and Finance) 该文以银行相关文本挖掘特征结合可解释机器学习预测系统性风险, 呼应本家族媒体文本网络位置作为银行系统性风险代理的应用语境。
@@ -435,6 +444,7 @@ Katz 中心度在方法学谱系中的坐标由三条线索确定。第一条是
 
 <!-- rendered-citations:begin -->
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
+Huangfu, X. (2026). Board Networks and Corporate Transparency: How Independent Director Centrality Drives ESG Disclosure Quality. Corporate Social Responsibility and Environmental Management. https://doi.org/10.1002/csr.70661
 Hughes, D. W. (2026). A jackknife bias correction for nonlinear network data models with fixed effects. Journal of Econometrics, 253, 106130. https://doi.org/10.1016/j.jeconom.2025.106130
 Cookson, J. A., Fox, C., Gil-Bazo, J., Imbet, J. F., & Schiller, C. (2026). Social media as a bank run catalyst. Journal of Financial Economics, 176, 104218. https://doi.org/10.1016/j.jfineco.2025.104218
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8

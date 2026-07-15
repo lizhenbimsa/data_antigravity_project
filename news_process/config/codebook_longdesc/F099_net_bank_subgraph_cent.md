@@ -18,6 +18,12 @@ citations:
   year: 2026
   title: "Uncovering financial network structures and connectedness from textual risk disclosures"
   venue: Annals of Operations Research
+- doi: "10.1007/s10614-025-11287-3"
+  type: "journal"
+  authors: "Akgüller, Ö., & Balcı, M. A."
+  year: 2026
+  title: "Detecting Financial Contagion Through Higher-Order Networks: A Deep Learning Approach to Emerging Market Risk"
+  venue: "Computational Economics"
 - doi: 10.1016/j.jeconom.2025.106130
   type: journal
   authors: Hughes, D. W.
@@ -208,12 +214,15 @@ citations:
   venue: "The North American Journal of Economics and Finance"
   type: "journal"
 new_dois:
-  - "10.1371/journal.pone.0335506"
-  - "10.1007/s11424-025-4338-6"
-  - "10.1016/j.najef.2024.102307"
+- "10.1007/s10614-025-11287-3"
+- "10.1371/journal.pone.0335506"
+- "10.1007/s11424-025-4338-6"
+- "10.1016/j.najef.2024.102307"
 ---
 
 ## CORE
+
+该文用高阶网络(超越简单成对连接的拓扑结构,与子图中心度所刻画的闭合游走/圈层嵌入构念相呼应)与深度学习方法检测新兴市场金融网络中的传染风险。
 
 【构念与来源】
 子图中心度 (subgraph centrality) 度量的是一家银行在年度银行共现网络中参与「闭合游走」(closed walk, 即从自身出发又回到自身的路径) 的加权总量, 其构念内核可以用一句大白话概括: 一家银行不仅要看它直接被和多少同业一起报道 (度中心度回答的问题), 更要看它嵌入了多少大大小小的「圈子」— 三角形、四边形乃至更高阶的稠密子结构。参与的闭合结构越多、越短, 该银行在媒体叙事版图中的位置就越「核心」。该测度由 Estrada 与 Rodríguez-Velázquez (2005) 在复杂网络物理学文献中提出, 其数学定义为邻接矩阵指数的对角元: 节点 i 的子图中心度等于 exp(A) 矩阵的第 i 个对角元, 谱形式等于对全部特征值 λ_j 求和的 (v_j 第 i 分量)^2 乘 e^{λ_j}, 其中 v_j 是对应特征向量。由于长度为 k 的闭合游走在矩阵指数展开中被 1/k! 阶乘衰减加权, 短闭合游走 (三角形、四元环) 的贡献占绝对主导, 这使子图中心度天然强调「局部稠密嵌入」而非「全局可达性」, 与最短路径类测度 (介数、接近度) 和长游走极限类测度 (特征向量中心度) 形成互补的构念光谱。Boldi 与 Vigna (2014) 的中心度公理化体系亦将其归入谱类 (spectral) 测度并讨论了其与其他家族在单调性、密度敏感性公理上的差异, 为本仓在 33 个结构指标中并置多族中心度提供了理论依据 — 没有任何单一中心度在全部公理下占优, 并排报告是方法论上的必然选择。本家族的数据来源是本项目自建的中文银行新闻语料: 经 stage 11 银行实体识别 (否定过滤 + 短名排除, 防「涉农行业」误命中「农行」一类假阳性)、stage 13 银行∧金融科技邻近共现硬过滤后留存的报道集, 按 article × bank 展开为 df_exploded 帧, 再在每个年度截面上把「同一篇报道中共同被提及的银行对」连成边, 边权为该年度内共现篇数 (每篇文章每个银行对计一次, 按 docid 去重, 不受同篇内重复提及次数干扰)。节点集为银行清单全体, 孤立银行 (当年零共现) 亦被显式加入图中。这一「文本共现即连边」的建网思路承接 Hoberg 与 Phillips (2016) 用产品文本相似度构造企业网络的范式, 以及 Li 等 (2026) 从风险披露文本还原金融网络结构与关联度的近期实践: 当真实的银行间敞口 (同业拆借、支付清算) 数据不可得或不公开时, 媒体叙事网络提供了一个可观测、可复现、逐年更新的位置代理。用大白话把这三层来源串起来: 我们先从海量中文财经报道里认出每篇文章提到了哪些银行 (并小心排除否定语境和短名误伤), 只留下真正谈论银行与金融科技交叉话题的报道, 然后把「同一篇文章里一起出现」当作两家银行之间的一条线, 一年攒下来就是一张银行关系图; 子图中心度回答的是「在这张图上, 谁被织进了最多的小圈子」。之所以选择闭合游走而非简单连线数, 是因为中国银行业的媒体叙事高度圈层化 — 国有大行之间、股份行之间、区域城商行与本地农商行之间各有报道生态, 一家银行的系统重要性更多体现在它被多少个这样的稠密圈层同时接纳, 而不是单纯被点名的次数; 阶乘衰减的闭合游走计数恰好是对「圈层接纳度」的一个无参数、全谱、对分量破碎稳健的数学化。
@@ -250,6 +259,7 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
+Akgüller, Ö., & Balcı, M. A. (2026). Detecting Financial Contagion Through Higher-Order Networks: A Deep Learning Approach to Emerging Market Risk. Computational Economics. https://doi.org/10.1007/s10614-025-11287-3
 Hughes, D. W. (2026). A jackknife bias correction for nonlinear network data models with fixed effects. Journal of Econometrics, 253, 106130. https://doi.org/10.1016/j.jeconom.2025.106130
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
 Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223

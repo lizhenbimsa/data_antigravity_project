@@ -20,6 +20,12 @@ citations:
   vol: 31
   issue: 1
   pages_or_artno: 334-373
+- doi: "10.1016/j.accinf.2026.100775"
+  type: "journal"
+  authors: "Haapamäki, E., & Sihvonen, J."
+  year: 2026
+  title: "Mandatory cybersecurity disclosure: Early evidence from 10-K reports"
+  venue: "International Journal of Accounting Information Systems"
 - doi: 10.1057/s41599-024-04169-w
   type: journal
   authors: "Zhu, X., Li, J., & Wang, Y."
@@ -178,10 +184,13 @@ new_dois:
 - 10.1016/j.jacceco.2015.09.002
 - 10.1016/j.jacceco.2008.02.003
 - "10.1111/ijau.12343"
+- "10.1016/j.accinf.2026.100775"
 - "10.3390/ijfs11040147"
 ---
 
 ## CORE
+
+该文用文本分析考察美国上市公司在SEC强制网络安全披露新规下Item 1C披露的长度、冗余度(套话/redundancy)与具体性,发现披露质量受公司规模、财务表现、审计师质量与同业惯例驱动,为跨文档冗余/套话类文本测度在新兴强制披露情境下的应用提供了2026年的最新证据。
 
 【构念与来源】
 avg_boilerplate 家族度量的是"跨文档套话比率"(boilerplate phrase ratio): 一篇银行金融科技报道之中, 命中"跨语料高频公式化短语集合"的字符 n-gram 出现次数, 占该篇全部字符 n-gram 出现次数的比例, 取值域为零到一的闭区间, 数值越高说明该篇报道的措辞越模板化、公式化, 原创信息含量越低。用白话说, 这个指标回答的问题是: 这篇新闻里有多大比例的文字是"车轱辘话"——诸如"本报讯""记者报道""有限公司""股份制商业银行"这类在整个语料库里高频反复出现的固定搭配——而不是记者针对这家银行、这件事写出的新内容。构念的学术源头在会计学的叙事披露质量文献: Lang 与 Stice-Lawrence (2015) 在跨国财务报告大样本上首次把 boilerplate 操作化为"同语料内跨公司共享的高频四元词组句", 并证明套话占比更高的披露对应更差的市场流动性与更弱的信息含量, 这是把"模板化语言"从修辞批评转为可计量测度并给出经济后果的奠基工作; Dyer、Lang 与 Stice-Lawrence (2017) 在对上市公司年报文本三十年演化的追踪中给出了"由至少四分之三公司共享的四元词组"这一具名阈值口径, 并显示监管披露要求的层层加码使年报套话逐年膨胀; Cazier 与 Pfeiffer (2016) 则从文档长度分解的角度论证, 年报越写越长的主要驱动正是模板化、重复性内容而非增量信息。本项目把这一构念从英文年报语料移植到中文银行新闻语料: 中文财经新闻的生产端存在显著的通稿文化与格式化写作惯例, 大量报道由固定导语、机构简介模板与监管话术拼接而成, 套话命中率天然构成"这篇报道有多少是媒体流水线产物"的代理变量。Cao、Jiang、Yang 与 Zhang (2023) 提示在机器读者时代, 文本生产者会针对算法调整措辞, 对文本特征的机器化测量必须考虑生产方的策略性写作, 而套话检测正是对模板化、策略化写作的直接应对之一; Kim、Muhn 与 Nikolaev (2023) 用大语言模型摘要构造信息冗胀测度并证明其资本市场后果, 为本项目以机器管线 (而非人工编码) 批量产出套话类测度提供了最新的方法正当性。数据来源与计算链路: stage 14 的 ctx_materializer 先物化三轨文本列 (content_full、content_ctx、content_ss, 标题一律前置拼接); stage 22 词典情感阶段末端的派生增强子步骤调用 boilerplate 模块, 对三轨文本逐轨执行语料级两遍统计, 产出文章级列 boilerplate_phrase_ratio_full、_ctx、_ss 并落盘 22_tone_words.parquet; stage 40 面板导出时由 encode 聚合器对文章级比率取银行-年算术均值, 得到本家族三列 avg_boilerplate_full、avg_boilerplate_ctx、avg_boilerplate_ss; stage 46 导出 Stata 时分别挂中文标签"跨文档套话比率"的全文轨、实体窗轨与同句轨。
@@ -224,6 +233,7 @@ avg_boilerplate 家族度量的是"跨文档套话比率"(boilerplate phrase rat
 
 <!-- rendered-citations:begin -->
 Gietzmann, M., Grossetti, F., & Lewis, C. M. (2026). Investor distraction and multi-dimensional financial narrative. Review of Accounting Studies, 31(1), 334-373. https://doi.org/10.1007/s11142-026-09950-7
+Haapamäki, E., & Sihvonen, J. (2026). Mandatory cybersecurity disclosure: Early evidence from 10-K reports. International Journal of Accounting Information Systems. https://doi.org/10.1016/j.accinf.2026.100775
 Zhu, X., Li, J., & Wang, Y. (2024). Are risk disclosures in financial reports informative? A text mining-based perspective. Humanities and Social Sciences Communications, 11(1), 1653. https://doi.org/10.1057/s41599-024-04169-w
 Cao, S., Jiang, W., Yang, B., & Zhang, A. L. (2023). How to talk when a machine is listening: Corporate disclosure in the age of AI. The Review of Financial Studies, 36(9), 3603-3642. https://doi.org/10.1093/rfs/hhad021
 Kim, A. G., Muhn, M., & Nikolaev, V. V. (2023). Bloated disclosures: Can ChatGPT help investors process information?. SSRN Working Paper No. 4425527 [Working Paper]. https://doi.org/10.2139/ssrn.4425527

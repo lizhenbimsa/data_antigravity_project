@@ -17,6 +17,12 @@ citations:
   year: 2026
   title: "Uncovering financial network structures and connectedness from textual risk disclosures"
   venue: Annals of Operations Research (Advance online publication)
+- doi: "10.3390/e26050378"
+  type: "journal"
+  authors: "Gao, Q., Fan, H., & Yu, C."
+  year: 2024
+  title: "Systemic Importance and Risk Characteristics of Banks Based on a Multi-Layer Financial Network Analysis"
+  venue: "Entropy"
 - doi: 10.1007/s11747-024-01043-8
   type: journal
   authors: Nezami, M., Chisam, N., & Palmatier, R. W.
@@ -204,11 +210,14 @@ citations:
   venue: "International Review of Economics & Finance, 103, 104355"
   one_sentence_zh: "该文从中国银行文本新闻报道构造共现网络并衡量系统性风险传导, 与本家族从媒体共现构造银行网络计算电流-流量介数的路线在数据来源(中国银行新闻文本)与网络构造思路上高度同构, 直接支持媒体文本派生网络中心度作为银行系统重要性代理的有效性。"
 new_dois:
-  - "10.1016/j.jbankfin.2026.107694"
-  - "10.1016/j.iref.2025.104355"
+- "10.3390/e26050378"
+- "10.1016/j.jbankfin.2026.107694"
+- "10.1016/j.iref.2025.104355"
 ---
 
 ## CORE
+
+该文用多层金融网络刻画银行系统重要性与风险特征, 与本家族用电流-流量介数等网络中心度衡量银行结构地位的路线相呼应, 支持网络中心度类指标作为银行系统重要性代理的有效性。
 
 【构念与来源】
 bank_cfbetween_cent 是"银行共现网络"节点级结构指标家族的 canonical 列, 度量单家银行在年度银行∧银行共现网络中充当"信息电流中转枢纽"的结构地位, 采用 Newman (2005) 提出的电流-流量介数中心度 (current-flow betweenness centrality, 亦称随机游走介数)。构念根植于社会网络分析对"中介性"(betweenness) 的经典刻画: Freeman (1978) 最早把介数中心度定义为"经过某节点的最短路径 (测地线) 占全网所有点对最短路径的比例", 用以识别处在信息必经之路上的守门人。然而 Freeman 口径隐含一条强假设——信息只沿最短路径传播、且传播者预先知晓全局最短路。对于媒体注意力、情绪、风险在银行体系内的扩散而言, 这条假设并不成立: 舆情并不知道最短路, 它更像电流一样沿所有可行路径按电导分流。Newman (2005) 正是为松弛该假设而提出电流-流量介数——把网络视作电阻网络, 每条边是一根电阻 (电导等于边权), 对每个源-汇点对在源端注入单位电流、在汇端抽出, 节点的电流-流量介数即为流经该节点的电流在所有点对上的平均值。Brandes 与 Fleischer (2005) 进一步给出其与随机游走介数的等价性刻画与快速算法, 奠定了该测度可在中大规模网络上稳定计算的工程基础。本项目把这一构念迁移到媒体共现语境: 若两家银行在同一篇 (或更严的同句窗) 新闻报道中被共同提及, 即视其在公众信息空间中被连接; 电流-流量介数高的银行, 处在众多其它银行对之间信息流动的中转位置, 具备把一处舆情或风险冲击向全网转导的结构潜能。
@@ -289,6 +298,7 @@ _win1 的设计意图是提供局部语义邻近但不至严苛到同句的中�
 
 <!-- rendered-citations:begin -->
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research (Advance online publication). https://doi.org/10.1007/s10479-026-07305-8
+Gao, Q., Fan, H., & Yu, C. (2024). Systemic Importance and Risk Characteristics of Banks Based on a Multi-Layer Financial Network Analysis. Entropy. https://doi.org/10.3390/e26050378
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
 Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223
 Xu, Y., & Zhao, X. (2024). How does node centrality in a financial network affect asset price prediction?. The North American Journal of Economics and Finance, 73, 102163. https://doi.org/10.1016/j.najef.2024.102163

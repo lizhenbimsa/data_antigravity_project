@@ -18,6 +18,18 @@ citations:
   title: "Uncovering financial network structures and connectedness from textual risk disclosures"
   venue: Annals of Operations Research
   pages_or_artno: Advance online publication
+- doi: "10.1016/j.iref.2025.104355"
+  type: "journal"
+  authors: "Fang, Y., Lin, H., & Lu, L."
+  year: 2025
+  title: "Measuring systemic risk from textual Analysis: Evidence from Chinese Banks"
+  venue: "International Review of Economics & Finance"
+- doi: "10.1108/cfri-06-2023-0155"
+  type: "journal"
+  authors: "Ma, W., Li, K., Pan, W.-F., & Wang, X."
+  year: 2024
+  title: "Measuring systemic risk in China: a textual analysis"
+  venue: "China Finance Review International"
 - doi: 10.1016/j.jeconom.2025.106130
   type: journal
   authors: "Hughes, D. W."
@@ -259,11 +271,15 @@ citations:
   venue: "Journal of Systems Science and Complexity"
   type: "journal"
 new_dois:
-  - "10.1080/1540496x.2025.2562336"
-  - "10.1007/s11424-025-4338-6"
+- "10.1016/j.iref.2025.104355"
+- "10.1108/cfri-06-2023-0155"
+- "10.1080/1540496x.2025.2562336"
+- "10.1007/s11424-025-4338-6"
 ---
 
 ## CORE
+
+基于711家中国银行的媒体报道共现网络构建负面新闻指数, 发现2013年后中小银行(而非大型银行)成为银行业系统性风险传染的主要驱动者, 与本条目所属的银行共现网络偏心率(核心-周边结构)测度构念高度相关。 利用中国26家主流报纸的文本信息构建系统性风险指数, 为以新闻文本共现推断的银行网络结构指标(如偏心率)提供了同期方法学参照。
 
 【构念与来源】
 bank_eccentricity 是"银行共现网络 (co-mention network)"上的偏心率 (eccentricity) 指标, 属图论中最基础的路径型结构量之一。给定一张银行两两相连的加权图, 某节点 v 的偏心率被定义为 v 到图中所有其他可达节点的最短路距离里的最大值, 即"从这家银行出发, 走到离它最远那家银行需要跨越的最短距离"。偏心率最小的节点构成图的中心 (center), 最大的构成图的周边 (periphery); 全图偏心率的最大值等于直径 (diameter), 最小值等于半径 (radius)。因此偏心率天然是一枚"边缘度 / 核心度"标尺: 数值越大, 银行在新闻话语的关系网络里越偏居一隅、越难以经由少量中介触达全局; 数值越小, 银行越处于四通八达的枢纽地带、与网络中任意成员都相距不远。这一构念可上溯到 Harary (1969) 的图论体系, 本项目在 export.py 的列标签中据此署名 Co-mention Eccentricity (Harary 1969)。
@@ -334,6 +350,8 @@ bank_eccentricity 是"银行共现网络 (co-mention network)"上的偏心率 (e
 
 <!-- rendered-citations:begin -->
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research, Advance online publication. https://doi.org/10.1007/s10479-026-07305-8
+Fang, Y., Lin, H., & Lu, L. (2025). Measuring systemic risk from textual Analysis: Evidence from Chinese Banks. International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2025.104355
+Ma, W., Li, K., Pan, W.-F., & Wang, X. (2024). Measuring systemic risk in China: a textual analysis. China Finance Review International. https://doi.org/10.1108/cfri-06-2023-0155
 Hughes, D. W. (2026). A jackknife bias correction for nonlinear network data models with fixed effects. Journal of Econometrics, 253, 106130. https://doi.org/10.1016/j.jeconom.2025.106130
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
 Hirshleifer, D., Peng, L., & Wang, Q. (2025). News diffusion in social networks and stock market reactions. The Review of Financial Studies, 38(3), 883-937. https://doi.org/10.1093/rfs/hhae025

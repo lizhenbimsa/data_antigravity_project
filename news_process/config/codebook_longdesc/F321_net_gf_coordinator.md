@@ -18,6 +18,12 @@ citations:
   year: 2026
   title: "Uncovering financial network structures and connectedness from textual risk disclosures"
   venue: Annals of Operations Research
+- doi: "10.1016/j.procs.2023.08.056"
+  type: "journal"
+  authors: "Yang, X., Liu, Z., Li, J., & Xie, Q."
+  year: 2023
+  title: "Communities of co-occurrence network of financial firms in news"
+  venue: "Procedia Computer Science"
 - doi: 10.1016/j.jfineco.2025.104218
   type: journal
   authors: Cookson, J. A., Fox, C., Gil-Bazo, J., Imbet, J. F., & Schiller, C.
@@ -196,6 +202,7 @@ citations:
   venue: "Journal of Risk and Financial Management"
   type: "journal"
 new_dois:
+  - "10.1016/j.procs.2023.08.056"
   - "10.1111/acfi.13091"
   - "10.3390/jrfm16040226"
 ---
@@ -252,6 +259,7 @@ gf_coordinator 家族刻画的构念是目标银行在年度银行共现新闻�
 
 <!-- rendered-citations:begin -->
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
+Yang, X., Liu, Z., Li, J., & Xie, Q. (2023). Communities of co-occurrence network of financial firms in news. Procedia Computer Science. https://doi.org/10.1016/j.procs.2023.08.056
 Cookson, J. A., Fox, C., Gil-Bazo, J., Imbet, J. F., & Schiller, C. (2026). Social media as a bank run catalyst. Journal of Financial Economics, 176, 104218. https://doi.org/10.1016/j.jfineco.2025.104218
 Hughes, D. W. (2026). A jackknife bias correction for nonlinear network data models with fixed effects. Journal of Econometrics, 253, 106130. https://doi.org/10.1016/j.jeconom.2025.106130
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8

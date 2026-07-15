@@ -39,6 +39,12 @@ citations:
   vol: 147
   issue: 3
   pages_or_artno: 525-549
+- doi: "10.3390/bdcc9100263"
+  type: "journal"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  venue: "Big Data and Cognitive Computing"
 - doi: 10.2308/TAR-2020-0104
   type: journal
   authors: Holzman, E. R., Miller, B. P., & Twedt, B. J.
@@ -139,6 +145,7 @@ citations:
   venue: "The European Journal of Finance"
   type: "journal"
 new_dois:
+  - "10.3390/bdcc9100263"
   - "10.1145/3649451"
   - "10.1002/isaf.1549"
   - "10.1080/1351847X.2025.2476538"
@@ -289,6 +296,7 @@ IDF 加权语调坐落于会计与金融文本情感测量的方法学三角内�
 
 <!-- rendered-citations:begin -->
 García, D., Hu, X., & Rohrer, M. (2023). The colour of finance words. Journal of Financial Economics, 147(3), 525-549. https://doi.org/10.1016/j.jfineco.2022.11.006
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing enthusiasm: Media sentiment and the disciplining role of quarterly earnings announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156

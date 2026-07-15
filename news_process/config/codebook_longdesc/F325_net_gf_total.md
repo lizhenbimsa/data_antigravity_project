@@ -19,6 +19,18 @@ citations:
   year: 2026
   title: "Uncovering financial network structures and connectedness from textual risk disclosures"
   venue: Annals of Operations Research
+- doi: "10.3390/bdcc9100263"
+  type: "journal"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  venue: "Big Data and Cognitive Computing"
+- doi: "10.1007/s10693-025-00454-0"
+  type: "journal"
+  authors: "Allen, L., Shan, Y., Tang, Y., & Yildirim, A."
+  year: 2025
+  title: "What's Your Bank's FinTech Score? Technology Integrating Banking into the Broker Intermediation Model"
+  venue: "Journal of Financial Services Research"
 - doi: 10.1007/s11747-024-01043-8
   type: journal
   authors: Nezami, M., Chisam, N., & Palmatier, R. W.
@@ -194,12 +206,16 @@ citations:
   venue: "Discover Artificial Intelligence"
   type: "journal"
 new_dois:
-  - "10.1080/2833115x.2026.2662558"
-  - "10.1016/j.jbusres.2025.115452"
-  - "10.1007/s44163-025-00350-5"
+- "10.3390/bdcc9100263"
+- "10.1007/s10693-025-00454-0"
+- "10.1080/2833115x.2026.2662558"
+- "10.1016/j.jbusres.2025.115452"
+- "10.1007/s44163-025-00350-5"
 ---
 
 ## CORE
+
+该文构建银行金融科技评分并考察技术如何将银行整合进经纪中介(broker intermediation)模式, 与本家族以经纪角色刻画银行媒体网络中介地位的构念相呼应。
 
 【构念与来源】
 
@@ -249,6 +265,8 @@ gf_total 在计量设计中的角色是网络位置型解释变量或调节变�
 
 <!-- rendered-citations:begin -->
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
+Allen, L., Shan, Y., Tang, Y., & Yildirim, A. (2025). What's Your Bank's FinTech Score? Technology Integrating Banking into the Broker Intermediation Model. Journal of Financial Services Research. https://doi.org/10.1007/s10693-025-00454-0
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
 Han, M., Kim, S. (H.), & Nanda, V. K. (2024). Institutional brokerage networks: Facilitating liquidity provision. The Review of Financial Studies, 37(9), 2903-2935. https://doi.org/10.1093/rfs/hhae026
 de Paula, A., Rasul, I., & Souza, P. C. L. (2024). Identifying network ties from panel data: Theory and an application to tax competition. The Review of Economic Studies, 92(4), 2691-2729. https://doi.org/10.1093/restud/rdae088

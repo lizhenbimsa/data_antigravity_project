@@ -19,6 +19,18 @@ citations:
   vol: 38
   issue: 3
   pages_or_artno: 883-937
+- doi: "10.1080/1540496x.2025.2562336"
+  type: "journal"
+  authors: "Xiang, Y., & Borjigin, S."
+  year: 2025
+  title: "Analyst Network: Implications for Systemic Risk of Non-Financial Firms in China"
+  venue: "Emerging Markets Finance and Trade"
+- doi: "10.1016/j.procs.2023.08.056"
+  type: "journal"
+  authors: "Yang, X., Liu, Z., Li, J., & Xie, Q."
+  year: 2023
+  title: "Communities of co-occurrence network of financial firms in news"
+  venue: "Procedia Computer Science"
 - doi: 10.1007/s11747-024-01043-8
   type: journal
   authors: Nezami, M., Chisam, N., & Palmatier, R. W.
@@ -183,13 +195,17 @@ citations:
   type: "journal"
   one_sentence_zh: "该研究基于印尼公司新闻文本构造企业间新闻共现集群并考察其与股价情感关联的强度层级,呼应本家族以媒体报道共现网络刻画银行间叙事关联结构的构念逻辑。"
 new_dois:
-  - "10.1111/joes.12655"
-  - "10.1016/j.intfin.2025.102237"
-  - "10.61351/mf.v2i2.111"
-  - "10.1007/s44163-025-00350-5"
+- "10.1080/1540496x.2025.2562336"
+- "10.1016/j.procs.2023.08.056"
+- "10.1111/joes.12655"
+- "10.1016/j.intfin.2025.102237"
+- "10.61351/mf.v2i2.111"
+- "10.1007/s44163-025-00350-5"
 ---
 
 ## CORE
+
+该研究以分析师共同覆盖构造中国非金融企业间的分析师网络并考察企业网络位置对系统性风险的影响,呼应本家族以媒体共现网络的加权聚类系数刻画企业间关联结构与系统性抱团程度的构念逻辑。 该研究基于新闻文本构造中国金融机构(含银行)的共现网络并用 Louvain 算法检测社区结构,发现同行业机构在共现网络中呈现紧密抱团,直接呼应本家族以年度银行共现网络的加权平均聚类系数刻画叙事抱团稠密度的构念与方法。
 
 【构念与来源】
 本家族刻画的是年度银行共现网络的整体抱团程度, 即在给定年份内, 由媒体报道的"同篇共现"关系所连成的银行关系网, 其局部三角闭合的稠密程度。核心列 net_avg_cluster_yr 是该网络的加权平均聚类系数 (weighted average clustering coefficient): 对网络中每一个银行节点, 先计算其邻居之间实际存在的加权三角闭合相对于所有可能三角的比例 (即该节点的局部聚类系数), 再对全部节点取算术平均, 得到一个落在 [0,1] 区间的无量纲标量。聚类系数越高, 说明"我的共现伙伴彼此之间也常常共现", 网络呈现出紧密的小团体 (clique) 结构; 聚类系数越低, 说明共现关系更接近星状或链状的松散连接。这一构念直接承袭 Watts 与 Strogatz (1998) 提出的聚类系数与小世界网络刻画, 是网络科学中衡量局部凝聚性 (local cohesion) 最经典的结构统计量之一。
@@ -248,6 +264,8 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Hirshleifer, D., Peng, L., & Wang, Q. (2025). News diffusion in social networks and stock market reactions. The Review of Financial Studies, 38(3), 883-937. https://doi.org/10.1093/rfs/hhae025
+Xiang, Y., & Borjigin, S. (2025). Analyst Network: Implications for Systemic Risk of Non-Financial Firms in China. Emerging Markets Finance and Trade. https://doi.org/10.1080/1540496x.2025.2562336
+Yang, X., Liu, Z., Li, J., & Xie, Q. (2023). Communities of co-occurrence network of financial firms in news. Procedia Computer Science. https://doi.org/10.1016/j.procs.2023.08.056
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
 Boucher, V., Rendall, M., Ushchev, P., & Zenou, Y. (2024). Toward a general theory of peer effects. Econometrica, 92(2), 543-565. https://doi.org/10.3982/ECTA21048
 Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223

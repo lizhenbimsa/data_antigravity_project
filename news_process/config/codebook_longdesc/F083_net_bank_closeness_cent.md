@@ -20,6 +20,18 @@ citations:
   vol: 53
   issue: 1
   pages_or_artno: 79-104
+- doi: "10.1038/s41598-025-34645-5"
+  type: "journal"
+  authors: "Park, C."
+  year: 2026
+  title: "Network centrality drives optimal protection investment against systemic risk propagation in complex systems"
+  venue: "Scientific Reports"
+- doi: "10.1057/s41599-025-04419-5"
+  type: "journal"
+  authors: "Petersen, A. M. (et al.)"
+  year: 2025
+  title: "University digital media co-occurrence networks reveal structure and dynamics of brand visibility in the attention economy"
+  venue: "Humanities and Social Sciences Communications"
 - doi: 10.1016/j.irfa.2024.103223
   type: journal
   authors: Yu, M., Hu, X., & Zhong, A.
@@ -205,12 +217,16 @@ citations:
   venue: "Discover Artificial Intelligence"
   type: "journal"
 new_dois:
-  - "10.1038/s41598-024-61511-7"
-  - "10.1108/rbf-01-2025-0038"
-  - "10.1007/s44163-025-00350-5"
+- "10.1038/s41598-025-34645-5"
+- "10.1057/s41599-025-04419-5"
+- "10.1038/s41598-024-61511-7"
+- "10.1108/rbf-01-2025-0038"
+- "10.1007/s44163-025-00350-5"
 ---
 
 ## CORE
+
+该文用网络中心度(含接近中心度类测度)刻画节点在复杂系统性风险传播网络中的结构位置,并据此求解最优保护性投资配置,呼应本测度把接近中心度作为信息/风险传导枢纽位置代理的构念定位。 该文基于两百万篇媒体报道构造机构级共现网络并计算网络中心度以刻画品牌在注意力经济中的可见度结构,方法学上与本项目由新闻共现投影出银行接近中心度的构造思路高度平行。
 
 【构念与来源】
 bank_closeness_cent 是"年度银行共现网络"上的接近中心度 (closeness centrality), 度量一家银行在由媒体报道共同提及关系所织成的信息网络里, 到达其余全部银行的平均加权最短路径有多短。构念根源可追溯至 Freeman (1978) 对社会网络中心度族的概念澄清: 接近中心度刻画节点的"可达性、近便性"维度 — 一个到所有其他节点路径都短的节点, 处在信息可以最快扩散到达、也最快从各处汇聚而来的结构位置。把这一社会计量传统移植到本项目, 节点是每一自然年内出现于语料的银行, 边是"两家银行被同一批新闻报道共同提及"这一关系, 边权是共同提及的报道篇数。因此一家银行的接近中心度高, 意味着它与其他银行在媒体的共同关注结构中处于"近处": 无论是被直接一起报道, 还是经由若干中介银行的短链条相连, 它到网络中各家银行的加权距离都短, 从而在跨机构的信息传导上占据枢纽性、桥接性的近端位置。
@@ -275,6 +291,8 @@ Bramoullé、Djebbari 与 Fortin (2009) 证明, 当网络含非传递三元组 (
 
 <!-- rendered-citations:begin -->
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
+Park, C. (2026). Network centrality drives optimal protection investment against systemic risk propagation in complex systems. Scientific Reports. https://doi.org/10.1038/s41598-025-34645-5
+Petersen, A. M. (et al.). (2025). University digital media co-occurrence networks reveal structure and dynamics of brand visibility in the attention economy. Humanities and Social Sciences Communications. https://doi.org/10.1057/s41599-025-04419-5
 Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223
 Xu, Y., & Zhao, X. (2024). How does node centrality in a financial network affect asset price prediction?. The North American Journal of Economics and Finance, 73, 102163. https://doi.org/10.1016/j.najef.2024.102163
 Boucher, V., Rendall, M., Ushchev, P., & Zenou, Y. (2024). Toward a general theory of peer effects. Econometrica, 92(2), 543-565. https://doi.org/10.3982/ECTA21048

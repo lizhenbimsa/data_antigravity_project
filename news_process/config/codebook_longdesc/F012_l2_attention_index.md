@@ -30,6 +30,18 @@ citations:
   year: 2026
   title: "The textual tone of annual reports and market attention: Evidence from Chinese listed companies"
   venue: Managerial and Decision Economics
+- doi: "10.1016/j.iref.2024.103583"
+  type: "journal"
+  authors: "Zhou, W., Chen, F., Zhu, Y., Xiang, L., & Lei, L."
+  year: 2024
+  title: "Media attention, negative reports and textual information of banks' ESG disclosure"
+  venue: "International Review of Economics & Finance"
+- doi: "10.1111/jofi.70009"
+  type: "journal"
+  authors: "Kwan, A., Liu, Y., & Matthies, B."
+  year: 2026
+  title: "Institutional Investor Attention"
+  venue: "The Journal of Finance"
 - doi: 10.1016/j.jempfin.2025.101670
   type: journal
   authors: Chen, Z., Li, Z., Liu, J., & Liu, X.
@@ -259,10 +271,14 @@ citations:
   venue: "Asia-Pacific Journal of Financial Studies"
   type: "journal"
 new_dois:
-  - "10.1111/ajfs.12496"
+- "10.1016/j.iref.2024.103583"
+- "10.1111/jofi.70009"
+- "10.1111/ajfs.12496"
 ---
 
 ## CORE
+
+以文本分析构造中国银行媒体关注度指数, 发现媒体关注度越高银行ESG信息披露文本情感越正面而可读性越低, 与本家族以曝光强度累积测量银行媒体关注的构念高度同源。 提出机构投资者关注度的新测度并检验其对资产定价与信息扩散的影响, 与本家族对媒体/投资者关注度构念的文献定位相呼应。
 
 【构念与来源】
 本家族测量银行×年份层面媒体对特定银行金融科技活动的公众关注度, 构念定位是 extensive 累积曝光强度: 一家银行在一个日历年内被多少篇经过验证的金融科技相关报道覆盖, 这些报道各自的金融科技技术含量有多高, 两者相乘再累加, 取对数后即为该银行该年的关注度指数。分析单元是 bank-year, 面板经 balance_panel 补齐为银行与年份的笛卡尔积, 生产语料覆盖 2007 至 2024 年 (T=18); 盘上开发样本仅 T=2 约两百个 bank-year, 是全量语料的极小试跑切片, 解释统计特征时须以生产规模为准而非试跑退化态。经项目 2026-06-10 metric-audit 锚点更正, 本指数的规范学术表述是 Fang 与 Peress (2009) 意义上的媒体覆盖加权曝光量: 该文以报纸是否覆盖及覆盖多少来刻画公司层面的媒体关注, 并证明覆盖本身携带横截面定价含义; 本指数把"是否覆盖"的零一计数升级为"覆盖强度"的连续累加, 属同一构念谱系的加权推广。必须与之明确区分的是 Hassan 等 (2019) 的 intensive 归一化份额范式, 后者以命中词组占文档总词组的比例度量暴露, 分子分母同文档, 天然是"密度"而非"总量"; 本家族刻意不做该归一化, 未按文章数或语料规模缩放, 因此它回答的是"这家银行该年在媒体上累积了多少金融科技曝光", 而不是"金融科技议题在该银行的媒体形象中占多大比重"。项目内与 Hassan 范式严格对齐的近邻测度是 attention_pct_full 与 attention_intensity_density 族, 分工见下文构念区分节。数据来源为本项目中文银行新闻语料: 经 stage 00 预处理与去重, stage 11/12 银行与金融科技双侧识别, stage 13 银行×金融科技邻近共现硬过滤 (只保留目标银行与至少一个金科词邻近共现的文章; 该过滤在金科自动机不可用时保留全部行并响亮告警、绝不静默清空, keep 率过低则直接失败退出), stage 14 三轨文本物化, stage 15 文章级金融科技强度打分, 最终在 panel 构建步骤 6b-2 聚合为 bank-year 指数。指数量纲为无量纲的对数曝光强度, 值域 [0, +∞), 因是对累积强度和取 log1p, 单位不可与任何份额型或密度型测度直接比大小。原始语料以报纸报道为绝对主体, 中国媒体环境下报道供给存在体制性结构 (Qin, Strömberg 与 Wu, 2018), 这既是使用媒体文本度量关注度的现实土壤, 也是解释系数时须记住的语境; 中文语料上文本测度与市场注意力的可用性有近期证据支持 (Li, 2026; Ni, 2024), 商业新闻文本承载可测经济信息的一般性证据见 Bybee 等 (2024)。本列族属论文 P2 (bank_fintech_attention) 的处理变量家族, canonical 主列为 attention_index_full, 其余十四列均为围绕它展开的稳健性轨与去重敏感性变体, 全部服从同一套 verified 门控、脊柱组装与零/NaN 契约。
@@ -360,6 +376,8 @@ attention_index_full 是论文 P2 (bank_fintech_attention) paper_spec 钦定的 
 
 <!-- rendered-citations:begin -->
 Li, Y. (2026). The textual tone of annual reports and market attention: Evidence from Chinese listed companies. Managerial and Decision Economics. https://doi.org/10.1002/mde.70100
+Zhou, W., Chen, F., Zhu, Y., Xiang, L., & Lei, L. (2024). Media attention, negative reports and textual information of banks' ESG disclosure. International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2024.103583
+Kwan, A., Liu, Y., & Matthies, B. (2026). Institutional Investor Attention. The Journal of Finance. https://doi.org/10.1111/jofi.70009
 Chen, Z., Li, Z., Liu, J., & Liu, X. (2026). Information salience, investor attention, and stock price crash risk. Journal of Empirical Finance, 85, Article 101670. https://doi.org/10.1016/j.jempfin.2025.101670
 Kalyani, A., Bloom, N., Carvalho, M., Hassan, T. A., Lerner, J., & Tahoun, A. (2025). The diffusion of new technologies. The Quarterly Journal of Economics, 140(2), 1299-1365. https://doi.org/10.1093/qje/qjaf002
 Gutknecht, D. (2025). Media coverage of corporate social irresponsibility and firm equity risk. Review of Quantitative Finance and Accounting, 65(4), 1373-1403. https://doi.org/10.1007/s11156-024-01383-0

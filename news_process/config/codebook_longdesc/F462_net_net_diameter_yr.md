@@ -20,6 +20,12 @@ citations:
   vol: 58
   issue: 12
   pages_or_artno: 2321-2336
+- doi: "10.1016/j.procs.2023.08.056"
+  type: "journal"
+  authors: "Yang, X., Liu, Z., Li, J., & Xie, Q."
+  year: 2023
+  title: "Communities of co-occurrence network of financial firms in news"
+  venue: "Procedia Computer Science"
 - doi: 10.1007/s11747-024-01043-8
   type: journal
   authors: Nezami, M., Chisam, N., & Palmatier, R. W.
@@ -158,6 +164,7 @@ citations:
   venue: "Annals of Operations Research"
   type: "journal"
 new_dois:
+- "10.1016/j.procs.2023.08.056"
 - "10.1016/j.jfineco.2024.103852"
 - "10.3390/math13193059"
 - "10.1111/1475-679X.12560"
@@ -216,6 +223,7 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Zhang, X., & Li, Z. (2026). FinTech and branch network expansion: Evidence from China's banking industry. Applied Economics, 58(12), 2321-2336. https://doi.org/10.1080/00036846.2025.2476213
+Yang, X., Liu, Z., Li, J., & Xie, Q. (2023). Communities of co-occurrence network of financial firms in news. Procedia Computer Science. https://doi.org/10.1016/j.procs.2023.08.056
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
 Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223
 Xu, Y., & Zhao, X. (2024). How does node centrality in a financial network affect asset price prediction?. The North American Journal of Economics and Finance, 73, 102163. https://doi.org/10.1016/j.najef.2024.102163

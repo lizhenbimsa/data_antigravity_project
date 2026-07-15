@@ -39,6 +39,18 @@ citations:
   venue: Expert Systems with Applications
   vol: 264
   pages_or_artno: 125739
+- doi: "10.3390/bdcc9100263"
+  type: "journal"
+  authors: "Hsiu-Min Chuang, Hsiang-Chih He, Ming-Che Hu"
+  year: 2025
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  venue: "Big Data and Cognitive Computing"
+- doi: "10.1371/journal.pone.0317503"
+  type: "journal"
+  authors: "Lingyun Yang, Zhihong Zhang, Lulu Wang, Yikai Liang"
+  year: 2025
+  title: "Encourage or inhibit: A study on the impact of corporate digital transformation on management's tone manipulation of information disclosure"
+  venue: "PLOS ONE"
 - doi: 10.2139/ssrn.5220056
   type: wp
   authors: Marchetti, S., Tarducci, E., & Branzoli, N.
@@ -205,12 +217,16 @@ citations:
   venue: "Procedia Computer Science"
   type: "wp"
 new_dois:
-  - "10.1002/isaf.1549"
-  - "10.1017/S0022109023000716"
-  - "10.1016/j.procs.2025.04.477"
+- "10.3390/bdcc9100263"
+- "10.1371/journal.pone.0317503"
+- "10.1002/isaf.1549"
+- "10.1017/S0022109023000716"
+- "10.1016/j.procs.2025.04.477"
 ---
 
 ## CORE
+
+该文比较词典法(含Loughran-McDonald体系思路)与多种语言模型对中文财经新闻情感分类与股价预测的效果,为词典法情感测度在中文财经文本上的持续适用性提供最新方法学参照。 该文基于中国A股上市公司文本披露语调(词典法测度)考察数字化转型对管理层语调操纵行为的影响,与本家族以词典法测度媒体语调的构念定位高度相关。
 
 【构念与来源】
 本家族度量银行-金融科技新闻报道在 Loughran-McDonald (2011) 金融文本词典中文主译本 (本项目里的"第六部主情感词典", 列前缀别名统一写作 loughran) 下的语调 (tone) 极性, 并在 bank-year 层面聚合为可直接进入计量回归的面板变量。构念定位是"某家银行在某一年里被媒体报道时所流露的金融情感倾向": 分值越接近正一, 说明该银行当年报道里净正面的用词越占上风; 越接近负一, 说明净负面的用词越占上风; 越接近零, 说明褒贬大致相抵、整体语调偏中性。用大白话讲, 就是把一年里所有提到这家银行的金融科技新闻按"说好话还是说坏话"打一个从负一到正一的分, 再把这些分数汇总成"这家银行这一年在媒体嘴里的口碑温度"。数据链路自 stage 00 原始语料普查起, 经 stage 11/12 完成银行与金融科技实体识别、stage 13 共现硬过滤 (只保留目标银行与至少一个金融科技词邻近共现的报道, 剔除银行与金科各自出现却互不相关的偶合篇)、stage 14 三轨文本物化, 在 stage 22 (tone_words) 用一张固定词表逐篇打分, 最后在 stage 40 聚合并入银行-年面板。词典本身沿袭 Loughran & McDonald (2011) 提出、并经 Loughran & McDonald (2016) 综述系统化的"领域专用金融情感词表"传统: 其核心洞见是, 通用心理学词典 (如 Harvard IV-4) 搬到金融语境下会把"负债、税、成本"这类中性专业词误判为负面, 因此必须为金融领域另起炉灶构造一张自有的极性词表。本项目采用该词典的中文主译本 (原 61 词经两侧保留判断消歧后, 38 词已归单侧、余 23 词不可约简而保留), 并把它与 Du et al. (2022)、Bian et al. (2021) 等本土中文金融情感词典, 以及 Ma et al. (2025) 面向中国境内投资者的细粒度情感词典, 并列为多词典稳健性谱系中的一部, 目的不是选出"最好的一部词典", 而是证明主结论不被"用哪一部词典量情感"这一选择所左右。
@@ -392,6 +408,8 @@ loughran 词典 tone 与本项目其它情感测度须明确区分, 以免读者
 
 <!-- rendered-citations:begin -->
 Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications, 264, 125739. https://doi.org/10.1016/j.eswa.2024.125739
+Hsiu-Min Chuang, Hsiang-Chih He, Ming-Che Hu. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
+Lingyun Yang, Zhihong Zhang, Lulu Wang, Yikai Liang. (2025). Encourage or inhibit: A study on the impact of corporate digital transformation on management's tone manipulation of information disclosure. PLOS ONE. https://doi.org/10.1371/journal.pone.0317503
 Marchetti, S., Tarducci, E., & Branzoli, N. (2025). Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.5220056
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
 Goldstein, I. (2023). Information in financial markets and its real effects. Review of Finance, 27(1), 1-32. https://doi.org/10.1093/rof/rfac052

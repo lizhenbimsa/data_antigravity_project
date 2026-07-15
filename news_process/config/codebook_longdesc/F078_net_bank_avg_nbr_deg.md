@@ -18,6 +18,12 @@ citations:
   year: 2026
   title: "Uncovering financial network structures and connectedness from textual risk disclosures"
   venue: Annals of Operations Research
+- doi: "10.1016/j.procs.2023.08.056"
+  type: "journal"
+  authors: "Yang, X., Liu, Z., Li, J., & Xie, Q."
+  year: 2023
+  title: "Communities of co-occurrence network of financial firms in news"
+  venue: "Procedia Computer Science"
 - doi: 10.1007/s11747-024-01043-8
   type: journal
   authors: Nezami, M., Chisam, N., & Palmatier, R. W.
@@ -180,11 +186,14 @@ citations:
   type: "journal"
   one_sentence_zh: "该文以赞助人网络中心度研究 SPAC IPO 的资源整合与治理机制,为把网络位置结构指标用于金融实体关系分析提供近期方法学参照。"
 new_dois:
-  - "10.1287/mnsc.2023.00475"
-  - "10.1287/mnsc.2024.04492"
+- "10.1016/j.procs.2023.08.056"
+- "10.1287/mnsc.2023.00475"
+- "10.1287/mnsc.2024.04492"
 ---
 
 ## CORE
+
+该文基于新闻文本构造中国金融企业共现网络并用 Louvain 社群检测揭示同行业企业连接更密的结构特征,为把新闻共现图上的节点/邻域结构指标用于金融实体关系分析提供了同期实证参照。
 
 【构念与来源】
 本家族刻画的是目标银行在年度新闻共现网络中的加权平均最近邻度 (weighted average nearest-neighbor degree, ANND), 即一家银行在被媒体同篇提及的伙伴银行群体中, 这些邻居本身在整张网络里连接得有多广。它回答的不是这家银行自己被多少家同行共同提及 (那是度中心度的问题), 而是与它共同出现的那些银行是不是也各自身处高连接位置。构念上, 平均最近邻度是度序关联 (degree-degree correlation) 在节点层的原子度量: 若一家银行的邻居普遍高度连接, 其 ANND 高, 反映它嵌在网络核心的稠密簇中; 若其邻居多为边缘的低度节点, 其 ANND 低, 反映它虽有连接却停在网络外围。数据来源是同一套新闻语料驱动的银行共现图, 节点为在给定年份幸存于面板的目标银行, 边为两家银行在同一媒体载体内的共同出现, 边权为共同出现的篇数。构念根系可追至度中心度的经典厘清 (Freeman, 1978): 度是网络位置最基础的操作化, 而平均最近邻度把注意力从自身度移到邻居度, 度量的是位置的位置。加权口径直接采自复杂加权网的结构刻画 (Barrat et al., 2004): 该文提出以节点强度为归一分母、以边权乘邻居度求和的加权 ANND, 用于揭示强度与度关联的层级结构, 本项目的实现 (networkx 的加权 average_neighbor_degree) 即此定义的落地, 面板导出标签亦明确标注 Barrat 2004 为构念来源。把这一社会网络与统计物理的度关联工具移植到银行媒体共现图上, 目的是给面板提供一个不看自身曝光量、只看所处邻域结构层级的节点级结构变量。在银行媒体研究的语境下这一层级信息有实质意义: 与高连接枢纽银行反复同篇出现的银行往往处于系统性话题的中心, 其经营与风险叙事更易与同业联动; 而邻居度低的银行多停在孤立的地方性报道里, ANND 因此给出一个衡量银行在媒体注意力结构中所处层级的连续代理, 而非仅仅重复曝光量已经承载的信息。
@@ -221,6 +230,7 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
+Yang, X., Liu, Z., Li, J., & Xie, Q. (2023). Communities of co-occurrence network of financial firms in news. Procedia Computer Science. https://doi.org/10.1016/j.procs.2023.08.056
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
 Kirkley, A. (2025). Fast nonparametric inference of network backbones for weighted graph sparsification. Physical Review X, 15(3), 031013. https://doi.org/10.1103/4pg6-mtmt
 Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223

@@ -20,6 +20,12 @@ citations:
   vol: 53
   issue: 1
   pages_or_artno: 79-104
+- doi: "10.1016/j.ememar.2025.101373"
+  type: "journal"
+  authors: "Sharma, H. K., & Ahmad, W."
+  year: 2025
+  title: "Interconnectedness and systemic risk in financial networks: Fresh evidence from India"
+  venue: "Emerging Markets Review"
 - doi: 10.1016/j.irfa.2024.103223
   type: journal
   authors: Yu, M., Hu, X., & Zhong, A.
@@ -159,13 +165,16 @@ citations:
   venue: "Emerging Markets Finance and Trade"
   type: "journal"
 new_dois:
-  - "10.1016/j.najef.2024.102307"
-  - "10.1111/1475-679x.12560"
-  - "10.1016/j.iref.2025.103979"
-  - "10.1080/1540496x.2025.2562336"
+- "10.1016/j.ememar.2025.101373"
+- "10.1016/j.najef.2024.102307"
+- "10.1111/1475-679x.12560"
+- "10.1016/j.iref.2025.103979"
+- "10.1080/1540496x.2025.2562336"
 ---
 
 ## CORE
+
+该文用动态多元网络方法度量印度金融机构间的连通性与系统性风险相互作用, 发现银行多为风险发射方、非银行金融公司多为风险接收方, 与本家族以银行共现网络连通分量刻画舆论场碎裂/连通结构的构念方法学近邻。
 
 【构念与来源】
 本家族刻画年度银行共现网络的整体连通结构, canonical 列 net_n_components_yr 定义为该网络的连通分量个数 (number of connected components)。构造对象是一张逐年重建的无向图: 在给定日历年内, 节点集合为当年被媒体报道触及的目标银行, 边集合为在同一判据窗口内被共同提及 (co-mention) 的银行对。所谓连通分量, 是指图中彼此可经由若干条边互相到达、而与图中其余节点不相连的极大节点子集; 连通分量个数即把整张网络切分成的这类互不相连团块的数目。直觉上, 该计数是网络碎裂程度 (fragmentation) 的最粗粒度概括: 当某一年里所有被报道银行都通过共现链条串成一张连通大图时, 连通分量数趋近于 1; 当媒体叙事把银行群体割裂成若干互不交叉的话语簇 (例如国有大行簇、区域城商行簇、互联网系银行簇彼此不被同篇报道并置) 时, 连通分量数随之上升。因此该变量与同族的巨分量占比 net_giant_share_yr、模块度 net_modularity_yr、网络直径 net_diameter_yr 共同构成对"整个银行舆论场是一体还是分裂"的互补刻画, 但连通分量数最直接地对应拓扑意义上的分块计数, 不依赖社区发现算法的分辨率参数, 也不依赖对最大分量的挑选。
@@ -212,6 +221,7 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
+Sharma, H. K., & Ahmad, W. (2025). Interconnectedness and systemic risk in financial networks: Fresh evidence from India. Emerging Markets Review. https://doi.org/10.1016/j.ememar.2025.101373
 Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223
 Grieser, W., Hadlock, C., LeSage, J., & Zekhnini, M. (2022). Network effects in corporate financial policies. Journal of Financial Economics, 144(1), 247-272. https://doi.org/10.1016/j.jfineco.2021.05.060
 Jackson, M. O., & Pernoud, A. (2021). Systemic risk in financial networks: A survey. Annual Review of Economics, 13, 171-202. https://doi.org/10.1146/annurev-economics-083120-111540

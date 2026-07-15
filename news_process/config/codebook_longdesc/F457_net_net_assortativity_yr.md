@@ -20,6 +20,12 @@ citations:
   vol: 53
   issue: 1
   pages_or_artno: 79-104
+- doi: "10.1057/s41599-025-04419-5"
+  type: "journal"
+  authors: "Petersen, A. M."
+  year: 2026
+  title: "University digital media co-occurrence networks reveal structure and dynamics of brand visibility in the attention economy"
+  venue: "Humanities and Social Sciences Communications"
 - doi: 10.3982/ECTA21048
   type: journal
   authors: Boucher, V., Rendall, M., Ushchev, P., & Zenou, Y.
@@ -165,12 +171,15 @@ citations:
   venue: "PLOS ONE"
   type: "journal"
 new_dois:
-  - "10.1016/j.ejor.2023.07.010"
-  - "10.1080/14697688.2026.2681609"
-  - "10.1371/journal.pone.0284861"
+- "10.1057/s41599-025-04419-5"
+- "10.1016/j.ejor.2023.07.010"
+- "10.1080/14697688.2026.2681609"
+- "10.1371/journal.pone.0284861"
 ---
 
 ## CORE
+
+该文构建大学数字媒体共现网络并分析其度混合(assortativity)结构与动态, 揭示品牌能见度在注意力经济中呈现异配式排序, 为本家族用共现网络度混合系数刻画媒体报道结构提供了2025年的同类方法学同行范例。
 
 【构念与来源】
 本家族刻画的是银行同现网络 (co-mention network) 的年度度混合模式 (degree assortativity), 即在给定年份内, 由媒体报道所织成的银行-银行关系图中, "高连接度节点是否倾向于与高连接度节点相邻"这一整体结构属性。构念的数据源头是新闻语料: 当两家目标银行在同一篇报道 (或同一句窗、同一句) 中被共同提及时, 判定二者之间存在一条无向边, 边权为共现次数; 把某一年内全部报道累积起来, 就得到该年的银行同现网络。度混合系数正是在这张年度网络上, 对所有相邻节点对的度取 Pearson 相关系数的结果, 取值域为闭区间 [-1, 1]。正值 (assortative, 同配) 表示大银行倾向与大银行同框、边缘银行倾向与边缘银行同框, 网络呈现"核心-核心抱团"的层级化结构; 负值 (disassortative, 异配) 表示高度节点更多连向低度节点, 呈"星形辐射/枢纽-外围"结构; 接近 0 则度与邻居度无系统关联。金融与技术类网络在经验上常呈弱异配, 而社会性网络常呈同配, 因此该系数是判别同现网络"究竟更像社交攀附还是更像信息辐射"的一个高度浓缩的形状指标。
@@ -248,6 +257,7 @@ win_radius 键与 filtering.yaml::cooccurrence_filter.sentence_radius (stage 13 
 
 <!-- rendered-citations:begin -->
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
+Petersen, A. M. (2026). University digital media co-occurrence networks reveal structure and dynamics of brand visibility in the attention economy. Humanities and Social Sciences Communications. https://doi.org/10.1057/s41599-025-04419-5
 Boucher, V., Rendall, M., Ushchev, P., & Zenou, Y. (2024). Toward a general theory of peer effects. Econometrica, 92(2), 543-565. https://doi.org/10.3982/ECTA21048
 Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223
 Han, M., Kim, S. H., & Nanda, V. K. (2024). Institutional brokerage networks: Facilitating liquidity provision. The Review of Financial Studies, 37(9), 2903-2935. https://doi.org/10.1093/rfs/hhae026

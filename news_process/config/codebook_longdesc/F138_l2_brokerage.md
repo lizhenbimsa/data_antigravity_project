@@ -17,6 +17,18 @@ citations:
   year: 2026
   title: "Uncovering financial network structures and connectedness from textual risk disclosures"
   venue: Annals of Operations Research
+- doi: "10.1057/s41599-026-07085-3"
+  type: "journal"
+  authors: "Wei, W., Wang, Z., Wang, Y., & Song, Y."
+  year: 2026
+  title: "Transfer entropy, multidimensional multiple correlation network, and risk contagion of bank capital shortage"
+  venue: "Humanities and Social Sciences Communications"
+- doi: "10.1016/j.physa.2025.130838"
+  type: "journal"
+  authors: "Lei, J., Shen, P., & Li, Z."
+  year: 2025
+  title: "Multilayer bank-firm networks and financial risk contagion"
+  venue: "Physica A: Statistical Mechanics and its Applications"
 - doi: 10.1007/s11747-024-01043-8
   type: journal
   authors: Nezami, M., Chisam, N., & Palmatier, R. W.
@@ -220,11 +232,15 @@ citations:
   venue: "Risk Management"
   type: "journal"
 new_dois:
-  - "10.1016/j.jfs.2024.101231"
-  - "10.1057/s41283-026-00215-w"
+- "10.1057/s41599-026-07085-3"
+- "10.1016/j.physa.2025.130838"
+- "10.1016/j.jfs.2024.101231"
+- "10.1057/s41283-026-00215-w"
 ---
 
 ## CORE
+
+该文用转移熵构建银行间多维多重相关网络并结合空间杜宾模型分解直接效应与网络溢出效应,研究银行资本短缺风险的传染路径,与本家族用媒体-银行网络中心度刻画信息传导与冲击放大的构念高度同构。 该文构建包含银团贷款、银企信贷、企业间贸易信用等五类连边的多层银行-企业网络并模拟外部冲击下的风险传染机制,为本家族网络位置放大行业负面冲击(fire sale 交乘项)的机制提供多层网络视角的补充证据。
 
 【构念与来源】
 本家族刻画的核心构念是银行在信息分发网络中的结构位置, 以及这一位置在行业性负面舆论冲击到来时的放大效应, 共含两个 core 列: brokerage_eigen_cent 是银行在年度媒体与银行二分图上的特征向量中心度, 操作化银行的信息枢纽地位; brokerage_fire_sale 是该中心度的滞后一期取值与当年行业负面冲击指数的交乘项, 操作化信息枢纽银行在全行业负面舆论压力下所承受的差异化冲击暴露。构念的直接学术原型是 Han, Kim 与 Nanda (2024) 在机构经纪网络上的研究, 该文以基金与券商之间的交易关系构造二分图, 证明处于网络枢纽位置的经纪商在市场压力时期承担了系统性的流动性提供角色, 网络位置本身构成一种可以定价、可以传导冲击的经济属性。本项目将其基金与券商的二分图架构移植到中文银行新闻语料上: 二分图的一侧节点集合是新闻媒体来源, 取自 11_news_bank 阶段解析出的篇章级中文媒体名称列; 另一侧节点集合是被报道银行, 即篇章级展开表的目标银行列; 一条边连接一家媒体与一家银行, 边权重等于该媒体在该年度报道该银行的文章篇数。在这一网络里, 银行端特征向量中心度高意味着该银行不仅被很多媒体报道, 而且被那些自身连接广泛、影响力大的媒体报道, 其经济含义是信息可见度更高、信息传播渠道更加异质与冗余、在信息中介链条中处于更接近枢纽的位置。这一从媒体网络位置到银行信息属性的推理链条在近年文献中有直接的同构证据: Xu (2024) 在金融新闻语料上构建财经记者的社会网络, 并以网络中心度解释报道语调的系统性偏向, 说明媒体侧网络结构确实塑造银行收到的新闻覆盖; Fang, Wang, Wang 与 Yuan (2024) 用中国银行业数据证明媒体情绪与存款稳定性及银行系统性风险显著相关, 为媒体舆论作为银行风险传导渠道提供了中国场景的经验支撑; Khan, Hasan 与 Anupam (2024) 则以硅谷银行挤兑事件为例, 展示了社交媒体信息在银行网络上引发多米诺式传染的现实机制。fire sale 一词的命名与机制来自 Duarte 与 Eisenbach (2021): 该文测度火灾甩卖溢出对系统性风险的贡献, 核心机制是处于网络中心位置的机构在系统性负面冲击下会经由资产负债表与信息渠道放大溢出损失; 本家族的交乘项把这一机制翻译到舆论空间, 检验的是信息枢纽银行是否在行业负面舆论冲击中承受不成比例的声誉与价值损失。构念层面还须交代 brokerage 一词的谱系: 社会学传统中 Gould 与 Fernandez (1989) 给出了经纪角色的形式化分类, 强调经纪是在原本不相连的主体之间充当中介; 本家族的 brokerage_eigen_cent 采用的是声望或影响力意义上的特征向量刻画而非严格的 Gould 与 Fernandez 角色计数, 列名前缀 brokerage 标记的是所属论文模块 brokerage_network 的构念域, 精确的算法语义以下节方法学描述为准。
@@ -256,6 +272,8 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
+Wei, W., Wang, Z., Wang, Y., & Song, Y. (2026). Transfer entropy, multidimensional multiple correlation network, and risk contagion of bank capital shortage. Humanities and Social Sciences Communications. https://doi.org/10.1057/s41599-026-07085-3
+Lei, J., Shen, P., & Li, Z. (2025). Multilayer bank-firm networks and financial risk contagion. Physica A: Statistical Mechanics and its Applications. https://doi.org/10.1016/j.physa.2025.130838
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
 Han, M., Kim, S. (H.), & Nanda, V. K. (2024). Institutional brokerage networks: Facilitating liquidity provision. The Review of Financial Studies, 37(9), 2903-2935. https://doi.org/10.1093/rfs/hhae026
 Xu, G. (2024). News bias in financial journalists' social networks. Journal of Accounting Research, 62(4), 1145-1182. https://doi.org/10.1111/1475-679X.12560

@@ -18,6 +18,12 @@ citations:
   title: "Uncovering financial network structures and connectedness from textual risk disclosures"
   venue: Annals of Operations Research
   pages_or_artno: Advance online publication
+- doi: "10.1016/j.procs.2023.08.056"
+  type: "journal"
+  authors: "Yang, X., Liu, Z., Li, J., & Xie, Q."
+  year: 2023
+  title: "Communities of co-occurrence network of financial firms in news"
+  venue: "Procedia Computer Science"
 - doi: 10.1007/s11747-024-01043-8
   type: journal
   authors: Nezami, M., Chisam, N., & Palmatier, R. W.
@@ -249,12 +255,15 @@ citations:
   venue: "Abacus"
   type: "journal"
 new_dois:
-  - "10.1080/00036846.2024.2302932"
-  - "10.1080/00036846.2025.2597474"
-  - "10.1111/abac.12341"
+- "10.1016/j.procs.2023.08.056"
+- "10.1080/00036846.2024.2302932"
+- "10.1080/00036846.2025.2597474"
+- "10.1111/abac.12341"
 ---
 
 ## CORE
+
+该文从财经新闻文本中构造金融机构共现网络并识别其社群结构,发现同社群机构多属同一行业(银行/证券/保险),与本家族从中文银行新闻构造年度共现图并测度银行核性的方法论思路高度同源。
 
 【构念与来源】
 本家族刻画的是银行在年度新闻共现网络中的核性 (coreness), 即该银行嵌入网络凝聚核心的深度。核性以 k-核序数 (k-core number) 操作化: 给定一个无向图, 其 k-核是反复删除所有度数小于 k 的节点后仍留存的最大子图; 一个节点的核序数则是使它仍属于该 k-核的最大 k 值。核序数由 Seidman (1983) 在研究网络结构与最小度时提出, 是刻画凝聚子群与网络稳固内核的经典拓扑量, 直觉上回答的问题是: 这家银行所处的邻域有多致密、多难被外围修剪剥离。度数高但邻居全是悬挂末梢的银行, 会在逐层剥离中迅速掉核, 核序数低; 反之, 一家银行即便度数不算最高, 只要它与一批彼此也高度互连的同侪共处于一个致密团块, 就会获得高核序数。因此核性度量的不是"认识多少家"(那是度中心度, Freeman 1978), 而是"处在多深的抱团核心里"。核序数在算法上等价于图的退化序 (degeneracy ordering) 中每个节点被剥离时的层壳编号: 反复摘除当前最小度节点并记录其被摘时的度, 即得逐节点的 k-壳层级, 这一构造保证核性是良定义、确定且与节点标注顺序无关的整数序。
@@ -301,6 +310,7 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research, Advance online publication. https://doi.org/10.1007/s10479-026-07305-8
+Yang, X., Liu, Z., Li, J., & Xie, Q. (2023). Communities of co-occurrence network of financial firms in news. Procedia Computer Science. https://doi.org/10.1016/j.procs.2023.08.056
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
 Kirkley, A. (2025). Fast nonparametric inference of network backbones for weighted graph sparsification. Physical Review X, 15(3), 031013. https://doi.org/10.1103/4pg6-mtmt
 Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223

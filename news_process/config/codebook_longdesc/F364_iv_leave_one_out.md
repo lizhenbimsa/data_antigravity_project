@@ -25,6 +25,18 @@ citations:
   venue: Technological Forecasting and Social Change
   vol: 226
   pages_or_artno: "124581"
+- doi: "10.1016/j.intfin.2023.101844"
+  type: "journal"
+  authors: "Wang, P., Chen, M., Wu, J., & Yan, Y."
+  year: 2023
+  title: "Do peer effects matter in bank risk? Some cross-country evidence"
+  venue: "Journal of International Financial Markets, Institutions and Money"
+- doi: "10.1007/s00181-025-02753-w"
+  type: "journal"
+  authors: "Gu, X., Li, H., Lin, Z., & Tang, X."
+  year: 2025
+  title: "Peer effects with sample selection: an application in online job training"
+  venue: "Empirical Economics"
 - doi: 10.48550/arXiv.2504.05658
   type: arxiv
   authors: Luo, S., Shuai, K., Zhang, Y., Li, W., & He, Y.
@@ -228,10 +240,14 @@ citations:
 new_dois:
 - "10.1111/jofi.12094"
 - "10.1257/jep.20231370"
+- "10.1016/j.intfin.2023.101844"
+- "10.1007/s00181-025-02753-w"
 - "10.3390/systems13100918"
 ---
 
 ## CORE
+
+利用32个经济体550余家上市银行2000-2018年面板数据,发现银行风险与同业风险正相关,支持银行在风险决策上互相学习的假说,并用多种方法缓解内生性问题,与本家族同业均值工具变量的识别思路直接呼应。 针对同伴群体参与存在内生选择的情形,提出结合个体层与组层修正项的同伴效应识别与估计方法,并以中国线上培训数据实证发现忽略样本选择会高估同伴效应,为留一法工具的分组内生性问题提供最新方法学参照。
 
 【构念与来源】
 本家族是 news_process 面板的同组 leave-one-out (以下简称 LOO) 同业均值工具变量族, 属于 IV 扩展引擎三类构造中的第一类 (另两类为广义 Bartik 移位份额与媒体来源 house-style 暴露, 分属其它列族)。所要解决的核心识别问题是: 银行层面由新闻文本构造的处理变量 (媒体注意力强度、创新报道的实质性占比、技术底层性占比、外部协同占比、经营效益态度) 都是内生的 — 银行自身的经营状况、战略选择与未观测冲击既决定媒体如何报道它, 也直接影响融资成本、金融科技投入、专利产出等结果变量, 直接把处理变量放进结果方程会混入反向因果与遗漏变量偏误。本族的构造思路来自公司金融同行效应文献的经典范式: 用同一分组内其它银行在同一年度该指标的平均值 (剔除焦点银行自身) 作为焦点银行处理变量的工具。直觉上, 同类型同业的媒体曝光与战略叙事会通过模仿、竞争压力与行业风向传导, 推动焦点银行的对应指标同向变动 (相关性, 一阶段), 但同业的取值本身并不直接进入焦点银行的结果方程 (排他性, 需假设并披露)。这一范式的实证源头是 Leary 与 Roberts (2014) 对同行企业财务政策相互影响的研究, 其把同行均值作为工具并系统讨论了该策略的排他性局限; 理论根基则是 Manski (1993) 提出的内生社会效应反射问题 — 同组个体同期互为因果时, 组均值与个体取值在线性模型中不可分离, 任何同行均值工具都必须直面这一批评。构念上, 本族十列覆盖五个内生处理变量, 分别服务五篇论文的识别策略: 注意力 (P2 bank_fintech_attention, 测度谱系承 Hassan 等 (2019) 的公司层文本暴露范式与 Da 等 (2011)、Fang 与 Peress (2009) 的注意力与媒体覆盖文献)、实质性 (P3 bank_fintech_substance)、技术底座 (P4 bank_fintech_locus, 维度框架承 Gomber 等 (2018) 的金融科技创新分类)、外部协同 (P5 bank_fintech_collab, 开放式创新谱系见 Zhang 等 (2024) 的元分析与 Dehghani 等 (2026) 对金融机构开放创新与专利策略的考察)、经营效益态度 (benefit_society 论文)。十列中六列被各论文 paper_spec 的 identification.iv 字段直接收录为主工具或后备工具, 属识别策略承重列。
@@ -308,6 +324,8 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Dehghani, M. A., Brauneis, A., & Karavidas, D. (2026). Patent strategies in the age of FinTech: Understanding IP management practices and open innovation across financial institutions. Technological Forecasting and Social Change, 226, 124581. https://doi.org/10.1016/j.techfore.2026.124581
+Wang, P., Chen, M., Wu, J., & Yan, Y. (2023). Do peer effects matter in bank risk? Some cross-country evidence. Journal of International Financial Markets, Institutions and Money. https://doi.org/10.1016/j.intfin.2023.101844
+Gu, X., Li, H., Lin, Z., & Tang, X. (2025). Peer effects with sample selection: an application in online job training. Empirical Economics. https://doi.org/10.1007/s00181-025-02753-w
 Luo, S., Shuai, K., Zhang, Y., Li, W., & He, Y. (2025). Identification and estimation of causal peer effects using instrumental variables. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2504.05658
 Nibbering, D., & Oosterveen, M. (2025). Policy-relevant causal effect estimation using instrumental variables with interference. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2509.12538
 Schwenkler, G., & Zheng, H. (2025). News-driven peer co-movement in crypto markets. Journal of Corporate Finance, 93, Article 102772. https://doi.org/10.1016/j.jcorpfin.2025.102772

@@ -17,6 +17,12 @@ citations:
   year: 2026
   title: "Uncovering financial network structures and connectedness from textual risk disclosures"
   venue: Annals of Operations Research
+- doi: "10.1371/journal.pone.0327421"
+  type: "journal"
+  authors: "Amancio, D. R., Machicao, J., & Quispe, L. V. C."
+  year: 2025
+  title: "Leveraging word embeddings to enhance co-occurrence networks: A statistical analysis"
+  venue: "PLOS ONE"
 - doi: 10.1007/s11747-024-01043-8
   type: journal
   authors: Nezami, M., Chisam, N., & Palmatier, R. W.
@@ -204,12 +210,15 @@ citations:
   type: "journal"
   one_sentence_zh: "用网络优化模型证明系统重要性银行的聚类模式与系统性风险传染密切相关,聚类程度更高的网络系统性风险显著更高。"
 new_dois:
-  - "10.1016/j.procs.2023.08.056"
-  - "10.3390/risks13110210"
-  - "10.1371/journal.pone.0284861"
+- "10.1371/journal.pone.0327421"
+- "10.1016/j.procs.2023.08.056"
+- "10.3390/risks13110210"
+- "10.1371/journal.pone.0284861"
 ---
 
 ## CORE
+
+对文本共现网络的聚类系数等统计性质做系统分析,为本族由报道共现构图并计算聚类系数的方法学提供了共现网络指标行为的旁证。
 
 【构念与来源】
 bank_clustering 是「银行共现网络结构指标」家族 F084 的 canonical 列, 度量每家目标银行在其所处「年度银行共现网络」中的加权局部聚类系数 weighted local clustering coefficient, 取值域 [0, 1], 无量纲。构念上, 聚类系数回答的是一个关于「三元闭合」的问题: 与某家银行 v 在同一新闻语境里被一同提及的那些「邻居银行」, 它们彼此之间是否也倾向于被一同提及。若 v 的邻居两两之间高度互连 (三角形稠密), 聚类系数趋近 1, 表明 v 嵌在一个内聚、抱团的媒体叙事簇里; 若 v 的邻居彼此互不相连, 使 v 像一根连接多个互不相识群体的辐条, 聚类系数趋近 0, 表明 v 处于一个开放、桥接式的结构位置。这一构念直接继承自 Watts 与 Strogatz (1998) 在提出小世界网络时定义的聚类系数 —— 网络科学中刻画「局部内聚性 / 传递性」的经典原语 —— 并沿 Freeman (1978) 奠定的社会网络结构测量传统, 把「谁与谁一同出现在新闻里」翻译为可计算的图结构位置。它与刻画「谁最居中」的中心度族属于两条正交的结构语义线, 后者的构念梳理正源自 Freeman (1978) 对中心度概念的澄清。用大白话说, 聚类系数量的不是「这家银行有多红」, 而是「常和这家银行一起上新闻的那几家银行, 它们彼此之间是不是也常常一起上新闻」: 若是, 这家银行就处在一个抱成一团的媒体小圈子中央; 若不是, 它就像一座横跨几个互不往来圈子的独木桥。
@@ -262,6 +271,7 @@ bank_clustering_win1 是「±1 句窗」判据变体 (criterion='win1', 后缀 _
 
 <!-- rendered-citations:begin -->
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
+Amancio, D. R., Machicao, J., & Quispe, L. V. C. (2025). Leveraging word embeddings to enhance co-occurrence networks: A statistical analysis. PLOS ONE. https://doi.org/10.1371/journal.pone.0327421
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
 Boucher, V., Rendall, M., Ushchev, P., & Zenou, Y. (2024). Toward a general theory of peer effects. Econometrica, 92(2), 543-565. https://doi.org/10.3982/ECTA21048
 Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223

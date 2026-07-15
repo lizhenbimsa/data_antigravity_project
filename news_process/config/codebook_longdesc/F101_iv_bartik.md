@@ -63,6 +63,12 @@ citations:
   vol: 39
   issue: 1
   pages_or_artno: 181-204
+- doi: "10.3390/su172210294"
+  type: "journal"
+  authors: "Qin, Z., & Jing, Z."
+  year: 2025
+  title: "Fintech Adoption and Credit Risk Mitigation: Evidence from Chinese Commercial Banks"
+  venue: "Sustainability"
 - doi: 10.48550/arXiv.2504.05658
   type: arxiv
   authors: Luo, S., Shuai, K., Zhang, Y., Li, W., & He, Y.
@@ -244,12 +250,15 @@ citations:
   title: "Local peer effects and corporate investment"
   venue: "Journal of Corporate Finance"
 new_dois:
-  - "10.1016/j.iref.2024.01.067"
-  - "10.1080/00036846.2025.2475245"
-  - "10.1016/j.jcorpfin.2025.102935"
+- "10.3390/su172210294"
+- "10.1016/j.iref.2024.01.067"
+- "10.1080/00036846.2025.2475245"
+- "10.1016/j.jcorpfin.2025.102935"
 ---
 
 ## CORE
+
+该文用 Bartik/Nunn 式移位-份额工具变量(1984年邮电业务量×全国互联网普及率交互项)识别金融科技采用对中国商业银行信用风险的因果影响, 与 F101 家族的 Bartik 工具变量构念高度相关。
 
 【构念与来源】
 本家族是全仓识别策略的核心工具变量族: 广义 Bartik (shift-share) 工具变量引擎在银行年度面板上的全部落列。研究场景中的根本内生性威胁是, 媒体对某银行金融科技活动的报道语调、注意力强度与属性刻画, 同该银行自身的经营决策与业绩互为因果: 业绩好的银行吸引更多正面报道, 而正面报道又可能改善融资条件与创新投入, 普通最小二乘无法把"舆论冲击对银行的因果效应"从这条反向回路中剥离出来。Bartik 型工具变量的应对思路是把银行 i 在年份 t 受到的舆论暴露分解为两个乘积因子: 一是在处理发生之前的基期 T0 一次性量好、之后永久冻结的银行对各同业组别的暴露份额 (share), 二是组别层面逐年变动、但在构造时刻意剔除银行 i 自身贡献的留一 (leave-one-out, 下称 LOO) 平均冲击 (shift)。两者按组求和即得工具: 该工具与银行 i 当年自身的报道实现值在机械构造上无关, 却通过基期暴露结构预测其所受的组别舆论冲击, 从而为二阶段最小二乘提供一阶段变异。该方法得名于 Bartik 在 1991 年区域经济学著作中提出的就业构成工具, 现代计量基础由 Goldsmith-Pinkham, Sorkin & Swift (2020) 的份额外生性路径与 Borusyak, Hull & Jaravel (2022) 的冲击外生性路径分别奠定; 本家族的识别主张明确走前者 (详见下方识别策略定位)。家族共 41 列, 覆盖十个前缀族 (type, scale, fintech_lf, fintech_lc, media, mauth, geoprox, attention, subst, collab)、三条文本轨 (_full, _ctx, _ss)、三个基期敏感性变体 (_t0, _t1, _t01)、一个契约别名列 (bartik_attention_iv) 与一个基期份额诊断列 (bartik_type_share_private)。从论文组合视角看, 家族承担了主线与衍生论文识别声明的半壁江山: 注意力、实质性、协同、语调与战略差异化五篇论文的主工具或后备工具均取自本家族, 其余前缀族则构成这些声明背后按维度展开的稳健性纵深 — 每个维度回答同一个问题的一个侧面: 银行接收舆论冲击的暴露结构, 究竟由同业类型、体量分层、创新定位、媒体类型、媒体权威还是地理归属刻画。
@@ -479,6 +488,7 @@ bartik_type_iv_ss 的后移基期臂: share 在 T0 加一年单年冻结, shift 
 
 <!-- rendered-citations:begin -->
 Borusyak, K., Hull, P., & Jaravel, X. (2025). A practical guide to shift-share instruments. Journal of Economic Perspectives, 39(1), 181-204. https://doi.org/10.1257/jep.20231370
+Qin, Z., & Jing, Z. (2025). Fintech Adoption and Credit Risk Mitigation: Evidence from Chinese Commercial Banks. Sustainability. https://doi.org/10.3390/su172210294
 Luo, S., Shuai, K., Zhang, Y., Li, W., & He, Y. (2025). Identification and estimation of causal peer effects using instrumental variables. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2504.05658
 Hahn, J., Kuersteiner, G., Santos, A., & Willigrod, W. (2024). Overidentification in shift-share designs. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2404.17049
 Apfel, N. (2024). Relaxing the exclusion restriction in shift-share instrumental variable estimation. Journal of the Royal Statistical Society Series A: Statistics in Society, 187(3), 748-771. https://doi.org/10.1093/jrsssa/qnad148

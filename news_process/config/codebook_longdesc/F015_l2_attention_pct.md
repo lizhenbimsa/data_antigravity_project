@@ -20,6 +20,12 @@ citations:
   year: 2026
   title: "The textual tone of annual reports and market attention: Evidence from Chinese listed companies"
   venue: "Managerial and Decision Economics"
+- doi: "10.1111/acfi.13381"
+  type: "journal"
+  authors: "Yang, Q., Shen, Y., Wu, Q., & Zhong, X."
+  year: 2024
+  title: "Bank FinTech and corporate disclosure: Evidence from China"
+  venue: "Accounting & Finance"
 - doi: 10.1016/j.jempfin.2025.101670
   type: journal
   authors: "Chen, Z., Li, Z., Liu, J., & Liu, X."
@@ -272,10 +278,13 @@ new_dois:
 - 10.1111/j.1475-679X.2009.00357.x
 - "10.1016/j.jeconbus.2024.106231"
 - "10.3390/computation14050114"
+- "10.1111/acfi.13381"
 - "10.1080/1351847X.2024.2399773"
 ---
 
 ## CORE
+
+该文以中国上市公司为样本, 考察银行金融科技发展对企业信息披露质量的影响, 与本家族银行金融科技媒体议程份额构念在中国银行金融科技情境下相呼应。
 
 【构念与来源】本家族承载的构念是银行层面的金融科技媒体议程份额, 即一家银行在一个日历年度内的全部媒体报道之中, 经大语言模型验证确属银行与金融科技主题的报道篇数所占的比例。它回答的问题是: 在媒体关于这家银行的全部叙事里, 金融科技议题挤占了多大份额的版面。媒体注意力文献存在两条经典测量范式。第一条是覆盖总量范式, 以 Fang & Peress (2009) 为代表, 直接以报道篇数或累积曝光强度度量注意力的绝对水平, 本仓库同族的强度指数走这一条路线, 属 extensive 边际。第二条是归一化份额范式, 以 Hassan et al. (2019) 的企业级政治风险测度为代表, 把主题命中量除以文本总量, 得到与企业媒体总曝光规模无关的相对配置测度, 属 intensive 边际。本家族明确属于后者: 分子是该行该年经验证的金融科技报道篇数, 分母是该行该年全部银行新闻篇数, 商结构性落在零到一的闭区间, 天然免疫于银行之间媒体总覆盖规模的巨大差异。大型国有银行与城市商业银行的年报道量可以相差数个数量级, 水平计数在截面上不可直接比较, 而议程份额可以。这一 intensive 份额范式在其后的企业级文本暴露文献中被反复复用: Sautner et al. (2023) 以电话会议文本中气候议题命中占比构造企业级气候暴露, Hassan et al. (2023) 以同构方法构造疫情暴露, 均以份额而非水平作为跨企业可比的暴露测度, 本列与它们在归一化逻辑上同构, 只是语料由电话会议换成中文银行新闻、议题由气候疫情换成金融科技。Da et al. (2011) 把注意力代理区分为间接代理与直接代理两类, 新闻覆盖属于前者, 搜索量属于后者, 并论证两类代理捕获的注意力时点与主体不同; 按其分类, 本家族是媒体供给侧的间接注意力代理, 度量的是媒体议程对金融科技议题的配置强度, 而非投资者的主动信息检索行为, 解读回归系数时必须保持这一构念定位, 不能把议程份额直接说成投资者注意力。Bybee et al. (2024) 用主题模型把全量商业新闻分解为可解释的议题注意力配置结构, 并证明新闻语料中的议题份额序列携带真实的宏观经济周期信息, 为议程份额这一测量对象的经济含义提供了当代基准; Chen et al. (2026) 进一步表明信息显著性与投资者注意力的联动影响股价尾部风险, 支持议程份额作为显著性代理的资产定价相关性。在中国语境一侧, Qin et al. (2018) 刻画了中国报业市场的偏倚结构与商业化梯度, 提示中文银行报道的议程构成受媒体属性系统性影响, 这正是本仓库以媒体来源风格暴露构造工具变量的动机之一; Ni (2024) 与 Li (2026) 分别以中国上市公司为对象研究媒体覆盖、文本语调与市场注意力的联动, 说明中文财经文本的议程与语调测度已进入主流实证议程, 本列是同一方法论传统在银行样本上的实现。构念的金融科技一侧, Chen et al. (2019) 用文本方法度量金融科技创新的价值分布, Cheng & Qu (2020) 给出中国银行业金融科技应用影响信用风险的直接证据, Kalyani et al. (2025) 用文本二元词组追踪新技术在企业与地区间的扩散, 三者共同支撑本仓库以金融科技词汇命中识别银行技术议题暴露的测量前提。测量前提的效度还有两条平行证据: Bellstam et al. (2021) 证明从分析师报告文本提取的创新测度即使对没有专利与研发支出记录的企业也能预测其后续增长与创新产出, 说明文本命中确实携带传统结构化指标之外的技术信息增量, 这正是本仓库在财务指标之外另建媒体文本测度的存在理由; Li et al. (2021) 则示范了以词向量从种子词自动扩展领域词表的机器学习构词范式, 并证明由此得到的企业文化测度具备跨企业效度, 本仓库金融科技词表的大模型辅助扩展与人工审校流程在方法学上与之同谱系, 词表覆盖度的时变漂移风险也因此须按同一标准披露。
 
@@ -317,6 +326,7 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Li, Y. (2026). The textual tone of annual reports and market attention: Evidence from Chinese listed companies. Managerial and Decision Economics. https://doi.org/10.1002/mde.70100
+Yang, Q., Shen, Y., Wu, Q., & Zhong, X. (2024). Bank FinTech and corporate disclosure: Evidence from China. Accounting & Finance. https://doi.org/10.1111/acfi.13381
 Chen, Z., Li, Z., Liu, J., & Liu, X. (2026). Information salience, investor attention, and stock price crash risk. Journal of Empirical Finance, 85, Article 101670. https://doi.org/10.1016/j.jempfin.2025.101670
 Kalyani, A., Bloom, N., Carvalho, M., Hassan, T. A., Lerner, J., & Tahoun, A. (2025). The diffusion of new technologies. The Quarterly Journal of Economics, 140(2), 1299-1365. https://doi.org/10.1093/qje/qjaf002
 Marchetti, S., Tarducci, E., & Branzoli, N. (2025). Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.5220056

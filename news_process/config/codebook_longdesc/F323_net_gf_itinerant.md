@@ -19,6 +19,18 @@ citations:
   year: 2026
   title: "Uncovering financial network structures and connectedness from textual risk disclosures"
   venue: Annals of Operations Research
+- doi: "10.3390/bdcc9100263"
+  type: "journal"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  venue: "Big Data and Cognitive Computing"
+- doi: "10.1007/s10490-026-10116-x"
+  type: "journal"
+  authors: "Wang, Y., & Wei, F."
+  year: 2026
+  title: "Agentic, powerful, but unethical: New ventures' ethical practices as the outcome of entrepreneurs' networking behaviors and structural holes"
+  venue: "Asia Pacific Journal of Management"
 - doi: 10.1007/s11747-024-01043-8
   type: journal
   authors: Nezami, M., Chisam, N., & Palmatier, R. W.
@@ -194,12 +206,16 @@ citations:
   venue: "International Review of Financial Analysis"
   type: "journal"
 new_dois:
-  - "10.1111/acfi.13091"
-  - "10.1287/mnsc.2023.4891"
-  - "10.1016/j.irfa.2023.102701"
+- "10.3390/bdcc9100263"
+- "10.1007/s10490-026-10116-x"
+- "10.1111/acfi.13091"
+- "10.1287/mnsc.2023.4891"
+- "10.1016/j.irfa.2023.102701"
 ---
 
 ## CORE
+
+该文研究新创企业创业者的网络拓展/加深行为与结构洞位置如何共同影响企业伦理实践, 为经纪/结构洞构念在企业行为结果上的应用提供了2026年最新实证证据。
 
 【构念与来源】
 本家族测量目标银行在年度银行新闻共现网络中扮演的巡回经纪 (itinerant brokerage) 角色强度, 构念直接取自 Gould & Fernandez (1989) 在交易网络上提出的形式化经纪角色分解框架。该框架的核心洞见是: 经纪不是一个同质的结构位置, 而应按经纪人与被中介双方的群归属关系细分为若干在社会学含义上截然不同的角色。给定一条二步路径, 即甲方经由中间人到达丙方且甲丙之间没有直接连边, 按甲方、中间人、丙方三者所属群体的异同组合, 原始有向框架区分出协调人、巡回经纪人、守门人、代表人、联络人五种角色。其中巡回经纪人 (itinerant broker) 的定义是: 被中介的两端属于同一群体, 而中间人自己属于另一个群体, 即中间人以外部人身份中介了某个群体的内部交往。Gould & Fernandez (1989) 用行商与巡回法官作类比, 强调这类经纪的独特张力在于经纪人不享有被中介群体的成员身份, 其中介地位既可能来自专业化优势, 也可能来自该群体内部关系的结构性断裂。在本项目语境下, 群体按银行所有制类型划分 (国有大行、股份制、城商、农商农信、民营、外资及其他), 巡回经纪计数高的银行意味着: 在中文财经媒体的报道叙事中, 它频繁地与两家同类型但彼此不直接共现的其他类型银行同时出现, 换句话说, 媒体在讲述某一类银行的故事时反复把这家异类银行放在中间位置。白话版: 想象两家城商行从不同时出现在同一批新闻里, 但它们各自都经常与某家股份制银行一起被报道, 那么这家股份制银行就在这两家城商行之间充当了信息意义上的巡回经纪人; 本变量数的就是一家银行在一年里充当这种中间人的次数。这一构念之所以值得单独测量, 是因为大量文献表明经纪位置承载着与单纯中心度不同的信息与资源含义: Burt (2004) 证明跨越结构洞的经纪位置与好想法的产生系统相关; Han, Kim & Nanda (2024) 在机构经纪网络中发现经纪结构影响流动性供给; Nezami, Chisam & Palmatier (2025) 的元分析确认网络中心地位与企业绩效存在稳定但异质的关联, 并强调不同中心度构念不可互相替代。媒体共现网络作为这些构念的文本代理, 其效度前提由 Li et al. (2026) 一类基于文本披露还原金融网络结构的研究提供: 文本共提及网络能够恢复真实金融关联的关键拓扑特征。中国场景下, You, Zhang & Zhang (2018) 证明中文媒体报道的强度与倾向受制度性力量塑造, Fang et al. (2024) 进一步证明媒体情绪经由存款稳定性通道影响中国银行系统性风险, 这两点共同意味着中国银行间的媒体共现结构既有信息含量、又非随机噪声, 适合作为银行在公共信息空间中结构位置的测度基底。
@@ -236,6 +252,8 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
+Wang, Y., & Wei, F. (2026). Agentic, powerful, but unethical: New ventures' ethical practices as the outcome of entrepreneurs' networking behaviors and structural holes. Asia Pacific Journal of Management. https://doi.org/10.1007/s10490-026-10116-x
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
 Han, M., Kim, S. (H.), & Nanda, V. K. (2024). Institutional brokerage networks: Facilitating liquidity provision. The Review of Financial Studies, 37(9), 2903-2935. https://doi.org/10.1093/rfs/hhae026
 Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223

@@ -38,6 +38,12 @@ citations:
   venue: Expert Systems with Applications
   vol: 264
   pages_or_artno: 125739
+- doi: "10.1016/j.iref.2024.01.067"
+  type: "journal"
+  authors: "Fang, Y., Wang, Q., Wang, Y., & Yuan, Y."
+  year: 2024
+  title: "Media sentiment, deposit stability and bank systemic risk: Evidence from China"
+  venue: "International Review of Economics & Finance"
 - doi: 10.1111/ecin.13264
   type: journal
   authors: Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E.
@@ -174,11 +180,14 @@ citations:
   venue: "Emerging Markets Review"
   type: "journal"
 new_dois:
-  - "10.1016/j.irfa.2023.102610"
-  - "10.1016/j.ememar.2024.101234"
+- "10.1016/j.iref.2024.01.067"
+- "10.1016/j.irfa.2023.102610"
+- "10.1016/j.ememar.2024.101234"
 ---
 
 ## CORE
+
+该文用文本分析方法构建中国银行层面媒体情绪指数,发现负面媒体情绪通过挤兑存款、迫使银行提高同业拆借依赖等渠道显著推高银行系统性风险。
 
 【构念与来源】
 本家族测度的是"以姜富伟等 (2021) 中文财经情绪词典对银行金融科技相关新闻文本打分、再聚合到银行-年层面的语调倾向"。构念上, 它属于媒体语调 (media tone) 家族: 把一篇报道对目标银行金融科技活动的褒贬态度压缩成一个约在 [−1,1] 区间的连续标量, 正值表示叙事偏乐观、负值表示偏悲观、接近零表示中性或褒贬相抵。之所以专门保留这一部词典的一整族列, 是因为中文财经文本的情感极性高度依赖领域词与本土表达习惯, 单一词典的选择本身就是一个需要经受住稳健性检验的研究者自由度; 姜富伟等 (2021) 词典是国内财经文本情绪研究广泛使用的一部中文金融情感词表, 与 you et al. (2018)、bian et al. (2021)、du et al. (2022)、yao et al. (2021) 及中文主译版 loughran and mcdonald (2011) 六部词典并排, 构成一个"跨词典互为稳健性"的证据梯子。
@@ -377,6 +386,7 @@ ss 轨回退语义镜像 ctx: 无同句共现时 content_ss 回退全文并置 s
 
 <!-- rendered-citations:begin -->
 Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications, 264, 125739. https://doi.org/10.1016/j.eswa.2024.125739
+Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2024.01.067
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
 Zheng, J., Ng, K. C., Zheng, R., & Tam, K. Y. (2024). The effects of sentiment evolution in financial texts: A word embedding approach. Journal of Management Information Systems, 41(1), 178-205. https://doi.org/10.1080/07421222.2023.2301176
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing enthusiasm: Media sentiment and the disciplining role of quarterly earnings announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104

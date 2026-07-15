@@ -26,6 +26,12 @@ citations:
   vol: 12
   issue: 1
   pages_or_artno: 1813
+- doi: "10.3390/bdcc9100263"
+  type: "journal"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  venue: "Big Data and Cognitive Computing"
 - doi: 10.1057/s41310-024-00240-9
   type: journal
   authors: Du, Y.-G., Li, S., Kuo, N.-T., & Li, D.
@@ -198,6 +204,7 @@ citations:
   venue: "Humanities and Social Sciences Communications"
   type: "journal"
 new_dois:
+  - "10.3390/bdcc9100263"
   - "10.1111/fima.70003"
   - "10.1177/27533743251349221"
   - "10.1057/s41599-025-05560-x"
@@ -270,6 +277,7 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Lesmy, D., Muchnik, L., & Mugerman, Y. (2025). Lost in the fog: growing complexity in financial reporting—a comparative study. Humanities and Social Sciences Communications, 12(1), 1813. https://doi.org/10.1057/s41599-025-06094-y
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 Du, Y.-G., Li, S., Kuo, N.-T., & Li, D. (2025). Does the annual report readability improve corporate R&D investment? Evidence from China. International Journal of Disclosure and Governance, 22(2), 440-460. https://doi.org/10.1057/s41310-024-00240-9
 Rosillo-Rodes, P., San Miguel, M., & Sánchez, D. (2025). Entropy and type-token ratio in gigaword corpora. Physical Review Research, 7(3), 13868. https://doi.org/10.1103/rxxz-lk3n
 Siano, F. (2025). The news in earnings announcement disclosures: Capturing word context using LLM methods. Management Science, 71(11), 9831-9855. https://doi.org/10.1287/mnsc.2024.05417

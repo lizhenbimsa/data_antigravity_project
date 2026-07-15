@@ -96,6 +96,12 @@ citations:
   year: 2026
   title: "Large language models: An applied econometric framework"
   venue: Annual Review of Economics
+- doi: "10.1186/s40537-025-01330-3"
+  type: "journal"
+  authors: "Awan, S. A., Khattak, M. A. K., Khan, A. A., Sathio, A. A., Alsayaydeh, J. A. J., Bacarra, R., Herawan, S. G., & Aziz, R."
+  year: 2025
+  title: "Meta-analysis of large language models: benchmarking DeepSeek-R1 against ChatGPT, Gemini, Qwen, and LLaMA"
+  venue: "Journal of Big Data"
 - doi: 10.17016/FEDS.2026.020
   type: wp
   authors: Hansen, A. L.
@@ -311,11 +317,14 @@ citations:
   venue: "Information"
   type: "journal"
 new_dois:
-  - "10.1002/smj.70023"
-  - "10.3390/info16080688"
+- "10.1186/s40537-025-01330-3"
+- "10.1002/smj.70023"
+- "10.3390/info16080688"
 ---
 
 ## CORE
+
+该文对 DeepSeek-R1 与 ChatGPT、Gemini、Qwen、LLaMA 等主流大语言模型在标准化任务上做跨模型元分析基准比较，与本测度族「多家 LLM (deepseekv4/gemini31/gpt54nano) 各自打分互为稳健性」的跨厂商比较构念高度相关。
 
 【构念与来源】
 本家族收录三家大语言模型逐模型的银行-年媒体语调测度, 覆盖 deepseekv4 (DeepSeek V4 Flash, 直连官方端点)、gemini31 (Gemini 3.1 Flash Lite, 经 yunwu 网关) 与 gpt54nano (GPT-5.4 nano, 经 yunwu 网关) 三个评分主体, 每个主体各有等权均值、组内标准差、提及密度加权、媒体权威加权、跟风衰减加权五个统计与加权变体, 以及实质性、象征性、底层技术、应用场景四个分类条件变体, 再各自展开 full、ctx、ss 三条文本轨。构念本体是目标银行在金融科技相关媒体报道中获得的情感语调: 阶段二十一对留篇集内每篇文章构建思维链提示, 单次请求同时让模型完成两件事——甄别这篇报道是否真是关于目标银行的金融科技报道, 以及在正面、中性、负面三分类上判定语调; 三家模型对同一篇文章彼此不可见地并发作答, 多数投票合成共识列 llm_vote_tone, 而本家族刻意绕开投票, 把每一家的原始判断单独聚合成列。媒体语调影响资产价格与企业行为的构念传统可以追溯到 Tetlock (2007) 对媒体悲观度的开创性度量与 Loughran & McDonald (2016) 对财务文本分析方法的系统综述; 进入大语言模型时代后, Fatouros et al. (2023) 证明对话式模型在金融新闻情感上超越微调基线, Kirtac & Germano (2024) 证明其情感信号可交易, Lan et al. (2025) 把证据延伸到中文金融文本的实体级细粒度判定, 本家族的文章级评分即站在这条证据链上。之所以除共识外还要保留逐模型列, 方法学动机有三层: 其一, Ludwig, Mullainathan & Rambachan (2026) 的生成回归量框架指出, 以模型输出为解释变量时, 测量的模型依赖性本身就是待披露的识别假设, 单一共识数字会掩盖这一依赖; 其二, Hansen (2026) 论证在缺乏金标准的场景下, 多标注者一致性是 LLM 标注效度的一线证据, 而一致性只能在逐模型列之间计算; 其三, Baumann et al. (2025) 量化了所谓 LLM hacking 风险——换模型、换提示词足以翻转下游统计推断——逐模型全披露加族内多重检验校正是对这一研究者自由度的制度性防御。用大白话说, 这个家族回答的问题是: 如果只请一位阅卷人给全国银行的金融科技新闻打情感分, 分别请三位背景不同的阅卷人各打一遍, 每位的分数单独存档, 我们就能看出最终结论是三位共识还是某一位的口味; 共识列相当于合议庭判决, 本家族相当于把每位法官的独立意见书都附在卷宗里。列名结构完全机械: 前缀是模型缩写, 中缀是变体 (无中缀为等权均值, std 为标准差, vw、mw、hw 为三种加权, sub、symb、tech、app 为四类条件), 后缀是轨道, 三个维度正交展开、无一例外, 使用者可以从任何一列的名字直接还原其计算配方。Carlson & Burbano (2025, Strategic Management Journal) 提出管理学研究中使用大语言模型标注数据的基础性指南与警示,涉及多模型/多标注者一致性验证方法论,与本测度族的三LLM并排投票设计直接相关; Mienye & Swart (2025, Information) 系统综述大语言模型集成方法,含多数投票、加权融合等,为本测度族三家 LLM 互为稳健性、共识投票的设计提供方法论支持。
@@ -1396,6 +1405,7 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Ludwig, J., Mullainathan, S., & Rambachan, A. (2026). Large language models: An applied econometric framework. Annual Review of Economics. https://doi.org/10.1146/annurev-economics-120925-105620
+Awan, S. A., Khattak, M. A. K., Khan, A. A., Sathio, A. A., Alsayaydeh, J. A. J., Bacarra, R., Herawan, S. G., & Aziz, R. (2025). Meta-analysis of large language models: benchmarking DeepSeek-R1 against ChatGPT, Gemini, Qwen, and LLaMA. Journal of Big Data. https://doi.org/10.1186/s40537-025-01330-3
 Hansen, A. L. (2026). Validating large language model annotations. FEDS Working Paper No. 2026-020, Federal Reserve Board [Working Paper]. https://doi.org/10.17016/FEDS.2026.020
 de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
 Lan, Y., Wu, Y., Xu, W., Feng, W., & Zhang, Y. (2025). Chinese fine-grained financial sentiment analysis with large language models. Neural Computing and Applications, 37(30), 24883-24892. https://doi.org/10.1007/s00521-024-10603-6

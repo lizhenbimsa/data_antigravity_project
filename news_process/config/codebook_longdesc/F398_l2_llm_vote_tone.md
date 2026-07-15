@@ -80,6 +80,18 @@ citations:
   vol: 47
   issue: 3
   pages_or_artno: 699-725
+- doi: "10.1007/978-3-031-97144-0_17"
+  type: "journal"
+  authors: "Niimi, Junichiro"
+  year: 2025
+  title: "A Simple Ensemble Strategy for LLM Inference: Towards More Stable Text Classification"
+  venue: "Natural Language Processing and Information Systems (NLDB 2025, Springer LNCS)"
+- doi: "10.3390/jtaer20020077"
+  type: "journal"
+  authors: "Mun, Yejoon; Kim, Namhyoung"
+  year: 2025
+  title: "Leveraging Large Language Models for Sentiment Analysis and Investment Strategy Development in Financial Markets"
+  venue: "Journal of Theoretical and Applied Electronic Commerce Research"
 - doi: 10.48550/arXiv.2511.15714
   type: arxiv
   authors: Kamen, A., & Kamen, Y.
@@ -234,12 +246,16 @@ citations:
   venue: "arXiv"
   type: "arxiv"
 new_dois:
-  - "10.1145/3688399"
-  - "10.48550/arxiv.2510.15929"
-  - "10.48550/arxiv.2409.00094"
+- "10.1007/978-3-031-97144-0_17"
+- "10.3390/jtaer20020077"
+- "10.1145/3688399"
+- "10.48550/arxiv.2510.15929"
+- "10.48550/arxiv.2409.00094"
 ---
 
 ## CORE
+
+该文提出对多个LLM推理结果做集成(多数投票/平均)的简单策略,证明中型LLM多次推理集成比单次大模型推理在文本分类(含情感分类)任务上更稳定、更准确,与本测度族多家LLM投票共识构念高度相关。 该文比较判别式模型(BERT/FinBERT)与生成式LLM(Llama3.1/Mistral/Gemma2)对财经新闻情感分析的表现,并将情感得分用于投资策略构建,呼应本测度族以多家LLM对新闻语调打分并聚合为面板变量的思路。
 
 【构念与来源】
 本家族刻画的核心构念是"媒体对目标银行金融科技活动的语调倾向", 也就是通常所说的媒体好感度或媒体情感立场。用大白话说, 就是在某一家银行的某一个年度里, 各家媒体谈论这家银行搞金融科技这件事的时候, 整体上是偏夸奖、偏中立、还是偏批评; 把这一年里一篇篇报道的立场汇总起来, 就得到这家银行这一年的"媒体语调水平"。这个构念在金融传媒与文本分析领域有深厚的学术根基。Tetlock (2007) 最早系统地论证了媒体语调携带超出硬性财务数据之外的增量信息, 并能预测随后的市场反应, 奠定了"媒体情感有独立信息含量"这一命题。Loughran 与 McDonald (2011) 则为金融领域的词典化情感测量打下方法学基石, 指出通用情感词典搬到金融文本上会严重失真, 必须使用领域专用词表。Loughran 与 McDonald (2016) 以及 Kearney 与 Liu (2014) 进一步综述了从关键词计数、词典打分到机器学习、大语言模型的整条语调测量谱系, 说明测量手段一路演进、但"给情感一个可量化载体"的目标一以贯之。本项目正是在中文银行金融科技新闻语料上, 把这一构念落地为 llm_vote_tone 家族。其原始数据来自流水线阶段 21 (tone_llms) 产出的文章级投票分 llm_vote_score, 随后在阶段 40 的 encode.py::aggregate_panel 中依循 Tetlock 等人所倡导的"先分后合"范式——先在每篇文章上判定语调, 再按银行与年度分组求聚合值——汇总成银行—年度面板列, 最终由 stata_audit.py::audit_variable_quality 的关键变量缺失闸对其质量进行监控。
@@ -708,6 +724,8 @@ llm_vote_tone 必须与三类容易混淆的相邻测度严格区分开。第一
 
 <!-- rendered-citations:begin -->
 Carlson, N. A., & Burbano, V. (2026). The use of LLMs to annotate data in management research: Foundational guidelines and warnings. Strategic Management Journal, 47(3), 699-725. https://doi.org/10.1002/smj.70023
+Niimi, Junichiro. (2025). A Simple Ensemble Strategy for LLM Inference: Towards More Stable Text Classification. Natural Language Processing and Information Systems (NLDB 2025, Springer LNCS). https://doi.org/10.1007/978-3-031-97144-0_17
+Mun, Yejoon; Kim, Namhyoung. (2025). Leveraging Large Language Models for Sentiment Analysis and Investment Strategy Development in Financial Markets. Journal of Theoretical and Applied Electronic Commerce Research. https://doi.org/10.3390/jtaer20020077
 Kamen, A., & Kamen, Y. (2025). Majority rules: LLM ensemble is a winning approach for content categorization. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2511.15714
 Ludwig, J., Mullainathan, S., & Rambachan, A. (2025). Large language models: An applied econometric framework. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2412.07031
 Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A large language model for extracting information from financial text. Contemporary Accounting Research, 40(2), 806-841. https://doi.org/10.1111/1911-3846.12832

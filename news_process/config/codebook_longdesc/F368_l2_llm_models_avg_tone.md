@@ -39,6 +39,12 @@ citations:
   year: 2026
   title: "Large language models: An applied econometric framework"
   venue: Annual Review of Economics
+- doi: "10.3390/bdcc9100263"
+  type: "journal"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  venue: "Big Data and Cognitive Computing"
 - doi: 10.1007/s00521-024-10603-6
   type: journal
   authors: Lan, Y., Wu, Y., Xu, W., Feng, W., & Zhang, Y.
@@ -200,6 +206,7 @@ citations:
   venue: "Lecture Notes in Networks and Systems (Intelligent and Fuzzy Systems)"
   type: "wp"
 new_dois:
+  - "10.3390/bdcc9100263"
   - "10.1007/s10791-025-09573-7"
   - "10.1007/978-3-031-97992-7_62"
 ---
@@ -365,6 +372,7 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Ludwig, J., Mullainathan, S., & Rambachan, A. (2026). Large language models: An applied econometric framework. Annual Review of Economics. https://doi.org/10.1146/annurev-economics-120925-105620
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 Lan, Y., Wu, Y., Xu, W., Feng, W., & Zhang, Y. (2025). Chinese fine-grained financial sentiment analysis with large language models. Neural Computing and Applications, 37(30), 24883-24892. https://doi.org/10.1007/s00521-024-10603-6
 Chen, Z., Lu, X., Li, J., Chen, P., Li, Z., Sun, K., Luo, Y., Mao, Q., Li, M., Xiao, L., Yang, D., Huang, X., Ban, Y., Sun, H., & Yu, P. S. (2025). Harnessing multiple large language models: A survey on LLM ensemble. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2502.18036
 Kirtac, K., & Germano, G. (2024). Sentiment trading with large language models. Finance Research Letters, 62, 105227. https://doi.org/10.1016/j.frl.2024.105227

@@ -19,6 +19,12 @@ citations:
   venue: Finance Research Letters
   vol: 95
   pages_or_artno: 109684
+- doi: "10.1016/j.procs.2023.08.056"
+  type: "journal"
+  authors: "Yang, X., Liu, Z., Li, J., & Xie, Q."
+  year: 2023
+  title: "Communities of co-occurrence network of financial firms in news"
+  venue: "Procedia Computer Science"
 - doi: 10.1287/mnsc.2024.07420
   type: journal
   authors: Giannetti, M., Jasova, M., Loumioti, M., & Mendicino, C.
@@ -153,6 +159,7 @@ citations:
   venue: "Asia Pacific Journal of Management"
   type: "journal"
 new_dois:
+  - "10.1016/j.procs.2023.08.056"
   - "10.1016/j.techsoc.2025.103145"
   - "10.3390/systems12060197"
   - "10.1007/s10490-025-10098-2"
@@ -221,6 +228,7 @@ sub_frac 须与同为 stage 21 三维创新分类的另外两族严格区分: lo
 
 <!-- rendered-citations:begin -->
 Song, X., Hou, W., Ouyang, Z., & Hao, F. (2026). AI washing: Strategic disclosure and backlash. Finance Research Letters, 95, 109684. https://doi.org/10.1016/j.frl.2026.109684
+Yang, X., Liu, Z., Li, J., & Xie, Q. (2023). Communities of co-occurrence network of financial firms in news. Procedia Computer Science. https://doi.org/10.1016/j.procs.2023.08.056
 Giannetti, M., Jasova, M., Loumioti, M., & Mendicino, C. (2026). "Glossy green" banks: The disconnect between environmental disclosures and lending activities. Management Science. https://doi.org/10.1287/mnsc.2024.07420
 Carlson, N. A., & Burbano, V. (2026). The use of LLMs to annotate data in management research: Foundational guidelines and warnings. Strategic Management Journal. https://doi.org/10.1002/smj.70023
 Duchin, R., Gao, J., & Xu, Q. (2025). Sustainability or greenwashing: Evidence from the asset market for industrial pollution. The Journal of Finance. https://doi.org/10.1111/jofi.13412

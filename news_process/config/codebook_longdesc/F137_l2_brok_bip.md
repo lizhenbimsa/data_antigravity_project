@@ -20,6 +20,12 @@ citations:
   title: "Uncovering financial network structures and connectedness from textual risk disclosures"
   venue: Annals of Operations Research
   pages_or_artno: Advance online publication
+- doi: "10.1287/mnsc.2024.04492"
+  type: "journal"
+  authors: "Lin, C., Lu, F., Michaely, R., & Qin, S."
+  year: 2026
+  title: "SPAC IPOs and Sponsor Network Centrality"
+  venue: "Management Science"
 - doi: 10.1007/s11747-024-01043-8
   type: journal
   authors: Nezami, M., Chisam, N., & Palmatier, R. W.
@@ -200,10 +206,13 @@ new_dois:
 - 10.1016/j.socnet.2007.04.006
 - "10.1287/mnsc.2023.4891"
 - "10.3390/e26050378"
+- "10.1287/mnsc.2024.04492"
 - "10.1016/j.physa.2024.129624"
 ---
 
 ## CORE
+
+该文以网络中心度测量SPAC发起人在私募股权与风险投资网络中的结构位置,证明其解释了并购后回报的显著变异,为本家族二分图经纪度测度提供同构的金融应用先例。
 
 【构念与来源】本家族 5 列测量的核心构念是银行在年度"媒体-银行"二分信息网络中的结构位置, 即银行作为新闻信息分发体系中一个节点的可见度广度与信息经纪 (information brokerage) 地位。理论出发点是 Han, Kim & Nanda (2024) 在机构经纪网络研究中提出的二分图分析框架: 原文以基金-券商二分图刻画机构投资者经由券商网络获得流动性供给的中介结构, 本项目将其改造为媒体-银行二分图 — 二分图的一端 (bipartite=0) 是新闻媒体来源, 另一端 (bipartite=1) 是被报道的目标银行, 一条边表示"该媒体在该年至少报道过该银行一次", 边权等于该媒体该年报道该银行的文章篇数。在这一网络里, 银行的结构位置回答的是一组与单纯报道数量不同的问题: 这家银行的报道来自多少家不同媒体 (广度), 它是否桥接了彼此原本不相连的媒体渠道 (经纪), 报道它的媒体之间是否高度重叠 (冗余), 以及它到网络中其余节点的信息距离有多近 (可达性)。之所以关心这些结构维度, 是因为中国语境下媒体报道本身就是银行信息环境的一等构件: You, Zhang & Zhang (2018) 证明中国不同产权与市场化程度的媒体在"笔杆子的力量"上系统分化, 媒体身份决定其报道的信息含量与治理效果; Xu (2024) 进一步证明财经记者的社会网络结构直接塑造新闻偏差的方向与大小。因此银行接入的媒体渠道组合的拓扑形状 — 而非仅报道条数 — 承载独立的信息环境含义。数据来源上, 本家族完全由 Stage 11 (news_bank) 解析产出的篇章级 df_exploded 驱动: 该表的"媒体(中文)"列给出每篇报道的中文媒体名称, target_bank 列给出该篇匹配的目标银行, year 列给出报道年份; Stage 40 面板导出的 7h-brok 步骤按年份 groupby 聚合 (媒体, 银行) 对的文章计数作为边权, 构建年度二分图后在银行端计算 5 个原生二分图中心度, 再以 left join 并回 bank-year 面板, 无匹配的银行-年自动为 NaN。本家族属 2026-06-21 网络指标扩展的 WS-B 工作流: 扩展前本模块仅产出加权特征向量中心度 brokerage_eigen_cent, WS-B 补齐了度、介数、接近、聚类、冗余 5 个二分图原生指标, 使二分图一侧的结构刻画从单一"声望"维度扩展为覆盖 Freeman (1978) 经典三中心度分类加二分图特有冗余与聚类的完整谱系。用白话概括这五个维度各自在问什么: 度中心度问"报道你的媒体占当年活跃媒体的几成"(广度); 介数中心度问"有多少信息流动的最短路必须路过你"(桥接); 接近中心度问"消息从你出发几步能传遍全网"(可达); 聚类系数问"报道你的那些媒体是不是同一个圈子的"(抱团); 节点冗余度问"把你拿掉之后你的媒体们还能不能经由别的银行互相连上"(可替代性)。五个问题合起来给出一家银行信息环境的立体画像, 任何单一计数变量都无法复现这一画像 — 这正是家族存在的理由。
 
@@ -239,6 +248,7 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research, Advance online publication. https://doi.org/10.1007/s10479-026-07305-8
+Lin, C., Lu, F., Michaely, R., & Qin, S. (2026). SPAC IPOs and Sponsor Network Centrality. Management Science. https://doi.org/10.1287/mnsc.2024.04492
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
 Han, M., Kim, S. (H.), & Nanda, V. K. (2024). Institutional brokerage networks: Facilitating liquidity provision. The Review of Financial Studies, 37(9), 2903-2935. https://doi.org/10.1093/rfs/hhae026
 Xu, G. (2024). News bias in financial journalists' social networks. Journal of Accounting Research, 62(4), 1145-1182. https://doi.org/10.1111/1475-679X.12560

@@ -20,6 +20,12 @@ citations:
   vol: 39
   issue: 1
   pages_or_artno: 181-204
+- doi: "10.1016/j.procs.2023.08.056"
+  type: "journal"
+  authors: "Yang, X., Liu, Z., Li, J., & Xie, Q."
+  year: 2023
+  title: "Communities of co-occurrence network of financial firms in news"
+  venue: "Procedia Computer Science"
 - doi: 10.1093/jrsssa/qnad148
   type: journal
   authors: Apfel, N.
@@ -149,6 +155,7 @@ citations:
   venue: "Humanities and Social Sciences Communications"
   type: "journal"
 new_dois:
+  - "10.1016/j.procs.2023.08.056"
   - "10.1016/j.pacfin.2024.102324"
   - "10.1016/j.econmod.2024.106777"
   - "10.1002/jae.70045"
@@ -187,6 +194,7 @@ bank_type 须与若干形近邻居严格区分。与 bank_scale 的区别是维�
 
 <!-- rendered-citations:begin -->
 Borusyak, K., Hull, P., & Jaravel, X. (2025). A practical guide to shift-share instruments. Journal of Economic Perspectives, 39(1), 181-204. https://doi.org/10.1257/jep.20231370
+Yang, X., Liu, Z., Li, J., & Xie, Q. (2023). Communities of co-occurrence network of financial firms in news. Procedia Computer Science. https://doi.org/10.1016/j.procs.2023.08.056
 Apfel, N. (2024). Relaxing the exclusion restriction in shift-share instrumental variable estimation. Journal of the Royal Statistical Society Series A: Statistics in Society, 187(3), 748-771. https://doi.org/10.1093/jrsssa/qnad148
 Abadie, A., Athey, S., Imbens, G. W., & Wooldridge, J. M. (2023). When should you adjust standard errors for clustering?. Quarterly Journal of Economics, 138(1), 1-35. https://doi.org/10.1093/qje/qjac038
 MacKinnon, J. G., Nielsen, M. Ø., & Webb, M. D. (2023). Cluster-robust inference: A guide to empirical practice. Journal of Econometrics, 232(2), 272-299. https://doi.org/10.1016/j.jeconom.2022.04.001

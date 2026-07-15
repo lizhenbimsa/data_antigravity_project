@@ -18,6 +18,12 @@ citations:
   year: 2026
   title: "Uncovering financial network structures and connectedness from textual risk disclosures"
   venue: Annals of Operations Research
+- doi: "10.1016/j.jcorpfin.2023.102501"
+  type: "journal"
+  authors: "Fan, Y., Jiang, Y., Jin, P., & Mai, Y."
+  year: 2023
+  title: "CEO network centrality and bank risk: Evidence from US Bank holding companies"
+  venue: "Journal of Corporate Finance"
 - doi: 10.1016/j.jeconom.2025.106130
   type: journal
   authors: Hughes, D. W.
@@ -215,11 +221,14 @@ citations:
   venue: "Heliyon"
   type: "journal"
 new_dois:
-  - "10.3390/encyclopedia6010011"
-  - "10.1016/j.heliyon.2024.e26952"
+- "10.1016/j.jcorpfin.2023.102501"
+- "10.3390/encyclopedia6010011"
+- "10.1016/j.heliyon.2024.e26952"
 ---
 
 ## CORE
+
+该文以1999-2018年美国471家银行控股公司为样本,发现CEO(董事)网络中心度越高,银行风险越低,信息流动与CEO权力是两条传导渠道,为「网络枢纽位置影响银行行为/风险」这一构念提供了银行业情境下的直接实证支持。
 
 【构念与来源】
 本家族测度的构念是「银行在年度媒体共现网络中的枢纽地位」: 若某银行在给定年份的银行间新闻共现网络里, 其度中心度位居全体入网银行的前约百分之十, 则判为该年的网络枢纽, 取值一; 否则取值零。这里的「网络」不是真实的资金往来网络或股权关联网络, 而是由媒体报道文本诱导出的信息共现网络: 当同一篇银行金融科技报道中同时提及两家目标银行时, 这两家银行之间即记一条共现边, 全年累加得到年度邻接矩阵。枢纽指示因此刻画的是一种媒体注意力结构中的核心位置——被媒体在报道中反复与众多同业并置的银行, 处于行业新闻叙事的中心, 既更可能是信息扩散的源头与中转站, 也更可能在行业负面冲击中被舆论「点名连坐」。构念的理论源头有两支: 一支是社会网络分析中的中心度传统, Freeman (1978) 对度中心度、中介中心度与接近中心度作出经典的概念澄清, 其中度中心度以「直接连接的邻居数量」度量节点的交往活跃度, 是最直观也最稳健的中心度概念; 另一支是复杂网络科学中的枢纽概念, Watts 与 Strogatz (1998) 的小世界网络研究表明真实网络的连接高度不均匀, 少数高连接度节点承担了不成比例的网络连通功能, 这类节点在网络科学中被称为 hub。本家族把两支合流: 用 Freeman 的度中心度作定序标准, 用「年内前约百分之十」的相对阈值把连续中心度离散化为枢纽与非枢纽的二元分类, 与网络科学中「枢纽是分布尾部少数节点」的经验事实对齐。文本诱导网络的做法在金融经济学中已有成熟先例: Hoberg 与 Phillips (2016) 用产品描述文本相似度构造企业竞争网络并证明其相对静态行业分类的信息增量; Li 等 (2026) 从风险披露文本中恢复金融机构间的网络结构与关联度; 本项目的银行共现网络与之同属「以文本为图的基底」的谱系, 只是边的定义从语义相似换成了报道共现。数据来源是本 pipeline 的篇章级展开帧 df_exploded (由 41 号聚合阶段供给), 其行宇宙与 stage 21 的 full-only 留篇门控口径一致 (2026-06-29 口径: 是否判为一篇银行金融科技报道只看 llm_verified_full), 且共现边采用 both-verified 主路径——同一 docid 下只有两家银行都通过银行侧验证幸存, 该无序对才计一条边, 每篇文章每对恰好加一, 杜绝 phantom 边与 twin 行重复计数。
@@ -256,6 +265,7 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
+Fan, Y., Jiang, Y., Jin, P., & Mai, Y. (2023). CEO network centrality and bank risk: Evidence from US Bank holding companies. Journal of Corporate Finance. https://doi.org/10.1016/j.jcorpfin.2023.102501
 Hughes, D. W. (2026). A jackknife bias correction for nonlinear network data models with fixed effects. Journal of Econometrics, 253, 106130. https://doi.org/10.1016/j.jeconom.2025.106130
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
 Hirshleifer, D., Peng, L., & Wang, Q. (2025). News diffusion in social networks and stock market reactions. The Review of Financial Studies, 38(3), 883-937. https://doi.org/10.1093/rfs/hhae025

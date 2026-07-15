@@ -20,6 +20,12 @@ citations:
   vol: 53
   issue: 1
   pages_or_artno: 79-104
+- doi: "10.1371/journal.pone.0335506"
+  type: "journal"
+  authors: "Bonato, A., Chavez Palan, J., & Szava, A."
+  year: 2025
+  title: "Leaders in the global banking network: Analysis of the Bank for International Settlements network data"
+  venue: "PLOS One"
 - doi: 10.1016/j.irfa.2024.103223
   type: journal
   authors: Yu, M., Hu, X., & Zhong, A.
@@ -214,12 +220,15 @@ citations:
   venue: "Journal of Corporate Finance"
   type: "journal"
 new_dois:
-  - "10.1007/s11424-025-4338-6"
-  - "10.1057/s41599-025-04419-5"
-  - "10.1016/j.jcorpfin.2023.102501"
+- "10.1371/journal.pone.0335506"
+- "10.1007/s11424-025-4338-6"
+- "10.1057/s41599-025-04419-5"
+- "10.1016/j.jcorpfin.2023.102501"
 ---
 
 ## CORE
+
+该文用国际清算银行(BIS)跨境银行间头寸数据构建银行网络,并用度中心度等经典中心性指标识别全球银行网络中的"领导者"节点,为本家族用共现网络度中心度刻画银行结构位置的构念提供了近期同类实证参照。
 
 【构念与来源】
 bank_degree_cent 是 F088 家族的 canonical 列, 度量一家银行在年度"媒体共现网络"中的度中心度 (degree centrality)。构念根植于社会网络分析对"中心性"的经典界定: 一个节点越是与网络中众多其他节点直接相连, 它在信息、资源与影响力流动中所占据的位置就越居中、越关键 (Freeman, 1978)。本项目把这一构念移植到中国银行业的新闻文本语境: 网络的节点是银行, 网络的边是"两家银行在同一年的媒体报道里被共同提及"这一可观测事件。当一家银行在一年之内频繁地与许多不同的同业一起出现在金融科技相关的新闻叙事中, 它在公众注意力与市场话语的结构里就占据了一个更中心的位置——这既可能反映它作为行业标杆被媒体反复援引的显著地位, 也可能反映它深嵌于一个更密集的同业竞争与合作话语场之中。度中心度回答的问题非常朴素: 这家银行今年在新闻里"认识"多少家不同的同业。它是整个网络指标家族里最直观、最不依赖任何谱分解或路径计算的一个, 因而被选作家族的 headline 列与 SSOT 锚点。需要强调, 这里的"共现网络"在图论上是一种由二模关系 (银行—文章的隶属关系) 投影而来的一模网络 (Faust, 1997): 底层可观测的是"哪家银行出现在哪篇文章里"这层隶属结构, 度中心度所度量的连接广度, 是该隶属结构经投影后在银行—银行一模图上的显现, 因此对投影方式与文章规模分布敏感, 这一性质会在下文的构念区分与局限讨论中反复回到。
@@ -286,6 +295,7 @@ win_radius 取自 config/panel.yaml::network_criteria.win_radius, 该键与 filt
 
 <!-- rendered-citations:begin -->
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
+Bonato, A., Chavez Palan, J., & Szava, A. (2025). Leaders in the global banking network: Analysis of the Bank for International Settlements network data. PLOS One. https://doi.org/10.1371/journal.pone.0335506
 Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223
 Xu, Y., & Zhao, X. (2024). How does node centrality in a financial network affect asset price prediction?. The North American Journal of Economics and Finance, 73, 102163. https://doi.org/10.1016/j.najef.2024.102163
 Sadeghi, A., & Feinstein, Z. (2024). Statistical validation of contagion centrality in financial networks. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2404.14337

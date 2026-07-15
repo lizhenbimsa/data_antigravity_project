@@ -35,6 +35,12 @@ citations:
   vol: 30
   issue: 4
   pages_or_artno: 3344-3386
+- doi: "10.1186/s40854-025-00887-5"
+  type: "journal"
+  authors: "Ullah, M., Sohag, K., & Hassan, M. K."
+  year: 2026
+  title: "Exploring the relationship between bank liquidity risk and the media sentiment index via big data technology: a study during the COVID-19 pandemic and the Russia–Ukraine conflict"
+  venue: "Financial Innovation"
 - doi: 10.1287/mnsc.2023.03253
   type: journal
   authors: de Kok, T.
@@ -184,12 +190,15 @@ citations:
   venue: "Managerial and Decision Economics"
   one_sentence_zh: "该文基于中国上市公司数据检验同行传染效应对企业创新的影响, 发现宏观市场化程度与中观行业竞争强化该效应而微观管理能力抑制之, 呼应本家族以同行滞后语调作为工具变量时需考量的同行传染异质性来源。"
 new_dois:
-  - "10.2139/ssrn.5668511"
-  - "10.1111/1475-679X.12510"
-  - "10.1002/mde.3727"
+- "10.1186/s40854-025-00887-5"
+- "10.2139/ssrn.5668511"
+- "10.1111/1475-679X.12510"
+- "10.1002/mde.3727"
 ---
 
 ## CORE
+
+该文运用大数据技术构建媒体情感指数并检验其与银行流动性风险的关系, 在识别策略中使用工具变量缓解内生性, 呼应本家族以同行滞后语调作为工具变量识别银行结局的做法。
 
 【构念与来源】
 本家族刻画的是一枚工具变量, 而不是焦点银行自身的媒体语调。它要回答的问题很明确: 焦点银行在上一年里, 它那些由大语言模型识别出来的同行竞争对手, 收到的媒体情感冲击到底有多强。这一同行滞后语调随后被当作焦点银行当年结局变量的外生驱动来源。用最朴素的话讲, 一家银行自己的舆论好坏, 既受它自身经营影响、又会反过来影响它的经营结果, 两者纠缠在一起说不清谁因谁果, 这就是内生性; 但它的竞争对手去年被媒体怎么评价, 对这家银行今年的经营而言, 原则上只能通过同业竞争、信息溢出、市场情绪传染这类间接渠道起作用, 而很难存在从对手去年语调直接砸向这家银行今年利润的因果通道。因此可以拿对手去年的语调, 作为撬动这家银行自身语调的外部杠杆, 从而把语调对经营结局的因果效应从内生纠缠里剥出来。这正是工具变量识别的直觉。
@@ -320,6 +329,7 @@ new_dois:
 
 <!-- rendered-citations:begin -->
 Cao, Y., Chen, L., Tucker, J. W., & Wan, C. (2025). Can generative AI help identify peer firms?. Review of Accounting Studies, 30(4), 3344-3386. https://doi.org/10.1007/s11142-025-09892-6
+Ullah, M., Sohag, K., & Hassan, M. K. (2026). Exploring the relationship between bank liquidity risk and the media sentiment index via big data technology: a study during the COVID-19 pandemic and the Russia–Ukraine conflict. Financial Innovation. https://doi.org/10.1186/s40854-025-00887-5
 de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
 Luo, S., Shuai, K., Zhang, Y., Li, W., & He, Y. (2025). Identification and estimation of causal peer effects using instrumental variables. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2504.05658
 Shapiro, A. H., Sudhof, M., & Wilson, D. J. (2022). Measuring news sentiment. Journal of Econometrics, 228(2), 221-243. https://doi.org/10.1016/j.jeconom.2020.07.053

@@ -39,6 +39,12 @@ citations:
   vol: 63
   issue: 1
   pages_or_artno: 125-143
+- doi: "10.3390/bdcc9100263"
+  type: "journal"
+  authors: "Chuang, H.-M., He, H.-C., & Hu, M.-C."
+  year: 2025
+  title: "Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models"
+  venue: "Big Data and Cognitive Computing"
 - doi: 10.2308/TAR-2020-0104
   type: journal
   authors: Holzman, E. R., Miller, B. P., & Twedt, B. J.
@@ -151,6 +157,7 @@ citations:
   title: "Tone or term: Machine-learning text analysis, featured vocabulary extraction, and evidence from bond pricing in China"
   venue: "Journal of Empirical Finance"
 new_dois:
+  - "10.3390/bdcc9100263"
   - "10.1002/isaf.1549"
   - "10.1016/j.ememar.2024.101234"
   - "10.1016/j.eswa.2024.125739"
@@ -275,6 +282,7 @@ IDF 加权的思想源头是 Spärck Jones (1972) 关于词项特异性的统计
 
 <!-- rendered-citations:begin -->
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
+Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing enthusiasm: Media sentiment and the disciplining role of quarterly earnings announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036

@@ -5,7 +5,7 @@
   "cjk_p10": 1667,
   "cjk_min": 1297,
   "cjk_max": 9032,
-  "n_within_10pct_of_floor": 23,
+  "n_within_10pct_of_floor": 18,
   "floor_note": "地板 +10% 内聚集触发抽查复审 (§6 写手铁律: 下限是地板非目标)"
  },
  "per_col": {
@@ -22,9 +22,9 @@
    "tier": "standard"
   },
   "gpt54nano_tone_full": {
-   "cjk": 6625,
-   "chars": 16566,
-   "utf8_bytes": 30209,
+   "cjk": 6683,
+   "chars": 17008,
+   "utf8_bytes": 30781,
    "tier": "core"
   },
   "gpt54nano_tone_sum_full": {
@@ -46,9 +46,9 @@
    "tier": "standard"
   },
   "gpt54nano_tone_std_full": {
-   "cjk": 6313,
-   "chars": 15962,
-   "utf8_bytes": 28955,
+   "cjk": 6371,
+   "chars": 16404,
+   "utf8_bytes": 29527,
    "tier": "standard"
   },
   "gpt54nano_sub_frac_full": {
@@ -70,9 +70,9 @@
    "tier": "standard"
   },
   "gemini31_tone_full": {
-   "cjk": 6636,
-   "chars": 16576,
-   "utf8_bytes": 30235,
+   "cjk": 6694,
+   "chars": 17018,
+   "utf8_bytes": 30807,
    "tier": "core"
   },
   "gemini31_tone_sum_full": {
@@ -94,9 +94,9 @@
    "tier": "standard"
   },
   "gemini31_tone_std_full": {
-   "cjk": 6333,
-   "chars": 15963,
-   "utf8_bytes": 28998,
+   "cjk": 6391,
+   "chars": 16405,
+   "utf8_bytes": 29570,
    "tier": "standard"
   },
   "gemini31_sub_frac_full": {
@@ -118,9 +118,9 @@
    "tier": "standard"
   },
   "deepseekv4_tone_full": {
-   "cjk": 6920,
-   "chars": 16941,
-   "utf8_bytes": 31176,
+   "cjk": 6978,
+   "chars": 17383,
+   "utf8_bytes": 31748,
    "tier": "core"
   },
   "deepseekv4_tone_sum_full": {
@@ -142,9 +142,9 @@
    "tier": "standard"
   },
   "deepseekv4_tone_std_full": {
-   "cjk": 6474,
-   "chars": 16218,
-   "utf8_bytes": 29533,
+   "cjk": 6532,
+   "chars": 16660,
+   "utf8_bytes": 30105,
    "tier": "standard"
   },
   "deepseekv4_sub_frac_full": {
@@ -166,9 +166,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_full": {
-   "cjk": 6563,
-   "chars": 14619,
-   "utf8_bytes": 28231,
+   "cjk": 6708,
+   "chars": 15325,
+   "utf8_bytes": 29233,
    "tier": "core"
   },
   "llm_vote_tone_sum_full": {
@@ -178,9 +178,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_std_full": {
-   "cjk": 6002,
-   "chars": 13459,
-   "utf8_bytes": 25913,
+   "cjk": 6147,
+   "chars": 14165,
+   "utf8_bytes": 26915,
    "tier": "standard"
   },
   "pos_frac_full": {
@@ -220,9 +220,9 @@
    "tier": "standard"
   },
   "jiang_2021_tone_full": {
-   "cjk": 7367,
-   "chars": 17043,
-   "utf8_bytes": 32302,
+   "cjk": 7430,
+   "chars": 17328,
+   "utf8_bytes": 32717,
    "tier": "core"
   },
   "jiang_2021_tone_sum_full": {
@@ -232,15 +232,15 @@
    "tier": "standard"
   },
   "jiang_2021_tone_std_full": {
-   "cjk": 6386,
-   "chars": 15277,
-   "utf8_bytes": 28499,
+   "cjk": 6449,
+   "chars": 15562,
+   "utf8_bytes": 28914,
    "tier": "standard"
   },
   "yao_2021_tone_full": {
-   "cjk": 5778,
-   "chars": 15872,
-   "utf8_bytes": 28029,
+   "cjk": 5858,
+   "chars": 16212,
+   "utf8_bytes": 28531,
    "tier": "core"
   },
   "yao_2021_tone_sum_full": {
@@ -250,15 +250,15 @@
    "tier": "standard"
   },
   "yao_2021_tone_std_full": {
-   "cjk": 5147,
-   "chars": 14424,
-   "utf8_bytes": 25270,
+   "cjk": 5227,
+   "chars": 14764,
+   "utf8_bytes": 25772,
    "tier": "standard"
   },
   "bian_2021_tone_full": {
-   "cjk": 7360,
-   "chars": 19374,
-   "utf8_bytes": 34524,
+   "cjk": 7537,
+   "chars": 19982,
+   "utf8_bytes": 35492,
    "tier": "core"
   },
   "bian_2021_tone_sum_full": {
@@ -268,15 +268,15 @@
    "tier": "standard"
   },
   "bian_2021_tone_std_full": {
-   "cjk": 6293,
-   "chars": 17636,
-   "utf8_bytes": 30572,
+   "cjk": 6470,
+   "chars": 18244,
+   "utf8_bytes": 31540,
    "tier": "standard"
   },
   "du_2022_tone_full": {
-   "cjk": 6791,
-   "chars": 18331,
-   "utf8_bytes": 32395,
+   "cjk": 6858,
+   "chars": 18654,
+   "utf8_bytes": 32858,
    "tier": "core"
   },
   "du_2022_tone_sum_full": {
@@ -286,15 +286,15 @@
    "tier": "standard"
   },
   "du_2022_tone_std_full": {
-   "cjk": 6255,
-   "chars": 17390,
-   "utf8_bytes": 30356,
+   "cjk": 6322,
+   "chars": 17713,
+   "utf8_bytes": 30819,
    "tier": "standard"
   },
   "you_2018_tone_full": {
-   "cjk": 6138,
-   "chars": 15563,
-   "utf8_bytes": 28292,
+   "cjk": 6203,
+   "chars": 15866,
+   "utf8_bytes": 28727,
    "tier": "core"
   },
   "you_2018_tone_sum_full": {
@@ -304,15 +304,15 @@
    "tier": "standard"
   },
   "you_2018_tone_std_full": {
-   "cjk": 5541,
-   "chars": 14421,
-   "utf8_bytes": 25910,
+   "cjk": 5606,
+   "chars": 14724,
+   "utf8_bytes": 26345,
    "tier": "standard"
   },
   "loughran_tone_full": {
-   "cjk": 5784,
-   "chars": 15266,
-   "utf8_bytes": 27319,
+   "cjk": 5918,
+   "chars": 15924,
+   "utf8_bytes": 28249,
    "tier": "core"
   },
   "loughran_tone_sum_full": {
@@ -322,9 +322,9 @@
    "tier": "standard"
   },
   "loughran_tone_std_full": {
-   "cjk": 5198,
-   "chars": 14299,
-   "utf8_bytes": 25138,
+   "cjk": 5332,
+   "chars": 14957,
+   "utf8_bytes": 26068,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_full": {
@@ -365,8 +365,8 @@
   },
   "bian_2021_idf_tone_full": {
    "cjk": 1971,
-   "chars": 8015,
-   "utf8_bytes": 12142,
+   "chars": 8245,
+   "utf8_bytes": 12372,
    "tier": "standard"
   },
   "bian_2021_idf_tone_sum_full": {
@@ -377,14 +377,14 @@
   },
   "bian_2021_idf_tone_std_full": {
    "cjk": 2052,
-   "chars": 8097,
-   "utf8_bytes": 12382,
+   "chars": 8327,
+   "utf8_bytes": 12612,
    "tier": "standard"
   },
   "du_2022_idf_tone_full": {
    "cjk": 1993,
-   "chars": 6211,
-   "utf8_bytes": 10441,
+   "chars": 6441,
+   "utf8_bytes": 10671,
    "tier": "standard"
   },
   "du_2022_idf_tone_sum_full": {
@@ -395,8 +395,8 @@
   },
   "du_2022_idf_tone_std_full": {
    "cjk": 1969,
-   "chars": 6159,
-   "utf8_bytes": 10334,
+   "chars": 6389,
+   "utf8_bytes": 10564,
    "tier": "standard"
   },
   "you_2018_idf_tone_full": {
@@ -839,20 +839,20 @@
   },
   "avg_rare_word_full": {
    "cjk": 7924,
-   "chars": 17949,
-   "utf8_bytes": 34302,
+   "chars": 18179,
+   "utf8_bytes": 34532,
    "tier": "core"
   },
   "avg_rare_word_c2_full": {
    "cjk": 6949,
-   "chars": 16326,
-   "utf8_bytes": 30681,
+   "chars": 16556,
+   "utf8_bytes": 30911,
    "tier": "standard"
   },
   "avg_rare_word_c5_full": {
    "cjk": 6922,
-   "chars": 16383,
-   "utf8_bytes": 30686,
+   "chars": 16613,
+   "utf8_bytes": 30916,
    "tier": "standard"
   },
   "avg_hard_char_full": {
@@ -892,9 +892,9 @@
    "tier": "standard"
   },
   "avg_boilerplate_full": {
-   "cjk": 7001,
-   "chars": 14599,
-   "utf8_bytes": 29029,
+   "cjk": 7104,
+   "chars": 14948,
+   "utf8_bytes": 29593,
    "tier": "core"
   },
   "avg_within_doc_redund_han_full": {
@@ -982,9 +982,9 @@
    "tier": "standard"
   },
   "gpt54nano_tone_ctx": {
-   "cjk": 6352,
-   "chars": 15981,
-   "utf8_bytes": 29062,
+   "cjk": 6410,
+   "chars": 16423,
+   "utf8_bytes": 29634,
    "tier": "standard"
   },
   "gpt54nano_tone_sum_ctx": {
@@ -1006,9 +1006,9 @@
    "tier": "standard"
   },
   "gpt54nano_tone_std_ctx": {
-   "cjk": 6346,
-   "chars": 15966,
-   "utf8_bytes": 29031,
+   "cjk": 6404,
+   "chars": 16408,
+   "utf8_bytes": 29603,
    "tier": "standard"
   },
   "gpt54nano_sub_frac_ctx": {
@@ -1030,9 +1030,9 @@
    "tier": "standard"
   },
   "gemini31_tone_ctx": {
-   "cjk": 6372,
-   "chars": 15981,
-   "utf8_bytes": 29104,
+   "cjk": 6430,
+   "chars": 16423,
+   "utf8_bytes": 29676,
    "tier": "standard"
   },
   "gemini31_tone_sum_ctx": {
@@ -1054,9 +1054,9 @@
    "tier": "standard"
   },
   "gemini31_tone_std_ctx": {
-   "cjk": 6356,
-   "chars": 16001,
-   "utf8_bytes": 29076,
+   "cjk": 6414,
+   "chars": 16443,
+   "utf8_bytes": 29648,
    "tier": "standard"
   },
   "gemini31_sub_frac_ctx": {
@@ -1078,9 +1078,9 @@
    "tier": "standard"
   },
   "deepseekv4_tone_ctx": {
-   "cjk": 6513,
-   "chars": 16236,
-   "utf8_bytes": 29639,
+   "cjk": 6571,
+   "chars": 16678,
+   "utf8_bytes": 30211,
    "tier": "standard"
   },
   "deepseekv4_tone_sum_ctx": {
@@ -1102,9 +1102,9 @@
    "tier": "standard"
   },
   "deepseekv4_tone_std_ctx": {
-   "cjk": 6507,
-   "chars": 16222,
-   "utf8_bytes": 29609,
+   "cjk": 6565,
+   "chars": 16664,
+   "utf8_bytes": 30181,
    "tier": "standard"
   },
   "deepseekv4_sub_frac_ctx": {
@@ -1126,9 +1126,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_ctx": {
-   "cjk": 6011,
-   "chars": 13593,
-   "utf8_bytes": 26057,
+   "cjk": 6156,
+   "chars": 14299,
+   "utf8_bytes": 27059,
    "tier": "standard"
   },
   "llm_vote_tone_sum_ctx": {
@@ -1138,9 +1138,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_std_ctx": {
-   "cjk": 6054,
-   "chars": 13516,
-   "utf8_bytes": 26072,
+   "cjk": 6199,
+   "chars": 14222,
+   "utf8_bytes": 27074,
    "tier": "standard"
   },
   "pos_frac_ctx": {
@@ -1180,9 +1180,9 @@
    "tier": "standard"
   },
   "jiang_2021_tone_ctx": {
-   "cjk": 6419,
-   "chars": 15243,
-   "utf8_bytes": 28530,
+   "cjk": 6482,
+   "chars": 15528,
+   "utf8_bytes": 28945,
    "tier": "standard"
   },
   "jiang_2021_tone_sum_ctx": {
@@ -1192,15 +1192,15 @@
    "tier": "standard"
   },
   "jiang_2021_tone_std_ctx": {
-   "cjk": 6374,
-   "chars": 15209,
-   "utf8_bytes": 28400,
+   "cjk": 6437,
+   "chars": 15494,
+   "utf8_bytes": 28815,
    "tier": "standard"
   },
   "yao_2021_tone_ctx": {
-   "cjk": 5183,
-   "chars": 14516,
-   "utf8_bytes": 25428,
+   "cjk": 5263,
+   "chars": 14856,
+   "utf8_bytes": 25930,
    "tier": "standard"
   },
   "yao_2021_tone_sum_ctx": {
@@ -1210,15 +1210,15 @@
    "tier": "standard"
   },
   "yao_2021_tone_std_ctx": {
-   "cjk": 5137,
-   "chars": 14463,
-   "utf8_bytes": 25281,
+   "cjk": 5217,
+   "chars": 14803,
+   "utf8_bytes": 25783,
    "tier": "standard"
   },
   "bian_2021_tone_ctx": {
-   "cjk": 6320,
-   "chars": 17716,
-   "utf8_bytes": 30706,
+   "cjk": 6497,
+   "chars": 18324,
+   "utf8_bytes": 31674,
    "tier": "standard"
   },
   "bian_2021_tone_sum_ctx": {
@@ -1228,15 +1228,15 @@
    "tier": "standard"
   },
   "bian_2021_tone_std_ctx": {
-   "cjk": 6312,
-   "chars": 17707,
-   "utf8_bytes": 30683,
+   "cjk": 6489,
+   "chars": 18315,
+   "utf8_bytes": 31651,
    "tier": "standard"
   },
   "du_2022_tone_ctx": {
-   "cjk": 6256,
-   "chars": 17486,
-   "utf8_bytes": 30446,
+   "cjk": 6323,
+   "chars": 17809,
+   "utf8_bytes": 30909,
    "tier": "standard"
   },
   "du_2022_tone_sum_ctx": {
@@ -1246,15 +1246,15 @@
    "tier": "standard"
   },
   "du_2022_tone_std_ctx": {
-   "cjk": 6441,
-   "chars": 17735,
-   "utf8_bytes": 31073,
+   "cjk": 6508,
+   "chars": 18058,
+   "utf8_bytes": 31536,
    "tier": "standard"
   },
   "you_2018_tone_ctx": {
-   "cjk": 5530,
-   "chars": 14427,
-   "utf8_bytes": 25888,
+   "cjk": 5595,
+   "chars": 14730,
+   "utf8_bytes": 26323,
    "tier": "standard"
   },
   "you_2018_tone_sum_ctx": {
@@ -1264,15 +1264,15 @@
    "tier": "standard"
   },
   "you_2018_tone_std_ctx": {
-   "cjk": 5512,
-   "chars": 14363,
-   "utf8_bytes": 25790,
+   "cjk": 5577,
+   "chars": 14666,
+   "utf8_bytes": 26225,
    "tier": "standard"
   },
   "loughran_tone_ctx": {
-   "cjk": 5252,
-   "chars": 14405,
-   "utf8_bytes": 25354,
+   "cjk": 5386,
+   "chars": 15063,
+   "utf8_bytes": 26284,
    "tier": "standard"
   },
   "loughran_tone_sum_ctx": {
@@ -1282,9 +1282,9 @@
    "tier": "standard"
   },
   "loughran_tone_std_ctx": {
-   "cjk": 5161,
-   "chars": 14247,
-   "utf8_bytes": 25006,
+   "cjk": 5295,
+   "chars": 14905,
+   "utf8_bytes": 25936,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_ctx": {
@@ -1325,8 +1325,8 @@
   },
   "bian_2021_idf_tone_ctx": {
    "cjk": 2008,
-   "chars": 8068,
-   "utf8_bytes": 12267,
+   "chars": 8298,
+   "utf8_bytes": 12497,
    "tier": "standard"
   },
   "bian_2021_idf_tone_sum_ctx": {
@@ -1337,14 +1337,14 @@
   },
   "bian_2021_idf_tone_std_ctx": {
    "cjk": 1998,
-   "chars": 8011,
-   "utf8_bytes": 12192,
+   "chars": 8241,
+   "utf8_bytes": 12422,
    "tier": "standard"
   },
   "du_2022_idf_tone_ctx": {
    "cjk": 1957,
-   "chars": 6136,
-   "utf8_bytes": 10272,
+   "chars": 6366,
+   "utf8_bytes": 10502,
    "tier": "standard"
   },
   "du_2022_idf_tone_sum_ctx": {
@@ -1355,8 +1355,8 @@
   },
   "du_2022_idf_tone_std_ctx": {
    "cjk": 1965,
-   "chars": 6150,
-   "utf8_bytes": 10305,
+   "chars": 6380,
+   "utf8_bytes": 10535,
    "tier": "standard"
   },
   "you_2018_idf_tone_ctx": {
@@ -1799,20 +1799,20 @@
   },
   "avg_rare_word_ctx": {
    "cjk": 6900,
-   "chars": 16312,
-   "utf8_bytes": 30567,
+   "chars": 16542,
+   "utf8_bytes": 30797,
    "tier": "standard"
   },
   "avg_rare_word_c2_ctx": {
    "cjk": 6999,
-   "chars": 16411,
-   "utf8_bytes": 30868,
+   "chars": 16641,
+   "utf8_bytes": 31098,
    "tier": "standard"
   },
   "avg_rare_word_c5_ctx": {
    "cjk": 6906,
-   "chars": 16277,
-   "utf8_bytes": 30546,
+   "chars": 16507,
+   "utf8_bytes": 30776,
    "tier": "standard"
   },
   "avg_hard_char_ctx": {
@@ -1852,9 +1852,9 @@
    "tier": "standard"
   },
   "avg_boilerplate_ctx": {
-   "cjk": 6536,
-   "chars": 13839,
-   "utf8_bytes": 27317,
+   "cjk": 6639,
+   "chars": 14188,
+   "utf8_bytes": 27881,
    "tier": "standard"
   },
   "avg_within_doc_redund_han_ctx": {
@@ -1942,9 +1942,9 @@
    "tier": "standard"
   },
   "gpt54nano_tone_ss": {
-   "cjk": 6346,
-   "chars": 16036,
-   "utf8_bytes": 29107,
+   "cjk": 6404,
+   "chars": 16478,
+   "utf8_bytes": 29679,
    "tier": "standard"
   },
   "gpt54nano_tone_sum_ss": {
@@ -1966,9 +1966,9 @@
    "tier": "standard"
   },
   "gpt54nano_tone_std_ss": {
-   "cjk": 6340,
-   "chars": 16022,
-   "utf8_bytes": 29077,
+   "cjk": 6398,
+   "chars": 16464,
+   "utf8_bytes": 29649,
    "tier": "standard"
   },
   "gpt54nano_sub_frac_ss": {
@@ -1990,9 +1990,9 @@
    "tier": "standard"
   },
   "gemini31_tone_ss": {
-   "cjk": 6366,
-   "chars": 16037,
-   "utf8_bytes": 29150,
+   "cjk": 6424,
+   "chars": 16479,
+   "utf8_bytes": 29722,
    "tier": "standard"
   },
   "gemini31_tone_sum_ss": {
@@ -2014,9 +2014,9 @@
    "tier": "standard"
   },
   "gemini31_tone_std_ss": {
-   "cjk": 6350,
-   "chars": 16057,
-   "utf8_bytes": 29122,
+   "cjk": 6408,
+   "chars": 16499,
+   "utf8_bytes": 29694,
    "tier": "standard"
   },
   "gemini31_sub_frac_ss": {
@@ -2038,9 +2038,9 @@
    "tier": "standard"
   },
   "deepseekv4_tone_ss": {
-   "cjk": 6507,
-   "chars": 16292,
-   "utf8_bytes": 29685,
+   "cjk": 6565,
+   "chars": 16734,
+   "utf8_bytes": 30257,
    "tier": "standard"
   },
   "deepseekv4_tone_sum_ss": {
@@ -2062,9 +2062,9 @@
    "tier": "standard"
   },
   "deepseekv4_tone_std_ss": {
-   "cjk": 6501,
-   "chars": 16278,
-   "utf8_bytes": 29655,
+   "cjk": 6559,
+   "chars": 16720,
+   "utf8_bytes": 30227,
    "tier": "standard"
   },
   "deepseekv4_sub_frac_ss": {
@@ -2086,9 +2086,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_ss": {
-   "cjk": 6002,
-   "chars": 13530,
-   "utf8_bytes": 25978,
+   "cjk": 6147,
+   "chars": 14236,
+   "utf8_bytes": 26980,
    "tier": "standard"
   },
   "llm_vote_tone_sum_ss": {
@@ -2098,9 +2098,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_std_ss": {
-   "cjk": 5966,
-   "chars": 13425,
-   "utf8_bytes": 25799,
+   "cjk": 6111,
+   "chars": 14131,
+   "utf8_bytes": 26801,
    "tier": "standard"
   },
   "pos_frac_ss": {
@@ -2140,9 +2140,9 @@
    "tier": "standard"
   },
   "jiang_2021_tone_ss": {
-   "cjk": 6416,
-   "chars": 15303,
-   "utf8_bytes": 28579,
+   "cjk": 6479,
+   "chars": 15588,
+   "utf8_bytes": 28994,
    "tier": "standard"
   },
   "jiang_2021_tone_sum_ss": {
@@ -2152,15 +2152,15 @@
    "tier": "standard"
   },
   "jiang_2021_tone_std_ss": {
-   "cjk": 6408,
-   "chars": 15163,
-   "utf8_bytes": 28424,
+   "cjk": 6471,
+   "chars": 15448,
+   "utf8_bytes": 28839,
    "tier": "standard"
   },
   "yao_2021_tone_ss": {
-   "cjk": 5172,
-   "chars": 14505,
-   "utf8_bytes": 25407,
+   "cjk": 5252,
+   "chars": 14845,
+   "utf8_bytes": 25909,
    "tier": "standard"
   },
   "yao_2021_tone_sum_ss": {
@@ -2170,15 +2170,15 @@
    "tier": "standard"
   },
   "yao_2021_tone_std_ss": {
-   "cjk": 5151,
-   "chars": 14425,
-   "utf8_bytes": 25278,
+   "cjk": 5231,
+   "chars": 14765,
+   "utf8_bytes": 25780,
    "tier": "standard"
   },
   "bian_2021_tone_ss": {
-   "cjk": 6306,
-   "chars": 17718,
-   "utf8_bytes": 30686,
+   "cjk": 6483,
+   "chars": 18326,
+   "utf8_bytes": 31654,
    "tier": "standard"
   },
   "bian_2021_tone_sum_ss": {
@@ -2188,15 +2188,15 @@
    "tier": "standard"
   },
   "bian_2021_tone_std_ss": {
-   "cjk": 6286,
-   "chars": 17659,
-   "utf8_bytes": 30585,
+   "cjk": 6463,
+   "chars": 18267,
+   "utf8_bytes": 31553,
    "tier": "standard"
   },
   "du_2022_tone_ss": {
-   "cjk": 6250,
-   "chars": 17472,
-   "utf8_bytes": 30423,
+   "cjk": 6317,
+   "chars": 17795,
+   "utf8_bytes": 30886,
    "tier": "standard"
   },
   "du_2022_tone_sum_ss": {
@@ -2206,15 +2206,15 @@
    "tier": "standard"
   },
   "du_2022_tone_std_ss": {
-   "cjk": 6432,
-   "chars": 17661,
-   "utf8_bytes": 30981,
+   "cjk": 6499,
+   "chars": 17984,
+   "utf8_bytes": 31444,
    "tier": "standard"
   },
   "you_2018_tone_ss": {
-   "cjk": 5567,
-   "chars": 14464,
-   "utf8_bytes": 26008,
+   "cjk": 5632,
+   "chars": 14767,
+   "utf8_bytes": 26443,
    "tier": "standard"
   },
   "you_2018_tone_sum_ss": {
@@ -2224,15 +2224,15 @@
    "tier": "standard"
   },
   "you_2018_tone_std_ss": {
-   "cjk": 5488,
-   "chars": 14343,
-   "utf8_bytes": 25727,
+   "cjk": 5553,
+   "chars": 14646,
+   "utf8_bytes": 26162,
    "tier": "standard"
   },
   "loughran_tone_ss": {
-   "cjk": 5172,
-   "chars": 14333,
-   "utf8_bytes": 25117,
+   "cjk": 5306,
+   "chars": 14991,
+   "utf8_bytes": 26047,
    "tier": "standard"
   },
   "loughran_tone_sum_ss": {
@@ -2242,9 +2242,9 @@
    "tier": "standard"
   },
   "loughran_tone_std_ss": {
-   "cjk": 5151,
-   "chars": 14313,
-   "utf8_bytes": 25056,
+   "cjk": 5285,
+   "chars": 14971,
+   "utf8_bytes": 25986,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_ss": {
@@ -2285,8 +2285,8 @@
   },
   "bian_2021_idf_tone_ss": {
    "cjk": 2012,
-   "chars": 8115,
-   "utf8_bytes": 12323,
+   "chars": 8345,
+   "utf8_bytes": 12553,
    "tier": "standard"
   },
   "bian_2021_idf_tone_sum_ss": {
@@ -2297,14 +2297,14 @@
   },
   "bian_2021_idf_tone_std_ss": {
    "cjk": 1981,
-   "chars": 8057,
-   "utf8_bytes": 12211,
+   "chars": 8287,
+   "utf8_bytes": 12441,
    "tier": "standard"
   },
   "du_2022_idf_tone_ss": {
    "cjk": 1967,
-   "chars": 6155,
-   "utf8_bytes": 10322,
+   "chars": 6385,
+   "utf8_bytes": 10552,
    "tier": "standard"
   },
   "du_2022_idf_tone_sum_ss": {
@@ -2315,8 +2315,8 @@
   },
   "du_2022_idf_tone_std_ss": {
    "cjk": 1953,
-   "chars": 6117,
-   "utf8_bytes": 10253,
+   "chars": 6347,
+   "utf8_bytes": 10483,
    "tier": "standard"
   },
   "you_2018_idf_tone_ss": {
@@ -2759,20 +2759,20 @@
   },
   "avg_rare_word_ss": {
    "cjk": 6935,
-   "chars": 16386,
-   "utf8_bytes": 30709,
+   "chars": 16616,
+   "utf8_bytes": 30939,
    "tier": "standard"
   },
   "avg_rare_word_c2_ss": {
    "cjk": 6997,
-   "chars": 16388,
-   "utf8_bytes": 30837,
+   "chars": 16618,
+   "utf8_bytes": 31067,
    "tier": "standard"
   },
   "avg_rare_word_c5_ss": {
    "cjk": 6934,
-   "chars": 16330,
-   "utf8_bytes": 30653,
+   "chars": 16560,
+   "utf8_bytes": 30883,
    "tier": "standard"
   },
   "avg_hard_char_ss": {
@@ -2812,9 +2812,9 @@
    "tier": "standard"
   },
   "avg_boilerplate_ss": {
-   "cjk": 6591,
-   "chars": 13960,
-   "utf8_bytes": 27542,
+   "cjk": 6694,
+   "chars": 14309,
+   "utf8_bytes": 28106,
    "tier": "standard"
   },
   "avg_within_doc_redund_han_ss": {
@@ -5831,8 +5831,8 @@
   },
   "avg_bian_2021_neg_ratio_full": {
    "cjk": 7251,
-   "chars": 16546,
-   "utf8_bytes": 31718,
+   "chars": 16776,
+   "utf8_bytes": 31948,
    "tier": "core"
   },
   "avg_du_2022_pos_ratio_full": {
@@ -5855,8 +5855,8 @@
   },
   "avg_you_2018_neg_ratio_full": {
    "cjk": 7328,
-   "chars": 14358,
-   "utf8_bytes": 29379,
+   "chars": 14588,
+   "utf8_bytes": 29609,
    "tier": "core"
   },
   "avg_loughran_pos_ratio_full": {
@@ -5903,8 +5903,8 @@
   },
   "avg_bian_2021_neg_ratio_ctx": {
    "cjk": 6380,
-   "chars": 15212,
-   "utf8_bytes": 28588,
+   "chars": 15442,
+   "utf8_bytes": 28818,
    "tier": "standard"
   },
   "avg_du_2022_pos_ratio_ctx": {
@@ -5927,8 +5927,8 @@
   },
   "avg_you_2018_neg_ratio_ctx": {
    "cjk": 6588,
-   "chars": 13311,
-   "utf8_bytes": 26822,
+   "chars": 13541,
+   "utf8_bytes": 27052,
    "tier": "standard"
   },
   "avg_loughran_pos_ratio_ctx": {
@@ -5975,8 +5975,8 @@
   },
   "avg_bian_2021_neg_ratio_ss": {
    "cjk": 6424,
-   "chars": 15414,
-   "utf8_bytes": 28876,
+   "chars": 15644,
+   "utf8_bytes": 29106,
    "tier": "standard"
   },
   "avg_du_2022_pos_ratio_ss": {
@@ -5999,8 +5999,8 @@
   },
   "avg_you_2018_neg_ratio_ss": {
    "cjk": 6544,
-   "chars": 13359,
-   "utf8_bytes": 26782,
+   "chars": 13589,
+   "utf8_bytes": 27012,
    "tier": "standard"
   },
   "avg_loughran_pos_ratio_ss": {
@@ -6611,26 +6611,26 @@
   },
   "finbert_cn_tone_entropy_full": {
    "cjk": 5694,
-   "chars": 13579,
-   "utf8_bytes": 25399,
+   "chars": 13809,
+   "utf8_bytes": 25629,
    "tier": "core"
   },
   "finbert_cn_xneg_frac_t80_full": {
-   "cjk": 4980,
-   "chars": 12915,
-   "utf8_bytes": 23178,
+   "cjk": 5135,
+   "chars": 13496,
+   "utf8_bytes": 24073,
    "tier": "standard"
   },
   "finbert_cn_xneg_frac_full": {
-   "cjk": 5758,
-   "chars": 14068,
-   "utf8_bytes": 25921,
+   "cjk": 5913,
+   "chars": 14649,
+   "utf8_bytes": 26816,
    "tier": "core"
   },
   "finbert_cn_xneg_frac_t95_full": {
-   "cjk": 4995,
-   "chars": 12914,
-   "utf8_bytes": 23213,
+   "cjk": 5150,
+   "chars": 13495,
+   "utf8_bytes": 24108,
    "tier": "standard"
   },
   "finbert_cn_net_tone_skew_full": {
@@ -6641,26 +6641,26 @@
   },
   "fin_sent_zh_tone_entropy_full": {
    "cjk": 5708,
-   "chars": 13686,
-   "utf8_bytes": 25548,
+   "chars": 13916,
+   "utf8_bytes": 25778,
    "tier": "core"
   },
   "fin_sent_zh_xneg_frac_t80_full": {
-   "cjk": 4964,
-   "chars": 12923,
-   "utf8_bytes": 23152,
+   "cjk": 5119,
+   "chars": 13504,
+   "utf8_bytes": 24047,
    "tier": "standard"
   },
   "fin_sent_zh_xneg_frac_full": {
-   "cjk": 5584,
-   "chars": 13753,
-   "utf8_bytes": 25248,
+   "cjk": 5739,
+   "chars": 14334,
+   "utf8_bytes": 26143,
    "tier": "core"
   },
   "fin_sent_zh_xneg_frac_t95_full": {
-   "cjk": 4978,
-   "chars": 12897,
-   "utf8_bytes": 23156,
+   "cjk": 5133,
+   "chars": 13478,
+   "utf8_bytes": 24051,
    "tier": "standard"
   },
   "fin_sent_zh_net_tone_skew_full": {
@@ -6671,26 +6671,26 @@
   },
   "finbert2_tone_entropy_full": {
    "cjk": 5708,
-   "chars": 13545,
-   "utf8_bytes": 25387,
+   "chars": 13775,
+   "utf8_bytes": 25617,
    "tier": "core"
   },
   "finbert2_xneg_frac_t80_full": {
-   "cjk": 4992,
-   "chars": 12918,
-   "utf8_bytes": 23201,
+   "cjk": 5147,
+   "chars": 13499,
+   "utf8_bytes": 24096,
    "tier": "standard"
   },
   "finbert2_xneg_frac_full": {
-   "cjk": 5585,
-   "chars": 13643,
-   "utf8_bytes": 25130,
+   "cjk": 5740,
+   "chars": 14224,
+   "utf8_bytes": 26025,
    "tier": "core"
   },
   "finbert2_xneg_frac_t95_full": {
-   "cjk": 4941,
-   "chars": 12898,
-   "utf8_bytes": 23083,
+   "cjk": 5096,
+   "chars": 13479,
+   "utf8_bytes": 23978,
    "tier": "standard"
   },
   "finbert2_net_tone_skew_full": {
@@ -6700,39 +6700,39 @@
    "tier": "core"
   },
   "bert_xmodel_lblhet_full": {
-   "cjk": 6110,
-   "chars": 14419,
-   "utf8_bytes": 26936,
+   "cjk": 6198,
+   "chars": 14837,
+   "utf8_bytes": 27536,
    "tier": "core"
   },
   "bert_xmodel_disp_full": {
-   "cjk": 5482,
-   "chars": 13536,
-   "utf8_bytes": 24765,
+   "cjk": 5570,
+   "chars": 13954,
+   "utf8_bytes": 25365,
    "tier": "standard"
   },
   "finbert_cn_tone_entropy_ctx": {
    "cjk": 5155,
-   "chars": 12850,
-   "utf8_bytes": 23560,
+   "chars": 13080,
+   "utf8_bytes": 23790,
    "tier": "standard"
   },
   "finbert_cn_xneg_frac_t80_ctx": {
-   "cjk": 4971,
-   "chars": 12893,
-   "utf8_bytes": 23142,
+   "cjk": 5126,
+   "chars": 13474,
+   "utf8_bytes": 24037,
    "tier": "standard"
   },
   "finbert_cn_xneg_frac_ctx": {
-   "cjk": 4967,
-   "chars": 12932,
-   "utf8_bytes": 23163,
+   "cjk": 5122,
+   "chars": 13513,
+   "utf8_bytes": 24058,
    "tier": "standard"
   },
   "finbert_cn_xneg_frac_t95_ctx": {
-   "cjk": 4977,
-   "chars": 12895,
-   "utf8_bytes": 23146,
+   "cjk": 5132,
+   "chars": 13476,
+   "utf8_bytes": 24041,
    "tier": "standard"
   },
   "finbert_cn_net_tone_skew_ctx": {
@@ -6743,26 +6743,26 @@
   },
   "fin_sent_zh_tone_entropy_ctx": {
    "cjk": 5203,
-   "chars": 12815,
-   "utf8_bytes": 23629,
+   "chars": 13045,
+   "utf8_bytes": 23859,
    "tier": "standard"
   },
   "fin_sent_zh_xneg_frac_t80_ctx": {
-   "cjk": 4968,
-   "chars": 12885,
-   "utf8_bytes": 23118,
+   "cjk": 5123,
+   "chars": 13466,
+   "utf8_bytes": 24013,
    "tier": "standard"
   },
   "fin_sent_zh_xneg_frac_ctx": {
-   "cjk": 4982,
-   "chars": 12930,
-   "utf8_bytes": 23195,
+   "cjk": 5137,
+   "chars": 13511,
+   "utf8_bytes": 24090,
    "tier": "standard"
   },
   "fin_sent_zh_xneg_frac_t95_ctx": {
-   "cjk": 4963,
-   "chars": 12852,
-   "utf8_bytes": 23079,
+   "cjk": 5118,
+   "chars": 13433,
+   "utf8_bytes": 23974,
    "tier": "standard"
   },
   "fin_sent_zh_net_tone_skew_ctx": {
@@ -6773,26 +6773,26 @@
   },
   "finbert2_tone_entropy_ctx": {
    "cjk": 5163,
-   "chars": 12783,
-   "utf8_bytes": 23501,
+   "chars": 13013,
+   "utf8_bytes": 23731,
    "tier": "standard"
   },
   "finbert2_xneg_frac_t80_ctx": {
-   "cjk": 4959,
-   "chars": 12855,
-   "utf8_bytes": 23082,
+   "cjk": 5114,
+   "chars": 13436,
+   "utf8_bytes": 23977,
    "tier": "standard"
   },
   "finbert2_xneg_frac_ctx": {
-   "cjk": 4995,
-   "chars": 12906,
-   "utf8_bytes": 23191,
+   "cjk": 5150,
+   "chars": 13487,
+   "utf8_bytes": 24086,
    "tier": "standard"
   },
   "finbert2_xneg_frac_t95_ctx": {
-   "cjk": 4963,
-   "chars": 12866,
-   "utf8_bytes": 23095,
+   "cjk": 5118,
+   "chars": 13447,
+   "utf8_bytes": 23990,
    "tier": "standard"
   },
   "finbert2_net_tone_skew_ctx": {
@@ -6802,39 +6802,39 @@
    "tier": "standard"
   },
   "bert_xmodel_lblhet_ctx": {
-   "cjk": 5474,
-   "chars": 13589,
-   "utf8_bytes": 24810,
+   "cjk": 5562,
+   "chars": 14007,
+   "utf8_bytes": 25410,
    "tier": "standard"
   },
   "bert_xmodel_disp_ctx": {
-   "cjk": 5554,
-   "chars": 13682,
-   "utf8_bytes": 25059,
+   "cjk": 5642,
+   "chars": 14100,
+   "utf8_bytes": 25659,
    "tier": "standard"
   },
   "finbert_cn_tone_entropy_ss": {
    "cjk": 5141,
-   "chars": 12751,
-   "utf8_bytes": 23434,
+   "chars": 12981,
+   "utf8_bytes": 23664,
    "tier": "standard"
   },
   "finbert_cn_xneg_frac_t80_ss": {
-   "cjk": 4968,
-   "chars": 12883,
-   "utf8_bytes": 23118,
+   "cjk": 5123,
+   "chars": 13464,
+   "utf8_bytes": 24013,
    "tier": "standard"
   },
   "finbert_cn_xneg_frac_ss": {
-   "cjk": 4971,
-   "chars": 12879,
-   "utf8_bytes": 23116,
+   "cjk": 5126,
+   "chars": 13460,
+   "utf8_bytes": 24011,
    "tier": "standard"
   },
   "finbert_cn_xneg_frac_t95_ss": {
-   "cjk": 4972,
-   "chars": 12843,
-   "utf8_bytes": 23094,
+   "cjk": 5127,
+   "chars": 13424,
+   "utf8_bytes": 23989,
    "tier": "standard"
   },
   "finbert_cn_net_tone_skew_ss": {
@@ -6845,26 +6845,26 @@
   },
   "fin_sent_zh_tone_entropy_ss": {
    "cjk": 5189,
-   "chars": 12786,
-   "utf8_bytes": 23567,
+   "chars": 13016,
+   "utf8_bytes": 23797,
    "tier": "standard"
   },
   "fin_sent_zh_xneg_frac_t80_ss": {
-   "cjk": 4956,
-   "chars": 12843,
-   "utf8_bytes": 23052,
+   "cjk": 5111,
+   "chars": 13424,
+   "utf8_bytes": 23947,
    "tier": "standard"
   },
   "fin_sent_zh_xneg_frac_ss": {
-   "cjk": 4978,
-   "chars": 12905,
-   "utf8_bytes": 23156,
+   "cjk": 5133,
+   "chars": 13486,
+   "utf8_bytes": 24051,
    "tier": "standard"
   },
   "fin_sent_zh_xneg_frac_t95_ss": {
-   "cjk": 4971,
-   "chars": 12840,
-   "utf8_bytes": 23079,
+   "cjk": 5126,
+   "chars": 13421,
+   "utf8_bytes": 23974,
    "tier": "standard"
   },
   "fin_sent_zh_net_tone_skew_ss": {
@@ -6875,26 +6875,26 @@
   },
   "finbert2_tone_entropy_ss": {
    "cjk": 5149,
-   "chars": 12749,
-   "utf8_bytes": 23439,
+   "chars": 12979,
+   "utf8_bytes": 23669,
    "tier": "standard"
   },
   "finbert2_xneg_frac_t80_ss": {
-   "cjk": 4967,
-   "chars": 12856,
-   "utf8_bytes": 23095,
+   "cjk": 5122,
+   "chars": 13437,
+   "utf8_bytes": 23990,
    "tier": "standard"
   },
   "finbert2_xneg_frac_ss": {
-   "cjk": 4967,
-   "chars": 12860,
-   "utf8_bytes": 23089,
+   "cjk": 5122,
+   "chars": 13441,
+   "utf8_bytes": 23984,
    "tier": "standard"
   },
   "finbert2_xneg_frac_t95_ss": {
-   "cjk": 5005,
-   "chars": 12851,
-   "utf8_bytes": 23162,
+   "cjk": 5160,
+   "chars": 13432,
+   "utf8_bytes": 24057,
    "tier": "standard"
   },
   "finbert2_net_tone_skew_ss": {
@@ -6904,15 +6904,15 @@
    "tier": "standard"
   },
   "bert_xmodel_lblhet_ss": {
-   "cjk": 5535,
-   "chars": 13661,
-   "utf8_bytes": 25006,
+   "cjk": 5623,
+   "chars": 14079,
+   "utf8_bytes": 25606,
    "tier": "standard"
   },
   "bert_xmodel_disp_ss": {
-   "cjk": 5542,
-   "chars": 13629,
-   "utf8_bytes": 24986,
+   "cjk": 5630,
+   "chars": 14047,
+   "utf8_bytes": 25586,
    "tier": "standard"
   },
   "finbert_cn_net_tone_full": {
@@ -7006,9 +7006,9 @@
    "tier": "standard"
   },
   "gpt54nano_tone_tech_full": {
-   "cjk": 6301,
-   "chars": 15956,
-   "utf8_bytes": 28935,
+   "cjk": 6359,
+   "chars": 16398,
+   "utf8_bytes": 29507,
    "tier": "standard"
   },
   "gpt54nano_cont_mean_tech_full": {
@@ -7018,9 +7018,9 @@
    "tier": "standard"
   },
   "gemini31_tone_tech_full": {
-   "cjk": 6311,
-   "chars": 15990,
-   "utf8_bytes": 28979,
+   "cjk": 6369,
+   "chars": 16432,
+   "utf8_bytes": 29551,
    "tier": "standard"
   },
   "gemini31_cont_mean_tech_full": {
@@ -7030,9 +7030,9 @@
    "tier": "standard"
   },
   "deepseekv4_tone_tech_full": {
-   "cjk": 6462,
-   "chars": 16213,
-   "utf8_bytes": 29514,
+   "cjk": 6520,
+   "chars": 16655,
+   "utf8_bytes": 30086,
    "tier": "standard"
   },
   "deepseekv4_cont_mean_tech_full": {
@@ -7042,9 +7042,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_tech_full": {
-   "cjk": 5996,
-   "chars": 13511,
-   "utf8_bytes": 25943,
+   "cjk": 6141,
+   "chars": 14217,
+   "utf8_bytes": 26945,
    "tier": "standard"
   },
   "llm_vote_cont_tech_full": {
@@ -7054,39 +7054,39 @@
    "tier": "standard"
   },
   "jiang_2021_tone_tech_full": {
-   "cjk": 6366,
-   "chars": 15281,
-   "utf8_bytes": 28464,
+   "cjk": 6429,
+   "chars": 15566,
+   "utf8_bytes": 28879,
    "tier": "standard"
   },
   "yao_2021_tone_tech_full": {
-   "cjk": 5169,
-   "chars": 14573,
-   "utf8_bytes": 25457,
+   "cjk": 5249,
+   "chars": 14913,
+   "utf8_bytes": 25959,
    "tier": "standard"
   },
   "bian_2021_tone_tech_full": {
-   "cjk": 6287,
-   "chars": 17756,
-   "utf8_bytes": 30682,
+   "cjk": 6464,
+   "chars": 18364,
+   "utf8_bytes": 31650,
    "tier": "standard"
   },
   "du_2022_tone_tech_full": {
-   "cjk": 6275,
-   "chars": 17556,
-   "utf8_bytes": 30566,
+   "cjk": 6342,
+   "chars": 17879,
+   "utf8_bytes": 31029,
    "tier": "standard"
   },
   "you_2018_tone_tech_full": {
-   "cjk": 5574,
-   "chars": 14498,
-   "utf8_bytes": 26065,
+   "cjk": 5639,
+   "chars": 14801,
+   "utf8_bytes": 26500,
    "tier": "standard"
   },
   "loughran_tone_tech_full": {
-   "cjk": 5212,
-   "chars": 14353,
-   "utf8_bytes": 25222,
+   "cjk": 5346,
+   "chars": 15011,
+   "utf8_bytes": 26152,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_tech_full": {
@@ -7103,14 +7103,14 @@
   },
   "bian_2021_idf_tone_tech_full": {
    "cjk": 1996,
-   "chars": 8028,
-   "utf8_bytes": 12209,
+   "chars": 8258,
+   "utf8_bytes": 12439,
    "tier": "standard"
   },
   "du_2022_idf_tone_tech_full": {
    "cjk": 1937,
-   "chars": 6063,
-   "utf8_bytes": 10164,
+   "chars": 6293,
+   "utf8_bytes": 10394,
    "tier": "standard"
   },
   "you_2018_idf_tone_tech_full": {
@@ -7180,9 +7180,9 @@
    "tier": "standard"
   },
   "gpt54nano_tone_tech_ctx": {
-   "cjk": 6324,
-   "chars": 15993,
-   "utf8_bytes": 29012,
+   "cjk": 6382,
+   "chars": 16435,
+   "utf8_bytes": 29584,
    "tier": "standard"
   },
   "gpt54nano_cont_mean_tech_ctx": {
@@ -7192,9 +7192,9 @@
    "tier": "standard"
   },
   "gemini31_tone_tech_ctx": {
-   "cjk": 6344,
-   "chars": 15993,
-   "utf8_bytes": 29054,
+   "cjk": 6402,
+   "chars": 16435,
+   "utf8_bytes": 29626,
    "tier": "standard"
   },
   "gemini31_cont_mean_tech_ctx": {
@@ -7204,9 +7204,9 @@
    "tier": "standard"
   },
   "deepseekv4_tone_tech_ctx": {
-   "cjk": 6485,
-   "chars": 16250,
-   "utf8_bytes": 29591,
+   "cjk": 6543,
+   "chars": 16692,
+   "utf8_bytes": 30163,
    "tier": "standard"
   },
   "deepseekv4_cont_mean_tech_ctx": {
@@ -7216,9 +7216,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_tech_ctx": {
-   "cjk": 5989,
-   "chars": 13500,
-   "utf8_bytes": 25924,
+   "cjk": 6134,
+   "chars": 14206,
+   "utf8_bytes": 26926,
    "tier": "standard"
   },
   "llm_vote_cont_tech_ctx": {
@@ -7228,39 +7228,39 @@
    "tier": "standard"
   },
   "jiang_2021_tone_tech_ctx": {
-   "cjk": 6425,
-   "chars": 15393,
-   "utf8_bytes": 28697,
+   "cjk": 6488,
+   "chars": 15678,
+   "utf8_bytes": 29112,
    "tier": "standard"
   },
   "yao_2021_tone_tech_ctx": {
-   "cjk": 5159,
-   "chars": 14501,
-   "utf8_bytes": 25374,
+   "cjk": 5239,
+   "chars": 14841,
+   "utf8_bytes": 25876,
    "tier": "standard"
   },
   "bian_2021_tone_tech_ctx": {
-   "cjk": 6339,
-   "chars": 17749,
-   "utf8_bytes": 30789,
+   "cjk": 6516,
+   "chars": 18357,
+   "utf8_bytes": 31757,
    "tier": "standard"
   },
   "du_2022_tone_tech_ctx": {
-   "cjk": 6254,
-   "chars": 17500,
-   "utf8_bytes": 30458,
+   "cjk": 6321,
+   "chars": 17823,
+   "utf8_bytes": 30921,
    "tier": "standard"
   },
   "you_2018_tone_tech_ctx": {
-   "cjk": 5484,
-   "chars": 14428,
-   "utf8_bytes": 25802,
+   "cjk": 5549,
+   "chars": 14731,
+   "utf8_bytes": 26237,
    "tier": "standard"
   },
   "loughran_tone_tech_ctx": {
-   "cjk": 5142,
-   "chars": 14296,
-   "utf8_bytes": 25021,
+   "cjk": 5276,
+   "chars": 14954,
+   "utf8_bytes": 25951,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_tech_ctx": {
@@ -7277,14 +7277,14 @@
   },
   "bian_2021_idf_tone_tech_ctx": {
    "cjk": 1974,
-   "chars": 8004,
-   "utf8_bytes": 12139,
+   "chars": 8234,
+   "utf8_bytes": 12369,
    "tier": "standard"
   },
   "du_2022_idf_tone_tech_ctx": {
    "cjk": 1936,
-   "chars": 6074,
-   "utf8_bytes": 10183,
+   "chars": 6304,
+   "utf8_bytes": 10413,
    "tier": "standard"
   },
   "you_2018_idf_tone_tech_ctx": {
@@ -7354,9 +7354,9 @@
    "tier": "standard"
   },
   "gpt54nano_tone_tech_ss": {
-   "cjk": 6318,
-   "chars": 16048,
-   "utf8_bytes": 29057,
+   "cjk": 6376,
+   "chars": 16490,
+   "utf8_bytes": 29629,
    "tier": "standard"
   },
   "gpt54nano_cont_mean_tech_ss": {
@@ -7366,9 +7366,9 @@
    "tier": "standard"
   },
   "gemini31_tone_tech_ss": {
-   "cjk": 6338,
-   "chars": 16048,
-   "utf8_bytes": 29099,
+   "cjk": 6396,
+   "chars": 16490,
+   "utf8_bytes": 29671,
    "tier": "standard"
   },
   "gemini31_cont_mean_tech_ss": {
@@ -7378,9 +7378,9 @@
    "tier": "standard"
   },
   "deepseekv4_tone_tech_ss": {
-   "cjk": 6479,
-   "chars": 16305,
-   "utf8_bytes": 29636,
+   "cjk": 6537,
+   "chars": 16747,
+   "utf8_bytes": 30208,
    "tier": "standard"
   },
   "deepseekv4_cont_mean_tech_ss": {
@@ -7390,9 +7390,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_tech_ss": {
-   "cjk": 5973,
-   "chars": 13433,
-   "utf8_bytes": 25819,
+   "cjk": 6118,
+   "chars": 14139,
+   "utf8_bytes": 26821,
    "tier": "standard"
   },
   "llm_vote_cont_tech_ss": {
@@ -7402,39 +7402,39 @@
    "tier": "standard"
   },
   "jiang_2021_tone_tech_ss": {
-   "cjk": 6434,
-   "chars": 15339,
-   "utf8_bytes": 28654,
+   "cjk": 6497,
+   "chars": 15624,
+   "utf8_bytes": 29069,
    "tier": "standard"
   },
   "yao_2021_tone_tech_ss": {
-   "cjk": 5138,
-   "chars": 14437,
-   "utf8_bytes": 25256,
+   "cjk": 5218,
+   "chars": 14777,
+   "utf8_bytes": 25758,
    "tier": "standard"
   },
   "bian_2021_tone_tech_ss": {
-   "cjk": 6292,
-   "chars": 17664,
-   "utf8_bytes": 30602,
+   "cjk": 6469,
+   "chars": 18272,
+   "utf8_bytes": 31570,
    "tier": "standard"
   },
   "du_2022_tone_tech_ss": {
-   "cjk": 6251,
-   "chars": 17417,
-   "utf8_bytes": 30372,
+   "cjk": 6318,
+   "chars": 17740,
+   "utf8_bytes": 30835,
    "tier": "standard"
   },
   "you_2018_tone_tech_ss": {
-   "cjk": 5444,
-   "chars": 14368,
-   "utf8_bytes": 25664,
+   "cjk": 5509,
+   "chars": 14671,
+   "utf8_bytes": 26099,
    "tier": "standard"
   },
   "loughran_tone_tech_ss": {
-   "cjk": 5138,
-   "chars": 14340,
-   "utf8_bytes": 25061,
+   "cjk": 5272,
+   "chars": 14998,
+   "utf8_bytes": 25991,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_tech_ss": {
@@ -7451,14 +7451,14 @@
   },
   "bian_2021_idf_tone_tech_ss": {
    "cjk": 1968,
-   "chars": 8018,
-   "utf8_bytes": 12139,
+   "chars": 8248,
+   "utf8_bytes": 12369,
    "tier": "standard"
   },
   "du_2022_idf_tone_tech_ss": {
    "cjk": 1921,
-   "chars": 6083,
-   "utf8_bytes": 10157,
+   "chars": 6313,
+   "utf8_bytes": 10387,
    "tier": "standard"
   },
   "you_2018_idf_tone_tech_ss": {
@@ -7534,9 +7534,9 @@
    "tier": "standard"
   },
   "gpt54nano_tone_app_full": {
-   "cjk": 6315,
-   "chars": 16006,
-   "utf8_bytes": 29011,
+   "cjk": 6373,
+   "chars": 16448,
+   "utf8_bytes": 29583,
    "tier": "standard"
   },
   "gpt54nano_cont_mean_app_full": {
@@ -7546,9 +7546,9 @@
    "tier": "standard"
   },
   "gemini31_tone_app_full": {
-   "cjk": 6335,
-   "chars": 16005,
-   "utf8_bytes": 29052,
+   "cjk": 6393,
+   "chars": 16447,
+   "utf8_bytes": 29624,
    "tier": "standard"
   },
   "gemini31_cont_mean_app_full": {
@@ -7558,9 +7558,9 @@
    "tier": "standard"
   },
   "deepseekv4_tone_app_full": {
-   "cjk": 6476,
-   "chars": 16262,
-   "utf8_bytes": 29589,
+   "cjk": 6534,
+   "chars": 16704,
+   "utf8_bytes": 30161,
    "tier": "standard"
   },
   "deepseekv4_cont_mean_app_full": {
@@ -7570,9 +7570,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_app_full": {
-   "cjk": 6072,
-   "chars": 13621,
-   "utf8_bytes": 26207,
+   "cjk": 6217,
+   "chars": 14327,
+   "utf8_bytes": 27209,
    "tier": "standard"
   },
   "llm_vote_cont_app_full": {
@@ -7582,39 +7582,39 @@
    "tier": "standard"
   },
   "jiang_2021_tone_app_full": {
-   "cjk": 6400,
-   "chars": 15339,
-   "utf8_bytes": 28586,
+   "cjk": 6463,
+   "chars": 15624,
+   "utf8_bytes": 29001,
    "tier": "standard"
   },
   "yao_2021_tone_app_full": {
-   "cjk": 5189,
-   "chars": 14565,
-   "utf8_bytes": 25487,
+   "cjk": 5269,
+   "chars": 14905,
+   "utf8_bytes": 25989,
    "tier": "standard"
   },
   "bian_2021_tone_app_full": {
-   "cjk": 6307,
-   "chars": 17785,
-   "utf8_bytes": 30751,
+   "cjk": 6484,
+   "chars": 18393,
+   "utf8_bytes": 31719,
    "tier": "standard"
   },
   "du_2022_tone_app_full": {
-   "cjk": 6270,
-   "chars": 17523,
-   "utf8_bytes": 30519,
+   "cjk": 6337,
+   "chars": 17846,
+   "utf8_bytes": 30982,
    "tier": "standard"
   },
   "you_2018_tone_app_full": {
-   "cjk": 5568,
-   "chars": 14503,
-   "utf8_bytes": 26048,
+   "cjk": 5633,
+   "chars": 14806,
+   "utf8_bytes": 26483,
    "tier": "standard"
   },
   "loughran_tone_app_full": {
-   "cjk": 5227,
-   "chars": 14432,
-   "utf8_bytes": 25325,
+   "cjk": 5361,
+   "chars": 15090,
+   "utf8_bytes": 26255,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_app_full": {
@@ -7631,14 +7631,14 @@
   },
   "bian_2021_idf_tone_app_full": {
    "cjk": 1978,
-   "chars": 7992,
-   "utf8_bytes": 12137,
+   "chars": 8222,
+   "utf8_bytes": 12367,
    "tier": "standard"
   },
   "du_2022_idf_tone_app_full": {
    "cjk": 1981,
-   "chars": 6135,
-   "utf8_bytes": 10328,
+   "chars": 6365,
+   "utf8_bytes": 10558,
    "tier": "standard"
   },
   "you_2018_idf_tone_app_full": {
@@ -7708,9 +7708,9 @@
    "tier": "standard"
   },
   "gpt54nano_tone_app_ctx": {
-   "cjk": 6348,
-   "chars": 16009,
-   "utf8_bytes": 29086,
+   "cjk": 6406,
+   "chars": 16451,
+   "utf8_bytes": 29658,
    "tier": "standard"
   },
   "gpt54nano_cont_mean_app_ctx": {
@@ -7720,9 +7720,9 @@
    "tier": "standard"
   },
   "gemini31_tone_app_ctx": {
-   "cjk": 6358,
-   "chars": 16042,
-   "utf8_bytes": 29129,
+   "cjk": 6416,
+   "chars": 16484,
+   "utf8_bytes": 29701,
    "tier": "standard"
   },
   "gemini31_cont_mean_app_ctx": {
@@ -7732,9 +7732,9 @@
    "tier": "standard"
   },
   "deepseekv4_tone_app_ctx": {
-   "cjk": 6509,
-   "chars": 16265,
-   "utf8_bytes": 29664,
+   "cjk": 6567,
+   "chars": 16707,
+   "utf8_bytes": 30236,
    "tier": "standard"
   },
   "deepseekv4_cont_mean_app_ctx": {
@@ -7744,9 +7744,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_app_ctx": {
-   "cjk": 6129,
-   "chars": 13692,
-   "utf8_bytes": 26400,
+   "cjk": 6274,
+   "chars": 14398,
+   "utf8_bytes": 27402,
    "tier": "standard"
   },
   "llm_vote_cont_app_ctx": {
@@ -7756,39 +7756,39 @@
    "tier": "standard"
   },
   "jiang_2021_tone_app_ctx": {
-   "cjk": 6436,
-   "chars": 15408,
-   "utf8_bytes": 28729,
+   "cjk": 6499,
+   "chars": 15693,
+   "utf8_bytes": 29144,
    "tier": "standard"
   },
   "yao_2021_tone_app_ctx": {
-   "cjk": 5189,
-   "chars": 14554,
-   "utf8_bytes": 25476,
+   "cjk": 5269,
+   "chars": 14894,
+   "utf8_bytes": 25978,
    "tier": "standard"
   },
   "bian_2021_tone_app_ctx": {
-   "cjk": 6299,
-   "chars": 17763,
-   "utf8_bytes": 30711,
+   "cjk": 6476,
+   "chars": 18371,
+   "utf8_bytes": 31679,
    "tier": "standard"
   },
   "du_2022_tone_app_ctx": {
-   "cjk": 6240,
-   "chars": 17459,
-   "utf8_bytes": 30391,
+   "cjk": 6307,
+   "chars": 17782,
+   "utf8_bytes": 30854,
    "tier": "standard"
   },
   "you_2018_tone_app_ctx": {
-   "cjk": 5480,
-   "chars": 14419,
-   "utf8_bytes": 25785,
+   "cjk": 5545,
+   "chars": 14722,
+   "utf8_bytes": 26220,
    "tier": "standard"
   },
   "loughran_tone_app_ctx": {
-   "cjk": 5143,
-   "chars": 14375,
-   "utf8_bytes": 25100,
+   "cjk": 5277,
+   "chars": 15033,
+   "utf8_bytes": 26030,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_app_ctx": {
@@ -7805,14 +7805,14 @@
   },
   "bian_2021_idf_tone_app_ctx": {
    "cjk": 1976,
-   "chars": 8006,
-   "utf8_bytes": 12145,
+   "chars": 8236,
+   "utf8_bytes": 12375,
    "tier": "standard"
   },
   "du_2022_idf_tone_app_ctx": {
    "cjk": 2000,
-   "chars": 6154,
-   "utf8_bytes": 10381,
+   "chars": 6384,
+   "utf8_bytes": 10611,
    "tier": "standard"
   },
   "you_2018_idf_tone_app_ctx": {
@@ -7882,9 +7882,9 @@
    "tier": "standard"
   },
   "gpt54nano_tone_app_ss": {
-   "cjk": 6342,
-   "chars": 16063,
-   "utf8_bytes": 29130,
+   "cjk": 6400,
+   "chars": 16505,
+   "utf8_bytes": 29702,
    "tier": "standard"
   },
   "gpt54nano_cont_mean_app_ss": {
@@ -7894,9 +7894,9 @@
    "tier": "standard"
   },
   "gemini31_tone_app_ss": {
-   "cjk": 6352,
-   "chars": 16097,
-   "utf8_bytes": 29174,
+   "cjk": 6410,
+   "chars": 16539,
+   "utf8_bytes": 29746,
    "tier": "standard"
   },
   "gemini31_cont_mean_app_ss": {
@@ -7906,9 +7906,9 @@
    "tier": "standard"
   },
   "deepseekv4_tone_app_ss": {
-   "cjk": 6503,
-   "chars": 16320,
-   "utf8_bytes": 29709,
+   "cjk": 6561,
+   "chars": 16762,
+   "utf8_bytes": 30281,
    "tier": "standard"
   },
   "deepseekv4_cont_mean_app_ss": {
@@ -7918,9 +7918,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_app_ss": {
-   "cjk": 6028,
-   "chars": 13536,
-   "utf8_bytes": 26034,
+   "cjk": 6173,
+   "chars": 14242,
+   "utf8_bytes": 27036,
    "tier": "standard"
   },
   "llm_vote_cont_app_ss": {
@@ -7930,39 +7930,39 @@
    "tier": "standard"
   },
   "jiang_2021_tone_app_ss": {
-   "cjk": 6388,
-   "chars": 15298,
-   "utf8_bytes": 28519,
+   "cjk": 6451,
+   "chars": 15583,
+   "utf8_bytes": 28934,
    "tier": "standard"
   },
   "yao_2021_tone_app_ss": {
-   "cjk": 5163,
-   "chars": 14506,
-   "utf8_bytes": 25388,
+   "cjk": 5243,
+   "chars": 14846,
+   "utf8_bytes": 25890,
    "tier": "standard"
   },
   "bian_2021_tone_app_ss": {
-   "cjk": 6308,
-   "chars": 17714,
-   "utf8_bytes": 30686,
+   "cjk": 6485,
+   "chars": 18322,
+   "utf8_bytes": 31654,
    "tier": "standard"
   },
   "du_2022_tone_app_ss": {
-   "cjk": 6268,
-   "chars": 17511,
-   "utf8_bytes": 30504,
+   "cjk": 6335,
+   "chars": 17834,
+   "utf8_bytes": 30967,
    "tier": "standard"
   },
   "you_2018_tone_app_ss": {
-   "cjk": 5478,
-   "chars": 14444,
-   "utf8_bytes": 25812,
+   "cjk": 5543,
+   "chars": 14747,
+   "utf8_bytes": 26247,
    "tier": "standard"
   },
   "loughran_tone_app_ss": {
-   "cjk": 5140,
-   "chars": 14336,
-   "utf8_bytes": 25059,
+   "cjk": 5274,
+   "chars": 14994,
+   "utf8_bytes": 25989,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_app_ss": {
@@ -7979,14 +7979,14 @@
   },
   "bian_2021_idf_tone_app_ss": {
    "cjk": 1974,
-   "chars": 8016,
-   "utf8_bytes": 12149,
+   "chars": 8246,
+   "utf8_bytes": 12379,
    "tier": "standard"
   },
   "du_2022_idf_tone_app_ss": {
    "cjk": 1957,
-   "chars": 6102,
-   "utf8_bytes": 10253,
+   "chars": 6332,
+   "utf8_bytes": 10483,
    "tier": "standard"
   },
   "you_2018_idf_tone_app_ss": {
@@ -8062,9 +8062,9 @@
    "tier": "core"
   },
   "app_frac": {
-   "cjk": 6628,
-   "chars": 19282,
-   "utf8_bytes": 32924,
+   "cjk": 6716,
+   "chars": 19600,
+   "utf8_bytes": 33420,
    "tier": "core"
   },
   "avg_category_confidence_full": {
@@ -8152,9 +8152,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_tech_lc_ctx": {
-   "cjk": 5971,
-   "chars": 13550,
-   "utf8_bytes": 25934,
+   "cjk": 6116,
+   "chars": 14256,
+   "utf8_bytes": 26936,
    "tier": "standard"
   },
   "llm_prob_score_tech_lc_ctx": {
@@ -8170,9 +8170,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_app_lc_ctx": {
-   "cjk": 6026,
-   "chars": 13621,
-   "utf8_bytes": 26115,
+   "cjk": 6171,
+   "chars": 14327,
+   "utf8_bytes": 27117,
    "tier": "standard"
   },
   "llm_prob_score_app_lc_ctx": {
@@ -8188,9 +8188,9 @@
    "tier": "standard"
   },
   "app_frac_lc": {
-   "cjk": 6216,
-   "chars": 18440,
-   "utf8_bytes": 31236,
+   "cjk": 6304,
+   "chars": 18758,
+   "utf8_bytes": 31732,
    "tier": "standard"
   },
   "tone_gap_tech_app_lc_ctx": {
@@ -8206,9 +8206,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_tech_ls_ss": {
-   "cjk": 5984,
-   "chars": 13535,
-   "utf8_bytes": 25941,
+   "cjk": 6129,
+   "chars": 14241,
+   "utf8_bytes": 26943,
    "tier": "standard"
   },
   "llm_prob_score_tech_ls_ss": {
@@ -8224,9 +8224,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_app_ls_ss": {
-   "cjk": 6057,
-   "chars": 13629,
-   "utf8_bytes": 26187,
+   "cjk": 6202,
+   "chars": 14335,
+   "utf8_bytes": 27189,
    "tier": "standard"
   },
   "llm_prob_score_app_ls_ss": {
@@ -8242,9 +8242,9 @@
    "tier": "standard"
   },
   "app_frac_ls": {
-   "cjk": 6227,
-   "chars": 18603,
-   "utf8_bytes": 31437,
+   "cjk": 6315,
+   "chars": 18921,
+   "utf8_bytes": 31933,
    "tier": "standard"
   },
   "tone_gap_tech_app_ls_ss": {
@@ -8260,9 +8260,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_sub_full": {
-   "cjk": 5994,
-   "chars": 13531,
-   "utf8_bytes": 25963,
+   "cjk": 6139,
+   "chars": 14237,
+   "utf8_bytes": 26965,
    "tier": "standard"
   },
   "llm_prob_score_sub_full": {
@@ -8272,27 +8272,27 @@
    "tier": "standard"
   },
   "gpt54nano_tone_sub_full": {
-   "cjk": 6281,
-   "chars": 16022,
-   "utf8_bytes": 28961,
+   "cjk": 6339,
+   "chars": 16464,
+   "utf8_bytes": 29533,
    "tier": "standard"
   },
   "gemini31_tone_sub_full": {
-   "cjk": 6291,
-   "chars": 16055,
-   "utf8_bytes": 29004,
+   "cjk": 6349,
+   "chars": 16497,
+   "utf8_bytes": 29576,
    "tier": "standard"
   },
   "deepseekv4_tone_sub_full": {
-   "cjk": 6442,
-   "chars": 16278,
-   "utf8_bytes": 29539,
+   "cjk": 6500,
+   "chars": 16720,
+   "utf8_bytes": 30111,
    "tier": "standard"
   },
   "llm_vote_tone_sub_ctx": {
-   "cjk": 6020,
-   "chars": 13572,
-   "utf8_bytes": 26058,
+   "cjk": 6165,
+   "chars": 14278,
+   "utf8_bytes": 27060,
    "tier": "standard"
   },
   "llm_prob_score_sub_ctx": {
@@ -8302,27 +8302,27 @@
    "tier": "standard"
   },
   "gpt54nano_tone_sub_ctx": {
-   "cjk": 6304,
-   "chars": 16059,
-   "utf8_bytes": 29038,
+   "cjk": 6362,
+   "chars": 16501,
+   "utf8_bytes": 29610,
    "tier": "standard"
   },
   "gemini31_tone_sub_ctx": {
-   "cjk": 6324,
-   "chars": 16058,
-   "utf8_bytes": 29079,
+   "cjk": 6382,
+   "chars": 16500,
+   "utf8_bytes": 29651,
    "tier": "standard"
   },
   "deepseekv4_tone_sub_ctx": {
-   "cjk": 6465,
-   "chars": 16315,
-   "utf8_bytes": 29616,
+   "cjk": 6523,
+   "chars": 16757,
+   "utf8_bytes": 30188,
    "tier": "standard"
   },
   "llm_vote_tone_sub_ss": {
-   "cjk": 5983,
-   "chars": 13459,
-   "utf8_bytes": 25865,
+   "cjk": 6128,
+   "chars": 14165,
+   "utf8_bytes": 26867,
    "tier": "standard"
   },
   "llm_prob_score_sub_ss": {
@@ -8332,21 +8332,21 @@
    "tier": "standard"
   },
   "gpt54nano_tone_sub_ss": {
-   "cjk": 6298,
-   "chars": 16113,
-   "utf8_bytes": 29082,
+   "cjk": 6356,
+   "chars": 16555,
+   "utf8_bytes": 29654,
    "tier": "standard"
   },
   "gemini31_tone_sub_ss": {
-   "cjk": 6318,
-   "chars": 16113,
-   "utf8_bytes": 29124,
+   "cjk": 6376,
+   "chars": 16555,
+   "utf8_bytes": 29696,
    "tier": "standard"
   },
   "deepseekv4_tone_sub_ss": {
-   "cjk": 6459,
-   "chars": 16370,
-   "utf8_bytes": 29661,
+   "cjk": 6517,
+   "chars": 16812,
+   "utf8_bytes": 30233,
    "tier": "standard"
   },
   "n_articles_symb": {
@@ -8356,9 +8356,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_symb_full": {
-   "cjk": 5969,
-   "chars": 13502,
-   "utf8_bytes": 25880,
+   "cjk": 6114,
+   "chars": 14208,
+   "utf8_bytes": 26882,
    "tier": "standard"
   },
   "llm_prob_score_symb_full": {
@@ -8368,27 +8368,27 @@
    "tier": "standard"
   },
   "gpt54nano_tone_symb_full": {
-   "cjk": 6286,
-   "chars": 16049,
-   "utf8_bytes": 28992,
+   "cjk": 6344,
+   "chars": 16491,
+   "utf8_bytes": 29564,
    "tier": "standard"
   },
   "gemini31_tone_symb_full": {
-   "cjk": 6306,
-   "chars": 16049,
-   "utf8_bytes": 29034,
+   "cjk": 6364,
+   "chars": 16491,
+   "utf8_bytes": 29606,
    "tier": "standard"
   },
   "deepseekv4_tone_symb_full": {
-   "cjk": 6447,
-   "chars": 16306,
-   "utf8_bytes": 29571,
+   "cjk": 6505,
+   "chars": 16748,
+   "utf8_bytes": 30143,
    "tier": "standard"
   },
   "llm_vote_tone_symb_ctx": {
-   "cjk": 6021,
-   "chars": 13546,
-   "utf8_bytes": 26040,
+   "cjk": 6166,
+   "chars": 14252,
+   "utf8_bytes": 27042,
    "tier": "standard"
   },
   "llm_prob_score_symb_ctx": {
@@ -8398,27 +8398,27 @@
    "tier": "standard"
   },
   "gpt54nano_tone_symb_ctx": {
-   "cjk": 6319,
-   "chars": 16052,
-   "utf8_bytes": 29067,
+   "cjk": 6377,
+   "chars": 16494,
+   "utf8_bytes": 29639,
    "tier": "standard"
   },
   "gemini31_tone_symb_ctx": {
-   "cjk": 6329,
-   "chars": 16086,
-   "utf8_bytes": 29111,
+   "cjk": 6387,
+   "chars": 16528,
+   "utf8_bytes": 29683,
    "tier": "standard"
   },
   "deepseekv4_tone_symb_ctx": {
-   "cjk": 6480,
-   "chars": 16309,
-   "utf8_bytes": 29646,
+   "cjk": 6538,
+   "chars": 16751,
+   "utf8_bytes": 30218,
    "tier": "standard"
   },
   "llm_vote_tone_symb_ss": {
-   "cjk": 5966,
-   "chars": 13434,
-   "utf8_bytes": 25806,
+   "cjk": 6111,
+   "chars": 14140,
+   "utf8_bytes": 26808,
    "tier": "standard"
   },
   "llm_prob_score_symb_ss": {
@@ -8428,27 +8428,27 @@
    "tier": "standard"
   },
   "gpt54nano_tone_symb_ss": {
-   "cjk": 6313,
-   "chars": 16107,
-   "utf8_bytes": 29112,
+   "cjk": 6371,
+   "chars": 16549,
+   "utf8_bytes": 29684,
    "tier": "standard"
   },
   "gemini31_tone_symb_ss": {
-   "cjk": 6323,
-   "chars": 16141,
-   "utf8_bytes": 29156,
+   "cjk": 6381,
+   "chars": 16583,
+   "utf8_bytes": 29728,
    "tier": "standard"
   },
   "deepseekv4_tone_symb_ss": {
-   "cjk": 6474,
-   "chars": 16364,
-   "utf8_bytes": 29691,
+   "cjk": 6532,
+   "chars": 16806,
+   "utf8_bytes": 30263,
    "tier": "standard"
   },
   "sub_frac": {
    "cjk": 6060,
-   "chars": 15589,
-   "utf8_bytes": 28150,
+   "chars": 15770,
+   "utf8_bytes": 28331,
    "tier": "core"
   },
   "symb_frac": {
@@ -8470,9 +8470,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_sub_sc_ctx": {
-   "cjk": 5998,
-   "chars": 13553,
-   "utf8_bytes": 25991,
+   "cjk": 6143,
+   "chars": 14259,
+   "utf8_bytes": 26993,
    "tier": "standard"
   },
   "llm_prob_score_sub_sc_ctx": {
@@ -8488,9 +8488,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_symb_sc_ctx": {
-   "cjk": 5949,
-   "chars": 13489,
-   "utf8_bytes": 25829,
+   "cjk": 6094,
+   "chars": 14195,
+   "utf8_bytes": 26831,
    "tier": "standard"
   },
   "llm_prob_score_symb_sc_ctx": {
@@ -8501,8 +8501,8 @@
   },
   "sub_frac_sc": {
    "cjk": 5398,
-   "chars": 14421,
-   "utf8_bytes": 25630,
+   "chars": 14602,
+   "utf8_bytes": 25811,
    "tier": "standard"
   },
   "symb_frac_sc": {
@@ -8524,9 +8524,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_sub_ss_ss": {
-   "cjk": 5994,
-   "chars": 13519,
-   "utf8_bytes": 25949,
+   "cjk": 6139,
+   "chars": 14225,
+   "utf8_bytes": 26951,
    "tier": "standard"
   },
   "llm_prob_score_sub_ss_ss": {
@@ -8542,9 +8542,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_symb_ss_ss": {
-   "cjk": 5978,
-   "chars": 13501,
-   "utf8_bytes": 25899,
+   "cjk": 6123,
+   "chars": 14207,
+   "utf8_bytes": 26901,
    "tier": "standard"
   },
   "llm_prob_score_symb_ss_ss": {
@@ -8555,8 +8555,8 @@
   },
   "sub_frac_ss": {
    "cjk": 5457,
-   "chars": 14430,
-   "utf8_bytes": 25756,
+   "chars": 14611,
+   "utf8_bytes": 25937,
    "tier": "standard"
   },
   "symb_frac_ss": {
@@ -8770,9 +8770,9 @@
    "tier": "standard"
   },
   "collab_frac": {
-   "cjk": 7184,
-   "chars": 18406,
-   "utf8_bytes": 32984,
+   "cjk": 7256,
+   "chars": 18720,
+   "utf8_bytes": 33446,
    "tier": "core"
   },
   "tone_gap_indep_collab": {
@@ -9040,9 +9040,9 @@
    "tier": "standard"
   },
   "collab_disagree_frac": {
-   "cjk": 6457,
-   "chars": 17317,
-   "utf8_bytes": 30425,
+   "cjk": 6529,
+   "chars": 17631,
+   "utf8_bytes": 30887,
    "tier": "standard"
   },
   "n_articles_collab_freerider": {
@@ -9052,9 +9052,9 @@
    "tier": "standard"
   },
   "collab_freerider_frac": {
-   "cjk": 6514,
-   "chars": 17312,
-   "utf8_bytes": 30532,
+   "cjk": 6586,
+   "chars": 17626,
+   "utf8_bytes": 30994,
    "tier": "standard"
   },
   "n_articles_collab_quietworker": {
@@ -9064,9 +9064,9 @@
    "tier": "standard"
   },
   "collab_quietworker_frac": {
-   "cjk": 6472,
-   "chars": 17171,
-   "utf8_bytes": 30307,
+   "cjk": 6544,
+   "chars": 17485,
+   "utf8_bytes": 30769,
    "tier": "standard"
   },
   "d4_data_quality_flag": {
@@ -9275,20 +9275,20 @@
   },
   "frac_fls_full": {
    "cjk": 5582,
-   "chars": 12468,
-   "utf8_bytes": 23925,
+   "chars": 12698,
+   "utf8_bytes": 24155,
    "tier": "core"
   },
   "frac_fls_ctx": {
    "cjk": 5039,
-   "chars": 11685,
-   "utf8_bytes": 22046,
+   "chars": 11915,
+   "utf8_bytes": 22276,
    "tier": "standard"
   },
   "frac_fls_ss": {
    "cjk": 5056,
-   "chars": 11802,
-   "utf8_bytes": 22193,
+   "chars": 12032,
+   "utf8_bytes": 22423,
    "tier": "standard"
   },
   "frac_fls_fonly_full": {
@@ -9316,9 +9316,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_vw_full": {
-   "cjk": 5942,
-   "chars": 13408,
-   "utf8_bytes": 25728,
+   "cjk": 6087,
+   "chars": 14114,
+   "utf8_bytes": 26730,
    "tier": "standard"
   },
   "llm_vote_cont_vw_full": {
@@ -9328,57 +9328,57 @@
    "tier": "standard"
   },
   "gpt54nano_tone_vw_full": {
-   "cjk": 6308,
-   "chars": 16002,
-   "utf8_bytes": 28987,
+   "cjk": 6366,
+   "chars": 16444,
+   "utf8_bytes": 29559,
    "tier": "standard"
   },
   "gemini31_tone_vw_full": {
-   "cjk": 6328,
-   "chars": 16001,
-   "utf8_bytes": 29028,
+   "cjk": 6386,
+   "chars": 16443,
+   "utf8_bytes": 29600,
    "tier": "standard"
   },
   "deepseekv4_tone_vw_full": {
-   "cjk": 6469,
-   "chars": 16258,
-   "utf8_bytes": 29565,
+   "cjk": 6527,
+   "chars": 16700,
+   "utf8_bytes": 30137,
    "tier": "standard"
   },
   "jiang_2021_tone_vw_full": {
-   "cjk": 6370,
-   "chars": 15234,
-   "utf8_bytes": 28428,
+   "cjk": 6433,
+   "chars": 15519,
+   "utf8_bytes": 28843,
    "tier": "standard"
   },
   "yao_2021_tone_vw_full": {
-   "cjk": 5127,
-   "chars": 14568,
-   "utf8_bytes": 25371,
+   "cjk": 5207,
+   "chars": 14908,
+   "utf8_bytes": 25873,
    "tier": "standard"
   },
   "bian_2021_tone_vw_full": {
-   "cjk": 6311,
-   "chars": 17771,
-   "utf8_bytes": 30747,
+   "cjk": 6488,
+   "chars": 18379,
+   "utf8_bytes": 31715,
    "tier": "standard"
   },
   "du_2022_tone_vw_full": {
-   "cjk": 6269,
-   "chars": 17409,
-   "utf8_bytes": 30399,
+   "cjk": 6336,
+   "chars": 17732,
+   "utf8_bytes": 30862,
    "tier": "standard"
   },
   "you_2018_tone_vw_full": {
-   "cjk": 5579,
-   "chars": 14471,
-   "utf8_bytes": 26044,
+   "cjk": 5644,
+   "chars": 14774,
+   "utf8_bytes": 26479,
    "tier": "standard"
   },
   "loughran_tone_vw_full": {
-   "cjk": 5158,
-   "chars": 14305,
-   "utf8_bytes": 25061,
+   "cjk": 5292,
+   "chars": 14963,
+   "utf8_bytes": 25991,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_vw_full": {
@@ -9395,14 +9395,14 @@
   },
   "bian_2021_idf_tone_vw_full": {
    "cjk": 1999,
-   "chars": 8039,
-   "utf8_bytes": 12221,
+   "chars": 8269,
+   "utf8_bytes": 12451,
    "tier": "standard"
   },
   "du_2022_idf_tone_vw_full": {
    "cjk": 1920,
-   "chars": 6110,
-   "utf8_bytes": 10185,
+   "chars": 6340,
+   "utf8_bytes": 10415,
    "tier": "standard"
   },
   "you_2018_idf_tone_vw_full": {
@@ -9460,9 +9460,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_vw_ctx": {
-   "cjk": 5976,
-   "chars": 13506,
-   "utf8_bytes": 25898,
+   "cjk": 6121,
+   "chars": 14212,
+   "utf8_bytes": 26900,
    "tier": "standard"
   },
   "llm_vote_cont_vw_ctx": {
@@ -9472,57 +9472,57 @@
    "tier": "standard"
   },
   "gpt54nano_tone_vw_ctx": {
-   "cjk": 6341,
-   "chars": 16005,
-   "utf8_bytes": 29062,
+   "cjk": 6399,
+   "chars": 16447,
+   "utf8_bytes": 29634,
    "tier": "standard"
   },
   "gemini31_tone_vw_ctx": {
-   "cjk": 6351,
-   "chars": 16038,
-   "utf8_bytes": 29105,
+   "cjk": 6409,
+   "chars": 16480,
+   "utf8_bytes": 29677,
    "tier": "standard"
   },
   "deepseekv4_tone_vw_ctx": {
-   "cjk": 6502,
-   "chars": 16261,
-   "utf8_bytes": 29640,
+   "cjk": 6560,
+   "chars": 16703,
+   "utf8_bytes": 30212,
    "tier": "standard"
   },
   "jiang_2021_tone_vw_ctx": {
-   "cjk": 6368,
-   "chars": 15215,
-   "utf8_bytes": 28402,
+   "cjk": 6431,
+   "chars": 15500,
+   "utf8_bytes": 28817,
    "tier": "standard"
   },
   "yao_2021_tone_vw_ctx": {
-   "cjk": 5119,
-   "chars": 14495,
-   "utf8_bytes": 25284,
+   "cjk": 5199,
+   "chars": 14835,
+   "utf8_bytes": 25786,
    "tier": "standard"
   },
   "bian_2021_tone_vw_ctx": {
-   "cjk": 6295,
-   "chars": 17810,
-   "utf8_bytes": 30754,
+   "cjk": 6472,
+   "chars": 18418,
+   "utf8_bytes": 31722,
    "tier": "standard"
   },
   "du_2022_tone_vw_ctx": {
-   "cjk": 6228,
-   "chars": 17401,
-   "utf8_bytes": 30312,
+   "cjk": 6295,
+   "chars": 17724,
+   "utf8_bytes": 30775,
    "tier": "standard"
   },
   "you_2018_tone_vw_ctx": {
-   "cjk": 5500,
-   "chars": 14334,
-   "utf8_bytes": 25740,
+   "cjk": 5565,
+   "chars": 14637,
+   "utf8_bytes": 26175,
    "tier": "standard"
   },
   "loughran_tone_vw_ctx": {
-   "cjk": 5156,
-   "chars": 14256,
-   "utf8_bytes": 25006,
+   "cjk": 5290,
+   "chars": 14914,
+   "utf8_bytes": 25936,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_vw_ctx": {
@@ -9539,14 +9539,14 @@
   },
   "bian_2021_idf_tone_vw_ctx": {
    "cjk": 1983,
-   "chars": 7990,
-   "utf8_bytes": 12143,
+   "chars": 8220,
+   "utf8_bytes": 12373,
    "tier": "standard"
   },
   "du_2022_idf_tone_vw_ctx": {
    "cjk": 1940,
-   "chars": 6144,
-   "utf8_bytes": 10259,
+   "chars": 6374,
+   "utf8_bytes": 10489,
    "tier": "standard"
   },
   "you_2018_idf_tone_vw_ctx": {
@@ -9604,9 +9604,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_vw_ss": {
-   "cjk": 5941,
-   "chars": 13352,
-   "utf8_bytes": 25672,
+   "cjk": 6086,
+   "chars": 14058,
+   "utf8_bytes": 26674,
    "tier": "standard"
   },
   "llm_vote_cont_vw_ss": {
@@ -9616,57 +9616,57 @@
    "tier": "standard"
   },
   "gpt54nano_tone_vw_ss": {
-   "cjk": 6335,
-   "chars": 16059,
-   "utf8_bytes": 29106,
+   "cjk": 6393,
+   "chars": 16501,
+   "utf8_bytes": 29678,
    "tier": "standard"
   },
   "gemini31_tone_vw_ss": {
-   "cjk": 6345,
-   "chars": 16093,
-   "utf8_bytes": 29150,
+   "cjk": 6403,
+   "chars": 16535,
+   "utf8_bytes": 29722,
    "tier": "standard"
   },
   "deepseekv4_tone_vw_ss": {
-   "cjk": 6496,
-   "chars": 16316,
-   "utf8_bytes": 29685,
+   "cjk": 6554,
+   "chars": 16758,
+   "utf8_bytes": 30257,
    "tier": "standard"
   },
   "jiang_2021_tone_vw_ss": {
-   "cjk": 6378,
-   "chars": 15185,
-   "utf8_bytes": 28389,
+   "cjk": 6441,
+   "chars": 15470,
+   "utf8_bytes": 28804,
    "tier": "standard"
   },
   "yao_2021_tone_vw_ss": {
-   "cjk": 5121,
-   "chars": 14466,
-   "utf8_bytes": 25260,
+   "cjk": 5201,
+   "chars": 14806,
+   "utf8_bytes": 25762,
    "tier": "standard"
   },
   "bian_2021_tone_vw_ss": {
-   "cjk": 6304,
-   "chars": 17706,
-   "utf8_bytes": 30666,
+   "cjk": 6481,
+   "chars": 18314,
+   "utf8_bytes": 31634,
    "tier": "standard"
   },
   "du_2022_tone_vw_ss": {
-   "cjk": 6431,
-   "chars": 17679,
-   "utf8_bytes": 31006,
+   "cjk": 6498,
+   "chars": 18002,
+   "utf8_bytes": 31469,
    "tier": "standard"
   },
   "you_2018_tone_vw_ss": {
-   "cjk": 5454,
-   "chars": 14324,
-   "utf8_bytes": 25636,
+   "cjk": 5519,
+   "chars": 14627,
+   "utf8_bytes": 26071,
    "tier": "standard"
   },
   "loughran_tone_vw_ss": {
-   "cjk": 5137,
-   "chars": 14358,
-   "utf8_bytes": 25076,
+   "cjk": 5271,
+   "chars": 15016,
+   "utf8_bytes": 26006,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_vw_ss": {
@@ -9683,14 +9683,14 @@
   },
   "bian_2021_idf_tone_vw_ss": {
    "cjk": 1965,
-   "chars": 8016,
-   "utf8_bytes": 12131,
+   "chars": 8246,
+   "utf8_bytes": 12361,
    "tier": "standard"
   },
   "du_2022_idf_tone_vw_ss": {
    "cjk": 1927,
-   "chars": 6130,
-   "utf8_bytes": 10230,
+   "chars": 6360,
+   "utf8_bytes": 10460,
    "tier": "standard"
   },
   "you_2018_idf_tone_vw_ss": {
@@ -9748,9 +9748,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_mw_full": {
-   "cjk": 5945,
-   "chars": 13405,
-   "utf8_bytes": 25733,
+   "cjk": 6090,
+   "chars": 14111,
+   "utf8_bytes": 26735,
    "tier": "standard"
   },
   "llm_vote_cont_mw_full": {
@@ -9760,27 +9760,27 @@
    "tier": "standard"
   },
   "gpt54nano_tone_mw_full": {
-   "cjk": 6306,
-   "chars": 16040,
-   "utf8_bytes": 29019,
+   "cjk": 6364,
+   "chars": 16482,
+   "utf8_bytes": 29591,
    "tier": "standard"
   },
   "gemini31_tone_mw_full": {
-   "cjk": 6326,
-   "chars": 16039,
-   "utf8_bytes": 29060,
+   "cjk": 6384,
+   "chars": 16481,
+   "utf8_bytes": 29632,
    "tier": "standard"
   },
   "deepseekv4_tone_mw_full": {
-   "cjk": 6467,
-   "chars": 16296,
-   "utf8_bytes": 29597,
+   "cjk": 6525,
+   "chars": 16738,
+   "utf8_bytes": 30169,
    "tier": "standard"
   },
   "jiang_2021_tone_mw_full": {
-   "cjk": 6381,
-   "chars": 15348,
-   "utf8_bytes": 28568,
+   "cjk": 6444,
+   "chars": 15633,
+   "utf8_bytes": 28983,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_mw_full": {
@@ -9790,9 +9790,9 @@
    "tier": "standard"
   },
   "yao_2021_tone_mw_full": {
-   "cjk": 5178,
-   "chars": 14603,
-   "utf8_bytes": 25510,
+   "cjk": 5258,
+   "chars": 14943,
+   "utf8_bytes": 26012,
    "tier": "standard"
   },
   "yao_2021_idf_tone_mw_full": {
@@ -9802,33 +9802,33 @@
    "tier": "standard"
   },
   "bian_2021_tone_mw_full": {
-   "cjk": 6318,
-   "chars": 17704,
-   "utf8_bytes": 30692,
+   "cjk": 6495,
+   "chars": 18312,
+   "utf8_bytes": 31660,
    "tier": "standard"
   },
   "bian_2021_idf_tone_mw_full": {
    "cjk": 1974,
-   "chars": 8080,
-   "utf8_bytes": 12214,
+   "chars": 8310,
+   "utf8_bytes": 12444,
    "tier": "standard"
   },
   "du_2022_tone_mw_full": {
-   "cjk": 6238,
-   "chars": 17449,
-   "utf8_bytes": 30380,
+   "cjk": 6305,
+   "chars": 17772,
+   "utf8_bytes": 30843,
    "tier": "standard"
   },
   "du_2022_idf_tone_mw_full": {
    "cjk": 1939,
-   "chars": 6148,
-   "utf8_bytes": 10259,
+   "chars": 6378,
+   "utf8_bytes": 10489,
    "tier": "standard"
   },
   "you_2018_tone_mw_full": {
-   "cjk": 5548,
-   "chars": 14518,
-   "utf8_bytes": 26024,
+   "cjk": 5613,
+   "chars": 14821,
+   "utf8_bytes": 26459,
    "tier": "standard"
   },
   "you_2018_idf_tone_mw_full": {
@@ -9838,9 +9838,9 @@
    "tier": "standard"
   },
   "loughran_tone_mw_full": {
-   "cjk": 5183,
-   "chars": 14385,
-   "utf8_bytes": 25201,
+   "cjk": 5317,
+   "chars": 15043,
+   "utf8_bytes": 26131,
    "tier": "standard"
   },
   "loughran_idf_tone_mw_full": {
@@ -9892,9 +9892,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_mw_ctx": {
-   "cjk": 6003,
-   "chars": 13534,
-   "utf8_bytes": 25982,
+   "cjk": 6148,
+   "chars": 14240,
+   "utf8_bytes": 26984,
    "tier": "standard"
   },
   "llm_vote_cont_mw_ctx": {
@@ -9904,27 +9904,27 @@
    "tier": "standard"
   },
   "gpt54nano_tone_mw_ctx": {
-   "cjk": 6339,
-   "chars": 16043,
-   "utf8_bytes": 29094,
+   "cjk": 6397,
+   "chars": 16485,
+   "utf8_bytes": 29666,
    "tier": "standard"
   },
   "gemini31_tone_mw_ctx": {
-   "cjk": 6349,
-   "chars": 16077,
-   "utf8_bytes": 29138,
+   "cjk": 6407,
+   "chars": 16519,
+   "utf8_bytes": 29710,
    "tier": "standard"
   },
   "deepseekv4_tone_mw_ctx": {
-   "cjk": 6500,
-   "chars": 16300,
-   "utf8_bytes": 29673,
+   "cjk": 6558,
+   "chars": 16742,
+   "utf8_bytes": 30245,
    "tier": "standard"
   },
   "jiang_2021_tone_mw_ctx": {
-   "cjk": 6360,
-   "chars": 15221,
-   "utf8_bytes": 28394,
+   "cjk": 6423,
+   "chars": 15506,
+   "utf8_bytes": 28809,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_mw_ctx": {
@@ -9934,9 +9934,9 @@
    "tier": "standard"
   },
   "yao_2021_tone_mw_ctx": {
-   "cjk": 5154,
-   "chars": 14553,
-   "utf8_bytes": 25416,
+   "cjk": 5234,
+   "chars": 14893,
+   "utf8_bytes": 25918,
    "tier": "standard"
   },
   "yao_2021_idf_tone_mw_ctx": {
@@ -9946,33 +9946,33 @@
    "tier": "standard"
   },
   "bian_2021_tone_mw_ctx": {
-   "cjk": 6326,
-   "chars": 17866,
-   "utf8_bytes": 30878,
+   "cjk": 6503,
+   "chars": 18474,
+   "utf8_bytes": 31846,
    "tier": "standard"
   },
   "bian_2021_idf_tone_mw_ctx": {
    "cjk": 1973,
-   "chars": 7984,
-   "utf8_bytes": 12115,
+   "chars": 8214,
+   "utf8_bytes": 12345,
    "tier": "standard"
   },
   "du_2022_tone_mw_ctx": {
-   "cjk": 6233,
-   "chars": 17422,
-   "utf8_bytes": 30339,
+   "cjk": 6300,
+   "chars": 17745,
+   "utf8_bytes": 30802,
    "tier": "standard"
   },
   "du_2022_idf_tone_mw_ctx": {
    "cjk": 1933,
-   "chars": 6146,
-   "utf8_bytes": 10251,
+   "chars": 6376,
+   "utf8_bytes": 10481,
    "tier": "standard"
   },
   "you_2018_tone_mw_ctx": {
-   "cjk": 5484,
-   "chars": 14342,
-   "utf8_bytes": 25706,
+   "cjk": 5549,
+   "chars": 14645,
+   "utf8_bytes": 26141,
    "tier": "standard"
   },
   "you_2018_idf_tone_mw_ctx": {
@@ -9982,9 +9982,9 @@
    "tier": "standard"
   },
   "loughran_tone_mw_ctx": {
-   "cjk": 5149,
-   "chars": 14331,
-   "utf8_bytes": 25065,
+   "cjk": 5283,
+   "chars": 14989,
+   "utf8_bytes": 25995,
    "tier": "standard"
   },
   "loughran_idf_tone_mw_ctx": {
@@ -10036,9 +10036,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_mw_ss": {
-   "cjk": 5945,
-   "chars": 13380,
-   "utf8_bytes": 25710,
+   "cjk": 6090,
+   "chars": 14086,
+   "utf8_bytes": 26712,
    "tier": "standard"
   },
   "llm_vote_cont_mw_ss": {
@@ -10048,27 +10048,27 @@
    "tier": "standard"
   },
   "gpt54nano_tone_mw_ss": {
-   "cjk": 6333,
-   "chars": 16098,
-   "utf8_bytes": 29139,
+   "cjk": 6391,
+   "chars": 16540,
+   "utf8_bytes": 29711,
    "tier": "standard"
   },
   "gemini31_tone_mw_ss": {
-   "cjk": 6343,
-   "chars": 16131,
-   "utf8_bytes": 29182,
+   "cjk": 6401,
+   "chars": 16573,
+   "utf8_bytes": 29754,
    "tier": "standard"
   },
   "deepseekv4_tone_mw_ss": {
-   "cjk": 6494,
-   "chars": 16354,
-   "utf8_bytes": 29717,
+   "cjk": 6552,
+   "chars": 16796,
+   "utf8_bytes": 30289,
    "tier": "standard"
   },
   "jiang_2021_tone_mw_ss": {
-   "cjk": 6364,
-   "chars": 15195,
-   "utf8_bytes": 28369,
+   "cjk": 6427,
+   "chars": 15480,
+   "utf8_bytes": 28784,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_mw_ss": {
@@ -10078,9 +10078,9 @@
    "tier": "standard"
   },
   "yao_2021_tone_mw_ss": {
-   "cjk": 5133,
-   "chars": 14481,
-   "utf8_bytes": 25303,
+   "cjk": 5213,
+   "chars": 14821,
+   "utf8_bytes": 25805,
    "tier": "standard"
   },
   "yao_2021_idf_tone_mw_ss": {
@@ -10090,33 +10090,33 @@
    "tier": "standard"
   },
   "bian_2021_tone_mw_ss": {
-   "cjk": 6301,
-   "chars": 17692,
-   "utf8_bytes": 30644,
+   "cjk": 6478,
+   "chars": 18300,
+   "utf8_bytes": 31612,
    "tier": "standard"
   },
   "bian_2021_idf_tone_mw_ss": {
    "cjk": 1976,
-   "chars": 8047,
-   "utf8_bytes": 12187,
+   "chars": 8277,
+   "utf8_bytes": 12417,
    "tier": "standard"
   },
   "du_2022_tone_mw_ss": {
-   "cjk": 6223,
-   "chars": 17397,
-   "utf8_bytes": 30299,
+   "cjk": 6290,
+   "chars": 17720,
+   "utf8_bytes": 30762,
    "tier": "standard"
   },
   "du_2022_idf_tone_mw_ss": {
    "cjk": 1905,
-   "chars": 6103,
-   "utf8_bytes": 10159,
+   "chars": 6333,
+   "utf8_bytes": 10389,
    "tier": "standard"
   },
   "you_2018_tone_mw_ss": {
-   "cjk": 5458,
-   "chars": 14348,
-   "utf8_bytes": 25672,
+   "cjk": 5523,
+   "chars": 14651,
+   "utf8_bytes": 26107,
    "tier": "standard"
   },
   "you_2018_idf_tone_mw_ss": {
@@ -10126,9 +10126,9 @@
    "tier": "standard"
   },
   "loughran_tone_mw_ss": {
-   "cjk": 5147,
-   "chars": 14335,
-   "utf8_bytes": 25064,
+   "cjk": 5281,
+   "chars": 14993,
+   "utf8_bytes": 25994,
    "tier": "standard"
   },
   "loughran_idf_tone_mw_ss": {
@@ -10180,9 +10180,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_hw_full": {
-   "cjk": 5991,
-   "chars": 13451,
-   "utf8_bytes": 25873,
+   "cjk": 6136,
+   "chars": 14157,
+   "utf8_bytes": 26875,
    "tier": "standard"
   },
   "llm_vote_cont_hw_full": {
@@ -10192,27 +10192,27 @@
    "tier": "standard"
   },
   "gpt54nano_tone_hw_full": {
-   "cjk": 6323,
-   "chars": 16000,
-   "utf8_bytes": 29021,
+   "cjk": 6381,
+   "chars": 16442,
+   "utf8_bytes": 29593,
    "tier": "standard"
   },
   "gemini31_tone_hw_full": {
-   "cjk": 6333,
-   "chars": 16033,
-   "utf8_bytes": 29064,
+   "cjk": 6391,
+   "chars": 16475,
+   "utf8_bytes": 29636,
    "tier": "standard"
   },
   "deepseekv4_tone_hw_full": {
-   "cjk": 6484,
-   "chars": 16256,
-   "utf8_bytes": 29599,
+   "cjk": 6542,
+   "chars": 16698,
+   "utf8_bytes": 30171,
    "tier": "standard"
   },
   "jiang_2021_tone_hw_full": {
-   "cjk": 6406,
-   "chars": 15346,
-   "utf8_bytes": 28620,
+   "cjk": 6469,
+   "chars": 15631,
+   "utf8_bytes": 29035,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_hw_full": {
@@ -10222,9 +10222,9 @@
    "tier": "standard"
   },
   "yao_2021_tone_hw_full": {
-   "cjk": 5134,
-   "chars": 14541,
-   "utf8_bytes": 25366,
+   "cjk": 5214,
+   "chars": 14881,
+   "utf8_bytes": 25868,
    "tier": "standard"
   },
   "yao_2021_idf_tone_hw_full": {
@@ -10234,33 +10234,33 @@
    "tier": "standard"
   },
   "bian_2021_tone_hw_full": {
-   "cjk": 6320,
-   "chars": 17811,
-   "utf8_bytes": 30805,
+   "cjk": 6497,
+   "chars": 18419,
+   "utf8_bytes": 31773,
    "tier": "standard"
   },
   "bian_2021_idf_tone_hw_full": {
    "cjk": 1974,
-   "chars": 8073,
-   "utf8_bytes": 12211,
+   "chars": 8303,
+   "utf8_bytes": 12441,
    "tier": "standard"
   },
   "du_2022_tone_hw_full": {
-   "cjk": 6283,
-   "chars": 17484,
-   "utf8_bytes": 30514,
+   "cjk": 6350,
+   "chars": 17807,
+   "utf8_bytes": 30977,
    "tier": "standard"
   },
   "du_2022_idf_tone_hw_full": {
    "cjk": 1959,
-   "chars": 6137,
-   "utf8_bytes": 10306,
+   "chars": 6367,
+   "utf8_bytes": 10536,
    "tier": "standard"
   },
   "you_2018_tone_hw_full": {
-   "cjk": 5529,
-   "chars": 14457,
-   "utf8_bytes": 25917,
+   "cjk": 5594,
+   "chars": 14760,
+   "utf8_bytes": 26352,
    "tier": "standard"
   },
   "you_2018_idf_tone_hw_full": {
@@ -10270,9 +10270,9 @@
    "tier": "standard"
   },
   "loughran_tone_hw_full": {
-   "cjk": 5206,
-   "chars": 14471,
-   "utf8_bytes": 25331,
+   "cjk": 5340,
+   "chars": 15129,
+   "utf8_bytes": 26261,
    "tier": "standard"
   },
   "loughran_idf_tone_hw_full": {
@@ -10324,9 +10324,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_hw_ctx": {
-   "cjk": 6022,
-   "chars": 13578,
-   "utf8_bytes": 26066,
+   "cjk": 6167,
+   "chars": 14284,
+   "utf8_bytes": 27068,
    "tier": "standard"
   },
   "llm_vote_cont_hw_ctx": {
@@ -10336,27 +10336,27 @@
    "tier": "standard"
   },
   "gpt54nano_tone_hw_ctx": {
-   "cjk": 6346,
-   "chars": 16037,
-   "utf8_bytes": 29098,
+   "cjk": 6404,
+   "chars": 16479,
+   "utf8_bytes": 29670,
    "tier": "standard"
   },
   "gemini31_tone_hw_ctx": {
-   "cjk": 6366,
-   "chars": 16036,
-   "utf8_bytes": 29139,
+   "cjk": 6424,
+   "chars": 16478,
+   "utf8_bytes": 29711,
    "tier": "standard"
   },
   "deepseekv4_tone_hw_ctx": {
-   "cjk": 6507,
-   "chars": 16293,
-   "utf8_bytes": 29676,
+   "cjk": 6565,
+   "chars": 16735,
+   "utf8_bytes": 30248,
    "tier": "standard"
   },
   "jiang_2021_tone_hw_ctx": {
-   "cjk": 6371,
-   "chars": 15237,
-   "utf8_bytes": 28434,
+   "cjk": 6434,
+   "chars": 15522,
+   "utf8_bytes": 28849,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_hw_ctx": {
@@ -10366,9 +10366,9 @@
    "tier": "standard"
   },
   "yao_2021_tone_hw_ctx": {
-   "cjk": 5150,
-   "chars": 14490,
-   "utf8_bytes": 25335,
+   "cjk": 5230,
+   "chars": 14830,
+   "utf8_bytes": 25837,
    "tier": "standard"
   },
   "yao_2021_idf_tone_hw_ctx": {
@@ -10378,33 +10378,33 @@
    "tier": "standard"
   },
   "bian_2021_tone_hw_ctx": {
-   "cjk": 6322,
-   "chars": 17778,
-   "utf8_bytes": 30786,
+   "cjk": 6499,
+   "chars": 18386,
+   "utf8_bytes": 31754,
    "tier": "standard"
   },
   "bian_2021_idf_tone_hw_ctx": {
    "cjk": 1977,
-   "chars": 7985,
-   "utf8_bytes": 12124,
+   "chars": 8215,
+   "utf8_bytes": 12354,
    "tier": "standard"
   },
   "du_2022_tone_hw_ctx": {
-   "cjk": 6217,
-   "chars": 17401,
-   "utf8_bytes": 30290,
+   "cjk": 6284,
+   "chars": 17724,
+   "utf8_bytes": 30753,
    "tier": "standard"
   },
   "du_2022_idf_tone_hw_ctx": {
    "cjk": 1969,
-   "chars": 6175,
-   "utf8_bytes": 10356,
+   "chars": 6405,
+   "utf8_bytes": 10586,
    "tier": "standard"
   },
   "you_2018_tone_hw_ctx": {
-   "cjk": 5470,
-   "chars": 14341,
-   "utf8_bytes": 25679,
+   "cjk": 5535,
+   "chars": 14644,
+   "utf8_bytes": 26114,
    "tier": "standard"
   },
   "you_2018_idf_tone_hw_ctx": {
@@ -10414,9 +10414,9 @@
    "tier": "standard"
   },
   "loughran_tone_hw_ctx": {
-   "cjk": 5164,
-   "chars": 14400,
-   "utf8_bytes": 25165,
+   "cjk": 5298,
+   "chars": 15058,
+   "utf8_bytes": 26095,
    "tier": "standard"
   },
   "loughran_idf_tone_hw_ctx": {
@@ -10468,9 +10468,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_hw_ss": {
-   "cjk": 5977,
-   "chars": 13444,
-   "utf8_bytes": 25840,
+   "cjk": 6122,
+   "chars": 14150,
+   "utf8_bytes": 26842,
    "tier": "standard"
   },
   "llm_vote_cont_hw_ss": {
@@ -10480,27 +10480,27 @@
    "tier": "standard"
   },
   "gpt54nano_tone_hw_ss": {
-   "cjk": 6340,
-   "chars": 16091,
-   "utf8_bytes": 29142,
+   "cjk": 6398,
+   "chars": 16533,
+   "utf8_bytes": 29714,
    "tier": "standard"
   },
   "gemini31_tone_hw_ss": {
-   "cjk": 6360,
-   "chars": 16091,
-   "utf8_bytes": 29184,
+   "cjk": 6418,
+   "chars": 16533,
+   "utf8_bytes": 29756,
    "tier": "standard"
   },
   "deepseekv4_tone_hw_ss": {
-   "cjk": 6501,
-   "chars": 16348,
-   "utf8_bytes": 29721,
+   "cjk": 6559,
+   "chars": 16790,
+   "utf8_bytes": 30293,
    "tier": "standard"
   },
   "jiang_2021_tone_hw_ss": {
-   "cjk": 6372,
-   "chars": 15264,
-   "utf8_bytes": 28454,
+   "cjk": 6435,
+   "chars": 15549,
+   "utf8_bytes": 28869,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_hw_ss": {
@@ -10510,9 +10510,9 @@
    "tier": "standard"
   },
   "yao_2021_tone_hw_ss": {
-   "cjk": 5132,
-   "chars": 14531,
-   "utf8_bytes": 25351,
+   "cjk": 5212,
+   "chars": 14871,
+   "utf8_bytes": 25853,
    "tier": "standard"
   },
   "yao_2021_idf_tone_hw_ss": {
@@ -10522,33 +10522,33 @@
    "tier": "standard"
   },
   "bian_2021_tone_hw_ss": {
-   "cjk": 6298,
-   "chars": 17766,
-   "utf8_bytes": 30714,
+   "cjk": 6475,
+   "chars": 18374,
+   "utf8_bytes": 31682,
    "tier": "standard"
   },
   "bian_2021_idf_tone_hw_ss": {
    "cjk": 1980,
-   "chars": 8065,
-   "utf8_bytes": 12211,
+   "chars": 8295,
+   "utf8_bytes": 12441,
    "tier": "standard"
   },
   "du_2022_tone_hw_ss": {
-   "cjk": 6224,
-   "chars": 17392,
-   "utf8_bytes": 30293,
+   "cjk": 6291,
+   "chars": 17715,
+   "utf8_bytes": 30756,
    "tier": "standard"
   },
   "du_2022_idf_tone_hw_ss": {
    "cjk": 1921,
-   "chars": 6148,
-   "utf8_bytes": 10228,
+   "chars": 6378,
+   "utf8_bytes": 10458,
    "tier": "standard"
   },
   "you_2018_tone_hw_ss": {
-   "cjk": 5420,
-   "chars": 14355,
-   "utf8_bytes": 25605,
+   "cjk": 5485,
+   "chars": 14658,
+   "utf8_bytes": 26040,
    "tier": "standard"
   },
   "you_2018_idf_tone_hw_ss": {
@@ -10558,9 +10558,9 @@
    "tier": "standard"
   },
   "loughran_tone_hw_ss": {
-   "cjk": 5137,
-   "chars": 14389,
-   "utf8_bytes": 25102,
+   "cjk": 5271,
+   "chars": 15047,
+   "utf8_bytes": 26032,
    "tier": "standard"
   },
   "loughran_idf_tone_hw_ss": {
@@ -10612,9 +10612,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr25_full": {
-   "cjk": 5974,
-   "chars": 13450,
-   "utf8_bytes": 25840,
+   "cjk": 6119,
+   "chars": 14156,
+   "utf8_bytes": 26842,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr25_full": {
@@ -10624,9 +10624,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr30_full": {
-   "cjk": 5949,
-   "chars": 13412,
-   "utf8_bytes": 25752,
+   "cjk": 6094,
+   "chars": 14118,
+   "utf8_bytes": 26754,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr30_full": {
@@ -10636,9 +10636,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr40_full": {
-   "cjk": 5953,
-   "chars": 13412,
-   "utf8_bytes": 25758,
+   "cjk": 6098,
+   "chars": 14118,
+   "utf8_bytes": 26760,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr40_full": {
@@ -10648,9 +10648,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr45_full": {
-   "cjk": 5959,
-   "chars": 13416,
-   "utf8_bytes": 25774,
+   "cjk": 6104,
+   "chars": 14122,
+   "utf8_bytes": 26776,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr45_full": {
@@ -10660,9 +10660,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr25_ctx": {
-   "cjk": 6024,
-   "chars": 13550,
-   "utf8_bytes": 26044,
+   "cjk": 6169,
+   "chars": 14256,
+   "utf8_bytes": 27046,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr25_ctx": {
@@ -10672,9 +10672,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr30_ctx": {
-   "cjk": 5984,
-   "chars": 13489,
-   "utf8_bytes": 25901,
+   "cjk": 6129,
+   "chars": 14195,
+   "utf8_bytes": 26903,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr30_ctx": {
@@ -10684,9 +10684,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr40_ctx": {
-   "cjk": 5974,
-   "chars": 13469,
-   "utf8_bytes": 25859,
+   "cjk": 6119,
+   "chars": 14175,
+   "utf8_bytes": 26861,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr40_ctx": {
@@ -10696,9 +10696,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr45_ctx": {
-   "cjk": 5962,
-   "chars": 13435,
-   "utf8_bytes": 25803,
+   "cjk": 6107,
+   "chars": 14141,
+   "utf8_bytes": 26805,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr45_ctx": {
@@ -10708,9 +10708,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr25_ss": {
-   "cjk": 5976,
-   "chars": 13466,
-   "utf8_bytes": 25866,
+   "cjk": 6121,
+   "chars": 14172,
+   "utf8_bytes": 26868,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr25_ss": {
@@ -10720,9 +10720,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr30_ss": {
-   "cjk": 5954,
-   "chars": 13424,
-   "utf8_bytes": 25776,
+   "cjk": 6099,
+   "chars": 14130,
+   "utf8_bytes": 26778,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr30_ss": {
@@ -10732,9 +10732,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr40_ss": {
-   "cjk": 5952,
-   "chars": 13415,
-   "utf8_bytes": 25763,
+   "cjk": 6097,
+   "chars": 14121,
+   "utf8_bytes": 26765,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr40_ss": {
@@ -10744,9 +10744,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr45_ss": {
-   "cjk": 5964,
-   "chars": 13428,
-   "utf8_bytes": 25802,
+   "cjk": 6109,
+   "chars": 14134,
+   "utf8_bytes": 26804,
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr45_ss": {
@@ -11104,21 +11104,21 @@
    "tier": "standard"
   },
   "attention_index_full": {
-   "cjk": 6952,
-   "chars": 19343,
-   "utf8_bytes": 33680,
+   "cjk": 7078,
+   "chars": 19849,
+   "utf8_bytes": 34442,
    "tier": "core"
   },
   "attention_index_ctx": {
-   "cjk": 6360,
-   "chars": 17732,
-   "utf8_bytes": 30853,
+   "cjk": 6486,
+   "chars": 18238,
+   "utf8_bytes": 31615,
    "tier": "standard"
   },
   "attention_pct_full": {
-   "cjk": 8620,
-   "chars": 18600,
-   "utf8_bytes": 36169,
+   "cjk": 8687,
+   "chars": 18839,
+   "utf8_bytes": 36544,
    "tier": "core"
   },
   "attention_intensity_density_full": {
@@ -11134,9 +11134,9 @@
    "tier": "standard"
   },
   "attention_disp_full": {
-   "cjk": 7507,
-   "chars": 17794,
-   "utf8_bytes": 33231,
+   "cjk": 7662,
+   "chars": 18324,
+   "utf8_bytes": 34075,
    "tier": "core"
   },
   "attention_intensity_sd_full": {
@@ -11152,15 +11152,15 @@
    "tier": "standard"
   },
   "attention_gap_full_ctx": {
-   "cjk": 6726,
-   "chars": 16356,
-   "utf8_bytes": 30208,
+   "cjk": 6881,
+   "chars": 16886,
+   "utf8_bytes": 31052,
    "tier": "standard"
   },
   "attention_attr_share": {
-   "cjk": 6698,
-   "chars": 16361,
-   "utf8_bytes": 30153,
+   "cjk": 6853,
+   "chars": 16891,
+   "utf8_bytes": 30997,
    "tier": "standard"
   },
   "n_fintech_articles": {
@@ -11176,9 +11176,9 @@
    "tier": "standard"
   },
   "attention_index_ss": {
-   "cjk": 6339,
-   "chars": 17754,
-   "utf8_bytes": 30839,
+   "cjk": 6465,
+   "chars": 18260,
+   "utf8_bytes": 31601,
    "tier": "standard"
   },
   "attention_intensity_density_ss": {
@@ -11194,27 +11194,27 @@
    "tier": "standard"
   },
   "attention_index_full_j70w5": {
-   "cjk": 6296,
-   "chars": 17422,
-   "utf8_bytes": 30422,
+   "cjk": 6422,
+   "chars": 17928,
+   "utf8_bytes": 31184,
    "tier": "standard"
   },
   "attention_index_ctx_j70w5": {
-   "cjk": 6283,
-   "chars": 17448,
-   "utf8_bytes": 30418,
+   "cjk": 6409,
+   "chars": 17954,
+   "utf8_bytes": 31180,
    "tier": "standard"
   },
   "attention_index_ss_j70w5": {
-   "cjk": 6281,
-   "chars": 17486,
-   "utf8_bytes": 30440,
+   "cjk": 6407,
+   "chars": 17992,
+   "utf8_bytes": 31202,
    "tier": "standard"
   },
   "attention_pct_full_j70w5": {
-   "cjk": 8022,
-   "chars": 17561,
-   "utf8_bytes": 33914,
+   "cjk": 8089,
+   "chars": 17800,
+   "utf8_bytes": 34289,
    "tier": "standard"
   },
   "n_ft_articles_j70w5": {
@@ -11230,27 +11230,27 @@
    "tier": "standard"
   },
   "attention_index_full_j75w5": {
-   "cjk": 6322,
-   "chars": 17543,
-   "utf8_bytes": 30587,
+   "cjk": 6448,
+   "chars": 18049,
+   "utf8_bytes": 31349,
    "tier": "standard"
   },
   "attention_index_ctx_j75w5": {
-   "cjk": 6313,
-   "chars": 17599,
-   "utf8_bytes": 30617,
+   "cjk": 6439,
+   "chars": 18105,
+   "utf8_bytes": 31379,
    "tier": "standard"
   },
   "attention_index_ss_j75w5": {
-   "cjk": 6362,
-   "chars": 17601,
-   "utf8_bytes": 30727,
+   "cjk": 6488,
+   "chars": 18107,
+   "utf8_bytes": 31489,
    "tier": "standard"
   },
   "attention_pct_full_j75w5": {
-   "cjk": 8010,
-   "chars": 17567,
-   "utf8_bytes": 33898,
+   "cjk": 8077,
+   "chars": 17806,
+   "utf8_bytes": 34273,
    "tier": "standard"
   },
   "n_ft_articles_j75w5": {
@@ -11266,27 +11266,27 @@
    "tier": "standard"
   },
   "attention_index_full_j80w10": {
-   "cjk": 6288,
-   "chars": 17361,
-   "utf8_bytes": 30347,
+   "cjk": 6414,
+   "chars": 17867,
+   "utf8_bytes": 31109,
    "tier": "standard"
   },
   "attention_index_ctx_j80w10": {
-   "cjk": 6326,
-   "chars": 17520,
-   "utf8_bytes": 30584,
+   "cjk": 6452,
+   "chars": 18026,
+   "utf8_bytes": 31346,
    "tier": "standard"
   },
   "attention_index_ss_j80w10": {
-   "cjk": 6321,
-   "chars": 17630,
-   "utf8_bytes": 30670,
+   "cjk": 6447,
+   "chars": 18136,
+   "utf8_bytes": 31432,
    "tier": "standard"
   },
   "attention_pct_full_j80w10": {
-   "cjk": 8078,
-   "chars": 17592,
-   "utf8_bytes": 34061,
+   "cjk": 8145,
+   "chars": 17831,
+   "utf8_bytes": 34436,
    "tier": "standard"
   },
   "n_ft_articles_j80w10": {
@@ -11302,27 +11302,27 @@
    "tier": "standard"
   },
   "attention_index_full_j70w10": {
-   "cjk": 6279,
-   "chars": 17484,
-   "utf8_bytes": 30434,
+   "cjk": 6405,
+   "chars": 17990,
+   "utf8_bytes": 31196,
    "tier": "standard"
   },
   "attention_index_ctx_j70w10": {
-   "cjk": 6286,
-   "chars": 17407,
-   "utf8_bytes": 30377,
+   "cjk": 6412,
+   "chars": 17913,
+   "utf8_bytes": 31139,
    "tier": "standard"
   },
   "attention_index_ss_j70w10": {
-   "cjk": 6292,
-   "chars": 17523,
-   "utf8_bytes": 30505,
+   "cjk": 6418,
+   "chars": 18029,
+   "utf8_bytes": 31267,
    "tier": "standard"
   },
   "attention_pct_full_j70w10": {
-   "cjk": 8062,
-   "chars": 17584,
-   "utf8_bytes": 34015,
+   "cjk": 8129,
+   "chars": 17823,
+   "utf8_bytes": 34390,
    "tier": "standard"
   },
   "n_ft_articles_j70w10": {
@@ -13445,8 +13445,8 @@
   },
   "llm_models_avg_tone_full": {
    "cjk": 6317,
-   "chars": 17477,
-   "utf8_bytes": 30823,
+   "chars": 17707,
+   "utf8_bytes": 31053,
    "tier": "core"
   },
   "llm_models_avg_tone_sum_full": {
@@ -13469,14 +13469,14 @@
   },
   "llm_models_avg_tone_std_full": {
    "cjk": 5776,
-   "chars": 16086,
-   "utf8_bytes": 28295,
+   "chars": 16316,
+   "utf8_bytes": 28525,
    "tier": "standard"
   },
   "dict_avg_tone_full": {
-   "cjk": 6816,
-   "chars": 17607,
-   "utf8_bytes": 31489,
+   "cjk": 6874,
+   "chars": 17824,
+   "utf8_bytes": 31826,
    "tier": "core"
   },
   "dict_avg_tone_sum_full": {
@@ -13486,15 +13486,15 @@
    "tier": "standard"
   },
   "dict_avg_tone_std_full": {
-   "cjk": 6250,
-   "chars": 16457,
-   "utf8_bytes": 29199,
+   "cjk": 6308,
+   "chars": 16674,
+   "utf8_bytes": 29536,
    "tier": "standard"
   },
   "dict_avg_idf_tone_full": {
    "cjk": 1871,
-   "chars": 6832,
-   "utf8_bytes": 10810,
+   "chars": 7062,
+   "utf8_bytes": 11040,
    "tier": "standard"
   },
   "dict_avg_idf_tone_sum_full": {
@@ -13547,14 +13547,14 @@
   },
   "bert_avg_pos_full": {
    "cjk": 1890,
-   "chars": 5977,
-   "utf8_bytes": 9925,
+   "chars": 6207,
+   "utf8_bytes": 10155,
    "tier": "standard"
   },
   "bert_avg_neg_full": {
    "cjk": 1868,
-   "chars": 5962,
-   "utf8_bytes": 9864,
+   "chars": 6192,
+   "utf8_bytes": 10094,
    "tier": "standard"
   },
   "bert_avg_neu_full": {
@@ -13583,104 +13583,104 @@
   },
   "bert_avg_pos_std_full": {
    "cjk": 1903,
-   "chars": 5943,
-   "utf8_bytes": 9899,
+   "chars": 6173,
+   "utf8_bytes": 10129,
    "tier": "standard"
   },
   "llm_models_avg_tone_vw_full": {
    "cjk": 5754,
-   "chars": 16104,
-   "utf8_bytes": 28282,
+   "chars": 16334,
+   "utf8_bytes": 28512,
    "tier": "standard"
   },
   "dict_avg_tone_vw_full": {
-   "cjk": 6236,
-   "chars": 16440,
-   "utf8_bytes": 29152,
+   "cjk": 6294,
+   "chars": 16657,
+   "utf8_bytes": 29489,
    "tier": "standard"
   },
   "dict_avg_idf_tone_vw_full": {
    "cjk": 1879,
-   "chars": 6775,
-   "utf8_bytes": 10778,
+   "chars": 7005,
+   "utf8_bytes": 11008,
    "tier": "standard"
   },
   "bert_avg_pos_vw_full": {
    "cjk": 1864,
-   "chars": 5949,
-   "utf8_bytes": 9833,
+   "chars": 6179,
+   "utf8_bytes": 10063,
    "tier": "standard"
   },
   "bert_avg_neg_vw_full": {
    "cjk": 1863,
-   "chars": 5948,
-   "utf8_bytes": 9830,
+   "chars": 6178,
+   "utf8_bytes": 10060,
    "tier": "standard"
   },
   "llm_models_avg_tone_mw_full": {
    "cjk": 5756,
-   "chars": 16191,
-   "utf8_bytes": 28369,
+   "chars": 16421,
+   "utf8_bytes": 28599,
    "tier": "standard"
   },
   "dict_avg_tone_mw_full": {
-   "cjk": 6264,
-   "chars": 16515,
-   "utf8_bytes": 29283,
+   "cjk": 6322,
+   "chars": 16732,
+   "utf8_bytes": 29620,
    "tier": "standard"
   },
   "dict_avg_idf_tone_mw_full": {
    "cjk": 1944,
-   "chars": 7003,
-   "utf8_bytes": 11138,
+   "chars": 7233,
+   "utf8_bytes": 11368,
    "tier": "standard"
   },
   "bert_avg_pos_mw_full": {
    "cjk": 1849,
-   "chars": 5906,
-   "utf8_bytes": 9760,
+   "chars": 6136,
+   "utf8_bytes": 9990,
    "tier": "standard"
   },
   "bert_avg_neg_mw_full": {
    "cjk": 1855,
-   "chars": 5921,
-   "utf8_bytes": 9787,
+   "chars": 6151,
+   "utf8_bytes": 10017,
    "tier": "standard"
   },
   "llm_models_avg_tone_hw_full": {
    "cjk": 5747,
-   "chars": 16123,
-   "utf8_bytes": 28277,
+   "chars": 16353,
+   "utf8_bytes": 28507,
    "tier": "standard"
   },
   "dict_avg_tone_hw_full": {
-   "cjk": 6251,
-   "chars": 16557,
-   "utf8_bytes": 29301,
+   "cjk": 6309,
+   "chars": 16774,
+   "utf8_bytes": 29638,
    "tier": "standard"
   },
   "dict_avg_idf_tone_hw_full": {
    "cjk": 1929,
-   "chars": 6933,
-   "utf8_bytes": 11030,
+   "chars": 7163,
+   "utf8_bytes": 11260,
    "tier": "standard"
   },
   "bert_avg_pos_hw_full": {
    "cjk": 1854,
-   "chars": 5885,
-   "utf8_bytes": 9751,
+   "chars": 6115,
+   "utf8_bytes": 9981,
    "tier": "standard"
   },
   "bert_avg_neg_hw_full": {
    "cjk": 1863,
-   "chars": 5898,
-   "utf8_bytes": 9782,
+   "chars": 6128,
+   "utf8_bytes": 10012,
    "tier": "standard"
   },
   "llm_models_avg_tone_ctx": {
    "cjk": 5761,
-   "chars": 16159,
-   "utf8_bytes": 28344,
+   "chars": 16389,
+   "utf8_bytes": 28574,
    "tier": "standard"
   },
   "llm_models_avg_tone_sum_ctx": {
@@ -13703,14 +13703,14 @@
   },
   "llm_models_avg_tone_std_ctx": {
    "cjk": 5790,
-   "chars": 16097,
-   "utf8_bytes": 28349,
+   "chars": 16327,
+   "utf8_bytes": 28579,
    "tier": "standard"
   },
   "dict_avg_tone_ctx": {
-   "cjk": 6220,
-   "chars": 16539,
-   "utf8_bytes": 29219,
+   "cjk": 6278,
+   "chars": 16756,
+   "utf8_bytes": 29556,
    "tier": "standard"
   },
   "dict_avg_tone_sum_ctx": {
@@ -13720,15 +13720,15 @@
    "tier": "standard"
   },
   "dict_avg_tone_std_ctx": {
-   "cjk": 6254,
-   "chars": 16504,
-   "utf8_bytes": 29254,
+   "cjk": 6312,
+   "chars": 16721,
+   "utf8_bytes": 29591,
    "tier": "standard"
   },
   "dict_avg_idf_tone_ctx": {
    "cjk": 1871,
-   "chars": 6825,
-   "utf8_bytes": 10801,
+   "chars": 7055,
+   "utf8_bytes": 11031,
    "tier": "standard"
   },
   "dict_avg_idf_tone_sum_ctx": {
@@ -13781,14 +13781,14 @@
   },
   "bert_avg_pos_ctx": {
    "cjk": 1839,
-   "chars": 5961,
-   "utf8_bytes": 9801,
+   "chars": 6191,
+   "utf8_bytes": 10031,
    "tier": "standard"
   },
   "bert_avg_neg_ctx": {
    "cjk": 1839,
-   "chars": 5948,
-   "utf8_bytes": 9786,
+   "chars": 6178,
+   "utf8_bytes": 10016,
    "tier": "standard"
   },
   "bert_avg_neu_ctx": {
@@ -13817,104 +13817,104 @@
   },
   "bert_avg_pos_std_ctx": {
    "cjk": 1933,
-   "chars": 5981,
-   "utf8_bytes": 10001,
+   "chars": 6211,
+   "utf8_bytes": 10231,
    "tier": "standard"
   },
   "llm_models_avg_tone_vw_ctx": {
    "cjk": 5770,
-   "chars": 16190,
-   "utf8_bytes": 28414,
+   "chars": 16420,
+   "utf8_bytes": 28644,
    "tier": "standard"
   },
   "dict_avg_tone_vw_ctx": {
-   "cjk": 6232,
-   "chars": 16456,
-   "utf8_bytes": 29160,
+   "cjk": 6290,
+   "chars": 16673,
+   "utf8_bytes": 29497,
    "tier": "standard"
   },
   "dict_avg_idf_tone_vw_ctx": {
    "cjk": 1918,
-   "chars": 6829,
-   "utf8_bytes": 10916,
+   "chars": 7059,
+   "utf8_bytes": 11146,
    "tier": "standard"
   },
   "bert_avg_pos_vw_ctx": {
    "cjk": 1852,
-   "chars": 5960,
-   "utf8_bytes": 9826,
+   "chars": 6190,
+   "utf8_bytes": 10056,
    "tier": "standard"
   },
   "bert_avg_neg_vw_ctx": {
    "cjk": 1852,
-   "chars": 5941,
-   "utf8_bytes": 9807,
+   "chars": 6171,
+   "utf8_bytes": 10037,
    "tier": "standard"
   },
   "llm_models_avg_tone_mw_ctx": {
    "cjk": 5749,
-   "chars": 16166,
-   "utf8_bytes": 28320,
+   "chars": 16396,
+   "utf8_bytes": 28550,
    "tier": "standard"
   },
   "dict_avg_tone_mw_ctx": {
-   "cjk": 6254,
-   "chars": 16481,
-   "utf8_bytes": 29227,
+   "cjk": 6312,
+   "chars": 16698,
+   "utf8_bytes": 29564,
    "tier": "standard"
   },
   "dict_avg_idf_tone_mw_ctx": {
    "cjk": 1910,
-   "chars": 6854,
-   "utf8_bytes": 10919,
+   "chars": 7084,
+   "utf8_bytes": 11149,
    "tier": "standard"
   },
   "bert_avg_pos_mw_ctx": {
    "cjk": 1831,
-   "chars": 5891,
-   "utf8_bytes": 9715,
+   "chars": 6121,
+   "utf8_bytes": 9945,
    "tier": "standard"
   },
   "bert_avg_neg_mw_ctx": {
    "cjk": 1858,
-   "chars": 5916,
-   "utf8_bytes": 9800,
+   "chars": 6146,
+   "utf8_bytes": 10030,
    "tier": "standard"
   },
   "llm_models_avg_tone_hw_ctx": {
    "cjk": 5752,
-   "chars": 16165,
-   "utf8_bytes": 28345,
+   "chars": 16395,
+   "utf8_bytes": 28575,
    "tier": "standard"
   },
   "dict_avg_tone_hw_ctx": {
-   "cjk": 6245,
-   "chars": 16529,
-   "utf8_bytes": 29259,
+   "cjk": 6303,
+   "chars": 16746,
+   "utf8_bytes": 29596,
    "tier": "standard"
   },
   "dict_avg_idf_tone_hw_ctx": {
    "cjk": 1874,
-   "chars": 6812,
-   "utf8_bytes": 10803,
+   "chars": 7042,
+   "utf8_bytes": 11033,
    "tier": "standard"
   },
   "bert_avg_pos_hw_ctx": {
    "cjk": 1831,
-   "chars": 5896,
-   "utf8_bytes": 9720,
+   "chars": 6126,
+   "utf8_bytes": 9950,
    "tier": "standard"
   },
   "bert_avg_neg_hw_ctx": {
    "cjk": 1849,
-   "chars": 5911,
-   "utf8_bytes": 9767,
+   "chars": 6141,
+   "utf8_bytes": 9997,
    "tier": "standard"
   },
   "llm_models_avg_tone_ss": {
    "cjk": 5750,
-   "chars": 16203,
-   "utf8_bytes": 28372,
+   "chars": 16433,
+   "utf8_bytes": 28602,
    "tier": "standard"
   },
   "llm_models_avg_tone_sum_ss": {
@@ -13937,14 +13937,14 @@
   },
   "llm_models_avg_tone_std_ss": {
    "cjk": 5752,
-   "chars": 16062,
-   "utf8_bytes": 28231,
+   "chars": 16292,
+   "utf8_bytes": 28461,
    "tier": "standard"
   },
   "dict_avg_tone_ss": {
-   "cjk": 6243,
-   "chars": 16511,
-   "utf8_bytes": 29239,
+   "cjk": 6301,
+   "chars": 16728,
+   "utf8_bytes": 29576,
    "tier": "standard"
   },
   "dict_avg_tone_sum_ss": {
@@ -13954,15 +13954,15 @@
    "tier": "standard"
   },
   "dict_avg_tone_std_ss": {
-   "cjk": 6235,
-   "chars": 16391,
-   "utf8_bytes": 29105,
+   "cjk": 6293,
+   "chars": 16608,
+   "utf8_bytes": 29442,
    "tier": "standard"
   },
   "dict_avg_idf_tone_ss": {
    "cjk": 1910,
-   "chars": 6988,
-   "utf8_bytes": 11043,
+   "chars": 7218,
+   "utf8_bytes": 11273,
    "tier": "standard"
   },
   "dict_avg_idf_tone_sum_ss": {
@@ -14015,14 +14015,14 @@
   },
   "bert_avg_pos_ss": {
    "cjk": 1847,
-   "chars": 5966,
-   "utf8_bytes": 9822,
+   "chars": 6196,
+   "utf8_bytes": 10052,
    "tier": "standard"
   },
   "bert_avg_neg_ss": {
    "cjk": 1839,
-   "chars": 5937,
-   "utf8_bytes": 9777,
+   "chars": 6167,
+   "utf8_bytes": 10007,
    "tier": "standard"
   },
   "bert_avg_neu_ss": {
@@ -14051,98 +14051,98 @@
   },
   "bert_avg_pos_std_ss": {
    "cjk": 1898,
-   "chars": 5976,
-   "utf8_bytes": 9928,
+   "chars": 6206,
+   "utf8_bytes": 10158,
    "tier": "standard"
   },
   "llm_models_avg_tone_vw_ss": {
    "cjk": 5763,
-   "chars": 16123,
-   "utf8_bytes": 28330,
+   "chars": 16353,
+   "utf8_bytes": 28560,
    "tier": "standard"
   },
   "dict_avg_tone_vw_ss": {
-   "cjk": 6235,
-   "chars": 16469,
-   "utf8_bytes": 29179,
+   "cjk": 6293,
+   "chars": 16686,
+   "utf8_bytes": 29516,
    "tier": "standard"
   },
   "dict_avg_idf_tone_vw_ss": {
    "cjk": 1893,
-   "chars": 6775,
-   "utf8_bytes": 10808,
+   "chars": 7005,
+   "utf8_bytes": 11038,
    "tier": "standard"
   },
   "bert_avg_pos_vw_ss": {
    "cjk": 1828,
-   "chars": 5936,
-   "utf8_bytes": 9753,
+   "chars": 6166,
+   "utf8_bytes": 9983,
    "tier": "standard"
   },
   "bert_avg_neg_vw_ss": {
    "cjk": 1826,
-   "chars": 5934,
-   "utf8_bytes": 9747,
+   "chars": 6164,
+   "utf8_bytes": 9977,
    "tier": "standard"
   },
   "llm_models_avg_tone_mw_ss": {
    "cjk": 5769,
-   "chars": 16168,
-   "utf8_bytes": 28382,
+   "chars": 16398,
+   "utf8_bytes": 28612,
    "tier": "standard"
   },
   "dict_avg_tone_mw_ss": {
-   "cjk": 6235,
-   "chars": 16483,
-   "utf8_bytes": 29195,
+   "cjk": 6293,
+   "chars": 16700,
+   "utf8_bytes": 29532,
    "tier": "standard"
   },
   "dict_avg_idf_tone_mw_ss": {
    "cjk": 1919,
-   "chars": 6863,
-   "utf8_bytes": 10954,
+   "chars": 7093,
+   "utf8_bytes": 11184,
    "tier": "standard"
   },
   "bert_avg_pos_mw_ss": {
    "cjk": 1822,
-   "chars": 5904,
-   "utf8_bytes": 9709,
+   "chars": 6134,
+   "utf8_bytes": 9939,
    "tier": "standard"
   },
   "bert_avg_neg_mw_ss": {
    "cjk": 1820,
-   "chars": 5902,
-   "utf8_bytes": 9703,
+   "chars": 6132,
+   "utf8_bytes": 9933,
    "tier": "standard"
   },
   "llm_models_avg_tone_hw_ss": {
    "cjk": 5742,
-   "chars": 16088,
-   "utf8_bytes": 28241,
+   "chars": 16318,
+   "utf8_bytes": 28471,
    "tier": "standard"
   },
   "dict_avg_tone_hw_ss": {
-   "cjk": 6238,
-   "chars": 16539,
-   "utf8_bytes": 29257,
+   "cjk": 6296,
+   "chars": 16756,
+   "utf8_bytes": 29594,
    "tier": "standard"
   },
   "dict_avg_idf_tone_hw_ss": {
    "cjk": 1920,
-   "chars": 6865,
-   "utf8_bytes": 10954,
+   "chars": 7095,
+   "utf8_bytes": 11184,
    "tier": "standard"
   },
   "bert_avg_pos_hw_ss": {
    "cjk": 1811,
-   "chars": 5872,
-   "utf8_bytes": 9655,
+   "chars": 6102,
+   "utf8_bytes": 9885,
    "tier": "standard"
   },
   "bert_avg_neg_hw_ss": {
    "cjk": 1824,
-   "chars": 5897,
-   "utf8_bytes": 9706,
+   "chars": 6127,
+   "utf8_bytes": 9936,
    "tier": "standard"
   },
   "avg_article_length": {
@@ -14189,8 +14189,8 @@
   },
   "llm_models_avg_tone_tech_full": {
    "cjk": 5760,
-   "chars": 16017,
-   "utf8_bytes": 28196,
+   "chars": 16247,
+   "utf8_bytes": 28426,
    "tier": "standard"
   },
   "llm_models_avg_cont_tech_full": {
@@ -14200,27 +14200,27 @@
    "tier": "standard"
   },
   "dict_avg_tone_tech_full": {
-   "cjk": 6230,
-   "chars": 16474,
-   "utf8_bytes": 29172,
+   "cjk": 6288,
+   "chars": 16691,
+   "utf8_bytes": 29509,
    "tier": "standard"
   },
   "dict_avg_idf_tone_tech_full": {
    "cjk": 1909,
-   "chars": 6815,
-   "utf8_bytes": 10868,
+   "chars": 7045,
+   "utf8_bytes": 11098,
    "tier": "standard"
   },
   "bert_avg_pos_tech_full": {
    "cjk": 1889,
-   "chars": 5939,
-   "utf8_bytes": 9871,
+   "chars": 6169,
+   "utf8_bytes": 10101,
    "tier": "standard"
   },
   "bert_avg_neg_tech_full": {
    "cjk": 1891,
-   "chars": 5941,
-   "utf8_bytes": 9877,
+   "chars": 6171,
+   "utf8_bytes": 10107,
    "tier": "standard"
   },
   "bert_avg_neu_tech_full": {
@@ -14231,8 +14231,8 @@
   },
   "llm_models_avg_tone_tech_ctx": {
    "cjk": 5750,
-   "chars": 16089,
-   "utf8_bytes": 28250,
+   "chars": 16319,
+   "utf8_bytes": 28480,
    "tier": "standard"
   },
   "llm_models_avg_cont_tech_ctx": {
@@ -14242,27 +14242,27 @@
    "tier": "standard"
   },
   "dict_avg_tone_tech_ctx": {
-   "cjk": 6232,
-   "chars": 16510,
-   "utf8_bytes": 29214,
+   "cjk": 6290,
+   "chars": 16727,
+   "utf8_bytes": 29551,
    "tier": "standard"
   },
   "dict_avg_idf_tone_tech_ctx": {
    "cjk": 1887,
-   "chars": 6813,
-   "utf8_bytes": 10842,
+   "chars": 7043,
+   "utf8_bytes": 11072,
    "tier": "standard"
   },
   "bert_avg_pos_tech_ctx": {
    "cjk": 1857,
-   "chars": 5925,
-   "utf8_bytes": 9799,
+   "chars": 6155,
+   "utf8_bytes": 10029,
    "tier": "standard"
   },
   "bert_avg_neg_tech_ctx": {
    "cjk": 1881,
-   "chars": 5960,
-   "utf8_bytes": 9882,
+   "chars": 6190,
+   "utf8_bytes": 10112,
    "tier": "standard"
   },
   "bert_avg_neu_tech_ctx": {
@@ -14273,8 +14273,8 @@
   },
   "llm_models_avg_tone_tech_ss": {
    "cjk": 5750,
-   "chars": 16081,
-   "utf8_bytes": 28242,
+   "chars": 16311,
+   "utf8_bytes": 28472,
    "tier": "standard"
   },
   "llm_models_avg_cont_tech_ss": {
@@ -14284,27 +14284,27 @@
    "tier": "standard"
   },
   "dict_avg_tone_tech_ss": {
-   "cjk": 6242,
-   "chars": 16454,
-   "utf8_bytes": 29176,
+   "cjk": 6300,
+   "chars": 16671,
+   "utf8_bytes": 29513,
    "tier": "standard"
   },
   "dict_avg_idf_tone_tech_ss": {
    "cjk": 1876,
-   "chars": 6771,
-   "utf8_bytes": 10769,
+   "chars": 7001,
+   "utf8_bytes": 10999,
    "tier": "standard"
   },
   "bert_avg_pos_tech_ss": {
    "cjk": 1853,
-   "chars": 5904,
-   "utf8_bytes": 9768,
+   "chars": 6134,
+   "utf8_bytes": 9998,
    "tier": "standard"
   },
   "bert_avg_neg_tech_ss": {
    "cjk": 1851,
-   "chars": 5902,
-   "utf8_bytes": 9762,
+   "chars": 6132,
+   "utf8_bytes": 9992,
    "tier": "standard"
   },
   "bert_avg_neu_tech_ss": {
@@ -14315,8 +14315,8 @@
   },
   "llm_models_avg_tone_app_full": {
    "cjk": 5782,
-   "chars": 16110,
-   "utf8_bytes": 28331,
+   "chars": 16340,
+   "utf8_bytes": 28561,
    "tier": "standard"
   },
   "llm_models_avg_cont_app_full": {
@@ -14326,27 +14326,27 @@
    "tier": "standard"
   },
   "dict_avg_tone_app_full": {
-   "cjk": 6265,
-   "chars": 16559,
-   "utf8_bytes": 29331,
+   "cjk": 6323,
+   "chars": 16776,
+   "utf8_bytes": 29668,
    "tier": "standard"
   },
   "dict_avg_idf_tone_app_full": {
    "cjk": 1910,
-   "chars": 6803,
-   "utf8_bytes": 10870,
+   "chars": 7033,
+   "utf8_bytes": 11100,
    "tier": "standard"
   },
   "bert_avg_pos_app_full": {
    "cjk": 1896,
-   "chars": 5950,
-   "utf8_bytes": 9896,
+   "chars": 6180,
+   "utf8_bytes": 10126,
    "tier": "standard"
   },
   "bert_avg_neg_app_full": {
    "cjk": 1905,
-   "chars": 5960,
-   "utf8_bytes": 9924,
+   "chars": 6190,
+   "utf8_bytes": 10154,
    "tier": "standard"
   },
   "bert_avg_neu_app_full": {
@@ -14357,8 +14357,8 @@
   },
   "llm_models_avg_tone_app_ctx": {
    "cjk": 5782,
-   "chars": 16160,
-   "utf8_bytes": 28384,
+   "chars": 16390,
+   "utf8_bytes": 28614,
    "tier": "standard"
   },
   "llm_models_avg_cont_app_ctx": {
@@ -14368,27 +14368,27 @@
    "tier": "standard"
   },
   "dict_avg_tone_app_ctx": {
-   "cjk": 6273,
-   "chars": 16569,
-   "utf8_bytes": 29357,
+   "cjk": 6331,
+   "chars": 16786,
+   "utf8_bytes": 29694,
    "tier": "standard"
   },
   "dict_avg_idf_tone_app_ctx": {
    "cjk": 1901,
-   "chars": 6807,
-   "utf8_bytes": 10850,
+   "chars": 7037,
+   "utf8_bytes": 11080,
    "tier": "standard"
   },
   "bert_avg_pos_app_ctx": {
    "cjk": 1873,
-   "chars": 5960,
-   "utf8_bytes": 9868,
+   "chars": 6190,
+   "utf8_bytes": 10098,
    "tier": "standard"
   },
   "bert_avg_neg_app_ctx": {
    "cjk": 1901,
-   "chars": 6006,
-   "utf8_bytes": 9964,
+   "chars": 6236,
+   "utf8_bytes": 10194,
    "tier": "standard"
   },
   "bert_avg_neu_app_ctx": {
@@ -14399,8 +14399,8 @@
   },
   "llm_models_avg_tone_app_ss": {
    "cjk": 5740,
-   "chars": 16064,
-   "utf8_bytes": 28208,
+   "chars": 16294,
+   "utf8_bytes": 28438,
    "tier": "standard"
   },
   "llm_models_avg_cont_app_ss": {
@@ -14410,27 +14410,27 @@
    "tier": "standard"
   },
   "dict_avg_tone_app_ss": {
-   "cjk": 6244,
-   "chars": 16488,
-   "utf8_bytes": 29218,
+   "cjk": 6302,
+   "chars": 16705,
+   "utf8_bytes": 29555,
    "tier": "standard"
   },
   "dict_avg_idf_tone_app_ss": {
    "cjk": 1872,
-   "chars": 6783,
-   "utf8_bytes": 10763,
+   "chars": 7013,
+   "utf8_bytes": 10993,
    "tier": "standard"
   },
   "bert_avg_pos_app_ss": {
    "cjk": 1852,
-   "chars": 5903,
-   "utf8_bytes": 9765,
+   "chars": 6133,
+   "utf8_bytes": 9995,
    "tier": "standard"
   },
   "bert_avg_neg_app_ss": {
    "cjk": 1873,
-   "chars": 5953,
-   "utf8_bytes": 9861,
+   "chars": 6183,
+   "utf8_bytes": 10091,
    "tier": "standard"
   },
   "bert_avg_neu_app_ss": {
@@ -14458,21 +14458,21 @@
    "tier": "standard"
   },
   "llm_vote_tone_full_z": {
-   "cjk": 6021,
-   "chars": 13477,
-   "utf8_bytes": 25961,
+   "cjk": 6166,
+   "chars": 14183,
+   "utf8_bytes": 26963,
    "tier": "standard"
   },
   "llm_vote_tone_ctx_z": {
-   "cjk": 6053,
-   "chars": 13521,
-   "utf8_bytes": 26071,
+   "cjk": 6198,
+   "chars": 14227,
+   "utf8_bytes": 27073,
    "tier": "standard"
   },
   "llm_vote_tone_ss_z": {
-   "cjk": 5941,
-   "chars": 13409,
-   "utf8_bytes": 25733,
+   "cjk": 6086,
+   "chars": 14115,
+   "utf8_bytes": 26735,
    "tier": "standard"
   },
   "llm_vote_cont_full_z": {
@@ -14495,20 +14495,20 @@
   },
   "llm_models_avg_tone_full_z": {
    "cjk": 5933,
-   "chars": 16231,
-   "utf8_bytes": 28761,
+   "chars": 16461,
+   "utf8_bytes": 28991,
    "tier": "standard"
   },
   "llm_models_avg_tone_ctx_z": {
    "cjk": 5980,
-   "chars": 16302,
-   "utf8_bytes": 28920,
+   "chars": 16532,
+   "utf8_bytes": 29150,
    "tier": "standard"
   },
   "llm_models_avg_tone_ss_z": {
    "cjk": 5922,
-   "chars": 16201,
-   "utf8_bytes": 28705,
+   "chars": 16431,
+   "utf8_bytes": 28935,
    "tier": "standard"
   },
   "llm_models_avg_cont_full_z": {
@@ -14530,183 +14530,183 @@
    "tier": "standard"
   },
   "dict_avg_tone_full_z": {
-   "cjk": 6332,
-   "chars": 16474,
-   "utf8_bytes": 29376,
+   "cjk": 6390,
+   "chars": 16691,
+   "utf8_bytes": 29713,
    "tier": "standard"
   },
   "dict_avg_tone_ctx_z": {
-   "cjk": 6282,
-   "chars": 16496,
-   "utf8_bytes": 29295,
+   "cjk": 6340,
+   "chars": 16713,
+   "utf8_bytes": 29632,
    "tier": "standard"
   },
   "dict_avg_tone_ss_z": {
-   "cjk": 6280,
-   "chars": 16452,
-   "utf8_bytes": 29250,
+   "cjk": 6338,
+   "chars": 16669,
+   "utf8_bytes": 29587,
    "tier": "standard"
   },
   "dict_avg_idf_tone_full_z": {
    "cjk": 1942,
-   "chars": 6859,
-   "utf8_bytes": 10983,
+   "chars": 7089,
+   "utf8_bytes": 11213,
    "tier": "standard"
   },
   "dict_avg_idf_tone_ctx_z": {
    "cjk": 1880,
-   "chars": 6743,
-   "utf8_bytes": 10731,
+   "chars": 6973,
+   "utf8_bytes": 10961,
    "tier": "standard"
   },
   "dict_avg_idf_tone_ss_z": {
    "cjk": 1890,
-   "chars": 6802,
-   "utf8_bytes": 10822,
+   "chars": 7032,
+   "utf8_bytes": 11052,
    "tier": "standard"
   },
   "bert_avg_pos_full_z": {
    "cjk": 1881,
-   "chars": 5964,
-   "utf8_bytes": 9888,
+   "chars": 6194,
+   "utf8_bytes": 10118,
    "tier": "standard"
   },
   "bert_avg_pos_ctx_z": {
    "cjk": 1863,
-   "chars": 5914,
-   "utf8_bytes": 9800,
+   "chars": 6144,
+   "utf8_bytes": 10030,
    "tier": "standard"
   },
   "bert_avg_pos_ss_z": {
    "cjk": 1856,
-   "chars": 5935,
-   "utf8_bytes": 9808,
+   "chars": 6165,
+   "utf8_bytes": 10038,
    "tier": "standard"
   },
   "bert_avg_neg_full_z": {
    "cjk": 1885,
-   "chars": 5970,
-   "utf8_bytes": 9902,
+   "chars": 6200,
+   "utf8_bytes": 10132,
    "tier": "standard"
   },
   "bert_avg_neg_ctx_z": {
    "cjk": 1881,
-   "chars": 5943,
-   "utf8_bytes": 9865,
+   "chars": 6173,
+   "utf8_bytes": 10095,
    "tier": "standard"
   },
   "bert_avg_neg_ss_z": {
    "cjk": 1856,
-   "chars": 5935,
-   "utf8_bytes": 9808,
+   "chars": 6165,
+   "utf8_bytes": 10038,
    "tier": "standard"
   },
   "llm_vote_tone_vw_full_z": {
-   "cjk": 5944,
-   "chars": 13381,
-   "utf8_bytes": 25707,
+   "cjk": 6089,
+   "chars": 14087,
+   "utf8_bytes": 26709,
    "tier": "standard"
   },
   "llm_vote_tone_vw_ctx_z": {
-   "cjk": 5961,
-   "chars": 13425,
-   "utf8_bytes": 25789,
+   "cjk": 6106,
+   "chars": 14131,
+   "utf8_bytes": 26791,
    "tier": "standard"
   },
   "llm_vote_tone_vw_ss_z": {
-   "cjk": 5937,
-   "chars": 13402,
-   "utf8_bytes": 25722,
+   "cjk": 6082,
+   "chars": 14108,
+   "utf8_bytes": 26724,
    "tier": "standard"
   },
   "dict_avg_tone_vw_full_z": {
-   "cjk": 6287,
-   "chars": 16459,
-   "utf8_bytes": 29266,
+   "cjk": 6345,
+   "chars": 16676,
+   "utf8_bytes": 29603,
    "tier": "standard"
   },
   "dict_avg_tone_vw_ctx_z": {
-   "cjk": 6277,
-   "chars": 16463,
-   "utf8_bytes": 29255,
+   "cjk": 6335,
+   "chars": 16680,
+   "utf8_bytes": 29592,
    "tier": "standard"
   },
   "dict_avg_tone_vw_ss_z": {
-   "cjk": 6304,
-   "chars": 16500,
-   "utf8_bytes": 29344,
+   "cjk": 6362,
+   "chars": 16717,
+   "utf8_bytes": 29681,
    "tier": "standard"
   },
   "llm_vote_tone_mw_full_z": {
-   "cjk": 5940,
-   "chars": 13401,
-   "utf8_bytes": 25719,
+   "cjk": 6085,
+   "chars": 14107,
+   "utf8_bytes": 26721,
    "tier": "standard"
   },
   "llm_vote_tone_mw_ctx_z": {
-   "cjk": 5958,
-   "chars": 13445,
-   "utf8_bytes": 25803,
+   "cjk": 6103,
+   "chars": 14151,
+   "utf8_bytes": 26805,
    "tier": "standard"
   },
   "llm_vote_tone_mw_ss_z": {
-   "cjk": 5932,
-   "chars": 13420,
-   "utf8_bytes": 25730,
+   "cjk": 6077,
+   "chars": 14126,
+   "utf8_bytes": 26732,
    "tier": "standard"
   },
   "dict_avg_tone_mw_full_z": {
-   "cjk": 6275,
-   "chars": 16441,
-   "utf8_bytes": 29223,
+   "cjk": 6333,
+   "chars": 16658,
+   "utf8_bytes": 29560,
    "tier": "standard"
   },
   "dict_avg_tone_mw_ctx_z": {
-   "cjk": 6261,
-   "chars": 16422,
-   "utf8_bytes": 29180,
+   "cjk": 6319,
+   "chars": 16639,
+   "utf8_bytes": 29517,
    "tier": "standard"
   },
   "dict_avg_tone_mw_ss_z": {
-   "cjk": 6302,
-   "chars": 16467,
-   "utf8_bytes": 29311,
+   "cjk": 6360,
+   "chars": 16684,
+   "utf8_bytes": 29648,
    "tier": "standard"
   },
   "llm_vote_tone_hw_full_z": {
-   "cjk": 5961,
-   "chars": 13408,
-   "utf8_bytes": 25768,
+   "cjk": 6106,
+   "chars": 14114,
+   "utf8_bytes": 26770,
    "tier": "standard"
   },
   "llm_vote_tone_hw_ctx_z": {
-   "cjk": 5974,
-   "chars": 13448,
-   "utf8_bytes": 25838,
+   "cjk": 6119,
+   "chars": 14154,
+   "utf8_bytes": 26840,
    "tier": "standard"
   },
   "llm_vote_tone_hw_ss_z": {
-   "cjk": 5931,
-   "chars": 13397,
-   "utf8_bytes": 25705,
+   "cjk": 6076,
+   "chars": 14103,
+   "utf8_bytes": 26707,
    "tier": "standard"
   },
   "dict_avg_tone_hw_full_z": {
-   "cjk": 6307,
-   "chars": 16467,
-   "utf8_bytes": 29318,
+   "cjk": 6365,
+   "chars": 16684,
+   "utf8_bytes": 29655,
    "tier": "standard"
   },
   "dict_avg_tone_hw_ctx_z": {
-   "cjk": 6276,
-   "chars": 16460,
-   "utf8_bytes": 29251,
+   "cjk": 6334,
+   "chars": 16677,
+   "utf8_bytes": 29588,
    "tier": "standard"
   },
   "dict_avg_tone_hw_ss_z": {
-   "cjk": 6279,
-   "chars": 16493,
-   "utf8_bytes": 29287,
+   "cjk": 6337,
+   "chars": 16710,
+   "utf8_bytes": 29624,
    "tier": "standard"
   },
   "avg_msent_full_z": {
@@ -15257,8 +15257,8 @@
   },
   "bank_type": {
    "cjk": 7242,
-   "chars": 13962,
-   "utf8_bytes": 28826,
+   "chars": 14143,
+   "utf8_bytes": 29007,
    "tier": "core"
   },
   "bartik_type_share_city": {
@@ -15280,9 +15280,9 @@
    "tier": "standard"
   },
   "bartik_type_share_private": {
-   "cjk": 6230,
-   "chars": 15545,
-   "utf8_bytes": 28382,
+   "cjk": 6297,
+   "chars": 15817,
+   "utf8_bytes": 28791,
    "tier": "standard"
   },
   "bartik_type_share_rural": {
@@ -15298,75 +15298,75 @@
    "tier": "standard"
   },
   "bartik_type_iv_full": {
-   "cjk": 6831,
-   "chars": 16802,
-   "utf8_bytes": 30885,
+   "cjk": 6898,
+   "chars": 17074,
+   "utf8_bytes": 31294,
    "tier": "core"
   },
   "bartik_type_iv_ctx": {
-   "cjk": 6834,
-   "chars": 16893,
-   "utf8_bytes": 30980,
+   "cjk": 6901,
+   "chars": 17165,
+   "utf8_bytes": 31389,
    "tier": "core"
   },
   "bartik_type_iv_ss": {
-   "cjk": 6108,
-   "chars": 15557,
-   "utf8_bytes": 28154,
+   "cjk": 6175,
+   "chars": 15829,
+   "utf8_bytes": 28563,
    "tier": "standard"
   },
   "bartik_type_iv_full_t0": {
-   "cjk": 6055,
-   "chars": 15432,
-   "utf8_bytes": 27909,
+   "cjk": 6122,
+   "chars": 15704,
+   "utf8_bytes": 28318,
    "tier": "standard"
   },
   "bartik_type_iv_ctx_t0": {
-   "cjk": 6076,
-   "chars": 15435,
-   "utf8_bytes": 27956,
+   "cjk": 6143,
+   "chars": 15707,
+   "utf8_bytes": 28365,
    "tier": "standard"
   },
   "bartik_type_iv_ss_t0": {
-   "cjk": 6083,
-   "chars": 15445,
-   "utf8_bytes": 27982,
+   "cjk": 6150,
+   "chars": 15717,
+   "utf8_bytes": 28391,
    "tier": "standard"
   },
   "bartik_type_iv_full_t1": {
-   "cjk": 6086,
-   "chars": 15422,
-   "utf8_bytes": 27965,
+   "cjk": 6153,
+   "chars": 15694,
+   "utf8_bytes": 28374,
    "tier": "standard"
   },
   "bartik_type_iv_ctx_t1": {
-   "cjk": 6086,
-   "chars": 15429,
-   "utf8_bytes": 27976,
+   "cjk": 6153,
+   "chars": 15701,
+   "utf8_bytes": 28385,
    "tier": "standard"
   },
   "bartik_type_iv_ss_t1": {
-   "cjk": 6117,
-   "chars": 15512,
-   "utf8_bytes": 28123,
+   "cjk": 6184,
+   "chars": 15784,
+   "utf8_bytes": 28532,
    "tier": "standard"
   },
   "bartik_type_iv_full_t01": {
-   "cjk": 6087,
-   "chars": 15439,
-   "utf8_bytes": 27982,
+   "cjk": 6154,
+   "chars": 15711,
+   "utf8_bytes": 28391,
    "tier": "standard"
   },
   "bartik_type_iv_ctx_t01": {
-   "cjk": 6085,
-   "chars": 15442,
-   "utf8_bytes": 27981,
+   "cjk": 6152,
+   "chars": 15714,
+   "utf8_bytes": 28390,
    "tier": "standard"
   },
   "bartik_type_iv_ss_t01": {
-   "cjk": 6081,
-   "chars": 15500,
-   "utf8_bytes": 28035,
+   "cjk": 6148,
+   "chars": 15772,
+   "utf8_bytes": 28444,
    "tier": "standard"
   },
   "bank_scale": {
@@ -15400,21 +15400,21 @@
    "tier": "standard"
   },
   "bartik_scale_iv_full": {
-   "cjk": 6100,
-   "chars": 15533,
-   "utf8_bytes": 28112,
+   "cjk": 6167,
+   "chars": 15805,
+   "utf8_bytes": 28521,
    "tier": "standard"
   },
   "bartik_scale_iv_ctx": {
-   "cjk": 6060,
-   "chars": 15478,
-   "utf8_bytes": 27979,
+   "cjk": 6127,
+   "chars": 15750,
+   "utf8_bytes": 28388,
    "tier": "standard"
   },
   "bartik_scale_iv_ss": {
-   "cjk": 6070,
-   "chars": 15482,
-   "utf8_bytes": 28007,
+   "cjk": 6137,
+   "chars": 15754,
+   "utf8_bytes": 28416,
    "tier": "standard"
   },
   "digital_frontier": {
@@ -15436,21 +15436,21 @@
    "tier": "standard"
   },
   "bartik_fintech_lf_iv_full": {
-   "cjk": 6074,
-   "chars": 15461,
-   "utf8_bytes": 27980,
+   "cjk": 6141,
+   "chars": 15733,
+   "utf8_bytes": 28389,
    "tier": "standard"
   },
   "bartik_fintech_lf_iv_ctx": {
-   "cjk": 6038,
-   "chars": 15480,
-   "utf8_bytes": 27921,
+   "cjk": 6105,
+   "chars": 15752,
+   "utf8_bytes": 28330,
    "tier": "standard"
   },
   "bartik_fintech_lf_iv_ss": {
-   "cjk": 6043,
-   "chars": 15488,
-   "utf8_bytes": 27955,
+   "cjk": 6110,
+   "chars": 15760,
+   "utf8_bytes": 28364,
    "tier": "standard"
   },
   "bartik_fintech_lc_share_app": {
@@ -15466,21 +15466,21 @@
    "tier": "standard"
   },
   "bartik_fintech_lc_iv_full": {
-   "cjk": 6044,
-   "chars": 15539,
-   "utf8_bytes": 28002,
+   "cjk": 6111,
+   "chars": 15811,
+   "utf8_bytes": 28411,
    "tier": "standard"
   },
   "bartik_fintech_lc_iv_ctx": {
-   "cjk": 6048,
-   "chars": 15469,
-   "utf8_bytes": 27932,
+   "cjk": 6115,
+   "chars": 15741,
+   "utf8_bytes": 28341,
    "tier": "standard"
   },
   "bartik_fintech_lc_iv_ss": {
-   "cjk": 6046,
-   "chars": 15448,
-   "utf8_bytes": 27917,
+   "cjk": 6113,
+   "chars": 15720,
+   "utf8_bytes": 28326,
    "tier": "standard"
   },
   "bartik_media_share_comp": {
@@ -15496,21 +15496,21 @@
    "tier": "standard"
   },
   "bartik_media_iv_full": {
-   "cjk": 6091,
-   "chars": 15520,
-   "utf8_bytes": 28074,
+   "cjk": 6158,
+   "chars": 15792,
+   "utf8_bytes": 28483,
    "tier": "standard"
   },
   "bartik_media_iv_ctx": {
-   "cjk": 6060,
-   "chars": 15492,
-   "utf8_bytes": 27987,
+   "cjk": 6127,
+   "chars": 15764,
+   "utf8_bytes": 28396,
    "tier": "standard"
   },
   "bartik_media_iv_ss": {
-   "cjk": 6052,
-   "chars": 15449,
-   "utf8_bytes": 27934,
+   "cjk": 6119,
+   "chars": 15721,
+   "utf8_bytes": 28343,
    "tier": "standard"
   },
   "bartik_mauth_share_high": {
@@ -15532,21 +15532,21 @@
    "tier": "standard"
   },
   "bartik_mauth_iv_full": {
-   "cjk": 6073,
-   "chars": 15502,
-   "utf8_bytes": 28017,
+   "cjk": 6140,
+   "chars": 15774,
+   "utf8_bytes": 28426,
    "tier": "standard"
   },
   "bartik_mauth_iv_ctx": {
-   "cjk": 6085,
-   "chars": 15486,
-   "utf8_bytes": 28032,
+   "cjk": 6152,
+   "chars": 15758,
+   "utf8_bytes": 28441,
    "tier": "standard"
   },
   "bartik_mauth_iv_ss": {
-   "cjk": 6047,
-   "chars": 15467,
-   "utf8_bytes": 27948,
+   "cjk": 6114,
+   "chars": 15739,
+   "utf8_bytes": 28357,
    "tier": "standard"
   },
   "bartik_geoprox_share_local": {
@@ -15562,27 +15562,27 @@
    "tier": "standard"
   },
   "bartik_geoprox_iv_full": {
-   "cjk": 6090,
-   "chars": 15534,
-   "utf8_bytes": 28088,
+   "cjk": 6157,
+   "chars": 15806,
+   "utf8_bytes": 28497,
    "tier": "standard"
   },
   "bartik_geoprox_iv_ctx": {
-   "cjk": 6070,
-   "chars": 15474,
-   "utf8_bytes": 27987,
+   "cjk": 6137,
+   "chars": 15746,
+   "utf8_bytes": 28396,
    "tier": "standard"
   },
   "bartik_geoprox_iv_ss": {
-   "cjk": 6062,
-   "chars": 15455,
-   "utf8_bytes": 27960,
+   "cjk": 6129,
+   "chars": 15727,
+   "utf8_bytes": 28369,
    "tier": "standard"
   },
   "bank_zone": {
    "cjk": 6642,
-   "chars": 13056,
-   "utf8_bytes": 26711,
+   "chars": 13237,
+   "utf8_bytes": 26892,
    "tier": "standard"
   },
   "zone_leave1out_tone_full": {
@@ -15898,9 +15898,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_full_lag1": {
-   "cjk": 6006,
-   "chars": 13472,
-   "utf8_bytes": 25932,
+   "cjk": 6151,
+   "chars": 14178,
+   "utf8_bytes": 26934,
    "tier": "standard"
   },
   "tone_reversal_full": {
@@ -15910,9 +15910,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_ctx_lag1": {
-   "cjk": 6056,
-   "chars": 13539,
-   "utf8_bytes": 26101,
+   "cjk": 6201,
+   "chars": 14245,
+   "utf8_bytes": 27103,
    "tier": "standard"
   },
   "tone_reversal_ctx": {
@@ -15922,9 +15922,9 @@
    "tier": "standard"
   },
   "llm_vote_tone_ss_lag1": {
-   "cjk": 5953,
-   "chars": 13414,
-   "utf8_bytes": 25762,
+   "cjk": 6098,
+   "chars": 14120,
+   "utf8_bytes": 26764,
    "tier": "standard"
   },
   "tone_reversal_ss": {
@@ -16102,51 +16102,51 @@
    "tier": "standard"
   },
   "bank_degree_cent": {
-   "cjk": 7754,
-   "chars": 18263,
-   "utf8_bytes": 34282,
+   "cjk": 7842,
+   "chars": 18572,
+   "utf8_bytes": 34769,
    "tier": "core"
   },
   "bank_strength_cent": {
-   "cjk": 6845,
-   "chars": 18407,
-   "utf8_bytes": 32407,
+   "cjk": 6907,
+   "chars": 18692,
+   "utf8_bytes": 32819,
    "tier": "core"
   },
   "bank_eigen_cent": {
-   "cjk": 6494,
-   "chars": 16477,
-   "utf8_bytes": 29887,
+   "cjk": 6574,
+   "chars": 16773,
+   "utf8_bytes": 30349,
    "tier": "core"
   },
   "bank_katz_cent": {
-   "cjk": 6990,
-   "chars": 20372,
-   "utf8_bytes": 34636,
+   "cjk": 7080,
+   "chars": 20710,
+   "utf8_bytes": 35158,
    "tier": "core"
   },
   "bank_subgraph_cent": {
-   "cjk": 7823,
-   "chars": 17024,
-   "utf8_bytes": 33372,
+   "cjk": 7889,
+   "chars": 17313,
+   "utf8_bytes": 33798,
    "tier": "core"
   },
   "bank_cfbetween_cent": {
-   "cjk": 7706,
-   "chars": 17676,
-   "utf8_bytes": 33691,
+   "cjk": 7785,
+   "chars": 17946,
+   "utf8_bytes": 34121,
    "tier": "core"
   },
   "bank_clustering": {
-   "cjk": 6754,
-   "chars": 16184,
-   "utf8_bytes": 30451,
+   "cjk": 6811,
+   "chars": 16443,
+   "utf8_bytes": 30826,
    "tier": "core"
   },
   "bank_constraint": {
-   "cjk": 8671,
-   "chars": 19530,
-   "utf8_bytes": 37444,
+   "cjk": 8748,
+   "chars": 19867,
+   "utf8_bytes": 37939,
    "tier": "core"
   },
   "bank_ego_density": {
@@ -16156,45 +16156,45 @@
    "tier": "core"
   },
   "bank_effective_size": {
-   "cjk": 6954,
-   "chars": 16105,
-   "utf8_bytes": 30471,
+   "cjk": 7115,
+   "chars": 16739,
+   "utf8_bytes": 31431,
    "tier": "core"
   },
   "bank_avg_nbr_deg": {
-   "cjk": 6666,
-   "chars": 15218,
-   "utf8_bytes": 28885,
+   "cjk": 6744,
+   "chars": 15491,
+   "utf8_bytes": 29316,
    "tier": "core"
   },
   "bank_coreness": {
-   "cjk": 7293,
-   "chars": 16648,
-   "utf8_bytes": 31658,
+   "cjk": 7375,
+   "chars": 16920,
+   "utf8_bytes": 32096,
    "tier": "core"
   },
   "bank_between_cent": {
-   "cjk": 7599,
-   "chars": 18185,
-   "utf8_bytes": 33835,
+   "cjk": 7770,
+   "chars": 18759,
+   "utf8_bytes": 34755,
    "tier": "core"
   },
   "bank_harmonic_cent": {
    "cjk": 5885,
-   "chars": 13554,
-   "utf8_bytes": 25630,
+   "chars": 13735,
+   "utf8_bytes": 25811,
    "tier": "core"
   },
   "bank_closeness_cent": {
-   "cjk": 7134,
-   "chars": 16968,
-   "utf8_bytes": 31768,
+   "cjk": 7296,
+   "chars": 17579,
+   "utf8_bytes": 32707,
    "tier": "core"
   },
   "bank_eccentricity": {
-   "cjk": 7495,
-   "chars": 19263,
-   "utf8_bytes": 34779,
+   "cjk": 7637,
+   "chars": 19811,
+   "utf8_bytes": 35615,
    "tier": "core"
   },
   "bank_ci": {
@@ -16204,63 +16204,63 @@
    "tier": "core"
   },
   "bank_is_hub": {
-   "cjk": 6583,
-   "chars": 15058,
-   "utf8_bytes": 28692,
+   "cjk": 6665,
+   "chars": 15373,
+   "utf8_bytes": 29177,
    "tier": "core"
   },
   "gf_coordinator": {
    "cjk": 5803,
-   "chars": 13462,
-   "utf8_bytes": 25410,
+   "chars": 13643,
+   "utf8_bytes": 25591,
    "tier": "core"
   },
   "gf_itinerant": {
-   "cjk": 5950,
-   "chars": 13936,
-   "utf8_bytes": 26133,
+   "cjk": 6017,
+   "chars": 14493,
+   "utf8_bytes": 26826,
    "tier": "core"
   },
   "gf_gatekeeper_rep": {
    "cjk": 5819,
-   "chars": 12744,
-   "utf8_bytes": 24656,
+   "chars": 13155,
+   "utf8_bytes": 25067,
    "tier": "core"
   },
   "gf_liaison": {
-   "cjk": 6101,
-   "chars": 14357,
-   "utf8_bytes": 26894,
+   "cjk": 6203,
+   "chars": 15071,
+   "utf8_bytes": 27816,
    "tier": "core"
   },
   "gf_total": {
-   "cjk": 6170,
-   "chars": 14114,
-   "utf8_bytes": 26845,
+   "cjk": 6228,
+   "chars": 14670,
+   "utf8_bytes": 27519,
    "tier": "core"
   },
   "net_density_yr": {
    "cjk": 5574,
-   "chars": 12679,
-   "utf8_bytes": 24288,
+   "chars": 12860,
+   "utf8_bytes": 24469,
    "tier": "core"
   },
   "net_avg_cluster_yr": {
-   "cjk": 6013,
-   "chars": 13934,
-   "utf8_bytes": 26346,
+   "cjk": 6193,
+   "chars": 14511,
+   "utf8_bytes": 27287,
    "tier": "core"
   },
   "net_avg_path_yr": {
-   "cjk": 7540,
-   "chars": 16208,
-   "utf8_bytes": 31740,
+   "cjk": 7635,
+   "chars": 16503,
+   "utf8_bytes": 32229,
    "tier": "core"
   },
   "net_degree_gini_yr": {
    "cjk": 5419,
-   "chars": 13400,
-   "utf8_bytes": 24654,
+   "chars": 13581,
+   "utf8_bytes": 24835,
    "tier": "core"
   },
   "net_modularity_yr": {
@@ -16270,81 +16270,81 @@
    "tier": "core"
   },
   "net_assortativity_yr": {
-   "cjk": 6255,
-   "chars": 14736,
-   "utf8_bytes": 27730,
+   "cjk": 6338,
+   "chars": 15083,
+   "utf8_bytes": 28245,
    "tier": "core"
   },
   "net_transitivity_yr": {
    "cjk": 5657,
-   "chars": 12411,
-   "utf8_bytes": 24219,
+   "chars": 12592,
+   "utf8_bytes": 24400,
    "tier": "core"
   },
   "net_diameter_yr": {
    "cjk": 5701,
-   "chars": 13463,
-   "utf8_bytes": 25340,
+   "chars": 13644,
+   "utf8_bytes": 25521,
    "tier": "core"
   },
   "net_giant_share_yr": {
    "cjk": 5934,
-   "chars": 13065,
-   "utf8_bytes": 25310,
+   "chars": 13246,
+   "utf8_bytes": 25491,
    "tier": "core"
   },
   "net_n_components_yr": {
-   "cjk": 5938,
-   "chars": 12648,
-   "utf8_bytes": 24875,
+   "cjk": 6031,
+   "chars": 12942,
+   "utf8_bytes": 25359,
    "tier": "core"
   },
   "bank_degree_cent_win1": {
-   "cjk": 7266,
-   "chars": 17586,
-   "utf8_bytes": 32616,
+   "cjk": 7354,
+   "chars": 17895,
+   "utf8_bytes": 33103,
    "tier": "standard"
   },
   "bank_strength_cent_win1": {
-   "cjk": 6257,
-   "chars": 17693,
-   "utf8_bytes": 30505,
+   "cjk": 6319,
+   "chars": 17978,
+   "utf8_bytes": 30917,
    "tier": "standard"
   },
   "bank_eigen_cent_win1": {
-   "cjk": 5949,
-   "chars": 15509,
-   "utf8_bytes": 27801,
+   "cjk": 6029,
+   "chars": 15805,
+   "utf8_bytes": 28263,
    "tier": "standard"
   },
   "bank_katz_cent_win1": {
-   "cjk": 6473,
-   "chars": 19677,
-   "utf8_bytes": 32885,
+   "cjk": 6563,
+   "chars": 20015,
+   "utf8_bytes": 33407,
    "tier": "standard"
   },
   "bank_subgraph_cent_win1": {
-   "cjk": 7233,
-   "chars": 16258,
-   "utf8_bytes": 31369,
+   "cjk": 7299,
+   "chars": 16547,
+   "utf8_bytes": 31795,
    "tier": "standard"
   },
   "bank_cfbetween_cent_win1": {
-   "cjk": 7297,
-   "chars": 17223,
-   "utf8_bytes": 32396,
+   "cjk": 7376,
+   "chars": 17493,
+   "utf8_bytes": 32826,
    "tier": "standard"
   },
   "bank_clustering_win1": {
-   "cjk": 5918,
-   "chars": 14942,
-   "utf8_bytes": 27493,
+   "cjk": 5975,
+   "chars": 15201,
+   "utf8_bytes": 27868,
    "tier": "standard"
   },
   "bank_constraint_win1": {
-   "cjk": 8087,
-   "chars": 18879,
-   "utf8_bytes": 35582,
+   "cjk": 8164,
+   "chars": 19216,
+   "utf8_bytes": 36077,
    "tier": "standard"
   },
   "bank_ego_density_win1": {
@@ -16354,45 +16354,45 @@
    "tier": "standard"
   },
   "bank_effective_size_win1": {
-   "cjk": 6324,
-   "chars": 15424,
-   "utf8_bytes": 28514,
+   "cjk": 6485,
+   "chars": 16058,
+   "utf8_bytes": 29474,
    "tier": "standard"
   },
   "bank_avg_nbr_deg_win1": {
-   "cjk": 6108,
-   "chars": 14487,
-   "utf8_bytes": 27018,
+   "cjk": 6186,
+   "chars": 14760,
+   "utf8_bytes": 27449,
    "tier": "standard"
   },
   "bank_coreness_win1": {
-   "cjk": 6779,
-   "chars": 16028,
-   "utf8_bytes": 30010,
+   "cjk": 6861,
+   "chars": 16300,
+   "utf8_bytes": 30448,
    "tier": "standard"
   },
   "bank_between_cent_win1": {
-   "cjk": 6725,
-   "chars": 16640,
-   "utf8_bytes": 30517,
+   "cjk": 6896,
+   "chars": 17214,
+   "utf8_bytes": 31437,
    "tier": "standard"
   },
   "bank_harmonic_cent_win1": {
    "cjk": 5550,
-   "chars": 13271,
-   "utf8_bytes": 24661,
+   "chars": 13452,
+   "utf8_bytes": 24842,
    "tier": "standard"
   },
   "bank_closeness_cent_win1": {
-   "cjk": 6128,
-   "chars": 15348,
-   "utf8_bytes": 28064,
+   "cjk": 6290,
+   "chars": 15959,
+   "utf8_bytes": 29003,
    "tier": "standard"
   },
   "bank_eccentricity_win1": {
-   "cjk": 6660,
-   "chars": 17988,
-   "utf8_bytes": 31774,
+   "cjk": 6802,
+   "chars": 18536,
+   "utf8_bytes": 32610,
    "tier": "standard"
   },
   "bank_ci_win1": {
@@ -16402,63 +16402,63 @@
    "tier": "standard"
   },
   "bank_is_hub_win1": {
-   "cjk": 5940,
-   "chars": 14275,
-   "utf8_bytes": 26585,
+   "cjk": 6022,
+   "chars": 14590,
+   "utf8_bytes": 27070,
    "tier": "standard"
   },
   "gf_coordinator_win1": {
    "cjk": 5258,
-   "chars": 12900,
-   "utf8_bytes": 23732,
+   "chars": 13081,
+   "utf8_bytes": 23913,
    "tier": "standard"
   },
   "gf_itinerant_win1": {
-   "cjk": 5358,
-   "chars": 13201,
-   "utf8_bytes": 24198,
+   "cjk": 5425,
+   "chars": 13758,
+   "utf8_bytes": 24891,
    "tier": "standard"
   },
   "gf_gatekeeper_rep_win1": {
    "cjk": 4976,
-   "chars": 11625,
-   "utf8_bytes": 21834,
+   "chars": 12036,
+   "utf8_bytes": 22245,
    "tier": "standard"
   },
   "gf_liaison_win1": {
-   "cjk": 5386,
-   "chars": 13493,
-   "utf8_bytes": 24594,
+   "cjk": 5488,
+   "chars": 14207,
+   "utf8_bytes": 25516,
    "tier": "standard"
   },
   "gf_total_win1": {
-   "cjk": 5333,
-   "chars": 13131,
-   "utf8_bytes": 24152,
+   "cjk": 5391,
+   "chars": 13687,
+   "utf8_bytes": 24826,
    "tier": "standard"
   },
   "net_density_yr_win1": {
    "cjk": 5150,
-   "chars": 12250,
-   "utf8_bytes": 22990,
+   "chars": 12431,
+   "utf8_bytes": 23171,
    "tier": "standard"
   },
   "net_avg_cluster_yr_win1": {
-   "cjk": 5442,
-   "chars": 13296,
-   "utf8_bytes": 24558,
+   "cjk": 5622,
+   "chars": 13873,
+   "utf8_bytes": 25499,
    "tier": "standard"
   },
   "net_avg_path_yr_win1": {
-   "cjk": 7087,
-   "chars": 15662,
-   "utf8_bytes": 30266,
+   "cjk": 7182,
+   "chars": 15957,
+   "utf8_bytes": 30755,
    "tier": "standard"
   },
   "net_degree_gini_yr_win1": {
    "cjk": 4948,
-   "chars": 12772,
-   "utf8_bytes": 23063,
+   "chars": 12953,
+   "utf8_bytes": 23244,
    "tier": "standard"
   },
   "net_modularity_yr_win1": {
@@ -16468,81 +16468,81 @@
    "tier": "standard"
   },
   "net_assortativity_yr_win1": {
-   "cjk": 5710,
-   "chars": 13721,
-   "utf8_bytes": 25582,
+   "cjk": 5793,
+   "chars": 14068,
+   "utf8_bytes": 26097,
    "tier": "standard"
   },
   "net_transitivity_yr_win1": {
    "cjk": 5007,
-   "chars": 11629,
-   "utf8_bytes": 22091,
+   "chars": 11810,
+   "utf8_bytes": 22272,
    "tier": "standard"
   },
   "net_diameter_yr_win1": {
    "cjk": 5205,
-   "chars": 12881,
-   "utf8_bytes": 23728,
+   "chars": 13062,
+   "utf8_bytes": 23909,
    "tier": "standard"
   },
   "net_giant_share_yr_win1": {
    "cjk": 5085,
-   "chars": 11895,
-   "utf8_bytes": 22429,
+   "chars": 12076,
+   "utf8_bytes": 22610,
    "tier": "standard"
   },
   "net_n_components_yr_win1": {
-   "cjk": 5390,
-   "chars": 12067,
-   "utf8_bytes": 23182,
+   "cjk": 5483,
+   "chars": 12361,
+   "utf8_bytes": 23666,
    "tier": "standard"
   },
   "bank_degree_cent_sent": {
-   "cjk": 7340,
-   "chars": 17515,
-   "utf8_bytes": 32690,
+   "cjk": 7428,
+   "chars": 17824,
+   "utf8_bytes": 33177,
    "tier": "standard"
   },
   "bank_strength_cent_sent": {
-   "cjk": 6301,
-   "chars": 17744,
-   "utf8_bytes": 30645,
+   "cjk": 6363,
+   "chars": 18029,
+   "utf8_bytes": 31057,
    "tier": "standard"
   },
   "bank_eigen_cent_sent": {
-   "cjk": 5972,
-   "chars": 15440,
-   "utf8_bytes": 27780,
+   "cjk": 6052,
+   "chars": 15736,
+   "utf8_bytes": 28242,
    "tier": "standard"
   },
   "bank_katz_cent_sent": {
-   "cjk": 6499,
-   "chars": 19683,
-   "utf8_bytes": 32953,
+   "cjk": 6589,
+   "chars": 20021,
+   "utf8_bytes": 33475,
    "tier": "standard"
   },
   "bank_subgraph_cent_sent": {
-   "cjk": 7171,
-   "chars": 16096,
-   "utf8_bytes": 31091,
+   "cjk": 7237,
+   "chars": 16385,
+   "utf8_bytes": 31517,
    "tier": "standard"
   },
   "bank_cfbetween_cent_sent": {
-   "cjk": 7335,
-   "chars": 17279,
-   "utf8_bytes": 32541,
+   "cjk": 7414,
+   "chars": 17549,
+   "utf8_bytes": 32971,
    "tier": "standard"
   },
   "bank_clustering_sent": {
-   "cjk": 5907,
-   "chars": 14757,
-   "utf8_bytes": 27265,
+   "cjk": 5964,
+   "chars": 15016,
+   "utf8_bytes": 27640,
    "tier": "standard"
   },
   "bank_constraint_sent": {
-   "cjk": 8122,
-   "chars": 18888,
-   "utf8_bytes": 35664,
+   "cjk": 8199,
+   "chars": 19225,
+   "utf8_bytes": 36159,
    "tier": "standard"
   },
   "bank_ego_density_sent": {
@@ -16552,45 +16552,45 @@
    "tier": "standard"
   },
   "bank_effective_size_sent": {
-   "cjk": 6339,
-   "chars": 15327,
-   "utf8_bytes": 28438,
+   "cjk": 6500,
+   "chars": 15961,
+   "utf8_bytes": 29398,
    "tier": "standard"
   },
   "bank_avg_nbr_deg_sent": {
-   "cjk": 6133,
-   "chars": 14416,
-   "utf8_bytes": 27001,
+   "cjk": 6211,
+   "chars": 14689,
+   "utf8_bytes": 27432,
    "tier": "standard"
   },
   "bank_coreness_sent": {
-   "cjk": 6758,
-   "chars": 15848,
-   "utf8_bytes": 29766,
+   "cjk": 6840,
+   "chars": 16120,
+   "utf8_bytes": 30204,
    "tier": "standard"
   },
   "bank_between_cent_sent": {
-   "cjk": 6705,
-   "chars": 16536,
-   "utf8_bytes": 30369,
+   "cjk": 6876,
+   "chars": 17110,
+   "utf8_bytes": 31289,
    "tier": "standard"
   },
   "bank_harmonic_cent_sent": {
    "cjk": 5575,
-   "chars": 13255,
-   "utf8_bytes": 24701,
+   "chars": 13436,
+   "utf8_bytes": 24882,
    "tier": "standard"
   },
   "bank_closeness_cent_sent": {
-   "cjk": 6174,
-   "chars": 15374,
-   "utf8_bytes": 28183,
+   "cjk": 6336,
+   "chars": 15985,
+   "utf8_bytes": 29122,
    "tier": "standard"
   },
   "bank_eccentricity_sent": {
-   "cjk": 6686,
-   "chars": 17952,
-   "utf8_bytes": 31793,
+   "cjk": 6828,
+   "chars": 18500,
+   "utf8_bytes": 32629,
    "tier": "standard"
   },
   "bank_ci_sent": {
@@ -16600,63 +16600,63 @@
    "tier": "standard"
   },
   "bank_is_hub_sent": {
-   "cjk": 5935,
-   "chars": 14238,
-   "utf8_bytes": 26542,
+   "cjk": 6017,
+   "chars": 14553,
+   "utf8_bytes": 27027,
    "tier": "standard"
   },
   "gf_coordinator_sent": {
    "cjk": 5265,
-   "chars": 12805,
-   "utf8_bytes": 23643,
+   "chars": 12986,
+   "utf8_bytes": 23824,
    "tier": "standard"
   },
   "gf_itinerant_sent": {
-   "cjk": 5374,
-   "chars": 13120,
-   "utf8_bytes": 24145,
+   "cjk": 5441,
+   "chars": 13677,
+   "utf8_bytes": 24838,
    "tier": "standard"
   },
   "gf_gatekeeper_rep_sent": {
    "cjk": 4987,
-   "chars": 11630,
-   "utf8_bytes": 21857,
+   "chars": 12041,
+   "utf8_bytes": 22268,
    "tier": "standard"
   },
   "gf_liaison_sent": {
-   "cjk": 5409,
-   "chars": 13464,
-   "utf8_bytes": 24605,
+   "cjk": 5511,
+   "chars": 14178,
+   "utf8_bytes": 25527,
    "tier": "standard"
   },
   "gf_total_sent": {
-   "cjk": 5341,
-   "chars": 13058,
-   "utf8_bytes": 24097,
+   "cjk": 5399,
+   "chars": 13614,
+   "utf8_bytes": 24771,
    "tier": "standard"
   },
   "net_density_yr_sent": {
    "cjk": 5150,
-   "chars": 12153,
-   "utf8_bytes": 22888,
+   "chars": 12334,
+   "utf8_bytes": 23069,
    "tier": "standard"
   },
   "net_avg_cluster_yr_sent": {
-   "cjk": 5521,
-   "chars": 13387,
-   "utf8_bytes": 24805,
+   "cjk": 5701,
+   "chars": 13964,
+   "utf8_bytes": 25746,
    "tier": "standard"
   },
   "net_avg_path_yr_sent": {
-   "cjk": 6966,
-   "chars": 15413,
-   "utf8_bytes": 29768,
+   "cjk": 7061,
+   "chars": 15708,
+   "utf8_bytes": 30257,
    "tier": "standard"
   },
   "net_degree_gini_yr_sent": {
    "cjk": 5242,
-   "chars": 13142,
-   "utf8_bytes": 24047,
+   "chars": 13323,
+   "utf8_bytes": 24228,
    "tier": "standard"
   },
   "net_modularity_yr_sent": {
@@ -16666,51 +16666,51 @@
    "tier": "standard"
   },
   "net_assortativity_yr_sent": {
-   "cjk": 5726,
-   "chars": 13706,
-   "utf8_bytes": 25605,
+   "cjk": 5809,
+   "chars": 14053,
+   "utf8_bytes": 26120,
    "tier": "standard"
   },
   "net_transitivity_yr_sent": {
    "cjk": 5010,
-   "chars": 11387,
-   "utf8_bytes": 21861,
+   "chars": 11568,
+   "utf8_bytes": 22042,
    "tier": "standard"
   },
   "net_diameter_yr_sent": {
    "cjk": 5115,
-   "chars": 12608,
-   "utf8_bytes": 23276,
+   "chars": 12789,
+   "utf8_bytes": 23457,
    "tier": "standard"
   },
   "net_giant_share_yr_sent": {
    "cjk": 5099,
-   "chars": 11838,
-   "utf8_bytes": 22395,
+   "chars": 12019,
+   "utf8_bytes": 22576,
    "tier": "standard"
   },
   "net_n_components_yr_sent": {
-   "cjk": 5485,
-   "chars": 12002,
-   "utf8_bytes": 23316,
+   "cjk": 5578,
+   "chars": 12296,
+   "utf8_bytes": 23800,
    "tier": "standard"
   },
   "bank_cogn_mean": {
    "cjk": 6882,
-   "chars": 14791,
-   "utf8_bytes": 29024,
+   "chars": 15021,
+   "utf8_bytes": 29254,
    "tier": "core"
   },
   "bank_cogn_mean_ctx": {
    "cjk": 5999,
-   "chars": 13578,
-   "utf8_bytes": 25996,
+   "chars": 13808,
+   "utf8_bytes": 26226,
    "tier": "standard"
   },
   "bank_cogn_mean_ss": {
    "cjk": 6050,
-   "chars": 13626,
-   "utf8_bytes": 26148,
+   "chars": 13856,
+   "utf8_bytes": 26378,
    "tier": "standard"
   },
   "strat_diff_n3": {
@@ -17878,147 +17878,147 @@
    "tier": "standard"
   },
   "benefit_mean_full": {
-   "cjk": 6159,
-   "chars": 16454,
-   "utf8_bytes": 29064,
+   "cjk": 6273,
+   "chars": 17196,
+   "utf8_bytes": 30038,
    "tier": "core"
   },
   "benefit_std_full": {
-   "cjk": 6336,
-   "chars": 14987,
-   "utf8_bytes": 27915,
+   "cjk": 6408,
+   "chars": 15288,
+   "utf8_bytes": 28362,
    "tier": "core"
   },
   "benefit_pos_frac_full": {
-   "cjk": 6375,
-   "chars": 15169,
-   "utf8_bytes": 28177,
+   "cjk": 6447,
+   "chars": 15470,
+   "utf8_bytes": 28624,
    "tier": "core"
   },
   "benefit_neg_frac_full": {
-   "cjk": 6413,
-   "chars": 15310,
-   "utf8_bytes": 28392,
+   "cjk": 6485,
+   "chars": 15611,
+   "utf8_bytes": 28839,
    "tier": "core"
   },
   "benefit_mean_ctx": {
-   "cjk": 5531,
-   "chars": 15316,
-   "utf8_bytes": 26634,
+   "cjk": 5645,
+   "chars": 16058,
+   "utf8_bytes": 27608,
    "tier": "standard"
   },
   "benefit_std_ctx": {
-   "cjk": 5681,
-   "chars": 14228,
-   "utf8_bytes": 25828,
+   "cjk": 5753,
+   "chars": 14529,
+   "utf8_bytes": 26275,
    "tier": "standard"
   },
   "benefit_pos_frac_ctx": {
-   "cjk": 5688,
-   "chars": 14286,
-   "utf8_bytes": 25898,
+   "cjk": 5760,
+   "chars": 14587,
+   "utf8_bytes": 26345,
    "tier": "standard"
   },
   "benefit_neg_frac_ctx": {
-   "cjk": 5709,
-   "chars": 14265,
-   "utf8_bytes": 25921,
+   "cjk": 5781,
+   "chars": 14566,
+   "utf8_bytes": 26368,
    "tier": "standard"
   },
   "benefit_mean_ss": {
-   "cjk": 5554,
-   "chars": 15385,
-   "utf8_bytes": 26747,
+   "cjk": 5668,
+   "chars": 16127,
+   "utf8_bytes": 27721,
    "tier": "standard"
   },
   "benefit_std_ss": {
-   "cjk": 5739,
-   "chars": 14206,
-   "utf8_bytes": 25926,
+   "cjk": 5811,
+   "chars": 14507,
+   "utf8_bytes": 26373,
    "tier": "standard"
   },
   "benefit_pos_frac_ss": {
-   "cjk": 5698,
-   "chars": 14141,
-   "utf8_bytes": 25773,
+   "cjk": 5770,
+   "chars": 14442,
+   "utf8_bytes": 26220,
    "tier": "standard"
   },
   "benefit_neg_frac_ss": {
-   "cjk": 5729,
-   "chars": 14221,
-   "utf8_bytes": 25919,
+   "cjk": 5801,
+   "chars": 14522,
+   "utf8_bytes": 26366,
    "tier": "standard"
   },
   "benefit_mean_lg_full": {
-   "cjk": 6174,
-   "chars": 16487,
-   "utf8_bytes": 29113,
+   "cjk": 6288,
+   "chars": 17229,
+   "utf8_bytes": 30087,
    "tier": "core"
   },
   "benefit_std_lg_full": {
-   "cjk": 5739,
-   "chars": 14292,
-   "utf8_bytes": 26006,
+   "cjk": 5811,
+   "chars": 14593,
+   "utf8_bytes": 26453,
    "tier": "standard"
   },
   "benefit_pos_frac_lg_full": {
-   "cjk": 5718,
-   "chars": 14284,
-   "utf8_bytes": 25964,
+   "cjk": 5790,
+   "chars": 14585,
+   "utf8_bytes": 26411,
    "tier": "standard"
   },
   "benefit_neg_frac_lg_full": {
-   "cjk": 5739,
-   "chars": 14342,
-   "utf8_bytes": 26054,
+   "cjk": 5811,
+   "chars": 14643,
+   "utf8_bytes": 26501,
    "tier": "standard"
   },
   "benefit_mean_lg_ctx": {
-   "cjk": 5561,
-   "chars": 15430,
-   "utf8_bytes": 26808,
+   "cjk": 5675,
+   "chars": 16172,
+   "utf8_bytes": 27782,
    "tier": "standard"
   },
   "benefit_std_lg_ctx": {
-   "cjk": 5702,
-   "chars": 14214,
-   "utf8_bytes": 25858,
+   "cjk": 5774,
+   "chars": 14515,
+   "utf8_bytes": 26305,
    "tier": "standard"
   },
   "benefit_pos_frac_lg_ctx": {
-   "cjk": 5681,
-   "chars": 14216,
-   "utf8_bytes": 25818,
+   "cjk": 5753,
+   "chars": 14517,
+   "utf8_bytes": 26265,
    "tier": "standard"
   },
   "benefit_neg_frac_lg_ctx": {
-   "cjk": 5705,
-   "chars": 14274,
-   "utf8_bytes": 25924,
+   "cjk": 5777,
+   "chars": 14575,
+   "utf8_bytes": 26371,
    "tier": "standard"
   },
   "benefit_mean_lg_ss": {
-   "cjk": 5555,
-   "chars": 15440,
-   "utf8_bytes": 26804,
+   "cjk": 5669,
+   "chars": 16182,
+   "utf8_bytes": 27778,
    "tier": "standard"
   },
   "benefit_std_lg_ss": {
-   "cjk": 5718,
-   "chars": 14200,
-   "utf8_bytes": 25871,
+   "cjk": 5790,
+   "chars": 14501,
+   "utf8_bytes": 26318,
    "tier": "standard"
   },
   "benefit_pos_frac_lg_ss": {
-   "cjk": 5696,
-   "chars": 14218,
-   "utf8_bytes": 25843,
+   "cjk": 5768,
+   "chars": 14519,
+   "utf8_bytes": 26290,
    "tier": "standard"
   },
   "benefit_neg_frac_lg_ss": {
-   "cjk": 5716,
-   "chars": 14261,
-   "utf8_bytes": 25926,
+   "cjk": 5788,
+   "chars": 14562,
+   "utf8_bytes": 26373,
    "tier": "standard"
   },
   "article_sim_mean": {
@@ -18035,8 +18035,8 @@
   },
   "fintech_intensity_mean": {
    "cjk": 5123,
-   "chars": 11769,
-   "utf8_bytes": 22293,
+   "chars": 11999,
+   "utf8_bytes": 22523,
    "tier": "standard"
   },
   "article_sim_mean_ctx": {
@@ -18820,81 +18820,81 @@
    "tier": "standard"
   },
   "brokerage_eigen_cent": {
-   "cjk": 7380,
-   "chars": 15936,
-   "utf8_bytes": 30973,
+   "cjk": 7553,
+   "chars": 16576,
+   "utf8_bytes": 31967,
    "tier": "core"
   },
   "brok_bip_degree_cent": {
-   "cjk": 6006,
-   "chars": 15398,
-   "utf8_bytes": 27729,
+   "cjk": 6076,
+   "chars": 15628,
+   "utf8_bytes": 28101,
    "tier": "core"
   },
   "brok_bip_between_cent": {
-   "cjk": 5461,
-   "chars": 14380,
-   "utf8_bytes": 25591,
+   "cjk": 5531,
+   "chars": 14610,
+   "utf8_bytes": 25963,
    "tier": "standard"
   },
   "brok_bip_clustering_ra": {
-   "cjk": 5603,
-   "chars": 14878,
-   "utf8_bytes": 26379,
+   "cjk": 5673,
+   "chars": 15108,
+   "utf8_bytes": 26751,
    "tier": "standard"
   },
   "brok_bip_closeness_cent": {
-   "cjk": 5413,
-   "chars": 14290,
-   "utf8_bytes": 25401,
+   "cjk": 5483,
+   "chars": 14520,
+   "utf8_bytes": 25773,
    "tier": "standard"
   },
   "brok_bip_node_redundancy": {
-   "cjk": 5449,
-   "chars": 14437,
-   "utf8_bytes": 25618,
+   "cjk": 5519,
+   "chars": 14667,
+   "utf8_bytes": 25990,
    "tier": "standard"
   },
   "industry_neg_shock": {
-   "cjk": 5614,
-   "chars": 15063,
-   "utf8_bytes": 26595,
+   "cjk": 5676,
+   "chars": 15353,
+   "utf8_bytes": 27011,
    "tier": "core"
   },
   "industry_neg_shock_lag1": {
-   "cjk": 5060,
-   "chars": 14272,
-   "utf8_bytes": 24687,
+   "cjk": 5122,
+   "chars": 14562,
+   "utf8_bytes": 25103,
    "tier": "standard"
   },
   "industry_neg_shock_ctx": {
-   "cjk": 5004,
-   "chars": 14196,
-   "utf8_bytes": 24494,
+   "cjk": 5066,
+   "chars": 14486,
+   "utf8_bytes": 24910,
    "tier": "standard"
   },
   "industry_neg_shock_lag1_ctx": {
-   "cjk": 5000,
-   "chars": 14210,
-   "utf8_bytes": 24506,
+   "cjk": 5062,
+   "chars": 14500,
+   "utf8_bytes": 24922,
    "tier": "standard"
   },
   "industry_neg_shock_ss": {
-   "cjk": 5059,
-   "chars": 14267,
-   "utf8_bytes": 24677,
+   "cjk": 5121,
+   "chars": 14557,
+   "utf8_bytes": 25093,
    "tier": "standard"
   },
   "industry_neg_shock_lag1_ss": {
-   "cjk": 5060,
-   "chars": 14249,
-   "utf8_bytes": 24663,
+   "cjk": 5122,
+   "chars": 14539,
+   "utf8_bytes": 25079,
    "tier": "standard"
   },
   "brokerage_fire_sale": {
-   "cjk": 7397,
-   "chars": 15926,
-   "utf8_bytes": 30989,
+   "cjk": 7570,
+   "chars": 16566,
+   "utf8_bytes": 31983,
    "tier": "core"
   },
   "bank_emb_sim_mean_lag1": {
@@ -19000,21 +19000,21 @@
    "tier": "standard"
   },
   "llm_peer_tone_iv_full_70": {
-   "cjk": 5532,
-   "chars": 11202,
-   "utf8_bytes": 22614,
+   "cjk": 5608,
+   "chars": 11576,
+   "utf8_bytes": 23144,
    "tier": "standard"
   },
   "llm_peer_tone_iv_ctx_70": {
-   "cjk": 5513,
-   "chars": 11158,
-   "utf8_bytes": 22534,
+   "cjk": 5589,
+   "chars": 11532,
+   "utf8_bytes": 23064,
    "tier": "standard"
   },
   "llm_peer_tone_iv_ss_70": {
-   "cjk": 5454,
-   "chars": 11094,
-   "utf8_bytes": 22352,
+   "cjk": 5530,
+   "chars": 11468,
+   "utf8_bytes": 22882,
    "tier": "standard"
   },
   "llm_peer_coverage_iv_70": {
@@ -19030,21 +19030,21 @@
    "tier": "standard"
   },
   "llm_peer_tone_iv_full_75": {
-   "cjk": 5986,
-   "chars": 11718,
-   "utf8_bytes": 24062,
+   "cjk": 6062,
+   "chars": 12092,
+   "utf8_bytes": 24592,
    "tier": "core"
   },
   "llm_peer_tone_iv_ctx_75": {
-   "cjk": 5495,
-   "chars": 11141,
-   "utf8_bytes": 22479,
+   "cjk": 5571,
+   "chars": 11515,
+   "utf8_bytes": 23009,
    "tier": "standard"
   },
   "llm_peer_tone_iv_ss_75": {
-   "cjk": 5481,
-   "chars": 11124,
-   "utf8_bytes": 22434,
+   "cjk": 5557,
+   "chars": 11498,
+   "utf8_bytes": 22964,
    "tier": "standard"
   },
   "llm_peer_coverage_iv_75": {
@@ -19060,9 +19060,9 @@
    "tier": "standard"
   },
   "llm_peer_tone_iv_full_80": {
-   "cjk": 5499,
-   "chars": 11148,
-   "utf8_bytes": 22498,
+   "cjk": 5575,
+   "chars": 11522,
+   "utf8_bytes": 23028,
    "tier": "standard"
   },
   "llm_peer_n_effective": {
@@ -19072,15 +19072,15 @@
    "tier": "standard"
   },
   "llm_peer_tone_iv_ctx_80": {
-   "cjk": 5450,
-   "chars": 11092,
-   "utf8_bytes": 22340,
+   "cjk": 5526,
+   "chars": 11466,
+   "utf8_bytes": 22870,
    "tier": "standard"
   },
   "llm_peer_tone_iv_ss_80": {
-   "cjk": 5474,
-   "chars": 11118,
-   "utf8_bytes": 22416,
+   "cjk": 5550,
+   "chars": 11492,
+   "utf8_bytes": 22946,
    "tier": "standard"
   },
   "llm_peer_coverage_iv_80": {
@@ -19096,21 +19096,21 @@
    "tier": "standard"
   },
   "llm_peer_tone_iv_full_85": {
-   "cjk": 5488,
-   "chars": 11131,
-   "utf8_bytes": 22455,
+   "cjk": 5564,
+   "chars": 11505,
+   "utf8_bytes": 22985,
    "tier": "standard"
   },
   "llm_peer_tone_iv_ctx_85": {
-   "cjk": 5463,
-   "chars": 11109,
-   "utf8_bytes": 22383,
+   "cjk": 5539,
+   "chars": 11483,
+   "utf8_bytes": 22913,
    "tier": "standard"
   },
   "llm_peer_tone_iv_ss_85": {
-   "cjk": 5463,
-   "chars": 11107,
-   "utf8_bytes": 22383,
+   "cjk": 5539,
+   "chars": 11481,
+   "utf8_bytes": 22913,
    "tier": "standard"
   },
   "llm_peer_coverage_iv_85": {
@@ -19126,21 +19126,21 @@
    "tier": "standard"
   },
   "llm_peer_tone_iv_full_90": {
-   "cjk": 5486,
-   "chars": 11132,
-   "utf8_bytes": 22454,
+   "cjk": 5562,
+   "chars": 11506,
+   "utf8_bytes": 22984,
    "tier": "standard"
   },
   "llm_peer_tone_iv_ctx_90": {
-   "cjk": 5471,
-   "chars": 11114,
-   "utf8_bytes": 22402,
+   "cjk": 5547,
+   "chars": 11488,
+   "utf8_bytes": 22932,
    "tier": "standard"
   },
   "llm_peer_tone_iv_ss_90": {
-   "cjk": 5494,
-   "chars": 11140,
-   "utf8_bytes": 22478,
+   "cjk": 5570,
+   "chars": 11514,
+   "utf8_bytes": 23008,
    "tier": "standard"
   },
   "llm_peer_coverage_iv_90": {
@@ -19156,9 +19156,9 @@
    "tier": "standard"
   },
   "llm_peer_tone_iv_full": {
-   "cjk": 6027,
-   "chars": 11824,
-   "utf8_bytes": 24246,
+   "cjk": 6103,
+   "chars": 12198,
+   "utf8_bytes": 24776,
    "tier": "core"
   },
   "llm_peer_coverage_iv": {
@@ -19168,15 +19168,15 @@
    "tier": "standard"
   },
   "llm_peer_tone_iv_ctx": {
-   "cjk": 5553,
-   "chars": 11212,
-   "utf8_bytes": 22666,
+   "cjk": 5629,
+   "chars": 11586,
+   "utf8_bytes": 23196,
    "tier": "standard"
   },
   "llm_peer_tone_iv_ss": {
-   "cjk": 5583,
-   "chars": 11241,
-   "utf8_bytes": 22755,
+   "cjk": 5659,
+   "chars": 11615,
+   "utf8_bytes": 23285,
    "tier": "standard"
   },
   "peer_compete_idx_70": {
@@ -20362,15 +20362,15 @@
    "tier": "standard"
   },
   "leave_one_out_peer_attention_iv": {
-   "cjk": 5533,
-   "chars": 15190,
-   "utf8_bytes": 26605,
+   "cjk": 5707,
+   "chars": 15798,
+   "utf8_bytes": 27565,
    "tier": "core"
   },
   "leave_one_out_peer_attention_iv_lag1": {
-   "cjk": 4951,
-   "chars": 14054,
-   "utf8_bytes": 24289,
+   "cjk": 5125,
+   "chars": 14662,
+   "utf8_bytes": 25249,
    "tier": "standard"
   },
   "lpeer_attention_iv_ctx": {
@@ -20398,39 +20398,39 @@
    "tier": "standard"
   },
   "bartik_attention_iv_full": {
-   "cjk": 6055,
-   "chars": 15449,
-   "utf8_bytes": 27934,
+   "cjk": 6122,
+   "chars": 15721,
+   "utf8_bytes": 28343,
    "tier": "standard"
   },
   "bartik_attention_iv_ctx": {
-   "cjk": 6055,
-   "chars": 15460,
-   "utf8_bytes": 27943,
+   "cjk": 6122,
+   "chars": 15732,
+   "utf8_bytes": 28352,
    "tier": "standard"
   },
   "bartik_attention_iv_ss": {
-   "cjk": 6043,
-   "chars": 15444,
-   "utf8_bytes": 27901,
+   "cjk": 6110,
+   "chars": 15716,
+   "utf8_bytes": 28310,
    "tier": "standard"
   },
   "bartik_attention_iv": {
-   "cjk": 6909,
-   "chars": 16913,
-   "utf8_bytes": 31136,
+   "cjk": 6976,
+   "chars": 17185,
+   "utf8_bytes": 31545,
    "tier": "core"
   },
   "leave_one_out_peer_subst_iv": {
-   "cjk": 5451,
-   "chars": 15207,
-   "utf8_bytes": 26490,
+   "cjk": 5625,
+   "chars": 15815,
+   "utf8_bytes": 27450,
    "tier": "core"
   },
   "leave_one_out_peer_subst_iv_lag1": {
-   "cjk": 4910,
-   "chars": 14195,
-   "utf8_bytes": 24358,
+   "cjk": 5084,
+   "chars": 14803,
+   "utf8_bytes": 25318,
    "tier": "standard"
   },
   "lpeer_subst_iv_ctx": {
@@ -20458,33 +20458,33 @@
    "tier": "standard"
   },
   "bartik_subst_iv_full": {
-   "cjk": 6813,
-   "chars": 16741,
-   "utf8_bytes": 30756,
+   "cjk": 6880,
+   "chars": 17013,
+   "utf8_bytes": 31165,
    "tier": "core"
   },
   "bartik_subst_iv_ctx": {
-   "cjk": 6049,
-   "chars": 15511,
-   "utf8_bytes": 27986,
+   "cjk": 6116,
+   "chars": 15783,
+   "utf8_bytes": 28395,
    "tier": "standard"
   },
   "bartik_subst_iv_ss": {
-   "cjk": 6073,
-   "chars": 15485,
-   "utf8_bytes": 28014,
+   "cjk": 6140,
+   "chars": 15757,
+   "utf8_bytes": 28423,
    "tier": "standard"
   },
   "leave_one_out_peer_locus_iv": {
-   "cjk": 5454,
-   "chars": 15324,
-   "utf8_bytes": 26605,
+   "cjk": 5628,
+   "chars": 15932,
+   "utf8_bytes": 27565,
    "tier": "core"
   },
   "leave_one_out_peer_locus_iv_lag1": {
-   "cjk": 5454,
-   "chars": 15021,
-   "utf8_bytes": 26292,
+   "cjk": 5628,
+   "chars": 15629,
+   "utf8_bytes": 27252,
    "tier": "core"
   },
   "lpeer_locus_iv_ctx": {
@@ -20512,15 +20512,15 @@
    "tier": "standard"
   },
   "leave_one_out_peer_collab_iv": {
-   "cjk": 5475,
-   "chars": 15202,
-   "utf8_bytes": 26521,
+   "cjk": 5649,
+   "chars": 15810,
+   "utf8_bytes": 27481,
    "tier": "core"
   },
   "leave_one_out_peer_collab_iv_lag1": {
-   "cjk": 4936,
-   "chars": 14089,
-   "utf8_bytes": 24312,
+   "cjk": 5110,
+   "chars": 14697,
+   "utf8_bytes": 25272,
    "tier": "standard"
   },
   "lpeer_collab_iv_ctx": {
@@ -20548,33 +20548,33 @@
    "tier": "standard"
   },
   "bartik_collab_iv_full": {
-   "cjk": 6880,
-   "chars": 16708,
-   "utf8_bytes": 30871,
+   "cjk": 6947,
+   "chars": 16980,
+   "utf8_bytes": 31280,
    "tier": "core"
   },
   "bartik_collab_iv_ctx": {
-   "cjk": 6063,
-   "chars": 15517,
-   "utf8_bytes": 28014,
+   "cjk": 6130,
+   "chars": 15789,
+   "utf8_bytes": 28423,
    "tier": "standard"
   },
   "bartik_collab_iv_ss": {
-   "cjk": 6034,
-   "chars": 15440,
-   "utf8_bytes": 27883,
+   "cjk": 6101,
+   "chars": 15712,
+   "utf8_bytes": 28292,
    "tier": "standard"
   },
   "leave_one_out_peer_benefit_iv": {
-   "cjk": 5498,
-   "chars": 14931,
-   "utf8_bytes": 26290,
+   "cjk": 5672,
+   "chars": 15539,
+   "utf8_bytes": 27250,
    "tier": "core"
   },
   "leave_one_out_peer_benefit_iv_lag1": {
-   "cjk": 4950,
-   "chars": 14115,
-   "utf8_bytes": 24360,
+   "cjk": 5124,
+   "chars": 14723,
+   "utf8_bytes": 25320,
    "tier": "standard"
   },
   "lpeer_benefit_iv_ctx": {
@@ -20711,8 +20711,8 @@
   },
   "fintech_share": {
    "cjk": 5745,
-   "chars": 12555,
-   "utf8_bytes": 24347,
+   "chars": 12785,
+   "utf8_bytes": 24577,
    "tier": "core"
   },
   "ln_ft_articles": {
@@ -20731,62 +20731,602 @@
  "longdesc_counters": {
   "composed": 3462,
   "fallback": 0,
-  "n_draft_warnings": 54,
+  "n_draft_warnings": 594,
   "draft_warnings": [
+   "F182/gpt54nano_tone_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_std_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_std_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_std_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_std_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F359/jiang_2021_tone_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F359/jiang_2021_tone_std_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F635/yao_2021_tone_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F635/yao_2021_tone_std_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F135/bian_2021_tone_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F135/bian_2021_tone_std_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F227/du_2022_tone_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F227/du_2022_tone_std_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F652/you_2018_tone_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F652/you_2018_tone_std_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F427/loughran_tone_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F427/loughran_tone_std_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert_cn_neg_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F031/avg_boilerplate_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_std_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_std_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_std_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_std_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F359/jiang_2021_tone_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F359/jiang_2021_tone_std_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F635/yao_2021_tone_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F635/yao_2021_tone_std_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F135/bian_2021_tone_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F135/bian_2021_tone_std_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F227/du_2022_tone_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F227/du_2022_tone_std_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F652/you_2018_tone_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F652/you_2018_tone_std_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F427/loughran_tone_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F427/loughran_tone_std_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert_cn_neg_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F031/avg_boilerplate_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_std_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_std_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_std_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_std_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F359/jiang_2021_tone_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F359/jiang_2021_tone_std_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F635/yao_2021_tone_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F635/yao_2021_tone_std_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F135/bian_2021_tone_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F135/bian_2021_tone_std_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F227/du_2022_tone_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F227/du_2022_tone_std_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F652/you_2018_tone_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F652/you_2018_tone_std_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F427/loughran_tone_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F427/loughran_tone_std_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert_cn_neg_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F031/avg_boilerplate_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/finbert_cn_xneg_frac_t80_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/finbert_cn_xneg_frac_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/finbert_cn_xneg_frac_t95_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/fin_sent_zh_xneg_frac_t80_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/fin_sent_zh_xneg_frac_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/fin_sent_zh_xneg_frac_t95_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/finbert2_xneg_frac_t80_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/finbert2_xneg_frac_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/finbert2_xneg_frac_t95_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F119/bert_xmodel_lblhet_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F119/bert_xmodel_disp_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/finbert_cn_xneg_frac_t80_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/finbert_cn_xneg_frac_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/finbert_cn_xneg_frac_t95_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/fin_sent_zh_xneg_frac_t80_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/fin_sent_zh_xneg_frac_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/fin_sent_zh_xneg_frac_t95_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/finbert2_xneg_frac_t80_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/finbert2_xneg_frac_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/finbert2_xneg_frac_t95_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F119/bert_xmodel_lblhet_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F119/bert_xmodel_disp_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/finbert_cn_xneg_frac_t80_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/finbert_cn_xneg_frac_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/finbert_cn_xneg_frac_t95_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/fin_sent_zh_xneg_frac_t80_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/fin_sent_zh_xneg_frac_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/fin_sent_zh_xneg_frac_t95_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/finbert2_xneg_frac_t80_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/finbert2_xneg_frac_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F304/finbert2_xneg_frac_t95_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F119/bert_xmodel_lblhet_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F119/bert_xmodel_disp_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_tech_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_tech_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_tech_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_tech_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F359/jiang_2021_tone_tech_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F635/yao_2021_tone_tech_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F135/bian_2021_tone_tech_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F227/du_2022_tone_tech_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F652/you_2018_tone_tech_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F427/loughran_tone_tech_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert_cn_neg_tech_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_tech_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_tech_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_tech_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_tech_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_tech_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_tech_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F359/jiang_2021_tone_tech_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F635/yao_2021_tone_tech_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F135/bian_2021_tone_tech_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F227/du_2022_tone_tech_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F652/you_2018_tone_tech_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F427/loughran_tone_tech_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert_cn_neg_tech_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_tech_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_tech_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_tech_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_tech_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_tech_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_tech_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F359/jiang_2021_tone_tech_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F635/yao_2021_tone_tech_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F135/bian_2021_tone_tech_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F227/du_2022_tone_tech_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F652/you_2018_tone_tech_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F427/loughran_tone_tech_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert_cn_neg_tech_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_tech_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_tech_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_app_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_app_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_app_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_app_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F359/jiang_2021_tone_app_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F635/yao_2021_tone_app_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F135/bian_2021_tone_app_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F227/du_2022_tone_app_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F652/you_2018_tone_app_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F427/loughran_tone_app_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert_cn_neg_app_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_app_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_app_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_app_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_app_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_app_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_app_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F359/jiang_2021_tone_app_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F635/yao_2021_tone_app_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F135/bian_2021_tone_app_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F227/du_2022_tone_app_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F652/you_2018_tone_app_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F427/loughran_tone_app_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert_cn_neg_app_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_app_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_app_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_app_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_app_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_app_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_app_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F359/jiang_2021_tone_app_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F635/yao_2021_tone_app_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F135/bian_2021_tone_app_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F227/du_2022_tone_app_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F652/you_2018_tone_app_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F427/loughran_tone_app_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert_cn_neg_app_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_app_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_app_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F006/app_frac: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_tech_lc_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_app_lc_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F006/app_frac_lc: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_tech_ls_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_app_ls_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F006/app_frac_ls: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_sub_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_sub_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_sub_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_sub_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_sub_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_sub_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_sub_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_sub_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_sub_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_sub_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_sub_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_sub_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_symb_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_symb_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_symb_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_symb_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_symb_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_symb_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_symb_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_symb_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_symb_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_symb_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_symb_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_symb_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_sub_sc_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_symb_sc_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_sub_ss_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_symb_ss_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F159/collab_frac: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F159/collab_disagree_frac: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F159/collab_freerider_frac: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F159/collab_quietworker_frac: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_vw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_vw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_vw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_vw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F359/jiang_2021_tone_vw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F635/yao_2021_tone_vw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F135/bian_2021_tone_vw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F227/du_2022_tone_vw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F652/you_2018_tone_vw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F427/loughran_tone_vw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert_cn_neg_vw_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_vw_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_vw_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_vw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_vw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_vw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_vw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F359/jiang_2021_tone_vw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F635/yao_2021_tone_vw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F135/bian_2021_tone_vw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F227/du_2022_tone_vw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F652/you_2018_tone_vw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F427/loughran_tone_vw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert_cn_neg_vw_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_vw_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_vw_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_vw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_vw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_vw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_vw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F359/jiang_2021_tone_vw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F635/yao_2021_tone_vw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F135/bian_2021_tone_vw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F227/du_2022_tone_vw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F652/you_2018_tone_vw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F427/loughran_tone_vw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert_cn_neg_vw_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_vw_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_vw_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_mw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_mw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_mw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_mw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F359/jiang_2021_tone_mw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F635/yao_2021_tone_mw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F135/bian_2021_tone_mw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F227/du_2022_tone_mw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F652/you_2018_tone_mw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F427/loughran_tone_mw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert_cn_neg_mw_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_mw_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_mw_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_mw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_mw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_mw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_mw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F359/jiang_2021_tone_mw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F635/yao_2021_tone_mw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F135/bian_2021_tone_mw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F227/du_2022_tone_mw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F652/you_2018_tone_mw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F427/loughran_tone_mw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert_cn_neg_mw_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_mw_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_mw_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_mw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_mw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_mw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_mw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F359/jiang_2021_tone_mw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F635/yao_2021_tone_mw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F135/bian_2021_tone_mw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F227/du_2022_tone_mw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F652/you_2018_tone_mw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F427/loughran_tone_mw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert_cn_neg_mw_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_mw_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_mw_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_hw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_hw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_hw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_hw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F359/jiang_2021_tone_hw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F635/yao_2021_tone_hw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F135/bian_2021_tone_hw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F227/du_2022_tone_hw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F652/you_2018_tone_hw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F427/loughran_tone_hw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert_cn_neg_hw_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_hw_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_hw_full: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_hw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_hw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_hw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_hw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F359/jiang_2021_tone_hw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F635/yao_2021_tone_hw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F135/bian_2021_tone_hw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F227/du_2022_tone_hw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F652/you_2018_tone_hw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F427/loughran_tone_hw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert_cn_neg_hw_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_hw_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert2_neg_hw_ctx: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_hw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gpt54nano_tone_hw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/gemini31_tone_hw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F182/deepseekv4_tone_hw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F359/jiang_2021_tone_hw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F635/yao_2021_tone_hw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F135/bian_2021_tone_hw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F227/du_2022_tone_hw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F652/you_2018_tone_hw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F427/loughran_tone_hw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/finbert_cn_neg_hw_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
    "F290/fin_sent_zh_neg_hw_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
-   "F290/finbert2_neg_hw_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)"
+   "F290/finbert2_neg_hw_ss: 变体差分段未以【变体差分】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_hw_thr25_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_hw_thr30_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_hw_thr40_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_hw_thr45_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_hw_thr25_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_hw_thr30_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_hw_thr40_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_hw_thr45_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_hw_thr25_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_hw_thr30_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_hw_thr40_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_hw_thr45_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F012/attention_index_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F012/attention_index_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F015/attention_pct_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F011/attention_disp_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F011/attention_gap_full_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F011/attention_attr_share: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F012/attention_index_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F012/attention_index_full_j70w5: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F012/attention_index_ctx_j70w5: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F012/attention_index_ss_j70w5: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F015/attention_pct_full_j70w5: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F012/attention_index_full_j75w5: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F012/attention_index_ctx_j75w5: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F012/attention_index_ss_j75w5: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F015/attention_pct_full_j75w5: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F012/attention_index_full_j80w10: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F012/attention_index_ctx_j80w10: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F012/attention_index_ss_j80w10: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F015/attention_pct_full_j80w10: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F012/attention_index_full_j70w10: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F012/attention_index_ctx_j70w10: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F012/attention_index_ss_j70w10: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F015/attention_pct_full_j70w10: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_std_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_vw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_mw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_hw_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_std_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_vw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_mw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_hw_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_std_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_vw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_mw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_hw_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_tech_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_tech_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_tech_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_app_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_app_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_app_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_full_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_ctx_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_ss_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_full_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_ctx_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_ss_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_vw_full_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_vw_ctx_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_vw_ss_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_vw_full_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_vw_ctx_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_vw_ss_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_mw_full_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_mw_ctx_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_mw_ss_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_mw_full_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_mw_ctx_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_mw_ss_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_hw_full_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_hw_ctx_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_hw_ss_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_hw_full_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_hw_ctx_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F190/dict_avg_tone_hw_ss_z: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_type_share_private: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_type_iv_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_type_iv_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_type_iv_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_type_iv_full_t0: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_type_iv_ctx_t0: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_type_iv_ss_t0: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_type_iv_full_t1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_type_iv_ctx_t1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_type_iv_ss_t1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_type_iv_full_t01: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_type_iv_ctx_t01: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_type_iv_ss_t01: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_scale_iv_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_scale_iv_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_scale_iv_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_fintech_lf_iv_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_fintech_lf_iv_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_fintech_lf_iv_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_fintech_lc_iv_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_fintech_lc_iv_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_fintech_lc_iv_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_media_iv_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_media_iv_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_media_iv_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_mauth_iv_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_mauth_iv_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_mauth_iv_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_geoprox_iv_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_geoprox_iv_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_geoprox_iv_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_full_lag1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_ctx_lag1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F398/llm_vote_tone_ss_lag1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F088/bank_degree_cent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F098/bank_strength_cent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F092/bank_eigen_cent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F096/bank_katz_cent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F099/bank_subgraph_cent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F080/bank_cfbetween_cent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F084/bank_clustering: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F086/bank_constraint: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F090/bank_effective_size: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F078/bank_avg_nbr_deg: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F087/bank_coreness: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F079/bank_between_cent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F083/bank_closeness_cent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F089/bank_eccentricity: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F095/bank_is_hub: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F323/gf_itinerant: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F324/gf_liaison: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F325/gf_total: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F458/net_avg_cluster_yr: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F459/net_avg_path_yr: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F457/net_assortativity_yr: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F465/net_n_components_yr: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F088/bank_degree_cent_win1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F098/bank_strength_cent_win1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F092/bank_eigen_cent_win1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F096/bank_katz_cent_win1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F099/bank_subgraph_cent_win1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F080/bank_cfbetween_cent_win1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F084/bank_clustering_win1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F086/bank_constraint_win1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F090/bank_effective_size_win1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F078/bank_avg_nbr_deg_win1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F087/bank_coreness_win1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F079/bank_between_cent_win1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F083/bank_closeness_cent_win1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F089/bank_eccentricity_win1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F095/bank_is_hub_win1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F323/gf_itinerant_win1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F324/gf_liaison_win1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F325/gf_total_win1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F458/net_avg_cluster_yr_win1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F459/net_avg_path_yr_win1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F457/net_assortativity_yr_win1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F465/net_n_components_yr_win1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F088/bank_degree_cent_sent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F098/bank_strength_cent_sent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F092/bank_eigen_cent_sent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F096/bank_katz_cent_sent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F099/bank_subgraph_cent_sent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F080/bank_cfbetween_cent_sent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F084/bank_clustering_sent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F086/bank_constraint_sent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F090/bank_effective_size_sent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F078/bank_avg_nbr_deg_sent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F087/bank_coreness_sent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F079/bank_between_cent_sent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F083/bank_closeness_cent_sent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F089/bank_eccentricity_sent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F095/bank_is_hub_sent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F323/gf_itinerant_sent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F324/gf_liaison_sent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F325/gf_total_sent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F458/net_avg_cluster_yr_sent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F459/net_avg_path_yr_sent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F457/net_assortativity_yr_sent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F465/net_n_components_yr_sent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F109/benefit_mean_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F110/benefit_std_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F110/benefit_pos_frac_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F110/benefit_neg_frac_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F109/benefit_mean_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F110/benefit_std_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F110/benefit_pos_frac_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F110/benefit_neg_frac_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F109/benefit_mean_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F110/benefit_std_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F110/benefit_pos_frac_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F110/benefit_neg_frac_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F109/benefit_mean_lg_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F110/benefit_std_lg_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F110/benefit_pos_frac_lg_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F110/benefit_neg_frac_lg_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F109/benefit_mean_lg_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F110/benefit_std_lg_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F110/benefit_pos_frac_lg_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F110/benefit_neg_frac_lg_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F109/benefit_mean_lg_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F110/benefit_std_lg_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F110/benefit_pos_frac_lg_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F110/benefit_neg_frac_lg_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F138/brokerage_eigen_cent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F137/brok_bip_degree_cent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F137/brok_bip_between_cent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F137/brok_bip_clustering_ra: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F137/brok_bip_closeness_cent: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F137/brok_bip_node_redundancy: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F341/industry_neg_shock: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F341/industry_neg_shock_lag1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F341/industry_neg_shock_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F341/industry_neg_shock_lag1_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F341/industry_neg_shock_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F341/industry_neg_shock_lag1_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F138/brokerage_fire_sale: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F373/llm_peer_tone_iv_full_70: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F373/llm_peer_tone_iv_ctx_70: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F373/llm_peer_tone_iv_ss_70: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F373/llm_peer_tone_iv_full_75: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F373/llm_peer_tone_iv_ctx_75: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F373/llm_peer_tone_iv_ss_75: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F373/llm_peer_tone_iv_full_80: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F373/llm_peer_tone_iv_ctx_80: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F373/llm_peer_tone_iv_ss_80: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F373/llm_peer_tone_iv_full_85: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F373/llm_peer_tone_iv_ctx_85: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F373/llm_peer_tone_iv_ss_85: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F373/llm_peer_tone_iv_full_90: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F373/llm_peer_tone_iv_ctx_90: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F373/llm_peer_tone_iv_ss_90: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F373/llm_peer_tone_iv_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F373/llm_peer_tone_iv_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F373/llm_peer_tone_iv_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F364/leave_one_out_peer_attention_iv: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F364/leave_one_out_peer_attention_iv_lag1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_attention_iv_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_attention_iv_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_attention_iv_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_attention_iv: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F364/leave_one_out_peer_subst_iv: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F364/leave_one_out_peer_subst_iv_lag1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_subst_iv_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_subst_iv_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_subst_iv_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F364/leave_one_out_peer_locus_iv: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F364/leave_one_out_peer_locus_iv_lag1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F364/leave_one_out_peer_collab_iv: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F364/leave_one_out_peer_collab_iv_lag1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_collab_iv_full: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_collab_iv_ctx: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F101/bartik_collab_iv_ss: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F364/leave_one_out_peer_benefit_iv: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)",
+   "F364/leave_one_out_peer_benefit_iv_lag1: 家族核心长文段未以【构念与来源】开头 (段首小标题归写手正文, P1-1 契约)"
   ]
  }
 }
