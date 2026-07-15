@@ -32,15 +32,37 @@ function Invoke-Helper {
 }
 
 function Invoke-StataBatch {
-    # /b 批处理 + 超时护栏; 返回 log 全文, 失败返回 $null
+    # /b 批处理; 完成判定 = 轮询 log 行首 NOTES_MASTER_DONE= 标记, 超时护栏保留为失败路径。
+    # K7 (2026-07-16 实弹 3/3): exit, clear 后 Stata 进程可系统性滞留为僵尸 — 旧实现
+    # Wait-Process 等进程退出, 会把已成功的注入 (save+display 均完成) 误判为超时失败并
+    # 连坐删 sidecar 键 (假阴性)。改为: 见 DONE → 数据已安全 → 60s 干净退出宽限 →
+    # 仍滞留按僵尸击杀 (07-15 shareholderw / 07-16 三 master 同款先例), 判成功。
     param([string]$DoFile)
     $logPath = Join-Path $DataDir ([System.IO.Path]::GetFileNameWithoutExtension($DoFile) + '.log')
     if (Test-Path $logPath) { Remove-Item $logPath -Force -Confirm:$false }
     $p = Start-Process -FilePath $StataExe -ArgumentList '/b', 'do', ('"' + $DoFile + '"') `
         -WorkingDirectory $DataDir -PassThru
-    Wait-Process -Id $p.Id -Timeout $TimeoutSec -ErrorAction SilentlyContinue
-    if (-not $p.HasExited) {
-        Write-Warning "TIMEOUT (${TimeoutSec}s): $DoFile — Stop-Process 清理 (probe 滞留护栏), 视为失败"
+    $null = $p.Handle   # 先取 Handle, 防 HasExited/ExitCode 不可用 (07-14 教训)
+    $deadline = (Get-Date).AddSeconds($TimeoutSec)
+    $sawDone = $false
+    while ((Get-Date) -lt $deadline) {
+        if (Test-Path $logPath) {
+            # -Tail 50: DONE 现居倒数第 3 行, 加宽窗口防未来 master 收尾输出增行把标记挤出
+            # 窗口 (RR2 NIT-1); 即便挤出, 进程退出分支仍有全文 doneMark 补判兜底 (fail-safe)。
+            $tail = Get-Content $logPath -Tail 50 -ErrorAction SilentlyContinue
+            if ($tail -match '^NOTES_MASTER_DONE=') { $sawDone = $true; break }
+        }
+        if ($p.HasExited) { Start-Sleep -Seconds 2; break }
+        Start-Sleep -Seconds 10
+    }
+    if ($sawDone -and -not $p.HasExited) {
+        $null = $p.WaitForExit(60000)
+        if (-not $p.HasExited) {
+            Write-Warning "DONE 已见但进程滞留 — 按僵尸击杀 (数据已安全): $DoFile"
+            Stop-Process -Id $p.Id -Force -Confirm:$false
+        }
+    } elseif ((-not $sawDone) -and (-not $p.HasExited)) {
+        Write-Warning "TIMEOUT (${TimeoutSec}s, 无 DONE 标记): $DoFile — Stop-Process 清理, 视为失败"
         Stop-Process -Id $p.Id -Force -Confirm:$false
         return $null
     }
