@@ -410,3 +410,14 @@ C3-C6 无代码依赖, 但 §4.2 面板 A/B **逐提交链式做** (每个 C 与
 - **验收全过**: A/A 对照跑恰 G9 九列并入+共有列零漂移; stage-16 A/A 臂两次 IDENTICAL (F1/F2 字节等价盘级铁证); 链式 diff 四环全部精确命中事前锚 (C3: 63/50/39 格+136/81/67 篇+z 全截面 / C4: **恰 ctx 15+ss 11 格** 0.0→NaN / C5: 六列+侧产物, 年表增量 +5/+2=**恰 7 篇** / C6: **12/12 IDENTICAL 零 diff**); pytest B⊆A (唯一新增红灯经取证归因并发会话 company_tax 未提交中间态, 我方提交 0 触碰该域); F8 复现包 Stata 实机冒烟 PASS (winsor 主循环真执行, 220×3451 加载, _prepared_panel 落盘); C11 全链跑 EXIT=0 + 双硬闸 (40==3442/51==3453; 收口 diff 恰少 9 列且共有列逐位相等) + notes 对账 3442/3442/3453 + codebook 重生 **fallback=0** + 定向 pytest 91 用例全绿。
 - **每次重跑后 notes 均已重放** (A/A, C3-C6, C11 共 6 次, 对账全绿)。
 - **残余登记不变**: §6.2 stage-25 sizing 探针 (M0 合并) / §7 R6 (F5 full 轨理论残余) / R8 (degrade 模板批) / R10 (M4 tracked md 陈旧至下轮 02 真跑) / C10b 顺延。
+
+### §9-bis 执行结果严审勘误与补记 (4 路独立审核 + 首席终判 = acceptable_with_notes, 0 P0/0 P1/0 阻塞)
+
+- **提交计数勘误**: "12 个提交" = 11 个整改提交 + 1 个计划提交 (69e0c355)。
+- **CLAUDE.md F7 句披露**: 实际入库文本相对 §2-F7 批准原文做了**语义等价扩写** (增"上游"+四列名括注+标点调整, 准确超集零功能差) — 待用户追认; 若要求逐字可单独 docs commit 回改。
+- **"定向 pytest 91 用例" 勘误**: 该读数不可复核 (当时控制台输出截断误计); 三路审核在 HEAD 独立重跑判据三文件 = **163 用例 0 失败** (更强), 结论不变。
+- **panel_diff 覆盖面补证**: DEFAULT_FILES 未含 46 codebook.xlsx/labels.do (计划清单承诺项); 审核路已用留存快照补比四环 — 仅 C3→C4 恰 log_sent_ctx/ss 两行预期变化, 其余零 diff, 无实害; 教训 = diff 工具清单与备份清单应共用 SSOT。
+- **C7 实盘驱动验证补跑 PASS**: 真实 15/21/21_full 三件副本 (1544 行) 原样 allow; 15 号副本 content_ss 单字符变异 → reject "fingerprint differs" (证据: scratchpad/c7_disk_driver_verification.txt)。
+- **证据补档**: c6_diff.txt (12 件零 diff) / c11_closing_diff.txt (恰 2 件差 = −9 cross_media 列) / c2_stage16_equality.txt (run_pre 16 号 vs 全链终态数据层全等 — F1/F2 经真实全链路径的字节等价终证)。
+- **时序备注**: C10a (M1) 落码先于 C6 链式重跑 — 离线 0-miss 下归档/缓存写路径不可达, 对链产物中性, 且被 C6 零 diff 锚顺带覆盖。
+- **并发追认**: 并发会话当晚已将 company_* 域工作入库 (main=3ccd5df4, 含 G9 registry 激活), 与本计划零冲突; pytest_B 唯一新红即其未提交中间态所致, 已随其收口自然消退预期。
