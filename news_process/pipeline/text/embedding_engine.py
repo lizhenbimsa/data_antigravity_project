@@ -243,7 +243,11 @@ def split_text_for_embedding(text) -> list[str]:
     text = str(text)
     if not text:
         text = " "
-    tokens = _EMB_ENCODING.encode(text)
+    # F2 (2026-07-16): disallowed_special=() — 语料含 "<|endoftext|>" 等特殊 token
+    # 字面量时按普通文本 BPE 而非抛 ValueError (该 ValueError 发生在分批/重试/None→NaN
+    # 降级之前且无捕获, 单篇毒丸文章曾可崩掉整个嵌入阶段); 无特殊字面量的文本逐 token
+    # 不变 (字节等价, 缓存键为文本键零漂移)。本文件三处同修 (:246/:346/:617 原行号)。
+    tokens = _EMB_ENCODING.encode(text, disallowed_special=())
     if len(tokens) <= EMB_MAX_TOKENS:
         return [text]
     return [
@@ -343,7 +347,7 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
         current_batch: list[str] = []
         current_tokens = 0
         for text in missing_texts:
-            n_tok = max(1, len(_EMB_ENCODING.encode(text)))
+            n_tok = max(1, len(_EMB_ENCODING.encode(text, disallowed_special=())))
             if n_tok > EMB_MAX_TOKENS:
                 raise RuntimeError(
                     f"Embedding 单条输入超限: {n_tok} > {EMB_MAX_TOKENS}"
@@ -614,7 +618,7 @@ def embed_texts(texts, spec: dict, *,
         norms[norms == 0.0] = 1.0
         unit = block / norms
         w = np.array(
-            [max(1, len(_EMB_ENCODING.encode(str(all_chunks[j]))))
+            [max(1, len(_EMB_ENCODING.encode(str(all_chunks[j]), disallowed_special=())))
              for j in range(start, end)],
             dtype=np.float64,
         )

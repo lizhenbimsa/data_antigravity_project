@@ -40,7 +40,10 @@ def get_encoding():
 
 def count_tokens(text: str) -> int:
     """精确计算文本的 token 数 (cl100k_base 编码器)。"""
-    return len(_ENCODING.encode(text))
+    # F2 (2026-07-16): disallowed_special=() — 语料含 "<|endoftext|>" 等特殊 token
+    # 字面量时按普通文本 BPE 而非抛 ValueError (单篇毒丸文章曾可崩整个嵌入消费阶段);
+    # 对不含特殊字面量的一切文本, 输出逐 token 不变 (字节等价)。本文件三处同修。
+    return len(_ENCODING.encode(text, disallowed_special=()))
 
 
 def truncate_to_max_tokens(text: str, max_tokens: int = MAX_TOKENS_PER_INPUT) -> str:
@@ -48,7 +51,7 @@ def truncate_to_max_tokens(text: str, max_tokens: int = MAX_TOKENS_PER_INPUT) ->
 
     使用 tiktoken 编码→截断→解码三步法, 确保结果严格不超限。
     """
-    tokens = _ENCODING.encode(text)
+    tokens = _ENCODING.encode(text, disallowed_special=())
     if len(tokens) <= max_tokens:
         return text
     return _ENCODING.decode(tokens[:max_tokens])
@@ -61,7 +64,7 @@ def split_into_chunks(text: str, max_tokens: int = MAX_TOKENS_PER_INPUT) -> list
     对超过 Embedding 模型单条上限的长文本, 先按固定 token 数切分为 K 个
     不重叠段, 各段独立嵌入后均值池化 (无跨段上下文)。
     """
-    tokens = _ENCODING.encode(text)
+    tokens = _ENCODING.encode(text, disallowed_special=())
     if len(tokens) <= max_tokens:
         return [text]
     chunks = []

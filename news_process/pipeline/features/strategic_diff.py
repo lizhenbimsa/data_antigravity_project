@@ -264,7 +264,9 @@ def _split_text_for_embedding(text: str) -> list[str]:
     if not text:
         text = " "
 
-    tokens = _EMB_ENCODING.encode(text)
+    # F2 (2026-07-16): disallowed_special=() — 特殊 token 字面量按普通文本 BPE,
+    # 不抛 ValueError (毒丸防护; 无特殊字面量的文本逐 token 不变)。
+    tokens = _EMB_ENCODING.encode(text, disallowed_special=())
     if len(tokens) <= _EMB_MAX_TOKENS:
         return [text]  # 未超限，直接返回原文 (避免 encode/decode 往返)
     return [_EMB_ENCODING.decode(tokens[i:i + _EMB_MAX_TOKENS])

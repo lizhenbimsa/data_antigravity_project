@@ -198,12 +198,15 @@ def _count_tokens_batch(texts) -> list[int]:
     """批量精确 token 计数 (cl100k encode_batch, tiktoken 内部多线程)。
 
     逐位等价于 ``[_count_tokens(t) for t in texts]`` (同 cl100k 编码器 + 同
-    disallowed_special 默认), 仅把纯诊断日志用的全量 token 统计从逐条 Python
-    encode 改走批接口提速 (2026-06-23 零风险小优化, 计数与输出均不变)。
+    disallowed_special=() (F2 2026-07-16)), 仅把纯诊断日志用的全量 token 统计从逐条
+    Python encode 改走批接口提速 (2026-06-23 零风险小优化, 计数与输出均不变)。
     """
     from news_process.core.text.token_utils import get_encoding
     enc = get_encoding()
-    return [len(t) for t in enc.encode_batch([str(x) for x in texts])]
+    # F2 (2026-07-16): encode_batch 与 encode 同默认 disallowed_special='all',
+    # 特殊 token 字面量毒丸防护须同修 (计数语义: 字面量按普通文本 BPE)。
+    return [len(t) for t in enc.encode_batch(
+        [str(x) for x in texts], disallowed_special=())]
 
 
 def _truncate_to_max_tokens(text: str, max_tokens: int = _MAX_TOKENS_PER_INPUT) -> str:
