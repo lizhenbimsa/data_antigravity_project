@@ -279,13 +279,56 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
     embedding_model = spec_model(spec)
     text_pipeline_version = spec_version(spec)
 
-    cached_results = [
-        cache.get(embedding_model, text, prompt_version=text_pipeline_version)
-        if cache else None
-        for text in texts
-    ]
-    missing_indices = [i for i, res in enumerate(cached_results) if res is None]
-    missing_texts = [texts[i] for i in missing_indices]
+    # ── F1 流式化 (2026-07-16, FATAL_DEFECT_REMEDIATION_EXECUTION_PLAN §2-F1) ──
+    # 旧实现: cached_results 全量物化 N 条 JSON 字符串 (~90KB/条实测) + final_embs
+    # 全量 json.loads Python 列表 (~130KB/条) 双份同活 ≈ 13.5× 临时放大 → 生产
+    # post-13 语料 ≥~55 万篇越过 128GB; 离线 0-miss 复现路径 (最常用) 同样中招。
+    # 新实现: 逐条 get → json.loads → 立即写入预分配 (N, dim) float32 矩阵并释放;
+    # miss 批成功后经 fancy indexing 直写对应全局行。数值逐位等价: 逐行
+    # np.asarray(lst, float32) 与旧 np.array(list_of_lists, float32) 同 JSON 输入
+    # 逐位相同 (同一 double→float32 舍入路径; gate = test_embedding_engine_streaming)。
+    out: np.ndarray | None = None   # dim 由首个命中 (全 miss 时由首个完成批) 确定后分配
+    dim: int | None = None
+    _rows_written = 0               # 写行完备计数 — 旧全局数量断言的流式等价物之一
+    missing_indices: list[int] = []
+    # 命中分桶诊断 (按字符长度) — 同遍累加计数器, 不再依赖全量结果列表 (输出格式不变)
+    _buckets = {'短 (<2000 字)': [0, 0], '中 (2000-20000 字)': [0, 0],
+                '长 (>20000 字, 多走分段)': [0, 0]}
+
+    def _alloc_out(_dim: int) -> np.ndarray:
+        logger.info(
+            f"    预分配输出矩阵: {len(texts):,} × {_dim} float32 "
+            f"≈ {len(texts) * _dim * 4 / 1e6:,.1f} MB (F1 流式化, 峰值 ≈ 矩阵本身)"
+        )
+        return np.empty((len(texts), _dim), dtype=np.float32)
+
+    for _i, _text in enumerate(texts):
+        _res = (cache.get(embedding_model, _text, prompt_version=text_pipeline_version)
+                if cache else None)
+        _ln = len(str(_text))
+        _bk = _buckets['短 (<2000 字)' if _ln < 2000
+                       else '中 (2000-20000 字)' if _ln <= 20000
+                       else '长 (>20000 字, 多走分段)']
+        _bk[0] += 1
+        if _res is None:
+            missing_indices.append(_i)
+            continue
+        _bk[1] += 1
+        _row = json.loads(_res)
+        if dim is None:
+            dim = len(_row)
+            out = _alloc_out(dim)
+        if len(_row) != dim:
+            # 逐行维度断言 (含首个之后每行) — 防损坏缓存条目 (如 len=1) 被 numpy
+            # 标量广播静默填行冒充有效嵌入
+            raise RuntimeError(
+                f"缓存嵌入维度不齐: 第 {_i} 条 len={len(_row)} != dim={dim} "
+                f"(model={embedding_model})"
+            )
+        out[_i] = np.asarray(_row, dtype=np.float32)
+        _rows_written += 1
+
+    missing_texts = [texts[_i] for _i in missing_indices]
 
     if len(texts) > 1:
         _n_hit = len(texts) - len(missing_texts)
@@ -294,20 +337,7 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
             f"缺失 {len(missing_texts):,} 条 / 共 {len(texts):,} 条 "
             f"(命中率 {pct4(_n_hit / len(texts))}, model={embedding_model})"
         )
-        # 命中分桶诊断 (按字符长度: 短/中/长) — 揭示是否长文系统性更易 miss (长文走
-        # 朴素分段 → 子块更多 → 任一子块 miss 即整文需联网回填)。按 len(str) 廉价分桶,
-        # 不触 tiktoken / 不上热路径成本; 仅读已算好的 cached_results, 失败静默跳过 (golden-safe)。
         try:
-            _buckets = {'短 (<2000 字)': [0, 0], '中 (2000-20000 字)': [0, 0],
-                        '长 (>20000 字, 多走分段)': [0, 0]}
-            for _t, _res in zip(texts, cached_results):
-                _ln = len(str(_t))
-                _key = ('短 (<2000 字)' if _ln < 2000
-                        else '中 (2000-20000 字)' if _ln <= 20000
-                        else '长 (>20000 字, 多走分段)')
-                _buckets[_key][0] += 1                    # 该桶总条数
-                if _res is not None:
-                    _buckets[_key][1] += 1                # 该桶命中条数
             _parts = [
                 f"{_k} {_v[1]:,}/{_v[0]:,} ({pct4(_v[1] / _v[0])})"
                 for _k, _v in _buckets.items() if _v[0] > 0
@@ -317,7 +347,6 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
         except Exception as _bkt_exc:  # noqa: BLE001 — 诊断分桶, 失败不阻塞嵌入
             logger.debug(f"      └─ 命中分桶诊断跳过 (不影响产物): {_bkt_exc!r}")
 
-    missing_embs: list = []
     if missing_texts:
         # P1→P3 加固 (2026-06-26): 与 stage 21 (tone_llms.LLMCacheMissError) 对称的离线确定性闸 —
         # NEWS_PROCESS_LLM_OFFLINE=1 时嵌入缓存 miss 即 raise (在 session.post 之前), 杜绝
@@ -342,11 +371,14 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
             "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key}",
         }
-        # 动态分批: 单批 <= 2000 条 且 token 总和 <= EMB_MAX_TOKENS_PER_REQUEST
+        # 动态分批: 单批 <= 2000 条 且 token 总和 <= EMB_MAX_TOKENS_PER_REQUEST;
+        # F1: 同步预存每批对应的全局行号 (missing_indices 子数组, 直写定位用)
         batches: list[list[str]] = []
+        batch_rows: list[list[int]] = []
         current_batch: list[str] = []
+        current_rows: list[int] = []
         current_tokens = 0
-        for text in missing_texts:
+        for _pos, text in enumerate(missing_texts):
             n_tok = max(1, len(_EMB_ENCODING.encode(text, disallowed_special=())))
             if n_tok > EMB_MAX_TOKENS:
                 raise RuntimeError(
@@ -357,12 +389,16 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
                 or current_tokens + n_tok > EMB_MAX_TOKENS_PER_REQUEST
             ):
                 batches.append(current_batch)
+                batch_rows.append(current_rows)
                 current_batch = []
+                current_rows = []
                 current_tokens = 0
             current_batch.append(text)
+            current_rows.append(missing_indices[_pos])
             current_tokens += n_tok
         if current_batch:
             batches.append(current_batch)
+            batch_rows.append(current_rows)
 
         n_batches = len(batches)
         if n_batches > 1:
@@ -373,16 +409,17 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
 
         # ── 并发批次 (asyncio.gather + Semaphore) ──
         # ⚠ 铁律 (verify:concurrent-batches-safe 对抗审计逮到的静默错位坑):
-        #   旧实现用 ``missing_embs.extend(batch_embs)`` 顺序累加, 一旦批次**完成顺序**
-        #   乱序 (并发必然发生), 向量就被静默错位拼装 → 下游余弦全错且无任何报错。
-        #   修复: 各批次结果写入 ``_embs_by_idx[batch_idx]`` 锁定位置, gather 后再按
-        #   batch_idx **升序**重组 → 完成顺序无关, 产出与逐次串行逐位一致 (仅快)。
-        _embs_by_idx: dict[int, list] = {}
+        #   旧实现曾用顺序累加, 批次完成乱序即向量静默错位。F1 (2026-07-16):
+        #   _embs_by_idx 中转 dict 退役 — 各批成功后立即把 batch_embs 直写 out 的
+        #   对应全局行 out[batch_rows[batch_idx]] (fancy indexing — hit/miss 交错时
+        #   行号非连续, 禁 out[offset:offset+m] 连续切片; asyncio 单线程写行原子,
+        #   完成乱序无碍, gate T9 锁死), miss 侧不再累积全量 Python 列表 (首次播种
+        #   路径同样去放大)。
         _done = 0
         _sem = asyncio.Semaphore(max(1, min(EMB_API_CONCURRENCY, n_batches)))
 
         async def _process_batch(batch_idx: int, batch: list[str], session) -> None:
-            nonlocal _done
+            nonlocal _done, out, dim, _rows_written
             delay = RETRY_DELAY
             last_err = ""
             async with _sem:
@@ -404,9 +441,31 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
                                 sorted_data = sorted(
                                     data['data'], key=lambda x: x.get('index', 0))
                                 batch_embs = [d['embedding'] for d in sorted_data]
-                                # 按 batch_idx 锁定位置 (asyncio 单线程, dict 赋值原子,
-                                # 完成顺序无关 → 重组后逐位等价串行)
-                                _embs_by_idx[batch_idx] = batch_embs
+                                # F1 逐批数量校验 (旧全局断言的逐批等价迁移): API 短
+                                # 响应若直写会被 numpy (1,dim)→(m,dim) 广播成整段复制
+                                # 行。必须 ValueError (经下方 except ValueError: raise
+                                # 穿透重试环, 镜像上方缺 'data' 先例); 裸 assert 会被
+                                # 泛捕获吞入 80×10s 重试后 return None — fail-loud
+                                # 退化为慢速降级 (R3 评审定谳)。
+                                if len(batch_embs) != len(batch):
+                                    raise ValueError(
+                                        f"批 {batch_idx + 1} 返回数量异常: "
+                                        f"expected {len(batch)}, got {len(batch_embs)}"
+                                    )
+                                if dim is None:
+                                    # 全 miss 场景: dim 由首个完成的批确定 (asyncio
+                                    # 单线程, 无竞态; 后续批按 shape 校验对齐)
+                                    dim = len(batch_embs[0])
+                                    out = _alloc_out(dim)
+                                _arr = np.asarray(batch_embs, dtype=np.float32)
+                                if _arr.ndim != 2 or _arr.shape[1] != dim:
+                                    raise ValueError(
+                                        f"批 {batch_idx + 1} 嵌入维度不齐: "
+                                        f"shape={_arr.shape} != (*, {dim})"
+                                    )
+                                out[np.asarray(batch_rows[batch_idx],
+                                               dtype=np.intp)] = _arr
+                                _rows_written += len(batch)
                                 if cache:
                                     cache.put_batch(
                                         embedding_model,
@@ -495,30 +554,25 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
             except EmbeddingRetryExhaustedError as _exhausted:
                 # 任一批瞬时失败重试 EMB_MAX_RETRIES 次仍失败 → 整个 spec/轨优雅返回 None
                 # (上游列置 NaN), 对称 tone_llms 80 次后缺席投票; 不向上冒泡 (区别于致命
-                # ValueError 的现有崩溃路径)。
+                # ValueError 的现有崩溃路径)。F1: 部分填充的 out 随作用域丢弃, 绝不外泄
+                # (已成功批的 put_batch/归档副作用照旧保留, 与旧行为一致)。
                 logger.error(
                     f"    嵌入 API 重试 {EMB_MAX_RETRIES} 次仍失败 → 返回 None "
                     f"(该轨列将置 NaN): {_exhausted}"
                 )
                 return None
 
-        # 按 batch_idx 升序重组 → 与 missing_texts 原始顺序严格一致 (批次本就按
-        # missing_texts 顺序切分, 故顺序拼接即复原)。
-        for i in range(n_batches):
-            missing_embs.extend(_embs_by_idx[i])
-
-    assert len(missing_embs) == len(missing_texts), (
-        f"返回数量异常: expected {len(missing_texts)}, got {len(missing_embs)}"
+    # 写行完备断言 — 旧全局数量断言 (len(missing_embs)==len(missing_texts)) 的
+    # 流式等价物: 防漏写/双写/错位 (gate T2/T9 顺带断言其语义)。
+    if out is None:
+        raise RuntimeError(
+            f"嵌入输出矩阵未分配 (内部不变量破): n_texts={len(texts)}, "
+            f"n_missing={len(missing_texts)}"
+        )
+    assert _rows_written == len(texts), (
+        f"写行完备性异常: written={_rows_written} != N={len(texts)}"
     )
-    final_embs = []
-    missing_ptr = 0
-    for res in cached_results:
-        if res is not None:
-            final_embs.append(json.loads(res))
-        else:
-            final_embs.append(missing_embs[missing_ptr])
-            missing_ptr += 1
-    return np.array(final_embs, dtype=np.float32)
+    return out
 
 
 def embed_texts(texts, spec: dict, *,
