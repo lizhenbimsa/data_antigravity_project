@@ -545,3 +545,85 @@ def test_all_sentiment_dicts_have_score_pattern():
 def test_loughran_score_pattern_present():
     """具体锁: 第 6 部 loughran 前缀就位 (回归此次 fix 的根因)。"""
     assert 'loughran_score_' in am._SCORE_PATTERNS
+
+
+# ============================================================================
+# F4 (2026-07-16, FATAL_DEFECT_REMEDIATION §2-F4): ATT-2 后文章级 fintech 身份
+# = 任一对级 verified (any, 行序无关); 哨兵双成因分诊
+# ============================================================================
+
+class TestF4AnyPairVerifiedIdentity:
+    GP, GC = '国家地区/省份', '城市'
+
+    def _rows(self, order_a_first=True):
+        # 文章 X: 银行 A 对级判伪 / 银行 B 对级 verified (分裂验证, 对级判伪率场景)
+        x_rows = [
+            {'docid': 'X', 'target_bank': 'A', '日期': '2020-01-01',
+             'is_fintech_news': True, self.GP: 'P1', self.GC: 'C1'},
+            {'docid': 'X', 'target_bank': 'B', '日期': '2020-01-01',
+             'is_fintech_news': True, self.GP: 'P1', self.GC: 'C1'},
+        ]
+        if not order_a_first:
+            x_rows = x_rows[::-1]
+        rows = x_rows + [
+            {'docid': 'Y', 'target_bank': 'B', '日期': '2020-01-01',
+             'is_fintech_news': True, self.GP: 'P1', self.GC: 'C1'},
+        ] + [
+            {'docid': f'n{i}', 'target_bank': 'A', '日期': '2020-01-01',
+             'is_fintech_news': False, self.GP: 'P1', self.GC: 'C1'}
+            for i in range(3)
+        ]
+        return pd.DataFrame(rows)
+
+    def _run(self, tmp_path, monkeypatch, order_a_first, verified_pairs):
+        df = self._rows(order_a_first)
+        df.to_parquet(tmp_path / '12_fintech_news_full.parquet')
+        monkeypatch.setattr(am, 'OUTPUT_DIR', str(tmp_path))
+        monkeypatch.setattr(am, 'FILENAMES',
+                            {'output_12_fintech_full': '12_fintech_news_full.parquet'})
+        monkeypatch.setattr(am, '_save_attn_index', lambda *a, **k: None)
+
+        def _fake_verified(sub, *a, **k):   # 模拟 ATT-2 对级 verified 域
+            mask = sub.apply(
+                lambda r: (r['docid'], r['target_bank']) in verified_pairs, axis=1)
+            return sub[mask]
+
+        monkeypatch.setattr(am, 'restrict_to_verified', _fake_verified)
+        panel = pd.DataFrame({'target_bank': ['A', 'B'], 'year': [2020, 2020]})
+        return am.compute_fintech_attention_index(panel)
+
+    def test_t1_order_invariant_and_any_counted(self, tmp_path, monkeypatch, caplog):
+        """分裂验证文章 X (A 伪/B 真): 两种行序输出逐位相同且 X 计入年 _ft (any);
+        旧 keep='first' 语义下 A 行在前时 X 被误剔 (行序驱动测量)。"""
+        verified = {('X', 'B'), ('Y', 'B')}
+        out1 = self._run(tmp_path, monkeypatch, True, verified)
+        out2 = self._run(tmp_path, monkeypatch, False, verified)
+        pd.testing.assert_frame_equal(
+            out1.sort_values('target_bank').reset_index(drop=True),
+            out2.sort_values('target_bank').reset_index(drop=True))
+        v = out1['ft_vol_yr'].dropna()
+        assert v.iloc[0] == pytest.approx(np.log1p(2)), 'X(any=True) + Y = 2 篇'
+        # T2: ATT-2 分裂场景下 own_ft <= cell_ft 恒成立 → 哨兵不触发
+        # (跨 geo 幽灵是另一独立成因, 由既有 clip 用例覆盖, 与本断言不冲突)
+        assert not any('LOO 不变量哨兵' in r.message for r in caplog.records)
+
+    def test_t3_all_pairs_refused_excluded(self, tmp_path, monkeypatch):
+        """X 两对级全判伪 → any=False → 不计入年 _ft。"""
+        out = self._run(tmp_path, monkeypatch, True, {('Y', 'B')})
+        v = out['ft_vol_yr'].dropna()
+        assert v.iloc[0] == pytest.approx(np.log1p(1)), '仅 Y 计入'
+
+    def test_t4_fail_open_any_equals_first(self, tmp_path, monkeypatch):
+        """fail-open (restrict_to_verified 原样返回, 不重标) → is_fintech_news 保持
+        文章级常量 → any() ≡ first, 行为零变化。"""
+        df = self._rows(True)
+        df.to_parquet(tmp_path / '12_fintech_news_full.parquet')
+        monkeypatch.setattr(am, 'OUTPUT_DIR', str(tmp_path))
+        monkeypatch.setattr(am, 'FILENAMES',
+                            {'output_12_fintech_full': '12_fintech_news_full.parquet'})
+        monkeypatch.setattr(am, '_save_attn_index', lambda *a, **k: None)
+        monkeypatch.setattr(am, 'restrict_to_verified', lambda sub, *a, **k: sub)
+        panel = pd.DataFrame({'target_bank': ['A', 'B'], 'year': [2020, 2020]})
+        out = am.compute_fintech_attention_index(panel)
+        v = out['ft_vol_yr'].dropna()
+        assert v.iloc[0] == pytest.approx(np.log1p(2)), 'X + Y 全保留 (X 文章级 True)'

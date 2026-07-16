@@ -792,8 +792,21 @@ def compute_fintech_attention_index(panel: pd.DataFrame) -> pd.DataFrame:
                 _n_ft_before, int((df_all['is_fintech_news'] == True).sum()), len(df_all))
 
     # ── 按 docid 去重 → 唯一文章 (计算注意力指数) ──
-    df_unique = df_all.drop_duplicates(subset=['docid'])
-    logger.info(f"  唯一文章: {len(df_unique):,}")
+    # fix(F4, 2026-07-16, FATAL_DEFECT_REMEDIATION §2-F4): ATT-2 把 is_fintech_news
+    # 重标为 (docid, target_bank) 对级后, keep='first' 去重曾令混合验证多银行文章的
+    # fintech 身份由 12_full 行序首位银行决定 (行序驱动测量, 非任何声明口径)。文章级
+    # 身份改为"任一对级 verified" (any, 行序无关) — verified-universe 语义的文章级
+    # 自然扩展; 在 docid→geo 归属恒定不变量下, any() 消除 ATT-2 判伪导致的
+    # own_ft > cell_ft 成因 (⚠ 不得写"恒不成立": 同 docid 跨 geo 幽灵是另一独立
+    # 合法成因, 下方 clip 保留 + 哨兵分诊)。fail-open 路径 (ATT-1/ATT-2 未重标) 下
+    # is_fintech_news 保持文章级常量 → any() ≡ first, 零行为变化。
+    # 键域前提: docid 由 preprocessing 生成非空 (上方 :578-590 已守卫列存在性),
+    # groupby(dropna) 不触发; 值域: ATT-2 后为 numpy bool, any 无 NaN 歧义。
+    assert df_all['docid'].notna().all(), 'F4 键域前提破: docid 含空值'
+    df_unique = df_all.drop_duplicates(subset=['docid']).copy()
+    df_unique['is_fintech_news'] = df_unique['docid'].map(
+        df_all.groupby('docid')['is_fintech_news'].any())
+    logger.info(f"  唯一文章: {len(df_unique):,} (fintech 身份 = 任一对级 verified, F4)")
 
     # ═══════════════════════════════════════════════════════
     # (A) Year-level 指数 (基准 / 稳健性参照)
@@ -1034,10 +1047,18 @@ def _merge_geo_index_to_panel(df_all, panel, idx_geo,
     _loo_den = work['_total'] - work['_own_total'].fillna(0)
     _loo_num = work['_ft'] - work['_own_ft'].fillna(0)
     # 防御性下界 (review 2026-06-13, 同 compute_attention_treatments 的 clip 先例):
-    # _loo_num 的非负性依赖一条未显式断言的不变量 — docid 内 geo 与 is_fintech 恒定
-    # (⇒ own ⊆ cell ⇒ own_ft ≤ cell_ft)。当前语料经核 0 例违反 → clip 为 no-op (min=0)。
-    # 但若未来数据源破坏该不变量 (同 docid 跨 geo/标记), own_ft>cell_ft 会令 _loo_num<0,
-    # 进而比值转负 (逃过 [0,1] 校验) 且 ln1p(负)→NaN 污染总量孪生; clip 从根上封死。
+    # _loo_num 的非负性依赖 "docid 内 geo 归属恒定" 不变量 (⇒ own ⊆ cell ⇒
+    # own_ft ≤ cell_ft; ATT-2 判伪成因已被 F4 any() 消除)。若违反 (同 docid 跨 geo
+    # 幽灵/F4 回归), own_ft>cell_ft 令 _loo_num<0 → 比值转负逃过 [0,1] 校验且
+    # ln1p(负)→NaN 污染总量孪生; clip 从根上封死。
+    # F4 哨兵 (2026-07-16): 违反计数 WARNING 分诊 (非 ERROR, 免污染日志扫描) —
+    # 双成因: ① ATT-2 判伪成因复活 = F4 回归, 优先查; ② 同 docid 跨 geo 幽灵 =
+    # 既知合法成因 (test_omni_fix_attention 跨 geo 用例依赖 clip 兜底)。
+    _n_loo_viol = int((_loo_num < 0).sum())
+    if _n_loo_viol:
+        logger.warning(
+            f"  LOO 不变量哨兵 ({target_col}): own_ft > cell_ft 共 {_n_loo_viol} 行 "
+            f"(双成因分诊: F4 回归 vs 跨 geo 幽灵 docid), clip(lower=0) 兜底生效")
     _loo_num = _loo_num.clip(lower=0)
     with np.errstate(divide='ignore', invalid='ignore'):
         # NaN >= min_articles → False → NaN (被 cell 级过滤的单元保持 NaN)
@@ -1048,6 +1069,15 @@ def _merge_geo_index_to_panel(df_all, panel, idx_geo,
             # 与比值 target_col 同 NaN 模式 / 同非缺样本 (互为稳健性可比性)。
             work['_loo_ft'] = np.where(
                 _loo_den >= min_articles, _loo_num, np.nan)
+    # D6 (F4 次生, 2026-07-16): any() 口径下 LOO 比值可合法 >1 — 焦点行对级判伪而
+    # 他行 verified 的 docid 计入 any-based 分子 (_ft) 却按对级出于 own_ft 之外,
+    # 使 _loo_num 可超 _loo_den。裁定口径 = WARNING 披露 + 保留自然值 (不 clip 上界);
+    # _validate_attention_index 的 [0,1] ERROR 属该已知次生现象 (计划 §4.4 预登记)。
+    _n_gt1 = int(np.nansum(np.asarray(work[target_col], dtype='float64') > 1))
+    if _n_gt1:
+        logger.warning(
+            f"  LOO 比值 >1 ({target_col}): 共 {_n_gt1} 行 — D6 已知次生现象 "
+            f"(any 分子 × 对级 own), 保留自然值不 clip 上界")
 
     # 4. Bank-Year 均值 (vol_col 给定时一并聚合 LOO 篇数, 再 ln(1+·))
     _agg = [target_col] + (['_loo_ft'] if vol_col is not None else [])
