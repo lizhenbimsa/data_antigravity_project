@@ -422,3 +422,11 @@ C3-C6 无代码依赖, 但 §4.2 面板 A/B **逐提交链式做** (每个 C 与
 - **时序备注**: C10a (M1) 落码先于 C6 链式重跑 — 离线 0-miss 下归档/缓存写路径不可达, 对链产物中性, 且被 C6 零 diff 锚顺带覆盖。
 - **并发追认**: 并发会话当晚已将 company_* 域工作入库 (main=3ccd5df4, 含 G9 registry 激活), 与本计划零冲突; pytest_B 唯一新红即其未提交中间态所致, 已随其收口自然消退预期。
 - **C10b/M4 收口 (1aca77f1)**: 并发收口后前置闸打开, 当晚即补齐 — 保结构替换年上界 (yearly×year_max 动态判定, 下界 listed=ipo_year / tax=reg_year 原样), tax 侧经 engine() 复用 listed helper (T-D10); +3 gate, 双管道套件 93 用例绿 (含并发收口后转绿的锁测试)。**至此 13/13 全部落地, 无顺延项**; §7-R9 (脏文件闸) 与 R10 (tracked md 陈旧) 关闭 — 下轮 02 真跑将以动态行重生 codebook md。
+
+### §9-ter 推送前终局评审 (第一遍 4 路 + 首席 = ok_to_push, 0 P0/0 P1) 收尾勘误
+
+- **"93 用例" 勘误** (与 "91→163" 同款控制台读数误计): HEAD 以文件重定向复核 = 双管道 panel 两套件 **130/130** (加 clamp gate 后 131/131)、panel+lock 四套件 145/145 全绿, 结论不变且更强。教训固化: 用例计数一律 `--collect-only`/文件重定向复算后入档。
+- **M4 clamp 防御补齐** (终局评审 NIT): `recommend_year_keep_line` 的尾零判定按 `year_max` 钳制 (误标日期越窗的零星文章不干扰; 普查口径下纯防御) + gate 用例。
+- **R10 措辞更正**: 双管道 panel codebook md 实为 gitignored 生成物 (从未被 git 跟踪), 旧 "tracked" 表述比事实更重 — 仓库从未携带陈旧 keep 行, 方向更安全。
+- **证据目录复原**: scratchpad/c7_driver 的 15 号 parquet 已从变异态复原为原样副本并附注记 (防未来复跑 allow 臂得到 reject 假象)。
+- 首席亲验背书: 13/13 修复锚在位 + 279 gate 全绿 + 待推送集密钥/大文件/夹带扫描零命中 + 盘面终态不变量 4/4 (40/51=3442/3453 列、log_sent 伪零三轨 0 行、avg_llm_conf 值域收敛、notes 三份在位)。
