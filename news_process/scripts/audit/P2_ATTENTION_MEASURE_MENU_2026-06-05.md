@@ -1,5 +1,7 @@
 # P2 attention 4 度量 — 顶刊支撑方法全菜单（任务 0 决策依据）
 
+> **勘误注记 (2026-07-16 追加, 正文保持历史原貌)**: 本文档内"全量 2007–2024"为撰写时的旧口径, 已作废 — 目标语料口径经 2026-07-16 用户裁定为 **18,198,978 条 / 2007–2025 / T=19** (= 原始语料普查全量, 见 CLAUDE.md「Disk 状态」与 `build/manual_facts/key_stats.md`)。下文年限表述以此为准。
+
 **日期**: 2026-06-05  **用途**: P2 (bank_fintech_attention, 对标 Hassan 2019 QJE firm-level exposure, 主张 "cumulative attention **WITHOUT sign**", 投 JCF/JFE) 的 4 个处理变量 `attention_index_full / attention_index_ctx / attention_disp_full / attention_pct_full` 的构造选单。
 **方法**: 6 方法家族扇出 52 提案 → 引文真实性 + 可计算性双镜头对抗复核（13 agent）。去重后约 30 个独立方法。
 **数据基线（实读确认）**: 全部公式落在 `14_fintech_intensity.parquet`（文章级，含 `fintech_intensity_score_full/ctx`、`doc_length`、`媒体(中文)`、`target_bank_mention_count`、`fintech_total_count`、`fintech_distinct_keywords`、`fintech_in_title`、`target_bank_in_title`、`co_mentioned_banks`、`日期`）+ `12_fintech_news_full.parquet`（全部银行新闻，提供"占比"分母）。两文件零空值。当前 2.5 月样本仅作接线/测试，全量 2007–2024 后所有时间维方法激活。

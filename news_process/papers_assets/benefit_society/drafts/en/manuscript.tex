@@ -414,11 +414,11 @@ containing 18{,}198{,}978 media reports spanning 2007-01-01 to
 92.93\% of all rows (16{,}912{,}361 rows), are retained, while wire,
 magazine, government-bulletin, web, and other types are dropped
 row-wise; exact-unique records number 18{,}177{,}370 (duplication rate
-0.12\%). We stress that the census accounting is \emph{not} the corpus
-entering the analysis: after newspaper-type retention \emph{only}
-(2007--2025, $T=19$), the production target corpus is roughly 17
-million articles---a figure that sits \emph{before} the co-occurrence
-hard filter; the subsequent target-bank identification, the
+0.12\%). We stress that the corpus entering the regressions is
+\emph{not} coextensive with the census total: the production target
+corpus adopts the census-total accounting of 18{,}198{,}978 articles
+(2007--2025, $T=19$)---a figure that sits \emph{before} the
+co-occurrence hard filter; the subsequent target-bank identification, the
 bank--FinTech proximity co-occurrence hard filter, and the LLM
 full-track retention gate (\code{llm\_verified\_full}) each further
 shrink the number of articles entering the panel, which is ultimately
