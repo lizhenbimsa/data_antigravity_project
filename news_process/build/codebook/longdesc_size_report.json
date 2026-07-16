@@ -1,7 +1,7 @@
 {
  "summary": {
   "n_cols": 3453,
-  "cjk_median": 2228,
+  "cjk_median": 2229,
   "cjk_p10": 1667,
   "cjk_min": 1297,
   "cjk_max": 9032,
@@ -17,8 +17,8 @@
   },
   "year": {
    "cjk": 1907,
-   "chars": 5021,
-   "utf8_bytes": 8996,
+   "chars": 5022,
+   "utf8_bytes": 8997,
    "tier": "standard"
   },
   "gpt54nano_tone_full": {
@@ -208,9 +208,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_full": {
-   "cjk": 6967,
-   "chars": 18183,
-   "utf8_bytes": 32737,
+   "cjk": 6968,
+   "chars": 18187,
+   "utf8_bytes": 32743,
    "tier": "core"
   },
   "llm_vote_cont_sum_full": {
@@ -220,9 +220,9 @@
    "tier": "standard"
   },
   "jiang_2021_tone_full": {
-   "cjk": 7430,
-   "chars": 17328,
-   "utf8_bytes": 32717,
+   "cjk": 7436,
+   "chars": 17338,
+   "utf8_bytes": 32739,
    "tier": "core"
   },
   "jiang_2021_tone_sum_full": {
@@ -232,9 +232,9 @@
    "tier": "standard"
   },
   "jiang_2021_tone_std_full": {
-   "cjk": 6449,
-   "chars": 15562,
-   "utf8_bytes": 28914,
+   "cjk": 6455,
+   "chars": 15572,
+   "utf8_bytes": 28936,
    "tier": "standard"
   },
   "yao_2021_tone_full": {
@@ -833,8 +833,8 @@
   },
   "avg_cpw_full": {
    "cjk": 2023,
-   "chars": 6646,
-   "utf8_bytes": 10880,
+   "chars": 6647,
+   "utf8_bytes": 10881,
    "tier": "standard"
   },
   "avg_rare_word_full": {
@@ -1168,9 +1168,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_ctx": {
-   "cjk": 6153,
-   "chars": 16681,
-   "utf8_bytes": 29527,
+   "cjk": 6154,
+   "chars": 16685,
+   "utf8_bytes": 29533,
    "tier": "standard"
   },
   "llm_vote_cont_sum_ctx": {
@@ -1180,9 +1180,9 @@
    "tier": "standard"
   },
   "jiang_2021_tone_ctx": {
-   "cjk": 6482,
-   "chars": 15528,
-   "utf8_bytes": 28945,
+   "cjk": 6488,
+   "chars": 15538,
+   "utf8_bytes": 28967,
    "tier": "standard"
   },
   "jiang_2021_tone_sum_ctx": {
@@ -1192,9 +1192,9 @@
    "tier": "standard"
   },
   "jiang_2021_tone_std_ctx": {
-   "cjk": 6437,
-   "chars": 15494,
-   "utf8_bytes": 28815,
+   "cjk": 6443,
+   "chars": 15504,
+   "utf8_bytes": 28837,
    "tier": "standard"
   },
   "yao_2021_tone_ctx": {
@@ -1793,8 +1793,8 @@
   },
   "avg_cpw_ctx": {
    "cjk": 2141,
-   "chars": 6913,
-   "utf8_bytes": 11383,
+   "chars": 6914,
+   "utf8_bytes": 11384,
    "tier": "standard"
   },
   "avg_rare_word_ctx": {
@@ -2128,9 +2128,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_ss": {
-   "cjk": 6108,
-   "chars": 16633,
-   "utf8_bytes": 29397,
+   "cjk": 6109,
+   "chars": 16637,
+   "utf8_bytes": 29403,
    "tier": "standard"
   },
   "llm_vote_cont_sum_ss": {
@@ -2140,9 +2140,9 @@
    "tier": "standard"
   },
   "jiang_2021_tone_ss": {
-   "cjk": 6479,
-   "chars": 15588,
-   "utf8_bytes": 28994,
+   "cjk": 6485,
+   "chars": 15598,
+   "utf8_bytes": 29016,
    "tier": "standard"
   },
   "jiang_2021_tone_sum_ss": {
@@ -2152,9 +2152,9 @@
    "tier": "standard"
   },
   "jiang_2021_tone_std_ss": {
-   "cjk": 6471,
-   "chars": 15448,
-   "utf8_bytes": 28839,
+   "cjk": 6477,
+   "chars": 15458,
+   "utf8_bytes": 28861,
    "tier": "standard"
   },
   "yao_2021_tone_ss": {
@@ -2260,9 +2260,9 @@
    "tier": "standard"
   },
   "jiang_2021_idf_tone_std_ss": {
-   "cjk": 2572,
-   "chars": 7952,
-   "utf8_bytes": 13323,
+   "cjk": 2573,
+   "chars": 7955,
+   "utf8_bytes": 13328,
    "tier": "standard"
   },
   "yao_2021_idf_tone_ss": {
@@ -2458,9 +2458,9 @@
    "tier": "standard"
   },
   "loughran_degonly_tone_ss": {
-   "cjk": 2238,
-   "chars": 5456,
-   "utf8_bytes": 10074,
+   "cjk": 2239,
+   "chars": 5459,
+   "utf8_bytes": 10079,
    "tier": "standard"
   },
   "jiang_2021_advonly_tone_ss": {
@@ -2753,8 +2753,8 @@
   },
   "avg_cpw_ss": {
    "cjk": 1936,
-   "chars": 6668,
-   "utf8_bytes": 10715,
+   "chars": 6669,
+   "utf8_bytes": 10716,
    "tier": "standard"
   },
   "avg_rare_word_ss": {
@@ -2902,15 +2902,15 @@
    "tier": "standard"
   },
   "avg_llm_conf_full": {
-   "cjk": 2251,
-   "chars": 7078,
-   "utf8_bytes": 11736,
+   "cjk": 2338,
+   "chars": 7295,
+   "utf8_bytes": 12131,
    "tier": "standard"
   },
   "avg_llm_conf_std_full": {
-   "cjk": 2238,
-   "chars": 6889,
-   "utf8_bytes": 11511,
+   "cjk": 2325,
+   "chars": 7106,
+   "utf8_bytes": 11906,
    "tier": "standard"
   },
   "avg_gpt54nano_conf_full": {
@@ -2932,15 +2932,15 @@
    "tier": "standard"
   },
   "avg_llm_conf_ctx": {
-   "cjk": 2242,
-   "chars": 6964,
-   "utf8_bytes": 11598,
+   "cjk": 2329,
+   "chars": 7181,
+   "utf8_bytes": 11993,
    "tier": "standard"
   },
   "avg_llm_conf_std_ctx": {
-   "cjk": 2274,
-   "chars": 7001,
-   "utf8_bytes": 11697,
+   "cjk": 2361,
+   "chars": 7218,
+   "utf8_bytes": 12092,
    "tier": "standard"
   },
   "avg_gpt54nano_conf_ctx": {
@@ -2962,15 +2962,15 @@
    "tier": "standard"
   },
   "avg_llm_conf_ss": {
-   "cjk": 2221,
-   "chars": 7017,
-   "utf8_bytes": 11615,
+   "cjk": 2308,
+   "chars": 7234,
+   "utf8_bytes": 12010,
    "tier": "standard"
   },
   "avg_llm_conf_std_ss": {
-   "cjk": 2215,
-   "chars": 7025,
-   "utf8_bytes": 11607,
+   "cjk": 2302,
+   "chars": 7242,
+   "utf8_bytes": 12002,
    "tier": "standard"
   },
   "avg_gpt54nano_conf_ss": {
@@ -2992,9 +2992,9 @@
    "tier": "standard"
   },
   "n_articles": {
-   "cjk": 6363,
-   "chars": 13747,
-   "utf8_bytes": 26948,
+   "cjk": 6364,
+   "chars": 13750,
+   "utf8_bytes": 26953,
    "tier": "core"
   },
   "n_articles_llm_valid": {
@@ -3040,9 +3040,9 @@
    "tier": "standard"
   },
   "avg_agreement_rate_full": {
-   "cjk": 7603,
-   "chars": 16482,
-   "utf8_bytes": 32086,
+   "cjk": 7604,
+   "chars": 16485,
+   "utf8_bytes": 32091,
    "tier": "core"
   },
   "avg_agreement_rate_s_full": {
@@ -3052,9 +3052,9 @@
    "tier": "standard"
   },
   "avg_agreement_rate_ctx": {
-   "cjk": 6991,
-   "chars": 15620,
-   "utf8_bytes": 29979,
+   "cjk": 6992,
+   "chars": 15623,
+   "utf8_bytes": 29984,
    "tier": "standard"
   },
   "avg_agreement_rate_s_ctx": {
@@ -3064,9 +3064,9 @@
    "tier": "standard"
   },
   "avg_agreement_rate_ss": {
-   "cjk": 6852,
-   "chars": 15476,
-   "utf8_bytes": 29555,
+   "cjk": 6853,
+   "chars": 15479,
+   "utf8_bytes": 29560,
    "tier": "standard"
   },
   "avg_agreement_rate_s_ss": {
@@ -3496,9 +3496,9 @@
    "tier": "standard"
   },
   "pos_count_vw_ss": {
-   "cjk": 2474,
-   "chars": 6164,
-   "utf8_bytes": 11284,
+   "cjk": 2475,
+   "chars": 6167,
+   "utf8_bytes": 11289,
    "tier": "standard"
   },
   "neg_count_vw_ss": {
@@ -4444,9 +4444,9 @@
    "tier": "standard"
   },
   "sum_wd_hw_thr25_llm_ss": {
-   "cjk": 1783,
-   "chars": 5068,
-   "utf8_bytes": 8751,
+   "cjk": 1784,
+   "chars": 5071,
+   "utf8_bytes": 8756,
    "tier": "standard"
   },
   "avg_herd_weight_ss_thr30": {
@@ -4990,9 +4990,9 @@
    "tier": "standard"
   },
   "fin_sent_zh_负面_mw_sum_ss": {
-   "cjk": 2302,
-   "chars": 7432,
-   "utf8_bytes": 12236,
+   "cjk": 2303,
+   "chars": 7435,
+   "utf8_bytes": 12241,
    "tier": "standard"
   },
   "finbert2_正面_mw_sum_ss": {
@@ -5842,9 +5842,9 @@
    "tier": "core"
   },
   "avg_du_2022_neg_ratio_full": {
-   "cjk": 7321,
-   "chars": 15219,
-   "utf8_bytes": 30290,
+   "cjk": 7327,
+   "chars": 15225,
+   "utf8_bytes": 30308,
    "tier": "core"
   },
   "avg_you_2018_pos_ratio_full": {
@@ -5914,9 +5914,9 @@
    "tier": "standard"
   },
   "avg_du_2022_neg_ratio_ctx": {
-   "cjk": 6644,
-   "chars": 14201,
-   "utf8_bytes": 27880,
+   "cjk": 6650,
+   "chars": 14207,
+   "utf8_bytes": 27898,
    "tier": "standard"
   },
   "avg_you_2018_pos_ratio_ctx": {
@@ -5986,9 +5986,9 @@
    "tier": "standard"
   },
   "avg_du_2022_neg_ratio_ss": {
-   "cjk": 6633,
-   "chars": 14236,
-   "utf8_bytes": 27894,
+   "cjk": 6639,
+   "chars": 14242,
+   "utf8_bytes": 27912,
    "tier": "standard"
   },
   "avg_you_2018_pos_ratio_ss": {
@@ -7048,15 +7048,15 @@
    "tier": "standard"
   },
   "llm_vote_cont_tech_full": {
-   "cjk": 6078,
-   "chars": 16582,
-   "utf8_bytes": 29278,
+   "cjk": 6079,
+   "chars": 16586,
+   "utf8_bytes": 29284,
    "tier": "standard"
   },
   "jiang_2021_tone_tech_full": {
-   "cjk": 6429,
-   "chars": 15566,
-   "utf8_bytes": 28879,
+   "cjk": 6435,
+   "chars": 15576,
+   "utf8_bytes": 28901,
    "tier": "standard"
   },
   "yao_2021_tone_tech_full": {
@@ -7222,15 +7222,15 @@
    "tier": "standard"
   },
   "llm_vote_cont_tech_ctx": {
-   "cjk": 6231,
-   "chars": 16711,
-   "utf8_bytes": 29725,
+   "cjk": 6232,
+   "chars": 16715,
+   "utf8_bytes": 29731,
    "tier": "standard"
   },
   "jiang_2021_tone_tech_ctx": {
-   "cjk": 6488,
-   "chars": 15678,
-   "utf8_bytes": 29112,
+   "cjk": 6494,
+   "chars": 15688,
+   "utf8_bytes": 29134,
    "tier": "standard"
   },
   "yao_2021_tone_tech_ctx": {
@@ -7396,15 +7396,15 @@
    "tier": "standard"
   },
   "llm_vote_cont_tech_ss": {
-   "cjk": 6241,
-   "chars": 16719,
-   "utf8_bytes": 29759,
+   "cjk": 6242,
+   "chars": 16723,
+   "utf8_bytes": 29765,
    "tier": "standard"
   },
   "jiang_2021_tone_tech_ss": {
-   "cjk": 6497,
-   "chars": 15624,
-   "utf8_bytes": 29069,
+   "cjk": 6503,
+   "chars": 15634,
+   "utf8_bytes": 29091,
    "tier": "standard"
   },
   "yao_2021_tone_tech_ss": {
@@ -7576,15 +7576,15 @@
    "tier": "standard"
   },
   "llm_vote_cont_app_full": {
-   "cjk": 6245,
-   "chars": 16790,
-   "utf8_bytes": 29838,
+   "cjk": 6246,
+   "chars": 16794,
+   "utf8_bytes": 29844,
    "tier": "standard"
   },
   "jiang_2021_tone_app_full": {
-   "cjk": 6463,
-   "chars": 15624,
-   "utf8_bytes": 29001,
+   "cjk": 6469,
+   "chars": 15634,
+   "utf8_bytes": 29023,
    "tier": "standard"
   },
   "yao_2021_tone_app_full": {
@@ -7750,15 +7750,15 @@
    "tier": "standard"
   },
   "llm_vote_cont_app_ctx": {
-   "cjk": 6227,
-   "chars": 16705,
-   "utf8_bytes": 29709,
+   "cjk": 6228,
+   "chars": 16709,
+   "utf8_bytes": 29715,
    "tier": "standard"
   },
   "jiang_2021_tone_app_ctx": {
-   "cjk": 6499,
-   "chars": 15693,
-   "utf8_bytes": 29144,
+   "cjk": 6505,
+   "chars": 15703,
+   "utf8_bytes": 29166,
    "tier": "standard"
   },
   "yao_2021_tone_app_ctx": {
@@ -7924,15 +7924,15 @@
    "tier": "standard"
   },
   "llm_vote_cont_app_ss": {
-   "cjk": 6229,
-   "chars": 16708,
-   "utf8_bytes": 29724,
+   "cjk": 6230,
+   "chars": 16712,
+   "utf8_bytes": 29730,
    "tier": "standard"
   },
   "jiang_2021_tone_app_ss": {
-   "cjk": 6451,
-   "chars": 15583,
-   "utf8_bytes": 28934,
+   "cjk": 6457,
+   "chars": 15593,
+   "utf8_bytes": 28956,
    "tier": "standard"
   },
   "yao_2021_tone_app_ss": {
@@ -7966,9 +7966,9 @@
    "tier": "standard"
   },
   "jiang_2021_idf_tone_app_ss": {
-   "cjk": 2593,
-   "chars": 8052,
-   "utf8_bytes": 13473,
+   "cjk": 2594,
+   "chars": 8055,
+   "utf8_bytes": 13478,
    "tier": "standard"
   },
   "yao_2021_idf_tone_app_ss": {
@@ -8062,9 +8062,9 @@
    "tier": "core"
   },
   "app_frac": {
-   "cjk": 6716,
-   "chars": 19600,
-   "utf8_bytes": 33420,
+   "cjk": 6719,
+   "chars": 19603,
+   "utf8_bytes": 33429,
    "tier": "core"
   },
   "avg_category_confidence_full": {
@@ -8188,9 +8188,9 @@
    "tier": "standard"
   },
   "app_frac_lc": {
-   "cjk": 6304,
-   "chars": 18758,
-   "utf8_bytes": 31732,
+   "cjk": 6307,
+   "chars": 18761,
+   "utf8_bytes": 31741,
    "tier": "standard"
   },
   "tone_gap_tech_app_lc_ctx": {
@@ -8242,9 +8242,9 @@
    "tier": "standard"
   },
   "app_frac_ls": {
-   "cjk": 6315,
-   "chars": 18921,
-   "utf8_bytes": 31933,
+   "cjk": 6318,
+   "chars": 18924,
+   "utf8_bytes": 31942,
    "tier": "standard"
   },
   "tone_gap_tech_app_ls_ss": {
@@ -8777,8 +8777,8 @@
   },
   "tone_gap_indep_collab": {
    "cjk": 2017,
-   "chars": 5989,
-   "utf8_bytes": 10181,
+   "chars": 5990,
+   "utf8_bytes": 10182,
    "tier": "standard"
   },
   "n_articles_indep_cm_ctx": {
@@ -9130,21 +9130,21 @@
    "tier": "standard"
   },
   "mean_num_intensity_full": {
-   "cjk": 5440,
-   "chars": 13334,
-   "utf8_bytes": 24576,
+   "cjk": 5441,
+   "chars": 13337,
+   "utf8_bytes": 24581,
    "tier": "core"
   },
   "mean_num_intensity_ctx": {
-   "cjk": 5086,
-   "chars": 12472,
-   "utf8_bytes": 22975,
+   "cjk": 5087,
+   "chars": 12475,
+   "utf8_bytes": 22980,
    "tier": "standard"
   },
   "mean_num_intensity_ss": {
-   "cjk": 4896,
-   "chars": 12218,
-   "utf8_bytes": 22344,
+   "cjk": 4897,
+   "chars": 12221,
+   "utf8_bytes": 22349,
    "tier": "standard"
   },
   "mean_num_intensity_word_full": {
@@ -9274,21 +9274,21 @@
    "tier": "standard"
   },
   "frac_fls_full": {
-   "cjk": 5582,
-   "chars": 12698,
-   "utf8_bytes": 24155,
+   "cjk": 5583,
+   "chars": 12701,
+   "utf8_bytes": 24160,
    "tier": "core"
   },
   "frac_fls_ctx": {
-   "cjk": 5039,
-   "chars": 11915,
-   "utf8_bytes": 22276,
+   "cjk": 5040,
+   "chars": 11918,
+   "utf8_bytes": 22281,
    "tier": "standard"
   },
   "frac_fls_ss": {
-   "cjk": 5056,
-   "chars": 12032,
-   "utf8_bytes": 22423,
+   "cjk": 5057,
+   "chars": 12035,
+   "utf8_bytes": 22428,
    "tier": "standard"
   },
   "frac_fls_fonly_full": {
@@ -9322,9 +9322,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_vw_full": {
-   "cjk": 6098,
-   "chars": 16551,
-   "utf8_bytes": 29286,
+   "cjk": 6099,
+   "chars": 16555,
+   "utf8_bytes": 29292,
    "tier": "standard"
   },
   "gpt54nano_tone_vw_full": {
@@ -9346,9 +9346,9 @@
    "tier": "standard"
   },
   "jiang_2021_tone_vw_full": {
-   "cjk": 6433,
-   "chars": 15519,
-   "utf8_bytes": 28843,
+   "cjk": 6439,
+   "chars": 15529,
+   "utf8_bytes": 28865,
    "tier": "standard"
   },
   "yao_2021_tone_vw_full": {
@@ -9466,9 +9466,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_vw_ctx": {
-   "cjk": 6222,
-   "chars": 16806,
-   "utf8_bytes": 29801,
+   "cjk": 6223,
+   "chars": 16810,
+   "utf8_bytes": 29807,
    "tier": "standard"
   },
   "gpt54nano_tone_vw_ctx": {
@@ -9490,9 +9490,9 @@
    "tier": "standard"
   },
   "jiang_2021_tone_vw_ctx": {
-   "cjk": 6431,
-   "chars": 15500,
-   "utf8_bytes": 28817,
+   "cjk": 6437,
+   "chars": 15510,
+   "utf8_bytes": 28839,
    "tier": "standard"
   },
   "yao_2021_tone_vw_ctx": {
@@ -9610,9 +9610,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_vw_ss": {
-   "cjk": 6218,
-   "chars": 16758,
-   "utf8_bytes": 29756,
+   "cjk": 6219,
+   "chars": 16762,
+   "utf8_bytes": 29762,
    "tier": "standard"
   },
   "gpt54nano_tone_vw_ss": {
@@ -9634,9 +9634,9 @@
    "tier": "standard"
   },
   "jiang_2021_tone_vw_ss": {
-   "cjk": 6441,
-   "chars": 15470,
-   "utf8_bytes": 28804,
+   "cjk": 6447,
+   "chars": 15480,
+   "utf8_bytes": 28826,
    "tier": "standard"
   },
   "yao_2021_tone_vw_ss": {
@@ -9754,9 +9754,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_mw_full": {
-   "cjk": 6283,
-   "chars": 16910,
-   "utf8_bytes": 30033,
+   "cjk": 6284,
+   "chars": 16914,
+   "utf8_bytes": 30039,
    "tier": "standard"
   },
   "gpt54nano_tone_mw_full": {
@@ -9778,9 +9778,9 @@
    "tier": "standard"
   },
   "jiang_2021_tone_mw_full": {
-   "cjk": 6444,
-   "chars": 15633,
-   "utf8_bytes": 28983,
+   "cjk": 6450,
+   "chars": 15643,
+   "utf8_bytes": 29005,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_mw_full": {
@@ -9898,9 +9898,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_mw_ctx": {
-   "cjk": 6188,
-   "chars": 16729,
-   "utf8_bytes": 29655,
+   "cjk": 6189,
+   "chars": 16733,
+   "utf8_bytes": 29661,
    "tier": "standard"
   },
   "gpt54nano_tone_mw_ctx": {
@@ -9922,9 +9922,9 @@
    "tier": "standard"
   },
   "jiang_2021_tone_mw_ctx": {
-   "cjk": 6423,
-   "chars": 15506,
-   "utf8_bytes": 28809,
+   "cjk": 6429,
+   "chars": 15516,
+   "utf8_bytes": 28831,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_mw_ctx": {
@@ -10042,9 +10042,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_mw_ss": {
-   "cjk": 6209,
-   "chars": 16703,
-   "utf8_bytes": 29680,
+   "cjk": 6210,
+   "chars": 16707,
+   "utf8_bytes": 29686,
    "tier": "standard"
   },
   "gpt54nano_tone_mw_ss": {
@@ -10066,9 +10066,9 @@
    "tier": "standard"
   },
   "jiang_2021_tone_mw_ss": {
-   "cjk": 6427,
-   "chars": 15480,
-   "utf8_bytes": 28784,
+   "cjk": 6433,
+   "chars": 15490,
+   "utf8_bytes": 28806,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_mw_ss": {
@@ -10186,9 +10186,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_hw_full": {
-   "cjk": 6083,
-   "chars": 16606,
-   "utf8_bytes": 29319,
+   "cjk": 6084,
+   "chars": 16610,
+   "utf8_bytes": 29325,
    "tier": "standard"
   },
   "gpt54nano_tone_hw_full": {
@@ -10210,9 +10210,9 @@
    "tier": "standard"
   },
   "jiang_2021_tone_hw_full": {
-   "cjk": 6469,
-   "chars": 15631,
-   "utf8_bytes": 29035,
+   "cjk": 6475,
+   "chars": 15641,
+   "utf8_bytes": 29057,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_hw_full": {
@@ -10330,9 +10330,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_hw_ctx": {
-   "cjk": 6193,
-   "chars": 16775,
-   "utf8_bytes": 29713,
+   "cjk": 6194,
+   "chars": 16779,
+   "utf8_bytes": 29719,
    "tier": "standard"
   },
   "gpt54nano_tone_hw_ctx": {
@@ -10354,9 +10354,9 @@
    "tier": "standard"
   },
   "jiang_2021_tone_hw_ctx": {
-   "cjk": 6434,
-   "chars": 15522,
-   "utf8_bytes": 28849,
+   "cjk": 6440,
+   "chars": 15532,
+   "utf8_bytes": 28871,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_hw_ctx": {
@@ -10474,9 +10474,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_hw_ss": {
-   "cjk": 6180,
-   "chars": 16792,
-   "utf8_bytes": 29711,
+   "cjk": 6181,
+   "chars": 16796,
+   "utf8_bytes": 29717,
    "tier": "standard"
   },
   "gpt54nano_tone_hw_ss": {
@@ -10498,9 +10498,9 @@
    "tier": "standard"
   },
   "jiang_2021_tone_hw_ss": {
-   "cjk": 6435,
-   "chars": 15549,
-   "utf8_bytes": 28869,
+   "cjk": 6441,
+   "chars": 15559,
+   "utf8_bytes": 28891,
    "tier": "standard"
   },
   "jiang_2021_idf_tone_hw_ss": {
@@ -10618,9 +10618,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr25_full": {
-   "cjk": 6234,
-   "chars": 16907,
-   "utf8_bytes": 29931,
+   "cjk": 6235,
+   "chars": 16911,
+   "utf8_bytes": 29937,
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr30_full": {
@@ -10630,9 +10630,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr30_full": {
-   "cjk": 6153,
-   "chars": 16775,
-   "utf8_bytes": 29632,
+   "cjk": 6154,
+   "chars": 16779,
+   "utf8_bytes": 29638,
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr40_full": {
@@ -10642,9 +10642,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr40_full": {
-   "cjk": 6203,
-   "chars": 16794,
-   "utf8_bytes": 29758,
+   "cjk": 6204,
+   "chars": 16798,
+   "utf8_bytes": 29764,
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr45_full": {
@@ -10654,9 +10654,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr45_full": {
-   "cjk": 6208,
-   "chars": 16790,
-   "utf8_bytes": 29756,
+   "cjk": 6209,
+   "chars": 16794,
+   "utf8_bytes": 29762,
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr25_ctx": {
@@ -10666,9 +10666,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr25_ctx": {
-   "cjk": 6169,
-   "chars": 16741,
-   "utf8_bytes": 29636,
+   "cjk": 6170,
+   "chars": 16745,
+   "utf8_bytes": 29642,
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr30_ctx": {
@@ -10678,9 +10678,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr30_ctx": {
-   "cjk": 6149,
-   "chars": 16729,
-   "utf8_bytes": 29582,
+   "cjk": 6150,
+   "chars": 16733,
+   "utf8_bytes": 29588,
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr40_ctx": {
@@ -10690,9 +10690,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr40_ctx": {
-   "cjk": 6168,
-   "chars": 16742,
-   "utf8_bytes": 29635,
+   "cjk": 6169,
+   "chars": 16746,
+   "utf8_bytes": 29641,
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr45_ctx": {
@@ -10702,9 +10702,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr45_ctx": {
-   "cjk": 6177,
-   "chars": 16742,
-   "utf8_bytes": 29653,
+   "cjk": 6178,
+   "chars": 16746,
+   "utf8_bytes": 29659,
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr25_ss": {
@@ -10714,9 +10714,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr25_ss": {
-   "cjk": 6155,
-   "chars": 16696,
-   "utf8_bytes": 29565,
+   "cjk": 6156,
+   "chars": 16700,
+   "utf8_bytes": 29571,
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr30_ss": {
@@ -10726,9 +10726,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr30_ss": {
-   "cjk": 6153,
-   "chars": 16704,
-   "utf8_bytes": 29568,
+   "cjk": 6154,
+   "chars": 16708,
+   "utf8_bytes": 29574,
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr40_ss": {
@@ -10738,9 +10738,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr40_ss": {
-   "cjk": 6150,
-   "chars": 16679,
-   "utf8_bytes": 29535,
+   "cjk": 6151,
+   "chars": 16683,
+   "utf8_bytes": 29541,
    "tier": "standard"
   },
   "llm_vote_tone_hw_thr45_ss": {
@@ -10750,9 +10750,9 @@
    "tier": "standard"
   },
   "llm_vote_cont_hw_thr45_ss": {
-   "cjk": 6177,
-   "chars": 16734,
-   "utf8_bytes": 29648,
+   "cjk": 6178,
+   "chars": 16738,
+   "utf8_bytes": 29654,
    "tier": "standard"
   },
   "pos_substvalid_count_full": {
@@ -11027,8 +11027,8 @@
   },
   "loughran_pos_substvalid_count_ss": {
    "cjk": 2499,
-   "chars": 7619,
-   "utf8_bytes": 12808,
+   "chars": 7618,
+   "utf8_bytes": 12807,
    "tier": "standard"
   },
   "bert_pos_substvalid_count_ss": {
@@ -11056,9 +11056,9 @@
    "tier": "standard"
   },
   "pos_hc_substvalid_count_ss": {
-   "cjk": 2285,
-   "chars": 6877,
-   "utf8_bytes": 11712,
+   "cjk": 2286,
+   "chars": 6880,
+   "utf8_bytes": 11717,
    "tier": "standard"
   },
   "has_coverage": {
@@ -11068,39 +11068,39 @@
    "tier": "standard"
   },
   "ft_attn_yr": {
-   "cjk": 2951,
-   "chars": 7476,
-   "utf8_bytes": 13554,
+   "cjk": 2983,
+   "chars": 7584,
+   "utf8_bytes": 13728,
    "tier": "standard"
   },
   "ft_vol_yr": {
-   "cjk": 2528,
-   "chars": 6903,
-   "utf8_bytes": 12097,
+   "cjk": 2547,
+   "chars": 6967,
+   "utf8_bytes": 12201,
    "tier": "standard"
   },
   "ft_attn_prov": {
-   "cjk": 3216,
-   "chars": 7830,
-   "utf8_bytes": 14446,
+   "cjk": 3248,
+   "chars": 7938,
+   "utf8_bytes": 14620,
    "tier": "standard"
   },
   "ft_vol_prov": {
-   "cjk": 2713,
-   "chars": 7118,
-   "utf8_bytes": 12689,
+   "cjk": 2732,
+   "chars": 7182,
+   "utf8_bytes": 12793,
    "tier": "standard"
   },
   "ft_attn_city": {
-   "cjk": 3022,
-   "chars": 7595,
-   "utf8_bytes": 13814,
+   "cjk": 3054,
+   "chars": 7703,
+   "utf8_bytes": 13988,
    "tier": "standard"
   },
   "ft_vol_city": {
-   "cjk": 2688,
-   "chars": 7205,
-   "utf8_bytes": 12732,
+   "cjk": 2707,
+   "chars": 7269,
+   "utf8_bytes": 12836,
    "tier": "standard"
   },
   "attention_index_full": {
@@ -11926,9 +11926,9 @@
    "tier": "standard"
   },
   "tone_homecity_media_ss": {
-   "cjk": 2168,
-   "chars": 5287,
-   "utf8_bytes": 9772,
+   "cjk": 2169,
+   "chars": 5291,
+   "utf8_bytes": 9778,
    "tier": "standard"
   },
   "neg_frac_homecity_ss": {
@@ -13445,8 +13445,8 @@
   },
   "llm_models_avg_tone_full": {
    "cjk": 6329,
-   "chars": 17702,
-   "utf8_bytes": 31068,
+   "chars": 17703,
+   "utf8_bytes": 31069,
    "tier": "core"
   },
   "llm_models_avg_tone_sum_full": {
@@ -13469,14 +13469,14 @@
   },
   "llm_models_avg_tone_std_full": {
    "cjk": 5788,
-   "chars": 16311,
-   "utf8_bytes": 28540,
+   "chars": 16312,
+   "utf8_bytes": 28541,
    "tier": "standard"
   },
   "dict_avg_tone_full": {
-   "cjk": 6874,
-   "chars": 17824,
-   "utf8_bytes": 31826,
+   "cjk": 6877,
+   "chars": 17827,
+   "utf8_bytes": 31835,
    "tier": "core"
   },
   "dict_avg_tone_sum_full": {
@@ -13486,9 +13486,9 @@
    "tier": "standard"
   },
   "dict_avg_tone_std_full": {
-   "cjk": 6308,
-   "chars": 16674,
-   "utf8_bytes": 29536,
+   "cjk": 6311,
+   "chars": 16677,
+   "utf8_bytes": 29545,
    "tier": "standard"
   },
   "dict_avg_idf_tone_full": {
@@ -13589,14 +13589,14 @@
   },
   "llm_models_avg_tone_vw_full": {
    "cjk": 5766,
-   "chars": 16329,
-   "utf8_bytes": 28527,
+   "chars": 16330,
+   "utf8_bytes": 28528,
    "tier": "standard"
   },
   "dict_avg_tone_vw_full": {
-   "cjk": 6294,
-   "chars": 16657,
-   "utf8_bytes": 29489,
+   "cjk": 6297,
+   "chars": 16660,
+   "utf8_bytes": 29498,
    "tier": "standard"
   },
   "dict_avg_idf_tone_vw_full": {
@@ -13619,14 +13619,14 @@
   },
   "llm_models_avg_tone_mw_full": {
    "cjk": 5768,
-   "chars": 16416,
-   "utf8_bytes": 28614,
+   "chars": 16417,
+   "utf8_bytes": 28615,
    "tier": "standard"
   },
   "dict_avg_tone_mw_full": {
-   "cjk": 6322,
-   "chars": 16732,
-   "utf8_bytes": 29620,
+   "cjk": 6325,
+   "chars": 16735,
+   "utf8_bytes": 29629,
    "tier": "standard"
   },
   "dict_avg_idf_tone_mw_full": {
@@ -13649,14 +13649,14 @@
   },
   "llm_models_avg_tone_hw_full": {
    "cjk": 5759,
-   "chars": 16348,
-   "utf8_bytes": 28522,
+   "chars": 16349,
+   "utf8_bytes": 28523,
    "tier": "standard"
   },
   "dict_avg_tone_hw_full": {
-   "cjk": 6309,
-   "chars": 16774,
-   "utf8_bytes": 29638,
+   "cjk": 6312,
+   "chars": 16777,
+   "utf8_bytes": 29647,
    "tier": "standard"
   },
   "dict_avg_idf_tone_hw_full": {
@@ -13679,8 +13679,8 @@
   },
   "llm_models_avg_tone_ctx": {
    "cjk": 5773,
-   "chars": 16384,
-   "utf8_bytes": 28589,
+   "chars": 16385,
+   "utf8_bytes": 28590,
    "tier": "standard"
   },
   "llm_models_avg_tone_sum_ctx": {
@@ -13703,14 +13703,14 @@
   },
   "llm_models_avg_tone_std_ctx": {
    "cjk": 5802,
-   "chars": 16322,
-   "utf8_bytes": 28594,
+   "chars": 16323,
+   "utf8_bytes": 28595,
    "tier": "standard"
   },
   "dict_avg_tone_ctx": {
-   "cjk": 6278,
-   "chars": 16756,
-   "utf8_bytes": 29556,
+   "cjk": 6281,
+   "chars": 16759,
+   "utf8_bytes": 29565,
    "tier": "standard"
   },
   "dict_avg_tone_sum_ctx": {
@@ -13720,9 +13720,9 @@
    "tier": "standard"
   },
   "dict_avg_tone_std_ctx": {
-   "cjk": 6312,
-   "chars": 16721,
-   "utf8_bytes": 29591,
+   "cjk": 6315,
+   "chars": 16724,
+   "utf8_bytes": 29600,
    "tier": "standard"
   },
   "dict_avg_idf_tone_ctx": {
@@ -13823,14 +13823,14 @@
   },
   "llm_models_avg_tone_vw_ctx": {
    "cjk": 5782,
-   "chars": 16415,
-   "utf8_bytes": 28659,
+   "chars": 16416,
+   "utf8_bytes": 28660,
    "tier": "standard"
   },
   "dict_avg_tone_vw_ctx": {
-   "cjk": 6290,
-   "chars": 16673,
-   "utf8_bytes": 29497,
+   "cjk": 6293,
+   "chars": 16676,
+   "utf8_bytes": 29506,
    "tier": "standard"
   },
   "dict_avg_idf_tone_vw_ctx": {
@@ -13853,14 +13853,14 @@
   },
   "llm_models_avg_tone_mw_ctx": {
    "cjk": 5761,
-   "chars": 16391,
-   "utf8_bytes": 28565,
+   "chars": 16392,
+   "utf8_bytes": 28566,
    "tier": "standard"
   },
   "dict_avg_tone_mw_ctx": {
-   "cjk": 6312,
-   "chars": 16698,
-   "utf8_bytes": 29564,
+   "cjk": 6315,
+   "chars": 16701,
+   "utf8_bytes": 29573,
    "tier": "standard"
   },
   "dict_avg_idf_tone_mw_ctx": {
@@ -13883,14 +13883,14 @@
   },
   "llm_models_avg_tone_hw_ctx": {
    "cjk": 5764,
-   "chars": 16390,
-   "utf8_bytes": 28590,
+   "chars": 16391,
+   "utf8_bytes": 28591,
    "tier": "standard"
   },
   "dict_avg_tone_hw_ctx": {
-   "cjk": 6303,
-   "chars": 16746,
-   "utf8_bytes": 29596,
+   "cjk": 6306,
+   "chars": 16749,
+   "utf8_bytes": 29605,
    "tier": "standard"
   },
   "dict_avg_idf_tone_hw_ctx": {
@@ -13913,8 +13913,8 @@
   },
   "llm_models_avg_tone_ss": {
    "cjk": 5762,
-   "chars": 16428,
-   "utf8_bytes": 28617,
+   "chars": 16429,
+   "utf8_bytes": 28618,
    "tier": "standard"
   },
   "llm_models_avg_tone_sum_ss": {
@@ -13937,14 +13937,14 @@
   },
   "llm_models_avg_tone_std_ss": {
    "cjk": 5764,
-   "chars": 16287,
-   "utf8_bytes": 28476,
+   "chars": 16288,
+   "utf8_bytes": 28477,
    "tier": "standard"
   },
   "dict_avg_tone_ss": {
-   "cjk": 6301,
-   "chars": 16728,
-   "utf8_bytes": 29576,
+   "cjk": 6304,
+   "chars": 16731,
+   "utf8_bytes": 29585,
    "tier": "standard"
   },
   "dict_avg_tone_sum_ss": {
@@ -13954,9 +13954,9 @@
    "tier": "standard"
   },
   "dict_avg_tone_std_ss": {
-   "cjk": 6293,
-   "chars": 16608,
-   "utf8_bytes": 29442,
+   "cjk": 6296,
+   "chars": 16611,
+   "utf8_bytes": 29451,
    "tier": "standard"
   },
   "dict_avg_idf_tone_ss": {
@@ -14057,14 +14057,14 @@
   },
   "llm_models_avg_tone_vw_ss": {
    "cjk": 5775,
-   "chars": 16348,
-   "utf8_bytes": 28575,
+   "chars": 16349,
+   "utf8_bytes": 28576,
    "tier": "standard"
   },
   "dict_avg_tone_vw_ss": {
-   "cjk": 6293,
-   "chars": 16686,
-   "utf8_bytes": 29516,
+   "cjk": 6296,
+   "chars": 16689,
+   "utf8_bytes": 29525,
    "tier": "standard"
   },
   "dict_avg_idf_tone_vw_ss": {
@@ -14087,14 +14087,14 @@
   },
   "llm_models_avg_tone_mw_ss": {
    "cjk": 5781,
-   "chars": 16393,
-   "utf8_bytes": 28627,
+   "chars": 16394,
+   "utf8_bytes": 28628,
    "tier": "standard"
   },
   "dict_avg_tone_mw_ss": {
-   "cjk": 6293,
-   "chars": 16700,
-   "utf8_bytes": 29532,
+   "cjk": 6296,
+   "chars": 16703,
+   "utf8_bytes": 29541,
    "tier": "standard"
   },
   "dict_avg_idf_tone_mw_ss": {
@@ -14117,14 +14117,14 @@
   },
   "llm_models_avg_tone_hw_ss": {
    "cjk": 5754,
-   "chars": 16313,
-   "utf8_bytes": 28486,
+   "chars": 16314,
+   "utf8_bytes": 28487,
    "tier": "standard"
   },
   "dict_avg_tone_hw_ss": {
-   "cjk": 6296,
-   "chars": 16756,
-   "utf8_bytes": 29594,
+   "cjk": 6299,
+   "chars": 16759,
+   "utf8_bytes": 29603,
    "tier": "standard"
   },
   "dict_avg_idf_tone_hw_ss": {
@@ -14189,8 +14189,8 @@
   },
   "llm_models_avg_tone_tech_full": {
    "cjk": 5772,
-   "chars": 16242,
-   "utf8_bytes": 28441,
+   "chars": 16243,
+   "utf8_bytes": 28442,
    "tier": "standard"
   },
   "llm_models_avg_cont_tech_full": {
@@ -14200,9 +14200,9 @@
    "tier": "standard"
   },
   "dict_avg_tone_tech_full": {
-   "cjk": 6288,
-   "chars": 16691,
-   "utf8_bytes": 29509,
+   "cjk": 6291,
+   "chars": 16694,
+   "utf8_bytes": 29518,
    "tier": "standard"
   },
   "dict_avg_idf_tone_tech_full": {
@@ -14231,8 +14231,8 @@
   },
   "llm_models_avg_tone_tech_ctx": {
    "cjk": 5762,
-   "chars": 16314,
-   "utf8_bytes": 28495,
+   "chars": 16315,
+   "utf8_bytes": 28496,
    "tier": "standard"
   },
   "llm_models_avg_cont_tech_ctx": {
@@ -14242,9 +14242,9 @@
    "tier": "standard"
   },
   "dict_avg_tone_tech_ctx": {
-   "cjk": 6290,
-   "chars": 16727,
-   "utf8_bytes": 29551,
+   "cjk": 6293,
+   "chars": 16730,
+   "utf8_bytes": 29560,
    "tier": "standard"
   },
   "dict_avg_idf_tone_tech_ctx": {
@@ -14273,8 +14273,8 @@
   },
   "llm_models_avg_tone_tech_ss": {
    "cjk": 5762,
-   "chars": 16306,
-   "utf8_bytes": 28487,
+   "chars": 16307,
+   "utf8_bytes": 28488,
    "tier": "standard"
   },
   "llm_models_avg_cont_tech_ss": {
@@ -14284,9 +14284,9 @@
    "tier": "standard"
   },
   "dict_avg_tone_tech_ss": {
-   "cjk": 6300,
-   "chars": 16671,
-   "utf8_bytes": 29513,
+   "cjk": 6303,
+   "chars": 16674,
+   "utf8_bytes": 29522,
    "tier": "standard"
   },
   "dict_avg_idf_tone_tech_ss": {
@@ -14315,8 +14315,8 @@
   },
   "llm_models_avg_tone_app_full": {
    "cjk": 5794,
-   "chars": 16335,
-   "utf8_bytes": 28576,
+   "chars": 16336,
+   "utf8_bytes": 28577,
    "tier": "standard"
   },
   "llm_models_avg_cont_app_full": {
@@ -14326,9 +14326,9 @@
    "tier": "standard"
   },
   "dict_avg_tone_app_full": {
-   "cjk": 6323,
-   "chars": 16776,
-   "utf8_bytes": 29668,
+   "cjk": 6326,
+   "chars": 16779,
+   "utf8_bytes": 29677,
    "tier": "standard"
   },
   "dict_avg_idf_tone_app_full": {
@@ -14357,8 +14357,8 @@
   },
   "llm_models_avg_tone_app_ctx": {
    "cjk": 5794,
-   "chars": 16385,
-   "utf8_bytes": 28629,
+   "chars": 16386,
+   "utf8_bytes": 28630,
    "tier": "standard"
   },
   "llm_models_avg_cont_app_ctx": {
@@ -14368,9 +14368,9 @@
    "tier": "standard"
   },
   "dict_avg_tone_app_ctx": {
-   "cjk": 6331,
-   "chars": 16786,
-   "utf8_bytes": 29694,
+   "cjk": 6334,
+   "chars": 16789,
+   "utf8_bytes": 29703,
    "tier": "standard"
   },
   "dict_avg_idf_tone_app_ctx": {
@@ -14399,8 +14399,8 @@
   },
   "llm_models_avg_tone_app_ss": {
    "cjk": 5752,
-   "chars": 16289,
-   "utf8_bytes": 28453,
+   "chars": 16290,
+   "utf8_bytes": 28454,
    "tier": "standard"
   },
   "llm_models_avg_cont_app_ss": {
@@ -14410,9 +14410,9 @@
    "tier": "standard"
   },
   "dict_avg_tone_app_ss": {
-   "cjk": 6302,
-   "chars": 16705,
-   "utf8_bytes": 29555,
+   "cjk": 6305,
+   "chars": 16708,
+   "utf8_bytes": 29564,
    "tier": "standard"
   },
   "dict_avg_idf_tone_app_ss": {
@@ -14440,21 +14440,21 @@
    "tier": "standard"
   },
   "fintech_exposure_full": {
-   "cjk": 5485,
-   "chars": 12982,
-   "utf8_bytes": 24245,
+   "cjk": 5488,
+   "chars": 12985,
+   "utf8_bytes": 24254,
    "tier": "core"
   },
   "fintech_exposure_ctx": {
-   "cjk": 4822,
-   "chars": 12094,
-   "utf8_bytes": 22003,
+   "cjk": 4825,
+   "chars": 12097,
+   "utf8_bytes": 22012,
    "tier": "standard"
   },
   "fintech_exposure_ss": {
-   "cjk": 4851,
-   "chars": 12174,
-   "utf8_bytes": 22141,
+   "cjk": 4854,
+   "chars": 12177,
+   "utf8_bytes": 22150,
    "tier": "standard"
   },
   "llm_vote_tone_full_z": {
@@ -14476,39 +14476,39 @@
    "tier": "standard"
   },
   "llm_vote_cont_full_z": {
-   "cjk": 6223,
-   "chars": 16707,
-   "utf8_bytes": 29708,
+   "cjk": 6224,
+   "chars": 16711,
+   "utf8_bytes": 29714,
    "tier": "standard"
   },
   "llm_vote_cont_ctx_z": {
-   "cjk": 6354,
-   "chars": 17034,
-   "utf8_bytes": 30306,
+   "cjk": 6355,
+   "chars": 17038,
+   "utf8_bytes": 30312,
    "tier": "standard"
   },
   "llm_vote_cont_ss_z": {
-   "cjk": 6324,
-   "chars": 16966,
-   "utf8_bytes": 30186,
+   "cjk": 6325,
+   "chars": 16970,
+   "utf8_bytes": 30192,
    "tier": "standard"
   },
   "llm_models_avg_tone_full_z": {
    "cjk": 5945,
-   "chars": 16456,
-   "utf8_bytes": 29006,
+   "chars": 16457,
+   "utf8_bytes": 29007,
    "tier": "standard"
   },
   "llm_models_avg_tone_ctx_z": {
    "cjk": 5992,
-   "chars": 16527,
-   "utf8_bytes": 29165,
+   "chars": 16528,
+   "utf8_bytes": 29166,
    "tier": "standard"
   },
   "llm_models_avg_tone_ss_z": {
    "cjk": 5934,
-   "chars": 16426,
-   "utf8_bytes": 28950,
+   "chars": 16427,
+   "utf8_bytes": 28951,
    "tier": "standard"
   },
   "llm_models_avg_cont_full_z": {
@@ -14530,21 +14530,21 @@
    "tier": "standard"
   },
   "dict_avg_tone_full_z": {
-   "cjk": 6390,
-   "chars": 16691,
-   "utf8_bytes": 29713,
+   "cjk": 6393,
+   "chars": 16694,
+   "utf8_bytes": 29722,
    "tier": "standard"
   },
   "dict_avg_tone_ctx_z": {
-   "cjk": 6340,
-   "chars": 16713,
-   "utf8_bytes": 29632,
+   "cjk": 6343,
+   "chars": 16716,
+   "utf8_bytes": 29641,
    "tier": "standard"
   },
   "dict_avg_tone_ss_z": {
-   "cjk": 6338,
-   "chars": 16669,
-   "utf8_bytes": 29587,
+   "cjk": 6341,
+   "chars": 16672,
+   "utf8_bytes": 29596,
    "tier": "standard"
   },
   "dict_avg_idf_tone_full_z": {
@@ -14620,21 +14620,21 @@
    "tier": "standard"
   },
   "dict_avg_tone_vw_full_z": {
-   "cjk": 6345,
-   "chars": 16676,
-   "utf8_bytes": 29603,
+   "cjk": 6348,
+   "chars": 16679,
+   "utf8_bytes": 29612,
    "tier": "standard"
   },
   "dict_avg_tone_vw_ctx_z": {
-   "cjk": 6335,
-   "chars": 16680,
-   "utf8_bytes": 29592,
+   "cjk": 6338,
+   "chars": 16683,
+   "utf8_bytes": 29601,
    "tier": "standard"
   },
   "dict_avg_tone_vw_ss_z": {
-   "cjk": 6362,
-   "chars": 16717,
-   "utf8_bytes": 29681,
+   "cjk": 6365,
+   "chars": 16720,
+   "utf8_bytes": 29690,
    "tier": "standard"
   },
   "llm_vote_tone_mw_full_z": {
@@ -14656,21 +14656,21 @@
    "tier": "standard"
   },
   "dict_avg_tone_mw_full_z": {
-   "cjk": 6333,
-   "chars": 16658,
-   "utf8_bytes": 29560,
+   "cjk": 6336,
+   "chars": 16661,
+   "utf8_bytes": 29569,
    "tier": "standard"
   },
   "dict_avg_tone_mw_ctx_z": {
-   "cjk": 6319,
-   "chars": 16639,
-   "utf8_bytes": 29517,
+   "cjk": 6322,
+   "chars": 16642,
+   "utf8_bytes": 29526,
    "tier": "standard"
   },
   "dict_avg_tone_mw_ss_z": {
-   "cjk": 6360,
-   "chars": 16684,
-   "utf8_bytes": 29648,
+   "cjk": 6363,
+   "chars": 16687,
+   "utf8_bytes": 29657,
    "tier": "standard"
   },
   "llm_vote_tone_hw_full_z": {
@@ -14692,21 +14692,21 @@
    "tier": "standard"
   },
   "dict_avg_tone_hw_full_z": {
-   "cjk": 6365,
-   "chars": 16684,
-   "utf8_bytes": 29655,
+   "cjk": 6368,
+   "chars": 16687,
+   "utf8_bytes": 29664,
    "tier": "standard"
   },
   "dict_avg_tone_hw_ctx_z": {
-   "cjk": 6334,
-   "chars": 16677,
-   "utf8_bytes": 29588,
+   "cjk": 6337,
+   "chars": 16680,
+   "utf8_bytes": 29597,
    "tier": "standard"
   },
   "dict_avg_tone_hw_ss_z": {
-   "cjk": 6337,
-   "chars": 16710,
-   "utf8_bytes": 29624,
+   "cjk": 6340,
+   "chars": 16713,
+   "utf8_bytes": 29633,
    "tier": "standard"
   },
   "avg_msent_full_z": {
@@ -14728,39 +14728,39 @@
    "tier": "standard"
   },
   "fintech_exposure_full_z": {
-   "cjk": 4833,
-   "chars": 12065,
-   "utf8_bytes": 22000,
+   "cjk": 4836,
+   "chars": 12068,
+   "utf8_bytes": 22009,
    "tier": "standard"
   },
   "fintech_exposure_ctx_z": {
-   "cjk": 4861,
-   "chars": 12060,
-   "utf8_bytes": 22052,
+   "cjk": 4864,
+   "chars": 12063,
+   "utf8_bytes": 22061,
    "tier": "standard"
   },
   "fintech_exposure_ss_z": {
-   "cjk": 4841,
-   "chars": 12070,
-   "utf8_bytes": 22025,
+   "cjk": 4844,
+   "chars": 12073,
+   "utf8_bytes": 22034,
    "tier": "standard"
   },
   "avg_llm_conf_full_z": {
-   "cjk": 2281,
-   "chars": 7007,
-   "utf8_bytes": 11724,
+   "cjk": 2368,
+   "chars": 7224,
+   "utf8_bytes": 12119,
    "tier": "standard"
   },
   "avg_llm_conf_ctx_z": {
-   "cjk": 2270,
-   "chars": 7124,
-   "utf8_bytes": 11820,
+   "cjk": 2357,
+   "chars": 7341,
+   "utf8_bytes": 12215,
    "tier": "standard"
   },
   "avg_llm_conf_ss_z": {
-   "cjk": 2288,
-   "chars": 7073,
-   "utf8_bytes": 11807,
+   "cjk": 2375,
+   "chars": 7290,
+   "utf8_bytes": 12202,
    "tier": "standard"
   },
   "ln_news_coverage_z": {
@@ -16264,9 +16264,9 @@
    "tier": "core"
   },
   "net_modularity_yr": {
-   "cjk": 6863,
-   "chars": 14919,
-   "utf8_bytes": 29144,
+   "cjk": 6864,
+   "chars": 14922,
+   "utf8_bytes": 29149,
    "tier": "core"
   },
   "net_assortativity_yr": {
@@ -16282,9 +16282,9 @@
    "tier": "core"
   },
   "net_diameter_yr": {
-   "cjk": 5701,
-   "chars": 13644,
-   "utf8_bytes": 25521,
+   "cjk": 5702,
+   "chars": 13647,
+   "utf8_bytes": 25526,
    "tier": "core"
   },
   "net_giant_share_yr": {
@@ -16462,9 +16462,9 @@
    "tier": "standard"
   },
   "net_modularity_yr_win1": {
-   "cjk": 6353,
-   "chars": 14200,
-   "utf8_bytes": 27381,
+   "cjk": 6354,
+   "chars": 14203,
+   "utf8_bytes": 27386,
    "tier": "standard"
   },
   "net_assortativity_yr_win1": {
@@ -16480,9 +16480,9 @@
    "tier": "standard"
   },
   "net_diameter_yr_win1": {
-   "cjk": 5205,
-   "chars": 13062,
-   "utf8_bytes": 23909,
+   "cjk": 5206,
+   "chars": 13065,
+   "utf8_bytes": 23914,
    "tier": "standard"
   },
   "net_giant_share_yr_win1": {
@@ -16660,9 +16660,9 @@
    "tier": "standard"
   },
   "net_modularity_yr_sent": {
-   "cjk": 6386,
-   "chars": 14076,
-   "utf8_bytes": 27319,
+   "cjk": 6387,
+   "chars": 14079,
+   "utf8_bytes": 27324,
    "tier": "standard"
   },
   "net_assortativity_yr_sent": {
@@ -16678,9 +16678,9 @@
    "tier": "standard"
   },
   "net_diameter_yr_sent": {
-   "cjk": 5115,
-   "chars": 12789,
-   "utf8_bytes": 23457,
+   "cjk": 5116,
+   "chars": 12792,
+   "utf8_bytes": 23462,
    "tier": "standard"
   },
   "net_giant_share_yr_sent": {
@@ -16846,9 +16846,9 @@
    "tier": "standard"
   },
   "strat_diff_n5_lda": {
-   "cjk": 7696,
-   "chars": 17087,
-   "utf8_bytes": 33010,
+   "cjk": 7697,
+   "chars": 17090,
+   "utf8_bytes": 33015,
    "tier": "core"
   },
   "strat_diff_n10_lda": {
@@ -17254,9 +17254,9 @@
    "tier": "standard"
   },
   "strat_diff_n5_lda_ctx": {
-   "cjk": 7286,
-   "chars": 15765,
-   "utf8_bytes": 30843,
+   "cjk": 7287,
+   "chars": 15768,
+   "utf8_bytes": 30848,
    "tier": "standard"
   },
   "strat_diff_n10_lda_ctx": {
@@ -17326,9 +17326,9 @@
    "tier": "standard"
   },
   "strat_diff_n50_emb_ctx": {
-   "cjk": 2589,
-   "chars": 6048,
-   "utf8_bytes": 11429,
+   "cjk": 2591,
+   "chars": 6053,
+   "utf8_bytes": 11438,
    "tier": "standard"
   },
   "strat_sim_max_emb_ctx": {
@@ -17518,9 +17518,9 @@
    "tier": "standard"
   },
   "strat_diff_n5_lda_ss": {
-   "cjk": 7262,
-   "chars": 15782,
-   "utf8_bytes": 30804,
+   "cjk": 7263,
+   "chars": 15785,
+   "utf8_bytes": 30809,
    "tier": "standard"
   },
   "strat_diff_n10_lda_ss": {
@@ -17884,21 +17884,21 @@
    "tier": "core"
   },
   "benefit_std_full": {
-   "cjk": 6408,
-   "chars": 15288,
-   "utf8_bytes": 28362,
+   "cjk": 6411,
+   "chars": 15291,
+   "utf8_bytes": 28371,
    "tier": "core"
   },
   "benefit_pos_frac_full": {
-   "cjk": 6447,
-   "chars": 15470,
-   "utf8_bytes": 28624,
+   "cjk": 6450,
+   "chars": 15473,
+   "utf8_bytes": 28633,
    "tier": "core"
   },
   "benefit_neg_frac_full": {
-   "cjk": 6485,
-   "chars": 15611,
-   "utf8_bytes": 28839,
+   "cjk": 6488,
+   "chars": 15614,
+   "utf8_bytes": 28848,
    "tier": "core"
   },
   "benefit_mean_ctx": {
@@ -17908,21 +17908,21 @@
    "tier": "standard"
   },
   "benefit_std_ctx": {
-   "cjk": 5753,
-   "chars": 14529,
-   "utf8_bytes": 26275,
+   "cjk": 5756,
+   "chars": 14532,
+   "utf8_bytes": 26284,
    "tier": "standard"
   },
   "benefit_pos_frac_ctx": {
-   "cjk": 5760,
-   "chars": 14587,
-   "utf8_bytes": 26345,
+   "cjk": 5763,
+   "chars": 14590,
+   "utf8_bytes": 26354,
    "tier": "standard"
   },
   "benefit_neg_frac_ctx": {
-   "cjk": 5781,
-   "chars": 14566,
-   "utf8_bytes": 26368,
+   "cjk": 5784,
+   "chars": 14569,
+   "utf8_bytes": 26377,
    "tier": "standard"
   },
   "benefit_mean_ss": {
@@ -17932,21 +17932,21 @@
    "tier": "standard"
   },
   "benefit_std_ss": {
-   "cjk": 5811,
-   "chars": 14507,
-   "utf8_bytes": 26373,
+   "cjk": 5814,
+   "chars": 14510,
+   "utf8_bytes": 26382,
    "tier": "standard"
   },
   "benefit_pos_frac_ss": {
-   "cjk": 5770,
-   "chars": 14442,
-   "utf8_bytes": 26220,
+   "cjk": 5773,
+   "chars": 14445,
+   "utf8_bytes": 26229,
    "tier": "standard"
   },
   "benefit_neg_frac_ss": {
-   "cjk": 5801,
-   "chars": 14522,
-   "utf8_bytes": 26366,
+   "cjk": 5804,
+   "chars": 14525,
+   "utf8_bytes": 26375,
    "tier": "standard"
   },
   "benefit_mean_lg_full": {
@@ -17956,21 +17956,21 @@
    "tier": "core"
   },
   "benefit_std_lg_full": {
-   "cjk": 5811,
-   "chars": 14593,
-   "utf8_bytes": 26453,
+   "cjk": 5814,
+   "chars": 14596,
+   "utf8_bytes": 26462,
    "tier": "standard"
   },
   "benefit_pos_frac_lg_full": {
-   "cjk": 5790,
-   "chars": 14585,
-   "utf8_bytes": 26411,
+   "cjk": 5793,
+   "chars": 14588,
+   "utf8_bytes": 26420,
    "tier": "standard"
   },
   "benefit_neg_frac_lg_full": {
-   "cjk": 5811,
-   "chars": 14643,
-   "utf8_bytes": 26501,
+   "cjk": 5814,
+   "chars": 14646,
+   "utf8_bytes": 26510,
    "tier": "standard"
   },
   "benefit_mean_lg_ctx": {
@@ -17980,21 +17980,21 @@
    "tier": "standard"
   },
   "benefit_std_lg_ctx": {
-   "cjk": 5774,
-   "chars": 14515,
-   "utf8_bytes": 26305,
+   "cjk": 5777,
+   "chars": 14518,
+   "utf8_bytes": 26314,
    "tier": "standard"
   },
   "benefit_pos_frac_lg_ctx": {
-   "cjk": 5753,
-   "chars": 14517,
-   "utf8_bytes": 26265,
+   "cjk": 5756,
+   "chars": 14520,
+   "utf8_bytes": 26274,
    "tier": "standard"
   },
   "benefit_neg_frac_lg_ctx": {
-   "cjk": 5777,
-   "chars": 14575,
-   "utf8_bytes": 26371,
+   "cjk": 5780,
+   "chars": 14578,
+   "utf8_bytes": 26380,
    "tier": "standard"
   },
   "benefit_mean_lg_ss": {
@@ -18004,21 +18004,21 @@
    "tier": "standard"
   },
   "benefit_std_lg_ss": {
-   "cjk": 5790,
-   "chars": 14501,
-   "utf8_bytes": 26318,
+   "cjk": 5793,
+   "chars": 14504,
+   "utf8_bytes": 26327,
    "tier": "standard"
   },
   "benefit_pos_frac_lg_ss": {
-   "cjk": 5768,
-   "chars": 14519,
-   "utf8_bytes": 26290,
+   "cjk": 5771,
+   "chars": 14522,
+   "utf8_bytes": 26299,
    "tier": "standard"
   },
   "benefit_neg_frac_lg_ss": {
-   "cjk": 5788,
-   "chars": 14562,
-   "utf8_bytes": 26373,
+   "cjk": 5791,
+   "chars": 14565,
+   "utf8_bytes": 26382,
    "tier": "standard"
   },
   "article_sim_mean": {
@@ -18503,8 +18503,8 @@
   },
   "hidden_adopt_kw_p25_allv": {
    "cjk": 2721,
-   "chars": 6942,
-   "utf8_bytes": 12526,
+   "chars": 6943,
+   "utf8_bytes": 12527,
    "tier": "standard"
   },
   "subst_adopt_kw_p25_allv": {
@@ -18856,39 +18856,39 @@
    "tier": "standard"
   },
   "industry_neg_shock": {
-   "cjk": 5676,
-   "chars": 15353,
-   "utf8_bytes": 27011,
+   "cjk": 5679,
+   "chars": 15356,
+   "utf8_bytes": 27020,
    "tier": "core"
   },
   "industry_neg_shock_lag1": {
-   "cjk": 5122,
-   "chars": 14562,
-   "utf8_bytes": 25103,
+   "cjk": 5125,
+   "chars": 14565,
+   "utf8_bytes": 25112,
    "tier": "standard"
   },
   "industry_neg_shock_ctx": {
-   "cjk": 5066,
-   "chars": 14486,
-   "utf8_bytes": 24910,
+   "cjk": 5069,
+   "chars": 14489,
+   "utf8_bytes": 24919,
    "tier": "standard"
   },
   "industry_neg_shock_lag1_ctx": {
-   "cjk": 5062,
-   "chars": 14500,
-   "utf8_bytes": 24922,
+   "cjk": 5065,
+   "chars": 14503,
+   "utf8_bytes": 24931,
    "tier": "standard"
   },
   "industry_neg_shock_ss": {
-   "cjk": 5121,
-   "chars": 14557,
-   "utf8_bytes": 25093,
+   "cjk": 5124,
+   "chars": 14560,
+   "utf8_bytes": 25102,
    "tier": "standard"
   },
   "industry_neg_shock_lag1_ss": {
-   "cjk": 5122,
-   "chars": 14539,
-   "utf8_bytes": 25079,
+   "cjk": 5125,
+   "chars": 14542,
+   "utf8_bytes": 25088,
    "tier": "standard"
   },
   "brokerage_fire_sale": {
@@ -19492,9 +19492,9 @@
    "tier": "standard"
   },
   "washing_asymmetry_ss": {
-   "cjk": 2742,
-   "chars": 6905,
-   "utf8_bytes": 12541,
+   "cjk": 2743,
+   "chars": 6908,
+   "utf8_bytes": 12546,
    "tier": "standard"
   },
   "tone_gap_symb_sub_ss": {
@@ -19876,21 +19876,21 @@
    "tier": "standard"
   },
   "log_sent_full": {
-   "cjk": 1902,
-   "chars": 5105,
-   "utf8_bytes": 9063,
+   "cjk": 2013,
+   "chars": 5601,
+   "utf8_bytes": 9788,
    "tier": "standard"
   },
   "log_sent_ctx": {
-   "cjk": 1986,
-   "chars": 5134,
-   "utf8_bytes": 9255,
+   "cjk": 2112,
+   "chars": 5692,
+   "utf8_bytes": 10072,
    "tier": "standard"
   },
   "log_sent_ss": {
-   "cjk": 2008,
-   "chars": 5121,
-   "utf8_bytes": 9279,
+   "cjk": 2105,
+   "chars": 5602,
+   "utf8_bytes": 9961,
    "tier": "standard"
   },
   "algo_cater_full": {
@@ -20291,8 +20291,8 @@
   },
   "semantic_staleness_full": {
    "cjk": 5925,
-   "chars": 13852,
-   "utf8_bytes": 26071,
+   "chars": 13853,
+   "utf8_bytes": 26072,
    "tier": "core"
   },
   "semantic_highstale_full": {
@@ -20303,8 +20303,8 @@
   },
   "semantic_staleness_ctx": {
    "cjk": 5462,
-   "chars": 13013,
-   "utf8_bytes": 24285,
+   "chars": 13014,
+   "utf8_bytes": 24286,
    "tier": "standard"
   },
   "semantic_highstale_ctx": {
@@ -20315,8 +20315,8 @@
   },
   "semantic_staleness_ss": {
    "cjk": 5486,
-   "chars": 13074,
-   "utf8_bytes": 24392,
+   "chars": 13075,
+   "utf8_bytes": 24393,
    "tier": "standard"
   },
   "semantic_highstale_ss": {
@@ -20327,8 +20327,8 @@
   },
   "semantic_staleness_full_lg": {
    "cjk": 5928,
-   "chars": 13932,
-   "utf8_bytes": 26159,
+   "chars": 13933,
+   "utf8_bytes": 26160,
    "tier": "core"
   },
   "semantic_highstale_full_lg": {
@@ -20339,8 +20339,8 @@
   },
   "semantic_staleness_ctx_lg": {
    "cjk": 5442,
-   "chars": 12995,
-   "utf8_bytes": 24218,
+   "chars": 12996,
+   "utf8_bytes": 24219,
    "tier": "standard"
   },
   "semantic_highstale_ctx_lg": {
@@ -20351,8 +20351,8 @@
   },
   "semantic_staleness_ss_lg": {
    "cjk": 5504,
-   "chars": 13114,
-   "utf8_bytes": 24467,
+   "chars": 13115,
+   "utf8_bytes": 24468,
    "tier": "standard"
   },
   "semantic_highstale_ss_lg": {
