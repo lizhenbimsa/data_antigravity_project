@@ -1071,15 +1071,17 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'exc_tone_full':                 'Tone Excl Ceased (LLM Vote, Full)',
                 'exc_tone_ctx':                  'Tone Excl Ceased (LLM Vote, Ctx)',
                 # ═══ 平衡媒体面板 (Wooldridge 2010, §19.9) ═══
-                'bal_w0724_tone_full':           'Balanced W07-24 Tone (Full)',
-                'bal_w0724_tone_ctx':            'Balanced W07-24 Tone (Ctx)',
-                'bal_w1024_tone_full':           'Balanced W10-24 Tone (Full)',
-                'bal_w1024_tone_ctx':            'Balanced W10-24 Tone (Ctx)',
-                'bal_w1124_tone_full':           'Balanced W11-24 Tone (Full)',
-                'bal_w1124_tone_ctx':            'Balanced W11-24 Tone (Ctx)',
-                'n_media_bal_w0724':             'N Media Balanced W07-24',
-                'n_media_bal_w1024':             'N Media Balanced W10-24',
-                'n_media_bal_w1124':             'N Media Balanced W11-24',
+                # F6 (2026-07-16): 窗口右端点扩 2025 (T=19) 且后缀更名 w07/10/1125
+                # (D1 名实相符; _ss 轨标签由末尾 _ctx→_ss 机械派生环自动跟随)
+                'bal_w0725_tone_full':           'Balanced W07-25 Tone (Full)',
+                'bal_w0725_tone_ctx':            'Balanced W07-25 Tone (Ctx)',
+                'bal_w1025_tone_full':           'Balanced W10-25 Tone (Full)',
+                'bal_w1025_tone_ctx':            'Balanced W10-25 Tone (Ctx)',
+                'bal_w1125_tone_full':           'Balanced W11-25 Tone (Full)',
+                'bal_w1125_tone_ctx':            'Balanced W11-25 Tone (Ctx)',
+                'n_media_bal_w0725':             'N Media Balanced W07-25',
+                'n_media_bal_w1025':             'N Media Balanced W10-25',
+                'n_media_bal_w1125':             'N Media Balanced W11-25',
                 # === 四梯度距离缓冲 (Gurun & Butler 2012) ===
                 'prox_50km_n_media':             'N Media Within 50km',
                 'prox_50km_n_articles':          'N Articles Within 50km',

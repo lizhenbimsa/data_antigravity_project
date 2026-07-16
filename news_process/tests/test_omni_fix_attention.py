@@ -223,33 +223,43 @@ class TestBalancedPanelPerYearCoverage:
 
     @pytest.fixture()
     def out(self):
+        # F6 (2026-07-16): 年跨度扩至 2025 (T=19 口径); GAP 端点同步 (2007, 2025)
+        # 保持中间全缺 — 维持"旧端点判据误纳入/新逐年判据剔除"的回归判别力
         rows = []
-        for y in range(2007, 2025):     # FULL: 2007..2024 每年 1 篇
+        for y in range(2007, 2026):     # FULL: 2007..2025 每年 1 篇
             rows.append({'媒体(中文)': 'FULL', 'target_bank': 'B1', 'year': y,
                          'llm_vote_score_full': 0.5})
-        for y in (2007, 2024):          # GAP: 仅端点两年 (旧端点判据误纳入)
+        for y in (2007, 2025):          # GAP: 仅端点两年 (旧端点判据误纳入)
             rows.append({'媒体(中文)': 'GAP', 'target_bank': 'B1', 'year': y,
                          'llm_vote_score_full': -1.0})
         df = pd.DataFrame(rows)
         panel = pd.DataFrame({'target_bank': 'B1',
-                              'year': list(range(2007, 2025))})
+                              'year': list(range(2007, 2026))})
         return am.compute_balanced_media_robustness(df, panel, am.logger, [])
 
     def test_intermittent_media_excluded(self, out):
-        # GAP (first=2007, last=2024, 中间全缺) 不再算"平衡" → 每窗口仅 FULL 1 家
-        for sfx in ('w0724', 'w1024', 'w1124'):
+        # GAP (first=2007, last=2025, 中间全缺) 不再算"平衡" → 每窗口仅 FULL 1 家
+        for sfx in ('w0725', 'w1025', 'w1125'):
             assert (out[f'n_media_bal_{sfx}'] == 1).all(), \
                 f'{sfx}: 间歇媒体被误纳入平衡子集'
 
     def test_bal_tone_excludes_gap_articles(self, out):
         # 2007 年: 旧判据含 GAP → mean(0.5, -1.0) = -0.25; 新判据仅 FULL → 0.5
         row = out[out['year'] == 2007].iloc[0]
-        assert row['bal_w0724_tone_full'] == pytest.approx(0.5)
+        assert row['bal_w0725_tone_full'] == pytest.approx(0.5)
 
     def test_source_per_year_criterion(self):
         # 源码级: 逐年覆盖判据在, 端点判据不得复活
         assert "groupby('媒体(中文)')['year'].nunique()" in SRC
         assert "(media_span['first_year'] <= start_year)" not in SRC
+
+    def test_f6_windows_t19_endpoint_and_name_consistency(self):
+        """F6 T5 (2026-07-16): 右端点=2025 (T=19 口径) 且窗口后缀名实一致 —
+        防下次语料口径变更再次漏改功能常量 (90c40e92 只改注释的教训)。"""
+        for start, end, sfx in am.ROBUSTNESS_WINDOWS:
+            assert end == 2025, f'窗口 {sfx} 右端点 {end} != 2025 (T=19 口径)'
+            assert sfx == f'w{start % 100:02d}{end % 100:02d}', \
+                f'窗口后缀 {sfx} 与年窗 ({start},{end}) 名实不符'
 
 
 # ============================================================================
