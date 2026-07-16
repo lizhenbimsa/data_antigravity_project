@@ -421,3 +421,4 @@ C3-C6 无代码依赖, 但 §4.2 面板 A/B **逐提交链式做** (每个 C 与
 - **证据补档**: c6_diff.txt (12 件零 diff) / c11_closing_diff.txt (恰 2 件差 = −9 cross_media 列) / c2_stage16_equality.txt (run_pre 16 号 vs 全链终态数据层全等 — F1/F2 经真实全链路径的字节等价终证)。
 - **时序备注**: C10a (M1) 落码先于 C6 链式重跑 — 离线 0-miss 下归档/缓存写路径不可达, 对链产物中性, 且被 C6 零 diff 锚顺带覆盖。
 - **并发追认**: 并发会话当晚已将 company_* 域工作入库 (main=3ccd5df4, 含 G9 registry 激活), 与本计划零冲突; pytest_B 唯一新红即其未提交中间态所致, 已随其收口自然消退预期。
+- **C10b/M4 收口 (1aca77f1)**: 并发收口后前置闸打开, 当晚即补齐 — 保结构替换年上界 (yearly×year_max 动态判定, 下界 listed=ipo_year / tax=reg_year 原样), tax 侧经 engine() 复用 listed helper (T-D10); +3 gate, 双管道套件 93 用例绿 (含并发收口后转绿的锁测试)。**至此 13/13 全部落地, 无顺延项**; §7-R9 (脏文件闸) 与 R10 (tracked md 陈旧) 关闭 — 下轮 02 真跑将以动态行重生 codebook md。
