@@ -324,6 +324,18 @@ _STAGE21_UPSTREAM_FINGERPRINT_COLUMNS = (
     '日期',
     '标题',
     '内容',
+    # F7 (2026-07-16, FATAL_DEFECT_REMEDIATION §2-F7): ctx/ss 轨 prompt 的真实文本
+    # 输入 (tone_llms.iter_article_track_prompts) + 回退语义位。此前九列指纹对轨道
+    # 物化参数变更 (如 filtering.yaml::context_window.ss_sentence_radius) 全盲 —
+    # fintech_intensity_score/intensity_verified 只是 full 轨别名不代偿 → skip 误
+    # 放行, 旧 LLM 标签 + 旧轨文本被 22/23 静默当新数据。四列两侧 parquet 在位性
+    # 已实测 (15 号 + 21_full 均带); legacy 缺列 → 列读取抛错被比对 except 捕获 →
+    # reject skip → NEWS_PROCESS_LLM_OFFLINE=1 离线 $0 重放回填, 属预期非故障。
+    # 成本: 指纹本就含 '内容' 全文列, 新增两文本列 ≈ ×2-3, 远低于误跳过 stage 21。
+    'content_ctx',
+    'content_ss',
+    'ctx_is_fallback',
+    'ss_is_fallback',
     'fintech_intensity_score',
     'intensity_verified',
 )
@@ -505,7 +517,11 @@ def _stage21_skip_is_compatible(stage21_outputs: list[str]) -> tuple[bool, str]:
             _STAGE21_UPSTREAM_FINGERPRINT_COLUMNS,
         )
     except Exception as exc:
-        return False, f"failed to compare stage 14 and stage 21 full output: {exc}"
+        # F7 修法第 6 条: 该 except 兜所有比对异常 (含文件损坏), 故用条件式提示。
+        return False, (
+            f"failed to compare stage 14 and stage 21 full output: {exc} "
+            f"(若为 legacy 缺列: 离线 $0 重放回填属预期)"
+        )
 
     if upstream_rows != full_rows:
         return False, (
