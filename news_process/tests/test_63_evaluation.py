@@ -635,3 +635,84 @@ def test_sha_missing_is_auto_generated(tmp_path):
     assert hasattr(manual_validation_schema, 'R_COLUMNS_BY_RATER')
     assert hasattr(manual_validation_schema, 'normalize_rater_value')
     assert hasattr(manual_validation_schema, 'merge_three_rater_majority')
+
+
+# ============================================================================
+# F9 (2026-07-16, FATAL_DEFECT_REMEDIATION §2-F9): 创新维度人工验证 join —
+# 复合键 (docid, target_bank) 优先; 降级双侧对称剔歧义 (gold 宁缺勿错配)
+# ============================================================================
+
+def _f9_env(tmp_path, monkeypatch, df_mv, df_pred):
+    output_dir = tmp_path / "processed"
+    output_dir.mkdir()
+    df_mv.to_excel(output_dir / 'manual_validation_samples.xlsx', index=False)
+    df_pred.to_parquet(output_dir / '21_tone_llms.parquet')
+    monkeypatch.setattr(
+        'news_process.core.config.load_config',
+        lambda: {'paths': {'output_dir': str(output_dir)}},
+    )
+    return output_dir
+
+
+def test_f9_composite_key_same_docid_two_banks(tmp_path, monkeypatch, caplog):
+    """同 docid 两银行: 复合键下各配各、零丢弃 (旧 docid 单键会去重成 1 行且可错配)。"""
+    import logging
+    n = 4
+    df_mv = pd.DataFrame({
+        'docid': ['d0', 'd0', 'd1', 'd2'],
+        'target_bank': ['银行A', '银行B', '银行A', '银行B'],
+        **{c: ['substantive'] * n for c in R_COLUMNS_BY_RATER['substantiveness']},
+        **{c: ['technology'] * n for c in R_COLUMNS_BY_RATER['locus']},
+    })
+    df_pred = pd.DataFrame({
+        'docid': ['d0', 'd0', 'd1', 'd2'],
+        'target_bank': ['银行A', '银行B', '银行A', '银行B'],
+        'innovation_substantiveness_full': ['实质性'] * 4,
+        'innovation_substantiveness_ctx':  ['实质性'] * 4,
+        'innovation_locus_full': ['底层技术'] * 4,
+        'innovation_locus_ctx':  ['底层技术'] * 4,
+    })
+    output_dir = _f9_env(tmp_path, monkeypatch, df_mv, df_pred)
+    results = {'classifier_metrics': {'innovation_substantiveness': {},
+                                      'innovation_locus': {}},
+               'innovation_pending_reason': None}
+    lg = logging.getLogger('t_f9_composite')
+    with caplog.at_level(logging.INFO, logger='t_f9_composite'):
+        _mod._evaluate_innovation_panels(results, str(output_dir), lg)
+    assert results['innovation_pending_reason'] is None
+    recon = [r.message for r in caplog.records if 'innovation join 对账' in r.message]
+    assert recon, '缺对账日志'
+    # 复合键: 4 行 gold 全部保留并各配各 (旧单键 keep=first 会掉到 3 行)
+    assert "keys=['docid', 'target_bank']" in recon[0]
+    assert 'joined 4 行' in recon[0] and '未匹配 gold 0 行' in recon[0]
+
+
+def test_f9_degraded_symmetric_ambiguity_removal(tmp_path, monkeypatch, caplog):
+    """降级 (无 target_bank): mv 侧 d0 两行 + pred 侧 d0 唯一 → d0 整体剔除
+    (旧 keep='first' 会任意取 mv 首行与 pred d0 错配)。"""
+    import logging
+    n = 4
+    df_mv = pd.DataFrame({
+        'docid': ['d0', 'd0', 'd1', 'd2'],
+        **{c: ['substantive'] * n for c in R_COLUMNS_BY_RATER['substantiveness']},
+        **{c: ['technology'] * n for c in R_COLUMNS_BY_RATER['locus']},
+    })
+    df_pred = pd.DataFrame({
+        'docid': ['d0', 'd1', 'd2'],
+        'innovation_substantiveness_full': ['实质性'] * 3,
+        'innovation_substantiveness_ctx':  ['实质性'] * 3,
+        'innovation_locus_full': ['底层技术'] * 3,
+        'innovation_locus_ctx':  ['底层技术'] * 3,
+    })
+    output_dir = _f9_env(tmp_path, monkeypatch, df_mv, df_pred)
+    results = {'classifier_metrics': {'innovation_substantiveness': {},
+                                      'innovation_locus': {}},
+               'innovation_pending_reason': None}
+    lg = logging.getLogger('t_f9_degraded')
+    with caplog.at_level(logging.INFO, logger='t_f9_degraded'):
+        _mod._evaluate_innovation_panels(results, str(output_dir), lg)
+    assert results['innovation_pending_reason'] is None
+    warn = [r.message for r in caplog.records if '降级为 docid 单键' in r.message]
+    assert warn and 'mv 侧剔除 2 行' in warn[0], warn
+    recon = [r.message for r in caplog.records if 'innovation join 对账' in r.message]
+    assert recon and 'joined 2 行' in recon[0]   # 仅 d1/d2; d0 宁缺勿错配

@@ -1116,13 +1116,43 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
         )
         results['innovation_pending_reason'] = 'schema mismatch'
         return
-    join_key = 'docid'
+    # fix(F9, 2026-07-16, FATAL_DEFECT_REMEDIATION §2-F9): docid 是文章×银行粒度
+    # 非唯一键 (同 docid 可多银行行), 预测逐 (docid, target_bank) 生成 (prompt 注入
+    # target_bank, ctx/ss 窗按目标银行抽取) — 旧 docid 单键双侧 keep='first' 会把
+    # gold 与另一家银行的预测错位配对打分, 并静默丢弃部分人工标注。
+    # 修法: 双侧带 target_bank 时用复合键; 降级 (缺列) 时双侧对称剔除歧义 docid
+    # (gold 宁缺勿错配 — 单侧剔除仍可错配, R2 评审定谳), 杜绝任意首行配对。
+    _n_mv0, _n_pred0 = len(df_mv), len(df_pred)
+    if 'target_bank' in df_mv.columns and 'target_bank' in df_pred.columns:
+        join_keys = ['docid', 'target_bank']
+    else:
+        join_keys = ['docid']
+        _amb_pred = df_pred['docid'].duplicated(keep=False)
+        _amb_mv = df_mv['docid'].duplicated(keep=False)
+        if int(_amb_pred.sum()) or int(_amb_mv.sum()):
+            logger_inst.warning(
+                f"  innovation join 降级为 docid 单键 (mv/pred 缺 target_bank): "
+                f"pred 侧剔除歧义 docid {int(_amb_pred.sum())} 行, "
+                f"mv 侧剔除 {int(_amb_mv.sum())} 行 (gold 宁缺勿错配); "
+                f"建议样本生成侧补 target_bank 列启用复合键")
+        df_pred = df_pred[~_amb_pred]
+        df_mv = df_mv[~_amb_mv]
 
-    # join 键去重 (R2C-04 + plan §3.3.3 test 14)
-    df_mv = df_mv.drop_duplicates(subset=[join_key], keep='first')
-    df_pred = df_pred.drop_duplicates(subset=[join_key], keep='first')
+    # join 键去重 (R2C-04 语义升级: 复合键去重 / 降级双侧剔歧义, plan §3.3.3 test 14)
+    df_mv = df_mv.drop_duplicates(subset=join_keys, keep='first')
+    df_pred = df_pred.drop_duplicates(subset=join_keys, keep='first')
 
-    df_joined = df_mv.merge(df_pred, on=join_key, how='inner', suffixes=('_mv', ''))
+    df_joined = df_mv.merge(df_pred, on=join_keys, how='inner', suffixes=('_mv', ''))
+    # 对账日志 (fail-loud 可见性): 错位配对类缺陷的事后可审计锚
+    _n_unmatched = len(df_mv) - len(df_joined)
+    logger_inst.info(
+        f"  innovation join 对账: keys={join_keys}, mv {_n_mv0}→{len(df_mv)} 行, "
+        f"pred {_n_pred0}→{len(df_pred)} 行, joined {len(df_joined)} 行, "
+        f"未匹配 gold {_n_unmatched} 行")
+    if len(df_mv) and _n_unmatched / len(df_mv) > 0.05:
+        logger_inst.warning(
+            f"  innovation join 未匹配率 {_n_unmatched / len(df_mv):.1%} > 5% — "
+            f"核查样本与 21 号 parquet 宇宙一致性")
 
     # 逐创新维度 × 逐轨道评估 (WS-A: 加 collab → Panel G)
     for task_name, gold_col, pred_template, class_labels in [
