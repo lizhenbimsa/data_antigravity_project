@@ -535,3 +535,100 @@ class TestAvgCategoryConfidenceRevival:
         assert panel['avg_category_confidence'].isna().all()
         assert panel['avg_category_confidence_full'].isna().all()
         assert panel['avg_category_confidence_ctx'].isna().all()
+
+
+# ============================================================================
+# F3 (2026-07-16): avg_llm_conf 宏平均 per-model 有效票掩码
+# (FATAL_DEFECT_REMEDIATION_EXECUTION_PLAN §2-F3; D5 口径 — 缺席与在场判伪/缺标
+#  模型格均不入分子分母, 与 _conf_valid_* 掩码列同源同式)
+# ============================================================================
+
+def _article_df_permodel(specs):
+    """specs: 逐模型 (conf, verified, sentiment) 三元组; 单篇文章 (bank A, 2017)."""
+    df = pd.DataFrame({
+        'target_bank': ['A'], 'year': [2017],
+        'llm_sentiment_full': ['正面'],
+        'llm_verified_full': [True],
+        'llm_agreement_rate_full': [1.0],
+    })
+    for short, (conf, ver, sent) in zip(LLM_MODELS, specs):
+        df[f'{short}_sentiment_full'] = [sent]
+        df[f'{short}_sentiment_confidence_full'] = [conf]
+        df[f'{short}_verified_full'] = [ver]
+    return df
+
+
+class TestF3InvalidModelCellMasking:
+    def test_t1_absent_model_zero_excluded(self):
+        """缺席模型 (sentiment=None/verified=None/conf=0.0 结构性哨兵) 不稀释宏平均
+        (旧式 raw mean = (0.9+0.85+0.0)/3 ≈ 0.5833, 审计离线重放实证)."""
+        df = encode_sentiment(_article_df_permodel([
+            (0.9, True, '正面'), (0.85, True, '正面'), (0.0, None, None)]))
+        assert df['avg_llm_conf_full'].iloc[0] == pytest.approx(0.875)
+
+    def test_t2_all_valid_regression_anchor(self):
+        """三模型全部投出有效票: 与旧 raw 宏平均逐位一致 (回归锚)."""
+        df = encode_sentiment(_article_df_permodel([
+            (0.9, True, '正面'), (0.85, True, '正面'), (0.8, True, '正面')]))
+        assert df['avg_llm_conf_full'].iloc[0] == pytest.approx((0.9 + 0.85 + 0.8) / 3)
+
+    def test_t5_present_unverified_real_conf_excluded(self):
+        """在场但判伪 (conf=0.7 真实值, score=NA) 亦剔 — 锚死"剔的是 score=NA 格"
+        而非"仅 conf==0.0 格" (D5 构念级口径)."""
+        df = encode_sentiment(_article_df_permodel([
+            (0.9, True, '正面'), (0.7, False, '正面'), (0.8, True, '正面')]))
+        assert df['avg_llm_conf_full'].iloc[0] == pytest.approx((0.9 + 0.8) / 2)
+
+    def test_t3_all_invalid_nan(self):
+        df = encode_sentiment(_article_df_permodel([
+            (0.0, None, None), (0.0, None, None), (0.0, None, None)]))
+        assert pd.isna(df['avg_llm_conf_full'].iloc[0])
+
+    def test_t4_missing_score_source_falls_back_raw(self):
+        """某模型缺 sentiment 列 → score 列不建 → 该模型回退 raw 置信度 (旧 schema 兼容)."""
+        base = _article_df_permodel([
+            (0.9, True, '正面'), (0.85, True, '正面'), (0.8, True, '正面')])
+        base = base.drop(columns=[f'{LLM_MODELS[2]}_sentiment_full'])
+        df = encode_sentiment(base)
+        assert df['avg_llm_conf_full'].iloc[0] == pytest.approx((0.9 + 0.85 + 0.8) / 3)
+
+
+# ============================================================================
+# F3b (2026-07-16): 验证置信度诊断 _conf 参与域掩码 (llms_evaluation)
+# ⚠ 与 D5 (情感有效票域) 刻意不同构: 在场判伪格是有效验证票、其 conf 是诊断对象须保留;
+#   只剔缺席哨兵格 (verified=None ∧ conf=0.0)。
+# ============================================================================
+
+class TestF3bVerificationConfParticipationMask:
+    def _fixture(self):
+        n = 8
+        df = pd.DataFrame({
+            '最终_验证': [1, 1, 0, 0] * 2,
+            'llm_verified_full': [True, False, True, False] * 2,
+            'llm_sentiment_full': ['正面', '负面', '中性', '正面'] * 2,
+            '内容': ['文本样例' * 5] * n,
+        })
+        m0, m1, m2 = LLM_MODELS
+        df[f'{m0}_verification_confidence_full'] = 0.9
+        df[f'{m0}_verified_full'] = True
+        df[f'{m1}_verification_confidence_full'] = 0.7
+        df[f'{m1}_verified_full'] = False      # 在场判伪: 真值必须保留
+        df[f'{m2}_verification_confidence_full'] = 0.0
+        df[f'{m2}_verified_full'] = None       # 缺席哨兵: 必须剔除
+        return df
+
+    def test_absent_excluded_present_false_kept(self, caplog):
+        import logging
+
+        from news_process.validation.llms_evaluation import (
+            diagnose_misclassification_bias,
+        )
+        lg = logging.getLogger('test_f3b_participation')
+        with caplog.at_level(logging.INFO, logger='test_f3b_participation'):
+            diagnose_misclassification_bias(
+                self._fixture(), '最终_验证', track='_full', logger_inst=lg)
+        msgs = [r.message for r in caplog.records if '验证置信度' in r.message]
+        assert msgs, '未见 (c) 验证置信度日志'
+        # 掩码后 _conf = mean(0.9, 0.7) = 0.8 (缺席 0.0 剔除, 在场判伪 0.7 保留)
+        assert 'mean=0.8000' in msgs[0], msgs[0]
+        assert '剔除 8 篇×模型格' in msgs[0], msgs[0]

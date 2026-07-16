@@ -370,16 +370,37 @@ def encode_sentiment(df: pd.DataFrame) -> pd.DataFrame:
     # llm_vote_cont / {short}_cont 等其他消费者不受影响)。
     # 三轨 (full/ctx/ss): _ss 同句共现轨与 _full/_ctx 同口径 valid-vote 域掩码。
     for track in ['_full', '_ctx', '_ss']:
-        conf_cols = [f'{s}_sentiment_confidence{track}' for s in LLM_MODELS
-                     if f'{s}_sentiment_confidence{track}' in df.columns]
+        # fix(F3, 2026-07-16, FATAL_DEFECT_REMEDIATION §2-F3): 宏平均从 raw 三列
+        # 改为按"该模型自身投出有效票" ({short}_score.notna(), 与下方 _conf_valid_*
+        # 掩码列同源同式) 掩码后取行均值 — 缺席模型 (API 失败/空响应, stage 21 写
+        # conf=0.0 结构性哨兵) 与在场判伪/缺标模型格不入分子亦不入分母 (D5 口径,
+        # 对齐 omni-g-tonellms-12 "失败≠信号" 与 _avg_innovation_confidence 剔零
+        # 两处兄弟实现)。此前 0.0 哨兵被 mean(axis=1) 等权计入 → 2 票 verified
+        # 有效留篇文章的 avg_llm_conf 被缺席模型机械稀释 1/3, 静默入面板。
+        _masked = {}
+        for s in LLM_MODELS:
+            m_conf = f'{s}_sentiment_confidence{track}'
+            m_score = f'{s}_score{track}'
+            if m_conf in df.columns:
+                if m_score in df.columns:
+                    _masked[s] = df[m_conf].where(df[m_score].notna())
+                else:
+                    logger.warning(f"  avg_llm_conf{track}: 缺 {m_score}, "
+                                   f"该模型回退 raw 置信度 (旧 schema)")
+                    _masked[s] = df[m_conf]
         vote_col = f'llm_vote_score{track}'
-        if conf_cols:
-            _conf_macro = df[conf_cols].mean(axis=1)
+        if _masked:
+            _n_cells_masked = int(sum(
+                (df[f'{s}_sentiment_confidence{track}'].notna()
+                 & _masked[s].isna()).sum()
+                for s in _masked))
+            _conf_macro = pd.DataFrame(_masked).mean(axis=1)  # skipna: 无效格不入分子分母
             if vote_col in df.columns:
                 # valid-vote 域: 无效票文章 (vote_score=<NA>) 的置信度不进入合成
                 _conf_macro = _conf_macro.where(df[vote_col].notna())
-                logger.info(f"  avg_llm_conf{track}: 由 {len(conf_cols)} 个模型置信度合成 "
-                            f"(valid-vote 域, 与 llm_vote_tone 同口径)")
+                logger.info(f"  avg_llm_conf{track}: 由 {len(_masked)} 个模型置信度合成 "
+                            f"(valid-vote 域 × per-model 有效票掩码, 与 llm_vote_tone 同口径; "
+                            f"F3 无效模型格剔除 {_n_cells_masked} 篇×模型格)")
             else:
                 logger.warning(f"  avg_llm_conf{track}: 缺 {vote_col}, 退化为物理全集口径")
             df[f'avg_llm_conf{track}'] = _conf_macro

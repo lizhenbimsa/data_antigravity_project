@@ -1389,10 +1389,30 @@ def diagnose_misclassification_bias(
     conf_cols = [f"{m.get('short_name', '')}_verification_confidence{track}"
                  for m in models if m.get('short_name', '')]
     conf_cols = [c for c in conf_cols if c in df.columns]
-    df['_conf'] = df[conf_cols].mean(axis=1) if conf_cols else np.nan
+    # fix(F3b, 2026-07-16, FATAL_DEFECT_REMEDIATION §2-F3): 缺席模型 (API 失败/
+    # 空响应/不可解析, {short}_verified=None 且 conf 写 0.0 结构性哨兵) 剔出宏平均 —
+    # 掩码 = 参与验证域 (verified.notna())。在场但 verified=False 的格是有效验证票,
+    # 其 verification_confidence 为真实值且正是 FP/TP 误分类置信度诊断的对象, 必须
+    # 保留。⚠ 与面板侧 D5 口径 (encode.py avg_llm_conf 的 score.notna() 有效票域)
+    # 构念不同, 禁互相套用。
+    if conf_cols:
+        _masked_conf = {}
+        _n_absent_cells = 0
+        for _c in conf_cols:
+            _vcol = _c.replace('_verification_confidence', '_verified')
+            if _vcol in df.columns:
+                _masked_conf[_c] = df[_c].where(df[_vcol].notna())
+                _n_absent_cells += int((df[_c].notna() & df[_vcol].isna()).sum())
+            else:
+                _masked_conf[_c] = df[_c]
+        df['_conf'] = pd.DataFrame(_masked_conf).mean(axis=1)
+    else:
+        df['_conf'] = np.nan
     if lg:
         if conf_cols:
-            lg.info(f"  [{track}]   (c) 验证置信度: 聚合 {len(conf_cols)} 个模型列均值, mean={sig4(df['_conf'].mean())}")
+            lg.info(f"  [{track}]   (c) 验证置信度: 聚合 {len(conf_cols)} 个模型列均值 "
+                    f"(F3b 参与域掩码, 缺席格剔除 {_n_absent_cells} 篇×模型格), "
+                    f"mean={sig4(df['_conf'].mean())}")
         else:
             lg.info(f"  [{track}]   (c) 无可用验证置信度列 (模型数={len(models)})")
 
