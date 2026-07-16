@@ -970,7 +970,10 @@ def write_codebook(path: Path, registry: dict, panel: pd.DataFrame, input21: pd.
         "merge 1:1 usci year using firm_admin_panel.dta   // usci = 18 位统一社会信用代码",
         "* 满骨架截断示例 (L2 口径): 名单为批次快照无逐年存续, 满骨架铺 0;",
         "* 按需以外部工商注册年裁样本, 剔除注册前年份的机械真零行",
-        "keep if year<=2024 & year>=reg_year",
+        # fix(M4, 2026-07-16): 年上界动态判定 (复用 listed 02 helper, T-D10 禁第二份
+        # 实现); 下界 reg_year (税调企业无 IPO 概念, 勿照抄 listed 的 ipo_year)。
+        engine().recommend_year_keep_line(yearly, year_max,
+                                          "year>=reg_year", "注册样本裁剪"),
         "xtset, clear",
         "```",
         "",

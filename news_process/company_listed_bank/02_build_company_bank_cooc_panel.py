@@ -1158,6 +1158,27 @@ FIXED_ORDER = list(FIXED_LABELS)
 
 
 # ---------------------------------------------------------------- codebook (D9)
+def recommend_year_keep_line(yearly, year_max: int, lower_clause: str,
+                             lower_note: str) -> str:
+    """fix(M4, 2026-07-16, FATAL_DEFECT_REMEDIATION §2-M4): codebook 推荐样本裁剪
+    行的年上界由语料实况动态判定 — 仅当存在尾部零语料年 (yearly 最后有篇年 <
+    year_max) 才推荐 keep 上界并注明假零区间; 全年谱有语料则不设上界。下界子句按
+    各管道实名原样保留 (listed=ipo_year / tax=reg_year)。替代旧硬编码 2024
+    (T=19 口径下 "2025 无语料" 前提失效, 旧行会引导分析者静默丢弃真实 2025 观测)。
+    """
+    if yearly is None or len(yearly) == 0:
+        return (f"keep if {lower_clause}   // 语料为空, 仅保留样本裁剪下界 "
+                f"({lower_note}; 推荐默认动作)")
+    last_nonzero = int(yearly.index.max())
+    if last_nonzero < int(year_max):
+        trail = (str(year_max) if int(year_max) == last_nonzero + 1
+                 else f"{last_nonzero + 1}-{year_max}")
+        return (f"keep if year<={last_nonzero} & {lower_clause}   "
+                f"// 尾部零语料年 {trail} 假零 + {lower_note} (推荐默认动作)")
+    return (f"keep if {lower_clause}   "
+            f"// 全年谱有语料无尾部假零年; {lower_note} (推荐默认动作)")
+
+
 def write_codebook(path: Path, registry: dict, panel: pd.DataFrame, input21: pd.DataFrame,
                    year_min: int, year_max: int) -> None:
     emit = [e for e in registry["entries"] if e["emit_panel"]]
@@ -1262,7 +1283,7 @@ def write_codebook(path: Path, registry: dict, panel: pd.DataFrame, input21: pd.
         "```stata",
         "use company_bank_cooc_panel.dta, clear",
         "merge 1:1 company_listed_name year using firm_financials.dta",
-        "keep if year<=2024 & year>=ipo_year   // 2025 无语料假零 + 上市样本裁剪 (推荐默认动作)",
+        recommend_year_keep_line(yearly, year_max, "year>=ipo_year", "上市样本裁剪"),
         "xtset, clear",
         "```",
         "",

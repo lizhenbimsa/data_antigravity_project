@@ -734,3 +734,33 @@ class TestUpstreamSnapshot:
             snap = mod.build_upstream_snapshot(p_in, p_pn, None, None, None)
         assert snap["benefit"] is None and snap["alignment"] is None
         assert not any("代际陈旧" in r.message for r in caplog.records)
+
+
+# ============================================================================
+# M4 (2026-07-16, FATAL_DEFECT_REMEDIATION §2-M4): codebook 推荐样本裁剪行
+# 年上界动态判定 (替代硬编码 2024; T=19 口径下 "2025 无语料" 前提失效)
+# ============================================================================
+
+class TestM4RecommendYearKeepLine:
+    def _yearly(self, years):
+        import pandas as pd
+        return pd.Series([10] * len(years), index=pd.Index(years, name="_year"))
+
+    def test_trailing_zero_years_capped_with_note(self):
+        line = mod.recommend_year_keep_line(
+            self._yearly([2017, 2018]), 2025, "year>=ipo_year", "上市样本裁剪")
+        assert line.startswith("keep if year<=2018 & year>=ipo_year")
+        assert "2019-2025" in line and "假零" in line
+
+    def test_full_spectrum_no_upper_bound(self):
+        line = mod.recommend_year_keep_line(
+            self._yearly(list(range(2007, 2026))), 2025,
+            "year>=ipo_year", "上市样本裁剪")
+        assert line.startswith("keep if year>=ipo_year")
+        assert "year<=" not in line and "全年谱有语料" in line
+
+    def test_lower_clause_preserved_verbatim(self):
+        # 下界子句按各管道实名原样保留 (listed=ipo_year / tax=reg_year)
+        line = mod.recommend_year_keep_line(
+            self._yearly([2017]), 2025, "year>=reg_year", "注册样本裁剪")
+        assert "year>=reg_year" in line and "ipo_year" not in line
