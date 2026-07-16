@@ -310,3 +310,51 @@ def test_source_level_guards():
     assert 'cached_results = [' not in src             # 全量 JSON 串物化已退役
     # OFFLINE 守卫仍在 miss 分支、网络调用之前
     assert 'NEWS_PROCESS_LLM_OFFLINE' in src
+
+
+# ------------------------------------------- M1: 归档先于缓存 (_archive_ok 范式)
+class TestM1ArchiveBeforeCache:
+    """M1 (2026-07-16, FATAL_DEFECT_REMEDIATION §2-M1): put_batch 先于 archive 且
+    归档失败仅 warning → 该批永久命中缓存、归档一次性永久漏档。修法镜像 tone_llms
+    omni-g-tonellms-04: 归档前移, 失败跳缓存 (下次 run 重调+重归档)。"""
+
+    def _run_one_miss(self, monkeypatch, archive_raises, enable_archive=True):
+        monkeypatch.delenv('NEWS_PROCESS_LLM_OFFLINE', raising=False)
+        monkeypatch.setattr(eng, 'RETRY_DELAY', 0)
+        dim = 8
+        cache = FakeCache()
+        calls = {'archive': 0}
+
+        class _FakeArchive:
+            def append_batch(self, records):
+                calls['archive'] += 1
+                if archive_raises:
+                    raise OSError('archive down')
+
+        monkeypatch.setattr(eng, '_LLM_ARCHIVE_AVAILABLE', True)
+        monkeypatch.setattr(eng, '_get_archive', lambda: _FakeArchive())
+
+        def fake_post(self, url, **kw):
+            batch = kw['json']['input']
+            return _FakeResp(200, _ok_payload(batch, dim, lambda t: 5))
+
+        with patch('aiohttp.ClientSession.post', new=fake_post):
+            out = asyncio.run(eng.get_embeddings_api(
+                ['单条缺失'], SPEC, cache=cache, enable_archive=enable_archive))
+        return out, cache, calls
+
+    def test_archive_fail_skips_cache(self, monkeypatch):
+        out, cache, calls = self._run_one_miss(monkeypatch, archive_raises=True)
+        assert out is not None and calls['archive'] == 1
+        assert cache.put_calls == []   # 归档失败 → 不写缓存 (永久漏档窗口关闭)
+
+    def test_archive_ok_then_cache(self, monkeypatch):
+        out, cache, calls = self._run_one_miss(monkeypatch, archive_raises=False)
+        assert calls['archive'] == 1
+        assert cache.put_calls == [['单条缺失']]
+
+    def test_enable_archive_false_still_caches(self, monkeypatch):
+        out, cache, calls = self._run_one_miss(monkeypatch, archive_raises=True,
+                                               enable_archive=False)
+        assert calls['archive'] == 0
+        assert cache.put_calls == [['单条缺失']]   # 与 tone_llms 同语义: 不归档仍缓存

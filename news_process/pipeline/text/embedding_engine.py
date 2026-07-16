@@ -466,13 +466,14 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
                                 out[np.asarray(batch_rows[batch_idx],
                                                dtype=np.intp)] = _arr
                                 _rows_written += len(batch)
-                                if cache:
-                                    cache.put_batch(
-                                        embedding_model,
-                                        batch,
-                                        [json.dumps(emb) for emb in batch_embs],
-                                        prompt_version=text_pipeline_version,
-                                    )
+                                # fix(M1, 2026-07-16, FATAL_DEFECT_REMEDIATION §2-M1):
+                                # 归档前移至 put_batch 之前, 归档失败跳过缓存写入 —
+                                # 消除"先 put 后 archive 失败 → 批已入缓存永久命中、
+                                # 归档一次性永久漏档"窗口 (镜像 tone_llms
+                                # omni-g-tonellms-04 的 _archive_ok 范式; 代价 =
+                                # 归档失败批下次 run 重调一次)。enable_archive=False
+                                # / 归档模块缺席时照常缓存 (与 tone_llms 同语义)。
+                                _archive_ok = True
                                 if enable_archive and _LLM_ARCHIVE_AVAILABLE:
                                     try:
                                         actual_version = data.get(
@@ -503,10 +504,19 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
                                         ]
                                         _get_archive().append_batch(records)
                                     except Exception as _arch_exc:
+                                        _archive_ok = False
                                         logger.warning(
                                             f"    LLM archive (batch {batch_idx + 1}) "
-                                            f"失败 (不阻塞): {_arch_exc!r}"
+                                            f"失败 (不阻塞; 本批不写缓存, 下次 run "
+                                            f"重调+重试归档): {_arch_exc!r}"
                                         )
+                                if cache and _archive_ok:
+                                    cache.put_batch(
+                                        embedding_model,
+                                        batch,
+                                        [json.dumps(emb) for emb in batch_embs],
+                                        prompt_version=text_pipeline_version,
+                                    )
                                 _done += 1
                                 if _done % 5 == 0 or _done == n_batches:
                                     logger.info(
