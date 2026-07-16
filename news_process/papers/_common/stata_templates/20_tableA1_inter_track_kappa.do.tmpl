@@ -120,7 +120,8 @@ quietly {
     * v3.9.0: 第三轨 ss bank-year ρ (full 裸名 × ss 后缀, 镜像 full×ctx 块)。
     * ss 轨 bank-year frac 列由 encode.py 三轨化产出: 底层技术=tech_frac_ls
     * (镜像 ctx 的 tech_frac_lc), 实质性=sub_frac_ss (镜像 sub_frac_sc), collab_mode
-    * 的 ss bank-year frac (indep_frac_cs) 当前未物化 → capture confirm 缺列即优雅置 .。
+    * 的 ss bank-year frac 已物化为实名 indep_frac_cm_ss (encode.py, M2 fix
+    * 2026-07-16 — 旧引用为 "_cs" 后缀陈旧幻影名, 被 confirm 静默置 . 漏报)。
     capture confirm variable tech_frac tech_frac_ls
     if !_rc {
         correlate tech_frac tech_frac_ls
@@ -137,9 +138,9 @@ quietly {
     else {
         local corr_subst_ss .
     }
-    capture confirm variable indep_frac indep_frac_cs
+    capture confirm variable indep_frac indep_frac_cm_ss
     if !_rc {
-        correlate indep_frac indep_frac_cs
+        correlate indep_frac indep_frac_cm_ss
         local corr_collab_ss = r(rho)
     }
     else {

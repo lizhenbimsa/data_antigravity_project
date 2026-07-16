@@ -34,8 +34,22 @@ xtset bank_id year
 
 * 4. Winsor 关键连续变量 (1% / 99%, Loughran & McDonald 2011 JF 惯例)
 local main_dv      llm_vote_tone_{{MAIN_SENT_TRACK}}
-local main_locus   tech_frac_{{MAIN_LOCUS_TRACK}}
-local main_subst   symb_frac_{{MAIN_SUBST_TRACK}}
+* correctness-04 裸名重映射 (F8, 2026-07-16, 补 01 号漏网; 范式=11_table2 同款):
+*   full 轨在面板中是裸名 tech_frac / symb_frac (无 _lf/_sf 后缀), lf/sf 直拼会
+*   展开成幻影列 → 下方 winsor 循环 (原 `of varlist` 启动期整表校验) r(111),
+*   master 对 01 裸 do fail-loud → 整条复现链死。
+if "{{MAIN_LOCUS_TRACK}}" == "lf" {
+    local main_locus tech_frac
+}
+else {
+    local main_locus tech_frac_{{MAIN_LOCUS_TRACK}}
+}
+if "{{MAIN_SUBST_TRACK}}" == "sf" {
+    local main_subst symb_frac
+}
+else {
+    local main_subst symb_frac_{{MAIN_SUBST_TRACK}}
+}
 
 * 4.bis (R1-R5 audit fix A1 + M2-regression fix 2026-05-30): 定义 $bank_controls 全局 macro
 * 供 19_*_clarity_robustness 等下游稳健性模板使用 (remove-title-track: 25_tableA8 已删)。
@@ -56,7 +70,10 @@ display "  bank_controls = [$bank_controls] (仅面板中存在的财务控制; 
 * 检查 winsor2 是否可用 (ssc install winsor2)
 capture which winsor2
 if !_rc {
-    foreach var of varlist `main_dv' `main_locus' `main_subst' {
+    * F8 (2026-07-16): `of varlist` 在循环启动期整表校验, 任一缺列即 r(111) 且使
+    * 行内 capture confirm 永不可达 (死代码守卫); 改 `in` 列表使守卫变活 (:71 v3.5.1
+    * 块的既有正确范式), 缺列 degrade 不崩。
+    foreach var in `main_dv' `main_locus' `main_subst' {
         capture confirm variable `var'
         if !_rc {
             winsor2 `var', cuts(1 99) replace

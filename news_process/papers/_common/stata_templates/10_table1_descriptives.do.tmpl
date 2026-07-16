@@ -7,14 +7,26 @@ version 19
 * (假定已 use _prepared_panel.dta / 46_panel_yearly_full.dta + xtset; 2026-06-12 起单一全列 full.dta)
 
 * 1. 关键变量清单 (按论文议题分组)
+* M3 fix (2026-07-16): ① 旧引用 (文章级列名, 无 avg_ 前缀) 在面板不存在, 实名为
+*   avg_llm_prob_score_* (encode.py); ② locus/subst 直拼在 lf/sf 主规格下展开为
+*   幻影列 (*_lf/*_sf 不存在, 面板 full 轨为裸名), 被下方"过滤实际存在的列"循环
+*   静默跳过 → Table 1 漏报 4 行核心描述统计 — correctness-04 重映射补齐。
 local sentiment_vars   llm_vote_tone_{{MAIN_SENT_TRACK}}     ///
-                       llm_prob_score_{{MAIN_SENT_TRACK}}
+                       avg_llm_prob_score_{{MAIN_SENT_TRACK}}
 
-local locus_vars       tech_frac_{{MAIN_LOCUS_TRACK}}       ///
-                       app_frac_{{MAIN_LOCUS_TRACK}}
+if "{{MAIN_LOCUS_TRACK}}" == "lf" {
+    local locus_vars tech_frac app_frac
+}
+else {
+    local locus_vars tech_frac_{{MAIN_LOCUS_TRACK}} app_frac_{{MAIN_LOCUS_TRACK}}
+}
 
-local subst_vars       sub_frac_{{MAIN_SUBST_TRACK}}        ///
-                       symb_frac_{{MAIN_SUBST_TRACK}}
+if "{{MAIN_SUBST_TRACK}}" == "sf" {
+    local subst_vars sub_frac symb_frac
+}
+else {
+    local subst_vars sub_frac_{{MAIN_SUBST_TRACK}} symb_frac_{{MAIN_SUBST_TRACK}}
+}
 
 local gap_vars         tone_gap_tech_app_lc_ctx             ///
                        tone_gap_sub_symb_sc_ctx
