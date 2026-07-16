@@ -1166,10 +1166,15 @@ def recommend_year_keep_line(yearly, year_max: int, lower_clause: str,
     各管道实名原样保留 (listed=ipo_year / tax=reg_year)。替代旧硬编码 2024
     (T=19 口径下 "2025 无语料" 前提失效, 旧行会引导分析者静默丢弃真实 2025 观测)。
     """
-    if yearly is None or len(yearly) == 0:
-        return (f"keep if {lower_clause}   // 语料为空, 仅保留样本裁剪下界 "
+    # clamp (终局评审 NIT, 2026-07-17): 误标日期 > year_max 的零星文章不得越窗干扰
+    # 尾零判定 (否则 index.max() 越过 year_max 会静默吞掉真实尾部假零年推荐);
+    # 普查口径日期上界 2025-12-31 = year_max 时该分支不可达, 纯防御。
+    _win = (yearly.index[yearly.index <= int(year_max)]
+            if yearly is not None and len(yearly) else None)
+    if _win is None or len(_win) == 0:
+        return (f"keep if {lower_clause}   // 窗口内语料为空, 仅保留样本裁剪下界 "
                 f"({lower_note}; 推荐默认动作)")
-    last_nonzero = int(yearly.index.max())
+    last_nonzero = int(_win.max())
     if last_nonzero < int(year_max):
         trail = (str(year_max) if int(year_max) == last_nonzero + 1
                  else f"{last_nonzero + 1}-{year_max}")

@@ -764,3 +764,10 @@ class TestM4RecommendYearKeepLine:
         line = mod.recommend_year_keep_line(
             self._yearly([2017]), 2025, "year>=reg_year", "注册样本裁剪")
         assert "year>=reg_year" in line and "ipo_year" not in line
+
+    def test_mislabeled_future_dates_clamped(self):
+        # clamp 防御: 误标日期 > year_max 的零星文章不越窗干扰尾零判定
+        line = mod.recommend_year_keep_line(
+            self._yearly([2017, 2026]), 2025, "year>=ipo_year", "上市样本裁剪")
+        assert line.startswith("keep if year<=2017 & year>=ipo_year")
+        assert "2018-2025" in line and "假零" in line
