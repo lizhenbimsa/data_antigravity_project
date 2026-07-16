@@ -401,6 +401,57 @@ class TestGatedLogSent:
         src = _runner_src()
         assert "panel[f'log_sent{track}'] = _gated_log_sent(panel, track)" in src
 
+    # ── F5 (2026-07-16, FATAL_DEFECT_REMEDIATION §2-F5): ctx/ss 轨 per-track
+    #    有效票门控 (此前统一用 full 轨 n_articles → "有覆盖但该轨全无效" 的
+    #    bank-year 被注入伪中性 0.0, 盘上实测 ctx 15 行 / ss 11 行) ──
+
+    def test_f5_t1_ctx_track_invalid_is_nan(self):
+        """ctx 轨: 有覆盖 (n_articles=5) 但该轨 LLM 全部无效 (valid_ctx=0,
+        pos/neg 合法为 0) → NaN (旧实现输出伪中性 0.0)。"""
+        panel = pd.DataFrame({
+            'n_articles': [5],
+            'n_articles_llm_valid_ctx': [0],
+            'pos_count_ctx': [0],
+            'neg_count_ctx': [0],
+        })
+        ls = _gated_log_sent(panel, '_ctx')
+        assert np.isnan(ls.iloc[0]), "该轨零有效票须 NaN 而非伪中性 0.0"
+
+    def test_f5_t2_ctx_track_valid_formula_unchanged(self):
+        """ctx 轨有有效票时数值公式不变。ss 轨同式 (共用实现)。"""
+        panel = pd.DataFrame({
+            'n_articles': [5],
+            'n_articles_llm_valid_ctx': [3],
+            'pos_count_ctx': [2],
+            'neg_count_ctx': [1],
+        })
+        ls = _gated_log_sent(panel, '_ctx')
+        assert ls.iloc[0] == pytest.approx(np.log1p(2) - np.log1p(1))
+
+    def test_f5_t3_full_track_bitwise_unchanged(self):
+        """full 轨行为逐位保持 (门控列仍为物理 n_articles, 字节稳定)。"""
+        panel = pd.DataFrame({
+            'n_articles': [0, 3, 2],
+            'n_articles_llm_valid': [0, 0, 0],   # 即便 full valid 全 0
+            'pos_count_full': [0, 2, 1],
+            'neg_count_full': [0, 1, 1],
+        })
+        ls = _gated_log_sent(panel, '_full')
+        assert np.isnan(ls.iloc[0])
+        assert ls.iloc[1] == pytest.approx(np.log1p(2) - np.log1p(1))
+        assert ls.iloc[2] == 0.0
+
+    def test_f5_t4_missing_valid_col_falls_back(self):
+        """旧 schema 缺 n_articles_llm_valid_ss → 回退 n_articles 门控 (不崩)。"""
+        panel = pd.DataFrame({
+            'n_articles': [0, 4],
+            'pos_count_ss': [0, 1],
+            'neg_count_ss': [0, 2],
+        })
+        ls = _gated_log_sent(panel, '_ss')
+        assert np.isnan(ls.iloc[0])
+        assert ls.iloc[1] == pytest.approx(np.log1p(1) - np.log1p(2))
+
 
 # ============================================================================
 # g-runner-04 — Bartik _t01 真池化基期 + _t1 守卫 (runner 侧接线)

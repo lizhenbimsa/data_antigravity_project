@@ -344,12 +344,31 @@ def _gated_log_sent(panel: pd.DataFrame, track: str) -> pd.Series:
     F3 红线 (Allison 2001; Heckman 1979) 规定无文章语调类指标 → NaN, 同族
     jf_coefficient/concern_score/disag 均已遵守, 唯 log_sent 漏网。加覆盖门控:
     仅 n_articles>0 时计算, 否则 NaN (对齐同族缺失语义)。
+
+    fix(F5, 2026-07-16, FATAL_DEFECT_REMEDIATION §2-F5): 上述 g-runner-06 只覆盖
+    n_articles==0 情形; ctx/ss 轨"有覆盖但该轨 LLM 全部无效"
+    (n_articles_llm_valid_{trk}==0, pos/neg 计数合法为 0) 时仍输出伪中性 0.0
+    (盘上实测 ctx 15 行 / ss 11 行), 同族 jf_coefficient (runner.py 步骤 8c,
+    per-track valid 分母) 与 disag (P+N=0→NaN) 对同行均正确 NaN — log_sent 是
+    家族唯一门控轨失配成员。本修复把 ctx/ss 门控对齐 per-track 有效票分母;
+    full 轨为字节稳定保留物理分母 n_articles (⚠ jf 对 full 轨用 valid 分母,
+    二者在 full-only 留篇门控下经验恒等 — dev 实测 0 行不等; n_articles='size'
+    物理篇数 vs llm_valid='count' 有效票篇数是定义差, 恒等属门控副产; 理论残余
+    [full 轨 verified-but-undefined 全年] 登记计划 §7-R6, 生产重生窗口统一)。
     """
     pc, nc = f'pos_count{track}', f'neg_count{track}'
     ls = (np.log1p(panel[pc].fillna(0).astype('float64'))
           - np.log1p(panel[nc].fillna(0).astype('float64')))
-    if 'n_articles' in panel.columns:
-        ls = ls.where(panel['n_articles'].fillna(0) > 0)
+    if track == '_full':
+        gate = 'n_articles'
+    else:
+        gate = f'n_articles_llm_valid{track}'
+        if gate not in panel.columns:
+            logger.warning(
+                f"log_sent{track}: 缺 {gate}, 回退 n_articles 门控 (旧 schema)")
+            gate = 'n_articles'
+    if gate in panel.columns:
+        ls = ls.where(panel[gate].fillna(0) > 0)
     return ls
 
 
