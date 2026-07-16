@@ -29,7 +29,10 @@ PANEL_40 = REPO / "data" / "processed" / "40_panel_yearly.parquet"
 
 # ---- 哈希锚 (WP-gate 期从 registry meta.registry_sha256 单次写入; 有意识重跑 WP0 后 bump)
 #      ⚠ 常量名禁与 listed 的 EXPECTED_REGISTRY_SHA256 同名 (run_pipeline 锚正则行首+全名匹配; T-D8/R3 P1-2)
-EXPECTED_TAX_REGISTRY_SHA256 = "4f580e3fc458be0c6aac6636f4ed1c3e0936f839c9b815161150e048b6e4c034"
+# 2026-07-16 有意识重跑 WP0: 40 面板并发重生 +9 列 (G9 预登记漂移) → 预注册基名
+# cross_media_alpha / cross_outlet_tone_variance / n_events 源列到位自动激活 (+9 emit 列,
+# 51 上游同名 9 列落排除域); 基名集与分族小计不变。
+EXPECTED_TAX_REGISTRY_SHA256 = "b246471097a600ff5341fc46621c90f1739902338ec5fd9e578469cde9394162"
 
 # ---- 分族小计锚 (与 listed 逐字节同一份 CUT 负清单 + 同一 40 面板 → 域内条目族分布恒等;
 #      税调与 listed 的唯一差异 = bank_company_map/两名单哈希/dv2_constants, 不改族小计)

@@ -3,11 +3,11 @@ meta:
   n_entries: 730
   n_emit: 320
   n_cut: 410
-  n_cols_40_panel: 3442
+  n_cols_40_panel: 3451
   company_names_sha256: 98c818c3378a920fafbd1ea309b25a4b2270d2380f9c60e9217022cbc4204867
   bank_names_sha256: ec4ee1864e855358b951222f5e9942f9672490f0ab0bbd1c0dcfb293b1972c60
   cut_list_sha256: b88ef0db70926445ae6734fa663acdf35c9d4a706e317dbc8f0003ef03925394
-  registry_sha256: 4f580e3fc458be0c6aac6636f4ed1c3e0936f839c9b815161150e048b6e4c034
+  registry_sha256: b246471097a600ff5341fc46621c90f1739902338ec5fd9e578469cde9394162
 entries:
 - basename: hidden_adopt_int_p25
   family: AD
@@ -1789,12 +1789,15 @@ entries:
   family: DA
   source: '40'
   col_by_track:
-    full: null
-    ctx: null
-    ss: null
+    full: cross_outlet_tone_variance_full
+    ctx: cross_outlet_tone_variance_ctx
+    ss: cross_outlet_tone_variance_ss
   track_agnostic: false
   agg: null
-  emit_tracks: []
+  emit_tracks:
+  - full
+  - ctx
+  - ss
   emit_panel: true
   cut_code: null
   range_gate: none
@@ -2286,12 +2289,15 @@ entries:
   family: GAP_UNPLANNED
   source: '40'
   col_by_track:
-    full: null
-    ctx: null
-    ss: null
+    full: cross_media_alpha_full
+    ctx: cross_media_alpha_ctx
+    ss: cross_media_alpha_ss
   track_agnostic: false
   agg: null
-  emit_tracks: []
+  emit_tracks:
+  - full
+  - ctx
+  - ss
   emit_panel: true
   cut_code: null
   range_gate: none
@@ -2303,12 +2309,15 @@ entries:
   family: GAP_UNPLANNED
   source: '40'
   col_by_track:
-    full: null
-    ctx: null
-    ss: null
+    full: n_events_full
+    ctx: n_events_ctx
+    ss: n_events_ss
   track_agnostic: false
   agg: null
-  emit_tracks: []
+  emit_tracks:
+  - full
+  - ctx
+  - ss
   emit_panel: true
   cut_code: null
   range_gate: none
@@ -16098,6 +16107,12 @@ excluded:
   51:constr_frac_ss: DUP_OF_40
   51:coverage_active_days: DUP_OF_40
   51:coverage_continuity: DUP_OF_40
+  51:cross_media_alpha_ctx: DUP_OF_40
+  51:cross_media_alpha_full: DUP_OF_40
+  51:cross_media_alpha_ss: DUP_OF_40
+  51:cross_outlet_tone_variance_ctx: DUP_OF_40
+  51:cross_outlet_tone_variance_full: DUP_OF_40
+  51:cross_outlet_tone_variance_ss: DUP_OF_40
   51:d4_data_quality_flag: DUP_OF_40
   51:daily_media_frac: DUP_OF_40
   51:dcep_ddd_digfront: DUP_OF_40
@@ -17928,6 +17943,9 @@ excluded:
   51:n_articles_tech: DUP_OF_40
   51:n_articles_tech_lc_ctx: DUP_OF_40
   51:n_articles_tech_ls_ss: DUP_OF_40
+  51:n_events_ctx: DUP_OF_40
+  51:n_events_full: DUP_OF_40
+  51:n_events_ss: DUP_OF_40
   51:n_fintech_articles: DUP_OF_40
   51:n_ft_articles_j70w10: DUP_OF_40
   51:n_ft_articles_j70w5: DUP_OF_40

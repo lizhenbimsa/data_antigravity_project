@@ -22,7 +22,8 @@ REPO = Path(__file__).resolve().parents[1]
 _RP_PATH = REPO / "company_tax_bank" / "run_pipeline.py"
 
 # ⚠ 常量镜像 registry gate 件的 EXPECTED_TAX_REGISTRY_SHA256 (正例断言用; 两处同步 bump)
-EXPECTED_TAX_REGISTRY_SHA256 = "4f580e3fc458be0c6aac6636f4ed1c3e0936f839c9b815161150e048b6e4c034"
+# 2026-07-16 有意识重跑 WP0 (G9 漂移: 40 面板 +9 列 → 3 预注册基名激活), 与 registry gate 件同步 bump。
+EXPECTED_TAX_REGISTRY_SHA256 = "b246471097a600ff5341fc46621c90f1739902338ec5fd9e578469cde9394162"
 
 
 def _load_rp():

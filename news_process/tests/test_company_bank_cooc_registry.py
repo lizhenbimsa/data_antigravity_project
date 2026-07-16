@@ -19,7 +19,10 @@ CUT_LIST_PATH = REPO / "scripts" / "audit" / "COMPANY_BANK_COOC_PANEL_CUT_LIST_v
 PANEL_40 = REPO / "data" / "processed" / "40_panel_yearly.parquet"
 
 # ---- 哈希锚 (WP0 落盘值; registry/名单/负清单任何内容变化 → 红 → 有意识重跑 WP0 更新)
-EXPECTED_REGISTRY_SHA256 = "023cdc9158ec52ba60f148f59b520a9195a02a3086da95b641db93c5d082dd30"
+# 2026-07-16 有意识重跑 WP0: 40 面板并发重生 +9 列 (G9 预登记漂移) → 预注册基名
+# cross_media_alpha / cross_outlet_tone_variance / n_events 三者源列到位自动激活
+# (emit_tracks []→[full,ctx,ss]) + 51 上游同名 9 列落排除域; 基名集与分族小计不变。
+EXPECTED_REGISTRY_SHA256 = "4a2f79fd932974b090db338a1441ea95934e6ff22a5cb61b0ed8c5f29871d4e1"
 
 # ---- 分族小计锚 (WP0 2026-07-06 落盘实测; v33 划分域 702 + C1b 白名单补注册 3 + 域外 25 = 730)
 EXPECTED_FAMILY_COUNTS = {
