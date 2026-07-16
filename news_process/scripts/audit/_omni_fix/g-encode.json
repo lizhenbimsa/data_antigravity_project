@@ -85,7 +85,7 @@
   "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\pipeline\\panel\\encode.py",
   "line": "1076-1085 (locus ==), 1204-1213 (substantiveness ==), 对照 1324-1345 (collab >=)",
   "claim": "collab 维度的 F-CR-cell-NA (R6) 修复注释明确论证: LLM 对某维度分类部分失败 (label=NaN) 时, 该文章计入 n_articles_llm_valid 但不入任何类别 → 严格相等恒等式「必然破坏」, 故改为逻辑必然的 `>=` 并量化差额。同一失败模式逐字适用于 locus 与 substantiveness 两维度 (三者都是 stage 21 独立分类输出), 但这两处仍保留严格 `==` 校验 (1078-1080, 1206-1208), R6 修复未同步。",
-  "evidence": "当前 T=2 试跑盘上 identity 0 失败 (实测: valid != tech+app 为 0 行, valid != sub+symb 为 0 行) — 因小样本上分类恰好全成功; 全量 1700 万篇下任一 locus/subst 标签 NaN 即触发「✗ 恒等式校验失败」WARNING, 与 collab 维度对同种现象打「✓ 通过 (部分失败由 NA bucket 兜底)」的行为矛盾。",
+  "evidence": "当前 T=2 试跑盘上 identity 0 失败 (实测: valid != tech+app 为 0 行, valid != sub+symb 为 0 行) — 因小样本上分类恰好全成功; 全量 18,198,978 篇下任一 locus/subst 标签 NaN 即触发「✗ 恒等式校验失败」WARNING, 与 collab 维度对同种现象打「✓ 通过 (部分失败由 NA bucket 兜底)」的行为矛盾。",
   "suggested_fix": "把 1076-1085 与 1204-1213 改为与 collab 同型: 校验 n_articles_llm_valid >= n_tech+n_app (/_sub+_symb), 相等差额记为分类 NaN 文章数并 info 级输出。",
   "adjudication": "encode.py:1078-1080/1206-1208 仍严格 ==, 而 1324-1345 R6 注释明确论证同一失败模式(标签 NaN 计入 valid 但不入类)下严格相等「必然破坏」改为 >=。三维度同源 stage 21 独立分类, 失败模式逐字适用。T=2 盘上 0 失败未触发; 全量任一 NaN 标签即伪 WARNING 与 collab 行为矛盾。仅诊断日志无值影响, P3 恰当。",
   "unit": "encode-features-agg"
@@ -94,13 +94,13 @@
   "id": "g-encode-08",
   "severity": "P3",
   "latent": true,
-  "title": "latent(T=18): 12 个 LLM 计数列 dtype 随数据值漂移 (Int8↔Int64), .dta 存储型随之 byte↔long/double 翻转 — 值无损但 schema 跨规模/跨环境不稳定",
+  "title": "latent(T=19): 12 个 LLM 计数列 dtype 随数据值漂移 (Int8↔Int64), .dta 存储型随之 byte↔long/double 翻转 — 值无损但 schema 跨规模/跨环境不稳定",
   "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\pipeline\\panel\\encode.py",
   "line": "906 (groupby.agg(**valid_agg)); 500-512 (pos_count/tone_sum 聚合定义)",
-  "claim": "pandas groupby.agg(**named_agg) 对 Int8 源列做 sum 时按结果值域选输出 dtype: 所有组和 ∈[-128,127] → 保留 Int8 (当前盘上 pos_count_full 等 12 列即如此, max=100), 任一组和超界 → 静默升 Int64。T=18 全量 (1700万篇) 下 bank-year 计数必超 127, 这 12 列 parquet schema 将翻为 Int64, .dta 存储从 byte 翻为更宽型。纯 schema 漂移, 无值损坏。",
+  "claim": "pandas groupby.agg(**named_agg) 对 Int8 源列做 sum 时按结果值域选输出 dtype: 所有组和 ∈[-128,127] → 保留 Int8 (当前盘上 pos_count_full 等 12 列即如此, max=100), 任一组和超界 → 静默升 Int64。T=19 全量 (18,198,978 篇) 下 bank-year 计数必超 127, 这 12 列 parquet schema 将翻为 Int64, .dta 存储从 byte 翻为更宽型。纯 schema 漂移, 无值损坏。",
   "evidence": "实证 (pandas 2.2.3 与 3.0.3 双版本一致): groupby.agg(**{'pos':('v','sum')}) 对 Int8 输入, 组和=127→值正确且窄型, 组和=200→Int64 [200] 正确无回绕; 盘上 parquet 元数据 pos_count_full/llm_vote_tone_sum_full numpy_type=Int8, 46_full.dta typlist 对应 12 列=byte 且 gpt54nano_tone_sum_full max=100 恰为 Stata byte 非缺失上限, pyreadstat 回读与 parquet 逐位一致。",
   "suggested_fix": "在 aggregate_panel 出口把计数/和列统一显式 astype('Int64') (或 int64), 固定 schema 与 .dta 存储型, 消除值依赖性。",
-  "adjudication": "pandas 3.0.3 亲测复现: groupby.agg sum对Int8, 组和127→Int8, 组和200→Int64(值正确)。盘上parquet 12列Int8/max=100, encode.py:139-168 仅文章级pin Int8, :906 panel聚合dtype未pin → T=18计数必超127, schema翻Int64/.dta byte→更宽型。值无损纯schema漂移, T=2不触发, latent成立。非台账stata_audit Int8修复(那是审计算术)。",
+  "adjudication": "pandas 3.0.3 亲测复现: groupby.agg sum对Int8, 组和127→Int8, 组和200→Int64(值正确)。盘上parquet 12列Int8/max=100, encode.py:139-168 仅文章级pin Int8, :906 panel聚合dtype未pin → T=19计数必超127, schema翻Int64/.dta byte→更宽型。值无损纯schema漂移, T=2不触发, latent成立。非台账stata_audit Int8修复(那是审计算术)。",
   "unit": "data-dta-parity"
  },
  {

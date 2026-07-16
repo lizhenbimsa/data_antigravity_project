@@ -7,7 +7,7 @@
   "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\pipeline\\audit\\cross_media_alpha.py",
   "line": "78-107 (detect_bank_events) + 213-239 (aggregate_to_bank_year)",
   "claim": "detect_bank_events 把每个 ≥p90 的 bank-day 各自当独立事件, 不合并相邻事件; 持续多日的同一新闻冲击会产生多个 ±3d 互相重叠的窗口, 同一批文章被重复纳入多个事件的 variance/α 计算, 再经 aggregate_to_bank_year 按事件加权平均 → 持续性 spike 被系统性超权, n_events 高估独立事件数。附带: 模块 docstring 第 26 行承诺 bank-year 聚合 '按 event 内文章数加权', 实现 (line 220 `df['_w'] = df['n_outlets']`) 按 outlet 数加权, 口径与设计契约不符。",
-  "evidence": "只读复算盘上 21_tone_llms.parquet: 81 个事件中 32 对相邻事件 gap≤6 天 (±3d 窗口重叠), 约 40% 事件非独立。代码无任何重叠窗合并/去重逻辑 (对比标准事件研究的 event-clustering 处理)。全量 17M 语料 T=18 下高频银行的持续报道期每天都过 p90 → 重叠将占绝对多数 (latent 放大)。",
+  "evidence": "只读复算盘上 21_tone_llms.parquet: 81 个事件中 32 对相邻事件 gap≤6 天 (±3d 窗口重叠), 约 40% 事件非独立。代码无任何重叠窗合并/去重逻辑 (对比标准事件研究的 event-clustering 处理)。全量 18.2M 语料 T=19 下高频银行的持续报道期每天都过 p90 → 重叠将占绝对多数 (latent 放大)。",
   "suggested_fix": "合并重叠事件窗 (同 bank 相邻事件 gap≤window*2 时取并集为单事件), 或改用不重叠的日历周/月聚合; 加权口径与 docstring 二选一对齐并披露。",
   "adjudication": "",
   "unit": "pipeline-audit-family"
@@ -32,7 +32,7 @@
   "title": "llm_contamination_test 年中点规约把跨 cutoff 之年整体划入 post-cutoff 留出集 — 留出样本被 pre-cutoff 文章污染, 全量语料下检验结构性失效 (latent)",
   "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\pipeline\\audit\\llm_contamination_test.py",
   "line": "371-375 (run_stage) / 421-425 (main): df['_test_date'] = year + '-07-01'",
-  "claim": "bank-year 面板用 '年-07-01' 作年代表日期再与 cutoff 比较: cutoff=2024-04-01 时, 2024 年 (含 1-3 月 LLM 可能见过的文章) 因年中点 ≥ cutoff 被整年划入 '绝对没见过' 的 post 留出集。设计原理 (docstring L13-14) 要求 post 样本严格 post-cutoff; 跨界年的混入使 r_post 同样含记忆成分 → pre/post 相关性差被衰减 → 检验偏向 'no_contamination_evidence' (恰是最危险方向)。全量语料 2007-2024 + 典型 2024 年中 cutoff 下, post 集唯一构成就是跨界年本身, 留出检验完全失去甄别力。",
+  "claim": "bank-year 面板用 '年-07-01' 作年代表日期再与 cutoff 比较: cutoff=2024-04-01 时, 2024 年 (含 1-3 月 LLM 可能见过的文章) 因年中点 ≥ cutoff 被整年划入 '绝对没见过' 的 post 留出集。设计原理 (docstring L13-14) 要求 post 样本严格 post-cutoff; 跨界年的混入使 r_post 同样含记忆成分 → pre/post 相关性差被衰减 → 检验偏向 'no_contamination_evidence' (恰是最危险方向)。全量语料 2007-2025 + 典型 2024 年中 cutoff 下, post 集唯一构成就是跨界年本身, 留出检验完全失去甄别力。",
   "evidence": "run_stage L371-373: `df['_test_date'] = pd.to_datetime(df['year'].astype(str) + '-07-01')`; contamination_test L271-272: `pre_mask = dates < cutoff; post_mask = dates >= cutoff` — 无跨界年排除逻辑, 报告 JSON 亦无任何 straddle-year 披露字段。Lopez-Lira & Tang (2023) holdout protocol (本模块自引锚点) 要求 holdout 严格在 cutoff 之后。",
   "suggested_fix": "排除 [year-01-01, year-12-31] 区间跨 cutoff 的 bank-year (或将其单列三分类 pre/straddle/post 并仅以纯 post 年为留出集); 在 report JSON 增 n_straddle_excluded 披露; 长期方案是文章级日期做留出切分后再聚合。",
   "adjudication": "",

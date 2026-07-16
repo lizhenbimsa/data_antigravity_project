@@ -533,7 +533,7 @@ def compute_brokerage_centrality(
                             "(右偏→少数信息枢纽银行垄断异质媒体分发渠道)")
             if valid == 0:
                 logger.warning("     · ⚠ 坏: 零有效值 — 全部年份节点不足/分量过小, "
-                               "下游该列无识别力 (T=2 盘面常见, 生产 T=18 应复核)")
+                               "下游该列无识别力 (T=2 盘面常见, 生产 T=19 应复核)")
             elif _ec.nunique(dropna=True) <= 1:
                 logger.warning("     · ⚠ 坏: 退化为常量 (零方差), 下游回归无识别力")
             elif _cov < 0.5:
@@ -900,7 +900,7 @@ def compute_fire_sale_interaction(panel: pd.DataFrame) -> pd.DataFrame:
         logger.warning(
             f"  ⚠ 坏: brokerage_fire_sale 退化为常量 (唯一值数={_fs.nunique():,d}, "
             f"min=max={sig4(_const_val)}): 零方差列下游无识别力, "
-            f"疑因某年 industry_neg_shock 全 0 (T=2 盘面常见); 生产 T=18 应复核并移除该退化列。"
+            f"疑因某年 industry_neg_shock 全 0 (T=2 盘面常见); 生产 T=19 应复核并移除该退化列。"
         )
     elif valid > 0:
         logger.info(

@@ -1,17 +1,17 @@
-# 顶刊重审修复 — Stata 合成 T=18 烟雾验证报告 (全 11 篇)
+# 顶刊重审修复 — Stata 合成 T=19 烟雾验证报告 (全 11 篇)
 
 > REAUDIT_STATA_SMOKE_T18_2026-06-14 · 配套 PROJECT_REAUDIT_TOPTIER_T18_2026-06-14.md
 
 ## 元信息
 
-- **目的**: 对 PROJECT_REAUDIT_TOPTIER_T18 落地的全部 Stata 模板改动 (era-stability / weakiv-AR / pooled over-id Hansen J / honestdid / csdid+bacondecomp / boottest(prov) / Oster / bank_id FE / Sun-Abraham coefplot / 共线性披露 等), 在【合成 T=18 面板】(60 banks × 2007-2024 = 1080 行, 各论文专属列) 上经 Stata `/b` 真跑, 验证它们【真产出 / 优雅跳过】而非「注释声称却跑不出」(claimed-but-not-run)。
-- **方法**: 逐论文自洽 agent (建复现包 → 造合成 T=18 面板 → 跑 00_master `/b` → 扫 `r()` → 只修【本轮审计引入】真错误并复跑)。**顺序执行 (单 lab 许可)**, 分两个工作流 (7 篇 + 5 篇; 首个 4.3h 后 auth 过期, 第二个补齐 + benefit 复验)。
+- **目的**: 对 PROJECT_REAUDIT_TOPTIER_T18 落地的全部 Stata 模板改动 (era-stability / weakiv-AR / pooled over-id Hansen J / honestdid / csdid+bacondecomp / boottest(prov) / Oster / bank_id FE / Sun-Abraham coefplot / 共线性披露 等), 在【合成 T=19 面板】(60 banks × 2007-2025 = 1080 行, 各论文专属列) 上经 Stata `/b` 真跑, 验证它们【真产出 / 优雅跳过】而非「注释声称却跑不出」(claimed-but-not-run)。
+- **方法**: 逐论文自洽 agent (建复现包 → 造合成 T=19 面板 → 跑 00_master `/b` → 扫 `r()` → 只修【本轮审计引入】真错误并复跑)。**顺序执行 (单 lab 许可)**, 分两个工作流 (7 篇 + 5 篇; 首个 4.3h 后 auth 过期, 第二个补齐 + benefit 复验)。
 - **环境**: StataNow MP 19.5。⚠ 本机 **ivreghdfe 运行期恒 r(301)** (ftools/reghdfe Mata 不兼容) — 所有 2SLS 经 ivreg2 回退跑出, 全量机 ivreghdfe 正常则走 HDFE 主路径, 行为等价。
 - **关键性质**: 纯 Stata 模板/spec 层, **golden-safe** (无 panel 列值变更), 全部**未 git commit**。临时包/合成盘在 `build/smoke_reaudit{2,3}/` (gitignored)。
 
 ## 总裁决
 
-**全 11 篇审计目标块在合成 T=18 上真跑验证通过** (真产出非空, 或缺 ado/缺财务列时优雅跳过)。烟雾额外**逮出并修复了 4 个第一实施工作流引入的 audit-introduced「claimed-but-not-run」真 bug** + 多个 pre-existing 阻断 (为打通链)。这正是本次审计头号根因「声明—实现缺口」在修复自身中的复现 → 已闭环。
+**全 11 篇审计目标块在合成 T=19 上真跑验证通过** (真产出非空, 或缺 ado/缺财务列时优雅跳过)。烟雾额外**逮出并修复了 4 个第一实施工作流引入的 audit-introduced「claimed-but-not-run」真 bug** + 多个 pre-existing 阻断 (为打通链)。这正是本次审计头号根因「声明—实现缺口」在修复自身中的复现 → 已闭环。
 
 | 论文 | status | 审计新块真产出 | audit-introduced bug (已修) | pre-existing 修(打通链) |
 |---|---|---|---|---|
@@ -48,9 +48,9 @@
 - over-id 列 ivreg2 要报 Hansen J 须 `partial(i.bank_id i.year)` (否则秩亏不报)。
 - 本机 ivreghdfe r(301) → IV 一律 capture noisily + 回退 ivreg2 (IV-6)。
 
-## 三、审计新块真产出确认 (合成 T=18)
+## 三、审计新块真产出确认 (合成 T=19)
 
-- **era-stability** (9 篇全部): 三时代 2007-12/2013-18/2019-24 各 N≈360 分段回归 + treatment×era 交乘 + 跨时代 Wald 相等检验, 全真产出真系数 (T=2 盘退化跳过, T=18 全激活)。`ibn.era` (attention) / `testparm` (substance) / 各 paper 变体均验证。
+- **era-stability** (9 篇全部): 三时代 2007-12/2013-18/2019-25 各 N≈360 分段回归 + treatment×era 交乘 + 跨时代 Wald 相等检验, 全真产出真系数 (T=2 盘退化跳过, T=19 全激活)。`ibn.era` (attention) / `testparm` (substance) / 各 paper 变体均验证。
 - **weakiv AR-CI** (IV 篇): KP rk F + Anderson-Rubin Wald p + 95% CI 进表 (修后真填)。
 - **pooled over-id Hansen J** (attention/19 + benefit/25): partial 后真报告。
 - **honestdid .gph** (attention/locus): 位置切片 + numpreperiods(2/3) 真产图。
@@ -72,4 +72,4 @@
 
 ## 五、结论
 
-本轮顶刊重审的 Stata 模板交付 (10 新模板 + 多篇 IV/稳健性/披露改动) 经合成 T=18 真跑验证为**运行时健全**: 全部审计目标块真产出或正确优雅跳过, 烟雾逮出的 6 个 audit-introduced「claimed-but-not-run」真 bug 已全部修到真产出。pre-existing 主链阻断 (master 裸 do abort/挂起 + 11_table2 keep 因子顺序 + 21 set maxvar 死锁) 经 master capture-wrap + 定点修复打通 (见配套 master-reachability 修复)。**剩余全部为生产环境清单** (装 ado + 修 ivreghdfe + 财务接入 + golden 重生), 非模板缺陷。所有改动纯 Stata 层 golden-safe, 未提交。
+本轮顶刊重审的 Stata 模板交付 (10 新模板 + 多篇 IV/稳健性/披露改动) 经合成 T=19 真跑验证为**运行时健全**: 全部审计目标块真产出或正确优雅跳过, 烟雾逮出的 6 个 audit-introduced「claimed-but-not-run」真 bug 已全部修到真产出。pre-existing 主链阻断 (master 裸 do abort/挂起 + 11_table2 keep 因子顺序 + 21 set maxvar 死锁) 经 master capture-wrap + 定点修复打通 (见配套 master-reachability 修复)。**剩余全部为生产环境清单** (装 ado + 修 ivreghdfe + 财务接入 + golden 重生), 非模板缺陷。所有改动纯 Stata 层 golden-safe, 未提交。

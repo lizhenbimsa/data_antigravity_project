@@ -200,7 +200,7 @@ if `Tn' >= 3 {
     }
 }
 else {
-    display "[SKIP] Panel A A4 — bank linear trend needs T>=3 (current T=`Tn', degenerate; production T=18)."
+    display "[SKIP] Panel A A4 — bank linear trend needs T>=3 (current T=`Tn', degenerate; production T=19)."
 }
 
 if "`fecols'" != "" {
@@ -212,7 +212,7 @@ if "`fecols'" != "" {
         addnotes("OLS reghdfe; coefficient on `TREAT' across progressively saturated FE (Gormley & Matsa 2014 RFS, doi:10.1093/rfs/hht047)." ///
                  "Prov#Year FE absorbs same-province-same-year common shocks (the leading alternative for spatial-lag spillover)." ///
                  "Type#Year / Zone#Year FE absorb type-time regulatory and zone-time industry-cycle common errors." ///
-                 "Bank linear trend (c.year#i.bank_id) needs T>=3; skipped on T=2 degenerate panel (production T=18).")
+                 "Bank linear trend (c.year#i.bank_id) needs T>=3; skipped on T=2 degenerate panel (production T=19).")
     estout `fecols' using "$tables_dir/tableA13_brok_fe_saturation.csv", replace delimiter(",") ///
         cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) keep(`TREAT') ///
         starlevels(* 0.10 ** 0.05 *** 0.01)
@@ -358,7 +358,7 @@ else {
         }
     }
     else {
-        display "[SKIP] Panel C — Oster needs N>=30 (current N=`_Nos', degenerate; production T=18)."
+        display "[SKIP] Panel C — Oster needs N>=30 (current N=`_Nos', degenerate; production T=19)."
     }
 }
 

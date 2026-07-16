@@ -8,7 +8,7 @@
 >
 > **★ ATT-2 实现就绪 (唯一真实/FATAL/现在可动手项; 经 skeptic 修正后)**: 根因是**一处** `df_all` 就地重赋值 —— 在 `compute_fintech_attention_index` 内 `df_unique = df_all.drop_duplicates()` (≈:600) **之前**插入 `df_all = restrict_to_verified(df_all, OUTPUT_DIR, FILENAMES, keys=['docid','target_bank'], logger=logger, label='attention.geo_numerator')`。**年级/_build_geo_index/_merge LOO 三处共享同一 `df_all` 引用 → 一次门控传播到 yr/prov/city("三处"实为一条 lineage, 非三个独立修)。** **不门控分母/n_all**(Fang-Peress 议程份额语义); fail-open 已对; $0(prompt v8 冻结/缓存复用)。⚠ skeptic 抓到原 spec 的 "589-590" 是 logger 行(off-by-one, 无害)且把"三处"误作三修 —— 已订正。**载荷意义**: `ft_attn_prov/city` 是 shipped **P1-tone** `falsification_template.do.tmpl:336/345/427` 的活体 2SLS 工具, 现含 ~26.8% 判伪 → 修它对 P1-tone 识别 load-bearing, 与被弃列正交。爆炸半径: 6 列 `ft_attn_*`/`ft_vol_*` 下移 + golden 重生(stage45/46, 排 3 个 BLAS-FP 网络列, 勿在脏树 bless)+ falsification .do 重跑(一阶段 F 预期升)。
 >
-> **★ 诚实"万无一失": 不可达。** 最终有效性活在**本机跑不了的 18M/T=18**, 78 天单窗盘上列的存在理由(跨年漂移)本就**不可测**, 任何 FE-残差化相关都是 1-df/bank 假象。能给的最高诚信保证 = **结构确定的"决策"(弃列, 三轮独立同判 + 每条前提一手核验), 非数值认证的"产物"。**
+> **★ 诚实"万无一失": 不可达。** 最终有效性活在**本机跑不了的 18M/T=19**, 78 天单窗盘上列的存在理由(跨年漂移)本就**不可测**, 任何 FE-残差化相关都是 1-df/bank 假象。能给的最高诚信保证 = **结构确定的"决策"(弃列, 三轮独立同判 + 每条前提一手核验), 非数值认证的"产物"。**
 >
 > **★ 进一步评审 = 零边际产出, 应停。** 三轮 + steelman 经不同角度全部再确认(非新发现)= 教科书式收敛。**唯一剩余的新信息源是生产 run 本身(stage 30a 4-6h→45/46→受控 golden + radius∈{0,1,2} 网格), 不是再审。** → **停审, 动手**: 先做 ATT-2(+ 测试 `test_geo_index_verified_restriction`/docstring/golden 重生) → P1-A 披露包($0; 待写 2 个 ~20-30 行派生: outlet 进出表 + wire 转载份额/(outlet,year)) → era-stability 实例化(模板就绪) → 至多 (outlet,year) 描述性诊断(无 bank-mapping)。
 

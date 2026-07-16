@@ -795,7 +795,7 @@ def main():
         if _total_seen > 0 and _bank_true < 1000:
             logger.info(
                 f"  ⚠ 本次输入 {_total_seen:,} 行、银行新闻 {_bank_true:,} 篇属小样本 (盘面 "
-                f"T=2 / 子样本); 上述比率仅用于验证管道正确性, 全量结论以 17M / T=18 实测为准。"
+                f"T=2 / 子样本); 上述比率仅用于验证管道正确性, 全量结论以 约1,819万 / T=19 实测为准。"
             )
         logger.info("-" * 72)
     except Exception as _e:

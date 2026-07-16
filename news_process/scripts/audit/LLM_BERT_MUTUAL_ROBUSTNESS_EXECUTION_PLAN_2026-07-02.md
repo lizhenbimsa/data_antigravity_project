@@ -52,7 +52,7 @@ LLM: `llm_vote_tone`=headline; 三 `{short}_tone` co-equal 不分主次。BERT: 
 ### (f) FWER 实现 = 真 rwolf 根级模板 (option B) 【已定, v3 全重写落地】
 - ⚠ spec 的 `fwer.*` 是**声明式文档、运行时无人消费** (评审 confirmed); 真 FWER 由 §F5 **根级** rwolf 模板产 (family 硬编码, 与全仓一致)。
 - ⚠ **rwolf 报校正后 p, 对 indepvar 单调缩放不变** → **rwolf 用原始量, 不标准化** (标准化只用于 §F4 Table A5 的 β 幅度并排)。§1(c)/§7 措辞据此收紧, 删「统一 β/统计量尺度无关」。
-- ⚠ **wire-ahead 休眠**: rwolf DV = `{{MAIN_DV}}`=**ROA** (tone 默认; ROA/funding_cost 盘上均缺席) → **当前数据恒 capture-confirm 跳过, T=18 财务数据到位才运行** (与仓库 wire-ahead 惯例一致)。
+- ⚠ **wire-ahead 休眠**: rwolf DV = `{{MAIN_DV}}`=**ROA** (tone 默认; ROA/funding_cost 盘上均缺席) → **当前数据恒 capture-confirm 跳过, T=19 财务数据到位才运行** (与仓库 wire-ahead 惯例一致)。
 
 ---
 

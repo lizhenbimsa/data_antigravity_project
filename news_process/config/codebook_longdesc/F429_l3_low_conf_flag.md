@@ -85,7 +85,7 @@ low_conf_flag 是一个纯诊断性的银行-年度层级二值哑变量, 用来
 
 再者, 因为该列 NaN 值在阈值比较后被无条件映射为 0, 使用者在解读"low_conf_flag=0"时必须区分两种截然不同的底层情形: 一是该 bank-year 确实拥有足够多篇报道且分类置信度均值确实 ≥0.5(真正的"高置信度"); 二是该 bank-year 完全没有可用的分类置信度输入(avg_category_confidence 本身为 NaN, 通常对应该银行该年零报道或零 LLM 有效分类样本), 此时 low_conf_flag=0 只是数值比较的技术性副产品, 并不代表分类质量真的可靠。研究者若要严谨区分这两种情形, 应联合参照 n_articles_llm_valid(该行是否有正的报道计数)或直接检查 avg_category_confidence 是否为缺失值, 而不能单独依赖 low_conf_flag=0 就断定分类质量良好; 这一"0 值二义性"是使用该哑变量时最容易被忽视的陷阱, 也是本列被定位为粗粒度诊断/稳健性筛查工具、而非精确构念测度的核心原因。
 
-最后从口径演进角度看, 该列的物化时点被刻意从"诊断阶段(log_diagnostics)有条件创建"改为"导出阶段(export_panel)无条件创建", 目的是保证面板 schema(列集合)不随具体一次运行的数据内容(比如某次试跑样本中置信度全为 NaN)而变化, 只取决于代码路径本身。这意味着即便在开发/测试环境的小样本(如 T=2 dev 数据)下 avg_category_confidence 大面积缺失, low_conf_flag 列依然会稳定出现在导出的 parquet/dta 中(全部或几乎全部取值为 0), 这是预期的 by-design 行为而非缺陷; 生产全量语料(T=18, 覆盖 2007–2024 年)下随着分类置信度信号更充分地就位, 该列的 1/0 分布会更真实地反映跨银行-年度的分类不确定性差异。
+最后从口径演进角度看, 该列的物化时点被刻意从"诊断阶段(log_diagnostics)有条件创建"改为"导出阶段(export_panel)无条件创建", 目的是保证面板 schema(列集合)不随具体一次运行的数据内容(比如某次试跑样本中置信度全为 NaN)而变化, 只取决于代码路径本身。这意味着即便在开发/测试环境的小样本(如 T=2 dev 数据)下 avg_category_confidence 大面积缺失, low_conf_flag 列依然会稳定出现在导出的 parquet/dta 中(全部或几乎全部取值为 0), 这是预期的 by-design 行为而非缺陷; 生产全量语料(T=19, 覆盖 2007–2025 年)下随着分类置信度信号更充分地就位, 该列的 1/0 分布会更真实地反映跨银行-年度的分类不确定性差异。
 <!-- rendered-citations:begin -->
 Aguirregabiria, V., Clark, R., & Wang, H. (2025). The geographic flow of bank funding and access to credit: Branch networks, synergies, and local competition. American Economic Review, 115(6), 1818-1856. https://doi.org/10.1257/aer.20200374
 Chen, Q., Goldstein, I., Huang, Z., & Vashishtha, R. (2022). Bank transparency and deposit flows. Journal of Financial Economics, 146(2), 475-501. https://doi.org/10.1016/j.jfineco.2022.07.009

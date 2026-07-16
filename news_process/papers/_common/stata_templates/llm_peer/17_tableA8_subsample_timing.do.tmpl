@@ -305,14 +305,14 @@ if "`sscols'" != "" {
         mgroups("Panel A: Compositional subsamples", pattern(1) prefix(\multicolumn{@span}{c}{) suffix(}) span erepeat(\cmidrule(lr){@span})) ///
         mtitles(`sslabs') ///
         addnotes("Panel A splits by hub status / size (median of bank_effective_size) / bank type; SOE split is in Table 4 (excluded here)." ///
-                 "Each column = main 2SLS (`TONE' = `IV'), bank+year FE, SE clustered at `CL'. Sub-samples with N<`N_MIN' skipped (T=2 trial; production T=18).")
+                 "Each column = main 2SLS (`TONE' = `IV'), bank+year FE, SE clustered at `CL'. Sub-samples with N<`N_MIN' skipped (T=2 trial; production T=19).")
     estout `sscols' using "$tables_dir/tableA8_subsample_timing.csv", replace delimiter(",") ///
         cells(b(star fmt(3)) se(par fmt(3))) stats(N widstat, fmt(0 3)) ///
         keep(`TONE') starlevels(* 0.10 ** 0.05 *** 0.01)
     display "[OK] Table A8 Panel A (compositional subsamples) written"
 }
 else {
-    display "  ⚠️ Panel A 无可用列 (T=2 子样本全塌缩), 跳过 A8 Panel A 主表 (production T=18 才有功效)"
+    display "  ⚠️ Panel A 无可用列 (T=2 子样本全塌缩), 跳过 A8 Panel A 主表 (production T=19 才有功效)"
 }
 
 * ==========================================================================
@@ -376,7 +376,7 @@ if r(N) >= `N_MIN' {
     }
 }
 else {
-    display "  ⚠️ Panel B: L1 滞后 (L.) 有效 N<`N_MIN' (T=2 滞后后仅 2018 年留存), 跳过 B2 (production T=18)"
+    display "  ⚠️ Panel B: L1 滞后 (L.) 有效 N<`N_MIN' (T=2 滞后后仅 2018 年留存), 跳过 B2 (production T=19)"
 }
 
 * B3: lead 安慰剂 — F.{{TONE_VAR}} 工具用 F.{{LLM_PEER_IV}}。
@@ -404,7 +404,7 @@ if r(N) >= `N_MIN' {
     }
 }
 else {
-    display "  ⚠️ Panel B: lead (F.) 有效 N<`N_MIN' (T=2 前向后仅 2017 年留存), 跳过 B3 (production T=18 才有功效)"
+    display "  ⚠️ Panel B: lead (F.) 有效 N<`N_MIN' (T=2 前向后仅 2017 年留存), 跳过 B3 (production T=19 才有功效)"
 }
 
 if "`tmcols'" != "" {
@@ -416,14 +416,14 @@ if "`tmcols'" != "" {
         addnotes("Contemporaneous (t) vs lagged (t-1) treatment vs lead placebo (t+1)." ///
                  "Lead placebo should be insignificant; a significant lead flags reverse-causality / reflection (Manski 1993; BDM 2004 QJE serial-correlation framework)." ///
                  "All three columns use the SAME headline LLM-semantic-peer instrument (`IV', from llm_peer_iv.py): contemporaneous (`TONE'=`IV'), lagged (L.`TONE'=L.`IV') and lead (F.`TONE'=F.`IV') are built symmetrically via the L./F. time-series operators under xtset (no pre-aggregated on-panel lag/lead column; not the co-mention network instrument peer_tone_lag1_full)." ///
-                 "All require T>=3 to populate lag+lead; T=2 trial panel collapses these (production T=18).")
+                 "All require T>=3 to populate lag+lead; T=2 trial panel collapses these (production T=19).")
     estout `tmcols' using "$tables_dir/tableA8b_timing.csv", replace delimiter(",") ///
         cells(b(star fmt(3)) se(par fmt(3))) stats(N widstat, fmt(0 3)) ///
         starlevels(* 0.10 ** 0.05 *** 0.01)
     display "[OK] Table A8-B (dynamic timing / lead placebo) written"
 }
 else {
-    display "  ⚠️ Panel B 无可用列 (T=2 滞后/lead 全塌缩), 跳过 A8-B (production T=18 才有功效)"
+    display "  ⚠️ Panel B 无可用列 (T=2 滞后/lead 全塌缩), 跳过 A8-B (production T=19 才有功效)"
 }
 
 display "[OK] Table A8 (compositional subsamples + dynamic timing) — llm_peer 完成"

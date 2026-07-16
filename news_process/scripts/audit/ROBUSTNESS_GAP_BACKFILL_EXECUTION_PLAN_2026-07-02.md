@@ -165,7 +165,7 @@
 - 面板聚合: encode.py `build_aggregation_dict` :790-791 既有 `boilerplate_phrase_ratio_full` 聚合点, 镜像补 ctx/ss mean。
 - **codebook/stata 标签联动** (终审, grep 判据用 `avg_boilerplate` 而非 `boilerplate_phrase_ratio_full`): codebook 的 `avg_boilerplate_full` 条目从 `_SINGLE_TEXT_SPECS` (codebook.py:1313) **迁入** `_DUAL_TEXT_SPECS` 以 base=`avg_boilerplate` 自动发三轨; 迁移不变量 = full 条目发射结果六字段逐字节等价 (⚠ `_DUAL_TEXT_SPECS` 发射 label 为 `f'{_label} ({_tn})'`, base label 须去掉原 '(full)' 后缀); stata_export.py:357 旁镜像补 `avg_boilerplate_ctx/ss` 标签 (≤80B); 可选 `_infer_source_stage` 加 'boilerplate' 子串兜底 (与显式 metadata 二择一写进 gate)。
 - `_ss` 回退语义自动继承; 非嵌入族无 `_lg` (CLAUDE.md carve-out 句补 boilerplate)。
-- T=18 OOM: docstring 警示 + 生产 DEFER 清单载明, 非本次阻断。
+- T=19 OOM: docstring 警示 + 生产 DEFER 清单载明, 非本次阻断。
 - gate: 既有 boilerplate 测试扩三轨断言 + full 数值不变 (canonical 锚)。列物化随生产机重跑 (本机不动 parquet)。
 
 ---
@@ -263,7 +263,7 @@
 | R4 | 27_tableA12 Panel C 撞 `J(6,1)` 容量 → 生产机 rwolf 成功时**整表**中止 (本机 wire-ahead 休眠抓不到) | A5 扩 `J(9,1)` + 注释 + gate 模板文本断言 + (可选) rowsof 守卫 fail-soft |
 | R5 | dimension_analysis `_lg` 锚点缓存键传错 → 100% miss RuntimeError | B1 精确二元组规格 + B3-⑤ mock 断言完整键 + 禁用 `_resolve_prompt_version` 于 `_lg` |
 | R6 | 计数七联动漏项 → Phase 5 才红 | Phase 4 定向冒烟 -k 含 stata_templates + grep 计数残留双保险 |
-| R7 | boilerplate 三轨内存×3 生产 T=18 才炸 | docstring 警示 + DEFER 清单载明, 非本次阻断 |
+| R7 | boilerplate 三轨内存×3 生产 T=19 才炸 | docstring 警示 + DEFER 清单载明, 非本次阻断 |
 | R8 | 全量 pytest disk-state flakiness 误判回归 | Phase 0/5 baseline-stash A/B 差分 |
 | R9 | D1 未来 jieba 词典变更使 cutoff 梯子并列退化 | gate 锚死 `_rare_word_cutoff()==3.0` + 三臂互异断言, 词典漂移即红 |
 | R10 | 生产机 skip 守卫收紧后首跑被 reject 误判故障 | DEFER 清单载明"reject → $0 离线重放回填属预期" |
@@ -286,7 +286,7 @@
 - [x] **Phase 3 (WP-C/D, 串行)**: C boilerplate 三轨 (canonical 形参对回兼 + ctx/ss 固定槽) + tone_words 调用点 + encode 三轨聚合 + codebook 迁 `_DUAL_TEXT_SPECS` (full label 逐字节同) + stata 标签; D1 `RARE_WORD_FREQ_CUTOFFS=(2,3,5)` + 变体列/聚合/codebook/标签 + `test_rare_word_cutoff_ladder` 12 用例 (真实词典判别性断言); D2 `_fls_gates` 拆分 (canonical 语义逐字节保持) + 四接线点 + 阈值 21→24 + FLS 全族标签补录 + 超集不变量测试。
 - [x] **Phase 4 (WP-E)**: 28_tableA13 (空后缀轨循环, 12 臂实名, `$bank_controls` 省略 clear all, 无终端 exit) + **七联动** (papers_b_route 147 / _EXPECTED_ROOT_DO 21 / verify expected 名单 / matrix 21+expected_subdo / test_stata_templates '21/21'+'20/20' / 00_master 接线) + **三文档** (CLAUDE.md CLI 段+Stata 段 / templates README 21/21) + 两个模板文本 gate。冒烟: build-replication P1 (21 .do) + benefit derivative (27 .do, Panel D 列实例化) + verify-replication 8 OK + 占位符/计数 0 残留。
 - [x] **Phase 5**: 全部改动 py 文件 ruff 干净; **A/B 差分 = 27↔27 逐条相同, 0 新增失败 0 转绿**; CLAUDE.md 铁律段 +"稳健性缺口补齐"块; 终审 break-it 工作流 (6 视角 + 对抗核实) 见 §12c。
-- **生产机 DEFER 清单最终版**: ① `verify_stage21_cache_coverage` 0 miss → `NEWS_PROCESS_LLM_OFFLINE=1` 重放 stage 21 (双 parquet 成对备份+还原含 mtime; 守卫收紧后 `--skip-21-if-exists` 首跑 reject 属预期) → 完整级联 21→22→23→24→(26/75 validation)→40→46 (stage 23 前提 HF_HUB_OFFLINE=1/TRANSFORMERS_OFFLINE=1; `_local_model_cache.db` 未播种首跑为全量推理); ② boilerplate ctx/ss + D1 c2/c5 + D2 fonly 列随级联物化 (boilerplate T=18 前须分块改造, 见模块 P1 TODO); ③ golden 重生 (PYTHONHASHSEED=0 + BLAS 钉 1, 排除 3 网络列); ④ manuscript prose: per-model 分类分母口径两句披露 + D1 频次参数化披露 + FLS 单/双门披露; ⑤ Table A12 Panel C / A13 12 臂在 T=18 财务数据到位后首跑核对臂数齐全 (R4/R11)。
+- **生产机 DEFER 清单最终版**: ① `verify_stage21_cache_coverage` 0 miss → `NEWS_PROCESS_LLM_OFFLINE=1` 重放 stage 21 (双 parquet 成对备份+还原含 mtime; 守卫收紧后 `--skip-21-if-exists` 首跑 reject 属预期) → 完整级联 21→22→23→24→(26/75 validation)→40→46 (stage 23 前提 HF_HUB_OFFLINE=1/TRANSFORMERS_OFFLINE=1; `_local_model_cache.db` 未播种首跑为全量推理); ② boilerplate ctx/ss + D1 c2/c5 + D2 fonly 列随级联物化 (boilerplate T=19 前须分块改造, 见模块 P1 TODO); ③ golden 重生 (PYTHONHASHSEED=0 + BLAS 钉 1, 排除 3 网络列); ④ manuscript prose: per-model 分类分母口径两句披露 + D1 频次参数化披露 + FLS 单/双门披露; ⑤ Table A12 Panel C / A13 12 臂在 T=19 财务数据到位后首跑核对臂数齐全 (R4/R11)。
 
 ## §12c 终审 break-it 记录 (2026-07-03, 实施后·实现结果评审)
 

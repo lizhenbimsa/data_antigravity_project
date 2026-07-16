@@ -1,8 +1,8 @@
-# boilerplate 生产 T=18 OOM 硬化 — exact two-pass (chunked + disk-tier) 执行计划 (2026-07-06)
+# boilerplate 生产 T=19 OOM 硬化 — exact two-pass (chunked + disk-tier) 执行计划 (2026-07-06)
 
 > 状态: **v2 — 四路对抗评审后修订** (作者: Claude Opus 4.8, 会话 2026-07-06; 评审: 4 镜头对抗 agent + 首席终裁, 见 §10)。v1 判 `needs_revision`: 核心算法与 §9 字节等价论证实证严密, 但内存机理主张倒置 + 4 处 gate 自相矛盾, 均已在 v2 修订。
 > 权威基线: `main=1e310b0c`; 行号 = HEAD 口径 (脏树并发产物与本模块无交叠)。
-> 触发: 项目说明书 8-agent 缺陷审计确认 boilerplate.py docstring L25-30 自陈的 code review 2026-06-20 P1「生产 T=18 单遍 `fit_transform` OOM」未兑现。
+> 触发: 项目说明书 8-agent 缺陷审计确认 boilerplate.py docstring L25-30 自陈的 code review 2026-06-20 P1「生产 T=19 单遍 `fit_transform` OOM」未兑现。
 > ⚠ 本计划仅撰写与评审, **不含实施** (用户指令)。实施须另行批准。
 
 ---
@@ -14,7 +14,7 @@
 - **驱动 1 — CSR 计数矩阵 X**: doc×ngram, `nnz ∝ 语料总 n-gram 出现数 ∝ N` (线性)。
 - **驱动 2 — vocabulary dict**: `M(D) = 语料唯一 (4,6)-gram 数`, Heaps 亚线性 (∝ N^β, β≈0.5–0.8) 但随 N 持续增长。
 
-二者**同时驻留**。T=18 生产 gated 子集 (stage-22 输入 = 21_tone_llms gated 子集, 10⁵–10⁶ 篇) 会 OOM。本机 T=2 (≈847 文级) 可行。
+二者**同时驻留**。T=19 生产 gated 子集 (stage-22 输入 = 21_tone_llms gated 子集, 10⁵–10⁶ 篇) 会 OOM。本机 T=2 (≈847 文级) 可行。
 
 ### 核心事实修正 (v1→v2, 评审 P1-A)
 > **⚠ 内存机理**: 在生产 gated 量级 (10⁵–10⁶ 篇), **驱动 2 (vocab dict) 是 binding constraint, 驱动 1 (CSR) 是较小加项** —— 因绝大多数 (4,6)-gram 仅现于单文, `nnz ≈ O(M)` 与 vocab 同阶, 而 vocab 每 entry (str+int+dict slot) 的常数字节数远大于 CSR 每 nnz (int32 data+int32 index)。∴ 仅"分块不物化全量 CSR"**不足以**根治 OOM; 真正撑爆内存的 vocab/DF 词表必须**另行**从 RAM 移除。本计划据此设**两层 exact 解法** (§2.2), 二者**均字节等价**, 选层由 §3-P0 实测外推裁定。
@@ -26,7 +26,7 @@
 - 二者共享同一 Pass-2 (逐块用固定小 `boiler_set` 词表算命中率, 内存恒有界)。
 
 ### 本次实施范围 (v3 定案, tier1-only + fail-loud 硬闸)
-> **⚠ 诚实定位 (Round1 P1)**: 本会话在 dev (T=2, ~847 文) 只实施 **tier 1 (chunked 内存, 字节等价)**; **tier 2 (disk-backed) DEFERRED** —— 其必要性与字节等价须靠**生产 T=18 的 P0 外推**裁定, 本机无生产语料无从验证。∴ **tier1-only 交付 = 消除 CSR 驱动 (较小的非 binding 项) + 建立分块两遍骨架 + 全部 P2 硬化**, **不等于"生产 OOM 已解决"** —— vocab/`global_df` (binding 项) 的生产可产性仍 gated on tier2。
+> **⚠ 诚实定位 (Round1 P1)**: 本会话在 dev (T=2, ~847 文) 只实施 **tier 1 (chunked 内存, 字节等价)**; **tier 2 (disk-backed) DEFERRED** —— 其必要性与字节等价须靠**生产 T=19 的 P0 外推**裁定, 本机无生产语料无从验证。∴ **tier1-only 交付 = 消除 CSR 驱动 (较小的非 binding 项) + 建立分块两遍骨架 + 全部 P2 硬化**, **不等于"生产 OOM 已解决"** —— vocab/`global_df` (binding 项) 的生产可产性仍 gated on tier2。
 > **无悔性**: tier 1 字节等价 → golden 零漂移 → dev 可验; 是 tier 2 的必备前置结构 (二者共享 Pass-2 与 boiler_set 契约)。
 > **fail-loud 硬闸 (替代缺失的运行时兜底, Round1 P1)**: tier1-only 下必须有运行期硬天花板 —— `global_df` 超 `df_dict_budget_hard` → `SystemExit(1)` (镜像 stage13 `keep<min_keep_frac` 先例, **拒绝跑优于被 OOM-killer 静默 SIGKILL**); `memory_tier=disk` 或 `auto` 解析到需 disk → `raise SystemExit` (Final-A P2: 用 `SystemExit`⊂BaseException 穿透调用方 `except Exception`, 非 `NotImplementedError`⊂Exception 会被吞), **绝不静默回落 tier1 跑到 OOM** (§2.2/§2.3)。
 
@@ -102,7 +102,7 @@ for chunk, idx in chunks_with_index(docs, chunk_size):
 
 **口径矛盾调和 (评审 P1-A/gate)**: docstring L26 记「847 文→2.4M n-gram≈231MB」(疑含 CSR 或用 `sys.getsizeof(dict)` 只算哈希表 ~96B/entry); §2.2-v1 记「global_df 单独 480MB」(200B/entry) —— 二者差 2× 且 dict 不可能大于全量, **v1 估算不可信**。→ **P0 必做**: 用 `psutil` 进程 RSS delta 或 `resource.getrusage(RU_MAXRSS)` **分别实测** (i) 单遍 vocab dict、(ii) 单遍 CSR (nnz×字节)、(iii) tier-1 峰值三项, 拆开而非合并, 校准真实 per-entry 字节数与哪项主导。
 
-**规模外推 (评审 P1-A, 禁假阴)**: dev 拟合 M(D) 外推 T=18:
+**规模外推 (评审 P1-A, 禁假阴)**: dev 拟合 M(D) 外推 T=19:
 - ⚠ **禁重采样/复制式放大** (重复文档不带新 n-gram → vocab 饱和 → M(D) 严重低估 → OOM 假阴乐观); 须用**生产语料真实互异子样** (或按 vocab 增长率而非文档数拟合)。
 - 放大点覆盖 ≥ 200k 篇或近生产量级 (勿在 β 不定的幂律上外推 1–2 量级)。
 - 以 **β=0.7 与 β=0.8 双假设**给预算区间 (示意: β=0.7→全语料 M≈2×10⁸→~20–40GB; β=0.8→~7×10⁸→~70–140GB, 恰跨 128GB 两侧)。
@@ -197,7 +197,7 @@ boilerplate:
 ## §5 Golden / 生产 / 成本 影响
 
 - **Golden: 零漂移** (字节等价)。full 轨 fixture 列哈希不变 (§1.8); **ctx/ss 无 fixture 覆盖, 保护 = §4-1 单元字节等价 + P5 dev A/B 小 chunk_size 多块 (强制)**。tier 1/2 均 exact → 无论走哪层 golden 皆不变。
-- **生产 T=18 (Round1 P1 收紧, 诚实)**: tier1-only 交付**仅**消除 CSR 驱动 (较小的非 binding 项, dev 实测占峰值 ~5% 量级待 P0 校准) + 建骨架 + 运行期 hard 闸 (超预算 `SystemExit(1)` 而非 OOM-killer 静默 SIGKILL)。**vocab-binding 生产可产性仍 gated on tier2 (DEFERRED)** —— 只有 P0 外推证实 global_df 落预算内 (走 tier1) 或补齐 tier2 后, 原本 OOM 产不出的列才真变可产。**不表述为"OOM 已修完"**。
+- **生产 T=19 (Round1 P1 收紧, 诚实)**: tier1-only 交付**仅**消除 CSR 驱动 (较小的非 binding 项, dev 实测占峰值 ~5% 量级待 P0 校准) + 建骨架 + 运行期 hard 闸 (超预算 `SystemExit(1)` 而非 OOM-killer 静默 SIGKILL)。**vocab-binding 生产可产性仍 gated on tier2 (DEFERRED)** —— 只有 P0 外推证实 global_df 落预算内 (走 tier1) 或补齐 tier2 后, 原本 OOM 产不出的列才真变可产。**不表述为"OOM 已修完"**。
 - **CPU 时间 (评审 P2 披露)**: exact two-pass 分词 **2 遍** (Pass1 DF+total, Pass2 分子), 约单遍的 **~2×**; char_wb (4,6) 分词是 CPU 热点, 生产 10⁵–10⁶ 篇下须 P0 用 dev wall-clock 外推、评估是否值得 §7 并行化。tier 2 另加 disk I/O (外部归并), P0 须证吞吐可接受。
 - ⚠ **披露**: tier 2 亦 exact/golden-safe; manuscript/codebook 口径不变 (测度定义未动)。
 
@@ -279,7 +279,7 @@ boilerplate:
 
 **Result 复审 Round2 (最后一次, 3 镜头[最终正确性/回归集成/收尾一致] + 终裁; 2 findings; 终裁=ship_ready, can_commit=True)**: 3 镜头全 ship_ready。**1 个 P2 已修**: `_coerce_int` except 元组漏 `OverflowError` (`int(±inf)` 逃逸, config 写 `.inf` 会崩) → 并入捕获元组 + 加 inf/-inf/nan/bool/str 兜底 gate。另 1 为提交清单指引 (非缺陷)。经证正确: bool 排除防 True→1 / 双路径 clamp / nan→default / disk fail-loud / 恰 3 文件改动。
 
-**Final 审计 Round A (提交后, 3 镜头[正确性深挖/生产集成/确定性golden] + 终裁; 5 findings→3 P2 潜伏; correctness_deep+determinism_golden=clean, prod_integration=fix_needed; 终裁=clean_ship, must_fix 空)**: 作者先做 ground-truth 自验证 (属性化 fuzz 1800 次 A/B 0 失败 + 真实 400 篇新闻多块 A/B 字节等 + 真实 enrich 无循环导入)。3 潜伏 P2 **全部主动加固** (超 must_fix 空的最低要求, 求"完美无缺"): ① **fail-loud 不对称 (真缺陷)**: `disk`/`auto` 的 `NotImplementedError`⊂Exception 被调用方 tone_words `except Exception` graceful-skip 吞 → 静默丢 boilerplate 三轨列, 与 fail-loud 意图相反 → **改 `SystemExit`⊂BaseException** 穿透硬停, 与 hard 闸统一 (实证穿透确认); ② **budget≤0 footgun**: 非正 budget 令 `0<budget<len` 恒假静默禁用 OOM 闸 → 加 **loud WARNING "硬闸已禁用"**; ③ **hard 闸连坐 stage-22 已算产出** (SystemExit 在保存前, 40M 未校准占位) → **docstring 显式披露** "生产 T=18 须先跑 §3-P0 校准硬闸避免误触 nuke 整批"。gate +2 (disk→SystemExit 穿透 + budget≤0 警告)。correctness_deep 亲测确认极长文档/重复文档/pandas NA/阈值边界/unicode/N=1 全字节等; determinism_golden 亲测 HASHSEED=0 vs =1 输出逐字节等 (global_df dict 序经 sorted(boiler_set) 消除、整数计数无浮点序依赖)。
+**Final 审计 Round A (提交后, 3 镜头[正确性深挖/生产集成/确定性golden] + 终裁; 5 findings→3 P2 潜伏; correctness_deep+determinism_golden=clean, prod_integration=fix_needed; 终裁=clean_ship, must_fix 空)**: 作者先做 ground-truth 自验证 (属性化 fuzz 1800 次 A/B 0 失败 + 真实 400 篇新闻多块 A/B 字节等 + 真实 enrich 无循环导入)。3 潜伏 P2 **全部主动加固** (超 must_fix 空的最低要求, 求"完美无缺"): ① **fail-loud 不对称 (真缺陷)**: `disk`/`auto` 的 `NotImplementedError`⊂Exception 被调用方 tone_words `except Exception` graceful-skip 吞 → 静默丢 boilerplate 三轨列, 与 fail-loud 意图相反 → **改 `SystemExit`⊂BaseException** 穿透硬停, 与 hard 闸统一 (实证穿透确认); ② **budget≤0 footgun**: 非正 budget 令 `0<budget<len` 恒假静默禁用 OOM 闸 → 加 **loud WARNING "硬闸已禁用"**; ③ **hard 闸连坐 stage-22 已算产出** (SystemExit 在保存前, 40M 未校准占位) → **docstring 显式披露** "生产 T=19 须先跑 §3-P0 校准硬闸避免误触 nuke 整批"。gate +2 (disk→SystemExit 穿透 + budget≤0 警告)。correctness_deep 亲测确认极长文档/重复文档/pandas NA/阈值边界/unicode/N=1 全字节等; determinism_golden 亲测 HASHSEED=0 vs =1 输出逐字节等 (global_df dict 序经 sorted(boiler_set) 消除、整数计数无浮点序依赖)。
 
 > **最终状态: 计划 v4 + 实施 tier1 + Final-A 三潜伏加固 全部落地; 三轮计划 (v1/R1/R2) + 三轮结果 (R1/R2/Final-A) 对抗评审通过; 字节等价四重验证 (数学证明 + fuzz 1800 + 真实数据 400 + golden A/B 0 新增) + HASHSEED 确定性; 26 gate + ruff + 下游全绿。SHIP-READY。**
 

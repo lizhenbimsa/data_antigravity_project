@@ -67,7 +67,7 @@ if `have_treat' == 0 {
 * T 守卫: 部分设定 (bank 线性趋势 / 大样本分位回归) 需 T≥3; 当前盘 T=2 退化
 quietly levelsof year, local(_yrs)
 local n_years : word count `_yrs'
-display as text "  [INFO] panel T (distinct years) = `n_years' (production T=18 才有线性趋势/分位回归全功效)"
+display as text "  [INFO] panel T (distinct years) = `n_years' (production T=19 才有线性趋势/分位回归全功效)"
 
 * string 分组列 → 数值化 (factor 变量 i.var#i.year 需 numeric)
 capture confirm variable bank_province
@@ -120,7 +120,7 @@ if `have_dv' & `have_treat' {
         if !_rc eststo fesat_m3_trend
     }
     else {
-        display as text "  [SKIP] Panel A M3 bank 线性趋势: T=`n_years' < 3 (与 bank+year FE 共线, 不可识别); production T=18 激活"
+        display as text "  [SKIP] Panel A M3 bank 线性趋势: T=`n_years' < 3 (与 bank+year FE 共线, 不可识别); production T=19 激活"
     }
 }
 

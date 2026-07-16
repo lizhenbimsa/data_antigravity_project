@@ -19,17 +19,17 @@
 | WS-B2 boilerplate_phrase_ratio（单轨）| ✅ DONE | `0ef3c1aa`；新模块 + tone_words.main() post-proc + encode 单轨 agg；确定性+覆盖 gate |
 | WS-A/C 标签 + core 列 | ✅ DONE（**仅 2 新列**）| 含于 `83f764cd`/`0ef3c1aa`：仅为 named_entity/boilerplate 2 新列加 Stata 标签+core_pattern。⚠ WS-A 正文所列**既有列**(`avg_specificity`/`lazy_*`/`coh`/`centroid_diff`/`avg_within_doc_redund`)的 base 标签缺口**未补**，由下方 "broader Stata labels ⛔ 跳过(by-design, `_apply_label_fallback` 100% 兜底)" 覆盖 |
 | WS-E spec 注册 | ✅ DONE | `04b78d0c`（named_entity）+ `0ef3c1aa`（boilerplate）；3 个 alternative + 共线披露 |
-| WS-F 引用治理 | ⏳ 部分（锚点复用；OVER-1..7 未做）| 2 新列所需 3 锚点 (Hope-Hu-Lu 2016 / Lang-Stice-Lawrence 2015 / Dyer-LSL 2017) **本就在** LITERATURE_ANCHORS（前序 `4e35aba9` 加，本批仅复用 + codebook/spec 引用一致）。⚠ WS-F 正文的 **OVER-1..7 测度对齐治理**（Arena-Julio/Buehlmaier-Whited/LM2013-IPO/Bodnaruk/Hwang-Kim 的测度对齐+动词降级）**未执行** → 属 manuscript 起草阶段（T=18-blocked），无既有 manuscript 故无落点 |
+| WS-F 引用治理 | ⏳ 部分（锚点复用；OVER-1..7 未做）| 2 新列所需 3 锚点 (Hope-Hu-Lu 2016 / Lang-Stice-Lawrence 2015 / Dyer-LSL 2017) **本就在** LITERATURE_ANCHORS（前序 `4e35aba9` 加，本批仅复用 + codebook/spec 引用一致）。⚠ WS-F 正文的 **OVER-1..7 测度对齐治理**（Arena-Julio/Buehlmaier-Whited/LM2013-IPO/Bodnaruk/Hwang-Kim 的测度对齐+动词降级）**未执行** → 属 manuscript 起草阶段（T=19-blocked），无既有 manuscript 故无落点 |
 | WS-G golden 受控注入 | ✅ DONE | 累计 **+24 clean delta**（named_entity 18 + boilerplate 6），既有列 0 漂移 0 删除，数据二次重建确定 |
 | WS-D 正交性证据 | ✅ DONE（替代实现）| `209bf7f2` 独立可复现诊断（bank-year Pearson/Spearman，validation-only/golden-safe）；**未改 39c 内核**（NMI 引擎喂连续列无效，计划已定 open-redesign）|
 | be6c9e07 审计修正 | ✅ DONE | named_entity×specificity 实测 corr≈0.81（非别名）回填四处披露 |
 | B3 text_novelty | ⛔ 跳过（审计 GO）| 实测 `corr(1−strat_sim_max, strat_sim_max)=−1.0` 完全共线；横截面/时序 novelty 已各有专列 → 加=冗余 variable-farm |
 | staleness-merge | ⛔ 跳过（审计 GO）| `18_staleness_panel`(06-17) 早于 `21/24`(06-20) → runner mtime 守卫正确拦截；强行注入=lineage 违规；已是独立 golden record |
 | broader Stata labels | ⛔ 跳过（审计 GO）| `_apply_label_fallback` 100% 兜底 + fail-loud 断言（实测 2787/2787 全有标签）→ by-design 非缺陷 |
-| manuscript | ⏳ T=18-blocked | 无 drafts + T=2(172 行) + spec 的 8 个 outcome 在 panel 全 ABSENT（财务面板未获取）→ 无真回归可写 |
+| manuscript | ⏳ T=19-blocked | 无 drafts + T=2(172 行) + spec 的 8 个 outcome 在 panel 全 ABSENT（财务面板未获取）→ 无真回归可写 |
 
 **测试**：repro 19p/1s、dag、lexical(含子集)、boilerplate(4) 全绿；ruff clean；3 个 `test_dual_track` _ss-NaN + 2 个 `papers_b_route` output-dir 失败为 **pre-existing**（独立坐实未混入）。
-**生产 T=18 待办**（受 M0 / golden 受控重生门控）：财务数据接入 → outcome 列就位 → 全链重跑(含 fresh stage18 解 staleness) → golden 受控重生 → manuscript 起草。
+**生产 T=19 待办**（受 M0 / golden 受控重生门控）：财务数据接入 → outcome 列就位 → 全链重跑(含 fresh stage18 解 staleness) → golden 受控重生 → manuscript 起草。
 
 ---
 
@@ -203,7 +203,7 @@ WS-H 终审门
 | named_entity 与 specificity 高共线 | corr>0.95 降级为诊断列 |
 | 142 模板锁破 | 模板放 provisional 子目录；动 _common 才同步计数 |
 | manuscript 无自动门致过度声称 | 标「人工交付物」；或补 assets 结构断言 |
-| T=2 误当生产 | 全程标注；功效 deferred T=18 |
+| T=2 误当生产 | 全程标注；功效 deferred T=19 |
 
 回滚：每 WS 独立提交；外科注入前备份 `_regen_backup_<date>/`；新列纯 append 可单独 revert。
 
@@ -225,8 +225,8 @@ WS-H 终审门
 
 ---
 
-## 8. 生产 T=18 待办（deferred，本机 T=2 不可代替）
-全量 17M/T=18 重跑（30a 4-6h；B2 corpus-DF 分块防 OOM + 真全量语料口径）；新列 T=18 功效 + 跨年构成漂移检验（HRS 2020）；FLS 词表过 G-A2.1 专家审定门（precision≥0.80）后方进主表；T=18 golden 受控重生 + 承载论文 esttab 出真表。
+## 8. 生产 T=19 待办（deferred，本机 T=2 不可代替）
+全量 18.2M/T=19 重跑（30a 4-6h；B2 corpus-DF 分块防 OOM + 真全量语料口径）；新列 T=19 功效 + 跨年构成漂移检验（HRS 2020）；FLS 词表过 G-A2.1 专家审定门（precision≥0.80）后方进主表；T=19 golden 受控重生 + 承载论文 esttab 出真表。
 
 ---
 

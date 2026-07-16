@@ -1720,7 +1720,7 @@ def main():
         if _total <= 2000:
             logger.info(
                 f"  · 样本规模 {_total:,} 行 (盘面 T=2 小样本): 本次仅验证三轨推理管道正确性 "
-                "(无 NameError/列对齐/降级路径); 占比与同向性的实证结论以 17M/T=18 全量重跑为准。"
+                "(无 NameError/列对齐/降级路径); 占比与同向性的实证结论以 约1,819万/T=19 全量重跑为准。"
             )
         logger.info("-" * 72)
     except Exception as _e:  # noqa: BLE001  仅日志诊断, 绝不影响已落盘产物

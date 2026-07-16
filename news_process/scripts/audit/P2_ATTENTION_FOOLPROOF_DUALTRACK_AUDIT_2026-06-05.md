@@ -63,8 +63,8 @@
 |---|---|---|---|
 | H1 | **disp 不能被 zero-fill 污染** | 强度 SD 仅 80/157 可算（77 个 N=1→NaN）；HHI=1 的 84/157 单 outlet | disp 列**禁止进 balance_panel 的 zero_fill**；命名**避开 `_sum/_count` 后缀**（否则 `balance_panel:1580` 正则强制 fillna(0)，把"无法算/真零/无文章"三义压成 0）；并出 `n_outlets`/`n_articles` 诊断列 |
 | H2 | **时间维方法当前 0 可算** | 0/157 bank-year 有 ≥3 个月（样本仅 2017-11→2018-01 共 3 个 year-month）| Da 异常/AR/burstiness/月度离散/EPU 期归一 **config-gate off + graceful skip**（`groupby.year.nunique().max()>=3` 才启用），**绝不在试跑样本吐时序数值** |
-| H3 | **IDF 全语料非平稳** | intensity_score=TF-IDF×SIF，IDF 是全语料统计量 | 从 1170 篇扩到 17M，**同篇 intensity 数值会变** → attention 列漂移；试跑标定的阈值/winsor 界全失效；**golden 全量后须二次重生**。（jieba 字节冻结保护的是分词，不是 IDF）|
-| H4 | **HHI groupby-apply = 第二个性能炸弹** | `attention_media.py:742` `groupby.apply(_hhi)` Python 回调 | 与 W1 修的 herd_decay O(N²) 同族；17M 头部银行会卡死。disp 用 HHI **必须改 vectorized**（`groupby.size` 算份额平方和）|
+| H3 | **IDF 全语料非平稳** | intensity_score=TF-IDF×SIF，IDF 是全语料统计量 | 从 1170 篇扩到 18.2M，**同篇 intensity 数值会变** → attention 列漂移；试跑标定的阈值/winsor 界全失效；**golden 全量后须二次重生**。（jieba 字节冻结保护的是分词，不是 IDF）|
+| H4 | **HHI groupby-apply = 第二个性能炸弹** | `attention_media.py:742` `groupby.apply(_hhi)` Python 回调 | 与 W1 修的 herd_decay O(N²) 同族；18.2M 头部银行会卡死。disp 用 HHI **必须改 vectorized**（`groupby.size` 算份额平方和）|
 
 ### 🟡 其余（MEDIUM/披露）
 
@@ -78,7 +78,7 @@
 
 ## 三、"现在可落地" vs "全量后激活"（防在试跑样本跑出误导数值）
 
-| 现在即可稳健落地（无 T 依赖、无除零） | 全量 2007–2024 后才激活 |
+| 现在即可稳健落地（无 T 依赖、无除零） | 全量 2007–2025 后才激活 |
 |---|---|
 | ✅ `attention_index_full = ln(1+Σintensity_full)`（[0.086,3.959] 无 NaN）| ⏳ 所有时间维：Da 异常 / AR(1) / burstiness / 月度离散 / EPU 期归一 |
 | ✅ `attention_pct_full = N_ft/N_all`（全集分母，[0,1] 无 NaN/inf）| ⏳ within-bank / DiD / 事件研究（当前是 2.5 月伪面板，非真 T=2）|

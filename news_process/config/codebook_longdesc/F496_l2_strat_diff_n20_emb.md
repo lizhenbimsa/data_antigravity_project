@@ -137,7 +137,7 @@ ss 轨的回退语义镜像 ctx 轨: 若某篇报道全篇不存在银行与金�
 
 距离矩阵构造 (逐年重建成对余弦距离) 与 20-最近邻算术平均聚合流程与 full/ctx 轨在数学形式上完全一致, 仅输入文档的抽取判据不同: full 轨不做任何窗口裁剪, ctx 轨按实体窗口裁剪, ss 轨按银行∧金科同句共现 (更严的判据) 裁剪, 三者互不借用彼此的文本, 也互不借用彼此的距离矩阵。本列与 canonical 侧的 full/ctx 轨、以及 `_lg` 对偶轨的对应三轨各自并排、互为稳健性、不分主次, 均不得混入同一 over-identified Hansen J; 行宇宙同样是 full 轨留篇集合 (`llm_verified_full == True`) 的 conditional-on-full 子集, 而非 ss 轨自身独立定义的留篇标准。ss 轨因判据最严, 在报道量较小的银行-年度上比 ctx 轨更容易触发 fallback, 解读该列取值时应结合 `ss_is_fallback` 的覆盖比例。
 
-本列与 `strat_diff_n20_emb_lg_ss`(同判据、`_lg` 嵌入) 构成"同判据、双嵌入引擎"的对偶对, 二者应并排呈现、互相印证, 不应只报告其一; 与 `strat_diff_n20_emb`(full×canonical)、`strat_diff_n20_emb_ctx`(ctx×canonical) 构成"同嵌入引擎、三判据"的梯子, 三者也应并排呈现。若某年度银行样本量偏小 (如本项目本机 dev 环境 T=2 的极小样本), ss 轨的 fallback 触发比例可能显著高于生产语料规模下的预期水平, 此时该列的近邻聚合样本会明显偏向"退化为全文"的银行, 数值的区分度会相应下降, 这属于小样本下的预期退化现象, 不代表生产规模 (T=18, 完整语料) 下同一测度的实际表现。
+本列与 `strat_diff_n20_emb_lg_ss`(同判据、`_lg` 嵌入) 构成"同判据、双嵌入引擎"的对偶对, 二者应并排呈现、互相印证, 不应只报告其一; 与 `strat_diff_n20_emb`(full×canonical)、`strat_diff_n20_emb_ctx`(ctx×canonical) 构成"同嵌入引擎、三判据"的梯子, 三者也应并排呈现。若某年度银行样本量偏小 (如本项目本机 dev 环境 T=2 的极小样本), ss 轨的 fallback 触发比例可能显著高于生产语料规模下的预期水平, 此时该列的近邻聚合样本会明显偏向"退化为全文"的银行, 数值的区分度会相应下降, 这属于小样本下的预期退化现象, 不代表生产规模 (T=19, 完整语料) 下同一测度的实际表现。
 
 <!-- rendered-citations:begin -->
 Guzman, J., & Li, A. (2023). Measuring Founding Strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369

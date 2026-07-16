@@ -369,9 +369,9 @@ def _log_run_summary(step_stats: list[tuple[str, str, float]], total: float) -> 
         logger.info("    curve 口径逐权独立报告, 不混作同一回归的多工具")
     if "04" in ran:
         logger.info("  · 04 判读: frozenw dev 上基期几乎全 2017、仅 2018 有非平凡冻结差属预期构造退化")
-        logger.info("    (生产 T=18 恢复); 两面板与八权各自 just-identified 并排, 禁混同一 Hansen J;")
+        logger.info("    (生产 T=19 恢复); 两面板与八权各自 just-identified 并排, 禁混同一 Hansen J;")
         logger.info("    重跑 02 后本步产物与 codebook 章 stale, 须补跑 04 (级联义务)")
-    logger.info("  · 生产 T=18 预期差异: 当前上游 21_full 为 dev 语料口径, 覆盖/富集度实测以互验报告为准;")
+    logger.info("  · 生产 T=19 预期差异: 当前上游 21_full 为 dev 语料口径, 覆盖/富集度实测以互验报告为准;")
     logger.info("    生产重跑后 §9.4 级联义务生效 (哈希锚 bump → 02 pair 指纹 → 03 双向锁), 墙钟与 IO 同步放大")
 
 

@@ -29,26 +29,26 @@
   "id": "g-attention-03",
   "severity": "P3",
   "latent": true,
-  "title": "停刊检测在 fintech-only 语料上度量的是'话题退出'而非'停刊', 且未经 NPPA 证实的 suspected 全量进入排除集 (latent, T=18 触发)",
+  "title": "停刊检测在 fintech-only 语料上度量的是'话题退出'而非'停刊', 且未经 NPPA 证实的 suspected 全量进入排除集 (latent, T=19 触发)",
   "file": "pipeline/panel/attention_media.py",
   "line": "39-110 (detect_defacto_cessation), 61-70, 91; runner.py:599,612 (df_exploded 仅含 fintech 文章)",
   "claim": "detect_defacto_cessation 以 Heese 2022 JFE / Gao 2020 JFE 报纸停刊为理论锚, 但 first/last_year 计算在传入的 df_exploded = fintech-only 文章子集上: 媒体最后一篇'银行fintech'文章早于 sample_max−2 即被标记 — 该媒体可能仍在正常出版只是不再覆盖银行fintech话题。ceased_all = confirmed∪suspected = 全部数据驱动旗标 (L91), NPPA 交叉验证只改报告标签不收窄排除集; 另 n_articles≥10 阈值按 article×bank 行计数, 多银行文章重复计入。",
-  "evidence": "L61 groupby 在 fintech-only df 上; L91 'ceased_all = confirmed | suspected'; runner.py:599 注释明确 df_exploded '仅含 fintech 文章'。盘上 T=2 不触发 (cutoff=2016 早于样本起点, ceased_media_frac 全 0, 实测), 全量 17M/T=18 下话题性退出媒体将批量误标。",
+  "evidence": "L61 groupby 在 fintech-only df 上; L91 'ceased_all = confirmed | suspected'; runner.py:599 注释明确 df_exploded '仅含 fintech 文章'。盘上 T=2 不触发 (cutoff=2016 早于样本起点, ceased_media_frac 全 0, 实测), 全量 18.2M/T=19 下话题性退出媒体将批量误标。",
   "suggested_fix": "在未过滤的全量银行新闻 (12_full) 或原始语料的媒体级 span 上检测停刊; 排除集收窄为 NPPA-confirmed (或双口径 confirmed-only / all-suspected 各产一组列); n_articles 按 docid 去重计数。",
-  "adjudication": "runner.py:612传入df=24_herd_decay实测100% fintech docid(仅占12_full全集27.7%); attention_media.py:61 groupby在该子集→last_year=最后fintech报道≠停刊; L91 ceased_all=confirmed|suspected, NPPA仅改标签不收窄; L64 size按article×bank行计数(857行/786文)。盘上ceased_media_frac全0不触发, T=18话题退出媒体将批量误标。",
+  "adjudication": "runner.py:612传入df=24_herd_decay实测100% fintech docid(仅占12_full全集27.7%); attention_media.py:61 groupby在该子集→last_year=最后fintech报道≠停刊; L91 ceased_all=confirmed|suspected, NPPA仅改标签不收窄; L64 size按article×bank行计数(857行/786文)。盘上ceased_media_frac全0不触发, T=19话题退出媒体将批量误标。",
   "unit": "attention-media"
  },
  {
   "id": "g-attention-04",
   "severity": "P3",
   "latent": true,
-  "title": "平衡媒体面板'全程在刊'仅用端点 (first_year≤start ∧ last_year≥end) 判定, 中间缺刊年不被剔除 (latent, T=18 触发)",
+  "title": "平衡媒体面板'全程在刊'仅用端点 (first_year≤start ∧ last_year≥end) 判定, 中间缺刊年不被剔除 (latent, T=19 触发)",
   "file": "pipeline/panel/attention_media.py",
   "line": "134-143 (compute_balanced_media_robustness)",
   "claim": "docstring 声称构建'全程在刊'的平衡媒体子集 (Wooldridge §19.9.3 attrition 检验), 但 balanced 判据只看 media_span 的 first_year/last_year 端点: 2007 与 2024 各发一篇、2010-2020 完全缺席的媒体也算'平衡'。在 fintech-only 语料上 (同上一条的域问题), '在刊'实指'有银行fintech报道'。bal_* 列在间断年取该媒体零文章, 与真平衡面板的含义不同。",
   "evidence": "L140-142: media_span[(first_year<=start_year)&(last_year>=end_year)].index — 无逐年覆盖检查。盘上 T=2 不触发 (last_year≥2024 无满足者, bal_* 列实测未物化), 全量下休刊-复刊/间歇报道媒体会被纳入。",
   "suggested_fix": "判据改为逐年覆盖: groupby 媒体取 year 集合, 要求 set(range(start,end+1)) ⊆ years (或 n_distinct_years == 窗口长度); 并在 docstring 标注语料域 (fintech 子集)。",
-  "adjudication": "attention_media.py:140-142仅端点判据, 无逐年覆盖检查, 2007+2024各一篇中间全缺也算'平衡', 与Wooldridge §19.9.3每期观测的平衡定义不符; 且同idx3域问题'在刊'实为'有fintech报道'。盘上实测bal_*列0个(窗口终点2024无满足者), T=2不触发, T=18间歇媒体将被纳入。",
+  "adjudication": "attention_media.py:140-142仅端点判据, 无逐年覆盖检查, 2007+2024各一篇中间全缺也算'平衡', 与Wooldridge §19.9.3每期观测的平衡定义不符; 且同idx3域问题'在刊'实为'有fintech报道'。盘上实测bal_*列0个(窗口终点2024无满足者), T=2不触发, T=19间歇媒体将被纳入。",
   "unit": "attention-media"
  },
  {
@@ -87,7 +87,7 @@
   "claim": "媒体注册地或银行总部省/市缺失时 `df.loc[_prov_invalid, '_is_homeprov'] = 0` 把'来源不可知'强制编码为'非本地': (a) homeprov_media_frac = mean(_is_homeprov) 的分母含地理不可判文章而分子只能来自确认本地 → 本地报道占比低估; (b) away 组 (is_h=0) 的 tone_{nonprov}_media 与 neg_frac_nonprov 把未知来源文章混入'异地媒体'对照组 → tone_gap_homeprov_nonprov 衰减。正确语义是缺失→域外 (NaN), 而非缺失→对照组。",
   "evidence": "attention_media.py:961-965 `_prov_invalid = (..isna() | ..=='') ; df.loc[_prov_invalid, '_is_homeprov'] = 0`; :1002-1003 `frac = df.groupby(...)[geo_col].mean()` (物理全分母); :1013-1014 `sub = df[df[geo_col] == is_h]` 把 0 (含缺失) 全归 away 组。盘上试跑 857 篇地理列 0 缺失 → 当前零影响, 纯 latent。",
   "suggested_fix": "_prov_invalid 行的 _is_homeprov 置 NaN (而非 0); frac 用 mean 自动跳 NA (分母=可判定篇数), away 组限定 `geo_col == 0` 且非 invalid; 或在 codebook 披露'未知来源按非本地处理'。",
-  "adjudication": "attention_media.py:961-973 属实: _prov_invalid→_is_homeprov=0, L1002 frac 物理全分母, L1013-1014 把 0(含不可判)全归 away 组; 银行总部省缺失时整行全 0 → homeprov_media_frac 伪零而非 NaN。正确语义=缺失出域(NaN)。盘上 857 篇地理列 0 缺失未触发; 17M 全量媒体注册地/总部元数据缺失必现 → latent。",
+  "adjudication": "attention_media.py:961-973 属实: _prov_invalid→_is_homeprov=0, L1002 frac 物理全分母, L1013-1014 把 0(含不可判)全归 away 组; 银行总部省缺失时整行全 0 → homeprov_media_frac 伪零而非 NaN。正确语义=缺失出域(NaN)。盘上 857 篇地理列 0 缺失未触发; 18.2M 全量媒体注册地/总部元数据缺失必现 → latent。",
   "unit": "sweep-valid-physical-denom"
  },
  {

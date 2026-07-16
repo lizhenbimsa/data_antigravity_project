@@ -1462,7 +1462,7 @@ def main(argv=None) -> int:
                 "全 NaN 列 %s 个", f"{len(weighted.columns):,}", f"{n_cw:,}", f"{n_ce:,}",
                 f"{n_all_nan:,}")
     if n_all_nan:
-        log(f"{n_all_nan} 个加权列全 NaN (主因 BERT nt_iyvol/iytrend 需 T≥3 + _ss 稀疏的 dev T=2 退化→T=18 恢复; 非 cross_media, 后者 emit_tracks=[] 产 0 列, 详见 ⑥ 判读 / 计划 F2/F3)", warn=True)
+        log(f"{n_all_nan} 个加权列全 NaN (主因 BERT nt_iyvol/iytrend 需 T≥3 + _ss 稀疏的 dev T=2 退化→T=19 恢复; 非 cross_media, 后者 emit_tracks=[] 产 0 列, 详见 ⑥ 判读 / 计划 F2/F3)", warn=True)
     panel = panel.merge(weighted, how="left", left_on=["company_listed_name", "year"], right_index=True)
 
     # 列序: 固定 20 列 + 加权列 (registry SSOT 序, weighted 已排)
@@ -1545,7 +1545,7 @@ def main(argv=None) -> int:
     logger.info("     两个方向都应先查 variant 长度谱与 k^c 右尾, 而非直接采信计数列。")
     logger.info("  ③ 内联 gate: frac 恒等/HHI 三锁/值域/单银行 cw==ce/缺失互斥/verified 分化 全过;"
                 " 双法 (分块 join vs 稀疏矩阵) 抽样等价已证 → 加权引擎无静默错位 (好)")
-    logger.info("     判读: 八闸全为恒等式/序关系/值域约束, 与样本规模无关 — 生产 T=18 上任何一闸翻红")
+    logger.info("     判读: 八闸全为恒等式/序关系/值域约束, 与样本规模无关 — 生产 T=19 上任何一闸翻红")
     logger.info("     都指向构造缺陷 (如权重错轨/分母摊薄/缺失被填 0), 属拒绝落盘级错误, 不可当告警忽略。")
     logger.info("  ④ pair 长表 metadata 带 registry_sha256=%s… + 输入指纹 → 步骤 03 双向锁可核 (好)",
                 registry["meta"]["registry_sha256"][:16])
@@ -1557,13 +1557,13 @@ def main(argv=None) -> int:
     logger.info("  ⑥ 全 NaN 加权列 %s 个 (共 %s 列): 两独立成因 (F3 拆分, 勿混为'缺源列一因') —",
                 f"{n_all_nan:,}", f"{n_cw + n_ce:,}")
     logger.info("     (a) BERT nt_iyvol/iytrend (需 T≥3 且 ≥6 有效月) + _ss 轨 substance/washing 稀疏 = dev T=2 时间深度退化,")
-    logger.info("         生产 T=18 上游全列重生后自然填充 (与'缺源列'无关, 勿盲查 40/51/27 覆盖);")
+    logger.info("         生产 T=19 上游全列重生后自然填充 (与'缺源列'无关, 勿盲查 40/51/27 覆盖);")
     logger.info("     (b) cross_media 三基名 (cross_media_alpha/cross_outlet_tone_variance/n_events) registry emit_tracks=[] → 产 0 列 (非此处 NaN);")
-    logger.info("         若主面板整体缺 cross_media, 属 main↔validation 顺序耦合 (stage75 恒晚于 stage40) 非 T=18 覆盖问题 — 见 README/计划 F2。")
+    logger.info("         若主面板整体缺 cross_media, 属 main↔validation 顺序耦合 (stage75 恒晚于 stage40) 非 T=19 覆盖问题 — 见 README/计划 F2。")
     logger.info("  ⑦ cooc_wt_base (上文三轨统计): 该值是 cw 列有效覆盖的上界 — 越接近 1, 加权测度")
     logger.info("     对共现宇宙的代表性越强 (>0.9 视为健康); 生产上若走低属数据态而非 bug,")
     logger.info("     分析端按覆盖率做样本限制稳健 (codebook §7 义务)。")
-    logger.info("  ⑧ 与生产 T=18 的预期差异: 本次输入为 dev 语料 (约全量 0.055%); 计数/覆盖/k^c 分位")
+    logger.info("  ⑧ 与生产 T=19 的预期差异: 本次输入为 dev 语料 (约全量 0.05%); 计数/覆盖/k^c 分位")
     logger.info("     将随语料放大数量级, 但 gate 判据 (恒等/值域/序) 与骨架行数公式均规模无关,")
     logger.info("     可直接作为生产运行的判读基线; 2025 年整年 0 属上游截止预期, 非缺失。")
     logger.info("-" * 70)
@@ -1578,7 +1578,7 @@ def main(argv=None) -> int:
     t_total = time.monotonic() - t_start
     logger.info("     · 子阶段合计: %.4g 秒 (占总阶段 %.4g%%; 余量=argparse/头部日志等常数开销)",
                 t_load + t_build + t_write, 100 * (t_load + t_build + t_write) / max(t_total, 1e-9))
-    logger.info("     · 判读: 生产 T=18 下 ② 随语料行数近线性放大 (AC 扫描对文本长度线性), ③ 随")
+    logger.info("     · 判读: 生产 T=19 下 ② 随语料行数近线性放大 (AC 扫描对文本长度线性), ③ 随")
     logger.info("       面板行×列放大; RSS 峰值主项 = 写盘期 dta 全表驻留 (加权段已分块 join 限增量)。")
     logger.info("═" * 50)
     logger.info("阶段摘要: %s", Path(__file__).stem)

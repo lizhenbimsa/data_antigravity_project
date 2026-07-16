@@ -2665,7 +2665,7 @@ def main():
             logger.info(
                 f"  · ⚠ 人工金标准样本偏小 (n_gold_ver={n_gold_ver} < 300): "
                 "accuracy 点估计噪声不可忽略, 须连同 Wilson 95%CI 报告; "
-                "本机盘面为 T=2 子样, 仅验证管道正确性, 全量结论以 17M/T=18 实测为准。"
+                "本机盘面为 T=2 子样, 仅验证管道正确性, 全量结论以 约1,819万/T=19 实测为准。"
             )
     except Exception as _e:
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")

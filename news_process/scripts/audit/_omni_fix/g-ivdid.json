@@ -16,13 +16,13 @@
   "id": "g-ivdid-02",
   "severity": "P2",
   "latent": true,
-  "title": "面板年份早于基期 T0 时 share 前视 (latent, T=18 触发)",
+  "title": "面板年份早于基期 T0 时 share 前视 (latent, T=19 触发)",
   "file": "pipeline/panel/iv_did.py",
   "line": "L116, L180 (merge 仅 on target_bank, 无 year≥T0 掩码); 配合 runner.py L663-665",
-  "claim": "compute_bartik_iv/_fintech 把 T0 年测得的 share 无差别 merge 到全部面板年份, 包括 year < T0 的行。runner 的 T0=max(panel.year.min(), 2010): 试跑样本 (2017 起) 不触发, 但 T=18 全量 (2007-2024) 下 T0=2010, 2007-2009 三个面板年将携带 2010 年才形成的 co-mention/分类 share — share 由未来数据测得, 早期结果变量可反向影响 share, GPSS '基期份额先于冲击且预定' 的外生性论证对这些行结构性失效。",
+  "claim": "compute_bartik_iv/_fintech 把 T0 年测得的 share 无差别 merge 到全部面板年份, 包括 year < T0 的行。runner 的 T0=max(panel.year.min(), 2010): 试跑样本 (2017 起) 不触发, 但 T=19 全量 (2007-2025) 下 T0=2010, 2007-2009 三个面板年将携带 2010 年才形成的 co-mention/分类 share — share 由未来数据测得, 早期结果变量可反向影响 share, GPSS '基期份额先于冲击且预定' 的外生性论证对这些行结构性失效。",
   "evidence": "L180: `panel = panel.merge(g_shares, on='target_bank', how='left')` — 仅按银行 merge, 不限制年份; L318 同。runner.py L664-665: `T0 = max(_panel_min, 2010)` 确认全量语料下 panel_min=2007 < T0=2010 的组合是既定行为, 函数内无任何 year<T0 守卫或警告。",
   "suggested_fix": "在 compute_bartik_iv/_fintech 内: 对 year < base_year 的面板行将 bartik_*_iv* 置 NaN (share 列可保留但加文档), 或至少 logger.warning 显式披露并要求下游剔除 pre-T0 年估计。",
-  "adjudication": "代码属实: iv_did.py:180 与 L318 仅按 target_bank merge/map, 无 year≥T0 掩码; runner.py:665 T0=max(panel_min,2010)。盘上 panel_min=2017→T0=2017 不触发; 全量 2007-2024 下 T0=2010, 2007-2009 行将携带 2010 年测得 share 与同期 shift 相乘出非 NaN BIV — share 由未来数据测得, GPSS 预定外生性论证对这些行失效。函数内无守卫/警告, 真实 latent 缺陷。",
+  "adjudication": "代码属实: iv_did.py:180 与 L318 仅按 target_bank merge/map, 无 year≥T0 掩码; runner.py:665 T0=max(panel_min,2010)。盘上 panel_min=2017→T0=2017 不触发; 全量 2007-2025 下 T0=2010, 2007-2009 行将携带 2010 年测得 share 与同期 shift 相乘出非 NaN BIV — share 由未来数据测得, GPSS 预定外生性论证对这些行失效。函数内无守卫/警告, 真实 latent 缺陷。",
   "unit": "iv-did"
  },
  {
@@ -55,13 +55,13 @@
   "id": "g-ivdid-05",
   "severity": "P3",
   "latent": true,
-  "title": "sandbox never-treated 控制组近乎为空, 注释/日志推荐的 csdid never-treated baseline 不可行 (latent, T=18)",
+  "title": "sandbox never-treated 控制组近乎为空, 注释/日志推荐的 csdid never-treated baseline 不可行 (latent, T=19)",
   "file": "pipeline/panel/iv_did.py",
   "line": "L607-611 (rel_year 注释), L657-661 (csdid 命令日志)",
-  "claim": "代码把控制组 rel_year 设 NaN 并注释 'Stata 中作为 never-treated baseline', 日志建议 `csdid ..., gvar(sandbox_treat_year)` (csdid 默认 control=never-treated)。但 sandbox 2022 年后覆盖 23 个省级辖区, never-treated 组结构性趋空 — 盘上 87 家银行仅 2 家 never-treated; T=18 全量下该组进一步萎缩, never-treated baseline 的事件研究/ATT 实际不可估或由极少数特异银行驱动。",
+  "claim": "代码把控制组 rel_year 设 NaN 并注释 'Stata 中作为 never-treated baseline', 日志建议 `csdid ..., gvar(sandbox_treat_year)` (csdid 默认 control=never-treated)。但 sandbox 2022 年后覆盖 23 个省级辖区, never-treated 组结构性趋空 — 盘上 87 家银行仅 2 家 never-treated; T=19 全量下该组进一步萎缩, never-treated baseline 的事件研究/ATT 实际不可估或由极少数特异银行驱动。",
   "evidence": "盘上实证: sandbox_treat_year 分布 {2020:29, 2021:46, 2022:10, 0:2} — 仅 2/87 家控制; dcep 为 24/87 尚可。L610 注释: '控制组: NaN, Stata 中作为 never-treated baseline'; L658-659 日志只给 gvar 用法, 未提 `notyet` 选项。",
   "suggested_fix": "注释与日志改为推荐 `csdid ..., notyet` (not-yet-treated 控制组) 并在 never-treated 银行数 < 阈值时 logger.warning 披露; treat_year 列本身无需改动 (gvar 编码正确)。",
-  "adjudication": "盘上实证属实: sandbox_treat_year={2020:29,2021:46,2022:10,0:2}, 仅 2/87 家 never-treated (政策 2021-2022 覆盖 23 省级辖区, 结构性趋空)。L610 注释'作为 never-treated baseline'+ L658-659 csdid 日志未提 notyet 选项, 按此估计将由 2 家特异银行驱动。盘上 T=2 post≡0 (L595-598 已 fail-loud) 不可估, 危害仅 T=18 估计时显现 — latent P3 指引/披露缺陷。",
+  "adjudication": "盘上实证属实: sandbox_treat_year={2020:29,2021:46,2022:10,0:2}, 仅 2/87 家 never-treated (政策 2021-2022 覆盖 23 省级辖区, 结构性趋空)。L610 注释'作为 never-treated baseline'+ L658-659 csdid 日志未提 notyet 选项, 按此估计将由 2 家特异银行驱动。盘上 T=2 post≡0 (L595-598 已 fail-loud) 不可估, 危害仅 T=19 估计时显现 — latent P3 指引/披露缺陷。",
   "unit": "iv-did"
  },
  {
@@ -100,7 +100,7 @@
   "claim": "两条 Bartik 构造路径都把'基期 (T0=面板最早年) 无文章 → share 0/0 未定义'硬编码为全 0: compute_bartik_iv L149-150 对基期无文章银行直接 continue 后 L181 merge 再 fillna(0); 第二构造器 L312-313 total.replace(0,nan) 除完又 .fillna(0), L318 map 后再 fillna(0); L256 BIV=Σ share.fillna(0)×shift.fillna(0) → IV 恒等于 0。违反 share 行和=1 的 shift-share 不变量, 形成与覆盖率/银行规模相关的'伪零暴露'观测 (GPSS 2020 incomplete-shares 问题), 而非缺失。",
   "evidence": "盘上实测 40_panel_yearly.parquet: bartik_media_share_{comp,fin} 行和=0 共 70/174 行 (35/87 银行, 其中 40 个 bank-year 当年 n_articles>0 仍 IV=0); bartik_scale/type/mauth/geoprox/lc/lf 各 30 行 (15 银行)。所有零份额行 bartik_*_iv_full 恒为 0.0 (非 NaN), 已逐行验证 (iv[sz]==0).all()=True。其余行行和=1 精确成立 (max_dev<1e-6)。",
   "suggested_fix": "基期无文章 → share 保持 NaN (IV 随之 NaN, Stata listwise 正确剔除); 或补 has_base_share dummy 进 IV spec 并在 Rotemberg 诊断中排除全零行; 至少在模块限制段披露此编码选择。",
-  "adjudication": "iv_did.py:149-150 基期无文章银行 continue→L181 merge fillna(0); 第二构造器 L312-313/318 同型; L256 BIV=Σ0×shift≡0非NaN。盘上实证: media 族 70/174 行份额行和=0 (35/87银行, 40个当年有文章的 bank-year IV 仍恒0), 其余6族各30行; 非零行行和=1精确。已修 ivdid-05 仅改 'other' 分母(L306-313注释自证), 未触及此缺陷。GPSS 2020 incomplete-shares 成立; T=18 下 T0=2007 伪零更多, 缺陷放大。",
+  "adjudication": "iv_did.py:149-150 基期无文章银行 continue→L181 merge fillna(0); 第二构造器 L312-313/318 同型; L256 BIV=Σ0×shift≡0非NaN。盘上实证: media 族 70/174 行份额行和=0 (35/87银行, 40个当年有文章的 bank-year IV 仍恒0), 其余6族各30行; 非零行行和=1精确。已修 ivdid-05 仅改 'other' 分母(L306-313注释自证), 未触及此缺陷。GPSS 2020 incomplete-shares 成立; T=19 下 T0=2007 伪零更多, 缺陷放大。",
   "unit": "data-panel-invariants"
  },
  {

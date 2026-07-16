@@ -28,7 +28,7 @@
 *   则该 panel 优雅跳过 (wire-ahead), 绝不中断。FE grouping 列 (bank_province/
 *   bank_type/bank_zone) 在盘但为 str → egen group() 转 numeric 再做 i.X#i.year。
 * T=2 退化守卫: 当前盘 years 2017-2018 (T=2); 银行特定线性趋势 c.year#i.bank_id
-*   需 T>=3 → quietly count distinct year + 守卫优雅跳过 (production T=18 才激活)。
+*   需 T>=3 → quietly count distinct year + 守卫优雅跳过 (production T=19 才激活)。
 * ============================================================================
 
 version 19
@@ -118,14 +118,14 @@ if `_have_dv' {
 
     * M4 + bank-specific linear trend (需 T>=3; 白话: 每家银行允许有自己
     *     的增长斜率, 把"这家本来就在往好走"的趋势剔掉。T=2 时趋势与个体 FE
-    *     完全共线无法识别 → 守卫跳过, production T=18 才激活)
+    *     完全共线无法识别 → 守卫跳过, production T=19 才激活)
     if `_T' >= 3 {
         capture noisily reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
             absorb(bank_id year c.year#i.bank_id) vce(cluster {{CLUSTER_VAR}})
         if !_rc eststo feA_m4_btrend
     }
     else {
-        display "  [SKIP] Panel A M4 银行线性趋势: T=`_T' < 3 (盘面 2017-2018 退化); production T=18 激活"
+        display "  [SKIP] Panel A M4 银行线性趋势: T=`_T' < 3 (盘面 2017-2018 退化); production T=19 激活"
     }
 }
 
@@ -192,7 +192,7 @@ if `_have_dv' {
 *   ⚠ psacalc **只在普通 regress/areg 之后可用** (不支持 reghdfe e() 的简化形式;
 *     reghdfe 后调 psacalc 报 "only works after linear regression")。故受控模型
 *     用 regress + i.year FE 哑变量 (T=2 不放 i.bank_id 防完全吸收掉变异; production
-*     T=18 可改 areg ..., absorb(bank_id) 同样兼容 psacalc), 既给 rmax 的 R² 也作
+*     T=19 可改 areg ..., absorb(bank_id) 同样兼容 psacalc), 既给 rmax 的 R² 也作
 *     psacalc 读取的承载回归。
 * ============================================================================
 capture which psacalc

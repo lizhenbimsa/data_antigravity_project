@@ -169,7 +169,7 @@
 1. **实施就绪度=0%**：所有"缺口"本质是"计划 vs 无代码"——本审计只能验 **spec 平价**，不能验**行为平价**。编码后**必须再跑一次 code-vs-code 平价审计**，再 golden 重生。
 2. **静默漏列**仍是 #1 风险，直到 `check_static_enums.py` 落地并入 CI。
 3. **付费顺序**：§0"现在批准" = 成本预批，**实际 ss stage-21 单次跑放在 P4**（播种缓存+重生 golden 一气呵成），避免误早跑/脏 golden 提交——已在 §6 P4 明确。
-4. **全量外推**：14.27%/65.76% 来自 1170 篇 disk 小样；全量 17M/T=18 须**逐年重测** ss 非空率与 min-N，再断言 ss 识别可行。
+4. **全量外推**：14.27%/65.76% 来自 1170 篇 disk 小样；全量 18.2M/T=19 须**逐年重测** ss 非空率与 min-N，再断言 ss 识别可行。
 5. **semantic_staleness_ss 延后**（stage 30a SBERT，低 ROI）：`article_staleness.py:491` 须优雅跳过（NaN）直到 30a ss 上线——**文档化**，勿被审稿读成平价漏洞。
 
 ### 7.6 平价矩阵（covered/partial/missing，各子系统）
@@ -213,4 +213,4 @@ text13:2/4/3 · llm21:4/3/3 · words22:3/12/9 · bert23:1/3/3 · herd24:3/5/3 ·
 - B1/B2/B3/B4 的伪代码细节（results_map 三键初始化位置、`_aggregate_track` 第三调用点、tone_words 12 循环逐一行号、7 态诊断 schema）= **P0-P3 编码时按 §7.2 行号落实**；编码后**强制 code-vs-code 平价复审**（§7.5 #1）再 golden。
 
 ### 8.4 最终结论
-**GO_WITH_AMENDMENTS** → 补入 §⑬（注释/文档平价）+ 8.2 三项 + 8.3 回填策略后，计划达"功能 + 注释 双重零遗漏" spec 标准，可按 §6 P0-P4 开工。**唯一 INFO 级保留**：本审计仍是 spec 平价（代码 0% 实现）；行为平价须编码后再审。全量 17M/T=18 ss 逐年覆盖在 P4 付费跑前用 `measure_bank_fintech_cooccurrence` 分年度实测把关。
+**GO_WITH_AMENDMENTS** → 补入 §⑬（注释/文档平价）+ 8.2 三项 + 8.3 回填策略后，计划达"功能 + 注释 双重零遗漏" spec 标准，可按 §6 P0-P4 开工。**唯一 INFO 级保留**：本审计仍是 spec 平价（代码 0% 实现）；行为平价须编码后再审。全量 18.2M/T=19 ss 逐年覆盖在 P4 付费跑前用 `measure_bank_fintech_cooccurrence` 分年度实测把关。

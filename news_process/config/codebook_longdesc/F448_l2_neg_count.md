@@ -80,7 +80,7 @@ ctx 轨的实体上下文窗口在 stage 14 (`ctx_materializer`) 物化为 `cont
 【变体差分】
 本列取 ss 轨 (标题+银行∧金科词同句共现窗口文本, 默认 ±1 句半径) 的 `llm_vote_score_ss == -1` 指示在 bank-year 层求和, 非加权, dtype int64。行宇宙同样是 full 轨留篇门控之上的条件子集。ss 回退语义镜像 ctx: 若某篇文章不存在银行∧金科词同句共现, `content_ss` 回退为全文 body, 对应篇章级 `ss_is_fallback=True`, 该情形下 ss 轨的负面判定实质上退化为 full 轨判定的重复 (而非独立测量), 解读本列的 bank-year 均值时应结合 `frac_ss_fallback` 判断该行是否以退化观测为主。本列是三轨中最"聚焦"的一支, 用于检验负面语调计数是否需要银行与金科议题在句子层面严格共现才成立, 与 ctx/full 两轨互为稳健性并排, 不分主次。
 
-ss 轨的共现判据来自 `entity_context.extract_bank_fintech_cooccurrence` (与 stage 13 硬过滤所用的 `has_bank_fintech_cooccurrence_within_radius` 是不同判据原语, 禁止互相复用), 要求银行词与金科词在同一句内出现方视为真共现; 该判据比 ctx 轨的实体窗口更严格, 因此本列的真实 (非回退) 观测数通常显著少于 `neg_count_ctx` 的有效样本。当一个 bank-year 内 `frac_ss_fallback` 接近 1 (几乎所有文章都不存在同句共现) 时, `neg_count_ss` 应与 `neg_count_full` 在数值上高度接近甚至相等, 此时本列不再提供额外的识别信息, 是数据稀疏导致的预期退化而非缺陷; 在 T=2 的本机开发样本上这一退化尤为常见, 生产 T=18 全量语料上真实同句共现观测量预期显著提升。
+ss 轨的共现判据来自 `entity_context.extract_bank_fintech_cooccurrence` (与 stage 13 硬过滤所用的 `has_bank_fintech_cooccurrence_within_radius` 是不同判据原语, 禁止互相复用), 要求银行词与金科词在同一句内出现方视为真共现; 该判据比 ctx 轨的实体窗口更严格, 因此本列的真实 (非回退) 观测数通常显著少于 `neg_count_ctx` 的有效样本。当一个 bank-year 内 `frac_ss_fallback` 接近 1 (几乎所有文章都不存在同句共现) 时, `neg_count_ss` 应与 `neg_count_full` 在数值上高度接近甚至相等, 此时本列不再提供额外的识别信息, 是数据稀疏导致的预期退化而非缺陷; 在 T=2 的本机开发样本上这一退化尤为常见, 生产 T=19 全量语料上真实同句共现观测量预期显著提升。
 
 ## VAR: neg_count_vw_ctx
 

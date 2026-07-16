@@ -27,7 +27,7 @@
 ## F1 🔴 CRITICAL — stage 00 预处理 ParquetWriter schema 崩溃 (生产首跑阻断)
 
 **文件**: `pipeline/preprocess/runner.py:348-356`
-**根因** (亲自逐行确认): `pa.Table.from_pandas`(350)+`pq.ParquetWriter(output_path, table.schema)`(351-354, 首个完成 worker 永久锁 schema)+`writer.write_table(table)`(355) 全在 try/except 之外。`load.py:500-503` dtype 归一是 `if dtype=='object'` (仅 object→str) 放过数值列。盘上 `00_preprocessing.parquet` 实测 **`docid: int64`** + 12 列 string → T=18 多源语料下 `docid`/`页号`/`pubcode` 跨文件 int64↔float64(含缺失)↔string 分歧 → 首 worker 锁定某 dtype 后, 分歧文件 `write_table` 抛未捕获 `ValueError` → 冒泡出 `main()` → **DAG 根阶段硬崩**。崩不崩取决于 `as_completed` 完成顺序 (非确定)。T=2 单源同构永不触发。
+**根因** (亲自逐行确认): `pa.Table.from_pandas`(350)+`pq.ParquetWriter(output_path, table.schema)`(351-354, 首个完成 worker 永久锁 schema)+`writer.write_table(table)`(355) 全在 try/except 之外。`load.py:500-503` dtype 归一是 `if dtype=='object'` (仅 object→str) 放过数值列。盘上 `00_preprocessing.parquet` 实测 **`docid: int64`** + 12 列 string → T=19 多源语料下 `docid`/`页号`/`pubcode` 跨文件 int64↔float64(含缺失)↔string 分歧 → 首 worker 锁定某 dtype 后, 分歧文件 `write_table` 抛未捕获 `ValueError` → 冒泡出 `main()` → **DAG 根阶段硬崩**。崩不崩取决于 `as_completed` 完成顺序 (非确定)。T=2 单源同构永不触发。
 
 **SHIP 修复 (字节安全网, R1 修订: safe=True + 收窄 except)**:
 
@@ -52,7 +52,7 @@
                             # safe=True (默认): 有损/越界 cast (fractional float→int / string→int) raise→
                             # failed_files 对账; NaN→null 与无损加宽 (int→float/int→string) 仍成功写入。
                             # 绝不 nuke 根阶段 (审计 F1)。⚠ 首 writer 锁哪个 dtype 由 as_completed 完成序
-                            # 决定 → T=18 跨次可产出不同 (int64 null vs float64); 该非确定性由 F1b (标识列
+                            # 决定 → T=19 跨次可产出不同 (int64 null vs float64); 该非确定性由 F1b (标识列
                             # 归 string) 根治, F1(本项)与 F1b 须同生产窗口落地, 前者仅作防崩安全网。
                             table = table.cast(writer.schema)
                         writer.write_table(table)
@@ -67,9 +67,9 @@
 ```
 
 **golden-safety 证明** (R1 golden-safety-breaker 实证): T=2 单源 → 所有 df_cleaned 同 schema (`schema ==` 忽略 pandas metadata) → 首文件建 writer, 后续 `table.schema == writer.schema` → 不进 cast → `writer.write_table(table)` 逐字节等价; try/except T=2 永不触发。本机 data/raw 空 → Step-2 循环根本不进。`source_rows` 计数移到成功写后 (语义: 只统计真写入行), T=2 无失败 → 一致。
-**诚实披露** (R1 fix-correctness 更正 + R2 精化): 本安全网把「崩」换成: (a) 有损 cast (fractional/含空串或非数字 string→int) 或列集不匹配 → raise → failed_files 对账 (整源文件被跳, 生产可达百万行, 有 logger.error+sidecar); (b) 无损分歧 (float64 含 NaN ↔ int64) → NaN→null **被写入** (非 skip); (c) 锁定 dtype 方向由 worker 完成序决定 → T=18 跨次非确定。**(b)(c) 由 F1b 根治**。
+**诚实披露** (R1 fix-correctness 更正 + R2 精化): 本安全网把「崩」换成: (a) 有损 cast (fractional/含空串或非数字 string→int) 或列集不匹配 → raise → failed_files 对账 (整源文件被跳, 生产可达百万行, 有 logger.error+sidecar); (b) 无损分歧 (float64 含 NaN ↔ int64) → NaN→null **被写入** (非 skip); (c) 锁定 dtype 方向由 worker 完成序决定 → T=19 跨次非确定。**(b)(c) 由 F1b 根治**。
 - ⚠ **R2 NIT (b) load-bearing 前提**: 「NaN→null 写入」依赖 `pa.Table.from_pandas` 的 null-masking (NaN→arrow-null); 裸 `pa.array([...NaN...]).cast(int64)` (NaN-valued 非 null-masked) 会 **RAISE**。当前路径 (df_cleaned→from_pandas→cast) 恰走 null-mask 分支; 未来若以产 NaN-valued 数组的路径重构, 该分支会静默变「raise→整源文件落 failed_files」(数据丢失)。注释须点明此前提。
-- ⚠ **R2 硬门 (升级)**: 「F1+F1b 同生产窗口落地」从指引升为**硬发布门** (F1 不得单独 ship 到 T=18 窗口而缺 F1b); 首次生产重生建议 `NEWS_PROCESS_STRICT_SOURCES=1` 默认令丢源 fail-loud 而非静默 reconcile。
+- ⚠ **R2 硬门 (升级)**: 「F1+F1b 同生产窗口落地」从指引升为**硬发布门** (F1 不得单独 ship 到 T=19 窗口而缺 F1b); 首次生产重生建议 `NEWS_PROCESS_STRICT_SOURCES=1` 默认令丢源 fail-loud 而非静默 reconcile。
 **测试影响**: `test_00_preprocessing.py` 无 docid/dtype/schema/ParquetWriter 断言 (grep 零命中) → 零影响。
 **验证** (R2 confirmed P2 闭环): ① `test_f1_cast_safety_net_premises` 锁 pyarrow cast 三语义原语 (防升级漂移); ② **R2/R3 补** `test_f1_preprocess_schema_divergence_no_crash` — 列集分歧两源 (a=2列/b=3列, cast 双向皆 ValueError → 中和 as_completed 完成序非确定, total 恒=2) + 同步 executor 替换 ProcessPool (Windows spawn 下跨进程 monkeypatch 失效) 驱动真 `load_and_process_data`, 断言不崩根阶段 + 分歧源被跳 + `source_reconciliation.json` 计入 failed_files/zero_contribution。回退 runner try/except → ValueError 冒泡即变红 (锁住 premise 测遗漏的集成路径)。
 
@@ -199,7 +199,7 @@ def _enforce_row_parity(panel):
 ## DEFER 项 (文档记录, 非遗漏; R1 事实订正)
 
 - **F6** `tone_llms.py:1256-1262`: 正确修 = 列表推导追加 `and parsed.get(f"{m['short_name']}_verified") is True`。改 innovation_*_confidence 计算值 → 改 21/40 parquet → 改 golden (测度类改动, M0 门)。grep 全仓无 .do/paper_spec 消费 → 休眠零急迫。→ golden-regen 窗口随手带。
-- **F1b** load.py 标识列归 string: F1 根治, 消除 T=18 非确定。golden-affecting (docid dtype)。impl 时按 test_00 复核可否提前 ship (见 F1 段)。
+- **F1b** load.py 标识列归 string: F1 根治, 消除 T=19 非确定。golden-affecting (docid dtype)。impl 时按 test_00 复核可否提前 ship (见 F1 段)。
 - **cohort (2红, R1 订正事实)**: `test_cohort_module_exports_84_banks` 实为 `assert 110 == 87` 失败 (模块现导出 **110 家**, 与 CLAUDE.md『110 banks × 2 years』当前 T=2 面板一致); `test_cohort_csv_is_committed_in_repo` 因 `data/raw/cohort/benefit_society_84banks.csv` **文件缺失 (ABSENT)** 失败 (非『84 行陈旧』)。→ 处置 defer 到 golden-regen 窗口 (需 regenerate cohort manifest + 更新 test 期望 + committed CSV; 数据依赖)。
 - **fast 红总数订正**: 权威 `-m fast` 跑批为 **6 条** (cohort×2 + dual_track×3 + `test_global_jieba_stays_pure_isolation`×1)。⚠ `test_omni_fix_codebook::TestScriptPanelSource` 2 条与 jieba 1 条均 **order-flaky** (隔离单跑通过 = 纯测试间全局态污染); 是否出现取决于套件顺序。**F8 修 dual_track×3**; 其余 defer。
 - **jieba/codebook 测试间污染 (order-flaky)**: 全局态泄漏 (`fintech_intensity`/`decay_sensitivity`/`radius_sensitivity` 裸 `jieba.add_word` + codebook 模块全局)。生产子进程隔离安全 (`run_pipeline_function.py:645` 注释显式点名 jieba 全局态)。修 = test teardown 重置或三模块隔离化 (measure-risky 需 golden 验)。→ 测试卫生跟进。

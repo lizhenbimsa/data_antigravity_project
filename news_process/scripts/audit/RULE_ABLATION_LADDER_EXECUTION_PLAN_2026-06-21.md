@@ -91,7 +91,7 @@ msent_negdeg ≡ msent_negonly  (退化, 不新增)
 
 **采纳 N-call**: 在 `_analyze_single_article` 内对每个新变体各调一次引擎 (复刻 negonly L1259-1261 模式)。理由: 无条件 by-construction 正确 / 每个 flag 组合自文档化、可独立测试 / 引擎 O(tokens)、在已分词输入上多调几次开销可忽略 (jieba 分词才是热点, 已共享一次)。
 
-> single-pass 仅在 T=18 全量 profiling 证明 tone_words 为热点时才考虑, 且须 gate 在"逐列 byte-equal vs N-call 参考"的测试之后 (本计划不做)。
+> single-pass 仅在 T=19 全量 profiling 证明 tone_words 为热点时才考虑, 且须 gate 在"逐列 byte-equal vs N-call 参考"的测试之后 (本计划不做)。
 
 ### D5 — 非可加分解的强制披露 (audit MATH-1)
 
@@ -227,8 +227,8 @@ NUMEXPR_NUM_THREADS=1  KMP_DUPLICATE_LIB_OK=TRUE  NEWS_PROCESS_LLM_OFFLINE=1
 5. `generate_golden_snapshot.py` **外科只改** `22`/`40`/`51` 三 entry 的新列哈希, 其余 byte-identical。
 6. `pytest tests/integration/test_panel_reproducibility.py` 全绿。
 
-### 5.4 生产 T=18 (标准 DEFERRED)
-本机 T=2 (172 行) 闭环可保门禁绿、可提交 (同近期所有特征)。生产 T=18 (17M 行) 最终 bless = 受 **M0 gate** 的常设 deferred, 须 canonical env + 用户批准 (见 memory `golden-regen-omp-determinism-2026-06-18`)。
+### 5.4 生产 T=19 (标准 DEFERRED)
+本机 T=2 (172 行) 闭环可保门禁绿、可提交 (同近期所有特征)。生产 T=19 (18.2M 行) 最终 bless = 受 **M0 gate** 的常设 deferred, 须 canonical env + 用户批准 (见 memory `golden-regen-omp-determinism-2026-06-18`)。
 
 > ⚠ 铁律 G1: golden 重生**不在本计划自动执行**。须用户显式批准 + canonical env 已 pre-export, 否则会误 bless 4 网络列 / 45 BLAS 列的无关漂移。
 
@@ -291,10 +291,10 @@ NUMEXPR_NUM_THREADS=1  KMP_DUPLICATE_LIB_OK=TRUE  NEWS_PROCESS_LLM_OFFLINE=1
 
 ## 10. 明确不做 (Out of Scope)
 - 不新增 `msent_*` / `avg_msent_*` 列 (D1 退化)。
-- 不做 single-pass 引擎重构 (D4; 除非 T=18 profiling 证热点)。
+- 不做 single-pass 引擎重构 (D4; 除非 T=19 profiling 证热点)。
 - 不做 IDF / zscore / 加权 (`_w`) 梯度孪生 (复刻 negonly 最小形态)。
 - 不改 validation 引擎副本、不动 stage 计数。
-- 不在本计划执行 golden 重生 / 生产 T=18 跑 (PLAN-ONLY)。
+- 不在本计划执行 golden 重生 / 生产 T=19 跑 (PLAN-ONLY)。
 
 ---
 

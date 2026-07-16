@@ -73,13 +73,13 @@
 
 ### F2 · [P2 · DOC] cross_media 顺序耦合 (标准顺序恒缺列; paper-10 影响为前瞻风险)
 - **机制 (源码+mtime 链坐实)**: `core/dag.py:316` stage40=group **main** / `:459` stage75=group **validation**; `runner.py:400-410` mtime 新鲜度守卫 (75 早于登记上游 21 → 跳过 cross_media merge)。main 每跑必先重生 stage21 → stage40 建面板时盘上 75 恒早于刚生的 21 → **恒跳过**。本轮 mtime 链 21_full@22:27 → 40@22:35(守卫触发) → 75@22:42。**非 T=2、非生产可恢复** — 任何 `main→validation→company` 顺序恒缺 cross_media 三基名。
-- **评审校准 (REV-5, 降 P1→P2)**: `cross_outlet_tone_variance_full` 在 `papers/bank_media_disagreement/paper_spec.yaml:87` 标 **"待新建 (M2-M3)"** (尚未构建进流水线), 盘上同名列是 stage 39f **不同口径**占位 (:88-95 已披露)。故 paper-10 复现阻断是**前瞻/潜伏风险** (待该变量按 spec 口径建成后受此耦合制约), **非当前活跃回归失败**。company 日志"生产 T=18 上游全列重生后减少"对 cross_media 子集**误导排障方向**。
-- **修复 (纯文档/日志 golden 安全)**: (1) 文档化 canonical 顺序 (主线+company README): 需含 cross_media 列的完整面板须走 `①function → ②validation → ③单独补跑 40_panel_export_main.py (不重跑21) → ④⑤company`; 替代 = 主线 `--skip-21-if-exists`。(2) 纠正 company 侧对 cross_media 子集的"T=18 恢复"误导文案 (改为"main↔validation 顺序耦合, 须按 §5 顺序或补跑 stage40")。(3) 可选 runner.py skip WARNING 升为运行末尾醒目摘要行。(4) DEFERRED (不建议): 提升 cross_media 为主线阶段 / 放宽守卫。
+- **评审校准 (REV-5, 降 P1→P2)**: `cross_outlet_tone_variance_full` 在 `papers/bank_media_disagreement/paper_spec.yaml:87` 标 **"待新建 (M2-M3)"** (尚未构建进流水线), 盘上同名列是 stage 39f **不同口径**占位 (:88-95 已披露)。故 paper-10 复现阻断是**前瞻/潜伏风险** (待该变量按 spec 口径建成后受此耦合制约), **非当前活跃回归失败**。company 日志"生产 T=19 上游全列重生后减少"对 cross_media 子集**误导排障方向**。
+- **修复 (纯文档/日志 golden 安全)**: (1) 文档化 canonical 顺序 (主线+company README): 需含 cross_media 列的完整面板须走 `①function → ②validation → ③单独补跑 40_panel_export_main.py (不重跑21) → ④⑤company`; 替代 = 主线 `--skip-21-if-exists`。(2) 纠正 company 侧对 cross_media 子集的"T=19 恢复"误导文案 (改为"main↔validation 顺序耦合, 须按 §5 顺序或补跑 stage40")。(3) 可选 runner.py skip WARNING 升为运行末尾醒目摘要行。(4) DEFERRED (不建议): 提升 cross_media 为主线阶段 / 放宽守卫。
 - **反向补遗 (2026-07-10 八入口审计 G9)**: validation 重生 75 后其 mtime 晚于 21 → **下轮单独重跑 stage 40 时守卫必放行, cross_media +9 列并入 (3442→3451)**; 下轮全主线重跑 (21 重生) 又跳过回落 3442 — 面板列数随"跑法"在 3442↔3451 间**振荡**, schema 不再是 stage 40 自身输入的纯函数。**A/B 差分 SOP: 比较前先核 `cross_media_alpha_full` 列在场性**, 9 列差异勿误判回归 ("validation 后单跑 40 = +9 列属预期, 全主线重跑 = 回落属预期")。并入侧安全性有守卫兜底 (重复键 fail-loud / 行数断言 / 只并新列)。
 
 ### F3 · [P2 · NEEDS_FIX/DOC] company "40 个加权列全 NaN = 缺源列" 诊断误标 (两独立根因)
 - **证据 (实读 parquet 坐实)**: 40 个全 NaN 列**全部**为 `cw_/ce_{finbert_cn,fin_sent_zh,finbert2}_nt_{iyvol,iytrend}_{full,ctx,ss}` (36 列, 需 T≥3 且 ≥6 有效月, dev T=2 全 NaN 属预期) + `cw_/ce_{neg_sub_ratio_ss,washing_asymmetry_ss}` (4 列, ss 轨 T=2 稀疏)。cross_media 3 基名 registry `emit_tracks=[]` → 实产 **0 列** (非全 NaN)。**纠正了初判 RUN_NOTES 的 "40 NaN = cross_media 传导" 错误归因。**
-- **修复**: 拆分 02 WARNING/⑥ 文案为两类 (BERT T=2 时间深度 → T=18 填充 / cross_media emit_tracks=[] → 顺序耦合见 F2)。**设计裁定 (回应 audit "核对是否落占位列", REV-8)**: cross_media 三基名属 GAP_UNPLANNED/待新建, **刻意不落全 NaN 占位列以免污染 schema** (故 01 "按缺列容错出全 NaN 列" 对 emit_tracks=[] 基名措辞须校正为"实际不产列"); 若为 T=18 级联审计可见性需要, 另行评估落显式占位列的利弊。golden: 安全 (纯日志文案)。
+- **修复**: 拆分 02 WARNING/⑥ 文案为两类 (BERT T=2 时间深度 → T=19 填充 / cross_media emit_tracks=[] → 顺序耦合见 F2)。**设计裁定 (回应 audit "核对是否落占位列", REV-8)**: cross_media 三基名属 GAP_UNPLANNED/待新建, **刻意不落全 NaN 占位列以免污染 schema** (故 01 "按缺列容错出全 NaN 列" 对 emit_tracks=[] 基名措辞须校正为"实际不产列"); 若为 T=19 级联审计可见性需要, 另行评估落显式占位列的利弊。golden: 安全 (纯日志文案)。
 
 ### F4 · [P2 · NEEDS_FIX] tables.py 硬编码脚注声称 ft_vol_* 为 NaN 占位, 与实产 CSV 真实值矛盾
 - **证据**: `papers/bank_fintech_tone/tables.py:113-120` 无条件脚注末句 "ft_vol_* are NaN-placeholder until the panel is rebuilt"; 产物 `table1_summary_stats.csv` 中 `ft_vol_yr`(N=220, Mean=5.9555) / `ft_vol_prov`(N=194, Mean=4.1573) 均真实非-NaN。误导审稿人。
@@ -125,7 +125,7 @@
 
 ### F14 · [P2 · DISCLOSURE] stage64 揭示 LLM 两家近同质 + 覆盖率非单调 (论文披露, 非代码 bug)
 - **证据**: `64_tone_validation.log:191` gpt54nano vs gemini31 JSD=0.0003780 "高度同质化(多数投票退化风险)"; `:176` 覆盖率非单调 Δα=-0.3184。均 T=2/1005 篇小样本。
-- **修复**: 论文方法学章 (若引用 stage64) 披露多数投票两家近同质 + 覆盖率非单调, 以生产 T=18 复核为准。**代码无需改动。** golden: 安全。
+- **修复**: 论文方法学章 (若引用 stage64) 披露多数投票两家近同质 + 覆盖率非单调, 以生产 T=19 复核为准。**代码无需改动。** golden: 安全。
 
 ### F15 · [NIT · METHODOLOGY] 确定性判定用列 value-multiset 哈希掩盖行序/跨列错位
 - **证据**: 列 multiset 哈希对行序置换不变, 无法发现跨列逐行错位; "含 BLAS 列 0 相异"与文档化 ~45 列 BLAS 漂移未对账 (今晨线程钉设未知)。
@@ -160,7 +160,7 @@
 1. **F1 生产 canonical 污染是已披露既定权衡**: 项目立场 = 不裁剪只披露 + n_docs_longhit 稳健臂; 论文须以稳健臂为准或 usci 剔除受污行 (非 pipeline 缺陷)。若走方案 (a) 匹配层清洗须防误删 建发/金地 类合法短名。
 2. **F1 执行期风险 (若落 SSOT/清洗, REV-6)**: ① SSOT 重生非原子写 (`generate_company_tax_names.py:151 OUT.write_text` 无 temp+rename) — 与 tax/listed 管线无跨锁, 重生瞬间管线读该 yaml 会 torn-read → 须管线空闲时执行或对 generator 加 temp+os.replace; ② dev 落清洗但 DEFER 面板/registry 重生时, 盘上 cleaned yaml 与 committed `meta.company_names_sha256` 失配 → `test_name_list_hash_anchor` **立即翻红** → 须**同步重跑 01 (廉价 20.4s)** 复位自洽门 (区分 廉价 01-regen 立即做 vs 昂贵 02/03-regen 走 M0)。
 3. **F2 第 10 篇复现受耦合制约为前瞻风险** (变量待新建 M2-M3); 现无活跃回归失败, 但须文档化 canonical 顺序以免建成后踩坑 + 纠正误导文案。
-4. **F8 长跑 03 非原子 dta 写**: 单跑 kill 留半成品 (本轮未复现, 40min 后台净完成); 前次诊断计划 §7-1 会话级后台中断风险对生产 T=18 更长跑仍在。**F8 temp+replace 瞬时磁盘 (终审 NIT)**: 重跑时 .tmp 与旧文件共存 → dta 峰值需 ~2× (T=18 单 dta ≥6.85GB → 瞬时 ~13.7GB); T=18 前须确保 data 目录 ~2× 头room; 陈旧 .tmp (上次 kill 残留) 下轮 write 直接覆写无害。**F8 逐文件非跨文件原子 (终审 NIT)**: dta.replace 与 parquet.replace 之间被 kill 会留新 dta+旧 parquet 版本错配对 (各自仍完整), 属 pre-existing 且被 F8 严格改善, Stata 单消费 dta 恒完整, 低风险。
+4. **F8 长跑 03 非原子 dta 写**: 单跑 kill 留半成品 (本轮未复现, 40min 后台净完成); 前次诊断计划 §7-1 会话级后台中断风险对生产 T=19 更长跑仍在。**F8 temp+replace 瞬时磁盘 (终审 NIT)**: 重跑时 .tmp 与旧文件共存 → dta 峰值需 ~2× (T=19 单 dta ≥6.85GB → 瞬时 ~13.7GB); T=19 前须确保 data 目录 ~2× 头room; 陈旧 .tmp (上次 kill 残留) 下轮 write 直接覆写无害。**F8 逐文件非跨文件原子 (终审 NIT)**: dta.replace 与 parquet.replace 之间被 kill 会留新 dta+旧 parquet 版本错配对 (各自仍完整), 属 pre-existing 且被 F8 严格改善, Stata 单消费 dta 恒完整, 低风险。
 5. **确定性金标 BLAS=1 仅 shell 约定** (F13/F15); golden 重生须遵 SOP + M0。
 6. **本轮未 live 覆盖** (F16, 依赖 CI gate): A7 完整 --no-emit-dta RUN / lock-race / --skip-unchanged 真跑 / --stage all。
 

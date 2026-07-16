@@ -21,7 +21,7 @@ use "$data_dir/_prepared_panel.dta", clear
 * sandbox_post) 恒为 0 (sd==0), DiD 结构性不可识别。恒零 treatment 进 reghdfe 会得共线/无意义系数
 * 却照样写入发表级 .tex (table3_mechanism_policy.tex), 此前仅 Python 端 logger.warning
 * (referee 不可见)。此处方差守卫: 任一处理变量 sd==0 即跳过整张机制表、不写 .tex,
-* 并显式提示。全量 T≥3 (生产 T=18) 面板下处理年落入窗口, _post 有变异, 正常生成。
+* 并显式提示。全量 T≥3 (生产 T=19) 面板下处理年落入窗口, _post 有变异, 正常生成。
 quietly summarize {{TREATMENT_DCEP}}
 local _dcep_sd = r(sd)
 quietly summarize {{TREATMENT_SANDBOX}}
@@ -79,7 +79,7 @@ if (`_dcep_sd' > 0) & (`_dcep_sd' < .) & (`_sb_sd' > 0) & (`_sb_sd' < .) {
     *   robust estimator。DCEP/Sandbox 是错时采纳 → plain TWFE 受 Goodman-Bacon (2021)
     *   负权重污染。补 csdid ... gvar() notyet method(dripw) (Callaway-Sant'Anna 2021)
     *   + estat event (动态事件研究) + bacondecomp (Bacon 分解, 暴露坏对照权重)。
-    *   TWFE 上方保留为对照列。 全 capture which 守卫 (ado 未装/T=2 优雅跳过, T=18 激活)。
+    *   TWFE 上方保留为对照列。 全 capture which 守卫 (ado 未装/T=2 优雅跳过, T=19 激活)。
     *   gvar (首次处理年, never-treated=0/缺) 由上游 iv_did.py 物化为 dcep_gvar/sandbox_gvar
     *   (缺则跳过)。notyet 用尚未处理者作对照 (Callaway-Sant'Anna 2021 §6.1)。
     * ======================================================================
@@ -113,7 +113,7 @@ if (`_dcep_sd' > 0) & (`_dcep_sd' < .) & (`_sb_sd' > 0) & (`_sb_sd' < .) {
                     replace plain b(4) se(4) wide
                 display "  OK DID-1: csdid DCEP (Callaway-Sant'Anna 2021, dripw, notyet, gvar=`_dcepg') -> table3_brok_csdid_dcep.csv"
             }
-            else display "  [SKIP] csdid DCEP degenerate (T=2 / single cohort year); production T=18 required."
+            else display "  [SKIP] csdid DCEP degenerate (T=2 / single cohort year); production T=19 required."
         }
         else display "  [SKIP] dcep_treat_year not in panel (iv_did.py cohort gvar pending); csdid DCEP skipped."
         * Sandbox cohort robust DiD
@@ -134,7 +134,7 @@ if (`_dcep_sd' > 0) & (`_dcep_sd' < .) & (`_sb_sd' > 0) & (`_sb_sd' < .) {
                     replace plain b(4) se(4) wide
                 display "  OK DID-1: csdid Sandbox (Callaway-Sant'Anna 2021, dripw, notyet, gvar=`_sbg') -> table3_brok_csdid_sandbox.csv"
             }
-            else display "  [SKIP] csdid Sandbox degenerate; production T=18 required."
+            else display "  [SKIP] csdid Sandbox degenerate; production T=19 required."
         }
         else display "  [SKIP] sandbox_treat_year not in panel; csdid Sandbox skipped."
     }
@@ -157,7 +157,7 @@ if (`_dcep_sd' > 0) & (`_dcep_sd' < .) & (`_sb_sd' > 0) & (`_sb_sd' < .) {
             file close _baconf
             display "  OK DID-1: bacondecomp DCEP (Goodman-Bacon 2021, weights in log) -> table3_brok_bacon.csv"
         }
-        else display "  [SKIP] bacondecomp degenerate (needs balanced panel T>=3 / variation in timing); production T=18."
+        else display "  [SKIP] bacondecomp degenerate (needs balanced panel T>=3 / variation in timing); production T=19."
     }
     else display "  [SKIP] bacondecomp not installed (ssc install bacondecomp); Bacon weights skipped."
 

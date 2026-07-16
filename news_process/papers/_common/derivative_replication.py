@@ -137,7 +137,7 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'CENTRALITY_BROKER': 'brokerage_eigen_cent',
         # ── network-metrics-elevation 2026-06-13: 五角色化新表 (15-20) 占位符 ──
         # 蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md;
-        # 全部消费 panel 实存列 → golden-safe; 角色 production T=18 才有功效 (盘面退化, 模板 N-守卫跳过)。
+        # 全部消费 panel 实存列 → golden-safe; 角色 production T=19 才有功效 (盘面退化, 模板 N-守卫跳过)。
         'PRIMARY_CENT': 'bank_between_cent',          # 角色1/5 主中心度 (Freeman 1979 介数=经纪/桥接)
         'SECONDARY_CENT': 'brokerage_eigen_cent',     # 信息枢纽对照 (Bonacich 1972 / Han 2024 RFS)
         'MEDIATOR_CENT': 'bank_between_cent',          # 角色2 中介通道 (与 PRIMARY 同列, 语义独立防分叉)

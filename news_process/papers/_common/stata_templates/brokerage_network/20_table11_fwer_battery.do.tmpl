@@ -11,7 +11,7 @@
 * ⚠⚠ 语法修正 (审计 BRK-PRIMARY-1 B 部分): **rwolf 无 iv()/不支持 ivreghdfe** → 用
 *    **wyoung** (Jones-Molitor-Reif 2019, cmd() 支持任意命令) 或 sharpened-FDR (Anderson 2008)。
 *    wyoung 对 reghdfe 描述性回归族适用; 2SLS 系数族须 boottest-based rwolf2。
-* ⚠ T=2 盘面 bootstrap 无功效 (样本饱和); 仅 production T=18 + ROA 接入后激活。
+* ⚠ T=2 盘面 bootstrap 无功效 (样本饱和); 仅 production T=19 + ROA 接入后激活。
 *    本表纯描述性 reghdfe (非主识别) → 标注"条件相关筛查", 不主张因果。
 * ============================================================================
 
@@ -76,7 +76,7 @@ else {
             matrix list _wy
             display "[OK] wyoung FWER over pre-registered 3-centrality family complete."
         }
-        else display "[INFO] wyoung run failed (likely T=2 degenerate / no within variation); production T=18 required."
+        else display "[INFO] wyoung run failed (likely T=2 degenerate / no within variation); production T=19 required."
     }
 }
 

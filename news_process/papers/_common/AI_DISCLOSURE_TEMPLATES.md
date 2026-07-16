@@ -86,7 +86,7 @@ the LF-normalized in-memory text (SHA-256 14952b06…) — any replication
 of either fingerprint must state which of the two conventions it uses.
 Wording-sensitivity and criterion-validity results are disclosed together
 with the sample/corpus scope on which they were computed (production
-T=18 corpus vs. development pilot), per the evidence-class discipline in
+T=19 corpus vs. development pilot), per the evidence-class discipline in
 scripts/audit/M0_PRODUCTION_GATE_CHECKLIST.md.
 ```
 

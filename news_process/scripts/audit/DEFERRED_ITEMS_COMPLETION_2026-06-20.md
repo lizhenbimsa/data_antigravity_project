@@ -12,7 +12,7 @@
 | 1 | conftest 日志隔离盲区 (R1 根因) | **✅ 已修复 + 实证** | monkeypatch 后跑 import-heavy pytest, 富集日志 md5 前后一致 |
 | 2 | R19 变量名 33 字符 | **✅ 已验证缓解** | 经生产 shorten_long_column_names → 32 唯一, 断言 PASS |
 | 3 | 待核验引用 (≥4 处) | **✅ 已核验/订正** | Carlson/Andreou 经 web 证实为真且精确; Distel 标题已订正; SSRN 已诚实标注 |
-| 4 | 受控 golden 重生 (T=18) | **⚠ 生产门控 (本机不可执行)** | 本机 data/raw 空 + 付费 M0 gate + 并行会话正占 panel/golden; 已给 SOP |
+| 4 | 受控 golden 重生 (T=19) | **⚠ 生产门控 (本机不可执行)** | 本机 data/raw 空 + 付费 M0 gate + 并行会话正占 panel/golden; 已给 SOP |
 
 ---
 
@@ -55,14 +55,14 @@ all ≤32: True | unique: True | triplet uniqueness assertion: PASS
 
 ---
 
-## 4. ⚠ 受控 golden 重生 (T=18) — 生产门控, 本机物理不可执行
+## 4. ⚠ 受控 golden 重生 (T=19) — 生产门控, 本机物理不可执行
 
 **为何不能在本机完成** (非偷懒, 是硬约束):
-1. **无生产数据**: 本机 `data/raw/` 空 (CLAUDE.md: "本机 data/raw 空、T=2 跑不了"); 全量 17M 文章 / 2007-2024 / T=18 语料不在此机。当前盘面是 T=2 (172 行 = 86 banks × 2017-2018) 占位样本。
+1. **无生产数据**: 本机 `data/raw/` 空 (CLAUDE.md: "本机 data/raw 空、T=2 跑不了"); 全量 18.2M 文章 / 2007-2025 / T=19 语料不在此机。当前盘面是 T=2 (172 行 = 86 banks × 2017-2018) 占位样本。
 2. **付费 M0 gate**: stage 21 全量在线 + stage 36/39 在线付费需成本审批 (M0 gate, 见 memory `paper_portfolio_decision_gates`)。
 3. **并行会话冲突**: 当前有并行会话正对 panel/golden 做 (T=2 loughran) 重生 (`golden_panel_v0.json` / `40_panel_yearly.parquet` mtime 00:58-01:16), 本会话再跑会撞车。
 
-**生产 SOP** (待 T=18 数据就位 + M0 审批后执行, 单机干净环境):
+**生产 SOP** (待 T=19 数据就位 + M0 审批后执行, 单机干净环境):
 ```
 设 OMP_NUM_THREADS=1 + KMP_DUPLICATE_LIB_OK=TRUE (BLAS 单线程确定性, 见 memory golden-regen-omp-determinism-2026-06-18)
 → 干净树, 重跑改动链 (22→24→45→46) 或全量 run_pipeline_function
@@ -73,7 +73,7 @@ all ≤32: True | unique: True | triplet uniqueness assertion: PASS
 → 二次重建验确定性全绿 (test_panel_reproducibility)
 铁律: 勿删 data/processed/_llm_cache.db (删则 golden 不再 $0 确定性复现)
 ```
-本次所有修复均 **validation/log/doc 层, 不触 panel/golden** → 不要求 golden 重生即可成立; golden 重生仅为未来 T=18 投稿样本所需。
+本次所有修复均 **validation/log/doc 层, 不触 panel/golden** → 不要求 golden 重生即可成立; golden 重生仅为未来 T=19 投稿样本所需。
 
 ---
 

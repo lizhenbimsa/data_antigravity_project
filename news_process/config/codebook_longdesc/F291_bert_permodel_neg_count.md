@@ -86,7 +86,7 @@ BERT 类预训练语言模型在金融文本情感分类上的适用性已由 Hu
 ## VAR: fin_sent_zh_neg_count_ss
 
 【变体差分】
-本列取 `fin_sent_zh` 模型在 ss 轨 (标题+银行∧金科同句±1 句窗口文本, `content_ss`, 半径由 `config/filtering.yaml::context_window.ss_sentence_radius` 控制, 默认 1) 上的逐篇负面标签计数。ss 轨判据比 ctx 更严格, 要求银行实体与金科词在同一句 (或窗口半径内) 共同出现, 是三轨中对"银行—金科交叉议题"最聚焦的一条; 当某篇文章不满足该共现条件时, `content_ss` 按项目铁律回退为全文 body 且 `ss_is_fallback=True` (回退语义镜像 ctx 轨, 共享 `n_articles` 分母), 此时该篇在 ss 轨的负面判定实质上退化为对 full 轨全文的判定, 与 full 轨在回退子样本上高度重合、非回退子样本上则反映更严格的语境筛选。ss 轨最贴近"银行与金融科技议题同时被提及且语境负面"这一具体构念, 在本机 dev T=2 小样本上可能因银行∧金科同句共现条件本身稀疏而出现较高比例的回退, 使 ss 轨数值向 full 轨收敛; 生产 T=18 全量语料上样本量大幅提升, 回退比例预期显著降低, ss 轨与 full/ctx 轨之间的判定分歧才能更充分展开。与该模型的 full/ctx 两条轨互为稳健性并排, 三者共享模型权重与判定算法, 差异仅来自输入文本范围, 不作为主要识别依据单独使用。本列可与 finbert_cn_neg_count_ss、finbert2_neg_count_ss 联合观察: 三者共享同一批 `content_ss` 输入 (含相同的回退子样本), 若三模型在 ss 轨上呈现方向一致的负面计数走势, 即构成"银行∧金科同句负面报道"这一严格构念不被模型选择驱动的有力证据。
+本列取 `fin_sent_zh` 模型在 ss 轨 (标题+银行∧金科同句±1 句窗口文本, `content_ss`, 半径由 `config/filtering.yaml::context_window.ss_sentence_radius` 控制, 默认 1) 上的逐篇负面标签计数。ss 轨判据比 ctx 更严格, 要求银行实体与金科词在同一句 (或窗口半径内) 共同出现, 是三轨中对"银行—金科交叉议题"最聚焦的一条; 当某篇文章不满足该共现条件时, `content_ss` 按项目铁律回退为全文 body 且 `ss_is_fallback=True` (回退语义镜像 ctx 轨, 共享 `n_articles` 分母), 此时该篇在 ss 轨的负面判定实质上退化为对 full 轨全文的判定, 与 full 轨在回退子样本上高度重合、非回退子样本上则反映更严格的语境筛选。ss 轨最贴近"银行与金融科技议题同时被提及且语境负面"这一具体构念, 在本机 dev T=2 小样本上可能因银行∧金科同句共现条件本身稀疏而出现较高比例的回退, 使 ss 轨数值向 full 轨收敛; 生产 T=19 全量语料上样本量大幅提升, 回退比例预期显著降低, ss 轨与 full/ctx 轨之间的判定分歧才能更充分展开。与该模型的 full/ctx 两条轨互为稳健性并排, 三者共享模型权重与判定算法, 差异仅来自输入文本范围, 不作为主要识别依据单独使用。本列可与 finbert_cn_neg_count_ss、finbert2_neg_count_ss 联合观察: 三者共享同一批 `content_ss` 输入 (含相同的回退子样本), 若三模型在 ss 轨上呈现方向一致的负面计数走势, 即构成"银行∧金科同句负面报道"这一严格构念不被模型选择驱动的有力证据。
 
 ## VAR: finbert2_neg_count_ctx
 
@@ -116,7 +116,7 @@ BERT 类预训练语言模型在金融文本情感分类上的适用性已由 Hu
 ## VAR: finbert_cn_neg_count_ss
 
 【变体差分】
-本列取 `finbert_cn` 模型在 ss 轨 (银行∧金科同句窗口, 回退语义镜像 ctx, 共享 `n_articles` 分母) 上的逐篇负面标签计数, 是 finbert_cn 三轨中判据最严格、行文本范围最窄的一列。当同句共现条件不满足时回退为全文判定 (`ss_is_fallback=True`), 与 full 轨在回退子样本上高度重合, 在非回退子样本 (确实存在银行∧金科同句共现) 上则更精确地反映"银行与金融科技交叉议题被负面报道"这一具体构念, 是该家族内构念聚焦度最高的一列之一。finbert_cn 的 3 分类体系 (正/中/负) 意味着 ss 轨上出现的模糊语境更容易被判定为中性而非负面, 相比 finbert2 的 2 分类体系, 本列的负面计数在严格判据下的绝对水平预期系统性更低。与该模型的 full/ctx 两条轨互为稳健性并排, 三轨/三模型均遵循"各自 just-identified 并排, 禁混同一 over-identified Hansen J"的项目通用铁律, 不作跨轨或跨模型的联合矩条件估计。本列与 fin_sent_zh_neg_count_ss、finbert2_neg_count_ss 三者构成本家族在 ss 轨上最完整的跨模型三角验证组, 是判断银行媒体负面报道计数结论是否稳健于模型选择的关键证据来源。作为 finbert_cn 三轨中最靠后被引用的一列, 本列在生产 T=18 全量语料尚未播种前 (本机 dev T=2) 的数值应视为方法学演示而非最终结果, 待生产语料重新推理后方可用于正式稳健性表格。
+本列取 `finbert_cn` 模型在 ss 轨 (银行∧金科同句窗口, 回退语义镜像 ctx, 共享 `n_articles` 分母) 上的逐篇负面标签计数, 是 finbert_cn 三轨中判据最严格、行文本范围最窄的一列。当同句共现条件不满足时回退为全文判定 (`ss_is_fallback=True`), 与 full 轨在回退子样本上高度重合, 在非回退子样本 (确实存在银行∧金科同句共现) 上则更精确地反映"银行与金融科技交叉议题被负面报道"这一具体构念, 是该家族内构念聚焦度最高的一列之一。finbert_cn 的 3 分类体系 (正/中/负) 意味着 ss 轨上出现的模糊语境更容易被判定为中性而非负面, 相比 finbert2 的 2 分类体系, 本列的负面计数在严格判据下的绝对水平预期系统性更低。与该模型的 full/ctx 两条轨互为稳健性并排, 三轨/三模型均遵循"各自 just-identified 并排, 禁混同一 over-identified Hansen J"的项目通用铁律, 不作跨轨或跨模型的联合矩条件估计。本列与 fin_sent_zh_neg_count_ss、finbert2_neg_count_ss 三者构成本家族在 ss 轨上最完整的跨模型三角验证组, 是判断银行媒体负面报道计数结论是否稳健于模型选择的关键证据来源。作为 finbert_cn 三轨中最靠后被引用的一列, 本列在生产 T=19 全量语料尚未播种前 (本机 dev T=2) 的数值应视为方法学演示而非最终结果, 待生产语料重新推理后方可用于正式稳健性表格。
 
 <!-- rendered-citations:begin -->
 Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A large language model for extracting information from financial text. Contemporary Accounting Research, 40(2), 806-841. https://doi.org/10.1111/1911-3846.12832

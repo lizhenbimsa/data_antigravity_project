@@ -37,7 +37,7 @@
 - de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. *Management Science*, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
   - *锚定*: 顶刊方法学指南, 明确给出用生成式 LLM 做文本测度的最佳实践——模型选择、prompt 工程、temperature 设 0 以保证确定性、prompt 版本固定与构念效度验证——逐条对应项目 temperature=0、prompt v8 字节级冻结、缓存锚定 (_llm_cache.db) 的可复现性规范。
 - Dell, M. (2025). Deep learning for economists. *Journal of Economic Literature*, 63(1), 5-58. https://doi.org/10.1257/jel.20241733
-  - *锚定*: JEL 综述系统梳理经济学家从大规模非结构化文本中用深度学习/生成式模型(分类器、嵌入、LLM)抽取结构化变量的标准流程, 锚定项目'1700万条中文新闻→结构化面板变量'的整体管线方法论。
+  - *锚定*: JEL 综述系统梳理经济学家从大规模非结构化文本中用深度学习/生成式模型(分类器、嵌入、LLM)抽取结构化变量的标准流程, 锚定项目'18,198,978 条中文新闻→结构化面板变量'的整体管线方法论。
 - Eisfeldt, A. L., & Schubert, G. (2025). Generative AI and finance. *Annual Review of Financial Economics*, 17(1), 363-393. https://doi.org/10.1146/annurev-financial-112923-020503
   - *锚定*: Annual Review 系权威综述, 梳理生成式 AI 作为金融研究测度工具的方法创新与应用边界, 为项目在金融学语境下采用 LLM 文本测度提供领域综述级引用锚点。
 - Lopez-Lira, A., & Tang, Y. (2025). Can ChatGPT forecast stock price movements? Return predictability and large language models (SSRN Working Paper No. 4412788, rev. October 2025). https://ssrn.com/abstract=4412788 **〔元数据经核验纠正〕**
@@ -138,7 +138,7 @@
 - Koont, N., Santos, T., & Zingales, L. (2025). Destabilizing digital "bank walks" (NBER Working Paper No. 32601, rev. August 2025). National Bureau of Economic Research. https://www.nber.org/papers/w32601
   - *锚定*: 证明数字化 (手机银行/券商通道) 显著提高存款利率敏感性并侵蚀存款特许权价值, 锚定项目'金融科技新闻暴露 × 银行存款稳定性'交互项的经济学正当性。
 - Bybee, L., Kelly, B. T., Manela, A., & Xiu, D. (2024). Business news and business cycles. *The Journal of Finance*, 79(5), 3105–3147. https://doi.org/10.1111/jofi.13377
-  - *锚定*: 用 80 万篇 WSJ 文章的大规模文本结构化证明新闻文本含预测宏观与市场动态的增量信息, 为项目'1700 万条中文新闻→面板变量'的大语料文本计量路线提供顶刊先例。
+  - *锚定*: 用 80 万篇 WSJ 文章的大规模文本结构化证明新闻文本含预测宏观与市场动态的增量信息, 为项目'18,198,978 条中文新闻→面板变量'的大语料文本计量路线提供顶刊先例。
 - Cookson, J. A., Lu, R., Mullins, W., & Niessner, M. (2024). The social signal. *Journal of Financial Economics*, 158, 103870. https://doi.org/10.1016/j.jfineco.2024.103870
   - *锚定*: 区分注意力与情感两类文本信号且证明跨平台情感测度低相关, 为项目同时构造覆盖量 (salience) 与多方法语调 (LLM/词典/BERT 三轨互证) 的测度设计提供最新方法学正当性。
 - Drechsler, I., Savov, A., Schnabl, P., & Wang, O. (2024). Deposit franchise runs (NBER Working Paper No. 31138, rev. September 2024). National Bureau of Economic Research. https://www.nber.org/papers/w31138

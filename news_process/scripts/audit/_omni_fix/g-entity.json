@@ -20,9 +20,9 @@
   "file": "core/text/ahocorasick.py",
   "line": "326-347 + config/bank_names.json (71 对跨行嵌套变体)",
   "claim": "跨银行嵌套变体 (实测 71 对: '兴业银行'⊂'法国兴业银行(中国)' 的变体, '中信银行'⊂'中信银行国际', '和县农村信用合作'⊂'泰和县/云和县/平和县农村信用合作' 等) 在 AC 重叠匹配下让长变体的每次出现同时给短变体银行计数; negation_patterns (252 条实测) 不含 '法国兴业银行'/'中信银行国际' 等任何跨行消歧条目; news_bank.py:205-237 把每个 qualified bank 展开为独立 (文章×银行) 行。",
-  "evidence": "只读实证: analyze_bank_matches('法国兴业银行宣布退出...×3', title='法国兴业银行...') → matched_banks 同时含 法国兴业银行(中国) (total_with_title=4) 和 兴业银行 (total_with_title=4), 两者均 qualified → SocGen 文章生成一条 target_bank='兴业银行' 的面板行。当前 0.055% 试跑样本即已存在: 1170 行中 1 篇含 '法国兴业银行' 的文章 target_bank='兴业银行'; 15 篇含 'X县农村信用合作'。",
+  "evidence": "只读实证: analyze_bank_matches('法国兴业银行宣布退出...×3', title='法国兴业银行...') → matched_banks 同时含 法国兴业银行(中国) (total_with_title=4) 和 兴业银行 (total_with_title=4), 两者均 qualified → SocGen 文章生成一条 target_bank='兴业银行' 的面板行。当前 0.052% 试跑样本即已存在: 1170 行中 1 篇含 '法国兴业银行' 的文章 target_bank='兴业银行'; 15 篇含 'X县农村信用合作'。",
   "suggested_fix": "跨行最长匹配抑制: 若某命中 span 被另一银行的更长变体命中完全覆盖, 抑制短变体计数 (与发现1同一 occupied-position 机制, 但需跨 bank_idx 统一处理); 或在 negation_patterns 补 '法国兴业银行'/'中信银行国际' 类条目 (治标, 覆盖不了 71 对全部)。",
-  "adjudication": "亲跑复现: SocGen测试文同时令法国兴业银行(中国)与兴业银行均qualified(total_with_title=4); 实测71对跨行嵌套对; 252条negation_patterns无任何'法国兴业'/'中信银行国际'消歧条目。news_bank.py:217-220把每个qualified bank展开独立面板行→错误target_bank行确凿。T=18全量按比例放大。",
+  "adjudication": "亲跑复现: SocGen测试文同时令法国兴业银行(中国)与兴业银行均qualified(total_with_title=4); 实测71对跨行嵌套对; 252条negation_patterns无任何'法国兴业'/'中信银行国际'消歧条目。news_bank.py:217-220把每个qualified bank展开独立面板行→错误target_bank行确凿。T=19全量按比例放大。",
   "unit": "ctx-materializer-coretext"
  },
  {
@@ -85,9 +85,9 @@
   "file": "core/text/ahocorasick.py:473-483 (analyze_fintech_matches 上下半独立扫描)",
   "line": "473-483",
   "claim": "stage 12 将内容按 split_pos 硬切为 upper_half/lower_half 后分别跑 AC 扫描 (`fintech_ac.iter(upper_half)` / `iter(lower_half)`), 恰好横跨切分点的关键词出现在两半的扫描中都不会命中 — 该次出现从 fintech_total_count、keyword_details (→ 本单元 DF/IDF 的唯一来源) 与分类判定中消失。银行匹配同型 (L326-347)。",
-  "evidence": "upper_half = content_str[:split_pos]; lower_half = content_str[split_pos:] — 两段拼接处无重叠缓冲; AC 匹配不可跨段。单篇影响概率 ~ len(kw)/len(doc), 但 17M 全量下绝对受影响篇数成规模, 且边缘文档 (distinct 恰在阈值) 的 is_fintech_news 判定可被翻转。",
+  "evidence": "upper_half = content_str[:split_pos]; lower_half = content_str[split_pos:] — 两段拼接处无重叠缓冲; AC 匹配不可跨段。单篇影响概率 ~ len(kw)/len(doc), 但 18.2M 全量下绝对受影响篇数成规模, 且边缘文档 (distinct 恰在阈值) 的 is_fintech_news 判定可被翻转。",
   "suggested_fix": "对全文做一次 AC 扫描, 用 end_pos 相对 split_pos 把每次命中归入上/下半 (跨界命中按起点归类), 既消除边界丢失又少扫一遍标题外文本。",
-  "adjudication": "亲读 ahocorasick.py:473-483(fintech)+326-347(bank): content[:split_pos]/[split_pos:]独立iter, 无重叠缓冲, AC不可跨段。盘上实证非仅latent: 41/4054篇有跨切分点fintech命中被丢, 其中16个doc-keyword DF条目整体丢失(该词唯一出现即跨界); 17M全量按比例放大, 边缘文档 is_fintech_news/distinct阈值可翻转。台账与历届审计无此项, 新发现, 量级小→P3。",
+  "adjudication": "亲读 ahocorasick.py:473-483(fintech)+326-347(bank): content[:split_pos]/[split_pos:]独立iter, 无重叠缓冲, AC不可跨段。盘上实证非仅latent: 41/4054篇有跨切分点fintech命中被丢, 其中16个doc-keyword DF条目整体丢失(该词唯一出现即跨界); 18.2M全量按比例放大, 边缘文档 is_fintech_news/distinct阈值可翻转。台账与历届审计无此项, 新发现, 量级小→P3。",
   "unit": "fintech-intensity"
  },
  {
@@ -113,7 +113,7 @@
   "claim": "bank_names.json 实测 71 对跨行子串包含: '兴业银行'⊂'法国兴业银行(中国)' 变体 '法国兴业银行', '中信银行'⊂'中信银行国际', '农行'⊂'白山市农行八道江区信用联社' (吉林浑江农商行变体), 及 'X县农村信用合作' 县名族 (辉南县⊃南县等)。无最长匹配消解, 长名命中时短名同时计入另一家银行。",
   "evidence": "实跑验证: 纯法国兴业银行 (Société Générale) 文章 (正文 3 提及+标题 1) → 同时合格为 '法国兴业银行(中国)' (total=3) 和 '兴业银行' (total=3, in_title=True) 两条 firm-document 行 — 兴业银行获得一条幻影行, target_bank_in_title=1, 该文 LLM 语调 (关于 SocGen) 注入兴业银行 bank-year 面板。盘上试跑样本: 138 条兴业银行行中 1 条含 '法国兴业银行'。",
   "suggested_fix": "与发现 1 同一修法: 位置级最长匹配去重 (被更长跨度严格包含的匹配剔除, 无论归属哪家银行) 即可同时消解 71 对跨行嵌套; 因长名 ('法国兴业银行' 等) 本身已是词典内变体, 无需新增词条。",
-  "adjudication": "亲跑复现: 纯法国兴业银行文章同时合格为'法国兴业银行(中国)'(total=3)与'兴业银行'(total=3, in_title=True)两条firm-doc行, SocGen语调注入兴业银行面板。实测bank_names.json 71对跨行包含; 盘上138条兴业银行行中1条含'法国兴业银行'。17M全量下外资在华子行/县域农信族报道更频, 影响放大。",
+  "adjudication": "亲跑复现: 纯法国兴业银行文章同时合格为'法国兴业银行(中国)'(total=3)与'兴业银行'(total=3, in_title=True)两条firm-doc行, SocGen语调注入兴业银行面板。实测bank_names.json 71对跨行包含; 盘上138条兴业银行行中1条含'法国兴业银行'。18.2M全量下外资在华子行/县域农信族报道更频, 影响放大。",
   "unit": "news-bank-fintech-salience"
  },
  {
@@ -162,10 +162,10 @@
   "title": "salience 0/1 测度对缺失源字段无 NaN 路径: 版面/页号/作者缺失时硬编码为 0, 全量多源语料下'线上媒体无版面概念'与'未上头版'混同 (latent)",
   "file": "pipeline/filtering/news_salience.py:45-104 (parse_front_page / parse_byline)",
   "line": "news_salience.py:78-83, 95-104",
-  "claim": "is_front_page/is_front_section/has_byline/is_wire 对空 版面/页号/作者 一律返回 0 (仅 page_rank 有 NaN 分支)。试跑样本为报刊源 (版面/页号空值仅 0.2-0.3%) 故影响微小, 但 17M 全量 2007-2024 含网络媒体源 (无版位概念) 时, frac_front_page/staff_written_frac 把'字段不适用'当'不显著/无署名'计入分母, bank-year 均值被媒体构成混杂。另: 页号 'AII06' 类被 _PAGE_RE 误析为 I 叠 (sec_idx=8→page_rank=806), 已部分被 docstring 单一近似披露。",
+  "claim": "is_front_page/is_front_section/has_byline/is_wire 对空 版面/页号/作者 一律返回 0 (仅 page_rank 有 NaN 分支)。试跑样本为报刊源 (版面/页号空值仅 0.2-0.3%) 故影响微小, 但 18.2M 全量 2007-2025 含网络媒体源 (无版位概念) 时, frac_front_page/staff_written_frac 把'字段不适用'当'不显著/无署名'计入分母, bank-year 均值被媒体构成混杂。另: 页号 'AII06' 类被 _PAGE_RE 误析为 I 叠 (sec_idx=8→page_rank=806), 已部分被 docstring 单一近似披露。",
   "evidence": "parse_front_page: 'is_front_page': float(is_front_page) 无任何 missing→NaN 分支; 盘上 作者 空值率 55.3% 全部计入 has_byline=0 (报刊未署名尚属真信号, 但网络源作者字段缺失非'无署名'); page_rank max=2508, 395 行 >200 来自 T/C/J/AII 叠的线性 sec_idx*100 折算。",
   "suggested_fix": "版面+页号均为空 → is_front_page/is_front_section 返回 NaN (mean 聚合自动跳过); 作者字段缺失且无电头 → has_byline/is_wire 返回 NaN 或按源类型 (报刊/网络) 分支; 全量前补各报源叠语义映射 (docstring 已自我要求)。",
-  "adjudication": "代码坐实: parse_front_page L78-83二值列无missing分支(仅page_rank L71有NaN), parse_byline L100空作者径直=0; 同模块内不一致支持缺陷判定。盘上实测: 作者空55.3%全计has_byline=0, 版面/页号空仅0.2-0.3%(报刊源)故T=2影响微; 17M多源全量含网络媒体(无版位概念)时'不适用'混同'不显著', bank-year均值被媒体构成混杂。'AII06'析为I叠page_rank=806亦验证(max=2508, 395行>200)。",
+  "adjudication": "代码坐实: parse_front_page L78-83二值列无missing分支(仅page_rank L71有NaN), parse_byline L100空作者径直=0; 同模块内不一致支持缺陷判定。盘上实测: 作者空55.3%全计has_byline=0, 版面/页号空仅0.2-0.3%(报刊源)故T=2影响微; 18.2M多源全量含网络媒体(无版位概念)时'不适用'混同'不显著', bank-year均值被媒体构成混杂。'AII06'析为I叠page_rank=806亦验证(max=2508, 395行>200)。",
   "unit": "news-bank-fintech-salience"
  },
  {

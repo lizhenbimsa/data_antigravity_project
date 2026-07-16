@@ -757,7 +757,7 @@ def main(argv=None) -> int:
     logger.info("codebook「替代聚合面板章」upsert 完成 (幂等 section-replace, 保全 03 七权章)")
 
     logger.info("【判读】dev T=2 语料仅 2017–2018 非零 → frozen 基期几乎全 2017、仅 2018 有非平凡冻结差,"
-                " base_year=窗末年格 frozen≡cw 恒等 — 全部属预期构造退化 (生产 T=18 恢复), 非 bug。")
+                " base_year=窗末年格 frozen≡cw 恒等 — 全部属预期构造退化 (生产 T=19 恢复), 非 bug。")
     logger.info("--- 阶段完成: %s (%.4g 秒) ---", Path(__file__).stem, time.monotonic() - t_start)
     return 0
 

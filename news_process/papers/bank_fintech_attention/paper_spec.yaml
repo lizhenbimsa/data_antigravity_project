@@ -101,7 +101,7 @@ network_roles:
   iv:
     instruments: [leave_one_out_peer_attention_iv, bartik_attention_iv]   # 既有跨族 over-id (LOO × Bartik), 解 P1-6 恰好识别 → Hansen J
     forbidden: cooccur_peer_loo_new_column   # 勿新建共现 peer-LOO 工具 = 复活已撤回双工具 (corr 0.998, 审计 P2-PEERIV-1 reject)
-    note: "production T=18 报 KP rk F + Hansen J + 两工具 corr/VIF (Parente-Santos-Silva 2012)"
+    note: "production T=19 报 KP rk F + Hansen J + 两工具 corr/VIF (Parente-Santos-Silva 2012)"
   centrality_missing_convention: zero_fill_offnetwork_disclose_N
 
 # 推断纪律 (INFER IV-2 修复 2026-06-14; 镜像 disagreement spec cluster 块 + List-Shaikh-Xu 2019 family 定义)。
@@ -129,7 +129,7 @@ inference:
       - cross_model_bert                 # BERT 三模型跨模型稳健族 (documentation)
       # ⚠ cross_model_* 为声明式文档, 运行时无消费者; 各家/各模型 just-identified 并排, 禁混同一 over-identified Hansen J。
     lit: [Romano-Wolf 2005 ECMA, List-Shaikh-Xu 2019 EE, Anderson 2008 JASA]
-  cluster: [bank]              # 主规格 firm-level 聚类 (= CLUSTER_VAR bank_id; T=18 G≈200 大 G 充足)
+  cluster: [bank]              # 主规格 firm-level 聚类 (= CLUSTER_VAR bank_id; T=19 G≈200 大 G 充足)
   cluster_robustness:          # small-G / 多维聚类对比 (Cameron-Miller 2015 JHR; T=2 试跑帧退化时优雅跳过)
     - bank_only                # 主规格
     - bank_year_twoway         # 双向聚类 (year G=18 小, 仅作对比)
@@ -153,7 +153,7 @@ targets:
 
 sample:
   n_bank_min: 200
-  t_year: 18
+  t_year: 19
   obs_target_min: 3000
 
 audit_rounds_target_min: 8

@@ -20,7 +20,7 @@
 
 处理对象
 --------
-    176 个 XLSX 文件 (~37GB, ~1700 万条媒体报道记录)
+    176 个 XLSX 文件 (~37GB, 约 1,819 万条媒体报道记录)
 
 处理流程
 --------
@@ -58,7 +58,7 @@
 
 ■ 详细功能说明
 
-**输入**: `config paths.raw_data_dir` 目录下全部 `*.xlsx` (生产规模 ~176 文件 / ~37GB / ~1700 万条媒体报道; 数字取自 runner.py 模块 docstring 与 main() 日志)。无上游 parquet, 是 DAG 的根阶段。
+**输入**: `config paths.raw_data_dir` 目录下全部 `*.xlsx` (生产规模 ~176 文件 / ~37GB / 约 1,819 万条媒体报道; 数字取自 runner.py 模块 docstring 与 main() 日志)。无上游 parquet, 是 DAG 的根阶段。
 
 **处理步骤** (`runner.main` → `load_and_process_data` → 媒体名兜底映射 → `ArticleDeduplicator.run`):
 1. `glob` 扫描 XLSX 列表; 对每个源文件检查增量缓存 (`_cache/*.parquet`): 缓存有效需同时满足 缓存文件存在 ∧ 缓存 mtime 晚于源 XLSX ∧ schema metadata 的 `config_hash` 与当前一致 (见 runner.py 增量缓存有效性校验); 任一不满足则入待处理列表。
@@ -358,7 +358,7 @@ def load_and_process_data(raw_data_dir: str, output_path: str) -> int:
                             # string→int) 或列集不匹配 → raise → 走 failed_files 对账; NaN→null 与无损
                             # 加宽 (int→float/int→string) 仍成功写入。绝不 nuke DAG 根阶段 (审计 F1)。
                             # ⚠ 「NaN→null 写入」依赖 pa.Table.from_pandas 的 null-masking (NaN→arrow-null);
-                            # ⚠ 首 writer 锁哪个 dtype 由 as_completed 完成序决定 → T=18 跨次可产出不同,
+                            # ⚠ 首 writer 锁哪个 dtype 由 as_completed 完成序决定 → T=19 跨次可产出不同,
                             #   该非确定性由 F1b (load.py 标识列归 string) 根治, 二者须同生产窗口落地。
                             table = table.cast(writer.schema)
                         writer.write_table(table)
@@ -520,7 +520,7 @@ def main() -> None:
     logger.info("=" * 72)
     logger.info("阶段 00: 数据预处理 (DAG 根阶段; MinHash LSH, Broder 1997)")
     logger.info("=" * 72)
-    logger.info("【功能】把上百个原始 XLSX (生产 ~176 文件 / ~37GB / ~1700 万条媒体报道) 倒进")
+    logger.info("【功能】把上百个原始 XLSX (生产 ~176 文件 / ~37GB / 约 1,819 万条媒体报道) 倒进")
     logger.info("       '洗衣机+分拣机': 统一 schema、修乱码、繁简转换、去广告与网页噪声, 再把")
     logger.info("       '同一稿件被多家媒体转载'的重复删到只剩最早一份, 产出全流水线的语料底座")
     logger.info("       00_preprocessing.parquet (下游 11/12/13… 全部依赖)。")
@@ -796,8 +796,8 @@ def main() -> None:
         # 小样本提示: 本机盘面常为受控小样 (T=2 伪两年), 仅验证管道正确性
         if 0 < output_rows < 10000:
             logger.info(
-                f"  ⓘ 当前输出仅 {output_rows:,} 行, 远小于生产规模 (~1700 万条): 系本机受控小样, "
-                f"仅用于验证管道正确性; 去重保留率/分母等结论以全量 17M/T=18 实测为准。"
+                f"  ⓘ 当前输出仅 {output_rows:,} 行, 远小于生产规模 (约 1,819 万条): 系本机受控小样, "
+                f"仅用于验证管道正确性; 去重保留率/分母等结论以全量 约1,819万/T=19 实测为准。"
             )
         logger.info("-" * 72)
     except Exception as _e:

@@ -11,7 +11,7 @@
 *   三族**分别** rwolf (各自 family), 禁并入同一族。
 * ⚠ 铁律: 各家/各模型各自 just-identified 并排, 禁混同一 over-identified Hansen J (这是 FWER 校正 p, 非 IV)。
 * ⚠ wire-ahead: DV (ROA/funding_cost 财务哨兵) 盘上缺席 → capture confirm 守卫, 当前 T=2 优雅跳过,
-*    T=18 财务数据到位才产校正 p (与仓库 wire-ahead 惯例一致)。
+*    T=19 财务数据到位才产校正 p (与仓库 wire-ahead 惯例一致)。
 * ⚠ BERT net_tone 是 Phase 2 (encode post-agg) 列; Phase 1 前未落盘 → capture confirm 自动休眠。
 * ⚠ 本 .do 由 00_master 以 capture noisily do 调用 → **绝不用 exit** (会让 master 提前退出); 全程 if/else 守卫。
 * ⚠ 继承性 (repo-wide, 非本表引入): rwolf method(reghdfe) 在部分 reghdfe 版本 (本机 6.13.1) 下 reghdfe
@@ -53,7 +53,7 @@ local has_rwolf = (_rc == 0)
 
 if `=_N' == 0 | !`has_dv' | !`has_rwolf' {
     display as text "  [SKIP] Table A12 跨模型 FWER: 面板空 / rwolf 未装 / DV `DV' 不在面板 " ///
-        "(财务 sentinel wire-ahead); T=18 财务数据到位 + rwolf 安装后运行。"
+        "(财务 sentinel wire-ahead); T=19 财务数据到位 + rwolf 安装后运行。"
 }
 else {
     tempname RES

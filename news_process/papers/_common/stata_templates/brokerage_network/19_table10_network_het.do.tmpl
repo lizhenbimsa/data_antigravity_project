@@ -11,7 +11,7 @@
 *  (3) **N-守卫**: 子样本 N<30 优雅跳过 (盘面 hub 子样本 N=4 不可跑)。
 *  (4) 弱工具: W² 分样本 N 减半 → KP F 必跌破临界 → AR CI 为主推断。
 * 文献: Burt 1992 (结构洞) / El-Khatib-Fogel-Jandik 2015 JFE / Stock-Yogo 2005 / Andrews-Stock-Sun 2019。
-* ⚠ 异质性以主识别成立为条件 (P1-3/P1-6 上游未决同样制约本表); 仅 production T=18 激活。
+* ⚠ 异质性以主识别成立为条件 (P1-3/P1-6 上游未决同样制约本表); 仅 production T=19 激活。
 * ⚠ splitter 内生 (P1-5, 与 18_table9 同口径): _hub_q 源自 bank_degree_cent (内生于媒体覆盖) 且
 *   既作分组又进工具 iv_x_hub → 组间差异读作"条件异质性"而非"枢纽地位的因果放大"。
 * ============================================================================
@@ -55,7 +55,7 @@ else {
     * fix(network-elevation-audit NET-HET-FALLBACK): 不回退到 {{NET_HET_VAR}}=bank_is_hub
     * 绝对阈值 (N-08 跨年不可比) — within-year 分位是本异质性表的全部意义, 缺 bank_degree_cent
     * 则优雅跳过 (镜像 N-守卫 exit 0 模式), 而非用被红线禁的绝对阈值悄悄分组。
-    display as text "[SKIP] Table 10 — bank_degree_cent unavailable; within-year hub quantile cannot be built; absolute-threshold bank_is_hub is cross-year non-comparable (N-08) -> skipping (production T=18 + stage46 network required)."
+    display as text "[SKIP] Table 10 — bank_degree_cent unavailable; within-year hub quantile cannot be built; absolute-threshold bank_is_hub is cross-year non-comparable (N-08) -> skipping (production T=19 + stage46 network required)."
     exit 0
 }
 
@@ -156,7 +156,7 @@ forvalues i = 1/`nmod' {
     }
 }
 if "`models'" == "" {
-    display "[INFO] Table 10 skipped — all subsamples degenerate (need production T=18)."
+    display "[INFO] Table 10 skipped — all subsamples degenerate (need production T=19)."
     exit 0
 }
 esttab `models' using "$tables_dir/table10_network_het.tex", replace ///
@@ -172,7 +172,7 @@ esttab `models' using "$tables_dir/table10_network_het.tex", replace ///
              "Pooled-interaction column is 2-endog/2-IV, where 1-endogenous Stock-Yogo values (16.38) do not apply;" ///
              "Anderson-Rubin CI (weakiv after ivreg2, logged; ASS 2019 ARE) is its primary inference." ///
              "Estimator ivreghdfe with ivreg2+i.bank_id i.year runtime fallback (IV-6; production-machine ivreghdfe r301)." ///
-             "Subsamples with effective N<30 are skipped (T=2 panel degenerate; production T=18 required)." ///
+             "Subsamples with effective N<30 are skipped (T=2 panel degenerate; production T=19 required)." ///
              "Grouping var _hub_q derives from bank_degree_cent (endogenous to media coverage, P1-5) and also enters instrument iv_x_hub:" ///
              "between-group difference is CONDITIONAL heterogeneity, NOT causal amplification by hub status (mirrors Table 9 P1-5 caveat)." ///
              "Heterogeneity conditional on main identification (W2*tone exclusion P1-6, co-mention validity P1-3 unresolved upstream).")

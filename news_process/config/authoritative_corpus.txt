@@ -23,7 +23,7 @@
 # Iacoviello 2022 的长样本文本指数论证（其机制是单一长指数的时序稳健，与"增补异质锚点文档"
 # 不同构；该两文仅在【参考文献】中作为文本宏观测度的一般方法论背书保留）。
 # ⚠ 因纳入早期文件改变了各年度 ≤ t 锚点文本，下游 policy_cosine_sim /
-# auth_sim_* 测度随之变化，须在生产 (T=18) 受控环境重生面板与 golden（本机无生产数据，延后）。
+# auth_sim_* 测度随之变化，须在生产 (T=19) 受控环境重生面板与 golden（本机无生产数据，延后）。
 #
 # 【参考文献 (References)】
 # - Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level

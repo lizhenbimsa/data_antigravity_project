@@ -272,7 +272,7 @@ class TestFourStates:
         lib = cl.load_library(libdir)
         d = cl.compose_long_description('alpha_tone_full', panel, lib)['description']
         assert 'mean=' in d and '缺失率=' in d
-        assert '生产 T=18 重生后以实读为准' in d
+        assert '生产 T=19 重生后以实读为准' in d
 
     def test_state2_all_nan(self, panel, libdir):
         lib = cl.load_library(libdir)

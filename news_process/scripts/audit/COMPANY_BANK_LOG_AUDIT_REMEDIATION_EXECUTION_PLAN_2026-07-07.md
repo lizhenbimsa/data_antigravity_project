@@ -15,7 +15,7 @@
 | B | ✅ by-design (R1 改判) | 01 日志: 4 基名白名单豁免 WARNING (`llm_vote_tone_std` / `avg_subst_prob_score` / `avg_locus_prob_score` / `avg_collab_prob_score`) — R1 审核证实为 WP0-6 ③ 刻意审计留痕 (`INCLUDE_WHITELIST` 即正式 SSOT), 非缺口; 详见 §2 | 01 日志 :42-45; 01 脚本 :278-285, :528-536 |
 | C | P2 跟踪 | 01 日志: 3 个注册基名盘上缺全部源列 (`cross_outlet_tone_variance` / `cross_media_alpha` / `n_events`) → 面板出**全 NaN 空壳列** (共享树 40 面板漂移/DEFERRED) | 01 日志 :46-49 |
 | D | P2 跟踪 | 03 日志: DV2 未映射银行名 **18,297 种** (日志自标"关注"); 另有 分支权源 10 家公司缺 city (分支权全缺失) + 贷款公司码未命中 1,138 行 | 03 日志 :44,46,78 |
-| E | P3 性能 | 03: branch 面板构建独占 22 分 42 秒 (10:49:47→11:12:29, 长表 405 万行, 七权源最大); RSS 峰值 2.77GB — **这是 T=2 dev; 生产 T=18 须重估** | 03 日志 :55-56,92 |
+| E | P3 性能 | 03: branch 面板构建独占 22 分 42 秒 (10:49:47→11:12:29, 长表 405 万行, 七权源最大); RSS 峰值 2.77GB — **这是 T=2 dev; 生产 T=19 须重估** | 03 日志 :55-56,92 |
 | F | ✅ 已闭环 | run_pipeline 尾行"registry sha 须 bump"提示 — 实测 `023cdc91…` 与 `tests/test_company_bank_cooc_registry.py::EXPECTED_REGISTRY_SHA256` 及 yaml 内嵌哈希**三方一致, 无需动作** | 本审计实测 |
 | G | P3 缺陷 (R2 补) | 03 脚本两处**无参** `logger.info` 写 `%%` → 日志出现字面 "A≥90%%∧B≥95%%" (% 折叠仅在带 args 格式化时发生); 01/02/runner 已扫描无同类 | 03 日志 :13,:77; 03 脚本 :82,:1095 |
 | A′ | ⚠ 升级 (R2 补) | 02 日志于 **13:39 被 pytest 第三次覆盖** (PID:2308, 同签名: header+两条夹具 WARNING, 45 行/2 秒) — 覆盖非一次性事故而是**复发性污染**, 每跑一次相关测试就清一次 | 02 日志现况实读 (10:47 生产→11:18 覆盖→13:39 再覆盖) |
@@ -69,12 +69,12 @@ def _init_stage_logging() -> None:
 ## §4 WP-D (P2): DV2 未映射名称复核
 
 - 读 `company_listed_bank/data/_company_bank_weight_validation.md` 审计附录 top-50, 人工判定是否存在**高频且可映射**的银行名变体 (有 → 补 DV2 映射规则, 注意与 registry 区段双向锁联动, 同样触发 sha 级联);
-- 生产 T=18 复跑时把"未映射种数/占比"列入必查项 (当前 18,297 种是 dev 语料基数, 生产口径须重估)。
+- 生产 T=19 复跑时把"未映射种数/占比"列入必查项 (当前 18,297 种是 dev 语料基数, 生产口径须重估)。
 - 附带: 分支权源缺 city 的 10 家公司与贷款未命中 1,138 行在生产语料上复核规模, 无需改代码 (均已显式记账无静默丢弃)。
 
 ## §5 WP-E (P3, DEFERRED 至生产前): branch 性能与内存重估
 
-- 生产 T=18 首跑前 profile 03 的 branch 构建段 (dev 已 22m42s / 405 万行长表; RSS 2.77GB @T=2):
+- 生产 T=19 首跑前 profile 03 的 branch 构建段 (dev 已 22m42s / 405 万行长表; RSS 2.77GB @T=2):
   - 长表行数随语料×年数放大, 先以生产四权源 dta 实际行数外推;
   - 若外推 RSS 逼近机器上限 (128GB), 按 boilerplate tier2 先例做分块 (镜像 `BOILERPLATE_..._OOM_HARDENING` 计划方法论);
 - 与主管道既有铁律并列: 此为 company_listed_bank 链生产首跑前的第二个容量闸 (第一个是主管道 stage-22 的 §3-P0 校准)。

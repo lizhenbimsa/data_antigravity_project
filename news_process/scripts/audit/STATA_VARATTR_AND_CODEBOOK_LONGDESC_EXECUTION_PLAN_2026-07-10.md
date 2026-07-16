@@ -66,7 +66,7 @@
 
 - **字数 gate 口径 (统一定义, v2.7 用户修订: 计量单位 = 汉字)**: **CJK 汉字数** = `len(re.findall(r'[一-鿿㐀-䶿]', text))` (Unicode 基本区 + 扩展 A; 英文/数字/标点/全角符号/空白**均不计**; ⚠ 实现层必须用 `\u` 转义形式 — 字面 CJK 端点字符在 Windows GBK 控制台回显即 UnicodeEncodeError 崩溃, 本轮实测踩中), 组装后逐列强制: **standard ≥1000 / core ≥5000 汉字** (结构列白名单豁免, §1a.7)。段落级下限 (上表) 是生产端工艺约束, **中文正文段独立过线** (core 4200+900=5100 > 5000; standard 700+350=1050 > 1000 — 引文段汉字贡献≈0 已刻意排除在推导外, 计算链路/统计段的中文内容作裕量), 逐列总量闸才是验收契约 — 两级都测 (⚠ 互锁: 总量闸的确定性盈余依赖段落闸同为硬闸, 禁把段落闸降级为 warning-only)。
 - **fail-loud 分级 (防滚动落地期崩 pipeline)**: 字数不足时, 该家族 `_index.json.status == 'final'` → `SystemExit(1)`; `== 'draft'` → 告警计数 (渐进批次不断链)。终验 gate 要求全库 `final` 且 0 告警。库整体缺失该列家族 → 回退现状短描述 + 告警计数 (同理终验归零)。
-- **动态统计段四态定义**: ① 占位符引用的列不在 panel 且非 pending → 生成期 `SystemExit(1)`; ② 列全 NaN → 渲染 "全缺失 (非缺失 n=0)" + T=2 尾注; ③ 正常 → 格式化注入 (dtype/min/max/mean/缺失率/非缺失 n, T=2 dev 值一律带"生产 T=18 重生后以实读为准"尾注); **④ `tier=pending` → 跳过动态统计段, 渲染"待外部财务面板接入"哨兵文本** (pending 列长文经同一组装器渲染进附录章, 不触 ①)。**未解析占位符残留 gate (宽口径)**: 组装器对一切未知 `\{[A-Za-z_]+:...\}` 语法 fail-loud (拼错 `{stats:...}`/`{STAT:...}` 不许静默穿过); 最终 md/json/xlsx 产物宽 regex `\{[A-Za-z_]+:[^}]*\}` 零命中; 写手规范禁用全角括号占位符。写手 agent 禁手填任何实测数字。
+- **动态统计段四态定义**: ① 占位符引用的列不在 panel 且非 pending → 生成期 `SystemExit(1)`; ② 列全 NaN → 渲染 "全缺失 (非缺失 n=0)" + T=2 尾注; ③ 正常 → 格式化注入 (dtype/min/max/mean/缺失率/非缺失 n, T=2 dev 值一律带"生产 T=19 重生后以实读为准"尾注); **④ `tier=pending` → 跳过动态统计段, 渲染"待外部财务面板接入"哨兵文本** (pending 列长文经同一组装器渲染进附录章, 不触 ①)。**未解析占位符残留 gate (宽口径)**: 组装器对一切未知 `\{[A-Za-z_]+:...\}` 语法 fail-loud (拼错 `{stats:...}`/`{STAT:...}` 不许静默穿过); 最终 md/json/xlsx 产物宽 regex `\{[A-Za-z_]+:[^}]*\}` 零命中; 写手规范禁用全角括号占位符。写手 agent 禁手填任何实测数字。
 - **诚实披露**: 同家族变体共享核心长文属**刻意设计** (镜像 codebook 既有家族推断结构); 变体差分段保证逐列非逐字重复。此口径写进 codebook markdown 头部方法学声明 — **归 WP1 产物, `test_codebook_longdesc` 断言该声明存在**。
 - **家族粒度与归族三级次序 (v2.5 补全 — SSOT 常量覆盖不满 3453 列, 无兜底规则则守恒 gate 永久红)**: ① SSOT 常量精确匹配 (`NETWORK_METRIC_BASES`(33) / `LLM_CLASS_SPEC` / `_RULE_ABLATION_VARIANTS` / `POLITICAL_WEIGHT_VARIANTS` / `LLM_MODELS`/`BERT_MODELS` / `bert_distribution` 五族 / benefit 维度 / IV 三引擎等); ② 未命中者复用 codebook 既有推断函数 (`_infer_category`/`_infer_source_stage`) 按 (变量类别 × 来源阶段 × 剥后缀基名) 机械聚类; ③ 仍剩者逐列单例家族 + `needs_family_review` 标记, **单例占比 >15% 触发人工复审归并**。家族总数**以 WP0 实测为准** (预估 250–400, 全文测算统一取 ~300 作工作值)。**family_id 编号规则**: `F` + 按家族首列字典序一次性分配三位号, 增量 merge 只追加不重排 (保证批次 by-name 清单可预先枚举)。
 
@@ -230,7 +230,7 @@ WP0→WP1→WP2/WP3 (可并行) → WP4 (批次滚动, 每批过闸即提交) �
 5. **rename_map 必传**: notes/labels/对账一律以 dta 短名为键, 原名只进 note 正文 (改名列静默零覆盖是对账假绿的唯一已知形态)。
 6. **Stata 启动**: `/b` + master 末尾 `exit, clear` + 扫 log `r(###)`; 禁 `/e`/裸 GUI。
 7. **字数口径唯一** (§1/§1a): **CJK 汉字数** (基本区+扩展A regex, §1 定义), standard ≥1000 / core ≥5000 **汉字** (tier 三态 SSOT=`_index.json`, 签核落 `tier_signoff`); 历史口径 (≥2500 单一、≥500 两级、"去空白字符数"计量) 均已作废, 勿在任何 gate/文档残留。
-8. **T=2 退化诚实披露**: 动态统计段 dev 值一律带"生产 T=18 重生后以实读为准"尾注; 列数等基数**禁写死** (本机实读 3442/3453, 随重生漂移)。
+8. **T=2 退化诚实披露**: 动态统计段 dev 值一律带"生产 T=19 重生后以实读为准"尾注; 列数等基数**禁写死** (本机实读 3442/3453, 随重生漂移)。
 9. **dta 重生 = notes 全灭**: 4 个 writer (40×2/46/51) 任一重跑后必须重放 notes master; 防忘三重保险 = doctor 指纹段 loud WARN + stage 46 收尾提示行 + 生产重生 checklist 条目。do 幂等可重放 (notes drop 先清)。
 10. **pandas 旁路丢 notes**: `pandas.read_stata` 不读 characteristics — 任何"读 dta→改→to_stata 重写"的旁路脚本都会静默丢全部 notes; 新增此类脚本一律先过本条评审。
 11. **审批门**: 无付费 API、无 golden 重生 → 不触 M0; 生产重生时 notes 重放排在重生后执行。
@@ -244,7 +244,7 @@ WP0→WP1→WP2/WP3 (可并行) → WP4 (批次滚动, 每批过闸即提交) �
 - **不做英文双语长注释**: 用户口径=中文说明 (技术术语英文); 投稿包需要时按需生成。
 - **不动 OUTPUT_REGISTRY** (codebook/do 均非注册 parquet 产物)。
 - **哨兵 pending 列的 notes 注入**: DEFER 到外部财务面板接入后 (checklist 已挂 §1a 类别 2)。
-- **生产 T=18 重生后的 notes 重放与四格式重生**: 列入生产重生 checklist (§7.9 三重保险), 本计划不预演。
+- **生产 T=19 重生后的 notes 重放与四格式重生**: 列入生产重生 checklist (§7.9 三重保险), 本计划不预演。
 
 ## §9 验收总闸 (WP5 = Phase 1 / WP6 = Phase 2, 全绿才算完)
 

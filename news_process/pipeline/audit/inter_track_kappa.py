@@ -556,7 +556,7 @@ def run_stage(config=None, logger=None):
     if 0 < n_dual_both < 100:
         logger.info(
             f"  ⚠ dual_both 子集仅 {n_dual_both} 篇 (盘面 T=2 小样本), κ 点估计与 CI 仅验证管道正确性; "
-            "全量结论以 17M/T=18 实测为准。"
+            "全量结论以 约1,819万/T=19 实测为准。"
         )
     logger.info("-" * 72)
 

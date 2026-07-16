@@ -7,7 +7,7 @@
   "file": "pipeline/sentiment/tone_llms.py",
   "line": "688-714 (parse_json_response) + 1064-1082 (_aggregate_track)",
   "claim": "parse_json_response 对任何解析异常裸 `except Exception: return {}` (零日志零计数); _aggregate_track 随后 `v = jd.get('is_bank_fintech_news', False); v_votes.append(v)` 把不可解析响应当作有效的 \"非金融科技\" 拒绝票计入多数决, 并记 per-model verified=False (而非 call-failure 路径的 None)。\"无有效响应\" 与 \"模型判定拒绝\" 被混同 — 与项目自身 v6/F2+H1 \"失败≠中性\" 契约在 verification 维度上不一致。",
-  "evidence": "缓存重放实证 (7020 响应/0 miss): 8 条不可解析, 全部 deepseekv4 — 7 条 JSON 中途截断/含未转义引号, 1 条空串; 其中 row 153 截断响应内可见 `\"is_bank_fintech_news\": true` 却被编码为 False 票。盘上 21_tone_llms_full.parquet 核对一致: rows 153/254/564 `deepseekv4_verified_full=False, n_valid_votes_full=3, llm_agreement_rate_full=0.667` (真实应为 2/2=1.0 且 n_valid=2)。下游 encode.py:151-154 `llm_vote_cont = vote_score × agreement_rate` → 这些文章的连续语调被衰减 ×0.667; runner.py:517 HC 子样本 (agr≥0.67) 将其整篇剔除。当前 T=2 试跑无 final_v/final_s 翻转 (均 2-1 维持), 但 latent T=18 全量 (~17",
+  "evidence": "缓存重放实证 (7020 响应/0 miss): 8 条不可解析, 全部 deepseekv4 — 7 条 JSON 中途截断/含未转义引号, 1 条空串; 其中 row 153 截断响应内可见 `\"is_bank_fintech_news\": true` 却被编码为 False 票。盘上 21_tone_llms_full.parquet 核对一致: rows 153/254/564 `deepseekv4_verified_full=False, n_valid_votes_full=3, llm_agreement_rate_full=0.667` (真实应为 2/2=1.0 且 n_valid=2)。下游 encode.py:151-154 `llm_vote_cont = vote_score × agreement_rate` → 这些文章的连续语调被衰减 ×0.667; runner.py:517 HC 子样本 (agr≥0.67) 将其整篇剔除。当前 T=2 试跑无 final_v/final_s 翻转 (均 2-1 维持), 但 latent T=19 全量 (~17",
   "suggested_fix": "将 `raw_text 非 None 但 parse 后 jd=={}` 与 call-failure 同等处理: per_model verified=None、不进 v_votes、n_failures+1, 并新增 llm_parse_failure_{track} 计数列 + logger.warning; 可选对截断 JSON 做修复式提取 (正则抓 is_bank_fintech_news/sentiment 键)。注意改后变 panel 值, 需走 production run + golden 重生 ($0, 全缓存)。",
   "adjudication": "亲验: tone_llms.py:713-714 裸 except→{}, :1069/:1082 把不可解析当 False 票+verified=False, 与 call-failure :1056-1062(None不投票)不一致; docstring:696 称'模型缺席'与实现矛盾。缓存重放 8 条坐实(row153 截断内含 true 却记 False); 盘上 n_valid=3/agr=0.667 应为 2/1.0; encode.py:154 衰减+runner.py:519 HC 剔除, 活跃影响。",
   "unit": "tone-llms-parsing"
@@ -87,7 +87,7 @@
   "claim": "同一 verbalized-confidence 输入, 两套无效值政策: compute_prob_score_binary 对 confidence∉[0,1] 或 NaN 返回 (NaN,'P3_BIN') 显式拒绝; compute_prob_score (3-class, 喂 P1 主线 avg_prob_score) 用 `max(0.0,min(1.0,confidence)) if confidence else 0.0` — 越界值静默 clip 到 1.0, 且 NaN 因 `if confidence` 为真且 `min(1.0,nan)` 返回 1.0, 被当作满置信 → prob_score=±1.0 / source='P2' (实测 compute_prob_score('正面',nan) == {'prob_score':1.0,'prob_source':'P2'})。模型输出 confidence: 95 (百分制误报) 会被编码为最强信号而非剔除。",
   "evidence": "只读 python 实测: 3-class NaN conf → prob_score=1.0/P2; conf=5.0 → 1.0/P2; binary conf=5.0 → nan/P3_BIN。生产语料重放 conf 越界计数=0 (json.loads 接受字面量 NaN 故输入面真实存在), 纯 latent。",
   "suggested_fix": "3-class 与 binary 对齐: confidence NaN 或 ∉[0,1] → 返回 NaN + 独立 prob_source 代码 (或至少 NaN→P3 one-hot 而非 P2 满置信), 加 math.isnan 守卫; 同步更新 docstring 的输入域声明。",
-  "adjudication": "运行时亲验: compute_prob_score(:897)对 NaN conf 返回 prob_score=1.0/P2(满置信), conf=95/5.0 静默 clip 1.0; binary(:971-972)对越界返 nan/P3_BIN(细节: NaN 越过范围检查得 nan/P2_BIN, 下游 isnan 仍剔除, 实质不变)。输入面真实(:1095-1098 float 放行 json NaN/越界数); 当前语料 0 越界→latent, T=18 ~1亿响应大概率触发。同构念双政策不一致确凿。",
+  "adjudication": "运行时亲验: compute_prob_score(:897)对 NaN conf 返回 prob_score=1.0/P2(满置信), conf=95/5.0 静默 clip 1.0; binary(:971-972)对越界返 nan/P3_BIN(细节: NaN 越过范围检查得 nan/P2_BIN, 下游 isnan 仍剔除, 实质不变)。输入面真实(:1095-1098 float 放行 json NaN/越界数); 当前语料 0 越界→latent, T=19 ~1亿响应大概率触发。同构念双政策不一致确凿。",
   "unit": "tone-llms-parsing"
  },
  {
@@ -137,9 +137,9 @@
   "file": "pipeline/sentiment/tone_llms.py",
   "line": "897",
   "claim": "`c = max(0.0, min(1.0, confidence)) if confidence else 0.0`: NaN 为真值且 min(1.0, nan) 在 CPython 中返回 1.0 (比较 False 保留首参) → c=1.0, 走 P2 路径输出满置信 ±1.0 分。NaN 可达: Python json.loads 默认接受 NaN 字面量 (实测 json.loads('{\"x\": NaN}') 通过), 而上游 `float(jd.get('sentiment_confidence', 0.0) or 0.0)` 不滤 NaN (nan 真值, float(nan)=nan); 字符串 \"nan\" 同样穿透 float()。同族 compute_prob_score_binary 对域外值返回 NaN — 三分类版独缺此守卫。",
-  "evidence": "只读 python 实测: conf=float('nan') 时该表达式产出 c=1.0。当前盘上 6 个 sentiment_confidence 列 NaN=0 / >1=0 / <0=0 → 现状未触发, 纯 latent; 全量 17M 跑新增模型/响应时可触发。",
+  "evidence": "只读 python 实测: conf=float('nan') 时该表达式产出 c=1.0。当前盘上 6 个 sentiment_confidence 列 NaN=0 / >1=0 / <0=0 → 现状未触发, 纯 latent; 全量 18.2M 跑新增模型/响应时可触发。",
   "suggested_fix": "入口加 `if confidence is None or (isinstance(confidence, float) and math.isnan(confidence)): confidence = 0.0` 或镜像 binary 版返回 NaN+排除。",
-  "adjudication": "实测 `max(0.0, min(1.0, nan)) if nan else 0.0` → 1.0 (tone_llms.py:897), 走 P2 路径输出 ±1.0 满置信分; json.loads 接受 NaN 字面量且 `float(nan or 0.0)=nan` 穿透 L1095-1098 try/except。binary 版 NaN 结果为 NaN 被 L1213 排除, 三分类版独缺。盘上 6 列 confidence NaN=0 不触发 → 纯 latent, T=18 换模型可触发。",
+  "adjudication": "实测 `max(0.0, min(1.0, nan)) if nan else 0.0` → 1.0 (tone_llms.py:897), 走 P2 路径输出 ±1.0 满置信分; json.loads 接受 NaN 字面量且 `float(nan or 0.0)=nan` 穿透 L1095-1098 try/except。binary 版 NaN 结果为 NaN 被 L1213 排除, 三分类版独缺。盘上 6 列 confidence NaN=0 不触发 → 纯 latent, T=19 换模型可触发。",
   "unit": "tone-llms-voting"
  },
  {
@@ -191,7 +191,7 @@
   "claim": "`result_text = data['choices'][0]['message']['content']` 后未验非空即 cache.put; 后续 run 中 `if cached_response is not None: return` 把空串当有效命中返回 → 该 (model, article, track) 格永久得到不可解析响应, 经 finding-1 路径固化为 False 验证票, 永无重试机会 (缓存命中先于一切检查)。瞬时 API 故障 (200 但空 completion) 被永久写入确定性锚点。",
   "evidence": "盘上实证: idx 982 ctx 轨 deepseekv4 的缓存响应 rawlen=0 (经 iter_article_track_prompts 重建 prompt + _llm_cache.db 反查), 该行 deepseekv4_verified_ctx=False & sentiment=None — 一次空响应已被冻结为永久'判非'票。",
   "suggested_fix": "put 前校验 result_text 非空 (空则按失败重试/记 n_failures); 兼容存量: get 返回空串时视为 miss (在线模式重调, 离线模式 raise), 或至少在 _aggregate_track 把空 raw_text 与 None 同路径处理 (与 finding-1 修法合并)。",
-  "adjudication": "L505-510 result_text 未验非空即 cache.put; caching.py:296-299 `if row: return row[0]` 把 '' 当命中, L468 `is not None` 直接返回 → 永不重试。实证: 缓存全库 deepseek-v4-flash 77 条空响应, 当前语料 1 例 (idx 982 ctx rawlen=0) 经 F0 路径冻结为 verified=False。确定性锚点被瞬时故障永久污染, T=18 会累积, P3 确认。",
+  "adjudication": "L505-510 result_text 未验非空即 cache.put; caching.py:296-299 `if row: return row[0]` 把 '' 当命中, L468 `is not None` 直接返回 → 永不重试。实证: 缓存全库 deepseek-v4-flash 77 条空响应, 当前语料 1 例 (idx 982 ctx rawlen=0) 经 F0 路径冻结为 verified=False。确定性锚点被瞬时故障永久污染, T=19 会累积, P3 确认。",
   "unit": "tone-llms-voting"
  }
 ]

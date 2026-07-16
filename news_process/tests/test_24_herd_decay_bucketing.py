@@ -2,7 +2,7 @@
 参照分支 (_dense_similar_counts) 在 >2000 篇 fixture 上**数值逐位等价**。
 
 背景: pipeline/sentiment/herd_decay.py 原 >2000 篇分支是 O(N^2) 纯 Python 双循环,
-全量 17M/2007-2024 下头部银行 (工农中建招) 数十万篇会触发 wall-clock cliff + N×N
+全量 18,198,978 条/2007-2025 下头部银行 (工农中建招) 数十万篇会触发 wall-clock cliff + N×N
 余弦 OOM。M0 规模修复改为 7 天窗双指针分桶 (O(N·window))。模块注释明确要求:
 重写必须连同 >2000 篇 fixture 对拍, 防 herd_weight 静默回归。本文件即该守护。
 

@@ -453,7 +453,7 @@ class TestPartitionIdentityR6:
 class TestAggOutputDtypePin:
     def test_small_sums_pinned_to_int64(self):
         """组和 ∈[-128,127] 时 pandas 保留 Int8 → 出口统一 pin Int64,
-        消除 T=2 (byte) vs T=18 (long) 的 .dta 存储型漂移."""
+        消除 T=2 (byte) vs T=19 (long) 的 .dta 存储型漂移."""
         df = pd.DataFrame({
             'target_bank': ['A', 'A', 'B'],
             'year': [2017] * 3,

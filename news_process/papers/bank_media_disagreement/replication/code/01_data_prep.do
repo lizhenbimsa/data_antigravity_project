@@ -98,4 +98,4 @@ sort bank_id year
 * 保存 working dataset (供 11/13 表脚本改指向后使用)
 save "data/processed/_paper10_working.dta", replace
 display "  Working dataset saved: data/processed/_paper10_working.dta"
-display "  N = " _N ", banks = " _N / (2024 - 2007 + 1)
+display "  N = " _N ", banks = " _N / (2025 - 2007 + 1)

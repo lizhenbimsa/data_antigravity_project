@@ -115,7 +115,7 @@ inference:
     lit: [Cameron-Miller 2015 JHR, MacKinnon-Webb 2017, Roodman et al. 2019]
 
 # 网络位置角色 (network-metrics-elevation 2026-06-13; 蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)。
-# 消费 panel 实存共现中心度列 → golden-safe; control 立即生效, moderator/het/mediator 须 production T=18; schema 对本块 no-op。
+# 消费 panel 实存共现中心度列 → golden-safe; control 立即生效, moderator/het/mediator 须 production T=19; schema 对本块 no-op。
 network_roles:
   control:
     columns: [bank_between_cent, bank_degree_cent]
@@ -143,7 +143,7 @@ targets:
 
 sample:
   n_bank_min: 200  # M-1 G-1 确认后 update
-  t_year: 18
+  t_year: 19
   obs_target_min: 3000
 
 audit_rounds_target_min: 8  # M5 ≥ 8 / M6 ≥ 5 per §5.8.4 / §5.9.5

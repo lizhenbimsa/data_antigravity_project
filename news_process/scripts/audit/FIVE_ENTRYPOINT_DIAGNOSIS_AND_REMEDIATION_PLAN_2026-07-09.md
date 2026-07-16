@@ -112,7 +112,7 @@
 
 ### B6 · [低] F12 编排器只钉 HASHSEED=0 不 setdefault BLAS 线程=1
 - **位置**: core/stage.py:255 强制 HASHSEED=0; :239-246 仅 setdefault 编码/OMP 四件套, 无 BLAS 注入。
-- **判定(评审)**: **by-design 刻意不对称**——HASHSEED 强制因零性能代价且非零值会静默击穿 jieba 确定性; BLAS=1 有真实性能代价(生产 T=18 对每 stage setdefault=1 会把嵌入/网络重数值 stage 逼成单线程 BLAS 大幅拖慢正常跑)。金标 BLAS=1 靠 golden-regen SOP + M0 审批门覆盖。
+- **判定(评审)**: **by-design 刻意不对称**——HASHSEED 强制因零性能代价且非零值会静默击穿 jieba 确定性; BLAS=1 有真实性能代价(生产 T=19 对每 stage setdefault=1 会把嵌入/网络重数值 stage 逼成单线程 BLAS 大幅拖慢正常跑)。金标 BLAS=1 靠 golden-regen SOP + M0 审批门覆盖。
 - **修复(评审, fixSafe=risky)**: **以纯文档路径收口, 勿盲目在 run_stage 加 setdefault BLAS=1**。
 
 ### A6 · [低·潜伏, 由 A 降入 B] F2 company 子进程 subprocess.run 未注入 HASHSEED/UTF-8 env
@@ -129,7 +129,7 @@
 - **I-2** 词典消融变体名超 Stata 32 字符: stage46 stata_export 有 `shorten_long_column_names`(缩写→截断→md5去重)+ `_assert_track_triplet_unique`(:785)+ collision raise(:818)双 fail-loud 守卫; stage46 成功=无碰撞。**已妥善处理**。
 - **II-1** OFFLINE 下 66/70(entity masking / prompt sensitivity)优雅跳过: 变体 prompt 冷缓存不可离线重判, WARNING 明示"在线运行不受影响"; 属 OFFLINE 覆盖边界。**复现披露义务(评审)**: 在 replication README/data appendix 明记"66/70 两张稳健性表需在线付费 LLM 方能复现", 而非仅日志一行。
 - **II-2** stage71 三轨 κ 超 sentinel 上限 0.70(locus ctx_ss=0.78/collab 0.81-0.87): T=2 小样本诊断信号, validation 职责所在。
-- **主线 T=2 退化 WARNING 族**: IV弱工具/基期share one-hot退化63-87%/DiD不可识别(sandbox/dcep/depins_post全0晚于面板末年2018)/零方差(brokerage_fire_sale/numpy除零)/覆盖151→142/benefit负锚⑨投影翻正(_lg兜底)/6词典关键词含jieba边界字符剔除 — 日志自标"T=2预期", 生产 T=18 恢复。
+- **主线 T=2 退化 WARNING 族**: IV弱工具/基期share one-hot退化63-87%/DiD不可识别(sandbox/dcep/depins_post全0晚于面板末年2018)/零方差(brokerage_fire_sale/numpy除零)/覆盖151→142/benefit负锚⑨投影翻正(_lg兜底)/6词典关键词含jieba边界字符剔除 — 日志自标"T=2预期", 生产 T=19 恢复。
 - **validation 侧 by-design WARNING(61/62/63/64/67)** [评审补列]: 62 小样本(10076行,全量以405万行为准) / **63 demo_mode 合成标注——⚠严禁进入任何论文/复现引用(人工标注完成后重跑)** / 64 覆盖率非单调 Δα + 旧工作台 xlsx 弃用提醒 / 61 旧工作台 + 媒体占比 100%(T=2抽样倾斜) / 67 时间稳定性<3年。均预期/职责所在。
 - **A8(F5)** [由 A 降入] validation 无输出预清理: 验证阶段 60-75 全在 schemas.py::EXPECTED_NO_OUTPUT_STAGES → 即便照搬主线逻辑, 预清理循环对验证阶段皆**空操作**, 不预清理是 registry 设计的直接后果(非遗漏); "半写CSV下游误读"场景弱(验证CSV不链式消费, 重跑覆盖)。**⚠ 不要对 validation 做整目录对称预清理**(可能误删 stage40 待读的 75/72/73 未登记 parquet, 与 B1 耦合冲突); 若加只补"阶段成功但登记产物缺失"存在性校验、不引入删除动作。
 - **B5(F-config)** [由 B 降入] skip21 键 output_14 vs 值 15_*.parquet 编号不一致: 非缺陷——paths.yaml:77 值/代码回退(:400)/schemas.py:59 三端已对齐, skip 检查永命中真实产物; 即便失配也 fail-safe(重跑不误用旧数据)。paths.yaml:66-70 已注释声明键号为"历史稳定句柄"。加注释即可; 键名对齐有 35+ call-site churn 不建议改。
@@ -160,14 +160,14 @@
 - 每批次跑相关 gate + 裸 GBK(重定向)终端 `--dry-run` 冒烟。**所有修复 golden 安全**, 不触发付费 LLM/嵌入/golden 重生。
 
 ## 7. 残余风险 (评审汇总, 8 项)
-1. ✅ **入口⑤ 03 已坐实**(TAX03 EXIT=0 / 墙钟 3552s≈59min / 双 dta+双 parquet+互验 md 全刷新 10:xx / 0 ERROR / 无残留进程锁)。**暴露运营项: tax 03 近 1 小时(budget 1.0B 双引擎+双 6.5GB dta), 生产 T=18 更长, 长跑须前台/nohup 或分步 --no-emit-dta, 勿依赖会话级后台。**
+1. ✅ **入口⑤ 03 已坐实**(TAX03 EXIT=0 / 墙钟 3552s≈59min / 双 dta+双 parquet+互验 md 全刷新 10:xx / 0 ERROR / 无残留进程锁)。**暴露运营项: tax 03 近 1 小时(budget 1.0B 双引擎+双 6.5GB dta), 生产 T=19 更长, 长跑须前台/nohup 或分步 --no-emit-dta, 勿依赖会话级后台。**
 2. **非原子 ~6.8GB dta 写盘的崩溃安全缺口**: 长跑 03 被 kill 中途留半写 dta 供 Stata 误读(本次⑤当场演示, 与 2026-07-07 branchw 688MB 半成品同构); A5/A9 只修锁与 fd, 单实例锁自愈只清锁不清残 dta。**处理**: 长跑 03 前台/nohup + 完成后校验 dta 完整性 + 明确"中断=产物不可信须重跑"纪律; 中长期 03 dta 写盘走 temp+原子 rename(**触数据层、golden 不安全 → DEFERRED 但须明列**)。
 3. **跨管线并发未完全封死**: listed×tax、company×主管道(尽力而为跨锁守卫不能消除"company 先读→主启动"时序窗口)。
 4. **--skip-unchanged 开启时 cross_media 陈旧路径真实存在**(F7, 默认关+前缀守卫, 与 I-1 同盲区)。
 5. **OFFLINE 下 66/70 两张稳健性表无产出**, 复现需在线付费 LLM(II-1)。
 6. **A6 golden 安全前提**依赖 committed registry 锚在 HASHSEED=0 下生成(已由本轮 sha=4f580e3f 匹配坐实; 若锚曾在非零 seed 下生成, 强制 HASHSEED=0 反可能翻红 gate)。
 7. **BLAS 线程=1 仅靠 shell 约定**(F12/B6), 生产 golden 重生须遵 golden-regen SOP + M0 审批门; setdefault BLAS=1 有性能代价不宜盲加。
-8. **生产 T=18 vs 本 T=2 试跑非同量级**: tax 03(双 6.8GB dta + 千万行加权引擎)/boilerplate 等墙钟与内存放大, 长跑须前台/nohup 或分步(--no-emit-dta), 勿依赖会话级后台(本次⑤首跑中断即此教训)。
+8. **生产 T=19 vs 本 T=2 试跑非同量级**: tax 03(双 6.8GB dta + 千万行加权引擎)/boilerplate 等墙钟与内存放大, 长跑须前台/nohup 或分步(--no-emit-dta), 勿依赖会话级后台(本次⑤首跑中断即此教训)。
 
 ## 8. 评审记录
 - **对抗验证**: 16 个 A/B 问题各 1 独立 agent(high effort)读源码核实真实性/行号/判定/golden 安全 → 14 项确认保留, A8→C、B5→C、F7→B、A6→B、A1/A2/A5 降级。

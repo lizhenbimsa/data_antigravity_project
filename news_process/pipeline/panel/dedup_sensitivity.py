@@ -81,7 +81,7 @@ Stata 用法 (敏感性检验本体): 主回归逐一以 attention_index_full_<v
 ⚠ 试跑样本 caveat (METHOD-3): 当前盘上 T=2 / ~176 bank-year, 变体仅追加剔除 1–3%
   文章 → 与生产锚点的 Pearson 相关接近 1.0 是低剔除率下的**预期平凡结果**, 非充分
   稳健性证据。真正的稳健性结论须来自主回归系数在各变体下的稳定性 (Stata Table A),
-  而非面板内相关性; 全量 17M/T=18 下剔除率与相关性都可能很不同, 当前数字不可外推。
+  而非面板内相关性; 全量 约1,819万/T=19 下剔除率与相关性都可能很不同, 当前数字不可外推。
 """
 
 from __future__ import annotations
@@ -424,7 +424,7 @@ def compute_dedup_sensitivity_treatments(panel: pd.DataFrame) -> pd.DataFrame:
                         f" / corr={sig4(_corr) if _corr is not None else 'NA'} → {_rv}")
         # 试跑样本 caveat (METHOD-3): T=2/~176 bank-year 下结论须来自 Stata Table A
         logger.info("  · ⚠ 稳健性结论须来自主回归各变体系数符号/显著性稳定 (Stata Table A), "
-                    "非面板内相关性; 当前试跑数字 (1–3% 剔除率→corr≈1) 不可外推至全量 17M/T=18")
+                    "非面板内相关性; 当前试跑数字 (1–3% 剔除率→corr≈1) 不可外推至全量 约1,819万/T=19")
     except Exception as _e:  # noqa: BLE001 — 结果解读块绝不阻断面板主流程
         logger.warning(f"  dedup_sensitivity 结果解读日志块异常 (不影响计算): {_e}")
 

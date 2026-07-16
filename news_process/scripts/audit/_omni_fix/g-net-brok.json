@@ -45,10 +45,10 @@
   "title": "latent: 连通年份 numpy 路径 (scipy ARPACK 随机 v0) 跨 run 非逐位可复现, 该列不在已知 3 列非确定性台账内",
   "file": "pipeline/panel/network_brokerage.py",
   "line": "225-231 (Level 1 numpy 路径)",
-  "claim": "nx.eigenvector_centrality_numpy (nx 3.6.1) 调 scipy.sparse.linalg.eigs(M.T, k=1, ...) 且不传 v0 → ARPACK 用随机初始向量, 同一图同进程重算结果即不逐位一致。当前试跑样本两年图均非连通 → 走确定性迭代路径而被掩蔽; 全量语料 (1700万篇) 下年度图大概率连通 → 翻到 numpy 路径, brokerage_eigen_cent 将加入 BLAS-FP 漂移家族, 但已知非确定性台账只登记 bank_clustering/cfbetween/harmonic 三列。",
+  "claim": "nx.eigenvector_centrality_numpy (nx 3.6.1) 调 scipy.sparse.linalg.eigs(M.T, k=1, ...) 且不传 v0 → ARPACK 用随机初始向量, 同一图同进程重算结果即不逐位一致。当前试跑样本两年图均非连通 → 走确定性迭代路径而被掩蔽; 全量语料 (18,198,978 篇) 下年度图大概率连通 → 翻到 numpy 路径, brokerage_eigen_cent 将加入 BLAS-FP 漂移家族, 但已知非确定性台账只登记 bank_clustering/cfbetween/harmonic 三列。",
   "evidence": "实证: 对 2017 主分量子图 (连通) 同进程跑 4 次 eigenvector_centrality_numpy, 两两 max abs diff 达 8.3e-16, bitwise identical = False。已读 nx 3.6.1 源码确认 eigs 调用无 v0 参数。",
   "suggested_fix": "切换前在 numpy 路径显式构造确定性初值 (如改用迭代法统一路径, 或 monkeypatch 传 v0=ones), 或把 brokerage_eigen_cent 预先登记进非确定性列允许名单。",
-  "adjudication": "nx 3.6.1 源码亲验: eigs(M.T,k=1,which='LR',maxiter,tol) 无 v0 → ARPACK 随机初始向量; 对 2017 连通主分量同进程 4 次重算 pairwise diff 达 5.55e-16, 非逐位一致。盘上两年图非连通走确定性迭代路径被掩蔽; T=18 全量图大概率连通即翻 numpy 路径, 台账仅登记 3 列。",
+  "adjudication": "nx 3.6.1 源码亲验: eigs(M.T,k=1,which='LR',maxiter,tol) 无 v0 → ARPACK 随机初始向量; 对 2017 连通主分量同进程 4 次重算 pairwise diff 达 5.55e-16, 非逐位一致。盘上两年图非连通走确定性迭代路径被掩蔽; T=19 全量图大概率连通即翻 numpy 路径, 台账仅登记 3 列。",
   "unit": "network-brokerage"
  },
  {

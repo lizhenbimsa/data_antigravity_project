@@ -161,7 +161,7 @@
      - `_lg` = text-embedding-3-large（3072 维）→ 新增 `_lg` 镜像 staleness 列。
   2. `_resolve_sbert_model`（读 `embedding_robustness.model`）**删除/替换**为引擎 spec 路由（不再有"单一事实源 = embedding_robustness"概念）。
   3. stage 26（`article_staleness`）对**两套嵌入各算一遍**陈旧度 → **`semantic_staleness_{full,ctx,ss}`**（MAIN）+ **`semantic_staleness_{full,ctx,ss}_lg`**（`_lg`），互为稳健性检验。⚠ **仅嵌入派生的 `semantic_staleness` 双轨化**；同模块的 **`surface_staleness_{full,ctx,ss}` / `surface_highstale` 是 MinHash/datasketch 字符 shingle 派生（无嵌入）→ 不产 `_lg` 孪生、行为不变**（归入 §11 parity carve-out）。
-- **成本**：⚠ **每篇文章嵌两个 API 模型**（gemini + large）。title+300char 短（~100-150 token/篇），但生产 17M 文 × 2 模型 = **本计划最大可量化成本**（text2vec 原本地 GPU $0）。Phase-0 须用 T=2 小样实测单价、外推生产、单独批准（§10）。
+- **成本**：⚠ **每篇文章嵌两个 API 模型**（gemini + large）。title+300char 短（~100-150 token/篇），但生产 18.2M 文 × 2 模型 = **本计划最大可量化成本**（text2vec 原本地 GPU $0）。Phase-0 须用 T=2 小样实测单价、外推生产、单独批准（§10）。
 - **下游契约核查（实施前必做）**：`semantic_staleness` 改 768→3072 维 + 改 API + 加 `_lg` 列 → 须确认 stage 26 的 FAISS（`IndexFlatIP(dim)`，已维度无关）对 3072 维无硬编码维度假设；确认 `semantic_staleness`（嵌入派生）下游消费者（always-on，进 panel）不因新增 `_lg` 列或值变而断；`surface_staleness`/`surface_highstale`（MinHash，非嵌入）**完全不动**。
 - ⚠ stage 25/26 是 always-on，**阶段计数不变**（纯列内：MAIN 值变 + 新增 `_lg` 列；无阶段增删）。
 - **维度脚注**：原 text2vec staleness 是 768 维、SBERT title+300char 截断（512 token 内）；改 gemini/large 后维度升 3072，但 staleness 是**相对近重复**测度（余弦排序/阈值），维度无关；截断策略（title+300char）**保留不变**以维持 Bybee 风格构念。
@@ -272,13 +272,13 @@ embedding_large:                          # CO-PRIMARY ② — text-embedding-3-
 
 ---
 
-## 10. 成本估算（生产 T=18，本机无生产语料，须 Phase-0 实测）
+## 10. 成本估算（生产 T=19，本机无生产语料，须 Phase-0 实测）
 
 | 项 | 量级 | 估算 |
 |---|---|---|
 | MAIN gemini 全量重嵌（5 cosine producer × 三轨唯一文本）| ~944k×3 唯一文本 ≈ 1.5–1.8B token | gemini 计价待 Phase-0 实测（yunwu 报价）；**MAIN 是全量、非增量**，是主成本 |
 | `_lg` 激活播种（5 cosine producer，同上规模）| 同量级 | @ ~$0.13/1M ≈ **$200–240**（沿用 ADD_EMB3LARGE 估）|
-| **stage 25→26 staleness 双轨（25 嵌入生产 + 26 计算，D-2a 选项 i）** | ⚠ **每篇文章 title+300char × 2 模型（gemini+large）**（远多于 cosine producer 的去重文本集；逐文章非去重）| **本计划最大可量化成本**；title+300char 短(~100-150 token/篇) 但 17M 文 ×2 模型 → 须 Phase-0 实测外推 |
+| **stage 25→26 staleness 双轨（25 嵌入生产 + 26 计算，D-2a 选项 i）** | ⚠ **每篇文章 title+300char × 2 模型（gemini+large）**（远多于 cosine producer 的去重文本集；逐文章非去重）| **本计划最大可量化成本**；title+300char 短(~100-150 token/篇) 但 18.2M 文 ×2 模型 → 须 Phase-0 实测外推 |
 | **stage 15 金科质心双轨** | ~1506 词 × 2 模型一次性（若仅词表级）| 极低（若逐文档则 Phase-0 重估）|
 | 存储 | benefit `_lg`/MAIN `.npy` + stage 25 嵌入 3072 维 ×2 套 | 中 |
 | 离线复现 | 播种后 `NEWS_PROCESS_LLM_OFFLINE=1` | $0 |

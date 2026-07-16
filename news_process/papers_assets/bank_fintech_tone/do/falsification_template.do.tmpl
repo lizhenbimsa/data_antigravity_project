@@ -795,7 +795,7 @@ reghdfe Y c.sandbox_treated##c.sandbox_post##i.digital_frontier X, ///
 * notyet: 政策覆盖面广 → never-treated 结构性稀少, 用 not-yet-treated 作对照
 *   (iv_did.py:639-641 识别局限披露)。
 * 全程 capture which / capture confirm 守卫: 缺 ado (csdid/bacondecomp/drdid) 或
-*   T=2 (单期无 pre/post) 时优雅跳过, 不报错; 全量 T=18 接入后自动激活。
+*   T=2 (单期无 pre/post) 时优雅跳过, 不报错; 全量 T=19 接入后自动激活。
 * 学术依据:
 *   Goodman-Bacon, A. (2021). Difference-in-Differences with Variation in Treatment
 *     Timing. Journal of Econometrics, 225(2), 254-277.
@@ -835,7 +835,7 @@ foreach pol in dcep sandbox {
   quietly levelsof `pol'_treat_year if `pol'_treat_year > 0, local(_gs)
   local _ng : word count `_gs'
   if `_ny' < 3 | `_ng' < 1 {
-    display as text "  [skip] `pol' 错时 DiD: 时期数=`_ny' / 处理 cohort 数=`_ng' 过少 (T=2 试跑盘正常), 全量 T=18 激活"
+    display as text "  [skip] `pol' 错时 DiD: 时期数=`_ny' / 处理 cohort 数=`_ng' 过少 (T=2 试跑盘正常), 全量 T=19 激活"
     continue
   }
 
@@ -850,7 +850,7 @@ foreach pol in dcep sandbox {
       display as text "    (csdid ATT + estat event 见上方; 替代 TWFE ddd_`pol' 的负权重场景)"
     }
     else {
-      display as text "    ⚠️ `pol' csdid 退化 (notyet 控制组空/cohort 不足), 全量 T=18 重试"
+      display as text "    ⚠️ `pol' csdid 退化 (notyet 控制组空/cohort 不足), 全量 T=19 重试"
     }
   }
   else {
@@ -865,7 +865,7 @@ foreach pol in dcep sandbox {
       display as text "    (Bacon 分解见上方; 已处理组充当对照的 'bad comparison' 负权重份额披露)"
     }
     else {
-      display as text "    ⚠️ `pol' bacondecomp 退化 (非平衡面板/处理变量非二元), 全量 T=18 重试"
+      display as text "    ⚠️ `pol' bacondecomp 退化 (非平衡面板/处理变量非二元), 全量 T=19 重试"
     }
   }
   else {

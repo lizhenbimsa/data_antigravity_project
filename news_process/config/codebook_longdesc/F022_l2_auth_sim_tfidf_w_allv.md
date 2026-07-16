@@ -88,7 +88,7 @@ new_dois: []
 ## VAR: auth_sim_tfidf_w_allv_ctx
 
 【变体差分】
-本列是词级 TF-IDF 权威政策相似度全年份静态锚点稳健孪生的 ctx 轨。ctx 轨的银行年度聚合文本来源于 content_ctx, 即标题 prepend 后拼接实体上下文窗口内的文本 (银行实体邻近窗口), 相较 full 轨更聚焦于与目标银行直接相关的片段, 剔除了远离实体的背景叙述, 因而在语料噪音与主题集中度上与 full 轨形成互补。作为 conditional-on-full 的稳健性轨, ctx 轨的行宇宙是 full 留篇集的子集, 其 per-track 相似度列在该子集上独立计算。本列与无后缀 vintage 主轨的差别同样只在锚点 (全年份静态 vs 发布年份 ≤ t 的 vintage), 二者各自 just-identified 并排、互为稳健性不分主次, 禁混进同一 over-identified Hansen J; ctx 与 full、ss 三轨亦属规格稳健性并排, 禁混同一 over-identified Hansen J。词级向量化参数 (jieba 分词、max_features=5000、min_df=1、max_df=0.95、sublinear_tf=True) 与家族其余轨完全同构, 唯输入文本轨道不同。ctx 轨在开发期 T=2 小样本上可能出现零方差退化, 属预期现象, 生产 T=18 语料下恢复正常判别力。相较 full 轨, ctx 轨把语料收窄到银行实体邻近窗口, 因而当报道大段背景与目标银行战略无直接关联时, ctx 读数更能反映银行自身叙事的政策贴合度, 而 full 读数会被背景语料稀释, 二者的差值本身即承载信息。ctx 轨与同轨的字符级、LDA、嵌入通道亦各自成列、互为稳健性、禁混同一 over-identified Hansen J。该列的全年份静态锚点身份意味着其对政策语料时序切分不敏感, 与 vintage 主轨对读可诊断前视构造对相似度读数的影响幅度。
+本列是词级 TF-IDF 权威政策相似度全年份静态锚点稳健孪生的 ctx 轨。ctx 轨的银行年度聚合文本来源于 content_ctx, 即标题 prepend 后拼接实体上下文窗口内的文本 (银行实体邻近窗口), 相较 full 轨更聚焦于与目标银行直接相关的片段, 剔除了远离实体的背景叙述, 因而在语料噪音与主题集中度上与 full 轨形成互补。作为 conditional-on-full 的稳健性轨, ctx 轨的行宇宙是 full 留篇集的子集, 其 per-track 相似度列在该子集上独立计算。本列与无后缀 vintage 主轨的差别同样只在锚点 (全年份静态 vs 发布年份 ≤ t 的 vintage), 二者各自 just-identified 并排、互为稳健性不分主次, 禁混进同一 over-identified Hansen J; ctx 与 full、ss 三轨亦属规格稳健性并排, 禁混同一 over-identified Hansen J。词级向量化参数 (jieba 分词、max_features=5000、min_df=1、max_df=0.95、sublinear_tf=True) 与家族其余轨完全同构, 唯输入文本轨道不同。ctx 轨在开发期 T=2 小样本上可能出现零方差退化, 属预期现象, 生产 T=19 语料下恢复正常判别力。相较 full 轨, ctx 轨把语料收窄到银行实体邻近窗口, 因而当报道大段背景与目标银行战略无直接关联时, ctx 读数更能反映银行自身叙事的政策贴合度, 而 full 读数会被背景语料稀释, 二者的差值本身即承载信息。ctx 轨与同轨的字符级、LDA、嵌入通道亦各自成列、互为稳健性、禁混同一 over-identified Hansen J。该列的全年份静态锚点身份意味着其对政策语料时序切分不敏感, 与 vintage 主轨对读可诊断前视构造对相似度读数的影响幅度。
 
 ## VAR: auth_sim_tfidf_w_allv_ss
 

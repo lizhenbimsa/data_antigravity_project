@@ -76,7 +76,7 @@ python -m pytest news_process/ -q                              # 全量 sweep
 - ⚠ **golden 重生只在干净 checkout** (`git checkout` 一个干净分支): 本机工作树有 176 改动 (多会话) + 3 个 BLAS 非确定网络中心度列 (`bank_clustering`/`cfbetween`/`harmonic`), 在脏树上 regen 会**误 bless 无关漂移**, 把 repro 闸门搞红 (memory: panel-3-network-cols-nondeterministic / golden 本机不可安全 regen)。
 - ⚠ **勿删 `_llm_cache.db`** (407MB 确定性锚点); 播种只追加 ss 条目, 不动 full/ctx。
 - ⚠ **prompt v8 字节冻结**: 改任何 prompt 模板会废掉全部 10530 缓存 → 重付费。
-- 付费敞口随语料放大: 盘面 1170 篇 ~2880 calls; 全量 17M/T=18 须先用 `measure_bank_fintech_cooccurrence` 逐年估 ss 非空率再决定预算 (项目 LLM 预算量级见 memory paper_portfolio_decision_gates)。
+- 付费敞口随语料放大: 盘面 1170 篇 ~2880 calls; 全量 18.2M/T=19 须先用 `measure_bank_fintech_cooccurrence` 逐年估 ss 非空率再决定预算 (项目 LLM 预算量级见 memory paper_portfolio_decision_gates)。
 
 ## 已知预存失败 (非本次改动, 别误判为回归)
 - `test_aggregate_track_decoupling` 3 async → `pytest-asyncio` 未装。

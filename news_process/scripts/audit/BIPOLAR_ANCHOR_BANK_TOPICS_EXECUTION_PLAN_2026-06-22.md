@@ -9,7 +9,7 @@
 embedding API/本地 text2vec (远低于 LLM; 现盘文章嵌入大概率缓存命中, 仅新增 12×~20≈240 条锚句嵌入是真新调用, 极小)
 **权威性**: 四轮文档/可行性对抗审计 + 三轮锚句设计+验证工作流 (12 主题 × 10 对, difflib 单词替换全过, 0 假阳; 第二轮 JLM 样式润色, 第三轮新增 JLM 社会主题轴) +
 用户 2026-06-22 决策「不考虑成本; 对不同主题用**不同**正/负极锚句做 LLM-Embedding 双极锚点投影」「每个主题独立存在, 不计算彼此间异同」。
-**前置铁律**: **各主题独立, 不做轴间判别** (见 §3); 实施任一轴前必过 §4 财务列接入 + 面板深度 T=18 + §3 该轴锚句轴内 margin/符号自检 (advisory)。
+**前置铁律**: **各主题独立, 不做轴间判别** (见 §3); 实施任一轴前必过 §4 财务列接入 + 面板深度 T=19 + §3 该轴锚句轴内 margin/符号自检 (advisory)。
 
 ---
 
@@ -89,8 +89,8 @@ embedding API/本地 text2vec (远低于 LLM; 现盘文章嵌入大概率缓存�
     F05 direction 轴 `*_pos/neg_frac` 列名 valence 声明; F06 horse-race 回退仅 exploratory 不替宿主 PAP; F07 投影列
     归 runner step 7h (非 stage 15); F08 z_score CAR-变体披露; F09 partial-out 双向风险 (under-reject); F12 ss 轨
     退化 + 双嵌入投影稳定性上线门; F15 outcome 端叙事护栏; F10 术语/计数精度 (门 A |corr| / high档<4 / 计数)。
-  - **接受 P3**: F11(§5.1 动词/pair6 留 T=18 实测)/F13(门 B descriptive 已注)/F14(附录路径前缀)/F16(§5.11 催生↔裁撤 边际)。
-  - **结论**: 架构 (每主题专属锚轴) 经 7 轮确认站得住; 文档层达顶刊可执行标准。**仅余实施期前置门** (T=18 实测
+  - **接受 P3**: F11(§5.1 动词/pair6 留 T=19 实测)/F13(门 B descriptive 已注)/F14(附录路径前缀)/F16(§5.11 催生↔裁撤 边际)。
+  - **结论**: 架构 (每主题专属锚轴) 经 7 轮确认站得住; 文档层达顶刊可执行标准。**仅余实施期前置门** (T=19 实测
     stage 73 HTMT / stage 73 须实质重构 / 财务接入 + golden 受控重生 / ss·t2v 投影稳定性上线实测) — 非文档可闭合。
     *(注: stage 73 HTMT/重构 二项已被后文「各主题独立, 不做轴间判别」决策整体退役, 见 §3; 此为第⑦轮时序快照)*
 - **用户 2026-06-22 轴集调整 (14 轴 → 13 轴)**:
@@ -414,7 +414,7 @@ m_and_a_fintech/tobin_q/z_score), 远不覆盖 12 轴 outcome 全集 → **步�
 > Bramoullé / GLMY path-homology 评估随之退役 (§9 引用同步删)。
 > ⚠ **识别强度后果 (上线门, 诚实披露)**: 退役同业 peer-LOO 后, **zone-LOO 地理暴露**作可立即落地主工具, 但其对内生「媒体叙事投影」
 > treatment 的 first-stage 相关性**不可假定与原 peer-LOO 等强**; 须逐轴实测 **KP rk F** 满足 Stock-Yogo 临界 (GPSS rho 仅在广义 Bartik 文章级 shift 构造后、作 shift-share over-id 工具时适用, 见 §7)。广义 Bartik 须先完成
-> 文章级 shift 工程方可作 over-id 第二工具; **未完成前各轴 just-identified (仅 zone-LOO, 无 Hansen J, 见 §7 设计)**。T=18 生产盘逐轴裁决, 弱则降稳健性。
+> 文章级 shift 工程方可作 over-id 第二工具; **未完成前各轴 just-identified (仅 zone-LOO, 无 Hansen J, 见 §7 设计)**。T=19 生产盘逐轴裁决, 弱则降稳健性。
 
 ---
 
@@ -447,7 +447,7 @@ m_and_a_fintech/tobin_q/z_score), 远不覆盖 12 轴 outcome 全集 → **步�
   `event_studies:[]` 立场声明纯横截面。⚠ **交错变异区分**: 仅**分批/分地区试点** (DCEP 数字人民币分批、沙盒分批
   准入) 有交错 timing → 方可用 **Sun-Abraham/Callaway-Sant'Anna**; **同步全国断点** (`depins_post` 存款保险 2015-05-01
   全国同步、资管新规) **无 never-treated 对照 → staggered-DiD 退化**, 只能退 **pre/post DiD + 平行趋势图 + 安慰剂**,
-  不可冒称 staggered-DiD。⚠ **T=2 盘面断点设计一律 N/A, 仅 T=18 生产盘可跑**。
+  不可冒称 staggered-DiD。⚠ **T=2 盘面断点设计一律 N/A, 仅 T=19 生产盘可跑**。
 - **confirmatory primary 唯一钉死 (F04/F05; 单篇内 p-hacking 控制, 现役轴举例)**: 多 outcome 轴须**唯一锁一列**作 confirmatory
   primary 写入各 `paper_spec.yaml` 的 `confirmatory_family`, 余列降 secondary 受单篇内 FWER, 防事后挑显著 (p-hacking)。
   现役多-outcome 轴: **风险承担(#1)** 从 Z-score/RWA密度/NPL **锁 Z-score** (CAR 变体); **特许权价值(#11)** 从 Lerner/Tobin_q
@@ -480,7 +480,7 @@ m_and_a_fintech/tobin_q/z_score), 远不覆盖 12 轴 outcome 全集 → **步�
   > **非复用现有引擎** (既有 `benefit_mean` 仅用 LOO, 0 Bartik)。**不做此工程则各轴仅 zone-LOO just-identified** (无 Hansen J), 仍可识别但无 over-id 检验。
 - **Phase 2 — 各轴锚句轴内自检 (advisory, 非阻断)**: 全 12 轴逐对 margin/符号自检 (正极投正/负极投负, 见 §3) 校验
   方向向量纯净; **不做轴间 HTMT/判别** (各主题独立, 用户 2026-06-22 决策)。direction 轴低频反义词 (抑低/压降) margin 偏小时人工读 warning。
-- **Phase 3 — T=18 生产重生**: 财务 outcome 接入 + 锚轴列落盘 → 重跑 stage 15/45/46 + golden 受控重生
+- **Phase 3 — T=19 生产重生**: 财务 outcome 接入 + 锚轴列落盘 → 重跑 stage 15/45/46 + golden 受控重生
   (`PYTHONHASHSEED=0` + 线程钉死 1, 排 BLAS-FP 网络中心度列)。
 - **Phase 4 — 独立论文** (每轴一篇): clone benefit_society 三件套, 换 treatment 列 (本轴投影) + outcome + §7 推断协议;
   非静态-2SLS 题 (资本缓冲 GMM / DELR 残差) 分流单列工程路径。可优先落 3 轴 → 监管/表外/市值数据到位后扩展其余。

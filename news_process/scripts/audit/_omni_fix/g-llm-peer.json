@@ -48,7 +48,7 @@
   "claim": "策略 3 子串包含仅设最小长度 3, 对 LLM 输出的泛称无守卫: `substr_matches = [cn for cn in canonical_names if cn in name or name in cn]; best = max(substr_matches, key=len)`。策略 4 difflib cutoff=0.8 对表外银行 (不在 bank_names.json) 会吸附到最相近的在册银行。",
   "evidence": "实测: name='农村商业银行' → 1558 个规范名匹配 → max(key=len) 选中 '内蒙古察哈尔右翼前旗农村商业银行' (完全任意); '中国农业发展银行' (政策性银行, 不在 canonical 表) difflib ratio=0.857 ≥ 0.8 → 归一为 '中国农业银行'; 随机抽 300 个规范名, 183 个存在 difflib≥0.85 近邻 (农商行系一字之差: '福建平和农商行' vs '福建漳平农商行'), 在 0.70/0.75 阈值变体下错配面更大。docstring L417-418 只验证了 '招商 vs 浙商 0.75' 这一对。",
   "suggested_fix": "策略 3 增加泛称黑名单 (如 '商业银行'/'农村商业银行'/'城市商业银行' 等行业通名直接丢弃) + 子串匹配要求 name 含地名/专名前缀; 策略 4 失配时丢弃而非吸附 (记录未匹配率), 或仅在 cutoff≥0.9 保留。",
-  "adjudication": "L443-456 亲验: 泛称'农村商业银行'子串命中 1558 规范名, max(key=len) 任取'内蒙古察哈尔右翼前旗农村商业银行'; 农发行不在 bank_names.json, difflib ratio=0.857≥0.8 错归中国农业银行 — 缺陷真实(无歧义守卫/无 OOV 拒绝)。但实读 _llm_cache 全部 73 条 peer 响应 70 唯一名: 策略3歧义/策略4 difflib 零触发, 盘上 T=2 未实际污染; T=18 海量 bank-year 调用下泛称/政策行输出大概率出现 → latent。",
+  "adjudication": "L443-456 亲验: 泛称'农村商业银行'子串命中 1558 规范名, max(key=len) 任取'内蒙古察哈尔右翼前旗农村商业银行'; 农发行不在 bank_names.json, difflib ratio=0.857≥0.8 错归中国农业银行 — 缺陷真实(无歧义守卫/无 OOV 拒绝)。但实读 _llm_cache 全部 73 条 peer 响应 70 唯一名: 策略3歧义/策略4 difflib 零触发, 盘上 T=2 未实际污染; T=19 海量 bank-year 调用下泛称/政策行输出大概率出现 → latent。",
   "unit": "llm-peer-iv"
  },
  {

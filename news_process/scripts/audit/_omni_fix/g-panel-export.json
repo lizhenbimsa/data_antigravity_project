@@ -58,10 +58,10 @@
   "title": "low_conf_flag 由诊断函数副作用式条件创建 — 数据依赖的 schema 漂移 (latent)",
   "file": "pipeline/panel/export.py",
   "line": "87-96, 831",
-  "claim": "low_conf_flag 列在 log_diagnostics() 内部创建 (panel 就地变异), 且仅当 avg_category_confidence 存在且至少 1 个非 NaN 时才创建。盘上试跑样本该列 0/174 非空 → low_conf_flag 不存在 (它是 102 个幻影标签键之一); 全量 T=18 分类置信度就位后该列将出现 → panel/.dta 列集随数据内容漂移, golden 列清单对比会出现非代码性差异。模块 docstring (:5) 称 log_diagnostics 仅'输出诊断统计', 实则改 schema; 若调用方只跑 export_panel 不跑 log_diagnostics, 列静默缺失。",
+  "claim": "low_conf_flag 列在 log_diagnostics() 内部创建 (panel 就地变异), 且仅当 avg_category_confidence 存在且至少 1 个非 NaN 时才创建。盘上试跑样本该列 0/174 非空 → low_conf_flag 不存在 (它是 102 个幻影标签键之一); 全量 T=19 分类置信度就位后该列将出现 → panel/.dta 列集随数据内容漂移, golden 列清单对比会出现非代码性差异。模块 docstring (:5) 称 log_diagnostics 仅'输出诊断统计', 实则改 schema; 若调用方只跑 export_panel 不跑 log_diagnostics, 列静默缺失。",
   "evidence": "export.py:90-92 创建逻辑嵌在 `if len(valid_conf) > 0:` 内; 实测 panel['avg_category_confidence'] 0/174 非空, 'low_conf_flag' not in panel.columns; runner.py:1740/1743 先 log_diagnostics 后 export_panel (依赖调用顺序的隐式契约)。",
   "suggested_fix": "把 low_conf_flag 生成移到 runner 的特征构造段 (无条件创建, 全 NaN 时为全 0 或全 NaN 列, schema 稳定), log_diagnostics 退回纯只读。",
-  "adjudication": "export.py:90-92 在 log_diagnostics 内嵌 `if len(valid_conf)>0` 条件变异 panel; 盘上 avg_category_confidence 0/174 非空→列不存在(:831 标签现为幻影); T=18 置信度就位后列将出现, golden 列集随数据漂移; docstring :5/:35 自述仅诊断; runner.py:1740/1743 隐式顺序契约。",
+  "adjudication": "export.py:90-92 在 log_diagnostics 内嵌 `if len(valid_conf)>0` 条件变异 panel; 盘上 avg_category_confidence 0/174 非空→列不存在(:831 标签现为幻影); T=19 置信度就位后列将出现, golden 列集随数据漂移; docstring :5/:35 自述仅诊断; runner.py:1740/1743 隐式顺序契约。",
   "unit": "panel-export"
  },
  {

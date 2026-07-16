@@ -128,7 +128,7 @@ new_dois:
 ## VAR: loughran_idf_tone_ss
 
 【变体差分】
-本列是 ss 轨 (标题+银行∧金科同句±N窗) 版本。ss 回退语义镜像 ctx: 当某篇文章不存在"银行实体与金科词同句共现" (窗口半径见 config/filtering.yaml::context_window.ss_sentence_radius, 默认1; 与 stage 13 硬过滤的 `cooccurrence_filter.sentence_radius` 是不同配置键, 二者判据口径不同不可混用) 时, content_ss 回退为全文 body, 对应的 ss_is_fallback=True 标记该行为降级样本 (回退样本仍计入 n_articles 分母, 与 ctx 共享同一"优雅降级"哲学; FINTECH_AC=None 的极端情形会让 ss_is_fallback 对全体行取 True)。本列不加权、不标准化、不切子样本, 是 ss 轨内的默认代表, 与 full/ctx 两轨互为稳健性并排, 各自 just-identified、禁止混入同一 Hansen J。ss 轨判定原语 (`extract_bank_fintech_cooccurrence`) 与 stage 13 硬过滤所用的邻近共现原语 (`has_bank_fintech_cooccurrence_within_radius`) 是两套不同判据, 前者要求严格同句、后者允许句子邻域, 二者刻意不互相复用, 因此 ss 轨的留篇子集与 stage 13 通过硬过滤的行集合在判据粒度上也不完全一致。构念上, ss 轨是三轨中操作化定义最严格的一支: 只有当银行实体名与金科词汇在同一句话内共现时, 才认为这句话 (及其窗口) 是"真正在谈论银行与金科的关系", 从而把语调测度收窄到最贴近因果叙事的文本片段; 但这种严格性也带来更高的回退率——多数报道即便涉及银行与金科, 也未必把两者写进同一句话, 因此本列在生产 T=18 语料上预计有相当比例的 bank-year 单元依赖回退口径 (等同 full 轨文本)。这一权衡是 ss 轨作为稳健性分支而非默认口径的核心原因: 它在窄口径子样本上提供最强的构念效度, 代价是样本量与统计效力的损失。
+本列是 ss 轨 (标题+银行∧金科同句±N窗) 版本。ss 回退语义镜像 ctx: 当某篇文章不存在"银行实体与金科词同句共现" (窗口半径见 config/filtering.yaml::context_window.ss_sentence_radius, 默认1; 与 stage 13 硬过滤的 `cooccurrence_filter.sentence_radius` 是不同配置键, 二者判据口径不同不可混用) 时, content_ss 回退为全文 body, 对应的 ss_is_fallback=True 标记该行为降级样本 (回退样本仍计入 n_articles 分母, 与 ctx 共享同一"优雅降级"哲学; FINTECH_AC=None 的极端情形会让 ss_is_fallback 对全体行取 True)。本列不加权、不标准化、不切子样本, 是 ss 轨内的默认代表, 与 full/ctx 两轨互为稳健性并排, 各自 just-identified、禁止混入同一 Hansen J。ss 轨判定原语 (`extract_bank_fintech_cooccurrence`) 与 stage 13 硬过滤所用的邻近共现原语 (`has_bank_fintech_cooccurrence_within_radius`) 是两套不同判据, 前者要求严格同句、后者允许句子邻域, 二者刻意不互相复用, 因此 ss 轨的留篇子集与 stage 13 通过硬过滤的行集合在判据粒度上也不完全一致。构念上, ss 轨是三轨中操作化定义最严格的一支: 只有当银行实体名与金科词汇在同一句话内共现时, 才认为这句话 (及其窗口) 是"真正在谈论银行与金科的关系", 从而把语调测度收窄到最贴近因果叙事的文本片段; 但这种严格性也带来更高的回退率——多数报道即便涉及银行与金科, 也未必把两者写进同一句话, 因此本列在生产 T=19 语料上预计有相当比例的 bank-year 单元依赖回退口径 (等同 full 轨文本)。这一权衡是 ss 轨作为稳健性分支而非默认口径的核心原因: 它在窄口径子样本上提供最强的构念效度, 代价是样本量与统计效力的损失。
 
 ## VAR: loughran_idf_tone_app_ctx
 
@@ -158,7 +158,7 @@ new_dois:
 ## VAR: loughran_idf_tone_tech_ss
 
 【变体差分】
-本列是 ss 轨 + 底层技术落点子样本组合, 在 ss 轨的银行∧金科同句/全文回退口径基础上再限定落点子集。与 loughran_idf_tone_app_ss 互斥并排, 完成落点梯子 (app/tech) × 三轨 (full/ctx/ss) 的完整 6 列矩阵。本列是家族内因"轨道收缩 (ss 条件-on-full) + 落点收缩 (tech 子集本身占比更低)"双重叠加而样本量最小的分支之一, 在生产 T=18 全量语料上仍需关注部分小银行—年单元因样本不足而系统性缺失 (取 NaN), 使用前建议核对该银行—年是否存在足够数量的底层技术类报道再纳入回归, 否则易把抽样噪声误判为系统性语调差异。本列完成 loughran_idf_tone 家族落点子样本梯子 (app/tech) 在三轨 (full/ctx/ss) 上的最后一格, 与 loughran_idf_tone_app_ss 构成该 bank-year 内 ss 轨落点二分的完整互斥对; 使用者若在同一张回归表中同时报告 app 与 tech 两侧系数, 应在表格脚注中明确说明二者行宇宙互斥、并非同一样本的加权分解, 避免读者误以为两个系数存在算术加总关系。本列同时叠加 ss 轨 (银行∧金科同句判据, 含全文回退) 与落点子样本切分 (底层技术) 两层条件, 因此其覆盖率对回退率与落点分类通过率均敏感, 是家族 21 列中经济学解释门槛相对较高的一支, 建议仅在稳健性附录而非正文主表中呈现。
+本列是 ss 轨 + 底层技术落点子样本组合, 在 ss 轨的银行∧金科同句/全文回退口径基础上再限定落点子集。与 loughran_idf_tone_app_ss 互斥并排, 完成落点梯子 (app/tech) × 三轨 (full/ctx/ss) 的完整 6 列矩阵。本列是家族内因"轨道收缩 (ss 条件-on-full) + 落点收缩 (tech 子集本身占比更低)"双重叠加而样本量最小的分支之一, 在生产 T=19 全量语料上仍需关注部分小银行—年单元因样本不足而系统性缺失 (取 NaN), 使用前建议核对该银行—年是否存在足够数量的底层技术类报道再纳入回归, 否则易把抽样噪声误判为系统性语调差异。本列完成 loughran_idf_tone 家族落点子样本梯子 (app/tech) 在三轨 (full/ctx/ss) 上的最后一格, 与 loughran_idf_tone_app_ss 构成该 bank-year 内 ss 轨落点二分的完整互斥对; 使用者若在同一张回归表中同时报告 app 与 tech 两侧系数, 应在表格脚注中明确说明二者行宇宙互斥、并非同一样本的加权分解, 避免读者误以为两个系数存在算术加总关系。本列同时叠加 ss 轨 (银行∧金科同句判据, 含全文回退) 与落点子样本切分 (底层技术) 两层条件, 因此其覆盖率对回退率与落点分类通过率均敏感, 是家族 21 列中经济学解释门槛相对较高的一支, 建议仅在稳健性附录而非正文主表中呈现。
 
 ## VAR: loughran_idf_tone_hw_ctx
 

@@ -65,7 +65,7 @@ controls:
   year_level: [gdp_growth, m2_growth]
   fixed_effects: [bank_fe, year_fe]
   # INFER IV-2 修复 (2026-06-14): 聚类设定显式化 (此前 spec 无 cluster 块)。
-  # 主规格 = 银行层聚类 (T=18 长面板内 within-bank 序列相关); 稳健性对比多维聚类。
+  # 主规格 = 银行层聚类 (T=19 长面板内 within-bank 序列相关); 稳健性对比多维聚类。
   cluster: [bank]              # 主规格单向银行聚类 (模板 vce(cluster bank_id))
   cluster_robustness:         # 多维聚类对比 (small-G 时配 wild bootstrap, 见 inference 块)
     - bank_only
@@ -113,7 +113,7 @@ inference:
     # 永久 r(198) 被 capture 吞 → 已替换为真命令)。E1=2013 余额宝事件 INLINE 强度事件研究上跑。
     method: honest_did          # honestdid (Rambachan-Roth 2023 RES; delta(rm) 相对幅度)
     m_grid: [0, 0.5, 1, 1.5, 2] # 相对幅度 M-band; pre-trend 联合 F 配套报 (leads −3/−2/−1 = 0)
-    event: E1                   # 2013-06-13 yuebao_launch (窗口最长); production T=18 激活, T=2 优雅跳过
+    event: E1                   # 2013-06-13 yuebao_launch (窗口最长); production T=19 激活, T=2 优雅跳过
     lit: [Rambachan-Roth 2023 RES, Roth 2022 AER:Insights, Sun-Abraham 2021 JoE]
 
 identification:
@@ -142,7 +142,7 @@ identification:
       - lpeer_locus_iv_ss_lag1             # ss 轨滞后
 
 # 网络位置角色 (network-metrics-elevation 2026-06-13; 蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)。
-# 消费 panel 实存共现中心度列 → golden-safe; mediator/heterogeneity 须 production T=18; schema 对本块 no-op。
+# 消费 panel 实存共现中心度列 → golden-safe; mediator/heterogeneity 须 production T=19; schema 对本块 no-op。
 network_roles:
   mediator:
     column: bank_between_cent   # tech_frac → between (跨群知识经纪) → citation_weighted_patent
@@ -166,7 +166,7 @@ heterogeneity_wave:  # R4-M03 重定义: 三波严格对称 (各 3 年) + consol
   wave_1: 2013_2015         # 互联网金融 wave (余额宝)
   wave_2: 2016_2018         # 区块链 / 早期 AI wave
   consolidation: 2019_2021  # 蚂蚁叫停后期 monetary tightening + 监管收紧 transition period
-  wave_3: 2022_2024         # 大模型 wave
+  wave_3: 2022_2025         # 大模型 wave
 
 targets:
   primary_outlet: RFS
@@ -176,7 +176,7 @@ targets:
 
 sample:
   n_bank_min: 200
-  t_year: 18
+  t_year: 19
   obs_target_min: 3000
 
 audit_rounds_target_min: 8

@@ -4,22 +4,22 @@
 * Audit: PROJECT_REAUDIT_TOPTIER_T18 2026-06-14 CY-2 (P1, $0/golden-safe)
 *
 * 跨年结构断裂 / 分时代稳定性 (cross-year structural-break / era stability)。
-* 2007-2024 横跨多个 fintech regime: 2013 余额宝 / 2016 P2P 整顿 / 2019 DCEP。
+* 2007-2025 横跨多个 fintech regime: 2013 余额宝 / 2016 P2P 整顿 / 2019 DCEP。
 * pooled intensity-DiD 若处理效应随 regime 断裂, 会把异质效应平均成有偏均值。
 *
-* 三时代分段 (per audit: 2007-2012 / 2013-2018 / 2019-2024):
+* 三时代分段 (per audit: 2007-2012 / 2013-2018 / 2019-2025):
 *   (A) 各时代各跑一次主规格 (attention → outcome, bank+year FE) → 系数对照
 *   (B) 全样本加 treatment × era 交乘 → Wald 检验三时代系数相等 (H0: 跨时代不变)
 *
 * ── 大白话 ────────────────────────────────────────────────────────────────
-*   是什么: 把 18 年样本切成早 (2007-12) / 中 (2013-18) / 晚 (2019-24) 三段,
+*   是什么: 把 19 年样本切成早 (2007-12) / 中 (2013-18) / 晚 (2019-25) 三段,
 *           每段单独看注意力效应, 再用一张全样本表的交乘项 + Wald 检验
 *           "三段效应是不是一样大"。
 *   为什么: 顶刊审稿人对长面板媒体测度的硬要求 — 年份固定效应只吸收水平漂移,
 *           不保证测度跨年含义一致; 分时代稳定性表是 referee 期待的标配。
 *   影响:   纯 Stata 层, 只读在盘列 + 全程 capture 守卫; T=2 试跑帧只有 2017-2018
 *           (落在中时代) → 仅一个时代有数据时优雅跳过其余 + Wald 不可算时跳过,
-*           不报错不弹框; golden-safe, T=18 自动激活全部三段 + 交乘 + Wald。
+*           不报错不弹框; golden-safe, T=19 自动激活全部三段 + 交乘 + Wald。
 *
 * ── 文献锚点 ───────────────────────────────────────────────────────────────
 *   Bai, J. & Perron, P. (1998). Estimating and testing linear models with
@@ -54,7 +54,7 @@ foreach v in {{MAIN_TREAT}} year {
 }
 capture confirm variable {{MAIN_DV}}
 if _rc {
-    display as text "  [WIRE-AHEAD] {{MAIN_DV}} 不在盘 (外部财务面板待接入); era-stability 回归优雅跳过, T=18 接入后自动激活"
+    display as text "  [WIRE-AHEAD] {{MAIN_DV}} 不在盘 (外部财务面板待接入); era-stability 回归优雅跳过, T=19 接入后自动激活"
     local ok = 0
 }
 
@@ -63,13 +63,13 @@ if `ok' == 0 {
 }
 else {
     * ------------------------------------------------------------------------
-    * era 分段标签 (1=2007-2012 早 / 2=2013-2018 中 / 3=2019-2024 晚)
+    * era 分段标签 (1=2007-2012 早 / 2=2013-2018 中 / 3=2019-2025 晚)
     * ------------------------------------------------------------------------
     capture drop era
     gen byte era = .
     replace era = 1 if year >= 2007 & year <= 2012
     replace era = 2 if year >= 2013 & year <= 2018
-    replace era = 3 if year >= 2019 & year <= 2024
+    replace era = 3 if year >= 2019 & year <= 2025
 
     * 各 era 的最低观测门控 (与 17/21 small-cell 守卫对齐)
     local min_n = 10
@@ -135,7 +135,7 @@ else {
     qui estimates dir
     local stored `r(names)'
     local cand_models era1 era2 era3 era_interact
-    local cand_titles `""2007-2012" "2013-2018" "2019-2024" "Era interact""'
+    local cand_titles `""2007-2012" "2013-2018" "2019-2025" "Era interact""'
     local models ""
     local mtitles `""'
     local nmod : word count `cand_models'
@@ -156,12 +156,12 @@ else {
             star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
             stats(N r2, fmt(0 3) labels("N" "R\textsuperscript{2}")) ///
             keep({{MAIN_TREAT}} *.era#c.{{MAIN_TREAT}}) ///
-            title("Table A: Era Stability (P2 attention) --- 2007-12 / 2013-18 / 2019-24") ///
+            title("Table A: Era Stability (P2 attention) --- 2007-12 / 2013-18 / 2019-25") ///
             mtitles(`mtitles') ///
-            addnotes("Era split per audit CY-2: 2007-2012 (pre-yuebao) / 2013-2018 (yuebao-P2P) / 2019-2024 (post-DCEP)." ///
+            addnotes("Era split per audit CY-2: 2007-2012 (pre-yuebao) / 2013-2018 (yuebao-P2P) / 2019-2025 (post-DCEP)." ///
                      "Era-interact column: c.treat#ibn.era = era-specific slopes (ibn=no-base-omit, all three era slopes estimable); i.era main effect absorbs era level shifts; bank+year FE retained." ///
                      "Wald test of equal treatment slopes across eras (H0: cross-era stability): F=`wald_F', p=`wald_p'. Reject => regime-dependent effect (pooled estimate is a biased average; Bai-Perron 1998, Hansen 2001)." ///
-                     "T=2 trial frame (2017-2018) falls in era 2 only; off-era columns and the Wald test gracefully skip and auto-activate at T=18.")
+                     "T=2 trial frame (2017-2018) falls in era 2 only; off-era columns and the Wald test gracefully skip and auto-activate at T=19.")
 
         * CSV side-channel — parse_esttab_csv 消费 (tables.py read_paper_esttab)
         estout `models' using "$tables_dir/tableA_era_stability.csv", replace ///

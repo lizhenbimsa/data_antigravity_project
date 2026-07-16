@@ -79,7 +79,7 @@ identification:
 # 网络位置多角色化 (network-metrics-elevation 2026-06-13; 蓝图见
 # scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)。
 # 全部消费已落 40/51 panel .dta 的既有列 → golden-safe (零面板数值改动);
-# 全部角色 (除 control) **production T=18 (2007-2024) 才有识别功效**, 盘面 T=2 退化
+# 全部角色 (除 control) **production T=19 (2007-2025) 才有识别功效**, 盘面 T=2 退化
 # (实测 endog+IV 双非空仅 28 行单年, hub 子样本 N=4), 模板均 capture-confirm/N-守卫
 # 优雅跳过。schema (paper_spec_schema.py) 对本块 no-op → 纯增字段零破坏。
 network_roles:
@@ -150,7 +150,7 @@ inference:
 
 robustness:
   # 22 选 3 p-hacking 防御 (审计 P2-12): 核心系数附录用 wyoung/rwolf2/sharpened-FDR
-  # (⚠ rwolf 无 iv()/不支持 ivreghdfe → 用 wyoung 或 rwolf2; T=18 才激活, 盘面注释).
+  # (⚠ rwolf 无 iv()/不支持 ivreghdfe → 用 wyoung 或 rwolf2; T=19 才激活, 盘面注释).
   fwer: romano_wolf
   fwer_impl: [wyoung, rwolf2, sharpened_fdr_anderson_2008]
 
@@ -166,7 +166,7 @@ targets:
 
 sample:  # RR5-1: post-M0.5 v34 panel target (per §3.4 8 paper共用 v34); v3.3.0 baseline = 84 banks × 2 yr × 168 obs
   n_bank_min: 200
-  t_year: 18
+  t_year: 19
   obs_target_min: 3000
 
 audit_rounds_target_min: 8

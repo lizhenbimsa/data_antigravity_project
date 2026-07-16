@@ -17,7 +17,7 @@
 
 \begin{abstract}
 \NoteThis{Final abstract pending — target $\approx$ 200 English words; headline numbers
-await production-corpus (T=18) regressions.}
+await production-corpus (T=19) regressions.}
 Following the Digital Finance Cube of Gomber, Koch, and Siering (2017), we classify
 Chinese banks' fintech media discourse into two locus categories — underlying technology
 (blockchain / AI / cloud) versus business-function scenario (payments / lending / wealth
@@ -26,9 +26,9 @@ technology-layer discourse should map into technological innovation (citation-we
 patents, in the Kogan et al.\ 2017 lineage; citation-count weighting for unlisted banks),
 whereas scenario-layer discourse should map into product innovation and fee-based
 business (noninterest income share). We build a bank--year panel from a production corpus
-of roughly 17 million Chinese media reports (a basis after newspaper-type screening but
-\emph{before} the bank--fintech co-occurrence hard filter; 2007--2024, 110 banks,
-$T=18$); article-level locus labels
+of 18{,}198{,}978 Chinese media reports (the full census basis, \emph{before} the
+bank--fintech co-occurrence hard filter; 2007--2025, 110 banks,
+$T=19$); article-level locus labels
 come from a majority vote across three independent-vendor LLMs. Identification combines
 bank and year fixed effects, layer $\times$ event studies around four policy shocks (the
 Yu'ebao launch, the Ant IPO suspension, and two data-export regulations), and a
@@ -65,9 +65,9 @@ product interfaces and should yield fee-based business (noninterest income share
 \parencite{yoo2010layered,boot2021fintech}.
 
 On the data side, we start from a raw census of 18{,}198{,}978 media reports (2007--2025,
-3{,}740 outlets), retain newspaper-type reports, and restrict to the 2007--2024 window to
-obtain a production corpus targeting roughly 17 million articles covering 110 banks over
-2007--2024 ($T=18$) — a basis that sits \emph{before} the bank--fintech co-occurrence
+3{,}740 outlets) and take this full census as the production target corpus ---
+18{,}198{,}978 media reports covering 110 banks over
+2007--2025 ($T=19$) — a basis that sits \emph{before} the bank--fintech co-occurrence
 hard filter, which, together with the full-track retention gate, substantially shrinks
 the set of articles entering the analysis. Article-level locus is classified by a
 majority vote across three independent-vendor large language models (temperature $=0$,
@@ -256,10 +256,11 @@ comparison period (three waves of exactly three years each, strictly symmetric).
 
 \subsection{Sample and Data}
 
-$N \times T \approx 3000\text{--}9000$ bank--years, 2007--2024 (per spec.sample).
+$N \times T \approx 3000\text{--}9000$ bank--years, 2007--2025 (per spec.sample).
+% TODO: 3000--9000 区间系旧口径 T=18 下的推导值, 待全量重跑后按 T=19 更新。
 \NoteThis{paper\_spec.sample (n\_bank\_min=200 / obs\_target\_min=3000) is a
 bank-universe expansion target and conflicts with the current production count of 110
-banks $\times$ $T=18$ (at most 1980 bank--years); sample sizes to be reconciled and
+banks $\times$ $T=19$ (at most 2090 bank--years); sample sizes to be reconciled and
 backfilled after sample-frame enrichment and production-panel finalization.}
 
 Corpus construction follows two explicitly separated accounting bases. The \emph{raw
@@ -268,12 +269,12 @@ deduplicated source files containing 18{,}198{,}978 media reports spanning 2007-
 2025-12-31 across 3{,}740 outlets; newspaper-type reports account for 92.93\% of all
 rows (16{,}912{,}361 rows) and are retained, while wire-service, magazine, government,
 and web types are dropped row-wise; exactly unique records number 18{,}177{,}370
-(duplication rate 0.12\%). The \emph{production target basis} (after newspaper screening
-and deduplication, \emph{before} the bank--fintech co-occurrence hard filter): roughly
-17 million articles, 2007--2024, $T=18$, 110 banks. The retained universe entering the
+(duplication rate 0.12\%). The \emph{production target basis} (the full census scope,
+\emph{before} the bank--fintech co-occurrence hard filter):
+18{,}198{,}978 media reports, 2007--2025, $T=19$, 110 banks. The retained universe entering the
 regressions (after the co-occurrence hard filter $+$ the \code{full}-track retention
 gate) is far smaller than this basis; its size \NoteThis{to be backfilled once the
-production pipeline has run}. The two bases must not be conflated.
+production pipeline has run}. The pre-filter basis and the post-filter regression universe must not be conflated.
 
 The filtering chain comprises target-bank entity recognition (an asymmetric criterion
 with negation and short-name filters), fintech lexicon matching, and — critically — a
@@ -342,7 +343,7 @@ income share (paired outcome) in year $t$; $\mathrm{Layer}$ and $\mathrm{Scenari
 the binary treatment pair derived above; $\alpha_i$ and $\lambda_t$ are bank and year
 fixed effects; and $\mathbf{X}_{i,t}$ collects bank-level and year-level controls (see
 Section \ref{sec:data} for their current enrichment status). The main specification
-clusters standard errors at the bank level (within-bank serial correlation in a $T=18$
+clusters standard errors at the bank level (within-bank serial correlation in a $T=19$
 panel); the clustering ladder and few-cluster corrections appear in the robustness
 subsection.
 
@@ -484,8 +485,8 @@ LLM-classified locus, and do not enter this paper's robustness architecture.
 \paragraph{Media corpus.}
 The text-side data are the bank--fintech media corpus described in Section
 \ref{sec:method} (raw census of 18{,}198{,}978 reports / 3{,}740 outlets / newspapers
-92.93\% retained; production target roughly 17 million articles, a pre-co-occurrence-filter
-basis, 2007--2024, 110 banks).
+92.93\% retained; production target 18{,}198{,}978 articles, a pre-co-occurrence-filter
+basis, 2007--2025, 110 banks).
 
 \paragraph{Patent data.}
 The innovation-output side is planned to link IncoPat and China National Intellectual
@@ -510,7 +511,7 @@ financial panel arrives.
 
 \paragraph{Descriptive statistics.}
 \NoteThis{Table 1 descriptive statistics (means / SDs / quantiles / bank coverage) to be
-backfilled once the production-corpus (T=18) panel is generated.}
+backfilled once the production-corpus (T=19) panel is generated.}
 
 \section{Results}\label{sec:results}
 
@@ -579,7 +580,7 @@ production implementation.}
 
 This paper operationalizes the technology $\times$ business-function distinction of the
 digital-finance taxonomy \parencite{gomber2017cube} as a binary locus measure on an
-18-year media-discourse panel of 110 Chinese banks, and tests a
+19-year media-discourse panel of 110 Chinese banks, and tests a
 binary-treatment-to-binary-outcome structural pairing: technology-layer discourse
 $\to$ citation-weighted patents (H1, confirmatory) and scenario discourse $\to$
 noninterest income share (H2, exploratory pairing). \NoteThis{Concluding summary of
@@ -619,14 +620,14 @@ evidence arrives, the discussion of measurement-error direction remains open.
 
 This appendix pre-registers the validity-checking protocol for the locus measure
 (commitment status: new\_2026-06-22; evidence status: pending\_T18\_human\_annotation).
-All validity numbers await human annotation on the production corpus ($T=18$); until
+All validity numbers await human annotation on the production corpus ($T=19$); until
 then, this paper claims no validity number as delivered.
 
 \paragraph{Criterion validity.}
 Three independent coders label locus on a stratified article sample; the majority gold
 standard is compared against the LLM three-track machine labels, reporting Cohen's
 $\kappa$, Gwet's AC1, and Krippendorff's $\alpha$ (pipeline stage 63, Panel F).
-\NoteThis{$\kappa$ / AC1 / $\alpha$ values to be backfilled after T=18 human
+\NoteThis{$\kappa$ / AC1 / $\alpha$ values to be backfilled after T=19 human
 annotation.} Disclosure: the locus machine label is a HYBRID construction (LLM majority
 vote $+$ keyword confidence adjustment $+$ empty-vote fallback); its
 criterion/discriminant $\kappa$ inherits a keyword circularity absent from the pure-LLM

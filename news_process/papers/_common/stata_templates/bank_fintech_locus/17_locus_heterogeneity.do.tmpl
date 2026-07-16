@@ -4,7 +4,7 @@
 * Plan: §5.5.2 P4 heterogeneity (R6-M03/M04 + R4-M03 三波严格对称)
 *
 * 异质性维度 (Heterogeneity dimensions):
-*   (a) 三波 fintech 浪潮 (wave_1 2013-2015 / wave_2 2016-2018 / wave_3 2022-2024)
+*   (a) 三波 fintech 浪潮 (wave_1 2013-2015 / wave_2 2016-2018 / wave_3 2022-2025)
 *       + consolidation 整固期 (2019-2021, 对照组)
 *   (b) 国有 (SOE) × 非国有 (non-SOE)
 *   (c) 4 类银行类型 (bank types)
@@ -35,10 +35,10 @@ set seed {{RANDOM_SEED}}
 *   wave_1       2013-2015 (互联网金融 / 余额宝)
 *   wave_2       2016-2018 (区块链 / 早期 AI)
 *   consolidation 2019-2021 (蚂蚁叫停后 monetary tightening + 监管收紧, 对照组)
-*   wave_3       2022-2024 (大模型)
+*   wave_3       2022-2025 (大模型)
 * year 不在盘时优雅跳过 (五列仍缺 → 原 capture confirm 守卫接管, 行为同旧)。
 * T=2 试跑帧 (2017-2018) 仅 wave_2==1 → 余四波 cell N<10 被 R7-m01 守卫跳过;
-* production T=18 自动激活全部五波。$0 / golden-safe (纯 Stata 派生, 不落盘新列)。
+* production T=19 自动激活全部五波。$0 / golden-safe (纯 Stata 派生, 不落盘新列)。
 * ============================================================================
 capture confirm variable year
 if !_rc {
@@ -47,7 +47,7 @@ if !_rc {
     gen byte wave_1        = inrange(year, 2013, 2015)
     gen byte wave_2        = inrange(year, 2016, 2018)
     gen byte consolidation = inrange(year, 2019, 2021)
-    gen byte wave_3        = inrange(year, 2022, 2024)
+    gen byte wave_3        = inrange(year, 2022, 2025)
 }
 else {
     display as text "  [WIRE-AHEAD] year 不在面板 → fintech 浪潮哑无法派生; Panel(a)+交互优雅跳过 (五列仍缺, 守卫接管)"

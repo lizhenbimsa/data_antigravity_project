@@ -358,7 +358,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     )
 
     # fix(omni-g-codebook-01/-08, 2026-06-11): year 取值范围不再硬编码 '[2013, 2023]'
-    # (盘上实际 2017–2018, 全量语料 2007–2024, 两种口径下都错) — 生成时动态覆盖。
+    # (盘上实际 2017–2018, 全量语料 2007–2025, 两种口径下都错) — 生成时动态覆盖。
     metadata['year'] = VariableMetadata(
         var_name='year',
         label='年度(面板主键)',
@@ -644,7 +644,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     #     故重生后"中"计数将上移约 verified 平局率 (盘面 2.1~2.3%), 上列 正798/中33/负2 为
     #     **改动前历史快照**, 确切类别先验以重生后 panel 实测为准。该变更只会让 tone 更向
     #     "正面 vs 中性"边际集中, **不改**下述单极/负面退化的定性结论。这是中文银行
-    #   新闻 PR-positive 语料伪迹 + LLM 乐观偏置的联合结果, 在全量 T=18 上不会反转。
+    #   新闻 PR-positive 语料伪迹 + LLM 乐观偏置的联合结果, 在全量 T=19 上不会反转。
     #   故双极 (-1↔+1) "情感" 实为【单极正向报道倾向 / 乐观度 (favorability/optimism)】:
     #   tone 的变异主要来自「正面 vs 中性」边际, 而非「正面 vs 负面」。系数应解读为
     #   "更乐观/更正面的媒体报道", 不能解读为"从负面到正面的双极摆动"。
@@ -1054,7 +1054,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
                 reference='构造=本项目定义; 前提动机(非方法出处): Tetlock (2007) JF; '
                           'Da, Engelberg & Gao (2015) RFS',
                 notes='分母>0 由月号互异+门槛 6 结构保证。dev T=2 大概率全 NaN (有效'
-                      '月不足) 属预期退化, 生产 T=18 多数格 10-12 有效月。⚠ per-model'
+                      '月不足) 属预期退化, 生产 T=19 多数格 10-12 有效月。⚠ per-model'
                       + _PER_MODEL_HANSEN_NOTE + '。',
                 category=_bd_cat, track=_trk,
             )
@@ -1590,7 +1590,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
          'Hope, Hu & Lu (2016) RAS 21(4):1005', 'Stage 22 (lexical_complexity) + Stage 40'),
         # P1-2 (2026-07-11): 中文为主英文括注 (原 'Named-Entity Density (...)')
         ('avg_named_entity', '命名实体密度(specificity实体面)', 'token fraction', '[0,1] ∪ NaN',
-         'bank-year mean of (nr/ns/nt/nz 具名实体/总 token); specificity 的纯实体子集(不含 m 数词), 拆出实体面以与数字面(num_intensity)正交. ⚠ avg_specificity 真子集分子(机械相关); T=2 盘面实测 article corr≈0.81 / bank-year≈0.75-0.80 — 中高相关非别名(信息量充分, 可作独立 specificity-面稳健性列), 但因子集机械相关勿与 avg_specificity 同进同一回归式(corr 数值待生产 T=18 回填)',
+         'bank-year mean of (nr/ns/nt/nz 具名实体/总 token); specificity 的纯实体子集(不含 m 数词), 拆出实体面以与数字面(num_intensity)正交. ⚠ avg_specificity 真子集分子(机械相关); T=2 盘面实测 article corr≈0.81 / bank-year≈0.75-0.80 — 中高相关非别名(信息量充分, 可作独立 specificity-面稳健性列), 但因子集机械相关勿与 avg_specificity 同进同一回归式(corr 数值待生产 T=19 回填)',
          'Hope, Hu & Lu (2016) RAS 21(4):1005', 'Stage 22 (lexical_complexity) + Stage 40'),
         ('avg_within_doc_redund', '篇内冗余度(字符3-gram)', 'ratio', '[0,1] ∪ NaN',
          'bank-year mean of (1 − 唯一字符3-gram/全部字符3-gram); 篇内自重复(与 staleness 跨篇正交)',
@@ -2075,7 +2075,7 @@ _METHODOLOGY_DECLARATION = """## 方法学声明
    ③ 顶刊闸允许 field 领域刊占比 ≤30% (SSOT = config/top_journal_list.yaml);
    ④ wp/preprint 不计入"非顶刊"分母。
 3. 字数计量单位 = **CJK 汉字数** (Unicode 基本区 + 扩展 A; 英文/数字/标点/空白均不计): 全量 ≥1000 汉字 / 关键核心指标 (core) ≥5000 汉字; 引文段以英文/DOI 为主, 汉字贡献不计入闸。
-4. 动态统计段数值为生成期从面板实测注入 (本机 T=2 开发面板), 生产 T=18 重生后以实读为准 (基数禁写死)。
+4. 动态统计段数值为生成期从面板实测注入 (本机 T=2 开发面板), 生产 T=19 重生后以实读为准 (基数禁写死)。
 """
 
 _MD_SUMMARY_FIELDS = ('变量名', '标签', '数据类型', '来源阶段', '变量类别', '文本轨道')

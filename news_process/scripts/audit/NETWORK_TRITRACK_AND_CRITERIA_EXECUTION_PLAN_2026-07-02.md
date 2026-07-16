@@ -15,7 +15,7 @@
 - **F0.3** network_brokerage.py:678-682 的 no-ss-track 护栏注释**事实前提已失效** (「encode 仅产 neg_count_full」为陈旧陈述), 与 codebook.py:676-699 (已为 neg_count 三轨精写元数据) 直接矛盾。
 - **F0.4** 现实现分母回退链 `_nac = n_articles_llm_valid else n_articles` (network_brokerage.py:696) 是 full 轨口径; encode 曾修复过「ctx/ss 分子配 full 分母 → frac 越界 3.0」的轨道不对称 bug (encode.py:858-865, c8a70ac5)。
 - **F0.5** 运行时消费点 8 处: runner.py:152,2042-2045 / stata_export.py:412 (仅 lag1 有 HEURISTIC 标签) / export.py:1197-1199 / brokerage paper_spec.yaml:114 (仅 lag1) / tables.py:18 / 15_table6 模板:50,52 / stata/08_label_network.do:53 / fire_sale 交乘 (network_brokerage.py:841-855, 消费**同期** shock)。
-- **F0.6** T=2 dev 实测 (评审 identity-trap-2 复核): **ss 与 ctx 两轨的新 shock 列全部零方差退化** — neg_count_ss 全盘 sum=0; neg_count_ctx sum=1 但唯一负例银行的 n_articles_llm_valid_ctx=2 < min_count=5 被守门置 NaN → `industry_neg_shock_{ctx,ss}` 及其 lag1 在 dev 上均 ≡0 (触零方差 WARN 路径 L758-760); 仅 full 轨有方差 (std≈0.0013)。数值验证 DEFERRED 生产机 (17M/T=18 铁律); §9 基线记录三轨。
+- **F0.6** T=2 dev 实测 (评审 identity-trap-2 复核): **ss 与 ctx 两轨的新 shock 列全部零方差退化** — neg_count_ss 全盘 sum=0; neg_count_ctx sum=1 但唯一负例银行的 n_articles_llm_valid_ctx=2 < min_count=5 被守门置 NaN → `industry_neg_shock_{ctx,ss}` 及其 lag1 在 dev 上均 ≡0 (触零方差 WARN 路径 L758-760); 仅 full 轨有方差 (std≈0.0013)。数值验证 DEFERRED 生产机 (18.2M/T=19 铁律); §9 基线记录三轨。
 
 ### ①-B 认知邻近 / 嵌入相似网
 - **F0.7** `bank_cogn_mean` = 纯本地 TF-IDF (char_wb 2-4gram, network_spillover.py:1373-1395), **零嵌入 API**, 三轨化 $0。文本源硬编码 `'内容'+'标题'` (:1325-1353), 输出仅 1 列, [0,1] 值域守卫 + **100 字符最短守卫 (:1361-1362, 该守卫为 cogn 独有)**。
@@ -25,7 +25,7 @@
 - **F0.11** 嵌入缓存键 = sha256(model|chunk文本|prompt_version|temperature) — ctx/ss 新超级文档必 cache miss; NEWS_PROCESS_LLM_OFFLINE=1 下 miss → RuntimeError **被 _embed_peer_texts try/except 吞掉 → return None → 该年跳过**; 全部年 miss 且 MAIN 空结果时 both-or-neither 把**全族列 (含本可命中的 full 轨) 一起 NaN**, run 不失败 (:1510-1516, :1784-1792)。
 - **F0.12** parity 判定面: `_EMB_FAMILY_PREFIXES` 已含 'emb_peer_tone_lag1' 与 'bank_emb_sim_mean_lag1' (test_embedding_coprimary_parity.py:44); 新前缀不加会静默逃逸 (n10 教训, :74-78)。bank_cogn_mean 非嵌入, 不入 parity 面。
 - **F0.13** stata_export._MAIN_ANCHOR_KEYS 有 P2-D fail-loud 硬 assert (build_variable_labels 内, :514-553): anchor 键必须在 HEURISTIC_LABELS 且含 `_QWEN_ANNOT`; _lg 标签 replacive 派生 (:554-563)。既存缺口: emb_peer_tone_lag1_ctx/_ss 及其 _lg 无手写标签、非 anchor。
-- **F0.14** 播种量 (⭑终验更新: 盘上面板实为 110 银行/220 行; 有滞后年数据的超级文档 bank-year=143): T=2 dev 新增 ctx+ss 超级文档 ≈ 143×2轨×2模型 ≈ **572 条文本** (×切块因子); 生产 T=18 ≈ 5,848 条超级文档 (切块因子随年度拼接长度放大, 单条可切数十~上百块)。生产总费用**须在生产语料上按实测 token 计数重估后再过播种审批** (D16), 本估计仅定条数量级、不定金额。本机在线播种可行 (需 SILICONFLOW_API_KEY + YUNWU_API_KEY)。
+- **F0.14** 播种量 (⭑终验更新: 盘上面板实为 110 银行/220 行; 有滞后年数据的超级文档 bank-year=143): T=2 dev 新增 ctx+ss 超级文档 ≈ 143×2轨×2模型 ≈ **572 条文本** (×切块因子); 生产 T=19 ≈ 5,848 条超级文档 (切块因子随年度拼接长度放大, 单条可切数十~上百块)。生产总费用**须在生产语料上按实测 token 计数重估后再过播种审批** (D16), 本估计仅定条数量级、不定金额。本机在线播种可行 (需 SILICONFLOW_API_KEY + YUNWU_API_KEY)。
 
 ### ② 结构判据敏感性
 - **F0.15** 现判据 = 同篇 both-verified 共现 (build_adjacency_matrix, network_spillover.py:226-331): docid 分组、幸存 target_bank 集合、每篇每无序对 +1; 行宇宙 = full-only 留篇集 (tone_llms.py:2865)。
@@ -69,7 +69,7 @@
 - **D13【已定⭑】② Phase 0 决策门 (置于层 A 之后, 共用生产原语)**: 层 A 落地后, 用**同一原语同一参数**写只读审计脚本实测盘上 1005 行的银行∧银行三判据边数/LCC (G5; 禁 ad-hoc 重复实现判据, 保「审计==生产」单一事实源)。**无论结果如何 33×2 全量照做** (T=2 稀疏≠生产稀疏)。⭑ 降级条款范围扩为: **任一新轨/新判据在 T=2 上零方差或 0 边** (含已实测的 ①-A ctx/ss 零方差, F0.6) → 该族 gate 的数值断言降级为 schema/标签断言, 数值覆盖由合成帧补。Phase 0 产出记入 §9 (含 ①-A 三轨 dev 基线: full 有方差 / ctx≡0 / ss≡0)。
 - **D14【已定⭑】② 判据参数入 config**: `config/panel.yaml` 新增记录性段 `network_criteria: {win_radius: 1, match_in_title: true}` (⭑ 补 match_in_title 键, 对齐 D19; 镜像记录性 flag 惯例, 常开无开关); ⚠ 与 filtering.yaml::cooccurrence_filter.sentence_radius (stage 13 银行∧金科) 是**不同键**, 注释互指。
 - **D15【已定】golden 策略**: 全部改动后 golden 双向断言必红 — 本机验证 = baseline-stash A/B 差分证 0 新增失败; golden 重生 + 生产数值 DEFERRED 生产机。diff_golden._ABL_RE **不扩** (该脚本专用于词典消融重生验证)。
-- **D16【已定⭑】播种策略**: ①-B 的 ctx/ss 嵌入在本机**在线播种** (~344 条文本, 两 key 齐备时执行; 无 key 则 DEFERRED 并记录) → 播种后离线可 $0 复现。生产 T=18 全量播种 DEFERRED; ⭑ **金额须在生产语料上按实测 token 计数重估** (F0.14 只锚定条数量级) 再过播种审批门, 计划不预设费用结论。
+- **D16【已定⭑】播种策略**: ①-B 的 ctx/ss 嵌入在本机**在线播种** (~344 条文本, 两 key 齐备时执行; 无 key 则 DEFERRED 并记录) → 播种后离线可 $0 复现。生产 T=19 全量播种 DEFERRED; ⭑ **金额须在生产语料上按实测 token 计数重估** (F0.14 只锚定条数量级) 再过播种审批门, 计划不预设费用结论。
 - **D17【已定⭑】codebook/标签联动全补**: _infer_source_stage 新增 token 分支 (`neg_shock`→network_brokerage 族; `cogn`/`emb_peer`/`emb_sim`→network_spillover 族); ⭑ **判据后缀归一** (层 E): 三个推断函数 (`_infer_source_stage`/`_infer_category`/`_infer_label`) 在匹配前剥离 `_win1`/`_sent` 尾缀 (镜像 _strip_lg token 剥离先例) — 一处归一同时修复 'sent' 误归情感与 net_yr endswith 失配; ⭑ 顺手消化 8 个无 'cent' 节点指标基名的现存「未知」(加族 token 或白名单)。标签**三源都补** (F0.23): HEURISTIC_LABELS + export.py STATA_LABELS + stata/08_label_network.do (仅非 _ss 键, capture 写法, 镜像 09_label_strategic 先例); 含既存缺口 (emb_peer_tone_lag1_ctx/_ss 及 _lg; ⭑ **canonical 同期 `industry_neg_shock` 的年FE共线警示标签**, 评审 econometrics-3) 一并补齐; 新增族专属 gate 测试断言 labels[c] != c **且 codebook category/source_stage 正确** (G1)。
 - **D18【已定⭑】铁律**: 新增的每个稳健性维度 (①-A 三轨 / ①-B W-轨 / ② 判据) 各自 just-identified 并排, **禁混同一 over-identified Hansen J**; 不新增 .do 模板、不动 paper_spec primary; manuscript prose DEFERRED。⭑ **不做 FWER 的依据** (终验 econometrics-final-2, 防与 LLM/BERT 段的 27_tableA12 先例形成无解释不对称): 判据/W轨/①-A三轨敏感性属**规格稳健性并排** (镜像政治词权重 {0,0.5,1} 与词典消融梯度先例, 均无 FWER 模板); 跨模型 rwolf FWER 先例仅覆盖**同构念替代 headline 测量**, 本计划不适用 — 若 manuscript 需要, 随 DEFERRED prose 阶段披露。此句写入层 H 新铁律段。
 - **D19【已定⭑, 评审新增】② 扫描文本口径 = 标题+正文, 与 stage 13 对齐**: 层 A 扫描文本 = `prepend_title(标题, 内容)` (复用 entity_context.py:63-71 原语, 标题自成第 0 句) — 依据: ① stage 13 已实证修复「只读正文 → 标题点明实体的单向假阴性」(F0.29), ② stage 11 幸存判定本含标题通道, 银行列举最常见于标题。标题句语义: **参与 `_sent` 同句判定 (标题双银行 → 成边) 与 `_win1` 距离 (第 0 句, 与正文首句相邻)**。G5 Phase 0 与层 B1 共用同一原语同一参数 (含该口径); G1 合成帧加「标题双银行、正文锚句分散」正例断言 (镜像 R4 反例写法)。config 记录 `match_in_title: true` (D14)。
@@ -175,7 +175,7 @@
 | R6 | 后缀语义污染 | D7/D9 命名隔离 + ⭑ 层 E 判据后缀归一 + G1(g) codebook 断言 |
 | R7 | anchor/HEURISTIC 不原子 → fail-loud 崩 | F0.13 P2-D assert 是护栏, 层 F 原子提交 |
 | R8 | 标签**三源**漂移 (⭑) | 层 F 三源同 PR + G1(b) 断言 + 08.do 仅非 _ss 键 |
-| R9 | ② 生产 17M 重扫耗时 | 仅 ≥2 幸存银行 docid 组进扫描; Phase 0 记录单篇耗时外推; 超预算 → 生产机 sidecar 物化 |
+| R9 | ② 生产 18.2M 重扫耗时 | 仅 ≥2 幸存银行 docid 组进扫描; Phase 0 记录单篇耗时外推; 超预算 → 生产机 sidecar 物化 |
 | R10 | ⭑ 任一新轨/判据 T=2 零方差或 0 边 (已实测: ①-A ctx/ss ≡0; ② _sent 待 Phase 0) | D13 数值断言降级 schema/标签断言, 合成帧补数值覆盖; §9 记录基线 |
 | R11 | BLAS 非确定 ×3 漂移假阳性 | 层 H 清单先行更新; 9 列全名 drop 写死计划与 memory; ⭑ §4.2 A/B 验收钉线程 + 3 列 allclose 豁免 |
 | R12 | 离线跑把新列静默 NaN 误当 bug | 层 I 播种后 0-miss 验证; log 加轨级 miss 计数 WARN |

@@ -102,7 +102,7 @@ def _expand_keyword_variants(keywords) -> list:
     淘汰 30-50%) 在文本规范化 (ftfy / OpenCC t2s / 全角→半角) **之前** 对原始
     文本执行 (见 _process_single_file: 先 _clean_and_filter_dataframe 再
     clean_text_batch), 而 bank_keywords.json 全部为简体+半角括号 — 繁体源 /
-    全角括号源文章会在规范化修复之前被静默丢弃 (latent, 全量 2007-2024 语料)。
+    全角括号源文章会在规范化修复之前被静默丢弃 (latent, 全量 2007-2025 语料)。
     经裁决采纳廉价修法: 构建 AC 自动机时同时加入 s2t 繁体变体与全角括号变体,
     过滤顺序保持不变 (避免对 60-70% 将被地域/类型过滤淘汰的行先做昂贵规范化)。
     OpenCC 不可用时优雅降级 (仅原始关键词 + 全角括号变体, log warning)。

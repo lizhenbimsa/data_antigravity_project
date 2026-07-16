@@ -43,7 +43,7 @@ novelty_exempt_rationale: "该家族是 yao_2021 词典语调测度的聚合算�
 ## VAR: yao_2021_idf_tone_sum_ss
 
 【变体差分】
-`_ss` 轨在标题+银行∧金科实体同句 (±N 句窗口, N 由 `config/filtering.yaml::context_window.ss_sentence_radius` 默认 1 控制) 范围内执行同一套 yao_2021 idf 加权扫描, 是三轨中文本范围最窄、局部性最强的一支, 用于检验语调测度在极端聚焦设定 (仅取银行与金科关键词真正同句共现的那句话及其邻近窗口) 下是否仍与 full/ctx 两轨定性一致。当一篇报道中银行与金科实体不存在同句共现时 (即未通过 stage 13 严格同句共现判据, 而只满足更宽松的段落级/篇章级共现放行标准), 本轨镜像 `_ctx` 的回退语义, 退化为对全文 body 扫描并将该行标记为 `ss_is_fallback=True`, 与 `_ctx` 共享同一 `n_articles` 分母口径, 避免回退情形下产生单边孤儿列或分母失配——这一回退设计的意义在于: 即便某篇文章没有真正的"同句"证据, 也不能因此把该篇文章从 `_ss` 轨的分母中静默剔除, 否则会导致 `_ss` 轨样本量系统性小于 `_full`/`_ctx` 轨, 破坏三轨可比性。与 `_full`/`_ctx` 两轨各自 just-identified 并排, 互为稳健性、不分主次, 三轨禁止混入同一 over-identified Hansen J 设定; 在 T=2 的本机开发样本上, `_ss` 轨往往因严格同句证据稀少而呈现较高比例的回退标记, 这属于开发样本规模下的预期退化现象, 不代表生产全量语料 (T=18) 下同样稀疏。
+`_ss` 轨在标题+银行∧金科实体同句 (±N 句窗口, N 由 `config/filtering.yaml::context_window.ss_sentence_radius` 默认 1 控制) 范围内执行同一套 yao_2021 idf 加权扫描, 是三轨中文本范围最窄、局部性最强的一支, 用于检验语调测度在极端聚焦设定 (仅取银行与金科关键词真正同句共现的那句话及其邻近窗口) 下是否仍与 full/ctx 两轨定性一致。当一篇报道中银行与金科实体不存在同句共现时 (即未通过 stage 13 严格同句共现判据, 而只满足更宽松的段落级/篇章级共现放行标准), 本轨镜像 `_ctx` 的回退语义, 退化为对全文 body 扫描并将该行标记为 `ss_is_fallback=True`, 与 `_ctx` 共享同一 `n_articles` 分母口径, 避免回退情形下产生单边孤儿列或分母失配——这一回退设计的意义在于: 即便某篇文章没有真正的"同句"证据, 也不能因此把该篇文章从 `_ss` 轨的分母中静默剔除, 否则会导致 `_ss` 轨样本量系统性小于 `_full`/`_ctx` 轨, 破坏三轨可比性。与 `_full`/`_ctx` 两轨各自 just-identified 并排, 互为稳健性、不分主次, 三轨禁止混入同一 over-identified Hansen J 设定; 在 T=2 的本机开发样本上, `_ss` 轨往往因严格同句证据稀少而呈现较高比例的回退标记, 这属于开发样本规模下的预期退化现象, 不代表生产全量语料 (T=19) 下同样稀疏。
 
 <!-- rendered-citations:begin -->
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and Domain Specificity: A Chinese Financial Sentiment Dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036

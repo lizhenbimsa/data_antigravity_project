@@ -29,7 +29,7 @@ outcome:
     (within-bank 3-year forward change, CIR = 业务及管理费 / 营业收入;
     预测: sub_frac 高 → CIR 前向下降 (真实效率改善); 象征性宣告 → 无变化。
     伴随检验 long_run_roa_change_3yr = ROA[t+3] - ROA[t] (W&Z 1994 长期反转);
-    在 T=18 panel 上, t ∈ {2007, ..., 2021} 各有对应 t+3 outcome)
+    在 T=19 panel 上, t ∈ {2007, ..., 2022} 各有对应 t+3 outcome)
   # 上市行扩展 (非年度主线): fintech 公告事件窗 CAR, 与 P1 tone shock 窗口区分
   # (R7-M03 + R10-M01); 待日频数据可得时作附表。
   listed_subsample_extension: car_3day_window_fintech_announcement
@@ -89,7 +89,7 @@ identification:
     ss_mirror: [lpeer_subst_iv_ss]
 
 # 网络位置角色 (network-metrics-elevation 2026-06-13; 蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)。
-# 消费 panel 实存共现中心度列 → golden-safe; control 立即生效, moderator 须 production T=18; schema 对本块 no-op。
+# 消费 panel 实存共现中心度列 → golden-safe; control 立即生效, moderator 须 production T=19; schema 对本块 no-op。
 network_roles:
   moderator:
     interaction: sub_x_btwn   # = sub_frac × L.bank_between_cent (Stata gen, ≤32字符); 高曝光/中心行象征宣告更易被识破 (机构理论可见度→合法性压力)
@@ -160,7 +160,7 @@ targets:
 
 sample:
   n_bank_min: 200
-  t_year: 18
+  t_year: 19
   obs_target_min: 3000
 
 audit_rounds_target_min: 8

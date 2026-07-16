@@ -2184,7 +2184,7 @@ def main():
     if len(df_sample) < SAMPLE_SIZE:
         logger.info(
             f"  ⚠ 小样本: 实际抽样 {len(df_sample):,} 条 < 设计 N={SAMPLE_SIZE} "
-            f"(盘面 T=2 仅验证管道正确性; κ/α 在小样本下方差大, 全量结论以 17M/T=18 实测为准)")
+            f"(盘面 T=2 仅验证管道正确性; κ/α 在小样本下方差大, 全量结论以 约1,819万/T=19 实测为准)")
 
     # 优雅降级警告: ss 轨未纳入有效轨道集 (盘上未物化 content_ss / 变体未产出 _ss 列)
     if '_ss' not in active_tracks:

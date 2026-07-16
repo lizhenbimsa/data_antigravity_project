@@ -22,7 +22,7 @@ $\times$ 语义相似度加权后加总取对数——度量银行被 fintech �
 独立于情感方向; Hassan 等 (2019, \emph{QJE}) 式 intensive 归一化份额仅对标
 \code{attention\_pct} 等份额型辅助测度。样本为 110 家中国商业银行
 \NoteThis{银行数与观测数以生产面板定稿为准 (paper\_spec 写 n\_bank\_min=200,
-与生产口径 110 家冲突, 待回填)} 2007--2024 (T=18) 的银行—年面板。识别采用
+与生产口径 110 家冲突, 待回填)} 2007--2025 (T=19) 的银行—年面板。识别采用
 横截面强度 DiD (5 个对全体银行同步生效的政策冲击, 处理变量 = 事前曝光暴露
 $\times$ Post; csdid 仅作 sub-cohort 稳健性), 并以同类型银行 leave-one-out
 peer 均值作工具变量 (广义 Bartik shift-share 作 fallback)。研究发现
@@ -36,7 +36,7 @@ peer 均值作工具变量 (广义 Bartik shift-share 作 fallback)。研究发�
 fintech 创新对金融机构具有可观的价值含义 \parencite{chen2019fintechvalue},
 而 fintech 平台对支付流的争夺直接挤压银行的客户界面与信息租金
 \parencite{parlour2022payment}。在中国, 这一冲击尤为剧烈: 大型科技平台的信贷
-扩张与监管的数轮收放, 使商业银行在 2007--2024 年间持续暴露于 fintech 竞争
+扩张与监管的数轮收放, 使商业银行在 2007--2025 年间持续暴露于 fintech 竞争
 压力之下 \parencite{hau2024fintechcredit}。然而, ``竞争压力''本身难以直接观测。
 本文提出: 媒体对``某银行 $\times$ fintech 议题''的累计报道曝光, 是这一压力
 在银行决策层与利益相关者面前的可测显著性通道——媒体覆盖影响资产定价与公司
@@ -46,7 +46,7 @@ fintech 创新对金融机构具有可观的价值含义 \parencite{chen2019fint
 
 本文的研究问题是: 银行层面的 fintech 媒体关注强度, 是否以及如何促使银行以
 真实资源配置作出响应——加大 fintech 投资、并购、专利产出与 IT 人力投入?
-为此, 我们在约 1{,}700 万条中国媒体报道 (2007--2024, 生产目标语料) 之上,
+为此, 我们在 18{,}198{,}978 条中国媒体报道 (2007--2025, 生产目标语料) 之上,
 构造银行—年``关注度''指数 \code{attention\_index\_full}: 对每篇经流水线验证
 的银行—fintech 报道, 按词频对数折减、逆文档频率与嵌入语义相似度加权得到
 强度得分, 再在银行—年内加总取对数。该指数度量曝光的累计强度而非情感方向,
@@ -128,7 +128,7 @@ Fintech 对银行业的冲击已有系统综述与多维证据: fintech 信贷�
 \parencite{hau2024fintechcredit}。领域分类学与综述见
 \parencite{gomber2018fintech,goldstein2019fintech}。与本文最直接对标的是
 以关键词构造中国银行 fintech 指数进入银行—年面板的做法
-\parencite{cheng2020bankfintech}; 本文的推进在于以 1{,}700 万级媒体语料、
+\parencite{cheng2020bankfintech}; 本文的推进在于以 1{,}819 万级媒体语料、
 intensity 加权与三轨文本口径替代简单关键词计数。中文媒体的体制性特征——
 官方媒体与市场化媒体的政治偏向差异 \parencite{qin2018mediabias}——支撑本文
 将媒体类型构成纳入控制与异质性设计。
@@ -207,9 +207,10 @@ fintech 论述篇幅的扩张——再落为真实投入; 即叙事承诺是曝�
 \section{方法}\label{sec:method}
 \subsection{样本与数据}
 银行—年度面板覆盖 $N \times T \approx 3000\text{--}9000$ 银行—年, 时间跨度
-2007--2024 (per spec.sample)。所有观测经 \code{news\_process} 流水线处理。
+% TODO: 3000--9000 区间系旧口径 T=18 下的推导值, 待全量重跑后按 T=19 更新。
+2007--2025 (per spec.sample)。所有观测经 \code{news\_process} 流水线处理。
 \NoteThis{paper\_spec.sample (n\_bank\_min=200 / obs\_target\_min=3000) 与
-生产口径 110 家银行 $\times$ T=18 冲突, 样本规模待生产面板定稿统一回填。}
+生产口径 110 家银行 $\times$ T=19 冲突, 样本规模待生产面板定稿统一回填。}
 
 \subsection{关注度度量 (衍生自 stage 15 fintech\_intensity)}\label{subsec:attention}
 银行—年关注度指数定义为
@@ -295,7 +296,7 @@ robustness, 不作 confirmatory 声称。族错误率控制: 对替代关注测�
 $\{\code{index\_full}, \code{index\_ctx}, \code{index\_ss}, \code{disp},
 \code{pct}\}$ 施加 Romano--Wolf 逐步降压校正
 \parencite{romanowolf2005snooping}。聚类推断梯子: 主规格按银行聚类
-(T=18 下 $G$ 充足); 银行 $\times$ 年、省 $\times$ 年双向聚类作对比, 后者
+(T=19 下 $G$ 充足); 银行 $\times$ 年、省 $\times$ 年双向聚类作对比, 后者
 ($G \approx 31$) 配 wild cluster bootstrap (9{,}999 次重抽)。
 
 \subsection{嵌入类测度 (双主轨、互为稳健性; F5)}
@@ -366,10 +367,10 @@ bootstrap、rwolf 多重检验; 计数型结局 (\code{patent\_fintech\_count} /
 全部行的 92.93\% (16{,}912{,}361 行) 予以保留, 通讯社 / 杂志 / 政府 /
 网页等其余类型按行剔除; 精确唯一记录 18{,}177{,}370 条 (重复率 0.12\%)。
 
-\textbf{生产目标语料。} 经报纸类型筛选并截取 2007--2024 时间窗后, 生产
-目标语料约 1{,}700 万条 (T=18); 该口径位于银行—金科共现硬过滤\emph{之前}。
-两套口径——普查 (2007--2025, 全类型、过滤前) 与生产目标 (2007--2024, 报纸
-筛选后)——分别报告, 不可混用。共现硬过滤与留篇门控之后进入面板的篇数
+\textbf{生产目标语料。} 生产目标语料取普查总量口径: 18{,}198{,}978 条
+媒体报道 (2007--2025, T=19); 该口径位于银行—金科共现硬过滤\emph{之前}。
+报纸保留行数 (16{,}912{,}361 行) 为管线中间处理统计量, 不可与目标语料
+总量混用。共现硬过滤与留篇门控之后进入面板的篇数
 \NoteThis{待生产管线跑毕回填}。
 
 \textbf{样本构造判据。} 文章进入面板须依次通过: (i) stage 13 共现硬过滤

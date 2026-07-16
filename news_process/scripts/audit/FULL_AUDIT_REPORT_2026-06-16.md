@@ -162,7 +162,7 @@
 
 - **受影响文件**：`bank_fintech_locus/17_locus_heterogeneity.do.tmpl:6-8,29-55,107`（兄弟 `substance/17`、`attention/17` 同型）。
 - **错误**：header 把 fintech-wave 异质性列为第一异质性维度，Panel(a) loop 与 wave×layer 交互消费 `pre_period wave_1 wave_2 consolidation wave_3`，addnotes 描述如已产出。
-- **真相**：无任何生产者创建这些 wave 列（grep `pipeline/*.py` + 全部 `01_data_prep.do.tmpl` 零命中）；spec 只定义年份区间映射(`paper_spec.yaml:160-165`)。故 Panel(a)+layer×wave 在每次运行(含生产 T=18)永久静默跳过，却被文档/addnotes 当 live 呈现。可内联派生（同 `25_locus_era_stability:90-94` 从 year 派生 era）。
+- **真相**：无任何生产者创建这些 wave 列（grep `pipeline/*.py` + 全部 `01_data_prep.do.tmpl` 零命中）；spec 只定义年份区间映射(`paper_spec.yaml:160-165`)。故 Panel(a)+layer×wave 在每次运行(含生产 T=19)永久静默跳过，却被文档/addnotes 当 live 呈现。可内联派生（同 `25_locus_era_stability:90-94` 从 year 派生 era）。
 - **修复**（优选内联派生）：`use ... clear` 后插 `gen byte wave_1=inrange(year,2013,2015)` 等（年份区间见 spec），使 Panel(a)+交互真正运行；或在 header/addnotes 明确披露 wave 异质性为 inert wire-ahead。同步修 substance/17、attention/17。
 
 ### —— 文档轨 ——

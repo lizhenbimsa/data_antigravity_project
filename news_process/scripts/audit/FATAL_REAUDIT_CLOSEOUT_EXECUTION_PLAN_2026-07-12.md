@@ -68,7 +68,7 @@ dict 族加权分母 (结构性不可达: stage 13 硬过滤 + prepend_title ⇒
    引擎批上限 (≤2000, 与 `_lg` 共享)。
 2. **boilerplate §3-P0 分叉裁定** (与 1 并行): per-entry 字节实测 → 预算内=校准 40M 占位;
    超预算/跨 [~40GB,~140GB] 区间 = **tier2 必做非可选** (BOILERPLATE 计划 :114/:200)。
-3. **F1b 标识列 dtype 根治** — 纯代码, 可提前 ship (FATAL 计划 R2: 硬发布门, F1 不得单独上 T=18;
+3. **F1b 标识列 dtype 根治** — 纯代码, 可提前 ship (FATAL 计划 R2: 硬发布门, F1 不得单独上 T=19;
    建议下一 dev 批实施 + `NEWS_PROCESS_STRICT_SOURCES=1` 首播)。勿与已实施的税调同名 F1(b) 混淆。
 4. **网络轨嵌入播种费用实测 + stage 21 全量付费重跑** (依赖 1; 受 M0)。
 5. **golden 全量重生 — 绝对最后** (依赖 2/3/4; `PYTHONHASHSEED=0` + BLAS 钉 1)。窗口内打包:

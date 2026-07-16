@@ -122,7 +122,7 @@ else {
         * fix(2026-06-14 smoke): partial(i.bank_id i.year) — 高维 bank/year 哑变量 +
         *   bank 聚类下 ivreg2 否则判 moment-cov 秩亏 'overid stat not reported' → jp
         *   恒空 (claimed-but-not-run); partial 后 moment-cov 满秩, Hansen J df=1 真报告
-        *   (同 attention/19 IV-5 修复, Stata /b 合成 T=18 验证)。
+        *   (同 attention/19 IV-5 修复, Stata /b 合成 T=19 验证)。
         eststo tsls_overid: ivreg2 `DV' (`TX' = `IV1' `IV2') $controls ///
             i.bank_id i.year, cluster(bank_id) partial(i.bank_id i.year) first
     }

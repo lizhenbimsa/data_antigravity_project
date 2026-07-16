@@ -20,9 +20,9 @@
   "file": "pipeline/panel/network_spillover.py",
   "line": "1181 (MAX_CHARS=8000), 1220-1221 (texts = [t[:MAX_CHARS]])",
   "claim": "bank-year 超级文档(该行该年全部 标题+内容 顺序拼接)在嵌入前硬截断为前 8000 字符。截断保留的是 df_exploded 行序最先到达的若干篇文章前缀, 而非代表性样本; docstring 声称'将每家银行每年的新闻文本编码为向量'与实现不符。",
-  "evidence": "盘上量化(24_herd_decay, 118 个 bank-year): 超级文档长度 mean=12,169 字符, max=151,249; 30.5% bank-year 超过 8000 截断阈值, 被截组中位仅保留 37.5% 文本; 文章数/bank-year 最高 101 篇。当前 0.055% 试跑已如此, T=18 全量(1700 万篇)下几乎所有 bank-year 将只剩最先 2-4 篇文章前缀 → W_emb、emb_peer_tone_lag1_*、bank_emb_sim_mean(_t2v) 实质度量'年初少数文章的相似度', 且取哪几篇取决于上游行序。对照: 同文件 compute_cognitive_proximity 的 TF-IDF 轨无截断(用全文), 两个邻近度测度信息集不一致。",
+  "evidence": "盘上量化(24_herd_decay, 118 个 bank-year): 超级文档长度 mean=12,169 字符, max=151,249; 30.5% bank-year 超过 8000 截断阈值, 被截组中位仅保留 37.5% 文本; 文章数/bank-year 最高 101 篇。当前 0.052% 试跑已如此, T=19 全量(18,198,978 篇)下几乎所有 bank-year 将只剩最先 2-4 篇文章前缀 → W_emb、emb_peer_tone_lag1_*、bank_emb_sim_mean(_t2v) 实质度量'年初少数文章的相似度', 且取哪几篇取决于上游行序。对照: 同文件 compute_cognitive_proximity 的 TF-IDF 轨无截断(用全文), 两个邻近度测度信息集不一致。",
   "suggested_fix": "分块嵌入后均值池化(把超级文档切成 ≤8000 字符块, embedding 取均值), 或复用 stage 30a 文章级 embedding 在 bank-year 内做(可加 mention_density 加权)均值聚合 — 后者零额外 API 成本且与缓存复用审计方向一致。",
-  "adjudication": "L1181 MAX_CHARS=8000 + L1221 t[:MAX_CHARS] 核实; 盘上复现: 118 bank-year 中 30.5%>8000, mean=12168/max=151248 字符, 被截组中位仅留 37.5%, 最多 101 篇/bank-year — 截断保留 df_lag 行序最先文章前缀, 非代表性。对照 compute_cognitive_proximity(L770+) TF-IDF 轨用全年全文, 两邻近度信息集不一致; docstring L1295 '每年的新闻文本' 与实现不符。盘上已现身故 confirm 而非 latent; T=18 下退化更剧。",
+  "adjudication": "L1181 MAX_CHARS=8000 + L1221 t[:MAX_CHARS] 核实; 盘上复现: 118 bank-year 中 30.5%>8000, mean=12168/max=151248 字符, 被截组中位仅留 37.5%, 最多 101 篇/bank-year — 截断保留 df_lag 行序最先文章前缀, 非代表性。对照 compute_cognitive_proximity(L770+) TF-IDF 轨用全年全文, 两邻近度信息集不一致; docstring L1295 '每年的新闻文本' 与实现不符。盘上已现身故 confirm 而非 latent; T=19 下退化更剧。",
   "unit": "network-spillover"
  },
  {
@@ -46,7 +46,7 @@
   "file": "pipeline/panel/network_spillover.py",
   "line": "1274-1276 (sim_row[sim_row>0]), 1238 (fill_diagonal 0), 1240+1344-1347",
   "claim": "对角线被置 0 后, 代码用 `np.mean(sim_row[sim_row > 0])` 求'与所有其他银行的余弦相似度均值'(L1274 注释)。该过滤同时剔除了任何真实 cosine ≤ 0 的同行(embedding 向量非负性无保证, text2vec/768d 轨与短文本下负 cosine 可发生), 实现的是'仅正相似度均值'而非声称的全同行均值; 由于均值只取正项, L1344-1347 的 [0,1] 范围断言在存在负相似度时也永不触发(自我掩蔽)。同根: row_stochastic_normalize(L1240) 直接对可能含负项的 sim 行做行和归一, 负'权重'下 W_emb 的加权均值语义破坏, 重归一分母 denom(L1268)可被负项侵蚀(denom≤0 时静默 NaN)。",
-  "evidence": "盘上当前值全为正(bank_emb_sim_mean ∈ [0.337, 0.685], _t2v ∈ [0.524, 0.736]), 故试跑无现值损坏 — 但机制上选择偏误存在且断言被过滤结构性绕过; latent 于 T=18 异质语料/稳健轨。",
+  "evidence": "盘上当前值全为正(bank_emb_sim_mean ∈ [0.337, 0.685], _t2v ∈ [0.524, 0.736]), 故试跑无现值损坏 — 但机制上选择偏误存在且断言被过滤结构性绕过; latent 于 T=19 异质语料/稳健轨。",
   "suggested_fix": "按索引排除对角: `sim_mean = np.mean(np.delete(sim_matrix[idx], idx))`; W_emb 构造前对 sim 做 `np.clip(sim, 0, None)`(并披露)或对负值显式守卫/告警; 断言改在过滤前的原始 sim 上检查。",
   "adjudication": "L1238 对角置 0 后 L1276 mean(sim_row[sim_row>0]) 确实剔除一切非正 cosine, 与 L1274 注释'与所有其他银行均值'不符; sim_mean 恒>0 使 L1344-1347 下界断言结构性不可触发; L1240 row_stochastic_normalize 对可含负项的 sim 行行和归一, 负权重语义破坏。盘上当前值全正([0.337,0.685]/[0.523,0.736] 已验证)故不触发, t2v/异质语料下负 cosine 可发生 → latent 成立。",
   "unit": "network-spillover"
@@ -59,9 +59,9 @@
   "file": "pipeline/panel/network_spillover.py",
   "line": "508-530",
   "claim": "主路径 `nx.eigenvector_centrality(G,...)` 在断连图上对全部 bank_list 赋值(非主特征分量节点收敛到 ≈0, `ec.get(b, 0.0)` 兜底 0.0); 二级 fallback 改在 G_lcc 上算 `eigenvector_centrality_numpy` 且 `ec_lcc.get(b, np.nan)` — 非 LCC 银行变 NaN。同一列 bank_eigen_cent 在'某年 power 迭代收敛、另一年不收敛'时, 对结构上同类(非主分量)银行给出 0 与 NaN 两种不同语义, 缺失模式由数值收敛性而非网络结构决定。",
-  "evidence": "L511-514 主路径 `ec.get(b, 0.0)` vs L520-523 fallback `ec_lcc.get(b, np.nan)`; 触发条件 = PowerIterationFailedConvergence(共现网年度断连、多分量时更易发生; T=18 部分年份大网络下概率非零)。",
+  "evidence": "L511-514 主路径 `ec.get(b, 0.0)` vs L520-523 fallback `ec_lcc.get(b, np.nan)`; 触发条件 = PowerIterationFailedConvergence(共现网年度断连、多分量时更易发生; T=19 部分年份大网络下概率非零)。",
   "suggested_fix": "统一退化语义: fallback 路径对非 LCC 银行同样赋 0.0(与主路径一致), 或主路径也仅对 LCC 赋值其余 NaN; 任选其一并在 codebook 披露。",
-  "adjudication": "L511-514 主路径全图 power 迭代 ec.get(b,0.0)(非主分量节点→≈0); L519-523 fallback 仅 G_lcc 上 numpy 求解且 ec_lcc.get(b,np.nan)→非 LCC 银行 NaN。同列 bank_eigen_cent 对结构同类银行的取值(0 vs NaN)由数值收敛性决定, 跨年缺失模式不一致属实。盘上小网未触发 fallback; T=18 大网断连多分量下 PowerIterationFailedConvergence 概率非零 → latent。不在降级修复台账(b0442124)清单内。",
+  "adjudication": "L511-514 主路径全图 power 迭代 ec.get(b,0.0)(非主分量节点→≈0); L519-523 fallback 仅 G_lcc 上 numpy 求解且 ec_lcc.get(b,np.nan)→非 LCC 银行 NaN。同列 bank_eigen_cent 对结构同类银行的取值(0 vs NaN)由数值收敛性决定, 跨年缺失模式不一致属实。盘上小网未触发 fallback; T=19 大网断连多分量下 PowerIterationFailedConvergence 概率非零 → latent。不在降级修复台账(b0442124)清单内。",
   "unit": "network-spillover"
  },
  {

@@ -7,7 +7,7 @@
 
 口径: 读 40_panel_yearly, 在 bank-year 连续列上算 Pearson + Spearman 相关矩阵, 报告
 非极性维度 × 情感极性锚点的最大 |corr| (低 = 正交); |corr|>0.5 显式标记。
-[WARN] T=2 盘面仅证方法 + 给 T=2 实测值; 生产 T=18 须重跑回填论文表。
+[WARN] T=2 盘面仅证方法 + 给 T=2 实测值; 生产 T=19 须重跑回填论文表。
 """
 from __future__ import annotations
 

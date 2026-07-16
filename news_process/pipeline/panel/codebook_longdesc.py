@@ -94,7 +94,7 @@ _VALID_TIERS = frozenset({'core', 'standard', 'pending'})
 _VALID_CITATION_TYPES = frozenset({'journal', 'wp', 'arxiv', 'book'})
 
 # T=2 dev 尾注 (§7.8 诚实披露, 动态统计段一律带)
-_STATS_FOOTNOTE = '注: 以上为生成期从面板实测注入的开发期数值, 生产 T=18 重生后以实读为准。'
+_STATS_FOOTNOTE = '注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。'
 _PENDING_SENTINEL = (
     '本列为外部财务面板哨兵列 (tier=pending): 待外部财务面板接入后构造, '
     '当前面板不产生数值, 故本段不注入实测统计; 财务面板接入后本段将自动改为生成期实测统计。'
@@ -561,7 +561,7 @@ def render_stats_segment(col: str, panel, tier: str) -> str:
     ④ tier=pending **且列不在 panel** → 哨兵文本 (不触 ①);
     ① col 不在 panel 且非 pending → SystemExit(1);
     ② 全 NaN → "全缺失" + T=2 尾注;
-    ③ 正常 → dtype/min/max/mean/缺失率/非缺失 n + "生产 T=18 重生后以实读为准"尾注。
+    ③ 正常 → dtype/min/max/mean/缺失率/非缺失 n + "生产 T=19 重生后以实读为准"尾注。
 
     P2-① (2026-07-11): pending 分支按 **col∈panel 实测**而非 tier 静态判 —
     财务面板接入后 pending 列实存时, 本段自动改渲实测统计 (哨兵文本承诺兑现),

@@ -59,7 +59,7 @@ transcript: `wf_47c7c059-02b` (v1) · `wf_3ab61202-16f` (v2 评审) · `wf_c003b
 | R12 | GF 节点分组数据流未指定 | P2 | `bank_type_id` 仅存 `config/bank_list.yaml`; **无** pipeline 层 loader 映射 bank-name→type; `G` 节点无 group 属性 | §6 指定数据流 (载 yaml→映射→attach node-attr, key=target_bank) |
 | R13 | 二分图 closeness "镜像 spillover L571-575" | P2 | L571-575 是 LCC 子图**构造**块, 非 closeness 守卫 (spillover closeness 跑全 `G_inv` 无 LCC 限制) | 改"复用 L574 子图模式自建 bipartite-LCC, 无现成 closeness 守卫可镜像" |
 | R14 | networkx 未在 pyproject/requirements 声明 | P2 | 两模块经 `HAS_NETWORKX` 优雅跳过; clean install 会静默丢这些 golden 列 | §12 增"GF/二分图 load-bearing → 声明 networkx" |
-| R15 | T=2 golden 风险只提"无 power", 未提"祝福即背离" | P2 | T=2 golden 只验 plumbing 不验 VALUES; GF 角色语义须 T=18 手核 | §9/§13 增 plumbing-only + T=18 ≥5 行手核 |
+| R15 | T=2 golden 风险只提"无 power", 未提"祝福即背离" | P2 | T=2 golden 只验 plumbing 不验 VALUES; GF 角色语义须 T=19 手核 | §9/§13 增 plumbing-only + T=19 ≥5 行手核 |
 | R16 | 引文缩写 (Dekker/Han) + modularity 未署 CNM | NIT | Dekker-Krackhardt-Snijders 2007 Psychometrika 72(4):563-581; Han-Kim-Nanda 2024 RFS 37(9):2903-2935; greedy=Clauset-Newman-Moore 2004 | §11.9 全名 + 分离方法引文 |
 | R17 | `.dta` 名写 "40/51_panel.dta" | NIT | 实名 `46_panel_yearly_full.dta` + `51_panel_with_controls.dta` | §14 已改 |
 
@@ -87,7 +87,7 @@ transcript: `wf_47c7c059-02b` (v1) · `wf_3ab61202-16f` (v2 评审) · `wf_c003b
 2. **备份**: `cp tests/fixtures/golden_panel_v0.json _regen_backup_20260621/`。
 3. **canonical env 一次性导出**: `PYTHONHASHSEED=0 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 OMP_NUM_THREADS=1 KMP_DUPLICATE_LIB_OK=TRUE NEWS_PROCESS_LLM_OFFLINE=1 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1`, 用 `F:/Anaconda3/python.exe` (注: `run_production_regen.py:118` 只设 PYTHONHASHSEED+OFFLINE, **不**钉 BLAS 线程 = 已知缺口, 须手动 export)。
 4. **重生≠no-op 警示**: 即便代码不变, canonical env 重生可能改若干既有测度列 (memory `golden-regen-omp-determinism`: 旧 golden vs HASHSEED=0 曾差 ~49 列) → **须用户批准**才提交 golden。
-5. **盘面 T=2 限制**: 本机 `data/raw` 空/T=2, 仅验管道连通; T=2 golden **只验 plumbing 不验 VALUES**; 真值待 production T=18。
+5. **盘面 T=2 限制**: 本机 `data/raw` 空/T=2, 仅验管道连通; T=2 golden **只验 plumbing 不验 VALUES**; 真值待 production T=19。
 
 ---
 
@@ -109,7 +109,7 @@ transcript: `wf_47c7c059-02b` (v1) · `wf_3ab61202-16f` (v2 评审) · `wf_c003b
 | QAP/MRQAP | `eval_reports/76_network_qap.csv` | 模型 | cooc×geo×cogn | needs-seed(42) | 无 | **不动** | ADOPT (新验证阶段) |
 | Null-model z-score | `eval_reports/77_network_null.csv` | 模型 | cooc vs ER/config | needs-seed(42) | 无 | **不动** | adopt-with-care |
 | Bonacich power | `bank_power_cent` | 节点 | cooc | blas-fp | 无 (**nx 无原生 API, 自实现 Katz β<0**) | regen | **可选→DEFER (Tier-2)** (Bonacich **1987**, β<0; blas-fp 须扩排除集, 见 §8) |
-| Louvain 社区 + 角色 | `bank_community_id` + 参与度/within-module-z | 节点 | cooc | needs-seed+canonical-id | 无 | regen | **DEFER→T=18** |
+| Louvain 社区 + 角色 | `bank_community_id` + 参与度/within-module-z | 节点 | cooc | needs-seed+canonical-id | 无 | regen | **DEFER→T=19** |
 | PageRank | `bank_pagerank_cent` | 节点 | cooc | blas-fp | 无 | regen | **REJECT** (前次已否+共线) |
 | 幂律 γ | `net_powerlaw_gamma_yr` | 网络 | cooc | blas-fp | powerlaw | — | **REJECT** (小 N 无效+缺依赖) |
 | 小世界 σ/ω | `net_smallworld_{sigma,omega}_yr` | 网络 | cooc | needs-seed | 无 | regen | **DEFER** (贵+边际低) |
@@ -130,7 +130,7 @@ transcript: `wf_47c7c059-02b` (v1) · `wf_3ab61202-16f` (v2 评审) · `wf_c003b
 **无向图下的正确角色集 (R2 修订)**: GF 1989 原定义在**有向**交易网, 5 角色 = coordinator / itinerant(consultant) / gatekeeper / representative / liaison。本项目 `G` 严格**无向** (adj 对称) → 每条 2-path `a-i-c` 即其自身逆, **gatekeeper 与 representative 机械恒等** (实测 40 节点图 node-by-node 完全相同, perfect collinear)。故落地为 **4 个可区分角色 + 总计 = 5 列**:
 - `gf_coordinator` (a,i,c 同群) / `gf_itinerant` (a,c 同群, i 异群) / `gf_gatekeeper_rep` (**gatekeeper≡representative 合并**, 一端跨群) / `gf_liaison` (三方互异群) / `gf_total`。
 - 须在 codebook **显式披露**无向坍缩假设; 不得分列 gatekeeper/representative (否则 2 列完全共线, 重蹈 plan 自己否决的 variable-farm)。
-- **可选 (b) 延后**: 若要区分 gatekeeper/representative, 须构造**有向关系** (如 larger→smaller bank / 时序-来源不对称), 属新构念, DEFER→T=18。
+- **可选 (b) 延后**: 若要区分 gatekeeper/representative, 须构造**有向关系** (如 larger→smaller bank / 时序-来源不对称), 属新构念, DEFER→T=19。
 
 **clique 鲁棒性 (R3 关联)**: 经典 GF 只计**端点不直连** (a,c 非邻接) 的 2-path 中介 → GF 对 clique 投影**天然鲁棒** (一篇榜单把 N 行投成 K_N, 内部全互邻 → GF 中介计数为 0, 不膨胀)。**落地铁律**: 实现时**排除 a-c 已有边**的 2-path (经典 GF), 否则退化为朴素全-2-path 会被 clique 虚增。
 
@@ -153,7 +153,7 @@ transcript: `wf_47c7c059-02b` (v1) · `wf_3ab61202-16f` (v2 评审) · `wf_c003b
   - `net_diameter_yr` = **fresh** `max(nx.eccentricity(G_lcc).values())` (unweighted; **R9: 复用 `G_lcc` 对象 L574, 非 L754 的加权 ecc 字典**); `len(lcc)>=2` 守卫镜像 N3 L813。
   - `net_giant_share_yr` = `len(lcc_nodes)/n_nodes` / `net_n_components_yr` = `len(components)` (复用 L572-573, 零额外计算)。
 - 自动经 `panel.merge(net_df, on='year')` (L863) 广播; **无 merge/runner 改动**。
-- **R3/R4/Q2 clique 膨胀披露 (codebook)**: `net_transitivity_yr` / `net_modularity_yr` 被多行文章 C(N,2) clique 投影**向上虚增** (一篇 30 行榜单可独占年三角 100%)。须 codebook 如实披露。⚠ **Q2 修订**: `hyperedge_normalize` 只**重权**不改**边是否存在**, 而 `nx.transitivity` **忽略权重只看边存在性** → `_hn` 对 transitivity 是 **no-op** (列哈希与主列全同, 浪费 golden 列) → **删 `net_transitivity_hn_yr`**。`_hn` 孪生**仅限加权** `net_modularity_hn_yr` (复用 `build_adjacency_matrix` 已存在但未接线的 `hyperedge_normalize=True`, Newman 2001 PRE 度守恒 1/(N-1), 同时关闭 NB-01 缺口; 须接 config+runner 透传)。`net_transitivity_yr` 的**真** clique 修复 = 文章规模上限 (≤K 行) 或纯披露, **非重权**。`_hn` 改值随主列一并 golden 重生; 可 DEFER 至 T=18。
+- **R3/R4/Q2 clique 膨胀披露 (codebook)**: `net_transitivity_yr` / `net_modularity_yr` 被多行文章 C(N,2) clique 投影**向上虚增** (一篇 30 行榜单可独占年三角 100%)。须 codebook 如实披露。⚠ **Q2 修订**: `hyperedge_normalize` 只**重权**不改**边是否存在**, 而 `nx.transitivity` **忽略权重只看边存在性** → `_hn` 对 transitivity 是 **no-op** (列哈希与主列全同, 浪费 golden 列) → **删 `net_transitivity_hn_yr`**。`_hn` 孪生**仅限加权** `net_modularity_hn_yr` (复用 `build_adjacency_matrix` 已存在但未接线的 `hyperedge_normalize=True`, Newman 2001 PRE 度守恒 1/(N-1), 同时关闭 NB-01 缺口; 须接 config+runner 透传)。`net_transitivity_yr` 的**真** clique 修复 = 文章规模上限 (≤K 行) 或纯披露, **非重权**。`_hn` 改值随主列一并 golden 重生; 可 DEFER 至 T=19。
 - 披露 (同 N-04 口径): transitivity(全局) vs `net_avg_cluster_yr`(加权局部) 分别标注; diameter LCC-only。
 - **Q4 年 FE 不可识别披露 (铁律)**: 全部 net_*_yr (新 6 + 既有 4) 是**年度广播列**, 年内对所有银行**恒定** → 在含 `year` FE 的规格中与年哑变量**完全共线被吸收** (无识别力)。故只可作 **(a) 无年-FE 描述性控制**, 或 **(b) 与 bank 级变量交乘** 进入。codebook + paper_spec 须明示, 勿当年 FE 下主 RHS。
 
@@ -195,8 +195,8 @@ transcript: `wf_47c7c059-02b` (v1) · `wf_3ab61202-16f` (v2 评审) · `wf_c003b
 
 ---
 
-## 8. Tier-2 延后项 (付费/T=18/重依赖)
-- `bank_community_id` + 参与度/within-module-z (Louvain+Guimera-Amaral): 名义类别 FE-only, 须 seed+canonical-id, T=2 退化, 与 GF 重叠 → 待 T=18。
+## 8. Tier-2 延后项 (付费/T=19/重依赖)
+- `bank_community_id` + 参与度/within-module-z (Louvain+Guimera-Amaral): 名义类别 FE-only, 须 seed+canonical-id, T=2 退化, 与 GF 重叠 → 待 T=19。
 - Bonacich power (`bank_power_cent`): 可选, **Bonacich 1987** (AJS 92:1170-1182) β<0 议价语义, **nx 无原生 API 须自实现** (Katz 族 β<0), blas-fp。
 - `brokshare_*` 投影 battery: 若做只上确定性核, eigen/CFB 排除 golden。
 - node2vec → 改无依赖确定性 SVD/spectral 嵌入 (networkx+scipy+sklearn 已装)。
@@ -213,7 +213,7 @@ transcript: `wf_47c7c059-02b` (v1) · `wf_3ab61202-16f` (v2 评审) · `wf_c003b
 5. **clique 膨胀 (R3/R4)**: transitivity/modularity 被多行文章 clique 投影虚增 → codebook 披露 + 可选 `hyperedge_normalize` 孪生; GF 须经典实现 (排除直连端点) 才 clique-鲁棒。
 6. **共线性 (R6 + Q6)**: VIF/pairwise-corr 筛须覆盖**三族**: (a) 5 二分图中心度互相 + 与 `brokerage_eigen_cent`/`bank_between_cent`; (b) `gf_total = Σ4角色` **完全共线** (回归**勿** total+角色同入); (c) **net 级族 (Q6/round-1 D5-10)** `net_n_components_yr`/`net_giant_share_yr`/`net_density_yr` 近机械共线 (giant_share 与 n_components 同测分裂)。golden 重生**前**跑 (|corr|>0.9 取代表), 与 plan 否决 PageRank 同一标准。
 7. **stage 计数锁 (R5)**: WS-D/E 动 `STAGES_VALIDATION` → 改 **THREE** 测试 (dag_consistency:122 / inter_track_kappa:119 / prompt_sensitivity:138) + 源串 run_pipeline_validation.py:123 + CLAUDE.md (shim 35→37, 注册 32→34)。面板列波次 (A/B/C) **不**动 stage 计数。
-8. **T=2 vs T=18 (R15)**: T=2 golden **只验 plumbing 不验 VALUES**; GF 角色/QAP 在 T=2 退化, 仅验管道。论文勿在 T=2 声称结构/因果; T=18 须手核 ≥5 行 GF 角色 2-path 计数。
+8. **T=2 vs T=19 (R15)**: T=2 golden **只验 plumbing 不验 VALUES**; GF 角色/QAP 在 T=2 退化, 仅验管道。论文勿在 T=2 声称结构/因果; T=19 须手核 ≥5 行 GF 角色 2-path 计数。
 9. **列名 ≤32 字符**: `brok_bip_node_redundancy`(24)/`net_n_components_yr`(19)/`gf_gatekeeper_rep`(17)/`net_modularity_hn_yr`(20) 均合规。
 10. **并行会话勿碰**: 当前工作树有并行脏文件, by-name add, 勿 `git add -A`。
 11. **依赖声明 (R14)**: GF/二分图 load-bearing 后, networkx 须从 `HAS_NETWORKX` 优雅跳过升级为 `pyproject.toml`/`requirements` 显式声明 (否则 clean install 静默丢 golden 列)。
@@ -235,7 +235,7 @@ WS-0 前置门 (clean worktree + 备份 + canonical env)   ← 必先
         │     WS-E (null-model)
         │
         └─ Wave 3 (论文接线: brokerage 用 GF/bipartite-between 作经纪正测度; FWER family 扩; Stata/paper_spec)
-              [Tier-2 延后项无 wave, 待 T=18]
+              [Tier-2 延后项无 wave, 待 T=19]
 最终: 全门绿 (§11)
 ```
 
@@ -274,10 +274,10 @@ WS-0 前置门 (clean worktree + 备份 + canonical env)   ← 必先
 
 ---
 
-## 13. 生产 T=18 待办 (本机 T=2 不可替代)
+## 13. 生产 T=19 待办 (本机 T=2 不可替代)
 - 全量重跑 (stage 25 SBERT 4-6h → 26 staleness → … → 40/46/51) 后 GF/QAP/null 才有功效 (T=2 单 2018 截面退化)。
 - golden 受控重生 (canonical env; 既有 4 BLAS-FP 列须 env 钉死)。
-- **GF 角色语义 T=18 手核 (R15)**: 抽 ≥5 行, 手算 2-path 角色计数核对代码输出 (T=2 golden 只验 plumbing 不验 VALUES)。
+- **GF 角色语义 T=19 手核 (R15)**: 抽 ≥5 行, 手算 2-path 角色计数核对代码输出 (T=2 golden 只验 plumbing 不验 VALUES)。
 - GF 分组稳健性 (nfra_type 短码 [`load_bank_group_maps`] vs province) + QAP geo 覆盖体检 (city ∈ 329 城)。
 - `net_modularity_hn_yr` (加权 clique-鲁棒孪生) 接 config+runner 后重生 (transitivity 无 `_hn`, 见 Q2; 其 clique 修复走文章规模上限/披露)。
 - 启用 Tier-2 延后项前重估 (Louvain-roles/Bonacich/投影 battery/node2vec-SVD/ERGM)。

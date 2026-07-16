@@ -399,7 +399,7 @@ def _compute_similar_counts_for_track(
                                                thresholds=thr_list)
         else:
             # M0 规模 (>2000 篇/前缀): 7 天窗双指针分桶替换原 O(N^2) 纯 Python 双循环。
-            # 头部银行 (工农中建招) 全量 2007-2024 可达数十万篇, 原 O(N^2) 是 stage 24
+            # 头部银行 (工农中建招) 全量 2007-2025 可达数十万篇, 原 O(N^2) 是 stage 24
             # 的 wall-clock cliff + N×N 余弦 OOM 悬崖。_bucketed 与 _dense 数值逐位等价,
             # 由 tests/test_24_herd_decay_bucketing.py 在 >2000 fixture 上对拍守护。
             sub_counts = _bucketed_similar_counts(tfidf_matrix, sub_dates,
@@ -538,7 +538,7 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
     # 规模画像 (deepen_runtime, round8 2026-06-29): articles-per-bank 分布 (p50/p90/max) +
     # 触发 >2000 篇分支 (7 天窗双指针分桶 O(N·window)) 而非 dense pairwise (O(N^2)) 的银行数,
     # 让"本次实际走哪条计算路径主导"自文档化, 便于全量 run 审计计算复杂度 regime。盘面 T=2
-    # 小样下全部走 dense; 全量 17M/T=18 头部大行 (工农中建招) 才进分桶分支。⚠ 注: 真正的
+    # 小样下全部走 dense; 全量 约1,819万/T=19 头部大行 (工农中建招) 才进分桶分支。⚠ 注: 真正的
     # dense/bucketed 切换在 _compute_similar_counts_for_track 按**年度前缀** (prefix_end<=2000)
     # 逐年判定, 故 bank 级篇数是其上界代理 (年度切分后实际更小)。纯只读 groupby 规模, 整块
     # try/except, 绝不回写 df/产物 (golden-safe)。
@@ -1065,7 +1065,7 @@ def main():
         if _n_total < 5000:
             logger.info(
                 f"  ⚠ 小样本提醒: 当前 {_n_total:,} 篇属盘面 T=2 规模, 上述跟风占比/降权强度仅验证"
-                "管道正确性; 全量结论 (转抄密集度/三轨分化) 以 17M/T=18 实测为准 (max_features "
+                "管道正确性; 全量结论 (转抄密集度/三轨分化) 以 约1,819万/T=19 实测为准 (max_features "
                 "已上调至 5e6 不再截断咬合, fix omni-g-herd-02; 词表撞 5e6 才记 warning)。"
             )
         logger.info("-" * 72)

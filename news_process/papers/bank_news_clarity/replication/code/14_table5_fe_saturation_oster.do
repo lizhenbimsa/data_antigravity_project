@@ -302,7 +302,7 @@ else {
             local rmax = min(1, 1.3 * `r2c')
             if `e_n' < 20 {
                 display "  [N 守卫] 受控回归 listwise 后 e(N)=`e_n' (<20); 8 财务/宏观控制" ///
-                        " 大量缺失致样本塌缩 — Panel B Oster δ 退化跳过 (production T=18 激活)"
+                        " 大量缺失致样本塌缩 — Panel B Oster δ 退化跳过 (production T=19 激活)"
             }
             else {
             display "  [Oster] R²_controlled = `r2c'; rmax = `rmax' (=min(1, 1.3*R²_c)); e(N)=`e_n'"

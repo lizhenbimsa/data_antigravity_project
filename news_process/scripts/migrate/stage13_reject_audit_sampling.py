@@ -84,7 +84,7 @@ def sample() -> None:
 
     if n_pop <= TARGET_N:
         print(f'⚠ 被拒宇宙 {n_pop} ≤ 目标 {TARGET_N}: 全选 (T=2 dev 属预期; '
-              '生产 T=18 重抽才有效度意义)')
+              '生产 T=19 重抽才有效度意义)')
         sample_df = rejected.copy()
     else:
         # 年×媒体类型 分层比例配额 (largest remainder), 层内 SRS

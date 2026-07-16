@@ -1,4 +1,4 @@
-# news_process 项目顶刊重审 (全量 T=18 前提) — 权威审计报告
+# news_process 项目顶刊重审 (全量 T=19 前提) — 权威审计报告
 
 > PROJECT_REAUDIT_TOPTIER_T18_2026-06-14
 
@@ -9,9 +9,9 @@
 - **审计对象**: news_process 银行—金融科技新闻面板研究流水线 + 11 篇论文组合 (8 fully-coded + 3 provisional)
 - **审计日期**: 2026-06-14
 - **审计身份**: JF / QJE / AER / RFS 资深 referee + Associate Editor
-- **关键前提 (全量 T=18)**: 真实分析样本 = 2007–2024 年 (T=18) / ~1700 万条新闻语料 / bank-year 面板。**当前硬盘产物为 T=2 试跑帧** (174 行 / year∈{2017,2018} / 87 banks / 9,427 篇 / 0.055% 子样本)。本报告一律以"论文宣称的 T=18 全量样本"为评判基准, 对 T=2 试跑产生的伪象单独标注, 不据其判缺陷。
+- **关键前提 (全量 T=19)**: 真实分析样本 = 2007–2025 年 (T=19) / 18,198,978 条新闻语料 / bank-year 面板。**当前硬盘产物为 T=2 试跑帧** (174 行 / year∈{2017,2018} / 87 banks / 9,427 篇 / 0.052% 子样本)。本报告一律以"论文宣称的 T=19 全量样本"为评判基准, 对 T=2 试跑产生的伪象单独标注, 不据其判缺陷。
 - **方法学**: 12 个维度, 每条 finding 经 **find → verify (对抗式复核) → synth** 三段流程; 本报告**只采信 verdict ∈ {CONFIRMED, DOWNGRADED}** 的发现, 严重度以 `verdict.final_severity` 为准; verdict ∈ {REJECTED, ALREADY_MITIGATED} 的发现归入附录 (已复核排除 / 已化解)。
-- **12 维度**: ① IV 工具变量 ② DiD/事件研究 ③ 情感构念效度 (SENT) ④ 注意力/文本构念效度 (ATTN) ⑤ 样本宇宙/选择偏误 (SAMPLE) ⑥ 跨年可比性/结构断裂 (XYEAR) ⑦ 推断/聚类/FWER (INFER) ⑧ 稳健性 battery 完备性 (ROBUST) ⑨ 计量设定/坏控制 (SPEC) ⑩ 论文组合/salami (PORT) ⑪ 可复现/诚信/引用 (INTEG) ⑫ 数据规模/T=18 就绪 (SCALE)。
+- **12 维度**: ① IV 工具变量 ② DiD/事件研究 ③ 情感构念效度 (SENT) ④ 注意力/文本构念效度 (ATTN) ⑤ 样本宇宙/选择偏误 (SAMPLE) ⑥ 跨年可比性/结构断裂 (XYEAR) ⑦ 推断/聚类/FWER (INFER) ⑧ 稳健性 battery 完备性 (ROBUST) ⑨ 计量设定/坏控制 (SPEC) ⑩ 论文组合/salami (PORT) ⑪ 可复现/诚信/引用 (INTEG) ⑫ 数据规模/T=19 就绪 (SCALE)。
 - **跨引用基线**: 本轮在既有权威审计 `MEDIA_ATTENTION_AUDIT_TOPTIER_2026-06-14.md` / `REDUNDANCY_AUDIT_TOPJOURNAL_2026-06-05_v2_FULLCORPUS.md` / `MEASUREMENT_VALIDATION_AUDIT_TOPTIER_2026-06-13.md` 基础上扩展, 多条 finding 与其重叠 (已在逐条注明), 重叠项不重复计为全新缺陷。
 
 ---
@@ -25,9 +25,9 @@
 - **P2 (minor / 披露) = 28**: 多为 $0 / golden-safe 的披露、措辞、稳健性补列。
 - **已复核排除/已化解 = 3** (2 REJECTED + 1 ALREADY_MITIGATED)。
 
-**一句话路线图**: 先在一次受控生产 run 中重生 panel + golden 闭合 T=2→T=18 自洽 (REPRO-1 + T18-1 元前提), 同步接通"声明已做但未执行"的识别/稳健性交付 (弱工具 AR-CI、Rotemberg 诊断、错时 DiD robust estimator、分时代稳定性、FWER battery、wild bootstrap), 修正 benefit_society 的 bank-FE 退化与 llm_peer 的同源 outcome, 并补主情感测度的 framing/披露——其中绝大多数为纯 Stata/spec/披露层 $0 改动, 仅 IDF 时变化、比值年标准化、benefit 脊柱/列值改动须 golden 重生。
+**一句话路线图**: 先在一次受控生产 run 中重生 panel + golden 闭合 T=2→T=19 自洽 (REPRO-1 + T18-1 元前提), 同步接通"声明已做但未执行"的识别/稳健性交付 (弱工具 AR-CI、Rotemberg 诊断、错时 DiD robust estimator、分时代稳定性、FWER battery、wild bootstrap), 修正 benefit_society 的 bank-FE 退化与 llm_peer 的同源 outcome, 并补主情感测度的 framing/披露——其中绝大多数为纯 Stata/spec/披露层 $0 改动, 仅 IDF 时变化、比值年标准化、benefit 脊柱/列值改动须 golden 重生。
 
-> **就绪度元结论**: 当前盘面为 **T=2 试跑帧**, 全量 **T=18 run 尚未执行**。所有现有表/系数/golden 哈希都是 T=2 占位, 一旦全量重生将整体变化。**当下不存在任何一张"可投稿"的表**——这不是某指标算错, 而是整条证据链尚停在试跑态。识别策略 (Bartik / 错时 DiD / 事件研究 / 网络 / z_score) 的**设计**在 T=18 下成立 (REDUNDANCY v2 已证), 真正的阻断在于工程可执行性 + 协调式重生 + 上述声明—实现缺口的闭合。
+> **就绪度元结论**: 当前盘面为 **T=2 试跑帧**, 全量 **T=19 run 尚未执行**。所有现有表/系数/golden 哈希都是 T=2 占位, 一旦全量重生将整体变化。**当下不存在任何一张"可投稿"的表**——这不是某指标算错, 而是整条证据链尚停在试跑态。识别策略 (Bartik / 错时 DiD / 事件研究 / 网络 / z_score) 的**设计**在 T=19 下成立 (REDUNDANCY v2 已证), 真正的阻断在于工程可执行性 + 协调式重生 + 上述声明—实现缺口的闭合。
 
 ---
 
@@ -46,7 +46,7 @@
 | ⑨ 计量设定/坏控制 (SPEC) | major revision | IV-1 (1) | IV-2, IV-3 (2) | — |
 | ⑩ 论文组合/salami (PORT) | major revision | SAL-3 (1) | SAL-1, SAL-2, SAL-4 (3) | — |
 | ⑪ 可复现/诚信/引用 (INTEG) | major revision | REPRO-1 (1) | CITE-1, INTEG-1 (2) | REPRO-2 (rejected) |
-| ⑫ 数据规模/T=18 就绪 (SCALE) | major revision (未就绪) | — | T18-2, T18-3, T18-4 (3) | T18-1 (rejected) |
+| ⑫ 数据规模/T=19 就绪 (SCALE) | major revision (未就绪) | — | T18-2, T18-3, T18-4 (3) | T18-1 (rejected) |
 | **合计** | **MAJOR REVISION** | **P0=0 / P1=10** | **P2=28** | **2 rejected + 1 mitigated** |
 
 ---
@@ -73,7 +73,7 @@
 
 | id | 严重度 | 位置 | 问题 | 顶刊标准 | 修复 | 置信 |
 |---|---|---|---|---|---|---|
-| DID-1 | **P1** (DOWNGRADED, 原 P0) | falsification_template:776,783 (DDD); brokerage12:32-63 (dcep_post×L_btw); iv_did.py:677-714 (gvar 已物化); csdid 仅日志字符串 | 可跑的错时 cohort (dcep_/sandbox_, 2019/2020/2022) 只被 plain TWFE 消费 (Goodman-Bacon 负权重场景), csdid/did_imputation/bacondecomp 在任何 .do 估计行**零调用**。**但**这两处错时设定都非任一论文的主识别 (attention 主=cross_sectional_intensity_did; brokerage 主=roa+二阶 IV; tone DDD 是 14+ falsification 之一), 仅机制/证伪表。 | Goodman-Bacon 2021 JoE; Callaway-Sant'Anna 2021; dCdH 2020 AER; Borusyak et al. 2024 | 在错时块加 `csdid ... gvar() notyet method(dripw)` + `estat event` + `bacondecomp` (capture which 守卫), TWFE 仅作对照列并脚注披露 Bacon 权重。$0/golden-safe (列已在盘), T=2 优雅跳过、T=18 自动激活。 | high |
+| DID-1 | **P1** (DOWNGRADED, 原 P0) | falsification_template:776,783 (DDD); brokerage12:32-63 (dcep_post×L_btw); iv_did.py:677-714 (gvar 已物化); csdid 仅日志字符串 | 可跑的错时 cohort (dcep_/sandbox_, 2019/2020/2022) 只被 plain TWFE 消费 (Goodman-Bacon 负权重场景), csdid/did_imputation/bacondecomp 在任何 .do 估计行**零调用**。**但**这两处错时设定都非任一论文的主识别 (attention 主=cross_sectional_intensity_did; brokerage 主=roa+二阶 IV; tone DDD 是 14+ falsification 之一), 仅机制/证伪表。 | Goodman-Bacon 2021 JoE; Callaway-Sant'Anna 2021; dCdH 2020 AER; Borusyak et al. 2024 | 在错时块加 `csdid ... gvar() notyet method(dripw)` + `estat event` + `bacondecomp` (capture which 守卫), TWFE 仅作对照列并脚注披露 Bacon 权重。$0/golden-safe (列已在盘), T=2 优雅跳过、T=19 自动激活。 | high |
 | DID-2 | **P1** (DOWNGRADED, 原 P0) | locus19:36-63 (eventstudyinteract 喂缺失列); attention15:78-87 (M6 capture confirm 静默跳过); 全 pipeline grep post_E/treat_E_year 零生产者 | spec 承诺的 E1-E5b 事件研究永久空壳: post_E*/treat_E*_year/never_treated_E* 零生产者 → 复现包跑出空表。**但**这是 appendix 平行趋势/稳健性补充, 非 headline。**且 finder 两处误判已订正**: collab/19 自建 INLINE event_t×collab_open 截面强度 DiD 可跑 (非同病); E1-E5b 是 SYNCHRONOUS 同步政策, 不该 cohort 化 (locus/19 该改 collab/19 式 INLINE intensity 写法)。 | Sun-Abraham 2021 JoE; AER/JF Data Availability Policy | 把 locus/19 与 attention M6 改接 INLINE intensity-DiD (镜像 collab/19), 或重指已存在的 dcep_/sandbox_ 列。与 MEDIA_ATTENTION P1-B 同。新列落盘须重生 golden。 | high |
 | DID-3 | P2 (DOWNGRADED, 原 P1) | attention18:47-52 / substance18:29-31 / locus18:30-32 (honestdid 仅注释); locus19:52-70 (无实际 pre-trend test) | HonestDiD (Rambachan-Roth 2023) 仅以 `* honestdid` 注释存在, 从未运行; 且无任何一处真跑正式 pre-trend 联合检验。**但** substance baseline 是 within-FE 面板非 DiD (不适用); 真正核心对象仅 P4 locus; 且它是建立在尚未运行的事件研究 (DID-2/P1-B) 之上的下游稳健性层。 | Rambachan-Roth 2023 RES; Roth 2022 AER:Insights | 先接线事件研究 (DID-2), 再把注释化的 honestdid 改为估计行 + 补正式 pre-trend 联合 F。并入同一事件研究 reconcile。$0/golden-safe。 | high→med |
 | DID-4 | P2 (DOWNGRADED, 原 P1) | iv_did.py:633-642,779-799 (HQ-based 披露); 各 18_* 已有 excl_soe/excl_rural 列 | DCEP/Sandbox 处理 HQ-based + never-treated 趋空, 已自我披露但估计层未落实 notyet。**但** finder 两项诉求事实错误: 当前无任何模板调用 csdid (notyet 指向空集); soe/rural 子样本列**已存在** (attention18:114 / substance18:79,82 / locus18:79,82 进 esttab 白名单)。是 P1-B 子集。 | Callaway-Sant'Anna 2021 §6.1; dCdH 2020 AER | csdid 接线时 (DID-1) 一律加 notyet; 把 HQ-based 局限提升为政策 DiD 表脚注。列已在盘。 | high |
@@ -84,7 +84,7 @@
 
 | id | 严重度 | 位置 | 问题 | 顶刊标准 | 修复 | 置信 |
 |---|---|---|---|---|---|---|
-| CV-1 | **P1** (DOWNGRADED, 原 P0) | encode.py:539 (llm_vote_tone=mean); 24_herd_decay.parquet (验证篇 正798/中33/负2=0.24%); llm_bias_diagnostic_full.csv | 主因变量 llm_vote_tone 负面类近乎退化 (盘上验证篇负面 0.24%, 三模型 0–0.6%), 双极"情感"实为单极正向倾向, 且 codebook/spec/任何审计零披露。中文银行新闻 PR-positive 语料伪迹 + LLM 乐观偏置, T=18 不会反转。**但** tone 变异不必来自负类 (正面 vs 中性边际 + 连续 prob_score std=0.23 仍有可观变异), 系数仍可解释为 favorability/optimism。 | Loughran-McDonald 2011 JF; Tetlock 2007 JF; King-Zeng 2001 | (a) codebook/.dta 标签 + spec measurement 节披露类别先验 + "负面近退化、tone 应解读为正向强度"; (b) 把构念主张从"情感"收敛为"正向报道倾向/乐观度"; (c) 报告负面子样本零方差诊断。$0 披露/framing, 不重生 golden。 | high |
+| CV-1 | **P1** (DOWNGRADED, 原 P0) | encode.py:539 (llm_vote_tone=mean); 24_herd_decay.parquet (验证篇 正798/中33/负2=0.24%); llm_bias_diagnostic_full.csv | 主因变量 llm_vote_tone 负面类近乎退化 (盘上验证篇负面 0.24%, 三模型 0–0.6%), 双极"情感"实为单极正向倾向, 且 codebook/spec/任何审计零披露。中文银行新闻 PR-positive 语料伪迹 + LLM 乐观偏置, T=19 不会反转。**但** tone 变异不必来自负类 (正面 vs 中性边际 + 连续 prob_score std=0.23 仍有可观变异), 系数仍可解释为 favorability/optimism。 | Loughran-McDonald 2011 JF; Tetlock 2007 JF; King-Zeng 2001 | (a) codebook/.dta 标签 + spec measurement 节披露类别先验 + "负面近退化、tone 应解读为正向强度"; (b) 把构念主张从"情感"收敛为"正向报道倾向/乐观度"; (c) 报告负面子样本零方差诊断。$0 披露/framing, 不重生 golden。 | high |
 | CV-2 | P2 (DOWNGRADED, 原 P1) | sentiment_cross_method_full.csv (LLM-词典 ρ=0.16 / LLM-BERT ρ=0.21); tone_validation.py:1895-1901 (收敛≠构念效度已落地) | 三法收敛效度对主测度很弱, 项目称"triangulation robustness battery"。**但** finder 范式套用错误: spec 明确 framing 为 Tetlock/L&M robustness battery (检验下游回归对替代测度稳健), 非 Campbell-Fiske MTMM 收敛。L&M 2011 范式下分歧测度产生一致结论是优点。前轮 measurement audit finding④ 已 CONFIRMED 落地修复措辞。 | L&M 2011 JF; Gentzkow-Kelly-Taddy 2019 JEL §3; Campbell-Fiske 1959 | 论文如实报告跨方法相关矩阵 + 脚注解释为构念差异/噪声; 撤回"triangulation 支持构念效度"措辞。$0/golden-safe, 不动面板值。 | high |
 | CV-3 | P2 (DOWNGRADED, 原 P1) | encode.py:539 (离散 vote 均值) vs :901 (avg_llm_prob_score); 21_tableA2:64 (无连续 DV 稳健性) | 主 DV 用离散 3 点投票均值而非已物化的连续 prob_score; Shapiro 2022 衰减偏误原理被引却未据此选/补主 DV。**但** finder 放大器证伪: corr(离散, 连续)=0.66 (文章级)/0.77-0.84 (bank-year), 连续测度 89-96 唯一值 (非"近退化"); llm_vote_cont 已进 P1 Table 1。 | Shapiro-Sudhof-Wilson 2022 JoE; GKT 2019 JEL; Xiong et al. 2024 ICLR | (a) measurement 节说明主 DV 为离散投票均值理由; (b) 接线 avg_llm_prob_score 作稳健性 (列已在盘, golden-safe)。 | high→med |
 
@@ -95,7 +95,7 @@
 | id | 严重度 | 位置 | 问题 | 顶刊标准 | 修复 | 置信 |
 |---|---|---|---|---|---|---|
 | CV-1 | P2 (DOWNGRADED, 原 P1) | tone_validation.py:1-16 (仅情感轨); attention_media.py:469-480; encode.py:716-726 (salience 列全物化但孤立) | 注意力指数族零内部/外部效度检验, 引 DEG 2011 (核心贡献正是注意力代理对照基准验证) 却没做; salience 基准列已全物化但从未与 attention_index 做收敛核验。**但** 与 MEDIA_ATTENTION P1-C 重叠 (违不重复律); 且 salience 基准与 attention 同源文本计数, 高相关只证内部一致 (类 Cronbach α), 非 DEG 意义的 criterion validity (需独立于媒体的 turnover/收益)。 | DEG 2011 JF; Fang-Peress 2009 JF; Hassan 2019 QJE | 产 attention_index 与已物化 salience 输入的 bank-year 相关矩阵作内部 nomological 证据; 外部 criterion 留待财务/外部数据 (P1-C)。$0/golden-safe。 | high→med |
-| CV-2 | P2 (DOWNGRADED, 原 P1) | attention_media.py:399-403,440; attention paper_spec.yaml:50 (secondary); 18_attention_robustness:129-136 (未控 n_outlets) | attention_disp (outlet-HHI) 在低覆盖 bank-year 机械=1, 混淆"集中度"与"低覆盖量", 回归未控 n_outlets; T=18 长尾/早期年份仍大量单 outlet, 不随 N 消失。**但** disp 是 secondary/robustness 测度 (非主处理), codebook 已披露"单 outlet=1"并列 n_outlets 为诊断列。 | Cookson-Niessner 2020 JF; HHI 小 N 退化 | disp 进回归时强制控 ln(n_outlets)/n_fintech_articles, 或仅 n_outlets≥3 子样本; codebook+spec 补"低覆盖机械产高 HHI"披露。$0 (n_outlets 已在盘)。 | high |
+| CV-2 | P2 (DOWNGRADED, 原 P1) | attention_media.py:399-403,440; attention paper_spec.yaml:50 (secondary); 18_attention_robustness:129-136 (未控 n_outlets) | attention_disp (outlet-HHI) 在低覆盖 bank-year 机械=1, 混淆"集中度"与"低覆盖量", 回归未控 n_outlets; T=19 长尾/早期年份仍大量单 outlet, 不随 N 消失。**但** disp 是 secondary/robustness 测度 (非主处理), codebook 已披露"单 outlet=1"并列 n_outlets 为诊断列。 | Cookson-Niessner 2020 JF; HHI 小 N 退化 | disp 进回归时强制控 ln(n_outlets)/n_fintech_articles, 或仅 n_outlets≥3 子样本; codebook+spec 补"低覆盖机械产高 HHI"披露。$0 (n_outlets 已在盘)。 | high |
 
 ### ⑤ SAMPLE — 样本宇宙/选择偏误
 
@@ -103,19 +103,19 @@
 
 | id | 严重度 | 位置 | 问题 | 顶刊标准 | 修复 | 置信 |
 |---|---|---|---|---|---|---|
-| SU-1 | P2 (DOWNGRADED, 原 P1) | encode.py:1837 (脊柱=covered-banks-unique); news_bank.py:117 (Aho-Corasick 扫全 17M); figures.py:33-78 (已披露 conditional on ≥1 article) | 面板脊柱 conditional-on-coverage, 丢弃名册约 95% 从未覆盖银行。**但** finder 三重证伪: ① 不是"管线丢弃名册"而是"数据 0 提及"(全 1767 名册经 AC 自动机均有匹配机会); ② "现盘 87 家=5%"是 T=2 试跑数 (违禁用试跑数判缺陷); ③ "conditional on ≥1 article"限制已在 figures.py 显式披露。Heckman 排除限制不可识别 (村镇行 0 提及无 outcome)。 | Heckman 1979 ECMA; Wooldridge 2010 Ch.19 | 显式样本限制声明 (已有) + 被剔除集的 tier/规模构成表。拒绝 Heckman 分支 (无有效工具)。$0 分析层。 | high |
+| SU-1 | P2 (DOWNGRADED, 原 P1) | encode.py:1837 (脊柱=covered-banks-unique); news_bank.py:117 (Aho-Corasick 扫全 18.2M); figures.py:33-78 (已披露 conditional on ≥1 article) | 面板脊柱 conditional-on-coverage, 丢弃名册约 95% 从未覆盖银行。**但** finder 三重证伪: ① 不是"管线丢弃名册"而是"数据 0 提及"(全 1767 名册经 AC 自动机均有匹配机会); ② "现盘 87 家=5%"是 T=2 试跑数 (违禁用试跑数判缺陷); ③ "conditional on ≥1 article"限制已在 figures.py 显式披露。Heckman 排除限制不可识别 (村镇行 0 提及无 outcome)。 | Heckman 1979 ECMA; Wooldridge 2010 Ch.19 | 显式样本限制声明 (已有) + 被剔除集的 tier/规模构成表。拒绝 Heckman 分支 (无有效工具)。$0 分析层。 | high |
 | SU-2 | P2 (DOWNGRADED, 原 P1) | attention_media.py:561-562,657 (geo 注意力未门控) vs 376/395 (firm-level 已门控); docstring 320-323 (ATT-2 deferred) | geo 注意力族 ft_attn_*/ft_vol_* 仍未门控, 含约 26.8% LLM 判伪文章。**但** finder 隐去了 MEDIA_ATTENTION 终裁: 已下调 P2 (仅喂 Table 1 描述性行, 有 year-FE 吸收脚注, 不喂任何 IV/回归系数); "升级为污染 IV"是假设性的 (实际 Bartik shift=已门控的 fintech_intensity, geo 列结构上非 article-level shift 候选; 实际 geo IV=prov/city LOO tone 非 attention)。 | Fang-Peress 2009 JF; GPSS 2020 AER | geo-IV 激活前镜像 ATT-1 门控 (仅门控分子) 作 wire-ahead; 当前仅需 Table 1 脚注注明门控不对称。改列值须重生 golden。 | high |
 | SU-3 | P2 (DOWNGRADED, 原 P1) | dedup.py:364-405 (lsh.query 簇直删无真 Jaccard 复核); :116 (fallback 0.85); git: 28b4ab93 非 HEAD 祖先 | 本分支生产 dedup 缺 main 已合并的 N4 pairwise-真-Jaccard 复核, LSH 传递过删非随机下偏计数测度。**但** N4 修复实测过删 = 9427 集仅 1 篇 (~0.01%, 单向); 且修复在 origin/main 也未应用到产物 (盘上 00_preprocessing=06-05 早于 N4), 本分支产物与 origin/main 字节一致 → 纯源码 rebase 卫生问题。MEDIA_ATTENTION DI-1 钉为 item7 P3 hygiene。 | Bushee et al. 2010 JAR; Wooldridge 2010 Ch.19 | cherry-pick/rebase 28b4ab93 到本分支 (勿重实现), golden 在生产 dedup 重跑后重生。 | high |
-| SU-4 | P2 (DOWNGRADED, 原 P1) | dedup.py:331,287-289,234 (全 17M 单 in-RAM MinHashLSH); runner.py:443-445 (裸调用) | 17M 去重无分块/无 OOM 守卫。**但** finder 的 P1 支柱"OOM→静默采样→破坏 golden 确定性"被代码证伪: 唯一调用方裸调用, 无 try/except/sample/nrows; OOM 在 Python 是 MemoryError 硬崩 (loud), 无任何降级采样路径。可复现性/Heckman 论证是范畴错误。 | AEA Data Editor policy | 移植 article_staleness 的 per-day 窗口 + 加输入/输出行数断言。生产前工程前置, 两份审计已披露为 P3 hygiene。golden-safe。 | high |
-| SU-5 | P2 (DOWNGRADED, 原 P1) | attention_media.py:564,670 (ft/total 比值); detect_defacto_cessation:45-130 (仅退出代理); 主规格 15:54-55 absorb year | 比值测度跨 18 年构成漂移无专门审计 (无 entry/wire-ratio/篇均长度/分时代表)。与 MEDIA_ATTENTION 头号 P1-A 一字对应。**但** 主规格已 TWFE 含 year_fe, 完整吸收银行间共同的水平漂移 (标题主打的"水平不可比"被 year FE 差分掉); 残存的仅是与横截面交互的构成漂移, 加 IV 后是披露/稳健性附录而非识别崩塌。 | Gentzkow-Shapiro 2010 ECMA; Baker-Bloom-Davis 2016 QJE | 逐年 outlet entry/exit + wire-ratio + 分时代 (2007-12/2013-18/2019-24) 稳定性表 + data 段披露 + 限识别窗 post-2013 子样本。$0/golden-safe。⚠ 注: 项目权威审计仍按 P1 列 (评的是全 attention 论文族横切聚合后果, 与单条 finding 可拒稿性口径不同, 二者不矛盾)。 | high |
+| SU-4 | P2 (DOWNGRADED, 原 P1) | dedup.py:331,287-289,234 (全 18.2M 单 in-RAM MinHashLSH); runner.py:443-445 (裸调用) | 18.2M 去重无分块/无 OOM 守卫。**但** finder 的 P1 支柱"OOM→静默采样→破坏 golden 确定性"被代码证伪: 唯一调用方裸调用, 无 try/except/sample/nrows; OOM 在 Python 是 MemoryError 硬崩 (loud), 无任何降级采样路径。可复现性/Heckman 论证是范畴错误。 | AEA Data Editor policy | 移植 article_staleness 的 per-day 窗口 + 加输入/输出行数断言。生产前工程前置, 两份审计已披露为 P3 hygiene。golden-safe。 | high |
+| SU-5 | P2 (DOWNGRADED, 原 P1) | attention_media.py:564,670 (ft/total 比值); detect_defacto_cessation:45-130 (仅退出代理); 主规格 15:54-55 absorb year | 比值测度跨 19 年构成漂移无专门审计 (无 entry/wire-ratio/篇均长度/分时代表)。与 MEDIA_ATTENTION 头号 P1-A 一字对应。**但** 主规格已 TWFE 含 year_fe, 完整吸收银行间共同的水平漂移 (标题主打的"水平不可比"被 year FE 差分掉); 残存的仅是与横截面交互的构成漂移, 加 IV 后是披露/稳健性附录而非识别崩塌。 | Gentzkow-Shapiro 2010 ECMA; Baker-Bloom-Davis 2016 QJE | 逐年 outlet entry/exit + wire-ratio + 分时代 (2007-12/2013-18/2019-25) 稳定性表 + data 段披露 + 限识别窗 post-2013 子样本。$0/golden-safe。⚠ 注: 项目权威审计仍按 P1 列 (评的是全 attention 论文族横切聚合后果, 与单条 finding 可拒稿性口径不同, 二者不矛盾)。 | high |
 
 ### ⑥ XYEAR — 跨年可比性/结构断裂
 
-**维度裁决: major revision。** 比值/强度测度族在 T=18 上系统性跨年不可比, 是顶刊对长面板媒体测度的硬要求且当前几乎全漏。
+**维度裁决: major revision。** 比值/强度测度族在 T=19 上系统性跨年不可比, 是顶刊对长面板媒体测度的硬要求且当前几乎全漏。
 
 | id | 严重度 | 位置 | 问题 | 顶刊标准 | 修复 | 置信 |
 |---|---|---|---|---|---|---|
-| CY-2 | **P1** (CONFIRMED) | attention18:118-121 (excl_pre year>=2013); 33_tableA9:97-204 (仅 hub/size 切分); Bai-Perron/Chow/sbsingle 全树零命中 | 全代码库无结构性断点/分时代稳定性检验; 唯一时间维稳健性 excl-pre2013 是 era-stability 的反面 (假设跨时代不变并验"去早期仍成立")。2007-2024 跨 2013 余额宝/2016 P2P/2019 DCEP 多 regime, pooled intensity-DiD 若关系断裂会把异质效应平均成有偏均值。**修正**: 2 provisional 篇 (disagreement/clarity 13_table4) 已有 4 分时段 regime 面板可直接移植; Bai-Perron 对面板 DiD 非硬要求, 真要求是分时代系数稳定性表 + treatment×era 交乘。与 P1-A 高度重叠。 | Bai-Perron 1998 ECMA; Hansen 2001 JEP | 新增 era-stability 模板 (三时代分段回归 + era 交乘 + Wald 相等性检验); 主 DV 跑 estat sbsingle/sbknown (可选)。capture which 守卫, golden 零影响。 | high |
+| CY-2 | **P1** (CONFIRMED) | attention18:118-121 (excl_pre year>=2013); 33_tableA9:97-204 (仅 hub/size 切分); Bai-Perron/Chow/sbsingle 全树零命中 | 全代码库无结构性断点/分时代稳定性检验; 唯一时间维稳健性 excl-pre2013 是 era-stability 的反面 (假设跨时代不变并验"去早期仍成立")。2007-2025 跨 2013 余额宝/2016 P2P/2019 DCEP 多 regime, pooled intensity-DiD 若关系断裂会把异质效应平均成有偏均值。**修正**: 2 provisional 篇 (disagreement/clarity 13_table4) 已有 4 分时段 regime 面板可直接移植; Bai-Perron 对面板 DiD 非硬要求, 真要求是分时代系数稳定性表 + treatment×era 交乘。与 P1-A 高度重叠。 | Bai-Perron 1998 ECMA; Hansen 2001 JEP | 新增 era-stability 模板 (三时代分段回归 + era 交乘 + Wald 相等性检验); 主 DV 跑 estat sbsingle/sbknown (可选)。capture which 守卫, golden 零影响。 | high |
 | CY-1 | P2 (DOWNGRADED, 原 P1) | attention15:7,45-56 (主处理=attention_index_full); attention_media.py:419 (log-sum 非比值); geography.py:242-269 (_z 白名单仅情感族) | 注意力比值族无时变基准归一化, 却对情感语调族已施加 Fama-MacBeth 年度标准化 (称"选择性遗漏")。**但** 两根承重柱误读: ① attention 主处理是 attention_index_full=log-sum (非比值), ft_attn_yr/fintech_share 在任何回归中均非主处理; ② 情感主回归 DV 也用原始列非 _z (_z 是可解读性辅助孪生, 非跨年可比修正), 不存在"选择性"对比。ft_attn_yr 为 year-const 已被 year-FE 吸收且 tables.py 披露。 | Fama-MacBeth 1973 JPE; BBD 2016 QJE; GSS 2011 AER | 与 P1-A 同 substance 的语料构成漂移诊断表 + data 段一句披露。$0/golden-safe。 | high |
 | CY-3 | P2 (DOWNGRADED, 原 P1) | fintech_intensity.py:247-380 (W_i=IDF_i×CosSim 单一池化常量, 时不变); 各规格 absorb(bank_id year) | 称 IDF 在全 18 年合并语料算一次把跨年词频漂移"焊进"测度。**但核心机制断言事实错误**: 固定 IDF 是时不变权重, 相同 TF/长度文章无论哪年得逐字相同分数 → 固定 IDF 恰是最可比的 text→score 映射 (非"焊进漂移"); finder 把 GKT 2019 §2.2 标准引反了 (该标准本身要求 IDF 在全参考语料计算); year FE 吸收年度尺度位移。 | GKT 2019 JEL; L&M 2011 JF | method 段披露池化 IDF + 指向年标准化; 年度 IDF 孪生列为 nice-to-have。$0 披露层 (P2)。 | high |
 
@@ -164,14 +164,14 @@
 | CITE-1 | P2 (DOWNGRADED, 原 P1) | paper_spec.yaml:44 (误标 RFS + 杜撰卷页 33:4327-4373) / :267 / :275 / run_paper.py:84 / replication/README.md:53 / instantiate_paper_stata.py:113 | Cookson-Niessner (2020) 误标 RFS (正确=JF 75(1):173-228) 残留。**但** ① finder "全树仅 2 处"为假 (实读 6+ 处, 漏掉最严重的 spec:44 杜撰卷页); ② 全是开发者注释+YAML 元数据+replication README, 服务 provisional 第10篇 (无 manuscript/refs.bib), 误引未传播到任何 referee 可见书目; ③ 机器生成 SSoT (variable_codebook.json/codebook.py) 已全部正确标 JF。 | APA 7th; Cookson-Niessner 2020 JF DOI 10.1111/jofi.12852 | 覆盖全部 6+ 处改 JF, 尤其消除 spec:44 杜撰卷页; 扩展 test_citation_integrity 加 Cookson∉RFS 断言。$0/golden-safe。 | high |
 | INTEG-1 | P2 (DOWNGRADED, 原 P1) | brokerage REPLICATION_README.md:3,13 ("IRB 授权"/"完整 panel 174 obs"/"1998 列"/"可立即投稿") | 复现包 README 用 IRB 描述新闻数据 + 把 T=2 试跑盘冒充"完整 panel"。**但** load-bearing 前提"呈给外部审稿人"为假: 该文件被 .gitignore (papers/**/*.md) 忽略永不分发, 是内部 scratch; 外部研究者拿到的是 build-replication 打包产物 (README 源=stata_templates/brokerage_network/README.md, 干净, 自动附 git commit hash+dirty 检测); 全仓 grep IRB/完整panel/可立即投稿仅命中此 1 个 ignored 文件。 | AEA/JF replication; ICMJE | 删 IRB 句/完整 panel/可立即投稿/硬编码列数, 或删此冗余 scratch 文件。$0 卫生层。 | high |
 
-### ⑫ SCALE — 数据规模/T=18 生产就绪
+### ⑫ SCALE — 数据规模/T=19 生产就绪
 
 **维度裁决: major revision (未就绪)。** 元层面占位态 + 上游工程可执行性。Stata MP 容量远未触顶 (clean bill)。herd_decay O(N²)→bucketing 与 DET-1 缓存覆盖证明已闭合。
 
 | id | 严重度 | 位置 | 问题 | 顶刊标准 | 修复 | 置信 |
 |---|---|---|---|---|---|---|
-| T18-2 | P2 (DOWNGRADED, 原 P1) | tone_llms.py:36-37 (输入=14_fintech_intensity 非 raw 17M); :1687/708/725-735 (整帧+results_map+全量 real_tasks); 无 checkpoint/resume | stage 21 LLM 编排在大规模上一次性装载整帧+全部协程+results_map, 无 checkpoint/分片, 编排层 OOM 风险。**但** 行数事实错误: stage 21 读 fintech 子集非 raw 17M (REDUNDANCY v2 推荐生产配置=分层 ~1.5M); 审稿镜头错位 (工程非识别问题, reviewer 走暖缓存离线 run 跑产出 panel 子集, 永不重跑 17M); log_memory_usage 使 OOM 可观测非 silent。残留真问题=中档配置全量 real_tasks/results_map 内存压力 (上全量前 wire-ahead)。 | AEA/QJE/JF Data Policy; Christensen-Miguel 2018 JEL | 按 (bank 或日期窗) 分片流式 + 中途 to_parquet 增量落盘 + --resume + peak-RAM 断言。缓存全命中下逐位等价。 | high |
-| T18-3 | P2 (DOWNGRADED, 原 P1) | dedup.py:287-308,331-345,234 (全 N MinHash 物化+单 LSH+全文拷贝); :52-55 (docstring 自承 O(N)) | dedup 全 17M 单次 in-RAM MinHash/LSH 无分块。**但** finder 算法类别误读: MinHash/LSH 本就 O(N) (非 herd_decay 的 O(N²), "镜像分块"是范畴错误); finder 援引为模板的 article_staleness 自身也把全 N MinHash 入 RAM; OOM 是硬 raise (非静默采样); 日期窗分块会改结果 (跨窗簇成员漏判)。MEDIA_ATTENTION DI-6 钉为 P3 hygiene。 | Christensen-Miguel 2018 JEL; Fang-Peress 2009 JF | 加内存基准 + 行数断言 + ≥1M 行确定性压测; N4 真-Jaccard rebase (28b4ab93, 已落地 main) 是独立项。生产前工程项。 | high |
+| T18-2 | P2 (DOWNGRADED, 原 P1) | tone_llms.py:36-37 (输入=14_fintech_intensity 非 raw 18.2M); :1687/708/725-735 (整帧+results_map+全量 real_tasks); 无 checkpoint/resume | stage 21 LLM 编排在大规模上一次性装载整帧+全部协程+results_map, 无 checkpoint/分片, 编排层 OOM 风险。**但** 行数事实错误: stage 21 读 fintech 子集非 raw 18.2M (REDUNDANCY v2 推荐生产配置=分层 ~1.5M); 审稿镜头错位 (工程非识别问题, reviewer 走暖缓存离线 run 跑产出 panel 子集, 永不重跑 18.2M); log_memory_usage 使 OOM 可观测非 silent。残留真问题=中档配置全量 real_tasks/results_map 内存压力 (上全量前 wire-ahead)。 | AEA/QJE/JF Data Policy; Christensen-Miguel 2018 JEL | 按 (bank 或日期窗) 分片流式 + 中途 to_parquet 增量落盘 + --resume + peak-RAM 断言。缓存全命中下逐位等价。 | high |
+| T18-3 | P2 (DOWNGRADED, 原 P1) | dedup.py:287-308,331-345,234 (全 N MinHash 物化+单 LSH+全文拷贝); :52-55 (docstring 自承 O(N)) | dedup 全 18.2M 单次 in-RAM MinHash/LSH 无分块。**但** finder 算法类别误读: MinHash/LSH 本就 O(N) (非 herd_decay 的 O(N²), "镜像分块"是范畴错误); finder 援引为模板的 article_staleness 自身也把全 N MinHash 入 RAM; OOM 是硬 raise (非静默采样); 日期窗分块会改结果 (跨窗簇成员漏判)。MEDIA_ATTENTION DI-6 钉为 P3 hygiene。 | Christensen-Miguel 2018 JEL; Fang-Peress 2009 JF | 加内存基准 + 行数断言 + ≥1M 行确定性压测; N4 真-Jaccard rebase (28b4ab93, 已落地 main) 是独立项。生产前工程项。 | high |
 | T18-4 | P2 (DOWNGRADED, 原 P1) | test_panel_reproducibility.py:166 (精确哈希无容忍); golden incomplete=True/missing 30a (=ndarray unhashable); network 3 列 BLAS-FP 漂移 | 全量 golden 重生是未演练的高风险一次性操作, 本机不可安全重生 (付费/联网/BLAS-FP/脏树误 bless)。**但** "incomplete→连 T=2 都没闭合"误读 (incomplete 唯一触发=30a emb ndarray unhashable, 30a 不在 repro parametrize, 对门禁零影响; 40/51 column_hashes 全覆盖); framing 错误 (golden 仅 dev 期防回归内部门禁, papers/.do 零引用, referee 永远看不到, 复现包交付=.dta+.do)。残留=repro 测试未排除 3 个 BLAS-FP 列 + 重生 SOP 未脚本化。 | Christensen-Miguel 2018 JEL; AEA Data Editor | repro 测试对 3 个 BLAS-FP 列建白名单/容差; 受控环境演练子样本全链重生 SOP 脚本化; 闭合 incomplete golden 的 30a (内部 CI/devops 卫生)。 | high |
 
 ---
@@ -182,13 +182,13 @@
 
 1. **"声明—实现"缺口 (claimed-but-not-run)** — 出现于 IV-2 (AR-CI 弱工具脚注无 weakiv)、IV-3 (GPSS 路线无 Rotemberg)、IV-5 (spec 承诺 Hansen J 无 pooled)、IV-1 (addnote 承诺 lag1 无 eststo)、DID-1/DID-2 (csdid/event-study 仅注释/喂空)、DID-3 (HonestDiD 仅注释)、INFER IV-1 (rwolf 全注释 + 误导性 supplemental-log 脚注)、INFER IV-3 (boottest 跑在错误层级)、ROBUST 全族 (rreg/Oster estadd 静默吞列)。**这是本项目最普遍、最易被 referee 复现识破的系统性病灶**: 模板脚注/docstring/spec note 描述了一套顶刊级方法学, 但对应估计行从未真正执行。修复几乎全是 $0/Stata 层把注释转活跃命令 + capture which 守卫。
 
-2. **跨年构成漂移 (cross-year compositional drift)** — 横切 XYEAR (CY-1/CY-2/CY-3)、SAMPLE (SU-5)、ATTN (隐含)。比值/强度测度的分母在 2007-2024 量级暴涨+构成重组, 同一数字跨年含义不同; 全代码库无分时代稳定性/结构断点检验。year-FE 只吸收水平不吸收"含义漂移", 威胁全部 T=18 跨年识别。**这是单条 finding 视角多为 P2 (year-FE 已吸水平 + 主处理多为 log-sum 非比值), 但全 attention 论文族聚合后 (CY-2) 升为 P1**。
+2. **跨年构成漂移 (cross-year compositional drift)** — 横切 XYEAR (CY-1/CY-2/CY-3)、SAMPLE (SU-5)、ATTN (隐含)。比值/强度测度的分母在 2007-2025 量级暴涨+构成重组, 同一数字跨年含义不同; 全代码库无分时代稳定性/结构断点检验。year-FE 只吸收水平不吸收"含义漂移", 威胁全部 T=19 跨年识别。**这是单条 finding 视角多为 P2 (year-FE 已吸水平 + 主处理多为 log-sum 非比值), 但全 attention 论文族聚合后 (CY-2) 升为 P1**。
 
 3. **未门控 / 选择性域不对称** — SAMPLE SU-1 (脊柱 conditional-on-coverage)、SU-2 (geo 注意力 ATT-2 未门控)、SENT CV-1 (负面类退化)、PORT SAL-3 (outcome 与 treatment 同源)。底层共性是"哪些观测/信号进了哪条管线"缺乏一致的、可披露的门控契约。多数已部分披露, 修复在 wire-ahead 门控 + framing 披露。
 
 4. **FWER / small-G 推断缺失** — INFER IV-1/IV-2/IV-3。海量回归 (双轨×三法×四加权×多测度) 无跨族 Romano-Wolf/Westfall-Young 校正 (唯一活跃仅 brokerage 一处 wyoung); 省级/cohort 小 G 聚类无 wild/subcluster bootstrap (唯一 boottest 跑在不需要的大 G 层)。
 
-5. **T=2 占位待重生 (元就绪度)** — SCALE T18-1 (REJECTED 但作为元前提保留)、INTEG REPRO-1、SAMPLE/ATTN 中所有"现盘 87 家/174 行"论据。**所有现有结果、golden 哈希、graceful-skip 守卫都建在 0.055% 试跑帧上; 全量 T=18 run 尚未执行**。这既是评判其他 finding 严重度时的"试跑假象"过滤器 (凡基于 T=2 数字判缺陷者一律下调), 也是投稿前必须闭合的协调式重生工序。
+5. **T=2 占位待重生 (元就绪度)** — SCALE T18-1 (REJECTED 但作为元前提保留)、INTEG REPRO-1、SAMPLE/ATTN 中所有"现盘 87 家/174 行"论据。**所有现有结果、golden 哈希、graceful-skip 守卫都建在 0.052% 试跑帧上; 全量 T=19 run 尚未执行**。这既是评判其他 finding 严重度时的"试跑假象"过滤器 (凡基于 T=2 数字判缺陷者一律下调), 也是投稿前必须闭合的协调式重生工序。
 
 ---
 
@@ -240,7 +240,7 @@
 > 这些 finding 未提供 verdict 字段, 按任务规则不采信为确认级 (不计入 P0/P1/P2 计数)。但多为 referee 会注意到的一致性瑕疵, 修复路径多已在姐妹模板中现成存在, 建议作为 minor revision 整改清单参考。
 
 - **IV 维**: IV-6 (brokerage 11/17 在生产机 ivreghdfe r301 下无 ivreg2 回退→静默 exit 199, 建议镜像 llm_peer/11 的 capture noisily+回退)、IV-7 (geography.py G-08 日志推荐 llm/dict/bert 三套同源 LOO 拼 Hansen J=近共线陷阱, 建议改日志文案)、IV-8 (outlet-composition IV 排他性论证单薄, 须控 media volume exposure)。
-- **DID 维**: DID-5 (30_figure1/collab19 头注引 Sun-Abraham 实跑 plain TWFE, 头注—估计量不一致)、DID-6 (lead/lag 硬编码 ±3, T=18 浪费功效且 4plus binning 列成死列)。
+- **DID 维**: DID-5 (30_figure1/collab19 头注引 Sun-Abraham 实跑 plain TWFE, 头注—估计量不一致)、DID-6 (lead/lag 硬编码 ±3, T=19 浪费功效且 4plus binning 列成死列)。
 - **SENT 维**: CV-5 (3 异构模型 temp=0 投票引 Wang 2023 self-consistency=单模型多采样, 引文与代码未对齐)。
 - **ATTN 维**: CV-3 (hard_char 常用字集由 jieba 词频自指派生而非官方《通用规范汉字表》)、CV-4 (specificity_index 把 Hope-Hu-Lu 企业自我披露构念跨主体迁移到媒体报道无验证)、CV-5 (within_doc_redundancy_han 与字符版 corr≈0.99 仍作独立面板列=variable-farm 暴露)、CV-6 (rare_word_ratio 实测覆盖 57% distinct 词=非高频词率而非低频 20% 尾部, 构念—名称错配)。
 - **SAMPLE 维**: SU-6 (无年份越界校验, 单条畸形日期给每家银行造幻影年)、SU-7 (media cessation 排除集把未经 NPPA 证实的 suspected 全量纳入, 须 confirmed-only 双口径对照)。
@@ -325,4 +325,4 @@
 
 ---
 
-*报告完。本审计严格区分: 真缺陷 (须修) vs 已披露设计 (披露即可) vs T=2 试跑假象 (全量重生即消)。就绪度元结论已在执行摘要与横切根因第 5 条阐明: 当前 T=2 占位, 全量 T=18 run 尚未执行, 投稿前必须经一次受控协调式重生闭合自洽性。*
+*报告完。本审计严格区分: 真缺陷 (须修) vs 已披露设计 (披露即可) vs T=2 试跑假象 (全量重生即消)。就绪度元结论已在执行摘要与横切根因第 5 条阐明: 当前 T=2 占位, 全量 T=19 run 尚未执行, 投稿前必须经一次受控协调式重生闭合自洽性。*

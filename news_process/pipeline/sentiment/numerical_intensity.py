@@ -403,7 +403,7 @@ def compute_num_intensity_word(content: str) -> float:
         return float('nan')
 
     # 分子: cn2arab 后阿拉伯数字 token 数 (与句级版同源; 注: 此处独立再算一次 cn2arab,
-    # 17M 全量下若成吞吐瓶颈可与句级版合并为单 pass, 当前保持独立函数以便单测)
+    # 约1,819万 全量下若成吞吐瓶颈可与句级版合并为单 pass, 当前保持独立函数以便单测)
     text_arabic = _cn2arab(content)
     n_num, _ = _count_numerical_tokens(text_arabic)
     # 分母: 原文 jieba 词数 (词级文章长度)

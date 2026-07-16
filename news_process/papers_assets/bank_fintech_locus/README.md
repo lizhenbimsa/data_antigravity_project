@@ -66,7 +66,7 @@ papers_assets/bank_fintech_locus/
 | `wave_1`        | 2013-2015 | 互联网金融 wave (余额宝触发) |
 | `wave_2`        | 2016-2018 | 区块链 / 早期 AI wave |
 | `consolidation` | 2019-2021 | 蚂蚁叫停后 monetary tightening + 监管收紧 transition |
-| `wave_3`        | 2022-2024 | 大模型 wave |
+| `wave_3`        | 2022-2025 | 大模型 wave |
 
 NB: "三波 fintech 浪潮"严格指 wave_1 / wave_2 / wave_3 各 3 年; consolidation 是 transition (对照组), 不计入"三波"narrative.
 

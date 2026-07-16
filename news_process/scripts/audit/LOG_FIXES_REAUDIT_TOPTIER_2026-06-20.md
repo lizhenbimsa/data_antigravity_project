@@ -53,7 +53,7 @@
 
 ### 再审收口的 3 残留
 - **[P1-A] 陈旧红测** `tests/test_omni_fix_val_prompt.py:202` — 断言 `{'full','ctx'}` 早于 `_ss` 第三轨, 实跑 FAILED (`{'ctx','full','ss'}=={'ctx','full'}`)。源 `run_variant_llms` 自 v3.9.0 硬迭代三轨 (prompt_sensitivity.py:634-637), content_ss 缺列回退 content_full。修: 断言改 `{'full','ctx','ss'}` + 补 `prompts['ss'].count(title)==1`。→ 修后 29 passed。
-- **[P2-C] depins_post 零方差守卫** `pipeline/panel/runner.py:1457+` — 与 R18 fire_sale 对称: 盘面 T=2 仅 {2017,2018} 全 ≥2015 → depins_post 恒常量 1, tone_x_depins* 退化无识别力。加常量列 WARNING (不删列; 生产 T=18 跨 2015 断点恢复方差)。
+- **[P2-C] depins_post 零方差守卫** `pipeline/panel/runner.py:1457+` — 与 R18 fire_sale 对称: 盘面 T=2 仅 {2017,2018} 全 ≥2015 → depins_post 恒常量 1, tone_x_depins* 退化无识别力。加常量列 WARNING (不删列; 生产 T=19 跨 2015 断点恢复方差)。
 - **[P3-B] CLAUDE.md `_ss` 缓存时态** (58) — "须线上付费首跑播种" 是已被证伪的现在式声明 (2026-06-19 实测离线 10125/10125 0-miss)。加时态限定: 引入时点为 0、现已全播种、离线 $0 可复现。
 
 ---
@@ -71,7 +71,7 @@
 - **R19 变量名 33 字符** (`exc_jiang_2021_score_negonly_full`): 源码仅 WARN, 但 stata_export 写前由 `shorten_long_column_names`(md5 去重) + `_assert_track_triplet_unique` 兜底, 不致 Stata 写崩 → 低危, 下游有防护, 改名会动 .dta schema + golden, 故不在本批改。
 - **待 Crossref/DOI 核验的引用** (投稿前): Carlson & Burbano (2026, SMJ 47(3):699-725) 未来日期+精确卷期=典型造假签名 (全仓 30+ 处); SSRN-4558295 §7.2 (裸编号); Distel/Grimpe/Poetz (2026, RP) 同-DOI-双标题 (policy_alignment.py:26 vs refs.bib:49); Andreou et al. (2026, RP 55(3):105409)。不可确认者降级 forthcoming/working paper。
 - **conftest 日志隔离盲区** (取证层): `_isolate_loggers_from_production_files` (conftest.py:283, scope='session') 对夹具内惰性 import 的 pipeline 模块失效 → 12b/37/47/39c/39e/39f/21 等真实生产日志被 pytest fixture/import 经 `file_mode='w'` 覆写 (R1 横切共因)。建议改 function 级重扫 / 加 `console_only` / `NEWS_PROCESS_TESTING` 守卫。
-- **受控重跑 + golden 重生** (M0 gate, 生产 T=18): stage 21 在线全量 / 36/39 在线付费; `OMP_NUM_THREADS=1 + KMP_DUPLICATE_LIB_OK` 单线程确定性重生, 排除 3 个 BLAS-FP 网络列; radius∈{0,1,2,3} 网格; 勿删 `_llm_cache.db`。**本次未重跑**: 并行会话正占用 panel/golden, 离线重跑会撞车 → 各 stage 日志仍是修复前输出, 待下次干净全量跑或受控重生时自然刷新。
+- **受控重跑 + golden 重生** (M0 gate, 生产 T=19): stage 21 在线全量 / 36/39 在线付费; `OMP_NUM_THREADS=1 + KMP_DUPLICATE_LIB_OK` 单线程确定性重生, 排除 3 个 BLAS-FP 网络列; radius∈{0,1,2,3} 网格; 勿删 `_llm_cache.db`。**本次未重跑**: 并行会话正占用 panel/golden, 离线重跑会撞车 → 各 stage 日志仍是修复前输出, 待下次干净全量跑或受控重生时自然刷新。
 
 ---
 

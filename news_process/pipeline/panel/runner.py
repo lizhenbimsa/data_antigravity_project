@@ -1661,12 +1661,12 @@ def main():
     # fix(log-reaudit-2026-06-20, P2-C): 零方差检测 (与 network_brokerage R18 对称)。
     # 盘面 T=2 仅 {2017,2018} 全 ≥2015 → depins_post 恒为常量 1, tone_x_depins* 退化为
     # tone×1 无识别力 (下游会被共线性/FE 吸收); 显式告警, 避免被误读为可用时间断点。
-    # 生产 T=18 (2007–2024) 跨越 2015 断点后自然有方差, 守卫不触发。
+    # 生产 T=19 (2007–2025) 跨越 2015 断点后自然有方差, 守卫不触发。
     if panel['depins_post'].nunique() <= 1:
         logger.warning(
             f"  ⚠ depins_post 退化为常量 (唯一值={sorted(panel['depins_post'].unique().tolist())}): "
             f"样本年份未跨越 2015 实施断点 (盘面 T=2 常见), tone_x_depins* 交互项零方差、"
-            f"下游无识别力; 生产 T=18 跨 2007–2024 后恢复方差。"
+            f"下游无识别力; 生产 T=19 跨 2007–2025 后恢复方差。"
         )
 
     # --- (h) 复合关注度指数 (Concern Score) ---
@@ -1714,7 +1714,7 @@ def main():
     # 二阶矩补全: 一阶反转 tone_reversal 之外的【时间维】语调不稳定性。与年内跨文章 SD
     # (*_tone_std) / 跨媒体方差 (cross_outlet) 正交 (论文须明写以防冗余质疑)。用
     # 按银行分组的 rolling().std() 范式; window=3,
-    # min_periods=2 → ≥2 年即出值, 优雅降级 (全量 T=18 充分, 磁盘 T=2 仅末年有值)。
+    # min_periods=2 → ≥2 年即出值, 优雅降级 (全量 T=19 充分, 磁盘 T=2 仅末年有值)。
     TONE_VOL_WINDOW, TONE_VOL_MINP = 3, 2
     vol_count = 0
     for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
@@ -2734,7 +2734,7 @@ def main():
             )
 
         # (6b) IV 家族列承载诊断 (Bartik/LOO/LLM-peer; 纯计数+平均有效率, golden-safe)
-        #   IV 列多由 LLM/嵌入派生 → 第一阶段识别力随生产 T=18 才充分 (盘面 T=2 偏弱)。
+        #   IV 列多由 LLM/嵌入派生 → 第一阶段识别力随生产 T=19 才充分 (盘面 T=2 偏弱)。
         try:
             _iv_fams = {
                 'Bartik 移位份额': [c for c in panel.columns if 'bartik' in c.lower()],
@@ -2750,16 +2750,16 @@ def main():
                     _vfrac = sum(float(panel[c].notna().mean()) for c in _cols) / len(_cols)
                     logger.info(
                         f"  · IV 家族 {_fam}: {len(_cols):,} 列, 平均有效率 {pct4(_vfrac)} "
-                        "(第一阶段识别力诊断; 盘面 T=2 偏弱, 生产 T=18 方充分)"
+                        "(第一阶段识别力诊断; 盘面 T=2 偏弱, 生产 T=19 方充分)"
                     )
         except Exception as _eiv:  # noqa: BLE001 — IV 诊断块绝不崩阶段
             logger.info(f"  · IV 家族诊断跳过 (不影响产物): {_eiv}")
 
-        # (7) 小样本(盘面 T=2)守卫: 提醒结论以全量 17M/T=18 为准
+        # (7) 小样本(盘面 T=2)守卫: 提醒结论以全量 约1,819万/T=19 为准
         if 0 < _n_years <= 3 or _n_rows < 300:
             logger.info(
                 f"  · ⚠️ 小样本盘面 (T={_n_years}, {_n_rows:,} 行): 本次仅验证管道正确性与 "
-                "schema 完整性, 一切回归级数值结论以全量 17M 语料 / T=18 (2007-2024) 实测为准。"
+                "schema 完整性, 一切回归级数值结论以全量 约1,819万 语料 / T=19 (2007-2025) 实测为准。"
             )
         logger.info("-" * 72)
     except Exception as _e:

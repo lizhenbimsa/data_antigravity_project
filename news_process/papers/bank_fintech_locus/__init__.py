@@ -29,7 +29,7 @@ Mediator (R7-M04):
 
 Heterogeneity wave (R4-M03 三波严格对称):
     pre_period (2007-2012) / wave_1 (2013-2015) /
-    wave_2 (2016-2018) / consolidation (2019-2021) / wave_3 (2022-2024).
+    wave_2 (2016-2018) / consolidation (2019-2021) / wave_3 (2022-2025).
 
 Spec: ``papers/bank_fintech_locus/paper_spec.yaml`` (M0 G0 frozen).
 """

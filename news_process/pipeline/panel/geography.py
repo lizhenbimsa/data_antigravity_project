@@ -797,7 +797,7 @@ def merge_bank_geography(panel: pd.DataFrame) -> pd.DataFrame:
 #     根因: T=2 面板深度 + 地理稀疏 (每个 (geo, year) 单元内有效银行
 #     数极少, leave-one-out 后变异几乎枯竭) → 工具相关性接近于零。
 #     因此这两个 LOO-IV **不得**作为强因果识别的主 IV 使用; 仅可
-#     作为 falsification / 稳健性展示。production run (spec 声明 T=18)
+#     作为 falsification / 稳健性展示。production run (spec 声明 T=19)
 #     下地理单元年度内银行数增加, 工具强度才可能改善, 需届时重测。
 #
 #   ⚠ 反射问题披露 (fix(omni-g-geography-05, 2026-06-11)): Manski (1993,

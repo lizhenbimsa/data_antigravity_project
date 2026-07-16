@@ -2,13 +2,13 @@
 * 26_collab_era_stability.do — 分时代稳定性 (era-stability, XYEAR/CY-2, P5)
 * Paper: {{PAPER_ID}}  (Innovation Collaboration Mode — Chesbrough 2003)
 *
-* CY-2 修复 (2026-06-14): 2007-2024 跨 2013 余额宝 / 2016 P2P 整治 / 2019 DCEP 多
+* CY-2 修复 (2026-06-14): 2007-2025 跨 2013 余额宝 / 2016 P2P 整治 / 2019 DCEP 多
 *   regime, pooled intensity-DiD 若关系在时代间断裂会把异质效应平均成有偏均值。
 *   全代码库此前无结构性分时代稳定性检验 (唯一时间维稳健性 excl_pre2013 是其反面)。
 *   本表移植 disagreement/clarity 13_table4 Panel B 的 regime 面板范式, 三时代:
 *     ERA1 = 2007-2012  (前 fintech: 移动支付/余额宝前)
 *     ERA2 = 2013-2018  (fintech 扩张: 余额宝→P2P 顶峰→整治)
-*     ERA3 = 2019-2024  (强监管 / DCEP / 助贷规范)
+*     ERA3 = 2019-2025  (强监管 / DCEP / 助贷规范)
 *
 * 三个面板:
 *   A: 各时代分样本各跑一次主规格 (并排成列)
@@ -21,7 +21,7 @@
 * golden-safe / $0: 仅消费在盘 collab_frac/year + 待接入 DV 哨兵; 全程 capture 守卫。
 *   T=2 现盘只有 2017-2018 (单一时代 ERA2 有数据) → A 面板仅跑有 N 的时代, B/C
 *   面板因交乘项缺乏跨时代变异自动退化/优雅跳过 (N 守卫 + capture), 不报错不弹框;
-*   生产 T=18 三时代齐全后自动激活全部三面板。
+*   生产 T=19 三时代齐全后自动激活全部三面板。
 *
 * ⚠ 本文件被 00_master.do 以 `do` 调用 (子 .do), 末尾【绝不加】终端 exit (会中断 master 链)。
 * ============================================================================
@@ -74,8 +74,8 @@ capture drop _era
 gen byte _era = .
 replace _era = 1 if year >= 2007 & year <= 2012
 replace _era = 2 if year >= 2013 & year <= 2018
-replace _era = 3 if year >= 2019 & year <= 2024
-label define _eralbl 1 "2007-2012" 2 "2013-2018" 3 "2019-2024", replace
+replace _era = 3 if year >= 2019 & year <= 2025
+label define _eralbl 1 "2007-2012" 2 "2013-2018" 3 "2019-2025", replace
 label values _era _eralbl
 
 * 有数据的时代清单 (T=2 盘只 ERA2; 防对空时代跑回归崩溃)
@@ -107,7 +107,7 @@ if "`eracols'" != "" {
         stats(N r2, fmt(0 3) labels("N" "R²")) ///
         title("Table A-collab-ERA Panel A: Sub-era main spec (collab_frac on outcome)") ///
         mtitles(`eralabs') ///
-        addnotes("Eras: 2007-2012 (pre-fintech) / 2013-2018 (fintech expansion) / 2019-2024 (strong regulation, DCEP). bank/year FE; SE clustered at `CL'.")
+        addnotes("Eras: 2007-2012 (pre-fintech) / 2013-2018 (fintech expansion) / 2019-2025 (strong regulation, DCEP). bank/year FE; SE clustered at `CL'.")
     estout `eracols' using "$tables_dir/tableA_collab_era_split.csv", replace delimiter(",") ///
         keep(`TX') cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
         starlevels(* 0.10 ** 0.05 *** 0.01) mlabels(`eralabs')
@@ -176,7 +176,7 @@ if `n_era_present' >= 2 {
     else display "  WARN Panel B 全样本 N<20, 跳过交乘 + Wald"
 }
 else {
-    display "  WARN 仅 `n_era_present' 个时代有数据 (T=2 盘多为单一 ERA2) — 跨时代交乘/Wald 无变异, 优雅跳过 (生产 T=18 自动激活)"
+    display "  WARN 仅 `n_era_present' 个时代有数据 (T=2 盘多为单一 ERA2) — 跨时代交乘/Wald 无变异, 优雅跳过 (生产 T=19 自动激活)"
 }
 
 capture drop _era

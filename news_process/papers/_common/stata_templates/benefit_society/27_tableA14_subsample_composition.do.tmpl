@@ -55,7 +55,7 @@ program define _bs_sub
     args tag cond fenote
     quietly count if `cond' & !missing({{MAIN_DV}}_w) & !missing({{ATTITUDE_VAR}})
     if r(N) < 10 {
-        display "  [INFO] 子样本 `tag' N=" r(N) " < 10; 跳过 (T=2 退化, production T=18 才足量)"
+        display "  [INFO] 子样本 `tag' N=" r(N) " < 10; 跳过 (T=2 退化, production T=19 才足量)"
         exit 0
     }
     * 子样本内年份数 ≥2 才放 i.year; 类型数 ≥2 才放 i.type_id
@@ -180,7 +180,7 @@ foreach m of local stored {
 
 if "`models'" == "" {
     display as error "  [WARN] Table A14 无任何已存储子样本估计 (全被 N 守卫跳过), 表跳过"
-    display "[OK] Table A14 (subsample composition) → 全子样本退化跳过 (T=2; production T=18 激活)"
+    display "[OK] Table A14 (subsample composition) → 全子样本退化跳过 (T=2; production T=19 激活)"
 }
 else {
     esttab `models' ///
@@ -193,7 +193,7 @@ else {
         addnotes("Each column re-estimates the main {{ATTITUDE_VAR}} -> {{MAIN_DV}}_w relation on a composition subsample; year FE; SE clustered at {{CLUSTER_VAR}}." ///
                  "Size split = bank_effective_size median (xtile, 2 groups). Subsample composition robustness (standard practice; concept anchor Gormley-Matsa 2014 RFS)." ///
                  "Hub split: off-network banks with missing centrality are assigned to the non-hub group (zero_fill_offnetwork_disclose_N convention); see log for the filled N." ///
-                 "Distinct from Table 4 (is_listed interaction heterogeneity). Subsample N small under T=2; production T=18 gives full power.")
+                 "Distinct from Table 4 (is_listed interaction heterogeneity). Subsample N small under T=2; production T=19 gives full power.")
 
     * CSV side-channel (parse_esttab_csv 格式)
     estout `models' using "$tables_dir/tableA14_subsample_composition.csv", replace delimiter(",") ///

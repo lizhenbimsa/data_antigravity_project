@@ -556,7 +556,7 @@ def main():
             logger.info(
                 f"  小样本提示: 当前仅 {n_obs_masked:,d} 个 bank-year 单元 (盘面 T=2 demo), "
                 f"HTMT 矩阵与 permutation null 自由度低, 此结果仅验证管道正确性; "
-                f"判别效度结论以全量 17M / T=18 实测为准。")
+                f"判别效度结论以全量 约1,819万 / T=19 实测为准。")
         logger.info("-" * 72)
     except Exception as _e:
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")

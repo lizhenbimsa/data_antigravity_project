@@ -32,7 +32,7 @@ shift-share instruments and Romano--Wolf familywise error control.
 The theoretical predictions are that strategic distinctness raises
 listed banks' franchise value (Tobin's Q, $\beta>0$) and lowers
 funding costs through deposit pricing power ($\beta<0$). We find
-\NoteThis{key result (production-panel T=18 estimates pending)}\@.
+\NoteThis{key result (production-panel T=19 estimates pending)}\@.
 \end{abstract}
 
 \section{Introduction}\label{sec:intro}
@@ -55,13 +55,13 @@ text records the direction, intensity, and wording of each bank's
 FinTech positioning, and media coverage is itself a central
 information intermediary in capital markets
 \parencite{fang2009media,you2018pen}. We build a corpus of Chinese
-bank--FinTech news spanning 2007--2024: the raw census (before
+bank--FinTech news spanning 2007--2025: the raw census (before
 filtering and deduplication) counts 18{,}198{,}978 media reports from
 3{,}740 outlets, of which newspaper-type reports account for
-92.93\,\% of all rows and are retained; after the newspaper-type
-screen and \emph{before} the bank--FinTech entity co-occurrence hard
-filter, the production target corpus is roughly 17 million articles
-(2007--2024) covering 110 banks over 18 years (T=18). The
+92.93\,\% of all rows and are retained; the production target
+corpus adopts the full census scope \emph{before} the bank--FinTech
+entity co-occurrence hard filter: 18{,}198{,}978 media reports
+(2007--2025) covering 110 banks over 19 years (T=19). The
 co-occurrence hard filter drops rows, so the article count entering
 the regression panel is far smaller than this target corpus.
 
@@ -414,7 +414,7 @@ separate FWER families.
 \subsection{Clustering and Inference Conventions}\label{sec:method-cluster}
 Baseline standard errors are clustered one-way at the bank level (the
 production panel has $G\approx110$ clusters, i.e., 110 banks, over
-T=18); the listed-bank subsample of the main table has even fewer
+T=19); the listed-bank subsample of the main table has even fewer
 clusters, backstopped by Cameron--Gelbach--Miller-style small-$G$
 sensitivity checks; robustness checks compare two-way bank $\times$
 year clustering \parencite{cameron2015practitioner}. There is exactly one
@@ -477,10 +477,10 @@ deduplicated source files and 18{,}198{,}978 media reports spanning
 account for 92.93\,\% of all rows (16{,}912{,}361 rows) and are
 retained, while wire services, magazines, government bulletins, web
 pages, and other types are dropped row-wise. The second is the
-production target corpus scope: after the newspaper-type screen and
-\emph{before} the bank--FinTech entity co-occurrence hard filter,
-roughly 17 million articles (2007--2024) covering 110 banks over
-T=18. The third is the regression panel scope: the bank-year panel
+production target corpus scope: the full census total,
+\emph{before} the bank--FinTech entity co-occurrence hard filter:
+18{,}198{,}978 media reports (2007--2025) covering 110 banks over
+T=19. The third is the regression panel scope: the bank-year panel
 obtained after the (row-dropping) co-occurrence hard filter and the
 full-only retention gate, whose article count is far smaller than the
 second-scope target corpus \NoteThis{Article count after the
@@ -488,7 +488,7 @@ co-occurrence hard filter and retention gate to be read off the full
 production rerun.}; in the current development environment it
 comprises approximately 164 bank-year observations (2017--2018, a T=2
 development slice), while the production panel targets 110 banks
-$\times$ 18 years. \NoteThis{Final production-panel N pending the
+$\times$ 19 years. \NoteThis{Final production-panel N pending the
 financial-panel enrichment and the full production rerun.}
 
 \subsection{Variable Definitions}
@@ -543,7 +543,7 @@ proposition. The full-sample channel re-estimates
 Eq.~(\ref{eq:main}) with \code{funding\_cost} as the outcome, with
 H2 predicting $\beta<0$.
 \NoteThis{All Table 2 coefficients, standard errors, and significance
-levels await the production-panel (T=18) estimates; source
+levels await the production-panel (T=19) estimates; source
 \code{output/tables/table2\_*.csv}.}
 
 Against media-scope endogeneity \parencite{gurun2012hype}, we
@@ -733,7 +733,7 @@ the \code{bank\_constraint} degree$<2\to$NaN listwise loss (N-02)
 and the zero-fill convention of other centrality columns.
 
 \paragraph{Era stability.}
-The T=18 production panel permits re-estimating the baseline by era
+The T=19 production panel permits re-estimating the baseline by era
 (e.g., before vs.\ after the FinTech takeoff; Table 9, exploratory)
 to test the temporal stability of the main effect.
 \NoteThis{Era cutoffs and results await the production panel.}
@@ -780,7 +780,7 @@ warrants caution. Third, the sample covers the single Chinese market,
 whose institutional environment (state ownership dominance, heavy
 regulation, platform-economy structure) is distinctive, so
 extrapolation to other banking systems should be cautious. The
-financial-panel enrichment and the full T=18 production regressions
+financial-panel enrichment and the full T=19 production regressions
 are forthcoming, at which point all result-dependent statements will
 be updated.
 

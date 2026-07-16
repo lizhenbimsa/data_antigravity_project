@@ -557,13 +557,13 @@ def main():
         # 口径消歧 (2026-06-17): 本 stage 真实输入 = _load_pre_dedup_corpus 读 stage 00
         # _cache (normalize+filter 后、去重前快照) ≈ 405万行 (32a 日志实测 4,046,188 "去重前口径";
         # 其中精确去重后 ≈ 385万行 (实测 3,853,947) = 近似 MinHash 去重的基数, 见 line 289 perf 注释);
-        # 17M 是 normalize+filter **之前** 的项目级原始 raw 报道数, 本 stage 永远不会扫到 →
-        # 全量分母只挂一次 "T=18", 给 405万 加 "去重前" 限定、17M 加 "项目级原始" 限定, 防误判量级。
+        # 约1,819万 是 normalize+filter **之前** 的项目级原始 raw 报道数, 本 stage 永远不会扫到 →
+        # 全量分母只挂一次 "T=19", 给 405万 加 "去重前" 限定、约1,819万 加 "项目级原始" 限定, 防误判量级。
         if n_input_rows < 50_000:
             logger.warning(f"  ⚠ 输入仅 {n_input_rows:,} 行 (远小于本 stage 去重前全量语料 ~405万行, "
                            "其中精确去重后 ~385万行为 MinHash 基数): 本次仅验证管道正确性与阈值单调性, "
-                           "稳健性结论须以全量去重前语料 (~405万行 = 项目级原始 17M 经 normalize+filter 后, "
-                           "2007-2024 T=18) 实测为准。")
+                           "稳健性结论须以全量去重前语料 (~405万行 = 项目级原始 约1,819万 经 normalize+filter 后, "
+                           "2007-2025 T=19) 实测为准。")
     except Exception as _e:
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
     logger.info("-" * 72)

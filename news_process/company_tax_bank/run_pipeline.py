@@ -45,7 +45,7 @@ LOCK_FILE = HERE / "logs" / "_run_pipeline.lock"
 # 03 分支长表 (千万行级) 的加权引擎内存预算默认值 (T-D13 / WP-S1 提速 v2): 媒体权稀疏长表用引擎默认
 # 60M 即可, 但 03 城网点长表 15M 行 / 县 8M 行 (v7 年窗 2011–2020), 默认 60M 会把 chunk_eff 收缩到
 # city 3 / county 7 (city <4 触发内存吃紧 WARNING) 且 groupby 轮次暴涨。见下方常量: 1.0B 使 chunk_eff city 33→66 / county 62→100。
-_BRANCH_BUDGET_CELLS = 1_000_000_000  # WP-S1 (提速计划 v2): 500M→1.0B, city chunk_eff 33→66 / county 62→100 (cap), 减 chunk 数; ⚠ 提速非单调 (实测 7db15e69): city 引擎 781→478s 但 county 312→510s 反变慢 (大帧内存带宽/重叠争用), 净仍 -660s 但生产 T=18 须 per-分支实测最优; 峰值 ~35-45GB 投影 (128GB 安全, mid-chunk RSS 实测 DEFERRED); chunk 位级无涉 golden-safe (test_engine_chunk_invariance_bitwise 锚)
+_BRANCH_BUDGET_CELLS = 1_000_000_000  # WP-S1 (提速计划 v2): 500M→1.0B, city chunk_eff 33→66 / county 62→100 (cap), 减 chunk 数; ⚠ 提速非单调 (实测 7db15e69): city 引擎 781→478s 但 county 312→510s 反变慢 (大帧内存带宽/重叠争用), 净仍 -660s 但生产 T=19 须 per-分支实测最优; 峰值 ~35-45GB 投影 (128GB 安全, mid-chunk RSS 实测 DEFERRED); chunk 位级无涉 golden-safe (test_engine_chunk_invariance_bitwise 锚)
 
 logger = logging.getLogger("run_pipeline")
 if not logger.handlers:  # console 兜底; main() 实跑时由 setup_logging 接管
@@ -390,7 +390,7 @@ def _log_run_summary(step_stats: list[tuple[str, str, float]], total: float) -> 
         logger.info("  · 04 判读: frozenw dev 上税调窗 2011–2020 内 8/10 年零共现 → 2011–2016 全左截断 NaN")
         logger.info("    属预期构造退化 (生产语料恢复); 两面板与三权各自 just-identified 并排, 禁混同一 Hansen J;")
         logger.info("    重跑 02 后本步产物与 codebook 章 stale, 须补跑 04 (级联义务)")
-    logger.info("  · 生产 T=18 预期差异: 当前上游 21_full 为 dev 语料口径, 覆盖/富集度实测以互验报告为准;")
+    logger.info("  · 生产 T=19 预期差异: 当前上游 21_full 为 dev 语料口径, 覆盖/富集度实测以互验报告为准;")
     logger.info("    生产重跑后 §6 级联义务生效 (哈希锚 bump → 02 pair 指纹 → 03 双向锁 → 04 补跑), 墙钟与 IO 同步放大")
 
 

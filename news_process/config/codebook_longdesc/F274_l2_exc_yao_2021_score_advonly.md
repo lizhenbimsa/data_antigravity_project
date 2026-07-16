@@ -90,7 +90,7 @@ new_dois:
 ## VAR: exc_yao_2021_score_advonly_ss
 
 【变体差分】
-本列与参照列的差异同样在文本轨道: 取 ss (同句共现) 轨。ss 轨 = 标题 prepend + 目标银行与金融科技词在同一句子内共现的窗口 (句半径由 config/filtering.yaml 的 context_window.ss_sentence_radius 控制, 默认 ±1 句), 是三轨中最严格的文本口径, 只在银行与金科概念真正同句耦合处读取语调, 力图刻画"银行—金科"这一特定关系上的情感, 而非银行泛报道情感。ss 的回退语义镜像 ctx: 当某篇报道不存在银行∧金科同句共现时, content_ss 回退为全文正文且 ss_is_fallback 置 True; 当金科 AC 自动机为 None 时该轨全部优雅降级。因此 ss 轨在稀疏语料 (如盘上 T=2 开发样本) 上可能大量回退甚至零方差退化, 属预期行为, 生产 T=18 语料下才充分展开。文章级打分同样只保留转折规则 (apply_negation=False, apply_degree=False, apply_adversative=True), 归一化分母在 ss 超级文档范围内自算; 聚合仍限于剔除退出媒体后的存活媒体子样本, bank-year 取均值。ss 与 full/ctx 互为稳健性、不分主次, 各自 just-identified 并排, 禁混入同一 over-identified Hansen J。本列同时回答两层稳健性问题: "把语调读取收紧到银行与金科同句关系上后"以及"打分规则只保留转折机制后", 退出媒体剔除的结论是否稳健——是本家族中约束最强、最易在小样本下呈现回退与零方差退化的一格。
+本列与参照列的差异同样在文本轨道: 取 ss (同句共现) 轨。ss 轨 = 标题 prepend + 目标银行与金融科技词在同一句子内共现的窗口 (句半径由 config/filtering.yaml 的 context_window.ss_sentence_radius 控制, 默认 ±1 句), 是三轨中最严格的文本口径, 只在银行与金科概念真正同句耦合处读取语调, 力图刻画"银行—金科"这一特定关系上的情感, 而非银行泛报道情感。ss 的回退语义镜像 ctx: 当某篇报道不存在银行∧金科同句共现时, content_ss 回退为全文正文且 ss_is_fallback 置 True; 当金科 AC 自动机为 None 时该轨全部优雅降级。因此 ss 轨在稀疏语料 (如盘上 T=2 开发样本) 上可能大量回退甚至零方差退化, 属预期行为, 生产 T=19 语料下才充分展开。文章级打分同样只保留转折规则 (apply_negation=False, apply_degree=False, apply_adversative=True), 归一化分母在 ss 超级文档范围内自算; 聚合仍限于剔除退出媒体后的存活媒体子样本, bank-year 取均值。ss 与 full/ctx 互为稳健性、不分主次, 各自 just-identified 并排, 禁混入同一 over-identified Hansen J。本列同时回答两层稳健性问题: "把语调读取收紧到银行与金科同句关系上后"以及"打分规则只保留转折机制后", 退出媒体剔除的结论是否稳健——是本家族中约束最强、最易在小样本下呈现回退与零方差退化的一格。
 
 <!-- rendered-citations:begin -->
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049

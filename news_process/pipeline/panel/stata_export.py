@@ -1999,7 +1999,7 @@ def _log_export_result_analysis(log, panel_path: str, results: Dict[str, str]) -
                      f"覆盖 {n_banks} 家银行 × 年份跨度 {span} ({len(years)} 个年度)。")
             if len(years) <= 2:
                 log.info("    ⚠ 小样本 (T≤2): 这是开发盘面占位样本, 仅验证管道正确性; "
-                         "全量结论以 17M 文 / T=18 (2007–2024) 实测为准。")
+                         "全量结论以 约1,819万 文 / T=19 (2007–2025) 实测为准。")
 
         # 2) fintech 情感三轨 (full/ctx/ss) 主指标齐备性 — 缺则下游论文该轨回归空跑
         track_metrics = {

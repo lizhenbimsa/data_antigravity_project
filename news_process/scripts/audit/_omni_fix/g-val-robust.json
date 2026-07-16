@@ -58,7 +58,7 @@
   "title": "Pielou 均匀度 J' 对单一媒体 (n_unique≤1) 返回 1.0 ('完全均匀'), 与同报告 HHI=1 ('完全集中') 自相矛盾",
   "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\validation\\media_diversity.py",
   "line": "207-210",
-  "claim": "compute_pielou_evenness: `if n_unique <= 1: return 1.0`。Pielou (1966) J'=H/log2(S) 在 S=1 时为 0/0 未定义, 生态学惯例报 NaN/不适用; 此处为绕开 log2(1)=0 除零而硬编码 1.0, 把'被单一媒体完全垄断'报成'完全均匀' (J' 语义上界), 与同函数输出的 HHI=1.0、Gini、ENM=1 的'完全集中'判读直接冲突。bank 级循环 (media_diversity.py:613,712) 对长尾小银行单媒体覆盖是常态, 全量 T=18 下触发频繁。",
+  "claim": "compute_pielou_evenness: `if n_unique <= 1: return 1.0`。Pielou (1966) J'=H/log2(S) 在 S=1 时为 0/0 未定义, 生态学惯例报 NaN/不适用; 此处为绕开 log2(1)=0 除零而硬编码 1.0, 把'被单一媒体完全垄断'报成'完全均匀' (J' 语义上界), 与同函数输出的 HHI=1.0、Gini、ENM=1 的'完全集中'判读直接冲突。bank 级循环 (media_diversity.py:613,712) 对长尾小银行单媒体覆盖是常态, 全量 T=19 下触发频繁。",
   "evidence": "media_diversity.py:207-210: `if n_unique <= 1: return 1.0; h_max = np.log2(n_unique); return float(shannon / h_max) if h_max > 0 else 1.0` — 两个退化出口都返回 1.0。配套 :350 `shannon_max = float(np.log2(n_unique)) if n_unique > 1 else 1.0` 在报告里把 H_max 显示为 1.0 (真值 0)。",
   "suggested_fix": "n_unique<=1 → 返回 float('nan') (J' 不适用), 报告列注 'S=1 不适用'; shannon_max 同步显示 0。",
   "adjudication": "media_diversity.py:207-208 n_unique≤1 返回 1.0(J'=H/log2(S) 在 S=1 为 0/0 未定义), 把单媒体垄断报成'完全均匀', 与同函数 HHI=1/ENM=1 集中判读冲突, :350 H_max 显示1.0(真0)。但仅 report 诊断列(非面板/回归), 且 corpus/region/年度调用路径 n_unique 恒大→盘上 T=2 不触发; 发现者'bank级常态'略夸(per-bank循环605未调Pielou)。",

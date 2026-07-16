@@ -1410,7 +1410,7 @@ def main(argv=None) -> int:
     logger.info("     双权并令互验富集度向上偏; 落盘前剔除保证长表任何下游消费者都拿不到泄漏行。")
     logger.info("  ③ 覆盖锚: 城 A≥90%∧B≥99.5% / 县 A≥85%∧B≥99.5% 四 SystemExit 闸已过 (好)")
     logger.info("     判读: A 翻红 = '存续判定全错→网点全零'剧本; B 翻红 = 键清洗/T-D5c 回退失效或数据商")
-    logger.info("     字段改码。生产 T=18 复跑若翻红, 先查数据商改版而非放松阈值 (T-D6 铁律)。")
+    logger.info("     字段改码。生产 T=19 复跑若翻红, 先查数据商改版而非放松阈值 (T-D6 铁律)。")
     logger.info("  ④ (i) 类恒等 + county_key_ok: 占位 %s 家两权逐格恒等 ✓ | 缺键 %s 家单向 gate ✓ (好)",
                 f"{len(ph_set):,}", f"{n_keyok0:,}")
     logger.info("     判读: 恒等是构造保证的运行时证据 (同一 net_city 表同式 merge); county_key_ok 把")
@@ -1436,8 +1436,8 @@ def main(argv=None) -> int:
                 len(spearman_neg), f" ({'; '.join(spearman_neg)})" if spearman_neg else "")
     logger.info("     ④b 篇数均值差 <1× 权源 (反向证据, 点名披露): %d 个%s — 同上以生产复跑定谳",
                 len(meandiff_below), f" ({'; '.join(meandiff_below)})" if meandiff_below else "")
-    logger.info("  ⑧ dev vs 生产 T=18 预期差异: 媒体锚出自 dev 语料, 共同支撑对数偏小 (Spearman 可现")
-    logger.info("     n/a, 小样本 ρ 波动大属预期); 生产 17M 篇/T=18 下共同支撑将数量级增厚, 互验数值以")
+    logger.info("  ⑧ dev vs 生产 T=19 预期差异: 媒体锚出自 dev 语料, 共同支撑对数偏小 (Spearman 可现")
+    logger.info("     n/a, 小样本 ρ 波动大属预期); 生产 约1,819万 篇/T=19 下共同支撑将数量级增厚, 互验数值以")
     logger.info("     生产复跑为准; 权源 dta 侧锚 (行数/覆盖/端点闸) 不随语料变, 翻红另查数据商改版;")
     logger.info("     dev 产物不可用于任何回归 (T-D13 禁令)。")
     logger.info("-" * 70)

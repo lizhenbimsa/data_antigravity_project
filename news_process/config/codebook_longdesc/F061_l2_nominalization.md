@@ -102,7 +102,7 @@ new_dois:
 ## VAR: avg_nominalization_ctx
 
 【变体差分】
-本列是名词化率家族的 ctx 轨。其文章级输入文本为 content_ctx——标题 prepend 后, 仅保留实体上下文窗口内的文本 (银行实体命中位置周围的句子窗口), 因而相对 full 轨聚焦于报道中真正谈及目标银行的局部段落, 剔除了与该银行无关的背景铺陈。这一窗口截断使 ctx 轨的名词化率刻画"围绕银行的那部分行文有多程式化", 语义上比 full 轨更贴近报道对具体银行的直接表述风格, 但代价是可用文本变短、估计方差上升。口径上, ctx 轨是 conditional-on-full 的测度/稳健性轨: 其银行-年行宇宙是 full 留篇集的子集, 留篇判定仍由 full-only 门控 (llm_verified_full) 决定, ctx 轨自身不另设留篇门, 只在留篇集内按 content_ctx 逐篇计算并 'mean' 聚合 (缺轨或空文本篇返回 NaN 由 'mean' 跳过, 不借 full 分母)。相对 canonical 的 full 主轨, 本列的差分维度是文本窗口——由全文收窄为实体上下文窗口, 而非改动名词化判据、后缀集合或聚合方式。三轨各自 just-identified 并排、互为稳健性、不分主次, 严禁把 ctx 与 full/ss 的名词化率混入同一 over-identified 的 Hansen J。开发期 T=2 短面板上, ctx 轨因文本更短可能出现更多 NaN 与更高方差, 属预期退化, 生产期 T=18 全量语料下方能体现其作为局部风格稳健性轨的价值。
+本列是名词化率家族的 ctx 轨。其文章级输入文本为 content_ctx——标题 prepend 后, 仅保留实体上下文窗口内的文本 (银行实体命中位置周围的句子窗口), 因而相对 full 轨聚焦于报道中真正谈及目标银行的局部段落, 剔除了与该银行无关的背景铺陈。这一窗口截断使 ctx 轨的名词化率刻画"围绕银行的那部分行文有多程式化", 语义上比 full 轨更贴近报道对具体银行的直接表述风格, 但代价是可用文本变短、估计方差上升。口径上, ctx 轨是 conditional-on-full 的测度/稳健性轨: 其银行-年行宇宙是 full 留篇集的子集, 留篇判定仍由 full-only 门控 (llm_verified_full) 决定, ctx 轨自身不另设留篇门, 只在留篇集内按 content_ctx 逐篇计算并 'mean' 聚合 (缺轨或空文本篇返回 NaN 由 'mean' 跳过, 不借 full 分母)。相对 canonical 的 full 主轨, 本列的差分维度是文本窗口——由全文收窄为实体上下文窗口, 而非改动名词化判据、后缀集合或聚合方式。三轨各自 just-identified 并排、互为稳健性、不分主次, 严禁把 ctx 与 full/ss 的名词化率混入同一 over-identified 的 Hansen J。开发期 T=2 短面板上, ctx 轨因文本更短可能出现更多 NaN 与更高方差, 属预期退化, 生产期 T=19 全量语料下方能体现其作为局部风格稳健性轨的价值。
 
 ## VAR: avg_nominalization_ss
 

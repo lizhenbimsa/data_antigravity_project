@@ -16,13 +16,13 @@
   "id": "g-templates-02",
   "severity": "P3",
   "latent": true,
-  "title": "substance 论文 3 处 xtile 在全年份 pooled 分布上切分位 (cap_q/car_q/disclose_q), T=18 下趋势变量的分位组沦为年代代理 [latent]",
+  "title": "substance 论文 3 处 xtile 在全年份 pooled 分布上切分位 (cap_q/car_q/disclose_q), T=19 下趋势变量的分位组沦为年代代理 [latent]",
   "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\papers\\_common\\stata_templates\\bank_fintech_substance\\17_substance_heterogeneity.do.tmpl",
   "line": "70 (cap_q); 同族 19_substance_lr_reversal.do.tmpl:50 (car_q), 20_substance_disclosure_quality.do.tmpl:45 (disclose_q)",
-  "claim": "`xtile cap_q = capital_ratio, n(4)` 在 pooled bank-year 全样本上算四分位 (无 by-year), 随后按 cap_q 逐组跑 reghdfe (L71-75)。中国银行业 capital_ratio 在 2007-2024 因 Basel III 阶段达标系统性上行 → pooled 四分位下 Q1 被早年观测占满、Q4 被晚年占满, '资本充足度异质性'实质混入'年代异质性'; 且 t 年观测的分组阈值由含未来年份的全样本分布决定 (in-sample 分位阈值)。19 的 car_q (事件 CAR 五分位) 与 20 的 disclose_q (披露长度四分位) 同型。盘上 T=2 不显, 全量 T=18 实质化。",
+  "claim": "`xtile cap_q = capital_ratio, n(4)` 在 pooled bank-year 全样本上算四分位 (无 by-year), 随后按 cap_q 逐组跑 reghdfe (L71-75)。中国银行业 capital_ratio 在 2007-2025 因 Basel III 阶段达标系统性上行 → pooled 四分位下 Q1 被早年观测占满、Q4 被晚年占满, '资本充足度异质性'实质混入'年代异质性'; 且 t 年观测的分组阈值由含未来年份的全样本分布决定 (in-sample 分位阈值)。19 的 car_q (事件 CAR 五分位) 与 20 的 disclose_q (披露长度四分位) 同型。盘上 T=2 不显, 全量 T=19 实质化。",
   "evidence": "17_substance_heterogeneity.do.tmpl L70-75: `xtile cap_q = capital_ratio, n(4)` + `forval q = 1/4 { reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if cap_q == `q' ... }` — 无 by(year) 维度 (Stata 原生 xtile 不支持 by, 需循环或 astile)。",
   "suggested_fix": "按年切分位: `egen cap_q = xtile(capital_ratio), by(year) nq(4)` (egenmore/astile) 或 forval 年循环 xtile; 或改用 pre-period (T0 年) capital_ratio 固定分组。car_q/disclose_q 同改。",
-  "adjudication": "17_substance_heterogeneity.do.tmpl:70 xtile cap_q无by-year+19:50 car_q+20:45 disclose_q逐行核实。capital_ratio/car_3day_window/ln_fintech_mdna_length三列盘上panel均不存在→capture confirm全部跳过, 当前不触发; 全量T=18下Basel III资本充足率系统上行使pooled四分位混入年代+in-sample阈值含未来年份。latent坐实。",
+  "adjudication": "17_substance_heterogeneity.do.tmpl:70 xtile cap_q无by-year+19:50 car_q+20:45 disclose_q逐行核实。capital_ratio/car_3day_window/ln_fintech_mdna_length三列盘上panel均不存在→capture confirm全部跳过, 当前不触发; 全量T=19下Basel III资本充足率系统上行使pooled四分位混入年代+in-sample阈值含未来年份。latent坐实。",
   "unit": "sweep-insample-leakage"
  },
  {
@@ -188,10 +188,10 @@
   "title": "14_table5 四连缺陷: (a) `eststo MAIN_BOOT: estimates store` 语法错 r(100) — boottest 已安装时 5d 整块中断; (b) leave-one-out 'n_stable' 无条件自增, 表注 'X/Y consistent β' 是恒真假统计量; (c) placebo 声称'随机置换保数量'实为 iid 重抽; (d) T=2 下 5b 子样本 0 obs r(2000) 崩",
   "file": "papers/_common/stata_templates/14_table5_advanced_robustness.do.tmpl",
   "line": "69 (a); 53-62+85 (b); 29-39 (c); 43-49 (d)",
-  "claim": "(a) L69 `eststo MAIN_BOOT: estimates store` — estimates store 必须带名字, 实证 r(100) 'name required'; 该行在 `capture which boottest` 通过后无 capture 执行 → 用户按表注建议装了 boottest 反而让 Table 5 整个 do-file 中断 (wild bootstrap p 永远算不到)。(b) L60 `local n_stable = n_stable + 1` 无任何 95% CI 判定 (L52 注释承诺 'β across leave-one-out 应在 95% CI 内'), L59 算出的 b_coef 弃用 → 表注 (L85) 发表的稳定性比率恒为 100%, 是装饰性假检验。(c) L34-35 注释称 '随机置换 digital_frontier (保 bank-level 数量)', 实际 `bysort bank_id: gen _rand_treat=runiformint(0,1)` 是逐观测 iid Bernoulli, 不保留处理边际分布, 非 permutation; bysort 无 stable, 平局序非确定。(d) T=2 面板实测 floor((2017+2018)/2)=2017, `if year<2017` 0 obs → reghdfe r(2000) 无守卫崩 (T=18 全量下 2015 正常, 标 latent-on-dev)。",
+  "claim": "(a) L69 `eststo MAIN_BOOT: estimates store` — estimates store 必须带名字, 实证 r(100) 'name required'; 该行在 `capture which boottest` 通过后无 capture 执行 → 用户按表注建议装了 boottest 反而让 Table 5 整个 do-file 中断 (wild bootstrap p 永远算不到)。(b) L60 `local n_stable = n_stable + 1` 无任何 95% CI 判定 (L52 注释承诺 'β across leave-one-out 应在 95% CI 内'), L59 算出的 b_coef 弃用 → 表注 (L85) 发表的稳定性比率恒为 100%, 是装饰性假检验。(c) L34-35 注释称 '随机置换 digital_frontier (保 bank-level 数量)', 实际 `bysort bank_id: gen _rand_treat=runiformint(0,1)` 是逐观测 iid Bernoulli, 不保留处理边际分布, 非 permutation; bysort 无 stable, 平局序非确定。(d) T=2 面板实测 floor((2017+2018)/2)=2017, `if year<2017` 0 obs → reghdfe r(2000) 无守卫崩 (T=19 全量下 2015 正常, 标 latent-on-dev)。",
   "evidence": "本机 Stata 实证 TEST2: `eststo X: estimates store` → 'name required' _rc=100。代码 L56-61 循环体内无任何 if/CI 比较。实测面板 years=[2017,2018], year<2017 计数=0。",
   "suggested_fix": "(a) 改为裸 `eststo MAIN_BOOT` (无冒号命令); (b) 实装 CI 判定: 先存主回归 β±1.96SE, 循环内比较后再计数; (c) 改真置换 (shuffle 处理向量) 或如实改注释; (d) T<3 时守卫跳过子期切分。",
-  "adjudication": "(a):69 本机实证 r(100) name required, 在 :66 which boottest 通过分支内无 capture→装包反致中断; (b):55-62 n_stable 无条件自增、b_coef 弃用、:85 恒 100%; (c):35 逐 obs iid runiformint 非置换, bysort 无 stable; (d)实测 years=2017/2018→:46 year<2017 零 obs r(2000), T=18 不触发。",
+  "adjudication": "(a):69 本机实证 r(100) name required, 在 :66 which boottest 通过分支内无 capture→装包反致中断; (b):55-62 n_stable 无条件自增、b_coef 弃用、:85 恒 100%; (c):35 逐 obs iid runiformint 非置换, bysort 无 stable; (d)实测 years=2017/2018→:46 year<2017 零 obs r(2000), T=19 不触发。",
   "unit": "stata-templates-mainline"
  },
  {

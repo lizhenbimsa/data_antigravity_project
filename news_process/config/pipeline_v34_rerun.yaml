@@ -27,10 +27,10 @@ raw_ingest:
   source_path: null  # 绝对路径或数据库连接串
   credentials_ref: null  # 环境变量名 (如 RAW_DATA_API_KEY); 绝不把凭证明文写进本文件
   schema_doc: null  # 原始数据 schema 文档的路径
-  cutoff_date: 2024-12-31  # raw 抓取截止日 (per plan §1 "2007-2024 (18 年)")
+  cutoff_date: 2025-12-31  # raw 抓取截止日 (per plan §1 "2007-2025 (19 年)")
   expected_record_count: 400000
   expected_bank_count: 500
-  expected_year_range: [2007, 2024]
+  expected_year_range: [2007, 2025]
 
 # ----------------------------------------------------------------------------
 # M0.5.2 - M0.5.7 sentiment / panel build (referencing existing config/*.yaml)
@@ -110,7 +110,7 @@ cross_era_kappa_test:
     - { period: "2007-2010", n_sample: 100 }
     - { period: "2011-2014", n_sample: 100 }
     - { period: "2015-2018", n_sample: 100 }
-    - { period: "2019-2024", n_sample: 100 }
+    - { period: "2019-2025", n_sample: 100 }
   acceptance_kappa_min: 0.7
   output: "eval_reports/cross_era_kappa_v34.json"
 

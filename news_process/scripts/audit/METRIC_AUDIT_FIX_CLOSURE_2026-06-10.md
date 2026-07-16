@@ -93,7 +93,7 @@ fix-safety 复核警示的 4 个复杂项已按精确设计落地, 各配专用�
 ---
 
 ## 4. 诚实边界
-1. 验证基于 T=2 盘上样本; clarity/num_intensity/prox/regional 修复 scale 正确但在该无-NaN/全匹配样本上无值变 — 全量 T=18 (有空文本/未定位/未匹配) 方显效。
+1. 验证基于 T=2 盘上样本; clarity/num_intensity/prox/regional 修复 scale 正确但在该无-NaN/全匹配样本上无值变 — 全量 T=19 (有空文本/未定位/未匹配) 方显效。
 2. VW/MW/HW / fintech_share / prob-score / tone_words IDF / forward_looking 为 staged (设计就位, 未落实现) — 见 §2。
 3. 上游 (stage 21/22/24) 代码修的 golden 落盘 defer 到 production run (piecemeal 重跑风险)。
 4. Stata 模板侧 (Table 2 declared-vs-implemented design gap, 3rd-layer P1) 属 manuscript/spec 层, 未在本批代码修。
@@ -107,7 +107,7 @@ fix-safety 复核警示的 4 个复杂项已按精确设计落地, 各配专用�
 对全部修复 diff 跑 11-族对抗复核工作流 (2.6M tok) + 主控亲验。**controls-fintech-share 全清白**; NSP-B 经对抗 verifier 推翻(2nd-order renorm 是正确性改进非过度修正)。逮出并已处置:
 
 ### 5a. 真实缺陷 (已修)
-- **NSP-1 (major, missed-sibling)**: `emb_peer_tone`(稠密嵌入同行网, network_spillover.py:1254)**仍用 fillna(0)** —— 与 peer_tone 同病根。已改观测重归一。⚠ **NSP-A**: 该轨依赖 30a_article_embeddings(缺), stage 45 未重跑嵌入 pass → 盘上/golden 暂未反映(repro 仍绿因二者同陈旧); T=2 上为近-no-op(缺 tone 银行 coverage=0→权重~0, 旧≈新), 真实差异仅 T=18, **落盘待带 embeddings 的 production run**。
+- **NSP-1 (major, missed-sibling)**: `emb_peer_tone`(稠密嵌入同行网, network_spillover.py:1254)**仍用 fillna(0)** —— 与 peer_tone 同病根。已改观测重归一。⚠ **NSP-A**: 该轨依赖 30a_article_embeddings(缺), stage 45 未重跑嵌入 pass → 盘上/golden 暂未反映(repro 仍绿因二者同陈旧); T=2 上为近-no-op(缺 tone 银行 coverage=0→权重~0, 旧≈新), 真实差异仅 T=19, **落盘待带 embeddings 的 production run**。
 - **PROBGATE-1 (major)**: prob-score 门控只做了模型级、漏了**文章级**(final_v=False/tie→final_s=None 时 avg_prob_score 未置 nan)。已补 `if final_s is None: avg_prob_score=nan`。
 - **radius_sensitivity F1 (major)**: 零方差守卫返 NaN 但下游 min/mean **非 NaN-safe** → 仍污染裁决。已把 7 处 pearson 聚合改 np.nanmin/np.nanmean。
 - **vwmwhw-F1 (minor, broken-invariant)**: 新 30 列 sum_wd_* 漏"计数/和→0"零填契约 → 零新闻行残 NaN。已加 sum_wd_ 入 zero_fill(本轮 golden-impacting, 已重生)。

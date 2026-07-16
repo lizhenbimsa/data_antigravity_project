@@ -103,7 +103,7 @@ def plot_benefit_distribution_with_subsampling_ci(
     with-replacement 块自助 (Carlstein/Künsch block bootstrap)。现 (a) 图注/
     标题改为 cluster block bootstrap; (b) 改按 ``target_bank`` 整簇重采样
     (cluster bootstrap over banks), 替代位置切片块 — 位置块在 dropna 移位 /
-    全量 T=18 不平衡面板下会跨银行, 不再 preserve within-bank dependence。
+    全量 T=19 不平衡面板下会跨银行, 不再 preserve within-bank dependence。
     注: J-L-M 2026 Figure 2 caption 的 "subsampling" 措辞不再照搬, 以实现为准。
 
     ``block_size`` 仅在面板缺 target_bank 列的 positional fallback 下生效。

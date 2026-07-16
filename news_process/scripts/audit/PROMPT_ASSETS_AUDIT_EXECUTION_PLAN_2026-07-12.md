@@ -128,7 +128,7 @@
 批次 C（手稿层/文档，投稿前）：M4 + S5 + S6 + S4 + §10 WP-R5 [纯文档]
 批次 D（代码 golden-safe 批）：S2 S3 S7 S8 S10 S11 S12 S13
                               + §10 WP-R3 proxy 构造($0)     [每项独立可回退]
-批次 E（生产 T=18 付费窗口，M0 门）：§10 WP-R1(⊇S9+D8) + WP-R4(⊇D7)
+批次 E（生产 T=19 付费窗口，M0 门）：§10 WP-R1(⊇S9+D8) + WP-R4(⊇D7)
                               前置=生产 stage 21 播种完成；硬顺序仅两条：
                               ① S9 修字+WP-R1.1 ②③ 先于变体 36k 播种（修字 $0 且与
                               主播种无耦合，可提前任何时点做，勿因本行误等生产窗口）；
@@ -197,7 +197,7 @@ v9 通道（跨批次，增补 3 统筹推进）：(a)/(c) 起草+G-v9-1 评审+
 - **G2**：情感人工效标装置构念错位（=M3，盲表缺 target_bank+"整体语调"指南）。
 - **G3**：创新三维人类金标准**"装置已备、真值为零"**——MVP-0622 通道（`scripts/migrate/manual_validation_sampling.py` + `validation/manual_validation_schema.py`：三编码员 R1/R2/R3、stage3a/b/c 九组列、B/C/D/E 四格分层各 100 + 拒判层 A + 纯随机层 F、v7ref 反锚定双文件）已建成，但盘上无 `manual_validation_samples.xlsx`、人工填写为零；且三维为单方法构念（只有 LLM 一种测法）。
 - **G4**：radius_sensitivity_llm 是 scaffold 从未真跑（D7 三不闭合）。
-- **G5**：全部统计效度检验都在 T=2 dev 样本，不可外推 T=18。
+- **G5**：全部统计效度检验都在 T=2 dev 样本，不可外推 T=19。
 
 ### WP-R1 措辞敏感性闭环（⊇S9+D8；覆盖阶段一+三，兼及阶段二）
 
@@ -210,7 +210,7 @@ v9 通道（跨批次，增补 3 统筹推进）：(a)/(c) 起草+G-v9-1 评审+
    - 精度声明：verification κ 95% CI 半宽 ≈ ±0.05（n=1000, 边际≈0.67）；创新三维在 verified 子集（n≈670）且类别偏斜下 ±0.12–0.14；**每维少数类地板 ≥60 篇**，不足则按 LLM 预测标签定向过采样 + poststratify 还原；min-κ 是 4 变体序统计量、系统性低估 ~0.5–1 SE——pass 判定用点估计 vs 阈值并强制披露 CI（indifference-zone 备选，二选一预登记）。
 4. **聚合层证据（辅助、非 gate；独立 audit 脚本，禁耦合进 `passed`）**：主报**文章级配对指标**（变体 vs V0 tone 相关、标签翻转率 π̂）+ **Spearman–Brown 解析外推** λ = σ²_true/(σ²_true+σ²_flip/n̄) 到生产格深 n̄ 的面板信度——直接回答"标签级 κ 低是否传导到面板级"；整群设计下 n≥5 的格做加权 ρ 作次要展示（格数少则如实降格 illustrative）。实现：`generate_reports` detail CSV 增列 target_bank/年份/三创新维标签（现只有 verified/sentiment），聚合分析放 `scripts/audit/` 独立脚本只消费 CSV。
 5. **预登记决策树（生产重跑仍 fail 时）**：(i) **排除"未经 §11 gates 的即时 prompt 修改"作为本分支补救**（WP-R1 fail 不构成绕过 G-v9-0..3 的理由；未经受控重生的 prompt_version 翻转 = 2.1GB 缓存+golden 锚全废）；弱维发现转入 §11.1(b) 作为 v9 定向强化的设计输入（v9 本身按 §11 自有 gates 推进，非本分支的即时补救）；(ii) 限界节逐维披露 κ 与 CI；(iii) **效度锚 = 人工效标（WP-R2）**——V0 与人工金标准 agreement 达标则 V0 作为既定操作化成立，措辞敏感性降格为"替代操作化间信度问题"如实披露；三家共识仅作**模型轴**稳健性证据，**不得表述为对措辞轴的补救**（两轴正交，范畴错误）；**阻塞语义**：若 WP-R1 fail 而人工效标尚未收口，本分支判定挂起至人工窗口收口，不得以未收口数据预判；(iii-b 可选) 抽样子集上各变体标签重构 treatment 的 specification-curve 式系数展示（illustrative）；(iv) 涉事维度论文声明降格。
-6. **成本/隔离/前置**：36,000 付费请求（V0 $0 从 `21_tone_llms_full.parquet` 读）≈ 数十至低两百美元、concurrency=20 约 4–6h；全部写 `_llm_cache_validation.db`（W4 隔离，与 WP-B1 golden 重生窗口零互斥）；**前置 = 生产 T=18 stage 21 播种完成**；随 §5 批次 E 过 M0（先例：批次 E 本含 S9/D8 同笔预算）。
+6. **成本/隔离/前置**：36,000 付费请求（V0 $0 从 `21_tone_llms_full.parquet` 读）≈ 数十至低两百美元、concurrency=20 约 4–6h；全部写 `_llm_cache_validation.db`（W4 隔离，与 WP-B1 golden 重生窗口零互斥）；**前置 = 生产 T=19 stage 21 播种完成**；随 §5 批次 E 过 M0（先例：批次 E 本含 S9/D8 同笔预算）。
 
 ### WP-R2 人工效标补全（前置=M3；创新三维走 MVP-0622 既有通道）
 
@@ -240,10 +240,10 @@ v9 通道（跨批次，增补 3 统筹推进）：(a)/(c) 起草+G-v9-1 评审+
 4. **费用与 $0 前哨**：1000 篇（与 WP-R1 共帧）× 3 模型 × 3 新 radii {0,2,3} × ctx 单轨 = **9,000 请求** ≈ WP-R1 的 1/4；**先跑 $0 词典法前哨**——姊妹模块 `validation/radius_sensitivity.py`（6 词典本地）在生产语料跑半径梯子，LLM 法只对词典法显示不稳的维度全量跑（最坏省 2/3）；**降级方案预登记**：deepseek 单模型全 radii + 两家端点 {0,3}（within-model 识别 + 端点可迁移性），端点三家 κ 分歧 >0.1 则降级作废、补跑或列限界。
 5. 前置与预算同 WP-R1（生产 stage 21 播种完成；批次 E 同一预算单过 M0）。
 
-### WP-R5 生产 T=18 稳健性总闸（纯文档，可先行）
+### WP-R5 生产 T=19 稳健性总闸（纯文档，可先行）
 
-1. **新建 `scripts/audit/M0_PRODUCTION_GATE_CHECKLIST.md`** 作为 M0 门唯一实体文件（现状：33 个 audit 计划引用 M0、无实体、`DEFERRED_ITEMS_COMPLETION_2026-06-20.md:62` 指向的 memory 已不存在），内设"robustness verdicts at T=18"一节：prompt_sensitivity / radius / 人工 κ / proxy 三角化四件套必须有 T=18 记录（重跑或有效性论证），并写明核查动作（grep manuscripts 样本口径句），非只写原则。
-2. **证据三分类（替代一刀切禁令）**：**A 类**=工程不变量/构造性结论（代码路径、位级等价、schema parity、fail-loud 逻辑、EOL）——T=2 永久有效，引用标注 "code-invariant, sample-size-independent"；**B 类**=数学恒等/退化论证——豁免但标注；**C 类**=统计效度结论（κ/α/φ/翻转率/聚合相关及一切"稳健/不稳健"判定）——必须 T=18，T=2 结果只能以 "pilot, not evidential" 出现。四件套全落 C 类。
+1. **新建 `scripts/audit/M0_PRODUCTION_GATE_CHECKLIST.md`** 作为 M0 门唯一实体文件（现状：33 个 audit 计划引用 M0、无实体、`DEFERRED_ITEMS_COMPLETION_2026-06-20.md:62` 指向的 memory 已不存在），内设"robustness verdicts at T=19"一节：prompt_sensitivity / radius / 人工 κ / proxy 三角化四件套必须有 T=19 记录（重跑或有效性论证），并写明核查动作（grep manuscripts 样本口径句），非只写原则。
+2. **证据三分类（替代一刀切禁令）**：**A 类**=工程不变量/构造性结论（代码路径、位级等价、schema parity、fail-loud 逻辑、EOL）——T=2 永久有效，引用标注 "code-invariant, sample-size-independent"；**B 类**=数学恒等/退化论证——豁免但标注；**C 类**=统计效度结论（κ/α/φ/翻转率/聚合相关及一切"稳健/不稳健"判定）——必须 T=19，T=2 结果只能以 "pilot, not evidential" 出现。四件套全落 C 类。
 3. **选择性报告纪律（代替 FWER）**：效度诊断不进 rwolf FWER 家族——rwolf 保护的是"同构念多个 headline 处理效应估计"的确证性家族，κ/φ/翻转率是信度系数无拒绝域对象（心理测量惯例 = 描述性报告+CI）；真正的多重性风险是**网格挑格子报告**——纪律：预登记网格逐格披露（含 NaN 格及原因）、pass/fail 聚合规则在付费重跑前锁定、事后剔格须给独立于结果的理由。
 4. `papers/_common/AI_DISCLOSURE_TEMPLATES.md` 补句：措辞敏感性与效标效度结果须随样本/语料口径一起披露。
 
@@ -419,7 +419,7 @@ v9 通道（跨批次，增补 3 统筹推进）：(a)/(c) 起草+G-v9-1 评审+
 
 | 条目 | 文件:行 | 类型 | 现文（短摘） | 改后应写明 |
 |---|---|---|---|---|
-| WP-R2 | `manual_validation_sampling.py:183-186,70` | 注释（会过期） | "T=2 仅 face-validity 哨兵…真值 deferred-T18"/"8 格 T=2 枯竭" | 生产真跑后更新为"已于 <date> 生产 T=18 运行，CI 见 eval_reports/<路径>"；枯竭表述按实况删改 |
+| WP-R2 | `manual_validation_sampling.py:183-186,70` | 注释（会过期） | "T=2 仅 face-validity 哨兵…真值 deferred-T18"/"8 格 T=2 枯竭" | 生产真跑后更新为"已于 <date> 生产 T=19 运行，CI 见 eval_reports/<路径>"；枯竭表述按实况删改 |
 | WP-R3 | 新脚本 | docstring 范式 | — | 照 `verify_stage21_cache_coverage.py:1-41` 五段式（背景→构造→设计→防误用铁律→白话）+ 显式退出码语义 |
 | WP-R4 | `radius_sensitivity_llm.py:1,28-33,66,371-372` | docstring×4 | "Stage 35"/"脚手架状态"/"仍是 scaffold"/"留 future commit" | launch 落地后全部重写为真实工作流描述；stage 号随 D5 修正 |
 | WP-R4 | `radius_sensitivity_llm.py:146-153,189-192` | 代码（NotImplementedError） | "尚未实现—拒绝静默占位" | 替换为真实 cache lookup+ensemble 实现，docstring 同步 |

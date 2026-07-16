@@ -1002,7 +1002,7 @@ def main():
             logger.info("    → 三轨得分互不相同, full/ctx/ss 各自携带独立的文本聚焦视角 (支撑三轨稳健性设计)")
         if n_total < 5000:
             logger.info(f"  ⚠ 金科子集行数偏少 ({n_total:,}), 多为盘面小样本 (如 T=2): "
-                        "上述率/分布仅供验证管道正确性, 全量结论以 17M/T=18 实测为准")
+                        "上述率/分布仅供验证管道正确性, 全量结论以 约1,819万/T=19 实测为准")
         logger.info("-" * 72)
     except Exception as _e:
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")

@@ -144,7 +144,7 @@ else {
     * ⚠ 复审订正 (CY-2 root-cause / 铁律 #8, "声明—实现"缺口): 旧版还想抽
     *   e(ar_cset_lb)/e(ar_cset_ub) 当 AR CI 数值列 — 但 weakiv 把 95% AR 置信集
     *   存为【字符串】e(ar_cset), 并不返回 _lb/_ub 数值标量 → capture 后恒为
-    *   missing(.) → 表里 "AR CI low/high" 两列即使 T=18 weakiv 跑成功也永远空白
+    *   missing(.) → 表里 "AR CI low/high" 两列即使 T=19 weakiv 跑成功也永远空白
     *   (claimed-but-not-delivered)。改对齐本仓三个 proven pattern (主线
     *   25_tableA6_tone_iv_2sls / benefit_society/25 / brokerage_network/11):
     *   AR 95% 置信集只写进 log (weakiv after ivreg2), esttab 仅出真实可填的
@@ -178,7 +178,7 @@ else {
             * fix(reaudit-t18-2026-06-14, IV-2 root-cause): 旧版用冒号前缀 weakiv 语法
             *   `weakiv, level(95): ivreg2 ... , cluster(bank_id)` — 本机 weakiv 不接受
             *   被包裹估计命令的 cluster() 选项, 报 "invalid 'cluster'" → rc=198 → 每列
-            *   weakiv 都失败 → _ar_ran 恒 0 → AR p 列即便 T=18 weakiv 已装也永远空白,
+            *   weakiv 都失败 → _ar_ran 恒 0 → AR p 列即便 T=19 weakiv 已装也永远空白,
             *   且脚注误落 "No 2SLS column estimated" 分支 (claimed-but-not-run)。
             *   改对齐本仓三个 proven pattern (25_tableA6_tone_iv_2sls / benefit_society/25 /
             *   brokerage_network/17): 先单独跑 ivreg2 (e() 落定), 紧随其后裸调 weakiv,

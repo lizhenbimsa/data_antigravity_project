@@ -46,7 +46,7 @@ _LOGGER = logging.getLogger(__name__)
 # ============================================================================
 
 # fix(omni-g-papers-misc-07, 2026-06-11): 支持科学计数法 (e-notation)。
-# esttab 的 stats 行常用 %9.0g — 全量 T=18 (N≈3000+, ll/aic 大数) 或极小 p 值会
+# esttab 的 stats 行常用 %9.0g — 全量 T=19 (N≈3000+, ll/aic 大数) 或极小 p 值会
 # 产出 '1.23e-05' 形式; 旧 regex r'^[\-\d\.]+' 只截到 '1.23' → 取值静默放大
 # 5 个数量级。SE 括号行 regex 同步支持 e-notation (否则 SE 静默丢失)。
 _SE_PAREN_RE = re.compile(r'^\s*\(([-+]?[\d\.]+(?:[eE][-+]?\d+)?)\)\s*$')

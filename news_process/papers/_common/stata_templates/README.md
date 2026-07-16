@@ -82,7 +82,7 @@ This directory hosts `.do.tmpl` Stata script templates with placeholder substitu
 | `26_tableA7_aggregation_robustness.do.tmpl` | Table A7: Aggregation Robustness | EW / VW / MW / HW 加权聚合 |
 | `32_tableA8_fe_saturation_robust_est.do.tmpl` | Table A8: FE Saturation + Est-Robust | FE 饱和阶梯 + qreg / rreg |
 | `33_tableA9_subsample_timing.do.tmpl` | Table A9: Subsample + Timing | 子样本 + L1/lead 安慰剂时序 |
-| `34_tableA11_era_stability.do.tmpl` | Table A11: Era Stability | 2007-2024 跨年代稳定性 |
+| `34_tableA11_era_stability.do.tmpl` | Table A11: Era Stability | 2007-2025 跨年代稳定性 |
 | `27_tableA12_cross_model_fwer.do.tmpl` | Table A12: Cross-Model FWER | LLM 三家 tone / BERT 三模型 net_tone / LLM 三家分类 sub_frac 各族 Romano-Wolf (互为稳健性; wire-ahead) |
 | `28_tableA13_policy_family_robustness.do.tmpl` | Table A13: Policy 列族稳健性 | article_sim_mean 12 臂 (vintage×_allv × MAIN×_lg × full/ctx/ss) 并列 just-identified 回归 (互为稳健性; wire-ahead) |
 

@@ -66,7 +66,7 @@ do 14_table5_robustness.do
 * ----------------------------------------------------------------------------
 * 6b. Table A6: 聚合与推断稳健性 (加权聚合 EW/VW/MW/HW + 双向聚类/boottest + 覆盖筛选)
 *     fix(agg-toptier-audit 2026-06-13): capture do — 缺财务/强度哨兵列时优雅跳过不中断主链
-*     (与 substance/locus/collab 同; 全量 T=18 下未捕获错误亦不阻断 30_figure)
+*     (与 substance/locus/collab 同; 全量 T=19 下未捕获错误亦不阻断 30_figure)
 * ----------------------------------------------------------------------------
 capture do 15_tableA6_aggregation_robustness.do
 
@@ -79,9 +79,9 @@ capture do 17_tableA8_subsample_timing.do
 
 * ----------------------------------------------------------------------------
 * 6d. Table A9 (CY-2 顶刊重审 2026-06-14): 跨时代稳定性 / 结构断点稳健性 —
-*     三时代分段主 2SLS (2007-2012 / 2013-2018 / 2019-2024) + treatment×era 交乘
+*     三时代分段主 2SLS (2007-2012 / 2013-2018 / 2019-2025) + treatment×era 交乘
 *     + Wald 三时代系数相等检验 + 可选 estat sbsingle。capture do — T=2 仅中段有
-*     数据 / 缺 ivreghdfe / 弱识别时优雅跳过, 不阻断 figure (production T=18 才有三段功效)。
+*     数据 / 缺 ivreghdfe / 弱识别时优雅跳过, 不阻断 figure (production T=19 才有三段功效)。
 * ----------------------------------------------------------------------------
 capture do 18_tableA9_era_stability.do
 

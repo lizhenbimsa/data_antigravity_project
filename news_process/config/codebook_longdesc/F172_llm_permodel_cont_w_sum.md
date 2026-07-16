@@ -109,7 +109,7 @@ new_dois: []
 ## VAR: deepseekv4_cont_w_sum_ctx
 
 【变体差分】
-本列在 deepseekv4 模型、mention_density 价值加权口径上与 deepseekv4_cont_w_sum_full 完全一致, 唯一差分是文本轨道 = ctx (实体上下文轨)。ctx 轨的 content_ctx = 标题 prepend + 含目标银行句的 ±窗口片段 (Hassan 2019 proximity 邻近口径), 只把目标银行出现处附近的语句喂给模型, 剔除全文中与目标银行无关的段落噪声。在 full-only 门控下, ctx 轨降为 conditional-on-full 的稳健性轨: 其行宇宙是 full 留篇集的子集, 但 deepseekv4 对 ctx 文本的逐篇连续语调仍独立请求、独立 verified 清票、独立按 mention_density 加权后逐轨累加, 不借用 full 轨的分子或分母。它与同模型的 full/ss 两轨互为稳健性、不分主次, 三轨各自 just-identified 并排, 严禁三轨混进同一 over-identified Hansen J。与另两家模型的 ctx 轨列 (gpt54nano/gemini31) 同为逐厂商并排稳健测度。开发期 T=2 短面板上 ctx 轨可能因样本稀薄退化, 属预期现象, 生产期 T=18 恢复正常。归一化除以同银行-年 sum_mention_density。用大白话说, 本列把每篇报道里"目标银行出现的那句话及其前后窗口"单独抽出来交给深度求索模型判读, 再按提及密度加权加总, 因此它比全文轨更贴近"报道究竟怎么评价这家银行", 而少受全文里无关段落的干扰。它与全文轨的差别正是稳健性证据的来源: 若把上下文噪声剔除后结论依旧, 说明主效应并非全文里旁枝末节的语调所拼凑。因此本列在稳健性表里与同模型全文轨、同句轨并排出现, 各自跑一遍主回归, 三轨结论一致才算稳。它绝不与另两轨或另两家模型拼进同一过度识别的 Hansen J。
+本列在 deepseekv4 模型、mention_density 价值加权口径上与 deepseekv4_cont_w_sum_full 完全一致, 唯一差分是文本轨道 = ctx (实体上下文轨)。ctx 轨的 content_ctx = 标题 prepend + 含目标银行句的 ±窗口片段 (Hassan 2019 proximity 邻近口径), 只把目标银行出现处附近的语句喂给模型, 剔除全文中与目标银行无关的段落噪声。在 full-only 门控下, ctx 轨降为 conditional-on-full 的稳健性轨: 其行宇宙是 full 留篇集的子集, 但 deepseekv4 对 ctx 文本的逐篇连续语调仍独立请求、独立 verified 清票、独立按 mention_density 加权后逐轨累加, 不借用 full 轨的分子或分母。它与同模型的 full/ss 两轨互为稳健性、不分主次, 三轨各自 just-identified 并排, 严禁三轨混进同一 over-identified Hansen J。与另两家模型的 ctx 轨列 (gpt54nano/gemini31) 同为逐厂商并排稳健测度。开发期 T=2 短面板上 ctx 轨可能因样本稀薄退化, 属预期现象, 生产期 T=19 恢复正常。归一化除以同银行-年 sum_mention_density。用大白话说, 本列把每篇报道里"目标银行出现的那句话及其前后窗口"单独抽出来交给深度求索模型判读, 再按提及密度加权加总, 因此它比全文轨更贴近"报道究竟怎么评价这家银行", 而少受全文里无关段落的干扰。它与全文轨的差别正是稳健性证据的来源: 若把上下文噪声剔除后结论依旧, 说明主效应并非全文里旁枝末节的语调所拼凑。因此本列在稳健性表里与同模型全文轨、同句轨并排出现, 各自跑一遍主回归, 三轨结论一致才算稳。它绝不与另两轨或另两家模型拼进同一过度识别的 Hansen J。
 
 ## VAR: deepseekv4_cont_w_sum_ss
 
@@ -139,7 +139,7 @@ new_dois: []
 ## VAR: gpt54nano_cont_w_sum_ctx
 
 【变体差分】
-本列在 gpt54nano 模型、价值加权口径上与 gpt54nano_cont_w_sum_full 一致, 差分为文本轨道 = ctx 实体上下文轨。content_ctx = 标题 prepend + 目标银行句 ±窗口 (Hassan 2019 邻近口径), 只保留目标银行邻近语句以抑制全文无关噪声。full-only 门控下 ctx 为 conditional-on-full 稳健轨, 行宇宙是 full 留篇子集, gpt54nano 对 ctx 文本独立请求、独立 verified 清票、独立按 mention_density 加权后逐轨累加, 不借 full 轨分子分母。它与同模型 full/ss 两轨互为稳健性、不分主次, 三轨各自 just-identified 并排, 严禁混进同一 over-identified Hansen J; 与另两家模型 ctx 轨列同为逐厂商并排稳健测度。gpt54nano 独立降级不牵连 deepseekv4/gemini31。开发期短面板 ctx 轨可能退化属预期, 生产期 T=18 恢复。归一化除以同银行-年 sum_mention_density。本列同时切换厂商 (gpt54nano) 与轨道 (ctx), 与其余八列共同织成模型×轨道的规格稳健性网格。用大白话说, 本列把每篇报道里目标银行出现处附近的语句单独交给 GPT 模型判读, 再按提及密度加权加总, 因此比全文轨更聚焦于"报道怎么评价这家银行", 少受全文无关段落干扰。它与同模型全文轨的差异, 正是检验上下文噪声是否驱动结论的稳健性证据: 剔除无关段落后结论不变, 说明主效应并非旁枝末节的语调所拼凑。开发期短面板样本稀薄可能使 ctx 轨退化, 属预期, 生产期大语料方显区分度。它绝不与另两轨或另两家模型拼进同一过度识别的 Hansen J。
+本列在 gpt54nano 模型、价值加权口径上与 gpt54nano_cont_w_sum_full 一致, 差分为文本轨道 = ctx 实体上下文轨。content_ctx = 标题 prepend + 目标银行句 ±窗口 (Hassan 2019 邻近口径), 只保留目标银行邻近语句以抑制全文无关噪声。full-only 门控下 ctx 为 conditional-on-full 稳健轨, 行宇宙是 full 留篇子集, gpt54nano 对 ctx 文本独立请求、独立 verified 清票、独立按 mention_density 加权后逐轨累加, 不借 full 轨分子分母。它与同模型 full/ss 两轨互为稳健性、不分主次, 三轨各自 just-identified 并排, 严禁混进同一 over-identified Hansen J; 与另两家模型 ctx 轨列同为逐厂商并排稳健测度。gpt54nano 独立降级不牵连 deepseekv4/gemini31。开发期短面板 ctx 轨可能退化属预期, 生产期 T=19 恢复。归一化除以同银行-年 sum_mention_density。本列同时切换厂商 (gpt54nano) 与轨道 (ctx), 与其余八列共同织成模型×轨道的规格稳健性网格。用大白话说, 本列把每篇报道里目标银行出现处附近的语句单独交给 GPT 模型判读, 再按提及密度加权加总, 因此比全文轨更聚焦于"报道怎么评价这家银行", 少受全文无关段落干扰。它与同模型全文轨的差异, 正是检验上下文噪声是否驱动结论的稳健性证据: 剔除无关段落后结论不变, 说明主效应并非旁枝末节的语调所拼凑。开发期短面板样本稀薄可能使 ctx 轨退化, 属预期, 生产期大语料方显区分度。它绝不与另两轨或另两家模型拼进同一过度识别的 Hansen J。
 
 ## VAR: gpt54nano_cont_w_sum_ss
 

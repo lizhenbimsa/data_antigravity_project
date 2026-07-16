@@ -68,7 +68,7 @@ strat_diff_n5 = 1 − mean( top-5 最近邻同业的 TF-IDF 余弦相似度 )
 - 2018: 55 家银行 (peer set = 54) → N=50 需 ≥51 → **可测** (54 ≥ 50, 勉强满足)。
 - 全部 N ∈ {10,20,30,40,50} 在两年均**非空可测**。
 
-**生产 (真实全量 T=18, n_bank 目标 ~200)**: 覆盖更充分, N=50 无压力。
+**生产 (真实全量 T=19, n_bank 目标 ~200)**: 覆盖更充分, N=50 无压力。
 
 **披露口径 (须写入 docstring + manuscript)**:
 - 大 N 时 top-N 近邻趋近"与几乎全部同业的平均距离" (N→n_banks−1 时 ≡ 全 peer 均距), 与 centroid 构念趋同但仍为 N-NN 口径 — 这是**互为稳健性的连续谱**, 非冗余。
@@ -118,7 +118,7 @@ strat_diff_n5 = 1 − mean( top-5 最近邻同业的 TF-IDF 余弦相似度 )
   - ⚠ **P1 核查发现 + 三轮精修**: coefplot 现为**写死点名** `(N3,...)..(N7,...)`。**两层崩点须都堵** (三轮 break-it 指出计划旧处方只堵了下游命名):
     - **① 输出侧 (命名)**: coefplot/esttab 硬点名 N3..N7 → 若某 N 估计未建立则引用不存在估计崩 r(198)/r(111)。→ 仿 `14_table5` 用 `estimates dir`+`list posof` **动态构组**。
     - **② 上游 (估计建立)**: `reghdfe` (30_figure1 L18 / 14_table5 L23) **无 `capture` 包裹**; 若某 N 列**跨全 panel 皆 NaN** → reghdfe 抛 r(2000) 无观测**先崩**, 动态命名救不了。→ reghdfe 前加 `capture` + `if !_rc eststo N{n}`。
-    - ⚠ **严重度校正**: 生产者对每 N **无条件 emit** (列恒存在) → `capture confirm variable` 恒过; 真实崩点是"列存在但全 NaN"。此仅当某 N 跨**全 panel** 皆 NaN — 而 N≤50 在生产 (T=18, 近年 >50 家银行) **不可达**, 故**实风险低** (非"极易触发"); 但 capture 是零成本防御, 仍建议加。`keep(strat_diff_n*)` 通配已自动含新 N, 无需改。
+    - ⚠ **严重度校正**: 生产者对每 N **无条件 emit** (列恒存在) → `capture confirm variable` 恒过; 真实崩点是"列存在但全 NaN"。此仅当某 N 跨**全 panel** 皆 NaN — 而 N≤50 在生产 (T=19, 近年 >50 家银行) **不可达**, 故**实风险低** (非"极易触发"); 但 capture 是零成本防御, 仍建议加。`keep(strat_diff_n*)` 通配已自动含新 N, 无需改。
 - `10_table1_descriptives.do.tmpl` L21: summary 变量清单追加新 5 列。
 - 头部注释 "N=3..7" 文案同步。
 - ✅ **核查确认 (三轮独立 grep)**: 全目录 N-sweep 仅存在于 **14/30/10** 三模板; **00_master/01_data_prep/11/12/13/15/16/17/18/19** 均仅用固定 `strat_diff_n5` (或多方法单-N 变体 `n5_w/_lda/_emb`, 如 12_table3) → **已核清无需改** (含同日新建的 19_table10_anchor_robustness, 用 `auth_sim_*` 与 N-邻正交)。`foreach n in 3 4 5 6 7 10 20 30 40 50` (或 `numlist 3/7 10(10)50`) Stata 语法正确。

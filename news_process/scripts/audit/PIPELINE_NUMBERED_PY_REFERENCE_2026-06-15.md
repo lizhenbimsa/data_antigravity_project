@@ -61,7 +61,7 @@
 
 **详细功能说明**
 
-**输入**: `config paths.raw_data_dir` 目录下全部 `*.xlsx` (生产规模 ~176 文件 / ~37GB / ~1700 万条媒体报道; 数字取自 runner.py 模块 docstring 与 main() 日志)。无上游 parquet, 是 DAG 的根阶段。
+**输入**: `config paths.raw_data_dir` 目录下全部 `*.xlsx` (生产规模 ~176 文件 / ~37GB / 18,198,978条媒体报道; 数字取自 runner.py 模块 docstring 与 main() 日志)。无上游 parquet, 是 DAG 的根阶段。
 
 **处理步骤** (`runner.main` → `load_and_process_data` → 媒体名兜底映射 → `ArticleDeduplicator.run`):
 1. `glob` 扫描 XLSX 列表; 对每个源文件检查增量缓存 (`_cache/*.parquet`): 缓存有效需同时满足 缓存文件存在 ∧ 缓存 mtime 晚于源 XLSX ∧ schema metadata 的 `config_hash` 与当前一致 (runner.py:208-214); 任一不满足则入待处理列表。

@@ -46,9 +46,9 @@
   "file": "pipeline/features/benefit_society.py",
   "line": "481 (_project_texts) + 配置 8191 上限 L111",
   "claim": "`_project_texts` 在送入统一引擎前先做 `_truncate_to_max_tokens(t)` (8191 cl100k tokens 硬截断, 尾部直接丢弃), 而 embedding_engine.embed_texts (L316-362) 本身已实现超长文本 Early Chunking + mean pooling (strategic_diff 同引擎即走该路径不预截断) — benefit 的预截断使 chunking 路径永不触发, 长文章只用前 8191 tokens 投影。模块 header (L37/558) 声称 'Full 轨: 标题+全文正文, 完整语义信号'。",
-  "evidence": "benefit_society.py:481 `truncated = [_truncate_to_max_tokens(t) for t in texts]`; token_utils.truncate_to_max_tokens 为 encode→[:max]→decode 硬截断; embedding_engine.py:319/355-361 split_text_for_embedding + mean pooling 存在但因输入已≤8191 而恒走单段分支; 对比 strategic_diff.py:634-647 `_embed_texts_with_chunk_pooling` 直接委托引擎不预截断。盘上试跑样本实测 content_full 最长 8624 字符 (p99=6335), 已贴近 8191-token 边界; 17M 全量 (2007-2024) 必有大量超限长文。",
+  "evidence": "benefit_society.py:481 `truncated = [_truncate_to_max_tokens(t) for t in texts]`; token_utils.truncate_to_max_tokens 为 encode→[:max]→decode 硬截断; embedding_engine.py:319/355-361 split_text_for_embedding + mean pooling 存在但因输入已≤8191 而恒走单段分支; 对比 strategic_diff.py:634-647 `_embed_texts_with_chunk_pooling` 直接委托引擎不预截断。盘上试跑样本实测 content_full 最长 8624 字符 (p99=6335), 已贴近 8191-token 边界; 18.2M 全量 (2007-2025) 必有大量超限长文。",
   "suggested_fix": "删除 _project_texts 的预截断 (或仅对锚点保留), 让 embed_texts 的 chunking+pooling 处理超长文本, 与 strategic_diff 口径统一; 若保留截断则在 codebook/注释改为 '前 8191 tokens'。",
-  "adjudication": "benefit_society.py:481预截断使引擎chunk池化(embedding_engine.py:316-362, EMB_MAX_TOKENS=8191)恒走单段分支; strategic_diff.py:647同引擎不预截断, 跨模块不一致实证。tiktoken实测盘上最长content_full=10530 tokens>8191(今已截尾1篇, 多篇~8100贴边), 17M/T=18必大量触发; 与L555'完整语义信号'声称不符。",
+  "adjudication": "benefit_society.py:481预截断使引擎chunk池化(embedding_engine.py:316-362, EMB_MAX_TOKENS=8191)恒走单段分支; strategic_diff.py:647同引擎不预截断, 跨模块不一致实证。tiktoken实测盘上最长content_full=10530 tokens>8191(今已截尾1篇, 多篇~8100贴边), 18.2M/T=19必大量触发; 与L555'完整语义信号'声称不符。",
   "unit": "benefit-society"
  },
  {
@@ -59,7 +59,7 @@
   "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\pipeline\\features\\benefit_society.py",
   "line": "647 (benefit_std fillna(0)); 另 benefit_society_alt_anchor.py:215, pipeline/panel/runner.py:1231-1233 (article_sim_std)",
   "claim": "三处把单篇文章 bank-year 的 std (ddof=1 下未定义 → NaN) 填为 0: `agg['benefit_std'] = agg['benefit_std'].fillna(0)`、`agg['benefit_jlm_zh_std'] = ...fillna(0.0)`、`_agg['article_sim_std'] = ...fillna(0.0)`。单观测的离散度在统计上未定义, 填 0 令'只有 1 篇报道'与'多篇报道完全一致 (真实零分歧)'不可区分; 而同面板的核心情感离散度列 (encode 聚合的 llm_vote_score std 族) 对单观测保持 NaN — 同一构念 (媒体分歧/一致性) 在面板内两种缺失语义并存。",
-  "evidence": "benefit_society.py:646-647 `# std 的 NaN (单观测) → 0` + `agg['benefit_std'] = agg['benefit_std'].fillna(0)`; runner.py:1230-1233 `# std 对单篇文章的 bank-year 返回 NaN, 填 0 (两轨对称处理)`。试跑样本 857 篇 / ~144 个有覆盖 bank-year, 单篇 bank-year 占比可观; T=18 全量下小银行尾部年份单篇覆盖更普遍。",
+  "evidence": "benefit_society.py:646-647 `# std 的 NaN (单观测) → 0` + `agg['benefit_std'] = agg['benefit_std'].fillna(0)`; runner.py:1230-1233 `# std 对单篇文章的 bank-year 返回 NaN, 填 0 (两轨对称处理)`。试跑样本 857 篇 / ~144 个有覆盖 bank-year, 单篇 bank-year 占比可观; T=19 全量下小银行尾部年份单篇覆盖更普遍。",
   "suggested_fix": "对 n=1 的 bank-year 保持 NaN (与核心 tone std 族对齐), 或保留 0-fill 但新增 `n_articles>=2` 样本限定的稳健性列/在 codebook 与 paper 披露; 三处统一口径。",
   "adjudication": "三处现场属实 (benefit_society.py:646-647, benefit_society_alt_anchor.py:215, runner.py:1230-1233 fillna(0)); encode.py:1682 明示离散度列保 NaN。盘上实证: 52/174 单篇 bank-year 行 benefit_std{4列}==0、article_sim_std==0 (44 行), 而同行 llm_vote_tone_std_full/ctx 全为 NaN→同一面板内'1篇'与'多篇完全一致'不可区分, 口径不一致活跃成立。",
   "unit": "sweep-fillna-weights"
@@ -214,7 +214,7 @@
   "title": "19_bs_num_intensity: 双轨同进一条 RHS (违反项目双轨纪律) + vce(cluster bank_id year) 与本篇自身 G_year 红线矛盾 + DV 未 winsorize",
   "file": "papers/_common/stata_templates/benefit_society/19_bs_num_intensity_robustness.do.tmpl",
   "line": "22-23, 33-34",
-  "claim": "Panel A 把 mean_num_intensity_full 与 mean_num_intensity_ctx 同时放进同一回归 RHS — 项目纪律 (用户钦定): 双轨是互为稳健性, 两轨分别进各自回归、不同进一 RHS; 高相关双轨同列使两个 β 共线不可解释。同时两处回归用 `vce(cluster bank_id year)` 二维聚类: 本篇 11b 头注白纸黑字 'G_year=2 → cannot cluster on year (deferred to T≥30)', 盘上 T=2 时 year 维 2 个 cluster 方差估计退化, 全量 T=18 仍属 small-G (latent); 且本模板用裸 {{MAIN_DV}} 而非全篇其余表统一的 {{MAIN_DV}}_w, ctx 列进 RHS 但只守卫了 full 列。",
+  "claim": "Panel A 把 mean_num_intensity_full 与 mean_num_intensity_ctx 同时放进同一回归 RHS — 项目纪律 (用户钦定): 双轨是互为稳健性, 两轨分别进各自回归、不同进一 RHS; 高相关双轨同列使两个 β 共线不可解释。同时两处回归用 `vce(cluster bank_id year)` 二维聚类: 本篇 11b 头注白纸黑字 'G_year=2 → cannot cluster on year (deferred to T≥30)', 盘上 T=2 时 year 维 2 个 cluster 方差估计退化, 全量 T=19 仍属 small-G (latent); 且本模板用裸 {{MAIN_DV}} 而非全篇其余表统一的 {{MAIN_DV}}_w, ctx 列进 RHS 但只守卫了 full 列。",
   "evidence": "行 22-23: `reghdfe {{MAIN_DV}} mean_num_intensity_full mean_num_intensity_ctx $bank_controls, absorb(bank_id year) vce(cluster bank_id year)`; 行 20 仅 `capture confirm variable mean_num_intensity_full`; 对照 11b_table2_boottest.do.tmpl:8-9 的 G_year 红线与 11/12/13/14 全部 vce(cluster {{CLUSTER_VAR}}=bank_id) 单维聚类 + _w 后缀。",
   "suggested_fix": "Panel A 拆成 full/ctx 两列各自单轨回归; 聚类统一 vce(cluster bank_id) (T≥30 前); DV 改 {{MAIN_DV}}_w; ctx 列补 capture confirm。",
   "adjudication": "19:22-23 full+ctx 同进一 RHS, 违用户钦定'两轨分别进各自回归'纪律; vce(cluster bank_id year) 与 11b:8-9 'G_year=2 cannot cluster on year' 红线及 11-14 全单维 cluster(bank_id) 矛盾; 19:22/33 用裸 MAIN_DV 非 _w; 仅 19:20 守 full 列, ctx 无守卫(盘上两列在, 该点 latent)。",

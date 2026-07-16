@@ -47,7 +47,7 @@ _SCORE_PATTERNS = [
     # v3.10.0 \u7b2c 6 \u90e8 L&M 2011 JF \u4e2d\u6587\u4e3b\u8bd1 (\u5217\u524d\u7f00\u522b\u540d 'loughran', \u6743\u5a01 =
     # tone_words.DICT_COLUMN_ALIAS / encode.DICT_NAMES)\u3002fix(2026-06-20): \u6b64\u524d\u672c\u524d\u7f00\u8868
     # \u6f0f\u5217 loughran (\u65b0\u589e\u7b2c 6 \u90e8\u65f6\u672a\u540c\u6b65), \u81f4 exc_*(\u505c\u520a\u7a33\u5065\u6027; \u76d8\u9762 T=2 \u5373\u7f3a 12 \u5217) \u4e0e
-    # bal_*(\u5e73\u8861\u5a92\u4f53; T=18 \u5168\u91cf\u540c\u7406, T=2 \u5e73\u8861\u5b50\u96c6\u4e3a\u7a7a\u6545\u6682\u4e0d\u663e) \u4e24\u65cf loughran \u4e0e\u5176\u4f59 5 \u90e8
+    # bal_*(\u5e73\u8861\u5a92\u4f53; T=19 \u5168\u91cf\u540c\u7406, T=2 \u5e73\u8861\u5b50\u96c6\u4e3a\u7a7a\u6545\u6682\u4e0d\u663e) \u4e24\u65cf loughran \u4e0e\u5176\u4f59 5 \u90e8
     # (jiang/yao/bian/du/you) \u4e0d\u5bf9\u79f0\u3002\u8865\u9f50\u540e\u516d\u90e8\u8d70\u5b8c\u5168\u76f8\u540c\u7684\u52a8\u6001\u53d1\u73b0\u8def\u5f84 (\u5b9e\u6d4b\u4ea7 12 \u4e2a
     # exc_loughran_*, \u540e\u7f00\u7ed3\u6784\u4e0e exc_jiang_2021_* \u5168\u7b49)\u3002
     'loughran_score_',
@@ -112,7 +112,7 @@ def detect_defacto_cessation(df, logger, output_dir, threshold_gap=2):
     构念措辞修正 fix(omni-g-attention-03, 2026-06-11): 传入的 df 是银行-fintech 文章
     子集 (runner.py df_exploded), first/last_year 度量的是媒体**退出银行-fintech 话题
     覆盖** (topic exit), 而非经证实的报纸停刊 — 媒体可能仍在正常出版只是不再覆盖该话题。
-    三点诚实披露 (latent, T=18 全量语料下显著):
+    三点诚实披露 (latent, T=19 全量语料下显著):
       (a) 排除集 ceased_all = confirmed ∪ suspected — NPPA 交叉验证仅改报告标签,
           **未经 NPPA 证实的 suspected 全量进入排除集**;
       (b) n_articles 按 article × bank 行计数 (多银行文章重复计入), 非 docid 去重;
@@ -229,7 +229,7 @@ def compute_balanced_media_robustness(df, panel, logger, score_patterns):
         # fix(omni-g-attention-04, 2026-06-11): 平衡判据改逐年覆盖 — 旧端点判据
         # (first_year≤start ∧ last_year≥end, 无逐年检查) 会把间歇媒体 (如 2007 与
         # 2024 各一篇、中间年份全缺) 误纳入"平衡"子集, 与 Wooldridge §19.9.3 每期
-        # 观测的平衡面板定义不符 (latent: 盘上 T=2 无满足者, T=18 全量触发)。
+        # 观测的平衡面板定义不符 (latent: 盘上 T=2 无满足者, T=19 全量触发)。
         # 窗口内 distinct year 数 == 窗口长度 ⟺ 每年都有报道。
         _window_len = end_year - start_year + 1
         _years_covered = df_w.groupby('媒体(中文)')['year'].nunique()
@@ -240,7 +240,7 @@ def compute_balanced_media_robustness(df, panel, logger, score_patterns):
             logger.info(
                 f"  窗口 {suffix}: 无平衡媒体数据, 跳过该稳健性窗口 "
                 f"(bal_w*/n_media_bal_* 列族本轮不落地 — 逐年覆盖判据下 dev T=2 无满足者属预期, "
-                f"生产 T=18 全量应触发; 与'已接线等生产数据回填'族同性质, 非代码遗漏)")
+                f"生产 T=19 全量应触发; 与'已接线等生产数据回填'族同性质, 非代码遗漏)")
             continue
 
         # (D.a) 三轨道全局情感均值 (平衡子集; full/ctx/ss)
@@ -1528,7 +1528,7 @@ def compute_media_heterogeneity(df, panel):
         # (c) 银行总部省缺失时整行全 0 → frac 伪零而非 NaN。
         # 改 NaN 后: frac 的 groupby.mean 自动跳 NA (分母 = 可判定篇数, 全不可判 →
         # NaN), home/away 子组过滤 (==1 / ==0) 天然排除 NaN 行 (NaN==x 恒 False)。
-        # (latent: 盘上试跑 857 篇地理列 0 缺失不触发; 17M 全量元数据缺失必现)
+        # (latent: 盘上试跑 857 篇地理列 0 缺失不触发; 约1,819万 全量元数据缺失必现)
         _prov_invalid = (df['_bank_prov'].isna()
                          | df['国家地区/省份'].isna()
                          | (df['_bank_prov'].astype(str).str.strip() == '')

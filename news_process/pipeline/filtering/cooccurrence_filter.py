@@ -172,7 +172,7 @@ def filter_cooccurrence(df: pd.DataFrame) -> pd.DataFrame:
     )
 
     # 性能 (CF-01): 先 tolist 取出列再纯 Python 列表 zip 循环, 避开 df.iterrows()
-    # 每行构造 Series 的开销 (全量 17M 语料下显著); 语义与逐行等价 (同序、同 mask)。
+    # 每行构造 Series 的开销 (全量 约1,819万 语料下显著); 语义与逐行等价 (同序、同 mask)。
     _banks = (
         df['target_bank'].tolist() if 'target_bank' in df.columns
         else [None] * len(df)
@@ -518,7 +518,7 @@ def main():
             "仅分子(邻近相关金科篇数) 随过滤变小, 已在 manuscript/codebook 如实披露。"
         )
         # 年份分层 keep 率 (deepen_runtime): 把聚合 keep 率拆到各年, 验证 0.1427 严格同句
-        # 零共现基线 (disk 1170 篇实测) 是否跨年稳定 (全量 T=18 时单一硬编码基线可能掩盖
+        # 零共现基线 (disk 1170 篇实测) 是否跨年稳定 (全量 T=19 时单一硬编码基线可能掩盖
         # 年度构成漂移)。纯日志, 仅读 df/df_kept 年份分布对账, 不回写任何列 (golden-safe)。
         try:
             _year_col = next(
@@ -555,7 +555,7 @@ def main():
             logger.warning(
                 f"  [小样本警告] 当前为盘面小样本 (过滤前 {n_in:,d} 行 / {n_banks_in:,d} 家 → "
                 f"过滤后 {n_out:,d} 行 / {n_banks_out:,d} 家, 疑似 T=2 验证盘): 上述 keep 率/"
-                f"银行覆盖仅用于验证管道正确性, 全量结论以 17M/T=18 实测为准。"
+                f"银行覆盖仅用于验证管道正确性, 全量结论以 约1,819万/T=19 实测为准。"
             )
     except Exception as _e:  # noqa: BLE001 — 诊断日志绝不阻断产物落盘
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")

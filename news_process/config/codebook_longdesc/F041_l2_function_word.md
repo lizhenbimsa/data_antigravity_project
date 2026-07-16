@@ -114,7 +114,7 @@ new_dois:
 ## VAR: avg_function_word_ss
 
 【变体差分】
-本列是 ss 轨 (同句共现轨), 三轨中文本域最窄的一支, 属家族的稳健性轨。ss 轨文本 = content_ss = 标题 prepend 加上银行与金科词严格同句 (± N 句窗, ss_sentence_radius 默认 1) 共现的句子片段, 在 stage 14 物化。这是最保守的证据面: 只保留银行与金融科技在同一句话内真正共现的行文, 意在最大限度排除银行与金科被分散提及但并非实质关联的报道段落。其功能词比率以该轨文本的非标点 token 为分母、六类虚词前缀 token 为分子计算并取 bank-year 均值。ss 轨的回退语义严格镜像 ctx 轨: 当某篇不存在银行与金科的同句共现时, content_ss 回退为全文正文、ss_is_fallback 置 True, 并与 full/ctx 共享同一 n_articles 分母, 保证三轨分母口径一致、优雅降级不产生单边孤儿。因文本域最窄, ss 轨分母 n_real 通常最小, 抽样波动最大, 在开发样本 (T=2) 上可能出现较多零方差或全 NaN 的退化, 属预期而非缺陷, 生产语料 (T=18) 上恢复正常。留篇门控 full-only 下 ss 轨在 full 留篇集子集上聚合, 为 conditional-on-full 稳健性轨。铁律: full/ctx/ss 三轨各自 just-identified 并排、互为稳健性不分主次, 严禁三轨同名列混入同一 over-identified 的 Hansen J 过度识别检验; ss 轨提供最严判据下的功能词密度对照, 与 full/ctx 共同构成从宽到严的文本域稳健性梯子。
+本列是 ss 轨 (同句共现轨), 三轨中文本域最窄的一支, 属家族的稳健性轨。ss 轨文本 = content_ss = 标题 prepend 加上银行与金科词严格同句 (± N 句窗, ss_sentence_radius 默认 1) 共现的句子片段, 在 stage 14 物化。这是最保守的证据面: 只保留银行与金融科技在同一句话内真正共现的行文, 意在最大限度排除银行与金科被分散提及但并非实质关联的报道段落。其功能词比率以该轨文本的非标点 token 为分母、六类虚词前缀 token 为分子计算并取 bank-year 均值。ss 轨的回退语义严格镜像 ctx 轨: 当某篇不存在银行与金科的同句共现时, content_ss 回退为全文正文、ss_is_fallback 置 True, 并与 full/ctx 共享同一 n_articles 分母, 保证三轨分母口径一致、优雅降级不产生单边孤儿。因文本域最窄, ss 轨分母 n_real 通常最小, 抽样波动最大, 在开发样本 (T=2) 上可能出现较多零方差或全 NaN 的退化, 属预期而非缺陷, 生产语料 (T=19) 上恢复正常。留篇门控 full-only 下 ss 轨在 full 留篇集子集上聚合, 为 conditional-on-full 稳健性轨。铁律: full/ctx/ss 三轨各自 just-identified 并排、互为稳健性不分主次, 严禁三轨同名列混入同一 over-identified 的 Hansen J 过度识别检验; ss 轨提供最严判据下的功能词密度对照, 与 full/ctx 共同构成从宽到严的文本域稳健性梯子。
 
 <!-- rendered-citations:begin -->
 Siano, F. (2025). The news in earnings announcement disclosures: Capturing word context using LLM methods. Management Science, 71(11), 9831-9855. https://doi.org/10.1287/mnsc.2024.05417

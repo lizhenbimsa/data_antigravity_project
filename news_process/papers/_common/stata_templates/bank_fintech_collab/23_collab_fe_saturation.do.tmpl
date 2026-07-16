@@ -26,7 +26,7 @@
 * golden-safe: 仅消费在盘列; DV {{MAIN_DV}} + $controls 为待接入财务哨兵, capture
 *   confirm 守卫 → 缺列则各 Panel 优雅 degrade/no-op (wire-ahead 桩, 不报错)。
 * T=2 退化: 银行线性趋势 (c.year#i.bank_id) 与 qreg 大样本设定在 T=2 试跑盘退化,
-*   quietly count + N 守卫优雅跳过; production T=18 才全功效。
+*   quietly count + N 守卫优雅跳过; production T=19 才全功效。
 * ============================================================================
 
 version 19
@@ -168,7 +168,7 @@ if `NYR' >= 3 {
     else display "  WARN Panel A: 银行线性趋势吸收失败, 跳过 A4"
 }
 else {
-    display "  WARN Panel A: T=`NYR' < 3 → 银行线性趋势 (c.year#i.bank_id) 退化跳过 (production T=18 才有功效)"
+    display "  WARN Panel A: T=`NYR' < 3 → 银行线性趋势 (c.year#i.bank_id) 退化跳过 (production T=19 才有功效)"
 }
 
 if "`fecols'" != "" {

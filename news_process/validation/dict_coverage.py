@@ -1126,7 +1126,7 @@ def main():
                 logger.warning("  ⑤ 时间稳定性: trend_df 缺 marginal_rate/overall_pass_rate 列 → 跳过趋势拟合")
             else:
                 logger.warning(f"  ⑤ 时间稳定性: 仅 {n_years} 年数据 (<3 年), 无法做趋势拟合 "
-                                "→ 盘面 T=2 退化, 此维仅验证管道正确性, 老化结论以全量 17M/T=18 实测为准")
+                                "→ 盘面 T=2 退化, 此维仅验证管道正确性, 老化结论以全量 约1,819万/T=19 实测为准")
         else:
             logger.warning("  ⑤ 时间稳定性: 时间趋势表为空 (无可用年度数据) → 跳过趋势拟合")
 
@@ -1142,7 +1142,7 @@ def main():
         if total_fintech < 500:
             logger.info(f"  [小样本警告] 通过分类的金科文章仅 {total_fintech:,} 篇 (盘面 T=2 退化), "
                          "上述比率/趋势统计功效有限, 仅验证管道正确性; "
-                         "词典覆盖结论以全量 17M 语料 / T=18 实测为准。")
+                         "词典覆盖结论以全量 约1,819万 语料 / T=19 实测为准。")
 
         logger.info("-" * 72)
     except Exception as _e:

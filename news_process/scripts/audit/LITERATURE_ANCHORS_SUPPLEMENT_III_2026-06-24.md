@@ -295,7 +295,7 @@
   - *锚定* `qreg (quantile regression) + wild bootstrap (wildbootstrap)` — method-origin|Combines wild-bootstrap inference with quantile regression under few clusters and weak identification, jointly anchoring two project methods (qreg and wild bootstrap) in one frontier reference.
   - 〔Crossref 回读标题: Gradient Wild Bootstrap for Instrumental Variable Quantile Regressions with Weak and Few Clusters〕
 - 【2024–2026】Lee, S., Liao, Y., Seo, M. H., & Shin, Y. (2025). Fast inference for quantile regression with tens of millions of observations. Journal of Econometrics, 249, Article 105673. https://doi.org/10.1016/j.jeconom.2024.105673
-  - *锚定* `qreg (quantile regression)` — recent-application|Scalable inference framework for linear quantile regression on very large samples, the natural methodological anchor for running qreg on the project's 17M-row corpus.
+  - *锚定* `qreg (quantile regression)` — recent-application|Scalable inference framework for linear quantile regression on very large samples, the natural methodological anchor for running qreg on the project's 18.2M-row corpus.
   - 〔Crossref 回读标题: Fast inference for quantile regression with tens of millions of observations〕
 - 【2024–2026】Hou, Y., Leng, X., Peng, L., & Zhou, Y. (2024). Panel quantile regression for extreme risk. Journal of Econometrics, 240(1), Article 105674. https://doi.org/10.1016/j.jeconom.2024.105674
   - *锚定* `qreg (quantile regression)` — recent-application|Develops panel quantile regression to estimate extreme (tail) financial risk, a finance-domain application of quantile methods directly parallel to the project's bank-year panel quantile specifications.

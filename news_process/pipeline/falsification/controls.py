@@ -1491,7 +1491,7 @@ def generate_placebo_did_variables(panel: pd.DataFrame,
             # 伪政策后哑变量 — fix(omni-g-controls-01, 2026-06-11): 窗口加上界
             # year < 真实 treat_year。旧实现 1{year >= ty-k} 是真实 post 的严格
             # 超集 → placebo 系数 = 前趋势效应与真实处理效应的加权平均, 全量
-            # T=18 下处理后年份主导窗口, 真实效应存在则 placebo 必显著, 按
+            # T=19 下处理后年份主导窗口, 真实效应存在则 placebo 必显著, 按
             # "若显著则平行趋势不成立"的解读会机械性误判。现仅覆盖处理前窗口
             # [ty-k, ty) (Callaway & Sant'Anna 2021 pre-trend placebo)。
             plac_post_col = f'{prefix}_placebo{k}_post'
@@ -1852,14 +1852,14 @@ def main():
             logger.warning("  ③ 区分效力: run_diagnostics 返回 None (可用诊断列<2) → "
                            "相关矩阵未生成, 伪造检验区分判读缺失; 多因情感轨列尚未物化 (优雅降级)。")
 
-        # (4) 小样本警告 — 盘面 T=2 仅验证管道正确性, 全量结论以 17M/T=18 为准
+        # (4) 小样本警告 — 盘面 T=2 仅验证管道正确性, 全量结论以 约1,819万/T=19 为准
         if 'year' in panel.columns and 'target_bank' in panel.columns:
             _n_years = int(panel['year'].nunique())
             _n_banks = int(panel['target_bank'].nunique())
             logger.info(f"  ④ 面板深度: {_n_banks} 家银行 × {_n_years} 年 = {_n_panel:,} 行。")
             if _n_years <= 2:
                 logger.info(f"     ⚠ 小样本 (T={_n_years}): 本机盘面为伪两年片段, 相关系数与份额分布"
-                            "仅验证管道正确性, 弱/高相关结论以全量 17M/T=18 实测为准。")
+                            "仅验证管道正确性, 弱/高相关结论以全量 约1,819万/T=19 实测为准。")
 
         logger.info("-" * 72)
     except Exception as _e:

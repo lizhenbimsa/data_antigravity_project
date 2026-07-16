@@ -69,7 +69,7 @@ capture noisily do "code/32_tableA8_fe_saturation_robust_est.do"
 if _rc display as error "[WARN] 32_tableA8_fe_saturation_robust_est.do failed (rc=`=_rc'); Table A8 skipped"
 capture noisily do "code/33_tableA9_subsample_timing.do"
 if _rc display as error "[WARN] 33_tableA9_subsample_timing.do failed (rc=`=_rc'); Table A9 skipped"
-* 2026-06-14 跨年可比性补全 (CY-2): 分时代结构稳定性 (2007-12 / 2013-18 / 2019-24 分段 + era 交乘 + Wald 相等检验)
+* 2026-06-14 跨年可比性补全 (CY-2): 分时代结构稳定性 (2007-12 / 2013-18 / 2019-25 分段 + era 交乘 + Wald 相等检验)
 capture noisily do "code/34_tableA11_era_stability.do"
 if _rc display as error "[WARN] 34_tableA11_era_stability.do failed (rc=`=_rc'); Table A11 skipped"
 

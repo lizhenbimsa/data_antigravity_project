@@ -31,7 +31,7 @@
 *
 * T=2 退化守卫: 当前试跑盘 years={2017,2018} (~174 行, T=2)。c.year#i.bank_id 银行
 *   线性趋势在 T=2 下与 bank+year FE 完全共线 → reghdfe 自动吸收/或回归退化, 用
-*   capture + N/df 守卫优雅跳过 (production T=18 才有功效)。qreg/rreg 在小样本仅近似
+*   capture + N/df 守卫优雅跳过 (production T=19 才有功效)。qreg/rreg 在小样本仅近似
 *   FE (i.year, T 充足时加 i.bank_type 哑变量), 同样 capture 守卫。
 *
 * ⚠ 披露 (FUNDINGCOST-NOT-WINSORIZED): 本表载入 _prepared_panel ("同口径缩尾面板"),
@@ -179,7 +179,7 @@ if `_T' >= 3 {
     }
 }
 else {
-    display "  ⚠️ Panel A M4 跳过: 银行特定线性趋势需 T>=3 (当前 T=`_T'); 全量 T=18 下有功效"
+    display "  ⚠️ Panel A M4 跳过: 银行特定线性趋势需 T>=3 (当前 T=`_T'); 全量 T=19 下有功效"
 }
 
 * ── FE-ROBUST IDENTIFICATION (D1-digital_frontier fix 2026-06-16) ──
@@ -210,7 +210,7 @@ if !_rc {
         }
     }
     else {
-        display "  ⚠️ Panel A FE-robust 跳过: year 仅 `_ny_fr' 个取值 (需 ≥2 才有交乘变异); 全量 T=18 有功效"
+        display "  ⚠️ Panel A FE-robust 跳过: year 仅 `_ny_fr' 个取值 (需 ≥2 才有交乘变异); 全量 T=19 有功效"
     }
 }
 else {
@@ -308,7 +308,7 @@ else {
 * B3: Huber+Tukey biweight IRLS 有界影响 M-估计 rreg (对离群点迭代降权; 非 MM-估计)
 * 同 qreg: 富 FE 失败则退回 i.year 重试。rreg 先按 Cook's D 剔除强影响点再迭代,
 * T=2 + 缺值模式下可能把全部观测剔光 (rc=2000 "no observations") → 优雅跳过,
-* 全量 T=18 下有功效。
+* 全量 T=19 下有功效。
 capture which rreg
 if !_rc {
     capture eststo RB_rreg: rreg `DV' `EXPL' `LOCUS' `SUBST' `approx_fe'
@@ -321,7 +321,7 @@ if !_rc {
         local rlabs `"`rlabs' "Robust (rreg)""'
     }
     else {
-        display "  ⚠️ Panel B: rreg 仍失败 (T=2 强影响点剔除致无观测?), 跳过稳健回归 (全量 T=18 有功效)"
+        display "  ⚠️ Panel B: rreg 仍失败 (T=2 强影响点剔除致无观测?), 跳过稳健回归 (全量 T=19 有功效)"
     }
 }
 else {

@@ -936,7 +936,7 @@ def main():
         if sample_n < total_rows:
             logger.info(
                 f"  ⚠ 本次为抽样分析 ({sample_n:,}/{total_rows:,}={pct4(sample_n / total_rows)}), "
-                "全量比率以外推值为参考; 阈值平台/陡降判读以 17M/T=18 全量实测为准, 当前仅验证管道正确性。"
+                "全量比率以外推值为参考; 阈值平台/陡降判读以 约1,819万/T=19 全量实测为准, 当前仅验证管道正确性。"
             )
         logger.info("-" * 72)
     except Exception as _e:

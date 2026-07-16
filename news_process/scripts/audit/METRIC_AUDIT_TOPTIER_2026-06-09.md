@@ -6,7 +6,7 @@
 
 **审计日期**: 2026-06-09
 **方法**: 31 个指标族审查单元 × (referee review → 对抗 verify + 公式溯源 verify) 多智能体工作流 (**88 agents / 6.5M tokens / 1787 tool-uses / ~21min**) → **主控亲验最高价值发现 7/7 坐实** + 严重度重校准 + 与历史审计对账。
-**环境**: Python 3.14.3 / pandas 3.0.3 / numpy 2.4.6 / jieba 0.42.1 (冻结); 盘上面板 = T=2 试跑样本 (174 行, 2017–2018, = 全量 17M/T=18 语料的 0.055%)。
+**环境**: Python 3.14.3 / pandas 3.0.3 / numpy 2.4.6 / jieba 0.42.1 (冻结); 盘上面板 = T=2 试跑样本 (174 行, 2017–2018, = 全量 18.2M/T=19 语料的 0.052%)。
 **口径**: $0 只读审计 — 不动 `_llm_cache.db`、不付费重跑。
 
 ---
@@ -43,7 +43,7 @@
 |---|---:|---|
 | **P1(实质缺陷,进发表回归)** | **5** | 聚合域 ×2 + 网络伪零 + 两个构念/引文严重错配 |
 | **P2(真缺陷,须修)** | **~20** | 公式/引文保真 + 聚合域 + 双轨 + 降级透明 |
-| **P3(latent/边界/卫生)** | **~6** | 仅 T=18 或边界触发 |
+| **P3(latent/边界/卫生)** | **~6** | 仅 T=19 或边界触发 |
 | **T=2 识别限制(非 bug,须披露)** | **1** | DiD 恒零列(ivdid-01 守护不完整) |
 | **推翻的假阳性(诚实记录)** | **6** | 见 §5 |
 | **主控独立新增** | **2** | codebook 内容失真 + Int8 算术 landmine |
@@ -112,7 +112,7 @@
 ### R-D 确定性 / 泄漏
 - **staleness semantic 轨同日非确定(kind=stable 不足)** `article_staleness.py:214-249` — 同日文章彼此日期相等,stable 仅按输入序保序 → 值随输入排位翻转;盘上 69/72 天为同日多文。**历史已知 stale-tie-01,半成品**。修:窗口下界改严格前序日(对齐 surface 轨)。
 - **staleness 双轨窗口不对称 + semantic 同日 look-ahead** `article_staleness.py:149-161,234-246` — surface 严格排除同日,semantic 含"同日早发文"。**历史已知 staleness-02,未修**。修:两轨统一严格排除同日。
-- **benefit `pos_frac/neg_frac` 用 in-sample pooled median 二值化后进回归 RHS** `benefit_society.py:631-639` — 阈值取自全样本中位数(T=18 含未来年),非冻结外部锚(latent 泄漏);连续 `benefit_mean` 不受影响(FE 吸收)。修:首跑冻结 `_center` 到 sidecar(镜像 `median_amb_d0`)或论文披露。
+- **benefit `pos_frac/neg_frac` 用 in-sample pooled median 二值化后进回归 RHS** `benefit_society.py:631-639` — 阈值取自全样本中位数(T=19 含未来年),非冻结外部锚(latent 泄漏);连续 `benefit_mean` 不受影响(FE 吸收)。修:首跑冻结 `_center` 到 sidecar(镜像 `median_amb_d0`)或论文披露。
 - **sbert `encode_local`(text2vec)返回未归一向量,污染 `centroid_diff_emb_t2v`** `embedding_engine.py:113-128` — 缺 `normalize_embeddings=True`,norm~17 与单位范数 pooled 向量混入算术质心,长度加权偏置;主控/工作流实测 std 被压缩(0.0669 vs ~0.0672)。**历史已知 embedding-01/02,未修**。修:`encode_local` 加 `normalize_embeddings=True` 或末端统一 L2 归一(本地 $0)。
 
 ### R-E 降级透明 / 工程质量
@@ -130,7 +130,7 @@
 - **fintech IDF `log10(N/(1+df))` 可转负**(词近全文档时)`fintech_intensity.py:162` — 偏离所引 Manning smooth IDF(恒非负);盘上未触发(latent),attention 端已 clip 兜底。修:`log10(1+N/(1+df))` 或 `max(0,·)`。
 - **tone_berts 空文章 P(pos)=P(neg)=0.0(伪零非 NaN)稀释 bank-year 均值** `tone_berts.py:605-612`;`bert_num_windows` 写了但 `pipeline/panel/` 从不消费。修:空文章置 NaN 或按 `num_windows==0` mask。
 - **`ctx_is_fallback` 对 NaN 正文行误算**(pandas 3.0 `astype(str)` 对 NaN 返 float nan,逐行 `str()` 返 'nan' → 比较恒 False)`ctx_materializer.py:121,147-152` — latent,断言因同逻辑自洽而漏检。修:两侧同款 str 强转。
-- **ivdid-01 守护不完整:14 个恒零 DiD 列仍进面板/.dta/codebook,仅 warning 未 drop** `iv_did.py:586-592` — **T=2 数据维度退化(处理年≥2019>面板 2018),非代码 bug**,但前修承诺的 drop+ERROR 未落地。全量 T=18 自愈;当前须 ERROR+drop 恒零列以净化复现包。
+- **ivdid-01 守护不完整:14 个恒零 DiD 列仍进面板/.dta/codebook,仅 warning 未 drop** `iv_did.py:586-592` — **T=2 数据维度退化(处理年≥2019>面板 2018),非代码 bug**,但前修承诺的 drop+ERROR 未落地。全量 T=19 自愈;当前须 ERROR+drop 恒零列以净化复现包。
 
 ---
 
@@ -147,7 +147,7 @@
 
 ## 6. 主控独立新增发现(工作流代码视角未覆盖)
 - **Codebook 内容严重失真(复现包硬伤,P1-doc)**:`variable_codebook.csv` 1613 变量中 **94.2% 学术引用字段为空、94.0% 描述为「需要人工补充」占位符**;`year` 的「取值范围」标 `[2013,2023]` 但实际 2017–2018。按 Nosek(2018 PNAS)可复现标准,投稿级 codebook 不可有 94% 空引用。修:从模块 docstring/`stata_export` 标签批量回填引用 + 修元数据派生($0)。
-- **Int8 计数列下游算术 landmine(P2 卫生)**:12 个面板列(`pos_count`/`neg_count`/各 LLM `*_tone_sum`×full/ctx)存为 Int8。**澄清(主控实测纠正初判)**:pandas `groupby.sum` 按值降型且**溢出自动升 Int64**(T=18 求和不会静默溢);风险仅在**下游算术** —— pandas Int8 `**2`/乘积静默回绕(实测 `14²→-60`,即历史 jf=2.387 根因)。当前 runner.py 三个危险消费者(jf/disag/concern)**均已 float 转换修复**,`log_sent` 经 `np.log1p` 安全,全仓**无其他模块**对这些面板列做裸算术 → **当前无活跃溢出**。修(稳健):面板构建处把这 12 列升 Int32,根除整类隐患,替代逐消费者打补丁。
+- **Int8 计数列下游算术 landmine(P2 卫生)**:12 个面板列(`pos_count`/`neg_count`/各 LLM `*_tone_sum`×full/ctx)存为 Int8。**澄清(主控实测纠正初判)**:pandas `groupby.sum` 按值降型且**溢出自动升 Int64**(T=19 求和不会静默溢);风险仅在**下游算术** —— pandas Int8 `**2`/乘积静默回绕(实测 `14²→-60`,即历史 jf=2.387 根因)。当前 runner.py 三个危险消费者(jf/disag/concern)**均已 float 转换修复**,`log_sent` 经 `np.log1p` 安全,全仓**无其他模块**对这些面板列做裸算术 → **当前无活跃溢出**。修(稳健):面板构建处把这 12 列升 Int32,根除整类隐患,替代逐消费者打补丁。
 
 ---
 
@@ -170,14 +170,14 @@ P1-1 fintech_share 同基重算 · P1-2 VW/MW/HW valid 分母 · P1-3 peer_tone 
 tone_llms `avg_prob_score` verified 门控(用缓存逐模型标签,$0,但变 panel 值)。
 
 ### 阶段 3 — T=2 数据先决 / 披露
-ivdid-01 恒零列 ERROR+drop(全量 T=18 自愈);所有 IV/DiD/event-study 因果声称加 T<3 守卫 + 披露。
+ivdid-01 恒零列 ERROR+drop(全量 T=19 自愈);所有 IV/DiD/event-study 因果声称加 T<3 守卫 + 披露。
 
 ---
 
 ## 9. 诚实边界
 1. 主控亲验范围 = 7 个最高价值发现 + 回归核验;其余 ~31 条 P2/P3 依赖工作流 (review→对抗 verify→公式溯源 verify) 三方投票,可信但未逐条亲跑。
 2. 未直接跑 Stata;Stata 侧结论基于模板逐行读 + 列名/spec 核对。
-3. Int8 "无活跃溢出"结论基于当前盘上 T=2 + 全仓 grep;生产 T=18 首跑后宜加 assert 复核。
+3. Int8 "无活跃溢出"结论基于当前盘上 T=2 + 全仓 grep;生产 T=19 首跑后宜加 assert 复核。
 4. 计数为区间;latent vs active 边界依赖生产数据时序假设。
 
 **终审意见**: pipeline **单指标算法层仍达顶刊水准,历史核心修复守住**;但 (a) 聚合域不匹配 5 处(含 2 个 P1 进赛马/头条回归)、(b) 公式/引文保真 ~10 处误引或偏离 canonical、(c) `METRIC_AUDIT_V3 §7 阶段1` 横切路线图大面积未执行、(d) 复现包工程质量(codebook 94% 空引用)四维存在系统性缺陷。**阶段 0+1(几乎全 $0 本地)可消除绝大多数缺陷;当前状态在修复这些前不宜投稿。**

@@ -100,7 +100,7 @@ new_dois: []
 ## VAR: deepseekv4_tone_collab_ctx
 
 【变体差分】
-本列 = DeepSeek-V4-flash 在外部协同子群内的上下文轨 (_ctx) 语调。差分仅在度量通道: 源列改为 deepseekv4_score_ctx, 即以"标题 + 含目标银行句 ±窗口"的上下文片段为输入所得单篇情感 (Hassan et al. proximity 思路)。关键区别在于, 子群成员资格仍由全文轨共识分类 innovation_collab_mode_full 界定, 换轨只替换语调的度量输入而不重新划分文章集合; 因此本列与 deepseekv4_tone_collab_full 在同一批文章上比较"全文语调"与"实体邻近语调"的差异, 是对语调是否被正文远处噪声稀释的敏感性检验。ctx 轨作为 full 轨的首要稳健性对照轨, 与 full/ss 互为稳健性、不分主次, 三轨各自 just-identified 并排, 严禁混进同一 over-identified Hansen J。与其他两家模型的 _ctx 列同理并排。在 T=2 的开发盘上, 外部协同子群逐格样本极小, 本列可能大面积缺格, 属预期退化, 生产 T=18 语料下方具信息量。ctx 轨的经济含义在于剔除正文远端与目标银行无关的段落: 一篇长篇报道可能只在中段提及某银行的对外合作, 全文轨语调会被其余无关正文稀释, 而实体邻近截取使语调更贴合"关于该银行外部协同"的局部叙事。因此本列与 deepseekv4_tone_collab_full 之差, 可视为语调对文本聚焦程度的敏感度, 是判断全文轨结论是否被无关正文噪声污染的直接诊断。本列同样受 prompt 冻结与缓存键约束, 缓存三轨全命中即可离线零字节复现。
+本列 = DeepSeek-V4-flash 在外部协同子群内的上下文轨 (_ctx) 语调。差分仅在度量通道: 源列改为 deepseekv4_score_ctx, 即以"标题 + 含目标银行句 ±窗口"的上下文片段为输入所得单篇情感 (Hassan et al. proximity 思路)。关键区别在于, 子群成员资格仍由全文轨共识分类 innovation_collab_mode_full 界定, 换轨只替换语调的度量输入而不重新划分文章集合; 因此本列与 deepseekv4_tone_collab_full 在同一批文章上比较"全文语调"与"实体邻近语调"的差异, 是对语调是否被正文远处噪声稀释的敏感性检验。ctx 轨作为 full 轨的首要稳健性对照轨, 与 full/ss 互为稳健性、不分主次, 三轨各自 just-identified 并排, 严禁混进同一 over-identified Hansen J。与其他两家模型的 _ctx 列同理并排。在 T=2 的开发盘上, 外部协同子群逐格样本极小, 本列可能大面积缺格, 属预期退化, 生产 T=19 语料下方具信息量。ctx 轨的经济含义在于剔除正文远端与目标银行无关的段落: 一篇长篇报道可能只在中段提及某银行的对外合作, 全文轨语调会被其余无关正文稀释, 而实体邻近截取使语调更贴合"关于该银行外部协同"的局部叙事。因此本列与 deepseekv4_tone_collab_full 之差, 可视为语调对文本聚焦程度的敏感度, 是判断全文轨结论是否被无关正文噪声污染的直接诊断。本列同样受 prompt 冻结与缓存键约束, 缓存三轨全命中即可离线零字节复现。
 
 ## VAR: deepseekv4_tone_collab_ss
 
@@ -130,7 +130,7 @@ new_dois: []
 ## VAR: gpt54nano_tone_collab_ctx
 
 【变体差分】
-本列 = GPT-5.4-nano 在外部协同子群内的上下文轨语调。度量通道取 gpt54nano_score_ctx (标题 + 含目标银行句 ±窗口)。与 gpt54nano_tone_collab_full 的唯一差分是语调度量输入换为上下文片段, 被计入文章集合仍由全文轨共识分类 innovation_collab_mode_full 固定, 因此本列检验 gpt54nano 外部协同语调对实体邻近截取的稳健性。ctx 是 full 的首要稳健性对照轨, 与 full/ss 互为稳健性、不分主次, 三轨各自 just-identified 并排, 严禁混进同一 over-identified Hansen J; 与 deepseekv4/gemini31 的 _ctx 列跨厂商并排。跨模型比较水平前须标准化, 只比标准化系数。开发盘 T=2 外部协同子群逐格样本极小, 本列缺格属预期退化, 生产 T=18 语料下方有稳定分布。本列的诊断意义与 deepseekv4_tone_collab_ctx 平行: 它衡量 gpt54nano 的外部协同语调在把输入从全文收窄到实体邻近片段后是否漂移。若 gpt54nano_tone_collab_full 与 gpt54nano_tone_collab_ctx 差异显著, 说明该模型的全文语调受正文远端无关段落影响较大, 需以 ctx 轨作为更聚焦的稳健性对照。本列受 prompt v8 冻结与缓存命中键约束, 三轨全命中即可离线零字节复现; 逐模型独立降级保证 gpt54nano 该轨源列缺失不牵连另两家。须再次强调, ctx 轨只切换语调度量输入, 被计入的文章集合仍由全文轨共识分类 innovation_collab_mode_full 固定, 与本家族 full-only 门控口径一致, 因此本列与全文轨在完全相同的一批外部协同文章上比较全文语调与邻近语调的差异, 是干净的同集合对照。跨模型比较水平前须先标准化, 只比标准化后的回归系数。
+本列 = GPT-5.4-nano 在外部协同子群内的上下文轨语调。度量通道取 gpt54nano_score_ctx (标题 + 含目标银行句 ±窗口)。与 gpt54nano_tone_collab_full 的唯一差分是语调度量输入换为上下文片段, 被计入文章集合仍由全文轨共识分类 innovation_collab_mode_full 固定, 因此本列检验 gpt54nano 外部协同语调对实体邻近截取的稳健性。ctx 是 full 的首要稳健性对照轨, 与 full/ss 互为稳健性、不分主次, 三轨各自 just-identified 并排, 严禁混进同一 over-identified Hansen J; 与 deepseekv4/gemini31 的 _ctx 列跨厂商并排。跨模型比较水平前须标准化, 只比标准化系数。开发盘 T=2 外部协同子群逐格样本极小, 本列缺格属预期退化, 生产 T=19 语料下方有稳定分布。本列的诊断意义与 deepseekv4_tone_collab_ctx 平行: 它衡量 gpt54nano 的外部协同语调在把输入从全文收窄到实体邻近片段后是否漂移。若 gpt54nano_tone_collab_full 与 gpt54nano_tone_collab_ctx 差异显著, 说明该模型的全文语调受正文远端无关段落影响较大, 需以 ctx 轨作为更聚焦的稳健性对照。本列受 prompt v8 冻结与缓存命中键约束, 三轨全命中即可离线零字节复现; 逐模型独立降级保证 gpt54nano 该轨源列缺失不牵连另两家。须再次强调, ctx 轨只切换语调度量输入, 被计入的文章集合仍由全文轨共识分类 innovation_collab_mode_full 固定, 与本家族 full-only 门控口径一致, 因此本列与全文轨在完全相同的一批外部协同文章上比较全文语调与邻近语调的差异, 是干净的同集合对照。跨模型比较水平前须先标准化, 只比标准化后的回归系数。
 
 ## VAR: gpt54nano_tone_collab_ss
 

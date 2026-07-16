@@ -31,7 +31,7 @@ Laursen, K., & Salter, A. (2006). Open for innovation: The role of openness in e
 ### 1.3 Hagedoorn (2002) R&D Partnerships
 Hagedoorn, J. (2002). Inter-firm R&D partnerships: An overview of major trends and patterns since 1960. *Research Policy*, 31(4), 477-492.
 
-实证证据: 1960-1990 年代 inter-firm R&D 联盟从 80 个/年增长到 600+ 个/年，**主要由 high-tech 行业驱动** (信息技术、生物技术、新材料)。本研究的 fintech 银行场景对应此 high-tech 趋势在中国 2007-2024 期间的延伸。
+实证证据: 1960-1990 年代 inter-firm R&D 联盟从 80 个/年增长到 600+ 个/年，**主要由 high-tech 行业驱动** (信息技术、生物技术、新材料)。本研究的 fintech 银行场景对应此 high-tech 趋势在中国 2007-2025 期间的延伸。
 
 ### 1.4 Cohen & Levinthal (1990) Absorptive Capacity
 Cohen, W. M., & Levinthal, D. A. (1990). Absorptive capacity: A new perspective on learning and innovation. *Administrative Science Quarterly*, 35(1), 128-152.

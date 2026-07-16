@@ -567,7 +567,7 @@ def main():
             )
         else:
             # full 轨有效率: 整行全 NaN 视为编码失败 (正常 full 轨应 100% 有效)。
-            # 用 (N,) 首列判定替换满 (N,4096) bool 矩阵, 全量 17M 时内存/算力降一个数量级。
+            # 用 (N,) 首列判定替换满 (N,4096) bool 矩阵, 全量 约1,819万 时内存/算力降一个数量级。
             _full_valid_mask = ~np.isnan(embs_full[:, 0])
             _full_valid = int(_full_valid_mask.sum())
             _full_rate = _full_valid / _n_art
@@ -636,7 +636,7 @@ def main():
             if _n_art < 2000:
                 logger.info(
                     f"  ⚠ 小样本 (仅 {_n_art:,d} 篇, 盘面 T=2 验证语料): 上述比率/范数仅验证编码管道正确性, "
-                    "全量结论以 17M 文章 / T=18 实测为准。"
+                    "全量结论以 约1,819万 文章 / T=19 实测为准。"
                 )
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")

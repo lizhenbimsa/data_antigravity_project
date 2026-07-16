@@ -46,7 +46,7 @@ local has_reghdfe = (_rc == 0)
 
 if `=_N' == 0 | !`has_dv' | !`has_reghdfe' {
     display as text "  [SKIP] Table A13 policy 列族稳健性: 面板空 / reghdfe 未装 / DV `DV' 不在面板 " ///
-        "(财务 sentinel wire-ahead); T=18 财务数据到位后运行。"
+        "(财务 sentinel wire-ahead); T=19 财务数据到位后运行。"
 }
 else {
     eststo clear

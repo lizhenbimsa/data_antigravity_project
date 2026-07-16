@@ -53,7 +53,7 @@ else {
 capture confirm variable car_3day_window_ft_announce
 if !_rc {
     * fix(omni-g-templates-02, 2026-06-11): 五分位改按年内切 (by-year xtile)。旧版
-    * pooled 全样本切分位: 全量 T=18 下事件 CAR 分布随市场周期漂移 → 分位组混入
+    * pooled 全样本切分位: 全量 T=19 下事件 CAR 分布随市场周期漂移 → 分位组混入
     * 年代效应, 且阈值含未来年份 (in-sample 前视泄漏)。
     gen car_q = .
     quietly levelsof year, local(_carq_yrs)

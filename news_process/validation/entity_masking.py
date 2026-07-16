@@ -1219,7 +1219,7 @@ def main():
         if n_total_sample < 200:
             logger.info(f"  ⚠小样本提示: 本次仅 {n_total_sample:,d} 条 (远小于 EM_CFG.sample_size 目标), "
                         "一致率/κ 抽样方差大、混淆矩阵稀疏, 仅用于验证管道正确性; "
-                        "稳健性结论以全量 17M/T=18 实测 N=1000 为准。")
+                        "稳健性结论以全量 约1,819万/T=19 实测 N=1000 为准。")
         logger.info("-" * 72)
     except Exception as _e:
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")

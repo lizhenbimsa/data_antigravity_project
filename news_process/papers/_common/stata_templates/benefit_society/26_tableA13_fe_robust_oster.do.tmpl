@@ -29,7 +29,7 @@
 *   全表优雅跳过 (wire-ahead, 不报错中断)。
 * ⚠ T=2 退化守卫: 现盘 T=2 (2017–2018, ~176 行)。高维交互 FE 在试跑样本会被
 *   reghdfe 自动 drop 共线维度; 银行线性趋势 (c.year#i.bank_id) 需 T≥3, 用
-*   quietly count + N 守卫优雅跳过。production T=18 才有完整功效。
+*   quietly count + N 守卫优雅跳过。production T=19 才有完整功效。
 * ============================================================================
 
 version 19
@@ -161,7 +161,7 @@ if `_nyear' >= 3 {
     eststo feA_trend
 }
 else {
-    display "  [INFO] T=`_nyear' < 3; 银行线性趋势 (c.year#i.bank_id) 跳过 (production T=18 才激活)"
+    display "  [INFO] T=`_nyear' < 3; 银行线性趋势 (c.year#i.bank_id) 跳过 (production T=19 才激活)"
 }
 
 * ============================================================================

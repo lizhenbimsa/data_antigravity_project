@@ -1,4 +1,4 @@
-# news_process 项目顶刊【再审 v2】(全量 T=18 前提, 完成态 2026-06-15)
+# news_process 项目顶刊【再审 v2】(全量 T=19 前提, 完成态 2026-06-15)
 
 > PROJECT_REAUDIT_TOPTIER_T18_v2_2026-06-15 · 12 维度多代理对抗再审 (find → 对抗复核 → synth)
 > 配套基线: `PROJECT_REAUDIT_TOPTIER_T18_2026-06-14.md` (54-agent, MAJOR REVISION, P0=0/P1=10/P2=28)
@@ -13,7 +13,7 @@
 | **审计日期** | 2026-06-15 |
 | **审计身份** | 顶刊 (JF/QJE/AER/RFS) 投稿前同行评审 / 再审主编 (只采信 CONFIRMED/DOWNGRADED) |
 | **方法** | 12 维度对抗再审; 每条 finding 经独立对抗复核, driver 声称的"已修"逐一对照真实 codebase 验证 (21 agents) |
-| **评判前提** | 全量 T=18 (2007–2024, ~1700 万条新闻, bank-year 面板); 硬盘 T=2 试跑帧不据以判缺陷 |
+| **评判前提** | 全量 T=19 (2007–2025, 18,198,978 条新闻, bank-year 面板); 硬盘 T=2 试跑帧不据以判缺陷 |
 | **与基线关系** | 2026-06-14 基线经本会话 (2026-06-15) 一轮 $0/Stata-spec/ado 层修复后的**完成态再审** |
 
 ---
@@ -66,7 +66,7 @@
 ### 4.2 CY-2-PARTIAL (XYEAR / P1, still_open_from_prior_audit)
 - **位置**: `bank_media_disagreement/`、`bank_news_clarity/` 的 master/13_table4。
 - **问题**: 8 篇 fully-coded era-stability 已落地, 2 篇 provisional 仅有分时段 regime (13_table4 Panel B/C), 缺正式 era×treatment 交乘 + Wald 跨时代相等检验。
-- **顶刊标准**: 长面板 (T=18) 跨年构成漂移下分时代系数稳定性 (Bai-Perron 1998; Hansen 2001 JEP)。
+- **顶刊标准**: 长面板 (T=19) 跨年构成漂移下分时代系数稳定性 (Bai-Perron 1998; Hansen 2001 JEP)。
 - **修复 (已落地)**: 两篇 13_table4 各加 Panel D/E (3 时代 era×treatment 交乘 + Wald, capture 守卫 T<3 优雅跳过)。$0/golden-safe (provisional 因引用已删 stage-49 数据非可跑, 此为 wire-ahead)。
 
 ### 4.3 CV-1-INFRA (SENT / P2, DOWNGRADED from P1)
@@ -86,7 +86,7 @@
 | AR-CI 弱工具未实算 | P1 | 装 ado + 修 ivreghdfe → weakiv AR-CI 真可运行 | RESOLVED |
 | FWER battery / 死函数 | P1 | wyoung 装齐 | RESOLVED |
 | Rotemberg 死函数 | P1 | 官方 ado 不适配 LOO → 内联投影权重 (GPSS§5/BHJ2022) | RESOLVED |
-| 错时 DiD/事件研究空壳 | P1 | csdid/bacondecomp/event-study 真产出 (生产 T=18 验证 gated) | RESOLVED |
+| 错时 DiD/事件研究空壳 | P1 | csdid/bacondecomp/event-study 真产出 (生产 T=19 验证 gated) | RESOLVED |
 | 省级聚类无 wild boot | P1 | boottest 装齐可运行 | RESOLVED |
 | INFER IV-2 (spec 缺 inference) | P1 | 全 11 篇 inference 块 (先前会话) | RESOLVED |
 | benefit bank_type FE | P1 | 主表→bank_id (基线), **11 伴随表→bank_id (本会话 SPEC-IV-1)** | RESOLVED |
@@ -105,14 +105,14 @@
 
 | id | 动作 | 验证 |
 |---|---|---|
-| SPEC-IV-1-INCOMPLETE | 11 benefit 模板 41 处 bank_type→bank_id; spec.yaml 订正 | grep 确认 0 残留 (13_table4 保留 5); benefit master 合成 T=18 真跑复验 |
+| SPEC-IV-1-INCOMPLETE | 11 benefit 模板 41 处 bank_type→bank_id; spec.yaml 订正 | grep 确认 0 残留 (13_table4 保留 5); benefit master 合成 T=19 真跑复验 |
 | CY-2-PARTIAL | 2 provisional 13_table4 加 era-stability Panel D/E | 模板语法 + capture 守卫 (T<3 优雅跳过) |
 | CV-1-INFRA | codebook.py 注册 12 诊断列元数据 | ruff clean + import OK |
 
-剩余 **唯一** 待办 = **gated 生产/golden T=18 重生** (财务 outcome 列接入后), SOP 已脚本化 (`scripts/migrate/run_production_regen.py` + `PRODUCTION_REGEN_SOP_2026-06-15.md`)。
+剩余 **唯一** 待办 = **gated 生产/golden T=19 重生** (财务 outcome 列接入后), SOP 已脚本化 (`scripts/migrate/run_production_regen.py` + `PRODUCTION_REGEN_SOP_2026-06-15.md`)。
 
 ---
 
 ## 7. 一句话就绪度元结论
 
-本会话把项目从 2026-06-14 基线 **MAJOR REVISION (P1=10)** 推进到 **完成态 (P0=0 / 全部 CONFIRMED 项已闭合)** — IV/弱工具/FWER/DiD/事件研究全维度由"不可运行"转为"真可运行", benefit FE 全表统一、provisional era-stability 接线、诊断列元数据补齐; **剩余唯一前置 = gated 的生产/golden T=18 重生** (银行财务 outcome 列接入后, SOP 已就绪)。8 篇 fully-coded 主线论文在该重生完成后即达顶刊投稿就绪态。
+本会话把项目从 2026-06-14 基线 **MAJOR REVISION (P1=10)** 推进到 **完成态 (P0=0 / 全部 CONFIRMED 项已闭合)** — IV/弱工具/FWER/DiD/事件研究全维度由"不可运行"转为"真可运行", benefit FE 全表统一、provisional era-stability 接线、诊断列元数据补齐; **剩余唯一前置 = gated 的生产/golden T=19 重生** (银行财务 outcome 列接入后, SOP 已就绪)。8 篇 fully-coded 主线论文在该重生完成后即达顶刊投稿就绪态。

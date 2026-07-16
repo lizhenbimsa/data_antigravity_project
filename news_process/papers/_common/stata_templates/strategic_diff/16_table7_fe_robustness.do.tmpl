@@ -35,7 +35,7 @@
 *   - esttab/estout 名单动态化 (qui estimates dir → 过滤候选), 缺名不点名防 r(111),
 *     全部带 CSV side-channel。
 *   - T=2 试跑盘 (years 2017-2018, ~174 行) 退化守卫: 银行特定线性趋势 c.year#bank_id
-*     在 T=2 时与 bank+year 共线 → capture 吸收失败优雅跳过 (production T=18 才全功效)。
+*     在 T=2 时与 bank+year 共线 → capture 吸收失败优雅跳过 (production T=19 才全功效)。
 * ============================================================================
 
 version 19
@@ -207,7 +207,7 @@ if `n_yr' >= 3 {
     }
 }
 else {
-    display "  SKIP Panel A: 银行特定线性趋势 (c.year#bank_id) 需 T>=3, 当前 T=`n_yr' 退化 (production T=18 才全功效)"
+    display "  SKIP Panel A: 银行特定线性趋势 (c.year#bank_id) 需 T>=3, 当前 T=`n_yr' 退化 (production T=19 才全功效)"
 }
 
 * esttab 动态名单 (缺名不点名防 r(111)) + CSV side-channel

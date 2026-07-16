@@ -703,7 +703,7 @@ def main():
         )
         logger.info(
             "  ⚠ 盘面 T=2 小样本: 事件检测/媒体覆盖均稀疏, 仅验证管道正确性; "
-            "全量 17M/T=18 实测 α 与覆盖率以生产 run 为准。"
+            "全量 约1,819万/T=19 实测 α 与覆盖率以生产 run 为准。"
         )
         logger.info("-" * 72)
     except Exception as _e:

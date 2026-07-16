@@ -460,7 +460,7 @@ def compute_bartik_iv(panel: pd.DataFrame,
                             on=['target_bank', 'year'], how='left')
 
     # fix(omni-g-ivdid-02, 2026-06-11): share 前视掩码 — share 测自基期年集合,
-    # year < max(基期年) 的面板行携带"未来"测得的 share (T=18 全量下 T0=2010 时
+    # year < max(基期年) 的面板行携带"未来"测得的 share (T=19 全量下 T0=2010 时
     # 2007-2009 行触发), GPSS(2020) "基期份额预定"外生性论证对这些行结构性失效
     # → IV 置 NaN (share 列保留, 仅供诊断)。
     _pre_base_mask = panel['year'] < max(resolved_base_years)

@@ -1021,7 +1021,7 @@ def main(argv=None) -> int:
     logger.info("  ⑥ 排除域: %s 列全部持理由码 (码集全枚举, 设计上不存在无码残差); 最大簇为 DUP_OF_40"
                 " (51↔40 重复列簿记)", f"{len(excluded):,}")
     logger.info("     与 D15_3_MOMENT (std/sum/count/skew 伴生矩); TEXT/KEY 仅标记文章级与键列, 不构成信息损失。")
-    logger.info("  ⑦ 生产 T=18 预期: 本步骤仅依赖列名不依赖行数 → dev(T=2) 与生产(T=18) 的 registry 应逐字节一致;")
+    logger.info("  ⑦ 生产 T=19 预期: 本步骤仅依赖列名不依赖行数 → dev(T=2) 与生产(T=19) 的 registry 应逐字节一致;")
     logger.info("     例外仅共享树 40 面板重生增删列 → 表现为残差闸/缺列 WARNING 变化, 均为显式信号而非静默漂移。")
     logger.info("-" * 70)
     logger.info("  ⏱ 各子阶段墙钟耗时与吞吐 (4 位有效数字):")

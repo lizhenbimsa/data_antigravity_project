@@ -106,7 +106,7 @@ v3.8.0 规定 full/ctx 两轨都"含标题"，但多模块 full 轨仍读裸 `�
 
 **关键推翻（须从初版报告删除/降级）**：
 - `tone_words-02`（IDF 样本内泄漏）— **overturned**：IDF 是无监督词权（Manning 2008 Ch.6.2.1 教科书定义"相对 collection 计算"），GKT §2.2 警示的是监督式特征；不存在泄漏路径。
-- `risk_outcomes-01`（T=2 z_score 全 NaN）— **overturned**：stage 49 读 `--input` dry_run 季度数据（full 模式覆盖 2007-2024），不消费 T=2 文本面板（残余真问题"无 T 守卫"已升为 §3.7 漏报）。
+- `risk_outcomes-01`（T=2 z_score 全 NaN）— **overturned**：stage 49 读 `--input` dry_run 季度数据（full 模式覆盖 2007-2025），不消费 T=2 文本面板（残余真问题"无 T 守卫"已升为 §3.7 漏报）。
 - `fintech_intensity-03/06/07`（Winsorize 漂移 / jieba 跨 stage 污染 / Parallel 顺序）— overturned：scale-equivariant（2.2e-16）/ subprocess 隔离 / 只读 trie。
 - `encode-04`（std NaN 两来源不可分）— overturned：n_articles(0 vs 1) 精确分离。
 - `geography-02/03/04/05/06` — 多条 overturned（dict_avg_tone 不含 IDF 子项=前提假；标题与正文自相矛盾；门槛不可达；省会退化 0.9% 几乎不触发）。

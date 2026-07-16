@@ -91,7 +91,7 @@ new_dois: []
 ## VAR: dict_avg_idf_tone_sum_ctx
 
 【变体差分】
-本列是 dict_avg_idf_tone_sum 家族的 ctx 轨实例。它与 full、ss 两轨的唯一差别在于底层文本轨: ctx 轨的文本源为 stage 14 物化的 content_ctx, 即标题 prepend 之后仅保留银行实体上下文窗口 (围绕目标银行实体出现位置的邻近句窗), 而非全文正文。因此本列度量的是"当只聚焦到明确围绕目标银行展开的那部分报道文本时"、经 IDF 加权与 sum-pooling 聚合、再对多部词典取均后的综合语调。相对 full 轨, ctx 轨剥离了与目标银行关系较远的旁支段落, 语调更集中于银行主体, 但也因文本缩短而更易受少量情感词主导、方差结构不同。计算链路与家族一致: 逐词典的 d_idf_tone_sum_ctx (stage 22 落盘) 先在文章级以 IDF 频率权做加权极性、以 sum-pooling 按体量加总归一, 再由 geography.py 在 DICT_NAMES 上 _safe_mean 综合。留篇门控为 full-only: 本 ctx 列的行宇宙是 full 留篇集的子集, 属 conditional-on-full 的测度轨, 定位为对 full 轨主测度的稳健性并排, 而非独立的判篇依据。铁律: ctx 与 full、ss 各自 just-identified 并排、互为稳健性不分主次, 严禁三轨混进同一 over-identified Hansen J; 亦不得把 ctx 轨语调与 full 轨语调当作同一构念的两个工具变量塞进过度识别检验。dev 语料 (T=2) 上 ctx 轨可能因文本极短而出现零方差退化, 属预期现象, 生产语料 (T=18) 下恢复正常。
+本列是 dict_avg_idf_tone_sum 家族的 ctx 轨实例。它与 full、ss 两轨的唯一差别在于底层文本轨: ctx 轨的文本源为 stage 14 物化的 content_ctx, 即标题 prepend 之后仅保留银行实体上下文窗口 (围绕目标银行实体出现位置的邻近句窗), 而非全文正文。因此本列度量的是"当只聚焦到明确围绕目标银行展开的那部分报道文本时"、经 IDF 加权与 sum-pooling 聚合、再对多部词典取均后的综合语调。相对 full 轨, ctx 轨剥离了与目标银行关系较远的旁支段落, 语调更集中于银行主体, 但也因文本缩短而更易受少量情感词主导、方差结构不同。计算链路与家族一致: 逐词典的 d_idf_tone_sum_ctx (stage 22 落盘) 先在文章级以 IDF 频率权做加权极性、以 sum-pooling 按体量加总归一, 再由 geography.py 在 DICT_NAMES 上 _safe_mean 综合。留篇门控为 full-only: 本 ctx 列的行宇宙是 full 留篇集的子集, 属 conditional-on-full 的测度轨, 定位为对 full 轨主测度的稳健性并排, 而非独立的判篇依据。铁律: ctx 与 full、ss 各自 just-identified 并排、互为稳健性不分主次, 严禁三轨混进同一 over-identified Hansen J; 亦不得把 ctx 轨语调与 full 轨语调当作同一构念的两个工具变量塞进过度识别检验。dev 语料 (T=2) 上 ctx 轨可能因文本极短而出现零方差退化, 属预期现象, 生产语料 (T=19) 下恢复正常。
 
 ## VAR: dict_avg_idf_tone_sum_full
 

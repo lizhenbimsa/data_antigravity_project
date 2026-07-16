@@ -3,7 +3,7 @@
 * Paper: {{PAPER_ID}}  (Guzman-Li 2023 + Hoberg-Phillips 2016)
 *
 * CY-2 修复 (PROJECT_REAUDIT_TOPTIER_T18 2026-06-14): era-stability 模板。
-*   2007-2024 跨多个金融科技 regime (2013 余额宝/互联网金融元年、2016 P2P 整治、
+*   2007-2025 跨多个金融科技 regime (2013 余额宝/互联网金融元年、2016 P2P 整治、
 *   2019 DCEP 试点), pooled intensity-DiD 若策略差异化-特许权价值关系随时代断裂,
 *   会把异质效应平均成有偏均值。本表把样本分三时代各跑一次主规格 + 全样本加
 *   treatment×era 交乘 + Wald 检验三时代主系数相等, 直接回应"跨年是否可比/有无
@@ -13,7 +13,7 @@
 *   三时代切分 (与 P1-A 语料构成漂移诊断同口径):
 *     Era 1: 2007-2012 (前互联网金融期)
 *     Era 2: 2013-2018 (互联网金融爆发期; 余额宝→P2P)
-*     Era 3: 2019-2024 (强监管+DCEP 期)
+*     Era 3: 2019-2025 (强监管+DCEP 期)
 *
 * golden-safe 铁律:
 *   - 主结果 {{MAIN_DV}}=tobin_q 当前为外部财务哨兵列 (上市行特许权价值, 待接入
@@ -22,7 +22,7 @@
 *   - 处理 (strat_diff_n5) + $controls 均在盘; 仅消费在盘列 + 派生 era 哑变量。
 *   - T=2 试跑盘 (years 2017-2018, ~174 行) 只落在 Era 2 → 仅一个时代有数据,
 *     其余两时代 capture count 守卫优雅跳过, 交乘/Wald 在 <2 个时代有数据时跳过
-*     (capture 守卫, 不报错; production T=18 才全功效)。
+*     (capture 守卫, 不报错; production T=19 才全功效)。
 *   - esttab/estout 名单动态化 (qui estimates dir → 过滤候选), 缺名不点名防 r(111),
 *     带 CSV side-channel。
 *
@@ -97,13 +97,13 @@ if _rc {
     exit 0
 }
 
-* ----- 派生 era 哑变量 (2007-2012 / 2013-2018 / 2019-2024) -----
+* ----- 派生 era 哑变量 (2007-2012 / 2013-2018 / 2019-2025) -----
 capture drop era
 gen byte era = .
 replace era = 1 if year >= 2007 & year <= 2012
 replace era = 2 if year >= 2013 & year <= 2018
-replace era = 3 if year >= 2019 & year <= 2024
-label define era_lbl 1 "2007-2012" 2 "2013-2018" 3 "2019-2024", replace
+replace era = 3 if year >= 2019 & year <= 2025
+label define era_lbl 1 "2007-2012" 2 "2013-2018" 3 "2019-2025", replace
 label values era era_lbl
 
 * small-N 守卫阈值: 单时代内有效观测 >= 8 才尝试回归 (否则 esttab 列必崩)
@@ -136,7 +136,7 @@ local stored `r(names)'
 local Am ""
 local At `""'
 local Acand era1 era2 era3
-local Alb `""2007-2012" "2013-2018" "2019-2024""'
+local Alb `""2007-2012" "2013-2018" "2019-2025""'
 local nA : word count `Acand'
 forvalues i = 1/`nA' {
     local mm : word `i' of `Acand'
@@ -205,7 +205,7 @@ if `n_eras' >= 2 {
     }
 }
 else {
-    display "  SKIP Panel B: 仅 `n_eras' 个时代有数据 (须 >= 2), 交乘/Wald 跳过 (T=2 试跑盘预期; production T=18 才全功效)"
+    display "  SKIP Panel B: 仅 `n_eras' 个时代有数据 (须 >= 2), 交乘/Wald 跳过 (T=2 试跑盘预期; production T=19 才全功效)"
 }
 
 display "[OK] Table 9-strat (era stability: 三时代分段 + era 交乘 + Wald) — strategic_diff 完成"

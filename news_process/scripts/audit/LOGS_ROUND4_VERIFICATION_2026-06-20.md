@@ -18,7 +18,7 @@
 
 ### ① stage 18 `article_staleness.py` argsort/NaT 整列错位 (真算法 P1, 前三轮全漏)
 - **实证**: `pd.Series.argsort()` 对 NaT 返回 **-1** (实测 pandas 2.2.3: `[d,d,NaT,d,NaT].argsort()=[1,2,-1,0,-1]`) → `df.iloc[-1]` 把 NaT 行错配成末行 + 丢失真行 (`rowid [1,2,4,0,4]`, 行 3 丢、行 4 重)。逆置换 `np.argsort(_sort_idx)` 也随之失效。
-- **影响**: surface (L165) + semantic (L284) 两轨同 bug; 当前 T=2 盘面若日期全可解析则不显形, 但生产 17M 必有不可解析日期 → NaT → staleness 列错位。
+- **影响**: surface (L165) + semantic (L284) 两轨同 bug; 当前 T=2 盘面若日期全可解析则不显形, 但生产 18.2M 必有不可解析日期 → NaT → staleness 列错位。
 - **修复**: 两处改 `np.argsort(pd.to_datetime(...).values, kind='stable')` (NaT 稳定排末尾、合法置换, 与逆置换自洽)。订正"semantic 轨一致"的错误注释。
 - **golden 影响**: staleness 列当前因代际守卫未并入面板 (round-1 R11), 故 golden-safe; 生产 staleness 接入时即正确。
 
@@ -29,7 +29,7 @@
 
 ### ③ stage 52 `stata_audit.py` DiD 可识别性退化守卫 (验证诚信 P1)
 - **问题**: T=2 盘面 `dcep_post/sandbox_post` 全 0 (无政策后期窗口) → "treated-post 逻辑" / "event-study 互斥" 报 16 行 **all-PASS**, 但这些 PASS 是**空集恒真 (vacuous)**, 掩盖 DiD 结构不可识别。referee 会误读为"DiD 设计成立"。
-- **修复**: 加 5b-2 退化守卫: `post`/`treated` 无变异 (nunique≤1) 时 record loud `WARN '... DiD 结构不可识别, 下方 PASS 为空集恒真...生产 T=18 方可识别'`。不删既有 PASS (技术上为真), 仅加披露。golden-safe (validation 诊断)。
+- **修复**: 加 5b-2 退化守卫: `post`/`treated` 无变异 (nunique≤1) 时 record loud `WARN '... DiD 结构不可识别, 下方 PASS 为空集恒真...生产 T=19 方可识别'`。不删既有 PASS (技术上为真), 仅加披露。golden-safe (validation 诊断)。
 
 ### ④ filtering.yaml SIF→IDF 跨源一致性 (P3 文案)
 - config 注释 (L25/33/38) 仍写 "TF-IDF + SIF 词向量质心" / "SIF 质心" / "各向异性校准 (Ethayarajh)", 与 LOG + `fintech_intensity.py` docstring 已订正的 "非 SIF, IDF 加权普通质心" (fix omni-g-fintech-02) 矛盾。订正为 "IDF 加权普通质心 (非 SIF)" + Ethayarajh 降为"现象动机参考, 非校准方法"。
@@ -43,10 +43,10 @@
 | **真缺陷 (本轮修)** | ①stage18 argsort ②R1 生产侧 ③stage52 DiD ④SIF | **已修 (见 §1)** |
 | **fixed-in-source (我方修复已在源码, 部分已反映进重生日志)** | 34 _ss 标签/热力图后缀/Δα/众数; 22 verdict (重生日志已无 "符合预期 0.998"); 47 fire_sale 零方差 (重生日志已含); 39e conftest 验证 | 已闭环 (源码), 日志随生产重生自愈 |
 | **复核为非缺陷** | 39a κ∈[0.50,0.70] 甜区内部一致 (round-3 已定); 引用 (Carlson/Andreou/Distel/SSRN, round-3 已核验) | 不改 |
-| **测度退化 (T=18 deferred, 如实披露)** | 23 finbert2 labels=2 ~98%正面/0%中性; 34 ECE conf=0; 51/52 弱IV/confirmatory | 生产门控, manuscript 披露 |
+| **测度退化 (T=19 deferred, 如实披露)** | 23 finbert2 labels=2 ~98%正面/0%中性; 34 ECE conf=0; 51/52 弱IV/confirmatory | 生产门控, manuscript 披露 |
 | **取证身份污染 (integrity_ok=false 5 处, 非造假)** | 12b/22/23/37/40 canonical 日志现为 pytest/probe 残片; 真值 parquet 完好 (12b meta sha=55a82159 等) | 根因=R1 生产侧 (本轮②已修); 日志随生产重生自愈 |
 | **并行 loughran 会话责任** | decay_sensitivity:896 "15→18"; export.py:109 漏 'b' | 转告该会话 (见 §4) |
-| **生产门控** | golden 重生 T=18 / 真实生产日志重生 | data/raw 空 + M0 付费 (SOP 见 DEFERRED 报告) |
+| **生产门控** | golden 重生 T=19 / 真实生产日志重生 | data/raw 空 + M0 付费 (SOP 见 DEFERRED 报告) |
 
 诚信: **0 造假, 0 数据腐败** (第四轮亲验: 12b parquet 1125行/113银行完好; 21/23/39e 真跑另存 _runcheck/snapshot; 所有日志内部数字与源码逐位自洽)。
 
@@ -79,4 +79,4 @@
    - 28 文件修复**未提交** (用户决策 + 并行会话活跃)。
    - 全部"日志=测试/import 残片"的最终自愈需一次干净生产 run (18/21/30a/31/38/40/52 重生) + golden 受控重生 (OMP_NUM_THREADS=1 排 3 BLAS-FP 网络列), 受 data/raw 空 + M0 付费门控。
    - 并行 loughran 会话的 2 项 (decay_sensitivity:896 / export.py:109) 由该会话顺修。
-4. **建议**: 收口路径 = (a) 用户决定是否提交我方 28 文件 (按名隔离已验证可行); (b) 待并行会话结束 + T=18 数据/M0 就位后一次性生产重生; (c) 而非再跑第五轮同形日志审计。
+4. **建议**: 收口路径 = (a) 用户决定是否提交我方 28 文件 (按名隔离已验证可行); (b) 待并行会话结束 + T=19 数据/M0 就位后一次性生产重生; (c) 而非再跑第五轮同形日志审计。

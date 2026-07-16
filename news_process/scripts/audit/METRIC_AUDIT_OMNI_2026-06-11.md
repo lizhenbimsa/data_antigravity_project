@@ -5,7 +5,7 @@
 
 **方法**: 三波多智能体工作流 (Wave-1 59单元: 6修复核验+40模块/模板/论文单元+8同型扫描+3数据实证; Wave-2 19补跑单元+30批量复核官; Wave-3 10收尾单元+5组遗留裁决) + 主控亲验。
 合计 **~474 个 agent / ~22.5M tokens**; 每条发现经对抗证伪 (P1 三镜头 / P2 双镜头 / P3 单镜头, 或批量复核官逐条读码裁决); 双 critic (覆盖完备性+裁决质量) 复核裁决层; 主控对全部 P1 与争议击杀亲验终裁。
-**口径**: READ-ONLY, $0, 未改任何生产代码; 盘上 T=2 试跑样本 (174 行 bank-year, 2017-2018), 全量为 1700 万篇/2007-2024/T=18 — latent 缺陷按全量触发性裁决。
+**口径**: READ-ONLY, $0, 未改任何生产代码; 盘上 T=2 试跑样本 (174 行 bank-year, 2017-2018), 全量为 18,198,978 篇/2007-2025/T=19 — latent 缺陷按全量触发性裁决。
 
 ---
 
@@ -18,7 +18,7 @@
 |---|---|
 | **P1 确认 (含 latent 3)** | **22** |
 | P2 确认 (活跃) | 117 |
-| P2 确认 (latent, T=18 触发) | 13 |
+| P2 确认 (latent, T=19 触发) | 13 |
 | P3 确认 (活跃) | 119 |
 | P3 确认 (latent) | 54 |
 | 证伪击杀 (refuted) | 9 |
@@ -95,9 +95,9 @@
   - 位置: `pipeline/panel/runner.py (消费 pipeline/filtering/policy_alignment.py 输出)`:1194-1320 (df_align 读 15_article_alignment.parquet; _agg L1228; 分位阈值 L1288-1293; 四象限聚合 L1307-1319) · 单元: policy-alignment-similarity
   - 裁决: runner.py:1194/1228/1307 聚合 df_align(1170 未验证行), 其余族用 24_herd_decay 857 verified 行(runner.py:212-219; tone_llms.py:1893-1895)。盘上实证: 孪生对 118 共同行 60 个不同, max|Δ|=0.437, corr=0.941, 4 个 phantom bank-year 复现。不在台账, 进主回归, P1 成立。
 
-- **Bartik 基期敏感性变体 _t01 是幻影: share 从未池化 (≡_t0), 且 shift 被截断到基期两年, 其余年份 IV 被 fillna(0) 制成精确伪零 (latent at T=18)**
+- **Bartik 基期敏感性变体 _t01 是幻影: share 从未池化 (≡_t0), 且 shift 被截断到基期两年, 其余年份 IV 被 fillna(0) 制成精确伪零 (latent at T=19)**
   - 位置: `pipeline/panel/runner.py`:696-706 (协同 pipeline/panel/iv_did.py:128, 201-204, 253-256) · 单元: panel-runner-merge
-  - 裁决: 亲验属实。runner.py:696-698 传年份子集但 iv_did.py:128 仍 year==T0 取 share→池化从未发生, golden 实证 _t01 哈希 46dc4562 与 _t0/main 字节级同(_t1 不同)→幻影盘上已激活; T=18 时 shift 域截到{T0,T0+1}, 余年 shift NaN 经 iv_did.py:256 fillna(0)→IV 精确 0.0(伪零部分 latent)。伪稳健性检验+IV 伪零, P1 成立。
+  - 裁决: 亲验属实。runner.py:696-698 传年份子集但 iv_did.py:128 仍 year==T0 取 share→池化从未发生, golden 实证 _t01 哈希 46dc4562 与 _t0/main 字节级同(_t1 不同)→幻影盘上已激活; T=19 时 shift 域截到{T0,T0+1}, 余年 shift NaN 经 iv_did.py:256 fillna(0)→IV 精确 0.0(伪零部分 latent)。伪稳健性检验+IV 伪零, P1 成立。
 
 - **共现网络边权口径不连贯: 在 verification 过滤后的展开帧上逐行双向计数, 边权为 1x/2x 任意混合且含 verification-拒绝的 phantom 边**
   - 位置: `pipeline/panel/network_spillover.py`:139-157 (build_adjacency_matrix), 文档声称 L36-38/L107-109 · 单元: network-spillover
@@ -109,7 +109,7 @@
 
 - **σ(ROA) 滚动窗与 NPL formation lag-1 均为位置语义, 缺年份连续性守卫 — gap year 下产出错误值而非 NaN (latent)**
   - 位置: `pipeline/panel/risk_taking_outcomes.py`:158-170 (compute_sigma_roa_rolling), 202-219 (compute_npl_formation shift(1)) · 单元: risk-taking · ⚠latent
-  - 裁决: risk_taking_outcomes.py:166-169 rolling(5) 行位置窗、:203-204 shift(1) 行位置滞后, 全模块无 reindex 年网格/year-diff 校验; docstring L26/L31 明写日历语义。实测年份[2007,08,12,13,14]: 2012 npl_formation=0.16364(误用2008作lag), σ第4行即出值跨7日历年。dry_run 仅单季 placeholder, full 加载器未实现 — T=18 缺年下静默产错 DV 值, 坐实 latent P1。
+  - 裁决: risk_taking_outcomes.py:166-169 rolling(5) 行位置窗、:203-204 shift(1) 行位置滞后, 全模块无 reindex 年网格/year-diff 校验; docstring L26/L31 明写日历语义。实测年份[2007,08,12,13,14]: 2012 npl_formation=0.16364(误用2008作lag), σ第4行即出值跨7日历年。dry_run 仅单季 placeholder, full 加载器未实现 — T=19 缺年下静默产错 DV 值, 坐实 latent P1。
 
 - **Placebo DID 伪处理窗口包含真实处理后期间 — placebo 检验机械性显著, 必假阳性 (latent, 当前未接线)**
   - 位置: `pipeline/falsification/controls.py`:1024-1058 (generate_placebo_did_variables) · 单元: falsification-controls · ⚠latent
@@ -156,7 +156,7 @@
 
 - **KNOWN-OPEN-STATUS: ⑤ codebook 质量缺陷全部仍在, 且 2026-06-10 修复后陈旧度恶化 (未登记列 24→54, 58 个统计量已失真)**
   - 位置: `data/processed/variable_codebook.{json,csv,md,xlsx} + pipeline/panel/codebook.py`:产物时间戳 2026-06-06 12:28 vs panel 重生 2026-06-10 10:15 · 单元: codebook
-  - 要点: 实测现状: (a) 占位描述 1517/1613=94.0%, 空学术引用 1519/1613=94.2% — 未动; (b) year 取值范围仍标 [2013,2023], 实际盘上 2017–2018 (全量 2007–2024 也不符); (c) 幻影行仍 9 个 (nf_n_articles/nf_media_breadth/nf_headline_frac/nf_ln_coverage/all_n_articles/all_ln_coverage/fintech_share/ln_ft_articles/ln_nf_articles, 相对 40_panel_yearly); (d) 未登记列由已知 24 恶化到 54 — 06-10 修复自己新增的 30 个 sum_wd_{vw,mw,hw}_* valid-mask 权重列 + 12
+  - 要点: 实测现状: (a) 占位描述 1517/1613=94.0%, 空学术引用 1519/1613=94.2% — 未动; (b) year 取值范围仍标 [2013,2023], 实际盘上 2017–2018 (全量 2007–2025 也不符); (c) 幻影行仍 9 个 (nf_n_articles/nf_media_breadth/nf_headline_frac/nf_ln_coverage/all_n_articles/all_ln_coverage/fintech_share/ln_ft_articles/ln_nf_articles, 相对 40_panel_yearly); (d) 未登记列由已知 24 恶化到 54 — 06-10 修复自己新增的 30 个 sum_wd_{vw,mw,hw}_* valid-mask 权重列 + 12
 
 - **主线核心变量 llm_vote_tone 的 codebook 备注虚构 LLM 集成: 声称 'GPT-5-nano、Gemini-3、Grok-4.1', 实际第三模型是 DeepSeek-V4-Flash (全仓无任何 Grok)**
   - 位置: `pipeline/panel/codebook.py`:305, 322 (metadata['llm_vote_tone_full'/'llm_vote_tone_ctx'].notes) · 单元: codebook
@@ -220,7 +220,7 @@
 
 - **llm_contamination_test 年中点规约把跨 cutoff 之年整体划入 post-cutoff 留出集 — 留出样本被 pre-cutoff 文章污染, 全量语料下检验结构性失效 (latent)**
   - 位置: `pipeline/audit/llm_contamination_test.py`:371-375 (run_stage) / 421-425 (main): df['_test_date'] = year + '-07-01' · 单元: pipeline-audit-family
-  - 要点: bank-year 面板用 '年-07-01' 作年代表日期再与 cutoff 比较: cutoff=2024-04-01 时, 2024 年 (含 1-3 月 LLM 可能见过的文章) 因年中点 ≥ cutoff 被整年划入 '绝对没见过' 的 post 留出集。设计原理 (docstring L13-14) 要求 post 样本严格 post-cutoff; 跨界年的混入使 r_post 同样含记忆成分 → pre/post 相关性差被衰减 → 检验偏向 'no_contamination_evidence' (恰是最危险方向)。全量语料 2007-2024 + 典型 2024 年中 cutoff 下, post 集唯一构成就是跨界年本身, 留出检验完全失去甄别力。
+  - 要点: bank-year 面板用 '年-07-01' 作年代表日期再与 cutoff 比较: cutoff=2024-04-01 时, 2024 年 (含 1-3 月 LLM 可能见过的文章) 因年中点 ≥ cutoff 被整年划入 '绝对没见过' 的 post 留出集。设计原理 (docstring L13-14) 要求 post 样本严格 post-cutoff; 跨界年的混入使 r_post 同样含记忆成分 → pre/post 相关性差被衰减 → 检验偏向 'no_contamination_evidence' (恰是最危险方向)。全量语料 2007-2025 + 典型 2024 年中 cutoff 下, post 集唯一构成就是跨界年本身, 留出检验完全失去甄别力。
 
 - **电话号码正则无边界锚定: 任意 10-12 位数字串被当电话删除, 长数字被部分截删留下错误残值 (138000000000元→0元)**
   - 位置: `pipeline/preprocess/_constants.py:153`:phone_pattern · 单元: preprocess
@@ -324,7 +324,7 @@
 
 - **跨行子串误归因: '法国兴业银行' 文章同时合格为 '兴业银行' 新闻, 生成错误银行-文章面板行**
   - 位置: `core/text/ahocorasick.py`:326-347 + config/bank_names.json (71 对跨行嵌套变体) · 单元: ctx-materializer-coretext
-  - 裁决: 亲跑复现: SocGen测试文同时令法国兴业银行(中国)与兴业银行均qualified(total_with_title=4); 实测71对跨行嵌套对; 252条negation_patterns无任何'法国兴业'/'中信银行国际'消歧条目。news_bank.py:217-220把每个qualified bank展开独立面板行→错误target_bank行确凿。T=18全量按比例放大。
+  - 裁决: 亲跑复现: SocGen测试文同时令法国兴业银行(中国)与兴业银行均qualified(total_with_title=4); 实测71对跨行嵌套对; 252条negation_patterns无任何'法国兴业'/'中信银行国际'消歧条目。news_bank.py:217-220把每个qualified bank展开独立面板行→错误target_bank行确凿。T=19全量按比例放大。
 
 - **ctx 实体窗口锚定用裸子串匹配, 与 stage 11 分类的否定/短名排除规则不一致**
   - 位置: `core/text/entity_context.py`:169-174 (extract_entity_context), 274-279 (with_distances 同型) · 单元: ctx-materializer-coretext
@@ -332,7 +332,7 @@
 
 - **跨行变体子串包含无消解→外资行/子行新闻误归属为样本内大行, 产生幻影 firm-document 行**
   - 位置: `core/text/ahocorasick.py (analyze_bank_matches, 同一计数循环) + config/bank_names.json`:ahocorasick.py:326-360 · 单元: news-bank-fintech-salience
-  - 裁决: 亲跑复现: 纯法国兴业银行文章同时合格为'法国兴业银行(中国)'(total=3)与'兴业银行'(total=3, in_title=True)两条firm-doc行, SocGen语调注入兴业银行面板。实测bank_names.json 71对跨行包含; 盘上138条兴业银行行中1条含'法国兴业银行'。17M全量下外资在华子行/县域农信族报道更频, 影响放大。
+  - 裁决: 亲跑复现: 纯法国兴业银行文章同时合格为'法国兴业银行(中国)'(total=3)与'兴业银行'(total=3, in_title=True)两条firm-doc行, SocGen语调注入兴业银行面板。实测bank_names.json 71对跨行包含; 盘上138条兴业银行行中1条含'法国兴业银行'。18.2M全量下外资在华子行/县域农信族报道更频, 影响放大。
 
 - **中国银行否定模式词典缺口: '中国银行间'(银行间市场)与'中国银行保险监督管理委员会'(银保监会全称)未覆盖→ BOC 幻影行 (盘上已实证 1 条纯幻影行)**
   - 位置: `config/bank_name_exclusions.json (negation_patterns) + core/text/ahocorasick.py:175-191`:negation_patterns (252 条) · 单元: news-bank-fintech-salience
@@ -362,9 +362,9 @@
   - 位置: `pipeline/features/benefit_society_alt_anchor.py (+ audit_combined.py, benefit_society.py)`:alt_anchor.py:266-270,315-318; audit_combined.py:92-94,156-171; benefit_society.py:478-498,594-599; config/features.yaml:38 · 单元: benefit-society
   - 裁决: 四证齐全: _project_texts(benefit_society.py:481-498)不引用cache_path, _CACHE_EMBEDDINGS(L113)死读, features.yaml:38虚假声称缓存; 全仓无生产np.save; 盘上npy实测(584,1536)/2026-05-09 vs 当前857行→长度守卫必raise; alt_anchor.py:317用768维方向 vs 1536维npy→project_texts L170-173维度守卫必crash; --main-direction-npy无产出方; 27c parquet盘上不存在而2个Stata模板(23_tableA10/24_tableA11)依赖之。AC-A2/AC-S1承诺检验当前不可执行。
 
-- **静态政策锚点含未来年份政策文本 — policy_cosine_sim 与 auth_sim_* 全族存在前视构造 (latent, 全量 T=18 更重)**
+- **静态政策锚点含未来年份政策文本 — policy_cosine_sim 与 auth_sim_* 全族存在前视构造 (latent, 全量 T=19 更重)**
   - 位置: `config/authoritative_corpus.txt (消费方 pipeline/filtering/policy_alignment.py + pipeline/features/policy_similarity.py)`:corpus L44-45/L121/L244/L299; policy_alignment.py:430-459 (4.1 加载) + 533 (4.4 分段); policy_similarity.py:101-117 · 单元: policy-alignment-similarity
-  - 裁决: corpus L44-45(2021-12)/L121-122(2019-08)/L244(国办发〔2025〕8号)实读确认; 两消费方整体读入无 vintage 切分(policy_alignment.py:449-451; policy_similarity.py:110-112)。盘上 2017-18 文章对 ≥4 份未来政策算余弦, 测度自称'响应国家政策'却嵌入 t 期不可知文本, T=18 更重。真构念缺陷非允许变体。
+  - 裁决: corpus L44-45(2021-12)/L121-122(2019-08)/L244(国办发〔2025〕8号)实读确认; 两消费方整体读入无 vintage 切分(policy_alignment.py:449-451; policy_similarity.py:110-112)。盘上 2017-18 文章对 ≥4 份未来政策算余弦, 测度自称'响应国家政策'却嵌入 t 期不可知文本, T=19 更重。真构念缺陷非允许变体。
 
 - **方法 F '高置信度子样本' 阈值 >= 0.67 把唯一的多数票档 2/3 (=0.6667) 整类排除, 实际退化为全票一致子样本, 与声称的 '≥2/3' 构念不符**
   - 位置: `pipeline/panel/runner.py`:519, 566 (vs 构念声明 L424) · 单元: panel-runner-merge
@@ -392,7 +392,7 @@
 
 - **Embedding 同业网超级文档前缀截断 8000 字符: 全量语料下 W_emb 退化为'最先若干篇文章前缀'的相似度 (latent, 试跑已 30% 现身)**
   - 位置: `pipeline/panel/network_spillover.py`:1181 (MAX_CHARS=8000), 1220-1221 (texts = [t[:MAX_CHARS]]) · 单元: network-spillover
-  - 裁决: L1181 MAX_CHARS=8000 + L1221 t[:MAX_CHARS] 核实; 盘上复现: 118 bank-year 中 30.5%>8000, mean=12168/max=151248 字符, 被截组中位仅留 37.5%, 最多 101 篇/bank-year — 截断保留 df_lag 行序最先文章前缀, 非代表性。对照 compute_cognitive_proximity(L770+) TF-IDF 轨用全年全文, 两邻近度信息集不一致; docstring L1295 '每年的新闻文本' 与实现不符。盘上已现身故 confirm 而非 latent; T=18 下退化更剧。
+  - 裁决: L1181 MAX_CHARS=8000 + L1221 t[:MAX_CHARS] 核实; 盘上复现: 118 bank-year 中 30.5%>8000, mean=12168/max=151248 字符, 被截组中位仅留 37.5%, 最多 101 篇/bank-year — 截断保留 df_lag 行序最先文章前缀, 非代表性。对照 compute_cognitive_proximity(L770+) TF-IDF 轨用全年全文, 两邻近度信息集不一致; docstring L1295 '每年的新闻文本' 与实现不符。盘上已现身故 confirm 而非 latent; T=19 下退化更剧。
 
 - **attention_attr_share 把两种不同长度归一化的密度比值当 share, clip[0,1] 实际censor了11.5%面板值在1.0**
   - 位置: `pipeline/panel/attention_media.py`:332-334 (定义), 241 (docstring '归因纯度 clip[0,1] B4'); codebook.py:216-218 · 单元: attention-media
@@ -460,7 +460,7 @@
 
 - **Bartik 基期份额未定义时 fillna(0): 行和=0≠1, IV 制造伪零 — media 族波及 35/87 银行**
   - 位置: `pipeline/panel/iv_did.py`:149-150, 181, 256, 312-318 · 单元: data-panel-invariants
-  - 裁决: iv_did.py:149-150 基期无文章银行 continue→L181 merge fillna(0); 第二构造器 L312-313/318 同型; L256 BIV=Σ0×shift≡0非NaN。盘上实证: media 族 70/174 行份额行和=0 (35/87银行, 40个当年有文章的 bank-year IV 仍恒0), 其余6族各30行; 非零行行和=1精确。已修 ivdid-05 仅改 'other' 分母(L306-313注释自证), 未触及此缺陷。GPSS 2020 incomplete-shares 成立; T=18 下 T0=2007 伪零更多, 缺陷放大。
+  - 裁决: iv_did.py:149-150 基期无文章银行 continue→L181 merge fillna(0); 第二构造器 L312-313/318 同型; L256 BIV=Σ0×shift≡0非NaN。盘上实证: media 族 70/174 行份额行和=0 (35/87银行, 40个当年有文章的 bank-year IV 仍恒0), 其余6族各30行; 非零行行和=1精确。已修 ivdid-05 仅改 'other' 分母(L306-313注释自证), 未触及此缺陷。GPSS 2020 incomplete-shares 成立; T=19 下 T0=2007 伪零更多, 缺陷放大。
 
 - **bert_avg_pos/neg 把二分类 finbert2 与三分类模型直接平均: pos+neu+neg 全行≠1 (最大 1.33), pos 概率系统性上偏**
   - 位置: `pipeline/panel/geography.py`:79-81 (bert_avg 系列构造) · 单元: data-panel-invariants
@@ -608,7 +608,7 @@
 
 - **14_table5 四连缺陷: (a) `eststo MAIN_BOOT: estimates store` 语法错 r(100) — boottest 已安装时 5d 整块中断; (b) leave-one-out 'n_stable' 无条件自增, 表注 'X/Y consistent β' 是恒真假统计量; (c) placebo 声称'随机置换保数量'实为 iid 重抽; (d) T=2 下 5b 子样本 0 obs r(2000) 崩**
   - 位置: `papers/_common/stata_templates/14_table5_advanced_robustness.do.tmpl`:69 (a); 53-62+85 (b); 29-39 (c); 43-49 (d) · 单元: stata-templates-mainline
-  - 裁决: (a):69 本机实证 r(100) name required, 在 :66 which boottest 通过分支内无 capture→装包反致中断; (b):55-62 n_stable 无条件自增、b_coef 弃用、:85 恒 100%; (c):35 逐 obs iid runiformint 非置换, bysort 无 stable; (d)实测 years=2017/2018→:46 year<2017 零 obs r(2000), T=18 不触发。
+  - 裁决: (a):69 本机实证 r(100) name required, 在 :66 which boottest 通过分支内无 capture→装包反致中断; (b):55-62 n_stable 无条件自增、b_coef 弃用、:85 恒 100%; (c):35 逐 obs iid runiformint 非置换, bysort 无 stable; (d)实测 years=2017/2018→:46 year<2017 零 obs r(2000), T=19 不触发。
 
 - **20_tableA1: bank-year 级 inter-track 相关性 confirm 引用幻影列 tech_frac_lf/sub_frac_sf → 永远失败, Locus/Subst 两行 ρ 恒为缺失 — 双轨设计核心效度证据表实际永远空表**
   - 位置: `papers/_common/stata_templates/20_tableA1_inter_track_kappa.do.tmpl`:56-66 (幻影 confirm), 83-92 (空 .tex 输出) · 单元: stata-templates-mainline
@@ -623,16 +623,16 @@
   - 裁决: 22_tableA3:60-61/:73-74 ivreg2 调用串无 absorb/partial/i.bank_id/i.year(ivreg2 本不支持 absorb, 需 ivreghdfe 或哑变量); :78 OLS reghdfe absorb(bank_id year); :81 esttab 同表三列对比; :89-93 脚注仅披露 KP F 未披露 FE 不对称; Bartik shift 逐年变动, 无 year FE 时共同冲击入残差, GPSS2020 框架下对比不可归因。
 
 
-## 3b. P2 确认 — latent (T=18 触发, 13 条)
+## 3b. P2 确认 — latent (T=19 触发, 13 条)
 
 
 - **银行关键词保留过滤在文本规范化之前执行, 且 8223 关键词 0 个繁体变体 — 混合文字/OCR 噪声源文章被静默丢弃 (latent, 全量语料)**
   - 位置: `pipeline/preprocess/load.py:120-129 + pipeline/preprocess/filter.py:98-110`:_process_single_file 处理顺序: _clean_and_filter_dataframe → clean_text_batch · 单元: preprocess · ⚠latent
-  - 裁决: 缺陷真实: load.py:120过滤先于:129规范化,filter.py:102对原始内容AC匹配,8223词0繁体(亲测),AC仅lower(load.py:55,70),'联合银行(中国)'全角形态0词命中(亲测);但实测Wisers地区值='香港'非'中国香港'→繁体源步1按设计排除,主放大通道不存在;盘上切片仅2017-18清洁期,OCR/全角/mojibake通道仅全量2007-2024 latent,量级窄→P2降P3
+  - 裁决: 缺陷真实: load.py:120过滤先于:129规范化,filter.py:102对原始内容AC匹配,8223词0繁体(亲测),AC仅lower(load.py:55,70),'联合银行(中国)'全角形态0词命中(亲测);但实测Wisers地区值='香港'非'中国香港'→繁体源步1按设计排除,主放大通道不存在;盘上切片仅2017-18清洁期,OCR/全角/mojibake通道仅全量2007-2025 latent,量级窄→P2降P3
 
 - **批级推理异常把整批 200 篇 × 全部模型静默置为 '中性'+全 0 概率哨兵, 与空文本不可区分且下游无过滤**
   - 位置: `pipeline/sentiment/tone_berts.py`:605-612 (_empty_result), 648-654 (except 兜底), 883-892 (num_windows 写盘) · 单元: tone-berts · ⚠latent
-  - 裁决: 代码坐实: tone_berts.py:648-654 except Exception 整批×全模型覆盖 _empty_result(L612: 中性+全0概率+num_windows=0)仅 warning; encode.py:528-537 prob 全物理域 mean/sum, L1458 明示 BERT prob=0 不改→哨兵直进聚合, 无失败 flag, 与空文本共用 num_windows=0。盘上实测无哨兵(prob-sum min=1.0, num_windows min=1), 17M 全量 GPU 瞬态故障即触发→latent。
+  - 裁决: 代码坐实: tone_berts.py:648-654 except Exception 整批×全模型覆盖 _empty_result(L612: 中性+全0概率+num_windows=0)仅 warning; encode.py:528-537 prob 全物理域 mean/sum, L1458 明示 BERT prob=0 不改→哨兵直进聚合, 无失败 flag, 与空文本共用 num_windows=0。盘上实测无哨兵(prob-sum min=1.0, num_windows min=1), 18.2M 全量 GPU 瞬态故障即触发→latent。
 
 - **stage 18 盲目按位置对齐 stage 30a 嵌入: 无 article_id join/长度断言/模型版本 provenance**
   - 位置: `pipeline/text/article_staleness.py`:331-341 (消费); article_sbert.py:170-179 (产出) · 单元: staleness-sbert-embed · ⚠latent
@@ -642,13 +642,13 @@
   - 位置: `pipeline/panel/runner.py`:1288-1316 · 单元: policy-alignment-similarity · ⚠latent
   - 裁决: 代码坐实: 三条早退路径合法写全 NaN parquet(policy_alignment.py:445-457,570-572); runner 仅对文件缺失 fail-loud(1184); 全 NaN 年 quantile→NaN, `>=NaN`→False(1297), _is_token=_high_freq(1299-1300), 与 L1324-1332 NaN 契约矛盾。盘上 policy_cosine_sim 0 NaN 未触发 → latent。
 
-- **面板年份早于基期 T0 时 share 前视 (latent, T=18 触发)**
+- **面板年份早于基期 T0 时 share 前视 (latent, T=19 触发)**
   - 位置: `pipeline/panel/iv_did.py`:L116, L180 (merge 仅 on target_bank, 无 year≥T0 掩码); 配合 runner.py L663-665 · 单元: iv-did · ⚠latent
-  - 裁决: 代码属实: iv_did.py:180 与 L318 仅按 target_bank merge/map, 无 year≥T0 掩码; runner.py:665 T0=max(panel_min,2010)。盘上 panel_min=2017→T0=2017 不触发; 全量 2007-2024 下 T0=2010, 2007-2009 行将携带 2010 年测得 share 与同期 shift 相乘出非 NaN BIV — share 由未来数据测得, GPSS 预定外生性论证对这些行失效。函数内无守卫/警告, 真实 latent 缺陷。
+  - 裁决: 代码属实: iv_did.py:180 与 L318 仅按 target_bank merge/map, 无 year≥T0 掩码; runner.py:665 T0=max(panel_min,2010)。盘上 panel_min=2017→T0=2017 不触发; 全量 2007-2025 下 T0=2010, 2007-2009 行将携带 2010 年测得 share 与同期 shift 相乘出非 NaN BIV — share 由未来数据测得, GPSS 预定外生性论证对这些行失效。函数内无守卫/警告, 真实 latent 缺陷。
 
 - **名称归一化级联可把泛称/表外银行错配到任意银行: 泛串 '农村商业银行' 命中 1558 家取最长名, difflib 0.8 把农发行错配为农业银行**
   - 位置: `pipeline/panel/llm_peer_iv.py`:443-456 (_normalize_peer_names 策略3/4) · 单元: llm-peer-iv · ⚠latent
-  - 裁决: L443-456 亲验: 泛称'农村商业银行'子串命中 1558 规范名, max(key=len) 任取'内蒙古察哈尔右翼前旗农村商业银行'; 农发行不在 bank_names.json, difflib ratio=0.857≥0.8 错归中国农业银行 — 缺陷真实(无歧义守卫/无 OOV 拒绝)。但实读 _llm_cache 全部 73 条 peer 响应 70 唯一名: 策略3歧义/策略4 difflib 零触发, 盘上 T=2 未实际污染; T=18 海量 bank-year 调用下泛称/政策行输出大概率出现 → latent。
+  - 裁决: L443-456 亲验: 泛称'农村商业银行'子串命中 1558 规范名, max(key=len) 任取'内蒙古察哈尔右翼前旗农村商业银行'; 农发行不在 bank_names.json, difflib ratio=0.857≥0.8 错归中国农业银行 — 缺陷真实(无歧义守卫/无 OOV 拒绝)。但实读 _llm_cache 全部 73 条 peer 响应 70 唯一名: 策略3歧义/策略4 difflib 零触发, 盘上 T=2 未实际污染; T=19 海量 bank-year 调用下泛称/政策行输出大概率出现 → latent。
 
 - **stock 类季度聚合每列独立取'最后可得季度' — 比率分子分母可来自不同季度 (rwa/TA、NPL/loans、LLP/loans 测量日错配) (latent)**
   - 位置: `pipeline/panel/risk_taking_outcomes.py`:117-124 (aggregate_quarterly_to_yearly stock 路径) → 329-336 (rwa_to_ta/llp), 214-218 (npl formation) · 单元: risk-taking · ⚠latent
@@ -765,8 +765,8 @@
 - FIX-REGRESSION: Hassan extensive≠intensive 锚点更正只落在 attention_media.py docstring, 未传播到 P2 paper_spec / 模块与 runner 日志头 / config 注释 `papers/bank_fintech_attention/paper_spec.yaml`
 - ft_attn_prov/city 地理注意力指数无 leave-one-out: 焦点银行自身文章计入其所在地指数, 市级小单元可被单一银行支配 `pipeline/panel/attention_media.py`
 - attention_disp_full 标签语义反转: 'Dispersion' 命名/标签下装的是 HHI 集中度 (高值=集中=低分散) `pipeline/panel/attention_media.py`
-- 停刊检测在 fintech-only 语料上度量的是'话题退出'而非'停刊', 且未经 NPPA 证实的 suspected 全量进入排除集 (latent, T=18 触发) ⚠latent `pipeline/panel/attention_media.py`
-- 平衡媒体面板'全程在刊'仅用端点 (first_year≤start ∧ last_year≥end) 判定, 中间缺刊年不被剔除 (latent, T=18 触发) ⚠latent `pipeline/panel/attention_media.py`
+- 停刊检测在 fintech-only 语料上度量的是'话题退出'而非'停刊', 且未经 NPPA 证实的 suspected 全量进入排除集 (latent, T=19 触发) ⚠latent `pipeline/panel/attention_media.py`
+- 平衡媒体面板'全程在刊'仅用端点 (first_year≤start ∧ last_year≥end) 判定, 中间缺刊年不被剔除 (latent, T=19 触发) ⚠latent `pipeline/panel/attention_media.py`
 
 **validation-sensitivity** (5):
 - innovation_locus 聚合规则 baseline 与变体不一致: 生产是 LLM 多数票+keyword 分类器回退/交叉验证混合, 变体侧是纯 LLM 票 (空票→None) `validation/prompt_sensitivity.py`
@@ -780,7 +780,7 @@
 - stage 46 类别编码+value label 机制对当前 panel 是死代码: innovation_locus/substantiveness/collab_mode 列不存在, 全部 .dta value label = 0 `pipeline/panel/stata_export.py`
 - 变量标签在三套 .dta 交付物间断崖式丢失: 40.dta=666 条 → 46_*.dta=124 条 → 51.dta=9/1668 条; 1614 列标签跨文件不一致 `pipeline/falsification/controls.py`
 - 盘上 46_*.dta 实由 pandas fallback (Backend 2) 写出而非推荐的 pyreadstat 路径; 两后端产出不同的 .dta 存储 schema (byte vs long), 复现二进制随环境漂移 `pipeline/panel/stata_export.py`
-- latent(T=18): 12 个 LLM 计数列 dtype 随数据值漂移 (Int8↔Int64), .dta 存储型随之 byte↔long/double 翻转 — 值无损但 schema 跨规模/跨环境不稳定 ⚠latent `pipeline/panel/encode.py`
+- latent(T=19): 12 个 LLM 计数列 dtype 随数据值漂移 (Int8↔Int64), .dta 存储型随之 byte↔long/double 翻转 — 值无损但 schema 跨规模/跨环境不稳定 ⚠latent `pipeline/panel/encode.py`
 
 **sweep-valid-physical-denom** (5):
 - 洗稿率 D/D2/E/E2/A2/F 变体: 分子要求 LLM 实质性标签有效, 分母为全体词典/BERT 阳性文章 — valid 分子/physical 分母系统性低估 `pipeline/panel/runner.py`
@@ -811,7 +811,7 @@
 - 缺失 shift 零填并误称'等价于 exclusion restriction' `pipeline/panel/iv_did.py`
 - DiD 处理分配按总部城市/省份匹配, 全国性银行 (SOE/股份制) 暴露错配且无代码内披露 `pipeline/panel/iv_did.py`
 - zone LOO 不排除 'other' 伪经济圈, 与 Bartik 族 'other' 口径不一致; min_group_size 按文章数而非银行数 ⚠latent `pipeline/panel/iv_did.py`
-- sandbox never-treated 控制组近乎为空, 注释/日志推荐的 csdid never-treated baseline 不可行 (latent, T=18) ⚠latent `pipeline/panel/iv_did.py`
+- sandbox never-treated 控制组近乎为空, 注释/日志推荐的 csdid never-treated baseline 不可行 (latent, T=19) ⚠latent `pipeline/panel/iv_did.py`
 
 **llm-peer-iv** (4):
 - cutoff 0.70-0.90 五档 '稳健性' 列在盘上逐位相同 — 灵敏度扫描无识别变化却作为论文稳健性电池导出 `pipeline/panel/llm_peer_iv.py`
@@ -871,7 +871,7 @@
 
 **sweep-insample-leakage** (3):
 - high_coverage 调节变量 = 同年中位数切分的内生覆盖度, tone×high_coverage 交互进回归 (与 digital_frontier 同型) `pipeline/panel/runner.py`
-- substance 论文 3 处 xtile 在全年份 pooled 分布上切分位 (cap_q/car_q/disclose_q), T=18 下趋势变量的分位组沦为年代代理 [latent] ⚠latent `papers/_common/stata_templates/bank_fintech_substance/17_substance_heterogeneity`
+- substance 论文 3 处 xtile 在全年份 pooled 分布上切分位 (cap_q/car_q/disclose_q), T=19 下趋势变量的分位组沦为年代代理 [latent] ⚠latent `papers/_common/stata_templates/bank_fintech_substance/17_substance_heterogeneity`
 - herd_decay 前驱跟风计数的 TF-IDF 在单银行全历史 (含未来文档) 上 fit — 纯后视构念使用了含前视 DF 的向量空间 [latent] ⚠latent `pipeline/sentiment/herd_decay.py`
 
 **sweep-log-entropy-clip** (3):
@@ -973,11 +973,11 @@
 - KNOWN-OPEN-STATUS: ⑥ pyreadstat Int8∈[101,126]→扩展缺失 — 仍未修; 盘上已触 max=100 精确边界; 实际写盘后端是 pandas fallback (安全), 装上'推荐'的 pyreadstat 反而引 — 声称的状态性事实全部属实, 但其载荷性危险断言被实测+源码双重证伪, 且连带证伪了台账 ⑥ 本身的前提。
 
 【证实的部分】(1) F:\WiseSearch\data_antigravity_project\news_process\pipeline\panel\stata_export.py:550-557 的 _write_dta_pyreadstat 确为 4 行直写, 无 int8 值域守
-- latent: 标题为 NaN 时 `row.get('标题','') or ''` 产出字符串 'nan' 前缀注入两轨文本 (float NaN 为 truthy) — 上游已结构性过滤: stage 00 filter.py:77 dropna(subset=KEY_COLUMNS)+L82-84 空串 strip 过滤, preprocessing.yaml:28-29 标题/内容均在 key_columns; load.py:147-152 再加标题汉字数下限。该过滤对全量 17M/T=18 同样无条件执行(load.py:120 逐文件调用) → NaN/
-- 空文本缺失值契约不对称: 词典 score/ratio/msent 零填 ('伪中性') 而 clarity/LM/FLS 用 NaN, 同条件两套口径稀释 panel 均值 — 代码两套默认值确实并存(L853-893 零填 vs L261-280/lm:113-121 NaN), 但触发条件(空/无效文本)生产 DAG 结构性不可达: stage 00 内容非空+汉字数下限(filter.py:75-85), ctx_materializer.py:132-133 空 ctx 回退全文 body, 且 prepend_title 后两轨文本至少含非空标题 → T=18 
-- latent: NaN 标题经 `str(row.get('标题','') or '')` 变为字面量 'nan。' 前缀注入双轨文本 (兄弟 stage 均用 fillna('')) — 上游 stage 00 已结构性过滤: filter.py:77 dropna(subset=KEY_COLUMNS 含标题/内容, preprocessing.yaml:27-31) + L82-84 空串过滤 + load.py:148-154 标题汉字≥2 过滤 + load.py:168-170/filter.py:113-115 fillna('')。NaN/空标题行在 T=18 全量下
-- latent: 全样本 pooled IDF 前视 — T=18 生产语料下 2007 年文章的强度分嵌入 2024 年文档频率信息 — 全语料IDF是教科书定义(Manning Ch6.2.1 相对collection计算)且正是模块所引方法指令(GKT 2019 §2.2 'IDF must be computed on the full reference corpus', fintech_intensity.py:105-106); 权重无监督、与因变量独立, 无泄漏路径; 时不变权重利面板可比, 滚动IDF仅是稳健性变体。
-- _concat 标题去重用未 strip 的原始 标题 比对, 而 stage 13 prepend_title 先 strip 再注入 — 含首尾空白的标题将双重注入聚合文档 (latent) — 上游已过滤: stage 00 `_clean_single_text` 对 TEXT_COLUMNS=['标题','内容'] 全量执行 (normalize.py:109 末尾 .strip() + TAIL_CLEANUP 空白归一; _constants.py:117), df_exploded 必经 stage 00 → 抵达 _concat 的标题恒已 strip, 17M 全量同走此管
+- latent: 标题为 NaN 时 `row.get('标题','') or ''` 产出字符串 'nan' 前缀注入两轨文本 (float NaN 为 truthy) — 上游已结构性过滤: stage 00 filter.py:77 dropna(subset=KEY_COLUMNS)+L82-84 空串 strip 过滤, preprocessing.yaml:28-29 标题/内容均在 key_columns; load.py:147-152 再加标题汉字数下限。该过滤对全量 18.2M/T=19 同样无条件执行(load.py:120 逐文件调用) → NaN/
+- 空文本缺失值契约不对称: 词典 score/ratio/msent 零填 ('伪中性') 而 clarity/LM/FLS 用 NaN, 同条件两套口径稀释 panel 均值 — 代码两套默认值确实并存(L853-893 零填 vs L261-280/lm:113-121 NaN), 但触发条件(空/无效文本)生产 DAG 结构性不可达: stage 00 内容非空+汉字数下限(filter.py:75-85), ctx_materializer.py:132-133 空 ctx 回退全文 body, 且 prepend_title 后两轨文本至少含非空标题 → T=19 
+- latent: NaN 标题经 `str(row.get('标题','') or '')` 变为字面量 'nan。' 前缀注入双轨文本 (兄弟 stage 均用 fillna('')) — 上游 stage 00 已结构性过滤: filter.py:77 dropna(subset=KEY_COLUMNS 含标题/内容, preprocessing.yaml:27-31) + L82-84 空串过滤 + load.py:148-154 标题汉字≥2 过滤 + load.py:168-170/filter.py:113-115 fillna('')。NaN/空标题行在 T=19 全量下
+- latent: 全样本 pooled IDF 前视 — T=19 生产语料下 2007 年文章的强度分嵌入 2024 年文档频率信息 — 全语料IDF是教科书定义(Manning Ch6.2.1 相对collection计算)且正是模块所引方法指令(GKT 2019 §2.2 'IDF must be computed on the full reference corpus', fintech_intensity.py:105-106); 权重无监督、与因变量独立, 无泄漏路径; 时不变权重利面板可比, 滚动IDF仅是稳健性变体。
+- _concat 标题去重用未 strip 的原始 标题 比对, 而 stage 13 prepend_title 先 strip 再注入 — 含首尾空白的标题将双重注入聚合文档 (latent) — 上游已过滤: stage 00 `_clean_single_text` 对 TEXT_COLUMNS=['标题','内容'] 全量执行 (normalize.py:109 末尾 .strip() + TAIL_CLEANUP 空白归一; _constants.py:117), df_exploded 必经 stage 00 → 抵达 _concat 的标题恒已 strip, 18.2M 全量同走此管
 - HW/MW 加权链条 dict/BERT 族的权重 NaN 策略分子分母不对称 (latent): 分子权重 fillna(1.0), 物理分母聚合原始列 NaN-skip(=0) — 不对称字面存在 (runner.py:358-359 fillna(1.0) vs encode.py:708-709 原始列 sum), 但上游 herd_decay.py:271-272 整列初始化 1.0, 仅以 1.0/(1.0+int(count)) 覆写 (312-320, int 不可能 NaN), 各 fallback (253-255/277-281) 也全设 1.0; runn
 - llms_evaluation 金标准诊断: gold 列不可解析/缺失值 fillna(0) 被当作 gold=0 进入混淆矩阵 — 上游已过滤: L1192 has_gold_ver=notna(), L1286 df_eval_ver 仅取有标注行后才传入 L1494 → gold 缺失行根本到不了 L866 fillna(0)。notna 但不可解析的字符串会先在 L1287 astype(int) 崩溃 (Step 4 先于 Step 4b), 不可能静默变 0。_pred fillna(False) 与主指标 L130
 
@@ -1018,14 +1018,14 @@
 - `papers/_common/stata_postprocess.py` (Stata 日志→论文表的正则提取层) 与共享绘图层 figures (置信区间公式)。
 - 词典/语料资源文件内容质量 (LM 中文词表翻译、8223 关键词 0 繁体、authoritative_corpus 来源)。
 - geography 坐标表 provenance (build_city_coordinates 数据源)。
-- `config/银行面板2007-2025年.xlsx`: 零代码消费者, T=18 财务列接入(也即 N4 幻影列的解药)完全在审计射程外。
-- 全量 17M/T=18 工程维度 (load.py read_excel 单文件、dedup MinHash 内存、O(N²) 复杂度)。
+- `config/银行面板2007-2025年.xlsx`: 零代码消费者, T=19 财务列接入(也即 N4 幻影列的解药)完全在审计射程外。
+- 全量 18.2M/T=19 工程维度 (load.py read_excel 单文件、dedup MinHash 内存、O(N²) 复杂度)。
 
 ---
 
 ## 8. 诚实边界
 
-1. 全程在 T=2 试跑盘上验证; latent 判定基于代码语义+全量触发性推断, 未在 T=18 数据上实证。
+1. 全程在 T=2 试跑盘上验证; latent 判定基于代码语义+全量触发性推断, 未在 T=19 数据上实证。
 2. 三波工作流跨 3 个会话限额窗口执行, Wave-1 部分发现的证伪由原设计的逐条 1-3 镜头降级为 Wave-2/3 的批量复核官逐条读码裁决 (每条仍有代码级证据, 但 P3 允许快速抽查)。
 3. refuted 桶含程序性击杀与实质证伪两类, 已在 5a/5c 分流; 仍有 0 条未决残余 (全部 P2 以下, 列于台账 JSON)。
 4. 未改任何生产代码; 全部修复待 user 拍板。
@@ -1045,7 +1045,7 @@ Bartik: share fillna(0)→NaN (7 族伪零)+_t01 真池化或删除+早于 T0 �
 ahocorasick 最长匹配位置去重+跨行嵌套消歧+负面模式补 ('中国银行间'/CBIRC 全称/法国兴业)+上下半切分跨界修复; target_in_lead 用变体; num_intensity cn2arab 单字白名单+句分母全角守卫; tone_words 重叠词去重+best-dict 改固定词典+分母 word-token 化 (与 LM 修复对齐)+度量值域归一; finbert2 独立 tokenizer (分组键加词表哈希); t2v 轨按模型 max_seq 分块; herd TF-IDF min_df 比例化; FLS 门控词表审定; lexical jieba 注入隔离 (独立 Tokenizer 实例)。
 
 **T3 — ⚠ 语料级 (normalize 数字破坏+phone 正则+互动计数模式)**
-修复将改变全部下游文本 → **LLM 缓存键全变 → stage 21 全量付费重跑**。与 T=18 production run 合并执行 (受 M0 gate 管辖), 切勿单独小修反复触发付费重跑。修法: `(.)\1{2,}` 排除数字字符 (`([^\d])\1{2,}`); phone 正则加 `(?<!\d)...(?!\d)` 锚; 互动计数模式按媒体类型条件启用。
+修复将改变全部下游文本 → **LLM 缓存键全变 → stage 21 全量付费重跑**。与 T=19 production run 合并执行 (受 M0 gate 管辖), 切勿单独小修反复触发付费重跑。修法: `(.)\1{2,}` 排除数字字符 (`([^\d])\1{2,}`); phone 正则加 `(?<!\d)...(?!\d)` 锚; 互动计数模式按媒体类型条件启用。
 
 **T4 — replication/文档层**
 derivative_replication 幻影 CONTROLS/MAIN_DV: 接入外部财务面板 (config/银行面板2007-2025年.xlsx) 或先降级为可运行占位; esttab .tex↔.csv 死接线 (模板加 csv 导出或 python 改读 .tex); codebook 重生 (42家→87/LLM 阵容 deepseek/范围/54 缺列/9 幻影行); 引文残留 (Berger 1 + TNIC 3 + z_score 13 + BW2012 模板措辞); core_patterns bartik_fintech_iv 幻影列名。

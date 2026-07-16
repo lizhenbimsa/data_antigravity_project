@@ -97,4 +97,4 @@
 **P3(降级)**:Lazy Prices 3 个补充距离
 **先修(一致性)**:avg_article_length 单位标签 + num_intensity/jf_coefficient/He2024 引文
 
-> ⚠ 全量提醒:磁盘 176 行 T=2 仅 0.055% 试跑样本;时序类(波动率/连续性/异常量/Lazy)与跨文档类(boilerplate vocab)须全量 1700 万/T=18 才可识别且需工程化(hash 计数控内存)。
+> ⚠ 全量提醒:磁盘 176 行 T=2 仅 0.052% 试跑样本;时序类(波动率/连续性/异常量/Lazy)与跨文档类(boilerplate vocab)须全量 18,198,978/T=19 才可识别且需工程化(hash 计数控内存)。

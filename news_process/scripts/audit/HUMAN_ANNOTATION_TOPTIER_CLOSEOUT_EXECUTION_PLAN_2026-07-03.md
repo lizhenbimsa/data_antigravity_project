@@ -10,7 +10,7 @@
 - **对象** = tone/verification 人工标注双工具: ① `61_human_samples.xlsx` (shim `61_news_llms_human.py` → `validation/llms_human.py`, 双编码员 × {验证,情感} 金标准考卷, config `validation.yaml::human_validation` sample_size=1000/seed=42); ② `09_sentiment_verify_{full,ctx,ss}.xlsx` (shim `64_tone_validation.py` → `validation/tone_validation.py::write_human_verification_sample`, 单编码员三轨情感复核, 现盘各 300 行 = 一致 100 + 分歧 200)。
 - **时机关键 (零沉没成本)**: 两工具全部人工标注列 **0 非空** (2026-07-03 实测: 61 为 0/1000×4 列; 09 为 0/300×2 列×3 轨) → 现在重设计不作废任何已有人工劳动。
 - **硬约束 (违诺风险)**: tone 手稿已承诺盲标 — `papers_assets/bank_fintech_tone/drafts/zh/manuscript.tex:346-354` "人工标注样本经 61_human_samples 抽样、由独立标注者**盲标**"。现行 61 工作台含 **98 列机器判定** (三家 LLM verified/sentiment/confidence × 三轨, 实测) → 若按现工作台启动标注, 手稿披露即不实。**⇒ WP-A 是任何真实标注启动的硬前置。**
-- **生产时序**: 现盘 T=2 dev 语料 (61 抽样框 = `21_tone_llms_full.parquet`)。本计划全部代码改动 + 工作台重生成本机可完成并验证 ($0); **真实标注**沿用 MVP-0622 deferred 时序 (生产 T=18 重生 21 parquet → 重生成工作台 → 发编码员; G0 tone 先行例外不变)。
+- **生产时序**: 现盘 T=2 dev 语料 (61 抽样框 = `21_tone_llms_full.parquet`)。本计划全部代码改动 + 工作台重生成本机可完成并验证 ($0); **真实标注**沿用 MVP-0622 deferred 时序 (生产 T=19 重生 21 parquet → 重生成工作台 → 发编码员; G0 tone 先行例外不变)。
 
 ## §1 审计终判 (7 项改进点, 2026-07-03 对抗核实后)
 
@@ -112,7 +112,7 @@ WP-A (盲标化, P0) ──┬─→ WP-B (双编码+权重) ─→ WP-C (仲裁
                     └─→ WP-E (协议文档, 可并行)
 WP-D (漏检审计脚本) — 独立, 可并行; 本机功能验证, 生产机重抽
 WP-F — DEFERRED (真标注回填后), 仅先占位文献与模板设计
-真实标注启动 (生产 T=18): 依 MVP-0622 deferred ①②③④ 时序, 前置 = 本计划 WP-A/B/C/E 全落 + pilot 资格门
+真实标注启动 (生产 T=19): 依 MVP-0622 deferred ①②③④ 时序, 前置 = 本计划 WP-A/B/C/E 全落 + pilot 资格门
 ```
 
 ## §6 刻意不做 (归档防重提)
@@ -168,6 +168,6 @@ WP-F — DEFERRED (真标注回填后), 仅先占位文献与模板设计
 
 **Gate 结果**: G-1/G-2/G-3 = 五文件 73 用例全绿; G-4 = 真跑 stage 61+64+WP-D 重生 15 文件逐项断言 PASS (61×3=1000 行 / 09×9=307/305/307 行含负面增样 7/5/7 / WP-D×3=106 行; 白名单零泄露、`_row_uid` 全双射、指南 sheet 全在、旧单文件零产出); G-6 ruff 全绿 (6 项 auto-fix)。**G-5 方法变更声明**: 共享树有并发会话未提交产物, baseline-stash A/B 会波及他会话 → 改为"单次全量 sweep + 失败归因" (改动模块相关五文件已 100% 绿, 其余失败须归因为既存盘面态/flaky)。**G-5 结果 (2026-07-03 实跑)**: 全量 sweep FAILED = **23**, 逐项归因**全部为文档在案的既存红灯、0 个与本计划模块相关**: ① `test_panel_reproducibility` golden 列哈希 ×17 — 盘上 parquet 与 committed golden 既存分叉 (golden 重生 DEFERRED 生产机, 多会话在案); ② `test_benefit_society_dual_track` ×2 — cohort CSV 被 `.gitignore:92` 永不可能 committed (契约债清偿会话在案); ③ `test_dual_track` NaN ×3 — 盘上数据态 (在案); ④ `test_omni_fix_strategic` jieba 隔离 ×1 — 顺序 flaky (在案)。人工标注/验证域 (llms_human/tone_validation/llms_evaluation/blind/adjudication) **零失败**。
 
-**遗留 (DEFERRED, 与母计划一致)**: 真实标注 (生产 T=18 重生语料后, 先过 pilot 门); WP-F 校正模板; strict 双口径全指标表 (wire-ahead); 生产机重抽 WP-D (dev 106 行全选仅验功能)。
+**遗留 (DEFERRED, 与母计划一致)**: 真实标注 (生产 T=19 重生语料后, 先过 pilot 门); WP-F 校正模板; strict 双口径全指标表 (wire-ahead); 生产机重抽 WP-D (dev 106 行全选仅验功能)。
 
 **R5 (提交前终审, 2026-07-04, 独立 agent 逐 hunk 审 12 文件全 diff, 21 tool-uses)**: 终判 **ok_to_commit, 0 P0 / 0 P1**。六攻击面 (边界空值/语义回归/确定性/无关混入/新文件质量/提交安全) 逐一核验: `_vp_base` 不重算恰对齐对账表命名 (刻意正确); NaN 层权被回读端 notna 剔除; pending/error/insufficient 状态机与 `_cleanup_stale_csv` 触发与原逻辑等价; count 三态契约保持; 双盲表严格同源同行序 (seed=42); 零无关改动混入; `wilson_ci`/`compute_cohens_kappa_weighted` 签名一致; 断言变异敏感性抽查有效; 无秘钥。**P2×3 已在提交前全修**: ① `_load_blind_consensus` 补人工判定列存在性守卫 (缺列→优雅 error, 禁 KeyError 中断三轨循环); ② 盲表存在但不可读/结构异常 → error 保留旧 CSV (不当 pending 清盘, 与 legacy 读失败不对称语义对齐); ③ WP-D docstring 去机器专属解释器路径。修后五文件回归+ruff 复绿。

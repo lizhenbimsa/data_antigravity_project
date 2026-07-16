@@ -1398,7 +1398,7 @@ def main(argv=None) -> int:
     logger.info("     令互验富集度向上偏; 落盘前剔除保证长表任何下游消费者都拿不到泄漏行。")
     logger.info("  ③ 覆盖锚: 分支 A≥90%∧B≥95% 双 SystemExit 闸已过; 行数锚由 gate 测试锚死 (好)")
     logger.info("     判读: A 翻红 = '存续判定全错→网点全零'剧本; B 翻红 = 城市键双侧去'市'尾失效或数据商")
-    logger.info("     城市字段改码。生产 T=18 复跑若翻红, 先查数据商改版而非放松阈值。")
+    logger.info("     城市字段改码。生产 T=19 复跑若翻红, 先查数据商改版而非放松阈值。")
     logger.info("  ④ DV2 未映射名称: %s 种 (全量落互验报告审计附录 top-50, 无静默丢弃) — 生产复跑时"
                 "复核映射率 (关注)", f"{n_unmapped:,}")
     logger.info("     判读: top 频次以政策性银行 (进出口/农发/国开) 与集团财务公司为主 — 属 canonical")
@@ -1417,8 +1417,8 @@ def main(argv=None) -> int:
                 len(spearman_neg), f" ({'; '.join(spearman_neg)})" if spearman_neg else "")
     logger.info("     ④b 篇数均值差 <1× 权源 (⑤ 叙事判据的反向证据, 点名披露): %d 个%s — 同上以生产复跑定谳",
                 len(meandiff_below), f" ({'; '.join(meandiff_below)})" if meandiff_below else "")
-    logger.info("  ⑦ dev vs 生产 T=18 预期差异: 媒体锚出自 dev 语料, 共同支撑对数偏小 (稀疏权可现 n<10 →")
-    logger.info("     Spearman n/a, 小样本 ρ 波动大属预期); 生产 17M 篇/T=18 下共同支撑将数量级增厚,")
+    logger.info("  ⑦ dev vs 生产 T=19 预期差异: 媒体锚出自 dev 语料, 共同支撑对数偏小 (稀疏权可现 n<10 →")
+    logger.info("     Spearman n/a, 小样本 ρ 波动大属预期); 生产 约1,819万 篇/T=19 下共同支撑将数量级增厚,")
     logger.info("     互验数值以生产复跑为准; 权源 dta 侧锚 (行数/覆盖) 不随语料变, 翻红另查数据商改版。")
     logger.info("-" * 70)
     logger.info("  ⏱ 各子阶段墙钟耗时 (秒, 4 位有效数字):")

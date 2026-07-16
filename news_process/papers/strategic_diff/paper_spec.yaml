@@ -50,7 +50,7 @@ controls:
   # INFER IV-2 (PROJECT_REAUDIT_TOPTIER_T18 2026-06-14): 形式化聚类声明
   # (镜像 bank_media_disagreement spec)。主规格单向 bank 聚类 (CLUSTER_VAR=bank_id,
   # derivative_replication.py), 稳健性对比双向 bank×year。
-  cluster: [bank]            # 主规格单向 (G≈200 @ T=18, 足够大 G)
+  cluster: [bank]            # 主规格单向 (G≈200 @ T=19, 足够大 G)
   cluster_robustness:        # 稳健性多聚类对比 (16_table7 / 14_table5 内)
     - bank_only
     - bank_year_twoway
@@ -121,7 +121,7 @@ targets:
 
 sample:  # RR5-1: post-M0.5 v34 panel target (per §3.4 8 paper共用 v34); v3.3.0 baseline = 84 banks × 2 yr × 168 obs
   n_bank_min: 200
-  t_year: 18
+  t_year: 19
   obs_target_min: 3000
 
 audit_rounds_target_min: 8

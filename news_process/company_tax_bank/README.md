@@ -77,7 +77,7 @@ python company_tax_bank/04_build_company_tax_bank_altagg_panels.py
   chunk_eff 收缩到 city 3 / county 7 (city <4 触发内存吃紧 WARNING) + groupby 轮次暴涨。
   ⚠ **budget 提速非单调**: 实测 (7db15e69 全链) city 引擎 781→478s 大受益, 但 county 引擎 312→510s
   **反变慢** (chunk_eff 62→100 大帧内存带宽 + WP-S2 城写盘重叠争用); 1.0B 净效应仍为正 (总 −660s),
-  但生产 T=18 须 **per-分支实测选最优 budget**, 勿假定 county 随 budget 提高而加速。峰值 ~35-45GB
+  但生产 T=19 须 **per-分支实测选最优 budget**, 勿假定 county 随 budget 提高而加速。峰值 ~35-45GB
   投影 (128GB 安全; mid-chunk RSS 采样 DEFERRED 到生产实测, 现日志仅落盘后 RSS 下界)。用户已
   `export` 该变量则不覆盖。手跑 03 时须自行设置 (否则回退引擎默认 60M, 次优)。
 
@@ -92,7 +92,7 @@ pytest 收集实数以 `--collect-only -q` 为准 (增删测试后同步此处�
 提速 v2 各 +1: panel `test_write_outputs_emit_dta_flag` [WP-S3] / weight `test_wps2_join_background_writes_semantics` [WP-S2];
 04 替代聚合 +15 新文件 + panel parametrize +04 stem)。
 
-⚠ 生产 T=18 复跑注意 (计划 §6 DEFERRED): dev T=2 语料只证管线正确性, 生产全量 21_full 重跑得真面板
+⚠ 生产 T=19 复跑注意 (计划 §6 DEFERRED): dev T=2 语料只证管线正确性, 生产全量 21_full 重跑得真面板
 (面板窗 2011–2020 完整内嵌语料域 2007–2025, 生产各窗内年均有语料; dev T=2 仅 2017–2018 有语料、
 其余窗内年整年 0 属预期; dev 产物不可用于任何回归)。registry 哈希锚锚死盘上态, 有意重跑 01 后须
 bump `tests/test_company_tax_bank_cooc_registry.py::EXPECTED_TAX_REGISTRY_SHA256` 并级联重跑 02 (pair
@@ -105,7 +105,7 @@ bump `tests/test_company_tax_bank_cooc_registry.py::EXPECTED_TAX_REGISTRY_SHA256
   顺序 `run_pipeline_function → run_pipeline_validation` 跑, 则 stage40 (group=main) 建面板时 stage75
   (`75_cross_media_alpha`, group=validation) **恒晚于**刚重生的 stage21 → `pipeline/panel/runner.py` 的 mtime
   新鲜度守卫**恒跳过** cross_media merge → 40 面板缺 `cross_media_alpha`/`cross_outlet_tone_variance`/`n_events`
-  三基名源列 → 本管线 registry 对该三基名 emit_tracks=[] **不产对应加权列 (0 列, 非全 NaN; 与 02 日志 F3 拆因一致)** (非 bug, 非 T=18 可恢复; 标准/生产顺序皆恒缺)。
+  三基名源列 → 本管线 registry 对该三基名 emit_tracks=[] **不产对应加权列 (0 列, 非全 NaN; 与 02 日志 F3 拆因一致)** (非 bug, 非 T=19 可恢复; 标准/生产顺序皆恒缺)。
   **需含 cross_media 的完整面板**须走: `① function → ② validation → ③ 单独补跑 python 40_panel_export_main.py
   (不重跑 21, 使 75 相对 21 新鲜) → ④ 本管线`, 或主管道传 `--skip-21-if-exists`。
 - **跨管道串行纪律 (F7)**: 本管线单实例锁 (`logs/_run_pipeline.lock`) 只防同目录 orchestrator 双跑, **与主管道

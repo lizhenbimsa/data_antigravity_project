@@ -78,7 +78,7 @@ if !`_m3' {
 *   旧脚注规定 KP F < Stock-Yogo 时改读 AR CI, 却从不提供 AR 统计量 ("声明—实现"缺口)。
 *   兑现为真命令 (镜像主线 25_tableA6:122-167 的 proven pattern): 先 ivreg2 重估同规格,
 *   紧随 weakiv, level(95) 在 log 输出 AR 95% 置信集 (weakiv 读上一条 ivreg2 估计;
-*   不抽脆弱标量, 与主线一致)。capture which 守卫 (未装/退化优雅跳过, T=18 激活)。
+*   不抽脆弱标量, 与主线一致)。capture which 守卫 (未装/退化优雅跳过, T=19 激活)。
 local ar_note "Anderson-Rubin weak-IV-robust CI NOT computed (weakiv not installed or sample degenerate T=2; ssc install weakiv). "
 capture which weakiv
 if !_rc {

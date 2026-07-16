@@ -48,7 +48,7 @@
   "claim": "build_idf_weights 以 stage-21 输出的每一行作为一个 document (N=len(df), DF 按行累加), 但该表是 (文章×目标银行) 展开表 — 同一篇多银行文章的相同 content_full 被重复计入 DF 与 N。所引 Gentzkow-Kelly-Taddy 2019 JEL §2.2 / Manning IIR 6.2.1 的 DF 定义均为唯一文档级。",
   "evidence": "盘上实证: 21_tone_llms.parquet 857 行中唯一文章 (标题+内容) 仅 786 篇, 47 篇文章重复出现 (最多 8 行), 重复行占 8.3%。多银行行业性新闻的特征词 df 被最多 8 倍膨胀: 例如某词仅出现于 1 篇 8-bank 文章时 raw_idf=log10(N/9) 而非 log10(N/2), 归一化前低估 ~22%。",
   "suggested_fix": "DF 统计前按文章唯一键 (标题+内容 hash 或 doc_id) 去重: texts = df.drop_duplicates(subset=article_key)[text_col]; N 同步取唯一文章数; 重生 22_idf_weights.json 与 golden。",
-  "adjudication": "亲验 build_idf_weights N=len(df)(L597)+逐行 DF(L613-632), L1303 直接传 stage21 全表; 实测 857 行仅 786 唯一文章, 47 篇重复最多 8 行 → 多银行文章 DF/N 同向膨胀, 偏离所引 GKT 2019 §2.2/Manning 6.2.1 唯一文档定义; T=18 行业新闻多银行展开更普遍。已落地的 IDF 修复(FIX_CLOSURE §2b)仅改语料列非去重, 非重复。量级小且 IDF 为稳健性变体, P3 恰当。",
+  "adjudication": "亲验 build_idf_weights N=len(df)(L597)+逐行 DF(L613-632), L1303 直接传 stage21 全表; 实测 857 行仅 786 唯一文章, 47 篇重复最多 8 行 → 多银行文章 DF/N 同向膨胀, 偏离所引 GKT 2019 §2.2/Manning 6.2.1 唯一文档定义; T=19 行业新闻多银行展开更普遍。已落地的 IDF 修复(FIX_CLOSURE §2b)仅改语料列非去重, 非重复。量级小且 IDF 为稳健性变体, P3 恰当。",
   "unit": "tone-words-tfidf-lm"
  },
  {

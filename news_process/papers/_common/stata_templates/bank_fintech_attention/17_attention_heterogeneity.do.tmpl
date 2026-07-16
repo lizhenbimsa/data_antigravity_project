@@ -33,10 +33,10 @@ set seed {{RANDOM_SEED}}
 * 惯用法), 年区间取 bank_fintech_locus/paper_spec.yaml::heterogeneity_wave (R4-M03
 * 三波严格对称, 全项目同口径):
 *   pre_period   2007-2012 / wave_1 2013-2015 / wave_2 2016-2018 /
-*   consolidation 2019-2021 (对照组) / wave_3 2022-2024
+*   consolidation 2019-2021 (对照组) / wave_3 2022-2025
 * year 不在盘时优雅跳过 (四列仍缺 → 原 capture confirm 守卫接管, 行为同旧)。
 * T=2 试跑帧 (2017-2018) 仅 wave_2==1 → 交互项多列被 drop, capture 守卫兜底;
-* production T=18 自动激活全部浪潮交互。$0 / golden-safe (纯 Stata 派生, 不落盘新列)。
+* production T=19 自动激活全部浪潮交互。$0 / golden-safe (纯 Stata 派生, 不落盘新列)。
 * ============================================================================
 capture confirm variable year
 if !_rc {
@@ -45,7 +45,7 @@ if !_rc {
     gen byte wave_1        = inrange(year, 2013, 2015)
     gen byte wave_2        = inrange(year, 2016, 2018)
     gen byte consolidation = inrange(year, 2019, 2021)
-    gen byte wave_3        = inrange(year, 2022, 2024)
+    gen byte wave_3        = inrange(year, 2022, 2025)
 }
 else {
     display as text "  [WIRE-AHEAD] year 不在面板 → fintech 浪潮哑无法派生; (b) treatment×wave 交互优雅跳过 (列仍缺, 守卫接管)"

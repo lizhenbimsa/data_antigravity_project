@@ -81,7 +81,7 @@ else {
 *   改接已物化的 dcep_post (同步政策冲击, 而非 staggered cohort) × attention 强度,
 *   兑现 spec.event_studies 的 intensity-DiD 设定, 无需新列 → golden-safe。
 * ⚠ T=2 试跑帧 dcep_post 恒 0 (处理年 2019 晚于面板末年) → 零方差守卫静默跳过,
-*   T=18 自动激活; sandbox_post 作 fallback (其处理年若更早可有变异)。
+*   T=19 自动激活; sandbox_post 作 fallback (其处理年若更早可有变异)。
 local m6_done = 0
 foreach _post in dcep_post sandbox_post {
     if `m6_done' continue
@@ -102,7 +102,7 @@ foreach _post in dcep_post sandbox_post {
     }
 }
 if `m6_done' == 0 {
-    display "  [INFO] dcep_post/sandbox_post 零方差或不在盘 (处理年晚于 T=2 面板末年); M6 跳过, T=18 自动激活"
+    display "  [INFO] dcep_post/sandbox_post 零方差或不在盘 (处理年晚于 T=2 面板末年); M6 跳过, T=19 自动激活"
 }
 
 * fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — M6 依赖 post_E1 (无管道

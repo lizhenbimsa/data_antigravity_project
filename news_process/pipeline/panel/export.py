@@ -281,7 +281,7 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     try:
         if n_years <= 2:
             logger.info(f"  ⚠ 小样本面板 (T={n_years}): 盘上试跑深度, 平衡率/覆盖率判读仅供形态参考, "
-                        "非生产规模 (生产 T=18, 2007–2024)")
+                        "非生产规模 (生产 T=19, 2007–2025)")
         if news_coverage < 0.50:
             logger.info(f"  🔴 有效新闻覆盖偏低 ({pct4(news_coverage)}<50%), 大量 Bank-Year 零新闻 → "
                         "情感/注意力列稀疏, 下游回归须留意样本损失")

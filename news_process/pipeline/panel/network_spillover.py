@@ -1085,7 +1085,7 @@ def compute_bank_network_centrality(
         # 断连图下不抛 PowerIterationFailedConvergence 而是收敛, 把特征向量质量全压到谱半径
         # 最大的分量 → 其余分量 (含 LCC, 若 LCC 谱半径非最大) 银行得 ~1e-42 数值残渣 (非 NaN,
         # 被回归当"中心度极低的真银行"); 且 eigen_done=True 锁死, numpy(LCC) fallback 永不触发。
-        # 主控实证: 断连图非主导分量节点得 3e-42~5e-42 残渣。全量 T=18 共现网几乎必然断连 →
+        # 主控实证: 断连图非主导分量节点得 3e-42~5e-42 残渣。全量 T=19 共现网几乎必然断连 →
         # 大面积污染。同型 bug 在 network_brokerage._eigenvector_centrality_by_component 已修,
         # 此处移植同款逻辑: 每连通分量 (≥_CMNT_MIN_COMPONENT_SIZE 节点) 内单独确定性 eigenvector
         # + 分量内归一; 微小分量置 NaN (left-join 后缺失, 与 brokerage 侧 NaN 约定一致, 不再写
@@ -1260,7 +1260,7 @@ def compute_bank_network_centrality(
         # (全孤立年: 该年无共现对, 全部 degree=0) 或 degree 分布退化为单一值 (正则图,
         # 所有银行同 degree), 则 ">=cutoff" 会把**全部**银行收入 → bank_is_hub 沦为常数列
         # (零方差, 进回归被吸收且"人人皆枢纽"违构念)。此时置 0 (该年无明确 hub), 严格优于
-        # 旧 top-k 实现在此退化下的任意 1 家。全量 T=18 稀疏早年 / 试跑样本均可命中。
+        # 旧 top-k 实现在此退化下的任意 1 家。全量 T=19 稀疏早年 / 试跑样本均可命中。
         deg_sorted = sorted((metrics[b]['bank_degree_cent'] for b in bank_list),
                             reverse=True)
         top10_count = max(1, int(len(deg_sorted) * 0.10))
@@ -1783,7 +1783,7 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
 
     fix(omni-g-net-spill-02, 2026-06-11): 移除 8000 字符前缀截断 — 旧实现只嵌入
     bank-year 超级文档行序最先若干篇文章的前缀 (盘上 30.5% bank-year 被截, 被截组
-    中位仅留 37.5% 文本; T=18 下退化更剧)。现把完整超级文档交 embedding_engine
+    中位仅留 37.5% 文本; T=19 下退化更剧)。现把完整超级文档交 embedding_engine
     (split_text_for_embedding 分块 + 逐块 L2 归一 token 加权 mean pooling) 编码全文;
     同时拼接顺序改 docid 升序确定性排序 (旧实现依赖上游行序)。⚠ 块文本变 → API 轨
     缓存键变, 下次 production run 将对超长 bank-year 触发新 embedding 调用。
@@ -1916,13 +1916,13 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
         panel_lag = panel[panel['year'] == lag_year].set_index('target_bank')
         # fix(netspill-embpeertone-fillna, metric-audit 2026-06-10 review-closure NSP-1):
         # 与 peer_tone/peer_cov 同型修复 (原 completeness-06 仅守孤立行)。嵌入网 W_emb 稠密
-        # 且行随机, fillna(0) 把缺 tone 同行伪零注入分子而权重仍留在行和(=1)分母 → 在 T=18
+        # 且行随机, fillna(0) 把缺 tone 同行伪零注入分子而权重仍留在行和(=1)分母 → 在 T=19
         # 全量(缺 tone 同行有真实新闻/权重)下加权均值向 0 衰减。改为仅对 OBSERVED-tone 同行
         # 加权均值并按观测权重和重归一; denom>0 同时覆盖"有同行"(孤立行守卫)与"有观测-tone 同行"。
         # ⚠ 落盘提示 (NSP-A): 本嵌入轨依赖 25_article_embeddings(当前缺), stage 45 未重跑嵌入
         # pass, 故盘上 emb_peer_tone 仍是旧 fillna 值、golden 暂未反映本修(repro 仍绿因二者同陈旧)。
         # T=2 上本修为近-no-op (15 个缺 tone 银行 ln_news_coverage=0 → W_emb 权重~0, 旧≈新,
-        # 盘上 [0.953,0.969] 即正确值); 真实差异仅现于 T=18。落盘待带 embeddings 的 production run。
+        # 盘上 [0.953,0.969] 即正确值); 真实差异仅现于 T=19。落盘待带 embeddings 的 production run。
         _track_tone_vecs = {}  # 输出列名 -> emb_peer_tone ndarray (按 bank_list 对齐)
         _Wemb = W_emb.values
         for _out_col, _tcol in _tone_outputs:

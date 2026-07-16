@@ -165,7 +165,7 @@
   "claim": "fluidity dict 按 (bank,year) 对 agg_df 全年份计算 (仅要求 t−1 非空, 2 家银行即可定义), 但落列走 `res` DataFrame — 而 res 只含通过 NN 闸门 (≥3 银行) 年份的行 (L1293-1296 continue 跳过) → <3 银行年份的 fluidity 已计算却被静默丢弃为 NaN。极端退化: 所有年份 <3 银行时 `if all_results:` 为假, strat_fluidity 列根本不被创建 (无契约守卫, 仅 strat_diff_t2v_* 有兜底 L1558-1560)。年际对齐本身 (year−1 严格相邻、缺年 continue→NaN、t1_map 按行名映射、自身排除 other!=bank) 核验正确。",
   "evidence": "L874-879: fluidity 循环条件仅 `df_t1.empty` → continue; L1373: fluidity 经 res.apply 附着, res 行集 ⊂ ≥3 银行年份; 盘上 2018 年 46 行 fluidity 与 46 家 2018 银行一致 (试跑样本两年均 ≥3 行, 未触发)。",
   "suggested_fix": "fluidity 落列改为独立于 NN 闸门: 以 agg_df 全 (bank,year) 为骨架 merge fluidity (或将闸门差异写入日志/codebook 说明 fluidity 与 NN 共享 ≥3 闸门的口径决定)。",
-  "adjudication": "L1293-1296 <3银行年份continue→res行集⊂闸门年份; fluidity dict仅需t-1非空(L874-879)即计算, 经L1376-1379 res.apply附着时被丢; 全年份失败时all_results空→列根本不创建(仅strat_diff_t2v_*有L1558-1560兜底)。盘上2017/2018均≥3银行未触发; T=18早年稀疏语料大概率触发→latent。",
+  "adjudication": "L1293-1296 <3银行年份continue→res行集⊂闸门年份; fluidity dict仅需t-1非空(L874-879)即计算, 经L1376-1379 res.apply附着时被丢; 全年份失败时all_results空→列根本不创建(仅strat_diff_t2v_*有L1558-1560兜底)。盘上2017/2018均≥3银行未触发; T=19早年稀疏语料大概率触发→latent。",
   "unit": "strategic-diff-panel"
  },
  {

@@ -19,7 +19,7 @@
   "title": "latent: max_features=10000 按词频截断在全量语料下把头部银行的相似度计算压入最高频 ngram 子空间",
   "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\pipeline\\sentiment\\herd_decay.py",
   "line": "73, 96-97",
-  "claim": "TfidfVectorizer(max_features=10000) 按语料词频保留 top-10k char 2-4 gram。试跑样本最大组 117 篇时词表仅 10630 → 截断几乎不咬合 (flags 207 vs 204)。但全量 2007-2024 头部银行 (工农中建招) 单组数十万篇, char 2-4 gram 原始词表达百万级, top-10k 全是高频 boilerplate ngram → 判别性长尾整体缺席, 余弦相似度对大银行系统性膨胀, 与发现1相反方向再次破坏 0.35 阈值的跨行可比性 (小行被 min_df 退化抬高、大行被 max_features 截断抬高, 中型行最'干净')。",
+  "claim": "TfidfVectorizer(max_features=10000) 按语料词频保留 top-10k char 2-4 gram。试跑样本最大组 117 篇时词表仅 10630 → 截断几乎不咬合 (flags 207 vs 204)。但全量 2007-2025 头部银行 (工农中建招) 单组数十万篇, char 2-4 gram 原始词表达百万级, top-10k 全是高频 boilerplate ngram → 判别性长尾整体缺席, 余弦相似度对大银行系统性膨胀, 与发现1相反方向再次破坏 0.35 阈值的跨行可比性 (小行被 min_df 退化抬高、大行被 max_features 截断抬高, 中型行最'干净')。",
   "evidence": "盘上实证: n=117 组 capped vocab=10000 vs uncapped=10630, flags 207 vs 204 (当前几乎无影响, 确认为 latent); 全量下 vocab/cap 比将达 100:1 量级。代码 L97 `max_features=MAX_FEATURES` 注释自称'维度封锁'仅作内存动机, 未披露其对相似度刻度的规模依赖效应。",
   "suggested_fix": "全量 run 前与发现1一并处理: 共享全语料词表 + 用 hashing trick 或按 IDF (而非原始词频) 选 top-k 保留判别性特征; 至少在 codebook/披露中说明截断对大组相似度的影响并做 max_features 敏感性检验。",
   "adjudication": "实测 n=117 组 capped 10000 vs uncapped 10630, flags 62 vs 62 — 盘上不咬合确为 latent。herd_decay.py:97 注释仅作内存动机; 全量头部银行数十万篇时 char 2-4 gram 词表百万级, top-10k 截断必咬合, 与 idx0 反向破坏阈值可比性, 未披露。",
@@ -61,7 +61,7 @@
   "claim": "herd 计数语义是严格后视的 ('早于 i 且 7 天窗内相似 ≥0.35 的前驱数', L106-123 下三角 mask), 但 TF-IDF 向量化在该银行**全部年份**文章上一次性 fit (L188) — 2010 年文章对的余弦相似度使用了由 2011-2024 文档频率决定的 IDF 权重与 max_df=0.9/min_df=5 词表裁剪。herd_weight=1/(1+count) 进而作为 stage21 权重 (媒体权威×herd) 加权主 tone 聚合及 hw_* 列。注意: 全语料 IDF 加权本身属既有审计裁定的可接受类 (LM 2011 先例, tone_words IDF 泄漏曾被推翻); 此处单列的理由是构念声称'前驱计数'(无未来信息), 而实现的相似度空间依赖未来语料 → 样本扩展时历史 herd_weight 非不变 (阈值 0.35 附近计数可翻转), 与'确定性锚点/可复现'叙事不一致。",
   "evidence": "herd_decay.py L188: `tfidf_matrix = _build_tfidf_vectorizer(len(texts)).fit_transform(texts)` — texts 为单银行全历史; L119-122: `valid_mask = (time_diff <= TIME_WINDOW_DAYS) & np.tril(..., k=-1); herd_mask = (sim_matrix >= SIMILARITY_THRESHOLD) & valid_mask` (计数后视, 向量空间全样本)。",
   "suggested_fix": "披露口径即可 (与 LM-IDF 同等处理); 严格修法是对每篇 i 仅用 ≤date_i 文档 fit 向量空间 (expanding, 成本高) 或冻结基期词表+IDF。",
-  "adjudication": "herd_decay.py:188 fit_transform(texts)=单银行全历史实证, L119-122计数严格后视但IDF/min_df=5/max_df=0.9词表(L96-99)依赖未来语料。与已推翻的tone_words IDF不同: 后者有LM2011全语料IDF直接先例, 而前驱相似度的最近文献锚(Tetlock 2011 RFS词重叠/Hoberg-Phillips逐年vocab)均避免全历史fit; 阈值0.35附近计数随样本扩展可翻转→hw_*历史值非不变。T=2盘上影响微弱, T=18实质化。P3恰当。",
+  "adjudication": "herd_decay.py:188 fit_transform(texts)=单银行全历史实证, L119-122计数严格后视但IDF/min_df=5/max_df=0.9词表(L96-99)依赖未来语料。与已推翻的tone_words IDF不同: 后者有LM2011全语料IDF直接先例, 而前驱相似度的最近文献锚(Tetlock 2011 RFS词重叠/Hoberg-Phillips逐年vocab)均避免全历史fit; 阈值0.35附近计数随样本扩展可翻转→hw_*历史值非不变。T=2盘上影响微弱, T=19实质化。P3恰当。",
   "unit": "sweep-insample-leakage"
  }
 ]

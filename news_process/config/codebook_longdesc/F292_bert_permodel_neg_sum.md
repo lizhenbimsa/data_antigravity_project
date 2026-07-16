@@ -101,7 +101,7 @@ full 轨还承担一个特殊角色: 它是 stage 21 LLM 三家投票据以判�
 【变体差分】
 本列取模型 fin_sent_zh, 文本轨为 ss (标题 + 目标银行与金科关键词同句、或按 `config/filtering.yaml::context_window.ss_sentence_radius` 设定的 ±N 句半径窗口正文, 由 stage 14 物化 `content_ss`)。ss 判据是三轨中最严格的, 只保留银行与金科话题真正同句共现的段落; 当某篇文章不存在这种同句共现时, `content_ss` 按 ctx 镜像的回退语义退化为全文正文, 并置位 `ss_is_fallback=True` 共享 `n_articles` 分母, 保证退化篇不会被静默剔出样本、也不会人为压低分母。ss 轨与 full/ctx 轨互为稳健性并排, 不分主次, 禁止混入同一 over-identified Hansen J; 三轨差异仅在喂入文本范围, 模型与算法链路与另两轨完全一致。
 
-ss 轨的特殊之处在于其判据 (银行与金科关键词是否同句共现) 与 stage 13 共现硬过滤所用的判据原语不同: stage 13 用 `has_bank_fintech_cooccurrence_within_radius` 做±1句窗口的行级硬过滤 (决定文章是否进入下游 pipeline), 而 stage 14 物化 `content_ss` 用的是更严格的严格同句判据 (`extract_bank_fintech_cooccurrence`), 两者刻意不复用同一函数、口径不完全等价。这意味着 `fin_sent_zh_neg_sum_ss` 的分母 (该轨判定为非回退的篇数) 可能显著小于 full/ctx 轨, 是三轨中样本最"精炼"但也最容易受稀疏样本影响的一支; 在 T=2 的开发环境下 ss 轨甚至可能对若干 bank-year 出现零方差或全 NaN 的退化, 这属于开发环境样本量不足的预期现象, 生产语料 (T=18) 上应恢复正常变异。研究者若发现 `fin_sent_zh_neg_sum_ss` 与同模型 full/ctx 轨的差距在 T=2 上异常大, 应先确认是否属于上述样本量不足的退化, 而非直接推断为"同句共现口径下负面语调显著不同"这类实质性结论, 生产语料重新播种后应重新核验该判读是否依然成立。
+ss 轨的特殊之处在于其判据 (银行与金科关键词是否同句共现) 与 stage 13 共现硬过滤所用的判据原语不同: stage 13 用 `has_bank_fintech_cooccurrence_within_radius` 做±1句窗口的行级硬过滤 (决定文章是否进入下游 pipeline), 而 stage 14 物化 `content_ss` 用的是更严格的严格同句判据 (`extract_bank_fintech_cooccurrence`), 两者刻意不复用同一函数、口径不完全等价。这意味着 `fin_sent_zh_neg_sum_ss` 的分母 (该轨判定为非回退的篇数) 可能显著小于 full/ctx 轨, 是三轨中样本最"精炼"但也最容易受稀疏样本影响的一支; 在 T=2 的开发环境下 ss 轨甚至可能对若干 bank-year 出现零方差或全 NaN 的退化, 这属于开发环境样本量不足的预期现象, 生产语料 (T=19) 上应恢复正常变异。研究者若发现 `fin_sent_zh_neg_sum_ss` 与同模型 full/ctx 轨的差距在 T=2 上异常大, 应先确认是否属于上述样本量不足的退化, 而非直接推断为"同句共现口径下负面语调显著不同"这类实质性结论, 生产语料重新播种后应重新核验该判读是否依然成立。
 
 ## VAR: finbert2_neg_sum_ctx
 
@@ -143,7 +143,7 @@ finbert_cn (yiyanghkust/finbert-tone-chinese) 在中文金融文本情感分类�
 【变体差分】
 本列取模型 finbert_cn, 文本轨为 ss。判据最严格 (银行∧金科同句共现, 无共现回退全文并标记 `ss_is_fallback=True`), 与该模型 full/ctx 轨互为稳健性并排, 亦与 fin_sent_zh_neg_sum_ss / finbert2_neg_sum_ss 构成跨模型 ss 轨稳健性并排。三模型三轨共九列 (本家族全部列) 应被理解为一个 3×3 的稳健性网格, 网格内任两列都不应被拼装进同一个 over-identified 识别方程, 只用于逐格交叉验证"负面语调-总量"这一构念是否对模型选型与文本范围选择两个维度同时稳健。
 
-finbert_cn_neg_sum_ss 与 fin_sent_zh_neg_sum_ss 同为 3-class 模型的 ss 轨列, 二者在分类边界结构上比与 finbert2_neg_sum_ss (2-class) 的比较更具可比性, 若要报告"BERT 三角验证在最严格判据下依然一致"这类稳健性主张, 建议同时展示三列而非只选其中之一, 因为三者的方差结构与样本敏感度并不完全相同——finbert_cn 与 fin_sent_zh 的中性通道会分流部分概率质量, 而 finbert2 没有中性通道, 单独展示某一列容易让读者误以为该结果代表"BERT 方法"的统一定论, 而实际上它只是九宫格中的一格。finbert_cn_neg_sum_ss 的分母覆盖率通常是全家族九列中较低的一支之一 (与另两个 ss 轨列同受严格同句判据约束), 若在生产语料 (T=18) 上仍出现分母长期偏低的情形, 应结合 stage 13/14 的共现统计核查是否属于该银行本身报道量整体稀少, 而非模型推理环节的缺陷。
+finbert_cn_neg_sum_ss 与 fin_sent_zh_neg_sum_ss 同为 3-class 模型的 ss 轨列, 二者在分类边界结构上比与 finbert2_neg_sum_ss (2-class) 的比较更具可比性, 若要报告"BERT 三角验证在最严格判据下依然一致"这类稳健性主张, 建议同时展示三列而非只选其中之一, 因为三者的方差结构与样本敏感度并不完全相同——finbert_cn 与 fin_sent_zh 的中性通道会分流部分概率质量, 而 finbert2 没有中性通道, 单独展示某一列容易让读者误以为该结果代表"BERT 方法"的统一定论, 而实际上它只是九宫格中的一格。finbert_cn_neg_sum_ss 的分母覆盖率通常是全家族九列中较低的一支之一 (与另两个 ss 轨列同受严格同句判据约束), 若在生产语料 (T=19) 上仍出现分母长期偏低的情形, 应结合 stage 13/14 的共现统计核查是否属于该银行本身报道量整体稀少, 而非模型推理环节的缺陷。
 
 <!-- rendered-citations:begin -->
 Xu, X., Wen, F., Chu, B., Fu, Z., Lin, Q., Liu, J., Fei, B., Li, Y., Zhou, L., & Yang, Z. (2025). FinBERT2: A specialized bidirectional encoder for bridging the gap in finance-specific deployment of large language models. Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2 (KDD '25), 5117-5128. https://doi.org/10.1145/3711896.3737219

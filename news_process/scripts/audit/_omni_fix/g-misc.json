@@ -46,7 +46,7 @@
   "file": "pipeline/text/ctx_materializer.py",
   "line": "122 (主路径) vs 98 (旧 schema 路径)",
   "claim": "主物化路径 L122 `title = str(row.get('标题', '') or '')`: 若 标题 为 np.nan (float, truthy) → title='nan' → content_full/content_ctx 获得字面 'nan。' 前缀进入全部情感/embedding 文本; 若为 pd.NA → `pd.NA or ''` 直接 raise TypeError。同函数旧 schema 分支 L98 用 `df['标题'].fillna('')` 正确处理 — 同文件两路径口径不一致。",
-  "evidence": "盘上验证当前无触发: 13_news_with_ctx.parquet 1170 行 标题 nulls=0, content_full/ctx 无 'nan' 前缀 — 因 preprocess/filter.py:75 '标题、内容、媒体名、日期任一为空则移除' 上游守卫。但该守卫属另一 stage 的可配置过滤, 全量 17M 语料重跑若过滤配置变化/字段映射异常, 此缺陷即激活且静默 (注入 'nan' 不报错)。",
+  "evidence": "盘上验证当前无触发: 13_news_with_ctx.parquet 1170 行 标题 nulls=0, content_full/ctx 无 'nan' 前缀 — 因 preprocess/filter.py:75 '标题、内容、媒体名、日期任一为空则移除' 上游守卫。但该守卫属另一 stage 的可配置过滤, 全量 18.2M 语料重跑若过滤配置变化/字段映射异常, 此缺陷即激活且静默 (注入 'nan' 不报错)。",
   "suggested_fix": "L122 改为与 L98 一致的显式缺失处理: `_t = row.get('标题', ''); title = '' if pd.isna(_t) else str(_t)`。",
   "adjudication": "ctx_materializer.py:122 `str(row.get('标题','') or '')`: np.nan truthy→'nan'字面前缀静默入两轨情感文本; pd.NA→TypeError。同文件L98旧schema路径用fillna('')正确 — 口径不一致确凿。守卫filter.py:77-85属stage 00且KEY_COLUMNS=PARAMS.get('key_columns_for_na_check',[])(_constants.py:53)config驱动、默认空表=守卫整体失效 — 配置漂移即静默激活, confirm-latent成立。",
   "unit": "ctx-materializer-coretext"

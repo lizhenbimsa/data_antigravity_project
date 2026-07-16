@@ -3,12 +3,12 @@
 * Paper: {{PAPER_ID}}
 *
 * fix(CY-2, audit PROJECT_REAUDIT_T18 CY-2 P1): 全代码库无分时代/结构断点稳定性检验。
-*   2007-2024 跨 2013 余额宝 / 2016 P2P / 2019 DCEP 多 regime, pooled intensity-DiD 若
+*   2007-2025 跨 2013 余额宝 / 2016 P2P / 2019 DCEP 多 regime, pooled intensity-DiD 若
 *   关系跨时代断裂, 会把异质效应平均成有偏均值。本表把样本切三时代各跑一次主规格 (网络
 *   2SLS) + 全样本 treatment×era 交乘 + Wald 检验三时代系数相等。
 *
 * ── 是什么 (一行白话) ───────────────────────────────────────────────────────
-*   把 18 年样本切成"金融科技萌芽 (2007-2012) / 爆发 (2013-2018) / 强监管 (2019-2024)"
+*   把 19 年样本切成"金融科技萌芽 (2007-2012) / 爆发 (2013-2018) / 强监管 (2019-2025)"
 *   三段, 分别看"同业语调→ROA 的网络溢出"在每段里是否一样大; 再用一个交乘回归正式
 *   检验三段系数是否相等。若相等 = 关系跨时代稳定 (pooled 估计无构成漂移偏误)。
 *
@@ -16,7 +16,7 @@
 *   - DV={{MAIN_DV}}_w (ROA sentinel): 全程 capture confirm; 财务面板未接入时整表
 *     优雅 no-op (wire-ahead 桩), 接入并跑 01_data_prep 后自动激活。
 *   - T=2 试跑盘只有 2017-2018 → 仅 era2 (2013-2018) 有数据, 其余两时代 N=0 自动跳过;
-*     era 交乘/Wald 因单时代退化 → N-守卫优雅跳过, 不报错 (production T=18 才全功效)。
+*     era 交乘/Wald 因单时代退化 → N-守卫优雅跳过, 不报错 (production T=19 才全功效)。
 *   - estimator ivreghdfe + ivreg2 + i.bank_id i.year 运行期回退 (IV-6; 生产机 r301)。
 *   - esttab 名单动态化 (不硬点名缺估计)。
 *
@@ -104,13 +104,13 @@ if !`_have_ivhdfe' & !`_have_ivreg2' {
 }
 
 * ── era 三时代分段 (FinTech 制度时代) ──────────────────────────────────────
-*   era1 萌芽 2007-2012 / era2 爆发 (余额宝-P2P) 2013-2018 / era3 强监管 (DCEP) 2019-2024
+*   era1 萌芽 2007-2012 / era2 爆发 (余额宝-P2P) 2013-2018 / era3 强监管 (DCEP) 2019-2025
 capture drop _era
 gen byte _era = .
 replace _era = 1 if inrange(year, 2007, 2012)
 replace _era = 2 if inrange(year, 2013, 2018)
-replace _era = 3 if inrange(year, 2019, 2024)
-label define _eralab 1 "2007-2012" 2 "2013-2018" 3 "2019-2024", replace
+replace _era = 3 if inrange(year, 2019, 2025)
+label define _eralab 1 "2007-2012" 2 "2013-2018" 3 "2019-2025", replace
 label values _era _eralab
 
 * 各时代有效样本计数 (单时代有数据时披露, 其余跳过)
@@ -155,12 +155,12 @@ forvalues e = 1/3 {
             local elabs `"`elabs' "`_elab'""'
         }
         else {
-            display "[SKIP] era `_elab' 2SLS failed (degenerate); production T=18."
+            display "[SKIP] era `_elab' 2SLS failed (degenerate); production T=19."
         }
     }
     else {
         local _elab : label _eralab `e'
-        display "[SKIP] Panel A era `_elab' effective N=`_Ne`e'' < 30 (T=2 only 2017-2018 has data; production T=18)."
+        display "[SKIP] Panel A era `_elab' effective N=`_Ne`e'' < 30 (T=2 only 2017-2018 has data; production T=19)."
     }
 }
 
@@ -170,10 +170,10 @@ if "`ecols'" != "" {
         stats(N r2 widstat, fmt(0 3 3) labels("N" "R-squared" "KP rk Wald F")) ///
         title("Table A15-A: Era Stability (network 2SLS by FinTech regime) --- {{PAPER_ID}}") ///
         mtitles(`elabs') ///
-        addnotes("Split-sample network 2SLS by FinTech regime: 2007-2012 (nascent) / 2013-2018 (Yuebao-P2P) / 2019-2024 (DCEP tightening)." ///
+        addnotes("Split-sample network 2SLS by FinTech regime: 2007-2012 (nascent) / 2013-2018 (Yuebao-P2P) / 2019-2025 (DCEP tightening)." ///
                  "Stable coefficient on `ENDOG' across eras => pooled intensity-DiD has no regime compositional-drift bias (Bai-Perron 1998 ECMA / Hansen 2001 JEP)." ///
                  "KP rk Wald F = e(widstat); F < Stock-Yogo => weak IV => read Anderson-Rubin CI (ASS 2019 ARE) per era; subsample F halves." ///
-                 "T=2 disk panel only covers 2017-2018 -> only era2 has data, eras 1/3 N-guarded skip (production T=18)." ///
+                 "T=2 disk panel only covers 2017-2018 -> only era2 has data, eras 1/3 N-guarded skip (production T=19)." ///
                  "Estimator ivreghdfe with ivreg2+i.bank_id i.year runtime fallback (IV-6).")
     estout `ecols' using "$tables_dir/tableA15_brok_era_stability.csv", replace delimiter(",") ///
         cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) keep(`ENDOG') ///
@@ -181,7 +181,7 @@ if "`ecols'" != "" {
     display "[OK] Table A15-A (era stability) written"
 }
 else {
-    display "  WARN Panel A: 所有时代退化 (T=2 只有 2017-2018; production T=18 才有功效), 跳过"
+    display "  WARN Panel A: 所有时代退化 (T=2 只有 2017-2018; production T=19 才有功效), 跳过"
 }
 
 * ==========================================================================
@@ -256,19 +256,19 @@ if `_ndata' >= 2 {
                 addnotes("2SLS with treatment x era interactions (base era = 2013-2018); interaction terms & instruments x era." ///
                          "`_wald_note' -> tableA15_brok_era_wald.csv." ///
                          "Non-significant interactions => network spillover stable across FinTech regimes (no Bai-Perron-style break)." ///
-                         "T=2 disk panel has only one era with data -> interaction/Wald N-guarded skip (production T=18 required).")
+                         "T=2 disk panel has only one era with data -> interaction/Wald N-guarded skip (production T=19 required).")
             display "[OK] Table A15-B (era interaction + Wald) written"
         }
         else {
-            display "[SKIP] Panel B era-interaction 2SLS failed (degenerate); production T=18."
+            display "[SKIP] Panel B era-interaction 2SLS failed (degenerate); production T=19."
         }
     }
     else {
-        display "[SKIP] Panel B — only base era has data; no era interaction to estimate (T=2; production T=18)."
+        display "[SKIP] Panel B — only base era has data; no era interaction to estimate (T=2; production T=19)."
     }
 }
 else {
-    display "[SKIP] Panel B — fewer than 2 eras with data (T=2 disk panel covers only 2017-2018); era interaction/Wald needs production T=18."
+    display "[SKIP] Panel B — fewer than 2 eras with data (T=2 disk panel covers only 2017-2018); era interaction/Wald needs production T=19."
 }
 
 display "[OK] Table A15 (era stability + treatment x era equality) — brokerage_network 完成"

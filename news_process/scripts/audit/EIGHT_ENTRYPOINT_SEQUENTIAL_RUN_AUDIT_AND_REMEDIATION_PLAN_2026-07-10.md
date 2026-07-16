@@ -50,7 +50,7 @@
 
 | 检查项 | 归类 | 判读 |
 |---|---|---|
-| 高缺失率变量 >50%: 609 个 (`*_tone_std_*` 族 66.8–70.0%) | T=2 预期 | `_std`=组内标准差, n≤1 篇格恒 NaN; T=18 大幅收缩但不归零; 变量表注明"定义域 = n≥2 篇格"即可 |
+| 高缺失率变量 >50%: 609 个 (`*_tone_std_*` 族 66.8–70.0%) | T=2 预期 | `_std`=组内标准差, n≤1 篇格恒 NaN; T=19 大幅收缩但不归零; 变量表注明"定义域 = n≥2 篇格"即可 |
 | llm_vote_tone_ctx 缺失 10.49% / _ss 7.69% | 已知口径 | conditional-on-full 轨 by-design |
 | dict_avg_tone_full 1 obs >5σ | T=2 预期 | 220 行单点 |
 | LOO-IV r=0.030 (prov) | T=2 预期 + 披露 | → G6(a) |
@@ -69,10 +69,10 @@
 
 ### G2 · [P1 · 代际锚盲区 · NEEDS_FIX(记录层) + DOC(重生纪律) · **收编为 F17**] company 双管道 input_fingerprint 只锚 21_full 的"尺寸|行数"; 40/51/16/27 不入锚 — 本轮已实弹混代
 - **证据**: tax `02:1139` `sha256(f"{p_input.stat().st_size}|{len(input21)}")`, `p_input`=仅 `21_tone_llms_full.parquet` (`:998`); listed 侧同构 (`02:1299` p_input / `02:1435` fingerprint; tax 经 `engine()` importlib 复用 listed 02)。盘上 mtime 实锤: `27_benefit_dimensions_panel.parquet`=07-03 03:32 (唯一生产者=`papers/benefit_society/dimension_analysis.py:881` 主产物/`: 534` merge 副本, 8 入口顺序不重生它), 16=07-10 12:44 / 21_full=12:45 / 40/51=13:07 → **本轮 02 混代消费**。暴露面 = registry `source=='27'` 条目 (4 维 × {'','_lg'} = **8 基名 × 3 轨 = 24 源列**, listed `01:504-511`; 双 registry YAML 亲核同谱) → 双管道各 **48 列** (× {cw_, ce_}) — listed × 10 面板, tax × 5 dta。⚠ 勿按 `cw_/ce_benefit_*` 前缀计数 (=84): 其中 36 列 (mean/pos_frac/neg_frac × 6 轨 × 2 前缀) 源自 40/51 **同代**产物, 不在混代暴露面 (R2 反更正)。锁链 (02 复算锚 / 03 registry-sha 单锁 / 04 双向锁) 全绿不报警; 01 的"域外恒 25"只能抓列名漂移抓不了同 schema 换值。
-- **影响 (白话)**: 这批列的原料是一张没盖生产日期章的旧表。本轮恰好没坏 (27 号值未变, 7 dta 字节等价佐证); 但生产 T=18 换嵌入/重跑主管道后若 27 号不同步重生, 论文面板会**静默混用两代嵌入测度**, 没有任何闸翻红。与 F2/F9 同族 (顺序/新鲜度耦合), 暴露面直接落论文交付物, 故 P1。
+- **影响 (白话)**: 这批列的原料是一张没盖生产日期章的旧表。本轮恰好没坏 (27 号值未变, 7 dta 字节等价佐证); 但生产 T=19 换嵌入/重跑主管道后若 27 号不同步重生, 论文面板会**静默混用两代嵌入测度**, 没有任何闸翻红。与 F2/F9 同族 (顺序/新鲜度耦合), 暴露面直接落论文交付物, 故 P1。
 - **修法 (两层)**:
-  - (a) **记录层 (本批实施, golden-safe)**: 双管道 02 启动时对五上游 (21_full/40/51/16/27; 路径**复用 02 内既有 `resolve(...)` 句柄**, 勿二次硬编码; 实名 = `21_tone_llms_full.parquet` / `40_panel_yearly.parquet` / `51_panel_with_controls.parquet` / `16_article_alignment.parquet` / `27_benefit_dimensions_panel.parquet`) 计算 `size|mtime|sha256 前 16 hex (流式)` 三元组 (盘上合计 ~33MB, <0.5s; T=18 由 21_full 主导亦仅 10–60s 级, 占 02 自身 <1%; **不退化为 size|mtime 弱锚** — mtime 恰是要治的盲区维度), 写入日志 + **pair 长表 parquet 的 schema_metadata 追加键 `b"upstream_snapshot"`** (JSON bytes)。**落点 = 两处独立写段, 必须双改** (R2 纠正): listed `02:1436-1438` + tax `02:1140-1142` — tax 的 pair metadata 段是 main() 内联自有副本, **不经 engine() 复用** (engine 只覆盖 default_paths/load_input21/build_measure_library 等六纯函数), 只改 listed 一处 tax 不生效。03 点取 `registry_sha256`、04 点取 `registry_sha256`+`input_fingerprint` 两键 (tax `03:937-944`/`04:629-654`, listed `03:1031-1036`/`04:637-662`; 03 全文无 input_fingerprint 读点) — 多一个键零影响, **锁不翻**; 04 fp_now 只吃 21_full 的既有红/绿语义不变。**snapshot schema (R4 钉死, 双管道逐字同构)**: 键 = resolve 句柄名五个 `{input, panel, alignment, benefit, controls}`; 值 = `{"file": 实文件名, "size": int, "mtime_ns": int (st_mtime_ns, 勿用 float epoch — repr 跨写法漂移), "sha256_16": hex}`; 缺席上游 = `null`。同时加**新鲜度哨兵 (主方案 = 保守超集)**: `mtime(27) < max(mtime(p_panel), mtime(p_input))` — 两句柄 (`40_panel`/`21_full`) 均在 02 resolve 白名单内, 零新增路径; 代价 = "21 重生而 40 未重生"场景多产良性误报。⚠ 27 号真实父代 (`40_article_bank_level.parquet` / `27_benefit_embeddings_full.npy`) 在 02 中**零读点、resolve 拿不到**, 如要真实父代基准须在 `default_paths()` 显式加键, 作可选强化不作默认。触发时单行 loud WARNING: "27_benefit_dimensions_panel 早于本轮主管道产物 (代际陈旧), benefit 48 列取值属旧代 — 重生入口 = 从 repo 根跑 python -m news_process.papers.benefit_society.dimension_analysis **--track all --include-lg --df-exploded news_process/data/processed/40_article_bank_level.parquet** (缺 --df-exploded 则 anchors-only 不落面板; 若 27 号确已同步重生, 本警告为保守误报, 以 upstream_snapshot 内 benefit 的 sha256_16 为准)"。⚠ 实施冒烟定谳 (2026-07-10): `--df-exploded` default=None → 缺之则 anchors-only **EXIT=0 假成功不落面板**, 命令三参数缺一不可。⚠ R3 定谳: 重生命令**必须带** `--track all --include-lg` — `--track` 默认 both (仅 full+ctx)、`--include-lg` 默认关 (`dimension_analysis.py:620-633`), 裸命令会重生出只剩 8/24 源列的残缺 27 号 (ss+`_lg` 半边消失), 比"陈旧"更糟; 且 `--output` 默认相对路径须 cwd=repo 根。⚠ 缺席分支: `resolve("benefit")` 非 required, 27 缺盘时返回 **None** (listed `02:1261-1274`) — snapshot 对缺席上游写 null 条目、哨兵在句柄为 None 时跳过 (勿 AttributeError 崩 02, 哨兵存在的意义恰是覆盖降级环境)。借 runner F2 的 loud-warn 风格; ⚠ **语义与 F2 守卫相反须写明**: runner=陈旧则跳过 merge 不并列, 本哨兵=**警告后照并旧值** (27 号由 paper 侧独立生产, 陈旧在 dev 常态, 警不崩)。
-  - (b) **硬锁层 (DEFERRED, 受 M0)**: 五上游全量并入 `input_fingerprint` 本体 → 语义变为"任何上游重生必须重跑 02→03→04 全链"。强纪律成本收益生产 T=18 首播前定谳。
+  - (a) **记录层 (本批实施, golden-safe)**: 双管道 02 启动时对五上游 (21_full/40/51/16/27; 路径**复用 02 内既有 `resolve(...)` 句柄**, 勿二次硬编码; 实名 = `21_tone_llms_full.parquet` / `40_panel_yearly.parquet` / `51_panel_with_controls.parquet` / `16_article_alignment.parquet` / `27_benefit_dimensions_panel.parquet`) 计算 `size|mtime|sha256 前 16 hex (流式)` 三元组 (盘上合计 ~33MB, <0.5s; T=19 由 21_full 主导亦仅 10–60s 级, 占 02 自身 <1%; **不退化为 size|mtime 弱锚** — mtime 恰是要治的盲区维度), 写入日志 + **pair 长表 parquet 的 schema_metadata 追加键 `b"upstream_snapshot"`** (JSON bytes)。**落点 = 两处独立写段, 必须双改** (R2 纠正): listed `02:1436-1438` + tax `02:1140-1142` — tax 的 pair metadata 段是 main() 内联自有副本, **不经 engine() 复用** (engine 只覆盖 default_paths/load_input21/build_measure_library 等六纯函数), 只改 listed 一处 tax 不生效。03 点取 `registry_sha256`、04 点取 `registry_sha256`+`input_fingerprint` 两键 (tax `03:937-944`/`04:629-654`, listed `03:1031-1036`/`04:637-662`; 03 全文无 input_fingerprint 读点) — 多一个键零影响, **锁不翻**; 04 fp_now 只吃 21_full 的既有红/绿语义不变。**snapshot schema (R4 钉死, 双管道逐字同构)**: 键 = resolve 句柄名五个 `{input, panel, alignment, benefit, controls}`; 值 = `{"file": 实文件名, "size": int, "mtime_ns": int (st_mtime_ns, 勿用 float epoch — repr 跨写法漂移), "sha256_16": hex}`; 缺席上游 = `null`。同时加**新鲜度哨兵 (主方案 = 保守超集)**: `mtime(27) < max(mtime(p_panel), mtime(p_input))` — 两句柄 (`40_panel`/`21_full`) 均在 02 resolve 白名单内, 零新增路径; 代价 = "21 重生而 40 未重生"场景多产良性误报。⚠ 27 号真实父代 (`40_article_bank_level.parquet` / `27_benefit_embeddings_full.npy`) 在 02 中**零读点、resolve 拿不到**, 如要真实父代基准须在 `default_paths()` 显式加键, 作可选强化不作默认。触发时单行 loud WARNING: "27_benefit_dimensions_panel 早于本轮主管道产物 (代际陈旧), benefit 48 列取值属旧代 — 重生入口 = 从 repo 根跑 python -m news_process.papers.benefit_society.dimension_analysis **--track all --include-lg --df-exploded news_process/data/processed/40_article_bank_level.parquet** (缺 --df-exploded 则 anchors-only 不落面板; 若 27 号确已同步重生, 本警告为保守误报, 以 upstream_snapshot 内 benefit 的 sha256_16 为准)"。⚠ 实施冒烟定谳 (2026-07-10): `--df-exploded` default=None → 缺之则 anchors-only **EXIT=0 假成功不落面板**, 命令三参数缺一不可。⚠ R3 定谳: 重生命令**必须带** `--track all --include-lg` — `--track` 默认 both (仅 full+ctx)、`--include-lg` 默认关 (`dimension_analysis.py:620-633`), 裸命令会重生出只剩 8/24 源列的残缺 27 号 (ss+`_lg` 半边消失), 比"陈旧"更糟; 且 `--output` 默认相对路径须 cwd=repo 根。⚠ 缺席分支: `resolve("benefit")` 非 required, 27 缺盘时返回 **None** (listed `02:1261-1274`) — snapshot 对缺席上游写 null 条目、哨兵在句柄为 None 时跳过 (勿 AttributeError 崩 02, 哨兵存在的意义恰是覆盖降级环境)。借 runner F2 的 loud-warn 风格; ⚠ **语义与 F2 守卫相反须写明**: runner=陈旧则跳过 merge 不并列, 本哨兵=**警告后照并旧值** (27 号由 paper 侧独立生产, 陈旧在 dev 常态, 警不崩)。
+  - (b) **硬锁层 (DEFERRED, 受 M0)**: 五上游全量并入 `input_fingerprint` 本体 → 语义变为"任何上游重生必须重跑 02→03→04 全链"。强纪律成本收益生产 T=19 首播前定谳。
 - **golden 影响**: registry 锚只压 entries/bank_company_map/excluded/dv2 (listed `01:288` / tax `01:321`, docstring 明言 meta 不入锚) → 双锚 023cdc91/4f580e3f **不 bump**; `upstream_snapshot` 只进 pair parquet metadata → **仅 pair 长表 parquet 字节变, 10+5 面板 dta 与主面板 parquet 数据字节不动, 7-dta 字节等价锚保留**。
 - **gate**: 双管道各 1 pytest (pair metadata 含 `upstream_snapshot` 五键 + 哨兵在 27 陈旧夹具下 caplog 出 WARNING + **缺 27 夹具下不崩且写 null 条目**); 实跑 gate 见 §5-2。
 
@@ -101,10 +101,10 @@
 
 ### G5 · [P2 · DISCLOSURE] stage 71 分类维度轨间 κ 4 处超 0.70 哨兵上限 (不在 F 台账)
 - **证据**: `run_pipeline_validation.log:3942-3963` — innovation_locus[ctx_ss] κ=0.7794; innovation_collab_mode 三对 κ=0.8525/0.8149/0.8663 (哨兵语义 ">0.70 = tracks redundant")。
-- **判读**: T=2 下 `_ss` 回退镜像 + full-only 门控使轨间子集高度重叠, 方向预期; 但属台账未覆盖的哨兵触发。**动作**: 入台账 + 生产 T=18 复测; 若仍 >0.70, 论文披露 "ctx/ss 对分类维度增量信息有限"。零代码。
+- **判读**: T=2 下 `_ss` 回退镜像 + full-only 门控使轨间子集高度重叠, 方向预期; 但属台账未覆盖的哨兵触发。**动作**: 入台账 + 生产 T=19 复测; 若仍 >0.70, 论文披露 "ctx/ss 对分类维度增量信息有限"。零代码。
 
 ### G6 · [P2 ×2 · DISCLOSURE] 计量披露双项 (零代码, 入论文/生产 checklist)
-- **(a) LOO-IV relevance r=0.030** (`logs/81_stata_data_audit.log:106,232`): T=2 机械退化, 但 relevance 本质是经验问题非样本量问题, **T=18 不保证自愈**。生产必查一阶段 KP rk F; F<10 → 该 IV 引擎降级附录稳健性; IV 策略节预留弱工具诊断 + AR 置信区间。
+- **(a) LOO-IV relevance r=0.030** (`logs/81_stata_data_audit.log:106,232`): T=2 机械退化, 但 relevance 本质是经验问题非样本量问题, **T=19 不保证自愈**。生产必查一阶段 KP rk F; F<10 → 该 IV 引擎降级附录稳健性; IV 策略节预留弱工具诊断 + AR 置信区间。
 - **(b) 81 审计对象 vs 论文消费对象错配**: 81 盖章 `40_panel_yearly.dta`+`51_*.dta` (`stata_audit.py:1064-1069`), 而 11 篇论文 `.do` 模板消费 `46_panel_yearly_full.dta` (`stata_export.py:57` 自承)。46 号的精度/标签/nullable 未受 81 检。**动作**: 台账披露 + (后批可选) 81 扩一档 46_full 抽检; 本批不动代码。
 
 ### G7 · [P2 · 观察 · DISCLOSURE] benefit 负极锚点句 #3 在 Qwen 空间投影为正 (0.1416)
@@ -120,7 +120,7 @@
 - **动作**: F2 台账条目 (`FIVE_ENTRYPOINT_REVERIFICATION_AND_REMEDIATION_PLAN_2026-07-10.md`) 补写反向方向 + A/B 差分 SOP 规定"比较前先核 `cross_media_alpha_full` 列在场性" (同步入 §7); 并入侧安全性已有守卫 (重复键 fail-loud / 行数断言 / 只并新列)。零代码。
 
 ### G10 · [NIT · 可选优化] raw_census 每跑全量重算 700.8s (占 ① 的 30%)
-- **证据**: `00_preprocessing.log:54,396`; 调用路径不走 `--from-summary` 渲染 (`raw_census.py:560-592` 支持但管道内未接)。by-design (用户 2026-06-20 需求"每次运行写进日志"); 现成开关 `raw_census_logging=false`。**本批不动**; 生产 T=18 排期时决策 (见 §7)。
+- **证据**: `00_preprocessing.log:54,396`; 调用路径不走 `--from-summary` 渲染 (`raw_census.py:560-592` 支持但管道内未接)。by-design (用户 2026-06-20 需求"每次运行写进日志"); 现成开关 `raw_census_logging=false`。**本批不动**; 生产 T=19 排期时决策 (见 §7)。
 
 ### G11 · [NIT · NEEDS_FIX] company 产物清单日志只记 4 位有效数字 MB, 无法机器对账
 - **证据**: `company_tax_bank/logs/run_pipeline.log:51,70-71,85-87`; 上轮日志被覆盖后字节级等价从日志不可证。
@@ -128,11 +128,11 @@
 - **gate**: 双管道任一步重跑后 grep 产物清单行含精确字节数, 且与 `ls -l` 实测相等 (见 §5-1/§5-2)。
 
 ### G12 · [P2 · 生产 checklist] 建碁科技 67.9% 共现灌水形态 (§7 L1 池内已挂账)
-- dev 上单企业吃掉 2/3 full 轨共现计数 (`company_tax_bank/logs/02_*.log:188`)。**不做 source-clean** (F1 评审已证伪该方向, 会误删合法品牌简称); 动作 = 生产 T=18 复跑后 `n_docs_longhit` ≥4 字稳健臂复核为**硬义务**, 入 §7。
+- dev 上单企业吃掉 2/3 full 轨共现计数 (`company_tax_bank/logs/02_*.log:188`)。**不做 source-clean** (F1 评审已证伪该方向, 会误删合法品牌简称); 动作 = 生产 T=19 复跑后 `n_docs_longhit` ≥4 字稳健臂复核为**硬义务**, 入 §7。
 
 ### G13 · [记录] 非问题澄清 (防后人误判)
 - ③ 历史段 3 ERROR = 2026-07-06 白名单负例测试 ×2 + KeyboardInterrupt ×1 (`run_paper.log:79,161,2171-2213`), 非缺陷。
-- ⑧ "慢化"伪命题 (04 新增 559s; 剔除后提速 321s); ①⑦ 慢化=争用窗, 数值零影响。生产注: ① 内 40 的两个 LDA 子步 (战略差异度 370s + authoritative_similarity 288s @143 docs) 是 T=18 规模外推压测对象 (→ §7)。
+- ⑧ "慢化"伪命题 (04 新增 559s; 剔除后提速 321s); ①⑦ 慢化=争用窗, 数值零影响。生产注: ① 内 40 的两个 LDA 子步 (战略差异度 370s + authoritative_similarity 288s @143 docs) 是 T=19 规模外推压测对象 (→ §7)。
 - 22 词典 joblib 单批 (1,005<5,000 batch_size, `22_tone_words.log:116`) 近似串行属 T=2 形态, 生产自然分批。
 - msent_score "均值=-0.7097 (整体偏正面)" 是"越大越负面"口径 (`22_tone_words.log:210-211`), 非反号 bug。
 - `27_benefit_*_t2v*.npy` (06-26) 为已移除 t2v 轨孤儿文件, 无消费者; **挂后续清理批** (与 validation 弃用工作台 ×4 同批), 不入本批防误删连坐。
@@ -140,7 +140,7 @@
 ### G14 · [P2 · DISCLOSURE] 80 安慰剂信号量级披露义务 (R1 新增, 原稿遗漏)
 - **证据**: `logs/80_placebo_and_alt_anchor.log:69` — "⚠ 5 条安慰剂信号量级 ≥ 替代锚点一半 (housing_loans, credit_cards, intermediate_business, branch_channel, general_corporate): 需在论文稳健性附录中正面回应是否伪相关"。
 - **附带 NIT 子项**: `:57` ratio 阈值 0.5/1.0 自承 "ad-hoc 日志启发式, 非 alt_anchor.py:10 文档的回归 β 比值判据" — 文档/实现判据口径不一致 (纯披露, 不改代码)。
-- **动作**: 入台账 + §7 "T=18 复跑 80 后按回归 β 判据正式裁定 5 条安慰剂; 论文稳健性附录正面回应"; dev 命中数 21–273 篇 <500 效力不足, 不在 T=2 定谳。零代码。
+- **动作**: 入台账 + §7 "T=19 复跑 80 后按回归 β 判据正式裁定 5 条安慰剂; 论文稳健性附录正面回应"; dev 命中数 21–273 篇 <500 效力不足, 不在 T=2 定谳。零代码。
 
 ## 4. 修复批次 (按独立提交, 全部先过 gate 再 commit; by-name stage, 排除并发产物)
 
@@ -176,7 +176,7 @@
 5. 时间预算: 批次 A ~1h · 批次 B 3–4h (含 75–80min 实跑) · 批次 C 0.5h, 合计 **5–7h**, 全程 $0。
 6. **共享树并发 (R3 补)**: F11 锁只防同管道双跑, 不防并发会话在批次 B 实跑窗 (75–80min) 内重生 21_full/40 (→ 04 双向锁翻红 / A/B 基线失效) 或 by-name add 扫走本会话未提交 hunk (07-07 两起实弹在案)。约定: 实跑窗独占; 跑前/跑后各核一次五上游 mtime 快照一致; 提交前 `git diff --stat` 核对无他人 hunk。
 
-## 7. 生产 T=18 checklist (本轮新增项)
+## 7. 生产 T=19 checklist (本轮新增项)
 
 - [ ] **G2**: 主管道重跑后**同步重生** `27_benefit_dimensions_panel` (dimension_analysis 走生产默认输出, **必带三参数** `--track all --include-lg --df-exploded news_process/data/processed/40_article_bank_level.parquet` — 缺 --df-exploded 则 anchors-only 假成功不落面板), 再跑 company 双管道; 核对 02 启动 upstream_snapshot 日志无陈旧 WARNING。
 - [ ] **G5**: stage 71 轨间 κ 复测; >0.70 → 论文披露。
@@ -204,7 +204,7 @@
 - **RR1 (三路: diff 正确性 / golden 独立复算 / 计划符合度)**: A 路 okToShip (零夹带, 承重点逐字吻合, G11 round-trip 数学恒精确论证, 46 项新 gate 实跑绿; 4 NIT 已落 1 = 删未用 caplog 形参)。B 路 okToShip (20/20 抽样列哈希独立复算相等 [⚠口径=hash_pandas_object **index=False**, 计划示意码已补注] · dta 字节数逐一相等 + `<timestamp>` 字段实证 = "sha 差异=header 时戳"强间接证据链 · 双锚==测试 EXPECTED · 主管道产物 mtime 零触碰 · 40 项 pytest 复跑绿)。C 路有条件 okToShip → 条件已闭: `--df-exploded` 回写 §3-G2a/§6.3/§7-G2 三处 + §7-bis fast 红灯计数口径注 (4 簇/6 条); 偏离登记 = G2a 函数化属实施自由度 (§7-bis 已记), DEFERRED 零越界, 清理批零误删。
 - **RR2 (对抗复核, okToShip=true, 0 新 P0/P1/P2)**: G4 恒等性升级为**运算序列级"逐位相同"**结论 (可计算路径 concat+dropna 与旧 pairwise 掩码同集同序; 新守卫拦截集 ⊆ 旧 NaN 静默集; ±inf 两路均无数值输出) — "纯日志 golden-safe" 严格成立。snapshot 生产开销 "<1%" 数量级成立 (snapshot 每字节成本 ≪ 02 每字节计算成本, 慢盘+百 GB 级为 NIT 条件)。哨兵严格 `<` 边界方向正确 (假阴性通道仅 touch 语义扰动, sha 事后取证兜底)。提交面 A9/B6/C3 分组零跨批零夹带, tax token 闸零命中, LF/CRLF 与 pre-commit 无幺蛾子。回归窗 16:38–17:57 全部写入可归因 (17:31 双 01 gate 复跑覆写 orchestrator 日志 = 证据卫生 NIT, 教训: gate 复跑前先归档日志; 17:49 constants/dedup 写入 = pytest 复跑形态, ignored/排除域零交付物影响)。残余 3 条留痕: 80 旧字节基线被覆写不可复得 (代码路径论证背书) / 17:49 事件无进程级归因 / 生产哨兵 mtime 假阴性通道根治仍在 G2(b) M0 — **勿把"记录层已修"误读为"混代已根治"**。
 - **RR4 (推送后终验, ok_to_ship=TRUE, 0 P0/P1/P2)**: 首次以「已入库最终态」为对象 — 三 commit (85a2e6c9/1ff39e0d/f441478a) 全 diff 逐 hunk 通读零 stash 夹带/零跨批越界/零无主 hunk; 入库文件 UTF-8 干净 0 U+FFFD; commit message 全部数字锚独立复算成立 (145=18+62+65 / 双锚 / "逐位相同"系 RR2 结论忠实转述非过度声称); HEAD 复跑核心 gate 13+27+31 项全绿; origin/main==本地==f441478a 无并发推进; 无 secrets/大文件夹带; shim 22/23 行 ≤30 铁律不破。3 NIT 记录性 (message"新增145项"措辞/三份 _snap 同构副本 by-design/shim gate 文本启发式与冻结铁律叠加风险趋零)。
-- **RR5 (最终签核, 第 13 路, ok_to_ship=TRUE "愿为该判定的后果签名")**: 端到端实跑证据 (前 12 路未做) — 81 shim live EXIT=0 (158 项 0 FAIL, G1 修后首验) + 82 live EXIT=0 (12 sheet) + G4 于真实 40 面板端到端 (配对子集 len=84 / lag std=0.0706 / shock std=0.0 恰为反例形状, 零 RuntimeWarning, "跳过" INFO 落痕)。G1-G14 十四行勾稽表全 ✅ (NEEDS_FIX 6 条已修+gate / DISCLOSURE·DOC 8 条各有落点 / DEFERRED 五项零越界)。用户六项原始要求 (8 入口≤2h 顺序真跑 / 表面+隐藏问题 / 执行计划 / 计划多轮评审 / 结果多轮评审 / 提交推送 main) 逐项兑现。提醒: **G2 记录层已修 ≠ 混代根治** (G2b M0), 生产 T=18 前必过 §7 十一项。
+- **RR5 (最终签核, 第 13 路, ok_to_ship=TRUE "愿为该判定的后果签名")**: 端到端实跑证据 (前 12 路未做) — 81 shim live EXIT=0 (158 项 0 FAIL, G1 修后首验) + 82 live EXIT=0 (12 sheet) + G4 于真实 40 面板端到端 (配对子集 len=84 / lag std=0.0706 / shock std=0.0 恰为反例形状, 零 RuntimeWarning, "跳过" INFO 落痕)。G1-G14 十四行勾稽表全 ✅ (NEEDS_FIX 6 条已修+gate / DISCLOSURE·DOC 8 条各有落点 / DEFERRED 五项零越界)。用户六项原始要求 (8 入口≤2h 顺序真跑 / 表面+隐藏问题 / 执行计划 / 计划多轮评审 / 结果多轮评审 / 提交推送 main) 逐项兑现。提醒: **G2 记录层已修 ≠ 混代根治** (G2b M0), 生产 T=19 前必过 §7 十一项。
 - **RR3 (终审签核, ok_to_ship=TRUE "愿为推送 main 的后果签名")**: 终态 18 文件与 A9/B6/C3 分组逐一吻合无新脏; 三角对账 3/3 (哨兵文案 计划↔双 02 代码逐字一致 / F17 48 列 ↔ 双 registry source=='27' 恰 8 基名 / 145 项 ↔ collect-only 62+65+18 精确吻合); push 安全 (分支=main, fetch 后 origin/main=6f3fc1da 无并发推进); 15 个待提交 py ruff 全绿。前置动作 = 本条补记 (已闭)。
 - **RR6 (第 14 路, 全仓陈旧引用横扫 — 前 13 路未做)**: 六族关键词 (全 NaN 文案/81·82 退出码旧描述/产物清单格式/pair metadata 键集/sidecar 1.1/混淆诊断) 全仓 grep 横扫。**唯一真命中 = 双 01 banner :136/:137 "DEFERRED/缺源列基名照出全 NaN 列"** — 与 G8 修掉的同一半错文案在同文件另一处残留 (历史教训"改了 A 处没改 B 处"的经典形态), 已改为区分 DEFERRED 家族 (照出全 NaN) 与其余缺源列 (emit_tracks=[] 不产列) 并 live 验证 (双 01 全跑 EXIT=0 / 新文案落痕 / 双锚未变 / config 零脏)。误报澄清: `alt_anchor.py:380` schema_version 1.1 = P1.3 独立产物非 80 sidecar。⚠ 过程教训: PowerShell 管道 `Select-Object -First 1` 会提前掐断上游 python (EXIT=-1), live 验证命令禁用早停管道, 已完整重跑消除半写疑虑。
 - **RR7 (第 15 路, 绝对终局, ok_to_ship=TRUE "授权最终提交推送, 工作流彻底收口")**: RR6 修复经代码级回落 (listed 01:668-696 emit 分支) 与三处文案自洽 (banner/G8 WARNING/DEFERRED 注释) 核验成立零夹带; **独立六族重扫 (不采信 RR6 自述) 旧半错文案全仓绝迹**; 32 gate 用例全绿 + ruff 双绿; 双锚未漂、工作树终态与预期逐项吻合、与并发会话产物零交集。1 记录 NIT: "(boilerplate/rare_word)" 括注是例举非穷举 (DEFERRED_BASENAMES 实有 14 基名, :703 已有准确总述兜底), 继承自 G8 已批文案, 不构成失实。

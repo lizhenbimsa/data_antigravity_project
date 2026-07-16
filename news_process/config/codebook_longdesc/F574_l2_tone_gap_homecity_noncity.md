@@ -79,7 +79,7 @@ full 轨语调覆盖全文语境, 相较 ctx/ss 更少受实体窗口截断或�
 
 【变体差分】
 本列为 ss (同句共现) 轨道, 消费 llm_vote_score_ss, 对应 stage 14 物化的 content_ss (标题 + 银行∧金科词同句 ±N 窗口文本, 窗口半径见 config/filtering.yaml::context_window.ss_sentence_radius, 与 stage 13 硬过滤所用的 cooccurrence_filter.sentence_radius 是两个不同配置键, 不可混用)。ss 轨的回退语义严格镜像 ctx: 当某篇文章中银行与金科关键词不存在同句共现时, content_ss 退化为全文 body, 对应 ss_is_fallback=True, 并与 ctx 轨共享同一 n_articles 分母口径; 若上游 FINTECH_AC (金科词自动机) 为 None, 则 *_is_fallback 全体置 True, 整条 ss 轨优雅降级为近似全文口径而非报错。
-在本家族的具体计算上, ss 轨与 ctx 轨结构完全平行: 均在 full-only 留篇集合的条件子集上, 用各自轨道的 llm_vote_score_ss 按 _is_homecity 分组求均值再作差, 该篇若无 llm_vote_score_ss (轨道整体缺列或该行分数缺失) 则从两组统计中跳过, 不做跨轨补值。ss 轨捕捉的是"银行与金科词紧邻共现处"的语调, 相较 ctx 的实体窗口窗口更窄、判据更严格 (裸 AC 自动机命中金科侧词表、银行侧另叠加否定词+短名过滤的不对称口径), 因此天然覆盖的报道子集最小、gap 计算所需的非空双组条件也最难满足, 在 T=2 开发规模数据上尤其容易出现同城/异城任一组为空导致大量 bank-year 观测为 NaN 的情形; 生产 T=18 全量语料下该轨的有效样本量预期显著回升。与 full/ctx 两轨同为并排稳健性检验, 若三轨结论方向一致, 说明媒体地理偏袒效应即便收窄到银行与金科紧邻共现的窄口径下依然存在, 是对效应稳健性最严格的一道检验。
+在本家族的具体计算上, ss 轨与 ctx 轨结构完全平行: 均在 full-only 留篇集合的条件子集上, 用各自轨道的 llm_vote_score_ss 按 _is_homecity 分组求均值再作差, 该篇若无 llm_vote_score_ss (轨道整体缺列或该行分数缺失) 则从两组统计中跳过, 不做跨轨补值。ss 轨捕捉的是"银行与金科词紧邻共现处"的语调, 相较 ctx 的实体窗口窗口更窄、判据更严格 (裸 AC 自动机命中金科侧词表、银行侧另叠加否定词+短名过滤的不对称口径), 因此天然覆盖的报道子集最小、gap 计算所需的非空双组条件也最难满足, 在 T=2 开发规模数据上尤其容易出现同城/异城任一组为空导致大量 bank-year 观测为 NaN 的情形; 生产 T=19 全量语料下该轨的有效样本量预期显著回升。与 full/ctx 两轨同为并排稳健性检验, 若三轨结论方向一致, 说明媒体地理偏袒效应即便收窄到银行与金科紧邻共现的窄口径下依然存在, 是对效应稳健性最严格的一道检验。
 
 <!-- rendered-citations:begin -->
 Qin, B., Strömberg, D., & Wu, Y. (2018). Media bias in China. American Economic Review, 108(9), 2442-2476. https://doi.org/10.1257/aer.20170947

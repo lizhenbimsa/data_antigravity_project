@@ -23,7 +23,7 @@
   绝不静默清空); 空/哨兵/退化(实字< n-gram 下界)文本 → nan (_clean 守卫)。
 - **analyzer='char_wb'**: 实测中文上与 analyzer='char' corr≈0.99 (边界空格影响可忽略, 真盘
   最短文 133 字不触退化边界); 保留 char_wb 与 herd_decay 范式一致。
-- **⚠ 生产 T=18 OOM 硬化 (执行计划 BOILERPLATE_CHUNKED_TWOPASS_OOM_HARDENING 2026-07-06)**:
+- **⚠ 生产 T=19 OOM 硬化 (执行计划 BOILERPLATE_CHUNKED_TWOPASS_OOM_HARDENING 2026-07-06)**:
   改造为 **exact two-pass** (字节等价单遍, golden 零漂移; 三轮对抗评审 + 实测确认):
   Pass1 分块流式**精确**累加全局 DF (`global_df` dict) + 顺带存逐文 total → 套话集;
   Pass2 用固定小 `boiler_set` 词表 `CountVectorizer(vocabulary=)` 逐块 transform 算命中。
@@ -35,7 +35,7 @@
   BaseException 穿透硬停; 绝不静默回落 tier1 跑到 OOM)。
   运行期硬闸: `global_df` 超 `df_dict_budget_hard` (Pass1 循环内周期检查) → SystemExit
   (拒绝跑优于被 OOM-killer 静默 SIGKILL)。⚠ **该 SystemExit 会连坐整个 stage-22 本轮已算产出**
-  (boilerplate 派生在保存前), 且默认 40M 为未校准保守占位 —— 生产上 T=18 **须先跑 §3-P0 校准硬闸**,
+  (boilerplate 派生在保存前), 且默认 40M 为未校准保守占位 —— 生产上 T=19 **须先跑 §3-P0 校准硬闸**,
   避免合法大语料误触硬闸 nuke 整批 stage-22。旧单遍保留为 memory_tier='single_pass' 字节等价参照臂。
   ⚠ 严禁 HashingVectorizer/近似 sketch/块内 min_df 预剪 (碰撞/近似破 exact DF 与 golden)。
 - **小语料饱和**: n_docs < 1/阈值 时任意 DF≥1 的 n-gram 都满足 → 套话集=全词表 → 比率饱和≈1.0
@@ -55,7 +55,7 @@ from news_process.core.logging import pct4, sig4
 logger = logging.getLogger(__name__)
 
 # 套话判据: n-gram 出现在 ≥ 此比例的文档中即视为"跨文档套话"。0.10 = 出现在 ≥10% 文档。
-# (设计参数, 非文献硬值; 生产 T=18 可经稳健性网格微调。)
+# (设计参数, 非文献硬值; 生产 T=19 可经稳健性网格微调。)
 DF_RATIO_THRESHOLD = 0.10
 NGRAM_RANGE = (4, 6)
 OUT_COL = 'boilerplate_phrase_ratio_full'
@@ -146,7 +146,7 @@ def compute_boilerplate_ratios(texts: list[str],
     df_dict_budget_hard = _coerce_int(df_dict_budget_hard, _DEFAULT_BUDGET_HARD, 'df_dict_budget_hard')
     # 安全护栏禁用告警 (Final-A P2 footgun): budget≤0 令 `0<budget<len` 恒假 → 闸静默关闭, 须 loud 提示。
     if df_dict_budget_hard <= 0:
-        logger.warning("boilerplate: df_dict_budget_hard≤0 → OOM 硬闸已禁用 (生产 T=18 有 OOM 风险)")
+        logger.warning("boilerplate: df_dict_budget_hard≤0 → OOM 硬闸已禁用 (生产 T=19 有 OOM 风险)")
     if df_dict_budget_warn <= 0:
         logger.warning("boilerplate: df_dict_budget_warn≤0 → 软预算告警已禁用")
     if memory_tier not in _VALID_TIERS:
@@ -195,7 +195,7 @@ def _compute_single_pass_legacy(docs, nonempty_idx, out, n_docs,
     if n_docs > _MAX_SAFE_DOCS:
         logger.warning(
             f"boilerplate: n_docs={n_docs} 超 legacy 单遍安全规模 {_MAX_SAFE_DOCS} — char_wb"
-            f"{ngram_range} 全词表单遍 fit 极可能 OOM; 生产 T=18 请改 memory_tier='in_memory' "
+            f"{ngram_range} 全词表单遍 fit 极可能 OOM; 生产 T=19 请改 memory_tier='in_memory' "
             f"(tier1 chunked exact two-pass), 见模块 docstring")
     try:
         vec = CountVectorizer(analyzer='char_wb', ngram_range=ngram_range)

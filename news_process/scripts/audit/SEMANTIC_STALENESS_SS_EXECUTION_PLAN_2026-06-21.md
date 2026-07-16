@@ -1,6 +1,6 @@
 # semantic_staleness_ss 执行计划 — 关闭 stage 18 语义陈旧度的唯一三轨平价缺口
 
-> 版本: **v1.2** (2026-06-21, 经第二轮 42-agent 顶刊系统审计修订, 见 §13; v1.1 见 §12) · 作者: Claude Opus 4.8 (ultracode) · 状态: **✅ Phase A 已实现并提交 main** (用户 2026-06-21 放行+授权提交; 代码+单测全绿 + ruff clean + 真实端到端微验证 + 四轮审计三重坐实; 见 §14-§17) · **Phase B (生产 T=18 重跑 + golden 重生) 待生产 run**
+> 版本: **v1.2** (2026-06-21, 经第二轮 42-agent 顶刊系统审计修订, 见 §13; v1.1 见 §12) · 作者: Claude Opus 4.8 (ultracode) · 状态: **✅ Phase A 已实现并提交 main** (用户 2026-06-21 放行+授权提交; 代码+单测全绿 + ruff clean + 真实端到端微验证 + 四轮审计三重坐实; 见 §14-§17) · **Phase B (生产 T=19 重跑 + golden 重生) 待生产 run**
 > 关联: [[third-track-ss-plan-2026-06-14]] · `THIRD_TRACK_SAME_SENTENCE_PLAN_2026-06-14.md` (§④/§7.5/line 109/171 DEFER 原决策) · [[golden-regen-omp-determinism-2026-06-18]]
 > 触发: 用户 2026-06-21 指令「请参考 ctx 轨实现 ss 轨」(在我建议 DEFER 后明确选择实现)
 
@@ -14,11 +14,11 @@ surface_staleness 已产三轨 (`_full`/`_ctx`/`_ss`), semantic_staleness 仅 `_
 
 1. **真正的改动不在 stage 18, 而在 stage 30a。** stage 18 (`article_staleness.py`) 侧只是 3 行镜像 ctx; 其 `aggregate_to_bank_year` 循环**早已预留** `semantic_staleness_ss` (article_staleness.py:383, 缺列即跳过)。瓶颈是**上游 stage 30a** (`article_sbert.py`) 当前只编 `emb_full`/`emb_ctx` 两轨, 未为 `content_ss` 产 `emb_ss`。这正是 surface_ss 当初**零成本**而 semantic_ss 被 DEFER 的根因: surface 的 MinHash 直接吃 `content_ss` 文本 (自带于 stage 18), semantic 必须先有上游嵌入。
 
-2. **金钱成本 $0, 真实成本 = 算力 + 强制 golden 重生。** stage 30a 用**本地** SBERT (`shibing624/text2vec-base-chinese`), 非付费 API。加 `emb_ss` = 多一条全量编码轨 (≈ stage 30a 从 2 轨变 3 轨, +50% 编码时间; 全量 17M 文章 GPU 4-6h 量级)。`semantic_staleness_ss` + `semantic_highstale_ss` 是**列 schema 变更** → 必须重生 golden。
+2. **金钱成本 $0, 真实成本 = 算力 + 强制 golden 重生。** stage 30a 用**本地** SBERT (`shibing624/text2vec-base-chinese`), 非付费 API。加 `emb_ss` = 多一条全量编码轨 (≈ stage 30a 从 2 轨变 3 轨, +50% 编码时间; 全量 18.2M 文章 GPU 4-6h 量级)。`semantic_staleness_ss` + `semantic_highstale_ss` 是**列 schema 变更** → 必须重生 golden。
 
 3. **零下游消费 (诚实披露)。** 全项目 grep: 11 篇 `paper_spec.yaml`、全部 Stata 模板、`config/*.yaml` 对 `semantic_staleness_*` (含 full/ctx) **零按名引用**。这些是 robustness-only 诊断列 (G-D2.1 互补性)。**实现本列是"平价完整性 / 审稿防御", 非分析刚需** (详见 §3 必要性裁决)。
 
-**决策**: 按用户指令实现, 采用**两阶段交付** (§7.5): **Phase A** 代码层 ($0, 合成单测验证, 向后兼容可独立提交; C2.1/C2.2/C3.0 须原子同 commit) + **Phase B** 生产 T=18 重跑 + golden 受控重生 (延后到生产 run, 受 M0/生产 gate)。
+**决策**: 按用户指令实现, 采用**两阶段交付** (§7.5): **Phase A** 代码层 ($0, 合成单测验证, 向后兼容可独立提交; C2.1/C2.2/C3.0 须原子同 commit) + **Phase B** 生产 T=19 重跑 + golden 受控重生 (延后到生产 run, 受 M0/生产 gate)。
 
 **计数不变** (纯列内扩展, 无阶段增删, 镜像 v3.9.0 三轨先例): STAGES_MAIN=16 / STAGES_VALIDATION=16 / thin shim=35 / OUTPUT_REGISTRY 文件数不变 (列就地加在既有 `26_*` parquet)。
 
@@ -102,7 +102,7 @@ STAGES_MAIN=16 · STAGES_VALIDATION=16 · thin shim=35 · 注册=32 · OUTPUT_RE
 
 ### 3.2 支持实现的理由 (用户采纳)
 - **平价完整性 / 审稿防御**: 项目强承诺"全平价三轨"; semantic 是唯一不完整的第三轨。补齐后**消除对审稿人的 by-design 披露负担** (line 171 的"勿被审稿读成平价漏洞"从此不需要)。
-- **搭车边际成本最低**: 若生产 T=18 全量重跑 + golden 重生本就要发生 (CLAUDE.md: 盘面仍 T=2, 生产跑未发生), 则加 emb_ss 是同一 job 内的廉价 rider。
+- **搭车边际成本最低**: 若生产 T=19 全量重跑 + golden 重生本就要发生 (CLAUDE.md: 盘面仍 T=2, 生产跑未发生), 则加 emb_ss 是同一 job 内的廉价 rider。
 - **对称性即正确性**: 三轨完全对称的代码比"两轨半"更易维护、更难出 silent bug (维护性收益)。
 
 ### 3.3 裁决
@@ -256,7 +256,7 @@ def _build_output_frame(
 ### 6.1 机制 (必须理解, 否则误 bless)
 `generate_golden_snapshot.py` **不重跑管道**, 只对 `data/processed/` **当前盘面**的 parquet 逐列哈希 (脚本 docstring:4-9)。
 → **必须先实跑 stage 30a (emb_ss) + stage 18 (semantic_staleness_ss) 落盘, 再跑 snapshot 脚本**。
-→ **在 T=2 盘面跑 snapshot 就会把 T=2 误 bless** → 必须在**生产 T=18 语料**上重生。
+→ **在 T=2 盘面跑 snapshot 就会把 T=2 误 bless** → 必须在**生产 T=19 语料**上重生。
 
 ### 6.2 golden 变更 (列 schema)
 | 产物 | 现 → 新 | gate 覆盖 (见 §6.5) |
@@ -295,7 +295,7 @@ def _build_output_frame(
 ## §7 成本与执行顺序
 
 ### 7.1 成本
-- **stage 30a**: +1 全量编码轨 ≈ +50% 编码时间 (线性外推: 2 轨→3 轨; 须实测验证)。本地模型, **金钱 $0**。全量 17M: GPU ~+2-3h / CPU ~+4-8h。⚠ **timeout 风险**: 现 `timeout=21600` (6h); 若 2 轨 baseline 已近 4-6h, 3 轨可能逼近/超过 6h → 执行前在 10k 文小样上基准 2 轨 vs 3 轨, 必要时上调 timeout 或并行 emb_ss 编码。
+- **stage 30a**: +1 全量编码轨 ≈ +50% 编码时间 (线性外推: 2 轨→3 轨; 须实测验证)。本地模型, **金钱 $0**。全量 18.2M: GPU ~+2-3h / CPU ~+4-8h。⚠ **timeout 风险**: 现 `timeout=21600` (6h); 若 2 轨 baseline 已近 4-6h, 3 轨可能逼近/超过 6h → 执行前在 10k 文小样上基准 2 轨 vs 3 轨, 必要时上调 timeout 或并行 emb_ss 编码。
 - **存储**: emb_ss 列 ≈ 768×4 byte/篇 × 有效篇数; 全量 ~+若干 GB (含回退行的 emb_ss≡emb_full 冗余存储, 无压缩)。可接受 (对称性代价)。
 - **stage 18**: +1 次 compute_semantic_staleness (Faiss FlatIP 滚动窗口, 分钟级)。
 - **golden**: snapshot 脚本秒级; 但前置的 30a→18→45→46 生产重跑是大头。
@@ -314,7 +314,7 @@ def _build_output_frame(
    → 先备份 25_article_embeddings/26_*.parquet (或指向 scratch output_dir 跑), 验完还原备份
    → (本特征对 gate 中性, §6.5/§7.6; 仅当重建让 staleness 流入 40_panel 才会触 gate)
 
-[Phase B — 生产 T=18, 受 M0/生产 gate, 延后]
+[Phase B — 生产 T=19, 受 M0/生产 gate, 延后]
 5. 生产环境 canonical pinned env (§6.3) 全量重跑 stage 30a (emb_ss) → stage 18。
    ⚠ env 须在 shell 启动 python 前设好 (同一 session 贯穿 30a+18), 例:
        export PYTHONHASHSEED=0 MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 \
@@ -372,12 +372,12 @@ Phase A **不重跑真重型阶段** (§7.2 走合成单测) → 盘面不变 �
 | # | 风险 | 缓解 |
 |---|---|---|
 | R1 | 旧 30a parquet 无 emb_ss 列 → stage 18 崩 | D3 双层: ① `_load_aligned_embeddings` 用 `if 'emb_ss' in columns` 守卫返 None (绝不裸 `emb_aligned['emb_ss']`); ② **call-site** `if embs_ss is not None` 守卫 (compute_semantic_staleness 无 None 守卫, 守卫必须在调用点否则 None 传入崩) |
-| R2 | 在 T=2 盘面误跑 snapshot → 把 T=2 bless 进 golden | §6.1 铁律: golden 重生**只在生产 T=18**。⚠ **data/processed 是 gitignored, 不能 `git checkout data/` 还原** → Phase A 不在 canonical 盘面跑真重型阶段 (走合成单测 §7.2); 若必须真跑则先备份 parquet 验后还原 (§7.6) |
+| R2 | 在 T=2 盘面误跑 snapshot → 把 T=2 bless 进 golden | §6.1 铁律: golden 重生**只在生产 T=19**。⚠ **data/processed 是 gitignored, 不能 `git checkout data/` 还原** → Phase A 不在 canonical 盘面跑真重型阶段 (走合成单测 §7.2); 若必须真跑则先备份 parquet 验后还原 (§7.6) |
 | R2b | C2.1 改 3-tuple 但漏改测试解包 → import/解包崩 | **C3.0 [P0]**: test_omni_fix_embed.py:161/:223 与 C2.1/C2.2 同 commit 原子改 (对抗审计抓出) |
 | R3 | 短窗下 semantic_ss 与 surface_ss 高度共线, 增量信息小 | §3.3 披露 (manuscript 附录报 corr); 非阻断, 是 by-design 接受 |
 | R4 | golden 重生引入无关漂移 (脏树/并行会话误 bless) | 重生前 `git status` 确认盘面干净 + canonical pinned env + 2-run A/B (§6.3) |
 | R5 | 改 docstring 误伤文本锁测试 | C2.5: 不动 Tetlock 构念披露 / Gentzkow-Kelly-Taddy 字符串 |
-| R6 | emb_ss 编码使 stage 30a 内存/时间超 timeout(21600) | 全量 17M 时监测; 必要时 batch_size 上调 / 分块 (现 timeout 6h 含 3 轨仍有裕度) |
+| R6 | emb_ss 编码使 stage 30a 内存/时间超 timeout(21600) | 全量 18.2M 时监测; 必要时 batch_size 上调 / 分块 (现 timeout 6h 含 3 轨仍有裕度) |
 
 **回滚** (任意阶段): 删 C1 的 emb_ss 编码块 + `_build_output_frame` emb_ss 参数 + C2 的 embs_ss 解包/compute → 退回两轨; golden 还原到 pre-change commit (`git checkout tests/fixtures/golden_panel_v0.json`)。`aggregate_to_bank_year` 循环里的 semantic_staleness_ss 项**留着无害** (缺列即跳过, 本就是 DEFER 设计)。
 
@@ -514,7 +514,7 @@ Phase A **不重跑真重型阶段** (§7.2 走合成单测) → 盘面不变 �
 
 **两 lens 提出的全部存活 findings 均为前瞻 Phase B 生产风险 (非 Phase A 缺陷)**, 处置:
 - **[已落地 — 我方代码加固]** `_load_aligned_embeddings` 加 emb_ss shape 守卫 (`article_staleness.py`): emb_ss.shape != emb_full.shape (维度/行数) → fail-loud (镜像本函数既有 30a-陈旧守卫), 防生产时错维语义信号静默喂 Faiss; 配 test `test_emb_ss_dim_mismatch_fails_loud` 锁定。
-- **[Phase B 前置, 文档]** **timeout**: stage 30a 3 轨在 T=18(17M) 可能超 21600s(6h)。Phase B 须: ① 先测 2 轨 baseline 墙钟; ② 若 `baseline×1.5 > 5.5h` 则 `core/dag.py` 的 30a timeout 21600→28800(8h); ③ 或保守直接预调 8h。(§7.1 已注, 此处升为 Phase B 必办步。)
+- **[Phase B 前置, 文档]** **timeout**: stage 30a 3 轨在 T=19(18.2M) 可能超 21600s(6h)。Phase B 须: ① 先测 2 轨 baseline 墙钟; ② 若 `baseline×1.5 > 5.5h` 则 `core/dag.py` 的 30a timeout 21600→28800(8h); ③ 或保守直接预调 8h。(§7.1 已注, 此处升为 Phase B 必办步。)
 - **[Phase B 前置, 文档]** **BLAS 确定性**: `core/stage.py:209` 子进程只钉 `PYTHONHASHSEED`, **未钉 BLAS 线程变量** (MKL/OPENBLAS/NUMEXPR/OMP_NUM_THREADS); 而 BLAS 线程态在 numpy import 时即锁定 (早于子进程 Popen)。→ Phase B golden bless **必须在 shell 启动 orchestrator 前 pre-export** 这些变量 (§6.3 已述, 此处明确根因)。⚠ `core/stage.py` 是**共享编排 infra** (影响全部嵌入派生列, 非本特征引入, pre-existing) → **本特征不改它** (避免 scope creep + 并行冲突); 留作全管道独立 determinism 加固项 (可选: 在 stage.py:209 块补 `env.setdefault` 5 个 BLAS 变量)。
 - **[Phase B 预期, 文档]** **40_panel 合并范围**: §6.5b 已述 blessed 40_panel 现零 staleness; Phase B 全量重跑若让 26_staleness_panel 新鲜度通过, `_merge_optin_feature_panels` 会把**全部** staleness (surface 3 轨 + semantic full/ctx/ss) 左连接进 40_panel_yearly/51 —— 这是预期且 gate-中性 (26_* 不在 parametrize); golden 重生须涵盖这批列。
 - **[非缺陷]** "Phase A 未提交" (F3): 用户 2026-06-21 明确选"暂不提交, 保持工作树" → 设计内, 非缺陷。 "T3 用 mock 非真 SBERT" (F4): T3 锁数学等价契约 (同输入→同输出) 足够 Phase A; 真 SBERT 嵌入层等价已由 §15.1 实跑 (1.34e-07) 坐实, 可选 Phase B 落为可复跑 gate。
@@ -538,7 +538,7 @@ Phase A **不重跑真重型阶段** (§7.2 走合成单测) → 盘面不变 �
 
 **安全法 (沿用项目惯例)**: HEAD == origin/main (renumber 工作已在 main, 无分支领先) → 干净 worktree off origin/main + by-name 拷入 5 文件 (我方源文件 diff 经 grep 证 0 并行污染) + FF 推送。**刻意未提交**: stata_export/encode/export/runner/policy_* 等 ~19 个并行会话脏文件 + 测试可能 bump 的 `data/processed/v3_5_1_constants.json` (按惯例还原)。
 
-**未含 (留 Phase B / 生产, 非本提交)**: stage 30a 全量 T=18 重跑产盘面真列 + golden 受控重生 + §16 三项 Phase B 必办 (timeout/BLAS/panel-merge)。**当前盘面 26_* 仍旧 schema** (微验证后已还原), 待 Phase B 生产重跑才落真列。
+**未含 (留 Phase B / 生产, 非本提交)**: stage 30a 全量 T=19 重跑产盘面真列 + golden 受控重生 + §16 三项 Phase B 必办 (timeout/BLAS/panel-merge)。**当前盘面 26_* 仍旧 schema** (微验证后已还原), 待 Phase B 生产重跑才落真列。
 
 ---
 
@@ -554,19 +554,19 @@ Phase A **不重跑真重型阶段** (§7.2 走合成单测) → 盘面不变 �
 - **第六轮 (12-agent)**: holistic-correctness + completeness-final **CERTIFIED_CLEAN** (committed 代码 0 缺陷); production-honesty lens 提 4 项, 经裁决**无一是本特征 5 文件的缺陷**:
   - `codebook.py::_infer_source_stage` 对 staleness 列返 'unknown' → **pre-existing** (波及全部 6 个 staleness 列, 含早于本特征的 5 个) + **并行会话正改 codebook.py** → 不碰 (避冲突/scope), 列为 codebook-session/Phase B 改进项。
   - `core/stage.py:209` 未钉 BLAS 线程变量 → **pre-existing 共享 infra** (波及全部嵌入派生列), §16 已诚实记 + shell pre-export 解法 → 不碰共享 infra。
-  - stage 30a timeout 3 轨 T=18 风险 → **Phase B 生产前置** (Phase A 代码不受影响, timeout 仅 17M 规模才触), §16 已记"先测后调"。
+  - stage 30a timeout 3 轨 T=19 风险 → **Phase B 生产前置** (Phase A 代码不受影响, timeout 仅 18.2M 规模才触), §16 已记"先测后调"。
   - commit 信息 "三前置...受 M0/生产 gate 延后" → 实为诚实 ("延后"=未就绪), 本节进一步明确: **此三项为 Phase B 必办待处理项, 非已就绪**。
 
 ### 18.3 Phase B 必办清单 (强化, 提升可发现性)
-执行生产 T=18 重跑 + golden bless **前**必办 (均非 Phase A 代码缺陷, 为生产前置):
+执行生产 T=19 重跑 + golden bless **前**必办 (均非 Phase A 代码缺陷, 为生产前置):
 1. **timeout**: 先在 ~10k 文样测 stage 30a 2 轨墙钟; 若 `×1.5 > 5.5h` 则 `core/dag.py` 该阶段 timeout 21600→28800 (或保守预调 8h)。
 2. **BLAS 确定性**: shell 启动 orchestrator **前** `export PYTHONHASHSEED=0 MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1` (因 `core/stage.py:209` 只钉 PYTHONHASHSEED; 全管道 pre-existing, 非本特征)。
 3. **panel-merge**: 重跑后核验 staleness 是否流入 40_panel (runner 泛型左连接会自动拾取, gate-中性)。
 4. **codebook**: (可选, codebook-session/并行处理) 给 `_infer_source_stage` 加 staleness→Stage 18 case (现返 'unknown', pre-existing 波及 6 列)。
 
 ### 18.4 最终裁决
-**本特征 (semantic_staleness_ss, 5 文件) 经六轮审计 (5+42+17+34+21+12 = 131 agent) + 真实 T=2 端到端实跑 + 3740-test 全量回归三重认证, committed 代码 0 缺陷 / 0 回归。** 六轮所有"残留 finding"经裁决全部为 pre-existing 共享 infra / 并行会话 / Phase B 生产前置 / 命名约定 (stage 30a) / 智能体幻觉 — **无一是本特征交付物的缺陷**。Phase B 生产执行 (须全量 17M 语料, 本机无) 连同 §18.3 四项前置待生产环境进行。
+**本特征 (semantic_staleness_ss, 5 文件) 经六轮审计 (5+42+17+34+21+12 = 131 agent) + 真实 T=2 端到端实跑 + 3740-test 全量回归三重认证, committed 代码 0 缺陷 / 0 回归。** 六轮所有"残留 finding"经裁决全部为 pre-existing 共享 infra / 并行会话 / Phase B 生产前置 / 命名约定 (stage 30a) / 智能体幻觉 — **无一是本特征交付物的缺陷**。Phase B 生产执行 (须全量 18.2M 语料, 本机无) 连同 §18.3 四项前置待生产环境进行。
 
 ---
 
-*本计划经**六轮**顶刊多智能体审计 (v1→v1.1 5-agent §12; v1.1→v1.2 42-agent §13; Phase A 后 17-agent 代码审 §15.2; 第四轮 34-agent 终审 §16; 提交后第五轮 21-agent 认证 + 第六轮 12-agent 全息终审 §18), 共 131 agent, 全程 committed 代码 0 缺陷。**Phase A 已于 2026-06-21 用户放行后实现, 经真实端到端微验证 + 3740-test 全量回归 (0 源于本特征) + 六轮审计三重坐实** (§14/§15/§16/§18; 代码+单测绿, ruff clean, 实跑证列正确物化 8→9/12→14, 盘面已还原); **已于 2026-06-21 用户授权后 by-name 提交并 FF 推送 main (commit 3df4a4d9, 5 文件, 排除并行脏文件, 见 §17)**; Phase B (生产 T=18 重跑 + golden 重生; timeout/BLAS/panel-merge 三项 Phase B 必办见 §16/§18.3) 受 M0/生产 gate 延后。*
+*本计划经**六轮**顶刊多智能体审计 (v1→v1.1 5-agent §12; v1.1→v1.2 42-agent §13; Phase A 后 17-agent 代码审 §15.2; 第四轮 34-agent 终审 §16; 提交后第五轮 21-agent 认证 + 第六轮 12-agent 全息终审 §18), 共 131 agent, 全程 committed 代码 0 缺陷。**Phase A 已于 2026-06-21 用户放行后实现, 经真实端到端微验证 + 3740-test 全量回归 (0 源于本特征) + 六轮审计三重坐实** (§14/§15/§16/§18; 代码+单测绿, ruff clean, 实跑证列正确物化 8→9/12→14, 盘面已还原); **已于 2026-06-21 用户授权后 by-name 提交并 FF 推送 main (commit 3df4a4d9, 5 文件, 排除并行脏文件, 见 §17)**; Phase B (生产 T=19 重跑 + golden 重生; timeout/BLAS/panel-merge 三项 Phase B 必办见 §16/§18.3) 受 M0/生产 gate 延后。*

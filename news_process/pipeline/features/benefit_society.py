@@ -940,7 +940,7 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
             _emitted_cols.append(_mean_col)
             _notna_rate = float(panel[_mean_col].notna().mean())
             # 结果解读: 非空率 = 该 (spec×轨) 在 bank-year 面板的覆盖率。
-            # T=2 试跑下覆盖率天然偏低; 生产 T=18 应趋高。
+            # T=2 试跑下覆盖率天然偏低; 生产 T=19 应趋高。
             _cov_verdict = (
                 "✅ 覆盖充分" if _notna_rate >= 0.50
                 else ("⚠ 覆盖偏低 (小样本/稀疏轨)" if _notna_rate > 0

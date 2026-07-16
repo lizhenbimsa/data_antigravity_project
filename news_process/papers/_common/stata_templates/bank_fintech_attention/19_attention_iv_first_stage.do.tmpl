@@ -96,7 +96,7 @@ if !_rc {
     *   未 partial 的 i.bank_id i.year 高维哑变量时, 会拒报过度识别统计量 (实测打印
     *   "overidentification statistic not reported"; e(j)=. / e(jp)=. → Hansen J 列恒空),
     *   = IV-5 兑现的 over-id 主交付物 claimed-but-not-run。改 partial(i.bank_id i.year)
-    *   把外生 FE 哑变量先 partial out, ivreg2 即报告 e(j)/e(jp) (实测 T=18 合成面板
+    *   把外生 FE 哑变量先 partial out, ivreg2 即报告 e(j)/e(jp) (实测 T=19 合成面板
     *   e(jp)=.775, df=1)。本机 ivreghdfe r(301) 坏 (ftools/reghdfe Mata 不兼容) 故不改走
     *   ivreghdfe; partial() 是 ivreg2 原生、与 cluster() 兼容的等价路径。
     capture confirm variable {{MAIN_DV}}
@@ -112,7 +112,7 @@ if !_rc {
         if !_rc eststo tsls_overid
     }
     else {
-        display "  [WIRE-AHEAD] pooled over-id 第二阶段 DV {{MAIN_DV}} 未物化 (外部财务面板待接入); Hansen J 列跳过, T=18 自动激活"
+        display "  [WIRE-AHEAD] pooled over-id 第二阶段 DV {{MAIN_DV}} 未物化 (外部财务面板待接入); Hansen J 列跳过, T=19 自动激活"
     }
 }
 display "  [over-id 工具相关性] LOO x Bartik rho=`rho_fb' (近正交→ Hansen J df=1 有功效)"

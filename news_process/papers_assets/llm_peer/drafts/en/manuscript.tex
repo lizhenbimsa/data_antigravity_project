@@ -28,8 +28,8 @@ own media tone
 (\code{llm\_vote\_tone\_full}) on return on assets (\code{roa}) via two-stage least squares.
 Tone is produced by majority vote across three independent-vendor LLMs under
 \code{temperature=0}, \code{seed=42}, and a byte-frozen prompt, making the entire measurement
-chain reproducible offline at zero cost. The target corpus comprises roughly 17 million media
-articles on 110 Chinese banks over 2007--2024. We find \NoteThis{key result: main coefficient,
+chain reproducible offline at zero cost. The target corpus comprises 18{,}198{,}978 media
+articles on 110 Chinese banks over 2007--2025. We find \NoteThis{key result: main coefficient,
 significance, and first-stage strength pending}. Our contribution is methodological: a fully
 reproducible workflow from LLM semantic peers through formula-based instruments to
 just-identified 2SLS, disciplined by a controlled ladder of mutual-robustness specifications.
@@ -103,7 +103,7 @@ Third, a reproducibility contribution: \code{temperature=0}, \code{seed=42}, a b
 prompt, and full call caching make the measurement chain byte-level reproducible offline at
 zero cost, responding directly to warnings about hidden researcher degrees of freedom in LLM
 annotation \parencite{baumann2025llmhacking}. Fourth, a corpus contribution: identification
-rests on roughly 17 million media articles covering 110 Chinese banks over 2007--2024, among
+rests on 18{,}198{,}978 media articles covering 110 Chinese banks over 2007--2025, among
 the largest bank--media text panels assembled for a single emerging market.
 
 The remainder proceeds as follows. Section~\ref{sec:lit} reviews the literature;
@@ -239,9 +239,9 @@ administrative constraints could also amplify some channels, the test is two-sid
 
 \section{Methodology}\label{sec:method}
 \subsection{Sample and Data}
-The target sample is a bank-year panel: 110 Chinese banks $\times$ 2007--2024 (T=18), with a
-production target corpus of roughly 17 million bank/FinTech media articles (a different
-accounting from the raw census in Section~\ref{sec:data}; the two must not be conflated).
+The target sample is a bank-year panel: 110 Chinese banks $\times$ 2007--2025 (T=19), with a
+production target corpus of 18{,}198{,}978 bank/FinTech media articles (adopting the
+full raw-census scope of Section~\ref{sec:data} as the pre-hard-filter intake).
 Interim numbers currently shown in this draft come from a development subsample (110 banks
 $\times$ 2 years, 2017--2018, T=2 \NoteThis{development-subsample bank-year count to be read
 from the on-disk panel}); all tables and statistics await backfill on the production
@@ -428,10 +428,10 @@ not be conflated. The upstream raw census (before any filtering or deduplication
 18{,}198{,}978 media articles spanning 2007-01-01 to 2025-12-31, from 183 deduplicated source
 files and 3{,}740 media outlets; newspaper-type articles account for 92.93\,\% of all rows
 (16{,}912{,}361 rows) and are retained, while wire services, magazines, government bulletins,
-web pages, and other types are dropped row-wise. After the newspaper-type filter and the
-study-window cut (2007--2024) but \emph{before} the bank--FinTech co-occurrence hard filter,
-the production target corpus is roughly 17 million articles covering 110 banks, forming the
-upstream base of the T=18 bank-year panel; the article count retained after the
+web pages, and other types are dropped row-wise. The production target corpus adopts the
+full census scope \emph{before} the bank--FinTech co-occurrence hard filter:
+18{,}198{,}978 media reports (2007--2025) covering 110 banks, forming the
+upstream base of the T=19 bank-year panel; the article count retained after the
 co-occurrence hard filter awaits the production pipeline run \NoteThis{post-hard-filter
 retention count pending production backfill}. Articles then pass, in order, the
 co-occurrence hard filter, three-LLM verification, and the full-track retention gate (F2)

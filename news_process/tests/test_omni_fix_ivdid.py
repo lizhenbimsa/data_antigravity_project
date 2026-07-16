@@ -256,7 +256,7 @@ class TestBaseYearsPoolingAndForesightMask:
         assert abs(x_2021 - 1.0) < 1e-9, f"x 2021 IV 应=1.0, got {x_2021}"
 
     def test_pre_base_year_rows_masked_single_base(self):
-        """单基期 T0=2020, 面板含 2019 行 → 2019 IV NaN (T=18 全量 latent 触发)."""
+        """单基期 T0=2020, 面板含 2019 行 → 2019 IV NaN (T=19 全量 latent 触发)."""
         panel = _panel(['bank_a', 'bank_b', 'bank_x'], [2019, 2020, 2021])
         articles = pd.concat([
             self._articles(),

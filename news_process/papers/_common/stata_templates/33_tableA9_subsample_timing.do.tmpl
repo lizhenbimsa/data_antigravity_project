@@ -48,7 +48,7 @@
 *                                                    [Panel B 序列相关 + 时序安慰剂]
 *
 * T=2 退化守卫: 子样本切分后若某子群行数/簇数过少, reghdfe 退化, capture + N 守卫
-*   优雅跳过 (production T=18 才有完整功效)。F. lead 算子需 xtset 后 T>=2 才有非缺值。
+*   优雅跳过 (production T=19 才有完整功效)。F. lead 算子需 xtset 后 T>=2 才有非缺值。
 *
 * Main spec: sent={{MAIN_SENT_TRACK}} (locus={{MAIN_LOCUS_TRACK}} subst={{MAIN_SUBST_TRACK}})
 
@@ -267,7 +267,7 @@ else {
         local tlabs `"`tlabs' "L1 lag""'
     }
     else {
-        display "  ⚠️ Panel B: L1 滞后回归退化 (T=2 滞后致样本缩为单期?), 跳过 (全量 T=18 正常)"
+        display "  ⚠️ Panel B: L1 滞后回归退化 (T=2 滞后致样本缩为单期?), 跳过 (全量 T=19 正常)"
     }
 
     * B3: 前向 lead 安慰剂 (当期结果 ~ 未来 tone, F. 算子) — 应不显著
@@ -278,7 +278,7 @@ else {
         local tlabs `"`tlabs' "F1 lead (placebo)""'
     }
     else {
-        display "  ⚠️ Panel B: 前向 lead 安慰剂退化 (T=2 lead 致样本缩为单期?), 跳过 (全量 T=18 正常)"
+        display "  ⚠️ Panel B: 前向 lead 安慰剂退化 (T=2 lead 致样本缩为单期?), 跳过 (全量 T=19 正常)"
     }
 
     if "`tcols'" != "" {

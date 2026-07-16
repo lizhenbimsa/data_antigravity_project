@@ -1297,7 +1297,7 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
         # ⑤ 小样本/确定性警告
         if n_panel < 100:
             logger.warning(f"     · ⚠ 小样本: panel 仅 {n_panel:,} 行 — "
-                           "IV 第一阶段功效受限, 生产规模 (T=18) 才有充分识别力")
+                           "IV 第一阶段功效受限, 生产规模 (T=19) 才有充分识别力")
         if not LLM_OFFLINE:
             logger.info("     · ⚠ 非离线模式: 缓存 miss 将调付费 API → peer 网络可能随重判漂移; "
                         "复现性优先时设 NEWS_PROCESS_LLM_OFFLINE=1")

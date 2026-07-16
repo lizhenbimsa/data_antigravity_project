@@ -17,7 +17,7 @@
 - **旗舰 brokerage**: 从"只有 tone 溢出一条线"扩成"网络位置当解释/中介/工具/调节/异质性五种角色都登场", 真正配得上"brokerage (经纪网络)"这个标题。
 - **其余 10 篇**: 网络位置最稳妥的角色是**控制变量** (净化"被报道得多/被听到得响"这种媒体可见度混淆), 部分篇可升到**调节/异质性** (网络枢纽地位放大处理效应)。
 
-**一句话现实**: 这些表绝大多数**要等全量数据 (T=18, 2007–2024) 才跑得出**——当前盘面是 T=2 (176 行) 试跑样本, 银行+年份固定效应几乎把网络位置的组内变异吸光, 交乘/分样本/IV 全退化。所以本轮做的是**"把架子搭好、把识别隐患的护栏钉死"**, 数据到位即可激活。
+**一句话现实**: 这些表绝大多数**要等全量数据 (T=19, 2007–2025) 才跑得出**——当前盘面是 T=2 (176 行) 试跑样本, 银行+年份固定效应几乎把网络位置的组内变异吸光, 交乘/分样本/IV 全退化。所以本轮做的是**"把架子搭好、把识别隐患的护栏钉死"**, 数据到位即可激活。
 
 ---
 
@@ -48,7 +48,7 @@
 | **工具** BRK-IV-3 | 17_table8 | `peer_tone_lag1`=(`peer_tone_2nd_lag1` + `prov_leave1out_tone`) | ivreghdfe over-id | ✅ needs_caveat(major) | **跨族**(共现 W² + 地理同省 LOO), **严禁** full+ctx 双支拼 J; Hansen J+KP F+AR CI |
 | **调节** BRK-MOD-4 | 18_table9 | `peer_tone × L.中心度` 交乘 | **2SLS 交乘**(交乘项工具化) | ✅ needs_caveat(major) | **禁 OLS**(主表都走 2SLS); 交乘+主项各配工具; N-02 报 N; FWER |
 | **异质性** BRK-HET-5 | 19_table10 | 按 `bank_is_hub`/`bank_constraint` 分位 | **pooled 交乘 2SLS** | ✅ needs_caveat(major) | within-year 分位(非绝对阈值 N-08); 组间差用交乘 t 非并排; N<30 守卫; AR CI |
-| **FWER** (BRK-PRIMARY-1 的 B 部分) | 20_table11 | 22 battery 多重检验 | wyoung/rwolf2 | ⚠ 语法重写 | **rwolf 无 iv()/不支持 ivreghdfe** → 用 wyoung 或 rwolf2; T=18 才激活, 盘面 runtime-guard 优雅降级 (capture which/confirm + DV 哨兵 exit, 非注释掉) |
+| **FWER** (BRK-PRIMARY-1 的 B 部分) | 20_table11 | 22 battery 多重检验 | wyoung/rwolf2 | ⚠ 语法重写 | **rwolf 无 iv()/不支持 ivreghdfe** → 用 wyoung 或 rwolf2; T=19 才激活, 盘面 runtime-guard 优雅降级 (capture which/confirm + DV 哨兵 exit, 非注释掉) |
 | **机制(调节变体)** BRK-FIRESALE-1 | 15_table6b 或并入 | `brokerage_fire_sale` + `industry_neg_shock_lag1` | reghdfe | ✅ needs_caveat(major) | 激活休眠孤儿; **只用 _lag1**(同期版年FE下与自身负面率精确共线) |
 
 **接线点** (全部 golden-safe, 但触碰共享文件):
@@ -76,7 +76,7 @@
 | P5 collab | 自主/外部协同 | 中介: collab→经纪枢纽→M&A | `brokerage_eigen_cent` | P5-MED-1 | (未核验, 同 P4-MED reject风险→附录) | ✅ |
 | P5 | | 调节 | `collab_frac × bank_between_cent` | P5-MOD-1 | (未核验, 同 P3-MOD caveat) | ✅ |
 | llm_peer | LLM 语义同业 IV | **控制(方法学卖点)**: 共现网作"传统网络位置 baseline"证语义网增量 | `bank_between_cent`+`brokerage_eigen_cent` | LLMPEER-CTRL-1 | needs_caveat(major); N-02 缺失约定先统一 | ✅ |
-| llm_peer | | 调节 | `llm_peer_tone_iv × llm_peer_count` 交乘 | LLMPEER-MOD-1 | ❌ **reject(fatal)** → 交乘工具化过复杂, T=18 才稳 | ✅ |
+| llm_peer | | 调节 | `llm_peer_tone_iv × llm_peer_count` 交乘 | LLMPEER-MOD-1 | ❌ **reject(fatal)** → 交乘工具化过复杂, T=19 才稳 | ✅ |
 | strategic_diff | 文本表征差异 | 控制: constraint=嵌入度 区分"文本差异"vs"网络孤立" | `bank_constraint` | STRATDIFF-CTRL-1 | needs_caveat(major) | ✅ |
 | strategic_diff | | 调节 | `strat_diff_n5 × bank_between_cent` | STRATDIFF-MOD-1 | ❌ reject(major) → 交乘内生, 附录条件关联 | ✅ |
 | benefit_society | 利社会态度 | **控制**(PAP 锁 outcome/treatment, 网络只能进 controls) | `bank_between_cent`+`bank_degree_cent` | BENEFIT-CTRL-1 | needs_caveat(minor) | ✅ |
@@ -109,7 +109,7 @@
 1. **BRK-EXPL-1** (fatal): 网络位置作 ROA 因果主 RHS + L2-IV → 反向因果(绩效差→负面事件→被多媒体共提→共现度↑)、L2 工具排他必败、跨年不可比。**救法**: 降级"描述性条件关联", 删 L2-IV。
 2. **BRK-MED-2 / P4-MED-1** (major): 中介内生(网络位置内生于媒体覆盖 P1-5)→ Imai sequential ignorability 不可信。**救法**: 附录探索 + ρ 敏感性 + "关联分解非因果"。
 3. **P2-PEERIV-1** (major): 新建共现 peer-LOO IV = 复活已撤回的双工具 pooled-J (corr=0.998 教训)。**救法**: 用既有 `LOO × bartik` 跨族。
-4. **LLMPEER-MOD-1** (fatal): 交乘工具化第一阶段双工具识别过复杂。**救法**: T=18 后谨慎。
+4. **LLMPEER-MOD-1** (fatal): 交乘工具化第一阶段双工具识别过复杂。**救法**: T=19 后谨慎。
 5. **STRATDIFF-MOD-1** (major): 交乘内生。**救法**: 附录条件关联。
 6. **NET-NEW-DELTA-CENT** (major): Stata 内可平替, 不必新 Python 列。
 
@@ -123,7 +123,7 @@
 - **N-05 W² 行随机幂迭代趋平稳→工具变异坍缩**, 省级聚类 G≈31<40 → wild cluster bootstrap (boottest)。
 
 **硬红线**:
-- **T=2 vs T=18**: 盘面 176 行试跑, 交乘/分样本/IV 全退化 (实测 endog+IV 双非空仅 28 行单年, hub 子样本 N=4)。新表全部 **production T=18 才激活**, 模板须 N-守卫优雅跳过, 不据盘面下结论。
+- **T=2 vs T=19**: 盘面 176 行试跑, 交乘/分样本/IV 全退化 (实测 endog+IV 双非空仅 28 行单年, hub 子样本 N=4)。新表全部 **production T=19 才激活**, 模板须 N-守卫优雅跳过, 不据盘面下结论。
 - **列名 ≤32 字符** (交乘用紧凑 `pt_x_btw`/`sub_x_btwn`/`collab_x_btwn`/`diff_x_btwn`/`lpeer_x_dens`)。
 - **禁 type×year FE** (会吸收 LOO 工具变异; 统一 `absorb(bank_id year)`)。
 - **`bank_eigen_cent` 残渣 bug** 已按连通分量修但 golden 未重生 → 用前须重生 (与并行 network-metrics-audit 会话协调)。
@@ -142,7 +142,7 @@
 | 4 | 占位符 | `derivative_replication.py::_PAPER_DEFAULTS['brokerage_network']` | +6 占位符 | 中(共享文件) |
 | 5 | 全项目 spec 元数据 | 10 篇 `paper_spec.yaml` 加 `network_roles` 块 | 控制/调节/异质角色声明 | 低 |
 
-**Tier-2 (deferred, 付费 golden 重生)**: NET-NEW-GF-BROKER 列 + 全项目调节/异质表的实际系数 (须 T=18)。
+**Tier-2 (deferred, 付费 golden 重生)**: NET-NEW-GF-BROKER 列 + 全项目调节/异质表的实际系数 (须 T=19)。
 
 ---
 

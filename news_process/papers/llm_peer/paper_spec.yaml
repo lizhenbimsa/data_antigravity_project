@@ -119,7 +119,7 @@ network_roles:
     lit: [Cao et al. 2025 RAS, Burt 1992, Bonacich 1972]
     note: "⚠ N-02: bank_between_cent(0兜底) + brokerage_eigen_cent(NaN兜底) 同入须先统一缺失约定; llm_peer 是 2SLS 不能用 reghdfe"
   moderator:
-    status: deferred   # lpeer_tone_iv × 网密度交乘工具化第一阶段双工具识别过复杂, T=18 才稳 (审计 LLMPEER-MOD-1 reject-fatal)
+    status: deferred   # lpeer_tone_iv × 网密度交乘工具化第一阶段双工具识别过复杂, T=19 才稳 (审计 LLMPEER-MOD-1 reject-fatal)
   centrality_missing_convention: zero_fill_offnetwork_disclose_N
 
 # 推断纪律 (INFER IV-2, 顶刊重审 2026-06-14, 报告 §⑦ P2; 镜像 disagreement/clarity spec)。
@@ -160,7 +160,7 @@ targets:
 
 sample:  # RR5-1: post-M0.5 v34 panel target (per §3.4 8 paper共用 v34); v3.3.0 baseline = 84 banks × 2 yr × 168 obs
   n_bank_min: 200
-  t_year: 18
+  t_year: 19
   obs_target_min: 3000
 
 audit_rounds_target_min: 8

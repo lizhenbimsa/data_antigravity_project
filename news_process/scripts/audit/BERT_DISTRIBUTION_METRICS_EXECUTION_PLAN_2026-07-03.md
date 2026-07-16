@@ -215,7 +215,7 @@ dta 宽度: **以 P0-0 后实读为准** ([R2] v2 "→3326" 预测数字已删�
 
 - golden 重生 (生产机); [R2] 届时 diff_golden `_ABL_RE` 对 +69 列报 **NON-ablation ADDED 属预期**, 与网络 +80 列一并处置。
 - manuscript 披露: 五族 + Hansen J + 三处构念边界 + §2.7 措辞。
-- 生产 T=18: C/E 覆盖率、iyvol max(0,·) 截断率、per-格可用模型数、corr 矩阵复测。
+- 生产 T=19: C/E 覆盖率、iyvol max(0,·) 截断率、per-格可用模型数、corr 矩阵复测。
 
 ## §9 Phase 0 侦察实测记录
 
@@ -255,7 +255,7 @@ dta 宽度: **以 P0-0 后实读为准** ([R2] v2 "→3326" 预测数字已删�
 - **Phase 4**: `tests/test_bert_distribution_metrics.py` 33 用例全绿; 既有 4 gate (bert_robustness/political_ladder/dag_consistency/parity) 72 用例全绿; ruff 全过 (2 处 import 排序 --fix)。
 - **Phase 5**: P5-1 单 shim 40→46 真跑 (NEWS_PROCESS_LLM_OFFLINE=1, $0) exit 0, 三条新日志行在位 (51/51 中间列、年内 merge 18 列 143 格 220 行不变、导出前 51 列清理); 面板实读 **3395 列** (3326+69 恰合), 69/69 在位, `_nt_n_`/文章级中间列**零残留**, sanity 全过, skew 26/220 格 (n≥10 门槛真实生效), iyvol/iytrend dev 全 NaN (R5 预期退化)。46 dta = **3395 = 面板恰等**。P5-1b: 无一对 |corr|>0.95 (finbert2 熵×|net_tone| 面板级 −0.88 — v3 降格"必中"的裁定被实证)。P5-5: 熵/xneg 手算对拍精确到 1e-10 (上海银行 2017, n=4); 斜率 dev 无 ≥6 月格 → gate #7 合成覆盖。P5-2 A/B: 只 stash 本计划 4 tracked 文件 (finally pop 保还原), 双侧同选择集 (--ignore 新 gate), **FAILED 集 23↔23 恰同、差集双向为空、0 新增失败、无需仲裁**。
 - **Phase 6**: CLAUDE.md 新增"BERT 分布形状五族"铁律段 + 最宽 dta 行 3308→**3395** (实读); memory 更新; 本节回填。
-- **DEFERRED (不变)**: golden 生产机重生 (diff_golden `_ABL_RE` 将报 +69 NON-ablation ADDED 属预期) + manuscript 三处构念边界披露 + 生产 T=18 覆盖率/截断率/per-格模型数/corr 复测。
+- **DEFERRED (不变)**: golden 生产机重生 (diff_golden `_ABL_RE` 将报 +69 NON-ablation ADDED 属预期) + manuscript 三处构念边界披露 + 生产 T=19 覆盖率/截断率/per-格模型数/corr 复测。
 
 ## §12 实现级终审 (2026-07-04, 发布前三路 + 小修收口)
 

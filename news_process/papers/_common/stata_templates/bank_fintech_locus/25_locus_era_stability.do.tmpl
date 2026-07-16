@@ -4,26 +4,26 @@
 *
 * CY-2 修复 (2026-06-14): 全代码库此前无结构性断点 / 分时代稳定性检验; 唯一时间维
 * 稳健性 (18_locus_robustness 的 excl_pre year>=2013) 恰是 era-stability 的【反面】
-* (假设跨时代不变并验"去早期仍成立")。2007-2024 跨 2013 余额宝 / 2016 P2P / 2019
+* (假设跨时代不变并验"去早期仍成立")。2007-2025 跨 2013 余额宝 / 2016 P2P / 2019
 * DCEP 多 regime, pooled intensity-DiD 若关系断裂会把异质效应平均成有偏均值。
 *
 * 本表三件套 (Bai-Perron 对面板 DiD 非硬要求, 真要求 = 系数稳定性 + 交乘 Wald):
 *   Panel A: 三时代【分段】各跑一次主规格 (locus_layer/scenario → MAIN_DV)
 *            era1 = 2007-2012 (pre-fintech) / era2 = 2013-2018 (互金+区块链浪潮)
-*            era3 = 2019-2024 (蚂蚁叫停后 + 监管收紧 + 大模型)
+*            era3 = 2019-2025 (蚂蚁叫停后 + 监管收紧 + 大模型)
 *   Panel B: 全样本 + treatment × era 交乘 (era1 作参照组)
 *   Panel C: Wald 检验三时代主处理系数相等 (H0: layer 效应跨时代不变)
 *   (可选) estat sbsingle / sbknown 主处理结构断点 — 缺 ado / T 小时跳过
 *
 * ── 大白话 ──────────────────────────────────────────────────────────────────
-*   是什么: 把 2007-2024 切成三个金融科技时代, 分别看"押底层技术"的银行效应,
+*   是什么: 把 2007-2025 切成三个金融科技时代, 分别看"押底层技术"的银行效应,
 *           再用交乘项正式检验三个时代的效应是不是一样大。
-*   为什么: 长面板 (T=18) 里同一个比值/强度测度跨年含义会漂移, year FE 只吸收水平
+*   为什么: 长面板 (T=19) 里同一个比值/强度测度跨年含义会漂移, year FE 只吸收水平
 *           不吸收"含义漂移"; 审稿人 (顶刊对长面板媒体测度的硬要求) 要看效应在不同
 *           监管/技术时代是否稳定, 而不是被平均成一个有偏的总均值。
 *   影响:   纯 Stata 层, 只读在盘 treatment/MAIN_DV; T=2 试跑帧仅 2017-2018 → 只有
 *           era2 一个时代有数据, 其余 era 与交乘/Wald 自动 capture 跳过 (优雅, 不报错);
-*           production T=18 自动激活全部三时代。$0 / golden-safe。
+*           production T=19 自动激活全部三时代。$0 / golden-safe。
 *
 * ── 文献锚点 (DOI 已核验) ──────────────────────────────────────────────────
 *   分时代系数稳定性 / 结构断点:
@@ -86,13 +86,13 @@ if `have_dv' == 0 {
     display as text "  [WIRE-AHEAD] {{MAIN_DV}} 不在盘 (外部专利/财务面板待接入); era-stability 优雅跳过, 仅写空表占位"
 }
 
-* era ∈ {1,2,3}: 2007-2012 / 2013-2018 / 2019-2024
+* era ∈ {1,2,3}: 2007-2012 / 2013-2018 / 2019-2025
 capture drop era
 gen byte era = .
 replace era = 1 if year >= 2007 & year <= 2012
 replace era = 2 if year >= 2013 & year <= 2018
-replace era = 3 if year >= 2019 & year <= 2024
-label define era_lbl 1 "2007-2012 (pre-fintech)" 2 "2013-2018 (互金/区块链)" 3 "2019-2024 (后蚂蚁/大模型)"
+replace era = 3 if year >= 2019 & year <= 2025
+label define era_lbl 1 "2007-2012 (pre-fintech)" 2 "2013-2018 (互金/区块链)" 3 "2019-2025 (后蚂蚁/大模型)"
 label values era era_lbl
 
 * 每时代最低观测门控 (小单元不跑, 对齐 23_locus_subsample small-cell 守卫)
@@ -113,7 +113,7 @@ if `have_dv' & `have_treat' {
                 capture estadd local era_lab : label era_lbl `e'
             }
             else {
-                display as text "  [SKIP] Panel A era==`e': 回归退化 (单时代内 year/within 变异不足); production T=18 激活"
+                display as text "  [SKIP] Panel A era==`e': 回归退化 (单时代内 year/within 变异不足); production T=19 激活"
             }
         }
         else {
@@ -161,11 +161,11 @@ if `have_dv' & `have_treat' & `n_eras_present' >= 2 {
         }
     }
     else {
-        display as text "  [SKIP] Panel B/C 交乘: 共线 / 退化 (可能仅 1 时代有变异); production T=18 激活"
+        display as text "  [SKIP] Panel B/C 交乘: 共线 / 退化 (可能仅 1 时代有变异); production T=19 激活"
     }
 }
 else {
-    display as text "  [SKIP] Panel B/C: 仅 `n_eras_present' 个时代有数据 (T=2 退化, 需 ≥2); production T=18 激活全部三时代交乘 + Wald"
+    display as text "  [SKIP] Panel B/C: 仅 `n_eras_present' 个时代有数据 (T=2 退化, 需 ≥2); production T=19 激活全部三时代交乘 + Wald"
 }
 
 * ============================================================================
@@ -178,7 +178,7 @@ if !_rc & `n_eras_present' >= 2 {
     if !_rc {
         capture noisily xtbreak test {{MAIN_DV}} locus_layer_full, breaks(1)
         if !_rc display "  [SBREAK] xtbreak single-break test on locus_layer_full coefficient computed"
-        else    display "  [SKIP] xtbreak 退化 (T 太短); production T=18 激活"
+        else    display "  [SKIP] xtbreak 退化 (T 太短); production T=19 激活"
     }
     else {
         display "  [INFO] xtbreak not installed (ssc install xtbreak); 面板结构断点为可选诊断, 跳过 (非失败)"
@@ -204,11 +204,11 @@ else {
         stats(N r2 wald_eq_F wald_eq_p, fmt(0 3 3 3) ///
               labels("N" "R\textsuperscript{2}" "Wald F (era 效应相等)" "Wald p")) ///
         title("Table D --- Era-Stability: Three-Era Subperiod \& Treatment×Era Interaction (P4 locus)") ///
-        addnotes("Era split: era1 = 2007-2012 (pre-fintech), era2 = 2013-2018 (互金/区块链浪潮), era3 = 2019-2024 (后蚂蚁/监管收紧/大模型)." ///
+        addnotes("Era split: era1 = 2007-2012 (pre-fintech), era2 = 2013-2018 (互金/区块链浪潮), era3 = 2019-2025 (后蚂蚁/监管收紧/大模型)." ///
                  "Columns era_1/era_2/era_3: subperiod main spec; column era_interact: pooled with locus×era interactions (era1 reference)." ///
                  "Wald F/p rows (era_interact column) test H0: layer effect equal across eras (interaction terms era2=era3=0); rejection ⇒ effect varies by fintech regime." ///
                  "Bai-Perron 1998 / Hansen 2001 structural-stability rationale; optional xtbreak single-break diagnostic in supplemental log." ///
-                 "T=2 trial frame (2017-2018) populates only era2 ⇒ other eras + interaction + Wald gracefully skipped; production T=18 activates all.")
+                 "T=2 trial frame (2017-2018) populates only era2 ⇒ other eras + interaction + Wald gracefully skipped; production T=19 activates all.")
 
     estout `models' using "$tables_dir/tableD_locus_era_stability.csv", replace ///
         delimiter(",") cells(b(star fmt(3)) se(par fmt(3))) ///

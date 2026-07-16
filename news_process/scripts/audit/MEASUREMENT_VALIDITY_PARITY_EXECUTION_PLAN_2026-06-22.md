@@ -3,7 +3,7 @@
 > ## 实现执行状态（2026-06-22，用户授权自动执行后；R6 实现前终审 GO → 实现 → R7/R8 执行成果终审）
 > **已实现（$0/golden-safe/未提交，13 文件 by-name，零 clobber 并行脏树）**：WS-0/WS-A/WS-B/WS-C/WS-D/WS-E 全部承重代码 + 测试（test_63=43 / test_73=29 / gate 新增 / 全绿）。R8 终审：回归 GO + golden-safety GO + EIC「无 P0、工程实施 GO」（真盘 51_panel 端到端复跑验证）；唯一真 bug = C2 加权 bootstrap 双重计权（已修方案 B + 回归锁）。**golden 未触动 / 计数 16-16-16 / 模板 142 / test_panel_reproducibility 绿。**
 > **显式 deferred（非遗漏，R8 收口记录）**：
-> - **真人工标注 / T=18 付费重跑 / separate-call NMI 探针（M0）/ golden 重生** = 须用户拍板，非代码所能。
+> - **真人工标注 / T=19 付费重跑 / separate-call NMI 探针（M0）/ golden 重生** = 须用户拍板，非代码所能。
 > - **M5 codebook.py:1013 旧号 39d→73 + HTMT 术语降级** = `codebook.py` 已被**并行 rule-ablation 会话改脏**，by-name 提交会 clobber → 本计划**不碰**，留并行会话或后续顺修（Stata 模板 `21_substance_clarity_robustness.do.tmpl` 5×39d→73 因 clean 已做）。
 > - **WS-F 文档层（coverage 三分入 codebook / 三维 face-content / known-groups / 窗口保真审计二选一）** = locus/collab/substance 均 provisional **无 manuscript（.tex 零命中）→ 无落点**，deferred 至各篇 manuscript onboarding。
 > - **WS-G（收敛效度降级/收窄，计划标"可选"）** = 采用缺省路径＝留空 + LLM-only 披露（§2.3 注³）；locus hybrid 收窄已由 WS-A 的 `paper_spec` `hybrid_disclosure` 字段覆盖。
@@ -13,7 +13,7 @@
 > 收敛轨迹：v1.0 → R1（31-agent）→ v2.0 → R2（11）→ v3.0 → R3（5）→ v3.1 → **R4（10-agent 终审：可实现性逐行复证 GO；抓 5 个前三轮盲点）→ v3.2（收 population-weighted κ/Gwet AC1 公式 P1-01/P2-04 + 门vs模板 F-b + pilot 资格门 M1 + 矩阵误标 collab 三轨 κ M2 + 单次调用 NMI 混淆 EIC-F1 + face/content/known-groups/伦理/tone 框）→ R5（2-agent 聚焦闭合：终审怀疑者 GO + 独立直读复证 8 项代码主张全属实；唯 1 个 P2=checklist 残留旧"保守"措辞未随 EIC-F1 降级）→ v3.3（收口该 P2，NMI 措辞全文统一为 confound-limited）**。**五轮（57+2 agent）后零 P0/P1 未决。**
 > 范围决策（用户 2026-06-22）：对「待办事项」撰写执行计划，再以国际顶刊最高标准多智能体反复审核验证。
 > 任务定位 = 把 **substance（实质/象征）· locus（底层/应用）· collab（自研/协同）** 三维的**验证管道**提升到与 **tone（语调）** 方法一致的水平（criterion / discriminant / reliability 三类效度的代码框架 + 协议）；**coverage（是否报道）** 是关键词构念、不同效度范式、单列；并补齐共性最大短板 = **真实人工金标准回填（含反锚定盲标 + per-dimension 效度声明门）**。
-> **粒度铁律（R2-P0-3 厘清）**：**效标效度（criterion，Panel A-G + G0 tone κ）= 文章级**（抽自 约 1125 篇语料，**不受 T=2 约束，现盘可启动**）；**判别效度（stage 73 panel 相关）+ 构念正交（stage 72 NMI）= bank-year 级**（T=2 退化，min-N 守卫 + insufficient_obs，仅验管道）。本计划**当前盘面交付 = 代码就绪 + 单元测试，零效度结论**；任何效度数值结论 deferred 至 T=18 + 真人工回填。
+> **粒度铁律（R2-P0-3 厘清）**：**效标效度（criterion，Panel A-G + G0 tone κ）= 文章级**（抽自 约 1125 篇语料，**不受 T=2 约束，现盘可启动**）；**判别效度（stage 73 panel 相关）+ 构念正交（stage 72 NMI）= bank-year 级**（T=2 退化，min-N 守卫 + insufficient_obs，仅验管道）。本计划**当前盘面交付 = 代码就绪 + 单元测试，零效度结论**；任何效度数值结论 deferred 至 T=19 + 真人工回填。
 > 前置依据 = 五次多智能体工作流（① 五维 LLM 三轨投票一致性核验；② 7 路代码地面真相采集；③ R1 6 视角；④ R2 4 视角；⑤ R3 3 视角 + R4 5 视角终审）。
 > **⚠ 两个「GO」勿混（R4-EIC-F2/F6）**：本计划的「GO」= **工程实施 GO**（计划内部一致、file:line 准确、可据以执行，R4 可实现性逐行复证确认）；**≠ 对应 measurement 论文发表就绪**。后者额外要求：(a) 至少 G0-tone 真 κ **被实际跑出**（非仅可跑）；(b) R4-EIC-F1 单次调用 NMI 混淆经 separate-call 探针处理或诚实降级。**本交付物本质 = 「测量效度验证基础设施 + 预注册协议」贡献**（research-infrastructure / replication-package），非「已验证的四维测度」贡献——投稿前若作 measurement paper，须先执行 G0-tone（计划明确其现盘可启动、非 T=2 阻塞），否则四维 criterion 全 pending 近乎必然 major-revision/reject。
 
@@ -145,7 +145,7 @@
 | **locus** | `innovation_locus_{full,ctx,ss}` | ⚠ `tech_frac`(full)/`tech_frac_lc`(ctx)/`tech_frac_ls`(ss) |
 | **collab** | `innovation_collab_mode_{full,ctx,ss}` | ⚠ `collab_frac`(full)/`collab_frac_cm`(ctx)/`collab_frac_cm_ss`(ss) |
 
-> **F7 修正**：`manual_validation_sampling.py:60-86` 现用**裸名** `innovation_substantiveness`/`innovation_locus`（无后缀），盘上仅有 `_full/_ctx/_ss` → 现盘即 KeyError。WS-D 须先改读 `_full` 主轨 + loud 守卫（独立于 T=2/T=18 的先决 bug）。
+> **F7 修正**：`manual_validation_sampling.py:60-86` 现用**裸名** `innovation_substantiveness`/`innovation_locus`（无后缀），盘上仅有 `_full/_ctx/_ss` → 现盘即 KeyError。WS-D 须先改读 `_full` 主轨 + loud 守卫（独立于 T=2/T=19 的先决 bug）。
 > **F11 修正**：substance 用 prob 均值、locus/collab 用 frac 份额 = 测度口径异质，HTMT/相关绝对值不可横向比较，须披露（或统一用 sub_frac/symb_frac，但破旧测试契约，暂不）。
 > **F9 修正**：`40_panel_yearly.parquet` **当前缺盘**；盘上实为 `51_panel_with_controls.parquet`（172 行，已含全部 6 个命名例外列 + 对照轴列）。WS-0/验收门按此订正。
 
@@ -259,7 +259,7 @@
 - **纯随机层最小 N（R4-P2-05）**：纯随机层（10–20%）估 LLM 漏判率，但 N≈400 下抽 40–80 篇纯随机、命中真少数类漏判可能个位数 → 漏判 CI 宽到无信息。**协议显式标**：纯随机层在 T=2/N≈400 仅作 face-validity 哨兵，漏判率点估计**不附推断 CI**，真值 deferred-T18 全样本（与 §5 少数类 N<60 口径一致）。
 - **伦理/数据治理（M6）**：语料=公开新闻二手数据 + 编码者=受训研究助理 → 多数辖区属免 IRB/最小风险，给一句立场声明（或标"投稿前按目标刊补伦理审查"）；编码者身份去标识（R1/R2/R3 代号）；`manual_validation_samples.xlsx` 纳入 `_validity_backup_/` 版本备份语义。
 - **F25 tone 抽样框 reconcile**：tone 沿用独立 1000 篇随机批（61_human_samples，**注意 tone 框=1000 行非语料 1125**）；**协议如实声明「四维统一」指编码指南统一，抽样框不强求统一**。
-- **deferred 生产（须用户拍板）**：① **先过 pilot 资格门** → T=18 重生 `21_tone_llms_full.parquet` 后生成两文件；② 3 编码者盲标 + tone 双编码者填 61/09；③ merge 共识 gold → 重跑 63/64；④ 重跑 73。**例外：G0 的 tone 一维 ×N≈400 真 κ 提为非 deferred（现盘可启动，但仍须先过 tone pilot 门）**。
+- **deferred 生产（须用户拍板）**：① **先过 pilot 资格门** → T=19 重生 `21_tone_llms_full.parquet` 后生成两文件；② 3 编码者盲标 + tone 双编码者填 61/09；③ merge 共识 gold → 重跑 63/64；④ 重跑 73。**例外：G0 的 tone 一维 ×N≈400 真 κ 提为非 deferred（现盘可启动，但仍须先过 tone pilot 门）**。
 
 ### WS-E（论文承诺对齐） [$0/doc]
 - locus/collab `paper_spec.yaml` 加 `validation:` 块（字段 SSOT = 本计划 G6：`criterion_validity`/`discriminant_validity`/`inter_track_reliability` + `commitment_status: new_2026-06-22` + `evidence_status: pending_T18_human_annotation`）；tone/substance spec 交叉引用同一矩阵（**无现存 validation 块可对齐**，F18）。
@@ -295,10 +295,10 @@
 | tone/sentiment | Krippendorff α（并报多分类 κ） | 3 | ~400 | 三分类 | **≈0.05–0.07** | per-class | — |
 | substance | Cohen κ | 2 | ~400 | 偏态 0.15–0.20 | **0.089–0.102**（非 0.045） | 少数类 N<60→宽 | **Gwet AC1** |
 | locus | Cohen κ | 2 | ~400 | 偏态 0.15–0.20 | **0.089–0.102** | 同上 | **Gwet AC1** |
-| collab | Cohen κ | 2 | 同批+stage3c | 偏态（待 T=18 实测，无分层保证 F-M7） | **>0.10 可能**（无过采样保障） | 须 T=18 定 | **Gwet AC1** |
+| collab | Cohen κ | 2 | 同批+stage3c | 偏态（待 T=19 实测，无分层保证 F-M7） | **>0.10 可能**（无过采样保障） | 须 T=19 定 | **Gwet AC1** |
 
 - **family 列（F4 FWER）**：判别效度全维一族 / 效标效度全维一族；**确证=full 轨**（纳入主 FWER，Holm/Romano-Wolf step-down），**探索=ctx/ss 轨**（不计入主张）。HTMT 描述性 cutoff 豁免，permutation 显著性 + κ 显著性须纳入。
-- **结论（修正 F2 + R-V2-4 统一区间）**：删除「半宽<0.05 / 远优于 0.10 / 无需上调」。**主精度指标 = accuracy 的 Wilson CI（≈0.045，本就正确）+ Gwet AC1（偏态稳健）**；**κ 半宽权威区间以本表为准：平衡维(coverage,p≈0.70)≈0.068、偏态焦点维(substance/locus,p≈0.15–0.20)≈0.089–0.102**（更宽的 0.07–0.12 是全患病率 0.10–0.50 扫描的外包络，仅作上下界参考），偏态焦点维已触及而非远优于 0.10。若坚持 κ 半宽<0.05，须上调 `PER_STRATUM`（现 100，SSOT `manual_validation_sampling.py:35-37`）使焦点维有效 N≈1000–1500（受 T=2/T=18 少数类可得性约束）。
+- **结论（修正 F2 + R-V2-4 统一区间）**：删除「半宽<0.05 / 远优于 0.10 / 无需上调」。**主精度指标 = accuracy 的 Wilson CI（≈0.045，本就正确）+ Gwet AC1（偏态稳健）**；**κ 半宽权威区间以本表为准：平衡维(coverage,p≈0.70)≈0.068、偏态焦点维(substance/locus,p≈0.15–0.20)≈0.089–0.102**（更宽的 0.07–0.12 是全患病率 0.10–0.50 扫描的外包络，仅作上下界参考），偏态焦点维已触及而非远优于 0.10。若坚持 κ 半宽<0.05，须上调 `PER_STRATUM`（现 100，SSOT `manual_validation_sampling.py:35-37`）使焦点维有效 N≈1000–1500（受 T=2/T=19 少数类可得性约束）。
 - **0.040 来历（R-V2-3）**：v1 coverage 行旧值 0.040 = 误把比例 p̂=0.7 在 N=500 的 Wilson 半宽当 κ 半宽；真值 0.068（N=500/p=0.70，κ 方差含 p_e 项故大于比例半宽）。表中「0.068（非 0.040）」即此订正，0.040 不再作任何主张。
 - **F3**：所报 κ 须标 sample-conditional / population-weighted；population_weight 只纠偏点估计、不缩小 CI。
 - **F21**：少数类 N<阈值（如 60）则该维只报描述性一致率 + Gwet AC1，不报推断性 κ-CI。
@@ -331,7 +331,7 @@
 2. `test_panel_reproducibility` — **零变化**（全 validation 层）。
 3. `test_dag_consistency` — STAGES_VALIDATION **仍 16**；shim 仍 35。
 4. `test_63_evaluation` + `test_71` + 新增（Panel G / Gwet / 73-泛化 / collab-optional / 命名例外硬断言）全绿；**`tabular==2` 不变**（F8）。
-5. **R-2 护栏 = 单元测试（强制，不依赖盘面 panel，F9）**：`test_73_*` 含 `LOCUS_INDICATORS`/`COLLAB_INDICATORS` 六个字面列名硬断言。离线烟雾走**合成 panel fixture**（含 tech_frac*/collab_frac*/对照轴列）正向断言三维非全 NaN；**不依赖 40_panel（缺盘）**。⚠ **生产 stage 73 `main():465` 仍读 `40_panel_yearly.parquet`（其设计上游，T=18 重生后补盘，勿改成 51）；51_panel/合成 fixture 仅供 WS-B 单元/烟雾**（impl-V6）。
+5. **R-2 护栏 = 单元测试（强制，不依赖盘面 panel，F9）**：`test_73_*` 含 `LOCUS_INDICATORS`/`COLLAB_INDICATORS` 六个字面列名硬断言。离线烟雾走**合成 panel fixture**（含 tech_frac*/collab_frac*/对照轴列）正向断言三维非全 NaN；**不依赖 40_panel（缺盘）**。⚠ **生产 stage 73 `main():465` 仍读 `40_panel_yearly.parquet`（其设计上游，T=19 重生后补盘，勿改成 51）；51_panel/合成 fixture 仅供 WS-B 单元/烟雾**（impl-V6）。
 6. `test_papers_b_route.py::test_total_template_count` — Stata 模板**仍 142**。
 7. `schemas.py:181` EXPECTED_NO_OUTPUT_STAGES 注释与实际 73 产物名一致（F22）。
 8. grep 确认降级后文档不再无保留称单 indicator |corr| 为 HTMT/MTMM（F11）。
@@ -365,11 +365,11 @@
 
 ---
 
-## 9. 生产 T=18 待办（deferred）
+## 9. 生产 T=19 待办（deferred）
 1. **[非 deferred 例外 · G0]** tone 一维 ×N≈400 真实双编码者**盲标**（先过 tone pilot 资格门 → 效标=文章级、tone 框=61_human_samples 1000 篇、现盘可启动、不受 T=2 约束）+ 重跑 64 → 真 κ/α；**仅解除 tone 论文的 `validity_claim_gate`，不解除 substance/locus/collab 任一维**（R-P0-2）。
-2. **[deferred-必做]** T=18 重生 `21_tone_llms_full.parquet`（先修 F7 抽样脚本裸名）→ 生成 coder-facing 盲表 + 对账表（带 docid + content_ctx/ss）→ 3 编码者盲标 substance/locus/collab → 重跑 63 → 真 criterion + IRR。
+2. **[deferred-必做]** T=19 重生 `21_tone_llms_full.parquet`（先修 F7 抽样脚本裸名）→ 生成 coder-facing 盲表 + 对账表（带 docid + content_ctx/ss）→ 3 编码者盲标 substance/locus/collab → 重跑 63 → 真 criterion + IRR。
 3. **[deferred-必做]** 重跑 73（真 panel）→ 三维判别效度真值 + 与 72 NMI 对账。
-4. **[deferred-可选]** collab 少数类 T=18 定向过采样（无分层保障，F-M7）。
+4. **[deferred-可选]** collab 少数类 T=19 定向过采样（无分层保障，F-M7）。
 5. **[deferred-可选]** WS-E 镜像 clarity 模板的判别 display 落复现包（模板数保持 142）。
 6. **[独立轨，显式排除 F25-M10]** locus/collab 论文 provisional→fully-coded 升级（需 outcome 财务面板：locus `citation_weighted_patent` / collab `m_and_a_fintech`）= 独立 onboarding，**非本测度效度计划范围**，对齐 memory `bipolar-anchor-bank-topics-plan-2026-06-22`（银行面板现全 sentinel）。
 7. **[deferred-付费·M0·R4-EIC-F1]** **separate-call NMI 干净检验**：另起独立单维 label-only prompt（新 `prompt_version`，**不复用 v8 缓存键** → 必 cache MISS ≈ 1125文×3模型×1维 付费 API，受 M0 gate），无共享 CoT，实证近零离链 NMI 在**去单次调用混淆后是否复现**。复现 → 非冗余主张获干净支持；不复现 → 暴露单次调用 NMI 受混淆。**现盘不执行**（破 $0/golden 铁律 + 触付费）；落地前现盘披露一律用「描述性·confound-limited」不回「保守支持」。

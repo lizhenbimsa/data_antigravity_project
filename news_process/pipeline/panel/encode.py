@@ -1428,7 +1428,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     # fix(omni-g-encode-08, 2026-06-11): dtype pin — pandas groupby.agg 对 nullable
     # Int8/Int16/Int32 源列做 sum 时按【结果值域】选输出 dtype (所有组和 ∈[-128,127]
     # 保留 Int8, 任一组和超界静默升 Int64) → 计数/和列 schema 随数据规模漂移
-    # (T=2 试跑 .dta 为 byte, T=18 全量翻 long), parquet/.dta 存储型跨规模不稳定。
+    # (T=2 试跑 .dta 为 byte, T=19 全量翻 long), parquet/.dta 存储型跨规模不稳定。
     # 出口统一 pin 为 Int64: 值无损 (Int8⊂Int64), 消除值依赖性。
     _narrow_int_dtypes = {'Int8', 'Int16', 'Int32'}
     for _pin_col in valid_agg:
@@ -2367,7 +2367,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                         f"良好 (双向 FE 识别力充分)")
         else:
             logger.warning(f"  面板深度: T={_n_years:,d} 年 × {_n_banks:,d} 银行 → "
-                           f"小样本 (T<5; 试跑/退化场景, 生产全量 T=18; 弱识别力警告)")
+                           f"小样本 (T<5; 试跑/退化场景, 生产全量 T=19; 弱识别力警告)")
         # 核心 DV 覆盖率: llm_vote_tone_full 非空占比 (主语调测度)
         if 'llm_vote_tone_full' in panel.columns:
             _dv = panel['llm_vote_tone_full']

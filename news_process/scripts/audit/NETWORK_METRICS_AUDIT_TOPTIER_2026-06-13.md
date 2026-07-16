@@ -4,7 +4,7 @@
 
 **审计日期**: 2026-06-13
 **方法**: Recon(变量清单+下游消费追踪) → 7 专家镜头并行评审(识别/网络科学/空间计量/数值/引文/构造/统计功效) → 每条发现 2 镜头对抗核验(代码披露假阳过滤 + 方法学正确性) → 综合定级 + 完备性批判盲区猎手。多智能体工作流 **87 agents / 6.45M tokens / 1337 tool-uses / ~58min** → **主控亲验最高价值发现 2 项(实证跑 networkx 复现)** + 严重度重校准 + 与历史审计/memory 对账。
-**环境**: Python / networkx 3.6.1; 盘上面板 = T=2 试跑样本 (~176 行, 2017–2018, = 全量 17M/T=18 语料的 0.055%)。
+**环境**: Python / networkx 3.6.1; 盘上面板 = T=2 试跑样本 (~176 行, 2017–2018, = 全量 18.2M/T=19 语料的 0.052%)。
 **口径**: $0 只读审计 — 不动代码、不动 `_llm_cache.db`、不付费重跑。本报告仅存档, 未改任何源文件。
 **目标标准**: JF / RFS / JFE / QJE / AER / ECMA 审稿人 + AE 最高标准。
 
@@ -46,7 +46,7 @@
 - **file**: `network_spillover.py:557-583` (eigenvector 三级 fallback)
 - **问题**: 主路径在**整图 G** 上跑 `nx.eigenvector_centrality(G, max_iter=1000, tol=1e-6)` (L560), 断连时不抛 `PowerIterationFailedConvergence` 而是收敛, 把特征向量质量全压到谱半径最大的分量, 其余分量(含 LCC, 若 LCC 谱半径非最大)的银行得 ~1e-42 数值残渣。因 `eigen_done=True` (L564) 锁死, L567-579 的 numpy(LCC) fallback 永不触发; L533-535 的 components/LCC 仅供 CFB/eccentricity, 从不用于 eigenvector。
 - **主控复现**: 见 §0-β。残渣是 1e-42 量级(比 agent 估的 1e-8 更小), 非 NaN → 回归当真值。
-- **为何顶刊卡**: 全量 T=18 (1768 家银行, 多数小行罕被共提) 共现网几乎必然断连 → `bank_eigen_cent` 对相当比例银行是无网络含义残渣, 污染该列 + 下游回归。**同型 bug 在 brokerage 侧已被 `fix(omni-g-net-brok-02)` 用 `_eigenvector_centrality_by_component` 修复, 唯独共现侧没移植** → 项目内部标准自相矛盾(`network_brokerage.py:186-189` 把同型行为定性为"数值残渣不具网络含义", 而此处 fallback 注释 L571-574 把它当可接受退化语义)。
+- **为何顶刊卡**: 全量 T=19 (1768 家银行, 多数小行罕被共提) 共现网几乎必然断连 → `bank_eigen_cent` 对相当比例银行是无网络含义残渣, 污染该列 + 下游回归。**同型 bug 在 brokerage 侧已被 `fix(omni-g-net-brok-02)` 用 `_eigenvector_centrality_by_component` 修复, 唯独共现侧没移植** → 项目内部标准自相矛盾(`network_brokerage.py:186-189` 把同型行为定性为"数值残渣不具网络含义", 而此处 fallback 注释 L571-574 把它当可接受退化语义)。
 - **修**: 移植 brokerage 的 `_eigenvector_centrality_by_component`: 对 G 先 `nx.connected_components` 分解, 每分量(≥3 节点)内单独确定性 eigenvector + 分量内归一, 微小分量置 NaN, 删现三级 fallback。补一条"小分量谱半径更大"断连图测试。**需重生 golden。**
 
 ### P1-2 · brokerage 全部 2SLS 模板系统性缺弱工具诊断 (KP rk F / Stock-Yogo / AR CI) 【$0, golden-safe, 最该先做】
@@ -64,7 +64,7 @@
 ### P1-4 · 共现邻接对每篇文章所有银行对等权 +1, 缺 Newman 式 1/(n−1) 超边归一与文档规模过滤
 - **file**: `network_spillover.py:148-158`
 - **问题**: docid groupby 内对文章中幸存银行集合的每无序对 `adj[i,j]+=1`, 增量恒为 +1 与 `len(uniq)` 无关 (L151-158)。一篇提及 N 家银行的文章(行业榜单/批量监管通报/年度盘点)贡献 C(N,2) 条等权边(N=20 → 190 条边), 系统性高估"同被列入一榜"的共现强度, 污染 W 行随机权重、所有度/特征向量/clustering 中心度, 经 W² 传入 IV。`row_stochastic_normalize` (L210-213) 只把 focal 行归一, 控制焦点度而非大-N 文章相对边数膨胀。grep `Newman/hyperedge/clique/榜单` 零命中。
-- **为何顶刊卡**: Newman 2001 PRE / Zhou et al. 2007 bipartite projection 明确无加权 clique 投影让大 hyperedge 主导网络, 标准修正 1/(n−1)(degree-preserving); Schwenkler-Zheng 2023 用新闻共现金融网络论文显式处理。中文银行新闻"金融科技 TOP20 榜单/批量监管通报"极常见, T=18 全量尤甚。`fix(omni-g-net-spill-01)` 把"每对+1"当已修好的正确口径, 恰恰是病根, 无任何文档规模/超边膨胀披露。
+- **为何顶刊卡**: Newman 2001 PRE / Zhou et al. 2007 bipartite projection 明确无加权 clique 投影让大 hyperedge 主导网络, 标准修正 1/(n−1)(degree-preserving); Schwenkler-Zheng 2023 用新闻共现金融网络论文显式处理。中文银行新闻"金融科技 TOP20 榜单/批量监管通报"极常见, T=19 全量尤甚。`fix(omni-g-net-spill-01)` 把"每对+1"当已修好的正确口径, 恰恰是病根, 无任何文档规模/超边膨胀披露。
 - **修**: `build_adjacency_matrix` 增 hyperedge 归一选项(每篇对每对贡献 `1/(len(uniq)-1)` 或 `1/C(n,2)`); 对 `len(uniq)>阈值`(如 >10)记日志 + drop 开关; robustness 报银行/文档数分布 + 加权 vs 未加权 IV 对照。$0, 纯下游聚合不触发 LLM 重跑。**注: 改值需重生 golden。**
 
 ### P1-5 · observed-only 重归一致空间权重 W 支撑集内生于"媒体覆盖", L329 披露技术错误
@@ -98,14 +98,14 @@
 | 10 | `iv_extensions` LOO | `iv_extensions.py:113-195, 511-563` | 各 spec 主 IV 指向**同期**(非滞后)同组 LOO 均值, 与 brokerage 自身"同期 LOO 不作 IV"标准冲突(同 bank_type 当年行业冲击同驱工具与结局=反射) | 各 spec primary 指向 `_lag1`; 或模板同报两版以滞后为主规格 |
 | 11 | brokerage 稳健套件 | `14_table5_robustness.do.tmpl` | 缺 QAP/网络置换、outlet/媒体级 jackknife、纳入规则敏感性(4 篇 sibling 都有 rwolf/ritest, 旗舰网络篇偏缺) | 加 QAP 置换 B≥999 + top-k outlet jackknife + 投票规则扰动 Spearman rank 相关 |
 | 12 | 22 中心度 | `network_spillover.py:444-806` 等 | 仅 3 个进回归(`bank_between_cent`/`bank_constraint`/`brokerage_eigen_cent`), 无主指标声明/预注册/FWER 校正(22 选 3 p-hacking 嫌疑) | paper_spec 增 `primary_centrality` + 机制理由; 其余明确为附录稳健集; 核心系数补 Romano-Wolf/sharpened FDR |
-| 13 | `peer_tone_2nd` / `prov_id` | `network_spillover.py:48-53`; `paper_spec.yaml:69-73` | T=2→T=18 识别力恢复被乐观断言; W/W² 结构性近共线(N 大也弱工具)、省级聚类 G 偏少(~31, Cameron-Miller G<40 失真, brokerage 不调 boottest)未披露 | 报 W/W² 截面相关 + Bramoullé 秩条件; 全量报 KP F+AR CI; wild cluster bootstrap |
+| 13 | `peer_tone_2nd` / `prov_id` | `network_spillover.py:48-53`; `paper_spec.yaml:69-73` | T=2→T=19 识别力恢复被乐观断言; W/W² 结构性近共线(N 大也弱工具)、省级聚类 G 偏少(~31, Cameron-Miller G<40 失真, brokerage 不调 boottest)未披露 | 报 W/W² 截面相关 + Bramoullé 秩条件; 全量报 KP F+AR CI; wild cluster bootstrap |
 | 14 | 识别叙事 | `network_spillover.py:52-53` vs `README.md:3,48` vs `paper_spec.yaml:11,64` | docstring"勿声称因果" vs README"可立即投 RFS" vs spec 因果声明三处口径矛盾; 主 outcome(ROA sentinel)缺列 01_data_prep:46-50 缺列即 exit 198 | README 改"待 production+财务接入后投稿"; spec 用"拟识别/conditional"措辞; 统一 outlet 口径 |
 | 15 | `industry_neg_shock_lag1` | `network_brokerage.py:439-444`; `export.py:985` | 年 FE 下唯一合法形态却无 export 标签、零回归消费(最纯孤儿), 而年 FE 不可用的同期版反被标注 | 真实消费 lag1 + fire_sale(机制表)并补标签; 或 spec 记 deferred + 补 codebook; 同步 `stata_export.py` HEURISTIC_LABELS |
 | 16 | `bank_cogn_mean` | `network_spillover.py:835-839`, 旁证 119-121 | Dahlke et al.(2024) RP 被错引为操作化来源(真文献+错用法; 该文是 transformer+超链接网络度中心度, 非 TF-IDF cosine 认知邻近) | Dahlke 从操作化降级/删; 改引 Jaffe 1989/Bloom-Schankerman-Van Reenen 2013 或只留 Boschma 2005 理论; 修 L119-121"等价 degree_ai" |
 | 17 | `emb_peer_tone_lag1` | `network_spillover.py:1303-1325, 1339-1356` | W_emb 近完全图未阈值化→空间滞后退化近横截面均值(盘上 mean=0.9599/std=0.0025/range 0.0153, 两轨同复现); 引 Hoberg-Phillips 却不做 TNIC 稀疏化 | 报 W_emb 有效网络度+权重 Gini; 提供 top-k/sim>τ 稀疏对照; 或明确仅作稳健性控制 |
 | N-04 | `net_degree_gini_yr` | `network_spillover.py:756` | 用**无权**度 `G.degree(b)` 算 Gini, 与同模块加权网叙事/strength 口径冲突(加权网"度不平等"通常指 strength 分布) | 改用加权 strength 算 Gini, 或 codebook 注明是无权连接数不平等 |
 | N-05 | `peer_tone_2nd` | `network_spillover.py:331-336` | W²=row-stochastic 矩阵平方→各行随网络变密趋平稳分布→工具截面变异坍缩(与 rank-13 共线机制不同); 去对角后未整体重行标准化, 既非真二阶路径概率也非干净加权均值 | 报 W² 各行有效非零权重数 + 截面变异; 讨论稠密网工具强度方向性后果 |
-| N-06 | `bank_katz_cent` | `network_spillover.py:587-590` | λ_max 极大时 `0.9/λ_max` 极小→Katz 退化近度中心度+幂迭代收敛性(主控二分图测试显示 networkx 较稳健, 故降级) | T=18 高共现量下监控收敛; 或固定 α 语义化 |
+| N-06 | `bank_katz_cent` | `network_spillover.py:587-590` | λ_max 极大时 `0.9/λ_max` 极小→Katz 退化近度中心度+幂迭代收敛性(主控二分图测试显示 networkx 较稳健, 故降级) | T=19 高共现量下监控收敛; 或固定 α 语义化 |
 
 ---
 
@@ -117,7 +117,7 @@
 | 19 | `bank_harmonic_cent` | `network_spillover.py:688-691` | `nx.harmonic_centrality` 返回未归一距离倒数和(随节点数 n 增长), 三路径中心度里唯一未归一(betweenness/closeness 默认归一), 跨年不可比; export 标签未披露 |
 | 20 | `bank_between_cent`(标签) | `export.py:767` | 标签错挂 "Co-mention Betweenness (Battiston 2012)", 但 Battiston 2012=DebtRank(srep00541)不定义 betweenness, 实现 docstring(L415-417)正确引 **Freeman 1979**; 邻接标签命名约定证误配 → 改 Freeman 1979 |
 | 21 | `bank_emb_sim_mean_lag1` / `industry_neg_shock_lag1`(标签) | `network_spillover.py:1256/1454` vs `export.py:995/682` + `stata_export.py:266` | `fix(omni-g-net-spill-03)` 重命名带 `_lag1`, 但 export/stata_export 标签 key 仍旧名→精确键过滤剔→兜底退化为裸列名(有 fail-loud 缓冲非 silent-missing); industry_neg_shock_lag1 全无 key → 改 3 处 key + 补单测断言标签≠列名 |
-| 22 | `peer_tone_lag1` | `network_spillover.py:280-345` | 双滞后(W(t-1)×tone(t-1))规避同期反射正确, 但序列相关下回归子 predetermined 非 strictly exogenous(Nickell-bias 邻近), brokerage 主线无 AR(2)/Arellano-Bond; T=18 下偏误 O(1/T) 可接受 → 正文加一句披露 |
+| 22 | `peer_tone_lag1` | `network_spillover.py:280-345` | 双滞后(W(t-1)×tone(t-1))规避同期反射正确, 但序列相关下回归子 predetermined 非 strictly exogenous(Nickell-bias 邻近), brokerage 主线无 AR(2)/Arellano-Bond; T=19 下偏误 O(1/T) 可接受 → 正文加一句披露 |
 | 23 | `brokerage_fire_sale` | `network_brokerage.py:459-527`(尤 478-483, 519-520) | 同期 shock 交乘在年 FE 下含本行同期 own_neg_ratio 仿射分量(反向因果污染), docstring L478-483 正确披露"不丢秩"但未单独披露 own-ratio 注入; 变量零模板回归消费(休眠) → 提供 `_lag` 变体 + 补披露 |
 | 24 | panel 行序 | `network_brokerage.py:512-513` | `compute_fire_sale_interaction` 用 `sort_values+reset_index` 重排返回(与 `compute_industry_neg_shock` 用临时帧不改原序不同), 功能无害但改下游行序, 可能影响 golden 顺序敏感哈希; 注释未提副作用 |
 | N-08 | `bank_is_hub` | `network_spillover.py:722-727` | Top-10% 用 `max(1,int(len*0.10))` 硬切 + 忽略并列度(第 8/9 名同 degree 由 sort 字典序定 hub=1/0); 跨年 N 变"10%"绝对阈值漂移, 跨年不可比 |

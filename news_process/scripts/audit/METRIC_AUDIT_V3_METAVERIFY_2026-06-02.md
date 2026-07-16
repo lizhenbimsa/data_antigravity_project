@@ -68,7 +68,7 @@
 - `V5`(`st-table2-main-04`/`st-bartik-iv-08`/`st-descriptives-04`) full 轨(lf/sf)幻影列 → 主表/A3 r(111) 或静默跳过。
 
 ### 第②层 — 真实但属 T=2 数据天花板的已披露限制(~14, 非可修 bug → 转披露完整性)
-`llmpeeriv-01`(IV 仅 2018 单截面 18 值, 一阶段 F=0.0006)、`ivdid-01`(dcep/sandbox treat_year≥2019>2018, post 恒0 不可识别, docstring L29-33 已披露)、`ivdid-02/03/04`(Bartik 共线/反射/one-hot, docstring L17-34 已披露)、`st-iv-2sls-01/02/03/05/06/07`(ROA 缺 exit198 / 单截面 73-for-73 或 14-for-14 FE 饱和 / 少聚类无 wild bootstrap)、`st-table2-main-02`(median-split 子期空)、`st-did-02/03/04`。**根因 = T=2 面板 + 全部处理年≥2019; production run(spec 声明 T=18)下自然消失。代码逻辑本身正确。**
+`llmpeeriv-01`(IV 仅 2018 单截面 18 值, 一阶段 F=0.0006)、`ivdid-01`(dcep/sandbox treat_year≥2019>2018, post 恒0 不可识别, docstring L29-33 已披露)、`ivdid-02/03/04`(Bartik 共线/反射/one-hot, docstring L17-34 已披露)、`st-iv-2sls-01/02/03/05/06/07`(ROA 缺 exit198 / 单截面 73-for-73 或 14-for-14 FE 饱和 / 少聚类无 wild bootstrap)、`st-table2-main-02`(median-split 子期空)、`st-did-02/03/04`。**根因 = T=2 面板 + 全部处理年≥2019; production run(spec 声明 T=19)下自然消失。代码逻辑本身正确。**
 
 ### 第③层 — 真实但非承重 / 不可达 / 标准实践(~45 经降级, 当前无计量后果)
 - **非承重(导出 .dta 但零回归消费)**: staleness 全族(`grep -rln staleness` 全 papers 树**零命中**, 11% 漂移无后果)→ stale-tie-01/03/staleyear-01 降 P3; `toneberts-01`(bert_avg_pos 9.56% 虚增, 但 LOO-IV/disag 在 95 个 Stata 模板**命中 0 次**)。

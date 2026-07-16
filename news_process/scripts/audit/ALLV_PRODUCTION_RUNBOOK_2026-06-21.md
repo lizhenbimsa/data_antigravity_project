@@ -4,7 +4,7 @@
 `ddc5c620` (`feat(policy)`: `_allv` 全管道列对等) + `a38e5f6b` (`perf(policy)`: stage26 锚点重合短路对称化)。
 经 **五轮多智能体对抗审计 + 运行期硬证明 (~73 agent) 全 GO, 0 代码层 P0/P1**。
 
-本文件固化代码层**之外**、须在**生产 T=18** 或**论文上线**时执行的全部 deferred 待办,
+本文件固化代码层**之外**、须在**生产 T=19** 或**论文上线**时执行的全部 deferred 待办,
 使其完全可执行 (exact 命令/文件/行/铁律)。权威研究依据 = workflow `wpdlv9iio`
 (4 维度并行研究 + 综合) + memory `[[golden-regen-omp-determinism-2026-06-18]]` /
 `[[inject-fintech-word-lda-2026-06-21]]`。
@@ -31,8 +31,8 @@
 
 | 项 | 内容 | 裁决 | 根因 |
 |----|------|------|------|
-| **A** | golden 受控重生 (含 ~78–84 个 `_allv` 列) | **DEFER 生产 T=18** | 本机仅 T=2 演示盘 + 上游 parquet 链断 + 须与并行 `strategic_diff` 协调 + `_allv` landmine |
-| **B** | stage40 timeout 实测 | **DEFER 生产 T=18** | T=2 测不出 T=18 绝对 wall-clock |
+| **A** | golden 受控重生 (含 ~78–84 个 `_allv` 列) | **DEFER 生产 T=19** | 本机仅 T=2 演示盘 + 上游 parquet 链断 + 须与并行 `strategic_diff` 协调 + `_allv` landmine |
+| **B** | stage40 timeout 实测 | **DEFER 生产 T=19** | T=2 测不出 T=19 绝对 wall-clock |
 | **C** | manuscript 披露文案 | **已起草 (见 §4)** | 纯文本, 但 `_allv` 主轨当前无 paper 消费 → 待母论文落地后粘贴 |
 | **D** | Stata 模板 + paper_spec 登记 | **DEFER (前置未满足)** | `_allv` 的 vintage 主轨在整个 `papers/` **零 paper 消费**, 无可挂靠母表 |
 
@@ -46,7 +46,7 @@
 
 ## 2. 前置铁律 (做 A 之前全部满足)
 
-1. **生产 T=18 全量数据到盘** (17M 文章 / 2007–2024 / T=18; 本机无)。**勿删 `data/processed/_llm_cache.db`**
+1. **生产 T=19 全量数据到盘** (18.2M 文章 / 2007–2025 / T=19; 本机无)。**勿删 `data/processed/_llm_cache.db`**
    (stage 21 LLM 投票 + embedding 缓存的确定性锚点; 删则 golden 不再可复现, 须重跑付费阶段)。
 2. **HEAD 必须基于 `origin/main`** (≥ `a38e5f6b`, 含 `_allv` 列定义 + 短路优化)。**不在
    `chore/renumber-nn-stages-2026-06-21` 分支做** (该分支落后 origin/main, 不含 `a38e5f6b` 短路 →
@@ -79,15 +79,15 @@
   (`extra` 非空 → 逐列哈希比对**之前**即 FAIL); 且 9 个非 jieba `_allv` 列会**伪证伪** `strategic_diff`
   对 char/emb 轨的"外科性"判定。
 - **仲裁 (主控二选一)**:
-  - **(推荐) 合并单次 bless**: 在**同一次**生产 T=18 受控 run 内, 全链重跑使 `_allv` + `strategic_diff`
+  - **(推荐) 合并单次 bless**: 在**同一次**生产 T=19 受控 run 内, 全链重跑使 `_allv` + `strategic_diff`
     的全部新列/变值列**一起落盘 + 一起 bless** → `extra` 集自然清空, 无 landmine。
   - **(次选) 先 A 后 strategic**: 先做 A 的 `_allv` baseline 全量同步 (使后续 strategic_diff 的 extra 集为空),
     再做 strategic_diff 注入。
 
-### A.2 重跑链 (生产 T=18, env 见 §2.4)
+### A.2 重跑链 (生产 T=19, env 见 §2.4)
 
 ```
-T=18 全量数据到盘
+T=19 全量数据到盘
   → stage15 (16_article_policy_alignment): 产 policy_cosine_sim_allv* (文章级)
   → stage25 (25_article_sbert): SBERT 嵌入 (GPU 4–6h, M0-gated 付费)
   → stage40 (40_panel_export_main): 内部串行
@@ -124,13 +124,13 @@ T=18 全量数据到盘
   做 2×TF-IDF + 1×LDA (K=10, max_iter=50, **n_jobs=1** 确定性硬约束, 不可并行) + 2×embedding;
   `companion=true` 对每 cell **再调一次** (全语料静态锚点, TF-IDF/LDA 从头重算, 无缓存) → **算力翻倍**。
 - 这套压在 **stage40 单一 `timeout=7200` (2h) 预算** (`core/dag.py`; stage25/26/27 非独立 DAG stage,
-  共享 stage40 timeout)。T=18 = 86 banks × 18 years × 3 tracks = 4644 cell, companion ×2 ≈ 9288 次 LDA fit。
-- `a38e5f6b` 短路 (`auth_text_vin == auth_text_static` 时复用 `vin`) 仅在锚点重合年命中; 生产 T=18 多数
+  共享 stage40 timeout)。T=19 = 86 banks × 19 years × 3 tracks = 4902 cell, companion ×2 ≈ 9804 次 LDA fit。
+- `a38e5f6b` 短路 (`auth_text_vin == auth_text_static` 时复用 `vin`) 仅在锚点重合年命中; 生产 T=19 多数
   年锚点真不同 → 仍翻倍。
-- **实测**: 生产 T=18 run 后读 `logs/40_*.log` 的 Stage 26 banner 时间戳差, 取 stage40 全段总和。
+- **实测**: 生产 T=19 run 后读 `logs/40_*.log` 的 Stage 26 banner 时间戳差, 取 stage40 全段总和。
   若逼近/超 7200s → 改 `core/dag.py` 的 stage40 `timeout=7200` **一行上调** (如 `10800`/3h 或 `21600`/6h
   仿 stage21; **纯 timeout 上调 golden-safe, 不改任何产物**)。
-- ⚠ T=2 本机只能测**翻倍因子** (T=18 cell 数 = 9× T=2/track), 测不出绝对 wall-clock; **勿把 T=2 结论当 T=18**。
+- ⚠ T=2 本机只能测**翻倍因子** (T=19 cell 数 = 9.5× T=2/track), 测不出绝对 wall-clock; **勿把 T=2 结论当 T=19**。
   本机连"测翻倍因子"都不建议跑 (会触 producer stage40 + 无外推价值)。
 
 ---
@@ -203,7 +203,7 @@ T=18 全量数据到盘
 4. **计数锁三处同步** (历史 robustness-expansion 2026-06-14 踩过漏一处致 CI 红, 务必三处对齐):
    `tests/test_papers_b_route.py` 的 `test_total_template_count_*` (当前 = **142**) → +1;
    `CLAUDE.md` 模板计数; `stata_runner` verify-CLI 计数。
-5. **验证**: `pytest news_process/tests/test_papers_b_route.py` + Stata `/b` 合成 T=18 烟雾 (末尾 `exit, clear`) 实跑 exit 0。
+5. **验证**: `pytest news_process/tests/test_papers_b_route.py` + Stata `/b` 合成 T=19 烟雾 (末尾 `exit, clear`) 实跑 exit 0。
 6. **时序**: 模板可先于 golden 写 (wire-ahead, capture-confirm 缺列优雅跳过), 但**端到端验证须在 §3 (A) 的
    golden 重生 + `strategic_diff` §5.0 注入完成后**, 避免 `_allv` 陈旧 landmine。
 
@@ -212,7 +212,7 @@ T=18 全量数据到盘
 ## 7. 一页纸执行顺序 (生产环境主控)
 
 ```
-0. [前置] 生产 T=18 数据到盘; HEAD==origin/main; 收口并行改动; env 钉死 (§2)
+0. [前置] 生产 T=19 数据到盘; HEAD==origin/main; 收口并行改动; env 钉死 (§2)
 1. [仲裁] 与 strategic_diff(3d37a3d0) 会话定 golden 合并顺序 (§A.1, 推荐合并单次 bless)
 2. [A] 全链重跑 stage15→25→40→46→51 → generate_golden_snapshot → repro gate (§3)
 3. [A] 确定性亲验 (连跑 ≥2 次逐列哈希一致) → 仅 golden_panel_v0.json by-name 入库 (§A.3-A.4)

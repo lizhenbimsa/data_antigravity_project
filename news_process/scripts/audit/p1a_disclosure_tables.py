@@ -6,7 +6,7 @@
   ratio drift)。它**不改任何 producer 逻辑、不新增 parquet 列、不重跑付费阶段、
   $0、golden-safe**, 仅读取已落盘的中间产物并产出供 manuscript/codebook/附录
   如实披露的 CSV 诊断表。核心关切: fintech_share / attention 等"比值"测度在
-  2007–2024 (T=18) 长面板上, 其分子/分母的**口径构成会逐年漂移** (媒体进出、
+  2007–2025 (T=19) 长面板上, 其分子/分母的**口径构成会逐年漂移** (媒体进出、
   转载放大、分类器在不同年代的判定漂移、报道篇幅/数量的时代变化), 威胁跨年识别。
   本包把这些漂移源逐年量化, 以便审稿人评估其对主结果的威胁。
 
@@ -37,7 +37,7 @@
   - year 由 日期 列经 pd.to_datetime 派生 (docid 不含年份信息, 故用 日期)。
 
 【盘面提示】当前 disk 仅 78 天窗口 (2017-11-13..2018-01-30, 仅 2017/2018 两年),
-  所有逐年数字仅为**示意 (illustrative)**, 不代表 18M 全量。脚本逻辑按 T=18
+  所有逐年数字仅为**示意 (illustrative)**, 不代表 18M 全量。脚本逻辑按 T=19
   设计 (任意年份集合、任意 outlet 数均正确)。
 
 引用锚点:
@@ -400,7 +400,7 @@ def main() -> int:
         f"年份 {sorted(df_full['_year'].dropna().astype(int).unique().tolist())}"
     )
     _log(
-        "  ⚠ 盘面为 78 天窗口 (示意/illustrative); 逻辑按 T=18 全量设计, 18M 上正确。"
+        "  ⚠ 盘面为 78 天窗口 (示意/illustrative); 逻辑按 T=19 全量设计, 18M 上正确。"
     )
     _log("")
 
@@ -462,7 +462,7 @@ def main() -> int:
         f"source_fintech_full : {_FINTECH_FULL}",
         f"source_herd_decay   : {_HERD_DECAY} (exists={_HERD_DECAY.exists()})",
         f"date_window         : {dt.min().date()} .. {dt.max().date()} "
-        f"(78-day disk slice; ILLUSTRATIVE only — logic correct at 18M / T=18)",
+        f"(78-day disk slice; ILLUSTRATIVE only — logic correct at 18M / T=19)",
         f"years_on_disk       : {sorted(df_full['_year'].dropna().astype(int).unique().tolist())}",
         f"n_rows_physical     : {len(df_full):,}",
         f"n_rows_dedup        : {len(_dedup_composite(df_full)):,} "

@@ -42,13 +42,13 @@
   "id": "g-runner-04",
   "severity": "P1",
   "latent": false,
-  "title": "Bartik 基期敏感性变体 _t01 是幻影: share 从未池化 (≡_t0), 且 shift 被截断到基期两年, 其余年份 IV 被 fillna(0) 制成精确伪零 (latent at T=18)",
+  "title": "Bartik 基期敏感性变体 _t01 是幻影: share 从未池化 (≡_t0), 且 shift 被截断到基期两年, 其余年份 IV 被 fillna(0) 制成精确伪零 (latent at T=19)",
   "file": "pipeline/panel/runner.py",
   "line": "696-706 (协同 pipeline/panel/iv_did.py:128, 201-204, 253-256)",
   "claim": "注释声称 _t01 检验 'T0&T0+1 池化基期' 的 share 稳健性, 但实现是 `base_t01 = df_exploded[df_exploded['year'].isin([T0, T0+1])]` 后整段子集当作全量文章 df 传入 compute_bartik_iv(base_year=T0)。函数内部 share 仍只取 `df[df['year']==T0]` → share 与 _t0/main 完全相同 (池化从未发生); 而 shift 的 group×year 聚合只剩 {T0,T0+1} 两年, 其他年份 shift merge 为 NaN 后被 Step4 `biv[shift_col].fillna(0)` 置 0 → IV = Σshare×0 = 精确 0.0 (非 NaN) 并 merge 进 panel。",
   "evidence": "runner.py L696-698: `base_t01 = df_exploded[df_exploded['year'].isin([T0, T0+1])]` → `compute_bartik_iv(panel[['target_bank','year']].copy(), base_t01, type_map, 'type', base_year=T0)`; iv_did.py L128: `base = df_exploded[df_exploded['year'] == T0].copy()`; L253-256: `biv_val += biv[share_col].fillna(0) * biv[shift_col].fillna(0)`。盘上实证: bartik_type_iv_full_t01 与 bartik_type_iv_full / _t0 逐行 allclose (2017/2018 全 True), golden snapshot 中 _t01 与 _t0 列哈希同为 9f5a9505e45724a6 (字节级相同)。",
   "suggested_fix": "在 compute_bartik_iv 增加 base_years: list 参数 (share 基期取 `df['year'].isin(base_years)` 池化), runner 改传全量 df_exploded + base_years=[T0,T0+1]; 同时把 Step4 的 shift fillna(0) 改为保 NaN 或显式记录 '不可计算'。顺带为 _t1 变体补 `_bartik_pre_cutoff <= T0+1` 守卫 (当前仅检 T0, panel 起始 2018 时 _t1 基期=2019 会绕过外生性红线)。",
-  "adjudication": "亲验属实。runner.py:696-698 传年份子集但 iv_did.py:128 仍 year==T0 取 share→池化从未发生, golden 实证 _t01 哈希 46dc4562 与 _t0/main 字节级同(_t1 不同)→幻影盘上已激活; T=18 时 shift 域截到{T0,T0+1}, 余年 shift NaN 经 iv_did.py:256 fillna(0)→IV 精确 0.0(伪零部分 latent)。伪稳健性检验+IV 伪零, P1 成立。",
+  "adjudication": "亲验属实。runner.py:696-698 传年份子集但 iv_did.py:128 仍 year==T0 取 share→池化从未发生, golden 实证 _t01 哈希 46dc4562 与 _t0/main 字节级同(_t1 不同)→幻影盘上已激活; T=19 时 shift 域截到{T0,T0+1}, 余年 shift NaN 经 iv_did.py:256 fillna(0)→IV 精确 0.0(伪零部分 latent)。伪稳健性检验+IV 伪零, P1 成立。",
   "unit": "panel-runner-merge"
  },
  {
@@ -126,7 +126,7 @@
   "claim": "washing_ratio = pos_symb_count/pos_count (及 A2/B/D/D2/E/E2/F 全部 10 方法变体) 的分子要求 innovation_substantiveness 已测量且为 '象征性' (L428-430: `_tt = ...astype(str).str.strip()`; NaN→字符串'nan'→`_is_symb`/`_is_sub` 均 False), 但分母 pos_count (encode 对 is_positive 求和) 包含 substantiveness 为 NaN (LLM 分类失败) 的正面文章。测量失败文章被静默编码为 '非象征∧非实质', 永不入分子却恒在分母 → washing_ratio 随分类失败率上升系统性向下偏。这与本项目自己已修复的 encode-01 (LLM valid-mask 分母) / clarity·num_intensity valid 分母是同一缺陷家族, 但洗稿率族未覆盖。",
   "evidence": "盘上实测: innovation_substantiveness_full NaN=3/857 (0.35%), ctx NaN=29/857 (3.4%); 当前样本中 full 轨有效正面票与 unmeasured 交集=0, ctx 轨正面票与 subst_full unmeasured 交集=1 → 当前影响≈0, 为 latent。neg_sub_ratio (L1430-1433) 与 washing_asymmetry (L1435-1439, 混合两个不同缺失偏差的比率) 同理。",
   "suggested_fix": "构造 `_subst_measured{track} = _tt.isin(['实质性','象征性'])` 文章级掩码, 洗稿率分母改用 pos∧measured 计数 (在 encode 聚合补 `pos_count_substvalid{track}`), 或最低限度在 codebook/论文披露 unmeasured 份额并加 robustness。",
-  "adjudication": "机制属实: runner.py:428-430 astype(str) 使 NaN→'nan'→_is_symb/_is_sub 恒 False, 永不入分子; 分母 pos_count (encode.py:511 sum(is_positive)) 含未测量正面文章 → 失败率上升时 washing_ratio 系统性下偏。实测盘上交集 full=0/ctx=1, 当前影响≈0; 与已修 encode-01/clarity valid-mask 同族但洗稿族未覆盖, T=18 触发。",
+  "adjudication": "机制属实: runner.py:428-430 astype(str) 使 NaN→'nan'→_is_symb/_is_sub 恒 False, 永不入分子; 分母 pos_count (encode.py:511 sum(is_positive)) 含未测量正面文章 → 失败率上升时 washing_ratio 系统性下偏。实测盘上交集 full=0/ctx=1, 当前影响≈0; 与已修 encode-01/clarity valid-mask 同族但洗稿族未覆盖, T=19 触发。",
   "unit": "panel-runner-weights"
  },
  {

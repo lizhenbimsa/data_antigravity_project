@@ -382,7 +382,7 @@ herd_detection:
 # 学术依据: Lang & Stice-Lawrence (2015) JAE; Dyer, Lang & Stice-Lawrence (2017) JAE
 #   — 跨语料高频公式化短语(套话)占比构念。
 # 说明: pipeline/sentiment/boilerplate.py 的 exact two-pass 内存控制参数。改造为分块两遍
-#   (字节等价单遍, golden 零漂移), 消除生产 T=18 单遍 fit_transform 的全量 CSR 物化 OOM。
+#   (字节等价单遍, golden 零漂移), 消除生产 T=19 单遍 fit_transform 的全量 CSR 物化 OOM。
 # ⚠ 顶层块 (load_config 扁平根 dict; 域文件名非嵌套键) → 读 load_config().get('boilerplate', {})。
 # 白话: 数套话时"分批数=一次性数结果一模一样", 文章多也不爆内存; 参数缺省全走代码内置默认。
 boilerplate:

@@ -142,7 +142,7 @@ else {
     *       weakiv 合法选项 (实测 StataNow 19.5 报 "option ar not allowed" → _rc!=0 →
     *       四个 AR CI 块全静默跳过, 侧表只剩表头 = claimed-but-not-run)。weakiv 默认即
     *       计算 AR 检验, 无需 `ar`; `lm` 合法 (请求 LM 版本) 故保留。删 `ar` 后四次
-    *       weakiv 在 T=18 合成盘均 _rc==0 (实测 AR p 真写出)。
+    *       weakiv 在 T=19 合成盘均 _rc==0 (实测 AR p 真写出)。
     *   (b) 返回值类: weakiv 结果在 e() 不在 r() (ado:1309 ereturn scalar ar_p;
     *       :1361 ereturn local ar_cset【字符串置信集】, 无 e(ar_cset_lb/ub))。旧读
     *       r(ar_p)/e(ar_cset_lb/ub) 全取到 missing/空 → 改读 e(ar_p) + 字符串 e(ar_cset)。

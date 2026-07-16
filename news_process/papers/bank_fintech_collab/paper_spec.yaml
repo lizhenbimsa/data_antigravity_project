@@ -136,7 +136,7 @@ inference:
     weak_iv_robust_ci: anderson_rubin
 
 # 网络位置角色 (network-metrics-elevation 2026-06-13; 蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)。
-# 消费 panel 实存共现中心度列 → golden-safe; mediator/moderator 须 production T=18; schema 对本块 no-op。
+# 消费 panel 实存共现中心度列 → golden-safe; mediator/moderator 须 production T=19; schema 对本块 no-op。
 network_roles:
   mediator:
     column: brokerage_eigen_cent   # collab_frac → 成为合作枢纽 → m_and_a_fintech (Chesbrough 开放创新可观测网络代理, 胜纯文本占比)
@@ -166,7 +166,7 @@ targets:
 
 sample:
   n_bank_min: 200
-  t_year: 18
+  t_year: 19
   obs_target_min: 3000
 
 audit_rounds_target_min: 8                # 与 P3/P4 同 rigor (epoch 5 streak 3/3 standard)

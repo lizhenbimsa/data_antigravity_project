@@ -10,7 +10,7 @@
 
 ## 0. 一句话总裁决
 
-**本批日志诚信通过 — 无系统性数据造假、无真实 P0 数据缺陷。** 唯一标 P0 的条目 (`21_tone_llms.log`) 经核实是「import 期模块 banner 被误当 stage 21 运行记录」的 **provenance 错配 (防误读 P0)**, 非数据伪造。主要问题集中在三条横切主线: ① 测试/import 进程经 `file_mode='w'` 覆盖了真实生产日志 (provenance 在编排层断裂); ② 真实生产日志普遍缺 sha256/库版本/git commit 等自证锚点; ③ 当前 T=2 盘面上多个情感/构念测度呈**单侧退化** (finbert2 ~98% 正面 / LLM 象征性轴恒坍缩 / 证伪检验零反例)。**所有数值结论必须在生产 17M / T=18 全量重跑 + golden 受控重生后才能定稿**, 当下盘面仅验证管道正确性。
+**本批日志诚信通过 — 无系统性数据造假、无真实 P0 数据缺陷。** 唯一标 P0 的条目 (`21_tone_llms.log`) 经核实是「import 期模块 banner 被误当 stage 21 运行记录」的 **provenance 错配 (防误读 P0)**, 非数据伪造。主要问题集中在三条横切主线: ① 测试/import 进程经 `file_mode='w'` 覆盖了真实生产日志 (provenance 在编排层断裂); ② 真实生产日志普遍缺 sha256/库版本/git commit 等自证锚点; ③ 当前 T=2 盘面上多个情感/构念测度呈**单侧退化** (finbert2 ~98% 正面 / LLM 象征性轴恒坍缩 / 证伪检验零反例)。**所有数值结论必须在生产 18.2M / T=19 全量重跑 + golden 受控重生后才能定稿**, 当下盘面仅验证管道正确性。
 
 可复现性整体评级 **B−** (A=2 · B=22 · C=8 · D=7; D 级全为夹具/截断片段, 不代表真实阶段)。
 
@@ -82,8 +82,8 @@
 
 **[R3 · critic 升级] 测度单侧退化是测度效度红旗, 不只是"T=2 盘面退化"** (横切, 关乎 P3/BERT 能否成文)
 - ① **finbert2 ~98% 正面 / 0% 中性** (`23_tone_berts.log:84/110/136`: 829/0/18, 825/0/22, 827/0/20)。根因: finbert2 以 **labels=2 (二分类)** 加载 (`:43`), 结构上不可能输出"中性", 又系统性偏正面。对照 finbert_cn (labels=3) 给健康的 63.6/36.1/0.2。已在日志披露 labels=2, 但二分类塞进三分类口径 + 极端正偏的**测度效度**含义未被命名。
-- ② **39d LM 象征性二分轴三轨 κ=nan** (`39d:17/27/37`): mask 后 substance 概率 max 仅 0.278 (< 0.5 二分阈值) → 象征性轴恒为常量 → κ 数学未定义 (代码常量轴守卫正确置 NaN)。这意味着 **LLM 几乎从不把任何文章判为"象征性"**, P3 (substance 论文) 核心二元构念在当前阈值下单侧坍缩; T=18 若阈值不变会照样坍缩。
-- 建议: 不可一律以"等 T=18"免责。须 (a) 复核 finbert2 二分类→三分类 label-map 是否对本语料定标错误; (b) 复核 substance 0.5 阈值是否对该 LLM 输出分布 (集中 0.27–0.46) 错标定; (c) 论文 §3.4 改用同时报告的 Spearman ρ 作方向证据并披露 κ 不可估之因。
+- ② **39d LM 象征性二分轴三轨 κ=nan** (`39d:17/27/37`): mask 后 substance 概率 max 仅 0.278 (< 0.5 二分阈值) → 象征性轴恒为常量 → κ 数学未定义 (代码常量轴守卫正确置 NaN)。这意味着 **LLM 几乎从不把任何文章判为"象征性"**, P3 (substance 论文) 核心二元构念在当前阈值下单侧坍缩; T=19 若阈值不变会照样坍缩。
+- 建议: 不可一律以"等 T=19"免责。须 (a) 复核 finbert2 二分类→三分类 label-map 是否对本语料定标错误; (b) 复核 substance 0.5 阈值是否对该 LLM 输出分布 (集中 0.27–0.46) 错标定; (c) 论文 §3.4 改用同时报告的 Spearman ρ 作方向证据并披露 κ 不可估之因。
 
 ### P2 (按主题合并)
 
@@ -110,13 +110,13 @@
 
 **[R8] `22_tone_words` verdict 写死区间与实测数字不符** (`tone_words.py:1944`)
 - verdict 硬编码"符合预期 0.998–0.999", 但本次实测三轨 `corr(msent, msent_negonly)` = 0.9940 / 0.9872 / 0.9831 全部低于该区间; 代码"稳健"判据实为 `r>=0.95`。区间字样无论 r 落点都照贴 → 文案声称区间与展示数字冲突。
-- 建议: 改动态描述 ("r>=0.95 即稳健") 或注明 0.998–0.999 为 T=18/bank-year 聚合参照值。golden-safe。
+- 建议: 改动态描述 ("r>=0.95 即稳健") 或注明 0.998–0.999 为 T=19/bank-year 聚合参照值。golden-safe。
 
 **[R9] `37_dict_coverage_audit` 健康阈值双标准** (`dict_coverage.py:749` vs `:369`)
 - banner/结果分析用 `|差异|<3pp` 为健康, 但问题清单门槛是 `abs(effect_size)>=5.0` → 3–5pp 灰区会"判不健康却不列入问题"。本次 −29pp 远超两阈值未显形, 属潜在代码层瑕疵。统一阈值。
 
 **[R10] LOO-IV/弱工具 FDR/效应量缺失 + 大 N 显著性** (`35:161/183/195` · `52:76/200`)
-- `35` 全部 15/15 配对 t 检验 p<0.05 (n=847 下 0.01–0.03 微差必然显著), 无 FDR、无 Cohen d。`52` LOO-IV 弱相关系 T=2 退化产物。建议报 Cohen d + FDR; 生产 T=18 用 KP rk F / Stock-Yogo 实测工具强度。
+- `35` 全部 15/15 配对 t 检验 p<0.05 (n=847 下 0.01–0.03 微差必然显著), 无 FDR、无 Cohen d。`52` LOO-IV 弱相关系 T=2 退化产物。建议报 Cohen d + FDR; 生产 T=19 用 KP rk F / Stock-Yogo 实测工具强度。
 
 **[R11] `40_build_panel` staleness 列因代际守卫被跳过** (`40:639`)
 - `18_staleness_panel.parquet` 早于上游 13/24 → loud-warn 跳过 merge (守卫行为正确, fix omni-g-runner-16) → 本次面板缺 staleness 列族。面板重生 SOP 须显式列入"先重跑 stage 18 (确保 faiss-cpu/datasketch 已装) 再重建面板"。
@@ -132,16 +132,16 @@
 - **[R15] `32a` 超时描述漂移**: DAG 实际 `timeout=43200s/12h` (`dag.py:361`), 但注释/validation.yaml/FINDINGS 残留 7200/2h/2.5h → 正是本次 32a 被 900s 卡帽误杀的同源认知误差。统一为 12h。
 - **[R16] `12b` 小样本警告口径混排** (`:18`): 行数用过滤前 1168、银行数用过滤后 113 (1168↔117 家, 1125↔113 家)。统一口径。
 - **[R17] `15_article_policy_alignment:5`** banner 标 cosine 值域 0–1, 实际 −1~1 (实测 0.18–0.88)。改 banner。
-- **[R18] `47_network_brokerage:16` fire_sale 恒为常量 0**: 2018 industry_neg_shock 全 0 → 乘积恒 0, 无零方差检测。加零方差 WARNING; 生产 T=18 移除。
+- **[R18] `47_network_brokerage:16` fire_sale 恒为常量 0**: 2018 industry_neg_shock 全 0 → 乘积恒 0, 无零方差检测。加零方差 WARNING; 生产 T=19 移除。
 - **[R19] `40_build_panel:241` 变量名超长 33 字符** `exc_jiang_2021_score_negonly_full` (> Stata 32 上限)。确认写前三元组唯一性断言覆盖或加 `negonly` 缩写规则。
 - **[R20] `run_pipeline_validation.py:31` docstring 误把 Carlson&Burbano 挂 stage 36** (实为 stage 33)。订正 docstring。
-- **[R21] 代码注释 N≈9000 vs 盘面 T=2** (`lexical_discriminant_validity.py:65` / `core/dag.py:431`): 应标 9000 为 T=18 全量目标规模, 非当前盘面 (172 行→mask 62 obs)。
+- **[R21] 代码注释 N≈9000 vs 盘面 T=2** (`lexical_discriminant_validity.py:65` / `core/dag.py:431`): 应标 9000 为 T=19 全量目标规模, 非当前盘面 (172 行→mask 62 obs)。
 
 ---
 
 ## 4. critic 升级主题 — 测度单侧退化 (顶刊一审会直接发问)
 
-汇总把 finbert2 98%正面 / 39d substance 坍缩 / 51 证伪零反例分别归入"4 findings 之外 / benign-by-disclosure / B 级通过", 三者叠加指向**未被命名的系统性问题: 多个情感/构念测度在当前语料上单侧退化** (几乎全正面 / 几乎无象征性 / 永远支持 H1)。顶刊审稿不接受"等 T=18 再说", 会问"为何 T=2 分布已病态, 凭什么相信 T=18 自愈"。
+汇总把 finbert2 98%正面 / 39d substance 坍缩 / 51 证伪零反例分别归入"4 findings 之外 / benign-by-disclosure / B 级通过", 三者叠加指向**未被命名的系统性问题: 多个情感/构念测度在当前语料上单侧退化** (几乎全正面 / 几乎无象征性 / 永远支持 H1)。顶刊审稿不接受"等 T=19 再说", 会问"为何 T=2 分布已病态, 凭什么相信 T=19 自愈"。
 - **51_falsification (262KB/2181 行) 的"全绿"风险** (critic B3): `grep -c ERROR|WARNING`=0; 真实 H1 判读仅 `:198-228` (effective n=103, 8 个 |r| 全 0.036–0.11, 无一例外 "<0.30 弱相关→支持 H1")。日志体积虚高源于把整段 Stata `.do` 模板灌进 `.log` (易被"行数多=审得透"误导)。须复核 |r|<0.3 在 n=103 下的功效, 以及是否存在任何配置能让它"不支持 H1" (否则是 confirmatory theater)。
 
 ---

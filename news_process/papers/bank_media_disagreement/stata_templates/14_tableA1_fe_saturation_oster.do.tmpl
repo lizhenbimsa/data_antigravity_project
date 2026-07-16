@@ -41,7 +41,7 @@
 *
 * ⚠ T=2 退化守卫: 当前盘 T=2 (2017-2018, ~174 行)。province#year / type#year /
 *   zone#year / 银行线性趋势 (c.year#i.bank_id) 在 T=2 下会过度吸收 (共线 / 无残余
-*   变异), 但全语料 T=18 下功效充分。每级设定均 'quietly count e(sample)' + N/参数
+*   变异), 但全语料 T=19 下功效充分。每级设定均 'quietly count e(sample)' + N/参数
 *   守卫: 退化时该列优雅跳过 (eststo 不存), 不报错中断。
 *
 * 学术锚点 (DOI 已核验):
@@ -228,7 +228,7 @@ if `nyears' >= 3 {
     else display "  [SKIP] M4 reghdfe 失败 (rc=`=_rc')"
 }
 else {
-    display "  [SKIP] M4 (银行线性趋势): T=`nyears' < 3, 线性趋势不可识别 → 优雅跳过 (production T=18 才有功效)"
+    display "  [SKIP] M4 (银行线性趋势): T=`nyears' < 3, 线性趋势不可识别 → 优雅跳过 (production T=19 才有功效)"
 }
 
 * ── Panel A 输出 (esttab 名单动态化, 缺名不点名防 r(111) 丢整表) ───────────────
@@ -265,7 +265,7 @@ else {
                  "Ladder adds group-by-year FE absorbing common shocks to same-province / same-type / same-zone banks within a year, then bank-specific linear trends (c.year#i.bank_id, requires T>=3)." ///
                  "province_fe was promised in paper_spec.fixed_effects [bank_fe,year_fe,province_fe] but never implemented in Tables 2/4 — this table closes that gap." ///
                  "Cluster-robust SE (bank+year two-way) in parentheses." ///
-                 "Group-by-year FE / bank trends are over-absorptive at T=2 (current disk panel, 2017-2018) and degrade gracefully; full power at production T=18." ///
+                 "Group-by-year FE / bank trends are over-absorptive at T=2 (current disk panel, 2017-2018) and degrade gracefully; full power at production T=19." ///
                  "Method: Gormley & Matsa (2014, RFS 27(2):617-661, doi:10.1093/rfs/hht047).")
 
     capture noisily estout `models' using "$tables_dir/tableA1_fe_saturation_oster.csv", replace ///
@@ -360,7 +360,7 @@ else {
             *   子样本必致 R²≈1 (psacalc 在 rmax 接近受控 R² 时 δ 病态/发散)。
             *   r2c>=0.9999 或 nyears<3 时跳过 (T=2 高阶共线退化); FE 哑全被丢 (n_femc=0) 亦跳过。
             if `nsamp' == 0 | `r2c' == . | `r2c' >= 0.9999 | `nyears' < 3 | `n_femc' == 0 {
-                display "  [SKIP] Panel B: 受控回归 e(sample) 空 / R² 不可得 / R²≈1 完全饱和 (r2c=`r2c') / T=`nyears'<3 退化 / 无存活 FE 哑变量 (n_femc=`n_femc'), Oster δ 跳过 (production T=18 才有功效)"
+                display "  [SKIP] Panel B: 受控回归 e(sample) 空 / R² 不可得 / R²≈1 完全饱和 (r2c=`r2c') / T=`nyears'<3 退化 / 无存活 FE 哑变量 (n_femc=`n_femc'), Oster δ 跳过 (production T=19 才有功效)"
             }
             else {
                 local rmax = min(1, 1.3 * `r2c')

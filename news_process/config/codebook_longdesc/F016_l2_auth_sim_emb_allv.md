@@ -90,7 +90,7 @@ new_dois: []
 ## VAR: auth_sim_emb_allv_ctx
 
 【变体差分】
-本列是全年份锚点嵌入子族的 ctx 轨、canonical Qwen 主嵌入变体。银行年度聚合文本取自 content_ctx (标题 prepend 加实体上下文窗口, stage 14 物化), 相对全年份静态政策锚点求余弦相似度。相对家族 canonical (full 轨) 的精确差分只在文本轨道: ctx 只纳入围绕银行实体的邻近窗口而非整篇正文, 因此度量的是"银行相关段落的战略语义"与政策的贴合, 剔除了与银行无关的通稿噪音, 但也可能因窗口过窄而漏掉散落全文的战略信号。它与 full、ss 两轨各自 just-identified 并排、互为稳健性不分主次, 三轨禁混进同一 over-identified Hansen J。嵌入模型为 Qwen3-Embedding-8B (无 _lg 后缀即 canonical 主轨), 与同名 _lg 列 both-or-neither 严格 parity、互为稳健性。锚点为全年份静态锚点 (含未来政策), 相对同轨 vintage 主轨 (auth_sim_emb_ctx) 仅换锚点、构造全同, 定位为锚点稳健性对照, 绝不替换 vintage 主轨。ctx 轨的留篇宇宙是 full-only 门控留篇集的 conditional-on-full 子集。使用建议上, 若研究者担心 full 轨的整篇正文掺入与银行战略无关的行业背景稀释了政策贴合信号, 则本 ctx 列提供一个更聚焦于银行实体上下文的对照读数; 反之若窗口过窄导致 ctx 与 full 系统性背离, 该背离本身就是可披露的规格敏感性证据, 而非须择一取舍的噪音。在本机 T=2 开发面板上, 权威政策相似度的前视守卫年份可能因有效样本不足 (n_valid < 3) 而暂无阈值判读, 属预期退化; 生产 T=18 语料下各年锚点真实不同, ctx 轨与全年份 _allv 锚点方能给出稳定的锚点稳健性对比。
+本列是全年份锚点嵌入子族的 ctx 轨、canonical Qwen 主嵌入变体。银行年度聚合文本取自 content_ctx (标题 prepend 加实体上下文窗口, stage 14 物化), 相对全年份静态政策锚点求余弦相似度。相对家族 canonical (full 轨) 的精确差分只在文本轨道: ctx 只纳入围绕银行实体的邻近窗口而非整篇正文, 因此度量的是"银行相关段落的战略语义"与政策的贴合, 剔除了与银行无关的通稿噪音, 但也可能因窗口过窄而漏掉散落全文的战略信号。它与 full、ss 两轨各自 just-identified 并排、互为稳健性不分主次, 三轨禁混进同一 over-identified Hansen J。嵌入模型为 Qwen3-Embedding-8B (无 _lg 后缀即 canonical 主轨), 与同名 _lg 列 both-or-neither 严格 parity、互为稳健性。锚点为全年份静态锚点 (含未来政策), 相对同轨 vintage 主轨 (auth_sim_emb_ctx) 仅换锚点、构造全同, 定位为锚点稳健性对照, 绝不替换 vintage 主轨。ctx 轨的留篇宇宙是 full-only 门控留篇集的 conditional-on-full 子集。使用建议上, 若研究者担心 full 轨的整篇正文掺入与银行战略无关的行业背景稀释了政策贴合信号, 则本 ctx 列提供一个更聚焦于银行实体上下文的对照读数; 反之若窗口过窄导致 ctx 与 full 系统性背离, 该背离本身就是可披露的规格敏感性证据, 而非须择一取舍的噪音。在本机 T=2 开发面板上, 权威政策相似度的前视守卫年份可能因有效样本不足 (n_valid < 3) 而暂无阈值判读, 属预期退化; 生产 T=19 语料下各年锚点真实不同, ctx 轨与全年份 _allv 锚点方能给出稳定的锚点稳健性对比。
 
 ## VAR: auth_sim_emb_allv_full
 
@@ -100,7 +100,7 @@ new_dois: []
 ## VAR: auth_sim_emb_allv_ss
 
 【变体差分】
-本列是全年份锚点嵌入子族的 ss 轨、canonical Qwen 主嵌入变体。银行年度聚合文本取自 content_ss (标题 prepend 加银行与金科同句共现窗, stage 14 物化), 相对全年份静态政策锚点求余弦相似度。相对 full / ctx 的差分在文本轨道: ss 轨只纳入银行实体与金融科技词在同一句 (含 ±N 句半径) 共现的最窄语境, 度量的是"银行明确谈及金科处"的战略语义与政策的贴合, 是三轨中最聚焦、信噪比最高但覆盖最窄的一轨。回退语义严格镜像 ctx: 某行某年无任何银行与金科同句共现时, content_ss 优雅退回全文正文、标记 fallback; content_ss 整体缺失时该行 ss 轨优雅跳过而不产孤儿列。三轨各自 just-identified 并排、互为稳健性不分主次, 禁混进同一 over-identified Hansen J; ss 轨为 full-only 门控留篇集的 conditional-on-full 子集。嵌入为 Qwen3-Embedding-8B 主轨, 与 auth_sim_emb_lg_allv_ss both-or-neither 严格 parity。锚点为全年份静态锚点, 相对同轨 vintage 主轨 auth_sim_emb_ss 仅换锚点, 为锚点稳健性对照。因 ss 轨窗口最窄, 当某行当年谈及金科的同句共现极少时, 大量样本会走 fallback 退回全文正文, 此时 ss 列在数值上会向 full 列靠拢, 属回退语义的预期表现而非污染; 研究者若要严格利用 ss 的聚焦性, 应结合 ss_is_fallback 标记筛出真正含同句共现的样本再作解读。在本机 T=2 开发面板上 ss 轨常因样本稀薄而给出接近零方差的退化读数, 生产 T=18 语料下方能体现其信噪比优势。本列同样仅作锚点稳健性对照, 主结论以同轨 vintage 列为准。
+本列是全年份锚点嵌入子族的 ss 轨、canonical Qwen 主嵌入变体。银行年度聚合文本取自 content_ss (标题 prepend 加银行与金科同句共现窗, stage 14 物化), 相对全年份静态政策锚点求余弦相似度。相对 full / ctx 的差分在文本轨道: ss 轨只纳入银行实体与金融科技词在同一句 (含 ±N 句半径) 共现的最窄语境, 度量的是"银行明确谈及金科处"的战略语义与政策的贴合, 是三轨中最聚焦、信噪比最高但覆盖最窄的一轨。回退语义严格镜像 ctx: 某行某年无任何银行与金科同句共现时, content_ss 优雅退回全文正文、标记 fallback; content_ss 整体缺失时该行 ss 轨优雅跳过而不产孤儿列。三轨各自 just-identified 并排、互为稳健性不分主次, 禁混进同一 over-identified Hansen J; ss 轨为 full-only 门控留篇集的 conditional-on-full 子集。嵌入为 Qwen3-Embedding-8B 主轨, 与 auth_sim_emb_lg_allv_ss both-or-neither 严格 parity。锚点为全年份静态锚点, 相对同轨 vintage 主轨 auth_sim_emb_ss 仅换锚点, 为锚点稳健性对照。因 ss 轨窗口最窄, 当某行当年谈及金科的同句共现极少时, 大量样本会走 fallback 退回全文正文, 此时 ss 列在数值上会向 full 列靠拢, 属回退语义的预期表现而非污染; 研究者若要严格利用 ss 的聚焦性, 应结合 ss_is_fallback 标记筛出真正含同句共现的样本再作解读。在本机 T=2 开发面板上 ss 轨常因样本稀薄而给出接近零方差的退化读数, 生产 T=19 语料下方能体现其信噪比优势。本列同样仅作锚点稳健性对照, 主结论以同轨 vintage 列为准。
 
 ## VAR: auth_sim_emb_lg_allv_ctx
 

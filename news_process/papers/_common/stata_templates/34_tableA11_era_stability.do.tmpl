@@ -3,10 +3,10 @@
 * CY-2 (P1 bank_fintech_tone 跨年可比性缺口补全; 全 $0, 列均在盘/golden-safe, 纯 Stata):
 *   全代码库此前无结构性断点 / 分时代稳定性检验, 唯一时间维稳健性 (Table A9 的
 *   excl-pre2013) 是 era-stability 的反面 (假设跨时代不变并验"去早期仍成立")。
-*   本表把 2007-2024 样本切成三个 fintech 监管时代, 直接检验主关系是否随时代漂移:
+*   本表把 2007-2025 样本切成三个 fintech 监管时代, 直接检验主关系是否随时代漂移:
 *     Era 1 (2007-2012): 余额宝前, fintech 媒体议程萌芽期
 *     Era 2 (2013-2018): 余额宝(2013) / P2P 监管(2016) / 资管新规(2017) 爆发-整顿期
-*     Era 3 (2019-2024): DCEP(2019) / 平台反垄断 / 数字人民币常态化期
+*     Era 3 (2019-2025): DCEP(2019) / 平台反垄断 / 数字人民币常态化期
 *
 *   三块:
 *     Panel A — 三时代分段回归: 每个时代各跑一次主规格 (DV~digital_frontier, TWFE)。
@@ -22,7 +22,7 @@
 *
 * T=2 退化守卫 (铁律): 当前硬盘是 T=2 试跑帧 (year∈{2017,2018}, 全落在 Era 2),
 *   则只有 Era 2 有数据 → Panel A 仅产 Era 2 一列, Panel B/C 因 era 无变异 (单时代)
-*   优雅跳过 (capture + 取值数守卫), 不报错不弹框; 全量 T=18 接入后三时代自动激活。
+*   优雅跳过 (capture + 取值数守卫), 不报错不弹框; 全量 T=19 接入后三时代自动激活。
 *
 * 文献锚点 (DOI 已核验):
 *   Bai, J., & Perron, P. (1998). Estimating and Testing Linear Models with Multiple
@@ -88,13 +88,13 @@ if _rc {
 }
 
 * ── 构造 era 时代变量 (1/2/3) ──
-* Era 1 (2007-2012) / Era 2 (2013-2018) / Era 3 (2019-2024)
+* Era 1 (2007-2012) / Era 2 (2013-2018) / Era 3 (2019-2025)
 cap drop era
 gen byte era = .
 replace era = 1 if year >= 2007 & year <= 2012
 replace era = 2 if year >= 2013 & year <= 2018
-replace era = 3 if year >= 2019 & year <= 2024
-label define era_lbl 1 "2007-2012" 2 "2013-2018" 3 "2019-2024", replace
+replace era = 3 if year >= 2019 & year <= 2025
+label define era_lbl 1 "2007-2012" 2 "2013-2018" 3 "2019-2025", replace
 label values era era_lbl
 
 * 检测实际有几个时代有数据 (T=2 盘只有 Era 2)
@@ -118,7 +118,7 @@ foreach e of local eras_present {
             local acols "`acols' ERA`e'"
             if `e' == 1 local alabs `"`alabs' "2007-2012""'
             if `e' == 2 local alabs `"`alabs' "2013-2018""'
-            if `e' == 3 local alabs `"`alabs' "2019-2024""'
+            if `e' == 3 local alabs `"`alabs' "2019-2025""'
         }
         else {
             display "  ⚠️ Panel A era=`e' 回归退化, 跳过"
@@ -137,7 +137,7 @@ if "`acols'" != "" {
         note("DV = `DV'; TREAT = digital_frontier; bank+year FE; SE clustered at bank. " ///
              "Sample split into FinTech regulatory eras: pre-Yuebao (2007-2012), " ///
              "boom-cleanup (2013-2018: Yuebao 2013 / P2P 2016 / asset-mgmt rules 2017), " ///
-             "and DCEP era (2019-2024). Coefficient stability across eras tests for " ///
+             "and DCEP era (2019-2025). Coefficient stability across eras tests for " ///
              "structural drift (Bai-Perron 1998 ECMA; Hansen 2001 JEP; Gentzkow-Shapiro 2010 ECMA). " ///
              "IDENTIFICATION NOTE: digital_frontier is a base-year within-bank time-invariant 0/1 classifier; each " ///
              "era-segmented column here uses absorb(bank_id year), so within each era it is collinear with the bank FE " ///
@@ -195,7 +195,7 @@ if `n_eras' >= 2 {
                 display as text "    p>0.10 => 无法拒绝跨时代系数相等 (结构稳定); p<0.10 => 存在显著结构漂移, 须分时代报告/限识别窗"
             }
             else {
-                display as text "    ⚠️ Wald 检验退化跳过 (交乘项被 drop / 单时代), 全量 T=18 激活"
+                display as text "    ⚠️ Wald 检验退化跳过 (交乘项被 drop / 单时代), 全量 T=19 激活"
             }
         }
     }
@@ -205,7 +205,7 @@ if `n_eras' >= 2 {
 }
 else {
     display "  ⚠️ Panel B/C: 仅 `n_eras' 个时代有数据 (T=2 盘全落 Era 2), 交乘+Wald 跳过"
-    display "       全量 T=18 (2007-2024) 接入后, 三时代交乘与 Wald 相等检验自动激活。"
+    display "       全量 T=19 (2007-2025) 接入后, 三时代交乘与 Wald 相等检验自动激活。"
 }
 
 display "✅ Table A11 (分时代结构稳定性) 完成 — A 分段回归 / B 交乘 / C Wald 相等检验"

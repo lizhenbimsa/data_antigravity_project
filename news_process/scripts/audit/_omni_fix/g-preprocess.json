@@ -85,9 +85,9 @@
   "file": "pipeline/preprocess/load.py:120-129 + pipeline/preprocess/filter.py:98-110",
   "line": "_process_single_file 处理顺序: _clean_and_filter_dataframe → clean_text_batch",
   "claim": "决定样本存留的银行关键词 AC 过滤 (淘汰 30-50%) 在 ftfy 编码修复、OpenCC 繁→简、全角→半角、零宽字符清除之前对原始文本执行。bank_keywords.json 实测 8223 个关键词全部简体 ('銀/國/農/業' 0 命中); 原文若为繁体 ('中國銀行')、mojibake、或银行名被零宽/全角字符打断, AC 无法命中 → 整篇在规范化修复之前即被静默丢弃。另: REGION_PATTERN 含 '中国' 子串项, 若全量 Wisers 数据地区字段出现 '中国香港' 将经地域过滤放入 (繁体文章), 随后又被简体关键词过滤系统性杀掉。'联合银行(中国)' 是唯一无独立基名的半角括号关键词, 原文全角 '（中国）' 永不匹配。",
-  "evidence": "load.py:120 先调 _clean_and_filter_dataframe (内含 step 6 银行过滤), :129 才调 clean_text_batch (步骤1 ftfy/步骤2 t2s/步骤3 全半角/步骤5 零宽清除)。实测关键词表 traditional-script keywords == 0。盘上试跑样本地区均为大陆省份、简体, 故当前 176 行 panel 未现症; 全量 1700 万条 (含更多 OCR 噪声源与可能的混合文字源) 下为 latent 样本选择偏差。",
+  "evidence": "load.py:120 先调 _clean_and_filter_dataframe (内含 step 6 银行过滤), :129 才调 clean_text_batch (步骤1 ftfy/步骤2 t2s/步骤3 全半角/步骤5 零宽清除)。实测关键词表 traditional-script keywords == 0。盘上试跑样本地区均为大陆省份、简体, 故当前 176 行 panel 未现症; 全量 18,198,978 条 (含更多 OCR 噪声源与可能的混合文字源) 下为 latent 样本选择偏差。",
   "suggested_fix": "把 clean_text_batch 提到 _clean_and_filter_dataframe 之前 (或至少把银行关键词过滤移到规范化之后); 替代廉价修法: 构建自动机时对关键词列表同时加入 opencc s2t 变体与全角括号变体。",
-  "adjudication": "缺陷真实: load.py:120过滤先于:129规范化,filter.py:102对原始内容AC匹配,8223词0繁体(亲测),AC仅lower(load.py:55,70),'联合银行(中国)'全角形态0词命中(亲测);但实测Wisers地区值='香港'非'中国香港'→繁体源步1按设计排除,主放大通道不存在;盘上切片仅2017-18清洁期,OCR/全角/mojibake通道仅全量2007-2024 latent,量级窄→P2降P3",
+  "adjudication": "缺陷真实: load.py:120过滤先于:129规范化,filter.py:102对原始内容AC匹配,8223词0繁体(亲测),AC仅lower(load.py:55,70),'联合银行(中国)'全角形态0词命中(亲测);但实测Wisers地区值='香港'非'中国香港'→繁体源步1按设计排除,主放大通道不存在;盘上切片仅2017-18清洁期,OCR/全角/mojibake通道仅全量2007-2025 latent,量级窄→P2降P3",
   "unit": "preprocess"
  }
 ]

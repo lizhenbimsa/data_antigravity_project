@@ -172,7 +172,7 @@ def compute_surface_staleness(
     # fix(log-round4-2026-06-20): pd.Series.argsort() 对 NaT 返回 -1 (实测 pandas 2.2.3:
     # [d,d,NaT,d,NaT].argsort()=[1,2,-1,0,-1]) → df.iloc[-1] 把 NaT 行错配成末行 + 丢失真行
     # (整列错位)。改用 np.argsort(datetime64 ndarray): NaT 稳定排到末尾、返回合法置换,
-    # 与下方逆置换 np.argsort(_sort_idx) 自洽。生产 17M 必有不可解析日期 → NaT, 故为真 bug。
+    # 与下方逆置换 np.argsort(_sort_idx) 自洽。生产 约1,819万 必有不可解析日期 → NaT, 故为真 bug。
     _sort_idx = np.argsort(pd.to_datetime(df[date_col], errors='coerce').values, kind='stable')
     df = df.iloc[_sort_idx].reset_index(drop=True)
     dates = pd.to_datetime(df[date_col], errors='coerce')
@@ -645,7 +645,7 @@ def main():
                     "permutation hashing. Proceedings of the ACM on Management of Data, 2(4), Article 222, "
                     "1-26. https://doi.org/10.1145/3677136")
         logger.info("       (白话: 本模块 surface 轨用 num_perm=128 的多排列 MinHash; 单排列哈希是其同族 2024 "
-                    "新进展, 标注未来在 17M 全量语料上的潜在提速升级路径。)")
+                    "新进展, 标注未来在 约1,819万 全量语料上的潜在提速升级路径。)")
     except Exception as _e:  # noqa: BLE001
         logger.warning(f"  环境/配置/方法论信息打印失败 (不影响处理): {_e}")
 
@@ -867,7 +867,7 @@ def main():
         # 小样本警告
         if n_art < 5000:
             logger.info(f"  ⚠ article 行数偏少 ({n_art:,}), 多为盘面小样本 (如 T=2): 第一周文章无前窗→大量 NaN, "
-                        "上述覆盖率/均值/相关性仅供验证管道正确性, 全量结论以 17M/T=18 实测为准。")
+                        "上述覆盖率/均值/相关性仅供验证管道正确性, 全量结论以 约1,819万/T=19 实测为准。")
         logger.info("-" * 72)
     except Exception as _e:
         logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")

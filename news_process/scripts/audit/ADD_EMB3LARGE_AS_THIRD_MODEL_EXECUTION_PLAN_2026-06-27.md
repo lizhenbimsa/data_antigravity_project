@@ -108,7 +108,7 @@ ruff clean · 全量 pytest · dag_consistency · repro gate（既有列零漂�
 
 ## 5. 成本估算
 - **仅新增 large cosine 嵌入**（text2vec/article_sbert/fintech 全不动 → 零新增）。
-- cosine producer 三轨 `content_full/ctx/ss`：盘上小样 ~$1-3；生产 T=18 ~944k×3 唯一文本 ~1.5-1.8B token @$0.13/1M ≈ **~$200-240**（precise 待 Phase 0 + 去重计数）。
+- cosine producer 三轨 `content_full/ctx/ss`：盘上小样 ~$1-3；生产 T=19 ~944k×3 唯一文本 ~1.5-1.8B token @$0.13/1M ≈ **~$200-240**（precise 待 Phase 0 + 去重计数）。
 - `_allv` 复用 article embeddings → 零额外（[policy_alignment.py:562](news_process/pipeline/filtering/policy_alignment.py#L562)）；strategic_diff bank-year 聚合自成域；API 请求内不去重（首跑同批重复 content 各算）。
 - 存储：benefit `_lg` `.npy` 新增 3072 维（小，仅 benefit 落盘原始向量）。
 

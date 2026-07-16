@@ -89,7 +89,7 @@ new_dois: []
 ## VAR: exc_yao_2021_score_negdeg_ctx
 
 【变体差分】
-本列是 yao_2021 词典 negdeg 消融变体在 ctx (context) 轨上、剔除疑似退出媒体后的银行-年均值。ctx 轨文本 = 标题 prepend 后拼接"目标银行实体上下文窗口", 即只保留围绕银行实体命中位置的局部窗口而非整篇正文, 因此相较 full 轨语气打分聚焦于银行被点名处的措辞, 抑制了整篇长文中与银行无关段落的语气噪声。与家族内 full/ss 两轨相比, 本列的唯一差分维度是文本轨 (ctx), 消融规则集 (否定翻转 ON + 程度副词 ON + 转折 OFF)、词典 (yao_2021)、聚合口径 (存活媒体子样本均值) 与滞后 (无) 全部相同。三轨互为稳健性、不分主次: ctx 轨在门控上是 conditional-on-full 的测度轨, 其行宇宙是 full 留篇集的子集; 当某银行-年在存活媒体子样本内无 ctx 命中时该格保持 NaN 而非零填。铁律: ctx 轨严禁与 full/ss 轨或任何其他消融变体混入同一 over-identified Hansen J。ctx 轨与 full 轨的经济含义差异在于, 一篇既谈银行又展开大量宏观背景或行业综述的长报道, 在 full 轨会把全篇语气纳入均值, 而在 ctx 轨只截取银行实体命中窗口, 因此当整篇基调与银行段落基调背离时两轨会给出不同符号, 这正是把 ctx 作为独立稳健性轨的价值所在; 研究者应把两轨系数并排展示、以定性一致性而非相关系数高低判定稳健。在 T=2 试跑语料上 ctx 轨可能出现零方差退化, 属预期现象, 生产 T=18 语料下正常。
+本列是 yao_2021 词典 negdeg 消融变体在 ctx (context) 轨上、剔除疑似退出媒体后的银行-年均值。ctx 轨文本 = 标题 prepend 后拼接"目标银行实体上下文窗口", 即只保留围绕银行实体命中位置的局部窗口而非整篇正文, 因此相较 full 轨语气打分聚焦于银行被点名处的措辞, 抑制了整篇长文中与银行无关段落的语气噪声。与家族内 full/ss 两轨相比, 本列的唯一差分维度是文本轨 (ctx), 消融规则集 (否定翻转 ON + 程度副词 ON + 转折 OFF)、词典 (yao_2021)、聚合口径 (存活媒体子样本均值) 与滞后 (无) 全部相同。三轨互为稳健性、不分主次: ctx 轨在门控上是 conditional-on-full 的测度轨, 其行宇宙是 full 留篇集的子集; 当某银行-年在存活媒体子样本内无 ctx 命中时该格保持 NaN 而非零填。铁律: ctx 轨严禁与 full/ss 轨或任何其他消融变体混入同一 over-identified Hansen J。ctx 轨与 full 轨的经济含义差异在于, 一篇既谈银行又展开大量宏观背景或行业综述的长报道, 在 full 轨会把全篇语气纳入均值, 而在 ctx 轨只截取银行实体命中窗口, 因此当整篇基调与银行段落基调背离时两轨会给出不同符号, 这正是把 ctx 作为独立稳健性轨的价值所在; 研究者应把两轨系数并排展示、以定性一致性而非相关系数高低判定稳健。在 T=2 试跑语料上 ctx 轨可能出现零方差退化, 属预期现象, 生产 T=19 语料下正常。
 
 ## VAR: exc_yao_2021_score_negdeg_full
 
@@ -99,7 +99,7 @@ new_dois: []
 ## VAR: exc_yao_2021_score_negdeg_ss
 
 【变体差分】
-本列是 yao_2021 词典 negdeg 消融变体在 ss (same-sentence) 轨上、剔除疑似退出媒体后的银行-年均值。ss 轨文本 = 标题 prepend + "目标银行与金融科技词同句共现 ±N 窗" (N 由 config/filtering.yaml::context_window.ss_sentence_radius 控制, 默认 1), 是三轨中语义最严、最贴近"银行∧金科"共现语境的一轨, 因此语气打分只反映银行与金科议题真正同句讨论处的措辞。ss 轨采用镜像 ctx 的回退语义: 当某篇报道无银行∧金科同句共现时, content_ss 回退为全文 body、ss_is_fallback 置 True, 共享 n_articles 分母; 若 FINTECH_AC 缺失则 *_is_fallback 全 True 优雅降级。与家族内 full/ctx 两列相比, 本列唯一差分是文本轨 (ss) 及其同句判据与回退规则, 消融规则集 (否定翻转 ON + 程度副词 ON + 转折 OFF)、词典 (yao_2021)、存活媒体子样本聚合、无滞后全部相同。三轨互为稳健性、不分主次, 门控上 ss 为 conditional-on-full 的稳健性测度轨, 行宇宙是 full 留篇集的子集; 空存活子样本格保持 NaN。铁律: ss 轨严禁与 full/ctx 轨或其他消融变体混入同一 over-identified Hansen J。ss 轨相较 ctx 轨进一步收紧了语境: ctx 只要求落在银行实体窗口, ss 则额外要求银行与金融科技词在同一句 (或 ±N 句窗) 共现, 因此 ss 轨最能排除"文章仅顺带提及银行、金科议题另起段落"这类弱相关噪声, 但代价是命中篇数最少、方差最大、回退频率最高, 研究者解读 ss 轨系数时须一并汇报回退占比与有效篇数。在 T=2 试跑上 ss 轨可能零方差退化属预期, 生产 T=18 正常。
+本列是 yao_2021 词典 negdeg 消融变体在 ss (same-sentence) 轨上、剔除疑似退出媒体后的银行-年均值。ss 轨文本 = 标题 prepend + "目标银行与金融科技词同句共现 ±N 窗" (N 由 config/filtering.yaml::context_window.ss_sentence_radius 控制, 默认 1), 是三轨中语义最严、最贴近"银行∧金科"共现语境的一轨, 因此语气打分只反映银行与金科议题真正同句讨论处的措辞。ss 轨采用镜像 ctx 的回退语义: 当某篇报道无银行∧金科同句共现时, content_ss 回退为全文 body、ss_is_fallback 置 True, 共享 n_articles 分母; 若 FINTECH_AC 缺失则 *_is_fallback 全 True 优雅降级。与家族内 full/ctx 两列相比, 本列唯一差分是文本轨 (ss) 及其同句判据与回退规则, 消融规则集 (否定翻转 ON + 程度副词 ON + 转折 OFF)、词典 (yao_2021)、存活媒体子样本聚合、无滞后全部相同。三轨互为稳健性、不分主次, 门控上 ss 为 conditional-on-full 的稳健性测度轨, 行宇宙是 full 留篇集的子集; 空存活子样本格保持 NaN。铁律: ss 轨严禁与 full/ctx 轨或其他消融变体混入同一 over-identified Hansen J。ss 轨相较 ctx 轨进一步收紧了语境: ctx 只要求落在银行实体窗口, ss 则额外要求银行与金融科技词在同一句 (或 ±N 句窗) 共现, 因此 ss 轨最能排除"文章仅顺带提及银行、金科议题另起段落"这类弱相关噪声, 但代价是命中篇数最少、方差最大、回退频率最高, 研究者解读 ss 轨系数时须一并汇报回退占比与有效篇数。在 T=2 试跑上 ss 轨可能零方差退化属预期, 生产 T=19 正常。
 
 <!-- rendered-citations:begin -->
 Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications, 264, 125739. https://doi.org/10.1016/j.eswa.2024.125739

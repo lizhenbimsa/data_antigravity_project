@@ -27,7 +27,7 @@ benchmark applies only to auxiliary share-type measures such as
 \code{attention\_pct}. The sample is a bank-year panel of 110 Chinese
 commercial banks \NoteThis{bank and observation counts to be backfilled once
 the production panel is finalized (paper\_spec states n\_bank\_min=200,
-conflicting with the production count of 110 banks)} over 2007--2024 (T=18).
+conflicting with the production count of 110 banks)} over 2007--2025 (T=19).
 Identification uses a cross-sectional intensity DiD (five policy shocks that
 take effect simultaneously for all banks; treatment = pre-event exposure
 $\times$ Post; csdid retained only as a sub-cohort robustness check), with a
@@ -46,7 +46,7 @@ for payment flows directly squeeze banks' customer interface and information
 rents \parencite{parlour2022payment}. In China this shock has been especially
 acute: the credit expansion of large technology platforms and successive
 regulatory tightening-and-loosening cycles kept commercial banks under
-sustained fintech competitive pressure throughout 2007--2024
+sustained fintech competitive pressure throughout 2007--2025
 \parencite{hau2024fintechcredit}. Yet ``competitive pressure'' itself is hard
 to observe directly. We propose that the cumulative media exposure of a given
 bank to fintech topics is a measurable salience channel through which this
@@ -60,7 +60,7 @@ Our research question is whether, and how, bank-level fintech media attention
 intensity induces banks to respond with real resource allocation---greater
 fintech investment, M\&A, patent output, and IT staffing. To this end, we
 build a bank-year attention index, \code{attention\_index\_full}, on top of
-roughly 17~million Chinese media articles (2007--2024, the production target
+18{,}198{,}978 Chinese media articles (2007--2025, the production target
 corpus): for each pipeline-verified bank--fintech article, an intensity score
 is computed as the weighted product of log-damped term frequency, inverse
 document frequency, and embedding-based semantic similarity, then summed
@@ -284,10 +284,11 @@ theoretical conjecture, awaiting production data.
 \section{Methodology}\label{sec:method}
 \subsection{Sample and Data}
 The bank--year panel covers $N \times T \approx 3000\text{--}9000$ bank--years
-across 2007--2024 (per spec.sample). All bank--year observations are processed
+% TODO: 3000--9000 区间系旧口径 T=18 下的推导值, 待全量重跑后按 T=19 更新。
+across 2007--2025 (per spec.sample). All bank--year observations are processed
 through the \code{news\_process} pipeline.
 \NoteThis{paper\_spec.sample (n\_bank\_min=200 / obs\_target\_min=3000)
-conflicts with the production count of 110 banks $\times$ T=18; sample sizes
+conflicts with the production count of 110 banks $\times$ T=19; sample sizes
 to be reconciled and backfilled once the production panel is finalized.}
 
 \subsection{Attention Measurement (Derived from Stage 15 fintech\_intensity)}\label{subsec:attention}
@@ -400,7 +401,7 @@ claims. Family-wise error control: the family of alternative attention
 measures $\{\code{index\_full}, \code{index\_ctx}, \code{index\_ss},
 \code{disp}, \code{pct}\}$ receives Romano--Wolf stepdown corrections
 \parencite{romanowolf2005snooping}. The clustering ladder: the main
-specification clusters by bank (ample $G$ under T=18); bank $\times$ year and
+specification clusters by bank (ample $G$ under T=19); bank $\times$ year and
 province $\times$ year two-way clustering serve as comparisons, the latter
 ($G \approx 31$) paired with a wild cluster bootstrap (9{,}999 replications).
 
@@ -498,12 +499,12 @@ types (wire services / magazines / government / web pages, etc.) are dropped
 row-wise; exactly unique records number 18{,}177{,}370 (duplication rate
 0.12\%).
 
-\textbf{Production target corpus.} After newspaper-type screening and
-restriction to the 2007--2024 window, the production target corpus is
-approximately 17~million articles (T=18); this scope lies \emph{before} the
-bank--fintech co-occurrence hard filter. The two scopes---the census
-(2007--2025, all types, pre-filter) and the production target (2007--2024,
-newspaper-screened)---are reported separately and must not be conflated. The
+\textbf{Production target corpus.} The production target corpus adopts the
+full census scope: 18{,}198{,}978 media reports (2007--2025, T=19); this
+scope lies \emph{before} the bank--fintech co-occurrence hard filter. The
+newspaper-retention row count (16{,}912{,}361 rows) is an intermediate
+processing statistic within the pipeline and must not be conflated with the
+target-corpus total. The
 article count surviving the co-occurrence hard filter and the retention gate
 is \NoteThis{to be back-filled once the production pipeline has run}.
 

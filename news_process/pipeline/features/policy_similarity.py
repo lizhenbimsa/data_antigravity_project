@@ -393,7 +393,7 @@ def compute_authoritative_similarity(df_exploded, panel):
             # 如果当年的银行数过少，跳过（为保持与 Stage 25 LDA K值的最小计算稳定性一致）
             if len(banks) < 3:
                 # fix(omni-g-policy-05, 2026-06-11): 裸 continue → 显式 warning
-                # (镜像 stage 25 同守卫), T=18 早期稀疏年份不再"静默 NaN"无迹可寻
+                # (镜像 stage 25 同守卫), T=19 早期稀疏年份不再"静默 NaN"无迹可寻
                 logger.warning(f"  年度={year}{track_suffix}: 仅 {len(banks)} 家"
                                f"银行, 跳过 auth_sim 计算 (最低要求 3)")
                 continue
@@ -421,7 +421,7 @@ def compute_authoritative_similarity(df_exploded, panel):
             # 短路对称 (镜像 stage15 _cosine_for_spec non-vintage 分支 return _wrap(static,static)):
             # 当 vintage 锚点 == 全年份静态锚点 (晚年 ≤t 已含全部政策文档 / use_vintage=False 退化时
             # auth_text_vin==auth_text_static) → allv 与 vin byte-identical, 复用 vin 副本即可, 免重算
-            # TF-IDF/LDA/embedding (golden-safe: 同锚点同输入确定性产同值; 生产 T=18 多数年锚点真不同则正常重算)。
+            # TF-IDF/LDA/embedding (golden-safe: 同锚点同输入确定性产同值; 生产 T=19 多数年锚点真不同则正常重算)。
             if not _companion:
                 allv = None
             elif auth_text_vin is not None and auth_text_vin == auth_text_static:

@@ -217,7 +217,7 @@
   - *锚定* — stage 21 所用 instruction-tuned LLM(gpt-5.4-nano / gemini-3.1-flash-lite / deepseek-v4-flash 均为指令微调模型)的链时一致性问题。该文把链时约束从预训练延伸到指令微调阶段,正对本项目'指令微调模型在 prompt v8 下打情感分'这一环节,说明仅靠预训练截止不足以消除泄漏。
   - 〔DataCite 回读标题: Instruction Tuning Chronologically Consistent Language Models〕
 - 【2024–2026】Wongchamcharoen, P. K., & Glasserman, P. (2025). Do large language models (LLMs) understand chronology? arXiv. https://doi.org/10.48550/arXiv.2511.14214
-  - *锚定* — `21_tone_llms`(冻结 prompt v8 + 离线缓存复现)recent-application — 该文实证检验 LLM 的时序排序与时间一致性能力(chronological ordering / conditional sorting / anachronism detection),为本项目"某时点 LLM 判定是否真受时间约束"这一有效性假设提供近期平行参照:即便冻结 prompt 与缓存可字节级复现,模型内化的时间认知本身仍可能对 2007–2024 时序语料泄漏前瞻信息(lookahead contamination)。据此在 manuscript 中将其作为需讨论的风险而非断言其不存在。
+  - *锚定* — `21_tone_llms`(冻结 prompt v8 + 离线缓存复现)recent-application — 该文实证检验 LLM 的时序排序与时间一致性能力(chronological ordering / conditional sorting / anachronism detection),为本项目"某时点 LLM 判定是否真受时间约束"这一有效性假设提供近期平行参照:即便冻结 prompt 与缓存可字节级复现,模型内化的时间认知本身仍可能对 2007–2025 时序语料泄漏前瞻信息(lookahead contamination)。据此在 manuscript 中将其作为需讨论的风险而非断言其不存在。
   - 〔DataCite 回读标题: Do Large Language Models (LLMs) Understand Chronology?〕
 
 ### 五补-12. 同业/同伴效应识别 · leave-one-out IV · 网络溢出 (llm_peer)
@@ -254,7 +254,7 @@
   - *锚定* — 本项目最宽达约 2782 列的高维面板 (大量文本派生控制 + 嵌入特征) 在双向依赖与不可观测异质性下的推断。该文给出高维面板下兼顾 two-way dependence 与个体固定效应的有效推断, 为高维控制集进入 TWFE 时的标准误有效性提供前沿支撑。
   - 〔DataCite 回读标题: Inference in High-Dimensional Panel Models: Two-Way Dependence and Unobserved Heterogeneity〕
 - 【2024–2026】Hahn, J., Hughes, D. W., Kuersteiner, G., & Newey, W. K. (2024). Efficient bias correction for cross-section and panel data. Quantitative Economics, 15(3), 783–816. https://doi.org/10.3982/QE2350
-  - *锚定* — 本项目短面板 (盘上 T=2, 生产 T=18) 银行+年份双向固定效应下的 incidental-parameter (附带参数) 偏差问题。该文给出 leave-one-out / split-sample jackknife 的高阶方差与高效偏差修正, 为 bank-year 面板系数在固定效应估计下的偏差校正提供前沿方法依据。
+  - *锚定* — 本项目短面板 (盘上 T=2, 生产 T=19) 银行+年份双向固定效应下的 incidental-parameter (附带参数) 偏差问题。该文给出 leave-one-out / split-sample jackknife 的高阶方差与高效偏差修正, 为 bank-year 面板系数在固定效应估计下的偏差校正提供前沿方法依据。
   - 〔Crossref 回读标题: Efficient bias correction for cross‐section and panel data〕
 - 【2024–2026】MacKinnon, J. G., Nielsen, M. Ø., & Webb, M. D. (2024). Jackknife inference with two-way clustering. arXiv. https://doi.org/10.48550/arXiv.2406.08880
   - *锚定* — bank-year 面板可能存在的双向聚类 (银行 × 年份) 推断。该文将 jackknife CRVE 推广到 two-way clustering, 解决双向聚类方差估计常见的不可信/负方差问题, 为本项目在年份共同冲击与银行个体相关并存时的标准误选择提供前沿依据。
@@ -350,13 +350,13 @@
 > 净增 4 条(其中 2 条 2024–2026)。
 
 - 【2024–2026】Khan, A., Underwood, R., Siebenschuh, C., Babuji, Y., Ajith, A., Hippe, K., Gokdemir, O., Brace, A., Chard, K., & Foster, I. (2024). LSHBloom: Memory-efficient, extreme-scale document deduplication. arXiv. https://doi.org/10.48550/arXiv.2411.04257
-  - *锚定* — 2024 前沿,把 MinHash+LSH 用 Bloom filter 替代签名存储以做亿级文档去重,直接论证本项目在真实全量 1700 万条新闻语料上跑 MinHash 近重复(surface_staleness)的可扩展性与内存可行性,是 MinHash-LSH 主测度的规模化方法学锚。
+  - *锚定* — 2024 前沿,把 MinHash+LSH 用 Bloom filter 替代签名存储以做亿级文档去重,直接论证本项目在真实全量 18,198,978 条新闻语料上跑 MinHash 近重复(surface_staleness)的可扩展性与内存可行性,是 MinHash-LSH 主测度的规模化方法学锚。
   - 〔DataCite 回读标题: LSHBloom: Memory-efficient, Extreme-scale Document Deduplication〕
 - 【2024–2026】Penedo, G., Kydlíček, H., Ben Allal, L., Lozhkov, A., Mitchell, M., Raffel, C., Von Werra, L., & Wolf, T. (2024). The FineWeb datasets: Decanting the web for the finest text data at scale. arXiv. https://doi.org/10.48550/arXiv.2406.17557
   - *锚定* — 2024 前沿语料工程,公开给出 MinHash-LSH 去重的具体超参配方(5-gram、112 哈希分 14 桶、相似度阈值),是本项目 surface_staleness 的 MinHash shingle/hash 参数选型与近重复阈值设定的工程依据。
   - 〔DataCite 回读标题: The FineWeb Datasets: Decanting the Web for the Finest Text Data at Scale〕
 - Zhang, M., Vallis, O., Bumin, A., Vakharia, T., & Bursztein, E. (2023). RETSim: Resilient and efficient text similarity. arXiv. https://doi.org/10.48550/arXiv.2311.17264
-  - *锚定* — `surface_staleness`(MinHash 近重复去重, recent-application):RETSim 是噪声/对抗扰动下近重复检索的近期神经基线,为本项目 `surface_staleness`/`surface_highstale` 的 MinHash+LSH 表层陈旧度路线提供平行的方法学参照与取舍边界。在 1700 万级语料上任何神经推理管线都重于纯哈希 MinHash,呼应本项目选用轻量哈希近重复的工程取舍;此处仅作平行同法对照(RETSim 本身以高效为设计目标),不宜据此把神经法一概称为"重型"。
+  - *锚定* — `surface_staleness`(MinHash 近重复去重, recent-application):RETSim 是噪声/对抗扰动下近重复检索的近期神经基线,为本项目 `surface_staleness`/`surface_highstale` 的 MinHash+LSH 表层陈旧度路线提供平行的方法学参照与取舍边界。在 18,198,978 级语料上任何神经推理管线都重于纯哈希 MinHash,呼应本项目选用轻量哈希近重复的工程取舍;此处仅作平行同法对照(RETSim 本身以高效为设计目标),不宜据此把神经法一概称为"重型"。
   - 〔DataCite 回读标题: RETSim: Resilient and Efficient Text Similarity〕
 - Silcock, E., D'Amico-Wong, L., Yang, J., & Dell, M. (2022). Noise-robust de-duplication at scale (NBER Working Paper No. 30726). National Bureau of Economic Research. https://doi.org/10.3386/w30726
   - *锚定* — 经济学家(Dell 组)对历史新闻 wire 的近重复检测系统比较 LSH/n-gram 哈希与神经方法,是本项目 stage 26 surface_staleness/surface_highstale MinHash 近重复测度最贴合的经济学来源锚:它直接论证在大规模噪声新闻语料上用哈希(LSH)做近重复识别的合理性与边界。

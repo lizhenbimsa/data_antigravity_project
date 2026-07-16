@@ -48,7 +48,7 @@
   "claim": "split_text_for_embedding 按恰好 8191 token 硬切, 尾段 chunk 可短至 1 token; embed_texts L359 `raw_emb[start:end].mean(axis=0)` 对 chunk 等权平均 — 8192 token 文本切成 (8191, 1) 两段, 1-token 碎片在池化嵌入中占 50% 权重, 严重扭曲该文本的向量表征。",
   "evidence": "range(0, len(tokens), EMB_MAX_TOKENS) 等步长切分无重叠无长度下限; mean(axis=0) 无权重参数。试跑样本新闻 <8191 token 不触发; 全量语料的权威政策全文/长文 (stage 15/26 消费同函数) 会触发 — latent。",
   "suggested_fix": "池化改 token 数加权均值 (weights = 各 chunk token 数), 或切分时把尾段并入前一段 (允许最后一段 ≤ 1.5×MAX 或设最短长度阈)。",
-  "adjudication": "代码属实: L107-110 按 EMB_MAX_TOKENS=8191 等步硬切无下限无重叠, L359 mean(axis=0) 等权 → 8192-token 文本的 1-token 尾段占50%权重。盘上试跑新闻均 <8191 token 不触发; 全量17M篇+stage15政策全文大概率触发 → latent P3 成立。",
+  "adjudication": "代码属实: L107-110 按 EMB_MAX_TOKENS=8191 等步硬切无下限无重叠, L359 mean(axis=0) 等权 → 8192-token 文本的 1-token 尾段占50%权重。盘上试跑新闻均 <8191 token 不触发; 全量18.2M篇+stage15政策全文大概率触发 → latent P3 成立。",
   "unit": "staleness-sbert-embed"
  },
  {

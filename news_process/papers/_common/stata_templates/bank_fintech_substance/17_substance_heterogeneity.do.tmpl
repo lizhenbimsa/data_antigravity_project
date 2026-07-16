@@ -32,9 +32,9 @@ set seed {{RANDOM_SEED}}
 * 派生 (镜像 34_tableA11 / 25_locus_era_stability 的 era 派生惯用法), 年区间取
 * paper_spec.yaml::heterogeneity_wave (R4-M03 三波严格对称, 全项目同口径):
 *   pre_period   2007-2012 / wave_1 2013-2015 / wave_2 2016-2018 /
-*   consolidation 2019-2021 (对照组) / wave_3 2022-2024
+*   consolidation 2019-2021 (对照组) / wave_3 2022-2025
 * year 不在盘时优雅跳过 (四列仍缺 → 原 capture confirm 守卫接管, 行为同旧)。
-* T=2 试跑帧 (2017-2018) 仅 wave_2==1 → 余三波被 (b) 块跳过; production T=18 全激活。
+* T=2 试跑帧 (2017-2018) 仅 wave_2==1 → 余三波被 (b) 块跳过; production T=19 全激活。
 * $0 / golden-safe (纯 Stata 派生, 不落盘新列)。
 * ============================================================================
 capture confirm variable year
@@ -44,7 +44,7 @@ if !_rc {
     gen byte wave_1        = inrange(year, 2013, 2015)
     gen byte wave_2        = inrange(year, 2016, 2018)
     gen byte consolidation = inrange(year, 2019, 2021)
-    gen byte wave_3        = inrange(year, 2022, 2024)
+    gen byte wave_3        = inrange(year, 2022, 2025)
 }
 else {
     display as text "  [WIRE-AHEAD] year 不在面板 → fintech 浪潮哑无法派生; (b) 浪潮分段优雅跳过 (列仍缺, 守卫接管)"
@@ -95,7 +95,7 @@ foreach w in wave_1 wave_2 consolidation wave_3 {
 capture confirm variable capital_ratio
 if !_rc {
     * fix(omni-g-templates-02, 2026-06-11): 分位改按年内切 (by-year xtile)。旧版在
-    * pooled bank-year 全样本上切四分位: 全量 T=18 下 capital_ratio 因 Basel III
+    * pooled bank-year 全样本上切四分位: 全量 T=19 下 capital_ratio 因 Basel III
     * 阶段达标系统性上行 → Q1 被早年观测占满 / Q4 被晚年占满, "资本充足度异质性"
     * 混入年代异质性; 且 t 年观测的阈值由含未来年份的 in-sample 分布决定 (前视泄漏)。
     * Stata 原生 xtile 无 by() — 用年份循环逐年切分实现 within-year quartiles。

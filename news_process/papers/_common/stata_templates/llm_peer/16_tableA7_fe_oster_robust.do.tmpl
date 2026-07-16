@@ -255,7 +255,7 @@ if `HAS_IV' {
             }
         }
         else {
-            display "  ⚠️ Panel A: T=`_nyr' < 3, 银行特定线性趋势 (c.year#i.bank_id) 与 FE 共线, 跳过 A4 (production T=18 才有功效)"
+            display "  ⚠️ Panel A: T=`_nyr' < 3, 银行特定线性趋势 (c.year#i.bank_id) 与 FE 共线, 跳过 A4 (production T=19 才有功效)"
         }
     }
     else {
@@ -275,7 +275,7 @@ if "`fecols'" != "" {
         mtitles(`felabs') ///
         addnotes("Endogenous own tone `TONE' instrumented by LLM-peer leave-one-out tone `IV'." ///
                  "Each column adds interacted FE to absorb region/type/zone-by-year common shocks (Gormley-Matsa 2014 RFS); SE clustered at `CL'." ///
-                 "Bank-specific linear trends require T>=3 (production T=18); skipped on T=2 trial panel.")
+                 "Bank-specific linear trends require T>=3 (production T=19); skipped on T=2 trial panel.")
     estout `fecols' using "$tables_dir/tableA7_fe_oster_robust.csv", replace delimiter(",") ///
         cells(b(star fmt(3)) se(par fmt(3))) stats(N widstat, fmt(0 3)) ///
         keep(`TONE') starlevels(* 0.10 ** 0.05 *** 0.01)
@@ -303,7 +303,7 @@ else {
 *   rmax = min(1, 1.3 × R²(controlled)) (Oster 2019 经验法则); |δ|>1 即可放心
 *   (Altonji et al. 2005 / Oster 2019)。
 * ⚠ T=2 退化披露: 盘面 years 2017-2018 (T=2), 银行 FE areg 后剩余自由度极少,
-*   δ 估计仅 production T=18 全样本下有功效; T=2 时 psacalc 优雅跳过。
+*   δ 估计仅 production T=19 全样本下有功效; T=2 时 psacalc 优雅跳过。
 local oster_note "psacalc unavailable"
 capture which psacalc
 if !_rc {

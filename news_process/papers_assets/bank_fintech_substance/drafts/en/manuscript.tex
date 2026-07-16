@@ -18,7 +18,7 @@
 \NoteThis{Final abstract pending — target $\approx$ 200 English words; headline numbers await the production panel.}
 This paper applies Westphal--Zajac's (1994, 1998 \emph{ASQ}) substantive versus
 symbolic management (decoupling) framework to Chinese banks' fintech strategies
-over 2007--2024. Using a bank--year panel built from roughly 17~million Chinese
+over 2007--2025. Using a bank--year panel built from 18{,}198{,}978 Chinese
 media reports, three independent large language models classify each
 bank--fintech article into the W\&Z substantive/symbolic dichotomy, aggregated
 to the bank--year substantive news share \code{sub\_frac} (denominator
@@ -61,8 +61,8 @@ We propose and test the framework's most falsifiable dividing line---an
 system deployment, process re-engineering, product rollout) should lower a
 bank's cost-to-income ratio (CIR) over the medium run, whereas \emph{symbolic}
 announcements (slogans, ceremonial signings, concept showcases) should have no
-real efficiency consequences. Building on a production corpus of roughly
-17~million Chinese media reports over 2007--2024, three mutually independent
+real efficiency consequences. Building on a production corpus of
+18{,}198{,}978 Chinese media reports over 2007--2025, three mutually independent
 large language models classify each bank--fintech article into the
 Westphal--Zajac dichotomy; the classifications aggregate to the bank--year
 substantive news share \code{sub\_frac}, whose effect we estimate on the
@@ -99,7 +99,7 @@ fintech-strategy context: relative to prior survey- and case-based evidence,
 LLM annotation renders the W\&Z construct consistently measurable over a
 corpus of tens of millions of articles
 \parencite{gilardi2023chatgpt,carlsonburbano2026llm}. Second, we subject the
-decoupling framework to a dual-outcome test on an 18-year banking panel: the
+decoupling framework to a dual-outcome test on a 19-year banking panel: the
 efficiency litmus test (CIR) and long-run performance (ROA) jointly identify
 the real consequences of the announcement--implementation gap, rather than
 stopping at disclosure behavior itself. Third, we explicitly differentiate
@@ -279,16 +279,16 @@ this with the interaction \code{sub\_x\_btwn} $=$ \code{sub\_frac} $\times$
 \code{L.bank\_between\_cent}, controlling for \code{bank\_degree\_cent} to
 absorb the ``more coverage mechanically looks more substantive'' visibility
 confound; this moderation framework is estimated on the production panel
-($T=18$).
+($T=19$).
 \emph{H4: the interaction effect of \code{sub\_x\_btwn} is negative
 (amplifying the CIR decline).}
 
 \section{Methodology}\label{sec:method}
 
 \subsection{Sample and Data}
-The bank--year panel covers 110 Chinese banks over 2007--2024 ($T=18$), built
-from a production target corpus of roughly 17~million Chinese media reports
-(the post-newspaper-filter, pre-co-occurrence-hard-filter scope). Article-level W\&Z substantiveness classifications
+The bank--year panel covers 110 Chinese banks over 2007--2025 ($T=19$), built
+from a production target corpus of 18{,}198{,}978 Chinese media reports
+(the full-census, pre-co-occurrence-hard-filter scope). Article-level W\&Z substantiveness classifications
 are produced by the three-LLM annotation in stage~21 of the
 \code{news\_process} pipeline, with bank--year aggregation performed in the
 panel encode layer; the ``stage 32a innovation\_substantiveness'' label in
@@ -333,7 +333,7 @@ denominator equal to that model's own verified article count), reported
 alongside the consensus measure and likewise just-identified. Validity
 disclosure: the human gold-standard Cohen's $\kappa$ validity gate for the
 substantiveness classification awaits human annotation on the production
-corpus ($T=18$; status: pending\_T18\_human\_annotation); we disclose this
+corpus ($T=19$; status: pending\_T18\_human\_annotation); we disclose this
 candidly rather than claim completed validation.
 
 \subsection{LLM Routing and Determinism (F1)}
@@ -403,8 +403,8 @@ over-identified system.
 The primary outcome is the efficiency litmus test: the three-year forward
 cost-to-income ratio change \code{cost\_income\_ratio\_change\_3yr}
 $= \mathrm{CIR}_{i,t+3} - \mathrm{CIR}_{i,t}$, where $\mathrm{CIR}$ equals
-operating and administrative expenses over operating income; on the $T=18$
-panel, $t\in\{2007,\dots,2021\}$ has a matching $t+3$. The companion outcome
+operating and administrative expenses over operating income; on the $T=19$
+panel, $t\in\{2007,\dots,2022\}$ has a matching $t+3$. The companion outcome
 is \code{long\_run\_roa\_change\_3yr}. The baseline is a long-panel two-way
 fixed-effects specification:
 \begin{equation}
@@ -524,25 +524,24 @@ treatment---and are not part of this paper's robustness family.
 
 \paragraph{Data sources and sample funnel.}
 The underlying corpus consists of Chinese media reports on banks and fintech
-over 2007--2024. Sample construction follows this funnel: (i) the raw-corpus
+over 2007--2025. Sample construction follows this funnel: (i) the raw-corpus
 census (pre-filtering, pre-deduplication; data-appendix scope only): 183
 deduplicated source files, 18{,}198{,}978 media reports, 3{,}740 media
 outlets; (ii) retention of newspaper-type reports only (92.93\% of all rows,
 16{,}912{,}361 rows), with all other outlet types (wire services, magazines,
-government bulletins, web pages, etc.) dropped row-wise---after restricting
-to the 2007--2024 date window, this newspaper-retention output constitutes
-the production target corpus of roughly 17~million reports
-($\approx 16.9$M $\to$ $\sim$17M; the post-newspaper-filter,
-pre-co-occurrence-hard-filter scope, not to be conflated with the census
-scope in (i)); (iii) a
+government bulletins, web pages, etc.) dropped row-wise---the production
+target corpus adopts the full census scope of 18{,}198{,}978 media reports
+(2007--2025, $T=19$; the pre-co-occurrence-hard-filter intake scope; the
+newspaper-retention row count of 16{,}912{,}361 is an intermediate
+processing statistic and must not be conflated with it); (iii) a
 bank--fintech proximity co-occurrence hard filter, retaining only articles
 in which the focal bank co-occurs with at least one fintech term within a
 $\pm1$-sentence window (title included); and (iv) the full-only retention
 gate (\code{llm\_verified\_full}), yielding the final article universe
 (\NoteThis{the final post-(iii)/(iv) article-universe count is far smaller
-than the roughly 17~million newspaper-retention scope; the realized count
+than the 18{,}198{,}978 target-corpus scope; the realized count
 awaits production backfill});
-aggregation produces the bank--year panel of 110 banks $\times$ 2007--2024.
+aggregation produces the bank--year panel of 110 banks $\times$ 2007--2025.
 Financial outcomes and
 controls (CIR, ROA, assets, capital ratio, NPL ratio, etc.) are merged in
 via the bank financial-panel enrichment.
@@ -604,7 +603,7 @@ capital-ratio quartile, and reports the H4 network-visibility moderation
 Multiple testing across heterogeneity subsamples is corrected with a
 Westfall--Young-type battery.
 \NoteThis{Table~4 stratified coefficients and moderation effects await
-production-panel ($T=18$) estimation.}
+production-panel ($T=19$) estimation.}
 
 \paragraph{Table 5: Robustness.}
 Table~5 presents the alternative-track measures (\code{sub\_frac\_sc},

@@ -6,7 +6,7 @@
   - **代码已落地** `pipeline/features/strategic_diff.py`：`_get_diff_tokenizer()`（DCL+RLock 注入 1506 金科词独立实例 + 空词典 loud WARNING 优雅降级）+ `_jieba_tokenizer` 改写；`tests/test_omni_fix_strategic.py::TestFintechInjectionWordLDA` 8 个回归测试；**73 passed / ruff clean**。
   - **实现审核** wf_c37656e9-a66（6 维 32-agent + 对抗 + 魔鬼代言人）：**零阻断/零必修**；2 项 follow-up 已落地（空词典 loud WARNING / 源码级回归锁）。
   - **经验闭环**：实现 `_jieba_tokenizer` 与已验证 prototype 在 **1125 篇真实文章 717843 tokens 逐一致 0 失配** → 探针 C1–C6 全转移到实现。
-  - **唯一 gated follow-up**（非阻断, 因 `export.py` 正被并行会话改, 刻意不碰）：§4 步骤2 的 codebook/export 列标签补"(领域词注入)"披露 + paper_spec note；+ golden 受控重生（§5.0，T=18 生产）。
+  - **唯一 gated follow-up**（非阻断, 因 `export.py` 正被并行会话改, 刻意不碰）：§4 步骤2 的 codebook/export 列标签补"(领域词注入)"披露 + paper_spec note；+ golden 受控重生（§5.0，T=19 生产）。
 **（原状态：三轮审核 + 经验实测通过 = 可执行（须采 §5.0 外科隔离注入））**。
   ① 5 维 29-agent 对抗审核 (wf_97b431e1-448)：5 P0 + 设计/范围 P1 全证伪；P1-a/b/c 已订正。
   ② 顶刊最高标准 6 维 17-agent 终审 (wf_9dd304e5-6ee)：8/9 P0/P1 证伪；**魔鬼代言人抓出唯一真材料缺陷 = `_allv` companion 陈旧**（前两轮 + 经验探针均漏），已纳入 §3.1b/§5.0/R6。
@@ -207,9 +207,9 @@ auth_sim_lda_full      auth_sim_lda_ctx      auth_sim_lda_ss
   4. **同 env 防伪失配**（审核可选强化补）：committed golden 须在**与 Gate 1 完全相同的线程 env**（MKL=1 等）下重生再比对 —— 否则若现 golden 是默认 MKL=24 下产出而 gate 钉 MKL=1，BLAS 敏感的 emb/网络列会产生**与 jieba 无关的伪失配**，污染外科性判定。或对已知 BLAS 敏感列（`*_emb*` / 网络中心度）改用数值容差 / 排除名单比对。
 - gate 全绿 → golden **外科更新**（审核 P1-c 订正术语）：**重算 §3.1 列**为新分词器算出的真实值并刷新其哈希条目；§3.1 之外的列哈希与 JSON 结构字节不变。⚠ 这是**真重建值**，**不是** shim-renumber 计划里"键改、哈希值字节不变"的 $0 `re-key`（值确实变了，必须重算重写哈希）。
 
-### 5.2 T=2 vs 生产 T=18（诚实限定）
+### 5.2 T=2 vs 生产 T=19（诚实限定）
 - 本机 = T=2（86 banks × 2 years），**仅验管道机制 + 确定性 + 外科性**。
-- 真实测度值的 golden 须**生产 T=18 全量重跑**才权威 → 列为 **gated / deferred**（项目惯例）。
+- 真实测度值的 golden 须**生产 T=19 全量重跑**才权威 → 列为 **gated / deferred**（项目惯例）。
 - ⚠ 不在脏工作树 / 非 canonical env 下 bless（会误 bless 无关 BLAS-FP 漂移）。
 
 ---
@@ -239,7 +239,7 @@ ruff clean + 上述定向测试全过为提交前置。
   **罕见多字领域词**的粒度。→ **不应期待注入显著改变稳健性结论**（这是好事：稳健轨应印证而非推翻主轨）。**管理预期：不改任何论文主因变量/主结论**。
 - **R4 max_df=0.95 空词表 fallback 触发面变化**：注入改变词表组成，可能让 `_build_tfidf`/LDA 的
   `max_df=0.95→1.0` 降级在 T=2 退化样本上触发路径不同。→ §5.1 验证两模块在 T=2 仍跑通、无新异常。
-- **R5 golden T=2≠T=18**：见 §5.2，gate/defer。
+- **R5 golden T=2≠T=19**：见 §5.2，gate/defer。
 - **R6（终审必修, 已纳入 §3.1b/§5.0）`_allv` companion 陈旧 landmine**：`all_vintage_companion` 默认开但 15 个
   `auth_sim_*_allv` 列从未进 golden/panel；**全 stage 重跑**会让它们落列集断言 `extra` 致 Gate 在哈希前 FAIL,
   且 9 个非 jieba `_allv` 伪证伪外科性。→ §5.0 外科隔离注入**绕过**之（不触发 policy_similarity 全 run）。
@@ -254,7 +254,7 @@ ruff clean + 上述定向测试全过为提交前置。
 - 单变更点 → 回滚 = 还原 `_jieba_tokenizer` 一行 + 删 `_get_diff_tokenizer`。
 - 提交：`strategic_diff.py` + 测试 + （可选）codebook 披露 + golden（受控重生后）by-name add，
   排除并行会话脏文件；ruff Passed；commit message 含口径披露与 golden 重生说明。
-- 生产 T=18 golden 权威重生单列 gated TODO。
+- 生产 T=19 golden 权威重生单列 gated TODO。
 
 ---
 
@@ -266,4 +266,4 @@ ruff clean + 上述定向测试全过为提交前置。
 - [ ] 确定性 gate：§3.1 列两跑 0 漂移
 - [ ] ruff clean + 4 个定向测试 + 新增注入测试全过
 - [ ] codebook/标签披露 word/LDA 轨为领域注入口径
-- [ ] 生产 T=18 golden 权威重生列入 gated TODO
+- [ ] 生产 T=19 golden 权威重生列入 gated TODO

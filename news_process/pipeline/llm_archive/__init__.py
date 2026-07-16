@@ -82,7 +82,7 @@ LFS quota: GitHub 默认 1GB 免费 + $5/月 50GB → 充裕
 全部命中 v3.7.0 接线前已建成的 ``_llm_cache.db`` (133,687 条) → **本归档对
 该语料的覆盖恒为空集** (data/llm_archive/ 不存在, manifest 从未写出,
 verify_manifest 直接返回 "manifest 不存在")。即:
-- 本模块实际仅覆盖 **v3.7.0 接线后的新 API 调用** (如全量 17M 语料重处理);
+- 本模块实际仅覆盖 **v3.7.0 接线后的新 API 调用** (如全量 约1,819万 语料重处理);
 - frozen 语料的复现锚点仍是 ``_llm_cache.db`` (勿删铁律) + 离线守卫
   ``NEWS_PROCESS_LLM_OFFLINE=1``, 而非本归档;
 - "审稿人 fresh API call 时仍能从归档完整复现" 的设计目标对 frozen 语料

@@ -525,7 +525,7 @@ def main(force_regenerate: bool = False):
         elif full_select:
             logger.warning(
                 f"  ⚠ 全选: N({n_total:,}) ≤ 目标量({target_sample_size}), 未真正随机抽样 → "
-                "抽样率=100%; 盘面 T=2 小语料下属预期, 全量 17M 不会触发。"
+                "抽样率=100%; 盘面 T=2 小语料下属预期, 全量 约1,819万 不会触发。"
             )
         else:
             logger.info(
@@ -560,7 +560,7 @@ def main(force_regenerate: bool = False):
         if n_sample < 50:
             logger.warning(
                 f"  ⚠ 样本仅 {n_sample} 篇 (盘面 T=2 小样本): 仅验证管道正确性, "
-                "criterion validity 结论以全量 17M/T=18 实测为准。"
+                "criterion validity 结论以全量 约1,819万/T=19 实测为准。"
             )
         logger.info("-" * 72)
     except Exception as _e:
@@ -617,7 +617,7 @@ def main(force_regenerate: bool = False):
             if n_years <= 1:
                 logger.warning(
                     "  ⚠ 抽样仅覆盖 ≤1 个年度: 盘面 T=2 小样本下属预期, "
-                    "全量 17M/T=18 须确认逐年覆盖均衡 (代表性以 stage 33/34 为准)。"
+                    "全量 约1,819万/T=19 须确认逐年覆盖均衡 (代表性以 stage 33/34 为准)。"
                 )
         else:
             logger.info("  (无 year/日期 可派生年份, 跳过年份覆盖代表性自检)")

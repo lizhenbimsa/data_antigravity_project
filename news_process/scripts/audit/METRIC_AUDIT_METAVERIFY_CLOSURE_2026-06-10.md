@@ -56,8 +56,8 @@
 - **【P2】tone_words IDF 的 DF 在裸 `内容`(无标题)上算,却应用于 title-prepended 打分文本** `tone_words.py:558,584,1297` — 违 Gentzkow-Kelly-Taddy(2019)TF-IDF 同语料要求(IDF 语料 ≠ TF 语料)。
 - **【P2】cross_media_alpha 事件检测 `>= p90` 对零方差 bank 判 100% 天为 shock** `cross_media_alpha.py:97-100` — 退化(改 `>` 或加方差守卫)。
 - **【P2 dual-track】benefit_society alt_anchor + audit_combined 仅 full 轨** — 验证 ctx 主处理的稳健性锚却无 ctx 轨。
-- **【P2-latent】Int8+Int8 裸加法 `stata_audit.py:357-361`** `pos_count.fillna(0)+neg_count.fillna(0)` 静默回绕(实测 98+60=-98)→ **讽刺地击穿了它自己要查的 pos+neg>n 双重计数审计**。**修正主控原报告"全仓无其他裸算术站点"声称**(原扫描漏了 `pipeline/audit/`)。当前 T=2 max 100 不触发,T=18 latent。
-- **【P3-latent】pyreadstat 把 [101,126] 的 Int8 计数写成 Stata 扩展缺失(.a–.z)** `stata_export.py:550-557` — `gpt54nano_tone_sum_full` T=2 已=100,T=18 必越界 → 静默变 Stata 缺失。生产 pyreadstat 路径(to_stata fallback 会安全 upcast)。**与 §1 stata-export46 合并为"导出层 Int8/byte 隐患"。**
+- **【P2-latent】Int8+Int8 裸加法 `stata_audit.py:357-361`** `pos_count.fillna(0)+neg_count.fillna(0)` 静默回绕(实测 98+60=-98)→ **讽刺地击穿了它自己要查的 pos+neg>n 双重计数审计**。**修正主控原报告"全仓无其他裸算术站点"声称**(原扫描漏了 `pipeline/audit/`)。当前 T=2 max 100 不触发,T=19 latent。
+- **【P3-latent】pyreadstat 把 [101,126] 的 Int8 计数写成 Stata 扩展缺失(.a–.z)** `stata_export.py:550-557` — `gpt54nano_tone_sum_full` T=2 已=100,T=19 必越界 → 静默变 Stata 缺失。生产 pyreadstat 路径(to_stata fallback 会安全 upcast)。**与 §1 stata-export46 合并为"导出层 Int8/byte 隐患"。**
 - **【P2 citation】benefit 阈值把 median-centering 归因 Mu-Viswanath/Ethayarajh 各向异性校正** `benefit_society.py:621-639` — 该操作不实现这两篇方法,过度归因。
 - **【P3】forward_looking FLS 多字词标记 jieba 不整词切出** `forward_looking.py:86-99` — clarity/LM jieba 注入同型兄弟。
 - **【P1-doc / 主控独立同源】codebook 复现包硬伤再确认**:94.2% 空引用 + 94% 占位描述 + `year` 范围 [2013,2023] 实 2017-2018 + **24 列未登记/9 幻影列 + `avg_locus_prob_score_std` 范围 [0,0.5] 实际越界**(schema 陈旧)。

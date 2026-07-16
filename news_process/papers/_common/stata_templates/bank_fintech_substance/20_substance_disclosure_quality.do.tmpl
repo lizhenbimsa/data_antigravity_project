@@ -43,7 +43,7 @@ else {
 capture confirm variable ln_fintech_mdna_length
 if !_rc {
     * fix(omni-g-templates-02, 2026-06-11): 四分位改按年内切 (by-year xtile)。旧版
-    * pooled 全样本切分位: 全量 T=18 下披露长度随披露监管趋严系统性上行 → 分位组
+    * pooled 全样本切分位: 全量 T=19 下披露长度随披露监管趋严系统性上行 → 分位组
     * 混入年代效应, 且阈值含未来年份 (in-sample 前视泄漏)。
     gen disclose_q = .
     quietly levelsof year, local(_disq_yrs)

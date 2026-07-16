@@ -90,7 +90,7 @@ forvalues i = 1/`n_ev' {
         }
     }
     else {
-        display "  [SKIP] 事件 `ev' (`yr'): 窗内相对年份不足 / 共线 (T=2 退化); production T=18 自动激活"
+        display "  [SKIP] 事件 `ev' (`yr'): 窗内相对年份不足 / 共线 (T=2 退化); production T=19 自动激活"
     }
 }
 
@@ -102,7 +102,7 @@ foreach m of local stored {
     if strmatch("`m'", "es_*") local models `models' `m'
 }
 if "`models'" == "" {
-    display "  [WIRE-AHEAD] 事件研究无任何已存储估计 (T=2 仅 2017-2018, 各事件窗退化); production T=18 激活, 表跳过"
+    display "  [WIRE-AHEAD] 事件研究无任何已存储估计 (T=2 仅 2017-2018, 各事件窗退化); production T=19 激活, 表跳过"
 }
 else {
     esttab `models' ///

@@ -59,9 +59,9 @@
   "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\pipeline\\panel\\encode_collab.py",
   "line": "555-559 (_n_articles/_n_amb 聚合), 569-572 (frac_amb_articles 派生)",
   "claim": "aggregate_clarity_panel 中 fix(clarity-weighted-denom 2026-06-10) 已为 mean_clarity_score/mean_frac_definite 配 valid-mask 分母 (L536-539, 实现正确), 但紧邻的 frac_amb_articles_{full,ctx} 未同步: 分子 `(s >= median).sum()` 对 NaN 比较恒 False (NaN-clarity 文章被静默当'不含糊'), 分母 `_n_articles=('_w_full','count')` 是物理文章数 (w_full 永非 NaN) — 同型 valid/physical 失配, 空文本文章使该占比系统性下偏。",
-  "evidence": "L556-557 `_n_amb_full=('clarity_frac_ambiguous_full', lambda s: int((s >= median_amb_d0).sum()))` vs L555 `_n_articles=('_w_full', 'count')`; tone_words.py:261-280 显示空文本/零 token 文章 clarity 列显式置 float('nan')。盘上试跑样本 clarity NaN=0/857 (上游预处理过滤了空文本) → 当前 no-op, 纯 latent; T=18 全量 1700 万篇含尾部清洗后空文/超短文时触发。",
+  "evidence": "L556-557 `_n_amb_full=('clarity_frac_ambiguous_full', lambda s: int((s >= median_amb_d0).sum()))` vs L555 `_n_articles=('_w_full', 'count')`; tone_words.py:261-280 显示空文本/零 token 文章 clarity 列显式置 float('nan')。盘上试跑样本 clarity NaN=0/857 (上游预处理过滤了空文本) → 当前 no-op, 纯 latent; T=19 全量 18,198,978 篇含尾部清洗后空文/超短文时触发。",
   "suggested_fix": "分母改用 clarity_frac_ambiguous notna 的计数 (与 L536-539 同口径): `_n_clar_valid=('clarity_frac_ambiguous_full', 'count')`, 分子保持; 或显式披露物理口径。",
-  "adjudication": "encode_collab.py:556-559 分子 (s>=median).sum() 对 NaN 恒 False, :555 分母 _n_articles=count(_w_full) 是物理数 (w 永非 NaN, :512-523), 与 :536-539 刚修的 valid 分母同型失配未同步。tone_words.py:261-280 空文返回 NaN→触发路径真实; 实测盘上 clarity NaN=0/857 当前 no-op, T=18 全量含空/超短文时下偏, 故 latent。",
+  "adjudication": "encode_collab.py:556-559 分子 (s>=median).sum() 对 NaN 恒 False, :555 分母 _n_articles=count(_w_full) 是物理数 (w 永非 NaN, :512-523), 与 :536-539 刚修的 valid 分母同型失配未同步。tone_words.py:261-280 空文返回 NaN→触发路径真实; 实测盘上 clarity NaN=0/857 当前 no-op, T=19 全量含空/超短文时下偏, 故 latent。",
   "unit": "sweep-fillna-weights"
  },
  {
@@ -74,7 +74,7 @@
   "claim": "fix(clarity-weighted-denom, 2026-06-10) 为 mean_clarity_score/mean_frac_definite 加了 valid-mask 权重分母 (_sum_wd_*), 但两行之下的 frac_amb_articles_{full,ctx} = _n_amb / _n_articles 仍是 valid 分子 / 物理分母: 分子 `(s >= median).sum()` 中 clarity_frac_ambiguous=NaN 的文章 (空文/零 token 文本, tone_words.py:261-280 显式返回 NaN) 比较为 False 永不计入, 而分母 `_n_articles=('_w_full','count')` 数的是从不缺失的权重列 = 全物理篇数 → 高歧义文章份额被系统性低估。codebook.py:720 公式 '#{…}/n_articles' 把物理分母固化为声称。",
   "evidence": "encode_collab.py:555 `_n_articles=('_w_full', 'count')` (w_full 由 fillna(1.0) 乘积构成, 永不 NaN → count=物理篇数); :556-559 `_n_amb_full=('clarity_frac_ambiguous_full', lambda s: int((s >= median_amb_d0).sum()))` (NaN≥median → False); :571-572 `frac_amb_articles_full = _n_amb_full / n_safe`。对照同函数 :528-530 修复注释 '加权均值分母须 mask 到各指标 valid 集…(VW/MW/HW 同型未标记兄弟)' — 修复止步于加权均值。盘上 clarity_frac_ambiguous 当前 0 NaN (857 篇) → 纯 latent。",
   "suggested_fix": "分母改为 clarity 有效篇数: `_n_clarity_valid=('clarity_frac_ambiguous_full','count')` (按轨各自 count), frac = _n_amb / _n_clarity_valid (≥2 守门同步迁移); codebook 公式同步更新为 '/ n_articles_clarity_valid'。",
-  "adjudication": "encode_collab.py:555 _n_articles=('_w_full','count'), w_full 由 fillna(1.0) 乘积构成永不 NaN=物理篇数; :556-559 分子 NaN≥median→False; :571-572 直除。同函数 2026-06-10 修复 (L528-530) 仅覆盖加权均值。盘上 clarity_frac_ambiguous 0 NaN 不触发, 但 tone_words 空文/零 token 显式返 NaN, T=18 全量必有 → latent 成立。",
+  "adjudication": "encode_collab.py:555 _n_articles=('_w_full','count'), w_full 由 fillna(1.0) 乘积构成永不 NaN=物理篇数; :556-559 分子 NaN≥median→False; :571-572 直除。同函数 2026-06-10 修复 (L528-530) 仅覆盖加权均值。盘上 clarity_frac_ambiguous 0 NaN 不触发, 但 tone_words 空文/零 token 显式返 NaN, T=19 全量必有 → latent 成立。",
   "unit": "sweep-valid-physical-denom"
  },
  {

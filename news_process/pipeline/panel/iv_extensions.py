@@ -94,7 +94,7 @@ iv_extensions.py — 顶刊 IV 扩展族 (11 论文工具变量补全, 2026-06-1
 
 T=2 试跑样本披露: 当前磁盘面板 2017-2018 (T=2, 176 行) 下, _lag1 变体仅
 2018 年有值、Bartik share 大面积 one-hot 退化 (iv_did.py 模块头第 3 条)。
-全量语料 (2007-2024, T=18) 下自然恢复。论文须报告一阶段有效 N 与 KP F。
+全量语料 (2007-2025, T=19) 下自然恢复。论文须报告一阶段有效 N 与 KP F。
 """
 
 import os
@@ -789,7 +789,7 @@ def compute_iv_extensions(panel: pd.DataFrame,
 
     # ── 【结果分析】(仅日志, 不回写 panel/产物; golden-safe) ──
     # 逐 IV 列报有效率 (notna), 对照"一阶段最少有效观测"阈值给好/临界/弱判读。
-    # IV 列在 T=2 试跑下大面积退化属预期 (见模块头披露), 全量 T=18 自然恢复。
+    # IV 列在 T=2 试跑下大面积退化属预期 (见模块头披露), 全量 T=19 自然恢复。
     try:
         _iv_cols = [c for c in panel.columns
                     if ('leave_one_out_peer_' in c or c.startswith('lpeer_')
