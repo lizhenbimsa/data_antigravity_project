@@ -59,7 +59,7 @@ citations:
   pages_or_artno: 194-206
 - doi: "10.1111/jofi.13482"
   type: "journal"
-  authors: "HIRSHLEIFER, D., MAI, D., & PUKTHUANTHONG, K."
+  authors: "Hirshleifer, D., Mai, D., & Pukthuanthong, K."
   year: 2025
   title: "War Discourse and the Cross Section of Expected Stock Returns"
   venue: "The Journal of Finance"
@@ -90,7 +90,7 @@ new_dois: []
 与 F308 平行的还有正面 (正面_hw_sum) 姊妹家族与 mw (媒体加权)、vw (市值加权) 变体家族, 均遵循同一"分子求和列 ÷ 权重和分母"构造范式, 只是权重来源不同 (媒体级出现频次 vs 银行市值 vs 跟风衰减)。
 
 【文献定位】
-本家族三个 BERT 底座模型的方法学谱系: finbert2 直接采用 Xu et al. (2025, KDD '25) 提出的面向金融部署场景的双向编码器 FinBERT2, 针对中文金融文本的领域适配做了专门优化; finbert_cn/fin_sent_zh 属于同一脉络下的中文金融情感微调模型, 与 Huang, Wang & Yang (2023, *Contemporary Accounting Research*) 提出的英文 FinBERT (基于金融文本语料继续预训练再微调的路线) 方法学同源; 三者的底层 Transformer 编码器架构均可追溯至 Devlin et al. (2019) 的 BERT 原始论文, 双向自注意力机制使其相较传统词袋/词典方法能捕捉长距离语境依赖与否定/转折等语言学结构。微调策略 (学习率、层冻结、序列截断) 遵循 Sun et al. (2019) 对中文文本分类场景下 BERT 微调超参数的系统性实证建议。加权聚合层面的"跟风衰减"思想服务于另一条独立的构念: 同题材/高度雷同的跟风报道彼此重复、边际新增信息含量递减, 因此本项目对雷同报道施加衰减权重、以加权求和 (而非简单等权平均) 方式聚合到 bank-year 层级, 高权重赋予首发/独立报道, 使 bank-year 层面的加权语调更贴近"新增信息含量"而非"报道数量"。这一权重构造的构念锚点是媒体新闻信息冗余/重复效应的度量思想 (完整理论依据见 stage 24 herd_decay 模块注释), 与本家族三个 BERT 底座模型的方法学谱系相互独立、不可混为一谈; 该锚点论文的正式 DOI 未收录于本家族白名单引文池, 故本节仅以思想脉络叙述, 不在 citations 中列出对应条目, 避免张冠李戴地借用另一篇不相关论文的 DOI 冒充其出处。Tetlock (2007, *Journal of Finance*) 在本家族中的定位仅限于其对"媒体语调信息内容会被市场价格吸收"这一更上位的媒体-市场定价关系的开创性论证, 为本项目将 BERT 逐模型负面概率作为语调测度、进而与银行融资成本等结果变量建立关联的整体研究设计提供背景依据, 与跟风衰减权重 (`herd_weight_{track}`) 的构造本身是两条完全独立的构念脉络, 不构成后者的理论来源, 引用时须避免把两者混同。 就「篇级信号按逐篇权重加总为单元暴露量」这一构造范式而言, HIRSHLEIFER、MAI 与 PUKTHUANTHONG (2025) 提供了前沿先例: 该文用半监督主题模型对跨 160 年、约 700 万篇《纽约时报》报道抽取话语主题, 逐篇得到战争话语强度后按强度 (而非等权计数) 汇总为文本暴露量, 据以构造战争因子解释预期收益截面; 本族以 herd_weight 逐篇加权再求和、而非等权计篇数的做法与之共享同一汇总逻辑。⚠ 该锚点仅止于加权汇总这一步: 原文的逐篇权重来自话语主题强度, 与本族按报道雷同度折扣冗余的衰减权重来源不同, 且原文无情感极性与分类概率输出、聚合层级为市场/组合而非银行-年、语料为美国英文新闻, 故不为本族的负面概率口径提供任何依据。Chen 与 Mankad (2025) 提出 STS 主题模型, 引入文档级的连续情感-话语潜变量并允许其被文档级协变量解释, 使文本情感得以进入正式统计推断而非仅作描述性摘要; 本族以篇级连续负面概率 (而非 argmax 硬标签) 作为被加权量, 与该文以篇级连续情感量为测度基本单位的立场一致。⚠ 边界须写实: 原文的情感量是贝叶斯生成模型的连续后验潜变量, 与 BERT softmax 的类别概率语义不同, 语料为评论/话语文本而非中文银行新闻, 亦无中性档、无篇级量在单元内求和的聚合步骤, 更无跟风衰减权重与银行-年面板。
+本家族三个 BERT 底座模型的方法学谱系: finbert2 直接采用 Xu et al. (2025, KDD '25) 提出的面向金融部署场景的双向编码器 FinBERT2, 针对中文金融文本的领域适配做了专门优化; finbert_cn/fin_sent_zh 属于同一脉络下的中文金融情感微调模型, 与 Huang, Wang & Yang (2023, *Contemporary Accounting Research*) 提出的英文 FinBERT (基于金融文本语料继续预训练再微调的路线) 方法学同源; 三者的底层 Transformer 编码器架构均可追溯至 Devlin et al. (2019) 的 BERT 原始论文, 双向自注意力机制使其相较传统词袋/词典方法能捕捉长距离语境依赖与否定/转折等语言学结构。微调策略 (学习率、层冻结、序列截断) 遵循 Sun et al. (2019) 对中文文本分类场景下 BERT 微调超参数的系统性实证建议。加权聚合层面的"跟风衰减"思想服务于另一条独立的构念: 同题材/高度雷同的跟风报道彼此重复、边际新增信息含量递减, 因此本项目对雷同报道施加衰减权重、以加权求和 (而非简单等权平均) 方式聚合到 bank-year 层级, 高权重赋予首发/独立报道, 使 bank-year 层面的加权语调更贴近"新增信息含量"而非"报道数量"。这一权重构造的构念锚点是媒体新闻信息冗余/重复效应的度量思想 (完整理论依据见 stage 24 herd_decay 模块注释), 与本家族三个 BERT 底座模型的方法学谱系相互独立、不可混为一谈; 该锚点论文的正式 DOI 未收录于本家族白名单引文池, 故本节仅以思想脉络叙述, 不在 citations 中列出对应条目, 避免张冠李戴地借用另一篇不相关论文的 DOI 冒充其出处。Tetlock (2007, *Journal of Finance*) 在本家族中的定位仅限于其对"媒体语调信息内容会被市场价格吸收"这一更上位的媒体-市场定价关系的开创性论证, 为本项目将 BERT 逐模型负面概率作为语调测度、进而与银行融资成本等结果变量建立关联的整体研究设计提供背景依据, 与跟风衰减权重 (`herd_weight_{track}`) 的构造本身是两条完全独立的构念脉络, 不构成后者的理论来源, 引用时须避免把两者混同。 就「篇级信号按逐篇权重加总为单元暴露量」这一构造范式而言, Hirshleifer、Mai 与 Pukthuanthong (2025) 提供了前沿先例: 该文用半监督主题模型对跨 160 年、约 700 万篇《纽约时报》报道抽取话语主题, 逐篇得到战争话语强度后按强度 (而非等权计数) 汇总为文本暴露量, 据以构造战争因子解释预期收益截面; 本族以 herd_weight 逐篇加权再求和、而非等权计篇数的做法与之共享同一汇总逻辑。⚠ 该锚点仅止于加权汇总这一步: 原文的逐篇权重来自话语主题强度, 与本族按报道雷同度折扣冗余的衰减权重来源不同, 且原文无情感极性与分类概率输出、聚合层级为市场/组合而非银行-年、语料为美国英文新闻, 故不为本族的负面概率口径提供任何依据。Chen 与 Mankad (2025) 提出 STS 主题模型, 引入文档级的连续情感-话语潜变量并允许其被文档级协变量解释, 使文本情感得以进入正式统计推断而非仅作描述性摘要; 本族以篇级连续负面概率 (而非 argmax 硬标签) 作为被加权量, 与该文以篇级连续情感量为测度基本单位的立场一致。⚠ 边界须写实: 原文的情感量是贝叶斯生成模型的连续后验潜变量, 与 BERT softmax 的类别概率语义不同, 语料为评论/话语文本而非中文银行新闻, 亦无中性档、无篇级量在单元内求和的聚合步骤, 更无跟风衰减权重与银行-年面板。
 ## VAR: fin_sent_zh_负面_hw_sum_ctx
 
 【变体差分】
@@ -142,7 +142,7 @@ Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A large language model for e
 Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2019). BERT: Pre-training of deep bidirectional transformers for language understanding. Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics (NAACL-HLT 2019), 4171-4186. https://doi.org/10.18653/v1/N19-1423
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Sun, C., Qiu, X., Xu, Y., & Huang, X. (2019). How to fine-tune BERT for text classification?. Chinese Computational Linguistics (CCL 2019), Lecture Notes in Computer Science, 11856, 194-206. https://doi.org/10.1007/978-3-030-32381-3_16
-HIRSHLEIFER, D., MAI, D., & PUKTHUANTHONG, K. (2025). War Discourse and the Cross Section of Expected Stock Returns. The Journal of Finance, 80(6), 3589-3637. https://doi.org/10.1111/jofi.13482
+Hirshleifer, D., Mai, D., & Pukthuanthong, K. (2025). War Discourse and the Cross Section of Expected Stock Returns. The Journal of Finance, 80(6), 3589-3637. https://doi.org/10.1111/jofi.13482
 Chen, L., & Mankad, S. (2025). A Structural Topic and Sentiment-Discourse Model for Text Analysis. Management Science, 71(7), 5767-5787. https://doi.org/10.1287/mnsc.2022.00261
 <!-- rendered-citations:end -->
 </content>

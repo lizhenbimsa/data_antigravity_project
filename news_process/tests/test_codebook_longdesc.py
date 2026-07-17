@@ -556,6 +556,86 @@ class TestTopJournalGate:
 # 8. 两列表分离三断言 (audit_dois, §2.5)
 # ============================================================================
 
+class TestSupplementXWiringConsistency:
+    """第十补编〔已接线家族〕双向一致性闸 (2026-07-17 终局签核 referee 建议)。
+
+    背景: 补编 §一 逐条〔已接线家族: F...〕是**面向读者的锚定关系声明**。该行历史上两次
+    写错, 都是「意向 ≠ 实况」:
+      ① 初版沿用发现层**提名意向** → 757 条 (doi,fid) 断言中 168 条 (22.2%) 反事实
+         (接线层相关性把关弃用 840 条配对, 补编未回写);
+      ② 二版改由 patches.json (**接线层意向**) 派生 → VOR 替换后 patches 残留旧预印本
+         DOI, 致两条实际接线 6 族/2 族的锚点被误标「孤儿」。
+    终版口径 = **直接实读 config/codebook_longdesc/*.md 的 frontmatter citations**。
+    本闸把该口径钉死: 补编声称的每个 (doi, fid) 必须在对应家族 md 中实际存在, 且反向
+    不得遗漏 —— 否则下一份补编必然复现同一漂移 (referee 原话)。
+    """
+
+    SUP = Path(__file__).resolve().parents[1] / "scripts" / "audit" / \
+        "LITERATURE_ANCHORS_SUPPLEMENT_X_2026-07-17.md"
+
+    @staticmethod
+    def _disk_wiring(longdesc_dir: Path) -> dict:
+        """盘上真值: {doi(lower): {family_id, ...}} (与机械闸同源, 实读 frontmatter)。"""
+        import re as _re
+        out: dict = {}
+        for p in sorted(longdesc_dir.glob("*.md")):
+            if p.name.startswith("_"):
+                continue
+            t = p.read_text(encoding="utf-8")
+            m = _re.match(r"^---\n(.*?)\n---\n", t, _re.S)
+            if not m:
+                continue
+            fm = yaml.safe_load(m.group(1))
+            for c in (fm.get("citations") or []):
+                d = str(c.get("doi", "") or "").strip().lower()
+                if d:
+                    out.setdefault(d, set()).add(fm["family_id"])
+        return out
+
+    @staticmethod
+    def _supplement_claims(text: str):
+        """解析补编: [(doi, [fid...], 自报计数), ...] (APA 行的 DOI + 其后〔已接线家族〕行)。"""
+        import re as _re
+        claims, cur = [], None
+        for line in text.split("\n"):
+            m = _re.search(r"https://doi\.org/(10\.\S+)", line)
+            if m and line.lstrip().startswith("-"):
+                cur = m.group(1).rstrip(").,;").lower()
+            m2 = _re.search(r"〔已接线家族 \((\d+)\): ([^〕]+)〕", line)
+            if m2 and cur:
+                claims.append((cur, [x.strip() for x in m2.group(2).split(",")], int(m2.group(1))))
+                cur = None
+        return claims
+
+    def test_supplement_x_wiring_is_true_by_construction(self):
+        if not self.SUP.exists():
+            pytest.skip("第十补编不在盘上")
+        longdesc = Path(cl.default_longdesc_dir())
+        if not longdesc.exists():
+            pytest.skip("家族长文库不在盘上")
+        disk = self._disk_wiring(longdesc)
+        claims = self._supplement_claims(self.SUP.read_text(encoding="utf-8"))
+        assert claims, "补编未解析出任何〔已接线家族〕行 — 解析器与文档格式失配 (防恒绿空转)"
+        counterfactual, count_mismatch, reverse_missing = [], [], []
+        for doi, fids, n in claims:
+            if n != len(fids):
+                count_mismatch.append((doi, n, len(fids)))
+            actual = disk.get(doi, set())
+            for fid in fids:
+                if fid not in actual:
+                    counterfactual.append((doi, fid))
+            extra = actual - set(fids)
+            if extra:
+                reverse_missing.append((doi, sorted(extra)))
+        assert not counterfactual, (
+            f"补编〔已接线家族〕反事实 {len(counterfactual)} 处 (所指家族 md 并不引用该 DOI): "
+            f"{counterfactual[:5]}")
+        assert not count_mismatch, f"〔已接线家族 (N)〕自报计数与列出个数不符: {count_mismatch[:5]}"
+        assert not reverse_missing, (
+            f"反向遗漏 {len(reverse_missing)} 处 (家族 md 引用了该 DOI 但补编未列出): "
+            f"{reverse_missing[:5]}")
+
+
 class TestTwoListSeparation:
     def test_anchor_frozen_14_paths_and_alias(self):
         # 13 -> 14: 第十补编 LITERATURE_ANCHORS_SUPPLEMENT_X_2026-07-17.md 并入

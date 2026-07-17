@@ -58,7 +58,7 @@ citations:
   pages_or_artno: "357-375"
 - doi: "10.1111/1475-679x.12540"
   type: "journal"
-  authors: "THOMAS, W. B., WANG, Y., & ZHANG, L."
+  authors: "Thomas, W. B., Wang, Y., & Zhang, L."
   year: 2024
   title: "Algorithmic Trading and Forward‐Looking MD&A Disclosures"
   venue: "Journal of Accounting Research"
@@ -114,6 +114,6 @@ Abedin, M. Z., Goldstein, M. A., Huang, Q., & Zeng, H. (2024). Forward-looking d
 Muslu, V., Radhakrishnan, S., Subramanyam, K. R., & Lim, D. (2015). Forward-looking MD&A disclosures and the information environment. Management Science, 61(5), 931-948. https://doi.org/10.1287/mnsc.2014.1921
 Li, F. (2010). The information content of forward-looking statements in corporate filings: A naïve Bayesian machine learning approach. Journal of Accounting Research, 48(5), 1049-1102. https://doi.org/10.1111/j.1475-679X.2010.00382.x
 Loughran, T., & McDonald, B. (2020). Textual analysis in finance. Annual Review of Financial Economics, 12(1), 357-375. https://doi.org/10.1146/annurev-financial-012820-032249
-THOMAS, W. B., WANG, Y., & ZHANG, L. (2024). Algorithmic Trading and Forward‐Looking MD&A Disclosures. Journal of Accounting Research, 62(4), 1533-1569. https://doi.org/10.1111/1475-679x.12540
+Thomas, W. B., Wang, Y., & Zhang, L. (2024). Algorithmic Trading and Forward‐Looking MD&A Disclosures. Journal of Accounting Research, 62(4), 1533-1569. https://doi.org/10.1111/1475-679x.12540
 Chen, J. J., Song, P., & Loi, F. L. (2024). Strategic forward-looking nonearnings disclosure and overinvestment. The British Accounting Review, 56(6), 101431. https://doi.org/10.1016/j.bar.2024.101431
 <!-- rendered-citations:end -->

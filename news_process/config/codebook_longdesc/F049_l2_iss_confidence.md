@@ -59,13 +59,22 @@ citations:
   vol: 49
   issue: 6
   pages_or_artno: 1173-1193
+- doi: "10.2307/2393593"
+  type: "journal"
+  authors: "Westphal, J. D., & Zajac, E. J."
+  year: 1998
+  title: "The symbolic management of stockholders: Corporate governance reforms and shareholder reactions"
+  venue: "Administrative Science Quarterly"
+  vol: "43"
+  issue: "1"
+  pages_or_artno: "127-153"
 new_dois: []
 ---
 
 ## CORE
 
 【构念与来源】
-本家族三列刻画的是「实质性创新分类置信度」(innovation substantiveness confidence, 内部短名 iss)在 bank-year 层的均值。所谓「实质性」维度, 沿用 Weick 与 Zbaracki 一系组织传播研究里「实质 (substantive) 对象征 (symbolic)」的二分构念: 一条银行金融科技报道到底是在陈述真实落地的技术投入与业务改造, 还是仅在做象征性的话语包装与声誉管理。该二分正是 P3 (bank_fintech substance, W&Z 谱系) 处理变量所依托的语义基座, 与 Fiss 与 Zajac (2006) 关于「框定与脱耦」的象征性战略管理、以及 Bingler et al. (2024) 关于气候披露中「空谈 (cheap talk)」与真实行动脱节的实证, 属同一条实质对象征的构念脉络。本家族不度量分类结果本身 (那是分类占比列族的职责), 而是度量大语言模型在做出该实质对象征判断时的自报把握程度 — 即模型的 verbalized confidence, 可读作对该 bank-year 报道文本上「实质性信号清晰度」的一个连续代理。
+本家族三列刻画的是「实质性创新分类置信度」(innovation substantiveness confidence, 内部短名 iss)在 bank-year 层的均值。所谓「实质性」维度, 沿用 Westphal 与 Zajac 一系组织传播研究里「实质 (substantive) 对象征 (symbolic)」的二分构念: 一条银行金融科技报道到底是在陈述真实落地的技术投入与业务改造, 还是仅在做象征性的话语包装与声誉管理。该二分正是 P3 (bank_fintech substance, W&Z 谱系) 处理变量所依托的语义基座, 与 Fiss 与 Zajac (2006) 关于「框定与脱耦」的象征性战略管理、以及 Bingler et al. (2024) 关于气候披露中「空谈 (cheap talk)」与真实行动脱节的实证, 属同一条实质对象征的构念脉络。本家族不度量分类结果本身 (那是分类占比列族的职责), 而是度量大语言模型在做出该实质对象征判断时的自报把握程度 — 即模型的 verbalized confidence, 可读作对该 bank-year 报道文本上「实质性信号清晰度」的一个连续代理。
 
 【方法学与计算】
 计算分两级。第一级在文章行内合成: stage 21 情感 LLM 对每篇报道就实质性维度独立给出标签与一个 [0,1] 区间的自报置信度; `tone_llms.py::_avg_innovation_confidence` 只把那些「被接受的实质性标签非 None 且 confidence 严格大于 0」的模型的置信度取算术平均, 得到该文章该轨的行级置信度, 无任何有效项时行级取 0.0。此处的聚合域对齐是关键工程约束: prompt 指示模型在判 false 时把标签填 null, 但模型常仍附带一个置信度数值, 若无条件并入均值会使「标签投票的分子」与「伴随置信度的信号强度」来自不同的模型子集, 故显式以「标签非 None」作过滤, 镜像情感侧「sentiment-not-None」语义。第二级在 `encode.py` 内按 (target_bank, year) 对上述行级置信度取 `groupby().mean()`, 对应轨源列缺失时优雅置 NaN。因此单位为无量纲、值域 [0,1] 的置信度均值, 0.0 特指该 bank-year 无携带有效实质性标签的模型, 不可与「低置信度」混读。
@@ -95,4 +104,5 @@ Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2024). How cheap talk
 Geng, J., Cai, F., Wang, Y., Koeppl, H., Nakov, P., & Gurevych, I. (2024). A survey of confidence estimation and calibration in large language models. Proceedings of the 2024 Conference of the North American Chapter of the Association for Computational Linguistics, 6577-6595. https://doi.org/10.18653/v1/2024.naacl-long.366
 Törnberg, P. (2024). Best practices for text annotation with large language models. Sociologica, 18(2), 67-85. https://doi.org/10.6092/issn.1971-8853/19461
 Fiss, P. C., & Zajac, E. J. (2006). The symbolic management of strategic change: Sensegiving via framing and decoupling. Academy of Management Journal, 49(6), 1173-1193. https://doi.org/10.5465/amj.2006.23478255
+Westphal, J. D., & Zajac, E. J. (1998). The symbolic management of stockholders: Corporate governance reforms and shareholder reactions. Administrative Science Quarterly, 43(1), 127-153. https://doi.org/10.2307/2393593
 <!-- rendered-citations:end -->

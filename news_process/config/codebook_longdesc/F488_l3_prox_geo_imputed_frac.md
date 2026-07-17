@@ -59,6 +59,24 @@ citations:
   vol: "59"
   issue: "2"
   pages_or_artno: "1775-1796"
+- doi: "10.1111/j.1540-6261.2012.01725.x"
+  type: "journal"
+  authors: "Gurun, U. G., & Butler, A. W."
+  year: 2012
+  title: "Don't believe the hype: Local media slant, local advertising, and firm value"
+  venue: "The Journal of Finance"
+  vol: "67"
+  issue: "2"
+  pages_or_artno: "561-598"
+- doi: "10.1111/j.1540-6261.2010.01626.x"
+  type: "journal"
+  authors: "Engelberg, J. E., & Parsons, C. A."
+  year: 2011
+  title: "The causal impact of media in financial markets"
+  venue: "The Journal of Finance"
+  vol: "66"
+  issue: "1"
+  pages_or_artno: "67-97"
 new_dois: []
 ---
 
@@ -84,4 +102,6 @@ Lai, S., Chen, L., Wang, Q. S., & Anderson, H. D. (2023). Bank competition and c
 Dong, D., Jiang, D., Wu, K., & Zhu, H. (2024). Game in another town: Geography of stock watchlists and firm valuation. Journal of Banking & Finance, 163, 107164. https://doi.org/10.1016/j.jbankfin.2024.107164
 Kong, I., & Purves, R. S. (2026). Analyzing Geographic Bias of Newspaper Articles Reporting Global Climate Disasters. Annals of the American Association of Geographers, 116(2), 270-288. https://doi.org/10.1080/24694452.2025.2564220
 Zhang, Z., & Bethard, S. (2025). A survey on geocoding: algorithms and datasets for toponym resolution. Language Resources and Evaluation, 59(2), 1775-1796. https://doi.org/10.1007/s10579-024-09730-2
+Gurun, U. G., & Butler, A. W. (2012). Don't believe the hype: Local media slant, local advertising, and firm value. The Journal of Finance, 67(2), 561-598. https://doi.org/10.1111/j.1540-6261.2012.01725.x
+Engelberg, J. E., & Parsons, C. A. (2011). The causal impact of media in financial markets. The Journal of Finance, 66(1), 67-97. https://doi.org/10.1111/j.1540-6261.2010.01626.x
 <!-- rendered-citations:end -->

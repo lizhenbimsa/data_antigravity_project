@@ -51,7 +51,7 @@ citations:
   type: "journal"
   authors: "Fang, Y., Wang, F., & Dai, Z."
   year: 2025
-  title: "A Zipfian Approach to Exploring Lexical Complexity Changes in Mandarin Chinese: A Corpus-Based Analysis of Word N -Grams"
+  title: "A Zipfian Approach to Exploring Lexical Complexity Changes in Mandarin Chinese: A Corpus-Based Analysis of Word N-Grams"
   venue: "Journal of Quantitative Linguistics"
   vol: "32"
   issue: "3"
@@ -109,7 +109,7 @@ Bestgen, Y. (2025). Estimating lexical diversity using the moving average type-t
 Loughran, T., & McDonald, B. (2014). Measuring readability in financial disclosures. Journal of Finance, 69(4), 1643-1671. https://doi.org/10.1111/jofi.12162
 Bonsall, S. B., Leone, A. J., Miller, B. P., & Rennekamp, K. (2017). A plain English measure of financial reporting readability. Journal of Accounting and Economics, 63(2-3), 329-357. https://doi.org/10.1016/j.jacceco.2017.03.002
 Covington, M. A., & McFall, J. D. (2010). Cutting the Gordian knot: The moving-average type-token ratio (MATTR). Journal of Quantitative Linguistics, 17(2), 94-100. https://doi.org/10.1080/09296171003643098
-Fang, Y., Wang, F., & Dai, Z. (2025). A Zipfian Approach to Exploring Lexical Complexity Changes in Mandarin Chinese: A Corpus-Based Analysis of Word N -Grams. Journal of Quantitative Linguistics, 32(3), 251-278. https://doi.org/10.1080/09296174.2025.2483080
+Fang, Y., Wang, F., & Dai, Z. (2025). A Zipfian Approach to Exploring Lexical Complexity Changes in Mandarin Chinese: A Corpus-Based Analysis of Word N-Grams. Journal of Quantitative Linguistics, 32(3), 251-278. https://doi.org/10.1080/09296174.2025.2483080
 Zheng, W. (2025). Text length requirements for stable and genre-sensitive lexical diversity measurement. Cogent Arts & Humanities, 12(1), 2584418. https://doi.org/10.1080/23311983.2025.2584418
 Wang, Z., Xu, H., & Liu, K. (2024). Lexical Complexity in Corporate Communication: A Corpus-Based Study of Translated and Non-Translated Chairman’s Statements. Corpus-based Studies across Humanities, 2(2), 265-284. https://doi.org/10.1515/csh-2024-0026
 <!-- rendered-citations:end -->
