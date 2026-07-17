@@ -51,6 +51,9 @@ FILES_WHITELIST_ANCHOR = (
     os.path.join(_HERE, "LITERATURE_ANCHORS_SUPPLEMENT_VIII_2026-07-10.md"),
     # 第九补编 (2026-07-10): 三文件夹功能专项 (两管线补遗 + LLMs_for_FinTech_dic 全量) 79 条
     os.path.join(_HERE, "LITERATURE_ANCHORS_SUPPLEMENT_IX_2026-07-10.md"),
+    # 第十补编 (2026-07-17): 全指标家族 2024-2026 前沿锚点专项 245 条 —— 首次以「指标家族
+    # 覆盖度」(655 族逐族实测引文年代结构) 而非「功能批次」为组织维度; 覆盖 271 个真缺口家族
+    os.path.join(_HERE, "LITERATURE_ANCHORS_SUPPLEMENT_X_2026-07-17.md"),
     # 前沿(银企共现面板)学术锚点归档: 137 DOI 并入主机械闸 (2026-07-06 第七补编轮)
     os.path.join(_HERE, "COMPANY_BANK_COOC_PANEL_PLAN_ARCHIVE_2026-07-04.md"),
     # LLMs_for_FinTech_dic 两份修复后文档并入主机械闸 (2026-07-10 第九补编轮, 修复台账见第九补编 §二)
