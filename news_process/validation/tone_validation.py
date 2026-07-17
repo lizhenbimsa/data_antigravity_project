@@ -67,7 +67,7 @@ news_process.validation.tone_validation — 阶段34：情感分析三角验证�
 
 **职责**: 对三种情感方法 (词典法/BERT/LLM) 做系统交叉验证, 提供"方法间趋同"的**收敛效度** (convergent validity) 证据 —— 代码明确声明这不等于"效标效度"(vs 人工金标准), 后者靠人工回读 (evaluate_human_verification) 和 stage 33。
 
-**输入**: `23_bert_tone.parquet` (含逐级累积的全部词典/BERT/LLM 列, config 键 output_23_bert_tone), 回退 `22_words_tone.parquet` (output_22_words_tone); 两者皆缺则 logger.error 并 return。
+**输入**: `23_bert_tone.parquet` (含逐级累积的全部词典/BERT/LLM 列, config 键 output_23_bert_tone), 回退 `22_words_tone.parquet` (output_22_words_tone); 两者皆缺则 logger.error 并 sys.exit(1) 速败 (D2, 2026-07-18)。
 
 **处理步骤** (每轨 `_run_validation_for_track`):
 1. `discover_sentiment_columns(df, track_suffix)` 按列名后缀自动识别词典 (`*_score{track}`/`*_label{track}`, IDF 词典单独分 words_idf 组防虚高)、BERT (`*_label{track}` + 正面/中性/负面概率列)、LLM (`*_sentiment{track}` + confidence) 三族列。聚合投票列 short_name=='llm' 被剔除出跨方法统计 (否则把成员模型合成票当第 4 个独立模型, 机械抬高一致性)。
@@ -2494,7 +2494,8 @@ def main():
 
     if not os.path.isfile(primary_path):
         logger.error("未找到任何情感分析阶段的输出文件，请先运行阶段 22/23")
-        return
+        # fix(D2, 2026-07-18): 缺输入=检验未执行, 静默 return 会让入口假绿; fail-loud 速败。
+        sys.exit(1)
 
     logger.info(f"加载数据源 [{primary_key}]: {primary_path}")
     df = pd.read_parquet(primary_path)

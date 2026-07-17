@@ -271,7 +271,7 @@ def run_validation():
             if not success:
                 all_success = False
                 # 速败策略: 与主流水线一致, 任一阶段失败即中止。
-                # 验证模块间存在隐式依赖 (如 36 依赖 21 的输出),
+                # 验证模块间存在隐式依赖 (如 66 依赖 21 的输出),
                 # 前置失败则后续结果无解释意义。
                 logger.error(f"评估验证模块在 {name} 处中断。后续阶段将跳过。")
                 break

@@ -51,6 +51,23 @@ def test_second_instance_rejected_while_holder_alive(lock_in_tmp):
         rp._release_single_instance_lock(fd)
 
 
+# ⚠ 常量镜像 registry gate 件的主锚/激活代副锚 (正例断言用; RR3-Z-MAJ-1: 禁裸姐妹
+# import — tests/ 目录不在 sys.path, 单跑本文件会 ModuleNotFoundError 假红; 两处
+# 同步 bump; G9 收口后随姊妹件回归单值时一并收拢)
+_MIRROR_REGISTRY_SHA256 = "023cdc9158ec52ba60f148f59b520a9195a02a3086da95b641db93c5d082dd30"
+_MIRROR_REGISTRY_SHA256_ACTIVATED = "4a2f79fd932974b090db338a1441ea95934e6ff22a5cb61b0ed8c5f29871d4e1"
+
+
+def test_expected_registry_anchor_and_activated_are_readable():
+    """D-4fix (2026-07-18): 主锚+激活代副锚双提取器均须能从 registry gate 件读出 64-hex —
+    副锚不可读 = 激活代判读静默 fail-open (「勿 bump 主锚」保护永不生效, 重演 D-1 拉锯)。"""
+    assert rp._expected_registry_anchor() == _MIRROR_REGISTRY_SHA256
+    activated = rp._expected_registry_anchor_activated()
+    assert activated is not None and len(activated) == 64, \
+        "run_pipeline 无法读出 EXPECTED_REGISTRY_SHA256_ACTIVATED (副锚正则 fail-open)"
+    assert activated == _MIRROR_REGISTRY_SHA256_ACTIVATED
+
+
 def test_stale_lock_from_dead_pid_is_cleared_and_acquired(lock_in_tmp):
     # 陈旧锁 (上次异常退出残留, 持有者已死) → 自愈: 清除后本次获取成功
     psutil = pytest.importorskip("psutil")

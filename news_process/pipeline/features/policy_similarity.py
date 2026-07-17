@@ -335,7 +335,9 @@ def compute_authoritative_similarity(df_exploded, panel):
                     f"all_vintage_companion(_allv)={_companion}")
         logger.info("     · 相似度指标: 至多 5 维 (TF-IDF 字符级/词级 · LDA 主题 JSD · embedding 主轨 · "
                     "embedding large _lg co-primary)")
-        logger.info(f"     · embedding 主轨={CONFIG.get('embedding_model', '(default)')} | "
+        # fix(N10, 2026-07-18): 旧写法读不存在的顶层键 'embedding_model' 恒打印 '(default)';
+        # 真实路径 = embedding_api.model (features.yaml), 与 _lg 轨对称。
+        logger.info(f"     · embedding 主轨={CONFIG.get('embedding_api', {}).get('model', '(default)')} | "
                     f"large _lg spec={_LARGE_SPEC.get('model', '(unset)') if _LARGE_SPEC else '(unset)'}")
         logger.info("     · 最低银行门槛=3 家/年 (镜像 stage 25 LDA K 值稳定性守卫, 不足则该年跳过)")
         # 输入文章级数据 provenance (仅日志; _ftc/_has_* 为本地副本, 与 @341 真正决策列各算各不复用)

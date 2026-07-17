@@ -3,10 +3,13 @@
 # 原始段落归属保持不变; 注释在往返转换中可能被重排 (re-flow)。
 
 preprocessing:
-  fasttext_model_path: ./models/lid.176.bin         # FastText 语言检测模型路径 (plan s4 漏洞 B: 加 ./ 前缀让 resolve_paths 解析为项目根绝对路径)
+  # fix(N7, 2026-07-18): 删除死键 fasttext_model_path / min_lang_detect_length —
+  # 语言检测功能已不存在, 全仓 *.py 零消费 (与 models/lid.176.bin 悬空互证), 保留会
+  # 误导读者以为存在活跃的语言检测环节。
   text_column: 内容                                  # 主要文本列名
-  min_lang_detect_length: 15                        # 语言检测所需的最小文本长度（字符数）
   sheet_name: Sheet1                                 # Excel 工作表名称
+  # num_workers: 32                                  # (N12 声明) 加载并行 worker 数; 缺省 =
+  #                                                  # min(CPU 核数, 32), 消费点 pipeline/preprocess/runner.py
 
   # --- 原始样本普查日志 (过滤前, 只读诊断) ---
   # 运行 stage 00 时, 递归扫描 raw_data_dir (含 back/) 全部原始 Excel, 把『最初原始

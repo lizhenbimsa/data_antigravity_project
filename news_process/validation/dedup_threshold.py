@@ -343,7 +343,8 @@ def main():
         if not os.path.exists(input_path):
             logger.error(f"输入文件未找到: {input_path}")
             logger.error("  请确保阶段 00 缓存 (_cache/) 或阶段 21 输出至少一项可用")
-            return
+            # fix(D2, 2026-07-18): 缺输入=检验未执行, 静默 return 会让入口假绿; fail-loud 速败。
+            sys.exit(1)
 
         logger.info(f"正在加载回退分析数据集: {input_path}")
         df = pd.read_parquet(input_path)
@@ -368,7 +369,8 @@ def main():
 
     if df.empty:
         logger.error("数据为空，无法执行测试。")
-        return
+        # fix(D2, 2026-07-18): 空输入=检验未执行; fail-loud 速败 (同文件同函数口径统一)。
+        sys.exit(1)
 
     # ── 校验文本列存在性 ──
     text_col = config.get('deduplication', {}).get('text_column',
@@ -376,7 +378,8 @@ def main():
     if text_col not in df.columns:
         logger.error(f"文本列 '{text_col}' 不存在于输入数据中，无法计算 MinHash")
         logger.error(f"  可用列: {list(df.columns[:20])}...")
-        return
+        # fix(D2, 2026-07-18): 缺必要列=检验未执行; fail-loud 速败。
+        sys.exit(1)
 
     thresholds = [0.70, 0.75, 0.80, 0.85, 0.90]
     results = []

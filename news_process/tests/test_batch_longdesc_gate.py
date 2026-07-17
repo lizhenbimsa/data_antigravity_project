@@ -23,7 +23,7 @@ from news_process.pipeline.panel import codebook_longdesc as cl
 from news_process.scripts.audit import batch_longdesc_gate as blg
 
 # ============================================================================
-# fixture 家族库构造 (镜像 test_codebook_longdesc.py, 白名单注入不触真实 874)
+# fixture 家族库构造 (镜像 test_codebook_longdesc.py, 白名单注入不触真实主白名单)
 # ============================================================================
 
 WL_DOIS = [f'10.1000/wl{i}' for i in range(1, 15)]

@@ -178,6 +178,13 @@ logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 # 从配置中获取情感分析参数
 SENTIMENT_PARAMS = CONFIG.get('sentiment_analysis', {}).get('tone_words', {})
 
+# fix(D6, 2026-07-18): 标签阈值接线 config (sentiment.yaml::tone_words.pos/neg_threshold)。
+# 此前该二键只被验证 65 (radius_sensitivity) 消费, 生产端硬编码在 _score_to_label 默认参
+# → 改键即验证/生产静默分叉。接线行与 radius_sensitivity.py:148-149 逐字同款 (均不加
+# float(), 保「逐行对齐」); 当前 yaml 值 0.1/-0.1 恒等默认 → 零行为/零字节漂移。
+POS_THRESHOLD = SENTIMENT_PARAMS.get('pos_threshold', 0.1)
+NEG_THRESHOLD = SENTIMENT_PARAMS.get('neg_threshold', -0.1)
+
 # 词典文件路径
 TONE_DICTS_FILE = CONFIG['paths'].get(
     'tone_dicts_file',
@@ -1501,7 +1508,7 @@ def _analyze_single_article(content: str, _precut: list | None = None) -> dict:
             _compute_sentiment_with_rules(tokens, sentiment_dict, both_sided_words=_bs)
 
         result[f'{dict_name}_score'] = round(norm_score, 4)
-        result[f'{dict_name}_label'] = _score_to_label(norm_score)
+        result[f'{dict_name}_label'] = _score_to_label(norm_score, POS_THRESHOLD, NEG_THRESHOLD)
 
         # ── 规则消融梯度 (rule-ablation ladder, v3.11.1; 旧 negonly 折入此谱) ──
         # 全 powerset 中间变体, 各自独立 Σ|final| 自归一化 (与 {dict}_score 同口径)。framing:
@@ -1651,7 +1658,7 @@ def _analyze_single_article(content: str, _precut: list | None = None) -> dict:
             _, idf_norm, _, _, _ = _compute_sentiment_with_rules(
                 tokens, idf_dict, both_sided_words=_BOTH_SIDED_BY_DICT.get(dict_name, frozenset()))
             result[f'{dict_name}_idf_score'] = round(idf_norm, 4)
-            result[f'{dict_name}_idf_label'] = _score_to_label(idf_norm)
+            result[f'{dict_name}_idf_label'] = _score_to_label(idf_norm, POS_THRESHOLD, NEG_THRESHOLD)
 
     return result
 
@@ -2020,7 +2027,8 @@ def _log_environment_and_config(input_path: str, output_path: str) -> None:
                     f"| 转折连词={len(ADVERSATIVE_WORDS)} | 句末标点={len(SENTENCE_END_MARKERS)}")
         logger.info(f"     · 并行: batch_size={parallel_cfg.get('batch_size', 5000)} "
                     f"| n_jobs={parallel_cfg.get('n_jobs', -1)} (joblib threads)")
-        logger.info("     · 标签阈值: 正面>+0.1 / 负面<−0.1 / 其间=中性 (_score_to_label)")
+        logger.info(f"     · 标签阈值: 正面>{POS_THRESHOLD:+g} / 负面<{NEG_THRESHOLD:+g} / "
+                    "其间=中性 (_score_to_label, config 接线 sentiment.yaml::tone_words)")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"  环境/配置信息打印失败 (不影响处理): {e}")
 

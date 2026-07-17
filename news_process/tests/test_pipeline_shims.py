@@ -43,3 +43,49 @@ def test_unregistered_shim_propagates_exit_code(shim_name: str) -> None:
     assert code_lines[-1] == "sys.exit(main())", (
         f"{shim_name} 最后一条代码语句应为 sys.exit(main()), 实为: {code_lines[-1]!r}"
     )
+
+
+# ---------------------------------------------------------------------------
+# D4 (2026-07-18 第六轮审计 C-2): 注册 shim 盘上存在性 + thin 契约 + 35 计数普查。
+# 此前 35 个 shim 中仅 4 个 (72/80/81/82) 有存在性守卫; 误删/改名注册 shim 时
+# pytest 全绿、只有生产真跑才 fail-loud 暴露。纯静态 (read_text/glob), 零 import。
+# ---------------------------------------------------------------------------
+
+def _registered_scripts() -> list:
+    from news_process.core import dag as core_dag
+    return sorted({s.script for s in core_dag.STAGES_MAIN}
+                  | {s.script for s in core_dag.STAGES_VALIDATION})
+
+
+@pytest.mark.fast
+def test_registered_stage_scripts_exist_and_thin() -> None:
+    """全部 32 个注册 StageSpec.script 必须在盘且为 thin shim (非空行 ≤30)。"""
+    missing, fat = [], []
+    for script in _registered_scripts():
+        p = _PKG_DIR / script
+        if not p.exists():
+            missing.append(script)
+            continue
+        n_nonblank = sum(
+            1 for ln in p.read_text(encoding="utf-8").splitlines() if ln.strip()
+        )
+        if n_nonblank > 30:
+            fat.append((script, n_nonblank))
+    assert not missing, f"注册 shim 缺盘 (orchestrator 子进程按文件名启动必败): {missing}"
+    assert not fat, f"shim 超 thin 上限 30 非空行 (业务逻辑应归 pipeline/validation 包): {fat}"
+
+
+@pytest.mark.fast
+def test_numbered_shim_census_is_35() -> None:
+    """盘上编号 shim 普查: 恰 35 个 = 32 注册 ∪ {80,81,82} 不注册 (CLAUDE.md 计数不变量)。
+
+    集合恒等同时抓「孤儿 shim」(盘上有但未注册且不在 80/81/82 白名单) 与
+    「缺失 shim」(注册了但盘上无)。
+    """
+    on_disk = {p.name for p in _PKG_DIR.glob("[0-9][0-9]_*.py")}
+    expected = set(_registered_scripts()) | set(_SHIMS)
+    assert len(on_disk) == 35, f"编号 shim 计数漂移: 期望 35, 实际 {len(on_disk)}"
+    assert on_disk == expected, (
+        f"编号 shim 集合与注册面不恒等 — 孤儿: {sorted(on_disk - expected)}; "
+        f"缺失: {sorted(expected - on_disk)}"
+    )

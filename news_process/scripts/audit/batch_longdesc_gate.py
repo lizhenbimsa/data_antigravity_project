@@ -11,7 +11,7 @@
   2. 字数双闸: 逐列经引擎五段组装 (真实 panel 注入动态统计段) 后
      standard >=1000 / core >=5000 CJK 汉字总量闸 + 段落闸 (CORE 700/4200,
      VAR 350/900, core 传染 = core 家族全列享 4200 深核心) + 结构列白名单豁免。
-  3. DOI 白名单差集闸 (final 级): citations[].doi 全体 ⊆ (874 白名单 ∪ 已准入台账),
+  3. DOI 白名单差集闸 (final 级): citations[].doi 全体 ⊆ (主白名单 [FILES_WHITELIST_ANCHOR 动态派生] ∪ 已准入台账),
      越权即 FAIL **不走 v2.9 draft 出口** (draft 出口只属组装期 check_longdesc_whitelist;
      批收尾时 DOI 准入已先行, 残余越权 = 未过准入的引文, 一律打回) +
      no_doi_ack 闸 + new_dois ⊆ citations 一致性 + frontmatter 解析对账 (全局)。
@@ -70,7 +70,7 @@ GATE_KEYS = ("g2_wordcount", "g3_whitelist", "g4_render", "g5_placeholder")
 
 
 def _load_whitelist() -> Set[str]:
-    """874-DOI 白名单 (唯一派生源 = audit_dois.FILES_WHITELIST_ANCHOR), 归一口径与
+    """主 DOI 白名单 (唯一派生源 = audit_dois.FILES_WHITELIST_ANCHOR 动态派生, 勿嵌计数字面), 归一口径与
     引擎 normalize_doi 一致。测试可 monkeypatch 本函数注入 fixture 白名单。"""
     return {cl.normalize_doi(d) for d in audit_dois.whitelist_dois()}
 

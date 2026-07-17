@@ -14,9 +14,13 @@ V2.0 J-L-M 2026 robustness alignment plan §3 Phase 1 P1.6:
 
 from __future__ import annotations
 
+import pathlib
 import sys
 
-from news_process.pipeline.features.benefit_society_audit_combined import main
+# F-5 (N15, 2026-07-18): sys.path 注入先于包导入 (81/82 同款) — 未 editable install 的
+# 裸解释器直跑本 shim 也能解析 news_process 包; 注入必须在 from-import 之前才有效。
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 if __name__ == "__main__":
+    from news_process.pipeline.features.benefit_society_audit_combined import main
     sys.exit(main())

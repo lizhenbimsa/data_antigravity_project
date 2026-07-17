@@ -1210,6 +1210,11 @@ def main(argv=None) -> int:
         raise SystemExit("pair 长表 metadata 缺 registry_sha256 (被外部工具重写/非 02 产物?) — 先重跑 WP1")
     if reg_sha != registry["meta"]["registry_sha256"]:
         raise SystemExit("pair 长表 registry 指纹与当前 registry 不一致 (stale, 先重跑 WP1)")
+    # D8 第二把锁读点 (2026-07-18, 镜像 04 的 R1-P1-2 双向锁): 21_full 重生而 registry
+    # sha 不变时, 单锁放行会让 03 静默用旧媒体锚 × 新测度库混代产互验报告。
+    pair_fp = (meta.get(b"input_fingerprint") or b"").decode()
+    if not pair_fp:  # fail-closed: 02 恒内嵌; 缺失 = 非 02 正规产物
+        raise SystemExit("pair 长表 metadata 缺 input_fingerprint (被外部工具重写/非 02 产物?) — 先重跑 02")
     pair = pd.read_parquet(pairs_path)
     logger.info("已加载 pair 长表 %s 行 (registry 指纹校验通过: 内嵌 registry_sha256=%s… == 当前"
                 " registry, 媒体锚与测度注册表同代)。", f"{len(pair):,}", reg_sha[:16])
@@ -1323,6 +1328,15 @@ def main(argv=None) -> int:
     p_input = Path(args.input) if args.input else dp["input"]
     p_panel = Path(args.panel) if args.panel else dp["panel"]
     input21 = wp1.load_input21(p_input, canon.canonicals)
+    # D8 第二把锁复算 (2026-07-18): size 取 03 实际载入的 p_input (支持 --input 覆盖,
+    # 勿抄 04 的 dp['input'] — 覆盖盘面下会锁错文件被静默绕过); rows 取本次 len(input21)。
+    import hashlib as _hashlib
+    _fp_now = _hashlib.sha256(f"{p_input.stat().st_size}|{len(input21)}".encode()).hexdigest()
+    if pair_fp != _fp_now:
+        raise SystemExit(f"pair 长表 input_fingerprint ({pair_fp[:16]}…) 与现场 21_full "
+                         f"({_fp_now[:16]}…) 不同代 — 先重跑 02 (禁旧媒体锚×新测度混代)")
+    logger.info("pair 双向锁通过 (03): registry sha 同代 ✓ + input_fingerprint 同代 ✓ (%s…)",
+                _fp_now[:16])
     panel40 = pd.read_parquet(p_panel)
     align = pd.read_parquet(Path(args.alignment) if args.alignment else dp["alignment"]) \
         if (args.alignment or dp["alignment"].exists()) else None

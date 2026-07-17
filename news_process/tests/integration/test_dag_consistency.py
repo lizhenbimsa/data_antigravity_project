@@ -258,6 +258,19 @@ def test_stages_main_all_registered_in_output_registry(core_dag):
         f"以下 STAGES_MAIN stage 未在 OUTPUT_REGISTRY 登记, "
         f"会让陈旧文件预清理失效: {missing}"
     )
+    # D3 (2026-07-18 第六轮审计): 反向恒等 — 删阶段忘删 registry 条目时孤儿键会被
+    # get_stage_outputs 继续对外供给 (幽灵 producer), 且 CLAUDE.md「OUTPUT_REGISTRY=16」
+    # 计数不变量此前无测试等价物。集合恒等同时给出正向包含、反向包含与 len==16。
+    # 若未来有意新增「MAIN 无输出阶段」, 须放宽本恒等式为 ∪-覆盖+互斥,
+    # 并同步更新 CLAUDE.md 计数不变量 (OUTPUT_REGISTRY=16)。
+    main_scripts = {s.script for s in core_dag.STAGES_MAIN}
+    assert set(OUTPUT_REGISTRY) == main_scripts, (
+        f"OUTPUT_REGISTRY 与 STAGES_MAIN scripts 不恒等 — 孤儿键: "
+        f"{sorted(set(OUTPUT_REGISTRY) - main_scripts)}; 缺登记: "
+        f"{sorted(main_scripts - set(OUTPUT_REGISTRY))}. "
+        f"(若有意新增 MAIN 无输出阶段, 放宽本恒等式并更新 CLAUDE.md 计数不变量)"
+    )
+    assert len(OUTPUT_REGISTRY) == 16
 
 
 def test_validation_stages_explicitly_marked_no_output(core_dag):
@@ -283,6 +296,28 @@ def test_validation_stages_explicitly_marked_no_output(core_dag):
         f"EXPECTED_NO_OUTPUT_STAGES (Fix 4 后 orchestrator 会 raise): "
         f"{unaccounted}"
     )
+    # D3 (2026-07-18): 反向恒等 — 删验证阶段忘删 EXPECTED_NO_OUTPUT_STAGES 条目
+    # 此前零测试可捕获。当前事实态: 全部 16 个验证阶段均无**注册** parquet 输出
+    # (OUTPUT_REGISTRY 意义上; 72/73/75 的盘上 parquet 为 registry 外验证产物), 集合恒等。
+    # 若未来有验证阶段产注册 parquet (入 OUTPUT_REGISTRY), 放宽为 ∪-覆盖+互斥。
+    val_scripts = {s.script for s in core_dag.STAGES_VALIDATION}
+    assert set(EXPECTED_NO_OUTPUT_STAGES) == val_scripts, (
+        f"EXPECTED_NO_OUTPUT_STAGES 与 STAGES_VALIDATION scripts 不恒等 — 孤儿: "
+        f"{sorted(set(EXPECTED_NO_OUTPUT_STAGES) - val_scripts)}; 缺列: "
+        f"{sorted(val_scripts - set(EXPECTED_NO_OUTPUT_STAGES))}"
+    )
+    assert len(EXPECTED_NO_OUTPUT_STAGES) == 16
+
+
+def test_stage_scripts_unique(core_dag):
+    """N6 (2026-07-18 第六轮审计): STAGES 列表内 script 唯一性 —
+    复制粘贴改名遗漏会让 orchestrator 双跑同一脚本且漏跑被顶掉的阶段,
+    而 16 计数/⊆ 关系/谓词断言全部探不到 (CLAUDE.md「无重名」承诺的测试等价物)。"""
+    for stages, label in ((core_dag.STAGES_MAIN, "STAGES_MAIN"),
+                          (core_dag.STAGES_VALIDATION, "STAGES_VALIDATION")):
+        scripts = [s.script for s in stages]
+        dupes = sorted({x for x in scripts if scripts.count(x) > 1})
+        assert len(scripts) == len(set(scripts)), f"{label} 存在重名 script: {dupes}"
 
 
 def test_output_filename_keys_invariant():

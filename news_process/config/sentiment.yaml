@@ -20,7 +20,8 @@ tone_llm_processing:
   temperature: 0.0                                  # 推理温度（0 = 确定性输出）
   random_seed: 42                                   # 随机种子（确保确定性输出）
   force_json: true                                  # 启用 response_format 强制 JSON 输出
-  ensemble_method: majority_vote                    # 多模型聚合方法
+  ensemble_method: majority_vote                    # 多模型聚合方法 [仅作记录, 运行时无消费者 —
+                                                    #  多数投票逻辑硬编码于 tone_llms 聚合路径; 改此键静默无效 (N8, 2026-07-18)]
 
   # v3 LLM 模型列表 — 真三家族三角验证 (基于 yunwu /v1/models 实际授权清单)
   #   v3 锁定:  gpt-5.4-nano / gemini-3.1-flash-lite / deepseek-v4-flash

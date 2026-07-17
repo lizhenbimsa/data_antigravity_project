@@ -285,7 +285,7 @@ def admit_dois(
             report["failed"].append((doi, "非法 DOI 形状 (须 10.xxxx/...)"))
             continue
         if doi in whitelist:
-            report["skipped"].append((doi, "已在 874 白名单 (无需台账准入)"))
+            report["skipped"].append((doi, "已在主白名单 (FILES_WHITELIST_ANCHOR 动态派生; 无需台账准入)"))
             continue
         if doi in already:
             report["skipped"].append((doi, "台账已有完整核验条目"))

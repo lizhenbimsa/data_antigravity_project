@@ -179,7 +179,23 @@ def main():
         logger.warning(f"[配置] CONFIG block 输出异常, 跳过 (不影响产物): {_e}")
 
     _t_excel = _time.time()
-    with pd.ExcelWriter(output_excel, engine='openpyxl') as writer:
+    # fix(D14, 2026-07-18) 之一: 四输入全缺预扫 — 旧实现进 ExcelWriter 后 0-sheet close
+    # 会抛 IndexError 且构造时已截断旧良品 Excel (毁产物)。全缺则响亮跳过, 不碰旧文件。
+    _existing = [s for s in stages
+                 if os.path.exists(os.path.join(output_dir, s['filename']))]
+    if not _existing:
+        for s in stages:
+            print(f"[跳过] {s['label']}: 文件不存在 ({os.path.join(output_dir, s['filename'])})")
+        print("[中止] 四个输入 parquet 全部缺失 — 不产出/不覆写 Excel (旧产物保持原状)")
+        logger.error("四个输入 parquet 全部缺失, Excel 导出中止 (旧产物未触碰)")
+        return 1
+
+    # fix(D14, 2026-07-18) 之二: tmp+replace 原子写 — 任何读盘/写 sheet 异常冲出 with
+    # 时旧良品 Excel 原封不动 (旧实现 ExcelWriter 构造即截断目标文件)。
+    # ⚠ tmp 名必须保 .xlsx 尾缀 — pd.ExcelWriter 按扩展名校验引擎, '.tmp' 尾缀会被
+    # openpyxl 拒 (ValueError: Invalid extension), §6.5 复跑实弹抓获后改 '.tmp.xlsx'。
+    _excel_tmp = output_excel[:-len('.xlsx')] + '.tmp.xlsx'
+    with pd.ExcelWriter(_excel_tmp, engine='openpyxl') as writer:
         for stage in stages:
             parquet_path = os.path.join(output_dir, stage['filename'])
             label = stage['label']
@@ -191,14 +207,26 @@ def main():
 
             print(f"[读取] {label}: {parquet_path}")
             cols_to_read = [f for f, _ in stat_fields]
-            df = pd.read_parquet(parquet_path, columns=cols_to_read)
+            # fix(D13, 2026-07-18): columns= 下推对缺列抛 ArrowInvalid (pyarrow 21) —
+            # 先读 schema 求交集, 复活 docstring 承诺的「缺列警告跳过」降级语义
+            # (旧实现下方 not-in-columns 守卫因限定读恒不可达, 缺列=整跑崩+毁产物)。
+            import pyarrow.parquet as _pq
+            _avail = set(_pq.read_schema(parquet_path).names)
+            _present = [c for c in cols_to_read if c in _avail]
+            for _miss in (c for c in cols_to_read if c not in _avail):
+                print(f"  [警告] 列 '{_miss}' 不存在于 {label}，跳过")
+                missing_fields.append(f"{label}.{_miss}")  # 仅供结果分析日志
+            if not _present:
+                print(f"  [跳过] {label}: 三个统计列全部缺失")
+                continue
+            df = pd.read_parquet(parquet_path, columns=_present)
             print(f"  行数: {len(df):,}")
             stage_rowcounts[label] = len(df)  # 仅供结果分析日志
 
             for col_name, sheet_suffix in stat_fields:
                 if col_name not in df.columns:
+                    # 二重保险 (D13 后正常不可达 — schema 交集已在读取前过滤)
                     print(f"  [警告] 列 '{col_name}' 不存在于 {label}，跳过")
-                    missing_fields.append(f"{label}.{col_name}")  # 仅供结果分析日志
                     continue
 
                 sheet_name = f"{label}_{sheet_suffix}"[:31]  # Excel sheet 名上限 31 字符
@@ -231,6 +259,8 @@ def main():
                         f" (不影响产物): {_e}"
                     )
 
+    # D14: 全部 sheet 写毕后原子替换 — 崩溃路径旧良品无损
+    os.replace(_excel_tmp, output_excel)
     print(f"\n已生成 Excel: {output_excel}")
     phase_t['read_count_write_excel'] = _time.time() - _t_excel
 

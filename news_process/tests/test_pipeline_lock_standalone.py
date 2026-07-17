@@ -155,9 +155,14 @@ class PipelineLock:
                         self.logger.info(f"已释放管道锁: {self.lock_file_path}")
                     except Exception as e:
                         self.logger.warning(f"删除锁文件失败: {e}")
+                # N3 (2026-07-18) 属主校验镜像 (与生产 core/locking.py::_cleanup 同步):
+                # 首行 PID != self.pid (或读取失败) → 按他人所有处理, 保留不删。
                 if os.path.exists(self.sidecar_path):
                     try:
-                        os.remove(self.sidecar_path)
+                        with open(self.sidecar_path, encoding='utf-8') as _sf:
+                            _owner = _sf.readline().strip()
+                        if _owner == str(self.pid):
+                            os.remove(self.sidecar_path)
                     except Exception as e:
                         self.logger.warning(f"删除 sidecar 文件失败: {e}")
             except Exception as e:

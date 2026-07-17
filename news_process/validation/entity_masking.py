@@ -1,5 +1,5 @@
 """
-news_process.validation.entity_masking — 阶段36：Entity Masking 稳健性测试（三轨版）
+news_process.validation.entity_masking — 阶段66：Entity Masking 稳健性测试（三轨版）
 
 迁移说明 (Phase 7b)：
     本模块由原 root script ``66_entity_masking_test.py`` body 迁入。
@@ -810,7 +810,7 @@ def main():
 
     # fix(2026-06-19 run-check F7): 离线确定性模式下本阶段必为冷缓存 (掩码文本 prompt 与生产不同),
     # 强行运行会抛大量 LLMCacheMissError + "Task exception was never retrieved" 异步噪声。
-    # 阶段 36 是在线付费 only 的稳健性验证 (EXPECTED_NO_OUTPUT, 不写面板) → 离线优雅跳过,
+    # 阶段 66 是在线付费 only 的稳健性验证 (EXPECTED_NO_OUTPUT, 不写面板) → 离线优雅跳过,
     # 在线 (生产) 行为完全不变。复用 tone_llms.LLM_OFFLINE 单一事实源 (勿重解析 env)。
     if _tone_llms.LLM_OFFLINE:
         logger.warning(
@@ -871,7 +871,8 @@ def main():
 
     if not os.path.exists(input_path):
         logger.error(f"输入文件不存在: {input_path}")
-        return
+        # fix(D2, 2026-07-18): 缺输入=检验未执行, 静默 return 会让入口假绿; fail-loud 速败。
+        sys.exit(1)
     _t_load = time.time()
     df = pd.read_parquet(input_path)
     logger.info(f"加载全量 LLM 结果: {len(df):,d} 条")

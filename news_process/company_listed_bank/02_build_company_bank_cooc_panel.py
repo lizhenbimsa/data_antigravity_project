@@ -1699,7 +1699,13 @@ def main(argv=None) -> int:
                                        b"upstream_snapshot": json.dumps(
                                            upstream_snapshot, ensure_ascii=False,
                                            sort_keys=True).encode()})
-    pqw.write_table(tbl, out_dta.parent / "_company_bank_cooc_pairs.parquet")
+    # N13/D-5fix (2026-07-18): pair 长表 =「被删加权列唯一重构载体」, 直写终路径在写盘
+    # 中途崩溃会连旧好副本一起截断毁掉 (须重跑 02 才能恢复) → tmp+replace 原子写
+    # (镜像 write_outputs 的 F8 crash-safe 范式)。
+    _pair_final = out_dta.parent / "_company_bank_cooc_pairs.parquet"
+    _pair_tmp = _pair_final.with_suffix(".parquet.tmp")
+    pqw.write_table(tbl, _pair_tmp)
+    _pair_tmp.replace(_pair_final)  # Path.replace = 原子改名 (本文件 os 仅函数级 import)
     logger.info("pair 长表落盘: metadata 内嵌 registry_sha256=%s… + input_fingerprint=%s… "
                 "(步骤 03 启动时校验, stale 即 SystemExit)",
                 registry["meta"]["registry_sha256"][:16], fingerprint[:16])

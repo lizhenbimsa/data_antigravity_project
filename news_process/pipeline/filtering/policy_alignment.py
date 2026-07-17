@@ -155,8 +155,8 @@ _LARGE_SPEC = CONFIG.get('embedding_large', {})
 RETRY_DELAY = 10
 CACHE_DB_PATH = CONFIG['paths'].get('llm_cache_db', os.path.join(CONFIG['paths']['output_dir'], '_llm_cache.db'))
 
-# 模块专属配置
-_ALIGN_CFG = CONFIG.get('policy_alignment', {})
+# 模块专属配置 (fix N9, 2026-07-18: 删除此处曾有的 CONFIG.get('policy_alignment') 死读 —
+# 该键任何 YAML 均不存在, 且随即被下方 'article_alignment' 真读覆盖, 纯误导)
 
 # Stage 名称
 STAGE_NAME = "16_article_policy_alignment"

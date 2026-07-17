@@ -269,7 +269,10 @@ def process_single_file(file_path, output_dir):
     output_path = os.path.join(output_dir, f"{base_name}.md")
     
     # 检查是否已处理过
-    if os.path.exists(output_path):
+    # fix(D16/G-1, 2026-07-18): 判据补 getsize>0 — 旧判据「存在即跳」使 0 字节毒丸文件
+    # (OCR 全解析失败时曾写出的空 md) 把该 PDF 永久判为已处理 (2024 年报永久跳过事故根因;
+    # 1b9704d0 仅删了毒丸文件本体, 判据在此修复)。
+    if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
         logging.info(f"[跳过] {file_name} - 已存在输出文件")
         return {"file": file_name, "status": "skipped", "message": "已存在输出文件"}
     
@@ -301,10 +304,20 @@ def process_single_file(file_path, output_dir):
                 except Exception as cleanup_err:
                     logging.warning(f"[清理] 删除临时目录失败: {cleanup_err}")
         
+        # fix(D16/G-2, 2026-07-18): 全部页解析失败 → 终态 parse_empty, 不写 0 字节毒丸。
+        # 刻意**不** raise 入 error 重试队列 — error 会被 process_batch 按 max_retries=1000
+        # 轮重试, 对确定性坏 PDF 每轮都是一次付费 OCR 任务 (成本放大); parse_empty 不在
+        # 重试收集判据 ["error","limit_reached"] 内, 天然终态。瞬态失败仍走既有 error 路径。
+        if not texts:
+            logging.warning(f"[空结果] {file_name}: OCR 全部页解析失败 — 拒写 0 字节 md, "
+                            f"记终态 parse_empty (不自动重试; 人工排查后删除该记录重跑)")
+            return {"file": file_name, "status": "parse_empty",
+                    "message": "OCR 结果全部解析失败 (拒写 0 字节毒丸, 不入重试队列)"}
+
         # 保存合并后的结果
         page_count = save_text(texts, output_path)
         logging.info(f"[保存成功] {file_name} -> {page_count} 页已保存到 {output_path}")
-        
+
         return {"file": file_name, "status": "success", "pages": page_count}
         
     except Exception as e:
@@ -447,6 +460,9 @@ def process_batch(input_dir, output_dir, max_workers=3, max_retries=1000):
     success_count = sum(1 for r in final_status.values() if r["status"] == "success")
     skip_count = sum(1 for r in final_status.values() if r["status"] == "skipped")
     error_count = sum(1 for r in final_status.values() if r["status"] == "error")
+    parse_empty_count = sum(1 for r in final_status.values() if r["status"] == "parse_empty")
+    if parse_empty_count:
+        logging.warning(f"  ⚠ parse_empty (全页解析失败, 未写文件, 不自动重试): {parse_empty_count} 个")
     
     logging.info(f"  总文件数: {len(pdf_files)}")
     logging.info(f"  成功: {success_count}")

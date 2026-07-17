@@ -599,3 +599,13 @@ def test_wps2_join_background_writes_semantics():
     logs.clear()
     out = w8._join_background_writes({"branch_city": _BadFut()}, True, logs.append)
     assert out == [] and len(logs) == 1 and "原异常优先" in logs[0]
+
+
+@pytest.mark.fast
+def test_03_input_fingerprint_second_lock_readpoint_present():
+    """D8 第二把锁读点 (2026-07-18 第六轮审计): tax 03 必须含 pair metadata 的
+    input_fingerprint 读取与复算比对 (与 listed 03 对称) — 删除即回退。"""
+    _src = (Path(__file__).resolve().parents[1] / "company_tax_bank" /
+            "03_build_company_tax_bank_weight_validation.py").read_text(encoding="utf-8")
+    assert 'input_fingerprint' in _src, "D8 第二把锁读点缺失 — 删除即回退 (2026-07-18)"
+    assert _src.count("input_fingerprint") >= 2, "须同时含 metadata 读点与复算比对两处"

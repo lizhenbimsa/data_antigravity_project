@@ -21,7 +21,8 @@ panel_building:
   # ss 回退=镜像 ctx (无共现→全文 body), 故与 ctx 共享 n_articles 分母, 无独立计数。
   # 白话: 面板里凡是 full/ctx 两份的指标, 现在多一份 ss (只看银行金科同句的那批文章),
   #       它不是开关项, 是常开的, 跟前两轨一起进面板。
-  aggregation_frequency: yearly
+  aggregation_frequency: yearly      # [仅作记录, 运行时无消费者 — yearly 聚合硬编码于
+                                     #  panel runner; 改此键静默无效 (N8, 2026-07-18)]
   export_stata: true
   compute_attention_index: true      # 6b. 金融科技注意力指数 (三级地理维度)
   # fix(omni-g-papers-misc-09, 2026-06-11) 锚点更正: attention_index = Fang-Peress (2009 JF)

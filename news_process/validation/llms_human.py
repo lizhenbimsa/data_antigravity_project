@@ -24,7 +24,7 @@ news_process.validation.llms_human — 阶段32：生成人工“金标准”双
 
 **职责**: stage 21 LLM 投票结果的人工"金标准"采样器 —— 抽一批文章给人类编码员复核, 产出可直接填写的 Excel 工作台, 是 stage 33/34 效标效度评估的上游。
 
-**输入 (三级回退, 取第一个存在者)**: ① `21_tone_llms_full.parquet` (config.filenames.output_21_tone_llms_full) → ② `23_bert_tone.parquet` (output_23_bert_tone) → ③ `21_tone_llms.parquet` (output_21_tone_llms)。三者皆缺则 logger.error 并 return (不抛异常)。
+**输入 (三级回退, 取第一个存在者)**: ① `21_tone_llms_full.parquet` (config.filenames.output_21_tone_llms_full) → ② `23_bert_tone.parquet` (output_23_bert_tone) → ③ `21_tone_llms.parquet` (output_21_tone_llms)。三者皆缺则 logger.error 并 sys.exit(1) 速败 (D2, 2026-07-18)。
 
 **处理步骤** (`main()`):
 - `load_config()` 读 `human_validation.sample_size` (默认 500) / `random_seed` (默认 42)。
@@ -415,7 +415,8 @@ def main(force_regenerate: bool = False):
         
     if not os.path.exists(input_path):
         logger.error(f"无法找到可作为抽样源的 parquet 文件: {input_path}")
-        return
+        # fix(D2, 2026-07-18): 三级回退全落空=抽样未执行, 静默 return 会让入口假绿; fail-loud 速败。
+        sys.exit(1)
         
     logger.info(f"加载数据以供抽样: {input_path}")
     df = pd.read_parquet(input_path)

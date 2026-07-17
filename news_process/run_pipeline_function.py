@@ -207,6 +207,43 @@ STAGE_CODE_VERSION: dict[str, tuple[str, str]] = {
 }
 
 
+def _precleanup_stage_outputs(output_files: list, out_dir: str, log) -> dict:
+    """预清理阶段登记输出; 删不掉的记录 {路径: mtime_ns} 供成功后新鲜度复核 (N1, 2026-07-18)。
+
+    守卫纪律: 记录侧 os.stat 再包 try/except — except 分支内文件可能旋即消失 (TOCTOU
+    FileNotFoundError), stat 失败 = 视作已清理不记录, 绝不让守卫自身冲出预清理循环。
+    """
+    pending: dict = {}
+    for filename in output_files:
+        output_path = os.path.join(out_dir, filename)
+        if os.path.exists(output_path):
+            try:
+                os.remove(output_path)
+                log.info(f"  🧹 预清理阶段输出: {filename}")
+            except OSError as e:
+                log.warning(f"  ⚠️ 预清理失败: {filename} ({e})")
+                try:
+                    pending[output_path] = os.stat(output_path).st_mtime_ns
+                except OSError:
+                    pass  # 删除失败后文件已消失 → 等效已清理, 不记录
+    return pending
+
+
+def _stale_outputs_after_success(pending: dict) -> list:
+    """成功后复核 (N1): 预清理失败的文件 mtime_ns 未变 = 本次子进程未重写 → 陈旧残留。
+
+    复核侧 stat 同样包 try/except: 文件缺失已由 missing_outputs 守卫在前判负, 此处跳过。
+    """
+    stale: list = []
+    for path, old_mtime in pending.items():
+        try:
+            if os.path.exists(path) and os.stat(path).st_mtime_ns == old_mtime:
+                stale.append(os.path.basename(path))
+        except OSError:
+            continue
+    return stale
+
+
 def _stage_skip_unchanged_is_safe(script: str) -> tuple[bool, str]:
     """通用 --skip-unchanged 单阶段跳过判据 (保守, golden-safe; 纯读元数据不产数据)。
 
@@ -243,8 +280,16 @@ def _stage_skip_unchanged_is_safe(script: str) -> tuple[bool, str]:
     if want_yaml is None:
         return False, f"{script} 未登记 STAGE_CONFIG_FILES, 保守重跑"
     out_dir = CONFIG['paths']['output_dir']
-    cur_cfg = compute_config_file_hashes(CONFIG_DIR)
-    cur_res = compute_resource_hashes(CONFIG_DIR)
+    try:
+        cur_cfg = compute_config_file_hashes(CONFIG_DIR)
+        cur_res = compute_resource_hashes(CONFIG_DIR)
+    except OSError as _e:
+        # fix(D1, 2026-07-18): 兑现本函数「只读不抛」契约 — config/ 下文件被锁/权限拒绝
+        # (Windows 杀软/OneDrive/编辑器) 或 exists→open TOCTOU 时, 保守重跑该阶段而非
+        # 让 OSError 冒顶 abort 整条 pipeline (镜像下方 input_hashes 路径的既有防护)。
+        return False, (
+            f"config/资源哈希无法核验 ({_e.__class__.__name__}), 保守重跑"
+        )
     raw_glob = STAGE_RAW_INPUT_GLOBS.get(script)
     # W5: 该阶段代码版本门 (仅 stage 00; 见 STAGE_CODE_VERSION)。一次性解析当前版本号。
     code_spec = STAGE_CODE_VERSION.get(script)
@@ -838,16 +883,11 @@ def run_pipeline(args: argparse.Namespace | None = None):
                     )
 
             # ── 数据流防护：预清理阶段输出，防止陈旧数据污染 ──
-            # 在每个阶段执行前，清理其输出文件，确保不会读取上次失败残留的旧数据
+            # 在每个阶段执行前，清理其输出文件，确保不会读取上次失败残留的旧数据;
+            # 删不掉的 (Windows 持锁) 记录 mtime_ns, 成功后复核新鲜度 (N1, 2026-07-18)。
             output_files = _get_stage_output_files(script)
-            for filename in output_files:
-                output_path = os.path.join(CONFIG['paths']['output_dir'], filename)
-                if os.path.exists(output_path):
-                    try:
-                        os.remove(output_path)
-                        logger.info(f"  🧹 预清理阶段输出: {filename}")
-                    except OSError as e:
-                        logger.warning(f"  ⚠️ 预清理失败: {filename} ({e})")
+            pending_stale = _precleanup_stage_outputs(
+                output_files, CONFIG['paths']['output_dir'], logger)
 
             success, elapsed = run_stage(
                 script,
@@ -870,6 +910,16 @@ def run_pipeline(args: argparse.Namespace | None = None):
                         f"按失败处理以避免下游读取陈旧或缺失数据。"
                     )
                     success = False
+                if success:
+                    # N1 (2026-07-18): 预清理失败残留的旧文件若 mtime 未变 = 本次未被重写
+                    # → 关闭「存在性≠新鲜度」的陈旧产物放行通道 (仅预清理失败路径生效)。
+                    _stale = _stale_outputs_after_success(pending_stale)
+                    if _stale:
+                        logger.error(
+                            f"{name} 子进程返回成功，但下列登记输出为预清理失败残留的"
+                            f"陈旧文件 (mtime 未变): {_stale}. 按失败处理。"
+                        )
+                        success = False
 
             stage_timings.append((name, elapsed, success))
 
@@ -885,7 +935,9 @@ def run_pipeline(args: argparse.Namespace | None = None):
                 from news_process.core.reporting import generate_pipeline_summary
                 generate_pipeline_summary(CONFIG, logger)
             except Exception as e:
-                logger.error(f"生成管道摘要报告失败: {e}")
+                # N2 (2026-07-18): 摘要=附属产物, 失败不翻转 all_success/退出码 → 降为
+                # WARNING, 消除「ERROR 级日志 + 成功横幅 + exit 0」三者不一致。
+                logger.warning(f"生成管道摘要报告失败: {e}")
 
         # ── 耗时统计 ──
         total_elapsed = time.time() - pipeline_start

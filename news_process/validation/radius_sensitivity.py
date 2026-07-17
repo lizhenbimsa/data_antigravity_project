@@ -1287,7 +1287,8 @@ def main():
 
     if input_path is None:
         logger.error("未找到输入文件。需要阶段 21 或阶段 12 的输出。")
-        return
+        # fix(D2, 2026-07-18): 缺输入=检验未执行, 静默 return 会让入口假绿; fail-loud 速败。
+        sys.exit(1)
 
     # 项目/环境信息 + 输入输出 + 运行配置 + 方法论引用 (日志富集 2026-06-24)
     _log_environment_and_config(input_path)
@@ -1303,10 +1304,12 @@ def main():
     # 检查必要列
     if 'target_bank' not in df.columns:
         logger.error("输入数据缺少 'target_bank' 列，无法执行 entity_context 提取。")
-        return
+        # fix(D2, 2026-07-18): 缺必要列=检验未执行; fail-loud 速败。
+        sys.exit(1)
     if '内容' not in df.columns:
         logger.error("输入数据缺少 '内容' 列。")
-        return
+        # fix(D2, 2026-07-18): 同上。
+        sys.exit(1)
 
     # 统计 target_bank 分布
     bank_counts = df['target_bank'].value_counts()

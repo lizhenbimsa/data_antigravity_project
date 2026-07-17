@@ -1057,7 +1057,8 @@ def main():
             input_path = os.path.join(OUTPUT_DIR, sorted(candidates)[-1])
         else:
             logger.error("未找到阶段 21 输出文件")
-            return
+            # fix(D2, 2026-07-18): 缺输入=检验未执行, 静默 return 会让入口假绿; fail-loud 速败。
+            sys.exit(1)
 
     # ── ENV / CONFIG / METHODOLOGY 三大块 (仿 tone_words 金标准, golden-safe) ──
     # 放在 input_path 解析后, 让 CONFIG 块显示真实解析到的输入路径。

@@ -1075,17 +1075,27 @@ def main():
     panel_51 = None
 
     _t = time.time()
+    # fix(D12, 2026-07-18): 存在性检查无条件 record 双分支 — 旧实现主面板缺失仅
+    # logger.error 不进 FAIL 计数, 51 在且自身无 FAIL 时 main 返 0 = 主面板根本未受检
+    # 却对自动化调用方报「通过」, 与 banner「FAIL=必修硬错→退出码 1」契约不一致。
     if os.path.exists(panel_40_path):
         panel_40 = pd.read_parquet(panel_40_path)
         logger.info(f"已加载 40_panel_yearly: {panel_40.shape}")
+        record('文件加载', '40_panel_yearly 存在性', 'PASS',
+               f'主面板在盘: {panel_40.shape}')
     else:
-        logger.error(f"40_panel_yearly 不存在: {panel_40_path}")
+        record('文件加载', '40_panel_yearly 存在性', 'FAIL',
+               f'主面板缺失: {panel_40_path} — 40 全套审核与跨文件一致性被迫跳过',
+               severity='CRITICAL')
 
     if os.path.exists(panel_51_path):
         panel_51 = pd.read_parquet(panel_51_path)
         logger.info(f"已加载 51_panel_with_controls: {panel_51.shape}")
+        record('文件加载', '51_panel_with_controls 存在性', 'PASS',
+               f'对照面板在盘: {panel_51.shape}')
     else:
-        logger.warning(f"51_panel_with_controls 不存在: {panel_51_path}")
+        record('文件加载', '51_panel_with_controls 存在性', 'WARN',
+               f'对照面板缺失: {panel_51_path} — 51 审核与跨文件一致性跳过')
     phase_durations['①加载面板 parquet'] = time.time() - _t
 
     # --- 审核 40_panel_yearly ---
@@ -1128,6 +1138,12 @@ def main():
     logger.info("=" * 70)
 
     df_results = pd.DataFrame(audit_results)
+    # fix(D11, 2026-07-18): audit_results 为空时 pd.DataFrame([]) 是 0 行 0 列 —
+    # 直接取 'status' 列会 KeyError 崩溃 (且下方 :1159 专设的空结果守卫成不可达死代码,
+    # CSV 报告不落盘)。补列骨架使空表全链可走 (列序与 record() 键序一致)。
+    if df_results.empty:
+        df_results = pd.DataFrame(
+            columns=['category', 'check', 'status', 'severity', 'detail'])
     n_pass = (df_results['status'] == 'PASS').sum()
     n_warn = (df_results['status'] == 'WARN').sum()
     n_fail = (df_results['status'] == 'FAIL').sum()

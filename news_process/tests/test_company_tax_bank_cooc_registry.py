@@ -35,6 +35,7 @@ PANEL_40 = REPO / "data" / "processed" / "40_panel_yearly.parquet"
 # 两代均为合法已提交世代; G9 级联收口后回归单值。⚠ 主常量行格式勿动 — run_pipeline 正则提取;
 # 锁镜像件 test_company_tax_bank_run_pipeline_lock.py 的同名常量须与主锚字节同步。
 EXPECTED_TAX_REGISTRY_SHA256 = "4f580e3fc458be0c6aac6636f4ed1c3e0936f839c9b815161150e048b6e4c034"
+# ⚠ 副锚行格式同样勿动 — run_pipeline._expected_registry_anchor_activated 正则提取 (D-4fix 2026-07-18)。
 EXPECTED_TAX_REGISTRY_SHA256_ACTIVATED = "b246471097a600ff5341fc46621c90f1739902338ec5fd9e578469cde9394162"
 FROZEN_TAX_REGISTRY_SHAS = {EXPECTED_TAX_REGISTRY_SHA256, EXPECTED_TAX_REGISTRY_SHA256_ACTIVATED}
 

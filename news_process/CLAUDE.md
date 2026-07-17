@@ -163,12 +163,12 @@ pytest tests/integration/test_panel_reproducibility.py
 
 ### Testing Requirements
 - **Integration gate**: `tests/integration/test_panel_reproducibility.py` 必过 (列哈希对 golden)。
-- **DAG consistency**: `test_dag_consistency.py` 强制 STAGES_MAIN ⊆ OUTPUT_REGISTRY ∪ EXPECTED_NO_OUTPUT_STAGES, 无重名, orchestrator import 与 `core/dag.py` identity (`is`) 一致。
+- **DAG consistency** (2026-07-18 第六轮审计 C-1/C-4 收紧): `test_dag_consistency.py` 强制 **双向集合恒等** OUTPUT_REGISTRY == STAGES_MAIN scripts 且 EXPECTED_NO_OUTPUT_STAGES == STAGES_VALIDATION scripts (+ 各 len==16 + script 唯一性), orchestrator import 与 `core/dag.py` identity (`is`) 一致。另 `test_pipeline_shims.py` 锁 32 注册 script 盘上存在+thin ≤30 与 35 普查集合恒等。
 - **Mock 外部 API**: 测试必 mock LLM/embedding API (范例 `tests/test_25_audit.py`)。
 
 ## Common Patterns
 
-- **加阶段**: 实现 `pipeline/<module>/<stage>.py` → thin shim `NN_<stage>.py` (≤30 行) → 注册 `STAGES_MAIN` (验证阶段注册 `STAGES_VALIDATION`) → 产 parquet 则加 `OUTPUT_REGISTRY`, 不产则加 `EXPECTED_NO_OUTPUT_STAGES` (否则 `test_dag_consistency` 失败) → 测试 → 跑 `test_dag_consistency.py`。
+- **加阶段**: 实现 `pipeline/<module>/<stage>.py` → thin shim `NN_<stage>.py` (≤30 行) → 注册 `STAGES_MAIN` (验证阶段注册 `STAGES_VALIDATION`) → 产 parquet 则加 `OUTPUT_REGISTRY`, 不产则加 `EXPECTED_NO_OUTPUT_STAGES` (否则 `test_dag_consistency` 失败; ⚠ 2026-07-18 起该 gate 为双向恒等 — 若加「MAIN 无输出阶段」须按 gate 失败消息放宽恒等式为 ∪-覆盖+互斥并同步本文件计数不变量) → 测试 → 跑 `test_dag_consistency.py`。
 - **改 config schema**: 改对应拆分 YAML → 仅 loader 语义变时改 `load_config()` → 列 schema 变则重生 golden → 全量测试。
 - **调试失败阶段**: 看 `logs/<stage>.log` → 单跑 `python news_process/NN_<stage>.py` → `pytest tests/test_XX_<stage>.py -v` → 查 `data/processed/`。
 

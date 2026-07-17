@@ -589,3 +589,14 @@ def test_registry_missing_systemexit(tmp_path):
     """registry 文件缺失 → 显式 SystemExit 带排障指引 (非裸 FileNotFoundError)。"""
     with pytest.raises(SystemExit, match="registry 缺失"):
         w8.main(["--registry", str(tmp_path / "nonexistent.yaml")])
+
+
+@pytest.mark.fast
+def test_03_input_fingerprint_second_lock_readpoint_present():
+    """D8 第二把锁读点 (2026-07-18 第六轮审计): listed 03 必须含 pair metadata 的
+    input_fingerprint 读取与复算比对 — 删除即回退到「registry sha 单锁」, 21_full 重生
+    而 sha 不变时 03 会静默用旧媒体锚×新测度库混代产互验报告。"""
+    src = (REPO / "company_listed_bank" /
+           "03_build_company_bank_weight_validation.py").read_text(encoding="utf-8")
+    assert 'input_fingerprint' in src, "D8 第二把锁读点缺失 — 删除即回退 (2026-07-18)"
+    assert src.count("input_fingerprint") >= 2, "须同时含 metadata 读点与复算比对两处"

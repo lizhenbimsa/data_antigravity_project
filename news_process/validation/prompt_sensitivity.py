@@ -1720,8 +1720,8 @@ def main():
     # golden-safe; 详见 tone_llms.redirect_module_logger 的根因说明)。
     _tone_llms.redirect_module_logger(logger)
 
-    # fix(2026-06-19 run-check F7): 同阶段 36 — 离线确定性模式下变体 prompt 必为冷缓存,
-    # 强行运行会抛大量 LLMCacheMissError + 异步未回收异常噪声。阶段 39 在线付费 only
+    # fix(2026-06-19 run-check F7): 同阶段 66 — 离线确定性模式下变体 prompt 必为冷缓存,
+    # 强行运行会抛大量 LLMCacheMissError + 异步未回收异常噪声。阶段 70 在线付费 only
     # (EXPECTED_NO_OUTPUT, 不写面板) → 离线优雅跳过, 在线行为不变。复用 tone_llms.LLM_OFFLINE。
     if _tone_llms.LLM_OFFLINE:
         logger.warning(
@@ -1888,7 +1888,8 @@ def main():
     if not os.path.exists(input_path):
         logger.error(f"输入文件不存在: {input_path}")
         logger.error("请先运行阶段 21 (21_tone_llms.py) 生成全量 LLM 判定结果")
-        return
+        # fix(D2, 2026-07-18): 缺输入=检验未执行, 静默 return 会让入口假绿; fail-loud 速败。
+        sys.exit(1)
 
     df_full = pd.read_parquet(input_path)
     logger.info(f"  加载 {len(df_full):,} 条记录 × {df_full.shape[1]:,} 列")
@@ -1930,7 +1931,9 @@ def main():
     missing = [c for c in required_cols if c not in df_sample.columns]
     if missing:
         logger.error(f"缺少必要列: {missing}")
-        return
+        # fix(D2, 2026-07-18): 缺生产必备列=检验未执行 (注释自称"缺则报错退出"而旧实现只
+        # return rc=0); fail-loud 兑现该契约。
+        sys.exit(1)
 
     df_sample = extract_baseline(df_sample)
     baseline_true_rate = df_sample['V0_baseline_verified_full'].astype(int).mean()

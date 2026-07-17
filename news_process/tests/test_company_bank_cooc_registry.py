@@ -26,6 +26,7 @@ PANEL_40 = REPO / "data" / "processed" / "40_panel_yearly.parquet"
 # 两代均为合法已提交世代; G9 级联收口 (上游 75/21 时序稳定或生产重生) 后回归单值。
 # ⚠ 主常量行格式勿动 — run_pipeline._expected_registry_anchor 以行首+全名正则提取。
 EXPECTED_REGISTRY_SHA256 = "023cdc9158ec52ba60f148f59b520a9195a02a3086da95b641db93c5d082dd30"
+# ⚠ 副锚行格式同样勿动 — run_pipeline._expected_registry_anchor_activated 正则提取 (D-4fix 2026-07-18)。
 EXPECTED_REGISTRY_SHA256_ACTIVATED = "4a2f79fd932974b090db338a1441ea95934e6ff22a5cb61b0ed8c5f29871d4e1"
 FROZEN_REGISTRY_SHAS = {EXPECTED_REGISTRY_SHA256, EXPECTED_REGISTRY_SHA256_ACTIVATED}
 

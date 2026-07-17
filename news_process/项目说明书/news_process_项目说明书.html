@@ -1379,7 +1379,7 @@ JF = (P² − P·N) ÷ T²（当 P &gt; N）；　JF = (P·N − N²) ÷ T²（�
 <tr><td><code>python -m news_process.run_paper &lt;paper_id&gt;</code></td><td>以模块方式运行（<code>__package__</code> 非 None，跳过 sys.path 注入）</td></tr>
 <tr><td>退出码 <code>0</code></td><td>成功</td></tr>
 <tr><td>退出码 <code>1</code></td><td>导入失败 / 缺 <code>main()</code> 入口 / 子论文 <code>analysis.main()</code> 返回 1</td></tr>
-<tr><td>退出码 <code>2</code></td><td>未知 paper_id（白名单校验失败）</td></tr>
+<tr><td>退出码 <code>2</code></td><td>未知 paper_id（白名单校验失败）或 CLI 用法错误（argparse 同码；N16, 2026-07-18）</td></tr>
 </tbody>
 </table>
 </div>

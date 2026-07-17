@@ -539,7 +539,9 @@ def main():
     # ① 🧭 项目 / 环境信息 (运行环境指纹 — tone_words.py 黄金范式; 仅日志, golden-safe)。
     # 整块 try/except 兜底: 任何 env-probe 异常都不得拖垮验证阶段。
     try:
-        _ver = CONFIG.get('project', {}).get('version', 'v3.16.0')
+        # fix(N11, 2026-07-18): 旧写法查不存在的 'project' 配置节, 值恒取 .get 默认字面量
+        # — 「伪 config 驱动」误导写法; 改直接字面量, 归入全仓 banner 版本 sweep 批改范式。
+        _ver = 'v3.16.0'
         logger.info("【环境】项目 = news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) "
                     f"| 版本 {_ver}")
         logger.info(
@@ -577,7 +579,9 @@ def main():
     if not os.path.exists(input_file):
         logger.error(f"阶段00输出文件未找到: {input_file}")
         logger.info("请先运行 00_preprocessing.py")
-        return
+        # fix(D2, 2026-07-18): 缺输入=检验未执行, 静默 return 会让子进程 rc=0 被编排器记✓
+        # (入口假绿); 镜像 dict_coverage 先例改 fail-loud (架空「速败」契约的漏网点)。
+        sys.exit(1)
 
     logger.info(f"正在加载数据: {input_file}")
     df = pd.read_parquet(input_file)

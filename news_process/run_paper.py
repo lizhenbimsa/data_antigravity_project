@@ -129,7 +129,7 @@ _PAPER_SUMMARIES: Final[dict[str, str]] = {
 _EXIT_CODE_MEANINGS: Final[dict[int, str]] = {
     0: '成功',
     1: '导入失败 / 缺少 main() 入口 / 论文 analysis.main() 返回 1',
-    2: '未知 paper_id (白名单校验失败)',
+    2: '未知 paper_id 或 CLI 用法错误 (argparse SystemExit(2) 同码; N16, 2026-07-18)',
 }
 
 # 审计快照只记录**复现/行为相关**的环境变量; 严禁纳入任何机密。

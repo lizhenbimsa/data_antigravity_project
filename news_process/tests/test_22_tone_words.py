@@ -135,3 +135,19 @@ def test_analyze_empty_and_robustness():
     assert math.isnan(res_punct['pos_ratio'])
     # 空文本/纯标点内容应产出默认可读性指标
     assert res_punct['avg_sentence_len'] == 0.0 or res_punct['avg_sentence_len'] == 6.0
+
+
+@pytest.mark.fast
+def test_score_to_label_config_wiring_anchor():
+    """E-2 接线防回退锚 (2026-07-18 第六轮审计 RR1-L2-NIT-1): 两调用点必须显式传
+    POS_THRESHOLD/NEG_THRESHOLD — 删去实参会静默回退到函数硬编码默认, 与 config
+    (sentiment.yaml::tone_words.pos/neg_threshold) 分叉且全部既有测试仍绿。"""
+    import inspect
+    src = inspect.getsource(tone)
+    assert src.count("_score_to_label(norm_score, POS_THRESHOLD, NEG_THRESHOLD)") == 1, \
+        "主 label 调用点未显式传 config 阈值 (E-2 接线回退)"
+    assert src.count("_score_to_label(idf_norm, POS_THRESHOLD, NEG_THRESHOLD)") == 1, \
+        "idf label 调用点未显式传 config 阈值 (E-2 接线回退)"
+    # 接线值与 config/默认恒等 (当前 yaml 0.1/-0.1; 若刻意改 yaml, 更新此锚)
+    assert pytest.approx(0.1) == tone.POS_THRESHOLD
+    assert pytest.approx(-0.1) == tone.NEG_THRESHOLD

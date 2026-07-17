@@ -583,11 +583,15 @@ def main() -> None:
             f"加载 worker = {PARAMS.get('num_workers', min(_cpu, 32)):,d}"
         )
         logger.info(
+            # fix(D5, 2026-07-18): 旧键名 {min_title,min_content,max_content}_chinese_chars
+            # 全仓不存在 → 横幅恒打印硬编码默认而非配置值 (data appendix 供数面静默失真)。
+            # 真实键与过滤消费端 load.py 双副本同步义务: title_min_length /
+            # content_min_length / content_max_length (preprocessing.yaml)。
             f"  · 长度过滤: 标题汉字数下限 = "
-            f"{PARAMS.get('min_title_chinese_chars', 2):,d}, "
+            f"{PARAMS.get('title_min_length', 2):,d}, "
             f"内容汉字数 ["
-            f"{PARAMS.get('min_content_chinese_chars', 100):,d}, "
-            f"{PARAMS.get('max_content_chinese_chars', 10000):,d}]"
+            f"{PARAMS.get('content_min_length', 100):,d}, "
+            f"{PARAMS.get('content_max_length', 10000):,d}]"
         )
         logger.info(
             f"  · OpenCC 繁简配置 = "

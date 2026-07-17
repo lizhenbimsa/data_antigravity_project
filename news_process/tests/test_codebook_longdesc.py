@@ -36,7 +36,7 @@ from news_process.scripts.audit import check_longdesc_whitelist as chk
 # fixture 家族库构造
 # ============================================================================
 
-# 白名单 DOI 池 (fixture 注入, 不触真实 874 白名单)
+# 白名单 DOI 池 (fixture 注入, 不触真实主白名单)
 WL_DOIS = [f'10.1000/wl{i}' for i in range(1, 15)]
 
 _LONG_TITLE = ('A sufficiently long empirical study of bank fintech news sentiment '

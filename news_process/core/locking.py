@@ -247,11 +247,23 @@ class PipelineLock:
                     except Exception as e:
                         self.logger.warning(f"删除锁文件失败: {e}")
 
-                # 删除 sidecar 文件 (Plan P1-5).
-                # 即使 sidecar 写入曾失败 (不存在), 这里 silent skip 也安全.
+                # 删除 sidecar 文件 (Plan P1-5)。
+                # 即使 sidecar 写入曾失败 (不存在), 这里 silent skip 也安全。
+                # N3 (2026-07-18) 属主校验: 旧实例释放锁与新实例获锁存在窄竞态窗口 —
+                # 新持锁者可能已重写 sidecar (首行=其 PID); 无校验删除会抹掉新持锁者的
+                # 诊断文件, 使后续被拒实例的占用者显示「未知」。首行 PID != self.pid
+                # (或读取/解析失败) → 按他人所有处理, 保留不删。
                 if os.path.exists(self.sidecar_path):
                     try:
-                        os.remove(self.sidecar_path)
+                        with open(self.sidecar_path, encoding='utf-8') as _sf:
+                            _owner = _sf.readline().strip()
+                        if _owner == str(self.pid):
+                            os.remove(self.sidecar_path)
+                        else:
+                            self.logger.info(
+                                f"sidecar 属主非本实例 (首行={_owner!r} ≠ {self.pid}), "
+                                "保留不删 (新持锁者的诊断文件)"
+                            )
                     except Exception as e:
                         self.logger.warning(
                             f"删除 sidecar 文件失败: {e}"

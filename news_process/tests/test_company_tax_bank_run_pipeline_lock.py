@@ -112,6 +112,20 @@ def test_expected_registry_anchor_is_readable():
     assert anchor == EXPECTED_TAX_REGISTRY_SHA256, "run_pipeline 读出的锚与 registry gate 件不一致"
 
 
+# ⚠ 常量镜像 registry gate 件的激活代副锚 (正例断言用; RR3-Z-MAJ-1: 禁裸姐妹 import —
+# 单跑本文件会 ModuleNotFoundError 假红; 与上方主锚镜像同款「两处同步 bump」纪律)
+EXPECTED_TAX_REGISTRY_SHA256_ACTIVATED = "b246471097a600ff5341fc46621c90f1739902338ec5fd9e578469cde9394162"
+
+
+def test_expected_registry_anchor_activated_is_readable():
+    """D-4fix (2026-07-18): 激活代副锚提取器须能读出 64-hex — 不可读 = 激活代判读静默
+    fail-open (「勿 bump 主锚」保护永不生效, 重演 D-1 拉锯)。常量名带 TAX 中缀防互抄。"""
+    activated = rp._expected_registry_anchor_activated()
+    assert activated is not None and len(activated) == 64, \
+        "run_pipeline 无法读出 EXPECTED_TAX_REGISTRY_SHA256_ACTIVATED (副锚正则 fail-open)"
+    assert activated == EXPECTED_TAX_REGISTRY_SHA256_ACTIVATED
+
+
 # ── 五入口诊断整改 gate (2026-07-09): A5 锁 try/finally 边界 + A9 os.write fd 清理 ──
 
 def test_init_logging_exception_still_releases_lock(lock_in_tmp, monkeypatch):

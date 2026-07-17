@@ -16,12 +16,13 @@ codebook「替代聚合面板章」stale, 重跑 02 后须补跑 04。
 
 用法 (从 news_process/ 目录, conda base python):
   python company_tax_bank/run_pipeline.py                 # 全链 01→02→03→04
-  python company_tax_bank/run_pipeline.py --steps 02,03   # 从 02 起 (registry 已就绪时)
+  python company_tax_bank/run_pipeline.py --steps 02,03,04  # 从 02 起 (registry 已就绪时; 含 02 必含 04, 级联义务)
   python company_tax_bank/run_pipeline.py --dry-run       # 只打印将执行的命令
 
-⚠ 重跑 01 会重生 registry → 哈希锚变 → 须 bump
-  tests/test_company_tax_bank_cooc_registry.py::EXPECTED_TAX_REGISTRY_SHA256 并级联 02 (pair 指纹)
-  → 03 (DV2 双向锁); 本 orchestrator 跑完含 01 的链后会打印该提醒。
+⚠ 重跑 01 会重生 registry → 哈希锚变时须级联 02 (pair 指纹) → 03 (DV2 双向锁) → 04
+  (pair 锚同代); 本 orchestrator 跑完含 01 的链后会打印锚状态判读。双值冻结期 (G9 挂账,
+  2026-07-17 起): 新锚 ∈ FROZEN_TAX_REGISTRY_SHAS (激活/非激活两合法世代) 时**勿 bump 主锚**,
+  仅真第三值才须 bump tests/test_company_tax_bank_cooc_registry.py::EXPECTED_TAX_REGISTRY_SHA256。
 独立派生数据流水线, 不注册 DAG (镜像 generate_company_tax_names.py 定位)。
 与姊妹管线 company_listed_bank/ 完全隔离, 唯一交集 = 02/03 只读 import listed 02 加权引擎 (T-D10/T-D18)。
 """
@@ -419,6 +420,11 @@ def _log_run_summary(step_stats: list[tuple[str, str, float]], total: float) -> 
         logger.info("  · 04 判读: frozenw dev 上税调窗 2011–2020 内 8/10 年零共现 → 2011–2016 全左截断 NaN")
         logger.info("    属预期构造退化 (生产语料恢复); 两面板与三权各自 just-identified 并排, 禁混同一 Hansen J;")
         logger.info("    重跑 02 后本步产物与 codebook 章 stale, 须补跑 04 (级联义务)")
+    if "02" in ran and "04" not in ran:
+        # D9 (2026-07-18): 级联义务运行时提醒 — 旧实现唯一提醒挂在 `if "04" in ran` 内
+        # (义务已履行时才打印), 「含 02 不含 04」的违约组合反而零提醒。与 listed 侧对称。
+        logger.warning("  · ⚠ 本轮重跑了 02 但未跑 04 — 04 产物 (frozenw/mainbankw 面板+权重长表) "
+                       "与 codebook「替代聚合面板章」已 stale, 须补跑 --steps 04 (级联义务)")
     logger.info("  · 生产 T=19 预期差异: 当前上游 21_full 为 dev 语料口径, 覆盖/富集度实测以互验报告为准;")
     logger.info("    生产重跑后 §6 级联义务生效 (哈希锚 bump → 02 pair 指纹 → 03 双向锁 → 04 补跑), 墙钟与 IO 同步放大")
 
@@ -641,34 +647,65 @@ def _expected_registry_anchor() -> str | None:
         return None
 
 
-def _log_registry_anchor_status(pre_sha: str | None) -> None:
-    """01 重生 registry 后的哈希锚判读: 盘上锚 vs 跑前快照 vs gate 测试锚 三方对比 (证据驱动;
-    含步骤失败提前退出路径 — 只要 01 已成功落盘, 锚状态就必须被披露)。"""
+def _expected_registry_anchor_activated() -> str | None:
+    """读双值冻结集副锚 EXPECTED_TAX_REGISTRY_SHA256_ACTIVATED (N17/D-4fix, 2026-07-18)。
+    ⚠ 常量名带 TAX 中缀, 与 listed 侧不同名 — 严禁互抄正则 (copy-paste 会静默 fail-open)。"""
+    test_file = REPO / "tests" / "test_company_tax_bank_cooc_registry.py"
+    try:
+        m = re.search(r'^EXPECTED_TAX_REGISTRY_SHA256_ACTIVATED\s*=\s*["\']([0-9a-f]{64})["\']',
+                      test_file.read_text(encoding="utf-8"), re.M)
+        return m.group(1) if m else None
+    except Exception:
+        return None
+
+
+def _cascade_note(completed: set | None) -> str:
+    """级联义务判读文案 (D10/D-3fix, 2026-07-18): 按实际完成集合生成, 证据驱动 —
+    旧文案「本链若含 02/03 则已级联」按成员资格判定, 在步骤失败路径上为假陈述且漏 04。"""
+    done = completed or set()
+    chain = {"02", "03", "04"}
+    if chain <= done:
+        return "级联链 02→03→04 本链已全部成功, 已级联"
+    missing = "/".join(sorted(chain - done))
+    return f"级联链 02→03→04 未完整 (本链已成功: {'/'.join(sorted(done & chain)) or '无'}; 须补跑 {missing} 及其下游)"
+
+
+def _log_registry_anchor_status(pre_sha: str | None, completed: set | None = None) -> None:
+    """01 重生 registry 后的哈希锚判读: 盘上锚 vs 跑前快照 vs gate 双值冻结锚 (证据驱动;
+    含步骤失败提前退出路径 — 只要 01 已成功落盘, 锚状态就必须被披露)。
+
+    D-4fix (2026-07-18): 增加激活代副锚判读 — 盘上锚 ∈ 双值冻结集时勿再误导「须 bump」;
+    D-3fix: 级联文案改按实际完成集合 (completed) 生成并补 04 (见 _cascade_note)。
+    """
     post_sha = _registry_sha()
     if post_sha is None:
         logger.warning("本次重生了 registry, 但 meta.registry_sha256 读取失败 — 请人工核对 "
                        "config/company_tax_bank_cooc_registry.yaml 与测试锚 (勿在未核对前 bump)")
         return
     expected = _expected_registry_anchor()
+    activated = _expected_registry_anchor_activated()
     changed = pre_sha is None or post_sha != pre_sha
     if expected is not None and post_sha != expected:
-        logger.warning("本次重生了 registry: 盘上锚 %s… ≠ 测试锚 %s… — 须 bump "
-                       "tests/test_company_tax_bank_cooc_registry.py::EXPECTED_TAX_REGISTRY_SHA256 %s",
-                       post_sha[:16], expected[:16],
-                       "并确认 02→03 已级联 (本链若含 02/03 则已级联)" if changed
-                       else "并核查盘上 02/03 产物是否与该锚同代 (本次运行未改锚, 属既有欠账)")
+        if activated is not None and post_sha == activated:
+            logger.warning("本次重生了 registry: 盘上锚 %s… = 激活代副锚 (双值冻结集内合法世代) "
+                           "— **勿 bump 主锚** (照做即重演 D-1 拉锯), G9 级联收口后回归单值; %s",
+                           post_sha[:16], _cascade_note(completed))
+        else:
+            logger.warning("本次重生了 registry: 盘上锚 %s… ∉ 双值冻结集 {主锚 %s…, 副锚 %s} — "
+                           "真第三值, 须核对后 bump tests/test_company_tax_bank_cooc_registry.py::"
+                           "EXPECTED_TAX_REGISTRY_SHA256; %s",
+                           post_sha[:16], expected[:16],
+                           (activated or "不可读")[:16], _cascade_note(completed))
         return
-    anchor_note = ", 与测试锚一致" if expected is not None else " (测试锚不可读, 未对比)"
+    anchor_note = ", 与测试主锚一致" if expected is not None else " (测试锚不可读, 未对比)"
     if not changed:
-        logger.info("本次重生了 registry: 哈希锚未变 (%s…%s) — 无需 bump 测试锚, 02/03 免级联义务"
+        logger.info("本次重生了 registry: 哈希锚未变 (%s…%s) — 无需 bump 测试锚, 02/03/04 免级联义务"
                     " (锚未含 meta 输入指纹, registry 文件字节可有 meta 级漂移, 以 git diff 为准)",
                     post_sha[:16], anchor_note)
     else:
-        logger.warning("本次重生了 registry 且哈希锚变更 (%s… → %s…%s): 须确认 02→03 已级联 "
-                       "(本链若含 02/03 则已级联)%s",
+        logger.warning("本次重生了 registry 且哈希锚变更 (%s… → %s…%s): %s",
                        (pre_sha or "无旧值")[:16], post_sha[:16], anchor_note,
-                       "" if expected is not None else "; 并核对是否须 bump "
-                       "tests/test_company_tax_bank_cooc_registry.py::EXPECTED_TAX_REGISTRY_SHA256")
+                       _cascade_note(completed))
 
 
 def _run(args: argparse.Namespace, wanted: set[str], selected: list[tuple[str, str, str]]) -> int:
@@ -739,7 +776,7 @@ def _run(args: argparse.Namespace, wanted: set[str], selected: list[tuple[str, s
             logger.error("  排障: 看 company_tax_bank/logs/%s.log; 单步重跑 `python company_tax_bank/%s`",
                          Path(script).stem, script)
             if any(s == "01" for s, _, _ in step_stats):  # 01 已成功落盘 → 锚状态不得因中断而失声
-                _log_registry_anchor_status(pre_sha)
+                _log_registry_anchor_status(pre_sha, {s for s, _, _ in step_stats})
             return rc
         step_stats.append((step_id, desc, dt))
         _log_step_done(step_id, dt, args.no_emit_dta)
@@ -749,7 +786,7 @@ def _run(args: argparse.Namespace, wanted: set[str], selected: list[tuple[str, s
         logger.info("全部 %d 步完成 (总墙钟 %.4gs)", len(selected), total)
         _log_run_summary(step_stats, total)
         if "01" in wanted:
-            _log_registry_anchor_status(pre_sha)
+            _log_registry_anchor_status(pre_sha, {s for s, _, _ in step_stats})
         _log_references()
     return 0
 

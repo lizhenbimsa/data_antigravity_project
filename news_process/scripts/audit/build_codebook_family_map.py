@@ -929,7 +929,7 @@ _KW_EXPANSION = {
     'rare': ['rare word', 'readability', 'complexity'],
     # P2-⑧ (2026-07-11) 词典基名 → dictionary/构成性锚映射: 组件/衍生家族 (如
     # du_2022_neg_count) 的关键词此前只剩噪声 token, 检索段漏掉该词典的构成性锚。
-    # 锚 token = 池渲染行内实存的 DOI/题名子串 (逐条对 874 白名单池核验, 零臆造):
+    # 锚 token = 池渲染行内实存的 DOI/题名子串 (逐条对主白名单池 [FILES_WHITELIST_ANCHOR 动态派生] 核验, 零臆造):
     #   du_2022   → Du et al. (2022, RoF, 10.1093/rof/rfab036) 'rfab036'
     #   loughran  → L&M (2011, JF, 10.1111/j.1540-6261.2010.01625.x) 'when is a liability'
     #   jiang_2021→ 姜富伟等 (2021, 经济学(季刊), 10.13821/j.cnki.ceq.2021.04.10) 'ceq.2021.04.10'
@@ -1418,7 +1418,7 @@ def main(argv: list[str] | None = None) -> int:
             (fam_dir / 'source_excerpt.md').write_text(
                 f'# {fid} producer 源码摘录 (机械 grep ±30 行; WP0 初判, 写手校对)\n\n'
                 + (meta.get('excerpt') or '(略)') + '\n', encoding='utf-8')
-            # ③ citations_pool.md (白名单 874 渲染行按关键词 top-30 + manuscript refs 全量)
+            # ③ citations_pool.md (主白名单渲染行按关键词 top-30 + manuscript refs 全量)
             kws = family_keywords(meta.get('key', fid), cols)
             scored = []
             for doi, line, short in pool:
@@ -1432,7 +1432,7 @@ def main(argv: list[str] | None = None) -> int:
                 f'# {fid} 引文候选池 (白名单内检索; 铁律: 只准引用本文件内 DOI, '
                 f'新 DOI 须走 new_dois 台账三关)\n',
                 f'家族关键词: {", ".join(kws)}\n',
-                f'\n## 白名单检索 top-{len(top30)} (874-DOI 池)\n',
+                f'\n## 白名单检索 top-{len(top30)} (主白名单 DOI 池, FILES_WHITELIST_ANCHOR 动态派生)\n',
             ]
             for s, doi, line, short in top30:
                 lines_md.append(f'- [score={s}] ({short}) {line}')

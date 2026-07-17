@@ -271,7 +271,10 @@ def test_registry_sha_anchor_unchanged():
     import yaml as _yaml
     disk = _yaml.safe_load((REPO / "config" / "company_bank_cooc_registry.yaml")
                            .read_text(encoding="utf-8"))["meta"]["registry_sha256"]
-    assert disk == treg.EXPECTED_REGISTRY_SHA256  # 04 零 registry 改动, 锚不 bump
+    # D7 (2026-07-18 第六轮审计): 改双值冻结集成员断言, 镜像 tax 侧 altagg :261 写法 —
+    # 3938a2df 双值冻结时本行被遗漏, 激活代 (合法冻结世代) 盘面下 registry gate 绿而
+    # 本 gate 红。G9 级联收口后随姊妹件一并回归单值。
+    assert disk in treg.FROZEN_REGISTRY_SHAS  # 04 零 registry 改动, 锚不 bump
     # G3: listed 04 年窗字面量是 02/03 argparse 默认的第三副本, 锚死防漂移
     assert (mod04.PANEL_YEAR_MIN, mod04.PANEL_YEAR_MAX) == (2007, 2025)
 
