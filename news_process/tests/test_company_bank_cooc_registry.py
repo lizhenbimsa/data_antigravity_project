@@ -19,10 +19,15 @@ CUT_LIST_PATH = REPO / "scripts" / "audit" / "COMPANY_BANK_COOC_PANEL_CUT_LIST_v
 PANEL_40 = REPO / "data" / "processed" / "40_panel_yearly.parquet"
 
 # ---- 哈希锚 (WP0 落盘值; registry/名单/负清单任何内容变化 → 红 → 有意识重跑 WP0 更新)
-# 2026-07-16 有意识重跑 WP0: 40 面板并发重生 +9 列 (G9 预登记漂移) → 预注册基名
-# cross_media_alpha / cross_outlet_tone_variance / n_events 三者源列到位自动激活
-# (emit_tracks []→[full,ctx,ss]) + 51 上游同名 9 列落排除域; 基名集与分族小计不变。
-EXPECTED_REGISTRY_SHA256 = "4a2f79fd932974b090db338a1441ea95934e6ff22a5cb61b0ed8c5f29871d4e1"
+# 2026-07-17 双值冻结 (G9 级联收口前的振荡两态, 见 EIGHT_ENTRYPOINT_FIFTHRUN_AUDIT_…_2026-07-17.md §3):
+# 规范八入口顺序下 ① 内 21 每轮重生必新于上轮 ② 的 75 号 → 40 面板结构性落 3,442 列 →
+# WP0 重建为「非激活代」(主锚); 仅当单跑 40 且 75 较新时 +9 列激活 cross_media_alpha /
+# cross_outlet_tone_variance / n_events 三预注册基名 → 「激活代」(07-16 3ccd5df4 bump 值)。
+# 两代均为合法已提交世代; G9 级联收口 (上游 75/21 时序稳定或生产重生) 后回归单值。
+# ⚠ 主常量行格式勿动 — run_pipeline._expected_registry_anchor 以行首+全名正则提取。
+EXPECTED_REGISTRY_SHA256 = "023cdc9158ec52ba60f148f59b520a9195a02a3086da95b641db93c5d082dd30"
+EXPECTED_REGISTRY_SHA256_ACTIVATED = "4a2f79fd932974b090db338a1441ea95934e6ff22a5cb61b0ed8c5f29871d4e1"
+FROZEN_REGISTRY_SHAS = {EXPECTED_REGISTRY_SHA256, EXPECTED_REGISTRY_SHA256_ACTIVATED}
 
 # ---- 分族小计锚 (WP0 2026-07-06 落盘实测; v33 划分域 702 + C1b 白名单补注册 3 + 域外 25 = 730)
 EXPECTED_FAMILY_COUNTS = {
@@ -75,7 +80,7 @@ def test_registry_hash_anchor(registry):
     recalc = hashlib.sha256(
         json.dumps(anchor_obj, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
     assert recalc == registry["meta"]["registry_sha256"], "registry 内容与 meta 哈希不自洽"
-    assert recalc == EXPECTED_REGISTRY_SHA256, "registry 哈希锚翻红 — 有意识重跑 WP0 后更新锚"
+    assert recalc in FROZEN_REGISTRY_SHAS, "registry 哈希锚翻红 — 有意识重跑 WP0 后更新锚"
 
 
 @pytest.mark.fast
@@ -223,4 +228,4 @@ def test_registry_content_sha256_function(registry):
     sys.path.insert(0, str(REPO / "company_listed_bank"))
     wp0 = importlib.import_module("01_build_company_bank_cooc_registry")
     assert wp0.registry_content_sha256(registry) == registry["meta"]["registry_sha256"]
-    assert wp0.registry_content_sha256(registry) == EXPECTED_REGISTRY_SHA256
+    assert wp0.registry_content_sha256(registry) in FROZEN_REGISTRY_SHAS

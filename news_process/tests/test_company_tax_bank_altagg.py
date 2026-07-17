@@ -258,7 +258,7 @@ def test_registry_sha_anchor_unchanged():
     import yaml as _yaml
     disk = _yaml.safe_load((REPO / "config" / "company_tax_bank_cooc_registry.yaml")
                            .read_text(encoding="utf-8"))["meta"]["registry_sha256"]
-    assert disk == treg.EXPECTED_TAX_REGISTRY_SHA256
+    assert disk in treg.FROZEN_TAX_REGISTRY_SHAS
 
 
 # ---------------------------------------------------------------- (14) _upsert_section 三义务

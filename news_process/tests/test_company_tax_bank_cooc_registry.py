@@ -29,10 +29,14 @@ PANEL_40 = REPO / "data" / "processed" / "40_panel_yearly.parquet"
 
 # ---- 哈希锚 (WP-gate 期从 registry meta.registry_sha256 单次写入; 有意识重跑 WP0 后 bump)
 #      ⚠ 常量名禁与 listed 的 EXPECTED_REGISTRY_SHA256 同名 (run_pipeline 锚正则行首+全名匹配; T-D8/R3 P1-2)
-# 2026-07-16 有意识重跑 WP0: 40 面板并发重生 +9 列 (G9 预登记漂移) → 预注册基名
-# cross_media_alpha / cross_outlet_tone_variance / n_events 源列到位自动激活 (+9 emit 列,
-# 51 上游同名 9 列落排除域); 基名集与分族小计不变。
-EXPECTED_TAX_REGISTRY_SHA256 = "b246471097a600ff5341fc46621c90f1739902338ec5fd9e578469cde9394162"
+# 2026-07-17 双值冻结 (G9 级联收口前的振荡两态, 见 EIGHT_ENTRYPOINT_FIFTHRUN_AUDIT_…_2026-07-17.md §3):
+# 规范八入口顺序下 40 面板结构性落 3,442 列 → WP0 重建为「非激活代」(主锚, 07-08 以来字节稳定);
+# 仅当单跑 40 且 75 较新时 +9 列激活三预注册基名 → 「激活代」(07-16 3ccd5df4 bump 值)。
+# 两代均为合法已提交世代; G9 级联收口后回归单值。⚠ 主常量行格式勿动 — run_pipeline 正则提取;
+# 锁镜像件 test_company_tax_bank_run_pipeline_lock.py 的同名常量须与主锚字节同步。
+EXPECTED_TAX_REGISTRY_SHA256 = "4f580e3fc458be0c6aac6636f4ed1c3e0936f839c9b815161150e048b6e4c034"
+EXPECTED_TAX_REGISTRY_SHA256_ACTIVATED = "b246471097a600ff5341fc46621c90f1739902338ec5fd9e578469cde9394162"
+FROZEN_TAX_REGISTRY_SHAS = {EXPECTED_TAX_REGISTRY_SHA256, EXPECTED_TAX_REGISTRY_SHA256_ACTIVATED}
 
 # ---- 分族小计锚 (与 listed 逐字节同一份 CUT 负清单 + 同一 40 面板 → 域内条目族分布恒等;
 #      税调与 listed 的唯一差异 = bank_company_map/两名单哈希/dv2_constants, 不改族小计)
@@ -154,7 +158,7 @@ def test_registry_hash_anchor(registry):
     recalc = hashlib.sha256(
         json.dumps(anchor_obj, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
     assert recalc == registry["meta"]["registry_sha256"], "registry 内容与 meta 哈希不自洽"
-    assert recalc == EXPECTED_TAX_REGISTRY_SHA256, "registry 哈希锚翻红 — 有意识重跑 WP0 后更新锚"
+    assert recalc in FROZEN_TAX_REGISTRY_SHAS, "registry 哈希锚翻红 — 有意识重跑 WP0 后更新锚"
 
 
 @pytest.mark.fast
@@ -307,7 +311,7 @@ def test_registry_content_sha256_function(registry, wp0):
     """01 的运行时 canonical 式 (registry_content_sha256, 02/03 启动经 importlib 复用) 与
     本文件独立重算式/盘上 meta/测试锚 三方一致 — 双实现互证, 防运行时侧 canonical 式漂移。"""
     assert wp0.registry_content_sha256(registry) == registry["meta"]["registry_sha256"]
-    assert wp0.registry_content_sha256(registry) == EXPECTED_TAX_REGISTRY_SHA256
+    assert wp0.registry_content_sha256(registry) in FROZEN_TAX_REGISTRY_SHAS
 
     # ---- T-D8 grep-clean 边界守卫 (与本文件 T-D18 零交集主题同源, 顺带同断言): 税调脚本代码行
     #      (剔注释/docstring) 里的跨管道 listed token 命中须恰 == 白名单 (集合相等, 双向漂移探测器)。
