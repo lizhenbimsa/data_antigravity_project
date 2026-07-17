@@ -1139,7 +1139,7 @@ def _log_environment_and_config(media_weights: dict, default_weight: int,
         _run_id = os.environ.get('NEWS_PROCESS_RUN_ID')
         logger.info("  🧭 项目 / 环境信息")
         logger.info(f"     · 阶段: {STAGE_NAME} (媒体名称与地域多样性审计, STAGES_VALIDATION 支线 stage 68)")
-        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.15.0")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.16.0")
         logger.info("     · 功能: 逐道流水线筛子量化媒体来源/地域覆盖多样性, 为论文'样本代表性'辩护")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")

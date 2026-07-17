@@ -397,7 +397,7 @@ def _log_environment_and_config(stage_14_path: str, args) -> None:
         logger.info("     · 阶段: 65 radius_sensitivity_llm (LLM 法 radius 敏感性, "
                     "STAGES_VALIDATION; scaffold/dry-run)")
         logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) "
-                    "v3.15.0")
+                    "v3.16.0")
         logger.info("     · 功能: 换不同 ctx 句窗 radius 让 LLM 重判, 比较 情感/创新位点/"
                     "实质性 三轴标签对 radius 的稳健性 (Cohen's κ vs baseline radius)")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")

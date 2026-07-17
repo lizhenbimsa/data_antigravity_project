@@ -97,7 +97,7 @@ def _log_stage_header(panel_path: Path, out_path: Path) -> None:
     logger.info("")
     logger.info("  🧭 项目 / 环境信息")
     logger.info("     · 步骤: %s (WP0 注册表对账, company_tax_bank 流水线 01/03; 不注册主 DAG)", stem)
-    logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板), 当前版本 v3.15.0")
+    logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板), 当前版本 v3.16.0")
     logger.info("     · 流水线定位: 税调企业×年 银企共现媒体报道面板 (447,710 行全谱 = 44,771 家 × 10 年 2011–2020) 三步生产链之第 1 步")
     logger.info("     · 研究设计定位 (构念-测度-识别三层显式分离): 构念=税调企业经银企共现新闻获得的银行/金科测度暴露;")
     logger.info("       测度=主 DAG 银行×年测度经 cw/ce 双臂 (两种共现加权口径, 互为稳健性、不分主次) 投影到企业×年;")

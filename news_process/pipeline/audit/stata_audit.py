@@ -992,7 +992,7 @@ def _log_environment_and_config(panel_40_path: str, panel_51_path: str,
         # ① 🧭 项目 / 环境信息
         logger.info("  🧭 项目 / 环境信息")
         logger.info(f"     · 阶段: {STAGE_NAME} (Stata 用面板交付前质检; user-CLI, 不在 DAG)")
-        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.15.0")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.16.0")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
         logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")

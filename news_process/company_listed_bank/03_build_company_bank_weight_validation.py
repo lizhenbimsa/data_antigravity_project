@@ -99,7 +99,7 @@ def _log_stage_header(pairs_path: Path, registry_path: Path, outdir: Path,
     logger.info("")
     logger.info("  🧭 项目 / 环境信息")
     logger.info("     · 步骤: %s (WP5 七权互验, company_listed_bank 流水线 03/03; 不注册主 DAG)", stem)
-    logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板), 当前版本 v3.15.0")
+    logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板), 当前版本 v3.16.0")
     logger.info("     · 权威执行计划: scripts/audit/COMPANY_BANK_COOC_PANEL_EXECUTION_PLAN_2026-07-03.md (v34)")
     logger.info("     · 构念-测度-识别链: 构念=银企关系暴露 (贷款/地理/人事/股权四类纽带七种权源, 各测")
     logger.info("       不同构念) → 测度=公司×银行×年 权重 w 加权银行测度 (cw_/ce_ 列族) → 识别=八权")

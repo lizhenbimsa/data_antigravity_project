@@ -96,7 +96,7 @@ def _log_stage_header(panel_path: Path, out_path: Path) -> None:
     logger.info("")
     logger.info("  🧭 项目 / 环境信息")
     logger.info("     · 步骤: %s (WP0 注册表对账, company_listed_bank 流水线 01/03; 不注册主 DAG)", stem)
-    logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板), 当前版本 v3.15.0")
+    logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板), 当前版本 v3.16.0")
     logger.info("     · 流水线定位: 上市公司×年 银企共现媒体报道面板 (105,032 行全谱) 三步生产链之第 1 步")
     logger.info("     · 下游消费者: 02 (WP1 加权引擎, 启动即校验本 registry 哈希锚, 缺则不跑) /")
     logger.info("       03 (WP5 七权互验, 经 dv2_constants 区段与本表双向锁) /")

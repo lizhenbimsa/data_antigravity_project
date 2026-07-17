@@ -1666,7 +1666,7 @@ def main():
         import platform as _platform
         logger.info("① 🧭 项目 / 环境信息")
         logger.info("  · 阶段: 63 news_llms_evaluation (验证支线; 拿人工金标准给 LLM 分类器开'体检报告' = 测量效度成绩单)")
-        logger.info("  · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.15.0 (rule-ablation-ladder)")
+        logger.info("  · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板); 版本 v3.16.0 (rule-ablation-ladder)")
         logger.info(f"  · Python: {sys.version.split()[0]} @ {sys.executable}")
         logger.info(f"  · 平台: {_platform.platform()}; CPU 逻辑核数={os.cpu_count()}; PID={os.getpid()}")
         logger.info(f"  · RUN_ID: {os.environ.get('NEWS_PROCESS_RUN_ID', '(未设)')}")

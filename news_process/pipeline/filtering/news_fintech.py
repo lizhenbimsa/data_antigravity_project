@@ -285,7 +285,7 @@ def _log_environment_and_config(input_path: str, output_path: str, full_output_p
         logger.info(f"     · 阶段: {STAGE_NAME} (金融科技新闻判断, STAGES_MAIN; "
                     "在'已是银行新闻'稿件里再框定'银行×金科'话题范围)")
         logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板), "
-                    "当前版本 v3.15.0")
+                    "当前版本 v3.16.0")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
         logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")

@@ -285,7 +285,7 @@ def _log_environment_and_config(panel_path: str, eval_dir: str) -> None:
         logger.info(f"     · 阶段: {STAGE_NAME} (LM 8 维判别效度 / 验证轨 STAGES_VALIDATION; "
                     "DAG stage 74)")
         logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) "
-                    "| 版本 v3.15.0")
+                    "| 版本 v3.16.0")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
         logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")

@@ -344,7 +344,7 @@ def _log_environment_and_config(df_full_path: str, art_path: str,
         logger.info("  🧭 项目 / 环境信息")
         logger.info(f"     · 阶段: {STAGE_NAME} (伪造检验对照变量构建, STAGES_MAIN 主链末端)")
         logger.info("     · 项目: news_process 研究数据流水线 "
-                    "(中文银行/金科新闻 → 计量面板); 版本 v3.15.0")
+                    "(中文银行/金科新闻 → 计量面板); 版本 v3.16.0")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
         logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")

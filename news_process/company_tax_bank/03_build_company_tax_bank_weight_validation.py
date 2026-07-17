@@ -185,7 +185,7 @@ def _log_stage_header(pairs_path: Path, registry_path: Path, dta_path: Path, out
     logger.info("")
     logger.info("  🧭 项目 / 环境信息")
     logger.info("     · 步骤: %s (WP5 双权互验, company_tax_bank 流水线 03/03; 不注册主 DAG)", stem)
-    logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板), 当前版本 v3.15.0")
+    logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板), 当前版本 v3.16.0")
     logger.info("     · 权威执行计划: scripts/audit/COMPANY_TAX_BANK_COOC_PANEL_EXECUTION_PLAN_2026-07-08.md (v7)")
     logger.info("     · 模块文件: %s", Path(__file__).resolve())
     logger.info("     · 工作目录: %s", os.getcwd())

@@ -210,7 +210,7 @@ def _log_env_config_methodology() -> None:
         logger.info(f"     · 阶段: {STAGE_NAME} (信息经纪网络与二分图中心度; "
                     "panel runner 步骤 7h-brok / 7h-neg / 7h-fire)")
         logger.info("     · 项目: news_process 研究数据流水线 "
-                    "(中文银行/金科新闻 → 计量面板); 版本 v3.15.0")
+                    "(中文银行/金科新闻 → 计量面板); 版本 v3.16.0")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
         logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")

@@ -103,7 +103,7 @@ def main():
     try:
         import platform as _platform
         logger.info("-" * 72)
-        logger.info("【环境】项目 = news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.15.0")
+        logger.info("【环境】项目 = news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.16.0")
         logger.info("        阶段 82 export_stats_excel — 审计 CLI, 不在 DAG, 用户手动触发, 与主链解耦。")
         logger.info(
             f"        Python {sys.version.split()[0]} @ {sys.executable}"

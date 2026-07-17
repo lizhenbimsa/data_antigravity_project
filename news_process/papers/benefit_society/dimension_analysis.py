@@ -556,7 +556,7 @@ def _log_environment_and_config(args, *, n_pos: int, n_neg: int, tracks: list[st
         logger.info("  🧭 项目 / 环境信息")
         logger.info("     · 模块: benefit_society.dimension_analysis "
                     "(普惠/CSR 4 维度子指数; 六轨 = full/ctx/ss × MAIN/_lg, 2026-07-03 §3 B1)")
-        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.15.0")
+        logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) v3.16.0")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
         logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")

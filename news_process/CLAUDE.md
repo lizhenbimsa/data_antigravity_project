@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **news_process** transforms raw Chinese bank/fintech news into bank-year panel datasets for econometrics: preprocessing → classification → sentiment (LLM/dictionary/BERT) → panel construction.
 
-**Current version**: v3.15.0 (2026-06-28)。逐版 changelog 见 git history; 本段 + 下方"当前状态铁律"是版本变更的权威源 (CHANGELOG.md 未维护)。每次大改的权威执行计划在 `scripts/audit/*_EXECUTION_PLAN_*.md`。
+**Current version**: v3.16.0 (2026-07-17, 固化 7 月列族扩展: LLM/BERT 互稳 + 稳健性缺口补齐 + 政治词权重 + 网络三轨/判据 + BERT 分布五族 + boilerplate 硬化; 面板数据口径自 v3.15.0 后的增量至此定版)。逐版 changelog 见 git history; 本段 + 下方"当前状态铁律"是版本变更的权威源 (CHANGELOG.md 未维护)。每次大改的权威执行计划在 `scripts/audit/*_EXECUTION_PLAN_*.md`。
 
 ## 当前状态铁律 (load-bearing, 改动前必读)
 

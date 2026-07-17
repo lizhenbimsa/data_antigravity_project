@@ -1221,7 +1221,7 @@ def main():
         import platform as _platform
         logger.info("-" * 72)
         logger.info("🧭 项目 / 环境信息")
-        logger.info("  · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) | 版本 v3.15.0")
+        logger.info("  · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) | 版本 v3.16.0")
         logger.info(f"  · 阶段: {STAGE_NAME} (STAGES_MAIN, kind=filter, timeout=7200s 因含 Embedding API)")
         logger.info("  · 功能: 文章级政策语义对齐度 (article-level policy cosine similarity), 供 stage 45 四象限分类")
         logger.info(f"  · Python {sys.version.split()[0]} @ {sys.executable}")

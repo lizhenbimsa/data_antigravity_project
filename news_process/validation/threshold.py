@@ -539,7 +539,7 @@ def main():
     # ① 🧭 项目 / 环境信息 (运行环境指纹 — tone_words.py 黄金范式; 仅日志, golden-safe)。
     # 整块 try/except 兜底: 任何 env-probe 异常都不得拖垮验证阶段。
     try:
-        _ver = CONFIG.get('project', {}).get('version', 'v3.15.0')
+        _ver = CONFIG.get('project', {}).get('version', 'v3.16.0')
         logger.info("【环境】项目 = news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板) "
                     f"| 版本 {_ver}")
         logger.info(

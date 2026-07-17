@@ -194,7 +194,7 @@ def _log_network_env_and_config() -> None:
         logger.info("     · 阶段: %s (同行网络传染/溢出 + 33 网络指标 + 认知/嵌入邻近)",
                     STAGE_NAME)
         logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板);"
-                    " 版本 v3.15.0")
+                    " 版本 v3.16.0")
         logger.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         logger.info(f"     · 工作目录: {os.getcwd()}")
         logger.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")

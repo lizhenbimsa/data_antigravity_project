@@ -2067,7 +2067,7 @@ def _log_environment_and_config(log, stage_name: str, panel_path: str, output_di
         # ① 🧭 项目 / 环境信息
         log.info("  🧭 项目 / 环境信息")
         log.info(f"     · 阶段: {stage_name} (Stata 数据导出层; STAGES_MAIN 末端「出关口岸」)")
-        log.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板; v3.15.0)")
+        log.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板; v3.16.0)")
         log.info(f"     · 模块文件: {os.path.abspath(__file__)}")
         log.info(f"     · 工作目录: {os.getcwd()}")
         log.info(f"     · Python:   {sys.version.split()[0]} @ {sys.executable}")

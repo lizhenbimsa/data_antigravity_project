@@ -190,7 +190,7 @@ def _log_stage_header(dp: dict, registry_path: Path, out_dta: Path,
     logger.info("")
     logger.info("  🧭 项目 / 环境信息")
     logger.info("     · 步骤: %s (WP1 面板构建, company_tax_bank 流水线 02/03; 不注册主 DAG)", stem)
-    logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板), 当前版本 v3.15.0")
+    logger.info("     · 项目: news_process 研究数据流水线 (中文银行/金科新闻 → 计量面板), 当前版本 v3.16.0")
     logger.info("     · 模块文件: %s", Path(__file__).resolve())
     logger.info("     · 工作目录: %s", os.getcwd())
     logger.info("     · Python:   %s @ %s", platform.python_version(), _sys.executable)
