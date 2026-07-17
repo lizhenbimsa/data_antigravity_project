@@ -87,6 +87,30 @@ citations:
   year: 2024
   title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
   venue: "Intelligent Systems in Accounting, Finance and Management"
+- doi: "10.1016/j.pacfin.2025.102721"
+  type: "journal"
+  authors: "Wang, Y., Xiao, J., Wang, L., & Wang, D."
+  year: 2025
+  title: "News sentiment and the cost of debt"
+  venue: "Pacific-Basin Finance Journal"
+  vol: "91"
+  pages_or_artno: "102721"
+- doi: "10.1016/j.chieco.2025.102541"
+  type: "journal"
+  authors: "Wei, L., Wei, M., Wu, Y., & Jing, Z."
+  year: 2025
+  title: "Does party organization construction improve chinese banks' stability? Evidence from a new textual index"
+  venue: "China Economic Review"
+  vol: "94"
+  pages_or_artno: "102541"
+- doi: "10.1016/j.finmar.2025.100970"
+  type: "journal"
+  authors: "Lachana, I., & Schröder, D."
+  year: 2025
+  title: "Investor sentiment and stock returns: Wisdom of crowds or power of words? Evidence from Seeking Alpha and Wall Street Journal"
+  venue: "Journal of Financial Markets"
+  vol: "74"
+  pages_or_artno: "100970"
 new_dois:
   - "10.1002/isaf.1549"
 ---
@@ -100,8 +124,7 @@ new_dois:
 计算链条分三段。第一段在 stage 22 (22_tone_words.parquet): 对每一篇报道、每一部词典 d, 依据该词典的正负词表并施加统一的三条语言学规则 (否定翻转、程度副词加权、转折削弱) 算出逐篇分值 {d}_score{track}。第二段在面板聚合 (encode.py): 以 sum 聚合把银行—年内全部报道的 {d}_score{track} 相加, 得到六个逐词典求和列 {d}_tone_sum{track}; 六部词典为 jiang_2021、yao_2021、bian_2021、du_2022、you_2018、loughran (本仓库 tone_dicts.json 中 JSON 键 loughran_mcdonald_zh_2026、别名 loughran 的词典轨, 系将 Loughran 与 McDonald 2011 英文金融情感词表逐词中译并面向中文银行业媒体语料做本土化扩展的版本, 沿用其八类情感框架)。第三段在 geography.py: 用 _safe_mean 对这六个逐词典求和列做跨词典算术平均, 落成本家族列 dict_avg_tone_sum{track}。_safe_mean 对缺席的源列优雅返回 NaN, 因此在 golden 重生之前若某轨或某词典的源列尚未落盘, 该综合列不会崩溃而是按可得词典求平均。跨词典求平均的动机与稳健文本测度的主张一致 (Loughran & McDonald 2011; García, Hu & Rohrer 2023): 任何单一词表都带有其构造语料与领域的特异偏差, 六部词典的均值削平了词表选择这一研究者自由度, 使综合测度对「换一部词典结论就变」的批评更有抵抗力。van Atteveldt、van der Velden 与 Boukes (2021) 在方法论层面比较了人工标注、众包、词典与机器学习四条路径, 指出词典法虽召回稳定但对领域漂移敏感 —— 跨词典平均正是对这一敏感性的低成本对冲。
 
 【文献定位】
-本测度处在「财务文本情感测量三角」中的词典法顶点。相对基于机器学习的判别法 (Frankel, Jennings & Lee 2022 比较了词典法与机器学习在披露情感上的分歧) 与本仓库并行的 BERT、三家 LLM 投票法, 词典法的优势在于完全透明、零推断成本、逐词可追溯, 劣势在于无法捕捉上下文与反讽。García 等 (2023) 用大样本证明金融词汇的情感色彩本身具有可度量的横截面结构, 为词典法的效度提供了新证据。Du、Huang、Wermers 与 Wu (2022) 与 Bian、Jia、Li 与 Yan (2021) 分别构造了面向中文金融语料的情感词典, 二者均进入本家族的六部词典集合, 确保综合测度在中文媒体语境下不被英文词表 (Loughran) 的语义错位主导。在识别与推断纪律上须复述本仓库铁律: 求和口径 (本家族) 与均值口径 (dict_avg_tone)、IDF 加权口径 (dict_avg_idf_tone)、规则消融梯度各变体, 以及三条文本轨 full/ctx/ss, 彼此「各自 just-identified 并排、互为稳健性、不分主次」, 严禁把它们混进同一条 over-identified 的 Hansen J 过度识别检验 —— 它们是同一构念的替代测量而非可叠加的独立工具变量。Todd、Bowden 与 Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 的综述系统梳理了金融文本情感分析中词典法与机器学习法的方法学谱系与局限, 为本家族采用跨词典求和口径捕捉媒体情感累积存量提供了最新的方法学定位依据。
-
+本测度处在「财务文本情感测量三角」中的词典法顶点。相对基于机器学习的判别法 (Frankel, Jennings & Lee 2022 比较了词典法与机器学习在披露情感上的分歧) 与本仓库并行的 BERT、三家 LLM 投票法, 词典法的优势在于完全透明、零推断成本、逐词可追溯, 劣势在于无法捕捉上下文与反讽。García 等 (2023) 用大样本证明金融词汇的情感色彩本身具有可度量的横截面结构, 为词典法的效度提供了新证据。Du、Huang、Wermers 与 Wu (2022) 与 Bian、Jia、Li 与 Yan (2021) 分别构造了面向中文金融语料的情感词典, 二者均进入本家族的六部词典集合, 确保综合测度在中文媒体语境下不被英文词表 (Loughran) 的语义错位主导。在识别与推断纪律上须复述本仓库铁律: 求和口径 (本家族) 与均值口径 (dict_avg_tone)、IDF 加权口径 (dict_avg_idf_tone)、规则消融梯度各变体, 以及三条文本轨 full/ctx/ss, 彼此「各自 just-identified 并排、互为稳健性、不分主次」, 严禁把它们混进同一条 over-identified 的 Hansen J 过度识别检验 —— 它们是同一构念的替代测量而非可叠加的独立工具变量。Todd、Bowden 与 Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 的综述系统梳理了金融文本情感分析中词典法与机器学习法的方法学谱系与局限, 为本家族采用跨词典求和口径捕捉媒体情感累积存量提供了最新的方法学定位依据。 在应用同域的近期实证上, Wang、Xiao、Wang 与 Wang (2025) 在中国语境下从新闻报道抽取情感并聚合到企业层面用于债务成本的实证检验, 与本家族「中文报道逐篇打分 → 实体—年聚合」的链路同构; 但其实体是一般上市公司、结果变量是债务成本, 且未区分求和与均值两种聚合口径, 亦无三条文本轨, 故仅锚定应用语境而非本家族的跨词典求和算法。Wei、Wei、Wu 与 Jing (2025) 构造新的中文文本指数度量中国银行的党组织建设, 并接入银行层面面板检验其对银行稳定性的影响, 为「中文文本 → 银行层面指数 → 银行面板回归」这一整体链路提供了中国银行业的近期范例; 须诚实指出该文的文本指数构造口径与本家族并不相同 (其指数并非六部情感词典净极性经语言学规则后的银行—年求和), 结果变量为银行稳定性, 亦无三轨与加权层, 因此该锚点只在链路层面成立、不延伸至测度层面。Lachana 与 Schröder (2025) 并列比较 Seeking Alpha 众包文本与《华尔街日报》两类来源的投资者情感对股票收益的作用, 直接对置「群体智慧」与「文字力量」两条解释, 与本仓库把多个情感测度族并列为互为稳健性轨、而非独尊单一来源或单一口径的取向一致; 其语料为英文、聚合层级为股票—期的收益预测而非银行—年求和, 且该文「文字力量」臂所用的具体词典与加权口径未经本项目核实, 因此不可据以声称其验证过本家族的跨词典平均口径。
 ## VAR: dict_avg_tone_sum_full
 
 【变体差分】
@@ -127,4 +150,7 @@ Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment d
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
+Wang, Y., Xiao, J., Wang, L., & Wang, D. (2025). News sentiment and the cost of debt. Pacific-Basin Finance Journal, 91, 102721. https://doi.org/10.1016/j.pacfin.2025.102721
+Wei, L., Wei, M., Wu, Y., & Jing, Z. (2025). Does party organization construction improve chinese banks' stability? Evidence from a new textual index. China Economic Review, 94, 102541. https://doi.org/10.1016/j.chieco.2025.102541
+Lachana, I., & Schröder, D. (2025). Investor sentiment and stock returns: Wisdom of crowds or power of words? Evidence from Seeking Alpha and Wall Street Journal. Journal of Financial Markets, 74, 100970. https://doi.org/10.1016/j.finmar.2025.100970
 <!-- rendered-citations:end -->

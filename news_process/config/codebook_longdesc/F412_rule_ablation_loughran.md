@@ -81,6 +81,39 @@ citations:
   vol: "63"
   issue: "1"
   pages_or_artno: "125-143"
+- doi: "10.1057/s41267-025-00798-8"
+  type: "journal"
+  authors: "Pinto, J., & Siano, F."
+  year: 2025
+  title: "Beyond words: the challenge of measuring financial text across borders"
+  venue: "Journal of International Business Studies"
+  vol: "56"
+  issue: "7"
+  pages_or_artno: "921-936"
+- doi: "10.1609/icwsm.v18i1.31443"
+  type: "journal"
+  authors: "Oh, N."
+  year: 2024
+  title: "Sentibank: A Unified Resource of Sentiment Lexicons and Dictionaries"
+  venue: "Proceedings of the International AAAI Conference on Web and Social Media"
+  vol: "18"
+  pages_or_artno: "2003-2013"
+- doi: "10.1140/epjds/s13688-026-00654-1"
+  type: "journal"
+  authors: "Pokropek, A."
+  year: 2026
+  title: "From keyword-based text measures to latent variables: confirmatory factor analysis with word embeddings"
+  venue: "EPJ Data Science"
+  vol: "15"
+  issue: "1"
+  pages_or_artno: "51"
+- doi: "10.1177/10944281251334777"
+  type: "journal"
+  authors: "Iqbal, F., & Pfarrer, M. D."
+  year: 2025
+  title: "Using Coreference Resolution to Mitigate Measurement Error in Text Analysis"
+  venue: "Organizational Research Methods"
+  pages_or_artno: "10944281251334777"
 new_dois: []
 ---
 
@@ -95,8 +128,7 @@ new_dois: []
 【文献定位】
 本家族的方法学谱系直接承袭 Loughran & McDonald (2011, The Journal of Finance) 的词典打分范式 — 该文首次系统证明通用情感词典(Harvard-IV)在金融文本上大量误判, 提出金融领域专属正负词表, 是文本分析在会计与金融研究中确立方法论地位的奠基文献, 亦是本 codebook 顶刊锚点; 其后续综述(Loughran & McDonald, 2016, Journal of Accounting Research)系统盘点了词典法在会计金融文献中的应用谱系与常见方法学陷阱, 为本家族"规则消融需要披露、不能默认单一规则设定"的设计动机提供直接依据。规则层面, 否定翻转与转折处理的必要性呼应词典法综述 Taboada et al. (2011, Computational Linguistics) 对"上下文调整词(contextual valence shifters)"——包括否定词、强化/弱化词、转折连词——系统性影响词汇情感极性判断这一发现的中文场景落地; negonly 臂的设计动机直接对应 Pröllochs, Feuerriegel & Neumann (2016, Decision Support Systems) 关于否定作用域检测对新闻驱动交易信号质量的可观测影响。方法论正当性上, Frankel, Jennings & Lee (2022, Management Science) 对比机器学习与词典法两条路径测得的信息含量差异, 提示词典法内部的规则设定选择(而非仅词典或机器学习二选一)本身即构成一个值得系统披露的自由度, 这正是本家族存在的方法学理由; 更晚近的 Barbaglia, Consoli, Manzan, Tiozzo Pezzoli & Tosetti (2025, Economic Inquiry) 对经济文本词典法的系统评估进一步确认, 词典法的规则组件(而非仅词表本身)对最终情感分数的方差贡献不可忽视, 支持本家族"三规则全 powerset 物化并披露"而非仅报告单一"最优"规则组合的设计立场。
 
-按照仓库当前状态铁律, 本家族的三条正交自由度须严格分层理解: 其一是三轨自由度(full/ctx/ss), 三者对应不同文本窗口(全文/实体上下文窗口/银行∧金科同句窗口), 各自 just-identified 并排、互为稳健性、不分主次, 严禁混入同一 over-identified Hansen J 设定; 其二是留篇门控口径, 2026-06-29 起门控判定统一改为仅看 full 轨 llm_verified_full, ctx/ss 是 conditional-on-full 的测度轨, 行宇宙是 full 留篇集合的子集; 其三是回退语义, 当某篇文章不存在银行∧金科同句共现时 content_ss 回退为全文 body 且 ss_is_fallback 置 True(镜像 content_ctx 回退语义, 分母 n_articles 共享)。本家族的七规则消融维度与三轨维度、与家族外的政治词权重梯度(du_2022 专属)完全正交、互不交叉, 词典消融梯度内部各变体之间也是各自独立的 just-identified 并排关系, 不构成任何联合过识别设定; 使用者若要检验某一具体语言学规则(如否定处理)对语调测度稳健性的边际贡献, 应固定轨道比较七个规则变体的差异, 而不应把七变体×三轨的 21 列一并塞入单一回归右手方作为工具变量集合。
-
+按照仓库当前状态铁律, 本家族的三条正交自由度须严格分层理解: 其一是三轨自由度(full/ctx/ss), 三者对应不同文本窗口(全文/实体上下文窗口/银行∧金科同句窗口), 各自 just-identified 并排、互为稳健性、不分主次, 严禁混入同一 over-identified Hansen J 设定; 其二是留篇门控口径, 2026-06-29 起门控判定统一改为仅看 full 轨 llm_verified_full, ctx/ss 是 conditional-on-full 的测度轨, 行宇宙是 full 留篇集合的子集; 其三是回退语义, 当某篇文章不存在银行∧金科同句共现时 content_ss 回退为全文 body 且 ss_is_fallback 置 True(镜像 content_ctx 回退语义, 分母 n_articles 共享)。本家族的七规则消融维度与三轨维度、与家族外的政治词权重梯度(du_2022 专属)完全正交、互不交叉, 词典消融梯度内部各变体之间也是各自独立的 just-identified 并排关系, 不构成任何联合过识别设定; 使用者若要检验某一具体语言学规则(如否定处理)对语调测度稳健性的边际贡献, 应固定轨道比较七个规则变体的差异, 而不应把七变体×三轨的 21 列一并塞入单一回归右手方作为工具变量集合。 晚近前沿在若干侧面补强了上述分层。首先, 本家族所用词表是 Loughran & McDonald (2011) 的中文主译本, 这一把美国基准词表移出本国语境的动作本身即是一项应被披露的测度风险: Pinto 与 Siano (2025) 以 85 个国家、200,960 份财报电话会记录 (文本本身即英文) 为语料, 把美国基准词表直接套用其上, 发现情感与收益的关联在非美国公司弱约 30%, 且定谳主因是文化距离而非语言 (语言特征仅作文化价值的工具变量); 其含义是 L&M 式美国基准词表一旦移出美国语境, 即使文本仍是英文, 信号强度亦系统性衰减, 那么把该词表移入中国语境 (既跨文化、又另加中文翻译) 风险只会更大, 这正是本项目既保留 loughran 译本轨、又并置多部本土中文词典与多个规则臂的动机之一。该条须按限定口径引用: 原文全文无词表翻译、亦无非英语语料, 语料为财报电话会记录而非中文金融新闻, 讨论对象是美国基准词表移出本国语境后的信号衰减, 并未涉及否定/程度/转折规则子集的消融设计, 亦无银行-年度聚合层级。其次, Oh (2024) 指出情感分析在可解释性上的困难并明确背书「依赖专家词表的规则法能提供透明性」, 同时以资源碎片化与验证缺失为问题意识, 把 15 部原始情感词典与 43 部预处理词典整合入 sentibank 库 (覆盖 7 类体裁、6 个领域), 说明规则/词典法作为可解释测度分支在当代前沿仍被背书, 支持本家族保留词典状态机语调轨; 但其覆盖为英文社交媒体等体裁, 不含本项目所用中文金融词典, 未实现三规则状态机, 亦未主张「不同词典给出不同极性故须并排使用」, 故仅止于取向层面的佐证, 与规则消融稳健性检验无直接关联。第三, Pokropek (2026) 指出词典法中研究者选定的关键词极少像量表题项那样接受心理测量学检验 (罕有报告信度、评估内部结构或检验测量不变性), 遂提出把单个关键词视为同一潜变量的观测指标、以词嵌入的中心化余弦相似度矩阵为输入作验证性因子分析, 借以估计载荷与拟合指数、计算信度并检验不变性; 这一心理测量学立场与本家族「规则设定不能默认、须全 powerset 物化并披露」的动机同向。须注意指标层级不同: 原文的观测指标是一部词表之内的单个关键词, 整合方式为基于嵌入的 CFA 载荷估计, 语料为社会科学文本, 且未在规则消融的任一臂上分别整合, 不涉及否定/程度/转折规则。最后, Iqbal 与 Pfarrer (2025) 证明情感分析在多主体文本中的情感归属上存在系统性测量误差, 并以共指消解作为解法、经两项研究显示可降低测量误差, 由此确立「一项具体的语言学处理选择会系统性改变文本测度取值、并构成实质性测量误差来源」这一一般命题, 支持本家族对规则不作默认采纳而显式披露其后果。其边界须严格声明: 原文规则是共指消解 (实体指代还原), 与本家族三规则非同一规则, 其在本项目中的对应物是 ctx/ss 实体窗口轨而非规则消融族; 且原文取规范性立场、主张采纳该规则以减少误差, 而本家族令七臂 just-identified 并排、互为稳健性不分主次, 故不得据以视之为 powerset 规则消融设计的同构先例。
 ## VAR: loughran_advonly_tone_ctx
 
 【变体差分】
@@ -209,4 +241,8 @@ Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-ba
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
+Pinto, J., & Siano, F. (2025). Beyond words: the challenge of measuring financial text across borders. Journal of International Business Studies, 56(7), 921-936. https://doi.org/10.1057/s41267-025-00798-8
+Oh, N. (2024). Sentibank: A Unified Resource of Sentiment Lexicons and Dictionaries. Proceedings of the International AAAI Conference on Web and Social Media, 18, 2003-2013. https://doi.org/10.1609/icwsm.v18i1.31443
+Pokropek, A. (2026). From keyword-based text measures to latent variables: confirmatory factor analysis with word embeddings. EPJ Data Science, 15(1), 51. https://doi.org/10.1140/epjds/s13688-026-00654-1
+Iqbal, F., & Pfarrer, M. D. (2025). Using Coreference Resolution to Mitigate Measurement Error in Text Analysis. Organizational Research Methods, 10944281251334777. https://doi.org/10.1177/10944281251334777
 <!-- rendered-citations:end -->

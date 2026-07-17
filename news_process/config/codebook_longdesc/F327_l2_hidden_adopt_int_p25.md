@@ -45,6 +45,23 @@ citations:
   venue: Economic Modelling
   vol: '127'
   pages_or_artno: '106445'
+- doi: "10.1016/j.frl.2026.109668"
+  type: "journal"
+  authors: "Chen, M., Zhang, Z., & Liu, Y."
+  year: 2026
+  title: "Silence in innovation disclosure: More action-less talk innovation and trade credit financing in China"
+  venue: "Finance Research Letters"
+  vol: "95"
+  pages_or_artno: "109668"
+- doi: "10.1016/j.rmal.2025.100272"
+  type: "journal"
+  authors: "Hemelstrand, S., & Inoue, T."
+  year: 2025
+  title: "Stop splitting hairs: The problems with dichotomizing continuous data in language research"
+  venue: "Research Methods in Applied Linguistics"
+  vol: "4"
+  issue: "3"
+  pages_or_artno: "100272"
 new_dois: []
 ---
 
@@ -61,8 +78,7 @@ canonical (无 `_ctx`/`_ss` 后缀) 的相似度输入取全文轨 `policy_cosin
 另需注意: 家族内三列共享的 `_p25` 阈值percentile 与三轨后缀是两个独立、正交的梯子——三轨表示"用哪段文本算相似度", `p25/p50/p75` 表示"用多严的分位数门槛切高低"; 二者笛卡尔积展开为多个姊妹家族 (`hidden_adopt_int_p50*`/`hidden_adopt_int_p75*` 等), 互不嵌套、互为稳健性。
 
 【文献定位】
-四象限"话语-实质"缺口构造的理论根基可追溯到组织与创新管理文献对采纳行为"符号性/实质性"二分的长期关注: Adner & Kapoor (2010, *Strategic Management Journal*) 在创新生态系统框架下指出企业间技术互依结构会造成采纳节奏(话语宣示 vs. 实际部署)与技术代际成熟度的错配, 为本项目把"报道频率高不代表制度嵌入深"这一直觉形式化为可分类构念提供了生态系统层面的理论支撑。政策对齐分数本身的构造与解释依据 Distel 等 (2026, 源码注释) 的文章级政策—银行余弦相似度方法, 本家族是该连续测度的离散化机制检验分支。方法学层面, 文本情感/主题类测度的"多测度并排作稳健性"惯例参见 Todd, Bowden & Moshfeghi (2024, *Intelligent Systems in Accounting, Finance and Management*) 对金融文本情感分析文献的系统综述, 及 Kearney & Liu (2014, *International Review of Financial Analysis*) 对文本情感测度方法与模型的综述——两者均强调单一文本测度存在构念效度风险, 支持本项目在 kw/int 词频轨与 p25/p50/p75 阈值上做梯子式并排稳健性检验而非依赖单一切分。中国银行业金融科技语境下的实证背景参见 Fang, Wang, Wang & Zhao (2023, *Economic Modelling*) 对银行金融科技、流动性创造与风险承担关系的探讨, 为本家族在中国银行业新闻语料上构造的"隐性采纳"占比提供了行业适用性佐证。
-
+四象限"话语-实质"缺口构造的理论根基可追溯到组织与创新管理文献对采纳行为"符号性/实质性"二分的长期关注: Adner & Kapoor (2010, *Strategic Management Journal*) 在创新生态系统框架下指出企业间技术互依结构会造成采纳节奏(话语宣示 vs. 实际部署)与技术代际成熟度的错配, 为本项目把"报道频率高不代表制度嵌入深"这一直觉形式化为可分类构念提供了生态系统层面的理论支撑。政策对齐分数本身的构造与解释依据 Distel 等 (2026, 源码注释) 的文章级政策—银行余弦相似度方法, 本家族是该连续测度的离散化机制检验分支。方法学层面, 文本情感/主题类测度的"多测度并排作稳健性"惯例参见 Todd, Bowden & Moshfeghi (2024, *Intelligent Systems in Accounting, Finance and Management*) 对金融文本情感分析文献的系统综述, 及 Kearney & Liu (2014, *International Review of Financial Analysis*) 对文本情感测度方法与模型的综述——两者均强调单一文本测度存在构念效度风险, 支持本项目在 kw/int 词频轨与 p25/p50/p75 阈值上做梯子式并排稳健性检验而非依赖单一切分。中国银行业金融科技语境下的实证背景参见 Fang, Wang, Wang & Zhao (2023, *Economic Modelling*) 对银行金融科技、流动性创造与风险承担关系的探讨, 为本家族在中国银行业新闻语料上构造的"隐性采纳"占比提供了行业适用性佐证。 晚近两条文献分别从构念存在性与方法学代价两侧补强本家族的定位。Chen、Zhang 与 Liu (2026) 专门刻画中国企业「多行动少言说 (more action-less talk)」的创新披露沉默型态, 即实质投入高而文本声量低的一格, 为本家族 hidden 象限「词频强度低、政策语义对齐不低」作为一类独立可测型态提供了中国语境下的前沿存在性证据; 迁移边界在于该文测的是企业年报创新披露与商业信用融资的关系, 层级为上市公司—年, 其「沉默」由披露文本与专利/研发投入的落差定义, 而非本项目「fintech_intensity_score < 年度分位 AND policy_cosine_sim >= 年度分位」的双分位判据, 原文亦无三轨文本与 p25/p50/p75 阈值梯子。Hemelstrand 与 Inoue (2025) 以三组模拟论证连续变量二分的代价: 二分几乎普遍抬高标准误、导致显著性检验失准, 并因信息量削减而压低 R² 等效应量, 明确建议不要二分连续数据。本家族把连续的 policy_cosine_sim 与 fintech_intensity_score 双双按年度分位二值化, 正是该文所告诫的做法, 故引作必须直面的反向方法学告诫: 四象限设计的价值在于把「话语—实质」解耦为可解释的离散型态以服务机制检验, 代价则是估计效率与效应量的损失, 应在结果中如实披露。须强调该文并未提出「若必须二分则做多切点敏感性检验」的补救建议, 本项目的 p25/p50/p75 阈值梯子属自设的稳健性措施, 其正当性不以该文为据; 该文亦属应用语言学研究方法领域, 论证针对的是单变量二分对回归推断的影响, 未涉及双变量交叉的 2×2 象限、逐年滚动分位阈值与「已测量篇数」分母口径。
 ## VAR: hidden_adopt_int_p25
 
 【变体差分】
@@ -86,4 +102,6 @@ Adner, R., & Kapoor, R. (2010). Value creation in innovation ecosystems: How the
 Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management, 31(1), e1549. https://doi.org/10.1002/isaf.1549
 Kearney, C., & Liu, S. (2014). Textual sentiment in finance: A survey of methods and models. International Review of Financial Analysis, 33, 171-185. https://doi.org/10.1016/j.irfa.2014.02.006
 Fang, Y., Wang, Q., Wang, F., & Zhao, Y. (2023). Bank fintech, liquidity creation, and risk-taking: Evidence from China. Economic Modelling, 127, 106445. https://doi.org/10.1016/j.econmod.2023.106445
+Chen, M., Zhang, Z., & Liu, Y. (2026). Silence in innovation disclosure: More action-less talk innovation and trade credit financing in China. Finance Research Letters, 95, 109668. https://doi.org/10.1016/j.frl.2026.109668
+Hemelstrand, S., & Inoue, T. (2025). Stop splitting hairs: The problems with dichotomizing continuous data in language research. Research Methods in Applied Linguistics, 4(3), 100272. https://doi.org/10.1016/j.rmal.2025.100272
 <!-- rendered-citations:end -->

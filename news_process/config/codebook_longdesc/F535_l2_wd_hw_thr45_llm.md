@@ -44,6 +44,15 @@ citations:
   vol: '120'
   issue: '30'
   pages_or_artno: e2305016120
+- doi: "10.1093/restud/rdaf037"
+  type: "journal"
+  authors: "Kwon, S. Y., & Tang, J."
+  year: 2026
+  title: "Extreme Categories and Overreaction to News"
+  venue: "Review of Economic Studies"
+  vol: "93"
+  issue: "2"
+  pages_or_artno: "1137-1166"
 new_dois: []
 ---
 
@@ -54,8 +63,7 @@ new_dois: []
 【方法学与计算】
 计算链条分两段。第一段在 stage 24: `herd_decay_processor` 按 `config` 中 `herd_detection.sensitivity_thresholds` 网格 (由 `herd_sensitivity_grid(CONFIG)` 解析出多个 `(τ, tag)` 对, 45 对应 τ=0.45) 为每篇报道、每条轨道分别算出 `herd_weight{track}_thr45` 列, 权重值域通常落在 (0,1], 值越低表示该篇报道与窗口内其他报道的语义/主题相似度越高、越像"跟风稿"。第二段在 `pipeline\panel\runner.py` 步骤 3d-2: 对每个阈值标签 `_tag` 与每条轨道 `track`, 先取 `w_src = herd_weight{track}_{tag}`, 用 `hw_t = df[w_src].fillna(1.0)` 把缺失权重回退为 1 (即"无法判定跟风程度时不打折"), 再构造 `_wd_hw_{tag}_llm{track} = hw_t.where(df[f'llm_vote_score{track}'].notna())` ——这一步是本列的核心: 仅当该篇章在对应轨道上有非缺失的 LLM 投票语调分时才保留权重值, 否则整体置缺失 (而非置零), 这样后续 `groupby(bank, year).sum()` 会自动按 pandas 的 NaN 跳过语义排除该篇, 分子分母始终共享同一"有效样本掩码", 避免分子分母行数不对齐导致的加权均值系统性偏误。第三段在 `pipeline\panel\encode.py` 聚合阶段: `agg[f'sum_wd_hw_{_tag}_llm{track}'] = (f'_wd_hw_{_tag}_llm{track}', 'sum')` 对每个银行-年做 groupby-sum, 即本列的最终产出值。三条轨道 full/ctx/ss 的权重列、语调源列、共现判据均各自独立计算, 互不借用彼此的样本或权重, 三轨各自 just-identified 并排、互为稳健性不分主次, 禁止把三轨权重和混入同一个 over-identified 的 Hansen J 过度识别检验框架。ss 轨若某篇报道无银行∧金科同句共现, 按 ss 回退语义镜像 ctx (`content_ss`=全文 body, `ss_is_fallback=True`), 该篇是否进入本列求和仍只取决于 `llm_vote_score_ss` 是否非缺失, 与是否发生 ss 回退无关。留篇门控口径 (2026-06-29 起) 是 full-only: 一篇报道是否被算作"银行金科报道"只看 `llm_verified_full`, ctx/ss 轨的本列求和行宇宙是 full 留篇集的子集, 三轨各自照算权重与分母, 不因 ctx/ss 单独缺席而改变 full 轨的样本。
 【文献定位】
-方法学上, 本列所依托的"LLM 投票语调 + 权重敏感性网格"设计呼应两条平行文献。其一是 LLM 文本标注可靠性文献: de Kok (2025, *Management Science*) 强调会计/金融文本分析中用生成式 LLM 做标注时须固定 temperature=0、冻结 prompt 版本并做可复现缓存, 本项目 stage 21 的三家 LLM 多数投票语调 (`llm_vote_score`) 正是在该规范下产出, thr45 权重和只是对这一已冻结语调分做敏感性再加权, 不改变底层标注本身; Hansen (2026, FRB FEDS 工作论文) 讨论在缺乏人工金标准时如何验证 LLM 标注的有效性, 本项目用阈值敏感性梯子而非单一权重口径, 正是该验证逻辑在跟风衰减维度上的具体落地; Gilardi, Alizadeh & Kubli (2023, *PNAS*) 证明 ChatGPT 类模型在文本标注任务上可比肩众包人工, 为把 LLM 投票语调当作可信的加权对象提供了外部效度支撑。其二是媒体语调-价格文献的方法论传统: Tetlock (2007) 确立了"媒体语调是独立于基本面的定价信息"这一构念, 本列的跟风衰减权重正是为了防止该信息被同题材重复报道人为放大, 使得银行-年层面的加权语调更接近"独立信息条数"而非"文章条数"的度量。三列共同构成阈值敏感性稳健性梯子中 τ=0.45 这一档的求和分母, 需与其余阈值标签、以及跟风衰减主口径的对应分母列并排比较, 以证明主回归结论不依赖某一个具体的跟风判定阈值取值。
-
+方法学上, 本列所依托的"LLM 投票语调 + 权重敏感性网格"设计呼应两条平行文献。其一是 LLM 文本标注可靠性文献: de Kok (2025, *Management Science*) 强调会计/金融文本分析中用生成式 LLM 做标注时须固定 temperature=0、冻结 prompt 版本并做可复现缓存, 本项目 stage 21 的三家 LLM 多数投票语调 (`llm_vote_score`) 正是在该规范下产出, thr45 权重和只是对这一已冻结语调分做敏感性再加权, 不改变底层标注本身; Hansen (2026, FRB FEDS 工作论文) 讨论在缺乏人工金标准时如何验证 LLM 标注的有效性, 本项目用阈值敏感性梯子而非单一权重口径, 正是该验证逻辑在跟风衰减维度上的具体落地; Gilardi, Alizadeh & Kubli (2023, *PNAS*) 证明 ChatGPT 类模型在文本标注任务上可比肩众包人工, 为把 LLM 投票语调当作可信的加权对象提供了外部效度支撑。其二是媒体语调-价格文献的方法论传统: Tetlock (2007) 确立了"媒体语调是独立于基本面的定价信息"这一构念, 本列的跟风衰减权重正是为了防止该信息被同题材重复报道人为放大, 使得银行-年层面的加权语调更接近"独立信息条数"而非"文章条数"的度量。三列共同构成阈值敏感性稳健性梯子中 τ=0.45 这一档的求和分母, 需与其余阈值标签、以及跟风衰减主口径的对应分母列并排比较, 以证明主回归结论不依赖某一个具体的跟风判定阈值取值。 就「门槛取值本身须被并排检验」这一取向, Kwon 与 Tang (2026) 提供了一条构念侧的旁证: 该文在诊断性预期框架下检验涵盖 24 类企业新闻的语料, 发现基本面分布越极端的新闻类别, 公告后的收益反转与成交量放大越明显, 说明类别边界携带经济含义、并非中性的技术细节, 据此把连续量映射为类别或子集的边界取值值得并排检验。迁移边界须严格限定: 原文的类别是语料中外生既有的新闻题材, 其离散化发生在投资者信念形成的行为偏误层面, 与本列研究者在跟风相似度检测网格上的口径选择性质不同; 原文既未做连续信号的离散化, 亦未提出「须显式检验阈值」的方法学规范, 更未涉及文本相似度、跟风衰减权重、LLM 或加权分母, 其类别边界与 τ=0.45 无对应物、数值不可比, 故本列与 thr25/thr30 等其余标签仍是各自 just-identified 的并排稳健性档位, 不分主次。
 ## VAR: sum_wd_hw_thr45_llm_ctx
 
 【变体差分】
@@ -76,4 +84,5 @@ Tetlock, P. C. (2007). Giving Content to Investor Sentiment: The Role of Media i
 de Kok, T. (2025). ChatGPT for Textual Analysis? How to Use Generative LLMs in Accounting Research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
 Hansen, A. L. (2026). Validating Large Language Model Annotations. FEDS Working Paper No. 2026-020, Federal Reserve Board [Working Paper]. https://doi.org/10.17016/FEDS.2026.020
 Gilardi, F., Alizadeh, M., & Kubli, M. (2023). ChatGPT Outperforms Crowd Workers for Text-Annotation Tasks. Proceedings of the National Academy of Sciences, 120(30), e2305016120. https://doi.org/10.1073/pnas.2305016120
+Kwon, S. Y., & Tang, J. (2026). Extreme Categories and Overreaction to News. Review of Economic Studies, 93(2), 1137-1166. https://doi.org/10.1093/restud/rdaf037
 <!-- rendered-citations:end -->

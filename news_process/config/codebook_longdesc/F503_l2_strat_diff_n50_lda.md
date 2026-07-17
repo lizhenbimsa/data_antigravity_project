@@ -47,6 +47,15 @@ citations:
   vol: "37"
   issue: "1"
   pages_or_artno: "145-151"
+- doi: "10.1002/sej.1521"
+  type: "journal"
+  authors: "Shen, R., Zhang, H., Zhong, W., & Lu, J."
+  year: 2025
+  title: "Distinctiveness from whom? Evaluation of startups' distinctiveness from multiple referents in angel investment platforms"
+  venue: "Strategic Entrepreneurship Journal"
+  vol: "19"
+  issue: "1"
+  pages_or_artno: "171-195"
 new_dois: []
 ---
 
@@ -59,8 +68,7 @@ strat_diff_n50_lda 测度的是"战略距离/战略独特性"(strategic distinct
 计算管线分三步。第一步, 由 pipeline/features/strategic_diff.py 用注入 1506 个金科词的独立分词器(_get_diff_tokenizer)对文本分词(2026-06-21 起 word 级 TF-IDF 与全部 LDA 列统一走该分词器, 领域复合词如"金融科技""区块链"整词保留, 不被切碎, 这一口径与 char 轨、embedding 轨的领域感知处理一致); 第二步, 用一个在样本语料上训练的 LDA 模型把每篇/每行文本映射为一个低维主题概率分布 θ(单纯形上的点, 各分量非负且和为 1); 第三步, 对同一年份内的全部银行样本两两计算 d(θ_i, θ_j)=scipy.spatial.distance.jensenshannon(θ_i, θ_j, base=2)——该 scipy 函数返回的是 JSD 散度的平方根 √JSD, 即 Jensen-Shannon 距离, 而非 JSD 散度本身(源码 _build_lda_jsd_matrix 注释亦明确标注"sqrt(JSD)"), 对银行 i 按 d 升序排列同行, 取前 N=50 个最近邻, 以这 N=50 个 d 值的均值作为 strat_diff_n50_lda。JSD 本身是 KL 散度的对称化、有界化版本(Lin (1991)), √JSD 距离继承了 JSD 的对称、恒有限、以 log2 为底时值域落在 [0,1] 的性质, 且满足三角不等式、是真正的度量(metric), 这正是它比原始 JSD 散度或 KL 散度更适合直接用于最近邻检索排序的原因; 数值越大表示该银行的话语主题分布与其"最相似的一批同行"相比仍然差异越大, 即战略/话语独特性越高, 反之数值越小说明该银行的新闻话语内容与同行高度雷同、缺乏差异化叙事。需特别说明: strat_diff_n50_lda 是"N=50 邻居上 √JSD 距离的均值", 而非"N=50 邻居上 JSD 散度的均值"——由 Jensen 不等式, 对非线性凹函数 √ 取均值再开方与先开方再取均值一般不相等, 两者数值不可互换, 尽管值域都落在 [0,1] 但不构成同一量; 本文档及其余各列一律以此"√JSD 距离均值"口径为准。这一构造与家族内 TF-IDF 轨(char/word)的 N-最近邻差异度共享同一"取最近 N 邻居, 平均距离"框架, 唯一区别是底层文本表征——LDA 主题分布 vs. 词袋向量——不同表征方法互为方法学稳健性检验, 而非彼此替代或分主次。三轨 (full/ctx/ss) 上的取值分别建立在 14_materialize_ctx 物化出的 content_full/content_ctx/content_ss 三份文本上, 各自独立跑一遍分词→LDA 推断→JSD 最近邻这条流水线; full 轨用完整正文(标题+全文 body), ctx 轨用围绕目标银行实体的窗口文本, ss 轨用银行∧金科词同句共现窗口文本(回退语义镜像 ctx: 当某银行-年份样本内无满足"银行∧金科同句共现"的句子时, content_ss 退化为全文 body, 并置 ss_is_fallback=True, 与 ctx 轨共享同一套 n_articles 分母口径)。三轨、以及词典消融/权重/阈值/判据等其它梯子, 在本项目的识别策略里均按"各自 just-identified 并排、互为稳健性、不分主次"处理, 绝不允许把 full/ctx/ss 三条差异度序列同时塞进同一个 over-identified 的 Hansen J 过度识别检验——每条轨道各自作为独立的一次估计并排展示, 用跨轨一致性而非合并识别力度来支撑结论的稳健性。
 
 【文献定位】
-本族方法学谱系上承三条脉络: 一是产业组织学界用文本相似度直接构造企业间距离矩阵、绕开人工产业分类的传统, 代表作是 Hoberg & Phillips (2016) 提出的文本网络产业分类(TNIC), 把逐年更新的产品描述文本相似度矩阵作为竞争定位的经验度量; 二是把"最近邻"思想应用到战略/创业异质性测量的近期文献, Guzman & Li (2023) 用创业公司命名文本的最近邻结构度量创始战略的模式化程度与独特性, 是本族 N-最近邻均值构造的直接方法学来源; 三是最优独特性理论传统, Haans (2019) 指出战略独特性对绩效的边际效应依赖于行业内同质/异质竞争格局, 提醒差异度得分本身是中性测度, 其经济含义需结合具体检验假设解读, 不能简单等同"差异度越高越好"或"越低越好"。三者共同构成 strat_diff_n50_lda 及其家族的构念效度基础: 用可复现的文本统计量捕捉战略话语上的相对定位, 同时提醒使用者战略差异化的绩效含义是情境依赖的经验问题而非度量本身自带的方向性判断。
-
+本族方法学谱系上承三条脉络: 一是产业组织学界用文本相似度直接构造企业间距离矩阵、绕开人工产业分类的传统, 代表作是 Hoberg & Phillips (2016) 提出的文本网络产业分类(TNIC), 把逐年更新的产品描述文本相似度矩阵作为竞争定位的经验度量; 二是把"最近邻"思想应用到战略/创业异质性测量的近期文献, Guzman & Li (2023) 用创业公司命名文本的最近邻结构度量创始战略的模式化程度与独特性, 是本族 N-最近邻均值构造的直接方法学来源; 三是最优独特性理论传统, Haans (2019) 指出战略独特性对绩效的边际效应依赖于行业内同质/异质竞争格局, 提醒差异度得分本身是中性测度, 其经济含义需结合具体检验假设解读, 不能简单等同"差异度越高越好"或"越低越好"。三者共同构成 strat_diff_n50_lda 及其家族的构念效度基础: 用可复现的文本统计量捕捉战略话语上的相对定位, 同时提醒使用者战略差异化的绩效含义是情境依赖的经验问题而非度量本身自带的方向性判断。 在此三条脉络之上, Shen、Zhang、Zhong 与 Lu (2025) 进一步提示参照集本身的界定并非中性的技术选择: 该文在中国某天使投资平台的 3266 份商业计划书上, 把同一创业企业分别相对在位企业与同台同类创业企业计算独特性, 发现两个参照物下独特性对投资人评价的作用方向不同且互相调节, 从而证明「独特性相对于谁而言」会实质改变该得分的经济含义; 据此, 本族取 N=50 最近邻作为参照集的做法属须被显式披露并接受检验的设计选择, 而非可默认的实现细节。迁移边界须诚实标明: 该文的参照集由平台类别与投资人视角离散界定, 非本族在主题单纯形上按 √JSD 距离检索的连续文本向量空间 kNN; 分析层级为创业企业而非银行-年度; 原文既未提出 kNN 算子, 也未使用 LDA 主题分布或 Jensen-Shannon 距离, 更未变动参照集的规模宽窄, 故不构成本族 top-k N 邻域宽度梯子的直接依据 — 各 N 档仍按互为稳健性、不分主次、各自 just-identified 的并排口径解读, 严禁混入同一 over-identified Hansen J 检验。
 ## VAR: strat_diff_n50_lda
 
 【变体差分】
@@ -81,6 +89,7 @@ Hoberg, G., & Phillips, G. (2016). Text-Based Network Industries and Endogenous 
 Guzman, J., & Li, A. (2023). Measuring Founding Strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369
 Haans, R. F. J. (2019). What's the Value of Being Different When Everyone Is? The Effects of Distinctiveness on Performance in Homogeneous versus Heterogeneous Categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978
 Lin, J. (1991). Divergence Measures Based on the Shannon Entropy. IEEE Transactions on Information Theory, 37(1), 145-151. https://doi.org/10.1109/18.61115
+Shen, R., Zhang, H., Zhong, W., & Lu, J. (2025). Distinctiveness from whom? Evaluation of startups' distinctiveness from multiple referents in angel investment platforms. Strategic Entrepreneurship Journal, 19(1), 171-195. https://doi.org/10.1002/sej.1521
 <!-- rendered-citations:end -->
 </content>
 </invoke>

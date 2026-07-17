@@ -51,6 +51,15 @@ citations:
   vol: '10'
   issue: '45'
   pages_or_artno: eadp1528
+- doi: "10.1093/restud/rdaf037"
+  type: "journal"
+  authors: "Kwon, S. Y., & Tang, J."
+  year: 2026
+  title: "Extreme Categories and Overreaction to News"
+  venue: "Review of Economic Studies"
+  vol: "93"
+  issue: "2"
+  pages_or_artno: "1137-1166"
 new_dois: []
 ---
 
@@ -63,8 +72,7 @@ new_dois: []
 计算发生在两处: (1) pipeline/panel/runner.py 步骤 3d-2 里, 对每个 (tag, track) 组合, 若 herd_weight{track}_{tag} 与 llm_vote_score{track} 两列同时存在, 则令 hw_t = herd_weight{track}_{tag} 的缺失值填 1.0 (不打折), 再生成 _wd_hw_{tag}_llm{track} = hw_t.where(llm_vote_score{track}.notna()) — 即只在 LLM 投票分数本身非缺失的行才保留该权重, 否则置缺失, 这样分子 (llm_vote_score_hw_{tag}_sum{track}) 与分母 (本列) 的非缺失行集合严格对齐, 避免分子分母"域不一致"导致加权平均系统性偏误。(2) pipeline/panel/encode.py 的聚合阶段, 把篇章级 _wd_hw_{tag}_llm{track} 按银行-年做 sum 聚合, 得到本家族的三个面板列。needs_review 均为 false, 三列均为 standard tier, 无 core 差分理由字段填写 — 因为三列彼此的唯一差异就是三轨文本口径, 属于本仓文档规范里"轨道并排、非嵌套"的标准差分模式, 不构成需要单列 core 长文的额外识别策略。
 
 【文献定位】
-分母口径本身依托三条互补文献线索定位: 一是 LLM 文本标注的方法学纪律 (de Kok 2025, Management Science) 强调 temperature=0、prompt 冻结、结果可复现是把生成式 LLM 用于会计/金融文本分析的前提, 本仓 stage 21 三家 LLM 投票 (gpt54nano/gemini31/deepseekv4) 与本处 herd 权重敏感性网格共享同一套"冻结口径 + 参数化阈值梯子"的设计哲学; 二是 Gilardi, Alizadeh & Kubli (2023, PNAS) 与 Hansen (2026, FEDS WP) 提供 LLM 标注质量与一致性验证的经验基准, 支撑"LLM 投票语调"作为可信测度输入到 herd 权重加权体系中的正当性; 三是 Tetlock (2007, Journal of Finance) 确立媒体语调是投资者情绪的可观测代理这一构念根基, 是 herd 衰减权重存在的动机——防止扎堆报道人为放大媒体语调信号; Schoenegger 等 (2024, Science Advances) 在预测市场任务上考察多家 LLM 集成 (ensemble) 后发现其准确率可媲美人类群体智慧, 该发现本身并非直接针对媒体语调或跟风权重构念, 而是作为一条跨学科佐证, 类比性地说明"多主体独立判断加总优于单一主体"这一统计逻辑在 LLM 场景下同样成立, 从而间接支持本仓"多家 LLM (gpt54nano/gemini31/deepseekv4) 投票 + 权重加总"的复合测度设计思路, 不作为该设计的直接实证依据。三轨/阈值梯子均遵循本仓一贯口径: full/ctx/ss 三轨各自 just-identified 并排, 互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 检验; τ=0.30 与 canonical τ=0.35 (及网格中其余阈值) 同理各自并排, 用于证明主回归结论不依赖单一门槛取值的武断选择, 而非彼此嵌套或可加分解。
-
+分母口径本身依托三条互补文献线索定位: 一是 LLM 文本标注的方法学纪律 (de Kok 2025, Management Science) 强调 temperature=0、prompt 冻结、结果可复现是把生成式 LLM 用于会计/金融文本分析的前提, 本仓 stage 21 三家 LLM 投票 (gpt54nano/gemini31/deepseekv4) 与本处 herd 权重敏感性网格共享同一套"冻结口径 + 参数化阈值梯子"的设计哲学; 二是 Gilardi, Alizadeh & Kubli (2023, PNAS) 与 Hansen (2026, FEDS WP) 提供 LLM 标注质量与一致性验证的经验基准, 支撑"LLM 投票语调"作为可信测度输入到 herd 权重加权体系中的正当性; 三是 Tetlock (2007, Journal of Finance) 确立媒体语调是投资者情绪的可观测代理这一构念根基, 是 herd 衰减权重存在的动机——防止扎堆报道人为放大媒体语调信号; Schoenegger 等 (2024, Science Advances) 在预测市场任务上考察多家 LLM 集成 (ensemble) 后发现其准确率可媲美人类群体智慧, 该发现本身并非直接针对媒体语调或跟风权重构念, 而是作为一条跨学科佐证, 类比性地说明"多主体独立判断加总优于单一主体"这一统计逻辑在 LLM 场景下同样成立, 从而间接支持本仓"多家 LLM (gpt54nano/gemini31/deepseekv4) 投票 + 权重加总"的复合测度设计思路, 不作为该设计的直接实证依据。三轨/阈值梯子均遵循本仓一贯口径: full/ctx/ss 三轨各自 just-identified 并排, 互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 检验; τ=0.30 与 canonical τ=0.35 (及网格中其余阈值) 同理各自并排, 用于证明主回归结论不依赖单一门槛取值的武断选择, 而非彼此嵌套或可加分解。 就「阈值取值须并排检验而非默认某一档」这一取向, Kwon 与 Tang (2026) 可作一条构念侧的旁证: 该文在诊断性预期框架下检验涵盖 24 类企业新闻的语料, 发现基本面分布越极端的新闻类别, 公告后的收益反转与成交量放大越明显, 提示新闻的类别归属并非无信息含量的标签、类别边界本身即携带经济含义, 因而把连续量映射为类别或子集时的边界取值不宜被视为中性的技术细节。迁移边界须严格限定: 原文的类别是语料中外生既有的新闻题材, 其离散化发生在投资者信念形成的行为偏误层面; 原文既未做连续信号的离散化, 也未提出「研究者须显式检验阈值」这一方法学规范, 更未涉及文本相似度、跟风衰减权重、LLM 或加权分母, 其类别边界与本列研究者在跟风相似度检测网格上选定的 τ=0.30 无对应物、数值不可比。
 ## VAR: sum_wd_hw_thr30_llm_ctx
 
 【变体差分】
@@ -86,4 +94,5 @@ Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media i
 Gilardi, F., Alizadeh, M., & Kubli, M. (2023). ChatGPT outperforms crowd workers for text-annotation tasks. Proceedings of the National Academy of Sciences, 120(30), e2305016120. https://doi.org/10.1073/pnas.2305016120
 Hansen, A. L. (2026). Validating large language model annotations. FEDS Working Paper No. 2026-020, Federal Reserve Board [Working Paper]. https://doi.org/10.17016/FEDS.2026.020
 Schoenegger, P., Tuminauskaite, I., Park, P. S., Bastos, R. V. S., & Tetlock, P. E. (2024). Wisdom of the silicon crowd LLM ensemble prediction capabilities rival human crowd accuracy. Science Advances, 10(45), eadp1528. https://doi.org/10.1126/sciadv.adp1528
+Kwon, S. Y., & Tang, J. (2026). Extreme Categories and Overreaction to News. Review of Economic Studies, 93(2), 1137-1166. https://doi.org/10.1093/restud/rdaf037
 <!-- rendered-citations:end -->

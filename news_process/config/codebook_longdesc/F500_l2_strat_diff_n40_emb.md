@@ -39,6 +39,31 @@ citations:
   vol: "40"
   issue: "1"
   pages_or_artno: "3-27"
+- doi: "10.1007/s11142-024-09821-z"
+  type: "journal"
+  authors: "Li, N."
+  year: 2025
+  title: "Labor market peer firms: understanding firms’ labor market linkages through employees’ internet “also viewed” firms"
+  venue: "Review of Accounting Studies"
+  vol: "30"
+  issue: "1"
+  pages_or_artno: "384-435"
+- doi: "10.1080/1540496x.2025.2479064"
+  type: "journal"
+  authors: "Wang, Q., Xiang, C., Xin, Z., & Li, C."
+  year: 2025
+  title: "The Peer Influence on Green Innovation: Evidence from Product-Similarity-Based Peer Firms in China"
+  venue: "Emerging Markets Finance and Trade"
+  vol: "61"
+  issue: "11"
+  pages_or_artno: "3595-3611"
+- doi: "10.1109/cifer62890.2024.10772990"
+  type: "journal"
+  authors: "Vamvourellis, D., Tóth, M., Bhagat, S., Desai, D., Mehta, D., & Pasquali, S."
+  year: 2024
+  title: "Company Similarity Using Large Language Models"
+  venue: "2024 IEEE Symposium on Computational Intelligence for Financial Engineering and Economics (CIFEr)"
+  pages_or_artno: "1-9"
 new_dois: []
 ---
 
@@ -53,8 +78,7 @@ strat_diff_n40_emb 家族的计算流程分三步, 关键之处在于近邻检�
 家族内 6 列沿两个正交维度展开: 一是文本轨道 (full 全文/ctx 实体窗口/ss 银行∧金科同句窗口), 三轨各自独立聚合出银行-年度文档、独立计算相似度矩阵与近邻集合, 不互相借用, 各自 just-identified 并排、互为稳健性不分主次, 严禁混入同一 over-identified Hansen J; 二是嵌入引擎 (无后缀=Qwen3-Embedding-8B 硅基流动主轨, `_lg`=text-embedding-3-large OpenAI/yunwu 端点), 两条嵌入引擎彼此 co-primary、both-or-neither (任一银行-年度聚合文档嵌入失败, 同族两条轨道列同置缺失, 不产生单边孤儿), 严格 parity、互为稳健性不分主次, 同样禁止混入同一 over-identified Hansen J。ctx/ss 轨道的分母遵循留篇门控 full-only 口径 (2026-06-29 起): 是否判定"一篇银行金科报道"只看 full 轨 LLM 情感验证结果, ctx/ss 是 conditional-on-full 的测度/稳健性轨, 其纳入聚合文档的文章行宇宙是 full 留篇集合的子集, 但每轨自身聚合文档、相似度矩阵与 top-40 银行-年度近邻集合仍按该轨自身文本独立计算。ss 轨若某篇纳入聚合的文章无银行∧金科同句共现, 回退语义镜像 ctx: 该篇对应文本片段退化为全文 body 文本 (`ss_is_fallback=True`), 与 ctx 的回退处理对称一致, 不额外制造语义偏差。
 
 【文献定位】
-文本近邻距离刻度差异化的方法源头是 Guzman & Li (2023, Management Science)"Measuring Founding Strategy": 该文用企业自我描述文本的嵌入表示与其 K 近邻的平均距离度量创业战略独特性, 是本家族 top-k 近邻算子的直接方法出处。Hoberg & Phillips (2016, Journal of Political Economy) 的文本网络产业分类同样以两两余弦相似度为底层原语构造产业边界与产品差异化度量, 为"文本相似度矩阵→差异化得分"这一方法路径提供了更早的顶刊范式确认, 是本家族方法学谱系上的另一关键锚点。Haans (2019, Strategic Management Journal) 则从战略管理理论侧提出"最优显著性"框架, 指出组织在同质与异质类别情境下, 差异化对绩效的边际效应并非单调, 为 strat_diff 类测度在下游回归中的非线性/情境依赖设定提供了理论支持, 呼应本项目后续对该测度族做异质性分析时的理论预期。三条文献分别覆盖"方法算子出处—方法学范式确认—构念的经济/组织理论解释", 共同支撑 strat_diff_n40_emb 从"能算出一个数"到"这个数在经济学上意味着什么"的完整论证链。
-
+文本近邻距离刻度差异化的方法源头是 Guzman & Li (2023, Management Science)"Measuring Founding Strategy": 该文用企业自我描述文本的嵌入表示与其 K 近邻的平均距离度量创业战略独特性, 是本家族 top-k 近邻算子的直接方法出处。Hoberg & Phillips (2016, Journal of Political Economy) 的文本网络产业分类同样以两两余弦相似度为底层原语构造产业边界与产品差异化度量, 为"文本相似度矩阵→差异化得分"这一方法路径提供了更早的顶刊范式确认, 是本家族方法学谱系上的另一关键锚点。Haans (2019, Strategic Management Journal) 则从战略管理理论侧提出"最优显著性"框架, 指出组织在同质与异质类别情境下, 差异化对绩效的边际效应并非单调, 为 strat_diff 类测度在下游回归中的非线性/情境依赖设定提供了理论支持, 呼应本项目后续对该测度族做异质性分析时的理论预期。三条文献分别覆盖"方法算子出处—方法学范式确认—构念的经济/组织理论解释", 共同支撑 strat_diff_n40_emb 从"能算出一个数"到"这个数在经济学上意味着什么"的完整论证链。 近年三条文献分别加固该链的不同环节。Li (2025) 由员工在职业社交平台上"也浏览了"的共现关系导出一套不依赖 SIC/GICS 的同业集合, 并实证证明该数据驱动 peer 集合与传统行业分组仅部分重叠、且在解释股票收益与会计业绩共动上具增量解释力, 捕捉了行业代码遗漏的企业间联结, 据此锚定本族"同业集合由相似度检索给定、而非由行业代码外生指定"的核心设计前提; 边界在于其 peer 来源为浏览行为网络共现而非文本嵌入余弦相似度, 样本为美国上市公司-年, 且原文不构造任何差异化得分, 更未取 top-k 邻域内的距离均值。Wang、Xiang、Xin 与 Li (2025) 在中国上市公司样本上以产品文本相似度定义同业集合并据此识别同业间影响, 提供"文本相似度定义的同业集合在中国语境下可用且有解释力"的同域应用证据; 但其语料为公司自述的年报产品描述、向量化为 TF-IDF 词频空间, 与本族的第三方媒体报道 (他述) 及神经嵌入表征在文本生成机制与向量空间上均不同, 且原文将同业集合用于 peer effect 回归, 而非取余弦距离均值作差异化得分。Vamvourellis、Toth、Bhagat、Desai、Mehta 与 Pasquali (2024) 用 LLM 从企业业务描述学习公司嵌入, 并以嵌入余弦相似度重建 GICS 行业分类作为效度检验, 证明神经嵌入空间中的公司余弦相似度确实承载行业与业务可比性信息, 这正是本族 _emb 轨以 1−cos(v_i, v_j) 度量银行-年度间战略距离所依赖前提的方法学效度证据; 该条边界尤须明示: 语料是 SEC 备案的英文业务描述而非按银行-年度聚合的中文报道超级文档, 嵌入模型为其自训/微调 LLM 而非本项目的 Qwen3-Embedding-8B 与 text-embedding-3-large, 效度标尺为 GICS 复现而本族无对应行业分类标尺, 且原文止于相似度检索、未取 top-N 距离均值作差异化得分, 故只锚嵌入相似度的构念效度、不锚本族算子。
 ## VAR: strat_diff_n40_emb
 
 【变体差分】
@@ -101,4 +125,7 @@ ss 轨相较 ctx 轨的额外价值在于把"银行与金科词是否真的在�
 Guzman, J., & Li, A. (2023). Measuring Founding Strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369
 Hoberg, G., & Phillips, G. (2016). Text-Based Network Industries and Endogenous Product Differentiation. Journal of Political Economy, 124(5), 1423-1465. https://doi.org/10.1086/688176
 Haans, R. F. J. (2019). What's the Value of Being Different When Everyone Is? The Effects of Distinctiveness on Performance in Homogeneous versus Heterogeneous Categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978
+Li, N. (2025). Labor market peer firms: understanding firms’ labor market linkages through employees’ internet “also viewed” firms. Review of Accounting Studies, 30(1), 384-435. https://doi.org/10.1007/s11142-024-09821-z
+Wang, Q., Xiang, C., Xin, Z., & Li, C. (2025). The Peer Influence on Green Innovation: Evidence from Product-Similarity-Based Peer Firms in China. Emerging Markets Finance and Trade, 61(11), 3595-3611. https://doi.org/10.1080/1540496x.2025.2479064
+Vamvourellis, D., Tóth, M., Bhagat, S., Desai, D., Mehta, D., & Pasquali, S. (2024). Company Similarity Using Large Language Models. 2024 IEEE Symposium on Computational Intelligence for Financial Engineering and Economics (CIFEr), 1-9. https://doi.org/10.1109/cifer62890.2024.10772990
 <!-- rendered-citations:end -->

@@ -42,6 +42,37 @@ citations:
   year: 2026
   title: Validating large language model annotations
   venue: FEDS Working Paper No. 2026-020, Federal Reserve Board
+- doi: "10.1017/psrm.2024.64"
+  type: "journal"
+  authors: "Ornstein, J. T., Blasingame, E. N., & Truscott, J. S."
+  year: 2025
+  title: "How to train your stochastic parrot: large language models for political texts"
+  venue: "Political Science Research and Methods"
+  vol: "13"
+  issue: "2"
+  pages_or_artno: "264-281"
+- doi: "10.18653/v1/2024.law-1.13"
+  type: "journal"
+  authors: "Rønningstad, E., Velldal, E., & Øvrelid, L."
+  year: 2024
+  title: "A GPT among Annotators: LLM-based Entity-Level Sentiment Annotation"
+  venue: "Proceedings of the 18th Linguistic Annotation Workshop (LAW-XVIII)"
+  pages_or_artno: "133-139"
+- doi: "10.48550/arxiv.2407.17866"
+  type: "arxiv"
+  authors: "Kim, A., Muhn, M., & Nikolaev, V."
+  year: 2024
+  title: "Financial Statement Analysis with Large Language Models"
+  venue: "arXiv"
+- doi: "10.1007/s42001-025-00388-6"
+  type: "journal"
+  authors: "Abraham, L., Arnal, C., & Marie, A."
+  year: 2025
+  title: "Prompt selection matters: enhancing text annotations for social sciences with large language models"
+  venue: "Journal of Computational Social Science"
+  vol: "8"
+  issue: "3"
+  pages_or_artno: "73"
 new_dois: []
 ---
 
@@ -54,8 +85,7 @@ new_dois: []
 计算发生在 pipeline\panel\encode.py 的 groupby-agg 代码块 (源码摘录 L1968-L2028): 对 innovation_collab_mode 每个取值 (indep/collab) 各建一个聚合字典 cm_agg, 若三轨 (_full/_ctx/_ss) 下三家 LLM 的逐篇 score 列 {short}_score{track} 存在于该 collab_mode 子集 df_cm 中, 则以 (target_bank, year) 分组取均值写入 cm_panel, 随后左连接进主面板 panel。llm_vote_tone_collab{track} 属于这批被聚合的列之一 (虽摘录段落显式展示的是 per-model {short}_tone{track} 与 llm_prob_score{track} 两族, llm_vote_tone_collab{track} 与之同一代码路径、同一 cm_agg 循环产出, 是三家投票共识分而非 per-model 分)。聚合前有一道显式质量守门: n_articles_indep ≥ 5 且 n_articles_collab ≥ 5 时下游派生列 tone_gap_indep_collab 才计算 (源码注 fix(encode-02) 对齐 tech_app/sub_symb 同类最小样本门槛), 该守门作用于派生差值列而非本列自身, 但本列在小样本 bank-year (T=2 开发集常见) 上同样会因某一模式内文章数过少而呈现噪声更大的均值, 使用者应结合 n_articles_collab 分母判断可信度。分母恒等式遵循逻辑必然性口径 (v3.5.0 R6 修复): n_articles ≥ n_articles_indep + n_articles_collab, 差额是 collab_mode 判定本身为 NaN 的文章 (由 n_articles_cell_NA_full 兜底追踪), 而非严格拆分等式, 因为 LLM 对 collab_mode 维度的判定可能独立于 llm_verified_full 门控失败。留篇门控铁律 (2026-06-29 起, full-only): 一篇报道是否计入"一篇银行金科报道"只看 llm_verified_full == True, ctx/ss 是 conditional-on-full 的测度/稳健性轨, 行宇宙 = full 留篇集的子集; innovation_collab_mode 的判定同样建立在通过该门控的文章之上, 因此 llm_vote_tone_collab_ctx/_ss 与 _full 共享同一批"是否算作报道"的判定, 三轨仅在语调打分所读文本窗口 (全文/实体上下文窗/银行∧金科同句窗) 上分岔。
 
 【文献定位】
-本测度方法学谱系直接对应 LLM-as-annotator 文献: de Kok (2025, Management Science) 系统论证了 temperature=0、prompt 版本冻结、结果可缓存复现是会计/金融文本分析中使用生成式 LLM 的方法学范式, 本项目 stage 21 的 prompt v8 字节级冻结与 `_llm_cache.db` 确定性锚正是该范式的工程落地; Kamen & Kamen (2025) 论证多数投票集成 (majority-vote ensemble) 在内容分类任务上系统优于单模型, 为本项目采用三家 LLM 多数投票而非单一模型输出 llm_vote_tone 提供直接方法学支撑; Hansen (2026, FEDS WP) 讨论无金标准场景下 LLM 标注的验证策略 (κ/α 一致性设计), 呼应本项目 tone_validation.py 复用 Krippendorff's α 与重映射后 Cohen's κ 度量三家 LLM 间一致性的做法。构念层面, Zhang, Ma, Liang & Garrett (2024, JPIM) 对开放式创新前因后果做了近 20 年文献元分析, 是本列 indep/collab 二分类判据 (自主研发 vs 外部协同) 在 Chesbrough 开放式创新框架下的当代文献坐标; 该二分类本身的理论根基仍是 Chesbrough (2003) 提出的开放式创新概念——企业既可依赖内部知识独立创新, 亦可通过与外部行为体 (此处为金科公司) 的合作关系获取、整合外部知识, 本列即是媒体语调这一"软信号"维度上对该理论二分的经验度量。
-
+本测度方法学谱系直接对应 LLM-as-annotator 文献: de Kok (2025, Management Science) 系统论证了 temperature=0、prompt 版本冻结、结果可缓存复现是会计/金融文本分析中使用生成式 LLM 的方法学范式, 本项目 stage 21 的 prompt v8 字节级冻结与 `_llm_cache.db` 确定性锚正是该范式的工程落地; Kamen & Kamen (2025) 论证多数投票集成 (majority-vote ensemble) 在内容分类任务上系统优于单模型, 为本项目采用三家 LLM 多数投票而非单一模型输出 llm_vote_tone 提供直接方法学支撑; Hansen (2026, FEDS WP) 讨论无金标准场景下 LLM 标注的验证策略 (κ/α 一致性设计), 呼应本项目 tone_validation.py 复用 Krippendorff's α 与重映射后 Cohen's κ 度量三家 LLM 间一致性的做法。构念层面, Zhang, Ma, Liang & Garrett (2024, JPIM) 对开放式创新前因后果做了近 20 年文献元分析, 是本列 indep/collab 二分类判据 (自主研发 vs 外部协同) 在 Chesbrough 开放式创新框架下的当代文献坐标; 该二分类本身的理论根基仍是 Chesbrough (2003) 提出的开放式创新概念——企业既可依赖内部知识独立创新, 亦可通过与外部行为体 (此处为金科公司) 的合作关系获取、整合外部知识, 本列即是媒体语调这一"软信号"维度上对该理论二分的经验度量。 在测量链路层面, Ornstein、Blasingame 与 Truscott (2025) 以 few-shot prompt 在情感分析、文档标度、主题建模等政治学文本即数据任务上做预注册评估, 结论是该做法优于传统有监督学习基线, 并以极低成本达到与专家及众包编码员相当 (comparable, 非超过) 的水平, 是本列"LLM 产出篇级标签→按 bank-year 逐单元聚合"这一测量范式的同族方法学先例; 但其语料为英文政治文本、采用单一模型而非三家投票, 亦无留篇门控与三轨文本切分, 故只锚定链路形态而不锚定本项目的具体聚合口径。Rønningstad 与 Velldal (2024) 评估 LLM 对特定目标实体的 entity-level 情感标注质量并与人工标注对比, 与本列"针对目标银行"而非篇章整体的语调构念同族; 原文语料为挪威语/英语通用新闻与评论、目标实体非银行, 采用单一 GPT 模型且仅报告标注一致性, 不做面板聚合。Kim、Muhn 与 Nikolaev (2024) 向 GPT-4 提供刻意剥离叙事与行业信息的标准化匿名财务报表, 令其判断企业未来盈余的变动方向, 实证其方向性预测准确率超过人类分析师、与窄训练的 SOTA 机器学习模型相当, 并据其预测构建的交易策略取得更高 Sharpe 比率与 alpha, 是"令 LLM 作离散方向性判断、再把该判断聚合为可用信号"在金融领域的前沿存在性证明; 其输入为报表数字而非中文新闻叙事, 单位是公司-季度盈余方向而非银行-年语调, 且系单模型无跨厂商投票, 故仅作范式对照而非口径背书。Abraham、Arnal 与 Marie (2025) 实证 prompt 选择对社科文本标注质量有显著且非平凡的影响并给出一套 prompt 选择/评估流程, 提示本列所依赖的两批 LLM 标签 (语调与 indep/collab 判据) 均对 prompt 具敏感性; 本项目 prompt v8 已字节级冻结并作为缓存键, 刻意不做 prompt 网格择优 (改 prompt 即全缓存作废), 故该敏感性在本项目属未量化的已知局限, 而非已排除的风险。
 ## VAR: llm_vote_tone_collab_ctx
 
 【变体差分】
@@ -78,4 +108,8 @@ de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in a
 Kamen, A., & Kamen, Y. (2025). Majority rules: LLM ensemble is a winning approach for content categorization. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2511.15714
 Zhang, H., Ma, Z., Liang, X., & Garrett, T. C. (2024). Antecedents and outcomes of open innovation over the past 20 years: A framework and meta-analysis. Journal of Product Innovation Management, 41(4), 793-815. https://doi.org/10.1111/jpim.12710
 Hansen, A. L. (2026). Validating large language model annotations. FEDS Working Paper No. 2026-020, Federal Reserve Board [Working Paper]. https://doi.org/10.17016/FEDS.2026.020
+Ornstein, J. T., Blasingame, E. N., & Truscott, J. S. (2025). How to train your stochastic parrot: large language models for political texts. Political Science Research and Methods, 13(2), 264-281. https://doi.org/10.1017/psrm.2024.64
+Rønningstad, E., Velldal, E., & Øvrelid, L. (2024). A GPT among Annotators: LLM-based Entity-Level Sentiment Annotation. Proceedings of the 18th Linguistic Annotation Workshop (LAW-XVIII), 133-139. https://doi.org/10.18653/v1/2024.law-1.13
+Kim, A., Muhn, M., & Nikolaev, V. (2024). Financial Statement Analysis with Large Language Models. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2407.17866
+Abraham, L., Arnal, C., & Marie, A. (2025). Prompt selection matters: enhancing text annotations for social sciences with large language models. Journal of Computational Social Science, 8(3), 73. https://doi.org/10.1007/s42001-025-00388-6
 <!-- rendered-citations:end -->

@@ -72,6 +72,31 @@ citations:
   year: 2023
   title: "Multidimensional attention to Fintech, trading behavior and stock returns"
   venue: "International Review of Economics & Finance"
+- doi: "10.1016/j.iref.2025.104288"
+  type: "journal"
+  authors: "Chen, D., & Zhang, Q."
+  year: 2025
+  title: "Media attention and corporate digital transformation"
+  venue: "International Review of Economics & Finance"
+  vol: "102"
+  pages_or_artno: "104288"
+- doi: "10.1016/j.finmar.2024.100896"
+  type: "journal"
+  authors: "Ashwin, J."
+  year: 2024
+  title: "Financial news media and volatility: Is there more to newspapers than news?"
+  venue: "Journal of Financial Markets"
+  vol: "69"
+  pages_or_artno: "100896"
+- doi: "10.1287/mnsc.2022.02174"
+  type: "journal"
+  authors: "deHaan, E., Lawrence, A., & Litjens, R."
+  year: 2025
+  title: "Measuring Investor Attention Using Google Search"
+  venue: "Management Science"
+  vol: "71"
+  issue: "7"
+  pages_or_artno: "6275-6297"
 new_dois:
 - "10.1016/j.iref.2022.09.007"
 ---
@@ -97,8 +122,11 @@ F320 (`ft_vol_yr`/`ft_vol_prov`/`ft_vol_city`) 是"金融科技媒体覆盖总�
 三列共同遵循的 NaN 语义契约: panel 是 balance_panel 笛卡尔积, 可能含 12_full universe 之外的 bank-year (该银行该年完全无任何银行新闻覆盖, `has_coverage=0`); 这类行经 panel LEFT-join 后天然得全 NaN。这与"有新闻但零金融科技新闻"的情形刻意不对称处理: 前者是"注意力不可测" (无信息, 应做 NaN 并在回归中 listwise 删除), 后者是"真零曝光" (有信息, 保留为信息性零, ln(1+0)=0)。两者混淆会低估或高估金融科技媒体覆盖的实际零值比例, 该契约在 `test_attention_treatments::test_panel_superset_rows_are_nan` 中被锁定测试。
 
 【文献定位】
-本族的核心构念直接来自 Fang & Peress (2009, *The Journal of Finance*) 提出的媒体覆盖度量范式: 该文以"是否被全国性/地方性报纸报道"以及报道次数刻画投资者关注广度, 发现媒体覆盖的缺失本身预测未来超额收益, 确立了"覆盖计数"作为关注度代理变量的合法性, 是本族 extensive-margin 设计思路的直接理论来源。与之互补的 Da, Engelberg & Gao (2011, *The Journal of Finance*) 则用 Google 搜索量构造"投资者关注指数" (Search Volume Index), 二者共同构成"媒体侧覆盖 vs. 需求侧关注"两条平行的关注度测度传统, 本族选择前者 (供给侧媒体覆盖计数) 而非后者。Tetlock (2007, *The Journal of Finance*) 与 Engelberg & Parsons (2011, *The Journal of Finance*) 进一步论证媒体报道 (而非仅仅是媒体所报道的公司基本面) 对交易行为与股价具有独立于信息内容的因果影响, 为把"报道规模"本身 (而非报道内容的情感极性, 后者在本项目中由 stage 21/22/23 情感族单独测度) 作为一个独立可解释变量提供了理论支撑。地理维度的 leave-one-out 加权设计所处理的反身性问题, 呼应 Manski (1993, *The Review of Economic Studies*) 对社会效应识别中"反射问题"的经典论述, 以及后续 Bramoullé, Djebbari & Fortin (2009, *Journal of Econometrics*) 关于社会网络中同侪效应识别的方法论传统 — 二者共同提示: 任何把"个体所处群体环境"作为解释变量的设计, 都必须先从群体均值中剔除个体自身贡献, 否则估计系数无法与真实的环境外溢效应区分开。此外, Chen, Huang, Jin, Yang & Chen (2023, International Review of Economics & Finance) 构建多维度金融科技关注度指数(含媒体报道维度)并证明其对交易行为与股票收益具有增量解释力, 为本族以媒体覆盖规模刻画金融科技曝光度的构念提供了2023年最新实证支撑。
+本族的核心构念直接来自 Fang & Peress (2009, *The Journal of Finance*) 提出的媒体覆盖度量范式: 该文以"是否被全国性/地方性报纸报道"以及报道次数刻画投资者关注广度, 发现媒体覆盖的缺失本身预测未来超额收益, 确立了"覆盖计数"作为关注度代理变量的合法性, 是本族 extensive-margin 设计思路的直接理论来源。与之互补的 Da, Engelberg & Gao (2011, *The Journal of Finance*) 则用 Google 搜索量构造"投资者关注指数" (Search Volume Index), 二者共同构成"媒体侧覆盖 vs. 需求侧关注"两条平行的关注度测度传统, 本族选择前者 (供给侧媒体覆盖计数) 而非后者。Tetlock (2007, *The Journal of Finance*) 与 Engelberg & Parsons (2011, *The Journal of Finance*) 进一步论证媒体报道 (而非仅仅是媒体所报道的公司基本面) 对交易行为与股价具有独立于信息内容的因果影响, 为把"报道规模"本身 (而非报道内容的情感极性, 后者在本项目中由 stage 21/22/23 情感族单独测度) 作为一个独立可解释变量提供了理论支撑。地理维度的 leave-one-out 加权设计所处理的反身性问题, 呼应 Manski (1993, *The Review of Economic Studies*) 对社会效应识别中"反射问题"的经典论述, 以及后续 Bramoullé, Djebbari & Fortin (2009, *Journal of Econometrics*) 关于社会网络中同侪效应识别的方法论传统 — 二者共同提示: 任何把"个体所处群体环境"作为解释变量的设计, 都必须先从群体均值中剔除个体自身贡献, 否则估计系数无法与真实的环境外溢效应区分开。此外, Chen, Huang, Jin, Yang & Chen (2023, International Review of Economics & Finance) 构建多维度金融科技关注度指数(含媒体报道维度)并证明其对交易行为与股票收益具有增量解释力, 为本族以媒体覆盖规模刻画金融科技曝光度的构念提供了2023年最新实证支撑。 更近的中国语境同域证据来自 Chen 与 Zhang (2025), 该文在 *International Review of Economics & Finance* 上以报道数量类指标构造的媒体关注度为核心解释变量, 检验其对企业数字化转型的影响, 与本族「媒体报道计数 → 技术/数字化结果」的应用定位处于同一脉络。迁移边界须诚实交代: 原文对象为 A 股一般上市公司, 其媒体关注度多为公司层面的全主题报道计数, 数字化转型指数居于 DV 侧; 本族则限定为经 stage 13 银行∧金科邻近共现硬过滤后的金融科技唯一篇数并置于右手侧, 且原文并无 `ft_vol_prov`/`ft_vol_city` 所依赖的 (省/市, 年) 曝露加权 leave-one-out 构造。
 
+在「覆盖规模独立于报道内容」这一分离前提上, Ashwin (2024) 在 *Journal of Financial Markets* 上把报纸报道的数量/篇幅维度与报道所含的新信息内容明确分离, 检验前者是否对波动率具有独立于后者的解释力, 可视为上述 Tetlock (2007) 与 Engelberg & Parsons (2011) 论证线索的前沿延伸, 直接支撑本族把 ln(1+n) 报道规模作为独立于情感极性 (后者由 stage 21/22/23 情感族单独测度) 的解释变量。边界在于: 原文语境为英文报纸与股票波动率, 其「报道量」是等权计数或版面维度、不含媒体权威度或实体提及密度加权, 波动率为结果变量; 本族则是中文银行金融科技语料上的 bank-year 曝光量列。
+
+至于本族在「媒体侧覆盖 vs. 需求侧关注」两条平行传统中选择前者这一取舍, Lawrence 与 Litjens (2025) 在 *Management Science* 上提供了对后者的测量学审视: 该文以 27 亿次网站访问数据系统评估 Google ticker 搜索量指数作为投资者关注代理的测量误差, 发现约 69% 的搜索与投资无关、误差与公司特征系统相关并可导致假阳与假阴, 并提出 ticker-stock SVI 作为改进, 说明关注度代理的构造选择本身即可驱动结论、口径必须显式交代。须明确的是, 该文批评的对象是读者侧搜索量 (对应本族未采用的 Da, Engelberg & Gao (2011) 传统), 与 `ft_vol_*` 的媒体侧报道篇数属关注度的不同侧面, 二者不可互相替代, 因此它既不能背书亦不能否证本族的效度; 其语境为美国零售投资者与 Google, 亦未覆盖本族省/市两档的曝露加权 leave-one-out 环节。
 ## VAR: ft_vol_city
 
 【变体差分】
@@ -122,4 +150,7 @@ Engelberg, J. E., & Parsons, C. A. (2011). The Causal Impact of Media in Financi
 Manski, C. F. (1993). Identification of Endogenous Social Effects: The Reflection Problem. The Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
 Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of Peer Effects through Social Networks. Journal of Econometrics, 150(1), 41-55. https://doi.org/10.1016/j.jeconom.2008.12.021
 Chen, R., Huang, J., Jin, C., Yang, Y., & Chen, B. (2023). Multidimensional attention to Fintech, trading behavior and stock returns. International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2022.09.007
+Chen, D., & Zhang, Q. (2025). Media attention and corporate digital transformation. International Review of Economics & Finance, 102, 104288. https://doi.org/10.1016/j.iref.2025.104288
+Ashwin, J. (2024). Financial news media and volatility: Is there more to newspapers than news?. Journal of Financial Markets, 69, 100896. https://doi.org/10.1016/j.finmar.2024.100896
+deHaan, E., Lawrence, A., & Litjens, R. (2025). Measuring Investor Attention Using Google Search. Management Science, 71(7), 6275-6297. https://doi.org/10.1287/mnsc.2022.02174
 <!-- rendered-citations:end -->

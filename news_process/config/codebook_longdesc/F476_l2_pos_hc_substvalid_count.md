@@ -46,6 +46,22 @@ citations:
   vol: '57'
   issue: '3'
   pages_or_artno: 535-574
+- doi: "10.1016/j.frl.2024.105265"
+  type: "journal"
+  authors: "Huang, J., & Ma, L."
+  year: 2024
+  title: "Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation"
+  venue: "Finance Research Letters"
+  vol: "63"
+  pages_or_artno: "105265"
+- doi: "10.1016/j.technovation.2023.102880"
+  type: "journal"
+  authors: "Granados, C., Ayala, Y., & Ramos-Mejia, M."
+  year: 2024
+  title: "Is it substantive or just symbolic? Understanding innovation theater in organisations: The case of technology-based innovation"
+  venue: "Technovation"
+  vol: "129"
+  pages_or_artno: "102880"
 new_dois: []
 ---
 
@@ -62,8 +78,7 @@ new_dois: []
 `_full`/`_ctx`/`_ss` 三轨复用统一的三轨文本架构 (CLAUDE.md「三轨文本架构」): full=标题+正文全文, ctx=标题+银行/金科实体窗口, ss=标题+银行∧金科同句 ±N 窗口 (回退语义镜像 ctx: 无同句共现时 `content_ss` 退化为全文 body 且 `ss_is_fallback=True`)。三轨各自独立跑三家 LLM 情感投票与实质性分类, 因此 `llm_agreement_rate{track}`、`innovation_substantiveness{track}`、`pos_count{track}` 均为逐轨独立测量, 本家族三列亦逐轨独立计数, 各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J。留篇门控口径 (2026-06-29 起) 为 full-only: 一篇报道是否被计入「银行金科报道」样本只看 `llm_verified_full == True`, ctx/ss 轨的洗稿率测度是该留篇集合的条件子测度/稳健性轨 (行宇宙为 full 留篇集的子集, per-track 逐轨照算), 而非独立扩样。
 
 【文献定位】
-洗稿率整体框架的核心锚点是 Bingler, Kraus, Leippold & Webersinke (2024, *Journal of Banking & Finance*) 提出的 cheap talk 度量方法, 该文以气候信息披露为背景, 区分企业沟通中的空洞承诺与可验证行动, 与本项目将「银行对金融科技的正面表态」拆解为象征性/实质性两类的思路同构。高置信度子样本的方法论依据参考 Gentzkow, Kelly & Taddy (2019, *Journal of Economic Literature*) 对文本即数据 (text as data) 研究范式的系统综述——该文强调基于机器学习/多标注来源的文本分类天然伴随可量化的置信度/一致性信号, 显式利用该信号构造更可靠的子样本 (多标注器一致时保留、分歧时视为噪声较高的边界样本) 是文本计量测度控制标注误差的常见策略, 本家族三家 LLM 投票一致度阈值即是该策略在洗稿率测度上的具体落地。Loughran & McDonald (2011, *The Journal of Finance*) 关于词典/文本分类在金融披露语境下容易产生系统性误判的经典发现, 为本家族「同域化分母」这一修正逻辑提供了背景动机: 未与分子共享测量成功域的粗糙分母, 会人为压低或抬高比率类文本测度的可靠性, 这与 Cohn, Liu & Wardlaw (2022, *Journal of Financial Economics*) 关于计数类金融数据构造需谨慎处理分母定义的方法论提醒相呼应。综合而言, 将「实质性判定已成功测量」显式纳入分母定义 (而非简单假定分类结果零噪声), 是文本计量测度构造中的稳健实践, 本家族「高置信度且实质性判定成功」的双重限定正是这一实践的具体落地。
-
+洗稿率整体框架的核心锚点是 Bingler, Kraus, Leippold & Webersinke (2024, *Journal of Banking & Finance*) 提出的 cheap talk 度量方法, 该文以气候信息披露为背景, 区分企业沟通中的空洞承诺与可验证行动, 与本项目将「银行对金融科技的正面表态」拆解为象征性/实质性两类的思路同构。高置信度子样本的方法论依据参考 Gentzkow, Kelly & Taddy (2019, *Journal of Economic Literature*) 对文本即数据 (text as data) 研究范式的系统综述——该文强调基于机器学习/多标注来源的文本分类天然伴随可量化的置信度/一致性信号, 显式利用该信号构造更可靠的子样本 (多标注器一致时保留、分歧时视为噪声较高的边界样本) 是文本计量测度控制标注误差的常见策略, 本家族三家 LLM 投票一致度阈值即是该策略在洗稿率测度上的具体落地。Loughran & McDonald (2011, *The Journal of Finance*) 关于词典/文本分类在金融披露语境下容易产生系统性误判的经典发现, 为本家族「同域化分母」这一修正逻辑提供了背景动机: 未与分子共享测量成功域的粗糙分母, 会人为压低或抬高比率类文本测度的可靠性, 这与 Cohn, Liu & Wardlaw (2022, *Journal of Financial Economics*) 关于计数类金融数据构造需谨慎处理分母定义的方法论提醒相呼应。综合而言, 将「实质性判定已成功测量」显式纳入分母定义 (而非简单假定分类结果零噪声), 是文本计量测度构造中的稳健实践, 本家族「高置信度且实质性判定成功」的双重限定正是这一实践的具体落地。 就本家族分母所依赖的「实质性/象征性」标签集本身而言, Huang 与 Ma (2024) 以中国情境下的金融科技发展为解释变量, 检验其对企业实质性绿色创新与象征性绿色创新的差异化影响, 表明该二分在金融科技议题下已是被接受的分析范畴, 支持本家族把「实质性判定落入二选一标签内」作为分母有效性条件而非默认全样本可测; 迁移边界须诚实标明: 原文的实质/象征由专利类型 (发明 vs 实用新型/外观) 客观划分、主体为非金融上市公司, 本项目则由 LLM 对第三方新闻逐篇判定、主体为银行, 且原文未构造任何比率型 washing 指标, 更未涉及多标注器一致度门槛。构念层面, Granados、Ayala 与 Ramos-Mejia (2024) 系统刻画「创新剧场」(innovation theater) 现象, 即技术创新的象征性展演与实质性投入之间的分野, 为本家族分母所要求的「该篇必须被成功归入实质性或象征性之一」提供了组织理论层面的构念界定; 但原文是组织层面的构念研究, 并未提供文本自动分类算法, 也未做银行样本的面板计量, 因此只能锚定二分构念的正当性, 不能据以支持本家族三家 LLM 投票一致度阈值这一置信度筛选环节 —— 后者仍由前述文本即数据的方法学脉络承担。
 ## VAR: pos_hc_substvalid_count_ctx
 
 【变体差分】
@@ -84,5 +99,7 @@ Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2024). How Cheap Talk
 Loughran, T., & McDonald, B. (2011). When Is a Liability Not a Liability? Textual Analysis, Dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Cohn, J. B., Liu, Z., & Wardlaw, M. I. (2022). Count (and count-like) data in finance. Journal of Financial Economics, 146(2), 529-551. https://doi.org/10.1016/j.jfineco.2022.08.004
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as Data. Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
+Huang, J., & Ma, L. (2024). Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation. Finance Research Letters, 63, 105265. https://doi.org/10.1016/j.frl.2024.105265
+Granados, C., Ayala, Y., & Ramos-Mejia, M. (2024). Is it substantive or just symbolic? Understanding innovation theater in organisations: The case of technology-based innovation. Technovation, 129, 102880. https://doi.org/10.1016/j.technovation.2023.102880
 <!-- rendered-citations:end -->
 </content>

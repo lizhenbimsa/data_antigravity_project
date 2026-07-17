@@ -11,6 +11,14 @@ citations:
 - {doi: "10.1073/pnas.2308950121", type: journal, authors: "Rathje, S., Mirea, D.-M., Sucholutsky, I., Marjieh, R., Robertson, C. E., & Van Bavel, J. J.", year: 2024, title: "GPT is an effective tool for multilingual psychological text analysis", venue: "Proceedings of the National Academy of Sciences", vol: "121", issue: "34", pages_or_artno: "e2308950121"}
 - {doi: "10.1177/1536867X20976314", type: journal, authors: "Clarke, D., Romano, J. P., & Wolf, M.", year: 2020, title: "The Romano-Wolf multiple-hypothesis correction in Stata", venue: "The Stata Journal", vol: "20", issue: "4", pages_or_artno: "812-843"}
 - {doi: "10.1177/109442810142004", type: journal, authors: "Edwards, J. R.", year: 2001, title: "Multidimensional constructs in organizational behavior research: An integrative analytical framework", venue: "Organizational Research Methods", vol: "4", issue: "2", pages_or_artno: "144-192"}
+- doi: "10.1016/j.frl.2025.108648"
+  type: "journal"
+  authors: "Huang, Y., Li, Y., Li, P., Zhang, Q., & Zhang, Y."
+  year: 2025
+  title: "The unseen guardian: News co-mention and stock market manipulation"
+  venue: "Finance Research Letters"
+  vol: "86"
+  pages_or_artno: "108648"
 new_dois: []
 ---
 
@@ -28,8 +36,7 @@ multi_bank_frac 是 track-agnostic (轨道无关) 列: 它不区分 full/ctx/ss 
 
 【文献定位】
 从方法论谱系看, multi_bank_frac 所属的"媒体共同提及/共现结构"这一构念传统上服务于两类研究目的: 其一是作为同业可比性/竞争暴露的文本代理变量, 与业已成熟的"媒体关注度是信息扩散渠道"这一文献脉络 (如 Fang & Peress 2009 关于媒体报道广度影响资产定价的经典发现, 该文献线索已被本项目 n_articles 覆盖量族列吸收) 相呼应, 但 multi_bank_frac 进一步聚焦于报道内部的实体并置结构, 而非报道数量本身; 其二是作为多维构念分解的辅助校验信号, 呼应 Edwards (2001) 关于多维构念 (multidimensional constructs) 测度体系设计的整合分析框架 —— multi_bank_frac、avg_bank_count、max_bank_count 三者正是对"报道共现广度"这一潜在构念从不同角度 (发生率/强度/极值) 进行的多指标刻画, 而非单一指标的重复测量, 这与 Edwards 强调的"多维构念须用形式不同但逻辑互补的观测指标共同界定"的方法论主张一致。
-在文本挖掘与 LLM 辅助编码的应用侧, Rathje et al. (2024, *PNAS*) 证明大语言模型在多语言心理与社会科学文本分析任务上能达到与人工编码相当乃至更优的信度水平, 这为本项目银行名实体归一化与句级/篇级多银行共现判据之后接续的 LLM 判别任务 (如 llm_peer_iv.py 中依托同句共现筛选出的高信号句子池所进行的同业竞对定位分类) 提供了方法学正当性支撑。在计量方法侧, multi_bank_frac 作为面板辅助控制变量或异质性分组变量使用时, 若涉及跨银行-年多重假设检验的显著性校正, 应遵循 Clarke, Romano & Wolf (2020) 在 Stata 环境下实现的 Romano-Wolf 逐步下降法框架, 而 Callaway & Sant'Anna (2021) 关于多期双重差分的估计框架, 则为以 multi_bank_frac 或其分组作为处理时点异质性协变量的事件研究设计提供了可直接借鉴的估计范式, 尤其适用于银行陆续接入金融科技合作/竞争叙事的渐进式处理场景。
-
+在文本挖掘与 LLM 辅助编码的应用侧, Rathje et al. (2024, *PNAS*) 证明大语言模型在多语言心理与社会科学文本分析任务上能达到与人工编码相当乃至更优的信度水平, 这为本项目银行名实体归一化与句级/篇级多银行共现判据之后接续的 LLM 判别任务 (如 llm_peer_iv.py 中依托同句共现筛选出的高信号句子池所进行的同业竞对定位分类) 提供了方法学正当性支撑。在计量方法侧, multi_bank_frac 作为面板辅助控制变量或异质性分组变量使用时, 若涉及跨银行-年多重假设检验的显著性校正, 应遵循 Clarke, Romano & Wolf (2020) 在 Stata 环境下实现的 Romano-Wolf 逐步下降法框架, 而 Callaway & Sant'Anna (2021) 关于多期双重差分的估计框架, 则为以 multi_bank_frac 或其分组作为处理时点异质性协变量的事件研究设计提供了可直接借鉴的估计范式, 尤其适用于银行陆续接入金融科技合作/竞争叙事的渐进式处理场景。 就 is_multi_bank 这一「同篇共同点名」旗标的前沿存在性与同域应用而言, Huang、Li、Li、Zhang 与 Zhang (2025) 在 *Finance Research Letters* 上用分布式爬虫构造 news co-mention 指数 (即同一篇报道是否同时点名多家公司), 以此刻画媒体报道中的企业间共同点名网络, 并检验其对中国 A 股市场操纵的抑制作用, 与本列所依赖的文章级共同点名判据处于同一构念域与同一媒体语料语境。须强调该文仅是存在性与同域应用参照, 而非构念出处——同篇共同点名这一构念的提出远早于本文, 本列亦不以其为理论来源。迁移边界有四: 原文实体宇宙为 A 股上市公司全体, 本列则限定在 bank_list 内的目标银行, 因而 multi_bank_frac 只统计银行∧银行的同篇点名, 而非任意公司对; 原文以 co-mention 构造网络边并展开网络分析, 本列只取 bank-year 分组内布尔旗标的算术平均, 不建网, 网络类指标另属 network 族; 原文 DV 为市场操纵识别, 本项目并无此结果变量; 实体归一化上本项目采用 variant → canonical 映射且银行侧附加否定与短名过滤, 原文未报告同等口径, 二者的共现判据严格度不可直接比较。
 ## VAR: multi_bank_frac
 
 【变体差分】
@@ -43,4 +50,5 @@ Callaway, B., & Sant'Anna, P. H. C. (2021). Difference-in-differences with multi
 Rathje, S., Mirea, D.-M., Sucholutsky, I., Marjieh, R., Robertson, C. E., & Van Bavel, J. J. (2024). GPT is an effective tool for multilingual psychological text analysis. Proceedings of the National Academy of Sciences, 121(34), e2308950121. https://doi.org/10.1073/pnas.2308950121
 Clarke, D., Romano, J. P., & Wolf, M. (2020). The Romano-Wolf multiple-hypothesis correction in Stata. The Stata Journal, 20(4), 812-843. https://doi.org/10.1177/1536867X20976314
 Edwards, J. R. (2001). Multidimensional constructs in organizational behavior research: An integrative analytical framework. Organizational Research Methods, 4(2), 144-192. https://doi.org/10.1177/109442810142004
+Huang, Y., Li, Y., Li, P., Zhang, Q., & Zhang, Y. (2025). The unseen guardian: News co-mention and stock market manipulation. Finance Research Letters, 86, 108648. https://doi.org/10.1016/j.frl.2025.108648
 <!-- rendered-citations:end -->

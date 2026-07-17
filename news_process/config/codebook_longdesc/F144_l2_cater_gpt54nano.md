@@ -75,6 +75,29 @@ citations:
   vol: 66
   issue: 1
   pages_or_artno: 35-65
+- doi: "10.2139/ssrn.5153587"
+  type: "wp"
+  authors: "Bose, I., Hu, N., Liang, P., & Yang, X."
+  year: 2025
+  title: "Can Larger Language Models Always Perform Better? A Comparison of GPT, FinBERT, and Dictionaries in Evaluating Management Sentiment"
+  venue: "SSRN"
+  pages_or_artno: "5153587"
+- doi: "10.2139/ssrn.4961494"
+  type: "wp"
+  authors: "Yang, Y., Duan, H., Liu, J., & Tam, K. Y."
+  year: 2024
+  title: "LLM-Measure: Generating Valid, Consistent, and Reproducible Text-Based Measures for Social Science Research"
+  venue: "SSRN"
+  pages_or_artno: "4961494"
+- doi: "10.1093/pnasnexus/pgaf069"
+  type: "journal"
+  authors: "Kristensen-McLachlan, R. D., Canavan, M., Kárdos, M., Jacobsen, M., & Aarøe, L."
+  year: 2025
+  title: "Are chatbots reliable text annotators? Sometimes"
+  venue: "PNAS Nexus"
+  vol: "4"
+  issue: "4"
+  pages_or_artno: "pgaf069"
 new_dois: []
 ---
 
@@ -87,8 +110,7 @@ new_dois: []
 计算落在面板总装阶段 (pipeline/panel/runner.py 步骤 8d), 属纯后处理的列相减, 不新调任何模型: 分被减数 dict_avg_tone{track} 来自 stage 22 的多词典综合归一化语调, 减数 gpt54nano_tone{track} 来自 stage 21 三家投票中 gpt54nano 单模型自身的归一化语调, 两侧均已在各自阶段完成 [-1, 1] 量纲的归一化, 故差值无量纲、正值意味着词典比 gpt54nano 更正面、负值反之。此差值在语义上就是 Frankel et al. (2022) 所讨论的"机器学习读数与词典读数之差"的一个具体实例: 他们指出词典法与模型法在同一文本上的分歧本身携带信息, 分歧的方向与幅度可用于识别披露的策略性成分。本家族严格是"综合词典 vs 单一深层模型"这一 C 组切面: 与之并列的还有综合词典对综合 LLM 投票 (algo_cater)、综合词典对单一 BERT 模型 (cater_finbert 系) 等切面, 它们各自捕捉不同的机器参照, 互为稳健性、不分主次, 各自 just-identified 并排进入回归, 禁混进同一 over-identified 的 Hansen J 过度识别检验。三条文本轨 (full/ctx/ss) 同理: 三轨各自 just-identified 并排, 互为稳健性、不分主次, 禁混同一 over-identified Hansen J。留篇门控采 full-only 口径 (2026-06-29): 一篇报道是否计入银行金融科技报道宇宙, 只看 full 轨的 gpt54nano 及投票是否 verified; ctx/ss 轨降为 conditional-on-full 的测度与稳健性轨, 其行宇宙是 full 留篇集的子集, per-track 列在该子集上照算。ss 轨的回退语义镜像 ctx: 当某篇不存在银行与金融科技词的同句共现时, ss 文本回退为全文正文并置 fallback 标记, 与 ctx 的回退口径一致。
 
 【文献定位】
-测度谱系上, 本家族一端连着以 Loughran & McDonald (2011) 为代表的金融文本词典传统——他们证明通用情感词表在金融语境会系统性误判、须用领域专用词表, 这正是 dict_avg_tone 一侧多词典综合的动因; 在中文金融语境, Du et al. (2022) 进一步论证语言与领域双重专用性对情感词典效度的决定性, 是本项目中文词典构造的直接依据。另一端连着大模型文本理解的新范式: Huang et al. (2023) 的 FinBERT 与 de Kok (2025) 对生成式大模型用于文本分析的系统评估, 共同界定了 gpt54nano 一侧"深层语义读数"的方法学地位与其相对词典的增量。Bochkay et al. (2023) 对会计文本分析下一步走向的综述, 把"词典 vs 机器学习读数之差"明确列为一类值得挖掘的信息源, 为本家族把差值本身当作构念而非噪声提供了方法论正当性。综合而言, cater_gpt54nano 家族坐落在"文本情感测度分歧即信息"这一新兴文献脉络上, 以 gpt54nano 为深层锚, 度量银行金融科技报道中词典友好型语言相对深层语义判断的偏离。
-
+测度谱系上, 本家族一端连着以 Loughran & McDonald (2011) 为代表的金融文本词典传统——他们证明通用情感词表在金融语境会系统性误判、须用领域专用词表, 这正是 dict_avg_tone 一侧多词典综合的动因; 在中文金融语境, Du et al. (2022) 进一步论证语言与领域双重专用性对情感词典效度的决定性, 是本项目中文词典构造的直接依据。另一端连着大模型文本理解的新范式: Huang et al. (2023) 的 FinBERT 与 de Kok (2025) 对生成式大模型用于文本分析的系统评估, 共同界定了 gpt54nano 一侧"深层语义读数"的方法学地位与其相对词典的增量。Bochkay et al. (2023) 对会计文本分析下一步走向的综述, 把"词典 vs 机器学习读数之差"明确列为一类值得挖掘的信息源, 为本家族把差值本身当作构念而非噪声提供了方法论正当性。综合而言, cater_gpt54nano 家族坐落在"文本情感测度分歧即信息"这一新兴文献脉络上, 以 gpt54nano 为深层锚, 度量银行金融科技报道中词典友好型语言相对深层语义判断的偏离。 晚近的头对头比较为这一定位提供了更直接的测度学依据: Bose、Hu、Liang 与 Yang (2025) 在同一批管理层文本上把 GPT、FinBERT 与情感词典三类方法并排评估, 报告三者对同一段文本的语调判读存在系统性不一致, 从而实证了本家族差值的非零成分主要不是抽样噪声, 而是两把量尺读法差异的结构性产物; 惟该文语料为英文管理层沟通文本、词典侧为英文词表、模型侧为通用 GPT 与 FinBERT (非本项目的三家投票 LLM 与三个中文 BERT), 分析停在文档级方法比较而未做 bank-year 聚合, 亦未把差值本身构造为指标, 且属尚未经同行评议的工作论文, 故只支撑「两端读数会稳定分歧」这一前提, 不支撑本项目对差值方向的具体解释。gpt54nano 一侧作为可复现连续测度的构造合法性另由 Yang、Duan、Liu 与 Tam (2024) 的 LLM-Measure 框架背书, 该文提出并检验用大模型生成社科文本测度的效度、一致性与可复现性; 其为通用社科方法而非金融语调专用, 可复现性依赖隐层表征提取路径, 与本项目冻结 prompt、temperature=0、缓存固化的路径不同, 且未设词典对照臂, 故援引仅及于 LLM 侧测度构造本身, 属工作论文。反向的约束来自 Kristensen-McLachlan、Canavan、Kárdos、Jacobsen 与 Aarøe (2025): 该文系统检验大模型作为文本标注器的可靠性, 结论是其表现随任务而异、并非一致优于监督式模型与人工基线; 其任务为社科英文标注、对照臂不含中文金融词典, 与本家族口径相距甚远, 但足以否证「gpt54nano 读数即语义真值」这一隐含前提: cater_gpt54nano 的正负号只应读作两把量尺的相对位置, 不能单向归因于词典侧偏误, 这也正是三家 LLM 的逐模型迎合缺口须各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J 的根据。
 ## VAR: cater_gpt54nano_full
 
 【变体差分】
@@ -112,4 +134,7 @@ Bochkay, K., Brown, S. V., Leone, A. J., & Tucker, J. W. (2023). Textual analysi
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
+Bose, I., Hu, N., Liang, P., & Yang, X. (2025). Can Larger Language Models Always Perform Better? A Comparison of GPT, FinBERT, and Dictionaries in Evaluating Management Sentiment. SSRN No. 5153587 [Working Paper]. https://doi.org/10.2139/ssrn.5153587
+Yang, Y., Duan, H., Liu, J., & Tam, K. Y. (2024). LLM-Measure: Generating Valid, Consistent, and Reproducible Text-Based Measures for Social Science Research. SSRN No. 4961494 [Working Paper]. https://doi.org/10.2139/ssrn.4961494
+Kristensen-McLachlan, R. D., Canavan, M., Kárdos, M., Jacobsen, M., & Aarøe, L. (2025). Are chatbots reliable text annotators? Sometimes. PNAS Nexus, 4(4), pgaf069. https://doi.org/10.1093/pnasnexus/pgaf069
 <!-- rendered-citations:end -->

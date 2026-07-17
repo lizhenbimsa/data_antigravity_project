@@ -52,6 +52,15 @@ citations:
   vol: 31
   issue: 7
   pages_or_artno: 2693-2728
+- doi: "10.1177/03128962241270751"
+  type: "journal"
+  authors: "Banerjee, P."
+  year: 2025
+  title: "Text-based multidimensional financial constraints and earnings management behaviour"
+  venue: "Australian Journal of Management"
+  vol: "50"
+  issue: "4"
+  pages_or_artno: "1215-1266"
 new_dois: []
 ---
 
@@ -64,8 +73,7 @@ new_dois: []
 计算在文章级完成, 三轨集成入口 _dual_analyze 位于 tone_words.py, 它对 content_full / content_ctx / content_ss 三条轨道各调用一次的实际接线函数是 tone_words.py 内的同语义包装 _compute_lm_non_sentiment_for_text_tone_tok; 该包装与只读模块 lm_non_sentiment.py 的 _compute_lm_non_sentiment_for_text 逐项同语义 (共用同一 constraining 子词典与命中口径), 只读模块函数供审计参照, 并非 _dual_analyze 直接调用的实体。分子 n_constr 为文本经 jieba 切分后命中 constraining 子词典 (中文实现共 174 词) 的 token 计数; 分母 n_word_tokens 为剔除纯数字与纯标点 token 后的真词 token 总数。此处分母口径是一处经过审计校正的关键约定 (lmfls-01, 2026-06-10): 早期分母含逗号、句号与纯数字 token, 约占全部 token 的近两成, 导致约束占比被系统性下偏; 现分母只数含字母或汉字的真词 token, 分子不变 (词典词均为真词, 标点与数字本就不命中), 仅使比例回归无偏。文章级比率再经 tone_words 聚合 (银行-年均值) 落入面板列 constr_frac_{full,ctx,ss}。约束词频与本词典体系另外五个子类 (uncertainty / litigious / modal_strong / modal_weak / complexity, 各自成族) 共享同一切分与分母口径, 但分子取各自子词典, 互不重叠; 该 LM 非极性 6 子类是 v3.10.0 由原 4 子类扩为 6 子类的结果 (新增 weak_modal 与 complexity)。
 
 【文献定位】
-在财经文本的约束/融资约束测量脉络中, Buehlmaier & Whited (2018) 于 Review of Financial Studies 直接以文本分析构造融资约束指标并证明其被资产定价, 为"约束语义可从公开文本中抽取并具信息含量"提供了顶刊层面的方法学与经济学锚点, 与本家族以词频占比抽取约束语气的思路同源。Liu, Zhang 与 Wu (2026) 进一步用机器学习从年报前瞻性陈述中识别融资约束, 说明约束相关文本信号在中文披露语境下仍可预测企业融资约束状态, 支持把此类词频信号纳入面板。Xu 与 Luo (2025) 记录了控股股东股权质押与融资约束、企业社会责任的关联, 为约束语气作为企业外部环境代理的经济意义提供背景。词典本身的中文可迁移性方面, Ma, Zhang 与 Zhang (2025) 构造面向中国投资者的细粒度中文情感词典, 而 Lu 等 (2023) 的 BBT-Fin 提供中文金融领域预训练语料与基准, 二者共同界定了在中文财经文本上做词典化与嵌入化测度的可行边界与已知误差来源。约束词频作为一条与语气正交的信号, 其价值恰在于不被情感极性驱动, 而是独立刻画报道所披露的刚性与受限强度。三轨口径下 (full/ctx/ss), 三条轨道各自 just-identified 并排、互为稳健性、不分主次, 严禁把三轨混进同一条 over-identified 的 Hansen J 检验; 面板行宇宙由 full-only 留篇门控 (2026-06-29) 界定, ctx 与 ss 为 conditional-on-full 的稳健性轨。
-
+在财经文本的约束/融资约束测量脉络中, Buehlmaier & Whited (2018) 于 Review of Financial Studies 直接以文本分析构造融资约束指标并证明其被资产定价, 为"约束语义可从公开文本中抽取并具信息含量"提供了顶刊层面的方法学与经济学锚点, 与本家族以词频占比抽取约束语气的思路同源。Liu, Zhang 与 Wu (2026) 进一步用机器学习从年报前瞻性陈述中识别融资约束, 说明约束相关文本信号在中文披露语境下仍可预测企业融资约束状态, 支持把此类词频信号纳入面板。Xu 与 Luo (2025) 记录了控股股东股权质押与融资约束、企业社会责任的关联, 为约束语气作为企业外部环境代理的经济意义提供背景。词典本身的中文可迁移性方面, Ma, Zhang 与 Zhang (2025) 构造面向中国投资者的细粒度中文情感词典, 而 Lu 等 (2023) 的 BBT-Fin 提供中文金融领域预训练语料与基准, 二者共同界定了在中文财经文本上做词典化与嵌入化测度的可行边界与已知误差来源。约束词频作为一条与语气正交的信号, 其价值恰在于不被情感极性驱动, 而是独立刻画报道所披露的刚性与受限强度。三轨口径下 (full/ctx/ss), 三条轨道各自 just-identified 并排、互为稳健性、不分主次, 严禁把三轨混进同一条 over-identified 的 Hansen J 检验; 面板行宇宙由 full-only 留篇门控 (2026-06-29) 界定, ctx 与 ss 为 conditional-on-full 的稳健性轨。 Banerjee (2025) 以一个多维文本型融资约束测度 (区分股权市场约束与债务市场约束) 检验其与盈余管理行为的关系 (46,149 firm-year, 美国上市公司, 1997–2015), 说明从披露文本中提取约束性语言以刻画融资约束这一测度路线在当代仍属活跃前沿, 为本家族提供存在性参照。须澄清该文并非 constr_frac 的 method-origin: 本项目沿用的是 LM 2011 体系内 constraining 子词典 (174 词) 的中文迁移词表, 与该文含机器学习与多词表成分的多维测度并无谱系关系, 后者复杂度亦远高于本家族的单维词频型比率; 层级为 firm-year vs bank-year, 语料为公司自我披露 vs 第三方新闻报道, 国别与 DV 均不同。该对照恰好界定了本家族的定位: 它处于约束语言测度谱系中低复杂度、可完全复现的一端。
 ## VAR: constr_frac_full
 
 【变体差分】
@@ -87,4 +95,5 @@ Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-graine
 Xu, J., & Luo, Q. (2025). Controlling shareholder equity pledging, financing constraints, and corporate social responsibility. Finance Research Letters, 76, 106996. https://doi.org/10.1016/j.frl.2025.106996
 Lu, D., Wu, H., Liang, J., Xu, Y., He, Q., Geng, Y., Han, M., Xin, Y., & Xiao, Y. (2023). BBT-Fin: Comprehensive construction of Chinese financial domain pre-trained language model, corpus and benchmark. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2302.09432
 Buehlmaier, M. M. M., & Whited, T. M. (2018). Are financial constraints priced? Evidence from textual analysis. Review of Financial Studies, 31(7), 2693-2728. https://doi.org/10.1093/rfs/hhy007
+Banerjee, P. (2025). Text-based multidimensional financial constraints and earnings management behaviour. Australian Journal of Management, 50(4), 1215-1266. https://doi.org/10.1177/03128962241270751
 <!-- rendered-citations:end -->

@@ -54,6 +54,29 @@ citations:
   year: 2024
   venue: "Economic Inquiry"
   type: "journal"
+- doi: "10.3390/computers12010018"
+  type: "journal"
+  authors: "Naldi, M., & Petroni, S."
+  year: 2023
+  title: "A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools"
+  venue: "Computers"
+  vol: "12"
+  issue: "1"
+  pages_or_artno: "18"
+- doi: "10.1177/10944281251334777"
+  type: "journal"
+  authors: "Iqbal, F., & Pfarrer, M. D."
+  year: 2025
+  title: "Using Coreference Resolution to Mitigate Measurement Error in Text Analysis"
+  venue: "Organizational Research Methods"
+  pages_or_artno: "10944281251334777"
+- doi: "10.2139/ssrn.5024959"
+  type: "wp"
+  authors: "Cziraki, P., & Gider, J."
+  year: 2024
+  title: "Newspaper Closures and Trading in Local Stocks"
+  venue: "SSRN"
+  pages_or_artno: "5024959"
 new_dois:
   - "10.1111/ecin.13264"
 ---
@@ -67,8 +90,7 @@ new_dois:
 文章级源列 you_2018_score_negadv 由 tone_words.py 的 _analyze_single_article 产出: 该函数对每篇报道分词后, 在 _RULE_ABLATION_VARIANTS 消融变体谱上逐一调用计分内核 _compute_sentiment_with_rules, 以后缀 negadv 对应的规则开关组合物化本列。计分内核对分词后的 token 序列扫描 you_2018 词表, 命中词取其基础极性 base, 再按三条可开关的语言学规则修饰: 否定翻转 (否定词在同句窗口内出现则翻转其后情感词极性)、程度副词 (程度词按六级权重缩放情感强度, 最高约三倍)、转折增益 (转折连词后的分句情感权重上调 ADVERSATIVE_BOOST 倍, 体现"末尾效应"下作者真实立场)。三条规则的作用域均限定为从句级, 遇句末标点即重置转折、否定、程度状态, 学术依据为 Ding, Liu & Yu (2008) 的从句级转折作用域。本家族对应的规则组合后缀为 negadv, 即否定翻转 ON、程度副词 OFF、转折增益 ON —— 等价于在全规则基线上单独关掉程度副词一维 (full 减 degree)。最终分值以幅度口径归一化, 即 signed_final 之和除以 base 绝对值之和, 分子分母同含转折权重, 故恒约束于 [-1, 1] 的无量纲极性。聚合环节在 attention_media.py 的 compute_media_heterogeneity 中: 先依据媒体在语料中的覆盖跨度识别疑似退出媒体集, 逐篇打上 _is_ceased_media 标记; 随后对 _is_ceased_media 等于 0 的存活报道, 按 target_bank 与 year 分组取文章级分值的算术平均, 落成本列。分组为空 (该银行年度无存活媒体报道) 时本列按情感类契约保持 NaN, 绝不零填。留篇门控沿用 full-only 口径 (2026-06-29): 一篇报道是否计入银行金融科技样本仅由 full 轨 LLM 判定, ctx 与 ss 轨为 conditional-on-full 的测度轨与稳健性轨, 其行宇宙是 full 留篇集的子集, per-track 分值照各轨文本独立计算。
 
 【文献定位】
-情感词典法在金融文本分析中源远流长, 中文场景尤须领域专用词表。You, Zhang & Zhang (2018) 是本家族情感构念的命名与词表来源, 也是本家族的顶刊锚: 其对媒体报道情感可被利益方俘获的实证, 为"语调即制度化信号"提供了理论根基。Du et al. (2022) 在 Review of Finance 上系统论证语言与领域专用性对中文金融情感测度的重要性, 并交付了同项目并行的 du_2022 词典, 印证领域专用词表相对通用词表的增益, 亦是本项目多词典互为稳健性设计的直接依据。方法学对照方面, Frankel, Jennings & Lee (2022) 在 Management Science 上比较机器学习与词典法在披露情感测度上的表现, 是本项目以词典法、BERT、LLM 三法互为稳健性的先例, 提醒词典法虽透明可审但须与学习法交叉验证。语言学规则一侧, Taboada et al. (2011) 系统梳理了词典法中否定、程度副词与转折等 valence-shifter 的处理方式, 正是本家族规则消融梯度 (含 negadv 这一去程度、保否定与转折的组合) 的方法学出处。Barbaglia, Consoli, Manzan, Tiozzo Pezzoli & Tosetti (2024, Economic Inquiry) 提出面向经济文本的词典法情感测度框架, 处理否定与修饰词对经济概念极性的作用, 与本家族否定翻转加转折规则消融口径直接相关。本家族三轨 (full/ctx/ss) 各自 just-identified 并排、互为稳健性、不分主次, 严禁把三轨或多套规则消融变体混进同一 over-identified 的 Hansen J 检验; 规则消融梯度各变体高度共线 (与全规则版相关系数近 0.99), 仅作定性不变的稳健性对照, 不主张某一规则组合更优, 也不可将 full 与 negadv 之差解读为程度副词规则的纯因果贡献 (audit MATH-1: 非可加分解)。
-
+情感词典法在金融文本分析中源远流长, 中文场景尤须领域专用词表。You, Zhang & Zhang (2018) 是本家族情感构念的命名与词表来源, 也是本家族的顶刊锚: 其对媒体报道情感可被利益方俘获的实证, 为"语调即制度化信号"提供了理论根基。Du et al. (2022) 在 Review of Finance 上系统论证语言与领域专用性对中文金融情感测度的重要性, 并交付了同项目并行的 du_2022 词典, 印证领域专用词表相对通用词表的增益, 亦是本项目多词典互为稳健性设计的直接依据。方法学对照方面, Frankel, Jennings & Lee (2022) 在 Management Science 上比较机器学习与词典法在披露情感测度上的表现, 是本项目以词典法、BERT、LLM 三法互为稳健性的先例, 提醒词典法虽透明可审但须与学习法交叉验证。语言学规则一侧, Taboada et al. (2011) 系统梳理了词典法中否定、程度副词与转折等 valence-shifter 的处理方式, 正是本家族规则消融梯度 (含 negadv 这一去程度、保否定与转折的组合) 的方法学出处。Barbaglia, Consoli, Manzan, Tiozzo Pezzoli & Tosetti (2024, Economic Inquiry) 提出面向经济文本的词典法情感测度框架, 处理否定与修饰词对经济概念极性的作用, 与本家族否定翻转加转折规则消融口径直接相关。本家族三轨 (full/ctx/ss) 各自 just-identified 并排、互为稳健性、不分主次, 严禁把三轨或多套规则消融变体混进同一 over-identified 的 Hansen J 检验; 规则消融梯度各变体高度共线 (与全规则版相关系数近 0.99), 仅作定性不变的稳健性对照, 不主张某一规则组合更优, 也不可将 full 与 negadv 之差解读为程度副词规则的纯因果贡献 (audit MATH-1: 非可加分解)。 近期方法学证据可为本家族的两个具体环节再作补强。Naldi 与 Petroni (2023) 以人工构造测试集专门评估词典法情感工具的否定检测与处理能力, 实证发现各工具在该环节表现差异显著; 这一证据落在 negadv 档位保留否定翻转的一侧, 说明否定并非可默认信赖的既成处理, 而是词典法内部可被单独测量、单独失效的模块, 因而其开/关须成为独立报告的一臂。迁移边界在于, 原文为英文通用领域的工具评测、以否定检测准确率为度量, 本项目不评测任何一臂的否定检测准确率, 而是把该规则的开/关作为中文金融新闻语调面板测度的并排稳健性臂; 其发表于 2023 年, 非 2024 年后前沿。Iqbal 与 Pfarrer (2025) 在 Organizational Research Methods 上以共指消解为例, 经两项研究证明一项具体的语言学处理选择会系统性改变文本测度取值并构成实质性测量误差来源, 支持本家族显式呈现规则后果而不默认采纳的立场; 惟原文规则是实体指代还原 (在本项目对应 ctx/ss 实体窗口轨而非本族), 与否定/程度/转折三规则非同一项, 且其取规范性取向、主张采纳该规则以减少误差, 与本项目七臂互为稳健性并排、不设主次的取向不同, 故不得据以视为 powerset 规则消融设计的同构先例。就 exc_ 前缀的样本裁剪而言, Cziraki 与 Gider (2024) 以报纸停刊为冲击, 实证报道供给退出会改变本地股票交易行为, 为「剔除 _is_ceased_media 判定为 1 的媒体后再作银行-年度聚合」提供现实动机: 媒体退出是真实且具经济后果的样本组成变化。其停刊判定取自外部事件数据并用作识别冲击, 而本项目 ceased_set 由 detect_defacto_cessation 自语料内部推断 (confirmed ∪ suspected), 系保守代理而非严格停刊事实, 用途仅限稳健性子样本; 该文为工作论文, 尚未经同行评审。
 ## VAR: exc_you_2018_score_negadv_ctx
 
 【变体差分】
@@ -90,4 +112,7 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2024). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry. https://doi.org/10.1111/ecin.13264
+Naldi, M., & Petroni, S. (2023). A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools. Computers, 12(1), 18. https://doi.org/10.3390/computers12010018
+Iqbal, F., & Pfarrer, M. D. (2025). Using Coreference Resolution to Mitigate Measurement Error in Text Analysis. Organizational Research Methods, 10944281251334777. https://doi.org/10.1177/10944281251334777
+Cziraki, P., & Gider, J. (2024). Newspaper Closures and Trading in Local Stocks. SSRN No. 5024959 [Working Paper]. https://doi.org/10.2139/ssrn.5024959
 <!-- rendered-citations:end -->

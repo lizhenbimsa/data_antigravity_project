@@ -44,6 +44,33 @@ citations:
   venue: Journal of International Money and Finance
   vol: 143
   pages_or_artno: 103076
+- doi: "10.1111/fire.70051"
+  type: "journal"
+  authors: "Dong, Y., Liu, Y., Wang, M., & Zou, G."
+  year: 2026
+  title: "The Role of Media in Regulatory Oversight: Evidence From Comment Letters"
+  venue: "Financial Review"
+  vol: "61"
+  issue: "3"
+  pages_or_artno: "1011-1035"
+- doi: "10.1016/j.cjar.2024.100379"
+  type: "journal"
+  authors: "Yu, M., Kyung, H., & Tsang, A."
+  year: 2024
+  title: "Media coverage and price reactions to earnings news"
+  venue: "China Journal of Accounting Research"
+  vol: "17"
+  issue: "3"
+  pages_or_artno: "100379"
+- doi: "10.1287/mnsc.2023.4783"
+  type: "journal"
+  authors: "Bushman, R., & Pinto, J."
+  year: 2024
+  title: "The Influence of Short Selling on Negative Press Coverage of Firms"
+  venue: "Management Science"
+  vol: "70"
+  issue: "3"
+  pages_or_artno: "1924-1942"
 new_dois: []
 ---
 
@@ -60,8 +87,7 @@ new_dois: []
 计算口径上必须强调"同一把尺子"的铁律: 全家族的分子分母 (以及与家族外 `all_n_articles`/`fintech_share` 等挂钩变量) 都刻意维持去重后的"稿件"基准一致——若一端按物理篇数、另一端按去重稿件数混算, 得到的份额或对照强度会系统性偏大或偏小, 破坏赛马检验的可比性。另外, 一个容易被忽视但对回归设定至关重要的细节是: 全年内该银行若完全没有任何 Non-Fintech 报道 (即该 (target_bank, year) 组在反连接后为空), `nf_n_articles`/`nf_headline_frac` 均不会被填成 0, 而是在合并到 `40_panel_yearly` 时以左连接方式留空为 NaN——"未定义"与"确有报道但份额为零"是两种不同的经济含义, 若强行填零会人为压低该银行年份的对照组强度, 污染赛马回归的估计。这也是为什么家族的诊断步骤 (`run_diagnostics`) 要求可用诊断列数 ≥2 才继续算 Pearson/Spearman 相关矩阵——分母过度稀疏 (大量 NaN) 时相关系数本身不可靠, 提前判空返回 None 是一种 fail-loud 的保护而非静默降级。
 
 【文献定位】
-本家族的方法论定位横跨两条文献线索。第一条是媒体覆盖与信息中介文献: Call, Emett, Maksymov & Sharp (2022, Journal of Accounting and Economics) 提供了财经记者作为信息中介、其选题与呈现方式本身携带信息含量的直接证据, 支撑本家族"普通新闻覆盖广度/标题显著度值得单独衡量"这一前提; Vives & Ye (2025, Journal of Financial Economics) 讨论信息技术与放贷人竞争的关系, 为区分"技术特异性信息"与"一般性关注度信息"这一赛马逻辑提供了理论背景锚点。第二条是显著性/关注度衡量文献: Chen, Li, Liu & Liu (2026, Journal of Empirical Finance) 的信息显著性框架为 `nf_headline_frac` 提供了直接的方法学对标; Zheng & Mao (2024, Journal of International Money and Finance) 关于金融科技并购的证据提示, 金融科技话题本身的媒体曝光度与一般银行新闻曝光度在样本期内可能存在系统性趋势差异, 这正是本家族作为安慰剂对照组所要控制的背景噪声来源。整体而言, 本家族的两列不是独立的描述性统计, 而是嵌入在"内容特异性 vs 一般关注度"这一识别策略中的对照组构造件, 其数值本身没有因果解释力, 价值在于作为赛马回归中的竞争性解释变量, 服务于金融科技语调效应的稳健性论证。
-
+本家族的方法论定位横跨两条文献线索。第一条是媒体覆盖与信息中介文献: Call, Emett, Maksymov & Sharp (2022, Journal of Accounting and Economics) 提供了财经记者作为信息中介、其选题与呈现方式本身携带信息含量的直接证据, 支撑本家族"普通新闻覆盖广度/标题显著度值得单独衡量"这一前提; Vives & Ye (2025, Journal of Financial Economics) 讨论信息技术与放贷人竞争的关系, 为区分"技术特异性信息"与"一般性关注度信息"这一赛马逻辑提供了理论背景锚点。第二条是显著性/关注度衡量文献: Chen, Li, Liu & Liu (2026, Journal of Empirical Finance) 的信息显著性框架为 `nf_headline_frac` 提供了直接的方法学对标; Zheng & Mao (2024, Journal of International Money and Finance) 关于金融科技并购的证据提示, 金融科技话题本身的媒体曝光度与一般银行新闻曝光度在样本期内可能存在系统性趋势差异, 这正是本家族作为安慰剂对照组所要控制的背景噪声来源。整体而言, 本家族的两列不是独立的描述性统计, 而是嵌入在"内容特异性 vs 一般关注度"这一识别策略中的对照组构造件, 其数值本身没有因果解释力, 价值在于作为赛马回归中的竞争性解释变量, 服务于金融科技语调效应的稳健性论证。 近期前沿在同一数据生态内进一步夯实了本家族的计数构造法。Dong、Liu、Wang 与 Zou (2026) 在中国交易所问询函情境下发现, 媒体关注度更高 (尤其负面报道更多) 的上市公司更可能收到问询函, 媒体监督既补充正式监管治理、也替代审计师与机构投资者等非政府治理机制, 为「以中文媒体报道量作为主体级构念纳入实证」提供同语种同数据生态的参照; 惟其识别单元为问询函事件而非银行-年面板, 报道以篇数计而不做去重来源家数计数, 亦无对数与逐年度截面 z 标准化, 更未按媒体来源类型分层或做 Fintech / Non-Fintech 补集划分, 故本条仅锚 nf_n_articles 的计数构造这一环。Yu、Kyung 与 Tsang (2024) 在中国情境下以公司层面的媒体报道量为条件变量, 检验其对盈余信息市场反应的调节作用, 同域印证了「以中文媒体报道计数构造主体-年度曝光度变量」的可行性; 其主体为 A 股上市公司、频率为盈余公告事件窗而非银行-年, 度量为报道篇数而非去重来源家数, 亦未设置 Non-Fintech 安慰剂子集这一本项目特有的反事实分层。Bushman 与 Pinto (2024) 借卖空约束的外生放松 (Reg SHO pilot) 证明卖空活动上升后公司媒体报道整体情感更负、负面新闻流显著增加, 即把「某主体在某期获得多少篇报道」本身建模为可被外部力量系统性推动的被解释变量, 为 nf_n_articles 作为独立聚合列进入赛马与证伪设定提供构念正当性; 但该文主体为美国上市公司、报道量由英文新闻数据库标注得到, 并非本项目「全量银行新闻减去已进面板金融科技文章」的 anti-join 补集, 其无 nunique 来源家数计数, 亦不含 nf_headline_frac 这类标题层测度。
 ## VAR: nf_headline_frac
 
 【变体差分】
@@ -81,4 +107,7 @@ Call, A. C., Emett, S. A., Maksymov, E., & Sharp, N. Y. (2022). Meet the press: 
 Vives, X., & Ye, Z. (2025). Information technology and lender competition. Journal of Financial Economics, 163, 103957. https://doi.org/10.1016/j.jfineco.2024.103957
 Chen, Z., Li, Z., Liu, J., & Liu, X. (2026). Information salience, investor attention, and stock price crash risk. Journal of Empirical Finance, 85, 101670. https://doi.org/10.1016/j.jempfin.2025.101670
 Zheng, H., & Mao, M. Q. (2024). Fintech mergers and acquisitions. Journal of International Money and Finance, 143, 103076. https://doi.org/10.1016/j.jimonfin.2024.103076
+Dong, Y., Liu, Y., Wang, M., & Zou, G. (2026). The Role of Media in Regulatory Oversight: Evidence From Comment Letters. Financial Review, 61(3), 1011-1035. https://doi.org/10.1111/fire.70051
+Yu, M., Kyung, H., & Tsang, A. (2024). Media coverage and price reactions to earnings news. China Journal of Accounting Research, 17(3), 100379. https://doi.org/10.1016/j.cjar.2024.100379
+Bushman, R., & Pinto, J. (2024). The Influence of Short Selling on Negative Press Coverage of Firms. Management Science, 70(3), 1924-1942. https://doi.org/10.1287/mnsc.2023.4783
 <!-- rendered-citations:end -->

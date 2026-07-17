@@ -21,6 +21,14 @@ citations:
   year: 2025
   venue: "Financial Review"
   type: "journal"
+- doi: "10.1016/j.frl.2024.105305"
+  type: "journal"
+  authors: "Elshandidy, T., & Elsayed, M."
+  year: 2024
+  title: "The UK financial firms’ textual risk disclosure and market liquidity"
+  venue: "Finance Research Letters"
+  vol: "63"
+  pages_or_artno: "105305"
 new_dois:
   - "10.1111/fire.70002"
 ---
@@ -38,8 +46,7 @@ modal_weak_frac 家族衡量一篇报道 (逐轨: 标题+正文全文 full / 标
 【文献定位】
 L&M (2011, Journal of Finance) 首次系统证明基于词典的文本情感/确定性测度能捕捉 10-K 文件中传统金融词典 (如 Harvard-IV) 无法捕捉到的会计语境特异信号, 弱势情态词是其六类非情感词典之一, 用以刻画措辞的确定性程度而非情感极性。Loughran & McDonald (2016, Journal of Accounting Research) 的综述进一步系统梳理了文本分析方法在会计与金融研究中的扩散路径与方法学陷阱, 为跨语料 (含本项目的中文财经新闻迁移) 词典复用提供了方法论正当性依据。Bochkay, Brown, Leone & Tucker (2023, Contemporary Accounting Research) 综述了会计文本分析的前沿方向, 呼应本项目在 L&M 词典基础上叠加 LLM 三家投票、BERT 三模型等多方法互证架构的设计取向——词典法 (含本家族) 与机器学习法在本项目中定位为互为稳健性、不设主次的并排测度体系, 而非相互替代。本家族的下游判别效度审计 (`lm_discriminant_validity.py`, stage 39e) 采用 Henseler, Ringle & Sarstedt (2015, Journal of the Academy of Marketing Science) 提出的 HTMT (Heterotrait-Monotrait ratio) 准则, 对 8 维构念 (L&M 6 子集 + clarity_score + num_intensity) 两两计算异质-同质比, 双门槛 0.85 (strict) / 0.90 (lenient), 目的是验证 modal_weak_frac 等 6 个 L&M 子集彼此之间、以及与项目内已建立的清晰度/数字密集度测度之间不存在系统性构念重叠 (即测的不是同一件事)。审计另辅以 Cronbach (1951, Psychometrika) 的 α 系数评估各子词典内部一致性, 以及 Cohen (1960, Educational and Psychological Measurement) 的 κ 系数用于跨维度类别一致性诊断的方法学参照。审计输出按 full/ctx/ss 三轨各写一份 8×8 HTMT 矩阵与 1,000 次重复 (seed=42) 置换零分布 CSV, 落于 `eval_reports/74_lm_htmt_matrix_{full,ctx,ss}.csv` 与 `eval_reports/74_lm_permutation_{full,ctx,ss}.csv`, ss 轨在相关列缺失时优雅跳过而不中断整体审计流程。Angelo, Johnston, Singh & Wan (2025, Financial Review) 提出管理层语气分歧度测度并检验其与盈余公告市场反应的关联, 呼应本家族用弱势模态词密度刻画报道措辞确定性/含蓄程度这一构念取向。
 
-白话: 这组指标数的是一篇报道里"可能""或许""大概"这类"说话留余地"的词占了多大比例。记者或消息源在拿不准的事情上往往会不自觉地多用这类词, 所以这个比例某种程度上反映了报道语气的确定性高低, 跟正面/负面的情感判断是两回事。同一篇文章按标题+全文、标题+实体附近、标题+银行和金科词同句出现这三种不同的"取文范围"各算一遍, 三个数字谁也不比谁更权威, 都是彼此印证的稳健性检验, 不能把它们混在一起当作三个独立的证据来源使用。
-
+白话: 这组指标数的是一篇报道里"可能""或许""大概"这类"说话留余地"的词占了多大比例。记者或消息源在拿不准的事情上往往会不自觉地多用这类词, 所以这个比例某种程度上反映了报道语气的确定性高低, 跟正面/负面的情感判断是两回事。同一篇文章按标题+全文、标题+实体附近、标题+银行和金科词同句出现这三种不同的"取文范围"各算一遍, 三个数字谁也不比谁更权威, 都是彼此印证的稳健性检验, 不能把它们混在一起当作三个独立的证据来源使用。 在金融机构这一与本家族语料最贴近的语域上, Elshandidy 与 Elsayed (2024) 以英国 FTSE 全股金融业公司为样本, 首次检验基于文本的风险披露 (TRD) 与市场流动性的关系, 发现 TRD 降低金融公司的市场流动性 (大型公司则相反), 表明金融机构文本中风险/不确定性一侧的语言在词频占比层面对市场参与者具有信息含量, 为本家族"银行报道文本上的词典型非情感语用测度值得测量"这一前提补上了同业实证参照 (本家族此前的文献支撑以方法学谱系与判别效度准则为主, 缺金融业语域的应用层旁证)。迁移边界须严格声明: 原文语料为英国金融公司英文年报中的风险披露段落, 所用为英文风险关键词表, 并未单列 weak modal 子表, 亦未区分 L&M 各子词典的独立效应, 故本项目仅据其锚定该测度族在金融机构文本上的可测性与信息含量, 不据其作为弱势模态词表本身的效度证据 (后者由 stage 39e 的 HTMT 判别效度审计另行承担); 原文 DV 为市场流动性、层级为 firm-year, 与本项目在中文银行新闻上以 jieba 分词后按 full/ctx/ss 三轨计算命中占比、再聚合至银行—年度的口径不同, 三轨仍各自 just-identified 并排、互为稳健性, 不因引入该应用层参照而改变禁混同一 over-identified Hansen J 的识别铁律。
 ## VAR: modal_weak_frac_ctx
 
 【变体差分】
@@ -63,4 +70,5 @@ Henseler, J., Ringle, C. M., & Sarstedt, M. (2015). A New Criterion for Assessin
 Cronbach, L. J. (1951). Coefficient Alpha and the Internal Structure of Tests. Psychometrika, 16(3), 297-334. https://doi.org/10.1007/BF02310555
 Cohen, J. (1960). A Coefficient of Agreement for Nominal Scales. Educational and Psychological Measurement, 20(1), 37-46. https://doi.org/10.1177/001316446002000104
 Angelo, B., Johnston, M., Singh, A., & Wan, Y. Q. (2025). Tone Distance: Managerial Tone Divergence and Market Reaction to Earnings Announcements. Financial Review. https://doi.org/10.1111/fire.70002
+Elshandidy, T., & Elsayed, M. (2024). The UK financial firms’ textual risk disclosure and market liquidity. Finance Research Letters, 63, 105305. https://doi.org/10.1016/j.frl.2024.105305
 <!-- rendered-citations:end -->

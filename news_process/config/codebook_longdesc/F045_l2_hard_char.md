@@ -36,6 +36,58 @@ citations:
   vol: 94
   issue: 5
   pages_or_artno: 83-116
+- doi: "10.1007/s11145-025-10681-5"
+  type: "journal"
+  authors: "Sui, L., Woumans, E., Duyck, W., Boeve, S., & Dirix, N."
+  year: 2026
+  title: "The word and character frequency effect in Chinese natural reading"
+  venue: "Reading and Writing"
+  vol: "39"
+  issue: "5"
+  pages_or_artno: "1877-1900"
+- doi: "10.1177/17470218241281798"
+  type: "journal"
+  authors: "Fu, Y., Liversedge, S. P., Bai, X., Moosa, M., & Zang, C."
+  year: 2025
+  title: "Word length and frequency effects in natural Chinese reading: Evidence for character representations in lexical identification"
+  venue: "Quarterly Journal of Experimental Psychology"
+  vol: "78"
+  issue: "7"
+  pages_or_artno: "1438-1449"
+- doi: "10.1016/j.respol.2025.105301"
+  type: "journal"
+  authors: "Gounopoulos, D., Huang, W., & Yang, M."
+  year: 2025
+  title: "Innovation and annual report readability"
+  venue: "Research Policy"
+  vol: "54"
+  issue: "8"
+  pages_or_artno: "105301"
+- doi: "10.1016/j.iref.2026.105609"
+  type: "journal"
+  authors: "Yuan, D., Shen, J., & Li, Y."
+  year: 2026
+  title: "Annual report textual complexity and ESG rating disagreement"
+  venue: "International Review of Economics & Finance"
+  vol: "110"
+  pages_or_artno: "105609"
+- doi: "10.1016/j.frl.2025.108622"
+  type: "journal"
+  authors: "Zhou, W., Xiong, Y., & Wang, S."
+  year: 2025
+  title: "Dialect diversity, corporate annual report text readability and stock price crash risks"
+  venue: "Finance Research Letters"
+  vol: "86"
+  pages_or_artno: "108622"
+- doi: "10.1177/14648849241262204"
+  type: "journal"
+  authors: "Thäsler-Kordonouri, S., Thurman, N., Schwertberger, U., & Stalph, F."
+  year: 2025
+  title: "Too many numbers and worse word choice: Why readers find data-driven news articles produced with automation harder to understand"
+  venue: "Journalism"
+  vol: "26"
+  issue: "9"
+  pages_or_artno: "1878-1898"
 new_dois: []
 ---
 
@@ -48,8 +100,11 @@ new_dois: []
 计算在 pipeline/sentiment/lexical_complexity.py 的 compute_lexical_complexity 中完成: 对每篇报道文本先做一次 jieba 0.42.1 的词性标注 pass, 统计其中的汉字字符, 分母为该篇汉字符总数, 分子为其中落在常用字集之外的汉字个数, 相除即得逐篇 hard_char_ratio。常用字集 _common_char_set 并非官方字表, 而是由 jieba 0.42.1 冻结词典的词频派生的可复现代理集, 因此整条链路是零付费 (无 LLM、无新依赖、不触 M0 审批门、不改 Prompt v8) 的确定性测度; 源码注释明确指出官方《通用规范汉字表》一级字 3500 可作为未来的 drop-in 替换, 但当前生产口径以冻结词典派生集为准, 以保证 golden 可复现。逐篇比率随后在 pipeline/panel/encode.py 内按 bank-year 以 'mean' 聚合为面板列 avg_hard_char{track}, 'mean' 会自动跳过 NaN, 使过短或空文本不污染年度均值。整个测度是逐字符统计, 不含任何随机性, 亦不依赖嵌入或 BERT, 因此与换嵌入模型、换情感 LLM 等改动完全正交。
 
 【文献定位】
-难字率属于以字符为基本计量单元的中文文本测度, 与近年将汉字字形/视觉特征量化的工作在方法学脉络上相通: Yang 等 (2023) 用视觉 Transformer 量化汉字之间的相似度, 说明汉字层面的细粒度计量已成为中文文本分析的一条独立路径, 本家族则在最朴素的"常用/非常用"二分上做字符级难度统计, 属同一以字符为单元的计量取向的低成本端。将文本可读性/复杂度测度用于金融与媒体研究由来已久: Boudoukh 等 (2019) 表明公司特定新闻的文本信息含量能解释交易与波动, 支持把新闻文本的可测特征纳入实证; Chen 等 (2019) 对企业税务的媒体报道做文本层面的刻画, 印证媒体报道文本的用词特征本身即是有信息的研究对象。本家族把这条思路落到银行金科报道的用字难度上, 作为报道"可读性/专业性"的一个代理, 供下游作为控制变量或稳健性维度使用。
+难字率属于以字符为基本计量单元的中文文本测度, 与近年将汉字字形/视觉特征量化的工作在方法学脉络上相通: Yang 等 (2023) 用视觉 Transformer 量化汉字之间的相似度, 说明汉字层面的细粒度计量已成为中文文本分析的一条独立路径, 本家族则在最朴素的"常用/非常用"二分上做字符级难度统计, 属同一以字符为单元的计量取向的低成本端。将文本可读性/复杂度测度用于金融与媒体研究由来已久: Boudoukh 等 (2019) 表明公司特定新闻的文本信息含量能解释交易与波动, 支持把新闻文本的可测特征纳入实证; Chen 等 (2019) 对企业税务的媒体报道做文本层面的刻画, 印证媒体报道文本的用词特征本身即是有信息的研究对象。本家族把这条思路落到银行金科报道的用字难度上, 作为报道"可读性/专业性"的一个代理, 供下游作为控制变量或稳健性维度使用。 在中文字级难度的认知基础一侧, 近年心理语言学证据进一步夯实了本家族赖以成立的核心前提。Sui、Woumans、Duyck、Boeve 与 Dirix (2026) 以自然阅读眼动实验分别识别中文「字频」与「词频」对阅读加工的独立效应, 表明汉字层面的频次与常用性本身即是阅读难度的可测量来源, 为本家族「非常用字即难字」的字级判定提供了认知依据; 迁移边界在于原文以个体阅读加工时间为因变量、字频取自中文阅读语料的连续频次表, 而本项目的难字判定基于 jieba 0.42.1 冻结词典派生的常用字集, 是二元集合判定而非连续频次, 阈值口径不同, 原文亦不涉及篇级统计量或 bank-year 聚合。Fu、Liversedge、Bai、Moosa 与 Zang (2025) 在控制笔画复杂度的眼动实验中证明中文阅读的词长与词频独立影响词汇识别, 并提供了「字」作为词汇识别表征单位的证据, 与前者互补地支持在字级 (而非仅词级) 度量中文文本难度; 但原文的「词长」指词内汉字数, 与本项目其他家族的篇均分词数属两个构念, 且其为实验室眼动研究、因变量为注视时间, 不可外推至本家族的媒体语料统计量。
 
+在金融与披露文本一侧, 文本复杂度族至今仍是活跃前沿构念。Gounopoulos、Huang 与 Yang (2025) 检验企业创新与年报可读性的关联, 发现低可读性与创新绩效呈倒 U 型关系, 并以维护竞争优势与隐藏风险两条机制解释企业对披露文本复杂度的策略性调整, 从顶刊层面锚定了「难词类词汇复杂度可测量且具经济含义」这一构念族的存在性, 其可读性构造亦同属难词/长度一类的词汇-句法复杂度族; 惟原文语料为英文 10-K 类披露、可读性用 Fog/Bog 等英文公式, 且其策略性调整机制以披露方即文本作者为前提, 本项目的报道由第三方媒体撰写、银行并非作者, 故仅锚定构念族与测度动机, 不锚定具体公式, 亦不据本文主张可读性作为被解释变量的设计先例。Yuan、Shen 与 Li (2026) 把年报文本复杂度作为核心自变量解释 ESG 评级分歧, 印证复杂度可作为年度面板级连续变量使用, 与本家族把 avg_hard_char 作为银行-年自变量的用法方向一致; 但原文使用的是复杂度综合指标, 未如本项目将难字占比、平均句长、ln 词数逐项拆为三个各自 just-identified 并排、互为稳健性、不分主次且禁混进同一 over-identified Hansen J 的独立家族, 亦无 full/ctx/ss 三轨结构, 国别与因变量均不同, 仅锚定构念族存在性。Zhou、Xiong 与 Wang (2025) 在中国上市公司语境下构造中文年报文本可读性指标并检验其与股价崩盘风险的关系, 是「中文文本可读性可作为主体-年度面板变量」的同语境前沿存在性证明; 迁移边界为原文测度对象是公司自我披露、语体正式的中文年报, 层级为 firm-year, 其可读性构造未必等同本项目以常用字集外汉字比定义的难字率, 因变量亦非本项目所承接者。
+
+与本家族语料类型最为贴近的是 Thäsler-Kordonouri、Thurman、Schwertberger 与 Stalph (2025): 该文以 3135 名读者的在线问卷实验考察自动化生产的数据新闻为何更难理解, 因子分析出的五类文章构成维度中「用词选择」一项与本家族的难字率构念指向一致, 且原文明确建议后编辑时解释读者不易理解的词, 从而为「新闻文本的用词难度是与可理解性相关的构成性属性」提供了同域 (新闻而非披露文件) 的动机来源。须严格限定的是, 原文测量的是读者对上述维度的主观感知评分 (问卷实验加因子分析), 并未计算难字占比一类的文本统计量, 故不得据本文声称本家族算子的实现先例; 原文语料为英语/德语自动化新闻、因变量为读者理解度, 亦无机构-年聚合, 其字母语言的用词难度感知与本项目的汉字常用性二分判据在计量单元上并不对应。
 【三轨口径与稳健性】
 本家族严格实现 full/ctx/ss 三轨: full = 标题 prepend 后的全文正文, ctx = 标题加实体上下文窗口, ss = 标题加银行与金科同句共现窗口。三轨文本在 stage 14 ctx_materializer 物化, compute_lexical_complexity 本身 track-agnostic, 由调用方 tone_words 对 content_full / content_ctx / content_ss 各调用一次驱动。三轨各自 just-identified 并排, 互为稳健性、不分主次, 禁混进同一 over-identified Hansen J。留篇门控为 full-only (2026-06-29): 一篇是否计入"银行金科报道"只看 full 轨的留篇判定, ctx/ss 降为 conditional-on-full 的测度/稳健性轨, 其行宇宙是 full 留篇集的子集, per-track 列照算。ss 轨的回退语义镜像 ctx: 当某篇不存在银行与金科的同句共现时, content_ss 回退为全文正文并置 ss_is_fallback=True, 与 full 共享 n_articles 分母, 属优雅降级而非静默丢列。
 
@@ -72,4 +127,10 @@ new_dois: []
 Yang, X., Arora, A., Jheng, S.-Y., & Dell, M. (2023). Quantifying character similarity with vision transformers. Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing, 13982-13996. https://doi.org/10.18653/v1/2023.emnlp-main.863
 Boudoukh, J., Feldman, R., Kogan, S., & Richardson, M. (2019). Information, trading, and volatility: Evidence from firm-specific news. The Review of Financial Studies, 32(3), 992-1033. https://doi.org/10.1093/rfs/hhy083
 Chen, S., Schuchard, K., & Stomberg, B. (2019). Media coverage of corporate taxes. The Accounting Review, 94(5), 83-116. https://doi.org/10.2308/accr-52342
+Sui, L., Woumans, E., Duyck, W., Boeve, S., & Dirix, N. (2026). The word and character frequency effect in Chinese natural reading. Reading and Writing, 39(5), 1877-1900. https://doi.org/10.1007/s11145-025-10681-5
+Fu, Y., Liversedge, S. P., Bai, X., Moosa, M., & Zang, C. (2025). Word length and frequency effects in natural Chinese reading: Evidence for character representations in lexical identification. Quarterly Journal of Experimental Psychology, 78(7), 1438-1449. https://doi.org/10.1177/17470218241281798
+Gounopoulos, D., Huang, W., & Yang, M. (2025). Innovation and annual report readability. Research Policy, 54(8), 105301. https://doi.org/10.1016/j.respol.2025.105301
+Yuan, D., Shen, J., & Li, Y. (2026). Annual report textual complexity and ESG rating disagreement. International Review of Economics & Finance, 110, 105609. https://doi.org/10.1016/j.iref.2026.105609
+Zhou, W., Xiong, Y., & Wang, S. (2025). Dialect diversity, corporate annual report text readability and stock price crash risks. Finance Research Letters, 86, 108622. https://doi.org/10.1016/j.frl.2025.108622
+Thäsler-Kordonouri, S., Thurman, N., Schwertberger, U., & Stalph, F. (2025). Too many numbers and worse word choice: Why readers find data-driven news articles produced with automation harder to understand. Journalism, 26(9), 1878-1898. https://doi.org/10.1177/14648849241262204
 <!-- rendered-citations:end -->

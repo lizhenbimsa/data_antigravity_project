@@ -54,6 +54,31 @@ citations:
   vol: '7'
   issue: '3'
   pages_or_artno: 407-437
+- doi: "10.1016/j.jaccpubpol.2024.107181"
+  type: "journal"
+  authors: "Cheng, C. A., Jiang, L., & Song, W.-L."
+  year: 2024
+  title: "Media coverage and debt financing choice"
+  venue: "Journal of Accounting and Public Policy"
+  vol: "44"
+  pages_or_artno: "107181"
+- doi: "10.1016/j.jfs.2026.101538"
+  type: "journal"
+  authors: "Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S."
+  year: 2026
+  title: "Does media sentiment influence bank supervision?"
+  venue: "Journal of Financial Stability"
+  vol: "84"
+  pages_or_artno: "101538"
+- doi: "10.1111/acfi.13353"
+  type: "journal"
+  authors: "Kanagaretnam, K., Li, W., Shi, G., & Zhou, Z."
+  year: 2025
+  title: "Ambiguity of tone in annual reports and bank risk taking"
+  venue: "Accounting & Finance"
+  vol: "65"
+  issue: "1"
+  pages_or_artno: "935-970"
 new_dois: []
 ---
 
@@ -73,8 +98,7 @@ new_dois: []
 三轨文本口径 (镜像项目铁律, CLAUDE.md「当前状态铁律」): `_full` = 标题+正文全文; `_ctx` = 标题+目标银行实体窗口 (窗口大小见 `config/filtering.yaml::context_window`); `_ss` = 标题+银行∧金科科技词同句 (或 ±N 句窗) 共现片段, 无同句共现命中时回退为全文 (`ss_is_fallback=True`, 与 `_ctx` 的回退语义镜像一致, 共享 `n_articles` 分母)。三轨在 stage 14 `ctx_materializer` 统一物化, stage 21/22/23/24 情感测度 (含本家族所属的 stage 22 词典法) 均无条件对三轝并行打分。三轨各自 just-identified 并排, 互为稳健性、不分主次, 严禁混入同一 over-identified 的 Hansen J 检验设定。留篇门控口径 (2026-06-29 起) 为 full-only: 某篇报道是否计入"银行-金科相关报道"样本, 仅由 `llm_verified_full` 决定, `_ctx`/`_ss` 轨的行宇宙是 full 轨留篇集合的子集, 在此子集上分轨独立复算, 而非各轨自行决定留篇边界。
 
 【文献定位】
-本家族测度"负面报道计数"这一构念的经济学动机, 直接呼应 Piotroski, Wong & Zhang (2015, *Journal of Accounting Research*, 53(2), 405-459) 关于中国上市公司存在压制负面信息的政治激励这一发现——该文揭示了负面信息在中国制度语境下具有区别于西方样本的传播摩擦与披露激励, 说明在中国银行-金科新闻语境中, 单独刻画"负面报道篇数"(而非仅看语调均值) 具有独立的经济学信息含量: 负面报道计数偏低既可能反映真实经营稳健, 也可能反映信息压制/媒体选择性报道, 二者的区分需要结合计数与均值/占比型姊妹指标联合解读。词典本身的构建方法论参照两支中文金融情感词典文献: 一是 Bian, Jia, Li & Yan (2021, SSRN Working Paper No. 3446388) 面向中文会计与金融文本分析构建的情感词典, 与本家族所属 `yao_2021` 词典同属六部中文词典稳健性梯子中的姊妹词典; 二是 Ma, Zhang & Zhang (2025, *Expert Systems with Applications*, 264, 125739) 面向中国境内投资者构建的细粒度中文情感词典 (CN-FSD), 二者共同印证了"面向中文金融文本定制情感词表, 而非直接套用英文或通用汉语词典"这一方法论路径在近年文献中持续得到验证与迭代。逐篇打分二值化 (score<0 → 负面标记) 所隐含的否定规则处理, 方法学上呼应 Pröllochs, Feuerriegel & Neumann (2016, *Decision Support Systems*, 88, 67-75) 对新闻情感分析中否定辖域检测 (negation scope detection) 的系统性论证——该文指出否定词的辖域判定误差会直接扭曲逐篇情感符号判定的准确性, 这正是本项目词典法打分内置否定翻转规则、并将 `yao_2021_score{track}` 而非裸词频计数作为二值化输入的方法学依据。中文文本量化分析在会计与金融研究中的更广泛应用参照 Xu, Yao & Chen (2019, *China Journal of Accounting Studies*, 7(3), 407-437) 对中文年报可读性的测量与检验, 与本家族同属"中文金融文本挖掘用于治理/披露研究"的方法论谱系。
-
+本家族测度"负面报道计数"这一构念的经济学动机, 直接呼应 Piotroski, Wong & Zhang (2015, *Journal of Accounting Research*, 53(2), 405-459) 关于中国上市公司存在压制负面信息的政治激励这一发现——该文揭示了负面信息在中国制度语境下具有区别于西方样本的传播摩擦与披露激励, 说明在中国银行-金科新闻语境中, 单独刻画"负面报道篇数"(而非仅看语调均值) 具有独立的经济学信息含量: 负面报道计数偏低既可能反映真实经营稳健, 也可能反映信息压制/媒体选择性报道, 二者的区分需要结合计数与均值/占比型姊妹指标联合解读。词典本身的构建方法论参照两支中文金融情感词典文献: 一是 Bian, Jia, Li & Yan (2021, SSRN Working Paper No. 3446388) 面向中文会计与金融文本分析构建的情感词典, 与本家族所属 `yao_2021` 词典同属六部中文词典稳健性梯子中的姊妹词典; 二是 Ma, Zhang & Zhang (2025, *Expert Systems with Applications*, 264, 125739) 面向中国境内投资者构建的细粒度中文情感词典 (CN-FSD), 二者共同印证了"面向中文金融文本定制情感词表, 而非直接套用英文或通用汉语词典"这一方法论路径在近年文献中持续得到验证与迭代。逐篇打分二值化 (score<0 → 负面标记) 所隐含的否定规则处理, 方法学上呼应 Pröllochs, Feuerriegel & Neumann (2016, *Decision Support Systems*, 88, 67-75) 对新闻情感分析中否定辖域检测 (negation scope detection) 的系统性论证——该文指出否定词的辖域判定误差会直接扭曲逐篇情感符号判定的准确性, 这正是本项目词典法打分内置否定翻转规则、并将 `yao_2021_score{track}` 而非裸词频计数作为二值化输入的方法学依据。中文文本量化分析在会计与金融研究中的更广泛应用参照 Xu, Yao & Chen (2019, *China Journal of Accounting Studies*, 7(3), 407-437) 对中文年报可读性的测量与检验, 与本家族同属"中文金融文本挖掘用于治理/披露研究"的方法论谱系。 在测度形态与应用场域两侧, 近期文献亦为本家族「逐篇极性判定后按主体-年求和」这一构造提供了同域参照。Cheng、Jiang 与 Song (2024) 把美国上市公司 2001–2014 年的新闻按公司-年归集为报道量与新闻情感, 作为解释变量进入债务融资方式选择回归, 发现负面盈余新闻显著降低银行贷款与公募债概率、提高私募债概率, 是「文章级极性判定 → 按主体-年对极性指示求和」这一聚合范式的前沿实证用例, 亦印证负面报道计数本身携带独立于语调均值的信息含量; 惟原文极性来自专有事件情感分析服务, 既非公开情感词典亦非人工编码, 故此处只锚定其聚合形态而不锚定极性来源, 且原文主体为美国上市公司而非中国商业银行, 亦无本项目的三轨文本与六词典并排设计。Aldama-Navarrete、Curti、Hansen 与 Kazinnik (2026) 构造针对特定银行的媒体情感测度并检验其与监管行为的关联, 表明把新闻情感按银行主体归集并进入银行层面实证, 是当前金融稳定领域被接受的做法, 为本家族以银行-年为聚合单元提供场域层面的支撑; 但原文为美国银行监管语境且以监管评级/监管行动为被解释变量, 其情感测度的构造细节与本项目逐篇词典打分后按符号截断计数的口径不同, 亦不涉及三轨文本。Kanagaretnam、Li、Shi 与 Zhou (2025) 以银行年报文本的语调模糊度进入银行风险承担面板回归, 提供了「银行文本的词表型语调测度可作为银行层面实证解释变量」这一效度证据; 仅此为限 —— 原文的具体构造是残差化的模糊度指标, 未见极性比率式口径, 更未按极性符号对多篇文本计数 (年报每银行-年仅一份文档, 与本家族逐篇判定后再求和的分母结构根本不同), 且原文为英文词表体系, 无中文分词与否定翻转/程度副词/转折三规则层。
 ## VAR: yao_2021_neg_count_ctx
 
 【变体差分】
@@ -100,4 +124,7 @@ Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment d
 Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications, 264, 125739. https://doi.org/10.1016/j.eswa.2024.125739
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
 Xu, W., Yao, Z., & Chen, D. (2019). Chinese annual report readability: Measurement and test. China Journal of Accounting Studies, 7(3), 407-437. https://doi.org/10.1080/21697213.2019.1701259
+Cheng, C. A., Jiang, L., & Song, W.-L. (2024). Media coverage and debt financing choice. Journal of Accounting and Public Policy, 44, 107181. https://doi.org/10.1016/j.jaccpubpol.2024.107181
+Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S. (2026). Does media sentiment influence bank supervision?. Journal of Financial Stability, 84, 101538. https://doi.org/10.1016/j.jfs.2026.101538
+Kanagaretnam, K., Li, W., Shi, G., & Zhou, Z. (2025). Ambiguity of tone in annual reports and bank risk taking. Accounting & Finance, 65(1), 935-970. https://doi.org/10.1111/acfi.13353
 <!-- rendered-citations:end -->

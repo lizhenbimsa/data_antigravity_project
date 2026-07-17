@@ -54,6 +54,24 @@ citations:
   vol: '21'
   issue: '4'
   pages_or_artno: 1323-1344
+- doi: "10.1080/21697213.2024.2337262"
+  type: "journal"
+  authors: "Meng, Q., Du, X., & Gong, X."
+  year: 2024
+  title: "Does operational disclosure curb textual tone manipulation by corporate management?"
+  venue: "China Journal of Accounting Studies"
+  vol: "12"
+  issue: "2"
+  pages_or_artno: "247-275"
+- doi: "10.1515/econ-2022-0129"
+  type: "journal"
+  authors: "Wang, H."
+  year: 2024
+  title: "Media Tone and Earnings Management before the Earnings Announcement: Evidence from China"
+  venue: "Economics"
+  vol: "18"
+  issue: "1"
+  pages_or_artno: "20220129"
 new_dois: []
 ---
 
@@ -66,8 +84,7 @@ new_dois: []
 公式为 jiang_2021_cater_b_{track} = jiang_2021_tone_{track} - (bert_avg_pos_{track} - bert_avg_neg_{track})。被减数 jiang_2021_tone_{track} 是 jiang_2021 词典在该轨道上对逐篇文章计算的语调分(词典正面词计数减负面词计数并按语言学规则调整后归一化得到的连续分); 减数 (bert_avg_pos_{track} - bert_avg_neg_{track}) 是 BERT 三模型中 finbert_cn 与 fin_sent_zh 两个三分类模型(THREE_CLASS_MODELS)在该轨道上输出的正类概率均值减负类概率均值, 构成一个"BERT 综合净语调"参照基准, 数值落在约 [-1, 1] 区间(两个三分类模型 signed net_tone 的均值)。finbert2 是二分类模型, 其 pos/neg/neu 概率不构成合法的三分类概率单纯形, 结构性地不参与 bert_avg_pos/bert_avg_neg 的聚合域(pipeline\panel\geography.py 8d 前置聚合逻辑), 这与"本地部署缺失"无关, 是设计上的永久排除、与 finbert2 是否具备本地权重文件无关。因此本家族差值的真实构念是"词典 vs 两个三分类 BERT 模型综合"而非"词典 vs 三个 BERT 模型综合", finbert2 自身的 signed net_tone 应参照 F345 之外的 per-model BERT 分布形状指标单独查看, 不进入本家族的减数。两个分量在计算前均已各自完成归一化, 相减得到的差值本身即为迎阶度代理, 数值符号具有直接经济含义: 正值表示词典打分高于 BERT 判断(词典"过于乐观", 潜在迎合词典侧); 负值表示词典打分低于 BERT 判断(词典"过于悲观"或 BERT 判断更乐观); 绝对值越大表示两法分歧越大。该指标在 pipeline\panel\runner.py 的 8d "算法迎合度(Algorithmic Catering)"区块中于面板导出阶段(而非文章级阶段)逐轨道计算, 属于面板层的派生指标(non-additive, 二阶差分构念), 不落文章级 parquet, 只在导出面板时现算现出。
 计算严格遵循三轨并列铁律: full(标题+正文全文)、ctx(标题+实体窗口)、ss(标题+银行∧金科同句±N窗)三条轨道各自独立地计算 jiang_2021_tone 与 BERT 净语调再相减, 三条轨道各自 just-identified 并排, 互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 设定。ss 轨道回退语义镜像 ctx: 当某篇文章不存在银行∧金科词同句共现窗口时, content_ss 回退为全文正文(与 content_full 相同文本), ss_is_fallback 标记为真, 该情形下 jiang_2021_cater_b_ss 实质上退化为在全文文本上计算的差值, 与 jiang_2021_cater_b_full 高度重合, 分析时应结合 ss_is_fallback 覆盖率解读。留篇门控口径为 full-only(2026-06-29 起): 一篇报道是否计入"银行金科报道"样本只看 llm_verified_full, ctx/ss 轨道的本指标是在 full 留篇集合的子集行上计算的条件测度/稳健性轨, 不单独扩展行宇宙。
 【文献定位】
-Cao, Jiang, Yang & Zhang (2023, RFS) 首次系统化提出并检验了"算法读者(algorithmic readers)"对企业信息披露文本策略的影响, 发现随着自动化文本分析工具的普及, 企业倾向于在措辞上迎合这些工具的打分机制, 该研究是本家族"词典 vs 深度模型差值即迎合度代理"这一构念设计的直接理论依据。Frankel, Jennings & Lee (2022, Management Science) 系统比较了机器学习方法与词典方法在披露语调测度上的系统性差异, 为"词典法与深度学习法存在结构性偏离而非纯噪声"这一前提提供了跨方法比较的实证支撑, 是本项目"多方法互为稳健性"设计哲学的方法论先例。Du, Huang, Wermers & Wu (2022, Review of Finance) 构建了另一部具有语言与领域专属性的中文金融情感词典, 强调通用词典移植到中文金融语境时的系统性偏误问题, 从"词典本身可能存在系统性偏差"的角度佐证了本家族用深度模型作为参照基准来量化偏离的合理性。姜富伟等(2021, 《经济学(季刊)》)是本家族被减数词典 jiang_2021 的原始构建文献, 基于中国财经媒体文本样本, 采用有监督机器学习方法结合人工标注扩展出面向中国资本市场语境的情感词表, 是本项目六部中文金融情感词典中唯一原生针对中国媒体语料构建的一部, 在方法学上与本项目"多词典并排、互为稳健性"的设计一脉相承。
-
+Cao, Jiang, Yang & Zhang (2023, RFS) 首次系统化提出并检验了"算法读者(algorithmic readers)"对企业信息披露文本策略的影响, 发现随着自动化文本分析工具的普及, 企业倾向于在措辞上迎合这些工具的打分机制, 该研究是本家族"词典 vs 深度模型差值即迎合度代理"这一构念设计的直接理论依据。Frankel, Jennings & Lee (2022, Management Science) 系统比较了机器学习方法与词典方法在披露语调测度上的系统性差异, 为"词典法与深度学习法存在结构性偏离而非纯噪声"这一前提提供了跨方法比较的实证支撑, 是本项目"多方法互为稳健性"设计哲学的方法论先例。Du, Huang, Wermers & Wu (2022, Review of Finance) 构建了另一部具有语言与领域专属性的中文金融情感词典, 强调通用词典移植到中文金融语境时的系统性偏误问题, 从"词典本身可能存在系统性偏差"的角度佐证了本家族用深度模型作为参照基准来量化偏离的合理性。姜富伟等(2021, 《经济学(季刊)》)是本家族被减数词典 jiang_2021 的原始构建文献, 基于中国财经媒体文本样本, 采用有监督机器学习方法结合人工标注扩展出面向中国资本市场语境的情感词表, 是本项目六部中文金融情感词典中唯一原生针对中国媒体语料构建的一部, 在方法学上与本项目"多词典并排、互为稳健性"的设计一脉相承。 近期两项中国情境的实证研究可进一步补强本家族在被减数一侧与构念前提上的外部效度。Meng、Du 与 Gong (2024) 以中国上市公司年报文本测量管理层的文本语调操纵(textual tone manipulation), 即语调正面程度超出基本面可解释的部分, 并检验经营性披露对该操纵行为的约束作用; 其"语调减基准语调"的差分/残差思路与本家族"词典语调减 BERT 综合净语调"在测度形态上同属"以语调相对某一参照基准的偏离量化策略性书写"一类, 且语调来源同为中文金融文本的词典化打分, 从而为 Cao, Jiang, Yang & Zhang (2023) 源自美国披露场景的迎合机制补上了一项中国语境下的同域行为学前提。迁移边界须如实标明: 该文的参照基准是基本面回归的拟合值(残差法)而非第二套测度引擎, 文本为企业自述年报、观测单位为公司-年, 原文既未使用深层模型对照, 亦未涉及象征-实质二分, 因此它只锚定本家族被减数与"语调偏离可作为策略性书写信号"这一构念前提, 不能被援引为本家族以 BERT 三分类模型综合净语调作减数的方法学依据。Wang (2024) 用中文媒体报道语调测度检验其与盈余管理的关系, 提供了"中文媒体报道语调经词典类方法可测且具经济含义"的同域应用证据, 与 jiang_2021 面向媒体语料的词表构建定位相互呼应, 支撑本家族被减数所依托的中文媒体语调测度传统; 但该文仅使用单臂词典语调, 无 BERT/LLM 任何对照臂, 故只能锚定本家族差值的词典端而不能锚定模型端, 其报道对象为中国上市公司一般财经报道(非银行×金融科技共现报道)、分析层级为公司-事件窗而非 bank-year, 载文期刊层级一般, 引用时应按此降级口径理解, 不宜据以推断本家族差值模型端的构念效度。
 ## VAR: jiang_2021_cater_b_full
 
 【变体差分】
@@ -91,4 +108,6 @@ Cao, S., Jiang, W., Yang, B., & Zhang, A. L. (2023). How to talk when a machine 
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 姜富伟, 孟令超, 唐国豪. (2021). 媒体文本情绪与股票回报预测. 经济学(季刊), 21(4), 1323-1344. https://doi.org/10.13821/j.cnki.ceq.2021.04.10
+Meng, Q., Du, X., & Gong, X. (2024). Does operational disclosure curb textual tone manipulation by corporate management?. China Journal of Accounting Studies, 12(2), 247-275. https://doi.org/10.1080/21697213.2024.2337262
+Wang, H. (2024). Media Tone and Earnings Management before the Earnings Announcement: Evidence from China. Economics, 18(1), 20220129. https://doi.org/10.1515/econ-2022-0129
 <!-- rendered-citations:end -->

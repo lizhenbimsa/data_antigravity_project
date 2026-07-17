@@ -44,6 +44,15 @@ citations:
   vol: '64'
   issue: '5'
   pages_or_artno: 2023-2052
+- doi: "10.1007/s10579-024-09730-2"
+  type: "journal"
+  authors: "Zhang, Z., & Bethard, S."
+  year: 2025
+  title: "A survey on geocoding: algorithms and datasets for toponym resolution"
+  venue: "Language Resources and Evaluation"
+  vol: "59"
+  issue: "2"
+  pages_or_artno: "1775-1796"
 new_dois: []
 ---
 
@@ -60,8 +69,7 @@ new_dois: []
 本列与"留篇门控 = full-only"(2026-06-29) 铁律无直接交互: `n_media` 的计数对象是全部可定位地理坐标的文章(不区分是否通过 LLM 情感三家投票判定为"确认的银行金科报道"), 而非仅 `llm_vote_tone_full` 门控后的子样本; 该门控只影响同批产出的情感聚合三轨列(`prox_{d}km_tone/_pos_frac/_neg_frac` 等消费 `llm_vote_score{_track}`/`is_positive{_track}` 等门控后文章级列), `n_media`/`n_articles`/`frac`/`is_local` 四个 track-agnostic 列的分母口径是"可地理编码的文章"而非"门控留篇"。
 
 【文献定位】
-本家族方法论直接承袭 Engelberg & Parsons (2011, *The Journal of Finance*) 用多梯度地理距离缓冲刻画媒体覆盖随距离连续衰减的设计, 以及 Gurun & Butler (2012, *The Journal of Finance*) 关于本地媒体系统性偏向本地公司的经验发现——`n_media` 与其姊妹指标 `is_local` 一起, 提供了检验"银行周边媒体生态密度是否影响其被报道方式"这一假说所需的地理暴露测度。计数层面的方法学惯用法参照 Fang & Peress (2009, *The Journal of Finance*) 对媒体覆盖广度的计数处理——用来源数而非单纯文章量捕捉信息扩散渠道的分散程度; 三篇顶刊文献分别从"本地偏向为何存在"(Gurun & Butler)、"距离衰减应以连续梯度而非二分刻画"(Engelberg & Parsons)、"广度计数惯用法"(Fang & Peress)三个互补角度, 支撑本家族"四梯度去重媒体来源计数"这一具体设计选择。
-
+本家族方法论直接承袭 Engelberg & Parsons (2011, *The Journal of Finance*) 用多梯度地理距离缓冲刻画媒体覆盖随距离连续衰减的设计, 以及 Gurun & Butler (2012, *The Journal of Finance*) 关于本地媒体系统性偏向本地公司的经验发现——`n_media` 与其姊妹指标 `is_local` 一起, 提供了检验"银行周边媒体生态密度是否影响其被报道方式"这一假说所需的地理暴露测度。计数层面的方法学惯用法参照 Fang & Peress (2009, *The Journal of Finance*) 对媒体覆盖广度的计数处理——用来源数而非单纯文章量捕捉信息扩散渠道的分散程度; 三篇顶刊文献分别从"本地偏向为何存在"(Gurun & Butler)、"距离衰减应以连续梯度而非二分刻画"(Engelberg & Parsons)、"广度计数惯用法"(Fang & Peress)三个互补角度, 支撑本家族"四梯度去重媒体来源计数"这一具体设计选择。 这三个角度共同作用于圈内/圈外判定的前提——媒体来源必须先被解析为坐标, 而这一步的方法学领域可参照 Zhang 与 Bethard (2025, *Language Resources and Evaluation*) 对 geocoding / toponym resolution 算法族与评测数据集的系统综述: 该文梳理了将非结构化文本匹配到地理坐标或地名本体的算法谱系与基准数据集, 在本家族只作为上游坐标输入所处方法学领域的综述性参照, 用以支撑对地理编码质量与回退命中占比(`prox_geo_imputed_frac`)作显式披露的必要性。迁移边界须诚实标注: 该综述面向英文 NLP 语料的通用 geoparsing(从自由文本中抽取并消歧地名), 而本项目不做文本内地名抽取, 仅对结构化的「媒体来源城市/省份」元数据字段做词典查找, 消歧难度与误差机制均显著更低; 原文评测指标为地名解析准确率与距离误差中位数, 本项目未做此类基准评测, 只报告回退占比作为质量披露列。尤须声明的是, 本项目不主张该综述是 Level-3 省会质心回退启发式的方法学出处——综述系二手梳理而非方法来源, 且未经核实其是否讨论行政中心回退这一具体启发式, 省会回退属研究者自身的实现选择, 其对 50km 最窄档的偏误影响仍须按前述插补率分组自行核查。
 ## VAR: prox_50km_n_media
 
 【变体差分】
@@ -90,4 +98,5 @@ d=200 公里, 四梯度中最宽的阈值, 对多数省会型银行或沿海城�
 Gurun, U. G., & Butler, A. W. (2012). Don't believe the hype: Local media slant, local advertising, and firm value. The Journal of Finance, 67(2), 561-598. https://doi.org/10.1111/j.1540-6261.2012.01725.x
 Engelberg, J. E., & Parsons, C. A. (2011). The causal impact of media in financial markets. The Journal of Finance, 66(1), 67-97. https://doi.org/10.1111/j.1540-6261.2010.01626.x
 Fang, L., & Peress, J. (2009). Media coverage and the cross-section of stock returns. The Journal of Finance, 64(5), 2023-2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x
+Zhang, Z., & Bethard, S. (2025). A survey on geocoding: algorithms and datasets for toponym resolution. Language Resources and Evaluation, 59(2), 1775-1796. https://doi.org/10.1007/s10579-024-09730-2
 <!-- rendered-citations:end -->

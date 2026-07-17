@@ -42,6 +42,23 @@ citations:
   vol: "146"
   issue: "2"
   pages_or_artno: "475-501"
+- doi: "10.1016/j.jaccpubpol.2024.107181"
+  type: "journal"
+  authors: "Cheng, C. A., Jiang, L., & Song, W.-L."
+  year: 2024
+  title: "Media coverage and debt financing choice"
+  venue: "Journal of Accounting and Public Policy"
+  vol: "44"
+  pages_or_artno: "107181"
+- doi: "10.1111/abac.12322"
+  type: "journal"
+  authors: "Wang, K. T., Zhu, N. Z., & Luo, G."
+  year: 2024
+  title: "Does News Media Affect Firm Innovation in Emerging Markets? Evidence from China"
+  venue: "Abacus"
+  vol: "60"
+  issue: "4"
+  pages_or_artno: "709-751"
 new_dois: []
 ---
 
@@ -60,8 +77,7 @@ pos_count_vw{track} (vw = value-weighted, 提及密度加权) 的计算路径更
 三个文本轨道 full/ctx/ss 对应本项目情感测度体系的统一口径: full = 标题+全文正文; ctx = 标题+目标实体窗口文本; ss = 标题+银行与金科词同句共现窗口文本 (无同句共现时回退为全文 body, 由 ss_is_fallback 指示, 语义上镜像 ctx 轨的回退规则——ss_is_fallback=True 时 n_articles 分母口径与 ctx 保持一致处理)。三轨在下游回归中各自 just-identified 并排比较、互为稳健性、不分主次, 严禁把三轨系数塞进同一个 over-identified 的 Hansen J 过度识别检验框架。需要特别强调的是: 2026-06-29 起本项目采用 full-only 留篇门控——一篇文章是否算作"一篇被处理的银行-金科报道"只看 full 轨的 llm_verified_full 是否为真; ctx/ss 两轨降格为"以 full 留篇集为行宇宙的条件测度"(conditional-on-full), 即 pos_count_ctx/pos_count_ss 的分子虽各自逐轨判定 is_positive, 但样本行范围仍受 full 轨留篇结果约束。
 
 【文献定位】
-频次法情感计数是文本情感分析里最古老也最稳健的构念之一, 早期锚定文献是 Tetlock (2007, Journal of Finance)"Giving Content to Investor Sentiment"以及后续 Loughran & McDonald (2011, Journal of Finance) 建立的金融专用词典, 二者本质上都是在做"正/负面词或句子的计数"。本项目虽以 LLM 判定取代词典判定, 但保留了"计数"这一最朴素的测度形式, 与词典法/BERT 法的连续分数并列, 共同构成情感测度的方法学梯度(词典/LLM/BERT 三法互为稳健性)。加权计数的思路借鉴自文本经济学暴露度量文献中较为通行的"提及密度"权重构造方法——该类文献普遍强调仅仅统计"是否提及"不足以刻画暴露强度, 需按文本中该主题词/实体出现的相对密度加权; 后续气候风险暴露测度文献也进一步推广了这一提及密度加权范式, 是本家族 pos_count_vw 变体方法学谱系的旁证。需明确的是, 本条方法学脉络描述属于通行做法概述, 并非指向本家族 citations 结构化条目中的某一篇具体文献——本家族的结构化引文以下方白名单条目为准, 不额外挂靠未纳入白名单的具体作者署名。近年综述文献 Todd, Bowden & Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 对金融文本情感分析的方法学谱系 (词典法/机器学习法/LLM 法) 做了系统梳理, 指出频次型指标与连续型情感分数应作为互补而非替代的测度并列报告, 与本家族在面板中同时保留 pos_count(等权)与 llm_vote_tone(连续均值)的设计逻辑一致。Cohn, Liu & Wardlaw (2022, Journal of Financial Economics)"Count (and Count-Like) Data in Finance"专门讨论了金融实证研究中计数型因变量/控制变量的计量注意事项 (过度离散、零膨胀等), 提醒本家族在下游回归中若将 pos_count 作为被解释变量, 应考虑泊松/负二项等计数模型而非简单 OLS, 这是本家族区别于连续型语调测度 (如 llm_vote_tone) 在计量策略上的关键差异点。银行层面的文本披露/媒体报道计数与银行透明度、存款流动之间的关系已有直接实证先例——Chen, Goldstein, Huang & Vashishtha (2022, Journal of Financial Economics) 发现银行透明度会显著影响存款流动的敏感性, 提示本家族 pos_count 系列作为银行媒体形象的计数化代理变量, 在用作回归解释变量时需要控制银行自身信息环境的异质性, 否则容易把"该银行本身更透明、因此更容易被正面报道"与"正面报道本身促成了更好的经营结果"这两条因果路径混淆。
-
+频次法情感计数是文本情感分析里最古老也最稳健的构念之一, 早期锚定文献是 Tetlock (2007, Journal of Finance)"Giving Content to Investor Sentiment"以及后续 Loughran & McDonald (2011, Journal of Finance) 建立的金融专用词典, 二者本质上都是在做"正/负面词或句子的计数"。本项目虽以 LLM 判定取代词典判定, 但保留了"计数"这一最朴素的测度形式, 与词典法/BERT 法的连续分数并列, 共同构成情感测度的方法学梯度(词典/LLM/BERT 三法互为稳健性)。加权计数的思路借鉴自文本经济学暴露度量文献中较为通行的"提及密度"权重构造方法——该类文献普遍强调仅仅统计"是否提及"不足以刻画暴露强度, 需按文本中该主题词/实体出现的相对密度加权; 后续气候风险暴露测度文献也进一步推广了这一提及密度加权范式, 是本家族 pos_count_vw 变体方法学谱系的旁证。需明确的是, 本条方法学脉络描述属于通行做法概述, 并非指向本家族 citations 结构化条目中的某一篇具体文献——本家族的结构化引文以下方白名单条目为准, 不额外挂靠未纳入白名单的具体作者署名。近年综述文献 Todd, Bowden & Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 对金融文本情感分析的方法学谱系 (词典法/机器学习法/LLM 法) 做了系统梳理, 指出频次型指标与连续型情感分数应作为互补而非替代的测度并列报告, 与本家族在面板中同时保留 pos_count(等权)与 llm_vote_tone(连续均值)的设计逻辑一致。Cohn, Liu & Wardlaw (2022, Journal of Financial Economics)"Count (and Count-Like) Data in Finance"专门讨论了金融实证研究中计数型因变量/控制变量的计量注意事项 (过度离散、零膨胀等), 提醒本家族在下游回归中若将 pos_count 作为被解释变量, 应考虑泊松/负二项等计数模型而非简单 OLS, 这是本家族区别于连续型语调测度 (如 llm_vote_tone) 在计量策略上的关键差异点。银行层面的文本披露/媒体报道计数与银行透明度、存款流动之间的关系已有直接实证先例——Chen, Goldstein, Huang & Vashishtha (2022, Journal of Financial Economics) 发现银行透明度会显著影响存款流动的敏感性, 提示本家族 pos_count 系列作为银行媒体形象的计数化代理变量, 在用作回归解释变量时需要控制银行自身信息环境的异质性, 否则容易把"该银行本身更透明、因此更容易被正面报道"与"正面报道本身促成了更好的经营结果"这两条因果路径混淆。 这一"文章级极性判定 → 按主体-年对极性指示求和"的聚合范式在近期实证中已有直接用例: Cheng、Jiang 与 Song (2024) 以 RavenPack (Dow Jones Newswires 全量、relevance=100) 把美国上市公司 2001–2014 年的新闻按公司-年归集为报道量 (Total_News) 与新闻情感, 作为解释变量进入债务融资方式选择回归, 发现负面盈余新闻显著降低银行贷款与公募债概率、提高私募债概率, 与本家族先逐篇判正、再在 bank-year 内对指示变量求和的构造同形。迁移边界须如实注明: 该文主体为美国上市公司而非中国商业银行; 其极性来自 RavenPack 专有事件情感分析 (ESS), 既非公开情感词典、亦非人工编码, 更非本项目的三家 LLM 多数投票, 故此处只锚定"按主体-年对极性指示求和"这一聚合形态, 不锚定其极性来源; 该文亦无本家族 pos_count_vw 这类提及密度加权变体。至于中文报纸报道的报道量计数可作为主体-年层面文本暴露变量这一形态, 则由 Wang、Zhu 与 Luo (2024) 在中国语境下提供佐证: 该文用逾 188,000 篇出自中国最有影响力报纸、由记者撰写的公司特定报道, 把新闻按公司-年归集为计数型暴露变量并检验其对企业创新产出的影响, 效应在治理薄弱、披露不透明、研发密集与融资受限的公司更强, 且在创新与治理类报道、政治干预较少与社会关联较弱的媒体更强。仅此为限: 可得材料未见该文构造任何语调/情感变量 (所披露者仅为报道量与报道主题/媒体属性分组), 故其只锚定"中文报纸报道按主体-年计数"的暴露变量形态而不锚定极性来源; 其主体为中国 A 股非金融企业而非商业银行, 且无 full/ctx/ss 三轨设计。
 ## VAR: pos_count_ctx
 
 【变体差分】
@@ -96,4 +112,6 @@ pos_count_vw{track} (vw = value-weighted, 提及密度加权) 的计算路径更
 Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management, 31(1), e1549. https://doi.org/10.1002/isaf.1549
 Cohn, J. B., Liu, Z., & Wardlaw, M. I. (2022). Count (and count-like) data in finance. Journal of Financial Economics, 146(2), 529-551. https://doi.org/10.1016/j.jfineco.2022.08.004
 Chen, Q., Goldstein, I., Huang, Z., & Vashishtha, R. (2022). Bank transparency and deposit flows. Journal of Financial Economics, 146(2), 475-501. https://doi.org/10.1016/j.jfineco.2022.07.009
+Cheng, C. A., Jiang, L., & Song, W.-L. (2024). Media coverage and debt financing choice. Journal of Accounting and Public Policy, 44, 107181. https://doi.org/10.1016/j.jaccpubpol.2024.107181
+Wang, K. T., Zhu, N. Z., & Luo, G. (2024). Does News Media Affect Firm Innovation in Emerging Markets? Evidence from China. Abacus, 60(4), 709-751. https://doi.org/10.1111/abac.12322
 <!-- rendered-citations:end -->

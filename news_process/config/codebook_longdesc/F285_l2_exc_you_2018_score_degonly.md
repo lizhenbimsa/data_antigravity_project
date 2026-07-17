@@ -65,6 +65,22 @@ citations:
   vol: 37
   issue: 2
   pages_or_artno: 267-307
+- doi: "10.3390/computers12010018"
+  type: "journal"
+  authors: "Naldi, M., & Petroni, S."
+  year: 2023
+  title: "A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools"
+  venue: "Computers"
+  vol: "12"
+  issue: "1"
+  pages_or_artno: "18"
+- doi: "10.1177/10944281251334777"
+  type: "journal"
+  authors: "Iqbal, F., & Pfarrer, M. D."
+  year: 2025
+  title: "Using Coreference Resolution to Mitigate Measurement Error in Text Analysis"
+  venue: "Organizational Research Methods"
+  pages_or_artno: "10944281251334777"
 new_dois: []
 ---
 
@@ -77,8 +93,7 @@ new_dois: []
 计分内核 _compute_sentiment_with_rules 是一台确定性有限状态机, 依次可施加三条中文情感语言学规则: 否定翻转 (遇否定词对随后极性词变号)、程度副词六级加权 (极其/非常/较/稍等程度词按连续档位放大或衰减极性值)、转折增强 (遇但是/然而等转折连词对其后子句极性做增强)。本家族对应的 degonly 变体在规则消融梯度 (rule-ablation ladder, 单一事实源 _RULE_ABLATION_VARIANTS) 中定义为 apply_negation=False、apply_degree=True、apply_adversative=False, 即只保留程度副词加权这一条规则, 同时关闭否定翻转与转折增强, 用于单独检验"程度副词能否独立驱动情感强度"这一构念。每篇文本先经 jieba 冻结词典分词, 命中 you_2018 极性词后累加经程度加权后的极性值 final_valence, 分子为其代数和、分母为其绝对值之和, 从而得到自归一化的倾向分; 空文本或词典缺失时按与主分 you_2018_score 对称的规则回填 NaN 或 0.0, 不静默造零。需要强调的是, 规则消融梯度采用非可加分解: 每个变体各自 self-normalize, 分母随启用规则集变化, 且当程度词与本可被否定/转折修饰的极性词共现时, 不同规则组合下同一原始词的贡献权重并不线性可比, 因此相邻档位之间的级差并不代表"某条规则的纯贡献", 只能作为对照稳健性使用; 审计披露须报四级相关系数与逐级变号占比, 论文表述定性不变而非声称某变体更优。degonly 与其对偶变体 negonly (只留否定翻转) 及 advonly (只留转折增强) 共同构成"单规则隔离"三档, 用于把完整规则集拆解为可归因的最小单元, 与 negdeg/negadv/degadv 三档"双规则组合"互补, 覆盖 2³ 全消融梯度中的全部非空/非满子集。
 
 【文献定位】
-就构念谱系而言, 本家族坐落在中文金融文本情感词典测量这一方法学脉络上。You et al. (2018) 提供了词表底本与媒体报道信息含量的识别背景, 是本家族列名与构念的直接源头; Du et al. (2022) 在 Review of Finance 系统论证了中文金融情感的语言域特异性, 说明通用词表迁移到财经语料时须做本地化, 这正是本项目并置多部中文词典 (jiang_2021/yao_2021/bian_2021/du_2022/you_2018 等) 互为稳健性的动机。就规则内核而言, 程度副词效价移位 (valence shifting) 建模承接 Taboada et al. (2011) 在 Computational Linguistics 上系统化的词典法效价移位框架, degonly 变体正对应该框架中"intensification/downtoning"这一独立算子的隔离检验。近期方法学文献 Ma、Zhang 与 Zhang (2025) 在 Expert Systems with Applications 上构造面向中国境内投资者的细粒度中文情感词典, 同样强调程度修饰词与否定词须分别建模、不可笼统合并处理, 呼应本项目将三条语言学规则拆解为独立消融维度的设计思路。就方法学地位而言, Frankel、Jennings 与 Lee (2022) 在 Management Science 上对比机器学习与词典法披露情感的证据, 支持将词典法作为与 LLM、BERT 并列的第三条互为稳健性测量轨; van Atteveldt et al. (2021) 则从人工标注效度校验角度, 为词典分值 (含各消融档位) 的可信度提供外部佐证。本项目将规则消融各档位视为方法学稳健性梯子: 各档位各自 just-identified 并排、互为稳健性不分主次, 严禁把不同消融档位混进同一 over-identified 的 Hansen J 过度识别检验, 以免制造伪工具变量冗余。
-
+就构念谱系而言, 本家族坐落在中文金融文本情感词典测量这一方法学脉络上。You et al. (2018) 提供了词表底本与媒体报道信息含量的识别背景, 是本家族列名与构念的直接源头; Du et al. (2022) 在 Review of Finance 系统论证了中文金融情感的语言域特异性, 说明通用词表迁移到财经语料时须做本地化, 这正是本项目并置多部中文词典 (jiang_2021/yao_2021/bian_2021/du_2022/you_2018 等) 互为稳健性的动机。就规则内核而言, 程度副词效价移位 (valence shifting) 建模承接 Taboada et al. (2011) 在 Computational Linguistics 上系统化的词典法效价移位框架, degonly 变体正对应该框架中"intensification/downtoning"这一独立算子的隔离检验。近期方法学文献 Ma、Zhang 与 Zhang (2025) 在 Expert Systems with Applications 上构造面向中国境内投资者的细粒度中文情感词典, 同样强调程度修饰词与否定词须分别建模、不可笼统合并处理, 呼应本项目将三条语言学规则拆解为独立消融维度的设计思路。就方法学地位而言, Frankel、Jennings 与 Lee (2022) 在 Management Science 上对比机器学习与词典法披露情感的证据, 支持将词典法作为与 LLM、BERT 并列的第三条互为稳健性测量轨; van Atteveldt et al. (2021) 则从人工标注效度校验角度, 为词典分值 (含各消融档位) 的可信度提供外部佐证。本项目将规则消融各档位视为方法学稳健性梯子: 各档位各自 just-identified 并排、互为稳健性不分主次, 严禁把不同消融档位混进同一 over-identified 的 Hansen J 过度识别检验, 以免制造伪工具变量冗余。 就规则模块的可分离性而言, Naldi 与 Petroni (2023) 提出一套测试集方法专门评估词典法情感工具对否定的检测与处理能力, 并实证发现各工具在该环节的表现差异显著; 这为 degonly 档位「关闭否定翻转与转折增强、仅保留程度副词加权」的构造给出了直接的方法学理由——否定处理是词典法内部可被单独测量、单独失效的模块, 其开/关值得独立成臂, 而非默认打开。迁移边界在于, 原文为英文通用领域 (非金融) 的工具评测, 以人工构造测试集度量否定检测准确率, 本项目并不评测任何一臂的否定检测准确率, 而是把该规则的开/关作为中文金融新闻文章级语调分值的一条并排稳健性臂; 且该文发表于 2023 年, 非 2024 年后前沿。Iqbal 与 Pfarrer (2025) 在 Organizational Research Methods 上以共指消解为例, 通过两项研究证明一项具体的语言学处理选择会系统性改变文本测度的取值、并构成实质性测量误差来源, 支持本项目对语言学规则不作默认采纳而显式呈现其后果的立场; 惟其规则是实体指代还原, 与本家族的否定/程度/转折三规则非同一项, 且原文取规范性取向 (主张采纳该规则以减少误差, 隐含存在唯一正确做法), 与本项目令七臂各自 just-identified 并排、互为稳健性而不设主次的取向不同, 故不得据以主张其为 powerset 规则消融设计的同构先例; 原文语料为英文组织管理文本, 单位为文档/组织, 其所处理的实体归属问题在本项目中对应 ctx/ss 实体窗口轨而非本规则消融族。
 ## VAR: exc_you_2018_score_degonly_ctx
 
 【变体差分】
@@ -101,4 +116,6 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
+Naldi, M., & Petroni, S. (2023). A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools. Computers, 12(1), 18. https://doi.org/10.3390/computers12010018
+Iqbal, F., & Pfarrer, M. D. (2025). Using Coreference Resolution to Mitigate Measurement Error in Text Analysis. Organizational Research Methods, 10944281251334777. https://doi.org/10.1177/10944281251334777
 <!-- rendered-citations:end -->

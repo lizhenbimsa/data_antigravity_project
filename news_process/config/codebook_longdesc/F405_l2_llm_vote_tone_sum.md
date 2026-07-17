@@ -42,6 +42,51 @@ citations:
   title: Validating large language model annotations
   venue: Federal Reserve Board FEDS Working Paper
   vol: '2026-020'
+- doi: "10.1017/psrm.2024.64"
+  type: "journal"
+  authors: "Ornstein, J. T., Blasingame, E. N., & Truscott, J. S."
+  year: 2025
+  title: "How to train your stochastic parrot: large language models for political texts"
+  venue: "Political Science Research and Methods"
+  vol: "13"
+  issue: "2"
+  pages_or_artno: "264-281"
+- doi: "10.18653/v1/2025.findings-acl.744"
+  type: "journal"
+  authors: "Wang, W., Wang, Y., & Huang, H."
+  year: 2025
+  title: "Ranked Voting based Self-Consistency of Large Language Models"
+  venue: "Findings of the Association for Computational Linguistics: ACL 2025"
+  pages_or_artno: "14410-14426"
+- doi: "10.18653/v1/2024.law-1.13"
+  type: "journal"
+  authors: "Rønningstad, E., Velldal, E., & Øvrelid, L."
+  year: 2024
+  title: "A GPT among Annotators: LLM-based Entity-Level Sentiment Annotation"
+  venue: "Proceedings of the 18th Linguistic Annotation Workshop (LAW-XVIII)"
+  pages_or_artno: "133-139"
+- doi: "10.48550/arxiv.2407.17866"
+  type: "arxiv"
+  authors: "Kim, A., Muhn, M., & Nikolaev, V."
+  year: 2024
+  title: "Financial Statement Analysis with Large Language Models"
+  venue: "arXiv"
+- doi: "10.1287/mnsc.2024.08999"
+  type: "journal"
+  authors: "Burtch, G., McFowland, E., Yang, M., & Adomavicius, G."
+  year: 2026
+  title: "EnsembleIV: Creating Instrumental Variables from Ensemble Learners for Robust Statistical Inference with ML- Generated Variables"
+  venue: "Management Science"
+  pages_or_artno: "mnsc.2024.08999"
+- doi: "10.1007/s42001-025-00388-6"
+  type: "journal"
+  authors: "Abraham, L., Arnal, C., & Marie, A."
+  year: 2025
+  title: "Prompt selection matters: enhancing text annotations for social sciences with large language models"
+  venue: "Journal of Computational Social Science"
+  vol: "8"
+  issue: "3"
+  pages_or_artno: "73"
 new_dois: []
 ---
 
@@ -55,8 +100,7 @@ llm_vote_tone_sum 家族衡量的是某银行在给定年度内、经三家大�
 本家族严格遵循全仓「留篇门控 = full-only」口径 (2026-06-29 铁律): 一篇文章是否被计入「该银行金融科技相关报道」的判定只看 full 轨的 `llm_verified_full == True`, ctx/ss 是在该留篇集合子集上的条件测度轨, 并不各自独立决定留篇。三个轨道 (`_full`/`_ctx`/`_ss`) 各自基于同名文本切片独立跑通投票与聚合流水线, full=标题+全文正文, ctx=标题+实体上下文窗口, ss=标题+银行与金科词同句 (±N 句可配) 共现窗口; 三者是并排的「互为稳健性、不分主次」测度, 任何计量设定都不得把三轨同时塞进同一个 over-identified 的 Hansen J 过度识别检验——这不是写作习惯问题, 而是因为三轨文本高度重叠, 混用会人为制造工具变量之间的机械相关, 使过度识别检验的拒绝/不拒绝结论失去经济学含义。_ss 轨的回退语义镜像 _ctx: 当某篇文章不存在银行与金科词的同句共现时, `content_ss` 退化为全文 body 且 `ss_is_fallback` 记为真, 与 `n_articles` 分母共享同一套统计口径, 保证降级不会造成分母口径漂移。
 
 【文献定位】
-多数投票聚合的方法学正当性直接对应集成学习/LLM 集成文献的近期发现: Kamen & Kamen (2025) 系统评估了多模型集成用于内容分类任务的表现, 发现多数投票规则相对单模型标注能显著降低标注噪声、提升与人工基准的一致性, 这为本项目选择「三家独立打分 + 多数投票」而非依赖单一供应商模型提供了直接支撑。de Kok (2025, *Management Science*) 系统讨论了如何在会计与金融研究中规范使用生成式 LLM 做文本分析, 强调 temperature=0、prompt 版本冻结与结果缓存等可复现范式——这与本仓库 stage 21 的 `prompt_version='v8-2026-05-17'`、`temperature=0.0` 冻结锚点及 `_llm_cache.db` 确定性可复现设计完全对应, 是本家族计算流程正当性的方法学锚点。Tetlock (2007, *Journal of Finance*) 是文本语调影响资产价格这一实证传统的奠基性工作, 确立了「媒体语调净值」作为可预测收益率与投资者情绪的解释变量这一构念范式, llm_vote_tone_sum 作为该净值构念在 LLM 时代的离散计数化身, 在方法上继承了这条脉络, 但用三家模型投票取代了传统词典计数。Hansen (2026, FEDS WP) 讨论了在缺乏金标准的场景下如何验证 LLM 标注质量, 呼应了本仓库用 Krippendorff's α 与 Cohen's κ 度量三家模型间一致性、并把不一致样本记为中性 (0) 而非强行分类的保守处理策略。
-
+多数投票聚合的方法学正当性直接对应集成学习/LLM 集成文献的近期发现: Kamen & Kamen (2025) 系统评估了多模型集成用于内容分类任务的表现, 发现多数投票规则相对单模型标注能显著降低标注噪声、提升与人工基准的一致性, 这为本项目选择「三家独立打分 + 多数投票」而非依赖单一供应商模型提供了直接支撑。de Kok (2025, *Management Science*) 系统讨论了如何在会计与金融研究中规范使用生成式 LLM 做文本分析, 强调 temperature=0、prompt 版本冻结与结果缓存等可复现范式——这与本仓库 stage 21 的 `prompt_version='v8-2026-05-17'`、`temperature=0.0` 冻结锚点及 `_llm_cache.db` 确定性可复现设计完全对应, 是本家族计算流程正当性的方法学锚点。Tetlock (2007, *Journal of Finance*) 是文本语调影响资产价格这一实证传统的奠基性工作, 确立了「媒体语调净值」作为可预测收益率与投资者情绪的解释变量这一构念范式, llm_vote_tone_sum 作为该净值构念在 LLM 时代的离散计数化身, 在方法上继承了这条脉络, 但用三家模型投票取代了传统词典计数。Hansen (2026, FEDS WP) 讨论了在缺乏金标准的场景下如何验证 LLM 标注质量, 呼应了本仓库用 Krippendorff's α 与 Cohen's κ 度量三家模型间一致性、并把不一致样本记为中性 (0) 而非强行分类的保守处理策略。 近期文献在若干方向上进一步收紧了本族的定位。Ornstein、Blasingame 与 Truscott (2025) 以 few-shot prompt 在情感分析、文档标度等政治学「文本即数据」任务上做预注册评估, 结论是该做法优于传统有监督学习基线、并以极低成本达到与专家及众包编码员相当 (而非超过) 的水平, 是「LLM 直接产出文本级标签再逐单元聚合」这一测量范式的同族先例, 直接支撑本族 llm_vote_score → bank-year 求和的链路; 其语料为英文政治文本, 且采用单一模型而无三家投票、无面板聚合与三轨切分。Rønningstad 与 Velldal (2024) 评估 LLM 对特定目标实体的情感 (entity-level sentiment) 标注质量并与人工标注对比, 呼应本族「针对目标银行」而非篇章整体的构念界定; 该文目标实体非银行、语料非中文金融新闻, 仅报告标注一致性而不涉及加权分子与面板聚合。Wang、Wang 与 Huang (2025) 以排序投票取代朴素多数票聚合 LLM 的多个候选输出并实证其质量提升, 提示投票规则本身是一处设计自由度而非唯一解; 但其投票单元是同一模型多次采样的候选答案 (self-consistency) 而非跨厂商标签, 本族仍维持朴素多数票, 故该文只作为「多数票非唯一选择」的存在性参照。Kim、Muhn 与 Nikolaev (2024) 向 GPT-4 提供剥离叙事的标准化财务报表以判断未来盈余变动方向, 实证其方向性预测准确率超过人类分析师、与窄训练的 SOTA 机器学习模型相当, 并据其构建的策略取得更高 Sharpe 比率, 是「LLM 离散方向性判断可作为可聚合金融信号」的前沿存在性证明; 边界在于其输入为报表数字而非中文新闻叙事、单位为公司-季度盈余方向而非银行-年语调、单模型而无跨厂商投票, 且其摘要未载自报置信度的使用, 故不得据此为本仓库任何 (label, confidence) → 概率分的映射背书 (本族本就只消费离散标签, 不涉该映射)。就下游使用而言, Burtch、McFowland、Yang 与 Adomavicius (2026) 利用集成学习器内部成员预测之间的差异构造工具变量, 以缓解 ML 生成变量作为回归元时的测量误差偏误, 与本族「多个异构模型对同一篇文章各自打分、成员间存在系统性差异」的结构同构, 提示本族作为 ML 生成变量进入回归时的测量误差是一个已被正视且已有已发表处理路径的问题; 但其集成成员是同一训练流程下的 ML 预测器、成员差异有明确的重采样来源, 而本族成员是三家闭源 LLM, 差异来源不可控亦不可重采样, 其构造 IV 的前提未必成立——本仓库并未实施 EnsembleIV, 该文亦不得被援引为把三家 per-model 列混入同一 over-identified Hansen J 的依据, 后者与桶内各测度各自 just-identified 并排、互为稳健性不分主次的口径铁律直接冲突。最后, Abraham、Arnal 与 Marie (2025) 实证表明 prompt 选择对社科文本标注质量有显著且非平凡的影响, 并给出一套 prompt 选择与评估流程; 本仓库 prompt v8 已字节级冻结并充当缓存键, 刻意不做 prompt 网格 (改 prompt 即全缓存作废), 故该文提示的 prompt 敏感性在本族属未量化的已知局限, 而非已排除的风险, 使用者解读本族数值时应将其计入测量不确定性的来源之一。
 ## VAR: llm_vote_tone_sum_ctx
 
 【变体差分】
@@ -77,5 +121,11 @@ Kamen, A., & Kamen, Y. (2025). Majority rules: LLM ensemble is a winning approac
 de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Hansen, A. L. (2026). Validating large language model annotations. Federal Reserve Board FEDS Working Paper [Working Paper]. https://doi.org/10.17016/FEDS.2026.020
+Ornstein, J. T., Blasingame, E. N., & Truscott, J. S. (2025). How to train your stochastic parrot: large language models for political texts. Political Science Research and Methods, 13(2), 264-281. https://doi.org/10.1017/psrm.2024.64
+Wang, W., Wang, Y., & Huang, H. (2025). Ranked Voting based Self-Consistency of Large Language Models. Findings of the Association for Computational Linguistics: ACL 2025, 14410-14426. https://doi.org/10.18653/v1/2025.findings-acl.744
+Rønningstad, E., Velldal, E., & Øvrelid, L. (2024). A GPT among Annotators: LLM-based Entity-Level Sentiment Annotation. Proceedings of the 18th Linguistic Annotation Workshop (LAW-XVIII), 133-139. https://doi.org/10.18653/v1/2024.law-1.13
+Kim, A., Muhn, M., & Nikolaev, V. (2024). Financial Statement Analysis with Large Language Models. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2407.17866
+Burtch, G., McFowland, E., Yang, M., & Adomavicius, G. (2026). EnsembleIV: Creating Instrumental Variables from Ensemble Learners for Robust Statistical Inference with ML- Generated Variables. Management Science, mnsc.2024.08999. https://doi.org/10.1287/mnsc.2024.08999
+Abraham, L., Arnal, C., & Marie, A. (2025). Prompt selection matters: enhancing text annotations for social sciences with large language models. Journal of Computational Social Science, 8(3), 73. https://doi.org/10.1007/s42001-025-00388-6
 <!-- rendered-citations:end -->
 </content>

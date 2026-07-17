@@ -57,6 +57,23 @@ citations:
   venue: Cambridge University Press
   no_doi_ack: F215-book-manning-iir
   alt_link: "https://nlp.stanford.edu/IR-book/ (ISBN 9780521865715)"
+- doi: "10.1016/j.jcorpfin.2025.102835"
+  type: "journal"
+  authors: "Schweizer, D., Wang, X., Wu, G., & Zhang, A."
+  year: 2025
+  title: "Political connections and media bias: Evidence from China"
+  venue: "Journal of Corporate Finance"
+  vol: "94"
+  pages_or_artno: "102835"
+- doi: "10.1287/orsc.2022.17237"
+  type: "journal"
+  authors: "Dewan, Y., Simons, T., & Wernicke, G."
+  year: 2024
+  title: "The Ideological Imperative: Corporate Social Responsibility and News Media Coverage of Firms"
+  venue: "Organization Science"
+  vol: "35"
+  issue: "5"
+  pages_or_artno: "1930-1955"
 new_dois: []
 ---
 
@@ -73,8 +90,7 @@ new_dois: []
 三轨 (full / ctx / ss) 与后续可能并列的加权口径 (vw 提及密度 / mw 媒体权威 / hw 跟风衰减) 各自 just-identified 并排、互为稳健性、不分主次, 严禁把它们混进同一 over-identified 的 Hansen J 过度识别检验; 留篇门控采用 full-only 口径 (2026-06-29): 一篇报道是否计入银行—年宇宙只看 full 轨留篇判定, ctx / ss 为 conditional-on-full 的稳健性轨, 行宇宙是 full 留篇集的子集; ss 轨回退语义镜像 ctx——当无银行与金科同句共现时 content_ss 回退全文正文并置 fallback 标志。
 
 【文献定位】
-词典本体锚定 Du et al. (2022, Review of Finance): 该文系统论证了中文金融文本情感测度的语言与领域特异性, 指出直译英文词典 (如 Loughran-McDonald) 在中文语料上系统偏误, 并构建了含政治正面词分层权重的本土词典, 是本家族 0.5 政治词权重与词典词表的直接依据。IDF 加权的方法学正当性锚定 Jegadeesh & Wu (2013, Journal of Financial Economics): 该文"Word power"提出以词的市场信息含量为权重的内容分析法, 论证均权词频会被高频低信息词稀释, 与本家族用 IDF 压高频、抬稀有词的动机同构; 信息检索侧的 smooth-IDF 平滑公式 (分母取 1 + df(w) 以避免零除并压缩极稀有词的对数放大) 参照 Manning, Raghavan & Schütze (2008) 的经典教科书口径; 而权重端的 P1/P99 Winsorization 削尾并非源自该教科书, 而是稳健统计中防极端值主导的通行做法, 在本家族用以削平极稀有词与极高频词两端的权重尖峰、避免一词定乾坤, 与 smooth-IDF 分属不同的方法学来源。词典法的当代演进由 Ma et al. (2025) 的中文细粒度投资者情感词典 CN-FSD 与 Sun et al. (2025) 融合词典知识与中性特征的预训练模型情感分析所代表, 二者共同表明词典基线在中文金融情感测度中仍是不可或缺的可解释、可复现锚, 支持本家族将词典法作为 LLM / BERT 情感的互为稳健性平行轨保留。
-
+词典本体锚定 Du et al. (2022, Review of Finance): 该文系统论证了中文金融文本情感测度的语言与领域特异性, 指出直译英文词典 (如 Loughran-McDonald) 在中文语料上系统偏误, 并构建了含政治正面词分层权重的本土词典, 是本家族 0.5 政治词权重与词典词表的直接依据。IDF 加权的方法学正当性锚定 Jegadeesh & Wu (2013, Journal of Financial Economics): 该文"Word power"提出以词的市场信息含量为权重的内容分析法, 论证均权词频会被高频低信息词稀释, 与本家族用 IDF 压高频、抬稀有词的动机同构; 信息检索侧的 smooth-IDF 平滑公式 (分母取 1 + df(w) 以避免零除并压缩极稀有词的对数放大) 参照 Manning, Raghavan & Schütze (2008) 的经典教科书口径; 而权重端的 P1/P99 Winsorization 削尾并非源自该教科书, 而是稳健统计中防极端值主导的通行做法, 在本家族用以削平极稀有词与极高频词两端的权重尖峰、避免一词定乾坤, 与 smooth-IDF 分属不同的方法学来源。词典法的当代演进由 Ma et al. (2025) 的中文细粒度投资者情感词典 CN-FSD 与 Sun et al. (2025) 融合词典知识与中性特征的预训练模型情感分析所代表, 二者共同表明词典基线在中文金融情感测度中仍是不可或缺的可解释、可复现锚, 支持本家族将词典法作为 LLM / BERT 情感的互为稳健性平行轨保留。 媒体权威加权这一层的文献定位须与词典侧严格区分, 且其锚点只到前提为止。Schweizer、Wang、Wu 与 Zhang (2025) 以中国非国有上市公司新闻报道大样本实证发现, 有政治关联的企业获得显著更正面的媒体报道, 并借 Rule 18 反腐规定强制政治关联董事辞职这一监管冲击做 DiD 确证该因果链, 且丑闻期政治关联企业面临更软化的媒体审视、声誉惩罚被削弱; 该文为本家族锚定的是「中国的媒体报道语调并非中性的信息镜像, 而是可被系统性因素预测地偏移」这一同域前提, 用以说明本项目不把报道当作等同、无偏的信息载体处理。须显式声明其限度: 该文实证的异质性维度是被报道企业的政治关联属性, 而非媒体来源之间的异质性, 因此不可据以主张「媒体来源不同质故须按来源赋权」; 该文亦未构造任何权重函数, 未做权重与词典分相乘再求和, 样本为中国上市公司而非银行—年三轨。outlet 级异质性的直接依据须另引 Dewan、Simons 与 Wernicke (2024): 该文考察企业 CSR 行为如何影响新闻媒体对该企业的报道及报道倾向, 并表明这一映射受媒体自身意识形态调节, 即不同来源对同一事实的呈现存在系统性差异 —— 这正是 media_authority_weight 按媒体名逐篇赋权所预设的前提。其边界同样明确: 该文语境为美国媒体与美国企业 CSR, 媒体报道量与倾向是结果变量而非加权基, 不构造任何权重函数, 故只锚定「媒体报道非中性、来源有别」这一前提, 不锚定本家族 raw_weight 除以均值的归一化公式, 更不触及 IDF 稀有度加权层。
 ## VAR: du_2022_idf_score_mw_sum_full
 
 【变体差分】
@@ -96,4 +112,6 @@ Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis.
 Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications, 264, 125739. https://doi.org/10.1016/j.eswa.2024.125739
 Sun, Y., Yuan, H., & Xu, F. (2025). Financial sentiment analysis for pre-trained language models incorporating dictionary knowledge and neutral features. Natural Language Processing Journal, 11, 100148. https://doi.org/10.1016/j.nlp.2025.100148
 Manning, C. D., Raghavan, P., & Schütze, H. (2008). Introduction to information retrieval. Cambridge University Press. https://doi.org/10.1017/CBO9780511809071
+Schweizer, D., Wang, X., Wu, G., & Zhang, A. (2025). Political connections and media bias: Evidence from China. Journal of Corporate Finance, 94, 102835. https://doi.org/10.1016/j.jcorpfin.2025.102835
+Dewan, Y., Simons, T., & Wernicke, G. (2024). The Ideological Imperative: Corporate Social Responsibility and News Media Coverage of Firms. Organization Science, 35(5), 1930-1955. https://doi.org/10.1287/orsc.2022.17237
 <!-- rendered-citations:end -->

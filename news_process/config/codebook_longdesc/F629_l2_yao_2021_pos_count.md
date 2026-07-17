@@ -44,6 +44,22 @@ citations:
   vol: 68
   issue: 7
   pages_or_artno: 5514-5532
+- doi: "10.1016/j.jaccpubpol.2024.107181"
+  type: "journal"
+  authors: "Cheng, C. A., Jiang, L., & Song, W.-L."
+  year: 2024
+  title: "Media coverage and debt financing choice"
+  venue: "Journal of Accounting and Public Policy"
+  vol: "44"
+  pages_or_artno: "107181"
+- doi: "10.1016/j.jfs.2026.101538"
+  type: "journal"
+  authors: "Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S."
+  year: 2026
+  title: "Does media sentiment influence bank supervision?"
+  venue: "Journal of Financial Stability"
+  vol: "84"
+  pages_or_artno: "101538"
 new_dois: []
 ---
 
@@ -56,8 +72,7 @@ new_dois: []
 计算分两步, 分别发生在两个不同的 stage/文件, 不可混为一处: 第一步在 stage 22 `tone_words.py` 的词典打分主循环内完成——对每篇文章的三条文本轨 (`content_full`/`content_ctx`/`content_ss`, 由 stage 14 `ctx_materializer` 在 stage 21 情感环节之前统一物化, 三轨均已 `prepend_title` 拼接标题) 分别执行 jieba 分词 (版本冻结为 0.42.1 以保证跨次重跑分词结果确定性), 与 yao_2021 词典 (SSOT = `config/tone_dicts.json`, 结构化正面词/负面词/否定词/程度副词/转折词五类词表, 项目内不读取原始 `dicts_excel` 语料) 逐词匹配, 应用否定翻转 (词前出现否定词则该词情感符号翻转)、程度副词加权 (强化/弱化情感强度) 与转折规则 (转折连词后语义优先) 三套语言学规则, 汇总得到 `total_score`/`total_abs_score`, 归一化为 `yao_2021_score{track} = total_score / total_abs_score ∈ [-1, 1]`。第二步发生在面板构造阶段: `pipeline/panel/runner.py` 的洗稿率前置段 (标注"方法 D2: 单个词典 (Gentzkow et al. 2019, JEL)") 对每篇文章、每条轨道判定 `_is_yao_2021_positive{track} = (yao_2021_score{track} > 0)`, 生成一个 0/1 篇章级指示列; `pipeline/panel/encode.py` 随后按 bank-year 分组对该指示列求 `sum`, 即为面板列 `yao_2021_pos_count{track}`。这一构造与同源的 `pos_symb_count` (指示列进一步与"是否含象征性/符号化表述"标记做逻辑与) 共用同一批 `_is_{dict}_positive{track}` 上游指示列, 但与 `pos_substvalid_count` (以 LLM 实质性分类结果同域化分母) 走的是不同的分母口径。三轨 (full/ctx/ss) 各自独立完成分词、打分与二值化, 互不借用彼此的分词结果或分类结果, 因为 `content_ctx`/`content_ss` 与 `content_full` 在文本跨度上本就不同 (ctx=标题+实体窗口摘录, ss=标题+银行∧金科同句±N窗口, full=标题+全文), 逐轨独立计数才能保证每轨测度真实反映该轨文本本身的语调分类结果, 不产生轨间信息泄漏; 三轨各自 just-identified 并排、互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 设定。面板层的标签体系与其余 5 部词典的对称衍生列 (`neg_count`/`std`/`vw`/`mw`/`hw`/`tech`/`app`/`idf` 等) 共用同一套泛型推断规则, 保持六部词典命名与聚合口径的完全对称, 便于跨词典横向比较"净正面文章占比"而不引入结构性度量偏差; 需要词典原始命中密度 (未经净分类) 的研究者应转向 `pos_ratio` 一类固定词表聚合测度, 而非本列。
 
 【文献定位】
-洗稿率式"正面且象征性 vs. 正面且实质性"文本分类方法论, 直接呼应 Gentzkow, Kelly & Taddy (2019, Journal of Economic Literature) 关于文本计量在经济学应用中的方法论综述——本列所依赖的方法 D2 构造在项目代码注释中即明确引述该文, 将"语调分是否为正"这一二值分类作为下游洗稿率、象征性用语占比等测度的基础分子/分母来源。项目内六部词典中的 bian_2021 (Bian, Jia, Li & Yan, 2021, SSRN working paper) 同为中文金融情感词典构造的直接同类工作, 与 yao_2021 并列构成本项目词典法情感测度的方法学互证基础; Xu, Yao & Chen (2019) 在 China Journal of Accounting Studies 讨论中文年报可读性度量的构造与检验方法, 与本族共享中文财务文本词法层测度对分词稳定性、词表匹配信度的基本方法论关切。更贴近本列实际用途的外部效度锚点是 Fang, Wang, Wang & Yuan (2024, International Review of Economics & Finance) 对中国银行层面媒体情感、存款稳定性与系统性风险传导关系的实证研究——该文直接在"银行级媒体文本语调分类"这一构念层面为本族测度提供了应用场景参照, 说明将逐篇语调净分类结果 (而非词表命中密度) 聚合为 bank-year 篇数, 是刻画银行相关媒体报道情感分布、进而检验其对银行经营/风险结果传导效应的合理中间测度。六部词典并列、否定翻转/程度副词/转折三规则加权在先、篇章级净分类计数在后的分层设计, 均服务于同一目标: 让"净正面文章占比"这一构念在传导到面板结果之前保持逐环节可拆解、可稳健性检验, 而非依赖单一词典单一规则组合的合成分数。词典法计数在情感判定质量上相较机器学习方法的定位另有 Frankel, Jennings & Lee (2022, Management Science) 的顶刊证据支撑: 该文系统比较机器学习分类器与词典法在披露文本情感抽取上的表现, 为本项目在词典法之外并列引入 LLM 三家投票与 BERT 三模型作跨方法稳健性对照提供了顶刊层级的方法学正当性。
-
+洗稿率式"正面且象征性 vs. 正面且实质性"文本分类方法论, 直接呼应 Gentzkow, Kelly & Taddy (2019, Journal of Economic Literature) 关于文本计量在经济学应用中的方法论综述——本列所依赖的方法 D2 构造在项目代码注释中即明确引述该文, 将"语调分是否为正"这一二值分类作为下游洗稿率、象征性用语占比等测度的基础分子/分母来源。项目内六部词典中的 bian_2021 (Bian, Jia, Li & Yan, 2021, SSRN working paper) 同为中文金融情感词典构造的直接同类工作, 与 yao_2021 并列构成本项目词典法情感测度的方法学互证基础; Xu, Yao & Chen (2019) 在 China Journal of Accounting Studies 讨论中文年报可读性度量的构造与检验方法, 与本族共享中文财务文本词法层测度对分词稳定性、词表匹配信度的基本方法论关切。更贴近本列实际用途的外部效度锚点是 Fang, Wang, Wang & Yuan (2024, International Review of Economics & Finance) 对中国银行层面媒体情感、存款稳定性与系统性风险传导关系的实证研究——该文直接在"银行级媒体文本语调分类"这一构念层面为本族测度提供了应用场景参照, 说明将逐篇语调净分类结果 (而非词表命中密度) 聚合为 bank-year 篇数, 是刻画银行相关媒体报道情感分布、进而检验其对银行经营/风险结果传导效应的合理中间测度。六部词典并列、否定翻转/程度副词/转折三规则加权在先、篇章级净分类计数在后的分层设计, 均服务于同一目标: 让"净正面文章占比"这一构念在传导到面板结果之前保持逐环节可拆解、可稳健性检验, 而非依赖单一词典单一规则组合的合成分数。词典法计数在情感判定质量上相较机器学习方法的定位另有 Frankel, Jennings & Lee (2022, Management Science) 的顶刊证据支撑: 该文系统比较机器学习分类器与词典法在披露文本情感抽取上的表现, 为本项目在词典法之外并列引入 LLM 三家投票与 BERT 三模型作跨方法稳健性对照提供了顶刊层级的方法学正当性。 这一「逐篇极性判定→按主体-年求和」的聚合范式在近期前沿实证中亦有直接用例: Cheng、Jiang 与 Song (2024) 把美国上市公司 2001–2014 年的新闻按公司-年归集为报道量与新闻情感, 并以此进入债务融资方式选择回归, 发现负面盈余新闻显著降低银行贷款与公募债概率、提高私募债概率; 但须注意其极性来自 RavenPack 专有事件情感分析 (既非公开情感词典、亦非人工编码), 主体为美国上市公司而非商业银行, 故该文只锚定本列「对文章级极性指示按主体-年求和」的聚合形态, 不锚定其极性来源。以银行为归集主体的同域前沿应用则见 Aldama-Navarrete、Curti、Hansen 与 Kazinnik (2026): 该文构造针对特定银行的媒体情感测度并检验其与监管行为的关联, 说明把新闻情感按银行主体归集后进入银行层面实证已为顶级金融稳定期刊所接受; 其语境为美国银行监管 (以监管评级/监管行动为 DV), 情感测度的构造细节与本项目六部词典并列、三规则加权在先的口径不同, 亦无 full/ctx/ss 三轨设计, 因而仅作构念层面的应用参照。
 ## VAR: yao_2021_pos_count_ctx
 
 【变体差分】
@@ -78,4 +93,6 @@ Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stabil
 Xu, W., Yao, Z., & Chen, D. (2019). Chinese annual report readability: Measurement and test. China Journal of Accounting Studies, 7(3), 407-437. https://doi.org/10.1080/21697213.2019.1701259
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure Sentiment: Machine Learning vs. Dictionary Methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
+Cheng, C. A., Jiang, L., & Song, W.-L. (2024). Media coverage and debt financing choice. Journal of Accounting and Public Policy, 44, 107181. https://doi.org/10.1016/j.jaccpubpol.2024.107181
+Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S. (2026). Does media sentiment influence bank supervision?. Journal of Financial Stability, 84, 101538. https://doi.org/10.1016/j.jfs.2026.101538
 <!-- rendered-citations:end -->

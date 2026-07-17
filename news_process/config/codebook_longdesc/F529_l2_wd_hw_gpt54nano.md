@@ -47,6 +47,22 @@ citations:
   vol: "31"
   issue: "1"
   pages_or_artno: "e1549"
+- doi: "10.1080/19312458.2024.2378690"
+  type: "journal"
+  authors: "Laurer, M., van Atteveldt, W., Casas, A., & Welbers, K."
+  year: 2025
+  title: "On Measurement Validity and Language Models: Increasing Validity and Decreasing Bias with Instructions"
+  venue: "Communication Methods and Measures"
+  vol: "19"
+  issue: "1"
+  pages_or_artno: "46-62"
+- doi: "10.2139/ssrn.5395056"
+  type: "wp"
+  authors: "Liu, Y., Liu, J., & Wang, T."
+  year: 2025
+  title: "Large Language Model Disagreement"
+  venue: "SSRN Electronic Journal"
+  pages_or_artno: "5395056"
 new_dois: []
 ---
 
@@ -57,7 +73,7 @@ sum_wd_hw_gpt54nano_full / _ctx / _ss 三列是"跟风衰减加权 (herd-weighte
 【方法学与计算】
 跟风衰减权重 herd_weight 本身产自 stage 24 (`24_herd_decay_processor`), 其构造动机是媒体报道内容普遍存在"抄稿/跟风"现象 (herding): 同一事件短时间内被多家媒体转载或高度雷同改写的报道, 对市场信息含量的边际贡献应打折, 否则简单等权平均会让"重复报道的事件"在语调聚合中被过度加权, 扭曲银行-年语调的真实信息密度。herd_weight 对每篇文章赋予 (0,1] 区间的衰减系数 (与该文章跟同期同银行报道的雷同/聚集程度负相关), 三轨 full/ctx/ss 各自独立计算 herd_weight (因为不同轨道所用文本窗口不同, 雷同判定基于该轨道自身文本, 三轨之间互不借用)。在此基础上, encode.py 调用 runner.py 中定义的 `_build_llm_valid_masked_weights` 为每个 LLM 模型分别构造 valid-mask 分母: 对 gpt54nano 而言, 即把 `herd_weight_{track}` 在 `gpt54nano_score_{track}` 缺失的行置为缺失 (`.where(notna)`), 得到该模型专属的 `_wd_hw_gpt54nano_{track}` 篇章级序列, 再由 `aggregate_panel` 的聚合字典按 `(bank, year)` 分组求和, 落到面板级列 `sum_wd_hw_gpt54nano_{track}`。下游使用方通常以 `gpt54nano_score_hw_sum_{track} / sum_wd_hw_gpt54nano_{track}` 的形式还原出跟风衰减加权平均语调 (对标未加权的 `avg_gpt54nano_score_{track}`), 二者对比构成一组"是否控制媒体跟风偏差"的稳健性比较, 而非另立主测度。
 【文献定位】
-跟风衰减/媒体重复度打折的构造思路呼应了媒体情感研究中"信息重复不等于信息增量"这一常见主张; 本仓库把该思路制度化为逐篇权重再按模型做 valid-mask 加总, 属于工程实现层面的方法学移植而非新方法论创新。gpt54nano 作为三家投票 LLM 之一的 model-specific 权重分母设计, 部分呼应了 Gilardi, Alizadeh & Kubli (2023, *PNAS*) 关于 ChatGPT 类大语言模型在文本标注任务上可达到甚至超过人类众包标注者质量与效率的发现——这一发现是本仓库敢于把 LLM 打分 (而非纯人工标注) 作为跟风加权分母掩码之依据的方法论前提之一; 同时也呼应了 Schoenegger, Tuminauskaite, Park, Bastos & Tetlock (2024, *Science Advances*) 关于以多模型/多主体集成 (ensemble) 预测优于依赖单一模型的发现, 支撑本仓库坚持三家 LLM (gpt54nano/gemini31/deepseekv4) 各自独立走完整套"打分→跟风加权→分母掩码→面板聚合"链条、互为稳健性、不分主次, 而不是只信任单一厂商的输出这一设计选择。Todd, Bowden & Moshfeghi (2024, *Intelligent Systems in Accounting, Finance and Management*) 对金融文本情感分析文献的系统综述同样强调, 度量的稳健性核查 (含权重构造的敏感性) 是该领域方法论演进的核心议题之一, 本家族三列即服务于该核查链路中的分母核算环节。Hwang & Kim (2017, *Journal of Financial Economics*) 关于文本写作质量/信息密度对金融市场反应存在系统性影响的发现, 可作为"同质重复文本应被降权"这一构造动机的间接类比佐证 (而非直接实证支撑): 若不对雷同报道降权, 简单等权聚合会把"写法雷同但信息量低"的批量转载文章与"写法独特、信息密度高"的原创报道同等对待, 稀释后者对银行-年语调信号的贡献, 二者在"文本质量/独特性影响市场信息含量"这一更宽泛的经济学直觉上相通, 但 Hwang & Kim 本身并未直接研究跟风/重复报道降权问题。
+跟风衰减/媒体重复度打折的构造思路呼应了媒体情感研究中"信息重复不等于信息增量"这一常见主张; 本仓库把该思路制度化为逐篇权重再按模型做 valid-mask 加总, 属于工程实现层面的方法学移植而非新方法论创新。gpt54nano 作为三家投票 LLM 之一的 model-specific 权重分母设计, 部分呼应了 Gilardi, Alizadeh & Kubli (2023, *PNAS*) 关于 ChatGPT 类大语言模型在文本标注任务上可达到甚至超过人类众包标注者质量与效率的发现——这一发现是本仓库敢于把 LLM 打分 (而非纯人工标注) 作为跟风加权分母掩码之依据的方法论前提之一; 同时也呼应了 Schoenegger, Tuminauskaite, Park, Bastos & Tetlock (2024, *Science Advances*) 关于以多模型/多主体集成 (ensemble) 预测优于依赖单一模型的发现, 支撑本仓库坚持三家 LLM (gpt54nano/gemini31/deepseekv4) 各自独立走完整套"打分→跟风加权→分母掩码→面板聚合"链条、互为稳健性、不分主次, 而不是只信任单一厂商的输出这一设计选择。Todd, Bowden & Moshfeghi (2024, *Intelligent Systems in Accounting, Finance and Management*) 对金融文本情感分析文献的系统综述同样强调, 度量的稳健性核查 (含权重构造的敏感性) 是该领域方法论演进的核心议题之一, 本家族三列即服务于该核查链路中的分母核算环节。Hwang & Kim (2017, *Journal of Financial Economics*) 关于文本写作质量/信息密度对金融市场反应存在系统性影响的发现, 可作为"同质重复文本应被降权"这一构造动机的间接类比佐证 (而非直接实证支撑): 若不对雷同报道降权, 简单等权聚合会把"写法雷同但信息量低"的批量转载文章与"写法独特、信息密度高"的原创报道同等对待, 稀释后者对银行-年语调信号的贡献, 二者在"文本质量/独特性影响市场信息含量"这一更宽泛的经济学直觉上相通, 但 Hwang & Kim 本身并未直接研究跟风/重复报道降权问题。 上述引证之外, 尚有两条更贴近本家族 model-specific 掩码本身的近期锚点。Laurer、Casas 与 Welbers (2025) 以对照实验系统检验语言模型作为测量工具的效度问题, 证明指令/提示设计会实质改变效度与偏误; 本家族分母的核心构件恰是"gpt54nano 在该轨给出有效判断"这一掩码, 其覆盖面即模型效度的函数, 该文因而锚定的是本族分母的效度前提而非其加权口径。迁移边界须诚实标明: 原文对象是传播学英文文本分类任务与开源指令微调模型, 本仓库是中文新闻 + 三家商用 API 模型; 原文结论支持"加指令可提效度", 而本仓库嵌入侧刻意零 instruct 前缀、情感提示词 v8 已字节冻结, 两者设计取向不同, 不可直接迁移; 原文亦未涉及任何权重加权分母口径。Liu、Liu 与 Wang (2025) 以金融文本为对象度量并实证刻画不同大语言模型判断之间的分歧程度, 可解释本家族与 gemini31/deepseekv4 对应分母为何彼此不等——差异全部来自各家有效打分覆盖面与判断的不同。须注意该文系 SSRN 工作论文, 尚未经期刊同行评审; 且原文把分歧本身当作待研究的信号/噪声对象, 本仓库不将分歧立为变量, 只以各家有效性掩码构造并排分母, 模型集合与语料亦与本仓库三家 + 中文银行金科语料不同, 故引用严格限于"跨模型分歧存在"这一层。
 【口径铁律复述】
 本家族三列严格对齐三轨 full/ctx/ss 架构: full=标题+正文, ctx=标题+实体窗口, ss=标题+银行∧金科同句±N窗口 (无同句共现回退为全文, `ss_is_fallback=True`, 镜像 ctx 的回退语义, 共享 `n_articles` 分母)。三轨权重分母各自独立计算、各自 just-identified 并排、互为稳健性不分主次, 禁止混入同一 over-identified Hansen J 设定。gpt54nano 作为三家投票 LLM 之一, 其 model-specific 分母同样与 gemini31/deepseekv4 对应分母互为稳健性并排, 不设跨模型合并的单一权威分母。留篇门控口径为 full-only (2026-06-29): 一篇报道是否计入"银行金科报道"由 `llm_verified_full` 判定, ctx/ss 轨的分母加总行宇宙是 full 留篇集合的子集, 而非独立扩样。
 </br>
@@ -81,4 +97,6 @@ Hwang, B.-H., & Kim, H. H. (2017). It pays to write well. Journal of Financial E
 Gilardi, F., Alizadeh, M., & Kubli, M. (2023). ChatGPT outperforms crowd workers for text-annotation tasks. Proceedings of the National Academy of Sciences, 120(30), e2305016120. https://doi.org/10.1073/pnas.2305016120
 Schoenegger, P., Tuminauskaite, I., Park, P. S., Bastos, R. V. S., & Tetlock, P. E. (2024). Wisdom of the silicon crowd: LLM ensemble prediction capabilities rival human crowd accuracy. Science Advances, 10(45), eadp1528. https://doi.org/10.1126/sciadv.adp1528
 Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management, 31(1), e1549. https://doi.org/10.1002/isaf.1549
+Laurer, M., van Atteveldt, W., Casas, A., & Welbers, K. (2025). On Measurement Validity and Language Models: Increasing Validity and Decreasing Bias with Instructions. Communication Methods and Measures, 19(1), 46-62. https://doi.org/10.1080/19312458.2024.2378690
+Liu, Y., Liu, J., & Wang, T. (2025). Large Language Model Disagreement. SSRN Electronic Journal No. 5395056 [Working Paper]. https://doi.org/10.2139/ssrn.5395056
 <!-- rendered-citations:end -->

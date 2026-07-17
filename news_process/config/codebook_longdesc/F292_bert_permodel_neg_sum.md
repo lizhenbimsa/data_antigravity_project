@@ -58,6 +58,41 @@ citations:
   vol: 68
   issue: 7
   pages_or_artno: 5514-5532
+- doi: "10.1287/mnsc.2022.00261"
+  type: "journal"
+  authors: "Chen, L., & Mankad, S."
+  year: 2025
+  title: "A Structural Topic and Sentiment-Discourse Model for Text Analysis"
+  venue: "Management Science"
+  vol: "71"
+  issue: "7"
+  pages_or_artno: "5767-5787"
+- doi: "10.1007/s42521-024-00107-2"
+  type: "journal"
+  authors: "Groß-Klußmann, A."
+  year: 2024
+  title: "Learning deep news sentiment representations for macro-finance"
+  venue: "Digital Finance"
+  vol: "6"
+  issue: "3"
+  pages_or_artno: "341-377"
+- doi: "10.3982/qe1825"
+  type: "journal"
+  authors: "Ke, S., Montiel Olea, J. L., & Nesbit, J."
+  year: 2024
+  title: "Robust machine learning algorithms for text analysis"
+  venue: "Quantitative Economics"
+  vol: "15"
+  issue: "4"
+  pages_or_artno: "939-970"
+- doi: "10.1016/j.pacfin.2025.102721"
+  type: "journal"
+  authors: "Wang, Y., Xiao, J., Wang, L., & Wang, D."
+  year: 2025
+  title: "News sentiment and the cost of debt"
+  venue: "Pacific-Basin Finance Journal"
+  vol: "91"
+  pages_or_artno: "102721"
 new_dois: []
 ---
 
@@ -80,8 +115,7 @@ BERT 路线与 stage 21 的大模型 (LLM) 投票路线、stage 22 的词典法�
 三模型间的差异同理: finbert_cn/fin_sent_zh/finbert2 各自独立训练、各自的负面概率量纲和分类边界不必然可比 (finbert2 是 2-class 无中性类, 另两个是 3-class), 因此跨模型比较应优先用标准化后的统计量 (如 z-score), 而非直接比较原始 `neg_sum` 水平; 三模型同样各自 just-identified 并排、禁止混入同一 over-identified Hansen J, 只用于证明"负面语调结论不被任一单一模型的训练数据/架构选择所驱动"这一稳健性主张。
 
 【文献定位】
-BERT 类金融文本情感分类器的方法学谱系可追溯至 Devlin et al. (2019) 提出的双向 Transformer 预训练框架, 该框架奠定了通过掩码语言建模预训练再针对下游任务微调的范式, 是本家族三模型架构的共同技术祖先。在金融领域的专门化方面, Huang, Wang & Yang (2023, Contemporary Accounting Research) 的 FinBERT 证明了针对金融文本语料微调的 BERT 变体在抽取财务文本信息任务上显著优于通用领域模型, 为本项目采用领域专门化 BERT (finbert_cn/fin_sent_zh) 而非通用中文 BERT 提供了直接的方法学依据; finbert2 (Xu et al. 2025, KDD '25) 进一步针对金融部署场景做双向编码器的专门化改进, 是本项目本地私有微调模型选型的技术参照。多模型三角验证的必要性在方法学上呼应 Denzin (2017) 的方法论三角验证 (methodological triangulation) 传统——单一模型的分类误差或系统性偏差不应被误认为是构念本身的属性, 只有当独立训练的多个模型对同一构念给出方向一致的结论时, 该结论才具有超越单一模型工件的稳健性; 这一逻辑也是本项目将 LLM 三家投票路线与 BERT 三模型路线并列为"情感测量三角"的理论支点。BERT 分类模型相较词典法在情感判定质量上的优势, 另有 Frankel, Jennings & Lee (2022, Management Science) 的直接顶刊证据支撑: 该文系统比较机器学习分类器与词典法在披露文本情感抽取上的表现, 证明经监督学习/微调的分类模型在识别语义层面的情感信号上显著优于关键词计数式词典法, 为本项目以 BERT 深层模型 (而非词典) 承担情感分类主力提供了顶刊层级的方法学背书。
-
+BERT 类金融文本情感分类器的方法学谱系可追溯至 Devlin et al. (2019) 提出的双向 Transformer 预训练框架, 该框架奠定了通过掩码语言建模预训练再针对下游任务微调的范式, 是本家族三模型架构的共同技术祖先。在金融领域的专门化方面, Huang, Wang & Yang (2023, Contemporary Accounting Research) 的 FinBERT 证明了针对金融文本语料微调的 BERT 变体在抽取财务文本信息任务上显著优于通用领域模型, 为本项目采用领域专门化 BERT (finbert_cn/fin_sent_zh) 而非通用中文 BERT 提供了直接的方法学依据; finbert2 (Xu et al. 2025, KDD '25) 进一步针对金融部署场景做双向编码器的专门化改进, 是本项目本地私有微调模型选型的技术参照。多模型三角验证的必要性在方法学上呼应 Denzin (2017) 的方法论三角验证 (methodological triangulation) 传统——单一模型的分类误差或系统性偏差不应被误认为是构念本身的属性, 只有当独立训练的多个模型对同一构念给出方向一致的结论时, 该结论才具有超越单一模型工件的稳健性; 这一逻辑也是本项目将 LLM 三家投票路线与 BERT 三模型路线并列为"情感测量三角"的理论支点。BERT 分类模型相较词典法在情感判定质量上的优势, 另有 Frankel, Jennings & Lee (2022, Management Science) 的直接顶刊证据支撑: 该文系统比较机器学习分类器与词典法在披露文本情感抽取上的表现, 证明经监督学习/微调的分类模型在识别语义层面的情感信号上显著优于关键词计数式词典法, 为本项目以 BERT 深层模型 (而非词典) 承担情感分类主力提供了顶刊层级的方法学背书。 就本家族取概率和而非硬标签计数这一口径, 近期前沿提供了两条互补的弱支撑。Chen 与 Mankad (2025) 提出 STS 主题模型, 引入可被文档级协变量解释的连续情感-话语潜变量, 使文本情感得以进入正式的统计推断而非仅作描述性摘要; 本家族据此仅取一点: 以篇级连续情感量而非 argmax 硬标签作为文本测度的基本单位, 在前沿是被接受的做法, 支撑本族保留篇级概率再入面板。迁移边界在于原文的情感量是贝叶斯生成模型的连续后验潜变量, 与 BERT softmax 类别概率的校准含义不同, 语料为评论/话语文本而非中文银行新闻, 且原文的用法是潜变量对协变量回归, 并无篇级量在单元内求和的聚合步骤。Groß-Klußmann (2024) 以监督式自编码器对跨主题的新闻情感时间序列抽取低维潜在经济因子, 并在 GDP nowcasting、资产类别收益面板解释与时序动量三个应用上证明其优于 PCA/PLS 等线性降维, 同样表明以连续取值的情感信号进入宏观金融实证是常规做法; 但原文的神经模型作用于已聚合的情感时间序列做降维, 并不产出篇级情感, 亦不存在篇级信号在单元内求和的步骤, 其"表征"是压缩后的潜因子而非三分类 softmax 概率, 层级为英文新闻的宏观时序而非中文银行-年面板, 无 per-model 独立分母与三轨切分。Ke 与 Nesbit (2024) 证明 LDA 参数不可识别、文本派生量的下游结论会随先验设定改变, 并给出刻画该结论取值区间的算法; 本家族仅取其一般性方法论立场 —— 建模者未被数据识别的选择应被显式化并报告结论在其上的取值范围, 对应三个 BERT 的 neg_sum 各自 just-identified 并排、互为稳健性不分主次、严禁混入同一 over-identified Hansen J 的设计; 原文针对的是单一 LDA 内的先验敏感性而非不同分类器之间的模型选择, 未评估任何 BERT 或神经情感分类器, 亦不涉及概率和口径与中文语料。在应用语境一侧, Wang、Xiao、Wang 与 Wang (2025) 在中国语境下从新闻报道抽取情感并聚合到企业层面用于债务成本实证, 是"中文新闻情感 → 实体-年测度"应用同域的近期实例, 用以锚定本家族概率和列族的应用语境而非其具体算法; 其实体为一般上市公司、DV 为债务成本, 未区分 count 与 probability-sum 两种口径, 无三模型 per-model 子测度, 亦无三轨文本范围。
 ## VAR: fin_sent_zh_neg_sum_ctx
 
 【变体差分】
@@ -151,4 +185,8 @@ Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A large language model for e
 Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2019). BERT: Pre-training of deep bidirectional transformers for language understanding. Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics (NAACL-HLT 2019), 4171-4186. https://doi.org/10.18653/v1/N19-1423
 Liu, Z., Huang, D., Huang, K., Li, Z., & Zhao, J. (2020). FinBERT: A pre-trained financial language representation model for financial text mining. Proceedings of the Twenty-Ninth International Joint Conference on Artificial Intelligence (IJCAI-20), 4513-4519. https://doi.org/10.24963/ijcai.2020/622
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure Sentiment: Machine Learning vs. Dictionary Methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
+Chen, L., & Mankad, S. (2025). A Structural Topic and Sentiment-Discourse Model for Text Analysis. Management Science, 71(7), 5767-5787. https://doi.org/10.1287/mnsc.2022.00261
+Groß-Klußmann, A. (2024). Learning deep news sentiment representations for macro-finance. Digital Finance, 6(3), 341-377. https://doi.org/10.1007/s42521-024-00107-2
+Ke, S., Montiel Olea, J. L., & Nesbit, J. (2024). Robust machine learning algorithms for text analysis. Quantitative Economics, 15(4), 939-970. https://doi.org/10.3982/qe1825
+Wang, Y., Xiao, J., Wang, L., & Wang, D. (2025). News sentiment and the cost of debt. Pacific-Basin Finance Journal, 91, 102721. https://doi.org/10.1016/j.pacfin.2025.102721
 <!-- rendered-citations:end -->

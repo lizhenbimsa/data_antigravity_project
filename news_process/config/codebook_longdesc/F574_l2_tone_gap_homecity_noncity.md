@@ -47,6 +47,24 @@ citations:
   vol: '62'
   issue: '3'
   pages_or_artno: 1139-1168
+- doi: "10.1111/1911-3846.12935"
+  type: "journal"
+  authors: "Huang, Y., Li, F., Li, T., & Lin, T."
+  year: 2024
+  title: "Local information advantage and stock returns: Evidence from social media"
+  venue: "Contemporary Accounting Research"
+  vol: "41"
+  issue: "2"
+  pages_or_artno: "1089-1119"
+- doi: "10.1111/irfi.70009"
+  type: "journal"
+  authors: "Chen, H., Chen, Y., & Li, D."
+  year: 2025
+  title: "Local bias under natural disasters"
+  venue: "International Review of Finance"
+  vol: "25"
+  issue: "1"
+  pages_or_artno: "e70009"
 new_dois: []
 ---
 
@@ -61,8 +79,7 @@ producer 为 pipeline\panel\attention_media.py 内维度⑨ "地理邻近性" �
 三轨口径必须与项目铁律对齐: full/ctx/ss 三条轨道各自独立计算, 各自 just-identified 并排、互为稳健性、不分主次, 严禁在同一 over-identified Hansen J 检验中混用三轨的 tone_gap 列。full 轨为标题+全文语调; ctx 轨为标题+实体窗口语调; ss 轨镜像 ctx 的回退语义, 即银行∧金科词无同句共现时 content_ss 退化为全文 body (ss_is_fallback=True, 与 ctx 共享 n_articles 分母口径)。留篇门控口径 (2026-06-29 起) 为 full-only: 一篇报道是否计入"银行金科报道"全集只看 llm_vote_score_full 所在文章的 full 轨验证结果, ctx/ss 是该留篇集合之上的条件测度/稳健性轨道, 不独立扩大或收缩行宇宙。
 
 【文献定位】
-本列所属"地理媒体异质性"九维度中的第⑨维, 与同批的 tone_gap_homeprov_nonprov (省级同构变体, 见姊妹家族)、homecity_media_frac (封闭度, 同城报道占比)、neg_frac_homecity/noncity (负面过滤, 同城媒体是否系统性压低负面报道比例) 共同构成 Qin, Strömberg & Wu (2018) 中国媒体系统性倾向性偏差发现在市级地理邻近性维度上的操作化切片。Fang et al. (2024) 在中国银行业情境下证实媒体情感对存款稳定性与系统性风险有因果传导, 为本列的经济后果假设提供直接同域参照; Tetlock (2007) 则是媒体语调作为投资者情绪代理变量这一测量传统的奠基文献, 说明 tone_gap 类构念背后"语调差异蕴含信息或偏差"的一般性理论预期。命名前缀 home/non 与项目内另一条正交轴 central/local (媒体行政层级: 央级 vs 地方级) 刻意区分, 二者捕捉不同机制 (地理邻近性 vs 行政级别), 不应混淆或替代使用。
-
+本列所属"地理媒体异质性"九维度中的第⑨维, 与同批的 tone_gap_homeprov_nonprov (省级同构变体, 见姊妹家族)、homecity_media_frac (封闭度, 同城报道占比)、neg_frac_homecity/noncity (负面过滤, 同城媒体是否系统性压低负面报道比例) 共同构成 Qin, Strömberg & Wu (2018) 中国媒体系统性倾向性偏差发现在市级地理邻近性维度上的操作化切片。Fang et al. (2024) 在中国银行业情境下证实媒体情感对存款稳定性与系统性风险有因果传导, 为本列的经济后果假设提供直接同域参照; Tetlock (2007) 则是媒体语调作为投资者情绪代理变量这一测量传统的奠基文献, 说明 tone_gap 类构念背后"语调差异蕴含信息或偏差"的一般性理论预期。命名前缀 home/non 与项目内另一条正交轴 central/local (媒体行政层级: 央级 vs 地方级) 刻意区分, 二者捕捉不同机制 (地理邻近性 vs 行政级别), 不应混淆或替代使用。 近期文献从两个方向为本列的同城/异城二分补充了更新的证据基础。Huang、Li、Li 与 Lin (2024) 以社交媒体发帖者的地理位置识别「本地」信息发布者, 按发帖者与公司总部的地理关系切分样本、比较本地组与非本地组的信息含量对股票收益的预测力, 其「按地理关系切分子样本再作组间对比」的设计与本列同城/异城两组语调均值作差同族; 迁移边界在于该文文本源为散户社交媒体发帖而非正式媒体报道, 地理归属基于用户 IP/自报位置而非本项目的媒体来源城市字段经地名后缀清洗比对, 研究对象为一般上市公司而非银行, 且其被解释变量是股票收益而非语调本身。Chen、Chen 与 Li (2025) 利用逾 24,000 名散户的账户级日度持仓记录, 证明自然灾害下本地投资者比非本地投资者更多增持本地股票, 且效应由本地投资者的信息优势驱动, 为「本地/异地地理二分确实承载真实信息差异」这一前提提供了近期锚点, 支撑本列组间差分的构念基础; 但须诚实指出, 该文的「本地」是投资者持仓行为与标的之间的关系, 与本列「媒体来源地—银行总部」的主体与关系类型均不同, 原文以灾害为外生冲击做异质性检验而本项目无冲击设计, 且原文不含任何媒体、文本或语调测度, 故仅锚定二分的构念前提, 不锚定本列的语调聚合与作差算法。
 ## VAR: tone_gap_homecity_noncity_ctx
 
 【变体差分】
@@ -86,4 +103,6 @@ Qin, B., Strömberg, D., & Wu, Y. (2018). Media bias in China. American Economic
 You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Huang, Y., Li, F., Li, T., & Lin, T. (2024). Local information advantage and stock returns: Evidence from social media. Contemporary Accounting Research, 41(2), 1089-1119. https://doi.org/10.1111/1911-3846.12935
+Chen, H., Chen, Y., & Li, D. (2025). Local bias under natural disasters. International Review of Finance, 25(1), e70009. https://doi.org/10.1111/irfi.70009
 <!-- rendered-citations:end -->

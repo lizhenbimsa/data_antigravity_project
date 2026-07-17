@@ -35,6 +35,24 @@ citations:
   venue: Economics Letters
   vol: 241
   pages_or_artno: Article 111823
+- doi: "10.1111/acfi.13076"
+  type: "journal"
+  authors: "Wang, Y., Ye, Q., Wang, J. J., & Wang, Y."
+  year: 2023
+  title: "Earnings manipulation and similarity of annual report disclosure: Evidence from China"
+  venue: "Accounting & Finance"
+  vol: "63"
+  issue: "S1"
+  pages_or_artno: "1137-1156"
+- doi: "10.1016/j.bar.2023.101305"
+  type: "journal"
+  authors: "Xue, X., Wang, L., & Hu, N."
+  year: 2024
+  title: "Economic policy uncertainty and corporate social responsibility disclosure similarity: Evidence from China"
+  venue: "The British Accounting Review"
+  vol: "56"
+  issue: "5"
+  pages_or_artno: "101305"
 new_dois: []
 ---
 
@@ -49,8 +67,7 @@ lazy_minedit 家族衡量某银行相邻两个年度 (t 与 t-1) 的年度聚合
 【文献定位】
 Cohen, Malloy & Nguyen (2020, The Journal of Finance) 是该方法论的直接来源: 原文用相邻期公司年报的文本相似度/改动量刻画"懒惰"信息披露行为, 发现改动少的公司未来股票回报存在可预测的负向漂移, 揭示了市场对文本变化这一软信息处理不足的现象。本项目在同一逻辑下, 把度量对象从公司自身披露的年报文本替换为第三方媒体关于银行的报道文本, 关注的是媒体叙事层面的年度更新幅度而非公司自我披露的更新幅度, 是对该文献度量工具向媒体文本领域的方法论迁移, 而非对原始构念 (公司信息披露懒惰) 的直接复制。欧阳志刚 & 胡雯华 (2024, 数量经济技术经济研究) 的余弦相似度连贯性框架 (coh_tfidf_c/coh_tfidf_w/coh_lda/coh_emb 家族) 为本家族提供了"相邻期文本比较"这一分析设计的本地文献支撑与三轨/多算子并列的实现范式参照。最小编辑距离作为文本相似度指数的方法学基础另有 Mainali, Slud, Singer & Fagan (2022, Science Advances) 的顶刊支撑: 该文系统比较了多种共现与相似度指数各自的统计性质, 为本列在 Jaccard/重叠度之外并列采用编辑距离类指数提供了方法学正当性。Liu, Cao & Wen (2024, Economics Letters) 在公司与政府文本相似度的实证研究中同样采用序列层面的文本相似度量, 印证此类指数在金融文本计量中的可行性与外部效度。
 
-lazy_minedit_full / lazy_minedit_ctx / lazy_minedit_ss 三列对应本项目三轨文本架构 (full=标题+正文全文; ctx=标题+实体窗口; ss=标题+银行∧金科同句±N窗)。三轨在年度聚合与相邻期编辑距离计算上使用完全相同的算子, 唯一差异是喂入 `_aggregate_bank_year_texts` 的源文本列 (content_full / content_ctx / content_ss), full 轨复用主聚合函数顶部已生成的 agg_df 以避免冗余计算, ctx 与 ss 轨各自新建聚合。三轨严格遵循项目铁律: 各自 just-identified 并排、互为稳健性、不分主次, 禁止混进同一 over-identified 的 Hansen J 检验。ss 轨的回退语义镜像 ctx 轨: 若某篇文章不存在银行与金科词同句共现, 则该篇的 content_ss 回退为全文 body (与 content_full 相同), 对应的 ss_is_fallback 标记为 True, 该回退在年度聚合层面共享 full 轨的 n_articles 分母口径; 若 content_ctx 或 content_ss 列在上游因故不存在 (例如 FINTECH_AC 词典未加载导致优雅降级), 对应轨道整体跳过、以日志 WARNING 记录, 该行该年度该轨道的 lazy_minedit 取缺失值, 不做静默填 0 处理。三列的留篇口径与全体情感/属性测度一致遵循 full-only 门控 (2026-06-29 起): 是否判定"一篇银行金科报道"只看 full 轨的 llm_verified_full 结果, ctx/ss 轨的年度文档聚合行宇宙是 full 轨留篇集合的子集, 在此子集上各轨分别聚合、分别计算编辑距离, 不存在 ctx/ss 独立扩大样本的情形。
-
+lazy_minedit_full / lazy_minedit_ctx / lazy_minedit_ss 三列对应本项目三轨文本架构 (full=标题+正文全文; ctx=标题+实体窗口; ss=标题+银行∧金科同句±N窗)。三轨在年度聚合与相邻期编辑距离计算上使用完全相同的算子, 唯一差异是喂入 `_aggregate_bank_year_texts` 的源文本列 (content_full / content_ctx / content_ss), full 轨复用主聚合函数顶部已生成的 agg_df 以避免冗余计算, ctx 与 ss 轨各自新建聚合。三轨严格遵循项目铁律: 各自 just-identified 并排、互为稳健性、不分主次, 禁止混进同一 over-identified 的 Hansen J 检验。ss 轨的回退语义镜像 ctx 轨: 若某篇文章不存在银行与金科词同句共现, 则该篇的 content_ss 回退为全文 body (与 content_full 相同), 对应的 ss_is_fallback 标记为 True, 该回退在年度聚合层面共享 full 轨的 n_articles 分母口径; 若 content_ctx 或 content_ss 列在上游因故不存在 (例如 FINTECH_AC 词典未加载导致优雅降级), 对应轨道整体跳过、以日志 WARNING 记录, 该行该年度该轨道的 lazy_minedit 取缺失值, 不做静默填 0 处理。三列的留篇口径与全体情感/属性测度一致遵循 full-only 门控 (2026-06-29 起): 是否判定"一篇银行金科报道"只看 full 轨的 llm_verified_full 结果, ctx/ss 轨的年度文档聚合行宇宙是 full 轨留篇集合的子集, 在此子集上各轨分别聚合、分别计算编辑距离, 不存在 ctx/ss 独立扩大样本的情形。 就相邻期文本改动量这一构念在中文语料上的同域先例而言, Wang、Ye、Wang 与 Wang (2023) 在 2008-2020 年中国 A 股 13,679 家样本上以 MD&A 与上一年文本的相似度为核心测度, 记录了「高相似度=低增量信息」的经验规律, 说明本家族所刻画的年际改动量在中文金融文本上确有可识别的信息含量; 迁移边界在于原文单位为公司-年的自撰年报 MD&A、算子为中文分词后的词袋相似度而非本家族的序列级编辑距离, 且其把低改动解读为盈余操纵动机, 本家族作为第三方媒体叙事的中性变化量测度不承接该操纵解释。Xue、Wang 与 Hu (2024) 以中国上市公司 2009-2021 样本检验经济政策不确定性对公司自身跨期 CSR 披露相似度的影响, 发现 EPU 越高、企业越倾向发布与自身过往高度重合的报告 (象征性披露), 且该效应在国有企业减弱、在财务约束企业增强, 是「与自身上期文本高度重合本身是一种可被外部环境驱动的实质性行为、而非纯噪声」这一构念在中文语境的直接对应先例; 但原文把相似度置于被解释变量位置、由 EPU 驱动, 本家族三列均为面板自变量, 且原文的自撰报告存在披露方主动选择机制, 本项目的银行并非报道作者, 该机制不可直接搬用。须强调的是, 以上两条仅锚定「相邻期自比」这一构念层, 均未使用编辑距离算子, 亦不能为本列受 2000 字符前缀截断与组内乱序所致的效度退化提供任何背书, 该局限仍以上文【方法学与计算】的自曝口径为准。
 ## VAR: lazy_minedit_ctx
 
 【变体差分】
@@ -70,4 +87,6 @@ lazy_minedit_full / lazy_minedit_ctx / lazy_minedit_ss 三列对应本项目三�
 Cohen, L., Malloy, C., & Nguyen, Q. (2020). Lazy prices. The Journal of Finance, 75(3), 1371-1415. https://doi.org/10.1111/jofi.12885
 Mainali, K. P., Slud, E., Singer, M. C., & Fagan, W. F. (2022). A better index for analysis of co-occurrence and similarity. Science Advances, 8(4), Article eabj9204. https://doi.org/10.1126/sciadv.abj9204
 Liu, Y., Cao, Z., & Wen, F. (2024). Textual similarity between firm and government: Measurement and pricing. Economics Letters, 241, Article 111823. https://doi.org/10.1016/j.econlet.2024.111823
+Wang, Y., Ye, Q., Wang, J. J., & Wang, Y. (2023). Earnings manipulation and similarity of annual report disclosure: Evidence from China. Accounting & Finance, 63(S1), 1137-1156. https://doi.org/10.1111/acfi.13076
+Xue, X., Wang, L., & Hu, N. (2024). Economic policy uncertainty and corporate social responsibility disclosure similarity: Evidence from China. The British Accounting Review, 56(5), 101305. https://doi.org/10.1016/j.bar.2023.101305
 <!-- rendered-citations:end -->

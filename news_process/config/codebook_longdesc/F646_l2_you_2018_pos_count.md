@@ -45,6 +45,23 @@ citations:
   vol: '31'
   issue: '1'
   pages_or_artno: e1549
+- doi: "10.1016/j.jcorpfin.2026.103033"
+  type: "journal"
+  authors: "Battalio, R., Loughran, T., & McDonald, B."
+  year: 2026
+  title: "How managers frame capital budgeting in investor communications"
+  venue: "Journal of Corporate Finance"
+  vol: "100"
+  pages_or_artno: "103033"
+- doi: "10.1016/j.cjar.2025.100406"
+  type: "journal"
+  authors: "Zhao, J., & Ren, M."
+  year: 2025
+  title: "Innovative or conservative? How clan culture shapes bank digital transformation in China"
+  venue: "China Journal of Accounting Research"
+  vol: "18"
+  issue: "2"
+  pages_or_artno: "100406"
 new_dois: []
 ---
 
@@ -63,8 +80,7 @@ you_2018_pos_count 家族衡量单篇银行×金科报道文本中命中 You, Zh
 面板层聚合 (pipeline\panel\export.py) 将文章级 you_2018_pos_count_{track} 按 bank-year 单元汇总, 与家族内 neg_count 等姊妹计数变量共用同一聚合框架, 但作为计数类变量不做该框架内的语调正负相抵处理, 面板层保留的是 bank-year 单元下三轨命中总量 (或均值, 视聚合规格而定, 由下游 panel schema 决定, 本 md 覆盖文章级 producer 与三轨差分口径为主)。
 
 【文献定位】
-you_2018 词典的构念根源是 You, Zhang & Zhang (2018, Review of Financial Studies)「Who Captures the Power of the Pen?」, 该文以官方媒体与市场化媒体对同一企业事件报道语调的系统性差异为切入点, 揭示媒体所有权结构如何塑造企业新闻的信息含量与市场反应, 是中国语境下媒体语调—资本市场关系研究的重要方法学锚点, 也是本项目将「媒体语调」作为银行×金科关系核心解释变量之一的直接方法学来源之一。词典法情感测度作为本项目三大情感测度路径之一 (词典法/BERT 分类/LLM 三家投票), 与文本复杂度、可读性研究 (You & Zhang, 2009, *Review of Accounting Studies*, 关于财务报告复杂度与投资者反应不足) 同源同组 (均出自 You 及合作者的文本分析方法学脉络), 后者是本项目 rare_word_ratio 等文本复杂度测度族的方法学母锚, 二者共同构成「文本可读性/情感」两条平行分析主线在方法论谱系上的呼应。词典法情感打分本身作为一种成熟的文本分析范式, 也与近期综述文献 (如 Todd, Bowden & Moshfeghi, 2024, *Intelligent Systems in Accounting, Finance and Management*, 对金融文本情感分析方法的系统梳理) 所刻画的「基于预定义词表的规则式打分」谱系相衔接——本项目在此谱系基础上叠加了否定/程度/转折三类语言学规则调整, 属于该谱系内的增强规则式实现, 而非纯粹词袋计数。
-
+you_2018 词典的构念根源是 You, Zhang & Zhang (2018, Review of Financial Studies)「Who Captures the Power of the Pen?」, 该文以官方媒体与市场化媒体对同一企业事件报道语调的系统性差异为切入点, 揭示媒体所有权结构如何塑造企业新闻的信息含量与市场反应, 是中国语境下媒体语调—资本市场关系研究的重要方法学锚点, 也是本项目将「媒体语调」作为银行×金科关系核心解释变量之一的直接方法学来源之一。词典法情感测度作为本项目三大情感测度路径之一 (词典法/BERT 分类/LLM 三家投票), 与文本复杂度、可读性研究 (You & Zhang, 2009, *Review of Accounting Studies*, 关于财务报告复杂度与投资者反应不足) 同源同组 (均出自 You 及合作者的文本分析方法学脉络), 后者是本项目 rare_word_ratio 等文本复杂度测度族的方法学母锚, 二者共同构成「文本可读性/情感」两条平行分析主线在方法论谱系上的呼应。词典法情感打分本身作为一种成熟的文本分析范式, 也与近期综述文献 (如 Todd, Bowden & Moshfeghi, 2024, *Intelligent Systems in Accounting, Finance and Management*, 对金融文本情感分析方法的系统梳理) 所刻画的「基于预定义词表的规则式打分」谱系相衔接——本项目在此谱系基础上叠加了否定/程度/转折三类语言学规则调整, 属于该谱系内的增强规则式实现, 而非纯粹词袋计数。 在这一谱系的当代延续上, Battalio、Loughran 与 McDonald (2026) 自建 45 个资本预算术语的词表, 对 2010–2020 年业绩说明会文本做逐词命中统计以刻画管理者的措辞框架, 直接证明「固定词表逐词命中的原始词次计数, 不做长度归一、不跨词表聚合」这一构造在金融顶刊仍属活跃做法, 且由金融词典法的原始提出者参与, 恰可锚定 you_2018_pos_count 不做归一、不跨词典聚合的形态取舍。惟其测度对象为术语使用频次而非情感极性, 原文不作正/负面判定, 更不涉及按极性符号对篇数分拆, 其词表为英文术语表且无否定翻转/程度副词/转折规则层, 分析单元为公司-披露文档, 故它只锚定原始命中词次这一形态, 不涉及本家族正面极性的判定口径。同国别同行业的近期参照是 Zhao 与 Ren (2025): 该文以中国商业银行为对象, 发现宗族文化经「短半径信任推高物理网点与人员依赖」与「风险规避降低风险承担意愿」两条供给侧机制、以及宗族内资源共济削弱信贷需求的需求侧机制抑制银行数字化转型, 与本项目同国别、同行业且同为银行-年层的文本型变量。仅此: 原文该测度的构造口径 (是否为分词后固定词表逐词命中计数) 在可得材料中未见披露、未经核实, 因而只能作为「中国银行业以文本型变量构造银行-年测度」的同域存在性参照, 不可据以宣称词表命中频次的技术路线获得背书; 其词表 (若有) 为数字化/科技关键词而非情感词表, 亦无情感极性与正/负面判定, 文本源为银行年报 (每银行-年单文档) 而非第三方新闻逐篇后聚合, 且无三规则层与 full/ctx/ss 三轨。
 ## VAR: you_2018_pos_count_ctx
 
 【变体差分】
@@ -91,4 +107,6 @@ You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The 
 You, H., & Zhang, X.-J. (2009). Financial reporting complexity and investor underreaction to 10-K information. Review of Accounting Studies, 14(4), 559-586. https://doi.org/10.1007/s11142-008-9083-2
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance ; Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management, 31(1), e1549. https://doi.org/10.1002/isaf.1549
+Battalio, R., Loughran, T., & McDonald, B. (2026). How managers frame capital budgeting in investor communications. Journal of Corporate Finance, 100, 103033. https://doi.org/10.1016/j.jcorpfin.2026.103033
+Zhao, J., & Ren, M. (2025). Innovative or conservative? How clan culture shapes bank digital transformation in China. China Journal of Accounting Research, 18(2), 100406. https://doi.org/10.1016/j.cjar.2025.100406
 <!-- rendered-citations:end -->

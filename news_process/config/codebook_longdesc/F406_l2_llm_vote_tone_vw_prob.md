@@ -45,6 +45,13 @@ citations:
   vol: '98'
   issue: '7'
   pages_or_artno: 315-345
+- doi: "10.18653/v1/2023.emnlp-main.330"
+  type: "journal"
+  authors: "Tian, K., Mitchell, E., Zhou, A., Sharma, A., Rafailov, R., Yao, H., Finn, C., & Manning, C."
+  year: 2023
+  title: "Just Ask for Calibration: Strategies for Eliciting Calibrated Confidence Scores from Language Models Fine-Tuned with Human Feedback"
+  venue: "Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing"
+  pages_or_artno: "5433-5442"
 new_dois: []
 ---
 
@@ -57,8 +64,7 @@ new_dois: []
 计算链条分两段。第一段在 stage 21 完成: 三家 LLM 各自对每篇文章输出情感投票(正/负/中性), encode.py 中通过 Logit-to-Score 映射把离散投票转成 [-1,1] 区间的连续概率化情感分 llm_prob_score, 相比原始三分类多数票, 概率化分数保留了模型置信度的连续信息, 减少了投票边界处的信息损失; 这一"把 LLM 离散判定转成连续可加权分数"的思路与 de Kok (2025) 强调的生成式 LLM 文本分析需在方法论上保证输出可量化、可复现的规范相一致。第二段在面板聚合阶段: encode.py 对每个 bank-year 单元, 先算出 llm_prob_score_w_sum{track} = Σ(该单元内每篇文章的 llm_prob_score{track} × mention_density_该篇), 再除以 _llm_denom('vw', 'prob', track, denom) 得到 VW 均值; 分母 denom = sum_mention_density.replace(0, NaN), 即该单元全部文章的关注度权重之和, 零关注度单元置 NaN 防止除零污染; _llm_denom 进一步对分子分母做"LLM 有效票"(valid-mask)口径对齐, 确保加权平均只在三家 LLM 均给出有效判定的文章子样本上进行, 不把因缺失/解析失败而被跳过的文章计入权重基数, 避免分母虚高稀释语调水平。三轨 (full/ctx/ss) 各自独立走这一完整加权流程, 互不借用彼此的分子或分母, 保证每轨都是一个可独立解释的 just-identified 语调测度。
 
 【文献定位】
-本家族站在两条文献脉络的交汇处。一是媒体情感度量与市场反应的经典脉络: Tetlock (2007, Journal of Finance) 建立了"媒体语调是可量化、可预测市场行为的信息载体"这一基础范式, 本家族的关注度加权设计正是对该范式中"语调影响力应与曝光度成正比"这一隐含前提的显式操作化; Holzman, Miller & Twedt (2023, The Accounting Review) 进一步在文本语调聚合中引入权重维度(其研究以媒体权威性为权重, 本家族姊妹测度族 mw 系列即直接对应该权重构造, vw 系列则以关注度/提及密度为权重, 二者构成互补的加权哲学)。二是 LLM 文本标注方法学脉络: de Kok (2025, Management Science) 系统论证了会计与金融研究中使用生成式 LLM 做文本分析时, temperature=0、prompt 冻结与结果可复现是方法论底线, 本项目 stage 21 的 prompt v8 字节级冻结与 temperature=0.0 缓存键设计正是遵循这一规范; Kamen & Kamen (2025) 则专门研究了多 LLM 集成(ensemble)做内容分类时"多数投票"策略的有效性边界, 为本项目采用三家 LLM 独立投票再聚合(而非单一模型输出)的设计提供了方法学支撑——三家模型的投票在概率化之前互为稳健性、不分主次, 聚合口径本身不引入厂商偏向。
-
+本家族站在两条文献脉络的交汇处。一是媒体情感度量与市场反应的经典脉络: Tetlock (2007, Journal of Finance) 建立了"媒体语调是可量化、可预测市场行为的信息载体"这一基础范式, 本家族的关注度加权设计正是对该范式中"语调影响力应与曝光度成正比"这一隐含前提的显式操作化; Holzman, Miller & Twedt (2023, The Accounting Review) 进一步在文本语调聚合中引入权重维度(其研究以媒体权威性为权重, 本家族姊妹测度族 mw 系列即直接对应该权重构造, vw 系列则以关注度/提及密度为权重, 二者构成互补的加权哲学)。二是 LLM 文本标注方法学脉络: de Kok (2025, Management Science) 系统论证了会计与金融研究中使用生成式 LLM 做文本分析时, temperature=0、prompt 冻结与结果可复现是方法论底线, 本项目 stage 21 的 prompt v8 字节级冻结与 temperature=0.0 缓存键设计正是遵循这一规范; Kamen & Kamen (2025) 则专门研究了多 LLM 集成(ensemble)做内容分类时"多数投票"策略的有效性边界, 为本项目采用三家 LLM 独立投票再聚合(而非单一模型输出)的设计提供了方法学支撑——三家模型的投票在概率化之前互为稳健性、不分主次, 聚合口径本身不引入厂商偏向。 在这两条脉络之外, 本族分子所依赖的概率化环节还需要第三条更上游的举证: 把三家模型自报的 confidence 字段当作可加权的概率量, 其正当性由 Tian 等 (2023) 提供。该文在英文事实型 QA 上比较多种置信度获取策略, 发现对经 RLHF 微调的模型, 以自然语言直接索要口头概率所得的置信度, 其校准程度 (以 ECE 度量) 优于读取模型内部的 logit 条件概率, 这正是本仓库在 RLHF 类商用模型上以 prompt 索取 confidence、再经 Logit-to-Score 映射为 llm_prob_score 的实证依据——概率分只有在其本身可被视为校准的情形下, 后续乘以 mention_density 求和才具有「按关注度加权的期望语调」这一解释。迁移边界须如实标明: 该文证据取自 2023 年 GPT-3.5/GPT-4 代次的英文事实问答, 本仓库既未在中文银行×金科新闻语料上复测 ECE, 也未验证该校准优势能否迁移至 deepseekv4 与 gemini31 两家非 OpenAI 模型; 该文更不涉及跨模型投票、关注度加权求和与 bank-year 面板聚合。故其锚定范围仅限于文章级 confidence 的可用性这一环, 不构成对 vw 关注度加权口径或三轨聚合设计的任何背书。
 【口径铁律】
 本家族三个列构成一组严格并排的三轨测度 llm_vote_tone_vw_prob_full / _ctx / _ss, 分别对应"标题+正文"全文轨、"标题+实体窗口"上下文轨、"标题+银行∧金科同句共现窗口"严格轨。三轨在计量意义上各自 just-identified, 互为稳健性、不分主次, 在任何回归设计中都不得混入同一个 over-identified 的 Hansen J 过度识别检验框架——例如不能把 full/ctx/ss 三个语调测度同时作为同一工具变量方程的多个内生变量或多个矩条件叠加使用, 而应各自单独进入回归或作为彼此独立的稳健性检验分支呈现。样本口径上, 本家族严格遵循 2026-06-29 起生效的 full-only 留篇门控: 一篇报道是否被计入"银行-金科相关报道"样本, 唯一判据是 full 轨的 llm_verified_full == True, ctx/ss 两轨在此基础上属于 conditional-on-full 的测度分支, 其行宇宙是 full 轨留篇集合的子集, 但各轨的分子(llm_prob_score_w_sum{track})与分母(sum_mention_density 对应的 valid-mask 子样本)仍按各轨自身口径独立计算, 不借用 full 轨的中间量。ss 轨的回退语义镜像 ctx 轨: 当某篇文章不存在银行与金科词在同一句内的共现窗口时, content_ss 退化为全文 body, 对应的 ss_is_fallback 标记为 True, 此时该篇文章仍参与 ss 轨的语调计算(而非被剔除), 分母 n_articles 与 ctx 轨共享同一份"是否降级"口径记录, 保证 full/ctx/ss 三轨在样本规模层面具有可比的透明度。
 
@@ -82,4 +88,5 @@ Tetlock, Paul C. (2007). Giving Content to Investor Sentiment: The Role of Media
 Kamen, A.; Kamen, Y. (2025). Majority Rules: LLM Ensemble Is a Winning Approach for Content Categorization. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2511.15714
 de Kok, T. (2025). ChatGPT for Textual Analysis? How to Use Generative LLMs in Accounting Research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
 Holzman, E. R.; Miller, B. P.; Twedt, B. J. (2023). Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
+Tian, K., Mitchell, E., Zhou, A., Sharma, A., Rafailov, R., Yao, H., Finn, C., & Manning, C. (2023). Just Ask for Calibration: Strategies for Eliciting Calibrated Confidence Scores from Language Models Fine-Tuned with Human Feedback. Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing, 5433-5442. https://doi.org/10.18653/v1/2023.emnlp-main.330
 <!-- rendered-citations:end -->

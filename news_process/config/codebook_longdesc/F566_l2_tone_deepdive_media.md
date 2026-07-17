@@ -56,6 +56,22 @@ citations:
   vol: '31'
   issue: '1'
   pages_or_artno: 43-96
+- doi: "10.1016/j.frl.2024.105128"
+  type: "journal"
+  authors: "Zhang, Z., & Shen, D."
+  year: 2024
+  title: "Not all the news fitting to reprint: Evidence from price-volume relationship"
+  venue: "Finance Research Letters"
+  vol: "62"
+  pages_or_artno: "105128"
+- doi: "10.1016/j.energy.2025.139126"
+  type: "journal"
+  authors: "Hua, X., Dong, D., Xu, Z., & Huang, W."
+  year: 2025
+  title: "Official media sentiments toward energy and equity returns: Evidence from China"
+  venue: "Energy"
+  vol: "340"
+  pages_or_artno: "139126"
 new_dois: []
 ---
 
@@ -72,8 +88,7 @@ new_dois: []
 本家族存在三轨版本 tone_deepdive_media_full / _ctx / _ss, 对应文章文本三种不同的物化窗口: full 轨使用标题+全文正文, ctx 轨使用标题+目标实体窗口截取正文, ss 轨使用标题+银行∧金科同句 (或±N句窗口) 截取正文, 三轨物化于 stage 14 ctx_materializer。三轨语调分 llm_vote_score{track} 均来自 stage 21 三家 LLM 投票, 三轨在方法论上各自 just-identified 并排, 互为稳健性、不分主次, 严禁把三轨语调分混入同一 over-identified Hansen J 检验框架。留篇门控是 full-only 口径: 一篇报道是否计入"银行金科报道"样本只看 llm_verified_full 一个判据, ctx/ss 轨道语调分是在 full 留篇集合的行宇宙子集上按各自轨道文本重新计算的测度/稳健性轨, 而非独立扩样。ss 轨若某篇报道内不存在银行∧金科同句共现, 则回退为使用全文 body 且标记 ss_is_fallback=True (镜像 ctx 轨的回退语义), 该回退样本仍计入 n_articles 分母参与本家族的分组均值计算, 不做剔除。
 
 【文献定位】
-出版周期作为媒体异质性代理变量在会计与金融文献中有明确渊源。Guest (2021, JAR) 系统区分了媒体报道在信息生产过程中"原创分析"与"转载聚合"两种不同的信息贡献方式, 在盈余公告场景下证明新闻原创性 (与出版深度高度相关) 是媒体信息含量的关键调节变量, 是本家族"深度期刊具有更强信息生产能力、故值得在报道语调上单独区分"这一理论假设与建模选择的直接文献来源, 支持了把出版周期作为独立异质性维度 (而非仅仅是控制变量) 纳入面板。在中国银行业媒体情感的具体应用场景, Fang, Wang, Wang & Yuan (2024, International Review of Economics & Finance) 直接以中国银行为研究对象构建媒体情感指标并考察其对存款稳定性与系统性风险的影响, 是本家族在研究对象 (中国银行) 与测度构念 (媒体语调) 两个维度上最贴近的同域文献。语调分本身的构造方法学 (LLM 三家投票语调) 则承袭 Tetlock (2007, The Journal of Finance) 开创的"文本语调可预测市场行为"这一实证传统 — Tetlock 首次证明基于报纸专栏构造的悲观语调指数具有独立于基本面的市场预测力, 为本家族"媒体语调是有信息含量的独立解释变量"这一前提提供了奠基性证据; Holzman, Miller & Twedt (2023, The Accounting Review) 关于媒体情感与盈余公告纪律效应的研究则是本 panel 内媒体权威性加权语调族 (llm_vote_tone_mw{track}) 的直接方法学锚点, 与本家族出版频率维度共同构成媒体异质性的多角度刻画。
-
+出版周期作为媒体异质性代理变量在会计与金融文献中有明确渊源。Guest (2021, JAR) 系统区分了媒体报道在信息生产过程中"原创分析"与"转载聚合"两种不同的信息贡献方式, 在盈余公告场景下证明新闻原创性 (与出版深度高度相关) 是媒体信息含量的关键调节变量, 是本家族"深度期刊具有更强信息生产能力、故值得在报道语调上单独区分"这一理论假设与建模选择的直接文献来源, 支持了把出版周期作为独立异质性维度 (而非仅仅是控制变量) 纳入面板。在中国银行业媒体情感的具体应用场景, Fang, Wang, Wang & Yuan (2024, International Review of Economics & Finance) 直接以中国银行为研究对象构建媒体情感指标并考察其对存款稳定性与系统性风险的影响, 是本家族在研究对象 (中国银行) 与测度构念 (媒体语调) 两个维度上最贴近的同域文献。语调分本身的构造方法学 (LLM 三家投票语调) 则承袭 Tetlock (2007, The Journal of Finance) 开创的"文本语调可预测市场行为"这一实证传统 — Tetlock 首次证明基于报纸专栏构造的悲观语调指数具有独立于基本面的市场预测力, 为本家族"媒体语调是有信息含量的独立解释变量"这一前提提供了奠基性证据; Holzman, Miller & Twedt (2023, The Accounting Review) 关于媒体情感与盈余公告纪律效应的研究则是本 panel 内媒体权威性加权语调族 (llm_vote_tone_mw{track}) 的直接方法学锚点, 与本家族出版频率维度共同构成媒体异质性的多角度刻画。 近期文献进一步在两个方向上收紧了本家族的构造依据。Zhang 与 Shen (2024) 明确把新闻区分为转载/再刊与非转载两类, 并证明二者的价量含义不同, 表明一条报道究竟是原创产制还是二次分发本身即是携带信息的文章级属性, 直接支持本家族把出版周期 (深度原创 vs 高频转述) 视作独立信号维度而非冗余控制项的前提; 但其转载判定依赖新闻数据库自带的转载标记, 与本家族基于 NPPA 出版周期构造的 DEEPDIVE 静态名单判据完全不同, 且原文停在文章级并以价量关系为被解释变量, 未做主体-年度的语调均值聚合。Hua、Dong、Xu 与 Huang (2025) 以 BERT 对中国官方媒体的新能源报道文本构建官方媒体语调指数, 并检验其与权益回报及企业融资投资行为的关系, 为「按媒体机构属性切出子样本、在子样本内对文章级语调取均值」这一操作化范式提供了同域 (中文媒体) 的前沿存在性证据; 但其切分维度是媒体的官方属性而非出版周期, 情感由文本指数法而非三家 LLM 投票共识得到, 层级为行业与股票市场层面的日度指数而非 bank-year 面板, 故该文只锚定分层-组内聚合这一构造范式的可行性, 不构成深度期刊维度本身的文献出处。
 ## VAR: tone_deepdive_media_ctx
 
 【变体差分】
@@ -101,4 +116,6 @@ Tetlock, P. C. (2007). Giving content to investor sentiment; The role of media i
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk; Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing enthusiasm; Media sentiment and the disciplining role of quarterly earnings announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
 You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
+Zhang, Z., & Shen, D. (2024). Not all the news fitting to reprint: Evidence from price-volume relationship. Finance Research Letters, 62, 105128. https://doi.org/10.1016/j.frl.2024.105128
+Hua, X., Dong, D., Xu, Z., & Huang, W. (2025). Official media sentiments toward energy and equity returns: Evidence from China. Energy, 340, 139126. https://doi.org/10.1016/j.energy.2025.139126
 <!-- rendered-citations:end -->

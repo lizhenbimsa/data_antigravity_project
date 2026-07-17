@@ -57,6 +57,22 @@ citations:
   venue: International Review of Economics & Finance
   vol: '91'
   pages_or_artno: 1150-1172
+- doi: "10.1016/j.energy.2025.139126"
+  type: "journal"
+  authors: "Hua, X., Dong, D., Xu, Z., & Huang, W."
+  year: 2025
+  title: "Official media sentiments toward energy and equity returns: Evidence from China"
+  venue: "Energy"
+  vol: "340"
+  pages_or_artno: "139126"
+- doi: "10.1016/j.irfa.2023.102761"
+  type: "journal"
+  authors: "Isakin, M., & Pu, X."
+  year: 2023
+  title: "Dispersion in news sentiment and corporate bond returns"
+  venue: "International Review of Financial Analysis"
+  vol: "89"
+  pages_or_artno: "102761"
 new_dois: []
 ---
 
@@ -69,8 +85,7 @@ new_dois: []
 计算发生在 `attention_media.py` 的媒体异质性主循环: 先以 `df['_media_type'] == mt` 布尔掩码切出该类别子样本, 按 `(target_bank, year)` 分组对语调列 `llm_vote_score{track}` 取均值, 得到 `tone_{sfx}_media{track}`; comp 与 other 两支均值算出后, 逐格相减得到 `tone_gap_comp_other{track} = tone_comp_media{track} - tone_other_media{track}`。语调源列 `llm_vote_score{track}` 是 stage 21 三家 LLM (`gpt-5.4-nano`/`gemini-3.1-flash-lite`/`deepseek-v4-flash`) 多数投票产出的篇章级共识语调, 值域约 [-1,1]; 三轨分别对应 full/ctx/ss 三种文本窗口 (见下文口径说明), 循环内用 `if src not in df.columns: continue` 优雅跳过缺失轨道, 三轨互不依赖。差值本身理论区间 [-2,2], 但因两侧均值都是同一 LLM 共识分布的子样本均值, 实践中集中在更窄区间; 正值表示综合类媒体对该银行的语调系统性优于其他类媒体, 负值反之, 接近 0 表示两类媒体对该银行的报道基调无系统差异。分组内若某类别在该 (银行, 年) 格内样本为空 (如某银行某年完全没有 comp 类报道), 对应 `tone_comp_media{track}` 为缺失, 缺口列随之缺失并向下游透传 (NaN, 而非 0), 不做人为填补; 这一"零篇即缺失"处理与家族②③④维度 (占比/央地/官方-市场等) 的所有情感均值列共享同一 groupby-mean 实现模式, 是本 producer 的统一约定, 非本列独有设计。
 
 【文献定位】
-媒体作为信息中介、其自身机构属性系统影响新闻语调这一命题, 在金融文本分析文献中已有成熟脉络。You, Zhang & Zhang (2018, *The Review of Financial Studies*) 在中国背景下证明媒体的所有权/属地/市场化程度会系统影响其报道倾向 ("谁执掌笔杆子"), 是本家族"按媒体类别拆分语调并比较缺口"这一设计范式的直接理论出处。Tetlock (2007, *Journal of Finance*) 确立了媒体语调是可计量、可预测市场结果的信息载体这一基础命题, 使"语调差异"本身成为有经济含义的构念而非纯描述统计。Qin, Strömberg & Wu (2018, *American Economic Review*) 进一步在中国媒体制度背景下刻画不同媒体类型 (官方/市场化) 的系统性偏向, 为本家族"综合类 vs 其他类"的二分对比提供了制度背景支撑。Holzman, Miller & Twedt (2023, *The Accounting Review*) 显示媒体语调的约束作用因媒体权威性/覆盖面不同而异质, 呼应本族"缺口"构念背后"哪类媒体更有纪律约束力"的经济学问题。Fang, Wang, Wang & Yuan (2024, *International Review of Economics & Finance*) 在中国银行业情境下直接使用媒体情感异质性作为解释变量, 是与本家族对象 (中国银行) 和方法 (媒体分类×语调) 最贴近的同域文献。本家族的经济学价值在于: 简单的银行-年度语调均值会把"综合媒体报道热闹但基调温和"与"专业垂类媒体报道稀少但基调极端"两种迥异情形混为一谈; comp − other 缺口把媒体构成异质性从总体语调中分离出来, 使研究者能够单独检验"哪类媒体驱动了该银行整体语调的走向", 并可作为总体语调的稳健性检验或作为媒体关注结构 (attention composition) 的独立解释变量使用。
-
+媒体作为信息中介、其自身机构属性系统影响新闻语调这一命题, 在金融文本分析文献中已有成熟脉络。You, Zhang & Zhang (2018, *The Review of Financial Studies*) 在中国背景下证明媒体的所有权/属地/市场化程度会系统影响其报道倾向 ("谁执掌笔杆子"), 是本家族"按媒体类别拆分语调并比较缺口"这一设计范式的直接理论出处。Tetlock (2007, *Journal of Finance*) 确立了媒体语调是可计量、可预测市场结果的信息载体这一基础命题, 使"语调差异"本身成为有经济含义的构念而非纯描述统计。Qin, Strömberg & Wu (2018, *American Economic Review*) 进一步在中国媒体制度背景下刻画不同媒体类型 (官方/市场化) 的系统性偏向, 为本家族"综合类 vs 其他类"的二分对比提供了制度背景支撑。Holzman, Miller & Twedt (2023, *The Accounting Review*) 显示媒体语调的约束作用因媒体权威性/覆盖面不同而异质, 呼应本族"缺口"构念背后"哪类媒体更有纪律约束力"的经济学问题。Fang, Wang, Wang & Yuan (2024, *International Review of Economics & Finance*) 在中国银行业情境下直接使用媒体情感异质性作为解释变量, 是与本家族对象 (中国银行) 和方法 (媒体分类×语调) 最贴近的同域文献。本家族的经济学价值在于: 简单的银行-年度语调均值会把"综合媒体报道热闹但基调温和"与"专业垂类媒体报道稀少但基调极端"两种迥异情形混为一谈; comp − other 缺口把媒体构成异质性从总体语调中分离出来, 使研究者能够单独检验"哪类媒体驱动了该银行整体语调的走向", 并可作为总体语调的稳健性检验或作为媒体关注结构 (attention composition) 的独立解释变量使用。 晚近文献进一步为本族公式的两个构造环节提供了分立的前沿参照。Hua、Dong、Xu 与 Huang (2025) 以 BERT 对中国官方媒体的新能源报道文本构建官方媒体语调指数并检验其与权益回报的关系, 示范了「先按媒体机构属性切出子样本、再在子样本内对文章级语调取均值」这一操作在中文语料上的可行性与经济含义; 但其切分维度是媒体的官方属性, 与本族按媒体内容类型划出的 comp / other 二分彼此正交, 且该文只报告官方侧的语调水平、并未对两侧均值作差, 其情感亦由文本指数法而非三家 LLM 投票得到、层级为行业-日度而非 bank-year, 故该文仅锚本族公式中分组取均值这一环, 不锚 comp − other 这一 between-group contrast。Isakin 与 Pu (2023) 把同一发行主体在同期多篇新闻之间的情感离散度作为独立可定价构念来度量并检验 (美国公司债、债券-月层级、英文新闻数据库情感), 为「同一主体报道内部的语调不一致本身携带信息, 而非只有语调水平携带信息」这一前提提供了方法学近亲参照; 须诚实指出的是, 该文的离散度是全部报道上的跨文章统计离散, 与本族先按来源属性划成互补两组再取组均值之差并非同一统计量, 原文亦不做任何媒体来源属性分层, 故只作 tone_gap 族的一般性前提支撑, 不构成本族具体切分维度的出处。
 ## VAR: tone_gap_comp_other_full
 
 【变体差分】
@@ -91,4 +106,6 @@ Tetlock, P. C. (2007). Giving Content to Investor Sentiment: The Role of Media i
 Qin, B., Strömberg, D., & Wu, Y. (2018). Media Bias in China. American Economic Review, 108(9), 2442-2476. https://doi.org/10.1257/aer.20170947
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media Sentiment, Deposit Stability and Bank Systemic Risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
+Hua, X., Dong, D., Xu, Z., & Huang, W. (2025). Official media sentiments toward energy and equity returns: Evidence from China. Energy, 340, 139126. https://doi.org/10.1016/j.energy.2025.139126
+Isakin, M., & Pu, X. (2023). Dispersion in news sentiment and corporate bond returns. International Review of Financial Analysis, 89, 102761. https://doi.org/10.1016/j.irfa.2023.102761
 <!-- rendered-citations:end -->

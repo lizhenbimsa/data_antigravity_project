@@ -57,6 +57,15 @@ citations:
   vol: 27
   issue: 3
   pages_or_artno: 379-423
+- doi: "10.1111/lang.12630"
+  type: "journal"
+  authors: "Bestgen, Y."
+  year: 2024
+  title: "Measuring Lexical Diversity in Texts: The Twofold Length Problem"
+  venue: "Language Learning"
+  vol: "74"
+  issue: "3"
+  pages_or_artno: "638-671"
 new_dois: []
 ---
 
@@ -69,8 +78,7 @@ new_dois: []
 计算分两级。文章级由 Stage 22 的 lexical_complexity 对每篇 content_<track> 先剔除数字、标点与拉丁字符、按 is_cjk 判据计出该篇的纯汉字数 n_han, 再取 ln(n_han) 作为该篇的对数汉字长度。银行-年级由 Stage 40 export 对同一银行同一年度内的全部在轨文章, 把这些文章级对数长度做等权算术平均, 即 mean-of-ln。这里的聚合次序刻意是"先取对数再求均值", 与 geography 模块里 ln_han_count / ln_word_count 采用的"先求均值再取对数"(ln-of-mean)在数学上不等价——由 Jensen 不等式, mean-of-ln 不大于 ln-of-mean, 二者之差随银行-年内篇幅离散度增大而扩张。本家族刻意选用 mean-of-ln 而非 ln-of-mean, 是因为所控冗余量 avg_within_doc_redund_han 本身也是"文章级先算比率、再跨篇求均值"的同型聚合; 唯有让长度控制与冗余量落在同一聚合域, 二者在回归中的机械对消才成立, 否则聚合次序错配会在长度控制里引入一个与冗余量不共享的非线性残差, 反而制造新的偏误。这也解释了本家族与 geography 长度列 (ln_han_count) 的刻意并存: 后者是描述性篇幅代理、走 ln-of-mean, 服务于长度本身的稳健性叙事; 前者是冗余回归的成对控制、走 mean-of-ln, 二者定义域不同、用途正交, 不可相互替代。取值域为 [0, +∞) 并集 NaN: 某银行-年在某轨下无任何在轨文章时该列为 NaN, 系分母缺失的诚实缺省而非零填充。汉字口径的采用 (剔数字/标点/拉丁) 与所控冗余量的汉字 3-gram 口径同源, 使分子分母同为汉字度量, 避免混入阿拉伯数字与拉丁缩写对长度的稀释, 这是中文文本落地相对英文原始做法的必要调整。
 
 【文献定位】
-本家族服务的冗余—复杂度研究谱系, 关注的是文本可读性、重复度与信息含量之间的张力。You & Zhang (2009) 指出财务披露的文本复杂度会削弱投资者对信息的即时吸收, 复杂度须与篇幅、可读性等机械维度分离方能识别其独立效应; Yu & Zhao (2024) 进一步显示披露文本复杂度直接影响分析师对信息的加权方式, 强化了对复杂度类测度做长度净化的必要性; Lesmy, Muchnik & Mugerman (2025) 以跨期比较证据刻画财务报告复杂度的系统性增长, 提示重复与冗长是可度量并需控制的文本特征。Shannon (1948) 为"冗余"这一构念提供了信息论根基, 说明本家族所控冗余量的 3-gram 唯一率视角与最大熵冗余的内在一致。在方法迁移层面, Miller & Wang (2024) 以文本差异化度量刻画企业战略随产品数字化的演变, 例示了基于文本的公司层面测度必须在篇幅、词表规模等机械协变量上做净化才能承载因果解读, 与本家族把长度作为冗余的成对控制的用意同构。综上, 本家族并非独立结果变量, 而是使冗余诊断量在给定篇幅条件下可被干净识别的方法学配件。
-
+本家族服务的冗余—复杂度研究谱系, 关注的是文本可读性、重复度与信息含量之间的张力。You & Zhang (2009) 指出财务披露的文本复杂度会削弱投资者对信息的即时吸收, 复杂度须与篇幅、可读性等机械维度分离方能识别其独立效应; Yu & Zhao (2024) 进一步显示披露文本复杂度直接影响分析师对信息的加权方式, 强化了对复杂度类测度做长度净化的必要性; Lesmy, Muchnik & Mugerman (2025) 以跨期比较证据刻画财务报告复杂度的系统性增长, 提示重复与冗长是可度量并需控制的文本特征。Shannon (1948) 为"冗余"这一构念提供了信息论根基, 说明本家族所控冗余量的 3-gram 唯一率视角与最大熵冗余的内在一致。在方法迁移层面, Miller & Wang (2024) 以文本差异化度量刻画企业战略随产品数字化的演变, 例示了基于文本的公司层面测度必须在篇幅、词表规模等机械协变量上做净化才能承载因果解读, 与本家族把长度作为冗余的成对控制的用意同构。综上, 本家族并非独立结果变量, 而是使冗余诊断量在给定篇幅条件下可被干净识别的方法学配件。 就长度依赖本身的性质, Bestgen (2024) 提供了直接的测度学依据: 该文基于三个英语学习者文本数据集系统检视常用词汇多样性指数, 提出『双重长度问题』——第一重是 type-token 比率类指数对文本长度的固有依赖; 第二重是即便以概率或算法方法把所有文本削减至等长从而消解第一重, 这些指数仍对『决定该等长长度的参数取值』高度敏感, 所检指数无一幸免。本家族所控的 avg_within_doc_redund_han 在数学上正是 1 减去一个 type-token 比率, 该文因而正面锚定了本家族存在的理由: 长度不是可选协变量, 而是须显式呈现、并与被控量事前同域固定的混淆因子, 否则冗余系数无法在给定篇幅条件下被识别。迁移边界须诚实交代: 该文分析的是字母语言的词级 type-token 关系、语料为学习者文本而非金融新闻, 与本项目的中文汉字 3-gram 阶在语言与 n-gram 阶数上均不同; 其讨论的等长削减类校正本项目并未实施, 本家族采用的 mean-of-ln 长度聚合亦非该文所提出——引用它是为披露长度依赖的存在, 而非主张本项目已消除该依赖。
 ## VAR: avg_redund_han_log_length_ctx
 
 【变体差分】
@@ -92,4 +100,5 @@ Miller, C. D., & Wang, R. D. (2024). Product digitization and differentiation st
 Yu, X., & Zhao, Y. (2024). Textual disclosure complexity and analysts' weighting of information. Journal of Contemporary Accounting & Economics, 20(1), 100395. https://doi.org/10.1016/j.jcae.2023.100395
 You, H., & Zhang, X.-J. (2009). Financial reporting complexity and investor underreaction to 10-K information. Review of Accounting Studies, 14(4), 559-586. https://doi.org/10.1007/s11142-008-9083-2
 Shannon, C. E. (1948). A mathematical theory of communication. Bell System Technical Journal, 27(3), 379-423. https://doi.org/10.1002/j.1538-7305.1948.tb01338.x
+Bestgen, Y. (2024). Measuring Lexical Diversity in Texts: The Twofold Length Problem. Language Learning, 74(3), 638-671. https://doi.org/10.1111/lang.12630
 <!-- rendered-citations:end -->

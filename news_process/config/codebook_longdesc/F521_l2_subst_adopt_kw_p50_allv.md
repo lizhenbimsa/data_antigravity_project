@@ -45,6 +45,31 @@ citations:
   title: "\"Glossy Green\" Banks: The Disconnect Between Environmental Disclosures and Lending Activities"
   venue: "Management Science"
   pages_or_artno: "advance online publication"
+- doi: "10.1111/joms.13043"
+  type: "journal"
+  authors: "Athanasopoulou, A., Marti, E., Risi, D., & Schlindwein, E."
+  year: 2025
+  title: "How Companies Restrain Means–Ends Decoupling: A Comparative Case Study of CSR Implementation"
+  venue: "Journal of Management Studies"
+  vol: "62"
+  issue: "1"
+  pages_or_artno: "214-245"
+- doi: "10.1016/j.frl.2024.105265"
+  type: "journal"
+  authors: "Huang, J., & Ma, L."
+  year: 2024
+  title: "Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation"
+  venue: "Finance Research Letters"
+  vol: "63"
+  pages_or_artno: "105265"
+- doi: "10.1016/j.frl.2024.105401"
+  type: "journal"
+  authors: "Zhang, Z., Hou, Y., Li, Z., & Li, M."
+  year: 2024
+  title: "From symbolic to substantive green innovation: How does ESG ratings optimize corporate green innovation structure"
+  venue: "Finance Research Letters"
+  vol: "63"
+  pages_or_artno: "105401"
 new_dois: []
 ---
 
@@ -61,8 +86,7 @@ new_dois: []
 `_allv` 是锚点变体标记, 对应相似度分子列 `policy_cosine_sim_allv{_trk}`, 与不带 `_allv` 后缀的"vintage 主轨" `policy_cosine_sim{_trk}` 构成一对稳健性孪生: vintage 主轨的政策锚点向量随年份滚动更新 (逐年用截至当年的政策文本构造锚点), `_allv` 锚点则用全语料 (全部年份汇总) 一次性构造静态锚点, 不随年份变化。二者衡量的是同一构念 (文章与官方金融科技政策议程的语义相似度) 在"锚点是否允许时变"这一构造选择上的两种口径, 互为稳健性, 不分主次, 禁止混入同一 over-identified 方程。词频侧 (`fintech_distinct_keywords`) 与锚点选择无关, 不随 `_allv` 变化, 只随文本轨道 (full/ctx/ss) 变化——即 `_allv` 只改变相似度阈值的构造方式, 不改变词频阈值。
 
 【文献定位】
-"实质 vs. 象征"的行为区分脉络可追溯到 Westphal & Zajac (1994, *Administrative Science Quarterly*) 关于 CEO 长期激励计划"言行是否一致"的经典研究, 以及 Westphal & Zajac (1998) 对公司治理改革中股东反应与实际治理变革脱钩的进一步刻画; Fiss & Zajac (2006, *Academy of Management Journal*) 将其发展为"象征性管理"(symbolic management) 的一般理论, 强调组织可通过话语框架 (framing) 与实践脱钩 (decoupling) 应对制度压力而无需真正改变行为。本家族把该二分具体化为可计算的双变量 (词频 × 语义相似度) 阈值交叉, 方法学上呼应文本量化研究中"言辞不必然反映实质行动"的一般提醒 (Kim & Lyon, 2015, *Organization Science*, 提出漂绿/漂棕不对称框架); 银行业情境下的对应实证参见 Giannetti、Jasova、Loumioti & Mendicino (2026, *Management Science*) 关于银行环境信息披露与实际放贷行为脱钩的"光鲜绿色"发现——本家族的 Token 象限 (高词频、低政策对齐) 即结构上对应此类"言过其实"的脱钩情形, 而 Hidden 象限对应相反方向的"言不及义但实至名归"。
-
+"实质 vs. 象征"的行为区分脉络可追溯到 Westphal & Zajac (1994, *Administrative Science Quarterly*) 关于 CEO 长期激励计划"言行是否一致"的经典研究, 以及 Westphal & Zajac (1998) 对公司治理改革中股东反应与实际治理变革脱钩的进一步刻画; Fiss & Zajac (2006, *Academy of Management Journal*) 将其发展为"象征性管理"(symbolic management) 的一般理论, 强调组织可通过话语框架 (framing) 与实践脱钩 (decoupling) 应对制度压力而无需真正改变行为。本家族把该二分具体化为可计算的双变量 (词频 × 语义相似度) 阈值交叉, 方法学上呼应文本量化研究中"言辞不必然反映实质行动"的一般提醒 (Kim & Lyon, 2015, *Organization Science*, 提出漂绿/漂棕不对称框架); 银行业情境下的对应实证参见 Giannetti、Jasova、Loumioti & Mendicino (2026, *Management Science*) 关于银行环境信息披露与实际放贷行为脱钩的"光鲜绿色"发现——本家族的 Token 象限 (高词频、低政策对齐) 即结构上对应此类"言过其实"的脱钩情形, 而 Hidden 象限对应相反方向的"言不及义但实至名归"。 在该二分的当代延伸上, Athanasopoulou、Marti、Risi 与 Schlindwein (2025) 以比较案例研究考察企业如何抑制 means-ends decoupling, 即形式采纳在何种条件下能真正转化为实质结果, 恰为本族 Substantive 象限 (词频与政策相似度双双不低于年度中位) 的构念合法性提供顶刊管理学依据; 惟该文为定性比较案例、场域为 CSR 实施, 既无量化指标亦无阈值切分与面板结构, 故只锚定"双高格即脱耦被抑制"的构念解释, 不能视为本族 P50 判据或 bank-year 聚合口径的方法学来源。同域应用上, Huang 与 Ma (2024) 在中国情境中以金融科技发展为解释变量, 检验其对企业实质性绿色创新与象征性绿色创新的差异化影响, 表明"实质 vs. 象征"二分在金融科技议题下已有直接的实证与中文语用先例; 但其实质/象征由专利类型 (发明 vs. 实用新型/外观) 客观划分, 主体为非金融上市公司, 金融科技是解释变量而非被报道的议题本身, 与本族由新闻文本词频与政策相似度交叉判定、主体为银行的口径不同, 不可据以外推本族的阈值选择。Zhang、Hou、Li 与 Li (2024) 研究 ESG 评级如何推动企业创新结构自象征性向实质性迁移, 把象征性占比当作可随外部监督变化的结构性比例来处理, 这一"以构成比而非绝对水平为分析对象"的取向, 与本族把 Substantive 象限占比 (而非金科提及的绝对量) 作为结构性被解释量的设计逻辑一致; 其比例基于专利结构数据、主体为 A 股非金融企业、驱动因素为 ESG 评级, 且未使用任何文本判定器, 故仅锚定象征/实质构成比这一构念, 不涉及本族的词频与相似度测度口径。
 ## VAR: subst_adopt_kw_p50_allv
 
 【变体差分】
@@ -89,4 +113,7 @@ Westphal, J. D., & Zajac, E. J. (1994). Substance and Symbolism in CEOs' Long-Te
 Fiss, P. C., & Zajac, E. J. (2006). The Symbolic Management of Strategic Change: Sensegiving via Framing and Decoupling. Academy of Management Journal, 49(6), 1173-1193. https://doi.org/10.5465/amj.2006.23478255
 Kim, E.-H., & Lyon, T. P. (2015). Greenwash vs. Brownwash: Exaggeration and Undue Modesty in Corporate Sustainability Disclosure. Organization Science, 26(3), 705-723. https://doi.org/10.1287/orsc.2014.0949
 Giannetti, M., Jasova, M., Loumioti, M., & Mendicino, C. (2026). "Glossy Green" Banks: The Disconnect Between Environmental Disclosures and Lending Activities. Management Science, advance online publication. https://doi.org/10.1287/mnsc.2024.07420
+Athanasopoulou, A., Marti, E., Risi, D., & Schlindwein, E. (2025). How Companies Restrain Means–Ends Decoupling: A Comparative Case Study of CSR Implementation. Journal of Management Studies, 62(1), 214-245. https://doi.org/10.1111/joms.13043
+Huang, J., & Ma, L. (2024). Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation. Finance Research Letters, 63, 105265. https://doi.org/10.1016/j.frl.2024.105265
+Zhang, Z., Hou, Y., Li, Z., & Li, M. (2024). From symbolic to substantive green innovation: How does ESG ratings optimize corporate green innovation structure. Finance Research Letters, 63, 105401. https://doi.org/10.1016/j.frl.2024.105401
 <!-- rendered-citations:end -->

@@ -56,6 +56,23 @@ citations:
   venue: Journal of Banking and Finance
   vol: 164
   pages_or_artno: 107191
+- doi: "10.1016/j.jaccpubpol.2024.107181"
+  type: "journal"
+  authors: "Cheng, C. A., Jiang, L., & Song, W.-L."
+  year: 2024
+  title: "Media coverage and debt financing choice"
+  venue: "Journal of Accounting and Public Policy"
+  vol: "44"
+  pages_or_artno: "107181"
+- doi: "10.1016/j.jsis.2026.101971"
+  type: "journal"
+  authors: "Chen, Z., Hajiheydari, N., Zhang, M., & Lin, Y.-E."
+  year: 2026
+  title: "Corporate digital transformation attention and innovation: strategic commitment or symbolic signalling?"
+  venue: "The Journal of Strategic Information Systems"
+  vol: "35"
+  issue: "2"
+  pages_or_artno: "101971"
 new_dois: []
 ---
 
@@ -68,8 +85,7 @@ new_dois: []
 计算分两级。篇章级: runner 在洗稿率前置步骤中, 对每篇报道构造指示列 _svd_you_2018_pos{track}, 其值为 1 当且仅当两条件同时成立 — 该篇 You 词典得分大于零 (正面, _d_pos) 且该篇实质性已被成功测量 (实质性已测量掩码 _subst_measured)。这里存在一个关键的口径不对称, 须准确理解: 只有正面判据是逐轨的, 实质性掩码不是。极性判据复用 You et al. (2018) 词典的连续极性得分 you_2018_score{track}, 逐轨在各自文本窗口 (full/ctx/ss) 上计算, 其构造遵循经典词典法 — 统计文本中正面词 (positive, 1,425 词) 与负面词 (negative, 1,583 词) 的加权出现, 经否定翻转/程度副词/转折等语言学规则后归一, 得分为正即整体正面。you_2018 词典的一个特有结构是另附 definite (确定语气, 388 词) 与 ambiguous (模糊语气, 178 词) 两个语气子集 (自 v3.5.1 起主要供 clarity 测度消费), 但本计数只消费其 positive/negative 极性打分, 不涉及语气子集。而实质性已测量掩码 _subst_measured 在源码中恒由 innovation_substantiveness_full 单列派生 (runner 取 df['innovation_substantiveness_full'], 判其是否落在合法标签集 {实质性, 象征性} 内), 三轨的 _svd_you_2018_pos_full/_ctx/_ss 共用这同一个 full 轨掩码, 并不存在 innovation_substantiveness_ctx 或 innovation_substantiveness_ss 的逐轨实质性标签参与本计数。这是 v3.2.0 的刻意设计 (裸 innovation_substantiveness 已删, 单独以 _full 作 main spec): 实质性是一篇报道的整体属性, 由 full 轨全文语境判读最稳, 无需随文本窗口重判。实质性标签本身来自 stage 21 三家大模型 (gpt54nano / gemini31 / deepseekv4) 对 Westphal and Zajac (1994/1998) 实质性-象征性二分构念的多数投票; 缺测行经 astype(str) 会落到 'nan' 因而恒不入合法集, 自动被排除。bank-year 级: runner 的 _pool_svd_substvalid_counts 把同一 (target_bank, year) 内所有篇章的 _svd_you_2018_pos{track} 按 sum 聚合, 并重命名为 you_2018_pos_substvalid_count{track}。因列名以 _count_{track} 结尾, 它命中 balance_panel 的计数零填规则: 零新闻的银行-年度补零, 下游洗稿率除法在分母为零时经 _safe_ratio 优雅返回缺失而非报错。该列本身恒为非负整数, 但落盘 dtype 为 double 以容纳缺失哨兵。本计数是 you_2018 词典这一"逐词典 (D2) 洗稿率通道"的分母, 与 LLM 投票 (方法 A)、单模型 (A2)、词典均值 (D)、BERT (E/E2)、高置信子样本 (F) 等并列方法各自的同域分母互不混用, 也与家族内其他词典 (jiang_2021/yao_2021/bian_2021/du_2022/loughran) 的同名计数并排, 只在正面判据的词表来源上不同。
 
 【文献定位】
-本家族坐落在"计数型金融文本测度"与"象征性披露 (cheap talk / 洗稿) 度量"两条文献脉络的交汇处。词典侧, You, Zhang, and Zhang (2018, *Review of Financial Studies*) 研究媒体报道语气 (谁在把握"笔杆子的力量") 对资本市场的影响, 构造了本家族所用的中文金融情感词典正面词表; 该文以官方媒体与市场化媒体的语气差异为切入点, 为本项目的媒体语气测度体系提供了词典层面的方法学来源, 也呼应本项目媒体属性 (`media_frac`/`central_media_frac`) 相关家族的构念脉络。Loughran and McDonald (2011, *Journal of Finance*) 奠定了以领域专用词表而非通用心理学词表度量金融文本极性的范式, 其"负面词未必是负债"的洞见提示中文语境同样需要本土化词典, 是 you_2018 一类本土化词典的方法学先驱。Gentzkow, Kelly, and Taddy (2019, *Journal of Economic Literature*) 在方法学层面系统化了"文本即数据"的统计处理, 强调计数向量作为文本表征基元的地位, 本家族的篇章级 0/1 指示求和正是这一范式的直接应用。作为计数变量, 本家族的下游计量须正视 Cohn, Liu, and Wardlaw (2022, *Journal of Financial Economics*) 关于金融中计数 (与类计数) 数据的告诫 — 计数分母的构造口径 (数谁、不数谁) 会直接改变以其为基的比率的分布形态与推断, 这恰是本家族强调"同域分母"的计量根据。构念定位上, 本计数服务的洗稿率属于 Bingler et al. (2024, *Journal of Banking and Finance*) 所刻画的"廉价话语"实证家族: 用文本测度区分"说了漂亮话"与"做了实质事", 度量披露与行动之间的脱耦。需要强调, 本家族并非情感强度的直接测度, 而是"正面且可判读"报道的规模计数, 它只在与分子配对成洗稿率后才承载 cheap-talk 语义。三轨 (full/ctx/ss) 是同一构念在不同文本窗口上的并排实现, 各自 just-identified、互为稳健性、不分主次, 严禁把三轨计数混入同一 over-identified 的 Hansen J 统计量; 留篇门控采用 full-only 口径 (一篇报道是否算作银行金科报道只看 full 轨语义验证), ctx/ss 为 conditional-on-full 的子集测度。
-
+本家族坐落在"计数型金融文本测度"与"象征性披露 (cheap talk / 洗稿) 度量"两条文献脉络的交汇处。词典侧, You, Zhang, and Zhang (2018, *Review of Financial Studies*) 研究媒体报道语气 (谁在把握"笔杆子的力量") 对资本市场的影响, 构造了本家族所用的中文金融情感词典正面词表; 该文以官方媒体与市场化媒体的语气差异为切入点, 为本项目的媒体语气测度体系提供了词典层面的方法学来源, 也呼应本项目媒体属性 (`media_frac`/`central_media_frac`) 相关家族的构念脉络。Loughran and McDonald (2011, *Journal of Finance*) 奠定了以领域专用词表而非通用心理学词表度量金融文本极性的范式, 其"负面词未必是负债"的洞见提示中文语境同样需要本土化词典, 是 you_2018 一类本土化词典的方法学先驱。Gentzkow, Kelly, and Taddy (2019, *Journal of Economic Literature*) 在方法学层面系统化了"文本即数据"的统计处理, 强调计数向量作为文本表征基元的地位, 本家族的篇章级 0/1 指示求和正是这一范式的直接应用。作为计数变量, 本家族的下游计量须正视 Cohn, Liu, and Wardlaw (2022, *Journal of Financial Economics*) 关于金融中计数 (与类计数) 数据的告诫 — 计数分母的构造口径 (数谁、不数谁) 会直接改变以其为基的比率的分布形态与推断, 这恰是本家族强调"同域分母"的计量根据。构念定位上, 本计数服务的洗稿率属于 Bingler et al. (2024, *Journal of Banking and Finance*) 所刻画的"廉价话语"实证家族: 用文本测度区分"说了漂亮话"与"做了实质事", 度量披露与行动之间的脱耦。需要强调, 本家族并非情感强度的直接测度, 而是"正面且可判读"报道的规模计数, 它只在与分子配对成洗稿率后才承载 cheap-talk 语义。三轨 (full/ctx/ss) 是同一构念在不同文本窗口上的并排实现, 各自 just-identified、互为稳健性、不分主次, 严禁把三轨计数混入同一 over-identified 的 Hansen J 统计量; 留篇门控采用 full-only 口径 (一篇报道是否算作银行金科报道只看 full 轨语义验证), ctx/ss 为 conditional-on-full 的子集测度。 在篇数聚合形态的当代实证用例上, Cheng、Jiang 与 Song (2024) 把美国上市公司 2001–2014 年的新闻按公司-年归集为报道量与新闻情感并作为解释变量进入债务融资方式选择回归, 发现负面盈余新闻显著降低银行贷款与公募债概率、提高私募债概率, 为「文章级极性判定 → 按主体-年对极性指示求和」这一聚合范式提供了前沿实证参照, 与本家族把篇章级 0/1 指示按 (target_bank, year) 求和的做法同形。须严格限定: 该文极性来自 RavenPack 专有事件情感分析 (ESS), 既非公开情感词典、亦非人工编码, 更非本项目的三家大模型多数投票, 故它只锚定按主体-年对极性指示求和这一聚合形态, 不锚定极性来源; 其主体为美国上市公司而非银行, 亦无实质性已测量掩码或同域分母的设计。构念侧, 本家族掩码所依托的实质性/象征性二分可参照 Chen、Hajiheydari、Zhang 与 Lin (2026): 该文基于注意力基础观提出企业数字化转型关注度, 以中国上市公司 2007–2020 年样本在「战略实质承诺 vs 象征性信号」两个对立解释间做检验, 发现该关注度与突破式创新相关而与渐进式创新及研发支出无关, 从而支持实质承诺说、未支持象征性信号说, 表明「话语是否只是象征」是可被实证证伪的经验问题 — 这正是该二分在当代数字化话语研究中的理论锚点与反面参照, 不可据此宣称原文提供了象征性解释。迁移边界: 原文以「话语关注度 vs 实际创新产出」间接推断象征性, 本项目则以大模型对单篇报道直接标注实质性/象征性, 判定机制不同; 原文文本源为公司自述披露, 本项目为第三方新闻; 原文层级为公司-年, 本项目为银行-年且分三轨。
 ## VAR: you_2018_pos_substvalid_count_full
 
 【变体差分】
@@ -91,4 +107,6 @@ Cohn, J. B., Liu, Z., & Wardlaw, M. I. (2022). Count (and count-like) data in fi
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2024). How cheap talk in climate disclosures relates to climate initiatives, corporate emissions, and reputation risk. Journal of Banking and Finance, 164, 107191. https://doi.org/10.1016/j.jbankfin.2024.107191
+Cheng, C. A., Jiang, L., & Song, W.-L. (2024). Media coverage and debt financing choice. Journal of Accounting and Public Policy, 44, 107181. https://doi.org/10.1016/j.jaccpubpol.2024.107181
+Chen, Z., Hajiheydari, N., Zhang, M., & Lin, Y.-E. (2026). Corporate digital transformation attention and innovation: strategic commitment or symbolic signalling?. The Journal of Strategic Information Systems, 35(2), 101971. https://doi.org/10.1016/j.jsis.2026.101971
 <!-- rendered-citations:end -->

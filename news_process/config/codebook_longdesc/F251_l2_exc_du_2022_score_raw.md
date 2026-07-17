@@ -53,6 +53,13 @@ citations:
   title: "Inducing domain-specific sentiment lexicons from unlabeled corpora"
   venue: Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing
   pages_or_artno: 595-605
+- doi: "10.2139/ssrn.5024959"
+  type: "wp"
+  authors: "Cziraki, P., & Gider, J."
+  year: 2024
+  title: "Newspaper Closures and Trading in Local Stocks"
+  venue: "SSRN"
+  pages_or_artno: "5024959"
 new_dois: []
 ---
 
@@ -65,8 +72,7 @@ new_dois: []
 计算分两阶段。第一阶段在文章级完成: 词典引擎在 stage 22 (tone_words) 对每篇报道的三轨文本 (content_full 标题加正文全文、content_ctx 标题加实体窗、content_ss 标题加银行与金科同句共现窗) 分别匹配 Du (2022) 词典的正负极性词, 在关闭全部语言学规则的 raw 配置下, 以命中词的词典基础极性得分 (base score, 而非命中词个数) 之绝对值总和 Σ|base| 做自归一化, 得到幅度口径的文章级 du_2022_score_raw_{full,ctx,ss} (该归一化仍保留政治正面词 0.5 权重相对普通极性词 1.0 权重的差异化加权; 与之口径不同的纯计数零规则变体是家族内的 msent_score, 二者同为零规则但归一化基准不同, 不可等同)。第二阶段在面板级完成: attention_media 模块先经 detect_defacto_cessation 识别疑似退出覆盖的媒体集合 ceased_set (数据驱动判据为「末次覆盖年早于样本末年减去阈值间隔且累计报道数不少于十篇」, 与国家新闻出版署注销/停办/休刊名录做交叉验证, 但未经名录证实的 suspected 亦保守并入排除集), 随后在停刊稳健性动态发现循环中, 仅对来自非停刊媒体 (_is_ceased_media == 0) 的存活文章、按 target_bank 与 year 分组求 du_2022_score_raw 各轨均值, 生成 exc_ 前缀列。因此该列与不剔除媒体的同名基准列之间的差, 精确隔离了「疑似退出覆盖媒体」这一样本框对情感测度的贡献。比例类与情感类的 exc_ 列在零文章银行-年度按契约保留 NaN、不做零填 (只有计数类 n_articles_exc 走计数零填契约), 以免把「无存活报道」误记为「情感中性」。
 
 【文献定位】
-情感测度的词典本体锚定 Du et al. (2022) 发表于 Review of Finance 的工作: 该文论证通用情感词典迁移到中文金融文本时的领域特异性缺口, 并据以构造专门的中文金融情感词典, 是本家族 du_2022 前缀的唯一出处与权重依据。词典法在中文投资者文本上的持续演进由 Ma et al. (2025) 的细粒度投资者情感词典与 Sun et al. (2025) 融合词典知识与中性特征的预训练情感分析所印证, 二者共同支撑了「以规则消融梯度剥离语言学规则依赖」的稳健性动机。领域特异极性词表的自动归纳方法可追溯至 Hamilton et al. (2016) 从无标注语料诱导领域情感词典的框架, 为 raw 裸口径提供了方法学参照。而 exc_ 前缀所隐含的样本框剥离动机, 则直接根植于 Heese et al. (2022) 关于地方报纸退出导致监督真空、进而系统性改变可观测文本供给的发现: 在以媒体情感为核心解释变量的面板中, 媒体来源消失会引入幸存者偏误, 必须以剔除退出媒体的替代口径检验系数稳定性。需强调停刊稳健性轨、三轨文本轨与规则消融梯度三者是并排的规格稳健性设计: 各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同口径混进同一 over-identified Hansen J 过度识别检验。
-
+情感测度的词典本体锚定 Du et al. (2022) 发表于 Review of Finance 的工作: 该文论证通用情感词典迁移到中文金融文本时的领域特异性缺口, 并据以构造专门的中文金融情感词典, 是本家族 du_2022 前缀的唯一出处与权重依据。词典法在中文投资者文本上的持续演进由 Ma et al. (2025) 的细粒度投资者情感词典与 Sun et al. (2025) 融合词典知识与中性特征的预训练情感分析所印证, 二者共同支撑了「以规则消融梯度剥离语言学规则依赖」的稳健性动机。领域特异极性词表的自动归纳方法可追溯至 Hamilton et al. (2016) 从无标注语料诱导领域情感词典的框架, 为 raw 裸口径提供了方法学参照。而 exc_ 前缀所隐含的样本框剥离动机, 则直接根植于 Heese et al. (2022) 关于地方报纸退出导致监督真空、进而系统性改变可观测文本供给的发现: 在以媒体情感为核心解释变量的面板中, 媒体来源消失会引入幸存者偏误, 必须以剔除退出媒体的替代口径检验系数稳定性。需强调停刊稳健性轨、三轨文本轨与规则消融梯度三者是并排的规格稳健性设计: 各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同口径混进同一 over-identified Hansen J 过度识别检验。 exc_ 前缀所依赖的样本框剥离动机, 还可由 Cziraki 与 Gider (2024) 从报道供给侧进一步佐证: 该工作论文以报纸停刊为冲击, 实证报道供给的退出会改变本地股票的交易行为, 说明媒体退出覆盖并非无害的样本损耗, 而是有真实经济后果的样本组成变化, 这正是本族在聚合前先剔除 ceased_set 的现实理由。迁移边界须诚实标明: 该文处理的是美国本地报纸的真实停刊事件, 停刊判定取自外部事件数据, DV 为本地股票交易活动; 而本族的 ceased_set 是 detect_defacto_cessation 自语料内部推断出的「疑似退出覆盖」保守代理 (confirmed ∪ suspected), 并非严格意义的停刊事实, 其用途亦仅限于稳健性子样本对照, 而非把媒体退出当作识别冲击加以利用; 该文尚为未经同行评审的工作论文, 故只作动机性引证, 不承担因果推断权重。
 ## VAR: exc_du_2022_score_raw_ctx
 
 【变体差分】
@@ -88,4 +94,5 @@ Sun, Y., Yuan, H., & Xu, F. (2025). Financial sentiment analysis for pre-trained
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Heese, J., Pérez-Cavazos, G., & Peter, C. D. (2022). When the local newspaper leaves town: The effects of local newspaper closures on corporate misconduct. Journal of Financial Economics, 145(2), 445-463. https://doi.org/10.1016/j.jfineco.2021.08.015
 Hamilton, W. L., Clark, K., Leskovec, J., & Jurafsky, D. (2016). Inducing domain-specific sentiment lexicons from unlabeled corpora. Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing, 595-605. https://doi.org/10.18653/v1/d16-1057
+Cziraki, P., & Gider, J. (2024). Newspaper Closures and Trading in Local Stocks. SSRN No. 5024959 [Working Paper]. https://doi.org/10.2139/ssrn.5024959
 <!-- rendered-citations:end -->

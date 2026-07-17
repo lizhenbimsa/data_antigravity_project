@@ -38,6 +38,32 @@ citations:
   vol: '59'
   issue: '3'
   pages_or_artno: 944-960
+- doi: "10.1016/j.frl.2026.109668"
+  type: "journal"
+  authors: "Chen, M., Zhang, Z., & Liu, Y."
+  year: 2026
+  title: "Silence in innovation disclosure: More action-less talk innovation and trade credit financing in China"
+  venue: "Finance Research Letters"
+  vol: "95"
+  pages_or_artno: "109668"
+- doi: "10.1016/j.ipm.2025.104383"
+  type: "journal"
+  authors: "Chen, J., Wen, J., Deng, Y., Chen, M., & Ma, F."
+  year: 2026
+  title: "Measuring policy diffusion intensity: A text-driven analysis of government documents"
+  venue: "Information Processing & Management"
+  vol: "63"
+  issue: "2"
+  pages_or_artno: "104383"
+- doi: "10.1016/j.rmal.2025.100272"
+  type: "journal"
+  authors: "Hemelstrand, S., & Inoue, T."
+  year: 2025
+  title: "Stop splitting hairs: The problems with dichotomizing continuous data in language research"
+  venue: "Research Methods in Applied Linguistics"
+  vol: "4"
+  issue: "3"
+  pages_or_artno: "100272"
 new_dois: []
 ---
 
@@ -50,8 +76,7 @@ hidden_adopt_kw_p50_allv 家族测的是"沉默式/隐性政策采纳" (hidden a
 分类的两个输入信号: (1) 词频侧 —— 本家族固定用 kw 轨 (Track A), 即 AC 自动机对报道全文做严格无重叠扫描后得到的去重金融科技关键词命中数 fintech_distinct_keywords (与另一并行轨 int/Track B 的 fintech_intensity_score 强度分是姊妹但不同的构念, 后者对应家族 hidden_adopt_int_p50_allv 系列, 二者不作合并统计而是并列呈现互为稳健性); (2) 语义侧 —— 报道全文向量与监管政策文本向量的余弦相似度 policy_cosine_sim 系列列。本家族列名中的 allv 后缀标记该相似度取自"全年份锚点" (全语料静态政策向量锚点 policy_cosine_sim_allv), 与不带 allv 后缀的"vintage 主轨" (逐年度动态更新的政策向量锚点) 构成一对稳健性孪生: vintage 锚点会随每年新发布的政策文本滚动更新参照系, allv 锚点则固定用全样本期内的静态汇总政策向量, 用以检验分类结果是否对锚点选取的时间窗口设定敏感。两个锚点变体同样"互为稳健性、不分主次、禁止混入同一 over-identified 设定"。词频与相似度两个信号各自先在年度内做 P50 (中位数) 切分 —— 即分别用该银行-金科报道全样本在当年的经验分布五十分位数作阈值, 而非跨年度固定绝对阈值, 这样可以吸收语料规模、报道风格随年份的趋势性漂移; 与之并列的稳健性梯子还有 P25/P75 两档更严格/更宽松的切分点 (对应家族 hidden_adopt_kw_p25_allv 与 hidden_adopt_kw_p75_allv, 本文件仅覆盖 P50 中位数切分, 三档阈值互为稳健性、不分主次)。逐篇分类严格遵循"双测才分类"契约: 仅当该篇报道的相似度列与词频列同时非缺失时才参与四象限归类, 任一方缺失 (常见于 stage 15 政策对齐早退路径或该轨文本缺失场景) 该篇记为 NaN 而非静默归入某一格子, 这是 2026-06-11 的一处修复 (`fix(omni-g-runner-03/g-runner-11)`) —— 旧实现里 `NaN >= 阈值` 在 pandas 语义下恒为 False, 会把测量失败的文章错误地整体计入"低相似度"格, 制造出并不存在的系统性偏差。聚合层面按 (target_bank, year) 分组对逐篇 0/1 指示取均值, 由于 pandas 的 mean 聚合天然跳过 NaN, 分母自动收窄为"该银行-年内 sim 与 freq 均已测量的报道篇数", 而非全部报道篇数; 若某银行-年报道全部未测量 (如完全缺失该轨文本或政策向量抽取失败), 对应 bank-year 的四象限占比全部输出 NaN, 与项目"无可测数据即输出 NaN 而非伪零"的通用契约 (F3 红线) 一致, 不会把"未测量"和"测量为 0" 混淆。此外, 全部聚合前会先做一次"验证域"过滤 (`_filter_to_verified_universe`, 2026-06-11 引入): 用 (docid, target_bank) 与 stage 21 语义精筛后的 LLM-verified 文章集做内连接, 剔除 stage 15 规则预筛阶段尚未经过 LLM 语义核实的候选报道 (曾占约 26.8% 假阳性), 以保证四象限族与面板其余文本测度共享同一 verified 聚合域, 不会因分母口径不一致而产生 phantom bank-year。
 
 【文献定位】
-本家族的构造逻辑呼应组织与制度理论中区分"言语层面的合规姿态"与"行为层面的实质响应"的长期传统, 也与近年来文本挖掘方法在金融监管遵从研究中兴起的"言行不一致度量"取径相接; Kwan, Lin, Pursiainen & Tai (2024, Journal of Financial and Quantitative Analysis) 用银行对压力情境 (COVID-19) 的数字化能力压力测试说明, 银行公开披露的数字化叙事与其实际技术准备度之间存在可观测的落差, 这与本家族"低词频提及但高语义对齐"的隐性采纳格恰好对应同一类识别问题——报道频次不能替代实质对齐程度的度量。本家族对 P50 分位阈值、kw/int 双轨与 allv/vintage 双锚点的并列稳健性设计, 也受到方法学文献中关于研究者任意选择 (researcher degrees of freedom) 会显著影响结论的警示所驱动: Huntington-Klein et al. (2021, Economic Inquiry) 系统记录了应用微观计量研究中"隐藏的研究者决策" (如阈值切分点、样本窗口选取) 对复现结果的实质性影响, Breznau et al. (2022, Proceedings of the National Academy of Sciences) 的多团队同数据同假设复现实验进一步证明, 即便面对完全相同的数据与研究问题, 分析路径上的隐性选择也会制造出一个此前被低估的"不确定性隐藏宇宙"。本项目正是在这一方法学共识下, 把每一个可能引入任意性的构造决策 (阈值分位数、锚点时间窗、词频轨道) 都显式地并列产出为互为稳健性的多个变体列, 而非只报告单一"最优"设定, 使读者可以直接比较结论对这些决策的敏感度, 而不必信任某一次隐性的、未披露的选择。
-
+本家族的构造逻辑呼应组织与制度理论中区分"言语层面的合规姿态"与"行为层面的实质响应"的长期传统, 也与近年来文本挖掘方法在金融监管遵从研究中兴起的"言行不一致度量"取径相接; Kwan, Lin, Pursiainen & Tai (2024, Journal of Financial and Quantitative Analysis) 用银行对压力情境 (COVID-19) 的数字化能力压力测试说明, 银行公开披露的数字化叙事与其实际技术准备度之间存在可观测的落差, 这与本家族"低词频提及但高语义对齐"的隐性采纳格恰好对应同一类识别问题——报道频次不能替代实质对齐程度的度量。本家族对 P50 分位阈值、kw/int 双轨与 allv/vintage 双锚点的并列稳健性设计, 也受到方法学文献中关于研究者任意选择 (researcher degrees of freedom) 会显著影响结论的警示所驱动: Huntington-Klein et al. (2021, Economic Inquiry) 系统记录了应用微观计量研究中"隐藏的研究者决策" (如阈值切分点、样本窗口选取) 对复现结果的实质性影响, Breznau et al. (2022, Proceedings of the National Academy of Sciences) 的多团队同数据同假设复现实验进一步证明, 即便面对完全相同的数据与研究问题, 分析路径上的隐性选择也会制造出一个此前被低估的"不确定性隐藏宇宙"。本项目正是在这一方法学共识下, 把每一个可能引入任意性的构造决策 (阈值分位数、锚点时间窗、词频轨道) 都显式地并列产出为互为稳健性的多个变体列, 而非只报告单一"最优"设定, 使读者可以直接比较结论对这些决策的敏感度, 而不必信任某一次隐性的、未披露的选择。 在上述一般性方法学共识之外, 另有三条近期文献可分别锚定本家族公式的三个环节。其一, 就 Hidden 格本身的构念而言, Chen、Zhang 与 Liu (2026) 在中国语境下专门刻画企业创新披露中的"多行动少言说 (more action-less talk)"沉默型态——实质投入不低而文本声量偏低的一格——并检验其与商业信用融资的关联, 为本家族"词频低于年度 P50 且政策相似度不低于年度 P50"所捕捉的低声量高实质型态提供 2026 年的存在性证据; 迁移边界在于该文层级为上市公司-年, 其沉默由年报披露文本与专利/研发投入的落差界定 (属言—行的外部对照), 而本家族两维皆取自新闻文本、判据为双分位交叉, 该文既无 allv/vintage 锚点孪生, 亦无三轨与阈值梯子。其二, 就语义侧输入而言, Chen、Wen、Deng、Chen 与 Ma (2026) 以政府文件文本构造政策扩散强度的文本驱动测度, 为 policy_cosine_sim_allv 所属的"以政策文本相似度刻画政策对齐"测度族提供近期方法学锚点; 但该文测的是政府—政府层级的文件间扩散强度而非媒体—政策层级的报道对锚点相似度, 且不做二值象限分类、不设年度分位阈值, 亦无全年份静态锚点与逐年滚动锚点的对照, 故不能作为本家族 allv 孪生设计的方法出处。其三, 就"把连续量按分位二值化"这一核心动作而言, Hemelstrand 与 Inoue (2025) 用三组模拟系统论证了二分连续数据的代价: 标准误几乎普遍被抬高、显著性检验因此失准、R² 等效应量因信息量削减而被压低, 其明确立场是建议不要二分。本家族把连续的 fintech_distinct_keywords 与 policy_cosine_sim_allv 按年度中位数切成 0/1 指示, 正落在该文的告诫射程之内, 故须将其作为反向方法学锚点直面披露: 采用象限设计的理由是构念上需要言—行两维交叉后的离散格子而非单维连续效应, 代价则是上述统计效率与推断精度的损失。须特别声明的是, 该文并未提出"若必须二分则做多切点敏感性检验"一类补救建议, 因此 P25/P50/P75 三档阈值梯子属本项目自设的稳健性措施, 不得援引该文作为其正当性依据; 三档阈值仍按互为稳健性、不分主次、各自 just-identified 并排的口径解读, 不混入同一 over-identified Hansen J。
 ## VAR: hidden_adopt_kw_p50_allv
 
 【变体差分】
@@ -71,4 +96,7 @@ hidden_adopt_kw_p50_allv 家族测的是"沉默式/隐性政策采纳" (hidden a
 Kwan, A., Lin, C., Pursiainen, V., & Tai, M. (2024). Stress testing banks' digital capabilities: Evidence from the COVID-19 pandemic. Journal of Financial and Quantitative Analysis, 59(6), 2618-2646. https://doi.org/10.1017/S0022109023000662
 Breznau, N., Rinke, E. M., Wuttke, A., Nguyen, H. H. V., Adem, M., Adriaans, J., et al. (2022). Observing many researchers using the same data and hypothesis reveals a hidden universe of uncertainty. Proceedings of the National Academy of Sciences, 119(44), e2203150119. https://doi.org/10.1073/pnas.2203150119
 Huntington-Klein, N., Arenas, A., Beam, E., Bertoni, M., Bloem, J. R., Burli, P., et al. (2021). The influence of hidden researcher decisions in applied microeconomics. Economic Inquiry, 59(3), 944-960. https://doi.org/10.1111/ecin.12992
+Chen, M., Zhang, Z., & Liu, Y. (2026). Silence in innovation disclosure: More action-less talk innovation and trade credit financing in China. Finance Research Letters, 95, 109668. https://doi.org/10.1016/j.frl.2026.109668
+Chen, J., Wen, J., Deng, Y., Chen, M., & Ma, F. (2026). Measuring policy diffusion intensity: A text-driven analysis of government documents. Information Processing & Management, 63(2), 104383. https://doi.org/10.1016/j.ipm.2025.104383
+Hemelstrand, S., & Inoue, T. (2025). Stop splitting hairs: The problems with dichotomizing continuous data in language research. Research Methods in Applied Linguistics, 4(3), 100272. https://doi.org/10.1016/j.rmal.2025.100272
 <!-- rendered-citations:end -->

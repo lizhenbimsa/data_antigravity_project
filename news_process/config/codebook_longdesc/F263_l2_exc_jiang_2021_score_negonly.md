@@ -76,6 +76,22 @@ citations:
   vol: 88
   issue: null
   pages_or_artno: 67-75
+- doi: "10.3390/computers12010018"
+  type: "journal"
+  authors: "Naldi, M., & Petroni, S."
+  year: 2023
+  title: "A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools"
+  venue: "Computers"
+  vol: "12"
+  issue: "1"
+  pages_or_artno: "18"
+- doi: "10.18653/v1/2025.emnlp-main.1088"
+  type: "journal"
+  authors: "Kim, J., Koo, S., & Lim, H."
+  year: 2025
+  title: "Semantic Inversion, Identical Replies: Revisiting Negation Blindness in Large Language Models"
+  venue: "Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing"
+  pages_or_artno: "21445-21482"
 new_dois: []
 ---
 
@@ -88,8 +104,7 @@ new_dois: []
 计算分两步。第一步在文章级词典打分阶段 (stage 22) 完成: 对每个匹配到的情感词, 先取其在姜富伟等 (2021) 词典中的基础权重 base_weight (逐词固定, 并非统一取一), 再乘以程度副词倍率 degree_multiplier、否定翻转符号 negation_sign、转折放大倍率 adversative_multiplier 得到该词的加权贡献 final_score; negonly 变体只让否定翻转规则生效 (情感词落入否定词辖域时 negation_sign 翻号), 程度副词倍率与转折倍率一律锁定为 1.0 (语言学层面等同关闭该两条规则, 但底层 token 扫描仍保留程度/转折词的识别与句末重置骨架, 只是不产生数值放大效应); 文章级得分按自归一化式 jiang_2021_score_negonly = Σ(final_score) 除以 Σ|final_score| 计算, 分子分母均是逐词加权幅度的求和而非裸计数, 结果恒落在负一到正一的闭区间, 三轨各算一列。该式与仅在裸计数 (pos 减 neg) 除以 (pos 加 neg) 上做否定翻转的另一口径 msent_negonly 是两套不同公式, 数值不可互相替代或比较水平, 二者虽同为"仅否定"消融但一为幅度自归一化、一为计数比率, 项目口径明确要求不可混用。第二步在面板导出的 attention_media 环节完成: 先由 detect_defacto_cessation 依"话题覆盖退出"这一保守代理判定每篇报道来源是否疑似停止覆盖 (打上 _is_ceased_media 标记), 再对 _is_ceased_media 等于零 (即存活媒体) 的子集, 按目标银行与年份分组, 对文章级 jiang_2021_score_negonly 求算术均值, 得到 exc_jiang_2021_score_negonly。需强调该"停刊"实为话题覆盖退出的保守代理, 媒体可能仍正常出版而只是不再报道该主题, 因此下游不可在论文中表述为严格意义上的报纸停刊口径。零文章银行年度按契约保持缺失而非零填 (与计数类列的零填契约刻意区分), 避免把"无观测"误读为"中性"。
 
 【文献定位】
-底层词典的权威出处是姜富伟等 (2021), 该文构建中文媒体情绪词典并证明其对股票回报的预测力, 是中文金融文本情绪测量的基础性工作。词典法与机器学习法孰优的方法学定位可锚 Frankel、Jennings 与 Lee (2022) 发表于 Management Science 的比较研究, 其结论支持在可解释性与稳健性场景下保留词典法作为并行测度。Du、Huang、Wermers 与 Wu (2022) 在 Review of Finance 提出的中文金融情感词典进一步论证了领域专用与语言专用词典对中文语料的必要性, 为本项目多词典并置提供合法性。基于词典的经济文本情绪测量的最新方法学综述见 Barbaglia 等 (2025)。否定处理是本家族 negonly 臂的核心, Pröllochs、Feuerriegel 与 Neumann (2016) 系统研究了新闻驱动交易中的否定辖域检测, 直接支撑"仅保留否定翻转规则"这一消融设定的理论意义。情感分析测度效度的多方法比较见 van Atteveldt 等 (2021); 机器可读时代的公司披露文本测度背景见 Cao、Jiang、Yang 与 Zhang (2023) 发表于 Review of Financial Studies 的研究。停刊稳健性设计的因果动机可追溯至报纸关停削弱地方媒体监督的实证文献。
-
+底层词典的权威出处是姜富伟等 (2021), 该文构建中文媒体情绪词典并证明其对股票回报的预测力, 是中文金融文本情绪测量的基础性工作。词典法与机器学习法孰优的方法学定位可锚 Frankel、Jennings 与 Lee (2022) 发表于 Management Science 的比较研究, 其结论支持在可解释性与稳健性场景下保留词典法作为并行测度。Du、Huang、Wermers 与 Wu (2022) 在 Review of Finance 提出的中文金融情感词典进一步论证了领域专用与语言专用词典对中文语料的必要性, 为本项目多词典并置提供合法性。基于词典的经济文本情绪测量的最新方法学综述见 Barbaglia 等 (2025)。否定处理是本家族 negonly 臂的核心, Pröllochs、Feuerriegel 与 Neumann (2016) 系统研究了新闻驱动交易中的否定辖域检测, 直接支撑"仅保留否定翻转规则"这一消融设定的理论意义。情感分析测度效度的多方法比较见 van Atteveldt 等 (2021); 机器可读时代的公司披露文本测度背景见 Cao、Jiang、Yang 与 Zhang (2023) 发表于 Review of Financial Studies 的研究。停刊稳健性设计的因果动机可追溯至报纸关停削弱地方媒体监督的实证文献。 在这一谱系上, 与本族 negonly 臂最贴近的方法学锚点是 Naldi 与 Petroni (2023): 该文提出一套测试集方法, 专门评估词典法情感工具对否定的检测与处理能力, 并实证发现各工具表现差异显著, 从而证成否定处理是词典法内部可被单独测量、单独失效的模块——这正是把否定翻转单独保留、程度副词与转折规则锁为 1.0 的消融设定所要隔离的对象; 边界在于原文为英文通用领域的工具评测, 其度量对象是否定检测准确率, 而本族不评测准确率, 只把否定规则的开/关作为中文金融新闻语料上的一条并排稳健性臂, 与其余各臂各自 just-identified 并列。构念层更远的背景可参 Kim、Koo 与 Lim (2025) 报告的「查询否定盲区」: 当模型对肯定式查询掌握准确时, 对语义被否定翻转的同一查询仍产出相同或近似回答, 显示否定是当代 NLP 系统中一条独立且尚未解决的语义处理轴, 为把否定单列为可独立开关、独立报告的规则提供动机; 须严格限定的是, 该文系英文 NLP 基准评测, 对象为生成式大语言模型的知识问答与逻辑推理, 不涉及语调测度、词典状态机与中文否定词表, 故仅作构念层背景, 词典法否定处理的直接证据仍以 Naldi 与 Petroni (2023) 为准。
 【识别与稳健性口径】
 本家族属规则消融梯度与停刊稳健性两条正交稳健性轴的交叉产物。按项目铁律, 词典消融梯度的七个规则变体 (raw、negonly、degonly、advonly、negdeg、negadv、degadv) 各自自归一化、互为稳健性、不分主次, 各自 just-identified 并排, 禁混进同一 over-identified Hansen J; 各变体间高度共线 (相关系数常近 0.99), 属规格稳健性并置而非可加分解。三轨 (full/ctx/ss) 同样各自 just-identified 并排、互为稳健性、不分主次、禁混同一 over-identified Hansen J; 其中 ss 轨回退语义镜像 ctx 轨, 无银行与金科同句共现时 content_ss 退回全文正文。exc_ 停刊稳健性与 bal_ 平衡媒体口径共同构成媒体样本组成的稳健性梯子, 二者与主口径 (含全部媒体) 亦为并排稳健性而非替代。银行年度留篇是否成立仍由 full 轨的 llm_verified_full 门控 (full-only 口径, 2026-06-29), ctx/ss 为 conditional-on-full 测度轨。
 
@@ -116,4 +131,6 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 姜富伟, 孟令超, 唐国豪. (2021). 媒体文本情绪与股票回报预测. China Economic Quarterly, 21(4), 1323-1344. https://doi.org/10.13821/j.cnki.ceq.2021.04.10
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
+Naldi, M., & Petroni, S. (2023). A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools. Computers, 12(1), 18. https://doi.org/10.3390/computers12010018
+Kim, J., Koo, S., & Lim, H. (2025). Semantic Inversion, Identical Replies: Revisiting Negation Blindness in Large Language Models. Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing, 21445-21482. https://doi.org/10.18653/v1/2025.emnlp-main.1088
 <!-- rendered-citations:end -->

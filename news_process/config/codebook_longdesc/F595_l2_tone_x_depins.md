@@ -39,6 +39,30 @@ citations:
   vol: '27'
   issue: '1'
   pages_or_artno: 1-32
+- doi: "10.1016/j.frl.2024.105763"
+  type: "journal"
+  authors: "Ni, T., Ren, Y., & Choi, J."
+  year: 2024
+  title: "Deposit insurance system and commercial bank profitability: A quasi-natural experiment based on the deposit insurance regulations"
+  venue: "Finance Research Letters"
+  vol: "67"
+  pages_or_artno: "105763"
+- doi: "10.1016/j.irfa.2025.104139"
+  type: "journal"
+  authors: "Ding, N., Xu, L., Wu, X., & Dai, Z."
+  year: 2025
+  title: "Explicit deposit insurance, active risk taking, and bank efficiency in China"
+  venue: "International Review of Financial Analysis"
+  vol: "102"
+  pages_or_artno: "104139"
+- doi: "10.1016/j.ribaf.2026.103456"
+  type: "journal"
+  authors: "Chen, Q., & Zhan, X."
+  year: 2026
+  title: "Deposit insurance, bank competition, and corporate lending in China: A loan-level analysis"
+  venue: "Research in International Business and Finance"
+  vol: "89"
+  pages_or_artno: "103456"
 new_dois: []
 ---
 
@@ -51,8 +75,7 @@ tone_x_depins 家族是"银行舆论语调 × 存款保险制度时间断点"的
 构造上, tone_x_depins{track} 是两个已存在列的逐行乘积, 不引入新的测量误差或建模假设, 是纯粹的机械交互项 (非 DID 设计, 无处理组/对照组分割——制度全国统一施行, 无法用 `merge_policy_shocks()` 的 `bank_province.isin(provs)` 匹配逻辑实现, 因为"全国"不是有效省份名, 见 44_panel_iv_did.py L513-517 的显式排除说明)。第一构成项 llm_vote_tone{track} 是 stage 21 三家 LLM (`gpt-5.4-nano`/gpt54nano · `gemini-3.1-flash-lite`/gemini31 两家走 yunwu · `deepseek-v4-flash`/deepseekv4 直连 api.deepseek.com) 多数投票的语调共识分, 值域约 [-1, 1] (负面/中性/正面三分类编码后聚合)。第二构成项 depins_post 是时间断点哑变量, `year >= 2015` 时取 1, 否则取 0, 全库统一、与地理/银行属性无关。三轨循环 (`for track in ['_full','_ctx','_ss']`) 逐轨检查 `llm_vote_tone{track}` 列是否存在于面板, 存在才生成对应交互列, 因此三条轨道各自独立、互不依赖——full 缺失不影响 ctx/ss 的生成, 反之亦然。本口径与本仓库三轨架构的通用铁律一致: full=标题+正文全文, ctx=标题+实体窗口, ss=标题+银行∧金科同句±N窗口 (回退语义镜像 ctx——无银行∧金科同句共现时 content_ss 退化为全文 body, `ss_is_fallback=True`); 三轨情感留篇门控口径为 full-only (2026-06-29 起), 即"是否算作一篇有效银行金科报道"只看 `llm_verified_full==True`, ctx/ss 是 conditional-on-full 的测度/稳健性轨, 行宇宙是 full 留篇集合的子集。三轨各自 just-identified 并排, 互为稳健性、不分主次, 严禁在同一 over-identified Hansen J 检验中混用三轨交互项。producer 源码内嵌了一条显式的退化守卫 (fix log-reaudit-2026-06-20, P2-C): 若 `depins_post.nunique() <= 1`, 即样本年份未跨越 2015 断点 (本机开发盘面 T=2, 样本年份为 {2017, 2018}, 全部 ≥2015), depins_post 退化为常量 1, 此时 tone_x_depins* 交互项在数学上等价于 tone×1, 即语调本身, 完全丧失识别力 (会被面板固定效应或与母项的共线性吸收), 此时会打印显式 WARNING 提醒不可用作断点效应估计。生产语料 T=19 (2007–2025) 天然跨越 2015 断点, 该守卫不会触发, depins_post 恢复应有方差, 交互项获得可识别的断点前/断点后对比。
 
 【文献定位】
-sentiment-and-interaction 设计的方法学基础主要来自两支文献汇流: 一支是文本情感测量本身的构造有效性文献, 另一支是交互项/调节效应的计量规范文献。前者的奠基性工作是 Loughran & McDonald (2011, Journal of Finance) 对财报文本情感词典构造有效性的系统检验, 该文奠定了"文本语调需以领域特定词典/规则校准, 而非套用通用情感词典"的方法学共识, 本仓库 stage 22 词典轨与 stage 21 LLM 轨均直接承袭这一传统; 后者的规范做法要求交互项系数的因果解读须以构成项 (tone、depins_post) 同时进入模型为前提, 且断点前/后的边际效应差异应通过交互系数而非分组均值直接比较来识别。存款保险制度作为负债端风险感知的结构性断点这一构念, 与 Fang, Wang, Wang & Yuan (2024, International Review of Economics & Finance) 关于中国银行级媒体情感、存款稳定性与系统性风险关系的研究在样本对象 (中国银行业) 与理论机制 (媒体情感的负债端传导) 上高度贴合, 是本交互项设计最直接的同域先例。
-
+sentiment-and-interaction 设计的方法学基础主要来自两支文献汇流: 一支是文本情感测量本身的构造有效性文献, 另一支是交互项/调节效应的计量规范文献。前者的奠基性工作是 Loughran & McDonald (2011, Journal of Finance) 对财报文本情感词典构造有效性的系统检验, 该文奠定了"文本语调需以领域特定词典/规则校准, 而非套用通用情感词典"的方法学共识, 本仓库 stage 22 词典轨与 stage 21 LLM 轨均直接承袭这一传统; 后者的规范做法要求交互项系数的因果解读须以构成项 (tone、depins_post) 同时进入模型为前提, 且断点前/后的边际效应差异应通过交互系数而非分组均值直接比较来识别。存款保险制度作为负债端风险感知的结构性断点这一构念, 与 Fang, Wang, Wang & Yuan (2024, International Review of Economics & Finance) 关于中国银行级媒体情感、存款稳定性与系统性风险关系的研究在样本对象 (中国银行业) 与理论机制 (媒体情感的负债端传导) 上高度贴合, 是本交互项设计最直接的同域先例。 在该同域先例之外, 以 2015 年存保断点作为识别锚这一设定本身, 亦有近期中国银行业文献的直接支撑, 但三者的可引用范围各有边界。Ni、Ren 与 Choi (2024) 明确将《存款保险条例》的施行作为准自然实验来识别其对商业银行盈利能力的影响, 与本家族把 depins_post 设为 1[year >= 2015] 单一时点断点哑变量属同款识别策略, 可作为该断点设定的实证先例; 惟该文估计的是存保制度对盈利能力的处理效应, 本家族则仅把该断点用作交互项的调节变量 (与三轨 LLM 语调相乘), 并不独立估计存保的处理效应, 二者 DV 与构念均无重叠。Ding、Xu、Wu 与 Dai (2025) 考察中国显性存款保险制度对银行主动风险承担与效率的影响, 佐证 2015 断点确实改变了银行负债端的风险激励, 为本交互项赖以成立的机制前提提供前沿实证依据; 但该文全程未涉及媒体语调, 对「语调 × 存保」交互的理论机制不作任何主张, 本家族据以引用的只是断点本身的经济实质性。Chen 与 Zhan (2026) 以贷款层级 (loan-level) 数据考察中国存款保险制度、银行竞争与企业信贷, 表明该断点在中国银行业至今仍属前沿议题; 须诚实说明的是, 该文摘要在 Crossref/OpenAlex/S2 三源均不可得, 除标题所示主题外的样本、口径与结论均未经核实, 故此处仅作议题层面的存在性证明, 不得据以主张任何分组或机制发现; 且其分析单位为贷款层级、DV 为企业信贷, 与本项目银行×年聚合面板 (无贷款层数据) 在层级与结果变量上均不同。三条锚点合计只支撑 depins_post 的断点设定与机制前提, 不改变三轨交互项各自 just-identified 并排、互为稳健性、严禁混入同一 over-identified Hansen J 的既定口径。
 ## VAR: tone_x_depins_ctx
 
 【变体差分】
@@ -78,4 +101,7 @@ ss 轨的构造判据 (银行∧金科同句共现) 与 stage 13 `cooccurrence_f
 Loughran, T., & McDonald, B. (2011). When Is a Liability Not a Liability? Textual Analysis, Dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Goldstein, I. (2023). Information in Financial Markets and Its Real Effects. Review of Finance, 27(1), 1-32. https://doi.org/10.1093/rof/rfac052
+Ni, T., Ren, Y., & Choi, J. (2024). Deposit insurance system and commercial bank profitability: A quasi-natural experiment based on the deposit insurance regulations. Finance Research Letters, 67, 105763. https://doi.org/10.1016/j.frl.2024.105763
+Ding, N., Xu, L., Wu, X., & Dai, Z. (2025). Explicit deposit insurance, active risk taking, and bank efficiency in China. International Review of Financial Analysis, 102, 104139. https://doi.org/10.1016/j.irfa.2025.104139
+Chen, Q., & Zhan, X. (2026). Deposit insurance, bank competition, and corporate lending in China: A loan-level analysis. Research in International Business and Finance, 89, 103456. https://doi.org/10.1016/j.ribaf.2026.103456
 <!-- rendered-citations:end -->

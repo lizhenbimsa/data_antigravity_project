@@ -77,6 +77,27 @@ citations:
   year: 2023
   title: "How to Talk When a Machine Is Listening: Corporate Disclosure in the Age of AI"
   venue: "Review of Financial Studies"
+- doi: "10.1016/j.jbankfin.2026.107698"
+  type: "journal"
+  authors: "Turetken, A. C., & Leippold, M."
+  year: 2026
+  title: "Battle of transformers: Adversarial attacks on financial sentiment models"
+  venue: "Journal of Banking & Finance"
+  vol: "188"
+  pages_or_artno: "107698"
+- doi: "10.1007/s11135-026-02832-9"
+  type: "journal"
+  authors: "Hsu, H.-Y., & Hsu, M.-L."
+  year: 2026
+  title: "Semantic stability protocol: intercoder reliability for zero-shot classification via AI coders"
+  venue: "Quality & Quantity"
+- doi: "10.1287/mnsc.2024.05821"
+  type: "journal"
+  authors: "Bennett, B., Ham, C., Milbourn, T., & Wang, Z."
+  year: 2026
+  title: "Firm-Level Litigation Risk: Measurement and Effects"
+  venue: "Management Science"
+  pages_or_artno: "mnsc.2024.05821"
 new_dois:
   - "10.1093/rfs/hhad021"
 ---
@@ -90,8 +111,7 @@ new_dois:
 计算分两层。第一层在报道层 (article level) 构造二值指示列 _is_bert_pos_symb: 一篇报道当且仅当同时满足两个条件才置 1 — 其一, 被 BERT 三模型 (finbert_cn / fin_sent_zh / finbert2) 以 argmax 多数票集成判为正面 (对应中间列 _is_bert_positive == 1); 其二, 该篇被内容属性判据判为象征性而非实质性。这里必须精确区分集成口径: BERT 概率来自 stage 23 (tone_berts) 的逐篇三分类打分, 但集成并非对情感概率取平均 — 因三模型概率尺度不可比 (finbert2 为二分类 Bernoulli, 其余为三分类), 直接平均概率会被尺度差污染。故实现改为先对每个模型在该篇上取 argmax 得到二值正面标签, 再计算"投正面 (argmax) 的模型占比"(尺度不变), 以该占比 > 0.5 作多数票判定正面。因此 _is_bert_positive 是逐模型 argmax 二值标签的多数票结果, 不是概率均值过阈值 (per-model 独立降级: 若 finbert2 因本地模型缺失而缺席, 仅掉自身一票, 不触发 co-primary 嵌入式的 both-or-neither 连坐)。第二层在 encode.py 的 K 段聚合把报道层指示列按银行—年度做 groupby 求和 (pandas agg 'sum'), 得到 bert_pos_symb_count{track}, 因此本列量纲是非负整数篇数计数, 不是比率、不是归一化分值。该计数随后在 runner.py 被 washing_ratio_bert 消费为分子, 分母是经实质验证的正面篇数 bert_pos_substvalid_count (在其缺失时安全回退到 bert_pos_count), 通过 _safe_ratio 得到 BERT 洗稿率。因此理解本列的正确姿势是: 它是一个中间计数积木, 既可单独作为象征性叙事强度的规模度量, 又是下游洗稿率的分子输入。由于 BERT 集成方法 (E) 与单模型 (E2)、词典均值 (D)、单词典 (D2)、LLM 投票 (A)、高置信子样本 (F) 等并行的多方法象征计数互为稳健性、不分主次, 各方法自成一条 just-identified 的并排证据, 严禁把不同方法的象征计数混入同一条 over-identified 的 Hansen J 过度识别检验 — 这一铁律与本仓三轨、co-primary 双轨嵌入、per-model 稳健性梯子的处置口径完全一致。
 
 【文献定位】
-本家族坐落在金融文本机器度量与"实质—象征"披露质量两条文献的交汇处。在文本度量一侧, Loughran & McDonald (2016) 对会计金融领域文本分析做了权威综述, 确立了词典法与机器学习法各有偏误、需交叉验证的方法论基线; Huang et al. (2023) 提出的 FinBERT 证明了预训练 Transformer 在金融文本情感抽取上相对词典法的增益, 是本家族 BERT 集成分量的直接方法学依托; Bochkay et al. (2023) 进一步梳理了会计文本分析"下一步"的方向, 强调从单纯的极性打分转向对披露内容质量 (如实质性、可核验性) 的刻画 — 这正是本家族在正面极性之上再叠加象征性判据的动机。Devlin et al. (2019) 的 BERT 原始工作提供了底层双向 Transformer 架构。在中文金融文本一侧, Du et al. (2022) 构建的中文金融情感词典与领域特异性发现, 支撑了本仓多方法三角化 (词典 / BERT / LLM) 的整体设计。而象征性构念的组织理论根基则回到 Westphal & Zajac (1994) 与 Bingler et al. (2022) 揭示的"廉价表态、挑肥拣瘦"机制。三轨 (full / ctx / ss) 各自 just-identified 并排、互为稳健性不分主次, 严禁混入同一 over-identified Hansen J。此外, Cao, Jiang, Yang, & Zhang (2023, Review of Financial Studies) 发现企业在算法/机器读者比重上升时会策略性调整文本语气以迎合机器判读, 为本家族用 BERT 机器判定捕捉正面而空洞的象征性披露提供了机器可读性驱动语言策略操纵的最新实证支撑。
-
+本家族坐落在金融文本机器度量与"实质—象征"披露质量两条文献的交汇处。在文本度量一侧, Loughran & McDonald (2016) 对会计金融领域文本分析做了权威综述, 确立了词典法与机器学习法各有偏误、需交叉验证的方法论基线; Huang et al. (2023) 提出的 FinBERT 证明了预训练 Transformer 在金融文本情感抽取上相对词典法的增益, 是本家族 BERT 集成分量的直接方法学依托; Bochkay et al. (2023) 进一步梳理了会计文本分析"下一步"的方向, 强调从单纯的极性打分转向对披露内容质量 (如实质性、可核验性) 的刻画 — 这正是本家族在正面极性之上再叠加象征性判据的动机。Devlin et al. (2019) 的 BERT 原始工作提供了底层双向 Transformer 架构。在中文金融文本一侧, Du et al. (2022) 构建的中文金融情感词典与领域特异性发现, 支撑了本仓多方法三角化 (词典 / BERT / LLM) 的整体设计。而象征性构念的组织理论根基则回到 Westphal & Zajac (1994) 与 Bingler et al. (2022) 揭示的"廉价表态、挑肥拣瘦"机制。三轨 (full / ctx / ss) 各自 just-identified 并排、互为稳健性不分主次, 严禁混入同一 over-identified Hansen J。此外, Cao, Jiang, Yang, & Zhang (2023, Review of Financial Studies) 发现企业在算法/机器读者比重上升时会策略性调整文本语气以迎合机器判读, 为本家族用 BERT 机器判定捕捉正面而空洞的象征性披露提供了机器可读性驱动语言策略操纵的最新实证支撑。 在机器判定本身的可靠性一侧, Turetken 与 Leippold (2026) 对 FinBERT 与生成式 Fin-GPT 施加语义保持的白盒对抗扰动, 发现二者的情感标签预测均被大比例翻转, 表明单一金融情感分类器的 argmax 输出不应被当作无误差的构念真值; 这为本家族不依赖任一模型、而以三个 BERT 的 argmax 多数票集成判定正面提供了直接理据。须注意原文为英文基准数据集上的对抗鲁棒性评测, 其结论是两模型均脆弱而非模型间存在差异, 所涉 Fin-GPT 亦非 BERT 架构, 且不涉及中文语料与 bank-year 聚合。Hsu 与 Hsu (2026) 把同一 LLM 的重复输出视作一组 AI coders, 以 Krippendorff's α 量化并治理零样本分类的随机性, 在 424 篇中文新闻五分类上得到原始输出 α=0.8485、约 20 次聚合后 α>0.94, 佐证多数票聚合可显著提升标签一致性这一本家族集成环节所依赖的机制; 但其"编码者"实为单一模型的多次重复运行, 全文未做任何跨模型比较, 故只支撑聚合逻辑本身, 不构成本家族三个异构 BERT 之间多数票的直接先例 (各模型间还存在 2 vs 3 分类基数差异), 其对象亦为零样本生成式 LLM 而非微调 BERT。就计数量本身进入面板的正当性, Bennett、Ham、Milbourn 与 Wang (2026) 解析 SEC 10-K 构造企业层面诉讼风险的简单透明测度, 以对诉讼发生的预测力 (控制企业特征与固定效应后仍显著) 确立其效度, 并显示该简单测度的表现与资源密集的 AI 生成测度相当, 提示文本派生的实体-年计数型指标可直接充当面板变量, 且其效度应以对外部结果的预测力而非构造精巧度来论证。迁移边界在于原文语料为每公司-年一份的英文 10-K, 测度由单份文档解析得到, 不存在多篇报道在实体-期内的聚合步骤, 其构念为诉讼风险, 亦无情感 softmax 概率与象征性披露门控。
 ## VAR: bert_pos_symb_count_ctx
 
 【变体差分】
@@ -116,4 +136,7 @@ Westphal, J. D., & Zajac, E. J. (1994). Substance and symbolism in CEOs' long-te
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2019). BERT: Pre-training of deep bidirectional transformers for language understanding. arXiv [Preprint]. https://doi.org/10.48550/arXiv.1810.04805
 Cao, S., Jiang, W., Yang, B., & Zhang, A. L. (2023). How to Talk When a Machine Is Listening: Corporate Disclosure in the Age of AI. Review of Financial Studies. https://doi.org/10.1093/rfs/hhad021
+Turetken, A. C., & Leippold, M. (2026). Battle of transformers: Adversarial attacks on financial sentiment models. Journal of Banking & Finance, 188, 107698. https://doi.org/10.1016/j.jbankfin.2026.107698
+Hsu, H.-Y., & Hsu, M.-L. (2026). Semantic stability protocol: intercoder reliability for zero-shot classification via AI coders. Quality & Quantity. https://doi.org/10.1007/s11135-026-02832-9
+Bennett, B., Ham, C., Milbourn, T., & Wang, Z. (2026). Firm-Level Litigation Risk: Measurement and Effects. Management Science, mnsc.2024.05821. https://doi.org/10.1287/mnsc.2024.05821
 <!-- rendered-citations:end -->

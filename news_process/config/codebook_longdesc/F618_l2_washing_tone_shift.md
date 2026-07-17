@@ -42,6 +42,23 @@ citations:
   year: 2025
   title: "Measuring Tone Shifts in Media Coverage: An Empirical Application to Bank Financing Conditions in Italy"
   venue: "SSRN Working Paper"
+- doi: "10.1080/21697213.2024.2337262"
+  type: "journal"
+  authors: "Meng, Q., Du, X., & Gong, X."
+  year: 2024
+  title: "Does operational disclosure curb textual tone manipulation by corporate management?"
+  venue: "China Journal of Accounting Studies"
+  vol: "12"
+  issue: "2"
+  pages_or_artno: "247-275"
+- doi: "10.1016/j.frl.2025.107440"
+  type: "journal"
+  authors: "Gui, K., & Hou, H."
+  year: 2025
+  title: "Digital transformation, media coverage, and management tone manipulation"
+  venue: "Finance Research Letters"
+  vol: "81"
+  pages_or_artno: "107440"
 new_dois: []
 ---
 
@@ -54,8 +71,7 @@ washing_tone_shift 测度的是"银行在媒体上讲故事时, 象征性报道(
 该列的计算发生在 bank-year 面板层, 而非文章层: 上游 LLM 情感三家投票(gpt-5.4-nano / gemini-3.1-flash-lite / deepseek-v4-flash, 详见项目铁律"LLM 三家互为稳健性")已在 stage 21 产出逐篇语调打分并经 majority vote 汇总为 llm_vote_tone; 与此并行, 每篇留篇报道会依据象征性/实质性分类管线打上 sub/symb 标签(该分类同样消费三家 LLM 投票的分类维度, 但与语调打分是两条并行的分类轴, 不可混同); 面板构建阶段先分别在"全部留篇样本"和"象征性子样本"两个行子集上计算各自的 llm_vote_tone{track} 均值, 再在 bank-year 行上做一次简单减法 washing_tone_shift{track} = llm_vote_tone_symb{track} - llm_vote_tone{track}。由于减法在聚合之后而非聚合之前发生, 该量不是"每篇文章语调差异的均值", 而是"象征性子样本均值语调"与"全样本均值语调"两个独立统计量之差, 二者的样本量(n_articles_symb vs. 全部留篇 n_articles)通常不同, 因此该差值继承了小样本(尤其当某银行某年象征性报道篇数很少时)带来的方差膨胀; 使用者在解读极端值或做进一步回归前应结合 n_articles_symb 核查该 bank-year 单元的象征性报道基数是否过薄。三轨 full/ctx/ss 下该量均独立计算, 计算逻辑镜像但输入的文本窗口与上游 sub/symb 分类结果不同轨互不借用, 详见下方 VAR 节与三轨口径说明。取值符号的解释方向: 正值表示象征性报道语调系统性高于全样本(与"漂绿/自我美化"假说一致), 负值表示象征性报道语调反而更保守或更中性(可能反映该银行的宣传性报道并未刻意拔高措辞, 或该子样本本身噪声较大), 零值/接近零意味着两类报道语调无系统性差异, 洗稿式语调拉升的证据不足。
 
 【文献定位】
-本测度的理论谱系直接承袭 Westphal & Zajac (1994, 1998, Administrative Science Quarterly) 关于公司治理"实质-象征"解耦的经典论证, 并将其应用场域从治理改革文本迁移到银行金融科技媒体报道; 在计量操作上则借鉴了近年文本情感"语调错位/语调分歧"测度的一般思路——即不满足于单一整体语调分数, 而是在有意义的子样本切分之间比较语调均值差, 以捕捉叙事策略而非单纯情绪水平。这一思路与 Marchetti, Tarducci & Branzoli (2025, SSRN) 在意大利银行融资条件语境下构建的"媒体语调偏移(tone shift)"银行×年聚合口径高度对应, 二者均将语调偏移定义为同一实体在不同文本子集或时期上的均值语调之差, 而非单篇文章内部的语调波动; Holzman, Miller & Twedt (2023, The Accounting Review) 进一步表明, 媒体语调的结构性特征(而非仅是均值水平)本身携带独立于财务基本面的信息含量, 支持了将"语调结构差异"单列为测度维度而非仅报告整体均值的做法。象征性/实质性分类判据本身则源自 Westphal & Zajac (1998) 对"可观察但难验证的姿态性行动"与"可验证的实质性行动"的操作性区分, 在本项目中经由 LLM 三家投票转译为文章层的可复现分类标签。
-
+本测度的理论谱系直接承袭 Westphal & Zajac (1994, 1998, Administrative Science Quarterly) 关于公司治理"实质-象征"解耦的经典论证, 并将其应用场域从治理改革文本迁移到银行金融科技媒体报道; 在计量操作上则借鉴了近年文本情感"语调错位/语调分歧"测度的一般思路——即不满足于单一整体语调分数, 而是在有意义的子样本切分之间比较语调均值差, 以捕捉叙事策略而非单纯情绪水平。这一思路与 Marchetti, Tarducci & Branzoli (2025, SSRN) 在意大利银行融资条件语境下构建的"媒体语调偏移(tone shift)"银行×年聚合口径高度对应, 二者均将语调偏移定义为同一实体在不同文本子集或时期上的均值语调之差, 而非单篇文章内部的语调波动; Holzman, Miller & Twedt (2023, The Accounting Review) 进一步表明, 媒体语调的结构性特征(而非仅是均值水平)本身携带独立于财务基本面的信息含量, 支持了将"语调结构差异"单列为测度维度而非仅报告整体均值的做法。象征性/实质性分类判据本身则源自 Westphal & Zajac (1998) 对"可观察但难验证的姿态性行动"与"可验证的实质性行动"的操作性区分, 在本项目中经由 LLM 三家投票转译为文章层的可复现分类标签。 语调操纵这一相邻计量传统为本测度提供了直接旁证。Meng、Du 与 Gong (2024) 在中国情境下测量管理层文本语调操纵, 即语调正面程度超出基本面可解释的部分, 并检验经营性披露对其的约束作用; 其"语调 − 基准语调"的差分思路与本列 washing_tone_shift = 象征性子样本语调 − 全样本语调 属同一类语调偏移量化, 且同样处理中文金融文本。迁移边界在于: 该文基准语调来自基本面回归拟合值(残差法), 语调来源为企业自述年报文本, 单位为公司-年; 本列基准是同轨全部留篇的 LLM 投票均值语调, 偏移由子样本减法而非回归残差得到, 文本来源为第三方新闻, 且该文未涉及象征-实质二分, 亦未使用 LLM。Gui 与 Hou (2025) 则同时纳入数字化转型、媒体报道与管理层语调操纵三者, 检验媒体报道对语调操纵的作用, 在中国科技转型语境中将媒体报道与语调操纵直接联结, 与本列在银行金融科技报道上测量语调偏移的构念场景同域; 但其语调操纵仍以企业自述文本为测量对象, 媒体报道仅作解释/调节变量, 主体为非金融上市公司而非银行, 因此该文锚定的是场景相关性, 而非本列子样本均值差这一偏移算子本身。
 ## VAR: washing_tone_shift_full
 
 【变体差分】
@@ -76,4 +92,6 @@ Westphal, J. D., & Zajac, E. J. (1994). Substance and Symbolism in CEOs' Long-Te
 Westphal, J. D., & Zajac, E. J. (1998). The Symbolic Management of Stockholders: Corporate Governance Reforms and Shareholder Reactions. Administrative Science Quarterly, 43(1), 127-153. https://doi.org/10.2307/2393593
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
 Marchetti, S., Tarducci, E., & Branzoli, N. (2025). Measuring Tone Shifts in Media Coverage: An Empirical Application to Bank Financing Conditions in Italy. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.5220056
+Meng, Q., Du, X., & Gong, X. (2024). Does operational disclosure curb textual tone manipulation by corporate management?. China Journal of Accounting Studies, 12(2), 247-275. https://doi.org/10.1080/21697213.2024.2337262
+Gui, K., & Hou, H. (2025). Digital transformation, media coverage, and management tone manipulation. Finance Research Letters, 81, 107440. https://doi.org/10.1016/j.frl.2025.107440
 <!-- rendered-citations:end -->

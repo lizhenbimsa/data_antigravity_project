@@ -58,6 +58,22 @@ citations:
   venue: Decision Support Systems
   vol: '88'
   pages_or_artno: 67-75
+- doi: "10.1016/j.frl.2024.105024"
+  type: "journal"
+  authors: "Huang, W., Liu, J., & Zhang, R.-Z. (."
+  year: 2024
+  title: "Local newspaper closures and non-GAAP reporting quality"
+  venue: "Finance Research Letters"
+  vol: "62"
+  pages_or_artno: "105024"
+- doi: "10.1016/j.iref.2025.104564"
+  type: "journal"
+  authors: "Branzoli, N., Marchetti, S., & Tarducci, E."
+  year: 2025
+  title: "Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy"
+  venue: "International Review of Economics & Finance"
+  vol: "104"
+  pages_or_artno: "104564"
 new_dois: []
 ---
 
@@ -70,8 +86,7 @@ new_dois: []
 本家族的真实计算逻辑落在 `pipeline/panel/attention_media.py` 维度⑨ (地理邻近性, 同省/同城双层) 中, 而非面板导出模块——导出模块 (`pipeline/panel/export.py`) 只承载列名到 Stata 变量标签的字符串映射, 并不参与数值计算。分子分母的口径链条: 首先由 stage 11 `news_bank` 识别每篇报道的目标银行; 其次 `attention_media.py` 加载 `config/bank_addresses.json` 取得各银行注册地省份/城市, 与原始新闻元数据列「国家地区/省份」「城市」(经地名后缀清洗标准化) 逐行比对, 生成 `_is_homecity` 布尔编码 (1=同城/家乡城市媒体, 0=非同城/异地媒体, NaN=地理信息缺失时的显式出域, 不计入任一侧, 避免"来源不可知"被误判为异地); 再次由 stage 21 三家 LLM 投票情感在各轨给出逐篇 `is_negative_{trk}` 二值标记 (负面判定); 最后在银行-年面板聚合层, 对 `_is_homecity == 0` (noncity) 子集分别按轨 groupby(['target_bank','year']) 取 `is_negative_{trk}` 均值, 即 `neg_frac_noncity_{trk}` = (该银行-年内, 属 noncity 媒体子集且该轨情感为负的报道篇数) / (该银行-年内属 noncity 媒体子集的报道总篇数), 分子与分母严格同轨 {trk} 计算, 不跨轨借用分母。当某银行-年 noncity 媒体报道子集为空 (`sub.empty`) 时, groupby 结果天然缺该银行-年行, merge 后落为 NaN (避免 0/0 除法产生虚假 0 值)。变量口径继承 stage 21 的留篇门控与三轨架构: 门控 (是否判定为"一篇银行金科相关报道") 恒以 `llm_verified_full == True` 为准 (2026-06-29 起 full-only 门控铁律), ctx/ss 是 conditional-on-full 的测度轨, 其行宇宙是 full 留篇集的子集, 但情感极性判定 (`is_negative_{trk}`) 逐轨独立计算, 不共用同一份判定结果; noncity 地理归属标签 (`_is_homecity`) 本身与文本轨道正交, 三轨共享同一套地理判据, 差异只落在情感极性判定环节。
 
 【文献定位】
-`neg_frac_noncity` 及其同族变量的地理邻近性构念直接承接 Gurun & Butler (2012, *The Journal of Finance*) 的本地媒体偏向 (local media bias) 框架——该文以美国上市公司为样本, 证明本地媒体对本地企业的报道正面度显著高于异地媒体, 且这一差异可预测公司未来经营绩效, 从而为"媒体地理距离影响报道倾向"提供了顶刊实证基础。本项目将该框架平移到中国银行业语境, 用"城市/省份"两级地理粒度、"负面占比/语气均值/语气差"三类统计量构造对应测度组, `neg_frac_noncity` 是其中"异地负面占比"一支。情感判定本身继承本项目的负面度量传统: 报道级情感极性来自三家 LLM 多数投票共识, 而"负面"这一二值判据的可靠性关切与新闻语境下否定处理 (negation handling) 的一般性方法学问题相关——Punetha & Jain (2025, *Social Network Analysis and Mining*) 与 Pröllochs, Feuerriegel & Neumann (2016, *Decision Support Systems*) 均指出, 情感分析中否定词处理不当会系统性扭曲负面判定的准确率, 这构成本项目在 stage 21/22 情感引擎设计 (LLM 三家投票 + 词典否定翻转规则) 时的方法学背景参照, 而非直接被 `neg_frac_noncity` 调用的算法组件。此外, 负面新闻对企业/银行经营动态的下游影响近年在中国及新兴市场语境下持续被证实, 如 Pham, Huynh, Nguyen & Luu (2025, *Journal of Economics and Development*) 发现投资者由新闻感知到的负面情绪会经由有限理性渠道影响企业困境动态, 为本家族"异地负面报道占比"这一自变量族的下游经济后果解释提供了理论呼应。本家族"noncity 负面占比"这一操作化选择还与 Piotroski, Wong & Zhang (2015, *Journal of Accounting Research*) 关于中国上市公司政治动机压制负面信息的发现相呼应——该文证明地方国有企业存在系统性抑制负面消息披露的政治激励, 而这种抑制在本地 (家乡) 信息渠道中更容易实现、在异地渠道中则更难被同等程度地施加, 从侧面为"家乡媒体 vs. 异地媒体负面占比存在系统性差异"这一构念提供了中国语境下的制度性解释: `neg_frac_noncity` 相对偏高、`neg_frac_homecity` 相对偏低的模式, 既可归因于 Gurun & Butler (2012) 式的本地媒体商业利益驱动的正面倾斜, 也可部分归因于 Piotroski 等 (2015) 式的本地政治关系驱动的负面信息压制, 二者在中国银行业语境下往往同时起作用、难以完全分离, 这是解读本变量组时需要留意的构念混淆来源。
-
+`neg_frac_noncity` 及其同族变量的地理邻近性构念直接承接 Gurun & Butler (2012, *The Journal of Finance*) 的本地媒体偏向 (local media bias) 框架——该文以美国上市公司为样本, 证明本地媒体对本地企业的报道正面度显著高于异地媒体, 且这一差异可预测公司未来经营绩效, 从而为"媒体地理距离影响报道倾向"提供了顶刊实证基础。本项目将该框架平移到中国银行业语境, 用"城市/省份"两级地理粒度、"负面占比/语气均值/语气差"三类统计量构造对应测度组, `neg_frac_noncity` 是其中"异地负面占比"一支。情感判定本身继承本项目的负面度量传统: 报道级情感极性来自三家 LLM 多数投票共识, 而"负面"这一二值判据的可靠性关切与新闻语境下否定处理 (negation handling) 的一般性方法学问题相关——Punetha & Jain (2025, *Social Network Analysis and Mining*) 与 Pröllochs, Feuerriegel & Neumann (2016, *Decision Support Systems*) 均指出, 情感分析中否定词处理不当会系统性扭曲负面判定的准确率, 这构成本项目在 stage 21/22 情感引擎设计 (LLM 三家投票 + 词典否定翻转规则) 时的方法学背景参照, 而非直接被 `neg_frac_noncity` 调用的算法组件。此外, 负面新闻对企业/银行经营动态的下游影响近年在中国及新兴市场语境下持续被证实, 如 Pham, Huynh, Nguyen & Luu (2025, *Journal of Economics and Development*) 发现投资者由新闻感知到的负面情绪会经由有限理性渠道影响企业困境动态, 为本家族"异地负面报道占比"这一自变量族的下游经济后果解释提供了理论呼应。本家族"noncity 负面占比"这一操作化选择还与 Piotroski, Wong & Zhang (2015, *Journal of Accounting Research*) 关于中国上市公司政治动机压制负面信息的发现相呼应——该文证明地方国有企业存在系统性抑制负面消息披露的政治激励, 而这种抑制在本地 (家乡) 信息渠道中更容易实现、在异地渠道中则更难被同等程度地施加, 从侧面为"家乡媒体 vs. 异地媒体负面占比存在系统性差异"这一构念提供了中国语境下的制度性解释: `neg_frac_noncity` 相对偏高、`neg_frac_homecity` 相对偏低的模式, 既可归因于 Gurun & Butler (2012) 式的本地媒体商业利益驱动的正面倾斜, 也可部分归因于 Piotroski 等 (2015) 式的本地政治关系驱动的负面信息压制, 二者在中国银行业语境下往往同时起作用、难以完全分离, 这是解读本变量组时需要留意的构念混淆来源。 在近期文献中, 上述本地/异地媒体二分的构念前提又获得两条独立的补强。Huang、Liu 与 Zhang (2024) 以美国本地报纸停刊作为本地媒体监督减弱的冲击, 检验公司非 GAAP 披露质量的相应变化, 其识别前提正是总部同城的本地媒体与异地媒体在监督功能上不可相互替代——这恰是本家族按媒体来源城市切出 homecity / noncity 两个子样本、并以负面占比作组间对比的构念依据; 需注意该文走的是停刊事件的 DiD 识别, 本家族则是横截面上的同城/异城子样本对比, 且其被解释变量为披露质量而非媒体语调本身, 该文并未度量本地媒体的报道倾向, 故此处只锚定“本地媒体构成不可替代的独立信息渠道”这一半, 不锚定其语调算法。Branzoli、Marchetti 与 Tarducci (2025) 构造媒体报道的语调测度并将其应用于意大利银行的融资条件, 是“新闻语调 → 银行层级结果”这一链条的近期同域实践, 与本家族由报道级情感聚合到银行-年比率测度、再服务于银行层级结果的应用域一致; 但该文语料为意大利媒体 (意/英文), 其语调测度既未使用中文情感词典亦无三家 LLM 投票共识口径, 更无 full/ctx/ss 三轨文本切分与同城/异城媒体划分, 因此仅作同域存在性参照, 不构成对本家族具体构造口径的直接支持。
 ## VAR: neg_frac_noncity_ctx
 
 【变体差分】
@@ -96,4 +111,6 @@ Piotroski, J. D., Wong, T. J., & Zhang, T. (2015). Political incentives to suppr
 Pham, X. T. T., Huynh, D. T., Nguyen, N. T. K., & Luu, T. B. (2025). Investor negativity derived from news shapes firm distress dynamics under bounded rationality. Journal of Economics and Development, 27(4), 309-321. https://doi.org/10.1108/JED-06-2025-0296
 Punetha, N., & Jain, G. (2025). Advancing sentiment analysis by addressing negation handling challenge via unsupervised mathematical approach. Social Network Analysis and Mining, 15(1), Article 20. https://doi.org/10.1007/s13278-025-01416-z
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
+Huang, W., Liu, J., & Zhang, R.-Z. (. (2024). Local newspaper closures and non-GAAP reporting quality. Finance Research Letters, 62, 105024. https://doi.org/10.1016/j.frl.2024.105024
+Branzoli, N., Marchetti, S., & Tarducci, E. (2025). Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy. International Review of Economics & Finance, 104, 104564. https://doi.org/10.1016/j.iref.2025.104564
 <!-- rendered-citations:end -->

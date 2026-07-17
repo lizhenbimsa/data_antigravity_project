@@ -49,6 +49,31 @@ citations:
   vol: "84"
   issue: "1"
   pages_or_artno: "101-115"
+- doi: "10.1007/s11142-024-09821-z"
+  type: "journal"
+  authors: "Li, N."
+  year: 2025
+  title: "Labor market peer firms: understanding firms’ labor market linkages through employees’ internet “also viewed” firms"
+  venue: "Review of Accounting Studies"
+  vol: "30"
+  issue: "1"
+  pages_or_artno: "384-435"
+- doi: "10.1080/1540496x.2025.2479064"
+  type: "journal"
+  authors: "Wang, Q., Xiang, C., Xin, Z., & Li, C."
+  year: 2025
+  title: "The Peer Influence on Green Innovation: Evidence from Product-Similarity-Based Peer Firms in China"
+  venue: "Emerging Markets Finance and Trade"
+  vol: "61"
+  issue: "11"
+  pages_or_artno: "3595-3611"
+- doi: "10.1109/cifer62890.2024.10772990"
+  type: "journal"
+  authors: "Vamvourellis, D., Tóth, M., Bhagat, S., Desai, D., Mehta, D., & Pasquali, S."
+  year: 2024
+  title: "Company Similarity Using Large Language Models"
+  venue: "2024 IEEE Symposium on Computational Intelligence for Financial Engineering and Economics (CIFEr)"
+  pages_or_artno: "1-9"
 new_dois: []
 ---
 
@@ -63,8 +88,7 @@ new_dois: []
 计算流程分三步。第一步, 为每个"银行 × 年度"单元, 从其全部三轨新闻文本(full/ctx/ss, 见下)聚合出一个代表性语义嵌入向量; 该嵌入向量并非取自 stage 25 `article_sbert` 的句子级产物, 而是本模块(`strategic_diff.py`)在 14_materialize_ctx 聚合出的银行-年度文本之上, 经 `_embed_texts_with_chunk_pooling` 直接调用嵌入 API 现算得到——主轨模型为硅基流动 API 的 `Qwen/Qwen3-Embedding-8B`(4096 维, `EMBEDDING_CONFIG` 配置), co-primary 对偶轨模型为 OpenAI/yunwu 的 `text-embedding-3-large`(3072 维, `_LARGE_SPEC` 配置, 家族列名带 `_lg` 后缀); 二者与 stage 25 句子级嵌入是模型选型上的姊妹关系, 但不存在消费/被消费的产物依赖。第二步, 以银行-年度为节点、跨节点计算成对余弦相似度矩阵(对角线设为 NaN, 排除自比), 相似度截断到嵌入余弦的真值域 [-1, 1](而非误伤的 [0, 1], 这一点在 2026-06-11 修复中被专门校正, 因为原先的 [0,1] 截断会把嵌入空间真实存在的负余弦值错误地下限到 0, 人为压低差异度上限)。第三步, 对每个银行-年度节点, 在相似度矩阵中按降序取相似度最高的 N=50 个"同行"(J_i^{50}), 计算每对的文本距离 δ_ij = 1 − cos(v_i, v_j), 再对这 50 个距离取算术平均, 得到该银行-年度的差异度得分 Ŝ_i = (1/50) Σ δ_ij。若某银行-年度在给定年份的可比同行数不足 50 家(|peers| < 50), 则该格直接置为缺失(NaN), 而非静默地用"能凑到的同行数"降级计算——这是 2026-06-11 (fix omni-g-strategic-05) 专门修复的一个隐蔽问题: 早期实现里 k=min(N, |peers|) 的静默降级会让 n3..n7 这样的小 N 档在低覆盖年份塌缩成同一个值, 制造出虚假的"N 敏感性稳健"假象; 现在的实现严格要求同行数达标才出值, 覆盖不足即诚实报缺失。由于差异度定义为 1 减余弦相似度且相似度真值域是 [-1, 1], 距离的理论值域相应扩展为 [0, 2](与家族基准 N=5 档及 TF-IDF/LDA 等值域 [0,1] 的其他方法档不同, 是本嵌入类专属的值域扩张; 详见各 VAR 节的值域说明)。
 
 【文献定位】
-本家族方法论直接来自 Guzman & Li (2023), 该文用美国企业注册文件的文本相似度构造"创业战略"测度, 核心公式即本家族逐字复刻的 Ŝ_i = (1/N) Σ δ_ij; 本项目把这一测量框架从企业注册文本迁移到银行金科新闻文本, 应用场景不同但转换规则严格对应。构念定位上呼应 Hoberg & Phillips (2016) 开创的文本产业分类范式(TNIC), 二者共享"文本相似度→产品市场/战略定位相似度"的核心识别逻辑, 但 Hoberg & Phillips 用于构造产业分类边界, 本家族用于构造连续型差异度得分。N 值敏感性检验的必要性还可参考 Rodriguez & Spirling (2022, The Journal of Politics) 对应用研究中词嵌入测度有效性的系统讨论——该文指出嵌入模型的具体规格选择(训练语料、维度、相似度截断规则等)会实质影响下游测度的数值稳定性, 因而任何基于嵌入相似度构造的连续测度都应报告对关键规格选择的敏感性证据; 本家族的 N∈{5,10,20,30,40,50} 邻域梯子正是把"改变邻域范围、检验结论是否稳健"这一设计思路落到文本嵌入空间里的具体实现, 与 co-primary 双嵌入引擎、三轨文本梯子共同构成本家族的规格稳健性证据链。研究者在把本家族差异度得分接入结果方程时, 还应留意 Haans(2019, Strategic Management Journal)对"独特性—绩效"关系的提醒: 该文发现文本/属性距离度量的距离-绩效关系并非单调线性, 而是随所处品类的同质/异质程度不同而呈现形态各异的曲线(在高度同质化的品类里适度差异化可能提升绩效, 在本就高度异质化的品类里同样的差异度增量则可能不再有边际效应, 甚至转为负向), 因此在下游回归里对本家族差异度得分(不论 N=5 还是本档 N=50)贸然只设线性项, 有可能掩盖真实存在的非线性/门槛效应; 建议至少以二次项或分档哑变量做形态敏感性检验, 这与本家族既有的 N 值邻域梯子、三轨梯子、双嵌入梯子共同构成对结论稳健性的多重交叉验证。
-
+本家族方法论直接来自 Guzman & Li (2023), 该文用美国企业注册文件的文本相似度构造"创业战略"测度, 核心公式即本家族逐字复刻的 Ŝ_i = (1/N) Σ δ_ij; 本项目把这一测量框架从企业注册文本迁移到银行金科新闻文本, 应用场景不同但转换规则严格对应。构念定位上呼应 Hoberg & Phillips (2016) 开创的文本产业分类范式(TNIC), 二者共享"文本相似度→产品市场/战略定位相似度"的核心识别逻辑, 但 Hoberg & Phillips 用于构造产业分类边界, 本家族用于构造连续型差异度得分。N 值敏感性检验的必要性还可参考 Rodriguez & Spirling (2022, The Journal of Politics) 对应用研究中词嵌入测度有效性的系统讨论——该文指出嵌入模型的具体规格选择(训练语料、维度、相似度截断规则等)会实质影响下游测度的数值稳定性, 因而任何基于嵌入相似度构造的连续测度都应报告对关键规格选择的敏感性证据; 本家族的 N∈{5,10,20,30,40,50} 邻域梯子正是把"改变邻域范围、检验结论是否稳健"这一设计思路落到文本嵌入空间里的具体实现, 与 co-primary 双嵌入引擎、三轨文本梯子共同构成本家族的规格稳健性证据链。研究者在把本家族差异度得分接入结果方程时, 还应留意 Haans(2019, Strategic Management Journal)对"独特性—绩效"关系的提醒: 该文发现文本/属性距离度量的距离-绩效关系并非单调线性, 而是随所处品类的同质/异质程度不同而呈现形态各异的曲线(在高度同质化的品类里适度差异化可能提升绩效, 在本就高度异质化的品类里同样的差异度增量则可能不再有边际效应, 甚至转为负向), 因此在下游回归里对本家族差异度得分(不论 N=5 还是本档 N=50)贸然只设线性项, 有可能掩盖真实存在的非线性/门槛效应; 建议至少以二次项或分档哑变量做形态敏感性检验, 这与本家族既有的 N 值邻域梯子、三轨梯子、双嵌入梯子共同构成对结论稳健性的多重交叉验证。 同业集合由相似度检索给定、而非由行业代码外生指定这一设计前提, 近期得到 Li (2025) 的支持: 该文由员工在职业社交平台上「也浏览了」的共现关系导出一套不依赖 SIC/GICS 的同业集合, 并实证证明其与传统行业分组仅部分重叠、在解释股票收益与会计业绩共动上具增量解释力, 捕捉了行业代码遗漏的企业间联结; 惟其 peer 来源为浏览行为网络共现而非文本嵌入余弦相似度, 样本为美国公司-年, 且原文止于同业联结与会计信息迁移的分析, 不构造任何在 kNN 邻域上取 (1−cos) 均值的差异化得分, 亦不取邻域内极值。中国语境下的同域证据见 Wang、Xiang、Xin 与 Li (2025), 该文以产品文本相似度定义中国上市公司的同业集合并据此识别同业间绿色创新影响, 说明文本相似度定义的同业在本项目所处语境中可用且有解释力; 但其语料为公司自述年报产品描述、向量化为 TF-IDF 词频空间, 与本族的第三方媒体报道语料 (他述) 及 Qwen3/text-embedding-3 神经嵌入在文本生成过程、选择性偏误与表征空间上均不同, 且原文以同业集合做 peer effect 回归, 不取余弦距离均值作差异化得分。至于 δ_ij = 1 − cos(v_i, v_j) 所依赖的「神经嵌入空间中的公司余弦相似度确实承载行业/业务可比性信息」这一核心前提, Vamvourellis、Toth、Bhagat、Desai、Mehta 与 Pasquali (2024) 用 LLM 从企业业务描述学习公司嵌入, 并以嵌入余弦相似度重建 GICS 行业分类作为效度检验, 提供了嵌入相似度的构念效度证据; 该文语料为 SEC 备案的英文业务描述, 嵌入模型为其自训/微调 LLM 而非本族的 Qwen3-Embedding-8B 与 text-embedding-3-large, 效度标尺为 GICS 复现而本项目无对应行业分类标尺, 且原文止于相似度检索、未取 top-N 距离均值作差异化得分, 故本条仅锚定前提的构念效度, 而非本族算子的出处。
 【口径铁律复述】本家族列同时横跨两条正交梯子: (1) top-k N 邻域梯子(N∈{5,10,20,30,40,50}, F502 固定 N=50 档), (2) 三轨文本梯子(full/ctx/ss)与 co-primary 双轨嵌入梯子(Qwen 主轨/`_lg` text-embedding-3-large 对偶轨)。full/ctx/ss 三轨各自独立成文、就地识别(just-identified)并排, 互为稳健性检验、不分主次, 禁止把三轨证据混入同一个 over-identified Hansen J 检验; Qwen 主轨与 `_lg` 对偶轨同为 co-primary 主测度、互为稳健性, 严格 parity(任一嵌入引擎调用失败或返回形状异常, 同族无后缀列与 `_lg` 列一并置 NaN, 不出现单边孤儿列), 同样禁止混入同一 Hansen J。N=50 与 N∈{5,10,20,30,40} 等其余邻域档也是并排的敏感性臂, 不存在"哪个 N 更权威"的主次关系——研究者应把 N=50 结果与家族 canonical N=5 结果对照报告, 只要方向与显著性在整个 N 梯子上保持稳定, 即构成对"邻域半径选择不驱动结论"的稳健性证据。此外, full 轨遵循 2026-06-29 起生效的留篇门控口径: 是否判定为"一篇银行金科报道"只看 `llm_verified_full`, ctx/ss 轨的行宇宙是 full 留篇集合的子集, 各轨的分子分母均逐轨独立计算, 不借用彼此的分母。
 
 ## VAR: strat_diff_n50_emb
@@ -114,4 +138,7 @@ Guzman, J., & Li, A. (2023). Measuring Founding Strategy. Management Science, 69
 Hoberg, G., & Phillips, G. (2016). Text-Based Network Industries and Endogenous Product Differentiation. Journal of Political Economy, 124(5), 1423-1465. https://doi.org/10.1086/688176
 Haans, R. F. J. (2019). What's the Value of Being Different When Everyone Is? The Effects of Distinctiveness on Performance in Homogeneous versus Heterogeneous Categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978
 Rodriguez, P. L., & Spirling, A. (2022). Word Embeddings: What Works, What Doesn't, and How to Tell the Difference for Applied Research. The Journal of Politics, 84(1), 101-115. https://doi.org/10.1086/715162
+Li, N. (2025). Labor market peer firms: understanding firms’ labor market linkages through employees’ internet “also viewed” firms. Review of Accounting Studies, 30(1), 384-435. https://doi.org/10.1007/s11142-024-09821-z
+Wang, Q., Xiang, C., Xin, Z., & Li, C. (2025). The Peer Influence on Green Innovation: Evidence from Product-Similarity-Based Peer Firms in China. Emerging Markets Finance and Trade, 61(11), 3595-3611. https://doi.org/10.1080/1540496x.2025.2479064
+Vamvourellis, D., Tóth, M., Bhagat, S., Desai, D., Mehta, D., & Pasquali, S. (2024). Company Similarity Using Large Language Models. 2024 IEEE Symposium on Computational Intelligence for Financial Engineering and Economics (CIFEr), 1-9. https://doi.org/10.1109/cifer62890.2024.10772990
 <!-- rendered-citations:end -->

@@ -35,6 +35,14 @@ citations:
   vol: '62'
   issue: '3'
   pages_or_artno: 1139-1168
+- doi: "10.1016/j.frl.2024.105128"
+  type: "journal"
+  authors: "Zhang, Z., & Shen, D."
+  year: 2024
+  title: "Not all the news fitting to reprint: Evidence from price-volume relationship"
+  venue: "Finance Research Letters"
+  vol: "62"
+  pages_or_artno: "105128"
 new_dois: []
 ---
 
@@ -53,8 +61,7 @@ staff_written_frac 度量一家银行在某年度全部报道中, 由"具名记�
 【文献定位】
 署名/来源原创性作为新闻信息质量的代理变量, 在会计与金融的媒体研究文献中有明确谱系。Guest (2021, *Journal of Accounting Research*)系统考察了媒体在盈余新闻传播过程中的信息角色, 强调媒体报道对信息传播效率的边际贡献取决于其生产方式与信息含量, 是本列"投入端原创性"构念的相关文献锚点——若照此逻辑推演, 记者独立采写的报道相较机械转发的通讯社通稿, 理论上更可能包含增量分析与背景信息, 但二者对投资者信息环境边际贡献的具体差异性大小, 需留待本项目实证部分检验而非文献先验断言。这一"报道形式特征而非情感极性"的代理变量思路, 与 Tetlock (2007, *Journal of Finance*)率先把媒体文本的可计量属性(而非事后归因的定性判断)引入资产定价研究的方法论取向一脉相承——staff_written_frac 与家族内 frac_front_page/avg_page_rank/frac_target_in_lead 共同构成一组不依赖情感极性、仅依赖报道"形式特征"的注意力与信息质量代理变量集。此外, Carlin, Longstaff & Matoba (2014, *Journal of Financial Economics*)关于信息来源异质性与资产价格分歧的研究, 为"报道来源(记者原创 vs. 通稿转载)可能系统性影响信息在市场参与者间的分散程度"这一机制提供了间接的理论支撑, 可作为本列在稳健性讨论中论证"来源原创性并非中性噪声"的辅助引注。
 
-在本项目的面板体系中, staff_written_frac 通常作为控制变量或异质性分组变量出现, 用以排除"报道数量效应实为通稿灌水效应"的替代解释: 若某银行当年报道量激增主要由 wire_frac 上升驱动而非 staff_written_frac, 则该银行真实获得的媒体关注(记者主动采写、深度报道)可能被简单计数指标(n_articles)高估。
-
+在本项目的面板体系中, staff_written_frac 通常作为控制变量或异质性分组变量出现, 用以排除"报道数量效应实为通稿灌水效应"的替代解释: 若某银行当年报道量激增主要由 wire_frac 上升驱动而非 staff_written_frac, 则该银行真实获得的媒体关注(记者主动采写、深度报道)可能被简单计数指标(n_articles)高估。 更贴近本列判据的近期前沿证据来自 Zhang 与 Shen (2024): 该文把新闻明确区分为转载/再刊与非转载两类, 并证明二者在价量关系上的市场含义不同, 从而在文章层面确证「同一条报道是原创产制还是二次分发」本身即是具信息含量的属性——这正是 staff_written_frac 与其镜像列 wire_frac 赖以成立的前提。其迁移边界须诚实标明: 原文的转载判定取自新闻数据库自带的转载标记, 本列则由 parse_byline() 扫描「作者」字段与正文前 60 字电头关键词规则判定 (作者字段空且电头未命中时记 NaN 不入分母), 判据来源完全不同; 且原文停在文章级、以价量关系为结果变量, 既未做主体-年度的均值聚合, 亦未触及署名 (byline) 这一独立维度。故该文仅支撑「来源原创性并非中性噪声」这一层, 不可外推为对本列 bank-year 聚合口径的直接验证。
 ## VAR: staff_written_frac
 
 【变体差分】
@@ -72,4 +79,5 @@ staff_written_frac 度量一家银行在某年度全部报道中, 由"具名记�
 Guest, N. M. (2021). The Information Role of the Media in Earnings News. Journal of Accounting Research, 59(3), 1021-1076. https://doi.org/10.1111/1475-679X.12349
 Carlin, B. I., Longstaff, F. A., & Matoba, K. (2014). Disagreement and Asset Prices. Journal of Financial Economics, 114(2), 226-238. https://doi.org/10.1016/j.jfineco.2014.06.007
 Tetlock, P. C. (2007). Giving Content to Investor Sentiment — The Role of Media in the Stock Market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Zhang, Z., & Shen, D. (2024). Not all the news fitting to reprint: Evidence from price-volume relationship. Finance Research Letters, 62, 105128. https://doi.org/10.1016/j.frl.2024.105128
 <!-- rendered-citations:end -->

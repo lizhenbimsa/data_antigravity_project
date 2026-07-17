@@ -55,6 +55,14 @@ citations:
   vol: 66
   issue: 1
   pages_or_artno: 35-65
+- doi: "10.1016/j.frl.2024.105265"
+  type: "journal"
+  authors: "Huang, J., & Ma, L."
+  year: 2024
+  title: "Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation"
+  venue: "Finance Research Letters"
+  vol: "63"
+  pages_or_artno: "105265"
 new_dois: []
 ---
 
@@ -67,8 +75,7 @@ new_dois: []
 计算分两级。篇章级: runner 在洗稿率前置步骤中, 对每篇报道构造指示列 _svd_bian_2021_pos{track}, 其值为 1 当且仅当两条件同时成立 — 该篇 Bian 词典得分大于零 (正面, _d_pos) 且该篇实质性已被成功测量 (实质性已测量掩码 _subst_measured)。这里存在一个关键的口径不对称, 必须准确理解: 只有正面判据是逐轨的, 实质性掩码不是。极性判据复用 Bian 词典的连续极性得分 bian_2021_score{track}, 逐轨在各自文本窗口 (full/ctx/ss) 上计算, 其构造遵循经典词典法 — 统计文本中正面与负面情感词的加权出现, 经否定翻转/程度副词/转折等语言学规则后归一, 得分为正即整体正面。而实质性已测量掩码 _subst_measured 在源码中恒由 innovation_substantiveness_full 单列派生 (runner 取 df['innovation_substantiveness_full'], 判其是否落在合法标签集 {实质性, 象征性} 内), 三轨的 _svd_bian_2021_pos_full/_ctx/_ss 共用这同一个 full 轨掩码, 并不存在 innovation_substantiveness_ctx 或 innovation_substantiveness_ss 的逐轨实质性标签参与本计数。这是 v3.2.0 的刻意设计 (裸 innovation_substantiveness 已删, 单独以 _full 作 main spec): 实质性是一篇报道的整体属性, 由 full 轨全文语境判读最稳, 无需随文本窗口重判。实质性标签本身来自 stage 21 三家大模型 (gpt54nano / gemini31 / deepseekv4) 对 W&Z (1994/1998) 实质性-象征性二分构念的多数投票; 缺测行经 astype(str) 会落到 'nan' 因而恒不入合法集, 自动被排除。bank-year 级: runner 的 _pool_svd_substvalid_counts 把同一 (target_bank, year) 内所有篇章的 _svd_bian_2021_pos{track} 按 sum 聚合, 并重命名为 bian_2021_pos_substvalid_count{track}。因列名以 _count_{track} 结尾, 它命中 balance_panel 的计数零填规则: 零新闻的银行-年度补零, 下游洗稿率除法在分母为零时经 _safe_ratio 优雅返回缺失而非报错。该列本身恒为非负整数, 但落盘 dtype 为 double 以容纳缺失哨兵。本计数是 Bian 词典这一"逐词典 (D2) 洗稿率通道"的分母, 与 LLM 投票 (方法 A)、单模型 (A2)、词典均值 (D)、BERT (E/E2)、高置信子样本 (F) 等并列方法各自的同域分母互不混用。
 
 【文献定位】
-本家族坐落在"计数型金融文本测度"与"象征性披露 (cheap talk / 洗稿) 度量"两条文献脉络的交汇处。词典侧, Loughran and McDonald (2011) 奠定了以领域专用词表而非通用心理学词表度量金融文本极性的范式, 其"负面词未必是负债"的洞见提示中文语境同样需要本土化词典; Bian et al. (2021) 正是在此思路下构造的中文金融情感词典, 为本家族提供正面判据的词表来源。Gentzkow et al. (2019) 在方法学层面系统化了"文本即数据"的统计处理, 强调计数向量作为文本表征基元的地位。作为计数变量, 本家族的下游计量须正视 Cohn et al. (2022) 关于金融中计数 (与类计数) 数据的告诫 — 计数分母的构造口径 (数谁、不数谁) 会直接改变以其为基的比率的分布形态与推断, 这恰是本家族强调"同域分母"的计量根据。构念定位上, 本计数服务的洗稿率属于 Bingler et al. (2024) 所刻画的"廉价话语"实证家族: 用文本测度区分"说了漂亮话"与"做了实质事", 度量披露与行动之间的脱耦。需要强调, 本家族并非情感强度的直接测度, 而是"正面且可判读"报道的规模计数, 它只在与分子配对成洗稿率后才承载 cheap-talk 语义。三轨 (full/ctx/ss) 是同一构念在不同文本窗口上的并排实现, 各自 just-identified、互为稳健性、不分主次, 严禁把三轨计数混入同一 over-identified 的 Hansen J 统计量; 留篇门控采用 full-only 口径 (一篇报道是否算作银行金科报道只看 full 轨语义验证), ctx/ss 为 conditional-on-full 的子集测度。
-
+本家族坐落在"计数型金融文本测度"与"象征性披露 (cheap talk / 洗稿) 度量"两条文献脉络的交汇处。词典侧, Loughran and McDonald (2011) 奠定了以领域专用词表而非通用心理学词表度量金融文本极性的范式, 其"负面词未必是负债"的洞见提示中文语境同样需要本土化词典; Bian et al. (2021) 正是在此思路下构造的中文金融情感词典, 为本家族提供正面判据的词表来源。Gentzkow et al. (2019) 在方法学层面系统化了"文本即数据"的统计处理, 强调计数向量作为文本表征基元的地位。作为计数变量, 本家族的下游计量须正视 Cohn et al. (2022) 关于金融中计数 (与类计数) 数据的告诫 — 计数分母的构造口径 (数谁、不数谁) 会直接改变以其为基的比率的分布形态与推断, 这恰是本家族强调"同域分母"的计量根据。构念定位上, 本计数服务的洗稿率属于 Bingler et al. (2024) 所刻画的"廉价话语"实证家族: 用文本测度区分"说了漂亮话"与"做了实质事", 度量披露与行动之间的脱耦。需要强调, 本家族并非情感强度的直接测度, 而是"正面且可判读"报道的规模计数, 它只在与分子配对成洗稿率后才承载 cheap-talk 语义。三轨 (full/ctx/ss) 是同一构念在不同文本窗口上的并排实现, 各自 just-identified、互为稳健性、不分主次, 严禁把三轨计数混入同一 over-identified 的 Hansen J 统计量; 留篇门控采用 full-only 口径 (一篇报道是否算作银行金科报道只看 full 轨语义验证), ctx/ss 为 conditional-on-full 的子集测度。 就实质性—象征性这一二分本身的当代同域应用而言, Huang 与 Ma (2024) 以金融科技发展为解释变量, 检验其对企业实质性绿色创新与象征性绿色创新的差异化影响, 在中国情境下明确采用该二分切分, 与本家族所依赖的 innovation_substantiveness 标签在概念界定与中文表述上直接对应, 表明这一二分在金融科技议题下已是被接受的实证切分方式, 从而为本计数的「实质性已测量」条件所预设的合法标签集提供了构念层的同域佐证。迁移边界须如实写明三点: 其一, 原文的实质与象征由专利类型 (发明专利 vs 实用新型与外观设计) 客观划分, 本家族则由三家大模型对单篇新闻报道的话语作直接判读, 判定机制与数据类型均不同; 其二, 原文主体为非金融上市公司且金融科技处于解释变量位置, 本家族主体为商业银行且金融科技是被报道的议题本身; 其三, 原文未构造任何比率型洗稿指标, 更未处理分类缺测所致的分子分母失配, 因此它只锚定本家族所用二分构念的合法性, 不锚定「同域分母」这一计量构造本身。
 ## VAR: bian_2021_pos_substvalid_count_full
 
 【变体差分】
@@ -90,4 +97,5 @@ Cohn, J. B., Liu, Z., & Wardlaw, M. I. (2022). Count (and count-like) data in fi
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
+Huang, J., & Ma, L. (2024). Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation. Finance Research Letters, 63, 105265. https://doi.org/10.1016/j.frl.2024.105265
 <!-- rendered-citations:end -->

@@ -35,6 +35,22 @@ citations:
   year: 1994
   title: Substance and Symbolism in CEOs' Long-Term Incentive Plans
   venue: Administrative Science Quarterly
+- doi: "10.1016/j.frl.2024.105265"
+  type: "journal"
+  authors: "Huang, J., & Ma, L."
+  year: 2024
+  title: "Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation"
+  venue: "Finance Research Letters"
+  vol: "63"
+  pages_or_artno: "105265"
+- doi: "10.1016/j.technovation.2023.102880"
+  type: "journal"
+  authors: "Granados, C., Ayala, Y., & Ramos-Mejia, M."
+  year: 2024
+  title: "Is it substantive or just symbolic? Understanding innovation theater in organisations: The case of technology-based innovation"
+  venue: "Technovation"
+  vol: "129"
+  pages_or_artno: "102880"
 new_dois: []
 ---
 
@@ -55,8 +71,7 @@ new_dois: []
 本列继承项目三轨架构的通用语义: full 轨以标题+全文正文为判定文本, ctx 轨以标题+实体窗口截取文本为判定文本, ss 轨以标题+银行∧金科同句(±N 句窗, 默认 N=1)共现片段为判定文本。需注意本列的三轨并非「分子分母均逐轨独立」的完整并排结构——三轨在分子(该篇是否被判正面情感)上各自独立取值, 但分母有效性门槛(该篇 `innovation_substantiveness` 是否成功测量)恒由 full 轨给出并在三轨间共用, 这一非对称结构是 `_pool_svd_substvalid_counts` 的真实实现口径, 与「逐轨读取 innovation_substantiveness{track}」的直觉表述不同。即便如此, 三轨计数在下游(如 washing_ratio{track})各自 just-identified 并排、互为稳健性、不分主次, 铁律是三轨结果禁止混入同一 over-identified Hansen J 检验框架。ss 轨的回退语义镜像 ctx 轨: 当某篇文章不存在银行∧金科同句共现时, `content_ss` 回退为全文 body(与 `content_full` 相同文本), 对应 `ss_is_fallback` 标记为真, 该情形下 `pos_substvalid_count_ss` 的计入逻辑与 full 轨共享同一批文章池, 但计数本身仍按 ss 轨独立累加, 不借用 full 轨的计数结果。留篇门控口径遵循 2026-06-29 起生效的 full-only 铁律: 一篇文章是否被认定为「一篇银行金科报道」只取决于 `llm_verified_full == True`, ctx/ss 是 conditional-on-full 的测度轨, 其行宇宙是 full 轨留篇集合的子集; 因此 `pos_substvalid_count_ctx`/`_ss` 的样本篇数上限不会超过 `pos_substvalid_count_full` 对应的留篇集合规模。
 
 【文献定位】
-本列所服务的洗稿率(washing ratio)测度族, 其构念根源是组织理论中实质与象征的区分传统。Westphal & Zajac (1994, *Administrative Science Quarterly*) 提出企业治理实践采纳存在「实质性执行」与「象征性姿态」的分野, 这一区分被后续文献扩展到 ESG/可持续发展披露领域的「漂绿」(greenwashing)研究: Duchin, Gao & Xu (2025, *The Journal of Finance*) 通过资产市场证据区分可持续性实践的真实性与象征性; Giannetti, Jasova, Loumioti & Mendicino (2026, *Management Science*) 记录了银行环境披露与实际放贷行为之间的脱钩现象, 与本项目「情感正面但实质性缺失」的洗稿构念高度同构, 均以「话语层面的正面表述」与「可验证的实质行为/内容」之间的落差作为核心识别标的。本列作为该类测度的分母基石, 其方法学定位对应文本量化研究中「以 LLM 标注承担分类任务、并以有效样本(而非全样本)作比率分母」的通用规范, Gentzkow, Kelly & Taddy (2019, *Journal of Economic Literature*) 对文本作数据(text as data)的方法论综述强调了此类比率测度必须保证分子分母定义域一致, 这正是本列存在的直接方法学动机。
-
+本列所服务的洗稿率(washing ratio)测度族, 其构念根源是组织理论中实质与象征的区分传统。Westphal & Zajac (1994, *Administrative Science Quarterly*) 提出企业治理实践采纳存在「实质性执行」与「象征性姿态」的分野, 这一区分被后续文献扩展到 ESG/可持续发展披露领域的「漂绿」(greenwashing)研究: Duchin, Gao & Xu (2025, *The Journal of Finance*) 通过资产市场证据区分可持续性实践的真实性与象征性; Giannetti, Jasova, Loumioti & Mendicino (2026, *Management Science*) 记录了银行环境披露与实际放贷行为之间的脱钩现象, 与本项目「情感正面但实质性缺失」的洗稿构念高度同构, 均以「话语层面的正面表述」与「可验证的实质行为/内容」之间的落差作为核心识别标的。本列作为该类测度的分母基石, 其方法学定位对应文本量化研究中「以 LLM 标注承担分类任务、并以有效样本(而非全样本)作比率分母」的通用规范, Gentzkow, Kelly & Taddy (2019, *Journal of Economic Literature*) 对文本作数据(text as data)的方法论综述强调了此类比率测度必须保证分子分母定义域一致, 这正是本列存在的直接方法学动机。 在金融科技这一具体议题下, Huang 与 Ma (2024) 检验金融科技发展对企业实质性绿色创新与象征性绿色创新的差异化影响, 明确采用「实质性 vs 象征性」二分, 与本列分母有效性判据所依赖的 innovation_substantiveness 标签在概念与中文表述上直接对应, 说明该二分在金融科技语境下已具备既有实证基础; 迁移边界在于, 原文的实质/象征由专利类型 (发明 vs 实用新型/外观) 客观划分、主体为非金融上市公司且金融科技是解释变量, 本项目则由 LLM 对新闻文本逐篇判定、主体为银行且金融科技是被报道的议题本身, 原文亦未构造任何比率型 washing 指标, 因此它只锚定二分标签的构念合法性, 不锚定本列作为比率分母的构造方式。构念的理论界定则可参照 Granados、Ayala 与 Ramos-Mejia (2024) 对「创新剧场」(innovation theater) 的系统刻画, 即技术创新的象征性展演与实质性投入之分野, 这为本列「唯有实质性判定被成功给出的报道才具备进入分母的资格」提供了理论上的必要性依据 —— 若实质与象征之别本身不成立, 该有效性判据即无构念意义; 须诚实标明的是, 原文为组织层面的构念研究, 并未提供文本自动分类算法, 非中国语境、非银行业、亦无面板计量, 本项目把该构念操作化为 LLM 对新闻报道话语的逐篇标签并按银行-年计数, 操作化层级与数据类型均与原文不同。
 ## VAR: pos_substvalid_count_full
 
 【变体差分】
@@ -83,6 +98,8 @@ Duchin, R., Gao, J., & Xu, Q. (2025). Sustainability or Greenwashing: Evidence f
 Giannetti, M., Jasova, M., Loumioti, M., & Mendicino, C. (2026). "Glossy Green" Banks: The Disconnect Between Environmental Disclosures and Lending Activities. Management Science. https://doi.org/10.1287/mnsc.2024.07420
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as Data. Journal of Economic Literature. https://doi.org/10.1257/jel.20181020
 Westphal, J. D., & Zajac, E. J. (1994). Substance and Symbolism in CEOs' Long-Term Incentive Plans. Administrative Science Quarterly. https://doi.org/10.2307/2393295
+Huang, J., & Ma, L. (2024). Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation. Finance Research Letters, 63, 105265. https://doi.org/10.1016/j.frl.2024.105265
+Granados, C., Ayala, Y., & Ramos-Mejia, M. (2024). Is it substantive or just symbolic? Understanding innovation theater in organisations: The case of technology-based innovation. Technovation, 129, 102880. https://doi.org/10.1016/j.technovation.2023.102880
 <!-- rendered-citations:end -->
 </content>
 </invoke>

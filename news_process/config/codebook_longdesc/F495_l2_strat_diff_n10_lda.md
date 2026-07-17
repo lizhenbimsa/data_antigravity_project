@@ -45,6 +45,24 @@ citations:
   vol: '45'
   issue: '2'
   pages_or_artno: 333-361
+- doi: "10.1002/sej.1521"
+  type: "journal"
+  authors: "Shen, R., Zhang, H., Zhong, W., & Lu, J."
+  year: 2025
+  title: "Distinctiveness from whom? Evaluation of startups' distinctiveness from multiple referents in angel investment platforms"
+  venue: "Strategic Entrepreneurship Journal"
+  vol: "19"
+  issue: "1"
+  pages_or_artno: "171-195"
+- doi: "10.1111/1467-8551.12857"
+  type: "journal"
+  authors: "Kang, J., & Kang, Y."
+  year: 2025
+  title: "Capital Market Scrutiny and Strategic Distinctiveness of the Firm: Evidence from a Natural Experiment"
+  venue: "British Journal of Management"
+  vol: "36"
+  issue: "1"
+  pages_or_artno: "461-476"
 new_dois: []
 ---
 
@@ -58,8 +76,7 @@ new_dois: []
 N-近邻梯子的引入动机是稳健性: 单一固定 N (如 canonical N=5) 的近邻集合在小样本行业分区或年度截面较薄时对个别极端邻居敏感, top-k 扩展 (N∈{10,20,30,40,50}) 让研究者观察差异度指标是否随近邻圈扩大而单调收缩、以及在何种 N 下结论仍然稳健。`strat_diff_n10_lda` 是这一梯子里 N=10 的一档, 与 N=5 (canonical) 及 N∈{20,30,40,50} 的其余各档并排、互为稳健性、不分主次——不应把不同 N 值的列同时放进同一个过度识别 (over-identified) 的 Hansen J 检验框架, 每个 N 各自构成一个 just-identified 的稳健性平行宇宙。三个文本轨道 (full/ctx/ss) 同理各自 just-identified 并排, full=全文本 (标题+正文全文), ctx=标题+银行/金科实体窗口, ss=标题+银行∧金科同句±N 窗 (config/filtering.yaml::context_window.ss_sentence_radius, 默认 1); 三轨间同样禁止混入同一 Hansen J。ss 轨的回退语义镜像 ctx 轨: 若某银行-年度文章集合中不存在银行与金科词同句共现的文章, 则该文章 `content_ss` 退化为全文 body, `ss_is_fallback=True`, 参与聚合但共享全文 `n_articles` 分母; 若 `FINTECH_AC=None` (金科词典未加载), 全体 `*_is_fallback` 置 True 优雅降级, 不静默清空数据。留篇门控口径 (2026-06-29 起) 为 full-only: 一篇报道是否计入"银行金科报道"样本只看 `llm_verified_full == True`, ctx/ss 轨是在该 full-only 行宇宙子集上的 conditional-on-full 测度/稳健性轨。产出列由 `pipeline/features/strategic_diff.py` 计算 (~125 基础列 + top-k N 扩展净增约 75 列), 经 `pipeline/panel/stata_export.py` 打标签导出面板/dta。
 
 【文献定位】
-本家族方法学谱系有三条主线交汇。第一条是文本产品市场竞争与战略独特性: Hoberg & Phillips (2016, Journal of Political Economy) 建立"文本相似度网络刻画真实竞争关系"的范式, 是本族最近邻思路的方法论源头; Haans (2019, Strategic Management Journal) 论证"差异化的价值取决于所处类别是同质还是异质环境", 提醒差异度指标的经济含义并非单调"越大越好", 而须结合行业竞争结构解读; Su, Gao & Tan (2024, Strategic Management Journal) 进一步讨论企业在动态复杂环境下如何为"最优独特性" (optimal distinctiveness) 定位, 呼应本族数值不宜脱离行业情境孤立解读的方法论提醒。第二条主线是把这套文本距离范式操作化为可重复的战略测度构造流程: Guzman & Li (2023, Management Science) 的"与最近邻平均文本距离"测度框架被本族直接借鉴为 N-近邻均值算法本身。第三条是 LDA 主题模型与 JSD 距离的技术基础 (Blei, Ng & Jordan 2003 提出 LDA; Lin 1991 建立 JSD 作为可度量距离的数学性质), 二者共同构成本列区别于 TF-IDF/Embedding 各轨的"主题分布视角"表征选择——LDA 把文本压缩为低维、可解释的主题占比向量, 距离核选 JSD 而非余弦, 是因为主题分布是概率单纯形对象, JSD 比欧式/余弦距离更契合概率分布间"信息可分辨度"的语义。
-
+本家族方法学谱系有三条主线交汇。第一条是文本产品市场竞争与战略独特性: Hoberg & Phillips (2016, Journal of Political Economy) 建立"文本相似度网络刻画真实竞争关系"的范式, 是本族最近邻思路的方法论源头; Haans (2019, Strategic Management Journal) 论证"差异化的价值取决于所处类别是同质还是异质环境", 提醒差异度指标的经济含义并非单调"越大越好", 而须结合行业竞争结构解读; Su, Gao & Tan (2024, Strategic Management Journal) 进一步讨论企业在动态复杂环境下如何为"最优独特性" (optimal distinctiveness) 定位, 呼应本族数值不宜脱离行业情境孤立解读的方法论提醒。第二条主线是把这套文本距离范式操作化为可重复的战略测度构造流程: Guzman & Li (2023, Management Science) 的"与最近邻平均文本距离"测度框架被本族直接借鉴为 N-近邻均值算法本身。第三条是 LDA 主题模型与 JSD 距离的技术基础 (Blei, Ng & Jordan 2003 提出 LDA; Lin 1991 建立 JSD 作为可度量距离的数学性质), 二者共同构成本列区别于 TF-IDF/Embedding 各轨的"主题分布视角"表征选择——LDA 把文本压缩为低维、可解释的主题占比向量, 距离核选 JSD 而非余弦, 是因为主题分布是概率单纯形对象, JSD 比欧式/余弦距离更契合概率分布间"信息可分辨度"的语义。 近年文献进一步锁定了本族两处设计前提。Shen、Zhang、Zhong 与 Lu (2025) 在中国某天使投资平台的 3266 份商业计划书上, 把同一创业企业相对在位企业与相对同台同类创业企业的独特性分别计算, 发现二者对投资人评价的作用方向不同且互相调节, 由此证明"独特性相对于谁而言"的参照物界定会实质改变独特性的经济含义, 锚定本族把 KNN10 邻域视为须显式披露与检验的设计选择而非中性技术细节; 迁移边界须诚实标明: 该文参照集由平台类别与投资人视角离散界定, 非本族在连续文本向量空间中的近邻检索, 层级为创业企业而非银行-年度, 语料为商业计划书而非第三方媒体报道, 且该文并未变动参照集的规模宽窄, 故不构成 N∈{10,20,30,40,50} 邻域宽度梯子的直接依据, 亦未使用 LDA 主题分布或 JSD 距离。Kang 与 Kang (2025) 以自然实验识别外部资本市场审视压力对企业战略独特性的因果影响, 提供"企业相对同业的战略偏离度是可被外生冲击移动、有实质内容的构念"这一当代实证证据, 支撑本族构念本身的经济含义; 但其战略独特性基于财务比率向量相对行业均值的标准化距离 (美国公司-年样本), 既非文本空间距离, 更非概率单纯形上的 JSD, 本条只锚构念、不锚算子。
 ## VAR: strat_diff_n10_lda
 
 【变体差分】
@@ -83,5 +100,7 @@ Hoberg, G., & Phillips, G. (2016). Text-Based Network Industries and Endogenous 
 Guzman, J., & Li, A. (2023). Measuring Founding Strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369
 Haans, R. F. J. (2019). What's the Value of Being Different When Everyone Is? The Effects of Distinctiveness on Performance in Homogeneous versus Heterogeneous Categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978
 Su, J., Gao, X., & Tan, J. (2024). Positioning for Optimal Distinctiveness, How Firms Manage Competitive and Institutional Pressures under Dynamic and Complex Environment. Strategic Management Journal, 45(2), 333-361. https://doi.org/10.1002/smj.3549
+Shen, R., Zhang, H., Zhong, W., & Lu, J. (2025). Distinctiveness from whom? Evaluation of startups' distinctiveness from multiple referents in angel investment platforms. Strategic Entrepreneurship Journal, 19(1), 171-195. https://doi.org/10.1002/sej.1521
+Kang, J., & Kang, Y. (2025). Capital Market Scrutiny and Strategic Distinctiveness of the Firm: Evidence from a Natural Experiment. British Journal of Management, 36(1), 461-476. https://doi.org/10.1111/1467-8551.12857
 <!-- rendered-citations:end -->
 </content>

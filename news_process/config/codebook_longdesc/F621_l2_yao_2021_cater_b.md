@@ -47,6 +47,13 @@ citations:
   vol: '15'
   issue: '2'
   pages_or_artno: 121-140
+- doi: "10.2139/ssrn.6143029"
+  type: "wp"
+  authors: "Wang, Y., Wong, T., & Zhang, T."
+  year: 2026
+  title: "Does Social Media Identify the Optimistic Bias of State-Controlled Media? Evidence from China"
+  venue: "SSRN Electronic Journal"
+  pages_or_artno: "6143029"
 new_dois: []
 ---
 
@@ -59,8 +66,7 @@ new_dois: []
 公式为 `yao_2021_cater_b{track} = yao_2021_tone{track} - (bert_avg_pos{track} - bert_avg_neg{track})`。被减数 `yao_2021_tone{track}` 是姚加权词典在给定轨道上对文章打出的语调分, 计算口径遵循项目词典打分族的通用规则 (正负词计数经否定翻转/程度副词/转折规则调整后归一化, 详见 tone_words 模块), 是一个已在词典自身尺度上完成归一化的语调分。减数 `bert_avg_pos{track} - bert_avg_neg{track}` 是三个 BERT 模型在该轨道上 argmax 判正/判负占比先各自求出, 再跨模型取算术平均后相减得到的"BERT 净情感分", 数学形式与项目内 `{bert}_net_tone{track}` (mean(pos) - mean(neg)) 同构, 但此处是先跨模型平均概率再作差, 而非先逐模型作差再跨模型平均 (两种顺序在线性期望下代数等价, 因均值算子与减法可交换)。差分为正值表示词典判读比 BERT 综合判读更正面 (词典侧"迎合"倾向); 差分为负值表示词典判读比 BERT 综合判读更负面。三个 track 后缀 (`_full`/`_ctx`/`_ss`) 对应项目统一的三轨文本架构: `_full` 使用标题+正文全文, `_ctx` 使用标题+银行与金科实体窗口截取文本, `_ss` 使用标题+银行与金科词同句 (±N 句窗口, 默认 N=1) 截取文本; 若某篇报道无银行∧金科同句共现, `_ss` 轨回退为全文 body 且 `ss_is_fallback` 置真 (镜像 `_ctx` 轨在无实体窗口时的回退语义, 二者共享 `n_articles` 分母口径)。三轨测度各自独立 just-identified, 互为稳健性、不分主次, 铁律上禁止把三轨结果混入同一 over-identified 的 Hansen J 过度识别检验。留篇门控口径遵循 2026-06-29 起生效的 full-only 规则: 一篇报道是否计入"银行金科报道"样本只看 `llm_verified_full` 判定, ctx/ss 轨的迎合度测度是在 full 轨留篇集合的子集上按各自轨道文本重新计算, 而非独立留篇。生产环境中 BERT 三模型任一缺席 (如 `FINBERT2_MODEL_DIR` 未设导致 finbert2 缺失) 按 per-model 独立降级处理, `bert_avg_pos`/`bert_avg_neg` 仅在缺席模型不参与时基于剩余可用模型计算均值, 与嵌入族 both-or-neither 的整族降级语义不同。
 
 【文献定位】
-"算法迎合"这一比较设计的直接方法学先例是 Du, Huang, Wermers & Wu (2022, Review of Finance) 关于中文金融文本领域专属情感词典构建的研究, 该文强调通用情感词典 (含直译自英文的 L&M 词典) 在中文金融语境下存在系统性误判, 是本项目并行维护多部中文金融情感词典 (含 `yao_2021`) 并逐一与深度模型交叉比较的直接动机来源。Barbaglia, Consoli, Manzan, Tiozzo Pezzoli & Tosetti (2025, Economic Inquiry) 对基于词典的经济文本情感分析方法做了系统评述, 明确指出词典法的规则透明性与深度模型的语境敏感性之间存在权衡, 支持本家族把二者差分作为一个独立可解释的测度维度、而非简单选边站队。van Atteveldt et al. (2021, Communication Methods and Measures) 的跨方法效度比较研究为"词典与机器学习方法测的不是同一件事"这一前提提供了实证支撑, 呼应本家族刻意保留差分符号方向 (而非取绝对值) 以保留"谁更正面"的方向性信息。Frankel, Jennings & Lee (2022, Management Science) 是本家族命名与解读框架的直接文献锚点: 该文比较机器学习与词典两类披露情感度量, 发现二者的分歧本身携带增量信息, 而非纯噪声, 支持本项目把 `*_cater`/`*_cater_b` 系列作为面板测度族正式保留、而非仅作诊断中间量丢弃。本家族三列在项目测度体系中定位为"词典-深度模型分歧诊断"辅助测度, 与主线情感测度 (`llm_vote_tone{track}`、`dict_avg_tone{track}`、三 BERT per-model 净情感分) 平行存在, 不作为任一 paper 的 canonical treatment/outcome, 供研究者在稳健性检验或测量误差讨论中选用。
-
+"算法迎合"这一比较设计的直接方法学先例是 Du, Huang, Wermers & Wu (2022, Review of Finance) 关于中文金融文本领域专属情感词典构建的研究, 该文强调通用情感词典 (含直译自英文的 L&M 词典) 在中文金融语境下存在系统性误判, 是本项目并行维护多部中文金融情感词典 (含 `yao_2021`) 并逐一与深度模型交叉比较的直接动机来源。Barbaglia, Consoli, Manzan, Tiozzo Pezzoli & Tosetti (2025, Economic Inquiry) 对基于词典的经济文本情感分析方法做了系统评述, 明确指出词典法的规则透明性与深度模型的语境敏感性之间存在权衡, 支持本家族把二者差分作为一个独立可解释的测度维度、而非简单选边站队。van Atteveldt et al. (2021, Communication Methods and Measures) 的跨方法效度比较研究为"词典与机器学习方法测的不是同一件事"这一前提提供了实证支撑, 呼应本家族刻意保留差分符号方向 (而非取绝对值) 以保留"谁更正面"的方向性信息。Frankel, Jennings & Lee (2022, Management Science) 是本家族命名与解读框架的直接文献锚点: 该文比较机器学习与词典两类披露情感度量, 发现二者的分歧本身携带增量信息, 而非纯噪声, 支持本项目把 `*_cater`/`*_cater_b` 系列作为面板测度族正式保留、而非仅作诊断中间量丢弃。本家族三列在项目测度体系中定位为"词典-深度模型分歧诊断"辅助测度, 与主线情感测度 (`llm_vote_tone{track}`、`dict_avg_tone{track}`、三 BERT per-model 净情感分) 平行存在, 不作为任一 paper 的 canonical treatment/outcome, 供研究者在稳健性检验或测量误差讨论中选用。 近期文献亦为本家族的差分形态提供了同型旁证。Wang、Wong 与 Zhang (2026) 在中国语境下把两类媒体文本的语调并置, 以其中一方识别另一方的乐观偏差, 其"取两个同构念语调测度的有向差、并把该差读作一方的系统性偏离"这一做法与本家族的构造形态一致, 印证了有向差本身可被当作一个具实质含义的测度而非残差噪声。但须诚实标明差值轴不同: 原文的差是媒体来源 A 与来源 B 之间的来源层偏差, 本家族的差是同一篇报道上词典测度与三 BERT 跨模型均值之间的方法层偏差; 原文语料为国有媒体与社交媒体文本而非银行金科共现报道, 观测层级为公司/事件层而非 bank-year, 亦无三轨文本与 BERT 跨模型均值口径, 且该文为尚未经期刊同行评议的工作论文。故其在本家族仅承担形态类比的旁证角色, 不构成对本测度效度的外部背书。
 ## VAR: yao_2021_cater_b_ctx
 
 【变体差分】
@@ -81,4 +87,5 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The Validity of Sentiment Analysis: Comparing Manual Annotation, Crowd-Coding, Dictionary Approaches, and Machine Learning Algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
+Wang, Y., Wong, T., & Zhang, T. (2026). Does Social Media Identify the Optimistic Bias of State-Controlled Media? Evidence from China. SSRN Electronic Journal No. 6143029 [Working Paper]. https://doi.org/10.2139/ssrn.6143029
 <!-- rendered-citations:end -->

@@ -36,6 +36,22 @@ citations:
   venue: Journal of Monetary Economics
   vol: 128
   pages_or_artno: 88-104
+- doi: "10.1111/abac.70024"
+  type: "journal"
+  authors: "Cho, M., & Choi, A."
+  year: 2025
+  title: "Do Auditors Adjust Labour Allocation in Response to Client Media Coverage and Tone?"
+  venue: "Abacus"
+  pages_or_artno: "abac.70024"
+- doi: "10.1111/ablj.12239"
+  type: "journal"
+  authors: "Tucker, A. M., Xia, Y., & Smelcer, S. N."
+  year: 2024
+  title: "Text, tone, and legal language: Analyzing mutual fund disclosure sentiment"
+  venue: "American Business Law Journal"
+  vol: "61"
+  issue: "1"
+  pages_or_artno: "57-86"
 new_dois: []
 ---
 
@@ -51,8 +67,7 @@ log_sent 家族刻画银行-年层面新闻情感的"对数降噪定向净情感
 
 【文献定位】
 
-log_sent 家族的方法论谱系交汇两条文献线: 一是计数类情感/关注度指标的对数变换传统, 本仓库 `pipeline/falsification/controls.py` 非金融科技对照变量 `nf_ln_coverage` 的媒体覆盖度 log(1+count) 构造亦沿用同一对数降噪思路但服务不同构念; 二是关于该类变换本身局限性的方法论批评线 (Chen & Roth 2024 *QJE* 对 log(1+x) 估计量非线性偏误的系统性揭示)。在银行科技新闻情感的具体应用场景下, log_sent 的现实合理性还须放在金融科技如何改变银行间信息与竞争环境的背景下理解: Vives & Ye (2025, *Journal of Financial Economics*) 指出信息技术采纳会重塑放贷者之间的竞争强度与信息优势分布, Pierri & Timmer (2022, *Journal of Monetary Economics*) 发现银行技术禀赋在危机期间对经营表现具有异质性影响 —— 这两支文献共同提示, 媒体情感计数的对数差分若不做覆盖门控, 可能把技术禀赋差异导致的报道量差异错误地折算进"情感水平"的跨行比较里, 这正是本家族在 2026-06-11 引入门控修正、并在三轨并行设计中刻意保留每轨各自零覆盖判定的方法论初衷。
-
+log_sent 家族的方法论谱系交汇两条文献线: 一是计数类情感/关注度指标的对数变换传统, 本仓库 `pipeline/falsification/controls.py` 非金融科技对照变量 `nf_ln_coverage` 的媒体覆盖度 log(1+count) 构造亦沿用同一对数降噪思路但服务不同构念; 二是关于该类变换本身局限性的方法论批评线 (Chen & Roth 2024 *QJE* 对 log(1+x) 估计量非线性偏误的系统性揭示)。在银行科技新闻情感的具体应用场景下, log_sent 的现实合理性还须放在金融科技如何改变银行间信息与竞争环境的背景下理解: Vives & Ye (2025, *Journal of Financial Economics*) 指出信息技术采纳会重塑放贷者之间的竞争强度与信息优势分布, Pierri & Timmer (2022, *Journal of Monetary Economics*) 发现银行技术禀赋在危机期间对经营表现具有异质性影响 —— 这两支文献共同提示, 媒体情感计数的对数差分若不做覆盖门控, 可能把技术禀赋差异导致的报道量差异错误地折算进"情感水平"的跨行比较里, 这正是本家族在 2026-06-11 引入门控修正、并在三轨并行设计中刻意保留每轨各自零覆盖判定的方法论初衷。 就“报道量与语调分列建模”这一范式的近期存在性而言, Cho 与 Choi (2025) 在 *Abacus* 的研究把客户公司的媒体报道量与报道语调作为两个并列的公司-年媒体变量, 用以解释审计师的劳动投入配置, 与本项目把报道篇数 (ln_ft_articles/ln_nf_articles) 与语调 (log_sent) 分列为两族指标的分工同构; 惟原文语调为正负词占比类构造、层级为 firm-year, 未涉及本家族的对数差分形式与覆盖门控, 故仅锚定该建模范式的存在性。就正负词计数底盘而言, Tucker、Xia 与 Smelcer (2024) 在 *American Business Law Journal* 自建定制词典, 对 164,602 份基金简明招募说明书 (2010-2020) 生成句级与文档级语调分数, 并显式分析法律语言在设定整体披露语调中的作用, 说明以正负词计数为底盘的语调构造在大规模披露文本上可行且具研究价值, 与 log_sent 所消费的 pos_count/neg_count 同源; 迁移边界在于原文为英文共同基金披露文件、语调未采用 log1p(pos) - log1p(neg) 的对数差分形式, 亦无三轨设计与银行-年聚合, 更无本家族的零覆盖 NaN 门控。
 【三轨口径说明】
 
 log_sent 家族严格遵循本仓库三轨架构: `log_sent_full` 基于全文轨 (标题+全文正文) 的 pos_count_full/neg_count_full, `log_sent_ctx` 基于实体窗轨 (标题+目标银行句±窗口, Hassan et al. 2019 QJE proximity 范式) 的 pos_count_ctx/neg_count_ctx, `log_sent_ss` 基于银行+金科同句轨 (标题+同句同时含目标银行与金科词的片段±窗口, 无共现则镜像 ctx 回退全文 body 且 `ss_is_fallback=True`) 的 pos_count_ss/neg_count_ss。三轨的覆盖门控判据自 2026-07-16 (F5) 起分轨: full 轨用物理篇数 `n_articles` (full-only 留篇口径的直接产物), ctx/ss 轨用轨道专属有效票计数 `n_articles_llm_valid_{track}` —— 三轨虽共享同一批留篇文章 (conditional-on-full), 但各轨 LLM 判定可独立失败, "有覆盖但该轨全部无效"的银行-年在 ctx/ss 轨属不可测 (NaN) 而非中性 0。三轨各自 just-identified 并排, 互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J 检验框架; 下游若同时纳入 full/ctx/ss 三轨 log_sent 作为同一构念的多重测量代入单一工具变量方程, 属于方法论误用。
@@ -79,4 +94,6 @@ log_sent_ss 是 log_sent 家族在"银行+金科同句"轨 (ss) 上的实现, �
 Chen, J., & Roth, J. (2024). Logs with zeros? Some problems and solutions. Quarterly Journal of Economics, 139(2), 891-936. https://doi.org/10.1093/qje/qjad054
 Vives, X., & Ye, Z. (2025). Information technology and lender competition. Journal of Financial Economics, 163, Article 103957. https://doi.org/10.1016/j.jfineco.2024.103957
 Pierri, N., & Timmer, Y. (2022). The importance of technology in banking during a crisis. Journal of Monetary Economics, 128, 88-104. https://doi.org/10.1016/j.jmoneco.2022.04.001
+Cho, M., & Choi, A. (2025). Do Auditors Adjust Labour Allocation in Response to Client Media Coverage and Tone?. Abacus, abac.70024. https://doi.org/10.1111/abac.70024
+Tucker, A. M., Xia, Y., & Smelcer, S. N. (2024). Text, tone, and legal language: Analyzing mutual fund disclosure sentiment. American Business Law Journal, 61(1), 57-86. https://doi.org/10.1111/ablj.12239
 <!-- rendered-citations:end -->

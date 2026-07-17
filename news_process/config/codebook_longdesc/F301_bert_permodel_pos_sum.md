@@ -55,6 +55,33 @@ citations:
   vol: 68
   issue: 7
   pages_or_artno: 5514-5532
+- doi: "10.1287/mnsc.2022.00261"
+  type: "journal"
+  authors: "Chen, L., & Mankad, S."
+  year: 2025
+  title: "A Structural Topic and Sentiment-Discourse Model for Text Analysis"
+  venue: "Management Science"
+  vol: "71"
+  issue: "7"
+  pages_or_artno: "5767-5787"
+- doi: "10.1007/s42521-024-00107-2"
+  type: "journal"
+  authors: "Groß-Klußmann, A."
+  year: 2024
+  title: "Learning deep news sentiment representations for macro-finance"
+  venue: "Digital Finance"
+  vol: "6"
+  issue: "3"
+  pages_or_artno: "341-377"
+- doi: "10.3982/qe1825"
+  type: "journal"
+  authors: "Ke, S., Montiel Olea, J. L., & Nesbit, J."
+  year: 2024
+  title: "Robust machine learning algorithms for text analysis"
+  venue: "Quantitative Economics"
+  vol: "15"
+  issue: "4"
+  pages_or_artno: "939-970"
 new_dois: []
 ---
 
@@ -67,8 +94,7 @@ new_dois: []
 文章级正面概率的产生过程分两层。第一层是单窗口推理: 每篇报道的文本 (标题 + 正文, 三轨分别用 `prepend_title` 拼出的 full/ctx/ss 三份文本) 若超出模型单次输入上限 (有效正文 ≤510 token, 含特殊 token 后单窗 ≤512), 用滑动窗口切片, 窗口步幅比例 `WINDOW_STRIDE_RATIO=0.5`, 即相邻窗口重叠 50% 以避免信息在切口处丢失。第二层是窗口间池化: 各窗口 softmax 输出的 logits 按该窗口自身分类置信度加权平均后再取正面维度概率, 即高置信度窗口对文章级概率的贡献更大, 这一步保证长文章不会被机械平均稀释掉局部强烈的语气段落。文章级正面概率算出后, 在 `pipeline/panel/codebook.py` 的面板聚合层, 对同一家银行同一年份内的全部合格文章 (由该模型自身该轨道的推理成功状态决定, 与其它模型/轨道相互独立) 求和, 得到本家族的 `{model}_pos_sum_{track}` 九列。批级推理若发生异常, 引擎会先逐篇重试一次, 仍失败才写入失败哨兵 (标签为 None、概率为 NaN、`bert_num_windows_{track}=-1`), 与真正的空文本情形 (`bert_num_windows_{track}=0`) 严格区分, 二者在求和聚合时都不计入分子, 避免把工程性失败误记为"无正面语气"的实质判断。
 
 【文献定位】
-BERT 类预训练语言模型作为文本编码器的方法学基础见 Devlin et al. (2019) 与 Liu et al. (2020) 提出的 FinBERT 系列; 本项目所用三模型分别对应通用中文金融预训练路线与私有领域微调路线, 后者的架构与训练细节参照 Xu et al. (2025) 提出的 FinBERT2, 该模型专门针对中文金融语境下的部署缺口做了双向编码器改造, 是 finbert2 一列的直接方法学出处。Huang, Wang & Yang (2023) 在顶刊 Contemporary Accounting Research 上系统论证了基于 BERT 架构的语言模型在金融文本信息抽取任务上相较传统词典法的增量价值, 是本家族"神经网络语调优于关键词硬数"这一构念定位的顶刊锚点。三模型并行、互不设定唯一权威输出, 呼应了多模型三角验证 (Denzin 2017 经典方法论意义上的方法三角) 的一般原则, 也与本项目 LLM 三家投票、词典六族消融梯度共享同一"多测度并排互证"的设计哲学: 单一模型的系统性偏差 (训练语料覆盖面、领域适配程度、分类粒度) 不应该单独决定实证结论的方向与显著性, 结论须在三个独立训练出身的模型上都能重现才可信。BERT 深层模型相较词典法在情感判定质量上的优势, 另有 Frankel, Jennings & Lee (2022, Management Science) 的直接顶刊证据支撑: 该文系统比较机器学习分类器与词典法在披露文本情感抽取上的表现, 证明经监督学习/微调的分类模型在识别语义层面的情感信号上显著优于关键词计数式词典法, 为本项目以 BERT 深层模型 (而非词典) 承担情感分类主力提供了顶刊层级的方法学背书。
-
+BERT 类预训练语言模型作为文本编码器的方法学基础见 Devlin et al. (2019) 与 Liu et al. (2020) 提出的 FinBERT 系列; 本项目所用三模型分别对应通用中文金融预训练路线与私有领域微调路线, 后者的架构与训练细节参照 Xu et al. (2025) 提出的 FinBERT2, 该模型专门针对中文金融语境下的部署缺口做了双向编码器改造, 是 finbert2 一列的直接方法学出处。Huang, Wang & Yang (2023) 在顶刊 Contemporary Accounting Research 上系统论证了基于 BERT 架构的语言模型在金融文本信息抽取任务上相较传统词典法的增量价值, 是本家族"神经网络语调优于关键词硬数"这一构念定位的顶刊锚点。三模型并行、互不设定唯一权威输出, 呼应了多模型三角验证 (Denzin 2017 经典方法论意义上的方法三角) 的一般原则, 也与本项目 LLM 三家投票、词典六族消融梯度共享同一"多测度并排互证"的设计哲学: 单一模型的系统性偏差 (训练语料覆盖面、领域适配程度、分类粒度) 不应该单独决定实证结论的方向与显著性, 结论须在三个独立训练出身的模型上都能重现才可信。BERT 深层模型相较词典法在情感判定质量上的优势, 另有 Frankel, Jennings & Lee (2022, Management Science) 的直接顶刊证据支撑: 该文系统比较机器学习分类器与词典法在披露文本情感抽取上的表现, 证明经监督学习/微调的分类模型在识别语义层面的情感信号上显著优于关键词计数式词典法, 为本项目以 BERT 深层模型 (而非词典) 承担情感分类主力提供了顶刊层级的方法学背书。 在此基础上, 本家族保留篇级概率而非仅取 argmax 硬标签作为聚合基数的口径, 可由近期文本计量前沿提供有限佐证。Chen 与 Mankad (2025) 提出结构化主题-情感话语模型, 引入文档级的连续情感-话语潜变量并允许其被文档级协变量解释, 使文本情感得以进入正式的统计推断而非仅作描述性摘要, 说明以篇级连续情感量而非硬标签作为文本测度的基本单位在前沿是被接受的做法; 惟原文的连续量是贝叶斯生成模型的后验潜变量, 与 BERT softmax 类别概率的校准语义不同, 该文既无中性档, 亦无篇级量在实体-期内求和或取均值的聚合步骤 (其用法是潜变量对协变量回归), 语料为评论/话语文本而非中文银行新闻, 故此处只作口径合法性的弱锚定。Groß-Klußmann (2024) 以监督式自编码器对已有的、跨多主题的新闻情感时间序列抽取潜在经济因子, 并在 GDP nowcasting、资产类别收益面板解释与时序动量三项宏观金融应用上证明其优于 PCA/PLS 等线性降维, 同样表明以连续取值的情感信号 (而非硬标签) 进入金融实证是常规做法; 但该文的神经模型作用于已聚合的情感时间序列做降维, 并不产出篇级情感, 其"表征"是压缩后的潜因子而非三分类 softmax 概率, 层级为英文新闻的宏观时序而非中文银行-年面板, 与本家族的篇级求和聚合不构成同一操作。Ke 与 Nesbit (2024) 证明 LDA 的参数不可识别, 因而文本派生量的后验结论会随先验设定改变, 并给出刻画该结论取值区间的算法, 由此确立一条一般性方法论立场: 文本测度的下游结论可能被建模者未被数据识别的选择所驱动, 故应把这类选择显式化并报告结论在其上的取值范围, 而非只报单一点估计——这与本项目把模型选择视为规格维度、三个 BERT 各自 just-identified 并排、互为稳健性不分主次且禁混进同一 over-identified Hansen J 的做法同向。须严格界定: 原文考察的是单一 LDA 模型内部的先验敏感性与不可识别性, 并非不同分类器之间的模型选择问题, 未评估任何 BERT 或神经情感分类器, 亦不涉及计数/概率和口径、金融情感构念与中文语料, 因此不是本项目 per-model 并排设计的 method-origin。
 【三轨与模型并排的铁律复述】
 本家族横跨两条互相独立的梯子: 一条是三轨文本范围 (full=标题+全文, ctx=标题+银行实体窗口, ss=标题+银行∧金科同句±N窗), 另一条是三个 BERT 模型 (finbert_cn/fin_sent_zh/finbert2)。两条梯子交叉产生 3×3=9 列, 但组合出的九个测度各自都是 just-identified 并排关系, 互为稳健性、不分主次, 绝不可混进同一个 over-identified 的 Hansen J 检验联合识别——这与项目内 co-primary 嵌入双轨、政治词权重梯度、词典消融梯度遵循同一条铁律。ss 轨若上游未准备好银行∧金科同句共现 (`FINTECH_AC=None` 或该句无共现), 回退为镜像 ctx 的语义: `content_ss` 退化为全文 body、`ss_is_fallback` 标记为真, 分母 (n_articles) 与 full 轨共享, 这一行为在三模型上是统一的降级方式。留篇门控口径 (2026-06-29 起) 为 full-only: 一篇报道是否计入"银行金科相关报道"只看 `llm_verified_full`, ctx/ss 是 conditional-on-full 的测度轨、行宇宙是 full 留篇集的子集, 因此 ctx/ss 两列的求和范围天然比 full 更窄, 三者之间的数值差异部分来自这一行宇宙差异而非纯粹的文本范围差异, 解读时须一并考虑。此外, per-model 降级是独立的: finbert2 因本地模型未配置而缺席时, 只影响 finbert2 那一族三列, 不连坐 finbert_cn 与 fin_sent_zh, 这与嵌入 co-primary 双轨"任一缺失则同族两列同置 NaN"的 both-or-neither 规则形成鲜明对比, 使用时不应混淆两种降级语义。
 
@@ -123,4 +149,7 @@ Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A large language model for e
 Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2019). BERT: Pre-training of deep bidirectional transformers for language understanding. Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies, Volume 1 (Long and Short Papers), 4171-4186. https://doi.org/10.18653/v1/N19-1423
 Liu, Z., Huang, D., Huang, K., Li, Z., & Zhao, J. (2020). FinBERT: A pre-trained financial language representation model for financial text mining. Proceedings of the Twenty-Ninth International Joint Conference on Artificial Intelligence (IJCAI-20), 4513-4519. https://doi.org/10.24963/ijcai.2020/622
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure Sentiment: Machine Learning vs. Dictionary Methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
+Chen, L., & Mankad, S. (2025). A Structural Topic and Sentiment-Discourse Model for Text Analysis. Management Science, 71(7), 5767-5787. https://doi.org/10.1287/mnsc.2022.00261
+Groß-Klußmann, A. (2024). Learning deep news sentiment representations for macro-finance. Digital Finance, 6(3), 341-377. https://doi.org/10.1007/s42521-024-00107-2
+Ke, S., Montiel Olea, J. L., & Nesbit, J. (2024). Robust machine learning algorithms for text analysis. Quantitative Economics, 15(4), 939-970. https://doi.org/10.3982/qe1825
 <!-- rendered-citations:end -->

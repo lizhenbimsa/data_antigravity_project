@@ -37,6 +37,15 @@ citations:
   venue: Economics Letters
   vol: 241
   pages_or_artno: Article 111823
+- doi: "10.1111/acfi.13076"
+  type: "journal"
+  authors: "Wang, Y., Ye, Q., Wang, J. J., & Wang, Y."
+  year: 2023
+  title: "Earnings manipulation and similarity of annual report disclosure: Evidence from China"
+  venue: "Accounting & Finance"
+  vol: "63"
+  issue: "S1"
+  pages_or_artno: "1137-1156"
 new_dois: []
 ---
 
@@ -49,8 +58,7 @@ lazy_jaccard 家族测度的是同一家银行相邻两个年度 (t 与 t-1) 的
 计算发生在 `pipeline/features/strategic_diff.py` 的 `_compute_lazy_distances` (由主函数在"改进 B: 相邻期文本连贯性"代码块内, 三轨循环调用)。上游先由 `_aggregate_bank_year_texts` 把该轨道下同一银行同一年份的全部文章文本聚合为一份年度文本 (聚合逻辑与 coh_* 家族共用同一聚合函数, 可选 co-mention 降权 `co_mention_downweight`), 再对聚合文本分词、转为词集合, 逐年份与其紧邻的上一年份文本求 Jaccard 相似度: 分子为两期词集合的交集大小, 分母为并集大小。函数内部随即对该相似度取补 (1 − 相似度) 再落盘为 `lazy_jaccard{track_suffix}` 列 (源码注释明确写"距离 = 1 − 相似度"), 因此最终列值是 Jaccard 距离: 值越接近 1 表示两期词集合越不重合、改动量越大, 值越接近 0 表示两期词集合越重合、改动量越小。这是纯粹的"存在性"集合运算——只关心某个词在两期是否都出现过, 不关心其出现频次或位置, 因此 lazy_jaccard 对"高频常用词大量重复但具体措辞已实质改写"这类情形不敏感, 需与同一入口产出的 lazy_overlap (集合重叠度的另一种归一化, 同样以距离形式落盘) 与 lazy_minedit (归一化编辑距离, 对词序/局部替换更敏感) 相互印证, 三算子不分主次、各自独立成列 (lazy_overlap/lazy_minedit 属另外的家族条目, 不在本文档范围内)。由于运算以"相邻期配对"为单位, 面板内每家银行的样本首年 (无 t-1 可比) 该行取值缺失, 这是设计使然而非缺陷; 本项目面板样本跨度较短的开发/测试子集上, 缺失比例会显著高于生产语料 (T=19) 下的稳态表现, 不应误读为测度失效。三个轨道 full/ctx/ss 使用完全独立的年度文本聚合与独立的相邻期配对, 互不借用彼此的词集合, 且三轨均遵循同一"取补落盘"规则, 取值方向一致可比。
 
 【文献定位】
-本家族的方法学根基是 Cohen, Malloy & Nguyen (2020, Journal of Finance) 关于企业文本"懒惰"改动与信息滞后反应的开创性发现——该文构造的年报文本增量比较框架 (含 Jaccard 相似度在内的多种文本距离度量) 已成为公司文本分析文献中衡量"披露文本动态变化"的标准工具之一。本仓库对该构念做了两处适配: 其一是应用对象从企业自撰监管文件迁移到媒体报道聚合文本 (信息来源方由被评价对象本身变为第三方媒体), 因此其经济学解释也随之从"企业主动隐藏坏消息的懒惰披露行为"调整为"媒体报道议题与用词的年度延续性"; 其二是三轨并行 (full/ctx/ss), 让同一构念在不同文本口径 (全文、目标实体上下文窗口、银行∧金科同句共现窗口) 下各自独立估计, 便于检验该测度对文本截取口径的敏感性。文本相似度指数的方法学基础另有 Mainali, Slud, Singer & Fagan (2022, Science Advances) 的顶刊支撑: 该文系统比较了包括 Jaccard 在内的多种共现与相似度指数, 论证不同指数对样本量、稀疏度的敏感性存在系统差异, 为本列采用 Jaccard 相似度并将其纳入多指数并排稳健性矩阵提供了方法学依据。Liu, Cao & Wen (2024, Economics Letters) 在公司与政府文本相似度的实证研究中亦采用类 Jaccard 重叠度量, 印证文本重叠指数在金融文本计量中的可行性与外部效度。
-
+本家族的方法学根基是 Cohen, Malloy & Nguyen (2020, Journal of Finance) 关于企业文本"懒惰"改动与信息滞后反应的开创性发现——该文构造的年报文本增量比较框架 (含 Jaccard 相似度在内的多种文本距离度量) 已成为公司文本分析文献中衡量"披露文本动态变化"的标准工具之一。本仓库对该构念做了两处适配: 其一是应用对象从企业自撰监管文件迁移到媒体报道聚合文本 (信息来源方由被评价对象本身变为第三方媒体), 因此其经济学解释也随之从"企业主动隐藏坏消息的懒惰披露行为"调整为"媒体报道议题与用词的年度延续性"; 其二是三轨并行 (full/ctx/ss), 让同一构念在不同文本口径 (全文、目标实体上下文窗口、银行∧金科同句共现窗口) 下各自独立估计, 便于检验该测度对文本截取口径的敏感性。文本相似度指数的方法学基础另有 Mainali, Slud, Singer & Fagan (2022, Science Advances) 的顶刊支撑: 该文系统比较了包括 Jaccard 在内的多种共现与相似度指数, 论证不同指数对样本量、稀疏度的敏感性存在系统差异, 为本列采用 Jaccard 相似度并将其纳入多指数并排稳健性矩阵提供了方法学依据。Liu, Cao & Wen (2024, Economics Letters) 在公司与政府文本相似度的实证研究中亦采用类 Jaccard 重叠度量, 印证文本重叠指数在金融文本计量中的可行性与外部效度。 在中文语料层面, Wang、Ye、Wang 与 Wang (2023) 提供了与本家族最贴近的同域先例: 该文在 2008-2020 年中国 A 股 13,679 家样本上, 以 MD&A 文本与上一年文本的相似度作为核心测度, 记录了"高相似度即低增量信息"的经验规律, 说明中文分词后的词集/词袋重合度在相邻期自比设定下是可操作且承载信息量的测度, 从而为本家族把中文年度聚合文本切分为词集合后做相邻期 Jaccard 比对的路线提供外部佐证。援引口径须作三重限定: 其一, 该文发表于 2023 年, 不属近三年前沿, 仅作方法可行性的同域旁证; 其二, 其语料为公司自撰年报 MD&A、单位为公司-年, 本家族为银行-年第三方媒体报道聚合文本, 文本作者身份不同, 上文已申明的"媒体议题延续性而非企业主动披露选择"这一解释调整同样适用于此处; 其三, 也是方向上最关键的一点, 该文使用的是相似度且将其解释为盈余操纵动机的显示, 而本列落盘的是相似度的补数即 Jaccard 距离 (值越高代表改动量越大, 与该文测度的取值方向相反), 且本家族是中性的表层改动量测度, 既不承接其操纵动机解释, 也不因该文的发现而对本列高值或低值预设任何行为学含义, 联合解读时须先完成取补方向的对齐。
 ## VAR: lazy_jaccard_ctx
 
 【变体差分】
@@ -70,4 +78,5 @@ lazy_jaccard 家族测度的是同一家银行相邻两个年度 (t 与 t-1) 的
 Cohen, L., Malloy, C., & Nguyen, Q. (2020). Lazy prices. The Journal of Finance, 75(3), 1371-1415. https://doi.org/10.1111/jofi.12885
 Mainali, K. P., Slud, E., Singer, M. C., & Fagan, W. F. (2022). A better index for analysis of co-occurrence and similarity. Science Advances, 8(4), Article eabj9204. https://doi.org/10.1126/sciadv.abj9204
 Liu, Y., Cao, Z., & Wen, F. (2024). Textual similarity between firm and government: Measurement and pricing. Economics Letters, 241, Article 111823. https://doi.org/10.1016/j.econlet.2024.111823
+Wang, Y., Ye, Q., Wang, J. J., & Wang, Y. (2023). Earnings manipulation and similarity of annual report disclosure: Evidence from China. Accounting & Finance, 63(S1), 1137-1156. https://doi.org/10.1111/acfi.13076
 <!-- rendered-citations:end -->

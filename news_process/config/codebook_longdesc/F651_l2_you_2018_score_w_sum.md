@@ -49,6 +49,30 @@ citations:
   vol: '37'
   issue: '2'
   pages_or_artno: 267-307
+- doi: "10.1093/rfs/hhag049"
+  type: "journal"
+  authors: "Harford, J., He, Q., & Qiu, B."
+  year: 2026
+  title: "Firm-Level Labor Shortage Exposure"
+  venue: "The Review of Financial Studies"
+  pages_or_artno: "hhag049"
+- doi: "10.1016/j.finmar.2024.100896"
+  type: "journal"
+  authors: "Ashwin, J."
+  year: 2024
+  title: "Financial news media and volatility: Is there more to newspapers than news?"
+  venue: "Journal of Financial Markets"
+  vol: "69"
+  pages_or_artno: "100896"
+- doi: "10.1093/qje/qjz021"
+  type: "journal"
+  authors: "Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A."
+  year: 2019
+  title: "Firm-level political risk: Measurement and effects"
+  venue: "The Quarterly Journal of Economics"
+  vol: "134"
+  issue: "4"
+  pages_or_artno: "2135-2202"
 new_dois: []
 ---
 
@@ -64,8 +88,7 @@ new_dois: []
 本家族严格覆盖三轨 full/ctx/ss: full=标题+全文正文; ctx=标题+目标银行实体窗口; ss=标题+银行∧金科词同句 (±可配置句半径) 共现窗口, 若某篇文章无银行∧金科同句共现则 `content_ss` 回退为全文 body 且该篇 `ss_is_fallback=True`(镜像 ctx 的回退语义, 共享 `n_articles` 分母口径)。三轨在留篇门控上均以 `llm_verified_full == True` 的 full 轨留篇集为行宇宙 (2026-06-29 起 full-only 门控), ctx/ss 是 conditional-on-full 的测度轨/稳健性轨, 三轨得分各自独立计算、各自 just-identified 并排, 互为稳健性、不分主次, 禁止将三轨得分混入同一 over-identified Hansen J 设定。
 
 【文献定位】
-you_2018 词典法源自 You, Zhang & Zhang (2018, *The Review of Financial Studies*)「Who captures the power of the pen?」一文, 该文构建并验证了针对中国资本市场语境的情感词典, 用以刻画媒体报道文本的情感倾向对市场反应的解释力, 是本项目词典法情感测度族的直接理论与词表来源之一。词典法情感测度整体的方法学定位参照 Du, Huang, Wermers & Wu (2022, *Review of Finance*)对中文金融领域专属情感词典构建必要性的系统论证 (语言与领域特异性使英文通用词典或简单翻译版本失效, 需领域内构建), 以及 Taboada, Brooke, Tofiloski, Voll & Stede (2011, *Computational Linguistics*) 对词典法情感分析中否定/程度副词/转折等语言学规则增强的方法学综述, 本项目的三条规则增强 (负向翻转、程度副词、转折让步) 即沿此传统。提及密度加权聚合的经济学思路呼应 Barbaglia, Consoli, Manzan, Tiozzo Pezzoli & Tosetti (2025, *Economic Inquiry*) 对基于词典的经济文本情感分析中「文本-实体关联强度」应纳入聚合权重的讨论, 强调聚合层面的加权设计对最终测度经济学解释力的影响不亚于底层词典本身的选取。词典法 (you_2018 等 6 部词典) 与本项目另两条情感测度技术路线——LLM 三家投票 (`llm_vote_tone*`) 与 BERT 三模型 (`finbert_cn`/`fin_sent_zh`/`finbert2`)——互为稳健性并排, 三条技术路线各自独立测度同一构念、不设主次, 三者间跨方法一致性由 `tone_validation.py` 的 Krippendorff's α 与重映射后 Cohen's κ 度量, 真实跨模型/跨方法族维度 FWER 控制见根级模板 `27_tableA12_cross_model_fwer`。
-
+you_2018 词典法源自 You, Zhang & Zhang (2018, *The Review of Financial Studies*)「Who captures the power of the pen?」一文, 该文构建并验证了针对中国资本市场语境的情感词典, 用以刻画媒体报道文本的情感倾向对市场反应的解释力, 是本项目词典法情感测度族的直接理论与词表来源之一。词典法情感测度整体的方法学定位参照 Du, Huang, Wermers & Wu (2022, *Review of Finance*)对中文金融领域专属情感词典构建必要性的系统论证 (语言与领域特异性使英文通用词典或简单翻译版本失效, 需领域内构建), 以及 Taboada, Brooke, Tofiloski, Voll & Stede (2011, *Computational Linguistics*) 对词典法情感分析中否定/程度副词/转折等语言学规则增强的方法学综述, 本项目的三条规则增强 (负向翻转、程度副词、转折让步) 即沿此传统。提及密度加权聚合的经济学思路呼应 Barbaglia, Consoli, Manzan, Tiozzo Pezzoli & Tosetti (2025, *Economic Inquiry*) 对基于词典的经济文本情感分析中「文本-实体关联强度」应纳入聚合权重的讨论, 强调聚合层面的加权设计对最终测度经济学解释力的影响不亚于底层词典本身的选取。词典法 (you_2018 等 6 部词典) 与本项目另两条情感测度技术路线——LLM 三家投票 (`llm_vote_tone*`) 与 BERT 三模型 (`finbert_cn`/`fin_sent_zh`/`finbert2`)——互为稳健性并排, 三条技术路线各自独立测度同一构念、不设主次, 三者间跨方法一致性由 `tone_validation.py` 的 Krippendorff's α 与重映射后 Cohen's κ 度量, 真实跨模型/跨方法族维度 FWER 控制见根级模板 `27_tableA12_cross_model_fwer`。 文本提及型 firm-level exposure 权重的近期构造与效度验证范例见 Harford、He 与 Qiu (2026): 该文自财报电话会文本提取公司层面的「劳动力短缺暴露」测度, 并在州/行业/公司三个层级做效度验证, 再检验其对 CAR、未来收益与经营绩效的预测力, 与本家族所用 mention_density 同属 Hassan et al. (2019) 开创的文本提及型暴露度量族, 为该类权重的构造-验证链路提供了近期参照; 迁移边界上原文语料为英文 earnings call, 度量对象是劳动力短缺暴露而非情感极性, 且原文把暴露度直接当作自变量, 未如本家族将其作为乘性权重乘到词典情感分上再求和, 亦无银行-年三轨聚合。加权和 (流量) 与加权均值 (率) 须分离这一设计, 则呼应 Ashwin (2024) 的实证分解: 该文把报纸报道的数量/篇幅维度与报道所含的新信息内容分离, 检验前者是否对波动率具有独立于后者的解释力, 论证了报道量维度与语调内容维度不应被折叠为单一测度; 本家族把加权和分子与 sum_mention_density{track} 分母分开存档、再派生 you_2018_tone_vw{track}, 正是同一分离逻辑在聚合层的落地。迁移边界上原文语境为英文报纸与股票波动率, 其「报道量」是等权计数或版面维度, 未使用提及密度或媒体权威度权重, 且波动率在原文是结果变量, 而本列处在测度构造的分子侧、非任何回归的因变量。
 ## VAR: you_2018_score_w_sum_ctx
 
 【变体差分】
@@ -89,4 +112,7 @@ You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The 
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
+Harford, J., He, Q., & Qiu, B. (2026). Firm-Level Labor Shortage Exposure. The Review of Financial Studies, hhag049. https://doi.org/10.1093/rfs/hhag049
+Ashwin, J. (2024). Financial news media and volatility: Is there more to newspapers than news?. Journal of Financial Markets, 69, 100896. https://doi.org/10.1016/j.finmar.2024.100896
+Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level political risk: Measurement and effects. The Quarterly Journal of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021
 <!-- rendered-citations:end -->

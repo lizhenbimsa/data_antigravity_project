@@ -71,6 +71,36 @@ citations:
   year: 2025
   title: "News-based investor disagreement and stock returns"
   venue: "Review of Accounting Studies"
+- doi: "10.2139/ssrn.6566038"
+  type: "wp"
+  authors: "Fu, J. Y., Huang, A. G., Wermers, R. R., Zhang, J., & Zhang, Y."
+  year: 2026
+  title: "The Information Content of Tone Dispersion: Evidence from Earnings Conference Call Q&As"
+  venue: "SSRN Electronic Journal"
+  pages_or_artno: "6566038"
+- doi: "10.3386/w35049"
+  type: "wp"
+  authors: "Goulding, C., Harvey, C., & Kurtović, H."
+  year: 2026
+  title: "Disagreement of Disagreement"
+  venue: "National Bureau of Economic Research"
+  pages_or_artno: "35049"
+- doi: "10.1080/10293523.2024.2398338"
+  type: "journal"
+  authors: "Wang, G., Chen, M., Wang, X., Dong, Y., & Wang, Z."
+  year: 2025
+  title: "Opinion divergence, investor sentiment, and stock liquidity: Evidence from social media"
+  venue: "Investment Analysts Journal"
+  vol: "54"
+  issue: "2"
+  pages_or_artno: "167-186"
+- doi: "10.1177/0148558x251384064"
+  type: "journal"
+  authors: "Driskill, M. W."
+  year: 2025
+  title: "Building Better Measures of Analyst Disagreement Around Earnings: Implications for Disagreement, Trading Volume, and Returns"
+  venue: "Journal of Accounting, Auditing & Finance"
+  pages_or_artno: "0148558X251384064"
 new_dois:
   - "10.1007/s11142-025-09897-1"
 ---
@@ -84,8 +114,7 @@ new_dois:
 词典底座为 loughran (Loughran 与 McDonald, 2011) 的正负情感类别, 经本项目 tone_words 阶段汉化落地为 tone_dicts.json 中的 loughran 正面/负面词表, 在 stage 22 逐篇统计命中并归一化为逐篇词比率 loughran_pos_ratio 与 loughran_neg_ratio (每篇正/负词命中数占该篇有效词数之比), 并在 stage 21 语义精筛留篇后进入 24_herd_decay 的 article×bank verified 集。面板装配阶段先在 encode.py 的 M 聚合块上对每一银行-年、逐轨求这两个逐篇词比率的算术均值, 得到 avg_loughran_pos_ratio 与 avg_loughran_neg_ratio; 随后 runner.py 步骤 8b 把这两个均值分别作为 P 与 N 代入闭式 disag = 平方根下 (1 减去 ((P 减 N) 除以 (P 加 N)) 的平方)。须强调 P、N 是逐篇词比率的银行-年均值而非命中计数的求和——命中计数求和 (pos_count/neg_count) 是 LLM 篇章计数分支 disag_llm 及各单模型分支的输入口径, 与本词典族的词级比率口径彼此独立, 不可混用。该式的性质为: 当 P 等于 N 时净语调比 (P−N)/(P+N) 为 0, disag 取上界 1, 代表褒贬完全对冲的极端分歧; 当某一侧比率均值为 0 (报道单边化) 时净语调比为正负 1, disag 取下界 0, 代表零分歧的语调共识; 取值单调地随净语调比绝对值增大而下降, 因而是净语调"幅度"的严格递减变换, 与净语调的"符号/方向"信息正交。分母 P+N 为 0 (该银行-年在该轨的 loughran 正负词比率均值同时为 0, 即无任何 loughran 情感词命中) 时置 NaN 而非 0, 以免把"无信息"误编码为"零分歧"。本测度不作跨词典可加分解, 与 bian_2021、du_2022 等其他词典的同名 disag 变体互为稳健性、不分主次、各自 just-identified 并排, 禁混进同一 over-identified Hansen J。
 
 【文献定位】
-在文本情感度量的方法学谱系中, 本家族属于"词典法离散度"分支。Loughran 与 McDonald (2011) 奠定了以财经专用词典替代通用心理学词典的范式, 其后续综述 (Loughran 与 McDonald, 2016; 2020) 系统梳理了词典法相对机器学习法的可解释性与可复现优势, 也明确指出词典命中计数对语料清洗与分母口径高度敏感——本家族据此坚持"留篇门控 full-only、分母逐轨严格对齐"的口径纪律。就构念本身, Cookson 与 Niessner (2020) 是最贴近的先例, 他们证明语调离散型分歧代理能预测收益与波动, 与均值型语调携带互补信息; Hong 与 Stein (2007)、Carlin 等 (2014) 则从理论与资产定价侧论证了分歧作为独立状态变量的经济意义。本家族并非直接复制 Cookson 与 Niessner (2020) 的分歧公式, 而是采用 Antweiler 与 Frank (2004) 提出的平方根标准化分歧测度壳 (disag = 平方根下 (1 减去净语调比平方)), 使 disag 落在有界区间 [0,1] 便于跨银行-年比较; 这一测度壳与 step 7i 的 Janis-Fadner 系数是两个不同的闭式, 本家族刻意采用前者而非后者, 二者不可混同。近年 Li 与 Luan (2025, Review of Accounting Studies) 以新闻文本构造投资者分歧代理并检验其对横截面收益的预测力, 呼应本家族以媒体文本语调离散度刻画银行金融科技报道分歧的构念思路。
-
+在文本情感度量的方法学谱系中, 本家族属于"词典法离散度"分支。Loughran 与 McDonald (2011) 奠定了以财经专用词典替代通用心理学词典的范式, 其后续综述 (Loughran 与 McDonald, 2016; 2020) 系统梳理了词典法相对机器学习法的可解释性与可复现优势, 也明确指出词典命中计数对语料清洗与分母口径高度敏感——本家族据此坚持"留篇门控 full-only、分母逐轨严格对齐"的口径纪律。就构念本身, Cookson 与 Niessner (2020) 是最贴近的先例, 他们证明语调离散型分歧代理能预测收益与波动, 与均值型语调携带互补信息; Hong 与 Stein (2007)、Carlin 等 (2014) 则从理论与资产定价侧论证了分歧作为独立状态变量的经济意义。本家族并非直接复制 Cookson 与 Niessner (2020) 的分歧公式, 而是采用 Antweiler 与 Frank (2004) 提出的平方根标准化分歧测度壳 (disag = 平方根下 (1 减去净语调比平方)), 使 disag 落在有界区间 [0,1] 便于跨银行-年比较; 这一测度壳与 step 7i 的 Janis-Fadner 系数是两个不同的闭式, 本家族刻意采用前者而非后者, 二者不可混同。近年 Li 与 Luan (2025, Review of Accounting Studies) 以新闻文本构造投资者分歧代理并检验其对横截面收益的预测力, 呼应本家族以媒体文本语调离散度刻画银行金融科技报道分歧的构念思路。 就此构念的近期进展, Fu、Huang、Wermers、Zhang 与 Zhang (2026) 用 FinBERT 测算盈利电话会 Q&A 环节内分析师之间的语调离散, 并报告该离散的信息含量增量于整体语调水平, 从构念层支持本族把语调的散布与语调的水平分列两族; 该文为尚未同行评审的工作论文, 且其离散由英文电话会中分类器概率的统计散布定义, 与本族对中文新闻作 loughran 词典正负比率的 AF 闭式变换并非同一数学形式, 仅作同族构念的前沿存在性引证。Goulding、Harvey 与 Kurtović (2026) 系统比较多种分歧代理, 发现不同构造方法所得的分歧度量彼此相关性低、结论不一致, 恰构成本项目逐词典各出一条 disag_*、互为稳健性并排的必要性依据; 惟其对象为美国市场的分析师预测与交易量类代理, 并未评价本族所用的 AF 一致性指标。Wang、Chen、Wang、Dong 与 Wang (2025) 以社交媒体的看多看空投票构造零售投资者观点分歧指数、以机器学习从评论文本构造投资者情绪指数, 发现二者均显著影响股票流动性, 且情绪对分歧影响流动性起中介作用; 该结论提示分歧与语调水平并非互不相干, 故本族 disag_loughran 与 loughran 语调列并排保留的理由应表述为二者非同一量、值得分别观测, 而不得据该文声称二者彼此独立——原文恰是中介效应模型, 结论为二者纠缠; 其分歧源为投票而非词典对文本的正负标注, DV 为股票流动性、层级为公司-期, 与本族银行-年口径不同。Driskill (2025) 专门检讨分析师分歧测度的构造设计, 证明预测窗口设定不当会使离散度与公告期异常成交的关联不一致且无定论, 修正窗口后方稳健恢复正向关联; 本族由此取得的仅是一般测度学教训——样本纳入规则会实质改变分歧指标的效度, 故 disag_loughran 的逐轨聚合口径与 P+N 为 0 置 NaN 的纳入规则须显式披露并做敏感性检验; 原文未涉分母标准化或归一化选择, 亦不涉媒体文本, 不构成本族分母设定的参照。
 ## VAR: disag_loughran_full
 
 【变体差分】
@@ -109,4 +138,8 @@ Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance:
 Hong, H., & Stein, J. C. (2007). Disagreement and the stock market. Journal of Economic Perspectives, 21(2), 109-128. https://doi.org/10.1257/jep.21.2.109
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Li, S. Z., & Luan, Z. (2025). News-based investor disagreement and stock returns. Review of Accounting Studies. https://doi.org/10.1007/s11142-025-09897-1
+Fu, J. Y., Huang, A. G., Wermers, R. R., Zhang, J., & Zhang, Y. (2026). The Information Content of Tone Dispersion: Evidence from Earnings Conference Call Q&As. SSRN Electronic Journal No. 6566038 [Working Paper]. https://doi.org/10.2139/ssrn.6566038
+Goulding, C., Harvey, C., & Kurtović, H. (2026). Disagreement of Disagreement. National Bureau of Economic Research No. 35049 [Working Paper]. https://doi.org/10.3386/w35049
+Wang, G., Chen, M., Wang, X., Dong, Y., & Wang, Z. (2025). Opinion divergence, investor sentiment, and stock liquidity: Evidence from social media. Investment Analysts Journal, 54(2), 167-186. https://doi.org/10.1080/10293523.2024.2398338
+Driskill, M. W. (2025). Building Better Measures of Analyst Disagreement Around Earnings: Implications for Disagreement, Trading Volume, and Returns. Journal of Accounting, Auditing & Finance, 0148558X251384064. https://doi.org/10.1177/0148558x251384064
 <!-- rendered-citations:end -->

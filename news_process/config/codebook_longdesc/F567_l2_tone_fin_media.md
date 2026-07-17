@@ -53,6 +53,15 @@ citations:
   year: 2025
   title: "Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy"
   venue: SSRN Working Paper
+- doi: "10.1111/acfi.13230"
+  type: "journal"
+  authors: "Yan, L., Ma, Y., Li, C., & Tang, G."
+  year: 2024
+  title: "Media abnormal tone and cross section of stock returns: Evidence from China"
+  venue: "Accounting & Finance"
+  vol: "64"
+  issue: "3"
+  pages_or_artno: "2671-2698"
 new_dois: []
 ---
 
@@ -65,8 +74,7 @@ tone_fin_media 家族刻画的是"财经专业类媒体"这一媒体来源子群
 计算链条起点是 21_tone_llms 阶段产出的 llm_vote_score{track} —— 三家大模型 (gpt-5.4-nano / gemini-3.1-flash-lite / deepseek-v4-flash) 对每篇文章语调的多数投票共识分数, 名义双极域 [-1, 1] (需注意生产语料下该分数实证呈近退化的单极正向强度分布, 负面类占比极低, 后续面板导出层已将标签口径由"双极情感"收敛为 favorability/optimism 框架披露, 但本列内部计算逻辑不受影响, 仍是对该共识分数的算术均值)。attention_media.py 在文章级 DataFrame 上先打 _media_type 标签, 再按 (target_bank, year, _media_type=='fin') 三键分组对 llm_vote_score{track} 取组内均值, 得到 bank-year 层面的 tone_fin_media{track}。这一均值计算在三条轨道 full/ctx/ss 上各自独立重复: full 轨消费标题+全文语调分数, ctx 轨消费标题+实体窗口语调分数, ss 轨消费标题+银行∧金科同句±N 窗口语调分数 (ss 回退语义镜像 ctx: 当某篇文章不存在银行与金科词的同句共现时, content_ss 退回全文 body, 对应 ss_is_fallback 标记为真, 该文章仍以其退化后的全文语调分数计入分母, 而非被剔除)。三轨各自基于 llm_vote_score{track} 是否存在于上游 DataFrame 中做优雅跳过判断 (if src not in df.columns: continue), 即某一轨若因上游产出缺失而整体不可用, 则该轨对应的 tone_fin_media{track} 列及其下游缺口列均不产出, 而不是以 NaN 填充误导性地保留列名。三轨聚合逻辑完全平行独立, 属于"各自 just-identified 并排、互为稳健性、不分主次"的口径 —— full/ctx/ss 三条轨道在本家族内绝不应被混入同一个 over-identified 的 Hansen J 检验框架, 各轨各自作为独立的识别策略稳健性对照, 使用者若需要联合利用三轨信息应分别单独纳入回归而非构造联合矩条件。留篇门控口径 (2026-06-29 起) 为 full-only: 一篇报道是否被判定为"一篇有效的银行金科报道"只取决于该篇 full 轨的 LLM 判定结果 llm_verified_full, ctx/ss 轨的分组均值计算限定在 full 轨已确立的留篇集合子集上进行, 因而 ctx/ss 轨的 tone_fin_media 行数 (bank-year 观测数) 天然是 full 轨观测数的子集或相等, 不会出现 ctx/ss 轨观测数反超 full 轨的情形。分母是同一 bank-year 单元内落入 fin 分类且属于留篇集合的文章篇数, 若某银行某年不存在任何财经专业媒体报道则该 bank-year 观测的 tone_fin_media{track} 为缺失 (NaN, 通过 pandas merge how='left' 自然产生), 这与 fin_media_frac (财经媒体占比) 分母覆盖全部留篇报道不同、口径上更窄。
 
 【文献定位】
-本家族方法学谱系上溯至 Tetlock (2007) 在 The Journal of Finance 上确立的"媒体语调是投资者情绪的可观测代理"这一基本范式, 并进一步吸收了 Peress (2014) 关于媒体信息扩散机制的识别思路 (媒体报道对市场的因果作用需要区分信息内容本身与传播渠道差异)。将媒体按类型/定位切分再分别测算语调均值的做法, 直接呼应 You, Zhang, & Zhang (2018) 在 Review of Financial Studies 上对中国媒体"笔杆子权力"结构性差异的实证发现——不同媒体主体在信息生产的独立性与专业性上存在系统差异, 因而不能把所有媒体来源汇总为单一无差别的语调测度。就中国银行业情境而言, Fang, Wang, Wang, & Yuan (2024) 在 International Review of Economics & Finance 上研究了中国语境下媒体情感与银行系统性风险及存款稳定性之间的关系, 为本家族"财经媒体语调作为银行层面结果变量的解释力来源"提供了直接的同类应用先例; Marchetti, Tarducci, & Branzoli (2025) 的工作银行工作论文进一步示范了银行×年层面语调聚合的方法论操作细节, 与本家族按 (target_bank, year, media_type) 分组取均值的聚合逻辑相印证。
-
+本家族方法学谱系上溯至 Tetlock (2007) 在 The Journal of Finance 上确立的"媒体语调是投资者情绪的可观测代理"这一基本范式, 并进一步吸收了 Peress (2014) 关于媒体信息扩散机制的识别思路 (媒体报道对市场的因果作用需要区分信息内容本身与传播渠道差异)。将媒体按类型/定位切分再分别测算语调均值的做法, 直接呼应 You, Zhang, & Zhang (2018) 在 Review of Financial Studies 上对中国媒体"笔杆子权力"结构性差异的实证发现——不同媒体主体在信息生产的独立性与专业性上存在系统差异, 因而不能把所有媒体来源汇总为单一无差别的语调测度。就中国银行业情境而言, Fang, Wang, Wang, & Yuan (2024) 在 International Review of Economics & Finance 上研究了中国语境下媒体情感与银行系统性风险及存款稳定性之间的关系, 为本家族"财经媒体语调作为银行层面结果变量的解释力来源"提供了直接的同类应用先例; Marchetti, Tarducci, & Branzoli (2025) 的工作银行工作论文进一步示范了银行×年层面语调聚合的方法论操作细节, 与本家族按 (target_bank, year, media_type) 分组取均值的聚合逻辑相印证。 在同语种、同媒体生态的语调计量实践上, Yan、Ma、Li 与 Tang (2024) 以中国中文媒体报道构造语调测度并检验其对股票横截面收益的解释力, 是与本家族同语言、同媒体类型的近期前沿参照, 佐证了「在中文财经新闻文本上可抽取具有独立解释力的语调信号」这一测量前提在本项目所处数据生态中的可行性。其迁移边界须诚实标明: 该文层级为上市公司-股票横截面而非 bank-year 面板, 被解释变量为股票收益, 与本项目 funding_cost 等银行侧结果变量不同; 其语调为「异常语调」(相对预期的残差) 口径且由文本词典法得到, 与本家族直接对三家 LLM 投票共识分 llm_vote_score{track} 在 fin 子样本内取算术均值不是同一公式; 原文亦未按财经/综合/其他这一媒体内容类型维度切分子样本。故该文只锚定中文媒体语调计量的同域可行性, 不锚定本家族赖以成立的 media_type 分层设计与三轨并排口径。
 ## VAR: tone_fin_media_ctx
 
 【变体差分】
@@ -88,4 +96,5 @@ Peress, J. (2014). The Media and the Diffusion of Information in Financial Marke
 You, J., Zhang, B., & Zhang, L. (2018). Who Captures the Power of the Pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Marchetti, S., Tarducci, E., & Branzoli, N. (2025). Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.5220056
+Yan, L., Ma, Y., Li, C., & Tang, G. (2024). Media abnormal tone and cross section of stock returns: Evidence from China. Accounting & Finance, 64(3), 2671-2698. https://doi.org/10.1111/acfi.13230
 <!-- rendered-citations:end -->

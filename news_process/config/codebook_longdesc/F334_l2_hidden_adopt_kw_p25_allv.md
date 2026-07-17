@@ -46,6 +46,15 @@ citations:
   venue: Tax Policy and the Economy
   vol: 38
   pages_or_artno: 101-122
+- doi: "10.1016/j.ipm.2025.104383"
+  type: "journal"
+  authors: "Chen, J., Wen, J., Deng, Y., Chen, M., & Ma, F."
+  year: 2026
+  title: "Measuring policy diffusion intensity: A text-driven analysis of government documents"
+  venue: "Information Processing & Management"
+  vol: "63"
+  issue: "2"
+  pages_or_artno: "104383"
 new_dois: []
 ---
 
@@ -67,8 +76,7 @@ hidden_adopt_kw_p25_allv 家族刻画银行在年度媒体报道中"隐性金融
 
 【文献定位】
 
-四象限"词频-语义相似度"交叉设计的方法学动机可追溯到银行数字化/金融科技采纳的实证测量文献: Kwan, Lin, Pursiainen & Tai (2024, JFQA) 在压力测试银行数字能力时同样面对"披露文本量"与"实质能力"可能脱钩的识别难题, 提示单纯依赖关键词出现频率会系统性混淆宣传式披露与真实转型进度, 这正是本家族区分 token(高频低相似)与 hidden(低频高相似)两象限的经验依据。Fan, Liu, Qian & Wen (2024, Tax Policy and the Economy) 在研究技术采纳与税收征管数字化改革时, 同样强调采纳行为存在"显性合规披露"与"隐性技术使用"两条不完全重合的观测路径, 支持把"低显性提及但高语义关联"单列为独立构念而非简单归入采纳缺失。percentile 梯子 (p25/p50/p75) 与 kw/int、vintage/allv 两组稳健性孪生的并排设计, 呼应了多重研究者自由度对结论稳健性的一般性关切: Huntington-Klein 等 (2021, Economic Inquiry) 与 Breznau 等 (2022, PNAS) 均以多分析者复现实验证明, 看似次要的建模选择 (如阈值分位点、锚点估计窗口) 可系统性改变实证结论的方向与显著性, 因此本仓库对每一类此类选择均物化为并排的稳健性变体而非仅报告单一口径, 供下游回归在附录稳健性表中逐档核验方向与量级的一致性, 而非把某一档默认为"正确"设定。
-
+四象限"词频-语义相似度"交叉设计的方法学动机可追溯到银行数字化/金融科技采纳的实证测量文献: Kwan, Lin, Pursiainen & Tai (2024, JFQA) 在压力测试银行数字能力时同样面对"披露文本量"与"实质能力"可能脱钩的识别难题, 提示单纯依赖关键词出现频率会系统性混淆宣传式披露与真实转型进度, 这正是本家族区分 token(高频低相似)与 hidden(低频高相似)两象限的经验依据。Fan, Liu, Qian & Wen (2024, Tax Policy and the Economy) 在研究技术采纳与税收征管数字化改革时, 同样强调采纳行为存在"显性合规披露"与"隐性技术使用"两条不完全重合的观测路径, 支持把"低显性提及但高语义关联"单列为独立构念而非简单归入采纳缺失。percentile 梯子 (p25/p50/p75) 与 kw/int、vintage/allv 两组稳健性孪生的并排设计, 呼应了多重研究者自由度对结论稳健性的一般性关切: Huntington-Klein 等 (2021, Economic Inquiry) 与 Breznau 等 (2022, PNAS) 均以多分析者复现实验证明, 看似次要的建模选择 (如阈值分位点、锚点估计窗口) 可系统性改变实证结论的方向与显著性, 因此本仓库对每一类此类选择均物化为并排的稳健性变体而非仅报告单一口径, 供下游回归在附录稳健性表中逐档核验方向与量级的一致性, 而非把某一档默认为"正确"设定。 在相似度侧的测度谱系上, Chen、Wen、Deng、Chen 与 Ma (2026) 以政府文件文本为基础构造政策扩散强度的文本驱动测度, 表明"以政策文本的语义贴合度刻画政策对齐程度"这一路径至 2026 年仍处于方法学前沿, 为本家族 sim 维所依赖的 policy_cosine_sim_allv 提供同族测度的存在性锚点。迁移边界须如实标注: 该文测量的是政府文件之间的扩散强度 (政府—政府层级), 而本家族测量的是新闻报道文本对政策锚点的余弦相似度 (媒体—政策层级); 该文既不做二值象限分类, 也不设年度分位阈值, 更没有全年份静态锚点与逐年滚动锚点的对照设计, 故它只能锚定 sim 维在测度族上的归属, 不能作为本家族 p25 分位判据、四象限交叉或 allv/vintage 稳健性孪生的方法出处。
 ## VAR: hidden_adopt_kw_p25_allv
 
 【变体差分】
@@ -104,4 +112,5 @@ Kwan, A., Lin, C., Pursiainen, V., & Tai, M. (2024). Stress testing banks' digit
 Breznau, N., Rinke, E. M., Wuttke, A., Nguyen, H. H. V., Adem, M., Adriaans, J., et al. (2022). Observing many researchers using the same data and hypothesis reveals a hidden universe of uncertainty. Proceedings of the National Academy of Sciences, 119(44), e2203150119. https://doi.org/10.1073/pnas.2203150119
 Huntington-Klein, N., Arenas, A., Beam, E., Bertoni, M., Bloem, J. R., Burli, P., Chen, N., Grieco, P., Ekpe, G., Pugatch, T., Saavedra, M., & Stopnitzky, Y. (2021). The influence of hidden researcher decisions in applied microeconomics. Economic Inquiry, 59(3), 944-960. https://doi.org/10.1111/ecin.12992
 Fan, H., Liu, Y., Qian, N., & Wen, J. (2024). Technological adoption and taxation: The case of China's Golden Tax reform. Tax Policy and the Economy, 38, 101-122. https://doi.org/10.1086/730053
+Chen, J., Wen, J., Deng, Y., Chen, M., & Ma, F. (2026). Measuring policy diffusion intensity: A text-driven analysis of government documents. Information Processing & Management, 63(2), 104383. https://doi.org/10.1016/j.ipm.2025.104383
 <!-- rendered-citations:end -->

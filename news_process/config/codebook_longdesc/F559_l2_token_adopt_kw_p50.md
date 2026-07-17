@@ -39,6 +39,22 @@ citations:
   vol: "4"
   issue: "1"
   pages_or_artno: "100168"
+- doi: "10.1016/j.frl.2024.105401"
+  type: "journal"
+  authors: "Zhang, Z., Hou, Y., Li, Z., & Li, M."
+  year: 2024
+  title: "From symbolic to substantive green innovation: How does ESG ratings optimize corporate green innovation structure"
+  venue: "Finance Research Letters"
+  vol: "63"
+  pages_or_artno: "105401"
+- doi: "10.1016/j.pacfin.2024.102493"
+  type: "journal"
+  authors: "Liu, Y., Wang, J., Wen, F., & Wu, C."
+  year: 2024
+  title: "Corporate responses to systemic risk: Talk and action"
+  venue: "Pacific-Basin Finance Journal"
+  vol: "87"
+  pages_or_artno: "102493"
 new_dois: []
 ---
 
@@ -52,8 +68,7 @@ new_dois: []
 本家族三列共享同一构造逻辑, 差别仅在于对齐相似度取自哪条文本轨: full/ctx/ss。这是本项目"三轨"架构的标准应用——full/ctx/ss 三条文本轨在方法论上各自独立成立、互为稳健性检验、不分主次, 严禁把三轨系数混进同一个 over-identified 的 Hansen J 过度识别检验; 它们应当各自 just-identified 并排呈现, 让读者看到结论是否对文本窗口选择稳健。需要特别指出的是: 本家族的"词频轨"(kw, 即 `fintech_distinct_keywords`) 是一个 track-agnostic 的元数据列 (AC 自动机在全文范围内去重计数, 本身并无 ctx/ss 变体), 因此在构造 `_ctx`/`_ss` 孪生列时, 词频侧仍复用 full 轨的 `fintech_distinct_keywords`, 只有相似度侧切换为对应轨的 `policy_cosine_sim_ctx`/`policy_cosine_sim_ss`——这是刻意的非对称设计并在源码注释中明确披露, 不是遗漏。此外, kw 是"Track A"路径 (与之并列的 Track B 是 `int`, 即 `fintech_intensity_score` TF-IDF×SIF 加权强度, 对应家族 `token_adopt_int_p50`), 两条词频轨之间同样互为稳健性、不分主次。
 
 【文献定位】
-本家族所刻画的"言行不一致的技术采纳/传播"现象, 在银行数字化转型与金融科技压力测试的实证文献中有稳固的方法学根基。Kwan, Lin, Pursiainen & Tai (2024, *Journal of Financial and Quantitative Analysis*) 以 COVID-19 冲击为准自然实验, 检验银行"数字能力"的异质性及其对经营韧性的实质影响, 揭示了银行数字化的对外呈现 (报道/披露) 与其真实运营能力之间可能存在的落差, 为本家族"报道热度高但政策对齐低"的象限划分提供了实证参照系: 若某银行大量新闻报道堆砌金融科技词汇却与官方政策文本疏离, 这与该文献所强调的"披露/传播 vs 真实能力"张力属于同一构念族。词频度量本身的方法学 (关键词计数/词汇多样性的稳健测量) 呼应 Covington & McFall (2010, *Journal of Quantitative Linguistics*) 提出的 moving-average type-token ratio 及其后续评估 (Bestgen 2025), 二者共同支撑本项目对"词频丰富度"这一维度的合理性——即高频出现某类关键词本身并不等价于内容的实质相关性, 需要与独立的语义对齐测度联合判定才能区分符号性与实质性两种传播模式。分位数二值化 (P25/P50/P75) 的稳健性检验设计, 亦与项目内其余梯子式测度 (词典消融、政治词权重、阈值梯子) 遵循同一原则: 中位数为机制检验基准, 上下分位数互为并排的稳健性检验, 不作为对主结果的加权修正。
-
+本家族所刻画的"言行不一致的技术采纳/传播"现象, 在银行数字化转型与金融科技压力测试的实证文献中有稳固的方法学根基。Kwan, Lin, Pursiainen & Tai (2024, *Journal of Financial and Quantitative Analysis*) 以 COVID-19 冲击为准自然实验, 检验银行"数字能力"的异质性及其对经营韧性的实质影响, 揭示了银行数字化的对外呈现 (报道/披露) 与其真实运营能力之间可能存在的落差, 为本家族"报道热度高但政策对齐低"的象限划分提供了实证参照系: 若某银行大量新闻报道堆砌金融科技词汇却与官方政策文本疏离, 这与该文献所强调的"披露/传播 vs 真实能力"张力属于同一构念族。词频度量本身的方法学 (关键词计数/词汇多样性的稳健测量) 呼应 Covington & McFall (2010, *Journal of Quantitative Linguistics*) 提出的 moving-average type-token ratio 及其后续评估 (Bestgen 2025), 二者共同支撑本项目对"词频丰富度"这一维度的合理性——即高频出现某类关键词本身并不等价于内容的实质相关性, 需要与独立的语义对齐测度联合判定才能区分符号性与实质性两种传播模式。分位数二值化 (P25/P50/P75) 的稳健性检验设计, 亦与项目内其余梯子式测度 (词典消融、政治词权重、阈值梯子) 遵循同一原则: 中位数为机制检验基准, 上下分位数互为并排的稳健性检验, 不作为对主结果的加权修正。 在此基础上, 近年两支实证工作可为本家族的构念边界提供进一步参照。Zhang、Hou、Li 与 Li (2024) 研究 ESG 评级如何推动企业绿色创新结构由象征性向实质性迁移, 把"象征性占比"作为可随外部监督变化的结构性比例 (而非绝对水平) 来处理, 这与本家族把象征性采纳表述为"已测量文章内的占比"(分母限定为相似度与词频均非缺失的报道) 而非计数水平的设计取向同源; 但迁移边界须诚实交代: 该文的比例基于专利结构数据, 主体为中国 A 股非金融企业, 驱动因素为 ESG 评级, 且全文未使用任何文本判定器, 因此它仅锚定"象征占比"这一构念形态, 并不为本家族"词频 × 政策对齐"的判定口径本身提供证据。Liu、Wang、Wen 与 Wu (2024) 则将企业对系统性风险的回应拆为 talk (文本表述强度) 与 action (实际举措) 两条可分别测量的维度并检验二者关系, 与本桶用"词频高低 × 政策对齐高低"划分 token/hidden 象限属同一"言—行两维并置"的测度族; 其边界在于原文为企业层面的系统性风险回应而非银行金融科技采纳, talk 取自披露文本、action 取自财务与公司行为代理, 而本家族两维同源于新闻文本 (词频 vs 政策余弦), 且不含年度分位阈值梯子与 bank-year 篇均占比聚合, 故该文只支撑"两维并置"的构造思路, 不能替本家族具体的阈值化与聚合口径背书。
 ## VAR: token_adopt_kw_p50
 
 【变体差分】
@@ -76,4 +91,6 @@ ctx 轨的构念定位是: 用一个比全文更聚焦、比同句共现更宽�
 Kwan, A., Lin, C., Pursiainen, V., & Tai, M. (2024). Stress testing banks' digital capabilities: Evidence from the COVID-19 pandemic. Journal of Financial and Quantitative Analysis, 59(6), 2618-2646. https://doi.org/10.1017/S0022109023000662
 Covington, M. A., & McFall, J. D. (2010). Cutting the Gordian knot: The moving-average type-token ratio (MATTR). Journal of Quantitative Linguistics, 17(2), 94-100. https://doi.org/10.1080/09296171003643098
 Bestgen, Y. (2025). Estimating lexical diversity using the moving average type-token ratio (MATTR): Pros and cons. Research Methods in Applied Linguistics, 4(1), 100168. https://doi.org/10.1016/j.rmal.2024.100168
+Zhang, Z., Hou, Y., Li, Z., & Li, M. (2024). From symbolic to substantive green innovation: How does ESG ratings optimize corporate green innovation structure. Finance Research Letters, 63, 105401. https://doi.org/10.1016/j.frl.2024.105401
+Liu, Y., Wang, J., Wen, F., & Wu, C. (2024). Corporate responses to systemic risk: Talk and action. Pacific-Basin Finance Journal, 87, 102493. https://doi.org/10.1016/j.pacfin.2024.102493
 <!-- rendered-citations:end -->

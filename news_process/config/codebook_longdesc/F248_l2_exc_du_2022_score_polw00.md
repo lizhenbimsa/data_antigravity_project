@@ -57,6 +57,46 @@ citations:
   vol: 62
   issue: 3
   pages_or_artno: 1139-1168
+- doi: "10.1017/s175577392610054x"
+  type: "journal"
+  authors: "Beltran, A., Guariso, D., & Guerrero, O. A."
+  year: 2026
+  title: "Paying the piper: government advertising and media bias"
+  venue: "European Political Science Review"
+  pages_or_artno: "1-20"
+- doi: "10.1080/13504851.2026.2701294"
+  type: "journal"
+  authors: "Cha, Y., & Wang, T.-X."
+  year: 2026
+  title: "Can firms offset information asymmetry shocks? Evidence from local newspaper closures"
+  venue: "Applied Economics Letters"
+  pages_or_artno: "1-7"
+- doi: "10.1016/j.jempfin.2024.101517"
+  type: "journal"
+  authors: "Soebhag, A., Van Vliet, B., & Verwijmeren, P."
+  year: 2024
+  title: "Non-standard errors in asset pricing: Mind your sorts"
+  venue: "Journal of Empirical Finance"
+  vol: "78"
+  pages_or_artno: "101517"
+- doi: "10.1007/s10842-024-00426-5"
+  type: "journal"
+  authors: "Merkus, E."
+  year: 2024
+  title: "Gravity Models in International Trade: A Specification Curve Analysis"
+  venue: "Journal of Industry, Competition and Trade"
+  vol: "24"
+  issue: "1"
+  pages_or_artno: "17"
+- doi: "10.1111/acfi.13230"
+  type: "journal"
+  authors: "Yan, L., Ma, Y., Li, C., & Tang, G."
+  year: 2024
+  title: "Media abnormal tone and cross section of stock returns: Evidence from China"
+  venue: "Accounting & Finance"
+  vol: "64"
+  issue: "3"
+  pages_or_artno: "2671-2698"
 new_dois: []
 novelty_exempt_rationale: "exc_ 前缀的停刊媒体排除稳健性变体家族, 叠加于已是消融臂的 du_2022_score_polw00 (政治词零权重), 其测度定义 (词典/归一化公式/三条语言学规则) 依据母族与词典原始文献 Du et al. (2022), 停刊排除逻辑本身是聚合层稳健性设计而非独立学术构念, 无需追加新文献。"
 ---
@@ -70,8 +110,7 @@ novelty_exempt_rationale: "exc_ 前缀的停刊媒体排除稳健性变体家族
 计算链路分两段。文章级一段由 tone_words.py 的 classify_batch 逐篇分派至 _analyze_single_article、再落到 _compute_sentiment_with_rules 承担: 对三轨文本 (content_full / content_ctx / content_ss) 分别做分词与词典匹配, 逐词判定基准极性、施加三条规则得到 final_score, 累加得净得分与加权幅度和, 归一化得 du_2022_score_polw00_{track}; polw00 臂通过 _political_variant_dict 在装载词典时令政治正面词的贡献乘以 0.0。面板级一段由 attention_media.py 的停刊稳健性块承担: detect_defacto_cessation 依据发稿间断等信号给出 ceased_set, 随后在 df_alive = 剔除停刊媒体后的文章集上按 target_bank × year 分组对每一个符合 _SCORE_PATTERNS 前缀 (含 du_2022_score_) 且非加权变体 (排除 _w / _mw_ / _idf_) 的文章列取均值, 加 exc_ 前缀写回面板, 故本列的分母是「该银行该年非停刊媒体报道篇数」而非全部报道篇数。这是一条幸存者偏差稳健性轨: 若停刊媒体系统性地偏正面或偏负面, 全样本均值会被存活媒体的语调结构污染, 排除停刊媒体后重算可检验主结论是否被媒体退出所驱动, 呼应 Fang 与 Peress (2009) 关于媒体覆盖结构影响横截面测度的关切。留篇口径与全项目 full-only 门控 (2026-06-29) 一致: 是否判为一篇银行金科报道只看 full 轨的 LLM 判定, ctx/ss 为 conditional-on-full 的测度/稳健性轨, 其行宇宙是 full 留篇集的子集。
 
 【文献定位】
-本测度立足三支文献。其一是中文财经情感词典本身: Du et al. (2022, Review of Finance) 是本家族词典与政治词权重设定的直接来源, 其核心贡献是论证情感词典必须兼顾语言特异性与领域特异性, 并揭示政治正面词的信号强度弱于普通正面词——这正是政治词权重梯子存在的理论依据。其二是词典法情感度量的方法学传统: Loughran 与 McDonald (2011, Journal of Finance) 确立了以领域词典而非通用词典度量金融文本语调的范式, Loughran 与 McDonald (2016, Journal of Accounting Research) 的综述进一步梳理了词典法相对机器学习法的可解释性与可复现性优势, 二者共同支撑本家族以透明、可审计的加权计数取代黑箱打分。其三是媒体语调的资产定价含义与媒体结构稳健性: Tetlock (2007, Journal of Finance) 奠定了媒体语调预测市场的经验基础, 而 Fang 与 Peress (2009, Journal of Finance) 提示媒体覆盖的横截面结构本身是一个需要控制的维度, 二者共同论证了「排除停刊媒体重算」这一稳健性设计的必要性。方法学铁律: 政治词权重三臂 (polw00 / polw05 / polw10) 各自 just-identified 并排、互为稳健性、不分主次, 严禁混入同一 over-identified 的 Hansen J 检验; 三轨 (full / ctx / ss) 同理各自 just-identified 并排, 亦禁混同一 over-identified Hansen J; 政治词权重梯子与规则消融梯度刻意正交、不交叉 (三权重均在全语言学规则下计算, 避免列数组合爆炸)。
-
+本测度立足三支文献。其一是中文财经情感词典本身: Du et al. (2022, Review of Finance) 是本家族词典与政治词权重设定的直接来源, 其核心贡献是论证情感词典必须兼顾语言特异性与领域特异性, 并揭示政治正面词的信号强度弱于普通正面词——这正是政治词权重梯子存在的理论依据。其二是词典法情感度量的方法学传统: Loughran 与 McDonald (2011, Journal of Finance) 确立了以领域词典而非通用词典度量金融文本语调的范式, Loughran 与 McDonald (2016, Journal of Accounting Research) 的综述进一步梳理了词典法相对机器学习法的可解释性与可复现性优势, 二者共同支撑本家族以透明、可审计的加权计数取代黑箱打分。其三是媒体语调的资产定价含义与媒体结构稳健性: Tetlock (2007, Journal of Finance) 奠定了媒体语调预测市场的经验基础, 而 Fang 与 Peress (2009, Journal of Finance) 提示媒体覆盖的横截面结构本身是一个需要控制的维度, 二者共同论证了「排除停刊媒体重算」这一稳健性设计的必要性。方法学铁律: 政治词权重三臂 (polw00 / polw05 / polw10) 各自 just-identified 并排、互为稳健性、不分主次, 严禁混入同一 over-identified 的 Hansen J 检验; 三轨 (full / ctx / ss) 同理各自 just-identified 并排, 亦禁混同一 over-identified Hansen J; 政治词权重梯子与规则消融梯度刻意正交、不交叉 (三权重均在全语言学规则下计算, 避免列数组合爆炸)。 晚近文献在本家族的三个环节上各自补强。政治词零权重臂的机制依据可由 Beltran、Guariso 与 Guerrero (2026) 旁证: 该文以墨西哥八家主要报纸逾 20 万篇意见专栏为语料, 以政府广告投放的过度倾斜度量媒体俘获, 发现被俘获媒体对现任总统的负面程度更低、对其主要政治对手的负面程度更高, 并有黑名单的质性证据佐证, 提示媒体的政治性正面表述可能反映资助关系而非基本面信息。须注意其边界: 原文未构造任何词典权重、亦未做词类降权, 语境为墨西哥单一国家 (与中国党媒-市场化媒体的制度结构不同), 其偏向以专栏负面语调与广告投放倾斜度量而非词级 political_positive 计数, 故只作 w_pol<1 乃至 polw00 完全剔除这一取值区间的机制性旁证, 且原文不涉及媒体停刊, 不作 exc_ 停刊排除的依据。停刊排除这一层的近期实证依据是 Cha 与 Wang (2026): 该文以地方报纸停刊作为信息环境冲击做实证, 证实媒体停刊是会真实改变可观测报道集合与信息含量的事件, 从而支撑「停刊媒体值得单独处理」; 边界在于原文把停刊当作外生冲击做因果识别、DV 为公司层面的信息不对称指标、层级为公司-年且语境为英文地方报业, 本家族只把停刊媒体作为样本排除条件做并排稳健性, 既不做因果推断, 其 ceased_set 亦是中文媒体源的疑似/确证停刊判定。三权重并排这一设计的方法学依据是 Soebhag 与 Verwijmeren (2024): 该文在资产定价因子模型上枚举断点选择、是否剔除 microcaps、行业调整与再平衡频率等构造路径, 实证记录研究者自由度带来的结果离散 (non-standard error 与 standard error 之比平均超过 1), 主张研究者须清楚交代并论证这些选择而非独断取一; 其自由度维度是投资组合排序而非情感词典权重, 且原文以枚举上百条构造路径来估计 NSE, 本家族仅枚举三个权重取值, 不构成 NSE 的完整估计。与之互补, Merkus (2024) 把规格曲线分析用于国际贸易引力模型, 系统枚举设定选择并展示估计量在整条曲线上的分布, 以判断结论是否被某一设定驱动, 与本家族「证明主结论不被 0.5 这一取值驱动」的敏感性设计同源; 但原文枚举的是控制变量与固定效应设定、规模达上百设定且层级为国家对, 本家族只有三点权重阶梯, 二者规模不可比。中文语料侧, Yan、Ma、Li 与 Tang (2024) 在中国语境下以中文媒体报道构造语调测度并做横截面实证, 是与本家族同语言、同媒体类型的近期语调计量实践; 其口径为相对预期的「异常语调」残差、层级为上市公司股票横截面、DV 为股票收益, 与本家族的幅度归一化 Σ(final)/Σ|final|、bank-year 面板聚合及停刊排除均不同, 且未做政治词子类折权, 故只作同域前沿参照。
 ## VAR: exc_du_2022_score_polw00_ctx
 
 【变体差分】
@@ -93,4 +132,9 @@ Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance:
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Fang, L., & Peress, J. (2009). Media coverage and the cross-section of stock returns. Journal of Finance, 64(5), 2023-2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Beltran, A., Guariso, D., & Guerrero, O. A. (2026). Paying the piper: government advertising and media bias. European Political Science Review, 1-20. https://doi.org/10.1017/s175577392610054x
+Cha, Y., & Wang, T.-X. (2026). Can firms offset information asymmetry shocks? Evidence from local newspaper closures. Applied Economics Letters, 1-7. https://doi.org/10.1080/13504851.2026.2701294
+Soebhag, A., Van Vliet, B., & Verwijmeren, P. (2024). Non-standard errors in asset pricing: Mind your sorts. Journal of Empirical Finance, 78, 101517. https://doi.org/10.1016/j.jempfin.2024.101517
+Merkus, E. (2024). Gravity Models in International Trade: A Specification Curve Analysis. Journal of Industry, Competition and Trade, 24(1), 17. https://doi.org/10.1007/s10842-024-00426-5
+Yan, L., Ma, Y., Li, C., & Tang, G. (2024). Media abnormal tone and cross section of stock returns: Evidence from China. Accounting & Finance, 64(3), 2671-2698. https://doi.org/10.1111/acfi.13230
 <!-- rendered-citations:end -->

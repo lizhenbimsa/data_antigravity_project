@@ -55,6 +55,13 @@ citations:
   venue: Natural Language Processing Journal
   vol: 11
   pages_or_artno: 100148
+- doi: "10.2139/ssrn.5153587"
+  type: "wp"
+  authors: "Bose, I., Hu, N., Liang, P., & Yang, X."
+  year: 2025
+  title: "Can Larger Language Models Always Perform Better? A Comparison of GPT, FinBERT, and Dictionaries in Evaluating Management Sentiment"
+  venue: "SSRN"
+  pages_or_artno: "5153587"
 new_dois: []
 ---
 
@@ -67,8 +74,7 @@ new_dois: []
 计算发生在面板构造阶段的算法迎合度全展开步骤 (runner 步骤 8d)。对每条轨道, 引擎先核验词典净语调列 (loughran_tone{track}) 与综合 BERT 正负概率列 (bert_avg_pos{track}/bert_avg_neg{track}) 在面板中同域存在, 再执行同银行同年、同轨道的逐格相减, 得到 loughran_cater_b 的三轨列。「_b」后缀专指以综合 BERT 深层判别式模型作为参照引擎, 与以三家 LLM 多数投票共识为参照的 loughran_cater (无 b 后缀) 是两条并行、构念互补但不可混同的迎合度轨: 前者对照的是概率型判别式深层模型 (finbert_cn/fin_sent_zh/finbert2 三模型综合正负概率), 后者对照的是生成式大模型的多家投票共识。两参照引擎分别捕捉判别式与生成式两类深层模型对语境的不同理解方式, 因而在稳健性叙事中作为「各自 just-identified 并排、互为稳健性、不分主次」的两条轨呈现, 严禁将词典—BERT 迎合度与词典—LLM 迎合度混进同一 over-identified 的 Hansen J 过度识别检验。词典侧的 loughran_tone 经三条语言学规则 (否定翻转、程度副词、转折句式) 增强后自归一化, 用词典打分聚合测度所依赖的是 6 词典固定 union 词典口径下逐篇匹配 (个体词典列 loughran_tone 本身不受 union 聚合口径影响, 但词条本身经跨类重叠消歧); BERT 侧的正负概率为综合三模型的聚合均值, 反映判别式模型对文本整体情感分布的概率判断。两侧测度量纲经各自归一化后落在可比区间, 相减所得落差即为迎合度信号, 正值表示词典比 BERT 更正面 (潜在迎合), 负值表示 BERT 读出了词典未捕捉的正面或负面语境信息。
 
 【文献定位】
-迎合度构念的思想源流是 Cao, Jiang, Yang & Zhang (2023) 关于「当机器在聆听时如何说话」的研究, 其核心发现是当披露方预期文本会被算法解析时会策略性调整用词以取悦机器读者; 本家族把这一策略性行为操作化为词典引擎与 BERT 判别式引擎打分的可观测差。词典侧测度的方法论根基直接来自 Loughran 与 McDonald 一系列奠基性工作: When is a liability not a liability? (Loughran & McDonald, 2011, *The Journal of Finance*) 首次系统证明通用词典 (如 Harvard IV-4) 大量误判金融文本中的中性词为负面, 提出面向金融披露的专属词表, 该词表经本土化中文主译本移植后即为本家族词典侧的直接来源; Textual analysis in accounting and finance: A survey (Loughran & McDonald, 2016, *Journal of Accounting Research*) 系统梳理了词典法在会计与金融文本分析中的适用边界与消融敏感性依据, 支撑了本家族「词典对深层模型的落差需要被审计而非默认可信」的方法学立场; Measuring firm complexity (Loughran & McDonald, 2024, *Journal of Financial and Quantitative Analysis*) 是该系列近年将词典文本分析方法扩展到企业复杂度测度的延伸工作, 佐证词典法在与新型深层模型并行使用时依然具有独立的构念价值, 而非被后者完全替代。深层词典构造方法学层面, Ma, Zhang & Zhang (2025) 构建面向中国境内投资者的细粒度中文情感词典 CN-FSD, 与 Sun, Yuan & Xu (2025) 将词典知识与中性特征注入预训练语言模型的做法, 共同呼应了本迎合度测度「词典与深层模型互补而非替代、二者之差恰是可审计信息」的底层假设, 也为词典—BERT 落差的构念效度提供了跨语料佐证。
-
+迎合度构念的思想源流是 Cao, Jiang, Yang & Zhang (2023) 关于「当机器在聆听时如何说话」的研究, 其核心发现是当披露方预期文本会被算法解析时会策略性调整用词以取悦机器读者; 本家族把这一策略性行为操作化为词典引擎与 BERT 判别式引擎打分的可观测差。词典侧测度的方法论根基直接来自 Loughran 与 McDonald 一系列奠基性工作: When is a liability not a liability? (Loughran & McDonald, 2011, *The Journal of Finance*) 首次系统证明通用词典 (如 Harvard IV-4) 大量误判金融文本中的中性词为负面, 提出面向金融披露的专属词表, 该词表经本土化中文主译本移植后即为本家族词典侧的直接来源; Textual analysis in accounting and finance: A survey (Loughran & McDonald, 2016, *Journal of Accounting Research*) 系统梳理了词典法在会计与金融文本分析中的适用边界与消融敏感性依据, 支撑了本家族「词典对深层模型的落差需要被审计而非默认可信」的方法学立场; Measuring firm complexity (Loughran & McDonald, 2024, *Journal of Financial and Quantitative Analysis*) 是该系列近年将词典文本分析方法扩展到企业复杂度测度的延伸工作, 佐证词典法在与新型深层模型并行使用时依然具有独立的构念价值, 而非被后者完全替代。深层词典构造方法学层面, Ma, Zhang & Zhang (2025) 构建面向中国境内投资者的细粒度中文情感词典 CN-FSD, 与 Sun, Yuan & Xu (2025) 将词典知识与中性特征注入预训练语言模型的做法, 共同呼应了本迎合度测度「词典与深层模型互补而非替代、二者之差恰是可审计信息」的底层假设, 也为词典—BERT 落差的构念效度提供了跨语料佐证。 测度学对照层面, Bose、Hu、Liang 与 Yang (2025) 把 GPT (LLM)、FinBERT (BERT) 与情感词典三类方法置于同一批管理层文本语料上做头对头比较, 报告三类方法对同一文本的语调判断存在系统性不一致; 这为本家族「词典侧 − BERT 侧」落差非零提供了直接依据: 两侧读数的分歧是方法学结构性差异的产物而非纯随机噪声, 从而支撑把该落差保留为可审计的独立诊断列而非临时中间量。迁移边界须如实标明: 该文语料为英文管理层沟通文本 (非中文银行金科报道), 模型侧为 GPT 与 FinBERT (非本项目 gpt54nano/gemini31/deepseekv4 三家投票与 finbert_cn/fin_sent_zh/finbert2 三 BERT), 词典侧为英文词典 (非 Loughran-McDonald 中文主译本及本项目其余中文词典), 分析层级为文档级方法比较而非 bank-year 面板聚合; 且原文只做方法一致性比较, 并未把两法之差本身构造为指标, 亦属尚未经期刊同行评议的工作论文, 故仅可作为「三类方法读数系统性分歧」这一前提的旁证, 不能据以为本家族迎合度的行为学解释背书。
 ## VAR: loughran_cater_b_full
 
 【变体差分】
@@ -90,4 +96,5 @@ Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance:
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications, 264, 125739. https://doi.org/10.1016/j.eswa.2024.125739
 Sun, Y., Yuan, H., & Xu, F. (2025). Financial sentiment analysis for pre-trained language models incorporating dictionary knowledge and neutral features. Natural Language Processing Journal, 11, 100148. https://doi.org/10.1016/j.nlp.2025.100148
+Bose, I., Hu, N., Liang, P., & Yang, X. (2025). Can Larger Language Models Always Perform Better? A Comparison of GPT, FinBERT, and Dictionaries in Evaluating Management Sentiment. SSRN No. 5153587 [Working Paper]. https://doi.org/10.2139/ssrn.5153587
 <!-- rendered-citations:end -->

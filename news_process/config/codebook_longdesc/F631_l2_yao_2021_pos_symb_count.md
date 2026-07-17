@@ -46,6 +46,22 @@ citations:
   vol: 45
   issue: 2-3
   pages_or_artno: 221-247
+- doi: "10.1016/j.jsis.2026.101971"
+  type: "journal"
+  authors: "Chen, Z., Hajiheydari, N., Zhang, M., & Lin, Y.-E."
+  year: 2026
+  title: "Corporate digital transformation attention and innovation: strategic commitment or symbolic signalling?"
+  venue: "The Journal of Strategic Information Systems"
+  vol: "35"
+  issue: "2"
+  pages_or_artno: "101971"
+- doi: "10.1108/ara-01-2025-0031"
+  type: "journal"
+  authors: "Guan, J., & Zhuang, X."
+  year: 2025
+  title: "Do digital words reflect real innovation? Evidence from post-M&A earnings conference"
+  venue: "Asian Review of Accounting"
+  pages_or_artno: "1-44"
 new_dois: []
 ---
 
@@ -58,8 +74,7 @@ new_dois: []
 篇章级判定分两步交乘, 由 pipeline/panel/runner.py 的洗稿率 K 块统一实现。第一步词典极性: 上游 stage 22 (tone_words) 对每篇报道按 Yao et al. (2021) 词典算出逐轨情感分 yao_2021_score{track} (词级正负词加权净分, 经否定翻转/程度副词/转折三条语言学规则调整后归一化), 净分大于零即记为正面。第二步象征性判定: stage 21 大模型对每篇报道给出 innovation_substantiveness 的类别标签 (实质性 / 象征性 / 不适用), 落在象征性者记为象征侧。runner.py 把两个布尔逐元素求交, 生成篇章级指示列 _is_yao_2021_pos_symb{track} (方法 D2, 单词典臂, 区别于方法 A 大模型投票臂、方法 D 词典均值臂、方法 E/E2 BERT 臂、方法 F 高置信度子样本臂); encode.py 的聚合规格 build_aggregation_dict 再按银行-年对该指示列 sum, 得到本家族三列。一个承重且容易忽视的口径细节: 象征性判据恒取 innovation_substantiveness_full 这一 full 轨标签 (track-agnostic), 三列共用同一象征掩码, 逐轨真正变化的只有词典极性符号那一侧。这与全项目 full-only 留篇门控 (2026-06-29) 一致——一篇报道是否算「一篇银行金科报道」只看 full 轨大模型核验 (llm_verified_full == True), ctx/ss 是 conditional-on-full 的子集测度, 行宇宙不外扩; 象征侧既然来自 full 轨分类, 就不随文本轨切换而重判, 三列因此绝不应被误读为「三套独立的象征性分类」。词典极性侧则真正逐轨: full 轨用标题 prepend 后的全文 (content_full), ctx 轨用标题加实体窗口文本 (content_ctx), ss 轨用标题加银行与金科同句共现窗口文本 (content_ss, 无共现时回退全文并置 ss_is_fallback=True, 镜像 ctx 回退语义)。缺列 (某轨词典分不存在) 由聚合层跳过而非报错或置零, NaN 情感经 fillna 视为非正、永不误入分子; 象征分类为 NaN 或判为实质性/不适用者同样不入分子。三轨互为稳健性、各自 just-identified 并排, 禁混进同一 over-identified Hansen J。
 
 【文献定位】
-测度的词典脊柱来自 Yao et al. (2021) 中文金融情感词典, 与家族并排的 Bian et al. (2021) 词典同属面向中文会计与金融文本、覆盖正负情感词的专用词典谱系, 相较通用情感词典 (如英译版 Loughran & McDonald) 更贴合中国资本市场语料的表达习惯; 与之同源的中文细粒度情感词典构造思路见 Ma, Zhang & Zhang (2025, *Expert Systems with Applications*) 对国内投资者情感词典 CN-FSD 的系统化构建, 二者共同支撑「中文金融语料需专用词典而非英文词典直译」的方法论立场。象征侧的构念根植于实质性-象征性脱耦研究: Bingler, Kraus, Leippold & Webersinke (2022) 以 ClimateBert 揭示企业气候披露中「廉价表态与挑肥拣瘦」(cheap talk and cherry-picking) 的象征化倾向, 正是本家族把「正面但象征」单独数出来的直接动机——语调为正不等于实质投入, 需要一个能把象征包装从实质行动中剥离的计数。词典法文本测度的大样本可行性与效度边界由会计文本分析经典确立: Lang & Stice-Lawrence (2015, *Journal of Accounting and Economics*) 在跨国大样本上论证了基于词表的文本度量的可比性与稳健性, Li (2008, *Journal of Accounting and Economics*) 则奠定了年报文本特征与基本面之间可检验关联的范式, 二者均属会计学顶刊、为词典法与「象征-实质」构念的联合使用提供方法学正当性锚点。本家族即在这一谱系下, 把「Yao 词典极性 × 象征分类」的交乘计数作为脱耦分子的单词典实现, 与 bian_2021/jiang_2021/du_2022/you_2018/loughran 各自的同构变体互为跨词典稳健性验证。
-
+测度的词典脊柱来自 Yao et al. (2021) 中文金融情感词典, 与家族并排的 Bian et al. (2021) 词典同属面向中文会计与金融文本、覆盖正负情感词的专用词典谱系, 相较通用情感词典 (如英译版 Loughran & McDonald) 更贴合中国资本市场语料的表达习惯; 与之同源的中文细粒度情感词典构造思路见 Ma, Zhang & Zhang (2025, *Expert Systems with Applications*) 对国内投资者情感词典 CN-FSD 的系统化构建, 二者共同支撑「中文金融语料需专用词典而非英文词典直译」的方法论立场。象征侧的构念根植于实质性-象征性脱耦研究: Bingler, Kraus, Leippold & Webersinke (2022) 以 ClimateBert 揭示企业气候披露中「廉价表态与挑肥拣瘦」(cheap talk and cherry-picking) 的象征化倾向, 正是本家族把「正面但象征」单独数出来的直接动机——语调为正不等于实质投入, 需要一个能把象征包装从实质行动中剥离的计数。词典法文本测度的大样本可行性与效度边界由会计文本分析经典确立: Lang & Stice-Lawrence (2015, *Journal of Accounting and Economics*) 在跨国大样本上论证了基于词表的文本度量的可比性与稳健性, Li (2008, *Journal of Accounting and Economics*) 则奠定了年报文本特征与基本面之间可检验关联的范式, 二者均属会计学顶刊、为词典法与「象征-实质」构念的联合使用提供方法学正当性锚点。本家族即在这一谱系下, 把「Yao 词典极性 × 象征分类」的交乘计数作为脱耦分子的单词典实现, 与 bian_2021/jiang_2021/du_2022/you_2018/loughran 各自的同构变体互为跨词典稳健性验证。 「实质性 vs 象征性」这一二分在当代数字化与科技话语研究中已成主流理论框架, 且已被证明是可实证证伪的经验问题: Chen、Hajiheydari、Zhang 与 Lin (2026) 基于注意力基础观构造企业数字化转型关注度, 以中国上市公司 2007–2020 年样本在「战略实质承诺 vs 象征性信号」两个对立解释间做检验, 发现该关注度与突破式创新相关而与渐进式创新及研发支出无关, 结果支持实质承诺说、并未支持象征性信号说, 因而对本列构成理论锚点与反面参照 (不可据此宣称原文提供了象征性的证据); 其象征性判定系由「话语关注度 vs 实际创新产出」的推断性对比得出, 文本源为公司自述披露、层级为公司-年, 与本列由 LLM 对第三方新闻逐篇直接标注象征性、并按银行-年分三轨计数的判定机制不同。同一追问在中国并购语境下的文本实证见 Guan 与 Zhuang (2025), 其核心问题正是「数字化措辞是否对应真实创新」, 与本列在正面科技话语中单独识别象征性叙事的构念高度同域; 但该文仅检验数字化词汇量与后续创新产出的对应关系以间接推断象征性, 未提出象征性/实质性的逐篇标注方案, 文本源为并购后业绩说明会的管理层自述而非第三方新闻报道, 分析单元为并购事件/公司-年而非银行-年三轨并排, 故只在构念层面提供同域参照。
 ## VAR: yao_2021_pos_symb_count_full
 
 【变体差分】
@@ -80,4 +95,6 @@ Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-graine
 Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022). Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures. Finance Research Letters, 47, 102776. https://doi.org/10.1016/j.frl.2022.102776
 Lang, M., & Stice-Lawrence, L. (2015). Textual analysis and international financial reporting: Large sample evidence. Journal of Accounting and Economics, 60(2-3), 110-135. https://doi.org/10.1016/j.jacceco.2015.09.002
 Li, F. (2008). Annual report readability, current earnings, and earnings persistence. Journal of Accounting and Economics, 45(2-3), 221-247. https://doi.org/10.1016/j.jacceco.2008.02.003
+Chen, Z., Hajiheydari, N., Zhang, M., & Lin, Y.-E. (2026). Corporate digital transformation attention and innovation: strategic commitment or symbolic signalling?. The Journal of Strategic Information Systems, 35(2), 101971. https://doi.org/10.1016/j.jsis.2026.101971
+Guan, J., & Zhuang, X. (2025). Do digital words reflect real innovation? Evidence from post-M&A earnings conference. Asian Review of Accounting, 1-44. https://doi.org/10.1108/ara-01-2025-0031
 <!-- rendered-citations:end -->

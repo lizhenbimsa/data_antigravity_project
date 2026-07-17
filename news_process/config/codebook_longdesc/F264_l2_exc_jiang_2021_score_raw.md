@@ -66,6 +66,13 @@ citations:
   vol: 63
   issue: 1
   pages_or_artno: 125-143
+- doi: "10.2139/ssrn.5024959"
+  type: "wp"
+  authors: "Cziraki, P., & Gider, J."
+  year: 2024
+  title: "Newspaper Closures and Trading in Local Stocks"
+  venue: "SSRN"
+  pages_or_artno: "5024959"
 new_dois: []
 ---
 
@@ -78,8 +85,7 @@ new_dois: []
 文章级底料是 jiang_2021_score_raw 的三轨分值。其中 jiang_2021 指姜富伟等 (2021) 发表于经济学(季刊)的中文财经媒体情绪词典, 该文以人工标注与机器学习方法从中文财经新闻语料中提炼正负情绪词表, 并证明由此构造的媒体情绪对 A 股横截面与时序回报具有预测力, 是本项目六部中文情绪词典之一。后缀 raw 指规则消融梯度中的"零规则"变体: 情绪分按 (pos - neg)/(pos + neg) 自归一化, 不施加否定翻转、程度副词加权、转折让步三类语言学规则中的任何一类; 它是消融 powerset 的下界基点, 与 negonly/degonly/advonly/negdeg/negadv/degadv 等六个带规则变体互为稳健性、不分主次, 各自 just-identified 并排, 严禁混入同一 over-identified Hansen J (各变体高度共线, 相关系数近 0.99, 报相关而非并入同式)。银行-年度聚合是在剔除疑似退出话题覆盖的媒体来源 (confirmed∪suspected) 后, 对该银行该年"仍在覆盖"子集的报道逐篇分值取均值, 三轨各自独立聚合。整个 exc_ 家族属纯 CPU、零 API 成本的面板后处理, 不触发任何 LLM 或嵌入调用, golden 可复现。
 
 【文献定位】
-本家族站在词典法情绪测量与其稳健性检验两支文献的交叉处。词典源头姜富伟等 (2021) 属中文场景的媒体情绪词典构造与资产定价应用; 其英文对应的方法学传统可上溯 Jiang, Lee, Martin & Zhou (2019) 在 Journal of Financial Economics 上以文本情绪 (manager sentiment) 预测股票回报的经典工作, 后者系统论证了从公司披露文本抽取的情绪指数具有稳健的横截面定价含义, 为本项目将媒体情绪聚合为银行-年度面板变量提供了方法学正当性与顶刊锚。中文财经文本的领域特异性由 Du, Huang, Wermers & Wu (2022, Review of Finance) 系统刻画, 他们证明通用情绪词典在中文财经语境下会系统性失准, 支持本项目并置多部中文专用词典 (jiang/yao/bian/du/you/loughran) 互为稳健的设计。词典法与机器学习法孰优的争论由 Frankel, Jennings & Lee (2022, Management Science) 给出细致对照, 支撑本项目"三方法 (LLM/词典/BERT) 互为稳健、不分主次"的总体架构。测量效度层面, van Atteveldt, van der Velden & Boukes (2021) 与 Barbaglia 等 (2025) 分别从人工标注对照与经济文本词典法的角度论证了词典情绪的适用边界与效度前提, 提示 raw 零规则变体在缺失否定与转折处理时可能低估语义反转, 这正是消融梯度并置带规则变体的意义所在。
-
+本家族站在词典法情绪测量与其稳健性检验两支文献的交叉处。词典源头姜富伟等 (2021) 属中文场景的媒体情绪词典构造与资产定价应用; 其英文对应的方法学传统可上溯 Jiang, Lee, Martin & Zhou (2019) 在 Journal of Financial Economics 上以文本情绪 (manager sentiment) 预测股票回报的经典工作, 后者系统论证了从公司披露文本抽取的情绪指数具有稳健的横截面定价含义, 为本项目将媒体情绪聚合为银行-年度面板变量提供了方法学正当性与顶刊锚。中文财经文本的领域特异性由 Du, Huang, Wermers & Wu (2022, Review of Finance) 系统刻画, 他们证明通用情绪词典在中文财经语境下会系统性失准, 支持本项目并置多部中文专用词典 (jiang/yao/bian/du/you/loughran) 互为稳健的设计。词典法与机器学习法孰优的争论由 Frankel, Jennings & Lee (2022, Management Science) 给出细致对照, 支撑本项目"三方法 (LLM/词典/BERT) 互为稳健、不分主次"的总体架构。测量效度层面, van Atteveldt, van der Velden & Boukes (2021) 与 Barbaglia 等 (2025) 分别从人工标注对照与经济文本词典法的角度论证了词典情绪的适用边界与效度前提, 提示 raw 零规则变体在缺失否定与转折处理时可能低估语义反转, 这正是消融梯度并置带规则变体的意义所在。 至于 exc_ 前缀所刻画的「剔除疑似退出覆盖媒体后再做银行-年度聚合」一环, 其现实动机可锚 Cziraki 与 Gider (2024): 该工作论文以报纸停刊为冲击, 实证报道供给的退出会改变本地股票的交易行为, 说明媒体退出并非无关紧要的样本损耗, 而是真实且有经济后果的样本组成变化, 因而值得单列一条剔除后重算的子样本臂。边界须如实写明: 原文的停刊判定取自外部事件数据、DV 为本地股票交易活动, 且停刊被用作识别冲击; 而本族 ceased_set 是由 detect_defacto_cessation 自语料内部推断的「疑似退出覆盖」保守代理 (confirmed ∪ suspected), 并非严格停刊事实, 用途仅限稳健性子样本而不承担识别功能; 该文为工作论文, 未经同行评审。
 ## VAR: exc_jiang_2021_score_raw_ctx
 
 【变体差分】
@@ -102,4 +108,5 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
+Cziraki, P., & Gider, J. (2024). Newspaper Closures and Trading in Local Stocks. SSRN No. 5024959 [Working Paper]. https://doi.org/10.2139/ssrn.5024959
 <!-- rendered-citations:end -->

@@ -56,6 +56,14 @@ citations:
   vol: 66
   issue: 1
   pages_or_artno: 35-65
+- doi: "10.1016/j.frl.2024.105265"
+  type: "journal"
+  authors: "Huang, J., & Ma, L."
+  year: 2024
+  title: "Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation"
+  venue: "Finance Research Letters"
+  vol: "63"
+  pages_or_artno: "105265"
 new_dois: []
 ---
 
@@ -68,8 +76,7 @@ new_dois: []
 朴素做法是把分母取为全部词典判正的篇数 (物理分母)。但洗稿率的分子 (正面 ∧ 象征性) 隐含要求该篇的实质性属性已被 LLM 成功测量: 若某篇报道 LLM 未能判出实质性/象征性 (返回 nan), 它进不了分子, 那它也不应留在分母里 — 否则分类失败越多, 分母越被稀释放大, 洗稿率被机械地压低, 制造出"洗稿越少"的假象, 而这只是测量缺失的伪影, 不是事实。因此本项引入同域 (subst-valid) 分母: 篇章级指示 _svd_dict_pos{track} 仅在"六词典平均分 > 0" 且 "innovation_substantiveness_full ∈ {实质性, 象征性}"两条件同时成立时置 1, 再由 _pool_svd_substvalid_counts 按 target_bank×year 求和, 得到本家族三列。分子分母遂严格同域, 除法 (_svd_denom → _safe_ratio) 只在这批"既判正又判了实质性"的篇上进行; 旧 schema 缺本列时回退物理分母 (dict_pos_count) 作向后兼容。词典均值口径的"dict"指六部中文金融情感词典 {jiang_2021, yao_2021, bian_2021, du_2022, you_2018, loughran} 逐篇 score 的算术平均, 平均分为正即计入正面 — 这与逐词典单独臂 (方法 D2, 各 {d}_pos_substvalid_count) 互补而不重复。须强调一处不对称口径: 词典正面性 (mean_d score > 0) 是逐轨计算 (full/ctx/ss 各读自身文本轨的 score), 而实质性测量门 innovation_substantiveness_full 恒取 full 轨、三列共享, 与项目 2026-06-29 起确立的 full-only 留篇门控一致 — 一篇报道是否算"一篇银行金科报道"、其实质性属性只以 full 轨判定为准, ctx/ss 降为 conditional-on-full 的稳健性/测度轨。故三列的差异纯粹来自词典正面性分量所读的文本轨不同, 实质性门是共享常量。
 
 【文献定位】
-词典法情感测度的方法论基石是 Loughran 与 McDonald (2011) 对 10-K 文本的分析, 他们指出通用情感词典移植到金融语域会系统性误判 (如"liability"在会计语境非负面), 由此确立领域专用词典的必要性 — 本项六词典中的中文金融情感词典 (Du 等 2022; Bian 等 2021) 正是这一传统在中文语料上的延续, Du 等 (2022) 更系统论证了语言与领域双重专用性对中文金融文本测度的增量效度。词典法与机器学习/LLM 法孰优的争论由 Frankel、Jennings 与 Lee (2022) 在 Management Science 上作了对照检验, 他们发现两类方法在披露情感测量上互有短长、宜互为稳健性而非单选一家 — 这直接支撑本项目将词典均值臂 (方法 D) 与 LLM 投票臂、BERT 均值臂并列为多方法洗稿率的做法。van Atteveldt、van der Velden 与 Boukes (2021) 则以人工标注为金标准, 比较了词典、众包与机器学习三类情感分析的效度, 提示词典法在细粒度判别上的局限, 这也正是本项目不单靠词典正面性、而额外叠加 LLM 实质性门以收窄分母的动因。须重申三轨铁律: full/ctx/ss 三列各自 just-identified 并排、互为稳健性不分主次, 禁混进同一 over-identified Hansen J; 词典均值臂与逐词典臂、LLM 臂、BERT 臂之间亦是并排稳健性关系, 同样禁混同一过度识别检验。
-
+词典法情感测度的方法论基石是 Loughran 与 McDonald (2011) 对 10-K 文本的分析, 他们指出通用情感词典移植到金融语域会系统性误判 (如"liability"在会计语境非负面), 由此确立领域专用词典的必要性 — 本项六词典中的中文金融情感词典 (Du 等 2022; Bian 等 2021) 正是这一传统在中文语料上的延续, Du 等 (2022) 更系统论证了语言与领域双重专用性对中文金融文本测度的增量效度。词典法与机器学习/LLM 法孰优的争论由 Frankel、Jennings 与 Lee (2022) 在 Management Science 上作了对照检验, 他们发现两类方法在披露情感测量上互有短长、宜互为稳健性而非单选一家 — 这直接支撑本项目将词典均值臂 (方法 D) 与 LLM 投票臂、BERT 均值臂并列为多方法洗稿率的做法。van Atteveldt、van der Velden 与 Boukes (2021) 则以人工标注为金标准, 比较了词典、众包与机器学习三类情感分析的效度, 提示词典法在细粒度判别上的局限, 这也正是本项目不单靠词典正面性、而额外叠加 LLM 实质性门以收窄分母的动因。须重申三轨铁律: full/ctx/ss 三列各自 just-identified 并排、互为稳健性不分主次, 禁混进同一 over-identified Hansen J; 词典均值臂与逐词典臂、LLM 臂、BERT 臂之间亦是并排稳健性关系, 同样禁混同一过度识别检验。 至于本家族分子分母共用的「实质性 vs 象征性」二分, Huang 与 Ma (2024) 在同一议题域内提供了直接对应: 该文以金融科技发展为解释变量, 检验其对企业实质性绿色创新与象征性绿色创新的差异化影响, 表明这一二分在中国情境、且恰在金融科技议题下已是可操作的分析范畴, 与本项目 innovation_substantiveness 的二值标签在构念与中文表述上直接呼应。迁移边界须写明: 原文的实质/象征由专利类型 (发明专利 vs 实用新型、外观设计) 客观划分, 主体为非金融上市公司, 金融科技居于解释变量位置; 本项目的实质/象征则由 LLM 对新闻文本判定而非取自专利数据, 主体为商业银行, 金融科技本身即被报道的议题。原文亦未构造任何比率型 washing 指标, 故它只锚定该二分作为构念的正当性, 不锚定本家族以 LLM 判定成功与否来收窄同域分母的设计。
 ## VAR: dict_pos_substvalid_count_full
 
 【变体差分】
@@ -91,4 +98,5 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
+Huang, J., & Ma, L. (2024). Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation. Finance Research Letters, 63, 105265. https://doi.org/10.1016/j.frl.2024.105265
 <!-- rendered-citations:end -->

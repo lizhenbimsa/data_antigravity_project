@@ -80,6 +80,15 @@ citations:
   vol: 62
   issue: 3
   pages_or_artno: 1139-1168
+- doi: "10.25300/misq/2024/18026"
+  type: "journal"
+  authors: "Qiao, M., & Huang, K.-W."
+  year: 2025
+  title: "Correcting Measurement Error in Regression Models with Variables Constructed from Aggregated Output of Data Mining Models"
+  venue: "MIS Quarterly"
+  vol: "49"
+  issue: "1"
+  pages_or_artno: "29-60"
 new_dois: []
 ---
 
@@ -94,8 +103,7 @@ new_dois: []
 计算分三步。第一步, 文章层概率: FinBERT2 是一个二分类金融情感编码器, 只输出「正面 / 负面」两类 (中性列在 encode 层补 NaN, 与三分类模型严格区分), 因此 finbert2_正面 是伯努利意义下的 P(正面), 与 finbert2_负面 互补而非独立第三维。第二步, 文章层加权: 无后缀列为等权原始概率; _w 变体把概率乘以该篇的提及密度 (mention_density) 得到成交量加权 (VW) 分子, 强调被密集提及的报道; _hw 变体把概率乘以从众衰减权重 (herd_weight) 得到从众加权 (HW) 分子, 压低同题重复、相互跟风的冗余报道。第三步, 样本剔除与聚合: 在剔除疑似退出覆盖媒体后的存活子集上, 对每个 (银行, 年份) 单元取上述文章列的算术均值。需注意 exc_ 聚合取的是「加权后概率列」的均值, 而非「加权分子和 ÷ 权重和」的重归一化比率, 故 _w/_hw 变体是 权重×概率 的组内平均, 尺度随权重量纲平移, 水平值不可与无后缀列直接并列比大小, 只可各自标准化后比较系数。留篇口径遵循 full-only 门控 (2026-06-29): 一篇报道是否算入银行—金科报道宇宙只看 full 轨的 LLM 判定, ctx/ss 轨为 conditional-on-full 的子集测度; 因此三轨 exc_ 列的行宇宙同源, 差别只在文本窗口。
 
 【文献定位】
-方法学上本家族坐落在金融文本情感测量从词典法转向机器学习/深度学习的谱系中。Loughran 与 McDonald (2011) 奠定了金融领域专用词典的必要性, 其 2016 年综述 (Loughran & McDonald, 2016) 系统梳理了文本分析在会计金融中的测量陷阱; Frankel、Jennings 与 Lee (2022) 在顶刊 Management Science 上直接比较了机器学习与词典法在披露情感上的表现, 论证了监督式模型相对词表的增量信息, 为本项目并置 BERT 与词典两族测度提供了方法学依据。FinBERT (Huang, Wang & Yang, 2023) 把 BERT 架构引入金融文本抽取, FinBERT2 (Xu et al., 2025) 进一步做金融领域专用的双向编码器部署优化, 即本家族所用模型。情感与媒体的经济后果一线由 Tetlock (2007) 关于媒体语气对股市的作用确立; 而 exc_ 前缀所针对的幸存者偏差与样本选择问题, 直接呼应 Fang 与 Peress (2009) 对媒体覆盖与截面收益的识别关切——媒体覆盖的进入与退出本身携带信息, 若不加处理会偏误估计。本项目把 FinBERT2 与另两个 BERT 模型 (finbert_cn / fin_sent_zh) 并置为「互为稳健性、不分主次」的三模型轨, 各自 just-identified 并排, 禁混进同一 over-identified Hansen J; 同理三轨 (full/ctx/ss) 与三加权 (无/VW/HW) 亦为规格稳健性并排, 不得在单一过度识别检验里混用。
-
+方法学上本家族坐落在金融文本情感测量从词典法转向机器学习/深度学习的谱系中。Loughran 与 McDonald (2011) 奠定了金融领域专用词典的必要性, 其 2016 年综述 (Loughran & McDonald, 2016) 系统梳理了文本分析在会计金融中的测量陷阱; Frankel、Jennings 与 Lee (2022) 在顶刊 Management Science 上直接比较了机器学习与词典法在披露情感上的表现, 论证了监督式模型相对词表的增量信息, 为本项目并置 BERT 与词典两族测度提供了方法学依据。FinBERT (Huang, Wang & Yang, 2023) 把 BERT 架构引入金融文本抽取, FinBERT2 (Xu et al., 2025) 进一步做金融领域专用的双向编码器部署优化, 即本家族所用模型。情感与媒体的经济后果一线由 Tetlock (2007) 关于媒体语气对股市的作用确立; 而 exc_ 前缀所针对的幸存者偏差与样本选择问题, 直接呼应 Fang 与 Peress (2009) 对媒体覆盖与截面收益的识别关切——媒体覆盖的进入与退出本身携带信息, 若不加处理会偏误估计。本项目把 FinBERT2 与另两个 BERT 模型 (finbert_cn / fin_sent_zh) 并置为「互为稳健性、不分主次」的三模型轨, 各自 just-identified 并排, 禁混进同一 over-identified Hansen J; 同理三轨 (full/ctx/ss) 与三加权 (无/VW/HW) 亦为规格稳健性并排, 不得在单一过度识别检验里混用。 聚合结构一侧尚可补一条前沿依据。Qiao 与 Huang (2025) 针对「由数据挖掘/分类模型逐条输出、再聚合而成的回归自变量」刻画其测量误差性质并给出校正方法, 恰对应本家族「FinBERT2 逐篇输出正面概率、再于存活媒体子集内按银行—年度取均值」的两段式构造, 提示此类聚合型构造变量不宜被当作无误差观测直接采用, 加权变体 (乘 mention_density 或 herd_weight 后取组内均值) 同受此性质约束。迁移边界须诚实标明: 原文语境为信息系统研究, 本项目并未实施其校正估计量, 仅援引其关于聚合型文本变量携带测量误差这一性质的论断; 且与本族并排的词典法臂由确定性状态机产出, 非数据挖掘模型输出, 不在该文所刻画的对象范围之内。
 ## VAR: exc_finbert2_正面_ctx
 
 【变体差分】
@@ -149,4 +157,5 @@ Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance:
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Fang, L., & Peress, J. (2009). Media coverage and the cross-section of stock returns. Journal of Finance, 64(5), 2023-2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Qiao, M., & Huang, K.-W. (2025). Correcting Measurement Error in Regression Models with Variables Constructed from Aggregated Output of Data Mining Models. MIS Quarterly, 49(1), 29-60. https://doi.org/10.25300/misq/2024/18026
 <!-- rendered-citations:end -->

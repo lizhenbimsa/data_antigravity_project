@@ -56,6 +56,15 @@ citations:
   title: "A new Chinese financial sentiment dictionary for textual analysis in accounting and finance"
   venue: SSRN Working Paper
   pages_or_artno: No. 3446388
+- doi: "10.1080/21697213.2024.2337262"
+  type: "journal"
+  authors: "Meng, Q., Du, X., & Gong, X."
+  year: 2024
+  title: "Does operational disclosure curb textual tone manipulation by corporate management?"
+  venue: "China Journal of Accounting Studies"
+  vol: "12"
+  issue: "2"
+  pages_or_artno: "247-275"
 new_dois: []
 ---
 
@@ -72,8 +81,7 @@ new_dois: []
 三轨口径必须显式说明。full 轨文本为标题 prepend 后的全文正文, ctx 轨为标题加银行与金科实体窗, ss 轨为标题加银行与金科同句共现窗; 三轨文本在 stage 14 物化。按 2026-06-29 起生效的 full-only 留篇门控, 一篇报道是否计入银行金科报道宇宙只由 full 轨的 LLM 判定决定, ctx 与 ss 轨降为条件于 full 的测度轨与稳健性轨, 其行宇宙是 full 留篇集的子集。因此本家族三列的 full 轨是首要测度, ctx 与 ss 两轨是并排的规格稳健性轨。三轨遵循本项目铁律: full / ctx / ss 各自 just-identified 并排, 互为稳健性、不分主次, 严禁把三轨混进同一个 over-identified 的 Hansen J 过度识别检验。ss 轨的回退语义镜像 ctx: 当某篇无银行金科同句共现时其 ss 文本退化为全文, is_fallback 置真, 分母口径与 ctx 共享。在本机 T=2 开发面板上 ctx 与 ss 轨常出现零方差退化属预期, 生产 T=19 语料上恢复正常。
 
 【文献定位】
-算法迎合度这一构念的方法学根基是"词典法与深层模型法对同一文本给出系统性不同语调"这一被反复记录的经验事实。Frankel、Jennings 与 Lee (2022) 在对披露文本情感的机器学习法与词典法的正面比较中指出, 两类方法捕捉的语调维度并不重合, 且其分歧本身携带增量信息, 这为把"词典减模型"之差作为一个独立可分析对象提供了直接依据。van Atteveldt、van der Velden 与 Boukes (2021) 通过将人工标注、众包编码、词典法与机器学习算法并置比较, 系统刻画了词典法相对于语义模型在效度上的结构性偏差, 说明本家族的差分并非纯噪声而是有构念含义的信号。在词典本体的合法性上, Barbaglia 等 (2025) 论证了基于词表的经济文本情感度量在可解释性与可复现性上的独立价值, 而 Du 等 (2022) 与 Bian 等 (2021) 则分别提供了中文金融领域词典的领域特定性证据与本家族所用卞氏词典的构造来源, 支撑以卞氏词典而非通用英文词表作被减项的选择。综合而言, 本家族把词典与 LLM 两条已被文献确立为"互为稳健、各有偏差"的测度之差, 转化为一个对媒体披露策略敏感的可观测指标。
-
+算法迎合度这一构念的方法学根基是"词典法与深层模型法对同一文本给出系统性不同语调"这一被反复记录的经验事实。Frankel、Jennings 与 Lee (2022) 在对披露文本情感的机器学习法与词典法的正面比较中指出, 两类方法捕捉的语调维度并不重合, 且其分歧本身携带增量信息, 这为把"词典减模型"之差作为一个独立可分析对象提供了直接依据。van Atteveldt、van der Velden 与 Boukes (2021) 通过将人工标注、众包编码、词典法与机器学习算法并置比较, 系统刻画了词典法相对于语义模型在效度上的结构性偏差, 说明本家族的差分并非纯噪声而是有构念含义的信号。在词典本体的合法性上, Barbaglia 等 (2025) 论证了基于词表的经济文本情感度量在可解释性与可复现性上的独立价值, 而 Du 等 (2022) 与 Bian 等 (2021) 则分别提供了中文金融领域词典的领域特定性证据与本家族所用卞氏词典的构造来源, 支撑以卞氏词典而非通用英文词表作被减项的选择。综合而言, 本家族把词典与 LLM 两条已被文献确立为"互为稳健、各有偏差"的测度之差, 转化为一个对媒体披露策略敏感的可观测指标。 在中文情境下把"语调偏离"量化为可检验对象这一做法, 亦有近期实证予以支撑。Meng、Du 与 Gong (2024) 以中国上市公司为对象测量管理层文本语调操纵, 即语调的正面程度超出基本面可解释的部分, 并检验经营性披露对该操纵的约束作用; 其"语调减基准语调"的差分识别逻辑与本家族"卞氏词典语调减 LLM 共识语调"属同一类语调偏移量化, 且同样以中文金融文本的词典化语调作为测度起点, 从而为把有向差解读为迎合或操纵的可观测痕迹提供了中文语境下的同型依据。迁移边界须逐项写明: 该文的基准语调来自基本面回归的拟合值 (残差法), 语调来源为企业自述的年报文本, 观测单位为公司—年; 本家族的基准则是同轨全部留篇的三家 LLM 多数投票共识语调, 偏离由两个异源测度直接相减而非由回归残差得到, 文本来源为第三方新闻报道, 观测单位为银行—年, 且原文全程未使用任何 LLM。因此该文只锚定"语调超出某一基准即可作为操纵痕迹"这一识别逻辑, 不构成本家族任何数值口径、值域或聚合方式的依据。
 ## VAR: bian_2021_cater_full
 
 【变体差分】
@@ -95,4 +103,5 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
+Meng, Q., Du, X., & Gong, X. (2024). Does operational disclosure curb textual tone manipulation by corporate management?. China Journal of Accounting Studies, 12(2), 247-275. https://doi.org/10.1080/21697213.2024.2337262
 <!-- rendered-citations:end -->

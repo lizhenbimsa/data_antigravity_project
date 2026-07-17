@@ -41,6 +41,22 @@ citations:
   venue: Decision Support Systems
   vol: '88'
   pages_or_artno: 67-75
+- doi: "10.1016/j.frl.2024.105024"
+  type: "journal"
+  authors: "Huang, W., Liu, J., & Zhang, R.-Z. (."
+  year: 2024
+  title: "Local newspaper closures and non-GAAP reporting quality"
+  venue: "Finance Research Letters"
+  vol: "62"
+  pages_or_artno: "105024"
+- doi: "10.1016/j.iref.2025.104564"
+  type: "journal"
+  authors: "Branzoli, N., Marchetti, S., & Tarducci, E."
+  year: 2025
+  title: "Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy"
+  venue: "International Review of Economics & Finance"
+  vol: "104"
+  pages_or_artno: "104564"
 new_dois: []
 ---
 
@@ -53,8 +69,7 @@ new_dois: []
 分子判据"负面"并非直接取用 `llm_vote_tone_{trk}` 这一列(该列不存在于本家族计算路径中), 而是 `compute_media_heterogeneity()` 内先由三家 LLM 多数投票分值 `llm_vote_score_{track}` 派生出的二值指示列 `is_negative_{track}`(该分值落入负面档记 1, 否则记 0), 再对"本市媒体"子样本按 `target_bank`、`year` 分组取 `is_negative_{track}` 的均值, 即得到 `neg_frac_homecity_{trk}`。因此本家族的负面口径本质上是 stage 21 三家 LLM 多数投票情感分值的二值化派生量, 与项目主情感测度(P1 `llm_vote_tone_full`, 由 `llm_vote_score_full` 另行离散化而来)同源但非同一列, 二者共享上游情感分值却经由不同的派生路径产生不同用途的下游列, 不应混为一谈。分母是该银行-年落在"本市媒体"子样本内、且情感判定非缺失(即通过 stage 21 full-only 留篇门控, `llm_verified_full == True`)的报道篇数——这一点须特别强调: 2026-06-29 起, 项目将"是否算作一篇有效银行-金科报道"的门控收紧为仅看 full 轨判定(`llm_verified_full`), ctx/ss 两轨的负面占比测度因此是 conditional-on-full 的稳健性测度, 其行宇宙(分母集合)是 full 轨留篇集的子集, 而非各轨独立留篇。当某银行-年完全没有本市媒体报道时(homecity_media_frac 分母为零的退化情形), 该银行-年的 `neg_frac_homecity_{trk}` 取 NaN 而非 0, 以避免把"无本地媒体覆盖"误读为"零负面报道"这一实质不同的经济含义——这是地理邻近性维度⑨全体测度共享的缺失处理约定, 与 `neg_frac_homeprov` 一致。城市匹配本身依赖实体字典的地址/注册地字段, 存在少量因媒体总部与实际采编地不一致、银行多级分支机构地址归并粒度等导致的测量误差, 这类误差方向不确定, 更可能造成经典衰减偏误(attenuation bias)而非系统性夸大。
 
 【文献定位】
-Gurun & Butler (2012, Journal of Finance) 是本地媒体倾向性研究的奠基文献, 其"不要相信炒作"标题本身即揭示本地媒体倾向于对本地企业更正面报道、进而影响广告收入与企业价值的机制链条; 但须澄清一个容易混淆之处——`compute_media_heterogeneity()` 源码内部对同一代码块下的三项并排指标分别标注了不同的文献支撑: 指标1(偏袒度 `tone_gap_*`)与指标2(封闭度 `*_media_frac`)的构念叙事对应 Gurun & Butler (2012) 的本地倾向性均值口径, 而指标3(即本家族的负面过滤 `neg_frac_*`)在源码行内注释处单独引用的是 Core, Guay & Larcker (2008, *Journal of Financial Economics*) 关于管理层如何通过媒体披露渠道选择性压制负面信息("the power of the pen")的机制——该文献强调的是负面消息尾部的选择性抑制而非口吻均值的系统性偏移, 与 neg_frac 这一离散化"负面占比"指标在构念上更贴合。Core, Guay & Larcker (2008) 的 DOI(10.1016/j.jfineco.2007.05.001)不在本项目引文白名单池内, 故本家族 citations 不直接收录该文献, 仅在此处如实披露源码注释的真实文献出处, 避免读者误以为 neg_frac_homecity 与 tone_gap/media_frac 三项指标共享同一篇奠基文献。就本家族实际收录的文献而言, Gurun & Butler (2012) 仍可作为"本地-非本地"报道口吻缺口这一更宽泛构念家族(维度⑨)的背景锚点, 但对 neg_frac 这一具体指标的解释力弱于对 tone_gap/media_frac 两项姊妹指标。Piotroski, Wong & Zhang (2015, Journal of Accounting Research) 在中国上市公司情境下研究了政治激励如何压制负面信息披露, 为本项目在中国银行业新闻语境下解读"本地负面占比偏低"提供了另一层制度性解释——除媒体商业动机外, 地方政府/监管关系也可能通过非正式渠道抑制本地负面报道, 两种机制在城市层面往往叠加、难以在观察性数据中完全分离, 这是使用本家族测度做因果解释时需要披露的局限。Pröllochs, Feuerriegel & Neumann (2016, Decision Support Systems) 关注情感分析中否定词处理对负面判定准确性的影响, 提醒本家族的负面标签本身继承自上游情感引擎(三家 LLM 投票派生的 `is_negative_{track}`), 其否定处理、程度副词、转折句式等语言学细节已在 stage 21/22 层面单独处理(词典消融梯度覆盖 negonly/degonly/advonly 等分支), 本家族不重复实现、仅承接结果, 但读者在解释"负面占比"数值时应知晓其继承自上游情感分类器的固有测量误差边界。
-
+Gurun & Butler (2012, Journal of Finance) 是本地媒体倾向性研究的奠基文献, 其"不要相信炒作"标题本身即揭示本地媒体倾向于对本地企业更正面报道、进而影响广告收入与企业价值的机制链条; 但须澄清一个容易混淆之处——`compute_media_heterogeneity()` 源码内部对同一代码块下的三项并排指标分别标注了不同的文献支撑: 指标1(偏袒度 `tone_gap_*`)与指标2(封闭度 `*_media_frac`)的构念叙事对应 Gurun & Butler (2012) 的本地倾向性均值口径, 而指标3(即本家族的负面过滤 `neg_frac_*`)在源码行内注释处单独引用的是 Core, Guay & Larcker (2008, *Journal of Financial Economics*) 关于管理层如何通过媒体披露渠道选择性压制负面信息("the power of the pen")的机制——该文献强调的是负面消息尾部的选择性抑制而非口吻均值的系统性偏移, 与 neg_frac 这一离散化"负面占比"指标在构念上更贴合。Core, Guay & Larcker (2008) 的 DOI(10.1016/j.jfineco.2007.05.001)不在本项目引文白名单池内, 故本家族 citations 不直接收录该文献, 仅在此处如实披露源码注释的真实文献出处, 避免读者误以为 neg_frac_homecity 与 tone_gap/media_frac 三项指标共享同一篇奠基文献。就本家族实际收录的文献而言, Gurun & Butler (2012) 仍可作为"本地-非本地"报道口吻缺口这一更宽泛构念家族(维度⑨)的背景锚点, 但对 neg_frac 这一具体指标的解释力弱于对 tone_gap/media_frac 两项姊妹指标。Piotroski, Wong & Zhang (2015, Journal of Accounting Research) 在中国上市公司情境下研究了政治激励如何压制负面信息披露, 为本项目在中国银行业新闻语境下解读"本地负面占比偏低"提供了另一层制度性解释——除媒体商业动机外, 地方政府/监管关系也可能通过非正式渠道抑制本地负面报道, 两种机制在城市层面往往叠加、难以在观察性数据中完全分离, 这是使用本家族测度做因果解释时需要披露的局限。Pröllochs, Feuerriegel & Neumann (2016, Decision Support Systems) 关注情感分析中否定词处理对负面判定准确性的影响, 提醒本家族的负面标签本身继承自上游情感引擎(三家 LLM 投票派生的 `is_negative_{track}`), 其否定处理、程度副词、转折句式等语言学细节已在 stage 21/22 层面单独处理(词典消融梯度覆盖 negonly/degonly/advonly 等分支), 本家族不重复实现、仅承接结果, 但读者在解释"负面占比"数值时应知晓其继承自上游情感分类器的固有测量误差边界。 就"本市/非本市"子样本二分这一前置切分而言, Huang、Liu 与 Zhang (2024) 以本地报纸停刊作为本地媒体监督减弱的冲击, 检验公司非 GAAP 披露质量的变化, 其核心前提正是"总部同城的本地媒体与异地媒体在监督功能上不可替代", 为本家族划出"本市媒体"子样本、并以其负面占比与非本市口径对照提供了构念依据; 但该文的识别策略是停刊事件的 DiD, 本家族做的是横截面上的同城/异城子样本对比, 其语境为美国本地报纸与美国上市公司, DV 为披露质量而非媒体语调本身——该文只把本地媒体当作监督强度的处理变量, 并未度量本地媒体的报道语调, 故仅锚定"本地媒体独立构念"这一半, 不锚定本家族的负面判定算法; 该刊为快报型期刊, 篇幅所限其证据链亦相对简短。Branzoli、Marchetti 与 Tarducci (2025) 构造媒体报道的语调测度, 并把它应用于银行融资条件这一银行层级的实证问题, 是"新闻语调→银行层级结果"链条的近期同域实践, 支撑本家族把银行-年媒体语调派生量当作可进入银行层级结果方程的变量; 迁移边界须如实标明: 该文语料为意大利媒体 (意/英文) 而非中国中文新闻, 其语调测度不经由本项目三家 LLM 投票的派生路径, 既无本市/非本市的媒体地理切分, 也不做负面篇占比的离散化, 亦无 full/ctx/ss 三轨文本切分, 其 DV 与本项目 P1 的 funding_cost 相近但口径与数据源不同, 因此它锚定的是应用域的同构性, 而非本家族公式中的任何一步。
 ## VAR: neg_frac_homecity_ctx
 
 【变体差分】
@@ -74,4 +89,6 @@ Gurun & Butler (2012, Journal of Finance) 是本地媒体倾向性研究的奠�
 Gurun, U. G., & Butler, A. W. (2012). Don't believe the hype: Local media slant, local advertising, and firm value. The Journal of Finance, 67(2), 561-598. https://doi.org/10.1111/j.1540-6261.2012.01725.x
 Piotroski, J. D., Wong, T. J., & Zhang, T. (2015). Political incentives to suppress negative information: Evidence from Chinese listed firms. Journal of Accounting Research, 53(2), 405-459. https://doi.org/10.1111/1475-679X.12071
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
+Huang, W., Liu, J., & Zhang, R.-Z. (. (2024). Local newspaper closures and non-GAAP reporting quality. Finance Research Letters, 62, 105024. https://doi.org/10.1016/j.frl.2024.105024
+Branzoli, N., Marchetti, S., & Tarducci, E. (2025). Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy. International Review of Economics & Finance, 104, 104564. https://doi.org/10.1016/j.iref.2025.104564
 <!-- rendered-citations:end -->

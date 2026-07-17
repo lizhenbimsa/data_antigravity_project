@@ -46,6 +46,38 @@ citations:
   vol: 15
   issue: 2
   pages_or_artno: 121-140
+- doi: "10.1016/j.jbankfin.2025.107501"
+  type: "journal"
+  authors: "Fernandez-Perez, A., Fuertes, A.-M., Miffre, J., & Zhao, N."
+  year: 2025
+  title: "Newswire tone-overlay commodity portfolios"
+  venue: "Journal of Banking & Finance"
+  vol: "178"
+  pages_or_artno: "107501"
+- doi: "10.1016/j.jbankfin.2025.107542"
+  type: "journal"
+  authors: "Lehkonen, H., Heimonen, K., & Pukthuanthong, K."
+  year: 2025
+  title: "Media tone is a priced risk factor in currency markets"
+  venue: "Journal of Banking & Finance"
+  vol: "180"
+  pages_or_artno: "107542"
+- doi: "10.1016/j.pacfin.2025.102721"
+  type: "journal"
+  authors: "Wang, Y., Xiao, J., Wang, L., & Wang, D."
+  year: 2025
+  title: "News sentiment and the cost of debt"
+  venue: "Pacific-Basin Finance Journal"
+  vol: "91"
+  pages_or_artno: "102721"
+- doi: "10.1016/j.chieco.2025.102541"
+  type: "journal"
+  authors: "Wei, L., Wei, M., Wu, Y., & Jing, Z."
+  year: 2025
+  title: "Does party organization construction improve chinese banks' stability? Evidence from a new textual index"
+  venue: "China Economic Review"
+  vol: "94"
+  pages_or_artno: "102541"
 new_dois: []
 ---
 
@@ -58,8 +90,7 @@ new_dois: []
 计算须分清两个阶段的分工。第一步在情感词典阶段 (stage 22 tone_words) 完成: 对每篇留篇报道, 先用 Yao et al. (2021) 词典匹配正负情感词, 并应用与其余五部中文金融情感词典共享的三条语言学规则 (否定翻转、程度副词加权、转折句式调整) 后相减求得逐篇净极性分 yao_2021_score{track}; 这一逐篇分是无量纲的, 且不含任何面板层面的权重。第二步在面板聚合阶段 (encode.py 等权 E 段) 完成: 对同一银行-年-轨道内所有留篇报道的 yao_2021_score{track} 直接求和 (equal weight, 即权重恒为 1), 得到 yao_2021_tone_sum{track}。这与另一族 score_w_sum (value-weighted, 由 panel runner 步骤 3b 先乘以来自 stage 11 news_salience 的提及密度权重再求和) 是两条并行但不同的加权路径: 前者 (本家族) 是纯等权累加, 后者是提及密度加权累加, 二者互为稳健性并排、不分主次, 也不应混同求和口径。随后 encode.py 同段以该银行-年-轨道的留篇报道数 n_articles_llm_valid{track} 为分母作除法, 派生出归一化的等权语调 yao_2021_tone{track}, 故本家族三列在数学上正是这一 canonical 等权语调的分子。留篇口径遵循 full-only 门控 (2026-06-29): 一篇报道是否计入银行-年宇宙, 由 full 轨的 LLM 判定 (llm_verified_full == True) 决定; ctx 与 ss 两轨的行集合是 full 轨留篇集的严格子集, 三轨各自在该子集上逐轨求和, ctx/ss 不借用 full 轨的分子或分母。单位为无量纲得分和: 逐篇净极性分本身无固定区间, 求和后的量纲随报道条数伸缩, 因而本列只可在同一银行、同一轨道、跨年份或跨银行的相对体量意义上比较, 不能直接当作 [-1,1] 区间的归一化语调数值使用 (那是下游 yao_2021_tone{track} 的职责)。
 
 【文献定位】
-词典来源 Yao et al. (2021) 是本家族极性分的唯一词典依据, 与同仓另外五部中文金融情感词典 (Jiang 2021、Bian 2021、Du 2022、You 2018、Loughran & McDonald 中译) 并列构成词典轨内部的跨词典稳健性梯队。方法论定位上, van Atteveldt, van der Velden & Boukes (2021) 系统比较人工标注、众包、词典法与机器学习四类情感测度路径, 指出词典法的偏差来源与适用边界, 是本仓把词典轨、LLM 三家投票轨、BERT 三模型轨并置为「三方法互为稳健、不分主次」设计的方法学依据; Frankel, Jennings & Lee (2022) 在 Management Science 上以真实披露文本直接对比机器学习情感与词典法情感, 为词典法在金融文本场景下与更复杂方法并列存证提供了顶刊层面的直接先例。就中文金融语域的词典专用性而言, Du et al. (2022) 在 Review of Finance 论证语言与领域专用性对中文金融情感测度的必要性, 说明为何本仓不满足于通用情感词典而要引入 Yao 等多部中文金融专用词典; Ma, Zhang & Zhang (2025) 面向中国境内投资者构建细粒度中文情感词典 (CN-FSD), 代表这一谱系向更细颗粒度演进的近期进展, 与 Yao 词典同属为中文金融文本定制的情感资源家族。铁律须再述: 六部词典各自 just-identified 并排, 词典轨内部的等权/提及密度加权/媒体权威加权/跟风衰减加权四种聚合口径同样各自 just-identified 并排, 与三轨 full/ctx/ss 一并均为「互为稳健性、不分主次」, 禁混进同一 over-identified Hansen J; 词典轨与 LLM 轨、BERT 轨之间同理只作互为稳健性对照, 不合并识别。
-
+词典来源 Yao et al. (2021) 是本家族极性分的唯一词典依据, 与同仓另外五部中文金融情感词典 (Jiang 2021、Bian 2021、Du 2022、You 2018、Loughran & McDonald 中译) 并列构成词典轨内部的跨词典稳健性梯队。方法论定位上, van Atteveldt, van der Velden & Boukes (2021) 系统比较人工标注、众包、词典法与机器学习四类情感测度路径, 指出词典法的偏差来源与适用边界, 是本仓把词典轨、LLM 三家投票轨、BERT 三模型轨并置为「三方法互为稳健、不分主次」设计的方法学依据; Frankel, Jennings & Lee (2022) 在 Management Science 上以真实披露文本直接对比机器学习情感与词典法情感, 为词典法在金融文本场景下与更复杂方法并列存证提供了顶刊层面的直接先例。就中文金融语域的词典专用性而言, Du et al. (2022) 在 Review of Finance 论证语言与领域专用性对中文金融情感测度的必要性, 说明为何本仓不满足于通用情感词典而要引入 Yao 等多部中文金融专用词典; Ma, Zhang & Zhang (2025) 面向中国境内投资者构建细粒度中文情感词典 (CN-FSD), 代表这一谱系向更细颗粒度演进的近期进展, 与 Yao 词典同属为中文金融文本定制的情感资源家族。铁律须再述: 六部词典各自 just-identified 并排, 词典轨内部的等权/提及密度加权/媒体权威加权/跟风衰减加权四种聚合口径同样各自 just-identified 并排, 与三轨 full/ctx/ss 一并均为「互为稳健性、不分主次」, 禁混进同一 over-identified Hansen J; 词典轨与 LLM 轨、BERT 轨之间同理只作互为稳健性对照, 不合并识别。 就本家族「逐篇语调→单元级求和」这一聚合形态本身, 近期文献亦有可援引的先例。Fernandez-Perez、Fuertes、Miffre 与 Zhao (2025) 以新闻通讯社 (newswire) 语调叠加构造商品组合信号, 其做法正是把逐篇通讯社报道的语调按标的聚合成单元级语调量再进入下游分析, 与本家族把逐篇 yao_2021_score{track} 在银行-年-轨道内累加为未归一分子的口径同构; 迁移边界须写实: 该文聚合单元是商品-期而非银行-年三轨, 语料为英文 newswire, 且不含 IDF、提及密度、媒体权威、跟风衰减任何一层加权, 故只锚求和聚合口径的存在性。Lehkonen、Heimonen 与 Pukthuanthong (2025) 以 Refinitiv MarketPsych 指数构造媒体语调, 证明比率型媒体语调 (正负提及净额除以总提及) 是可跨截面定价货币的真实风险因子, 为本家族分子在下游除以 n_articles_llm_valid{track} 后形成的比率型语调这一测度形态提供了经济含义层面的近期论证; 惟其语调取自专有商业 NLP 指数而非自建词表命中计数, 构造细节不可复核, 与本仓公开中文词典自建计数的透明度不可比, 且其层级为货币 (国别)、DV 为汇率收益的因子定价, 亦无中文分词与否定翻转规则, 该文不得被援引为任何词级或聚合层加权口径的依据。在应用同域上, Wang、Xiao、Wang 与 Wang (2025) 在中国语境下从新闻报道抽取情感并聚合到企业层面用于债务成本实证, 与本家族「中文新闻情感 → 实体-年测度」的链路形态一致, 可作为该链路的近期实例; 惟其实体为一般上市公司、DV 为债务成本, 且不区分等权与加权两种聚合口径, 无三轨文本范围, 故只锚应用语境而非本家族的具体求和算法。Wei、Wei、Wu 与 Jing (2025) 构造新的中文文本指数度量中国银行的党组织建设, 并接入银行层面面板检验其对银行稳定性的影响, 为「中文文本→银行层面指数→银行面板回归」这一整体链路提供了应用同域 (中国银行×中文文本计量) 的近期范例; 该条须按降级口径引用: 其文本源与指数构造口径未经核实, 极可能为银行自身披露文件的主题/关键词计数, 而非情感词典净极性经三条语言学规则后的银行-年求和, 其 DV 为银行稳定性, 亦无三轨与四层加权, 因此仅锚链路存在性, 不构成对本家族计分或聚合公式的任何支持。
 ## VAR: yao_2021_tone_sum_ctx
 
 【变体差分】
@@ -80,4 +111,8 @@ Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-graine
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
+Fernandez-Perez, A., Fuertes, A.-M., Miffre, J., & Zhao, N. (2025). Newswire tone-overlay commodity portfolios. Journal of Banking & Finance, 178, 107501. https://doi.org/10.1016/j.jbankfin.2025.107501
+Lehkonen, H., Heimonen, K., & Pukthuanthong, K. (2025). Media tone is a priced risk factor in currency markets. Journal of Banking & Finance, 180, 107542. https://doi.org/10.1016/j.jbankfin.2025.107542
+Wang, Y., Xiao, J., Wang, L., & Wang, D. (2025). News sentiment and the cost of debt. Pacific-Basin Finance Journal, 91, 102721. https://doi.org/10.1016/j.pacfin.2025.102721
+Wei, L., Wei, M., Wu, Y., & Jing, Z. (2025). Does party organization construction improve chinese banks' stability? Evidence from a new textual index. China Economic Review, 94, 102541. https://doi.org/10.1016/j.chieco.2025.102541
 <!-- rendered-citations:end -->

@@ -47,6 +47,22 @@ citations:
   vol: 37
   issue: 2
   pages_or_artno: 267-307
+- doi: "10.1093/llc/fqae013"
+  type: "journal"
+  authors: "Venglařová, K., & Matlach, V."
+  year: 2024
+  title: "Beyond content: discriminatory power of function words in text type classification"
+  venue: "Digital Scholarship in the Humanities"
+  vol: "39"
+  issue: "2"
+  pages_or_artno: "765-789"
+- doi: "10.2139/ssrn.5024959"
+  type: "wp"
+  authors: "Cziraki, P., & Gider, J."
+  year: 2024
+  title: "Newspaper Closures and Trading in Local Stocks"
+  venue: "SSRN"
+  pages_or_artno: "5024959"
 new_dois: []
 ---
 
@@ -59,8 +75,7 @@ new_dois: []
 文章级底料由 tone_words.py 的 compute_dict_scores 产出。分词冻结在 jieba 0.42.1, 纯 CPU、无 LLM、无网络、零成本, 确定性完全来自 jieba 版本与词典文件。得分是加权幅度归一化而非计数口径 (fix omni-g-tonewords-09, 2026-06-11): 逐词累加带符号的 final_score 得分子 total_score = Σ(final_score), 同时累加其绝对值得分母 total_abs_score = Σ|final_score|, 最终 normalized_score = total_score / total_abs_score (分母为零时取 0)。这里 final_score 是每个匹配情感词在启用规则调制后的带权极性值 (词典基值经政治词降权、转折放大等权重后的结果), pos_count/neg_count 仅是正负词计数副产物、并不进入本得分的分子或分母。旧口径曾以裸匹配词数 (pos_count+neg_count) 作分母, 因分子被程度 (≤3.0) 与转折 (×1.5) 放大而理论值域达 ±4.5、盘上约 13% 文章越过 1; 改用与分子同权的 Σ|final_score| 作分母后, 得分恒有界 ∈ [-1, +1]。advonly 变体在扫描时把 apply_negation 与 apply_degree 置 False、apply_adversative 置 True: 遇否定词仍识别否定 token 并维持窗口递减骨架但不翻转极性, 遇程度副词把倍率锁定为 1.0, 唯独在遇到转折词后的从句区域内对情感词施加 ×ADVERSATIVE_BOOST 放大 (转折作用域按句末标点重置, 遵循从句级 scoping); 该放大对正负两侧情感词对称作用, 故负面词的 final_score 幅值同受转折 boost 抬升, 分子分母一并变化而不破坏 [-1,1] 有界性。这条「只锁数值效应、不动 scoping」的铁律保证 advonly 与其余六个消融变体逐字节可比。银行–年度聚合在 attention_media.py 完成: 先剔除 _is_ceased_media 为真的文章得到存活子集 df_alive, 再按 target_bank×year 对文章级 du_2022_score_advonly{track} 取算术均值, 落列 exc_du_2022_score_advonly{track}。停刊过滤只作用于分子聚合口径, 不改变词典与规则本身; 比例类与情感类 exc_ 列在零文章 bank-year 按契约保持 NaN, 不做计数零填。
 
 【文献定位】
-词典来源锚定 du 等 (2022): 该文论证通用英文情感词典迁移到中文金融文本会系统性失真, 领域与语言特异性词表能显著提升情感抽取效度, 是本家族褒贬词表与政治词降权的直接依据。转折规则的语言学基础可追溯至 Taboada 等 (2011) 的词典法情感分析框架, 其中对否定、程度强化 (intensifier) 与转折 (contrastive/adversative) 结构如何调制词典极性给出了系统处理, advonly 变体正是在该框架内单独激活转折通道的一次消融。Ma 等 (2025) 构建面向中国境内投资者的细粒度中文情感词典, 印证了在中文金融语境下持续精化领域词典与规则的必要性, 为本项目多词典并置提供同期对照。exc_ 前缀的幸存者稳健动机则由 Heese 等 (2022) 提供: 地方报纸关停会实质改变媒体监督的横截面构成, 若不剔除停刊来源, 情感聚合会向存活媒体倾斜并污染以媒体为基的 Bartik 类工具变量。需强调, 规则消融梯度 (raw/negonly/degonly/advonly/negdeg/negadv/degadv) 各变体自归一化、高度共线且非可加分解, 它们各自 just-identified 并排、互为稳健性、不分主次, 禁混进同一 over-identified 的 Hansen J 检验; 同理三轨 full/ctx/ss 亦禁混同一 Hansen J。留篇门控口径与全项目一致, 采用 full-only (2026-06-29): 是否判为一篇银行金科报道只看 full 轨留篇集, ctx/ss 为 conditional-on-full 的稳健性轨。
-
+词典来源锚定 du 等 (2022): 该文论证通用英文情感词典迁移到中文金融文本会系统性失真, 领域与语言特异性词表能显著提升情感抽取效度, 是本家族褒贬词表与政治词降权的直接依据。转折规则的语言学基础可追溯至 Taboada 等 (2011) 的词典法情感分析框架, 其中对否定、程度强化 (intensifier) 与转折 (contrastive/adversative) 结构如何调制词典极性给出了系统处理, advonly 变体正是在该框架内单独激活转折通道的一次消融。Ma 等 (2025) 构建面向中国境内投资者的细粒度中文情感词典, 印证了在中文金融语境下持续精化领域词典与规则的必要性, 为本项目多词典并置提供同期对照。exc_ 前缀的幸存者稳健动机则由 Heese 等 (2022) 提供: 地方报纸关停会实质改变媒体监督的横截面构成, 若不剔除停刊来源, 情感聚合会向存活媒体倾斜并污染以媒体为基的 Bartik 类工具变量。需强调, 规则消融梯度 (raw/negonly/degonly/advonly/negdeg/negadv/degadv) 各变体自归一化、高度共线且非可加分解, 它们各自 just-identified 并排、互为稳健性、不分主次, 禁混进同一 over-identified 的 Hansen J 检验; 同理三轨 full/ctx/ss 亦禁混同一 Hansen J。留篇门控口径与全项目一致, 采用 full-only (2026-06-29): 是否判为一篇银行金科报道只看 full 轨留篇集, ctx/ss 为 conditional-on-full 的稳健性轨。 转折通道值得脱离内容词极性而单列这一构念前提, 可由 Venglařová 与 Matlach (2024) 补强: 该文实证显示连词一类功能词在文本类型判别上具有独立于内容词的信息量, 提示转折/逆接结构本身构成一个可单独计量的语言维度。迁移边界须写明: 原文任务为文本类型分类, 并不区分转折连词与其他功能词类, 语料非中文金融新闻, 亦未涉及本族在转折从句区域内对正负两侧同幅放大的效价调制与银行-年度聚合, 故只作构念层旁证, 不构成 ADVERSATIVE_BOOST 这一具体调制方式的依据。exc_ 口径方面, 除 Heese 等 (2022) 外, Cziraki 与 Gider (2024) 以报纸停刊为冲击, 实证报道供给退出会改变本地股票的交易行为, 从近期证据侧印证媒体退出是真实且具经济后果的样本组成变化。惟其停刊判定来自外部事件数据并被用于识别冲击, 而本族 ceased_set 是由语料内部推断的疑似退出覆盖保守代理 (confirmed ∪ suspected), 并非严格停刊事实, 仅用作稳健性子样本而不承担识别功能; 该文为工作论文, 未经同行评审。
 ## VAR: exc_du_2022_score_advonly_ctx
 
 【变体差分】
@@ -81,4 +96,6 @@ Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-graine
 Heese, J., Pérez-Cavazos, G., & Peter, C. D. (2022). When the local newspaper leaves town: The effects of local newspaper closures on corporate misconduct. Journal of Financial Economics, 145(2), 445-463. https://doi.org/10.1016/j.jfineco.2021.08.015
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
+Venglařová, K., & Matlach, V. (2024). Beyond content: discriminatory power of function words in text type classification. Digital Scholarship in the Humanities, 39(2), 765-789. https://doi.org/10.1093/llc/fqae013
+Cziraki, P., & Gider, J. (2024). Newspaper Closures and Trading in Local Stocks. SSRN No. 5024959 [Working Paper]. https://doi.org/10.2139/ssrn.5024959
 <!-- rendered-citations:end -->

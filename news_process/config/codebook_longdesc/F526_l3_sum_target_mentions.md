@@ -35,6 +35,20 @@ citations:
   vol: '134'
   issue: '4'
   pages_or_artno: 2135-2202
+- doi: "10.1080/13504851.2025.2522167"
+  type: "journal"
+  authors: "Huang, Y.-T., Chiu, I.-C., & Hung, M.-W."
+  year: 2025
+  title: "Firm-specific news sentiment and stock returns: the impact of relevance and time frames"
+  venue: "Applied Economics Letters"
+  pages_or_artno: "1-10"
+- doi: "10.1177/10944281251334777"
+  type: "journal"
+  authors: "Iqbal, F., & Pfarrer, M. D."
+  year: 2025
+  title: "Using Coreference Resolution to Mitigate Measurement Error in Text Analysis"
+  venue: "Organizational Research Methods"
+  pages_or_artno: "10944281251334777"
 new_dois: []
 ---
 
@@ -47,8 +61,7 @@ sum_target_mentions 是银行-年面板上的一个 value-weighted 辅助聚合�
 计算链路分两段。第一段在文章级: news_bank.py 对每篇原始"内容"列正文(stage 11 阶段, 早于 stage 14 三轨物化, 不含标题)扫描目标银行的规范名称、简称及历史曾用名, 逐次匹配累加, 得到 target_bank_mention_count(article, int)。这一步与 stage 13 共现硬过滤所用的银行实体识别共享同一套实体规范化字典, 但共现过滤只关心"是否存在"而不关心"提及几次", 因此二者判据口径不同——target_bank_mention_count 是计数而非布尔。第二段在 panel/encode.py 的 bank-year 聚合函数中: agg['sum_target_mentions'] = ('target_bank_mention_count', 'sum'), 即对同一 bank-year 分组内所有留篇文章的该计数值直接求和, pandas groupby.agg 会自动跳过缺失值(不参与求和分母膨胀)。需要注意, sum_target_mentions 使用的文章全集口径与家族内多数三轨(full/ctx/ss)测度不同——它没有 _full/_ctx/_ss 后缀分裂, 是 track-agnostic 的单一列, 因为 target_bank_mention_count 产自 stage 11 news_bank.py 的原始"内容"列正文匹配计数(上下半区拼接扫描, 不含标题命中; 标题命中另计入独立字段 total_with_title, 仅供该阶段前置阈值判定使用, 从不写入 target_bank_mention_count), 在流水线时序上先于 stage 14 materialize_ctx 物化 content_full/content_ctx/content_ss 与 prepend_title 逻辑——此时 content_full 这一列尚不存在, 该计数不可能基于 prepend_title 后的 content_full 抽取。它不随情感测度的三轨切分而重复计算, 三轨物化是下游 stage 14 才引入的正交处理。这一点与家族同区块内 llm_vote_score_w_sum{track}/pos_count_vw{track} 等显式三轨列形成对比: 后者服务于情感强度的三轨稳健性梯子(full/ctx/ss 各自 just-identified 并排, 互为稳健性不分主次, 禁止混入同一 over-identified Hansen J 设定), 而 sum_target_mentions 服务于更基础的"关注度/曝光强度"侧写, 天然只有一个全文轨口径, 不需要也不应该拆分三轨。留篇门控口径与全仓一致: 2026-06-29 起门控已收敛为 full-only(llm_verified_full == True 决定"是否算一篇银行金科报道"), sum_target_mentions 参与聚合的文章全集与其余 bank-year 列共享同一行宇宙, 不存在门控口径漂移。
 
 【文献定位】
-本列的方法论谱系直接来自新闻文本注意力/曝光度量文献。Boudoukh, Feldman, Kogan & Richardson (2019, The Review of Financial Studies) 系统检验了公司特定新闻信息含量与交易量、波动率的关系, 强调新闻提及的频次与显著性(而非单纯的有无)是刻画信息流强度的关键维度, 为本列"以提及次数加总作为强度代理"的设计提供了实证支撑——该文的核心方法论贡献之一正是区分"新闻数量"与"新闻显著性"两个维度, 这与本仓库中 sum_target_mentions(数量侧)和 frac_front_page/avg_page_rank 等显著性侧列(同属"F3. 新闻体裁显著性"区块)的正交设计思路一致。更广的谱系上, 文本曝光/主题暴露度量文献(如电话会议文本主题曝光度量、气候风险文本暴露度量等分支)共同确立了"以文本提及次数/密度作分子、以某种权重加总到公司-期间层"的 value-weighted 曝光度量范式, sum_target_mentions 是该范式在本仓库银行-金科新闻语境下的分子端具体实现, 其正式文献锚点仍以 citations 所列 Boudoukh et al. (2019, RFS) 为准。以逐条命中计数构造实体层面文本强度代理的思路另有 Hassan, Hollander, van Lent & Tahoun (2019, Quarterly Journal of Economics) 的顶刊支撑: 该文以电话会议文本中风险相关词组的命中次数构造企业层面政治风险暴露测度, 论证提及计数本身即可承载有效的经济信息含量, 为本列以银行实体提及次数作分子的构造提供了顶刊层级的方法学正当性。中国市场语境下的新闻共同提及信号价值另见 Ge, Li & Zheng (2025, Journal of Banking and Finance) 对新闻共同提及动量溢出效应的实证, 印证提及频次类文本信号在中国金融市场中的信息含量。
-
+本列的方法论谱系直接来自新闻文本注意力/曝光度量文献。Boudoukh, Feldman, Kogan & Richardson (2019, The Review of Financial Studies) 系统检验了公司特定新闻信息含量与交易量、波动率的关系, 强调新闻提及的频次与显著性(而非单纯的有无)是刻画信息流强度的关键维度, 为本列"以提及次数加总作为强度代理"的设计提供了实证支撑——该文的核心方法论贡献之一正是区分"新闻数量"与"新闻显著性"两个维度, 这与本仓库中 sum_target_mentions(数量侧)和 frac_front_page/avg_page_rank 等显著性侧列(同属"F3. 新闻体裁显著性"区块)的正交设计思路一致。更广的谱系上, 文本曝光/主题暴露度量文献(如电话会议文本主题曝光度量、气候风险文本暴露度量等分支)共同确立了"以文本提及次数/密度作分子、以某种权重加总到公司-期间层"的 value-weighted 曝光度量范式, sum_target_mentions 是该范式在本仓库银行-金科新闻语境下的分子端具体实现, 其正式文献锚点仍以 citations 所列 Boudoukh et al. (2019, RFS) 为准。以逐条命中计数构造实体层面文本强度代理的思路另有 Hassan, Hollander, van Lent & Tahoun (2019, Quarterly Journal of Economics) 的顶刊支撑: 该文以电话会议文本中风险相关词组的命中次数构造企业层面政治风险暴露测度, 论证提及计数本身即可承载有效的经济信息含量, 为本列以银行实体提及次数作分子的构造提供了顶刊层级的方法学正当性。中国市场语境下的新闻共同提及信号价值另见 Ge, Li & Zheng (2025, Journal of Banking and Finance) 对新闻共同提及动量溢出效应的实证, 印证提及频次类文本信号在中国金融市场中的信息含量。 沿此谱系再向前, Huang、Chiu 与 Hung (2025) 直接检验了「新闻与特定公司的相关度 (relevance)」对公司特定新闻情感效力的调节作用, 表明一篇报道在多大程度上「关于」该公司会改变其所携信号的强度, 为本列以目标银行提及次数加总操作化「报道与目标实体的相关度/强度」提供了动机层锚点。迁移边界: 该文的 relevance 取自第三方新闻情感数据库的既有打分 (供应商定义、黑箱), 并非本列这类透明的命中计数, 故不构成对本列计数口径的效度检验; 其层级为公司-新闻条目并对接股票收益 (高频), 本列在 bank-year 上取 sum 而非 mean, 与年内篇数量级共线, 使用时须与篇数分母一并读取; 原文对象为一般上市公司, 本列为目标银行。计数口径本身的测量误差另见 Iqbal 与 Pfarrer (2025): 该文指出多主体文本中的实体归属存在系统性测量误差, 提出以共指消解 (coreference resolution) 应对, 并以两项研究证明其可降低误差、提升文本分析的真实性。对本列的锚定仅限于「实体归属是实质性测量误差来源」这一一般命题——target_bank_mention_count 由 entity_context 的表层实体匹配得到, 不作代词与简称的指代还原, 因而 sum_target_mentions 应视为真实提及强度的保守下界而非无偏计数。边界须诚实标明: 原文语料为英文组织管理文本、单位为文档/组织, 且其立场为规范性的 (主张采纳该规则以逼近唯一正确做法), 与本仓库令各并排臂互为稳健性、不分主次的方法学取向不同; 原文所处理的归属问题在本 pipeline 中对应的是 ctx/ss 实体窗口轨, 不得据以论证本列计数公式或规则消融族的同构性。
 ## VAR: sum_target_mentions
 
 【变体差分】
@@ -58,4 +71,6 @@ sum_target_mentions 是本家族唯一列, 无家族内平行变体(不区分轨
 Boudoukh, J., Feldman, R., Kogan, S., & Richardson, M. (2019). Information, trading, and volatility: Evidence from firm-specific news. The Review of Financial Studies, 32(3), 992-1033. https://doi.org/10.1093/rfs/hhy083
 Ge, S., Li, S., & Zheng, H. (2025). Diamond cuts diamond: News co-mention momentum spillover prevails in China. Journal of Banking and Finance, 171, 107356. https://doi.org/10.1016/j.jbankfin.2024.107356
 Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-Level Political Risk: Measurement and Effects. Quarterly Journal of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021
+Huang, Y.-T., Chiu, I.-C., & Hung, M.-W. (2025). Firm-specific news sentiment and stock returns: the impact of relevance and time frames. Applied Economics Letters, 1-10. https://doi.org/10.1080/13504851.2025.2522167
+Iqbal, F., & Pfarrer, M. D. (2025). Using Coreference Resolution to Mitigate Measurement Error in Text Analysis. Organizational Research Methods, 10944281251334777. https://doi.org/10.1177/10944281251334777
 <!-- rendered-citations:end -->

@@ -557,8 +557,11 @@ class TestTopJournalGate:
 # ============================================================================
 
 class TestTwoListSeparation:
-    def test_anchor_frozen_13_paths_and_alias(self):
-        assert len(audit_dois.FILES_WHITELIST_ANCHOR) == 13
+    def test_anchor_frozen_14_paths_and_alias(self):
+        # 13 -> 14: 第十补编 LITERATURE_ANCHORS_SUPPLEMENT_X_2026-07-17.md 并入
+        # (2026-07-17, 全指标家族 2024-2026 前沿覆盖度专项 245 条)。本断言是
+        # 白名单唯一派生源的冻结闸 —— 计数上调必须与 FILES_WHITELIST_ANCHOR 同批改。
+        assert len(audit_dois.FILES_WHITELIST_ANCHOR) == 14
         assert audit_dois.FILES is audit_dois.FILES_WHITELIST_ANCHOR
         # 锚内零 codebook_longdesc 路径 (白名单唯一派生源冻结)
         assert not any('codebook_longdesc' in p for p in audit_dois.FILES_WHITELIST_ANCHOR)

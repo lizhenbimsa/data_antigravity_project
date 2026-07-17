@@ -39,6 +39,15 @@ citations:
   vol: '59'
   issue: '3'
   pages_or_artno: 944-960
+- doi: "10.1017/s147474722400009x"
+  type: "journal"
+  authors: "Bauer, R., Broeders, D., & van Ool, A."
+  year: 2025
+  title: "Walk the green talk? A textual analysis of pension funds' disclosures of sustainable investing"
+  venue: "Journal of Pension Economics and Finance"
+  vol: "24"
+  issue: "2"
+  pages_or_artno: "297-325"
 new_dois: []
 ---
 
@@ -49,8 +58,7 @@ new_dois: []
 【方法学与计算】
 计算分两层: 逐篇分类层与银行-年聚合层。逐篇分类层由 `_classify_policy_quadrants` 完成: 对齐样本 (df_align, 已经过 `_filter_to_verified_universe` 与 24_herd_decay 的 (docid, target_bank) semi-join, 收敛到 stage 21 语义精筛后的 LLM-verified 篇集, 避免约 26.8% 假阳性文章污染年度分位数阈值与四象限分母) 内, 按 year 分组对相似度列与词频列各自计算 P75 分位数作为该年动态阈值 (ysim/yfreq), 再对相似度、词频均非缺失的文章逐篇判定: 词频 < 阈值 且 相似度 >= 阈值 → hidden 指示为 1, 其余测量到位但不满足该组合的文章指示为 0, 未测量文章指示为 NaN (通过 `.where(measured)` 显式设空, 不落入 0/1 二元)。聚合层按 (target_bank, year) 分组对该 0/1/NaN 指示序列取 `mean`, pandas 的 groupby mean 默认跳过 NaN, 因此聚合结果的隐含分母是该银行-年内相似度与词频双双可测的文章篇数, 而非全部报道篇数; 若某银行-年一篇可测文章都没有, 聚合表中该格不出现或为 NaN, 面板导出阶段刻意不做 `fillna(0.0)` (v6/F3 修复移除了旧版本的兜底填零, 因为"未观测"与"观测到零采纳"是两种不同的数据生成过程, 前者填零会把测量缺失误判为强证据的负面信号, 系统性压低 TWFE 回归中受 stage 15 早退路径影响样本的系数估计)。本家族三列共享 kw 词频轨 (fintech_distinct_keywords, AC 自动机原始去重关键词计数, 未做 TF-IDF/SIF 加权, 与家族外的 int 轨 fintech_intensity_score 并列不混用) 与 P75 分位阈值 (与 P25/P50 分位阈值家族互为稳健性并排, P50 是项目机制检验基准、P25/P75 是稳健性检验), 并共享 `_allv` "全年份锚点"变体: 与默认的 vintage 主轨 (逐年滚动更新的政策语汇锚点) 相对, `_allv` 使用 stage 15/16 companion 产出的全语料静态锚点计算 policy_cosine_sim_allv, 即锚点向量取自整个语料期而非按年重估, 用于检验四象限分类结论是否对锚点估计窗口敏感 (稳健性轨, 非主次关系)。
 【文献定位】
-金融科技新闻文本与银行战略/监管政策语汇的对齐测度直接承袭 Kwan, Lin, Pursiainen & Tai (2024, *Journal of Financial and Quantitative Analysis*) 关于银行数字能力压力测试的证据框架, 该文强调银行数字化能力存在难以从公开披露话语中直接观测的隐性维度, 需要借助文本-政策对齐等间接测度加以刻画, 这正是本家族"hidden adoption" 象限存在的经验基础: 部分银行的金融科技实践并不体现在高频关键词堆砌的公开叙事中, 而是体现在与监管政策议程高度贴合但关键词稀疏的报道里。四象限判别法的可复现性顾虑 (同一构念在不同分析流程/参数选择下得出不同结论) 呼应 Breznau et al. (2022, *Proceedings of the National Academy of Sciences*) 关于"许多研究者用同一数据同一假设仍产生隐藏的不确定性宇宙"的多分析师范式发现, 以及 Huntington-Klein et al. (2021, *Economic Inquiry*) 对应用微观经济学中"隐藏的研究者决策"如何系统影响结果的度量, 二者共同支持本家族在阈值 (P25/P50/P75)、锚点 (vintage/`_allv`)、词频轨 (kw/int)、文本轨 (full/ctx/ss) 四个维度上同时铺设稳健性梯子、而非只报告单一参数组合下的点估计的设计取向。三轨 (full/ctx/ss) 铁律适用于本家族: full/ctx/ss 各自独立 just-identified 并排, 互为稳健性、不分主次, 严禁混入同一 over-identified Hansen J 检验; ss 轨遵循项目统一的回退语义 (镜像 ctx: 无银行∧金科同句共现时词频列缺同轨变体, 优雅回退复用 full 轨的 track-agnostic 关键词计数列, 并在日志中披露)。留篇门控口径与项目 2026-06-29 起统一的 full-only 规则一致: 是否判定"一篇银行金科报道"只看 `llm_verified_full`, ctx/ss 轨是 conditional-on-full 的测度子集, 行宇宙由 24_herd_decay 的 verified 域界定, 不因 ctx/ss 自身文本降级而扩张或收缩样本宇宙。
-
+金融科技新闻文本与银行战略/监管政策语汇的对齐测度直接承袭 Kwan, Lin, Pursiainen & Tai (2024, *Journal of Financial and Quantitative Analysis*) 关于银行数字能力压力测试的证据框架, 该文强调银行数字化能力存在难以从公开披露话语中直接观测的隐性维度, 需要借助文本-政策对齐等间接测度加以刻画, 这正是本家族"hidden adoption" 象限存在的经验基础: 部分银行的金融科技实践并不体现在高频关键词堆砌的公开叙事中, 而是体现在与监管政策议程高度贴合但关键词稀疏的报道里。四象限判别法的可复现性顾虑 (同一构念在不同分析流程/参数选择下得出不同结论) 呼应 Breznau et al. (2022, *Proceedings of the National Academy of Sciences*) 关于"许多研究者用同一数据同一假设仍产生隐藏的不确定性宇宙"的多分析师范式发现, 以及 Huntington-Klein et al. (2021, *Economic Inquiry*) 对应用微观经济学中"隐藏的研究者决策"如何系统影响结果的度量, 二者共同支持本家族在阈值 (P25/P50/P75)、锚点 (vintage/`_allv`)、词频轨 (kw/int)、文本轨 (full/ctx/ss) 四个维度上同时铺设稳健性梯子、而非只报告单一参数组合下的点估计的设计取向。三轨 (full/ctx/ss) 铁律适用于本家族: full/ctx/ss 各自独立 just-identified 并排, 互为稳健性、不分主次, 严禁混入同一 over-identified Hansen J 检验; ss 轨遵循项目统一的回退语义 (镜像 ctx: 无银行∧金科同句共现时词频列缺同轨变体, 优雅回退复用 full 轨的 track-agnostic 关键词计数列, 并在日志中披露)。留篇门控口径与项目 2026-06-29 起统一的 full-only 规则一致: 是否判定"一篇银行金科报道"只看 `llm_verified_full`, ctx/ss 轨是 conditional-on-full 的测度子集, 行宇宙由 24_herd_decay 的 verified 域界定, 不因 ctx/ss 自身文本降级而扩张或收缩样本宇宙。 在测度构造层面, Bauer 与 Broeders (2025) 提供了同源的前沿实践参照: 该文用 NLP 文本分析对荷兰养老金年报披露同时构造「意识 (awareness, 声量维)」与「落实 (implementation, 具体性维)」两个均取自同一披露文本的测度, 并检验基金规模与签署可持续投资倡议对二者的差异化影响, 发现签署只提升了表述具体性、对 implementation 并无实质推进。这与本家族在同一篇报道内并置关键词声量维与政策对齐维、再交叉切出 hidden/token 象限的设计同属「两维皆取自文本内部、不引入外部行为验证」的一类做法, 因而其结论边界亦为本家族所共享: 象限判别刻画的是文本内部两维的相对位置, 而非已证实的真实采纳行为。迁移边界须一并写明: 该文分析的是机构自述的年报披露文本, 本家族分析的是第三方新闻报道; 其实质维是 NLP 抽取的披露具体性, 本家族的对齐维是全年份静态锚 `policy_cosine_sim_allv` 上的余弦相似度; 且该文不做分位阈值二值化、无 2×2 象限, 亦无面板聚合与已测量分母口径, 故不能援引其为本家族阈值/锚点/词频轨/文本轨四维梯子的正当性依据。
 ## VAR: hidden_adopt_kw_p75_allv
 
 【变体差分】
@@ -70,4 +78,5 @@ new_dois: []
 Kwan, A., Lin, C., Pursiainen, V., & Tai, M. (2024). Stress testing banks' digital capabilities: Evidence from the COVID-19 pandemic. Journal of Financial and Quantitative Analysis, 59(6), 2618-2646. https://doi.org/10.1017/S0022109023000662
 Breznau, N., Rinke, E. M., Wuttke, A., Nguyen, H. H. V., Adem, M., Adriaans, J., et al. (2022). Observing many researchers using the same data and hypothesis reveals a hidden universe of uncertainty. Proceedings of the National Academy of Sciences, 119(44), e2203150119. https://doi.org/10.1073/pnas.2203150119
 Huntington-Klein, N., Arenas, A., Beam, E., Bertoni, M., Bloem, J. R., Burli, P., Chen, N., Grieco, P., Ekpe, G., Pugatch, T., Saavedra, M., & Stopnitzky, Y. (2021). The influence of hidden researcher decisions in applied microeconomics. Economic Inquiry, 59(3), 944-960. https://doi.org/10.1111/ecin.12992
+Bauer, R., Broeders, D., & van Ool, A. (2025). Walk the green talk? A textual analysis of pension funds' disclosures of sustainable investing. Journal of Pension Economics and Finance, 24(2), 297-325. https://doi.org/10.1017/s147474722400009x
 <!-- rendered-citations:end -->

@@ -50,6 +50,21 @@ citations:
   vol: '31'
   issue: '1'
   pages_or_artno: e1549
+- doi: "10.1080/1540496x.2026.2698629"
+  type: "journal"
+  authors: "Zheng, Y., Li, R., Ren, S., & He, F."
+  year: 2026
+  title: "The Catalytic Sandbox: How the FinTech Innovation Regulatory Pilot Fuels Bank FinTech Development and Risk Resilience"
+  venue: "Emerging Markets Finance and Trade"
+  pages_or_artno: "1-17"
+- doi: "10.1016/j.iref.2025.104564"
+  type: "journal"
+  authors: "Branzoli, N., Marchetti, S., & Tarducci, E."
+  year: 2025
+  title: "Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy"
+  venue: "International Review of Economics & Finance"
+  vol: "104"
+  pages_or_artno: "104564"
 new_dois: []
 ---
 
@@ -70,8 +85,7 @@ new_dois: []
 【文献定位】
 媒体语调对资产定价与公司决策的横截面异质性效应, 是媒体金融学 (media finance) 文献的核心命题之一。Fang & Peress (2009, *The Journal of Finance*) 的经典发现是媒体覆盖的信息效应在低覆盖度证券上更强、随覆盖强度边际递减——这一"覆盖强度调节效应"逻辑的银行业类比正是 `tone_x_highcov{track}` (同一循环块的姊妹交互项), 而 `tone_x_scale{track}` 是把调节变量从"覆盖强度"替换为"银行自身规模"的平行设计: 大型银行通常拥有更强的信息披露能力、更成熟的投资者关系团队与更高的分析师跟踪覆盖, 理论上媒体语调对其定价/融资成本的边际信息含量可能小于中小银行 (中小银行透明度更低, 媒体是投资者获取增量信息的相对更重要渠道)。Fang, Wang, Wang & Yuan (2024, *International Review of Economics & Finance*) 在中国银行业情境下直接验证媒体情感对存款稳定性与系统性风险的影响, 是本交互项族在同一制度背景 (中国银行业) 下最直接的构念参照, 其识别策略同样需要控制银行规模等横截面异质性来源。Shapiro, Sudhof & Wilson (2022, *Journal of Econometrics*) 提出以 ELMo 深度学习方法从新闻文本构造宏观经济情感指数、并与独立宏观经济活动指标做外部效度验证的测量学路径, 与本项目「先用模型化方法从文本抽取情感信号、再与独立结果变量做验证」的一般方法论取向相通, 为本项目采用模型化 (而非纯词典) 情感测度的可行性提供旁证; 该文本身并未涉及发行主体异质特征或规模分组下的稳健性检验, 此处仅作为文本情感测量方法论的一般性参照, 不构成对「规模异质性作为语调测度稳健性维度」这一具体设计选择的直接文献支持——本列的规模异质性设计动机主要来自 Fang & Peress (2009) 的覆盖强度调节效应类比与 Fang, Wang, Wang & Yuan (2024) 的中国银行业同域验证, 见上文。Todd, Bowden & Moshfeghi (2024) 对金融文本情感分析文献的系统综述亦指出, 情感测量的经济含义高度依赖被测量对象的异质特征 (规模、行业、透明度), 交互项设计是控制这一依赖性的标准计量工具。
 
-三轨/门控口径铁律: `tone_x_scale_full`/`tone_x_scale_ctx`/`tone_x_scale_ss` 三者各自 just-identified 并排、互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 检验方程; 三者共同继承 full-only 留篇门控 (2026-06-29) 的行宇宙约束, `_ss` 回退语义镜像 `_ctx`。使用者在 Stata 侧引用本交互项族时, 应同步纳入对应轨道的 `llm_vote_tone{track}` 与 `bank_scale_ord` 主效应项, 以及 (若同时研究覆盖强度调节) `tone_x_highcov{track}`——三个交互项族互不替代, 各自捕捉不同调节维度 (国有属性/媒体覆盖强度/银行规模), 不应在同一回归设定中把它们当作彼此的替代测度混用。
-
+三轨/门控口径铁律: `tone_x_scale_full`/`tone_x_scale_ctx`/`tone_x_scale_ss` 三者各自 just-identified 并排、互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 检验方程; 三者共同继承 full-only 留篇门控 (2026-06-29) 的行宇宙约束, `_ss` 回退语义镜像 `_ctx`。使用者在 Stata 侧引用本交互项族时, 应同步纳入对应轨道的 `llm_vote_tone{track}` 与 `bank_scale_ord` 主效应项, 以及 (若同时研究覆盖强度调节) `tone_x_highcov{track}`——三个交互项族互不替代, 各自捕捉不同调节维度 (国有属性/媒体覆盖强度/银行规模), 不应在同一回归设定中把它们当作彼此的替代测度混用。 就调节变量一侧的近期同域依据, Zheng、Li、Ren 与 He (2026) 以中国金融科技创新监管试点 (监管沙盒) 为准自然实验, 考察其对银行金融科技发展与风险韧性的影响, 并在银行层面附带讨论了规模异质性, 为「银行规模在金融科技情境下是有经济含义的分组维度」提供前沿参照; 但须严格降级: 规模异质性属该文附带的分组讨论而非其主测度, 其被解释变量为银行金科发展指数与风险韧性、不涉及媒体语调, 更未采用本族 XS/S/M/L 四分序数口径, 故不构成对 bank_scale_ord 具体切分规则的背书。就被乘数一侧, Branzoli、Marchetti 与 Tarducci (2025) 构造媒体报道的语调测度并将其应用于意大利银行融资条件这一银行层级实证问题, 是「新闻语调 → 银行层级结果」链条的近期同域实践, 与本族 llm_vote_tone{track} 聚合至 bank-year 的构造与应用域一致; 迁移边界在于其国别与语料为意大利而非中文新闻, 语调来源既非本项目六词典 union 亦非三家 LLM 投票共识, 无三轨 (full/ctx/ss) 文本切分, 且该文未做任何规模分组的调节检验, 因而只锚定「语调测度—银行层级结果」这一半, 不锚定本族的规模交互设计本身。
 ## VAR: tone_x_scale_ctx
 
 【变体差分】
@@ -100,5 +114,7 @@ Fang, L. & Peress, J. (2009). Media Coverage and the Cross-Section of Stock Retu
 Fang, Y., Wang, Q., Wang, Y. & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Shapiro, A. H., Sudhof, M. & Wilson, D. J. (2022). Measuring news sentiment. Journal of Econometrics, 228(2), 221-243. https://doi.org/10.1016/j.jeconom.2020.07.053
 Todd, A., Bowden, J. & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management, 31(1), e1549. https://doi.org/10.1002/isaf.1549
+Zheng, Y., Li, R., Ren, S., & He, F. (2026). The Catalytic Sandbox: How the FinTech Innovation Regulatory Pilot Fuels Bank FinTech Development and Risk Resilience. Emerging Markets Finance and Trade, 1-17. https://doi.org/10.1080/1540496x.2026.2698629
+Branzoli, N., Marchetti, S., & Tarducci, E. (2025). Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy. International Review of Economics & Finance, 104, 104564. https://doi.org/10.1016/j.iref.2025.104564
 <!-- rendered-citations:end -->
 </content>

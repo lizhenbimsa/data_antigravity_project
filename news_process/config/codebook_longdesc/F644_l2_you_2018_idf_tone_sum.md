@@ -59,6 +59,14 @@ citations:
   vol: '63'
   issue: '1'
   pages_or_artno: 125–143
+- doi: "10.1016/j.intfin.2023.101920"
+  type: "journal"
+  authors: "Aysan, A. F., Caporin, M., & Cepni, O."
+  year: 2024
+  title: "Not all words are equal: Sentiment and jumps in the cryptocurrency market"
+  venue: "Journal of International Financial Markets, Institutions and Money"
+  vol: "91"
+  pages_or_artno: "101920"
 new_dois: []
 ---
 
@@ -75,8 +83,7 @@ idf_tone_sum 是项目内 you_2018 词典下的一种打分口径, 与同族兄�
 面板层聚合发生在 pipeline/panel/export.py: 文章级 idf_tone_sum (逐轨) 先按 bank-year 分组, 再取算术均值, 得到本家族三个面板列。分组前已经过 stage 13 共现硬过滤 (银行×金科邻近共现) 与 stage 21 情感 LLM 的 full-only 留篇门控, 因此进入聚合的文章行宇宙与项目内其他情感/属性面板列 (如 llm_vote_tone_full、其余词典口径) 共享同一套"哪些文章算数"的口径, 差异只体现在打分公式本身。
 
 【文献定位】
-you_2018 词典的构念根基来自 You, Zhang & Zhang (2018, Review of Financial Studies)"Who Captures the Power of the Pen?", 该文构建中文金融情感词典并将其用于研究媒体报道语气与公司治理/资本市场结果的关系, 是项目内中文金融文本情感词典谱系 (与 jiang_2021/yao_2021/bian_2021/du_2022/loughran 并列) 的组成锚点之一。idf_tone_sum 的 IDF 加权思路呼应词典/词库方法在情感分析文献中的一般性做法: Taboada et al. (2011) 在 Computational Linguistics 综述了基于词典的情感分析方法学, 强调词的语料统计特征 (稀有度、位置、否定/转折上下文) 应折算进打分而非简单计数; Barbaglia, Consoli, Manzan, Tiozzo Pezzoli & Tosetti (2025, Economic Inquiry) 系统评估了经济文本上词典法的构建与校准问题, 指出词权重设定对测度效度的影响不可忽视, 与本家族用 IDF 替代均一权重的动机一致。Du, Huang, Wermers & Wu (2022, Review of Finance) 构建的中文金融情感词典 du_2022 是本项目内 you_2018 的姊妹口径, 两部词典虽独立构建但共享"通用情感词典在金融领域信号偏弱、需要领域特化"的问题意识, 本项目将二者及另外四部词典并列而非相互替代, 呼应 Frankel, Jennings & Lee (2022, Management Science) 关于词典法与机器学习法应互为稳健性检验而非相互取代的方法学立场——本项目进一步把这一"互为稳健性"的精神细化到词典内部的多种打分口径 (计数/均一权重/IDF 加权) 与三文本轨道两个维度上。Ma, Zhang & Zhang (2025, Expert Systems with Applications) 近年提出面向中国投资者的细粒度情感词典 CN-FSD, 延续了中文金融语境下词典法仍具有可解释性优势、适合与黑箱模型 (BERT/LLM) 并列作为稳健性锚点的判断, 支持本项目在情感三法 (词典/BERT/LLM) 之间设置多重互证结构、而非仅依赖单一测度的设计取向。
-
+you_2018 词典的构念根基来自 You, Zhang & Zhang (2018, Review of Financial Studies)"Who Captures the Power of the Pen?", 该文构建中文金融情感词典并将其用于研究媒体报道语气与公司治理/资本市场结果的关系, 是项目内中文金融文本情感词典谱系 (与 jiang_2021/yao_2021/bian_2021/du_2022/loughran 并列) 的组成锚点之一。idf_tone_sum 的 IDF 加权思路呼应词典/词库方法在情感分析文献中的一般性做法: Taboada et al. (2011) 在 Computational Linguistics 综述了基于词典的情感分析方法学, 强调词的语料统计特征 (稀有度、位置、否定/转折上下文) 应折算进打分而非简单计数; Barbaglia, Consoli, Manzan, Tiozzo Pezzoli & Tosetti (2025, Economic Inquiry) 系统评估了经济文本上词典法的构建与校准问题, 指出词权重设定对测度效度的影响不可忽视, 与本家族用 IDF 替代均一权重的动机一致。Du, Huang, Wermers & Wu (2022, Review of Finance) 构建的中文金融情感词典 du_2022 是本项目内 you_2018 的姊妹口径, 两部词典虽独立构建但共享"通用情感词典在金融领域信号偏弱、需要领域特化"的问题意识, 本项目将二者及另外四部词典并列而非相互替代, 呼应 Frankel, Jennings & Lee (2022, Management Science) 关于词典法与机器学习法应互为稳健性检验而非相互取代的方法学立场——本项目进一步把这一"互为稳健性"的精神细化到词典内部的多种打分口径 (计数/均一权重/IDF 加权) 与三文本轨道两个维度上。Ma, Zhang & Zhang (2025, Expert Systems with Applications) 近年提出面向中国投资者的细粒度情感词典 CN-FSD, 延续了中文金融语境下词典法仍具有可解释性优势、适合与黑箱模型 (BERT/LLM) 并列作为稳健性锚点的判断, 支持本项目在情感三法 (词典/BERT/LLM) 之间设置多重互证结构、而非仅依赖单一测度的设计取向。 至于本家族「词典词条不应等权计入、须按信息量差异化赋权」这一前提本身, Aysan、Caporin 与 Cepni (2024) 提供了近期的实证呼应: 该文以日内跳跃检测配合 logistic 回归, 发现信息发布提高跳跃概率, 且局限于情绪类或关涉市场基本面的情感维度比其它维度更易引发跳跃, 据此提出词并非生而等权的论断。须严格限定该锚点的适用口径: 原文所称的「非等权」是情感维度/类别层面 (情绪 vs 基本面) 的差异, 而非本家族按语料稀有度施加的词项级 IDF 加权 (raw_idf(w) = log₁₀(N/(1+df(w))), 再经均值归一化与 P1/P99 Winsorize), 二者只在「反对等权」这一动机上相通, 函数形式与信息来源完全不同; 其标的为加密货币日内跳跃、语料为英文新闻, 既无 bank-year 求和聚合亦无三轨文本口径, 因此该文只锚差异化赋权的动机, 不锚本家族 IDF 权重的具体构造与打分公式。
 ## VAR: you_2018_idf_tone_sum_ctx
 
 【变体差分】
@@ -98,4 +105,5 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514–5532. https://doi.org/10.1287/mnsc.2021.4156
 Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications, 264, 125739. https://doi.org/10.1016/j.eswa.2024.125739
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125–143. https://doi.org/10.1111/ecin.13264
+Aysan, A. F., Caporin, M., & Cepni, O. (2024). Not all words are equal: Sentiment and jumps in the cryptocurrency market. Journal of International Financial Markets, Institutions and Money, 91, 101920. https://doi.org/10.1016/j.intfin.2023.101920
 <!-- rendered-citations:end -->

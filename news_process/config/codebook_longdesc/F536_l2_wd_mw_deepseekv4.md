@@ -48,6 +48,23 @@ citations:
   vol: '31'
   issue: '1'
   pages_or_artno: e1549
+- doi: "10.1080/19312458.2024.2378690"
+  type: "journal"
+  authors: "Laurer, M., van Atteveldt, W., Casas, A., & Welbers, K."
+  year: 2025
+  title: "On Measurement Validity and Language Models: Increasing Validity and Decreasing Bias with Instructions"
+  venue: "Communication Methods and Measures"
+  vol: "19"
+  issue: "1"
+  pages_or_artno: "46-62"
+- doi: "10.1016/j.finmar.2024.100896"
+  type: "journal"
+  authors: "Ashwin, J."
+  year: 2024
+  title: "Financial news media and volatility: Is there more to newspapers than news?"
+  venue: "Journal of Financial Markets"
+  vol: "69"
+  pages_or_artno: "100896"
 new_dois: []
 ---
 
@@ -58,8 +75,7 @@ sum_wd_mw_deepseekv4 是三家 LLM 情感投票体系里, 单独归给 DeepSeekV
 【方法学与计算】
 本列的数值构造分两步。第一步在文章级由 runner.py 的 `_build_llm_valid_masked_weights` 完成: 对每一篇文章, 若 DeepSeekV4 在给定轨道 (full/ctx/ss) 上给出了非缺失的 deepseekv4_score, 该篇的 media_authority_weight 原值被保留 (掩码通过); 若 DeepSeekV4 未能给出有效判断 (如该篇内容被判定超出银行-金科议题范围、或该轨对应的银行∧金科共现条件不满足导致文本退化), 该篇在这一轨上的权重被置为缺失值而非 0。这一"掩码而非清零"的设计是本列存在的核心动因: 若直接用全体文章 (含 DeepSeekV4 未判断的) 的媒体权重之和做分母, 分子却只累加 DeepSeekV4 实际判断过的那批文章的加权得分, 会系统性把"未判断"的文章隐含记为语调 0, 使加权语调随 DeepSeekV4 无效判断占比的上升而机械地向零衰减 — 这是本项目 2026 年 6 月 encode-01 度量审计发现并修复的口径缺陷, 修复方案就是让分子分母共用同一个"有效样本"口径, sum_wd_mw_deepseekv4 即修复后配套的正确分母。第二步在面板级由 encode.py 的聚合字典完成: 按 (target_bank, year) 分组对第一步产出的掩码列求和, pandas groupby().sum() 对缺失值 (未通过掩码的文章) 自动跳过而非计为 0, 因此该列的值精确等于"该银行-年单元内 DeepSeekV4 给出有效情感判断的文章"的媒体权威权重之和, 而非该单元全部文章的权重之和。当分母为 0 (该单元内 DeepSeekV4 无一篇给出有效判断) 时, 下游 deepseekv4_tone_mw{track} = 分子/分母 会产生缺失而非除零异常, 这是聚合层刻意保留的优雅降级行为。
 【文献定位】
-以媒体权威度/来源可信度对新闻文本情感度量加权, 呼应了金融文本情感分析文献里"信号来源异质性影响信号强度"的一贯关切: Todd, Bowden & Moshfeghi (2024) 在对金融文本情感分析文献的系统综述中指出, 情感测度的稳健性很大程度上取决于对文本来源、方法论选择 (词典法 vs 机器学习法 vs 大模型法) 的透明披露与交叉验证, 而不能孤立地报告单一来源、单一模型的分数。van Atteveldt, van der Velden & Boukes (2021) 通过系统比较人工标注、众包标注、词典法与机器学习算法, 证明不同测量路径之间的"有效性一致性"本身需要被实证检验而非默认成立, 这正是本项目坚持三家 LLM 并排 (而非只用单一模型) 的方法论出发点。在生成式大模型作为文本标注/情感判别工具的近期文献里, Gilardi, Alizadeh & Kubli (2023, PNAS) 证明大模型在文本标注任务上可以系统性优于众包工作者的准确率与一致性, 为把 DeepSeekV4 这类大模型直接用作情感判别引擎提供了实证支撑; Schoenegger 等 (2024, Science Advances) 进一步表明多个大模型的集成判断 (wisdom of the silicon crowd) 在预测类任务上可比肩甚至超越人类群体智慧的准确度, 这与本项目"三家 LLM 多数投票为主轨、逐模型分数为稳健性轨"的整体设计思路相互印证: 单一模型 (如本列聚焦的 DeepSeekV4) 的判断质量足以支撑独立测度, 但结论的稳健性最终要靠跨模型比对来确认, 而 sum_wd_mw_deepseekv4 正是支撑这种逐模型独立测度得以正确加权计算的技术基石。
-
+以媒体权威度/来源可信度对新闻文本情感度量加权, 呼应了金融文本情感分析文献里"信号来源异质性影响信号强度"的一贯关切: Todd, Bowden & Moshfeghi (2024) 在对金融文本情感分析文献的系统综述中指出, 情感测度的稳健性很大程度上取决于对文本来源、方法论选择 (词典法 vs 机器学习法 vs 大模型法) 的透明披露与交叉验证, 而不能孤立地报告单一来源、单一模型的分数。van Atteveldt, van der Velden & Boukes (2021) 通过系统比较人工标注、众包标注、词典法与机器学习算法, 证明不同测量路径之间的"有效性一致性"本身需要被实证检验而非默认成立, 这正是本项目坚持三家 LLM 并排 (而非只用单一模型) 的方法论出发点。在生成式大模型作为文本标注/情感判别工具的近期文献里, Gilardi, Alizadeh & Kubli (2023, PNAS) 证明大模型在文本标注任务上可以系统性优于众包工作者的准确率与一致性, 为把 DeepSeekV4 这类大模型直接用作情感判别引擎提供了实证支撑; Schoenegger 等 (2024, Science Advances) 进一步表明多个大模型的集成判断 (wisdom of the silicon crowd) 在预测类任务上可比肩甚至超越人类群体智慧的准确度, 这与本项目"三家 LLM 多数投票为主轨、逐模型分数为稳健性轨"的整体设计思路相互印证: 单一模型 (如本列聚焦的 DeepSeekV4) 的判断质量足以支撑独立测度, 但结论的稳健性最终要靠跨模型比对来确认, 而 sum_wd_mw_deepseekv4 正是支撑这种逐模型独立测度得以正确加权计算的技术基石。 更贴近本列口径地看, 该分母以「DeepSeekV4 在该轨对该篇给出有效判断」为掩码, 掩码集合本身即该模型测量效度的函数, Laurer、Casas 与 Welbers (2025) 恰锚定了这一效度前提: 该文以对照实验证明指令与提示设计会实质改变语言模型作为测量工具的效度与偏误, 因而 per-model 分母的构成不是纯粹的技术记账。迁移边界: 原文对象为传播学英文文本分类任务与开源指令微调模型, 本项目为中文新闻与三家商用 API 模型; 原文结论支持「加指令可提效度」, 而本仓嵌入侧刻意采用零 instruct 前缀、情感提示词 v8 已字节冻结, 设计取向不同, 不可直接迁移, 原文亦无权重加权分母口径。就「报道量维度须与报道内容分离测量」这一构造逻辑, Ashwin (2024) 提供了直接的实证依据: 该文把报纸报道的数量与篇幅维度同报道所含的新信息内容分离, 检验前者是否对波动率具有独立于后者的解释力, 与本列把按来源权威度加权的报道量作分母、与语调分子分离的做法同源。迁移边界: 原文语境为英文报纸与股票波动率, 其报道量为等权计数或版面维度, 未使用媒体权威度权重; 且波动率在原文是结果变量, 而本列此量是分母。
 ## VAR: sum_wd_mw_deepseekv4_ctx
 
 【变体差分】
@@ -80,4 +96,6 @@ Gilardi, F., Alizadeh, M., & Kubli, M. (2023). ChatGPT outperforms crowd workers
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The Validity of Sentiment Analysis: Comparing Manual Annotation, Crowd-Coding, Dictionary Approaches, and Machine Learning Algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Schoenegger, P., Tuminauskaite, I., Park, P. S., Bastos, R. V. S., & Tetlock, P. E. (2024). Wisdom of the silicon crowd: LLM ensemble prediction capabilities rival human crowd accuracy. Science Advances, 10(45), eadp1528. https://doi.org/10.1126/sciadv.adp1528
 Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management, 31(1), e1549. https://doi.org/10.1002/isaf.1549
+Laurer, M., van Atteveldt, W., Casas, A., & Welbers, K. (2025). On Measurement Validity and Language Models: Increasing Validity and Decreasing Bias with Instructions. Communication Methods and Measures, 19(1), 46-62. https://doi.org/10.1080/19312458.2024.2378690
+Ashwin, J. (2024). Financial news media and volatility: Is there more to newspapers than news?. Journal of Financial Markets, 69, 100896. https://doi.org/10.1016/j.finmar.2024.100896
 <!-- rendered-citations:end -->

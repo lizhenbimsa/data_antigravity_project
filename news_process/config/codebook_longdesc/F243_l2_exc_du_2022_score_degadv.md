@@ -53,6 +53,31 @@ citations:
   title: "Inducing domain-specific sentiment lexicons from unlabeled corpora"
   venue: Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing
   pages_or_artno: 595-605
+- doi: "10.2139/ssrn.5024959"
+  type: "wp"
+  authors: "Cziraki, P., & Gider, J."
+  year: 2024
+  title: "Newspaper Closures and Trading in Local Stocks"
+  venue: "SSRN"
+  pages_or_artno: "5024959"
+- doi: "10.3390/computers12010018"
+  type: "journal"
+  authors: "Naldi, M., & Petroni, S."
+  year: 2023
+  title: "A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools"
+  venue: "Computers"
+  vol: "12"
+  issue: "1"
+  pages_or_artno: "18"
+- doi: "10.1093/llc/fqae013"
+  type: "journal"
+  authors: "Venglařová, K., & Matlach, V."
+  year: 2024
+  title: "Beyond content: discriminatory power of function words in text type classification"
+  venue: "Digital Scholarship in the Humanities"
+  vol: "39"
+  issue: "2"
+  pages_or_artno: "765-789"
 new_dois: []
 ---
 
@@ -65,8 +90,7 @@ new_dois: []
 计算分两层。文章层由 pipeline/sentiment/tone_words.py 在 stage 22 完成: 对每篇报道的三轨文本 (content_full 标题加正文、content_ctx 标题加实体窗、content_ss 标题加银行与金科同句窗) 分别扫描 du_2022 词典命中词, 得到正词与负词的加权计数, 其中政治正面词以 0.5 权重并入正侧 (du_2022 生产口径), 再按 degadv 规则打分: 遇程度副词按其强度缩放邻近情感词幅度、遇转折连词按转折规则调整前后分句权重, 但不执行否定词翻转 (故 degadv 恰等于全规则口径减去否定这一条规则)。文章得分归一化为 (加权正 − 负)/(加权正 + 负), 落在约 [-1, 1] 区间。面板层由 pipeline/panel/attention_media.py 的 compute_media_heterogeneity 在停刊稳健性区段完成: 先由 detect_defacto_cessation 依覆盖退出信号给每条报道打 _is_ceased_media 标记, 再在 _is_ceased_media 等于 0 的存活子样本 df_alive 上按 (target_bank, year) 对文章层 du_2022_score_degadv{track} 取算术均值, 前缀 exc_ 写出 bank-year 列。停刊比例本身另存为 ceased_media_frac、剔停后文章数另存为 n_articles_exc; 本情感列按契约在零文章格保持缺失而不零填。因每个消融变体各自 self-normalize (分母随启用规则集变化), 相邻消融级差并非某条规则的纯边际贡献, 只作 ablation 稳健性对照, 披露时报各级相关系数与逐级变号占比、论文表述"定性不变"。
 
 【文献定位】
-词典底料的权威锚点是 Du et al. (2022) 发表于 Review of Finance 的中文金融情感词典, 该文以语言与领域特异性为核心论证中文金融文本需要专门词典而非英文词典直译, 并单列政治正面词一类、指出其情感信号弱于普通正面词——这正是本口径对政治正面词赋 0.5 权重的依据。词典构造方法学上, Ma et al. (2025) 的 CN-FSD 细粒度中文投资者情感词典与 Sun et al. (2025) 融合词典知识与中性特征的金融情感分析工作, 代表了中文金融词典法的近期演进方向, 佐证词典命中加规则修正这一路线的持续有效性; Hamilton et al. (2016) 从无标注语料诱导领域情感词典的方法则为"领域特异词典优于通用词典"提供了跨语种的方法学支撑。停刊剔除这一样本设计的因果动机取自 Heese et al. (2022) 发表于 Journal of Financial Economics 的研究: 地方报纸关停会造成地方监督真空、放大企业不当行为, 故媒体来源退出覆盖会给情感面板引入幸存者偏差、污染以媒体为基础的工具变量; 把疑似退出媒体保守剔出样本、再验主结论稳定性, 正是对这一偏差的直接防御。
-
+词典底料的权威锚点是 Du et al. (2022) 发表于 Review of Finance 的中文金融情感词典, 该文以语言与领域特异性为核心论证中文金融文本需要专门词典而非英文词典直译, 并单列政治正面词一类、指出其情感信号弱于普通正面词——这正是本口径对政治正面词赋 0.5 权重的依据。词典构造方法学上, Ma et al. (2025) 的 CN-FSD 细粒度中文投资者情感词典与 Sun et al. (2025) 融合词典知识与中性特征的金融情感分析工作, 代表了中文金融词典法的近期演进方向, 佐证词典命中加规则修正这一路线的持续有效性; Hamilton et al. (2016) 从无标注语料诱导领域情感词典的方法则为"领域特异词典优于通用词典"提供了跨语种的方法学支撑。停刊剔除这一样本设计的因果动机取自 Heese et al. (2022) 发表于 Journal of Financial Economics 的研究: 地方报纸关停会造成地方监督真空、放大企业不当行为, 故媒体来源退出覆盖会给情感面板引入幸存者偏差、污染以媒体为基础的工具变量; 把疑似退出媒体保守剔出样本、再验主结论稳定性, 正是对这一偏差的直接防御。 这一防御的现实必要性另有近期实证佐证: Cziraki 与 Gider (2024) 以美国本地报纸停刊为冲击, 发现报道供给退出会改变本地股票的交易行为, 表明媒体退出是携带经济后果的真实样本组成变化, 而非可当作随机缺失处理的噪声; 惟其停刊判定取自外部事件数据、被解释变量为交易活动, 本项目的排除集则是自语料内部推断的疑似覆盖退出代理, 仅作稳健性子样本之用, 且该文为未经同行评审的工作论文。就本口径刻意关停的否定翻转规则而言, Naldi 与 Petroni (2023) 以人工构造测试集专门评估词典法情感工具的否定检测与处理能力, 实证各工具表现差异显著, 支持把否定视为词典法内部可被单独测量、单独失效的模块, 因而值得单列为一条可独立开关的消融臂; 其语境为英文通用领域的工具准确率评测, 本项目则不作否定检测准确率评估, 只把否定开关作为中文金融新闻银行-年度测度的一条并排稳健性臂。本口径保留的转折规则可参照 Venglařová 与 Matlach (2024): 该文实证功能词 (含连词一类非内容词) 在文本类型判别上具有独立信息量, 佐证转折连词并非可忽略的虚词, 值得在计分内核中单独建模; 惟原文任务为文本类型分类、并不区分转折连词与其他功能词类, 语料亦非中文金融新闻, 故其支撑仅止于「转折类功能词自带独立信息」这一构念层面, 不涉及规则级消融设计本身。上述三条锚点分别落在样本口径轴与规则轴上, 与本列 degadv 组合的其余并排臂一样只作定性对照, 各自 just-identified 并排, 不进入同一 over-identified Hansen J。
 ## VAR: exc_du_2022_score_degadv_ctx
 
 【变体差分】
@@ -88,4 +112,7 @@ Sun, Y., Yuan, H., & Xu, F. (2025). Financial sentiment analysis for pre-trained
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Heese, J., Pérez-Cavazos, G., & Peter, C. D. (2022). When the local newspaper leaves town: The effects of local newspaper closures on corporate misconduct. Journal of Financial Economics, 145(2), 445-463. https://doi.org/10.1016/j.jfineco.2021.08.015
 Hamilton, W. L., Clark, K., Leskovec, J., & Jurafsky, D. (2016). Inducing domain-specific sentiment lexicons from unlabeled corpora. Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing, 595-605. https://doi.org/10.18653/v1/d16-1057
+Cziraki, P., & Gider, J. (2024). Newspaper Closures and Trading in Local Stocks. SSRN No. 5024959 [Working Paper]. https://doi.org/10.2139/ssrn.5024959
+Naldi, M., & Petroni, S. (2023). A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools. Computers, 12(1), 18. https://doi.org/10.3390/computers12010018
+Venglařová, K., & Matlach, V. (2024). Beyond content: discriminatory power of function words in text type classification. Digital Scholarship in the Humanities, 39(2), 765-789. https://doi.org/10.1093/llc/fqae013
 <!-- rendered-citations:end -->

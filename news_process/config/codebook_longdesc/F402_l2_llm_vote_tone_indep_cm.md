@@ -41,6 +41,31 @@ citations:
   year: 2025
   title: 'Majority rules: LLM ensemble is a winning approach for content categorization'
   venue: arXiv
+- doi: "10.1017/psrm.2024.64"
+  type: "journal"
+  authors: "Ornstein, J. T., Blasingame, E. N., & Truscott, J. S."
+  year: 2025
+  title: "How to train your stochastic parrot: large language models for political texts"
+  venue: "Political Science Research and Methods"
+  vol: "13"
+  issue: "2"
+  pages_or_artno: "264-281"
+- doi: "10.18653/v1/2024.law-1.13"
+  type: "journal"
+  authors: "Rønningstad, E., Velldal, E., & Øvrelid, L."
+  year: 2024
+  title: "A GPT among Annotators: LLM-based Entity-Level Sentiment Annotation"
+  venue: "Proceedings of the 18th Linguistic Annotation Workshop (LAW-XVIII)"
+  pages_or_artno: "133-139"
+- doi: "10.1007/s42001-025-00388-6"
+  type: "journal"
+  authors: "Abraham, L., Arnal, C., & Marie, A."
+  year: 2025
+  title: "Prompt selection matters: enhancing text annotations for social sciences with large language models"
+  venue: "Journal of Computational Social Science"
+  vol: "8"
+  issue: "3"
+  pages_or_artno: "73"
 new_dois: []
 ---
 
@@ -49,8 +74,7 @@ new_dois: []
 【构念与来源】
 llm_vote_tone_indep_cm 一族衡量的是"当一篇银行∧金科报道被 LLM 判定为描述银行自主研发型创新时, 该篇报道语调三家多数投票的均值"。cm 后缀标记这是 innovation_collab_mode 分类维度 (自主研发 vs 外部协同) 与 llm_vote_tone 语调测度的交叉切片, 是 P5 (collab, provisional) 与 P1 (tone) 两条主线在篇级证据上的对角线拼接; P5 的分类构念本身的理论根据统一归于 Gomber, Kauffman, Parker & Weber (2018) 的金融科技创新形态分类框架 (详见【文献定位】), 本段仅先点出族内两条主线的拼接关系, 不重复其理论出处: 母面板已分别产出 innovation_collab_mode_{ctx,ss} (篇级二分类, 由三家 LLM `{gpt54nano,gemini31,deepseekv4}` 投票裁定该篇报道所写的银行-金科合作事件属于银行自建能力"自主研发"还是引入外部主体"外部协同") 与 llm_vote_tone_{ctx,ss} (篇级语调多数投票共识, 三分类或连续打分聚合到约 [-1,1] 区间)。indep_cm 族不是重新跑一次分类或情感, 而是在既有两批篇级列基础上做条件均值: 先按 innovation_collab_mode == 自主研发 筛出子集, 再对这个子集求 llm_vote_tone 的均值, bank-year 层聚合。姊妹族 collab_cm (未在本家族内, 见并列列 llm_vote_tone_collab_cm_{ctx,ss}) 是同一操作在 外部协同 子集上的镜像, 两者相减且经 min-n>=5 双边质量守门后得到 tone_gap_indep_collab_cm_{ctx,ss}, 用于检验"自主研发型报道"与"外部协同型报道"在语调上是否存在系统性差异 (媒体是否对自建能力叙事更正面, 或反之)。
 
-本家族仅含 _ctx 与 _ss 两条轨, 均属 standard tier, 无 _full 轨在本族出现 (llm_vote_tone_indep_cm 本身在 encode.py 中是 _aggregate_ctx_diagonal 的产物, 该 helper 专为 ctx/ss 实体窗口/同句共现轨设计, 对角追加逻辑不覆盖 full 轨; full 轨的对应机制稳健性口径由未分轨的 collab_frac 系列或 P5 主表其他列承担, 不在本家族重复)。按 CLAUDE.md「三轨 full/ctx/ss…各自 just-identified 并排、互为稳健性不分主次、禁混进同一 over-identified Hansen J」的铁律, _ctx 与 _ss 两轨在计量设计中应分别进入各自的识别方程作为并排稳健性检验, 不得把二者同时塞进同一个过度识别 Hansen J 检验; 由于本族缺 _full 成员, 使用者若要构造三轨对照表须知晓这是设计使然而非疏漏。
-
+本家族仅含 _ctx 与 _ss 两条轨, 均属 standard tier, 无 _full 轨在本族出现 (llm_vote_tone_indep_cm 本身在 encode.py 中是 _aggregate_ctx_diagonal 的产物, 该 helper 专为 ctx/ss 实体窗口/同句共现轨设计, 对角追加逻辑不覆盖 full 轨; full 轨的对应机制稳健性口径由未分轨的 collab_frac 系列或 P5 主表其他列承担, 不在本家族重复)。按 CLAUDE.md「三轨 full/ctx/ss…各自 just-identified 并排、互为稳健性不分主次、禁混进同一 over-identified Hansen J」的铁律, _ctx 与 _ss 两轨在计量设计中应分别进入各自的识别方程作为并排稳健性检验, 不得把二者同时塞进同一个过度识别 Hansen J 检验; 由于本族缺 _full 成员, 使用者若要构造三轨对照表须知晓这是设计使然而非疏漏。 在 LLM 标注链路的方法学坐标上, Ornstein、Blasingame 与 Truscott (2025) 以 few-shot prompt 在情感分析、文档标度、主题建模等政治学文本即数据任务上做预注册评估, 结论是该做法优于传统有监督学习基线, 并以极低成本达到与专家及众包编码员相当 (comparable, 非超过) 的水平, 是本族"先由 LLM 产出篇级标签 (语调与 collab mode)、再按 bank-year 逐单元聚合"这一范式的同族先例; 其语料为英文政治文本、采用单一模型而非三家投票, 也无本族的分类条件切分与 ctx/ss 双轨口径, 故只锚定标签→聚合的链路形态。Rønningstad 与 Velldal (2024) 评估 LLM 对特定目标实体的 entity-level 情感标注质量并与人工标注对比, 与本族条件均值所取的 llm_vote_tone 构念 (针对目标银行而非篇章整体的语调) 同族, 也与 ctx/ss 两轨围绕实体窗口取材的设计相呼应; 但原文语料为挪威语/英语通用新闻与评论、目标实体非银行, 采用单一 GPT 模型, 仅报告标注一致性, 既不做 bank-year 面板聚合, 也不叠加分类条件。Abraham、Arnal 与 Marie (2025) 实证 prompt 选择对社科文本标注质量有显著且非平凡的影响并给出 prompt 选择/评估流程, 提示本族赖以成立的两批篇级 LLM 标签均对 prompt 具敏感性; 本项目 prompt v8 已字节级冻结并作为缓存键, 刻意不遍历 prompt 网格择优, 故这一敏感性对本族属未量化的已知局限, 而非已被排除的风险。
 【方法学与计算】
 计算发生在 pipeline\panel\encode.py 的面板聚合阶段 (与情感三轨、substantiveness _sc、locus _lc 同一模式), 入口函数是 `_aggregate_ctx_diagonal`, 对 innovation_collab_mode_{ctx,ss} 这一篇级分类列做"对角线追加": 以 (bank, year) 为聚合键, 分别统计"自主研发"子集与"外部协同"子集内 llm_vote_tone 的均值与篇数, 落盘为 llm_vote_tone_indep_cm_{ctx,ss} / llm_vote_tone_collab_cm_{ctx,ss} 及配套的 n_articles_indep_cm_{ctx,ss} / n_articles_collab_cm_{ctx,ss}。n_articles 计数列在聚合后统一 `fillna(0).astype(int)`, 保证空 cell (某银行某年无自主研发类报道) 记为整数 0 而非 NaN, 与 llm_vote_tone_indep_cm 本身允许为 NaN (无篇则语调均值无定义) 形成刻意的不对称: 计数列永不缺失, 语调均值列在样本为空时缺失。
 
@@ -78,4 +102,7 @@ Xu, X., Wen, F., Chu, B., Fu, Z., Lin, Q., Liu, J., Fei, B., Li, Y., Zhou, L., &
 Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-Level Political Risk: Measurement and Effects. Quarterly Journal of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021
 Gomber, P., Kauffman, R. J., Parker, C., & Weber, B. W. (2018). On the Fintech Revolution: Interpreting the Forces of Innovation, Disruption, and Transformation in Financial Services. Journal of Management Information Systems, 35(1), 220-265. https://doi.org/10.1080/07421222.2018.1440766
 Kamen, A., & Kamen, Y. (2025). Majority rules: LLM ensemble is a winning approach for content categorization. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2511.15714
+Ornstein, J. T., Blasingame, E. N., & Truscott, J. S. (2025). How to train your stochastic parrot: large language models for political texts. Political Science Research and Methods, 13(2), 264-281. https://doi.org/10.1017/psrm.2024.64
+Rønningstad, E., Velldal, E., & Øvrelid, L. (2024). A GPT among Annotators: LLM-based Entity-Level Sentiment Annotation. Proceedings of the 18th Linguistic Annotation Workshop (LAW-XVIII), 133-139. https://doi.org/10.18653/v1/2024.law-1.13
+Abraham, L., Arnal, C., & Marie, A. (2025). Prompt selection matters: enhancing text annotations for social sciences with large language models. Journal of Computational Social Science, 8(3), 73. https://doi.org/10.1007/s42001-025-00388-6
 <!-- rendered-citations:end -->

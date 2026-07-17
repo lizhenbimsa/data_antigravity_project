@@ -34,6 +34,23 @@ citations:
 - {doi: "10.1016/j.dss.2016.05.009", type: journal, authors: "Pröllochs, N., Feuerriegel, S., & Neumann, D.", year: 2016, title: "Negation Scope Detection in Sentiment Analysis: Decision Support for News-Driven Trading", venue: "Decision Support Systems", vol: "88", pages_or_artno: "67-75"}
 - {doi: "10.1287/mnsc.2021.4156", type: journal, authors: "Frankel, R., Jennings, J., & Lee, J.", year: 2022, title: "Disclosure Sentiment: Machine Learning vs. Dictionary Methods", venue: "Management Science", vol: "68", issue: "7", pages_or_artno: "5514-5532"}
 - {doi: "10.1093/rof/rfab036", type: journal, authors: "Du, Z., Huang, A. G., Wermers, R., & Wu, W.", year: 2022, title: "Language and Domain Specificity: A Chinese Financial Sentiment Dictionary", venue: "Review of Finance", vol: "26", issue: "3", pages_or_artno: "673-719"}
+- doi: "10.1140/epjds/s13688-026-00654-1"
+  type: "journal"
+  authors: "Pokropek, A."
+  year: 2026
+  title: "From keyword-based text measures to latent variables: confirmatory factor analysis with word embeddings"
+  venue: "EPJ Data Science"
+  vol: "15"
+  issue: "1"
+  pages_or_artno: "51"
+- doi: "10.1609/icwsm.v18i1.31443"
+  type: "journal"
+  authors: "Oh, N."
+  year: 2024
+  title: "Sentibank: A Unified Resource of Sentiment Lexicons and Dictionaries"
+  venue: "Proceedings of the International AAAI Conference on Web and Social Media"
+  vol: "18"
+  pages_or_artno: "2003-2013"
 new_dois: []
 ---
 
@@ -46,8 +63,7 @@ F620 是词典消融梯度族群 (v3.11.1 引入) 在 yao_2021 词典上的一�
 三条语言学规则在实现上是可独立开关的布尔标志位, 其 8 元全集 (2^3) 中排除全开的 "full" 变体 (即 canonical `yao_2021_tone{track}`, 不在本 F620 家族内, 属另一 standard/core 家族) 后, 剩余 7 个非-full 组合即构成本消融梯度: raw (三条规则全关, 纯词典命中计数极性, 不做任何句法调整)、negonly (仅否定翻转开启)、degonly (仅程度副词加权开启)、advonly (仅转折让步调整开启)、negdeg (否定+程度副词开启, 转折关闭)、negadv (否定+转折开启, 程度副词关闭)、degadv (程度副词+转折开启, 否定关闭)。每个变体独立跑一次状态机扫描: 遇到否定词 (如"不""没有""无""未") 时 (若 negation 开启) 将其作用域内命中词极性反号或衰减; 遇到程度副词 (如"极为""非常""略微") 时 (若 degree 开启) 按副词强度系数放大或缩小紧邻情感词的极性幅度; 遇到转折连词 (如"但""然而""尽管") 时 (若 adversative 开启) 对转折前后分句的情感词极性做不对称加权 (通常抑制转折前分句、强化转折后分句, 体现"but 之后才是重点"的语用直觉)。每篇文章的最终语调分 = Σ(每个命中词按启用规则子集调整后的 final 极性值) / Σ|每个命中词的 final 极性值| 的自归一化设计, 使得分母始终随规则子集变化而重新计算 (而非借用 full 变体的分母), 因此 7 个非-full 变体与 canonical full 变体之间存在非可加分解关系——不能把 negonly 与 degonly 简单相加得到 negdeg, 也不能用 full 减去某规则贡献还原某个消融变体, 这是审计口径 MATH-1 明确记录的高度共线 (各变体两两 Spearman/Pearson 相关系数常年 ρ≈0.99 量级) 但结构不可加的经验事实; 家族长文对这一点只做 corr 报告, 不并入同一可加分解公式。三轨设计 (full/ctx/ss) 与项目主线三轨文本架构完全对齐: full 轨用 stage 14 物化的 `content_full` (标题+全文正文, prepend_title 拼接) 扫描; ctx 轨用 `content_ctx` (标题+目标银行实体窗口文本) 扫描; ss 轨用 `content_ss` (标题+银行∧金科同句±N 窗口文本, 窗口半径见 `config/filtering.yaml::context_window.ss_sentence_radius`) 扫描, 三轨在 stage 14 一次性物化后由 stage 22 词典语调模块 (`tone_words.py`) 各自独立跑满 7 变体消融, 不互相借用中间量。ss 轨遵循与 ctx 轨完全一致的回退语义 (镜像 ctx): 若某篇文章不存在银行与金科词的同句共现, 则 `content_ss` 回退为全文 body, 对应 `ss_is_fallback` 标记置真, 该篇仍参与 n_articles 分母计算 (不剔除), 只是文本窗口退化为等同 full 轨的宽窗。面板层聚合把文章级语调分按 bank-year 分组取算术均值, 得到本家族 21 列 (7 变体 × 3 轨) 的最终数值。
 
 【文献定位】
-本消融族群方法学谱系直接呼应 Loughran & McDonald (2011, Journal of Finance) 与 Loughran & McDonald (2016, Journal of Accounting Research) 关于词典法必须显式建模否定/程度/转折等句法调制因素的方法论主张——若不做规则消融, 无法诊断某一部词典的语调信号究竟主要来自"词汇本身的极性"还是"句法调制规则的贡献", 也无法排除某条规则设定 (例如否定作用域的窗口长度) 对结论的驱动。Taboada, Brooke, Tofiloski, Voll, & Stede (2011, Computational Linguistics) 系统论述了基于词典 (lexicon-based) 情感分析方法中转折/让步结构 (contrastive conjunctions) 对局部极性的调制机制, 是本族 advonly/degadv/negadv 三个含转折规则变体的方法学直接依据。Pröllochs, Feuerriegel, & Neumann (2016, Decision Support Systems) 专门研究金融文本情感分析中的否定辖域检测 (negation scope detection) 问题, 指出否定处理不当会系统性扭曲词典法的情感信号方向, 支撑本族 negonly 及含否定的 negdeg/negadv 变体单独存在的必要性。词典法与机器学习/深度学习法之间"互为稳健性"的方法学立场, 直接参照 Frankel, Jennings, & Lee (2022, *Management Science*) 关于披露语调测量中机器学习与词典方法互为稳健比较的实证框架——该文以 A 股与美股披露文本为对象系统比较两条测度路径, 发现词典法与机器学习法在方向上高度一致但幅度存在系统性差异, 为本项目"LLM 三家投票 / 三个 BERT 模型 / 六部词典各自消融梯度三条腿并列、互为稳健性不分主次"的总体设计哲学提供了直接的实证先例。Du, Huang, Wermers, & Wu (2022, *Review of Finance*) 构建的中文金融情感词典 (du_2022, 本项目六部词典之一) 同样面临语言学规则设定的敏感性问题, 该文对政治正面词赋予降低权重的做法与本项目 du_2022 政治词权重敏感性梯度 ({0.0, 0.5, 1.0}) 同源, 但与本消融族群 (否定/程度/转折规则开关) 是两个正交的梯子, 不交叉合并。
-
+本消融族群方法学谱系直接呼应 Loughran & McDonald (2011, Journal of Finance) 与 Loughran & McDonald (2016, Journal of Accounting Research) 关于词典法必须显式建模否定/程度/转折等句法调制因素的方法论主张——若不做规则消融, 无法诊断某一部词典的语调信号究竟主要来自"词汇本身的极性"还是"句法调制规则的贡献", 也无法排除某条规则设定 (例如否定作用域的窗口长度) 对结论的驱动。Taboada, Brooke, Tofiloski, Voll, & Stede (2011, Computational Linguistics) 系统论述了基于词典 (lexicon-based) 情感分析方法中转折/让步结构 (contrastive conjunctions) 对局部极性的调制机制, 是本族 advonly/degadv/negadv 三个含转折规则变体的方法学直接依据。Pröllochs, Feuerriegel, & Neumann (2016, Decision Support Systems) 专门研究金融文本情感分析中的否定辖域检测 (negation scope detection) 问题, 指出否定处理不当会系统性扭曲词典法的情感信号方向, 支撑本族 negonly 及含否定的 negdeg/negadv 变体单独存在的必要性。词典法与机器学习/深度学习法之间"互为稳健性"的方法学立场, 直接参照 Frankel, Jennings, & Lee (2022, *Management Science*) 关于披露语调测量中机器学习与词典方法互为稳健比较的实证框架——该文以 A 股与美股披露文本为对象系统比较两条测度路径, 发现词典法与机器学习法在方向上高度一致但幅度存在系统性差异, 为本项目"LLM 三家投票 / 三个 BERT 模型 / 六部词典各自消融梯度三条腿并列、互为稳健性不分主次"的总体设计哲学提供了直接的实证先例。Du, Huang, Wermers, & Wu (2022, *Review of Finance*) 构建的中文金融情感词典 (du_2022, 本项目六部词典之一) 同样面临语言学规则设定的敏感性问题, 该文对政治正面词赋予降低权重的做法与本项目 du_2022 政治词权重敏感性梯度 ({0.0, 0.5, 1.0}) 同源, 但与本消融族群 (否定/程度/转折规则开关) 是两个正交的梯子, 不交叉合并。 就词表型测度本身应否接受显式检验这一前提, Pokropek (2026) 指出词典法研究者选定的关键词极少像量表题项那样接受心理测量学检验 (罕有报告信度、评估内部结构或检验跨子总体与跨时点的测量不变性), 并提出把单个关键词视作同一潜变量的观测指标、以词嵌入向量间的中心化余弦相似度矩阵为输入做验证性因子分析, 从而估计因子载荷、拟合指数与信度系数; 这一心理测量学立场支持本族不把 yao_2021 词典的语调分当作免检黑箱取用, 而是显式拆解其对规则设定的依赖。但须注明其检验轴与本族不同: 该文的观测指标是一部词表之内的单个关键词、整合手段是嵌入相似度上的 CFA 载荷估计, 语料为社会科学文本 (以战争焦虑话语为实证示例) 而非中文金融新闻, 既不涉及否定/程度/转折规则, 也未在消融各臂上分别检验, 故不构成本族规则消融设计本身的方法学依据。Oh (2024) 构建 sentibank, 将 15 部原始情感词典与 43 部预处理词典统一整合入库 (覆盖 7 类体裁与 6 个领域), 并明确指出依赖专家词表的规则法在可解释性上具备透明性优势、其真正瓶颈在于资源碎片化与验证缺失——该文一方面为本项目在三家 LLM 与三个 BERT 之外保留词典状态机语调轨提供了当代前沿的背书, 另一方面佐证同一情感构念下并存大量异源词典是该领域的既成事实, 与本项目并排六部中文词典的做法同构。边界: 其覆盖为英文社交媒体等体裁, 不含 yao_2021 等中文金融词典, 未实现否定/程度/转折三规则状态机, 亦未做任何跨词典整合或均值运算, 故仅锚定“词典轨值得保留且异源并存”这一层, 对本族 7 个规则消融变体的具体设计不构成依据。
 【口径铁律复述】
 本家族 21 列覆盖 7 语言学规则组合 × 3 文本轨道的完整交叉网格, 是项目「梯子」设计哲学的典型样本, 必须遵守以下并排口径: 三轨 (full/ctx/ss) 各自 just-identified 并排、互为稳健性不分主次, full 轨行宇宙自 2026-06-29 起以 `llm_verified_full` 留篇门控为准, ctx/ss 轨降为 conditional-on-full 的测度/稳健性轨, 其行宇宙是 full 留篇集的子集, 每轨列值各自独立计算不借用彼此分母; ss 轨的回退语义严格镜像 ctx 轨——无银行∧金科同句共现时 `content_ss` 回退为全文 body 且 `ss_is_fallback=True`, 该行仍计入 n_articles 分母, 不做静默剔除。7 个语言学规则消融变体同样各自 just-identified 并排、互为稳健性不分主次, 彼此间高度共线 (corr≈0.99) 但结构非可加, 任何计量设定都禁止把三轨或七变体中的任意多支混入同一个 over-identified 的 Hansen J 过度识别检验——三轨与七变体是两条相互正交、各自独立的稳健性维度, 不应交叉叠加为单一联合估计方程中的多重工具变量或多重内生检验对象; 正确用法是逐轨逐变体分别跑 just-identified 设定, 再横向比较系数符号与显著性的稳健程度。
 
@@ -184,5 +200,7 @@ Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-Ba
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation Scope Detection in Sentiment Analysis: Decision Support for News-Driven Trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure Sentiment: Machine Learning vs. Dictionary Methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and Domain Specificity: A Chinese Financial Sentiment Dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
+Pokropek, A. (2026). From keyword-based text measures to latent variables: confirmatory factor analysis with word embeddings. EPJ Data Science, 15(1), 51. https://doi.org/10.1140/epjds/s13688-026-00654-1
+Oh, N. (2024). Sentibank: A Unified Resource of Sentiment Lexicons and Dictionaries. Proceedings of the International AAAI Conference on Web and Social Media, 18, 2003-2013. https://doi.org/10.1609/icwsm.v18i1.31443
 <!-- rendered-citations:end -->
 </content>

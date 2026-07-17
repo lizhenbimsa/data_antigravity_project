@@ -50,6 +50,21 @@ citations:
   vol: 22
   issue: 11
   pages_or_artno: 1359-1366
+- doi: "10.1162/tacl_a_00754"
+  type: "journal"
+  authors: "Wen, B., Yao, J., Feng, S., Xu, C., Tsvetkov, Y., Howe, B., & Wang, L. L."
+  year: 2025
+  title: "Know Your Limits: A Survey of Abstention in Large Language Models"
+  venue: "Transactions of the Association for Computational Linguistics"
+  vol: "13"
+  pages_or_artno: "529-556"
+- doi: "10.18653/v1/2025.naacl-long.179"
+  type: "journal"
+  authors: "Gligoric, K., Zrnic, T., Lee, C., Candes, E., & Jurafsky, D."
+  year: 2025
+  title: "Can Unconfident LLM Annotations Be Used for Confident Conclusions?"
+  venue: "Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers)"
+  pages_or_artno: "3514-3533"
 new_dois: []
 ---
 
@@ -71,8 +86,7 @@ low_conf_flag 是一个纯诊断性的银行-年度层级二值哑变量, 用来
 
 分类器输出的置信度分数是否真实反映其正确概率, 是机器学习校准(calibration)文献的核心问题。Niculescu-Mizil & Caruana (2005) 系统比较了多种监督学习方法输出概率的校准质量, 指出很多"看似高置信度"的判别式模型分数并不天然对应真实后验概率, 需要额外的校准步骤(如 Platt scaling、等张回归)才能被当作可靠的置信度使用; 这一发现为本列"不能默认 LLM 吐出的置信度分数就是可信概率, 必须设阈值做粗粒度质量分层"的工程实践提供了方法学背景。更晚近地, Geng 等 (2024) 对大语言模型的置信度估计与校准做了系统综述, 指出 LLM 生成式判别任务(包括分类式 prompting)中的置信度信号存在系统性偏差与厂商/模型异质性, 呼应了本项目采用三家 LLM 投票、并对置信度均值设定阈值筛查而非直接信任单一模型置信度分数的做法。
 
-在应用金融文献层面, Chen 等 (2022, Journal of Financial Economics) 关于银行信息透明度与存款流的研究提醒我们: 当测度构造依赖对定性文本信号的分类判定时, 分类噪声本身可能与银行特征(规模、上市地位、信息环境)系统相关, 从而产生测度误差的非随机性, 这正是本列存在的意义——它不假设分类噪声是均匀分布的白噪声, 而是把"哪些银行-年份的分类结果更值得怀疑"显式标记出来供研究者事后检验或分组。Aguirregabiria 等 (2025, American Economic Review) 在银行分支网络与信贷可得性的研究中广泛使用了多重稳健性分组与样本质量筛查设计, 这类"先标记可疑观测、再做敏感性对比"的研究规范与 low_conf_flag 的用途高度一致。此外, Simmons 等 (2011) 关于"未披露的灵活性"如何制造虚假显著性的方法学警示, 从更宏观的角度支持了本项目在面板层面显式披露分类置信度诊断列、而非把分类噪声悄悄吞掉的设计哲学: 任何依赖 tech_frac/app_frac 等分类衍生比例做因果推断的下游分析, 都应当把 low_conf_flag 作为敏感性检验的候选分组变量或控制变量, 以证明主结论不是被少数分类噪声较大的银行-年份观测所驱动。
-
+在应用金融文献层面, Chen 等 (2022, Journal of Financial Economics) 关于银行信息透明度与存款流的研究提醒我们: 当测度构造依赖对定性文本信号的分类判定时, 分类噪声本身可能与银行特征(规模、上市地位、信息环境)系统相关, 从而产生测度误差的非随机性, 这正是本列存在的意义——它不假设分类噪声是均匀分布的白噪声, 而是把"哪些银行-年份的分类结果更值得怀疑"显式标记出来供研究者事后检验或分组。Aguirregabiria 等 (2025, American Economic Review) 在银行分支网络与信贷可得性的研究中广泛使用了多重稳健性分组与样本质量筛查设计, 这类"先标记可疑观测、再做敏感性对比"的研究规范与 low_conf_flag 的用途高度一致。此外, Simmons 等 (2011) 关于"未披露的灵活性"如何制造虚假显著性的方法学警示, 从更宏观的角度支持了本项目在面板层面显式披露分类置信度诊断列、而非把分类噪声悄悄吞掉的设计哲学: 任何依赖 tech_frac/app_frac 等分类衍生比例做因果推断的下游分析, 都应当把 low_conf_flag 作为敏感性检验的候选分组变量或控制变量, 以证明主结论不是被少数分类噪声较大的银行-年份观测所驱动。 在方法学邻近文献中, Wen 等 (2025) 对大语言模型的弃答 (abstention) 研究做了系统综述, 从 query、model 与 human values 三个视角归纳了识别并特殊处理低把握输出的方法谱系、基准与评估指标; 须说明的是本项目并不实施弃答——模型始终作答, low_conf_flag 只是在面板导出层对事后置信度取固定阈值的哑变量, 故该综述仅作为"低置信输出应被显式识别与特殊处理而非静默采纳"这一一般性思路的背景参考, 并非本列做法的方法学出处, 阈值 0.5 亦系研究者选择而非原文推荐值, 而缺失行按 NaN<0.5 判否置 0 的语义更在原文覆盖范围之外。Gligoric、Zrnic、Lee、Candes 与 Jurafsky (2025) 提出 confidence-driven inference, 以 LLM 自报置信度决定哪些样本值得付费人工复标, 并给出统计有效的点估计与置信区间, 实证表明低置信 LLM 标注在恰当处理下仍可支撑可信结论; 该文支撑的是"把逐篇置信度当作可用统计信息而非一律丢弃"这一层, 但其有效推断依赖配套的人工标注子样本作为 ground truth, 本项目并无此人工回路, 置信度仅用于打分与阈值标记, 且本项目的 confidence 已经三家投票的一致/分歧调整 (一致时上调、分歧时折减), 与原文的单模型置信度口径不同, 故不得据以宣称本列具备该文的推断有效性。
 ## VAR: low_conf_flag
 
 【变体差分】
@@ -92,4 +106,6 @@ Chen, Q., Goldstein, I., Huang, Z., & Vashishtha, R. (2022). Bank transparency a
 Geng, J., Cai, F., Wang, Y., Koeppl, H., Nakov, P., & Gurevych, I. (2024). A survey of confidence estimation and calibration in large language models. Proceedings of NAACL-HLT 2024 No. 6577-6595 [Working Paper]. https://doi.org/10.18653/v1/2024.naacl-long.366
 Niculescu-Mizil, A., & Caruana, R. (2005). Predicting good probabilities with supervised learning. Proceedings of the 22nd International Conference on Machine Learning (ICML) No. 625-632 [Working Paper]. https://doi.org/10.1145/1102351.1102430
 Simmons, J. P., Nelson, L. D., & Simonsohn, U. (2011). False-positive psychology: Undisclosed flexibility in data collection and analysis allows presenting anything as significant. Psychological Science, 22(11), 1359-1366. https://doi.org/10.1177/0956797611417632
+Wen, B., Yao, J., Feng, S., Xu, C., Tsvetkov, Y., Howe, B., & Wang, L. L. (2025). Know Your Limits: A Survey of Abstention in Large Language Models. Transactions of the Association for Computational Linguistics, 13, 529-556. https://doi.org/10.1162/tacl_a_00754
+Gligoric, K., Zrnic, T., Lee, C., Candes, E., & Jurafsky, D. (2025). Can Unconfident LLM Annotations Be Used for Confident Conclusions?. Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers), 3514-3533. https://doi.org/10.18653/v1/2025.naacl-long.179
 <!-- rendered-citations:end -->

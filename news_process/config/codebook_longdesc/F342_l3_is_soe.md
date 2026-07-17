@@ -32,6 +32,13 @@ citations:
   venue: China Economic Review
   vol: '79'
   pages_or_artno: Article 101973
+- doi: "10.1093/wber/lhaf024"
+  type: "journal"
+  authors: "Betts, C. M., & Cao, Y."
+  year: 2025
+  title: "How Does State Ownership Affect Firm Innovation? Evidence from Chinese Manufacturing Firms"
+  venue: "The World Bank Economic Review"
+  pages_or_artno: "lhaf024"
 new_dois:
 - 10.1086/261354
 - 10.1016/j.chieco.2023.101973
@@ -44,8 +51,7 @@ is_soe 是银行年度面板里的一个二值哑变量, 记录目标银行在�
 【方法学与计算】
 计算逻辑极简且确定性: 若面板已含 bank_type 列(该列取值集合含 'soe' 与其余类别, 由步骤 7e 的银行分类逻辑赋值), 则 is_soe 通过布尔比较 (panel['bank_type'] == 'soe') 转 int 一次性向量化生成; 若 bank_type 因任何上游原因缺失(如某次调试性子集运行未跑到步骤 7e), producer 走保护性分支, 记录 WARNING 日志并将 is_soe 全体置 0, 而不是中断整条流水线。这是一个刻意的"优雅降级而非静默污染"设计: 降级会在日志里留痕(`bank_type 不存在, is_soe 设为 0`), 使用者据此可判断该次运行中 is_soe 是否具备真实区分力, 避免误把全零列当成"全样本非国有"的实质结论。is_soe 不涉及任何三轨(full/ctx/ss)或 co-primary 嵌入维度——它是与文本测度架构完全正交的银行属性静态标签, 逐年不变（同一银行跨年度的所有制身份在样本窗口内通常保持稳定, 除非发生股权结构性变更并被上游 bank_type 分类逻辑捕捉到), 因此不适用"各自 just-identified 并排、互为稳健性不分主次、禁混进同一 over-identified Hansen J"这一套多轨/多模型铁律——它只有一列、一个口径, 没有平行的稳健性变体。
 【文献定位】
-本列在计量框架中扮演的角色是经典的所有制结构异质性调节变量(moderator), 其学理谱系可追溯到公司治理文献对"谁控制企业、控制权结构如何影响企业行为与绩效"的长期研究传统。Demsetz & Lehn (1985, Journal of Political Economy) 研究的是美国企业股权集中度的决定因素与后果, 与本列"国有/非国有"这一中国情境下的所有制身份分类并非同一构念——该文不涉及国有企业分类, 这里仅取其"控制权结构并非随机分布而是内生于企业所处的治理环境, 因而不应被当作任意分组"这一更一般化的方法论洞见作为类比性参照, 提示读者对待 is_soe 这类粗粒度所有制标签时也需留意其内生性, 而非将其直接等同于该文的实证发现。就中国银行业情境而言, 国有控股与非国有控股银行在信贷配置动机、政策性负担、风险偏好与对外部媒体关注的反应模式上存在系统性差异, 这正是 is_soe 被设计为异质性交互项主效应的实证动机——Choi, Kim, Suh & Yu (2023, China Economic Review) 提供了中国上市公司情境下"股权集中度→企业融资/负债政策"的直接证据, 印证所有制/控制权变量在中国企业金融决策研究中的核心调节地位。Gong & Sun (2026, arXiv 预印本) 则从方法学角度讨论了中国国有企业话语(SOE speeches)测度中"口号 vs. 立场"的诊断问题, 提醒研究者在处理涉及国企身份的文本/标签变量时需警惕表面合规话语与实质立场的错配, 这一提醒对本列的下游使用(尤其是把 is_soe 与情感/态度类文本测度做交互时)具有直接的方法学参照价值: 不应简单假设国有银行的新闻语调差异必然反映真实的经营立场差异, 而应结合具体交互设定审慎解读系数。
-
+本列在计量框架中扮演的角色是经典的所有制结构异质性调节变量(moderator), 其学理谱系可追溯到公司治理文献对"谁控制企业、控制权结构如何影响企业行为与绩效"的长期研究传统。Demsetz & Lehn (1985, Journal of Political Economy) 研究的是美国企业股权集中度的决定因素与后果, 与本列"国有/非国有"这一中国情境下的所有制身份分类并非同一构念——该文不涉及国有企业分类, 这里仅取其"控制权结构并非随机分布而是内生于企业所处的治理环境, 因而不应被当作任意分组"这一更一般化的方法论洞见作为类比性参照, 提示读者对待 is_soe 这类粗粒度所有制标签时也需留意其内生性, 而非将其直接等同于该文的实证发现。就中国银行业情境而言, 国有控股与非国有控股银行在信贷配置动机、政策性负担、风险偏好与对外部媒体关注的反应模式上存在系统性差异, 这正是 is_soe 被设计为异质性交互项主效应的实证动机——Choi, Kim, Suh & Yu (2023, China Economic Review) 提供了中国上市公司情境下"股权集中度→企业融资/负债政策"的直接证据, 印证所有制/控制权变量在中国企业金融决策研究中的核心调节地位。Gong & Sun (2026, arXiv 预印本) 则从方法学角度讨论了中国国有企业话语(SOE speeches)测度中"口号 vs. 立场"的诊断问题, 提醒研究者在处理涉及国企身份的文本/标签变量时需警惕表面合规话语与实质立场的错配, 这一提醒对本列的下游使用(尤其是把 is_soe 与情感/态度类文本测度做交互时)具有直接的方法学参照价值: 不应简单假设国有银行的新闻语调差异必然反映真实的经营立场差异, 而应结合具体交互设定审慎解读系数。 在"中国情境下国有产权是否构成实质性的异质性维度"这一前提上, Betts 与 Cao (2025) 以中国制造业企业为样本, 以国有/非国有的产权二分作为核心自变量, 识别国有产权对企业创新行为的影响, 为 is_soe 这类粗粒度产权哑变量作为调节轴承载真实的结构性差异(而非任意分组)提供了近期实证依据。迁移边界须明确标出: 该文样本为制造业企业而非商业银行, 其国有企业界定标准与本列依赖上游 bank_type 列判定(缺失时恒置 0 并记 WARNING)的二分口径并不一致; 其 DV 为企业创新, 全文未涉及媒体语调或任何文本测度, 因而对 llm_vote_tone_full × is_soe 一类交互设定仅提供"产权分组有意义"的一般性支持, 并不支撑语调 × 产权的任何具体机制主张, 引用时不得据此推断国有银行的新闻语调差异必然对应经营行为差异。
 ## VAR: is_soe
 
 【变体差分】
@@ -55,4 +61,5 @@ is_soe 是银行年度面板里的一个二值哑变量, 记录目标银行在�
 Gong, T., & Sun, S. (2026). Slogans or stance? A label-light diagnostic for entrepreneurial-discourse measurement on Chinese SOE speeches. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2605.29188
 Demsetz, H., & Lehn, K. (1985). The structure of corporate ownership: Causes and consequences. Journal of Political Economy, 93(6), 1155-1177. https://doi.org/10.1086/261354
 Choi, H., Kim, J. H., Suh, J., & Yu, S. (2023). Ownership concentration and financial policy of China's listed firms. China Economic Review, 79, Article 101973. https://doi.org/10.1016/j.chieco.2023.101973
+Betts, C. M., & Cao, Y. (2025). How Does State Ownership Affect Firm Innovation? Evidence from Chinese Manufacturing Firms. The World Bank Economic Review, lhaf024. https://doi.org/10.1093/wber/lhaf024
 <!-- rendered-citations:end -->

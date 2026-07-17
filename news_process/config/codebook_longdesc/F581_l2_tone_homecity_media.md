@@ -44,6 +44,40 @@ citations:
   year: 2025
   title: 'Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy'
   venue: SSRN Working Paper
+- doi: "10.1016/j.iref.2025.104564"
+  type: "journal"
+  authors: "Branzoli, N., Marchetti, S., & Tarducci, E."
+  year: 2025
+  title: "Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy"
+  venue: "International Review of Economics & Finance"
+  vol: "104"
+  pages_or_artno: "104564"
+- doi: "10.1093/jeg/lbaf031"
+  type: "journal"
+  authors: "Broekel, T."
+  year: 2025
+  title: "Feeling the heartbeat of regions: local news and economic sentiments"
+  venue: "Journal of Economic Geography"
+  vol: "25"
+  issue: "6"
+  pages_or_artno: "937-976"
+- doi: "10.1016/j.frl.2024.105024"
+  type: "journal"
+  authors: "Huang, W., Liu, J., & Zhang, R.-Z. (."
+  year: 2024
+  title: "Local newspaper closures and non-GAAP reporting quality"
+  venue: "Finance Research Letters"
+  vol: "62"
+  pages_or_artno: "105024"
+- doi: "10.1111/1911-3846.12935"
+  type: "journal"
+  authors: "Huang, Y., Li, F., Li, T., & Lin, T."
+  year: 2024
+  title: "Local information advantage and stock returns: Evidence from social media"
+  venue: "Contemporary Accounting Research"
+  vol: "41"
+  issue: "2"
+  pages_or_artno: "1089-1119"
 new_dois: []
 ---
 
@@ -56,8 +90,7 @@ new_dois: []
 计算分两步。第一步是文章级情感打分, 与家族无关的上游共享: stage 21 `tone_llms.py` 对每篇通过留篇门控 (`llm_verified_full == True`, full-only 口径, 2026-06-29 起生效) 的报道产出三轨 (full/ctx/ss) 语调分, full 轨用标题+全文正文, ctx 轨用标题+实体窗口截取正文, ss 轨用标题+银行∧金科同句±N窗截取正文 (无同句共现则回退为全文 body 并置 `ss_is_fallback=True`, 语义上镜像 ctx 轨的回退规则)。第二步是同城子样本聚合: `pipeline/panel/attention_media.py::compute_media_heterogeneity` 先给每篇文章打上"该篇报道的发布媒体所在城市是否等于该篇报道所指银行的总部城市"的二元标签 `_is_homecity` (经字符串清洗后的精确匹配), 再按 (target_bank, 年份) 分组, 仅在该标签为真的子集内对 `llm_vote_score{trk}` 取均值, 得到 `tone_homecity_media_{trk}`; 面板导出模块 `pipeline/panel/export.py` 在此列产出后只承担中英文标签映射工作, 不参与该聚合计算本身。三轨 (full/ctx/ss) 各自独立完成上述两步, 各自 just-identified 并排, 互为稳健性、不分主次, 禁止把三轨混进同一个 over-identified 的 Hansen J 检验框架。样本量上须注意: 该指标的有效性依赖于"该银行-年份是否存在足够数量的同城媒体报道"这一分母条件, 若某银行总部城市当年无本地媒体报道该行, 则该 (bank, year) 单元的本家族三列均应为缺失 (NaN), 而非 0——0 与"无本地报道"在经济含义上完全不同 (0 表示本地媒体报道但语调恰好中性, NaN 表示无本地样本可算)。留篇门控是 full-only 口径: 一篇报道是否被计入"银行×金科"报道体系, 只由 `llm_verified_full` 决定; ctx/ss 轨道的行宇宙是 full 留篇集合的子集, 在此子集之上各轨再各自计算其语调打分与城市归属聚合, 而非独立门控。
 
 【文献定位】
-本家族方法学谱系直接承袭 Gurun & Butler (2012, *The Journal of Finance*) 关于"本地媒体倾向 (local media slant)" 的经典设计——该文首次系统性证明本地报纸对本地上市公司的报道语气显著更正面, 且这种偏向与本地广告收入依赖度正相关, 为地理邻近性会系统性扭曲媒体语调这一命题提供了因果层面的实证基础, 是本家族"同城 vs 异城"划分逻辑的直接理论来源。语调本身的测度传统则追溯到 Tetlock (2007, *The Journal of Finance*) 对"媒体语调赋予投资者情绪以实质内容"的开创性论证, 确立了将新闻文本转化为可用于资产定价与公司金融研究的连续情感量表这一方法论范式, 本家族的语调打分虽由 LLM 而非词典产生, 但延续的正是这一"文本→情感标量→经济结果"的测量哲学。在中国银行业情境下, Fang, Wang, Wang & Yuan (2024, *International Review of Economics & Finance*) 的研究提供了最直接的同域参照: 该文考察媒体情感如何通过影响存款人信心传导为银行系统性风险, 其分析单元同为中国银行-年面板, 与本项目的银行×金科新闻情感面板在数据结构上高度可比, 佐证了在中国银行业场景下本地媒体语调这一构念的可操作性与解释力。方法工具层面, Marchetti, Tarducci & Branzoli (2025, SSRN) 提出的银行×年语气聚合口径与本家族"文章级打分→(bank,year)子样本均值"的两步聚合方式相互印证, 说明这一简单平均聚合并非本项目独有的临时处理, 而是文献中处理银行-媒体语调面板数据的常见做法。
-
+本家族方法学谱系直接承袭 Gurun & Butler (2012, *The Journal of Finance*) 关于"本地媒体倾向 (local media slant)" 的经典设计——该文首次系统性证明本地报纸对本地上市公司的报道语气显著更正面, 且这种偏向与本地广告收入依赖度正相关, 为地理邻近性会系统性扭曲媒体语调这一命题提供了因果层面的实证基础, 是本家族"同城 vs 异城"划分逻辑的直接理论来源。语调本身的测度传统则追溯到 Tetlock (2007, *The Journal of Finance*) 对"媒体语调赋予投资者情绪以实质内容"的开创性论证, 确立了将新闻文本转化为可用于资产定价与公司金融研究的连续情感量表这一方法论范式, 本家族的语调打分虽由 LLM 而非词典产生, 但延续的正是这一"文本→情感标量→经济结果"的测量哲学。在中国银行业情境下, Fang, Wang, Wang & Yuan (2024, *International Review of Economics & Finance*) 的研究提供了最直接的同域参照: 该文考察媒体情感如何通过影响存款人信心传导为银行系统性风险, 其分析单元同为中国银行-年面板, 与本项目的银行×金科新闻情感面板在数据结构上高度可比, 佐证了在中国银行业场景下本地媒体语调这一构念的可操作性与解释力。方法工具层面, Marchetti, Tarducci & Branzoli (2025, SSRN) 提出的银行×年语气聚合口径与本家族"文章级打分→(bank,year)子样本均值"的两步聚合方式相互印证, 说明这一简单平均聚合并非本项目独有的临时处理, 而是文献中处理银行-媒体语调面板数据的常见做法。 上述工作稿的期刊发表成果亦可一并参照: 同一作者组的 Branzoli、Marchetti 与 Tarducci (2025) 构造媒体报道的语调测度并将其应用于意大利银行融资条件这一银行层级实证问题, 是「新闻语调→银行层级结果」链条的近期同域实践, 与本家族「文章级打分→(bank,year) 子样本均值」的构造与应用域一致; 边界在于其语料为意大利语/英语新闻而非中文报道, 语调测度不使用本项目的词典或 LLM 投票口径, 无 full/ctx/ss 三轨切分, 亦无同城/异城地理切分。Broekel (2025) 从 300 余家德语地方媒体的地理编码新闻标题构建区域经济新闻情绪指数并检验其对区域失业率等指标的领先关系, 为「地方新闻文本→情感打分→地理分组的时间面板聚合」这一构造链路提供了前沿存在性证明, 支撑本家族地方媒体语调水平测度的可行性; 但其聚合单位是地区本身而非「地区内某个被报道主体」, 因而不存在本项目 target_bank × outlet_city 的双地理键与同城/异城切分, 情感打分走词典法且无 LLM 投票共识语调与三轨口径, 被解释变量亦为区域经济指标而非银行层面结果。Huang、Liu 与 Zhang (2024) 以本地报纸停刊作为本地媒体监督减弱的冲击检验公司非 GAAP 披露质量, 其前提「总部同城的本地媒体与异地媒体在监督功能上不可替代」正是本家族把同城媒体子样本单独析出的构念依据; 须诚实说明的是, 该文的识别策略是停刊事件的 DiD 而本家族仅作横截面子样本聚合, 语境为美国本地报纸与美国上市公司, 且该文只把本地媒体当作监督强度的处理变量、并未度量本地媒体的报道语调, 故只锚定「本地媒体是独立构念」这一半, 不锚定本家族的语调聚合算法。Huang、Li、Li 与 Lin (2024) 用社交媒体用户地理位置识别本地信息发布者, 按发帖者与公司总部的地理关系切分样本、比较本地组与非本地组的信息含量, 与本家族同城子样本析出后单独求语调均值的设计同族; 其数据为社交媒体发帖而非报纸/通讯社媒体来源, 地理归属基于用户 IP/自报位置而非媒体来源城市字段的清洗比对, 被解释变量为股票收益, 研究对象亦为一般上市公司而非银行。以上四条与本段既有的 Gurun & Butler (2012)、Tetlock (2007)、Fang et al. (2024) 一道, 分别锚定本家族的地理切分逻辑、语调测量传统与中国银行业同域可比性, 各自只承担其原文实际做过的那一环。
 ## VAR: tone_homecity_media_ctx
 
 【变体差分】
@@ -78,5 +111,9 @@ Gurun, U. G., & Butler, A. W. (2012). Don't believe the hype: Local media slant,
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Marchetti, S., Tarducci, E., & Branzoli, N. (2025). Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.5220056
+Branzoli, N., Marchetti, S., & Tarducci, E. (2025). Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy. International Review of Economics & Finance, 104, 104564. https://doi.org/10.1016/j.iref.2025.104564
+Broekel, T. (2025). Feeling the heartbeat of regions: local news and economic sentiments. Journal of Economic Geography, 25(6), 937-976. https://doi.org/10.1093/jeg/lbaf031
+Huang, W., Liu, J., & Zhang, R.-Z. (. (2024). Local newspaper closures and non-GAAP reporting quality. Finance Research Letters, 62, 105024. https://doi.org/10.1016/j.frl.2024.105024
+Huang, Y., Li, F., Li, T., & Lin, T. (2024). Local information advantage and stock returns: Evidence from social media. Contemporary Accounting Research, 41(2), 1089-1119. https://doi.org/10.1111/1911-3846.12935
 <!-- rendered-citations:end -->
 </content>

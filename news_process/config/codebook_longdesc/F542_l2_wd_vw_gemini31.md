@@ -38,6 +38,28 @@ citations:
   vol: '15'
   issue: '2'
   pages_or_artno: 121-140
+- doi: "10.1287/mnsc.2021.03722"
+  type: "journal"
+  authors: "Cuñat, V., & Groen-Xu, M."
+  year: 2025
+  title: "Timing Complex News to Target Attention"
+  venue: "Management Science"
+  vol: "71"
+  issue: "9"
+  pages_or_artno: "7774-7799"
+- doi: "10.17016/feds.2025.022"
+  type: "wp"
+  authors: "Kroner, N."
+  year: 2025
+  title: "How Markets Process Macro News: The Importance of Investor Attention"
+  venue: "Finance and Economics Discussion Series"
+- doi: "10.1177/10944281251334777"
+  type: "journal"
+  authors: "Iqbal, F., & Pfarrer, M. D."
+  year: 2025
+  title: "Using Coreference Resolution to Mitigate Measurement Error in Text Analysis"
+  venue: "Organizational Research Methods"
+  pages_or_artno: "10944281251334777"
 new_dois: []
 ---
 
@@ -50,8 +72,7 @@ sum_wd_vw_gemini31_{full,ctx,ss} 三列不是情感分本身, 而是三家投票
 计算发生在 stage 21 (三家 LLM 情感投票产出 gemini31_score_{track}) 与 mention_density 前置构造之后、面板聚合 encode 阶段之内。具体地, `pipeline\panel\runner.py` 步骤3b 先取篇章级单一权重列 `df['mention_density']` (对 full/ctx/ss 三轨共用同一份权重取值, 而非逐轨独立计算; VW 场景权重是"三轨同权重", 与 hw 跟风衰减权重 "三轨独立权重" 的构造方式不同), 再对每一轨调用 `_build_llm_valid_masked_weights(df, w, 'vw')`: 该函数构造该轨专属的 valid-mask (gemini31_score_{track} 非缺失的布尔向量), 与共用权重 mention_density 逐元素相乘并按 mask 置 NaN 屏蔽无效行, 得到临时列 `_wd_vw_gemini31{track}`, 再由 encode.py 的 groupby-agg 字典对该临时列取 'sum' 得到银行-年层面的 sum_wd_vw_gemini31_{track}。此设计承接 encode-01 (metric-audit 2026-06-10) 对 LLM 族的一项关键修正: LLM 打分存在结构性缺失 (API 失败/缓存未命中/留篇门控未过), 若分子 Σ(w·score) 只在有效行求和而分母沿用物理全域 Σw, 则 Σ_valid(w·score)/Σ_all(w) 会随缺失率系统性向 0 收缩, 掩盖真实的加权语调水平; 改用 valid-mask 分母 sum_wd_vw_gemini31_{track} (即分母也只在同一有效行集合上求和) 后, 分子分母同域, 加权均值不再受缺失率干扰而失真。三轨 sum_wd_vw_gemini31_{full,ctx,ss} 彼此的差异因此并非来自 mention_density 本身逐轨不同 (VW 权重是同一份篇章级取值), 而完全来自各轨 gemini31_score_{track} 的 valid-mask 覆盖范围不同 (三家 LLM 各轨的 API 成功率/缓存命中/留篇门控通过情况互相独立、可能不同步缺失); 三条分母列因这一 valid-mask 差异而彼此不可加总、不可跨轨比较, 只能各自与同轨分子相除; 若某银行-年该轨全部文章的 gemini31 判分皆缺失, 分母将退化为 0, 下游相除以 NaN 兜底而非 0/0 静默产出 inf。
 【文献定位】
 关注度加权 (按文本对目标主体的着墨密度赋权, 而非简单算术平均) 的构念取向, 与 Gilardi, Alizadeh & Kubli (2023, Proceedings of the National Academy of Sciences) 关于 ChatGPT 类模型在文本标注任务上可比甚至超越众包人工标注员的证据所处的同一方法论脉络相通——该文强调标注任务中"文本-标签"对应关系的密度与质量本身携带可用信息, 一篇报道对目标银行着墨越多、该银行在文中被反复提及, 该篇报道传递的关于该银行的信息增量通常也越大, 简单算术平均会把"深度聚焦"与"顺带一提"的报道混为一谈, 系统性稀释真正相关报道的信号。三家 LLM (gpt54nano/gemini31/deepseekv4) 各自独立打分再各自加权聚合、互不预先融合, 这一设计呼应 Schoenegger, Tuminauskaite, Park, Bastos & Tetlock (2024, Science Advances) 关于 LLM 集成预测能力可比拟人群智慧 (wisdom of crowd) 的证据——多个独立评判者的分歧本身就是可用信息, 过早平均会抹去这一信息, 支撑本项目坚持"各模型 just-identified 并排、不预先融合"的方法论选择。LLM 作为文本标注工具的有效性亦见前述 Gilardi, Alizadeh & Kubli (2023, PNAS) 关于 ChatGPT 类模型在文本标注任务上可比甚至超越众包人工标注员的证据, 以及 van Atteveldt, van der Velden & Boukes (2021, Communication Methods and Measures) 对人工标注、众包、词典法与机器学习情感分析方法有效性的系统比较, 二者共同支撑本项目采用 LLM 投票而非纯词典法作为情感测度主轨、并对每种方法学选择 (含加权方案) 保留系统性稳健性检验的整体设计取向。
-口径铁律复述: sum_wd_vw_gemini31 三轨 (full/ctx/ss) 各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J 检验; ss 轨的回退语义镜像 ctx——当某篇文章不满足银行∧金科同句共现条件时, content_ss 回退为全文 body 且 ss_is_fallback=True, 该篇若 gemini31_score_ss 仍有效, 依然计入 sum_wd_vw_gemini31_ss 的分母 (回退不等于剔除, 只是文本窗口收窄失败后的优雅降级)。三家 LLM 的留篇门控口径统一为 full-only (2026-06-29 起): 是否判定"一篇银行金科报道"只看 llm_verified_full, ctx/ss 轨的 sum_wd_vw_gemini31_{ctx,ss} 因此是 conditional-on-full 的测度/稳健性轨, 其行宇宙是 full 轨留篇集合的子集, 而非独立样本框; 三本列均属 per-model 独立降级机制的一部分——gemini31 若某轨缺失分数, 只影响 gemini31 自身该轨分母, 不连坐 gpt54nano/deepseekv4 的同轨分母, 也不同于 co-primary 嵌入双轨的 both-or-neither 规则。此外, vw 权重体系与 hw (跟风衰减)、mw (媒体权威) 三套权重各自独立构造、各自 just-identified, 三者不应在同一识别方程中混用或加总, 使用者须依据研究问题 (强调"聚焦度"用 vw、强调"去重复度"用 hw、强调"渠道权威性"用 mw) 择一为主, 其余互为稳健性检验。
-
+口径铁律复述: sum_wd_vw_gemini31 三轨 (full/ctx/ss) 各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J 检验; ss 轨的回退语义镜像 ctx——当某篇文章不满足银行∧金科同句共现条件时, content_ss 回退为全文 body 且 ss_is_fallback=True, 该篇若 gemini31_score_ss 仍有效, 依然计入 sum_wd_vw_gemini31_ss 的分母 (回退不等于剔除, 只是文本窗口收窄失败后的优雅降级)。三家 LLM 的留篇门控口径统一为 full-only (2026-06-29 起): 是否判定"一篇银行金科报道"只看 llm_verified_full, ctx/ss 轨的 sum_wd_vw_gemini31_{ctx,ss} 因此是 conditional-on-full 的测度/稳健性轨, 其行宇宙是 full 轨留篇集合的子集, 而非独立样本框; 三本列均属 per-model 独立降级机制的一部分——gemini31 若某轨缺失分数, 只影响 gemini31 自身该轨分母, 不连坐 gpt54nano/deepseekv4 的同轨分母, 也不同于 co-primary 嵌入双轨的 both-or-neither 规则。此外, vw 权重体系与 hw (跟风衰减)、mw (媒体权威) 三套权重各自独立构造、各自 just-identified, 三者不应在同一识别方程中混用或加总, 使用者须依据研究问题 (强调"聚焦度"用 vw、强调"去重复度"用 hw、强调"渠道权威性"用 mw) 择一为主, 其余互为稳健性检验。 在上述脉络之外, 近年前沿从两个方向补充了本族权重维度的文献坐标。其一是「报道非等权」的存在性证据: Cuñat 与 Groen-Xu (2025) 借助美国公司备案系统 5:30 p.m. 的制度断点 (截止前提交立即可见、截止后次晨才可见且吸引更少关注), 证明投资者注意力有限且时变, 发行方会据此策略性择时——把更长、更难处理的复杂新闻安排在注意力更高的时段发布, 且此类新闻随后价格收敛更快、流动性更好; Kroner (2025, 美联储 Finance and Economics Discussion Series 工作论文, 未经期刊同行评审) 则以宏观公告 × 投资者注意力代理估计高频市场反应, 表明同一条宏观新闻在注意力高低不同的时点被吸收的程度显著不同。两文所能支撑的仅是一条一般性命题——新闻条目在受众端的有效影响力随其被接收的显著性条件而变, 故「每篇报道等权计 1」并非无争议的默认口径, 这为 vw 族在分母中引入篇章级显著性权重留出了构念上的合理性空间; 必须明确的是, 二者均未构造、亦未检验任何文本端显著性权重, 更未比较加权与等权分母的优劣: Cuñat 与 Groen-Xu (2025) 的显著性维度是发布时点与日历制度断点, Kroner (2025) 的注意力代理是外生于文本的市场端交易/搜索类状态变量, 与本族 mention_density 这一篇内银行实体提及密度是完全不同的算子, 故不得引申为原文对 mention_density 取值口径的经验背书; 二文的层级分别为公司公告事件与美国宏观高频价格, 均不涉及 LLM 有效性掩码与 full/ctx/ss 三轨。其二是实体归属侧的测量误差证据: Iqbal 与 Pfarrer (2025) 指出情感分析在多主体文本中的情感归属上存在系统性测量误差 (传统方法易将文本误归于错误公司), 提出以共指消解作为解决方案, 并经两项研究证明该处理可降低测量误差、提升文本分析的真实性; 该文对本族的锚定仅止于「一项具体的语言学处理选择会系统性改变文本测度的取值、并构成实质性的测量误差来源」这一一般命题, 即着墨密度如何被计量本身就是需要被显式对待的方法学选择, 而非中性记账。严格边界须一并载明: 原文的处理是共指消解 (实体指代还原), 本项目在实体归属上的对应设计是 ctx/ss 实体窗口轨与 mention_density 的裸实体计数, 二者非同一手段, 本项目并未实施共指消解, 因而 mention_density 对代词回指的漏计仍是本列已知的测量局限, 而不是该文已为本列解决的问题; 原文立场是规范性的 (主张采纳该规则以减少误差), 而本项目令三轨、三家 LLM 与 vw/mw/hw 三套权重互为稳健性并排、各自 just-identified、不分主次, 二者方法学取向不同, 不得据以推定某一轨或某一权重方案为主; 原文语料为英文组织管理文本, 单位为文档/组织, 无银行-年面板层。
 ## VAR: sum_wd_vw_gemini31_full
 
 【变体差分】
@@ -71,4 +92,7 @@ sum_wd_vw_gemini31_{full,ctx,ss} 三列不是情感分本身, 而是三家投票
 Schoenegger, P., Tuminauskaite, I., Park, P. S., Bastos, R. V. S., & Tetlock, P. E. (2024). Wisdom of the silicon crowd: LLM ensemble prediction capabilities rival human crowd accuracy. Science Advances, 10(45), Article eadp1528. https://doi.org/10.1126/sciadv.adp1528
 Gilardi, F., Alizadeh, M., & Kubli, M. (2023). ChatGPT outperforms crowd workers for text-annotation tasks. Proceedings of the National Academy of Sciences, 120(30), e2305016120. https://doi.org/10.1073/pnas.2305016120
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The Validity of Sentiment Analysis: Comparing Manual Annotation, Crowd-Coding, Dictionary Approaches, and Machine Learning Algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
+Cuñat, V., & Groen-Xu, M. (2025). Timing Complex News to Target Attention. Management Science, 71(9), 7774-7799. https://doi.org/10.1287/mnsc.2021.03722
+Kroner, N. (2025). How Markets Process Macro News: The Importance of Investor Attention. Finance and Economics Discussion Series [Working Paper]. https://doi.org/10.17016/feds.2025.022
+Iqbal, F., & Pfarrer, M. D. (2025). Using Coreference Resolution to Mitigate Measurement Error in Text Analysis. Organizational Research Methods, 10944281251334777. https://doi.org/10.1177/10944281251334777
 <!-- rendered-citations:end -->

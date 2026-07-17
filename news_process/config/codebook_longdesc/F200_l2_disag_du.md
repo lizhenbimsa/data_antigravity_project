@@ -55,6 +55,36 @@ citations:
   vol: 114
   issue: 2
   pages_or_artno: 226-238
+- doi: "10.2139/ssrn.6566038"
+  type: "wp"
+  authors: "Fu, J. Y., Huang, A. G., Wermers, R. R., Zhang, J., & Zhang, Y."
+  year: 2026
+  title: "The Information Content of Tone Dispersion: Evidence from Earnings Conference Call Q&As"
+  venue: "SSRN Electronic Journal"
+  pages_or_artno: "6566038"
+- doi: "10.3386/w35049"
+  type: "wp"
+  authors: "Goulding, C., Harvey, C., & Kurtović, H."
+  year: 2026
+  title: "Disagreement of Disagreement"
+  venue: "National Bureau of Economic Research"
+  pages_or_artno: "35049"
+- doi: "10.1080/10293523.2024.2398338"
+  type: "journal"
+  authors: "Wang, G., Chen, M., Wang, X., Dong, Y., & Wang, Z."
+  year: 2025
+  title: "Opinion divergence, investor sentiment, and stock liquidity: Evidence from social media"
+  venue: "Investment Analysts Journal"
+  vol: "54"
+  issue: "2"
+  pages_or_artno: "167-186"
+- doi: "10.1177/0148558x251384064"
+  type: "journal"
+  authors: "Driskill, M. W."
+  year: 2025
+  title: "Building Better Measures of Analyst Disagreement Around Earnings: Implications for Disagreement, Trading Volume, and Returns"
+  venue: "Journal of Accounting, Auditing & Finance"
+  pages_or_artno: "0148558X251384064"
 new_dois: []
 ---
 
@@ -69,8 +99,7 @@ new_dois: []
 离散度的闭式定义为 disag = 根号下 (1 − ((P − N) / (P + N)) 的平方)。令归一化净语调 r = (P − N) / (P + N) ∈ [−1, 1], 则本指标 = 根号 (1 − r 的平方)。几何上, 若把 r 视为单位圆上的余弦分量, 则本指标恰为对应的正弦分量: 当报道完全一边倒 (r = ±1, 纯正或纯负) 时取 0, 表示零分歧; 当正负词恰好相等 (r = 0) 时取 1, 表示最大分歧。因此取值严格落在闭区间 [0, 1], 无量纲。此处 P、N 均为银行-年度的比率均值 (P = avg_du_2022_pos_ratio, N = avg_du_2022_neg_ratio), 而非绝对计数; 分母 P + N 为该轨正负情感密度均值之和。当 P + N = 0 (该轨全年无任何 du_2022 情感命中, 或所有篇章因纯标点/数字文本使比率为 NaN 而聚合后无有效值) 时, 比值无定义, 该轨该单元置 NaN 而非置零——这一 fail-quiet 口径避免把"没有情感信号"误编码为"零分歧的强共识", 二者语义截然不同。计算发生在 pipeline/panel/runner.py 步骤 8b (disag 段, 单词典分支), 属篇章级词级比率经面板聚合 (groupby 银行-年度取均值) 后的纯后处理, 不额外调用任何 LLM 或嵌入 API。上游依赖为 stage 22 的 du_2022 逐篇逐轨正负词比率与 stage 14 物化的三轨文本, 经 stage 24 herd_decay 的 verified 篇章集汇入面板总装阶段。需辨明: 同族的 disag_llm 分支才以篇章级 pos_count / neg_count 计数为输入, 本单词典分支 (disag_du_2022) 与之口径不同, 计数比与均值比数值上并不等价, 不可混同。
 
 【文献定位】
-"分歧/离散度可定价"是资产定价与文本金融的核心命题。Carlin、Longstaff 与 Matoba (2014) 在 Journal of Financial Economics 中直接论证了投资者分歧与资产价格及风险溢价的联系, 为"把文本内部情感冲突当作一个独立于方向的定价相关状态变量"提供了理论支点; 本指标可视为该分歧构念在新闻文本层面的可观测代理。Li 与 Luan (2025) 进一步在 Review of Accounting Studies 上把"基于新闻的投资者分歧" (news-based investor disagreement) 显式操作化并与股票收益关联, 与本家族"以报道文本正负抵消程度度量舆论分歧"的思路高度同构, 是本指标最贴近的方法学对照。词典侧, 除锚定 du_2022 (Du et al., 2022) 外, Ma、Zhang 与 Zhang (2025) 构建的 CN-FSD 细粒度中文投资者情感词典, 以及 Sun、Yuan 与 Xu (2025) 关于把词典知识与中性特征融入预训练语言模型的工作, 共同印证了中文金融情感测度对领域专用词表与中性/冲突信号处理的强依赖——这也解释了本指标为何必须以领域词典 (而非通用词典) 的正负词比率均值为分母基。
-
+"分歧/离散度可定价"是资产定价与文本金融的核心命题。Carlin、Longstaff 与 Matoba (2014) 在 Journal of Financial Economics 中直接论证了投资者分歧与资产价格及风险溢价的联系, 为"把文本内部情感冲突当作一个独立于方向的定价相关状态变量"提供了理论支点; 本指标可视为该分歧构念在新闻文本层面的可观测代理。Li 与 Luan (2025) 进一步在 Review of Accounting Studies 上把"基于新闻的投资者分歧" (news-based investor disagreement) 显式操作化并与股票收益关联, 与本家族"以报道文本正负抵消程度度量舆论分歧"的思路高度同构, 是本指标最贴近的方法学对照。词典侧, 除锚定 du_2022 (Du et al., 2022) 外, Ma、Zhang 与 Zhang (2025) 构建的 CN-FSD 细粒度中文投资者情感词典, 以及 Sun、Yuan 与 Xu (2025) 关于把词典知识与中性特征融入预训练语言模型的工作, 共同印证了中文金融情感测度对领域专用词表与中性/冲突信号处理的强依赖——这也解释了本指标为何必须以领域词典 (而非通用词典) 的正负词比率均值为分母基。 近期工作从测度学层面为本指标补足了三点依据。Fu、Huang、Wermers、Zhang 与 Zhang (2026) 以 FinBERT 测算盈利电话会 Q&A 环节内分析师之间的语调离散, 证明该离散的信息含量增量于整体语调水平, 支持本家族把语调的散布与语调水平分列为两族测度; 该文为未经同行评审的工作论文, 单位是英文盈利电话会 Q&A、层级为公司-事件, 其离散取自 BERT 分类器概率的统计散布, 与本指标对 du_2022 词级比率所作的 Antweiler-Frank 型闭式变换数学形式不同, 仅在构念上同族。Goulding、Harvey 与 Kurtović (2026) 系统比较了金融学中多种分歧代理变量, 指出不同构造方法给出的分歧度量彼此相关性低、结论亦不一致, 这构成本项目逐词典各出一条 disag_*、互为稳健性、不分主次并排之做法的必要性依据; 惟该 NBER 工作论文的对象是美国市场的分析师预测与交易量类代理, 且并未评价本指标所用公式。Wang、Chen、Wang、Dong 与 Wang (2025) 用社交媒体的看多看空投票构造零售投资者观点分歧指数、以机器学习从评论文本构造在线投资者情绪指数, 发现二者均显著影响股票流动性, 且情绪对分歧到流动性的路径起中介作用; 据此须对上文措辞作一处诚实的边界补正——该文恰恰表明分歧与情绪水平相互纠缠而非各自独立, 故本家族并排保留 disag_du_2022 与 du_2022 净语调两族的依据只能是二者非同一量、值得分别观测, 而不能声称二者在统计上相互独立。其分歧源为投票而非词典对文本的正负标注, 因变量为股票流动性, 层级为公司-期, 与本项目银行-年、以财务哨兵列为因变量的设定不同。Driskill (2025) 则通过前推 ex ante 窗口、压缩 ex post 窗口, 证明既有分析师离散度测度与盈利公告期异常成交的弱关联源自预测窗口设定不当, 修正后方稳健恢复正向关联; 其一般测度学教训是分歧指标的构造选择会实质改变效度与结论方向, 因而本指标的逐轨聚合口径与 P + N = 0 置 NaN 的样本纳入规则须显式披露并接受敏感性检验。该文未讨论分母标准化或归一化选择, 亦不涉及媒体文本, 故不构成本指标分母基设定的直接参照。
 【三轨口径铁律】
 本家族的三列对应 full / ctx / ss 三条文本轨, 分子分母严格逐轨: 每一轨的 P、N 均取该轨自身的 du_2022 正负词比率的银行-年度均值, 绝不跨轨借用分母。三轨各自 just-identified 并排、互为稳健性、不分主次, 禁混进同一 over-identified Hansen J。full 轨 (标题 prepend + 全文正文) 是留篇门控主轨: 一篇报道是否计入某银行当年样本, 由 full 轨的 full-only 门控 (2026-06-29) 判定; ctx / ss 降为 conditional-on-full 的测度/稳健性轨, 其行宇宙是 full 留篇集的子集。ss 轨的回退语义镜像 ctx: 当某篇无银行∧金科同句共现时, content_ss 回退为全文 body 并置 ss_is_fallback=True, 与 ctx 共享 n_articles 分母。三轨在开发规模 (T=2) 上, ctx / ss 可能因样本稀薄而出现零方差退化, 属预期现象, 生产规模 (T=19) 恢复正常。
 
@@ -95,4 +124,8 @@ Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-graine
 Sun, Y., Yuan, H., & Xu, F. (2025). Financial sentiment analysis for pre-trained language models incorporating dictionary knowledge and neutral features. Natural Language Processing Journal, 11, 100148. https://doi.org/10.1016/j.nlp.2025.100148
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Carlin, B. I., Longstaff, F. A., & Matoba, K. (2014). Disagreement and asset prices. Journal of Financial Economics, 114(2), 226-238. https://doi.org/10.1016/j.jfineco.2014.06.007
+Fu, J. Y., Huang, A. G., Wermers, R. R., Zhang, J., & Zhang, Y. (2026). The Information Content of Tone Dispersion: Evidence from Earnings Conference Call Q&As. SSRN Electronic Journal No. 6566038 [Working Paper]. https://doi.org/10.2139/ssrn.6566038
+Goulding, C., Harvey, C., & Kurtović, H. (2026). Disagreement of Disagreement. National Bureau of Economic Research No. 35049 [Working Paper]. https://doi.org/10.3386/w35049
+Wang, G., Chen, M., Wang, X., Dong, Y., & Wang, Z. (2025). Opinion divergence, investor sentiment, and stock liquidity: Evidence from social media. Investment Analysts Journal, 54(2), 167-186. https://doi.org/10.1080/10293523.2024.2398338
+Driskill, M. W. (2025). Building Better Measures of Analyst Disagreement Around Earnings: Implications for Disagreement, Trading Volume, and Returns. Journal of Accounting, Auditing & Finance, 0148558X251384064. https://doi.org/10.1177/0148558x251384064
 <!-- rendered-citations:end -->

@@ -14,6 +14,24 @@ citations:
 - {doi: "10.1002/smj.3549", type: journal, authors: "Su, J., Gao, X., & Tan, J.", year: 2024, title: "Positioning for Optimal Distinctiveness: How Firms Manage Competitive and Institutional Pressures under Dynamic and Complex Environment", venue: "Strategic Management Journal", vol: "45", issue: "2", pages_or_artno: "333-361"}
 - {doi: "10.1002/smj.2978", type: journal, authors: "Haans, R. F. J.", year: 2019, title: "What's the Value of Being Different When Everyone Is? The Effects of Distinctiveness on Performance in Homogeneous versus Heterogeneous Categories", venue: "Strategic Management Journal", vol: "40", issue: "1", pages_or_artno: "3-27"}
 - {doi: "10.1257/jel.20181020", type: journal, authors: "Gentzkow, M., Kelly, B., & Taddy, M.", year: 2019, title: "Text as Data", venue: "Journal of Economic Literature", vol: "57", issue: "3", pages_or_artno: "535-574"}
+- doi: "10.1111/1467-8551.12857"
+  type: "journal"
+  authors: "Kang, J., & Kang, Y."
+  year: 2025
+  title: "Capital Market Scrutiny and Strategic Distinctiveness of the Firm: Evidence from a Natural Experiment"
+  venue: "British Journal of Management"
+  vol: "36"
+  issue: "1"
+  pages_or_artno: "461-476"
+- doi: "10.1002/sej.1521"
+  type: "journal"
+  authors: "Shen, R., Zhang, H., Zhong, W., & Lu, J."
+  year: 2025
+  title: "Distinctiveness from whom? Evaluation of startups' distinctiveness from multiple referents in angel investment platforms"
+  venue: "Strategic Entrepreneurship Journal"
+  vol: "19"
+  issue: "1"
+  pages_or_artno: "171-195"
 new_dois: []
 ---
 
@@ -26,8 +44,7 @@ strat_diff_n40_lda 系列度量的是"一篇银行金科报道在主题语义空
 top-k N 是本家族的核心梯子: 除历史基线 N∈{3,4,5,6,7} 外, 2026-07-02 起为 TF-IDF (char/word)、LDA、两条 co-primary 嵌入 (Qwen3-8B 主轨 与 text-embedding-3-large 的 _lg 对等轨) 五种方法各加装 N∈{10,20,30,40,50} 的大邻域孪生列, 与既有 N=5 (或 N∈{3..7}) 互为稳健性、不分主次 — 邻域越大, 度量越接近"与整个行业均值的差异", 邻域越小越接近"与最相似同侪的差异", 二者刻画的是同一构念在不同局部/全局尺度下的表现, 不存在谁更优的排序, 论文层面禁止把不同 N 的列混进同一 over-identified 设定 (如同一 Hansen J 检验) 联合使用, 只能各自 just-identified 并排报告或作稳健性附表。strat_diff_n40_lda 即该梯子里 N=40 的 LDA 分量, 是偏"大邻域/接近行业均值"一端的差异度量。
 本列同时挂在家族的三轨扩展下 (full/ctx/ss), 无后缀的 strat_diff_n40_lda 是 full 轨 (标题+全文正文), 另两个同名列分别是 ctx 与 ss 轨的孪生 (见下方 VAR 节)。三轨遵循项目"留篇门控=full-only" (2026-06-29) 与三轨行宇宙口径: 留篇/是否计入的判定只看 full 轨的 LLM 验证结果, ctx/ss 是 conditional-on-full 的测度/稳健性轨, 各自在自身文本口径上独立计算 LDA 主题分布与最近邻检索, 三轨同样各自 just-identified 并排, 互为稳健性, 禁止混入同一 over-identified Hansen J。
 【文献定位】
-LDA 主题模型本身出自 Blei, Ng & Jordan (2003) 的经典无监督文本建模框架; N-最近邻文本距离度量企业/文章"独特性"的做法直接对应 Guzman & Li (2023, Management Science) 对创业公司自我描述文本的处理, 以及 Hoberg & Phillips (2016, Journal of Political Economy) 对 10-K 产品描述文本构造行业分类与差异度的经典设计, 本产出的 top-k N 梯子正是这一文献传统里"检索半径敏感性"问题的直接回应。战略差异化/最优显著性 (optimal distinctiveness) 的组织理论根基参见 Haans (2019, Strategic Management Journal) 关于异质与同质品类下差异化收益的分析, 以及 Su, Gao & Tan (2024, Strategic Management Journal) 关于企业在动态复杂环境下如何权衡竞争压力与制度压力定位差异化程度的研究, 二者共同支撑"差异化程度对绩效的影响并非单调"这一构念背景, 提醒使用者 strat_diff_n40_lda 是一个方向中性的距离测度, 本身不隐含"越大越好"的价值判断。方法论上, JSD 度量分布距离与文本数据计量经济学处理的一般性讨论见 Gentzkow, Kelly & Taddy (2019, Journal of Economic Literature) 对"文本作为数据"的方法综述, 该文特别强调不同文本表征 (词袋/主题模型/嵌入) 各有偏误结构, 支持本家族"多方法并列互证"而非单一方法定论的设计取向。
-
+LDA 主题模型本身出自 Blei, Ng & Jordan (2003) 的经典无监督文本建模框架; N-最近邻文本距离度量企业/文章"独特性"的做法直接对应 Guzman & Li (2023, Management Science) 对创业公司自我描述文本的处理, 以及 Hoberg & Phillips (2016, Journal of Political Economy) 对 10-K 产品描述文本构造行业分类与差异度的经典设计, 本产出的 top-k N 梯子正是这一文献传统里"检索半径敏感性"问题的直接回应。战略差异化/最优显著性 (optimal distinctiveness) 的组织理论根基参见 Haans (2019, Strategic Management Journal) 关于异质与同质品类下差异化收益的分析, 以及 Su, Gao & Tan (2024, Strategic Management Journal) 关于企业在动态复杂环境下如何权衡竞争压力与制度压力定位差异化程度的研究, 二者共同支撑"差异化程度对绩效的影响并非单调"这一构念背景, 提醒使用者 strat_diff_n40_lda 是一个方向中性的距离测度, 本身不隐含"越大越好"的价值判断。方法论上, JSD 度量分布距离与文本数据计量经济学处理的一般性讨论见 Gentzkow, Kelly & Taddy (2019, Journal of Economic Literature) 对"文本作为数据"的方法综述, 该文特别强调不同文本表征 (词袋/主题模型/嵌入) 各有偏误结构, 支持本家族"多方法并列互证"而非单一方法定论的设计取向。 在当代实证前沿上, Kang 与 Kang (2025) 以自然实验识别外部资本市场审视压力对企业战略独特性的因果影响, 证明「企业相对同业的战略偏离度」是一个可被外生冲击移动、具有实质经济内容的构念, 为本族差异度得分提供构念存在性的近期佐证; 惟该文的独特性建立在财务比率向量相对行业均值的标准化距离之上, 单位为美国公司-年, 既非文本相似度, 更无 LDA 主题分布或 Jensen-Shannon 距离, 故本条只锚构念、不锚算子。参照集的界定则由 Shen、Zhang、Zhong 与 Lu (2025) 从反面提示: 该文在中国某天使投资平台的 3266 份商业计划书上, 把同一创业企业分别相对在位企业与同台同类创业企业计算独特性, 发现两个参照物下独特性对投资人评价的作用方向不同且互相调节, 说明「独特性相对于谁而言」会实质改变该得分的经济含义, 因而本族以 40 个最近邻界定参照集的做法须被显式披露并接受检验。其迁移边界须诚实标明: 该文参照集由平台类别与投资人视角离散给定, 非本族在主题单纯形上按 JSD 距离检索的连续空间 kNN; 层级为创业企业而非银行-年度; 原文未使用主题分布或 JSD 距离, 亦未变动参照集的规模宽窄, 故不构成本族 top-k N 邻域梯子的直接依据 — 该梯子各档仍按互为稳健性、不分主次、各自 just-identified 的并排口径解读, 严禁混入同一 over-identified Hansen J 检验。
 ## VAR: strat_diff_n40_lda
 
 【变体差分】
@@ -49,4 +66,6 @@ Hoberg, G., & Phillips, G. (2016). Text-Based Network Industries and Endogenous 
 Su, J., Gao, X., & Tan, J. (2024). Positioning for Optimal Distinctiveness: How Firms Manage Competitive and Institutional Pressures under Dynamic and Complex Environment. Strategic Management Journal, 45(2), 333-361. https://doi.org/10.1002/smj.3549
 Haans, R. F. J. (2019). What's the Value of Being Different When Everyone Is? The Effects of Distinctiveness on Performance in Homogeneous versus Heterogeneous Categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as Data. Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
+Kang, J., & Kang, Y. (2025). Capital Market Scrutiny and Strategic Distinctiveness of the Firm: Evidence from a Natural Experiment. British Journal of Management, 36(1), 461-476. https://doi.org/10.1111/1467-8551.12857
+Shen, R., Zhang, H., Zhong, W., & Lu, J. (2025). Distinctiveness from whom? Evaluation of startups' distinctiveness from multiple referents in angel investment platforms. Strategic Entrepreneurship Journal, 19(1), 171-195. https://doi.org/10.1002/sej.1521
 <!-- rendered-citations:end -->

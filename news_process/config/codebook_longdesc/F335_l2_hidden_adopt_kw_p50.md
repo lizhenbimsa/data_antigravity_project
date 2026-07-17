@@ -38,6 +38,14 @@ citations:
   vol: "59"
   issue: "3"
   pages_or_artno: "944-960"
+- doi: "10.1016/j.frl.2026.109668"
+  type: "journal"
+  authors: "Chen, M., Zhang, Z., & Liu, Y."
+  year: 2026
+  title: "Silence in innovation disclosure: More action-less talk innovation and trade credit financing in China"
+  venue: "Finance Research Letters"
+  vol: "95"
+  pages_or_artno: "109668"
 new_dois: []
 ---
 
@@ -54,8 +62,7 @@ new_dois: []
 【文献定位】
 这一构念设计与创新扩散/技术采纳研究长期关注的"表征性合规 vs. 实质性合规"张力一脉相承: 组织可能在话语/符号层面追随某项创新或制度压力而未必伴随实质行为改变, 反之亦可能存在低调但真实的采纳行为未被话语充分反映, 这正是当代文本挖掘方法论文献日益关注的"隐藏的不确定性"问题的一个具体化——即便测量流程 (关键词计数、语义相似度) 表面客观, 分类阈值 (本处为中位数分割) 与轨道 (kw vs int, full/ctx/ss) 的选择仍是研究者自由度的来源, Breznau et al. (2022, *PNAS*) 的多团队重复分析研究表明, 即使面对同一数据和假设, 不同研究者因隐藏的分析选择差异会得出系统性不同结论, 这也是本项目坚持将 P25/P50/P75、kw/int、full/ctx/ss 等多条并排轨道全部产出为独立稳健性列、而非折叠为单一"最优"口径的方法论依据。类似地, Huntington-Klein et al. (2021, *Economic Inquiry*) 系统记录了应用微观经济学研究中"隐藏的研究者决策" (如变量构造的分箱/阈值选择) 对复现结果的实质性影响, 直接呼应本家族刻意保留分位阈值梯度 (25/50/75) 作为并排稳健性检验而非单点估计的设计初衷。在金融科技/银行业数字化采纳的具体应用场景, Kwan, Lin, Pursiainen & Tai (2024, *Journal of Financial and Quantitative Analysis*) 对银行数字能力的压力测试研究提供了"话语层面的数字化宣称"与"实质数字能力储备"可能脱钩的实证背景, 支持了本项目区分 Token/Hidden/Substantive 三种采纳模式的构念效度动机。
 
-三轨 (full/ctx/ss) 铁律: 本家族的 full/ctx/ss 三个文本轨道各自独立 just-identified, 互为稳健性检验、不分主次, 三轨结果不应被合并进同一 over-identified 的 Hansen J 过度识别检验框架。full 轨使用文章全文与全文政策相似度; ctx 轨使用银行实体上下文窗口文本及其对应相似度 `policy_cosine_sim_ctx`; ss 轨使用银行∧金科同句共现窗口文本及其对应相似度 `policy_cosine_sim_ss` (ss 回退语义镜像 ctx: 当某篇文章不存在银行∧金科同句共现时, 该篇的 ss 轨文本回退为全文, 对应的 `_is_fallback` 指示置 True, 与全文轨共享分母口径)。需特别注意: kw 轨的词频列 `fintech_distinct_keywords` 是 track-agnostic 的元数据 (AC 关键词扫描本身不区分 full/ctx/ss 窗口), 故当构造 ctx/ss 轨的 Hidden 占比时, 相似度侧换轨 (`policy_cosine_sim_ctx`/`_ss`) 而词频侧优先寻找同轨变体、若不存在则退化复用 full 轨的 `fintech_distinct_keywords` 列 (源码注释称"复用 full 列并披露")——这意味着本家族的 ctx/ss 两列在词频维度上实际上与 full 轨共享同一分子来源, 差异完全来自相似度分母侧的文本窗口切换, 这是解读三列差异时必须明确的口径细节, 而非笼统认为"三轨各自独立测量"。此外本测度与留篇门控 (2026-06-29 起 stage 21 是否计为"一篇银行金科报道" 仅看 full 轨 `llm_verified_full`) 相关但不同源——四象限分类使用的是 stage 15/16 的 `policy_cosine_sim`/词频列而非 stage 21 情感 LLM 投票结果, 门控口径不直接约束本家族的行宇宙, 但下游面板聚合仍继承 `_filter_to_verified_universe` 的 verified 域 semi-join。
-
+三轨 (full/ctx/ss) 铁律: 本家族的 full/ctx/ss 三个文本轨道各自独立 just-identified, 互为稳健性检验、不分主次, 三轨结果不应被合并进同一 over-identified 的 Hansen J 过度识别检验框架。full 轨使用文章全文与全文政策相似度; ctx 轨使用银行实体上下文窗口文本及其对应相似度 `policy_cosine_sim_ctx`; ss 轨使用银行∧金科同句共现窗口文本及其对应相似度 `policy_cosine_sim_ss` (ss 回退语义镜像 ctx: 当某篇文章不存在银行∧金科同句共现时, 该篇的 ss 轨文本回退为全文, 对应的 `_is_fallback` 指示置 True, 与全文轨共享分母口径)。需特别注意: kw 轨的词频列 `fintech_distinct_keywords` 是 track-agnostic 的元数据 (AC 关键词扫描本身不区分 full/ctx/ss 窗口), 故当构造 ctx/ss 轨的 Hidden 占比时, 相似度侧换轨 (`policy_cosine_sim_ctx`/`_ss`) 而词频侧优先寻找同轨变体、若不存在则退化复用 full 轨的 `fintech_distinct_keywords` 列 (源码注释称"复用 full 列并披露")——这意味着本家族的 ctx/ss 两列在词频维度上实际上与 full 轨共享同一分子来源, 差异完全来自相似度分母侧的文本窗口切换, 这是解读三列差异时必须明确的口径细节, 而非笼统认为"三轨各自独立测量"。此外本测度与留篇门控 (2026-06-29 起 stage 21 是否计为"一篇银行金科报道" 仅看 full 轨 `llm_verified_full`) 相关但不同源——四象限分类使用的是 stage 15/16 的 `policy_cosine_sim`/词频列而非 stage 21 情感 LLM 投票结果, 门控口径不直接约束本家族的行宇宙, 但下游面板聚合仍继承 `_filter_to_verified_universe` 的 verified 域 semi-join。 更贴近 Hidden 象限本身的近期证据来自 Chen、Zhang 与 Liu (2026): 该文在中国语境下专门刻画企业创新披露中的"多行动少言说 (more action-less talk)"沉默型态, 即实质投入不低而文本声量偏低的一格, 并检验其与商业信用融资的关系, 为"低声量高实质"作为一种独立可测的采纳型态提供了 2026 年的存在性证据, 呼应本家族把"词频低于当年中位数 且 政策相似度不低于当年中位数"单列为 Hidden、而非归入采纳缺失的构念判断。迁移边界须明确: 该文的观察层级为上市公司-年, 其"沉默"由企业年报披露文本与专利/研发投入之间的落差界定, 属言—行的外部对照; 本家族两维则均取自新闻文本 (AC 去重关键词计数 vs 政策余弦相似度), 判据为双分位交叉, 且该文既无 full/ctx/ss 三轨设计, 亦无 P25/P50/P75 阈值梯子, 故只能锚定 Hidden 构念的可测性, 不能作为本家族分位判据与聚合口径的出处。
 ## VAR: hidden_adopt_kw_p50
 
 【变体差分】
@@ -75,4 +82,5 @@ new_dois: []
 Kwan, A., Lin, C., Pursiainen, V., & Tai, M. (2024). Stress testing banks' digital capabilities: Evidence from the COVID-19 pandemic. Journal of Financial and Quantitative Analysis, 59(6), 2618-2646. https://doi.org/10.1017/S0022109023000662
 Breznau, N., Rinke, E. M., Wuttke, A., Nguyen, H. H. V., Adem, M., Adriaans, J., et al. (2022). Observing many researchers using the same data and hypothesis reveals a hidden universe of uncertainty. Proceedings of the National Academy of Sciences, 119(44), e2203150119. https://doi.org/10.1073/pnas.2203150119
 Huntington-Klein, N., Arenas, A., Beam, E., Bertoni, M., Bloem, J. R., Burli, P., et al. (2021). The influence of hidden researcher decisions in applied microeconomics. Economic Inquiry, 59(3), 944-960. https://doi.org/10.1111/ecin.12992
+Chen, M., Zhang, Z., & Liu, Y. (2026). Silence in innovation disclosure: More action-less talk innovation and trade credit financing in China. Finance Research Letters, 95, 109668. https://doi.org/10.1016/j.frl.2026.109668
 <!-- rendered-citations:end -->

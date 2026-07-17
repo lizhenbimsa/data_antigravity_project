@@ -40,6 +40,35 @@ citations:
   title: Validating Large Language Model Annotations
   venue: Federal Reserve Board FEDS Working Paper
   pages_or_artno: '2026-020'
+- doi: "10.1017/psrm.2024.64"
+  type: "journal"
+  authors: "Ornstein, J. T., Blasingame, E. N., & Truscott, J. S."
+  year: 2025
+  title: "How to train your stochastic parrot: large language models for political texts"
+  venue: "Political Science Research and Methods"
+  vol: "13"
+  issue: "2"
+  pages_or_artno: "264-281"
+- doi: "10.18653/v1/2025.findings-acl.744"
+  type: "journal"
+  authors: "Wang, W., Wang, Y., & Huang, H."
+  year: 2025
+  title: "Ranked Voting based Self-Consistency of Large Language Models"
+  venue: "Findings of the Association for Computational Linguistics: ACL 2025"
+  pages_or_artno: "14410-14426"
+- doi: "10.18653/v1/2024.law-1.13"
+  type: "journal"
+  authors: "Rønningstad, E., Velldal, E., & Øvrelid, L."
+  year: 2024
+  title: "A GPT among Annotators: LLM-based Entity-Level Sentiment Annotation"
+  venue: "Proceedings of the 18th Linguistic Annotation Workshop (LAW-XVIII)"
+  pages_or_artno: "133-139"
+- doi: "10.48550/arxiv.2407.17866"
+  type: "arxiv"
+  authors: "Kim, A., Muhn, M., & Nikolaev, V."
+  year: 2024
+  title: "Financial Statement Analysis with Large Language Models"
+  venue: "arXiv"
 new_dois: []
 ---
 
@@ -52,8 +81,7 @@ new_dois: []
 本列是"分子中间列", 而非最终可直接解读的语调水平: 它是银行-年层面对全部有效篇加权语调票的求和 Σ (票 × 权重), 单位随文章篇数与权重尺度而变, 不做归一化。要得到可比的"加权平均语调"水平, 面板下游还需用配套的"有效权重和"分母列 (`sum_wd_hw_thr45_llm{track}`, 即仅对 LLM 判定有效的篇目求权重和, 采用 valid-mask 匹配分母以避免分子分母域不一致导致语调系统性向 0 收缩, 详见 `encode.py::_build_llm_valid_masked_weights` 的 fix(encode-01) 注记) 相除, 才生成最终比率列 `llm_vote_tone_hw_thr45{track}`。本列因此更适合作为审计校验、二次自定义聚合或稳健性诊断的原材料, 一般回归表格径直消费的是除法之后的比率列。阈值 τ=0.45 是 `herd_detection.sensitivity_thresholds` (默认网格 [0.25, 0.30, 0.40, 0.45], SSOT=`core/config.py::herd_sensitivity_grid`) 中比生产基线 τ=0.35 更宽松的一档: τ 越大, 判定为"跟风稿"所需的文本相似度门槛越高, 也就是说被降权的文章越少, 整体加权结果越接近未加权的算术平均语调。τ=0.45 与 τ=0.25/0.30/0.40 各自独立预计算、并排陈列, 共同构成"换一个抄稿判定门槛, 结论是否还成立"的稳健性证据链, 彼此互为稳健性、不分主次, 不存在哪一档阈值是"更正确"的先验判断; 生产基线 τ=0.35 对应的是不带 `_thrNN` 后缀的 `llm_vote_score_hw_sum{track}` 及其比率列 `llm_vote_tone_hw{track}`, 是回归表格的默认主测度, τ=0.45 及同族其余阈值列是围绕该主测度做的规格稳健性检验分支。
 
 【文献定位】
-跟风衰减降权的构念根植于媒体信息经济学对"重复报道≠独立信息"的长期关注: Tetlock (2007, Journal of Finance) 论证媒体文本对股价的影响力与其信息独立性直接相关, 是本族权重设计在直觉与实证动机上的锚点; 更晚近地, 文本相似度聚类/降权在识别转载、洗稿、通稿分发等现象上已成为处理大规模新闻语料的标准前处理步骤, 目的是避免少数源头事件被自动写手或转载渠道放大后, 在下游面板统计量里获得不成比例的权重。本列所属的三家 LLM 多数投票语调测度本身 (`llm_vote_score`) 的方法学定位遵循近年金融文本分析文献里对大语言模型标注可靠性的系统评估: de Kok (2025, Management Science) 系统讨论了在会计与金融文本分析研究中使用生成式大语言模型的规范做法, 特别是 temperature=0、prompt 版本冻结、结果缓存等确定性保证手段, 与本管道 stage 21 的 prompt v8 字节级冻结、`temperature=0.0`、`_llm_cache.db` 可复现锚点的设计高度吻合; Kamen & Kamen (2025, arXiv) 专门论证了在内容分类任务上采用多模型多数投票 (majority-rules ensemble) 相较单模型标注的稳健性优势, 直接对应本列所依赖的 `llm_vote_score` 三家投票共识构造; Hansen (2026, FEDS Working Paper) 讨论了在缺乏人工金标准时如何验证 LLM 标注质量, 呼应本项目 Krippendorff's α / Cohen's κ 跨模型一致性 gate 的设计初衷。三者共同为"LLM 投票语调 × 跟风衰减权重 × 阈值敏感性网格"这一复合测度提供了方法学依据: 投票共识环节保证标注稳健, 加权求和环节保证信息独立性, 阈值敏感性网格环节保证结论不依赖单一超参数选择。
-
+跟风衰减降权的构念根植于媒体信息经济学对"重复报道≠独立信息"的长期关注: Tetlock (2007, Journal of Finance) 论证媒体文本对股价的影响力与其信息独立性直接相关, 是本族权重设计在直觉与实证动机上的锚点; 更晚近地, 文本相似度聚类/降权在识别转载、洗稿、通稿分发等现象上已成为处理大规模新闻语料的标准前处理步骤, 目的是避免少数源头事件被自动写手或转载渠道放大后, 在下游面板统计量里获得不成比例的权重。本列所属的三家 LLM 多数投票语调测度本身 (`llm_vote_score`) 的方法学定位遵循近年金融文本分析文献里对大语言模型标注可靠性的系统评估: de Kok (2025, Management Science) 系统讨论了在会计与金融文本分析研究中使用生成式大语言模型的规范做法, 特别是 temperature=0、prompt 版本冻结、结果缓存等确定性保证手段, 与本管道 stage 21 的 prompt v8 字节级冻结、`temperature=0.0`、`_llm_cache.db` 可复现锚点的设计高度吻合; Kamen & Kamen (2025, arXiv) 专门论证了在内容分类任务上采用多模型多数投票 (majority-rules ensemble) 相较单模型标注的稳健性优势, 直接对应本列所依赖的 `llm_vote_score` 三家投票共识构造; Hansen (2026, FEDS Working Paper) 讨论了在缺乏人工金标准时如何验证 LLM 标注质量, 呼应本项目 Krippendorff's α / Cohen's κ 跨模型一致性 gate 的设计初衷。三者共同为"LLM 投票语调 × 跟风衰减权重 × 阈值敏感性网格"这一复合测度提供了方法学依据: 投票共识环节保证标注稳健, 加权求和环节保证信息独立性, 阈值敏感性网格环节保证结论不依赖单一超参数选择。 在"投票共识"这一环之内, 尚可进一步区分标签的产出范式、投票规则与构念口径三个侧面, 各有前沿工作可锚。Ornstein、Blasingame 与 Truscott (2025) 以 few-shot prompt 在情感分析、文档标度与主题建模等政治学文本即数据任务上做预注册评估, 证明其优于传统有监督学习基线、并以极低成本达到与专家及众包编码员相当 (comparable, 非超过) 的水平, 是本列"篇级 LLM 标签 → 按 (target_bank, year) 分组求和"链路在社会科学中的同族方法学先例; 其语料为英文政治文本、采用单一模型而非三家投票, 未构造置信度, 亦无跟风衰减、面板聚合与三轨切分。Wang、Wang 与 Huang (2025) 以排序投票 (ranked voting) 取代朴素多数票聚合大模型的多个候选输出并实证其聚合质量提升, 表明本列分子所依赖的多数票并非唯一可选聚合规则, 投票规则与 τ 门槛同属研究者的设计自由度; 惟原文投票单元是同一模型多次采样的候选答案 (self-consistency) 而非跨三家厂商的标签票, 任务为推理生成而非三分类情感, 本项目仍为朴素多数票, 未采纳排序投票。Rønningstad 与 Velldal (2024) 评估大模型对特定目标实体的情感 (entity-level sentiment) 标注质量并与人工标注对比, 直接对应本列"针对目标银行"而非篇章整体的语调构念; 其语料为挪威语/英语通用新闻与评论、目标实体非银行, 单模型且只报告标注一致性, 不涉及跟风降权与银行-年求和。Kim、Muhn 与 Nikolaev (2024) 向 GPT-4 提供刻意剥离叙事与行业信息的标准化财务报表, 令其判断企业未来盈余的变动方向, 实证其方向性预测准确率超过人类分析师、与窄训练的 SOTA 机器学习模型相当, 且据其预测构建的交易策略取得更高 Sharpe 比率与 alpha, 为"令大模型作离散方向性判断、再把该判断聚合为可用金融信号"提供了金融领域的前沿存在性证明; 其输入为报表数字而非中文新闻叙事, 单位为公司-季度盈余方向而非银行-年语调, 采用单一 GPT-4 无跨厂商投票, 与本列仅在范式层面同族。上述四文所锚定的均限于分子的离散标签与投票环节, 对 τ=0.45 这一相似度门槛及整条阈值敏感性网格不构成任何依据 — 后者的动机仍由 Tetlock (2007) 一线承担, 具体取值则为研究者选择。
 ## VAR: llm_vote_score_hw_thr45_sum_full
 
 【变体差分】
@@ -74,4 +102,8 @@ Tetlock, P. C. (2007). Giving Content to Investor Sentiment: The Role of Media i
 de Kok, T. (2025). ChatGPT for Textual Analysis? How to Use Generative LLMs in Accounting Research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
 Kamen, A.; Kamen, Y. (2025). Majority Rules: LLM Ensemble Is a Winning Approach for Content Categorization. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2511.15714
 Hansen, A. L. (2026). Validating Large Language Model Annotations. Federal Reserve Board FEDS Working Paper No. 2026-020 [Working Paper]. https://doi.org/10.17016/FEDS.2026.020
+Ornstein, J. T., Blasingame, E. N., & Truscott, J. S. (2025). How to train your stochastic parrot: large language models for political texts. Political Science Research and Methods, 13(2), 264-281. https://doi.org/10.1017/psrm.2024.64
+Wang, W., Wang, Y., & Huang, H. (2025). Ranked Voting based Self-Consistency of Large Language Models. Findings of the Association for Computational Linguistics: ACL 2025, 14410-14426. https://doi.org/10.18653/v1/2025.findings-acl.744
+Rønningstad, E., Velldal, E., & Øvrelid, L. (2024). A GPT among Annotators: LLM-based Entity-Level Sentiment Annotation. Proceedings of the 18th Linguistic Annotation Workshop (LAW-XVIII), 133-139. https://doi.org/10.18653/v1/2024.law-1.13
+Kim, A., Muhn, M., & Nikolaev, V. (2024). Financial Statement Analysis with Large Language Models. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2407.17866
 <!-- rendered-citations:end -->

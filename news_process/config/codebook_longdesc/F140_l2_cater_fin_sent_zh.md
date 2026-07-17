@@ -56,6 +56,13 @@ citations:
   venue: Chinese Computational Linguistics (CCL 2019), Lecture Notes in Computer Science
   vol: 11856
   pages_or_artno: 194-206
+- doi: "10.1145/3677052.3698675"
+  type: "journal"
+  authors: "Kim, W., Spörer, J., Lee, C. L., & Handschuh, S."
+  year: 2024
+  title: "Is Small Really Beautiful for Central Bank Communication? Evaluating Language Models for Finance: Llama-3-70B, GPT-4, FinBERT-FOMC, FinBERT, and VADER"
+  venue: "Proceedings of the 5th ACM International Conference on AI in Finance"
+  pages_or_artno: "626-633"
 new_dois: []
 ---
 
@@ -70,8 +77,7 @@ new_dois: []
 计算链路是纯后处理的逐元素相减, 不重新调用任何情感模型或语言模型: 对每一轨 track, 若面板同时含 dict_avg_tone 与 fin_sent_zh 的正负概率列, 则令本列等于词典综合语调减去 fin_sent_zh 净语调; 三条轨道 full、ctx、ss 各自独立走这条链路, 缺任一上游列则该轨优雅跳过而不借用其它轨的分子分母。因为迎合度是两个已归一化测度之差, 它本身无量纲, 也不再二次归一化, 其符号与量纲的经济含义完全继承自两个被减量的口径。需要强调, 本家族与 algo_cater_b (综合词典对综合 BERT 平均) 以及 cater_finbert_cn、cater_finbert2 (换用另两个 BERT 模型) 是构念平行的族: 三个 BERT 模型各自的迎合度是互为稳健性、不分主次的并排测度, 各自 just-identified, 严禁把它们混进同一个 over-identified 的 Hansen J 过度识别检验; 同理三条文本轨道 (full/ctx/ss) 与词典侧的政治词权重梯度、规则消融梯度之间也保持正交, 不交叉相乘以免列数爆炸。per-model 独立降级: 若 fin_sent_zh 模型在某次运行缺席, 只掉本族三列, 不连坐其它模型族, 这与 co-primary 双轨嵌入 both-or-neither 的强绑定语义不同。留篇门控遵循 full-only 口径 (2026-06-29): 一篇报道是否计入银行金融科技样本只看 full 轨的 verified 判定, ctx 与 ss 轨降为 conditional-on-full 的测度轨, 其行宇宙是 full 留篇集的子集。
 
 【文献定位】
-迎合度构念的直接理论出处是机器阅读时代的公司披露文献: Cao 等 (2023) 系统刻画了当披露的接收方由人类分析师转向算法读取时, 公司文本生产者如何有意调整措辞与语调以适配"正在聆听的机器", 为"词面语调与算法语调之差可作为迎合信号"提供了机制基础。模型侧, fin_sent_zh 属于中文金融领域微调的 BERT 家族, 其方法学根基见 Sun 等 (2019) 关于如何为文本分类微调 BERT 的系统研究; 词典侧综合语调则接续中文金融细粒度情感词典的构建传统, Ma 等 (2025) 构建的面向中国国内投资者的细粒度情感词典 CN-FSD 说明了中文金融词面情感为何需要专门词表而非直接移植英文 Loughran-McDonald。就"词典与深层模型对同一文本给出系统性不同读法"这一现象, Todd 等 (2024) 对金融文本情感分析文献的综述指出, 词典法与深度学习法的分歧本身是一类值得刻画的信号而非纯噪声; Lan 等 (2025) 进一步表明大语言模型在中文金融细粒度情感上的判读与词典存在可量化差异, 为本家族把差值当作构念而非误差提供了外部佐证。
-
+迎合度构念的直接理论出处是机器阅读时代的公司披露文献: Cao 等 (2023) 系统刻画了当披露的接收方由人类分析师转向算法读取时, 公司文本生产者如何有意调整措辞与语调以适配"正在聆听的机器", 为"词面语调与算法语调之差可作为迎合信号"提供了机制基础。模型侧, fin_sent_zh 属于中文金融领域微调的 BERT 家族, 其方法学根基见 Sun 等 (2019) 关于如何为文本分类微调 BERT 的系统研究; 词典侧综合语调则接续中文金融细粒度情感词典的构建传统, Ma 等 (2025) 构建的面向中国国内投资者的细粒度情感词典 CN-FSD 说明了中文金融词面情感为何需要专门词表而非直接移植英文 Loughran-McDonald。就"词典与深层模型对同一文本给出系统性不同读法"这一现象, Todd 等 (2024) 对金融文本情感分析文献的综述指出, 词典法与深度学习法的分歧本身是一类值得刻画的信号而非纯噪声; Lan 等 (2025) 进一步表明大语言模型在中文金融细粒度情感上的判读与词典存在可量化差异, 为本家族把差值当作构念而非误差提供了外部佐证。 在跨范式并排评测这一维度上, Kim、Spörer、Lee 与 Handschuh (2024) 于同一批央行沟通语料上把词典法 (VADER)、BERT 族 (FinBERT 与 FinBERT-FOMC) 与大语言模型 (GPT-4、Llama-3-70B) 并排评测, 给出三类方法语调判读彼此分歧、且模型规模更大并不必然与词典或小模型趋同的基准证据, 从测度学上支持本家族把「词典减 BERT」单列为与「词典减 LLM」正交的一根迎合度切面, 而非以任一侧为真值去校正另一侧。迁移边界须诚实标明: 该文语料为美联储 FOMC 英文沟通文本, 词典臂是通用情感词典 VADER 而非本项目六部中文金融词典, BERT 臂为 FinBERT 与 FinBERT-FOMC 而非 fin_sent_zh, 其评价目标是对齐人工标签的分类准确率, 并未构造本家族这样的有向差值面板列, 故只能用作模型端选择的定位依据, 不提供任何数值口径。
 ## VAR: cater_fin_sent_zh_full
 
 【变体差分】
@@ -93,4 +99,5 @@ Lan, Y., Wu, Y., Xu, W., Feng, W., & Zhang, Y. (2025). Chinese fine-grained fina
 Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management, 31(1), e1549. https://doi.org/10.1002/isaf.1549
 Cao, S., Jiang, W., Yang, B., & Zhang, A. L. (2023). How to talk when a machine is listening: Corporate disclosure in the age of AI. Review of Financial Studies, 36(9), 3603-3642. https://doi.org/10.1093/rfs/hhad021
 Sun, C., Qiu, X., Xu, Y., & Huang, X. (2019). How to fine-tune BERT for text classification?. Chinese Computational Linguistics (CCL 2019), Lecture Notes in Computer Science. https://doi.org/10.1007/978-3-030-32381-3_16
+Kim, W., Spörer, J., Lee, C. L., & Handschuh, S. (2024). Is Small Really Beautiful for Central Bank Communication? Evaluating Language Models for Finance: Llama-3-70B, GPT-4, FinBERT-FOMC, FinBERT, and VADER. Proceedings of the 5th ACM International Conference on AI in Finance, 626-633. https://doi.org/10.1145/3677052.3698675
 <!-- rendered-citations:end -->

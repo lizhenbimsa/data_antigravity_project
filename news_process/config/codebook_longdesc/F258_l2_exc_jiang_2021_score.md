@@ -64,6 +64,13 @@ citations:
   vol: 21
   issue: 4
   pages_or_artno: 1323-1344
+- doi: "10.2139/ssrn.5024959"
+  type: "wp"
+  authors: "Cziraki, P., & Gider, J."
+  year: 2024
+  title: "Newspaper Closures and Trading in Local Stocks"
+  venue: "SSRN"
+  pages_or_artno: "5024959"
 new_dois: []
 ---
 
@@ -76,8 +83,7 @@ new_dois: []
 计算分两步。第一步是停刊代理 (cessation proxy) 检测: attention_media 在面板导出步骤对每篇文章标注 _is_ceased_media, 判据是媒体来源在样本后段是否疑似退出对该话题的覆盖 (topic-exit), 而非经证实的报纸停刊; 源码显式声明这是保守代理, 下游 exc_* / n_articles_exc / ceased_media_frac 只能解读为"疑似退出覆盖媒体"的稳健性口径, 论文中不得表述为严格出版停刊。第二步是在存活子样本 df_alive (即 _is_ceased_media == 0 的文章) 上, 按 target_bank × year 分组对文章级得分求均值, 落成 exc_ 前缀列。得分层面存在三种后缀口径, 且须准确区分其统计构造: 无后缀为等权, 即直接对文章级 jiang_2021_score{track} 求 bank-year 均值, 每篇文章等权重进入。_w 与 _hw 并非归一化的加权平均 Σ(score·w)/Σw (encode.py 中 llm_vote_tone_hw/vw 等列才是这种严格意义上的加权均值), 而是在文章级先构造未归一化的"得分×权重"乘积列——jiang_2021_score_w{track} = jiang_2021_score{track} × mention_density, jiang_2021_score_hw{track} = jiang_2021_score{track} × herd_weight{track}——再对该乘积列直接取 bank-year 简单均值, 既不除以 Σweight 也不做任何量纲归一化。这意味着 _w / _hw 两族六列的数值量纲随权重 (mention_density / herd_weight) 的绝对大小整体漂移, 不能解读为"报道越充分/越独立的文章在均值中占据越大话语权"这一加权平均语义, 而应解读为"情感方向与报道强度 (提及密度或跟风衰减系数) 的交互强度"这一未归一化的复合信号: 数值同时携带情感符号与权重量级两重信息, 权重整体偏高的 bank-year 即便逐篇情感符号不变, 其 _w/_hw 列也会系统性偏离等权列的数值水平, 因此 _w/_hw 列与等权列之间不宜做数值量级上的直接对比, 只宜在同口径列内部做横向比较, 或用于检验"情感方向 × 权重强度"的联合信号是否稳健。文本侧存在三条并行轨道: full 轨为标题 prepend 全文正文, ctx 轨为标题加银行实体上下文窗口, ss 轨为标题加银行与金融科技同句共现窗口; ss 轨在无同句共现时按镜像 ctx 的回退语义退化为全文 body, 并共享 n_articles 分母。三加权口径 × 三轨道交叉给出本家族九列。零文章或全部媒体判为退出的 bank-year 情感类列按契约保持 NaN (不与计数类的 n_articles_exc 零填连坐)。
 
 【文献定位】
-本家族坐落在中文金融文本情感的词典法传统与媒体样本稳健性两条脉络的交叉处。词典法一端, 姜富伟等 (2021) 与 Du 等 (2022) 分别给出中文金融情感词典的构建与效度证据, Jiang 等 (2019) 则在英文语境证明经理层情绪 (以文本情感度量) 对股票回报的预测力, 三者共同支撑"词典法情感得分携带资产定价相关信息"的前提。方法可信度一端, van Atteveldt 等 (2021) 系统比较人工标注、众包、词典与机器学习四类情感测量, 指出词典法在特定语料上可能低估效度, 因而词典法结果应作为与机器学习/大模型法互为稳健性的一轨而非唯一真值; Frankel 等 (2022) 进一步在披露文本上直接对比机器学习与词典法情感, 为项目"多方法互为稳健性、不分主次"的设计提供先例。样本稳健性一端, 媒体来源在长面板中进出会引入幸存者偏差并污染基于媒体暴露的工具变量, exc 家族正是对此的针对性回应: 通过在剔除疑似退出媒体的子样本上重算情感得分, 检验主结论是否被媒体样本的时间构成变化所驱动。需强调本家族的三轨道、三加权口径互为稳健性并排, 各自 just-identified, 禁混进同一 over-identified 的 Hansen J 检验; 它们既不与全样本情感列互斥, 也不宣称比全样本更"真", 只是回答"剔除疑似退出媒体后信号是否稳定"这一单一稳健性问题。
-
+本家族坐落在中文金融文本情感的词典法传统与媒体样本稳健性两条脉络的交叉处。词典法一端, 姜富伟等 (2021) 与 Du 等 (2022) 分别给出中文金融情感词典的构建与效度证据, Jiang 等 (2019) 则在英文语境证明经理层情绪 (以文本情感度量) 对股票回报的预测力, 三者共同支撑"词典法情感得分携带资产定价相关信息"的前提。方法可信度一端, van Atteveldt 等 (2021) 系统比较人工标注、众包、词典与机器学习四类情感测量, 指出词典法在特定语料上可能低估效度, 因而词典法结果应作为与机器学习/大模型法互为稳健性的一轨而非唯一真值; Frankel 等 (2022) 进一步在披露文本上直接对比机器学习与词典法情感, 为项目"多方法互为稳健性、不分主次"的设计提供先例。样本稳健性一端, 媒体来源在长面板中进出会引入幸存者偏差并污染基于媒体暴露的工具变量, exc 家族正是对此的针对性回应: 通过在剔除疑似退出媒体的子样本上重算情感得分, 检验主结论是否被媒体样本的时间构成变化所驱动。需强调本家族的三轨道、三加权口径互为稳健性并排, 各自 just-identified, 禁混进同一 over-identified 的 Hansen J 检验; 它们既不与全样本情感列互斥, 也不宣称比全样本更"真", 只是回答"剔除疑似退出媒体后信号是否稳定"这一单一稳健性问题。 就媒体退出本身的经济后果, Cziraki 与 Gider (2024) 以美国本地报纸的真实停刊事件为冲击, 实证显示报道供给退出会改变本地股票的交易行为, 说明媒体样本的进出并非无关的数据噪声, 而是具有真实经济后果的样本组成变化——这为 exc 家族在剔除疑似退出覆盖媒体后重算词典得分提供了现实动机。迁移边界须诚实交代: 该文为尚未经同行评审的工作论文, 其停刊判定取自外部事件数据、被解释变量为本地股票的交易活动; 本家族的 ceased_set 则是 detect_defacto_cessation 自语料内部推断出的「疑似退出覆盖」保守代理 (confirmed ∪ suspected), 并非严格的停刊事实, 且仅用于构造稳健性子样本, 不承担任何识别冲击的角色。
 ## VAR: exc_jiang_2021_score_full
 
 【变体差分】
@@ -129,4 +135,5 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Jiang, F., Lee, J., Martin, X., & Zhou, G. (2019). Manager sentiment and stock returns. Journal of Financial Economics, 132(1), 126-149. https://doi.org/10.1016/j.jfineco.2018.10.001
 姜富伟, 孟令超, & 唐国豪. (2021). 媒体文本情绪与股票回报预测. 经济学(季刊), 21(4), 1323-1344. https://doi.org/10.13821/j.cnki.ceq.2021.04.10
+Cziraki, P., & Gider, J. (2024). Newspaper Closures and Trading in Local Stocks. SSRN No. 5024959 [Working Paper]. https://doi.org/10.2139/ssrn.5024959
 <!-- rendered-citations:end -->

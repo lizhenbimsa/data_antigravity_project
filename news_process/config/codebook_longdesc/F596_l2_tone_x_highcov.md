@@ -49,6 +49,15 @@ citations:
   vol: '62'
   issue: '3'
   pages_or_artno: 1139-1168
+- doi: "10.1111/abac.12322"
+  type: "journal"
+  authors: "Wang, K. T., Zhu, N. Z., & Luo, G."
+  year: 2024
+  title: "Does News Media Affect Firm Innovation in Emerging Markets? Evidence from China"
+  venue: "Abacus"
+  vol: "60"
+  issue: "4"
+  pages_or_artno: "709-751"
 new_dois: []
 ---
 
@@ -69,8 +78,7 @@ llm_vote_tone_full 是三家 LLM (gpt54nano/gemini31/deepseekv4) 多数投票共
 需要强调的一点区分是: high_coverage 的分组本身与三轨无关——它只依赖 n_articles (面板层面的年度报道条数), 与是否采用 full/ctx/ss 哪一种文本口径无关, 因此三条交互项列共享同一个 high_coverage 哑变量, 差异全部来自分子侧 llm_vote_tone 的轨道选择, 不存在 high_coverage 本身的三轨版本。
 
 【文献定位】
-异质性交互项设计遵循标准的调节效应回归规范 (Angrist & Pischke, 2009; Brambor et al., 2006): 系数解读须结合低阶项 (llm_vote_tone{track} 与 high_coverage 的主效应) 一并纳入模型, 交互项系数捕捉的是语调边际效应在高覆盖组相对低覆盖组的增量差异, 而非高覆盖组本身的语调水平差异。前定分组设计直接对齐 Fang & Peress (2009, The Journal of Finance) 关于媒体覆盖边际递减、需按覆盖强度 (而非单纯有无报道) 分组检验的实证发现, 该文用基期覆盖排序预测后续收益的思路是本交互项族基年固定切分的直接方法论来源。语调测度本身 (被交互的另一侧) 承袭 Tetlock (2007, Journal of Finance) 开创的"媒体语调作为可计量投资者情绪信号"的文本分析传统。在中国银行业媒体情感与系统性风险/储户纪律的具体场景, Fang, Wang, Wang & Yuan (2024, International Review of Economics & Finance) 提供了同域实证参照, 用中国银行层面媒体情感数据检验存款稳定性与系统性风险的关系, 与本项目银行-金科语调 × 覆盖强度框架高度可比。语调测度的语言学基础方法论进一步参照 Du, Huang, Wermers & Wu (2022, Review of Finance) 关于中文金融情感词典的领域特异性研究, 该文是本项目情感测度体系中词典法轨道 (与三家 LLM 投票并行) 的方法学锚点之一, 说明中文语境下情感词的语义强度与英文金融文本存在系统性差异, 佐证了本项目坚持采用中文原生 LLM/词典双轨而非直接套用英文金融情感词表的必要性。
-
+异质性交互项设计遵循标准的调节效应回归规范 (Angrist & Pischke, 2009; Brambor et al., 2006): 系数解读须结合低阶项 (llm_vote_tone{track} 与 high_coverage 的主效应) 一并纳入模型, 交互项系数捕捉的是语调边际效应在高覆盖组相对低覆盖组的增量差异, 而非高覆盖组本身的语调水平差异。前定分组设计直接对齐 Fang & Peress (2009, The Journal of Finance) 关于媒体覆盖边际递减、需按覆盖强度 (而非单纯有无报道) 分组检验的实证发现, 该文用基期覆盖排序预测后续收益的思路是本交互项族基年固定切分的直接方法论来源。语调测度本身 (被交互的另一侧) 承袭 Tetlock (2007, Journal of Finance) 开创的"媒体语调作为可计量投资者情绪信号"的文本分析传统。在中国银行业媒体情感与系统性风险/储户纪律的具体场景, Fang, Wang, Wang & Yuan (2024, International Review of Economics & Finance) 提供了同域实证参照, 用中国银行层面媒体情感数据检验存款稳定性与系统性风险的关系, 与本项目银行-金科语调 × 覆盖强度框架高度可比。语调测度的语言学基础方法论进一步参照 Du, Huang, Wermers & Wu (2022, Review of Finance) 关于中文金融情感词典的领域特异性研究, 该文是本项目情感测度体系中词典法轨道 (与三家 LLM 投票并行) 的方法学锚点之一, 说明中文语境下情感词的语义强度与英文金融文本存在系统性差异, 佐证了本项目坚持采用中文原生 LLM/词典双轨而非直接套用英文金融情感词表的必要性。 在覆盖强度一侧的测度合法性上, Wang、Zhu 与 Luo (2024) 以逾 188,000 篇出自中国最具影响力报纸、由记者撰写的公司特定报道, 按公司-年归集为报道量计数型暴露变量并检验其对企业创新产出的影响, 为本族 high_coverage 赖以切分的 n_articles (中文报纸报道条数按主体-年计数) 作为文本暴露变量提供了近期同语种实证先例。迁移边界须诚实标明: 该文主体为中国 A 股非金融企业而非商业银行, 其被解释变量是产出侧的创新指标, 且未见其构造任何语调/情感变量 — 因此它只锚定本交互项的覆盖量一侧, 对分子侧 llm_vote_tone{track} 的极性来源不提供任何依据, 亦无三轨文本设计可资对照。
 ## VAR: tone_x_highcov_ctx
 
 【变体差分】
@@ -91,5 +99,6 @@ Fang, L. H., & Peress, J. (2009). Media coverage and the cross-section of stock 
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Wang, K. T., Zhu, N. Z., & Luo, G. (2024). Does News Media Affect Firm Innovation in Emerging Markets? Evidence from China. Abacus, 60(4), 709-751. https://doi.org/10.1111/abac.12322
 <!-- rendered-citations:end -->
 </content>

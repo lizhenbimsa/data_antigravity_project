@@ -65,6 +65,14 @@ citations:
   venue: International Review of Economics & Finance
   vol: '91'
   pages_or_artno: 1150-1172
+- doi: "10.1016/j.frl.2024.105024"
+  type: "journal"
+  authors: "Huang, W., Liu, J., & Zhang, R.-Z. (."
+  year: 2024
+  title: "Local newspaper closures and non-GAAP reporting quality"
+  venue: "Finance Research Letters"
+  vol: "62"
+  pages_or_artno: "105024"
 ---
 
 ## CORE
@@ -77,8 +85,7 @@ citations:
 本家族严格遵循全项目三轨口径: _full/_ctx/_ss 三个后缀分别对应标题+正文全文、标题+实体窗口、标题+银行∧金科同句±N窗三种文本物化方式(物化于 stage 14 ctx_materializer), 三者的语调输入 llm_vote_score{trk} 各自独立计算, 而地理筛选(是否属地)这一步骤本身与文本轨道选择正交、不因轨道而变。_ss 轨在回退语义上镜像 _ctx: 当某篇报道不存在银行∧金科同句共现时, content_ss 退化为全文 body 且 ss_is_fallback 标记为 True, 该规则同样适用于本家族的非属地子集聚合(降级篇目仍计入分母, 但其"同句窗口"语义已退化为全文语义, 解读时须留意)。三轨测度之间是并排的互为稳健性关系, 不分主次, 严禁将三轨语调同时纳入同一个 over-identified 的 Hansen J 检验框架——三者应各自独立进入 just-identified 设定, 分别报告结果作为交叉验证, 而非当作可自由替换的工具变量集合共同使用。
 
 【文献定位】
-本家族测度的理论谱系上承 Tetlock (2007, The Journal of Finance) 与 Peress (2014, The Journal of Finance) 关于媒体语调作为投资者情绪代理及信息扩散渠道的奠基性证据, 中间经由 Gentzkow & Shapiro (2010) 关于媒体立场系统性受读者/利益关系驱动的机制性发现, 落地到 Qin, Strömberg & Wu (2018, American Economic Review) 对中国媒体系统性偏向(尤其是官方/地方媒体的正面选择性报道)的直接刻画, 以及 You, Zhang & Zhang (2018, The Review of Financial Studies) 对中国资本市场情境下媒体地理/政治距离如何影响其监督角色的实证检验。银行业情境下, Fang, Wang, Wang & Yuan (2024, International Review of Economics & Finance) 进一步证明媒体情绪对中国银行系统性风险及存款稳定性具有可观测的因果传导, 佐证了本家族"用非属地语调作为外部独立信号"这一构念选择的经济含义——非属地媒体报道更贴近"无利益冲突的第三方评价", 因而在解释存款人/投资者反应时理应具有比属地报道更强的信息含量, 而 tone_gap_homecity_noncity 则可用于检验属地媒体是否存在系统性"护航"偏差, 是银行声誉治理与地方保护主义研究的直接切入点。
-
+本家族测度的理论谱系上承 Tetlock (2007, The Journal of Finance) 与 Peress (2014, The Journal of Finance) 关于媒体语调作为投资者情绪代理及信息扩散渠道的奠基性证据, 中间经由 Gentzkow & Shapiro (2010) 关于媒体立场系统性受读者/利益关系驱动的机制性发现, 落地到 Qin, Strömberg & Wu (2018, American Economic Review) 对中国媒体系统性偏向(尤其是官方/地方媒体的正面选择性报道)的直接刻画, 以及 You, Zhang & Zhang (2018, The Review of Financial Studies) 对中国资本市场情境下媒体地理/政治距离如何影响其监督角色的实证检验。银行业情境下, Fang, Wang, Wang & Yuan (2024, International Review of Economics & Finance) 进一步证明媒体情绪对中国银行系统性风险及存款稳定性具有可观测的因果传导, 佐证了本家族"用非属地语调作为外部独立信号"这一构念选择的经济含义——非属地媒体报道更贴近"无利益冲突的第三方评价", 因而在解释存款人/投资者反应时理应具有比属地报道更强的信息含量, 而 tone_gap_homecity_noncity 则可用于检验属地媒体是否存在系统性"护航"偏差, 是银行声誉治理与地方保护主义研究的直接切入点。 新近证据进一步夯实了本族地理二分的构念前提: Huang、Liu 与 Zhang (2024) 以本地报纸停刊作为本地媒体监督减弱的冲击, 检验公司非 GAAP 披露质量的变化, 其识别设计所依赖的核心前提正是「总部同城的本地媒体与异地媒体在监督功能上不可替代」, 与本族按报道来源城市是否等于银行注册地/总部所在城市二分子样本、再分别聚合逐篇语调的构念依据同源。迁移边界须诚实标明: 该文为美国本地报纸与美国上市公司的停刊事件 DiD, 结果变量是披露质量, 全文只把本地媒体的存续当作监督强度的处理变量, 并未度量任何媒体报道的语调, 因此它只锚定「本地与非本地媒体互为不可替代的独立构念」这半边, 不锚定 tone_noncity_media 的语调算法本身, 亦不涉及本族市级颗粒度 _is_homecity 判定与省级 homeprov/nonprov 层级的并行关系。
 ## VAR: tone_noncity_media_ctx
 
 【变体差分】
@@ -101,4 +108,5 @@ You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The 
 Tetlock, P. C. (2007). Giving content to investor sentiment; The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Peress, J. (2014). The media and the diffusion of information in financial markets; Evidence from newspaper strikes. The Journal of Finance, 69(5), 2007-2043. https://doi.org/10.1111/jofi.12179
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk; Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
+Huang, W., Liu, J., & Zhang, R.-Z. (. (2024). Local newspaper closures and non-GAAP reporting quality. Finance Research Letters, 62, 105024. https://doi.org/10.1016/j.frl.2024.105024
 <!-- rendered-citations:end -->

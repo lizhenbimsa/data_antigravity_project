@@ -81,6 +81,36 @@ citations:
   year: 2023
   title: "The Dynamics of Disagreement"
   venue: "Review of Financial Studies"
+- doi: "10.2139/ssrn.6566038"
+  type: "wp"
+  authors: "Fu, J. Y., Huang, A. G., Wermers, R. R., Zhang, J., & Zhang, Y."
+  year: 2026
+  title: "The Information Content of Tone Dispersion: Evidence from Earnings Conference Call Q&As"
+  venue: "SSRN Electronic Journal"
+  pages_or_artno: "6566038"
+- doi: "10.3386/w35049"
+  type: "wp"
+  authors: "Goulding, C., Harvey, C., & Kurtović, H."
+  year: 2026
+  title: "Disagreement of Disagreement"
+  venue: "National Bureau of Economic Research"
+  pages_or_artno: "35049"
+- doi: "10.1186/s40854-025-00835-3"
+  type: "journal"
+  authors: "Jin, X., & Tian, Z."
+  year: 2026
+  title: "Online investor disagreement, self-attribution bias, and future stock returns"
+  venue: "Financial Innovation"
+  vol: "12"
+  issue: "1"
+  pages_or_artno: "57"
+- doi: "10.1177/0148558x251384064"
+  type: "journal"
+  authors: "Driskill, M. W."
+  year: 2025
+  title: "Building Better Measures of Analyst Disagreement Around Earnings: Implications for Disagreement, Trading Volume, and Returns"
+  venue: "Journal of Accounting, Auditing & Finance"
+  pages_or_artno: "0148558X251384064"
 new_dois:
 - "10.1093/rfs/hhac075"
 ---
@@ -94,8 +124,7 @@ new_dois:
 计算的原始输入是 You et al. (2018) 中文金融情感词典在报道文本上的词级命中: 上游 stage 22 tone_words 先对每篇报道数出该词典的正面词、负面词命中并归一化为命中比率, 再逐轨聚合到银行-年度得到两列 avg_you_2018_pos_ratio 与 avg_you_2018_neg_ratio; 24_herd_decay.parquet 的 df_exploded 只用于界定"哪些报道进入该银行该年度"的留篇宇宙与聚合分母。对某银行某年度, 记该词典正面词命中比率 (avg_you_2018_pos_ratio) 为 P、负面词命中比率 (avg_you_2018_neg_ratio) 为 N。二者是 float 词级比率, 而非任何投票计数或篇章计数——这是本家族与 disag_llm (LLM 投票篇章计数) / disag_bert (BERT 概率均值) 两族在原语层面的根本区别。分歧指数定义为 disag = sqrt(1 − ((P − N) / (P + N))^2)。这个式子的几何含义清晰: 令 r = (P − N) / (P + N) 为方向性净比率 (∈ [−1, 1]), 则 disag = sqrt(1 − r^2) 恰是以 r 为横坐标的单位圆纵高。当词典命中一边倒 (P = 0 或 N = 0) 时 r = ±1, disag = 0, 表示零分歧; 当正负词命中比率相等 (P = N) 时 r = 0, disag 取最大值 1, 表示最大撕裂。该构造与本阶段步骤 7i 的 Janis-Fadner 系数共用同一对量 P、N 但语义正交: J-F 刻画的是净倾向的强度与符号, disag 刻画的是倾向的不确定性, 两者是同一分布的"一阶矩方向"与"离散度"两面。producer 落地于 pipeline/panel/runner.py 步骤 8b (disag) 的单词典分支 (for d in DICT_NAMES, d='you_2018'), 属纯后处理算术, 本阶段不再调用任何 LLM 或嵌入 API; 由于输入本就是 float 比率, runner 内对计数轨所做的 Int8→float64 防回绕转换对本列是 no-op。取值恒在 [0, 1] 闭区间, 无量纲。当 P + N = 0 (该单元词典正负词均零命中或无报道) 时分母为零, 结果按缺失 (NaN) 处理而非填零, 与全流水线"没报道标缺失、不标零"的口径一致。
 
 【文献定位】
-本家族坐落于"分歧与资产定价"这一成熟文献带的媒体测度侧。Hong and Stein (2007) 从理论上论证投资者意见分歧是理解交易量、动量与崩盘的核心状态变量; Carlin, Longstaff, and Matoba (2014) 用抵押证券市场的直接分歧代理验证了分歧与预期收益、收益波动、交易量同向相关; Cen, Wei, and Yang (2017) 进一步指出分析师层面的分歧伴随反应不足与可预测的横截面收益。到了以文本为原料的近端, Cookson and Niessner (2020) 把分歧分解为"跨投资风格"与"同风格内"两部分, 为"分歧不是噪声、而是可结构化的信号"提供了范式; Li and Luan (2025) 直接以基于新闻的投资者分歧构造测度并检验其对股票收益的解释力, 与本家族"用媒体报道的语调分裂构造银行层面分歧"的做法最为贴近。方法层面, Frankel, Jennings, and Lee (2022, Management Science) 系统比较了机器学习与词典法在披露情感抽取上的一致与背离, 提示任何情感聚合量都应交代其抽取引擎的口径依赖——本家族因此明确其 P、N 来自 You et al. (2018) 中文金融情感词典的词级正/负命中比率 (stage 22 tone_words 词典轨), 而非 stage 21 三家 LLM 投票或 stage 23 BERT 概率轨。Daniel, Klos, and Rottke (2023, Review of Financial Studies) 利用信息冲击后乐观者与悲观者估值分化的动态演变来刻画分歧强度随时间收敛的过程, 与本家族用媒体报道正负情感词命中比率构造的银行-年度分歧指数在"分歧作为可测度且随信息演化的独立状态变量"这一构念上相呼应。这一交代至关重要: 全仓另有 disag_llm (LLM 投票篇章计数) 与 disag_bert (BERT 概率均值) 两族分歧列, 三者度量同一"情感撕裂"构念但抽取引擎不同, 恰是 Frankel et al. (2022) 所论"引擎选择会改变情感读数"的具体落地——它们互为稳健性、不分主次, 各自 just-identified 并排, 严禁混进同一 over-identified 的 Hansen J。本家族只承载词典引擎这一支, 使用时不得与 disag_llm / disag_bert 在构念来源上混淆。同理, 本家族的三条轨道 (full/ctx/ss) 亦各自 just-identified 并排, 互为稳健性、不分主次, 严禁把不同轨的 disag 混进同一 over-identified 的 Hansen J 统计量。
-
+本家族坐落于"分歧与资产定价"这一成熟文献带的媒体测度侧。Hong and Stein (2007) 从理论上论证投资者意见分歧是理解交易量、动量与崩盘的核心状态变量; Carlin, Longstaff, and Matoba (2014) 用抵押证券市场的直接分歧代理验证了分歧与预期收益、收益波动、交易量同向相关; Cen, Wei, and Yang (2017) 进一步指出分析师层面的分歧伴随反应不足与可预测的横截面收益。到了以文本为原料的近端, Cookson and Niessner (2020) 把分歧分解为"跨投资风格"与"同风格内"两部分, 为"分歧不是噪声、而是可结构化的信号"提供了范式; Li and Luan (2025) 直接以基于新闻的投资者分歧构造测度并检验其对股票收益的解释力, 与本家族"用媒体报道的语调分裂构造银行层面分歧"的做法最为贴近。方法层面, Frankel, Jennings, and Lee (2022, Management Science) 系统比较了机器学习与词典法在披露情感抽取上的一致与背离, 提示任何情感聚合量都应交代其抽取引擎的口径依赖——本家族因此明确其 P、N 来自 You et al. (2018) 中文金融情感词典的词级正/负命中比率 (stage 22 tone_words 词典轨), 而非 stage 21 三家 LLM 投票或 stage 23 BERT 概率轨。Daniel, Klos, and Rottke (2023, Review of Financial Studies) 利用信息冲击后乐观者与悲观者估值分化的动态演变来刻画分歧强度随时间收敛的过程, 与本家族用媒体报道正负情感词命中比率构造的银行-年度分歧指数在"分歧作为可测度且随信息演化的独立状态变量"这一构念上相呼应。这一交代至关重要: 全仓另有 disag_llm (LLM 投票篇章计数) 与 disag_bert (BERT 概率均值) 两族分歧列, 三者度量同一"情感撕裂"构念但抽取引擎不同, 恰是 Frankel et al. (2022) 所论"引擎选择会改变情感读数"的具体落地——它们互为稳健性、不分主次, 各自 just-identified 并排, 严禁混进同一 over-identified 的 Hansen J。本家族只承载词典引擎这一支, 使用时不得与 disag_llm / disag_bert 在构念来源上混淆。同理, 本家族的三条轨道 (full/ctx/ss) 亦各自 just-identified 并排, 互为稳健性、不分主次, 严禁把不同轨的 disag 混进同一 over-identified 的 Hansen J 统计量。 就该构念的近期前沿, Fu、Huang、Wermers、Zhang 与 Zhang (2026) 以 FinBERT 测算盈利电话会 Q&A 环节内分析师之间的语调离散, 报告其信息含量增量于整体语调水平, 在构念层支持把语调的散布与语调的水平分列两族; 惟该文尚未经同行评审, 其离散来自英文电话会中分类器概率的统计散布, 与本族对中文新闻作 You et al. (2018) 词典正负比率的 AF 闭式变换并非同一路径, 仅作同族构念的前沿存在性引证, 而非公式出处。Goulding、Harvey 与 Kurtović (2026) 系统比较金融学中多种分歧代理, 指出不同构造方法所得度量彼此相关性低、结论不一致, 直接支撑本项目逐词典各出一条 disag_* 并令其互为稳健性、不分主次地并排; 其对象为美国市场的分析师预测与交易量类代理, 并未评价本族所用的 AF 一致性指标。Jin 与 Tian (2026) 在中国市场以在线文本度量投资者分歧并考察其与后续收益的关系, 表明中文语境下的文本型分歧测度仍属活跃前沿; 其文本源为投资者论坛、主体为上市公司, 与本族的报纸新闻语料、银行主体及银行-年层级在数据源与分歧公式上均不同。Driskill (2025) 检讨分析师分歧测度的构造设计与效度, 证明预测窗口设定不当会令离散度与公告期异常成交的关联沦为不一致且无定论, 前推 ex ante 窗口后方稳健恢复正向关联; 本族据此仅取一般测度学教训——样本纳入规则会实质改变分歧指标的效度, 故 disag_you_2018 的逐轨聚合口径与 P+N 为 0 时置 NaN 的纳入规则须显式披露并做敏感性检验; 原文未讨论分母标准化或归一化选择, 亦不涉媒体文本, 不能作为本族分母设定的直接参照。
 ## VAR: disag_you_2018_full
 
 【变体差分】
@@ -120,4 +149,8 @@ Cen, L., Wei, K. C. J., & Yang, L. (2017). Disagreement, underreaction, and stoc
 Carlin, B. I., Longstaff, F. A., & Matoba, K. (2014). Disagreement and asset prices. Journal of Financial Economics, 114(2), 226-238. https://doi.org/10.1016/j.jfineco.2014.06.007
 Hong, H., & Stein, J. C. (2007). Disagreement and the stock market. Journal of Economic Perspectives, 21(2), 109-128. https://doi.org/10.1257/jep.21.2.109
 Daniel, K., Klos, A., & Rottke, S. (2023). The Dynamics of Disagreement. Review of Financial Studies. https://doi.org/10.1093/rfs/hhac075
+Fu, J. Y., Huang, A. G., Wermers, R. R., Zhang, J., & Zhang, Y. (2026). The Information Content of Tone Dispersion: Evidence from Earnings Conference Call Q&As. SSRN Electronic Journal No. 6566038 [Working Paper]. https://doi.org/10.2139/ssrn.6566038
+Goulding, C., Harvey, C., & Kurtović, H. (2026). Disagreement of Disagreement. National Bureau of Economic Research No. 35049 [Working Paper]. https://doi.org/10.3386/w35049
+Jin, X., & Tian, Z. (2026). Online investor disagreement, self-attribution bias, and future stock returns. Financial Innovation, 12(1), 57. https://doi.org/10.1186/s40854-025-00835-3
+Driskill, M. W. (2025). Building Better Measures of Analyst Disagreement Around Earnings: Implications for Disagreement, Trading Volume, and Returns. Journal of Accounting, Auditing & Finance, 0148558X251384064. https://doi.org/10.1177/0148558x251384064
 <!-- rendered-citations:end -->

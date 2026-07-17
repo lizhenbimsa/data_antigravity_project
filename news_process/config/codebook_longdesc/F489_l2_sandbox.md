@@ -50,6 +50,30 @@ citations:
   vol: 4
   issue: 3
   pages_or_artno: 305-322
+- doi: "10.1080/1540496x.2026.2698629"
+  type: "journal"
+  authors: "Zheng, Y., Li, R., Ren, S., & He, F."
+  year: 2026
+  title: "The Catalytic Sandbox: How the FinTech Innovation Regulatory Pilot Fuels Bank FinTech Development and Risk Resilience"
+  venue: "Emerging Markets Finance and Trade"
+  pages_or_artno: "1-17"
+- doi: "10.1016/j.jeconom.2025.106059"
+  type: "journal"
+  authors: "Aguilar-Loyo, J."
+  year: 2025
+  title: "A comparative analysis of two-way fixed effects estimators in staggered treatment designs"
+  venue: "Journal of Econometrics"
+  vol: "251"
+  pages_or_artno: "106059"
+- doi: "10.1080/07350015.2024.2308121"
+  type: "journal"
+  authors: "Dette, H., & Schumann, M."
+  year: 2024
+  title: "Testing for Equivalence of Pre-Trends in Difference-in-Differences Estimation"
+  venue: "Journal of Business & Economic Statistics"
+  vol: "42"
+  issue: "4"
+  pages_or_artno: "1289-1301"
 new_dois: []
 ---
 
@@ -62,8 +86,7 @@ new_dois: []
 sandbox_treat_year 的赋值发生在 pipeline/panel/iv_did.py 的政策冲击合并子步骤: 先将 bank_city 去除"市"字尾并与 config/policy_shocks.json::fintech_sandbox 各阶段的 cities/full_province 列表逐一匹配 (城市级匹配优先于省级匹配, 且仅在该银行尚未被更早年份匹配到时才写入, 实现"先入为主"), 匹配不到任何阶段的银行 sandbox_treat_year 保持 0。由此派生 sandbox_treated = 1[sandbox_treat_year > 0] (是否曾进入试点, 时不变哑变量) 与 sandbox_post = 1[year >= sandbox_treat_year] (仅对处理组银行随年份翻转, 控制组恒为 0) — 二者的乘积构成经典交错 DiD 的核心回归量 sandbox_treated × sandbox_post。sandbox_rel_year = year − sandbox_treat_year 仅对处理组定义 (控制组记为缺失, 在 Stata 回归中自动被排除), 是事件研究设计的相对期序数, 用于检验处理前趋势平行性 (relative_year < 0 应不显著) 与处理后动态效应演化 (relative_year >= 0 的系数轨迹)。基于 sandbox_rel_year, 逐期虚拟变量 sandbox_lag{0,1,2,3} 与 sandbox_lead{2,3} 分别标记 k=0 (处理当年) 至 k=+3、以及 k=-2、k=-3 (处理前 2、3 期), k=-1 按惯例设为省略基期不生成对应列, 以避免完全共线性; 窗口端点做了合并处理 (endpoint binning): sandbox_lag4plus 合并全部 k>=4 (处理后第 4 期及以上), sandbox_lead4plus 合并全部 k<=-4 (处理前第 4 期及以上), 避免深尾稀疏期单独估计导致方差爆炸。sandbox_ddd_digfront 则在 pipeline/panel/runner.py 的异质性分析子步骤中构造, 是三重差分 (triple-difference, DDD) 交互项 sandbox_treated × sandbox_post × digital_frontier, 用于检验监管沙盒试点的处理效应是否在"数字前沿"银行 (digital_frontier, 另一家族的数字化前沿分组哑变量) 中存在异质性放大或衰减; Wooldridge (2010) §10.4 强调三重差分设计要求全部低阶交互项 (双重交互与主效应) 同时进入回归, Stata 的 `##` 因子变量语法可自动满足此要求。
 本家族的处理分配遵循 HQ-based (总部所在地) 匹配假设: 银行的试点归属由其总部注册城市/省份决定, 而非其实际业务网点覆盖或分支机构暴露。这一假设对全国性银行 (国有大行/股份制银行) 尤其敏感 — 其总部所在地 (多为北京/上海等一线城市) 往往是第一阶段试点城市, 导致其 sandbox_treat_year 系统性偏向最早批次, 而其真实业务暴露 (分支网络遍布全国) 与"总部城市试点"这一处理定义之间存在错配。管道日志对此显式披露警告, 并建议以剔除国有行/股份制银行 (或仅对城商行/农商行等地方性银行定义处理组) 作为稳健性检验。此外, 由于 T=2 (2017-2018) 开发面板样本年份区间早于监管沙盒试点最早批次 (2020 年), 本家族在盘上开发数据中 sandbox_post/sandbox_lag/sandbox_lead 等派生列结构性恒为 0 (post 恒 0 意味着 DiD/事件研究在当前样本上不可识别), 管道对此发出"DiD 不可识别"告警; 该退化是样本年份覆盖不足导致的预期行为, 在覆盖 2007-2025 (T=19) 的生产语料上, 面板年份将跨越试点冲击年, sandbox_post 及其后续事件研究窗口列将自然恢复非零取值与可识别性。
 【文献定位】
-本家族的估计范式属于交错采纳双重差分 (staggered adoption DiD), 直接对应 Callaway & Sant'Anna (2021) 提出的多期处理时点框架——该文强调传统双向固定效应估计量在处理时点存在异质性时会产生"负权重"偏误, 应改用 group-time 平均处理效应 (ATT(g,t)) 估计量, 这正是管道日志中建议改用 csdid 命令 (`csdid Y X, ivar(bank_id) time(year) gvar(sandbox_treat_year)`) 的方法学依据; sandbox_lag/lead 逐期虚拟变量族则直接服务 Sun & Abraham (2021) 提出的交互加权事件研究估计量, 用以规避标准两阶段事件研究设计在异质处理效应下的估计偏误。sandbox_ddd_digfront 三重差分设计的方法学依据是 Wooldridge (2010) 关于交互项优于中介回归、避免"坏控制变量"问题的论述, 要求把三个主效应与三个两两交互项全部作为低阶项同时纳入回归, 只放入三重交互项本身而遗漏低阶项会使系数丧失"处理效应的组间差异"这一因果解释。需注意本家族与另一压力期交互列族 (tone_x_stress{track}, 基于 STRESS_YEARS={2015, 2018, 2020} 独立构造的年份哑变量与情感测度的交互项) 在构造上完全独立: tone_x_stress{track} 不依赖 sandbox_treated/sandbox_post/sandbox_treat_year 中的任何一列, 二者仅在概念上同属"事件窗口交互设计"这一大类, 不应误读为本家族的处理时点驱动了压力期情感非对称效应的构造。事件研究前置平行趋势预检验的潜在陷阱另有 Roth (2022, American Economic Review: Insights) 的顶刊支撑: 该文论证在正式估计前先做平行趋势预检验并据此筛选样本或调整设定, 会系统性扭曲后续事件研究估计量的统计推断, 提示本家族在报告 sandbox 试点前后动态效应时应避免依据预检验结果择优呈现设定, 而应完整披露所有 leads/lags 系数。
-
+本家族的估计范式属于交错采纳双重差分 (staggered adoption DiD), 直接对应 Callaway & Sant'Anna (2021) 提出的多期处理时点框架——该文强调传统双向固定效应估计量在处理时点存在异质性时会产生"负权重"偏误, 应改用 group-time 平均处理效应 (ATT(g,t)) 估计量, 这正是管道日志中建议改用 csdid 命令 (`csdid Y X, ivar(bank_id) time(year) gvar(sandbox_treat_year)`) 的方法学依据; sandbox_lag/lead 逐期虚拟变量族则直接服务 Sun & Abraham (2021) 提出的交互加权事件研究估计量, 用以规避标准两阶段事件研究设计在异质处理效应下的估计偏误。sandbox_ddd_digfront 三重差分设计的方法学依据是 Wooldridge (2010) 关于交互项优于中介回归、避免"坏控制变量"问题的论述, 要求把三个主效应与三个两两交互项全部作为低阶项同时纳入回归, 只放入三重交互项本身而遗漏低阶项会使系数丧失"处理效应的组间差异"这一因果解释。需注意本家族与另一压力期交互列族 (tone_x_stress{track}, 基于 STRESS_YEARS={2015, 2018, 2020} 独立构造的年份哑变量与情感测度的交互项) 在构造上完全独立: tone_x_stress{track} 不依赖 sandbox_treated/sandbox_post/sandbox_treat_year 中的任何一列, 二者仅在概念上同属"事件窗口交互设计"这一大类, 不应误读为本家族的处理时点驱动了压力期情感非对称效应的构造。事件研究前置平行趋势预检验的潜在陷阱另有 Roth (2022, American Economic Review: Insights) 的顶刊支撑: 该文论证在正式估计前先做平行趋势预检验并据此筛选样本或调整设定, 会系统性扭曲后续事件研究估计量的统计推断, 提示本家族在报告 sandbox 试点前后动态效应时应避免依据预检验结果择优呈现设定, 而应完整披露所有 leads/lags 系数。 就本家族所锚定的政策冲击本身, Zheng、Li、Ren 与 He (2026) 以中国金融科技创新监管试点 (即监管沙盒) 为准自然实验, 检验其对银行金融科技发展与风险韧性的影响, 与 sandbox_treat_year 按银行总部所在城市/省份首次纳入试点年份分配处理的逻辑同属一个政策、同落在银行层面, 是本家族设计在前沿实证中的存在性证明; 但该文 DV 为银行金融科技发展指数与风险韧性指标, 本家族哑变量族服务的是媒体语调/关注度类 DV, 且其试点分期与本项目 config/policy_shocks.json 中 fintech_sandbox 的三阶段分组是否逐城逐年一致并未经过核对, 引用时不得声称口径等同。交错采纳设计下的估计量取舍另有近期方法学比较可援引: Aguilar-Loyo (2025) 系统比较了交错处理设计下各类双向固定效应估计量 (重点为 extended TWFE), 推导其与 DiD 估计量的等价分解, 并论证估计量选择取决于目标参数与应用特征、不存在单一最优, 恰可与前述 Callaway & Sant'Anna (2021)、Sun & Abraham (2021) 的路径并读; 惟该文为纯计量方法学 (含理论推导与示例), 不针对任何具体经验场景, 既不背书本家族的处理分配规则, 也未针对本项目 T=19 (2007-2025) 的面板深度作出任何设定。前期系数的检验与解释则可进一步援引 Dette 与 Schumann (2024) 提出的平行趋势等价性检验 (equivalence testing): 该文直接针对事件研究中 lead 系数「未拒绝零」不等于「平行趋势成立」这一推断缺陷给出检验程序, 与本家族以 k=-1 为省略基期、构造 sandbox_lead2/sandbox_lead3 的设定直接相关, 与上文 Roth (2022) 关于预检验扭曲后续推断的警示互为补充; 需说明该文提供的仅是检验程序本身, 不涉及金融科技监管沙盒或银行业数据, 本家族的 lead 系数是否已按该程序实施属本项目自身的实施选择, 原文不构成对既有做法的背书。
 ## VAR: sandbox_ddd_digfront
 
 【变体差分】
@@ -146,4 +169,7 @@ sandbox_lead2 与 sandbox_lead3 联合构成的前置期检验窗口仅覆盖 k=
 Callaway, B., & Sant'Anna, P. H. C. (2021). Difference-in-differences with multiple time periods. Journal of Econometrics, 225(2), 200-230. https://doi.org/10.1016/j.jeconom.2020.12.001
 Sun, L., & Abraham, S. (2021). Estimating dynamic treatment effects in event studies with heterogeneous treatment effects. Journal of Econometrics, 225(2), 175-199. https://doi.org/10.1016/j.jeconom.2020.09.006
 Roth, J. (2022). Pretest with caution: Event-study estimates after testing for parallel trends. American Economic Review: Insights, 4(3), 305-322. https://doi.org/10.1257/aeri.20210236
+Zheng, Y., Li, R., Ren, S., & He, F. (2026). The Catalytic Sandbox: How the FinTech Innovation Regulatory Pilot Fuels Bank FinTech Development and Risk Resilience. Emerging Markets Finance and Trade, 1-17. https://doi.org/10.1080/1540496x.2026.2698629
+Aguilar-Loyo, J. (2025). A comparative analysis of two-way fixed effects estimators in staggered treatment designs. Journal of Econometrics, 251, 106059. https://doi.org/10.1016/j.jeconom.2025.106059
+Dette, H., & Schumann, M. (2024). Testing for Equivalence of Pre-Trends in Difference-in-Differences Estimation. Journal of Business & Economic Statistics, 42(4), 1289-1301. https://doi.org/10.1080/07350015.2024.2308121
 <!-- rendered-citations:end -->

@@ -49,6 +49,37 @@ citations:
   vol: "54"
   issue: "4"
   pages_or_artno: "1187-1230"
+- doi: "10.1016/j.jbankfin.2026.107698"
+  type: "journal"
+  authors: "Turetken, A. C., & Leippold, M."
+  year: 2026
+  title: "Battle of transformers: Adversarial attacks on financial sentiment models"
+  venue: "Journal of Banking & Finance"
+  vol: "188"
+  pages_or_artno: "107698"
+- doi: "10.1007/s11135-026-02832-9"
+  type: "journal"
+  authors: "Hsu, H.-Y., & Hsu, M.-L."
+  year: 2026
+  title: "Semantic stability protocol: intercoder reliability for zero-shot classification via AI coders"
+  venue: "Quality & Quantity"
+- doi: "10.1016/j.pacfin.2025.102721"
+  type: "journal"
+  authors: "Wang, Y., Xiao, J., Wang, L., & Wang, D."
+  year: 2025
+  title: "News sentiment and the cost of debt"
+  venue: "Pacific-Basin Finance Journal"
+  vol: "91"
+  pages_or_artno: "102721"
+- doi: "10.3982/qe1825"
+  type: "journal"
+  authors: "Ke, S., Montiel Olea, J. L., & Nesbit, J."
+  year: 2024
+  title: "Robust machine learning algorithms for text analysis"
+  venue: "Quantitative Economics"
+  vol: "15"
+  issue: "4"
+  pages_or_artno: "939-970"
 new_dois: []
 ---
 
@@ -61,8 +92,7 @@ new_dois: []
 三个模型的输出结构不完全对称: finbert_cn 与 fin_sent_zh 是三分类 (负面/中性/正面), finbert2 是二分类 (负面/正面, 无中性类, 概率列补 NaN 中性占位以对齐 schema)。计数口径统一为「该模型该轨 argmax 标签落在正面类的篇数」——三分类模型正面类是 softmax 三选一里的赢家, 二分类模型正面类是 sigmoid/softmax 二选一里的赢家, 二者在"谁被判正面"这一问题上语义一致, 但因类别数不同, 同等条件下二分类模型的正面判出率结构性高于三分类模型 (少了中性这一竞争类别), 因此本家族只在同模型跨年/跨行/跨轨比较有意义, 不建议直接跨模型比较绝对计数水平, 三模型是互为稳健性的并排轨而非可加总的同尺度指标。分母口径: 计数的样本基础是该模型该轨下已成功推理 (未落入 `{sn}_infer_failed_{track}` 失败哨兵) 的文章集合, 推理失败的文章标签为 None、不计入任何类别的计数, 与"该文章被判为非正面"严格区分——这一点是本家族区别于用概率阈值切分的其它测度族的关键: pos_count 是标签层面的硬计数, 不是概率层面的软累加 (软累加对应家族外的 `{model}_pos_sum_{track}` — 各文章正面概率的加总)。三轨语义遵循项目统一约定: full=标题+正文全文, ctx=标题+银行实体窗口, ss=标题+银行∧金科同句窗口 (`config/filtering.yaml::context_window.ss_sentence_radius`, 默认±1句); 若某篇文章无银行∧金科同句共现, `content_ss` 回退为全文 (`ss_is_fallback=True`, 镜像 ctx 回退语义); FINTECH_AC 词典未加载时 `*_is_fallback` 全 True、ctx/ss 优雅退化为对 full 文本的重复推理。留篇门控 (是否算作"一篇银行金科报道"计入分析样本) 采用 full-only 口径 (2026-06-29 定案): 只看该文章 `llm_verified_full == True`, ctx/ss 轨的 pos_count 是在这一 full-only 行宇宙子集之上、各自对不同文本范围重新推理并计数的条件稳健性轨/测度轨, 不额外扩大或缩小样本行宇宙。
 
 【文献定位】
-本家族方法学谱系直接承袭金融文本 BERT 情感分类的主线: Huang, Wang & Yang (2023, *Contemporary Accounting Research*) 提出的 FinBERT 证明领域微调的 Transformer 编码器在金融文本情感抽取上显著优于通用词典法与通用预训练模型, 是本项目引入 BERT 路线情感测度的方法学锚点; finbert2 模型本身对应 Xu et al. (2025, KDD '25) 面向金融领域部署差距设计的双向编码器, 是项目内自训练/私有模型的方法学来源。三模型并排、per-model 独立降级 (finbert2 缺席仅掉自身族, 另两个 HF 公开模型照跑) 的设计呼应多模型三角验证的方法学传统, 保证结论不被单一分类器的训练语料或架构偏误驱动。将「硬计数」与「软概率累加」并列作为互补测度, 呼应 Loughran & McDonald (2016, *Journal of Accounting Research*) 对文本分析中"计数类"(count-like) 度量与连续强度度量各有信息含量、不应相互替代的方法学讨论, 也与 Cohn, Liu & Wardlaw (2022, *Journal of Financial Economics*) 关于金融研究中计数数据 (count data) 特有分布性质与推断陷阱的提醒相印证——pos_count 本质上是非负整数值的计数变量, 在面板回归中若作为因变量宜留意其分布形态, 不能默认线性高斯假设照搬。⚠ 三轨 (full/ctx/ss) 各自 just-identified 并排、互为稳健性、不分主次, 禁止把三轨或三模型混进同一 over-identified 的 Hansen J 检验; ss 轨的回退语义严格镜像 ctx 轨 (无共现→全文兜底、标记 fallback 位), 不是独立的第三套判据。
-
+本家族方法学谱系直接承袭金融文本 BERT 情感分类的主线: Huang, Wang & Yang (2023, *Contemporary Accounting Research*) 提出的 FinBERT 证明领域微调的 Transformer 编码器在金融文本情感抽取上显著优于通用词典法与通用预训练模型, 是本项目引入 BERT 路线情感测度的方法学锚点; finbert2 模型本身对应 Xu et al. (2025, KDD '25) 面向金融领域部署差距设计的双向编码器, 是项目内自训练/私有模型的方法学来源。三模型并排、per-model 独立降级 (finbert2 缺席仅掉自身族, 另两个 HF 公开模型照跑) 的设计呼应多模型三角验证的方法学传统, 保证结论不被单一分类器的训练语料或架构偏误驱动。将「硬计数」与「软概率累加」并列作为互补测度, 呼应 Loughran & McDonald (2016, *Journal of Accounting Research*) 对文本分析中"计数类"(count-like) 度量与连续强度度量各有信息含量、不应相互替代的方法学讨论, 也与 Cohn, Liu & Wardlaw (2022, *Journal of Financial Economics*) 关于金融研究中计数数据 (count data) 特有分布性质与推断陷阱的提醒相印证——pos_count 本质上是非负整数值的计数变量, 在面板回归中若作为因变量宜留意其分布形态, 不能默认线性高斯假设照搬。⚠ 三轨 (full/ctx/ss) 各自 just-identified 并排、互为稳健性、不分主次, 禁止把三轨或三模型混进同一 over-identified 的 Hansen J 检验; ss 轨的回退语义严格镜像 ctx 轨 (无共现→全文兜底、标记 fallback 位), 不是独立的第三套判据。 近期前沿文献进一步支撑把分类器选择本身作为并排的规格维度而非取单一模型定论。Turetken 与 Leippold (2026) 对两个主流金融情感模型 (FinBERT 与生成式 Fin-GPT) 施加语义保持的白盒对抗扰动, 发现二者的情感标签预测均被大比例翻转, 说明金融情感分类器的标签输出并非稳固不变——本家族因而对同一构念保留三个模型各自的 argmax 正面篇数并排, 而不把任一模型的判定当作无误差的构念真值。⚠ 该文为英文基准数据集上的句/篇级对抗鲁棒性评测 (其结论是两模型均脆弱, 未报告模型间脆弱性差异), 所涉 Fin-GPT 亦非 BERT 架构, 无 bank-year 面板聚合、无 count 与 probability-sum 之分, 亦不涉及中文语料与三轨文本范围, 故仅支持上述弱结论。Hsu 与 Hsu (2026) 提出 Semantic Stability Protocol, 把同一 LLM 的重复输出视作一组 AI coders, 以 Krippendorff's α 量化并治理零样本分类的模型内随机性: 在 424 篇中文新闻的五分类任务上原始输出 α=0.8485, 约 20 次多数票聚合后 α 升至 0.94 以上, 佐证把 α/κ 类信度指标施用于 AI 分类器在中文新闻语料上的标签输出, 是方法学上已被接受的效度前置程序。⚠ 该文为单模型内的重复运行稳定性 (其 AI coders 即同一模型的多次跑), 未做任何跨模型比较, 故不构成本项目「多个模型间一致性作为效度证据」这一模型间维度的直接先例; 其对象是零样本生成式 LLM 而非微调 BERT (本项目三模型还存在 2 vs 3 分类基数差异), 且全程为标签级信度, 未触及概率口径与面板聚合。应用语境上, Wang、Xiao、Wang 与 Wang (2025) 在中国语境下从新闻报道抽取情感并聚合到企业层面用于债务成本实证, 是「中文新闻情感 → 实体-年测度」这一形态的近期同域实例, 用以锚定本家族正面篇数列族的应用语境而非其具体算法。⚠ 原文实体为一般上市公司、DV 为债务成本, 未区分计数与概率和两种口径, 无 per-model 多模型并排, 亦无三轨文本范围切分。三模型各自 just-identified 并排、既不取平均也不加总的处理, 其一般性方法论立场可参照 Ke 与 Nesbit (2024): 该文证明 LDA 的参数不可识别、文本派生量的后验结论会随先验设定改变, 并给出刻画该结论取值区间的算法, 由此主张把建模者未被数据识别的选择显式化, 报告结论在其上的取值范围而非只报一个点估计。⚠ 原文研究的是单一 LDA 模型内的先验敏感性与不可识别性, 不是不同分类器之间的模型选择问题, 未评估任何 BERT 或神经情感分类器, 亦不涉及计数/概率和口径与中文语料, 因此不是本族 per-model 并排的 method-origin。
 ## VAR: fin_sent_zh_pos_count_ctx
 
 【变体差分】
@@ -113,4 +143,8 @@ Xu, X., Wen, F., Chu, B., Fu, Z., Lin, Q., Liu, J., Fei, B., Li, Y., Zhou, L., &
 Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A large language model for extracting information from financial text. Contemporary Accounting Research, 40(2), 806-841. https://doi.org/10.1111/1911-3846.12832
 Cohn, J. B., Liu, Z., & Wardlaw, M. I. (2022). Count (and count-like) data in finance. Journal of Financial Economics, 146(2), 529-551. https://doi.org/10.1016/j.jfineco.2022.08.004
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
+Turetken, A. C., & Leippold, M. (2026). Battle of transformers: Adversarial attacks on financial sentiment models. Journal of Banking & Finance, 188, 107698. https://doi.org/10.1016/j.jbankfin.2026.107698
+Hsu, H.-Y., & Hsu, M.-L. (2026). Semantic stability protocol: intercoder reliability for zero-shot classification via AI coders. Quality & Quantity. https://doi.org/10.1007/s11135-026-02832-9
+Wang, Y., Xiao, J., Wang, L., & Wang, D. (2025). News sentiment and the cost of debt. Pacific-Basin Finance Journal, 91, 102721. https://doi.org/10.1016/j.pacfin.2025.102721
+Ke, S., Montiel Olea, J. L., & Nesbit, J. (2024). Robust machine learning algorithms for text analysis. Quantitative Economics, 15(4), 939-970. https://doi.org/10.3982/qe1825
 <!-- rendered-citations:end -->

@@ -46,6 +46,21 @@ citations:
   venue: "Economic Modelling"
   vol: "127"
   pages_or_artno: "106445"
+- doi: "10.1007/s10799-026-00501-9"
+  type: "journal"
+  authors: "Pan, Y., Xue, F., & Liu, L."
+  year: 2026
+  title: "Divergence between symbolic adoption and substantive action: how organizational slack shapes AI washing"
+  venue: "Information Technology and Management"
+- doi: "10.1016/j.ipm.2025.104383"
+  type: "journal"
+  authors: "Chen, J., Wen, J., Deng, Y., Chen, M., & Ma, F."
+  year: 2026
+  title: "Measuring policy diffusion intensity: A text-driven analysis of government documents"
+  venue: "Information Processing & Management"
+  vol: "63"
+  issue: "2"
+  pages_or_artno: "104383"
 new_dois: []
 ---
 
@@ -58,8 +73,7 @@ new_dois: []
 计算分两层。第一层在文章级产生两个原始信号: policy_cosine_sim (或其 _allv 变体) 度量单篇报道与政策/监管文本库的余弦相似度, 由 stage 15 article_policy_alignment 环节产出; fintech_intensity_score 度量单篇报道内金科关键词的出现强度 (int 轨, 与另一"kw 轨"——去重关键词计数——并列的两套词频口径之一)。第二层在 pipeline/panel/runner.py 的象限分类循环中, 对每个银行-年子样本分别计算 sim 与 freq 各自的截面 25 百分位阈值 P25, 仅对 sim 与 freq 同时非缺失 (notna) 的文章参与分类与分母计数——这一 NaN 处理约定是 2026-06-11 (omni-g-runner-03/11) 的修复要点: 旧实现把测量失败 (stage 15 早退导致 policy_cosine_sim 全 NaN) 的文章误判为"低对齐"计入分子, 会把零测量误记为伪信号; 现改为未测量行的分类指示本身也是 NaN, 分组聚合 (groupby mean) 自动跳过, 分母收缩为"已测量篇数"而非全部报道篇数, 与"无数据=未测量"而非"无数据=零"的口径契约保持一致。家族名中的 "_allv" 后缀表示 sim 侧使用的是 "all-vintage" 全语料静态锚点 policy_cosine_sim_allv (而非随年份滚动更新的主轨 policy_cosine_sim), 即政策参照文本库固定不随文章所在年份变化, 用于剥离"锚点本身随时间漂移"对象限归类的干扰, 是与不带 _allv 后缀的同名家族 (若存在) 互为稳健性的锚点变体, 二者共用完全一致的 track (full/ctx/ss) × 词频口径 (kw/int) × 分位 (P25/P50/P75) 四象限构造逻辑, 唯 sim 阈值列的基名不同。"_int" 表示词频侧采用的是 fintech_intensity_score (强度型连续计数), 与采用 fintech_distinct_keywords (去重关键词个数) 的 "_kw" 轨并列, 二者互为稳健性口径, 不分主次, 禁止把 kw 轨与 int 轨的象限占比混入同一过度识别的 Hansen J 检验。"_p25" 表示分位阈值取 25 百分位, 与 p50/p75 构成阈值梯子, 同样各自 just-identified 并排, 互为稳健性而非嵌套子集。
 
 【文献定位】
-"象限式"言行区分测度的理论根基是组织行为对监管/制度环境采纳异质性的经典关切: Boot (2000, Journal of Financial Intermediation) 指出银企关系中信息不对称使得外部观察者难以仅凭披露语言判断银行实质经营取向, 这正是本家族用 sim×freq 双维度而非单一情感分数刻画"言"与"行"错位的动机所在。Adner and Kapoor (2010, Strategic Management Journal) 关于创新生态位技术互补结构如何影响企业绩效的框架, 支撑了将金科采纳拆分为"话语层面的政策对齐"与"内容层面的技术实质"两条独立轴线的建模选择——二者在生态位互补意义上并非同一构念的两种测量, 而是刻画采纳过程中不同环节 (话语合法性获取 vs. 技术能力积累) 的正交信号。Gomber, Koch and Siering (2017, Journal of Business Economics) 对数字金融/FinTech 研究方向的系统梳理, 界定了银行层面金科响应的多重维度 (产品、渠道、话语), 为本家族在 locus (响应位置) 维度上区分"说了什么"与"做了什么"提供了直接的构念依据。Fang, Wang, Wang and Zhao (2023, Economic Modelling) 关于中国银行金科、流动性创造与风险承担的实证研究, 印证了银行金科响应的异质性 (象征性响应 vs. 实质性投入) 在中国银行业样本中具有可观测的经济后果差异, 支持本家族作为机制检验/异质性分组变量的适用场景。三轨 (full/ctx/ss) 均遵循 CLAUDE.md 铁律: 各自 just-identified 并排、互为稳健性、不分主次, 严禁混入同一过度识别的 Hansen J 检验; ss 轨在无银行-金科同句共现时的回退语义镜像 ctx 轨 (回退为全文 body, 并以 *_is_fallback 标记), n_articles 分母口径与 2026-06-29 起生效的 full-only 留篇门控一致, 即"是否算作一篇银行金科报道"仅由 llm_verified_full 决定, ctx/ss 轨的象限占比是该留篇集合内的条件测度而非独立样本。
-
+"象限式"言行区分测度的理论根基是组织行为对监管/制度环境采纳异质性的经典关切: Boot (2000, Journal of Financial Intermediation) 指出银企关系中信息不对称使得外部观察者难以仅凭披露语言判断银行实质经营取向, 这正是本家族用 sim×freq 双维度而非单一情感分数刻画"言"与"行"错位的动机所在。Adner and Kapoor (2010, Strategic Management Journal) 关于创新生态位技术互补结构如何影响企业绩效的框架, 支撑了将金科采纳拆分为"话语层面的政策对齐"与"内容层面的技术实质"两条独立轴线的建模选择——二者在生态位互补意义上并非同一构念的两种测量, 而是刻画采纳过程中不同环节 (话语合法性获取 vs. 技术能力积累) 的正交信号。Gomber, Koch and Siering (2017, Journal of Business Economics) 对数字金融/FinTech 研究方向的系统梳理, 界定了银行层面金科响应的多重维度 (产品、渠道、话语), 为本家族在 locus (响应位置) 维度上区分"说了什么"与"做了什么"提供了直接的构念依据。Fang, Wang, Wang and Zhao (2023, Economic Modelling) 关于中国银行金科、流动性创造与风险承担的实证研究, 印证了银行金科响应的异质性 (象征性响应 vs. 实质性投入) 在中国银行业样本中具有可观测的经济后果差异, 支持本家族作为机制检验/异质性分组变量的适用场景。三轨 (full/ctx/ss) 均遵循 CLAUDE.md 铁律: 各自 just-identified 并排、互为稳健性、不分主次, 严禁混入同一过度识别的 Hansen J 检验; ss 轨在无银行-金科同句共现时的回退语义镜像 ctx 轨 (回退为全文 body, 并以 *_is_fallback 标记), n_articles 分母口径与 2026-06-29 起生效的 full-only 留篇门控一致, 即"是否算作一篇银行金科报道"仅由 llm_verified_full 决定, ctx/ss 轨的象限占比是该留篇集合内的条件测度而非独立样本。 就本族 token 象限所刻画的"高声量而低对齐"这一背离本身, Pan、Xue 与 Liu (2026) 把技术采纳明确二分为符号性采纳 (symbolic adoption) 与实质性行动 (substantive action), 并将两者的背离操作化为 AI washing 加以实证测量, 为本族"同一构念拆成两维并置、以背离格 (freq 高于年度 P25 而 sim 不高于年度 P25) 识别说多做少"的做法提供了近期存在性证明; 惟其对象为一般企业的 AI 叙事与实际行动, 符号/实质二分基于组织冗余与披露数据, 既不使用政策文本余弦相似度, 也不做年度分位阈值切分, 层级为企业而非银行-年且分母非已测量报道篇数, 故不可据以外推本族的阈值与分母口径。sim 维的方法学一侧, Chen、Wen、Deng、Chen 与 Ma (2026) 以政府文件文本构造政策扩散强度的文本驱动测度, 表明"用政策文本相似度/强度刻画政策对齐程度"这一测度族仍处近期前沿, 与本族 policy_cosine_sim_allv 同属一脉; 但该文所测为政策文件之间的扩散强度 (政府—政府层级), 本族则是新闻报道文本对政策锚点的余弦相似度 (媒体—政策层级), 且该文不做二值象限分类、不设年度分位阈值, 亦无全年份静态锚点与逐年滚动锚点的对照设计, 故仅提供方法族的存在性锚点, 不锚定本族的象限判据。
 ## VAR: token_adopt_int_p25_allv
 
 【变体差分】
@@ -80,5 +94,7 @@ Adner, R., & Kapoor, R. (2010). Value creation in innovation ecosystems: How the
 Boot, A. W. A. (2000). Relationship banking: What do we know?. Journal of Financial Intermediation, 9(1), 7-25. https://doi.org/10.1006/jfin.2000.0282
 Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital finance and FinTech: Current research and future research directions. Journal of Business Economics, 87(5), 537-580. https://doi.org/10.1007/s11573-017-0852-x
 Fang, Y., Wang, Q., Wang, F., & Zhao, Y. (2023). Bank fintech, liquidity creation, and risk-taking: Evidence from China. Economic Modelling, 127, 106445. https://doi.org/10.1016/j.econmod.2023.106445
+Pan, Y., Xue, F., & Liu, L. (2026). Divergence between symbolic adoption and substantive action: how organizational slack shapes AI washing. Information Technology and Management. https://doi.org/10.1007/s10799-026-00501-9
+Chen, J., Wen, J., Deng, Y., Chen, M., & Ma, F. (2026). Measuring policy diffusion intensity: A text-driven analysis of government documents. Information Processing & Management, 63(2), 104383. https://doi.org/10.1016/j.ipm.2025.104383
 <!-- rendered-citations:end -->
 </content>

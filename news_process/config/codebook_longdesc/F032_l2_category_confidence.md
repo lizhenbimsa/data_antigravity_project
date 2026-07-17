@@ -45,6 +45,28 @@ citations:
   vol: 68
   issue: 7
   pages_or_artno: 5514-5532
+- doi: "10.48550/arxiv.2402.05129"
+  type: "arxiv"
+  authors: "Törnberg, P."
+  year: 2024
+  title: "Best Practices for Text Annotation with Large Language Models"
+  venue: "arXiv"
+- doi: "10.1007/s42001-025-00388-6"
+  type: "journal"
+  authors: "Abraham, L., Arnal, C., & Marie, A."
+  year: 2025
+  title: "Prompt selection matters: enhancing text annotations for social sciences with large language models"
+  venue: "Journal of Computational Social Science"
+  vol: "8"
+  issue: "3"
+  pages_or_artno: "73"
+- doi: "10.18653/v1/2025.naacl-long.179"
+  type: "journal"
+  authors: "Gligoric, K., Zrnic, T., Lee, C., Candes, E., & Jurafsky, D."
+  year: 2025
+  title: "Can Unconfident LLM Annotations Be Used for Confident Conclusions?"
+  venue: "Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers)"
+  pages_or_artno: "3514-3533"
 new_dois: []
 ---
 
@@ -57,8 +79,7 @@ new_dois: []
 计算链路分两层。第一层在文章级 (tone_llms.py::_resolve_locus_track): 对给定轨道, 先把三家 LLM 对该篇创新场所类目的投票做保守式多数投票 (majority_vote_categorical, 平局回退默认类目 '应用场景'), 再用关键词分类器 canonicalize_topic 对同篇主题串给出一个基于词典证据的类目 kw_cat 与证据强度 kw_conf。随后做 LLM×关键词交叉验证: 二者类目一致时给予置信度增益, 令 final_conf = min(kw_conf + 0.2, 1.0); 二者分歧时施加惩罚, 令 final_conf = round(kw_conf × 0.5, 3)。零证据路径经过刻意对称化处理: 当 LLM 无票且关键词分类器亦无真实证据 (kw_conf 为 0) 时返回 (None, 0.0), 使纯零证据的默认归类不再冒充分类信号; 仅当关键词有真实证据时才保留关键词回退类目。这一修正与 substantiveness、collaboration 两维度的空票处理保持一致口径, 避免未验证文章被系统性地默认塞进某一类目而虚增置信度。此处须澄清一处易误张冠的实现细节: 本列的跨模型信息仅通过三家 LLM 对 locus 类目做多数投票 (majority_vote_categorical) 这一步进入 — 投票越一致, 多数票类目越稳, 越可能与关键词类目印证而触发 boost; 而置信度的数值本身取自关键词分类器的证据强度 kw_conf 及其一致/分歧调整, 并不对各家 LLM 自报的 per-model 置信度取算术平均。模块级函数 _avg_innovation_confidence 服务的是另一列族 innovation_locus_confidence_{track} (对 parsed 结果按模型做置信度平均), 与本家族的 category_confidence_{track} 是来源与算法均不同的两列, 切勿把前者的多模型平均语义误安到本列上。第二层在面板级 (encode.py L1642-1660): 逐轨按银行-年分组取均值; 裸名列 avg_category_confidence 直接取 avg_category_confidence_full 作为别名, 并保留对 v3.1.x 旧裸名 schema 的兼容回退。取值恒落在 [0, 1] 内, 无量纲。
 
 【文献定位】
-本测度处在大语言模型置信度估计与评分者一致性两条方法学脉络的交叉处。就前者而言, Geng et al. (2024) 系统综述了大语言模型置信度估计与校准的方法谱系, 指出模型自报置信度往往偏离真实正确率, 需要外部证据或多源印证来校准; 本家族以关键词分类器作为独立证据链对 LLM 判定进行 boost/penalty 校正, 正是这一"外部锚定"思路在分类置信度上的落地。而以关键词/词典证据与机器判定两条独立链路交叉印证文本类目, 与 Frankel, Jennings 和 Lee (2022) 在顶刊层面对"机器学习分类器 vs 词典方法"两类文本测度进行系统对照、并据其一致性评估分类可信度的做法一脉相承: 二者判定相合时可信度更高、分歧时须折价的直觉, 正是本测度 boost/penalty 校正机制的度量论依据。就后者而言, LLM 多数票与关键词分类器可视为两组独立"评分者", Almehrizi (2026) 讨论的多评分者一致性系数及其对类目基率的校正, 为理解"一致即加权、分歧即折价"的置信度构造提供了度量论依据 — 尤其当类目分布高度不均 (如应用场景类目占比偏高) 时, 一致性的信息量需按基率折算, 这与本测度对零证据默认归类的谨慎处理动机相通。就下游计量用途而言, 该家族常作为高维类目固定效应或分类质量控制进入回归, Gaure (2013) 关于多重高维类目变量最小二乘估计的讨论, 为把分类置信度纳入含银行、年份等多重固定效应的面板模型提供了估计层面的参照。需强调本家族在面板层是 full 与 ctx 两轨并存、无 ss 列 (与 cell_id 一致的 carve-out), 但须准确表述其成因: 文章级 tone_llms.py 对创新场所判定的三轨 (full/ctx/ss) 均逐轨产出了置信度, category_confidence_ss (同句共现轨) 在文章级确实被计算; 面板家族之所以无 ss 列, 是因为 encode.py 的银行-年聚合映射刻意只纳入 category_confidence_full 与 category_confidence_ctx 两源, 未把 ss 轨聚合进本家族, 而非"创新场所判定不做严格同句轨"。两轨各自 just-identified 并排, 互为稳健性、不分主次, 严禁把 full 与 ctx 两列混入同一 over-identified Hansen J 过度识别检验。银行-年留篇宇宙遵循 full-only 门控口径 (2026-06-29): 是否算作一篇银行金科报道只看 full 轨留篇判定, ctx 轨为 conditional-on-full 的稳健性测度轨, 其行宇宙是 full 留篇集的子集, 逐轨列各自照算。
-
+本测度处在大语言模型置信度估计与评分者一致性两条方法学脉络的交叉处。就前者而言, Geng et al. (2024) 系统综述了大语言模型置信度估计与校准的方法谱系, 指出模型自报置信度往往偏离真实正确率, 需要外部证据或多源印证来校准; 本家族以关键词分类器作为独立证据链对 LLM 判定进行 boost/penalty 校正, 正是这一"外部锚定"思路在分类置信度上的落地。而以关键词/词典证据与机器判定两条独立链路交叉印证文本类目, 与 Frankel, Jennings 和 Lee (2022) 在顶刊层面对"机器学习分类器 vs 词典方法"两类文本测度进行系统对照、并据其一致性评估分类可信度的做法一脉相承: 二者判定相合时可信度更高、分歧时须折价的直觉, 正是本测度 boost/penalty 校正机制的度量论依据。就后者而言, LLM 多数票与关键词分类器可视为两组独立"评分者", Almehrizi (2026) 讨论的多评分者一致性系数及其对类目基率的校正, 为理解"一致即加权、分歧即折价"的置信度构造提供了度量论依据 — 尤其当类目分布高度不均 (如应用场景类目占比偏高) 时, 一致性的信息量需按基率折算, 这与本测度对零证据默认归类的谨慎处理动机相通。就下游计量用途而言, 该家族常作为高维类目固定效应或分类质量控制进入回归, Gaure (2013) 关于多重高维类目变量最小二乘估计的讨论, 为把分类置信度纳入含银行、年份等多重固定效应的面板模型提供了估计层面的参照。需强调本家族在面板层是 full 与 ctx 两轨并存、无 ss 列 (与 cell_id 一致的 carve-out), 但须准确表述其成因: 文章级 tone_llms.py 对创新场所判定的三轨 (full/ctx/ss) 均逐轨产出了置信度, category_confidence_ss (同句共现轨) 在文章级确实被计算; 面板家族之所以无 ss 列, 是因为 encode.py 的银行-年聚合映射刻意只纳入 category_confidence_full 与 category_confidence_ctx 两源, 未把 ss 轨聚合进本家族, 而非"创新场所判定不做严格同句轨"。两轨各自 just-identified 并排, 互为稳健性、不分主次, 严禁把 full 与 ctx 两列混入同一 over-identified Hansen J 过度识别检验。银行-年留篇宇宙遵循 full-only 门控口径 (2026-06-29): 是否算作一篇银行金科报道只看 full 轨留篇判定, ctx 轨为 conditional-on-full 的稳健性测度轨, 其行宇宙是 full 留篇集的子集, 逐轨列各自照算。 在 LLM 标注的工程口径上, 近年方法学文献进一步收窄了本测度可主张的范围。Törnberg (2024) 以立场性指南的形式提出 LLM 文本标注的操作规范, 要求固定 prompt 版本与温度、并如实报告可靠性与效度; 本家族上游 stage 21 以 prompt v8 字节级冻结、temperature=0.0 与缓存键锁定落地可复现, 与该文规范同族, 但该文不含实证基准亦未涉及三家跨厂商投票与三轨文本切分, 本项目的具体配置属独立工程选择, 而非该文验证过的方案。Abraham、Arnal 与 Marie (2025) 则以英文社科语料实证表明 prompt 选择对标注质量有显著且非平凡的影响, 并给出一套 prompt 选择与评估流程; 该发现直接指向本家族的一处已知局限 — category_confidence 的全部上游 LLM 判定均在单一冻结 prompt 下产出, 本项目刻意不做 prompt 网格 (改 prompt 即全部缓存作废), 故原文提示的 prompt 敏感性在此属未量化的已知局限, 而非已被排除的风险。就置信度的使用方式而言, Gligoric、Zrnic、Lee、Candes 与 Jurafsky (2025) 提出 confidence-driven inference, 用 LLM 自报置信度决定哪些样本值得付费人工复标, 并给出统计有效的点估计与置信区间, 证明低置信标注在恰当处理下仍可支撑可信结论; 该文为「把逐篇置信度当作可用统计信息而非弃置」提供了前沿依据, 与本家族以置信度均值驱动低置信诊断门槛的用法同向。但其有效推断必须配套人工标注子样本作为 ground truth, 本项目并无人工标注回路, 未实施该文的抽样-推断设计; 且本列数值取自关键词分类器证据强度经一致/分歧调整所得 (一致时 min(kw_conf + 0.2, 1.0), 分歧时 kw_conf × 0.5), 而非模型自报置信度, 与该文口径不同, 故不得据此宣称本家族已具备该文的统计有效性保证。
 ## VAR: avg_category_confidence
 
 【变体差分】
@@ -79,4 +100,7 @@ Almehrizi, R. S. (2026). Coefficient lambda for interrater agreement among multi
 Geng, J., Cai, F., Wang, Y., Koeppl, H., Nakov, P., & Gurevych, I. (2024). A survey of confidence estimation and calibration in large language models. Proceedings of the 2024 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers), 6577-6595. https://doi.org/10.18653/v1/2024.naacl-long.366
 Gaure, S. (2013). OLS with multiple high dimensional category variables. Computational Statistics & Data Analysis, 66, 8-18. https://doi.org/10.1016/j.csda.2013.03.024
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
+Törnberg, P. (2024). Best Practices for Text Annotation with Large Language Models. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2402.05129
+Abraham, L., Arnal, C., & Marie, A. (2025). Prompt selection matters: enhancing text annotations for social sciences with large language models. Journal of Computational Social Science, 8(3), 73. https://doi.org/10.1007/s42001-025-00388-6
+Gligoric, K., Zrnic, T., Lee, C., Candes, E., & Jurafsky, D. (2025). Can Unconfident LLM Annotations Be Used for Confident Conclusions?. Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers), 3514-3533. https://doi.org/10.18653/v1/2025.naacl-long.179
 <!-- rendered-citations:end -->

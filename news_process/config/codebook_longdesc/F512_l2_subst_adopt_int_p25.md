@@ -52,6 +52,37 @@ citations:
   venue: Finance Research Letters
   vol: '47'
   pages_or_artno: '102776'
+- doi: "10.1007/s10799-026-00501-9"
+  type: "journal"
+  authors: "Pan, Y., Xue, F., & Liu, L."
+  year: 2026
+  title: "Divergence between symbolic adoption and substantive action: how organizational slack shapes AI washing"
+  venue: "Information Technology and Management"
+- doi: "10.1177/01708406241295505"
+  type: "journal"
+  authors: "Kaufmann, L., Krlev, G., & Brown, M. (."
+  year: 2025
+  title: "In Plain Sight: Mechanisms of means–ends decoupling in impact investing"
+  venue: "Organization Studies"
+  vol: "46"
+  issue: "5"
+  pages_or_artno: "667-692"
+- doi: "10.2139/ssrn.6922688"
+  type: "wp"
+  authors: "Xu, F."
+  year: 2026
+  title: "Bank FinTech Intensity and Financial Performance: Text-Based Evidence from European Banks"
+  venue: "SSRN"
+  pages_or_artno: "6922688"
+- doi: "10.1016/j.rmal.2025.100272"
+  type: "journal"
+  authors: "Hemelstrand, S., & Inoue, T."
+  year: 2025
+  title: "Stop splitting hairs: The problems with dichotomizing continuous data in language research"
+  venue: "Research Methods in Applied Linguistics"
+  vol: "4"
+  issue: "3"
+  pages_or_artno: "100272"
 new_dois: []
 ---
 
@@ -62,8 +93,7 @@ subst_adopt_int_p25 家族属于文章级政策对齐 (Article-level Policy Alig
 【方法学与计算】
 subst_adopt_int_p25 在盘上真实的构造分两层: 第一层是文章级二值化——由两个连续型上游测度在每篇文章 (而非 bank-year 聚合均值) 上同时二值化后取逻辑「与」得到, 其一是 policy_cosine_sim (及其 _ctx/_ss 同名轨道变体), 即文章文本与政策/监管语料的余弦相似度, 产出于 stage 16 article_policy_alignment (co-primary Qwen 嵌入主轨, 无后缀); 其二是 fintech_intensity_score, 即该篇文章中金科相关词汇/语义的强度得分, 产出于 stage 15 fintech_intensity。二值化阈值按年份分组 (`groupby('year')`) 分别对当年样本内的 policy_cosine_sim 与 fintech_intensity_score 逐年估计第 25 百分位切点 (而非对聚合后的 article_sim_mean/fintech_intensity_mean 计算样本内整体分位数), 高于当年切点记 1、否则记 0, 两个二值指示变量取逻辑与, 得到文章级指示: 该篇文章同时落在「当年政策对齐度前 75%」与「当年金科强度前 75%」区间时记 1, 否则记 0; sim 或 freq 任一测量缺失 (NaN) 的文章不参与分类, 指示值记 NaN (分母因此是"已测量篇数"而非全部篇数)。第二层是 bank-year 聚合——盘上真正落入面板的 subst_adopt_int_p25{_ctx,_ss} 列, 是把上述文章级 0/1/NaN 指示按 (target_bank, year) 做 `.mean()` 聚合 (pandas groupby mean 自动跳过 NaN) 得到的连续占比, 语义是「该行该年被测量文章中, 落入实质采纳象限的文章占比」, 取值范围 [0,1] 而非离散 {0,1}; 当该行该年全部文章均未测量时, 该占比列本身也是 NaN (未测量, 与 CLAUDE.md 「NaN 保持、listwise 处理」的项目通用口径一致, 不做 fillna(0) 处理)。命名中的 "int" 标识该列属于「Track B (intensity 连续测度)」象限体系, 与并列的 "kw" (Track A, 基于关键词计数的离散测度) 形成方法学对照的两条独立象限化路径, 二者各自 just-identified, 互为稳健性、不分主次, 不可混入同一 over-identified 设定 (如同一 Hansen J 检验)。"p25" 标识文章级二值化所用的年度分位阈值为第 25 百分位。P25 是该象限体系三档阈值梯度 {P25, P50, P75} 中最宽松的一档 (纳入样本比例最高); 项目口径上 P50 (中位数切分) 是与项目 10+ 处中位数分割惯例一致的机制检验基准档, P25/P75 是围绕该基准展开的阈值敏感性稳健性检验档——三档在计量设定上各自 just-identified 并排, 互为稳健性检验、禁止混入同一 over-identified 设定 (如同一 Hansen J 检验), 但在"何档作为正文机制检验的默认呈现"这一叙事选择上, 项目约定以 P50 为基准、P25/P75 供稳健性附表引用, 并非三档在计量地位上完全等权、无任何取舍。
 【文献定位】
-本族测度的构念定位可归入组织与战略文献中「实质 vs. 符号」采纳区分的量化操作化尝试。Westphal & Zajac (1994, Administrative Science Quarterly) 建立了这一区分的经典范式, 指出治理实践的正式采纳 (formal adoption) 未必伴随实质执行, 二者需要用独立的观测量分别度量而非假定同构; Fiss & Zajac (2006, Academy of Management Journal) 则从话语框架化角度补充了「言」如何被策略性建构以管理外部感知的机制。将该框架迁移到文本挖掘语境时, 需要引入可从大规模非结构化文本中稳定提取的代理变量: 本族选用「政策对齐度」代理「言」(话语层面与监管导向的贴合程度) 、「金科强度」代理「行」(具体技术/业务细节的丰富程度), 这一设计也与 Duchin, Gao & Xu (2025, The Journal of Finance) 在可持续性披露语境下对「披露-实际脱钩」现象的实证识别策略相呼应, 后者同样强调需要用双维度交叉而非单一披露文本指标来甄别名实是否相符。Kutzbach & Pogach (2024, Journal of Financial Intermediation) 的实证发现构成本族「强度」维度经济含义的旁证而非方法论溯源: 该文考察金融科技与银行关系型信贷是互补还是替代, 发现二者关系依赖于金融科技渗透的具体强度而非仅其有无, 提示「金科举措介入信贷关系的程度」本身是一个独立于「话语是否政策对齐」的经济学上有意义的维度——若把强度与对齐度合并为单一综合指数, 会掩盖这种强度依赖性异质性。这一发现支持本族将 fintech_intensity_score 保留为区别于 policy_cosine_sim 的独立测度轴, 而非将其合并为单一综合指数; 但该文本身并非文本化测量方法论文献, 不构成「文本化测量传统」的溯源出处, 本族的文本化操作化方法论根基仍在 Westphal & Zajac (1994) / Fiss & Zajac (2006) 的实质-符号区分传统与 Bingler et al. (2022) 的文本细粒度识别传统。
-
+本族测度的构念定位可归入组织与战略文献中「实质 vs. 符号」采纳区分的量化操作化尝试。Westphal & Zajac (1994, Administrative Science Quarterly) 建立了这一区分的经典范式, 指出治理实践的正式采纳 (formal adoption) 未必伴随实质执行, 二者需要用独立的观测量分别度量而非假定同构; Fiss & Zajac (2006, Academy of Management Journal) 则从话语框架化角度补充了「言」如何被策略性建构以管理外部感知的机制。将该框架迁移到文本挖掘语境时, 需要引入可从大规模非结构化文本中稳定提取的代理变量: 本族选用「政策对齐度」代理「言」(话语层面与监管导向的贴合程度) 、「金科强度」代理「行」(具体技术/业务细节的丰富程度), 这一设计也与 Duchin, Gao & Xu (2025, The Journal of Finance) 在可持续性披露语境下对「披露-实际脱钩」现象的实证识别策略相呼应, 后者同样强调需要用双维度交叉而非单一披露文本指标来甄别名实是否相符。Kutzbach & Pogach (2024, Journal of Financial Intermediation) 的实证发现构成本族「强度」维度经济含义的旁证而非方法论溯源: 该文考察金融科技与银行关系型信贷是互补还是替代, 发现二者关系依赖于金融科技渗透的具体强度而非仅其有无, 提示「金科举措介入信贷关系的程度」本身是一个独立于「话语是否政策对齐」的经济学上有意义的维度——若把强度与对齐度合并为单一综合指数, 会掩盖这种强度依赖性异质性。这一发现支持本族将 fintech_intensity_score 保留为区别于 policy_cosine_sim 的独立测度轴, 而非将其合并为单一综合指数; 但该文本身并非文本化测量方法论文献, 不构成「文本化测量传统」的溯源出处, 本族的文本化操作化方法论根基仍在 Westphal & Zajac (1994) / Fiss & Zajac (2006) 的实质-符号区分传统与 Bingler et al. (2022) 的文本细粒度识别传统。 晚近文献在三个层面为本族补充了锚点。其一是符号-实质二分在数字技术议题下的当代重述: Pan、Xue 与 Liu (2026) 把技术采纳明确二分为「符号性采纳 (symbolic adoption)」与「实质性行动 (substantive action)」, 并将二者的背离操作化为 AI washing 加以实证测量, 为本族 subst (双高) 与 token (高声量、低对齐) 两格所依赖的「同一构念拆成两维并置」提供了 2026 年的存在性证明; 惟其对象是一般企业的 AI 叙事与实际行动, 符号/实质的划分基于组织冗余与披露数据, 既不使用政策文本余弦相似度, 也不做年度分位阈值切分, 层级为企业而非银行-年, 更无以已测量报道篇数为分母的聚合口径。Kaufmann、Krlev 与 Brown (2025) 以影响力投资为田野, 系统刻画 means-ends decoupling (实践在形式上落地却与目标脱节) 的具体机制, 为 subst 与 token 两格的理论区分提供了近期组织学依据; 但该文为定性机制研究, 不构造任何数值指标, 亦无分位阈值二值化与 bank-year 聚合, 其 means-ends 概念与本族「政策余弦 × 金科强度」的操作化仅属理论对应而非同一测量。其二是强度维度的同域应用: Xu (2026) 用文本方法构造银行层面的 FinTech intensity 指标并检验其与经营绩效的关系, 与本族所用 fintech_intensity_score 属同一测度族; 惟其样本为欧洲银行, 文本取自银行自身披露而非第三方中文新闻, intensity 作为连续指标直接进入回归而不做年度分位二值化, 更未与政策相似度交叉形成 2×2 象限, 且属未经同行评审的 SSRN 工作论文, 结论稳健性未定, 故仅作同域存在性旁证。其三是对本族二值化做法本身的反向方法学告诫, 须直面而非回避: Hemelstrand 与 Inoue (2025) 用三组模拟系统论证连续变量二分的方法学代价 —— 二分几乎普遍抬高标准误、进而使显著性检验失准, 并因信息量削减而压低 R² 等效应量, 其明确立场是建议不要二分连续数据。本族把连续的 policy_cosine_sim 与 fintech_intensity_score 按年度 P25 切成指示变量再聚合, 正落在该文告诫的范围内, 使用者应据此理解本族占比列相对于直接使用两个连续测度所付出的效率代价, 并在需要精确推断时优先回到连续测度。须强调的是, 该文并未为 P25/P50/P75 三级阈值梯子背书, 亦未提出「若必须二分则做多切点敏感性检验」的补救建议 —— 阈值梯子是本项目自设的稳健性措施, 其正当性不得援引该文; 该文领域为应用语言学研究方法而非金融/经济学, 论证针对单变量二分对回归推断的影响, 未涉及双变量交叉的 2×2 象限、逐年滚动分位阈值、面板聚合与已测量分母口径。本族之所以仍保留象限设计, 理由在于「实质 vs. 符号」的构念本身即为离散型态学 (typology) 而非连续强度, 且 P25/P50/P75 三档各自 just-identified 并排、互为稳健性、不分主次, 严禁混入同一 over-identified Hansen J 检验 —— 这是对切点任意性的披露式应对, 而非对上述告诫的反驳。
 ## VAR: subst_adopt_int_p25
 
 【变体差分】
@@ -85,4 +115,8 @@ Fiss, P. C., & Zajac, E. J. (2006). The Symbolic Management of Strategic Change:
 Westphal, J. D., & Zajac, E. J. (1994). Substance and Symbolism in CEOs' Long-Term Incentive Plans. Administrative Science Quarterly, 39(3), 367-390. https://doi.org/10.2307/2393295
 Kutzbach, M. J., & Pogach, J. (2024). Financial Technology and Relationship Lending: Complements or Substitutes?. Journal of Financial Intermediation, 59, 101101. https://doi.org/10.1016/j.jfi.2024.101101
 Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022). Cheap Talk and Cherry-Picking: What ClimateBert Has to Say on Corporate Climate Risk Disclosures. Finance Research Letters, 47, 102776. https://doi.org/10.1016/j.frl.2022.102776
+Pan, Y., Xue, F., & Liu, L. (2026). Divergence between symbolic adoption and substantive action: how organizational slack shapes AI washing. Information Technology and Management. https://doi.org/10.1007/s10799-026-00501-9
+Kaufmann, L., Krlev, G., & Brown, M. (. (2025). In Plain Sight: Mechanisms of means–ends decoupling in impact investing. Organization Studies, 46(5), 667-692. https://doi.org/10.1177/01708406241295505
+Xu, F. (2026). Bank FinTech Intensity and Financial Performance: Text-Based Evidence from European Banks. SSRN No. 6922688 [Working Paper]. https://doi.org/10.2139/ssrn.6922688
+Hemelstrand, S., & Inoue, T. (2025). Stop splitting hairs: The problems with dichotomizing continuous data in language research. Research Methods in Applied Linguistics, 4(3), 100272. https://doi.org/10.1016/j.rmal.2025.100272
 <!-- rendered-citations:end -->

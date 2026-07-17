@@ -40,6 +40,22 @@ citations:
   vol: '10'
   issue: '45'
   pages_or_artno: eadp1528
+- doi: "10.1371/journal.pone.0323064"
+  type: "journal"
+  authors: "Wright, D., & Augenstein, I."
+  year: 2025
+  title: "Aggregating soft labels from crowd annotations improves uncertainty estimation under distribution shift"
+  venue: "PLOS One"
+  vol: "20"
+  issue: "6"
+  pages_or_artno: "e0323064"
+- doi: "10.2139/ssrn.4842086"
+  type: "wp"
+  authors: "Battaglia, L., Christensen, T., Hansen, S., & Sacher, S."
+  year: 2024
+  title: "Inference for Regression with Variables Generated from Unstructured Data"
+  venue: "SSRN Electronic Journal"
+  pages_or_artno: "4842086"
 new_dois: []
 ---
 
@@ -60,8 +76,7 @@ new_dois: []
 需特别说明的一点度量学含义: 本家族列的数值大小本身不是"语调强度"，而是"该银行-年内 LLM 对该文章给出有效概率判断、且被跟风衰减权重加权后的样本权重总量"，可粗略理解为"经权重折算后的有效样本规模"。当一个银行-年内报道量大但 LLM 判断有效率低 (如因 prompt 触发拒答、格式解析失败等), 该列数值会明显小于同期 sum_herd_weight{track} (物理权重总和); 二者之比 sum_wd_hw_prob{track} / sum_herd_weight{track} 可作为该银行-年 llm_prob_score 判断覆盖率的诊断量, 但该比值本身不是既定面板列, 需下游自行构造。
 
 【文献定位】
-跟风衰减加权的经济学动机 (抄稿/重复报道稀释边际信息含量, 因而应对高度雷同的跟风报道降权) 的详细文献谱系见 herd_weight 家族长文, 本家族不重复展开该动机论证。以概率化连续分数替代离散三分类语调标签的做法 (llm_prob_score), 呼应 Niculescu-Mizil & Caruana (2005) 关于监督学习模型输出概率校准 (probability calibration) 的方法论——本项目的 logit-to-score 映射同样追求把 LLM 的离散判断转换为可信的连续概率量表, 而非直接把 softmax/离散标签当作基数意义上可加总的分数使用。valid-mask 分母的设计 (只对有效观测计入分母权重) 呼应计量经济学里"选择性缺失下加权均值的分子分母同域"这一基本原则, 与 Manski & Lerman (1977, Econometrica) 关于基于选择的样本估计选择概率时须保证样本口径一致性的经典论证同构——若分子分母口径不一致 (如本家族修复前的 encode-01 bug), 估计量会产生系统性偏误方向 (向 0 或向某个基准值收缩), 而非仅仅是方差增大。此外, 概率化多分类器集成投票的可靠性也有近期 LLM 文献支持: Schoenegger et al. (2024, Science Advances) 展示 LLM 集成 (ensemble) 预测能力可比拟人类群体智慧, 为本项目采用三家 LLM 投票 + 概率映射双轨并行的设计提供跨领域佐证——但需注意, 本项目的三家 LLM 投票共识 (llm_vote_tone) 与三家各自的 per-model 子测度、以及 llm_prob_score 概率映射轨, 是并列的互为稳健性测度, 并非以概率映射轨替代投票共识轨。
-
+跟风衰减加权的经济学动机 (抄稿/重复报道稀释边际信息含量, 因而应对高度雷同的跟风报道降权) 的详细文献谱系见 herd_weight 家族长文, 本家族不重复展开该动机论证。以概率化连续分数替代离散三分类语调标签的做法 (llm_prob_score), 呼应 Niculescu-Mizil & Caruana (2005) 关于监督学习模型输出概率校准 (probability calibration) 的方法论——本项目的 logit-to-score 映射同样追求把 LLM 的离散判断转换为可信的连续概率量表, 而非直接把 softmax/离散标签当作基数意义上可加总的分数使用。valid-mask 分母的设计 (只对有效观测计入分母权重) 呼应计量经济学里"选择性缺失下加权均值的分子分母同域"这一基本原则, 与 Manski & Lerman (1977, Econometrica) 关于基于选择的样本估计选择概率时须保证样本口径一致性的经典论证同构——若分子分母口径不一致 (如本家族修复前的 encode-01 bug), 估计量会产生系统性偏误方向 (向 0 或向某个基准值收缩), 而非仅仅是方差增大。此外, 概率化多分类器集成投票的可靠性也有近期 LLM 文献支持: Schoenegger et al. (2024, Science Advances) 展示 LLM 集成 (ensemble) 预测能力可比拟人类群体智慧, 为本项目采用三家 LLM 投票 + 概率映射双轨并行的设计提供跨领域佐证——但需注意, 本项目的三家 LLM 投票共识 (llm_vote_tone) 与三家各自的 per-model 子测度、以及 llm_prob_score 概率映射轨, 是并列的互为稳健性测度, 并非以概率映射轨替代投票共识轨。 在上述锚点之外, 另有两条近期文献分别贴合本家族的两个构造环节。Wright 与 Augenstein (2025) 在 NLP 标注基准上系统比较了把多标注者软标签 (概率) 聚合为训练/评估目标的若干方案, 发现软标签聚合在分布偏移下比硬标签多数投票给出更好的不确定性估计; 这正对应本项目两条并排轨的存在理由: prob 分组 (软概率映射) 与 llm 分组 (三家硬多数投票共识), 本家族即前者的 hw 分母。迁移边界须写明: 原文的标注者是人类众包工人而非商用 LLM, 其目标是分类器不确定性校准而非面板分母求和, 语料为英文基准集, 原文既无银行-年聚合层, 亦无跟风/媒体权威/提及密度三套权重维度; 尤须避免据该文把 prob 轨读作优于投票轨的主测度——本仓库两轨仍是互为稳健性、不分主次、各自 just-identified 并排的设定, 禁止混入同一 over-identified Hansen J。Battaglia、Christensen、Hansen 与 Sacher (2024) 建立了"先由文本等非结构化数据生成变量, 再把该变量放进回归"这一两步流程的推断理论, 证明朴素代入会产生偏误, 并给出偏误修正与有效标准误。本家族恰处该流程的分母侧: llm_prob_score 由 LLM 从新闻文本生成, 其有效性掩码决定哪些篇章的权重进入加权求和。该文亦为工作论文; 其处理对象是回归中的生成型回归元/被解释变量本身, 与本处"有效性掩码构成的权重分母"层级不同, 原文未涉及中文新闻、银行-年面板、三轨设定与多模型投票共识, 本仓库也并未实施其修正估计量, 故引用限于"文本生成变量的误差非随机、朴素代入有偏"这一前提层, 不主张本家族已按其方案去偏。
 ## VAR: sum_wd_hw_prob_ctx
 
 【变体差分】
@@ -83,4 +98,6 @@ new_dois: []
 Niculescu-Mizil, A., & Caruana, R. (2005). Predicting good probabilities with supervised learning. Proceedings of the 22nd International Conference on Machine Learning (ICML) No. 625-632 [Working Paper]. https://doi.org/10.1145/1102351.1102430
 Manski, C. F., & Lerman, S. R. (1977). The estimation of choice probabilities from choice based samples. Econometrica, 45(8), 1977-1988. https://doi.org/10.2307/1914121
 Schoenegger, P., Tuminauskaite, I., Park, P. S., Bastos, R. V. S., & Tetlock, P. E. (2024). Wisdom of the silicon crowd- LLM ensemble prediction capabilities rival human crowd accuracy. Science Advances, 10(45), eadp1528. https://doi.org/10.1126/sciadv.adp1528
+Wright, D., & Augenstein, I. (2025). Aggregating soft labels from crowd annotations improves uncertainty estimation under distribution shift. PLOS One, 20(6), e0323064. https://doi.org/10.1371/journal.pone.0323064
+Battaglia, L., Christensen, T., Hansen, S., & Sacher, S. (2024). Inference for Regression with Variables Generated from Unstructured Data. SSRN Electronic Journal No. 4842086 [Working Paper]. https://doi.org/10.2139/ssrn.4842086
 <!-- rendered-citations:end -->

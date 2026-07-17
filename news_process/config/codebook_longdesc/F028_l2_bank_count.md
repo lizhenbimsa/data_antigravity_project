@@ -46,6 +46,28 @@ citations:
   vol: 54
   issue: 4
   pages_or_artno: 1187-1230
+- doi: "10.1108/cafr-12-2025-0269"
+  type: "journal"
+  authors: "Meng, L., Wang, P. P., Lu, H., Yang, W. Y., & Vijayakumar, S."
+  year: 2026
+  title: "Entity-specific text classification with large language models: two applications on financial and brand news"
+  venue: "China Accounting and Finance Review"
+  pages_or_artno: "1-11"
+- doi: "10.1016/j.frl.2025.108648"
+  type: "journal"
+  authors: "Huang, Y., Li, Y., Li, P., Zhang, Q., & Zhang, Y."
+  year: 2025
+  title: "The unseen guardian: News co-mention and stock market manipulation"
+  venue: "Finance Research Letters"
+  vol: "86"
+  pages_or_artno: "108648"
+- doi: "10.1177/10944281251334777"
+  type: "journal"
+  authors: "Iqbal, F., & Pfarrer, M. D."
+  year: 2025
+  title: "Using Coreference Resolution to Mitigate Measurement Error in Text Analysis"
+  venue: "Organizational Research Methods"
+  pages_or_artno: "10944281251334777"
 new_dois: []
 ---
 
@@ -58,8 +80,7 @@ new_dois: []
 两列都是 encode.py::aggregate_panel 中对同一 article 级源列 bank_count 的分组聚合: avg_bank_count 取组内均值 ('bank_count','mean'), max_bank_count 取组内极大值 ('bank_count','max')。分组键为银行-年度 (target_bank × year), 行宇宙严格等于 full-only 留篇集: 一篇报道是否计入某银行某年, 由 stage 21 的 llm_verified_full 为真决定 (2026-06-29 留篇门控定为 full-only, ctx/ss 降为 conditional-on-full 的测度轨), 因此这两列的聚合样本与 n_articles 物理篇数分母同源、同一批 verified article×bank 行。需强调 bank_count 是 track-agnostic 的元数据计数: 它源于实体识别而非三轨情感文本, 全文/实体窗/同句三轨共享同一篇计数, 不存在 avg_bank_count_ctx / _ss 之类的轨道孪生列——这与 CLAUDE.md 中"唯一不能双轨的是 track-agnostic 元数据度量"的口径一致, 也因此本家族不涉及三轨、co-primary 双轨嵌入或任何梯子的"各自 just-identified 并排"叙事。均值与极大值二者互补而非替代: 均值刻画集中趋势 (典型报道的共提规模), 极大值刻画尾部极端 (最拥挤的一篇), 极大值对单篇大榜单/行业普查式报道高度敏感, 均值则被大量单主体报道拉低。作为整数计数的年度聚合, 本量属于典型的 count / count-like 数据, 其分布右偏、方差随均值上升, 下游若直接入回归须留意这一异方差与非负特性。
 
 【文献定位】
-在计数型金融变量的处理上, Cohn, Liu, and Wardlaw (2022) 系统梳理了 count 与 count-like 数据在公司金融中的建模陷阱, 指出对右偏非负计数直接跑 OLS 或对数变换均可能产生偏误, 为本家族两列作为潜在协变量/被解释变量时的函数形式选择提供了方法学基准。就"媒体共提"这一信息结构而言, Li and Luan (2025) 以新闻文本构造投资者分歧, 说明同一新闻流中被并置的多主体信息会通过关注与解读的异质性影响市场, 呼应本家族把"一篇里同时提了几家银行"视作行业关注结构的代理。Call, Emett, Maksymov, and Sharp (2022) 通过对财经记者的调查证据揭示新闻中介如何选择报道对象与并置主体, 为 bank_count 的生成机制 (为何某些银行更常被裹进多主体报道) 提供了信息中介视角的制度解释。Loughran and McDonald (2016) 对会计与金融文本分析方法的综述则界定了实体识别与计数类文本测度的一般效度边界, 提示短名匹配/否定过滤等判定选择会实质影响计数结果, 与本管道银行侧判定的否定加短名过滤设计相互印证。综上, 本家族两列在文献坐标中处于"媒体报道的行业共提结构"这一交叉带, 既是文本计数测度、也是关注网络的边密度信号。
-
+在计数型金融变量的处理上, Cohn, Liu, and Wardlaw (2022) 系统梳理了 count 与 count-like 数据在公司金融中的建模陷阱, 指出对右偏非负计数直接跑 OLS 或对数变换均可能产生偏误, 为本家族两列作为潜在协变量/被解释变量时的函数形式选择提供了方法学基准。就"媒体共提"这一信息结构而言, Li and Luan (2025) 以新闻文本构造投资者分歧, 说明同一新闻流中被并置的多主体信息会通过关注与解读的异质性影响市场, 呼应本家族把"一篇里同时提了几家银行"视作行业关注结构的代理。Call, Emett, Maksymov, and Sharp (2022) 通过对财经记者的调查证据揭示新闻中介如何选择报道对象与并置主体, 为 bank_count 的生成机制 (为何某些银行更常被裹进多主体报道) 提供了信息中介视角的制度解释。Loughran and McDonald (2016) 对会计与金融文本分析方法的综述则界定了实体识别与计数类文本测度的一般效度边界, 提示短名匹配/否定过滤等判定选择会实质影响计数结果, 与本管道银行侧判定的否定加短名过滤设计相互印证。综上, 本家族两列在文献坐标中处于"媒体报道的行业共提结构"这一交叉带, 既是文本计数测度、也是关注网络的边密度信号。 晚近研究从构念前提、同域应用与测量误差三个侧面补强了本家族的坐标与效度边界。Meng、Wang、Lu、Yang 与 Vijayakumar (2026) 以大语言模型做实体特定 (entity-specific) 的新闻文本分类基准评测, 明确指出同一篇报道内多实体并存会使文档级分析失效、须在实体粒度上抽取信息, 并在英文金融新闻与中文危机新闻两个语料上以 F1 对人工标注做效度评估; 该文正锚定 bank_count「单篇内多实体并存」这一构念前提, 但本管道的实体识别走词典/AC 自动机加 jieba token 匹配 (LLM 仅用于 stage 21 情感与分类维度), 故原文不构成本管道实体抽取精度的背书, 其实体宇宙亦为一般金融/品牌新闻主体而非本项目限定的 110 家目标银行, 且不产出银行-年面板聚合、无实体窗口回退机制。Huang、Li、Li、Zhang 与 Zhang (2025) 用分布式爬虫构造 news co-mention 指数 (同一篇报道同时点名多家公司), 刻画媒体报道中的企业间共同点名网络并检验其对中国 A 股市场操纵的抑制作用, 是与本家族同构念测度在同一媒体语境下的前沿存在性与应用参照 (同篇共同点名构念的提出远早于该文, 故非构念出处); 迁移边界在于原文实体宇宙为 A 股上市公司全体、并由 co-mention 构造网络边做网络分析、被解释对象为市场操纵识别, 而本家族只统计银行∧银行的同篇点名并在 bank-year 上取计数的均值与极值 (不建网), 实体归一化另经 variant→canonical 映射与银行侧否定加短名过滤, 原文未报告同等口径。就计数的测量误差而言, Iqbal 与 Pfarrer (2025) 证明多主体文本中的主体归属存在系统性测量误差 (传统方法易将文本误归于错误公司), 提出以共指消解 (coreference resolution) 作为处理方案, 并通过两项研究显示该处理可降低测量误差; 对本家族的提示是一项具体的语言学处理选择会系统性改变文本测度的取值、并构成实质性的测量误差来源——本管道 bank_count 基于表层字符串与词典匹配、不做共指消解, 因而仅以指代形式出现的银行提及不会被计入, 这构成本家族两列的一项已知下界性偏差。须强调原文语料为英文组织管理文本、单位为文档/组织, 且其立场是规范性的 (主张采纳该规则以减少误差), 与本项目对文本处理选择一律并排为互为稳健性轨、各自 just-identified、不设主次的取向不同, 故不得据以推断本管道应改采某一唯一正确处理。
 ## VAR: avg_bank_count
 
 【变体差分】
@@ -75,4 +96,7 @@ Li, S. Z., & Luan, Z. (2025). News-based investor disagreement and stock returns
 Cohn, J. B., Liu, Z., & Wardlaw, M. I. (2022). Count (and count-like) data in finance. Journal of Financial Economics, 146(2), 529-551. https://doi.org/10.1016/j.jfineco.2022.08.004
 Call, A. C., Emett, S. A., Maksymov, E., & Sharp, N. Y. (2022). Meet the press: Survey evidence on financial journalists as information intermediaries. Journal of Accounting and Economics, 73(2-3), 101455. https://doi.org/10.1016/j.jacceco.2021.101455
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
+Meng, L., Wang, P. P., Lu, H., Yang, W. Y., & Vijayakumar, S. (2026). Entity-specific text classification with large language models: two applications on financial and brand news. China Accounting and Finance Review, 1-11. https://doi.org/10.1108/cafr-12-2025-0269
+Huang, Y., Li, Y., Li, P., Zhang, Q., & Zhang, Y. (2025). The unseen guardian: News co-mention and stock market manipulation. Finance Research Letters, 86, 108648. https://doi.org/10.1016/j.frl.2025.108648
+Iqbal, F., & Pfarrer, M. D. (2025). Using Coreference Resolution to Mitigate Measurement Error in Text Analysis. Organizational Research Methods, 10944281251334777. https://doi.org/10.1177/10944281251334777
 <!-- rendered-citations:end -->

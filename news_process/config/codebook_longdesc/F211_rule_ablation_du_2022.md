@@ -93,6 +93,29 @@ citations:
   vol: 37
   issue: 2
   pages_or_artno: 267-307
+- doi: "10.18653/v1/2025.emnlp-main.1088"
+  type: "journal"
+  authors: "Kim, J., Koo, S., & Lim, H."
+  year: 2025
+  title: "Semantic Inversion, Identical Replies: Revisiting Negation Blindness in Large Language Models"
+  venue: "Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing"
+  pages_or_artno: "21445-21482"
+- doi: "10.1177/10944281251334777"
+  type: "journal"
+  authors: "Iqbal, F., & Pfarrer, M. D."
+  year: 2025
+  title: "Using Coreference Resolution to Mitigate Measurement Error in Text Analysis"
+  venue: "Organizational Research Methods"
+  pages_or_artno: "10944281251334777"
+- doi: "10.1057/s41267-025-00798-8"
+  type: "journal"
+  authors: "Pinto, J., & Siano, F."
+  year: 2025
+  title: "Beyond words: the challenge of measuring financial text across borders"
+  venue: "Journal of International Business Studies"
+  vol: "56"
+  issue: "7"
+  pages_or_artno: "921-936"
 new_dois: []
 ---
 
@@ -105,8 +128,7 @@ new_dois: []
 打分引擎是一台状态机 (producer = pipeline/sentiment/tone_words.py, 阶段 22 tone_words), 它逐句扫描分词后的文本, 对每个命中 du_2022 极性词表的词赋一个带符号的初始极性 (正词 +1, 负词 −1, 政治正面词 +0.5), 然后按启用的规则对该极性做局部修饰得到 final_signed 值。三条规则分别是: 否定翻转 (neg, 命中词落在否定词的作用域内则符号取反)、程度副词 (deg, 前置程度副词按强弱缩放极性幅度)、转折 (adv, 在"但是/然而"等转折连词后调整从句极性权重)。篇章语调 = Σ(final_signed) / Σ|final_signed|, 即以命中词绝对贡献之和自归一化, 取值近似落在 [−1, 1]。本家族的 7 个变体 raw / negonly / degonly / advonly / negdeg / negadv / degadv 恰是这三条规则的 powerset 真子集: raw 三规则全关 (裸词典计数), 三个 only 变体各只开一条, 三个双字母变体各开两条; 三规则全开的口径即 canonical du_2022_tone, 归属另一家族 (F211 刻意不含全开臂, 避免与 canonical 列重复)。每个变体经文章级计算后, 在阶段 40 面板导出时按 bank-year 取报道均值聚合 (stata_export.py), 分母口径与 full-only 留篇门控 (2026-06-29) 一致: 一篇是否计为"银行金科报道"只由 full 轨 llm_verified_full 判定, ctx/ss 轨为 conditional-on-full 的子集测度。审计 MATH-1 已确认这些消融变体彼此高度共线 (corr≈0.99), 属于同一构念在不同规则集下的近平行位移, 引擎因此报告变体间相关性而不将其并入同一可加分解式。
 
 【文献定位】
-词典法与规则修饰的方法学谱系可上溯至 Loughran & McDonald (2011) 对金融文本专用词典必要性的奠基论证, 以及 Garcia (2013) 在《Journal of Finance》上用词典语调刻画媒体情绪并检验其对市场收益预测力的经典应用——后者是"词典语调作为可复现测度进入资产定价实证"的顶刊范本, 本家族的自归一化语调正是该传统的中文本土化延续。规则层面, Taboada et al. (2011) 系统论证了否定、程度强化与转折三类语境价移 (contextual valence shifting) 对词典法语调准确度的贡献, 是本家族三规则消融的直接方法学依据; Pröllochs et al. (2016) 进一步针对新闻驱动交易场景专门研究否定作用域检测, 支撑了 negonly 一臂的独立价值; Punetha & Jain (2025) 则以无监督数学方法重新审视否定处理这一长期难题, 说明该规则选择至今仍是活跃且未被完全定论的研究前沿, 因而值得以消融梯子做敏感性检验。Frankel et al. (2022) 在《Management Science》上对比机器学习与词典法披露语调, 佐证了"同一构念在不同测量引擎下并排互证"的稳健性检验范式。Du et al. (2022) 作为词典本身的出处, 界定了 political_positive 的降权处理与中文金融语境的领域特异性。就识别口径而言, 7 个规则变体各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同规则集的变体混进同一 over-identified Hansen J 检验; 该梯子与政治词权重梯度、三轨、co-primary 双轨嵌入等其它稳健性梯子彼此正交, 各自独立评估, 不交叉进同一识别式。
-
+词典法与规则修饰的方法学谱系可上溯至 Loughran & McDonald (2011) 对金融文本专用词典必要性的奠基论证, 以及 Garcia (2013) 在《Journal of Finance》上用词典语调刻画媒体情绪并检验其对市场收益预测力的经典应用——后者是"词典语调作为可复现测度进入资产定价实证"的顶刊范本, 本家族的自归一化语调正是该传统的中文本土化延续。规则层面, Taboada et al. (2011) 系统论证了否定、程度强化与转折三类语境价移 (contextual valence shifting) 对词典法语调准确度的贡献, 是本家族三规则消融的直接方法学依据; Pröllochs et al. (2016) 进一步针对新闻驱动交易场景专门研究否定作用域检测, 支撑了 negonly 一臂的独立价值; Punetha & Jain (2025) 则以无监督数学方法重新审视否定处理这一长期难题, 说明该规则选择至今仍是活跃且未被完全定论的研究前沿, 因而值得以消融梯子做敏感性检验。Frankel et al. (2022) 在《Management Science》上对比机器学习与词典法披露语调, 佐证了"同一构念在不同测量引擎下并排互证"的稳健性检验范式。Du et al. (2022) 作为词典本身的出处, 界定了 political_positive 的降权处理与中文金融语境的领域特异性。就识别口径而言, 7 个规则变体各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同规则集的变体混进同一 over-identified Hansen J 检验; 该梯子与政治词权重梯度、三轨、co-primary 双轨嵌入等其它稳健性梯子彼此正交, 各自独立评估, 不交叉进同一识别式。 晚近文献从三个侧面进一步充实了本家族的定位。Kim、Koo 与 Lim (2025) 提出并验证了"查询否定盲区": 当模型对肯定式查询的知识掌握准确时, 面对语义被否定翻转的同一查询仍产出相同或近似回答; 作者以 complexity 与 constrainedness 两准则设计四项验证任务, 给出当代大语言模型普遍存在该缺陷的系统性证据。这一背景性事实表明否定是当代自然语言处理系统中一条独立且尚未解决的语义处理轴, 为本家族把否定单列为可独立开关、独立报告的规则 (negonly、negdeg、negadv 三臂) 提供构念层动机。其边界须明确: 该文是英文 NLP 基准评测, 对象为生成式模型的知识问答与逻辑推理, 不涉及情感或语调测度, 不涉及词典状态机, 亦不涉及中文否定词表; 本家族的否定翻转是状态机内对否定作用域内命中词的确定性改号, "是否正确处理"并不构成问题, 消融臂所检验的是该规则对结论的影响, 故词典法否定处理的直接证据仍由本段既引的 Pröllochs et al. (2016) 承担, 本条只作构念层背景。Iqbal 与 Pfarrer (2025) 以共指消解处理多主体文本中的情感归属问题, 并以两项研究证明该处理可降低测量误差, 佐证"一项具体的语言学处理选择会系统性改变文本测度取值"这一般命题, 支持本家族对规则不作默认采纳而显式检验其后果的立场; 但其规则是实体指代还原, 与本家族的否定、程度、转折三规则并非同一规则, 其规范性取向 (主张采纳该规则以减少误差) 与本家族七臂互为稳健性、不分主次的取向不同, 因而不得视为 powerset 消融的同构先例, 其实体归属问题在本项目内对应的亦是 ctx 与 ss 实体窗口轨而非本族, 且原文语料为英文组织管理文本、单位为文档与组织。Pinto 与 Siano (2025) 以 85 个国家、200,960 份财报电话会记录 (文本本身即英文) 为语料, 把美国基准词表直接套用其上, 发现情感与收益的关联在非美国公司弱约 30%, 并定谳主因是文化距离而非语言 (语言特征仅作文化价值的工具变量); 这从反面支持本家族的构念前提: L&M 式美国基准词表一旦移出美国语境, 即使文本仍是英文其信号强度亦系统性衰减, 而移入中国语境既跨文化、又另加中文翻译, 风险只会更大——du_2022 之所以在中文金融语境内本土化重构极性词表而非直译英文词典, 正因于此。其边界须写明: 该文全文无词表翻译、亦无非英语语料, 语料为财报电话会记录而非中文金融新闻, 讨论对象限于美国基准词表移出本国语境后的信号衰减, 并未涉及否定、程度、转折规则子集的消融设计与银行年度聚合。
 ## VAR: du_2022_advonly_tone_ctx
 
 【变体差分】
@@ -222,4 +244,7 @@ Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection 
 Garcia, D. (2013). Sentiment during recessions. The Journal of Finance, 68(3), 1267-1300. https://doi.org/10.1111/jofi.12027
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
+Kim, J., Koo, S., & Lim, H. (2025). Semantic Inversion, Identical Replies: Revisiting Negation Blindness in Large Language Models. Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing, 21445-21482. https://doi.org/10.18653/v1/2025.emnlp-main.1088
+Iqbal, F., & Pfarrer, M. D. (2025). Using Coreference Resolution to Mitigate Measurement Error in Text Analysis. Organizational Research Methods, 10944281251334777. https://doi.org/10.1177/10944281251334777
+Pinto, J., & Siano, F. (2025). Beyond words: the challenge of measuring financial text across borders. Journal of International Business Studies, 56(7), 921-936. https://doi.org/10.1057/s41267-025-00798-8
 <!-- rendered-citations:end -->

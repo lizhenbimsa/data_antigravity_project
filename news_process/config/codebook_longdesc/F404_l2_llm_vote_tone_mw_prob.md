@@ -44,6 +44,13 @@ citations:
   venue: Decision Support Systems
   vol: '88'
   pages_or_artno: 67-75
+- doi: "10.18653/v1/2023.emnlp-main.330"
+  type: "journal"
+  authors: "Tian, K., Mitchell, E., Zhou, A., Sharma, A., Rafailov, R., Yao, H., Finn, C., & Manning, C."
+  year: 2023
+  title: "Just Ask for Calibration: Strategies for Eliciting Calibrated Confidence Scores from Language Models Fine-Tuned with Human Feedback"
+  venue: "Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing"
+  pages_or_artno: "5433-5442"
 new_dois: []
 ---
 
@@ -62,8 +69,7 @@ new_dois: []
 三个后缀 _full / _ctx / _ss 对应本仓库三轨文本架构: _full 使用标题+全文正文 (prepend_title 后的完整报道文本); _ctx 使用标题+目标银行实体窗口 (围绕银行实体名的局部上下文); _ss 使用标题+银行与金科关键词同句 (或按 config 设定的 ±N 句窗) 共现窗口, 在无银行∧金科同句共现时镜像 _ctx 的回退语义, 退化为使用全文 body 作为 content_ss 且置 ss_is_fallback=True, 与 _ctx 缺失同句证据时的降级处理逻辑完全一致, 分母 n_articles 在回退情形下与非回退情形共享同一计数口径。三轨在留篇门控上遵循 full-only 铁律 (2026-06-29 起生效): 一篇报道是否被判定为"目标银行×金科的有效报道"只由 llm_verified_full 决定, ctx/ss 轨的样本行集合是 full 轨留篇集合的子集, 即 ctx/ss 版本的 llm_vote_tone_mw_prob 只在 full 已确认留篇的文章范围内计算各自轨道的文本内容与权重, 属于"conditional-on-full"的测度/稳健性轨, 不构成独立的留篇判定入口。三轨彼此各自 just-identified 并排, 互为稳健性、不分主次, 严禁将三轨列混入同一个 over-identified 的 Hansen J 检验, 三轨应作为并列稳健性检验呈现, 不应相加或相互替代作为单一识别策略的联立工具。
 
 【文献定位】
-本族方法学定位横跨三条文献线索。其一是 LLM 文本情感分析在金融/会计研究中的应用范式, de Kok (2025, Management Science) 系统梳理了生成式大语言模型在会计文本分析中的使用规范 (含 temperature=0、prompt 冻结、结果缓存等可复现性设计, 均已被本仓库 stage 21 的确定性缓存架构采纳), Kamen & Kamen (2025) 论证了多模型多数投票集成相较单模型分类的稳健性优势, 为本族的三家 LLM 共识机制提供直接方法学支撑。其二是媒体权威性/媒体影响力异质性文献, Holzman, Miller & Twedt (2023, The Accounting Review) 是本族媒体权威加权 (mw) 设计的直接实证锚点, 其核心发现是媒体情感的市场影响力随媒体自身权威性/可信度而系统变化, 使得对不同来源报道的简单等权处理会掩盖真实的信息传导强度差异。其三是概率化/连续化情感分数相对离散标签的信息保留优势, 呼应文本情感分析文献中"细粒度情感分数优于粗粒度离散分类"的方法论共识 (如 Pröllochs, Feuerriegel & Neumann (2016) 在否定处理/情感细粒度识别上的工作), 本族用概率映射代替硬投票, 力图在三家 LLM 分类边界模糊的样本上保留更多信息而非強行舍入为单一离散标签。
-
+本族方法学定位横跨三条文献线索。其一是 LLM 文本情感分析在金融/会计研究中的应用范式, de Kok (2025, Management Science) 系统梳理了生成式大语言模型在会计文本分析中的使用规范 (含 temperature=0、prompt 冻结、结果缓存等可复现性设计, 均已被本仓库 stage 21 的确定性缓存架构采纳), Kamen & Kamen (2025) 论证了多模型多数投票集成相较单模型分类的稳健性优势, 为本族的三家 LLM 共识机制提供直接方法学支撑。其二是媒体权威性/媒体影响力异质性文献, Holzman, Miller & Twedt (2023, The Accounting Review) 是本族媒体权威加权 (mw) 设计的直接实证锚点, 其核心发现是媒体情感的市场影响力随媒体自身权威性/可信度而系统变化, 使得对不同来源报道的简单等权处理会掩盖真实的信息传导强度差异。其三是概率化/连续化情感分数相对离散标签的信息保留优势, 呼应文本情感分析文献中"细粒度情感分数优于粗粒度离散分类"的方法论共识 (如 Pröllochs, Feuerriegel & Neumann (2016) 在否定处理/情感细粒度识别上的工作), 本族用概率映射代替硬投票, 力图在三家 LLM 分类边界模糊的样本上保留更多信息而非強行舍入为单一离散标签。 这一概率化路径的上游前提——即商用 LLM 自报的 confidence 字段可被当作有意义的概率量——由 Tian 等 (2023) 提供实证依据: 该文在英文事实型 QA 上系统比较多种置信度获取策略, 发现对经 RLHF 微调的模型, 直接以自然语言索要口头概率 (verbalized confidence) 所得的置信度, 其校准程度 (以 ECE 度量) 优于读取模型内部 logit 条件概率, 恰好对应本仓库以 prompt 索取 confidence 字段、再将其送入 logit-to-score 映射而非依赖模型内部概率的做法。迁移边界须诚实标明: 该文证据来自 2023 年 GPT-3.5/GPT-4 代次的英文事实问答, 本仓库既未在中文银行×金科新闻语料上复测 ECE, 亦未验证该校准优势能否迁移到 deepseekv4 与 gemini31 两家非 OpenAI 模型; 该文也不涉及跨模型投票、媒体权威加权求和与 bank-year 面板聚合。故其对本族的锚定仅及于文章级 confidence 可用性这一环, 不延伸至 mw 加权口径与聚合环节, 后两者的正当性仍由前述媒体权威性文献各自独立承担。
 ## VAR: llm_vote_tone_mw_prob_ctx
 
 【变体差分】
@@ -84,4 +90,5 @@ Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing enthusiasm: Media 
 de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
 Kamen, A., & Kamen, Y. (2025). Majority rules: LLM ensemble is a winning approach for content categorization. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2511.15714
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
+Tian, K., Mitchell, E., Zhou, A., Sharma, A., Rafailov, R., Yao, H., Finn, C., & Manning, C. (2023). Just Ask for Calibration: Strategies for Eliciting Calibrated Confidence Scores from Language Models Fine-Tuned with Human Feedback. Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing, 5433-5442. https://doi.org/10.18653/v1/2023.emnlp-main.330
 <!-- rendered-citations:end -->

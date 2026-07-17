@@ -52,6 +52,22 @@ citations:
   venue: Finance Research Letters
   vol: '95'
   pages_or_artno: '109684'
+- doi: "10.1016/j.iref.2026.104974"
+  type: "journal"
+  authors: "Li, Y., & Zhu, C."
+  year: 2026
+  title: "Govern digitalization with digitalization: government digital governance and corporate false digital disclosure"
+  venue: "International Review of Economics & Finance"
+  vol: "106"
+  pages_or_artno: "104974"
+- doi: "10.1016/j.frl.2024.105265"
+  type: "journal"
+  authors: "Huang, J., & Ma, L."
+  year: 2024
+  title: "Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation"
+  venue: "Finance Research Letters"
+  vol: "63"
+  pages_or_artno: "105265"
 new_dois: []
 ---
 
@@ -64,8 +80,7 @@ new_dois: []
 分子分母构造遵循同一"分母同域计数"原则 (2026-06-11 修复, omni-g-runner-10/14): 分子 bian_2021_pos_symb_count{track} 统计 bian_2021 词典打分 (`bian_2021_score{track}`) 为正 且 该篇文章 innovation_substantiveness_full 维度被 LLM 三家投票判定为"象征性"的报道数; 分母 bian_2021_pos_substvalid_count{track} 统计 bian_2021 词典判正 且 该篇实质性维度已被有效测量 (象征性∪实质性两类均计入, 不含未测量/拒绝) 的报道数。二者比值即为该银行-年份样本中"词典判正报道里有多少是纯象征性表态"。若面板 schema 缺失 substvalid 分母列 (旧版本兼容路径), producer 会告警回退到物理分母 bian_2021_pos_count{track} (未按实质性维度可测性筛选), 此时口径与新版存在系统性差异, 使用者应核对面板 schema 版本。分母为 0 (该银行-年该轨无任何 bian_2021 判正报道) 时经 `_safe_ratio` 输出 NaN 而非 0, 避免把"无样本"误读为"零洗稿"。判定"象征性/实质性"的分类器本身固定取自 innovation_substantiveness_full — 即便本家族存在 ctx/ss 轨变体, 象征性/实质性标签始终由 full-only 文本 (标题+全文) 判定 (2026-06-29 留篇门控口径), 三轨之间真正变动的只是 bian_2021 词典打分所依赖的文本窗口 (full=标题+正文, ctx=标题+实体窗口, ss=标题+银行∧金科同句±N窗)。这一"分类器 full-only 固定、极性打分逐轨变动"的构造与 pipeline P3 治理维度稳健性设计 (LLM_CLASS_SPEC 三元映射) 一脉相承。
 
 【文献定位】
-洗稿/漂绿 (washing) 概念在会计与金融文献中近年迅速扩张: Gorovaia & Makrominas (2024, European Financial Management) 用自然语言处理方法从企业社会责任报告中识别漂绿, 关注"言辞承诺"与"实质行动"的脱节, 与本家族"象征性正面报道占比"的构念高度一致; Fan, Tang, Huang & Yang (2025, Pacific-Basin Finance Journal) 进一步在中国资本市场情境下研究股权集中度与企业漂绿的关系, 提供了本家族在银行业情境外的平行证据; Song, Hou, Ouyang & Hao (2026, Finance Research Letters) 将洗稿概念延伸到"AI washing" (人工智能概念的策略性披露与反噬), 与本项目银行-金科合作报道的核心研究情境直接呼应, 提示媒体报道中的"创新叙事"同样可能存在策略性夸大而非实质变革。词典层面, Bian et al. (2021) 与 Du et al. (2022, Review of Finance) 是本 pipeline 六词典体系中专门针对中文财经文本情境构建的两部代表性词典, 二者均强调英文金融情感词表 (如 Loughran & McDonald 2011) 直接翻译到中文语境存在系统性失真, 主张基于中文财经语料的领域特异性重新标注正负词汇 — 这构成了 washing_ratio 矩阵按词典逐一并排计算 (而非仅依赖单一词典) 的方法论依据: 不同词典对"正面"的判定标准存在差异, 逐词典单独产出洗稿率可以检验该构念是否对具体词典选择稳健。
-
+洗稿/漂绿 (washing) 概念在会计与金融文献中近年迅速扩张: Gorovaia & Makrominas (2024, European Financial Management) 用自然语言处理方法从企业社会责任报告中识别漂绿, 关注"言辞承诺"与"实质行动"的脱节, 与本家族"象征性正面报道占比"的构念高度一致; Fan, Tang, Huang & Yang (2025, Pacific-Basin Finance Journal) 进一步在中国资本市场情境下研究股权集中度与企业漂绿的关系, 提供了本家族在银行业情境外的平行证据; Song, Hou, Ouyang & Hao (2026, Finance Research Letters) 将洗稿概念延伸到"AI washing" (人工智能概念的策略性披露与反噬), 与本项目银行-金科合作报道的核心研究情境直接呼应, 提示媒体报道中的"创新叙事"同样可能存在策略性夸大而非实质变革。词典层面, Bian et al. (2021) 与 Du et al. (2022, Review of Finance) 是本 pipeline 六词典体系中专门针对中文财经文本情境构建的两部代表性词典, 二者均强调英文金融情感词表 (如 Loughran & McDonald 2011) 直接翻译到中文语境存在系统性失真, 主张基于中文财经语料的领域特异性重新标注正负词汇 — 这构成了 washing_ratio 矩阵按词典逐一并排计算 (而非仅依赖单一词典) 的方法论依据: 不同词典对"正面"的判定标准存在差异, 逐词典单独产出洗稿率可以检验该构念是否对具体词典选择稳健。 在该构念的中文语境前沿测度上, Li 与 Zhu (2026) 构造了中国企业"虚假数字化披露"测度并检验政府数字治理对其的抑制作用, 其判据 (数字化叙事强度与实质数字化不匹配) 与本家族分子的构念 (正面叙事 ∧ 实质性缺席) 同义; 迁移边界在于该文测度对象为企业年报自我披露文本、参照系是企业内部数字资产与投入、单位为公司-年, 而本家族对象为外部媒体报道, 实质性由 LLM 逐篇判定而非与财务投入比对, 单位为银行-年, 且该文未使用中文情感词典分层, 本家族的词典判定器口径原文并未涉及。Huang 与 Ma (2024) 以金融科技发展为解释变量, 检验其对企业实质性绿色创新与象征性绿色创新的差异化影响, 在中国情境下明确采用"实质性 vs 象征性"创新二分, 与本项目 innovation_substantiveness 的二分标签在概念与中文表述上直接对应, 是该二分在金融科技议题下的同域应用; 但该文的实质/象征由专利类型 (发明 vs 实用新型/外观) 客观划分, 主体为非金融上市公司, 金融科技是解释变量, 而本家族的实质/象征由 LLM 对新闻文本判定 (非专利数据), 主体为银行, 金融科技是被报道的议题本身, 原文亦未构造任何比率型 washing 指标, 因此二者仅在二分构念层面互相印证, 不构成对本家族比率口径的直接外部效度证据。
 ## VAR: washing_ratio_bian_2021
 
 【变体差分】
@@ -87,4 +102,6 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Gorovaia, N., & Makrominas, M. (2024). Identifying greenwashing in corporate-social responsibility reports using natural-language processing. European Financial Management, 31(1), 427-462. https://doi.org/10.1111/eufm.12509
 Fan, X., Tang, Z., Huang, W., & Yang, K. (2025). Ownership concentration and corporate greenwashing in China's capital markets, Based on a multi-actors perspective. Pacific-Basin Finance Journal, 89, Article 102600. https://doi.org/10.1016/j.pacfin.2024.102600
 Song, X., Hou, W., Ouyang, Z., & Hao, F. (2026). AI washing: Strategic disclosure and backlash. Finance Research Letters, 95, 109684. https://doi.org/10.1016/j.frl.2026.109684
+Li, Y., & Zhu, C. (2026). Govern digitalization with digitalization: government digital governance and corporate false digital disclosure. International Review of Economics & Finance, 106, 104974. https://doi.org/10.1016/j.iref.2026.104974
+Huang, J., & Ma, L. (2024). Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation. Finance Research Letters, 63, 105265. https://doi.org/10.1016/j.frl.2024.105265
 <!-- rendered-citations:end -->

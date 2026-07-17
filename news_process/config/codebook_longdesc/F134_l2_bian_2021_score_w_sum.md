@@ -54,6 +54,21 @@ citations:
   year: 2021
   title: "A new Chinese financial sentiment dictionary for textual analysis in accounting and finance"
   venue: SSRN Working Paper No. 3446388
+- doi: "10.1093/rfs/hhag049"
+  type: "journal"
+  authors: "Harford, J., He, Q., & Qiu, B."
+  year: 2026
+  title: "Firm-Level Labor Shortage Exposure"
+  venue: "The Review of Financial Studies"
+  pages_or_artno: "hhag049"
+- doi: "10.1016/j.finmar.2024.100896"
+  type: "journal"
+  authors: "Ashwin, J."
+  year: 2024
+  title: "Financial news media and volatility: Is there more to newspapers than news?"
+  venue: "Journal of Financial Markets"
+  vol: "69"
+  pages_or_artno: "100896"
 new_dois: []
 ---
 
@@ -66,8 +81,7 @@ new_dois: []
 计算须辨明三个阶段的分工, 不可把加权乘法误挂在情感词典阶段。第一步在情感词典阶段 (stage 22 tone_words) 完成: 对每篇报道先按 Bian et al. (2021) 词典匹配正负情感词, 经该词典口径得到逐篇净极性分 bian_2021_score{track}; 须强调 22_tone_words.parquet 落盘的只是这一未加权逐篇极性分, 其中并不含任何提及密度权重, 也不存在名为 bian_2021_score_w 的逐篇列。第二步的加权乘法实际发生在面板装配阶段, 由 panel runner 步骤 3b 执行: runner 把 stage 22 的未加权极性分 bian_2021_score{track} 与来自 stage 11 news_salience 的逐篇提及密度权重 mention_density 逐行相乘, 现算出加权逐篇分 bian_2021_score_w{track}, 此列是运行期的中间量而非 stage 22 的落盘列。提及密度权重来自 news_salience, 度量目标银行在该篇文本中被提及的相对强度, 使着墨越重的报道对全年聚合贡献越大, 这与文本金融中以文档相关度/提及强度对逐篇信号赋权的做法一脉相承。第三步在面板聚合阶段 (encode.py 的 value-weighted F 段) 完成: 对同一银行-年-轨道内所有留篇报道由步骤 3b 现算的 bian_2021_score_w{track} 直接求和, 即得 bian_2021_score_w_sum{track}。故完整链路是「stage 22 出未加权分 → stage 11 news_salience 出 mention_density → panel runner 步骤 3b 做加权乘法 → encode.py F 段做银行-年求和」四环, 加权环节位于面板 runner 而非词典阶段, 这一归属直接影响复算加权口径时应去哪个阶段核对源列。随后同段以 sum_mention_density 为分母作除法, 派生出归一化的 bian_2021_tone_vw{track}, 故本家族三列在数学上是该 VW 语调的分子。单位为无量纲加权得分和: 词典极性分本身无量纲, 乘以同样无量纲的提及密度权重后求和, 结果不落在固定区间, 其量纲随报道条数与提及强度伸缩, 因而只可在同口径下横向比较、不可与归一化语调直接比水平。留篇口径遵循 full-only 门控 (2026-06-29): 一篇报道是否计入银行-年宇宙由 full 轨的 LLM 判定决定, ctx 与 ss 轨为条件于 full 留篇集的子集测度, 三轨各自逐轨算列。
 
 【文献定位】
-词典来源 Bian et al. (2021) 构建了面向会计与金融文本分析的中文金融情感词典, 是本家族极性分的唯一词典依据 (SSRN 3446388; 该条存在年份口径警示, 引注以工作论文年份为准)。将词典法置于更广的效度谱系中, van Atteveldt et al. (2021) 系统比较人工标注、众包、词典法与机器学习, 指出词典法在特定语域下的偏差与适用边界, 为本项目把词典轨与 LLM 轨、BERT 轨并置为互为稳健性证据提供了方法学理由; Frankel, Jennings & Lee (2022) 在 Management Science 上以披露文本对比机器学习与词典法情感, 是本仓「三方法互为稳健、不分主次」设计的直接先例。就中文金融语域的词典专用性, Du et al. (2022) 在 Review of Finance 论证语言与领域专用性对中文金融情感测度的必要性, 与 Bian 词典同属为中文金融文本定制情感资源的谱系; Ma, Zhang & Zhang (2025) 面向中国境内投资者构建细粒度中文情感词典, 代表该谱系向更细颗粒度演进的近期进展。需强调铁律: 本 VW 加权和只是词典轨内部的一种加权口径 (相对于等权 tone 与媒体权威加权 mw、跟风衰减加权 hw), 各加权口径互为稳健性、各自 just-identified 并排, 禁混进同一 over-identified Hansen J; 同理三轨 full/ctx/ss 亦各自 just-identified 并排、禁混同一 Hansen J, 词典轨与 LLM/BERT 轨之间同样只作互为稳健性对照而不合并识别。
-
+词典来源 Bian et al. (2021) 构建了面向会计与金融文本分析的中文金融情感词典, 是本家族极性分的唯一词典依据 (SSRN 3446388; 该条存在年份口径警示, 引注以工作论文年份为准)。将词典法置于更广的效度谱系中, van Atteveldt et al. (2021) 系统比较人工标注、众包、词典法与机器学习, 指出词典法在特定语域下的偏差与适用边界, 为本项目把词典轨与 LLM 轨、BERT 轨并置为互为稳健性证据提供了方法学理由; Frankel, Jennings & Lee (2022) 在 Management Science 上以披露文本对比机器学习与词典法情感, 是本仓「三方法互为稳健、不分主次」设计的直接先例。就中文金融语域的词典专用性, Du et al. (2022) 在 Review of Finance 论证语言与领域专用性对中文金融情感测度的必要性, 与 Bian 词典同属为中文金融文本定制情感资源的谱系; Ma, Zhang & Zhang (2025) 面向中国境内投资者构建细粒度中文情感词典, 代表该谱系向更细颗粒度演进的近期进展。需强调铁律: 本 VW 加权和只是词典轨内部的一种加权口径 (相对于等权 tone 与媒体权威加权 mw、跟风衰减加权 hw), 各加权口径互为稳健性、各自 just-identified 并排, 禁混进同一 over-identified Hansen J; 同理三轨 full/ctx/ss 亦各自 just-identified 并排、禁混同一 Hansen J, 词典轨与 LLM/BERT 轨之间同样只作互为稳健性对照而不合并识别。 就 VW 权重自身的来源而言, Harford、He 与 Qiu (2026) 自财报电话会文本提取公司层面的劳动力短缺暴露, 并在州、行业与公司三个层级做效度验证后检验其对 CAR、未来收益与经营绩效的预测力, 为本家族所用的文本提及型 firm-level exposure 权重 (mention_density, 与 Hassan 等的提及暴露同族口径) 提供了近期的构造与验证范例; 边界在于原文度量的是劳动力短缺暴露而非情感极性, 且把暴露度直接当自变量, 并未如本家族那样把它作为乘性权重乘到词典极性分上再逐篇求和, 亦无银行-年三轨聚合。Ashwin (2024) 则把报纸报道的数量/篇幅维度与报道所含的新信息内容相分离, 检验前者对波动率是否具有独立于后者的解释力, 这一分离正是本家族把按提及密度加权的报道量置于分母、把语调置于分子的做法所依赖的前提; 需注明原文语境为英文报纸与股票波动率, 其报道量为等权计数或版面维度而非媒体权威度或实体提及密度权重, 且波动率在原文是结果变量, 与本列作为 value-weighted 分子的地位不同。
 ## VAR: bian_2021_score_w_sum_ctx
 
 【变体差分】
@@ -89,4 +103,6 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
+Harford, J., He, Q., & Qiu, B. (2026). Firm-Level Labor Shortage Exposure. The Review of Financial Studies, hhag049. https://doi.org/10.1093/rfs/hhag049
+Ashwin, J. (2024). Financial news media and volatility: Is there more to newspapers than news?. Journal of Financial Markets, 69, 100896. https://doi.org/10.1016/j.finmar.2024.100896
 <!-- rendered-citations:end -->

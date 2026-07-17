@@ -35,6 +35,15 @@ citations:
   title: A new Chinese financial sentiment dictionary for textual analysis in accounting and finance
   venue: SSRN Working Paper
   pages_or_artno: '3446388'
+- doi: "10.1016/j.cjar.2025.100406"
+  type: "journal"
+  authors: "Zhao, J., & Ren, M."
+  year: 2025
+  title: "Innovative or conservative? How clan culture shapes bank digital transformation in China"
+  venue: "China Journal of Accounting Research"
+  vol: "18"
+  issue: "2"
+  pages_or_artno: "100406"
 new_dois: []
 ---
 
@@ -53,8 +62,7 @@ new_dois: []
 【文献定位】
 本家族方法论直接继承文本-based 情感测度的两条脉络: 一是词典法情感分析在会计与金融文本分析中的奠基传统, 二是中国金融市场语境下的中文词典本地化改造。姜富伟、孟令超、唐国豪(2021)的原始工作以媒体文本情绪预测股票回报为核心贡献, 其词典构造流程与结果验证发表于《经济学(季刊)》, 是本项目采纳该词典作为六部并列词典之一的直接依据。与之互为参照的 Bian, Jia, Li & Yan (2021, SSRN 工作论文)从会计与金融文本分析角度独立构造了另一部中文金融情感词典, 两部词典在构造语料、词表规模与覆盖领域上存在差异, 本项目并未预设二者孰优, 而是将其与另外四部词典(yao_2021、du_2022、you_2018、loughran 中译版)一并纳入词典消融梯度, 作为互为稳健性、不分主次的并排测度。银行-媒体情感测度与银行系统性风险/脆弱性关联的最新实证证据可参见 Jiang, Matvos, Piskorski & Seru (2024, *Journal of Financial Economics*) 对 2023 年美国银行体系紧缩期挤兑与浮亏风险的研究, 该文虽非中文语境, 但为"媒体/市场文本信号如何传导至银行层面风险结果"这一构念族提供了顶刊层级的理论与实证背书, 支撑本项目将银行相关新闻文本情感测度(包括 jiang_2021 系列)作为解释银行经营结果的关键自变量这一识别路径的合理性。
 
-三轨(full/ctx/ss)、否定/程度/转折规则消融梯度、以及六部词典并列均遵循本项目一以贯之的"各自 just-identified 并排、互为稳健性不分主次"设计铁律: 三条文本轨道(full=标题+全文, ctx=标题+实体窗口, ss=标题+银行∧金科同句窗口)对应同一构念在不同文本范围下的读出, 不应混入同一 over-identified 的 Hansen J 检验框架联合估计; ss 轨在无银行∧金科同句共现时镜像 ctx 的回退语义, 退化为全文 body 并置位 `ss_is_fallback=True`, 与 `n_articles` 共享同一分母口径。留篇门控口径自 2026-06-29 起统一为 full-only: 一篇文章是否计入"银行金科相关报道"的样本宇宙, 仅由 `llm_verified_full == True` 判定; ctx/ss 两轨的行宇宙是该 full 留篇集合的子集, 在此子集内各轨道独立按各自文本重新分词打分, 而非借用 full 轨的计数结果。
-
+三轨(full/ctx/ss)、否定/程度/转折规则消融梯度、以及六部词典并列均遵循本项目一以贯之的"各自 just-identified 并排、互为稳健性不分主次"设计铁律: 三条文本轨道(full=标题+全文, ctx=标题+实体窗口, ss=标题+银行∧金科同句窗口)对应同一构念在不同文本范围下的读出, 不应混入同一 over-identified 的 Hansen J 检验框架联合估计; ss 轨在无银行∧金科同句共现时镜像 ctx 的回退语义, 退化为全文 body 并置位 `ss_is_fallback=True`, 与 `n_articles` 共享同一分母口径。留篇门控口径自 2026-06-29 起统一为 full-only: 一篇文章是否计入"银行金科相关报道"的样本宇宙, 仅由 `llm_verified_full == True` 判定; ctx/ss 两轨的行宇宙是该 full 留篇集合的子集, 在此子集内各轨道独立按各自文本重新分词打分, 而非借用 full 轨的计数结果。 同域参照方面, Zhao 与 Ren (2025) 研究中国非正式制度对银行数字化转型的影响, 发现宗族文化经「短半径信任推高物理网点与人员依赖」与「风险规避降低风险承担意愿」两条供给侧机制, 以及「宗族内资源共济削弱信贷需求」的需求侧机制, 共同抑制银行数字化转型; 该文与本项目同国别、同行业(中国商业银行)、同为银行-年层的文本型变量, 因而可作为「在中国银行业以文本型变量构造银行-年测度」这一研究形态的同域存在性参照。援引须诚实标明举证边界: 该文数字化转型测度是否为分词后固定词表逐词命中计数, 在可得材料中未见披露、亦未经本项目核实, 故不可据此宣称本家族「词表命中词次」的技术路线获得背书; 且原文词表(若有)指向数字化/科技关键词而非情感词表, 全文不涉情感极性与正负面判定, 因此它不锚定本列的正面极性方向。其余迁移边界为: 原文文本源为银行年报(每银行-年单文档), 本项目为第三方新闻报道逐篇打分后聚合; 原文亦无否定翻转、程度副词、转折三条语言学规则层, 更无 full/ctx/ss 三轨并排。
 ## VAR: jiang_2021_pos_count_ctx
 
 【变体差分】
@@ -86,4 +94,5 @@ ss 轨的回退语义严格镜像 ctx 轨: 当某篇文章不存在满足银行�
 Jiang, E. X., Matvos, G., Piskorski, T., & Seru, A. (2024). Monetary tightening and U.S. bank fragility in 2023: Mark-to-market losses and uninsured depositor runs?. Journal of Financial Economics, 159, 103899. https://doi.org/10.1016/j.jfineco.2024.103899
 姜富伟, 孟令超, 唐国豪. (2021). 媒体文本情绪与股票回报预测. 经济学(季刊), 21(4), 1323-1344. https://doi.org/10.13821/j.cnki.ceq.2021.04.10
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
+Zhao, J., & Ren, M. (2025). Innovative or conservative? How clan culture shapes bank digital transformation in China. China Journal of Accounting Research, 18(2), 100406. https://doi.org/10.1016/j.cjar.2025.100406
 <!-- rendered-citations:end -->

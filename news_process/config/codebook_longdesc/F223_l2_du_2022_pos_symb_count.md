@@ -43,6 +43,22 @@ citations:
   year: 2021
   title: "A new Chinese financial sentiment dictionary for textual analysis in accounting and finance"
   venue: SSRN Working Paper No. 3446388
+- doi: "10.1016/j.jsis.2026.101971"
+  type: "journal"
+  authors: "Chen, Z., Hajiheydari, N., Zhang, M., & Lin, Y.-E."
+  year: 2026
+  title: "Corporate digital transformation attention and innovation: strategic commitment or symbolic signalling?"
+  venue: "The Journal of Strategic Information Systems"
+  vol: "35"
+  issue: "2"
+  pages_or_artno: "101971"
+- doi: "10.1108/ara-01-2025-0031"
+  type: "journal"
+  authors: "Guan, J., & Zhuang, X."
+  year: 2025
+  title: "Do digital words reflect real innovation? Evidence from post-M&A earnings conference"
+  venue: "Asian Review of Accounting"
+  pages_or_artno: "1-44"
 new_dois: []
 ---
 
@@ -55,8 +71,7 @@ new_dois: []
 篇章级判定分两步交乘。第一步词典极性: 上游 stage 22 (tone_words) 对每篇报道按 Du et al. (2022) 词典算出逐轨情感分 du_2022_score{track}, 大于零即记为正面。Du 2022 的正侧分子结构为 pos_weighted = pos_ordinary + 0.5 × pos_political, 即普通正面词全权计入、政治正面词以 0.5 折价计入, 净分再经否定翻转、程度副词、转折等语言学规则调整并归一化; 该 0.5 权重取值是研究者选择, 并配有权重 ∈ {0.0, 0.5, 1.0} 三臂敏感性梯子 (三者互为稳健性、不分主次, 各自 just-identified 并排, 禁混进同一 over-identified Hansen J), 但本家族的 pos 判据锁定生产口径的 0.5 权重臂 (canonical du_2022_score), 不随权重梯子分裂列。第二步象征性判定: stage 21 的大模型对每篇报道给出 innovation_substantiveness 的类别标签 (实质性 / 象征性 / 不适用), 落在象征性者记为象征侧。runner.py 的洗稿率 K 块把两个布尔逐元素求交, 生成篇章级指示列 _is_du_2022_pos_symb{track} (方法 D2, 单词典臂); encode.py 的聚合规格再按银行-年对该指示列 sum, 得到本家族三列。一个关键且承重的口径细节: 象征性判据恒取 innovation_substantiveness_full 这一 full 轨标签 (track-agnostic), 三列共用同一象征掩码, 逐轨变化的只有词典极性符号那一侧。这与全项目 full-only 留篇门控 (2026-06-29) 一致——一篇报道是否算「一篇银行金科报道」只看 full 轨大模型核验, ctx/ss 是 conditional-on-full 的子集测度; 象征侧既然来自 full 轨分类, 就不随文本轨切换而重判。词典极性侧则真正逐轨: full 用标题拼接后的全文, ctx 用标题加实体窗口文本, ss 用标题加银行与金科同句共现窗口文本。词级极性判定采用词典裸计数经语言学规则调整后的净分符号, 缺列 (某轨词典分不存在) 由 valid_agg 自动跳过而非报错, NaN 情感经 fillna 视为非正、永不误入分子。三轨互为稳健性、各自 just-identified 并排, 禁混进同一 over-identified Hansen J; 象征掩码的 full-only 属性也意味着不应把三列当作三套独立象征测度对待, 它们只在词典极性通道上分轨。
 
 【文献定位】
-测度的词典脊柱来自 Du et al. (2022), 发表于 Review of Finance, 是面向中文金融文本、强调语言与领域特异性 (language and domain specificity) 的专用情感词典, 其贡献不仅在于覆盖正负情感词, 更在于识别并单列了政治正面词这一在中国资本市场话语中信号偏弱的类别, 并给出对该类词降权处理的实证依据; 本家族「正面」判据里 political_positive 的 0.5 权重正是对 Du et al. (2022) 这一发现的直接落地。与之同源的中文细粒度情感词典构造思路见 Ma et al. (2025) 对国内投资者情感词典 CN-FSD 的系统化构建, 二者共同支撑「中文金融语料需专用词典而非英文词典直译」的方法论立场, 也说明不同团队构建的中文词典在极性判据上会有系统性差异——这正是把 Du 2022 与 Bian et al. (2021) 等其它词典的同名计数并排、互作跨词典稳健性检验的意义所在。象征侧的构念根植于实质性-象征性脱耦研究: Bingler et al. (2022) 以 ClimateBert 揭示企业气候披露中「廉价表态与挑肥拣瘦」(cheap talk and cherry-picking) 的象征化倾向, 正是本家族把「正面但象征」单独数出来的直接动机——语调为正不等于实质投入, 需要一个能把象征包装从实质行动中剥离的计数。综合而言, 本家族即在中文专用情感词典谱系与实质-象征脱耦框架的交叉点上, 把「词典极性 × 象征分类」的交乘计数作为脱耦分子的单词典 (Du 2022) 实现, 并因该词典的政治词降权结构而对政策化正面措辞天然更为审慎。
-
+测度的词典脊柱来自 Du et al. (2022), 发表于 Review of Finance, 是面向中文金融文本、强调语言与领域特异性 (language and domain specificity) 的专用情感词典, 其贡献不仅在于覆盖正负情感词, 更在于识别并单列了政治正面词这一在中国资本市场话语中信号偏弱的类别, 并给出对该类词降权处理的实证依据; 本家族「正面」判据里 political_positive 的 0.5 权重正是对 Du et al. (2022) 这一发现的直接落地。与之同源的中文细粒度情感词典构造思路见 Ma et al. (2025) 对国内投资者情感词典 CN-FSD 的系统化构建, 二者共同支撑「中文金融语料需专用词典而非英文词典直译」的方法论立场, 也说明不同团队构建的中文词典在极性判据上会有系统性差异——这正是把 Du 2022 与 Bian et al. (2021) 等其它词典的同名计数并排、互作跨词典稳健性检验的意义所在。象征侧的构念根植于实质性-象征性脱耦研究: Bingler et al. (2022) 以 ClimateBert 揭示企业气候披露中「廉价表态与挑肥拣瘦」(cheap talk and cherry-picking) 的象征化倾向, 正是本家族把「正面但象征」单独数出来的直接动机——语调为正不等于实质投入, 需要一个能把象征包装从实质行动中剥离的计数。综合而言, 本家族即在中文专用情感词典谱系与实质-象征脱耦框架的交叉点上, 把「词典极性 × 象征分类」的交乘计数作为脱耦分子的单词典 (Du 2022) 实现, 并因该词典的政治词降权结构而对政策化正面措辞天然更为审慎。 象征侧的理论框架在近期中国情境研究中得到进一步锚定与校准。Chen、Hajiheydari、Zhang 与 Lin (2026) 基于注意力基础观构造企业数字化转型关注度, 以中国上市公司 2007–2020 年样本在「战略实质承诺」与「象征性信号」两个对立解释间做检验, 发现该关注度与突破式创新相关而与渐进式创新及研发支出无关, 从而支持实质承诺说、未支持象征性信号说, 且话语与创新的一致性在高问责情境下最强。引用它的意义恰在于: 该二分是当代科技话语研究的主流理论框架, 且「话语是否只是象征」是可被实证证伪的经验问题, 故它是本家族正面×象征交乘计数的理论锚点与反面参照, 而非象征性解释成立的证据。其迁移边界为: 原文以「话语关注度 vs 实际创新产出」间接推断象征性, 本项目以大模型对单篇报道直接标注实质性/象征性, 判定机制不同; 原文文本源为公司自述披露, 本项目为第三方新闻; 分析层级亦由公司-年改为银行-年且分三轨。Guan 与 Zhuang (2025) 则直接追问数字化措辞是否对应真实创新, 在中国并购语境下以文本测度检验数字词汇与后续创新产出的对应关系, 与本家族「在正面科技话语中剥离象征性叙事」的构念高度同域; 但该文只做了词汇与产出的对应检验, 未提出象征性/实质性的逐篇标注方案, 其文本源为并购后业绩说明会的管理层自述、分析单元为并购事件与公司-年, 与本家族第三方新闻、银行-年三轨并排的口径存在系统差异。
 ## VAR: du_2022_pos_symb_count_full
 
 【变体差分】
@@ -77,4 +92,6 @@ Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-graine
 Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022). Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures. Finance Research Letters, 47, 102776. https://doi.org/10.1016/j.frl.2022.102776
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
+Chen, Z., Hajiheydari, N., Zhang, M., & Lin, Y.-E. (2026). Corporate digital transformation attention and innovation: strategic commitment or symbolic signalling?. The Journal of Strategic Information Systems, 35(2), 101971. https://doi.org/10.1016/j.jsis.2026.101971
+Guan, J., & Zhuang, X. (2025). Do digital words reflect real innovation? Evidence from post-M&A earnings conference. Asian Review of Accounting, 1-44. https://doi.org/10.1108/ara-01-2025-0031
 <!-- rendered-citations:end -->

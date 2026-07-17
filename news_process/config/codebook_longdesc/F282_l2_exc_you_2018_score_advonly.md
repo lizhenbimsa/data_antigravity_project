@@ -48,6 +48,30 @@ citations:
   vol: 37
   issue: 2
   pages_or_artno: 267-307
+- doi: "10.1093/llc/fqae013"
+  type: "journal"
+  authors: "Venglařová, K., & Matlach, V."
+  year: 2024
+  title: "Beyond content: discriminatory power of function words in text type classification"
+  venue: "Digital Scholarship in the Humanities"
+  vol: "39"
+  issue: "2"
+  pages_or_artno: "765-789"
+- doi: "10.2139/ssrn.5024959"
+  type: "wp"
+  authors: "Cziraki, P., & Gider, J."
+  year: 2024
+  title: "Newspaper Closures and Trading in Local Stocks"
+  venue: "SSRN"
+  pages_or_artno: "5024959"
+- doi: "10.1609/icwsm.v18i1.31443"
+  type: "journal"
+  authors: "Oh, N."
+  year: 2024
+  title: "Sentibank: A Unified Resource of Sentiment Lexicons and Dictionaries"
+  venue: "Proceedings of the International AAAI Conference on Web and Social Media"
+  vol: "18"
+  pages_or_artno: "2003-2013"
 new_dois: []
 ---
 
@@ -60,8 +84,7 @@ new_dois: []
 文章级底料由 tone_words.py 的 compute_dict_scores 经打分内核 _compute_sentiment_with_rules 产出。分词冻结在 jieba 0.42.1, 纯 CPU、无 LLM、无网络、零成本, 确定性完全来自 jieba 版本与词典文件的字节冻结。得分定义为 (pos_score − neg_score) / (pos_score + neg_score), 其中 pos_score、neg_score 是经规则状态机处理后落在正、负两侧的加权词次之和。规则状态机维护三个滚动状态: 否定窗口剩余 token 数、当前程度副词倍率、是否处于转折后从句区域; 遇句末标点重置三者 (从句级作用域, 遵循 Ding、Liu 与 Yu 2008 的转折效应限定), 遇转折词激活转折并重置否定与程度, 遇否定词开窗, 遇程度副词设倍率, 遇情感词则以 base × degree × negation × adversative 计分。advonly 变体在扫描时把 apply_negation 与 apply_degree 置 False、apply_adversative 置 True: 遇否定词仍识别否定 token 并维持窗口递减骨架但不翻转极性, 遇程度副词把倍率锁定为 1.0 但仍 continue 保留否定窗口 passthrough, 唯独在遇到转折词后的从句区域内对情感词施加 ×ADVERSATIVE_BOOST 放大。这条「只锁数值效应、不动 scoping」的铁律 (即关闭规则时仍保留该规则 token 的识别、continue 与窗口递减骨架, 不整段删检测) 保证 advonly 与其余六个消融变体逐字节可比, 否则删除检测会让被关规则的 token 落入末尾 else 分支触发窗口递减, 副作用缩短否定有效到达距离、污染语义。银行–年度聚合在 attention_media.py 完成: 先剔除 _is_ceased_media 为真的文章得到存活子集, 再按 target_bank×year 对文章级 you_2018_score_advonly{track} 取算术均值, 落列 exc_you_2018_score_advonly{track}; 停刊过滤只作用于聚合口径, 不改词典与规则本身, 零文章 bank-year 按契约保持 NaN 不做计数零填。
 
 【文献定位】
-词典命名脉络锚定 You、Zhang 与 Zhang (2018): 该文在 Review of Financial Studies 上研究媒体报道的信息含量如何被不同主体「捕获」, 是本项目 you_2018 词表所承接的媒体–情感研究传统的直接来源, 也是本家族在顶刊层面的方法学锚。转折规则的语言学基础可追溯至 Taboada 等 (2011) 的词典法情感分析框架, 该文系统处理了否定 (negation)、程度强化 (intensifier) 与转折 (contrastive/adversative) 结构如何调制词典极性, advonly 变体正是在该框架内单独激活转折通道、关闭否定与程度两通道的一次消融。Ma 等 (2025) 构建面向中国境内投资者的细粒度中文情感词典, 印证了在中文金融语境下持续精化领域词典与语言学规则的必要性, 为本项目多词典并置提供同期对照。Frankel 等 (2022) 在 Management Science 对比机器学习与词典法披露情感抽取, 论证两类方法各有偏误、宜互为稳健, 为本项目「词典 / LLM / BERT 三法并置」以及词典内部规则消融梯度并排读法提供方法学先例。需强调, 规则消融梯度 (raw/negonly/degonly/advonly/negdeg/negadv/degadv) 各变体自归一化、高度共线且非可加分解 (audit MATH-1), 它们各自 just-identified 并排、互为稳健性、不分主次, 禁混进同一 over-identified 的 Hansen J 检验; 同理三轨 full/ctx/ss 亦各自 just-identified 并排、禁混同一 Hansen J。留篇门控口径与全项目一致, 采用 full-only (2026-06-29): 是否判为一篇银行金科报道只看 full 轨留篇集, ctx/ss 为 conditional-on-full 的稳健性轨, 行宇宙是 full 轨留篇集的子集。
-
+词典命名脉络锚定 You、Zhang 与 Zhang (2018): 该文在 Review of Financial Studies 上研究媒体报道的信息含量如何被不同主体「捕获」, 是本项目 you_2018 词表所承接的媒体–情感研究传统的直接来源, 也是本家族在顶刊层面的方法学锚。转折规则的语言学基础可追溯至 Taboada 等 (2011) 的词典法情感分析框架, 该文系统处理了否定 (negation)、程度强化 (intensifier) 与转折 (contrastive/adversative) 结构如何调制词典极性, advonly 变体正是在该框架内单独激活转折通道、关闭否定与程度两通道的一次消融。Ma 等 (2025) 构建面向中国境内投资者的细粒度中文情感词典, 印证了在中文金融语境下持续精化领域词典与语言学规则的必要性, 为本项目多词典并置提供同期对照。Frankel 等 (2022) 在 Management Science 对比机器学习与词典法披露情感抽取, 论证两类方法各有偏误、宜互为稳健, 为本项目「词典 / LLM / BERT 三法并置」以及词典内部规则消融梯度并排读法提供方法学先例。需强调, 规则消融梯度 (raw/negonly/degonly/advonly/negdeg/negadv/degadv) 各变体自归一化、高度共线且非可加分解 (audit MATH-1), 它们各自 just-identified 并排、互为稳健性、不分主次, 禁混进同一 over-identified 的 Hansen J 检验; 同理三轨 full/ctx/ss 亦各自 just-identified 并排、禁混同一 Hansen J。留篇门控口径与全项目一致, 采用 full-only (2026-06-29): 是否判为一篇银行金科报道只看 full 轨留篇集, ctx/ss 为 conditional-on-full 的稳健性轨, 行宇宙是 full 轨留篇集的子集。 就 advonly 所单独激活的转折通道而言, Venglařová 与 Matlach (2024) 实证功能词 (含连词一类的非内容词) 在文本类型判别上携带独立于内容词的信息量, 佐证转折/逆接结构作为一个与词典极性无关的语言维度值得被单独计量, 构成本臂「只留转折、关否定与程度」的构念前提; 惟原文任务为文本类型分类, 并不区分转折连词与其它功能词类, 语料非中文金融新闻, 亦不涉及银行—年度聚合, 故只在构念层与本族相通, 不构成 ADVERSATIVE_BOOST 具体取值的依据。样本口径一侧, Cziraki 与 Gider (2024) 以报纸停刊为冲击, 实证报道供给退出会改变本地股票的交易行为, 为 exc_ 前缀先剔除隐性停刊媒体再聚合这一步提供现实动机; 该文系未经同行评审的工作论文, 其停刊判定取自外部事件数据认定的真实停刊, 而本项目的 ceased_set 是 detect_defacto_cessation 自语料内部推断的疑似退出覆盖保守代理, 仅作稳健性子样本而非识别冲击。方法论环境上, Oh (2024) 在整合 15 部原始情感词典与 43 部预处理词典构建 sentibank 时明确指出, 依赖专家词表的规则法能提供透明性, 而其应用困境在于资源碎片化与验证缺失; 这一背书支持本项目保留词典状态机语调轨并以六部中文词典并置的总体设计。须限定的是, 该资源覆盖英文社交媒体等体裁, 不含 you_2018 一类中文金融词典, 亦未实现否定/程度/转折三规则状态机, 与本族的规则消融稳健性检验无直接关系, 仅作构念层背景。
 ## VAR: exc_you_2018_score_advonly_ctx
 
 【变体差分】
@@ -82,4 +105,7 @@ Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-graine
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
+Venglařová, K., & Matlach, V. (2024). Beyond content: discriminatory power of function words in text type classification. Digital Scholarship in the Humanities, 39(2), 765-789. https://doi.org/10.1093/llc/fqae013
+Cziraki, P., & Gider, J. (2024). Newspaper Closures and Trading in Local Stocks. SSRN No. 5024959 [Working Paper]. https://doi.org/10.2139/ssrn.5024959
+Oh, N. (2024). Sentibank: A Unified Resource of Sentiment Lexicons and Dictionaries. Proceedings of the International AAAI Conference on Web and Social Media, 18, 2003-2013. https://doi.org/10.1609/icwsm.v18i1.31443
 <!-- rendered-citations:end -->

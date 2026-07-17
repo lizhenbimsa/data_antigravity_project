@@ -44,6 +44,20 @@ citations:
   year: 2025
   title: 'Majority Rules: LLM Ensemble is a Winning Approach for Content Categorization'
   venue: arXiv
+- doi: "10.18653/v1/2025.findings-acl.744"
+  type: "journal"
+  authors: "Wang, W., Wang, Y., & Huang, H."
+  year: 2025
+  title: "Ranked Voting based Self-Consistency of Large Language Models"
+  venue: "Findings of the Association for Computational Linguistics: ACL 2025"
+  pages_or_artno: "14410-14426"
+- doi: "10.18653/v1/2024.law-1.13"
+  type: "journal"
+  authors: "Rønningstad, E., Velldal, E., & Øvrelid, L."
+  year: 2024
+  title: "A GPT among Annotators: LLM-based Entity-Level Sentiment Annotation"
+  venue: "Proceedings of the 18th Linguistic Annotation Workshop (LAW-XVIII)"
+  pages_or_artno: "133-139"
 new_dois: []
 ---
 
@@ -58,8 +72,7 @@ new_dois: []
 留篇门控口径遵循 2026-06-29 起的 full-only 铁律: 一篇报道是否计入"银行-金科报道"样本只由 `llm_verified_full == True` 决定, ctx/ss 轨道的行宇宙是 full 轨留篇集合的子集 (conditional-on-full), 三轨各自独立计算加权和, 不互相借用彼此的分母或样本范围。三轨 (full/ctx/ss) 之间是"各自 just-identified 并排、互为稳健性、不分主次"的关系: full 用标题+正文全文, ctx 用标题+实体窗口, ss 用标题+银行∧金科同句 ±N 窗口 (无同句共现时回退为全文 body, 并置 `ss_is_fallback=True`, 语义上镜像 ctx 轨的回退规则); 三条轨道的加权和序列不应被合并进同一个 over-identified 的 Hansen J 检验框架, 而应各自作为独立的稳健性观察。τ=0.25 阈值本身同样是一个梯子刻度: 它与基线 τ=0.35 及另外三个候选阈值 (0.30/0.40/0.45) 一起构成抄稿判定敏感性梯子, 各阈值对应的加权和/加权均值列也是各自并排的稳健性观察, 用以证明主回归结论不依赖 0.35 这一具体门槛值的人为选择, 同样不应混入同一个 over-identified 设定。
 
 【文献定位】
-本家族的方法学定位处在两条文献脉络的交叉点。其一是媒体情感测量文献: 从 Tetlock (2007 JF) 用 Harvard IV 词典构造媒体悲观度指数, 到 Loughran & McDonald (2011 JF) 提出金融领域专用词典纠正通用词典的语境失配, 再到近年 LLM-based 情感抽取 (de Kok, 2025 Management Science, 系统论证了 temperature=0 与 prompt 冻结在会计/金融文本标注中的可复现性要求, 本项目 stage 21 的三家 LLM 多数投票范式与之呼应)。其二是媒体覆盖度量与信息含量文献: Fang & Peress (2009 JF) 证明媒体覆盖广度 (而非仅情感符号) 对股票定价具有独立解释力, 这正是抄稿衰减权重设计的理论出发点 —— 同一篇通稿被多家媒体机械转载不应被计为多条独立的市场关注信号, 需要用衰减权重去折算"有效报道篇数"。You, Zhang & Zhang (2018 RFS) 在中国媒体语境下的发现进一步支持了这一必要性: 中国媒体对企业 (含银行) 的报道存在系统性的选择性放大与压制模式, 若不对转载/雷同报道做权重折算, 银行-年语调均值会被少数被广泛转载的通稿主导。LLM 多数投票共识本身的稳健性则参照 Kamen & Kamen (2025) 关于集成式 LLM 多数表决在内容分类任务上优于单模型的发现, 支撑本项目采用三家异构 LLM 投票而非单一模型判定的设计选择。
-
+本家族的方法学定位处在两条文献脉络的交叉点。其一是媒体情感测量文献: 从 Tetlock (2007 JF) 用 Harvard IV 词典构造媒体悲观度指数, 到 Loughran & McDonald (2011 JF) 提出金融领域专用词典纠正通用词典的语境失配, 再到近年 LLM-based 情感抽取 (de Kok, 2025 Management Science, 系统论证了 temperature=0 与 prompt 冻结在会计/金融文本标注中的可复现性要求, 本项目 stage 21 的三家 LLM 多数投票范式与之呼应)。其二是媒体覆盖度量与信息含量文献: Fang & Peress (2009 JF) 证明媒体覆盖广度 (而非仅情感符号) 对股票定价具有独立解释力, 这正是抄稿衰减权重设计的理论出发点 —— 同一篇通稿被多家媒体机械转载不应被计为多条独立的市场关注信号, 需要用衰减权重去折算"有效报道篇数"。You, Zhang & Zhang (2018 RFS) 在中国媒体语境下的发现进一步支持了这一必要性: 中国媒体对企业 (含银行) 的报道存在系统性的选择性放大与压制模式, 若不对转载/雷同报道做权重折算, 银行-年语调均值会被少数被广泛转载的通稿主导。LLM 多数投票共识本身的稳健性则参照 Kamen & Kamen (2025) 关于集成式 LLM 多数表决在内容分类任务上优于单模型的发现, 支撑本项目采用三家异构 LLM 投票而非单一模型判定的设计选择。 沿着同一条线索, Wang、Wang 与 Huang (2025) 以排序投票 (ranked voting) 取代朴素多数票来聚合 LLM 的多个候选输出并实证聚合质量提升, 提示投票规则本身即是一处研究者自由度——本族分子沿用的仍是三家朴素多数票 llm_vote_score{track} ∈ {-1, 0, +1}, 该文在此仅用于交代该自由度的存在, 而非为现口径背书; 其迁移边界亦须如实标注: 原文的投票单元是同一模型多次采样得到的候选答案 (self-consistency) 而非跨厂商模型的标签投票, 任务为推理/生成而非三分类情感标注, 且只到样本级聚合为止, 不涉及本族的抄稿衰减加权与银行-年求和。分子所度量的构念是"针对目标银行"的实体级语调而非篇章整体基调, 这一点上 Rønningstad 与 Velldal (2024) 提供了同族实证: 该文评估 LLM 对特定目标实体的情感 (entity-level / targeted sentiment) 标注质量并与人工标注对比, 支持实体级 LLM 情感标注在本构念下的可行性。边界在于原文语料为挪威语/英语通用新闻与评论、目标实体非银行, 采用单一 GPT 模型而无三家投票与置信度概率化, 且只报告标注一致性, 不做银行-年面板聚合、抄稿衰减加权分子构造或三轨 (full/ctx/ss) 文本切分, 更未涉及本族的 τ 阈值敏感性梯子。
 ## VAR: llm_vote_score_hw_thr25_sum_ctx
 
 【变体差分】
@@ -80,4 +93,6 @@ You, J., Zhang, B., & Zhang, L. (2018). Who Captures the Power of the Pen?. The 
 Fang, L., & Peress, J. (2009). Media Coverage and the Cross-Section of Stock Returns. The Journal of Finance, 64(5), 2023-2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x
 de Kok, T. (2025). ChatGPT for Textual Analysis? How to Use Generative LLMs in Accounting Research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
 Kamen, A., & Kamen, Y. (2025). Majority Rules: LLM Ensemble is a Winning Approach for Content Categorization. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2511.15714
+Wang, W., Wang, Y., & Huang, H. (2025). Ranked Voting based Self-Consistency of Large Language Models. Findings of the Association for Computational Linguistics: ACL 2025, 14410-14426. https://doi.org/10.18653/v1/2025.findings-acl.744
+Rønningstad, E., Velldal, E., & Øvrelid, L. (2024). A GPT among Annotators: LLM-based Entity-Level Sentiment Annotation. Proceedings of the 18th Linguistic Annotation Workshop (LAW-XVIII), 133-139. https://doi.org/10.18653/v1/2024.law-1.13
 <!-- rendered-citations:end -->

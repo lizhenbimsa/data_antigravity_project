@@ -56,6 +56,14 @@ citations:
   vol: 77
   issue: 3
   pages_or_artno: 623-685
+- doi: "10.1016/j.frl.2024.105305"
+  type: "journal"
+  authors: "Elshandidy, T., & Elsayed, M."
+  year: 2024
+  title: "The UK financial firms’ textual risk disclosure and market liquidity"
+  venue: "Finance Research Letters"
+  vol: "63"
+  pages_or_artno: "105305"
 new_dois: []
 ---
 
@@ -77,8 +85,7 @@ uncert_frac 家族衡量一篇银行/金融科技相关新闻报道在文本层�
 
 【文献定位】
 
-不确定性文本测度的学术传统可追溯到宏观金融文献对"不确定性冲击"的结构化度量, 例如 Bloom (2009, Econometrica) 用行业层面股票收益波动率构造不确定性冲击并考察其对投资与雇佣的非线性动态效应, Jurado, Ludvigson & Ng (2015, American Economic Review) 则批评了简单代理变量 (如 VIX、政策不确定性指数) 混淆了"可预测的波动"与"真正不可预测的不确定性", 提出基于大规模预测误差方差分解的宏观不确定性指数; 这两篇构成了不确定性作为一个独立于情感极性的经济状态变量的理论基础, 也是本家族在计量框架上参照的"不确定性≠负面情感"这一区分立场的依据。在文本分析这一具体方法路径上, uncert_frac 直接承袭 Loughran & McDonald (2011) 建立的会计/金融文本非情感维度分类范式, 而 Black, Irtisam & Jain (2025, Financial Review) 近期的实证进一步确认了文本不确定性测度与信息不对称、投资者关注度之间的因果链条, 支持把 uncert_frac 解读为一种媒体沟通模糊度的可观测代理。Hassan, Hollander, van Lent & Tahoun (2024, The Journal of Finance) 在研究脱欧不确定性全球传导时也采用了文本挖掘构造不确定性暴露度量的思路, 佐证了此类词典法在跨主体、跨时期不确定性度量上的适用性与稳健性。方法论层面, Rambachan & Roth (2025, Journal of the American Statistical Association) 关于准实验设计下不确定性刻画的讨论提醒我们, 文本不确定性变量本身作为解释变量或控制变量进入面板回归时, 其测量误差与识别策略的交互需谨慎处理, 这也是本项目将 full/ctx/ss 三轨设计为并排稳健性检验而非单一"真值"估计的方法论出发点。
-
+不确定性文本测度的学术传统可追溯到宏观金融文献对"不确定性冲击"的结构化度量, 例如 Bloom (2009, Econometrica) 用行业层面股票收益波动率构造不确定性冲击并考察其对投资与雇佣的非线性动态效应, Jurado, Ludvigson & Ng (2015, American Economic Review) 则批评了简单代理变量 (如 VIX、政策不确定性指数) 混淆了"可预测的波动"与"真正不可预测的不确定性", 提出基于大规模预测误差方差分解的宏观不确定性指数; 这两篇构成了不确定性作为一个独立于情感极性的经济状态变量的理论基础, 也是本家族在计量框架上参照的"不确定性≠负面情感"这一区分立场的依据。在文本分析这一具体方法路径上, uncert_frac 直接承袭 Loughran & McDonald (2011) 建立的会计/金融文本非情感维度分类范式, 而 Black, Irtisam & Jain (2025, Financial Review) 近期的实证进一步确认了文本不确定性测度与信息不对称、投资者关注度之间的因果链条, 支持把 uncert_frac 解读为一种媒体沟通模糊度的可观测代理。Hassan, Hollander, van Lent & Tahoun (2024, The Journal of Finance) 在研究脱欧不确定性全球传导时也采用了文本挖掘构造不确定性暴露度量的思路, 佐证了此类词典法在跨主体、跨时期不确定性度量上的适用性与稳健性。方法论层面, Rambachan & Roth (2025, Journal of the American Statistical Association) 关于准实验设计下不确定性刻画的讨论提醒我们, 文本不确定性变量本身作为解释变量或控制变量进入面板回归时, 其测量误差与识别策略的交互需谨慎处理, 这也是本项目将 full/ctx/ss 三轨设计为并排稳健性检验而非单一"真值"估计的方法论出发点。 在与本项目最贴近的金融机构语域上, Elshandidy 与 Elsayed (2024) 以英国 FTSE 全股金融业公司为样本, 首次检验基于文本的风险披露 (TRD) 与市场流动性的关系, 发现 TRD 降低金融公司的市场流动性 (大型公司则相反), 直接支持把金融机构文本中风险/不确定性类语言的词频占比视为一种可测量、且对市场参与者具有信息含量的文本属性, 是 uncert_frac 在同业语料上的近期实证锚点, 也与前述"不确定性≠负面情感"的区分立场一致——原文的 TRD 刻画的是披露文本对风险状态的表述强度而非褒贬极性。迁移边界须如实写明: 原文语料为英国金融公司英文年报中的风险披露段落, 所用为英文风险关键词表, 而本项目是在中文银行新闻报道上以中文迁移 L&M 词表计算命中占比, 并按 full/ctx/ss 三轨各自独立扫描; 原文 DV 为市场流动性、层级为 firm-year, 与本项目的银行—年度面板口径不同; 且原文未区分 uncertainty 与 litigious 两个子表的独立效应, 故其证据只锚定本家族测度的可测性与信息含量, 不构成子词典层面判别效度的证据, 后者仍由本项目的判别效度审计独立承担。此一锚点亦不改变三轨并排的识别口径: full/ctx/ss 各自 just-identified、互为稳健性、不分主次, 严禁混入同一 over-identified 的 Hansen J 设定。
 ## VAR: uncert_frac_ctx
 
 【变体差分】
@@ -115,4 +122,5 @@ Black, J. R., Irtisam, R., & Jain, P. K. (2025). Textual uncertainty in financia
 Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2024). The global impact of Brexit uncertainty. The Journal of Finance, 79(1), 413-458. https://doi.org/10.1111/jofi.13293
 Jurado, K., Ludvigson, S. C., & Ng, S. (2015). Measuring uncertainty. American Economic Review, 105(3), 1177-1216. https://doi.org/10.1257/aer.20131193
 Bloom, N. (2009). The impact of uncertainty shocks. Econometrica, 77(3), 623-685. https://doi.org/10.3982/ECTA6248
+Elshandidy, T., & Elsayed, M. (2024). The UK financial firms’ textual risk disclosure and market liquidity. Finance Research Letters, 63, 105305. https://doi.org/10.1016/j.frl.2024.105305
 <!-- rendered-citations:end -->

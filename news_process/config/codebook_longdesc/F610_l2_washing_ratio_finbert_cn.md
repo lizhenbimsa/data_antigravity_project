@@ -44,6 +44,15 @@ citations:
   venue: "Pacific-Basin Finance Journal"
   vol: "89"
   pages_or_artno: "102600"
+- doi: "10.1038/s41598-025-29621-y"
+  type: "journal"
+  authors: "Li, Y., Li, J., Zheng, Y., Zheng, G., & Wu, C."
+  year: 2025
+  title: "Machine learning detection of manipulative environmental disclosures in corporate reports"
+  venue: "Scientific Reports"
+  vol: "15"
+  issue: "1"
+  pages_or_artno: "45011"
 new_dois: []
 ---
 
@@ -56,8 +65,7 @@ new_dois: []
 计算分两层。第一层在篇章级 (producer `pipeline\panel\runner.py`): 对每篇文章、每条轨道 track ∈ {full, ctx, ss}, 取 finbert_cn 在该轨道上的三分类判定 (来自 stage 23 `tone_berts`, 该模型对 `content_{track}` 文本 argmax 出的正/负/中性标签), 记为该轨的 `is_positive{track}` 指示; 同时取 stage 16 输出的 `innovation_substantiveness_full` 分类结果 (取值"实质性"/"象征性"/其他), 记 `_is_symb`、`_subst_measured`(是否被成功判出实质性/象征性、非缺失非拒答)。构造两个篇章级 0/1 标记: 分子标记 = (finbert_cn 判正面{track}) ∧ (象征性); 分母标记 = (finbert_cn 判正面{track}) ∧ (实质性已测量)。第二层在面板级 (步骤 7h 聚合): 按 银行-年度 对上述两个标记求和, 相除得到本列。分母同域约束是本测度区别于朴素实现的关键设计: 早期版本分母用"全部正面文章数", 但若 finbert_cn 判正面而 stage 16 LLM 未能判出实质性/象征性 (分类失败、拒答或平局), 该文章进不了分子却仍计入朴素分母, 导致分类失败率越高、洗稿率被系统性低估的假象 (与 encode-01 类修正同族, 详见 producer 注释 fix(omni-g-runner-10/g-runner-14)); 修正后分母只数"实质性判定成功"的同域样本, 让洗稿率反映的是真实的"正面-但-空洞"占比而非测量噪音。当分母 (同域正面且已测样本数) 为 0 时该银行-年度取值缺失 (NaN), 不做 0/0 强填。
 
 【文献定位】
-本测度的构念来源锚定治理研究中的"象征性 vs 实质性行动"区分, 直接源自 Westphal & Zajac (1994, *Administrative Science Quarterly*) 关于长期激励计划采纳的实证发现——公司常常在制度压力下采纳看似合规的治理安排, 但执行层面并无实质约束力, 后续 Westphal & Zajac (1998, *Administrative Science Quarterly*) 进一步把这一逻辑延伸到股东沟通的象征管理: 上市公司管理层可以通过话术选择性地向股东传达"变革已发生"的印象, 而不必真正改变治理结构。本测度把这一"言辞-行动"脱节的识别逻辑迁移到银行-金科合作报道语境: 用情感模型的"正面"判定对应媒体话术层面的印象管理, 用 stage 16 的"象征性"分类对应内容层面缺乏可验证实质, 二者交集即为一次"洗稿"记录。本 F610 家族作为 per-model 稳健性分支, 其模型来源锚定于顶刊 Huang, Wang & Yang (2023, *Contemporary Accounting Research*) 提出的 FinBERT 架构族及其金融文本适配范式——finbert_cn 是该范式在中文金融语料上的落地实现, 与家族内另两个 BERT 模型 (finbert2、fin_sent_zh) 构成三模型互证矩阵而非层级关系。三轨设计 (full/ctx/ss) 遵照本仓库既定口径: full=标题+正文全文, ctx=标题+银行/金科实体窗口, ss=标题+银行∧金科同句±N窗 (回退语义镜像 ctx: 若某篇文章不存在银行∧金科同句共现, 则 `content_ss` 回退为全文 body 且 `ss_is_fallback=True`, 共享 `n_articles` 分母, 缺列优雅降级)。三轨、per-model (finbert_cn/finbert2/fin_sent_zh)、以及洗稿率的多方法族 (A/A2/B/D/D2/E/E2/F) 均各自 just-identified 并排, 互为稳健性、不分主次, 严禁在同一 over-identified Hansen J 设定中混用同族多个变体作为并列工具/协变量——每条轨道、每个模型各进独立回归设定。
-
+本测度的构念来源锚定治理研究中的"象征性 vs 实质性行动"区分, 直接源自 Westphal & Zajac (1994, *Administrative Science Quarterly*) 关于长期激励计划采纳的实证发现——公司常常在制度压力下采纳看似合规的治理安排, 但执行层面并无实质约束力, 后续 Westphal & Zajac (1998, *Administrative Science Quarterly*) 进一步把这一逻辑延伸到股东沟通的象征管理: 上市公司管理层可以通过话术选择性地向股东传达"变革已发生"的印象, 而不必真正改变治理结构。本测度把这一"言辞-行动"脱节的识别逻辑迁移到银行-金科合作报道语境: 用情感模型的"正面"判定对应媒体话术层面的印象管理, 用 stage 16 的"象征性"分类对应内容层面缺乏可验证实质, 二者交集即为一次"洗稿"记录。本 F610 家族作为 per-model 稳健性分支, 其模型来源锚定于顶刊 Huang, Wang & Yang (2023, *Contemporary Accounting Research*) 提出的 FinBERT 架构族及其金融文本适配范式——finbert_cn 是该范式在中文金融语料上的落地实现, 与家族内另两个 BERT 模型 (finbert2、fin_sent_zh) 构成三模型互证矩阵而非层级关系。三轨设计 (full/ctx/ss) 遵照本仓库既定口径: full=标题+正文全文, ctx=标题+银行/金科实体窗口, ss=标题+银行∧金科同句±N窗 (回退语义镜像 ctx: 若某篇文章不存在银行∧金科同句共现, 则 `content_ss` 回退为全文 body 且 `ss_is_fallback=True`, 共享 `n_articles` 分母, 缺列优雅降级)。三轨、per-model (finbert_cn/finbert2/fin_sent_zh)、以及洗稿率的多方法族 (A/A2/B/D/D2/E/E2/F) 均各自 just-identified 并排, 互为稳健性、不分主次, 严禁在同一 over-identified Hansen J 设定中混用同族多个变体作为并列工具/协变量——每条轨道、每个模型各进独立回归设定。 在"披露操纵可由分类器在大规模文本上自动测量"这一存在性前提上, Li、Li、Zheng、Zheng 与 Wu (2025) 以监督式机器学习分类器检测企业报告中的操纵性环境披露, 表明"文本宣称与实质不符"这一构念具备端到端的自动识别可行性, 与本家族在文本判定器之上构造洗稿率的总体思路相邻。此处须严格自限: 该文分类器直接以"是否操纵"为标签端到端训练, 观测单位为企业报告, 语料为英文企业自述文本与环境议题; 而本家族的 finbert_cn 并不判定操纵, 仅承担情感极性判定 (正面/中性/负面), 象征-实质标签另由 stage 16 的 LLM 提供, 二者交叉后方在银行-年层聚合为比率。两者并非同一方法族, 该文不构成本家族判定器口径的方法学依据, 亦无证据表明其分类器属预训练语言模型范式, 因此引用仅止于构念可测性层面的相邻佐证, 不得据以为 finbert_cn 的架构或训练范式背书。
 ## VAR: washing_ratio_finbert_cn
 
 【变体差分】
@@ -78,4 +86,5 @@ Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A large language model for e
 Westphal, J. D., & Zajac, E. J. (1998). The symbolic management of stockholders: Corporate governance reforms and shareholder reactions. Administrative Science Quarterly, 43(1), 127-153. https://doi.org/10.2307/2393593
 Westphal, J. D., & Zajac, E. J. (1994). Substance and symbolism in CEOs' long-term incentive plans. Administrative Science Quarterly, 39(3), 367-390. https://doi.org/10.2307/2393295
 Fan, X., Tang, Z., Huang, W., & Yang, K. (2025). Ownership concentration and corporate greenwashing in China's capital markets: Based on a multi-actors perspective. Pacific-Basin Finance Journal, 89, 102600. https://doi.org/10.1016/j.pacfin.2024.102600
+Li, Y., Li, J., Zheng, Y., Zheng, G., & Wu, C. (2025). Machine learning detection of manipulative environmental disclosures in corporate reports. Scientific Reports, 15(1), 45011. https://doi.org/10.1038/s41598-025-29621-y
 <!-- rendered-citations:end -->

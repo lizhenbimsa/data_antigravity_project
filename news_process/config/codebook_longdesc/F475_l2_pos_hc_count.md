@@ -46,6 +46,14 @@ citations:
   vol: '45'
   issue: 2-3
   pages_or_artno: 221-247
+- doi: "10.1016/j.jaccpubpol.2024.107181"
+  type: "journal"
+  authors: "Cheng, C. A., Jiang, L., & Song, W.-L."
+  year: 2024
+  title: "Media coverage and debt financing choice"
+  venue: "Journal of Accounting and Public Policy"
+  vol: "44"
+  pages_or_artno: "107181"
 new_dois: []
 ---
 
@@ -58,8 +66,7 @@ new_dois: []
 计算链路分两层。第一层在文章级 (article-level) 完成于 `runner.py`: 上游 stage 21 (`21_tone_llms`) 产出三家 LLM 投票共识列 `is_positive{track}` (取值来自 `llm_vote_tone{track}` 多数一致判正的布尔化) 以及内部一致率列 `llm_agreement_rate{track}`; `runner.py` 方法 F 代码块以 `agr_col = f'llm_agreement_rate{track}'; _hc = df[agr_col].fillna(0) >= HC_AGREEMENT_THRESHOLD` 求出高一致率掩码, 再与 `pos_col`(即 `is_positive{track}`, nullable Int8 先 `fillna(0)` 防空值误判) 的判正掩码取逻辑与 (`&`), 合成 `_is_pos_hc{track}` 这一双条件交集标记; 同一代码块内还并列产出 `_is_pos_symb_hc{track}` (叠加符号化过滤) 与 `_svd_pos_hc{track}` (叠加实质有效性口径子集测量), 三者共享同一高置信度基础掩码但用于不同下游分子。第二层是本家族真正的聚合动作: `agg[f'pos_hc_count{track}'] = (f'_is_pos_hc{track}', 'sum')`, 即在 `groupby(bank, year)` 语境下对 0/1 标记求和, 得到该行 bank-year 单元内的高置信度正面报道篇数, 数据类型为 double (整数计数在含 NaN 场景下以浮点承载)。三轨 (`_full`/`_ctx`/`_ss`) 严格并列独立计算, 互不借用彼此的分子分母: `_full` 轨扫描全文 (标题+正文) 文本; `_ctx` 轨扫描标题+实体窗口文本; `_ss` 轨扫描银行∧金科同句±N窗口文本 (窗口半径见 `config/filtering.yaml::context_window.ss_sentence_radius`, 默认1)。`_ss` 轨的回退语义镜像 `_ctx` 轨: 若某篇文章不存在银行∧金科的同句共现, 则 `content_ss` 退化为全文 body, 对应 `ss_is_fallback` 标记为 True, 该情形下的高置信度判定仍照常参与计数, 不因回退而被剔除或单独处理。本家族的计数本身不涉及留篇门控之外的额外过滤, 但其分母意义上的可比性仍需注意: stage 21 的"是否判为一篇银行金科报道"这一留篇门控口径为 full-only (2026-06-29 起生效), 即 `llm_verified_full == True` 是行宇宙的唯一裁决依据, ctx/ss 两轨的高置信度计数是在同一行宇宙 (full 留篇集合的子集) 内、各自轨道文本上重新计算的测度/稳健性轨, 而非独立留篇。
 
 【文献定位】
-高置信度子样本设计与洗稿率诊断的一般计量传统直接呼应 Cohn, Liu & Wardlaw (2022, JFE) 关于金融研究中计数类与类计数(count-like)数据的方法论讨论——该文强调计数变量在截断、稀疏、异方差等场景下若不做稳健化处理, 容易在后续回归中放大测量误差; 本家族用"LLM 内部一致率门槛"而非裸单方法计数作为高置信度计数轨的设计选择, 与该文提倡的计数数据稳健化取向相呼应, 但需明确的是该文并非本设计的直接方法论出处, 而是同一研究关切下的一般性文献支持 (producer 源码内联注释标注的直接参照是 Shapiro et al. 2022, Journal of Economics, 该文未收录于本项目引文白名单池, 故本处不直接引注, 仅据代码注释如实说明); 本家族条目采纳 Cohn et al. (2022) 作为计数数据稳健性处理的独立佐证, 不构成对代码注释所引文献的替代或等价声称。多方法/多信号一致性确认正面情感信号可靠性的思路亦可参照银行业文本情感测度的中国语境应用, 例如 Fang, Wang, Wang & Yuan (2024, IREF) 在研究媒体情感与银行系统性风险关系时同样强调情感信号的稳健提取对下游存款稳定性推断的重要性, 与本项目 `pos_hc_count` 服务于 washing_ratio_hc 这一下游稳健性诊断量的设计初衷一致。银行文本披露信号可靠性的更广义文献脉络还包括 Chen, Goldstein, Huang & Vashishtha (2022, JFE) 对银行透明度与存款流动关系的实证, 该文提示文本类披露信号在银行业场景下的信息含量高度依赖测度构造的稳健性, 支持本家族在裸判正之外叠加一致率门槛的设计选择; 而计数类文本测度的可靠性度量传统亦可回溯至 Li (2008, JAE) 关于年报可读性与盈余持续性关系研究中对文本正面/负面词计数构造的早期规范化讨论。三轨并列、互为稳健性、禁止混入同一 over-identified Hansen J 的设计铁律与本项目情感测度全线的三轨口径 (full/ctx/ss) 完全一致, 三个轨道各自 just-identified, 不应在同一工具变量识别框架下混合使用。
-
+高置信度子样本设计与洗稿率诊断的一般计量传统直接呼应 Cohn, Liu & Wardlaw (2022, JFE) 关于金融研究中计数类与类计数(count-like)数据的方法论讨论——该文强调计数变量在截断、稀疏、异方差等场景下若不做稳健化处理, 容易在后续回归中放大测量误差; 本家族用"LLM 内部一致率门槛"而非裸单方法计数作为高置信度计数轨的设计选择, 与该文提倡的计数数据稳健化取向相呼应, 但需明确的是该文并非本设计的直接方法论出处, 而是同一研究关切下的一般性文献支持 (producer 源码内联注释标注的直接参照是 Shapiro et al. 2022, Journal of Economics, 该文未收录于本项目引文白名单池, 故本处不直接引注, 仅据代码注释如实说明); 本家族条目采纳 Cohn et al. (2022) 作为计数数据稳健性处理的独立佐证, 不构成对代码注释所引文献的替代或等价声称。多方法/多信号一致性确认正面情感信号可靠性的思路亦可参照银行业文本情感测度的中国语境应用, 例如 Fang, Wang, Wang & Yuan (2024, IREF) 在研究媒体情感与银行系统性风险关系时同样强调情感信号的稳健提取对下游存款稳定性推断的重要性, 与本项目 `pos_hc_count` 服务于 washing_ratio_hc 这一下游稳健性诊断量的设计初衷一致。银行文本披露信号可靠性的更广义文献脉络还包括 Chen, Goldstein, Huang & Vashishtha (2022, JFE) 对银行透明度与存款流动关系的实证, 该文提示文本类披露信号在银行业场景下的信息含量高度依赖测度构造的稳健性, 支持本家族在裸判正之外叠加一致率门槛的设计选择; 而计数类文本测度的可靠性度量传统亦可回溯至 Li (2008, JAE) 关于年报可读性与盈余持续性关系研究中对文本正面/负面词计数构造的早期规范化讨论。三轨并列、互为稳健性、禁止混入同一 over-identified Hansen J 的设计铁律与本项目情感测度全线的三轨口径 (full/ctx/ss) 完全一致, 三个轨道各自 just-identified, 不应在同一工具变量识别框架下混合使用。 至于"先做文章级极性判定、再在主体-年内对极性指示求和"这一底层聚合骨架, Cheng、Jiang 与 Song (2024) 提供了近期实证用例: 该文以 RavenPack (Dow Jones Newswires 全量、relevance=100) 把美国上市公司 2001–2014 年的新闻按公司-年归集为报道量 (Total_News) 与新闻情感, 作为解释变量进入债务融资方式选择回归, 发现负面盈余新闻显著降低银行贷款与公募债概率、提高私募债概率, 与本家族在 bank-year 分组内对文章级高置信度正面标记逐轨求和的骨架同形。迁移边界须如实且严格地划定: 该文主体为美国上市公司而非中国商业银行; 其极性来自 RavenPack 专有事件情感分析 (ESS), 既非公开情感词典、亦非人工编码, 更非本项目的三家 LLM 多数投票, 故此处只锚定"按主体-年对极性指示求和"这一聚合形态, 不锚定其极性来源; 尤须强调的是, 该文并未在极性指示之上叠加任何置信度门槛, 本家族"LLM 内部一致率不低于 HC_AGREEMENT_THRESHOLD"这一第二重条件在其设计中并无对应物, 因此该文仅锚定裸求和骨架, 不构成对高置信度门槛这一设计选择的背书, 亦不涉及 full/ctx/ss 三轨并列。
 ## VAR: pos_hc_count_ctx
 
 【变体差分】
@@ -80,4 +87,5 @@ Cohn, J. B., Liu, Z., & Wardlaw, M. I. (2022). Count (and count-like) data in fi
 Chen, Q., Goldstein, I., Huang, Z., & Vashishtha, R. (2022). Bank transparency and deposit flows. Journal of Financial Economics, 146(2), 475-501. https://doi.org/10.1016/j.jfineco.2022.07.009
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Li, F. (2008). Annual report readability, current earnings, and earnings persistence. Journal of Accounting and Economics, 45(2-3), 221-247. https://doi.org/10.1016/j.jacceco.2008.02.003
+Cheng, C. A., Jiang, L., & Song, W.-L. (2024). Media coverage and debt financing choice. Journal of Accounting and Public Policy, 44, 107181. https://doi.org/10.1016/j.jaccpubpol.2024.107181
 <!-- rendered-citations:end -->

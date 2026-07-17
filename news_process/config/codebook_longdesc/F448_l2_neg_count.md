@@ -39,6 +39,22 @@ citations:
   vol: '31'
   issue: '1'
   pages_or_artno: e1549
+- doi: "10.1016/j.jaccpubpol.2024.107181"
+  type: "journal"
+  authors: "Cheng, C. A., Jiang, L., & Song, W.-L."
+  year: 2024
+  title: "Media coverage and debt financing choice"
+  venue: "Journal of Accounting and Public Policy"
+  vol: "44"
+  pages_or_artno: "107181"
+- doi: "10.1016/j.jfs.2026.101538"
+  type: "journal"
+  authors: "Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S."
+  year: 2026
+  title: "Does media sentiment influence bank supervision?"
+  venue: "Journal of Financial Stability"
+  vol: "84"
+  pages_or_artno: "101538"
 new_dois: []
 ---
 
@@ -57,8 +73,7 @@ new_dois: []
 三轨 (full/ctx/ss) 与 vw/非-vw 两个加权维度正交组合, 构成本家族全部 6 列: `{neg_count, neg_count_vw} × {full, ctx, ss}`。full=标题+正文全文; ctx=标题+目标银行实体上下文窗口; ss=标题+银行∧金科词同句 (±N 句窗, 默认 N=1) 共现文本, 无共现时回退为全文 body 且 `ss_is_fallback=True` (镜像 ctx 回退语义, 共享 `n_articles` 分母口径)。铁律: 三轨各自 just-identified 并排, 互为稳健性、不分主次, 禁止把 full/ctx/ss 三轨的 `neg_count` 混进同一 over-identified Hansen J 设定; vw 与非-vw 两个加权维度同理并排, 不构成一个可加分解的"总量-权重"层级关系。
 
 【文献定位】
-计数型文本情感测度的方法学基础是 Tetlock, Saar-Tsechansky & Macskassy (2008, *Journal of Finance*) 与 Loughran & McDonald (2011, *Journal of Finance*) 建立的词典/文章计数范式, 本家族继承其"负面文章绝对数量作为舆论压力代理变量"的构念定位, 但把判定原语替换为 LLM 多数投票。计数数据在计量上的特殊性质 (非负整数、右偏、易零膨胀) 及其对回归设定的要求, 参照 Cohn, Liu & Wardlaw (2022, *Journal of Financial Economics*) 对 count-like 金融数据的系统性讨论——该文提醒研究者在 `neg_count{track}` 这类右偏计数变量上直接用 OLS 可能产生偏误, 建议配合对数变换 (参见家族外的 `_gated_log_sent` 衍生指标) 或计数模型 (Poisson/负二项) 作稳健性检验。中国情境下负面信息本身的可观测性存在系统性抑制, Piotroski, Wong & Zhang (2015, *Journal of Accounting Research*) 发现地方国企出于政治激励会压制负面信息的对外披露与传播——这提示本家族的负面文章计数在跨所有制、跨地区比较时须警惕"负面报道计数偏低"未必等于"真实经营负面事件更少", 而可能部分反映了信息渠道的政治性抑制, 是解读 `neg_count{track}` 系数时应披露的构念局限。提及密度加权 (`_vw` 变体) 的一般性方法学定位可参照 Todd, Bowden & Moshfeghi (2024, *Intelligent Systems in Accounting, Finance and Management*) 对金融文本情感分析文献的系统性综述, 该文梳理了从简单计数到强度/份额加权的测量演进脉络, 本项目的 mention_density 加权 (银行在文章中的文本份额) 属于这一"从二元命中到连续暴露强度"演进路径在中文银行新闻场景的具体实现, 用以区分银行作为报道主角与作为边缘提及对象时的不同舆论暴露程度。
-
+计数型文本情感测度的方法学基础是 Tetlock, Saar-Tsechansky & Macskassy (2008, *Journal of Finance*) 与 Loughran & McDonald (2011, *Journal of Finance*) 建立的词典/文章计数范式, 本家族继承其"负面文章绝对数量作为舆论压力代理变量"的构念定位, 但把判定原语替换为 LLM 多数投票。计数数据在计量上的特殊性质 (非负整数、右偏、易零膨胀) 及其对回归设定的要求, 参照 Cohn, Liu & Wardlaw (2022, *Journal of Financial Economics*) 对 count-like 金融数据的系统性讨论——该文提醒研究者在 `neg_count{track}` 这类右偏计数变量上直接用 OLS 可能产生偏误, 建议配合对数变换 (参见家族外的 `_gated_log_sent` 衍生指标) 或计数模型 (Poisson/负二项) 作稳健性检验。中国情境下负面信息本身的可观测性存在系统性抑制, Piotroski, Wong & Zhang (2015, *Journal of Accounting Research*) 发现地方国企出于政治激励会压制负面信息的对外披露与传播——这提示本家族的负面文章计数在跨所有制、跨地区比较时须警惕"负面报道计数偏低"未必等于"真实经营负面事件更少", 而可能部分反映了信息渠道的政治性抑制, 是解读 `neg_count{track}` 系数时应披露的构念局限。提及密度加权 (`_vw` 变体) 的一般性方法学定位可参照 Todd, Bowden & Moshfeghi (2024, *Intelligent Systems in Accounting, Finance and Management*) 对金融文本情感分析文献的系统性综述, 该文梳理了从简单计数到强度/份额加权的测量演进脉络, 本项目的 mention_density 加权 (银行在文章中的文本份额) 属于这一"从二元命中到连续暴露强度"演进路径在中文银行新闻场景的具体实现, 用以区分银行作为报道主角与作为边缘提及对象时的不同舆论暴露程度。 "文章级极性判定→按主体-年对极性指示求和"这一聚合范式在近期实证中仍属活跃用法: Cheng、Jiang 与 Song (2024) 把美国上市公司 2001–2014 年的新闻按公司-年归集为报道量与新闻情感并进入债务融资方式选择回归, 发现负面盈余新闻显著降低银行贷款与公募债概率、提高私募债概率, 为本家族的构造形态提供前沿用例。其迁移边界须明确标注: 该文极性来自 RavenPack 专有事件情感分析 (ESS), 既非公开情感词典、亦非人工编码, 更非本项目的三家 LLM 多数投票, 故此处只锚定聚合形态而不锚定极性来源; 且其主体为美国上市公司 (非银行), 亦无 `_vw` 提及密度加权变体可资参照。把媒体情感按银行主体归集并进入银行层面实证的做法, 近期见于 Aldama-Navarrete、Curti、Hansen 与 Kazinnik (2026): 该文构造针对特定银行的媒体情感测度并检验其与监管行为的关联, 说明本家族的银行-年负面报道计数在同域顶级期刊属被接受的测度形态。但其语境为美国银行监管 (DV 为监管评级/监管行动), 情感测度的构造细节与本项目 LLM 投票口径不同, 亦无 full/ctx/ss 三轨设计, 因而只作同域存在性与外部效度参照, 不构成对 `neg_count{track}` 具体口径的背书。
 ## VAR: neg_count_ctx
 
 【变体差分】
@@ -109,4 +124,6 @@ ss 轨的共现判据来自 `entity_context.extract_bank_fintech_cooccurrence` (
 Cohn, J. B., Liu, Z., & Wardlaw, M. I. (2022). Count (and count-like) data in finance. Journal of Financial Economics, 146(2), 529-551. https://doi.org/10.1016/j.jfineco.2022.08.004
 Piotroski, J. D., Wong, T. J., & Zhang, T. (2015). Political incentives to suppress negative information: Evidence from Chinese listed firms. Journal of Accounting Research, 53(2), 405-459. https://doi.org/10.1111/1475-679X.12071
 Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management, 31(1), e1549. https://doi.org/10.1002/isaf.1549
+Cheng, C. A., Jiang, L., & Song, W.-L. (2024). Media coverage and debt financing choice. Journal of Accounting and Public Policy, 44, 107181. https://doi.org/10.1016/j.jaccpubpol.2024.107181
+Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S. (2026). Does media sentiment influence bank supervision?. Journal of Financial Stability, 84, 101538. https://doi.org/10.1016/j.jfs.2026.101538
 <!-- rendered-citations:end -->

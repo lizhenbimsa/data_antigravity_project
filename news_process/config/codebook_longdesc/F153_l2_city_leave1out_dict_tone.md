@@ -71,6 +71,29 @@ citations:
   year: 2024
   venue: "Intelligent Systems in Accounting, Finance and Management"
   type: "journal"
+- doi: "10.1093/jeg/lbaf031"
+  type: "journal"
+  authors: "Broekel, T."
+  year: 2025
+  title: "Feeling the heartbeat of regions: local news and economic sentiments"
+  venue: "Journal of Economic Geography"
+  vol: "25"
+  issue: "6"
+  pages_or_artno: "937-976"
+- doi: "10.1162/rest.a.263"
+  type: "journal"
+  authors: "Frandsen, B., Leslie, E., & McIntyre, S."
+  year: 2025
+  title: "Cluster Jackknife Instrumental Variables Estimation"
+  venue: "Review of Economics and Statistics"
+  pages_or_artno: "1-19"
+- doi: "10.2139/ssrn.4787799"
+  type: "wp"
+  authors: "Ellis, C., & Jaspersen, J. G."
+  year: 2024
+  title: "Fixed Effects and the \"Leave-Out'' Instrument"
+  venue: "SSRN Electronic Journal"
+  pages_or_artno: "4787799"
 new_dois:
   - "10.1002/isaf.1549"
 ---
@@ -86,8 +109,7 @@ new_dois:
 三轨 full/ctx/ss 各自独立走上述留一聚合, 是三条并排的规格稳健性轨: full = 标题 prepend 后的全文正文; ctx = 标题加实体上下文窗口; ss = 标题加"银行与金融科技同句±N窗"共现文本, 其回退语义镜像 ctx (无同句共现时 ss 退化为全文 body)。三轨各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同轨的留一 IV 混进同一个 over-identified 的 Hansen J 过度识别检验; 若研究者要做过度识别, 正确做法是在同一轨内并列多个"独立情感度量"的留一 IV (词典法综合、LLM 投票语调、BERT 正面概率三者), 而非跨轨拼接。留篇门控采 full-only 口径 (2026-06-29): 一篇报道是否计入某银行-年的语料由 full 轨判定, ctx/ss 是 conditional-on-full 的子集测度; 因此三轨的城市组银行集是嵌套的, ss 轨的有效样本量通常最小。
 
 【文献定位】
-本度量把两支文献焊在一起。词典法情感测量一支: Loughran 与 McDonald (2011) 奠定了金融文本须用领域词典而非通用词典的方法论, García、Hu 与 Rohrer (2023) 进一步给金融词汇标注方向色彩, Du、Huang、Wermers 与 Wu (2022) 构建中文金融情感词典并揭示领域与语言特异性, 三者共同支撑本项目"六词典综合、逐篇归一"的 dict_avg_tone 源测度; Frankel、Jennings 与 Lee (2022) 则以机器学习对照词典法, 论证词典法在披露情感上仍具竞争力, 为把词典语调当作一条独立情感度量 (而非 LLM/BERT 的次等替身) 提供依据。媒体情绪的资产定价后果一支: Tetlock (2007) 证明媒体语调对市场有可度量的实质影响, 为"地方媒体情绪场经由同侪渠道外生推动 i"的排他性叙事提供机制基础。识别工具一支: Goldsmith-Pinkham、Sorkin 与 Swift (2020) 系统梳理 Bartik/份额-移动型工具变量的识别逻辑与检验, 留一同侪均值正是这一族空间/同侪工具的近亲, 其"排除自身、组内他体均值作外生推力"的构造与本度量同源。综合而言, city_leave1out_dict_tone 不是一个情感构念本身, 而是把词典情感这一被充分验证的测度, 经由城市-年度留一聚合改造为一件识别工具。Todd, Bowden 与 Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 系统综述了金融文本情感分析(含词典法与机器学习法)的最新进展与未来方向, 为本家族以词典法综合语调作为独立情感度量源 (dict_avg_tone) 提供最新方法论定位。
-
+本度量把两支文献焊在一起。词典法情感测量一支: Loughran 与 McDonald (2011) 奠定了金融文本须用领域词典而非通用词典的方法论, García、Hu 与 Rohrer (2023) 进一步给金融词汇标注方向色彩, Du、Huang、Wermers 与 Wu (2022) 构建中文金融情感词典并揭示领域与语言特异性, 三者共同支撑本项目"六词典综合、逐篇归一"的 dict_avg_tone 源测度; Frankel、Jennings 与 Lee (2022) 则以机器学习对照词典法, 论证词典法在披露情感上仍具竞争力, 为把词典语调当作一条独立情感度量 (而非 LLM/BERT 的次等替身) 提供依据。媒体情绪的资产定价后果一支: Tetlock (2007) 证明媒体语调对市场有可度量的实质影响, 为"地方媒体情绪场经由同侪渠道外生推动 i"的排他性叙事提供机制基础。识别工具一支: Goldsmith-Pinkham、Sorkin 与 Swift (2020) 系统梳理 Bartik/份额-移动型工具变量的识别逻辑与检验, 留一同侪均值正是这一族空间/同侪工具的近亲, 其"排除自身、组内他体均值作外生推力"的构造与本度量同源。综合而言, city_leave1out_dict_tone 不是一个情感构念本身, 而是把词典情感这一被充分验证的测度, 经由城市-年度留一聚合改造为一件识别工具。Todd, Bowden 与 Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 系统综述了金融文本情感分析(含词典法与机器学习法)的最新进展与未来方向, 为本家族以词典法综合语调作为独立情感度量源 (dict_avg_tone) 提供最新方法论定位。 在地理聚合这一环上, Broekel (2025) 从 300 余家德语地方媒体的地理编码新闻标题构建区域经济新闻情绪指数 (REGENS), 并检验其与区域失业率等地区经济指标的领先关系, 为"地方新闻文本→情感打分→地区-时间面板聚合"这一构造链路提供了前沿存在性证明, 锚定本家族按 (bank_city, year) 分组聚合词典语调的前半程; 但该文的聚合单位是地区本身而非"地区内某个被报道主体", 既无本项目 target_bank 与媒体城市的双地理键, 也不含排除自身的留一算子, 其语料为德语地方新闻、DV 为区域经济指标而非银行层面结果, 故只锚定区域语调面板的构造, 不锚定本家族的留一改造。留一构造本身的方法学参照则来自两支近期计量文献: Frandsen、Leslie 与 McIntyre (2025) 提出并推导了 cluster jackknife (按簇留出) IV 估计量, 证明其在簇内多工具/多固定效应设定下可消除标准 2SLS 的偏误, 与本家族按 (城市, 年) 分组留出的构造同族——但该文是纯计量方法论文 (估计量推导 + 蒙特卡洛 + 一个美国司法数据应用), 其留出单位是 cluster (法官), 本家族留出单位是同组内的单家银行且分组键为地理×年份, 本项目仅借其对留一构造偏误的校正逻辑作方法参照, 并未实施 cluster jackknife 估计。Ellis 与 Jaspersen (2024) 则分析 leave-out (留一同侪均值) 工具在含固定效应模型中的行为, 指出组内留一均值与固定效应同时使用时估计量会出现机械性偏误, 构成本家族构造法的诚实警示; 该文为 SSRN 工作论文、未见期刊终刊记录, 非同行评审终稿, 其讨论对象是一般线性面板的留一 IV 估计量, 做的是估计量性质推导与模拟, 未涉及 bank-year 层级、中文媒体语调原子值, 亦未讨论本项目 (城市, 年份) / (省份, 年份) 等分组键与最小组规模守卫; 又因本项目部分 leave1out 列仅作同侪暴露控制变量而非 IV, 该警示的适用范围须按具体用途分别评估。
 ## VAR: city_leave1out_dict_tone_ctx
 
 【变体差分】
@@ -111,4 +133,7 @@ Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik instruments: What,
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
+Broekel, T. (2025). Feeling the heartbeat of regions: local news and economic sentiments. Journal of Economic Geography, 25(6), 937-976. https://doi.org/10.1093/jeg/lbaf031
+Frandsen, B., Leslie, E., & McIntyre, S. (2025). Cluster Jackknife Instrumental Variables Estimation. Review of Economics and Statistics, 1-19. https://doi.org/10.1162/rest.a.263
+Ellis, C., & Jaspersen, J. G. (2024). Fixed Effects and the "Leave-Out'' Instrument. SSRN Electronic Journal No. 4787799 [Working Paper]. https://doi.org/10.2139/ssrn.4787799
 <!-- rendered-citations:end -->

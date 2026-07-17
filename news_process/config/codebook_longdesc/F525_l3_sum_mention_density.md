@@ -42,6 +42,20 @@ citations:
   vol: '134'
   issue: '4'
   pages_or_artno: 2135-2202
+- doi: "10.1080/13504851.2025.2522167"
+  type: "journal"
+  authors: "Huang, Y.-T., Chiu, I.-C., & Hung, M.-W."
+  year: 2025
+  title: "Firm-specific news sentiment and stock returns: the impact of relevance and time frames"
+  venue: "Applied Economics Letters"
+  pages_or_artno: "1-10"
+- doi: "10.1177/10944281251334777"
+  type: "journal"
+  authors: "Iqbal, F., & Pfarrer, M. D."
+  year: 2025
+  title: "Using Coreference Resolution to Mitigate Measurement Error in Text Analysis"
+  venue: "Organizational Research Methods"
+  pages_or_artno: "10944281251334777"
 new_dois: []
 ---
 
@@ -54,8 +68,7 @@ sum_mention_density 是银行-年度面板层面的一个 value-weighted (以下
 计算链路分两段。第一段在文章级 (stage 11 news_bank): 一篇文章可同时命中多家银行, 每家合格银行独立展开为一条物理行 (firm-document expansion, 输出行数可多于输入行数), 每行携带该银行专属的 target_bank_mention_count 与共享的 doc_length, 二者相除得到该银行在该篇文章中的 mention_density。判定"合格"(is_bank_news=True) 的前置条件与 stage 11 家族共享: 全文+标题别名总命中 ≥ MIN_NAME_OCCURRENCES (默认 2), 且满足上下半文分布条件之一 (上半 ≥ MIN_UPPER 且下半 ≥ MIN_LOWER; 或标题命中且全文合计达标), 并经否定模式 (NEGATION_AC, 如"务农行列"误配"农行") 与短名歧义消解 (≤2 字简称按上下文窗口排除) 双重假阳性过滤; 匹配引擎是全局 Aho-Corasick 自动机, 一次线性扫描完成全部银行别名匹配, 复杂度 O(文本长度)。第二段在面板级 (stage 40 encode): 以银行-年度为聚合单元, 对该单元下全部合格文章的 mention_density 逐条累加 (pandas groupby.agg 的 'sum' 命名聚合), 得到 sum_mention_density。这一"先归一化再求和"的两段式设计, 使得该列既保留了单篇文章内部的强度信号 (避免长文因绝对词频高而机械压过短文), 又通过年度加总把强度信号累积为一个可比的银行-年度暴露量, 天然对篇幅分布不同的银行样本更具可比性 — 这正是与仅用绝对提及次数加总 (sum_target_mentions) 或篇均密度 (若存在) 相区别之处: sum_mention_density 是"密度的总量", 兼具"多篇高强度报道"与"单篇高强度长期占据版面"两类暴露模式的敏感性, 而非二者中任一单独测度。该列的分母字符数计数以原始 Python str 长度为准 (未做分词或去标点归一), 因此对不同排版风格 (如大量数字、引号、空白字符) 的文章存在轻微的量纲噪声, 使用者在做跨来源比较时应留意这一点; 该噪声在同一新闻来源内部相对稳定, 不构成系统性偏误。
 
 【文献定位】
-本测度真正的方法论血统, 是源码注释显式标注的 value-weighted exposure 框架: pipeline\filtering\news_bank.py 在提及密度计算处的注释与 pipeline\panel\encode.py 在该列所属"F. Value-weighted 辅助列"分组处的注释, 均将其方法论谱系直接归给 Hassan et al. (2019, Quarterly Journal of Economics) 提出的"以文本命中频次归一化构造企业/机构层面风险与关注度暴露"这一设计范式, 以及 Sautner et al. (2023, Journal of Finance) 在气候变化文本暴露测度上对同一框架的延伸应用。这两篇文献才是"归一化文本命中→暴露强度"这一构念最直接的方法论源头; 其中 Hassan et al. (2019) 经核验确属项目 874-DOI 主白名单收录文献, 已正式列入本家族 citations (QJE 顶刊锚), 印证以文本命中频次归一化构造企业/机构层面暴露强度这一设计范式的方法学正当性; Sautner et al. (2023) 因不在本家族当前引文候选池 (citations_pool.md) 的白名单范围内, 未收录为结构化 citations 条目, 此处仅据源码注释如实标注其血统, 不作为可核验引注呈现。本节实际引用的三篇文献服务的是一个更外围但仍然相关的目的——为"归一化强度指标优于绝对计数"这一一般性方法论选择提供跨领域佐证, 使用者应留意其构念差异: Gama, Sol Murta & Vieira (2024, Small Business Economics) 与 Benmelech, Yang & Zator (2023, NBER Working Paper No. 31462) 研究的是银行分支物理密度 (bank branch density per capita/area), 即银行网点在地理空间上的结构性暴露, 与本列 mention_density 度量的"单篇文章内文本提及次数相对于正文长度的归一化强度"是两个完全不同的构念, 二者仅字面共享"density"一词, 不构成方法论同源; 引用二者的用意仅在于说明"密度型 (归一化) 指标相较绝对计数更能反映单位基数上的信号强度"这一构造原则在银行业实证文献中具有跨构念的一般适用性, 而非声称其研究对象与本列相同。与本列构念真正相关的是 Ge, Li & Zheng (2025, Journal of Banking and Finance) 对中国语境下新闻共现 (co-mention) 动量跨企业溢出效应的研究——其"新闻文本中的提及/共现频次是可量化、可预测后续经济结果的信息载体"这一核心假设, 与本 pipeline 中银行-金科同句/同文共现判定 (stage 13) 及本家族"提及密度加总作为文本暴露强度代理变量"的设计目的直接同源, 是三篇引文中唯一在构念层面而非仅关键词层面与 sum_mention_density 相关的文献。sum_mention_density 在本项目全部论文模块 (P1-P5 及衍生 provisional 论文) 中定位为 stage 40 输出的一批"篇幅-强度"辅助列之一, 供研究者在主回归之外做稳健性核查 (如检验主结果是否仅由篇数驱动而非提及强度驱动), 不作为任一论文的主处理变量 (treatment) 或结果变量 (outcome), 但可作为控制变量或异质性分组依据纳入面板回归设计。
-
+本测度真正的方法论血统, 是源码注释显式标注的 value-weighted exposure 框架: pipeline\filtering\news_bank.py 在提及密度计算处的注释与 pipeline\panel\encode.py 在该列所属"F. Value-weighted 辅助列"分组处的注释, 均将其方法论谱系直接归给 Hassan et al. (2019, Quarterly Journal of Economics) 提出的"以文本命中频次归一化构造企业/机构层面风险与关注度暴露"这一设计范式, 以及 Sautner et al. (2023, Journal of Finance) 在气候变化文本暴露测度上对同一框架的延伸应用。这两篇文献才是"归一化文本命中→暴露强度"这一构念最直接的方法论源头; 其中 Hassan et al. (2019) 经核验确属项目 874-DOI 主白名单收录文献, 已正式列入本家族 citations (QJE 顶刊锚), 印证以文本命中频次归一化构造企业/机构层面暴露强度这一设计范式的方法学正当性; Sautner et al. (2023) 因不在本家族当前引文候选池 (citations_pool.md) 的白名单范围内, 未收录为结构化 citations 条目, 此处仅据源码注释如实标注其血统, 不作为可核验引注呈现。本节实际引用的三篇文献服务的是一个更外围但仍然相关的目的——为"归一化强度指标优于绝对计数"这一一般性方法论选择提供跨领域佐证, 使用者应留意其构念差异: Gama, Sol Murta & Vieira (2024, Small Business Economics) 与 Benmelech, Yang & Zator (2023, NBER Working Paper No. 31462) 研究的是银行分支物理密度 (bank branch density per capita/area), 即银行网点在地理空间上的结构性暴露, 与本列 mention_density 度量的"单篇文章内文本提及次数相对于正文长度的归一化强度"是两个完全不同的构念, 二者仅字面共享"density"一词, 不构成方法论同源; 引用二者的用意仅在于说明"密度型 (归一化) 指标相较绝对计数更能反映单位基数上的信号强度"这一构造原则在银行业实证文献中具有跨构念的一般适用性, 而非声称其研究对象与本列相同。与本列构念真正相关的是 Ge, Li & Zheng (2025, Journal of Banking and Finance) 对中国语境下新闻共现 (co-mention) 动量跨企业溢出效应的研究——其"新闻文本中的提及/共现频次是可量化、可预测后续经济结果的信息载体"这一核心假设, 与本 pipeline 中银行-金科同句/同文共现判定 (stage 13) 及本家族"提及密度加总作为文本暴露强度代理变量"的设计目的直接同源, 是三篇引文中唯一在构念层面而非仅关键词层面与 sum_mention_density 相关的文献。sum_mention_density 在本项目全部论文模块 (P1-P5 及衍生 provisional 论文) 中定位为 stage 40 输出的一批"篇幅-强度"辅助列之一, 供研究者在主回归之外做稳健性核查 (如检验主结果是否仅由篇数驱动而非提及强度驱动), 不作为任一论文的主处理变量 (treatment) 或结果变量 (outcome), 但可作为控制变量或异质性分组依据纳入面板回归设计。 新近文献进一步收窄了本列构念动机的锚点。Huang、Chiu 与 Hung (2025) 检验了「新闻与特定公司的相关度 (relevance)」对公司特定新闻情感效力的调节作用, 证实一篇报道在多大程度上「关于」该公司会改变其所携信号的强度; 这正是 mention_density 以目标银行提及次数占正文长度之比操作化「本篇报道与目标实体的相关度」的动机所在。迁移边界须诚实标明: 该文的 relevance 取自第三方新闻情感数据库的既有打分 (供应商定义、构造不透明), 与本列自建的透明比值 target_bank_mention_count / max(len(内容), 1) 数值不可比, 故不构成对本列密度公式的效度检验; 其分析层级为公司-新闻条目并对接股票收益 (高频), 本列则在 bank-year 上取 sum 而非 mean, 因而与年内篇数存在量级共线; 中文字符数分母与英文 token 数分母的含义不同, 密度值域亦不可跨语种迁移; 原文对象为一般上市公司, 本列为目标银行。在测量误差一侧, Iqbal 与 Pfarrer (2025) 指出多主体文本中的文本归属存在系统性测量误差 (传统方法易将文本误归于错误公司), 提出以共指消解 (coreference resolution) 为解, 并经两项研究证明该处理可降低测量误差。其对本列的锚定环节仅限于「实体归属是一项实质性的测量误差来源」这一一般命题: 本列分子为表层字符串匹配得到的提及计数, 未作共指还原, 代词与简称回指不计入, 故 mention_density 宜理解为相关度的保守下界。边界须写明: 该文语料为英文组织管理文本、单位为文档/组织, 其立场是规范性的 (主张采纳共指消解以逼近唯一正确做法), 与本项目令各并排臂互为稳健性、不分主次的取向不同; 且原文所指的实体归属问题在本 pipeline 中对应的是 ctx/ss 实体窗口轨的处理, 不得援引为本族密度公式或任何规则消融设计的同构先例。
 ## VAR: sum_mention_density
 
 【变体差分】
@@ -65,4 +78,6 @@ Gama, P. M., Sol Murta, F., & Vieira, E. S. (2024). Local banking development an
 Ge, S., Li, S., & Zheng, H. (2025). Diamond cuts diamond: News co-mention momentum spillover prevails in China. Journal of Banking and Finance, 171, 107356. https://doi.org/10.1016/j.jbankfin.2024.107356
 Benmelech, E., Yang, J., & Zator, M. (2023). Bank Branch Density and Bank Runs. National Bureau of Economic Research Working Paper [Working Paper]. https://doi.org/10.3386/w31462
 Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-Level Political Risk: Measurement and Effects. Quarterly Journal of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021
+Huang, Y.-T., Chiu, I.-C., & Hung, M.-W. (2025). Firm-specific news sentiment and stock returns: the impact of relevance and time frames. Applied Economics Letters, 1-10. https://doi.org/10.1080/13504851.2025.2522167
+Iqbal, F., & Pfarrer, M. D. (2025). Using Coreference Resolution to Mitigate Measurement Error in Text Analysis. Organizational Research Methods, 10944281251334777. https://doi.org/10.1177/10944281251334777
 <!-- rendered-citations:end -->

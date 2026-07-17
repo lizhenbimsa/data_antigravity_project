@@ -57,6 +57,38 @@ citations:
   title: 'Discourse vs emissions: Analysis of corporate narratives, symbolic practices,
     and mimicry through LLMs'
   venue: arXiv
+- doi: "10.1016/j.jsis.2026.101971"
+  type: "journal"
+  authors: "Chen, Z., Hajiheydari, N., Zhang, M., & Lin, Y.-E."
+  year: 2026
+  title: "Corporate digital transformation attention and innovation: strategic commitment or symbolic signalling?"
+  venue: "The Journal of Strategic Information Systems"
+  vol: "35"
+  issue: "2"
+  pages_or_artno: "101971"
+- doi: "10.1108/ara-01-2025-0031"
+  type: "journal"
+  authors: "Guan, J., & Zhuang, X."
+  year: 2025
+  title: "Do digital words reflect real innovation? Evidence from post-M&A earnings conference"
+  venue: "Asian Review of Accounting"
+  pages_or_artno: "1-44"
+- doi: "10.1016/j.frl.2024.105265"
+  type: "journal"
+  authors: "Huang, J., & Ma, L."
+  year: 2024
+  title: "Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation"
+  venue: "Finance Research Letters"
+  vol: "63"
+  pages_or_artno: "105265"
+- doi: "10.1016/j.technovation.2023.102880"
+  type: "journal"
+  authors: "Granados, C., Ayala, Y., & Ramos-Mejia, M."
+  year: 2024
+  title: "Is it substantive or just symbolic? Understanding innovation theater in organisations: The case of technology-based innovation"
+  venue: "Technovation"
+  vol: "129"
+  pages_or_artno: "102880"
 new_dois: []
 ---
 
@@ -72,8 +104,7 @@ symb_frac 家族的计算链条起于 stage 21 (`tone_llms`) 三家 LLM 对每�
 分类恒等式方面, `_check_partition_identity` 会校验 `n_articles_sub + n_articles_symb == n_articles_llm_valid` (以及 ctx/ss 轨各自对角线的对应恒等式), 确保「实质性/象征性」二分类穷尽且互斥, 这是 symb_frac 数值可解释为"占比"而非任意计数比的前提。与 symb_frac 同源但不同构念的 `tone_gap_sub_symb` (及其 ctx/ss 镜像变体) 是取「实质性」子集与「象征性」子集各自的平均语调 (`llm_vote_tone`) 之差, 度量"言行两端情感纯度差距", 施加 min-n≥5 的 cell 最小样本量守门 (避免单篇驱动伪差距); symb_frac 本身不受此守门约束, 只要分母大于 0 即出值。
 
 【文献定位】
-symb_frac 家族的构念锚点是组织理论中实质-象征脱耦的经典范式 (Westphal & Zajac, 1994, ASQ; Westphal & Zajac, 1998, ASQ), 后者尤其确立了"象征性举措用于管理外部利益相关者印象而非实质改变治理结构"的核心命题, 本仓库将其运用到银行金融科技新闻叙事这一新的经验场域。在测度层面, 用 LLM 分类给文本打"实质 vs 象征"标签的做法呼应了近年文本分析文献对企业气候/ESG披露"廉价谈话"成分的系统识别 (Bingler et al., 2024, Journal of Banking & Finance), 组织理论后续文献亦将"系统性象征管理"的分析框架扩展到企业社会责任与公司宗旨表态领域, 警示此类对外表态本身也可能沦为脱离实质行为的象征性工具 (Westphal, 2023, Strategy Science), 而基于大语言模型对企业文本叙事中象征性实践与制度性模仿的自动化识别, 是本家族方法学思路 (用 LLM 对报道文本做"实质/象征"二分类) 在近期文献中的平行印证 (Hassani, Bahini & Mushtaq, 2025)。三轨设计 (full/ctx/ss) 与本仓库全线情感/分类测度共享同一"文本窗口敏感性"稳健性哲学: 全文轨捕获整篇报道语境, ctx 轨聚焦实体邻近窗口降低无关段落噪声, ss 轨要求银行与金融科技词汇同句共现以最严格化归因; 三者互为稳健性并排比较, 而非彼此嵌套或互相替代。
-
+symb_frac 家族的构念锚点是组织理论中实质-象征脱耦的经典范式 (Westphal & Zajac, 1994, ASQ; Westphal & Zajac, 1998, ASQ), 后者尤其确立了"象征性举措用于管理外部利益相关者印象而非实质改变治理结构"的核心命题, 本仓库将其运用到银行金融科技新闻叙事这一新的经验场域。在测度层面, 用 LLM 分类给文本打"实质 vs 象征"标签的做法呼应了近年文本分析文献对企业气候/ESG披露"廉价谈话"成分的系统识别 (Bingler et al., 2024, Journal of Banking & Finance), 组织理论后续文献亦将"系统性象征管理"的分析框架扩展到企业社会责任与公司宗旨表态领域, 警示此类对外表态本身也可能沦为脱离实质行为的象征性工具 (Westphal, 2023, Strategy Science), 而基于大语言模型对企业文本叙事中象征性实践与制度性模仿的自动化识别, 是本家族方法学思路 (用 LLM 对报道文本做"实质/象征"二分类) 在近期文献中的平行印证 (Hassani, Bahini & Mushtaq, 2025)。三轨设计 (full/ctx/ss) 与本仓库全线情感/分类测度共享同一"文本窗口敏感性"稳健性哲学: 全文轨捕获整篇报道语境, ctx 轨聚焦实体邻近窗口降低无关段落噪声, ss 轨要求银行与金融科技词汇同句共现以最严格化归因; 三者互为稳健性并排比较, 而非彼此嵌套或互相替代。 近年文献进一步把这一二分从组织理论的构念推进为可被实证证伪的经验命题, 并在数字化/金融科技议题与中国语境下反复检验, 构成本家族最贴近的同域参照。Chen、Hajiheydari、Zhang 与 Lin (2026) 基于注意力基础观构造企业数字化转型关注度, 以中国上市公司 2007–2020 年样本在「战略实质承诺 vs 象征性信号」两个对立解释之间做检验, 发现该关注度与突破式创新相关而与渐进式创新及研发支出无关, 从而支持实质承诺说、未支持象征性信号说, 且数字话语与创新的一致性在高问责情境下最强; 该文对本家族的价值在于确立该二分是当代数字话语研究的主流理论框架, 并证明「话语是否只是象征」是可被实证证伪的经验问题, 因而同时充当构念锚点与反面参照 —— 不可据此宣称原文为象征性解释提供了支持。其象征性判定基于「话语关注度 vs 实际创新产出」的推断性对比, 与本家族由 LLM 对单篇报道直接给出实质/象征分类标签的判定机制不同; 原文文本源为公司自述披露、分析层级为公司-年, 而本家族为第三方新闻报道且分 full/ctx/ss 三轨。Guan 与 Zhuang (2025) 在中国并购语境下以并购后业绩说明会文本追问「数字化措辞是否对应真实创新」, 检验数字化词汇与后续创新产出的对应关系, 与 symb_frac 所刻画的「科技话语中象征性成分份额」高度同域; 但原文以「数字词汇量 vs 实际创新指标」间接推断象征性, 未提出象征性/实质性的逐篇标注方案, 文本源亦为管理层自述而非新闻报道, 分析单元为并购事件/公司-年。Huang 与 Ma (2024) 则把该二分直接落在金融科技议题上, 检验金融科技发展对企业实质性绿色创新与象征性绿色创新的差异化影响, 在中国情境中明确采用「实质性 vs 象征性」创新二分, 是与本家族在概念与中文表述上最直接对应的同域应用; 惟其实质/象征由专利类型 (发明 vs 实用新型/外观) 客观划分而非由文本判定, 研究主体为非金融上市公司且金融科技是解释变量, 而本家族中金融科技是被报道的议题本身、主体为商业银行, 原文亦未构造任何比率型 washing 指标。Granados、Ayala 与 Ramos-Mejia (2024) 从组织理论一侧补足了构念界定: 该文系统刻画技术创新语境下的「创新剧场」现象, 即象征性展演与实质性投入的分野, 为本家族的二分标签提供当代组织理论层面的机制阐述; 但原文为组织层面的构念化研究, 未提供文本自动分类算法, 非中国语境、非银行业、亦无面板计量, 本家族把该构念操作化为逐篇 LLM 标签并按银行-年计算份额, 操作化层级与数据类型均已超出原文所验证的范围。
 ## VAR: symb_frac
 
 【变体差分】
@@ -95,4 +126,8 @@ Westphal, J. D., & Zajac, E. J. (1998). The symbolic management of stockholders.
 Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2024). How cheap talk in climate disclosures relates to climate initiatives, corporate emissions, and reputation risk. Journal of Banking & Finance, 164, 107191. https://doi.org/10.1016/j.jbankfin.2024.107191
 Westphal, J. D. (2023). Systemic symbolic management, corporate social responsibility, and corporate purpose: A cautionary tale. Strategy Science, 8(2), 221–232. https://doi.org/10.1287/stsc.2023.0188
 Hassani, B. K., Bahini, Y., & Mushtaq, R. (2025). Discourse vs emissions: Analysis of corporate narratives, symbolic practices, and mimicry through LLMs. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2510.01222
+Chen, Z., Hajiheydari, N., Zhang, M., & Lin, Y.-E. (2026). Corporate digital transformation attention and innovation: strategic commitment or symbolic signalling?. The Journal of Strategic Information Systems, 35(2), 101971. https://doi.org/10.1016/j.jsis.2026.101971
+Guan, J., & Zhuang, X. (2025). Do digital words reflect real innovation? Evidence from post-M&A earnings conference. Asian Review of Accounting, 1-44. https://doi.org/10.1108/ara-01-2025-0031
+Huang, J., & Ma, L. (2024). Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation. Finance Research Letters, 63, 105265. https://doi.org/10.1016/j.frl.2024.105265
+Granados, C., Ayala, Y., & Ramos-Mejia, M. (2024). Is it substantive or just symbolic? Understanding innovation theater in organisations: The case of technology-based innovation. Technovation, 129, 102880. https://doi.org/10.1016/j.technovation.2023.102880
 <!-- rendered-citations:end -->

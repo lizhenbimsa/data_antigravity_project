@@ -53,6 +53,15 @@ citations:
   title: "Inducing domain-specific sentiment lexicons from unlabeled corpora"
   venue: Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing
   pages_or_artno: 595-605
+- doi: "10.1515/econ-2022-0129"
+  type: "journal"
+  authors: "Wang, H."
+  year: 2024
+  title: "Media Tone and Earnings Management before the Earnings Announcement: Evidence from China"
+  venue: "Economics"
+  vol: "18"
+  issue: "1"
+  pages_or_artno: "20220129"
 new_dois: []
 ---
 
@@ -65,8 +74,7 @@ new_dois: []
 计算发生在面板构造阶段的算法迎合度全展开步骤 (runner 步骤 8d, 情形 B「单词典 vs 综合深层模型」), 是纯后处理差分, 不额外调用任何付费 API。对每条轨道, 引擎先核验词典净语调列与 BERT 正负概率列在面板中同域存在, 再执行同银行同年、同轨道的逐格相减, 得到 you_2018_cater_b 的三轨列。you_2018_tone 的计算发生在阶段 22 词典情感引擎: 对每篇报道分词后逐词匹配正/负极性词表, 并经语言学规则 (否定翻转、程度副词加权、转折让步) 增强, 再按加权正负词数之差对总极性词数归一化, 落在约 [-1,1] 区间; 该词典 positive∩negative 的 5 个跨类重叠词按项目 2026-06-24 决策"保留并两侧计数", 以 (+1,−1) 平衡双票计入而非武断单侧剔除, 净语调因此不受重叠词影响而守恒。BERT 侧的正负概率是综合三个中文金融 BERT 模型 (finbert_cn / fin_sent_zh / finbert2) 判别输出的聚合均值, 反映深层判别式模型对文本整体情感分布的概率判断, 与阶段 21 的三家生成式 LLM 投票 (gpt54nano / gemini31 / deepseekv4) 是两套完全独立的引擎——本家族「_b」后缀专指以综合 BERT 为参照, 而与以 LLM 投票共识为参照的 you_2018_cater (无 b 后缀) 是两条并行、构念互补但不可混同的迎合度轨: 前者对照概率型判别式深层模型, 后者对照生成式大模型的多数投票, 二者在稳健性叙事中「各自 just-identified 并排、互为稳健性、不分主次」, 严禁将词典—BERT 迎合度与词典—LLM 迎合度混进同一 over-identified 的 Hansen J 过度识别检验。词典侧与 BERT 侧两个测度经各自归一化后落在可比区间, 相减所得落差即为迎合度信号, 三轨 (full/ctx/ss) 之间同样各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J。留篇口径遵循 2026-06-29 的 full-only 门控: 一篇报道是否计入"银行金科报道"宇宙仅由 full 轨的 LLM 判定 (llm_verified_full) 决定, ctx 与 ss 轨的行宇宙是该留篇集的子集 (conditional-on-full), per-track 的迎合度列在此子集上照常逐格计算。
 
 【文献定位】
-迎合度构念的思想源流是 Cao, Jiang, Yang & Zhang (2023) 发表于《Review of Financial Studies》的研究, 其核心发现是当披露方预期文本会被算法解析 (尤其是被算法交易或文本挖掘工具抓取) 时, 会策略性地调整用词以取悦机器读者, 使得文本在机器可读维度显得更为正面而未必改变其经语境理解后的真实语气; 本家族正是把这一策略性行为操作化为词典引擎与深层判别式引擎打分之差的可观测代理。词典侧测度依托 You, Zhang & Zhang (2018) 发表于《Review of Financial Studies》的中文金融情感词典构建方法, 该文首次系统论证了媒体报道语调可被"捕获"(captured) 而非中立呈现, 即报道方与信息来源之间的利益关联会系统性地影响文本用词选择——这正是选用 you_2018 而非通用情感词典作为本迎合度家族词典侧锚的方法学依据: 若一篇报道对该词典所刻画的褒义用词模式表现出异常堆砌, 恰与"捕获之笔"的核心命题相呼应。深层判别式引擎一侧, Sun, Yuan & Xu (2025) 将词典知识与中性特征注入预训练语言模型的做法表明, 词典与深层模型并非互斥替代关系, 而是各自捕捉情感信息的不同切面, 二者之差因而具有实质的构念内涵而非纯统计噪声。词典构造方法学层面, Hamilton, Clark, Leskovec & Jurafsky (2016) 提出的从无标注语料诱导领域特异情感词表的框架, 与 Ma, Zhang & Zhang (2025) 构建的面向中国境内投资者的细粒度中文情感词典 (CN-FSD), 共同刻画了金融情感词典在覆盖度与领域适配上的持续演进, 佐证了固定词表式打分与语境敏感深层模型之间系统性落差的可测量性与稳定性。
-
+迎合度构念的思想源流是 Cao, Jiang, Yang & Zhang (2023) 发表于《Review of Financial Studies》的研究, 其核心发现是当披露方预期文本会被算法解析 (尤其是被算法交易或文本挖掘工具抓取) 时, 会策略性地调整用词以取悦机器读者, 使得文本在机器可读维度显得更为正面而未必改变其经语境理解后的真实语气; 本家族正是把这一策略性行为操作化为词典引擎与深层判别式引擎打分之差的可观测代理。词典侧测度依托 You, Zhang & Zhang (2018) 发表于《Review of Financial Studies》的中文金融情感词典构建方法, 该文首次系统论证了媒体报道语调可被"捕获"(captured) 而非中立呈现, 即报道方与信息来源之间的利益关联会系统性地影响文本用词选择——这正是选用 you_2018 而非通用情感词典作为本迎合度家族词典侧锚的方法学依据: 若一篇报道对该词典所刻画的褒义用词模式表现出异常堆砌, 恰与"捕获之笔"的核心命题相呼应。深层判别式引擎一侧, Sun, Yuan & Xu (2025) 将词典知识与中性特征注入预训练语言模型的做法表明, 词典与深层模型并非互斥替代关系, 而是各自捕捉情感信息的不同切面, 二者之差因而具有实质的构念内涵而非纯统计噪声。词典构造方法学层面, Hamilton, Clark, Leskovec & Jurafsky (2016) 提出的从无标注语料诱导领域特异情感词表的框架, 与 Ma, Zhang & Zhang (2025) 构建的面向中国境内投资者的细粒度中文情感词典 (CN-FSD), 共同刻画了金融情感词典在覆盖度与领域适配上的持续演进, 佐证了固定词表式打分与语境敏感深层模型之间系统性落差的可测量性与稳定性。 在词典端的应用效度上另有同域旁证: Wang (2024) 以中文媒体报道语调的词典类测度检验其与盈余管理的关系, 表明中文媒体语调在词典口径下不仅可测, 且承载可被经济结果验证的信息含量, 支撑本家族差值被减数 you_2018_tone 所依赖的中文媒体语调测度传统。惟须严格限定其锚定范围: 该文只使用单臂词典测度, 未设任何深层模型对照, 故仅锚定本家族差值的词典端而不涉及 BERT 深层判别式一端, 更不构成对"词典与深层模型之差"这一构念的直接证据; 其报道对象为中国上市公司一般财经报道而非银行与金融科技共现报道, 因变量为盈余管理而非本项目面板列, 观测层级为公司-事件窗而非 bank-year, 刊载期刊层级一般。故其证据权重定位为词典端的应用同域佐证。
 ## VAR: you_2018_cater_b_full
 
 【变体差分】
@@ -88,4 +96,5 @@ Cao, S., Jiang, W., Yang, B., & Zhang, A. L. (2023). How to talk when a machine 
 Sun, Y., Yuan, H., & Xu, F. (2025). Financial sentiment analysis for pre-trained language models incorporating dictionary knowledge and neutral features. Natural Language Processing Journal, 11, 100148. https://doi.org/10.1016/j.nlp.2025.100148
 Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications, 264, 125739. https://doi.org/10.1016/j.eswa.2024.125739
 Hamilton, W. L., Clark, K., Leskovec, J., & Jurafsky, D. (2016). Inducing domain-specific sentiment lexicons from unlabeled corpora. Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing, 595-605. https://doi.org/10.18653/v1/d16-1057
+Wang, H. (2024). Media Tone and Earnings Management before the Earnings Announcement: Evidence from China. Economics, 18(1), 20220129. https://doi.org/10.1515/econ-2022-0129
 <!-- rendered-citations:end -->

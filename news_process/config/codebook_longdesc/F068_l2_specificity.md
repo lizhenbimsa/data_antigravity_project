@@ -39,6 +39,15 @@ citations:
   vol: 28
   issue: 1
   pages_or_artno: 11-21
+- doi: "10.1177/14648849241262204"
+  type: "journal"
+  authors: "Thäsler-Kordonouri, S., Thurman, N., Schwertberger, U., & Stalph, F."
+  year: 2025
+  title: "Too many numbers and worse word choice: Why readers find data-driven news articles produced with automation harder to understand"
+  venue: "Journalism"
+  vol: "26"
+  issue: "9"
+  pages_or_artno: "1878-1898"
 new_dois:
 - 10.1007/s11142-016-9371-1
 ---
@@ -52,8 +61,7 @@ new_dois:
 文章级 specificity_index 在 lexical_complexity 模块内, 对每篇文本做单次 jieba.posseg (0.42.1 冻结词典) 词性标注 pass, 分子 = 具名实体类词性 token 数 (nr 人名 / ns 地名 / nt 机构名 / nz 其他专名) 加硬数词 token (m, 且过 _is_hard_m_token 排除一些/许多/若干/几X/数X 等模糊量词) 之和, 分母 = n_real 实词 token 数 —— 即对该文分词后剔除标点及未知词性 (_PUNCT_FLAG='x') 得到的实词 token 数, 而非包含标点在内的全部 token 数, 故本占比是 over 实词分母而非 over 原始切分总数, 得一个位于 [0,1] 的 token 占比。compute_lexical_complexity 本身 track-agnostic: 输入单一文本、返回 per-text 字典; 三轨 (full/ctx/ss) 的 per-track 循环由调用方 tone_words 用各轨物化文本 content_full / content_ctx / content_ss 各驱动一次。文章级 specificity_index 落盘于 22_tone_words 派生后, 面板列则由 encode 聚合层 (pipeline/panel/encode.py, 对 specificity_index{track} 取 mean 聚合) 对留篇集内文章逐轨取 bank-year 均值得到 (codebook 只产 codebook 描述与标签、geography 只做 ln 等下游变换, 均不承担本列的均值聚合), 单位与值域为 token 占比 [0,1] ∪ NaN (该银行-年在某轨无有效文章时置 NaN)。诚实限定须写入论文: jieba.posseg 走词典加 HMM, 其 nr/ns/nt 实体边界与歧义判定精度低于专用 NER, 故本测度是"以词性近似硬信息类别"的粗近似 / 上界噪声估计, 不应声称等同 Stanford NER 等专用命名实体识别; 数词 m 的口径亦受分词切分影响。
 
 【文献定位】
-specificity 的信息经济学根基可上溯至 Spärck Jones (1972) 对"术语特异性"(term specificity) 的统计诠释 —— 越稀有、越具体的词项携带越高的检索区分度 (IDF 思想), 与本测度"具名实体与数字承载硬信息"的直觉同源。会计与金融文本分析文献中, Hope, Hu 和 Lu (2016) 系统论证了披露具体性 (specific risk-factor disclosures) 对市场信息效率的正向价值, 是本构念的主锚。将文本测度落地于中文金融语料时, 词典与领域特异性问题尤为关键: Du 等 (2022) 在《Review of Finance》上构建中文金融情感词典时明确指出, 语言与领域特异性 (language and domain specificity) 决定了英文文本工具不能简单移植到中文金融语境, 本家族对 jieba 词性近似口径及其精度限定的坦诚披露正是对这一警示的呼应。三轨口径遵循 CLAUDE.md 铁律: full/ctx/ss 各自 just-identified 并排, 互为稳健性、不分主次, 严禁三轨混进同一 over-identified Hansen J; 且非嵌入族测度无 co-primary 双轨嵌入的 _lg 孪生。留篇门控采 full-only 口径 (2026-06-29): 一篇是否计入"银行金融科技报道"仅看 llm_verified_full == True, ctx/ss 降为 conditional-on-full 的测度轨, 行宇宙为 full 留篇集的子集, per-track 列在各自轨照算。
-
+specificity 的信息经济学根基可上溯至 Spärck Jones (1972) 对"术语特异性"(term specificity) 的统计诠释 —— 越稀有、越具体的词项携带越高的检索区分度 (IDF 思想), 与本测度"具名实体与数字承载硬信息"的直觉同源。会计与金融文本分析文献中, Hope, Hu 和 Lu (2016) 系统论证了披露具体性 (specific risk-factor disclosures) 对市场信息效率的正向价值, 是本构念的主锚。将文本测度落地于中文金融语料时, 词典与领域特异性问题尤为关键: Du 等 (2022) 在《Review of Finance》上构建中文金融情感词典时明确指出, 语言与领域特异性 (language and domain specificity) 决定了英文文本工具不能简单移植到中文金融语境, 本家族对 jieba 词性近似口径及其精度限定的坦诚披露正是对这一警示的呼应。三轨口径遵循 CLAUDE.md 铁律: full/ctx/ss 各自 just-identified 并排, 互为稳健性、不分主次, 严禁三轨混进同一 over-identified Hansen J; 且非嵌入族测度无 co-primary 双轨嵌入的 _lg 孪生。留篇门控采 full-only 口径 (2026-06-29): 一篇是否计入"银行金融科技报道"仅看 llm_verified_full == True, ctx/ss 降为 conditional-on-full 的测度轨, 行宇宙为 full 留篇集的子集, per-track 列在各自轨照算。 在新闻文体一侧, Thäsler-Kordonouri、Thurman、Schwertberger 与 Stalph (2025) 以 3135 名读者的在线问卷实验与因子分析, 抽取出影响读者评价的五类文章构成维度, 其中"数字特征 (numeric features)"与"用词选择"两类与本族构念指向一致, 并据此建议后编辑时减少数字数量、解释读者不易理解的词; 该文为"数字密度是新闻文本中可被识别的构成性属性"提供了同域 (新闻) 的动机来源, 但须标明三重边界。其一, 原文测量的是读者对上述维度的主观感知评分 (survey experiment 加因子分析), 并未计算数词占比等文本统计量, 故不得据本文声称本族数字密度测度的实现先例; 其二, 原文语料为英语/德语的自动化数据新闻, 结果变量为读者理解度, 无机构—年聚合层级; 其三, 原文结论方向 (数字越多越难懂) 与本族把具体性读作硬信息密度的正向诠释并不等同, 且本族分子除过 _is_hard_m_token 过滤的硬数词外还含 nr/ns/nt/nz 具名实体 token、分母为实词数, 与原文的数字感知口径不同。因此该文在本族只作动机与构念张力的旁证, 不承担对 specificity_index 测度效度的背书。
 ## VAR: avg_specificity_full
 
 【变体差分】
@@ -73,4 +81,5 @@ specificity 的信息经济学根基可上溯至 Spärck Jones (1972) 对"术语
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Hope, O.-K., Hu, D., & Lu, H. (2016). The benefits of specific risk-factor disclosures. Review of Accounting Studies, 21(4), 1005-1045. https://doi.org/10.1007/s11142-016-9371-1
 Spärck Jones, K. (1972). A statistical interpretation of term specificity and its application in retrieval. Journal of Documentation, 28(1), 11-21. https://doi.org/10.1108/eb026526
+Thäsler-Kordonouri, S., Thurman, N., Schwertberger, U., & Stalph, F. (2025). Too many numbers and worse word choice: Why readers find data-driven news articles produced with automation harder to understand. Journalism, 26(9), 1878-1898. https://doi.org/10.1177/14648849241262204
 <!-- rendered-citations:end -->

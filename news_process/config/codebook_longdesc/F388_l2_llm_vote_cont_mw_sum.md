@@ -57,6 +57,15 @@ citations:
   vol: '31'
   issue: '1'
   pages_or_artno: 43-96
+- doi: "10.1609/aaai.v39i18.34120"
+  type: "journal"
+  authors: "Lyu, Q., Shridhar, K., Malaviya, C., Zhang, L., Elazar, Y., Tandon, N., Apidianaki, M., Sachan, M., & Callison-Burch, C."
+  year: 2025
+  title: "Calibrating Large Language Models with Sample Consistency"
+  venue: "Proceedings of the AAAI Conference on Artificial Intelligence"
+  vol: "39"
+  issue: "18"
+  pages_or_artno: "19260-19268"
 new_dois: []
 ---
 
@@ -67,8 +76,7 @@ new_dois: []
 【方法学与计算】
 媒体权威性加权的动机是: 报道所在媒体的公信力/发行覆盖不同, 一篇来自权威财经媒体的正面报道与一篇来自地方小报的同等正面报道, 对市场参与者信息集的边际贡献理应不同; 用媒体权重加总而非简单等权计数, 是把"信源质量"这一维度显式建模进语调测度, 呼应 You, Zhang & Zhang (2018, RFS)"谁掌握了笔杆子的力量"关于媒体差异化影响力的论证——不同媒体的立场与可信度并非均质, 简单算术平均会抹平这一异质性。计算上, encode.py 先对每篇报道逐轨算出 llm_vote_score{track} (三家投票多数表决的离散语调, 无效/未通过三轨核验的报道记为缺失)、llm_agreement_rate{track} (三家一致率) 与 llm_vote_cont{track} (=score×一致率), 再逐篇乘以 media_authority_weight, 按银行-年分组求和落入本家族三列; 下游把该和除以同轨 sum_media_authority_weight{track} 得到 llm_vote_tone_mw{track} (媒体权威性加权语调均值, mean 语义)。本家族列本身是分子, 单独看无界且随篇数/权重规模变化, 不建议直接作解释变量, 正确用法是与分母列配对算出加权均值, 或在需要"总加权语调质量"而非"均值"的少数场景 (如 herd_decay 相关的规模敏感度检验) 直接使用。
 【文献定位】
-连续置信度加权语调这一构念设计, 与前述 Lan et al. (2025) 的细粒度/连续化编码论证一脉相承, 二者共同指向"离散硬标签会丢失中文财经文本语义复杂度里的可信度梯度"这一方法学判断; de Kok (2025, Management Science) 系统讨论了在会计与金融研究中使用生成式 LLM 做文本分析时, temperature=0、prompt 版本冻结与缓存复现范式是保证结果可审计、可复现的方法学基线, 本项目 stage 21 的 prompt v8 字节级冻结缓存与 `NEWS_PROCESS_LLM_OFFLINE=1` 离线复现正是循此范式落地。三家 LLM 多数投票本身 (score 的来源) 借鉴 Kamen & Kamen (2025) 关于 LLM 集成投票在内容分类任务上优于单模型的证据——多数投票比依赖单一厂商模型更能抵御个别模型的系统性偏差或幻觉, 一致率则进一步把"投票有多稳"量化为连续权重。Huang, Wang & Yang (2023, Contemporary Accounting Research) 的 FinBERT 研究提示金融文本情感抽取存在领域特异性, 本项目虽以 LLM 而非 BERT 为该家族基座, 但同样的领域特异性考量促使团队保留 BERT 三模型 (finbert_cn/fin_sent_zh/finbert2) 作为互为稳健性的并行轨, 与本 LLM 投票族并排而非合并——这也是为何面板同时存在 llm_vote_* 与 {bert}_* 两条不同技术路线的加权求和族。三轨 (full/ctx/ss) 与媒体权威性加权 (mw) 这两个维度是正交扩展: full/ctx/ss 回答"看多少上下文", mw 回答"报道信源权重该不该均等", 二者独立叠加, 不应混入同一过度识别 (over-identified) 的 Hansen J 检验——full/ctx/ss 各自与 vw (市值加权)/mw (媒体权威性加权)/hw (羊群/herd 加权) 等加权臂都是各自 just-identified、互为稳健性、不分主次的并排测度, 混用会人为制造检验统计量的虚假过度识别约束。留篇门控口径与全库一致: 是否计入某篇报道由 llm_verified_full 决定 (full-only 门控, 2026-06-29 起生效), ctx/ss 轨的行宇宙是 full 留篇集合的子集, 因此 ctx/ss 两轨的样本量恒不大于 full 轨, 三轨报告的是"同一留篇集合下不同上下文窗口"而非"不同样本"的语调差异。
-
+连续置信度加权语调这一构念设计, 与前述 Lan et al. (2025) 的细粒度/连续化编码论证一脉相承, 二者共同指向"离散硬标签会丢失中文财经文本语义复杂度里的可信度梯度"这一方法学判断; de Kok (2025, Management Science) 系统讨论了在会计与金融研究中使用生成式 LLM 做文本分析时, temperature=0、prompt 版本冻结与缓存复现范式是保证结果可审计、可复现的方法学基线, 本项目 stage 21 的 prompt v8 字节级冻结缓存与 `NEWS_PROCESS_LLM_OFFLINE=1` 离线复现正是循此范式落地。三家 LLM 多数投票本身 (score 的来源) 借鉴 Kamen & Kamen (2025) 关于 LLM 集成投票在内容分类任务上优于单模型的证据——多数投票比依赖单一厂商模型更能抵御个别模型的系统性偏差或幻觉, 一致率则进一步把"投票有多稳"量化为连续权重。Huang, Wang & Yang (2023, Contemporary Accounting Research) 的 FinBERT 研究提示金融文本情感抽取存在领域特异性, 本项目虽以 LLM 而非 BERT 为该家族基座, 但同样的领域特异性考量促使团队保留 BERT 三模型 (finbert_cn/fin_sent_zh/finbert2) 作为互为稳健性的并行轨, 与本 LLM 投票族并排而非合并——这也是为何面板同时存在 llm_vote_* 与 {bert}_* 两条不同技术路线的加权求和族。三轨 (full/ctx/ss) 与媒体权威性加权 (mw) 这两个维度是正交扩展: full/ctx/ss 回答"看多少上下文", mw 回答"报道信源权重该不该均等", 二者独立叠加, 不应混入同一过度识别 (over-identified) 的 Hansen J 检验——full/ctx/ss 各自与 vw (市值加权)/mw (媒体权威性加权)/hw (羊群/herd 加权) 等加权臂都是各自 just-identified、互为稳健性、不分主次的并排测度, 混用会人为制造检验统计量的虚假过度识别约束。留篇门控口径与全库一致: 是否计入某篇报道由 llm_verified_full 决定 (full-only 门控, 2026-06-29 起生效), ctx/ss 轨的行宇宙是 full 留篇集合的子集, 因此 ctx/ss 两轨的样本量恒不大于 full 轨, 三轨报告的是"同一留篇集合下不同上下文窗口"而非"不同样本"的语调差异。 在"投票一致率可充当连续置信权重"这一环上, Lyu 等 (2025) 提供了更直接的校准层证据: 该文系统比较多种置信度来源, 实证表明由多次采样输出之间的一致性导出的置信度, 其校准性优于模型自报置信度与 logit 概率, 支持本族分子不向模型索取自报分数、而以 llm_agreement_rate 对投票方向加权。迁移边界须诚实标明: 该文的一致性是同一模型在正温度下重复采样的产物, 本项目 temperature=0.0 且不重复采样, 一致率为三家厂商间的跨模型投票一致率, 该文未覆盖此种跨模型一致率的校准性质, 亦不涉及媒体权威性加权与银行-年加总。
 ## VAR: llm_vote_cont_mw_sum_ctx
 
 【变体差分】
@@ -90,4 +98,5 @@ de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in a
 Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A large language model for extracting information from financial text. Contemporary Accounting Research, 40(2), 806-841. https://doi.org/10.1111/1911-3846.12832
 Kamen, A., & Kamen, Y. (2025). Majority rules: LLM ensemble is a winning approach for content categorization. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2511.15714
 You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
+Lyu, Q., Shridhar, K., Malaviya, C., Zhang, L., Elazar, Y., Tandon, N., Apidianaki, M., Sachan, M., & Callison-Burch, C. (2025). Calibrating Large Language Models with Sample Consistency. Proceedings of the AAAI Conference on Artificial Intelligence, 39(18), 19260-19268. https://doi.org/10.1609/aaai.v39i18.34120
 <!-- rendered-citations:end -->

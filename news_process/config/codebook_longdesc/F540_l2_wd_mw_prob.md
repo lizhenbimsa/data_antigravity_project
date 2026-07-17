@@ -54,6 +54,48 @@ citations:
   vol: '31'
   issue: '1'
   pages_or_artno: e1549
+- doi: "10.2139/ssrn.4842086"
+  type: "wp"
+  authors: "Battaglia, L., Christensen, T., Hansen, S., & Sacher, S."
+  year: 2024
+  title: "Inference for Regression with Variables Generated from Unstructured Data"
+  venue: "SSRN Electronic Journal"
+  pages_or_artno: "4842086"
+- doi: "10.1073/pnas.2322083121"
+  type: "journal"
+  authors: "Zrnic, T., & Candès, E. J."
+  year: 2024
+  title: "Cross-prediction-powered inference"
+  venue: "Proceedings of the National Academy of Sciences"
+  vol: "121"
+  issue: "15"
+  pages_or_artno: "e2322083121"
+- doi: "10.1016/j.jdeveco.2025.103655"
+  type: "journal"
+  authors: "Pelletier, J., Korb, M., Alemu, S., Yonis, M. B., Lybbert, T. J., & Stigler, M."
+  year: 2026
+  title: "Causal Inference with Predicted Outcomes: Correcting prediction error bias in satellite-based impact evaluation"
+  venue: "Journal of Development Economics"
+  vol: "179"
+  pages_or_artno: "103655"
+- doi: "10.1371/journal.pone.0323064"
+  type: "journal"
+  authors: "Wright, D., & Augenstein, I."
+  year: 2025
+  title: "Aggregating soft labels from crowd annotations improves uncertainty estimation under distribution shift"
+  venue: "PLOS One"
+  vol: "20"
+  issue: "6"
+  pages_or_artno: "e0323064"
+- doi: "10.3982/te6424"
+  type: "journal"
+  authors: "Eliaz, K., & Spiegler, R."
+  year: 2026
+  title: "News media as suppliers of narratives (and information)"
+  venue: "Theoretical Economics"
+  vol: "21"
+  issue: "3"
+  pages_or_artno: "928-972"
 new_dois: []
 ---
 
@@ -74,8 +116,7 @@ new_dois: []
 三轨口径 full/ctx/ss 各自独立计算、并排存在, 互为稳健性、不分主次, 严禁在同一 over-identified 的 Hansen J 检验中同时纳入三轨对应的加权语调及其分母 (会人为夸大工具数、破坏刚好识别结构)。留篇门控口径与全项目一致: 是否构成"一篇有效的银行-金科报道"由 full 轨 `llm_verified_full == True` 唯一判定 (2026-06-29 起的 full-only 门控), ctx/ss 轨是在同一留篇行宇宙 (full 的子集) 上的 conditional-on-full 测度/稳健性轨, 而非独立样本; ss 轨的回退语义镜像 ctx 轨: 若某文章不存在银行与金科词汇的同句共现, `content_ss` 回退为全文正文, 对应 `ss_is_fallback=True`, 与 ctx 轨共享同一 n_articles 分母口径, 而非另起炉灶。当 llm_prob_score{track} 因某轨整体不可用 (如该轨概率转换模块关闭) 而全体缺失时, sum_wd_mw_prob{track} 会退化为 0 或全 NaN (视上游是否产出该轨源列而定), 属优雅降级而非报错。
 
 【文献定位】
-把加权平均的分子分母限定在同一有效性域内, 是概率化度量与文本情感测度交叉领域的常见方法学要求。Niculescu-Mizil & Caruana (2005) 系统讨论了监督学习模型输出"良好校准概率"的必要性与常见陷阱, 其核心洞见——概率分数若在聚合前未与其有效性掩码对齐, 汇总统计量会系统性偏离真实水平——为本列的构造逻辑提供了方法论支撑。Manski & Lerman (1977, *Econometrica*) 关于从基于选择的样本 (choice-based sample) 估计选择概率的经典工作, 确立了概率型测度在非随机缺失/筛选样本下必须显式建模纳入域, 否则估计量有偏, 这一原则同构地适用于本列所修正的"缺失即视为零"偏误。van Atteveldt et al. (2021) 比较人工编码、众包、词典与机器学习方法在情感分析效度上的差异, 指出机器学习/LLM 类方法产出的连续概率化分数在跨方法比较与加权聚合时需要格外注意样本对齐问题, 为本项目将 LLM 概率化语调 (llm_prob_score) 与其掩码分母同域配对提供了外部佐证。Gilardi, Alizadeh & Kubli (2023, *Proceedings of the National Academy of Sciences*) 展示了 LLM 在文本标注任务上可产出优于众包工的分类结果, 印证了将 LLM 输出的概率化分数纳入银行-年面板加权测度体系的合理性, 同时也提示此类分数的可用率并非恒定 100%——校准掩码分母正是应对这一现实的工程手段。Todd, Bowden & Moshfeghi (2024) 对金融文本情感分析文献的系统综述, 明确将"基于概率的情感分数聚合"列为该领域方法学演进的方向之一, 为本家族在项目情感测度矩阵中的定位 (LLM 概率轨 × 媒体权威度加权 × 三轨) 提供了文献坐标。
-
+把加权平均的分子分母限定在同一有效性域内, 是概率化度量与文本情感测度交叉领域的常见方法学要求。Niculescu-Mizil & Caruana (2005) 系统讨论了监督学习模型输出"良好校准概率"的必要性与常见陷阱, 其核心洞见——概率分数若在聚合前未与其有效性掩码对齐, 汇总统计量会系统性偏离真实水平——为本列的构造逻辑提供了方法论支撑。Manski & Lerman (1977, *Econometrica*) 关于从基于选择的样本 (choice-based sample) 估计选择概率的经典工作, 确立了概率型测度在非随机缺失/筛选样本下必须显式建模纳入域, 否则估计量有偏, 这一原则同构地适用于本列所修正的"缺失即视为零"偏误。van Atteveldt et al. (2021) 比较人工编码、众包、词典与机器学习方法在情感分析效度上的差异, 指出机器学习/LLM 类方法产出的连续概率化分数在跨方法比较与加权聚合时需要格外注意样本对齐问题, 为本项目将 LLM 概率化语调 (llm_prob_score) 与其掩码分母同域配对提供了外部佐证。Gilardi, Alizadeh & Kubli (2023, *Proceedings of the National Academy of Sciences*) 展示了 LLM 在文本标注任务上可产出优于众包工的分类结果, 印证了将 LLM 输出的概率化分数纳入银行-年面板加权测度体系的合理性, 同时也提示此类分数的可用率并非恒定 100%——校准掩码分母正是应对这一现实的工程手段。Todd, Bowden & Moshfeghi (2024) 对金融文本情感分析文献的系统综述, 明确将"基于概率的情感分数聚合"列为该领域方法学演进的方向之一, 为本家族在项目情感测度矩阵中的定位 (LLM 概率轨 × 媒体权威度加权 × 三轨) 提供了文献坐标。 在上述基座之外, 近年方法学前沿进一步锚定了本族的两个环节。Battaglia、Christensen、Hansen 与 Sacher (2024) 为「先由文本生成变量、再把该变量代入回归」这一两步流程建立了推断理论, 证明朴素代入会产生偏误, 并给出偏误修正与有效标准误; 本族正处该流程的分母侧——llm_prob_score 由 LLM 从新闻文本生成, 其有效性掩码决定哪些篇章进入媒体权威度加权求和。惟原文处理的对象是回归中的生成型变量本身而非掩码分母, 层级不同, 且其示例语料为英文非结构化数据, 无中文新闻、无银行-年面板、无三轨设定, 亦未处理多模型投票共识。Zrnic 与 Candès (2024) 提出 cross-prediction-powered inference, 针对「结果变量大部分由模型预测、仅少量有金标签」的情形构造有效置信区间, 与本列「概率映射的模型输出被当作测度并按权重聚合」的构念同族; 但原文去偏的核心前提是存在人工金标准标注子样本, 而 sum_wd_mw_prob 既无金标注子样本亦不做去偏, 只做有效性掩码求和, 原文的目标是推断置信区间而非构造面板分母列, 故该文只作为该测度族的方法学参照, 而非本列算法的出处。Pelletier、Korb、Alemu、Yonis、Lybbert 与 Stigler (2026) 在卫星影像预测产量的影响评估中实证演示了预测误差如何系统性偏置估计结果, 并比较了若干修正方案, 提示模型生成测度的误差不是随机噪声; 该证据出自遥感农业领域、预测器为 CV 模型、偏误源于连续预测值且有地面真值可作基准, 与本项目的中文 LLM 三分类概率映射在领域、预测器与基准可得性上均不同, 仅在「模型输出不可当作无误差观测」这一层面可迁移。Wright 与 Augenstein (2025) 系统比较了把多标注者软标签 (概率) 聚合为训练/评估目标的若干方案, 发现软标签聚合在分布偏移下比硬标签多数投票给出更好的不确定性估计, 恰好对应本项目并排的两条轨——prob 分组的软概率映射与 llm 分组的三家硬多数投票共识; 惟原文的标注者是人类众包工人而非商用 LLM, 其目标是分类器不确定性校准而非面板分母权重求和, 语料为英文 NLP 基准集, 且无银行-年聚合层与跟风/媒体权威/提及密度等权重维度, 故该文的比较结论不改变两轨在本项目中互为稳健性、各自 just-identified 并排的定位, 更不构成把两轨混入同一 over-identified Hansen J 的依据。媒体权威度这一权重维度的理论侧存在性则见 Eliaz 与 Spiegler (2026): 该文把新闻媒体刻画为叙事 (而不仅是信息) 的供给者, 以理论建模与均衡分析论证不同媒体所供叙事如何塑造受众信念, 为「不同来源的报道不等价、需要按来源加权」提供了存在性论证; 但该文为纯理论文献, 其媒体差异化维度是叙事内容而非权威度, 不提供任何可直接迁移的权重赋值方案或经验参数, 与本项目 media_authority_weight 的具体取值口径 (config 登录表 + 未登录来源退默认 + fillna(1.0)) 并无对应关系。
 ## VAR: sum_wd_mw_prob_ctx
 
 【变体差分】
@@ -103,4 +144,9 @@ Manski, C. F., & Lerman, S. R. (1977). The estimation of choice probabilities fr
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The Validity of Sentiment Analysis - Comparing Manual Annotation, Crowd-Coding, Dictionary Approaches, and Machine Learning Algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Gilardi, F., Alizadeh, M., & Kubli, M. (2023). ChatGPT outperforms crowd workers for text-annotation tasks. Proceedings of the National Academy of Sciences, 120(30), e2305016120. https://doi.org/10.1073/pnas.2305016120
 Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance - Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management, 31(1), e1549. https://doi.org/10.1002/isaf.1549
+Battaglia, L., Christensen, T., Hansen, S., & Sacher, S. (2024). Inference for Regression with Variables Generated from Unstructured Data. SSRN Electronic Journal No. 4842086 [Working Paper]. https://doi.org/10.2139/ssrn.4842086
+Zrnic, T., & Candès, E. J. (2024). Cross-prediction-powered inference. Proceedings of the National Academy of Sciences, 121(15), e2322083121. https://doi.org/10.1073/pnas.2322083121
+Pelletier, J., Korb, M., Alemu, S., Yonis, M. B., Lybbert, T. J., & Stigler, M. (2026). Causal Inference with Predicted Outcomes: Correcting prediction error bias in satellite-based impact evaluation. Journal of Development Economics, 179, 103655. https://doi.org/10.1016/j.jdeveco.2025.103655
+Wright, D., & Augenstein, I. (2025). Aggregating soft labels from crowd annotations improves uncertainty estimation under distribution shift. PLOS One, 20(6), e0323064. https://doi.org/10.1371/journal.pone.0323064
+Eliaz, K., & Spiegler, R. (2026). News media as suppliers of narratives (and information). Theoretical Economics, 21(3), 928-972. https://doi.org/10.3982/te6424
 <!-- rendered-citations:end -->

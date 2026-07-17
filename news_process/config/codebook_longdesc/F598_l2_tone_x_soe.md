@@ -58,6 +58,13 @@ citations:
   vol: "66"
   issue: "1"
   pages_or_artno: "35-65"
+- doi: "10.1093/wber/lhaf024"
+  type: "journal"
+  authors: "Betts, C. M., & Cao, Y."
+  year: 2025
+  title: "How Does State Ownership Affect Firm Innovation? Evidence from Chinese Manufacturing Firms"
+  venue: "The World Bank Economic Review"
+  pages_or_artno: "lhaf024"
 new_dois: []
 ---
 
@@ -70,8 +77,7 @@ new_dois: []
 计算公式极简: 对每一条 track ∈ {full, ctx, ss}, 取该 track 对应的 `llm_vote_tone{track}` 列与 `is_soe` 列逐行相乘, 得到 `tone_x_soe{track}`。源码中紧邻一条重要的方法学注记 (runner.py 内部注释): 原始设计中曾用二元的 has_coverage (0/1) 与语调相乘, 但该交互项被证明是冗余的——零新闻覆盖行的语调本身即为 NaN, 相乘后仍为 NaN (不会退化成 0); 有新闻覆盖行 tone × 1 = tone, 交互项完全退化为语调本身, 不携带任何超出语调主效应之外的增量信息。这条注记虽然是关于 has_coverage 交互族的历史教训, 但其逻辑同样提醒使用者: is_soe 是静态哑变量而非覆盖强度哑变量, tone_x_soe 之所以有意义, 恰恰是因为 is_soe 在样本内既有 0 组也有 1 组、且不与语调本身共线, 而不是简单的"语调乘以任意 0/1 变量"都天然有效。三轨语调来源 full/ctx/ss 严格对齐 CLAUDE.md 「三轨」铁律: full=标题+正文全文语调, ctx=标题+银行/金科实体窗口语调, ss=标题+银行∧金科词严格同句 (±1 句默认半径) 窗口语调, 三者共享的口径基础是 stage 21 的 full-only 留篇门控 (2026-06-29 起生效)——一篇报道是否计入"银行金科报道"的判定只看 `llm_verified_full`, ctx/ss 语调是在该 full 留篇行子集之上的条件测度 (conditional-on-full), 因此 tone_x_soe_ctx/_ss 的样本行宇宙是 tone_x_soe_full 的子集而非独立采样; ss 轨若某年某行无银行∧金科同句共现, 语调回退为镜像 ctx 的口径——`ss_is_fallback=True` 标记下语调改用全文 body 计算, 与 ctx 的实体窗口回退语义对称, 而非留空。三条列各自是 just-identified 并排的稳健性轨道, 彼此互为稳健性检验、不分主次, 在回归设定中严禁把三条轨道同时塞进同一个 over-identified 的 Hansen J 过度识别检验框架——每条轨道应各自跑一次交互效应回归, 用跨轨道系数符号/显著性的一致性作为稳健性证据, 而不是把它们当作同一模型里的多个工具变量并做联合过度识别检验。
 
 【文献定位】
-交互项/调节效应的计量设定规范, 项目内部注释直接援引 Angrist & Pischke (2009, *Mostly Harmless Econometrics*) 与 Brambor, Clark & Golder (2006, *Political Analysis*) 关于交互项模型"低阶项必须同时纳入、边际效应须图示而非仅读系数"的建议。语调本身作为媒体情感测度构念的方法学基础可追溯 Tetlock (2007, *Journal of Finance*) 关于媒体语调对股票市场定价含量的经典发现, 以及 Fang & Peress (2009, *The Journal of Finance*) 关于媒体覆盖强度与横截面收益关系的研究——后者也是本家族姊妹交互族 tone_x_highcov 的直接学理来源, 侧面印证本项目将媒体测度维度 (语调、覆盖强度) 与银行结构属性 (所有权、规模) 交叉建模的设计脉络与主流金融文献一致。就中国银行业情境下国有属性作为调节变量的合理性而言, Fang, Wang, Wang & Yuan (2024, *International Review of Economics & Finance*) 对中国银行媒体情感与系统性风险关系的研究提供了同一制度背景下的直接参照, 其研究设计同样关注媒体情感效应在银行异质性 (含所有权结构) 上的分化, 与本家族"语调 × 国有属性"交互设计的实证动机高度吻合。语调测度本身的方法学谱系另见 Loughran & McDonald (2011, *The Journal of Finance*) 关于文本情感字典法的经典基准与 Shapiro, Sudhof & Wilson (2022, *Journal of Econometrics*) 关于新闻语调测度构造的方法论综述, 二者共同构成语调主效应 (llm_vote_tone) 的测度学理基础, 本交互族继承其构念效度, 仅在此基础上叠加国有属性调节。
-
+交互项/调节效应的计量设定规范, 项目内部注释直接援引 Angrist & Pischke (2009, *Mostly Harmless Econometrics*) 与 Brambor, Clark & Golder (2006, *Political Analysis*) 关于交互项模型"低阶项必须同时纳入、边际效应须图示而非仅读系数"的建议。语调本身作为媒体情感测度构念的方法学基础可追溯 Tetlock (2007, *Journal of Finance*) 关于媒体语调对股票市场定价含量的经典发现, 以及 Fang & Peress (2009, *The Journal of Finance*) 关于媒体覆盖强度与横截面收益关系的研究——后者也是本家族姊妹交互族 tone_x_highcov 的直接学理来源, 侧面印证本项目将媒体测度维度 (语调、覆盖强度) 与银行结构属性 (所有权、规模) 交叉建模的设计脉络与主流金融文献一致。就中国银行业情境下国有属性作为调节变量的合理性而言, Fang, Wang, Wang & Yuan (2024, *International Review of Economics & Finance*) 对中国银行媒体情感与系统性风险关系的研究提供了同一制度背景下的直接参照, 其研究设计同样关注媒体情感效应在银行异质性 (含所有权结构) 上的分化, 与本家族"语调 × 国有属性"交互设计的实证动机高度吻合。语调测度本身的方法学谱系另见 Loughran & McDonald (2011, *The Journal of Finance*) 关于文本情感字典法的经典基准与 Shapiro, Sudhof & Wilson (2022, *Journal of Econometrics*) 关于新闻语调测度构造的方法论综述, 二者共同构成语调主效应 (llm_vote_tone) 的测度学理基础, 本交互族继承其构念效度, 仅在此基础上叠加国有属性调节。 就国有产权二分本身作为调节维度的当代实证依据, Betts 与 Cao (2025) 以中国制造业企业为样本识别国有产权对创新行为的影响, 其核心自变量即国有/非国有的产权二分, 为本族 is_soe 所承载的「中国语境下国有产权是实质性的异质性调节维度」这一前提提供了近期证据。迁移边界须明确标注: 该文样本为制造业企业而非商业银行, 被解释变量为企业创新产出, 其国有企业界定标准与本项目取自面板 bank_type 列 (缺失时恒置 0 并记 WARNING) 的口径并不一致; 且该文完全未涉及媒体语调, 对 tone_x_soe{track} 仅提供「产权分组有意义」的一般性依据, 不对语调×产权的具体交互机制作任何主张。
 ## VAR: tone_x_soe_ctx
 
 【变体差分】
@@ -99,6 +105,7 @@ Fang, L.; Peress, J. (2009). Media Coverage and the Cross-Section of Stock Retur
 Shapiro, A. H.; Sudhof, M.; Wilson, D. J. (2022). Measuring News Sentiment. Journal of Econometrics, 228(2), 221-243. https://doi.org/10.1016/j.jeconom.2020.07.053
 Fang, Y.; Wang, Q.; Wang, Y.; Yuan, Y. (2024). Media Sentiment, Deposit Stability and Bank Systemic Risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Loughran, T.; McDonald, B. (2011). When Is a Liability Not a Liability? Textual Analysis, Dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
+Betts, C. M., & Cao, Y. (2025). How Does State Ownership Affect Firm Innovation? Evidence from Chinese Manufacturing Firms. The World Bank Economic Review, lhaf024. https://doi.org/10.1093/wber/lhaf024
 <!-- rendered-citations:end -->
 </content>
 </invoke>

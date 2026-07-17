@@ -72,6 +72,47 @@ citations:
   vol: 62
   issue: 3
   pages_or_artno: 1139-1168
+- doi: "10.1017/s175577392610054x"
+  type: "journal"
+  authors: "Beltran, A., Guariso, D., & Guerrero, O. A."
+  year: 2026
+  title: "Paying the piper: government advertising and media bias"
+  venue: "European Political Science Review"
+  pages_or_artno: "1-20"
+- doi: "10.1016/j.jempfin.2024.101517"
+  type: "journal"
+  authors: "Soebhag, A., Van Vliet, B., & Verwijmeren, P."
+  year: 2024
+  title: "Non-standard errors in asset pricing: Mind your sorts"
+  venue: "Journal of Empirical Finance"
+  vol: "78"
+  pages_or_artno: "101517"
+- doi: "10.1007/s10842-024-00426-5"
+  type: "journal"
+  authors: "Merkus, E."
+  year: 2024
+  title: "Gravity Models in International Trade: A Specification Curve Analysis"
+  venue: "Journal of Industry, Competition and Trade"
+  vol: "24"
+  issue: "1"
+  pages_or_artno: "17"
+- doi: "10.1111/acfi.13230"
+  type: "journal"
+  authors: "Yan, L., Ma, Y., Li, C., & Tang, G."
+  year: 2024
+  title: "Media abnormal tone and cross section of stock returns: Evidence from China"
+  venue: "Accounting & Finance"
+  vol: "64"
+  issue: "3"
+  pages_or_artno: "2671-2698"
+- doi: "10.1016/j.jfs.2026.101538"
+  type: "journal"
+  authors: "Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S."
+  year: 2026
+  title: "Does media sentiment influence bank supervision?"
+  venue: "Journal of Financial Stability"
+  vol: "84"
+  pages_or_artno: "101538"
 new_dois: []
 ---
 
@@ -84,8 +125,7 @@ new_dois: []
 逐篇得分在 tone_words.py 的 compute_dict_scores 内计算:文章分词 (jieba 0.42.1 冻结) 后,按情感词典逐词累加带号强度,普通正面词记 +1.0、负面词记 -1.0、政治正面词记 +w_pol,再叠加否定翻转、程度副词六级、转折 boost 三条全语言学规则,末以该篇 Σ|final| 幅度归一化得到约落在 [-1,1] 的连续 score。三个权重臂共用完全相同的全语言学规则,只改政治正面词这一个权重自由度:w_pol=0.0 把政治正面词视作非情感词完全剔除、不进任何计数与幅度;w_pol=0.5 为生产 canonical 折中口径 (与无后缀 du_2022_score 字节一致,不重算);w_pol=1.0 把政治正面词等同普通正面词全权计入正侧。逐篇三权重 score 落 22_tone_words.parquet,随后在 encode.py 的 bank-year 聚合层对每条轨道取篇均值 (mean, 自动跳过 NaN 短空文本),得到面板列 du_2022_polw{00,05,10}_tone{track}。列名 SSOT = tone_words.POLITICAL_WEIGHT_VARIANTS (byte-sync encode.POLITICAL_WEIGHT_SUFFIXES),唯一含政治正面词类的词典登记于 POLITICAL_WEIGHT_DICTS = {du_2022}。空文本或词典缺失时逐权重回填 NaN/0.0,与规则消融梯度分支对称。
 
 【文献定位】
-词典法语调测度的可信度长期是文本金融计量的核心议题。Loughran & McDonald (2011) 指出通用情感词典移植到金融文本会系统性误判,催生领域专用词典这一范式;Loughran & McDonald (2016) 的综述进一步把词典构造、加权与验证列为方法学关键环节。Tetlock (2007) 与 Garcia (2013) 确立了媒体语调对市场的可测量影响,是纯词频与加权语调计量的经典参照。就"词典法是否稳健"这一问题,Frankel et al. (2022) 在 Management Science 上系统比较了机器学习与词典法情感度量,论证不同测量选择应互为稳健性对照而非彼此取代——这正是本家族并排三权重臂的方法论依据。Du et al. (2022) 关于政治正面词弱信号的实证发现,则是 0.5 权重取值本身的直接来源。
-
+词典法语调测度的可信度长期是文本金融计量的核心议题。Loughran & McDonald (2011) 指出通用情感词典移植到金融文本会系统性误判,催生领域专用词典这一范式;Loughran & McDonald (2016) 的综述进一步把词典构造、加权与验证列为方法学关键环节。Tetlock (2007) 与 Garcia (2013) 确立了媒体语调对市场的可测量影响,是纯词频与加权语调计量的经典参照。就"词典法是否稳健"这一问题,Frankel et al. (2022) 在 Management Science 上系统比较了机器学习与词典法情感度量,论证不同测量选择应互为稳健性对照而非彼此取代——这正是本家族并排三权重臂的方法论依据。Du et al. (2022) 关于政治正面词弱信号的实证发现,则是 0.5 权重取值本身的直接来源。 就政治正面词何以应当折权这一实质前提,Beltran、Guariso 与 Guerrero (2026) 提供了一条独立于 du_2022 之外的机制性旁证:该文以墨西哥八家主要报纸逾 200,000 篇意见专栏为语料,用情感分析估计报道的负面语调,并以政府广告投放的过度倾斜度量媒体俘获,发现被俘获媒体对现任总统的负面程度更低、对其主要政治对手的负面程度更高,并有黑名单的质性证据佐证;换言之,媒体的政治性正面表述可能反映资助与俘获关系而非基本面信息,这为本家族『政治正面词信号弱于普通正面词、故折算 w_pol<1』提供了一条机制层面的外部依据。边界:其语境为墨西哥单一国家 (期刊虽为欧洲刊,研究对象并非中国亦非跨国样本),与中国党媒-市场化媒体的制度结构不同;其度量对象是专栏负面语调与广告投放倾斜度,非词级 political_positive 计数,原文未构造任何词典权重、亦未做词类降权,故只作机制性旁证,不作 0.5 这一取值的来源。三权重臂互稳并排、不分主次的做法本身,则可在近年的研究者自由度文献中找到直接依据。Soebhag 与 Verwijmeren (2024) 在资产定价因子模型上自行枚举断点选择、是否剔除 microcaps、行业调整与再平衡频率等构造路径,实证记录这些可自由取值的设计选择所带来的结果离散 (non-standard error 与 standard error 之比平均超过 1),并主张研究者须清楚交代并论证这些选择;本家族 w_pol 三取值并排即该主张在词典权重这一自由度上的落地。边界:其自由度维度为组合排序、断点与加权等资产定价构造选项而非情感词典权重,且其以枚举上百条构造路径估计 NSE,本家族仅枚举 3 个权重取值,不构成 non-standard errors 的完整估计,国别与数据层级 (美股组合 vs 中国 bank-year) 亦不同。Merkus (2024) 把规格曲线分析用于国际贸易引力模型,系统枚举设定选择并展示估计量在整条曲线上的分布,以判断结论是否被某一设定驱动,其推断逻辑与本家族『证明主结论不被 0.5 这一取值驱动』同源;边界在于其枚举维度是控制变量与固定效应设定、层级为国家对,且是上百设定的完整曲线,本家族仅 3 点阶梯,规模不可比,原文亦不涉及任何文本测度。在应用同域上,Yan、Ma、Li 与 Tang (2024) 在中国语境下以中文媒体报道构造语调测度并做横截面实证,是与本家族同语言、同媒体类型的近期语调计量实践,为在中文财经新闻上做词典语调测度提供同域前沿参照;边界:其层级为上市公司-股票横截面而非 bank-year 面板,DV 为股票收益,其语调为相对预期的『异常语调』残差口径,与本家族逐篇幅度归一化的 Σfinal/Σ|final| 不是同一公式,亦无政治词折权。Aldama-Navarrete、Curti、Hansen 与 Kazinnik (2026) 构造针对特定银行的媒体情感测度并检验其与监管行为的关联,表明把新闻情感按银行主体归集并进入银行层面实证已是当前被顶级金融稳定期刊接受的做法,与本家族 bank-year 篇均值的归集结构同型;边界:其为美国银行监管语境 (DV 为监管评级与监管行动),情感测度的构造细节与 du_2022 逐篇幅度归一化口径不同,原文既无三轨文本切分、亦无 political_positive 词类概念。
 【口径铁律】
 三权重臂 (polw00/polw05/polw10) 各自 just-identified 并排,互为稳健性、不分主次;polw05 ≡ canonical 只是历史命名产物,并非语义上的"主轨"。三者证明主结论不被政治词权重这一取值驱动,禁止把不同权重臂混进同一 over-identified Hansen J 过度识别检验。该权重梯子与规则消融梯度正交、不交叉:三权重均在全语言学规则下算,避免 3×8 列组合爆炸。三轨 full/ctx/ss 同款铁律——三轨各自 just-identified 并排、互为稳健性,禁混同一 over-identified Hansen J。留篇门控为 full-only 口径 (2026-06-29):是否判为一篇银行金科报道只看 full 轨 llm_verified,ctx/ss 降为 conditional-on-full 的测度/稳健性轨,行宇宙为 full 留篇集子集,但 per-track 篇均值照各轨自身分母算。ss 轨语义镜像 ctx:无银行与金科同句共现时 content_ss 回退为全文 body。gate 测试见 tests/test_political_weight_ladder.py。
 
@@ -150,4 +190,9 @@ Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance:
 Garcia, D. (2013). Sentiment during recessions. Journal of Finance, 68(3), 1267-1300. https://doi.org/10.1111/jofi.12027
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Beltran, A., Guariso, D., & Guerrero, O. A. (2026). Paying the piper: government advertising and media bias. European Political Science Review, 1-20. https://doi.org/10.1017/s175577392610054x
+Soebhag, A., Van Vliet, B., & Verwijmeren, P. (2024). Non-standard errors in asset pricing: Mind your sorts. Journal of Empirical Finance, 78, 101517. https://doi.org/10.1016/j.jempfin.2024.101517
+Merkus, E. (2024). Gravity Models in International Trade: A Specification Curve Analysis. Journal of Industry, Competition and Trade, 24(1), 17. https://doi.org/10.1007/s10842-024-00426-5
+Yan, L., Ma, Y., Li, C., & Tang, G. (2024). Media abnormal tone and cross section of stock returns: Evidence from China. Accounting & Finance, 64(3), 2671-2698. https://doi.org/10.1111/acfi.13230
+Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S. (2026). Does media sentiment influence bank supervision?. Journal of Financial Stability, 84, 101538. https://doi.org/10.1016/j.jfs.2026.101538
 <!-- rendered-citations:end -->

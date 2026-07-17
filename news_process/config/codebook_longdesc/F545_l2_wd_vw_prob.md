@@ -45,6 +45,22 @@ citations:
   vol: 68
   issue: 7
   pages_or_artno: 5514-5532
+- doi: "10.1371/journal.pone.0323064"
+  type: "journal"
+  authors: "Wright, D., & Augenstein, I."
+  year: 2025
+  title: "Aggregating soft labels from crowd annotations improves uncertainty estimation under distribution shift"
+  venue: "PLOS One"
+  vol: "20"
+  issue: "6"
+  pages_or_artno: "e0323064"
+- doi: "10.2139/ssrn.4842086"
+  type: "wp"
+  authors: "Battaglia, L., Christensen, T., Hansen, S., & Sacher, S."
+  year: 2024
+  title: "Inference for Regression with Variables Generated from Unstructured Data"
+  venue: "SSRN Electronic Journal"
+  pages_or_artno: "4842086"
 new_dois: []
 ---
 
@@ -65,8 +81,7 @@ F545 三列 (`sum_wd_vw_prob_full`/`_ctx`/`_ss`) 不是独立构念, 而是 VW (
 在面板导出的零填契约里, F545 三列属于"计数/和类"列 (与 `sum_herd_weight_*`、`sum_mention_density`、`n_articles_*` 等同一处理组): 银行-年若无任何符合条件的报道 (即该行是零新闻或零有效样本的银行-年), 该列填充为 0 而非缺失, 与 `sum_herd_weight_full/_ctx/_ss` 采用完全相同的"前缀式命名, 末尾为 `weight_<track>` 而非 `_sum_<track>`"式零填修复历史 (encode.py 内 `wd_cols = [c for c in panel.columns if c.startswith('sum_wd_')]` 精确捕获本家族三列纳入零填批处理)。下游消费该列做除法时, 面板层还会做一次 `replace(0, np.nan)` 的除零保护 (`_llm_denom` 函数), 因此"零新闻/零有效样本银行-年"最终在语调比率列上呈现为缺失而非除零溢出, 但 F545 本身作为原始权重和列, 契约上仍以 0 呈现零样本情形。
 
 【文献定位】
-本家族的方法学定位横跨两条文献线。其一, VW (价值加权/跟风衰减加权) 与 EW (等权) 并列作为舆情/文本情感测度的构造选择, 呼应文本情感分析方法学综述中对不同聚合权重方案效度差异的系统梳理 (van Atteveldt et al., 2021, *Communication Methods and Measures*: 比较人工标注、众包编码、词典法与机器学习算法在情感分析效度上的系统性差异, 强调聚合权重与测度构造选择会实质性影响下游效度)。其二, 本家族服务的是 LLM 概率化打分 (`llm_prob_score`, 即由 LLM logit/置信度转成的连续概率分数, 而非离散多数投票标签) 这一测度分支的分母基础设施, 这类"多 LLM 集成打分聚合到银行-年"的构造理念呼应 LLM 集成预测能力的实证证据 (Schoenegger et al., 2024, *Science Advances*: LLM 集成预测能力可比拟人类众包准确度的"硅基群体智慧"), 支持本项目采用三家 LLM 概率化打分并加权聚合而非单模型硬标签的设计选择。概率化打分本身 (logit-to-score) 的方法学根基在于监督学习中"良好概率预测"的经典处理 (Niculescu-Mizil & Caruana, 2005, ICML: 讨论如何从监督学习模型获得校准良好的概率预测), 为本项目把 LLM 输出转成连续概率分数、再据此加权聚合提供方法论参照。LLM 概率化打分相较词典法在情感判定质量上的优势另有 Frankel, Jennings & Lee (2022, Management Science) 的顶刊证据支撑: 该文系统比较机器学习分类器与词典法在披露文本情感抽取上的表现, 证明经监督学习/微调的分类模型在识别语义层面的情感信号上显著优于关键词计数式词典法, 为本项目以 LLM 概率化打分承担情感测度主力而非词典法提供了顶刊层级的方法学背书。
-
+本家族的方法学定位横跨两条文献线。其一, VW (价值加权/跟风衰减加权) 与 EW (等权) 并列作为舆情/文本情感测度的构造选择, 呼应文本情感分析方法学综述中对不同聚合权重方案效度差异的系统梳理 (van Atteveldt et al., 2021, *Communication Methods and Measures*: 比较人工标注、众包编码、词典法与机器学习算法在情感分析效度上的系统性差异, 强调聚合权重与测度构造选择会实质性影响下游效度)。其二, 本家族服务的是 LLM 概率化打分 (`llm_prob_score`, 即由 LLM logit/置信度转成的连续概率分数, 而非离散多数投票标签) 这一测度分支的分母基础设施, 这类"多 LLM 集成打分聚合到银行-年"的构造理念呼应 LLM 集成预测能力的实证证据 (Schoenegger et al., 2024, *Science Advances*: LLM 集成预测能力可比拟人类众包准确度的"硅基群体智慧"), 支持本项目采用三家 LLM 概率化打分并加权聚合而非单模型硬标签的设计选择。概率化打分本身 (logit-to-score) 的方法学根基在于监督学习中"良好概率预测"的经典处理 (Niculescu-Mizil & Caruana, 2005, ICML: 讨论如何从监督学习模型获得校准良好的概率预测), 为本项目把 LLM 输出转成连续概率分数、再据此加权聚合提供方法论参照。LLM 概率化打分相较词典法在情感判定质量上的优势另有 Frankel, Jennings & Lee (2022, Management Science) 的顶刊证据支撑: 该文系统比较机器学习分类器与词典法在披露文本情感抽取上的表现, 证明经监督学习/微调的分类模型在识别语义层面的情感信号上显著优于关键词计数式词典法, 为本项目以 LLM 概率化打分承担情感测度主力而非词典法提供了顶刊层级的方法学背书。 在此之上, 还有两条更贴近本家族"分母侧"构造本身的前沿线索。Wright 与 Augenstein (2025) 在 NLP 标注聚合基准上系统比较了把多位标注者的软标签 (概率) 汇总成训练/评估目标的若干方案, 发现分布偏移下软标签聚合比硬标签多数投票给出更好的不确定性估计; 这正对应本项目 prob 分组 (LLM 概率化打分) 与 llm 分组 (三家硬多数投票共识) 两条并排轨的构造分野, 说明"保留概率而非先塌缩成标签"在测度层有其独立价值。迁移边界须诚实交代: 该文的标注者是人类众包工人而非三家商用 LLM, 其目标是分类器不确定性校准而非银行-年面板分母的权重求和, 亦无三轨文本口径、跟风衰减权重与银行-年聚合层, 语料为英文基准集; 故它只提供构念层面的参照, 不构成 prob 轨优于 llm 轨的证据 —— 两组分母仍互为稳健性、不分主次, 各自 just-identified 并排, 严禁混进同一 over-identified 的 Hansen J。Battaglia、Christensen、Hansen 与 Sacher (2024) 则为"先从非结构化文本生成变量、再把该变量代入回归"这一两步流程建立了推断理论, 证明朴素代入会产生系统性偏误并给出修正估计量与有效标准误; 本家族恰是该流程的分母半边: LLM 从新闻文本生成 llm_prob_score, 其有效性掩码决定哪些报道进入加权求和, 因而这条线索是本列构造必须正视的方法学警示。迁移边界同样明确: 该文处理的是回归中生成型变量本身的偏误, 本列则是"有效性掩码构成的权重分母", 层级不同; 其例证以英文非结构化语料为主, 不涉及中文银行金科新闻、银行-年面板与三轨设定, 亦未处理多模型投票共识; 且本项目 F545 目前只做有效性掩码同域求和以消除分子分母错配, 并未实施该文的偏误修正估计量, 故此处引用限于方法学参照与已知缺口的登记, 不应被读作本列已获该文意义上的偏误校正。
 ## VAR: sum_wd_vw_prob_ctx
 
 【变体差分】
@@ -87,4 +102,6 @@ van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The Validit
 Schoenegger, P., Tuminauskaite, I., Park, P. S., Bastos, R. V. S., & Tetlock, P. E. (2024). Wisdom of the silicon crowd: LLM ensemble prediction capabilities rival human crowd accuracy. Science Advances, 10(45), eadp1528. https://doi.org/10.1126/sciadv.adp1528
 Niculescu-Mizil, A., & Caruana, R. (2005). Predicting good probabilities with supervised learning. Proceedings of the 22nd International Conference on Machine Learning (ICML) No. 625-632 [Working Paper]. https://doi.org/10.1145/1102351.1102430
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure Sentiment: Machine Learning vs. Dictionary Methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
+Wright, D., & Augenstein, I. (2025). Aggregating soft labels from crowd annotations improves uncertainty estimation under distribution shift. PLOS One, 20(6), e0323064. https://doi.org/10.1371/journal.pone.0323064
+Battaglia, L., Christensen, T., Hansen, S., & Sacher, S. (2024). Inference for Regression with Variables Generated from Unstructured Data. SSRN Electronic Journal No. 4842086 [Working Paper]. https://doi.org/10.2139/ssrn.4842086
 <!-- rendered-citations:end -->

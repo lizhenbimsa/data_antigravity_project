@@ -51,6 +51,12 @@ citations:
   title: The Effect of Sampling Temperature on Problem Solving in Large Language Models
   venue: 'Findings of the Association for Computational Linguistics: EMNLP 2024'
   pages_or_artno: 7346-7356
+- doi: "10.48550/arxiv.2207.05221"
+  type: "arxiv"
+  authors: "Kadavath, S., Conerly, T., Askell, A., Henighan, T., Drain, D., Perez, E., Schiefer, N., Hatfield-Dodds, Z., DasSarma, N., Tran-Johnson, E., Johnston, S., El-Showk, S., Jones, A., Elhage, N., Hume, T., Chen, A., Bai, Y., Bowman, S., Fort, S., ... Kaplan, J."
+  year: 2022
+  title: "Language Models (Mostly) Know What They Know"
+  venue: "arXiv"
 new_dois: []
 ---
 
@@ -63,8 +69,7 @@ llm_prob_score_w_sum 是「Logit-to-Score 概率映射情感」测度族在 bank
 计算分两步串联, 均在面板构建 (panel) 阶段完成, 不改动 stage 21 情感 LLM 的文章级原始输出。第一步 (`pipeline/panel/runner.py` 步骤 3b) 在文章级 DataFrame 上, 对每条轨道 track ∈ {_full, _ctx, _ss} 取该轨的 mention_density (缺失填 0), 与该轨的 llm_prob_score{track} 逐行相乘, 生成文章级加权列 llm_prob_score_w{track}; 该步骤与情感离散/连续投票、逐模型 LLM 得分、词典得分、词典 IDF 得分、BERT 概率列共用同一套 mention_density 权重预计算逻辑, 是面板加权体系的统一入口, 而非 llm_prob 族专属旁路。第二步 (`pipeline/panel/encode.py`, 约 L1193) 在 bank-year 聚合阶段对文章级加权列取 sum, 得到 llm_prob_score_w_sum{track} 三轨列。与之配套的分母侧修正是 valid-mask 权重和 (`_wd_vw_{grp}{track}`, 由 `_build_llm_valid_masked_weights` 产出, grp 含 'prob'): 2026-06-10 的一处审计 fix 指出, 若分子只在"有效篇" (verified 门控通过) 上累加, 分母却沿用全样本权重和, 会人为把加权均值压向零, 因此专门为 LLM 族 (含 prob 概率子族) 建一份仅在有效样本上累加的权重和分母, 与 w_sum 类分子在统计口径上严格匹配。llm_prob_score_w_sum 本身是求和量, 不是均值, 使用时若需构造加权均值须自行除以对应分母列, 不能直接把 sum 当作代表性水平指标解读, 求和量对银行-年内文章篇数天然敏感, 篇数越多绝对值越大, 这是该支路与 avg_llm_prob_score 均值支路在解释上的根本区别。三轨 full/ctx/ss 的权重来源 mention_density 与情感得分 llm_prob_score 均按各自轨道独立计算, 不存在跨轨借用: 若某轨 mention_density 或 llm_prob_score 缺失, 该轨的 w_sum 列在聚合时通过 valid_agg 优雅跳过, 不会用其它轨的值填补, 也不会导致整族聚合失败。
 
 【文献定位】
-概率对比得分的方法学定位承接文本情感度量从离散标签向连续打分演进的一般脉络: de Kok (2025, Management Science) 系统讨论了在会计与金融研究中使用生成式大语言模型做文本分析时的 prompt/temperature 冻结与结果稳定性问题, 是本项目 stage 21 采用 temperature=0.0 与缓存化 prompt 的方法论依据, 也是 llm_prob_score 这类连续概率输出相较纯离散多数投票更适合做统计推断的背景论证之一; Ludwig, Mullainathan & Rambachan (2025, NBER WP) 提出的 LLM 应用计量框架进一步论证了将 LLM 输出视为对不可观测潜变量的带噪测量, 为多支加权/多模型并排的稳健性设计提供了识别层面的正当性; Renze (2024, EMNLP Findings) 关于采样温度对大语言模型输出稳定性的实证发现, 支撑本项目将 temperature 锁定为 0.0 以最大化概率映射得分的可复现性; Lan et al. (2025, Neural Computing and Applications) 针对中文金融文本的细粒度情感分析研究, 与本项目中文财经报道场景直接可比, 印证了在中文语境下用大语言模型输出概率而非仅硬标签的可行性。而 mention_density 加权本身的构念源头 Hassan et al. (2019, QJE) 的 Value-weighted Exposure 方法, 已是政治风险/公司层面文本暴露测度文献中的标准做法, 本处将其平移到银行金融科技情感文本的加权求和构造上, 逻辑一致: 报道正文中对目标银行着墨越多, 该篇文章对银行情感面板值的贡献权重就应越大。
-
+概率对比得分的方法学定位承接文本情感度量从离散标签向连续打分演进的一般脉络: de Kok (2025, Management Science) 系统讨论了在会计与金融研究中使用生成式大语言模型做文本分析时的 prompt/temperature 冻结与结果稳定性问题, 是本项目 stage 21 采用 temperature=0.0 与缓存化 prompt 的方法论依据, 也是 llm_prob_score 这类连续概率输出相较纯离散多数投票更适合做统计推断的背景论证之一; Ludwig, Mullainathan & Rambachan (2025, NBER WP) 提出的 LLM 应用计量框架进一步论证了将 LLM 输出视为对不可观测潜变量的带噪测量, 为多支加权/多模型并排的稳健性设计提供了识别层面的正当性; Renze (2024, EMNLP Findings) 关于采样温度对大语言模型输出稳定性的实证发现, 支撑本项目将 temperature 锁定为 0.0 以最大化概率映射得分的可复现性; Lan et al. (2025, Neural Computing and Applications) 针对中文金融文本的细粒度情感分析研究, 与本项目中文财经报道场景直接可比, 印证了在中文语境下用大语言模型输出概率而非仅硬标签的可行性。而 mention_density 加权本身的构念源头 Hassan et al. (2019, QJE) 的 Value-weighted Exposure 方法, 已是政治风险/公司层面文本暴露测度文献中的标准做法, 本处将其平移到银行金融科技情感文本的加权求和构造上, 逻辑一致: 报道正文中对目标银行着墨越多, 该篇文章对银行情感面板值的贡献权重就应越大。 就概率映射所依赖的"LLM 自报置信度携带真实信息"这一前提, Kadavath 等 (2022) 是更早的奠基性证据: 该文系统研究语言模型能否自评其答案的正确性, 证明较大模型在格式恰当的多选/判断题上校准良好, 并据此提出先给答案再自评 P(True) 的自评范式, 另研究了无需特定候选答案的 P(IK) 预测, 从而为本家族把共识置信度送入 compute_prob_score 生成逐篇连续分、再以 mention_density 加权求和提供了一般性支持。使用时须尊重其边界: 该文并非本家族做法的方法出处 — 原文的自评走专门的 P(True)/P(IK) 探针与 logit 读数, 本项目 confidence 则来自 prompt 结构化输出字段; 其模型代次为 2022 年的内部模型, 与本项目三家生产模型不可比; 且原文只论证到自评概率具备校准性, 并未提出把剩余概率 (1−confidence) 在非主类间按最大熵均分再作差 (P正−P负) 的映射 — 该映射与提及密度加权的求和构造同属研究者选择, 非原文成果。
 ## VAR: llm_prob_score_w_sum_full
 
 【变体差分】
@@ -89,4 +94,5 @@ de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in a
 Lan, Y., Wu, Y., Xu, W., Feng, W., & Zhang, Y. (2025). Chinese fine-grained financial sentiment analysis with large language models. Neural Computing and Applications, 37(30), 24883-24892. https://doi.org/10.1007/s00521-024-10603-6
 Ludwig, J., Mullainathan, S., & Rambachan, A. (2025). Large language models: An applied econometric framework. NBER Working Paper No. 33344 [Working Paper]. https://doi.org/10.48550/arXiv.2412.07031
 Renze, M. (2024). The Effect of Sampling Temperature on Problem Solving in Large Language Models. Findings of the Association for Computational Linguistics: EMNLP 2024, 7346-7356. https://doi.org/10.18653/v1/2024.findings-emnlp.432
+Kadavath, S., Conerly, T., Askell, A., Henighan, T., Drain, D., Perez, E., Schiefer, N., Hatfield-Dodds, Z., DasSarma, N., Tran-Johnson, E., Johnston, S., El-Showk, S., Jones, A., Elhage, N., Hume, T., Chen, A., Bai, Y., Bowman, S., Fort, S., ... Kaplan, J. (2022). Language Models (Mostly) Know What They Know. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2207.05221
 <!-- rendered-citations:end -->

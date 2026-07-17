@@ -53,6 +53,35 @@ citations:
   vol: "66"
   issue: "1"
   pages_or_artno: "35-65"
+- doi: "10.1017/psrm.2024.64"
+  type: "journal"
+  authors: "Ornstein, J. T., Blasingame, E. N., & Truscott, J. S."
+  year: 2025
+  title: "How to train your stochastic parrot: large language models for political texts"
+  venue: "Political Science Research and Methods"
+  vol: "13"
+  issue: "2"
+  pages_or_artno: "264-281"
+- doi: "10.18653/v1/2025.findings-acl.744"
+  type: "journal"
+  authors: "Wang, W., Wang, Y., & Huang, H."
+  year: 2025
+  title: "Ranked Voting based Self-Consistency of Large Language Models"
+  venue: "Findings of the Association for Computational Linguistics: ACL 2025"
+  pages_or_artno: "14410-14426"
+- doi: "10.18653/v1/2024.law-1.13"
+  type: "journal"
+  authors: "Rønningstad, E., Velldal, E., & Øvrelid, L."
+  year: 2024
+  title: "A GPT among Annotators: LLM-based Entity-Level Sentiment Annotation"
+  venue: "Proceedings of the 18th Linguistic Annotation Workshop (LAW-XVIII)"
+  pages_or_artno: "133-139"
+- doi: "10.48550/arxiv.2407.17866"
+  type: "arxiv"
+  authors: "Kim, A., Muhn, M., & Nikolaev, V."
+  year: 2024
+  title: "Financial Statement Analysis with Large Language Models"
+  venue: "arXiv"
 new_dois: []
 ---
 
@@ -67,8 +96,7 @@ new_dois: []
 【文献定位】
 把 LLM 多家模型的判断汇聚为一个共识分数再加权聚合, 呼应大模型集成投票 (LLM ensemble) 优于单一模型的稳健性证据: Kamen & Kamen (2025) 系统比较了多数投票式集成在内容分类任务上相对单模型的胜率优势, 支持本项目用三家 (gpt54nano/gemini31/deepseekv4) 多数投票而非单家模型作为语调测度主轨的设计选择。把大模型判断落地为可复现的结构化面板列, 依赖冻结 prompt、零温度采样与结果缓存的方法学纪律, de Kok (2025, *Management Science*) 系统梳理了会计与金融研究中使用生成式大模型做文本标注时, temperature=0、prompt 版本冻结、结果可复现缓存这一套范式的必要性与陷阱, 与本项目 stage 21 的 prompt v8 字节级冻结、`_llm_cache.db` 离线可复现锚点直接对应。中文金融文本情感的细粒度大模型标注也已有本土化验证: Lan 等 (2025, *Neural Computing and Applications*) 针对中文金融文本构建细粒度情感标注体系并用大模型实现实体级情感抽取, 佐证在中文语境下用大模型判读语调是可行且有文献先例的技术路线。而"要不要相信一个自由选定的判定门槛"这一稳健性诉求, 在计量文献中有更早的方法学根基: Romano & Wolf (2005, *Econometrica*) 提出的逐步式多重检验框架正是为"同一构念下用多个候选设定重复检验、又要控制整体假发现率"这一类问题提供的形式化工具, 本项目虽未把阈值敏感性网格直接接入 rwolf 式的联合检验 (网格本身走的是并排稳健性叙事而非联合 FWER 表), 但其"多设定并排、不以单一自由参数定论"的精神与该文一致。最后, 语调测度本身作为文本分析在金融研究中的合法性, 溯源自 Loughran & McDonald (2011, *Journal of Finance*) 对基于词典/规则的文本情感测度构造与验证方法的奠基性工作 —— 本项目虽然主测度改用大模型判读, 但"给定一个可复现的规则/模型, 把文本转成可加总的数值语调, 再按权重聚合到面板层面"这一整体范式仍与该文一脉相承。
 
-需要特别强调项目内部的口径铁律: full/ctx/ss 三轨在下方各自成列, 是各自独立、just-identified 并排的稳健性口径, 互为稳健性、不分主次, 严禁把三轨的任何组合混进同一个 over-identified 的 Hansen J 过度识别检验里 (这是三轨架构与 co-primary 双轨嵌入共用的项目级铁律)。同理, τ=0.40 与基线 τ=0.35 及网格其余分支 (0.25/0.30/0.45) 也是各自 just-identified 的并排稳健性分支, 不构成一组可以联合过度识别的工具集。此外, n_articles/留篇门控口径遵循 2026-06-29 起生效的 full-only 铁律: 是否判定某银行-年内某篇报道"算数" (即纳入分母), 只看 full 轨的 llm_verified_full 是否为真; ctx/ss 两轨的样本行宇宙是 full 留篇集合的子集, 在此子集内各自按 ctx/ss 口径独立计算权重和加权和, 不借用彼此的分母, 也不倒过来影响 full 轨的留篇判定。
-
+需要特别强调项目内部的口径铁律: full/ctx/ss 三轨在下方各自成列, 是各自独立、just-identified 并排的稳健性口径, 互为稳健性、不分主次, 严禁把三轨的任何组合混进同一个 over-identified 的 Hansen J 过度识别检验里 (这是三轨架构与 co-primary 双轨嵌入共用的项目级铁律)。同理, τ=0.40 与基线 τ=0.35 及网格其余分支 (0.25/0.30/0.45) 也是各自 just-identified 的并排稳健性分支, 不构成一组可以联合过度识别的工具集。此外, n_articles/留篇门控口径遵循 2026-06-29 起生效的 full-only 铁律: 是否判定某银行-年内某篇报道"算数" (即纳入分母), 只看 full 轨的 llm_verified_full 是否为真; ctx/ss 两轨的样本行宇宙是 full 留篇集合的子集, 在此子集内各自按 ctx/ss 口径独立计算权重和加权和, 不借用彼此的分母, 也不倒过来影响 full 轨的留篇判定。 在分子所依赖的"LLM 标签→面板聚合"一环上, 尚有数项前沿工作可补足本族的方法学定位。Ornstein、Blasingame 与 Truscott (2025) 以 few-shot prompt 在情感分析、文档标度等政治学文本即数据任务上做预注册评估, 证明该路径优于传统有监督学习基线、并以极低成本达到与专家及众包编码员相当 (comparable, 非超过) 的水平, 是"直接用大模型产出文本级标签再逐单元聚合"这一测量范式在社会科学内的同族先例, 与上文 Loughran & McDonald (2011) 所代表的词典范式恰构成同一谱系的两端; 其语料为英文政治文本、单模型而非三家投票, 无跟风加权与 bank-year 聚合。Wang、Wang 与 Huang (2025) 以排序投票 (ranked voting) 取代朴素多数票来聚合大模型的多个候选输出并实证聚合质量提升, 说明本族分子 llm_vote_score 所用的多数票规则本身即是一重设计自由度, 与 τ 门槛一样属于研究者选择而非文献定值; 惟其投票单元是同一模型多次采样的候选答案 (self-consistency) 而非跨三家厂商的标签票, 任务为推理生成而非三分类情感, 本项目仍维持朴素多数票、未采纳排序投票, 该维度目前未构成一条并排的稳健性梯子。Rønningstad 与 Velldal (2024) 评估大模型对特定目标实体的情感 (entity-level / targeted sentiment) 标注质量并与人工标注对比, 直接对应本族"针对目标银行"而非篇章整体的语调构念; 其语料为挪威语/英语通用新闻、目标实体非银行, 采用单一 GPT 模型且只报告标注一致性, 不做面板聚合与加权分子构造。Kim、Muhn 与 Nikolaev (2024) 向 GPT-4 提供剥离叙事的标准化财务报表令其判断企业未来盈余的变动方向, 实证其方向性预测超过人类分析师、与窄训练的 SOTA 机器学习模型相当, 并据以构建出更高 Sharpe 比率与 alpha 的策略, 是"令大模型作离散方向性判断、再把该判断聚合为可用金融信号"在金融领域的前沿存在性证明; 其输入为报表数字而非中文新闻叙事, 单位为公司-季度盈余方向而非银行-年语调, 且为单模型无跨厂商投票。四文均只锚定分子的离散标签一环, 对 τ=0.40 这一跟风判定门槛及整条阈值梯子不构成依据。
 ## VAR: llm_vote_score_hw_thr40_sum_ctx
 
 【变体差分】
@@ -90,4 +118,8 @@ de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in a
 Lan, Y., Wu, Y., Xu, W., Feng, W., & Zhang, Y. (2025). Chinese fine-grained financial sentiment analysis with large language models. Neural Computing and Applications, 37(30), 24883-24892. https://doi.org/10.1007/s00521-024-10603-6
 Romano, J. P., & Wolf, M. (2005). Stepwise multiple testing as formalized data snooping. Econometrica, 73(4), 1237-1282. https://doi.org/10.1111/j.1468-0262.2005.00615.x
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
+Ornstein, J. T., Blasingame, E. N., & Truscott, J. S. (2025). How to train your stochastic parrot: large language models for political texts. Political Science Research and Methods, 13(2), 264-281. https://doi.org/10.1017/psrm.2024.64
+Wang, W., Wang, Y., & Huang, H. (2025). Ranked Voting based Self-Consistency of Large Language Models. Findings of the Association for Computational Linguistics: ACL 2025, 14410-14426. https://doi.org/10.18653/v1/2025.findings-acl.744
+Rønningstad, E., Velldal, E., & Øvrelid, L. (2024). A GPT among Annotators: LLM-based Entity-Level Sentiment Annotation. Proceedings of the 18th Linguistic Annotation Workshop (LAW-XVIII), 133-139. https://doi.org/10.18653/v1/2024.law-1.13
+Kim, A., Muhn, M., & Nikolaev, V. (2024). Financial Statement Analysis with Large Language Models. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2407.17866
 <!-- rendered-citations:end -->

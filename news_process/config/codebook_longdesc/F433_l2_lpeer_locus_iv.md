@@ -57,6 +57,22 @@ citations:
   vol: "89"
   issue: "1"
   pages_or_artno: "181-213"
+- doi: "10.1016/j.jfineco.2026.104274"
+  type: "journal"
+  authors: "Avramov, D., Ge, S., Li, S., & Linton, O."
+  year: 2026
+  title: "Dual peer effects and cross-stock predictability"
+  venue: "Journal of Financial Economics"
+  vol: "180"
+  pages_or_artno: "104274"
+- doi: "10.1016/j.pacfin.2025.102878"
+  type: "journal"
+  authors: "Ding, J., Huang, J., & Ding, A."
+  year: 2025
+  title: "The peer effects of corporate social responsibility in China: A pre-registered study"
+  venue: "Pacific-Basin Finance Journal"
+  vol: "94"
+  pages_or_artno: "102878"
 new_dois: []
 ---
 
@@ -72,8 +88,7 @@ F433 属 P4 (bank_fintech_locus, Gomber 谱系) 识别策略工具变量族, 是
 面板落点上, 四列均是 bank-year 层观测 (行数与 40_panel_yearly 主键一致), 缺失规则跟随所工具化内生变量的缺失规则: 若某 (bank_type, year) 分组内除自身外无其他银行有该轨有效 tech_frac 观测 (极端小样本分组, 如 T=2 开发盘部分银行型别样本稀疏), LOO 均值退化为 NaN 而非虚假填 0, 避免向 2SLS 第一阶段引入系统性偏误; `_lag1` 列额外因缺 t-1 年观测 (面板首年) 而产生结构性缺失, 属滞后构造的固有特性。
 
 【文献定位】
-本工具族方法论谱系直接承袭 Manski (1993, The Review of Economic Studies) 对内生同侪效应识别问题 (「反射问题」) 的经典表述: 个体结果、个体特质与群体均值三者共线导致的不可分离性, 只能借助排他性工具或结构假设打破。Leary & Roberts (2014, The Journal of Finance) 将这一逻辑应用于公司金融情境, 用同业 LOO 均值工具企业政策的同侪效应, 是本工具族在应用层面最直接的先例, 本族沿用其"排除自身、取同组均值"的构造范式。Goldsmith-Pinkham, Sorkin & Swift (2020, American Economic Review) 与 Borusyak, Hull & Jaravel (2022, The Review of Economic Studies) 提供了 Bartik/shift-share 工具族的现代识别框架与诊断标准 (份额外生性、暴露异质性的可检验含义), 本族虽在构造上更简约 (等权同侪均值而非份额加权位移), 但共享"用群体层面的结构性变异隔离个体内生冲击"的核心思想, 引用二者是为了在识别策略讨论中把本工具明确定位为该谱系的简化特例, 并借用其诊断建议 (第一阶段 F 统计量、工具相关性的组间异质性检验)。内生变量的实质构念 — 创新落点二分 (技术研发端 vs 应用端) — 源自 Gomber, Koch & Siering (2017, Journal of Business Economics) 对数字金融/金融科技研究方向的分类框架, 该文是 P4 论文 (bank_fintech_locus) 构念定义的直接出处, 本工具族的存在意义正是为该构念提供 ctx/ss 双轨的因果识别配套。
-
+本工具族方法论谱系直接承袭 Manski (1993, The Review of Economic Studies) 对内生同侪效应识别问题 (「反射问题」) 的经典表述: 个体结果、个体特质与群体均值三者共线导致的不可分离性, 只能借助排他性工具或结构假设打破。Leary & Roberts (2014, The Journal of Finance) 将这一逻辑应用于公司金融情境, 用同业 LOO 均值工具企业政策的同侪效应, 是本工具族在应用层面最直接的先例, 本族沿用其"排除自身、取同组均值"的构造范式。Goldsmith-Pinkham, Sorkin & Swift (2020, American Economic Review) 与 Borusyak, Hull & Jaravel (2022, The Review of Economic Studies) 提供了 Bartik/shift-share 工具族的现代识别框架与诊断标准 (份额外生性、暴露异质性的可检验含义), 本族虽在构造上更简约 (等权同侪均值而非份额加权位移), 但共享"用群体层面的结构性变异隔离个体内生冲击"的核心思想, 引用二者是为了在识别策略讨论中把本工具明确定位为该谱系的简化特例, 并借用其诊断建议 (第一阶段 F 统计量、工具相关性的组间异质性检验)。内生变量的实质构念 — 创新落点二分 (技术研发端 vs 应用端) — 源自 Gomber, Koch & Siering (2017, Journal of Business Economics) 对数字金融/金融科技研究方向的分类框架, 该文是 P4 论文 (bank_fintech_locus) 构念定义的直接出处, 本工具族的存在意义正是为该构念提供 ctx/ss 双轨的因果识别配套。 同侪暴露测度族在近年的前沿存续亦可为本族定位提供参照: Avramov、Ge、Li 与 Linton (2026) 在 Journal of Financial Economics 构造股票间的同侪连接矩阵并度量同侪特征向自身的溢出, 属典型的「以 (加权) 同侪均值作为暴露变量」设定, 与本族在同 bank_type 分组内取等权 leave-one-out 均值同属一个测度族, 可作该族在顶级金融期刊的最新应用存在性证明; 但其同侪连接基于股票收益/特征的经济联系, 被加权的量是收益或特征、DV 是横截面收益的可预测性, 与本族按 bank_type×year 分组、被平均量为 tech_frac_lc / tech_frac_ls、层级为银行-年的设定在单位与对象上均不同, 该文亦未讨论把同侪均值转用作工具变量的合法性, 故只锚定测度族而非本族的识别论证。Ding、Huang 与 Ding (2025) 则以预注册设计考察中国语境下企业社会责任的同侪效应, 用 OLS 验证假设并辅以工具变量法缓解内生性威胁, 提出市场竞争与制度压力两条机制, 为「同侪暴露变量 + IV 缓解反射性与内生性」这一识别范式在中国情境下的可信性提供了近期参考; 惟该文同侪暴露变量的具体构造 (分组维度、是否为组内 leave-one-out 均值) 与其工具的具体形式均未在可得摘要中披露, 故此处只锚定该识别范式的存在与可信性, 不得据以主张其与本族 mean_(j∈g(i), j≠i) 的构造同形, 其被平均的是 CSR 表现而非 LLM 判定的技术落点报道占比, 亦未设本族 lag1 一阶滞后臂那样的时间错位设定。
 ## VAR: lpeer_locus_iv_ctx
 
 【变体差分】
@@ -100,6 +115,8 @@ Leary, M. T., & Roberts, M. R. (2014). Do Peer Firms Affect Corporate Financial 
 Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik Instruments: What, When, Why, and How. American Economic Review, 110(8), 2586-2624. https://doi.org/10.1257/aer.20181047
 Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital Finance and FinTech: Current Research and Future Research Directions. Journal of Business Economics, 87(5), 537-580. https://doi.org/10.1007/s11573-017-0852-x
 Borusyak, K., Hull, P., & Jaravel, X. (2022). Quasi-Experimental Shift-Share Research Designs. The Review of Economic Studies, 89(1), 181-213. https://doi.org/10.1093/restud/rdab030
+Avramov, D., Ge, S., Li, S., & Linton, O. (2026). Dual peer effects and cross-stock predictability. Journal of Financial Economics, 180, 104274. https://doi.org/10.1016/j.jfineco.2026.104274
+Ding, J., Huang, J., & Ding, A. (2025). The peer effects of corporate social responsibility in China: A pre-registered study. Pacific-Basin Finance Journal, 94, 102878. https://doi.org/10.1016/j.pacfin.2025.102878
 <!-- rendered-citations:end -->
 </content>
 </invoke>

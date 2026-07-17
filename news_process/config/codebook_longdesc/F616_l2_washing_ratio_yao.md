@@ -46,6 +46,14 @@ citations:
   vol: '60'
   issue: '1'
   pages_or_artno: 173-207
+- doi: "10.1016/j.frl.2024.105265"
+  type: "journal"
+  authors: "Huang, J., & Ma, L."
+  year: 2024
+  title: "Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation"
+  venue: "Finance Research Letters"
+  vol: "63"
+  pages_or_artno: "105265"
 new_dois: []
 ---
 
@@ -58,8 +66,7 @@ new_dois: []
 producer 为 `pipeline/panel/runner.py`: 篇章级(每条报道)标记阶段位于 970-1044 行(早于 2165 行处标签为"步骤 7h"的面板级聚合代码块), 先标记 `_is_yao_2021_pos_symb{track}` = (yao_2021_score{track} > 0) ∧ (innovation_substantiveness_full == '象征性'), 再标记 `_svd_yao_2021_pos{track}` = (yao_2021_score{track} > 0) ∧ (象征性/实质性已测量, 即 innovation_substantiveness_full 落在有效标签集合内); 该标记阶段与其下游"步骤 7h"面板级除法聚合前后衔接、共享同一构造逻辑, 但两者在代码位置上并非同一循环块。步骤 7h 聚合到银行-年面板得到 `yao_2021_pos_symb_count{track}`(分子: 姚词典判正面且象征性的报道数)与 `yao_2021_pos_substvalid_count{track}`(分母: 姚词典判正面且实质性/象征性已被 LLM 成功测量的报道数)。面板级最终列 `washing_ratio_yao_2021{track} = yao_2021_pos_symb_count{track} / yao_2021_pos_substvalid_count{track}`, 分母为 0 或缺失时经 `_safe_ratio` 返回 NaN(非 0, 避免虚假精确)。分母采用"同域化"口径(fix omni-g-runner-10/14, 2026-06-11 修订): 早期实现分母误用全体词典正面报道数, 但分子隐式要求实质性标签已测量, 二者定义域不一致 —— 当 LLM 分类失败率上升时会人为压低洗稿率(把"未判出"误当"非象征性"计入分母而不计入分子), 造成系统性下偏假象。现行分母改为仅数"词典判正面 且 实质性标签已成功测量"的同域子集(`yao_2021_pos_substvalid_count{track}`), 若该列因旧 schema 缺失则回退物理分母 `yao_2021_pos_count{track}` 并记 WARNING 日志, 不静默降级。若 stage 21 未产出 innovation_substantiveness_full 或 yao_2021 词典打分列缺失, 该轨全体 washing_ratio_yao_2021{track} 直接跳过赋值(保持 NaN), 不做插补。
 
 【文献定位】
-姚加权等(2021)词典本身脱胎于中文金融文本情绪测度传统, 与本仓库另一并排词典 Du et al.(2022, Review of Finance)同属"针对中文金融语境重新构造情绪词表, 而非直接套用英文 Loughran-McDonald 通用金融词典"的方法学路线, 两者互为稳健性检验(Du et al. 2022 本身即以"语言与领域特定性"为核心论点, 主张通用词典跨语言/跨领域迁移会系统性失真, 为本家族按词典分轨对照提供直接理论支撑)。washing_ratio 系列的"情感正面∧内容象征性"构念设计与 Gorovaia & Makrominas(2024)、Fan et al.(2025)在漂绿/漂洗计量上"言辞多于行动"的 NLP 识别实践相互印证; Piotroski, Wong & Zhang(2017, Journal of Law and Economics)则提示中国情境下企业新闻报道存在系统性的政治/媒体偏向, 是解读洗稿率跨银行/跨年份差异时需要控制的背景机制之一(媒体报道本身的正面基调可能部分来自政治动机而非企业真实行为, 与本家族分子分母同域化的处理逻辑呼应)。
-
+姚加权等(2021)词典本身脱胎于中文金融文本情绪测度传统, 与本仓库另一并排词典 Du et al.(2022, Review of Finance)同属"针对中文金融语境重新构造情绪词表, 而非直接套用英文 Loughran-McDonald 通用金融词典"的方法学路线, 两者互为稳健性检验(Du et al. 2022 本身即以"语言与领域特定性"为核心论点, 主张通用词典跨语言/跨领域迁移会系统性失真, 为本家族按词典分轨对照提供直接理论支撑)。washing_ratio 系列的"情感正面∧内容象征性"构念设计与 Gorovaia & Makrominas(2024)、Fan et al.(2025)在漂绿/漂洗计量上"言辞多于行动"的 NLP 识别实践相互印证; Piotroski, Wong & Zhang(2017, Journal of Law and Economics)则提示中国情境下企业新闻报道存在系统性的政治/媒体偏向, 是解读洗稿率跨银行/跨年份差异时需要控制的背景机制之一(媒体报道本身的正面基调可能部分来自政治动机而非企业真实行为, 与本家族分子分母同域化的处理逻辑呼应)。 晚近文献进一步把这一二分推进到金融科技议题本身: Huang 与 Ma (2024) 以金融科技发展为解释变量, 检验其对企业实质性绿色创新与象征性绿色创新的差异化影响, 在中国情境中直接采用与本家族同源的"实质性 vs 象征性"中文二分表述, 与分子所依赖的 innovation_substantiveness_full 标签在概念与措辞上同域对应。迁移边界须明示: 该文的实质/象征由专利类型(发明 vs 实用新型/外观)客观划分, 主体为非金融上市公司, 金融科技处于解释变量位置; 而本家族的实质/象征由 LLM 对新闻文本逐篇判定, 主体为银行, 金融科技即被报道的议题本身。该文亦未构造任何比率型 washing 指标, 故它仅锚定二分构念在金融科技域的同域适用性, 不锚定本列的比率化口径, 亦不涉及姚加权等(2021)词典这一判定环节。
 ## VAR: washing_ratio_yao_2021
 
 【变体差分】
@@ -80,4 +87,5 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Gorovaia, N., & Makrominas, M. (2024). Identifying greenwashing in corporate-social responsibility reports using natural-language processing. European Financial Management, 31(1), 427-462. https://doi.org/10.1111/eufm.12509
 Fan, X., Tang, Z., Huang, W., & Yang, K. (2025). Ownership concentration and corporate greenwashing in China's capital markets: Based on a multi-actors perspective. Pacific-Basin Finance Journal, 89, Article 102600. https://doi.org/10.1016/j.pacfin.2024.102600
 Piotroski, J. D., Wong, T. J., & Zhang, T. (2017). Political bias in corporate news - The role of conglomeration reform in China. The Journal of Law and Economics, 60(1), 173-207. https://doi.org/10.1086/693096
+Huang, J., & Ma, L. (2024). Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation. Finance Research Letters, 63, 105265. https://doi.org/10.1016/j.frl.2024.105265
 <!-- rendered-citations:end -->

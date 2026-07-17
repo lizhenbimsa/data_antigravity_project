@@ -43,6 +43,23 @@ citations:
   year: 2025
   title: 'Sustainability or Greenwashing: Evidence from the Asset Market for Industrial Pollution'
   venue: The Journal of Finance
+- doi: "10.1111/joms.13043"
+  type: "journal"
+  authors: "Athanasopoulou, A., Marti, E., Risi, D., & Schlindwein, E."
+  year: 2025
+  title: "How Companies Restrain Means–Ends Decoupling: A Comparative Case Study of CSR Implementation"
+  venue: "Journal of Management Studies"
+  vol: "62"
+  issue: "1"
+  pages_or_artno: "214-245"
+- doi: "10.1016/j.frl.2024.105265"
+  type: "journal"
+  authors: "Huang, J., & Ma, L."
+  year: 2024
+  title: "Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation"
+  venue: "Finance Research Letters"
+  vol: "63"
+  pages_or_artno: "105265"
 new_dois: []
 ---
 
@@ -55,8 +72,7 @@ new_dois: []
 构造分两步。第一步是逐篇二值分类: `pipeline/panel/runner.py::_classify_policy_quadrants` 对每篇已测量的报道同时读取逐篇相似度列 `sim_col`(=`policy_cosine_sim_{track}`, 来自 stage 16 `policy_alignment.py`) 与逐篇强度列 `freq_col`(=`fintech_intensity_score_{track}`, 来自 stage 15 `fintech_intensity.py`), 函数体内部固定 `groupby('year')` 逐年分别计算相似度分布与强度分布各自的第 25 百分位数 (P25) 作为该年份/该分类口径下的阈值——这一按年重算是函数实现本身写死的行为, 与外部调用方是否已按年份切片传入子集无关(即便传入的是多年合并样本, 阈值仍在函数内部按 year 列分组分别计算, 而非对整批样本取一个单一全局分位数)。再逐篇判定: 相似度 ≥ 该篇所属年份的 P25 且强度 ≥ 该篇所属年份的 P25 者记 `_is_subst_*=1`, 否则为 0。阈值是对相似度分布和强度分布分别独立取分位数, 不是对联合分布取分位数, 且是逐年独立计算而非跨全部年份合并的单一阈值 —— 这意味着两个维度的"高"是各自年内边际分布意义上的高, 象限划分近似一个正交的 2×2 网格而非某个联合密度等高线, 这一实现细节决定了四个象限 (token/hidden/subst/以及隐含的第四象限"双低") 在样本中不必然各占 1/4, 取决于相似度与强度两个变量在该年内的相关结构; 同时逐年阈值也意味着跨年比较本族占比时, 分类基准本身是随年份浮动的相对阈值而非固定的绝对阈值, 不同年份被判定为"高"的原始分值可能不同。本家族取的是 Track B —— 即 `int` (intensity, 强度轨), 强度信号来自 stage 15 连续型金科强度打分, 与另一并行轨 Track A `kw` (keyword, 基于金科关键词 AC 自动机命中计数的离散轨) 是两套独立构造、互不替代的稳健性对照, 二者共享同一套政策相似度信号与同一 P25 阈值口径, 但强度信号的构造原语不同 (连续打分 vs. 关键词命中计数), 分类结果不必然一致。`allv` 后缀标记的是政策锚点的时间维度口径, 而非话题粒度口径: `pipeline/filtering/policy_alignment.py::all_vintage_companion_enabled` 明确, vintage-aware 主轨 (无 `allv` 后缀的另一并列族) 构造锚点时只纳入"年度 t 仅使用截至 t 已发布的政策文档"，以此消除前视偏误 (look-ahead bias)，是 identification 意义上的正确口径；`_allv` (all-vintage) 则是与之并列的全年份/全语料静态锚点孪生: 年度 t 的文章统一与所有年份 (含未来) 的政策文档拼接后的静态锚点计算余弦相似度, 下游构造方法 (同嵌入/同池化/同余弦/同四象限) 与主轨完全一致, 唯一区别是锚点本身是否受 vintage 前视裁剪。`_allv` 因此含未来政策文本, 源码明确要求"论文须明确披露 `_allv` 系 ex-post/全语料口径", 且仅作 anchor-robustness 对照, 绝不替换 vintage 主轨; 两轨各自 just-identified 并排、互为稳健性不分主次, 绝不可混入同一 over-identified Hansen J 检验 (vintage 不可用/无年份信息时二者退化为数值相同, 属诚实退化而非构造等价)。第二步是按 (银行, 年) 分组对二值列取均值: `subst_adopt_{track}_p25{anc_sfx}{sim_sfx} = groupby(['target_bank','year'])['_is_subst_*'].mean()`, 分母是该银行-年内已同时测得相似度与强度两列的报道篇数, 而非该银行-年全部报道篇数——未测量的报道 (相似度或强度任一缺失) 既不进入分子也不进入分母, 是逐篇 listwise 处理而非填零。这一处理刻意避免了早期版本 `fillna(0.0)` 造成的度量污染: `subst_adopt` 等"率/均值/相似度"类指标若把"未测量"强填为 0, 会把"没有证据支持采纳"误编码为"证据证明未采纳", 在双向固定效应回归中系统性压低系数 (Allison 2001 关于缺失数据处理对固定效应估计偏误的一般性论述适用于此); 因此该银行-年若全部报道均未测得, 面板列取 NaN 并保持缺失, 由下游回归做 listwise 处理。
 
 【文献定位】
-本族在构念定位上直接对接 Westphal & Zajac (1994, ASQ) 与 Fiss & Zajac (2006, AMJ) 的实质-象征二分及组织脱耦理论: 二者研究的是政策"采纳"(话语层面的宣称/披露) 与"实施"(行为层面的资源投入/强度) 之间的一致或背离; 本族把这套逻辑操作化为文本层面的双信号交叉分类, 政策相似度对应"话语层面是否对齐制度期待", 金科强度对应"文本所反映的实际参与深度"。在方法论上, 这一"披露/宣称"与"实际行为"脱耦、"cheap talk"式表态的识别策略, 与近年气候披露文献 (Bingler, Kraus, Leippold & Webersinke 2024, *Journal of Banking & Finance*) 用文本相似度刻画企业气候披露的"廉价谈话"程度、以及 Duchin, Gao & Xu (2025, *The Journal of Finance*) 用资产市场证据检验可持续性披露是否伴随真实行为调整的研究思路一脉相承——三者共同的方法论直觉是: 单一文本信号 (相似度或强度) 都不足以区分"真做"与"只说", 唯有把两条信号交叉才能定位出"说了也做了"(本族 subst)、"只说不做"(token, 并列列)、"做了没说"(hidden, 并列列) 三种质性不同的采纳形态。
-
+本族在构念定位上直接对接 Westphal & Zajac (1994, ASQ) 与 Fiss & Zajac (2006, AMJ) 的实质-象征二分及组织脱耦理论: 二者研究的是政策"采纳"(话语层面的宣称/披露) 与"实施"(行为层面的资源投入/强度) 之间的一致或背离; 本族把这套逻辑操作化为文本层面的双信号交叉分类, 政策相似度对应"话语层面是否对齐制度期待", 金科强度对应"文本所反映的实际参与深度"。在方法论上, 这一"披露/宣称"与"实际行为"脱耦、"cheap talk"式表态的识别策略, 与近年气候披露文献 (Bingler, Kraus, Leippold & Webersinke 2024, *Journal of Banking & Finance*) 用文本相似度刻画企业气候披露的"廉价谈话"程度、以及 Duchin, Gao & Xu (2025, *The Journal of Finance*) 用资产市场证据检验可持续性披露是否伴随真实行为调整的研究思路一脉相承——三者共同的方法论直觉是: 单一文本信号 (相似度或强度) 都不足以区分"真做"与"只说", 唯有把两条信号交叉才能定位出"说了也做了"(本族 subst)、"只说不做"(token, 并列列)、"做了没说"(hidden, 并列列) 三种质性不同的采纳形态。 这一构念在近年研究中得到进一步延展。Athanasopoulou、Marti、Risi 与 Schlindwein (2025) 以比较案例研究考察企业在何种条件下能够抑制 means-ends decoupling, 即让形式上的采纳真正转化为实质结果, 为本族 subst 象限 (政策相似度与金科强度双双不低于年内 P25) 所刻画的"形式与实质同时到位"提供了构念合法性支撑; 迁移边界须诚实说明: 该文是 CSR 实施场域的定性比较案例研究, 既无量化指标, 亦无阈值切分与面板聚合, 因而只能锚定双高格的构念解释, 不构成本族逐年分位判据或 listwise 已测量分母口径的方法学来源。Huang 与 Ma (2024) 在中国情境下以金融科技发展为解释变量, 检验其对企业实质性绿色创新与象征性绿色创新的差异化影响, 表明"实质性 vs 象征性"这一二分在金融科技议题下确有同域应用; 但其实质/象征由专利类型 (发明 vs 实用新型/外观) 客观划分, 主体为非金融上市公司, 金融科技居于解释变量位置, 与本族由文本测度对银行报道逐篇判定采纳形态、金融科技本身即被报道议题的口径不同, 原文亦未构造任何比率型或象限型指标。
 【三轨口径提示】本家族三列对应 full/ctx/ss 三条文本轨道, 三轨在构造上使用彼此独立的相似度与强度输入 (`_classify_policy_quadrants` 逐篇消费的是原始未聚合列 `policy_cosine_sim_{trk}` / `fintech_intensity_score_{trk}`, 各自基于同轨文本重新计算; 与 runner.py 另一处对同一原始列按 (bank,year) 分组取 mean/std 聚合产出的面板级列 `article_sim_mean_{trk}`/`fintech_intensity_mean_{trk}` 是同名概念下的不同聚合层级, 后者是文档层面的汇总统计, 不直接进入本族的逐篇分类函数), 各自 just-identified 并排、互为稳健性、不分主次, 绝不可混入同一 over-identified Hansen J 检验。三轨共享的留篇门控口径是 full-only (2026-06-29 起): 一篇报道是否被计入"银行金科报道"由 `llm_verified_full` 单一判据决定, ctx/ss 轨的分类与聚合是在 full 留篇集合子集上的条件测度/稳健性口径, 而非独立的样本口径。
 
 ## VAR: subst_adopt_int_p25_allv
@@ -79,4 +95,6 @@ Westphal, J. D., & Zajac, E. J. (1994). Substance and Symbolism in CEOs' Long-Te
 Fiss, P. C., & Zajac, E. J. (2006). The Symbolic Management of Strategic Change; Sensegiving via Framing and Decoupling. Academy of Management Journal, 49(6), 1173-1193. https://doi.org/10.5465/amj.2006.23478255
 Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2024). How Cheap Talk in Climate Disclosures Relates to Climate Initiatives, Corporate Emissions, and Reputation Risk. Journal of Banking & Finance, 164, 107191. https://doi.org/10.1016/j.jbankfin.2024.107191
 Duchin, R., Gao, J., & Xu, Q. (2025). Sustainability or Greenwashing: Evidence from the Asset Market for Industrial Pollution. The Journal of Finance. https://doi.org/10.1111/jofi.13412
+Athanasopoulou, A., Marti, E., Risi, D., & Schlindwein, E. (2025). How Companies Restrain Means–Ends Decoupling: A Comparative Case Study of CSR Implementation. Journal of Management Studies, 62(1), 214-245. https://doi.org/10.1111/joms.13043
+Huang, J., & Ma, L. (2024). Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation. Finance Research Letters, 63, 105265. https://doi.org/10.1016/j.frl.2024.105265
 <!-- rendered-citations:end -->

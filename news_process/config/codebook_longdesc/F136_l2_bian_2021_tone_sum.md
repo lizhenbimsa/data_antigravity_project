@@ -63,6 +63,38 @@ citations:
   vol: 66
   issue: 1
   pages_or_artno: 35-65
+- doi: "10.1016/j.jbankfin.2025.107501"
+  type: "journal"
+  authors: "Fernandez-Perez, A., Fuertes, A.-M., Miffre, J., & Zhao, N."
+  year: 2025
+  title: "Newswire tone-overlay commodity portfolios"
+  venue: "Journal of Banking & Finance"
+  vol: "178"
+  pages_or_artno: "107501"
+- doi: "10.1016/j.jbankfin.2025.107542"
+  type: "journal"
+  authors: "Lehkonen, H., Heimonen, K., & Pukthuanthong, K."
+  year: 2025
+  title: "Media tone is a priced risk factor in currency markets"
+  venue: "Journal of Banking & Finance"
+  vol: "180"
+  pages_or_artno: "107542"
+- doi: "10.1016/j.pacfin.2025.102721"
+  type: "journal"
+  authors: "Wang, Y., Xiao, J., Wang, L., & Wang, D."
+  year: 2025
+  title: "News sentiment and the cost of debt"
+  venue: "Pacific-Basin Finance Journal"
+  vol: "91"
+  pages_or_artno: "102721"
+- doi: "10.1016/j.chieco.2025.102541"
+  type: "journal"
+  authors: "Wei, L., Wei, M., Wu, Y., & Jing, Z."
+  year: 2025
+  title: "Does party organization construction improve chinese banks' stability? Evidence from a new textual index"
+  venue: "China Economic Review"
+  vol: "94"
+  pages_or_artno: "102541"
 new_dois: []
 ---
 
@@ -75,8 +107,7 @@ new_dois: []
 tone_sum 列由 pipeline/panel/encode.py 在 bank-year 聚合阶段以 pandas 具名聚合 (源列 bian_2021_score{track}, 聚合算子 sum) 生成, 每个文本轨道独立成列; Stata 变量标签由 pipeline/panel/stata_export.py 机械挂载。上游依赖两级: 一是 14_materialize_ctx.parquet 物化的三条文本列 content_full / content_ctx / content_ss (以及各自的回退旗标), 二是 22_tone_words.parquet 中逐篇算出的 bian_2021_score{track}。留篇口径遵循 full-only 门控 (2026-06-29): 一篇报道是否计入 bank-year 单元, 只由 full 轨的 LLM 留篇判定 (llm_verified_full 为真) 决定; ctx 与 ss 轨降为在 full 留篇集之上条件计算的测度轨, 其行宇宙是 full 留篇集的子集, 各轨列在该行宇宙上按本轨文本各自求和。三条文本轨的语义严格分层: full 轨为标题 prepend 后的全文正文, ctx 轨为标题加实体上下文窗口, ss 轨为标题加银行与金融科技同句共现窗口; ss 轨在无同句共现时镜像 ctx 的回退语义、退回全文 body 并置 ss_is_fallback 为真, 与 ctx/full 共享 n_articles 分母口径。三轨 tone_sum 属规格稳健性并排: 各自 just-identified 并排、互为稳健性不分主次, 严禁把三轨混进同一个 over-identified 的 Hansen J 过度识别检验。与均值列相比, 求和聚合对留篇篇数敏感, 因而在做跨银行、跨年度比较时通常需与 n_articles 或篇数控制项联用, 或作为均值主轨结论的稳健性佐证而非独立识别源。
 
 【文献定位】
-本家族的词典源头是 Bian 等 (2021): 该文的核心贡献是为中文会计与金融文本重建一部本土化的情感词典, 弥补英文词表直译在中文语域上的失配。与之并列的另一部权威中文金融情感词典来自 Du 等 (2022) 发表于 Review of Finance 的研究, 该文系统论证了语言与领域特异性对情感测度的实质影响, 是本项目将多部中文词典并排为互为稳健性轨的直接理据。词典法这一测度范式的方法学根基可追溯至 Loughran 与 McDonald (2011) 发表于 Journal of Finance 的经典工作, 他们指出通用情感词表在金融文本中系统性误判, 从而奠定了领域专用词典的必要性; García、Hu 与 Rohrer (2023) 发表于 Journal of Financial Economics 的研究进一步用大规模标注数据校准了金融词汇的情感色彩, 为词典命中的极性赋权提供了实证依据。在测度效度层面, Frankel、Jennings 与 Lee (2022) 于 Management Science 比较了词典法与机器学习法在披露情感上的表现, 支持将词典法与 LLM、BERT 三角并置作为互为稳健性设计; van Atteveldt、van der Velden 与 Boukes (2021) 则从人工标注、众包、词典与机器学习的对比中系统评估了情感分析的效度边界, 提示词典法总和量在解读时须与人工基准和替代测度交叉验证。
-
+本家族的词典源头是 Bian 等 (2021): 该文的核心贡献是为中文会计与金融文本重建一部本土化的情感词典, 弥补英文词表直译在中文语域上的失配。与之并列的另一部权威中文金融情感词典来自 Du 等 (2022) 发表于 Review of Finance 的研究, 该文系统论证了语言与领域特异性对情感测度的实质影响, 是本项目将多部中文词典并排为互为稳健性轨的直接理据。词典法这一测度范式的方法学根基可追溯至 Loughran 与 McDonald (2011) 发表于 Journal of Finance 的经典工作, 他们指出通用情感词表在金融文本中系统性误判, 从而奠定了领域专用词典的必要性; García、Hu 与 Rohrer (2023) 发表于 Journal of Financial Economics 的研究进一步用大规模标注数据校准了金融词汇的情感色彩, 为词典命中的极性赋权提供了实证依据。在测度效度层面, Frankel、Jennings 与 Lee (2022) 于 Management Science 比较了词典法与机器学习法在披露情感上的表现, 支持将词典法与 LLM、BERT 三角并置作为互为稳健性设计; van Atteveldt、van der Velden 与 Boukes (2021) 则从人工标注、众包、词典与机器学习的对比中系统评估了情感分析的效度边界, 提示词典法总和量在解读时须与人工基准和替代测度交叉验证。 就把逐篇语调按单元求和这一聚合算子而言, Fernandez-Perez、Fuertes、Miffre 与 Zhao (2025) 用新闻通讯社语调叠加构造商品组合信号, 为把逐篇语调聚合成标的-期层面的语调量提供了近期存在性; 惟原文标的为商品期货组合与英文 newswire, 聚合层级是商品-期而非银行-年三轨, 且无 IDF、媒体权威度或羊群衰减加权层, 亦非中文六词典。Lehkonen、Heimonen 与 Pukthuanthong (2025) 以 Refinitiv MarketPsych 指数 (覆盖约 2,000 家全球媒体与 800 家社交站点的约 700 万篇文本) 构造媒体语调, 证明比率型媒体语调 (正负提及净额除以总提及) 是可跨截面定价货币的真实风险因子, 为本家族逐篇 Σ s_i / Σ |s_i| 这一比率型测度形态提供了经济含义论证; 所锚仅止于此: 原文语调取自专有商业 NLP 指数而非自建词表命中计数, 构造细节不可复核, 与本家族公开中文词典自建计数的透明度不可比, 其层级为货币(国别)、DV 为汇率与货币收益, 亦未使用中文分词与否定翻转规则, 更无按极性符号对主体-期篇数分拆的操作。应用同域一侧, Wang、Xiao、Wang 与 Wang (2025) 在中国语境下自新闻报道抽取情感并聚合到企业层面用于债务成本实证, 是中文新闻情感到实体-年测度这一链路的近期实例, 用以锚定本家族的应用语境而非其具体算法 (原文实体为一般上市公司、DV 为债务成本, 无三轨文本范围与本项目的多层加权口径); Wei、Wei、Wu 与 Jing (2025) 构造新的中文文本指数度量中国银行的党组织建设, 并接入银行层面面板检验其对银行稳定性的影响, 为中文文本到银行层面指数再到银行面板回归的整体链路提供了同域范例, 惟该文文本源与指数构造口径未经核实 (据题名保守判读, 极可能为银行自身披露文件的主题或关键词计数), 并非六部情感词典净极性经语言学规则加权后的银行-年求和, 其 DV 亦为银行稳定性, 只可作应用同域参照。
 ## VAR: bian_2021_tone_sum_full
 
 【变体差分】
@@ -99,4 +130,8 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
+Fernandez-Perez, A., Fuertes, A.-M., Miffre, J., & Zhao, N. (2025). Newswire tone-overlay commodity portfolios. Journal of Banking & Finance, 178, 107501. https://doi.org/10.1016/j.jbankfin.2025.107501
+Lehkonen, H., Heimonen, K., & Pukthuanthong, K. (2025). Media tone is a priced risk factor in currency markets. Journal of Banking & Finance, 180, 107542. https://doi.org/10.1016/j.jbankfin.2025.107542
+Wang, Y., Xiao, J., Wang, L., & Wang, D. (2025). News sentiment and the cost of debt. Pacific-Basin Finance Journal, 91, 102721. https://doi.org/10.1016/j.pacfin.2025.102721
+Wei, L., Wei, M., Wu, Y., & Jing, Z. (2025). Does party organization construction improve chinese banks' stability? Evidence from a new textual index. China Economic Review, 94, 102541. https://doi.org/10.1016/j.chieco.2025.102541
 <!-- rendered-citations:end -->

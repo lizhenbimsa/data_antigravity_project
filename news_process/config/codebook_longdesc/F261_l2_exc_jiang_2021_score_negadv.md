@@ -75,6 +75,22 @@ citations:
   vol: 37
   issue: 2
   pages_or_artno: 267-307
+- doi: "10.3390/computers12010018"
+  type: "journal"
+  authors: "Naldi, M., & Petroni, S."
+  year: 2023
+  title: "A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools"
+  venue: "Computers"
+  vol: "12"
+  issue: "1"
+  pages_or_artno: "18"
+- doi: "10.2139/ssrn.5024959"
+  type: "wp"
+  authors: "Cziraki, P., & Gider, J."
+  year: 2024
+  title: "Newspaper Closures and Trading in Local Stocks"
+  venue: "SSRN"
+  pages_or_artno: "5024959"
 new_dois: []
 ---
 
@@ -91,8 +107,7 @@ new_dois: []
 三条轨道口径遵循项目统一定义: full = 标题 prepend 后的标题+正文全文; ctx = 标题+实体上下文窗口; ss = 标题+银行与金融科技同句共现窗。留篇门控自 2026-06-29 起为 full-only: 是否算作"一篇银行金科报道"只看 llm_verified_full, ctx/ss 降为 conditional-on-full 的测度轨, 其行宇宙是 full 留篇集的子集。ss 轨采用镜像 ctx 的回退语义: 当某篇无银行与金科同句共现时, content_ss 回退为全文正文、ss_is_fallback 置 True, 与 ctx 共享同一 n_articles 分母。三轨得分各自 just-identified 并排、互为稳健性、不分主次, 严禁把三轨 (或 negadv 与其余六个消融变体) 混进同一 over-identified Hansen J; 消融梯度与轨道口径正交, 不交叉。
 
 【文献定位】
-词典与规则的方法学定位有清晰的谱系。姜富伟等 (2021) 是本家族底层词表的直接来源, 其贡献在于把媒体文本情绪构造成对中国股票回报有预测力的信号; 同一作者群的 Jiang, Lee, Martin, & Zhou (2019, 顶刊 Journal of Financial Economics) 在管理者情绪与股票回报的框架下, 从更一般的层面论证了文本情绪测度的资产定价含义, 为本项目采用文本情绪作为核心构念提供了顶刊级支撑。就"词典法 vs 机器学习"的方法论选择而言, Frankel, Jennings, & Lee (2022, Management Science) 系统比较了披露情绪的词典法与机器学习法, 说明二者各有偏误、宜互为稳健; 这与本项目让词典、LLM 三家、BERT 三模型各自 just-identified 并排、互为稳健性的设计一脉相承。Du, Huang, Wermers, & Wu (2022, Review of Finance) 构建的中文金融情绪词典进一步论证了语言与领域特异性对情绪测度的重要性, 支持本项目并置多部中文词典而非仅套用英文 L&M 词表。Cao, Jiang, Yang, & Zhang (2023, Review of Financial Studies) 与 Cao, Jiang, Wang, & Yang (2024, Journal of Financial Economics) 则从"机器在听/人机协作"的角度提示了文本测度在 AI 时代的新内生性来源, 为把情绪测度当稳健性梯子而非单一 headline 提供了动机。语言学规则层面, Taboada 等 (2011) 系统阐述了否定、程度与转折 (adversative) 等上下文修饰对词典法极性合成的影响, 正是本项目把这三条规则做全子集消融的方法学依据; negadv 变体所关闭的程度副词规则与所保留的转折规则, 其取舍效果即可在本梯子内直接观测。
-
+词典与规则的方法学定位有清晰的谱系。姜富伟等 (2021) 是本家族底层词表的直接来源, 其贡献在于把媒体文本情绪构造成对中国股票回报有预测力的信号; 同一作者群的 Jiang, Lee, Martin, & Zhou (2019, 顶刊 Journal of Financial Economics) 在管理者情绪与股票回报的框架下, 从更一般的层面论证了文本情绪测度的资产定价含义, 为本项目采用文本情绪作为核心构念提供了顶刊级支撑。就"词典法 vs 机器学习"的方法论选择而言, Frankel, Jennings, & Lee (2022, Management Science) 系统比较了披露情绪的词典法与机器学习法, 说明二者各有偏误、宜互为稳健; 这与本项目让词典、LLM 三家、BERT 三模型各自 just-identified 并排、互为稳健性的设计一脉相承。Du, Huang, Wermers, & Wu (2022, Review of Finance) 构建的中文金融情绪词典进一步论证了语言与领域特异性对情绪测度的重要性, 支持本项目并置多部中文词典而非仅套用英文 L&M 词表。Cao, Jiang, Yang, & Zhang (2023, Review of Financial Studies) 与 Cao, Jiang, Wang, & Yang (2024, Journal of Financial Economics) 则从"机器在听/人机协作"的角度提示了文本测度在 AI 时代的新内生性来源, 为把情绪测度当稳健性梯子而非单一 headline 提供了动机。语言学规则层面, Taboada 等 (2011) 系统阐述了否定、程度与转折 (adversative) 等上下文修饰对词典法极性合成的影响, 正是本项目把这三条规则做全子集消融的方法学依据; negadv 变体所关闭的程度副词规则与所保留的转折规则, 其取舍效果即可在本梯子内直接观测。 就其中否定一条的可测性而言, Naldi 与 Petroni (2023) 以人工构造测试集提出了专门评估词典法情感工具否定检测与处理能力的方法, 并实证发现各工具表现差异显著, 说明否定处理是词典法内部可被单独测量、单独失效的模块; negadv 臂保留否定翻转而关闭程度副词, 正是把这一模块的贡献单列出来的操作, 边界在于原文为英文通用领域的否定检测准确率评测, 本族并不评测准确率, 而是把规则开/关作为中文金融新闻语料上的一条并排稳健性臂。exc_ 前缀所做的「剔除疑似退出覆盖媒体后再行银行-年度聚合」亦有其现实动机: Cziraki 与 Gider (2024) 以报纸停刊为冲击, 实证报道供给退出会改变本地股票的交易行为, 表明媒体退出是真实且有经济后果的样本组成变化; 边界在于该工作论文尚未经同行评审, 其停刊判定取自外部事件数据并用于识别冲击, 而本族 ceased_set 是由 detect_defacto_cessation 自语料内部推断的保守代理 (confirmed ∪ suspected), 并非严格停刊事实, 用途仅限稳健性子样本。
 ## VAR: exc_jiang_2021_score_negadv_full
 
 【变体差分】
@@ -116,4 +131,6 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 姜富伟, 孟令超, & 唐国豪. (2021). 媒体文本情绪与股票回报预测. 经济学(季刊), 21(4), 1323-1344. https://doi.org/10.13821/j.cnki.ceq.2021.04.10
 Jiang, F., Lee, J., Martin, X., & Zhou, G. (2019). Manager sentiment and stock returns. Journal of Financial Economics, 132(1), 126-149. https://doi.org/10.1016/j.jfineco.2018.10.001
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
+Naldi, M., & Petroni, S. (2023). A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools. Computers, 12(1), 18. https://doi.org/10.3390/computers12010018
+Cziraki, P., & Gider, J. (2024). Newspaper Closures and Trading in Local Stocks. SSRN No. 5024959 [Working Paper]. https://doi.org/10.2139/ssrn.5024959
 <!-- rendered-citations:end -->

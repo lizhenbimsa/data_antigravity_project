@@ -50,6 +50,38 @@ citations:
   vol: '134'
   issue: '4'
   pages_or_artno: 2135-2202
+- doi: "10.2139/ssrn.4787799"
+  type: "wp"
+  authors: "Ellis, C., & Jaspersen, J. G."
+  year: 2024
+  title: "Fixed Effects and the \"Leave-Out'' Instrument"
+  venue: "SSRN Electronic Journal"
+  pages_or_artno: "4787799"
+- doi: "10.1162/rest.a.263"
+  type: "journal"
+  authors: "Frandsen, B., Leslie, E., & McIntyre, S."
+  year: 2025
+  title: "Cluster Jackknife Instrumental Variables Estimation"
+  venue: "Review of Economics and Statistics"
+  pages_or_artno: "1-19"
+- doi: "10.1257/aeri.20240184"
+  type: "journal"
+  authors: "Bobrov, A., Kamdar, R., & Ulate, M."
+  year: 2025
+  title: "Regional Dissent: Do Local Economic Conditions Influence FOMC Votes?"
+  venue: "American Economic Review: Insights"
+  vol: "7"
+  issue: "2"
+  pages_or_artno: "268-284"
+- doi: "10.3390/econometrics14010005"
+  type: "journal"
+  authors: "Lee, D. K. C., Xu, W., Shi, J., Wang, Y., & Ding, D."
+  year: 2026
+  title: "Shock Next Door: Geographic Spillovers in FinTech Lending After Natural Disasters"
+  venue: "Econometrics"
+  vol: "14"
+  issue: "1"
+  pages_or_artno: "5"
 new_dois: []
 ---
 
@@ -74,8 +106,9 @@ leave-one-out 结构是本族的核心识别设计: 对银行 i 在年份 t 的�
 【文献定位】
 本族的语调原子值 `llm_vote_score_{track}` 采用大语言模型多数投票范式提取文本情感极性, 方法学谱系上承接文本情感分析从词典法向机器学习/深度学习方法演进的主线; Du, Huang, Wermers & Wu (2022, *Review of Finance*) 构建的中文金融情感词典 (本项目词典轨的直接方法学锚点之一) 系统论证了通用情感词典移植到金融语境、尤其是中文金融语境时的领域特异性失配问题, 为本项目采用 LLM 投票而非纯词典法作为语调测度主轨提供了方法学正当性背景。Shapiro, Sudhof & Wilson (2022, *Journal of Econometrics*) 在新闻情感测度的构造与验证上提供了范式参照, 强调情感测度须在下游预测任务中展现出增量信息含量而非仅在情感标注一致性上自证, 这一思路呼应本族工具变量最终须服务于第一阶段相关性与结构方程外生性的实证检验逻辑。
 
-将同侪 (同经济圈) 语调均值构造为 leave-one-out 工具变量, 方法学脉络上与 Hassan, Hollander, van Lent & Tahoun (2019, *Quarterly Journal of Economics*) 政治风险测度中对同行业/同地区共同冲击的分离思路一脉相承: 该文强调企业层面文本测度中混杂着行业或地区共同成分与企业特质成分, 需要显式的分组结构设计才能将共同冲击从个体信号中分离出来, 为可信的因果识别服务; 本族的经济圈分组正是把这一思路应用到银行地理布局上的具体实现。在中国银行业的具体设定中, Fang, Wang, Wang & Yuan (2024, *International Review of Economics & Finance*) 直接验证了媒体情感对中国银行系统性风险与存款稳定性的因果关联, 是本族"银行层面媒体语调具有可识别经济后果"这一前提假设的同域实证支持, 也是本族工具变量最终服务的结构方程 (语调对银行经营结果的因果效应) 在中国场景下的直接文献先例。
+将同侪 (同经济圈) 语调均值构造为 leave-one-out 工具变量, 方法学脉络上与 Hassan, Hollander, van Lent & Tahoun (2019, *Quarterly Journal of Economics*) 政治风险测度中对同行业/同地区共同冲击的分离思路一脉相承: 该文强调企业层面文本测度中混杂着行业或地区共同成分与企业特质成分, 需要显式的分组结构设计才能将共同冲击从个体信号中分离出来, 为可信的因果识别服务; 本族的经济圈分组正是把这一思路应用到银行地理布局上的具体实现。在中国银行业的具体设定中, Fang, Wang, Wang & Yuan (2024, *International Review of Economics & Finance*) 直接验证了媒体情感对中国银行系统性风险与存款稳定性的因果关联, 是本族"银行层面媒体语调具有可识别经济后果"这一前提假设的同域实证支持, 也是本族工具变量最终服务的结构方程 (语调对银行经营结果的因果效应) 在中国场景下的直接文献先例。 leave-one-out 算子本身的方法学性质近年亦有直接文献。Ellis 与 Jaspersen (2024) 分析留一同侪均值工具在含固定效应模型中的行为, 指出组内留一均值与固定效应同时进入时估计量会出现机械性偏误, 是本族构造法最贴近的方法学警示; 须注意该文为 SSRN 工作论文而非同行评审终稿, 其推导对象是一般线性面板的留一 IV 估计量性质与模拟, 不涉及媒体或银行数据, 亦未触及本族的 bank-year 层级、中文语调原子值与 min_group_size 守卫, 且本族的 leave1out 列部分仅作同侪暴露控制变量而非 IV, 故按方法学提醒而非现成修正方案引用。Frandsen、Leslie 与 McIntyre (2025) 则从正面提出 cluster jackknife (按簇留出) IV 估计量, 证明其在簇内多工具/多固定效应设定下可消除标准 2SLS 的偏误, 与本族按 (经济圈, 年) 分组留出的思路同族; 该文是纯计量方法论文, 由估计量推导、蒙特卡洛与一个美国司法数据应用构成, 其留出单位是簇 (法官) 而本族留出单位是同经济圈内的单个银行且分组键为地理×年份, 本族仅借其对留一构造的偏误校正逻辑作方法参照, 并未实施 cluster jackknife 估计。
 
+分组前提与同域溢出证据方面, Bobrov、Kamdar 与 Ulate (2025) 检验区域经济状况是否影响按辖区指派的美联储 FOMC 地区联储主席的货币政策投票, 证明「主体所属地理区域的状况会系统性影响其可观测行为」, 为本族按省份/经济圈分组承载真实共同冲击这一前提提供顶刊层面的近期证据; 其主体行为与中国银行的媒体报道语调无任何直接对应, 地理分组是既定的联储辖区而本族需自建经济圈映射, 且该文不做留一均值构造、也未把同组他成员的行为作为解释变量, 故仅锚定「地理分组有实质经济含义」这一前提, 不锚定 leave-one-out 算子本身。Lee、Xu、Shi、Wang 与 Ding (2026) 以印尼最大金融科技放贷平台的贷款级数据 (2021-2023), 用空间滞后灾害暴露 (SLX 型) 估计灾害对相邻未受损省份借贷行为的溢出, 并发现溢出随地理连通性 (陆连 vs 海隔) 大幅变化, 与本族「以空间邻近单元的聚合暴露刻画同侪溢出」逻辑同族; 但该文发表于 MDPI Econometrics, 非本项目优先的顶刊层级, 影响力有限, 仅作金融科技语境下的前沿存在性引用, 其空间邻近以行政邻接界定而非公里缓冲, 溢出对象是金融科技信贷量而非媒体报道语调, 依赖灾害外生冲击设计 (本族无), 亦不涉及本族的经济圈映射规则与 min_group_size 守卫。
 ## VAR: zone_leave1out_tone_ctx
 
 【变体差分】
@@ -106,4 +139,8 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and Domain Specific
 Shapiro, A. H., Sudhof, M., & Wilson, D. J. (2022). Measuring News Sentiment. Journal of Econometrics, 228(2), 221-243. https://doi.org/10.1016/j.jeconom.2020.07.053
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk - Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-Level Political Risk: Measurement and Effects. Quarterly Journal of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021
+Ellis, C., & Jaspersen, J. G. (2024). Fixed Effects and the "Leave-Out'' Instrument. SSRN Electronic Journal No. 4787799 [Working Paper]. https://doi.org/10.2139/ssrn.4787799
+Frandsen, B., Leslie, E., & McIntyre, S. (2025). Cluster Jackknife Instrumental Variables Estimation. Review of Economics and Statistics, 1-19. https://doi.org/10.1162/rest.a.263
+Bobrov, A., Kamdar, R., & Ulate, M. (2025). Regional Dissent: Do Local Economic Conditions Influence FOMC Votes?. American Economic Review: Insights, 7(2), 268-284. https://doi.org/10.1257/aeri.20240184
+Lee, D. K. C., Xu, W., Shi, J., Wang, Y., & Ding, D. (2026). Shock Next Door: Geographic Spillovers in FinTech Lending After Natural Disasters. Econometrics, 14(1), 5. https://doi.org/10.3390/econometrics14010005
 <!-- rendered-citations:end -->

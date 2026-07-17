@@ -40,6 +40,28 @@ citations:
   vol: '31'
   issue: '1'
   pages_or_artno: e1549
+- doi: "10.1007/s10799-026-00501-9"
+  type: "journal"
+  authors: "Pan, Y., Xue, F., & Liu, L."
+  year: 2026
+  title: "Divergence between symbolic adoption and substantive action: how organizational slack shapes AI washing"
+  venue: "Information Technology and Management"
+- doi: "10.1177/01708406241295505"
+  type: "journal"
+  authors: "Kaufmann, L., Krlev, G., & Brown, M. (."
+  year: 2025
+  title: "In Plain Sight: Mechanisms of means–ends decoupling in impact investing"
+  venue: "Organization Studies"
+  vol: "46"
+  issue: "5"
+  pages_or_artno: "667-692"
+- doi: "10.2139/ssrn.6922688"
+  type: "wp"
+  authors: "Xu, F."
+  year: 2026
+  title: "Bank FinTech Intensity and Financial Performance: Text-Based Evidence from European Banks"
+  venue: "SSRN"
+  pages_or_artno: "6922688"
 new_dois: []
 ---
 
@@ -60,8 +82,7 @@ new_dois: []
 INT 轨与并行的 KW 轨(token_adopt_kw_p50 等)是词频测度维度上的两种独立算子——INT 用连续强度打分, KW 用关键词计数——二者同样是并排的、互为稳健性的规格, 不构成主次关系, 也不应混入同一识别方程。P25/P50/P75 三档分位阈值构成另一条正交的稳健性梯子(阈值敏感性), 本家族固定在 P50(年度中位数切分, 是三档中样本最均衡的居中档), P25/P75 是另外两个独立家族, 与本家族并排、不构成层级关系。
 
 【文献定位】
-四象限"标签-实质"分类的构念根基是 Gomber, Koch & Siering(2017)对数字金融/金融科技创新研究方向的系统梳理, 该文强调金融科技话语存在从边缘符号性提及到核心业务整合的连续谱系, 是 P4 论文序列(Gomber locus 维)的直接理论出处。测度层面, 高强度-低对齐的"Token"格子刻画的是一种典型的企业传播现象——组织在缺乏实质技术投入的情况下通过密集使用热点词汇维持外部合法性观感, 这与创新生态系统研究中企业间技术互依结构影响绩效表现的框架(Adner & Kapoor, 2010, Strategic Management Journal)有相通的分析逻辑: 二者都关注"话语声量"与"结构性投入/互依"之间可能存在的脱节。分类使用的相似度维度(policy_cosine_sim, 逐篇文本与政策文本的余弦相似度)属于文本挖掘中广泛使用的语义对齐测度传统。Todd, Bowden & Moshfeghi(2024, Intelligent Systems in Accounting, Finance and Management)系统梳理了金融文本情感分析领域方法学的演进脉络——从早期词典法到近年基于向量空间表示的分类路径, 其中特别指出连续型文本测度在应用研究中普遍需要经过离散化(如阈值切分、分位数分箱)才能落地为可解释的类别变量, 这与本族"用年度分位数把连续的强度分数与相似度分数切成高/低两档、再组合成四象限"的做法属于同一类方法学操作; 需要说明的是, 该文献本身聚焦情感分析而非政策语义对齐或四象限分类这一具体应用, 此处仅借其对"连续测度离散化"这一通用方法学环节的梳理作为旁证, 不代表该文献直接讨论过 Token/Hidden/Substantive 象限分类本身。
-
+四象限"标签-实质"分类的构念根基是 Gomber, Koch & Siering(2017)对数字金融/金融科技创新研究方向的系统梳理, 该文强调金融科技话语存在从边缘符号性提及到核心业务整合的连续谱系, 是 P4 论文序列(Gomber locus 维)的直接理论出处。测度层面, 高强度-低对齐的"Token"格子刻画的是一种典型的企业传播现象——组织在缺乏实质技术投入的情况下通过密集使用热点词汇维持外部合法性观感, 这与创新生态系统研究中企业间技术互依结构影响绩效表现的框架(Adner & Kapoor, 2010, Strategic Management Journal)有相通的分析逻辑: 二者都关注"话语声量"与"结构性投入/互依"之间可能存在的脱节。分类使用的相似度维度(policy_cosine_sim, 逐篇文本与政策文本的余弦相似度)属于文本挖掘中广泛使用的语义对齐测度传统。Todd, Bowden & Moshfeghi(2024, Intelligent Systems in Accounting, Finance and Management)系统梳理了金融文本情感分析领域方法学的演进脉络——从早期词典法到近年基于向量空间表示的分类路径, 其中特别指出连续型文本测度在应用研究中普遍需要经过离散化(如阈值切分、分位数分箱)才能落地为可解释的类别变量, 这与本族"用年度分位数把连续的强度分数与相似度分数切成高/低两档、再组合成四象限"的做法属于同一类方法学操作; 需要说明的是, 该文献本身聚焦情感分析而非政策语义对齐或四象限分类这一具体应用, 此处仅借其对"连续测度离散化"这一通用方法学环节的梳理作为旁证, 不代表该文献直接讨论过 Token/Hidden/Substantive 象限分类本身。 近年文献进一步为本族赖以成立的象限二分提供了更直接的前沿存在性证据。Pan、Xue 与 Liu (2026) 把技术采纳明确拆为「符号性采纳 (symbolic adoption)」与「实质性行动 (substantive action)」两维, 并把二者的背离操作化为 AI washing 加以实证测量, 与本族「把同一构念拆成强度维与对齐维并置、再由二者的错位识别 Token」的做法同构; 其迁移边界在于对象是一般企业的 AI 叙事而非银行, 符号/实质二分基于组织冗余与披露数据, 既不使用政策文本余弦相似度, 也不做年度分位阈值切分, 层级为企业而非银行-年、分母亦非已测量报道篇数。Kaufmann、Krlev 与 Brown (2025) 以影响力投资为田野, 系统刻画了 means-ends decoupling (形式上落地但与目标脱节) 的具体机制, 为 Token 格与 Substantive 格的理论区分提供了近期组织学依据; 但该文为定性机制研究, 不构造任何数值指标, 更无分位阈值二值化或银行-年聚合, 场域是影响力投资机构而非中国银行业, 其 means-ends 概念与本族「政策余弦 × 金科强度」的操作化只是理论对应而非同一测量。词频维方面, Xu (2026) 以文本方法构造银行层面的 FinTech intensity 指标并检验其与经营绩效的关系, 与本族 INT 轨所用的 fintech_intensity_score 属同一测度族, 是「银行层面文本金科强度」的同域应用先例; 需注意其样本为欧洲银行、文本取自银行自身披露/年报而非第三方中文新闻, intensity 作为连续指标直接进入回归而不做年度分位二值化, 更无与政策文本相似度交叉形成 2×2 象限, 且属未经同行评审的 SSRN 工作论文, 结论稳健性未定。
 ## VAR: token_adopt_int_p50
 
 【变体差分】
@@ -87,4 +108,7 @@ INT 轨与并行的 KW 轨(token_adopt_kw_p50 等)是词频测度维度上的两
 Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital finance and FinTech: Current research and future research directions. Journal of Business Economics, 87(5), 537-580. https://doi.org/10.1007/s11573-017-0852-x
 Adner, R., & Kapoor, R. (2010). Value creation in innovation ecosystems: How the structure of technological interdependence affects firm performance in new technology generations. Strategic Management Journal, 31(3), 306-333. https://doi.org/10.1002/smj.821
 Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management, 31(1), e1549. https://doi.org/10.1002/isaf.1549
+Pan, Y., Xue, F., & Liu, L. (2026). Divergence between symbolic adoption and substantive action: how organizational slack shapes AI washing. Information Technology and Management. https://doi.org/10.1007/s10799-026-00501-9
+Kaufmann, L., Krlev, G., & Brown, M. (. (2025). In Plain Sight: Mechanisms of means–ends decoupling in impact investing. Organization Studies, 46(5), 667-692. https://doi.org/10.1177/01708406241295505
+Xu, F. (2026). Bank FinTech Intensity and Financial Performance: Text-Based Evidence from European Banks. SSRN No. 6922688 [Working Paper]. https://doi.org/10.2139/ssrn.6922688
 <!-- rendered-citations:end -->

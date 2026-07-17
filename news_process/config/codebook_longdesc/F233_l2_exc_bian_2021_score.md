@@ -71,6 +71,13 @@ citations:
   vol: 37
   issue: 2
   pages_or_artno: 267-307
+- doi: "10.2139/ssrn.5024959"
+  type: "wp"
+  authors: "Cziraki, P., & Gider, J."
+  year: 2024
+  title: "Newspaper Closures and Trading in Local Stocks"
+  venue: "SSRN"
+  pages_or_artno: "5024959"
 new_dois: []
 ---
 
@@ -86,8 +93,7 @@ new_dois: []
 计算链路分四段。第一段在 stage 22 词典法: 对每篇报道分词后在 Bian et al. (2021) 词典上逐词匹配, 命中情感词依次施加三条语言学规则 —— 否定词在其后固定窗口内翻转极性、程度副词按倍率缩放幅值、转折词在从句作用域内放大后半句, 遇句末标点重置规则状态; 每个情感词得 final_score, 文章级得分归一化为 Σ(final_score)/Σ|final_score| ∈ [-1, +1]。第二段在面板 runner 预计算文章级加权列: VW 臂 (步骤 3b) 令文章级得分乘以提及密度权重 mention_density_weight 得 bian_2021_score_w{track}; HW 臂 (步骤 3d) 令其乘以羊群衰减权重 herd_weight{track} = 1/(1 + n_similar_articles{track}) 得 bian_2021_score_hw{track}; 基线臂不加权。第三段是停刊检测 (detect_defacto_cessation): 按媒体聚合首末出现年份与报道数, 标记疑似退出集 ceased_set。第四段在 attention_media 停刊稳健性块 C.4: 取存活子集 df_alive (媒体不在 ceased_set 的报道), 对匹配 _SCORE_PATTERNS 且非 mw/idf 变体的文章级得分列, 按目标银行-年度分组求均值, 冠以 exc_ 前缀落盘。注意本家族聚合口径是组内均值 (mean) 而非求和, 与 hw_sum 家族的分子求和口径不同; 留篇门控采用 full-only 口径 (2026-06-29), 报道是否计入某银行某年宇宙由其 full 轨是否被判为一篇银行金科报道决定, 三轨在该留篇集合上分别计列。
 
 【文献定位】
-本测度的方法学谱系由三支文献锚定。词典本身取 Bian et al. (2021): 通用英文金融词典直译到中文会因语言与制度差异失准, 该文据此构建中文金融领域专用情感词典。词典的领域特异性价值在顶刊层面由 Du et al. (2022) 进一步确证 —— 他们指出语言与领域特异性对中文金融情感度量至关重要, 通用词典在中文语料上系统性偏误, 这正是本管道选用中文金融专用词典而非直译词典的依据。逐词施加否定、程度、转折规则并作从句级作用域重置, 遵循 Taboada et al. (2011) 确立的词典法情感分析范式。将词典法结果单独成轨并与机器学习及大模型法并置互证, 呼应 Frankel, Jennings 与 Lee (2022) 关于披露情感的机器学习法与词典法互为稳健性的先例, 以及 van Atteveldt, van der Velden 与 Boukes (2021) 对人工标注、词典法与机器学习法效度的横向比较; Barbaglia et al. (2025) 亦重申词典法在经济文本上的可解释与可复现优势。需强调: 本家族的三条聚合权重臂 (基线均值、HW 羊群加权均值、VW 提及密度加权均值) 与三条文本轨 (full/ctx/ss) 均各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同权重臂、不同轨或不同词典混进同一 over-identified Hansen J 检验。排除疑似退出媒体这一样本口径本身亦是相对全样本情感的规格稳健性并排, 而非主口径的替代。
-
+本测度的方法学谱系由三支文献锚定。词典本身取 Bian et al. (2021): 通用英文金融词典直译到中文会因语言与制度差异失准, 该文据此构建中文金融领域专用情感词典。词典的领域特异性价值在顶刊层面由 Du et al. (2022) 进一步确证 —— 他们指出语言与领域特异性对中文金融情感度量至关重要, 通用词典在中文语料上系统性偏误, 这正是本管道选用中文金融专用词典而非直译词典的依据。逐词施加否定、程度、转折规则并作从句级作用域重置, 遵循 Taboada et al. (2011) 确立的词典法情感分析范式。将词典法结果单独成轨并与机器学习及大模型法并置互证, 呼应 Frankel, Jennings 与 Lee (2022) 关于披露情感的机器学习法与词典法互为稳健性的先例, 以及 van Atteveldt, van der Velden 与 Boukes (2021) 对人工标注、词典法与机器学习法效度的横向比较; Barbaglia et al. (2025) 亦重申词典法在经济文本上的可解释与可复现优势。需强调: 本家族的三条聚合权重臂 (基线均值、HW 羊群加权均值、VW 提及密度加权均值) 与三条文本轨 (full/ctx/ss) 均各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同权重臂、不同轨或不同词典混进同一 over-identified Hansen J 检验。排除疑似退出媒体这一样本口径本身亦是相对全样本情感的规格稳健性并排, 而非主口径的替代。 就此一样本口径的现实动机, Cziraki 与 Gider (2024) 以美国本地报纸停刊为冲击, 实证报道供给退出会改变本地股票的交易行为, 表明媒体退出并非无害的样本损耗, 而是有经济后果的样本组成变化, 这正锚定本族先剔除 ceased_set 中的媒体、再在银行-年度内取均值这一环节的构念动机。迁移边界须诚实说明: 该文的停刊判定取自外部事件数据、DV 为本地股票交易活动, 且以停刊作为识别冲击使用; 而本族 ceased_set 由 detect_defacto_cessation 自语料内部推断 (confirmed ∪ suspected: last_year < sample_max − 2 且 n_articles ≥ 10), 是「疑似退出覆盖」的保守代理而非严格停刊事实, 用途仅限稳健性子样本, 不承担任何识别功能; 该文为工作论文, 尚未经同行评审。
 ## VAR: exc_bian_2021_score_full
 
 【变体差分】
@@ -140,4 +146,5 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
+Cziraki, P., & Gider, J. (2024). Newspaper Closures and Trading in Local Stocks. SSRN No. 5024959 [Working Paper]. https://doi.org/10.2139/ssrn.5024959
 <!-- rendered-citations:end -->

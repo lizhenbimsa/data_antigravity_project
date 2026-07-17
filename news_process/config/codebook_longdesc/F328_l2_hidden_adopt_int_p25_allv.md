@@ -39,6 +39,15 @@ citations:
   vol: "87"
   issue: "5"
   pages_or_artno: "537-580"
+- doi: "10.1016/j.ipm.2025.104383"
+  type: "journal"
+  authors: "Chen, J., Wen, J., Deng, Y., Chen, M., & Ma, F."
+  year: 2026
+  title: "Measuring policy diffusion intensity: A text-driven analysis of government documents"
+  venue: "Information Processing & Management"
+  vol: "63"
+  issue: "2"
+  pages_or_artno: "104383"
 new_dois: []
 ---
 
@@ -51,8 +60,7 @@ _p25 表示阈值取自年度组内 (`groupby('year')`) sim 与 freq 各自的�
 `_allv` 后缀标记本族所用的 policy_cosine_sim 并非 stage 15 主轨的"vintage"锚点 (逐年动态更新、只用截至当年已发布的政策文本构造锚点), 而是"全年份静态锚点" (all-vintage): 用所有年份(含未来年份) 的政策文本一次性拼成锚点池, 计算余弦相似度。`_allv` 完全复用与 vintage 主轨相同的下游构造方法 (同嵌入模型、同池化、同余弦度量、同四象限分类函数), 唯一差异是锚点的时间覆盖范围。这一设计的用意是: 若某银行的报道语义与"金科政策的历史+未来全貌"高度吻合, 但与"截至当年已知"的政策文本吻合度较低, 说明该银行的战略布局具有前瞻性 (提前对齐尚未发布的政策方向), 或者 vintage 主轨的锚点因政策文本累积不足而存在噪声。`_allv` 因此是 vintage 主轨的稳健性对照, 而非替代测度; vintage 关闭或政策文本样本过少时, `_allv` 数值上会退化为等同主轨 (诚实退化, 而非静默零), 调用方可据此识别。口径铁律: `_allv` 含未来政策文本, 属于 ex-post/全语料稳健性对照, 论文中绝不可替换 vintage 主轨作为主回归设定, 必须在数据口径说明中明确披露其 ex-post 性质。
 三轨 (full/无后缀=full 全文本, `_ctx`=银行实体窗口, `_ss`=银行∧金科同句±N窗) 由 runner.py 步骤7h 循环中的 `_sim_tracks`/`_freq_eff` 分支机械派生: sim 优先取该轨对应的 `policy_cosine_sim_allv{_ctx,_ss}` 列, 词频侧优先取 `fintech_intensity_score{_ctx,_ss}` 同轨变体, 轨道缺列 (旧 schema / `_ss` 未上线) 时优雅跳过, 绝不借用其他轨道数据补位。三轨各自 just-identified 并排、互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 设定; `_ss` 缺失银行∧金科同句共现时, 上游 stage 14 已把 `content_ss` 回退为全文 body 并置 `ss_is_fallback=True`, 本族聚合时该行仍照常参与四象限分类 (回退语义镜像 `_ctx`, 与 CLAUDE.md「三轨文本架构」口径一致)。留篇门控口径遵循 2026-06-29 起的 full-only 铁律: 一篇文章是否被计为"该银行—金科报道"仅由 `llm_verified_full==True` 决定, ctx/ss 轨的行宇宙是 full 轨留篇集的条件子集, 各轨占比据此各自计算, 不改变谁进入 verified 域。
 【文献定位】
-四象限构造直接承袭 Hassan et al. (2019) 用文本相似度锚点度量企业对政策关注/暴露的范式思路 (export.py 注释明确标注), 本族把它推广为"语义对齐×表层词频"二维交叉, 用以刻画企业创新/技术采纳中"言行是否一致"的非对称模式, 呼应 Adner & Kapoor (2010, *Strategic Management Journal*) 关于技术互补性与依赖关系如何在多维度上非线性影响企业绩效的论证——采纳的语义深度与词频广度并非同一构念的两种测量, 而是两个可以独立变动的维度, 交叉分类正是为了识别这种解耦而非简单加总。测度所依赖的金科采纳"实质 vs. 表演" (substantive vs. token) 区分与 Gomber, Koch & Siering (2017, *Journal of Business Economics*) 对金融科技研究方向的分类框架 (locus 维度) 同源, 二者共同支撑了银行—金科关系强度不能仅凭关键词密度单一维度判断的方法论主张。阈值梯子 (P25/P50/P75) 与锚点变体 (vintage/`_allv`) 并列构成规格空间, 这一"多路径并排呈现而非单选最优"的稳健性叙事逻辑与 Breznau et al. (2022, *Proceedings of the National Academy of Sciences*) 关于同一数据、同一假设下不同分析者会得出高度分散结果的多分析者研究 (many-analysts) 发现一致: 分类阈值与锚点口径的选择空间客观存在不确定性, 本族选择以并排稳健性梯子呈现而非隐藏单一"最优"切点, 正是对这种方法论不确定性的显式回应。
-
+四象限构造直接承袭 Hassan et al. (2019) 用文本相似度锚点度量企业对政策关注/暴露的范式思路 (export.py 注释明确标注), 本族把它推广为"语义对齐×表层词频"二维交叉, 用以刻画企业创新/技术采纳中"言行是否一致"的非对称模式, 呼应 Adner & Kapoor (2010, *Strategic Management Journal*) 关于技术互补性与依赖关系如何在多维度上非线性影响企业绩效的论证——采纳的语义深度与词频广度并非同一构念的两种测量, 而是两个可以独立变动的维度, 交叉分类正是为了识别这种解耦而非简单加总。测度所依赖的金科采纳"实质 vs. 表演" (substantive vs. token) 区分与 Gomber, Koch & Siering (2017, *Journal of Business Economics*) 对金融科技研究方向的分类框架 (locus 维度) 同源, 二者共同支撑了银行—金科关系强度不能仅凭关键词密度单一维度判断的方法论主张。阈值梯子 (P25/P50/P75) 与锚点变体 (vintage/`_allv`) 并列构成规格空间, 这一"多路径并排呈现而非单选最优"的稳健性叙事逻辑与 Breznau et al. (2022, *Proceedings of the National Academy of Sciences*) 关于同一数据、同一假设下不同分析者会得出高度分散结果的多分析者研究 (many-analysts) 发现一致: 分类阈值与锚点口径的选择空间客观存在不确定性, 本族选择以并排稳健性梯子呈现而非隐藏单一"最优"切点, 正是对这种方法论不确定性的显式回应。 Chen、Wen、Deng、Chen 与 Ma (2026) 以政府文件文本为基础构造政策扩散强度的文本驱动测度, 属「以政策文本相似度/强度刻画政策对齐程度」这一方法族的近期前沿, 为本族 sim 维 (policy_cosine_sim_allv) 所依赖的测度路径提供了方法学存在性锚点。迁移边界须明确: 该文测的是政策文件之间的扩散强度 (政府—政府层级), 而本族计算的是新闻报道文本对政策锚点的余弦相似度 (媒体—政策层级); 该文不做二值象限分类, 不设年度分位阈值, 也没有 _allv 全年份静态锚点与 vintage 逐年滚动锚点的对照设计。因此它只支撑「政策文本相似度可作为政策对齐程度的可测代理」这一前提, 不为本族的象限离散化, 更不为 _allv 含未来政策文本的 ex-post 锚点口径背书, 后者仍须依前述口径铁律在数据说明中显式披露。
 ## VAR: hidden_adopt_int_p25_allv
 
 【变体差分】
@@ -72,4 +80,5 @@ _p25 表示阈值取自年度组内 (`groupby('year')`) sim 与 freq 各自的�
 Adner, R., & Kapoor, R. (2010). Value creation in innovation ecosystems: How the structure of technological interdependence affects firm performance in new technology generations. Strategic Management Journal, 31(3), 306-333. https://doi.org/10.1002/smj.821
 Breznau, N., Rinke, E. M., Wuttke, A., Nguyen, H. H. V., Adem, M., Adriaans, J., et al. (2022). Observing many researchers using the same data and hypothesis reveals a hidden universe of uncertainty. Proceedings of the National Academy of Sciences, 119(44), e2203150119. https://doi.org/10.1073/pnas.2203150119
 Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital finance and FinTech: Current research and future research directions. Journal of Business Economics, 87(5), 537-580. https://doi.org/10.1007/s11573-017-0852-x
+Chen, J., Wen, J., Deng, Y., Chen, M., & Ma, F. (2026). Measuring policy diffusion intensity: A text-driven analysis of government documents. Information Processing & Management, 63(2), 104383. https://doi.org/10.1016/j.ipm.2025.104383
 <!-- rendered-citations:end -->

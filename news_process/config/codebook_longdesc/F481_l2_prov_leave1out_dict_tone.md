@@ -46,6 +46,29 @@ citations:
   vol: "147"
   issue: "3"
   pages_or_artno: "525-549"
+- doi: "10.1093/jeg/lbaf031"
+  type: "journal"
+  authors: "Broekel, T."
+  year: 2025
+  title: "Feeling the heartbeat of regions: local news and economic sentiments"
+  venue: "Journal of Economic Geography"
+  vol: "25"
+  issue: "6"
+  pages_or_artno: "937-976"
+- doi: "10.1162/rest.a.263"
+  type: "journal"
+  authors: "Frandsen, B., Leslie, E., & McIntyre, S."
+  year: 2025
+  title: "Cluster Jackknife Instrumental Variables Estimation"
+  venue: "Review of Economics and Statistics"
+  pages_or_artno: "1-19"
+- doi: "10.2139/ssrn.4787799"
+  type: "wp"
+  authors: "Ellis, C., & Jaspersen, J. G."
+  year: 2024
+  title: "Fixed Effects and the \"Leave-Out'' Instrument"
+  venue: "SSRN Electronic Journal"
+  pages_or_artno: "4787799"
 new_dois: []
 ---
 
@@ -68,8 +91,7 @@ new_dois: []
 【文献定位】
 地理同侪 leave-one-out 均值作为工具变量的构造思路直接呼应 Du, Huang, Wermers & Wu (2022, Review of Finance) 建立中文金融情感词典 (即本 pipeline 词典法综合测度所依赖的核心词典之一) 时对词典法情感测度信度与外部效度的系统性检验, 该文强调金融语境专用词典相较通用词典在中国资本市场文本上的显著优势, 是本家族上游 `dict_avg_tone` 构念合法性的直接文献支撑。Frankel, Jennings & Lee (2022, Management Science) 系统比较了机器学习法与词典法两类情感测度在信息含量与预测力上的差异, 明确指出词典法情感测度与机器学习法情感测度可以互为稳健性对照而非相互替代, 这为本项目在 stage 21 (LLM) / 22 (词典) / 23 (BERT) 三法并行、并在 G-08 扩展中把三法各自的 leave-one-out IV 并排构造过度识别检验提供了直接的方法论先例。Bian, Jia, Li & Yan (2021, SSRN working paper) 提出的中文金融情感词典是本 pipeline 词典聚合池中的另一支核心词典 (对应家族 F127-F136 一族), 其构造经验 (二元极性词表在会计与金融文本上的适用性) 支撑了本家族上游综合词典测度的内容效度。García, Hu & Rohrer (2023, Journal of Financial Economics) 对"金融词汇色彩"的系统性研究进一步佐证了词典法情感测度在识别财经文本情感倾向时的稳健性边界及其局限, 提示读者在解读本家族的省级同侪语调差异时需注意词典法测度本身固有的语境敏感性。
 
-在识别策略脉络上, 本家族服务于 Luo & Li (2025, FRL, Table 3) 一支"地理同侪杠杆"工具变量构造思路: 用同区域其他被解释对象 (银行) 的媒体语调均值作为工具, 以处理媒体报道语调与银行自身经营/融资决策之间可能存在的联立性偏误。该识别策略的成立前提隐含"同省银行共享区域性媒体冲击, 但个体银行自身语调不直接决定同省其他银行语调"这一排他性假设, 使用者在将本家族列作为工具变量代入 2SLS/IV 回归前应结合具体研究设计单独检验该假设的合理性 (例如是否存在跨行传染或竞争性新闻叙事的反向渠道)。
-
+在识别策略脉络上, 本家族服务于 Luo & Li (2025, FRL, Table 3) 一支"地理同侪杠杆"工具变量构造思路: 用同区域其他被解释对象 (银行) 的媒体语调均值作为工具, 以处理媒体报道语调与银行自身经营/融资决策之间可能存在的联立性偏误。该识别策略的成立前提隐含"同省银行共享区域性媒体冲击, 但个体银行自身语调不直接决定同省其他银行语调"这一排他性假设, 使用者在将本家族列作为工具变量代入 2SLS/IV 回归前应结合具体研究设计单独检验该假设的合理性 (例如是否存在跨行传染或竞争性新闻叙事的反向渠道)。 近期文献从"构造链路"与"方法学风险"两侧为本家族提供了外部参照。Broekel (2025) 从 300 余家德语地方媒体的地理编码新闻标题构建区域经济新闻情绪指数 (REGENS), 并检验其与区域失业率等地区经济指标的领先关系, 为"地方新闻文本→情感打分→地区-时间面板聚合"这一构造链路提供了前沿的存在性证明, 支撑本家族把新闻语调按省份-年份分组聚合成面板; 但该文的聚合单位是地区 (region) 本身而非"地区内某个被报道主体", 既没有本项目 target_bank 与媒体所在地构成的双地理键与同城/异城切分, 也不做留一同侪均值构造, 其语料为德语地方新闻、情感打分走词典法、DV 为区域经济指标而非银行层面结果, 亦无 LLM 投票共识语调与 full/ctx/ss 三轨, 故本家族仅锚定其"区域语调面板聚合"的一半, 不锚定本家族赖以立身的自身排除算子。Ellis 与 Jaspersen (2024) 分析 leave-out (留一同侪均值) 工具变量在含固定效应模型中的行为, 指出组内留一均值与固定效应同时使用时估计量会出现机械性偏误, 是本家族及其 city/prov/zone 同源姊妹族所用构造法的方法学警示——使用者若把本列代入含银行与年份固定效应的 2SLS, 须正视这一偏误来源。须诚实标注其举证边界: 该文系 SSRN 工作论文、未见期刊终刊记录, 非同行评审终稿, 讨论对象是一般线性面板留一 IV 估计量的性质推导与模拟, 未涉及本项目的 bank-year 层级、中文媒体语调原子值 (dict_avg_tone / bert_pos_share / llm_vote_score), 亦未讨论本项目 (省份,年份) / (城市,年份) / 经济圈 三种分组键与全局最小样本守卫; 且原文关注的是 IV 用途, 而本家族的 leave1out 列在部分设计中仅作同侪暴露控制变量而非工具变量, 故该警示的适用范围需按具体用法逐案判断。Frandsen、Leslie 与 McIntyre (2025) 提出并推导 cluster jackknife (按簇留出) IV 估计量, 证明其在簇内多工具/多固定效应设定下可消除标准 2SLS 的偏误, 与本家族按 (省份, 年) 分组留出的思路同族, 可作为留一构造偏误校正逻辑的方法参照; 但该文是纯计量方法论文 (估计量推导 + 蒙特卡洛 + 一个美国司法/法官指派数据应用), 与中文银行媒体语调面板无关, 其留出单位是 cluster (法官) 而本项目的留出单位是同组内的单个银行且分组键为地理×年份, 原文关注估计量的渐近性质, 本项目并未实施 cluster jackknife 估计, 因而不得据此主张本家族已获得同等的偏误校正。
 ## VAR: prov_leave1out_dict_tone_ctx
 
 【变体差分】
@@ -94,6 +116,9 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 García, D., Hu, X., & Rohrer, M. (2023). The colour of finance words. Journal of Financial Economics, 147(3), 525-549. https://doi.org/10.1016/j.jfineco.2022.11.006
+Broekel, T. (2025). Feeling the heartbeat of regions: local news and economic sentiments. Journal of Economic Geography, 25(6), 937-976. https://doi.org/10.1093/jeg/lbaf031
+Frandsen, B., Leslie, E., & McIntyre, S. (2025). Cluster Jackknife Instrumental Variables Estimation. Review of Economics and Statistics, 1-19. https://doi.org/10.1162/rest.a.263
+Ellis, C., & Jaspersen, J. G. (2024). Fixed Effects and the "Leave-Out'' Instrument. SSRN Electronic Journal No. 4787799 [Working Paper]. https://doi.org/10.2139/ssrn.4787799
 <!-- rendered-citations:end -->
 </content>
 </invoke>

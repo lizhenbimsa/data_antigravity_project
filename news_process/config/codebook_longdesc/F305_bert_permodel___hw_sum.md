@@ -50,6 +50,33 @@ citations:
   title: "BERT: Pre-training of deep bidirectional transformers for language understanding"
   venue: "Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics (NAACL-HLT)"
   pages_or_artno: "4171-4186"
+- doi: "10.1287/mnsc.2022.00261"
+  type: "journal"
+  authors: "Chen, L., & Mankad, S."
+  year: 2025
+  title: "A Structural Topic and Sentiment-Discourse Model for Text Analysis"
+  venue: "Management Science"
+  vol: "71"
+  issue: "7"
+  pages_or_artno: "5767-5787"
+- doi: "10.1007/s42521-024-00107-2"
+  type: "journal"
+  authors: "Groß-Klußmann, A."
+  year: 2024
+  title: "Learning deep news sentiment representations for macro-finance"
+  venue: "Digital Finance"
+  vol: "6"
+  issue: "3"
+  pages_or_artno: "341-377"
+- doi: "10.1111/jofi.13482"
+  type: "journal"
+  authors: "HIRSHLEIFER, D., MAI, D., & PUKTHUANTHONG, K."
+  year: 2025
+  title: "War Discourse and the Cross Section of Expected Stock Returns"
+  venue: "The Journal of Finance"
+  vol: "80"
+  issue: "6"
+  pages_or_artno: "3589-3637"
 new_dois: []
 ---
 
@@ -62,8 +89,7 @@ new_dois: []
 文章级概率的产生流程见 `tone_berts.py`: 三模型一次性预加载到 GPU (FP32 权重 + AMP autocast 混合精度推理), 三轨文本 (full=标题+全文正文, ctx=标题+银行实体窗口, ss=标题+银行∧金科同句±N窗) 各自 `prepend_title` 拼接后独立分词分批推理; 超长文本用 50% 重叠的滑动窗口切片 (`WINDOW_STRIDE_RATIO=0.5`, 单窗 ≤512 token 含特殊符, 有效正文 ≤510 token), 各窗 logits 按置信度加权池化 (`logits *= Σ(conf_k·logits_k)/Σconf_k`) 合成篇级 logits 再 softmax 得正面类概率。批级异常先逐篇重试一次, 仍失败才写失败哨兵 (概率置 NaN, 与空文本的 num_windows=0 严格区分), 因此 `pos_sum` 求和天然跳过失败篇不引入偏误分子。面板聚合层的 `_BERT_MODEL_RE` 正则以模型名锚定行首 (`^model_`) 匹配 `pos_sum` 等 metric 加可选加权尾缀 `(vw|mw|hw)` 再加可选轨道尾缀, hw 对应 `_PER_MODEL_WEIGHT_ZH['_hw'] = ' [羊群加权]'`; 与 `pos`(均值)、`pos_std`(离散) 等同族 metric 相比, `pos_sum` 是未做篇数归一化的总量测度, 量纲随 bank-year 内文章篇数与羊群权重规模同步变化, 不宜跨银行/跨年份直接比较水平值 (适合作回归中的暴露强度控制, 或先做篇数/市值归一化再比较)。
 
 【文献定位】
-本家族方法学谱系直接承接 BERT 的通用预训练-微调范式 (Devlin et al., 2019) 与其金融领域适配: FinBERT2 (Xu et al., 2025) 是本项目采用的三模型之一, 面向中文金融场景弥合通用大模型与金融专用部署之间的差距; Huang, Wang & Yang (2023) 在 *Contemporary Accounting Research* 上验证了 FinBERT 类模型在提取财务文本信息上相对词典法与人工标注的增量价值, 是本项目「LLM 三家投票/词典法/BERT 三模型」三条独立测度路线互相印证设计的方法学依据之一。羊群加权臂的构念动机可与文本信号需按暴露/密度校正后才能跨期跨主体比较这一更广泛的方法学传统作启发式类比: Hassan et al. (2023, *Review of Financial Studies*) 基于财报电话会议文本关键词占比、按通话长度归一化构造了企业层面流行病暴露测度——该文的具体研究对象 (电话会议文本 × 疫情暴露) 与本文的具体研究对象 (新闻报道 × 情感强度羊群效应) 并非同一构念, 二者严格意义上不可直接对应, 此处仅取其"原始文本计数信号若不做归一化/校正, 会被样本自身的非均匀密度机械放大, 需引入校正项才能获得可比测度"这一方法学共性作为类比参照, 本家族的 hw 加权臂是在情感强度累加这一环节针对媒体扎堆报道引入的对应校正, 与 Hassan et al. (2023) 的通话长度归一化并非同一操作, 仅思路上可类比。⚠ 三轨 (full/ctx/ss) 与三模型 (finbert_cn/fin_sent_zh/finbert2) 均各自 just-identified 并排、互为稳健性、不分主次, 证明结论不被单一文本范围或单一厂商模型驱动, 禁混进同一 over-identified Hansen J 设定; 三模型属 per-model 独立降级 (finbert2 缺席仅掉自身族, 不连坐 finbert_cn/fin_sent_zh), 与 co-primary 嵌入的 both-or-neither 语义不同。凡涉及 n_articles 分母/留篇门控, 均遵循 2026-06-29 起生效的 full-only 口径: 阶段21 是否判定某篇为"一篇银行金科报道"只看 `llm_verified_full == True`, ctx/ss 是 conditional-on-full 的测度/稳健性轨, 行宇宙是 full 留篇集的子集; ss 轨若上游未发现银行∧金科同句共现, 回退语义镜像 ctx——`content_ss` 退化为全文 body、`ss_is_fallback` 置 True 且与 ctx 共享同一 `n_articles` 分母口径, 而非另起独立分母。
-
+本家族方法学谱系直接承接 BERT 的通用预训练-微调范式 (Devlin et al., 2019) 与其金融领域适配: FinBERT2 (Xu et al., 2025) 是本项目采用的三模型之一, 面向中文金融场景弥合通用大模型与金融专用部署之间的差距; Huang, Wang & Yang (2023) 在 *Contemporary Accounting Research* 上验证了 FinBERT 类模型在提取财务文本信息上相对词典法与人工标注的增量价值, 是本项目「LLM 三家投票/词典法/BERT 三模型」三条独立测度路线互相印证设计的方法学依据之一。羊群加权臂的构念动机可与文本信号需按暴露/密度校正后才能跨期跨主体比较这一更广泛的方法学传统作启发式类比: Hassan et al. (2023, *Review of Financial Studies*) 基于财报电话会议文本关键词占比、按通话长度归一化构造了企业层面流行病暴露测度——该文的具体研究对象 (电话会议文本 × 疫情暴露) 与本文的具体研究对象 (新闻报道 × 情感强度羊群效应) 并非同一构念, 二者严格意义上不可直接对应, 此处仅取其"原始文本计数信号若不做归一化/校正, 会被样本自身的非均匀密度机械放大, 需引入校正项才能获得可比测度"这一方法学共性作为类比参照, 本家族的 hw 加权臂是在情感强度累加这一环节针对媒体扎堆报道引入的对应校正, 与 Hassan et al. (2023) 的通话长度归一化并非同一操作, 仅思路上可类比。⚠ 三轨 (full/ctx/ss) 与三模型 (finbert_cn/fin_sent_zh/finbert2) 均各自 just-identified 并排、互为稳健性、不分主次, 证明结论不被单一文本范围或单一厂商模型驱动, 禁混进同一 over-identified Hansen J 设定; 三模型属 per-model 独立降级 (finbert2 缺席仅掉自身族, 不连坐 finbert_cn/fin_sent_zh), 与 co-primary 嵌入的 both-or-neither 语义不同。凡涉及 n_articles 分母/留篇门控, 均遵循 2026-06-29 起生效的 full-only 口径: 阶段21 是否判定某篇为"一篇银行金科报道"只看 `llm_verified_full == True`, ctx/ss 是 conditional-on-full 的测度/稳健性轨, 行宇宙是 full 留篇集的子集; ss 轨若上游未发现银行∧金科同句共现, 回退语义镜像 ctx——`content_ss` 退化为全文 body、`ss_is_fallback` 置 True 且与 ctx 共享同一 `n_articles` 分母口径, 而非另起独立分母。 就本家族赖以成立的两个环节——以篇级概率而非硬标签作为加权基数、以及按强度加权而非等权计数加总——近期文献可提供有限旁证。Chen 与 Mankad (2025) 提出结构化主题-情感话语模型, 以文档级的连续情感-话语潜变量承载文本信息并允许其被文档级协变量解释, 使情感量可进入正式统计推断, 说明以篇级连续量而非 argmax 硬标签作为测度基数在前沿是被接受的做法; 惟其连续量为贝叶斯生成模型的后验潜变量, 与 BERT softmax 概率的校准含义不同, 原文无中性档、无篇级量在实体-期内的聚合步骤, 更无羊群权重一类的加权口径, 故只作基数口径的弱锚。Groß-Klußmann (2024) 以监督式自编码器对已聚合的新闻情感时间序列抽取潜在经济因子, 并在 GDP nowcasting、资产类别收益面板解释与时序动量三项应用上优于 PCA/PLS 等线性降维, 同样佐证连续取值的情感信号进入金融实证的常规性; 但原文作用于已聚合的时间序列而非产出篇级情感, 其表征是压缩潜因子而非三分类 softmax 概率, 层级为英文新闻的宏观时序, 无三轨切分、无 hw 加权, 与本家族的加权求和并非同一操作。HIRSHLEIFER、MAI 与 PUKTHUANTHONG (2025) 以半监督主题模型对跨 160 年、约 700 万篇《纽约时报》报道逐篇抽取战争话语强度, 并把篇级强度按强度 (而非等权计数) 加总为可用于资产定价检验的文本暴露量, 为本家族"篇级信号先乘权重再在 bank-year 内求和"这一加权聚合形态提供了顶刊层级的先例。须严格界定: 原文测度的是战争话语主题暴露 (topic exposure), 不含情感极性与分类概率输出, 因而不为本家族概率和的概率语义提供任何依据, 此处仅锚加权聚合这一形态本身; 其权重来自话语强度而非媒体扎堆报道的羊群程度, 聚合层级为市场/组合而非银行-年, 语料为美国英文新闻, 亦无 per-model 并排与三轨文本范围切分。
 ## VAR: fin_sent_zh_正面_hw_sum_ctx
 
 【变体差分】
@@ -114,4 +140,7 @@ Xu, X., Wen, F., Chu, B., Fu, Z., Lin, Q., Liu, J., Fei, B., Li, Y., Zhou, L., &
 Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A large language model for extracting information from financial text. Contemporary Accounting Research, 40(2), 806-841. https://doi.org/10.1111/1911-3846.12832
 Hassan, T. A., Hollander, S., van Lent, L., Schwedeler, M., & Tahoun, A. (2023). Firm-level exposure to epidemic diseases: COVID-19, SARS, and H1N1. The Review of Financial Studies, 36(12), 4919-4964. https://doi.org/10.1093/rfs/hhad044
 Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2019). BERT: Pre-training of deep bidirectional transformers for language understanding. Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics (NAACL-HLT) No. 4171-4186 [Working Paper]. https://doi.org/10.18653/v1/N19-1423
+Chen, L., & Mankad, S. (2025). A Structural Topic and Sentiment-Discourse Model for Text Analysis. Management Science, 71(7), 5767-5787. https://doi.org/10.1287/mnsc.2022.00261
+Groß-Klußmann, A. (2024). Learning deep news sentiment representations for macro-finance. Digital Finance, 6(3), 341-377. https://doi.org/10.1007/s42521-024-00107-2
+HIRSHLEIFER, D., MAI, D., & PUKTHUANTHONG, K. (2025). War Discourse and the Cross Section of Expected Stock Returns. The Journal of Finance, 80(6), 3589-3637. https://doi.org/10.1111/jofi.13482
 <!-- rendered-citations:end -->

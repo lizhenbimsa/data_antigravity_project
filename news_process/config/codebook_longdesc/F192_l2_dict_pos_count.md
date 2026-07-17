@@ -68,6 +68,23 @@ citations:
   year: 2024
   title: "Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions"
   venue: "Intelligent Systems in Accounting, Finance and Management"
+- doi: "10.1016/j.jaccpubpol.2024.107181"
+  type: "journal"
+  authors: "Cheng, C. A., Jiang, L., & Song, W.-L."
+  year: 2024
+  title: "Media coverage and debt financing choice"
+  venue: "Journal of Accounting and Public Policy"
+  vol: "44"
+  pages_or_artno: "107181"
+- doi: "10.1111/abac.12322"
+  type: "journal"
+  authors: "Wang, K. T., Zhu, N. Z., & Luo, G."
+  year: 2024
+  title: "Does News Media Affect Firm Innovation in Emerging Markets? Evidence from China"
+  venue: "Abacus"
+  vol: "60"
+  issue: "4"
+  pages_or_artno: "709-751"
 new_dois:
   - "10.1002/isaf.1549"
 ---
@@ -81,8 +98,7 @@ new_dois:
 计算分两级。文章级: 词典法对一篇报道给出 pos/neg/neutral 三态判定。这里采用的是"多词典均值共识"口径, 即不依赖任何单一词典, 而是先各词典独立算分再取均值后定极性, 从而降低单部词典覆盖偏倚对判定的影响 (对应源码方法 D "词典均值"; 单部词典的对应族是方法 D2 的 {dict}_pos_count)。银行-年级: 对该单元内所有留篇报道的 _is_dict_positive{track} 做 sum。分母口径遵循留篇门控 = full-only 铁律 (2026-06-29): 一篇报道是否算作"一篇银行金科报道"只由 llm_verified_full == True 决定, ctx/ss 轨降为 conditional-on-full 的测度轨, 其行宇宙是 full 留篇集的子集, 但每轨的正面篇数各自按本轨文本重新判定。词典法本身是确定性的 (给定冻结的 jieba==0.42.1 分词与冻结词典), 不调用付费 LLM, 因此该家族在离线复现下逐字节稳定。
 
 【文献定位】
-词典法作为金融文本情感测量的基石可追溯至 Loughran & McDonald (2011), 他们指出通用心理学词典 (如 Harvard IV) 在金融语境下系统误判, 主张构建领域专用词典; Loughran & McDonald (2016) 的综述进一步把词典法确立为可复制、透明、无监督的主流测度范式。本项目在中文语境下沿用这一逻辑: 词典均值口径融合了包括 Du et al. (2022) 与 Bian et al. (2021) 在内的多部为中文金融文本专门构建的情感词典, 以对冲任一单部词典的领域偏差。Frankel et al. (2022) 系统比较了词典法与机器学习法在披露情感度量上的差异, 论证二者各有系统性偏误、宜并置互证而非彼此替代; Huang et al. (2023) 的 FinBERT 则代表基于深度模型的第三条测量路径。本项目正是据此把词典 (方法 D)、LLM 投票、BERT 三条测量轨并置为互为稳健性、不分主次的测量三角——三法各自 just-identified 并排, 严禁把跨方法的篇数计数混进同一 over-identified Hansen J。dict_pos_count 家族是这三角中"词典均值"一支在正面篇数维度的落点。Todd, Bowden, & Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 的综述系统梳理了金融文本情感测量的词典法与机器学习法各自的适用边界与互补关系, 为本家族采用多词典均值共识判正的设计选择提供了最新文献定位。
-
+词典法作为金融文本情感测量的基石可追溯至 Loughran & McDonald (2011), 他们指出通用心理学词典 (如 Harvard IV) 在金融语境下系统误判, 主张构建领域专用词典; Loughran & McDonald (2016) 的综述进一步把词典法确立为可复制、透明、无监督的主流测度范式。本项目在中文语境下沿用这一逻辑: 词典均值口径融合了包括 Du et al. (2022) 与 Bian et al. (2021) 在内的多部为中文金融文本专门构建的情感词典, 以对冲任一单部词典的领域偏差。Frankel et al. (2022) 系统比较了词典法与机器学习法在披露情感度量上的差异, 论证二者各有系统性偏误、宜并置互证而非彼此替代; Huang et al. (2023) 的 FinBERT 则代表基于深度模型的第三条测量路径。本项目正是据此把词典 (方法 D)、LLM 投票、BERT 三条测量轨并置为互为稳健性、不分主次的测量三角——三法各自 just-identified 并排, 严禁把跨方法的篇数计数混进同一 over-identified Hansen J。dict_pos_count 家族是这三角中"词典均值"一支在正面篇数维度的落点。Todd, Bowden, & Moshfeghi (2024, Intelligent Systems in Accounting, Finance and Management) 的综述系统梳理了金融文本情感测量的词典法与机器学习法各自的适用边界与互补关系, 为本家族采用多词典均值共识判正的设计选择提供了最新文献定位。 就「文章级极性判定 → 按主体-年对极性指示求和」这一聚合形态本身, Cheng、Jiang 与 Song (2024) 提供了前沿实证用例: 该文把美国上市公司 2001–2014 年的新闻按公司-年归集为报道量与新闻情感变量, 作为解释变量进入债务融资方式选择回归, 发现负面盈余新闻显著降低银行贷款与公募债概率、提高私募债概率。须诚实标注其锚定射程: 原文的极性来自 RavenPack 的专有事件情感分析 (ESS), 既非公开情感词典、亦非人工编码, 因此它只锚定本家族「对极性指示逐主体-年求和」的聚合形态, 不锚定本家族赖以判正的六词典均值共识; 且原文主体为美国上市公司而非商业银行。在中文语料一侧, Wang、Zhu 与 Luo (2024) 用逾 188,000 篇出自中国最具影响力报纸、由记者撰写的公司特定报道, 把新闻按公司-年归集为计数型暴露变量以检验其对企业创新产出的影响, 印证了中文报纸报道的主体-年计数本身即可作为一个独立的文本暴露测度。其锚定同须限定: 该文未构造任何语调或情感变量, 锚定只及于「报道量计数化」这一环, 本家族在其上叠加的词典极性判正门不在其射程之内; 原文主体亦为 A 股非金融企业, 且无三轨文本设计。
 ## VAR: dict_pos_count_full
 
 【变体差分】
@@ -106,4 +122,6 @@ Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment d
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management. https://doi.org/10.1002/isaf.1549
+Cheng, C. A., Jiang, L., & Song, W.-L. (2024). Media coverage and debt financing choice. Journal of Accounting and Public Policy, 44, 107181. https://doi.org/10.1016/j.jaccpubpol.2024.107181
+Wang, K. T., Zhu, N. Z., & Luo, G. (2024). Does News Media Affect Firm Innovation in Emerging Markets? Evidence from China. Abacus, 60(4), 709-751. https://doi.org/10.1111/abac.12322
 <!-- rendered-citations:end -->

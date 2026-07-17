@@ -47,6 +47,22 @@ citations:
   venue: International Review of Economics & Finance
   vol: '91'
   pages_or_artno: 1150-1172
+- doi: "10.1016/j.energy.2025.139126"
+  type: "journal"
+  authors: "Hua, X., Dong, D., Xu, Z., & Huang, W."
+  year: 2025
+  title: "Official media sentiments toward energy and equity returns: Evidence from China"
+  venue: "Energy"
+  vol: "340"
+  pages_or_artno: "139126"
+- doi: "10.1016/j.irfa.2023.102761"
+  type: "journal"
+  authors: "Isakin, M., & Pu, X."
+  year: 2023
+  title: "Dispersion in news sentiment and corporate bond returns"
+  venue: "International Review of Financial Analysis"
+  vol: "89"
+  pages_or_artno: "102761"
 new_dois: []
 ---
 
@@ -63,8 +79,7 @@ new_dois: []
 出版频率标签的判据是静态、外生于文本内容的媒体属性 (类似官方/市场媒体二分、深度/非深度期刊二分), 与本条条目下方相邻的 `tone_gap_official_nonoff`、`tone_gap_market_nonmkt`、`tone_gap_deepdive_nondeep` 等家族共享同一段生产代码框架与 `panel.merge` 拼接顺序, 只是分组判据 (`_is_daily` vs `_is_official` 等) 不同, 体现媒体异质性测度簇"同一构造范式、不同切分维度"的设计哲学。
 
 【文献定位】
-本家族的方法学根基直接呼应文本情感测度中「媒体属性异质性驱动语调系统性差异」这一支文献。奠基性证据来自 Tetlock (2007, Journal of Finance) 关于媒体悲观语调的市场信息含量研究, 以及后续 Holzman, Miller & Twedt (2023, The Accounting Review) 关于媒体权威性对语调"信息纪律"作用的机制分析——后者是 `pipeline/panel/geography.py` 中媒体权威加权语调 (`llm_vote_tone_mw{track}`) 一族的直接理论锚 (该文献援引锚点位于 `geography.py` 内, 与本家族所在的 `attention_media.py` 是面板构建阶段的两个不同生产模块, 但共享同一媒体来源异质性建模思路), 二者共同说明媒体来源属性 (无论是出版频率还是权威性/官方性) 都不是语调测量的中性背景, 而是需要显式建模的调节变量。You, Zhang & Zhang (2018, The Review of Financial Studies) 关于中国语境下媒体话语权分布 ("谁掌握了笔杆子") 的研究进一步支撑了在中国银行-媒体报道场景中拆分媒体来源异质性的必要性, 该文亦被生产代码在相邻媒体来源占比列的标签中直接援引 (`Official Media Share (You 2018)`)。国内同域证据方面, Fang, Wang, Wang & Yuan (2024, International Review of Economics & Finance) 针对中国银行媒体情感与存款稳定性、系统性风险的实证研究提供了银行-年度层面媒体语调测度的可比先例, 佐证本家族聚合粒度 (bank-year) 与被解释对象 (中国上市银行) 的适配性。
-
+本家族的方法学根基直接呼应文本情感测度中「媒体属性异质性驱动语调系统性差异」这一支文献。奠基性证据来自 Tetlock (2007, Journal of Finance) 关于媒体悲观语调的市场信息含量研究, 以及后续 Holzman, Miller & Twedt (2023, The Accounting Review) 关于媒体权威性对语调"信息纪律"作用的机制分析——后者是 `pipeline/panel/geography.py` 中媒体权威加权语调 (`llm_vote_tone_mw{track}`) 一族的直接理论锚 (该文献援引锚点位于 `geography.py` 内, 与本家族所在的 `attention_media.py` 是面板构建阶段的两个不同生产模块, 但共享同一媒体来源异质性建模思路), 二者共同说明媒体来源属性 (无论是出版频率还是权威性/官方性) 都不是语调测量的中性背景, 而是需要显式建模的调节变量。You, Zhang & Zhang (2018, The Review of Financial Studies) 关于中国语境下媒体话语权分布 ("谁掌握了笔杆子") 的研究进一步支撑了在中国银行-媒体报道场景中拆分媒体来源异质性的必要性, 该文亦被生产代码在相邻媒体来源占比列的标签中直接援引 (`Official Media Share (You 2018)`)。国内同域证据方面, Fang, Wang, Wang & Yuan (2024, International Review of Economics & Finance) 针对中国银行媒体情感与存款稳定性、系统性风险的实证研究提供了银行-年度层面媒体语调测度的可比先例, 佐证本家族聚合粒度 (bank-year) 与被解释对象 (中国上市银行) 的适配性。 晚近前沿在本族公式的两个环节上各提供一条可分立援引的参照。Hua、Dong、Xu 与 Huang (2025) 以 BERT 对中国官方/政府控制媒体的新能源报道构建官方媒体语调指数, 检验其与权益回报及企业融资投资行为的关系, 从而示范了「按媒体机构属性切出子样本、并在子样本内对文章级语调取均值」这一操作在中文语料上的存在性与经济含义 — 恰是本族 is_daily 分组均值这一前半环的同构先例。迁移边界须写明: 该文的分层维度是媒体的官方属性而非出版频率, 其情感由文本指数法而非三家 LLM 多数投票得到, 层级为行业-日度的市场指数而非 bank-year 面板, 且原文只报告官方侧的语调水平、并未报告两侧均值之差, 故不锚 daily − nondaily 这一作差统计量。Isakin 与 Pu (2023) 则把同一发行主体在同期多篇新闻之间的情感离散度作为独立可定价构念来度量并检验 (美国公司债、债券-月层级、英文新闻数据库情感), 为本族所依赖的一般性前提 —「同一银行的报道内部语调不一致本身携带信息, 而非只有语调水平携带信息」— 提供方法学近亲参照; 但该文的离散度是全部报道上的跨文章统计离散, 与本族先按出版频率划成互补两组再取组均值之差并非同一统计量, 原文亦不做任何媒体来源属性分层, 故只作前提支撑而非公式出处。
 【梯子与并排口径】
 本家族三个成员列对应 CLAUDE.md 铁律中的「三轨 full/ctx/ss」结构: `_full` 以标题+全文正文为情感输入文本, `_ctx` 以标题+银行/金科实体窗口为输入, `_ss` 以标题+银行与金科词同句 (±N 窗口, 默认 N=1) 共现片段为输入, 三者共用同一套「日报 vs 非日报」出版频率分组判据, 仅情感输入文本轨道不同。三轨之间是各自 just-identified 并排关系, 互为稳健性、不分主次, 严格禁止把三轨语调缺口列混进同一 over-identified 的 Hansen J 检验; 下游研究设计中应将三轨分别作为独立的稳健性对照臂使用, 而非取平均或联合矩条件。`_ss` 轨遵循与 `_ctx` 镜像的回退语义: 当某篇文章不存在银行与金科关键词同句共现时, 该文章的 `content_ss` 回退为全文 body (`ss_is_fallback=True`), 情感三家投票在回退场景下与 `_ctx`/`_full` 使用相同的兜底策略, 但仍作为独立轨道参与本家族的分组均值计算, 不与 `_full`/`_ctx` 的样本行借补。此外, 本家族的分组变量 `_is_daily` 与情感留篇门控 (2026-06-29 起 full-only, 即"是否算作一篇有效银行-金科报道"仅看 `llm_vote_score_full` 所在文章是否通过 full 轨验证) 是两条独立逻辑: 出版频率分组作用于已通过留篇门控的样本集合之上, 三轨语调分则各自在该样本集合的子集 (per-track 有效样本) 上计算, 不因某轨语调缺失而剔除该文章在其余轨的贡献。
 
@@ -88,5 +103,7 @@ Tetlock, P. C. (2007). Giving Content to Investor Sentiment: The Role of Media i
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
 You, J., Zhang, B., & Zhang, L. (2018). Who Captures the Power of the Pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media Sentiment, Deposit Stability and Bank Systemic Risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
+Hua, X., Dong, D., Xu, Z., & Huang, W. (2025). Official media sentiments toward energy and equity returns: Evidence from China. Energy, 340, 139126. https://doi.org/10.1016/j.energy.2025.139126
+Isakin, M., & Pu, X. (2023). Dispersion in news sentiment and corporate bond returns. International Review of Financial Analysis, 89, 102761. https://doi.org/10.1016/j.irfa.2023.102761
 <!-- rendered-citations:end -->
 </content>

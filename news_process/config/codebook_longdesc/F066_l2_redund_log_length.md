@@ -38,6 +38,15 @@ citations:
   vol: 56
   issue: 2
   pages_or_artno: 81-105
+- doi: "10.1111/lang.12630"
+  type: "journal"
+  authors: "Bestgen, Y."
+  year: 2024
+  title: "Measuring Lexical Diversity in Texts: The Twofold Length Problem"
+  venue: "Language Learning"
+  vol: "74"
+  issue: "3"
+  pages_or_artno: "638-671"
 new_dois: []
 ---
 
@@ -50,8 +59,7 @@ new_dois: []
 文章级原语为 log_length = ln(去空白字符数), 即先剔除文章中的空白符再取字符总数, 随后取自然对数。银行-年聚合采用 mean-of-ln 口径: 对该银行该年度落入留篇集的每篇报道各自计算 ln 长度, 再取算术平均, 得到 avg_redund_log_length_{track}。这一聚合顺序是刻意选择且承重的: 它与 geography 家族的 ln-of-mean 口径 (ln_word_count = ln(1 + avg_word_count) / ln_han_count) 数学上不等价——由 Jensen 不等式, 先取对数再平均严格不大于先平均再取对数, 两者相差一个与篇长离散度相关的凸性缺口。项目刻意让两套口径并存: mean-of-ln 用作冗余度回归的配对控制 (因为冗余度本身是逐篇计算再平均的篇级测度, 其长度混杂也发生在篇级, 故长度控制须同为篇级 mean-of-ln, 才能与被控制变量同域); ln-of-mean 则服务于把"典型篇幅"当作年度水平特征的地理面板。对数变换本身的取舍——尤其是零值与小值处理、以及对数点弹性解释在存在大量零或极端偏态时的失真——是 Chen & Roth (2024) 系统讨论的问题; 本列因作用于去空白字符数 (对留篇报道恒为正、无零值病态), 规避了其记录的零值陷阱, 但仍继承其关于"对数尺度下均值不可随意互换"的告诫, 这正是本项目坚持 mean-of-ln 与 ln-of-mean 分列不混用的直接依据。计算落地在 Stage 22 (lexical_complexity) 产出篇级长度、Stage 40 面板导出层完成逐轨 bank-year 聚合; codebook 单位登记为 ln(chars), 值域 [0, +∞) ∪ NaN, 与其所控制的 avg_within_doc_redund 同定义域配对。
 
 【文献定位】
-方法学上, 本控制列服务于两条文献脉络的交汇。其一是文本计量中的"篇幅混杂"传统: 冗余、样板化、可读性等篇级文本属性普遍与文档长度机械相关, 若不配对控制长度, 相应系数不可解释为构念效应而是长度的影子。其二是稳健性与规格透明度传统: 一个测度是否稳健, 取决于它在纳入合理协变量后是否仍存活, 配对长度控制正是把"冗余效应"与"长度效应"分离的最小必要规格。Simonsohn, Nelson & Simmons (2014) 提出的 p-curve 方法, 从一组研究结果的 p 值分布形状即可诊断该结论是否掺入 p-hacking 与文件抽屉式的选择性报告: 若一批系数依赖事后的规格搜寻而非真实效应, 其显著性的分布会留下可被检出的畸变。这一诊断逻辑对配对控制的启示是直接的——一个冗余度系数若靠事后择取长度变量 (例如临时挑一支能压出想要的冗余度显著性的长度协变量) 才成立, 恰属该文所警示的规格搜寻情形; 唯有以预先声明、与被控变量严格同域的方式固定长度控制, 才能杜绝这一自由度。本列的定义域对齐与 mean-of-ln 口径的事前固定, 正是对这一告诫的制度化回应。构念判别上, Campbell & Fiske (1959) 的多质多法框架提供了恰当的检验逻辑: 冗余度与长度是两个不同的"质"(trait), 二者虽机械相关但不应被视为同一构念——配对长度控制的作用, 正是在回归里把这两个质从混杂中解耦, 使冗余度得以作为收敛-判别意义上独立的构念被估计。需要强调, 本家族三列彼此是三轨 (full/ctx/ss) 稳健性变体: 三轨各自 just-identified 并排, 互为稳健性、不分主次, 禁混进同一 over-identified Hansen J; 它们服务于同一个"冗余度回归需要长度控制"的目的, 只是分别匹配 full/ctx/ss 三条文本轨上各自计算的冗余度, 从而保证长度控制与被控冗余度逐轨同源。
-
+方法学上, 本控制列服务于两条文献脉络的交汇。其一是文本计量中的"篇幅混杂"传统: 冗余、样板化、可读性等篇级文本属性普遍与文档长度机械相关, 若不配对控制长度, 相应系数不可解释为构念效应而是长度的影子。其二是稳健性与规格透明度传统: 一个测度是否稳健, 取决于它在纳入合理协变量后是否仍存活, 配对长度控制正是把"冗余效应"与"长度效应"分离的最小必要规格。Simonsohn, Nelson & Simmons (2014) 提出的 p-curve 方法, 从一组研究结果的 p 值分布形状即可诊断该结论是否掺入 p-hacking 与文件抽屉式的选择性报告: 若一批系数依赖事后的规格搜寻而非真实效应, 其显著性的分布会留下可被检出的畸变。这一诊断逻辑对配对控制的启示是直接的——一个冗余度系数若靠事后择取长度变量 (例如临时挑一支能压出想要的冗余度显著性的长度协变量) 才成立, 恰属该文所警示的规格搜寻情形; 唯有以预先声明、与被控变量严格同域的方式固定长度控制, 才能杜绝这一自由度。本列的定义域对齐与 mean-of-ln 口径的事前固定, 正是对这一告诫的制度化回应。构念判别上, Campbell & Fiske (1959) 的多质多法框架提供了恰当的检验逻辑: 冗余度与长度是两个不同的"质"(trait), 二者虽机械相关但不应被视为同一构念——配对长度控制的作用, 正是在回归里把这两个质从混杂中解耦, 使冗余度得以作为收敛-判别意义上独立的构念被估计。需要强调, 本家族三列彼此是三轨 (full/ctx/ss) 稳健性变体: 三轨各自 just-identified 并排, 互为稳健性、不分主次, 禁混进同一 over-identified Hansen J; 它们服务于同一个"冗余度回归需要长度控制"的目的, 只是分别匹配 full/ctx/ss 三条文本轨上各自计算的冗余度, 从而保证长度控制与被控冗余度逐轨同源。 把长度与冗余解耦这一前提, 在测度学层面另有直接支撑: Bestgen (2024) 基于三个英语学习者文本数据集系统检视常用词汇多样性指数, 提出『双重长度问题』——第一重是 type-token 比率类指数对文本长度的固有依赖; 第二重是即便把所有文本以概率或算法方法削减至等长从而消解第一重, 指数仍对决定该等长长度的参数取值高度敏感, 所检指数无一幸免。本列所配对的 avg_within_doc_redund 在数学上即 1 减去一个 n-gram type-token 比率, 故该文正面锚定了冗余度系数须在给定长度条件下方可识别这一前提, 也印证了长度控制必须与被控量事前同域固定、而非事后择取的规格纪律。迁移边界须明示: 该文是字母语言词级、学习者语料上的方法学分析, 未涉及金融新闻文本, 亦未涉及本项目的字符级 n-gram 口径与 mean-of-ln 聚合口径; 其提出的等长削减类校正本项目并未实施——引用意在披露长度依赖仍然存在, 而非声称其已被校正掉。
 ## VAR: avg_redund_log_length_ctx
 
 【变体差分】
@@ -71,4 +79,5 @@ new_dois: []
 Chen, J., & Roth, J. (2024). Logs with zeros? Some problems and solutions. Quarterly Journal of Economics, 139(2), 891-936. https://doi.org/10.1093/qje/qjad054
 Simonsohn, U., Nelson, L. D., & Simmons, J. P. (2014). P-curve: A key to the file-drawer. Journal of Experimental Psychology: General, 143(2), 534-547. https://doi.org/10.1037/a0033242
 Campbell, D. T., & Fiske, D. W. (1959). Convergent and discriminant validation by the multitrait-multimethod matrix. Psychological Bulletin, 56(2), 81-105. https://doi.org/10.1037/h0046016
+Bestgen, Y. (2024). Measuring Lexical Diversity in Texts: The Twofold Length Problem. Language Learning, 74(3), 638-671. https://doi.org/10.1111/lang.12630
 <!-- rendered-citations:end -->

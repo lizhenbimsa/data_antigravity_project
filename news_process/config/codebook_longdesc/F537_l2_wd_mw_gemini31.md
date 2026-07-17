@@ -47,6 +47,24 @@ citations:
   vol: '15'
   issue: '2'
   pages_or_artno: 121-140
+- doi: "10.3982/te6424"
+  type: "journal"
+  authors: "Eliaz, K., & Spiegler, R."
+  year: 2026
+  title: "News media as suppliers of narratives (and information)"
+  venue: "Theoretical Economics"
+  vol: "21"
+  issue: "3"
+  pages_or_artno: "928-972"
+- doi: "10.1080/19312458.2024.2378690"
+  type: "journal"
+  authors: "Laurer, M., van Atteveldt, W., Casas, A., & Welbers, K."
+  year: 2025
+  title: "On Measurement Validity and Language Models: Increasing Validity and Decreasing Bias with Instructions"
+  venue: "Communication Methods and Measures"
+  vol: "19"
+  issue: "1"
+  pages_or_artno: "46-62"
 new_dois: []
 ---
 
@@ -57,8 +75,7 @@ new_dois: []
 
 【方法学与计算】
 背景动因写在 encode.py 的 encode-01 修复注释里 (metric-audit 2026-06-10): LLM 三分类打分 gemini31_score{track} 是 nullable 值 — 当某篇文章 LLM 输出解析失败/置信不足/被门控排除时该列为 NA, 而 pandas groupby('sum') 在做分子加权和 (score×weight) 时天然跳过 NA 行, 相当于"只累加打分成功的文章"。如果分母仍用该银行-年度全部文章的物理权重总和 (Σ weight over all, 不区分 gemini31 是否成功打分), 就会出现分子是"有效子集"、分母是"全集"的口径错配, 使加权平均语调系统性向 0 收缩 — LLM 该轨道打分失败率越高, 这种向零衰减就越严重, 尤其在跨模型比较三家 LLM 稳健性时会人为压低失败率较高模型的语调强度, 制造虚假的模型间差异。修复办法是为每个需要 valid-mask 的族 (LLM 聚合投票 llm、逐模型 gpt54nano/gemini31/deepseekv4、logit-to-score 概率 prob) 各建一个"只在打分有效时取权重、否则记 NaN"的篇章级掩码列, 再对其做 sum 聚合 — pandas 的 sum 对 NaN 天然跳过, 因此聚合结果精确等于"Σ media_authority_weight over {该银行-年度内 gemini31 三分类判定有效的文章}"。这就是本列的算法定义: 掩码构造发生在 pipeline/panel/runner.py::_build_llm_valid_masked_weights(df, mw, 'mw') (调用点在步骤 3c 媒体权威性加权预计算区块, mw = df['media_authority_weight'].fillna(1.0)), 产出篇章级列 _wd_mw_gemini31{track} = media_authority_weight.where(gemini31_score{track}.notna()); 而后 pipeline/panel/encode.py 的聚合规格字典把该列注册为 agg[f'sum_wd_mw_gemini31{track}'] = ('_wd_mw_gemini31{track}', 'sum'), 由 aggregate_panel 按 (target_bank, year) 分组求和写入面板。media_authority_weight 本身由 compute_media_authority_weights (源码内部注释标注其方法学动因源自媒体经济学文献中的媒体权威性框架, 具体文献见下文【文献定位】段落引注) 依据发文媒体的传播广度/权威层级赋值, fillna(1.0) 对权重缺失的媒体记 1.0 作中性权重, 不因媒体元数据缺失而使该文章权重归零。三轨 full/ctx/ss 各自独立走一遍上述流程: 掩码有效性判据是 gemini31_score{track} 各轨道自身的非缺失状态, 不借用其他轨道的有效性, 因此三列在同一银行-年度内数值一般不相等 (某文章可能 full 轨判定成功但 ctx 轨因实体窗口截断导致 LLM 输出发生变化而失败, 反之亦然)。留篇门控铁律 (full-only, 2026-06-29) 决定了进入 stage 21 三家 LLM 判定环节的文章行宇宙以 llm_verified_full 为准, ctx/ss 是 conditional-on-full 的测度轨, 本列同样继承该行宇宙; ss 轨在无银行∧金科同句共现时回退全文正文 (镜像 ctx 的回退语义, content_ss=body 且 ss_is_fallback=True), 该回退不改变本列的掩码判据 (仍看 gemini31_score_ss 是否非缺失), 只影响 gemini31 在该轨读到的输入文本。
-本列本身没有独立经济含义 (不建议单独作为回归 DV/IV), 其唯一用途是作 gemini31_tone_mw{track} 的匹配分母; 当该银行-年度单元 gemini31 在该轨道零篇有效打分时, 本列聚合结果为 0, encode.py 中 _llm_denom 辅助函数会将 0 替换为 NaN (panel[col].replace(0, np.nan)) 以避免除零, 使下游 gemini31_tone_mw{track} 该格记为缺失而非错误的无穷大或 0。
-
+本列本身没有独立经济含义 (不建议单独作为回归 DV/IV), 其唯一用途是作 gemini31_tone_mw{track} 的匹配分母; 当该银行-年度单元 gemini31 在该轨道零篇有效打分时, 本列聚合结果为 0, encode.py 中 _llm_denom 辅助函数会将 0 替换为 NaN (panel[col].replace(0, np.nan)) 以避免除零, 使下游 gemini31_tone_mw{track} 该格记为缺失而非错误的无穷大或 0。 晚近文献从理论与测量两侧进一步夯实了本列的两个构造前提。Eliaz 与 Spiegler (2026) 以理论建模把新闻媒体刻画为叙事 (而不仅是信息) 的供给者, 分析不同媒体所供叙事如何塑造受众信念, 为"不同来源的报道不等价、须按来源加权"这一 media_authority_weight 的存在性前提提供了理论侧论证; 惟须注意该文是纯理论均衡分析, 其媒体差异化维度是叙事内容而非权威度, 不提供任何可迁移的权重赋值方案或经验参数, 与本项目 config 登录表加未登录来源退默认再 fillna(1.0) 的具体取值口径无对应关系。Laurer、Casas 与 Welbers (2025) 以对照实验检验语言模型作为测量工具的效度, 证明指令/提示设计会实质改变效度与偏误, 恰锚定本列掩码赖以成立的效度前提: 本列以 gemini31 在该轨是否给出有效判断界定分母求和域, 该掩码本身即模型效度的函数。迁移边界须诚实标明: 原文对象为英文传播学分类任务与开源指令微调模型, 本项目为中文新闻加三家商用 API 模型; 原文结论支持"加指令可提效度", 而本项目情感提示词 v8 已字节冻结、嵌入侧刻意零 instruct 前缀, 二者设计取向不同, 不可直接迁移; 原文亦不涉及任何权重加权分母口径。
 【文献定位】
 媒体权威性加权语调的构念源头是媒体经济学与文本情感测量交叉领域对"信息源可信度应折算进语调强度"的共识: 不同媒体在读者触达面、编辑权威性、市场影响力上存在系统性差异, 未加权的简单平均会让权威性弱的自媒体/小报与权威财经媒体的报道等量齐观, 掩盖真正影响市场参与者预期的信号来源。本列所服务的 valid-mask 修正逻辑, 本质上是"多标注者/多模型聚合测度"文献中对缺失值处理稳健性的一般性关切: Gilardi, Alizadeh & Kubli (2023, PNAS) 系统比较大语言模型与众包标注者在文本标注任务上的表现差异, 指出模型输出的可用性 (是否成功产出可解析标签) 本身是需要显式建模而非忽略的环节, 这与本列把"打分是否有效"作为一等公民纳入分母构造的做法在方法论关切上一致。Ying, Montgomery & Stewart (2022, Political Analysis) 提出对众包/自动化测度的"概念-测量"对应关系做形式化校验的框架, 强调聚合测度的分子分母必须共享同一有效样本域, 否则会引入系统性偏误, 这正是本家族要修正的 encode-01 向零衰减问题的一般化表述。van Atteveldt, van der Velden & Boukes (2021, Communication Methods and Measures) 对比人工标注、众包编码、词典法与机器学习算法在情感分析效度上的表现, 其核心发现之一是不同方法的"失败/缺失模式"不同 (词典法极少缺失, 机器学习/众包会因置信度不足产生系统性缺失), 呼应本项目对 LLM 族与词典/BERT 族分别处理缺失掩码的差异化设计 (词典族因 stage 13 硬过滤后结构性无 NaN 而不建掩码, LLM 族因存在解析失败必须建掩码)。三家投票 LLM (gpt54nano/gemini31/deepseekv4) 互为稳健性、不分主次是本项目情感测量体系的铁律, 本家族的 gemini31 分支是该铁律在媒体权威性加权维度上的具体落实, 与 gpt54nano、deepseekv4 对应的姊妹家族 (F536/F538 等) 结构完全对称, 保证跨模型比较时口径一致、不因某一模型解析失败率更高而在加权平均层面被系统性低估。
 
@@ -82,4 +99,6 @@ new_dois: []
 Gilardi, F., Alizadeh, M., & Kubli, M. (2023). ChatGPT outperforms crowd workers for text-annotation tasks. Proceedings of the National Academy of Sciences, 120(30), e2305016120. https://doi.org/10.1073/pnas.2305016120
 Ying, L., Montgomery, J. M., & Stewart, B. M. (2022). Topics, Concepts, and Measurement: A Crowdsourced Procedure for Validating Topics as Measures. Political Analysis, 30(4), 570-589. https://doi.org/10.1017/pan.2021.33
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The Validity of Sentiment Analysis: Comparing Manual Annotation, Crowd-Coding, Dictionary Approaches, and Machine Learning Algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
+Eliaz, K., & Spiegler, R. (2026). News media as suppliers of narratives (and information). Theoretical Economics, 21(3), 928-972. https://doi.org/10.3982/te6424
+Laurer, M., van Atteveldt, W., Casas, A., & Welbers, K. (2025). On Measurement Validity and Language Models: Increasing Validity and Decreasing Bias with Instructions. Communication Methods and Measures, 19(1), 46-62. https://doi.org/10.1080/19312458.2024.2378690
 <!-- rendered-citations:end -->

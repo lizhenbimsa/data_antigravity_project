@@ -47,6 +47,22 @@ citations:
   vol: '15'
   issue: '2'
   pages_or_artno: 121-140
+- doi: "10.1080/19312458.2024.2378690"
+  type: "journal"
+  authors: "Laurer, M., van Atteveldt, W., Casas, A., & Welbers, K."
+  year: 2025
+  title: "On Measurement Validity and Language Models: Increasing Validity and Decreasing Bias with Instructions"
+  venue: "Communication Methods and Measures"
+  vol: "19"
+  issue: "1"
+  pages_or_artno: "46-62"
+- doi: "10.2139/ssrn.5395056"
+  type: "wp"
+  authors: "Liu, Y., Liu, J., & Wang, T."
+  year: 2025
+  title: "Large Language Model Disagreement"
+  venue: "SSRN Electronic Journal"
+  pages_or_artno: "5395056"
 new_dois: []
 ---
 
@@ -59,8 +75,7 @@ sum_wd_hw_gemini31_{full,ctx,ss} 三列不是情感分本身, 而是三家投票
 计算发生在 stage 21 (三家 LLM 情感投票) 与 stage 24 (herd_decay_processor 产出 herd_weight_full/ctx/ss) 之后、面板聚合 encode 阶段之内。具体地, `_build_llm_valid_masked_weights` 先构造逐模型 valid-mask (gemini31_score_{track} 非缺失的布尔向量), 与该轨 herd_weight_{track} (缺失时 fillna 为 1.0, 即不衰减) 逐元素相乘并按 mask 置 NaN 屏蔽无效行, 再由 encode.py 的 groupby-agg 字典对该临时列取 'sum' 得到银行-年层面的 sum_wd_hw_gemini31_{track}。三轨 full/ctx/ss 的 herd_weight 各自独立计算 (即"三轨独立权重", 与历史遗留的单轨 legacy 权重路径二选一, 由 `has_dual_hw` 判定源 parquet 是否具备三轨列), 因此三条分母列彼此不可加总、不可跨轨比较, 只能各自与同轨分子相除。
 【文献定位】
 跟风衰减权重的经济学动机是媒体报道的相互抄袭与羊群式跟风会稀释单篇报道的信息增量, 这一构念可追溯到 Tetlock (2011) 对媒体聚集 (media herding) 的讨论。三家 LLM (gpt54nano/gemini31/deepseekv4) 各自独立打分再各自加权聚合、互不预先融合, 这一"多裁判各自独立、事后横向比较而非事前平均"的设计呼应 Schoenegger, Tuminauskaite, Park, Bastos & Tetlock (2024, Science Advances) 关于 LLM 集成 (ensemble) 预测能力可比拟人群智慧 (wisdom of crowd) 的证据——多个独立评判者的分歧本身就是可用信息, 过早平均会抹去这一信息, 这正是本项目坚持"各模型 just-identified 并排、不预先融合"的方法论依据。LLM 作为文本标注工具的有效性另见 Gilardi, Alizadeh & Kubli (2023, PNAS) 关于 ChatGPT 类模型在文本标注任务上可比甚至超越众包人工标注员的证据, 以及 van Atteveldt, van der Velden & Boukes (2021, Communication Methods and Measures) 对人工标注、众包、词典法与机器学习情感分析方法有效性的系统比较, 二者共同支撑本项目采用 LLM 投票而非纯词典法作为情感测度主轨的选择。加权平均而非简单平均对文本测度稳健性的价值, 也与 Hwang & Kim (2017, Journal of Financial Economics) 关于文本写作质量 (可读性/清晰度) 对信息含量与市场反应存在系统性影响的发现相呼应——文本本身的可读性与重复度差异并非噪声, 而是应被显式建模而非平均掉的结构性特征, 这也是本项目引入 herd-weight 而非直接对逐篇情感取算术平均的核心理由。
-口径铁律复述: sum_wd_hw_gemini31 三轨 (full/ctx/ss) 各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J 检验; ss 轨的回退语义镜像 ctx——当某篇文章不满足银行∧金科同句共现条件时, content_ss 回退为全文 body 且 ss_is_fallback=True, 该篇若 gemini31_score_ss 仍有效, 依然计入 sum_wd_hw_gemini31_ss 的分母 (回退不等于剔除, 只是文本窗口收窄失败后的优雅降级)。三家 LLM 的留篇门控口径统一为 full-only (2026-06-29 起): 是否判定"一篇银行金科报道"只看 llm_verified_full, ctx/ss 轨的 sum_wd_hw_gemini31_{ctx,ss} 因此是 conditional-on-full 的测度/稳健性轨, 其行宇宙是 full 轨留篇集合的子集, 而非独立样本框; 三本列均属 per-model 独立降级机制的一部分——gemini31 若某轨缺失分数, 只影响 gemini31 自身该轨分母, 不连坐 gpt54nano/deepseekv4 的同轨分母, 也不同于 co-primary 嵌入双轨的 both-or-neither 规则。
-
+口径铁律复述: sum_wd_hw_gemini31 三轨 (full/ctx/ss) 各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J 检验; ss 轨的回退语义镜像 ctx——当某篇文章不满足银行∧金科同句共现条件时, content_ss 回退为全文 body 且 ss_is_fallback=True, 该篇若 gemini31_score_ss 仍有效, 依然计入 sum_wd_hw_gemini31_ss 的分母 (回退不等于剔除, 只是文本窗口收窄失败后的优雅降级)。三家 LLM 的留篇门控口径统一为 full-only (2026-06-29 起): 是否判定"一篇银行金科报道"只看 llm_verified_full, ctx/ss 轨的 sum_wd_hw_gemini31_{ctx,ss} 因此是 conditional-on-full 的测度/稳健性轨, 其行宇宙是 full 轨留篇集合的子集, 而非独立样本框; 三本列均属 per-model 独立降级机制的一部分——gemini31 若某轨缺失分数, 只影响 gemini31 自身该轨分母, 不连坐 gpt54nano/deepseekv4 的同轨分母, 也不同于 co-primary 嵌入双轨的 both-or-neither 规则。 就本家族分母所依赖的有效性掩码前提, Laurer、Casas 与 Welbers (2025) 以对照实验证明指令/提示设计会实质改变语言模型作为测量工具的效度与偏误, 提示「gemini31 在该轨给出有效判断」这一掩码本身即模型效度的函数, 从而使分母的样本覆盖面成为一个需被显式披露的效度变量; 但该文对象是传播学英文文本分类任务与开源指令微调模型, 其「加指令可提效度」的结论与本项目嵌入侧刻意零 instruct 前缀、情感提示词 v8 已字节冻结的设计取向不同, 且原文不含权重加权分母口径, 故只作效度前提的方法学锚定。Liu、Liu 与 Wang (2025) 以金融文本为对象度量并实证刻画了不同大语言模型判断的分歧程度, 恰可解释为何 gemini31 与 gpt54nano/deepseekv4 的同名 hw 分母彼此不同——差异完全源于各家有效打分覆盖面的不重合, 这与上述 per-model 独立降级机制互为表里; 但该文系 SSRN 工作论文尚未经同行评审, 且其把分歧本身当作信号/噪声变量加以研究, 本项目不将分歧入模, 仅以各家有效性掩码构造各自独立的分母, 模型集合与语料亦与本项目不同。
 ## VAR: sum_wd_hw_gemini31_full
 
 【变体差分】
@@ -80,4 +95,6 @@ Schoenegger, P., Tuminauskaite, I., Park, P. S., Bastos, R. V. S., & Tetlock, P.
 Gilardi, F., Alizadeh, M., & Kubli, M. (2023). ChatGPT outperforms crowd workers for text-annotation tasks. Proceedings of the National Academy of Sciences, 120(30), e2305016120. https://doi.org/10.1073/pnas.2305016120
 Hwang, B.-H., & Kim, H. H. (2017). It pays to write well. Journal of Financial Economics, 124(2), 373-394. https://doi.org/10.1016/j.jfineco.2017.01.006
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The Validity of Sentiment Analysis: Comparing Manual Annotation, Crowd-Coding, Dictionary Approaches, and Machine Learning Algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
+Laurer, M., van Atteveldt, W., Casas, A., & Welbers, K. (2025). On Measurement Validity and Language Models: Increasing Validity and Decreasing Bias with Instructions. Communication Methods and Measures, 19(1), 46-62. https://doi.org/10.1080/19312458.2024.2378690
+Liu, Y., Liu, J., & Wang, T. (2025). Large Language Model Disagreement. SSRN Electronic Journal No. 5395056 [Working Paper]. https://doi.org/10.2139/ssrn.5395056
 <!-- rendered-citations:end -->

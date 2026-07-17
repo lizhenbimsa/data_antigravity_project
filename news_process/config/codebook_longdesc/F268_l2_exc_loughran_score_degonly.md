@@ -75,6 +75,15 @@ citations:
   vol: 37
   issue: 2
   pages_or_artno: 267-307
+- doi: "10.1057/s41267-025-00798-8"
+  type: "journal"
+  authors: "Pinto, J., & Siano, F."
+  year: 2025
+  title: "Beyond words: the challenge of measuring financial text across borders"
+  venue: "Journal of International Business Studies"
+  vol: "56"
+  issue: "7"
+  pages_or_artno: "921-936"
 new_dois: []
 ---
 
@@ -87,8 +96,7 @@ new_dois: []
 计算分两层。文章层由词典情感阶段产出 loughran_score_degonly_{track}: 对每篇文章的对应轨文本 (content_full / content_ctx / content_ss) 用 jieba 冻结分词后匹配 Loughran 中文词表的正词与负词, 在只应用程度副词强化规则的口径下累计正负贡献, 得到一个自归一化的净得分。所谓 degonly, 是把否定翻转、程度副词、转折三条规则做全 powerset 消融后取"仅程度副词"这一格: 即当词表命中词前存在程度副词 (如很、极、非常) 时按规则放大其权重, 但不因否定词前缀翻转极性, 也不因转折连词重分配句内权重。该变体与同族其余六个非-full 消融变体 (raw、negonly、advonly、negdeg、negadv、degadv) 以及全规则 full 口径高度共线, 属自归一化、非可加分解的规格稳健性梯子, 审计口径要求报告变体间相关而非把它们并入同一线性分解式。面板层的 exc_ 聚合发生在 attention_media 的停刊稳健性模块: 先由覆盖退出检测 (de-facto cessation proxy) 标注 _is_ceased_media, 该标注以"话题覆盖退出"为报纸停刊的保守代理而非经证实的出版停刊; 随后在存活子集 df_alive (\_is_ceased_media 为 0) 上按 target_bank 与 year 分组, 对文章级 loughran_score_degonly_{track} 取均值, 列名前缀 exc_。零文章的银行-年度对比例类与情感类列按契约保持 NaN 而非零填 (仅计数类如 n_articles_exc 才 Σ over ∅ 归零)。留篇门控口径遵循 full-only 铁律 (2026-06-29): 一篇报道是否计入银行金科报道宇宙只看 full 轨的 llm 判定, ctx 与 ss 轨在此之下降为 conditional-on-full 的测度轨, 其行宇宙是 full 留篇集的子集, per-track 列照算。三条文本轨互为稳健性、不分主次, 各自 just-identified 并排, 严禁把三轨混进同一 over-identified 的 Hansen J 过度识别检验; 同理 exc_ 存活子集与全样本口径、以及规则消融梯子的各格之间也遵守同一并排铁律。
 
 【文献定位】
-词表本体锚定于 Loughran 与 McDonald (2011) 发表于 Journal of Finance 的经典工作, 该文以"When is a liability not a liability"为题, 证明通用情感词典 (如 Harvard-IV) 在金融文本上系统性误分类, 并给出针对财经语域重构的正负词表, 是本家族 loughran 前缀词典的直接方法学源头。其后 Loughran 与 McDonald (2016) 在 Journal of Accounting Research 的综述、以及 Loughran 与 McDonald (2020) 在 Annual Review of Financial Economics 的回顾, 系统梳理了词典法在会计金融文本分析中的适用边界与规格敏感性, 为本家族把否定/程度/转折三规则做消融梯子、并把结果作为规格稳健性而非主效应提供了方法论依据。词典法在跨语域移植时的语言特异性问题, 由 Du 等 (2022) 在 Review of Finance 针对中文财经情感词典给出系统论证, 支撑本仓库采用中文主译词表而非直接套用英文原表的选择。词典法相对机器学习法的相对效度, 由 Frankel、Jennings 与 Lee (2022) 在 Management Science 做过直接比较, 为本仓库把词典、LLM、BERT 三法并置为互为稳健性轨提供先例。程度副词与转折等句法规则对词典情感的调制机制, 可追溯到 Taboada 等 (2011) 在 Computational Linguistics 提出的 lexicon-based 方法框架, 是 degonly 变体所激活的程度强化规则的规范出处。中文细粒度情感词典的最新构造 (Ma、Zhang 与 Zhang, 2025) 则为该测度族的持续可比性提供了当代参照。
-
+词表本体锚定于 Loughran 与 McDonald (2011) 发表于 Journal of Finance 的经典工作, 该文以"When is a liability not a liability"为题, 证明通用情感词典 (如 Harvard-IV) 在金融文本上系统性误分类, 并给出针对财经语域重构的正负词表, 是本家族 loughran 前缀词典的直接方法学源头。其后 Loughran 与 McDonald (2016) 在 Journal of Accounting Research 的综述、以及 Loughran 与 McDonald (2020) 在 Annual Review of Financial Economics 的回顾, 系统梳理了词典法在会计金融文本分析中的适用边界与规格敏感性, 为本家族把否定/程度/转折三规则做消融梯子、并把结果作为规格稳健性而非主效应提供了方法论依据。词典法在跨语域移植时的语言特异性问题, 由 Du 等 (2022) 在 Review of Finance 针对中文财经情感词典给出系统论证, 支撑本仓库采用中文主译词表而非直接套用英文原表的选择。词典法相对机器学习法的相对效度, 由 Frankel、Jennings 与 Lee (2022) 在 Management Science 做过直接比较, 为本仓库把词典、LLM、BERT 三法并置为互为稳健性轨提供先例。程度副词与转折等句法规则对词典情感的调制机制, 可追溯到 Taboada 等 (2011) 在 Computational Linguistics 提出的 lexicon-based 方法框架, 是 degonly 变体所激活的程度强化规则的规范出处。中文细粒度情感词典的最新构造 (Ma、Zhang 与 Zhang, 2025) 则为该测度族的持续可比性提供了当代参照。 词表移出本国语境后的可比性一侧尚可补一条当代警示: Pinto 与 Siano (2025) 以 85 个国家、200,960 份财报电话会记录 (文本本身即英文) 为语料, 把美国基准词表直接套用其上, 发现情感与收益的关联在非美国公司弱约 30%, 且定谳主因是文化距离而非语言 (语言特征仅作文化价值的工具变量); 即 L&M 式美国基准词表一旦移出美国语境, 即使文本仍是英文其信号强度亦系统性衰减, 而本家族所用 L&M (2011) 中文主译既跨文化、又另加中文翻译, 风险只会更大, 这与上述 Du 等 (2022) 的语言特异性论证互为呼应, 共同支撑本仓库并排多部本土词典与多条规则臂而不倚赖单一词表的设计。惟该文全文无词表翻译、亦无非英语语料, 语料为财报电话会记录而非中文金融新闻, 且未触及程度副词等规则子集的消融设计, 亦不涉及银行-年度聚合, 故仅作 degonly 臂的背景性依据而非直接出处。
 ## VAR: exc_loughran_score_degonly_ctx
 
 【变体差分】
@@ -112,4 +120,5 @@ Loughran, T., & McDonald, B. (2020). Textual analysis in finance. Annual Review 
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
+Pinto, J., & Siano, F. (2025). Beyond words: the challenge of measuring financial text across borders. Journal of International Business Studies, 56(7), 921-936. https://doi.org/10.1057/s41267-025-00798-8
 <!-- rendered-citations:end -->

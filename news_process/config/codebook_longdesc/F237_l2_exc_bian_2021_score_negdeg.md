@@ -56,6 +56,15 @@ citations:
   vol: 37
   issue: 2
   pages_or_artno: 267-307
+- doi: "10.3390/computers12010018"
+  type: "journal"
+  authors: "Naldi, M., & Petroni, S."
+  year: 2023
+  title: "A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools"
+  venue: "Computers"
+  vol: "12"
+  issue: "1"
+  pages_or_artno: "18"
 new_dois: []
 ---
 
@@ -68,8 +77,7 @@ new_dois: []
 计算分两层。文章级由 tone_words.py::compute_dict_scores 在 stage 22 完成: 对每篇文章的三轨文本 (full/ctx/ss) 分别用 Bian 词典匹配正负词, 在只保留否定翻转与程度副词两条规则的组合下计净情感并自归一化, 得到 bian_2021_score_negdeg 的三轨列。此处规则组合是全 powerset 消融梯度 (raw/negonly/degonly/advonly/negdeg/negadv/degadv) 中的 negdeg 一格, 各消融臂高度共线 (corr≈0.99)、彼此为非可加分解, 因而只报相关而不并入同一线性式。银行-年级聚合由 attention_media.py 的 C.4 段完成: 先由 detect_defacto_cessation 以"话题覆盖退出"为停刊的保守代理, 按各媒体在银行-金科子集中的末次出现年份早于样本末年减阈值 (且累计报道数达门槛) 标记 _is_ceased_media, 并以 NPPA 注销/停办/休刊名录交叉验证 (仅改报告标签, 未证实的 suspected 全量进入排除集); 随后在存活媒体子集 df_alive 上, 按动态发现的 'bian_2021_score_' 前缀 (排除 _w/_mw_/_idf_ 加权变体) 对 target_bank×year 取算术均值, 落为 exc_ 前缀列。零文章的银行-年格按情感类契约保持 NaN, 不做零填 (仅计数类 n_articles_exc 填 0)。
 
 【文献定位】
-底层词典的构念依据是 Bian et al. (2021), 其为中文会计与金融文本专门构建极性词表, 是本列词条来源。规则消融所调节的否定、程度副词、转折三类"效价转移词(valence shifters)"处理, 其方法学规范出自 Taboada et al. (2011) 在 Computational Linguistics 上对词典法情感分析的系统化, 该文明确区分了强化词、否定词与转折结构对极性计算的差异化影响, 正是 negdeg 只取否定与程度两条、剔除转折一条的直接依据。中文财经词典相较通用英文词典的领域特异性收益, 由 Du et al. (2022) 在 Review of Finance 上就中文财经情感词典的构建与验证给出, 佐证了在中国语境下采用本土词典 (而非机翻 Loughran-McDonald) 的必要。词典法与机器学习法在披露情感度量上的系统比较由 Frankel et al. (2022) 在 Management Science 上给出, 支撑了本仓将词典、LLM、BERT 三法并置为互为稳健性轨的设计。词典法在经济文本上的近期实证由 Barbaglia et al. (2025) 补充。媒体退出这一样本选择维度, 在以媒体情感为核心变量的面板中必须被识别与控制, 以免情感指标向存活媒体倾斜、污染 Bartik 类工具变量的暴露构造。铁律: 六部词典、七个规则消融臂、存活/全样本两口径、三轨(full/ctx/ss)各自 just-identified 并排, 互为稳健性、不分主次, 禁混进同一 over-identified Hansen J。ss 轨回退语义镜像 ctx 轨。留篇门控为 full-only 口径 (2026-06-29): 是否判为一篇银行-金科报道只看 full 轨 LLM 验证, ctx/ss 为 conditional-on-full 的稳健性轨。
-
+底层词典的构念依据是 Bian et al. (2021), 其为中文会计与金融文本专门构建极性词表, 是本列词条来源。规则消融所调节的否定、程度副词、转折三类"效价转移词(valence shifters)"处理, 其方法学规范出自 Taboada et al. (2011) 在 Computational Linguistics 上对词典法情感分析的系统化, 该文明确区分了强化词、否定词与转折结构对极性计算的差异化影响, 正是 negdeg 只取否定与程度两条、剔除转折一条的直接依据。中文财经词典相较通用英文词典的领域特异性收益, 由 Du et al. (2022) 在 Review of Finance 上就中文财经情感词典的构建与验证给出, 佐证了在中国语境下采用本土词典 (而非机翻 Loughran-McDonald) 的必要。词典法与机器学习法在披露情感度量上的系统比较由 Frankel et al. (2022) 在 Management Science 上给出, 支撑了本仓将词典、LLM、BERT 三法并置为互为稳健性轨的设计。词典法在经济文本上的近期实证由 Barbaglia et al. (2025) 补充。媒体退出这一样本选择维度, 在以媒体情感为核心变量的面板中必须被识别与控制, 以免情感指标向存活媒体倾斜、污染 Bartik 类工具变量的暴露构造。铁律: 六部词典、七个规则消融臂、存活/全样本两口径、三轨(full/ctx/ss)各自 just-identified 并排, 互为稳健性、不分主次, 禁混进同一 over-identified Hansen J。ss 轨回退语义镜像 ctx 轨。留篇门控为 full-only 口径 (2026-06-29): 是否判为一篇银行-金科报道只看 full 轨 LLM 验证, ctx/ss 为 conditional-on-full 的稳健性轨。 否定处理作为词典法内部一个可被单独测量、单独失效的模块, 其最贴近的方法学依据是 Naldi 与 Petroni (2023): 该文提出一套基于人工构造测试集的评测方法, 专门分析词典法情感分析工具的否定检测与处理表现, 并实证发现各工具在这一模块上的差异显著。这直接支撑本族 negdeg 臂把否定与程度两条规则合并激活、并与仅启否定、仅启程度等臂并排报告的消融设计: 若否定处理确为一个可独立失效的模块, 则其开关后果就必须被显式度量而非默认吸收。迁移边界须写明: 原文为英文、通用领域 (非金融) 的工具评测, 度量对象是否定检测准确率; 本族并不评测否定检测的正确性, 而是把否定规则的开/关作为面板测度的一条稳健性臂, 语料为中文银行金融科技新闻, 且在剔除疑似退出覆盖媒体后于银行-年度层取算术均值; 该文发表于 2023 年, 非 2024 年后的前沿文献。
 ## VAR: exc_bian_2021_score_negdeg_ctx
 
 【变体差分】
@@ -91,4 +99,5 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
+Naldi, M., & Petroni, S. (2023). A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools. Computers, 12(1), 18. https://doi.org/10.3390/computers12010018
 <!-- rendered-citations:end -->

@@ -32,7 +32,8 @@ os.makedirs(OUTDIR, exist_ok=True)
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
 # ── WP1 两列表分离 (2026-07-10 计划 §2.5, v2.3 防自授权环) ──────────────────
-# FILES_WHITELIST_ANCHOR = 13 静态路径冻结列表 = **白名单唯一派生源**。
+# FILES_WHITELIST_ANCHOR = 14 静态路径冻结列表 = **白名单唯一派生源**
+# (13 -> 14: 2026-07-17 并入第十补编; 计数断言见 test_codebook_longdesc.py)。
 # ⚠ 铁律: config/codebook_longdesc/*.md (家族长文库) **永不**并入本列表 — 若把
 # glob 扩进同一列表再派生白名单, 家族 md 渲染出的 DOI 会自动并入白名单 →
 # check_longdesc_whitelist 差集闸恒真、_new_dois_ledger 台账整体架空。
@@ -114,7 +115,7 @@ def audit_all_files(strict=True):
 def whitelist_dois():
     """白名单 DOI 集 (唯一派生源 = FILES_WHITELIST_ANCHOR; 供 check_longdesc_whitelist)。
 
-    2026-07-11 红队整改: 锚文件缺失从 print-WARN 升级为 SystemExit — 13 路径是
+    2026-07-11 红队整改: 锚文件缺失从 print-WARN 升级为 SystemExit — 14 路径是
     冻结列表且本 repo 实际发生过并发会话覆盖锚文件事故 (SUPPLEMENT_VIII), 缺失
     继续跑 = 白名单静默塌缩 → 差集闸大面积假红/覆盖缺口, 必须 fail-loud。
     """

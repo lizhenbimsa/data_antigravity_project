@@ -47,6 +47,22 @@ citations:
   vol: '30'
   issue: '4'
   pages_or_artno: 570-589
+- doi: "10.1177/10944281251334777"
+  type: "journal"
+  authors: "Iqbal, F., & Pfarrer, M. D."
+  year: 2025
+  title: "Using Coreference Resolution to Mitigate Measurement Error in Text Analysis"
+  venue: "Organizational Research Methods"
+  pages_or_artno: "10944281251334777"
+- doi: "10.1287/mnsc.2021.03722"
+  type: "journal"
+  authors: "Cuñat, V., & Groen-Xu, M."
+  year: 2025
+  title: "Timing Complex News to Target Attention"
+  venue: "Management Science"
+  vol: "71"
+  issue: "9"
+  pages_or_artno: "7774-7799"
 new_dois: []
 ---
 
@@ -60,8 +76,7 @@ F543 家族的三列 (sum_wd_vw_gpt54nano_full / _ctx / _ss) 本身不是情感�
 三轨语义遵循项目统一口径: full=标题+正文全文, ctx=标题+银行/金科实体窗口, ss=标题+银行∧金科同句 (或按 `context_window.ss_sentence_radius` 配置的窗口±N) 共现片段, 三者在 stage 14 `ctx_materializer` 统一物化; ss 轨若某篇报道不存在银行∧金科同句共现, 按镜像 ctx 的回退语义退化为使用全文正文 (`content_ss`=全文 body, `ss_is_fallback`=True), 该回退发生在文本物化阶段, 与本族所依赖的"gpt54nano 在该轨的 score 是否非缺失"这一判据相互独立——回退只改变喂给 gpt54nano 的输入文本内容, 不直接决定该轨判断是否有效。三轨各自 just-identified 并排、互为稳健性、不分主次, 项目铁律要求三轨结果禁止混入同一个 over-identified 的 Hansen J 过度识别检验中联合估计; 留篇门控口径 (是否判定为"一篇银行金科报道") 自 2026-06-29 起统一为 full-only, 即仅由 `llm_verified_full` 决定, ctx/ss 两轨降为 full 留篇集合之上的 conditional-on-full 测度/稳健性轨, 本族 ctx/ss 两列的行宇宙同样是该 full 留篇子集, 而非独立留篇标准下的报道全集。
 
 【文献定位】
-本族三列服务的多 LLM 多数投票 + 跨厂商稳健性设计, 方法学根基是"用多个独立评分者的判断汇聚以逼近真值"这一测量学传统在 LLM 时代的延伸。Gilardi, Alizadeh & Kubli (2023, PNAS) 证明 ChatGPT 类模型在文本标注任务上准确率可超越众包工人, 为用 LLM 替代/补充人工标注建立了实证基础; Schoenegger et al. (2024, Science Advances) 在预测市场/预测任务情境下论证多个 LLM 组成的"硅基群体"聚合准确率可比拟乃至超越人类群体预测, 其实证对象是预测任务而非文本情感分类打分, 但其揭示的核心机制——多个独立评分者/预测者各自输出、再经聚合可降低单一来源噪声、逼近更稳健的群体判断——属于"群体智慧" (wisdom of crowds) 这一更一般的测量学原理, 可类比迁移到本项目"多家 LLM 各自独立打分、再加权/投票聚合"的情感标注设计上, 为采用三家异构 LLM (而非单家) 投票聚合提供了间接的方法学参照; VW 加权正是这一聚合思路在"报道对目标银行关注强度"这一维度上的具体实现。van Atteveldt, van der Velden & Boukes (2021, Communication Methods and Measures) 系统比较了人工标注、众包编码、词典法与机器学习算法在情感分析效度上的差异, 说明不同测量路径 (对应本项目的 LLM/词典/BERT 三法并排) 各有效度剖面, 支持项目"多法互为稳健性、不设单一权威测度"的整体设计哲学。Ying, Montgomery & Stewart (2022, Political Analysis) 探讨了众包验证程序在概念测量中的应用, 呼应本族分母构造中"有效性掩码"这一核心动作的方法学关切: 当某个评分来源 (无论是人类标注者还是本项目情境下的某家 LLM) 对特定样本未能给出判断时, 聚合统计量的构造必须显式处理这种缺失, 否则会引入系统性偏差, 这正是 `sum_wd_vw_gpt54nano{track}` 存在的方法学正当性所在。
-
+本族三列服务的多 LLM 多数投票 + 跨厂商稳健性设计, 方法学根基是"用多个独立评分者的判断汇聚以逼近真值"这一测量学传统在 LLM 时代的延伸。Gilardi, Alizadeh & Kubli (2023, PNAS) 证明 ChatGPT 类模型在文本标注任务上准确率可超越众包工人, 为用 LLM 替代/补充人工标注建立了实证基础; Schoenegger et al. (2024, Science Advances) 在预测市场/预测任务情境下论证多个 LLM 组成的"硅基群体"聚合准确率可比拟乃至超越人类群体预测, 其实证对象是预测任务而非文本情感分类打分, 但其揭示的核心机制——多个独立评分者/预测者各自输出、再经聚合可降低单一来源噪声、逼近更稳健的群体判断——属于"群体智慧" (wisdom of crowds) 这一更一般的测量学原理, 可类比迁移到本项目"多家 LLM 各自独立打分、再加权/投票聚合"的情感标注设计上, 为采用三家异构 LLM (而非单家) 投票聚合提供了间接的方法学参照; VW 加权正是这一聚合思路在"报道对目标银行关注强度"这一维度上的具体实现。van Atteveldt, van der Velden & Boukes (2021, Communication Methods and Measures) 系统比较了人工标注、众包编码、词典法与机器学习算法在情感分析效度上的差异, 说明不同测量路径 (对应本项目的 LLM/词典/BERT 三法并排) 各有效度剖面, 支持项目"多法互为稳健性、不设单一权威测度"的整体设计哲学。Ying, Montgomery & Stewart (2022, Political Analysis) 探讨了众包验证程序在概念测量中的应用, 呼应本族分母构造中"有效性掩码"这一核心动作的方法学关切: 当某个评分来源 (无论是人类标注者还是本项目情境下的某家 LLM) 对特定样本未能给出判断时, 聚合统计量的构造必须显式处理这种缺失, 否则会引入系统性偏差, 这正是 `sum_wd_vw_gpt54nano{track}` 存在的方法学正当性所在。 沿测量误差这一线索, Iqbal 与 Pfarrer (2025) 证明多主体文本的情感归属存在系统性测量误差, 并以共指消解 (coreference resolution) 处理降低该误差; 其锚定本族的仅是一条一般性提示——以银行名称/别名显式计数为基底的文本测度 (本族权重 mention_density 正属此类) 会因指代是否还原而系统性改变取值, 该权重本身因而带有可识别的测量误差通道。须强调边界: 原文语料为英文组织管理文本、单位为文档/组织, 其立场是规范性的 (主张采纳该规则以减少误差), 本项目并未实施共指消解, 亦不以该文作为本族任何测度设计的同构先例。VW 相对等权 (EW) 口径的构念空间另有 Cuñat 与 Groen-Xu (2025) 的间接支持: 该文借美国公司备案系统 5:30 p.m. 的制度断点证明投资者注意力有限且时变、发行方会把更复杂的新闻策略性择时于注意力较高的时段发布, 对本族的意义仅止于一条存在性证据——报道在受众端的吸收强度并非同质, 故「每篇报道等权计 1」并非无争议的默认口径。该文并不为 mention_density 这一具体算子背书: 原文的注意力维度是发布时点与投资者端的注意力约束, 本族权重是篇内银行实体提及密度, 二者是完全不同的显著性算子, 原文既未构造亦未检验任何文本端权重, 层级为公告事件与高频市场反应而非银行-年报道池, 更不涉及 LLM 有效性掩码。
 ## VAR: sum_wd_vw_gpt54nano_full
 
 【变体差分】
@@ -82,4 +97,6 @@ Gilardi, F., Alizadeh, M., & Kubli, M. (2023). ChatGPT outperforms crowd workers
 Schoenegger, P., Tuminauskaite, I., Park, P. S., Bastos, R. V. S., & Tetlock, P. E. (2024). Wisdom of the silicon crowd — LLM ensemble prediction capabilities rival human crowd accuracy. Science Advances, 10(45), eadp1528. https://doi.org/10.1126/sciadv.adp1528
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis — comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Ying, L., Montgomery, J. M., & Stewart, B. M. (2022). Topics, concepts, and measurement — a crowdsourced procedure for validating topics as measures. Political Analysis, 30(4), 570-589. https://doi.org/10.1017/pan.2021.33
+Iqbal, F., & Pfarrer, M. D. (2025). Using Coreference Resolution to Mitigate Measurement Error in Text Analysis. Organizational Research Methods, 10944281251334777. https://doi.org/10.1177/10944281251334777
+Cuñat, V., & Groen-Xu, M. (2025). Timing Complex News to Target Attention. Management Science, 71(9), 7774-7799. https://doi.org/10.1287/mnsc.2021.03722
 <!-- rendered-citations:end -->

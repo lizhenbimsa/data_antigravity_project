@@ -81,6 +81,29 @@ citations:
   vol: 37
   issue: 2
   pages_or_artno: 267-307
+- doi: "10.2139/ssrn.5024959"
+  type: "wp"
+  authors: "Cziraki, P., & Gider, J."
+  year: 2024
+  title: "Newspaper Closures and Trading in Local Stocks"
+  venue: "SSRN"
+  pages_or_artno: "5024959"
+- doi: "10.1093/llc/fqae013"
+  type: "journal"
+  authors: "Venglařová, K., & Matlach, V."
+  year: 2024
+  title: "Beyond content: discriminatory power of function words in text type classification"
+  venue: "Digital Scholarship in the Humanities"
+  vol: "39"
+  issue: "2"
+  pages_or_artno: "765-789"
+- doi: "10.1177/10944281251334777"
+  type: "journal"
+  authors: "Iqbal, F., & Pfarrer, M. D."
+  year: 2025
+  title: "Using Coreference Resolution to Mitigate Measurement Error in Text Analysis"
+  venue: "Organizational Research Methods"
+  pages_or_artno: "10944281251334777"
 new_dois: []
 ---
 
@@ -93,8 +116,7 @@ new_dois: []
 计算链路分两段。文章级段在 tone_words.py 中完成: 对每篇报道用姜富伟(2021)词表统计正负词命中, 并把三条语言学规则以幂集方式物化为八个消融变体 raw、negonly、degonly、advonly、negdeg、negadv、degadv 与全规则版, 每个变体各自归一化、非可加分解; advonly 变体只让转折连词(如"但是""然而")触发的语义反转规则生效, 其余两条规则一律不施加, 以此隔离转折规则单独的边际贡献。面板层段在 attention_media.py 的 C.4 动态发现块完成: 先由 _is_ceased_media == 0 筛出存活媒体子样本 df_alive, 再对匹配情绪前缀模式的文章级列按 target_bank 与 year 分组取均值, 前缀加 exc_ 后左连接进面板。三条轨道 full/ctx/ss 各自独立走这条链路: full 轨用标题 prepend 加全文正文, ctx 轨用标题加实体窗口文本, ss 轨用标题加银行与金科同句共现窗文本; 缺列时守卫优雅跳过。留篇门控遵循 full-only 口径(2026-06-29), 一篇报道是否计入银行金科报道宇宙只看 full 轨的 llm_verified_full, ctx/ss 为 conditional-on-full 的稳健性轨。ss 轨回退语义镜像 ctx: 无银行金科同句共现时以全文正文回退。停刊媒体对应的 exc_ 情感列按契约保持 NaN, 绝不连带零填。
 
 【文献定位】
-词典法与机器学习法在披露情绪测量上的相对表现由 Frankel、Jennings 与 Lee (2022) 在 Management Science 系统比较, 其结论支持把词典法与其它方法并列为互为稳健性的测度而非唯一真相, 这正是本项目把六部词典、三家 LLM、三个 BERT 并排的方法学依据。姜富伟等 (2021) 提供本家族词表的原始出处与中文财经语料的构建思路。Du、Huang、Wermers 与 Wu (2022) 在 Review of Finance 强调中文金融情感词典的语言与领域专属性, 论证了不能照搬英文 Loughran-McDonald 词表而须用本土词典的必要性。van Atteveldt、van der Velden 与 Boukes (2021) 通过与人工标注对比量化了词典法的效度边界。Taboada 等 (2011) 系统阐述基于词典的情感分析中否定、程度与转折等语境价移(contextual valence shifting)规则, 是本家族 advonly 转折规则消融的方法学根基; Barbaglia 等 (2025) 在经济文本上给出词典法的近期应用范式。Bian 等 (2021) 提供另一部可比较的中文金融情感词典。Jiang、Lee、Martin 与 Zhou (2019) 在 Journal of Financial Economics 论证经理层情绪对股票回报的预测力, 为文本情绪测度的经济含义提供支撑。方法学口径上, 词典消融梯度(raw 至全规则八变体)属规格稳健性并排: 各消融变体各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同变体混进同一 over-identified Hansen J; 同理三轨 full/ctx/ss 亦各自 just-identified 并排、禁混同一 over-identified Hansen J。词典消融梯度与停刊代理口径正交, 不交叉物化以避免列爆炸。
-
+词典法与机器学习法在披露情绪测量上的相对表现由 Frankel、Jennings 与 Lee (2022) 在 Management Science 系统比较, 其结论支持把词典法与其它方法并列为互为稳健性的测度而非唯一真相, 这正是本项目把六部词典、三家 LLM、三个 BERT 并排的方法学依据。姜富伟等 (2021) 提供本家族词表的原始出处与中文财经语料的构建思路。Du、Huang、Wermers 与 Wu (2022) 在 Review of Finance 强调中文金融情感词典的语言与领域专属性, 论证了不能照搬英文 Loughran-McDonald 词表而须用本土词典的必要性。van Atteveldt、van der Velden 与 Boukes (2021) 通过与人工标注对比量化了词典法的效度边界。Taboada 等 (2011) 系统阐述基于词典的情感分析中否定、程度与转折等语境价移(contextual valence shifting)规则, 是本家族 advonly 转折规则消融的方法学根基; Barbaglia 等 (2025) 在经济文本上给出词典法的近期应用范式。Bian 等 (2021) 提供另一部可比较的中文金融情感词典。Jiang、Lee、Martin 与 Zhou (2019) 在 Journal of Financial Economics 论证经理层情绪对股票回报的预测力, 为文本情绪测度的经济含义提供支撑。方法学口径上, 词典消融梯度(raw 至全规则八变体)属规格稳健性并排: 各消融变体各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同变体混进同一 over-identified Hansen J; 同理三轨 full/ctx/ss 亦各自 just-identified 并排、禁混同一 over-identified Hansen J。词典消融梯度与停刊代理口径正交, 不交叉物化以避免列爆炸。 就本家族两个构造环节, 尚可各补前沿依据。停刊剔除一侧, Cziraki 与 Gider (2024) 以报纸停刊为冲击, 实证报道供给退出会改变本地股票的交易行为, 为本家族「剔除疑似退出覆盖媒体后再作银行—年度聚合」提供现实动机: 媒体退出是真实且有经济后果的样本组成变化。迁移边界在于, 原文的停刊判定取自外部事件数据、DV 为本地股票交易活动, 而本项目的 ceased_set 是自语料内部推断的保守代理 (confirmed 与 suspected 之并), 并非严格停刊事实, 用途亦仅限稳健性子样本而非识别冲击; 该文为工作论文, 未经同行评审。转折规则一侧, Venglařová 与 Matlach (2024) 实证显示功能词 (含连词一类非内容词) 在文本类型判别上具有独立于内容词的信息量, 支持本家族把转折/逆接连词视为一个与词项极性无关的独立语言维度, 值得单列为一条可独立开关的规则臂; 惟原文任务为文本类型分类, 并不区分转折连词与其他功能词类, 语料亦非中文金融新闻、不涉及银行—年度聚合, 故其仅在「转折连词自带独立信息」这一构念层面与 advonly 臂相通。Iqbal 与 Pfarrer (2025) 则以共指消解为例, 证明一项具体的语言学处理选择会系统性改变文本测度取值、并构成实质的测量误差来源, 与本项目不对语言学规则作默认采纳、而把其后果显式物化为消融臂的立场同向; 但须强调该文所处理的是实体指代还原 (在本项目中对应 ctx/ss 实体窗口轨而非规则消融族), 与否定/程度/转折三规则非同一规则, 且其取向是规范性的——主张采纳该规则以减少误差, 而本项目令七臂互为稳健性并排、不设主次, 故不得以之作为 powerset 规则消融设计的同构先例。
 ## VAR: exc_jiang_2021_score_advonly_ctx
 
 【变体差分】
@@ -119,4 +141,7 @@ van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validit
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Jiang, F., Lee, J., Martin, X., & Zhou, G. (2019). Manager sentiment and stock returns. Journal of Financial Economics, 132(1), 126-149. https://doi.org/10.1016/j.jfineco.2018.10.001
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
+Cziraki, P., & Gider, J. (2024). Newspaper Closures and Trading in Local Stocks. SSRN No. 5024959 [Working Paper]. https://doi.org/10.2139/ssrn.5024959
+Venglařová, K., & Matlach, V. (2024). Beyond content: discriminatory power of function words in text type classification. Digital Scholarship in the Humanities, 39(2), 765-789. https://doi.org/10.1093/llc/fqae013
+Iqbal, F., & Pfarrer, M. D. (2025). Using Coreference Resolution to Mitigate Measurement Error in Text Analysis. Organizational Research Methods, 10944281251334777. https://doi.org/10.1177/10944281251334777
 <!-- rendered-citations:end -->

@@ -51,6 +51,23 @@ citations:
   year: 2025
   title: 'Detecting greenwashing: A natural language processing literature survey'
   venue: arXiv
+- doi: "10.1016/j.iref.2026.105256"
+  type: "journal"
+  authors: "Huang, Y., Zhang, Y., Li, Y., Ma, S., & Hao, C."
+  year: 2026
+  title: "Different effect of positivity and negativity: ESG media sentiment and corporate energy consumption intensity"
+  venue: "International Review of Economics & Finance"
+  vol: "108"
+  pages_or_artno: "105256"
+- doi: "10.24136/oc.4220"
+  type: "journal"
+  authors: "Long, H., & Hao, Y."
+  year: 2026
+  title: "AI talk–action gaps and ESG rating sensitivity: Evidence from Chinese A-share firms"
+  venue: "Oeconomia Copernicana"
+  vol: "17"
+  issue: "2"
+  pages_or_artno: "457-513"
 new_dois: []
 ---
 
@@ -65,8 +82,7 @@ washing_asymmetry{track} 的计算严格遵循 pipeline\panel\runner.py 中标�
 本 F601 家族的三个成员列 washing_asymmetry_full / washing_asymmetry_ctx / washing_asymmetry_ss 对应文本三轨 (full=标题+正文全文, ctx=标题+银行∧金科实体窗口, ss=标题+银行∧金科同句±N窗口, N 由 config/filtering.yaml::context_window.ss_sentence_radius 控制, 默认 1)。三轨遵循本仓库统一的三轨架构铁律: 各自 just-identified 并排、互为稳健性、不分主次, 严禁将三轨列混入同一 over-identified Hansen J 检验框架。ss 轨的回退语义镜像 ctx 轨: 当某篇文章内不存在银行与金融科技实体的同句共现时, content_ss 退化为全文 body (与 content_full 相同), 并置位 ss_is_fallback=True, 此时该文章在 ss 轨上的情感/类型分类实质上复用了全文口径, 三轨分母 n_articles 在此情形下共享同一集合而非各自独立采样。留篇门控口径遵循 2026-06-29 起生效的 full-only 铁律: 一篇文章是否被计入"银行金融科技报道"的分母, 只取决于 llm_verified_full == True, ctx/ss 两轨在此意义上是 conditional-on-full 的测度/稳健性轨, 其行宇宙是 full 轨留篇集合的子集, 三轨各自的分子分母仍按各自轨道逐轨计算 (即 washing_asymmetry_ctx 的 neg_sub_count_ctx / neg_substvalid_count_ctx 等分子分母全部取 _ctx 后缀列, 不借用 full 轨的中间量), 因而三轨数值一般不相等, 差异本身即反映了文本窗口收窄后洗白判定的稳健性区间。
 
 【文献定位】
-washing_asymmetry 家族在测度设计上直接承袭了近年漂绿/洗白 (greenwashing/washing) 实证文献对"言行不一致"的量化范式。Song, Hou, Ouyang & Hao (2026, Finance Research Letters) 提出的 "AI washing" 概念——企业在人工智能相关信息披露上进行策略性夸大并招致市场反噬——为本家族"报道内容虚实不对称"的构念提供了直接的当代锚点: 银行在金融科技领域的媒体呈现同样存在"技术标签滥用"与"实质投入不足"之间的落差, washing_asymmetry 正是把这种落差从定性观察转为可面板回归的连续变量。Fan, Tang, Huang & Yang (2025, Pacific-Basin Finance Journal) 基于多主体视角研究中国资本市场的企业漂绿行为与股权集中度的关系, 其研究设计中对"漂绿严重程度"的操作化同样依赖披露文本与实际行动的对比, 与本家族方法 A (washing_ratio) 和方法 B (neg_sub_ratio) 联合构造非对称性指标的思路高度一致, 也印证了在中国制度背景下用文本挖掘识别策略性披露具有可行性。Gorovaia & Makrominas (2024, European Financial Management) 使用自然语言处理方法从企业社会责任报告中识别漂绿信号, 其方法学路径 (对报告文本做情感与实质性的联合标注, 再构造比率型指标) 与本仓库 washing_ratio 及其非对称性衍生指标的构造逻辑同源, 是本家族方法学定位的重要参照。Duchin, Gao & Xu (2025, *The Journal of Finance*) 通过工业污染资产市场的交易数据识别可持续性叙事与漂绿行为的真伪, 提供了顶刊层级对"企业对外叙事与实质行为存在系统性落差"这一现象的实证确认, 为本家族的核心构念假设 (媒体报道的正负面呈现存在结构性不对称) 提供了跨行业、跨市场的外部效度支撑。此外, Calamai, Balalau, Le Guenedal & Suchanek (2025, arXiv 综述) 系统梳理了漂绿检测的自然语言处理文献, 指出情感极性与内容实质性的联合建模是当前主流路径之一, 与本仓库 stage 21 三家 LLM 联合分类情感与文本类型 (实质性 vs 象征性) 的设计思路相符, 佐证了本家族方法学选择处于该领域的技术前沿而非孤立设计。washing_asymmetry 家族的三轨扩展 (full/ctx/ss) 亦呼应了上述文献共同关切的"叙述窗口大小影响信号提取"这一一般性问题: Duchin, Gao & Xu (2025) 与 Calamai et al. (2025) 的方法学讨论均隐含了信息颗粒度的选择会系统性影响不对称性测度稳健性这一判断, 本仓库将这一关切具体化为三个并排的文本窗口轨道 (full/ctx/ss), 而非单一窗口下的单点估计, 三轨互为稳健性并排、禁止混入同一 over-identified Hansen J 检验框架。
-
+washing_asymmetry 家族在测度设计上直接承袭了近年漂绿/洗白 (greenwashing/washing) 实证文献对"言行不一致"的量化范式。Song, Hou, Ouyang & Hao (2026, Finance Research Letters) 提出的 "AI washing" 概念——企业在人工智能相关信息披露上进行策略性夸大并招致市场反噬——为本家族"报道内容虚实不对称"的构念提供了直接的当代锚点: 银行在金融科技领域的媒体呈现同样存在"技术标签滥用"与"实质投入不足"之间的落差, washing_asymmetry 正是把这种落差从定性观察转为可面板回归的连续变量。Fan, Tang, Huang & Yang (2025, Pacific-Basin Finance Journal) 基于多主体视角研究中国资本市场的企业漂绿行为与股权集中度的关系, 其研究设计中对"漂绿严重程度"的操作化同样依赖披露文本与实际行动的对比, 与本家族方法 A (washing_ratio) 和方法 B (neg_sub_ratio) 联合构造非对称性指标的思路高度一致, 也印证了在中国制度背景下用文本挖掘识别策略性披露具有可行性。Gorovaia & Makrominas (2024, European Financial Management) 使用自然语言处理方法从企业社会责任报告中识别漂绿信号, 其方法学路径 (对报告文本做情感与实质性的联合标注, 再构造比率型指标) 与本仓库 washing_ratio 及其非对称性衍生指标的构造逻辑同源, 是本家族方法学定位的重要参照。Duchin, Gao & Xu (2025, *The Journal of Finance*) 通过工业污染资产市场的交易数据识别可持续性叙事与漂绿行为的真伪, 提供了顶刊层级对"企业对外叙事与实质行为存在系统性落差"这一现象的实证确认, 为本家族的核心构念假设 (媒体报道的正负面呈现存在结构性不对称) 提供了跨行业、跨市场的外部效度支撑。此外, Calamai, Balalau, Le Guenedal & Suchanek (2025, arXiv 综述) 系统梳理了漂绿检测的自然语言处理文献, 指出情感极性与内容实质性的联合建模是当前主流路径之一, 与本仓库 stage 21 三家 LLM 联合分类情感与文本类型 (实质性 vs 象征性) 的设计思路相符, 佐证了本家族方法学选择处于该领域的技术前沿而非孤立设计。washing_asymmetry 家族的三轨扩展 (full/ctx/ss) 亦呼应了上述文献共同关切的"叙述窗口大小影响信号提取"这一一般性问题: Duchin, Gao & Xu (2025) 与 Calamai et al. (2025) 的方法学讨论均隐含了信息颗粒度的选择会系统性影响不对称性测度稳健性这一判断, 本仓库将这一关切具体化为三个并排的文本窗口轨道 (full/ctx/ss), 而非单一窗口下的单点估计, 三轨互为稳健性并排、禁止混入同一 over-identified Hansen J 检验框架。 两条更晚近的实证分别从极性侧与构造侧加固了本家族的设计。Huang、Zhang、Li、Ma 与 Hao (2026) 实证表明媒体 ESG 情感的正面侧与负面侧对企业实质行为的影响在方向与幅度上并不对称, 为本家族把「正面—象征」通道 (方法 A, washing_ratio) 与「负面—实质」通道 (方法 B, neg_sub_ratio) 分开构造再作差提供了媒体情感极性不对称的当代实证依据; 迁移边界须诚实写明: 该文的不对称体现在正/负媒体情感对 DV (能耗强度) 回归系数的差异, 属效应侧不对称, 而 washing_asymmetry 是在测量侧把两个比率直接相减构成单一指标, 二者不是同一数学对象, 且原文主体为非金融企业、议题为 ESG/能耗, 未涉及象征—实质判定。Long 与 Hao (2026) 对中国 A 股企业构造 AI 的 talk–action gap (言论强度与实际行动之差) 并检验其与 ESG 评级敏感性的关系, 其 gap 的差分式构造与本家族的减法式属同一类「叙事—行动背离」量化, 是该测度族在中国技术话语情境下的前沿存在性证明; 但原文 talk 侧来自年报文本 AI 词频、action 侧来自企业实际投入与专利, 观测单位为公司-年且技术域为 AI、DV 为 ESG 评级敏感性, 本家族 talk/action 两侧则同源于新闻报道内部的 LLM 象征—实质判定 (无外部行动侧数据), 单位为银行-年、技术域为金融科技, 故本轮仅取其构造范式的存在性而不迁移其识别设计。
 ## VAR: washing_asymmetry_ctx
 
 【变体差分】
@@ -88,4 +104,6 @@ Fan, X., Tang, Z., Huang, W., & Yang, K. (2025). Ownership concentration and cor
 Gorovaia, N., & Makrominas, M. (2024). Identifying greenwashing in corporate-social responsibility reports using natural-language processing. European Financial Management, 31(1), 427-462. https://doi.org/10.1111/eufm.12509
 Duchin, R., Gao, J., & Xu, Q. (2025). Sustainability or greenwashing: Evidence from the asset market for industrial pollution. The Journal of Finance, 80(2), 699-754. https://doi.org/10.1111/jofi.13412
 Calamai, T., Balalau, O., Le Guenedal, T., & Suchanek, F. M. (2025). Detecting greenwashing: A natural language processing literature survey. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2502.07541
+Huang, Y., Zhang, Y., Li, Y., Ma, S., & Hao, C. (2026). Different effect of positivity and negativity: ESG media sentiment and corporate energy consumption intensity. International Review of Economics & Finance, 108, 105256. https://doi.org/10.1016/j.iref.2026.105256
+Long, H., & Hao, Y. (2026). AI talk–action gaps and ESG rating sensitivity: Evidence from Chinese A-share firms. Oeconomia Copernicana, 17(2), 457-513. https://doi.org/10.24136/oc.4220
 <!-- rendered-citations:end -->

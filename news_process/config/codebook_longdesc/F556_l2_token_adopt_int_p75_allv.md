@@ -47,6 +47,32 @@ citations:
   venue: Economic Modelling
   vol: '127'
   pages_or_artno: '106445'
+- doi: "10.1177/01708406241295505"
+  type: "journal"
+  authors: "Kaufmann, L., Krlev, G., & Brown, M. (."
+  year: 2025
+  title: "In Plain Sight: Mechanisms of means–ends decoupling in impact investing"
+  venue: "Organization Studies"
+  vol: "46"
+  issue: "5"
+  pages_or_artno: "667-692"
+- doi: "10.1016/j.gfj.2026.101305"
+  type: "journal"
+  authors: "Ge, X., & Luo, Q."
+  year: 2026
+  title: "Greenwashing in green mutual funds: Symbolic ESG vs. substantive carbon emissions"
+  venue: "Global Finance Journal"
+  vol: "72"
+  pages_or_artno: "101305"
+- doi: "10.1016/j.ipm.2025.104383"
+  type: "journal"
+  authors: "Chen, J., Wen, J., Deng, Y., Chen, M., & Ma, F."
+  year: 2026
+  title: "Measuring policy diffusion intensity: A text-driven analysis of government documents"
+  venue: "Information Processing & Management"
+  vol: "63"
+  issue: "2"
+  pages_or_artno: "104383"
 new_dois: []
 ---
 
@@ -67,8 +93,7 @@ new_dois: []
 三轨(full/ctx/ss)与全年份锚点(vintage 主轨 vs `_allv` 静态锚点)在本族内是两条相互独立、正交的稳健性维度: 三轨衡量"用哪部分文本(全文/实体窗口/银行-金科同句窗口)计算相似度与强度", 锚点维度衡量"政策参照向量是否逐年滚动更新"。两个维度各自 just-identified 并排, 互为稳健性、不分主次, 禁止将同一构念的不同轨道或不同锚点变体同时塞入同一个 over-identified Hansen J 检验; ss 轨在无银行∧金科同句共现时镜像 ctx 轨的回退语义, 退化为使用全文 body 并置位 `ss_is_fallback=True`(与 stage 14 物化的三轨文本架构口径一致)。留篇门控采用 full-only 口径(2026-06-29 起): 一篇文章是否被计入 n_articles 分母, 只看其 full 轨的 `llm_verified_full` 判定结果; ctx/ss 轨的象限分类因此是 conditional-on-full 的测度/稳健性轨, 行宇宙是 full 轨留篇集合的子集, 而非独立样本。
 
 【文献定位】
-Token/Hidden/Substantive 三分类象限的理论根基是组织对外部制度压力的响应存在"言"与"行"两个可分离维度这一制度理论洞见, 银行业金融科技化情境下, Gomber, Koch & Siering (2017, *Journal of Business Economics*) 系统梳理了数字金融/FinTech 研究脉络, 指出传统金融机构对金融科技浪潮的响应既包含战略叙事/公开表态层面, 也包含产品与渠道投入层面的实质行动, 二者演进节奏未必同步, 为区分"话语层"与"行动层"响应提供了文献依据。Adner & Kapoor (2010, *Strategic Management Journal*) 关于创新生态系统中技术互依结构如何影响企业绩效的研究, 进一步支持了"采纳意愿的对外表达"与"采纳的实际技术/资源投入"可被独立测量并产生不同绩效含义这一识别策略前提。Boot (2000, *Journal of Financial Intermediation*) 对关系型银行业的经典综述, 提示银行对外部创新压力的响应模式与其既有关系型业务模式的兼容程度密切相关——这为解释为何部分银行仅在话语层面对标金科政策却迟迟未落地实质投入(Token 象限)提供了制度/战略惰性视角的背景解释。Fang, Wang, Wang & Zhao (2023, *Economic Modelling*) 关于中国银行业金科投入与流动性创造、风险承担关系的实证研究, 与本族测度共享"用连续型强度打分刻画银行金科真实投入水平"的方法论关切, 为 Track B("int")强度打分而非单纯关键词计数的合理性提供了同域实证先例。
-
+Token/Hidden/Substantive 三分类象限的理论根基是组织对外部制度压力的响应存在"言"与"行"两个可分离维度这一制度理论洞见, 银行业金融科技化情境下, Gomber, Koch & Siering (2017, *Journal of Business Economics*) 系统梳理了数字金融/FinTech 研究脉络, 指出传统金融机构对金融科技浪潮的响应既包含战略叙事/公开表态层面, 也包含产品与渠道投入层面的实质行动, 二者演进节奏未必同步, 为区分"话语层"与"行动层"响应提供了文献依据。Adner & Kapoor (2010, *Strategic Management Journal*) 关于创新生态系统中技术互依结构如何影响企业绩效的研究, 进一步支持了"采纳意愿的对外表达"与"采纳的实际技术/资源投入"可被独立测量并产生不同绩效含义这一识别策略前提。Boot (2000, *Journal of Financial Intermediation*) 对关系型银行业的经典综述, 提示银行对外部创新压力的响应模式与其既有关系型业务模式的兼容程度密切相关——这为解释为何部分银行仅在话语层面对标金科政策却迟迟未落地实质投入(Token 象限)提供了制度/战略惰性视角的背景解释。Fang, Wang, Wang & Zhao (2023, *Economic Modelling*) 关于中国银行业金科投入与流动性创造、风险承担关系的实证研究, 与本族测度共享"用连续型强度打分刻画银行金科真实投入水平"的方法论关切, 为 Track B("int")强度打分而非单纯关键词计数的合理性提供了同域实证先例。 上述制度理论谱系在近期文献中获得了更直接的补强。Kaufmann、Krlev 与 Brown (2025) 以影响力投资为田野, 系统刻画了 means-ends decoupling (政策/实践在形式上落地却与目标脱节) 的具体机制, 正是本族 Token 与 Substantive 两格理论区分所依托的脱耦框架的近期组织学表述; 但该文为定性机制研究, 不构造任何数值指标, 更无分位阈值二值化或银行-年聚合, 场域为影响力投资机构而非中国银行业, 其 means-ends 概念与本族「政策余弦 × 金科强度」的操作化仅属理论对应而非同一测量。Ge 与 Luo (2026) 把绿色基金的「象征性 ESG (声明/评级层面)」与「实质性碳排放 (真实结果层面)」分别测量后交叉比对以识别洗绿, 与本列 Token 象限 (强度高、对齐低) 的识别逻辑同构; 其边界在于层级为基金-期, 象征维用 ESG 声明/评级、实质维用组合碳排放, 两维均非文本测度, 亦不用年度分位阈值把双维二值化成 2×2 象限。相似度侧的方法学谱系可参照 Chen、Wen、Deng、Chen 与 Ma (2026): 该文以政府文件文本为基础构造政策扩散强度的文本驱动测度, 与本族 sim 维同属「用政策文本相似度/强度刻画政策对齐程度」的方法族; 但其测的是政府文件之间的扩散强度 (政府—政府层级), 本族则是新闻报道文本对政策锚点的余弦相似度 (媒体—政策层级), 且原文不做二值象限分类、不设年度分位阈值, 也没有全语料静态锚点与逐年滚动锚点相互对照的稳健性设计, 故仅可作为 sim 维的方法学存在性锚点, 不能据以主张其验证过本族的锚点变体对照。
 ## VAR: token_adopt_int_p75_allv
 
 【变体差分】
@@ -95,4 +120,7 @@ Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital finance and FinTech: Curr
 Adner, R., & Kapoor, R. (2010). Value creation in innovation ecosystems: How the structure of technological interdependence affects firm performance in new technology generations. Strategic Management Journal, 31(3), 306–333. https://doi.org/10.1002/smj.821
 Boot, A. W. A. (2000). Relationship banking: What do we know?. Journal of Financial Intermediation, 9(1), 7–25. https://doi.org/10.1006/jfin.2000.0282
 Fang, Y., Wang, Q., Wang, F., & Zhao, Y. (2023). Bank fintech, liquidity creation, and risk-taking: Evidence from China. Economic Modelling, 127, 106445. https://doi.org/10.1016/j.econmod.2023.106445
+Kaufmann, L., Krlev, G., & Brown, M. (. (2025). In Plain Sight: Mechanisms of means–ends decoupling in impact investing. Organization Studies, 46(5), 667-692. https://doi.org/10.1177/01708406241295505
+Ge, X., & Luo, Q. (2026). Greenwashing in green mutual funds: Symbolic ESG vs. substantive carbon emissions. Global Finance Journal, 72, 101305. https://doi.org/10.1016/j.gfj.2026.101305
+Chen, J., Wen, J., Deng, Y., Chen, M., & Ma, F. (2026). Measuring policy diffusion intensity: A text-driven analysis of government documents. Information Processing & Management, 63(2), 104383. https://doi.org/10.1016/j.ipm.2025.104383
 <!-- rendered-citations:end -->

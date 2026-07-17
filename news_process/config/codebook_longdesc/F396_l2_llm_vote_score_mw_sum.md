@@ -54,6 +54,20 @@ citations:
   vol: "120"
   issue: "30"
   pages_or_artno: "e2305016120"
+- doi: "10.18653/v1/2025.findings-acl.744"
+  type: "journal"
+  authors: "Wang, W., Wang, Y., & Huang, H."
+  year: 2025
+  title: "Ranked Voting based Self-Consistency of Large Language Models"
+  venue: "Findings of the Association for Computational Linguistics: ACL 2025"
+  pages_or_artno: "14410-14426"
+- doi: "10.1287/mnsc.2024.08999"
+  type: "journal"
+  authors: "Burtch, G., McFowland, E., Yang, M., & Adomavicius, G."
+  year: 2026
+  title: "EnsembleIV: Creating Instrumental Variables from Ensemble Learners for Robust Statistical Inference with ML- Generated Variables"
+  venue: "Management Science"
+  pages_or_artno: "mnsc.2024.08999"
 new_dois: []
 ---
 
@@ -74,8 +88,7 @@ new_dois: []
 【文献定位】
 本家族方法学定位处于三条文献脉络的交汇点。其一是 LLM 文本标注/情感分析在金融文本挖掘中的应用范式: de Kok (2025, Management Science) 系统论述了如何在会计与金融研究中规范使用生成式大语言模型做文本分析 (含 prompt 版本控制、temperature 设定、可复现缓存), 本项目 stage 21 的确定性锚点设计 (prompt v8 冻结 + temperature=0.0 + LLM 缓存离线可复现) 正是对该规范的工程落地; Gilardi et al. (2023, PNAS) 的发现 (ChatGPT 类模型在文本标注任务上可超越众包标注质量) 为以 LLM 多数投票替代传统人工/词典标注提供了方法学正当性基础。其二是 LLM 集成/多数投票机制: Kamen & Kamen (2025) 证明 LLM ensemble 的多数投票策略在内容分类上系统性优于单模型判断, 本项目采用跨厂商 (OpenAI/Google/DeepSeek) 三家独立模型多数投票, 既降低单一厂商模型偏差, 也与该文献的 ensemble 优越性发现相呼应。其三是媒体特征与市场信息环境的更宽泛脉络: Fang & Peress (2009, Journal of Finance) 揭示媒体覆盖广度 (报道有无/报道量) 与个股横截面收益的因果关联, 说明媒体特征会系统性调节报道对定价与信息环境的影响力, 本家族 mw 权威度加权与其在"媒体特征异质性重要"这一宽泛判断上呼应, 但 mw 权重的直接构造依据 (生产源码 encode.py 注释所标注) 是媒体来源权威等级本身, 与 Fang & Peress 所刻画的"覆盖广度"是媒体经济学脉络下两个不同的构念维度, 不应互相替代解读; Du et al. (2022, Review of Finance) 构建中文金融情感词典时同样强调中文金融文本情感测度须针对领域特异性做校准, 本项目虽以 LLM 而非词典为主测度, 但词典法 (dict_*) 是本项目情感测度三角 (LLM/词典/BERT) 中互为稳健性的并列一支, mw 加权口径在三法之间统一适用, 保证跨方法可比。
 
-三轨口径铁律: full/ctx/ss 三轨各自 just-identified 并排, 互为稳健性、不分主次, 禁止混进同一 over-identified Hansen J 检验。ss 轨回退语义镜像 ctx 轨——当某篇文章不存在银行∧金科词同句共现时, content_ss 回退为全文 body (与 content_ctx 的实体窗口回退逻辑对称), 对应 ss_is_fallback 标记为 True, 且此类回退行仍计入分母 (n_articles 口径共享)。n_articles 与留篇门控严格遵循 full-only 口径 (2026-06-29 起生效): 一篇文章是否被计为"该银行-年的一篇有效银行金科报道", 只由 llm_verified_full 决定, ctx/ss 轨的加权和列是在该 full-only 留篇行集合的子集上、按各自轨道文本条件计算的稳健性测度, 不构成独立的行宇宙判定。
-
+三轨口径铁律: full/ctx/ss 三轨各自 just-identified 并排, 互为稳健性、不分主次, 禁止混进同一 over-identified Hansen J 检验。ss 轨回退语义镜像 ctx 轨——当某篇文章不存在银行∧金科词同句共现时, content_ss 回退为全文 body (与 content_ctx 的实体窗口回退逻辑对称), 对应 ss_is_fallback 标记为 True, 且此类回退行仍计入分母 (n_articles 口径共享)。n_articles 与留篇门控严格遵循 full-only 口径 (2026-06-29 起生效): 一篇文章是否被计为"该银行-年的一篇有效银行金科报道", 只由 llm_verified_full 决定, ctx/ss 轨的加权和列是在该 full-only 留篇行集合的子集上、按各自轨道文本条件计算的稳健性测度, 不构成独立的行宇宙判定。 就投票规则本身与聚合量的下游使用而言, 近年方法学文献进一步收窄了本族构造的可辩护边界。Wang、Wang 与 Huang (2025) 以排序投票 (ranked voting) 取代朴素多数票来聚合 LLM 的多个候选输出, 并实证其聚合质量提升, 表明投票规则是一处显式的设计自由度而非唯一解, 这为本族分子 llm_vote_score{track} ∈ {-1,0,1} 的三家多数票及其 bank-year 加权求和提供了前沿参照; 迁移边界须如实标明: 该文的投票单元是同一模型多次采样得到的候选答案 (self-consistency) 而非跨三家厂商的标签投票, 任务为推理/生成而非三分类情感, 亦不涉及本族的媒体权威度加权分子与 bank-year 分组求和, 本项目仍维持朴素多数票、未采纳排序投票。Burtch、McFowland、Yang 与 Adomavicius (2026) 利用集成学习器内部各成员预测之间的差异构造工具变量, 以缓解 ML 生成变量作为回归元时的测量误差偏误; 本族 mw 加权和恰是一类由多个异构模型逐篇打分再聚合而成的 ML 生成变量, 该文因此为下游把此类聚合量放入回归提供了一条已发表的处理路径。其迁移边界同样须诚实交代: 原文的集成成员是同一训练流程下的 ML 预测器 (树/神经网络等), 成员差异有明确的重采样来源; 本项目的成员是三家不同厂商的闭源 LLM, 差异来源不可控且不可重采样, 原文构造 IV 的前提未必成立。本项目未实施 EnsembleIV, 该文仅作方法学存在性参照收录, 亦不得据此把三家 per-model 子测度或三轨并列列混入同一 over-identified 的 Hansen J——这与上述各自 just-identified 并排的铁律直接冲突。
 ## VAR: llm_vote_score_mw_sum_ctx
 
 【变体差分】
@@ -96,4 +109,6 @@ de Kok, T. (2025). ChatGPT for Textual Analysis? How to Use Generative LLMs in A
 Kamen, A.; Kamen, Y. (2025). Majority Rules: LLM Ensemble Is a Winning Approach for Content Categorization. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2511.15714
 Fang, Lily; Peress, Joel. (2009). Media Coverage and the Cross-Section of Stock Returns. The Journal of Finance, 64(5), 2023-2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x
 Gilardi, Fabrizio; Alizadeh, Meysam; Kubli, Maël. (2023). ChatGPT Outperforms Crowd Workers for Text-Annotation Tasks. Proceedings of the National Academy of Sciences, 120(30), e2305016120. https://doi.org/10.1073/pnas.2305016120
+Wang, W., Wang, Y., & Huang, H. (2025). Ranked Voting based Self-Consistency of Large Language Models. Findings of the Association for Computational Linguistics: ACL 2025, 14410-14426. https://doi.org/10.18653/v1/2025.findings-acl.744
+Burtch, G., McFowland, E., Yang, M., & Adomavicius, G. (2026). EnsembleIV: Creating Instrumental Variables from Ensemble Learners for Robust Statistical Inference with ML- Generated Variables. Management Science, mnsc.2024.08999. https://doi.org/10.1287/mnsc.2024.08999
 <!-- rendered-citations:end -->

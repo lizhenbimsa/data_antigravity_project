@@ -67,6 +67,22 @@ citations:
   vol: 37
   issue: 2
   pages_or_artno: 267-307
+- doi: "10.3390/computers12010018"
+  type: "journal"
+  authors: "Naldi, M., & Petroni, S."
+  year: 2023
+  title: "A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools"
+  venue: "Computers"
+  vol: "12"
+  issue: "1"
+  pages_or_artno: "18"
+- doi: "10.2139/ssrn.5024959"
+  type: "wp"
+  authors: "Cziraki, P., & Gider, J."
+  year: 2024
+  title: "Newspaper Closures and Trading in Local Stocks"
+  venue: "SSRN"
+  pages_or_artno: "5024959"
 new_dois: []
 ---
 
@@ -79,8 +95,7 @@ new_dois: []
 文章级得分在 stage 22 (tone_words) 计算。分词后调用 _compute_sentiment_with_rules, 对命中 jiang_2021 词表的极性词逐一累加带符号强度, 再以其绝对值之和归一化, 得 norm_score = Σ_signed / Σ|base| ∈ [−1, 1], 属幅度口径 (amplitude) 而非纯词频计数口径。degonly 变体锁定规则开关 (apply_negation=False, apply_degree=True, apply_adversative=False), 即只施加程度副词的六级强度加权、不做否定翻转、不做转折 boost, 是规则消融梯度 _RULE_ABLATION_VARIANTS 中 (raw, negonly, degonly, advonly, negdeg, negadv, degadv) 七个非-full 组合之一; 全语言学规则叠加后的 full 组合另行物化为主列 jiang_2021_score, 不落本家族。valence-shifter 谱系的方法学依据见 Taboada 等 (2011) 与其后续文献: 程度副词、否定、转折被视为改变基础极性强度或方向的三类独立算子, 逐一开关即构成对语调测度稳健性的消融检验。bank-year 聚合在 stage 40 的 attention_media 停刊稳健性块 (C.4) 完成: 先由 detect_defacto_cessation 以"话题覆盖退出"为停刊的保守代理产 _is_ceased_media 掩码 (须强调这是疑似退出覆盖而非经证实的报纸停刊), 再对 _is_ceased_media==0 的存活媒体文章按 (target_bank, year) 分组求文章级得分均值, 冠以 exc_ 前缀。停刊稳健性口径的经济动机是幸存者偏差 (survivorship bias): 若覆盖某话题的媒体陆续退出, 语调指标会向存活媒体倾斜并可能污染下游 Bartik 类工具变量, 故构造剔除疑似退出媒体后的替代指标, 供 Stata 端做系数稳定性对照。exc_* 情感类列在零文章 bank-year 按契约保持 NaN, 不做计数式零填。
 
 【文献定位】
-词典法语调测度的效度须放在与人工标注、机器学习法的三方比较中理解: van Atteveldt 等 (2021) 系统比较人工标注、众包、词典与机器学习, 指出词典法在细粒度极性上弱于监督学习但具备完全可复现、零训练成本与跨样本词表固定的优点, 正是本流水线保留多部词典并逐条做规则消融的理由。Du 等 (2022) 构建中文财经情感词典并讨论语言与领域特异性, 与 jiang_2021 同属中文财经语料的词表工程谱系, 二者互为构念替代。Cao 等 (2023) 关于"机器在听时如何说话"的证据提示: 当文本同时被算法读取时, 披露语调本身会被策略性调整, 这为把媒体 (第三方) 语调而非公司自述语调作为信号来源提供了额外辩护。方法学定位上, degonly 与同家族其余六个规则消融臂各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同规则臂混入同一 over-identified Hansen J; 三条文本轨 (full/ctx/ss) 同理各自 just-identified 并排、禁混同一 over-identified Hansen J。留篇门控采 full-only 口径 (2026-06-29): 是否算作一篇银行金科报道只看 full 轨的 llm_verified 判定, ctx/ss 为 conditional-on-full 的测度/稳健性轨, 其行宇宙是 full 留篇集的子集。
-
+词典法语调测度的效度须放在与人工标注、机器学习法的三方比较中理解: van Atteveldt 等 (2021) 系统比较人工标注、众包、词典与机器学习, 指出词典法在细粒度极性上弱于监督学习但具备完全可复现、零训练成本与跨样本词表固定的优点, 正是本流水线保留多部词典并逐条做规则消融的理由。Du 等 (2022) 构建中文财经情感词典并讨论语言与领域特异性, 与 jiang_2021 同属中文财经语料的词表工程谱系, 二者互为构念替代。Cao 等 (2023) 关于"机器在听时如何说话"的证据提示: 当文本同时被算法读取时, 披露语调本身会被策略性调整, 这为把媒体 (第三方) 语调而非公司自述语调作为信号来源提供了额外辩护。方法学定位上, degonly 与同家族其余六个规则消融臂各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同规则臂混入同一 over-identified Hansen J; 三条文本轨 (full/ctx/ss) 同理各自 just-identified 并排、禁混同一 over-identified Hansen J。留篇门控采 full-only 口径 (2026-06-29): 是否算作一篇银行金科报道只看 full 轨的 llm_verified 判定, ctx/ss 为 conditional-on-full 的测度/稳健性轨, 其行宇宙是 full 留篇集的子集。 就本臂刻意关闭否定翻转、仅保留程度副词规则这一设定, Naldi 与 Petroni (2023) 提出以人工构造测试集评估词典法情感工具的否定检测与处理能力, 并实证发现各工具在否定处理上表现差异显著, 印证否定是词典法内部可被单独测量、单独失效的模块, 从而使 degonly 这一臂具备明确的方法学意涵; 惟其评测语料为英文通用领域、度量对象是否定检测准确率, 本项目并不评测准确率, 只把规则开关的后果并排呈现为互为稳健性的臂。样本层面, Cziraki 与 Gider (2024) 以美国本地报纸停刊为冲击, 实证报道供给退出会改变本地股票的交易行为, 为本族在剔除 _is_ceased_media 标记媒体后重算存活子样本均值提供了现实动机; 但其停刊判定来自外部事件数据、被解释变量为本地股票交易活动, 而本族的标记只是自语料内部推断的疑似退出覆盖保守代理, 用途限于稳健性子样本而非识别冲击, 且该文为未经同行评审的工作论文。
 ## VAR: exc_jiang_2021_score_degonly_ctx
 
 【变体差分】
@@ -103,4 +118,6 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Jiang, F., Lee, J., Martin, X., & Zhou, G. (2019). Manager sentiment and stock returns. Journal of Financial Economics, 132(1), 126-149. https://doi.org/10.1016/j.jfineco.2018.10.001
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
+Naldi, M., & Petroni, S. (2023). A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools. Computers, 12(1), 18. https://doi.org/10.3390/computers12010018
+Cziraki, P., & Gider, J. (2024). Newspaper Closures and Trading in Local Stocks. SSRN No. 5024959 [Working Paper]. https://doi.org/10.2139/ssrn.5024959
 <!-- rendered-citations:end -->

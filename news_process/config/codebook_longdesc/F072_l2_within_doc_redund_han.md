@@ -53,6 +53,15 @@ citations:
   vol: 27
   issue: 3
   pages_or_artno: 379-423
+- doi: "10.1111/lang.12630"
+  type: "journal"
+  authors: "Bestgen, Y."
+  year: 2024
+  title: "Measuring Lexical Diversity in Texts: The Twofold Length Problem"
+  venue: "Language Learning"
+  vol: "74"
+  issue: "3"
+  pages_or_artno: "638-671"
 new_dois: []
 ---
 
@@ -69,8 +78,7 @@ new_dois: []
 需要强调的一处口径边界: 篇内冗余度量的是同一篇文章内部的字面自重复, 与跨篇、跨期的陈旧度 (staleness) 及年际文本变化 (lazy Jaccard) 构念正交 — 前者问"这一篇是否啰嗦地自我重复", 后者问"今年这篇相对去年那篇是否照抄"。二者不可互相替代。此外, 汉字口径冗余与字符口径冗余在文章级相关极高 (源码标注文章级 corr 约 0.99), 故本家族三列是字符口径的敏感性诊断轨而非独立构念, 属 hanzi-char-dual 稳健性对照; 二者禁同进一回归式, 以免共线且构念重复计数 (实测相关的确切数值待生产 T=19 语料回填)。
 
 【文献定位】
-篇内冗余作为文本信息含量逆代理, 其思想根植于信息论: Shannon (1948) 把冗余定义为符号序列可预测部分的占比, 高冗余意味着单位符号承载的信息熵低, 这为"重复越多、增量信息越少"提供了原始理论锚。在会计与财务披露文本研究中, You & Zhang (2009) 论证披露复杂度会削弱投资者对信息的即时吸收, 引发对复杂文本的反应不足, 而重复冗长正是复杂度的一个可操作侧面; Lesmy, Muchnik 与 Mugerman (2025) 在跨制度比较中记录了财务报告复杂度随时间攀升的趋势, 呼应了以文本结构量化信息可及性的研究路线。方法层面, Hansen, McMahon 与 Prat (2018) 以计算语言学手段量化央行审议文本的信息与重复结构, 示范了如何把机械的文本统计量映射为具经济含义的沟通测度, 是本家族"机械文本比率→经济语义代理"路径的方法学范本。工程侧, Khan 等 (2024) 提出的大规模文档去重方法从相反方向印证了 n-gram 重叠作为冗余/重复识别原语的可扩展性与稳健性。本家族即在中文媒体语料上把上述篇内冗余思路以汉字 3-gram 唯一比率落地, 并保留字符/汉字双口径与配对长度控制以支撑稳健性诊断。
-
+篇内冗余作为文本信息含量逆代理, 其思想根植于信息论: Shannon (1948) 把冗余定义为符号序列可预测部分的占比, 高冗余意味着单位符号承载的信息熵低, 这为"重复越多、增量信息越少"提供了原始理论锚。在会计与财务披露文本研究中, You & Zhang (2009) 论证披露复杂度会削弱投资者对信息的即时吸收, 引发对复杂文本的反应不足, 而重复冗长正是复杂度的一个可操作侧面; Lesmy, Muchnik 与 Mugerman (2025) 在跨制度比较中记录了财务报告复杂度随时间攀升的趋势, 呼应了以文本结构量化信息可及性的研究路线。方法层面, Hansen, McMahon 与 Prat (2018) 以计算语言学手段量化央行审议文本的信息与重复结构, 示范了如何把机械的文本统计量映射为具经济含义的沟通测度, 是本家族"机械文本比率→经济语义代理"路径的方法学范本。工程侧, Khan 等 (2024) 提出的大规模文档去重方法从相反方向印证了 n-gram 重叠作为冗余/重复识别原语的可扩展性与稳健性。本家族即在中文媒体语料上把上述篇内冗余思路以汉字 3-gram 唯一比率落地, 并保留字符/汉字双口径与配对长度控制以支撑稳健性诊断。 就本测度已知的长度偏倚, Bestgen (2024) 给出了最直接的方法学依据: 该文在三个英语学习者文本数据集上系统批判常用词汇多样性指数, 指出『双重长度问题』——第一重是 type-token 比率类指数本身随文本长度系统漂移; 第二重是即便以概率或算法方法把所有文本削减至等长从而解决了第一重, 这些指数仍对『决定该等长长度的参数取值』高度敏感, 无一幸免。本家族的 1 − 唯一汉字 3-gram / 全部汉字 3-gram 在数学上正是 (1 减) 一个 type-token 比率, 上述双重长度问题原样适用, 这也正是本家族必须与 avg_redund_han_log_length 等配对长度列并置解读、而非单独解读其水平高低的测度学理由。迁移边界须明示: 该文在字母语言学习者语料上做词级 type-token 分析, 与本项目的中文汉字 3-gram 阶在语言与 n-gram 阶数上均不同; 原文未研究金融或新闻文本, 也未提出本项目采用的 mean-of-ln 长度聚合; 其给出的等长削减类校正本项目并未实施——引用它是为诚实披露长度依赖并提示本项目未做校正, 不是主张该问题在本家族已被解决。
 ## VAR: avg_within_doc_redund_han_ctx
 
 【变体差分】
@@ -98,4 +106,5 @@ Khan, A., Underwood, R., Siebenschuh, C., Babuji, Y., Ajith, A., Hippe, K., Gokd
 Hansen, S., McMahon, M., & Prat, A. (2018). Transparency and deliberation within the FOMC: A computational linguistics approach. The Quarterly Journal of Economics, 133(2), 801-870. https://doi.org/10.1093/qje/qjx045
 You, H., & Zhang, X.-J. (2009). Financial reporting complexity and investor underreaction to 10-K information. Review of Accounting Studies, 14(4), 559-586. https://doi.org/10.1007/s11142-008-9083-2
 Shannon, C. E. (1948). A mathematical theory of communication. Bell System Technical Journal, 27(3), 379-423. https://doi.org/10.1002/j.1538-7305.1948.tb01338.x
+Bestgen, Y. (2024). Measuring Lexical Diversity in Texts: The Twofold Length Problem. Language Learning, 74(3), 638-671. https://doi.org/10.1111/lang.12630
 <!-- rendered-citations:end -->

@@ -49,6 +49,15 @@ citations:
   title: "Validating large language model annotations"
   venue: "Federal Reserve Board FEDS Working Paper"
   vol: "2026-020"
+- doi: "10.1609/aaai.v39i18.34120"
+  type: "journal"
+  authors: "Lyu, Q., Shridhar, K., Malaviya, C., Zhang, L., Elazar, Y., Tandon, N., Apidianaki, M., Sachan, M., & Callison-Burch, C."
+  year: 2025
+  title: "Calibrating Large Language Models with Sample Consistency"
+  venue: "Proceedings of the AAAI Conference on Artificial Intelligence"
+  vol: "39"
+  issue: "18"
+  pages_or_artno: "19260-19268"
 new_dois: []
 ---
 
@@ -61,8 +70,7 @@ new_dois: []
 计算分两步, 均严格逐轨进行, 不跨轨混用。第一步 (runner.py 步骤 3d): 对每篇文章, 取该轨已算好的 `herd_weight_{track}_thr25` (τ=0.25 下的衰减权重, 由 stage 24 输出; 若 stage 24 未产出该 τ 的权重列, 则本列在该轨整体缺失, 优雅跳过而非报错), 与同轨 `llm_vote_cont_{track}` 逐元素相乘, 得到文章级中间列 `llm_vote_cont_hw_thr25_{track}`。第二步 (encode.py build_aggregation_dict): 以 `(target_bank, year)` 为分组键, 对上述文章级列取 `sum` 聚合, 得到本家族三列。聚合口径与 `llm_vote_score` 同一有效性判据配对 (LLM 族为 nullable 缺失敏感型: 某篇报道若三家模型未能给出有效投票, `llm_vote_score`/`llm_vote_cont` 记为缺失, 该篇不进入 Σ; 与此对应的分母列同样只累加"有效篇"的权重, 即 encode-01 修正后的 valid-mask 匹配分母设计, 分子分母同域, 避免把"LLM 未判断"误当作"语调为 0"而系统性把均值拉向 0)。三条列彼此的差异仅在文本轨: `_full` 用标题+正文全文, `_ctx` 用标题+目标银行实体窗口文本, `_ss` 用标题+银行∧金科同句±N 窗口文本 (无共现命中时回退为全文 body, 并标记 `ss_is_fallback=True`, 与 `_ctx` 回退语义镜像); 三者的留篇口径统一以 stage 21 `llm_verified_full` 为准 (full-only 门控, 2026-06-29 起生效), 行宇宙一致, 只是各轨用来加权求和的语调值/权重值取自各自轨道的逐篇结果。
 
 【文献定位】
-本家族方法学上落在三条文献线的交汇处: 其一是媒体语调测度对"重复报道稀释边际信息"的敏感性处理, 沿用 Peress (2014) 关于媒体覆盖广度影响信息扩散/价格发现速度的论证框架, 并以 Tetlock (2007) 作为语调测度本身载有定价相关信息这一前提的文献支撑(两文各自对应不同的论证环节, 详见【构念与来源】); 其二是大模型多家投票作为文本分类/情感标注工具的可靠性文献, 本列所依赖的连续语调分正是三家 LLM (gpt54nano/gemini31/deepseekv4) 多数投票共识的强度化版本, 呼应 Kamen & Kamen (2025) 关于集成多家大模型投票在内容分类任务上优于单一模型的发现, 也与 de Kok (2025, *Management Science*) 关于在会计与金融文本分析中规范使用生成式大模型 (温度固定为 0、提示词冻结、结果可缓存复现) 的方法论建议一致——本项目 stage 21 的 `temperature=0.0` 与 prompt 字节级冻结正是遵循这一范式; 其三是无金标准场景下大模型标注可信度的验证文献, Hansen (2026, FEDS Working Paper) 讨论了在缺乏人工金标准时如何用一致性统计量 (κ/α 等) 验证大模型标注质量, 与本项目三家 LLM 多数投票共识、并以 Krippendorff's α 与重映射后的 Cohen κ 度量模型间一致性的做法在思路上呼应——需说明的是, 本家族正文其余处出现的"Hansen J"是计量经济学中的过度识别检验统计量, 与 Hansen (2026) 这篇 LLM 标注验证文献是同姓氏巧合、并非同一出处, 两者不可混淆。阈值敏感性网格的设计理念则呼应稳健性推断文献中"结论不应依赖单一自由选定的门槛"的一般性要求, 本列 (τ=0.25) 与生产基线 (τ=0.35) 及网格内其余候选 (0.30/0.40/0.45) 各自独立重估、并排陈列, 供读者判断主结论是否随门槛松紧而漂移。此外须提示: 本项目本机开发态样本仅 T=2 (2017-2018 两年, 110 家银行), 在如此小的银行-年样本内, 同期报道篇数往往很少, 跟风衰减权重所依赖的"同银行同期文本相似度分布"在 τ=0.25/0.35 等不同阈值下容易出现零方差或高度退化的边界情形, 本列在开发态下的读数解读应以此为前提; 生产语料 (T=19, 2007-2025) 报道篇数充分后, 阈值敏感性网格才具备正常的统计辨识力, 二者不可等同看待。
-
+本家族方法学上落在三条文献线的交汇处: 其一是媒体语调测度对"重复报道稀释边际信息"的敏感性处理, 沿用 Peress (2014) 关于媒体覆盖广度影响信息扩散/价格发现速度的论证框架, 并以 Tetlock (2007) 作为语调测度本身载有定价相关信息这一前提的文献支撑(两文各自对应不同的论证环节, 详见【构念与来源】); 其二是大模型多家投票作为文本分类/情感标注工具的可靠性文献, 本列所依赖的连续语调分正是三家 LLM (gpt54nano/gemini31/deepseekv4) 多数投票共识的强度化版本, 呼应 Kamen & Kamen (2025) 关于集成多家大模型投票在内容分类任务上优于单一模型的发现, 也与 de Kok (2025, *Management Science*) 关于在会计与金融文本分析中规范使用生成式大模型 (温度固定为 0、提示词冻结、结果可缓存复现) 的方法论建议一致——本项目 stage 21 的 `temperature=0.0` 与 prompt 字节级冻结正是遵循这一范式; 其三是无金标准场景下大模型标注可信度的验证文献, Hansen (2026, FEDS Working Paper) 讨论了在缺乏人工金标准时如何用一致性统计量 (κ/α 等) 验证大模型标注质量, 与本项目三家 LLM 多数投票共识、并以 Krippendorff's α 与重映射后的 Cohen κ 度量模型间一致性的做法在思路上呼应——需说明的是, 本家族正文其余处出现的"Hansen J"是计量经济学中的过度识别检验统计量, 与 Hansen (2026) 这篇 LLM 标注验证文献是同姓氏巧合、并非同一出处, 两者不可混淆。阈值敏感性网格的设计理念则呼应稳健性推断文献中"结论不应依赖单一自由选定的门槛"的一般性要求, 本列 (τ=0.25) 与生产基线 (τ=0.35) 及网格内其余候选 (0.30/0.40/0.45) 各自独立重估、并排陈列, 供读者判断主结论是否随门槛松紧而漂移。此外须提示: 本项目本机开发态样本仅 T=2 (2017-2018 两年, 110 家银行), 在如此小的银行-年样本内, 同期报道篇数往往很少, 跟风衰减权重所依赖的"同银行同期文本相似度分布"在 τ=0.25/0.35 等不同阈值下容易出现零方差或高度退化的边界情形, 本列在开发态下的读数解读应以此为前提; 生产语料 (T=19, 2007-2025) 报道篇数充分后, 阈值敏感性网格才具备正常的统计辨识力, 二者不可等同看待。 就"以三家一致率对离散共识票做强度收缩"这一连续化环节而言, Lyu 等 (2025) 给出了更贴近的校准证据: 该文系统比较多种置信度来源, 实证表明由多次采样输出之间的一致性导出的置信度, 在校准性上优于模型自报置信度与 logit 概率, 为本项目以 llm_agreement_rate 而非模型自报分数充当连续置信权重的构造提供了方法学支撑。迁移边界须一并明确: 该文的一致性来自同一模型在正温度下的重复采样, 而本项目 temperature=0.0 且不重复采样, agreement_rate 是三家不同厂商模型 (gpt54nano/gemini31/deepseekv4) 的跨模型投票一致率 ∈ [1/3, 1], 属跨模型而非跨采样的一致性, 其校准性质并未被该文覆盖; 该文任务为英文推理/QA 基准, 既非中文新闻三分类情感, 亦不涉及本家族赖以成立的 τ 阈值跟风加权与银行-年分子求和。因此该文只锚定"一致率可作为可信的置信权重来源"这一环, 不能被读作对本列 τ=0.25 网格点或加权和口径的任何背书。
 ## VAR: llm_vote_cont_hw_thr25_sum_ctx
 
 【变体差分】
@@ -83,4 +91,5 @@ Tetlock, P. C. (2007). Giving Content to Investor Sentiment: The Role of Media i
 Kamen, A., & Kamen, Y. (2025). Majority rules: LLM ensemble is a winning approach for content categorization. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2511.15714
 Peress, J. (2014). The Media and the Diffusion of Information in Financial Markets: Evidence from Newspaper Strikes. Journal of Finance, 69(5), 2007-2043. https://doi.org/10.1111/jofi.12179
 Hansen, A. L. (2026). Validating large language model annotations. Federal Reserve Board FEDS Working Paper [Working Paper]. https://doi.org/10.17016/FEDS.2026.020
+Lyu, Q., Shridhar, K., Malaviya, C., Zhang, L., Elazar, Y., Tandon, N., Apidianaki, M., Sachan, M., & Callison-Burch, C. (2025). Calibrating Large Language Models with Sample Consistency. Proceedings of the AAAI Conference on Artificial Intelligence, 39(18), 19260-19268. https://doi.org/10.1609/aaai.v39i18.34120
 <!-- rendered-citations:end -->

@@ -62,6 +62,38 @@ citations:
   vol: '164'
   issue: ''
   pages_or_artno: Article 107191
+- doi: "10.2139/ssrn.6922688"
+  type: "wp"
+  authors: "Xu, F."
+  year: 2026
+  title: "Bank FinTech Intensity and Financial Performance: Text-Based Evidence from European Banks"
+  venue: "SSRN"
+  pages_or_artno: "6922688"
+- doi: "10.1177/01708406241295505"
+  type: "journal"
+  authors: "Kaufmann, L., Krlev, G., & Brown, M. (."
+  year: 2025
+  title: "In Plain Sight: Mechanisms of means–ends decoupling in impact investing"
+  venue: "Organization Studies"
+  vol: "46"
+  issue: "5"
+  pages_or_artno: "667-692"
+- doi: "10.1016/j.frl.2024.105265"
+  type: "journal"
+  authors: "Huang, J., & Ma, L."
+  year: 2024
+  title: "Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation"
+  venue: "Finance Research Letters"
+  vol: "63"
+  pages_or_artno: "105265"
+- doi: "10.1016/j.frl.2024.105401"
+  type: "journal"
+  authors: "Zhang, Z., Hou, Y., Li, Z., & Li, M."
+  year: 2024
+  title: "From symbolic to substantive green innovation: How does ESG ratings optimize corporate green innovation structure"
+  venue: "Finance Research Letters"
+  vol: "63"
+  pages_or_artno: "105401"
 new_dois: []
 ---
 
@@ -76,8 +108,7 @@ new_dois: []
 【文献定位】
 象征性与实质性采纳的区分是组织理论中长期成熟的构念, Westphal & Zajac (1994) 首次在 CEO 长期激励计划的「采用但不使用」现象上系统化了这一区分, Fiss & Zajac (2006) 进一步把象征化管理机制化为「框架-脱钩」的战略变革传导链条。本家族把这一理论谱系移植到中国银行业金融科技报道语境, 用词频强度代理「行为」、用政策语言相似度代理「言语立场」, 属于近年金融文本挖掘文献中「言行是否脱钩」测度的一支, 与 Bingler et al. (2024) 在气候信息披露中区分「廉价谈话」与真实排放/声誉风险敞口的方法论同构, 也与 Duchin, Gao & Xu (2025) 通过资产市场证据甄别可持续性叙事与漂绿行为的识别策略呼应。Kutzbach & Pogach (2024) 则从金融科技与关系型信贷互补/替代关系的角度提示: 仅凭报道措辞无法判断银行金融科技投入究竟是渐进补充存量业务, 还是实质性替代传统关系型信贷模式, 这正是本家族用「词频×相似度」双维度交叉分类、而非单维度阈值分割的动机所在。
 
-三轨 (full/ctx/ss) 与 vintage/allv 双锚点在本家族内构成两条正交的稳健性阶梯: 三轨各自基于不同文本窗口 (full=标题+全文, ctx=标题+实体窗口, ss=标题+银行∧金科同句±N窗) 独立计算词频与相似度, 各自 just-identified 并排、互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 设定; allv 全年份静态锚点与不带 allv 后缀的 vintage 按年匹配锚点同理互为稳健性并排, 二者共用完全一致的 track × 词频轨 × 分位数四象限构造, 唯一差异是相似度阈值列的锚点来源, 同样不应混入同一识别方程。需要明确披露的口径铁律 (对照 policy_alignment.py 源码注释): allv 锚点用全部年份汇总的政策文本构造, 对早期年份的报道而言, 其相似度打分实际上包含了发生在报道之后才出台的「未来」政策文本, 因而存在前视偏差, 仅作跨年份比较不受锚点漂移干扰的稳健性对照, 绝不能替换 vintage 主轨作为识别策略的主口径; vintage 按年匹配锚点不含此前视偏差, 是构念上更贴合「报道当时的政策语境」的主轨, 二者互为稳健性并排而非 allv 优于 vintage。留篇门控遵循 full-only 口径 (2026-06-29 起): 一篇报道是否被计入「银行金科报道」样本, 只看 full 轨 llm_verified_full 是否为真, ctx/ss 是本家族的 conditional-on-full 测度/稳健性轨, 行宇宙是 full 留篇集合的子集。_ss 轨的回退语义镜像 _ctx: 若报道中不存在银行与金科词汇的同句共现, content_ss 退化为全文正文, 对应的 ss_is_fallback 标记为真, 与 _ctx 共享同一套 n_articles 分母口径; 若 stage 15 上游 FINTECH_AC 词典缺失 (None), 则 *_is_fallback 全部为真, 呈优雅降级而非崩溃。
-
+三轨 (full/ctx/ss) 与 vintage/allv 双锚点在本家族内构成两条正交的稳健性阶梯: 三轨各自基于不同文本窗口 (full=标题+全文, ctx=标题+实体窗口, ss=标题+银行∧金科同句±N窗) 独立计算词频与相似度, 各自 just-identified 并排、互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 设定; allv 全年份静态锚点与不带 allv 后缀的 vintage 按年匹配锚点同理互为稳健性并排, 二者共用完全一致的 track × 词频轨 × 分位数四象限构造, 唯一差异是相似度阈值列的锚点来源, 同样不应混入同一识别方程。需要明确披露的口径铁律 (对照 policy_alignment.py 源码注释): allv 锚点用全部年份汇总的政策文本构造, 对早期年份的报道而言, 其相似度打分实际上包含了发生在报道之后才出台的「未来」政策文本, 因而存在前视偏差, 仅作跨年份比较不受锚点漂移干扰的稳健性对照, 绝不能替换 vintage 主轨作为识别策略的主口径; vintage 按年匹配锚点不含此前视偏差, 是构念上更贴合「报道当时的政策语境」的主轨, 二者互为稳健性并排而非 allv 优于 vintage。留篇门控遵循 full-only 口径 (2026-06-29 起): 一篇报道是否被计入「银行金科报道」样本, 只看 full 轨 llm_verified_full 是否为真, ctx/ss 是本家族的 conditional-on-full 测度/稳健性轨, 行宇宙是 full 留篇集合的子集。_ss 轨的回退语义镜像 _ctx: 若报道中不存在银行与金科词汇的同句共现, content_ss 退化为全文正文, 对应的 ss_is_fallback 标记为真, 与 _ctx 共享同一套 n_articles 分母口径; 若 stage 15 上游 FINTECH_AC 词典缺失 (None), 则 *_is_fallback 全部为真, 呈优雅降级而非崩溃。 近年文献在测度端与理论端分别为本族的两维信号补充了锚点。Xu (2026) 用文本方法构造银行层面的 FinTech intensity 指标并检验其与经营绩效的关系, 与本族 freq 维所用的 fintech_intensity_score 属同一测度族, 说明"银行层面文本金科强度"确有同域应用; 边界在于该文样本为欧洲银行, 文本取自银行自身披露/年报而非第三方中文新闻, 其 intensity 以连续形式直接进入回归, 既不做年度分位二值化, 也不与政策文本相似度交叉形成 2×2 象限, 且属未经同行评审的 SSRN 工作论文, 结论稳健性未定。Kaufmann、Krlev 与 Brown (2025) 以影响力投资为田野系统刻画 means-ends decoupling 的具体机制, 为本族 subst 与 token 两格的理论区分提供了近期组织学依据; 惟该文为定性机制研究, 不构造任何数值指标, 更无分位阈值二值化与 bank-year 聚合, 与本族"政策余弦 × 金科强度"的操作化仅属理论对应而非同一测量。Huang 与 Ma (2024) 在中国情境下检验金融科技发展对企业实质性与象征性绿色创新的差异化影响, 佐证该二分在金科议题下的同域适用性; 其实质/象征由专利类型客观划分、主体为非金融上市公司, 与本族基于新闻文本逐篇判定银行采纳形态的口径不同。Zhang、Hou、Li 与 Li (2024) 研究 ESG 评级如何推动企业创新结构由象征性向实质性迁移, 其以象征性/实质性构成比而非绝对水平为分析对象的做法, 与本族取"双高篇数 / 已测量篇数"这一构成比 (而非强度绝对水平) 的设计逻辑一致; 但原文比例基于专利结构数据, 主体为 A 股非金融企业, 驱动因素为 ESG 评级, 且未使用任何文本判定器, 故仅锚定"以构成比刻画实质性程度"这一构念, 不锚定本族的分位阈值口径与文本测度原语。
 ## VAR: subst_adopt_int_p50_allv
 
 【变体差分】
@@ -99,4 +130,8 @@ Fiss, P. C., & Zajac, E. J. (2006). The Symbolic Management of Strategic Change 
 Kutzbach, M. J., & Pogach, J. (2024). Financial Technology and Relationship Lending: Complements or Substitutes?. Journal of Financial Intermediation, 59, Article 101101. https://doi.org/10.1016/j.jfi.2024.101101
 Duchin, R., Gao, J., & Xu, Q. (2025). Sustainability or Greenwashing: Evidence from the Asset Market for Industrial Pollution. The Journal of Finance. https://doi.org/10.1111/jofi.13412
 Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2024). How Cheap Talk in Climate Disclosures Relates to Climate Initiatives, Corporate Emissions, and Reputation Risk. Journal of Banking & Finance, 164, Article 107191. https://doi.org/10.1016/j.jbankfin.2024.107191
+Xu, F. (2026). Bank FinTech Intensity and Financial Performance: Text-Based Evidence from European Banks. SSRN No. 6922688 [Working Paper]. https://doi.org/10.2139/ssrn.6922688
+Kaufmann, L., Krlev, G., & Brown, M. (. (2025). In Plain Sight: Mechanisms of means–ends decoupling in impact investing. Organization Studies, 46(5), 667-692. https://doi.org/10.1177/01708406241295505
+Huang, J., & Ma, L. (2024). Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation. Finance Research Letters, 63, 105265. https://doi.org/10.1016/j.frl.2024.105265
+Zhang, Z., Hou, Y., Li, Z., & Li, M. (2024). From symbolic to substantive green innovation: How does ESG ratings optimize corporate green innovation structure. Finance Research Letters, 63, 105401. https://doi.org/10.1016/j.frl.2024.105401
 <!-- rendered-citations:end -->

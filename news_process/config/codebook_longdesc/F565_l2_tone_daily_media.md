@@ -47,6 +47,15 @@ citations:
   venue: International Review of Economics & Finance
   vol: '91'
   pages_or_artno: 1150-1172
+- doi: "10.1111/acfi.13230"
+  type: "journal"
+  authors: "Yan, L., Ma, Y., Li, C., & Tang, G."
+  year: 2024
+  title: "Media abnormal tone and cross section of stock returns: Evidence from China"
+  venue: "Accounting & Finance"
+  vol: "64"
+  issue: "3"
+  pages_or_artno: "2671-2698"
 new_dois: []
 ---
 
@@ -57,8 +66,7 @@ new_dois: []
 【方法学与计算】
 计算流程在 `attention_media.py` 内分两步: 第一步是标注, 对面板底层文章级数据 `df` 中的每一行, 依据其"媒体(中文)"字段是否落在预先构造的 `DAILY` 出版物名录中, 生成布尔指示列 `_is_daily`(名录构造原则为出版周期属日报; 该名录来自项目内配置化的媒体出版周期参照, 与本文档同批次 `daily_media_frac` 列共享同一 `_is_daily` 判定, 二者是同一底层标注在"占比"和"语调水平"两个统计量上的不同投影)。第二步是分轨条件聚合: 对 `_full`/`_ctx`/`_ss` 三条文本轨道分别循环, 若该轨道对应的情感源列 `llm_vote_score{track}` 不存在于 `df`(例如某次运行未产出该轨道)则整轨优雅跳过, 存在时先按 `_is_daily == 1` 过滤出日报子样本, 再按 `target_bank`、`year` 分组取 `llm_vote_score{track}` 的算术均值, 得到 `tone_daily_media{track}`, 随后与主面板 `panel` 做左连接合并。`llm_vote_score{track}` 本身是 stage 21 三家 LLM(`gpt-5.4-nano`/`gemini-3.1-flash-lite`/`deepseek-v4-flash`)多数投票情感的连续打分版本, 其上游行级样本已受 stage 21 留篇门控约束——门控口径为 full-only(2026-06-29 起): 一篇报道是否被判定为"一篇有效的银行金科报道"只看 `llm_verified_full == True`, `_ctx`/`_ss` 两条轨道是 conditional-on-full 的测度轨, 其行宇宙是 full 轨留篇集合的子集, 但各自的 `llm_vote_score{track}` 仍按各自轨道文本独立生成, 因此三条轨道的 `tone_daily_media{track}` 在样本口径上共享同一留篇集合、在情感取值上彼此独立。日报子样本内若某银行—年没有任何一篇日报来源的报道命中留篇门控, 则该格产出缺失值(NaN), 不做跨轨或跨类别插补, 这与 `daily_media_frac`(日报占比, 分母含全部有效报道)在缺失处理上是一致的稀疏保留策略——保证均值只在有真实观测支撑时给出, 而非用 0 冒充"无日报报道且情感中性"。
 【文献定位】
-三轨设计与情感测度的构念定位对齐项目主线口径: Tetlock (2007, *Journal of Finance*) 是本维度理论上的直接源头, 其核心贡献是证明日频媒体文本情感(悲观指数)对股票市场收益具有可预测性, 从而确立了"高频出版物情感"作为独立于低频/深度报道情感的一类信息载体这一构念合法性, 本家族正是把这一构念在中国银行业新闻语境下具体化为可计算列。Tetlock, Saar-Tsechansky & Macskassy (2008, *Journal of Finance*) 进一步把这一逻辑推进到公司盈余预测层面, 强化了"日频新闻情感"作为独立信息通道而非低频报道简单子集的经验基础。Holzman, Miller & Twedt (2023, *The Accounting Review*) 的媒体权威性加权框架虽然主要服务于本文件同批次的 `_mw` 加权情感列, 但其"媒体来源制度特征系统性影响情感测度"的一般性论点同样支撑了本家族按出版频率切分聚合的正当性——出版频率与媒体权威度是媒体异质性这一大类构念下彼此正交但同源的两个切面。You, Zhang & Zhang (2018, *The Review of Financial Studies*) 关于中国"官媒 vs 市场化媒体"分类的框架(见同批次 `official_media_frac`/`market_media_frac`)与本维度共享同一媒体异质性九维分解体系, 二者在方法论上互为并列而非嵌套。中国情境下媒体情感与银行系统性风险、存款稳定性的实证关联可参见 Fang, Wang, Wang & Yuan (2024, *International Review of Economics & Finance*), 其结论为本家族"日报语调"这一细分测度在中国银行业设定下的经济相关性提供了同域佐证。
-
+三轨设计与情感测度的构念定位对齐项目主线口径: Tetlock (2007, *Journal of Finance*) 是本维度理论上的直接源头, 其核心贡献是证明日频媒体文本情感(悲观指数)对股票市场收益具有可预测性, 从而确立了"高频出版物情感"作为独立于低频/深度报道情感的一类信息载体这一构念合法性, 本家族正是把这一构念在中国银行业新闻语境下具体化为可计算列。Tetlock, Saar-Tsechansky & Macskassy (2008, *Journal of Finance*) 进一步把这一逻辑推进到公司盈余预测层面, 强化了"日频新闻情感"作为独立信息通道而非低频报道简单子集的经验基础。Holzman, Miller & Twedt (2023, *The Accounting Review*) 的媒体权威性加权框架虽然主要服务于本文件同批次的 `_mw` 加权情感列, 但其"媒体来源制度特征系统性影响情感测度"的一般性论点同样支撑了本家族按出版频率切分聚合的正当性——出版频率与媒体权威度是媒体异质性这一大类构念下彼此正交但同源的两个切面。You, Zhang & Zhang (2018, *The Review of Financial Studies*) 关于中国"官媒 vs 市场化媒体"分类的框架(见同批次 `official_media_frac`/`market_media_frac`)与本维度共享同一媒体异质性九维分解体系, 二者在方法论上互为并列而非嵌套。中国情境下媒体情感与银行系统性风险、存款稳定性的实证关联可参见 Fang, Wang, Wang & Yuan (2024, *International Review of Economics & Finance*), 其结论为本家族"日报语调"这一细分测度在中国银行业设定下的经济相关性提供了同域佐证。 作为最近期的同语言实践参照, Yan、Ma、Li 与 Tang (2024) 在中国语境下以中文媒体报道构造语调测度并做横截面实证, 表明中文财经报道的语调在本土市场确可稳定计量并携带定价信息, 为本家族在中文银行业新闻上度量语调提供了同媒体类型的当代对照。迁移边界须明确: 该文分析层级是上市公司-股票横截面、结果变量为股票收益, 与本家族的 bank-year 面板及银行侧结果变量不同; 其「异常语调」(相对预期的残差) 口径, 与本家族先按日报子样本过滤、再取三家 LLM 投票得分逐轨算术均值的构造并非同一公式; 尤须注意该文未按出版周期切分样本。故它只支撑语调测度的同域可计量性, 对「日报 vs 非日报」这一切分维度不提供直接证据, 该维度的构念合法性仍由 Tetlock (2007) 及本家族所属的媒体异质性九维分解框架承担。
 ## VAR: tone_daily_media_ctx
 
 【变体差分】
@@ -79,4 +87,5 @@ Tetlock, P. C. (2007). Giving Content to Investor Sentiment: The Role of Media i
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
 You, J., Zhang, B., & Zhang, L. (2018). Who Captures the Power of the Pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media Sentiment, Deposit Stability and Bank Systemic Risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
+Yan, L., Ma, Y., Li, C., & Tang, G. (2024). Media abnormal tone and cross section of stock returns: Evidence from China. Accounting & Finance, 64(3), 2671-2698. https://doi.org/10.1111/acfi.13230
 <!-- rendered-citations:end -->

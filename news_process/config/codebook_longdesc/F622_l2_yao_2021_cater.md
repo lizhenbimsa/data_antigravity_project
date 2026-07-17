@@ -53,6 +53,13 @@ citations:
   title: "Inducing domain-specific sentiment lexicons from unlabeled corpora"
   venue: Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing
   pages_or_artno: 595-605
+- doi: "10.2139/ssrn.6143029"
+  type: "wp"
+  authors: "Wang, Y., Wong, T., & Zhang, T."
+  year: 2026
+  title: "Does Social Media Identify the Optimistic Bias of State-Controlled Media? Evidence from China"
+  venue: "SSRN Electronic Journal"
+  pages_or_artno: "6143029"
 new_dois: []
 ---
 
@@ -65,8 +72,7 @@ new_dois: []
 计算在面板构造阶段 (runner.py 步骤 8d 算法迎合度, 情形 B「单词典 vs 综合深层模型」) 完成, 是纯后处理差分运算, 不额外调用任何付费 LLM 或嵌入 API, 边际成本为零。被减数 yao_2021_tone{track} 是 Yao 词典在阶段 22 (`pipeline/sentiment/tone_words.py`) 上算出的净语调: 依据词典正面/负面词表对分词后的文本计数, 经语言学规则 (否定翻转、程度副词加权、转折句式) 处理后, 对总极性词数归一化, 落在约 [-1,1] 区间; 该计算走的是本项目词典族统一的 canonical 全规则口径 (非消融梯度的某一子集变体)。减数 llm_vote_tone{track} 是三家大模型在阶段 21 (`pipeline/sentiment/tone_llms.py`) 对同一文本的多数投票共识语调, 同样归一化到可比量纲。两者相减得到无量纲的语调差分, 理论取值区间约 [-2,2], 正值表示 Yao 词典比 LLM 共识更正面, 负值反之。三个后缀 _full / _ctx / _ss 分别对应全文轨 (标题 prepend 加完整正文)、实体窗轨 (标题加银行与金科实体邻近窗口)、同句轨 (标题加银行与金科同句共现窗口, ±N 句由 `config/filtering.yaml::context_window.ss_sentence_radius` 控制, 默认 1); 三轨的被减数与减数均严格逐轨取用, 不跨轨借数、不混轨相减。留篇口径遵循 2026-06-29 确立的 full-only 门控: 一篇报道是否计入"一篇银行金科报道"只由 full 轨的 LLM 判定 (`llm_verified_full == True`) 决定, ctx 与 ss 轨在此基础上是 conditional-on-full 的行宇宙子集, 各自的词典侧与模型侧仍按该子集独立聚合, 不借用 full 轨的分子分母。
 
 【文献定位】
-在测量方法谱系上, 本列站在"词典法与深层模型法互为参照"的交叉点。词典法一脉的方法学基石是 Du 等 (2022) 发表于 Review of Finance 的中文金融情感词典构建工作: 论文论证了直接移植英文 Loughran-McDonald 词典到中文金融文本会系统性失真, 必须依据中文金融语境本土重建极性词表, 这一方法论同样适用于理解 Yao (2021) 词典的构建逻辑与其局限。近年该谱系持续细化, Ma 等 (2025, Expert Systems with Applications) 构建面向中国境内投资者的细粒度情感词典 CN-FSD, 进一步论证了行业/受众特定词典相对通用词典的增量价值; Sun 等 (2025, Natural Language Processing Journal) 将词典知识与中性特征注入预训练语言模型, 试图弥合规则法与深度语义法之间的鸿沟, 其动机与本列"词典 vs LLM 差分"测度迎合的逻辑高度呼应; Hamilton 等 (2016) 提出从无标注语料自动归纳领域情感词表的方法, 为理解词典类工具的可预测性 (进而可被迎合) 提供了方法论背景。Barbaglia 等 (2025, Economic Inquiry) 系统评估了基于词典的经济文本情感分析方法在宏观与金融场景下的表现与边界, 明确指出词典法对固定规则的依赖是其相对深度模型法的结构性弱点, 这一弱点恰是"迎合"得以发生的制度前提: 撰稿方越能预判词典的判定规则, 就越有空间在不改变实质语气的情况下操纵词典读数。本列的方法论定位即是把这一弱点转译为可观测的面板变量。三轨设定属规格稳健性并排: full/ctx/ss 三轨各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified 的 Hansen J 过度识别检验。
-
+在测量方法谱系上, 本列站在"词典法与深层模型法互为参照"的交叉点。词典法一脉的方法学基石是 Du 等 (2022) 发表于 Review of Finance 的中文金融情感词典构建工作: 论文论证了直接移植英文 Loughran-McDonald 词典到中文金融文本会系统性失真, 必须依据中文金融语境本土重建极性词表, 这一方法论同样适用于理解 Yao (2021) 词典的构建逻辑与其局限。近年该谱系持续细化, Ma 等 (2025, Expert Systems with Applications) 构建面向中国境内投资者的细粒度情感词典 CN-FSD, 进一步论证了行业/受众特定词典相对通用词典的增量价值; Sun 等 (2025, Natural Language Processing Journal) 将词典知识与中性特征注入预训练语言模型, 试图弥合规则法与深度语义法之间的鸿沟, 其动机与本列"词典 vs LLM 差分"测度迎合的逻辑高度呼应; Hamilton 等 (2016) 提出从无标注语料自动归纳领域情感词表的方法, 为理解词典类工具的可预测性 (进而可被迎合) 提供了方法论背景。Barbaglia 等 (2025, Economic Inquiry) 系统评估了基于词典的经济文本情感分析方法在宏观与金融场景下的表现与边界, 明确指出词典法对固定规则的依赖是其相对深度模型法的结构性弱点, 这一弱点恰是"迎合"得以发生的制度前提: 撰稿方越能预判词典的判定规则, 就越有空间在不改变实质语气的情况下操纵词典读数。本列的方法论定位即是把这一弱点转译为可观测的面板变量。三轨设定属规格稳健性并排: full/ctx/ss 三轨各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified 的 Hansen J 过度识别检验。 在差分形态的外部旁证上, Wang、Wong 与 Zhang (2026) 于中国语境下把两类媒体文本的语调并置, 以其中一方识别另一方的乐观偏差, 与本列"取两个同构念语调测度之有向差、并把该差解读为一方的系统性偏离"同型, 旁证了此类有向差在中文媒体文本上可被赋予实质构念内涵。惟其差值轴与本列不同: 原文比较的是媒体来源 A 与来源 B 之间的来源层偏差, 本列比较的是同一篇报道上 yao_2021 词典测度与三家 LLM 共识判读之间的方法层偏差; 其语料为国有媒体与社交媒体文本 (非银行金科共现报道), 层级为公司/事件层而非 bank-year, 无 LLM 三家投票与三轨文本口径, 且属尚未经期刊同行评议的工作论文。因此该文仅作方法形态上的类比参照, 不用于支撑本列的迎合解读本身。
 ## VAR: yao_2021_cater_full
 
 【变体差分】
@@ -88,4 +94,5 @@ Sun, Y., Yuan, H., & Xu, F. (2025). Financial sentiment analysis for pre-trained
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
 Hamilton, W. L., Clark, K., Leskovec, J., & Jurafsky, D. (2016). Inducing domain-specific sentiment lexicons from unlabeled corpora. Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing No. 595-605 [Working Paper]. https://doi.org/10.18653/v1/d16-1057
+Wang, Y., Wong, T., & Zhang, T. (2026). Does Social Media Identify the Optimistic Bias of State-Controlled Media? Evidence from China. SSRN Electronic Journal No. 6143029 [Working Paper]. https://doi.org/10.2139/ssrn.6143029
 <!-- rendered-citations:end -->

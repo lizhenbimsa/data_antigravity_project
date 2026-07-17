@@ -39,6 +39,31 @@ citations:
   vol: '10'
   issue: '45'
   pages_or_artno: eadp1528
+- doi: "10.1016/j.frl.2024.105024"
+  type: "journal"
+  authors: "Huang, W., Liu, J., & Zhang, R.-Z. (."
+  year: 2024
+  title: "Local newspaper closures and non-GAAP reporting quality"
+  venue: "Finance Research Letters"
+  vol: "62"
+  pages_or_artno: "105024"
+- doi: "10.1111/1911-3846.12935"
+  type: "journal"
+  authors: "Huang, Y., Li, F., Li, T., & Lin, T."
+  year: 2024
+  title: "Local information advantage and stock returns: Evidence from social media"
+  venue: "Contemporary Accounting Research"
+  vol: "41"
+  issue: "2"
+  pages_or_artno: "1089-1119"
+- doi: "10.1016/j.iref.2025.104564"
+  type: "journal"
+  authors: "Branzoli, N., Marchetti, S., & Tarducci, E."
+  year: 2025
+  title: "Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy"
+  venue: "International Review of Economics & Finance"
+  vol: "104"
+  pages_or_artno: "104564"
 new_dois: []
 ---
 
@@ -51,8 +76,7 @@ new_dois: []
 构造分两步, 由 `pipeline/panel/attention_media.py::compute_media_heterogeneity` 计算。第一步是媒体属地判定: 依据 `config/bank_addresses.json` 中银行总部/主要经营省份的映射 (经 `_bank_prov_map`/`_bank_city_map` 构造 `_bank_prov`/`_bank_city` 列), 结合报道来源媒体的注册属地元数据 (媒体名录中的省份字段), 对样本期内每一篇报道打上"属地"或"非属地"二元标签; 这一判定与孪生家族 `neg_frac_homeprov_*`、`tone_homeprov_media_*`/`tone_nonprov_media_*` 共用同一套省份匹配规则, 保证两个方向 (属地 vs 非属地) 的分组互斥且穷尽 (即每篇报道恰好落入其中一组, 不存在既非属地也非非属地的第三态)。第二步是负面篇数占比统计: 对每家银行-年的"非属地省媒体"子集, 以 stage 21 三家 LLM (`gpt-5.4-nano`/`gemini-3.1-flash-lite`/`deepseek-v4-flash`) 多数投票产出的情感判定 (`llm_vote_tone`) 是否落在负面类别为准, 统计该子集内负面篇数占子集总篇数的比例。三个变体分别对应三条文本轨道: `_full` 用标题+正文全文情感判定, `_ctx` 用标题+银行实体窗口文本情感判定, `_ss` 用标题+银行∧金科同句(±N 窗口, 默认1)文本情感判定; 三轨在情感投票阶段各自独立跑一遍, 互不借用彼此的判定结果。留篇门控口径遵循 2026-06-29 起生效的 full-only 铁律: 是否计入"该篇报道"这一分母/分子基本单位, 只看 `llm_verified_full == True` 这一全文轨的验证结果, ctx/ss 轨的负面占比统计是在 full 轨留篇集合的子集之上、按各自轨道重新跑情感判定后计算, 而非独立留篇。`_ss` 轨的回退语义镜像 `_ctx`: 当某篇报道内银行实体与金科词并无同句共现时, `content_ss` 退化为全文正文 (`ss_is_fallback=True`), 此时该篇在 `_ss` 轨的情感判定退化为等价于全文判定, 分母仍计入该银行-年 `_ss` 轨的 `n_articles` 统计。分母为 0 (该银行-年样本期内不存在任何非属地省媒体报道) 时该银行-年该轨观测置为 NaN, 而非 0, 以避免把"无非属地报道"这一缺失状态误读为"非属地报道零负面"。
 
 【文献定位】
-地理邻近性对媒体报道基调系统性影响的识别策略, 经典范式见 Gurun and Butler (2012, The Journal of Finance), 该文利用本地/非本地媒体广告收入与企业价值的关联, 论证本地媒体存在系统性正面偏向; 本家族的属地/非属地二分与负面占比构造直接承袭这一识别框架, 把银行总部所在省份作为"本地"锚点, 区分省内(属地)与省外(非属地)媒体子样本。负面倾向抑制的另一支文献强调信息压制的政治经济学动机: Piotroski, Wong, and Zhang (2015, Journal of Accounting Research) 发现存在压制负面信息的政治激励, 与本家族"属地媒体或系统性少报负面"这一假说方向一致, 为 `neg_frac_homeprov_*` 显著低于 `neg_frac_nonprov_*` 这一预期模式提供理论支撑。情感极性判定本身 (何为"负面")继承自 stage 21 三家 LLM 投票的情感分类框架; Schoenegger, Tuminauskaite, Park, Bastos, and Tetlock (2024, Science Advances) 在预测市场/预测问题场域证实, 多个 LLM 的集成判断在准确度上可比拟乃至超过人类群体智慧, 其研究场景虽是预测准确度而非情感极性分类, 但"多模型集成优于单模型判定"这一一般性原理与本家族依赖 stage 21 三家 LLM 多数投票(而非单模型判定)产出负面标签的设计选择相呼应, 为该设计提供了较弱但方向一致的方法学佐证, 使用时应注意其证据来自不同任务域, 不构成对情感分类效度本身的直接检验。就"占比"这一统计量在分母较小(非属地报道篇数很少)时点估计噪声偏大这一统计学性质而言, 本家族与孪生家族 `neg_frac_homeprov_*` 采取相同应对: 分母为 0 时置 NaN 而非 0, 提醒使用者在样本量过小的银行-年观测上谨慎解读点估计。
-
+地理邻近性对媒体报道基调系统性影响的识别策略, 经典范式见 Gurun and Butler (2012, The Journal of Finance), 该文利用本地/非本地媒体广告收入与企业价值的关联, 论证本地媒体存在系统性正面偏向; 本家族的属地/非属地二分与负面占比构造直接承袭这一识别框架, 把银行总部所在省份作为"本地"锚点, 区分省内(属地)与省外(非属地)媒体子样本。负面倾向抑制的另一支文献强调信息压制的政治经济学动机: Piotroski, Wong, and Zhang (2015, Journal of Accounting Research) 发现存在压制负面信息的政治激励, 与本家族"属地媒体或系统性少报负面"这一假说方向一致, 为 `neg_frac_homeprov_*` 显著低于 `neg_frac_nonprov_*` 这一预期模式提供理论支撑。情感极性判定本身 (何为"负面")继承自 stage 21 三家 LLM 投票的情感分类框架; Schoenegger, Tuminauskaite, Park, Bastos, and Tetlock (2024, Science Advances) 在预测市场/预测问题场域证实, 多个 LLM 的集成判断在准确度上可比拟乃至超过人类群体智慧, 其研究场景虽是预测准确度而非情感极性分类, 但"多模型集成优于单模型判定"这一一般性原理与本家族依赖 stage 21 三家 LLM 多数投票(而非单模型判定)产出负面标签的设计选择相呼应, 为该设计提供了较弱但方向一致的方法学佐证, 使用时应注意其证据来自不同任务域, 不构成对情感分类效度本身的直接检验。就"占比"这一统计量在分母较小(非属地报道篇数很少)时点估计噪声偏大这一统计学性质而言, 本家族与孪生家族 `neg_frac_homeprov_*` 采取相同应对: 分母为 0 时置 NaN 而非 0, 提醒使用者在样本量过小的银行-年观测上谨慎解读点估计。 近期文献从三个方向补强了上述属地/非属地二分的构念与设计前提。Huang、Liu 与 Zhang (2024) 以本地报纸停刊作为本地媒体监督减弱的冲击, 检验公司非 GAAP 披露质量的变化, 其识别前提即总部所在地的本地媒体与异地媒体在监督功能上不可相互替代, 直接支撑本家族按媒体来源省份切分属地/非属地子样本、并在其上作负面占比对比的构念依据; 但该文走停刊事件的 DiD 识别、语境为美国报纸与美国上市公司, 且被解释变量是披露质量而非媒体语调, 该文并未度量本地媒体的报道倾向, 故此处仅锚定“本地媒体构成独立信息渠道”这一半, 不锚定其语调或负面判定算法。Huang、Li、Li 与 Lin (2024) 依据社交媒体用户的地理位置识别本地信息发布者, 按发布者与公司总部的地理关系切分样本并比较本地组与非本地组的信息含量差异, 与本家族属地/非属地子样本对比的设计同族; 其文本源为社交媒体发帖 (UGC) 而非本项目的正式媒体报道, 地理归属基于用户 IP/自报位置而非媒体来源省份字段的词典比对, 且研究对象为一般上市公司、被解释变量为股票收益, 地理粒度亦为同城二分而非省级, 因此只锚定地理二分子样本对比这一设计逻辑, 不锚定测度构造。Branzoli、Marchetti 与 Tarducci (2025) 构造媒体报道的语调测度并将其应用于意大利银行的融资条件, 为“新闻语调 → 银行层级结果”这一链条提供近期同域实践参照; 该文语料为意大利媒体, 无中文情感词典与三家 LLM 投票口径, 亦无 full/ctx/ss 三轨切分与属地/非属地划分, 故仅作同域存在性参照, 不支持本家族的具体分母口径与 NaN 哨兵设计。
 ## VAR: neg_frac_nonprov_ctx
 
 【变体差分】
@@ -72,4 +96,7 @@ new_dois: []
 Gurun, U. G., & Butler, A. W. (2012). Don't believe the hype: Local media slant, local advertising, and firm value. The Journal of Finance, 67(2), 561-598. https://doi.org/10.1111/j.1540-6261.2012.01725.x
 Piotroski, J. D., Wong, T. J., & Zhang, T. (2015). Political incentives to suppress negative information: Evidence from Chinese listed firms. Journal of Accounting Research, 53(2), 405-459. https://doi.org/10.1111/1475-679X.12071
 Schoenegger, P., Tuminauskaite, I., Park, P. S., Bastos, R. V. S., & Tetlock, P. E. (2024). Wisdom of the silicon crowd: LLM ensemble prediction capabilities rival human crowd accuracy. Science Advances, 10(45), eadp1528. https://doi.org/10.1126/sciadv.adp1528
+Huang, W., Liu, J., & Zhang, R.-Z. (. (2024). Local newspaper closures and non-GAAP reporting quality. Finance Research Letters, 62, 105024. https://doi.org/10.1016/j.frl.2024.105024
+Huang, Y., Li, F., Li, T., & Lin, T. (2024). Local information advantage and stock returns: Evidence from social media. Contemporary Accounting Research, 41(2), 1089-1119. https://doi.org/10.1111/1911-3846.12935
+Branzoli, N., Marchetti, S., & Tarducci, E. (2025). Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy. International Review of Economics & Finance, 104, 104564. https://doi.org/10.1016/j.iref.2025.104564
 <!-- rendered-citations:end -->

@@ -49,6 +49,13 @@ citations:
   vol: "146"
   issue: "2"
   pages_or_artno: "529-551"
+- doi: "10.1287/mnsc.2024.05821"
+  type: "journal"
+  authors: "Bennett, B., Ham, C., Milbourn, T., & Wang, Z."
+  year: 2026
+  title: "Firm-Level Litigation Risk: Measurement and Effects"
+  venue: "Management Science"
+  pages_or_artno: "mnsc.2024.05821"
 new_dois: []
 ---
 
@@ -64,8 +71,7 @@ new_dois: []
 本家族三模型 (finbert_cn/fin_sent_zh/finbert2) 互为稳健性、不分主次、各自 just-identified 并排, 禁止混进同一个 over-identified 的 Hansen J 检验 (与项目内三轨/co-primary 嵌入双轨/政治词权重梯度共享同一条铁律)。finbert2 为本项目私有微调模型, 依赖本机 `.env` 的 `FINBERT2_MODEL_DIR` 解析到有效本地权重路径; 未配置时该模型族 (含本家族对应的 3 列) 优雅整体跳过, 另两个公开 HuggingFace 模型 (finbert_cn=yiyanghkust/finbert-tone-chinese, fin_sent_zh=bardsai/finance-sentiment-zh-base) 照常产出, 这是 per-model 独立降级、非 co-primary 双轨那种 both-or-neither 硬联动。
 三条轨道 (full/ctx/ss) 在「BERT 判正」这一半判据上各自 just-identified 并排, 互为稳健性、不分主次, 同样禁止混入同一 over-identified Hansen J; 但须明确, 这条并排铁律适用范围是判正逻辑与推理文本窗口的差异, 不代表三轨在「实质性已测」判据上也各自独立——如上节所述, 三轨共享同一 full 轨 innovation_substantiveness_full 掩码, 这是本家族计算口径里唯一不逐轨独立的输入, 使用者不应误以为 ctx/ss 列的实质性判定用了 ctx/ss 自己轨道的 LLM 标注。ss 轨道回退语义镜像 ctx: 当某篇文章不存在银行∧金科词同句共现时, `content_ss` 回退为全文正文 (`ss_is_fallback=True`), 该篇仍参与 ss 轨道的 BERT 推理与本家族计数, 只是其"同句"窗口实质等于全文窗口; 三轨分母 (`n_articles`) 各自独立, 不共享。留篇门控口径为 full-only (2026-06-29 后): 一篇文章是否计入"银行金科报道"样本仅由 `llm_verified_full` 判定, ctx/ss 轨的本家族计数行宇宙是 full 留篇集合的子集 (conditional-on-full), 而非独立样本。
 【文献定位】
-BERT 系列中文金融情感分类的方法学基础见 Huang, Wang & Yang (2023, Contemporary Accounting Research) 提出的 FinBERT 框架, 及 Xu et al. (2025) 提出的 FinBERT2 (本项目 finbert2 模型的直接方法学来源, 经金融语料专门预训练以弥合通用大模型在金融场景部署的语义缺口)。Bochkay, Brown, Leone & Tucker (2023, Contemporary Accounting Research) 对会计文本分析方法论 (含情感分类、可读性、复杂度等) 的综述文章讨论了「文本测度需多方法互证」的方法论共识, 支撑本项目 LLM/词典/BERT 三条独立路线互为稳健性的设计选择。本家族计数列的功能定位——作为比率型指标的同域分母、避免分子分母失配的稀释偏误——呼应 Cohn, Liu & Wardlaw (2022, Journal of Financial Economics) 对金融研究中计数与类计数数据处理陷阱的系统讨论 (该文强调分母选取不当会系统性扭曲比率型因变量的经济含义, 与本家族 `_svd_` 修正的动机直接对应)。
-
+BERT 系列中文金融情感分类的方法学基础见 Huang, Wang & Yang (2023, Contemporary Accounting Research) 提出的 FinBERT 框架, 及 Xu et al. (2025) 提出的 FinBERT2 (本项目 finbert2 模型的直接方法学来源, 经金融语料专门预训练以弥合通用大模型在金融场景部署的语义缺口)。Bochkay, Brown, Leone & Tucker (2023, Contemporary Accounting Research) 对会计文本分析方法论 (含情感分类、可读性、复杂度等) 的综述文章讨论了「文本测度需多方法互证」的方法论共识, 支撑本项目 LLM/词典/BERT 三条独立路线互为稳健性的设计选择。本家族计数列的功能定位——作为比率型指标的同域分母、避免分子分母失配的稀释偏误——呼应 Cohn, Liu & Wardlaw (2022, Journal of Financial Economics) 对金融研究中计数与类计数数据处理陷阱的系统讨论 (该文强调分母选取不当会系统性扭曲比率型因变量的经济含义, 与本家族 `_svd_` 修正的动机直接对应)。 Bennett、Ham、Milbourn 与 Wang (2026) 解析 SEC 10-K 年报构造企业层面诉讼风险的简单透明测度, 以其对诉讼发生的预测力 (在控制企业特征、既有诉讼与地理因素并纳入企业固定效应后仍显著) 确立效度, 并显示该简单测度的表现与资源密集的 AI 生成测度相当, 再将其连结至现金持有、资本支出、研发与并购等政策。该文锚定本家族两环: 其一, 文本派生的实体-年计数型指标可作为面板变量, 且其效度宜以对外部结果的预测力而非构造精巧度来论证, 正对应本家族门控计数列的效度论证范式; 其二, 同一构念的简单测度与模型生成测度可表现相当, 支持把测度/模型选择显式化为互为稳健性的并排规格维度 (三模型各自 just-identified, 不混入同一 over-identified Hansen J), 而非默认复杂模型更优。⚠ 迁移边界: 原文构念是诉讼风险, 语料为每公司-年一份的美国英文 10-K, 测度由单份文档解析得到, 不存在多篇文本在实体-期内的聚合步骤, 亦无情感 softmax 概率与 BERT 三模型并排, 更无本家族特有的 LLM 实质性判定 (`innovation_substantiveness_full`) 这一重门控判据。
 ## VAR: fin_sent_zh_pos_substvalid_count_full
 
 【变体差分】
@@ -116,4 +122,5 @@ Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A large language model for e
 Xu, X., Wen, F., Chu, B., Fu, Z., Lin, Q., Liu, J., Fei, B., Li, Y., Zhou, L., & Yang, Z. (2025). FinBERT2: A specialized bidirectional encoder for bridging the gap in finance-specific deployment of large language models. Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2 (KDD '25) No. 5117-5128 [Working Paper]. https://doi.org/10.1145/3711896.3737219
 Bochkay, K., Brown, S. V., Leone, A. J., & Tucker, J. W. (2023). Textual analysis in accounting: What's next?. Contemporary Accounting Research, 40(2), 765-805. https://doi.org/10.1111/1911-3846.12825
 Cohn, J. B., Liu, Z., & Wardlaw, M. I. (2022). Count (and count-like) data in finance. Journal of Financial Economics, 146(2), 529-551. https://doi.org/10.1016/j.jfineco.2022.08.004
+Bennett, B., Ham, C., Milbourn, T., & Wang, Z. (2026). Firm-Level Litigation Risk: Measurement and Effects. Management Science, mnsc.2024.05821. https://doi.org/10.1287/mnsc.2024.05821
 <!-- rendered-citations:end -->

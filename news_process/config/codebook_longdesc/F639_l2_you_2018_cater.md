@@ -63,6 +63,24 @@ citations:
   vol: "68"
   issue: "7"
   pages_or_artno: "5514-5532"
+- doi: "10.1080/14765284.2025.2569006"
+  type: "journal"
+  authors: "Mo, H., & Ouyang, S."
+  year: 2025
+  title: "(Generative) AI in Financial Economics"
+  venue: "Journal of Chinese Economic and Business Studies"
+  vol: "23"
+  issue: "4"
+  pages_or_artno: "509-587"
+- doi: "10.1515/econ-2022-0129"
+  type: "journal"
+  authors: "Wang, H."
+  year: 2024
+  title: "Media Tone and Earnings Management before the Earnings Announcement: Evidence from China"
+  venue: "Economics"
+  vol: "18"
+  issue: "1"
+  pages_or_artno: "20220129"
 new_dois: []
 ---
 
@@ -73,7 +91,7 @@ you_2018_cater 家族衡量的不是 you_2018 词典本身的净语调水位, �
 【方法学与计算】
 计算发生在 pipeline/panel/runner.py 步骤 8d "Algorithmic Catering — 全展开", 该步骤在 bank-year 面板已聚合出各词典净语调列 `{d}_tone{track}`(d 遍历 DICT_NAMES, 含 you_2018)与三家 LLM 投票语调列 `llm_vote_tone{track}` 之后, 逐轨做减法: `panel[f'{d}_cater{track}'] = panel[d_col] - panel[lc]`, 其中 `d_col = f'{d}_tone{track}'`, `lc = f'llm_vote_tone{track}'`。you_2018_tone{trk} 自身的计算链条在更上游: pipeline/sentiment/tone_words.py(阶段 22)对 config/tone_dicts.json 中的 you_2018 词典逐篇计数, positive/negative 两极性集合存在 5 个跨类重叠词, 按项目 2026-06-24 决策以 (+1, −1) 对称计入两侧(不做单侧武断判负), 原始计数之上叠加否定翻转/程度副词/转折连词三条语言学规则增强, 归一为 (pos_count−neg_count)/(pos_count+neg_count) 得到 you_2018_tone{trk}; 分母为 0 的文章输出缺失, 不做人为填零。llm_vote_tone{trk} 则来自 stage 21 三家 LLM(gpt-5.4-nano/gemini-3.1-flash-lite/deepseek-v4-flash)对同一文本轨的独立打分后取多数投票共识, 门控遵循 full-only 铁律(2026-06-29 起): 一篇报道是否计入"银行×金科"文章总体, 只看 llm_verified_full; ctx/ss 两轨在此基础上是以 full 留篇集为行宇宙的条件测度(conditional-on-full)。you_2018_cater{trk} 是两个已经在面板层聚合完毕的净语调列之间的逐格相减, 本身不再回到文章级重新计数, 因此该列的数值缺失模式继承自 you_2018_tone{trk} 与 llm_vote_tone{trk} 两者任一缺失即缺失。pipeline/panel/export.py 在此过程中不参与任何数值计算, 只在渲染 .dta 时为 `{d}_cater{track}` 列生成形如 "Catering: {d}-LLM ({t})" 的变量标签文本, 属纯标签映射而非产出逻辑。三轨口径与本项目其余测度一致: full=标题+全文正文, ctx=标题+目标银行实体窗口, ss=标题+银行∧金科词同句±N 句半径窗口(默认 N=1), 三条文本在 stage 14 统一物化, 三轨各自独立走 8d 减法, 互不借用彼此中间结果, 三轨各自 just-identified 并排、互为稳健性、不分主次, 禁止混入同一 over-identified 的 Hansen J 检验。
 【文献定位】
-本家族真实的构念权威文献是 Cao, Jiang, Yang & Zhang (2023, RFS)提出的算法迎合(algorithmic catering)框架, 该文是本文本测度设计中"词典 vs 深层模型分歧"这一整条 8d 变量族(含综合词典 vs 综合 LLM 的 algo_cater、综合词典 vs 综合 BERT 的 algo_cater_b、以及本家族这种单词典 vs 综合 LLM 的 `{d}_cater`)的唯一直接出处, 8d 代码块的注释直接标注该文 DOI 与页码。Huang, Wang & Yang (2023, Contemporary Accounting Research)提出的 FinBERT 是同一段代码里"深层模型"一侧的另一个代表性实现(BERT 系), 与本家族并行的 `you_2018_cater_b{trk}` 变体(词典 vs 综合 BERT, 未在本家族收录但共享同一分歧测度设计思路)直接对应该文方法。You, Zhang & Zhang (2018, RFS)「Who captures the power of the pen?」仍然是必要引用, 但其角色被重新定位为"词典侧输入 you_2018_tone{trk} 的出处"而非"本家族核心构念的出处"——该文解释的是媒体用词的正负倾向如何反映信息生产链条中的立场分歧, 本家族借用其词典作为算法迎合测度公式里的一个输入项, 而不是直接复刻其构念。方法学脉络上, 本家族仍与 Du et al.(2022, Review of Finance)的中文词典构建路径同源(词典法本身的构建逻辑一致), 也仍适用 Barbaglia et al.(2025, Economic Inquiry)对词典法情感分析优劣势的系统论述——可解释、可审计、计算成本低, 但对语境/反讽/领域外用词不敏感, 这恰恰是"词典分数为何可能系统性偏离深层模型分数"的方法学解释。Frankel, Jennings & Lee (2022, Management Science)"机器学习 vs 词典法互为稳健性"的先例进一步支撑本家族"不把词典-LLM 分歧简单等同于测量误差, 而是把分歧本身当作携带信息的诊断量"这一处理思路。
+本家族真实的构念权威文献是 Cao, Jiang, Yang & Zhang (2023, RFS)提出的算法迎合(algorithmic catering)框架, 该文是本文本测度设计中"词典 vs 深层模型分歧"这一整条 8d 变量族(含综合词典 vs 综合 LLM 的 algo_cater、综合词典 vs 综合 BERT 的 algo_cater_b、以及本家族这种单词典 vs 综合 LLM 的 `{d}_cater`)的唯一直接出处, 8d 代码块的注释直接标注该文 DOI 与页码。Huang, Wang & Yang (2023, Contemporary Accounting Research)提出的 FinBERT 是同一段代码里"深层模型"一侧的另一个代表性实现(BERT 系), 与本家族并行的 `you_2018_cater_b{trk}` 变体(词典 vs 综合 BERT, 未在本家族收录但共享同一分歧测度设计思路)直接对应该文方法。You, Zhang & Zhang (2018, RFS)「Who captures the power of the pen?」仍然是必要引用, 但其角色被重新定位为"词典侧输入 you_2018_tone{trk} 的出处"而非"本家族核心构念的出处"——该文解释的是媒体用词的正负倾向如何反映信息生产链条中的立场分歧, 本家族借用其词典作为算法迎合测度公式里的一个输入项, 而不是直接复刻其构念。方法学脉络上, 本家族仍与 Du et al.(2022, Review of Finance)的中文词典构建路径同源(词典法本身的构建逻辑一致), 也仍适用 Barbaglia et al.(2025, Economic Inquiry)对词典法情感分析优劣势的系统论述——可解释、可审计、计算成本低, 但对语境/反讽/领域外用词不敏感, 这恰恰是"词典分数为何可能系统性偏离深层模型分数"的方法学解释。Frankel, Jennings & Lee (2022, Management Science)"机器学习 vs 词典法互为稳健性"的先例进一步支撑本家族"不把词典-LLM 分歧简单等同于测量误差, 而是把分歧本身当作携带信息的诊断量"这一处理思路。 就差值的 LLM 端而言, Mo 与 Ouyang (2025) 以综述形式梳理了生成式人工智能 (尤其是大语言模型) 在公司金融、资产定价、家庭金融、劳动经济学以及金融市场风险等板块的新兴角色, 可为本家族被减数所依赖的 LLM 分析工具提供最弱层级的技术脉络定位; 但该综述按金融学科领域而非文本测度方法组织, 并未给出「词表法与生成式模型法并置评估」的演进线索, 覆盖面亦以英文金融文献为主、未评测中文金融词典或中文 BERT, 且不含 bank-year 层级, 故仅可作研究脉络定位, 不能用作任何测度口径或数值依据, 更不适用于以综合 BERT 净语调为被减数的 _cater_b 变体。就词典端而言, Wang (2024) 用中文媒体报道语调测度检验其与盈余管理的关系, 为本家族被减数 you_2018_tone 各轨所依托的「中文媒体语调可经词典类方法测得且具经济含义」这一传统提供了同域应用证据; 但该文报道对象是中国上市公司一般财经报道而非银行×金融科技共现报道, 语调仅为单臂词典测度、无 BERT/LLM 对照臂, 故只锚定差值的词典端而不锚定模型端, 其被解释变量为公司-事件窗层面的盈余管理, 与本项目 bank-year 面板口径不可直接比照。
 【与相邻测度的构念区分】
 you_2018_cater{trk} 与本项目其余"词典法净语调"列(you_2018_tone{trk}/jiang_2021_tone{trk}/yao_2021_tone{trk}/bian_2021_tone{trk}/du_2022_tone{trk} 等)是两个不同层级的测度: 后者是一阶的"词典打分本身", 前者是二阶的"词典打分减去 LLM 打分的差值", 二者数值范围与解读方式均不同(一阶量刻画"这篇报道措辞褒贬", 二阶量刻画"词典判断与深层模型判断分歧多大")。you_2018_cater{trk} 与同一 8d 步骤产出的相邻变量族(`algo_cater{trk}`=综合词典 vs 综合 LLM、`algo_cater_b{trk}`=综合词典 vs 综合 BERT、`{d}_cater_b{trk}`=单词典 vs 综合 BERT、`cater_{llm}{trk}`/`cater_{b}{trk}`=综合词典 vs 单个深层模型)同属"迎合度诊断"这一大类下的不同并排切片(词典粒度 × 深层模型粒度的组合), 彼此互为稳健性、不分主次, 各自 just-identified, 禁止混入同一 over-identified Hansen J。you_2018_cater{trk} 与 LLM 三家投票语调 llm_vote_tone{trk}、BERT 三模型语调也不是同一构念下的方法学并排轨(那是一阶净语调层面的词典/LLM/BERT 三方法并排), 而是把 LLM 一侧直接作为分歧计算的减数使用, 不应把 you_2018_cater{trk} 误当作"又一个语调测度"塞进同一识别方程与 you_2018_tone{trk}、llm_vote_tone{trk} 三者同时作自变量, 那样会人为制造共线性(cater 本身就是另两者的线性组合)。
 
@@ -99,5 +117,7 @@ You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The 
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
+Mo, H., & Ouyang, S. (2025). (Generative) AI in Financial Economics. Journal of Chinese Economic and Business Studies, 23(4), 509-587. https://doi.org/10.1080/14765284.2025.2569006
+Wang, H. (2024). Media Tone and Earnings Management before the Earnings Announcement: Evidence from China. Economics, 18(1), 20220129. https://doi.org/10.1515/econ-2022-0129
 <!-- rendered-citations:end -->
 </content>

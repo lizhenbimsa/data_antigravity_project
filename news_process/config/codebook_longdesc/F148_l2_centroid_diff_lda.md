@@ -56,6 +56,49 @@ citations:
   vol: 124
   issue: 5
   pages_or_artno: 1423-1465
+- doi: "10.1016/j.pacfin.2024.102343"
+  type: "journal"
+  authors: "Xu, D., Huang, J., Ren, X., & Ye, M."
+  year: 2024
+  title: "ESG report textual similarity and stock price synchronicity: Evidence from China"
+  venue: "Pacific-Basin Finance Journal"
+  vol: "85"
+  pages_or_artno: "102343"
+- doi: "10.1016/j.pacfin.2026.103191"
+  type: "journal"
+  authors: "Li, F., Zhao, Z., & Cheng, H."
+  year: 2026
+  title: "Disclosure similarity and bond comovement"
+  venue: "Pacific-Basin Finance Journal"
+  vol: "98"
+  pages_or_artno: "103191"
+- doi: "10.1111/1467-8551.12857"
+  type: "journal"
+  authors: "Kang, J., & Kang, Y."
+  year: 2025
+  title: "Capital Market Scrutiny and Strategic Distinctiveness of the Firm: Evidence from a Natural Experiment"
+  venue: "British Journal of Management"
+  vol: "36"
+  issue: "1"
+  pages_or_artno: "461-476"
+- doi: "10.1016/j.intman.2026.101354"
+  type: "journal"
+  authors: "Xiao, B., & Ma, H."
+  year: 2026
+  title: "How market openness, narrative distinctiveness, and innovation capability impact firm performance: A comparative study of Chinese and foreign platform enterprises in China"
+  venue: "Journal of International Management"
+  vol: "32"
+  issue: "3"
+  pages_or_artno: "101354"
+- doi: "10.1111/jbfa.12857"
+  type: "journal"
+  authors: "Lui, D., Moraru‐Arfire, A., & Tao, C."
+  year: 2025
+  title: "The Nexus of Corporate Disclosure and Investors’ Information Needs: An Analysis Using Topic Modeling"
+  venue: "Journal of Business Finance & Accounting"
+  vol: "52"
+  issue: "5"
+  pages_or_artno: "2145-2174"
 new_dois: []
 ---
 
@@ -68,8 +111,7 @@ new_dois: []
 本家族属"全行业向量法"(industry centroid 法, 方法出处标注为谢佳松 (2025)): 先在语料上训练 LDA 主题模型, 把每篇报道映射为主题占比向量 theta (落在 probability simplex 上, 非负且和为一); 再把同一银行同一年度的报道文本聚合为该银行的年度主题占比向量 theta_i; 然后对该年度同业银行的主题向量求均值得到行业质心, 且刻意采用 leave-one-out 口径——即在为银行 i 计算质心时排除其自身, c_{-i}=(n*c - theta_i)/(n-1), 避免银行 i 的向量既进被减项又进质心而引入约 1/n_t 量级的机械自相关 (源码明确标注: 含自身的均值会系统性抬高与行业越正交的银行的距离, 使 centroid_diff 右尾偏移)。真实距离算子是余弦距离而非泛化的欧氏/任意向量距离: centroid_diff_lda = 1 - cos(theta_i, c_{-i}), 即 1 减去该行年度主题向量与 leave-one-out 行业质心的余弦相似度。距离越大, 说明该行当年被报道所刻画的主题结构越偏离行业中心, 战略/话语定位越独特。因 LDA 主题向量是非负分布, 其余弦相似度落在 [0,1], 故本 LDA 轨的余弦距离值域被约束在非负区间 (与 Embedding 余弦真值域 [-1,1] 的处理不同, 嵌入距离列可达 [0,2]; 本 LDA 轨不做负值地板问题)。centroid_diff_lda 是本家族的 canonical 列, 与同一"全行业向量法"下的 TF-IDF 字符/词级轨 (centroid_diff_tfidf_c/_w) 及嵌入轨 (centroid_diff_emb, 及其 co-primary _lg 孪生 centroid_diff_emb_lg) 并列; 它又与"N-最近邻法"(Guzman & Li 2023 的 strat_diff_n5_lda) 属不同的差异化算子——前者对照行业质心, 后者对照最近的 N 个同业, 两者构念相关但不可互相替代, 稳健性配对时勿错配。
 
 【文献定位】
-在测量方法谱系上, LDA 主题分布法与 TF-IDF 词频法、稠密嵌入法互为稳健性: 三者从不同文本表示空间近似同一"战略差异"潜变量, 各自 just-identified 并排、互为稳健性、不分主次, 严禁把 LDA 轨与 TF-IDF 轨或嵌入轨混进同一 over-identified 的 Hansen J 过度识别检验。同理, 本家族的三条文本轨 (full/ctx/ss) 也各自 just-identified 并排, 禁混同一 over-identified Hansen J。就构念区分而言, 本"质心偏离"度量刻画的是横截面上的"离群/独特"程度, 与刻画相邻期主题连续性的文本连贯性变量 (coh_lda 等) 正交——后者比较同一银行相邻年度的主题分布, 而非比较该行与同业的差距。已知局限有二 (源码明确标注): 其一, 原始文献用企业自有披露文本, 本项目用第三方新闻, 测的是媒体感知而非自我披露; 其二, 银行样本每年约五十余家, 远小于 TNIC 数据集的数千家企业, 行业质心由小样本估得, 须留意小样本偏差对质心稳定性的影响。上述两点在把本家族用作战略差异代理变量时应作为稳健性叙事的一部分予以披露。
-
+在测量方法谱系上, LDA 主题分布法与 TF-IDF 词频法、稠密嵌入法互为稳健性: 三者从不同文本表示空间近似同一"战略差异"潜变量, 各自 just-identified 并排、互为稳健性、不分主次, 严禁把 LDA 轨与 TF-IDF 轨或嵌入轨混进同一 over-identified 的 Hansen J 过度识别检验。同理, 本家族的三条文本轨 (full/ctx/ss) 也各自 just-identified 并排, 禁混同一 over-identified Hansen J。就构念区分而言, 本"质心偏离"度量刻画的是横截面上的"离群/独特"程度, 与刻画相邻期主题连续性的文本连贯性变量 (coh_lda 等) 正交——后者比较同一银行相邻年度的主题分布, 而非比较该行与同业的差距。已知局限有二 (源码明确标注): 其一, 原始文献用企业自有披露文本, 本项目用第三方新闻, 测的是媒体感知而非自我披露; 其二, 银行样本每年约五十余家, 远小于 TNIC 数据集的数千家企业, 行业质心由小样本估得, 须留意小样本偏差对质心稳定性的影响。上述两点在把本家族用作战略差异代理变量时应作为稳健性叙事的一部分予以披露。 近年文献在算子与构念两个层面进一步充实了本族的坐标。Xu、Huang、Ren 与 Ye (2024) 以中国 A 股 2019-2021 年 2,419 个公司-年 ESG 报告为样本, 同时用 TF-IDF 余弦相似度与基于 LDA 主题模型的 JS 散度两种算子度量报告文本相似度, 发现相似度越高、股价同步性越高 (高相似文本不传递独特信息), 是中文语料上以主题分布间距离刻画文本区分度这一测度族的近期应用佐证; 其边界在于原文比较的是公司之间的报告相似度, 并未构造剔除主体自身后的 leave-one-out 行业质心, 语料为企业自撰 ESG 报告而非第三方新闻聚合, DV 为股价同步性, 本项目不承接。Li、Zhao 与 Cheng (2026) 以中国上市公司 MD&A 的跨主体披露文本相似度解释债券信用利差共动, 并发现相似披露预测未来违约距离的收敛, 为文本相似度可作为主体间距离测度提供了同为中国语境的前沿存在性证明; 但原文做的是两两 (pairwise) 相似度, 与本族单个银行对同业质心的 one-vs-centroid 距离在参照系上不同, 语料亦为自撰披露。Kang 与 Kang (2025) 以自然实验识别资本市场审视压力对企业战略独特性的因果影响, 佐证相对同业的偏离度是可被外生冲击移动、有经济含义的构念; 其独特性基于财务比率向量相对行业均值的标准化距离, 非文本相似度更非主题分布距离, 样本为美国公司-年, 故本条只锚构念不锚算子。Xiao 与 Ma (2026) 在中国情境下把叙事独特性 (narrative distinctiveness) 作为文本派生构念纳入平台企业绩效模型, 提供了以文本刻画主体差异化在中国语境的同域应用; 其对象为平台企业而非银行, 语料为企业自述叙事, DV 为企业绩效, 算子亦与本族的主题分布余弦距离不同, 同样只锚构念。Lui 与 Tao (2025) 以 LDA 识别个人与机构投资者讨论的公司主题, 发现投资者讨论某主题的文本占比与公司后续披露同一主题的占比正相关且更多回应机构投资者, 对本族仅构成弱构念层佐证 —— 支持把 LDA 主题占比向量视为可在不同主体或来源之间比对的对象; 须明确原文实为逐主题的占比对占比关联回归, 从未把主题向量用于余弦或 JSD 距离计算, 亦未产出任何标量距离落盘列, 故不得援引为距离测度先例。上述锚点均系稳健性叙事的文献配套, 不改变前述规格并排判定: LDA 轨与 TF-IDF 轨、嵌入轨以及三条文本轨仍各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J。
 ## VAR: centroid_diff_lda
 
 【变体差分】
@@ -91,4 +133,9 @@ Miller, C. D., & Wang, R. D. (2024). Product digitization and differentiation st
 Guzman, J., & Li, A. (2023). Measuring founding strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369
 Haans, R. F. J. (2019). What's the value of being different when everyone is? The effects of distinctiveness on performance in homogeneous versus heterogeneous categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978
 Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous product differentiation. Journal of Political Economy, 124(5), 1423-1465. https://doi.org/10.1086/688176
+Xu, D., Huang, J., Ren, X., & Ye, M. (2024). ESG report textual similarity and stock price synchronicity: Evidence from China. Pacific-Basin Finance Journal, 85, 102343. https://doi.org/10.1016/j.pacfin.2024.102343
+Li, F., Zhao, Z., & Cheng, H. (2026). Disclosure similarity and bond comovement. Pacific-Basin Finance Journal, 98, 103191. https://doi.org/10.1016/j.pacfin.2026.103191
+Kang, J., & Kang, Y. (2025). Capital Market Scrutiny and Strategic Distinctiveness of the Firm: Evidence from a Natural Experiment. British Journal of Management, 36(1), 461-476. https://doi.org/10.1111/1467-8551.12857
+Xiao, B., & Ma, H. (2026). How market openness, narrative distinctiveness, and innovation capability impact firm performance: A comparative study of Chinese and foreign platform enterprises in China. Journal of International Management, 32(3), 101354. https://doi.org/10.1016/j.intman.2026.101354
+Lui, D., Moraru‐Arfire, A., & Tao, C. (2025). The Nexus of Corporate Disclosure and Investors’ Information Needs: An Analysis Using Topic Modeling. Journal of Business Finance & Accounting, 52(5), 2145-2174. https://doi.org/10.1111/jbfa.12857
 <!-- rendered-citations:end -->

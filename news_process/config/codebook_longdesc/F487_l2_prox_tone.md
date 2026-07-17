@@ -23,6 +23,15 @@ citations:
 - {doi: "10.1016/j.eap.2024.08.019", type: journal, authors: "Guo, L., Zhu, H., Zhang, C., Liu, Y., & Yang, C.", year: 2024, title: "Does improved credit access promote pollution reduction? The role of bank proximity", venue: "Economic Analysis and Policy", vol: "84", pages_or_artno: "78-97"}
 - {doi: "10.1002/ijfe.2791", type: journal, authors: "Ahmad, M., & Law, S. H.", year: 2024, title: "Financial development, institutions, and economic growth nexus: A spatial econometrics analysis using geographical and institutional proximities", venue: "International Journal of Finance & Economics", vol: "29", issue: "3", pages_or_artno: "2699-2721"}
 - {doi: "10.1080/0034340052000320887", type: journal, authors: "Boschma, R.", year: 2005, title: "Proximity and innovation: A critical assessment", venue: "Regional Studies", vol: "39", issue: "1", pages_or_artno: "61-74"}
+- doi: "10.1111/1911-3846.12935"
+  type: "journal"
+  authors: "Huang, Y., Li, F., Li, T., & Lin, T."
+  year: 2024
+  title: "Local information advantage and stock returns: Evidence from social media"
+  venue: "Contemporary Accounting Research"
+  vol: "41"
+  issue: "2"
+  pages_or_artno: "1089-1119"
 new_dois: []
 ---
 
@@ -41,8 +50,7 @@ new_dois: []
 三条轨道 full/ctx/ss 是本项目情感测量的标准三分法, 在 F487 语境下遵循与其余情感族完全一致的口径: full = 标题+全文正文, ctx = 标题+目标银行实体窗口, ss = 标题+银行∧金科同句±N窗(N 由 `config/filtering.yaml::context_window.ss_sentence_radius` 控制, 默认1句); 三轨在 stage 21 情感 LLM 阶段各自独立产出 `llm_vote_score{track}`, F487 对每条轨道分别在圈内取均值, 得到三条并排、互不派生的地理邻近语调测度。ss 轨道遵循全项目统一的回退语义: 若某篇文章不存在银行∧金科同句共现, 其 `content_ss` 回退为全文 body 且 `ss_is_fallback=True`(镜像 ctx 轨道的回退设计, 分母共享 `n_articles`), 该回退发生在 stage 14 文本物化层, F487 本身不重复实现回退逻辑, 只是被动继承已回退文本上算出的 `llm_vote_score_ss`。三轨语调之间各自 just-identified 并排、互为稳健性、不分主次, 三者度量的是同一构念(邻近圈内平均语调)在不同文本窗口口径下的三次独立估计, 不应在同一 over-identified Hansen J 统计量中混用, 也不应把某一轨简单当作另一轨的"更精确版本"来替代——full 轨捕获文章通篇基调, ctx 轨聚焦银行实体窗口附近的措辞, ss 轨进一步收窄到银行与金科词汇同句出现处的措辞, 三者信息集不同, 差异本身就是稳健性检验的对象而非噪声。
 
 【文献定位】
-F487 与银行挤兑/存款稳定性研究中"媒体情感的地理异质性"文献直接对话: Fang, Wang, Wang & Yuan (2024, *International Review of Economics & Finance*) 发现中国银行的媒体情感显著预测存款稳定性与系统性风险, 且效应强度随信息环境异质而变——F487 用地理距离对这一"信息环境异质性"做出一个可操作化的连续分箱刻画, 提供了比全国平均语调更精细的空间粒度。Holzman, Miller & Twedt (2023, *The Accounting Review*) 关于媒体情感对盈余公告的纪律约束效应说明"语调"这一构念本身在公司/银行治理研究中有独立的解释力, 不能简单被"报道数量"或"报道占比"(F483)替代, 这正是本家族与 F483/F485/F486 分工的理论依据。Ahmad & Law (2024) 的空间计量应用与 Boschma (2005) 的接近性维度理论共同支撑了"地理距离阈值分箱"这一操作化选择的合理性——用离散半径圈(50/100/150/200公里)而非连续距离核, 是在计算成本与解释直观性之间的取舍, 四个阈值构成一个粗粒度的距离衰减梯子, 与文献中常见的距离衰减(distance decay)设定思路一致, 允许研究者观察语调—距离关系是否随半径扩大而单调稀释。Guo, Zhu, Zhang, Liu & Yang (2024, *Economic Analysis and Policy*) 关于银行邻近性与信贷可及性/污染治理的研究进一步佐证了"银行—地理对象距离"作为一个有实质经济含义的结构变量, 在中国金融地理学语境下已有先例, 而非本项目独创的度量口径。
-
+F487 与银行挤兑/存款稳定性研究中"媒体情感的地理异质性"文献直接对话: Fang, Wang, Wang & Yuan (2024, *International Review of Economics & Finance*) 发现中国银行的媒体情感显著预测存款稳定性与系统性风险, 且效应强度随信息环境异质而变——F487 用地理距离对这一"信息环境异质性"做出一个可操作化的连续分箱刻画, 提供了比全国平均语调更精细的空间粒度。Holzman, Miller & Twedt (2023, *The Accounting Review*) 关于媒体情感对盈余公告的纪律约束效应说明"语调"这一构念本身在公司/银行治理研究中有独立的解释力, 不能简单被"报道数量"或"报道占比"(F483)替代, 这正是本家族与 F483/F485/F486 分工的理论依据。Ahmad & Law (2024) 的空间计量应用与 Boschma (2005) 的接近性维度理论共同支撑了"地理距离阈值分箱"这一操作化选择的合理性——用离散半径圈(50/100/150/200公里)而非连续距离核, 是在计算成本与解释直观性之间的取舍, 四个阈值构成一个粗粒度的距离衰减梯子, 与文献中常见的距离衰减(distance decay)设定思路一致, 允许研究者观察语调—距离关系是否随半径扩大而单调稀释。Guo, Zhu, Zhang, Liu & Yang (2024, *Economic Analysis and Policy*) 关于银行邻近性与信贷可及性/污染治理的研究进一步佐证了"银行—地理对象距离"作为一个有实质经济含义的结构变量, 在中国金融地理学语境下已有先例, 而非本项目独创的度量口径。 在"信息发布者与研究对象的地理关系是否携带增量信息"这一更上游的问题上, Huang、Li、Li 与 Lin (2024) 提供了发现层的直接支撑: 该文以社交媒体发帖者的地理位置识别"本地"信息源, 按发帖者与公司总部的地理关系切分样本, 比较本地组与非本地组的信息含量差异, 发现本地信息优势对股票收益具有预测力——这与 F487 按半径圈划出"圈内媒体"再取其语调均值的同城 vs 异城对比设计同族。迁移边界须诚实标明: 该文的信息载体是社交媒体发帖(雪球/股吧类平台), 地理归属基于用户 IP 或自报位置, 而本项目的载体是报纸/通讯社等媒体来源, 地理归属基于媒体来源城市字段经地名后缀清洗比对; 更关键的是, 该文以股票收益为被解释变量并按同城做二分处理, 并未使用连续距离缓冲(50/100/150/200 公里)或 Haversine 球面距离, 其研究对象亦为一般上市公司而非银行。因此该文只能支撑"地理邻近的信息源携带差异化信息"这一构念前提, 不能被援引为本家族四档半径梯子或距离衰减函数形式的直接经验依据。
 ## VAR: prox_50km_tone_full
 
 【变体差分】
@@ -109,4 +117,5 @@ Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stabil
 Guo, L., Zhu, H., Zhang, C., Liu, Y., & Yang, C. (2024). Does improved credit access promote pollution reduction? The role of bank proximity. Economic Analysis and Policy, 84, 78-97. https://doi.org/10.1016/j.eap.2024.08.019
 Ahmad, M., & Law, S. H. (2024). Financial development, institutions, and economic growth nexus: A spatial econometrics analysis using geographical and institutional proximities. International Journal of Finance & Economics, 29(3), 2699-2721. https://doi.org/10.1002/ijfe.2791
 Boschma, R. (2005). Proximity and innovation: A critical assessment. Regional Studies, 39(1), 61-74. https://doi.org/10.1080/0034340052000320887
+Huang, Y., Li, F., Li, T., & Lin, T. (2024). Local information advantage and stock returns: Evidence from social media. Contemporary Accounting Research, 41(2), 1089-1119. https://doi.org/10.1111/1911-3846.12935
 <!-- rendered-citations:end -->

@@ -49,6 +49,45 @@ citations:
   vol: "54"
   issue: "4"
   pages_or_artno: "1187-1230"
+- doi: "10.1016/j.jbankfin.2026.107698"
+  type: "journal"
+  authors: "Turetken, A. C., & Leippold, M."
+  year: 2026
+  title: "Battle of transformers: Adversarial attacks on financial sentiment models"
+  venue: "Journal of Banking & Finance"
+  vol: "188"
+  pages_or_artno: "107698"
+- doi: "10.1007/s11135-026-02832-9"
+  type: "journal"
+  authors: "Hsu, H.-Y., & Hsu, M.-L."
+  year: 2026
+  title: "Semantic stability protocol: intercoder reliability for zero-shot classification via AI coders"
+  venue: "Quality & Quantity"
+- doi: "10.3982/qe1825"
+  type: "journal"
+  authors: "Ke, S., Montiel Olea, J. L., & Nesbit, J."
+  year: 2024
+  title: "Robust machine learning algorithms for text analysis"
+  venue: "Quantitative Economics"
+  vol: "15"
+  issue: "4"
+  pages_or_artno: "939-970"
+- doi: "10.1016/j.pacfin.2025.102721"
+  type: "journal"
+  authors: "Wang, Y., Xiao, J., Wang, L., & Wang, D."
+  year: 2025
+  title: "News sentiment and the cost of debt"
+  venue: "Pacific-Basin Finance Journal"
+  vol: "91"
+  pages_or_artno: "102721"
+- doi: "10.1016/j.chieco.2025.102568"
+  type: "journal"
+  authors: "Zhu, D., Wang, X., & Zhang, Y."
+  year: 2025
+  title: "Narrative monetary policy expectation in China"
+  venue: "China Economic Review"
+  vol: "94"
+  pages_or_artno: "102568"
 new_dois: []
 ---
 
@@ -71,8 +110,7 @@ FinBERT2 是项目私有微调模型, 依赖 `.env` 的 `FINBERT2_MODEL_DIR` 解
 【文献定位】
 BERT 类预训练语言模型在金融文本情感分类上的适用性已由 Huang, Wang & Yang (2023) 的 FinBERT 建立方法学范式: 相较通用领域词典或早期机器学习分类器, 金融领域微调过的 BERT 编码器能更好捕捉专业术语的上下文语义, 这正是本家族选用 finbert_cn 与 finbert2 (均为金融领域专用架构) 而非通用情感分类器的理据。finbert2 对应 Xu et al. (2025, KDD '25) 提出的双向编码器架构, 该文献强调"面向金融场景部署的专业化编码器"与通用大模型相比在特定分类任务上仍有独立价值, 支持本项目把 finbert2 作为与两个 HuggingFace 公开模型并列的第三条独立测量路线, 而非把它视为冗余。Bochkay, Brown, Leone & Tucker (2023) 在 *Contemporary Accounting Research* 对会计文本分析方法学做系统综述, 明确指出神经网络分类模型与传统词典法应"互为印证"而非相互替代, 这为项目 LLM/词典/BERT 三条路线并行、以及 BERT 内部三模型并行的设计提供了方法学正当性。Loughran & McDonald (2016) 的文本分析综述进一步指出, 单一情感测量方法的度量误差会系统性地衰减回归系数并可能误导推断, 多方法三角验证是缓解该问题的推荐做法 —— 本家族的三模型 neg_count 并排正是这一建议在计数口径上的直接实现。
 
-三家 BERT 模型的负面计数 neg_count 与同族的负面概率均值/求和 (neg/neg_sum)、net_tone (正−负) 属于同一逐篇标签/概率矩阵的不同聚合函数, 二者在回归表中应作为互补稳健性证据分别呈现, 而不是彼此替代或相加: neg_count 更贴近"篇数曝光"这一直觉概念 (类似 tone_words 词典法的 pos_count/neg_count 计数族), neg_sum/net_tone 更贴近"情感强度加权曝光"。跨模型一致性 (Krippendorff's α / Cohen's κ) 的检验由 `tone_validation.py` 统一实现, 用于报告三模型在负面判定上的一致程度, 与本家族的面板列是不同层次的产出 (逐篇一致性 vs bank-year 聚合计数), 不应混淆。
-
+三家 BERT 模型的负面计数 neg_count 与同族的负面概率均值/求和 (neg/neg_sum)、net_tone (正−负) 属于同一逐篇标签/概率矩阵的不同聚合函数, 二者在回归表中应作为互补稳健性证据分别呈现, 而不是彼此替代或相加: neg_count 更贴近"篇数曝光"这一直觉概念 (类似 tone_words 词典法的 pos_count/neg_count 计数族), neg_sum/net_tone 更贴近"情感强度加权曝光"。跨模型一致性 (Krippendorff's α / Cohen's κ) 的检验由 `tone_validation.py` 统一实现, 用于报告三模型在负面判定上的一致程度, 与本家族的面板列是不同层次的产出 (逐篇一致性 vs bank-year 聚合计数), 不应混淆。 近期文献从三个方向进一步强化了本家族多模型并排的必要性。Turetken 与 Leippold (2026) 对 FinBERT 与生成式 Fin-GPT 施加语义保持的白盒对抗扰动, 发现二者的情感标签预测均被大比例翻转, 说明金融情感分类器的 argmax 标签并非稳固不变, 任一模型单独的 neg_count 都不应被视作构念真值 —— 这正是本家族保留三模型各自计数并排的直接理据; 原文为英文基准数据集上的句/篇级对抗鲁棒性评测, 其结论是两模型均脆弱而非报告模型间脆弱性差异, 所涉 Fin-GPT 亦非 BERT 架构, 且不涉及中文语料、bank-year 聚合与 count/sum 两种口径之分。Hsu 与 Hsu (2026) 以 DeepSeek Reasoner 对 424 篇中文新闻做五分类、每篇重复 100 次, 用 Krippendorff's α 量化零样本分类的模型内随机性 (原始输出 α=0.8485, 约 20 次多数票聚合后 α>0.94), 表明把 α/κ 类编码者间信度指标施用于 AI 分类器在中文新闻语料上的标注输出, 是方法学上已被接受的效度前置程序, 佐证本家族借 tone_validation.py 报告三模型负面判定一致程度的做法; 但其"AI coders"实为同一模型的多次重复运行, 全文未做任何跨模型比较, 故不构成本项目模型间一致性这一维度的直接先例, 且其对象为零样本生成式 LLM 而非微调 BERT (本项目各模型还存在 2 vs 3 分类基数差异)。Ke 与 Nesbit (2024) 证明 LDA 参数不可识别、文本派生量的下游结论会随先验设定改变, 并给出刻画该结论取值区间的算法; 本家族仅取其一般性方法论立场 —— 建模者未被数据识别的选择应被显式化并报告结论在其上的取值范围, 对应三个 BERT 的 neg_count 各自 just-identified 并排、互为稳健性不分主次、严禁混入同一 over-identified Hansen J 的设计; 原文研究的是单一 LDA 内的先验敏感性而非不同分类器之间的模型选择, 未评估任何 BERT 或神经情感分类器, 亦不涉及计数口径与中文语料。在应用语境一侧, Wang、Xiao、Wang 与 Wang (2025) 在中国语境下从新闻报道抽取情感并聚合到企业层面用于债务成本实证, 是"中文新闻情感 → 实体-年测度"应用同域的近期实例, 用以锚定本家族正负面篇数列族的应用语境而非其具体算法; Zhu、Wang 与 Zhang (2025) 则对逾 100 万篇中文经济新闻做语义分析构造中国叙事型货币政策预期指数, 并以宏观/微观调查类预期指标验证其收敛效度, 说明在中文文本上构造计量化测度并以外部指标做效度检验, 在近期国际期刊上是既有且被接受的做法。迁移边界须一并写明: 前者实体为一般上市公司、DV 为债务成本, 未区分 count 与 probability-sum 口径, 无 per-model 子测度与三轨文本范围; 后者层级为宏观货币政策叙事而非银行-年微观面板, 测度对象是政策方向预期而非情感极性, 未设中性档, 亦未使用 BERT 或多模型并排。
 ## VAR: fin_sent_zh_neg_count_full
 
 【变体差分】
@@ -123,4 +161,9 @@ Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A large language model for e
 Xu, X., Wen, F., Chu, B., Fu, Z., Lin, Q., Liu, J., Fei, B., Li, Y., Zhou, L., & Yang, Z. (2025). FinBERT2: A specialized bidirectional encoder for bridging the gap in finance-specific deployment of large language models. Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2 (KDD '25) No. 5117-5128 [Working Paper]. https://doi.org/10.1145/3711896.3737219
 Bochkay, K., Brown, S. V., Leone, A. J., & Tucker, J. W. (2023). Textual analysis in accounting: What's next?. Contemporary Accounting Research, 40(2), 765-805. https://doi.org/10.1111/1911-3846.12825
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
+Turetken, A. C., & Leippold, M. (2026). Battle of transformers: Adversarial attacks on financial sentiment models. Journal of Banking & Finance, 188, 107698. https://doi.org/10.1016/j.jbankfin.2026.107698
+Hsu, H.-Y., & Hsu, M.-L. (2026). Semantic stability protocol: intercoder reliability for zero-shot classification via AI coders. Quality & Quantity. https://doi.org/10.1007/s11135-026-02832-9
+Ke, S., Montiel Olea, J. L., & Nesbit, J. (2024). Robust machine learning algorithms for text analysis. Quantitative Economics, 15(4), 939-970. https://doi.org/10.3982/qe1825
+Wang, Y., Xiao, J., Wang, L., & Wang, D. (2025). News sentiment and the cost of debt. Pacific-Basin Finance Journal, 91, 102721. https://doi.org/10.1016/j.pacfin.2025.102721
+Zhu, D., Wang, X., & Zhang, Y. (2025). Narrative monetary policy expectation in China. China Economic Review, 94, 102568. https://doi.org/10.1016/j.chieco.2025.102568
 <!-- rendered-citations:end -->

@@ -74,6 +74,31 @@ citations:
   vol: 66
   issue: 1
   pages_or_artno: 35-65
+- doi: "10.3390/computers12010018"
+  type: "journal"
+  authors: "Naldi, M., & Petroni, S."
+  year: 2023
+  title: "A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools"
+  venue: "Computers"
+  vol: "12"
+  issue: "1"
+  pages_or_artno: "18"
+- doi: "10.2139/ssrn.5024959"
+  type: "wp"
+  authors: "Cziraki, P., & Gider, J."
+  year: 2024
+  title: "Newspaper Closures and Trading in Local Stocks"
+  venue: "SSRN"
+  pages_or_artno: "5024959"
+- doi: "10.1057/s41267-025-00798-8"
+  type: "journal"
+  authors: "Pinto, J., & Siano, F."
+  year: 2025
+  title: "Beyond words: the challenge of measuring financial text across borders"
+  venue: "Journal of International Business Studies"
+  vol: "56"
+  issue: "7"
+  pages_or_artno: "921-936"
 new_dois: []
 ---
 
@@ -88,8 +113,7 @@ new_dois: []
 【文献定位】
 词典法情感测度的方法论根系是 Loughran & McDonald (2011), 他们证明通用心理学词典 (如 Harvard IV) 会把大量在财经语境中中性的词误判为负面 ("when is a liability not a liability"), 从而催生了领域专用词典这一整条研究线; 本仓第 6 部词典正是该英文词典的中文主译。Loughran & McDonald (2016, Journal of Accounting Research) 的综述进一步系统化了会计金融文本分析的方法选择, 是本仓做词典消融敏感性 (即为何要物化 raw/negonly/.../negadv 全梯度而非只报一个"最优"配置) 的直接依据: 语言学规则的取舍会实质影响测度, 唯有并排展示才能证明主结论不被某一处规则开关驱动。Loughran & McDonald (2020) 的年鉴综述把这一立场推广到金融文本分析全域。就 negadv 变体所开启的两条规则而言, 转折规则的从句级作用域直接采自 Ding, Liu & Yu (2008) 的 holistic lexicon 框架 (句末标点重置、转折激活), 逗号刻意不计入句末标点因其连接同一复句内从句; Taboada et al. (2011) 则系统论证了 valence shifter (否定、程度、转折) 在词典法中的处理是测度效度的关键。方法互补性上, Frankel, Jennings & Lee (2022, Management Science) 比较机器学习与词典法, 是本仓"三方法 (LLM/词典/BERT) 互为稳健性"格局的先例; 而 Du et al. (2022, Review of Finance) 确立了中文财经情感词典的领域专用性, 支撑本仓并置多部中文词典 (含 loughran 中译) 作为稳健性梯子的做法。
 
-依口径铁律: 本家族三条轨道 full/ctx/ss 各自 just-identified 并排、互为稳健性不分主次, 严禁混进同一 over-identified Hansen J; 词典消融梯度的各语言学规则变体 (含 negadv) 亦为各自 just-identified 并排的稳健性臂, 同样禁混同一 over-identified Hansen J。停刊稳健性 exc_ 聚合是对基线 (全媒体) 情感均值的稳健性对照臂, 用于检验幸存者偏差 (survivorship bias) 是否污染情感测度与下游 Bartik IV, 并非独立构念。留篇门控口径承 full-only (2026-06-29): 是否算作"一篇银行金科报道"只看 full 轨的 LLM 判定, ctx/ss 为 conditional-on-full 的测度/稳健轨; ss 回退语义镜像 ctx, 无银行∧金科同句共现时 content_ss 退化为全文 body。
-
+依口径铁律: 本家族三条轨道 full/ctx/ss 各自 just-identified 并排、互为稳健性不分主次, 严禁混进同一 over-identified Hansen J; 词典消融梯度的各语言学规则变体 (含 negadv) 亦为各自 just-identified 并排的稳健性臂, 同样禁混同一 over-identified Hansen J。停刊稳健性 exc_ 聚合是对基线 (全媒体) 情感均值的稳健性对照臂, 用于检验幸存者偏差 (survivorship bias) 是否污染情感测度与下游 Bartik IV, 并非独立构念。留篇门控口径承 full-only (2026-06-29): 是否算作"一篇银行金科报道"只看 full 轨的 LLM 判定, ctx/ss 为 conditional-on-full 的测度/稳健轨; ss 回退语义镜像 ctx, 无银行∧金科同句共现时 content_ss 退化为全文 body。 在上述锚点之外, 尚可补入三条当代文献。就 negadv 所激活的否定规则而言, Naldi 与 Petroni (2023) 提出一套测试集方法专门评估词典法情感工具对否定的检测与处理能力, 并实证发现各工具的否定处理表现差异显著, 是本家族把否定单列为一条可独立开关、独立报告之消融臂的最贴近方法学锚点; 惟原文为英文、通用领域的工具评测, 所度量的是否定检测准确率, 而本家族并不评测准确率, 只把该规则的开/关作为面板测度的一条稳健性臂, 语料亦为中文金融新闻。exc_ 前缀所做的媒体子集剔除, 则可由 Cziraki 与 Gider (2024) 提供现实动机: 该工作论文以报纸停刊为冲击, 实证报道供给退出会改变本地股票的交易行为, 说明媒体退出是真实且有经济后果的样本组成变化; 但原文的停刊判定来自外部事件数据且被用于识别冲击, 而本家族的 ceased_set 系 detect_defacto_cessation 自语料内部推断出的疑似退出覆盖保守代理 (confirmed ∪ suspected), 并非严格停刊事实, 用途仅限稳健性子样本, 且该文未经同行评审。词表移出本国语境一侧, Pinto 与 Siano (2025) 以 85 个国家、200,960 份财报电话会记录 (文本本身即英文) 为语料, 把美国基准词表直接套用其上, 发现情感与收益的关联在非美国公司弱约 30%, 主因经定谳为文化距离而非语言 (语言特征仅作文化价值的工具变量); 即美国基准词表一旦移出美国语境, 即使文本仍是英文其信号亦系统性衰减, 而本家族 loughran 中文主译既跨文化、又另加中文翻译, 风险只会更大。该文全文无词表翻译、亦无非英语语料, 语料为财报电话会记录而非中文金融新闻, 亦未涉及规则子集消融与银行-年度聚合, 故仅作背景依据。
 ## VAR: exc_loughran_score_negadv_ctx
 
 【变体差分】
@@ -113,4 +137,7 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
 Ding, X., Liu, B., & Yu, P. S. (2008). A holistic lexicon-based approach to opinion mining. Proceedings of the International Conference on Web Search and Web Data Mining (WSDM '08), 231-240. https://doi.org/10.1145/1341531.1341561
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
+Naldi, M., & Petroni, S. (2023). A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools. Computers, 12(1), 18. https://doi.org/10.3390/computers12010018
+Cziraki, P., & Gider, J. (2024). Newspaper Closures and Trading in Local Stocks. SSRN No. 5024959 [Working Paper]. https://doi.org/10.2139/ssrn.5024959
+Pinto, J., & Siano, F. (2025). Beyond words: the challenge of measuring financial text across borders. Journal of International Business Studies, 56(7), 921-936. https://doi.org/10.1057/s41267-025-00798-8
 <!-- rendered-citations:end -->

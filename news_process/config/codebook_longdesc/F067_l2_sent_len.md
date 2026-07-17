@@ -47,6 +47,48 @@ citations:
   vol: 2
   issue: 1
   pages_or_artno: 1-8
+- doi: "10.1080/09296174.2024.2370459"
+  type: "journal"
+  authors: "Chen, X., & Kubát, M."
+  year: 2024
+  title: "Quantifying Syntactic Complexity in Czech Texts: An Analysis of Mean Dependency Distance and Average Sentence Length Across Genres"
+  venue: "Journal of Quantitative Linguistics"
+  vol: "31"
+  issue: "3"
+  pages_or_artno: "260-273"
+- doi: "10.1111/cogs.70115"
+  type: "journal"
+  authors: "Zhou, Y., Jiang, J., & Liu, H."
+  year: 2025
+  title: "Language Universals in Sentence Length: Comparing Sentence Length Distributions of 10 Languages"
+  venue: "Cognitive Science"
+  vol: "49"
+  issue: "9"
+  pages_or_artno: "e70115"
+- doi: "10.1515/eujal-2025-0047"
+  type: "journal"
+  authors: "Kanner, A., & Mäkelä, E."
+  year: 2026
+  title: "The digital shift and syntactic complexity: Mean sentence length in Finnish news journalism"
+  venue: "European Journal of Applied Linguistics"
+- doi: "10.1177/14648849241262204"
+  type: "journal"
+  authors: "Thäsler-Kordonouri, S., Thurman, N., Schwertberger, U., & Stalph, F."
+  year: 2025
+  title: "Too many numbers and worse word choice: Why readers find data-driven news articles produced with automation harder to understand"
+  venue: "Journalism"
+  vol: "26"
+  issue: "9"
+  pages_or_artno: "1878-1898"
+- doi: "10.1111/acfi.70031"
+  type: "journal"
+  authors: "Lammers, F., & Pape, U."
+  year: 2025
+  title: "CEO Narcissism and Linguistic Complexity in Earnings Conference Calls"
+  venue: "Accounting & Finance"
+  vol: "65"
+  issue: "3"
+  pages_or_artno: "3081-3106"
 new_dois: []
 ---
 
@@ -59,8 +101,7 @@ new_dois: []
 计算分两层。文章层由 sentiment 模块 tone_words.py 的 _compute_readability 承担 (非 lexical/controls 模块): 对每篇报道先按中文句末标点切句得到句集, 剔除空白句后, 篇内各句去空白后的字符总数除以句数即得该篇平均句长 avg_sentence_len; 句数取 max(句集长度, 1) 作分母, 故正常路径永不产生除零或 NaN。空文本或退化短文本走统一的空文章返回契约 _empty_article_result, 该契约将三个可读性长度列 (含 avg_sentence_len) 显式置 0.0——与语调 score/ratio 空文本置 NaN 的缺失契约刻意不同: 对长度类度量而言, 空文本的长度为 0 是真值而非缺失, 因此空报道以 0.0 计入。这意味着本列在文章层从不产出 NaN。面板层: encode.py 的 H 段可读性聚合把文章级 avg_sentence_len{track} 以 mean 归约到 bank-year 单元, 得到 avg_sent_len{track}; 由于上游无 NaN 产出, 该 mean 是对全部留篇报道句长的直接算术平均, 个别空报道会以 0.0 真值参与并相应拉低该年度均值 (此为 by-design 的长度契约, 非缺陷)——因此不应把本列理解为"自动跳过缺失、单篇不影响均值"的度量, 其年度水平会随该年空/极短报道占比而系统性下移。单位为字符每句, 属有量纲量, 不宜与无量纲的比率型控制 (如罕见词比率) 直接比较绝对水平, 在回归中一般各自标准化后使用。本族沿三轨物化: full 轨文本为标题 prepend 加全文正文, ctx 轨为标题加实体上下文窗口, ss 轨为标题加银行与金融科技同句共现窗口 (回退时镜像 ctx 语义, 即无同句共现则退化为全文正文并置 ss_is_fallback)。三轨文本在 stage 14 ctx_materializer 统一物化, 上游原始内容列不动。留篇门控采 full-only 口径 (2026-06-29): 一篇报道是否计入银行金科报道宇宙, 仅由 full 轨的 llm_verified_full 判定, ctx/ss 轨降为 conditional-on-full 的测度与稳健性轨, 其行宇宙是 full 留篇集的子集。因此三轨的 avg_sent_len 各自 just-identified 并排, 互为稳健性、不分主次, 严禁把三轨混进同一 over-identified 的 Hansen J 过度识别检验; 它们是同一构念在不同文本切片上的平行测量, 而非可加分解。
 
 【文献定位】
-把文本形式特征作为控制或处理纳入公司—年度、银行—年度面板, 是文本即数据 (text-as-data) 金融研究的标准做法。Hassan 等 (2019) 在其构造企业级政治风险测度的经典工作中, 系统地在文本层做切句与句法解析, 并对文档长度、样板化程度等书写特征加以处理, 以确保所提取的语义暴露不被纯篇幅或文体驱动; Hassan 等 (2023) 把同一测量范式推广到流行病暴露, 再次说明句、段层面的文本结构量是此类面板测度可信度的前提。平均句长正是这一处理逻辑中最直接的形式协变量。从文本处理方法本身看, Alva Principe 等 (2025) 对 transformer 时代长文档分类的综述指出, 文档与句子长度是决定文本表示与下游任务表现的一阶因素, 长句、长文档会显著改变模型对信息的编码方式, 这为把句长作为独立的文本复杂度维度加以控制提供了方法学依据。Bollen 等 (2011) 则代表了以文本派生信号预测金融市场的更广脉络, 提示语义信号与文体特征在实证中必须彼此剥离, 否则文本测度的外部效度存疑。综合而言, 本族的价值不在于单独进入结构方程, 而在于作为稳健的形式控制, 保证语调、关注度、属性等语义处理变量的识别不被报道书写风格的年度或银行间差异所污染。
-
+把文本形式特征作为控制或处理纳入公司—年度、银行—年度面板, 是文本即数据 (text-as-data) 金融研究的标准做法。Hassan 等 (2019) 在其构造企业级政治风险测度的经典工作中, 系统地在文本层做切句与句法解析, 并对文档长度、样板化程度等书写特征加以处理, 以确保所提取的语义暴露不被纯篇幅或文体驱动; Hassan 等 (2023) 把同一测量范式推广到流行病暴露, 再次说明句、段层面的文本结构量是此类面板测度可信度的前提。平均句长正是这一处理逻辑中最直接的形式协变量。从文本处理方法本身看, Alva Principe 等 (2025) 对 transformer 时代长文档分类的综述指出, 文档与句子长度是决定文本表示与下游任务表现的一阶因素, 长句、长文档会显著改变模型对信息的编码方式, 这为把句长作为独立的文本复杂度维度加以控制提供了方法学依据。Bollen 等 (2011) 则代表了以文本派生信号预测金融市场的更广脉络, 提示语义信号与文体特征在实证中必须彼此剥离, 否则文本测度的外部效度存疑。综合而言, 本族的价值不在于单独进入结构方程, 而在于作为稳健的形式控制, 保证语调、关注度、属性等语义处理变量的识别不被报道书写风格的年度或银行间差异所污染。 晚近的定量语言学与新闻研究进一步为句长这一具体算子提供了直接依据。Chen 与 Kubát (2024) 在捷克语语料上显式把平均句长与平均依存距离并列为句法复杂度的量化指标, 并检验其跨文体差异, 是本族把 avg_sentence_len 作为句法复杂度代理这一 method 用法的当代依据; 惟其句长以词计、分析单位为文体语料, 本项目改以字符计、依中文句末标点切句并聚合到银行—年, 量纲与层级均不同。Zhou、Jiang 与 Liu (2025) 系统比较十种语言的句长分布, 论证句长作为跨语言可比语言统计量的分布规律 (含重尾与量纲特征), 支撑本族把篇均句长视作稳定复杂度测度的前提; 该文同以词为句长单位且不涉金融应用, 故仅锚定测度的分布学基础。Kanner 与 Mäkelä (2026) 在芬兰语新闻语料上以平均句长追踪句法复杂度的历时变化, 发现十年间句法复杂度上升约 20% 并降低了文本可及性, 与本族语料类型同域, 既是新闻文体句长测度的前沿存在性证明, 也提示句长对媒体生产流程变迁敏感——正因如此它才需作年度维度的形式控制; 惟原文为描述性历时研究, 句长以词计, 分析单位为报刊/年代而非银行—年, 无经济学结果变量。Thäsler-Kordonouri、Thurman、Schwertberger 与 Stalph (2025) 以 3135 名读者的在线问卷实验因子分析出影响读者评价的五类文章构成维度, 其中即含"句子与段落长度", 为长句降低可读性这一前提提供了同域的读者侧证据; 须诚实指出该文测量的是读者对上述维度的主观感知评分, 并未计算句长等文本统计量, 故不构成本族算子的实现先例, 其语料亦为英语/德语自动化新闻且无机构—年聚合。Lammers 与 Pape (2025) 检验 CEO 自恋对业绩说明会 Q&A 环节语言复杂度的影响, 发现自恋型 CEO 在印象管理动机下策略性降低语言复杂度, 说明语言复杂度在金融沟通文本上可测量、可作公司—年因变量且会被策略性操纵, 从反面印证本族作为形式控制的必要性; 惟原文摘要未披露其复杂度的具体算子, 语料为英文业绩说明会口语转写、单位为 call-level/firm-year, 故本族不据该文主张句长与难字占比、词汇多样性并列作为同一构念多个可观测面的用法先例——三者在本项目是三个独立且互不合并的家族, 各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified 的 Hansen J。
 ## VAR: avg_sent_len_full
 
 【变体差分】
@@ -81,4 +122,9 @@ Alva Principe, R., Chiarini, N., & Viviani, M. (2025). Long document classificat
 Hassan, T. A., Hollander, S., van Lent, L., Schwedeler, M., & Tahoun, A. (2023). Firm-level exposure to epidemic diseases: COVID-19, SARS, and H1N1. The Review of Financial Studies, 36(12), 4919-4964. https://doi.org/10.1093/rfs/hhad044
 Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level political risk: Measurement and effects. The Quarterly Journal of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021
 Bollen, J., Mao, H., & Zeng, X. (2011). Twitter mood predicts the stock market. Journal of Computational Science, 2(1), 1-8. https://doi.org/10.1016/j.jocs.2010.12.007
+Chen, X., & Kubát, M. (2024). Quantifying Syntactic Complexity in Czech Texts: An Analysis of Mean Dependency Distance and Average Sentence Length Across Genres. Journal of Quantitative Linguistics, 31(3), 260-273. https://doi.org/10.1080/09296174.2024.2370459
+Zhou, Y., Jiang, J., & Liu, H. (2025). Language Universals in Sentence Length: Comparing Sentence Length Distributions of 10 Languages. Cognitive Science, 49(9), e70115. https://doi.org/10.1111/cogs.70115
+Kanner, A., & Mäkelä, E. (2026). The digital shift and syntactic complexity: Mean sentence length in Finnish news journalism. European Journal of Applied Linguistics. https://doi.org/10.1515/eujal-2025-0047
+Thäsler-Kordonouri, S., Thurman, N., Schwertberger, U., & Stalph, F. (2025). Too many numbers and worse word choice: Why readers find data-driven news articles produced with automation harder to understand. Journalism, 26(9), 1878-1898. https://doi.org/10.1177/14648849241262204
+Lammers, F., & Pape, U. (2025). CEO Narcissism and Linguistic Complexity in Earnings Conference Calls. Accounting & Finance, 65(3), 3081-3106. https://doi.org/10.1111/acfi.70031
 <!-- rendered-citations:end -->

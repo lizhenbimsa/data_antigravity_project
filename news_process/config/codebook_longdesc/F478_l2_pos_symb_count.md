@@ -36,6 +36,38 @@ citations:
   vol: '45'
   issue: '2'
   pages_or_artno: 333-361
+- doi: "10.1016/j.jsis.2026.101971"
+  type: "journal"
+  authors: "Chen, Z., Hajiheydari, N., Zhang, M., & Lin, Y.-E."
+  year: 2026
+  title: "Corporate digital transformation attention and innovation: strategic commitment or symbolic signalling?"
+  venue: "The Journal of Strategic Information Systems"
+  vol: "35"
+  issue: "2"
+  pages_or_artno: "101971"
+- doi: "10.1108/ara-01-2025-0031"
+  type: "journal"
+  authors: "Guan, J., & Zhuang, X."
+  year: 2025
+  title: "Do digital words reflect real innovation? Evidence from post-M&A earnings conference"
+  venue: "Asian Review of Accounting"
+  pages_or_artno: "1-44"
+- doi: "10.1016/j.frl.2024.105265"
+  type: "journal"
+  authors: "Huang, J., & Ma, L."
+  year: 2024
+  title: "Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation"
+  venue: "Finance Research Letters"
+  vol: "63"
+  pages_or_artno: "105265"
+- doi: "10.1016/j.technovation.2023.102880"
+  type: "journal"
+  authors: "Granados, C., Ayala, Y., & Ramos-Mejia, M."
+  year: 2024
+  title: "Is it substantive or just symbolic? Understanding innovation theater in organisations: The case of technology-based innovation"
+  venue: "Technovation"
+  vol: "129"
+  pages_or_artno: "102880"
 new_dois: []
 ---
 
@@ -48,8 +80,7 @@ new_dois: []
 产生本家族三列的计算发生在两个阶段: 文章级布尔指示列 `_is_pos_symb{track}` 由 stage 21 LLM 情感投票 (`llm_vote_tone`) 与实质性分类 (`innovation_substantiveness`) 两个独立 LLM 任务的输出联合判定 (逻辑与运算: 情感=正面 AND 实质性=符号性), 该联合判定发生在 `pipeline\panel\encode.py` 银行-年聚合入口之前; `encode.py` 随后按 `for track in ['_full', '_ctx', '_ss']: agg[f'pos_symb_count{track}'] = (f'_is_pos_symb{track}', 'sum')` 逐轨对银行-年分组求和, 得到本家族三列的原始计数值。计数本身是非负整数取值的 double 类型 (篇数), 无归一化、无除以样本规模, 因此其绝对水平会随银行-年内报道量规模而机械增长, 单独解读时须谨慎 — 这也是为什么下游 `pipeline\panel\runner.py` 不直接消费本家族列本身作回归 DV, 而是将其作为分子, 除以同域分母 `pos_substvalid_count{track}` (阳性且实质性已成功测量的篇数) 构造归一化的 `washing_ratio{_sfx}` (`_sfx` 在 full 轨为空字符串, ctx/ss 轨分别为 `_ctx`/`_ss` 后缀; 注意源码明确警示不可写成 `'' if full else '_ctx'` 这种简写, 否则会把 ss 误并入 ctx 命名空间)。`runner.py` 中的 `_svd_denom` 辅助函数还处理了分母同域化的历史修复 (`fix(omni-g-runner-10/g-runner-14, 2026-06-11)`): 早期版本分母误用「全部阳性文章数」而非「阳性且实质性判定成功的文章数」, 导致当 LLM 实质性分类失败率上升时洗稿率被系统性低估 (分子受限于已判定样本, 分母却包含未判定样本, 形成分子分母失配); 修复后分母改用 `{name}_substvalid_count{track}`, 缺该列时回退旧分母并输出告警日志, 以兼容旧 schema。理解本家族三列时应牢记: 它们本身是「洗稿率」这一比率型稳健性测度链条的中间产物, 计数值的银行-年间比较意义有限, 真正承担识别功能的是下游比率列。
 
 【文献定位】
-本家族在方法论谱系上继承两条脉络。第一条是文本情绪与文本实质性分离的判据设计, 直接对应 Bingler et al. (2022, *Finance Research Letters*) 关于 cheap talk 的操作化定义, 以及其 2024 年 (*Journal of Banking & Finance*) 后续对该判据外部效度的验证; 本项目的创新点在于把该判据从企业自我披露文本 (10-K/年报/ESG 报告) 迁移到第三方媒体报道文本, 情感极性与实质性两个维度均由独立的 LLM 分类任务而非 Bag-of-Words 词典产生, 判定粒度落在篇章级而非句子级。第二条脉络是组织行为文献中「象征性遵从 vs 实质性遵从」(symbolic vs. substantive conformance) 的一般性区分, 参照 Su, Gao, & Tan (2024, *Strategic Management Journal*) 关于企业如何在竞争压力与制度压力交织的动态复杂环境下, 通过「最优独特性」(optimal distinctiveness) 权衡表面姿态性行为与可验证的实质性行动这一论证: 企业面对外部压力时既可以选择改变实质性经营行为以真正满足利益相关方期待, 也可以选择仅在传播/表态层面做出姿态性回应而不伴随实质投入, 两类回应在外部观察者 (包括媒体) 视角下都可能呈现出「态度积极」的表象, 但其可验证的实质内容截然不同; 该框架为本项目区分「正面且符号性」与「正面且实质性」两类报道提供了组织理论层面的支撑。本家族与其反向配对列 `neg_sub_count` (「反向验证: 负面但被判定为实质性」的镜像计数) 共同体现了这一分离原则 — 洗稿判据不是单一极性下的净值, 而是情感维度与实质性维度的交叉表 (2×2: 正面×实质性、正面×符号性、负面×实质性、负面×符号性), `pos_symb_count` 只是其中一个象限的原始计数。三轨 (full/ctx/ss) 铁律适用于本家族: full/ctx/ss 三条计算路径各自独立 just-identified 并排, 互为稳健性检验而不设主次关系, 严禁在同一 over-identified Hansen J 检验中混用跨轨列; ss 轨在文章无法找到银行∧金科同句共现窗口时镜像 ctx 的回退语义, 退化为使用全文正文 (`content_ss` 回退等于 `content_full` body, 对应 `ss_is_fallback=True`), 三轨共享同一 `n_articles` 分母口径。此外, 留篇门控严格遵循 2026-06-29 起生效的 full-only 口径: 一篇报道是否计入「银行-金科报道」样本, 只取决于 `llm_verified_full == True`, ctx/ss 两轨的 `_is_pos_symb` 计数是在 full 轨留篇集合的子集行宇宙上分轨计算, 而非各轨独立留篇, 这保证了三轨计数在同一样本基础上可比。
-
+本家族在方法论谱系上继承两条脉络。第一条是文本情绪与文本实质性分离的判据设计, 直接对应 Bingler et al. (2022, *Finance Research Letters*) 关于 cheap talk 的操作化定义, 以及其 2024 年 (*Journal of Banking & Finance*) 后续对该判据外部效度的验证; 本项目的创新点在于把该判据从企业自我披露文本 (10-K/年报/ESG 报告) 迁移到第三方媒体报道文本, 情感极性与实质性两个维度均由独立的 LLM 分类任务而非 Bag-of-Words 词典产生, 判定粒度落在篇章级而非句子级。第二条脉络是组织行为文献中「象征性遵从 vs 实质性遵从」(symbolic vs. substantive conformance) 的一般性区分, 参照 Su, Gao, & Tan (2024, *Strategic Management Journal*) 关于企业如何在竞争压力与制度压力交织的动态复杂环境下, 通过「最优独特性」(optimal distinctiveness) 权衡表面姿态性行为与可验证的实质性行动这一论证: 企业面对外部压力时既可以选择改变实质性经营行为以真正满足利益相关方期待, 也可以选择仅在传播/表态层面做出姿态性回应而不伴随实质投入, 两类回应在外部观察者 (包括媒体) 视角下都可能呈现出「态度积极」的表象, 但其可验证的实质内容截然不同; 该框架为本项目区分「正面且符号性」与「正面且实质性」两类报道提供了组织理论层面的支撑。本家族与其反向配对列 `neg_sub_count` (「反向验证: 负面但被判定为实质性」的镜像计数) 共同体现了这一分离原则 — 洗稿判据不是单一极性下的净值, 而是情感维度与实质性维度的交叉表 (2×2: 正面×实质性、正面×符号性、负面×实质性、负面×符号性), `pos_symb_count` 只是其中一个象限的原始计数。三轨 (full/ctx/ss) 铁律适用于本家族: full/ctx/ss 三条计算路径各自独立 just-identified 并排, 互为稳健性检验而不设主次关系, 严禁在同一 over-identified Hansen J 检验中混用跨轨列; ss 轨在文章无法找到银行∧金科同句共现窗口时镜像 ctx 的回退语义, 退化为使用全文正文 (`content_ss` 回退等于 `content_full` body, 对应 `ss_is_fallback=True`), 三轨共享同一 `n_articles` 分母口径。此外, 留篇门控严格遵循 2026-06-29 起生效的 full-only 口径: 一篇报道是否计入「银行-金科报道」样本, 只取决于 `llm_verified_full == True`, ctx/ss 两轨的 `_is_pos_symb` 计数是在 full 轨留篇集合的子集行宇宙上分轨计算, 而非各轨独立留篇, 这保证了三轨计数在同一样本基础上可比。 近期文献进一步充实了这两条脉络在数字化/科技话语上的落地。Chen、Hajiheydari、Zhang 与 Lin (2026) 基于注意力基础观提出企业数字化转型关注度 (CDTA), 以中国上市公司 2007–2020 年样本在「战略实质承诺 vs 象征性信号」两个对立解释间做检验, 结果支持实质承诺说而未支持象征性信号说, 且话语与创新的一致性在高问责情境下最强; 其对本家族的锚定价值在于确立该二分是当代科技话语研究的主流理论框架, 并证明「话语是否只是象征」属可被实证证伪的经验问题, 因而本列所刻画的「正面×象征性」象限是一个有待检验的量而非预设结论 —— 须注意原文以「话语关注度 vs 实际创新产出」间接推断, 与本项目由 LLM 对单篇报道直接标注实质性/象征性的判定机制不同, 文本源亦为公司自述披露而非第三方新闻, 层级为公司-年而非银行-年三轨。Guan 与 Zhuang (2025) 在中国并购语境下直问「数字化措辞是否对应真实创新」, 以文本测度检验数字化词汇与后续创新产出的对应关系, 与本列在正面科技话语中析出象征性叙事的构念高度同域; 但原文文本源为并购后业绩说明会 (管理层自述), 且以「数字词汇量 vs 实际创新指标」间接推断象征性, 并未提出象征性/实质性的逐篇标注方案, 分析单元为并购事件/公司-年。Huang 与 Ma (2024) 则把「实质性 vs 象征性」二分直接置于金融科技议题下, 检验金融科技发展对企业实质性与象征性绿色创新的差异化影响, 其中文表述与本项目 innovation_substantiveness 的标签直接对应; 迁移边界是原文的实质/象征由专利类型 (发明 vs 实用新型/外观) 客观划分、主体为非金融上市公司且金融科技是解释变量, 本项目则由 LLM 判定新闻文本、主体为银行且金融科技是被报道议题本身, 原文亦未构造任何比率型 washing 指标。构念界定层面, Granados、Ayala 与 Ramos-Mejia (2024) 对「创新剧场」(innovation theater) 的刻画补足了 symbolic 一侧的组织理论内涵 —— 技术创新的象征性展演可与实质性投入脱钩, 恰是本列所计数的报道类型的理论原型; 惟原文属组织行为学层面的构念研究, 未提供文本自动分类算法, 非中国语境、非银行业、无面板计量, 本项目把该构念操作化为逐篇 LLM 标签并按银行-年计数, 操作化层级与数据类型均不同。上述四条文献共同支撑本列构念的正当性与可检验性, 但均不涉及三轨文本设计, 故 full/ctx/ss 三轨各自 just-identified 并排、互为稳健性而不分主次的口径仍由本项目自身的测度设计承担, 不应据这些文献推断任何一轨具有主测度地位。
 ## VAR: pos_symb_count_ctx
 
 【变体差分】
@@ -68,4 +99,8 @@ new_dois: []
 Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022). Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures. Finance Research Letters, 47, 102776. https://doi.org/10.1016/j.frl.2022.102776
 Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2024). How cheap talk in climate disclosures relates to climate initiatives, corporate emissions, and reputation risk. Journal of Banking & Finance, 164, 107191. https://doi.org/10.1016/j.jbankfin.2024.107191
 Su, J., Gao, X., & Tan, J. (2024). Positioning for optimal distinctiveness: How firms manage competitive and institutional pressures under dynamic and complex environment. Strategic Management Journal, 45(2), 333-361. https://doi.org/10.1002/smj.3549
+Chen, Z., Hajiheydari, N., Zhang, M., & Lin, Y.-E. (2026). Corporate digital transformation attention and innovation: strategic commitment or symbolic signalling?. The Journal of Strategic Information Systems, 35(2), 101971. https://doi.org/10.1016/j.jsis.2026.101971
+Guan, J., & Zhuang, X. (2025). Do digital words reflect real innovation? Evidence from post-M&A earnings conference. Asian Review of Accounting, 1-44. https://doi.org/10.1108/ara-01-2025-0031
+Huang, J., & Ma, L. (2024). Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation. Finance Research Letters, 63, 105265. https://doi.org/10.1016/j.frl.2024.105265
+Granados, C., Ayala, Y., & Ramos-Mejia, M. (2024). Is it substantive or just symbolic? Understanding innovation theater in organisations: The case of technology-based innovation. Technovation, 129, 102880. https://doi.org/10.1016/j.technovation.2023.102880
 <!-- rendered-citations:end -->

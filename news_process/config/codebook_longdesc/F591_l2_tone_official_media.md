@@ -56,6 +56,14 @@ citations:
   venue: International Review of Economics & Finance
   vol: '91'
   pages_or_artno: 1150-1172
+- doi: "10.1016/j.energy.2025.139126"
+  type: "journal"
+  authors: "Hua, X., Dong, D., Xu, Z., & Huang, W."
+  year: 2025
+  title: "Official media sentiments toward energy and equity returns: Evidence from China"
+  venue: "Energy"
+  vol: "340"
+  pages_or_artno: "139126"
 new_dois: []
 ---
 
@@ -74,8 +82,7 @@ new_dois: []
 与之配对的还有非官方语调 `tone_nonoff_media{track}` 与语调缺口 `tone_gap_official_nonoff{track} = tone_official_media{track} − tone_nonoff_media{track}` (本家族之外的姊妹列), 三者共同构成"官方 vs 非官方"这一媒体异质性子分析的完整测度组; 本家族仅覆盖其中的官方语调本体三列。
 
 【文献定位】
-官方媒体作为独立报道来源的可信度差异, 其理论根基来自媒体经济学与公司治理交叉文献。You, Zhang & Zhang (2018, *The Review of Financial Studies*) 首次在中国情境下系统区分党委机关报与市场化报纸, 发现市场化媒体的负面报道显著促进高管更替, 而官方媒体的治理纪律功能相对弱, 为本家族"按媒体属性切分语调子样本"的操作化提供了直接的构念来源与判据设计依据。Tetlock (2007, *The Journal of Finance*) 的经典研究则确立了"新闻语调是投资者情绪的可观测代理"这一测量范式的方法论基础, 是本家族底层 `llm_vote_score` 语调原语所承继的量化传统的原点文献。二者共同锚定了本家族"媒体属性异质性 × 文本语调测量"这一交叉设计的两条理论支柱。
-
+官方媒体作为独立报道来源的可信度差异, 其理论根基来自媒体经济学与公司治理交叉文献。You, Zhang & Zhang (2018, *The Review of Financial Studies*) 首次在中国情境下系统区分党委机关报与市场化报纸, 发现市场化媒体的负面报道显著促进高管更替, 而官方媒体的治理纪律功能相对弱, 为本家族"按媒体属性切分语调子样本"的操作化提供了直接的构念来源与判据设计依据。Tetlock (2007, *The Journal of Finance*) 的经典研究则确立了"新闻语调是投资者情绪的可观测代理"这一测量范式的方法论基础, 是本家族底层 `llm_vote_score` 语调原语所承继的量化传统的原点文献。二者共同锚定了本家族"媒体属性异质性 × 文本语调测量"这一交叉设计的两条理论支柱。 在前沿的构念存在性层面, Hua、Dong、Xu 与 Huang (2025) 以 BERT 对中国官方/政府控制媒体的新能源报道文本构建官方媒体语调指数, 并检验其与权益回报及企业融资投资行为的关系, 表明「按媒体的官方属性切出子样本、在子样本内对文章级语调取均值」这一操作化在当下仍是活跃的测度路径, 为本家族提供了同构念的近期先例。迁移边界须如实标注: 该文的指数是能源行业与股票市场层面的日度序列, 情感由文本指数法而非本项目的三家 LLM 多数投票得到, 官方媒体名单依中国国家控股报纸清单而非本项目 NPPA 主管/主办单位判据下的 OFFICIAL−MARKET 差集, 且原文未构造 bank-year 面板层级、亦未报告官方与非官方两侧的均值之差。因此它只锚官方语调这一侧的构念存在性, 既不构成姊妹列 tone_gap_official_nonoff{track} 两侧作差这一统计量的依据, 也不涉及任何中央/地方行政层级的切分。
 ## VAR: tone_official_media_ctx
 
 【变体差分】
@@ -103,4 +110,5 @@ You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The 
 Piotroski, J. D., Wong, T. J., & Zhang, T. (2015). Political incentives to suppress negative information - Evidence from Chinese listed firms. Journal of Accounting Research, 53(2), 405-459. https://doi.org/10.1111/1475-679X.12071
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing enthusiasm - Media sentiment and the disciplining role of quarterly earnings announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk - Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
+Hua, X., Dong, D., Xu, Z., & Huang, W. (2025). Official media sentiments toward energy and equity returns: Evidence from China. Energy, 340, 139126. https://doi.org/10.1016/j.energy.2025.139126
 <!-- rendered-citations:end -->

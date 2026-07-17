@@ -53,6 +53,14 @@ citations:
   vol: 67
   issue: 2
   pages_or_artno: 561-598
+- doi: "10.1016/j.irfa.2025.103967"
+  type: "journal"
+  authors: "Lin, Y., Li, L., Yang, X., & Yan, X."
+  year: 2025
+  title: "Geographic expansion of banks and enterprise investment efficiency: Structural evidence from China"
+  venue: "International Review of Financial Analysis"
+  vol: "100"
+  pages_or_artno: "103967"
 new_dois: []
 ---
 
@@ -67,8 +75,7 @@ new_dois: []
 聚类层级的方法学依据是 Cameron 与 Miller (2015) 关于聚类稳健推断的实务指南: 当扰动项在地理维度存在空间自相关时——例如同省银行共同暴露于相似的地方政策与媒体生态——仅在银行级聚类会低估标准误、使 t 统计量虚高。据此面板支持从银行级 (N≈1768) 递进到城市级 (329 个聚类) 再到省级 (31 个聚类) 的稳健性阶梯。其中 31 个省级聚类低于经验门槛 50, 渐近正态近似不再可靠, 因此省级聚类回归须在 Stata 中补充 wild cluster bootstrap (boottest) 加以确认; 城市级 329 个聚类超过门槛, 常规聚类推断可用。函数运行时输出省份/城市聚类数与 Top-5 分布诊断, 并在存在未匹配银行时打印样本一致性告警——因为空字符串观测被 vce(cluster) 剔除会使省/市级聚类样本相对银行级静默缩小, 构成跨聚类层级比较时的样本不一致隐患。
 
 【文献定位】
-地理注册地作为媒体—银行关系的分组维度, 其构念动机根植于 Gurun 与 Butler (2012) 在顶级金融学期刊的发现: 本地媒体对本地企业的报道存在系统性正向倾斜 (local media slant), 且该倾斜与本地广告投放及企业价值相关。这为"同省/同城市银行共享相似媒体报道环境"提供了直接理论支撑, 也是本家族列作为地理聚类与地理留一法工具变量分组键的合法性来源。在中国城商行制度语境下, 银行注册地的经济学意涵尤为丰富: Chen、Poncet 与 Xiong (2020) 论证城市商业银行的地方性金融发展显著影响本地私营企业的出口约束; Wang、Dong 与 Ge (2023) 从分支机构管制放松角度刻画区域银行业信用风险; Wang、Zeng 与 Xie (2025) 进一步将城商行扩张与本地企业创新相联系——三者共同表明"银行总行所在城市/省份"并非中性标签, 而是承载了地方金融供给、监管边界与经济生态的结构性信息。此外, 本项目的中文金融情感测度以 Du、Huang、Wermers 与 Wu (2022) 的领域专用词典为基, 该文强调语言与领域特异性; 地理列在此语境下服务于把情感测度按地方媒体生态分层检验的稳健性目标。综上, bank_province 与 bank_city 是纯标识性列, 但其下游计量用途 (聚类层级、留一法地理 IV) 使其成为识别策略中的基础设施性变量。
-
+地理注册地作为媒体—银行关系的分组维度, 其构念动机根植于 Gurun 与 Butler (2012) 在顶级金融学期刊的发现: 本地媒体对本地企业的报道存在系统性正向倾斜 (local media slant), 且该倾斜与本地广告投放及企业价值相关。这为"同省/同城市银行共享相似媒体报道环境"提供了直接理论支撑, 也是本家族列作为地理聚类与地理留一法工具变量分组键的合法性来源。在中国城商行制度语境下, 银行注册地的经济学意涵尤为丰富: Chen、Poncet 与 Xiong (2020) 论证城市商业银行的地方性金融发展显著影响本地私营企业的出口约束; Wang、Dong 与 Ge (2023) 从分支机构管制放松角度刻画区域银行业信用风险; Wang、Zeng 与 Xie (2025) 进一步将城商行扩张与本地企业创新相联系——三者共同表明"银行总行所在城市/省份"并非中性标签, 而是承载了地方金融供给、监管边界与经济生态的结构性信息。此外, 本项目的中文金融情感测度以 Du、Huang、Wermers 与 Wu (2022) 的领域专用词典为基, 该文强调语言与领域特异性; 地理列在此语境下服务于把情感测度按地方媒体生态分层检验的稳健性目标。综上, bank_province 与 bank_city 是纯标识性列, 但其下游计量用途 (聚类层级、留一法地理 IV) 使其成为识别策略中的基础设施性变量。 同域新近证据进一步印证这一定位。Lin、Li、Yang 与 Yan (2025) 研究中国银行的地理扩张 (跨区域布局) 及其经济后果, 其识别正建立在把银行与具体省/市地理位置相匹配之上, 为「中国银行的省市地理归属是具经济含义的结构性变量而非中性标签」提供了同域实证锚点。迁移边界须写明: 该文的地理变量刻画的是银行分支机构随时间变化的跨区域网点布局, 本家族的 bank_province/bank_city 则仅是取自 config/bank_addresses.json 的总部注册地静态标识字符串 (未匹配→''), 既不含分支网点信息、亦不随年份变化; 其结果变量为企业投资效率, 与本项目的结果变量无重叠。故该文只为本列作为分组维度的构念正当性提供支撑, 不构成对本列取值的效度检验。
 ## VAR: bank_province
 
 【变体差分】
@@ -85,4 +92,5 @@ Wang, C., Dong, Y., & Ge, R. (2023). Bank branching deregulation and the credit 
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Chen, Z., Poncet, S., & Xiong, R. (2020). Local financial development and constraints on domestic private-firm exports: Evidence from city commercial banks in China. Journal of Comparative Economics, 48(1), 56-75. https://doi.org/10.1016/j.jce.2019.09.005
 Gurun, U. G., & Butler, A. W. (2012). Don't believe the hype: Local media slant, local advertising, and firm value. The Journal of Finance, 67(2), 561-598. https://doi.org/10.1111/j.1540-6261.2012.01725.x
+Lin, Y., Li, L., Yang, X., & Yan, X. (2025). Geographic expansion of banks and enterprise investment efficiency: Structural evidence from China. International Review of Financial Analysis, 100, 103967. https://doi.org/10.1016/j.irfa.2025.103967
 <!-- rendered-citations:end -->

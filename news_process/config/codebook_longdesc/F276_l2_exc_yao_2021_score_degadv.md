@@ -53,6 +53,31 @@ citations:
   year: 2024
   title: "Sentiment analysis of economic text: A lexicon-based approach"
   venue: arXiv
+- doi: "10.3390/computers12010018"
+  type: "journal"
+  authors: "Naldi, M., & Petroni, S."
+  year: 2023
+  title: "A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools"
+  venue: "Computers"
+  vol: "12"
+  issue: "1"
+  pages_or_artno: "18"
+- doi: "10.1093/llc/fqae013"
+  type: "journal"
+  authors: "Venglařová, K., & Matlach, V."
+  year: 2024
+  title: "Beyond content: discriminatory power of function words in text type classification"
+  venue: "Digital Scholarship in the Humanities"
+  vol: "39"
+  issue: "2"
+  pages_or_artno: "765-789"
+- doi: "10.2139/ssrn.5024959"
+  type: "wp"
+  authors: "Cziraki, P., & Gider, J."
+  year: 2024
+  title: "Newspaper Closures and Trading in Local Stocks"
+  venue: "SSRN"
+  pages_or_artno: "5024959"
 new_dois: []
 ---
 
@@ -65,8 +90,7 @@ new_dois: []
 计算分两层。文章层由 pipeline/sentiment/tone_words.py 在 stage 22 完成: 对每篇报道的三轨文本 (content_full 标题加正文、content_ctx 标题加实体窗、content_ss 标题加银行与金科同句窗) 分别扫描 yao_2021 词典命中词, 得到正词与负词的计数, 再按 degadv 规则打分——遇程度副词按 HowNet 六级强度体系缩放邻近情感词幅度、遇转折连词按 ADVERSATIVE_BOOST 提升转折后分句权重, 但不执行否定词翻转 (故 degadv 恰等于全规则口径减去否定这一条规则)。文章得分自归一化为 (Σ正 − Σ负)/(Σ正 + Σ负), 落在约 [-1, 1] 区间。面板层由 pipeline/panel/attention_media.py 的 compute_media_heterogeneity 在停刊稳健性区段完成: 先由 detect_defacto_cessation 依覆盖退出信号 (媒体在银行金科话题上的首末出现年跨度) 给每条报道打 _is_ceased_media 标记, 再在 _is_ceased_media 等于 0 的存活子样本 df_alive 上按 (target_bank, year) 对文章层 yao_2021_score_degadv{track} 取算术均值, 前缀 exc_ 写出 bank-year 列。停刊比例本身另存为 ceased_media_frac、剔停后文章数另存为 n_articles_exc; 本情感列按契约在零文章格保持缺失而不零填。由于每个消融变体各自 self-normalize (分母随启用规则集变化), 相邻消融级差并非某条规则的纯边际贡献, 只作 ablation 稳健性对照; 披露时应报各级相关系数与逐级变号占比, 论文表述落在"定性不变", 而非声称某一消融组合更优。
 
 【文献定位】
-词典法的方法学定位可放在近年金融文本测度的两条线索上。一是词典底料的持续演进: Ma 等 (2025) 构建面向中国国内投资者的细粒度中文情感词典 CN-FSD, 代表中文金融词典法在细粒度与领域特异方向的最新进展, 佐证"专门词典优于英文词典直译"这一路线在中文金融文本上的持续有效性; Barbaglia 等 (2024) 的经济文本词典法工作则在跨语种层面重申词典命中加规则修正这一透明、可复现路线的价值。二是测量效度的独立评估: van Atteveldt 等 (2021) 系统比较人工标注、众包、词典法与机器学习在情感分析上的效度, 指出不同方法在难例上存在系统差异, 这正是本项目坚持"词典法 × 大模型法 × BERT 法三法互为稳健性"的实证依据, 也支持用规则消融梯子检验结论对具体规则取舍的敏感性。顶刊锚方面, Derrien 等 (2025) 发表于 The Journal of Finance 的研究以 ESG 新闻的文本情感度量为核心, 论证从新闻文本抽取的情感信号确能预测未来现金流并进入公司估值, 为"以词典法从媒体文本构造银行情感面板"这一测量策略提供了顶刊层面的构念与识别参照; Du 等 (2022) 发表于 Review of Finance 的中文金融情感词典工作则从语言与领域特异性角度论证中文金融文本需专门词典, 是本项目六部词典整体设计 (含 yao_2021) 的方法学共同底座, 尽管其政治正面词加权设计仅对 du_2022 生效、对本家族的 yao_2021 底料不适用。
-
+词典法的方法学定位可放在近年金融文本测度的两条线索上。一是词典底料的持续演进: Ma 等 (2025) 构建面向中国国内投资者的细粒度中文情感词典 CN-FSD, 代表中文金融词典法在细粒度与领域特异方向的最新进展, 佐证"专门词典优于英文词典直译"这一路线在中文金融文本上的持续有效性; Barbaglia 等 (2024) 的经济文本词典法工作则在跨语种层面重申词典命中加规则修正这一透明、可复现路线的价值。二是测量效度的独立评估: van Atteveldt 等 (2021) 系统比较人工标注、众包、词典法与机器学习在情感分析上的效度, 指出不同方法在难例上存在系统差异, 这正是本项目坚持"词典法 × 大模型法 × BERT 法三法互为稳健性"的实证依据, 也支持用规则消融梯子检验结论对具体规则取舍的敏感性。顶刊锚方面, Derrien 等 (2025) 发表于 The Journal of Finance 的研究以 ESG 新闻的文本情感度量为核心, 论证从新闻文本抽取的情感信号确能预测未来现金流并进入公司估值, 为"以词典法从媒体文本构造银行情感面板"这一测量策略提供了顶刊层面的构念与识别参照; Du 等 (2022) 发表于 Review of Finance 的中文金融情感词典工作则从语言与领域特异性角度论证中文金融文本需专门词典, 是本项目六部词典整体设计 (含 yao_2021) 的方法学共同底座, 尽管其政治正面词加权设计仅对 du_2022 生效、对本家族的 yao_2021 底料不适用。 就本族三个设计维度而言, 近期文献分别提供了可锚的支点。规则维度上, Naldi 与 Petroni (2023) 以人工构造测试集专门评估词典法情感工具的否定检测与处理表现, 实证各工具差异显著, 佐证否定是词典法内部一个可被单独测量、单独失效的模块, 从而使 degadv 这条「全规则口径减去否定」的臂具备独立解读价值; 惟该文语料为英文通用领域, 所度量者为否定检测准确率, 本族并不评测准确率, 只把否定的开与关物化为并排稳健性臂。转折通道方面, Venglařová 与 Matlach (2024) 实证功能词 (含连词一类的非内容词) 在文本类型判别上具有独立于内容词的信息量, 支持把转折结构视为一个值得单独计量的语言维度; 但其任务是文本类型分类, 并不区分转折连词与其它功能词类, 语料亦非中文金融新闻、不涉及银行—年度聚合, 故只在构念层与本族的 adversative 规则相通, 不构成 ADVERSATIVE_BOOST 取值的依据。样本口径方面, Cziraki 与 Gider (2024) 以报纸停刊为冲击, 实证报道供给退出会改变本地股票的交易行为, 为 exc_ 前缀「剔除疑似退出覆盖媒体后再作 bank-year 聚合」这一环节提供现实动机; 该文为工作论文尚未经同行评审, 其停刊判定来自外部事件数据所记录的真实停刊事件, 而本项目的 ceased_set 是由 detect_defacto_cessation 自语料内部推断的疑似退出覆盖保守代理, 并非严格停刊事实, 且仅作稳健性子样本, 不用于识别冲击。
 ## VAR: exc_yao_2021_score_degadv_ctx
 
 【变体差分】
@@ -88,4 +112,7 @@ Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-graine
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2024). Sentiment analysis of economic text: A lexicon-based approach. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2411.13958
+Naldi, M., & Petroni, S. (2023). A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools. Computers, 12(1), 18. https://doi.org/10.3390/computers12010018
+Venglařová, K., & Matlach, V. (2024). Beyond content: discriminatory power of function words in text type classification. Digital Scholarship in the Humanities, 39(2), 765-789. https://doi.org/10.1093/llc/fqae013
+Cziraki, P., & Gider, J. (2024). Newspaper Closures and Trading in Local Stocks. SSRN No. 5024959 [Working Paper]. https://doi.org/10.2139/ssrn.5024959
 <!-- rendered-citations:end -->

@@ -47,6 +47,15 @@ citations:
   vol: ""
   issue: ""
   pages_or_artno: "2511.15714"
+- doi: "10.1609/aaai.v39i18.34120"
+  type: "journal"
+  authors: "Lyu, Q., Shridhar, K., Malaviya, C., Zhang, L., Elazar, Y., Tandon, N., Apidianaki, M., Sachan, M., & Callison-Burch, C."
+  year: 2025
+  title: "Calibrating Large Language Models with Sample Consistency"
+  venue: "Proceedings of the AAAI Conference on Artificial Intelligence"
+  vol: "39"
+  issue: "18"
+  pages_or_artno: "19260-19268"
 new_dois: []
 ---
 
@@ -61,8 +70,7 @@ new_dois: []
 计算发生在篇级 (article-level) 到面板级 (bank-year-level) 的两阶段流水: 先在 stage 21/24 产出篇级列 `llm_vote_cont{track}` 与 `herd_weight{track}_thr30` (后者由 stage 24 `herd_decay.py` 在敏感性网格的每个 τ 上独立跑一遍相似度判定与权重衰减公式), 再由 `runner.py` 步骤 3d 把两者逐篇相乘得到篇级乘积列 `llm_vote_cont_hw_thr30{track}`, 最后 `encode.py::build_aggregation_dict` 在 groupby(target_bank, year) 聚合时对该乘积列取 `sum`, 得到本家族三列。留篇门控口径与全库一致: 一篇文章是否计入某银行-年的"有效报道"由 `llm_verified_full` 决定 (2026-06-29 起的 full-only 门控), ctx/ss 轨的行宇宙是 full 留篇集的条件子集, 各轨分子分母严格逐轨自洽, 不借用彼此的分母。求和过程中 NaN 语义是自然传播: 若某篇文章的 `llm_vote_score{track}` 因三家判定失败/未通过 verification 而缺失, 则该篇的 `llm_vote_cont{track}` 及乘积项亦为 NaN, `sum` 聚合按 pandas 语义自动跳过缺失值 (而非计为 0), 因此这一列本质是"有效篇章上的加权和", 分母口径的严谨匹配交由下游比率列 `llm_vote_tone_hw_thr30{track}` (= 本列 / `sum_wd_hw_thr30_llm{track}` valid-mask 分母) 负责, 本列自身不做除法。
 
 【文献定位】
-本家族方法学谱系融合了两条独立文献线索。其一是"抄稿/重复报道对信息含量的稀释"传统, 源自 Tetlock (2007, *Journal of Finance*) 对媒体情绪度量投资者信念的开创性框架, 并在 Tetlock (2011) 及后续跟风/羊群效应文献中发展出"高度相似的重复报道应降权而非等权计入"的处理思路 — 本家族的核心构造(herd_weight 随相似度阈值衰减)即是这一思路在中文银行金融科技新闻语料上的落地。其二是"用大语言模型多数投票替代单一模型标注、并以模型间一致率量化标注置信度"的 LLM-as-coder 方法学, 参考 de Kok (2025, *Management Science*) 对生成式 LLM 在会计与文本分析研究中温度参数冻结、提示词版本化等确定性重现规范的系统梳理, 以及 Kamen & Kamen (2025) 关于 LLM 集成多数投票作为内容分类稳健方案的论证。阈值 τ=0.30 属于本项目阈值敏感性网格 (基线 0.35, 备选 {0.25, 0.30, 0.40, 0.45}) 的一个格点, 设计动机与 Du et al. (2022, *Review of Finance*) 对政治词权重取值做 {0.0, 0.5, 1.0} 敏感性检验、以及本项目其余"梯子式"稳健性构造(规则消融、罕见词 cutoff、BERT 极端负面分位)同构: 证明主结论不依赖某一具体超参数选择。
-
+本家族方法学谱系融合了两条独立文献线索。其一是"抄稿/重复报道对信息含量的稀释"传统, 源自 Tetlock (2007, *Journal of Finance*) 对媒体情绪度量投资者信念的开创性框架, 并在 Tetlock (2011) 及后续跟风/羊群效应文献中发展出"高度相似的重复报道应降权而非等权计入"的处理思路 — 本家族的核心构造(herd_weight 随相似度阈值衰减)即是这一思路在中文银行金融科技新闻语料上的落地。其二是"用大语言模型多数投票替代单一模型标注、并以模型间一致率量化标注置信度"的 LLM-as-coder 方法学, 参考 de Kok (2025, *Management Science*) 对生成式 LLM 在会计与文本分析研究中温度参数冻结、提示词版本化等确定性重现规范的系统梳理, 以及 Kamen & Kamen (2025) 关于 LLM 集成多数投票作为内容分类稳健方案的论证。阈值 τ=0.30 属于本项目阈值敏感性网格 (基线 0.35, 备选 {0.25, 0.30, 0.40, 0.45}) 的一个格点, 设计动机与 Du et al. (2022, *Review of Finance*) 对政治词权重取值做 {0.0, 0.5, 1.0} 敏感性检验、以及本项目其余"梯子式"稳健性构造(规则消融、罕见词 cutoff、BERT 极端负面分位)同构: 证明主结论不依赖某一具体超参数选择。 在上述第二条线索之内, 关于"为何可以用模型间一致率作为连续置信权重"这一具体环节, Lyu 等 (2025) 提供了更细的实证支点: 该文系统比较多种置信度来源, 发现由多次采样输出之间的一致性导出的置信度, 其校准性优于模型自报置信度与 logit 概率, 恰可支撑本家族第一层构念中 llm_vote_cont{track} = llm_vote_score{track} × llm_agreement_rate{track} 的强度收缩设计。迁移边界不容含糊: 该文的一致性来自同一模型在正温度下的重复采样, 本项目则固定 temperature=0.0 且不做重复采样, agreement_rate 取自三家不同厂商模型 (gpt54nano/gemini31/deepseekv4) 的跨模型投票一致率 ∈ [1/3, 1], 是跨模型而非跨采样的一致性, 该文并未检验此种一致性的校准性质; 其任务亦为英文推理/QA 基准, 与中文财经新闻三分类情感、跟风阈值衰减与银行-年加总均无交集。故该文只锚定连续化权重的来源正当性, 与本列 τ=0.30 这一网格点的取值选择无关 — 后者的辩护仍由上述阈值敏感性网格的并排设计独立承担。
 ## VAR: llm_vote_cont_hw_thr30_sum_full
 
 【变体差分】
@@ -83,4 +91,5 @@ Tetlock, P. C. (2007). Giving Content to Investor Sentiment: The Role of Media i
 de Kok, T. (2025). ChatGPT for Textual Analysis? How to Use Generative LLMs in Accounting Research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and Domain Specificity: A Chinese Financial Sentiment Dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Kamen, A., & Kamen, Y. (2025). Majority Rules: LLM Ensemble Is a Winning Approach for Content Categorization. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2511.15714
+Lyu, Q., Shridhar, K., Malaviya, C., Zhang, L., Elazar, Y., Tandon, N., Apidianaki, M., Sachan, M., & Callison-Burch, C. (2025). Calibrating Large Language Models with Sample Consistency. Proceedings of the AAAI Conference on Artificial Intelligence, 39(18), 19260-19268. https://doi.org/10.1609/aaai.v39i18.34120
 <!-- rendered-citations:end -->

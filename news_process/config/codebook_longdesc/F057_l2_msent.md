@@ -45,6 +45,39 @@ citations:
   vol: 81
   issue: 3
   pages_or_artno: 607-636
+- doi: "10.1016/j.jbankfin.2025.107542"
+  type: "journal"
+  authors: "Lehkonen, H., Heimonen, K., & Pukthuanthong, K."
+  year: 2025
+  title: "Media tone is a priced risk factor in currency markets"
+  venue: "Journal of Banking & Finance"
+  vol: "180"
+  pages_or_artno: "107542"
+- doi: "10.1016/j.jfs.2026.101538"
+  type: "journal"
+  authors: "Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S."
+  year: 2026
+  title: "Does media sentiment influence bank supervision?"
+  venue: "Journal of Financial Stability"
+  vol: "84"
+  pages_or_artno: "101538"
+- doi: "10.1016/j.iref.2024.103745"
+  type: "journal"
+  authors: "Bai, C., Duan, Y., & Goodell, J. W."
+  year: 2025
+  title: "Multi-media sentiment to systemic risk: Evidence from COVID-19"
+  venue: "International Review of Economics & Finance"
+  vol: "97"
+  pages_or_artno: "103745"
+- doi: "10.1111/acfi.13353"
+  type: "journal"
+  authors: "Kanagaretnam, K., Li, W., Shi, G., & Zhou, Z."
+  year: 2025
+  title: "Ambiguity of tone in annual reports and bank risk taking"
+  venue: "Accounting & Finance"
+  vol: "65"
+  issue: "1"
+  pages_or_artno: "935-970"
 new_dois:
 - 10.1016/j.jeconom.2020.07.053
 - 10.1086/260061
@@ -61,8 +94,7 @@ new_dois:
 该家族严格沿用项目的三轨文本架构 (full / ctx / ss) 与 full-only 留篇门控口径 (2026-06-29)。full 轨文本为标题前置加全文正文; ctx 轨为标题加实体窗口; ss 轨为标题加银行与金融科技同句共现的窄窗, 且 ss 的回退语义镜像 ctx——当某篇报道不存在银行与金融科技的同句共现时, ss 文本退回全文正文并标记回退。行宇宙由 full 轨留篇集唯一确定, 一篇报道是否算作"银行金融科技报道"只看 full 轨 LLM 判定, ctx 与 ss 是 conditional-on-full 的测度轨与稳健性轨, 其 msent 列在 full 留篇集的子集上逐轨计算。需要厘清的是, 面板均值聚合并非以全局 n_articles 为固定分母, 而是对每个银行—年度单元内该轨 msent 非缺失的报道逐轨取等权均值 (encode 层 mean 聚合自动跳过缺失值), 因此 per-track 分母等于该轨实际有值的篇数, 未必严格等于由 full-only 留篇门控计得的 n_articles: n_articles 是 full 轨留篇集的篇数, 当某篇报道在 ctx 或 ss 轨因回退标记、空窗或空文本而缺失 msent 时, 该篇不进入本轨分母。CLAUDE.md 中"共享 n_articles 分母"一语专指 ss 回退语义下 ss 与 ctx 镜像同一留篇报道基这一层含义, 并不意味着三轨聚合分母逐位相等——三轨分母只在无任何轨内缺失的理想单元才恰好一致。三轨之间是各自 just-identified 并排、互为稳健性、不分主次的关系, 严禁把 full、ctx、ss 三轨的 msent 混进同一个 over-identified 的 Hansen J 过度识别检验; 这与项目内 co-primary 双轨嵌入、政治词权重梯度、规则消融梯度所遵循的同款铁律一致。计数口径 msent 刻意不进入规则消融梯度: 程度副词与转折连词在计数口径下是严格正的乘子、永不翻号, 对 (负面减正面) 除以 (正负面之和) 的比值零影响, 会使各规则消融变体全部退化, 因此 msent 口径仅由零规则的 msent_score 与仅否定的 msent_negonly 两档完整覆盖, 不再新增任何 msent 消融列。
 
 【文献定位】
-计数型词频情感测度的方法学原型可追溯到媒体文本与资产市场关系的经典研究。Tetlock (2007) 在顶级金融学期刊上用固定词表统计财经专栏中的悲观词频, 证明媒体语调对市场收益与成交量具有可度量的预测含量, 为本家族"数正负面词、构造极性标量"的做法提供了直接构念锚, 且其固定词表、不做复杂语言学处理的朴素做法恰是 msent 零规则口径要复刻的原型。测量层面, Shapiro, Sudhof and Wilson (2022) 系统讨论了新闻情感的测量误差如何通过衰减偏误 (attenuation bias) 把回归系数拉向零, 这为本家族同时保留 avg_msent 与其年内离散度 avg_msent_std、并对 avg_msent 做年度截面标准化提供了识别层面的依据: 离散度是测量噪声的直接刻画, 标准化则使系数可比。年度截面标准化本身的方法学出处是 Fama and MacBeth (1973) 的两阶段截面回归框架, 逐年度把核心回归变量归一到单位方差, 使斜率系数可直接解读为"一个标准差的情感变化对应因变量若干单位的变动"。三篇文献共同界定了 msent 从逐篇构造、到面板聚合、再到截面标准化的完整方法学链条。
-
+计数型词频情感测度的方法学原型可追溯到媒体文本与资产市场关系的经典研究。Tetlock (2007) 在顶级金融学期刊上用固定词表统计财经专栏中的悲观词频, 证明媒体语调对市场收益与成交量具有可度量的预测含量, 为本家族"数正负面词、构造极性标量"的做法提供了直接构念锚, 且其固定词表、不做复杂语言学处理的朴素做法恰是 msent 零规则口径要复刻的原型。测量层面, Shapiro, Sudhof and Wilson (2022) 系统讨论了新闻情感的测量误差如何通过衰减偏误 (attenuation bias) 把回归系数拉向零, 这为本家族同时保留 avg_msent 与其年内离散度 avg_msent_std、并对 avg_msent 做年度截面标准化提供了识别层面的依据: 离散度是测量噪声的直接刻画, 标准化则使系数可比。年度截面标准化本身的方法学出处是 Fama and MacBeth (1973) 的两阶段截面回归框架, 逐年度把核心回归变量归一到单位方差, 使斜率系数可直接解读为"一个标准差的情感变化对应因变量若干单位的变动"。三篇文献共同界定了 msent 从逐篇构造、到面板聚合、再到截面标准化的完整方法学链条。 在这三条经典锚点之外, 近期同域研究进一步印证了本家族的构造形态与应用场景。Lehkonen、Heimonen 与 Pukthuanthong (2025) 以覆盖全球逾两千家媒体与八百家社交站点的约七百万篇文本构造媒体语调, 证明以正负提及净额除以总提及构成的比率型语调是可跨截面定价货币的真实风险因子, 为 msent 所用「极性差除以极性和」这一比率形态提供了近期顶刊级的经济含义论证; 须同时写明其语调取自 Refinitiv MarketPsych 专有商业指数而非自建词表命中计数, 构造细节不可复核, 且其层级为货币-国别聚合、语料为英文国际财经新闻、因变量为汇率与货币收益的因子定价, 与本项目公开中文词典自建计数、银行×年聚合的口径在透明度与聚合结构上均不可直接比附。Aldama-Navarrete、Curti、Hansen 与 Kazinnik (2026) 构造针对特定银行的媒体情感测度并检验其与监管行为的关联, 表明把新闻情感按银行主体归集、进而进入银行层面实证, 是当前被顶级金融稳定期刊接受的做法, 锚定的正是本家族「逐篇 msent → 银行—年度均值」这一聚合环; 其语境为美国银行监管 (以监管评级与监管行动为因变量), 情感测度的构造细节与本项目六词典 union 及 (负面减正面) 除以 (正负面之和) 的归一化口径不同, 亦不涉及本项目的三轨文本与 LLM 投票设计。Bai、Duan 与 Goodell (2025) 用 2020 年二至四月来自官方新闻媒体、新浪微博与微信的约八百八十万条中文文本构造日度情感指数, 发现媒体情感上升经缓解存款人挤兑而降低系统性风险, 且渠道间情感分歧扩大会加剧系统性风险, 提供了「中文媒体情感测度进入银行体系风险实证」的近期同域证据; 但其情感指数是否为词表命中计数在可得材料中未见披露, 测度单元为日度指数而非按银行—年度对篇数取均值, 且其所谓「多源」指媒体渠道, 与本项目多词典 union、三文本轨的并排不是同一维度, 因此不可据以为本家族的词典并集或三轨并排设计背书。Kanagaretnam、Li、Shi 与 Zhou (2025) 以银行 10-K 文本的语调模糊度 (由分离混淆成分与信息成分的语调模型残差估计) 进入银行风险承担面板回归, 佐证银行文本的词表型语调测度可作为银行层面实证的解释变量; 其测度为残差化的模糊度指标, 并非本家族的比率式极性口径, 且每银行—年度仅一份年报文档, 与本家族逐篇计数后再取均值的分母结构不同, 因而亦不可把 avg_msent_std 的年内离散度构念等同于其模糊度指标。
 ## VAR: avg_msent_full
 
 【变体差分】
@@ -112,4 +144,8 @@ new_dois:
 Shapiro, A. H., Sudhof, M., & Wilson, D. J. (2022). Measuring news sentiment. Journal of Econometrics, 228(2), 221-243. https://doi.org/10.1016/j.jeconom.2020.07.053
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Fama, E. F., & MacBeth, J. D. (1973). Risk, return, and equilibrium: Empirical tests. Journal of Political Economy, 81(3), 607-636. https://doi.org/10.1086/260061
+Lehkonen, H., Heimonen, K., & Pukthuanthong, K. (2025). Media tone is a priced risk factor in currency markets. Journal of Banking & Finance, 180, 107542. https://doi.org/10.1016/j.jbankfin.2025.107542
+Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S. (2026). Does media sentiment influence bank supervision?. Journal of Financial Stability, 84, 101538. https://doi.org/10.1016/j.jfs.2026.101538
+Bai, C., Duan, Y., & Goodell, J. W. (2025). Multi-media sentiment to systemic risk: Evidence from COVID-19. International Review of Economics & Finance, 97, 103745. https://doi.org/10.1016/j.iref.2024.103745
+Kanagaretnam, K., Li, W., Shi, G., & Zhou, Z. (2025). Ambiguity of tone in annual reports and bank risk taking. Accounting & Finance, 65(1), 935-970. https://doi.org/10.1111/acfi.13353
 <!-- rendered-citations:end -->

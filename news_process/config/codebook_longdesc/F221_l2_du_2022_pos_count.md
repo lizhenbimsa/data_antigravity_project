@@ -53,6 +53,22 @@ citations:
   title: "A new Chinese financial sentiment dictionary for textual analysis in accounting and finance"
   venue: SSRN Working Paper
   pages_or_artno: No. 3446388
+- doi: "10.1016/j.jfs.2026.101538"
+  type: "journal"
+  authors: "Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S."
+  year: 2026
+  title: "Does media sentiment influence bank supervision?"
+  venue: "Journal of Financial Stability"
+  vol: "84"
+  pages_or_artno: "101538"
+- doi: "10.1016/j.jaccpubpol.2024.107181"
+  type: "journal"
+  authors: "Cheng, C. A., Jiang, L., & Song, W.-L."
+  year: 2024
+  title: "Media coverage and debt financing choice"
+  venue: "Journal of Accounting and Public Policy"
+  vol: "44"
+  pages_or_artno: "107181"
 new_dois: []
 ---
 
@@ -69,8 +85,7 @@ du_2022 词典来自 Du, Huang, Wermers 与 Wu (2022) 在 Review of Finance 发�
 三条文本轨 full / ctx / ss 各自独立走上述三层, 得到三列并排的计数。三轨是各自 just-identified 并排、互为稳健性、不分主次的关系, 严禁把三轨列混进同一 over-identified Hansen J。留篇门控采用 2026-06-29 的 full-only 口径: 一篇是否算「一篇银行金科报道」只看 full 轨的 LLM 判定, ctx 与 ss 轨降为 conditional-on-full 的测度轨, 其行宇宙是 full 留篇集的子集, 但每条轨的 per-track 计数照各自的文本内容独立计算。ss 轨的回退语义镜像 ctx: 当某篇没有银行与金科的同句共现时, 其 content_ss 回退为全文正文, 相应 fallback 标记置真, 分母与 ctx 共享 n_articles。
 
 【文献定位】
-在中文金融文本测度谱系里, du_2022 (Du, Huang, Wermers & Wu, 2022) 是与本项目并用的六部词典之一, 也是唯一显式携带政治正面词分层的词典, 其在 Review of Finance 的方法学地位使其成为政治词权重敏感性检验的锚。相邻的 Bian, Jia, Li 与 Yan (2021) 同样是 Loughran 与 McDonald 框架的中文本土化扩充, 但不区分政治词, 因而与 du_2022 构成同一构念下的替代词典稳健性。更晚近的 Ma, Zhang 与 Zhang (2025) 提出面向中国境内投资者的细粒度情感词典 CN-FSD, 代表词典细粒度化的方法学前沿, 说明「计数一部固定词典的正面命中」这一朴素测度在多词典并置下仍有稳健性价值。Todd, Bowden 与 Moshfeghi (2024) 对金融文本情感分析文献的综述则勾勒了词典法与机器学习法的分野, 佐证本项目把词典计数、LLM 投票、BERT 概率三法并置为互为稳健性轨的做法。Fang, Wang, Wang 与 Yuan (2024) 在中国银行层面用媒体情感解释存款稳定与系统性风险, 是本计数列在银行研究场景下的典型下游应用范式。
-
+在中文金融文本测度谱系里, du_2022 (Du, Huang, Wermers & Wu, 2022) 是与本项目并用的六部词典之一, 也是唯一显式携带政治正面词分层的词典, 其在 Review of Finance 的方法学地位使其成为政治词权重敏感性检验的锚。相邻的 Bian, Jia, Li 与 Yan (2021) 同样是 Loughran 与 McDonald 框架的中文本土化扩充, 但不区分政治词, 因而与 du_2022 构成同一构念下的替代词典稳健性。更晚近的 Ma, Zhang 与 Zhang (2025) 提出面向中国境内投资者的细粒度情感词典 CN-FSD, 代表词典细粒度化的方法学前沿, 说明「计数一部固定词典的正面命中」这一朴素测度在多词典并置下仍有稳健性价值。Todd, Bowden 与 Moshfeghi (2024) 对金融文本情感分析文献的综述则勾勒了词典法与机器学习法的分野, 佐证本项目把词典计数、LLM 投票、BERT 概率三法并置为互为稳健性轨的做法。Fang, Wang, Wang 与 Yuan (2024) 在中国银行层面用媒体情感解释存款稳定与系统性风险, 是本计数列在银行研究场景下的典型下游应用范式。 同域前沿方面, Aldama-Navarrete、Curti、Hansen 与 Kazinnik (2026) 构造针对特定银行的媒体情感测度并检验其与监管行为的关联, 表明把新闻情感按银行主体归集、再进入银行层面实证, 是当前金融稳定研究接受的做法, 可为本列「逐篇判定极性再按 bank-year 归集」的层级设定提供同域背书; 其边界在于该文语境为美国银行监管 (以监管评级与监管行动为 DV), 本项目为中国商业银行金融科技报道语境且 DV 另定, 原文情感测度的构造细节与本项目六词典并置、逐篇净分符号判正的口径不同, 亦不涉及三轨文本或 LLM 投票, 更无实质性/象征性维度。聚合形态上, Cheng、Jiang 与 Song (2024) 以 RavenPack 把美国上市公司 2001–2014 年的新闻按公司-年归集为报道量与新闻情感并解释债务融资方式选择, 发现负面盈余新闻显著降低银行贷款与公募债概率、提高私募债概率, 为「文章级极性判定 → 按主体-年对极性指示求和」这一聚合范式提供了前沿实证用例。援引须严格限定: 该文极性来自 RavenPack 专有事件情感分析 (ESS), 既非公开情感词典亦非人工编码, 故此处只锚定其聚合形态, 不锚定极性来源; 且其主体为美国上市公司而非银行, 亦无提及密度加权变体。
 ## VAR: du_2022_pos_count_ctx
 
 【变体差分】
@@ -98,4 +113,6 @@ Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-graine
 Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance: Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management, 31(1), e1549. https://doi.org/10.1002/isaf.1549
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics and Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
+Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S. (2026). Does media sentiment influence bank supervision?. Journal of Financial Stability, 84, 101538. https://doi.org/10.1016/j.jfs.2026.101538
+Cheng, C. A., Jiang, L., & Song, W.-L. (2024). Media coverage and debt financing choice. Journal of Accounting and Public Policy, 44, 107181. https://doi.org/10.1016/j.jaccpubpol.2024.107181
 <!-- rendered-citations:end -->

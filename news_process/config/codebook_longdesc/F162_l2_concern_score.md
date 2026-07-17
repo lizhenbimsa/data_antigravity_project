@@ -38,6 +38,22 @@ citations:
   vol: 62
   issue: 3
   pages_or_artno: 1139-1168
+- doi: "10.1016/j.finmar.2025.101002"
+  type: "journal"
+  authors: "Bie, S., Feng, G., Guo, N., & He, J."
+  year: 2026
+  title: "Can news predict firm bankruptcy?"
+  venue: "Journal of Financial Markets"
+  vol: "79"
+  pages_or_artno: "101002"
+- doi: "10.1016/j.iref.2025.104564"
+  type: "journal"
+  authors: "Branzoli, N., Marchetti, S., & Tarducci, E."
+  year: 2025
+  title: "Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy"
+  venue: "International Review of Economics & Finance"
+  vol: "104"
+  pages_or_artno: "104564"
 new_dois: []
 ---
 
@@ -54,8 +70,7 @@ new_dois: []
 关键的口径区分是三轨 full / ctx / ss: full = 标题 prepend 全文正文; ctx = 标题加实体上下文窗口; ss = 标题加"银行与金科同句 ±N 窗"。三条文本轨各自跑出各自的 pos/neg 情感计数 (报道量对数分量则三轨共用同一个 track-agnostic 的 ln_news_coverage), 因而三列 concern_score 是同一构念在三种文本作用域下的三次并排测量, 其轨间差异只来自情感比这一分量。按全仓铁律, 三轨各自 just-identified 并排, 互为稳健性、不分主次, 严禁把三轨关切指数混进同一个 over-identified 的 Hansen J 过度识别检验 (混入会把"文本作用域选择"这一规格自由度伪装成额外的识别约束)。ss 轨的回退语义镜像 ctx: 若某篇无"银行∧金科"同句共现, 则 content_ss 退化为全文 body、ss_is_fallback=True 并共享 n_articles 分母, 因此在同句共现稀薄的样本上 concern_score_ss 会向 concern_score_full 收敛, 属预期退化而非缺陷。
 
 【文献定位】
-关切指数的构念直系于新闻文本计量中"以媒体话语度量市场关切"的传统。Manela 与 Moreira (2017) 从新闻文本构造新闻隐含波动率并将其与灾难关切 (disaster concerns) 直接挂钩, 证明媒体话语中的关切信号能预测风险溢价, 为"新闻可读出关切"提供了顶刊层面的构念背书; 本家族与之同宗, 区别在于本家族把关切拆成显著性 (报道量) 与效价 (负面比) 两个可分离分量再相乘, 而非端到端训练。Baker、Bloom 与 Davis (2016) 的经济政策不确定性指数同样是"以报道频次为骨架、以主题过滤为效价约束"的新闻计数式关切测度, 其方法论要旨——用报道量的对数化频次承载显著性、用文本条件承载效价——正是本关切指数把 ln 报道量与负面权重相乘的直接理论依据。Tetlock (2007) 则从另一侧提供效价分量的经典证据: 媒体负面语调本身携带对股价与基本面的预测信息, 说明"负面口径"不是噪声而是可度量的关切载体。三者共同界定了本家族的位置: 它是一个把 salience×valence 显式相乘、逐轨可复算的银行-年关切代理, 既非纯情感分 (缺显著性维度), 亦非纯报道量 (缺效价维度)。
-
+关切指数的构念直系于新闻文本计量中"以媒体话语度量市场关切"的传统。Manela 与 Moreira (2017) 从新闻文本构造新闻隐含波动率并将其与灾难关切 (disaster concerns) 直接挂钩, 证明媒体话语中的关切信号能预测风险溢价, 为"新闻可读出关切"提供了顶刊层面的构念背书; 本家族与之同宗, 区别在于本家族把关切拆成显著性 (报道量) 与效价 (负面比) 两个可分离分量再相乘, 而非端到端训练。Baker、Bloom 与 Davis (2016) 的经济政策不确定性指数同样是"以报道频次为骨架、以主题过滤为效价约束"的新闻计数式关切测度, 其方法论要旨——用报道量的对数化频次承载显著性、用文本条件承载效价——正是本关切指数把 ln 报道量与负面权重相乘的直接理论依据。Tetlock (2007) 则从另一侧提供效价分量的经典证据: 媒体负面语调本身携带对股价与基本面的预测信息, 说明"负面口径"不是噪声而是可度量的关切载体。三者共同界定了本家族的位置: 它是一个把 salience×valence 显式相乘、逐轨可复算的银行-年关切代理, 既非纯情感分 (缺显著性维度), 亦非纯报道量 (缺效价维度)。 晚近的同域研究进一步印证了本家族两个分量的立意, 但均须按降级口径引用。Bie、Feng、Guo 与 He (2026) 以 Dow Jones Newswires 全文新闻用大语言模型生成公司层情感预测变量, 对标 FinBERT 与词典模型, 证明新闻情感在财务变量之外对企业破产仍有增量预测力, 可作为「媒体负面情感的聚合测度携带主体困境信号」这一构念的前沿存在性参照, 支持本家族把负面强度作为关切/困境分量的立意; 但原文既无报道量分量、也无 (neg − pos)/(neg + pos) 式的归一化比, 其结果变量为二值、低频且有明确法律界定的破产事件, 而本项目样本内无破产银行 (中国商业银行破产极罕见), 故原文的预测性结论不可迁移为本家族任何一轨的效度证据; 其正负面判定亦与本项目的情感判定口径无关。Branzoli、Marchetti 与 Tarducci (2025) 构造媒体报道的语调测度, 并将其应用于银行融资条件这一银行层级的实证问题, 是「新闻语调到银行层级结果」这一链条的近期同域实践, 与本家族把逐轨 pos/neg 聚合到银行-年再与报道量对数相乘的应用域一致; 迁移边界在于原文国别为意大利、语料非中文新闻, 其语调测度不使用本项目的中文词典与投票口径, 无 full/ctx/ss 三轨文本切分, 结果变量为该国口径的银行融资条件, 与本项目在数据源与测度构造上均不对齐, 故只锚定应用链条的同域存在性, 不构成本家族任何一轨取值的效度背书。
 ## VAR: concern_score_ctx
 
 【变体差分】
@@ -75,4 +90,6 @@ new_dois: []
 Manela, A., & Moreira, A. (2017). News implied volatility and disaster concerns. Journal of Financial Economics, 123(1), 137-162. https://doi.org/10.1016/j.jfineco.2016.01.032
 Baker, S. R., Bloom, N., & Davis, S. J. (2016). Measuring economic policy uncertainty. Quarterly Journal of Economics, 131(4), 1593-1636. https://doi.org/10.1093/qje/qjw024
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Bie, S., Feng, G., Guo, N., & He, J. (2026). Can news predict firm bankruptcy?. Journal of Financial Markets, 79, 101002. https://doi.org/10.1016/j.finmar.2025.101002
+Branzoli, N., Marchetti, S., & Tarducci, E. (2025). Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy. International Review of Economics & Finance, 104, 104564. https://doi.org/10.1016/j.iref.2025.104564
 <!-- rendered-citations:end -->

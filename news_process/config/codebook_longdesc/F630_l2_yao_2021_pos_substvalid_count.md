@@ -15,6 +15,23 @@ citations:
 - {doi: "10.1257/jel.20181020", type: journal, authors: "Gentzkow, M., Kelly, B., & Taddy, M.", year: 2019, title: "Text as data", venue: "Journal of Economic Literature", vol: "57", issue: "3", pages_or_artno: "535-574"}
 - {doi: "10.1016/j.jfineco.2022.07.009", type: journal, authors: "Chen, Q., Goldstein, I., Huang, Z., & Vashishtha, R.", year: 2022, title: "Bank transparency and deposit flows", venue: "Journal of Financial Economics", vol: "146", issue: "2", pages_or_artno: "475-501"}
 - {doi: "10.5465/amj.2006.23478255", type: journal, authors: "Fiss, P. C., & Zajac, E. J.", year: 2006, title: "The symbolic management of strategic change: Sensegiving via framing and decoupling", venue: "Academy of Management Journal", vol: "49", issue: "6", pages_or_artno: "1173-1193"}
+- doi: "10.1016/j.jaccpubpol.2024.107181"
+  type: "journal"
+  authors: "Cheng, C. A., Jiang, L., & Song, W.-L."
+  year: 2024
+  title: "Media coverage and debt financing choice"
+  venue: "Journal of Accounting and Public Policy"
+  vol: "44"
+  pages_or_artno: "107181"
+- doi: "10.1016/j.jsis.2026.101971"
+  type: "journal"
+  authors: "Chen, Z., Hajiheydari, N., Zhang, M., & Lin, Y.-E."
+  year: 2026
+  title: "Corporate digital transformation attention and innovation: strategic commitment or symbolic signalling?"
+  venue: "The Journal of Strategic Information Systems"
+  vol: "35"
+  issue: "2"
+  pages_or_artno: "101971"
 new_dois: []
 novelty_exempt_rationale: "该家族是洗稿率方法D2的'同域分母'修正列(_svd_前缀),非独立提出的情感测度,而是既有pos_count/pos_symb_count分子分母定义域匹配的技术性衍生指示列,其测度依据已在词典原始文献(Yao 2021)与洗稿率母族构念中给出,属衍生/一致性修正变体家族。"
 ---
@@ -27,8 +44,7 @@ novelty_exempt_rationale: "该家族是洗稿率方法D2的'同域分母'修正�
 【方法学与计算】
 计算分两步, 均落在 `pipeline/panel/runner.py::aggregate_panel` 内。第一步 (篇章级, aggregate_panel 前段): 对每篇候选报道, 先取该轨情感语调分数 `yao_2021_score{track}` (词典打分, >0 判为阳性), 再取该轨 LLM 实质性分类标签 `innovation_substantiveness_full` (⚠ v3.2.0 起该字段本身即只有 `_full` 单轨版本, 不再逐轨分裂——该字段测的是"这篇报道整体讲的是不是实质性创新举措", 是文章属性而非轨道相关的文本子集属性, 因此三个 substvalid_count 列虽然轨道后缀跟随 `yao_2021_score{track}` 变化, 但实质性判定输入统一取自 `_full` 轨), 判定该标签是否落在 `_SUBST_VALID_LABELS`(即 {"象征性","实质性"} 两个有效类别之一, 与 NaN/其他拒判态互斥)。两个条件 (词典阳性 ∧ 实质性标签有效) 逻辑与后得到 0/1 指示列 `_svd_yao_2021_pos{track}` (`_svd_` 前缀 = subst-valid denominator, 私有中间列, 不落文章级 parquet, 供本阶段内消费即弃)。第二步 (bank-year 聚合): `_pool_svd_substvalid_counts` 把全部 `_svd_*` 列按 `target_bank`×`year` 分组求和, 再将列名从 `_svd_{name}_pos{track}` 机械改写为 `{name}_substvalid_count{track}`, 与 bank-year panel 左连接合并。这一计数随后仅在 `_svd_denom` 辅助函数内被消费一次: 作洗稿率方法 D2 (`washing_ratio_yao_2021{track} = yao_2021_pos_symb_count{track} / yao_2021_pos_substvalid_count{track}`) 的分母, 若该列因旧 schema 缺失, 才优雅回退到物理计数 `yao_2021_pos_count{track}` 并记 WARNING (新 schema 下不应触发)。计数本身是非负整数 (bank-year 内报道篇数之和), 不做任何标准化或缩尾, 单位是"篇数"。
 【文献定位】
-分子分母同域匹配是文本挖掘转分类文献里的通用度量学问题: 当分类器 (LLM 或词典规则) 存在拒判/缺失, 而计算比率类指标 (占比、意愿率) 时若分母仍用未经同一分类过滤的全样本, 会引入与分类失败率相关的系统性偏误。这与 Gentzkow, Kelly & Taddy (2019, *Journal of Economic Literature*) 综述文本量化方法时强调的"测度构造须显式核算分类不确定性传导路径"一脉相承——本家族即是把这一原则在洗稿率计算链路上具体落地为一组分母修正列。洗稿率本身的构念——"象征性语调多于实质性行动的报道占比"——呼应 Westphal & Zajac (1994, 2001, *Administrative Science Quarterly*) 关于象征性管理 (symbolic management) 与解耦 (decoupling) 的经典框架, 后续被 Fiss & Zajac (2006, *Academy of Management Journal*) 系统化为"框架化—解耦"机制。中文语境下的金融情感词典分支 (Loughran & McDonald 2011, *The Journal of Finance* 中文译介传统的直接后继) 是本家族赖以计分的词典来源之一; Yao (2021) 词典与 Bian, Jia, Li & Yan (2021, SSRN 3446388)、Ma, Zhang & Zhang (2025, *Expert Systems with Applications*) 构建的 CN-FSD 中文细粒度投资者情感词典同属为中文财经文本本地化构建的情感词表分支——后者明确以英文 L&M 词典为方法论蓝本、面向中国境内投资者语料重新标定正负词表, 与 Yao (2021)/Bian et al. (2021) 的本地化路径高度可比; 六部词典并列构成本项目词典消融梯度的横截面。实质性分类的 LLM 三家投票机制则见 CLAUDE.md「LLM 三家/BERT 三模型互为稳健性」条目, 三家各自 just-identified 并排, 本列的"实质性标签有效"判定即建立在该三家投票共识产出的 `innovation_substantiveness_full` 字段之上。
-
+分子分母同域匹配是文本挖掘转分类文献里的通用度量学问题: 当分类器 (LLM 或词典规则) 存在拒判/缺失, 而计算比率类指标 (占比、意愿率) 时若分母仍用未经同一分类过滤的全样本, 会引入与分类失败率相关的系统性偏误。这与 Gentzkow, Kelly & Taddy (2019, *Journal of Economic Literature*) 综述文本量化方法时强调的"测度构造须显式核算分类不确定性传导路径"一脉相承——本家族即是把这一原则在洗稿率计算链路上具体落地为一组分母修正列。洗稿率本身的构念——"象征性语调多于实质性行动的报道占比"——呼应 Westphal & Zajac (1994, 2001, *Administrative Science Quarterly*) 关于象征性管理 (symbolic management) 与解耦 (decoupling) 的经典框架, 后续被 Fiss & Zajac (2006, *Academy of Management Journal*) 系统化为"框架化—解耦"机制。中文语境下的金融情感词典分支 (Loughran & McDonald 2011, *The Journal of Finance* 中文译介传统的直接后继) 是本家族赖以计分的词典来源之一; Yao (2021) 词典与 Bian, Jia, Li & Yan (2021, SSRN 3446388)、Ma, Zhang & Zhang (2025, *Expert Systems with Applications*) 构建的 CN-FSD 中文细粒度投资者情感词典同属为中文财经文本本地化构建的情感词表分支——后者明确以英文 L&M 词典为方法论蓝本、面向中国境内投资者语料重新标定正负词表, 与 Yao (2021)/Bian et al. (2021) 的本地化路径高度可比; 六部词典并列构成本项目词典消融梯度的横截面。实质性分类的 LLM 三家投票机制则见 CLAUDE.md「LLM 三家/BERT 三模型互为稳健性」条目, 三家各自 just-identified 并排, 本列的"实质性标签有效"判定即建立在该三家投票共识产出的 `innovation_substantiveness_full` 字段之上。 本列分子所依赖的「极性为正」逐篇指示按主体-年求和这一聚合形态, 在近期前沿实证中可见同构用例: Cheng、Jiang 与 Song (2024) 把美国上市公司 2001–2014 年的新闻按公司-年归集为报道量与新闻情感并进入债务融资方式选择回归, 发现负面盈余新闻显著降低银行贷款与公募债概率; 但其极性来自 RavenPack 专有事件情感分析, 既非公开情感词典、亦非人工编码, 更非本项目的三家 LLM 多数投票, 主体亦为美国上市公司, 故只锚定「按主体-年对极性指示求和」的聚合形态、不锚定极性来源。本列分母所要求的「实质性/象征性标签有效」则以该二分本身在当代数字化话语研究中的框架地位为前提: Chen、Hajiheydari、Zhang 与 Lin (2026) 基于注意力基础观构造企业数字化转型关注度, 以中国上市公司 2007–2020 年样本在「战略实质承诺 vs 象征性信号」两个对立解释间做检验, 结果支持实质承诺说而未支持象征性信号说 (故不可据以宣称原文提供了象征性解释), 其意义在于证明「话语是否只是象征」是可被实证证伪的经验问题, 从而为本列把两类标签同时计入有效分母、并把拒判篇章排除在分母之外提供了构念层面的依据; 该文的象征性判定系由「话语关注度 vs 实际创新产出」间接推断, 文本源为公司自述披露、层级为公司-年, 与本列由 LLM 对第三方新闻逐篇直接标注、且按 full/ctx/ss 三轨并排的判定机制均不同。
 ## VAR: yao_2021_pos_substvalid_count_ctx
 
 【变体差分】
@@ -51,4 +67,6 @@ Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textua
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
 Chen, Q., Goldstein, I., Huang, Z., & Vashishtha, R. (2022). Bank transparency and deposit flows. Journal of Financial Economics, 146(2), 475-501. https://doi.org/10.1016/j.jfineco.2022.07.009
 Fiss, P. C., & Zajac, E. J. (2006). The symbolic management of strategic change: Sensegiving via framing and decoupling. Academy of Management Journal, 49(6), 1173-1193. https://doi.org/10.5465/amj.2006.23478255
+Cheng, C. A., Jiang, L., & Song, W.-L. (2024). Media coverage and debt financing choice. Journal of Accounting and Public Policy, 44, 107181. https://doi.org/10.1016/j.jaccpubpol.2024.107181
+Chen, Z., Hajiheydari, N., Zhang, M., & Lin, Y.-E. (2026). Corporate digital transformation attention and innovation: strategic commitment or symbolic signalling?. The Journal of Strategic Information Systems, 35(2), 101971. https://doi.org/10.1016/j.jsis.2026.101971
 <!-- rendered-citations:end -->

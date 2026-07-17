@@ -43,6 +43,21 @@ citations:
   venue: Finance Research Letters
   vol: '95'
   pages_or_artno: Article 109684
+- doi: "10.1111/mafi.70040"
+  type: "journal"
+  authors: "Duan, Q., Song, Y., Wang, R., Yang, J., & Zhang, R."
+  year: 2026
+  title: "The ESG Rating Game: Deviation, Disagreement, and Greenwashing"
+  venue: "Mathematical Finance"
+  pages_or_artno: "mafi.70040"
+- doi: "10.1016/j.frl.2025.108430"
+  type: "journal"
+  authors: "Qian, M., Wei, Z., & Bai, R."
+  year: 2025
+  title: "Does ESG narrative specificity mitigate rating disagreement? evidence from ESG reports in China"
+  venue: "Finance Research Letters"
+  vol: "86"
+  pages_or_artno: "108430"
 new_dois: []
 ---
 
@@ -61,8 +76,7 @@ washing_ratio_hc 的构造分两层。第一层是文章级布尔旗标, 在 `pi
 高置信度阈值 2/3 的选取逻辑: 生产口径三家 LLM (`gpt-5.4-nano`/`gemini-3.1-flash-lite`/`deepseek-v4-flash`) 对每篇文章的情感做独立判断并投票, `llm_agreement_rate{track}` 记录多数票占比, 取值集合近似 {1/3, 2/3, 1}(三选一分类下的可能一致度)。以 2/3 为门槛意味着至少两家模型判断一致才纳入高置信子样本, 排除三家两两分歧(1/3 一致度, 等价于无多数)的边缘文章; 减去 1e-9 的浮点容差是为了把恰好落在 2/3 = 0.6667 边界档的观测正确纳入 (若直接写 `>= 2/3` 在浮点表示下可能因舍入误差被误判为略小于阈值而漏收, 此修正对应 fix omni-g-runner-05/09)。
 
 【文献定位】
-washing/洗稿构念直接呼应企业传播/公司治理文献中"表面披露与实质行为脱钩"的一般命题: `innovation_substantiveness` 分类本身沿用象征性 (symbolic) vs. 实质性 (substantive) 的二分口径, 该口径已在同一 panel 的 `symb_frac`/`n_articles_symb` 变量标签中沿用, 本族在其基础上叠加"正面情感"条件, 把这一二分口径转译为可与洗稿/漂绿文献直接对话的比率测度。就资本市场如何识别与定价"表面正面但缺乏实质内容"的漂绿/洗稿式披露而言, Duchin, Gao & Xu (2025, *The Journal of Finance*) 用工业污染资产市场的证据表明, 市场能够部分甄别可持续性披露中的漂绿成分而非全盘照单全收, 这为本族"用高置信度子样本剥离标签噪声后再度量洗稿强度"的稳健性设计提供了直接的实证动机: 若漂绿/洗稿信号本身就容易被市场参与者与文本分类模型共同误判, 那么先控制分类置信度再估计洗稿率, 才能避免把分类噪声误认成真实的洗稿行为变化。就"表面正面但缺乏实质内容"的漂绿/洗稿式披露操作化而言, 本族与近年公司治理文献中的 greenwashing 测度一脉相承: Fan, Tang, Huang & Yang (2025, *Pacific-Basin Finance Journal*) 用股权集中度视角研究中国资本市场的企业漂绿行为, 与本族在中国银行业媒体报道语境下捕捉"象征性正面报道"占比的思路高度平行; Gorovaia & Makrominas (2024, *European Financial Management*) 提出用自然语言处理方法从企业社会责任报告中识别漂绿, 其"用文本分类信号构造漂绿/洗稿比率"的方法学与本族分子分母构造(正面情感 × 象征性分类的交叉计数比率)属同一测量传统。高置信度子样本稳健性检验的必要性, 亦呼应 Song, Hou, Ouyang & Hao (2026, *Finance Research Letters*) 对"策略性披露与市场反噬 (AI washing: strategic disclosure and backlash)"的最新讨论 — 该文献同属本族命名所在的 "washing" 测度谱系最新锚点, 强调策略性披露信号本身存在被误判的系统性风险; 本族通过限定三家 LLM 判断高度一致(agreement_rate ≥ 2/3)的子样本重新估计洗稿率, 正是对这一"测度信号可能被误判"问题的直接方法学回应, 用以检验核心结论是否仅由低置信度、易错判的边缘样本驱动。
-
+washing/洗稿构念直接呼应企业传播/公司治理文献中"表面披露与实质行为脱钩"的一般命题: `innovation_substantiveness` 分类本身沿用象征性 (symbolic) vs. 实质性 (substantive) 的二分口径, 该口径已在同一 panel 的 `symb_frac`/`n_articles_symb` 变量标签中沿用, 本族在其基础上叠加"正面情感"条件, 把这一二分口径转译为可与洗稿/漂绿文献直接对话的比率测度。就资本市场如何识别与定价"表面正面但缺乏实质内容"的漂绿/洗稿式披露而言, Duchin, Gao & Xu (2025, *The Journal of Finance*) 用工业污染资产市场的证据表明, 市场能够部分甄别可持续性披露中的漂绿成分而非全盘照单全收, 这为本族"用高置信度子样本剥离标签噪声后再度量洗稿强度"的稳健性设计提供了直接的实证动机: 若漂绿/洗稿信号本身就容易被市场参与者与文本分类模型共同误判, 那么先控制分类置信度再估计洗稿率, 才能避免把分类噪声误认成真实的洗稿行为变化。就"表面正面但缺乏实质内容"的漂绿/洗稿式披露操作化而言, 本族与近年公司治理文献中的 greenwashing 测度一脉相承: Fan, Tang, Huang & Yang (2025, *Pacific-Basin Finance Journal*) 用股权集中度视角研究中国资本市场的企业漂绿行为, 与本族在中国银行业媒体报道语境下捕捉"象征性正面报道"占比的思路高度平行; Gorovaia & Makrominas (2024, *European Financial Management*) 提出用自然语言处理方法从企业社会责任报告中识别漂绿, 其"用文本分类信号构造漂绿/洗稿比率"的方法学与本族分子分母构造(正面情感 × 象征性分类的交叉计数比率)属同一测量传统。高置信度子样本稳健性检验的必要性, 亦呼应 Song, Hou, Ouyang & Hao (2026, *Finance Research Letters*) 对"策略性披露与市场反噬 (AI washing: strategic disclosure and backlash)"的最新讨论 — 该文献同属本族命名所在的 "washing" 测度谱系最新锚点, 强调策略性披露信号本身存在被误判的系统性风险; 本族通过限定三家 LLM 判断高度一致(agreement_rate ≥ 2/3)的子样本重新估计洗稿率, 正是对这一"测度信号可能被误判"问题的直接方法学回应, 用以检验核心结论是否仅由低置信度、易错判的边缘样本驱动。 晚近 ESG 评级分歧文献为本族的一致率门槛设计提供了相邻问题域的动机层参照, 但须严格自限其证据强度。Duan、Song、Wang、Yang 与 Zhang (2026) 建立正式模型, 刻画多个 ESG 评级机构之间的评分偏离与分歧如何与企业漂绿行为相联系, 与本族「当多个独立评价者对同一对象的判定分歧较大时, 该判定的信息含量下降」这一设计动机处于相邻结构; 但该文属博弈论/数理金融建模, 评价者是评级机构、对象是企业环境绩效, 既无文本测量与实证面板, 亦无任何一致率门槛取值的效度检验, 而本族的一致率仅用作样本筛选门槛、不进入回归, 也不做策略均衡推断, 因此不可据该文宣称 HC_AGREEMENT_THRESHOLD 的具体取值已获理论验证。Qian、Wei 与 Bai (2025) 以中国 ESG 报告为语料, 把多评级机构间的分歧作为被解释变量, 检验叙事具体性 (narrative specificity) 是否降低分歧, 在「多评价者分歧是文本信息质量信号」这一层面与本族以三家 LLM 投票一致率划定高置信子样本的思路相邻; 但其分歧基于评级分数方差且处于结果变量位置, 本族的一致率则是三家 LLM 对同一篇报道情感判定的一致程度且仅作前置筛选, 该文同样未提供任何门槛取值的效度证据。故两文均仅为动机层锚点, 本族门槛取值的合理性仍须由与 method A/A2 及词典、BERT 系列的并排互证承担。
 【与相邻测度的构念区分】
 washing_ratio_hc (方法 F) 与家族内并列的其余洗稿率方法互为稳健性、不分主次, 各自 just-identified 并排, 禁止混入同一个 over-identified 的 Hansen J 检验: 方法 A `washing_ratio{track}` 是全样本口径 (不做置信度过滤), 是 canonical 主指标; 方法 A2 `washing_ratio_{llm}{track}` 是单个 LLM 口径 (三家模型各自独立, per-model 并排, 见 CLAUDE.md「LLM 三家互为稳健性」铁律); 方法 D/D2 `washing_ratio_dict{,_模型}{track}` 是六部词典均值/单词典口径; 方法 E/E2 `washing_ratio_bert{,_模型}{track}` 是三家 BERT 均值/单模型口径; 方法 G `washing_tone_shift{track}` 不是比率而是象征性文章与全部文章的情感均值之差, 度量情感偏移幅度而非频率占比。本族 (方法 F) 的差异化贡献在于用一致性门槛剥离标签噪声, 是"测量置信度"维度的稳健性检验, 与"测量方法/模型选择"维度 (A2/D2/E2) 及"度量口径"维度 (比率 vs. 偏移量, F vs. G) 正交, 不应相互替代或混入同一识别方程。
 
@@ -88,4 +102,6 @@ Duchin, R., Gao, J., & Xu, Q. (2025). Sustainability or greenwashing: Evidence f
 Fan, X., Tang, Z., Huang, W., & Yang, K. (2025). Ownership concentration and corporate greenwashing in China's capital markets: Based on a multi-actors perspective. Pacific-Basin Finance Journal, 89, Article 102600. https://doi.org/10.1016/j.pacfin.2024.102600
 Gorovaia, N., & Makrominas, M. (2024). Identifying greenwashing in corporate-social responsibility reports using natural-language processing. European Financial Management, 31(1), 427-462. https://doi.org/10.1111/eufm.12509
 Song, X., Hou, W., Ouyang, Z., & Hao, F. (2026). AI washing: Strategic disclosure and backlash. Finance Research Letters, 95, Article 109684. https://doi.org/10.1016/j.frl.2026.109684
+Duan, Q., Song, Y., Wang, R., Yang, J., & Zhang, R. (2026). The ESG Rating Game: Deviation, Disagreement, and Greenwashing. Mathematical Finance, mafi.70040. https://doi.org/10.1111/mafi.70040
+Qian, M., Wei, Z., & Bai, R. (2025). Does ESG narrative specificity mitigate rating disagreement? evidence from ESG reports in China. Finance Research Letters, 86, 108430. https://doi.org/10.1016/j.frl.2025.108430
 <!-- rendered-citations:end -->

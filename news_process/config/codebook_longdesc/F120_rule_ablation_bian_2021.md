@@ -99,6 +99,13 @@ citations:
   vol: 66
   issue: 1
   pages_or_artno: 35-65
+- doi: "10.1177/10944281251334777"
+  type: "journal"
+  authors: "Iqbal, F., & Pfarrer, M. D."
+  year: 2025
+  title: "Using Coreference Resolution to Mitigate Measurement Error in Text Analysis"
+  venue: "Organizational Research Methods"
+  pages_or_artno: "10944281251334777"
 new_dois: []
 ---
 
@@ -111,8 +118,7 @@ new_dois: []
 计算入口是 tone_words.py 中的逐词状态机式打分器 _compute_sentiment_with_rules。它逐词扫描分词后的文本, 命中 Bian 词典的极性词即赋予带符号的基础强度, 随后按三条可独立开关的语言学规则调整: 否定翻转 (邻近否定词时翻转极性符号)、程度副词缩放 (程度副词放大或收缩强度)、转折让步 (转折连词后分句重定权重)。文章级语调采用自归一化式 Σ final_i / Σ|final_i|, 值域约束在 [-1,1], 从而消去篇幅差异。三条规则的全部组合由单一事实源 _RULE_ABLATION_VARIANTS 枚举, 消融变体的物化循环位于 _analyze_single_article 内 (对每一旗标三元组各调一次 _compute_sentiment_with_rules): raw 为零规则基线 (三旗全关), negonly / degonly / advonly 各只开一条, negdeg / negadv / degadv 各开两条; 三旗全开的 full-rules 版本即无后缀的 canonical 主列 bian_2021_tone, 刻意不入本谱而单独物化。因此本家族恰为 7 个非-full 变体 × 三轨 (full / ctx / ss) = 21 列。银行年度聚合取该银行当年留篇集内的文章级均值, 分母口径遵循 2026-06-29 起的 full-only 留篇门控: 一篇报道是否计入取决于 llm_verified_full, ctx 与 ss 轨为条件于 full 留篇集的子集测度。三轨文本来源在 stage 14 物化: full = 标题 prepend 全文正文, ctx = 标题加实体窗口, ss = 标题加银行与金科同句共现窗, 且 ss 在无同句共现时优雅回退镜像 ctx 的全文 body。
 
 【文献定位】
-本谱与主流金融文本测度文献的方法学关切一脉相承。García, Hu 与 Rohrer (2023) 用市场反应校准情感词的"颜色", 论证词表构造细节对测度有效性的实质影响, 与本谱把规则集合当作设计自由度的立场同源。Frankel, Jennings 与 Lee (2022) 系统比较词典法与机器学习法, 确立"多测度互为稳健性"的范式, 本项目正是以三种情感法 (LLM / 词典 / BERT) 并排、并在词典法内部再展开规则消融来落实这一范式。Du, Huang, Wermers 与 Wu (2022) 的中文金融词典工作提示领域与语言特异性对中文情感测度不可忽略, 支持本谱选用中文本土的 Bian 词典而非英文直译词表。规则层面, Taboada 等 (2011) 系统化了词典法中否定、程度与转折的处理算子, Pröllochs, Feuerriegel 与 Neumann (2016) 与 Punetha 与 Jain (2025) 进一步论证否定作用域检测对新闻驱动情感测度的边际贡献, 三者共同为本谱的否定 / 程度 / 转折三开关提供文献依据。需要强调的方法学纪律: 七个消融变体各自 just-identified 并排, 互为稳健性、不分主次, 严禁把不同规则子集混进同一 over-identified Hansen J; 同理三轨与该消融梯度正交, 亦不得跨轨混入同一过度识别检验。审计口径 (MATH-1) 已注明各变体高度共线 (相关系数近 0.99), 故报告相关性而非并入同一可加分解式, 变体间为"定性不变"的稳健性叙事, 而非声称某一规则子集在测度上更优。
-
+本谱与主流金融文本测度文献的方法学关切一脉相承。García, Hu 与 Rohrer (2023) 用市场反应校准情感词的"颜色", 论证词表构造细节对测度有效性的实质影响, 与本谱把规则集合当作设计自由度的立场同源。Frankel, Jennings 与 Lee (2022) 系统比较词典法与机器学习法, 确立"多测度互为稳健性"的范式, 本项目正是以三种情感法 (LLM / 词典 / BERT) 并排、并在词典法内部再展开规则消融来落实这一范式。Du, Huang, Wermers 与 Wu (2022) 的中文金融词典工作提示领域与语言特异性对中文情感测度不可忽略, 支持本谱选用中文本土的 Bian 词典而非英文直译词表。规则层面, Taboada 等 (2011) 系统化了词典法中否定、程度与转折的处理算子, Pröllochs, Feuerriegel 与 Neumann (2016) 与 Punetha 与 Jain (2025) 进一步论证否定作用域检测对新闻驱动情感测度的边际贡献, 三者共同为本谱的否定 / 程度 / 转折三开关提供文献依据。需要强调的方法学纪律: 七个消融变体各自 just-identified 并排, 互为稳健性、不分主次, 严禁把不同规则子集混进同一 over-identified Hansen J; 同理三轨与该消融梯度正交, 亦不得跨轨混入同一过度识别检验。审计口径 (MATH-1) 已注明各变体高度共线 (相关系数近 0.99), 故报告相关性而非并入同一可加分解式, 变体间为"定性不变"的稳健性叙事, 而非声称某一规则子集在测度上更优。 在测量误差的一般层面, Iqbal 与 Pfarrer (2025) 针对多主体文本中的情感归属问题引入共指消解 (coreference resolution), 并以两项研究证明该处理可降低文本分析的测量误差、提升测度的真实性, 佐证了"单一语言学处理选择即可系统性改变文本测度取值、并构成实质性测量误差来源"这一般命题, 与本谱不把任何规则配置默认为真值、而是显式物化其后果的立场相通。其迁移边界须严格限定: 该文所处理的是共指消解 (实体指代还原), 与本谱的否定翻转、程度副词缩放、转折让步三规则并非同一规则, 亦非本谱消融梯度的方法学来源; 该文立场是规范性的, 主张采纳该规则以减少误差 (即存在唯一正确做法), 与本谱令七臂互为稳健性并排、不设主次的取向不同, 故不得据以主张 powerset 规则消融存在同构先例; 其实体归属问题在本项目内对应的是 ctx 与 ss 实体窗口轨而非本消融族; 且原文语料为英文组织管理文本, 单位为文档与组织, 与本谱的中文银行金科新闻及银行年度聚合口径不同。
 ## VAR: bian_2021_advonly_tone_ctx
 
 【变体差分】
@@ -269,4 +275,5 @@ Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment d
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
+Iqbal, F., & Pfarrer, M. D. (2025). Using Coreference Resolution to Mitigate Measurement Error in Text Analysis. Organizational Research Methods, 10944281251334777. https://doi.org/10.1177/10944281251334777
 <!-- rendered-citations:end -->

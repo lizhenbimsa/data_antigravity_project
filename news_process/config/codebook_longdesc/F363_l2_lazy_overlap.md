@@ -36,6 +36,33 @@ citations:
   venue: Global Finance Journal
   vol: 50
   pages_or_artno: "Article 100672"
+- doi: "10.1111/acfi.13076"
+  type: "journal"
+  authors: "Wang, Y., Ye, Q., Wang, J. J., & Wang, Y."
+  year: 2023
+  title: "Earnings manipulation and similarity of annual report disclosure: Evidence from China"
+  venue: "Accounting & Finance"
+  vol: "63"
+  issue: "S1"
+  pages_or_artno: "1137-1156"
+- doi: "10.1016/j.bar.2023.101305"
+  type: "journal"
+  authors: "Xue, X., Wang, L., & Hu, N."
+  year: 2024
+  title: "Economic policy uncertainty and corporate social responsibility disclosure similarity: Evidence from China"
+  venue: "The British Accounting Review"
+  vol: "56"
+  issue: "5"
+  pages_or_artno: "101305"
+- doi: "10.1007/s10644-025-09915-x"
+  type: "journal"
+  authors: "Qi, D., & Chen, W."
+  year: 2025
+  title: "R&D narrative disclosure and semantic similarity: evidence from China"
+  venue: "Economic Change and Restructuring"
+  vol: "58"
+  issue: "5"
+  pages_or_artno: "77"
 new_dois: []
 ---
 
@@ -56,8 +83,7 @@ full 轨复用 strategic_diff 顶部已生成的银行-年度聚合文本(标题
 
 【文献定位】
 
-Cohen, Malloy & Nguyen (2020, Journal of Finance)的"懒惰定价"发现是本家族最直接的方法论来源: 文本改动量本身(而非改动的具体内容)携带可定价的信息, 这一发现为把媒体叙事的年度间重叠度作为银行信息环境稳定性代理变量提供了理论依据。与此同时, "重叠"(overlap)作为一种诊断金融机构间关联与信息传导的度量思路, 在公司金融文献中也有独立的谱系: Haw, Song, Tan & Wang (2021, Journal of Corporate Finance)研究了破产事件、董事重叠与银行贷款定价之间的关系, 发现董事网络重叠会通过信息渠道影响贷款条款; Togan Egrican (2021, Global Finance Journal)进一步考察了含银行家董事的董事会重叠连接如何影响银团贷款条款。这两篇文献中的"重叠"指的是治理网络层面的节点重叠(董事身份重合), 与本家族衡量的文本词汇集合重叠属于不同的构念层次, 但二者共享同一方法论直觉: 重叠/不变本身可以是信息渠道的代理变量, 而不只是噪声。引用这两篇文献意在提示后续使用者, "重叠"类指标在银行相关实证文献中已具备一定的方法论正当性基础, 但须清楚区分网络结构重叠与文本内容重叠这两类完全不同的度量对象, 不可混用或彼此替代解释。
-
+Cohen, Malloy & Nguyen (2020, Journal of Finance)的"懒惰定价"发现是本家族最直接的方法论来源: 文本改动量本身(而非改动的具体内容)携带可定价的信息, 这一发现为把媒体叙事的年度间重叠度作为银行信息环境稳定性代理变量提供了理论依据。与此同时, "重叠"(overlap)作为一种诊断金融机构间关联与信息传导的度量思路, 在公司金融文献中也有独立的谱系: Haw, Song, Tan & Wang (2021, Journal of Corporate Finance)研究了破产事件、董事重叠与银行贷款定价之间的关系, 发现董事网络重叠会通过信息渠道影响贷款条款; Togan Egrican (2021, Global Finance Journal)进一步考察了含银行家董事的董事会重叠连接如何影响银团贷款条款。这两篇文献中的"重叠"指的是治理网络层面的节点重叠(董事身份重合), 与本家族衡量的文本词汇集合重叠属于不同的构念层次, 但二者共享同一方法论直觉: 重叠/不变本身可以是信息渠道的代理变量, 而不只是噪声。引用这两篇文献意在提示后续使用者, "重叠"类指标在银行相关实证文献中已具备一定的方法论正当性基础, 但须清楚区分网络结构重叠与文本内容重叠这两类完全不同的度量对象, 不可混用或彼此替代解释。 在词集合层面的年际改动量上, 近期中文语料证据可进一步充实本家族的文献坐标。Wang、Ye、Wang 与 Wang (2023) 以 2008-2020 年中国 A 股 13,679 家样本, 用 MD&A 与上一年文本的相似度作为核心测度, 记录了「高相似度=低增量信息」的经验规律, 且其算子同为中文分词后的词袋相似度, 与本家族的分词词集合口径最为贴近, 是 lazy 族在中文语料上的同域先例; 迁移边界在于原文单位为公司-年的自撰年报 MD&A、把低改动解读为盈余操纵动机, 而本家族度量的是第三方媒体叙事的中性改动距离, 不承接该操纵解释, 原文亦未采用本列以两集合中较小者的势为分母的 Szymkiewicz-Simpson 口径。Xue、Wang 与 Hu (2024) 以中国上市公司 2009-2021 样本检验经济政策不确定性对公司自身跨期 CSR 披露相似度的影响, 发现 EPU 越高、企业越倾向发布与自身过往高度重合的报告 (象征性披露), 直接印证「与自身上期文本重合本身可被外部环境驱动、并非纯噪声」这一本家族赖以成立的前提; 但原文把相似度置于被解释变量位置、由 EPU 驱动, 本家族三列为面板自变量, 且其象征性披露机制以披露方即文本作者为前提, 银行在本项目中并非报道撰写者, 该机制不可直接搬用。Qi 与 Chen (2025) 在中国语境对 R&D 叙事性披露构造语义相似度测度, 为「文本重合度」这一测度族提供了 2025 年的近期应用实例; 惟原文使用 embedding 语义相似度, 与本家族的分词词集合重叠系数在算子层面不同 (前者度量语义邻近, 后者只关心词汇集合的增减、完全忽略词序与频次), 期刊层级亦低于顶刊, 且原文不涉及本项目 full/ctx/ss 三轨口径, 故仅作构念族的近期存在性佐证, 不锚定本列的具体分母口径。
 ## VAR: lazy_overlap_ctx
 
 【变体差分】
@@ -80,4 +106,7 @@ Cohen, Malloy & Nguyen (2020, Journal of Finance)的"懒惰定价"发现是本�
 Cohen, L., Malloy, C., & Nguyen, Q. (2020). Lazy prices. The Journal of Finance, 75(3), 1371-1415. https://doi.org/10.1111/jofi.12885
 Haw, I.-M., Song, B. Y., Tan, W., & Wang, W. (2021). Bankruptcy, overlapping directors, and bank loan pricing. Journal of Corporate Finance, 71, Article 102097. https://doi.org/10.1016/j.jcorpfin.2021.102097
 Togan Egrican, A. (2021). Overlapping board connections with banker directors and corporate loan terms: Evidence from syndicated loans. Global Finance Journal, 50, Article 100672. https://doi.org/10.1016/j.gfj.2021.100672
+Wang, Y., Ye, Q., Wang, J. J., & Wang, Y. (2023). Earnings manipulation and similarity of annual report disclosure: Evidence from China. Accounting & Finance, 63(S1), 1137-1156. https://doi.org/10.1111/acfi.13076
+Xue, X., Wang, L., & Hu, N. (2024). Economic policy uncertainty and corporate social responsibility disclosure similarity: Evidence from China. The British Accounting Review, 56(5), 101305. https://doi.org/10.1016/j.bar.2023.101305
+Qi, D., & Chen, W. (2025). R&D narrative disclosure and semantic similarity: evidence from China. Economic Change and Restructuring, 58(5), 77. https://doi.org/10.1007/s10644-025-09915-x
 <!-- rendered-citations:end -->

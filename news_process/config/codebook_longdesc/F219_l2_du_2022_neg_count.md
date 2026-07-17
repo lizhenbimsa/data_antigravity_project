@@ -55,6 +55,14 @@ citations:
   vol: 53
   issue: 2
   pages_or_artno: 405-459
+- doi: "10.1016/j.jfs.2026.101538"
+  type: "journal"
+  authors: "Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S."
+  year: 2026
+  title: "Does media sentiment influence bank supervision?"
+  venue: "Journal of Financial Stability"
+  vol: "84"
+  pages_or_artno: "101538"
 new_dois: []
 ---
 
@@ -67,8 +75,7 @@ new_dois: []
 计算链路分两层。篇章层在 stage 22 tone_words 完成: 对每篇报道的分词序列, 以状态机顺序扫描, 遇否定词设置翻转窗口、遇程度副词设置倍率、遇转折连词激活从句级加权、遇句末标点重置全部句法状态, 命中 Du et al. (2022) 词典的情感词按 base×degree×negation×adversative 累加得篇章语调 du_2022_score{track}; 政治正面词命中时以 0.5 权重计入正侧加权和, 负面词则以单位权重计入负侧; 该分数经加权绝对值之和归一化后恒落在 [-1, +1]。面板层在 runner.py 把 du_2022_score{track} < 0 物化为篇章级二值指示 _is_du_2022_negative{track} (严格小于零方判负, 零分即中性不计入), encode.py 再以 groupby-sum 聚合到 bank-year, 得到本家族三列。单位是篇数、非负整数, 语义是"该行该年被 Du2022 词典判为负面语气的报道有多少篇", 而非负面词的词频总数; 一篇报道无论正文出现多少负面词, 只要归一化后的语调分数小于零就恰记一篇。留篇宇宙统一遵循 2026-06-29 起的 full-only 门控: 一篇报道是否进入银行金科语料只由 llm_verified_full 决定, ctx/ss 轨在此留篇集之上做 conditional-on-full 的逐轨重算, 三轨分母各自独立、不交叉借用。作为计数型中间量, neg_count 主要服务下游: 一是喂入词级/篇级的分歧 (disagreement) 指标, 二是与 n_articles_llm_valid{track} 作分母构成行业负面冲击 industry_neg_shock 及其滞后轨的分子。
 
 【文献定位】
-把 neg_count 建成一个显式的计数列, 直接呼应金融文本研究中计数型变量须与连续得分区别对待的方法论关切: 这类变量在分布形态 (零膨胀、右偏) 与恰当估计上不同于连续均值, 应以计数身份披露, 本家族刻意与 du_2022_tone 的连续语调分开落列, 正是为此提供计数原语。词典本身的效度与适用性由 Du et al. (2022) 在 Review of Finance 提供: 该文以语言与领域专用性为核心, 论证通用或跨语迁移的情感词表在中文金融语料上存在系统性偏差, 需从中文财经文本本土归纳专用词典, 并特别刻画了政治正面词信号弱于普通正面词的现象——这正是本项目对其 political_positive 类赋 0.5 权重并做敏感性检验的直接依据。方法学上, 负面语气识别的核心难点在否定处理, Pröllochs, Feuerriegel, & Neumann (2016) 论证了否定范围检测对新闻驱动交易情感测度准确性的实质影响, 本项目状态机的否定窗口与句末重置即是对该关切的工程回应。Todd, Bowden, & Moshfeghi (2024) 对金融文本情感分析文献的综述, 说明词典法在可解释性与领域适配上仍是与机器学习法并存的一支, 支持本项目以多词典并列作稳健性面的设计。Ma, Zhang, & Zhang (2025) 新近构建的中文细粒度投资者情感词典进一步印证: 中文金融语料的情感测度高度依赖领域专用词表, 通用词典存在系统性偏差, 这也是本家族保留 Du2022 等多部中文词典的现实理由。就构念指向的负面信息而言, Piotroski, Wong, & Zhang (2015) 关于中国上市公司负面信息被政治性压制的证据提示: 在中国制度语境下, 媒体负面报道的可见性本身受抑制, 因而对负面报道数量做绝对计数、而非仅看相对占比, 具有独立的信息价值, 也与 Du2022 词典专门为政治色彩词单列并降权的设计动机相互印证。
-
+把 neg_count 建成一个显式的计数列, 直接呼应金融文本研究中计数型变量须与连续得分区别对待的方法论关切: 这类变量在分布形态 (零膨胀、右偏) 与恰当估计上不同于连续均值, 应以计数身份披露, 本家族刻意与 du_2022_tone 的连续语调分开落列, 正是为此提供计数原语。词典本身的效度与适用性由 Du et al. (2022) 在 Review of Finance 提供: 该文以语言与领域专用性为核心, 论证通用或跨语迁移的情感词表在中文金融语料上存在系统性偏差, 需从中文财经文本本土归纳专用词典, 并特别刻画了政治正面词信号弱于普通正面词的现象——这正是本项目对其 political_positive 类赋 0.5 权重并做敏感性检验的直接依据。方法学上, 负面语气识别的核心难点在否定处理, Pröllochs, Feuerriegel, & Neumann (2016) 论证了否定范围检测对新闻驱动交易情感测度准确性的实质影响, 本项目状态机的否定窗口与句末重置即是对该关切的工程回应。Todd, Bowden, & Moshfeghi (2024) 对金融文本情感分析文献的综述, 说明词典法在可解释性与领域适配上仍是与机器学习法并存的一支, 支持本项目以多词典并列作稳健性面的设计。Ma, Zhang, & Zhang (2025) 新近构建的中文细粒度投资者情感词典进一步印证: 中文金融语料的情感测度高度依赖领域专用词表, 通用词典存在系统性偏差, 这也是本家族保留 Du2022 等多部中文词典的现实理由。就构念指向的负面信息而言, Piotroski, Wong, & Zhang (2015) 关于中国上市公司负面信息被政治性压制的证据提示: 在中国制度语境下, 媒体负面报道的可见性本身受抑制, 因而对负面报道数量做绝对计数、而非仅看相对占比, 具有独立的信息价值, 也与 Du2022 词典专门为政治色彩词单列并降权的设计动机相互印证。 就以银行为主体归集媒体情感这一做法本身, Aldama-Navarrete、Curti、Hansen 与 Kazinnik (2026) 提供了同域前沿佐证: 该文构造针对特定银行的媒体情感测度, 并检验其与监管行为的关联, 说明把新闻情感按银行主体归集、再进入银行层面实证, 是当前被顶级金融稳定期刊接受的做法, 为本家族在 bank-year 单元上累积负面篇数提供了外部合法性。迁移边界须诚实标注: 原文处于美国银行监管语境 (以监管评级与监管行动为 DV), 本项目为中国商业银行×金融科技报道语境且 DV 另定; 原文情感测度的构造细节与本项目六部中文词典并列、逐篇归一化后再作篇级二值判负的口径不同, 亦未涉及三轨文本或 LLM 投票口径, 更无实质性/象征性的话语分类维度。故它只锚定「以银行为主体的媒体情感计数/极性测度」这一同域应用形态, 不锚定本家族的词典选择与判负阈值。
 ## VAR: du_2022_neg_count_full
 
 【变体差分】
@@ -90,4 +97,5 @@ Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in f
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
 Piotroski, J. D., Wong, T. J., & Zhang, T. (2015). Political incentives to suppress negative information: Evidence from Chinese listed firms. Journal of Accounting Research, 53(2), 405-459. https://doi.org/10.1111/1475-679X.12071
+Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S. (2026). Does media sentiment influence bank supervision?. Journal of Financial Stability, 84, 101538. https://doi.org/10.1016/j.jfs.2026.101538
 <!-- rendered-citations:end -->

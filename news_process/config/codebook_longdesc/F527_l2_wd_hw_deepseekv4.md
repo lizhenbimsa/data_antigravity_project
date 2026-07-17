@@ -47,6 +47,22 @@ citations:
   vol: ''
   issue: ''
   pages_or_artno: ''
+- doi: "10.1080/19312458.2024.2378690"
+  type: "journal"
+  authors: "Laurer, M., van Atteveldt, W., Casas, A., & Welbers, K."
+  year: 2025
+  title: "On Measurement Validity and Language Models: Increasing Validity and Decreasing Bias with Instructions"
+  venue: "Communication Methods and Measures"
+  vol: "19"
+  issue: "1"
+  pages_or_artno: "46-62"
+- doi: "10.2139/ssrn.5395056"
+  type: "wp"
+  authors: "Liu, Y., Liu, J., & Wang, T."
+  year: 2025
+  title: "Large Language Model Disagreement"
+  venue: "SSRN Electronic Journal"
+  pages_or_artno: "5395056"
 new_dois: []
 ---
 
@@ -62,8 +78,7 @@ new_dois: []
 口径上必须强调三条铁律。其一, full/ctx/ss 三轨是各自 just-identified 并排的稳健性测度, 互为稳健性、不分主次, 三者严禁被混入同一个 over-identified 的 Hansen J 检验框架 — 每条轨道各自构成一套独立可识别的加权语调及其分母, 不应把三轨分母或三轨分子混合累加成单一统计量。其二, deepseekv4 是三家投票 LLM (gpt-5.4-nano/gpt54nano、gemini-3.1-flash-lite/gemini31 两家走 yunwu、deepseek-v4-flash/deepseekv4 直连 api.deepseek.com) 之一, 三家模型的对应分母族 (sum_wd_hw_gpt54nano{track}、sum_wd_hw_gemini31{track}、sum_wd_hw_deepseekv4{track}) 同样各自 just-identified 并排、互为跨厂商稳健性, 不构成同一 Hansen J 检验的过度识别工具集。其三, 留篇门控口径 (2026-06-29 起) 为 full-only: 一篇报道是否计入银行金科报道样本只看 llm_verified_full == True, ctx/ss 分母降为 conditional-on-full 的测度轨道, 其行宇宙是 full 留篇集合的子集, 但 herd_weight 与 deepseekv4 有效性判定仍按各轨道独立计算, 不借用 full 轨的权重或有效性标记。ss 轨的回退语义镜像 ctx: 当某篇报道在 stage 14 未能识别出银行∧金科同句共现时, content_ss 回退为全文正文, ss_is_fallback 置 True, 该篇文章依旧参与 herd_weight_ss 的计算与 deepseekv4 有效性判定, 不因回退而被剔除。
 
 【文献定位】
-跟风衰减权重的方法学根基是 Tetlock (2011, *Review of Financial Studies*) 关于媒体报道中低信息含量的重复/抄稿内容会稀释新闻定价效力的经典论证, 本项目 stage 24 的相似度衰减设计正是对这一构念的直接操作化 (源码注释明确标注 Tetlock 2011, RFS 语调聚合块, 与该文献期刊归属一致)。就 deepseekv4 本身的构念定位而言, 采用大语言模型对金融文本做情感/语调打分并以多家模型互证的做法, 近年在文本情感分析文献中已成为与传统词典法、监督分类器并列的第三条主流路径; Hwang & Kim (2017, *Journal of Financial Economics*) 说明可读性与文本处理质量本身会系统性影响金融文本分析结果的可靠性, 这为本项目坚持三家 LLM 互证加有效性掩码而非单一模型裸打分的设计选择提供了间接支持 — 单一模型的缺失值或低质量判断若不加掩码处理直接进入加权聚合, 会引入与 Hwang & Kim 所警示的文本处理质量问题同构的度量偏误。Hassan et al. (2023, *The Review of Financial Studies*) 展示了基于文本的企业层面暴露度量在构造时对缺失或未命中观测的正确处理如何直接决定测度的有效性, 这一原则同样适用于本家族分子分母同域的匹配分母设计。就跟风或同伴信息扩散的经济学定位, Schwenkler & Zheng (2019, SSRN; 2025, *Journal of Corporate Finance*) 关于新闻驱动的同业同伴联动网络的研究, 为同一话题的重复报道构成信息稀释而非独立信息增量这一前提假设提供了实证文献支撑, 与本家族服务的跟风衰减加权语调测度在构念上一脉相承。
-
+跟风衰减权重的方法学根基是 Tetlock (2011, *Review of Financial Studies*) 关于媒体报道中低信息含量的重复/抄稿内容会稀释新闻定价效力的经典论证, 本项目 stage 24 的相似度衰减设计正是对这一构念的直接操作化 (源码注释明确标注 Tetlock 2011, RFS 语调聚合块, 与该文献期刊归属一致)。就 deepseekv4 本身的构念定位而言, 采用大语言模型对金融文本做情感/语调打分并以多家模型互证的做法, 近年在文本情感分析文献中已成为与传统词典法、监督分类器并列的第三条主流路径; Hwang & Kim (2017, *Journal of Financial Economics*) 说明可读性与文本处理质量本身会系统性影响金融文本分析结果的可靠性, 这为本项目坚持三家 LLM 互证加有效性掩码而非单一模型裸打分的设计选择提供了间接支持 — 单一模型的缺失值或低质量判断若不加掩码处理直接进入加权聚合, 会引入与 Hwang & Kim 所警示的文本处理质量问题同构的度量偏误。Hassan et al. (2023, *The Review of Financial Studies*) 展示了基于文本的企业层面暴露度量在构造时对缺失或未命中观测的正确处理如何直接决定测度的有效性, 这一原则同样适用于本家族分子分母同域的匹配分母设计。就跟风或同伴信息扩散的经济学定位, Schwenkler & Zheng (2019, SSRN; 2025, *Journal of Corporate Finance*) 关于新闻驱动的同业同伴联动网络的研究, 为同一话题的重复报道构成信息稀释而非独立信息增量这一前提假设提供了实证文献支撑, 与本家族服务的跟风衰减加权语调测度在构念上一脉相承。 就各家 LLM 有效性掩码这一分母构造前提而言, Laurer、Casas 与 Welbers (2025) 以对照实验证明指令/提示设计会实质改变语言模型作为测量工具的效度与偏误, 提示本家族分母所依赖的「deepseekv4 在该轨给出有效判断」这一掩码本身即模型效度的函数; 但该文对象为传播学英文文本分类任务与开源指令微调模型, 其「加指令可提效度」的结论与本项目嵌入侧刻意零 instruct 前缀、情感提示词 v8 已字节冻结的设计取向不同, 且原文不涉及权重加权分母口径, 故只作效度前提的方法学锚定, 不构成对本项目提示词设计的规范依据。Liu、Liu 与 Wang (2025) 以金融文本为对象度量并实证刻画了不同大语言模型判断的分歧程度, 恰可解释本家族与 gpt54nano/gemini31 同名 hw 分母之所以彼此不同——差异完全来自各家有效打分覆盖面的不重合; 但该文系 SSRN 工作论文, 尚未经期刊同行评审, 且其把分歧本身当作信号/噪声加以研究, 本项目则不将分歧入模, 仅以各家有效性掩码构造各自独立的分母, 其模型集合与语料亦与本项目三家 API 模型加中文银行×金融科技语料不同。
 ## VAR: sum_wd_hw_deepseekv4_ctx
 
 【变体差分】
@@ -84,4 +99,6 @@ Hwang, B.-H., & Kim, H. H. (2017). It pays to write well. Journal of Financial E
 Hassan, T. A., Hollander, S., van Lent, L., Schwedeler, M., & Tahoun, A. (2023). Firm-level exposure to epidemic diseases: COVID-19, SARS, and H1N1. The Review of Financial Studies, 36(12), 4919-4964. https://doi.org/10.1093/rfs/hhad044
 Schwenkler, G., & Zheng, H. (2025). News-driven peer co-movement in crypto markets. Journal of Corporate Finance, 93, Article 102772. https://doi.org/10.1016/j.jcorpfin.2025.102772
 Schwenkler, G., & Zheng, H. (2019). The Network of Firms Implied by the News. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.3320859
+Laurer, M., van Atteveldt, W., Casas, A., & Welbers, K. (2025). On Measurement Validity and Language Models: Increasing Validity and Decreasing Bias with Instructions. Communication Methods and Measures, 19(1), 46-62. https://doi.org/10.1080/19312458.2024.2378690
+Liu, Y., Liu, J., & Wang, T. (2025). Large Language Model Disagreement. SSRN Electronic Journal No. 5395056 [Working Paper]. https://doi.org/10.2139/ssrn.5395056
 <!-- rendered-citations:end -->

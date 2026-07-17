@@ -46,6 +46,52 @@ citations:
   vol: "37"
   issue: "30"
   pages_or_artno: "24883-24892"
+- doi: "10.3982/te6424"
+  type: "journal"
+  authors: "Eliaz, K., & Spiegler, R."
+  year: 2026
+  title: "News media as suppliers of narratives (and information)"
+  venue: "Theoretical Economics"
+  vol: "21"
+  issue: "3"
+  pages_or_artno: "928-972"
+- doi: "10.1371/journal.pone.0323064"
+  type: "journal"
+  authors: "Wright, D., & Augenstein, I."
+  year: 2025
+  title: "Aggregating soft labels from crowd annotations improves uncertainty estimation under distribution shift"
+  venue: "PLOS One"
+  vol: "20"
+  issue: "6"
+  pages_or_artno: "e0323064"
+- doi: "10.2139/ssrn.5395056"
+  type: "wp"
+  authors: "Liu, Y., Liu, J., & Wang, T."
+  year: 2025
+  title: "Large Language Model Disagreement"
+  venue: "SSRN Electronic Journal"
+  pages_or_artno: "5395056"
+- doi: "10.48550/arxiv.2510.01499"
+  type: "arxiv"
+  authors: "Ai, R., Pan, Y., Simchi-Levi, D., Tambe, M., & Xu, H."
+  year: 2025
+  title: "Beyond Majority Voting: LLM Aggregation by Leveraging Higher-Order Information"
+  venue: "arXiv"
+- doi: "10.1016/j.finmar.2024.100896"
+  type: "journal"
+  authors: "Ashwin, J."
+  year: 2024
+  title: "Financial news media and volatility: Is there more to newspapers than news?"
+  venue: "Journal of Financial Markets"
+  vol: "69"
+  pages_or_artno: "100896"
+- doi: "10.2139/ssrn.4842086"
+  type: "wp"
+  authors: "Battaglia, L., Christensen, T., Hansen, S., & Sacher, S."
+  year: 2024
+  title: "Inference for Regression with Variables Generated from Unstructured Data"
+  venue: "SSRN Electronic Journal"
+  pages_or_artno: "4842086"
 new_dois: []
 ---
 
@@ -70,8 +116,7 @@ new_dois: []
 【文献定位】
 本家族的方法学定位交汇于三条脉络。其一是生成式大语言模型在会计与金融文本分析中的规范化应用: de Kok (2025, Management Science) 系统论述了在会计研究中使用生成式 LLM 做文本分析时应遵循的工程规范 (含 prompt 版本控制、temperature 设定为 0 以保证确定性、结果缓存以支持可复现), 本项目 stage 21 的确定性锚点设计 (prompt v8 字节级冻结、temperature=0.0、缓存命中可离线 $0 复现) 正是对该规范的直接工程落地, 而本家族的 valid-mask 机制进一步保证了"部分文章打分失败"这一现实情形不会破坏下游加权测度的统计性质。其二是 LLM 标注质量与人工标注的比较研究: Gilardi et al. (2023, Proceedings of the National Academy of Sciences) 的发现——ChatGPT 类模型在文本标注任务上的准确率可超越众包人工标注者——为以三家 LLM 多数投票替代传统人工/词典标注提供了方法学正当性基础; 本项目采取跨厂商 (OpenAI/Google/DeepSeek) 三家独立模型多数投票而非单模型标注, 呼应该文献所倡导的"LLM 标注可靠但仍需质量保障机制"的核心关切。其三是无金标准场景下 LLM 标注的验证方法学: Hansen (2026, FEDS Working Paper) 专门探讨了在缺乏人工金标准的情形下如何验证大语言模型标注结果的一致性与有效性, 与本项目在 tone_validation.py 中复用 Krippendorff's alpha 与 Cohen's kappa 度量三家模型间一致性的做法在方法论关切上高度契合——本家族的 valid-mask 机制正是这条"标注质量可能存在缺口, 须显式处理而非掩盖"思路在面板聚合层面的落地。此外, Lan et al. (2025, Neural Computing and Applications) 关于中文细粒度金融情感分析的大语言模型应用研究, 为本项目在中文财经新闻语料上使用 LLM 判定银行-金科语调这一具体应用场景提供了同语种、同领域的方法学参照。
 
-三轨口径铁律: full/ctx/ss 三轨各自 just-identified 并排, 互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J 检验方程。ss 轨回退语义镜像 ctx 轨——当某篇文章不存在银行∧金科词同句共现时, content_ss 回退为全文 body, ss_is_fallback 标记为 True, 此类回退行若其 llm_vote_score_ss 仍成功打分, 依旧计入本列求和 (回退不等于剔除, 亦不等于自动失效)。n_articles 与留篇门控严格遵循 full-only 口径 (2026-06-29 起生效): 一篇文章是否被计为该银行-年的一篇有效银行金科报道, 只由 llm_verified_full 决定, ctx/ss 轨的 valid-mask 分母列是在该 full-only 留篇行集合的子集上、按各自轨道打分有效性条件求和的稳健性测度, 不构成独立的行宇宙判定。此外须与 MW/VW/HW 三套加权口径的并排关系区分开: mw (媒体权威加权)、vw (提及密度加权)、hw (跟风衰减加权) 各自服务不同的"报道重要性"构念, 各自建有独立的 valid-mask 分母列族 (sum_wd_vw_llm{track}/sum_wd_mw_llm{track}/sum_wd_hw_llm{track}), 三套权重口径同样各自 just-identified 并排、不设主次, 不应混同或相互替代。
-
+三轨口径铁律: full/ctx/ss 三轨各自 just-identified 并排, 互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J 检验方程。ss 轨回退语义镜像 ctx 轨——当某篇文章不存在银行∧金科词同句共现时, content_ss 回退为全文 body, ss_is_fallback 标记为 True, 此类回退行若其 llm_vote_score_ss 仍成功打分, 依旧计入本列求和 (回退不等于剔除, 亦不等于自动失效)。n_articles 与留篇门控严格遵循 full-only 口径 (2026-06-29 起生效): 一篇文章是否被计为该银行-年的一篇有效银行金科报道, 只由 llm_verified_full 决定, ctx/ss 轨的 valid-mask 分母列是在该 full-only 留篇行集合的子集上、按各自轨道打分有效性条件求和的稳健性测度, 不构成独立的行宇宙判定。此外须与 MW/VW/HW 三套加权口径的并排关系区分开: mw (媒体权威加权)、vw (提及密度加权)、hw (跟风衰减加权) 各自服务不同的"报道重要性"构念, 各自建有独立的 valid-mask 分母列族 (sum_wd_vw_llm{track}/sum_wd_mw_llm{track}/sum_wd_hw_llm{track}), 三套权重口径同样各自 just-identified 并排、不设主次, 不应混同或相互替代。 在上述三条脉络之外, 晚近文献从媒体加权、聚合口径与生成变量推断三个方向补充了本族的前沿定位。Eliaz 与 Spiegler (2026) 以理论建模把新闻媒体刻画为叙事而不仅是信息的供给者, 分析不同媒体供给的叙事如何影响受众信念, 为 mw 轨"不同来源媒体的报道不等价、须按来源加权"提供理论侧的存在性论证; 该文是纯理论均衡分析, 其媒体差异化维度是叙事内容而非权威度, 不提供可迁移的权重赋值方案, 与 media_authority_weight 的具体取值口径无对应。Wright 与 Augenstein (2025) 基准比较了把多标注者软标签 (概率) 聚合为目标的若干方案, 发现软标签聚合在分布偏移下比硬标签多数投票给出更好的不确定性估计, 恰对应 prob 分组 (软概率映射) 与本族 llm 分组 (三家硬多数投票共识) 这两条并排轨; 迁移边界是原文标注者为人类众包工人、目标为分类器不确定性校准, 语料为英文 NLP 基准集, 既无银行-年聚合层, 亦无媒体权威/提及密度/跟风衰减的权重维度。Liu、Liu 与 Wang (2025) 以金融文本为对象度量不同大语言模型判断的分歧程度, 印证各家 per-model 的 mw 分母姊妹族之所以彼此不同, 完全来自各家有效打分覆盖面与判断差异, 而本族的共识掩码正是该分歧的折叠结果; 该文为 SSRN 工作论文, 尚未经期刊同行评审, 且原文把分歧本身当作信号/噪声变量, 本项目不作此用, 仅以有效性掩码界定分母。Ai、Pan、Simchi-Levi、Tambe 与 Xu (2025) 在 arXiv 预印本 (未经同行评审) 中指出朴素多数投票忽略了各模型的期望准确率与模型间答案相关性, 并设计利用此类高阶信息的聚合规则, 其对本族的意义仅在于锚定"多模型投票共识作为一种聚合口径"的前沿存在性, 并提示朴素多数票并非唯一选择; 须明确该文不构成对本项目投票口径的背书——本族生产口径刻意保留朴素多数投票, 未采用原文的高阶聚合器, 且原文任务为英文 QA/推理基准, 无权重加权分母与面板聚合。Ashwin (2024) 把报纸报道的数量/篇幅维度与报道所含的新信息内容分离, 检验前者对波动率是否具有独立于后者的解释力, 这正锚定本族把"按来源权威度加权的报道量分母"与语调分子相分离之必要性; 迁移边界是原文语境为英文报纸与股票波动率, 其报道量为等权计数或版面维度而非媒体权威度加权, 且波动率是结果变量, 本列则是分母。Battaglia、Christensen、Hansen 与 Sacher (2024) 建立了先用非结构化文本生成变量、再把该变量代入回归这一两步流程的推断理论, 证明朴素代入会产生偏误并给出偏误修正与有效标准误, 提示本族分母所服务的 llm_vote_tone_mw 一类生成型测度在进入回归时须正视这层推断代价; 惟须诚实指出层级差异: 原文处理的是回归中的生成型变量本身, 本列则是界定该变量求和域的有效性掩码分母, 原文未处理多模型投票共识, 亦无中文语料、银行-年面板与三轨设定。
 ## VAR: sum_wd_mw_llm_ctx
 
 【变体差分】
@@ -97,4 +142,10 @@ de Kok, T. (2025). ChatGPT for Textual Analysis? How to Use Generative LLMs in A
 Gilardi, Fabrizio; Alizadeh, Meysam; Kubli, Maël. (2023). ChatGPT Outperforms Crowd Workers for Text-Annotation Tasks. Proceedings of the National Academy of Sciences, 120(30), e2305016120. https://doi.org/10.1073/pnas.2305016120
 Hansen, A. L. (2026). Validating Large Language Model Annotations. FEDS Working Paper, Federal Reserve Board [Working Paper]. https://doi.org/10.17016/FEDS.2026.020
 Lan, Y.; Wu, Y.; Xu, W.; Feng, W.; Zhang, Y. (2025). Chinese Fine-Grained Financial Sentiment Analysis with Large Language Models. Neural Computing and Applications, 37(30), 24883-24892. https://doi.org/10.1007/s00521-024-10603-6
+Eliaz, K., & Spiegler, R. (2026). News media as suppliers of narratives (and information). Theoretical Economics, 21(3), 928-972. https://doi.org/10.3982/te6424
+Wright, D., & Augenstein, I. (2025). Aggregating soft labels from crowd annotations improves uncertainty estimation under distribution shift. PLOS One, 20(6), e0323064. https://doi.org/10.1371/journal.pone.0323064
+Liu, Y., Liu, J., & Wang, T. (2025). Large Language Model Disagreement. SSRN Electronic Journal No. 5395056 [Working Paper]. https://doi.org/10.2139/ssrn.5395056
+Ai, R., Pan, Y., Simchi-Levi, D., Tambe, M., & Xu, H. (2025). Beyond Majority Voting: LLM Aggregation by Leveraging Higher-Order Information. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2510.01499
+Ashwin, J. (2024). Financial news media and volatility: Is there more to newspapers than news?. Journal of Financial Markets, 69, 100896. https://doi.org/10.1016/j.finmar.2024.100896
+Battaglia, L., Christensen, T., Hansen, S., & Sacher, S. (2024). Inference for Regression with Variables Generated from Unstructured Data. SSRN Electronic Journal No. 4842086 [Working Paper]. https://doi.org/10.2139/ssrn.4842086
 <!-- rendered-citations:end -->

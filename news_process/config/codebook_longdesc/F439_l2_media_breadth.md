@@ -59,6 +59,24 @@ citations:
   year: 2023
   venue: "American Journal of Political Science"
   type: "journal"
+- doi: "10.1287/mnsc.2024.05701"
+  type: "journal"
+  authors: "Lu, S."
+  year: 2026
+  title: "Green Bonds: Reputational Bonding via Media Coverage"
+  venue: "Management Science"
+  vol: "72"
+  issue: "6"
+  pages_or_artno: "5171-5192"
+- doi: "10.1287/mnsc.2021.02218"
+  type: "journal"
+  authors: "Dechow, P., Lawrence, A., Luo, M., & Stamenov, V."
+  year: 2024
+  title: "Media Attention and Event-Based Grouping of Stocks: An Examination of Stocks Hyped by Media Outlets as Benefiting from the Olympics"
+  venue: "Management Science"
+  vol: "70"
+  issue: "8"
+  pages_or_artno: "5157-5186"
 new_dois:
   - "10.1016/j.irfa.2024.103140"
   - "10.1111/ajps.12752"
@@ -77,8 +95,7 @@ media_breadth 度量的是一个 bank-year 单元在其新闻报道所处的"信
 需要明确的边界: media_breadth 是 track-agnostic (轨道无关) 的元数据类度量——它统计的是"多少家媒体报道过", 与该报道被归入 full/ctx/ss 哪条文本轨道、或该篇文章的情感/语调判定无关, 因此不适用于三轨 (full/ctx/ss) 并排稳健性框架, 也不产生 co-primary 嵌入双轨 (canonical Qwen / `_lg` OpenAI) 变体。这与项目中"三轨/双轨嵌入/梯子测度各自 just-identified 并排、互为稳健性不分主次、禁止混入同一 over-identified Hansen J"的铁律并不冲突——该铁律约束的是同一构念的多种可替代测量方式 (如同一篇文章在不同文本窗口下的情感判定), 而 media_breadth 是唯一确定的来源计数聚合, 不存在平行轨道版本, 因此本家族不涉及三轨/双轨/梯子选择问题, 亦不受 stage 21 留篇门控 full-only 口径的直接约束 (来源计数在 stage 40 聚合阶段基于全部已进入面板的报道行, 而非情感判定专属的 llm_verified_full 子集)。
 
 【文献定位】
-本指标的多源信息环境构念呼应 Tetlock (2007, JF) 关于媒体在投资者情绪形成中角色的开创性论证——该文明确区分了新闻"量" (volume) 与新闻"内容" (content) 两个独立维度, 是 media_breadth (量/广度维度) 与 tone 类指标 (内容维度) 分工的思想源头。Guest (2021, JAR) 关于媒体在盈余新闻中信息角色的研究进一步细化了媒体来源结构 (如 deepdive/staff-written/wire 等不同来源类型) 对信息传递效力的差异化影响, 为本指标"来源多样性即信息环境质量代理"这一构念提供了当代实证支撑。Gentzkow & Shapiro (2010, Econometrica) 作为顶刊经典文献, 从媒体倾向性固定效应的角度论证了单一媒体来源报道的系统性偏误风险, 为 media_breadth 作为"抵消单一媒体固定效应污染"的补充测度提供了理论依据。总体而言, media_breadth 家族在本项目测度体系中定位为 falsification/robustness 层的关注度对照维度, 与核心情感/实质性测度族 (P1–P5 各 paper 的 treatment 变量) 相互独立、互为鉴别效度检验的组成部分。Zhang, Goodell, Shen, & Lahmar (2024, International Review of Financial Analysis) 构造媒体意见分歧度量并证明其对中国股票收益具有短期正向、长期负向的可预测性, 呼应了媒体来源多样性作为独立信息广度维度而非语调维度的构念。Culpepper, Jung, & Lee (2023, American Journal of Political Science) 考察银行丑闻的媒体覆盖广度如何塑造公众对金融监管的态度, 支持将媒体覆盖广度视为区别于报道语调的独立关注度结构维度。
-
+本指标的多源信息环境构念呼应 Tetlock (2007, JF) 关于媒体在投资者情绪形成中角色的开创性论证——该文明确区分了新闻"量" (volume) 与新闻"内容" (content) 两个独立维度, 是 media_breadth (量/广度维度) 与 tone 类指标 (内容维度) 分工的思想源头。Guest (2021, JAR) 关于媒体在盈余新闻中信息角色的研究进一步细化了媒体来源结构 (如 deepdive/staff-written/wire 等不同来源类型) 对信息传递效力的差异化影响, 为本指标"来源多样性即信息环境质量代理"这一构念提供了当代实证支撑。Gentzkow & Shapiro (2010, Econometrica) 作为顶刊经典文献, 从媒体倾向性固定效应的角度论证了单一媒体来源报道的系统性偏误风险, 为 media_breadth 作为"抵消单一媒体固定效应污染"的补充测度提供了理论依据。总体而言, media_breadth 家族在本项目测度体系中定位为 falsification/robustness 层的关注度对照维度, 与核心情感/实质性测度族 (P1–P5 各 paper 的 treatment 变量) 相互独立、互为鉴别效度检验的组成部分。Zhang, Goodell, Shen, & Lahmar (2024, International Review of Financial Analysis) 构造媒体意见分歧度量并证明其对中国股票收益具有短期正向、长期负向的可预测性, 呼应了媒体来源多样性作为独立信息广度维度而非语调维度的构念。Culpepper, Jung, & Lee (2023, American Journal of Political Science) 考察银行丑闻的媒体覆盖广度如何塑造公众对金融监管的态度, 支持将媒体覆盖广度视为区别于报道语调的独立关注度结构维度。 两项新近顶刊证据可进一步充实本族计数基座的参照, 但均须按降级口径引用。Lu (2026) 以绿色债券发行人为主体, 发现发行后与其环境表现相关的媒体报道量显著上升且持续, 并将这一「声誉绑定」机制与后续环境表现的改善相联系, 从而把主体所获媒体报道覆盖确立为可独立使用的主体级构念; 但该文以新闻数据库的报道条数度量覆盖, 并不做去重来源媒体家数 (nunique) 的 extensive-margin 计数, 故仅锚「覆盖作为主体级构念」这一般性理据, 不得视为 media_breadth 的 distinct-outlet 口径出处, 该文亦无对数变换与年度截面标准化, 且样本以国际发行人为主而非中国银行。Dechow、Lawrence、Luo 与 Stamenov (2024) 检视五届夏季奥运会中被媒体炒作为奥运受益的概念股, 发现其在奥运周期内收益更高、彼此共动更强, 并在媒体有报道关联该公司的交易日出现成交量与波动率上升, 为「涉及某主体的媒体报道量是可独立测量的注意力构念且会驱动市场后果」在中国情境下提供了前沿存在性证据; 其边界同样在于以报道篇数与炒作强度刻画关注, 未见去重来源媒体家数计数, 亦无 ln(1+·) 变换与逐年度截面 z 标准化 (含年内有效观测不少于 3 的门槛), 且以概念股与特定事件窗口而非银行-年全样本为对象, 不涉及 Fintech 与 Non-Fintech 补集的分层。
 ## VAR: media_breadth
 
 【变体差分】
@@ -95,4 +112,6 @@ Guest, N. M. (2021). The information role of the media in earnings news. Journal
 Gentzkow, M., & Shapiro, J. M. (2010). What drives media slant? Evidence from U.S. daily newspapers. Econometrica, 78(1), 35-71. https://doi.org/10.3982/ECTA7195
 Zhang, Z., Goodell, J. W., Shen, D., & Lahmar, O. (2024). Media opinion divergence and stock returns: Evidence from China. International Review of Financial Analysis. https://doi.org/10.1016/j.irfa.2024.103140
 Culpepper, P. D., Jung, J.-H., & Lee, T. (2023). Banklash: How Media Coverage of Bank Scandals Moves Mass Preferences on Financial Regulation. American Journal of Political Science. https://doi.org/10.1111/ajps.12752
+Lu, S. (2026). Green Bonds: Reputational Bonding via Media Coverage. Management Science, 72(6), 5171-5192. https://doi.org/10.1287/mnsc.2024.05701
+Dechow, P., Lawrence, A., Luo, M., & Stamenov, V. (2024). Media Attention and Event-Based Grouping of Stocks: An Examination of Stocks Hyped by Media Outlets as Benefiting from the Olympics. Management Science, 70(8), 5157-5186. https://doi.org/10.1287/mnsc.2021.02218
 <!-- rendered-citations:end -->

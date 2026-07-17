@@ -37,6 +37,15 @@ citations:
   vol: 75
   issue: 3
   pages_or_artno: 1371-1415
+- doi: "10.1007/s11142-026-09952-5"
+  type: "journal"
+  authors: "Dai, L., Gong, P., Jackson, A. B., & Peng, Z."
+  year: 2026
+  title: "Controlling the narrative: managers’ topic-shifting behavior in conference calls"
+  venue: "Review of Accounting Studies"
+  vol: "31"
+  issue: "2"
+  pages_or_artno: "1165-1206"
 new_dois: []
 ---
 
@@ -49,8 +58,7 @@ new_dois: []
 计算链路为 jieba 分词 → 词频计数 (CountVectorizer, max_features=5000, min_df=1, max_df=0.95, 词表清空时降级 max_df=1.0) → 潜在狄利克雷分配主题模型 (LatentDirichletAllocation) 抽取每份年度文档的主题分布向量 theta → 用 Jensen-Shannon 散度度量相邻两年 theta 的差异。主题数按 K = max(10, n_total // 30) 取定, 其中 n_total 是 year_t 与 year_{t-1} 两年文档合并后的池规模; 在本项目银行样本这一量级下 (两年合并池规模远不足 300 篇文档), K = n_total // 30 的自适应项恒小于 10, 故 K 恒被 max(10, ·) 兜底为常数 10, 属"伪自适应"—— 源码披露 (omni-g-strategic-06) 已明确记录该基数与横截面 _build_lda_jsd_matrix 的单年 n_banks 基数不同, 仅因同被兜底为 10 而暂时数值一致, 只有当两年池文档数超过 300 时自适应项才会突破兜底、两处口径随之分叉。散度计算调用 scipy.spatial.distance.jensenshannon(theta_t, theta_{t-1}, base=2), 该函数返回的是 √JSD (JSD 距离而非散度本身), base=2 使其上界恰为 1; 因此最终 coh_lda = 1 − √JSD ∈ [0,1], 高值表示两年主题分布接近即连贯 (Jensen-Shannon 散度是 Kullback-Leibler 散度的对称化平滑版本, 有界且对称, 其平方根满足度量公理即三角不等式, 因而适合作为两年主题分布间的距离度量)。首年 (无 t−1) 与年份间隙 (t−1 缺席) 一律返回 NaN, 严格定义"相邻期"为连续年度, 与产品市场流动性 strat_fluidity 的缺失口径一致。确定性由 random_state=42 + max_iter=50 + learning_method='online' + n_jobs=1 共同保证: 源码披露 (omni-g-strategic-16) 记录了 n_jobs=-1 时 sklearn 在线 LDA 的 E-step 会按有效核数切片累加充分统计量, 切片序跨机器不同导致 theta 逐位漂移 (实测 max|Δθ|≈0.99), 故必须钉死单线程才能逐位可复现。
 
 【文献定位】
-LDA+JSD 路径在本项目定位为 TF-IDF 主路径之外的稳健性检验测度: 三列均标注"稳健性检验", 与同族的 TF-IDF char/word 连贯性 (coh_tfidf_c / coh_tfidf_w) 及嵌入连贯性 (coh_emb) 互为稳健性、不分主次; 各测度各自 just-identified 并排, 严禁把不同方法的连贯列混进同一 over-identified Hansen J 检验。就构念本身的文献坐标而言, 与本家族"年际文本连贯"最贴近的顶刊参照是 Cohen, Malloy 与 Nguyen (2020) 发表于《Journal of Finance》的年报年际措辞变动研究: 他们以年报相邻期文本的相似与变动为核心, 证明沟通文本在时间维度上的稳定或改动本身即携带可定价信息, 这与本家族"相邻两年主题分布接近即连贯"的度量逻辑同源, 是本测度构念合法性的直接文献锚 (差别仅在于本项目把该思路从企业自撰披露平移到第三方媒体聚合语料, 详见【构念与来源】与已知局限)。方法学上另需一处诚实的口径说明: 本家族 LDA 的输入是 jieba 词频计数矩阵 (DTM), 而金融实证中"计数与类计数数据"的计量处理已由 Cohn, Liu 与 Wardlaw (2022, 《Journal of Financial Economics》) 系统梳理; 但须明确其讨论对象是回归中作为因变量的计数型结果变量 (Poisson / 负二项等), 与本家族把词频计数仅作为主题模型输入特征的用法并不等同, 此处援引仅为提示"以计数为底的数据在分布特征上需审慎"这一一般性方法学意识, 不构成对 LDA 文本主题建模本身的直接背书。文本表示层面, 长金融文档的有效表征评估框架由 Xia 等 (2024) 系统化提出, 其对"如何把冗长金融文本压缩为可比向量"的讨论与本项目将年度聚合文本压缩为 K 维主题分布的做法同源, 为本家族"用低维主题向量表征年度长文本再逐年比较"的表示选择提供了文本表征评估框架层面的参照。需要说明的是, LDA 主题建模面对第三方媒体聚合语料时存在若干未做披露的敏感性缺口 —— 例如未做 perplexity / held-out 数据驱动的选 K, 亦无 K ∈ {5,15,20} 的敏感性列 (类文本论文的标准披露项), 这是本测度作为稳健性配套而非主结论驱动变量的定位所允许的取舍。
-
+LDA+JSD 路径在本项目定位为 TF-IDF 主路径之外的稳健性检验测度: 三列均标注"稳健性检验", 与同族的 TF-IDF char/word 连贯性 (coh_tfidf_c / coh_tfidf_w) 及嵌入连贯性 (coh_emb) 互为稳健性、不分主次; 各测度各自 just-identified 并排, 严禁把不同方法的连贯列混进同一 over-identified Hansen J 检验。就构念本身的文献坐标而言, 与本家族"年际文本连贯"最贴近的顶刊参照是 Cohen, Malloy 与 Nguyen (2020) 发表于《Journal of Finance》的年报年际措辞变动研究: 他们以年报相邻期文本的相似与变动为核心, 证明沟通文本在时间维度上的稳定或改动本身即携带可定价信息, 这与本家族"相邻两年主题分布接近即连贯"的度量逻辑同源, 是本测度构念合法性的直接文献锚 (差别仅在于本项目把该思路从企业自撰披露平移到第三方媒体聚合语料, 详见【构念与来源】与已知局限)。方法学上另需一处诚实的口径说明: 本家族 LDA 的输入是 jieba 词频计数矩阵 (DTM), 而金融实证中"计数与类计数数据"的计量处理已由 Cohn, Liu 与 Wardlaw (2022, 《Journal of Financial Economics》) 系统梳理; 但须明确其讨论对象是回归中作为因变量的计数型结果变量 (Poisson / 负二项等), 与本家族把词频计数仅作为主题模型输入特征的用法并不等同, 此处援引仅为提示"以计数为底的数据在分布特征上需审慎"这一一般性方法学意识, 不构成对 LDA 文本主题建模本身的直接背书。文本表示层面, 长金融文档的有效表征评估框架由 Xia 等 (2024) 系统化提出, 其对"如何把冗长金融文本压缩为可比向量"的讨论与本项目将年度聚合文本压缩为 K 维主题分布的做法同源, 为本家族"用低维主题向量表征年度长文本再逐年比较"的表示选择提供了文本表征评估框架层面的参照。需要说明的是, LDA 主题建模面对第三方媒体聚合语料时存在若干未做披露的敏感性缺口 —— 例如未做 perplexity / held-out 数据驱动的选 K, 亦无 K ∈ {5,15,20} 的敏感性列 (类文本论文的标准披露项), 这是本测度作为稳健性配套而非主结论驱动变量的定位所允许的取舍。 在表征空间层面另有一处近期顶刊佐证可以补入: Dai、Gong、Jackson 与 Peng (2026) 发表于《Review of Accounting Studies》, 以 2002-2017 年电话会议样本用主题分析度量管理层回答偏离分析师提问主题的程度 (managerial topic-shifting), 发现业绩较好、CEO 权力较强、信息环境较弱的公司管理层转移更多, 且该转移行为向资本市场传递增量信息、促进盈余信息融入股价。该文对本家族的价值在于确立了两个主题分布之间的距离本身即为有实质经济含义的沟通行为测度而非建模噪声, 支持本族把主题分布距离作为标量测度落盘的做法。迁移边界须诚实交代: 原文的位移发生在同一场电话会议内的问答之间 (话轮层面, 以分析师提问主题为参照系), 本族则是同一银行相邻两年自身主题分布的距离 (年度层面, 以自身上期为参照系), 时间尺度与参照系均不同; 原文未使用 Jensen-Shannon 距离, 语料为英文管理层发言而非中文第三方报道; 且其构念是管理层回避而非战略差异化, 全文无任何同业或行业质心参照物, 故该锚点仅止于本族的年际自比构念, 不外推至横截面的质心偏离测度。此外该锚点属构念合法性层面的佐证, 不改变本族三条 LDA 连贯列相对 TF-IDF 与嵌入连贯列的定位 —— 各测度仍各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J。
 ## VAR: coh_lda_full
 
 【变体差分】
@@ -70,4 +78,5 @@ LDA+JSD 路径在本项目定位为 TF-IDF 主路径之外的稳健性检验测�
 Xia, B., Rawte, V., Gupta, A., & Zaki, M. J. (2024). FETILDA: Evaluation framework for effective representations of long financial documents. ACM Transactions on Knowledge Discovery from Data, 18(7), 1-27. https://doi.org/10.1145/3657299
 Cohn, J. B., Liu, Z., & Wardlaw, M. I. (2022). Count (and count-like) data in finance. Journal of Financial Economics, 146(2), 529-551. https://doi.org/10.1016/j.jfineco.2022.08.004
 Cohen, L., Malloy, C., & Nguyen, Q. (2020). Lazy prices. Journal of Finance, 75(3), 1371-1415. https://doi.org/10.1111/jofi.12885
+Dai, L., Gong, P., Jackson, A. B., & Peng, Z. (2026). Controlling the narrative: managers’ topic-shifting behavior in conference calls. Review of Accounting Studies, 31(2), 1165-1206. https://doi.org/10.1007/s11142-026-09952-5
 <!-- rendered-citations:end -->

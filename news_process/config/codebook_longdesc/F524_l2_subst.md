@@ -49,6 +49,22 @@ citations:
   year: 2026
   title: "Glossy Green Banks: The Disconnect Between Environmental Disclosures and Lending Activities"
   venue: Management Science
+- doi: "10.1016/j.technovation.2023.102880"
+  type: "journal"
+  authors: "Granados, C., Ayala, Y., & Ramos-Mejia, M."
+  year: 2024
+  title: "Is it substantive or just symbolic? Understanding innovation theater in organisations: The case of technology-based innovation"
+  venue: "Technovation"
+  vol: "129"
+  pages_or_artno: "102880"
+- doi: "10.1016/j.chb.2026.108988"
+  type: "journal"
+  authors: "Liu, J."
+  year: 2026
+  title: "Rubric-conditioned large language model labeling: Agreement, uncertainty, and label consistency in subjective text annotation"
+  venue: "Computers in Human Behavior"
+  vol: "181"
+  pages_or_artno: "108988"
 new_dois: []
 ---
 
@@ -59,8 +75,7 @@ new_dois: []
 【方法学与计算】
 计算分两步。步骤一 (文章级, `derive_residual_signals`): 对 `innovation_substantiveness_full`/`innovation_substantiveness_ctx` 先做 `_normalize_label` 归一化 (去首尾空白、全角空格 U+3000、内部所有 `\s`, 防御 LLM 输出携带的格式噪声), 再用 `_both_valid_mask` 判定该篇文章 full 与 ctx 两路标签是否均落在 canonical 二值集合 {实质性, 象征性} 内 (`isin` 白名单口径, 而非简单 notna — 任何脏标签/非二值输出即被排除出 both_valid, 而非被强行归入某一类); 在 both_valid=True 的前提下: `subst_disagree`=(full_norm != ctx_norm), `subst_freerider`=(full_norm==实质性)∧(ctx_norm==象征性) [全文层面看着扎实、聚焦到银行-金科窗口反而落空的"说一套做一套"疑似信号], `subst_quietworker`=(full_norm==象征性)∧(ctx_norm==实质性) [反过来, 全文偏宣传但银行-金科相关片段其实扎实的"做而不说"信号]; both_valid=False (任一轨 NaN 或非 canonical 脏标签) 时三列按构造全部编为 False 而非 NaN, 这是刻意设计使可证不变量成立: (i) freerider 与 quietworker 互斥, (ii) freerider+quietworker 恒等于 disagree (因为两者正是 disagree 的两个互斥子情形), (iii) both_valid=False 的文章对这三个信号的贡献恒为零而非缺失。步骤二 (面板级, `aggregate_d4_panel`): 对每个 (银行, 年) 分组, `n_articles_subst_bothvalid` = 该组 both_valid=True 的文章数, `subst_disagree_frac` 等三个 frac 列 = 对应布尔列在该组的计数之和除以 `n_articles_subst_bothvalid` (分子分母严格同域, 均限定在 both_valid 子集内, 而非除以物理文章总数); 若 `n_bothvalid < 5` (含恰为 0 的"假零"情形) 则该行三列一律记为缺失值而非 0, 防止小样本组把"无法判定"误报成"零分歧"。若上游 `innovation_substantiveness_full`/`_ctx` 源列在给定 build 缺失导致 both_valid 无法重建, 会整体回退到 legacy 物理分母 (`groupby.mean()`, 门槛改用物理 `n_articles<5`) 并记入日志告警, 生产口径以 both_valid 分母为准。三列在数值上满足 `subst_disagree_frac == subst_freerider_frac + subst_quietworker_frac` (由文章级不变量线性传递到面板级比率)。
 【文献定位】
-本测度的分析传统直接承自 Westphal & Zajac 关于公司治理"实质性采纳 vs 象征性采纳" (substance vs symbolism) 的经典二分, 该框架把治理/创新举措区分为真正改变实践的实质性行动与仅为满足外部合法性压力的象征性姿态 (Westphal & Zajac, 1994, *Administrative Science Quarterly*; Westphal & Zajac, 1998, *Administrative Science Quarterly*), 后续 Fiss & Zajac (2006, *Academy of Management Journal*) 进一步把象征性管理拓展到战略变革的框架化与解耦 (sensegiving via framing and decoupling) 机制。本家族把这一构念从"公司对外公告 vs 实际治理实践"的二元比较, 转译为"同一篇新闻报道在 full 全文口径与 ctx 实体窗口口径下给出的实质性标签是否一致"的文本内部 (within-article) 比较 — 两个口径可理解为对同一事件的两种"观察窗口", 其分歧即为言行 (或者说全篇叙事与聚焦细节) 不一致的经验代理。近期文献进一步把这一 decoupling 传统应用到金融/ESG 语境下的"漂绿"(washing) 现象, 例如 Giannetti, Jasova, Loumioti & Mendicino (即将刊于 *Management Science*) 记录银行环境信息披露与实际放贷行为之间的脱节, Duchin, Gao & Xu (2025, *The Journal of Finance*) 用资产市场证据区分可持续性行动与漂绿, 均与本家族"报道口径分歧代理言行不一"的构造逻辑同源, 是本项目将治理决耦文献移植到银行-金科媒体报道情境的直接方法学参照。
-
+本测度的分析传统直接承自 Westphal & Zajac 关于公司治理"实质性采纳 vs 象征性采纳" (substance vs symbolism) 的经典二分, 该框架把治理/创新举措区分为真正改变实践的实质性行动与仅为满足外部合法性压力的象征性姿态 (Westphal & Zajac, 1994, *Administrative Science Quarterly*; Westphal & Zajac, 1998, *Administrative Science Quarterly*), 后续 Fiss & Zajac (2006, *Academy of Management Journal*) 进一步把象征性管理拓展到战略变革的框架化与解耦 (sensegiving via framing and decoupling) 机制。本家族把这一构念从"公司对外公告 vs 实际治理实践"的二元比较, 转译为"同一篇新闻报道在 full 全文口径与 ctx 实体窗口口径下给出的实质性标签是否一致"的文本内部 (within-article) 比较 — 两个口径可理解为对同一事件的两种"观察窗口", 其分歧即为言行 (或者说全篇叙事与聚焦细节) 不一致的经验代理。近期文献进一步把这一 decoupling 传统应用到金融/ESG 语境下的"漂绿"(washing) 现象, 例如 Giannetti, Jasova, Loumioti & Mendicino (即将刊于 *Management Science*) 记录银行环境信息披露与实际放贷行为之间的脱节, Duchin, Gao & Xu (2025, *The Journal of Finance*) 用资产市场证据区分可持续性行动与漂绿, 均与本家族"报道口径分歧代理言行不一"的构造逻辑同源, 是本项目将治理决耦文献移植到银行-金科媒体报道情境的直接方法学参照。 落到创新这一具体语境, Granados、Ayala 与 Ramos-Mejia (2024) 以「创新剧场」(innovation theater) 之名系统刻画技术创新中象征性展演与实质性投入的分野, 为本家族 {实质性, 象征性} 二分提供了当代组织理论层面的构念界定与机制阐述; 惟该文是组织层面的质性/理论化研究, 既未给出文本自动分类算法, 也未做银行样本的面板计量, 本家族则把该构念下沉为 LLM 对单篇报道话语的逐篇标签并按银行-年计数, 操作化层级、数据类型与语境 (中国、银行业) 均与之不同, 引用仅及于构念界定这一层。测量侧的一条诚实边界则由 Liu (2026) 提示: 该文以固定 rubric 提示单一模型重标注英文社交媒体仇恨言论语料, 发现在主观标注任务中模型返回的类别概率向量的 Shannon 熵在人类标注分歧较大处系统性更高, 说明 LLM 标签在此类主观判定上本身带有不可忽略的不确定性 — 据此可推断 subst_disagree_frac 至少有一部分并非言行解耦的真实信号, 而是标注不稳定所设定的噪声地板。须强调该文度量的分歧是同一文本上标注者/模型之间的一致性, 与本家族「同一多数票共识在 full 与 ctx 两个观察窗口下是否一致」并非同一构念层级, 且其语料非中文金融新闻、全程只用单一模型而不涉跨厂商比较、亦无实体-年聚合, 故只作噪声地板的警示引用, 不构成对本家族分歧口径或 per-model 并排安排的任何背书。
 ## VAR: subst_disagree_frac
 
 【变体差分】
@@ -82,4 +97,6 @@ Westphal, J. D.; Zajac, E. J. (1998). The Symbolic Management of Stockholders: C
 Fiss, P. C.; Zajac, E. J. (2006). The Symbolic Management of Strategic Change: Sensegiving via Framing and Decoupling. Academy of Management Journal, 49(6), 1173-1193. https://doi.org/10.5465/amj.2006.23478255
 Duchin, R.; Gao, J.; Xu, Q. (2025). Sustainability or Greenwashing: Evidence from the Asset Market for Industrial Pollution. The Journal of Finance. https://doi.org/10.1111/jofi.13412
 Giannetti, M.; Jasova, M.; Loumioti, M.; Mendicino, C. (2026). Glossy Green Banks: The Disconnect Between Environmental Disclosures and Lending Activities. Management Science. https://doi.org/10.1287/mnsc.2024.07420
+Granados, C., Ayala, Y., & Ramos-Mejia, M. (2024). Is it substantive or just symbolic? Understanding innovation theater in organisations: The case of technology-based innovation. Technovation, 129, 102880. https://doi.org/10.1016/j.technovation.2023.102880
+Liu, J. (2026). Rubric-conditioned large language model labeling: Agreement, uncertainty, and label consistency in subjective text annotation. Computers in Human Behavior, 181, 108988. https://doi.org/10.1016/j.chb.2026.108988
 <!-- rendered-citations:end -->

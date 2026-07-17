@@ -53,6 +53,13 @@ citations:
   year: 2025
   title: 'Majority rules: LLM ensemble is a winning approach for content categorization'
   venue: arXiv
+- doi: "10.1287/mnsc.2024.08999"
+  type: "journal"
+  authors: "Burtch, G., McFowland, E., Yang, M., & Adomavicius, G."
+  year: 2026
+  title: "EnsembleIV: Creating Instrumental Variables from Ensemble Learners for Robust Statistical Inference with ML- Generated Variables"
+  venue: "Management Science"
+  pages_or_artno: "mnsc.2024.08999"
 new_dois: []
 ---
 
@@ -65,8 +72,7 @@ llm_vote_score_w_sum 家族刻画的是「银行—年度」单元内, 由三家
 三家 LLM 多数投票的方法学基础见 stage 21 tone_llms 的三家并列设计: gpt-5.4-nano、gemini-3.1-flash-lite (经 yunwu 中转) 与 deepseek-v4-flash (直连 api.deepseek.com), 对同一篇章-轨道文本独立打分, 再以多数表决 (2/3 及以上一致) 汇总为 llm_vote 系列的共识判断; 这一「多模型集成投票降低单模型幻觉/系统性偏误」的设计取向与 Kamen & Kamen (2025) 提出的 LLM ensemble majority-rule 内容分类范式一致, 也呼应 Gilardi, Alizadeh & Kubli (2023, PNAS) 关于 LLM 标注在文本标注任务上可比甚至超越众包人工标注者的发现——多数投票在此进一步降低了对单一模型输出的依赖。prompt 构造采用 v8-2026-05-17 冻结版本、temperature=0.0, 确定性缓存命中键与 de Kok (2025, Management Science) 倡导的"生成式 LLM 用于会计/金融文本分析须走可复现、temperature=0、prompt 版本冻结"范式对齐, 这也是本仓库能够以 `NEWS_PROCESS_LLM_OFFLINE=1` 实现三轨零字节漂移离线复现的方法学基础。加权求和本身是简单算术: 对 bank-year 单元内每篇留篇文章的 `llm_vote_score{track} × mention_density{track}` 逐篇相乘后组内求和, 不涉及归一化、不做符号截断, 因此该列的绝对量级会随 bank-year 单元内文章数量、密度权重尺度而变, 不能脱离配对分母单独解读为"平均语气"; 它与配对的 VW 均值列构成经典的"分子/分母恒等式"对偶结构, 这也是 stata_audit.py 专门设一节校验加权均值恒等式 (VW/MW/HW 三套权重是否可由各自分子除以各自分母精确复现) 的原因——一旦分子分母口径 (valid-mask vs 物理分母) 不匹配, 恒等式校验会给出 WARN 并提示口径不一致的诊断细节。
 
 【文献定位】
-本家族在文献坐标系中横跨两条脉络: 一是媒体情感测度的价值加权传统, 源自 Tetlock (2007, Journal of Finance) 首次系统论证媒体语气可作为投资者情绪的可观测代理, 后续研究普遍采用以提及强度/显著性加权的做法避免"稀释"高信息密度报道的情感信号, Hassan et al. (2019, QJE) 在政治风险测度上进一步规范化了这一"提及密度加权求和"的操作化路径, 本家族的 mention_density 加权设计直接承袭这一传统; 二是大语言模型作为文本标注引擎的新兴方法学脉络, Gilardi et al. (2023, PNAS) 与 de Kok (2025, Management Science) 分别从标注质量和会计/金融应用规范两个角度为"用 LLM 替代/补充人工标注"提供了方法学正当性, Kamen & Kamen (2025) 则专门论证了多模型集成投票相较单模型的稳健性优势——本家族的三家 LLM 多数投票设计正是这一集成范式在中文银行金科新闻语境下的落地。三轨 (full/ctx/ss) 并行是仓库全局铁律: full/ctx/ss 三条文本窗口 (全文、实体上下文窗、银行∧金科同句窗) 各自独立聚合出 llm_vote_score_w_sum, 三者是「互为稳健性、不分主次」的并列测度, 各自 just-identified, 严禁混入同一 over-identified 的 Hansen J 检验; 留篇门控口径统一为 full-only (2026-06-29 起), 即 stage 21 是否判定"一篇银行—金科报道"仅看 `llm_verified_full == True`, ctx/ss 轨道的样本行宇宙是 full 留篇集的子集, 三轨互不借用彼此的行集合。需要强调的是, 这一"各轨并列"仅体现在分子侧的 `llm_vote_score{track}`——权重侧的 mention_density 是唯一一个 track-agnostic 元数据度量, 三轨在求和时共用同一份权重列, 并不存在"各轨各自计算自身密度权重"的口径; 这与记忆库中"唯一不能双轨的是 track-agnostic 元数据度量"的先例完全一致, 权重的不可分轨恰恰是为了保证三轨之间的差异纯粹来自情感判定本身, 而非权重口径漂移带来的混淆。
-
+本家族在文献坐标系中横跨两条脉络: 一是媒体情感测度的价值加权传统, 源自 Tetlock (2007, Journal of Finance) 首次系统论证媒体语气可作为投资者情绪的可观测代理, 后续研究普遍采用以提及强度/显著性加权的做法避免"稀释"高信息密度报道的情感信号, Hassan et al. (2019, QJE) 在政治风险测度上进一步规范化了这一"提及密度加权求和"的操作化路径, 本家族的 mention_density 加权设计直接承袭这一传统; 二是大语言模型作为文本标注引擎的新兴方法学脉络, Gilardi et al. (2023, PNAS) 与 de Kok (2025, Management Science) 分别从标注质量和会计/金融应用规范两个角度为"用 LLM 替代/补充人工标注"提供了方法学正当性, Kamen & Kamen (2025) 则专门论证了多模型集成投票相较单模型的稳健性优势——本家族的三家 LLM 多数投票设计正是这一集成范式在中文银行金科新闻语境下的落地。三轨 (full/ctx/ss) 并行是仓库全局铁律: full/ctx/ss 三条文本窗口 (全文、实体上下文窗、银行∧金科同句窗) 各自独立聚合出 llm_vote_score_w_sum, 三者是「互为稳健性、不分主次」的并列测度, 各自 just-identified, 严禁混入同一 over-identified 的 Hansen J 检验; 留篇门控口径统一为 full-only (2026-06-29 起), 即 stage 21 是否判定"一篇银行—金科报道"仅看 `llm_verified_full == True`, ctx/ss 轨道的样本行宇宙是 full 留篇集的子集, 三轨互不借用彼此的行集合。需要强调的是, 这一"各轨并列"仅体现在分子侧的 `llm_vote_score{track}`——权重侧的 mention_density 是唯一一个 track-agnostic 元数据度量, 三轨在求和时共用同一份权重列, 并不存在"各轨各自计算自身密度权重"的口径; 这与记忆库中"唯一不能双轨的是 track-agnostic 元数据度量"的先例完全一致, 权重的不可分轨恰恰是为了保证三轨之间的差异纯粹来自情感判定本身, 而非权重口径漂移带来的混淆。 沿分子侧这条线再向下游看一步, Burtch、McFowland、Yang 与 Adomavicius (2026) 利用集成学习器内部各成员预测之间的差异构造工具变量, 以缓解 ML 生成变量作为回归元时的测量误差偏误; 本族的 llm_vote_score_w_sum{track} 恰是由三家异构模型逐篇打分、投票后再按 mention_density 加权求和而成的 ML 生成变量, 该文因此为下游把此类聚合量当作回归元的做法提供了一条已发表的处理路径参照。其迁移边界须如实标明: 原文的集成成员是同一训练流程下的 ML 预测器 (树/神经网络等), 成员间差异有明确的重采样来源; 本项目的成员是三家不同厂商的闭源 LLM, 差异来源不可控亦不可重采样, 原文构造 IV 的前提未必成立。本项目并未实施 EnsembleIV, 该文仅作方法学存在性参照收录; 尤须强调, 不得据此把三家 per-model 子测度或 full/ctx/ss 三轨并列列混入同一 over-identified 的 Hansen J——这与上文已述的各自 just-identified 并排、互为稳健性不分主次的口径直接冲突。
 ## VAR: llm_vote_score_w_sum_full
 
 【变体差分】
@@ -88,4 +94,5 @@ Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level poli
 Gilardi, F., Alizadeh, M., & Kubli, M. (2023). ChatGPT outperforms crowd workers for text-annotation tasks. Proceedings of the National Academy of Sciences, 120(30), e2305016120. https://doi.org/10.1073/pnas.2305016120
 de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
 Kamen, A., & Kamen, Y. (2025). Majority rules: LLM ensemble is a winning approach for content categorization. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2511.15714
+Burtch, G., McFowland, E., Yang, M., & Adomavicius, G. (2026). EnsembleIV: Creating Instrumental Variables from Ensemble Learners for Robust Statistical Inference with ML- Generated Variables. Management Science, mnsc.2024.08999. https://doi.org/10.1287/mnsc.2024.08999
 <!-- rendered-citations:end -->

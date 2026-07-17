@@ -60,6 +60,22 @@ citations:
   year: 2026
   title: "Temporal coverage bias in financial panel data: A coverage-aware structuring framework with evidence from the Dhaka Stock Exchange"
   venue: arXiv
+- doi: "10.2139/ssrn.5024959"
+  type: "wp"
+  authors: "Cziraki, P., & Gider, J."
+  year: 2024
+  title: "Newspaper Closures and Trading in Local Stocks"
+  venue: "SSRN"
+  pages_or_artno: "5024959"
+- doi: "10.1093/llc/fqae013"
+  type: "journal"
+  authors: "Venglařová, K., & Matlach, V."
+  year: 2024
+  title: "Beyond content: discriminatory power of function words in text type classification"
+  venue: "Digital Scholarship in the Humanities"
+  vol: "39"
+  issue: "2"
+  pages_or_artno: "765-789"
 new_dois: []
 ---
 
@@ -72,8 +88,7 @@ new_dois: []
 计算分两层。文章层由 tone_words.compute_dict_scores 产出 bian_2021_score_advonly_{track}: 先用 Bian 等 (2021) 词典在每篇报道的对应文本轨上匹配正负情感词并按规则赋加权权重, 再由 _compute_sentiment_with_rules 计算加权自归一化得分, 即带符号的最终权重之和除以最终权重绝对值之和 (signed Σfinal 除以 Σ|final|, 源码内记为 _abl_norm), 分母是加权后的权重绝对值和而非裸正负词计数, 因此常写作的 (pos 减 neg) 除以 (pos 加 neg) 仅是无加权情形下的简化近似; 其中 advonly 变体对应规则消融梯度里的 (否定关闭, 程度关闭, 转折开启) 组合, 只保留转折从句边界处理并对转折从句施加 ADVERSATIVE_BOOST=1.5 的加权, 而关闭否定翻转与程度副词放大。面板层由 attention_media 在 40_panel_export_main 步骤内完成: 先经覆盖退出检测 detect_defacto_cessation 得到疑似停刊媒体集合 (数据驱动的末次覆盖年早于样本末年减阈值且报道数达门槛, 再与 NPPA 出版状态交叉验证, 但未经证实的 suspected 全量进入剔除集), 对每篇报道打上 _is_ceased_media 标记; 随后在剔除停刊媒体的存活子集上, 按 (target_bank, year) 分组对文章层得分取算术均值, 经动态发现循环物化为 exc_ 前缀列。对零报道或全停刊的银行-年度, 该情感类列按契约保持缺失而不做零填 (只有计数类 n_articles_exc 才零填), 以免把"无观测"混淆为"中性"。规则消融梯度是自归一化、非可加分解的: advonly 与家族内 raw/negonly/degonly/negdeg/negadv/degadv/全规则各变体在实证上高度共线, 应报告相关性而非并入同一可加分解式。
 
 【文献定位】
-词典源 Bian 等 (2021) 构建了面向会计与金融文本的中文财经情感词典, 是本族打分的词表基础。方法学上, Taboada 等 (2011) 系统论证了基于词典的情感分析中否定、程度与转折等语言学规则的作用, 是 advonly 只保留转折规则这一消融设计的直接依据。Du 等 (2022) 在 Review of Finance 上强调中文财经情感测度的语言与领域特异性, 为多词典并置与规则敏感性检验提供了顶刊层面的构念锚。Frankel 等 (2022) 在 Management Science 上比较词典法与机器学习情感, 论证不同测度并置互为稳健的范式, 支持本族作为词典轨稳健性列的定位。van Atteveldt 等 (2021) 则对词典、众包与机器学习情感的效度做了对照评估, 提示词典法在细粒度语境下的局限。剔停刊设计的时序覆盖偏差维度另可参照 Muhammad (2026) 关于金融面板时序覆盖偏差的框架。需强调三轨口径铁律: full/ctx/ss 三条文本轨各自 just-identified 并排, 互为稳健性、不分主次, 严禁把三轨混入同一 over-identified 的 Hansen J 检验; 同理剔停刊轨与全样本轨、以及 advonly 与其余规则消融变体, 亦属规格稳健性并置而非可加叠加。留篇门控沿用 full-only 口径 (2026-06-29): 某篇是否计入一篇银行金融科技报道只看 full 轨的 llm_verified_full, ctx/ss 为 conditional-on-full 的从属稳健轨。
-
+词典源 Bian 等 (2021) 构建了面向会计与金融文本的中文财经情感词典, 是本族打分的词表基础。方法学上, Taboada 等 (2011) 系统论证了基于词典的情感分析中否定、程度与转折等语言学规则的作用, 是 advonly 只保留转折规则这一消融设计的直接依据。Du 等 (2022) 在 Review of Finance 上强调中文财经情感测度的语言与领域特异性, 为多词典并置与规则敏感性检验提供了顶刊层面的构念锚。Frankel 等 (2022) 在 Management Science 上比较词典法与机器学习情感, 论证不同测度并置互为稳健的范式, 支持本族作为词典轨稳健性列的定位。van Atteveldt 等 (2021) 则对词典、众包与机器学习情感的效度做了对照评估, 提示词典法在细粒度语境下的局限。剔停刊设计的时序覆盖偏差维度另可参照 Muhammad (2026) 关于金融面板时序覆盖偏差的框架。需强调三轨口径铁律: full/ctx/ss 三条文本轨各自 just-identified 并排, 互为稳健性、不分主次, 严禁把三轨混入同一 over-identified 的 Hansen J 检验; 同理剔停刊轨与全样本轨、以及 advonly 与其余规则消融变体, 亦属规格稳健性并置而非可加叠加。留篇门控沿用 full-only 口径 (2026-06-29): 某篇是否计入一篇银行金融科技报道只看 full 轨的 llm_verified_full, ctx/ss 为 conditional-on-full 的从属稳健轨。 就剔停刊口径的现实动机, Cziraki 与 Gider (2024) 以美国本地报纸停刊为冲击, 实证报道供给退出会改变本地股票的交易行为, 说明媒体退出并非无害的样本损耗, 而是有经济后果的样本组成变化, 这正锚定本族先剔除疑似退出覆盖媒体、再做银行-年度聚合这一环节; 迁移边界须诚实标明: 该文停刊判定取自外部事件数据、DV 为本地股票交易活动且以停刊作识别冲击, 而本族 ceased_set 由 detect_defacto_cessation 自语料内部推断 (confirmed ∪ suspected), 属保守代理而非严格停刊事实, 仅作稳健性子样本之用, 且该文为工作论文尚未经同行评审。就 advonly 单留转折规则的构念前提, Venglařová 与 Matlach (2024) 实证显示连词一类功能词在文本类型判别上具有独立于内容词的信息量, 提示转折/逆接标记本身是一条值得单独计量的语言维度; 但该文任务为文本类型分类、语料非中文金融新闻, 且不区分转折连词与其他功能词类, 更未在词典内部做规则消融, 故仅在构念层为把转折单列成一条可开关的臂提供动机, 不构成 ADVERSATIVE_BOOST 取值的直接依据。
 ## VAR: exc_bian_2021_score_advonly_ctx
 
 【变体差分】
@@ -96,4 +111,6 @@ van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validit
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Muhammad, T. (2026). Temporal coverage bias in financial panel data: A coverage-aware structuring framework with evidence from the Dhaka Stock Exchange. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2603.20237
+Cziraki, P., & Gider, J. (2024). Newspaper Closures and Trading in Local Stocks. SSRN No. 5024959 [Working Paper]. https://doi.org/10.2139/ssrn.5024959
+Venglařová, K., & Matlach, V. (2024). Beyond content: discriminatory power of function words in text type classification. Digital Scholarship in the Humanities, 39(2), 765-789. https://doi.org/10.1093/llc/fqae013
 <!-- rendered-citations:end -->

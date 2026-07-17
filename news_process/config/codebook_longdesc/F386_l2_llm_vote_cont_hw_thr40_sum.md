@@ -44,6 +44,15 @@ citations:
   vol: '26'
   issue: '3'
   pages_or_artno: 673-719
+- doi: "10.1609/aaai.v39i18.34120"
+  type: "journal"
+  authors: "Lyu, Q., Shridhar, K., Malaviya, C., Zhang, L., Elazar, Y., Tandon, N., Apidianaki, M., Sachan, M., & Callison-Burch, C."
+  year: 2025
+  title: "Calibrating Large Language Models with Sample Consistency"
+  venue: "Proceedings of the AAAI Conference on Artificial Intelligence"
+  vol: "39"
+  issue: "18"
+  pages_or_artno: "19260-19268"
 new_dois: []
 ---
 
@@ -60,8 +69,7 @@ new_dois: []
 【文献定位】
 LLM 多数投票 (三厂商 gpt54nano/gemini31/deepseekv4 独立打标签取共识) 的设计呼应 Kamen & Kamen (2025) 关于集成多个 LLM 标注器可显著降低单一模型系统性偏差、提升内容分类稳健性的发现; de Kok (2025, *Management Science*) 系统讨论了生成式 LLM 用于会计/金融文本分析时 temperature=0、prompt 版本冻结、结果可复现等方法论要求, 本项目 stage 21 的 prompt v8 字节级冻结缓存架构与之一致。跟风衰减对"重复/转载文本膨胀语调信号"的警惕呼应 Tetlock (2007, *Journal of Finance*) 关于媒体文本作为市场情绪代理指标须处理样本非独立性的经典论述。中文财经情感测度这一底层任务的方法论谱系参照 Du, Huang, Wermers & Wu (2022, *Review of Finance*) 关于中文金融情感词典构建的领域特定性讨论 (该文亦是本项目 `tone_words` 词典/政治词权重族的核心方法学锚点, 二者在"中文财经文本情感如何被系统性度量"这一更宏观构念上与本 LLM 投票族互为方法学三角验证的一支)。
 
-τ=0.40 只是敏感性网格中的一档, 与 τ∈{0.25, 0.30, 0.45} 及生产基线 τ=0.35 (对应无 `_thrNN` 后缀的 canonical `llm_vote_cont_hw_sum{track}` 家族) 共同构成一条"跟风判定门槛松紧梯子"; 依据 CLAUDE.md「当前状态铁律」的梯子铁律, 该网格内各档 (含基线) 各自 just-identified 并排、互为稳健性、不分主次, 用于证明主回归结论不依赖 0.35 这一具体相似度门槛的取值, 严禁把不同 τ 档的加权测度同时塞进同一个 over-identified 的 Hansen J 检验。三条轨道 (full/ctx/ss) 同理各自 just-identified 并排、互为稳健性、不分主次: full=标题+全文, ctx=标题+银行实体窗口, ss=标题+银行∧金科同句±N窗; 三轨与阈值梯子是两条相互独立、不交叉的稳健性维度。留篇门控口径 (2026-06-29 起) 为 full-only: 一篇报道是否被判定为"有效的银行-金科报道"只看 `llm_verified_full`, ctx/ss 轨的行宇宙是 full 留篇集合的子集, 分轨各自算量; ss 轨若一篇文章内不存在银行与金科词的同句共现, 依镜像 ctx 的回退语义, `content_ss` 退化为全文 body 且 `ss_is_fallback=True`, 该篇仍计入 `n_articles` 分母、但其 ss 轨情感度量与 full 轨在数值上趋同 (因文本来源相同)。
-
+τ=0.40 只是敏感性网格中的一档, 与 τ∈{0.25, 0.30, 0.45} 及生产基线 τ=0.35 (对应无 `_thrNN` 后缀的 canonical `llm_vote_cont_hw_sum{track}` 家族) 共同构成一条"跟风判定门槛松紧梯子"; 依据 CLAUDE.md「当前状态铁律」的梯子铁律, 该网格内各档 (含基线) 各自 just-identified 并排、互为稳健性、不分主次, 用于证明主回归结论不依赖 0.35 这一具体相似度门槛的取值, 严禁把不同 τ 档的加权测度同时塞进同一个 over-identified 的 Hansen J 检验。三条轨道 (full/ctx/ss) 同理各自 just-identified 并排、互为稳健性、不分主次: full=标题+全文, ctx=标题+银行实体窗口, ss=标题+银行∧金科同句±N窗; 三轨与阈值梯子是两条相互独立、不交叉的稳健性维度。留篇门控口径 (2026-06-29 起) 为 full-only: 一篇报道是否被判定为"有效的银行-金科报道"只看 `llm_verified_full`, ctx/ss 轨的行宇宙是 full 留篇集合的子集, 分轨各自算量; ss 轨若一篇文章内不存在银行与金科词的同句共现, 依镜像 ctx 的回退语义, `content_ss` 退化为全文 body 且 `ss_is_fallback=True`, 该篇仍计入 `n_articles` 分母、但其 ss 轨情感度量与 full 轨在数值上趋同 (因文本来源相同)。 就其中连续化因子的正当性而言, Lyu 等 (2025) 系统比较多种置信度来源, 实证表明由多次采样输出之间的一致性 (consistency) 导出的置信度, 其校准性优于模型自报置信度与 logit 概率, 这为本族分子以 llm_agreement_rate 而非模型自报分数充当连续置信权重提供了直接的方法学依据。迁移边界须诚实标明: 该文的一致性来自同一模型在正温度下的重复采样, 而本项目 temperature=0.0 且不重复采样, agreement_rate 是 gpt54nano/gemini31/deepseekv4 三家异构厂商之间的跨模型投票一致率, 此种跨模型一致率的校准性质并未被该文检验; 其任务为英文推理/问答基准, 既不涉及中文新闻三分类情感, 也不涉及 τ=0.40 档的跟风衰减加权与银行-年求和。
 ## VAR: llm_vote_cont_hw_thr40_sum_ctx
 
 【变体差分】
@@ -82,4 +90,5 @@ Tetlock, P. C. (2007). Giving Content to Investor Sentiment: The Role of Media i
 de Kok, T. (2025). ChatGPT for Textual Analysis? How to Use Generative LLMs in Accounting Research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
 Kamen, A., & Kamen, Y. (2025). Majority Rules: LLM Ensemble Is a Winning Approach for Content Categorization. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2511.15714
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and Domain Specificity: A Chinese Financial Sentiment Dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
+Lyu, Q., Shridhar, K., Malaviya, C., Zhang, L., Elazar, Y., Tandon, N., Apidianaki, M., Sachan, M., & Callison-Burch, C. (2025). Calibrating Large Language Models with Sample Consistency. Proceedings of the AAAI Conference on Artificial Intelligence, 39(18), 19260-19268. https://doi.org/10.1609/aaai.v39i18.34120
 <!-- rendered-citations:end -->

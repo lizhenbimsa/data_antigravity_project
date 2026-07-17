@@ -34,6 +34,21 @@ citations:
   vol: '45'
   issue: 2-3
   pages_or_artno: 221-247
+- doi: "10.1016/j.technovation.2023.102880"
+  type: "journal"
+  authors: "Granados, C., Ayala, Y., & Ramos-Mejia, M."
+  year: 2024
+  title: "Is it substantive or just symbolic? Understanding innovation theater in organisations: The case of technology-based innovation"
+  venue: "Technovation"
+  vol: "129"
+  pages_or_artno: "102880"
+- doi: "10.1108/ara-01-2025-0031"
+  type: "journal"
+  authors: "Guan, J., & Zhuang, X."
+  year: 2025
+  title: "Do digital words reflect real innovation? Evidence from post-M&A earnings conference"
+  venue: "Asian Review of Accounting"
+  pages_or_artno: "1-44"
 new_dois: []
 ---
 
@@ -50,8 +65,7 @@ new_dois: []
 三条轨道 `_full`/`_ctx`/`_ss` 对应本仓统一的三轨文本架构: `_full` 轨用标题+全文正文作为情感判定与后续象征性标记的文本输入; `_ctx` 轨用标题+目标实体窗口截取文本; `_ss` 轨用标题+银行∧金科同句 (±N 句窗口, 默认 N=1) 截取文本, 若某篇文章不存在银行与金科词的同句共现, 则该篇的 `_ss` 轨回退为镜像 `_ctx` 的全文语义 (即 `content_ss` 取全文 body, 并标记 `ss_is_fallback=True`, 与 `_ctx` 共享分母口径)。三条轨道下的 `pos_symb_hc_count` 各自独立计算、各自 just-identified, 互为稳健性并列关系, 不分主次, 严禁在同一处 over-identified 工具变量检验 (如 Hansen J 过度识别检验) 中把三轨的同名派生列混合作为多个工具同时纳入——这是本仓贯穿所有多轨/多梯子测度族的铁律。留篇门控口径 (2026-06-29 起) 为 full-only: 一篇报道是否被判定为"一篇有效的银行-金科报道"只看 `llm_verified_full` 是否为真, `_ctx`/`_ss` 轨道的计数与比率是在该 full-only 留篇集合子集内的条件测度/稳健性轨, 而非独立扩样的平行样本。
 
 【文献定位】
-本家族的方法学脉络有两条互补来源。其一是 Bingler et al. (2022, *Finance Research Letters*; 2024, *Journal of Banking & Finance*) 关于企业气候披露中"cheap talk"与"cherry-picking"的系列研究, 二者共同构成了"言辞正面 vs 实质支撑"二分识别框架的直接理论来源, `pos_symb` 这一命名与判定逻辑正是对该框架的操作化迁移: 从企业自我气候披露的实质性核查, 迁移到新闻报道中金融科技相关正面措辞的实质性核查; 该系列研究同时强调对文本样本按信息可信度分层处理的必要性, 为方法 F "高置信度子样本" 这一分层过滤设计思路提供了直接的方法学依据——低置信度、易受分类器噪声干扰的样本应被识别并单独处理, 而非与高置信度样本混为一谈。其二是 Li (2008, *Journal of Accounting and Economics*) 关于年报可读性与当期盈余、盈余持续性关系的研究, 该文示范了如何用篇章级文本特征构造计数型指标并通过恰当归一化 (而非直接比较绝对计数) 获得跨观测单元可比的测度, 为洗稿率测度体系里以计数配合安全分母 (`_svd_denom`) 构造比率型指标的设计提供了方法论上的参照——即"绝对计数需要通过合适的分母归一化才能获得跨观测单元可比性"这一原则同样适用于本列, 也呼应了本家族分子 `pos_symb_hc_count` 必须与同域分母 `pos_hc_substvalid_count` 配对使用, 而非孤立解读绝对频次的设计取向。
-
+本家族的方法学脉络有两条互补来源。其一是 Bingler et al. (2022, *Finance Research Letters*; 2024, *Journal of Banking & Finance*) 关于企业气候披露中"cheap talk"与"cherry-picking"的系列研究, 二者共同构成了"言辞正面 vs 实质支撑"二分识别框架的直接理论来源, `pos_symb` 这一命名与判定逻辑正是对该框架的操作化迁移: 从企业自我气候披露的实质性核查, 迁移到新闻报道中金融科技相关正面措辞的实质性核查; 该系列研究同时强调对文本样本按信息可信度分层处理的必要性, 为方法 F "高置信度子样本" 这一分层过滤设计思路提供了直接的方法学依据——低置信度、易受分类器噪声干扰的样本应被识别并单独处理, 而非与高置信度样本混为一谈。其二是 Li (2008, *Journal of Accounting and Economics*) 关于年报可读性与当期盈余、盈余持续性关系的研究, 该文示范了如何用篇章级文本特征构造计数型指标并通过恰当归一化 (而非直接比较绝对计数) 获得跨观测单元可比的测度, 为洗稿率测度体系里以计数配合安全分母 (`_svd_denom`) 构造比率型指标的设计提供了方法论上的参照——即"绝对计数需要通过合适的分母归一化才能获得跨观测单元可比性"这一原则同样适用于本列, 也呼应了本家族分子 `pos_symb_hc_count` 必须与同域分母 `pos_hc_substvalid_count` 配对使用, 而非孤立解读绝对频次的设计取向。 在近期文献中, 这一「实质 vs 象征」二分框架获得了两条互补的前沿印证, 分别落在构念层与经验层。Granados、Ayala 与 Ramos-Mejia (2024) 系统刻画了技术创新语境下的「创新剧场」(innovation theater) 现象, 即技术创新的象征性展演与实质性投入之间的分野, 为本家族 pos_symb 标记所依托的象征性/实质性二分提供了当代组织理论层面的构念界定与机制阐述, 亦印证了「措辞正面但缺乏可验证支撑」并非本仓库自造的分析范畴; 惟该文属组织层面的构念化与理论化研究, 并未提供任何文本自动分类算法, 也非中国语境、非银行业、无面板计量, 本家族把该构念操作化为对第三方新闻报道的逐篇布尔标签并在银行-年层求和, 在操作化层级与数据类型上均已越出原文所验证的范围, 不可据其为本列的分类判据背书。Guan 与 Zhuang (2025) 则在中国并购语境下直接追问「数字化措辞是否对应真实创新」, 以并购后业绩说明会文本检验数字化词汇与后续创新产出之间的对应关系, 与本家族「在正面科技话语中区分象征性叙事」的构念高度同域, 说明科技话语的象征性成分在中国经验数据上确可被识别; 但原文文本源为管理层自述披露而非第三方新闻报道, 其象征性判断依赖「数字词汇量 vs 实际创新指标」的间接推断, 并未提出象征性/实质性的逐篇标注方案, 与本家族由上游 LLM 逐篇直接标注、再经高置信度子样本过滤后按银行-年三轨并排聚合的路径不同, 原文分析单元亦为并购事件/公司-年而非银行-年。
 ## VAR: pos_symb_hc_count_full
 
 【变体差分】
@@ -76,4 +90,6 @@ new_dois: []
 Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022). Cheap talk and cherry-picking; What ClimateBert has to say on corporate climate risk disclosures. Finance Research Letters, 47, 102776. https://doi.org/10.1016/j.frl.2022.102776
 Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2024). How cheap talk in climate disclosures relates to climate initiatives, corporate emissions, and reputation risk. Journal of Banking & Finance, 164, 107191. https://doi.org/10.1016/j.jbankfin.2024.107191
 Li, F. (2008). Annual report readability, current earnings, and earnings persistence. Journal of Accounting and Economics, 45(2-3), 221-247. https://doi.org/10.1016/j.jacceco.2008.02.003
+Granados, C., Ayala, Y., & Ramos-Mejia, M. (2024). Is it substantive or just symbolic? Understanding innovation theater in organisations: The case of technology-based innovation. Technovation, 129, 102880. https://doi.org/10.1016/j.technovation.2023.102880
+Guan, J., & Zhuang, X. (2025). Do digital words reflect real innovation? Evidence from post-M&A earnings conference. Asian Review of Accounting, 1-44. https://doi.org/10.1108/ara-01-2025-0031
 <!-- rendered-citations:end -->

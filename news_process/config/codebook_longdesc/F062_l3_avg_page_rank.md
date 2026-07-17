@@ -36,6 +36,14 @@ citations:
   vol: 59
   issue: 3
   pages_or_artno: 1259-1294
+- doi: "10.1016/j.iref.2023.07.085"
+  type: "journal"
+  authors: "Huang, C., Huang, H.-Y., & Ho, K.-C."
+  year: 2024
+  title: "Media coverage and stock liquidity: Evidence from China"
+  venue: "International Review of Economics & Finance"
+  vol: "89"
+  pages_or_artno: "665-682"
 new_dois: []
 ---
 
@@ -48,8 +56,7 @@ avg_page_rank 属新闻体裁显著性 (news-genre salience) 测度族, 刻画�
 article 级原语 page_rank 的构造式为"叠字母序 × 100 + 页码": 先把版面代码里的叠区字母 (A 叠、B 叠…) 映射为以零为起点的序号 (A→0、B→1、C→2…, 源码取 ord(letter) − ord('A'), 属 0-based 而非从一计数) 并乘以 100 作为高位, 再加上该叠内的页码作为低位, 从而得到一个"越小越靠前、越显著"的单调序数。据此口径, A 叠第 3 页的 page_rank = 0×100 + 3 = 3, B 叠第 5 页 = 1×100 + 5 = 105, F 叠第 20 页 = 5×100 + 20 = 520, 头版 A 叠总落在最小的低百位区间, 后叠深页则被推向更大的序数, 与"越小越显著"的方向语义一致; 须特别提醒论文写作与制表勿把该映射误记为从一起算 (A→1), 否则会把每篇报道的 page_rank 整体高估一个百位、令头版与内页的量级对比失真。bank-year 层面的 avg_page_rank 即对该银行当年全部命中报道的 page_rank 取算术均值 (mean)。取值域为 rank ∪ NaN: 当某篇报道的版面与页号两者皆缺失时, 该篇 page_rank 记为 NaN, 均值聚合自动跳过 NaN 而非以零或哨兵值污染分母 —— 这一"字段不适用 (如网络源天然无版面概念) 不等同于未上头版"的缺失语义, 是 fix(omni-g-entity-13, 2026-06-11) 刻意做出的区分。本列为 track-agnostic 单轨测度: 版位是报道的元数据属性, 与文本内容的 full/ctx/ss 三轨切分正交, 故不派生 _full/_ctx/_ss 分轨, 也没有 co-primary 嵌入的 _lg 孪生列 (与 surface_staleness 同属非嵌入 carve-out)。诚实限定须写入论文披露: 不同报纸的 A/B 叠语义并不一致, 本版以 (叠字母序 × 100 + 页码) 作单一近似规范化, 全量多报源下宜先构建各报源的叠语义映射; 多字母叠号 (如 'AII06') 按首个 [字母]?数字 序列解析, 可能被误析为后续单字母叠而使 page_rank 偏大, 同属单一近似的披露范围。就构念区分而言, 版位显著性刻画的是投入端 (报道被放在哪) 的编辑排序, 与媒体级的 media_authority (谁在报道)、产出端的 herd_decay (报道被重复了多少) 相互正交, 三者度量的是新闻生产链条上不同环节的信息, 不应互相替代。
 
 【文献定位】
-版位作为注意力代理的因果证据由 Fedyk (2024) 系统建立: 该研究利用报纸头版定位的准随机变异, 证明同一条新闻被放上头版 (相对被放在内页) 会显著放大其对金融市场的影响, 从而把"版位不只是相关、而是有独立因果效力的注意力放大器"这一命题坐实, 直接支撑本列以版位序数刻画显著性的构念合法性。更早的 Antweiler and Frank (2004) 从信息内容角度论证了新闻类文本 (message board 帖子) 承载可被市场吸收的增量信息、而非纯噪声, 为"报道显著性差异应当被编码为特征而非丢弃"提供了信息论依据。在测度方法论层面, 本族坚持纯解析 ($0 字典/正则) 而非机器学习的路线选择, 呼应 Frankel, Jennings, and Lee (2022) 对字典法与机器学习法在披露情感测度上互为稳健、各有适用边界的比较 —— 版位解析的透明性、可复现性与零成本, 正是把它作为注意力测度基线而非黑箱替代的理由。上述三条锚点分别从因果识别、信息含量与方法透明三个侧面, 共同界定了 avg_page_rank 在文献谱系中的位置。
-
+版位作为注意力代理的因果证据由 Fedyk (2024) 系统建立: 该研究利用报纸头版定位的准随机变异, 证明同一条新闻被放上头版 (相对被放在内页) 会显著放大其对金融市场的影响, 从而把"版位不只是相关、而是有独立因果效力的注意力放大器"这一命题坐实, 直接支撑本列以版位序数刻画显著性的构念合法性。更早的 Antweiler and Frank (2004) 从信息内容角度论证了新闻类文本 (message board 帖子) 承载可被市场吸收的增量信息、而非纯噪声, 为"报道显著性差异应当被编码为特征而非丢弃"提供了信息论依据。在测度方法论层面, 本族坚持纯解析 ($0 字典/正则) 而非机器学习的路线选择, 呼应 Frankel, Jennings, and Lee (2022) 对字典法与机器学习法在披露情感测度上互为稳健、各有适用边界的比较 —— 版位解析的透明性、可复现性与零成本, 正是把它作为注意力测度基线而非黑箱替代的理由。上述三条锚点分别从因果识别、信息含量与方法透明三个侧面, 共同界定了 avg_page_rank 在文献谱系中的位置。 在中国新闻语料的同域证据上, Huang、Huang 与 Ho (2024) 检验媒体报道量对中国 A 股股票流动性的影响, 发现报道通过改善信息环境、降低逆向选择而提升流动性, 且该效应在信息环境更透明的公司中减弱、在 First News (首发/首要报道) 更多的公司中更明显, 佐证了「编辑赋予报道的显著程度承载可被市场吸收的信息」这一与 avg_page_rank 同方向的构念前提。须明确的是, 该文的显著性代理是报道数量与 First News 标识, 而非本列「叠字母序 × 100 + 页码」式的版面位置序数编码, 其实体为 A 股上市公司、结果变量为股票流动性而非银行-年面板, 故它只是中国语境下同方向的近期存在性锚, 不构成本列的方法出处 (方法出处仍为 Fedyk (2024) 的报纸头版定位设计)。
 ## VAR: avg_page_rank
 
 【变体差分】
@@ -59,4 +66,5 @@ avg_page_rank 是本单列家族的唯一列, 也是版位显著性族中"连续
 Fedyk, A. (2024). Front-page news: The effect of news positioning on financial markets. Journal of Finance, 79(1), 5-33. https://doi.org/10.1111/jofi.13287
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Antweiler, W., & Frank, M. Z. (2004). Is all that talk just noise? The information content of internet stock message boards. The Journal of Finance, 59(3), 1259-1294. https://doi.org/10.1111/j.1540-6261.2004.00662.x
+Huang, C., Huang, H.-Y., & Ho, K.-C. (2024). Media coverage and stock liquidity: Evidence from China. International Review of Economics & Finance, 89, 665-682. https://doi.org/10.1016/j.iref.2023.07.085
 <!-- rendered-citations:end -->

@@ -50,6 +50,12 @@ citations:
   year: 2023
   title: "Can ChatGPT forecast stock price movements? Return predictability and large language models"
   venue: SSRN Working Paper
+- doi: "10.48550/arxiv.2207.05221"
+  type: "arxiv"
+  authors: "Kadavath, S., Conerly, T., Askell, A., Henighan, T., Drain, D., Perez, E., Schiefer, N., Hatfield-Dodds, Z., DasSarma, N., Tran-Johnson, E., Johnston, S., El-Showk, S., Jones, A., Elhage, N., Hume, T., Chen, A., Bai, Y., Bowman, S., Fort, S., ... Kaplan, J."
+  year: 2022
+  title: "Language Models (Mostly) Know What They Know"
+  venue: "arXiv"
 new_dois: []
 ---
 
@@ -62,8 +68,7 @@ new_dois: []
 计算链路分三级严格上溯。第一级在阶段 21 (tone_llms) 得到三家 LLM 逐篇逐轨的独立情感标签与自报置信度, 再由 majority_vote_categorical 汇总为共识标签 llm_vote (multi-model consensus, 而非任一单模型), 并给出共识置信度; 第二级由 compute_prob_score 把共识标签与共识置信度映射为 llm_prob_score ∈ [-1,+1] (主类概率=confidence, 其余两类均分 (1-confidence)/2, 取正面概率减负面概率)。须提示的是, compute_prob_score 的输出是"序数代理变量" (ordinal proxy) 而非经过校准的真实概率: verbalized confidence 已知存在系统性过度自信倾向, 保序性基本成立但绝对水平不宜直接解读为频率概率, 这一局限在阶段 21 源码注释中明确声明并沿袭到本家族。第三级由 runner 步骤 3c 施加媒体权威性权重: llm_prob_score_mw{track} = llm_prob_score{track} × media_authority_weight (权重缺失回退 1.0), 再经 encode.py 的面板聚合按银行-年 groupby 求和得到本家族 llm_prob_score_mw_sum{track}。与 F170 系列的连续语调分子一致, 本家族本身也是未归一化分子: 对应的、面板已物化的归一化度量并非直接由本列除以物理权重和, 而是须除以同轨的 valid-mask 掩码媒体权威权重和 sum_wd_mw_prob{track} (由 _build_llm_valid_masked_weights 在 encode-01 修复中建立, 仅累计 llm_prob_score 非缺失文章的权重, 缺该掩码列时才回退物理和 sum_media_authority_weight{track}); 这一 valid-mask 设计的动机是防止把"共识置信度或标签缺失"的文章在分母端计入满权重, 从而系统性把加权语调压向 0。共识标签本身的产生要求三家模型至少形成多数, 若三家彻底分歧或空票, llm_vote 及其下游 llm_prob_score 按 undefined/conservative 策略处理为缺失, 该篇不进入本列分子也不进入掩码分母, 自然沿 NaN 语义传播。留篇门控遵循 2026-06-29 起的 full-only 口径: 一篇报道是否算作"一篇银行金科报道"只看 llm_verified_full, 三轨共享同一 full 留篇集所定义的行宇宙, ctx 与 ss 是 conditional-on-full 的子集测度, 各轨照常独立计算; ss 轨在无银行与金科同句共现时镜像 ctx 回退到全文正文并置 ss_is_fallback 为真, 与 ctx 共享 n_articles 分母口径, 缺 content_ss 列时进一步优雅回退 content_full。⚠ 铁律: full、ctx、ss 三条文本轨各自 just-identified 并排, 互为稳健性不分主次, 严禁把不同轨混进同一 over-identified 的 Hansen J 过度识别检验; 本家族的"共识 Logit-to-Score"与 F170 等家族的"逐模型连续语调"亦是两条互不可加合并、并排比较的稳健性路径, 不应在同一设定内混用。
 
 【文献定位】
-本家族方法学上坐落于"把 LLM 离散分类输出转成连续强度指标"这一新兴脉络。Ludwig、Mullainathan 与 Rambachan (2025) 提出的把 LLM 输出作为测量工具纳入应用计量框架的路径, 是本家族把共识标签与置信度映射为连续 Logit-to-Score 的方法学来源; Kirtac 与 Germano (2024) 发表于《Finance Research Letters》的 LLM 情感交易研究, 为"连续型语调优于离散极性标签"这一构念选择提供了实证支撑, 也是本项目在词典/BERT/LLM 三种情感测度手段中始终并置连续化分支的共同引用锚点之一。Gilardi、Alizadeh 与 Kubli (2023) 在《美国科学院院刊》(PNAS) 的顶刊证据表明 ChatGPT 类模型在文本标注任务上可超越众包工人, 为以 LLM 自报置信度作为标注确信度的序数代理变量提供了效度基础, 支撑本家族把 verbalized confidence 纳入概率映射而非弃之不用。de Kok (2025) 关于生成式 LLM 用于会计研究的操作规范讨论了 temperature=0 与 prompt 冻结等可复现性实践, 与本项目阶段 21 的确定性缓存架构一致, 说明本家族的共识置信度输入本身具备跨-run 可复现的方法学基础。Lopez-Lira 与 Tang (2023) 关于 ChatGPT 预测股价走势的早期实证, 则从应用侧印证了 LLM 连续化情感指标 (而非纯离散标签) 在金融市场预测力上的增量价值, 呼应本家族作为主离散语调族之外一条独立稳健性轨的定位。
-
+本家族方法学上坐落于"把 LLM 离散分类输出转成连续强度指标"这一新兴脉络。Ludwig、Mullainathan 与 Rambachan (2025) 提出的把 LLM 输出作为测量工具纳入应用计量框架的路径, 是本家族把共识标签与置信度映射为连续 Logit-to-Score 的方法学来源; Kirtac 与 Germano (2024) 发表于《Finance Research Letters》的 LLM 情感交易研究, 为"连续型语调优于离散极性标签"这一构念选择提供了实证支撑, 也是本项目在词典/BERT/LLM 三种情感测度手段中始终并置连续化分支的共同引用锚点之一。Gilardi、Alizadeh 与 Kubli (2023) 在《美国科学院院刊》(PNAS) 的顶刊证据表明 ChatGPT 类模型在文本标注任务上可超越众包工人, 为以 LLM 自报置信度作为标注确信度的序数代理变量提供了效度基础, 支撑本家族把 verbalized confidence 纳入概率映射而非弃之不用。de Kok (2025) 关于生成式 LLM 用于会计研究的操作规范讨论了 temperature=0 与 prompt 冻结等可复现性实践, 与本项目阶段 21 的确定性缓存架构一致, 说明本家族的共识置信度输入本身具备跨-run 可复现的方法学基础。Lopez-Lira 与 Tang (2023) 关于 ChatGPT 预测股价走势的早期实证, 则从应用侧印证了 LLM 连续化情感指标 (而非纯离散标签) 在金融市场预测力上的增量价值, 呼应本家族作为主离散语调族之外一条独立稳健性轨的定位。 在"LLM 自报置信度可当作概率量"这一前提上, 更早的 Kadavath 等 (2022) 提供了奠基性证据: 该文系统研究语言模型能否自评其答案的正确性, 证明较大模型在格式恰当的多选/判断题上校准良好, 报告了性能、校准与规模效应, 并据此提出先给答案再自评 P(True) 的自评范式, 另研究了无需特定候选答案的 P(IK) 预测, 为本家族把共识置信度送入 compute_prob_score 得到 P(正面)−P(负面) 连续分、再作媒体权威性加权求和提供了一般性支持。其迁移边界须明确: 该文并非本家族做法的方法出处 — 原文自评经由专门的 P(True)/P(IK) 探针与 logit 读数, 本项目 confidence 则取自 prompt 结构化输出字段 (verbalized confidence 一线); 其模型代次为 2022 年的内部模型, 与本项目三家生产模型不可比; 原文亦只到"自评概率具备校准性"为止, 并未提出把剩余概率 (1−confidence) 在非主类间按最大熵均分再作差的映射, 该映射与其后的 media_authority_weight 加权求和均属研究者选择, 非原文成果。
 ## VAR: llm_prob_score_mw_sum_ctx
 
 【变体差分】
@@ -85,4 +90,5 @@ Kirtac, K., & Germano, G. (2024). Sentiment trading with large language models. 
 Gilardi, F., Alizadeh, M., & Kubli, M. (2023). ChatGPT outperforms crowd workers for text-annotation tasks. Proceedings of the National Academy of Sciences, 120(30), e2305016120. https://doi.org/10.1073/pnas.2305016120
 de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
 Lopez-Lira, A., & Tang, Y. (2023). Can ChatGPT forecast stock price movements? Return predictability and large language models. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.4412788
+Kadavath, S., Conerly, T., Askell, A., Henighan, T., Drain, D., Perez, E., Schiefer, N., Hatfield-Dodds, Z., DasSarma, N., Tran-Johnson, E., Johnston, S., El-Showk, S., Jones, A., Elhage, N., Hume, T., Chen, A., Bai, Y., Bowman, S., Fort, S., ... Kaplan, J. (2022). Language Models (Mostly) Know What They Know. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2207.05221
 <!-- rendered-citations:end -->

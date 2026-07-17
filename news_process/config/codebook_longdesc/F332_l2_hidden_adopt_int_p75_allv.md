@@ -43,6 +43,15 @@ citations:
   venue: "International Review of Economics & Finance"
   vol: "74"
   pages_or_artno: "468-483"
+- doi: "10.1016/j.ipm.2025.104383"
+  type: "journal"
+  authors: "Chen, J., Wen, J., Deng, Y., Chen, M., & Ma, F."
+  year: 2026
+  title: "Measuring policy diffusion intensity: A text-driven analysis of government documents"
+  venue: "Information Processing & Management"
+  vol: "63"
+  issue: "2"
+  pages_or_artno: "104383"
 new_dois: []
 ---
 
@@ -55,8 +64,7 @@ new_dois: []
 底层 producer 为 `pipeline/panel/runner.py::_classify_policy_quadrants`, 输入为 bank-year 聚合前的文章级对齐表 `df_align` (含 `article_sim_mean` 与 `fintech_intensity_mean` 两连续列)。计算分两步: 第一步年度分位阈值——对每一 `year` 分组分别取 `article_sim_mean`/`fintech_intensity_mean` 的 P75 分位数 (`groupby('year').transform(quantile)`), 阈值随年度浮动而非全样本固定分位, 使象限划分对跨年报道基调/媒体覆盖率漂移保持相对稳健。第二步逐篇分类——仅对 sim 与 freq 双双非缺失 (`measured = sim.notna() & freq.notna()`) 的文章赋 0/1 指示, `hidden = (~high_freq & high_sim)`; 未测量的文章指示值设为 NaN 而非静默 0, 因此在后续 groupby('mean') 聚合到 bank-year 时会被自动跳过, 分母仅为该年内实际完成语义/强度双重测量的文章数, 不含因 stage 15 三条优雅早退路径 (无嵌入模型/无 policy 语料/API 失败) 导致测量缺失的文章——这一处理直接对应 runner.py 内注明的 fix(omni-g-runner-03/g-runner-11, 2026-06-11) 修复, 避免把测量失败误判为"低相似度"从而人为抬高 token 象限占比、压低 hidden 象限占比。在 `_classify_policy_quadrants` 之前, `df_align` 已无条件经过 `_filter_to_verified_universe` 的 semi-join 收敛: 该函数把输入域从 stage 15 规则预筛候选集收敛到 stage 21 LLM 语义精筛后判定为真阳性的 LLM-verified 集合 (与 stage 24 herd_decay 输出按 `docid`/`target_bank` 键内连接), 从根本上避免整个四象限族 (含本列) 与政策对齐均值、金融科技强度均值等下游测度共享一个不一致的聚合域而制造虚假的 bank-year "幽灵行"——但这一收敛对 vintage 主轨与 `_allv` 孪生轨完全等同生效, 并非 `allv` 后缀特有的语义。真正与 `allv` 后缀绑定的是另一件独立的工程决策: `pipeline/filtering/policy_alignment.py::all_vintage_companion_enabled` (2026-06-21 默认开启) 控制的"全年份锚点稳健孪生"——`article_sim_mean` 主轨用逐年度 vintage-aware 政策锚点 (仅纳入截至该年已发布的政策文本) 计算 `policy_cosine_sim`, 而 `_allv` (all-vintage) 孪生轨则用全语料 (所有年份, 含未来政策文本) 拼接的静态锚点重算同一套 `policy_cosine_sim_allv`, 二者共用完全一致的下游嵌入/池化/余弦/四象限构造方法, 仅锚点选取窗口不同。`hidden_adopt_int_p75_allv` 即在 `_anchor_variants` 循环 (runner.py L2024 起) 的 `_allv` 分支下, 以 `article_sim_mean_allv` 替换 `article_sim_mean` 作为相似度输入重新执行同一象限分类, 用于检验 hidden 象限归类是否对"政策锚点是否含未来信息"这一构造选择敏感。⚠ `_allv` 含未来政策文本, 仅作 anchor-robustness 对照, 绝不替换 vintage 主轨, 两者应并排报告、禁混进同一 over-identified 检验。
 
 【文献定位】
-象限式采纳分类的构念传统上溯至组织理论对"实质性响应 vs. 象征性遵从"的区分。这里借用 Adner 与 Kapoor (2010) 关于技术互补性/结构性相互依赖影响企业绩效的框架作一类比性参照: 该文原本讨论的是创新生态系统内互补资产结构是否对齐对绩效的影响, 并非直接针对文本分类方法论, 但其"结构维度与强度维度可以相互独立、不必收敛为单一连续量表"的分析取向, 支持本族把 hidden/token/subst 处理为并列象限而非单一线性量表两端的建模选择, 使用时应明确这是借用式的方法论类比而非该文献的直接结论。政策文本相似度测度中"缺失 vs. 低值"的严格区分处理, 亦借鉴 Hüllermeier 与 Waegeman (2021) 在机器学习文献中对 aleatoric (随机/数据层面) 与 epistemic (认知/模型层面) 不确定性来源的经典区分——该文献本身聚焦机器学习不确定性量化方法论综述, 并非专门讨论文本测度缺失值处理, 本族仅借用其"缺失≠已测但取值偏低"的概念区分逻辑, 落地为"未测量"(aleatoric 式缺失, 赋 NaN) 与"低值"(epistemic 式已测量但落入低分位) 的严格区分处理——即缺失值一律 NaN、绝不用零填充冒充"低相似度"测量结果, 这一处理准则贯穿本项目 `runner.py` 全部四象限族与情感缺失族。中国银行业金融科技语境下的文本情感/披露测度传统另见 Fang 等 (2023, Economic Modelling) 对银行金融科技与风险承担的文本化度量、以及 Lee 等 (2021, International Review of Economics & Finance) 对金融科技创新与银行效率关系的实证框架, 二者均以银行报道/披露文本的强度化测度为自变量构造起点, 与本族"强度轨 (int)"的方法论定位一致。
-
+象限式采纳分类的构念传统上溯至组织理论对"实质性响应 vs. 象征性遵从"的区分。这里借用 Adner 与 Kapoor (2010) 关于技术互补性/结构性相互依赖影响企业绩效的框架作一类比性参照: 该文原本讨论的是创新生态系统内互补资产结构是否对齐对绩效的影响, 并非直接针对文本分类方法论, 但其"结构维度与强度维度可以相互独立、不必收敛为单一连续量表"的分析取向, 支持本族把 hidden/token/subst 处理为并列象限而非单一线性量表两端的建模选择, 使用时应明确这是借用式的方法论类比而非该文献的直接结论。政策文本相似度测度中"缺失 vs. 低值"的严格区分处理, 亦借鉴 Hüllermeier 与 Waegeman (2021) 在机器学习文献中对 aleatoric (随机/数据层面) 与 epistemic (认知/模型层面) 不确定性来源的经典区分——该文献本身聚焦机器学习不确定性量化方法论综述, 并非专门讨论文本测度缺失值处理, 本族仅借用其"缺失≠已测但取值偏低"的概念区分逻辑, 落地为"未测量"(aleatoric 式缺失, 赋 NaN) 与"低值"(epistemic 式已测量但落入低分位) 的严格区分处理——即缺失值一律 NaN、绝不用零填充冒充"低相似度"测量结果, 这一处理准则贯穿本项目 `runner.py` 全部四象限族与情感缺失族。中国银行业金融科技语境下的文本情感/披露测度传统另见 Fang 等 (2023, Economic Modelling) 对银行金融科技与风险承担的文本化度量、以及 Lee 等 (2021, International Review of Economics & Finance) 对金融科技创新与银行效率关系的实证框架, 二者均以银行报道/披露文本的强度化测度为自变量构造起点, 与本族"强度轨 (int)"的方法论定位一致。 政策文本相似度这一测度族的近期方法学进展, 可参 Chen、Wen、Deng、Chen 与 Ma (2026): 该文以政府文件文本为基础构造政策扩散强度的文本驱动测度, 与本族 sim 维所依托的 policy_cosine_sim 及其 `_allv` 孪生同属「用政策文本相似度/强度刻画政策对齐程度」的方法族, 为该测度路径提供 2026 年的方法学存在性锚点。迁移边界须明确: 该文测量的是政策文件彼此之间的扩散强度 (政府—政府层级), 本项目则是新闻报道文本对政策锚点的余弦相似度 (媒体—政策层级); 该文不做二值象限分类, 不设年度分位阈值, 亦无 vintage 逐年滚动锚点与 `_allv` 全年份静态锚点的对照设计, 故仅可作测度族层面的方法学参照, 不构成对本族象限判据或 anchor-robustness 孪生设计的直接背书。
 ## VAR: hidden_adopt_int_p75_allv
 
 【变体差分】
@@ -77,4 +85,5 @@ Adner, R., & Kapoor, R. (2010). Value creation in innovation ecosystems: How the
 Hüllermeier, E., & Waegeman, W. (2021). Aleatoric and epistemic uncertainty in machine learning: An introduction to concepts and methods. Machine Learning, 110(3), 457-506. https://doi.org/10.1007/s10994-021-05946-3
 Fang, Y., Wang, Q., Wang, F., & Zhao, Y. (2023). Bank fintech, liquidity creation, and risk-taking: Evidence from China. Economic Modelling, 127, 106445. https://doi.org/10.1016/j.econmod.2023.106445
 Lee, C.-C., Li, X., Yu, C.-H., & Zhao, J. (2021). Does fintech innovation improve bank efficiency? Evidence from China's banking industry. International Review of Economics & Finance, 74, 468-483. https://doi.org/10.1016/j.iref.2021.03.009
+Chen, J., Wen, J., Deng, Y., Chen, M., & Ma, F. (2026). Measuring policy diffusion intensity: A text-driven analysis of government documents. Information Processing & Management, 63(2), 104383. https://doi.org/10.1016/j.ipm.2025.104383
 <!-- rendered-citations:end -->

@@ -66,6 +66,29 @@ citations:
   title: "FinBERT2: A specialized bidirectional encoder for bridging the gap in finance-specific deployment of large language models"
   venue: Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2 (KDD '25)
   pages_or_artno: 5117-5128
+- doi: "10.2139/ssrn.5153587"
+  type: "wp"
+  authors: "Bose, I., Hu, N., Liang, P., & Yang, X."
+  year: 2025
+  title: "Can Larger Language Models Always Perform Better? A Comparison of GPT, FinBERT, and Dictionaries in Evaluating Management Sentiment"
+  venue: "SSRN"
+  pages_or_artno: "5153587"
+- doi: "10.1145/3677052.3698675"
+  type: "journal"
+  authors: "Kim, W., Spörer, J., Lee, C. L., & Handschuh, S."
+  year: 2024
+  title: "Is Small Really Beautiful for Central Bank Communication? Evaluating Language Models for Finance: Llama-3-70B, GPT-4, FinBERT-FOMC, FinBERT, and VADER"
+  venue: "Proceedings of the 5th ACM International Conference on AI in Finance"
+  pages_or_artno: "626-633"
+- doi: "10.1007/s00521-024-10495-6"
+  type: "journal"
+  authors: "Lee, J., Stevens, N., & Han, S. C."
+  year: 2025
+  title: "Large Language Models in Finance (FinLLMs)"
+  venue: "Neural Computing and Applications"
+  vol: "37"
+  issue: "30"
+  pages_or_artno: "24853-24867"
 new_dois: []
 ---
 
@@ -82,8 +105,7 @@ new_dois: []
 三条轨道对应三种文本视野: full = 标题 prepend 后的全文正文; ctx = 标题加实体上下文窗口; ss = 标题加"银行与金融科技同句 ±N 窗"的窄语境。ss 轨的回退语义镜像 ctx: 当某篇不存在银行与金融科技的同句共现时, content_ss 退化为全文正文且 ss_is_fallback 置 True, 与 ctx 共享 n_articles 分母。三轨各自 just-identified 并排、互为稳健性不分主次, 严禁混入同一个 over-identified Hansen J。由于差值是两个相关测度之差, 其符号与量纲取决于两侧净语调的归一化口径; 解读时应关注差值的系统性偏离方向与其跨模型标准化后的稳健性, 而非把未标准化的绝对水平当作可跨模型或跨轨直接比较的量。
 
 【文献定位】
-本族坐落在金融文本情感测度"词典—机器学习"三角的分歧一端。Tetlock (2007) 奠定了媒体语调影响资产定价的实证范式, 确立了"以文本情感作为可回归变量"的方法论起点; Loughran 与 McDonald (2011) 指出通用词表移植到金融语境会系统误分类, 催生了领域专用词典这一支; Du 等 (2022) 进一步为中文金融文本构建了领域与语言双重适配的情感词典, 是本项目六词典中 du_2022 分支的直接来源, 也提示词典读法本身受语言与领域特异性约束。机器学习一侧, Huang、Wang 与 Yang (2023) 的 FinBERT 展示了预训练语言模型在金融文本情感抽取上相对词典的增量, 而本项目采用的 finbert2 (Xu 等, 2025) 是面向金融部署进一步专门化的双向编码器。真正把两侧对立成"可测量的分歧"的是 Frankel、Jennings 与 Lee (2022): 他们在披露情感上正式比较机器学习与词典方法, 证明二者不可互相替代、其差异携带独立信息——这正是 cater_finbert2 作为"词典减机器"差值的构念合法性所在。算法迎合的行为学动机在于: 当披露方与媒体意识到打分权已从人类分析师转移到机器之后, 披露与报道语言会向算法读者的评分函数系统漂移, 以在机器阅读下获取更高的正面评价, 而这种漂移未必被以固定词表逐词计分的词典所识别, 于是在词典读法与机器读法之间留下可测量的楔子。综合而言, cater_finbert2 把上述文献的两条测量支路 (领域词典 vs 金融 BERT) 显式作差, 提供一个可复现、可跨轨与跨模型做稳健性梯子的迎合度代理。
-
+本族坐落在金融文本情感测度"词典—机器学习"三角的分歧一端。Tetlock (2007) 奠定了媒体语调影响资产定价的实证范式, 确立了"以文本情感作为可回归变量"的方法论起点; Loughran 与 McDonald (2011) 指出通用词表移植到金融语境会系统误分类, 催生了领域专用词典这一支; Du 等 (2022) 进一步为中文金融文本构建了领域与语言双重适配的情感词典, 是本项目六词典中 du_2022 分支的直接来源, 也提示词典读法本身受语言与领域特异性约束。机器学习一侧, Huang、Wang 与 Yang (2023) 的 FinBERT 展示了预训练语言模型在金融文本情感抽取上相对词典的增量, 而本项目采用的 finbert2 (Xu 等, 2025) 是面向金融部署进一步专门化的双向编码器。真正把两侧对立成"可测量的分歧"的是 Frankel、Jennings 与 Lee (2022): 他们在披露情感上正式比较机器学习与词典方法, 证明二者不可互相替代、其差异携带独立信息——这正是 cater_finbert2 作为"词典减机器"差值的构念合法性所在。算法迎合的行为学动机在于: 当披露方与媒体意识到打分权已从人类分析师转移到机器之后, 披露与报道语言会向算法读者的评分函数系统漂移, 以在机器阅读下获取更高的正面评价, 而这种漂移未必被以固定词表逐词计分的词典所识别, 于是在词典读法与机器读法之间留下可测量的楔子。综合而言, cater_finbert2 把上述文献的两条测量支路 (领域词典 vs 金融 BERT) 显式作差, 提供一个可复现、可跨轨与跨模型做稳健性梯子的迎合度代理。 近年的三方并排评测进一步夯实了这一差值的测度学前提。Bose、Hu、Liang 与 Yang (2025) 把 GPT、FinBERT 与情感词典三类方法置于同一批管理层文本上头对头比较, 报告三者对同一文本的语调判读存在系统性不一致, 直接支撑本家族「词典侧与深层模型侧之差非零并非纯噪声」的构念前提; 惟其语料为英文管理层沟通、词典臂为英文词典、模型臂是 GPT 与 FinBERT 而非本项目的 finbert2, 分析层级停在文档级方法比较而未做 bank-year 聚合, 且系未经同行评议的工作论文, 故只用于确认分歧的存在性, 不提供数值口径。Kim、Spörer、Lee 与 Handschuh (2024) 在央行沟通语料上并排评测 VADER、FinBERT 与 FinBERT-FOMC 及 GPT-4、Llama-3-70B, 表明模型规模更大不必然与词典或小模型趋同, 为本家族把减项固定在 finbert2 这一具名口径而非交由更大模型代劳提供依据; 该文是英文 FOMC 语料上以分类准确率对齐人工标签的评测基准, 未构造任何有向差值列。Lee、Stevens 与 Han (2025) 的综述梳理了金融语言模型自 FinBERT 类判别式模型至生成式 FinLLM 的技术谱系, 用以定位 finbert2 所属的判别式一支与 LLM 一支分属两族独立测度, 因而 cater_finbert2 与各 LLM 迎合度列互为稳健性、不分主次, 各自 just-identified 并排, 严禁混进同一 over-identified Hansen J; 惟该综述以英文金融 NLP 为主、未评测任何中文金融 BERT, 亦不含词典对照臂与迎合构念, 只可作技术谱系定位, 不能充当数值依据。
 ## VAR: cater_finbert2_full
 
 【变体差分】
@@ -106,4 +128,7 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Xu, X., Wen, F., Chu, B., Fu, Z., Lin, Q., Liu, J., Fei, B., Li, Y., Zhou, L., & Yang, Z. (2025). FinBERT2: A specialized bidirectional encoder for bridging the gap in finance-specific deployment of large language models. Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2 (KDD '25). https://doi.org/10.1145/3711896.3737219
+Bose, I., Hu, N., Liang, P., & Yang, X. (2025). Can Larger Language Models Always Perform Better? A Comparison of GPT, FinBERT, and Dictionaries in Evaluating Management Sentiment. SSRN No. 5153587 [Working Paper]. https://doi.org/10.2139/ssrn.5153587
+Kim, W., Spörer, J., Lee, C. L., & Handschuh, S. (2024). Is Small Really Beautiful for Central Bank Communication? Evaluating Language Models for Finance: Llama-3-70B, GPT-4, FinBERT-FOMC, FinBERT, and VADER. Proceedings of the 5th ACM International Conference on AI in Finance, 626-633. https://doi.org/10.1145/3677052.3698675
+Lee, J., Stevens, N., & Han, S. C. (2025). Large Language Models in Finance (FinLLMs). Neural Computing and Applications, 37(30), 24853-24867. https://doi.org/10.1007/s00521-024-10495-6
 <!-- rendered-citations:end -->

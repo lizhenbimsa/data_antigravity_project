@@ -35,6 +35,32 @@ citations:
   title: "Predicting good probabilities with supervised learning"
   venue: "Proceedings of the 22nd International Conference on Machine Learning (ICML)"
   pages_or_artno: "625-632"
+- doi: "10.48550/arxiv.2207.05221"
+  type: "arxiv"
+  authors: "Kadavath, S., Conerly, T., Askell, A., Henighan, T., Drain, D., Perez, E., Schiefer, N., Hatfield-Dodds, Z., DasSarma, N., Tran-Johnson, E., Johnston, S., El-Showk, S., Jones, A., Elhage, N., Hume, T., Chen, A., Bai, Y., Bowman, S., Fort, S., ... Kaplan, J."
+  year: 2022
+  title: "Language Models (Mostly) Know What They Know"
+  venue: "arXiv"
+- doi: "10.48550/arxiv.2306.13063"
+  type: "arxiv"
+  authors: "Xiong, M., Hu, Z., Lu, X., Li, Y., Fu, J., He, J., & Hooi, B."
+  year: 2023
+  title: "Can LLMs Express Their Uncertainty? An Empirical Evaluation of Confidence Elicitation in LLMs"
+  venue: "arXiv"
+- doi: "10.18653/v1/2023.emnlp-main.330"
+  type: "journal"
+  authors: "Tian, K., Mitchell, E., Zhou, A., Sharma, A., Rafailov, R., Yao, H., Finn, C., & Manning, C."
+  year: 2023
+  title: "Just Ask for Calibration: Strategies for Eliciting Calibrated Confidence Scores from Language Models Fine-Tuned with Human Feedback"
+  venue: "Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing"
+  pages_or_artno: "5433-5442"
+- doi: "10.18653/v1/2024.emnlp-main.173"
+  type: "journal"
+  authors: "Zhang, M., Huang, M., Shi, R., Guo, L., Peng, C., Yan, P., Zhou, Y., & Qiu, X."
+  year: 2024
+  title: "Calibrating the Confidence of Large Language Models by Eliciting Fidelity"
+  venue: "Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing"
+  pages_or_artno: "2959-2979"
 new_dois: []
 ---
 
@@ -48,8 +74,7 @@ llm_prob_score_collab_cm 与其姊妹家族 (无后缀 canonical、以及本家�
 概率化的具体算法由 `compute_prob_score_binary` 实现 (对应源码注释中的 P2_BIN/P3_BIN 两级处理): 输入是某个模型对某篇文章、某一轨文本给出的 collab_mode 二元标签 (外部协同记为偏向 1 的一侧, 自主研发记为偏向 0 的一侧) 及其置信度 confidence ∈ [0, 1]; 算法先做输入合法性检查, 对 NaN 或越界的 confidence 直接拒绝该条记录参与聚合 (源码标注为 P3_INV, 防止无效置信度污染均值), 通过检查后按标签方向把 confidence 映射、折算到 [0, 1] 区间上离 0.5 (最不确定) 或两端 (最确定) 的位置, 使得"高置信度判定为外部协同"落在接近 1 处, "高置信度判定为自主研发"落在接近 0 处, 置信度越低越向 0.5 收拢。三个模型各自算出这样一个 [0, 1] 分数后, `avg_subst/locus/collab_prob_score{track}` 在 encode.py 里对三家有效值取简单算术平均, 得到该篇文章、该轨文本上的家族级 collab 概率分数; 若某个模型该维度本身缺票或未通过 verified 门控, 该模型的分数记为缺失, 不参与均值分母 (逐模型独立降级, 不是 co-primary 嵌入式的 both-or-neither)。
 读者需特别注意两点口径。第一, 三轨 (full/ctx/ss) 各自独立完整地跑一遍这一整套分类与概率化流程, 三轨的 collab_mode 判断彼此互为稳健性、不分主次并排存在, 禁止把三轨的 llm_prob_score_collab_cm 混进同一个 over-identified 的 Hansen J 检验框架, 只能各自作为 just-identified 的稳健性对照使用; full 轨是留篇门控 (2026-06-29 起改为 full-only) 唯一依据, 也就是说, 一篇文章是否被判定为"合法的银行-金融科技报道"只看 llm_verified_full, 而 ctx/ss 两轨的 collab_mode 概率分数是在 full 轨已确定的留篇行集合之上计算的 conditional-on-full 测度/稳健性轨, 它们的样本行宇宙是 full 轨留篇集合的子集, 不会反向影响哪些文章被保留进面板。第二, ss 轨的取材范围回退语义严格镜像 ctx 轨: 当一篇文章里找不到"目标银行与金融科技词汇同句共现"的片段时, `content_ss` 退化为全文正文 (与 content_full 相同), 并把 `ss_is_fallback` 标记为 True, 这时 ss 轨算出的 collab 概率分数实质上是在读跟 full 轨几乎相同的文本, 因此 ss 与 full 出现高相关是预期现象而非异常; 反之当同句共现存在时, ss 轨只读取被严格限定在同一句话内的窗口文本, 判断样本远小于 full/ctx, 概率分数的方差通常更大。ctx 轨介于二者之间, 以实体窗口 (银行与金融科技相关实体附近的句子) 为取材范围, 缺失窗口时同样优雅回退到 content_full。
 【文献定位】
-本家族在方法学上直接继承了把大语言模型分类输出转换为连续概率度量这一做法, 其合理性受两方面文献支持。一是机器学习校准 (probability calibration) 文献早已指出, 分类器给出的置信度只有经过恰当校准才能被当作概率使用 (Niculescu-Mizil & Caruana, 2005), 本项目通过对置信度设定合法性检查 (拒绝 NaN/越界) 并用简单折算函数而非直接照搬模型自报的原始 logit, 是在计算成本与可解释性之间的折中处理; 二是近年来会计与金融文本分析领域对"用大语言模型做文本标注"这一范式本身进行了系统方法论审视, de Kok (2025, *Management Science*) 系统讨论了在会计研究中使用生成式大语言模型做文本分析时, temperature=0 的确定性推理、prompt 冻结与结果缓存等做法如何影响可复现性与稳健性, 这与本项目 Prompt v8 字节级冻结 + `_llm_cache.db` 确定性锚点的工程实践直接呼应, 也是本仓库为何选择让三个厂商的模型分别独立打分、再做多数决与均值聚合、而不是只信任单一模型输出的方法论依据之一。在构念层面, collab_mode 这一分类维度所测量的"外部协同 vs 自主研发"二分, 源自开放式创新框架下企业在技术获取路径上的经典权衡 (Chesbrough, 2003; Laursen & Salter, 2006, *Strategic Management Journal*): 后者以英国制造业企业为样本, 系统检验了企业对外部知识来源的"开放度"(openness) 如何影响创新绩效, 为本家族把媒体报道中银行与金融科技企业协作的文本线索操作化为一个可度量的开放度代理指标提供了构念上的先例。llm_prob_score_collab_cm 正是把这一组织理论构念嫁接到大语言模型文本分类管线上、并进一步做概率化处理后的产物, 使其既能承接开放式创新文献的理论语言, 也能满足计量分析对连续变量的技术需求。
-
+本家族在方法学上直接继承了把大语言模型分类输出转换为连续概率度量这一做法, 其合理性受两方面文献支持。一是机器学习校准 (probability calibration) 文献早已指出, 分类器给出的置信度只有经过恰当校准才能被当作概率使用 (Niculescu-Mizil & Caruana, 2005), 本项目通过对置信度设定合法性检查 (拒绝 NaN/越界) 并用简单折算函数而非直接照搬模型自报的原始 logit, 是在计算成本与可解释性之间的折中处理; 二是近年来会计与金融文本分析领域对"用大语言模型做文本标注"这一范式本身进行了系统方法论审视, de Kok (2025, *Management Science*) 系统讨论了在会计研究中使用生成式大语言模型做文本分析时, temperature=0 的确定性推理、prompt 冻结与结果缓存等做法如何影响可复现性与稳健性, 这与本项目 Prompt v8 字节级冻结 + `_llm_cache.db` 确定性锚点的工程实践直接呼应, 也是本仓库为何选择让三个厂商的模型分别独立打分、再做多数决与均值聚合、而不是只信任单一模型输出的方法论依据之一。在构念层面, collab_mode 这一分类维度所测量的"外部协同 vs 自主研发"二分, 源自开放式创新框架下企业在技术获取路径上的经典权衡 (Chesbrough, 2003; Laursen & Salter, 2006, *Strategic Management Journal*): 后者以英国制造业企业为样本, 系统检验了企业对外部知识来源的"开放度"(openness) 如何影响创新绩效, 为本家族把媒体报道中银行与金融科技企业协作的文本线索操作化为一个可度量的开放度代理指标提供了构念上的先例。llm_prob_score_collab_cm 正是把这一组织理论构念嫁接到大语言模型文本分类管线上、并进一步做概率化处理后的产物, 使其既能承接开放式创新文献的理论语言, 也能满足计量分析对连续变量的技术需求。 就 confidence 字段的取数方式与可信性而言, 近年大语言模型置信度文献给出了一条较为完整的证据链。Kadavath 等 (2022) 系统研究了语言模型能否自评答案正确性, 发现较大模型在格式恰当的多选/判断题上校准良好, 并提出先给答案再自评 P(True) 的自评范式, 为"LLM 自评概率携带真实信息、具备一定校准性"这一前提提供了早期奠基性证据; 但其自评经由专门的 P(True)/P(IK) 探针与 logit 读数, 与本家族从 prompt 结构化输出字段直接读取 confidence 的做法并非同一路径, 模型代次为 2022 年 Anthropic 内部模型, 与本项目三家生产模型不可比, 原文亦未提出把剩余概率在非主类间按最大熵均分再作差的映射——该映射系研究者选择。Xiong 等 (2023) 是黑箱场景下"直接向 LLM 索取自报置信度"这一 elicitation 范式的系统评测原点, 建立了 verbalize-based confidence 的基准协议并记录了模型普遍过度自信, 交代了本家族 conf 列取数方式的方法来源; 其评测对象为当时的 GPT/LLaMA 系模型, 任务为英文常识与算术推理, 不含本项目所用模型, 亦无面板聚合。Tian 等 (2023) 进一步证明对经 RLHF 微调的模型, 以自然语言索要口头概率所得的置信度比模型内部 logit 条件概率更为校准, 这正是本家族在商用 RLHF 类模型上以 prompt 索取 confidence 字段、再送入概率折算的实证依据; 但原文在英文事实型 QA 数据集上度量 ECE, 本项目未在中文银行—金融科技语料与创新维度分类上复测 ECE, 该校准优势能否迁移至两家非 OpenAI 模型亦未经验证。Zhang 等 (2024) 把语言模型置信度分解为对问题的不确定性与对自身所生成答案的保真度, 提出 UF Calibration 并在多个 RLHF-LM 与 MCQA 数据集上验证, 另提出 IPR/CE 两个校准评价指标, 表明 LLM 置信度可被分解并校准; 惟其置信度由 UF 分解估计得到而非自报值, 该方法在仅可访问输出的黑箱 API 场景下是否适用原文未作声明, 且其所需的选项集/参考答案结构在本家族 collab_mode 二分类标注中并不具备, 故本项目未实施该校准算子, 现口径仍为三家原始自报置信度经二分类概率折算后取算术均值。
 ## VAR: llm_prob_score_collab_cm_ctx
 
 【变体差分】
@@ -65,4 +90,8 @@ ss 轨的回退语义严格镜像 ctx 轨的设计: 当一篇文章找不到银�
 de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
 Laursen, K., & Salter, A. (2006). Open for innovation: The role of openness in explaining innovation performance among U.K. manufacturing firms. Strategic Management Journal, 27(2), 131-150. https://doi.org/10.1002/smj.507
 Niculescu-Mizil, A., & Caruana, R. (2005). Predicting good probabilities with supervised learning. Proceedings of the 22nd International Conference on Machine Learning (ICML), 625-632. https://doi.org/10.1145/1102351.1102430
+Kadavath, S., Conerly, T., Askell, A., Henighan, T., Drain, D., Perez, E., Schiefer, N., Hatfield-Dodds, Z., DasSarma, N., Tran-Johnson, E., Johnston, S., El-Showk, S., Jones, A., Elhage, N., Hume, T., Chen, A., Bai, Y., Bowman, S., Fort, S., ... Kaplan, J. (2022). Language Models (Mostly) Know What They Know. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2207.05221
+Xiong, M., Hu, Z., Lu, X., Li, Y., Fu, J., He, J., & Hooi, B. (2023). Can LLMs Express Their Uncertainty? An Empirical Evaluation of Confidence Elicitation in LLMs. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2306.13063
+Tian, K., Mitchell, E., Zhou, A., Sharma, A., Rafailov, R., Yao, H., Finn, C., & Manning, C. (2023). Just Ask for Calibration: Strategies for Eliciting Calibrated Confidence Scores from Language Models Fine-Tuned with Human Feedback. Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing, 5433-5442. https://doi.org/10.18653/v1/2023.emnlp-main.330
+Zhang, M., Huang, M., Shi, R., Guo, L., Peng, C., Yan, P., Zhou, Y., & Qiu, X. (2024). Calibrating the Confidence of Large Language Models by Eliciting Fidelity. Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing, 2959-2979. https://doi.org/10.18653/v1/2024.emnlp-main.173
 <!-- rendered-citations:end -->

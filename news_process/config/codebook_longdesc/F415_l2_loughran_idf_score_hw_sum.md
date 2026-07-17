@@ -76,6 +76,14 @@ citations:
   vol: 68
   issue: 7
   pages_or_artno: 5514-5532
+- doi: "10.1016/j.econlet.2026.113002"
+  type: "journal"
+  authors: "Nakatsuka, H., & Suimon, Y."
+  year: 2026
+  title: "How does the market respond to textual novelty: Joint analysis of similarity and sentiment on Japanese corporate disclosures"
+  venue: "Economics Letters"
+  vol: "265"
+  pages_or_artno: "113002"
 ---
 
 ## CORE
@@ -87,8 +95,7 @@ citations:
 计算分三层。第一层是 IDF 权重的语料级估计: 对全语料按唯一文档去重 (以文本内容自身为键, 避免"一篇提到八家银行被展开成八行"虚增文档数), 令 raw_idf(w) = log10(N / (1 + df(w))), 再逐词典 (per-dictionary) 各自求本部词典内全体情感词 raw_idf 的均值, 以该词典自身的均值为除数做归一化 (loughran 词典的每个词除以 loughran 词典内部 raw_idf 均值, 而非跨全体六部词典情感词的单一总均值——源码 tone_words.py 对 dictionaries 逐部循环, 每部先算 mean_val 再归一), 最后对归一化值做 P1/P99 Winsorize 截尾, 得到每个情感词的最终 IDF 权重。逐词典均值归一化的目的是让每部词典 IDF 加权后的得分量级各自与该词典等权版大体相当, 从而各词典轨共享同一套阈值; 采用词典内均值而非全体均值, 是因不同词典的稀有度分布与词表规模不同, 用各自的分布中心归一才能保证跨词典可比性。第二层是 article 级得分: 复用同一次 tone tokenizer 的切词结果 (零额外分词开销), 对匹配到的 loughran 情感词依次施加否定翻转、程度副词缩放、转折权重放大三条语言学规则 (遇句末标点重置作用域), 用 IDF 权重缩放各词的 final 极性幅值后归一化, 得到 loughran_idf_score{track} ∈ 有界区间; IDF 仅缩放幅值不改极性归属, 空文本或无情感词时取零或中性。第三层是羊群加权求和: 每篇乘 herd_weight{track} (stage 24 依 Tetlock 传统对疑似跟风、抄稿的报道逐篇降权, 权重落在零到一, herd_weight = 1/(1 + n_similar_articles), n_similar_articles 由同年同银行报道间 TF-IDF 余弦相似度统计), 再在银行-年内 sum 聚合成本列。方法学上须复述三轨铁律: full / ctx / ss 三条轨各自 just-identified 并排, 互为稳健性、不分主次, 严禁把三轨混进同一条 over-identified 的 Hansen J 过度识别检验。留篇门控采用 full-only 口径 (2026-06-29): 一篇报道是否计入某银行的报道宇宙, 只看 full 轨的 LLM 留篇判定; ctx / ss 降为 conditional-on-full 的测度轨, 其行宇宙是 full 留篇集的子集, 但 per-track 的得分与羊群权重仍逐轨独立计算。ss 轨的回退语义镜像 ctx: 当某篇不存在银行与金科的同句共现时, content_ss 回退为全文正文并置 ss_is_fallback 为真, 与 ctx 的 fallback 契约一致。三轨共享同一份基于 content_full 语料估得的 IDF 权重, 绝不按轨分语料重估——ss 轨也复用此权重。
 
 【文献定位】
-本列的方法学谱系有三支来源。词典构念锚是 Loughran 与 McDonald (2011) 在 The Journal of Finance 上确立的"何时负债不是负债"框架: 他们证明通用情感词典 (如 Harvard-IV) 在金融文本上系统性误判 ("tax""liability" 等词面负面实为中性财务术语), 据此从十–K 文件出发构建了面向金融文本的情感词表分类学 (positive/negative 之外另设 uncertainty/litigious/constraining 等类); 该谱系其后经 Loughran 与 McDonald (2016, 2020) 的综述性文献进一步确立为文本分析在会计与金融领域的方法论主干, 本项目将其中译本土化正是承接这一脉络、把英文金融词典的领域特异性洞见移植到中文语境。词典跨语言移植的必要性与局限由 Du, Huang, Wermers 与 Wu (2022) 在 Review of Finance 上量化确证: 他们指出中文金融文本的语言与制度语境与英文原生语料存在系统性差异, 直译词典若不经本土化扩充与校准会损失效度, 这是本项目在 loughran 中文主译本之外, 同时并行维护 jiang_2021、yao_2021、bian_2021、du_2022、you_2018 五部中文原生词典、令六部词典互为稳健性的直接依据。IDF 加权的思想上溯 Spärck Jones (1972) 关于词项特异性的统计诠释——越稀有的词区分力越强, 这一逆文档频率原理是本列"稀有情感词加权更重"的方法根; 在金融文本分析语境中, Jegadeesh 与 Wu (2013) 的"词力量"框架示范了如何按词的信息含量而非简单计数来加权情感词, 是本列 IDF 臂的金融学先例。至于词典法本身的地位, Frankel, Jennings 与 Lee (2022) 在 Management Science 上系统比较了机器学习与词典方法的披露情感度量, 表明两类方法各有所长、互为稳健性——这正是本项目保留词典轨 (含 loughran 词典的 IDF 加权变体) 与 LLM 轨、BERT 轨并排作互证的方法论根据。羊群加权分子的设计意在把跟风转载、抄稿式报道的过度计权剥离, 使加总后的加权语调更贴近"独立信息"的口径, 与上述词典效度文献形成互补。
-
+本列的方法学谱系有三支来源。词典构念锚是 Loughran 与 McDonald (2011) 在 The Journal of Finance 上确立的"何时负债不是负债"框架: 他们证明通用情感词典 (如 Harvard-IV) 在金融文本上系统性误判 ("tax""liability" 等词面负面实为中性财务术语), 据此从十–K 文件出发构建了面向金融文本的情感词表分类学 (positive/negative 之外另设 uncertainty/litigious/constraining 等类); 该谱系其后经 Loughran 与 McDonald (2016, 2020) 的综述性文献进一步确立为文本分析在会计与金融领域的方法论主干, 本项目将其中译本土化正是承接这一脉络、把英文金融词典的领域特异性洞见移植到中文语境。词典跨语言移植的必要性与局限由 Du, Huang, Wermers 与 Wu (2022) 在 Review of Finance 上量化确证: 他们指出中文金融文本的语言与制度语境与英文原生语料存在系统性差异, 直译词典若不经本土化扩充与校准会损失效度, 这是本项目在 loughran 中文主译本之外, 同时并行维护 jiang_2021、yao_2021、bian_2021、du_2022、you_2018 五部中文原生词典、令六部词典互为稳健性的直接依据。IDF 加权的思想上溯 Spärck Jones (1972) 关于词项特异性的统计诠释——越稀有的词区分力越强, 这一逆文档频率原理是本列"稀有情感词加权更重"的方法根; 在金融文本分析语境中, Jegadeesh 与 Wu (2013) 的"词力量"框架示范了如何按词的信息含量而非简单计数来加权情感词, 是本列 IDF 臂的金融学先例。至于词典法本身的地位, Frankel, Jennings 与 Lee (2022) 在 Management Science 上系统比较了机器学习与词典方法的披露情感度量, 表明两类方法各有所长、互为稳健性——这正是本项目保留词典轨 (含 loughran 词典的 IDF 加权变体) 与 LLM 轨、BERT 轨并排作互证的方法论根据。羊群加权分子的设计意在把跟风转载、抄稿式报道的过度计权剥离, 使加总后的加权语调更贴近"独立信息"的口径, 与上述词典效度文献形成互补。 近期文献为这一「情感 × 新颖性」的乘性思路提供了直接旁证: Nakatsuka 与 Suimon (2026) 对日本公司披露文本联合分析文本相似度 (新颖性) 与情感, 检验市场对文本新颖性的反应, 表明二者须联合考察而非各自单独看待, 这与本列把篇级 IDF 加权语调乘以羊群衰减权重后再在银行-年内求和的分子构造同向。迁移边界须诚实标明: 原文语料为日文的公司披露文件而非第三方媒体报道, 其相似度是披露文本间的连续相似度并与情感做交互式联合分析, 并非本列 1/(1+n_similar_articles) 这一具体倒数衰减函数形式, 亦未把二者相乘折叠成单一加权分再作实体-期求和; 其层级为披露事件, 而非本列的银行-年三轨。
 ## VAR: loughran_idf_score_hw_sum_full
 
 【变体差分】
@@ -112,4 +119,5 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis. Journal of Financial Economics, 110(3), 712-729. https://doi.org/10.1016/j.jfineco.2013.08.018
 Spärck Jones, K. (1972). A statistical interpretation of term specificity and its application in retrieval. Journal of Documentation, 28(1), 11-21. https://doi.org/10.1108/eb026526
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
+Nakatsuka, H., & Suimon, Y. (2026). How does the market respond to textual novelty: Joint analysis of similarity and sentiment on Japanese corporate disclosures. Economics Letters, 265, 113002. https://doi.org/10.1016/j.econlet.2026.113002
 <!-- rendered-citations:end -->

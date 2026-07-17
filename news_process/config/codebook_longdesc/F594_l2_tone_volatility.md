@@ -60,6 +60,21 @@ citations:
   vol: '40'
   issue: '1'
   pages_or_artno: 18-36
+- doi: "10.1016/j.bir.2026.100863"
+  type: "journal"
+  authors: "Pham, H."
+  year: 2026
+  title: "From ESG noise to firm-specific risk: Adverse ESG sentiment trajectories and idiosyncratic volatility"
+  venue: "Borsa Istanbul Review"
+  pages_or_artno: "100863"
+- doi: "10.1016/j.jfs.2026.101538"
+  type: "journal"
+  authors: "Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S."
+  year: 2026
+  title: "Does media sentiment influence bank supervision?"
+  venue: "Journal of Financial Stability"
+  vol: "84"
+  pages_or_artno: "101538"
 new_dois: []
 ---
 
@@ -76,8 +91,7 @@ tone_volatility 测的不是"银行这一年报道语调是正是负", 而是"�
 三个轨道对应的正是三条独立的语调时间序列: full 轨基于标题+全文正文的语调判定, ctx 轨基于标题+目标银行实体窗口的语调判定, ss 轨基于标题+银行与金科词同句±N窗的语调判定; 三条序列独立滚动、独立产出 tone_volatility, 三列各自 just-identified 并排, 互为稳健性、不分主次, 严禁在同一 over-identified 的 Hansen J 检验中把三轨波动率一并塞入(镜像项目对三轨文本、co-primary 双轨嵌入、各梯子测度的一贯铁律)。留篇门控口径遵循 2026-06-29 起生效的 full-only 铁律: 一篇报道是否被判定为"银行—金科"相关报道, 唯一依据是 `llm_verified_full==True`, ctx/ss 两轨降格为"条件于 full 留篇集的" robustness 轨, 其 `llm_vote_tone_ctx`/`llm_vote_tone_ss` 的行宇宙是 full 留篇集的子集; 这意味着 tone_volatility_ctx/_ss 的滚动窗口所消费的年度语调序列, 其样本已隐含继承了 full 轨的留篇边界, 不能被误读为"ctx/ss 各自独立圈定的更宽或更窄的样本"。ss 轨若某年内该银行与金科词从未在同一句/同一窗口内共现, 其对应年度的 `llm_vote_tone_ss` 依回退语义(镜像 ctx: 无共现则用全文正文兜底并标记 `ss_is_fallback=True`)取值, 进而参与 tone_volatility_ss 的滚动计算; 三轨底层语调若整年缺失 (如 `FINTECH_AC=None` 导致的优雅降级全 True), 对应年份的滚动 SD 计算按缺失值处理, 窗口内有效观测不足 2 个时仍输出 NaN。
 
 【文献定位】
-Tetlock (2007) 首次系统证明媒体语调时间序列(而非单期水平)对股票市场收益与交易量具有可预测的滞后效应, 是本项目在 `tone_reversal` 与 tone_volatility 两处都反复引用的方法学与理论双重出处; Da, Engelberg & Gao (2015) 把这一逻辑推进到情绪指数的时间序列结构(FEARS 指数)与资产价格短期反转/长期修正的关系, 强化了"情感序列的波动性本身即信息"这一定位。Shapiro, Sudhof & Wilson (2022) 与 Bodilsen & Lunde (2025) 代表更晚近的文本情绪计量方法学进展, 前者建立起可复制的新闻情绪测度框架并区分水平与波动两条测度线, 后者直接把新闻分析情绪序列接入已实现波动率预测模型, 为本项目"语调时间序列的二阶矩具有独立解释力"的前提提供跨市场佐证。Fang, Wang, Wang & Yuan (2024) 则是与本项目高度可比的中国银行业实证先例, 采用媒体情感度量银行系统性风险敞口, 为 tone_volatility 未来接入 outcome 变量(如资金成本、存款稳定性)时的解释框架提供直接文献锚点。
-
+Tetlock (2007) 首次系统证明媒体语调时间序列(而非单期水平)对股票市场收益与交易量具有可预测的滞后效应, 是本项目在 `tone_reversal` 与 tone_volatility 两处都反复引用的方法学与理论双重出处; Da, Engelberg & Gao (2015) 把这一逻辑推进到情绪指数的时间序列结构(FEARS 指数)与资产价格短期反转/长期修正的关系, 强化了"情感序列的波动性本身即信息"这一定位。Shapiro, Sudhof & Wilson (2022) 与 Bodilsen & Lunde (2025) 代表更晚近的文本情绪计量方法学进展, 前者建立起可复制的新闻情绪测度框架并区分水平与波动两条测度线, 后者直接把新闻分析情绪序列接入已实现波动率预测模型, 为本项目"语调时间序列的二阶矩具有独立解释力"的前提提供跨市场佐证。Fang, Wang, Wang & Yuan (2024) 则是与本项目高度可比的中国银行业实证先例, 采用媒体情感度量银行系统性风险敞口, 为 tone_volatility 未来接入 outcome 变量(如资金成本、存款稳定性)时的解释框架提供直接文献锚点。 更晚近的实证进一步把情感的时序路径本身而非单期水平作为解释变量: Pham (2026) 以公司层 ESG 新闻情感的「轨迹」(随时间的路径与变化) 解释特质波动, 与本族「语调时间序列的二阶矩具有独立于水平的信息含量」这一前提同属情感时序动态测度族, 属前沿存在性证明; 迁移边界在于该文语料为 ESG 新闻情感序列、频率高于年度且 DV 为股票特质波动, 而本族 window=3、min_periods=2 的滚动标准差窗口为本项目自设, 原文并未使用同一公式。Aldama-Navarrete、Curti、Hansen 与 Kazinnik (2026) 构造针对特定银行的媒体情感测度并检验其与监管行为的关联, 证明把新闻情感按银行主体归集后进入银行层面实证是当前被金融稳定领域顶级期刊接受的做法, 与 Fang, Wang, Wang & Yuan (2024) 一同支撑本族在银行-年层级归集的选择; 但该文为美国银行监管语境 (DV 为监管评级/监管行动), 其情感测度的构造细节与本项目三轨文本、LLM 三家投票口径不同, 亦未涉及语调的二阶矩, 故该锚点只落在归集层级一环, 不锚定 tone_volatility 的滚动方差公式本身。
 ## VAR: tone_volatility_ctx
 
 【变体差分】
@@ -105,4 +119,6 @@ Da, Z., Engelberg, J., & Gao, P. (2015). The Sum of All FEARS Investor Sentiment
 Shapiro, A. H., Sudhof, M., & Wilson, D. J. (2022). Measuring News Sentiment. Journal of Econometrics, 228(2), 221-243. https://doi.org/10.1016/j.jeconom.2020.07.053
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media Sentiment, Deposit Stability and Bank Systemic Risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Bodilsen, S. T., & Lunde, A. (2025). Exploiting News Analytics for Volatility Forecasting. Journal of Applied Econometrics, 40(1), 18-36. https://doi.org/10.1002/jae.3095
+Pham, H. (2026). From ESG noise to firm-specific risk: Adverse ESG sentiment trajectories and idiosyncratic volatility. Borsa Istanbul Review, 100863. https://doi.org/10.1016/j.bir.2026.100863
+Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S. (2026). Does media sentiment influence bank supervision?. Journal of Financial Stability, 84, 101538. https://doi.org/10.1016/j.jfs.2026.101538
 <!-- rendered-citations:end -->

@@ -57,6 +57,14 @@ citations:
   vol: 15
   issue: 2
   pages_or_artno: 121-140
+- doi: "10.1016/j.econlet.2026.113002"
+  type: "journal"
+  authors: "Nakatsuka, H., & Suimon, Y."
+  year: 2026
+  title: "How does the market respond to textual novelty: Joint analysis of similarity and sentiment on Japanese corporate disclosures"
+  venue: "Economics Letters"
+  vol: "265"
+  pages_or_artno: "113002"
 new_dois: []
 ---
 
@@ -69,8 +77,7 @@ new_dois: []
 计算链路分三段, 三段分处三个不同阶段的脚本, 须严格区分归属, 不可把 IDF 加权或羊群加权误挂到彼此的阶段上。第一段在 stage 22 词典法内落盘 jiang_2021_idf_score{track}: 对每篇报道分词后, 在姜富伟等 (2021) 词典的 IDF 加权版本上做逐词匹配 (`IDF_DICTIONARIES`), 命中的情感词先按语料库逆文档频率缩放幅值, 再依次施加否定/程度/转折三条语言学规则 (否定词在固定窗口内翻转极性、程度副词按倍率缩放、转折词在从句作用域内放大后半句), 由 `_compute_sentiment_with_rules` 归一化输出, 口径遵循 Gentzkow, Kelly 与 Taddy (2019, Journal of Economic Literature §2.2) 关于文本计量中 IDF 加权与词典法情感度量的规范讨论。此列与不加 IDF 幅值缩放的裸词典分 jiang_2021_score 互为稳健性并排、不分主次: 前者按词汇稀有度加大信息量高的词的贡献, 后者对全部命中词等权处理, 二者刻意不混用同一识别式。第二段在 stage 24 羊群衰减处理中落盘 herd_weight{track}: 对同一目标银行的报道按发布年度截断, 用 TF-IDF 余弦相似度统计每篇报道在同年早前存在多少篇高度相似 (疑似转抄、回声式跟风) 的报道, 记为 n_similar_articles, 再令 herd_weight = 1/(1 + n_similar_articles); 转抄越多则权重越低, 越接近独立首发则权重越接近 1。第三段是运行期现算而非落盘中间列: panel runner 步骤 3d 把 stage 22 的 IDF 加权逐篇分 jiang_2021_idf_score{track} 与 stage 24 的 herd_weight{track} 逐行相乘, 现算出 jiang_2021_idf_score_hw{track}; encode.py 的 F 段随即在银行-年度分组内对该现算列求和, 落盘为本列。留篇门控采用 full-only 口径 (2026-06-29): 一篇报道是否计入某银行某年的报道宇宙, 由其 full 轨是否被判为一篇银行金科报道决定, 三轨在该留篇集合上分别计列, 零新闻银行-年按空集求和 (Σ over ∅ = 0) 落 0 而非缺失。
 
 【文献定位】
-本测度的方法学谱系由三条线索交织。词典本身取姜富伟、孟令超与唐国豪 (2021) 发表于《经济学(季刊)》的媒体文本情绪度量, 该文以中国媒体语料为对象构建情绪词典并验证其对股票回报的预测力, 是本仓六部中文情感词典 (jiang_2021 与 bian_2021、yao_2021、du_2022、you_2018、loughran) 之一。IDF 加权幅值缩放的统计学依据溯源至 Spärck Jones (1972) 关于词汇特异性的经典诠释, 并在 Jegadeesh 与 Wu (2013) 发表于 Journal of Financial Economics 的 "word power" 方法中被引入金融文本情感构造 —— 稀有但携带强烈情感信息的词应比常见泛化词获得更大权重, 这正是本列相对于裸词典分额外叠加的第一层加权。将 IDF 加权词典结果与羊群衰减权重叠加、并与 LLM 法及 BERT 法并置互证, 呼应 Frankel, Jennings 与 Lee (2022) 关于披露情感的机器学习法与词典法互为稳健性的先例, 以及 van Atteveldt, van der Velden 与 Boukes (2021) 对人工标注、词典法与机器学习法效度的横向比较。需强调本项目的多重加权口径 (等权 tone、IDF 加权、羊群加权 hw、媒体权威加权 mw、提及密度加权 w) 各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同加权方案或不同词典混进同一 over-identified Hansen J 检验; 三轨 (full/ctx/ss) 同理各自 just-identified 并排、禁混同一 Hansen J。
-
+本测度的方法学谱系由三条线索交织。词典本身取姜富伟、孟令超与唐国豪 (2021) 发表于《经济学(季刊)》的媒体文本情绪度量, 该文以中国媒体语料为对象构建情绪词典并验证其对股票回报的预测力, 是本仓六部中文情感词典 (jiang_2021 与 bian_2021、yao_2021、du_2022、you_2018、loughran) 之一。IDF 加权幅值缩放的统计学依据溯源至 Spärck Jones (1972) 关于词汇特异性的经典诠释, 并在 Jegadeesh 与 Wu (2013) 发表于 Journal of Financial Economics 的 "word power" 方法中被引入金融文本情感构造 —— 稀有但携带强烈情感信息的词应比常见泛化词获得更大权重, 这正是本列相对于裸词典分额外叠加的第一层加权。将 IDF 加权词典结果与羊群衰减权重叠加、并与 LLM 法及 BERT 法并置互证, 呼应 Frankel, Jennings 与 Lee (2022) 关于披露情感的机器学习法与词典法互为稳健性的先例, 以及 van Atteveldt, van der Velden 与 Boukes (2021) 对人工标注、词典法与机器学习法效度的横向比较。需强调本项目的多重加权口径 (等权 tone、IDF 加权、羊群加权 hw、媒体权威加权 mw、提及密度加权 w) 各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同加权方案或不同词典混进同一 over-identified Hansen J 检验; 三轨 (full/ctx/ss) 同理各自 just-identified 并排、禁混同一 Hansen J。 在羊群衰减这一层加权上, Nakatsuka 与 Suimon (2026) 提供了近期的经验参照: 该文对日本公司披露文本联合分析文本相似度 (新颖性) 与情感, 检验市场对文本新颖性的反应, 论证相似度与情感须联合而非各自单独考察, 正对应本列把 IDF 加权词典分再乘以 1/(1 + n_similar_articles) 从而将情感与新颖性 (相似度的减函数) 折叠为乘性结构的设计意图。迁移边界须如实标明: 该文语料为日文的公司披露文件而非第三方媒体报道, 其相似度为披露文本间的连续相似度且与情感取联合分析/交互形式, 并未采用本列这一具体的倒数衰减函数, 亦未把二者的乘积再于银行-年内求和; 其分析层级为披露事件, 而非本列的银行-年三轨。
 ## VAR: jiang_2021_idf_score_hw_sum_full
 
 【变体差分】
@@ -92,4 +99,5 @@ Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis.
 Spärck Jones, K. (1972). A statistical interpretation of term specificity and its application in retrieval. Journal of Documentation, 28(1), 11-21. https://doi.org/10.1108/eb026526
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
+Nakatsuka, H., & Suimon, Y. (2026). How does the market respond to textual novelty: Joint analysis of similarity and sentiment on Japanese corporate disclosures. Economics Letters, 265, 113002. https://doi.org/10.1016/j.econlet.2026.113002
 <!-- rendered-citations:end -->

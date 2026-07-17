@@ -74,6 +74,21 @@ citations:
   venue: "The Journal of Finance"
   type: "journal"
   one_sentence_zh: "该文以词项在句子窗口内与目标关键词的邻近共现频率构造企业层面暴露度测度, 与本家族 mention_density/同句窗口加权求和的方法学思路同源, 均属关注度/邻近度加权而非稀有度加权的文本测度设计。"
+- doi: "10.1093/rfs/hhag049"
+  type: "journal"
+  authors: "Harford, J., He, Q., & Qiu, B."
+  year: 2026
+  title: "Firm-Level Labor Shortage Exposure"
+  venue: "The Review of Financial Studies"
+  pages_or_artno: "hhag049"
+- doi: "10.1016/j.intfin.2023.101920"
+  type: "journal"
+  authors: "Aysan, A. F., Caporin, M., & Cepni, O."
+  year: 2024
+  title: "Not all words are equal: Sentiment and jumps in the cryptocurrency market"
+  venue: "Journal of International Financial Markets, Institutions and Money"
+  vol: "91"
+  pages_or_artno: "101920"
 new_dois:
   - "10.1111/jofi.13219"
 ---
@@ -87,8 +102,7 @@ new_dois:
 本家族的计算分三层: 第一层是 pipeline/sentiment/tone_words.py 中逐篇的 loughran_score 计算——对每篇文章 (在其对应轨道的文本窗口内) 匹配 loughran_mcdonald_zh_2026 词典的正/负词条, 得到该篇净语调分 (正面计数与负面计数经净化/归一处理后的差值口径, 与家族内其余词典族如 jiang_2021/yao_2021/bian_2021/du_2022/you_2018 共享同一计算框架, 仅词典内容不同); 第二层仍在 tone_words.py 内, 由 build_idf_weights 对命中词条按其在全语料的文档频率施加 IDF 权重, 产出 `{dict}_idf_score{track}` (这是本家族"idf"字样的唯一出处, 完成于篇章打分之前的词项层面); 第三层转到 pipeline/panel/runner.py, 对每篇报道依据其 mention_density (提及密度, 与该篇讨论目标银行的密集程度相关, 与词项稀有度无关) 计算一个标量权重 w_i, 再以 w_i 为权重对该银行-年单元内所有留篇样本的 `{dict}_idf_score{track}` 做加权求和 (sum, 非加权均值), 由 encode.py 落盘为本家族三个轨道列的最终数值。求和 (而非取均值) 的选择使该指标同时承载了「语调方向」「词项信息密度」与「报道对目标银行的关注度/规模」三重信息——一个银行-年若报道数量多、措辞信息密度高且报道对该银行的提及密集, 其加总值会系统性高于报道稀少、模板化或提及稀疏的银行-年, 这与家族内以均值为口径的语调测度 (如 avg_ 前缀族) 构念上互补而非替代, 使用者在解读时须注意本家族数值天然与 n_articles、词汇丰富度及 mention_density 三者相关, 不宜脱离样本规模直接跨单元比较水平值。留篇门控口径遵循 2026-06-29 起生产铁律: 是否判定为「一篇银行金科报道」的门控只看 full 轨的 LLM 验证结果 (llm_verified_full == True); ctx/ss 轨的行宇宙是 full 轨留篇集合的子集, 在此子集上各轨分别计算并加总各自的词项 IDF 加权 + mention_density 加权语调分, 定位为 conditional-on-full 的测度/稳健性轨, 而非独立的样本扩展。词项 IDF 加权、mention_density (VW) 加权与朴素平均之间的关系是「互为稳健性」而非「谁更优」: 词典法本身的可复现性和透明度是其相对于机器学习/LLM 方法的核心优势 (Frankel, Jennings & Lee 2022 对比了机器学习与词典法在披露语调测度上的分歧与互补性), 本家族只是在该框架内叠加了两层关于文档信息密度与关注度规模的稳健性检验, 与词典消融梯度 (七种语言学规则子集变体) 正交、不交叉——不应把这些梯子混入同一维度做联合识别。
 
 【文献定位】
-本家族的方法学谱系直接承接 Loughran & McDonald (2011, *The Journal of Finance*) 建立的金融领域专属词典范式——该文是文本分析在会计与金融领域应用的奠基性工作, 系统证明了通用情感词典在金融披露文本上的系统性偏误, 并催生了此后十余年会计金融文本分析文献对领域词典的广泛采用 (综述见 Loughran & McDonald 2016, Journal of Accounting Research, 详述了文本分析方法论在会计金融研究中的演进脉络与常见陷阱)。词项层的 IDF 加权 (`{dict}_idf_score{track}`) 呼应了 Jegadeesh & Wu (2013, Journal of Financial Economics) 提出的"word power"框架——该文论证了并非所有词典词条对市场反应的解释力均等, 应当依据词项的信息含量赋予差异化权重, 而非将词典视为等权计数器; IDF 概念本身则可回溯至 Spärck Jones (1972) 对信息检索中词项区分度的经典统计学阐释, 是本仓库多处 IDF/TF-IDF 相关测度族的共同数理基础。叠加在其上的篇章层 mention_density 加权求和 (`_w_sum` 后缀), 其经济学定位不是稀有度加权, 而是关注度/规模加权——一篇报道对目标银行的提及越密集, 该篇对银行-年加总语调的贡献权重越大, 这一构造思路与 Hassan, Hollander, van Lent & Tahoun (2019, *Quarterly Journal of Economics*) 「Firm-Level Political Risk」一文中按提及频率对文本片段赋权、构造 value-weighted exposure 测度的做法在方法论上同源, 但该文本身不在本仓库文献引注白名单池内, 故此处仅作方法学溯源的文字说明, 不列入结构化 citations。中文语境下的应用还须考虑领域词典跨语言迁移问题: 本仓库另有 du_2022 (Review of Finance) 等专为中文金融文本构建的词典, 与 loughran 的英文原典中译本形成互为稳健性的多词典并排设计, 体现"多词典互证"而非依赖单一词典结论的审慎立场。词项 IDF 加权 + mention_density 加权求和与机器学习/词嵌入类语调测度之间的关系亦须审慎处理: Frankel, Jennings & Lee (2022, Management Science) 系统比较了机器学习与词典方法在披露语调测度上的表现差异, 提示词典法的透明度优势与机器学习法的适应性优势各有取舍, 本仓库据此将词典法 (含本家族的两层加权变体)、LLM 三家投票法、BERT 三模型法设计为三条互为稳健性、不分主次的并排测度轨, 而非试图用单一"最优"方法替代其余两条。Sautner, van Lent, Vilkov, & Zhang (2023, The Journal of Finance) 以词项在句子窗口内与目标关键词的邻近共现频率构造企业层面暴露度测度, 与本家族 mention_density 及同句窗口加权求和的方法学思路同源, 均属关注度/邻近度加权而非稀有度加权的文本测度设计。
-
+本家族的方法学谱系直接承接 Loughran & McDonald (2011, *The Journal of Finance*) 建立的金融领域专属词典范式——该文是文本分析在会计与金融领域应用的奠基性工作, 系统证明了通用情感词典在金融披露文本上的系统性偏误, 并催生了此后十余年会计金融文本分析文献对领域词典的广泛采用 (综述见 Loughran & McDonald 2016, Journal of Accounting Research, 详述了文本分析方法论在会计金融研究中的演进脉络与常见陷阱)。词项层的 IDF 加权 (`{dict}_idf_score{track}`) 呼应了 Jegadeesh & Wu (2013, Journal of Financial Economics) 提出的"word power"框架——该文论证了并非所有词典词条对市场反应的解释力均等, 应当依据词项的信息含量赋予差异化权重, 而非将词典视为等权计数器; IDF 概念本身则可回溯至 Spärck Jones (1972) 对信息检索中词项区分度的经典统计学阐释, 是本仓库多处 IDF/TF-IDF 相关测度族的共同数理基础。叠加在其上的篇章层 mention_density 加权求和 (`_w_sum` 后缀), 其经济学定位不是稀有度加权, 而是关注度/规模加权——一篇报道对目标银行的提及越密集, 该篇对银行-年加总语调的贡献权重越大, 这一构造思路与 Hassan, Hollander, van Lent & Tahoun (2019, *Quarterly Journal of Economics*) 「Firm-Level Political Risk」一文中按提及频率对文本片段赋权、构造 value-weighted exposure 测度的做法在方法论上同源, 但该文本身不在本仓库文献引注白名单池内, 故此处仅作方法学溯源的文字说明, 不列入结构化 citations。中文语境下的应用还须考虑领域词典跨语言迁移问题: 本仓库另有 du_2022 (Review of Finance) 等专为中文金融文本构建的词典, 与 loughran 的英文原典中译本形成互为稳健性的多词典并排设计, 体现"多词典互证"而非依赖单一词典结论的审慎立场。词项 IDF 加权 + mention_density 加权求和与机器学习/词嵌入类语调测度之间的关系亦须审慎处理: Frankel, Jennings & Lee (2022, Management Science) 系统比较了机器学习与词典方法在披露语调测度上的表现差异, 提示词典法的透明度优势与机器学习法的适应性优势各有取舍, 本仓库据此将词典法 (含本家族的两层加权变体)、LLM 三家投票法、BERT 三模型法设计为三条互为稳健性、不分主次的并排测度轨, 而非试图用单一"最优"方法替代其余两条。Sautner, van Lent, Vilkov, & Zhang (2023, The Journal of Finance) 以词项在句子窗口内与目标关键词的邻近共现频率构造企业层面暴露度测度, 与本家族 mention_density 及同句窗口加权求和的方法学思路同源, 均属关注度/邻近度加权而非稀有度加权的文本测度设计。 这一提及型加权在近期文献中亦有新的构造与验证范例: Harford、He 与 Qiu (2026) 自财报电话会文本提取公司层面的「劳动力短缺暴露」测度, 在州、行业与公司三个层级做效度验证后再检验其对 CAR、未来收益与经营绩效的预测力, 与本家族 w = mention_density 所承接的文本提及型 firm-level exposure 权重口径同源。迁移边界: 原文语料为英文财报电话会, 所度量的是劳动力短缺暴露而非情感极性, 且把暴露度直接用作自变量, 并未将其作为乘性权重乘到词典情感分上, 亦无银行-年三轨聚合。至于叠加在词项层的 IDF 稀有度加权, Aysan、Caporin 与 Cepni (2024) 以日内跳跃检测配合 logistic 回归发现, 情绪类以及关涉市场基本面的情感维度比其它维度更易引发跳跃, 据此提出 words are not all created equal, 为本家族「词典词条不应等权计入」的基本动机提供近期实证支持; 但须明确其「非等权」指的是情感维度/类别层面的差异, 而非本列按语料稀有度的词项级 IDF 加权 (log10(N/(1+df(w))) 经均值归一化与 P1/P99 Winsorize), 二者仅在反对等权这一动机上相通, 函数形式与信息来源完全不同, 且原文标的为加密货币日内跳跃、语料为英文新闻, 无银行-年求和层级。
 ## VAR: loughran_idf_score_w_sum_ctx
 
 【变体差分】
@@ -111,4 +125,6 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187–1230. https://doi.org/10.1111/1475-679X.12123
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514–5532. https://doi.org/10.1287/mnsc.2021.4156
 Sautner, Z., van Lent, L., Vilkov, G., & Zhang, R. (2023). Firm-Level Climate Change Exposure. The Journal of Finance. https://doi.org/10.1111/jofi.13219
+Harford, J., He, Q., & Qiu, B. (2026). Firm-Level Labor Shortage Exposure. The Review of Financial Studies, hhag049. https://doi.org/10.1093/rfs/hhag049
+Aysan, A. F., Caporin, M., & Cepni, O. (2024). Not all words are equal: Sentiment and jumps in the cryptocurrency market. Journal of International Financial Markets, Institutions and Money, 91, 101920. https://doi.org/10.1016/j.intfin.2023.101920
 <!-- rendered-citations:end -->

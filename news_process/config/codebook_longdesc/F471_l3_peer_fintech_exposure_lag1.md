@@ -44,6 +44,39 @@ citations:
   vol: '30'
   issue: '3'
   pages_or_artno: 2470–2491
+- doi: "10.1016/j.jfineco.2026.104274"
+  type: "journal"
+  authors: "Avramov, D., Ge, S., Li, S., & Linton, O."
+  year: 2026
+  title: "Dual peer effects and cross-stock predictability"
+  venue: "Journal of Financial Economics"
+  vol: "180"
+  pages_or_artno: "104274"
+- doi: "10.1080/1540496x.2025.2605157"
+  type: "journal"
+  authors: "Ouyang, H., Liu, X., Yin, J., & Huang, C."
+  year: 2026
+  title: "Firm Network Complexity and Stock Returns: Case of Shared Analyst Coverage in China"
+  venue: "Emerging Markets Finance and Trade"
+  vol: "62"
+  issue: "11"
+  pages_or_artno: "4113-4136"
+- doi: "10.1162/rest.a.1630"
+  type: "journal"
+  authors: "Boucher, V., & Houndetoungan, A."
+  year: 2025
+  title: "Estimating Peer Effects Using Partial Network Data"
+  venue: "Review of Economics and Statistics"
+  pages_or_artno: "1-48"
+- doi: "10.1177/1536867x251341145"
+  type: "journal"
+  authors: "Estrada, P., Estrada, J., Huynh, K. P., Jacho-Chávez, D., & Sánchez-Aragón, L."
+  year: 2025
+  title: "netivreg: Estimation of peer effects in endogenous social networks"
+  venue: "The Stata Journal: Promoting communications on statistics and Stata"
+  vol: "25"
+  issue: "2"
+  pages_or_artno: "344-373"
 new_dois: []
 ---
 
@@ -61,8 +94,7 @@ new_dois: []
 【文献定位】
 本列所用的行随机空间滞后算子直接对应 LeSage 与 Pace (2009) 关于空间计量经济学的经典教材式框架: 给定行归一化权重矩阵 W, 空间滞后变量 W·y 表示"每个观测单位的所有邻居 (按权重) 的加权平均"; 本列将该算子应用于金融科技报道声量而非空间地理邻近关系, 用共现网络关系替代地理邻近关系, 属于该框架向社交/交易网络场景的迁移应用, 与 Grieser, Hadlock, LeSage & Zekhnini (2022, *Journal of Financial Economics*) 用网络结构刻画企业财务政策同行效应的建模思路一脉相承 — 该文同样以 LeSage 传统的行随机权重矩阵度量公司间网络关联, 并讨论了此类网络诱导变量在识别同行效应时面临的内生权重矩阵挑战, 与本列源码内嵌的"支撑集选择性"警示高度呼应。识别层面的一般性讨论另见 Bramoullé, Djebbari & Fortin (2009, *Journal of Econometrics*) 关于社交网络中同行效应可识别性的经典结果 — 该文证明, 在网络结构提供足够的排他性变异 (二阶及以上邻居结构差异) 时, 同行效应参数可分离识别, 这一逻辑框架是本列服务的下游回归 (以本列作为同行金融科技声量的滞后回归元或工具变量构造分量) 得以成立的理论前提之一。
 同行效应度量范式的实证先例是 Leary & Roberts (2014, *Journal of Finance*), 该文用同行公司资本结构决策的加权均值预测本公司资本结构调整, 确立了"同行均值滞后作为回归元"这一实证套路; 本列将该套路中的"同行财务政策均值"替换为"同行金融科技新闻声量均值", 构念上从公司金融决策模仿迁移到银行业金融科技话题传播/模仿压力。中国银行业情境下的金融科技网络溢出实证近年亦有直接对标, 例如 Ge, Li & Zheng (2025, *Journal of Banking & Finance*) 利用新闻共提 (news co-mention) 构造的动量溢出网络, 证实了基于中国新闻语料构造的实体共现关系能够捕捉具有经济含义的跨主体信息传导, 为本列"以新闻共现网络为空间权重支撑"的设计选择提供了同源方法论效度支撑; 更一般的金融-空间溢出证据参见 Ahmad, Hall, Law & Nayan (2024, *International Journal of Finance & Economics*), 该文用空间杜宾模型刻画新兴市场金融机构增长的跨主体溢出效应, 印证了行随机空间权重范式在金融机构层面网络溢出研究中的适用性与稳健性。
-在本项目口径体系中, `peer_fintech_exposure_lag1` 与同一代码区块产出的 `peer_tone_lag1`/`peer_tone_2nd_lag1`(同行语气溢出, 一阶/二阶) 是"构念平行、来源同构"的姊妹变量族: 三者共享同一 t-1 年共现网络诱导的权重矩阵 W 与相同的"仅对观测同行重归一化"缺失处理逻辑, 区别仅在于被空间滞后的底层变量 (`ln_news_coverage` vs. `llm_vote_tone` 及其派生轨道)。作为面板派生列, 本列继承本项目的一般性口径铁律: 若该家族未来扩展出多轨版本 (例如按 full/ctx/ss 三种文本口径分别构造 `ln_news_coverage` 进而分别空间滞后), 各轨须各自 just-identified 并排, 互为稳健性、不分主次, 严禁混进同一 over-identified 的 Hansen J 检验; 就现状而言, 本列本身不区分三轨、不涉及 co-primary 双轨嵌入, 亦不含消融/权重/阈值/判据梯子, 其滞后结构 (t-1→t) 与本项目 `n_articles`/留篇门控的 full-only 口径 (2026-06-29 起) 相独立 — 本列的"报道声量"上游 `ln_news_coverage` 本身是否已切至 full-only 口径, 应以该上游列自身的文档为准, 本列不重复引入该判定。
-
+在本项目口径体系中, `peer_fintech_exposure_lag1` 与同一代码区块产出的 `peer_tone_lag1`/`peer_tone_2nd_lag1`(同行语气溢出, 一阶/二阶) 是"构念平行、来源同构"的姊妹变量族: 三者共享同一 t-1 年共现网络诱导的权重矩阵 W 与相同的"仅对观测同行重归一化"缺失处理逻辑, 区别仅在于被空间滞后的底层变量 (`ln_news_coverage` vs. `llm_vote_tone` 及其派生轨道)。作为面板派生列, 本列继承本项目的一般性口径铁律: 若该家族未来扩展出多轨版本 (例如按 full/ctx/ss 三种文本口径分别构造 `ln_news_coverage` 进而分别空间滞后), 各轨须各自 just-identified 并排, 互为稳健性、不分主次, 严禁混进同一 over-identified 的 Hansen J 检验; 就现状而言, 本列本身不区分三轨、不涉及 co-primary 双轨嵌入, 亦不含消融/权重/阈值/判据梯子, 其滞后结构 (t-1→t) 与本项目 `n_articles`/留篇门控的 full-only 口径 (2026-06-29 起) 相独立 — 本列的"报道声量"上游 `ln_news_coverage` 本身是否已切至 full-only 口径, 应以该上游列自身的文档为准, 本列不重复引入该判定。 晚近文献从应用、连接构造、识别与实现四个侧面进一步巩固了这一测度族的坐标。Avramov、Ge、Li 与 Linton (2026) 在 Journal of Financial Economics 构造股票间的同侪连接矩阵, 以加权同侪特征作为暴露变量度量其向自身的溢出, 与本列 Σ_j W[i,j,t-1]×ln_news_coverage[j,t-1] 的行随机加权同属一个测度族, 可视为该形式在顶级金融期刊的最新应用存在性证明; 迁移边界在于原文的连接基于股票间经济联系、被加权量为收益或特征、目标是横截面收益可预测性, 而本列的 W 来自银行新闻共现网络、被加权量为媒体报道量对数, 层级为银行-年且不做收益预测。Ouyang、Liu、Yin 与 Huang (2026) 以「共享分析师覆盖」这一信息中介的共现关系构造中国企业间网络并研究其上的传导, 与本列以新闻共现 (同一篇报道同时提及两家银行) 定义 W 的思路同族——均以第三方信息生产者的共同覆盖来推断实体间连接; 但原文的连接来自分析师覆盖重叠、被解释对象为股票收益, 亦未涉及本列对缺失同行的重归一处理。计量识别层面, Boucher 与 Houndetoungan (2025) 针对网络结构仅被部分观测 (抽样网络、删失网络或链接误分类) 的情形提出同侪效应估计方法, 证明只要网络分布可一致估计即可在 linear-in-means 模型中识别同侪效应, 并以 Add Health 数据显示网络数据误差会造成同侪效应的大幅向下偏误; 其规范对象正是行归一化 W 与空间滞后项 W·y, 故该文既锚定本列这一形式的计量地位, 也提示网络测量误差对此类估计的衰减风险——迁移边界是原文对缺失链接作模型化推断, 本列则采取「仅对 ln_news_coverage 非缺失的在网同行重归一、其余一律置零」的确定性口径, 二者处理缺失的机制完全不同, 原文亦不涉及银行、媒体报道量与中国语境。实现层面, Estrada、Estrada、Huynh、Jacho-Chávez 与 Sánchez-Aragón (2025) 提供 netivreg 的 Stata 实现, 针对内生社会网络下的 linear-in-means 同侪效应模型实现广义三阶段最小二乘与 GMM 估计量, 其识别利用 two-layered multiplex network 的数据结构提供外生变异, 估计对象同为行归一化 W 与空间滞后; 该文是软件实现与方法说明而非实证发现, 本项目未使用 netivreg、亦不做内生网络校正而是将 W 视为前定 (取 t-1 期), 故它仅锚定同族方法在 Stata 生态 (本项目分析端亦落在 Stata) 的存在与可行性, 以及「W 内生时需专门校正」这一提示, 并不背书本列的前定假设。
 ## VAR: peer_fintech_exposure_lag1
 
 【变体差分】
@@ -76,5 +108,9 @@ Grieser, W., Hadlock, C., LeSage, J., & Zekhnini, M. (2022). Network effects in 
 Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effects through social networks. Journal of Econometrics, 150(1), 41–55. https://doi.org/10.1016/j.jeconom.2008.12.021
 Ge, S., Li, S., & Zheng, H. (2025). Diamond cuts diamond: News co-mention momentum spillover prevails in China. Journal of Banking & Finance, 171, Article 107356. https://doi.org/10.1016/j.jbankfin.2024.107356
 Ahmad, M., Hall, S. G., Law, S. H., & Nayan, S. (2024). Spillover effects in the nexus of finance-institutions-growth: New insights from spatial Durbin analysis on emerging economies. International Journal of Finance & Economics, 30(3), 2470–2491. https://doi.org/10.1002/ijfe.3025
+Avramov, D., Ge, S., Li, S., & Linton, O. (2026). Dual peer effects and cross-stock predictability. Journal of Financial Economics, 180, 104274. https://doi.org/10.1016/j.jfineco.2026.104274
+Ouyang, H., Liu, X., Yin, J., & Huang, C. (2026). Firm Network Complexity and Stock Returns: Case of Shared Analyst Coverage in China. Emerging Markets Finance and Trade, 62(11), 4113-4136. https://doi.org/10.1080/1540496x.2025.2605157
+Boucher, V., & Houndetoungan, A. (2025). Estimating Peer Effects Using Partial Network Data. Review of Economics and Statistics, 1-48. https://doi.org/10.1162/rest.a.1630
+Estrada, P., Estrada, J., Huynh, K. P., Jacho-Chávez, D., & Sánchez-Aragón, L. (2025). netivreg: Estimation of peer effects in endogenous social networks. The Stata Journal: Promoting communications on statistics and Stata, 25(2), 344-373. https://doi.org/10.1177/1536867x251341145
 <!-- rendered-citations:end -->
 </content>

@@ -56,6 +56,15 @@ citations:
   vol: "71"
   issue: "9"
   pages_or_artno: "7888-7906"
+- doi: "10.1093/restud/rdaf037"
+  type: "journal"
+  authors: "Kwon, S. Y., & Tang, J."
+  year: 2026
+  title: "Extreme Categories and Overreaction to News"
+  venue: "Review of Economic Studies"
+  vol: "93"
+  issue: "2"
+  pages_or_artno: "1137-1166"
 new_dois: []
 ---
 
@@ -68,8 +77,7 @@ new_dois: []
 计算发生在两处。第一处在 pipeline/panel/runner.py 步骤 3d-2: 对 herd_detection.sensitivity_thresholds 配置里的每个候选阈值标签 (_tag, 本列对应 tag="thr25", 即相似度判定门槛设为 0.25 而非生产用的 0.35), 逐轨 (full/ctx/ss) 取出 stage 24 已算好的篇章级 herd_weight{track}_thr25 列, 用 fillna(1.0) 补齐 (未参与跟风检测或无同期可比样本的文章视为权重 1, 即不打折), 再与该篇章 llm_vote_score{track} 是否非缺失做逐元素掩码 (`.where(df[f'llm_vote_score{track}'].notna())`), 得到中间列 `_wd_hw_thr25_llm{track}` — 只在该篇文章的 LLM 投票语调本身有效时才计入权重分母, 否则记为缺失, 保证分子分母在同一有效样本域上匹配 (encode-01 分子分母同域惯例)。第二处在 pipeline/panel/encode.py 的 F5b 聚合段: 按 (bank, year) 分组对 `_wd_hw_thr25_llm{track}` 求 sum, 写入 `sum_wd_hw_thr25_llm{track}`。该列与同批产出的 `llm_vote_score_hw_thr25_sum{track}` (加权分子和) 配对使用, 下游 Stata/Python 端可据此重构 avg_llm_vote_score_hw_thr25{track} = 分子和 / 本列, 得到阈值 τ=0.25 下的银行-年加权平均 LLM 语调。整套阈值敏感性网格刻意只覆盖 LLM 投票这一条主回归 DV 测度族 (score/cont), 而非对词典/BERT 等全部 11 个测度族都展开阈值网格, 因为后者会造成列数爆炸; 具体网格取值 (含 thr25) 由 herd_sensitivity_grid(CONFIG) 从 config/*.yaml 的 herd_detection.sensitivity_thresholds 读出, 缺失阈值标签或缺失源列时该列自动被 valid_agg 过滤跳过, 不会静默产生全零或全 NaN 的假列。
 
 【文献定位】
-本家族在方法论上处于两条文献线的交叉点。其一是媒体情绪度量的经典传统, 以 Tetlock (2007) 在 Journal of Finance 提出的"用文本情绪预测市场反应"框架为源头, 后续研究反复关注同题材报道相互转载导致的信息重复计数问题, 本项目用相似度阈值衰减权重直接回应这一关切, 方法论上呼应 Kirtac & Germano (2024, Finance Research Letters) 在用大语言模型从新闻文本抽取交易信号时对"重复报道稀释信息含量"这一现象的强调, 二者共同指向同一个测度设计问题: 简单等权汇总同题材报道会系统性放大转载/跟风论调, 须在权重构造阶段主动衰减。其二是近年兴起的"用大语言模型做金融文本情感标注"文献: llm_vote_score 本身是三家商用 LLM 多数投票的产物, 其可靠性论证依赖 Gilardi et al. (2023, PNAS) 关于 ChatGPT 类模型在文本标注任务上可比甚至优于众包工的实证发现, 以及 de Kok (2025, Management Science) 对会计与金融研究中生成式 LLM 文本分析规范流程 (温度=0、提示词冻结、结果缓存) 的方法论综述, 二者共同支撑了本项目 stage 21 三家 LLM 投票 + 缓存复现的设计。Du et al. (2022, Review of Finance) 提出的中文金融情感词典方法论, 则作为词典法与 LLM 法的对照参照系, 提示不同测度方法各有偏差来源, 而阈值敏感性网格 (thr25 与生产口径 thr35 并排) 正是回应"结论是否依赖单一超参数选择"这一稳健性关切的具体落地。
-
+本家族在方法论上处于两条文献线的交叉点。其一是媒体情绪度量的经典传统, 以 Tetlock (2007) 在 Journal of Finance 提出的"用文本情绪预测市场反应"框架为源头, 后续研究反复关注同题材报道相互转载导致的信息重复计数问题, 本项目用相似度阈值衰减权重直接回应这一关切, 方法论上呼应 Kirtac & Germano (2024, Finance Research Letters) 在用大语言模型从新闻文本抽取交易信号时对"重复报道稀释信息含量"这一现象的强调, 二者共同指向同一个测度设计问题: 简单等权汇总同题材报道会系统性放大转载/跟风论调, 须在权重构造阶段主动衰减。其二是近年兴起的"用大语言模型做金融文本情感标注"文献: llm_vote_score 本身是三家商用 LLM 多数投票的产物, 其可靠性论证依赖 Gilardi et al. (2023, PNAS) 关于 ChatGPT 类模型在文本标注任务上可比甚至优于众包工的实证发现, 以及 de Kok (2025, Management Science) 对会计与金融研究中生成式 LLM 文本分析规范流程 (温度=0、提示词冻结、结果缓存) 的方法论综述, 二者共同支撑了本项目 stage 21 三家 LLM 投票 + 缓存复现的设计。Du et al. (2022, Review of Finance) 提出的中文金融情感词典方法论, 则作为词典法与 LLM 法的对照参照系, 提示不同测度方法各有偏差来源, 而阈值敏感性网格 (thr25 与生产口径 thr35 并排) 正是回应"结论是否依赖单一超参数选择"这一稳健性关切的具体落地。 阈值取值的非中性尚有一条构念侧的旁证。Kwon 与 Tang (2026) 在诊断性预期 (基于代表性启发的信念形成模型) 框架下推导并检验类别化的过度反应: 当新闻事件分属基本面分布尾部厚度不同的类别时, 模型预测投资者对极端类别的新闻过度反应更强; 作者在涵盖 24 类企业新闻 (业绩公告、产品发布、并购、业务扩张、客户相关等) 的数据库上检验, 发现基本面分布越极端的新闻类别, 公告后收益反转与成交量放大越明显。可迁移者仅为一条构念层提示: 新闻的类别归属并非无信息含量的标签, 类别边界本身携带经济含义并系统性关联到反应强度, 因而在测度构造中把连续量映射为类别或子集时, 边界取值不宜被当作中性的技术细节, 值得并排检验——本项目把跟风相似度门槛 τ 在 0.25 / 0.30 / 0.45 上并排做敏感性 (三者与生产口径互为稳健性、不分主次, 各自 just-identified 并排, 严禁混入同一 over-identified Hansen J), 即出于这一考虑。迁移边界须严格声明并不得回退: 原文的类别是语料中外生既有的新闻题材, 其机制是投资者信念形成中的行为偏误, 与研究者在跟风相似度检测网格上的口径选择是两种性质完全不同的离散化; 本处明确不主张原文做过连续信号的离散化, 亦不主张原文提出了"研究者须显式检验阈值"这一方法学规范; 原文更未涉及文本相似度、跟风衰减权重、LLM 或加权分母, 其类别边界与本项目的 τ 无对应物、数值不可比, 故该文只作旁证, 不构成本家族阈值网格设计的直接实证支撑。
 ## VAR: sum_wd_hw_thr25_llm_full
 
 【变体差分】
@@ -90,4 +98,5 @@ Kirtac, K., & Germano, G. (2024). Sentiment trading with large language models. 
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and Domain Specificity: A Chinese Financial Sentiment Dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Gilardi, F., Alizadeh, M., & Kubli, M. (2023). ChatGPT outperforms crowd workers for text-annotation tasks. Proceedings of the National Academy of Sciences, 120(30), e2305016120. https://doi.org/10.1073/pnas.2305016120
 de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
+Kwon, S. Y., & Tang, J. (2026). Extreme Categories and Overreaction to News. Review of Economic Studies, 93(2), 1137-1166. https://doi.org/10.1093/restud/rdaf037
 <!-- rendered-citations:end -->

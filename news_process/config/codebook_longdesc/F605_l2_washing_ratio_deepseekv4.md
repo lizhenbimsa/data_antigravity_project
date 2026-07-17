@@ -39,6 +39,22 @@ citations:
   vol: "80"
   issue: "2"
   pages_or_artno: 699-754
+- doi: "10.1016/j.eap.2025.07.036"
+  type: "journal"
+  authors: "Zhou, H."
+  year: 2025
+  title: "Major shareholders' equity pledge and the “All talk and no action” strategy in digital transformation"
+  venue: "Economic Analysis and Policy"
+  vol: "87"
+  pages_or_artno: "1630-1652"
+- doi: "10.1016/j.frl.2025.108096"
+  type: "journal"
+  authors: "Li, Y."
+  year: 2025
+  title: "Can large language models (LLMs) replace human reading? Empirical evidence from sustainability reports"
+  venue: "Finance Research Letters"
+  vol: "85"
+  pages_or_artno: "108096"
 new_dois: []
 ---
 
@@ -51,8 +67,7 @@ washing_ratio_deepseekv4 一族测度的是"媒体报道中银行金融科技创
 washing_ratio_deepseekv4 的分子构造分两步: 第一步取情感判定, 第二步取实质性判定, 二者做逻辑与(AND)后计数。与家族 canonical `washing_ratio`(方法 A, LLM 三家多数投票)不同, `_deepseekv4` 后缀对应 producer 代码里明确实现的"方法 A2: 单个 LLM"变体 —— 即不取三家 LLM (gpt54nano/gemini31/deepseekv4) 多数投票后的正面判定, 而是只取 deepseekv4 单模型自身的逐篇连续情感打分 `deepseekv4_score{track}`, 经 `fillna(0)` 后以 `>0` 二值化为正面标记(`_llm_pos{track}`); 该二值化判据是 producer 就地计算的中间量, 不落盘为独立列, 与家族三家共识版所用的门控式 `llm_verified_full`/多数票是两条不同但同构的正面判定路径。情感打分来源是浮点型逐篇量表分, `fillna(0)` 语义下 NaN/测量失败/未评分一律折算为 0 分, 因不满足 `>0` 而不计入正面, 不会被误判为反面或正面。实质性判定 `innovation_substantiveness_full` 取值"实质性"/"象征性"两类字符串标签, 该判定固定用 full 轨(不随本家族三轨切换, 判据主体是整篇文章的创新话语归类, 与 washing_ratio 三轨各自独立的"正面情感"判据是两个不同的维度)。分母口径是本家族的一处关键校正: 早期实现曾把分母设为"全部正面文章数", 但若 LLM 对实质性/象征性的分类本身存在测量失败(NaN), 这些失败篇目永远进不了分子(因为分子要求象征性=True 且失败篇目 astype(str) 后变成字符串 'nan', 不等于'象征性'也不等于'实质性'), 却仍会被计入旧分母, 导致"分类失败越多, 洗稿率被系统性稀释得越低"这一测量假象。当前实现改用"同域分母"(`_svd_{llm}_pos{track}`, subst-valid denominator): producer 就地构造 `washing_cols[f"_svd_deepseekv4_pos{track}"] = (_llm_pos{track} & _subst_measured)`, 分母只统计"正面 且 实质性/象征性分类已成功测出"的文章, 与分子处在同一个可测量子空间内, 避免分类失败率的波动机械地压低比率; 面板层最终由 `deepseekv4_pos_count{track}`(分母, 该子域内文章篇数加总)与 `deepseekv4_pos_symb_count{track}`(分子, 该子域内象征性文章篇数加总)聚合到银行-年层级, 相除得到本列。
 
 【文献定位】
-washing_ratio_deepseekv4 与三家 LLM 多数投票版本 `washing_ratio` 之间的关系, 完全遵循本项目 CLAUDE.md 载明的口径铁律: 三家 LLM (`gpt54nano`/`gemini31`/`deepseekv4`) 各自的 per-model 子测度是"co-equal 跨厂商稳健性轨", 互为稳健性、不分主次, 与多数投票共识测度并排存在, 目的是验证洗稿率不是被某一家 LLM 的判定偏差单独驱动的产物, 而是三家厂商独立判定下都能复现的稳定信号 —— 这与 Gorovaia & Makrominas (2024) 强调 NLP 方法应做跨模型/跨方法稳健性检验的建议一致。真实的跨模型一致性 FWER 校正落在根级模板 `27_tableA12_cross_model_fwer`(Panel C 情感族), 而非本家族自身承担多重检验校正职责。同时须遵守铁律: `washing_ratio_deepseekv4`、`washing_ratio`(共识)、以及另外两家单模型变体(`washing_ratio_gpt54nano`/`washing_ratio_gemini31`, 若存在于其他家族)各自 just-identified 并排使用, 禁止将它们混入同一个 over-identified 的 Hansen J 过度识别检验, 因为它们本质上是同一构念的多个替代测量, 而非相互独立的额外识别信息源。
-
+washing_ratio_deepseekv4 与三家 LLM 多数投票版本 `washing_ratio` 之间的关系, 完全遵循本项目 CLAUDE.md 载明的口径铁律: 三家 LLM (`gpt54nano`/`gemini31`/`deepseekv4`) 各自的 per-model 子测度是"co-equal 跨厂商稳健性轨", 互为稳健性、不分主次, 与多数投票共识测度并排存在, 目的是验证洗稿率不是被某一家 LLM 的判定偏差单独驱动的产物, 而是三家厂商独立判定下都能复现的稳定信号 —— 这与 Gorovaia & Makrominas (2024) 强调 NLP 方法应做跨模型/跨方法稳健性检验的建议一致。真实的跨模型一致性 FWER 校正落在根级模板 `27_tableA12_cross_model_fwer`(Panel C 情感族), 而非本家族自身承担多重检验校正职责。同时须遵守铁律: `washing_ratio_deepseekv4`、`washing_ratio`(共识)、以及另外两家单模型变体(`washing_ratio_gpt54nano`/`washing_ratio_gemini31`, 若存在于其他家族)各自 just-identified 并排使用, 禁止将它们混入同一个 over-identified 的 Hansen J 过度识别检验, 因为它们本质上是同一构念的多个替代测量, 而非相互独立的额外识别信息源。 在构念存在性层面, Zhou (2025) 直接构造并检验了中国上市公司数字化转型中的「只说不做」(all talk and no action) 策略, 并以股权质押为驱动因素, 证明「宣称强度远超实质投入」在中国数字化/科技话语场景中是可测量、可识别的企业策略, 与本族 washing_ratio 的构念定义同源; 但其测度基于企业自身年报数字化词频与实际数字投入之比, 主体是非金融上市公司, 识别策略依托股权质押冲击, 而本列基于第三方新闻报道的 LLM 象征性判定占正面报道之比, 主体是商业银行, 因此本轮仅取其构念定义与存在性, 不迁移其识别设计。判定器效度层面, Li (2025) 以可持续报告为语料, 实证比较 LLM 抽取与人工阅读的结果一致性, 评估 LLM 能否替代人工完成文本内容判定, 为本族以 LLM 逐篇判定 innovation_substantiveness 并据以构造比率提供了 LLM-as-annotator 的前沿效度前提; 但其语料为英文可持续报告, 判定任务为可持续内容抽取, 既未涉及象征-实质二分, 也未做多模型投票, 该效度结论不能直接外推到本项目的中文银行新闻任务与 deepseekv4 这一具体模型版本 —— 本列判定器自身的效度仍须由 `27_tableA12` 的跨模型一致性证据承担, 不得以原文结论代替。
 ## VAR: washing_ratio_deepseekv4
 
 【变体差分】
@@ -72,4 +87,6 @@ washing_ratio_deepseekv4 与三家 LLM 多数投票版本 `washing_ratio` 之间
 Gorovaia, N., & Makrominas, M. (2024). Identifying greenwashing in corporate-social responsibility reports using natural-language processing. European Financial Management, 31(1), 427-462. https://doi.org/10.1111/eufm.12509
 Fan, X., Tang, Z., Huang, W., & Yang, K. (2025). Ownership concentration and corporate greenwashing in China's capital markets- Based on a multi-actors perspective. Pacific-Basin Finance Journal, 89, Article 102600. https://doi.org/10.1016/j.pacfin.2024.102600
 Duchin, R., Gao, J., & Xu, Q. (2025). Sustainability or greenwashing- Evidence from the asset market for industrial pollution. The Journal of Finance, 80(2), 699-754. https://doi.org/10.1111/jofi.13412
+Zhou, H. (2025). Major shareholders' equity pledge and the “All talk and no action” strategy in digital transformation. Economic Analysis and Policy, 87, 1630-1652. https://doi.org/10.1016/j.eap.2025.07.036
+Li, Y. (2025). Can large language models (LLMs) replace human reading? Empirical evidence from sustainability reports. Finance Research Letters, 85, 108096. https://doi.org/10.1016/j.frl.2025.108096
 <!-- rendered-citations:end -->

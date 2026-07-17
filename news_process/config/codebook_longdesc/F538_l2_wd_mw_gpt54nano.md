@@ -47,6 +47,15 @@ citations:
   vol: '30'
   issue: '4'
   pages_or_artno: 570-589
+- doi: "10.1080/19312458.2024.2378690"
+  type: "journal"
+  authors: "Laurer, M., van Atteveldt, W., Casas, A., & Welbers, K."
+  year: 2025
+  title: "On Measurement Validity and Language Models: Increasing Validity and Decreasing Bias with Instructions"
+  venue: "Communication Methods and Measures"
+  vol: "19"
+  issue: "1"
+  pages_or_artno: "46-62"
 new_dois: []
 ---
 
@@ -60,8 +69,7 @@ F538 家族的三列 (sum_wd_mw_gpt54nano_full / _ctx / _ss) 不是情感测度�
 三轨语义遵循项目统一口径: full=标题+正文全文, ctx=标题+银行/金科实体窗口, ss=标题+银行∧金科同句 (或窗口±N) 共现片段, 三者在 stage 14 `ctx_materializer` 统一物化; ss 轨若某篇报道不存在银行∧金科同句共现, 按镜像 ctx 的回退语义退化为使用全文正文 (`content_ss`=全文 body, `ss_is_fallback`=True), 该回退不影响本族分母构造本身——分母只关心 gpt54nano 在该轨的 score 是否非缺失, 与该轨文本是否走了回退通道是两个独立判据。三轨各自 just-identified 并排、互为稳健性、不分主次, 项目铁律要求三轨结果禁止混入同一个 over-identified 的 Hansen J 过度识别检验中联合估计; 留篇门控口径 (是否判定为"一篇银行金科报道") 自 2026-06-29 起统一为 full-only, 即仅由 `llm_verified_full` 决定, ctx/ss 两轨降为 full 留篇集合之上的 conditional-on-full 测度/稳健性轨, 本族 ctx/ss 两列的行宇宙同样是该 full 留篇子集, 而非独立留篇标准下的报道全集。
 
 【文献定位】
-本族三列服务的多 LLM 多数投票 + 跨厂商稳健性设计, 方法学根基是"用多个独立评分者的判断汇聚以逼近真值"这一测量学传统在 LLM 时代的延伸。Gilardi, Alizadeh & Kubli (2023, PNAS) 证明 ChatGPT 类模型在文本标注任务上准确率可超越众包工人, 为用 LLM 替代/补充人工标注建立了实证基础; Schoenegger et al. (2024, Science Advances) 进一步论证多个 LLM 组成的"硅基群体"预测能力可比拟人类群体智慧, 为本项目采用三家异构 LLM (而非单家) 投票聚合提供了方法学支撑——多家模型各自独立打分、再加权/投票聚合的思路正是"群体智慧"范式在情感分类任务上的具体落地。van Atteveldt, van der Velden & Boukes (2021, Communication Methods and Measures) 系统比较了人工标注、众包编码、词典法与机器学习算法在情感分析效度上的差异, 说明不同测量路径 (对应本项目的 LLM/词典/BERT 三法并排) 各有效度剖面, 支持项目"多法互为稳健性、不设单一权威测度"的整体设计哲学。Ying, Montgomery & Stewart (2022, Political Analysis) 探讨了众包验证程序在概念测量中的应用, 呼应本族分母构造中"有效性掩码"这一核心动作的方法学关切: 当某个评分来源 (无论是人类标注者还是本项目情境下的某家 LLM) 对特定样本未能给出判断时, 聚合统计量的构造必须显式处理这种缺失, 否则会引入系统性偏差, 这正是 `sum_wd_mw_gpt54nano{track}` 存在的方法学正当性所在。
-
+本族三列服务的多 LLM 多数投票 + 跨厂商稳健性设计, 方法学根基是"用多个独立评分者的判断汇聚以逼近真值"这一测量学传统在 LLM 时代的延伸。Gilardi, Alizadeh & Kubli (2023, PNAS) 证明 ChatGPT 类模型在文本标注任务上准确率可超越众包工人, 为用 LLM 替代/补充人工标注建立了实证基础; Schoenegger et al. (2024, Science Advances) 进一步论证多个 LLM 组成的"硅基群体"预测能力可比拟人类群体智慧, 为本项目采用三家异构 LLM (而非单家) 投票聚合提供了方法学支撑——多家模型各自独立打分、再加权/投票聚合的思路正是"群体智慧"范式在情感分类任务上的具体落地。van Atteveldt, van der Velden & Boukes (2021, Communication Methods and Measures) 系统比较了人工标注、众包编码、词典法与机器学习算法在情感分析效度上的差异, 说明不同测量路径 (对应本项目的 LLM/词典/BERT 三法并排) 各有效度剖面, 支持项目"多法互为稳健性、不设单一权威测度"的整体设计哲学。Ying, Montgomery & Stewart (2022, Political Analysis) 探讨了众包验证程序在概念测量中的应用, 呼应本族分母构造中"有效性掩码"这一核心动作的方法学关切: 当某个评分来源 (无论是人类标注者还是本项目情境下的某家 LLM) 对特定样本未能给出判断时, 聚合统计量的构造必须显式处理这种缺失, 否则会引入系统性偏差, 这正是 `sum_wd_mw_gpt54nano{track}` 存在的方法学正当性所在。 晚近测量方法学文献进一步夯实了本族掩码的效度前提。Laurer、Casas 与 Welbers (2025) 以对照实验系统检验语言模型作为测量工具的效度, 证明指令/提示设计会实质改变效度与偏误; 本族三列以 gpt54nano 在该轨是否给出有效判断界定分母求和域, 该掩码本身即模型效度的函数, 故该文锚定的正是本族 (以及 mw/vw/hw 各权重口径下全部 per-model 分母姊妹族) 赖以成立的效度前提。迁移边界须诚实标明: 原文对象为英文传播学文本分类任务与开源指令微调模型, 本项目则是中文新闻加三家商用 API 模型; 原文结论支持"加指令可提效度", 而本项目情感提示词 v8 已字节冻结、嵌入侧刻意零 instruct 前缀, 二者设计取向不同, 不可直接迁移; 原文亦不涉及任何权重加权分母口径, 更未处理银行-年面板层的聚合。
 ## VAR: sum_wd_mw_gpt54nano_full
 
 【变体差分】
@@ -82,4 +90,5 @@ Gilardi, F., Alizadeh, M., & Kubli, M. (2023). ChatGPT outperforms crowd workers
 Schoenegger, P., Tuminauskaite, I., Park, P. S., Bastos, R. V. S., & Tetlock, P. E. (2024). Wisdom of the silicon crowd — LLM ensemble prediction capabilities rival human crowd accuracy. Science Advances, 10(45), eadp1528. https://doi.org/10.1126/sciadv.adp1528
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis — comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Ying, L., Montgomery, J. M., & Stewart, B. M. (2022). Topics, concepts, and measurement — a crowdsourced procedure for validating topics as measures. Political Analysis, 30(4), 570-589. https://doi.org/10.1017/pan.2021.33
+Laurer, M., van Atteveldt, W., Casas, A., & Welbers, K. (2025). On Measurement Validity and Language Models: Increasing Validity and Decreasing Bias with Instructions. Communication Methods and Measures, 19(1), 46-62. https://doi.org/10.1080/19312458.2024.2378690
 <!-- rendered-citations:end -->

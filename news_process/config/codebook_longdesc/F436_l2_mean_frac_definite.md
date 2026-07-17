@@ -38,6 +38,23 @@ citations:
   vol: 63
   issue: 2-3
   pages_or_artno: 329-357
+- doi: "10.1016/j.frl.2025.108622"
+  type: "journal"
+  authors: "Zhou, W., Xiong, Y., & Wang, S."
+  year: 2025
+  title: "Dialect diversity, corporate annual report text readability and stock price crash risks"
+  venue: "Finance Research Letters"
+  vol: "86"
+  pages_or_artno: "108622"
+- doi: "10.1016/j.respol.2025.105301"
+  type: "journal"
+  authors: "Gounopoulos, D., Huang, W., & Yang, M."
+  year: 2025
+  title: "Innovation and annual report readability"
+  venue: "Research Policy"
+  vol: "54"
+  issue: "8"
+  pages_or_artno: "105301"
 new_dois: []
 ---
 
@@ -50,8 +67,7 @@ new_dois: []
 frac_definite 的计算发生在两个流水线阶段。阶段 22 (tone_words) 在文章层面对 content_full / content_ctx / content_ss 三轨文本各自独立做确定性词典扫描, 命中确定性词元数记为 n_definite_{track}, 除以该轨清晰度词典的基准词元总数 n_tokens_clarity_base_{track} (即该文章参与清晰度判定的有效词元数, 而非全文分词数), 得到文章级连续比例 frac_definite_{track}_i ∈ [0,1]。该比例在落盘时被套上 clarity_ 命名空间前缀, 实际物理列名为 clarity_frac_definite_{track}, 与同批次落盘的 clarity_frac_ambiguous_{track}/clarity_clarity_score_{track} 共享同一前缀约定, 用以和词典族其余非清晰度列 (情感极性/否定翻转等) 在同一张文章级宽表里区分命名空间; 阶段 40 聚合函数按这一带前缀的真实列名读取上游数据, 产出时再落回不带前缀的面板列名 mean_frac_definite_{track}, 这一"文章层带前缀、面板层去前缀"的转换发生在 encode_collab.py 内部而非独立的重命名脚本。阶段 40 (encode_collab.py::aggregate_clarity_panel) 再把文章级列聚合到银行—年度面板层: 对同一银行同一年度下的全部有效文章 (即该轨清晰度扫描非缺失的文章), 以权重 w_i (默认等权, 与 llm_vote_tone 等家族一致, 未启用提及密度/媒体权威/羊群衰减等专属加权口径) 做加权平均, 得到 mean_frac_definite_{track}[b,t] = Σ w_i × frac_definite_{track}_i / Σ w_i。分母口径遵循 2026-06-11 修订: n_clarity_valid_{track} < 2 (该银行年度下清晰度非缺失文章不足 2 篇) 时整格记为 NaN 而非假零, 避免样本量过小导致的伪精度; 空文或零 token 文章在 tone_words 阶段已显式记 NaN, 不会被错误计入物理分母造成系统性下偏。三轨口径 (full/ctx/ss) 各自独立扫描、独立聚合、各自 just-identified 并排, 互为稳健性、不分主次, 严禁混进同一 over-identified 的 Hansen J 检验——full 轨是标题+正文全文扫描, ctx 轨是标题+银行实体窗口扫描, ss 轨是标题+银行与金科同句 (±1 句默认半径) 扫描; 三轨分母口径不直接可比 (ctx/ss 文本长度显著短于 full, 论文披露口径见家族姊妹变量 notes), 因此跨轨比较应看方向一致性而非绝对水平差。ss 轨遵循镜像 ctx 的回退语义: 若某文章无银行∧金科同句共现, 则该文章 content_ss 回退为全文 body 且 ss_is_fallback 记 True, 与 n_articles 共享分母; 若清晰度词典整体缺席 (旧版 parquet 未产出 clarity_*_ss 列), 该轨在聚合环节被优雅跳过, 不影响 full/ctx 两轨照常产出。留篇门控口径 (2026-06-29 起) 采用 full-only 判定: 一篇报道是否被计为"一篇银行金科报道"只看 llm_verified_full, ctx/ss 两轨的清晰度聚合行宇宙是 full 留篇集的子集, 各轨列值仍按各自文本独立计算, 不借用彼此的判定结果。
 
 【文献定位】
-本家族在文本测度谱系中处于"叙事语气确定性"这一相对小众但方法学脉络清晰的子领域。You, Zhang & Zhang (2018) 在《金融研究评论》上系统论证了中国媒体报道措辞的确定/模糊程度与后续股价反应、机构关注度存在稳健关联, 提出媒体在"能确定的事说死、不能确定的事留白"这一叙事策略本身携带增量信息, 是本家族最直接的构念与词典来源, 其 Panel C 词表在本项目里被逐字复用为确定性词元判据的基础。Loughran & McDonald (2011) 虽然聚焦的是正负情感与不确定性 (uncertainty) 词典而非确定性词典本身, 但他们提出的"金融语域词典须专门构造、不可套用通用语言学词典"这一方法学原则, 是本项目在中文语境下沿用 You et al. 词表而非直接套用通用汉语"确定性副词表"的理据; 同时 Loughran & McDonald 的 uncertain 词类别与本家族的 definite 词类别在语义上互为镜像 (不确定性上升往往伴随确定性下降), 因此常被同一批论文并列引用作方法学对照。Bonsall, Leone, Miller & Rennekamp (2017) 的平实英语测度提醒研究者: 清晰度是多维构念, 句法复杂度 (可读性维度) 与措辞确定性 (本家族维度) 是两条彼此正交但都指向"文本传达信息难易程度"的分量, 不应用单一综合评分掩盖两者各自的方向性。本项目把 frac_definite 作为清晰度综合指标 clarity_score 的连续备份分量单独物化保留 (而非仅保留净额差), 呼应了 Bonsall et al. 倡导的"多维并行、不强行合一"的测度设计取向, 也是家族 notes 中所述"与 LLM substance 做 HTMT discriminant validity" (阶段 39d) 稳健性检验的基础——只有分量粒度足够细, 判别效度检验才能定位清晰度构念与实质性报道构念之间的真实重叠边界, 而非被合成指标掩盖。
-
+本家族在文本测度谱系中处于"叙事语气确定性"这一相对小众但方法学脉络清晰的子领域。You, Zhang & Zhang (2018) 在《金融研究评论》上系统论证了中国媒体报道措辞的确定/模糊程度与后续股价反应、机构关注度存在稳健关联, 提出媒体在"能确定的事说死、不能确定的事留白"这一叙事策略本身携带增量信息, 是本家族最直接的构念与词典来源, 其 Panel C 词表在本项目里被逐字复用为确定性词元判据的基础。Loughran & McDonald (2011) 虽然聚焦的是正负情感与不确定性 (uncertainty) 词典而非确定性词典本身, 但他们提出的"金融语域词典须专门构造、不可套用通用语言学词典"这一方法学原则, 是本项目在中文语境下沿用 You et al. 词表而非直接套用通用汉语"确定性副词表"的理据; 同时 Loughran & McDonald 的 uncertain 词类别与本家族的 definite 词类别在语义上互为镜像 (不确定性上升往往伴随确定性下降), 因此常被同一批论文并列引用作方法学对照。Bonsall, Leone, Miller & Rennekamp (2017) 的平实英语测度提醒研究者: 清晰度是多维构念, 句法复杂度 (可读性维度) 与措辞确定性 (本家族维度) 是两条彼此正交但都指向"文本传达信息难易程度"的分量, 不应用单一综合评分掩盖两者各自的方向性。本项目把 frac_definite 作为清晰度综合指标 clarity_score 的连续备份分量单独物化保留 (而非仅保留净额差), 呼应了 Bonsall et al. 倡导的"多维并行、不强行合一"的测度设计取向, 也是家族 notes 中所述"与 LLM substance 做 HTMT discriminant validity" (阶段 39d) 稳健性检验的基础——只有分量粒度足够细, 判别效度检验才能定位清晰度构念与实质性报道构念之间的真实重叠边界, 而非被合成指标掩盖。 这一多维并行的取向在近年的证据里得到延续, 且延伸到了与本项目同语言的语境。Zhou、Xiong 与 Wang (2025) 在中国上市公司语境下构造中文年报文本可读性指标并检验其与股价崩盘风险的关系, 表明中文金融文本的表达明晰程度可作为企业—年度面板变量并携带定价含义, 是本家族所承接的"可读性"那条并行脉络在同语言语境下的当代存在性证明; 迁移边界在于其测度对象是公司自我披露的正式年报而非第三方媒体报道, 其可读性算子属句法/词汇难度一类, 与本家族的确定性词元占比不同式, 层级为 firm-year 且 DV 为崩盘风险, 故仅锚定脉络存在性而不锚定 frac_definite 的具体构造。Gounopoulos、Huang 与 Yang (2025) 检验企业创新与年报可读性的关联, 发现低可读性与创新绩效呈倒 U 型关系, 并以"维护竞争优势"与"隐藏风险"两条机制解释企业对披露文本复杂度的策略性调整, 提示文本表达的明晰程度并非被动的写作习惯, 而是可被信息发布主体策略性拿捏的选择——这一机制解读与本家族所刻画的"能确定的事说死、不能确定的事留白"的措辞取舍方向一致。其迁移边界须写明: 原文语料为英文 10-K 类披露文件, 可读性以 Fog/Bog 等英文公式度量, 与本项目基于中文确定性词表的词元占比非同式; 且原文中可读性主要处于解释变量位置 (与本项目把清晰度分量列作银行—年度自变量的用法方向一致), 本项目不据其声称"可读性作为被解释变量"的设计先例。两篇均属可读性维度的旁证, 与本家族的措辞确定性维度按 Bonsall et al. 的告诫仍作正交分量并行保留, 不合成为单一评分。
 ## VAR: mean_frac_definite_full
 
 【变体差分】
@@ -71,4 +87,6 @@ frac_definite 的计算发生在两个流水线阶段。阶段 22 (tone_words) �
 You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Bonsall, S. B., IV, Leone, A. J., Miller, B. P., & Rennekamp, K. (2017). A plain English measure of financial reporting readability. Journal of Accounting and Economics, 63(2-3), 329-357. https://doi.org/10.1016/j.jacceco.2017.03.002
+Zhou, W., Xiong, Y., & Wang, S. (2025). Dialect diversity, corporate annual report text readability and stock price crash risks. Finance Research Letters, 86, 108622. https://doi.org/10.1016/j.frl.2025.108622
+Gounopoulos, D., Huang, W., & Yang, M. (2025). Innovation and annual report readability. Research Policy, 54(8), 105301. https://doi.org/10.1016/j.respol.2025.105301
 <!-- rendered-citations:end -->

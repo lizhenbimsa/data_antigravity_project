@@ -47,6 +47,24 @@ citations:
   vol: '28'
   issue: '1'
   pages_or_artno: 1-32
+- doi: "10.1016/j.ceqi.2024.06.003"
+  type: "journal"
+  authors: "Ji, Z., Ye, N., & Kong, D."
+  year: 2024
+  title: "The contraction of Chinese shadow banking and corporate investment behavior: Evidence from the background of the “New Rules on asset management”"
+  venue: "China Economic Quarterly International"
+  vol: "4"
+  issue: "2"
+  pages_or_artno: "119-132"
+- doi: "10.1287/mnsc.2023.00104"
+  type: "journal"
+  authors: "Nogueira, G., Farinha, L., & Blattner, L."
+  year: 2024
+  title: "Not All Shocks Are Created Equal: Assessing Heterogeneity in the Bank Lending Channel"
+  venue: "Management Science"
+  vol: "70"
+  issue: "10"
+  pages_or_artno: "6942-6965"
 new_dois: []
 ---
 
@@ -63,8 +81,7 @@ new_dois: []
 
 【文献定位】
 本家族的构造思路借鉴 Drechsler et al. (2026) 揭示的存款特许权承压渠道, 并结合 Fang et al. (2024) 在中国银行业场景下的媒体情感-压力期交互设计, 将其迁移到"银行×金融科技"报道语调这一细分构念上。Garcia (2025) 与 Da, Engelberg & Gao (2015) 进一步佐证危机/压力时期情感信号的分布特征 (分歧度、持久性) 与常规期存在系统性差异, 支持将压力期单独设定交互项而非假设常数边际效应的建模选择。三个压力年份的锚定 (2015 股灾去杠杆前夕、2018 资管新规去杠杆、2020 疫情冲击) 均为中国银行体系历史上公认的系统性压力事件, 定义来源为 `pipeline/panel/runner.py` 中 `STRESS_YEARS = {2015, 2018, 2020}` 的显式硬编码常量 (源码行内注释标注"股灾、去杠杆、疫情")。经核实, `51_falsification_test.py` 为 thin shim, 其真实逻辑委托给 `pipeline/falsification/controls.py`, 该文件当前并不含独立的压力年份常量或 `stress_period` 派生逻辑, 因此本家族无法声称与该验证脚本存在可验证的跨脚本口径对齐; `stress_period` 的唯一权威定义即 `pipeline/panel/runner.py` 本处常量, 后续若 `pipeline/falsification/controls.py` 补入同名压力年份定义, 应另行核实两处取值是否一致, 而非默认继承。
-经同等核实, `pipeline/panel/export.py` 内负责 Stata 变量标签映射的字典条目, 实读仅含 `tone_x_stress_full` 与 `tone_x_stress_ctx` 两条, 缺 `tone_x_stress_ss` 对应条目; 该列在导出 `.dta` 时因此不带专属英文变量标签 (退化为默认标签或沿用字段名本身), 与 full/ctx 两轨在 Stata 端的可读性存在实际差异, 但不影响该列在面板 parquet 层的数值构造与三轨并排的稳健性关系, 使用者在读取 `.dta` 变量标签时应留意此缺口, 不应默认三列标签映射对称完整。
-
+经同等核实, `pipeline/panel/export.py` 内负责 Stata 变量标签映射的字典条目, 实读仅含 `tone_x_stress_full` 与 `tone_x_stress_ctx` 两条, 缺 `tone_x_stress_ss` 对应条目; 该列在导出 `.dta` 时因此不带专属英文变量标签 (退化为默认标签或沿用字段名本身), 与 full/ctx 两轨在 Stata 端的可读性存在实际差异, 但不影响该列在面板 parquet 层的数值构造与三轨并排的稳健性关系, 使用者在读取 `.dta` 变量标签时应留意此缺口, 不应默认三列标签映射对称完整。 在压力年份的外部依据层面, 近期两项研究可分别锚定本家族设定的不同环节。Ji、Ye 与 Kong (2024) 以中国资管新规引致的影子银行收缩为背景, 识别其对企业投资行为的经济后果, 为 stress_period 中 2018 年这一去杠杆压力年份提供了直接的实证依据; 但迁移边界须诚实写明: 该文分析单位是企业、被解释变量是企业投资, 与本项目 bank-year 层面的年份哑元不同, 且该文仅覆盖 2018 资管新规这一个事件, 对 2015 股灾去杠杆前夜与 2020 疫情冲击不提供任何依据 —— 将三年并置为单一 stress_period 属本项目的研究者设定, 该文并不背书。Nogueira、Farinha 与 Blattner (2024) 则以葡萄牙信贷登记与证券层银行资产负债表数据横向比较欧债危机中 PSI 债务重组、OMT 与 QE 三个冲击的传导, 证明收益率影响并非衡量银行信贷渠道强度的充分统计量, 唯有 QE 显著改变银行主权债持有与对企业和家庭的信贷, 从而在顶刊层面支撑「不同冲击期的效应不可等同、冲击期身份本身即是实质性调节维度」这一前提, 与本家族以冲击期哑元交互语调而非假设常数边际效应的设定对口。迁移边界同样须明确: 该文被解释变量为银行信贷供给, 冲击为非常规货币政策事件, 样本为葡萄牙/欧洲银行体系, 完全不涉及媒体文本; 其银行异质性维度是资本充足率而非银行规模, 因此不构成对本项目规模类交互设定的任何依据; stress_period = 1{year ∈ {2015, 2018, 2020}} 亦为本项目自定义的中国特定压力年份哑元, 原文无此设定。
 ## VAR: tone_x_stress_full
 
 【变体差分】
@@ -88,5 +105,7 @@ Drechsler, I., Savov, A., Schnabl, P., & Wang, O. (2026). Deposit Franchise Runs
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Garcia, J. (2025). Beyond the headlines: Sentiment divergence and financial distress. Global Finance Journal, 66, Article 101126. https://doi.org/10.1016/j.gfj.2025.101126
 Da, Z., Engelberg, J., & Gao, P. (2015). The sum of all FEARS investor sentiment and asset prices. The Review of Financial Studies, 28(1), 1-32. https://doi.org/10.1093/rfs/hhu072
+Ji, Z., Ye, N., & Kong, D. (2024). The contraction of Chinese shadow banking and corporate investment behavior: Evidence from the background of the “New Rules on asset management”. China Economic Quarterly International, 4(2), 119-132. https://doi.org/10.1016/j.ceqi.2024.06.003
+Nogueira, G., Farinha, L., & Blattner, L. (2024). Not All Shocks Are Created Equal: Assessing Heterogeneity in the Bank Lending Channel. Management Science, 70(10), 6942-6965. https://doi.org/10.1287/mnsc.2023.00104
 <!-- rendered-citations:end -->
 </content>

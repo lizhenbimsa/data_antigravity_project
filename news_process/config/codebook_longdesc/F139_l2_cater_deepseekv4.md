@@ -57,6 +57,22 @@ citations:
   vol: 66
   issue: 1
   pages_or_artno: 35-65
+- doi: "10.2139/ssrn.4961494"
+  type: "wp"
+  authors: "Yang, Y., Duan, H., Liu, J., & Tam, K. Y."
+  year: 2024
+  title: "LLM-Measure: Generating Valid, Consistent, and Reproducible Text-Based Measures for Social Science Research"
+  venue: "SSRN"
+  pages_or_artno: "4961494"
+- doi: "10.1093/pnasnexus/pgaf069"
+  type: "journal"
+  authors: "Kristensen-McLachlan, R. D., Canavan, M., Kárdos, M., Jacobsen, M., & Aarøe, L."
+  year: 2025
+  title: "Are chatbots reliable text annotators? Sometimes"
+  venue: "PNAS Nexus"
+  vol: "4"
+  issue: "4"
+  pages_or_artno: "pgaf069"
 new_dois: []
 ---
 
@@ -69,8 +85,7 @@ new_dois: []
 计算发生在面板总装阶段 (runner.py 步骤 8d, 算法迎合度全展开块), 属零额外调用的纯后处理: 上游 stage 21 已产出 deepseekv4 逐篇三分类结果并在 aggregate_panel 聚合为 bank-year 的 deepseekv4_tone, stage 22 已产出六词典语调并聚合为 dict_avg_tone, 本家族只做逐轨逐行的减法 cater_deepseekv4{track} = dict_avg_tone{track} − deepseekv4_tone{track}。两个被减量都事先归一化到 [-1,1] 的可比尺度, 因此差值本身无量纲, 理论取值区间为 [-2,2], 但实际分布集中在零附近。本家族属"综合词典 vs 单深层模型"的 C 型迎合度, 与"综合词典 vs 综合 LLM 投票"的 algo_cater、"单词典 vs 综合模型"的 {dict}_cater、"综合词典 vs 单 BERT"的 cater_{bert} 并列, 它们各自锁定迎合信号的一个正交切面。留篇口径遵循 full-only 门控 (2026-06-29): 一篇报道是否计入银行金融科技样本、进而进入任何轨的分母, 只由 full 轨的 LLM 验证结果决定; ctx 与 ss 轨是 conditional-on-full 的稳健性测度, 其行宇宙是 full 留篇集的子集。零覆盖的 bank-year (无有效报道) 在同族缺失语义下应输出 NaN 而非伪零, 避免把"没数据"误当成"词典与模型完全一致"。
 
 【文献定位】
-方法学谱系上, 本家族站在词典法与机器学习法长期并存、互为参照的传统之上。Loughran 和 McDonald (2011) 奠定了金融文本词典法的规范, 指出通用情感词表在金融语境下的系统性偏误, 催生了领域专用词典; 而 Frankel、Jennings 和 Lee (2022) 在顶刊上直接比较机器学习与词典方法抽取披露情感的差异, 论证两类范式各有系统性倾向、不可相互替代, 为"以两者之差作为独立信号"提供了直接依据。深层测度一侧, Huang、Wang 和 Yang (2023) 的 FinBERT 与本项目 deepseekv4 同属能建模上下文、否定与语义的深层语言模型, 其抽取的情感与词典命中在机制上不同源。de Kok (2025) 进一步系统评估了生成式大语言模型用于会计文本分析的可靠性与偏误边界, 提示 LLM 端读数并非无噪声的真值, 因此 cater 差应被理解为两条各有测量误差的测度之间的相对楔子, 而非"模型对、词典错"的校正量。四家/两范式各自 just-identified 并排、互为稳健性、不分主次, 严禁把词典分与不同 LLM 或 BERT 的模型分混进同一 over-identified Hansen J 工具集。
-
+方法学谱系上, 本家族站在词典法与机器学习法长期并存、互为参照的传统之上。Loughran 和 McDonald (2011) 奠定了金融文本词典法的规范, 指出通用情感词表在金融语境下的系统性偏误, 催生了领域专用词典; 而 Frankel、Jennings 和 Lee (2022) 在顶刊上直接比较机器学习与词典方法抽取披露情感的差异, 论证两类范式各有系统性倾向、不可相互替代, 为"以两者之差作为独立信号"提供了直接依据。深层测度一侧, Huang、Wang 和 Yang (2023) 的 FinBERT 与本项目 deepseekv4 同属能建模上下文、否定与语义的深层语言模型, 其抽取的情感与词典命中在机制上不同源。de Kok (2025) 进一步系统评估了生成式大语言模型用于会计文本分析的可靠性与偏误边界, 提示 LLM 端读数并非无噪声的真值, 因此 cater 差应被理解为两条各有测量误差的测度之间的相对楔子, 而非"模型对、词典错"的校正量。四家/两范式各自 just-identified 并排、互为稳健性、不分主次, 严禁把词典分与不同 LLM 或 BERT 的模型分混进同一 over-identified Hansen J 工具集。 沿这一提醒继续外推, Yang、Duan、Liu 与 Tam (2024) 提出以大语言模型生成社科文本测度的效度、一致性与可复现性框架, 为本家族减项端「把 LLM 输出当作可复现的连续测度」提供了方法学存在性证明; 惟该文是面向通用社科文本的方法工作, 非中文金融语调专用, 其可复现性依托隐层表征提取路径, 与本项目固定 prompt v8、temperature=0 加缓存冻结的复现路径不同, 且原文未设词典对照臂、未做 bank-year 聚合, 故只锚定 LLM 端测度的构造合法性, 不触及差值本身。Kristensen-McLachlan、Canavan、Kárdos、Jacobsen 与 Aarøe (2025) 则以监督式微调模型与人工标注为对照, 系统评估 LLM 作为文本标注器的可靠性, 结论是其表现随任务而异、并非一致优于传统方法; 这正是本家族差值的效度前提: 既然 LLM 判断不能被当作无误差参照, cater_deepseekv4 的正负就不可被单向解读为词典侧偏误。该文语料为社科英文文本、对照臂不含中文金融情感词典, 所用 LLM 家族亦与本项目 gpt54nano、gemini31、deepseekv4 三家不同, 故仅作差值解读边界的原则性依据, 不构成任何数值口径。
 ## VAR: cater_deepseekv4_full
 
 【变体差分】
@@ -92,4 +107,6 @@ Cao, S., Jiang, W., Yang, B., & Zhang, A. L. (2023). How to talk when a machine 
 Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A large language model for extracting information from financial text. Contemporary Accounting Research, 40(2), 806-841. https://doi.org/10.1111/1911-3846.12832
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
+Yang, Y., Duan, H., Liu, J., & Tam, K. Y. (2024). LLM-Measure: Generating Valid, Consistent, and Reproducible Text-Based Measures for Social Science Research. SSRN No. 4961494 [Working Paper]. https://doi.org/10.2139/ssrn.4961494
+Kristensen-McLachlan, R. D., Canavan, M., Kárdos, M., Jacobsen, M., & Aarøe, L. (2025). Are chatbots reliable text annotators? Sometimes. PNAS Nexus, 4(4), pgaf069. https://doi.org/10.1093/pnasnexus/pgaf069
 <!-- rendered-citations:end -->

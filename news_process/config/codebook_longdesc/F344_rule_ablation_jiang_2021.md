@@ -83,6 +83,37 @@ citations:
   vol: 68
   issue: 7
   pages_or_artno: 5514-5532
+- doi: "10.1609/icwsm.v18i1.31443"
+  type: "journal"
+  authors: "Oh, N."
+  year: 2024
+  title: "Sentibank: A Unified Resource of Sentiment Lexicons and Dictionaries"
+  venue: "Proceedings of the International AAAI Conference on Web and Social Media"
+  vol: "18"
+  pages_or_artno: "2003-2013"
+- doi: "10.1140/epjds/s13688-026-00654-1"
+  type: "journal"
+  authors: "Pokropek, A."
+  year: 2026
+  title: "From keyword-based text measures to latent variables: confirmatory factor analysis with word embeddings"
+  venue: "EPJ Data Science"
+  vol: "15"
+  issue: "1"
+  pages_or_artno: "51"
+- doi: "10.1111/jfir.70063"
+  type: "journal"
+  authors: "Xiang, L., & Wang, W."
+  year: 2026
+  title: "Investor sentiment and stock market returns: A comparative analysis of mood, word, and trade"
+  venue: "Journal of Financial Research"
+  pages_or_artno: "jfir.70063"
+- doi: "10.1177/10944281251334777"
+  type: "journal"
+  authors: "Iqbal, F., & Pfarrer, M. D."
+  year: 2025
+  title: "Using Coreference Resolution to Mitigate Measurement Error in Text Analysis"
+  venue: "Organizational Research Methods"
+  pages_or_artno: "10944281251334777"
 new_dois: []
 ---
 
@@ -95,8 +126,7 @@ new_dois: []
 七个变体按其启用的规则子集依次为: raw = 三条规则全部关闭, 是不做任何句法调制的"裸词典命中"基线, 命中词按原始极性幅值直接计入正负两侧, 不翻转、不放大、不让步; negonly = 仅启用否定翻转, 度副词与转折规则关闭; degonly = 仅启用程度副词放大; advonly = 仅启用转折让步; negdeg = 同时启用否定翻转与程度副词放大 (转折关闭); negadv = 同时启用否定翻转与转折让步 (程度副词关闭); degadv = 同时启用程度副词放大与转折让步 (否定关闭)。计算路径与 canonical 全规则版本共享同一状态机骨架: 对每篇文本先用注入态 tone tokenizer 切词, 逐词匹配 jiang_2021 词典命中褒贬词, 在命中词前后局部窗口内扫描是否存在该变体启用的算子 (否定词/程度副词/转折连词), 命中且规则启用则按对应算子调整该词的最终贡献幅值 final, 未启用的规则一律跳过 (等价于该算子不存在)。正负两侧分别对全部命中词的 |final| 求和后作差分归一化, 得到落在闭区间 [-1,1] 的连续得分 (article 层 jiang_2021_{variant}_score{track}), 正值表正面语调、负值表负面语调、零值表零命中或正负完全抵消。三轨 (full/ctx/ss) 各自在自己的文本底料 (content_full / content_ctx / content_ss) 上独立跑同一套七变体消融, 互不借用彼此的命中结果。银行-年层聚合统一取算术平均 (encode 层 'mean' 归约), 分母为该银行-年在 full-only 门控下的留篇报道数 (ctx/ss 轨在 full 留篇集子集上逐轨自算, 不另立行宇宙)。七变体与三轨完全正交交叉、互不嵌套, 消融口径本身不涉及跨规则的可加分解——即 negdeg 不等于 negonly 与 degonly 的简单叠加, 三者只是同一份底稿数据在不同规则开关组合下的独立打分结果, 彼此高度共线 (审计口径 MATH-1 实测 full 与 negonly 一对变体相关系数落在 0.998-0.999 区间, 其余变体两两之间未逐一穷举复核, 但结构上同属对同一份底稿数据施加局部规则开关扰动, 可合理预期同样高度共线), 报相关系数而非把它们并入同一线性可加恒等式。
 
 【文献定位】
-本家族坐落于词典法情感测度中"句法算子敏感性"这一细分脉络。姜富伟、孟令超与唐国豪 (2021) 提供了本家族赖以打分的中文财经词典底本, 该词典是本项目并置六部中文金融情感词典之一, 与 Du、Huang、Wermers 与 Wu (2022, Review of Finance) 论证的"中文金融领域专用词典优于英文直译词典"的领域适配主张同源, 二者共同支撑了本项目并置多部中文词典互为稳健性的设计取向。否定翻转规则的方法学依据可追溯至 Pröllochs、Feuerriegel 与 Neumann (2016) 对新闻驱动交易情感分析中否定辖域检测的系统研究, 该文正是本家族 negonly/negdeg/negadv 三个变体所对应句法算子的直接文献先例。转折让步规则则呼应 Taboada、Brooke、Tofiloski、Voll 与 Stede (2011, Computational Linguistics) 对词典法情感分析中语篇结构算子 (含转折连词) 的经典综述, 是 advonly/negadv/degadv 三个变体的方法论依托。词典法作为情感测度三角的一支, 与机器学习法及大语言模型法互为对照: Frankel、Jennings 与 Lee (2022, Management Science) 系统比较了机器学习法与词典法的披露情感测度, 为词典规则消融这类"可解释性优先"路径的存在合理性提供了外部佐证。Tetlock (2007, Journal of Finance) 作为媒体情感测度的奠基性工作, 界定了词典法语调测度在资产定价文献中的解释边界, 是本家族全部变体共享的方法论上游。须重申: 七个规则消融变体各自 just-identified 并排, 互为稳健性、不分主次, 与三文本轨的正交关系镜像项目其余消融梯度 (政治词权重、罕见词频次 cutoff) 的先例, 严禁把不同规则子集或不同文本轨的多列混入同一 over-identified 的 Hansen J 过度识别检验。
-
+本家族坐落于词典法情感测度中"句法算子敏感性"这一细分脉络。姜富伟、孟令超与唐国豪 (2021) 提供了本家族赖以打分的中文财经词典底本, 该词典是本项目并置六部中文金融情感词典之一, 与 Du、Huang、Wermers 与 Wu (2022, Review of Finance) 论证的"中文金融领域专用词典优于英文直译词典"的领域适配主张同源, 二者共同支撑了本项目并置多部中文词典互为稳健性的设计取向。否定翻转规则的方法学依据可追溯至 Pröllochs、Feuerriegel 与 Neumann (2016) 对新闻驱动交易情感分析中否定辖域检测的系统研究, 该文正是本家族 negonly/negdeg/negadv 三个变体所对应句法算子的直接文献先例。转折让步规则则呼应 Taboada、Brooke、Tofiloski、Voll 与 Stede (2011, Computational Linguistics) 对词典法情感分析中语篇结构算子 (含转折连词) 的经典综述, 是 advonly/negadv/degadv 三个变体的方法论依托。词典法作为情感测度三角的一支, 与机器学习法及大语言模型法互为对照: Frankel、Jennings 与 Lee (2022, Management Science) 系统比较了机器学习法与词典法的披露情感测度, 为词典规则消融这类"可解释性优先"路径的存在合理性提供了外部佐证。Tetlock (2007, Journal of Finance) 作为媒体情感测度的奠基性工作, 界定了词典法语调测度在资产定价文献中的解释边界, 是本家族全部变体共享的方法论上游。须重申: 七个规则消融变体各自 just-identified 并排, 互为稳健性、不分主次, 与三文本轨的正交关系镜像项目其余消融梯度 (政治词权重、罕见词频次 cutoff) 的先例, 严禁把不同规则子集或不同文本轨的多列混入同一 over-identified 的 Hansen J 过度识别检验。 晚近前沿从若干侧面为本家族的设计取向提供了补充依据。Oh (2024) 指出情感分析在可解释性上的困难, 明确背书「依赖专家词表的规则法能提供透明性」, 并以资源碎片化与验证缺失为问题意识, 将 15 部原始情感词典与 43 部预处理词典整合入 sentibank 库, 覆盖 7 类体裁与 6 个领域; 这既说明规则/词典法作为可解释的情感测度分支在当代前沿仍被明确背书, 支持本家族保留词典状态机语调轨, 也印证同一情感构念下并存大量异源词典是该领域的既成事实, 与本项目并置六部中文词典的做法同构。其边界须写明: 该文覆盖英文社交媒体等体裁, 不含 jiang_2021 等中文金融词典, 未实现否定/程度/转折三规则状态机, 亦未做任何跨词典整合运算, 故与规则消融稳健性检验无直接关联, 只止于取向层面的佐证。Pokropek (2026) 指出词典法中研究者选定的关键词极少像量表题项那样接受心理测量学检验, 遂提出把单个关键词视为同一潜变量的观测指标, 以词嵌入向量间的中心化余弦相似度矩阵为输入作验证性因子分析, 借以估计载荷与拟合指数、计算信度并检验测量不变性; 这一立场支持本项目不依赖任何单一词表, 而对词表型测度的构造假设作显式检验与披露。须注意指标层级不同: 原文的观测指标是一部词表之内的单个关键词, 整合方式为基于嵌入的 CFA 载荷估计, 语料为社会科学文本, 且未在规则消融的任一臂上分别整合, 不涉及否定/程度/转折三规则。Xiang 与 Wang (2026) 把基于心情、基于文本词与基于交易的三类投资者情绪测度并排比较其对股票收益的解释力, 印证「同一构念的多个测度并排、互为稳健性、不分主次」这一范式在前沿的存在性; 但其并排的是三类异源情绪代理, 而非同一词典内三条语言学规则的 powerset 消融, 且 DV 为股票市场收益、单位为市场/股票-时间, 与本家族的银行-年度面板不同。Iqbal 与 Pfarrer (2025) 证明情感分析在多主体文本中的情感归属上存在系统性测量误差, 提出以共指消解作为解法并经两项研究显示其可降低测量误差, 由此确立「一项具体的语言学处理选择会系统性改变文本测度取值、并构成实质性测量误差来源」这一一般命题, 支持本家族对语言学规则不作默认采纳而显式处理其后果的立场。此条边界须严格声明: 原文的规则是共指消解, 与本家族的否定翻转/程度副词/转折让步非同一规则, 其在本项目中的对应物是 ctx/ss 实体窗口轨而非规则消融族; 且原文取规范性立场, 主张采纳该规则以减少误差 (即存在唯一正确做法), 而本家族令七臂互为稳健性并排、不分主次, 故不得据以视之为 powerset 规则消融设计的同构先例。
 ## VAR: jiang_2021_advonly_tone_ctx
 
 【变体差分】
@@ -230,4 +260,8 @@ Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media i
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
+Oh, N. (2024). Sentibank: A Unified Resource of Sentiment Lexicons and Dictionaries. Proceedings of the International AAAI Conference on Web and Social Media, 18, 2003-2013. https://doi.org/10.1609/icwsm.v18i1.31443
+Pokropek, A. (2026). From keyword-based text measures to latent variables: confirmatory factor analysis with word embeddings. EPJ Data Science, 15(1), 51. https://doi.org/10.1140/epjds/s13688-026-00654-1
+Xiang, L., & Wang, W. (2026). Investor sentiment and stock market returns: A comparative analysis of mood, word, and trade. Journal of Financial Research, jfir.70063. https://doi.org/10.1111/jfir.70063
+Iqbal, F., & Pfarrer, M. D. (2025). Using Coreference Resolution to Mitigate Measurement Error in Text Analysis. Organizational Research Methods, 10944281251334777. https://doi.org/10.1177/10944281251334777
 <!-- rendered-citations:end -->

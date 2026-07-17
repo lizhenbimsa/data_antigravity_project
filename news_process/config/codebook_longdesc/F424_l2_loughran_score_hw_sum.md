@@ -66,6 +66,14 @@ citations:
   vol: 37
   issue: 2
   pages_or_artno: 267-307
+- doi: "10.1016/j.econlet.2026.113002"
+  type: "journal"
+  authors: "Nakatsuka, H., & Suimon, Y."
+  year: 2026
+  title: "How does the market respond to textual novelty: Joint analysis of similarity and sentiment on Japanese corporate disclosures"
+  venue: "Economics Letters"
+  vol: "265"
+  pages_or_artno: "113002"
 new_dois: []
 ---
 
@@ -78,8 +86,7 @@ new_dois: []
 计算链路分三段。第一段在 stage 22 词典法内: 对每篇报道分词后, 在 Loughran-McDonald 中文主译本词典上做逐词匹配, 命中情感词依次施加三条语言学规则 —— 否定词在其后固定窗口内翻转极性、程度副词按倍率缩放幅值、转折词在从句作用域内按转折权重放大后半句, 遇句末标点重置规则状态; 由此得到每个情感词的 final_score, 文章级得分归一化为 Σ(final_score)/Σ|final_score|, 落在 [-1, +1], 正值偏正面、负值偏负面。此归一化口径与仅取原始词典极性计数的 msent / pos_count / neg_count 计数口径互为稳健性, 二者刻意不混用; pos_ratio / neg_ratio / msent_score 等聚合测度另按 6 词典固定 union 词典计数 (build_union_dictionary, 兑现固定词表构念, 与逐词典的 loughran_score 系口径不同, 亦不混用)。第二段在 stage 24 羊群衰减处理: 对同一目标银行的报道按发布年度截断, 用 TF-IDF 余弦相似度统计每篇报道在同年早前存在多少篇高度相似 (疑似转抄、回声式跟风) 的报道, 记为 n_similar_articles, 再令 herd_weight = 1/(1 + n_similar_articles); 转抄越多则权重越低, 越接近独立首发则权重越接近 1。第三段在面板聚合 (runner 步骤 3d 逐篇相乘, encode 的 build_aggregation_dict 求和): 文章级 loughran_score 乘以同轨 herd_weight 得到 loughran_score_hw, 再在银行-年度分组内求和得到本列。留篇门控采用 full-only 口径 (2026-06-29): 一篇报道是否计入某银行某年的报道宇宙, 由其 full 轨是否被判为一篇银行金科报道决定, 三轨在该留篇集合上分别计列。
 
 【文献定位】
-本测度的方法学谱系直接锚定 Loughran 与 McDonald 一系顶刊工作。原创词典出自 Loughran & McDonald (2011, The Journal of Finance) —— 该文发现基于通用 (非金融领域) 词典 (如 Harvard Psychosociological Dictionary) 判定的"负面词"中, 相当比例在 10-K 文本语境下并非真正负面 (即标题"When is a liability not a liability?" 所指的领域特异性偏误), 由此构建面向会计与金融文本的领域专用英文情感词典, 后经领域专家译制并本土化扩充为中文主译本供本管道使用。该词典法路线在 Loughran & McDonald (2016, Journal of Accounting Research) 的综述中被系统化为会计与金融文本分析的标准工具, 并在 Loughran & McDonald (2020, Annual Review of Financial Economics) 中进一步梳理词典法在金融文本挖掘中的适用边界与局限。词典的领域特异性价值在中文语境下由 Du et al. (2022, Review of Finance) 顶刊工作进一步确证 —— 该文指出语言与领域特异性对中文金融情感度量至关重要, 通用词典或简单直译词典在中文语料上存在系统性偏误, 这正是本管道并列使用 Loughran 中文主译本与其他五部中文原生金融情感词典 (而非唯独依赖直译词典) 的方法学依据。逐词施加否定、程度、转折规则并作从句级作用域重置, 遵循 Taboada et al. (2011) 确立的词典法情感分析范式。而将词典法结果单独成轨、与机器学习及大模型法并置互证, 呼应 Frankel, Jennings 与 Lee (2022) 关于披露情感的机器学习法与词典法互为稳健性的先例。需强调本家族的六部词典 (loughran 中文主译本与 jiang_2021、yao_2021、bian_2021、du_2022、you_2018) 各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同词典或不同聚合权重混进同一 over-identified Hansen J 检验。
-
+本测度的方法学谱系直接锚定 Loughran 与 McDonald 一系顶刊工作。原创词典出自 Loughran & McDonald (2011, The Journal of Finance) —— 该文发现基于通用 (非金融领域) 词典 (如 Harvard Psychosociological Dictionary) 判定的"负面词"中, 相当比例在 10-K 文本语境下并非真正负面 (即标题"When is a liability not a liability?" 所指的领域特异性偏误), 由此构建面向会计与金融文本的领域专用英文情感词典, 后经领域专家译制并本土化扩充为中文主译本供本管道使用。该词典法路线在 Loughran & McDonald (2016, Journal of Accounting Research) 的综述中被系统化为会计与金融文本分析的标准工具, 并在 Loughran & McDonald (2020, Annual Review of Financial Economics) 中进一步梳理词典法在金融文本挖掘中的适用边界与局限。词典的领域特异性价值在中文语境下由 Du et al. (2022, Review of Finance) 顶刊工作进一步确证 —— 该文指出语言与领域特异性对中文金融情感度量至关重要, 通用词典或简单直译词典在中文语料上存在系统性偏误, 这正是本管道并列使用 Loughran 中文主译本与其他五部中文原生金融情感词典 (而非唯独依赖直译词典) 的方法学依据。逐词施加否定、程度、转折规则并作从句级作用域重置, 遵循 Taboada et al. (2011) 确立的词典法情感分析范式。而将词典法结果单独成轨、与机器学习及大模型法并置互证, 呼应 Frankel, Jennings 与 Lee (2022) 关于披露情感的机器学习法与词典法互为稳健性的先例。需强调本家族的六部词典 (loughran 中文主译本与 jiang_2021、yao_2021、bian_2021、du_2022、you_2018) 各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同词典或不同聚合权重混进同一 over-identified Hansen J 检验。 就本家族特有的「情感 × 新颖性」乘性结构, Nakatsuka 与 Suimon (2026) 对日本公司披露文本联合分析文本相似度 (新颖性) 与情感, 检验市场对文本新颖性的反应, 证明二者须联合考察而非各自单独看待, 为本家族把逐篇 loughran_score 与羊群权重 1/(1 + n_similar_articles) 相乘折叠为单一加权分、而非把语调与相似度分别单独入式的做法提供近期锚定。迁移边界须诚实写明: 该文语料为日文公司披露文件而非第三方媒体报道, 其相似度是披露文本之间的连续相似度且与情感做交互式联合分析, 既未采用本项目这一具体的倒数衰减函数形式, 也未把二者相乘后再在银行-年单元内求和, 其分析层级为披露事件而非银行-年三轨, 故该文只支撑「语调与新颖性须联合刻画」这一层, 不构成对 1/(1 + n_similar_articles) 具体函数形式的验证。
 ## VAR: loughran_score_hw_sum_full
 
 【变体差分】
@@ -102,4 +109,5 @@ Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance:
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
+Nakatsuka, H., & Suimon, Y. (2026). How does the market respond to textual novelty: Joint analysis of similarity and sentiment on Japanese corporate disclosures. Economics Letters, 265, 113002. https://doi.org/10.1016/j.econlet.2026.113002
 <!-- rendered-citations:end -->

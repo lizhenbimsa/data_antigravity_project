@@ -53,6 +53,45 @@ citations:
   year: 2026
   title: Validating large language model annotations
   venue: 'Federal Reserve Board, FEDS Working Paper No. 2026-020'
+- doi: "10.48550/arxiv.2306.13063"
+  type: "arxiv"
+  authors: "Xiong, M., Hu, Z., Lu, X., Li, Y., Fu, J., He, J., & Hooi, B."
+  year: 2023
+  title: "Can LLMs Express Their Uncertainty? An Empirical Evaluation of Confidence Elicitation in LLMs"
+  venue: "arXiv"
+- doi: "10.18653/v1/2023.emnlp-main.330"
+  type: "journal"
+  authors: "Tian, K., Mitchell, E., Zhou, A., Sharma, A., Rafailov, R., Yao, H., Finn, C., & Manning, C."
+  year: 2023
+  title: "Just Ask for Calibration: Strategies for Eliciting Calibrated Confidence Scores from Language Models Fine-Tuned with Human Feedback"
+  venue: "Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing"
+  pages_or_artno: "5433-5442"
+- doi: "10.48550/arxiv.2207.05221"
+  type: "arxiv"
+  authors: "Kadavath, S., Conerly, T., Askell, A., Henighan, T., Drain, D., Perez, E., Schiefer, N., Hatfield-Dodds, Z., DasSarma, N., Tran-Johnson, E., Johnston, S., El-Showk, S., Jones, A., Elhage, N., Hume, T., Chen, A., Bai, Y., Bowman, S., Fort, S., ... Kaplan, J."
+  year: 2022
+  title: "Language Models (Mostly) Know What They Know"
+  venue: "arXiv"
+- doi: "10.18653/v1/2024.emnlp-main.173"
+  type: "journal"
+  authors: "Zhang, M., Huang, M., Shi, R., Guo, L., Peng, C., Yan, P., Zhou, Y., & Qiu, X."
+  year: 2024
+  title: "Calibrating the Confidence of Large Language Models by Eliciting Fidelity"
+  venue: "Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing"
+  pages_or_artno: "2959-2979"
+- doi: "10.18653/v1/2025.naacl-long.179"
+  type: "journal"
+  authors: "Gligoric, K., Zrnic, T., Lee, C., Candes, E., & Jurafsky, D."
+  year: 2025
+  title: "Can Unconfident LLM Annotations Be Used for Confident Conclusions?"
+  venue: "Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers)"
+  pages_or_artno: "3514-3533"
+- doi: "10.48550/arxiv.2407.17866"
+  type: "arxiv"
+  authors: "Kim, A., Muhn, M., & Nikolaev, V."
+  year: 2024
+  title: "Financial Statement Analysis with Large Language Models"
+  venue: "arXiv"
 new_dois: []
 ---
 
@@ -65,8 +104,7 @@ new_dois: []
 `compute_prob_score_binary` 的输入域限定在该模型该轨该篇文章的有效判定范围内: 若某模型在某轨对某篇文章的 `{short}_verified{track}` 判定为不成立 (即该模型认为这篇文章根本不构成一次有效的"银行-金科报道"), 则该模型在该轨对该篇文章不贡献 `{short}_prob_score_collab{track}` 有效值, 记为 <NA>; stage 21 (`tone_llms.py`) 内的跨模型求均值只对该轨该篇文章实际给出有效判定的模型子集求算术平均, 分母是该轨的有效票数而非固定为 3, 由此产出文章级 `avg_collab_prob_score{track}`。`encode.py` 只在这一文章级列之上做 bank-year 维度的跨文章聚合 (`mean`/`std`), 不重复跨模型均值这一步, 也不改变分母口径。这意味着 `llm_prob_score_collab{track}` 的有效性域与该轨的 `n_valid_votes{track}`/verified 状态直接挂钩, 而非独立于情感/精筛判定之外的孤立指标。需要特别强调的是, 留篇门控 (是否把一篇文章计入"一篇有效银行-金科报道"从而进入后续面板聚合) 采用 full-only 口径 (2026-06-29 用户决策): 只有 `llm_verified_full == True` 才决定该篇文章是否被保留, ctx/ss 两轨的 verified 判定退化为 conditional-on-full 的测度/稳健性轨, 不参与留篇本身的决定。因此 `llm_prob_score_collab_ctx`/`_ss` 的样本行宇宙是 full 轨留篇集合的子集, 而非各轨独立的样本框; 三轨在留篇集合确定之后各自按自己的取材范围重新计算 collab 概率分, 互为稳健性、不分主次, 严禁把三轨系数并入同一个 over-identified 的 Hansen J 检验框架 (三轨应各自 just-identified 并排呈现)。
 
 【文献定位】
-本家族的方法论定位介于两条文献之间: 一是创新管理领域关于"开放式创新"程度测量的经典构念传统 (Chesbrough, 2003; Laursen & Salter, 2006, *Strategic Management Journal*; Zhang, Ma, Liang & Garrett, 2024, *Journal of Product Innovation Management* 对 20 年开放式创新前因后果的元分析确认了"自主研发 vs. 对外合作"这一二分维度在实证文献中的持续生命力与稳健性), 二是近年方兴未艾的"用大语言模型做文本标注替代人工编码"的方法学文献 (de Kok, 2025, *Management Science*; Carlson & Burbano, 2026, *Strategic Management Journal*, 对管理学研究中使用 LLM 标注数据给出了基础性指引与风险警示; Hansen, 2026, FEDS Working Paper, 讨论无金标准场景下如何通过多模型一致性设计验证 LLM 标注质量)。本项目把这两条线索结合起来: 用三家独立 LLM 复现传统人工编码员对"合作模式"这一定性维度的判断, 再用连续概率分 (而非硬性 0/1 标签) 保留判断的强度信息, 便于后续面板回归以连续变量形式而非离散哑变量形式纳入这一构念, 减少因人为设定切分阈值带来的信息损失。
-
+本家族的方法论定位介于两条文献之间: 一是创新管理领域关于"开放式创新"程度测量的经典构念传统 (Chesbrough, 2003; Laursen & Salter, 2006, *Strategic Management Journal*; Zhang, Ma, Liang & Garrett, 2024, *Journal of Product Innovation Management* 对 20 年开放式创新前因后果的元分析确认了"自主研发 vs. 对外合作"这一二分维度在实证文献中的持续生命力与稳健性), 二是近年方兴未艾的"用大语言模型做文本标注替代人工编码"的方法学文献 (de Kok, 2025, *Management Science*; Carlson & Burbano, 2026, *Strategic Management Journal*, 对管理学研究中使用 LLM 标注数据给出了基础性指引与风险警示; Hansen, 2026, FEDS Working Paper, 讨论无金标准场景下如何通过多模型一致性设计验证 LLM 标注质量)。本项目把这两条线索结合起来: 用三家独立 LLM 复现传统人工编码员对"合作模式"这一定性维度的判断, 再用连续概率分 (而非硬性 0/1 标签) 保留判断的强度信息, 便于后续面板回归以连续变量形式而非离散哑变量形式纳入这一构念, 减少因人为设定切分阈值带来的信息损失。 这一以置信度驱动的连续化设计, 其上游依据可追溯至 LLM 置信度诱导 (confidence elicitation) 的方法学谱系。Xiong 等 (2023) 在黑箱访问条件下系统评测了直接向 LLM 索取自报置信度的基准协议, 并记录了模型普遍过度自信, 是本家族 confidence 字段取数方式的方法原点; 该文评测对象为当时的 GPT/LLaMA 系模型与英文常识、算术推理任务, 不含本项目的 gemini31/deepseekv4, 亦无面板聚合环节。Tian 等 (2023) 进一步证明, 对经 RLHF 微调的模型, 以自然语言索要的口头概率比模型内部 logit 条件概率更为校准, 这正是本项目在商用 RLHF 类模型上以 prompt 结构化字段取 confidence、再送入 `compute_prob_score_binary` 的实证依据; 但该文在英文事实型 QA 数据集上度量 ECE, 本项目未在中文银行金科新闻语料上复测 ECE, 也未验证该校准优势能否迁移至两家非 OpenAI 模型。更早的 Kadavath 等 (2022) 系统检验语言模型能否自评答案正确性, 证明较大模型在格式恰当的多选/判断题上校准良好, 为"LLM 自评概率携带真实信息、具备一定校准性"这一前提提供了奠基性证据; 须澄清其边界: 该文自评走的是专门的 P(True)/P(IK) 探针与 logit 读数而非结构化输出字段, 模型代次与本项目三家生产模型不可比, 且原文并未提出把余量 (1−confidence) 在非主类间按最大熵均分的映射 — 该映射系研究者选择, 非原文成果。Zhang 等 (2024) 把 LLM 置信度分解为对问题的不确定性与对自身答案的保真度, 提出 UF Calibration 并在 6 个 RLHF-LM × 4 个 MCQA 数据集上验证, 表明置信度原则上可被进一步分解与校准; 该方法需要选项集/参考答案来定义保真度, 本家族的分类任务缺少此结构, 故未实施该校准算子, 现口径仍为原始自报值经映射后取跨模型均值, 属已知局限而非已排除的风险。Gligoric、Zrnic、Lee、Candes 与 Jurafsky (2025) 提出 confidence-driven inference, 以 LLM 自报置信度决定哪些样本值得付费人工复标, 并给出统计有效的点估计与置信区间, 证明低置信标注在恰当处理下仍可支撑可信结论, 为本家族"保留而非丢弃低置信信息、令分数向 0.5 收缩"的保守化处理提供前沿依据; 但该文的有效推断必须配套人工标注子样本作为 ground truth, 本项目无人工标注回路, 未实施其抽样-推断设计, 且此处 confidence 经三家投票的一致/分歧调整, 与原文单模型口径不同。金融领域一侧, Kim、Muhn 与 Nikolaev (2024) 向 GPT-4 提供刻意剥离叙事与行业信息的标准化匿名财务报表、令其判断企业未来盈余的变动方向, 实证其方向性预测准确率超过人类分析师、与窄训练的机器学习模型相当, 并可据以构建更高 Sharpe 比率的策略, 是"令 LLM 作离散判断、再把该判断聚合为可用经济量"这一范式在金融研究中的存在性证明; 其输入为报表数字而非中文新闻叙事, 单位为公司-季度盈余方向而非银行-年创新维度, 采用单一模型无跨厂商投票, 摘要亦未载其对自报置信度的使用, 因此不构成对本家族 logit-to-score 映射的背书。
 ## VAR: llm_prob_score_collab_ctx
 
 【变体差分】
@@ -93,4 +131,10 @@ Zhang, H., Ma, Z., Liang, X., & Garrett, T. C. (2024). Antecedents and outcomes 
 Laursen, K., & Salter, A. (2006). Open for innovation: The role of openness in explaining innovation performance among U.K. manufacturing firms. Strategic Management Journal, 27(2), 131-150. https://doi.org/10.1002/smj.507
 Carlson, N. A., & Burbano, V. (2026). The use of LLMs to annotate data in management research: Foundational guidelines and warnings. Strategic Management Journal, 47(3), 699-725. https://doi.org/10.1002/smj.70023
 Hansen, A. L. (2026). Validating large language model annotations. Federal Reserve Board, FEDS Working Paper No. 2026-020 [Working Paper]. https://doi.org/10.17016/FEDS.2026.020
+Xiong, M., Hu, Z., Lu, X., Li, Y., Fu, J., He, J., & Hooi, B. (2023). Can LLMs Express Their Uncertainty? An Empirical Evaluation of Confidence Elicitation in LLMs. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2306.13063
+Tian, K., Mitchell, E., Zhou, A., Sharma, A., Rafailov, R., Yao, H., Finn, C., & Manning, C. (2023). Just Ask for Calibration: Strategies for Eliciting Calibrated Confidence Scores from Language Models Fine-Tuned with Human Feedback. Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing, 5433-5442. https://doi.org/10.18653/v1/2023.emnlp-main.330
+Kadavath, S., Conerly, T., Askell, A., Henighan, T., Drain, D., Perez, E., Schiefer, N., Hatfield-Dodds, Z., DasSarma, N., Tran-Johnson, E., Johnston, S., El-Showk, S., Jones, A., Elhage, N., Hume, T., Chen, A., Bai, Y., Bowman, S., Fort, S., ... Kaplan, J. (2022). Language Models (Mostly) Know What They Know. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2207.05221
+Zhang, M., Huang, M., Shi, R., Guo, L., Peng, C., Yan, P., Zhou, Y., & Qiu, X. (2024). Calibrating the Confidence of Large Language Models by Eliciting Fidelity. Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing, 2959-2979. https://doi.org/10.18653/v1/2024.emnlp-main.173
+Gligoric, K., Zrnic, T., Lee, C., Candes, E., & Jurafsky, D. (2025). Can Unconfident LLM Annotations Be Used for Confident Conclusions?. Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers), 3514-3533. https://doi.org/10.18653/v1/2025.naacl-long.179
+Kim, A., Muhn, M., & Nikolaev, V. (2024). Financial Statement Analysis with Large Language Models. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2407.17866
 <!-- rendered-citations:end -->

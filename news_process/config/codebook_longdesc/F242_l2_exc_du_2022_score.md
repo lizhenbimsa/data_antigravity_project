@@ -54,6 +54,13 @@ citations:
   vol: 124
   issue: 2
   pages_or_artno: 373-394
+- doi: "10.2139/ssrn.5024959"
+  type: "wp"
+  authors: "Cziraki, P., & Gider, J."
+  year: 2024
+  title: "Newspaper Closures and Trading in Local Stocks"
+  venue: "SSRN"
+  pages_or_artno: "5024959"
 new_dois: []
 ---
 
@@ -69,8 +76,7 @@ new_dois: []
 三条文本轨的口径遵循项目统一定义: full=标题 prepend 全文正文; ctx=标题+实体窗口; ss=标题+银行与金科同句共现窗 (无共现则回退为全文正文, 镜像 ctx 回退语义)。三种加权 (无权/跟风衰减 _hw/价值权 _w) 与三条轨互为稳健性、不分主次, 各自 just-identified 并排进入模型, 严禁把不同权重或不同轨混进同一 over-identified 的 Hansen J 过度识别检验。停刊剔除轨与全样本轨同理: 它是主测度的稳健性对照臂, 用于验证主结论不被媒体退出驱动, 而非替代主测度。
 
 【文献定位】
-本家族在文献上处于三条线的交叉: 词典情感测量 (Du et al. (2022); Ma et al. (2025))、文本信息的市场含义 (Hwang & Kim (2017) 论文本可读性/写作质量与资产定价关联, 支撑"文本特征携带可定价信息"这一前提)、以及媒体覆盖退出的幸存者偏差治理 (Heese et al. (2022))。词典法的价值在于其完全透明、可复现、零 API 成本, 与 LLM 三家投票、BERT 三模型构成互为稳健性的多方法三角; 停刊剔除轨则把稳健性从"测量方法"维度延伸到"样本构成"维度, 回应审稿人可能提出的"媒体样本非随机流失是否污染情感面板"这一质疑。
-
+本家族在文献上处于三条线的交叉: 词典情感测量 (Du et al. (2022); Ma et al. (2025))、文本信息的市场含义 (Hwang & Kim (2017) 论文本可读性/写作质量与资产定价关联, 支撑"文本特征携带可定价信息"这一前提)、以及媒体覆盖退出的幸存者偏差治理 (Heese et al. (2022))。词典法的价值在于其完全透明、可复现、零 API 成本, 与 LLM 三家投票、BERT 三模型构成互为稳健性的多方法三角; 停刊剔除轨则把稳健性从"测量方法"维度延伸到"样本构成"维度, 回应审稿人可能提出的"媒体样本非随机流失是否污染情感面板"这一质疑。 这一质疑的现实分量另有近期实证支撑: Cziraki 与 Gider (2024) 以美国本地报纸停刊为冲击, 实证报道供给退出会改变本地股票的交易行为, 说明媒体覆盖的样本组成变化并非无关噪声, 而是携带经济后果的真实扰动, 为本家族「先剔除疑似退出媒体、再作银行-年聚合」这一环节提供了直接的现实动机。迁移边界须诚实标明: 该文的停刊判定取自外部事件数据、被解释变量为本地股票交易活动, 且其停刊是编辑部层面的真实事件; 而本项目的排除集由 detect_defacto_cessation 自语料内部推断而得 (confirmed ∪ suspected), 是「疑似退出覆盖」的保守代理而非严格停刊事实, 用途亦仅限稳健性子样本而非识别冲击。该文尚为工作论文、未经同行评审, 故只作动机性参照, 不承担因果推断的举证责任。
 ## VAR: exc_du_2022_score_full
 
 【变体差分】
@@ -130,4 +136,5 @@ Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-graine
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Heese, J., Pérez-Cavazos, G., & Peter, C. D. (2022). When the local newspaper leaves town: The effects of local newspaper closures on corporate misconduct. Journal of Financial Economics, 145(2), 445-463. https://doi.org/10.1016/j.jfineco.2021.08.015
 Hwang, B.-H., & Kim, H. H. (2017). It pays to write well. Journal of Financial Economics, 124(2), 373-394. https://doi.org/10.1016/j.jfineco.2017.01.006
+Cziraki, P., & Gider, J. (2024). Newspaper Closures and Trading in Local Stocks. SSRN No. 5024959 [Working Paper]. https://doi.org/10.2139/ssrn.5024959
 <!-- rendered-citations:end -->

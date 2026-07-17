@@ -59,6 +59,31 @@ citations:
   year: 2025
   venue: "Review of Accounting Studies"
   type: "journal"
+- doi: "10.1016/j.iref.2026.105609"
+  type: "journal"
+  authors: "Yuan, D., Shen, J., & Li, Y."
+  year: 2026
+  title: "Annual report textual complexity and ESG rating disagreement"
+  venue: "International Review of Economics & Finance"
+  vol: "110"
+  pages_or_artno: "105609"
+- doi: "10.1016/j.frl.2025.108622"
+  type: "journal"
+  authors: "Zhou, W., Xiong, Y., & Wang, S."
+  year: 2025
+  title: "Dialect diversity, corporate annual report text readability and stock price crash risks"
+  venue: "Finance Research Letters"
+  vol: "86"
+  pages_or_artno: "108622"
+- doi: "10.1016/j.respol.2025.105301"
+  type: "journal"
+  authors: "Gounopoulos, D., Huang, W., & Yang, M."
+  year: 2025
+  title: "Innovation and annual report readability"
+  venue: "Research Policy"
+  vol: "54"
+  issue: "8"
+  pages_or_artno: "105301"
 new_dois:
   - "10.1080/23322039.2023.2186034"
   - "10.1007/s11142-025-09906-3"
@@ -73,8 +98,7 @@ ln_word_count 家族测度的是一篇银行金科报道在文本量维度上的
 计算链路分两层。文章级 (encode.py 上游更早阶段) 先对 content_full / content_ctx / content_ss 三种文本轨道各自跑 jieba 分词, 得到有效词数列 n_words_real{track} (剔除纯标点、空白等非语义 token, 与 hard_char_ratio/rare_word_ratio 等复杂度族测度共享同一分词切分口径, 减少跨测度分词不一致造成的伪差异)。encode.py 的 bank-year 聚合段 (H2 段, 词汇/句法复杂度测度族的一部分) 对 n_words_real{track} 取 mean (自动跳过 NaN, 短文本或空文本不污染均值), 得到中间列 avg_word_count{track}。geography.py 再对 avg_word_count{track} 做 log1p 变换, 即 ln(1 + avg_word_count{track}), 产出本家族三列 ln_word_count_full / ln_word_count_ctx / ln_word_count_ss。log1p 而非裸 ln 的选择是标准的计数变量零值稳健处理 (Cohn, Liu & Wardlaw 2022 系统讨论了金融实证中计数及类计数变量的建模陷阱, 包括零膨胀、偏态尾部与对数变换选择), 避免罕见的零词数样本导致 ln(0) 未定义或极端离群值主导回归。需要特别澄清的是"mean-of-ln vs ln-of-mean"两种非等价聚合顺序: ln_word_count 采用的是 ln-of-mean (先算 bank-year 篇均词数, 再取对数), 这与家族 F 中另一支 avg_redund_log_length{track} (mean-of-ln, 先对文章级词数取对数、再在 bank-year 内取均值, 服务于 redundancy 回归的配对长度控制) 是两个刻意并存、不互相替代的口径, 二者数值上不等价 (Jensen 不等式意义上 ln-of-mean ≥ mean-of-ln), 不应混用或误当作同一变量的重复列。
 
 【文献定位】
-文本长度作为信息处理成本或披露复杂度代理, 在会计与金融文本分析文献中有深厚谱系。Li (2008) 首次系统论证年报可读性 (以 Fog Index 和篇幅为核心成分) 与盈余持续性负相关, 是本家族最直接的方法学母锚; Lang & Stice-Lawrence (2015) 在跨国大样本年报文本分析中同样把文本量度量 (含词数) 作为披露详尽度与可比性研究的基础控制变量, 印证了篇幅代理在跨制度环境下依然稳健适用; You & Zhang (2009) 从财务报告复杂度导致投资者反应不足的角度, 为"文本量-信息处理成本-市场反应滞后"这一因果链条提供了理论支撑, 呼应本项目 rare_word_ratio 等复杂度族测度共享的母锚文献; Cohn, Liu & Wardlaw (2022) 则从计量方法论角度提醒研究者计数及类计数变量 (词数即是典型的类计数变量) 在对数变换、零值处理和函数形式选择上的常见陷阱, 为本家族选择 log1p 而非裸对数或线性词数提供了直接的方法学依据。Gangadharan & Padmakumari (2023, Cogent Economics & Finance) 以印度上市公司年报为样本,发现年报可读性(篇幅/语言复杂度代理)越低、股票收益同步性越高,支持文本篇幅作为信息处理成本代理变量的跨市场适用性;McClure, Shi & Watts (2025, Review of Accounting Studies) 的跨国证据表明信息获取成本(与文本篇幅/复杂度密切相关的处理成本维度)系统性影响股价信息含量,为篇幅类测度作为处理成本代理提供最新跨国实证支撑。三轨并列的设计延续本项目"三轨禁混同一 over-identified Hansen J、各自 just-identified 并排、互为稳健性不分主次"的一贯纪律 (CLAUDE.md 铁律), full/ctx/ss 三条 ln_word_count 序列在下游回归中应分别作为独立右手边控制变量或稳健性检验轨道使用, 不得同时纳入同一识别方程充当过度识别工具。
-
+文本长度作为信息处理成本或披露复杂度代理, 在会计与金融文本分析文献中有深厚谱系。Li (2008) 首次系统论证年报可读性 (以 Fog Index 和篇幅为核心成分) 与盈余持续性负相关, 是本家族最直接的方法学母锚; Lang & Stice-Lawrence (2015) 在跨国大样本年报文本分析中同样把文本量度量 (含词数) 作为披露详尽度与可比性研究的基础控制变量, 印证了篇幅代理在跨制度环境下依然稳健适用; You & Zhang (2009) 从财务报告复杂度导致投资者反应不足的角度, 为"文本量-信息处理成本-市场反应滞后"这一因果链条提供了理论支撑, 呼应本项目 rare_word_ratio 等复杂度族测度共享的母锚文献; Cohn, Liu & Wardlaw (2022) 则从计量方法论角度提醒研究者计数及类计数变量 (词数即是典型的类计数变量) 在对数变换、零值处理和函数形式选择上的常见陷阱, 为本家族选择 log1p 而非裸对数或线性词数提供了直接的方法学依据。Gangadharan & Padmakumari (2023, Cogent Economics & Finance) 以印度上市公司年报为样本,发现年报可读性(篇幅/语言复杂度代理)越低、股票收益同步性越高,支持文本篇幅作为信息处理成本代理变量的跨市场适用性;McClure, Shi & Watts (2025, Review of Accounting Studies) 的跨国证据表明信息获取成本(与文本篇幅/复杂度密切相关的处理成本维度)系统性影响股价信息含量,为篇幅类测度作为处理成本代理提供最新跨国实证支撑。三轨并列的设计延续本项目"三轨禁混同一 over-identified Hansen J、各自 just-identified 并排、互为稳健性不分主次"的一贯纪律 (CLAUDE.md 铁律), full/ctx/ss 三条 ln_word_count 序列在下游回归中应分别作为独立右手边控制变量或稳健性检验轨道使用, 不得同时纳入同一识别方程充当过度识别工具。 就该构念族在近年前沿的存续而言, 三条新锚点各自从不同侧面提供存在性证据。Yuan、Shen 与 Li (2026) 在 *International Review of Economics & Finance* 把年报文本复杂度作为核心自变量解释 ESG 评级分歧, 表明文本复杂度族至今仍是活跃前沿构念, 且被作为年度面板层面的连续变量使用, 与本列在 bank-year 面板中的角色一致; 惟原文使用综合复杂度指标, 未如本项目拆解为难字占比、平均句长与 ln 词数三个正交家族并分 full/ctx/ss 三轨, 国别与 DV 亦不同, 故仅锚定构念族存在性。Zhou、Xiong 与 Wang (2025) 在 *Finance Research Letters* 于中国上市公司语境下构造中文年报文本可读性指标并检验其与股价崩盘风险的关系, 为“中文文本可读性可作为年度面板变量”提供同语境证据, 补足本段既有锚点多取自英文语料的局限; 但原文测度对象为公司自我披露的正式语体年报而非第三方媒体报道, 其可读性构造未必等同本项目的难字占比与 ln(1+词数), 层级亦为 firm-year。Gounopoulos、Huang 与 Yang (2025) 在 *Research Policy* 检验企业创新与年报可读性的关联, 报告低可读性与创新绩效之间呈倒 U 型关系, 并以“维护竞争优势”与“隐藏风险”两条机制解释企业对披露文本复杂度的策略性调整, 从顶刊层面锚定“披露文本复杂度可测量且具经济含义”这一构念族, 其可读性构造同属难词/长度一类词汇-句法复杂度族; 须注意原文中可读性主要居于解释变量位置、创新绩效为结果变量, 该方向与本项目把 ln_word_count 列作银行-年自变量的用法一致, 但不得据此声称“可读性作为被解释变量”的设计先例, 且原文语料为英文 10-K 类披露文件、可读性依 Fog/Bog 等英文公式, 与本项目基于 jieba 冻结词典的中文新闻测度仅在构念族与测度动机层面对应, 不在公式层面对应。
 ## VAR: ln_word_count_full
 
 【变体差分】
@@ -97,4 +121,7 @@ Li, F. (2008). Annual report readability, current earnings, and earnings persist
 Cohn, J. B., Liu, Z., & Wardlaw, M. I. (2022). Count (and count-like) data in finance. Journal of Financial Economics, 146(2), 529-551. https://doi.org/10.1016/j.jfineco.2022.08.004
 Gangadharan, V., & Padmakumari, L. (2023). Annual report readability and stock return synchronicity: Evidence from India. Cogent Economics & Finance. https://doi.org/10.1080/23322039.2023.2186034
 McClure, C. G., Shi, S. X., & Watts, E. M. (2025). Information acquisition costs and price informativeness: global evidence. Review of Accounting Studies. https://doi.org/10.1007/s11142-025-09906-3
+Yuan, D., Shen, J., & Li, Y. (2026). Annual report textual complexity and ESG rating disagreement. International Review of Economics & Finance, 110, 105609. https://doi.org/10.1016/j.iref.2026.105609
+Zhou, W., Xiong, Y., & Wang, S. (2025). Dialect diversity, corporate annual report text readability and stock price crash risks. Finance Research Letters, 86, 108622. https://doi.org/10.1016/j.frl.2025.108622
+Gounopoulos, D., Huang, W., & Yang, M. (2025). Innovation and annual report readability. Research Policy, 54(8), 105301. https://doi.org/10.1016/j.respol.2025.105301
 <!-- rendered-citations:end -->

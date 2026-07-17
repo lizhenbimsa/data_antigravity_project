@@ -35,6 +35,33 @@ citations:
   year: 2020
   title: "Longformer: The long-document transformer"
   venue: arXiv
+- doi: "10.1016/j.bar.2023.101305"
+  type: "journal"
+  authors: "Xue, X., Wang, L., & Hu, N."
+  year: 2024
+  title: "Economic policy uncertainty and corporate social responsibility disclosure similarity: Evidence from China"
+  venue: "The British Accounting Review"
+  vol: "56"
+  issue: "5"
+  pages_or_artno: "101305"
+- doi: "10.1287/mnsc.2022.01468"
+  type: "journal"
+  authors: "Zhou, Y., Fan, J., & Xue, L."
+  year: 2024
+  title: "How Much Can Machines Learn Finance from Chinese Text Data?"
+  venue: "Management Science"
+  vol: "70"
+  issue: "12"
+  pages_or_artno: "8962-8987"
+- doi: "10.1111/acfi.13076"
+  type: "journal"
+  authors: "Wang, Y., Ye, Q., Wang, J. J., & Wang, Y."
+  year: 2023
+  title: "Earnings manipulation and similarity of annual report disclosure: Evidence from China"
+  venue: "Accounting & Finance"
+  vol: "63"
+  issue: "S1"
+  pages_or_artno: "1137-1156"
 new_dois: []
 ---
 
@@ -47,8 +74,7 @@ new_dois: []
 计算分三步。第一步是文档聚合: 对每个 bank-year 单元, 将该银行该年度全部入选新闻按对应文本轨拼接为一份聚合文档 (聚合口径见「与三轨的关系」)。第二步是向量化: 对聚合文档做 jieba 词级切分, 构造词袋并计算 TF-IDF 权重, 得到该 bank-year 文档的稀疏词向量; 本家族三列统一采用 jieba 分词的「词级」(word-level) TF-IDF 通道, 以与同一相邻期连贯性块内另一条「字级」(char-level) 通道 coh_tfidf_c 形成分词粒度上的并排稳健性对照 —— 词级切分保留了金融领域复合词与专有名词的语义完整性, 字级切分则对分词错误与未登录词更鲁棒, 二者各自 just-identified 并排、互为稳健性、不分主次, 严禁把词级与字级两个通道混进同一个 over-identified 的 Hansen J 过度识别检验。第三步是相邻期匹配: 取该银行 t 年与 t−1 年两份 TF-IDF 向量的余弦相似度作为 t 年的连贯性得分, 取值落在 [0, 1] 区间。关键的定义域约束是: 连贯性严格定义在「相邻连续年度」上 —— 只有当 year_t 与 year_{t−1} 均存在且相差恰为一年时才计算, 对每家银行的首个观测年、以及样本中出现年份间隙 (跨年缺失) 的年度一律返回 NaN, 这与同一生产模块内 strat_fluidity 流动性变量的缺失处理保持一致, 避免把「跨越多年的一次性跳变」误当作「相邻一年的平滑演化」。留篇口径遵循全项目 full-only 门控 (2026-06-29): 一篇报道是否计入 bank-year 文档由 full 轨的留篇判定决定, ctx/ss 轨在此留篇集合之上按各自文本口径重新物化聚合文本, 因而三轨行宇宙是 full 留篇集的一致子集派生, 而非独立留篇。
 
 【文献定位】
-本测度处于「金融文本的时间维度分析」这一线索上。Cohen、Malloy 与 Nguyen (2020) 提供了最直接的方法学母题: 相邻两期披露文本相似度是一个可操作、可复现、且与后续经济结果相关的文本特征, 其价值在于「变化 (或不变化) 本身即信号」。本家族把该母题的载体由披露文本换成媒体报道, 因此更贴近「外部感知连贯性」而非「内部披露连贯性」。在计量落地层面, 连贯性得分作为一个 bank-year 层面的连续解释变量, 其分布形态需谨慎处理, 但须先厘清其性质与「计数变量」的本质区别: 本指标是相邻两期 TF-IDF 向量夹角的余弦相似度, 取值严格封闭在 [0, 1] 单位区间内, 是一个有界的连续测度, 而非非负整数意义上的计数或类计数变量。因此对它套用计数数据的建模框架并不贴切 —— 它既没有零膨胀的整数堆积, 也不服从泊松或负二项的生成机制。Cohn、Liu 与 Wardlaw (2022) 系统讨论了金融研究中计数型与类计数型变量因其离散、非负、右偏的生成结构而带来的建模陷阱; 本家族在此处援引该文并非把连贯性得分归入计数变量, 而是取其更一般的方法学教训 —— 一个测度的机械生成方式 (此处是由词频派生的向量余弦) 会先验地塑造其分布支撑与形态, 提醒研究者不可对派生自文本频次的指标不加辨析地套用现成的线性设定。落到本指标, 需要关注的不是计数变量的零膨胀与右偏, 而是有界支撑 (bounded support) 与单位区间内可能存在的偏态: 当大量 bank-year 的相邻期报道高度雷同, 相似度会在接近 1 的上界处堆积, 使分布左偏并触及边界, 此时朴素 OLS 线性设定同样可能失当, 分数型 (fractional) 或有界响应的处理值得作为稳健性对照。在文本表示的工程约束上, 长文档的处理是本家族与整个 strategic_diff 模块共同面对的问题: 当聚合文档很长时, 简单截断会丢失尾部语义, Beltagy、Peters 与 Cohan (2020) 提出的长文档 Transformer 说明了长文本表示需要专门的分段与注意力机制; 本家族在 TF-IDF 词袋通道上不受序列长度上限约束 (词袋对长度不敏感), 但同一模块内的 embedding 通道则采用 token 分段加均值池化来规避超长截断, 二者构成对长文本敏感性的互补稳健性检验。需要强调的是, TF-IDF 词袋通道天然忽略词序与上下文, 只捕捉词汇层面的重叠, 因而它测量的是「用词是否雷同」这一浅层连贯性, 与 embedding 通道测量的「语义是否接近」这一深层连贯性正交, 二者不可互相替代, 亦不得混入同一过度识别检验。
-
+本测度处于「金融文本的时间维度分析」这一线索上。Cohen、Malloy 与 Nguyen (2020) 提供了最直接的方法学母题: 相邻两期披露文本相似度是一个可操作、可复现、且与后续经济结果相关的文本特征, 其价值在于「变化 (或不变化) 本身即信号」。本家族把该母题的载体由披露文本换成媒体报道, 因此更贴近「外部感知连贯性」而非「内部披露连贯性」。在计量落地层面, 连贯性得分作为一个 bank-year 层面的连续解释变量, 其分布形态需谨慎处理, 但须先厘清其性质与「计数变量」的本质区别: 本指标是相邻两期 TF-IDF 向量夹角的余弦相似度, 取值严格封闭在 [0, 1] 单位区间内, 是一个有界的连续测度, 而非非负整数意义上的计数或类计数变量。因此对它套用计数数据的建模框架并不贴切 —— 它既没有零膨胀的整数堆积, 也不服从泊松或负二项的生成机制。Cohn、Liu 与 Wardlaw (2022) 系统讨论了金融研究中计数型与类计数型变量因其离散、非负、右偏的生成结构而带来的建模陷阱; 本家族在此处援引该文并非把连贯性得分归入计数变量, 而是取其更一般的方法学教训 —— 一个测度的机械生成方式 (此处是由词频派生的向量余弦) 会先验地塑造其分布支撑与形态, 提醒研究者不可对派生自文本频次的指标不加辨析地套用现成的线性设定。落到本指标, 需要关注的不是计数变量的零膨胀与右偏, 而是有界支撑 (bounded support) 与单位区间内可能存在的偏态: 当大量 bank-year 的相邻期报道高度雷同, 相似度会在接近 1 的上界处堆积, 使分布左偏并触及边界, 此时朴素 OLS 线性设定同样可能失当, 分数型 (fractional) 或有界响应的处理值得作为稳健性对照。在文本表示的工程约束上, 长文档的处理是本家族与整个 strategic_diff 模块共同面对的问题: 当聚合文档很长时, 简单截断会丢失尾部语义, Beltagy、Peters 与 Cohan (2020) 提出的长文档 Transformer 说明了长文本表示需要专门的分段与注意力机制; 本家族在 TF-IDF 词袋通道上不受序列长度上限约束 (词袋对长度不敏感), 但同一模块内的 embedding 通道则采用 token 分段加均值池化来规避超长截断, 二者构成对长文本敏感性的互补稳健性检验。需要强调的是, TF-IDF 词袋通道天然忽略词序与上下文, 只捕捉词汇层面的重叠, 因而它测量的是「用词是否雷同」这一浅层连贯性, 与 embedding 通道测量的「语义是否接近」这一深层连贯性正交, 二者不可互相替代, 亦不得混入同一过度识别检验。 在中文语料的同域证据上, 本家族可再补三支定位。Xue、Wang 与 Hu (2024) 以 2009-2021 年中国上市公司为样本, 把当年 CSR 报告与公司自身以往报告的相似度 (CSR time-series disclosure similarity) 设为被解释变量, 发现经济政策不确定性越高、企业越倾向发布与自身过往高度重合的报告, 且该效应在国有企业减弱、在财务约束或亏损企业增强; 该文与本家族「同一主体相邻两期自比」的核心算子构念完全对应, 表明「与自身上期文本高度重合」本身可被视为一种受外部环境驱动的实质行为而非纯粹噪声。迁移边界在于: 原文单位是上市公司-年的自撰 CSR 报告, 本家族是银行-年第三方媒体报道, 银行并非文本作者, 原文的象征性披露主动选择机制不可平移; 且原文把相似度当作被解释变量、由 EPU 驱动, 本家族三列均作为 bank-year 层面的解释变量进入右侧, 原文为纯时间序列自比、不含同业质心成分。Zhou、Fan 与 Xue (2024) 提出 FarmPredict 因子增广与稀疏正则框架, 让模型直接从中文财经新闻中学习并预测股票收益, 结论是中文财经文本在词级表示下确实携带可观的可学习经济信号, 且优于多种统计与机器学习基准; 该文对本家族仅提供构念层依据 —— 在顶刊层面支持「中文财经新闻经词级切分后的词袋类表示并非无信息噪声」, 从而支撑 jieba 词级 TF-IDF 这一表示路线的前提合理性。此处的引用口径必须降级申明: 原文的方法论卖点恰恰是不依赖预定义词典或预训练模型、由模型自行抽取信息, 全文未评估任何 TF-IDF 权重方案, 更未对 jieba 分词或本家族任何具体列做过效度校验, 故不得据以主张本家族的加权与分词方案已获外部验证; 原文目标为日频收益预测管线, 不构造年际连贯 (t 与 t-1 的比对), 单位为公司层面新闻而非银行-年聚合。Wang、Ye、Wang 与 Wang (2023) 则在 2008-2020 年中国 A 股 13,679 家样本上以 MD&A 与上一年文本的相似度为核心测度, 记录了「高相似度即低增量信息」的经验规律, 是相邻期中文分词词袋相似度最贴近的同域先例; 边界是该文语料为公司自撰年报、单位为公司-年, 并把相似度解释为盈余操纵动机, 本家族只取其测度层含义, 不承接该动机解释。
 ## VAR: coh_tfidf_w_full
 
 【变体差分】
@@ -68,4 +94,7 @@ new_dois: []
 Cohen, L., Malloy, C., & Nguyen, Q. (2020). Lazy prices. Journal of Finance, 75(3), 1371-1415. https://doi.org/10.1111/jofi.12885
 Cohn, J. B., Liu, Z., & Wardlaw, M. I. (2022). Count (and count-like) data in finance. Journal of Financial Economics, 146(2), 529-551. https://doi.org/10.1016/j.jfineco.2022.08.004
 Beltagy, I., Peters, M. E., & Cohan, A. (2020). Longformer: The long-document transformer. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2004.05150
+Xue, X., Wang, L., & Hu, N. (2024). Economic policy uncertainty and corporate social responsibility disclosure similarity: Evidence from China. The British Accounting Review, 56(5), 101305. https://doi.org/10.1016/j.bar.2023.101305
+Zhou, Y., Fan, J., & Xue, L. (2024). How Much Can Machines Learn Finance from Chinese Text Data?. Management Science, 70(12), 8962-8987. https://doi.org/10.1287/mnsc.2022.01468
+Wang, Y., Ye, Q., Wang, J. J., & Wang, Y. (2023). Earnings manipulation and similarity of annual report disclosure: Evidence from China. Accounting & Finance, 63(S1), 1137-1156. https://doi.org/10.1111/acfi.13076
 <!-- rendered-citations:end -->

@@ -63,6 +63,15 @@ citations:
   vol: '54'
   issue: '6'
   pages_or_artno: 2045-2073
+- doi: "10.1080/24694452.2025.2564220"
+  type: "journal"
+  authors: "Kong, I., & Purves, R. S."
+  year: 2026
+  title: "Analyzing Geographic Bias of Newspaper Articles Reporting Global Climate Disasters"
+  venue: "Annals of the American Association of Geographers"
+  vol: "116"
+  issue: "2"
+  pages_or_artno: "270-288"
 ---
 
 ## CORE
@@ -74,8 +83,7 @@ citations:
 计算分三步。第一步坐标解析: 对每篇文章的媒体侧地理字段 (`城市` 列, 缺失时退到 `国家地区/省份` 列) 做三级坐标查找 — Level 1 精确匹配城市坐标字典; Level 2 清洗字符串 (去"市"/"地区"等后缀噪声) 后再匹配; Level 3 若仍未命中, 退化到该省份的省会坐标 (`province_capital_map_file`)。银行总部坐标同样通过 `bank_addresses_file` 解析城市后查坐标字典, 三级查找失败 (Level 1/2/3 均未命中) 的银行整个 bank-year 被跳过 (不产出任何 `prox_*` 列, 而非填 0)。第二步距离计算: 用 Haversine 球面距离公式 (地球半径取 6371km) 逐篇计算媒体坐标与银行总部坐标的大圆距离, 得到 `_dist_km` 列; 媒体侧三级查找也失败的文章距离记为缺失 (不可地理编码)。第三步阈值计数: 对 `_DISTANCE_THRESHOLDS_KM = (50, 100, 150, 200)` 四个半径依次筛选 `_dist_km ≤ d` 的文章子集, 取子集行数即为 `prox_{d}km_n_articles`。分母口径要点 (2026-06-10 metric-audit 修复 prox-frac-denominator 同批对齐): 该 bank-year 内全部文章都不可地理编码时 (`n_geocoded == 0`), 四个 `n_articles` 列统一填 `NaN` 而非 0 — "圈内有无报道"在此时是未知而非确知为零, 与占比家族 F483 (`prox_*_frac`) 及二值家族 F484 (`prox_*_is_local`) 的 NaN 语义严格对齐, 避免下游把"未知"误读为"确知无报道"的系统性向下偏差。四个阈值列彼此存在拓扑单调约束 (`prox_50km_n_articles ≤ prox_100km_n_articles ≤ prox_150km_n_articles ≤ prox_200km_n_articles`), 该约束由半径嵌套的几何定义直接保证 (更大半径的圆必然包含更小半径圆的全部文章), 经逐行核对 `compute_geo_proximity_buffers` 源码, 该函数对本家族四列本身并无显式的单调断言或告警代码, 该约束是"筛选逻辑必然导出"的隐式性质而非产出后被程序主动校验的性质; geography.py 内唯一存在的显式拓扑单调 warning (非 assert) 属于同文件另一函数 `compute_regional_imitation_pressure` 产出的 `ai_reg_{d}km` 区域模仿压力族, 与本家族变量名不同、口径不同, 不应混同援引。本族计数与情感三轨 (full/ctx/ss) 无关, 是 track-agnostic 单轨列 — 圆内文章数不区分该文章走哪条文本轨道分析, 与家族 F487 (`prox_*_tone_full/_ctx/_ss` 等三轨情感聚合) 是同一批圈选文章上的不同统计量, 不构成三轨梯子, 不适用"各自 just-identified 并排、禁混同一 Hansen J"的三轨/co-primary 铁律 (那是情感测量维度的正交梯子, 本族是几何计数维度)。
 
 【文献定位】
-多距离阈值缓冲方法论的经典锚点是 Gurun & Butler (2012, *The Journal of Finance*) 与 Engelberg & Parsons (2011, *The Journal of Finance*): 前者证明本地媒体对本地上市公司存在系统性正面偏向 (local media slant), 后者证明媒体报道对金融市场存在因果冲击, 且冲击强度随媒体与标的公司地理接近度衰减, 两文均采用以标的公司为圆心、多个同心圆半径分层统计媒体覆盖的设计, 是本家族"50/100/150/200km 四梯度圆"设计的直接方法学来源。地理距离与球面几何计算沿用 Coval & Moskowitz (1999) 度量本地权益偏好 (home bias) 时确立的精确距离计算传统。近期文献进一步把"地理邻近度—金融行为"构念延展到银行/信贷场景: Guo, Zhu, Zhang, Liu & Yang (2024, *Economic Analysis and Policy*) 证明银行网点地理邻近度 (bank proximity) 影响信贷可得性进而影响企业污染治理行为, 与本族"以银行总部为圆心度量媒体报道密度"共享"物理距离作为信息/资源摩擦代理变量"的识别逻辑; Ahmad & Law (2024, *International Journal of Finance & Economics*) 用空间计量方法同时纳入地理邻近度与制度邻近度检验金融发展—经济增长关系, 佐证地理距离在金融地理学中作为多层次邻近度构念之一的通用性。这些文献共同支持本族的核心解释假设: 报道数量随地理距离衰减反映的是本地信息生产与传播成本梯度, 而非报道内容 (语调) 本身的系统差异 (后者由 F487 家族单独测度)。
-
+多距离阈值缓冲方法论的经典锚点是 Gurun & Butler (2012, *The Journal of Finance*) 与 Engelberg & Parsons (2011, *The Journal of Finance*): 前者证明本地媒体对本地上市公司存在系统性正面偏向 (local media slant), 后者证明媒体报道对金融市场存在因果冲击, 且冲击强度随媒体与标的公司地理接近度衰减, 两文均采用以标的公司为圆心、多个同心圆半径分层统计媒体覆盖的设计, 是本家族"50/100/150/200km 四梯度圆"设计的直接方法学来源。地理距离与球面几何计算沿用 Coval & Moskowitz (1999) 度量本地权益偏好 (home bias) 时确立的精确距离计算传统。近期文献进一步把"地理邻近度—金融行为"构念延展到银行/信贷场景: Guo, Zhu, Zhang, Liu & Yang (2024, *Economic Analysis and Policy*) 证明银行网点地理邻近度 (bank proximity) 影响信贷可得性进而影响企业污染治理行为, 与本族"以银行总部为圆心度量媒体报道密度"共享"物理距离作为信息/资源摩擦代理变量"的识别逻辑; Ahmad & Law (2024, *International Journal of Finance & Economics*) 用空间计量方法同时纳入地理邻近度与制度邻近度检验金融发展—经济增长关系, 佐证地理距离在金融地理学中作为多层次邻近度构念之一的通用性。这些文献共同支持本族的核心解释假设: 报道数量随地理距离衰减反映的是本地信息生产与传播成本梯度, 而非报道内容 (语调) 本身的系统差异 (后者由 F487 家族单独测度)。 在"先给新闻报道打上地理坐标、再在坐标空间上统计覆盖度"这一分析范式上, Kong 与 Purves (2026) 提供了前沿存在性证明: 该文对报纸文章检测地名并赋予地理坐标后, 量化报道在空间上的不均衡覆盖 (地理偏倚), 并考察地名粒度与要素类型对分析结论的影响, 与本族先地理编码、再对可地理编码报道作距离缓冲计数的口径同源。迁移边界须诚实标注: 其语料固定为五家英国报纸、主题是全球气候灾害而非银行金融科技, 分析单位是"报道—事件发生地"的国别覆盖偏倚, 而非本族"媒体所在地—银行总部"的双坐标距离; 原文亦无 bank-year 面板聚合, 也无本族全部报道不可地理编码时置 NaN 的哨兵口径, 属地理学期刊而非金融计量文献, 故仅在范式可行性层面提供支撑, 不构成四梯度阈值取值的依据。
 ## VAR: prox_50km_n_articles
 
 【变体差分】
@@ -102,4 +110,5 @@ Engelberg, J. E., & Parsons, C. A. (2011). The causal impact of media in financi
 Guo, L., Zhu, H., Zhang, C., Liu, Y., & Yang, C. (2024). Does improved credit access promote pollution reduction? The role of bank proximity. Economic Analysis and Policy, 84, 78-97. https://doi.org/10.1016/j.eap.2024.08.019
 Ahmad, M., & Law, S. H. (2024). Financial development, institutions, and economic growth nexus: A spatial econometrics analysis using geographical and institutional proximities. International Journal of Finance & Economics, 29(3), 2699-2721. https://doi.org/10.1002/ijfe.2791
 Coval, J. D., & Moskowitz, T. J. (1999). Home bias at home: Local equity preference in domestic portfolios. The Journal of Finance, 54(6), 2045-2073. https://doi.org/10.1111/0022-1082.00181
+Kong, I., & Purves, R. S. (2026). Analyzing Geographic Bias of Newspaper Articles Reporting Global Climate Disasters. Annals of the American Association of Geographers, 116(2), 270-288. https://doi.org/10.1080/24694452.2025.2564220
 <!-- rendered-citations:end -->

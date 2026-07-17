@@ -58,6 +58,31 @@ citations:
   venue: Energy Policy
   vol: '184'
   pages_or_artno: '113917'
+- doi: "10.1016/j.energy.2025.139126"
+  type: "journal"
+  authors: "Hua, X., Dong, D., Xu, Z., & Huang, W."
+  year: 2025
+  title: "Official media sentiments toward energy and equity returns: Evidence from China"
+  venue: "Energy"
+  vol: "340"
+  pages_or_artno: "139126"
+- doi: "10.1371/journal.pone.0315137"
+  type: "journal"
+  authors: "Ananyev, M., & Volkova, E."
+  year: 2024
+  title: "Media ownership and ideological slant: Evidence from Australian newspaper mergers"
+  venue: "PLOS ONE"
+  vol: "19"
+  issue: "12"
+  pages_or_artno: "e0315137"
+- doi: "10.1016/j.irfa.2023.102761"
+  type: "journal"
+  authors: "Isakin, M., & Pu, X."
+  year: 2023
+  title: "Dispersion in news sentiment and corporate bond returns"
+  venue: "International Review of Financial Analysis"
+  vol: "89"
+  pages_or_artno: "102761"
 new_dois: []
 ---
 
@@ -72,8 +97,7 @@ tone_gap_official_nonoff 家族刻画同一银行同一年度内, 官方媒体 (
 三轨 full/ctx/ss 分别对应标题+正文全文、标题+实体窗口、标题+银行∧金科同句±N窗三种文本口径, 在源码中以 `for track in ['_full', '_ctx', '_ss']: src = f'llm_vote_score{track}'; if src not in df.columns: continue` 的方式逐轨独立处理——任一轨的语调来源列缺失时该轨优雅跳过, 不影响其余轨的产出, 不做跨轨借补。_ss 轨的回退语义镜像 _ctx: 当一篇文章不存在银行与金科关键词的同句共现时, 其 content_ss 退化为使用全文 body(ss_is_fallback=True), 该回退共享 n_articles 分母, 不做单独剔除。三轨在语调缺口这一构念上各自 just-identified 并排, 互为稳健性、不分主次, 严禁在同一 over-identified 的 Hansen J 检验中混用三轨的仪器/矩条件。
 本家族属"媒体异质性"六维度体系的一支, 与同一模块产出的中央/地方缺口 (tone_gap_central_local)、市场化/非市场化缺口 (tone_gap_market_nonmkt)、深度报道/非深度报道缺口 (tone_gap_deepdive_nondeep)、日频/非日频缺口 (tone_gap_daily_nondaily) 共享同一构造范式(分组均值相减), 但分组判据各不相同——本家族的判据轴是"媒体主管单位性质"(党政机关 vs 非党政机关主管), 是六维度中唯一直接映射政治控制强度的一支。
 【文献定位】
-本测度的构念根基是 You, Zhang & Zhang (2018, The Review of Financial Studies) "Who Captures the Power of the Pen?" 一文——该文首次系统证明中国官方媒体与市场化媒体在负面报道的公司治理效应上存在显著差异: 官方媒体的负面报道未能显著预测高管更替, 而市场化媒体的负面报道具有显著的公司治理纠偏效应, 这一发现是本家族"官方/非官方语调是否存在系统性差异"这一命题的直接理论来源与实证先例。分组判据的操作化进一步参照 Piotroski, Wong & Zhang (2015, Journal of Accounting Research) 对政治激励如何压制关联企业负面信息传播的分析框架, 该文提供了"主管单位性质影响信息披露倾向性"这一机制层面的支持证据。就测度语调差异这一统计操作本身, Xu, Hua & Zhang (2025, Emerging Markets Review) 在讨论官方媒体情感对中国股票市场的影响时同样采用了分组语调对比的构造方式, 是本家族在近期文献中的方法论呼应; Xu, Li, Hua & Ren (2024, Energy Policy) 则在新能源行业情境下验证了政府控制媒体语调对资本市场的独立信息含量, 二者共同支持"官方 vs 非官方语调缺口"是具有可操作性、可复制性的实证测度而非本项目特设构造。就语调底层来源本身的可靠性, Holzman, Miller & Twedt (2023, The Accounting Review) 在媒体权威性加权情境下验证了媒体情感测度对盈余公告后市场反应的解释力, 为本家族所依赖的 llm_vote_score 基础语调分提供了外部效度佐证。
-
+本测度的构念根基是 You, Zhang & Zhang (2018, The Review of Financial Studies) "Who Captures the Power of the Pen?" 一文——该文首次系统证明中国官方媒体与市场化媒体在负面报道的公司治理效应上存在显著差异: 官方媒体的负面报道未能显著预测高管更替, 而市场化媒体的负面报道具有显著的公司治理纠偏效应, 这一发现是本家族"官方/非官方语调是否存在系统性差异"这一命题的直接理论来源与实证先例。分组判据的操作化进一步参照 Piotroski, Wong & Zhang (2015, Journal of Accounting Research) 对政治激励如何压制关联企业负面信息传播的分析框架, 该文提供了"主管单位性质影响信息披露倾向性"这一机制层面的支持证据。就测度语调差异这一统计操作本身, Xu, Hua & Zhang (2025, Emerging Markets Review) 在讨论官方媒体情感对中国股票市场的影响时同样采用了分组语调对比的构造方式, 是本家族在近期文献中的方法论呼应; Xu, Li, Hua & Ren (2024, Energy Policy) 则在新能源行业情境下验证了政府控制媒体语调对资本市场的独立信息含量, 二者共同支持"官方 vs 非官方语调缺口"是具有可操作性、可复制性的实证测度而非本项目特设构造。就语调底层来源本身的可靠性, Holzman, Miller & Twedt (2023, The Accounting Review) 在媒体权威性加权情境下验证了媒体情感测度对盈余公告后市场反应的解释力, 为本家族所依赖的 llm_vote_score 基础语调分提供了外部效度佐证。 在 2024 年以后的前沿证据上, Hua、Dong、Xu 与 Huang (2025) 以 BERT 对中国官方/政府控制媒体的新能源报道文本构建官方媒体语调指数, 并检验其与权益回报及企业融资投资行为的关系, 印证了"按媒体官方属性切出子样本、在子样本内对文章级语调取均值"这一构造在近期文献中的独立存在性; 惟须诚实说明该文只构建官方一侧的指数、并未报告官方与非官方两侧的均值之差, 其官方名单依中国国家控股报纸清单而非本家族 NPPA 主管/主办单位判据下的 OFFICIAL−MARKET 差集, 情感由文本指数法而非三家 LLM 投票得到, 层级为行业-日频而无 bank-year 面板, 故仅锚被减数一侧的同构念先例, 不锚作差这一统计量本身。Ananyev 与 Volkova (2024) 利用 2016-2019 年三起澳大利亚报业并购、以逾三千万篇报道的语言构建 slant 测度, 并以合成双重差分识别媒体所有权变更对报纸政治 slant 的因果影响, 为本家族"媒体归属/控制权分层之间存在系统性语调缺口"这一前提提供了准实验层面的支持; 其所有权维度是私人资本集中度而非中国的官方/市场化主管单位, slant 为政治意识形态量表而非银行-金科报道语调, 层级停在报纸-时期而无主体-年面板, 故只锚前提不锚公式。Isakin 与 Pu (2023) 把同一发行主体在同期多篇新闻之间的情感离散度作为可独立定价的构念加以度量并检验 (美国公司债、债券-月层级、英文新闻数据库情感), 是"同一主体报道内部的语调不一致本身携带信息、而非只有语调水平携带信息"这一 generic 前提的方法学近亲参照; 惟其离散度是全部报道上的跨文章统计离散, 与本家族先按来源属性划成互补两组再取组均值之差 (between-group contrast) 并非同一统计量, 该文亦未做任何媒体来源属性分层, 发表年为 2023 而非 2024 后前沿, 故仅作旁证。三条文本轨道 (_full/_ctx/_ss) 下的三列缺口互为稳健性、不分主次, 各自 just-identified 并排使用, 不得混入同一 over-identified 的 Hansen J 矩条件。
 ## VAR: tone_gap_official_nonoff_full
 
 【变体差分】
@@ -98,4 +122,7 @@ Piotroski, J. D., Wong, T. J., & Zhang, T. (2015). Political Incentives to Suppr
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
 Xu, Z., Hua, X., & Zhang, T. (2025). Does Official Media Sentiment Matter for the Stock Market? Evidence from China. Emerging Markets Review, 64, 101234. https://doi.org/10.1016/j.ememar.2024.101234
 Xu, Z., Li, J., Hua, X., & Ren, P. (2024). Is the Tone of the Government-Controlled Media Valuable for Capital Market? Evidence from China's New Energy Industry. Energy Policy, 184, 113917. https://doi.org/10.1016/j.enpol.2023.113917
+Hua, X., Dong, D., Xu, Z., & Huang, W. (2025). Official media sentiments toward energy and equity returns: Evidence from China. Energy, 340, 139126. https://doi.org/10.1016/j.energy.2025.139126
+Ananyev, M., & Volkova, E. (2024). Media ownership and ideological slant: Evidence from Australian newspaper mergers. PLOS ONE, 19(12), e0315137. https://doi.org/10.1371/journal.pone.0315137
+Isakin, M., & Pu, X. (2023). Dispersion in news sentiment and corporate bond returns. International Review of Financial Analysis, 89, 102761. https://doi.org/10.1016/j.irfa.2023.102761
 <!-- rendered-citations:end -->

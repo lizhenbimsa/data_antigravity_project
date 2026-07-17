@@ -46,6 +46,22 @@ citations:
   venue: Decision Support Systems
   vol: 88
   pages_or_artno: 67-75
+- doi: "10.3390/computers12010018"
+  type: "journal"
+  authors: "Naldi, M., & Petroni, S."
+  year: 2023
+  title: "A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools"
+  venue: "Computers"
+  vol: "12"
+  issue: "1"
+  pages_or_artno: "18"
+- doi: "10.18653/v1/2025.emnlp-main.1088"
+  type: "journal"
+  authors: "Kim, J., Koo, S., & Lim, H."
+  year: 2025
+  title: "Semantic Inversion, Identical Replies: Revisiting Negation Blindness in Large Language Models"
+  venue: "Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing"
+  pages_or_artno: "21445-21482"
 new_dois: []
 ---
 
@@ -58,8 +74,7 @@ new_dois: []
 文章级底料由 tone_words.py 的 compute_dict_scores 产出。分词冻结在 jieba 0.42.1, 纯 CPU、无 LLM、无网络、零成本, 确定性完全来自 jieba 版本与词典文件。得分口径是自归一化的有向幅度比: 逐词计算最终有向情感幅度 final_score (正词取正、负词取负, 叠加规则后的调制值), 文章级得分 = Σ(final_score) / Σ|final_score|, 即所有词最终有向幅度之和除以其绝对值之和, 值域约束在 [−1, +1]。这里的分子分母都是「幅度」而非朴素计数: 之所以在 du_2022 上数值近似「(加权正 − 负) / (加权正 + 负)」, 是因为 du_2022 负面词权重恒为 1.0、故负侧幅度和与负面词计数一致, 但正确表述仍应以 Σ|final_score| 为分母。关键处在否定处理——负面情感词并非独立计数: negonly 变体在扫描时把 apply_negation 置 True、apply_degree 与 apply_adversative 置 False, 遇否定词时识别否定作用域并按窗口翻转其内情感词的极性 (褒贬互换, 该词 final_score 随之改号并计入相反侧), 遇程度副词时把强化倍率锁定为 1.0 (不放大也不衰减), 遇转折词时不对从句区域施加 ×ADVERSATIVE_BOOST 放大。关键铁律是这三条规则的从句级 scoping (作用域按句末标点重置) 在所有消融变体间共享: negonly 只关闭程度与转折的「数值效应」, 不改动作用域切分逻辑, 从而与全规则档及其余五档逐字节可比、抵消 scoping 差异带来的伪变异。这一「只锁数值、不动 scoping」的处理保证否定翻转的纯净语义在 negonly 里被单独隔离。银行–年度聚合在 attention_media.py 完成: 先剔除 _is_ceased_media 为真的隐性停刊媒体文章得到存活子集 df_alive, 再按 target_bank×year 对文章级 du_2022_score_negonly{track} 取算术均值, 落列 exc_du_2022_score_negonly{track}。停刊过滤只作用于分子聚合口径, 不改变词典与规则本身; 情感类 exc_ 列在零文章的 bank-year 按契约保持 NaN, 不做计数零填。需强调, 规则消融梯度各变体自归一化 (每篇文章各自以 Σ|final| 为分母), (full − negonly) 反映程度加转折对最终归一化语调的联合净效应, 属非可加分解: full 与 negonly 各自 self-normalize, 实测二者高度共线 (corr 约 0.998–0.999), 因此只报相关而非并入同一加性分解式。
 
 【文献定位】
-词典来源锚定 Du 等 (2022): 该文论证通用英文情感词典迁移到中文金融文本会系统性失真, 领域与语言特异性词表能显著提升情感抽取效度, 是本家族褒贬词表与政治词降权的直接依据, 也是本项目全部 du_2022 系列测度的顶刊锚。否定处理的方法学基础可锚定 Pröllochs 等 (2016): 该文系统研究了新闻驱动交易情境下否定作用域 (negation scope) 的自动识别, 论证正确界定否定的辖域对情感极性抽取至关重要——这正是 negonly 变体唯一保留的语言学通道, 也解释了为何在消融梯度中把否定单列一档具有独立的构念意义。Ma 等 (2025) 构建面向中国境内投资者的细粒度中文情感词典, 印证了在中文金融语境下持续精化领域词典与规则的必要性, 为本项目多词典并置提供同期对照。exc_ 前缀的幸存者稳健动机则由 Heese 等 (2022) 提供: 地方报纸关停会实质改变媒体监督的横截面构成, 若不剔除停刊来源, 情感聚合会向存活媒体倾斜并污染以媒体为基的暴露度量。需强调, 规则消融梯度 (raw/negonly/degonly/advonly/negdeg/negadv/degadv) 各变体自归一化、高度共线且非可加分解, 它们各自 just-identified 并排、互为稳健性、不分主次, 禁混进同一 over-identified 的 Hansen J 检验; 同理三轨 full/ctx/ss 亦禁混同一 Hansen J。留篇门控口径与全项目一致, 采用 full-only (2026-06-29): 是否判为一篇银行金科报道只看 full 轨留篇集, ctx/ss 为 conditional-on-full 的稳健性轨。
-
+词典来源锚定 Du 等 (2022): 该文论证通用英文情感词典迁移到中文金融文本会系统性失真, 领域与语言特异性词表能显著提升情感抽取效度, 是本家族褒贬词表与政治词降权的直接依据, 也是本项目全部 du_2022 系列测度的顶刊锚。否定处理的方法学基础可锚定 Pröllochs 等 (2016): 该文系统研究了新闻驱动交易情境下否定作用域 (negation scope) 的自动识别, 论证正确界定否定的辖域对情感极性抽取至关重要——这正是 negonly 变体唯一保留的语言学通道, 也解释了为何在消融梯度中把否定单列一档具有独立的构念意义。Ma 等 (2025) 构建面向中国境内投资者的细粒度中文情感词典, 印证了在中文金融语境下持续精化领域词典与规则的必要性, 为本项目多词典并置提供同期对照。exc_ 前缀的幸存者稳健动机则由 Heese 等 (2022) 提供: 地方报纸关停会实质改变媒体监督的横截面构成, 若不剔除停刊来源, 情感聚合会向存活媒体倾斜并污染以媒体为基的暴露度量。需强调, 规则消融梯度 (raw/negonly/degonly/advonly/negdeg/negadv/degadv) 各变体自归一化、高度共线且非可加分解, 它们各自 just-identified 并排、互为稳健性、不分主次, 禁混进同一 over-identified 的 Hansen J 检验; 同理三轨 full/ctx/ss 亦禁混同一 Hansen J。留篇门控口径与全项目一致, 采用 full-only (2026-06-29): 是否判为一篇银行金科报道只看 full 轨留篇集, ctx/ss 为 conditional-on-full 的稳健性轨。 在上述锚点之外, Naldi 与 Petroni (2023) 提供了与本族口径最贴近的方法学参照: 该文提出一套基于人工构造测试集的方法, 专门评估词典法情感工具对否定的检测与处理能力, 并实证发现各工具的否定处理表现差异显著, 印证否定是词典法内部可被单独测量、单独失效的模块, 这正是把否定单开一档、构成 negonly 臂的直接依据; 迁移边界在于该文是英文通用领域 (非金融) 的工具准确率评测, 本族并不评测否定检测准确率, 而是把否定规则的开/关作为中文金融新闻面板测度的一条并排稳健性臂, 且其发表年为 2023, 不属 2024 年以来的前沿。构念层的背景动机可再引 Kim、Koo 与 Lim (2025): 该会议论文提出并验证「查询否定盲区」, 即当模型对肯定式查询的知识掌握准确时, 对语义被否定翻转的同一查询仍产出相同或近似回答, 并以 complexity 与 constrainedness 两准则设计四项验证任务, 系统性证据表明当代大语言模型普遍存在该缺陷, 说明否定是当代 NLP 系统中一条独立且尚未解决的语义处理轴, 为把否定单列为可独立开关、独立报告的规则提供背景性动机。此处须严格限定引用口径: 该文为英文 NLP 基准评测, 对象是生成式大语言模型的知识问答与逻辑推理, 不涉及情感/语调测度, 不涉及词典或状态机, 亦不涉及中文否定词表; 本族的否定翻转是状态机内对否定作用域内命中词的确定性改号, 其「是否正确处理」并不构成问题, 消融臂检验的只是该规则对结论的影响, 故本条仅作构念层背景, 词典法否定处理的直接证据仍以 Naldi 与 Petroni (2023) 为准。
 ## VAR: exc_du_2022_score_negonly_ctx
 
 【变体差分】
@@ -80,4 +95,6 @@ Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-graine
 Heese, J., Pérez-Cavazos, G., & Peter, C. D. (2022). When the local newspaper leaves town: The effects of local newspaper closures on corporate misconduct. Journal of Financial Economics, 145(2), 445-463. https://doi.org/10.1016/j.jfineco.2021.08.015
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
+Naldi, M., & Petroni, S. (2023). A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools. Computers, 12(1), 18. https://doi.org/10.3390/computers12010018
+Kim, J., Koo, S., & Lim, H. (2025). Semantic Inversion, Identical Replies: Revisiting Negation Blindness in Large Language Models. Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing, 21445-21482. https://doi.org/10.18653/v1/2025.emnlp-main.1088
 <!-- rendered-citations:end -->

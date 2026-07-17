@@ -44,6 +44,14 @@ citations:
   vol: '63'
   issue: '1'
   pages_or_artno: 125-143
+- doi: "10.1016/j.econlet.2026.113002"
+  type: "journal"
+  authors: "Nakatsuka, H., & Suimon, Y."
+  year: 2026
+  title: "How does the market respond to textual novelty: Joint analysis of similarity and sentiment on Japanese corporate disclosures"
+  venue: "Economics Letters"
+  vol: "265"
+  pages_or_artno: "113002"
 new_dois: []
 ---
 
@@ -58,8 +66,7 @@ yao_2021_score_hw_sum 家族刻画的是姚加权等 (2021) 金融领域中文�
 本列族与三轨架构的一般铁律一致: full (标题+正文全文) / ctx (标题+实体窗) / ss (标题+银行∧金科同句±N窗, 无共现时镜像 ctx 语义回退全文 body 并置 `ss_is_fallback=True`) 三条轨道各自独立完整走完打分→加权→求和全链路, 互为稳健性、不分主次并排比较, 严禁将三轨数值混入同一个 over-identified 的 Hansen J 检验框架 (三轨应各自 just-identified 使用)。留篇门控口径遵循 2026-06-29 起生效的 full-only 铁律: 一篇报道是否被计入某银行-年的"银行金科报道"行列, 由 `llm_verified_full` 单一门控决定, ctx/ss 两轨的加权求和是在 full 留篇集合的行宇宙子集上按各自轨道分别计算的 conditional-on-full 稳健性测度, 而非独立的留篇标准。跟风衰减权重本身的设计依据 Tetlock (2011, RFS) 关于媒体重复报道会稀释单篇信息含量的经典发现, 本仓库据此设计权重随同期报道密度递减; 权重构造的合理性还通过 decay_sensitivity 验证阶段做 uniform 权重与 inverse-distance 权重两种衰减核之间的 Pearson 相关检验 (高相关意味着衰减核选择对结果不敏感), 这一"权重设定须显式披露稳健性"的方法论关切与 Barbaglia, Consoli, Manzan, Tiozzo Pezzoli & Tosetti (2025, Economic Inquiry) 对词典法情感测度构造选择 (包括词表范围、极性规则、加总方式) 敏感性的系统讨论精神一致, 后者同样强调词典法测度不应把某一构造选择当作唯一正确设定, 而应显式检验替代设定间的一致性。
 
 【文献定位】
-在中文金融文本情感测度文献谱系中, yao_2021 与本仓库并置使用的 du_2022 (Du, Huang, Wermers & Wu, 2022, Review of Finance)、bian_2021 (Bian, Jia, Li & Yan, 2021, SSRN 工作论文) 属于同一代际的中文领域特异词典构建尝试, 三者均针对通用英文词典 (Loughran-McDonald 体系) 直译到中文语境后失效的问题给出各自的解决方案, 在措辞覆盖率、极性判定规则、以及与市场反应的相关性验证上各有侧重, 本仓库将六部词典 (jiang_2021/yao_2021/bian_2021/du_2022/you_2018/loughran) 并排作为互为稳健性的语调测度来源, 不设单一"canonical"词典, 这与 Frankel, Jennings & Lee (2022, Management Science) 提出的"机器学习方法与词典方法应互为稳健性对照"的方法论建议在精神上一致——本仓库进一步在词典内部也做多引擎 (跟风衰减加权/媒体权威加权/普通均值等) 并排, 而非把某一权重方案当作唯一正确设定。跟风衰减这一处理步骤本身呼应了媒体经济学中对"重复报道稀释边际信息含量"的经典关切 (Tetlock, 2011 一脉), 是文本情感测度从"简单加总"迈向"结构化加权"的必要一步, 也是本仓库在 HW/MW/VW 三套加权体系中专门为"媒体扎堆报道"这一数据特征设计的对症下药。使用者在解读本列时应牢记它是分子部件而非最终语调指标, 直接对比不同银行-年之间该列的绝对值大小意义有限 (因为篇数规模效应未被归一化), 更合适的用法是配合对应的 hw 权重求和分母构造加权均值语调、或在控制篇数固定效应后作为语调强度的辅助诊断变量。
-
+在中文金融文本情感测度文献谱系中, yao_2021 与本仓库并置使用的 du_2022 (Du, Huang, Wermers & Wu, 2022, Review of Finance)、bian_2021 (Bian, Jia, Li & Yan, 2021, SSRN 工作论文) 属于同一代际的中文领域特异词典构建尝试, 三者均针对通用英文词典 (Loughran-McDonald 体系) 直译到中文语境后失效的问题给出各自的解决方案, 在措辞覆盖率、极性判定规则、以及与市场反应的相关性验证上各有侧重, 本仓库将六部词典 (jiang_2021/yao_2021/bian_2021/du_2022/you_2018/loughran) 并排作为互为稳健性的语调测度来源, 不设单一"canonical"词典, 这与 Frankel, Jennings & Lee (2022, Management Science) 提出的"机器学习方法与词典方法应互为稳健性对照"的方法论建议在精神上一致——本仓库进一步在词典内部也做多引擎 (跟风衰减加权/媒体权威加权/普通均值等) 并排, 而非把某一权重方案当作唯一正确设定。跟风衰减这一处理步骤本身呼应了媒体经济学中对"重复报道稀释边际信息含量"的经典关切 (Tetlock, 2011 一脉), 是文本情感测度从"简单加总"迈向"结构化加权"的必要一步, 也是本仓库在 HW/MW/VW 三套加权体系中专门为"媒体扎堆报道"这一数据特征设计的对症下药。使用者在解读本列时应牢记它是分子部件而非最终语调指标, 直接对比不同银行-年之间该列的绝对值大小意义有限 (因为篇数规模效应未被归一化), 更合适的用法是配合对应的 hw 权重求和分母构造加权均值语调、或在控制篇数固定效应后作为语调强度的辅助诊断变量。 就跟风衰减这一「情感 × 新颖性」乘性结构的近期文献支撑, Nakatsuka 与 Suimon (2026) 在 Economics Letters 上对日本公司披露文本联合分析文本相似度 (新颖性) 与情感, 检验市场对文本新颖性的反应, 其核心发现是相似度与情感须联合而非各自单独看待, 这恰好锚定了本列把逐篇 yao_2021 极性分乘以跟风衰减权重后再于银行-年内求和这一构造中「情感强度须由新颖性调制」的环节。迁移边界须诚实标明: 原文语料为日文公司披露文件而非第三方媒体报道, 其相似度是披露文本之间的连续相似度并与情感做交互式联合分析, 并非本项目 1/(1+n_similar_articles) 这一具体倒数衰减函数形式, 亦未把二者相乘折叠成单一加权分再作实体-期聚合, 其分析层级是披露事件而非银行-年三轨, 故该文只支撑「二者须联合」这一一般性判断, 不构成对本列具体衰减函数设定的效度背书。
 ## VAR: yao_2021_score_hw_sum_full
 
 【变体差分】
@@ -80,4 +87,5 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
+Nakatsuka, H., & Suimon, Y. (2026). How does the market respond to textual novelty: Joint analysis of similarity and sentiment on Japanese corporate disclosures. Economics Letters, 265, 113002. https://doi.org/10.1016/j.econlet.2026.113002
 <!-- rendered-citations:end -->

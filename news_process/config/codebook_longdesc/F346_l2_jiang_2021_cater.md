@@ -47,6 +47,24 @@ citations:
   vol: '21'
   issue: '4'
   pages_or_artno: 1323-1344
+- doi: "10.1080/21697213.2024.2337262"
+  type: "journal"
+  authors: "Meng, Q., Du, X., & Gong, X."
+  year: 2024
+  title: "Does operational disclosure curb textual tone manipulation by corporate management?"
+  venue: "China Journal of Accounting Studies"
+  vol: "12"
+  issue: "2"
+  pages_or_artno: "247-275"
+- doi: "10.1515/econ-2022-0129"
+  type: "journal"
+  authors: "Wang, H."
+  year: 2024
+  title: "Media Tone and Earnings Management before the Earnings Announcement: Evidence from China"
+  venue: "Economics"
+  vol: "18"
+  issue: "1"
+  pages_or_artno: "20220129"
 new_dois: []
 ---
 
@@ -59,8 +77,7 @@ new_dois: []
 计算发生在面板导出阶段 (`pipeline/panel/runner.py` §8d "算法迎合度 (Algorithmic Catering)" 区块), 是纯粹的面板列间算术差分, 不涉及任何额外的模型推理或 API 调用, 因而边际成本为零。producer 逻辑对三轨 (full/ctx/ss) 分别循环: 对每个轨道 track ∈ {_full, _ctx, _ss}, 取该轨道下 jiang_2021 词典的语调列 `jiang_2021_tone{track}` (由 stage 22 词典法情感产出, 逐句/逐篇按语言学规则——否定翻转、程度副词、转折——聚合正负词命中并归一化, jiang_2021 是该规则族六部词典之一) 与该轨道下三家 LLM 多数投票共识语调列 `llm_vote_tone{track}` (由 stage 21 三家 LLM 各自判读后经多数投票机制产出), 逐 bank-year 行做减法: `jiang_2021_cater{track} = jiang_2021_tone{track} - llm_vote_tone{track}`。两个被减列均在文章级各自完成聚合后进入面板层, 差分本身不改变行覆盖 (skipna 规则由上游各自的聚合口径决定, 若任一被减列在该行为 NaN, 差分结果亦为 NaN, producer 对存在性做前置守卫: 只有当两个上游列均存在于 panel.columns 时才计算, 否则该轨道该列整体缺席而非报错, 优雅降级)。三个轨道 (full=标题+正文全文, ctx=标题+银行/金科实体窗口, ss=标题+银行∧金科同句±N窗) 各自独立完成该差分运算, full 轨的 `jiang_2021_tone_full` 与 `llm_vote_tone_full` 相减产出 `jiang_2021_cater_full`, ctx/ss 同理, 三条轨道之间没有任何交叉引用或借用, 是三条并行、互不依赖的计算流水线的产物, 而非同一次计算的三个切面。值域上, 由于 jiang_2021_tone 与 llm_vote_tone 各自的理论值域大致落在类似区间内 (词典语调经归一化落在有限区间, LLM 投票语调按离散标签映射到相近数值区间), 差分结果的经验值域也集中在一个较窄的对称区间内, 0 附近表示两法高度一致, 偏离 0 越远表示分歧越大, 符号指示分歧方向。
 
 【文献定位】
-本家族的方法论根基是 Cao, Jiang, Yang & Zhang (2023, The Review of Financial Studies) 提出的"迎合听众的语言"(talk when a machine is listening) 框架——该文首次系统论证企业管理层在预期到自动化文本分析工具会解读披露文本情绪时, 会策略性调整措辞以迎合算法读数, 并提出用词典法读数与更复杂模型读数的偏离度作为迎合行为的代理测度, 是本家族"词典 − 深层模型"差分构造思路的直接学理来源。jiang_2021 词典本身取自姜富伟、孟令超、唐国豪 (2021, 《经济学(季刊)》) 对中文财经媒体文本情绪预测股票回报的研究, 是本项目六部中文财经情感词典之一, 在词表构建上聚焦媒体报道场景 (相对于面向年报/公告文本的词典), 与本项目"银行×金融科技报道"的应用场景语域较为贴近。Du, Huang, Wermers & Wu (2022, Review of Finance) 对中文财经情感词典领域方法论的系统性论证 (语言与领域特异性对情感词典效度的影响) 为"不同词典在同一中文财经语料上可能产生系统性不同读数"这一前提提供了独立的方法论支撑, 说明词典与深层模型间的分歧未必是任一方"错误", 而更可能反映测度构念本身的领域敏感性。Frankel, Jennings & Lee (2022, Management Science) 直接比较机器学习情感测度与词典法情感测度在企业披露文本上的分歧模式, 是"词典法 vs. 更复杂模型法互为稳健性、系统性分歧值得独立报告"这一方法论立场的近期同行先例, 支持本家族将该差分作为独立诊断列而非临时中间变量保留在面板中的设计选择。
-
+本家族的方法论根基是 Cao, Jiang, Yang & Zhang (2023, The Review of Financial Studies) 提出的"迎合听众的语言"(talk when a machine is listening) 框架——该文首次系统论证企业管理层在预期到自动化文本分析工具会解读披露文本情绪时, 会策略性调整措辞以迎合算法读数, 并提出用词典法读数与更复杂模型读数的偏离度作为迎合行为的代理测度, 是本家族"词典 − 深层模型"差分构造思路的直接学理来源。jiang_2021 词典本身取自姜富伟、孟令超、唐国豪 (2021, 《经济学(季刊)》) 对中文财经媒体文本情绪预测股票回报的研究, 是本项目六部中文财经情感词典之一, 在词表构建上聚焦媒体报道场景 (相对于面向年报/公告文本的词典), 与本项目"银行×金融科技报道"的应用场景语域较为贴近。Du, Huang, Wermers & Wu (2022, Review of Finance) 对中文财经情感词典领域方法论的系统性论证 (语言与领域特异性对情感词典效度的影响) 为"不同词典在同一中文财经语料上可能产生系统性不同读数"这一前提提供了独立的方法论支撑, 说明词典与深层模型间的分歧未必是任一方"错误", 而更可能反映测度构念本身的领域敏感性。Frankel, Jennings & Lee (2022, Management Science) 直接比较机器学习情感测度与词典法情感测度在企业披露文本上的分歧模式, 是"词典法 vs. 更复杂模型法互为稳健性、系统性分歧值得独立报告"这一方法论立场的近期同行先例, 支持本家族将该差分作为独立诊断列而非临时中间变量保留在面板中的设计选择。 两项中国情境的近期研究可在被减数一侧与构念前提上进一步补强本家族的外部效度。Meng、Du 与 Gong (2024) 以中国上市公司年报文本测度管理层的文本语调操纵 (textual tone manipulation), 即语调正面程度超出基本面可解释的部分, 并检验经营性披露对该操纵的约束效应; 其"语调 − 基准语调"的差分思路与本家族 `jiang_2021_tone − llm_vote_tone` 在测度形态上同属"以语调相对某一参照基准的偏离量化策略性书写"一类, 从而为 Cao, Jiang, Yang & Zhang (2023) 源自美国披露场景的迎合机制补上了一项中国语境下的同域行为学前提。迁移边界须如实标明: 该文的参照基准是基本面回归的拟合值 (残差法) 而非第二套语义读取引擎, 文本为企业自述年报、观测单位为公司-年, 原文既未使用大语言模型, 亦未做词典与深层模型的读数对照, 因此它只锚定本家族被减数 `jiang_2021_tone` 一侧与"语调偏离可作为策略性书写信号"这一构念前提, 不能被援引为本家族以 LLM 三家投票共识作减数的方法学依据。Wang (2024) 以中文媒体报道语调测度检验其与盈余管理的关联, 提供了"中文媒体报道的语调经词典类方法可测且承载经济含义"的同域应用证据, 与 jiang_2021 面向媒体语料 (相对于面向年报/公告文本) 的构建定位相互呼应, 支撑本家族词典端读数的构念效度; 但该文只用单臂词典语调, 无 BERT/LLM 任何对照臂, 分析层级为公司-事件窗而非 bank-year, 报道对象亦为一般财经报道而非银行×金融科技共现报道, 且载文期刊层级一般, 故仅可按"词典端同域佐证"的降级口径引用, 不构成对本家族 LLM 减数端或该差分诊断用途的任何支持。
 ## VAR: jiang_2021_cater_full
 
 【变体差分】
@@ -81,5 +98,7 @@ Cao, S., Jiang, W., Yang, B., & Zhang, A. L. (2023). How to talk when a machine 
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 姜富伟, 孟令超, 唐国豪. (2021). 媒体文本情绪与股票回报预测. 经济学(季刊), 21(4), 1323-1344. https://doi.org/10.13821/j.cnki.ceq.2021.04.10
+Meng, Q., Du, X., & Gong, X. (2024). Does operational disclosure curb textual tone manipulation by corporate management?. China Journal of Accounting Studies, 12(2), 247-275. https://doi.org/10.1080/21697213.2024.2337262
+Wang, H. (2024). Media Tone and Earnings Management before the Earnings Announcement: Evidence from China. Economics, 18(1), 20220129. https://doi.org/10.1515/econ-2022-0129
 <!-- rendered-citations:end -->
 </content>

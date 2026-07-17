@@ -64,6 +64,14 @@ citations:
   vol: 28
   issue: 1
   pages_or_artno: 11-21
+- doi: "10.1016/j.jcorpfin.2025.102835"
+  type: "journal"
+  authors: "Schweizer, D., Wang, X., Wu, G., & Zhang, A."
+  year: 2025
+  title: "Political connections and media bias: Evidence from China"
+  venue: "Journal of Corporate Finance"
+  vol: "94"
+  pages_or_artno: "102835"
 new_dois: []
 ---
 
@@ -76,8 +84,7 @@ new_dois: []
 计算分三层。第一层是篇级 IDF 加权得分 bian_2021_idf_score, 在 stage 22 (tone_words) 内计算。IDF 权重由 build_idf_weights 在全语料上统一估计一次, 采用 smooth IDF 公式 raw_idf(w) = log10(N/(1+df(w))), 再做均值归一化 normalized_idf = raw_idf / mean(raw_idf), 最后对 P1/P99 做 Winsorization 削平极端权重。文档频次 df(w) 与文档总数 N 均按唯一文档去重后统计, 以免"一篇新闻提到多家银行被展开成多行"虚增计数, 从而严格贴合 Gentzkow、Kelly 与 Taddy (2019) 以及 Spärck Jones (1972) 对文档级词项特异性的定义。IDF 词典构建后经 _compute_sentiment_with_rules 对每篇文本切词并按极性累加, 得到归一化的篇级 IDF 情感得分, 均值归一化保证其量级与等权版可比、可共享阈值。第二层是媒体权威度加权, 在 panel/runner 步骤 3c/3d 完成: media_authority_weight 由 media_weights.json 的静态权威性评分经均值归一化得到 (raw_weight / mean(raw_weight), 均值约为 1), 匹配策略为精确匹配 → 去括号归一化匹配 → 默认权重回退; 篇级列 bian_2021_idf_score_mw = bian_2021_idf_score × media_authority_weight。第三层是 Bank-Year 聚合, 在 encode 内以 sum 聚合把同一银行同一年内所有报道的加权得分逐篇相加, 得到本家族列。该合计是加权语调的分子, 与并行聚合的 sum_media_authority_weight 分母配对即可还原为加权均值。媒体权威度加权 (mw) 与市场提及密度加权 (vw)、跟风衰减加权 (hw)、等权版并列, 各自 just-identified 单独并排进入回归, 互为稳健性、不分主次, 严禁把不同加权方案或不同词典混入同一 over-identified 的 Hansen J 过度识别检验。
 
 【文献定位】
-IDF 词项加权的思想承接 Spärck Jones (1972) 的词项特异性统计诠释, 并在金融文本分析中由 Jegadeesh 与 Wu (2013) 的 "Word power" 方法发扬: 他们指出不同词对情感的边际信息量不等, 用样本回归赋予词以数据驱动的权重, 本项目以文档级 IDF 作为其无监督、语料内可复算的近似, 突出稀有词 (如违约、挤兑) 的信号、抑制高频泛用词 (如发展、提高) 的噪声。词典来源上, Bian 等 (2021) 与 Du 等 (2022) 均是面向中文财经语料的领域专用情感词典构建工作, Du 等 (2022) 尤其强调语言与领域特异性对中文金融情感测度的重要性, 说明为何不能直接照搬英文 Loughran-McDonald 词表; 本家族并列装载多部中文词典正是对这一关切的直接回应。方法互证层面, Frankel、Jennings 与 Lee (2022) 系统比较了词典法与机器学习法在披露情感测度上的表现, 为本项目将词典、LLM 投票、BERT 三法并置为互为稳健性轨提供了先例; van Atteveldt、van der Velden 与 Boukes (2021) 则以人工标注为基准评估了词典法与机器学习法情感测度的效度, 提示词典法在特定语料上的系统偏差需要多测度交叉验证来约束。综合而言, 本家族的方法学定位是"领域词典 × IDF 词项加权 × 媒体权威度加权"三重稳健性叠加下的一条并行测度轨。
-
+IDF 词项加权的思想承接 Spärck Jones (1972) 的词项特异性统计诠释, 并在金融文本分析中由 Jegadeesh 与 Wu (2013) 的 "Word power" 方法发扬: 他们指出不同词对情感的边际信息量不等, 用样本回归赋予词以数据驱动的权重, 本项目以文档级 IDF 作为其无监督、语料内可复算的近似, 突出稀有词 (如违约、挤兑) 的信号、抑制高频泛用词 (如发展、提高) 的噪声。词典来源上, Bian 等 (2021) 与 Du 等 (2022) 均是面向中文财经语料的领域专用情感词典构建工作, Du 等 (2022) 尤其强调语言与领域特异性对中文金融情感测度的重要性, 说明为何不能直接照搬英文 Loughran-McDonald 词表; 本家族并列装载多部中文词典正是对这一关切的直接回应。方法互证层面, Frankel、Jennings 与 Lee (2022) 系统比较了词典法与机器学习法在披露情感测度上的表现, 为本项目将词典、LLM 投票、BERT 三法并置为互为稳健性轨提供了先例; van Atteveldt、van der Velden 与 Boukes (2021) 则以人工标注为基准评估了词典法与机器学习法情感测度的效度, 提示词典法在特定语料上的系统偏差需要多测度交叉验证来约束。综合而言, 本家族的方法学定位是"领域词典 × IDF 词项加权 × 媒体权威度加权"三重稳健性叠加下的一条并行测度轨。 这一加权设计所依托的同域前提可由 Schweizer、Wang、Wu 与 Zhang (2025) 佐证: 该文以中国非国有上市公司新闻报道大样本发现, 有政治关联的企业获得显著更正面的媒体报道, 并借 Rule 18 反腐规定强制政治关联董事辞职这一监管冲击以 DiD 确证该因果链, 丑闻期政治关联企业面临更软化的媒体审视、声誉惩罚被削弱。其对本家族的锚定仅限于「中国媒体报道语调并非中性的信息镜像, 而是可被系统性因素预测地偏移」这一前提, 用以说明本项目不把各篇报道当作等同、无偏的信息载体来处理。须显式声明其限度: 原文实证的异质性维度是被报道企业的政治关联属性, 而非媒体来源之间的异质性, 故不可据此论证「媒体来源不同质故须按 outlet 赋权」——mw 族按 outlet 逐篇查表赋权的直接依据须另引; 原文亦未构造任何权重函数, 未做「权重 × 词典分再求和」的运算, 样本为中国上市公司而非银行, 层级为公司而非银行-年三轨。
 ## VAR: bian_2021_idf_score_mw_sum_full
 
 【变体差分】
@@ -100,4 +107,5 @@ Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment d
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis. Journal of Financial Economics, 110(3), 712-729. https://doi.org/10.1016/j.jfineco.2013.08.018
 Spärck Jones, K. (1972). A statistical interpretation of term specificity and its application in retrieval. Journal of Documentation, 28(1), 11-21. https://doi.org/10.1108/eb026526
+Schweizer, D., Wang, X., Wu, G., & Zhang, A. (2025). Political connections and media bias: Evidence from China. Journal of Corporate Finance, 94, 102835. https://doi.org/10.1016/j.jcorpfin.2025.102835
 <!-- rendered-citations:end -->

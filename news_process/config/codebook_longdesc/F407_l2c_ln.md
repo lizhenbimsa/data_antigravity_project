@@ -45,6 +45,13 @@ citations:
   venue: International Review of Financial Analysis
   vol: '93'
   pages_or_artno: '103223'
+- doi: "10.1111/abac.70024"
+  type: "journal"
+  authors: "Cho, M., & Choi, A."
+  year: 2025
+  title: "Do Auditors Adjust Labour Allocation in Response to Client Media Coverage and Tone?"
+  venue: "Abacus"
+  pages_or_artno: "abac.70024"
 new_dois: []
 ---
 
@@ -59,8 +66,7 @@ new_dois: []
 对数变换采用 Fang & Peress (2009) 在媒体覆盖度文献中确立的标准做法 `ln(1+count)`, 而非直接对原始计数取自然对数, 目的是容纳银行-年格中报道数为零的情形 (零 + 1 = 1, ln(1)=0, 避免 ln(0) 未定义或需要人为丢行)。两列的计数基均为"去重后的稿件数", 而非物理篇数——物理篇数会把同一稿件在多家媒体的转载都计入广度维度 (对应另一独立列 `nf_media_breadth`), 与"稿件数"这一时间序列口径混为一谈会系统性夸大挤出关系的统计显著性。producer 通过 `attrs` 机制在 anti-join 阶段就暴露 `nf_media_breadth_physical`(物理口径, 转载计入) 与 `ft_dedup_agg`(去重口径) 两条并行统计, 供 `aggregate_non_fintech` 与 `merge_to_panel` 分别按各自用途正确取用, 且下游有逐行断言校验"去重 fintech 计数 ≤ 物理 n_articles"以防口径倒挂。计算全程为纯 pandas/numpy 确定性运算, 不依赖 LLM 或嵌入 API, 无随机性、无缓存 miss 风险, 跨机重跑理应逐位可复现 (除非上游 anti-join 的输入文件本身变化)。若某银行-年格全年无任何该类报道, 计数为 0、对数值为 0——这并不等价于"零分享 (zero coverage) 未定义"这一独立诊断标记 (由 `merge_to_panel` 单独维护的 `zero_coverage` 指示列承担, 二者用途不同, 不应混淆)。
 
 【文献定位】
-该对数计数对照组的构造逻辑直接承袭 Hassan 等 (2019) 处理"政治风险语调是否只是新闻量的副产品"的做法, 也呼应更广泛的媒体覆盖度-资产定价文献传统 (Fang & Peress, 2009 关于媒体覆盖度与横截面收益的开创性发现)。就信息中介角色而言, Call, Emett, Maksymov & Sharp (2022, *Journal of Accounting and Economics*) 通过对财经记者的问卷调查证实, 记者在决定报道数量与角度时存在系统性的信息筛选行为, 这意味着"报道篇数"本身就是携带信息的选择结果, 而非中性的关注度噪声——这构成了本列作为控制变量而非单纯噪声吸收项的理论合法性。就报道规模在信息扩散网络中的作用而言, Yu, Hu & Zhong (2024, *International Review of Financial Analysis*) 发现网络中心性与信息扩散强度共同驱动资产定价异象, 提示报道规模的挤出效应需要在网络/媒体结构层面加以控制才能得到干净的识别。就方法论周边, Adão, Kolesár & Morales (2019, *The Quarterly Journal of Economics*) 关于 shift-share 设计推断的系统性讨论, 为本仓库并行存在的 Bartik 式暴露度量与本列这类简单计数对照控制提供了统计推断上的谨慎参照——即便 ln_ft_articles/ln_nf_articles 本身不是工具变量, 但其与核心处理变量共线时的推断问题遵循同一族"加总层面构造变量标准误易被低估"的一般性告诫。就信息技术如何重塑金融机构竞争格局而言, Vives & Ye (2025, *Journal of Financial Economics*) 的分析框架呼应了本仓库"金融科技报道是否携带增量信息"这一核心问题意识: 若信息技术确实重塑了银行间竞争与信贷配置, 则金融科技相关报道的语调理应比单纯的报道数量携带更多定价相关信息, 这正是 ln_ft_articles/ln_nf_articles 这对挤出弹性控制变量存在的经验必要性所在。
-
+该对数计数对照组的构造逻辑直接承袭 Hassan 等 (2019) 处理"政治风险语调是否只是新闻量的副产品"的做法, 也呼应更广泛的媒体覆盖度-资产定价文献传统 (Fang & Peress, 2009 关于媒体覆盖度与横截面收益的开创性发现)。就信息中介角色而言, Call, Emett, Maksymov & Sharp (2022, *Journal of Accounting and Economics*) 通过对财经记者的问卷调查证实, 记者在决定报道数量与角度时存在系统性的信息筛选行为, 这意味着"报道篇数"本身就是携带信息的选择结果, 而非中性的关注度噪声——这构成了本列作为控制变量而非单纯噪声吸收项的理论合法性。就报道规模在信息扩散网络中的作用而言, Yu, Hu & Zhong (2024, *International Review of Financial Analysis*) 发现网络中心性与信息扩散强度共同驱动资产定价异象, 提示报道规模的挤出效应需要在网络/媒体结构层面加以控制才能得到干净的识别。就方法论周边, Adão, Kolesár & Morales (2019, *The Quarterly Journal of Economics*) 关于 shift-share 设计推断的系统性讨论, 为本仓库并行存在的 Bartik 式暴露度量与本列这类简单计数对照控制提供了统计推断上的谨慎参照——即便 ln_ft_articles/ln_nf_articles 本身不是工具变量, 但其与核心处理变量共线时的推断问题遵循同一族"加总层面构造变量标准误易被低估"的一般性告诫。就信息技术如何重塑金融机构竞争格局而言, Vives & Ye (2025, *Journal of Financial Economics*) 的分析框架呼应了本仓库"金融科技报道是否携带增量信息"这一核心问题意识: 若信息技术确实重塑了银行间竞争与信贷配置, 则金融科技相关报道的语调理应比单纯的报道数量携带更多定价相关信息, 这正是 ln_ft_articles/ln_nf_articles 这对挤出弹性控制变量存在的经验必要性所在。 就“报道量与语调分列建模”这一范式的近期存在性而言, Cho 与 Choi (2025) 在 *Abacus* 的研究把客户公司的媒体报道量与报道语调作为两个并列的公司-年媒体变量, 用以解释审计师的劳动投入配置, 其变量分工恰与本项目把报道篇数 (ln_ft_articles/ln_nf_articles) 与语调 (log_sent) 分列为两族指标的做法同构, 构成该建模范式的近期存在性证明。迁移边界须如实标明: 原文覆盖计数基于英文商业新闻数据库的公司-年匹配、语调为正负词占比类构造, 本列则基于中文媒体语料经 (target_bank, 标题, 日期) 去重且区分金科/非金科两类分子, 层级为 bank-year 而非 firm-year、DV 亦不同; 故该文仅锚定“量-调分列”这一建模范式的存在性, 不锚定具体测度公式。
 ## VAR: ln_ft_articles
 
 【变体差分】
@@ -75,4 +81,5 @@ Adão, R., Kolesár, M., & Morales, E. (2019). Shift-share designs: Theory and i
 Vives, X., & Ye, Z. (2025). Information technology and lender competition. Journal of Financial Economics, 163, Article 103957. https://doi.org/10.1016/j.jfineco.2024.103957
 Call, A. C., Emett, S. A., Maksymov, E., & Sharp, N. Y. (2022). Meet the press: Survey evidence on financial journalists as information intermediaries. Journal of Accounting and Economics, 73(2-3), 101455. https://doi.org/10.1016/j.jacceco.2021.101455
 Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223
+Cho, M., & Choi, A. (2025). Do Auditors Adjust Labour Allocation in Response to Client Media Coverage and Tone?. Abacus, abac.70024. https://doi.org/10.1111/abac.70024
 <!-- rendered-citations:end -->

@@ -66,6 +66,27 @@ citations:
   vol: 30
   issue: 3
   pages_or_artno: 2312-2375
+- doi: "10.2139/ssrn.6307940"
+  type: "wp"
+  authors: "Wang, Z., & Zhang, H."
+  year: 2026
+  title: "Large Language Models, Investor Disagreement, and Trading Volume"
+  venue: "SSRN"
+  pages_or_artno: "6307940"
+- doi: "10.2139/ssrn.7027983"
+  type: "wp"
+  authors: "Yi, K., & Wu, F."
+  year: 2026
+  title: "What Investors Disagree About: LLM-Decomposed Retail Disagreement and the Cross-Section of Stock Returns"
+  venue: "SSRN"
+  pages_or_artno: "7027983"
+- doi: "10.2139/ssrn.4921479"
+  type: "wp"
+  authors: "Kwon, J., Lee, S. H., & Yoo, Y."
+  year: 2024
+  title: "Disagreement, Subjective Uncertainty, and the Stock Market"
+  venue: "SSRN"
+  pages_or_artno: "4921479"
 new_dois: []
 ---
 
@@ -78,8 +99,7 @@ new_dois: []
 分歧指数在面板总装阶段的步骤 8b (pipeline/panel/runner.py) 由银行-年度聚合后的正负篇数闭式算出, 公式为 disag = √(1 − ((P − N) / (P + N))²), 其中 P 为该银行-该年内被判为正面的报道篇数, N 为被判为负面的篇数。把 (P − N) / (P + N) 记作净语调比 r, 则 disag = √(1 − r²): 当报道一边倒时 r 趋近 ±1, disag 趋近 0; 当正负篇数相等 (r = 0) 时 disag 取最大值 1。因此该指标是一条以净语调为轴、开口向下的半椭圆, 度量的是极性分布相对于"完全一致"的偏离幅度, 而非语调水平本身——两家净语调相同的银行可以有截然不同的分歧值。分母 P + N 只计入被明确判为正面或负面的篇数, 中性篇章不进入分子分母 (它们既不制造一致也不制造对立), P + N = 0 时该银行-年缺乏有极性的报道, 分歧无从定义, 置 NaN 而非 0, 以免把"没有意见"误当成"意见一致"。这一 NaN 语义与整条流水线"未报道即缺失、不得强行填零"的口径一致。本家族的 P、N 特指来自 gemini-3.1-flash-lite (下称 gemini31) 这一家大语言模型的逐篇情感标签: stage 21 情感环节由三家 LLM (gpt-5.4-nano、gemini31、deepseek-v4-flash) 各自独立判读并投票, 其中 gemini31 与 gpt-5.4-nano 两家经 yunwu 路由 (deepseek-v4-flash 则直连 api.deepseek.com), gemini31 的逐篇输出既参与三家共识, 也被单独抽出计数, 供本家族按"单一厂商模型"口径复算分歧。
 
 【文献定位】
-在度量层面, 本项目沿用 Cookson 与 Niessner (2020) 在《Journal of Finance》上确立的分歧分解范式: 把分歧还原为可观测信号 (此处为正负极性篇数) 的失衡, 而不诉诸未观测的信念参数。这一选择使分歧成为一个可从新闻计数直接构造、可跨银行-年比较的透明标量。与其相邻的网络溢出文献 (Grieser, Hadlock, LeSage 与 Zekhnini, 2022) 提醒我们, 同行之间的政策与信息会相互传染, 因而单家银行的报道分歧既可能是自身基本面不确定的映射, 也可能是同业分歧外溢的结果——本家族只负责度量分歧水平, 不承担识别其来源的任务, 来源识别交由面板中的网络与工具变量列族。需要强调的是, gemini31 只是三家 LLM 之一; 三家各自的逐篇标签各自算出一套分歧指数, 彼此互为稳健性、不分主次, 每一套各自 just-identified 并排使用, 严禁把不同厂商模型的分歧列混进同一个 over-identified 的 Hansen J 过度识别检验。同理, 下文三条 full/ctx/ss 文本轨也各自 just-identified 并排、互为稳健性, 禁混进同一 Hansen J。
-
+在度量层面, 本项目沿用 Cookson 与 Niessner (2020) 在《Journal of Finance》上确立的分歧分解范式: 把分歧还原为可观测信号 (此处为正负极性篇数) 的失衡, 而不诉诸未观测的信念参数。这一选择使分歧成为一个可从新闻计数直接构造、可跨银行-年比较的透明标量。与其相邻的网络溢出文献 (Grieser, Hadlock, LeSage 与 Zekhnini, 2022) 提醒我们, 同行之间的政策与信息会相互传染, 因而单家银行的报道分歧既可能是自身基本面不确定的映射, 也可能是同业分歧外溢的结果——本家族只负责度量分歧水平, 不承担识别其来源的任务, 来源识别交由面板中的网络与工具变量列族。需要强调的是, gemini31 只是三家 LLM 之一; 三家各自的逐篇标签各自算出一套分歧指数, 彼此互为稳健性、不分主次, 每一套各自 just-identified 并排使用, 严禁把不同厂商模型的分歧列混进同一个 over-identified 的 Hansen J 过度识别检验。同理, 下文三条 full/ctx/ss 文本轨也各自 just-identified 并排、互为稳健性, 禁混进同一 Hansen J。 在最近的前沿工作中, 以大语言模型标签构造分歧指数已成为活跃做法: Wang 与 Zhang (2026) 用 LLM 从文本中构造投资者分歧代理并检验其与交易量的关系, 为本家族由 LLM 逐篇极性标签合成分歧标量这一路线提供了同期存在性佐证; 但该文系未经同行评审的 SSRN 工作论文, 其文本来源与构造式均与本项目不同, 因变量为交易量、层级为股票-日, 并未使用本家族的闭式, 故仅作路线锚定而非公式出处。Yi 与 Wu (2026) 用大语言模型阅读中国最大股票论坛的 2.2 亿条散户发帖, 按内容把分歧分解为基本面分歧与噪声分歧, 发现前者产生 Miller 型高估 (高分歧股月度风险调整收益低约 0.7%) 而后者更多反映情绪, 并指出加总的与词典法的分歧指标因与情绪高度绑定而可能混同两类相反内容、甚至指向错误方向; 这一发现对本家族构成方法论提醒: 本列是不区分内容来源的加总标量, 无法分辨分歧究竟源自基本面判断还是噪声。该文同为未经评审的 SSRN 工作论文, 语料虽同为中文但体裁是散户股票论坛发帖而非报纸报道, 分析层级为股票-横截面收益, 亦无本项目 P + N = 0 置 NaN 的处理约定。Kwon、Lee 与 Yoo (2024) 则在公司 × 财季层面分别量化横截面分歧与主观不确定性 (取自分析师盈余指引与预测离散度), 论证二者虽在实证研究中常被互换使用, 混同却会导致误导甚至相反的结论 (主观不确定性在分歧较低时与波动率正相关, 分歧较高时该关系反转为负), 这为本项目把分歧指数与把握度类测度分列而非合并提供了金融学依据; 须注意该文为未经评审的工作论文, 其分歧与主观不确定性均由分析师预测数据测得, 完全不涉及 LLM, 因而不对本项目由 LLM 标签派生的口径构成方法学支持, 分析层级亦为公司-财季而非银行-年。
 ## VAR: disag_gemini31_full
 
 【变体差分】
@@ -102,4 +122,7 @@ Carlin, B. I., Longstaff, F. A., & Matoba, K. (2014). Disagreement and asset pri
 Cen, L., Wei, K. C. J., & Yang, L. (2017). Disagreement, underreaction, and stock returns. Management Science, 63(4), 1214-1231. https://doi.org/10.1287/mnsc.2015.2405
 Hong, H., & Stein, J. C. (2007). Disagreement and the stock market. Journal of Economic Perspectives, 21(2), 109-128. https://doi.org/10.1257/jep.21.2.109
 Li, S. Z., & Luan, Z. (2025). News-based investor disagreement and stock returns. Review of Accounting Studies, 30(3), 2312-2375. https://doi.org/10.1007/s11142-025-09897-1
+Wang, Z., & Zhang, H. (2026). Large Language Models, Investor Disagreement, and Trading Volume. SSRN No. 6307940 [Working Paper]. https://doi.org/10.2139/ssrn.6307940
+Yi, K., & Wu, F. (2026). What Investors Disagree About: LLM-Decomposed Retail Disagreement and the Cross-Section of Stock Returns. SSRN No. 7027983 [Working Paper]. https://doi.org/10.2139/ssrn.7027983
+Kwon, J., Lee, S. H., & Yoo, Y. (2024). Disagreement, Subjective Uncertainty, and the Stock Market. SSRN No. 4921479 [Working Paper]. https://doi.org/10.2139/ssrn.4921479
 <!-- rendered-citations:end -->

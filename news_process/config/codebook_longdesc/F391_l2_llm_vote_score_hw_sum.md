@@ -44,6 +44,13 @@ citations:
   vol: '10'
   issue: '45'
   pages_or_artno: eadp1528
+- doi: "10.18653/v1/2025.findings-acl.744"
+  type: "journal"
+  authors: "Wang, W., Wang, Y., & Huang, H."
+  year: 2025
+  title: "Ranked Voting based Self-Consistency of Large Language Models"
+  venue: "Findings of the Association for Computational Linguistics: ACL 2025"
+  pages_or_artno: "14410-14426"
 new_dois: []
 ---
 
@@ -56,8 +63,7 @@ llm_vote_score_hw_sum 家族是银行-年面板层面的一个中间加权求和
 计算发生在面板聚合阶段 (encode.py), 是逐年份文章级到银行-年面板的 groupby-sum 操作, 不涉及任何模型推断或重新调用 LLM API, 因此本族列是 $0 边际成本的纯后处理产物。源码里有一个需要写明的历史兼容分支: 若磁盘上仍是 v3.5.x 之前遗留的单列 herd_weight (未按三轨拆分), build_aggregation_dict 会退化为"三轨共用同一权重源"并打印 WARNING (此时 sum_herd_weight_full == sum_herd_weight_ctx == sum_herd_weight_ss, 是一种 fake 多轨), 生产口径 (stage 24 v3.6.0+) 已产出真正三轨独立的 herd_weight_full/herd_weight_ctx/herd_weight_ss, 本族三列在生产语料上应为真三轨、非退化。下游一致性由 pipeline/audit/stata_audit.py 的加权均值恒等式校验段 (3e) 兜底: 对每一轨分别验证 llm_vote_tone_hw{track} × 分母 ≈ llm_vote_score_hw_sum{track}, 分母优先取 valid-mask 列 sum_wd_hw_llm{track} (只统计 LLM 判定有效的文章), 缺失时回退物理分母 sum_herd_weight{track}, 恒等式不成立会记 FAIL 并使审计阶段退出码非零, 因此本族列在盘上若存在必然满足该会计恒等式, 可作为下游复算 llm_vote_tone_hw{track} 的可靠依据。三轨 full/ctx/ss 各自独立聚合、独立求和, 互不借用彼此分子分母, 是并排而非嵌套关系。
 
 【文献定位】
-本族的方法论根基有两层。分子的情感极性来自三家大语言模型的多数投票共识, 这一"多模型集成投票优于单模型"的做法呼应 Kamen & Kamen (2025) 关于 LLM ensemble 在内容分类任务上显著优于单一模型的发现, 以及 Schoenegger et al. (2024, Science Advances) 关于 LLM 集成预测能力可比拟人群智慧 (wisdom of the crowd) 的证据; 三家模型跨厂商 (OpenAI/Google/DeepSeek) 并排投票而非单家背书, 也部分回应 de Kok (2025, Management Science) 对生成式 LLM 用于会计/金融文本分析时应固定 temperature、留痕可复现的方法论建议 (本项目对应 stage 21 prompt v8 字节级冻结、temperature=0.0)。权重端的跟风衰减构造思想则直接承袭 Tetlock (2007, Journal of Finance) 开创的"媒体语调驱动投资者情绪"的测度传统——该文首次系统证明媒体文本语调可被量化为可预测股票收益的信号, 本项目在其基础上叠加 herd-decay 权重, 意在从"语调水平"测度进一步区分"独立信息增量"与"媒体跟风放大", 是对经典媒体语调测度框架的一种稳健性延伸。三轨 (full/ctx/ss) 各自独立的加权聚合口径彼此互为稳健性、不分主次, 且三轨严禁混入同一 over-identified 的 Hansen J 检验——full 轨对应 2026-06-29 起生效的 full-only 留篇门控主口径 (是否算作"一篇银行金科报道"仅看 llm_verified_full == True), ctx/ss 轨降级为 conditional-on-full 的测度稳健性轨, 行宇宙是 full 留篇集的子集; ss 轨的回退语义镜像 ctx 轨: 若某银行-金科词对在文章中不存在同句共现, ss_is_fallback 置 True 并退化为使用全文正文, 与 ctx 轨在无实体窗口时的回退处理完全对称。
-
+本族的方法论根基有两层。分子的情感极性来自三家大语言模型的多数投票共识, 这一"多模型集成投票优于单模型"的做法呼应 Kamen & Kamen (2025) 关于 LLM ensemble 在内容分类任务上显著优于单一模型的发现, 以及 Schoenegger et al. (2024, Science Advances) 关于 LLM 集成预测能力可比拟人群智慧 (wisdom of the crowd) 的证据; 三家模型跨厂商 (OpenAI/Google/DeepSeek) 并排投票而非单家背书, 也部分回应 de Kok (2025, Management Science) 对生成式 LLM 用于会计/金融文本分析时应固定 temperature、留痕可复现的方法论建议 (本项目对应 stage 21 prompt v8 字节级冻结、temperature=0.0)。权重端的跟风衰减构造思想则直接承袭 Tetlock (2007, Journal of Finance) 开创的"媒体语调驱动投资者情绪"的测度传统——该文首次系统证明媒体文本语调可被量化为可预测股票收益的信号, 本项目在其基础上叠加 herd-decay 权重, 意在从"语调水平"测度进一步区分"独立信息增量"与"媒体跟风放大", 是对经典媒体语调测度框架的一种稳健性延伸。三轨 (full/ctx/ss) 各自独立的加权聚合口径彼此互为稳健性、不分主次, 且三轨严禁混入同一 over-identified 的 Hansen J 检验——full 轨对应 2026-06-29 起生效的 full-only 留篇门控主口径 (是否算作"一篇银行金科报道"仅看 llm_verified_full == True), ctx/ss 轨降级为 conditional-on-full 的测度稳健性轨, 行宇宙是 full 留篇集的子集; ss 轨的回退语义镜像 ctx 轨: 若某银行-金科词对在文章中不存在同句共现, ss_is_fallback 置 True 并退化为使用全文正文, 与 ctx 轨在无实体窗口时的回退处理完全对称。 在投票规则这一设计自由度上, Wang、Wang 与 Huang (2025) 以排序投票 (ranked voting) 取代朴素多数票来聚合 LLM 的多个候选输出, 并实证其聚合质量提升, 说明多数票并非唯一可选的聚合规则, 而是一处应被显式交代的研究者选择——本族分子所用的 llm_vote_score{track} ∈ {-1, 0, 1} 仍为三家朴素多数票, 该文在此的作用是标注该自由度的存在性, 而非为现口径背书。迁移边界须写明: 原文的投票单元是同一模型多次采样得到的候选答案 (self-consistency), 而非跨三家厂商模型的标签投票, 任务为推理/生成而非三分类情感标签; 原文只到文章/样本级聚合为止, 不涉及本族按 (bank, year) 分组求和与 herd_weight{track} 加权分子的构造, 本项目亦未采纳排序投票。
 ## VAR: llm_vote_score_hw_sum_ctx
 
 【变体差分】
@@ -84,4 +90,5 @@ Tetlock, P. C. (2007). Giving Content to Investor Sentiment: The Role of Media i
 de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
 Kamen, A., & Kamen, Y. (2025). Majority rules: LLM ensemble is a winning approach for content categorization. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2511.15714
 Schoenegger, P., Tuminauskaite, I., Park, P. S., Bastos, R. V. S., & Tetlock, P. E. (2024). Wisdom of the silicon crowd: LLM ensemble prediction capabilities rival human crowd accuracy. Science Advances, 10(45), eadp1528. https://doi.org/10.1126/sciadv.adp1528
+Wang, W., Wang, Y., & Huang, H. (2025). Ranked Voting based Self-Consistency of Large Language Models. Findings of the Association for Computational Linguistics: ACL 2025, 14410-14426. https://doi.org/10.18653/v1/2025.findings-acl.744
 <!-- rendered-citations:end -->

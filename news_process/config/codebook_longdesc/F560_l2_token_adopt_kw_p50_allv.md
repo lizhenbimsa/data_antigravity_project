@@ -46,6 +46,23 @@ citations:
   vol: '4'
   issue: '1'
   pages_or_artno: '100168'
+- doi: "10.1017/s147474722400009x"
+  type: "journal"
+  authors: "Bauer, R., Broeders, D., & van Ool, A."
+  year: 2025
+  title: "Walk the green talk? A textual analysis of pension funds' disclosures of sustainable investing"
+  venue: "Journal of Pension Economics and Finance"
+  vol: "24"
+  issue: "2"
+  pages_or_artno: "297-325"
+- doi: "10.1016/j.frl.2024.105401"
+  type: "journal"
+  authors: "Zhang, Z., Hou, Y., Li, Z., & Li, M."
+  year: 2024
+  title: "From symbolic to substantive green innovation: How does ESG ratings optimize corporate green innovation structure"
+  venue: "Finance Research Letters"
+  vol: "63"
+  pages_or_artno: "105401"
 new_dois: []
 ---
 
@@ -60,8 +77,9 @@ new_dois: []
 【文献定位】
 四象限政策对齐构造的相似度轴方法学根基是 Hassan et al. (2019) 式的文本-政策语义相似度测量传统 (见前置家族 F550/F551 codebook), 本家族只消费其产出而不重复计算; 本家族独有的贡献是把"提及广度"(kw 词频轴) 与"语义对齐深度"(sim 轴) 交叉分类为离散象限, 这一"广度 vs 深度"分离测度的做法可类比 Kwan et al. (2024, JFQA) 用文本方法压力测试银行数字能力时对"披露/提及"与"能力信号"的区分, 以及 Fan et al. (2024) 在技术采纳研究里对采纳广度和采纳质量分别建模的处理。
 
-`allv` (all-vintage) 锚点后缀标记本家族相似度轴使用的是"全语料静态政策锚点" (`policy_cosine_sim_allv`) 而非按发文年份滚动更新的"vintage 主轨"锚点 (无 `_allv` 后缀的同构家族), 两者是互为稳健性、不分主次的并排口径, 分别捕捉"相对当年政策文本的对齐度"与"相对全样本期政策文本静态基准的对齐度", 二者共用完全相同的 track(full/ctx/ss)×词频(kw/int)×分位(P25/P50/P75) 四象限构造逻辑, 禁止在同一个 over-identified Hansen J 检验中混用 vintage 主轨与 allv 锚点的对齐占比列 (与三轨/co-primary 嵌入铁律同构)。词频侧后缀 (`_ctx`/`_ss`) 只随文本轨道变化、与锚点选择无关, 因为 `fintech_distinct_keywords` 是 track-agnostic 元数据 (AC 自动机去重关键词计数不区分正文截取窗口), kw 轨在 `_ctx`/`_ss` 下会复用 full 轨词频列而只切换相似度列。
+`allv` (all-vintage) 锚点后缀标记本家族相似度轴使用的是"全语料静态政策锚点" (`policy_cosine_sim_allv`) 而非按发文年份滚动更新的"vintage 主轨"锚点 (无 `_allv` 后缀的同构家族), 两者是互为稳健性、不分主次的并排口径, 分别捕捉"相对当年政策文本的对齐度"与"相对全样本期政策文本静态基准的对齐度", 二者共用完全相同的 track(full/ctx/ss)×词频(kw/int)×分位(P25/P50/P75) 四象限构造逻辑, 禁止在同一个 over-identified Hansen J 检验中混用 vintage 主轨与 allv 锚点的对齐占比列 (与三轨/co-primary 嵌入铁律同构)。词频侧后缀 (`_ctx`/`_ss`) 只随文本轨道变化、与锚点选择无关, 因为 `fintech_distinct_keywords` 是 track-agnostic 元数据 (AC 自动机去重关键词计数不区分正文截取窗口), kw 轨在 `_ctx`/`_ss` 下会复用 full 轨词频列而只切换相似度列。 在前沿文本计量实践层面, Bauer 与 Broeders (2025) 用 NLP 方法对荷兰养老金年报披露同时抽取「意识 (awareness)」与「落实 (implementation)」两个测度 —— 二者均取自同一份披露文本 —— 并检验基金规模与签署可持续投资倡议对二者的差异化影响 (发现签署提升了表述具体性、却对 implementation 无改善), 该设计恰好锚定本家族「声量维与实质/对齐维皆在同一文本内并置、再交叉切分象限」这一环。迁移边界须写明: 原文分析的是机构自述文本 (年报披露), 本家族分析的是第三方新闻报道; 原文实质维为 NLP 抽取的披露具体性, 本家族实质维为与政策锚点的余弦相似度; 且原文不做分位阈值二值化、无 2×2 象限、亦无面板聚合与「已测量篇数为分母」的缺失契约, 故其仅为构造思路提供文本计量层面的同类前沿实践, 不构成对本家族分位阈值梯子的直接检验。
 
+在构念层面, Zhang、Hou、Li 与 Li (2024) 研究 ESG 评级如何推动企业创新结构由象征性向实质性迁移, 把「象征性占比」当作可随外部监督变化的结构性比例而非绝对水平来处理; 这一取向支撑本家族把 token 判定聚合为占比 (而非篇数或强度水平) 的选择。迁移边界: 原文比例基于专利结构数据、主体为 A 股非金融企业、驱动因素为 ESG 评级, 且全程不含文本判定器, 因此它只锚定「象征性份额作为结构性比例」这一构念取向, 不锚定本家族的词频/相似度双轴口径与年度分位阈值本身。
 ## VAR: token_adopt_kw_p50_allv
 
 【变体差分】
@@ -88,4 +106,6 @@ Kwan, A., Lin, C., Pursiainen, V., & Tai, M. (2024). Stress testing banks' digit
 Fan, H., Liu, Y., Qian, N., & Wen, J. (2024). Technological adoption and taxation: The case of China's Golden Tax reform. Tax Policy and the Economy, 38, 101-122. https://doi.org/10.1086/730053
 Covington, M. A., & McFall, J. D. (2010). Cutting the Gordian knot: The moving-average type-token ratio (MATTR). Journal of Quantitative Linguistics, 17(2), 94-100. https://doi.org/10.1080/09296171003643098
 Bestgen, Y. (2025). Estimating lexical diversity using the moving average type-token ratio (MATTR): Pros and cons. Research Methods in Applied Linguistics, 4(1), 100168. https://doi.org/10.1016/j.rmal.2024.100168
+Bauer, R., Broeders, D., & van Ool, A. (2025). Walk the green talk? A textual analysis of pension funds' disclosures of sustainable investing. Journal of Pension Economics and Finance, 24(2), 297-325. https://doi.org/10.1017/s147474722400009x
+Zhang, Z., Hou, Y., Li, Z., & Li, M. (2024). From symbolic to substantive green innovation: How does ESG ratings optimize corporate green innovation structure. Finance Research Letters, 63, 105401. https://doi.org/10.1016/j.frl.2024.105401
 <!-- rendered-citations:end -->

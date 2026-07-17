@@ -44,6 +44,36 @@ citations:
   year: 2025
   title: Sustainability or Greenwashing Evidence from the Asset Market for Industrial Pollution
   venue: The Journal of Finance
+- doi: "10.1007/s10799-026-00501-9"
+  type: "journal"
+  authors: "Pan, Y., Xue, F., & Liu, L."
+  year: 2026
+  title: "Divergence between symbolic adoption and substantive action: how organizational slack shapes AI washing"
+  venue: "Information Technology and Management"
+- doi: "10.1016/j.gfj.2026.101305"
+  type: "journal"
+  authors: "Ge, X., & Luo, Q."
+  year: 2026
+  title: "Greenwashing in green mutual funds: Symbolic ESG vs. substantive carbon emissions"
+  venue: "Global Finance Journal"
+  vol: "72"
+  pages_or_artno: "101305"
+- doi: "10.2139/ssrn.6922688"
+  type: "wp"
+  authors: "Xu, F."
+  year: 2026
+  title: "Bank FinTech Intensity and Financial Performance: Text-Based Evidence from European Banks"
+  venue: "SSRN"
+  pages_or_artno: "6922688"
+- doi: "10.1016/j.rmal.2025.100272"
+  type: "journal"
+  authors: "Hemelstrand, S., & Inoue, T."
+  year: 2025
+  title: "Stop splitting hairs: The problems with dichotomizing continuous data in language research"
+  venue: "Research Methods in Applied Linguistics"
+  vol: "4"
+  issue: "3"
+  pages_or_artno: "100272"
 new_dois: []
 ---
 
@@ -56,8 +86,7 @@ new_dois: []
 判据以「该年」为参照系逐年重估阈值: 对每一年份, 分别对 intensity 序列与 sim 序列取年度 P75 分位数作为该年的高低分界线 (pandas groupby('year').quantile, 而非跨年固定阈值), 目的是防止行业整体报道热度或政策相似度基线的时间趋势 (如 2020 年后金科报道整体密度上升) 机械抬高或压低"高低"判定, 让"高"始终是相对同年同侪的相对位置而非绝对水平。逐篇分类要求 intensity 与 sim 两列都已实测 (`notna`) 才参与分类, 任一缺测 (如 stage 15/16 优雅早退产出全 NaN) 的行被排除出分类域, 不会被静默计为"低"; 银行-年层面用 groupby mean 聚合逐篇 0/1 指示, pandas mean 天然跳过 NaN, 因此分母是该行该年"两项均已测量"的文章数, 而非全部报道数 — 全年无一篇测量成功的行输出面板级 NaN, 而非伪零 (Allison 2001 关于缺失值不应强填零污染 TWFE 系数的告诫, runner.py 注释明确援引)。Track B (int) 用的词频侧测度是 `fintech_intensity_score`, 一个 TF-IDF 权重与 SIF (smooth inverse frequency) 平滑相结合的连续强度分, 与另一条平行的 Track A (kw, 基于 AC 自动机原始去重关键词计数的离散词频) 互为稳健性并排、不分主次, 分属另一家族 (`subst_adopt_kw_p*`), 本家族只覆盖 int 轨。分位阈值集合是 {25, 50, 75} 三档 (`article_alignment.quadrant_percentiles`), P50 是机制检验基准 (与项目内十余处采用中位数分割的既有惯例一致), P25/P75 是稳健性检验; 本家族固定在 P75, 即"高词频/高相似度"门槛设得更严, 落入 Substantive 象限需要同时排进当年词频与相似度分布的前四分之一, 因此该占比数值上通常低于 P50/P25 版本, 反映的是"高度确信的实质性采纳"这一更保守的子群体。
 
 【文献定位】
-四象限判据的理论根基是组织与战略管理文献中「实质 vs 象征」的经典区分: Westphal & Zajac (1994, *Administrative Science Quarterly*) 最早系统区分了企业对外承诺的采纳 (adoption) 与执行 (implementation) 可以脱耦, 部分企业只做象征性承诺而不落实; Fiss & Zajac (2006, *Academy of Management Journal*) 进一步刻画了战略变革中"框定与脱耦"(framing and decoupling) 的机制, 即企业如何通过语言沟通策略性地管理利益相关者对其实际行为的感知, 这正是本项目区分"词频高但语义不像政策"(Token, 蹭热点式脱耦) 与"词频高且语义像政策"(Substantive, 名实相符) 的理论对应。将该框架应用到中国银行业金融科技语境, 直接的构念出处是 Gomber, Koch & Siering (2017, *Journal of Business Economics*) 对金科 (FinTech) 研究议程的界定, 本项目媒体文本对齐官方政策文件的做法呼应了近年文本-语义"言行是否一致"实证研究的方法学取向, 如 Duchin, Gao & Xu (2025, *The Journal of Finance*) 在可持续发展披露文献中检验企业环境信息披露与其真实资产市场行为是否脱钩的证据设计思路; 本家族的 Substantive/Token/Hidden 三分法在测度逻辑上与该类"披露-行为一致性"检验同构, 只是把披露文本换成了第三方媒体报道、把行为验证换成了与官方政策文本的语义相似度。
-
+四象限判据的理论根基是组织与战略管理文献中「实质 vs 象征」的经典区分: Westphal & Zajac (1994, *Administrative Science Quarterly*) 最早系统区分了企业对外承诺的采纳 (adoption) 与执行 (implementation) 可以脱耦, 部分企业只做象征性承诺而不落实; Fiss & Zajac (2006, *Academy of Management Journal*) 进一步刻画了战略变革中"框定与脱耦"(framing and decoupling) 的机制, 即企业如何通过语言沟通策略性地管理利益相关者对其实际行为的感知, 这正是本项目区分"词频高但语义不像政策"(Token, 蹭热点式脱耦) 与"词频高且语义像政策"(Substantive, 名实相符) 的理论对应。将该框架应用到中国银行业金融科技语境, 直接的构念出处是 Gomber, Koch & Siering (2017, *Journal of Business Economics*) 对金科 (FinTech) 研究议程的界定, 本项目媒体文本对齐官方政策文件的做法呼应了近年文本-语义"言行是否一致"实证研究的方法学取向, 如 Duchin, Gao & Xu (2025, *The Journal of Finance*) 在可持续发展披露文献中检验企业环境信息披露与其真实资产市场行为是否脱钩的证据设计思路; 本家族的 Substantive/Token/Hidden 三分法在测度逻辑上与该类"披露-行为一致性"检验同构, 只是把披露文本换成了第三方媒体报道、把行为验证换成了与官方政策文本的语义相似度。 这一测度族在近两年出现了若干直接可比的前沿应用, 以及一条必须直面的反向方法学告诫。Pan、Xue 与 Liu (2026) 把技术采纳明确二分为符号性采纳 (symbolic adoption) 与实质性行动 (substantive action), 并把两者的背离操作化为 AI washing 加以实证测量, 为本族 Token 与 Substantive 两象限所依赖的"同一构念拆成两维并置"提供了前沿存在性证明; 其对象是一般企业的 AI 叙事与实际行动, 符号/实质二分基于组织冗余与披露数据, 既不使用政策文本余弦相似度, 也不做年度分位阈值切分, 层级为企业, 而非本族的银行-年与已测量报道篇数分母。Ge 与 Luo (2026) 把象征性 ESG (声明/评级层面) 与实质性碳排放 (真实结果层面) 并列对照以识别绿色基金的洗绿, 其"两维分别测量后交叉比对"与本族 Token 格 (强度高但政策语义不对齐) 的识别逻辑同构; 但该文层级为基金-期, 两维分别取自 ESG 声明/评级与组合碳排放而均非文本测度, 亦不用年度分位把两维二值化成 2×2 象限。Xu (2026) 以文本方法构造银行层面的 FinTech intensity 并检验其与经营绩效的关系, 与本族 intensity 维 (=fintech_intensity_score, TF-IDF × SIF 加权) 属同一测度族; 惟其样本为欧洲银行, 文本取自银行自身披露, intensity 以连续形式直接进入回归而不作分位二值化与象限交叉, 且系未经同行评审的 SSRN 工作论文。方法学上, Hemelstrand 与 Inoue (2025) 以三组模拟系统论证把连续变量二分的代价: 二分几乎普遍抬高标准误, 进而使显著性检验失准, 并因信息量削减而压低 R² 等效应量, 其立场是建议不要二分连续数据。本族按年度 P75 把连续的 policy_cosine_sim 与 fintech_intensity_score 双双二值化, 正落在该文告诫的范围内, 故此处引作必须直面的反向方法学锚点: 采用象限设计的理由是构念本身要求"言"与"行"两维的定性组合形态而非单一连续水平, 但由此付出的效率与推断代价须如实披露。须强调该文并未为本项目 P25/P50/P75 三级阈值梯子背书——原文未提出"若必须二分则做多切点敏感性检验"的补救建议, 阈值梯子系本项目自设的稳健性措施, 三级阈值各自 just-identified 并排、互为稳健性不分主次, 不得混入同一 over-identified Hansen J; 此外该文领域为应用语言学研究方法, 论证针对单变量二分对回归推断的影响, 未涉及双变量交叉的 2×2 象限、逐年滚动分位阈值, 亦未涉及面板聚合与已测量分母口径。
 【与相邻测度的构念区分】
 本家族与同族 `token_adopt_int_p75` (Token 象限)、`hidden_adopt_int_p75` (Hidden 象限) 共享同一次逐篇分类过程, 三者互斥且穷尽 (加上未落格的 Irrelevant), 但各自独立作为面板列输出, 不应把三者相加视为单一构念的分解; 与平行的 Track A (kw) 版本 `subst_adopt_kw_p75` 互为稳健性并排, 二者分子逻辑相同、词频侧测度不同, 禁止混入同一 over-identified 设定同时作为工具或控制。与全年份锚点稳健孪生 (`_allv` 后缀, sim 改用跨全语料静态锚点 `policy_cosine_sim_allv` 而非逐年 vintage 锚点) 也是并排关系, 本家族 (无 `_allv`) 是 vintage 主轨。
 
@@ -87,4 +116,8 @@ Westphal, J. D., & Zajac, E. J. (1994). Substance and Symbolism in CEOs' Long-Te
 Fiss, P. C., & Zajac, E. J. (2006). The Symbolic Management of Strategic Change Sensegiving via Framing and Decoupling. Academy of Management Journal, 49(6), 1173-1193. https://doi.org/10.5465/amj.2006.23478255
 Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital Finance and FinTech Current Research and Future Research Directions. Journal of Business Economics, 87(5), 537-580. https://doi.org/10.1007/s11573-017-0852-x
 Duchin, R., Gao, J., & Xu, Q. (2025). Sustainability or Greenwashing Evidence from the Asset Market for Industrial Pollution. The Journal of Finance. https://doi.org/10.1111/jofi.13412
+Pan, Y., Xue, F., & Liu, L. (2026). Divergence between symbolic adoption and substantive action: how organizational slack shapes AI washing. Information Technology and Management. https://doi.org/10.1007/s10799-026-00501-9
+Ge, X., & Luo, Q. (2026). Greenwashing in green mutual funds: Symbolic ESG vs. substantive carbon emissions. Global Finance Journal, 72, 101305. https://doi.org/10.1016/j.gfj.2026.101305
+Xu, F. (2026). Bank FinTech Intensity and Financial Performance: Text-Based Evidence from European Banks. SSRN No. 6922688 [Working Paper]. https://doi.org/10.2139/ssrn.6922688
+Hemelstrand, S., & Inoue, T. (2025). Stop splitting hairs: The problems with dichotomizing continuous data in language research. Research Methods in Applied Linguistics, 4(3), 100272. https://doi.org/10.1016/j.rmal.2025.100272
 <!-- rendered-citations:end -->

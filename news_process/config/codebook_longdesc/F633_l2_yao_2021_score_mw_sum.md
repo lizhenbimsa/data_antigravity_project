@@ -39,6 +39,31 @@ citations:
   vol: '37'
   issue: '2'
   pages_or_artno: 267-307
+- doi: "10.1016/j.jcorpfin.2025.102835"
+  type: "journal"
+  authors: "Schweizer, D., Wang, X., Wu, G., & Zhang, A."
+  year: 2025
+  title: "Political connections and media bias: Evidence from China"
+  venue: "Journal of Corporate Finance"
+  vol: "94"
+  pages_or_artno: "102835"
+- doi: "10.1016/j.pacfin.2024.102499"
+  type: "journal"
+  authors: "Nguyen, M., Samarasinghe, A., & Skully, M."
+  year: 2024
+  title: "Watchdogs or Petdogs: The role of media freedom on banking system stability"
+  venue: "Pacific-Basin Finance Journal"
+  vol: "87"
+  pages_or_artno: "102499"
+- doi: "10.1287/orsc.2022.17237"
+  type: "journal"
+  authors: "Dewan, Y., Simons, T., & Wernicke, G."
+  year: 2024
+  title: "The Ideological Imperative: Corporate Social Responsibility and News Media Coverage of Firms"
+  venue: "Organization Science"
+  vol: "35"
+  issue: "5"
+  pages_or_artno: "1930-1955"
 new_dois: []
 ---
 
@@ -51,8 +76,7 @@ new_dois: []
 未加权词典打分发生在 stage 22 (`tone_words.py`), 对每篇文章的三条文本轨 (`content_full`/`content_ctx`/`content_ss`, 由 stage 14 `ctx_materializer` 物化) 分别执行基于 jieba 分词 + Yao (2021) 词典条目匹配的扫描, 命中即按条目预设权重 (词典自带正负极性/强度系数) 计入正负两侧, 得到文章级未加权分数 `yao_2021_score{track}`。媒体权威加权发生在下游 `pipeline/panel/runner.py`: `compute_media_authority_weights` 基于媒体来源的权威性 (参照 Holzman, Kova, Petkevich & Teoh 2023, The Accounting Review 的媒体权威加权方法学) 为每篇文章打一个 `media_authority_weight`, 权重与该篇文本轨无关 (同一篇文章的 full/ctx/ss 三轨共用同一 `media_authority_weight`), 但分别乘到各轨未加权分数上, 得到三条各自独立的 `yao_2021_score_mw_full` / `_ctx` / `_ss`。三轨行宇宙遵循 full-only 留篇门控 (2026-06-29 起): 只看 `llm_verified_full == True` 判定一篇是否为有效银行金科报道, ctx/ss 两轨的行宇宙是该留篇集合的子集; `_ss` 轨的文本范围若无银行∧金科同句共现, 镜像 `_ctx` 回退语义降级为全文 body (`ss_is_fallback=True`, 与同族 `_ss` 列共享同一 `n_articles` 分母)。三轨口径遵循全库统一的三轨架构: full/ctx/ss 各自 just-identified 并排, 互为稳健性、不分主次, 严禁混入同一 over-identified Hansen J 设定。文章级加权分数经 `pipeline/panel/encode.py` 按银行-年 sum 聚合到面板层 (与其它文章级词典分数一致的 sum 聚合口径), 并在 `pipeline/panel/export.py`/`stata_export.py` 层落盘挂标签。
 
 【文献定位】
-词典法情感测度在中文金融文本场景下的方法学基础可追溯至 Du, Huang, Wermers & Wu (2022, Review of Finance) 对通用情感词典 (如 Loughran-McDonald 系) 在中文金融语境下语言/领域特异性不足的系统性诊断, 这一发现是本仓引入多部专门构建的中文金融情感词典 (含 Yao 2021) 的直接方法学动因。词典法与机器学习/LLM 法互为稳健性而非替代关系的立场, 参照 Frankel, Jennings & Lee (2022, Management Science) 对"披露情感: 机器学习 vs 词典方法"的系统对比, 二者在不同语料特征下各有优劣, 本仓的三法并行架构 (LLM 三家投票 / 词典六部 / BERT 三模型) 正是对这一发现的工程化落地。本列所代表的"按媒体权威性对情感信号加权"这一做法, 承接的是 lexicon-based 情感分析范式对"信号来源异质性会影响测度效度"这一问题的一般性关注 (Taboada, Brooke, Tofiloski, Voll & Stede, 2011, Computational Linguistics 对词典法整体方法学谱系的系统梳理), 但其具体实现 (媒体权威加权) 与词典条目本身的长度、词性等语言学特征无关, 而是把"报道该篇的媒体渠道有多权威"这一外生媒体特征引入情感测度的权重结构, 是词典法情感打分与媒体经济学 (media economics) 交叉的一处具体落地, 与同族 `score_hw_sum` (跟风衰减)、`score_w_sum` (提及密度) 分别对应"时间维度的信息衰减"与"篇幅/提及强度维度的价值加权"两类互不相同的权重结构并排存在。
-
+词典法情感测度在中文金融文本场景下的方法学基础可追溯至 Du, Huang, Wermers & Wu (2022, Review of Finance) 对通用情感词典 (如 Loughran-McDonald 系) 在中文金融语境下语言/领域特异性不足的系统性诊断, 这一发现是本仓引入多部专门构建的中文金融情感词典 (含 Yao 2021) 的直接方法学动因。词典法与机器学习/LLM 法互为稳健性而非替代关系的立场, 参照 Frankel, Jennings & Lee (2022, Management Science) 对"披露情感: 机器学习 vs 词典方法"的系统对比, 二者在不同语料特征下各有优劣, 本仓的三法并行架构 (LLM 三家投票 / 词典六部 / BERT 三模型) 正是对这一发现的工程化落地。本列所代表的"按媒体权威性对情感信号加权"这一做法, 承接的是 lexicon-based 情感分析范式对"信号来源异质性会影响测度效度"这一问题的一般性关注 (Taboada, Brooke, Tofiloski, Voll & Stede, 2011, Computational Linguistics 对词典法整体方法学谱系的系统梳理), 但其具体实现 (媒体权威加权) 与词典条目本身的长度、词性等语言学特征无关, 而是把"报道该篇的媒体渠道有多权威"这一外生媒体特征引入情感测度的权重结构, 是词典法情感打分与媒体经济学 (media economics) 交叉的一处具体落地, 与同族 `score_hw_sum` (跟风衰减)、`score_w_sum` (提及密度) 分别对应"时间维度的信息衰减"与"篇幅/提及强度维度的价值加权"两类互不相同的权重结构并排存在。 就中文语境下媒体报道语调本身可被系统性因素预测地偏移这一前提, Schweizer、Wang、Wu 与 Zhang (2025) 以中国非国有上市公司新闻报道大样本实证发现有政治关联的企业获得显著更正面的媒体报道, 并借 Rule 18 反腐规定强制政治关联董事辞职这一监管冲击做 DiD 确证该因果链, 说明媒体报道不宜被当作中性、无偏的信息镜像处理; 但须显式声明其限度: 原文实证的异质性维度是被报道企业的政治关联属性, 而非媒体来源之间的异质性, 故不可据此声称「媒体来源不同质故须按 outlet 赋权」, 原文亦未构造任何权重函数, 样本为中国上市公司而非银行, 层级为公司而非银行-年三轨。银行侧的同域动机性证据见 Nguyen、Samarasinghe 与 Skully (2024): 该文以跨国样本实证媒体自由度与银行稳定性在银行层与系统层均呈正相关且稳健于内生性处理, 识别出存款人纪律渠道, 并发现媒体的国有产权会削弱这一正向关系, 佐证媒体自身属性会调节其信息功能; 其限度同样承重——该文的媒体维度是国别层面的媒体自由度指数, 与本列逐篇的 media_authority_weight (按媒体名查表得 10–100 量表再除以均值) 既非同一层级亦非同一构念, 样本为跨国银行体系而非中国单国银行-年三轨, 且原文不涉及词典情感分与任何乘性加权求和层, 故仅可作动机性引用而不能被读作 outlet 级权威性加权已获前沿支持。outlet 级异质性的直接依据则由 Dewan、Simons 与 Wernicke (2024) 提供: 该文实证企业 CSR 行为如何影响新闻媒体对该企业的报道 (含报道倾向), 表明媒体报道对企业叙事的呈现受媒体自身意识形态调节, 从而支撑「不同来源的报道不可互换、宜按来源区分对待」这一前提; 迁移边界为原文情境是美国媒体与美国企业, 媒体报道量/倾向是被解释的结果变量而非权重来源, 该文不构造任何权重函数, 故只锚定媒体报道非中性这一前提, 不锚定本列 media_authority_weight = raw_weight/mean(raw_weight) 的具体函数形式。
 ## VAR: yao_2021_score_mw_sum_ctx
 
 【变体差分】
@@ -72,4 +96,7 @@ new_dois: []
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
+Schweizer, D., Wang, X., Wu, G., & Zhang, A. (2025). Political connections and media bias: Evidence from China. Journal of Corporate Finance, 94, 102835. https://doi.org/10.1016/j.jcorpfin.2025.102835
+Nguyen, M., Samarasinghe, A., & Skully, M. (2024). Watchdogs or Petdogs: The role of media freedom on banking system stability. Pacific-Basin Finance Journal, 87, 102499. https://doi.org/10.1016/j.pacfin.2024.102499
+Dewan, Y., Simons, T., & Wernicke, G. (2024). The Ideological Imperative: Corporate Social Responsibility and News Media Coverage of Firms. Organization Science, 35(5), 1930-1955. https://doi.org/10.1287/orsc.2022.17237
 <!-- rendered-citations:end -->

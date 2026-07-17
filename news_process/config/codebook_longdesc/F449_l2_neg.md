@@ -13,6 +13,23 @@ citations:
 - {doi: "10.1111/j.1540-6261.2012.01725.x", type: journal, authors: "Gurun, U. G., & Butler, A. W.", year: 2012, title: "Don't believe the hype: Local media slant, local advertising, and firm value", venue: "The Journal of Finance", vol: "67", issue: "2", pages_or_artno: "561–598"}
 - {doi: "10.1111/1475-679X.12071", type: journal, authors: "Piotroski, J. D., Wong, T. J., & Zhang, T.", year: 2015, title: "Political incentives to suppress negative information: Evidence from Chinese listed firms", venue: "Journal of Accounting Research", vol: "53", issue: "2", pages_or_artno: "405–459"}
 - {doi: "10.1126/sciadv.adp1528", type: journal, authors: "Schoenegger, P., Tuminauskaite, I., Park, P. S., Bastos, R. V. S., & Tetlock, P. E.", year: 2024, title: "Wisdom of the silicon crowd: LLM ensemble prediction capabilities rival human crowd accuracy", venue: "Science Advances", vol: "10", issue: "45", pages_or_artno: "Article eadp1528"}
+- doi: "10.1177/08944393251334977"
+  type: "journal"
+  authors: "Stromer-Galley, J., McKernan, B., Zaman, S., Maganur, C., & Regmi, S."
+  year: 2026
+  title: "The Efficacy of Large Language Models and Crowd Annotation for Accurate Content Analysis of Political Social Media Messages"
+  venue: "Social Science Computer Review"
+  vol: "44"
+  issue: "3"
+  pages_or_artno: "466-487"
+- doi: "10.1016/j.iref.2025.104564"
+  type: "journal"
+  authors: "Branzoli, N., Marchetti, S., & Tarducci, E."
+  year: 2025
+  title: "Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy"
+  venue: "International Review of Economics & Finance"
+  vol: "104"
+  pages_or_artno: "104564"
 new_dois: []
 ---
 
@@ -35,8 +52,7 @@ new_dois: []
 【文献定位】
 把负面报道占比 (而非仅平均语调分数) 作为独立测度纳入分析, 与新闻情绪对企业困境动态影响的实证传统一脉相承: Pham et al. (2025, *Journal of Economics and Development*) 在有限理性框架下证明投资者从新闻中提炼出的"负面性" (negativity, 与本家族的 negative-share 构念同构) 对企业困境动态具有独立于整体情绪水平的解释力, 支持把负面占比作为区别于均值语调的补充测度单独建模。Gurun & Butler (2012, *The Journal of Finance*) 与 Piotroski, Wong & Zhang (2015, *Journal of Accounting Research*) 分别在本地媒体口径偏向、以及中国上市公司政治激励压制负面信息披露的情境下, 使用负面报道占比刻画媒体覆盖的方向性偏差, 为本家族"负面占比反映的是选择性报道/披露倾向而非纯粹的信息内容"这一解读提供了方法学先例——尤其在本仓库语料呈现负面占比近退化 (右偏) 的经验背景下, 这类"压制负面信息"的文献视角提示: 观测到的低负面占比未必意味着银行金融科技相关事件本身罕见负面, 也可能部分反映了中国语境下媒体/机构对负面报道的结构性抑制, 使用者在解读该变量时应对此保持审慎。
 
-产生 `llm_vote_score` 的多数投票机制本身建立在"LLM 集成判断可逼近甚至媲美人类群体智慧"这一新近方法学证据之上: Schoenegger, Tuminauskaite, Park, Bastos & Tetlock (2024, *Science Advances*) 系统评估了 LLM 集成 (ensemble) 在预测任务上的准确度, 发现多模型投票聚合能够对齐乃至逼近人类群体判断的精度, 为本仓库三家异构 LLM (gpt54nano/gemini31/deepseekv4) 多数投票取代单一模型判断、进而支撑 `is_negative` 二值化的方法学设计提供了外部效度支持。
-
+产生 `llm_vote_score` 的多数投票机制本身建立在"LLM 集成判断可逼近甚至媲美人类群体智慧"这一新近方法学证据之上: Schoenegger, Tuminauskaite, Park, Bastos & Tetlock (2024, *Science Advances*) 系统评估了 LLM 集成 (ensemble) 在预测任务上的准确度, 发现多模型投票聚合能够对齐乃至逼近人类群体判断的精度, 为本仓库三家异构 LLM (gpt54nano/gemini31/deepseekv4) 多数投票取代单一模型判断、进而支撑 `is_negative` 二值化的方法学设计提供了外部效度支持。 在"以 LLM 替代或辅助人工标注完成类别判定"这一测度路径的效度层面, Stromer-Galley、McKernan、Zaman、Maganur 与 Regmi (2026) 实证评估了 LLM 与众包标注在文本内容分析中的准确性表现, 为本家族分子端(即把篇章级情感共识二值化为负面指示量)依赖机器标注而非人工编码提供了外部效度参照。迁移边界须诚实写明: 该文语料为英文政治社交媒体消息、标注任务为政治内容类别, 与本仓库中文银行金融科技新闻的情感三分类在语言、领域与标注体系上均不同; 且该文评估的是单模型与众包标注的对比, 既未检验本家族所用的三家模型多数投票聚合规则, 也未涉及 gpt54nano/gemini31/deepseekv4 这一具体组合, 因此它支持的是"LLM 可胜任类别判定"这一前提, 而非本仓库投票口径本身。就"媒体语调测度 → 银行层级结果"这条应用链条而言, Branzoli、Marchetti 与 Tarducci (2025) 构造了媒体报道的语调测度并将其应用于意大利银行融资条件这一银行层级实证问题, 与本家族"文章级情感判定 → bank-year 聚合 → 银行层级结果变量"的应用域同构, 是该链条的近期同域存在性证明; 但其国别为意大利、语料非中文新闻, 其语调测度既非本仓库的 LLM 共识投票口径, 亦无 full/ctx/ss 三轨文本切分, 故仅可作为应用域层面的平行参照, 不构成对负面占比(区别于语调均值)这一具体构造的直接背书。
 ## VAR: neg_frac_full
 
 【变体差分】
@@ -63,4 +79,6 @@ Pham, X. T. T., Huynh, D. T., Nguyen, N. T. K., & Luu, T. B. (2025). Investor ne
 Gurun, U. G., & Butler, A. W. (2012). Don't believe the hype: Local media slant, local advertising, and firm value. The Journal of Finance, 67(2), 561–598. https://doi.org/10.1111/j.1540-6261.2012.01725.x
 Piotroski, J. D., Wong, T. J., & Zhang, T. (2015). Political incentives to suppress negative information: Evidence from Chinese listed firms. Journal of Accounting Research, 53(2), 405–459. https://doi.org/10.1111/1475-679X.12071
 Schoenegger, P., Tuminauskaite, I., Park, P. S., Bastos, R. V. S., & Tetlock, P. E. (2024). Wisdom of the silicon crowd: LLM ensemble prediction capabilities rival human crowd accuracy. Science Advances, 10(45), Article eadp1528. https://doi.org/10.1126/sciadv.adp1528
+Stromer-Galley, J., McKernan, B., Zaman, S., Maganur, C., & Regmi, S. (2026). The Efficacy of Large Language Models and Crowd Annotation for Accurate Content Analysis of Political Social Media Messages. Social Science Computer Review, 44(3), 466-487. https://doi.org/10.1177/08944393251334977
+Branzoli, N., Marchetti, S., & Tarducci, E. (2025). Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy. International Review of Economics & Finance, 104, 104564. https://doi.org/10.1016/j.iref.2025.104564
 <!-- rendered-citations:end -->

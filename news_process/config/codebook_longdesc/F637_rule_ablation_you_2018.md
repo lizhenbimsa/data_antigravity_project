@@ -33,6 +33,14 @@ citations:
 - {doi: "10.1287/mnsc.2021.4156", type: journal, authors: "Frankel, R., Jennings, J., & Lee, J.", year: 2022, title: "Disclosure sentiment: Machine learning vs. dictionary methods", venue: "Management Science", vol: "68", issue: "7", pages_or_artno: "5514-5532"}
 - {doi: "10.1016/j.dss.2016.05.009", type: journal, authors: "Pröllochs, N., Feuerriegel, S., & Neumann, D.", year: 2016, title: "Negation scope detection in sentiment analysis: Decision support for news-driven trading", venue: "Decision Support Systems", vol: "88", pages_or_artno: "67-75"}
 - {doi: "10.1093/rof/rfab036", type: journal, authors: "Du, Z., Huang, A. G., Wermers, R., & Wu, W.", year: 2022, title: "Language and domain specificity: A Chinese financial sentiment dictionary", venue: "Review of Finance", vol: "26", issue: "3", pages_or_artno: "673-719"}
+- doi: "10.1609/icwsm.v18i1.31443"
+  type: "journal"
+  authors: "Oh, N."
+  year: 2024
+  title: "Sentibank: A Unified Resource of Sentiment Lexicons and Dictionaries"
+  venue: "Proceedings of the International AAAI Conference on Web and Social Media"
+  vol: "18"
+  pages_or_artno: "2003-2013"
 new_dois: []
 ---
 
@@ -47,8 +55,7 @@ new_dois: []
 【文献定位】
 You, Zhang & Zhang (2018, Review of Financial Studies) 是本词典的直接方法学来源, 该文利用词典语调差异识别中国官方控制媒体与市场化媒体报道倾向对企业融资的因果效应, 本家族继承其词典表, 但把规则维度作为独立于词典选择的正交稳健性轴。Taboada et al. (2011, Computational Linguistics) 系统论证了否定、强化/弱化程度词与转折结构是词典法情感分析中最主要的三类"语境价化转移" (contextual valence shifters) 来源, 是本家族三规则 (neg/deg/adv) 拆分设计的方法学依据。Frankel, Jennings & Lee (2022, Management Science) 在披露语调测度语境下比较词典法与机器学习法, 发现词典法内部的具体实现选择本身已能造成不容忽视的测度差异, 支持本家族"在同一词典上做规则消融、逐一验证结果对规则选择的敏感性"这一设计动机。Pröllochs, Feuerriegel & Neumann (2016, Decision Support Systems) 专门研究否定辖域检测对新闻驱动交易语境下情感测度准确性的影响, 是 negonly/negdeg/negadv 三个含 neg 规则臂的直接文献支撑。Du et al. (2022, Review of Finance) 虽以其自建 du_2022 词典的政治词权重敏感性检验为主体 (三权重 {0.0, 0.5, 1.0} 互为稳健性, 详见项目铁律与 F634 等姊妹家族), 但其"以显式敏感性梯度证明主结论不被单一测度选择驱动"的方法论范式与本家族的规则消融梯度同构, 二者互为方法学参照。
 
-本家族 21 列穷举 7 种规则子集变体 (advonly/degadv/degonly/negadv/negdeg/negonly/raw) × 3 条文本轨道 (ctx/full/ss)。铁律重申: 各变体、各轨道均各自 just-identified 并排、互为稳健性、不分主次, 任何回归设定禁止将本家族多个变体或多个轨道同时作为工具变量塞入同一个 over-identified Hansen J 检验; 三规则消融梯度与政治词权重梯度 (du_2022 专属) 正交不交叉, 二者均在"全语言学规则"或"全权重取值"各自独立维度上变动, 不做笛卡尔积展开以避免列数爆炸。留篇门控与 n_articles 分母口径与项目 full-only 铁律 (2026-06-29) 完全一致, ss 轨回退语义严格镜像 ctx 轨。
-
+本家族 21 列穷举 7 种规则子集变体 (advonly/degadv/degonly/negadv/negdeg/negonly/raw) × 3 条文本轨道 (ctx/full/ss)。铁律重申: 各变体、各轨道均各自 just-identified 并排、互为稳健性、不分主次, 任何回归设定禁止将本家族多个变体或多个轨道同时作为工具变量塞入同一个 over-identified Hansen J 检验; 三规则消融梯度与政治词权重梯度 (du_2022 专属) 正交不交叉, 二者均在"全语言学规则"或"全权重取值"各自独立维度上变动, 不做笛卡尔积展开以避免列数爆炸。留篇门控与 n_articles 分母口径与项目 full-only 铁律 (2026-06-29) 完全一致, ss 轨回退语义严格镜像 ctx 轨。 Oh (2024) 构建 sentibank, 把 15 部原始情感词典与 43 部预处理词典统一整合入库 (覆盖 7 类体裁与 6 个领域), 其问题意识是词典资源的碎片化与验证缺失, 同时明确背书依赖专家词表的规则法在可解释性上的透明性——这为本家族在三家 LLM 与三个 BERT 两支之外继续保留 you_2018 词典状态机语调轨提供了当代前沿参照, 也佐证同一情感构念下并存大量异源词典乃该领域常态, 与本项目并排六部中文词典的设计同构。边界须写明: 该文覆盖英文社交媒体等体裁, 不含 you_2018 等中文金融词典, 未实现否定/程度/转折三规则状态机, 亦未做任何跨词典整合或均值运算, 故只锚定“词典轨值得保留且异源并存”这一层, 对本家族 7 个规则消融变体的具体拆分设计不构成依据。
 ## VAR: you_2018_advonly_tone_ctx
 
 【变体差分】
@@ -160,4 +167,5 @@ Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-ba
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
+Oh, N. (2024). Sentibank: A Unified Resource of Sentiment Lexicons and Dictionaries. Proceedings of the International AAAI Conference on Web and Social Media, 18, 2003-2013. https://doi.org/10.1609/icwsm.v18i1.31443
 <!-- rendered-citations:end -->

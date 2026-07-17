@@ -70,6 +70,20 @@ citations:
   title: "Spatial spillovers of media sentiment divergence in the stock market: A dynamic spatial Durbin approach"
   venue: "Economics Letters"
   one_sentence_zh: "该文用动态空间杜宾模型证明媒体情感分歧存在显著的地理空间溢出效应, 为本家族「同城同业情感外溢作为工具变量」的外生性主张提供了最新的实证支撑。"
+- doi: "10.1162/rest.a.263"
+  type: "journal"
+  authors: "Frandsen, B., Leslie, E., & McIntyre, S."
+  year: 2025
+  title: "Cluster Jackknife Instrumental Variables Estimation"
+  venue: "Review of Economics and Statistics"
+  pages_or_artno: "1-19"
+- doi: "10.2139/ssrn.4787799"
+  type: "wp"
+  authors: "Ellis, C., & Jaspersen, J. G."
+  year: 2024
+  title: "Fixed Effects and the \"Leave-Out'' Instrument"
+  venue: "SSRN Electronic Journal"
+  pages_or_artno: "4787799"
 new_dois:
   - "10.1016/j.econlet.2025.112306"
 ---
@@ -83,8 +97,7 @@ new_dois:
 计算分两层。第一层是构造被平均的原料 bert_avg_pos: 在 geography.py::compute_composite_indicators 中, 对每条轨道 track, bert_avg_pos{track} = 三分类 BERT 模型 (THREE_CLASS_MODELS, 即 finbert_cn 与 fin_sent_zh, 刻意排除二分类 finbert2) 的正面类概率的等权均值。之所以只在三分类模型上平均, 是因为二分类 finbert2 把中性概率质量重新归一进正负两类 (pos+neg 恒等于 1), 其正面概率与三分类模型处于不同的类空间、系统性上偏, 直接混入会破坏 bert_avg_pos / bert_avg_neu / bert_avg_neg 三者近似构成概率单纯形的恒等式; finbert2 的逐模型列作为二分类稳健轨单独保留。第二层是 leave-one-out 组均值: 在 compute_leave_one_out_sentiment 中, 按 (bank_city, year) 分组, 用向量化的 O(N) 公式 leave1out_i = (组内求和 − 自身值) / (组内有效银行数 − 1) 求得; 分组内某年仅有一家银行有有效情感数据时, 分母为零, 结果按方法论正确的方式置 NaN (无法从自身推断本地媒体生态)。该 leave-one-out 度量与省级 (prov) 层同构并列, 也与词典法综合 (dict_tone) 和 LLM 投票 (llm_vote_tone) 的 leave-one-out 工具变量并列, 三种情感测度的地理工具变量共同支撑 Stata 中的过度识别检验 (Hansen J): 典型用法为 ivreghdfe 把银行自身 full 轨情感作为内生变量, 用同一轨道的 prov/city 情感、词典、BERT 三类 leave-one-out 工具变量识别, 再跑 estat overid。三轨 (full/ctx/ss)、三测度 (LLM/词典/BERT)、两地理层 (省/市) 之间的关系遵循项目铁律: 各自 just-identified 并排、互为稳健性、不分主次, 严禁把同一测度的 full/ctx/ss 三轨混进同一个 over-identified 的 Hansen J (跨轨混入会人为制造工具变量数量并污染过度识别检验); G-08 里刻意做过度识别的那一组, 用的是同一轨道 (通常 full) 下 LLM/词典/BERT 三种异质测度, 而非跨轨。全部计算在面板级完成, 不触及付费 LLM 缓存, 因此换嵌入模型或重跑情感阶段时本家族随上游 bert_avg_pos 变化而变化, 自身无独立随机源。留篇门控与全局口径一致 (full-only, 2026-06-29): 一篇报道是否计入「银行金科报道」由 full 轨判定, ctx/ss 轨为 conditional-on-full 的子集测度; ss 轨的回退语义镜像 ctx (无银行∧金科同句共现时 content_ss 退化为全文正文)。
 
 【文献定位】
-本家族坐落在三条文献脉络的交叉处。其一是金融文本情感的机器度量: 情感原料由中文金融领域微调的 BERT 产生, Huang, Wang, & Yang (2023) 系统论证了在金融文本上用大型语言模型抽取信息相较传统词典法的增量效度, 是 bert_avg_pos 选用 BERT 而非仅靠词典的直接依据; Li, Mai, Shen, & Yan (2021) 则展示了以机器学习从非结构化文本中构造企业层面构念 (企业文化) 的范式, 为「把文章级概率聚合成银行-年度构念」提供了方法学模板; Devlin, Chang, Lee, & Toutanova (2019) 是 BERT 架构本身的来源。其二是多测度并置与稳健性: Du, Huang, Wermers, & Wu (2022) 构造的中文金融情感词典是本项目词典法综合 (dict_tone) leave-one-out 工具变量的来源之一, 与 BERT 测度在 G-08 过度识别检验里互为异质测度、互为稳健性佐证。其三是识别策略与其经济学根据: leave-one-out 同城组均值属于「同期组均值」类工具变量, 其外生性主张与 Goldsmith-Pinkham, Sorkin, & Swift (2020) 关于 shift-share / Bartik 类工具变量在何时、为何、如何有效的诊断框架一脉相承——两者都依赖「暴露份额或组归属外生于个体特质冲动」这一识别核心; 而作为待识别对象的银行舆论, 其经济后果 (存款流动、透明度) 由 Chen, Goldstein, Huang, & Vashishtha (2022) 就银行信息披露与存款流动的因果链条给出, 为「为什么值得费力识别银行情感的外生变异」提供了结果侧的理论支点。需要如实披露的识别威胁是反射问题 (reflection problem): 地理完全组 (同省/同城全连接) 不满足非传递三元组条件, 因此本工具变量并不主张点识别, 只作为稳健性并排轨提供外生变异的一个来源, 其援用属限定条件披露而非无保留背书。Zhang & Chen (2025, Economics Letters) 用动态空间杜宾模型证明媒体情感分歧存在显著的地理空间溢出效应, 为本家族「同城同业情感外溢作为工具变量」的外生性主张提供了最新的实证支撑。
-
+本家族坐落在三条文献脉络的交叉处。其一是金融文本情感的机器度量: 情感原料由中文金融领域微调的 BERT 产生, Huang, Wang, & Yang (2023) 系统论证了在金融文本上用大型语言模型抽取信息相较传统词典法的增量效度, 是 bert_avg_pos 选用 BERT 而非仅靠词典的直接依据; Li, Mai, Shen, & Yan (2021) 则展示了以机器学习从非结构化文本中构造企业层面构念 (企业文化) 的范式, 为「把文章级概率聚合成银行-年度构念」提供了方法学模板; Devlin, Chang, Lee, & Toutanova (2019) 是 BERT 架构本身的来源。其二是多测度并置与稳健性: Du, Huang, Wermers, & Wu (2022) 构造的中文金融情感词典是本项目词典法综合 (dict_tone) leave-one-out 工具变量的来源之一, 与 BERT 测度在 G-08 过度识别检验里互为异质测度、互为稳健性佐证。其三是识别策略与其经济学根据: leave-one-out 同城组均值属于「同期组均值」类工具变量, 其外生性主张与 Goldsmith-Pinkham, Sorkin, & Swift (2020) 关于 shift-share / Bartik 类工具变量在何时、为何、如何有效的诊断框架一脉相承——两者都依赖「暴露份额或组归属外生于个体特质冲动」这一识别核心; 而作为待识别对象的银行舆论, 其经济后果 (存款流动、透明度) 由 Chen, Goldstein, Huang, & Vashishtha (2022) 就银行信息披露与存款流动的因果链条给出, 为「为什么值得费力识别银行情感的外生变异」提供了结果侧的理论支点。需要如实披露的识别威胁是反射问题 (reflection problem): 地理完全组 (同省/同城全连接) 不满足非传递三元组条件, 因此本工具变量并不主张点识别, 只作为稳健性并排轨提供外生变异的一个来源, 其援用属限定条件披露而非无保留背书。Zhang & Chen (2025, Economics Letters) 用动态空间杜宾模型证明媒体情感分歧存在显著的地理空间溢出效应, 为本家族「同城同业情感外溢作为工具变量」的外生性主张提供了最新的实证支撑。 在留一构造自身的计量性质上, 另有两条方法学参照须如实援引。Frandsen、Leslie 与 McIntyre (2025) 提出并推导 cluster jackknife (按簇留出) IV 估计量, 证明其在簇内多工具、多固定效应的设定下可消除标准 2SLS 的偏误; 本家族按 (bank_city, year) 分组的留一均值与该文的按簇留出思路同族, 可借其对留一构造偏误来源的刻画作方法参照。边界在于: 该文是纯计量方法论文 (估计量推导 + 蒙特卡洛 + 一个美国司法/法官指派数据的应用), 与中文银行媒体语调面板无涉, 其留出单位是簇层的法官而本项目的留出单位是同组内的单个银行、分组键为地理×年份; 本项目仅借用其对留一构造偏误的逻辑作方法参照, 并未实施 cluster jackknife 估计量。与之互补的警示来自 Ellis 与 Jaspersen (2024): 该文分析 leave-out (留一同侪均值) 工具变量在含固定效应模型中的行为, 指出组内留一均值与固定效应同时使用时估计量会出现机械性偏误, 对本家族这类在双向固定效应面板里使用地理留一均值的设定构成直接的方法学提醒。该条援引须降级理解: 它是 SSRN 工作论文、未见期刊终刊记录, 非同行评审终稿; 其讨论对象为一般线性面板的留一 IV 估计量, 做的是估计量性质推导与模拟, 既未涉及本项目的 bank-year 层级与中文媒体语调原子值 (dict_avg_tone / bert_pos_share / llm_vote_score), 亦未讨论本项目 (省份,年份) / (城市,年份) / 经济圈 三种分组键与 min_group_size 守卫; 且原文关注的是 IV 用途, 而本项目的 leave1out 列有一部分仅作同侪暴露控制变量而非工具变量, 该警示对这些用法的适用范围相应收窄。
 ## VAR: city_leave1out_bert_avg_pos_full
 
 【变体差分】
@@ -108,4 +121,6 @@ Li, K., Mai, F., Shen, R., & Yan, X. (2021). Measuring corporate culture using m
 Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik instruments: What, when, why, and how. American Economic Review, 110(8), 2586-2624. https://doi.org/10.1257/aer.20181047
 Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2019). BERT: Pre-training of deep bidirectional transformers for language understanding. arXiv [Preprint]. https://doi.org/10.48550/arXiv.1810.04805
 Zhang, M., & Chen, J. (2025). Spatial spillovers of media sentiment divergence in the stock market: A dynamic spatial Durbin approach. Economics Letters. https://doi.org/10.1016/j.econlet.2025.112306
+Frandsen, B., Leslie, E., & McIntyre, S. (2025). Cluster Jackknife Instrumental Variables Estimation. Review of Economics and Statistics, 1-19. https://doi.org/10.1162/rest.a.263
+Ellis, C., & Jaspersen, J. G. (2024). Fixed Effects and the "Leave-Out'' Instrument. SSRN Electronic Journal No. 4787799 [Working Paper]. https://doi.org/10.2139/ssrn.4787799
 <!-- rendered-citations:end -->

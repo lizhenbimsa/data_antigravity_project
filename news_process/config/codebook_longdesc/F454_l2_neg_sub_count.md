@@ -42,6 +42,22 @@ citations:
   venue: Decision Support Systems
   vol: '88'
   pages_or_artno: 67-75
+- doi: "10.1016/j.jaccpubpol.2024.107181"
+  type: "journal"
+  authors: "Cheng, C. A., Jiang, L., & Song, W.-L."
+  year: 2024
+  title: "Media coverage and debt financing choice"
+  venue: "Journal of Accounting and Public Policy"
+  vol: "44"
+  pages_or_artno: "107181"
+- doi: "10.1016/j.jfs.2026.101538"
+  type: "journal"
+  authors: "Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S."
+  year: 2026
+  title: "Does media sentiment influence bank supervision?"
+  venue: "Journal of Financial Stability"
+  vol: "84"
+  pages_or_artno: "101538"
 new_dois: []
 ---
 
@@ -52,8 +68,7 @@ new_dois: []
 【方法学与计算】
 `neg_sub_count` 是分子(numerator)角色列, 其配对分母是同轨 `neg_count{track}`(该轨全部负面篇数)与 `neg_substvalid_count{track}`(该轨负面且判定有效的篇数, 经 `_svd_denom` 同域校正), 三者共同喂给 runner.py 里的"方法 B: 反向验证"公式, 产出比率型下游指标 `neg_sub_ratio{track} = neg_sub_count{track} / max(neg_substvalid_count{track}, neg_count{track})`(`_safe_ratio` + `_svd_denom` 双重护栏防零除/防分母小于分子的口径不一致), 以及非对称性诊断列 `washing_asymmetry{track} = neg_sub_ratio{track} - (1 - washing_ratio{track})`, 用以检验"正面洗稿"(washing_ratio, 方法 A, 正面象征性占比)与"负面实质性"是否呈系统性不对称——若企业倾向把正面消息说得空洞而把负面消息说得具体(或反之), 该差值会偏离零。`neg_sub_count` 本身作为纯计数列出现在面板(panel)中, 供研究者在使用 `neg_sub_ratio` 之外, 直接观察篇数层面的绝对暴露规模, 也便于对"小样本银行-年"做稀疏性诊断(计数过小时比率不稳定)。该列的构造发生在 encode.py 第 K 段"洗稿率聚合"逐 `track` 遍历循环内, 与方法 A(LLM 投票极化条件法, 产出 `pos_symb_count`)、方法 D(词典均值)、方法 E(BERT 均值)并列, 是"多方法测度洗稿/实质性程度"梯子的负面-反向验证支柱, fix(omni-g-runner-10, 2026-06-11) 之后分母统一改为 substvalid 同域计数, 确保跨方法可比。
 【文献定位】
-本家族方法学根基有三支: 一是 Bingler, Kraus, Leippold, & Webersinke (2024, *Journal of Banking & Finance*) 关于企业气候信息披露"言辞廉价"如何与实际气候行动、排放与声誉风险脱钩的实证发现, 与其 2022 年 ClimateBERT 一文共同构成"具体承诺 vs. 空泛姿态"这一实质性/象征性二分构念在金融文本领域的直接方法学源头, 是本家族区分"实质性负面"与"象征性负面"最贴近的构念锚点(而非仅一般性的情感强度测度); 二是 Piotroski, Wong, & Zhang (2015, *Journal of Accounting Research*, 该刊为会计学顶刊) 关于中国上市公司政治激励抑制负面信息的发现, 为"负面信息在中国语境下存在系统性压制/软化动机"提供了制度背景, 支撑本家族区分"实质性负面"与"象征性负面"的现实意义(若企业或媒体倾向用抽象姿态稀释具体负面事实, 单纯的负面词计数会低估真实风险暴露); 三是 Pröllochs, Feuerriegel, & Neumann (2016, *Decision Support Systems*) 关于新闻情感分析中否定范围检测的方法学, 为"实质性负面"判定中涉及的否定处理提供技术参照(negonly 消融臂即呼应此支)。三支文献共同框定了本家族"计数—反向验证—制度动机"三层含义: 计数是测度层(Bingler et al. 提供实质性/象征性二分的构念根基), 反向验证(与方法 A 对照)是方法论层, 制度背景(Piotroski et al.)是解释层, 否定检测(Pröllochs et al.)是技术层。
-
+本家族方法学根基有三支: 一是 Bingler, Kraus, Leippold, & Webersinke (2024, *Journal of Banking & Finance*) 关于企业气候信息披露"言辞廉价"如何与实际气候行动、排放与声誉风险脱钩的实证发现, 与其 2022 年 ClimateBERT 一文共同构成"具体承诺 vs. 空泛姿态"这一实质性/象征性二分构念在金融文本领域的直接方法学源头, 是本家族区分"实质性负面"与"象征性负面"最贴近的构念锚点(而非仅一般性的情感强度测度); 二是 Piotroski, Wong, & Zhang (2015, *Journal of Accounting Research*, 该刊为会计学顶刊) 关于中国上市公司政治激励抑制负面信息的发现, 为"负面信息在中国语境下存在系统性压制/软化动机"提供了制度背景, 支撑本家族区分"实质性负面"与"象征性负面"的现实意义(若企业或媒体倾向用抽象姿态稀释具体负面事实, 单纯的负面词计数会低估真实风险暴露); 三是 Pröllochs, Feuerriegel, & Neumann (2016, *Decision Support Systems*) 关于新闻情感分析中否定范围检测的方法学, 为"实质性负面"判定中涉及的否定处理提供技术参照(negonly 消融臂即呼应此支)。三支文献共同框定了本家族"计数—反向验证—制度动机"三层含义: 计数是测度层(Bingler et al. 提供实质性/象征性二分的构念根基), 反向验证(与方法 A 对照)是方法论层, 制度背景(Piotroski et al.)是解释层, 否定检测(Pröllochs et al.)是技术层。 在测量形态层面, 本家族"逐篇布尔指示→按银行-年求和"的聚合范式与近期主流实证一致: Cheng、Jiang 与 Song (2024) 把美国上市公司 2001–2014 年的新闻按公司-年归集为报道量与新闻情感进入债务融资方式选择回归, 发现负面盈余新闻显著降低银行贷款与公募债概率、提高私募债概率, 表明按主体-年对负面极性指示求和所得的计数确有经济含义。迁移边界: 该文极性来自 RavenPack 专有事件情感分析 (ESS), 而非公开词典或本项目的逐篇标注, 主体为美国上市公司而非银行, 故只锚定聚合形态, 不锚定判定原语, 更不涉及"实质性负面 vs 象征性负面"的篇内区分。Aldama-Navarrete、Curti、Hansen 与 Kazinnik (2026) 构造针对特定银行的媒体情感测度并检验其与监管行为的关联, 佐证把新闻情感按银行主体归集并进入银行层面实证在同域已被顶级期刊接受, 为本家族的银行-年负面计数提供外部效度参照; 但该文语境为美国银行监管 (DV 为监管评级/监管行动), 其情感测度既无实质性/象征性二分, 亦无 full/ctx/ss 三轨设计, 因而不能据以背书本家族分子端的实质性判定口径。
 ## VAR: neg_sub_count_ctx
 
 【变体差分】
@@ -74,4 +89,6 @@ Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2024). How cheap talk
 Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022). Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures. Finance Research Letters, 47, 102776. https://doi.org/10.1016/j.frl.2022.102776
 Piotroski, J. D., Wong, T. J., & Zhang, T. (2015). Political incentives to suppress negative information: Evidence from Chinese listed firms. Journal of Accounting Research, 53(2), 405-459. https://doi.org/10.1111/1475-679X.12071
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
+Cheng, C. A., Jiang, L., & Song, W.-L. (2024). Media coverage and debt financing choice. Journal of Accounting and Public Policy, 44, 107181. https://doi.org/10.1016/j.jaccpubpol.2024.107181
+Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S. (2026). Does media sentiment influence bank supervision?. Journal of Financial Stability, 84, 101538. https://doi.org/10.1016/j.jfs.2026.101538
 <!-- rendered-citations:end -->

@@ -67,6 +67,22 @@ citations:
   vol: 63
   issue: 1
   pages_or_artno: 125-143
+- doi: "10.3390/computers12010018"
+  type: "journal"
+  authors: "Naldi, M., & Petroni, S."
+  year: 2023
+  title: "A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools"
+  venue: "Computers"
+  vol: "12"
+  issue: "1"
+  pages_or_artno: "18"
+- doi: "10.18653/v1/2025.emnlp-main.1088"
+  type: "journal"
+  authors: "Kim, J., Koo, S., & Lim, H."
+  year: 2025
+  title: "Semantic Inversion, Identical Replies: Revisiting Negation Blindness in Large Language Models"
+  venue: "Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing"
+  pages_or_artno: "21445-21482"
 new_dois: []
 ---
 
@@ -85,8 +101,7 @@ new_dois: []
 三轨、negonly 消融变体、以及"含全部媒体 vs 剔停刊"两个媒体口径, 都是各自 just-identified 并排的稳健性臂: 它们互为稳健性、不分主次, 严禁混进同一 over-identified 的 Hansen J 过度识别检验, 因为混轨、混消融变体或混媒体口径进同一 GMM 会伪造正交矩。留篇门控遵循 full-only 口径 (2026-06-29): 一篇报道是否计入银行金科报道宇宙只由 full 轨的 LLM 判定决定, ctx 与 ss 降为 conditional-on-full 的测度/稳健性轨, 其行宇宙是 full 留篇集的子集, 但 per-track 词典得分仍逐轨独立计算, 不回借 full 轨分母。ss 轨的回退语义镜像 ctx: 当某文章无银行与金科同句共现时, content_ss 优雅退回全文正文, ss_is_fallback 记 True, 并与 ctx 共享 n_articles 分母; 若金科自动机为 None 则全篇回退, 整轨优雅降级。
 
 【文献定位】
-本族的词典与构念直接源自 You 等 (2018) 发表于 The Review of Financial Studies 的研究, 该文考察媒体报道对企业信息环境的影响, 并构建了用于中文财经文本的极性词表 (Panel C 明确词与 Panel D 模糊词), 是 you_2018 前缀的权威出处, 也为"媒体语调作为可度量信号"这一构念提供了顶刊层级的理论与测量基础。词典法情感测度对构造选择 (含否定、加权、程度处理) 的敏感性由词典法方法学文献反复强调, Barbaglia 等 (2025) 在 Economic Inquiry 上系统论证词典法在经济文本上的可行性与其对词表与规则设定的依赖, 为本族的规则消融敏感性提供直接依据。否定处理这一具体环节, Pröllochs 等 (2016) 在 Decision Support Systems 上以新闻驱动交易为背景系统检验了否定范围检测对情感极性的影响, 正是 negonly 臂隔离否定规则的文献支撑。词典法与机器学习法的相对效度与互为稳健地位, Frankel 等 (2022) 在 Management Science 上做了系统比较, 支持本项目三方法 (LLM/词典/BERT) 各自并排、互不从属的稳健性设计; van Atteveldt 等 (2021) 则从人工标注、众包、词典、机器学习四路对比给出效度基准。中文金融语境的领域特异性由 Du 等 (2022) 在 Review of Finance 上确立, 提示情感词典须警惕跨语言与跨领域语义漂移, 这也是本项目并列六部中文词典而非依赖单一词表的动因。
-
+本族的词典与构念直接源自 You 等 (2018) 发表于 The Review of Financial Studies 的研究, 该文考察媒体报道对企业信息环境的影响, 并构建了用于中文财经文本的极性词表 (Panel C 明确词与 Panel D 模糊词), 是 you_2018 前缀的权威出处, 也为"媒体语调作为可度量信号"这一构念提供了顶刊层级的理论与测量基础。词典法情感测度对构造选择 (含否定、加权、程度处理) 的敏感性由词典法方法学文献反复强调, Barbaglia 等 (2025) 在 Economic Inquiry 上系统论证词典法在经济文本上的可行性与其对词表与规则设定的依赖, 为本族的规则消融敏感性提供直接依据。否定处理这一具体环节, Pröllochs 等 (2016) 在 Decision Support Systems 上以新闻驱动交易为背景系统检验了否定范围检测对情感极性的影响, 正是 negonly 臂隔离否定规则的文献支撑。词典法与机器学习法的相对效度与互为稳健地位, Frankel 等 (2022) 在 Management Science 上做了系统比较, 支持本项目三方法 (LLM/词典/BERT) 各自并排、互不从属的稳健性设计; van Atteveldt 等 (2021) 则从人工标注、众包、词典、机器学习四路对比给出效度基准。中文金融语境的领域特异性由 Du 等 (2022) 在 Review of Finance 上确立, 提示情感词典须警惕跨语言与跨领域语义漂移, 这也是本项目并列六部中文词典而非依赖单一词表的动因。 晚近文献进一步把否定处理单列为词典法内部可独立测量的模块。Naldi 与 Petroni (2023) 提出一套基于人工构造测试集的方法, 专门度量词典法情感工具对否定的检测与处理能力, 实证发现各工具在这一环节表现差异显著; 这是本族把否定翻转从三条语言学规则中单独抽出、构成 negonly 臂的最贴近方法学依据——否定处理确是词典法内部可被单独测量、亦可单独失效的模块。迁移边界在于: 原文是英文通用领域 (非金融) 词典工具的否定检测准确率评测, 而本族并不评测否定检测的准确率, 只把否定规则的开与关作为面板语调测度的一条并排稳健性臂, 语料亦为中文金融新闻。构念层面, Kim、Koo 与 Lim (2025) 提出并验证「查询否定盲区」: 当模型对肯定式查询的知识掌握准确时, 对语义被否定翻转的同一查询仍产出相同或近似回答, 其以 complexity 与 constrainedness 两准则设计的四项任务给出系统性证据, 表明否定在当代 NLP 系统中仍是一条独立且尚未解决的语义处理轴, 由此为把否定单列为可独立开关、独立报告的一条规则提供背景动机。此条须严格按降级口径引用: 该文为英文 NLP 基准评测, 对象是生成式大语言模型的知识问答与逻辑推理, 不涉及情感或语调测度, 不涉及词典与状态机, 亦不涉及中文否定词表; 本族的否定翻转是状态机内对否定辖域内命中词的确定性改号, 其「是否被正确处理」并不构成问题, negonly 臂检验的仅是该规则对结论的影响。故本文只作构念层背景, 词典法否定处理的直接证据仍以 Naldi 与 Petroni (2023) 与 Pröllochs 等 (2016) 为准。
 ## VAR: exc_you_2018_score_negonly_ctx
 
 【变体差分】
@@ -109,4 +124,6 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
+Naldi, M., & Petroni, S. (2023). A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools. Computers, 12(1), 18. https://doi.org/10.3390/computers12010018
+Kim, J., Koo, S., & Lim, H. (2025). Semantic Inversion, Identical Replies: Revisiting Negation Blindness in Large Language Models. Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing, 21445-21482. https://doi.org/10.18653/v1/2025.emnlp-main.1088
 <!-- rendered-citations:end -->

@@ -35,6 +35,15 @@ citations:
   vol: ""
   issue: ""
   pages_or_artno: "No. 32026"
+- doi: "10.1111/abac.12322"
+  type: "journal"
+  authors: "Wang, K. T., Zhu, N. Z., & Luo, G."
+  year: 2024
+  title: "Does News Media Affect Firm Innovation in Emerging Markets? Evidence from China"
+  venue: "Abacus"
+  vol: "60"
+  issue: "4"
+  pages_or_artno: "709-751"
 new_dois: []
 ---
 
@@ -51,8 +60,7 @@ target_bank 与 year 无导出公式, 其"计算"逻辑是实体匹配与时间�
 target_bank 与 year 在识别策略与结构测度语境下还承担另一重角色: 三轨 (full/ctx/ss) 文本口径、co-primary 双轨嵌入 (canonical Qwen3-Embedding-8B 与 `_lg` text-embedding-3-large)、以及各类消融梯度 (词典规则消融、政治词权重 {0.0,0.5,1.0}、罕见词频次 cutoff、BERT 分布阈值梯子等) 全部是在 (target_bank, year) 这一固定坐标系上并列展开的测度族 — 这些梯子彼此互为稳健性、不分主次、各自 just-identified 并排, 禁止混进同一 over-identified Hansen J 检验; 但无论选择哪一条轨道或哪一档参数, 其行索引锚点始终是同一个 (target_bank, year)。这意味着 target_bank/year 本身对三轨/双轨/梯度选择保持中立 (track-agnostic), 是唯一"不能双轨化"的元数据类列 (镜像 memory「双轨=互为稳健性」中关于 track-agnostic 元数据的界定)。留篇门控 (2026-06-29 起 full-only 口径) 同样不改变 target_bank/year 的取值范围或聚合方式, 门控只影响进入聚合分母的文章行数 (n_articles 等下游测度), 不影响主键本身的定义。
 
 【文献定位】
-以 (实体, 时间) 为面板数据主键组织非结构化文本信息进行经济学分析, 其方法论基础可追溯到金融文本挖掘对"公司特异性新闻" (firm-specific news) 的系统化处理: Boudoukh, Feldman, Kogan & Richardson (2019, Review of Financial Studies) 论证了将新闻文章按公司与时间两个维度对齐、剥离宏观共同因子后提取信息含量的必要性, 其核心方法学前提正是要求文本数据能够被精确映射到"哪家公司、哪个时间点"这一坐标系 — 这与本家族 target_bank/year 作为主键结构列所扮演的角色高度吻合: 若实体识别或时间解析存在系统性偏误, 后续一切基于新闻的情感/注意力测度都将继承该偏误。Heese, Pérez-Cavazos & Peter (2022, Journal of Financial Economics) 关于地方报纸停刊如何造成公司治理监督真空的研究进一步提示, 面板中媒体覆盖随时间的进入与退出本身携带信息 (并非纯噪声), 因此 target_bank/year 主键的完整性 (是否存在未被识别的覆盖缺口) 需要如 attention_media.py 中 detect_defacto_cessation 那样被显式建模, 而非默认面板是平衡的。van Binsbergen, Bryzgalova, Mukhopadhyay & Sharma (2024, NBER Working Paper No. 32026) 对近两百年新闻文本情感的长时段构建同样表明, 面板类新闻情感研究的稳健性高度依赖底层 (实体, 年份) 主键在跨越长时间窗口时的一致性维护, 这与本项目样本窗口从 2007 延伸至 2025 (全量语料 T=19) 所面临的银行更名、合并、重组等实体识别挑战性质相同。
-
+以 (实体, 时间) 为面板数据主键组织非结构化文本信息进行经济学分析, 其方法论基础可追溯到金融文本挖掘对"公司特异性新闻" (firm-specific news) 的系统化处理: Boudoukh, Feldman, Kogan & Richardson (2019, Review of Financial Studies) 论证了将新闻文章按公司与时间两个维度对齐、剥离宏观共同因子后提取信息含量的必要性, 其核心方法学前提正是要求文本数据能够被精确映射到"哪家公司、哪个时间点"这一坐标系 — 这与本家族 target_bank/year 作为主键结构列所扮演的角色高度吻合: 若实体识别或时间解析存在系统性偏误, 后续一切基于新闻的情感/注意力测度都将继承该偏误。Heese, Pérez-Cavazos & Peter (2022, Journal of Financial Economics) 关于地方报纸停刊如何造成公司治理监督真空的研究进一步提示, 面板中媒体覆盖随时间的进入与退出本身携带信息 (并非纯噪声), 因此 target_bank/year 主键的完整性 (是否存在未被识别的覆盖缺口) 需要如 attention_media.py 中 detect_defacto_cessation 那样被显式建模, 而非默认面板是平衡的。van Binsbergen, Bryzgalova, Mukhopadhyay & Sharma (2024, NBER Working Paper No. 32026) 对近两百年新闻文本情感的长时段构建同样表明, 面板类新闻情感研究的稳健性高度依赖底层 (实体, 年份) 主键在跨越长时间窗口时的一致性维护, 这与本项目样本窗口从 2007 延伸至 2025 (全量语料 T=19) 所面临的银行更名、合并、重组等实体识别挑战性质相同。 近期中国语境的实证亦为这一坐标系提供了同域佐证: Wang、Zhu 与 Luo (2024) 使用逾 188,000 篇出自中国最有影响力报纸、由记者撰写的公司特定报道, 把报道按公司与年份归集为主体-年层面的计数型暴露变量并检验其与企业创新产出的关系, 表明中文报纸报道确可被稳定地映射到 (实体, 年份) 这一主键并据以展开面板计量 — 这正是本家族 target_bank/year 所承担的坐标角色。但其锚定严格限于「报道可按主体-年归集为面板行」这一层: 该文主体为中国 A 股非金融企业而非商业银行, 其实体识别与本项目 config/bank_list.yaml 的银行名称规范化 (含更名、合并、别名归并、误配剔除) 不可等同; 该文亦未构造语调类变量、无三轨文本设计, 对本项目 2007-2025 窗口内主键完整性与伪短小/伪进入问题不作任何背书。
 ## VAR: target_bank
 
 【变体差分】
@@ -67,4 +75,5 @@ year 是本家族内唯一的时间标识列, 取值为整数型观测年份, �
 Boudoukh, J., Feldman, R., Kogan, S., & Richardson, M. (2019). Information, trading, and volatility: Evidence from firm-specific news. The Review of Financial Studies, 32(3), 992-1033. https://doi.org/10.1093/rfs/hhy083
 Heese, J., Pérez-Cavazos, G., & Peter, C. D. (2022). When the local newspaper leaves town: The effects of local newspaper closures on corporate misconduct. Journal of Financial Economics, 145(2), 445-463. https://doi.org/10.1016/j.jfineco.2021.08.015
 van Binsbergen, J. H., Bryzgalova, S., Mukhopadhyay, M., & Sharma, V. (2024). (Almost) 200 years of news-based economic sentiment. National Bureau of Economic Research Working Paper Series No. No. 32026 [Working Paper]. https://doi.org/10.3386/w32026
+Wang, K. T., Zhu, N. Z., & Luo, G. (2024). Does News Media Affect Firm Innovation in Emerging Markets? Evidence from China. Abacus, 60(4), 709-751. https://doi.org/10.1111/abac.12322
 <!-- rendered-citations:end -->

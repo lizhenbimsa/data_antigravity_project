@@ -41,6 +41,23 @@ citations:
   venue: Journal of Banking & Finance
   vol: '164'
   pages_or_artno: '107191'
+- doi: "10.1016/j.gfj.2026.101305"
+  type: "journal"
+  authors: "Ge, X., & Luo, Q."
+  year: 2026
+  title: "Greenwashing in green mutual funds: Symbolic ESG vs. substantive carbon emissions"
+  venue: "Global Finance Journal"
+  vol: "72"
+  pages_or_artno: "101305"
+- doi: "10.1111/joms.13043"
+  type: "journal"
+  authors: "Athanasopoulou, A., Marti, E., Risi, D., & Schlindwein, E."
+  year: 2025
+  title: "How Companies Restrain Means–Ends Decoupling: A Comparative Case Study of CSR Implementation"
+  venue: "Journal of Management Studies"
+  vol: "62"
+  issue: "1"
+  pages_or_artno: "214-245"
 new_dois: []
 ---
 
@@ -53,8 +70,7 @@ new_dois: []
 producer 侧的分类原语是 `pipeline/panel/runner.py::_classify_policy_quadrants`: 对每个 (sim_col, freq_col, pct) 三元组, 先按年份分组计算 `freq_col`/`sim_col` 的 P75 分位阈值 (`groupby('year').transform(quantile)`), 再逐篇比较, 输出 token/hidden/subst 三个 0/1 浮点指示列; 该函数的关键设计是「NaN 掩码而非 NaN 归零」: sim 或 freq 任一缺失的文章不参与分类比较 (`.where(measured)` 把未测量行显式置 NaN), 这是 2026-06-11 修复 (omni-g-runner-03/g-runner-11) 后的契约 — 旧实现会把 stage 15 三条优雅早退路径写出的全 NaN `policy_cosine_sim` 误判成「相似度低」从而把所有高词频文章错误批量归入 token 象限, 制造虚假的象征性采纳信号。修复后, 分类指示列经 `groupby(['target_bank','year']).mean()` 聚合为占比: `mean` 天然跳过 NaN, 分母是该银行-年「sim 与 freq 双双非缺失」的已测量文章数, 而非该银行-年全部报道数; 若某银行-年一篇可测量文章都没有, 输出为 NaN (面板契约: 未测量 ≠ 零, 详见 Allison 2001 §3 关于强填零污染 TWFE 系数的论证, runner.py 注释亦明确引用)。频率侧 `fintech_intensity_score` 与相似度侧 `policy_cosine_sim_allv` 均来自上游 stage 15/16 (`article_policy_alignment.py`), 前者 (`fintech_intensity_score`) 是逐篇金融科技语义强度连续打分, 其计算是确定性的 TF-IDF/IDF 加权关键词向量质心口径, 与 stage 21 情感三家 LLM 投票是两套完全不相关的机制 (CLAUDE.md「嵌入≠LLM」铁律): 打分公式对文章内出现的每个金融科技关键词取双重对数词频权重 (1+lnTF)/(1+lnL), 再乘以该词的 IDF 权重与该词嵌入向量同「金融科技语义质心」的缩放余弦相似度 W_i=IDF×CosSim_scaled 加总而成, 全程不调用任何大语言模型接口, 仅借用词向量嵌入空间来度量关键词与金融科技语义质心的贴近程度、以此充当权重, 学术上借鉴的是 Arora, Liang & Ma (2017) 对句向量做加权词向量平均的思路与 Ethayarajh (2019) 对上下文嵌入各向异性的讨论, 底层加权词频框架则可追溯到 Singhal, Buckley & Mitra (1996) 经典的 TF-IDF 加权检索模型, 以及 Manning, Raghavan & Schütze (2008) 对 IDF 权重的标准形式化; Li, Mai, Shen & Yan (2021, *Review of Financial Studies*) 是本项目在金融文本领域采用嵌入构造语义强度测度的直接方法学参照。后者 (`policy_cosine_sim_allv`) 是该篇文章嵌入向量与「政策锚点」文本嵌入的余弦相似度, 同样是嵌入空间内的确定性几何计算, 不涉及 LLM 打分或标注。`_allv` 后缀标记锚点变体: 主轨 (无 `_allv`) 用「vintage 锚点」——按报道所在年份匹配同期政策文本构建的锚点, 随时间演化; `_allv` 是其稳健性孪生, 用「全年份静态锚点」——把全部年份的政策语料汇总构建一个不随年份变化的固定锚点, 消除锚点本身跨年漂移对相似度比较基准的干扰。两个锚点变体在完全相同的 track(full/ctx/ss) × 频率轨(kw/int) × 分位(P25/P50/P75) 网格上并行产出, 互为稳健性检验, 不设主次, 禁止把 vintage 与 allv 两套锚点产出的 subst_adopt 列混入同一 over-identified 的 Hansen J 检验 (二者共享同一组银行-年观测单位, 混用会人为夸大过识别约束数目而破坏检验的渐近性质)。三列后缀对应 CLAUDE.md「三轨文本架构」铁律: 无后缀=full(标题+全文), `_ctx`=标题+实体窗口, `_ss`=标题+银行∧金科同句±N窗; 三轨的 sim/freq 输入列均取各自轨道的同名变体 (如 `policy_cosine_sim_allv_ctx`/`fintech_intensity_score_ctx`), 缺列则优雅跳过 (旧 schema 兼容), 三轨彼此 just-identified 并排、互为稳健性, 同样禁止混入同一 Hansen J。留篇口径遵循 2026-06-29 全量切换的 full-only 门控: 是否算作「一篇可纳入分析的银行金科报道」只看 `llm_verified_full`, ctx/ss 是在该留篇集合子集上的条件测度, 而非独立的留篇判定。
 
 【文献定位】
-本家族测度直接服务于 P3 (`bank_fintech_substance`) 论文, 该论文的核心研究设计正是借用 Westphal & Zajac (1994) 与 Fiss & Zajac (2006) 建立的实质-象征二分法, 检验中国银行业媒体报道中「谈金融科技」与「真做金融科技」的分离程度及其经济后果。方法学脉络上, 用文本相似度锚点度量「言行对齐」的做法呼应了近年气候/ESG 披露文献中「cheap talk」测度传统: Bingler, Kraus, Leippold & Webersinke (2024, *Journal of Banking & Finance*) 用文本模型检验企业气候披露与实际排放/倡议之间的脱耦程度, 与本处「报道语言强度 vs. 政策文本相似度」四象限逻辑同构; Duchin, Gao & Xu (2025, *The Journal of Finance*) 则在可持续性/漂绿情境下提供了「披露-行动」错配的资产定价证据, 是本家族分类学在金融顶刊语境下的方法学参照。频率侧 Track B 取连续型嵌入加权强度打分而非离散关键词计数, 其合理性建立在文本即数据 (text-as-data) 与嵌入空间连续测度文献之上: TF-IDF/IDF 加权关键词质心打分是一套确定性算法, 不依赖任何大语言模型调用 (与 stage 21 情感三家 LLM 投票是两套不相关机制), 其连续打分相较离散 0/1 关键词计数的优势在于能区分「浅提一句」与「通篇高强度讨论」两类文章之间的强度梯度, 这一思路与 Li, Mai, Shen & Yan (2021, *Review of Financial Studies*) 用词嵌入构造金融文本连续测度的方法学取向一致, 后者同样是本项目以嵌入衍生的强度分数替代二元关键词表的正当性来源。
-
+本家族测度直接服务于 P3 (`bank_fintech_substance`) 论文, 该论文的核心研究设计正是借用 Westphal & Zajac (1994) 与 Fiss & Zajac (2006) 建立的实质-象征二分法, 检验中国银行业媒体报道中「谈金融科技」与「真做金融科技」的分离程度及其经济后果。方法学脉络上, 用文本相似度锚点度量「言行对齐」的做法呼应了近年气候/ESG 披露文献中「cheap talk」测度传统: Bingler, Kraus, Leippold & Webersinke (2024, *Journal of Banking & Finance*) 用文本模型检验企业气候披露与实际排放/倡议之间的脱耦程度, 与本处「报道语言强度 vs. 政策文本相似度」四象限逻辑同构; Duchin, Gao & Xu (2025, *The Journal of Finance*) 则在可持续性/漂绿情境下提供了「披露-行动」错配的资产定价证据, 是本家族分类学在金融顶刊语境下的方法学参照。频率侧 Track B 取连续型嵌入加权强度打分而非离散关键词计数, 其合理性建立在文本即数据 (text-as-data) 与嵌入空间连续测度文献之上: TF-IDF/IDF 加权关键词质心打分是一套确定性算法, 不依赖任何大语言模型调用 (与 stage 21 情感三家 LLM 投票是两套不相关机制), 其连续打分相较离散 0/1 关键词计数的优势在于能区分「浅提一句」与「通篇高强度讨论」两类文章之间的强度梯度, 这一思路与 Li, Mai, Shen & Yan (2021, *Review of Financial Studies*) 用词嵌入构造金融文本连续测度的方法学取向一致, 后者同样是本项目以嵌入衍生的强度分数替代二元关键词表的正当性来源。 就四象限判据所依赖的「象征维与实质维分别测量后交叉比对」这一识别逻辑本身, 近年亦有前沿呼应: Ge 与 Luo (2026) 在绿色共同基金样本上把象征性 ESG (声明与评级层面) 与实质性碳排放 (真实结果层面) 并列对照以识别洗绿, 其分维测量再交叉比对的做法与本族 subst 象限的构造同构; 惟其层级为基金-期, 两维分别取自 ESG 评级与组合碳排放而非文本测度, 亦未以年度分位阈值把两维二值化成 2×2 象限, 故只锚定识别逻辑而不构成本族分位判据的来源。构念层面, Athanasopoulou、Marti、Risi 与 Schlindwein (2025) 以比较案例研究考察企业在何种条件下能抑制 means-ends decoupling、使形式采纳真正转化为实质结果, 为本族 subst 象限 (强度与政策对齐双双越过年度 P75 的严格尾部, 即「形式与实质同时到位」) 的构念合法性提供了管理学顶刊锚点; 该文为定性比较案例、无量化指标与阈值切分、场域为 CSR 实施而非银行金融科技, 因此仅可用于解释双高格的构念含义, 不能作为本族分位判据或聚合口径的方法学依据。
 ## VAR: subst_adopt_int_p75_allv
 
 【变体差分】
@@ -75,4 +91,6 @@ Westphal, J. D., & Zajac, E. J. (1994). Substance and Symbolism in CEOs' Long-Te
 Fiss, P. C., & Zajac, E. J. (2006). The Symbolic Management of Strategic Change Sensegiving via Framing and Decoupling. Academy of Management Journal, 49(6), 1173-1193. https://doi.org/10.5465/amj.2006.23478255
 Duchin, R., Gao, J., & Xu, Q. (2025). Sustainability or Greenwashing: Evidence from the Asset Market for Industrial Pollution. The Journal of Finance. https://doi.org/10.1111/jofi.13412
 Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2024). How Cheap Talk in Climate Disclosures Relates to Climate Initiatives, Corporate Emissions, and Reputation Risk. Journal of Banking & Finance, 164, 107191. https://doi.org/10.1016/j.jbankfin.2024.107191
+Ge, X., & Luo, Q. (2026). Greenwashing in green mutual funds: Symbolic ESG vs. substantive carbon emissions. Global Finance Journal, 72, 101305. https://doi.org/10.1016/j.gfj.2026.101305
+Athanasopoulou, A., Marti, E., Risi, D., & Schlindwein, E. (2025). How Companies Restrain Means–Ends Decoupling: A Comparative Case Study of CSR Implementation. Journal of Management Studies, 62(1), 214-245. https://doi.org/10.1111/joms.13043
 <!-- rendered-citations:end -->

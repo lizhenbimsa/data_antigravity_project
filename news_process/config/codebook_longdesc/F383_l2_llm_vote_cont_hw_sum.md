@@ -47,6 +47,22 @@ citations:
   vol: "31"
   issue: "1"
   pages_or_artno: "43-96"
+- doi: "10.1609/aaai.v39i18.34120"
+  type: "journal"
+  authors: "Lyu, Q., Shridhar, K., Malaviya, C., Zhang, L., Elazar, Y., Tandon, N., Apidianaki, M., Sachan, M., & Callison-Burch, C."
+  year: 2025
+  title: "Calibrating Large Language Models with Sample Consistency"
+  venue: "Proceedings of the AAAI Conference on Artificial Intelligence"
+  vol: "39"
+  issue: "18"
+  pages_or_artno: "19260-19268"
+- doi: "10.18653/v1/2025.findings-acl.744"
+  type: "journal"
+  authors: "Wang, W., Wang, Y., & Huang, H."
+  year: 2025
+  title: "Ranked Voting based Self-Consistency of Large Language Models"
+  venue: "Findings of the Association for Computational Linguistics: ACL 2025"
+  pages_or_artno: "14410-14426"
 new_dois: []
 ---
 
@@ -59,8 +75,7 @@ new_dois: []
 计算发生在 pipeline\panel\encode.py::build_aggregation_dict 中, 通过 pandas groupby-agg 字典对文章级面板做 (bank, year) 分组求和: 对 track ∈ {full, ctx, ss} 三轨循环, 各自取源列 `llm_vote_cont_hw{track}` (文章级, 由 stage 24 产出的 herd_weight{track} 与 stage 21 衍生的 llm_vote_cont{track} 在文章级预先相乘得到) 做 'sum' 聚合, 写入面板列 `llm_vote_cont_hw_sum{track}`。herd_weight 三轨的取值来源存在版本兼容分支: v3.6.0+ (Edwards 2001 ORM 框架下重构后) schema 下, herd_weight_full / herd_weight_ctx / herd_weight_ss 三列各自独立算出 (真三轨, 因为跟风相似度的判定文本不同——full 轨对比全文, ctx 轨对比实体窗口, ss 轨对比银行∧金科同句窗口, 三种文本相似度矩阵结构不同, 衰减权重自然分化); 若磁盘上只存在 v3.5.x 遗留的单一 herd_weight 列 (未重跑 stage 24 同句轨), 代码会退化为三轨共用同一源列并在日志中显式 WARNING 提示"三轨聚合退化为单源, panel 中 sum_herd_weight_full == sum_herd_weight_ctx == sum_herd_weight_ss (fake 多轨), 如需真三轨需重跑 stage 24"——这一优雅降级避免了整条流水线因缺列崩溃, 但下游消费者 (含论文回归) 若直接假设三轨方差独立须先核对该 WARNING 是否出现。若源列在文章级完全缺失 (例如某次运行未跑 stage 24), 该 agg 键仍注册以维持 schema 稳定, 待 valid_agg 过滤阶段因源列不存在而自动跳过, 使下游面板对应列整体缺席而非以 0 填充 (避免把"未计算"误读为"跟风权重为零")。求和聚合本身对缺失值遵循 pandas 默认语义——文章级 NaN (来自留篇门控 full-only: 未通过 stage 21 三家一致验证的文章其 llm_vote_score 及连带的 llm_vote_cont 直接置 <NA>) 在 groupby sum 中被跳过而非传播为整组 NaN, 因此本列反映的是该银行-年内"可信情感样本"的 herd 加权净和, 分母口径 (sum_herd_weight 抑或 n_articles_llm_valid) 决定了最终归一化后语调的可比性, 须与产出该均值变量的下游逻辑对照才能正确解读。
 
 【文献定位】
-把跟风/羊群转载效应纳入媒体语调测度的降权处理, 方法论根源可追至 Tetlock (2007, Journal of Finance) 关于媒体内容如何赋予投资者情绪以经济含义的开创性框架——该文首次系统论证媒体文本的语调对资产价格具有可预测的因果影响, 但也隐含地提出了一个测量论问题: 若同一事件被多家媒体转载报道, 简单等权加总会使"报道数量"而非"信息增量"驱动语调测度, 本项目的 herd_weight 衰减机制正是对这一测量论关切的回应。三家大模型多数投票的情感抽取范式遵循 de Kok (2025, Management Science) 关于会计与金融研究中生成式大语言模型文本分析方法学的规范性建议——特别是 temperature=0.0、prompt 版本冻结、结果可复现缓存的范式在本项目 stage 21 (`prompt_version='v8-2026-05-17'`) 中被严格遵循。中文金融文本情感测度所依赖的语言学与制度背景, 呼应 You, Zhang & Zhang (2018, Review of Financial Studies) 对中国媒体"谁在掌握笔杆子的权力"这一制度约束的实证刻画, 以及 Du et al. (2022, Review of Finance) 关于中文金融情感词典语言/领域特异性的系统研究——尽管本家族用的是 LLM 投票而非词典法, 但两条测度路径 (dict_avg 系列与 llm_vote 系列) 在本项目中互为稳健性并排比对, 共同构成三角验证的情感测度设计。
-
+把跟风/羊群转载效应纳入媒体语调测度的降权处理, 方法论根源可追至 Tetlock (2007, Journal of Finance) 关于媒体内容如何赋予投资者情绪以经济含义的开创性框架——该文首次系统论证媒体文本的语调对资产价格具有可预测的因果影响, 但也隐含地提出了一个测量论问题: 若同一事件被多家媒体转载报道, 简单等权加总会使"报道数量"而非"信息增量"驱动语调测度, 本项目的 herd_weight 衰减机制正是对这一测量论关切的回应。三家大模型多数投票的情感抽取范式遵循 de Kok (2025, Management Science) 关于会计与金融研究中生成式大语言模型文本分析方法学的规范性建议——特别是 temperature=0.0、prompt 版本冻结、结果可复现缓存的范式在本项目 stage 21 (`prompt_version='v8-2026-05-17'`) 中被严格遵循。中文金融文本情感测度所依赖的语言学与制度背景, 呼应 You, Zhang & Zhang (2018, Review of Financial Studies) 对中国媒体"谁在掌握笔杆子的权力"这一制度约束的实证刻画, 以及 Du et al. (2022, Review of Finance) 关于中文金融情感词典语言/领域特异性的系统研究——尽管本家族用的是 LLM 投票而非词典法, 但两条测度路径 (dict_avg 系列与 llm_vote 系列) 在本项目中互为稳健性并排比对, 共同构成三角验证的情感测度设计。 就 llm_vote_cont{track} = llm_vote_score{track} × llm_agreement_rate{track} 这一连续化构造本身而言, Lyu 等 (2025) 提供了较为直接的方法学依据: 该文系统比较多种置信度来源, 实证表明由多次采样输出之间的一致性 (consistency) 导出的置信度, 在校准性上优于模型自报置信度与 logit 概率, 支持"以一致率而非模型自报分数充当连续置信权重"这一取向。迁移边界须诚实标明: 该文的一致性来自同一模型在正温度下的重复采样, 而本项目 temperature=0.0 且不做重复采样, agreement_rate 来自三家不同厂商模型 (gpt54nano/gemini31/deepseekv4) 的跨模型投票一致率 ∈ [1/3, 1], 属跨模型而非跨采样的一致性, 其校准性质并未被该文覆盖; 该文任务亦为英文推理/QA 基准, 不涉及中文新闻三分类情感, 更未触及本家族的 herd 加权与银行-年求和。多数票这一聚合规则本身同样是设计自由度而非唯一解: Wang、Wang 与 Huang (2025) 以排序投票 (ranked voting) 取代朴素多数票来聚合大模型的多个候选输出, 并实证其聚合质量有所提升, 为本家族上游 llm_vote_score{track} ∈ {-1, 0, 1} 的三家多数票提供了"投票规则可替换"的存在性参照。惟其投票单元是同一模型多次采样得到的候选答案 (self-consistency) 而非跨三家厂商的标签投票, 任务为推理/生成而非三分类情感标注, 聚合亦只到样本级而不涉及本项目的银行-年分组求和与 herd 加权分子; 本项目现行口径仍为朴素多数票, 并未采纳排序投票, 该文在此只作为规则选择空间的旁证, 不构成对本家族聚合方式的背书。
 ## VAR: llm_vote_cont_hw_sum_ctx
 
 【变体差分】
@@ -85,4 +100,6 @@ Tetlock, P. C. (2007). Giving Content to Investor Sentiment: The Role of Media i
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and Domain Specificity: A Chinese Financial Sentiment Dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 de Kok, T. (2025). ChatGPT for Textual Analysis? How to Use Generative LLMs in Accounting Research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
 You, J., Zhang, B., & Zhang, L. (2018). Who Captures the Power of the Pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
+Lyu, Q., Shridhar, K., Malaviya, C., Zhang, L., Elazar, Y., Tandon, N., Apidianaki, M., Sachan, M., & Callison-Burch, C. (2025). Calibrating Large Language Models with Sample Consistency. Proceedings of the AAAI Conference on Artificial Intelligence, 39(18), 19260-19268. https://doi.org/10.1609/aaai.v39i18.34120
+Wang, W., Wang, Y., & Huang, H. (2025). Ranked Voting based Self-Consistency of Large Language Models. Findings of the Association for Computational Linguistics: ACL 2025, 14410-14426. https://doi.org/10.18653/v1/2025.findings-acl.744
 <!-- rendered-citations:end -->

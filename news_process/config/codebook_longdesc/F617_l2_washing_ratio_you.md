@@ -45,6 +45,22 @@ citations:
   venue: Pacific-Basin Finance Journal
   vol: '89'
   pages_or_artno: '102600'
+- doi: "10.1016/j.iref.2026.104974"
+  type: "journal"
+  authors: "Li, Y., & Zhu, C."
+  year: 2026
+  title: "Govern digitalization with digitalization: government digital governance and corporate false digital disclosure"
+  venue: "International Review of Economics & Finance"
+  vol: "106"
+  pages_or_artno: "104974"
+- doi: "10.1016/j.frl.2024.105401"
+  type: "journal"
+  authors: "Zhang, Z., Hou, Y., Li, Z., & Li, M."
+  year: 2024
+  title: "From symbolic to substantive green innovation: How does ESG ratings optimize corporate green innovation structure"
+  venue: "Finance Research Letters"
+  vol: "63"
+  pages_or_artno: "105401"
 new_dois: []
 ---
 
@@ -59,8 +75,7 @@ new_dois: []
 需特别提醒的构念边界: `you_2018` 词典本身是一个基调 (语气正负) 词典, 并非"象征性/实质性"分类器 — 后者来自完全独立的 stage 21 LLM 三家投票管线 (P3/W&Z 创新实质性维度, `LLM_CLASS_SPEC` 的一支)。washing_ratio_you_2018 是二者的交叉乘积式指标, 词典给出"该文章语气是否正面"的信号, LLM 给出"该文章内容是否空洞"的信号, 二者同时成立才计入分子。因此该指标的有效性同时依赖词典打分与 LLM 分类两条链路的质量, 是一个复合测度而非单一信号的直接读出。
 
 【文献定位】
-核心方法学锚点是 You, Zhang & Zhang (2018, Review of Financial Studies) 关于媒体基调词典构造与"谁掌握了笔杆子的力量"的研究, 本家族即以其词典分支命名并直接复用其正负面词表逻辑对中文财经报道打分。"洗稿/漂绿"构念的操作化借鉴 Gorovaia & Makrominas (2024, European Financial Management) 使用自然语言处理方法从企业社会责任报告中识别漂绿文本的思路 — 该文将"言辞正面但实质缺位"的文本模式系统化为可计算指标, 与本家族"正面基调 ∧ 象征性内容"的交叉构造在方法论精神上一致。近期文献进一步确认此类"策略性信息披露与后续舆论反噬"的现象仍是活跃研究前沿, 如 Song, Hou, Ouyang & Hao (2026, Finance Research Letters) 讨论的"AI 洗白" (AI washing) 中策略性披露与市场反弹机制, 以及 Fan, Tang, Huang & Yang (2025, Pacific-Basin Finance Journal) 基于多主体视角考察中国资本市场股权集中度与企业漂绿行为的关系, 均为本家族测度所试图捕捉的"言辞与实质脱节"现象提供了跨市场、跨主题的持续实证支持。
-
+核心方法学锚点是 You, Zhang & Zhang (2018, Review of Financial Studies) 关于媒体基调词典构造与"谁掌握了笔杆子的力量"的研究, 本家族即以其词典分支命名并直接复用其正负面词表逻辑对中文财经报道打分。"洗稿/漂绿"构念的操作化借鉴 Gorovaia & Makrominas (2024, European Financial Management) 使用自然语言处理方法从企业社会责任报告中识别漂绿文本的思路 — 该文将"言辞正面但实质缺位"的文本模式系统化为可计算指标, 与本家族"正面基调 ∧ 象征性内容"的交叉构造在方法论精神上一致。近期文献进一步确认此类"策略性信息披露与后续舆论反噬"的现象仍是活跃研究前沿, 如 Song, Hou, Ouyang & Hao (2026, Finance Research Letters) 讨论的"AI 洗白" (AI washing) 中策略性披露与市场反弹机制, 以及 Fan, Tang, Huang & Yang (2025, Pacific-Basin Finance Journal) 基于多主体视角考察中国资本市场股权集中度与企业漂绿行为的关系, 均为本家族测度所试图捕捉的"言辞与实质脱节"现象提供了跨市场、跨主题的持续实证支持。 该构念在中文语境下的最新前沿测度可参照 Li 与 Zhu (2026): 该文构造中国企业"虚假数字化披露"(false digital disclosure)测度并检验政府数字治理对其的抑制作用, 其"数字化叙事强度与实质数字化不匹配"的识别逻辑与本家族分子(正面基调 ∧ 实质性缺席)同义。迁移边界在于: 该文测量对象为企业年报自述文本, 参照系为企业内部数字资产与投入, 单位为公司-年; 本家族测量第三方媒体报道, 实质性由 LLM 逐篇判定而非与财务投入比对, 单位为银行-年, 且该文未使用中文情感词典分层, 因此不锚定 you_2018 词典判定器口径本身。分母的结构性占比设计则可与 Zhang、Hou、Li 与 Li (2024) 相参照: 该文考察 ESG 评级如何推动企业创新结构由象征性向实质性迁移, 把象征性占比作为可随外部监督变化的构成比而非绝对水平来处理, 与本列取"象征性 / 正面且实质性已测"比率的同域设计逻辑一致; 但其比例基于专利结构数据, 主体为 A 股非金融企业, 驱动因素为 ESG 评级, 且全文未使用任何文本判定器, 故仅锚定象征占比这一构念, 不涉及本家族词典与 LLM 交叉的复合判据。
 ## VAR: washing_ratio_you_2018
 
 【变体差分】
@@ -84,4 +99,6 @@ You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The 
 Gorovaia, N., & Makrominas, M. (2024). Identifying greenwashing in corporate-social responsibility reports using natural-language processing. European Financial Management, 31(1), 427-462. https://doi.org/10.1111/eufm.12509
 Song, X., Hou, W., Ouyang, Z., & Hao, F. (2026). AI washing: Strategic disclosure and backlash. Finance Research Letters, 95, 109684. https://doi.org/10.1016/j.frl.2026.109684
 Fan, X., Tang, Z., Huang, W., & Yang, K. (2025). Ownership concentration and corporate greenwashing in China's capital markets- Based on a multi-actors perspective. Pacific-Basin Finance Journal, 89, 102600. https://doi.org/10.1016/j.pacfin.2024.102600
+Li, Y., & Zhu, C. (2026). Govern digitalization with digitalization: government digital governance and corporate false digital disclosure. International Review of Economics & Finance, 106, 104974. https://doi.org/10.1016/j.iref.2026.104974
+Zhang, Z., Hou, Y., Li, Z., & Li, M. (2024). From symbolic to substantive green innovation: How does ESG ratings optimize corporate green innovation structure. Finance Research Letters, 63, 105401. https://doi.org/10.1016/j.frl.2024.105401
 <!-- rendered-citations:end -->

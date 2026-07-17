@@ -53,6 +53,23 @@ citations:
   vol: 87
   issue: 5
   pages_or_artno: 537-580
+- doi: "10.1016/j.enpol.2026.115147"
+  type: "journal"
+  authors: "Hellsmark, H., Andersson, J., & Hedeler, B."
+  year: 2026
+  title: "Beyond leaders and laggards: How incumbents navigate transformative policy missions"
+  venue: "Energy Policy"
+  vol: "212"
+  pages_or_artno: "115147"
+- doi: "10.1016/j.rmal.2025.100272"
+  type: "journal"
+  authors: "Hemelstrand, S., & Inoue, T."
+  year: 2025
+  title: "Stop splitting hairs: The problems with dichotomizing continuous data in language research"
+  venue: "Research Methods in Applied Linguistics"
+  vol: "4"
+  issue: "3"
+  pages_or_artno: "100272"
 new_dois: []
 ---
 
@@ -65,8 +82,7 @@ digital_frontier 是一个刻画银行"数字前沿地位"的二值分组哑变�
 本列由 runner.py 内的 _base_year_median_split 辅助函数产出, 计算链路严格遵循"基年固定切分"原则。第一步取面板最早年份 base_year = min(panel['year']) 作为切分基准年; 第二步在基年内取每家银行的新闻报道计数 n_articles, 并只保留基年有正报道覆盖 (n_articles>0) 的银行进入中位数计算; 第三步在 bank_type (银行类型) 组内分别求 n_articles 的中位数, 凡基年报道量大于等于其所属类型组中位数者判为 1 (高数字前沿), 否则判为 0; 第四步把这一在基年确定的 0/1 资格通过 target_bank 主键 broadcast 到该银行的全部年份, 使组员资格跨年恒定; 基年零覆盖或未出现在基年的银行一律回填 0。该实现刻意规避了早期版本按"同年中位数"逐年切分的做法——旧实现下组员资格会随各年内生新闻覆盖量翻转 (历史盘上曾观察到数十家银行的资格逐年翻转), 当该哑变量进入 DDD 交互或情感交互时, 调节变量便与结果变量同期内生, 违反本项目对 Bartik 型工具变量强制的 pre-treatment 固定公理 (Goldsmith-Pinkham 等人 2020 年提出的份额外生性要求), 也偏离 Fang 与 Peress (2009) 对媒体覆盖排序须为 predetermined 的处理。改为基年固定切分后, 该列在识别上被冻结为一个纯事前分组, 只在横截面维度携带变异, 时间维度上对每家银行是常数, 因此其单独系数在含银行固定效应的回归中被吸收, 真正进入结构式的是它与政策冲击、事件后窗的乘积项 dcep_ddd_digfront 与 sandbox_ddd_digfront (Treated × Post × DigFrontier)。
 
 【文献定位】
-在数字金融与银行数字化的文献谱系里, digital_frontier 对应的是"银行层面数字前沿异质性"这一调节维度。Vives (2019) 在其对银行业数字颠覆的综述里系统论证了数字技术如何重塑银行竞争格局, 并指出不同银行在面对数字冲击时的响应能力存在结构性分化, 这正是本哑变量试图捕捉的横截面异质性来源。Gomber, Koch 与 Siering (2017) 从数字金融与金融科技的研究议程出发, 勾勒了数字业务范式的多维构成, 为把"报道热度高"解释为"数字业务活跃"提供了构念桥接。Lu, Wu, Li 与 Nguyen (2022) 以中国地方银行的数字普惠金融实践为背景, 说明银行的数字前沿地位与其信贷行为、对中小企业融资约束的缓解能力密切相关, 支持把该分组用作政策效应异质性的调节轴。需要强调的是, 本列是分组代理而非直接测度, 其效度取决于"基年媒体报道热度"与"真实数字能力"之间的相关强度; 稳健性上可与其它事前分组 (如 high_coverage、bank_scale_ord、is_soe) 并列比较, 各分组各自 just-identified 并排、互为稳健性、不分主次, 且禁止混入同一 over-identified 的 Hansen J 检验以避免人为制造过度识别。
-
+在数字金融与银行数字化的文献谱系里, digital_frontier 对应的是"银行层面数字前沿异质性"这一调节维度。Vives (2019) 在其对银行业数字颠覆的综述里系统论证了数字技术如何重塑银行竞争格局, 并指出不同银行在面对数字冲击时的响应能力存在结构性分化, 这正是本哑变量试图捕捉的横截面异质性来源。Gomber, Koch 与 Siering (2017) 从数字金融与金融科技的研究议程出发, 勾勒了数字业务范式的多维构成, 为把"报道热度高"解释为"数字业务活跃"提供了构念桥接。Lu, Wu, Li 与 Nguyen (2022) 以中国地方银行的数字普惠金融实践为背景, 说明银行的数字前沿地位与其信贷行为、对中小企业融资约束的缓解能力密切相关, 支持把该分组用作政策效应异质性的调节轴。需要强调的是, 本列是分组代理而非直接测度, 其效度取决于"基年媒体报道热度"与"真实数字能力"之间的相关强度; 稳健性上可与其它事前分组 (如 high_coverage、bank_scale_ord、is_soe) 并列比较, 各分组各自 just-identified 并排、互为稳健性、不分主次, 且禁止混入同一 over-identified 的 Hansen J 检验以避免人为制造过度识别。 两条晚近文献进一步界定了本列作为二值分组的解释边界与方法学代价。Hellsmark、Andersson 与 Hedeler (2026) 在转型政策使命的语境下明确质疑把在位者简单归为「领先者/落后者」的二分做法, 论证该二分会掩盖在位者应对政策转型的异质路径; 该文属能源政策领域的定性/概念研究, 既非银行业新闻文本, 也未构造中位数切分的哑变量或跨年固定的组员资格, 因此它只支撑「领先/落后二分需谨慎解释」这一判断, 不能作为本列具体阈值 (基年 bank_type 组内中位数、零覆盖记 0) 的方法出处, 但足以提醒 digital_frontier 的两组内部仍可能存在被切分压平的路径异质性。Hemelstrand 与 Inoue (2025) 则以三组模拟系统论证把连续变量二分的代价: 二分几乎普遍抬高标准误、进而使显著性检验失准, 并因信息量削减而压低 R² 等效应量, 其立场是建议不要二分连续数据。本列把连续的基年 n_articles 按组内中位数二值化, 正落在该文告诫的范围内, 故引作必须直面的反向方法学锚点: 本项目仍保留二值设计, 是因为该列的用途是在 DDD 与情感交互中充当事前冻结的组员资格标签, 而非连续调节强度的估计量, 但由此付出的检验效率与效应量损失应在结果解读时明示。须注意该文属应用语言学研究方法领域, 其论证针对单变量二分对回归推断的影响, 并未涉及面板分组的 broadcast 口径, 亦未验证本列按 bank_type 组内中位数切分这一具体做法的正确性。
 ## VAR: digital_frontier
 
 【变体差分】
@@ -78,4 +94,6 @@ Kwan, A., Lin, C., Pursiainen, V., & Tai, M. (2024). Stress testing banks' digit
 Lu, Z., Wu, J., Li, H., & Nguyen, D. K. (2022). Local bank, digital financial inclusion and SME financing constraints: Empirical evidence from China. Emerging Markets Finance and Trade, 58(6), 1712-1725. https://doi.org/10.1080/1540496X.2021.1923477
 Vives, X. (2019). Digital disruption in banking. Annual Review of Financial Economics, 11(1), 243-272. https://doi.org/10.1146/annurev-financial-100719-120854
 Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital finance and FinTech: Current research and future research directions. Journal of Business Economics, 87(5), 537-580. https://doi.org/10.1007/s11573-017-0852-x
+Hellsmark, H., Andersson, J., & Hedeler, B. (2026). Beyond leaders and laggards: How incumbents navigate transformative policy missions. Energy Policy, 212, 115147. https://doi.org/10.1016/j.enpol.2026.115147
+Hemelstrand, S., & Inoue, T. (2025). Stop splitting hairs: The problems with dichotomizing continuous data in language research. Research Methods in Applied Linguistics, 4(3), 100272. https://doi.org/10.1016/j.rmal.2025.100272
 <!-- rendered-citations:end -->

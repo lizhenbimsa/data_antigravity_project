@@ -59,6 +59,15 @@ citations:
   vol: '12'
   issue: '1'
   pages_or_artno: 357-375
+- doi: "10.1287/orsc.2022.17237"
+  type: "journal"
+  authors: "Dewan, Y., Simons, T., & Wernicke, G."
+  year: 2024
+  title: "The Ideological Imperative: Corporate Social Responsibility and News Media Coverage of Firms"
+  venue: "Organization Science"
+  vol: "35"
+  issue: "5"
+  pages_or_artno: "1930-1955"
 new_dois: []
 ---
 
@@ -71,8 +80,7 @@ new_dois: []
 计算分三步, 分属三个不同的 producer 文件, 逐步下沉。第一步 (`pipeline/sentiment/tone_words.py`, stage 22): 逐篇文章打出未加权的 `loughran_score{track}` 之后, 若配置启用 IDF 加权 (`idf_weighting: true`, 默认启用), 调用 `build_idf_weights` 在与 TF (词频) 相同的语料 (调用方传入 `content_full`, 缺失时回退裸 `内容`) 上, 对该词典所有情感词逐词计算文档频率 df(w), 套用平滑 IDF 公式 `log10(N / (1 + df(w)))` (N=去重后文档总数), 对全体词的 IDF 值做均值归一化 (使加权后量级 ≈ 等权版, 便于共享阈值), 再做 P1/P99 缩尾 (Winsorize) 抑制极端稀有词的权重爆炸。归一化后的 IDF 权重乘入该词的 base_score (`_build_idf_weighted_dict`), 由此得到 IDF 加权后的词典, 再逐篇、逐轨 (full/ctx/ss) 重新打分, 得到 `loughran_idf_score{track}` (家族外的兄弟列, 是本家族的直接上游)。⚠ IDF 的文档频率统计口径是「三轨共享同一份 content_full 语料上算一次」, 而非每轨各自独立算 df, 这样保证三轨之间稀有度权重可比, 差异只来自各轨文本本身覆盖的词是否命中。第二步 (`pipeline/panel/runner.py`): 先由 `compute_media_authority_weights` 逐篇文章计算 `media_authority_weight` (基于媒体来源的权威性度量归一化到均值 1 的连续权重, 缺失媒体信息的文章权重填 1.0, 即视同"中性权威度"参与、不做隐式剔除), 随后把该权重逐篇乘进上一步的 `loughran_idf_score{track}`, 得到文章级中间列 `loughran_idf_score_mw{track}` (`_mw` = media-weighted 的后缀标记, 与 `_w`〈mention-density 加权〉、`_hw`〈herd-weight 跟风衰减加权〉是同一构造模式的三个平行加权后缀, 互不覆盖)。第三步 (`pipeline/panel/encode.py::build_aggregation_dict`): 把文章级 `loughran_idf_score_mw{track}` 在银行-年 (`groupby(bank, year)`) 内做 `sum` 聚合, 即得到本家族三列 `loughran_idf_score_mw_sum{track}`。该求和列本身不是最终情感测度, 而是分子: 生产环节随后会以银行-年内 `sum_media_authority_weight` (同一批文章媒体权威权重的和) 作分母相除, 构造出媒体权威加权版本的 loughran 语调 (镜像 VW/HW 的除法构造, 三种加权口径的分母各不相同——mention_density 之和 / media_authority_weight 之和 / herd_weight 之和——但分子构造范式一致, 均是"文章级加权分值先乘权重再求和")。
 
 【文献定位】
-本家族综合了三支方法学文献。其一是词典法情感测度的经典源头: Loughran & McDonald (2011, Journal of Finance) 首次系统指出通用情感词典 (如 Harvard-IV) 在金融/会计文本中大量误判 (如 "liability"、"tax" 等中性财务术语被通用词典误标为负面), 由此构建面向 10-K 文本的金融专用情感词典, 是本词典族 (含中文译本 loughran_mcdonald_zh_2026) 的直接构念依据; Loughran & McDonald (2020, Annual Review of Financial Economics) 对文本分析在金融领域的方法论演进 (含词典法、机器学习法、大语言模型法的谱系) 做了系统综述, 为本仓库「词典法/LLM法/BERT法三方法互为稳健性」的整体设计提供文献定位。其二是 IDF 加权的统计学依据: Spärck Jones (1972, Journal of Documentation) 首次给出词频-逆文档频率 (TF-IDF) 中 IDF 项的统计学解释, 即稀有词承载更多判别信息; Jegadeesh & Wu (2013, Journal of Financial Economics) 在其"word power"框架下把稀有度类加权思路引入金融文本情感度量, 用信息含量而非简单词频给情感词赋权, 是本仓库 `build_idf_weights` 函数所遵循的方法学参照之一。其三是媒体权威性加权的构念依据: 权威媒体报道对读者/市场的信息传导效力不同于地方性小报同类报道, 这一常识性判断是本仓库在从「文章级」汇总到「银行-年级」环节引入 `media_authority_weight` 的设计出发点, 与 IDF 词汇稀有度加权分属两个独立的加权维度, 互不干涉、可叠加。此外, Du, Huang, Wermers & Wu (2022, Review of Finance) 构建的中文金融情感词典 (`du_2022`, 本仓库 6 词典之一) 与本家族所用 loughran 词典是并列而非嵌套关系, 其文中关于中文金融文本情感测度语言特异性的讨论 (如政治词信号强度、语言域特异性) 同样适用于理解本家族 loughran 词典在跨语言迁移 (英文原版→中文主译本) 场景下面临的挑战: 中文财经文本的用词习惯、否定/程度副词处理规则与英文原版词典设计时的假设并不完全一致, 这也是本仓库在 loughran 词典之外仍并列保留 5 部中文原生词典、且三方法 (词典/LLM/BERT) 互为稳健性而非以词典法为单一权威口径的方法论出发点。
-
+本家族综合了三支方法学文献。其一是词典法情感测度的经典源头: Loughran & McDonald (2011, Journal of Finance) 首次系统指出通用情感词典 (如 Harvard-IV) 在金融/会计文本中大量误判 (如 "liability"、"tax" 等中性财务术语被通用词典误标为负面), 由此构建面向 10-K 文本的金融专用情感词典, 是本词典族 (含中文译本 loughran_mcdonald_zh_2026) 的直接构念依据; Loughran & McDonald (2020, Annual Review of Financial Economics) 对文本分析在金融领域的方法论演进 (含词典法、机器学习法、大语言模型法的谱系) 做了系统综述, 为本仓库「词典法/LLM法/BERT法三方法互为稳健性」的整体设计提供文献定位。其二是 IDF 加权的统计学依据: Spärck Jones (1972, Journal of Documentation) 首次给出词频-逆文档频率 (TF-IDF) 中 IDF 项的统计学解释, 即稀有词承载更多判别信息; Jegadeesh & Wu (2013, Journal of Financial Economics) 在其"word power"框架下把稀有度类加权思路引入金融文本情感度量, 用信息含量而非简单词频给情感词赋权, 是本仓库 `build_idf_weights` 函数所遵循的方法学参照之一。其三是媒体权威性加权的构念依据: 权威媒体报道对读者/市场的信息传导效力不同于地方性小报同类报道, 这一常识性判断是本仓库在从「文章级」汇总到「银行-年级」环节引入 `media_authority_weight` 的设计出发点, 与 IDF 词汇稀有度加权分属两个独立的加权维度, 互不干涉、可叠加。此外, Du, Huang, Wermers & Wu (2022, Review of Finance) 构建的中文金融情感词典 (`du_2022`, 本仓库 6 词典之一) 与本家族所用 loughran 词典是并列而非嵌套关系, 其文中关于中文金融文本情感测度语言特异性的讨论 (如政治词信号强度、语言域特异性) 同样适用于理解本家族 loughran 词典在跨语言迁移 (英文原版→中文主译本) 场景下面临的挑战: 中文财经文本的用词习惯、否定/程度副词处理规则与英文原版词典设计时的假设并不完全一致, 这也是本仓库在 loughran 词典之外仍并列保留 5 部中文原生词典、且三方法 (词典/LLM/BERT) 互为稳健性而非以词典法为单一权威口径的方法论出发点。 就媒体权威性加权这一层, 近期组织理论文献可为其前提提供更明确的经验支撑: Dewan、Simons 与 Wernicke (2024) 实证考察企业 CSR 行为如何影响新闻媒体对该企业的报道及其倾向, 表明媒体对企业「良好行为」叙事的呈现受媒体自身意识形态调节, 即媒体报道并非与来源无关的中性信息镜像; 这正是本家族在篇级引入 media_authority_weight、拒绝把不同来源的报道等权计入的前提性依据。须严格限定的是: 原文样本为美国媒体与美国企业 CSR, 媒体报道量/倾向是其结果变量, 该文既未构造任何权重函数, 也未做「权重 × 词典分再求和」的操作, 层级为企业而非银行-年三轨。因此它只锚定「媒体来源非同质」这一前提, 不锚定 media_authority_weight = raw_weight / mean(raw_weight) 这一具体函数形式, 后者仍属本仓库的研究者构造选择。
 ## VAR: loughran_idf_score_mw_sum_full
 
 【变体差分】
@@ -100,4 +108,5 @@ Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis.
 Spärck Jones, K. (1972). A statistical interpretation of term specificity and its application in retrieval. Journal of Documentation, 28(1), 11-21. https://doi.org/10.1108/eb026526
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Loughran, T., & McDonald, B. (2020). Textual analysis in finance. Annual Review of Financial Economics, 12(1), 357-375. https://doi.org/10.1146/annurev-financial-012820-032249
+Dewan, Y., Simons, T., & Wernicke, G. (2024). The Ideological Imperative: Corporate Social Responsibility and News Media Coverage of Firms. Organization Science, 35(5), 1930-1955. https://doi.org/10.1287/orsc.2022.17237
 <!-- rendered-citations:end -->

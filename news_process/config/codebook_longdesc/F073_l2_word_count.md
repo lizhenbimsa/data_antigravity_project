@@ -71,6 +71,15 @@ citations:
   year: 2024
   title: "Textual disclosure complexity and analysts' weighting of information"
   venue: "Journal of Contemporary Accounting & Economics"
+- doi: "10.1016/j.respol.2025.105301"
+  type: "journal"
+  authors: "Gounopoulos, D., Huang, W., & Yang, M."
+  year: 2025
+  title: "Innovation and annual report readability"
+  venue: "Research Policy"
+  vol: "54"
+  issue: "8"
+  pages_or_artno: "105301"
 new_dois:
   - "10.1016/j.jcae.2023.100395"
 ---
@@ -84,8 +93,7 @@ new_dois:
 计算链路分两层。第一层在文章级 (上游 22_tone_words 阶段附近物化): 对三轨文本 content_full / content_ctx / content_ss 各自跑 jieba 分词, 数出实词数得到 n_words_real_full / _ctx / _ss。第二层在面板聚合 (encode.py 的 H2 词汇/句法复杂度批段): agg[f'avg_word_count{track}'] = (f'n_words_real{track}', 'mean'), 即对每个 bank-year 单元内所有留篇报道的逐篇词数取 pandas mean。mean 聚合会自动跳过 NaN, 使得短文或空文本不污染均值。此长度是"词口径"长度, 与并存的另两种口径刻意区分: 字符口径 avg_article_length = ln(1+平均字符数) (底层 doc_length = len(str(内容)) 是 Unicode 字符数, 非词数, 2026-06-05 已勘误其单位标注); 汉字口径 avg_han_count / ln_han_count = 剔除数字标点拉丁后的 CJK 汉字计数均值。三口径 (字符 / 词 / 汉字) 兑现"既要汉字也要字符"的诉求, 互为长度稳健性、不分主次, 各自 just-identified 并排进入自回归, 禁混进同一 over-identified Hansen J。下游 geography.py 对本家族三列做 ln(1+·) 变换生成 ln_word_count{track}, 即真正的词口径 MLENGTH (Li 2008), 与字符口径的 avg_article_length 互为长度稳健轨; 缺列 (ss 未落盘) 时以 if 守卫优雅跳过, 不硬崩。就其计数本性而言, Cohn, Liu 与 Wardlaw (2022) 提醒: 金融中的计数与类计数变量 (词数、篇数皆属此列) 具有右偏、非负、方差随均值增长的特征, 直接线性回归易偏, 故下游一律以 ln(1+·) 稳定其分布——这正是 geography.py 对本家族施加对数变换而非直接使用原始词数的方法学依据。
 
 【文献定位】
-词级长度作为文本复杂度与可读性代理, 其学术脉络清晰。You 与 Zhang (2009) 在 Review of Accounting Studies 上证明报告复杂度 (以篇幅与词汇为核心成分) 系统性放大投资者对 10-K 信息的欠反应, 确立篇幅的经济后果; Bonsall, Leone, Miller 与 Rennekamp (2017) 进一步用 Bog Index 等 plain-English 度量把可读性从单纯长度扩展到句法层, 表明长度是复杂度的必要但不充分成分, 因而本家族的词长与家族外的句法/词汇难度族 (rare_word / hard_char / nominalization) 互补而非替代。Lang 与 Stice-Lawrence (2015) 在大样本国际财报语境中系统化了文本长度、boilerplate 与信息量的关系, 为本长度族提供跨语境外部效度。三轨 (full / ctx / ss) 是本项目对同一长度构念在三种文本切分口径下的并排测量: full 为标题 prepend + 全文正文的完整篇幅, 是留篇门控 (full-only, 2026-06-29) 与 canonical 主轨; ctx 收窄到实体上下文窗, ss 进一步收窄到银行与金科同句共现窗。三轨互为稳健性、不分主次, 各自 just-identified 并排, 禁混进同一 over-identified Hansen J。ss 轨的回退语义镜像 ctx: 当某篇无银行∧金科同句共现时, content_ss 退回全文 body 且 ss_is_fallback=True, 与 ctx 共享 n_articles 分母口径。Yu 与 Zhao (2024, Journal of Contemporary Accounting & Economics) 以文本复杂度(含篇幅相关指标)衡量披露复杂性, 发现更复杂的10-K文本会改变分析师对私有信息的权重分配, 为本词长家族"篇幅即处理成本代理"的构念提供2024年最新实证支持。
-
+词级长度作为文本复杂度与可读性代理, 其学术脉络清晰。You 与 Zhang (2009) 在 Review of Accounting Studies 上证明报告复杂度 (以篇幅与词汇为核心成分) 系统性放大投资者对 10-K 信息的欠反应, 确立篇幅的经济后果; Bonsall, Leone, Miller 与 Rennekamp (2017) 进一步用 Bog Index 等 plain-English 度量把可读性从单纯长度扩展到句法层, 表明长度是复杂度的必要但不充分成分, 因而本家族的词长与家族外的句法/词汇难度族 (rare_word / hard_char / nominalization) 互补而非替代。Lang 与 Stice-Lawrence (2015) 在大样本国际财报语境中系统化了文本长度、boilerplate 与信息量的关系, 为本长度族提供跨语境外部效度。三轨 (full / ctx / ss) 是本项目对同一长度构念在三种文本切分口径下的并排测量: full 为标题 prepend + 全文正文的完整篇幅, 是留篇门控 (full-only, 2026-06-29) 与 canonical 主轨; ctx 收窄到实体上下文窗, ss 进一步收窄到银行与金科同句共现窗。三轨互为稳健性、不分主次, 各自 just-identified 并排, 禁混进同一 over-identified Hansen J。ss 轨的回退语义镜像 ctx: 当某篇无银行∧金科同句共现时, content_ss 退回全文 body 且 ss_is_fallback=True, 与 ctx 共享 n_articles 分母口径。Yu 与 Zhao (2024, Journal of Contemporary Accounting & Economics) 以文本复杂度(含篇幅相关指标)衡量披露复杂性, 发现更复杂的10-K文本会改变分析师对私有信息的权重分配, 为本词长家族"篇幅即处理成本代理"的构念提供2024年最新实证支持。 Gounopoulos、Huang 与 Yang (2025) 在 Research Policy 上检验企业创新与年报可读性的关联, 发现低可读性与创新绩效呈倒 U 型关系, 并以维护竞争优势与隐藏风险两条机制解释企业对披露文本复杂度的策略性调整, 表明篇幅-可读性这一类词汇-句法复杂度测度在顶刊层面具有确立的经济含义; 该文中可读性处于解释变量位置、创新绩效为结果变量, 与本家族把文本复杂度列作银行-年自变量的用法方向一致。迁移边界须明示: 原文语料为英文年报类披露文件, 可读性以 Fog/Bog 等英文公式度量, 层级为 firm-year; 本家族则是中文新闻报道上的 jieba 实词计数经 bank-year 均值化, 单位为词数。故此处仅锚定构念族与测度动机的存在性, 不锚定具体公式, 亦不得据该文声称本项目有"可读性作为被解释变量"的设计先例。
 ## VAR: avg_word_count_full
 
 【变体差分】
@@ -109,4 +117,5 @@ Lang, M., & Stice-Lawrence, L. (2015). Textual analysis and international financ
 You, H., & Zhang, X.-J. (2009). Financial reporting complexity and investor underreaction to 10-K information. Review of Accounting Studies, 14(4), 559-586. https://doi.org/10.1007/s11142-008-9083-2
 Li, F. (2008). Annual report readability, current earnings, and earnings persistence. Journal of Accounting and Economics, 45(2-3), 221-247. https://doi.org/10.1016/j.jacceco.2008.02.003
 Yu, X., & Zhao, L. (2024). Textual disclosure complexity and analysts' weighting of information. Journal of Contemporary Accounting & Economics. https://doi.org/10.1016/j.jcae.2023.100395
+Gounopoulos, D., Huang, W., & Yang, M. (2025). Innovation and annual report readability. Research Policy, 54(8), 105301. https://doi.org/10.1016/j.respol.2025.105301
 <!-- rendered-citations:end -->

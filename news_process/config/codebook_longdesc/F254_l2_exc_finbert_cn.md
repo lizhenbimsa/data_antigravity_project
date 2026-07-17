@@ -89,6 +89,15 @@ citations:
   vol: 62
   issue: 3
   pages_or_artno: 1139-1168
+- doi: "10.25300/misq/2024/18026"
+  type: "journal"
+  authors: "Qiao, M., & Huang, K.-W."
+  year: 2025
+  title: "Correcting Measurement Error in Regression Models with Variables Constructed from Aggregated Output of Data Mining Models"
+  venue: "MIS Quarterly"
+  vol: "49"
+  issue: "1"
+  pages_or_artno: "29-60"
 new_dois: []
 ---
 
@@ -101,8 +110,7 @@ new_dois: []
 计算链路分三步。第一步在 stage 23 (tone_berts) 对每篇报道跑 finbert_cn, 经窗口切分与置信度加权 softmax 得到三类概率, 物化文章级列 finbert_cn_正面_full / _ctx / _ss (三轨文本), 以及其价值加权变体 finbert_cn_正面_w{track} = P(正面)×value-weight (以文档长度/提及密度为权重, 锚 Hassan 等 2019) 与跟风衰减加权变体 finbert_cn_正面_hw{track} = P(正面)×herd-decay-weight (锚 Tetlock (2007))。第二步在 stage 40 的 attention_media 里以覆盖退出为停刊代理: detect_defacto_cessation 比对每家媒体对目标话题的首末出现年份, 把在样本末期不再出现的媒体标记为"疑似退出覆盖", 并可与 NPPA 停刊名录交叉验证 (交叉仅改报告标签, 不改排除集), 得到文章级哨兵 _is_ceased_media。第三步在动态发现块里, 对所有匹配情感前缀且未被显式排除的文章级得分列, 仅在存活媒体子集 (_is_ceased_media==0) 上按 target_bank×year 求均值, 生成 exc_ 前缀列。由此 exc_finbert_cn_正面{track} 是存活媒体报道正面概率的算术均值; 而 exc_finbert_cn_正面_w{track} 与 _hw{track} 是对应加权文章列的均值 (即概率×权重之均值, 属未归一化的辅助聚合, 定位为稳健性/审计存档而非首要归一化情感强度)。缺列时 (如 T=2 盘面 ss 轨或某加权列缺失) 由存在性守卫优雅跳过, 比例/情感类列按契约保持 NaN 不零填。
 
 【文献定位】
-测度骨架承接金融文本情感三角。词典法一支以 Loughran 和 McDonald (2011) 为代表, 指出通用情感词典在金融语境的误分类, 催生领域专用词典; 机器学习一支中 Frankel、Jennings 和 Lee (2022) 系统比较了机器学习与词典法在披露情感上的表现, 说明二者各有偏误、宜互为稳健。BERT 类金融情感器由 Huang、Wang 和 Yang (2023) 与 Liu 等 (2020) 奠定, 本家族所用 finbert_cn 即属此谱系。媒体情感的经济后果自 Tetlock (2007) 起被系统检验, 他以媒体悲观语气预测收益与成交, 确立"媒体情感承载增量信息"这一命题。在中国制度背景下, You、Zhang 和 Zhang (2018) 刻画了媒体报道权力的分配, Fang 等 (2024) 进一步给出媒体情感影响存款稳定与银行系统性风险的证据, 二者共同支撑"银行相关媒体情感有真实经济后果、故其测量的样本稳健性值得单列检验"的论证。停刊剔除的因果依据在于报纸退出会造成地方监督真空, 本家族以话题覆盖退出为其保守代理。需强调本家族与主情感轨、与 fin_sent_zh / finbert2 两模型的对应家族各自 just-identified 并排, 互为稳健性、不分主次, 严禁把三模型或停刊/全样本口径混入同一 over-identified Hansen J; 三轨 full/ctx/ss 同理, 各自并排、不得混入同一过度识别检验; ss 轨回退语义镜像 ctx (无银行与金科同句共现时退回全文 body), 留篇门控口径与 full-only 一致。
-
+测度骨架承接金融文本情感三角。词典法一支以 Loughran 和 McDonald (2011) 为代表, 指出通用情感词典在金融语境的误分类, 催生领域专用词典; 机器学习一支中 Frankel、Jennings 和 Lee (2022) 系统比较了机器学习与词典法在披露情感上的表现, 说明二者各有偏误、宜互为稳健。BERT 类金融情感器由 Huang、Wang 和 Yang (2023) 与 Liu 等 (2020) 奠定, 本家族所用 finbert_cn 即属此谱系。媒体情感的经济后果自 Tetlock (2007) 起被系统检验, 他以媒体悲观语气预测收益与成交, 确立"媒体情感承载增量信息"这一命题。在中国制度背景下, You、Zhang 和 Zhang (2018) 刻画了媒体报道权力的分配, Fang 等 (2024) 进一步给出媒体情感影响存款稳定与银行系统性风险的证据, 二者共同支撑"银行相关媒体情感有真实经济后果、故其测量的样本稳健性值得单列检验"的论证。停刊剔除的因果依据在于报纸退出会造成地方监督真空, 本家族以话题覆盖退出为其保守代理。需强调本家族与主情感轨、与 fin_sent_zh / finbert2 两模型的对应家族各自 just-identified 并排, 互为稳健性、不分主次, 严禁把三模型或停刊/全样本口径混入同一 over-identified Hansen J; 三轨 full/ctx/ss 同理, 各自并排、不得混入同一过度识别检验; ss 轨回退语义镜像 ctx (无银行与金科同句共现时退回全文 body), 留篇门控口径与 full-only 一致。 聚合结构一侧尚可补一条方法学依据。Qiao 与 Huang (2025) 就「由数据挖掘/分类模型逐条输出再聚合而成的回归自变量」给出测量误差的刻画与校正方法, 正对应本家族的两段式构造: finbert_cn 于 stage 23 逐篇给出 softmax 正面概率, 再在非停刊代理媒体子集内按银行—年度取均值 (加权变体先乘 value-weight 或 herd-decay-weight 再取未归一化的样本均值)。据此, 本族取值宜被理解为携带测量误差的聚合型构造变量, 而非无误差观测。迁移边界须写明: 原文语境为信息系统研究, 本项目并未实施其校正估计量, 仅援引其关于该类变量存在测量误差的性质判断; 且与本族并排互为稳健性的词典法臂由确定性状态机产出, 非数据挖掘模型输出, 不属该文所刻画的对象。
 ## VAR: exc_finbert_cn_正面_ctx
 
 【变体差分】
@@ -157,4 +165,5 @@ Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-Level Poli
 You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Qiao, M., & Huang, K.-W. (2025). Correcting Measurement Error in Regression Models with Variables Constructed from Aggregated Output of Data Mining Models. MIS Quarterly, 49(1), 29-60. https://doi.org/10.25300/misq/2024/18026
 <!-- rendered-citations:end -->

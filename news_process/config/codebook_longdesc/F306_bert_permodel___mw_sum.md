@@ -56,6 +56,23 @@ citations:
   vol: 68
   issue: 7
   pages_or_artno: 5514-5532
+- doi: "10.1016/j.jbankfin.2025.107542"
+  type: "journal"
+  authors: "Lehkonen, H., Heimonen, K., & Pukthuanthong, K."
+  year: 2025
+  title: "Media tone is a priced risk factor in currency markets"
+  venue: "Journal of Banking & Finance"
+  vol: "180"
+  pages_or_artno: "107542"
+- doi: "10.1287/mnsc.2021.02218"
+  type: "journal"
+  authors: "Dechow, P., Lawrence, A., Luo, M., & Stamenov, V."
+  year: 2024
+  title: "Media Attention and Event-Based Grouping of Stocks: An Examination of Stocks Hyped by Media Outlets as Benefiting from the Olympics"
+  venue: "Management Science"
+  vol: "70"
+  issue: "8"
+  pages_or_artno: "5157-5186"
 new_dois: []
 ---
 
@@ -66,8 +83,7 @@ new_dois: []
 【方法学与计算】
 三个 BERT 模型的技术路线彼此独立: finbert_cn (yiyanghkust/finbert-tone-chinese) 是三分类 (负面/中性/正面) 的中文金融领域微调模型; fin_sent_zh (bardsai/finance-sentiment-zh-base) 基于 Financial PhraseBank 思路微调、同为三分类; finbert2 是项目自建的私有二分类模型 (仅负面/正面, 无中性), 经 `.env` 的 `FINBERT2_MODEL_DIR` 解析本地权重, 未配置时优雅跳过 (另两个 HuggingFace 模型照常运行, 不受影响)。文章级推理阶段 (stage 23) 对超过模型单窗上限 (有效正文 ≤510 token) 的长文本用滑动窗口切片 (`WINDOW_STRIDE_RATIO=0.5`, 50% 重叠) 并按各窗置信度加权池化 logits 后 argmax 得到正面概率 `{model}_正面_{track}` (以及三轨各自的 `bert_num_windows_{track}` 空文本/失败哨兵)。三轨 full/ctx/ss 分别对应"标题+全文"/"标题+银行实体窗口"/"标题+银行∧金科同句窗口"三种不同范围的输入文本 (`prepend_title` 拼接), 各自独立推理、独立产出正面概率列, 各自 just-identified 并排、互为稳健性不分主次、禁混进同一 over-identified Hansen J——三轨反映的是"测度范围"这一维度的稳健性, 不是同一构念的三个替代工具变量, 不可同时塞进一个过度识别方程。ss 轨的回退语义镜像 ctx: 若某篇文章没有银行∧金科词在同一句共现, 则 `content_ss` 退化为全文 body、`ss_is_fallback=True`, 与 `n_articles` 共享同一分母口径; `FINTECH_AC=None` 时 `*_is_fallback` 全 True, 整条 ss 轨优雅降级为等同 full 的口径而不报错。文章级正面概率进入面板阶段后, 由 `pipeline\panel\encode.py::build_aggregation_dict` 在 `agg[f'{b}_正面_mw_sum{track}'] = (f'{b}_正面_mw{track}', 'sum')` 一行归入媒体权威性加权 (`mw`) 求和臂 (`_bert_model_match` 正则只匹配英文 metric 名如 net_tone/pos_sum/pos_std, 不覆盖本家族的中文列名, 仅供 codebook 元数据标签生成使用, 与本列的实际数值计算无关): 对 bank-year 单元内该银行∧金科留篇文章集合, 用每篇文章所属媒体的权重乘以该模型该轨正面概率后逐篇求和, 得到 `{model}_正面_mw_sum_{track}`。这里的媒体权重 (`mw`) 来自 `pipeline\panel\runner.py::compute_media_authority_weights` (`3c` 步骤) 载入 `media_weights.json` 的静态媒体权威性评分 (量级 10-100, 参照 Holzman, Miller & Twedt 2023 *The Accounting Review* 的 Outlet Impact Media Sent 做简化替代), 是按媒体名称匹配到的预定义权威打分, 与该媒体在本语料库内实际出现的报道频次或篇数无关, 不是频次驱动的动态权重。它与羊群加权 `hw` (`herd_weight`, 三轨独立权重) 是并列而非嵌套的加权支路; 同一 `runner.py` 步骤 3b 还预计算了另一条并列支路 `vw`, 其权重取自 `mention_density` (提及密度, Hassan et al. 2019 *Quarterly Journal of Economics* 的 Value-weighted Exposure 构造思路)——即该银行实体在文章中被提及的密度, 而非市值 (market capitalization); 全仓不存在任何市值/市值加权字段参与该支路的构造, `vw` 之"value"指的是文本层面的提及强度权重, 不应理解为财务市值意义上的"价值加权"。本家族列名后缀为 `mw`, 因此三条支路里只有媒体权威性这一条与本家族直接相关, `hw`/`vw` 仅在此处作为并列支路的背景说明提及, 不参与本家族列的计算。加权求和口径 (`_mw_sum`) 与未加权均值口径 (无权重后缀的 `{model}_正面_{track}` 家族) 是并列的稳健性梯子, 而非同一列的不同表示——媒体权重回答"报道声量大的媒体是否驱动了正面判断"这一稳健性问题, 未加权口径回答"平均而言这家银行的报道有多正面"。留篇门控遵循全仓 full-only 铁律 (2026-06-29): 是否算作一篇有效的"银行-金科报道"只看 `llm_verified_full == True` (由 LLM 三家投票判定), ctx/ss 轨的行宇宙是 full 留篇集的子集, 三轨各自在这个共同行宇宙内独立计算, 不额外扩大或收缩样本。
 【文献定位】
-以 BERT 系列神经网络模型度量金融文本情感语调的做法, 方法学根基是 Devlin et al. (2019) 提出的双向 Transformer 预训练范式, 以及此后一系列面向金融领域的领域适配微调工作: Liu et al. (2020) 提出的 FinBERT 变体确立了"通用预训练+金融语料微调"的标准路径, Huang, Wang & Yang (2023) 在 *Contemporary Accounting Research* 进一步展示了大语言模型/BERT 类模型从财务文本中抽取信息的系统性优势——该文发表于会计学顶级期刊, 是本家族"用预训练神经网络模型而非纯词典规则度量语调"这一方法学选择的顶刊锚点。finbert2 模型本身出自 Xu et al. (2025) 在 KDD '25 提出的双向编码器架构, 该文明确将其定位为弥合大语言模型在金融领域专业化部署缺口的工具, 支撑本项目采用私有微调 finbert2 而非仅依赖通用 FinBERT 变体的设计选择。三模型 co-equal 并排、互不设定 ensemble headline 的稳健性设计, 呼应"多种独立测量工具对同一构念的结论一致性, 比单一工具更能排除结论由某个模型特异性判断习惯驱动"这一多方法互证思路——这与 stage 21 大语言模型三家投票、stage 22 词典法三条路线各自独立、互不设定单一权威口径的总体设计原则是同一逻辑在 BERT 支路的体现, 而非借助外部方法论文献确立。BERT 支路与 stage 21 的大语言模型三家投票、stage 22 的词典法三条路线并列, 构成本项目"大模型+词典+BERT"三条独立度量语调的总体设计, 三条路线互不隶属, 结论的稳健性建立在三者方向一致而非任一路线的绝对精度上。BERT 深层模型相较词典法在情感判定质量上的优势, 另有 Frankel, Jennings & Lee (2022, Management Science) 的直接顶刊证据支撑: 该文系统比较机器学习分类器与词典法在披露文本情感抽取上的表现, 证明经监督学习/微调的分类模型在识别语义层面的情感信号上显著优于关键词计数式词典法, 为本项目以 BERT 深层模型 (而非词典) 承担情感分类主力提供了顶刊层级的方法学背书。
-
+以 BERT 系列神经网络模型度量金融文本情感语调的做法, 方法学根基是 Devlin et al. (2019) 提出的双向 Transformer 预训练范式, 以及此后一系列面向金融领域的领域适配微调工作: Liu et al. (2020) 提出的 FinBERT 变体确立了"通用预训练+金融语料微调"的标准路径, Huang, Wang & Yang (2023) 在 *Contemporary Accounting Research* 进一步展示了大语言模型/BERT 类模型从财务文本中抽取信息的系统性优势——该文发表于会计学顶级期刊, 是本家族"用预训练神经网络模型而非纯词典规则度量语调"这一方法学选择的顶刊锚点。finbert2 模型本身出自 Xu et al. (2025) 在 KDD '25 提出的双向编码器架构, 该文明确将其定位为弥合大语言模型在金融领域专业化部署缺口的工具, 支撑本项目采用私有微调 finbert2 而非仅依赖通用 FinBERT 变体的设计选择。三模型 co-equal 并排、互不设定 ensemble headline 的稳健性设计, 呼应"多种独立测量工具对同一构念的结论一致性, 比单一工具更能排除结论由某个模型特异性判断习惯驱动"这一多方法互证思路——这与 stage 21 大语言模型三家投票、stage 22 词典法三条路线各自独立、互不设定单一权威口径的总体设计原则是同一逻辑在 BERT 支路的体现, 而非借助外部方法论文献确立。BERT 支路与 stage 21 的大语言模型三家投票、stage 22 的词典法三条路线并列, 构成本项目"大模型+词典+BERT"三条独立度量语调的总体设计, 三条路线互不隶属, 结论的稳健性建立在三者方向一致而非任一路线的绝对精度上。BERT 深层模型相较词典法在情感判定质量上的优势, 另有 Frankel, Jennings & Lee (2022, Management Science) 的直接顶刊证据支撑: 该文系统比较机器学习分类器与词典法在披露文本情感抽取上的表现, 证明经监督学习/微调的分类模型在识别语义层面的情感信号上显著优于关键词计数式词典法, 为本项目以 BERT 深层模型 (而非词典) 承担情感分类主力提供了顶刊层级的方法学背书。 就本家族在篇级概率之上叠加媒体权重、再于 bank-year 内求和这一环节, 近期文献提供了两条语境级与动机性的参照。Lehkonen、Heimonen 与 Pukthuanthong (2025) 以 Refinitiv MarketPsych 指数 (覆盖约 2000 家全球媒体与 800 家社交站点、约 700 万篇文本) 构造媒体语调, 证明比率型媒体语调是可跨截面定价货币的真实风险因子, 为"媒体文本 → 可计量语调"这一测度形态给出了近期顶刊层级的经济含义论证。须严格界定: 原文语调取自专有商业 NLP 指数而非自建可复核的构造流程, 其形态是正负提及净额与总提及之比, 而非本家族的媒体权重乘以概率再求和的非封顶口径; 其层级为货币 (国别) 层面聚合、DV 为汇率/货币收益的因子定价, 与本项目银行×年的中文报纸报道口径不可直接对应, 亦未涉及中文分词与本项目的模型概率输出。Dechow、Lawrence、Luo 与 Stamenov (2024) 检视五届夏季奥运会, 识别被媒体炒作为奥运受益的概念股, 发现其在奥运周期内收益更高、彼此共动更强, 并在媒体有报道关联该公司的交易日出现成交量与波动率上升, 支撑"涉及某主体的媒体报道量是可独立测量的注意力/曝光度构念、且会驱动市场后果"这一前提, 从而为本家族按媒体维度赋权而非等权累加篇级概率提供动机性参照。须严格界定: 原文以报道篇数与媒体炒作刻画关注, 未构造去重来源媒体家数的计数口径, 更未出现本家族的媒体权重加权求和操作; 其主体为特定事件窗口内的 A 股概念股而非银行-年全样本, 既无对数变换与逐年度截面标准化, 亦不涉及金融科技与非金融科技报道子集的分层。上述两条均只锚定测度形态与构念的前沿存在性; 三模型 (finbert_cn/fin_sent_zh/finbert2) 与三轨 (full/ctx/ss) 仍各自 just-identified 并排、互为稳健性不分主次, 严禁混进同一 over-identified Hansen J 设定。
 ## VAR: fin_sent_zh_正面_mw_sum_ctx
 
 【变体差分】
@@ -119,4 +135,6 @@ Xu, X., Wen, F., Chu, B., Fu, Z., Lin, Q., Liu, J., Fei, B., Li, Y., Zhou, L., &
 Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2019). BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding. Proceedings of NAACL-HLT 2019 No. 4171-4186 [Working Paper]. https://doi.org/10.18653/v1/N19-1423
 Liu, Z., Huang, D., Huang, K., Li, Z., & Zhao, J. (2020). FinBERT: A Pre-trained Financial Language Representation Model for Financial Text Mining. Proceedings of IJCAI-20 No. 4513-4519 [Working Paper]. https://doi.org/10.24963/ijcai.2020/622
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure Sentiment: Machine Learning vs. Dictionary Methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
+Lehkonen, H., Heimonen, K., & Pukthuanthong, K. (2025). Media tone is a priced risk factor in currency markets. Journal of Banking & Finance, 180, 107542. https://doi.org/10.1016/j.jbankfin.2025.107542
+Dechow, P., Lawrence, A., Luo, M., & Stamenov, V. (2024). Media Attention and Event-Based Grouping of Stocks: An Examination of Stocks Hyped by Media Outlets as Benefiting from the Olympics. Management Science, 70(8), 5157-5186. https://doi.org/10.1287/mnsc.2021.02218
 <!-- rendered-citations:end -->

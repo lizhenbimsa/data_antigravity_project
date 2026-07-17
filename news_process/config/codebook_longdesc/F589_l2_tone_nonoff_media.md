@@ -55,6 +55,23 @@ citations:
   vol: "98"
   issue: "7"
   pages_or_artno: "315-345"
+- doi: "10.1016/j.energy.2025.139126"
+  type: "journal"
+  authors: "Hua, X., Dong, D., Xu, Z., & Huang, W."
+  year: 2025
+  title: "Official media sentiments toward energy and equity returns: Evidence from China"
+  venue: "Energy"
+  vol: "340"
+  pages_or_artno: "139126"
+- doi: "10.1371/journal.pone.0315137"
+  type: "journal"
+  authors: "Ananyev, M., & Volkova, E."
+  year: 2024
+  title: "Media ownership and ideological slant: Evidence from Australian newspaper mergers"
+  venue: "PLOS ONE"
+  vol: "19"
+  issue: "12"
+  pages_or_artno: "e0315137"
 new_dois: []
 ---
 
@@ -67,8 +84,7 @@ new_dois: []
 计算管线分两步: 第一步在文章级数据上打官方/非官方标签, `df['_is_official'] = df['媒体(中文)'].isin(OFFICIAL - MARKET).astype(int)`, 该标签基于报道来源媒体名称本身的机构属性, 与报道内容语调无关, 是外生分组变量; 第二步在银行-年层面对 `_is_official == 0` 的子样本分组求 `llm_vote_score{track}` 均值, `llm_vote_score{track}` 是三家大模型 (`gpt-5.4-nano`/`gemini-3.1-flash-lite`/`deepseek-v4-flash`) 多数投票产生的逐篇语调共识分 (P1 主线情感测度, 与词典/BERT 两条平行测度并行、互不混用), 三家投票的方法学细节与「LLM 三家互为稳健性、不分主次」的铁律见仓库情感测度总纲, 本家族不重复该分组内部机制, 只消费其产出的 `llm_vote_score{track}` 作为待聚合的因变量。分组聚合以 `groupby(['target_bank', 'year'])[src].mean()` 实现, 再以 left merge 拼回面板; 若某银行-年组合下非官方媒体报道篇数为零, 该单元格聚合结果为 NaN (无隐式填零, 保留真实缺失以避免虚假精度)。语调分本身的取值区间约在 [-1, 1] (负面到正面), 银行-年聚合均值继承该区间但因均值收缩效应实际分布更集中。三轨 (`_full`/`_ctx`/`_ss`) 均从各自的 `llm_vote_score{track}` 独立聚合而来, 采用统一的 `for track in ['_full','_ctx','_ss']: src = f'llm_vote_score{track}'; if src not in df.columns: continue` 优雅跳过模式——若某轨源列缺席 (例如上游三轨物化未完整覆盖), 该轨的 `tone_nonoff_media{track}` 及其配对的 `tone_gap_official_nonoff{track}` 缺口列一并不产出, 而非以其他轨回填, 保证轨间不发生隐性借用。
 本家族与同一维度⑤下的 `tone_official_media{track}` (官方组镜像) 及 `tone_gap_official_nonoff{track}` (官方减非官方缺口, 属另一独立 family) 共享同一 `_is_official` 分组变量与同一批源数据, 三者在概念上构成一个完整的分组-对照-缺口三元组, 但本 family 仅覆盖对照组 (非官方) 均值本身。按仓库口径, 三轨 full/ctx/ss 各自 just-identified 并排, 互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 型识别设定——full 轨是标题+正文全文语调, ctx 轨是标题+银行实体窗口语调, ss 轨是标题+银行∧金科同句±N 窗口语调 (无该同句共现时回退为全文 body, 并以 `ss_is_fallback=True` 标记, 语义上镜像 ctx 轨的回退逻辑, 共享 `n_articles` 分母)。留篇门控 (即"是否判定为一篇银行金科报道") 统一以 full 轨 `llm_verified_full == True` 为准 (2026-06-29 起 full-only 门控铁律), ctx/ss 两轨的 `tone_nonoff_media` 在此意义上是 full 轨留篇集合下的条件测度/稳健性轨, 其行宇宙是 full 轨留篇集的子集, 每轨各自独立完成分组聚合计算。
 【文献定位】
-除 You, Zhang & Zhang (2018, *Review of Financial Studies*) 提供的官方/市场化媒体二元对立核心构念外, 本家族的分组聚合方法论与媒体语调作为银行信息中介渠道的立论, 同样借鉴 Tetlock (2007, *Journal of Finance*) 首创的"给投资者情绪以内容"的文本情感度量框架——该文将媒体语调作为可观测的市场信息补充变量、并证实其对股价的可预测影响, 是本仓库整条媒体语调聚合管线的方法论源头。中国语境下的银行业媒体情感应用可参照 Fang, Wang, Wang & Yuan (2024, *International Review of Economics & Finance*) 对媒体情感与银行系统性风险、存款稳定性关系的实证, 该文与本仓库同为中国银行-年层面的媒体情感测度, 在样本构造与识别策略上具有直接可比性。媒体权威性与来源异质性的分组处理思路亦部分呼应 Holzman, Miller & Twedt (2023, *The Accounting Review*) 对媒体情感在盈余公告披露中约束作用的研究, 该文强调不同媒体来源的信息权威度差异应被显式建模而非笼统平均, 与本仓库将官方/非官方媒体拆分为独立子样本聚合的处理思路一致。
-
+除 You, Zhang & Zhang (2018, *Review of Financial Studies*) 提供的官方/市场化媒体二元对立核心构念外, 本家族的分组聚合方法论与媒体语调作为银行信息中介渠道的立论, 同样借鉴 Tetlock (2007, *Journal of Finance*) 首创的"给投资者情绪以内容"的文本情感度量框架——该文将媒体语调作为可观测的市场信息补充变量、并证实其对股价的可预测影响, 是本仓库整条媒体语调聚合管线的方法论源头。中国语境下的银行业媒体情感应用可参照 Fang, Wang, Wang & Yuan (2024, *International Review of Economics & Finance*) 对媒体情感与银行系统性风险、存款稳定性关系的实证, 该文与本仓库同为中国银行-年层面的媒体情感测度, 在样本构造与识别策略上具有直接可比性。媒体权威性与来源异质性的分组处理思路亦部分呼应 Holzman, Miller & Twedt (2023, *The Accounting Review*) 对媒体情感在盈余公告披露中约束作用的研究, 该文强调不同媒体来源的信息权威度差异应被显式建模而非笼统平均, 与本仓库将官方/非官方媒体拆分为独立子样本聚合的处理思路一致。 近期同域证据方面, Hua、Dong、Xu 与 Huang (2025) 以 BERT 对中国官方/政府控制媒体的新能源报道文本构建官方媒体语调指数, 并检验其与权益回报及企业融资投资行为的关系, 表明"按媒体官方属性切出子样本、在子样本内对文章级语调取均值"这一构造在前沿文献中已被独立采用, 与本家族按 _is_official 判据分组聚合的动作同构; 惟须诚实标明该文只构建官方一侧的指数、并未度量非官方补集这一侧, 其官方名单依中国国家控股报纸清单而非本家族 NPPA 主管/主办单位判据下的 OFFICIAL−MARKET 差集, 情感由文本指数法而非三家 LLM 投票得到, 层级为行业-日频而无 bank-year 面板, 故仅锚"按官方属性分组取均值"这一环, 其非官方侧的对称构造仍属本项目的补集推广。Ananyev 与 Volkova (2024) 利用 2016-2019 年三起澳大利亚报业并购、以逾三千万篇报道的语言构建 slant 测度, 并以合成双重差分识别媒体所有权变更对报纸政治 slant 的因果影响, 为本家族"媒体归属/控制权系统性决定报道倾向、因而非官方子样本的语调须独立聚合而非与官方样本笼统平均"这一前提提供了准实验层面的证据; 其所有权维度为私人资本集中度而非中国的官方/市场化主管主办单位, slant 以政治意识形态量表度量而非本家族的银行-金科报道语调, 层级为报纸-时期而无主体-年面板, 故只锚分层前提, 不锚本列的具体公式。本家族三条文本轨道下的列与官方一侧的对应列互为稳健性、不分主次, 各自 just-identified 并排使用, 不应被并入同一 over-identified 的 Hansen J 矩条件。
 ## VAR: tone_nonoff_media_full
 
 【变体差分】
@@ -90,4 +106,6 @@ Tetlock, P. C. (2007). Giving Content to Investor Sentiment: The Role of Media i
 Qin, B., Strömberg, D., & Wu, Y. (2018). Media Bias in China. American Economic Review, 108(9), 2442-2476. https://doi.org/10.1257/aer.20170947
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media Sentiment, Deposit Stability and Bank Systemic Risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
+Hua, X., Dong, D., Xu, Z., & Huang, W. (2025). Official media sentiments toward energy and equity returns: Evidence from China. Energy, 340, 139126. https://doi.org/10.1016/j.energy.2025.139126
+Ananyev, M., & Volkova, E. (2024). Media ownership and ideological slant: Evidence from Australian newspaper mergers. PLOS ONE, 19(12), e0315137. https://doi.org/10.1371/journal.pone.0315137
 <!-- rendered-citations:end -->

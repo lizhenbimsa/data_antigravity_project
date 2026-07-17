@@ -39,6 +39,15 @@ citations:
   venue: International Review of Economics & Finance
   vol: '91'
   pages_or_artno: 1150-1172
+- doi: "10.1111/acfi.13230"
+  type: "journal"
+  authors: "Yan, L., Ma, Y., Li, C., & Tang, G."
+  year: 2024
+  title: "Media abnormal tone and cross section of stock returns: Evidence from China"
+  venue: "Accounting & Finance"
+  vol: "64"
+  issue: "3"
+  pages_or_artno: "2671-2698"
 new_dois: []
 ---
 
@@ -51,8 +60,7 @@ new_dois: []
 计算管线分两步: 第一步在 `pipeline\panel\attention_media.py` 内, 对已按 `target_bank` × `year` × `track` 三键分组的留篇文章子集, 先以 `_is_central` 旗标切出中央级子样本 (`is_c=1`) 与地方级子样本 (`is_c=0`), 再分别对 `llm_vote_score{track}` 逐组取算术均值, 得到 `tone_central_media{track}` 与 `tone_local_media{track}` 两列, 随后左连接回主面板 (`how='left'`, 缺组则该 bank-year-track 单元格为 NaN, 而非误填 0)。第二步同一函数内紧接着计算 `tone_gap_central_local{track} = tone_central_media{track} - tone_local_media{track}`, 落在姊妹家族中, 提供中央/地方媒体基调差的直接对比列(本家族本身不含该差值列, 仅覆盖三轨均值本身)。`llm_vote_score{track}` 的来源是 stage 21 三家 LLM (`gpt-5.4-nano`/`gemini-3.1-flash-lite`/`deepseek-v4-flash`) 多数投票共识打分, 与嵌入模型无关, 与词典法(`tone_words`)/BERT 三模型法(`tone_berts`)是三条并列的独立情感测度通道, 本家族只消费 LLM 投票通道。分母口径继承留篇门控: 2026-06-29 起「是否算一篇银行金科报道」的判定唯一锚定 `llm_verified_full == True` (full-only 门控), `_ctx`/`_ss` 两轨的行宇宙是 full 留篇集的子集, 属 conditional-on-full 的稳健性/补充测度轨, 而非独立样本口径——这意味着三轨分子样本量不同, `_ctx`/`_ss` 天然弱于或等于 `_full`, 差异本身即含信息(反映情感判定对文本窗口的敏感度), 不代表数据缺陷。若某 bank-year 单元格内不存在任何中央级媒体报道(该银行当年报道全部来自地方媒体), 则该单元格 `tone_central_media{track}` 为 NaN, 而非 0, 使用者应区分"无中央级报道"与"中央级报道情感中性(0分)"两种不同状态, 避免误读缺失为零。
 
 【文献定位】
-本家族属于媒体情感异质性(media sentiment heterogeneity)测度谱系, 其行政层级切分设计直接呼应 You, Zhang & Zhang (2018, *Review of Financial Studies*) 关于中国媒体"谁执笔谁有权"的核心洞察——该文发现官方主管媒体(党委机关报)的负面报道并不能引发预期的公司治理响应(如高管更替), 而市场化媒体的负面报道则具有显著的治理约束效应, 揭示了媒体所有制/隶属关系是调节媒体信息传导有效性的关键变量, 而非单纯的报道数量或情感极性问题。这一发现为本家族"分轨报告中央级与地方级媒体基调"而非笼统合并提供了直接的构念校验依据: 若中央级与地方级媒体的报道基调系统性有别, 混同计算的整体媒体情感均值将掩盖这一异质性、导致对媒体影响力传导机制的误判。在情感测度层面, 本家族延续 Tetlock (2007, *Journal of Finance*) 开创的"以媒体文本内容度量投资者情绪"传统, 并采纳 Fang, Wang, Wang & Yuan (2024, *International Review of Economics & Finance*) 面向中国银行业媒体情感-系统性风险关联研究的银行×年聚合口径, 将情感测度落到银行×年×媒体子类别的细粒度单元, 便于后续检验中央级媒体基调对银行融资成本、存款稳定性等结果变量的差异化传导路径。
-
+本家族属于媒体情感异质性(media sentiment heterogeneity)测度谱系, 其行政层级切分设计直接呼应 You, Zhang & Zhang (2018, *Review of Financial Studies*) 关于中国媒体"谁执笔谁有权"的核心洞察——该文发现官方主管媒体(党委机关报)的负面报道并不能引发预期的公司治理响应(如高管更替), 而市场化媒体的负面报道则具有显著的治理约束效应, 揭示了媒体所有制/隶属关系是调节媒体信息传导有效性的关键变量, 而非单纯的报道数量或情感极性问题。这一发现为本家族"分轨报告中央级与地方级媒体基调"而非笼统合并提供了直接的构念校验依据: 若中央级与地方级媒体的报道基调系统性有别, 混同计算的整体媒体情感均值将掩盖这一异质性、导致对媒体影响力传导机制的误判。在情感测度层面, 本家族延续 Tetlock (2007, *Journal of Finance*) 开创的"以媒体文本内容度量投资者情绪"传统, 并采纳 Fang, Wang, Wang & Yuan (2024, *International Review of Economics & Finance*) 面向中国银行业媒体情感-系统性风险关联研究的银行×年聚合口径, 将情感测度落到银行×年×媒体子类别的细粒度单元, 便于后续检验中央级媒体基调对银行融资成本、存款稳定性等结果变量的差异化传导路径。 在同域前沿参照上, Yan、Ma、Li 与 Tang (2024) 以中文媒体报道构造语调测度并检验其对股票横截面收益的解释力, 是与本家族同语言、同媒体类型的近期语调计量实践, 佐证了中文财经报道语调在中国市场具备可计量性与经济相关性。其迁移边界须写明三点: 该文分析层级为上市公司-股票横截面而非 bank-year 面板, 结果变量为股票收益而非本项目的融资成本等银行侧变量; 其语调为「异常语调」(相对预期的残差) 口径, 与本家族直接对中央级媒体子样本取三家 LLM 投票得分逐轨均值的构造并非同一公式; 该文亦未按媒体行政层级分轨。因而它只为语调测度本身的同域合法性背书, 不构成对本家族中央/地方切分设计的证据支持, 后者仍由 You, Zhang & Zhang (2018) 独立承担。
 ## VAR: tone_central_media_full
 
 【变体差分】
@@ -72,4 +80,5 @@ new_dois: []
 You, J., Zhang, B., & Zhang, L. (2018). Who Captures the Power of the Pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
+Yan, L., Ma, Y., Li, C., & Tang, G. (2024). Media abnormal tone and cross section of stock returns: Evidence from China. Accounting & Finance, 64(3), 2671-2698. https://doi.org/10.1111/acfi.13230
 <!-- rendered-citations:end -->

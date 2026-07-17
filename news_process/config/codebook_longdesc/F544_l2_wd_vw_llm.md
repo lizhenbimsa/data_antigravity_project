@@ -51,6 +51,52 @@ citations:
   vol: '15'
   issue: '2'
   pages_or_artno: 121-140
+- doi: "10.1371/journal.pone.0323064"
+  type: "journal"
+  authors: "Wright, D., & Augenstein, I."
+  year: 2025
+  title: "Aggregating soft labels from crowd annotations improves uncertainty estimation under distribution shift"
+  venue: "PLOS One"
+  vol: "20"
+  issue: "6"
+  pages_or_artno: "e0323064"
+- doi: "10.48550/arxiv.2510.01499"
+  type: "arxiv"
+  authors: "Ai, R., Pan, Y., Simchi-Levi, D., Tambe, M., & Xu, H."
+  year: 2025
+  title: "Beyond Majority Voting: LLM Aggregation by Leveraging Higher-Order Information"
+  venue: "arXiv"
+- doi: "10.1016/j.finmar.2024.100896"
+  type: "journal"
+  authors: "Ashwin, J."
+  year: 2024
+  title: "Financial news media and volatility: Is there more to newspapers than news?"
+  venue: "Journal of Financial Markets"
+  vol: "69"
+  pages_or_artno: "100896"
+- doi: "10.1287/mnsc.2021.03722"
+  type: "journal"
+  authors: "Cuñat, V., & Groen-Xu, M."
+  year: 2025
+  title: "Timing Complex News to Target Attention"
+  venue: "Management Science"
+  vol: "71"
+  issue: "9"
+  pages_or_artno: "7774-7799"
+- doi: "10.1177/10944281251334777"
+  type: "journal"
+  authors: "Iqbal, F., & Pfarrer, M. D."
+  year: 2025
+  title: "Using Coreference Resolution to Mitigate Measurement Error in Text Analysis"
+  venue: "Organizational Research Methods"
+  pages_or_artno: "10944281251334777"
+- doi: "10.2139/ssrn.4842086"
+  type: "wp"
+  authors: "Battaglia, L., Christensen, T., Hansen, S., & Sacher, S."
+  year: 2024
+  title: "Inference for Regression with Variables Generated from Unstructured Data"
+  venue: "SSRN Electronic Journal"
+  pages_or_artno: "4842086"
 new_dois: []
 ---
 
@@ -73,8 +119,11 @@ llm_vote_score{track} 本身并非某一家模型的原始打分, 而是 stage 2
 【文献定位】
 本家族本身不是一个"测度构念", 而是三条正交稳健性梯子 (三轨 / VW-MW-HW 三套加权 / 共识-单厂商互证) 交汇处的记账基础设施, 其学术定位落在两条文献脉络上。第一条是提及密度/暴露度加权范式, 与 Hassan et al. (2019, QJE) 及 Sautner et al. (2023, JF) 一脉相承——核心思想是"报道对目标实体的聚焦程度应作为语调贡献的权重", 而非对所有报道一视同仁, 本项目将该范式套用于三家 LLM 投票共识轨与三条逐模型轨, 结构完全平行。第二条是"多 LLM 互证/wisdom of crowd"文献脉络, 直接支撑本家族所承载的"三家投票共识"这一设计。Gilardi, Alizadeh & Kubli (2023, *Proceedings of the National Academy of Sciences*) 证明 LLM 在文本标注任务上可比肩甚至超越众包人工标注员, 为"用 LLM 替代/补充人工标注做大规模情感分类"这一路线提供了效度依据。Schoenegger, Tuminauskaite, Park, Bastos & Tetlock (2024, *Science Advances*) 进一步论证多个 LLM 集成 (ensemble) 的预测准确度可媲美人类群体智慧 (wisdom of crowd), 直接呼应本家族"三家 LLM 各自独立打分、再以多数投票汇总为共识"的架构选择——共识轨的价值恰恰来自 ensemble 效应, 而非任一单一模型的优越性。Chen et al. (2025, arXiv) 对"利用多个大语言模型"这一 LLM ensemble 方法论做了系统综述, 梳理了投票聚合、加权集成、级联等多种跨模型汇总策略在准确度与鲁棒性上的权衡, 为本项目采用多数投票 (而非其他集成规则) 汇总三家评分提供了方法论谱系定位。Plaza-del-Arco, Nozza & Hovy (2023, arXiv) 揭示不同指令微调 LLM 之间在标签判断上存在系统性变异, 这正是本项目坚持"共识轨与逐模型轨并排、禁止把二者混入同一 over-identified 检验"这一铁律的方法学动因——模型间分歧本身是需要被观测和披露的信息, 共识只是对分歧的一种(而非唯一)汇总方式, 逐模型轨仍需独立保留以便审视共识背后的分歧结构。van Atteveldt, van der Velden & Boukes (2021, *Communication Methods and Measures*) 系统比较了人工标注、众包、词典法与机器学习(含早期 LLM 前身)在情感分析效度上的差异, 为本项目同时并行词典法 (dict 族)、LLM 法 (三家投票+逐模型)、BERT 法 (三模型) 三重互证架构提供了跨方法论证依据。
 
-⚠ 口径铁律: sum_wd_vw_llm_{full,ctx,ss} 三轨、以及三家投票共识 (本家族) 与三条对应单厂商家族 (F541 deepseekv4 / F542 gemini31 / F543 gpt54nano) 均各自 just-identified 并排, 互为稳健性、不分主次, 禁止混进同一 over-identified Hansen J 检验; VW/MW/HW 三套加权体系(提及密度/媒体权威/跟风衰减)同样各自独立、不可交叉混用同一工具变量检验。三轨口径与留篇门控口径 (full-only, 2026-06-29) 独立正交, ss 轨回退语义严格镜像 ctx 轨。
+⚠ 口径铁律: sum_wd_vw_llm_{full,ctx,ss} 三轨、以及三家投票共识 (本家族) 与三条对应单厂商家族 (F541 deepseekv4 / F542 gemini31 / F543 gpt54nano) 均各自 just-identified 并排, 互为稳健性、不分主次, 禁止混进同一 over-identified Hansen J 检验; VW/MW/HW 三套加权体系(提及密度/媒体权威/跟风衰减)同样各自独立、不可交叉混用同一工具变量检验。三轨口径与留篇门控口径 (full-only, 2026-06-29) 独立正交, ss 轨回退语义严格镜像 ctx 轨。 在这两条脉络之外, 尚有四组文献分别从聚合口径、权重合理性、文本测度误差与生成型变量推断四个侧面为本家族提供定位。Wright 与 Augenstein (2025) 系统比较了把多标注者软标签 (概率) 聚合为训练/评估目标的若干方案, 发现软标签聚合在分布偏移下比硬标签多数投票给出更好的不确定性估计; 这恰好对应本项目 prob 分组 (软概率映射) 与 llm 分组 (本家族, 三家硬多数投票共识) 两条并排轨的分野。迁移边界须诚实标明: 原文标注者是人类众包工人而非商用 LLM, 目标是分类器不确定性校准而非面板分母权重求和, 语料为英文 NLP 基准集, 既无银行-年聚合层, 也无提及密度等权重维度。Ai、Pan、Simchi-Levi、Tambe 与 Xu (2025) (arXiv 预印本, 未经同行评审) 指出朴素多数投票忽略了各 LLM 的期望准确率与模型间答案相关性, 提出利用这类高阶信息的聚合规则, 原文所做的是聚合算法设计与 QA/推理基准实验; 本家族以 llm_vote_score{track} 的非缺失掩码界定分母求和域, 故此文锚定的是"多模型投票共识作为一种聚合口径"这一构念的前沿存在性, 提示朴素多数票并非唯一选择。⚠ 此文明确不构成对本项目投票口径的背书: 本项目生产口径刻意保留朴素多数投票, 未采用原文的高阶聚合器, 二者是"前沿参照"而非"本项目已采用"; 且原文任务为英文 QA/推理基准, 非中文新闻三分类语调, 亦无加权分母与银行-年面板聚合。
 
+Ashwin (2024) 直接把"报纸报道的数量/篇幅维度"与"报道所含的新信息内容"分离, 检验前者是否对波动率有独立于后者的解释力, 原文所做的是文本与波动率的实证分解。本家族与 sum_wd_mw_* / sum_wd_hw_* 诸列把"报道量按提及密度或来源权威度加权"的分母侧与语调分子侧分开核算, 该文锚定的正是这一分离的必要性。迁移边界: 原文语境为英文报纸与股票波动率, 其"报道量"是等权计数或版面维度, 并未使用实体提及密度或媒体权威度权重; 且原文波动率是结果变量, 本家族此列是分母。Cuñat 与 Groen-Xu (2025) 利用美国公司备案系统 5:30 p.m. 的制度断点证明投资者注意力有限且时变, 发行方会把更长、更复杂的新闻择时投放于注意力更高的时段, 原文所做的是新闻发布时点与新闻复杂度的实证分析。⚠ 其对本家族的意义仅限于一条一般性的存在性证据: 新闻条目在受众端的实际吸收强度并非同质, 因而"每篇报道等权计 1"并不是无争议的默认口径, 这为 vw 族在分母中引入篇章级显著性权重留出构念上的合理性空间; 明确不主张原文支持 mention_density 这一具体算子——原文的注意力维度是发布时点与日历制度断点约束下的投资者注意力, 本家族 vw 权重是篇内银行实体提及密度, 二者是完全不同的显著性算子, 原文既未构造亦未检验任何文本端权重, 其层级为公司公告事件与高频市场反应, 亦不涉及 LLM 有效性掩码。
+
+Iqbal 与 Pfarrer (2025) 指出情感分析在多主体文本中的情感归属上存在系统性测量误差 (传统方法易将文本误归于错误公司), 提出以共指消解作为解决方案, 并以两项研究证明该处理可降低测量误差。对本家族而言, 它锚定的是"文本中实体归属不确定会构成实质性测量误差来源"这一一般命题, 支持本项目专设 ctx/ss 实体窗口轨、把评分依据收窄到目标银行邻近文本以观察语调是否随归属口径改变的做法。⚠ 边界须严格划定: 原文规则是共指消解 (实体指代还原), 与本项目的否定翻转/程度副词/转折增益三规则并非同一规则, 亦非本项目消融梯度的方法学来源; 原文立场是规范性的——主张采纳该规则以减少误差 (存在唯一正确做法), 而本项目令诸臂互为稳健性并排、不设主次, 故不得以此文作为 powerset 规则消融设计的同构先例; 原文语料为英文组织管理文本, 单位为文档/组织。Battaglia、Christensen、Hansen 与 Sacher (2024) (SSRN 工作论文, 尚未经期刊同行评审) 建立了"先用文本/非结构化数据生成变量、再把该变量放进回归"这一两步流程的推断理论, 证明朴素代入会产生偏误, 并给出偏误修正与有效标准误。本家族正处于这一流程的分母侧: 三家 LLM 从新闻文本生成 llm_vote_score{track}, 其有效性掩码决定哪些篇章进入加权求和, 提示下游凡消费 llm_vote_tone_vw{track} 的回归都应意识到生成型变量的推断代价。迁移边界: 原文对象是回归中的生成型回归元/被解释变量本身, 本家族这里是"有效性掩码构成的权重分母", 层级不同; 原文以英文非结构化语料 (含 embedding/topic) 为例, 无中文新闻、无银行-年面板、无三轨 (full/ctx/ss) 设定, 亦未处理多模型投票共识, 且未涉及任何权重方案。上述六条锚点均不改变本家族的口径铁律: 三轨与共识/单厂商诸轨依旧各自 just-identified 并排, 互为稳健性、不分主次, 禁止混进同一 over-identified Hansen J 检验。
 ## VAR: sum_wd_vw_llm_full
 
 【变体差分】
@@ -96,4 +145,10 @@ Schoenegger, P., Tuminauskaite, I., Park, P. S., Bastos, R. V. S., & Tetlock, P.
 Chen, Z., Lu, X., Li, J., Chen, P., Li, Z., Sun, K., Luo, Y., Mao, Q., Li, M., Xiao, L., Yang, D., Huang, X., Ban, Y., Sun, H., & Yu, P. S. (2025). Harnessing multiple large language models: A survey on LLM ensemble. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2502.18036
 Plaza-del-Arco, F. M., Nozza, D., & Hovy, D. (2023). Wisdom of instruction-tuned language model crowds: Exploring model label variation. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2307.12973
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
+Wright, D., & Augenstein, I. (2025). Aggregating soft labels from crowd annotations improves uncertainty estimation under distribution shift. PLOS One, 20(6), e0323064. https://doi.org/10.1371/journal.pone.0323064
+Ai, R., Pan, Y., Simchi-Levi, D., Tambe, M., & Xu, H. (2025). Beyond Majority Voting: LLM Aggregation by Leveraging Higher-Order Information. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2510.01499
+Ashwin, J. (2024). Financial news media and volatility: Is there more to newspapers than news?. Journal of Financial Markets, 69, 100896. https://doi.org/10.1016/j.finmar.2024.100896
+Cuñat, V., & Groen-Xu, M. (2025). Timing Complex News to Target Attention. Management Science, 71(9), 7774-7799. https://doi.org/10.1287/mnsc.2021.03722
+Iqbal, F., & Pfarrer, M. D. (2025). Using Coreference Resolution to Mitigate Measurement Error in Text Analysis. Organizational Research Methods, 10944281251334777. https://doi.org/10.1177/10944281251334777
+Battaglia, L., Christensen, T., Hansen, S., & Sacher, S. (2024). Inference for Regression with Variables Generated from Unstructured Data. SSRN Electronic Journal No. 4842086 [Working Paper]. https://doi.org/10.2139/ssrn.4842086
 <!-- rendered-citations:end -->

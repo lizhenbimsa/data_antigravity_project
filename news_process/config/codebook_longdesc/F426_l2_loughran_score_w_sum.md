@@ -67,6 +67,14 @@ citations:
   vol: 68
   issue: 7
   pages_or_artno: 5514-5532
+- doi: "10.1016/j.finmar.2024.100896"
+  type: "journal"
+  authors: "Ashwin, J."
+  year: 2024
+  title: "Financial news media and volatility: Is there more to newspapers than news?"
+  venue: "Journal of Financial Markets"
+  vol: "69"
+  pages_or_artno: "100896"
 new_dois: []
 ---
 
@@ -79,8 +87,7 @@ new_dois: []
 计算须辨明三个阶段的分工, 不可把加权乘法误挂在情感词典阶段。第一步在情感词典阶段 (stage 22 tone_words) 完成: 对每篇报道先按 L&M 中文主译本词典匹配正负情感词, 经该词典口径得到逐篇净极性分 loughran_score{track}; 须强调 22_tone_words.parquet 落盘的只是这一未加权逐篇极性分, 其中并不含任何提及密度权重, 也不存在名为 loughran_score_w 的逐篇列。第二步的加权乘法实际发生在面板装配阶段, 由 panel runner 步骤 3b 执行: runner 把 stage 22 的未加权极性分 loughran_score{track} 与来自 stage 11 news_salience 的逐篇提及密度权重 mention_density 逐行相乘, 现算出加权逐篇分 loughran_score_w{track}, 此列是运行期的中间量而非 stage 22 的落盘列。提及密度权重来自 news_salience, 度量目标银行在该篇文本中被提及的相对强度, 使着墨越重的报道对全年聚合贡献越大, 这与文本金融中以文档相关度/提及强度对逐篇信号赋权的做法一脉相承。第三步在面板聚合阶段 (encode.py 的 value-weighted F 段) 完成: 对同一银行-年-轨道内所有留篇报道由步骤 3b 现算的 loughran_score_w{track} 直接求和, 即得 loughran_score_w_sum{track}。故完整链路是「stage 22 出未加权分 → stage 11 news_salience 出 mention_density → panel runner 步骤 3b 做加权乘法 → encode.py F 段做银行-年求和」四环, 加权环节位于面板 runner 而非词典阶段, 这一归属直接影响复算加权口径时应去哪个阶段核对源列。随后同段以 sum_mention_density 为分母作除法, 派生出归一化的 loughran_tone_vw{track}, 故本家族三列在数学上是该 VW 语调的分子。单位为无量纲加权得分和: 词典极性分本身无量纲, 乘以同样无量纲的提及密度权重后求和, 结果不落在固定区间, 其量纲随报道条数与提及强度伸缩, 因而只可在同口径下横向比较、不可与归一化语调直接比水平。loughran 词典在加载时对 positive∩negative 跨类重叠词按用户决策 (2026-06-24)「保留并两侧计数」处理: 原始 61 词经消歧, 38 词已归单侧, 余 23 词不可约简而保留, 打分时同时计入 pos/neg (对逐篇 loughran_score 净语调拉向中性、不武断选边); union/msent/ratio 等聚合测度不受重叠词影响, 因重叠词以 (+1,−1) 平衡双票喂入固定 union 词典, 极性 margin 守恒。留篇口径遵循 full-only 门控 (2026-06-29): 一篇报道是否计入银行-年宇宙由 full 轨的 LLM 判定决定, ctx 与 ss 轨为条件于 full 留篇集的子集测度, 三轨各自逐轨算列。
 
 【文献定位】
-词典方法学的奠基文献是 Loughran & McDonald (2011) 在 *The Journal of Finance* (顶刊) 发表的开创性研究, 论证通用情感词典 (如 Harvard-IV) 直接套用于金融文本会系统性地误判大量中性词为负面, 由此构建了面向 10-K 文本的专用金融情感词表; 本家族所用的 loughran_mcdonald_zh_2026 即为该词典的中文主译本, 是本家族逐篇极性分的唯一词典依据。Loughran & McDonald (2020) 在 *Annual Review of Financial Economics* 系统回顾文本分析在金融领域的十年演进, 将词典法置于机器学习、主题模型等替代方法并列的谱系中, 为本项目把词典轨 (含本家族) 与 LLM 轨、BERT 轨并置为互为稳健性证据提供了方法学定位; Loughran & McDonald (2016) 在 *Journal of Accounting Research* 的综述进一步指出词典构建须谨慎处理领域专用词表的边界条件与消融敏感性, 与本项目对 loughran 重叠词消歧、固定 union 词典等处理呼应。就词典法的效度边界, van Atteveldt et al. (2021) 系统比较人工标注、众包、词典法与机器学习, 指出词典法在特定语域下的偏差与适用范围, 为本项目三方法互为稳健性设计提供依据; Frankel, Jennings & Lee (2022) 在 *Management Science* 以披露文本对比机器学习与词典法情感, 是本仓「三方法互为稳健、不分主次」设计的直接先例。就中文金融语域的词典专用性, Du et al. (2022) 在 *Review of Finance* 论证语言与领域专用性对中文金融情感测度的必要性, 与本项目将 L&M 词典本地化译入中文语料的思路同源。需强调铁律: 本 VW 加权和只是词典轨内部的一种加权口径 (相对于等权 tone 与媒体权威加权 mw、跟风衰减加权 hw), 各加权口径互为稳健性、各自 just-identified 并排, 禁混进同一 over-identified Hansen J; 同理三轨 full/ctx/ss 亦各自 just-identified 并排、禁混同一 Hansen J, 词典轨与 LLM/BERT 轨之间同样只作互为稳健性对照而不合并识别。
-
+词典方法学的奠基文献是 Loughran & McDonald (2011) 在 *The Journal of Finance* (顶刊) 发表的开创性研究, 论证通用情感词典 (如 Harvard-IV) 直接套用于金融文本会系统性地误判大量中性词为负面, 由此构建了面向 10-K 文本的专用金融情感词表; 本家族所用的 loughran_mcdonald_zh_2026 即为该词典的中文主译本, 是本家族逐篇极性分的唯一词典依据。Loughran & McDonald (2020) 在 *Annual Review of Financial Economics* 系统回顾文本分析在金融领域的十年演进, 将词典法置于机器学习、主题模型等替代方法并列的谱系中, 为本项目把词典轨 (含本家族) 与 LLM 轨、BERT 轨并置为互为稳健性证据提供了方法学定位; Loughran & McDonald (2016) 在 *Journal of Accounting Research* 的综述进一步指出词典构建须谨慎处理领域专用词表的边界条件与消融敏感性, 与本项目对 loughran 重叠词消歧、固定 union 词典等处理呼应。就词典法的效度边界, van Atteveldt et al. (2021) 系统比较人工标注、众包、词典法与机器学习, 指出词典法在特定语域下的偏差与适用范围, 为本项目三方法互为稳健性设计提供依据; Frankel, Jennings & Lee (2022) 在 *Management Science* 以披露文本对比机器学习与词典法情感, 是本仓「三方法互为稳健、不分主次」设计的直接先例。就中文金融语域的词典专用性, Du et al. (2022) 在 *Review of Finance* 论证语言与领域专用性对中文金融情感测度的必要性, 与本项目将 L&M 词典本地化译入中文语料的思路同源。需强调铁律: 本 VW 加权和只是词典轨内部的一种加权口径 (相对于等权 tone 与媒体权威加权 mw、跟风衰减加权 hw), 各加权口径互为稳健性、各自 just-identified 并排, 禁混进同一 over-identified Hansen J; 同理三轨 full/ctx/ss 亦各自 just-identified 并排、禁混同一 Hansen J, 词典轨与 LLM/BERT 轨之间同样只作互为稳健性对照而不合并识别。 就本 VW 加权层把「报道量」维度与「语调内容」维度分离处理的正当性, Ashwin (2024) 在 *Journal of Financial Markets* 把报纸报道的数量/篇幅维度与报道所含的新信息内容分离, 检验前者是否对波动率具有独立于后者的解释力, 所锚定的正是本家族把提及密度权重与词典极性分视作两个可分离乘子、并在下游以 sum_mention_density 作分母还原为 loughran_tone_vw 的分离式设计。迁移边界须写明: 原文语境为英文报纸与股票波动率, 本家族为中文银行金科报道与银行-年面板; 原文的「报道量」是等权计数或版面维度, 并未使用实体提及密度或媒体权威度这类权重; 且波动率在原文中是结果变量, 而本列在本项目中充当加权分子。故该文只支撑「量与调须分离核算」这一层, 不可据此声称其验证过 mention_density 这一具体权重形式或本项目的任一加权口径。
 ## VAR: loughran_score_w_sum_ctx
 
 【变体差分】
@@ -103,4 +110,5 @@ Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance:
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
+Ashwin, J. (2024). Financial news media and volatility: Is there more to newspapers than news?. Journal of Financial Markets, 69, 100896. https://doi.org/10.1016/j.finmar.2024.100896
 <!-- rendered-citations:end -->

@@ -35,6 +35,15 @@ citations:
   vol: '27'
   issue: '4'
   pages_or_artno: 309-321
+- doi: "10.1016/j.ceqi.2024.06.003"
+  type: "journal"
+  authors: "Ji, Z., Ye, N., & Kong, D."
+  year: 2024
+  title: "The contraction of Chinese shadow banking and corporate investment behavior: Evidence from the background of the “New Rules on asset management”"
+  venue: "China Economic Quarterly International"
+  vol: "4"
+  issue: "2"
+  pages_or_artno: "119-132"
 new_dois: []
 ---
 
@@ -53,8 +62,7 @@ stress_period 本身是外生给定的确定性构造量, 不依赖任何模型�
 在数据规模层面需特别说明: 本机开发盘面样本年份仅覆盖 2017-2018 两年 (T=2 dev 切片), 落入 STRESS_YEARS={2015,2018,2020} 交集的只有 2018 一年, 因此本机盘面上 stress_period 呈现出「2018 年全部记 1、2017 年全部记 0」的确定性二分, 不构成方差不足问题, 而是样本年份窗口与压力年份定义的自然交集结果。生产全量语料覆盖 2007-2025 (T=19), 三个压力年份 2015/2018/2020 均落在样本窗口内, stress_period 将呈现三段离散 1 值与十五段离散 0 值的完整分布, 交互项的识别力在生产规模下显著优于开发盘面。
 
 【文献定位】
-stress_period 的构念设计呼应三支文献。其一是压力测试与银行数字化韧性文献: Kwan, Lin, Pursiainen & Tai (2024, Journal of Financial and Quantitative Analysis) 以新冠疫情这一系统性冲击为准自然实验, 检验银行数字化能力在压力期的差异化表现, 其研究设计同样依赖于「明确标定的压力期时间窗口」这一构造思路, 印证了将疫情年份 (2020) 与其他系统性金融冲击年份并列纳入压力期定义在银行业实证研究中的方法学合理性, 该文发表于金融学顶刊之一的 Journal of Financial and Quantitative Analysis, 为本指标的构造范式提供了顶刊级方法学锚点。其二是 Pham, Huynh, Nguyen & Luu (2025, Journal of Economics and Development) 关于新闻负面情感如何在有限理性下塑造企业困境动态的研究, 证明新闻情感对企业困境的边际影响并非期间齐质, 支持了「新闻情感效应存在期间异质性、压力期需单独识别」这一构念前提。其三是 Garcia (2025, Global Finance Journal) 关于情感度量分歧 (sentiment divergence) 与企业财务困境关系的研究: 该文发现不同来源情感指标之间的分歧程度会随企业困境加深而系统性放大, 意味着「压力期」不仅是情感水平发生位移的时段, 也是不同情感测度之间一致性发生结构性变化的时段, 这为 stress_period 在稳健性检验中与 llm_vote_tone / dict-based tone 等多种情感口径分别交互、观察各口径在压力期表现是否一致提供了额外的构念依据。
-
+stress_period 的构念设计呼应三支文献。其一是压力测试与银行数字化韧性文献: Kwan, Lin, Pursiainen & Tai (2024, Journal of Financial and Quantitative Analysis) 以新冠疫情这一系统性冲击为准自然实验, 检验银行数字化能力在压力期的差异化表现, 其研究设计同样依赖于「明确标定的压力期时间窗口」这一构造思路, 印证了将疫情年份 (2020) 与其他系统性金融冲击年份并列纳入压力期定义在银行业实证研究中的方法学合理性, 该文发表于金融学顶刊之一的 Journal of Financial and Quantitative Analysis, 为本指标的构造范式提供了顶刊级方法学锚点。其二是 Pham, Huynh, Nguyen & Luu (2025, Journal of Economics and Development) 关于新闻负面情感如何在有限理性下塑造企业困境动态的研究, 证明新闻情感对企业困境的边际影响并非期间齐质, 支持了「新闻情感效应存在期间异质性、压力期需单独识别」这一构念前提。其三是 Garcia (2025, Global Finance Journal) 关于情感度量分歧 (sentiment divergence) 与企业财务困境关系的研究: 该文发现不同来源情感指标之间的分歧程度会随企业困境加深而系统性放大, 意味着「压力期」不仅是情感水平发生位移的时段, 也是不同情感测度之间一致性发生结构性变化的时段, 这为 stress_period 在稳健性检验中与 llm_vote_tone / dict-based tone 等多种情感口径分别交互、观察各口径在压力期表现是否一致提供了额外的构念依据。 在三个压力年份的具体设定依据上, Ji、Ye 与 Kong (2024) 以中国资管新规引致的影子银行收缩为背景识别其经济后果, 为本指标把 2018 年认定为中国金融体系去杠杆压力年份提供了实证依据。迁移边界须诚实标明: 该文的因变量是企业投资行为、分析单位为企业, 与本项目银行×年层面的年份哑变量不同; 更关键的是它仅覆盖 2018 资管新规这一个事件, 对 stress_period 另外两个年份 (2015 股灾去杠杆前夜、2020 新冠冲击) 不提供任何依据——将三年并置为单一压力期标记属本项目的研究者设定, 该文不予背书。
 ## VAR: stress_period
 
 【变体差分】
@@ -65,4 +73,5 @@ stress_period 的构念设计呼应三支文献。其一是压力测试与银行
 Kwan, A., Lin, C., Pursiainen, V., & Tai, M. (2024). Stress testing banks' digital capabilities: Evidence from the COVID-19 pandemic. Journal of Financial and Quantitative Analysis, 59(6), 2618-2646. https://doi.org/10.1017/S0022109023000662
 Garcia, J. (2025). Beyond the headlines: Sentiment divergence and financial distress. Global Finance Journal, 66, Article 101126. https://doi.org/10.1016/j.gfj.2025.101126
 Pham, X. T. T., Huynh, D. T., Nguyen, N. T. K., & Luu, T. B. (2025). Investor negativity derived from news shapes firm distress dynamics under bounded rationality. Journal of Economics and Development, 27(4), 309-321. https://doi.org/10.1108/JED-06-2025-0296
+Ji, Z., Ye, N., & Kong, D. (2024). The contraction of Chinese shadow banking and corporate investment behavior: Evidence from the background of the “New Rules on asset management”. China Economic Quarterly International, 4(2), 119-132. https://doi.org/10.1016/j.ceqi.2024.06.003
 <!-- rendered-citations:end -->

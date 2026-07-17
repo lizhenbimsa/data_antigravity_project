@@ -45,6 +45,42 @@ citations:
   title: "Text as data"
   venue: Journal of Economic Literature
   pages_or_artno: 535-574
+- doi: "10.48550/arxiv.2306.13063"
+  type: "arxiv"
+  authors: "Xiong, M., Hu, Z., Lu, X., Li, Y., Fu, J., He, J., & Hooi, B."
+  year: 2023
+  title: "Can LLMs Express Their Uncertainty? An Empirical Evaluation of Confidence Elicitation in LLMs"
+  venue: "arXiv"
+- doi: "10.1007/978-981-96-1710-4_10"
+  type: "journal"
+  authors: "Ni, S., Bi, K., Yu, L., & Guo, J."
+  year: 2025
+  title: "Are Large Language Models More Honest in Their Probabilistic or Verbalized Confidence?"
+  venue: "Lecture Notes in Computer Science"
+  pages_or_artno: "124-135"
+- doi: "10.1162/tacl.a.739"
+  type: "journal"
+  authors: "Ulmer, D., Lorson, A., Titov, I., & Hardmeier, C."
+  year: 2026
+  title: "Anthropomimetic Uncertainty: What Verbalized Uncertainty in Language Models is Missing"
+  venue: "Transactions of the Association for Computational Linguistics"
+  vol: "14"
+  pages_or_artno: "1505-1540"
+- doi: "10.18653/v1/2024.trustnlp-1.13"
+  type: "journal"
+  authors: "Groot, T., & Valdenegro - Toro, M."
+  year: 2024
+  title: "Overconfidence is Key: Verbalized Uncertainty Evaluation in Large Language and Vision-Language Models"
+  venue: "Proceedings of the 4th Workshop on Trustworthy Natural Language Processing (TrustNLP 2024)"
+  pages_or_artno: "145-171"
+- doi: "10.1016/j.chb.2026.108988"
+  type: "journal"
+  authors: "Liu, J."
+  year: 2026
+  title: "Rubric-conditioned large language model labeling: Agreement, uncertainty, and label consistency in subjective text annotation"
+  venue: "Computers in Human Behavior"
+  vol: "181"
+  pages_or_artno: "108988"
 new_dois: []
 ---
 
@@ -57,8 +93,7 @@ new_dois: []
 逐篇置信度是 LLM 在返回三分类语气标签的同时以文本形式生成的数值, 约束在闭区间零到一。这类自报置信度在校准意义上并不等同于真实后验概率——Geng et al. (2024) 的综述指出 verbalized confidence 普遍存在系统性校准偏差, 但通常仍保留排序有效的不确定性信息, 因此本家族只把它当作银行-年之间相对信噪比的诊断量与分层依据, 不作绝对概率解释, 也不在本文档手填任何取值区间或分布形状 (统计特征由引擎注入的统计段呈现, 且须待生产 T=19 语料跑通后方可实测, 本机 T=2 开发样本不足以刻画其经验分布)。面板聚合发生在 encode.py: 先在文章级把该模型置信度按 valid-vote 域掩码——只保留 DeepSeek-V4 情感票有效 (即成功产出可用极性分数) 的那些报道, 掩码源列为 _conf_valid_deepseekv4{track}; 该掩码列在 legacy parquet 或合成测试数据缺失时优雅回退到物理域原始列 deepseekv4_sentiment_confidence{track}, 保证向后兼容。掩码之所以关键, 是因为验证失败或语气未定义的无效票往往系统性地带着极低置信度, 若不剔除会机械拉低银行均值, 造成测度域与被调节的语气测度域错位。掩码之后, 按银行-年分组取算术均值即得本家族三列; 本家族只产出该均值, 不派生组内标准差之类的二阶矩配套列。整个流程是纯后处理 (无新增付费 LLM 调用), 在 stage 21 缓存零 miss 时可离线字节级复现。
 
 【文献定位】
-把语言模型自报的置信度当作可用信号而非噪声, 有明确文献支撑。Geng et al. (2024) 系统综述了大语言模型置信度估计与校准的方法与陷阱, 指出 verbalized confidence 虽存在校准偏差却携带排序有效的不确定性信息; Gligorić et al. (2024) 进一步论证即便是"不自信"的 LLM 标注, 经恰当的不确定性处理后仍可支撑可信的下游统计结论, 为把低置信样本纳入而非一律丢弃提供了依据。校准问题的经典源头可追溯到 Niculescu-Mizil and Caruana (2005) 对监督学习输出概率质量的分析——模型输出的分数需经校准才等同于真实概率, 这解释了为何本家族只把置信度用作相对信噪比诊断与分层依据、而非绝对概率解释。在金融文本这一具体领域, Liu et al. (2020) 的 FinBERT 表明领域预训练能显著改善金融语料上的情感判别可靠性, 佐证了以模型置信度刻画报道语义清晰度的合理性。从计量经济学把文本当数据的方法学总纲看, Gentzkow, Kelly and Taddy (2019) 系统论证了以文本构造的量化测度天然带有测量误差、需以其信噪比与不确定性为一等公民纳入设计, 这为本家族把 LLM 自报置信度作为语气测度的信噪比诊断量、并据以评估语气变量衰减风险提供了方法论支撑。需强调铁律: 三轨 full/ctx/ss 各自 just-identified 并排, 互为稳健性、不分主次, 严禁把三轨置信度混进同一 over-identified 的 Hansen J 过度识别检验; 同理本家族刻画的是 DeepSeek-V4 单家置信度, 与 gpt-5.4-nano、gemini-3.1-flash-lite 两家的同名置信列构成 per-model 互为稳健性并排 (每家 per-model 独立降级, 某家缺席只掉自身族, 非 co-primary 嵌入的 both-or-neither), 亦禁三家混入同一过度识别式。留篇门控口径遵循 2026-06-29 的 full-only 裁决: 一篇报道是否算作银行金科报道只看 full 轨的 llm_verified_full, ctx 与 ss 轨降为 conditional-on-full 的条件测度, 其行宇宙是 full 留篇集的子集。
-
+把语言模型自报的置信度当作可用信号而非噪声, 有明确文献支撑。Geng et al. (2024) 系统综述了大语言模型置信度估计与校准的方法与陷阱, 指出 verbalized confidence 虽存在校准偏差却携带排序有效的不确定性信息; Gligorić et al. (2024) 进一步论证即便是"不自信"的 LLM 标注, 经恰当的不确定性处理后仍可支撑可信的下游统计结论, 为把低置信样本纳入而非一律丢弃提供了依据。校准问题的经典源头可追溯到 Niculescu-Mizil and Caruana (2005) 对监督学习输出概率质量的分析——模型输出的分数需经校准才等同于真实概率, 这解释了为何本家族只把置信度用作相对信噪比诊断与分层依据、而非绝对概率解释。在金融文本这一具体领域, Liu et al. (2020) 的 FinBERT 表明领域预训练能显著改善金融语料上的情感判别可靠性, 佐证了以模型置信度刻画报道语义清晰度的合理性。从计量经济学把文本当数据的方法学总纲看, Gentzkow, Kelly and Taddy (2019) 系统论证了以文本构造的量化测度天然带有测量误差、需以其信噪比与不确定性为一等公民纳入设计, 这为本家族把 LLM 自报置信度作为语气测度的信噪比诊断量、并据以评估语气变量衰减风险提供了方法论支撑。需强调铁律: 三轨 full/ctx/ss 各自 just-identified 并排, 互为稳健性、不分主次, 严禁把三轨置信度混进同一 over-identified 的 Hansen J 过度识别检验; 同理本家族刻画的是 DeepSeek-V4 单家置信度, 与 gpt-5.4-nano、gemini-3.1-flash-lite 两家的同名置信列构成 per-model 互为稳健性并排 (每家 per-model 独立降级, 某家缺席只掉自身族, 非 co-primary 嵌入的 both-or-neither), 亦禁三家混入同一过度识别式。留篇门控口径遵循 2026-06-29 的 full-only 裁决: 一篇报道是否算作银行金科报道只看 full 轨的 llm_verified_full, ctx 与 ss 轨降为 conditional-on-full 的条件测度, 其行宇宙是 full 留篇集的子集。 就自报置信度这一取数方式本身, Xiong 等 (2023) 是黑箱场景下直接向 LLM 索取 verbalized confidence 的奠基性系统评测, 建立了该范式的基准协议并记录了模型普遍过度自信, 可用以交代本家族 conf 列的方法原点; 该文为 arXiv 预印本, 评测对象为当时的 GPT/LLaMA 系模型, 任务为英文常识与算术推理, 既不含 deepseekv4, 亦无面板层聚合。Ni、Bi、Yu 与 Guo (2025) 直接对比同一模型的 token 概率派生置信度与自报置信度在诚实性上的差异, 是本项目因 API 黑箱不返回 logprob 而只能取 verbalized 一支的最新实证权衡依据——该文报告两种置信度各有优劣, 并未论证自报法优于概率法; 其任务为知识型问答, 置信度对应答对与否, 而本家族置信度对应情感极性这一无客观 ground truth 的主观判定, 校准概念不能平移。Ulmer、Lorson、Titov 与 Hardmeier (2026) 综述人类不确定性沟通与 NLP 中的 verbalized uncertainty 研究, 并补充实证了其中若干此前未被充分探讨的偏倚, 支撑"自报不确定性本身带有系统性偏倚"这一实证层; 惟原文关注的是面向人类用户的沟通质量与可信度, 未针对把自报置信度当作研究变量的测量效度问题, 亦未提出可替换本列算子的方案, 本家族的银行-年均值聚合与三轨设计均在其讨论范围之外。Groot 与 Valdenegro - Toro (2024) 横向评测多个 LLM/VLM 自报不确定性的质量, 实证发现各模型系统性过度自信且过度自信程度随模型而异, 这正是本项目把 deepseekv4 与 gemini31、gpt54nano 的同名 conf 列并排为 per-model 互为稳健性轨、而非合并为单一指标的事实基础; 原文单位是英文通用/视觉问答基准上的逐题置信度, 所测模型不含 DeepSeek-V4-Flash, 亦未讨论银行-年面板或 valid-vote 掩码分母。Liu (2026) 以固定 rubric 提示单一模型重标注仇恨言论语料, 检验 LLM 标注与人类众包标注的一致性及模型不确定性与人类分歧的关系, 可锚定"在与情感判定同类的主观标注任务中, 模型自我报告的把握度可被度量, 且在人类标注分歧较大处系统性更高"这一层; 但其不确定性载体是类别概率向量的 Shannon 熵而非标量自报置信度, 且全程只用一个模型、不涉及跨厂商比较, 故不支持本项目的 per-model 并排口径, 语料亦为英文社交媒体文本而非中文金融新闻, 并无实体-年聚合。
 ## VAR: avg_deepseekv4_conf_ctx
 
 【变体差分】
@@ -80,4 +115,9 @@ Geng, J., Cai, F., Wang, Y., Koeppl, H., Nakov, P., & Gurevych, I. (2024). A sur
 Niculescu-Mizil, A., & Caruana, R. (2005). Predicting good probabilities with supervised learning. Proceedings of the 22nd International Conference on Machine Learning (ICML), 625-632. https://doi.org/10.1145/1102351.1102430
 Liu, Z., Huang, D., Huang, K., Li, Z., & Zhao, J. (2020). FinBERT: A pre-trained financial language representation model for financial text mining. Proceedings of the Twenty-Ninth International Joint Conference on Artificial Intelligence (IJCAI-20), 4513-4519. https://doi.org/10.24963/ijcai.2020/622
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic Literature, 535-574. https://doi.org/10.1257/jel.20181020
+Xiong, M., Hu, Z., Lu, X., Li, Y., Fu, J., He, J., & Hooi, B. (2023). Can LLMs Express Their Uncertainty? An Empirical Evaluation of Confidence Elicitation in LLMs. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2306.13063
+Ni, S., Bi, K., Yu, L., & Guo, J. (2025). Are Large Language Models More Honest in Their Probabilistic or Verbalized Confidence?. Lecture Notes in Computer Science, 124-135. https://doi.org/10.1007/978-981-96-1710-4_10
+Ulmer, D., Lorson, A., Titov, I., & Hardmeier, C. (2026). Anthropomimetic Uncertainty: What Verbalized Uncertainty in Language Models is Missing. Transactions of the Association for Computational Linguistics, 14, 1505-1540. https://doi.org/10.1162/tacl.a.739
+Groot, T., & Valdenegro - Toro, M. (2024). Overconfidence is Key: Verbalized Uncertainty Evaluation in Large Language and Vision-Language Models. Proceedings of the 4th Workshop on Trustworthy Natural Language Processing (TrustNLP 2024), 145-171. https://doi.org/10.18653/v1/2024.trustnlp-1.13
+Liu, J. (2026). Rubric-conditioned large language model labeling: Agreement, uncertainty, and label consistency in subjective text annotation. Computers in Human Behavior, 181, 108988. https://doi.org/10.1016/j.chb.2026.108988
 <!-- rendered-citations:end -->

@@ -75,6 +75,38 @@ citations:
   vol: 66
   issue: 1
   pages_or_artno: 35-65
+- doi: "10.1080/13504851.2026.2701294"
+  type: "journal"
+  authors: "Cha, Y., & Wang, T.-X."
+  year: 2026
+  title: "Can firms offset information asymmetry shocks? Evidence from local newspaper closures"
+  venue: "Applied Economics Letters"
+  pages_or_artno: "1-7"
+- doi: "10.1016/j.jempfin.2024.101517"
+  type: "journal"
+  authors: "Soebhag, A., Van Vliet, B., & Verwijmeren, P."
+  year: 2024
+  title: "Non-standard errors in asset pricing: Mind your sorts"
+  venue: "Journal of Empirical Finance"
+  vol: "78"
+  pages_or_artno: "101517"
+- doi: "10.1007/s10842-024-00426-5"
+  type: "journal"
+  authors: "Merkus, E."
+  year: 2024
+  title: "Gravity Models in International Trade: A Specification Curve Analysis"
+  venue: "Journal of Industry, Competition and Trade"
+  vol: "24"
+  issue: "1"
+  pages_or_artno: "17"
+- doi: "10.1016/j.iref.2025.104564"
+  type: "journal"
+  authors: "Branzoli, N., Marchetti, S., & Tarducci, E."
+  year: 2025
+  title: "Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy"
+  venue: "International Review of Economics & Finance"
+  vol: "104"
+  pages_or_artno: "104564"
 new_dois: []
 ---
 
@@ -91,8 +123,7 @@ new_dois: []
 政治词权重 w_pol=1.0 是三点权重梯子 {0.0, 0.5, 1.0} 的上端臂。依据 Du 等 (2022) 的发现——政治正面词的信号强度弱于普通正面词——生产口径 canonical 取 0.5 (polw05, 亦即无后缀历史命名的 du_2022_score); 0.0 与 1.0 两臂做敏感性检验。三权重各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同权重臂混入同一 over-identified Hansen J 的过度识别检验; 该梯子与规则消融梯度 (否定/程度/转折) 正交、不交叉, 三权重均在全语言学规则下计算以避免列数爆炸。同理, 本家族的三条文本轨 full/ctx/ss 亦为互为稳健性的并排轨, 禁混同一 Hansen J。留篇门控遵循 full-only 口径 (2026-06-29): 一篇报道是否算作"银行金科报道"仅由 full 轨的 LLM 判定决定, ctx/ss 降为 conditional-on-full 的测度轨, 其行宇宙是 full 留篇集的子集。
 
 【文献定位】
-本测度处在中文金融文本情感度量与媒体环境识别两支文献的交叉点。词典侧的直接锚点是 Du 等 (2022) 发表于 Review of Finance 的中文金融情感词典, 其核心贡献是论证情感度量的语言与领域特异性, 并首次系统区分政治性正面词与普通正面词的信号差异——这正是政治词权重梯子的理论根据。方法学上, 词典法与机器学习/大模型情感抽取的相对优劣是持续争论: Loughran 与 McDonald (2011) 奠定了领域特定词典相对通用词典的必要性, Frankel 等 (2022) 则系统比较词典法与机器学习在披露情感上的表现, 提示词典法的透明性与可复现性优势。Ma 等 (2025) 构建的细粒度中文投资者情感词典 CN-FSD 代表了该支文献 2024 年后的最新推进。媒体环境侧, exc_ 口径回应了媒体来源构成的内生性: Heese 等 (2022) 证明地方报纸退出会实质改变企业行为的曝光概率, 说明"哪些媒体在发声"本身携带信息; Qin 等 (2018) 与 Piotroski 等 (2015) 则揭示中国语境下媒体偏向与政治性信息压制的结构, 后者尤其与政治词权重的敏感性检验形成呼应——若政治性正面语调部分源于对负面信息的压制, 则调低其权重 (polw00) 与调高其权重 (polw10) 的对照能界定主结论对该机制的稳健区间。
-
+本测度处在中文金融文本情感度量与媒体环境识别两支文献的交叉点。词典侧的直接锚点是 Du 等 (2022) 发表于 Review of Finance 的中文金融情感词典, 其核心贡献是论证情感度量的语言与领域特异性, 并首次系统区分政治性正面词与普通正面词的信号差异——这正是政治词权重梯子的理论根据。方法学上, 词典法与机器学习/大模型情感抽取的相对优劣是持续争论: Loughran 与 McDonald (2011) 奠定了领域特定词典相对通用词典的必要性, Frankel 等 (2022) 则系统比较词典法与机器学习在披露情感上的表现, 提示词典法的透明性与可复现性优势。Ma 等 (2025) 构建的细粒度中文投资者情感词典 CN-FSD 代表了该支文献 2024 年后的最新推进。媒体环境侧, exc_ 口径回应了媒体来源构成的内生性: Heese 等 (2022) 证明地方报纸退出会实质改变企业行为的曝光概率, 说明"哪些媒体在发声"本身携带信息; Qin 等 (2018) 与 Piotroski 等 (2015) 则揭示中国语境下媒体偏向与政治性信息压制的结构, 后者尤其与政治词权重的敏感性检验形成呼应——若政治性正面语调部分源于对负面信息的压制, 则调低其权重 (polw00) 与调高其权重 (polw10) 的对照能界定主结论对该机制的稳健区间。 晚近文献在停刊排除、权重梯子与应用域三处补入近期锚点。exc_ 口径在 Heese 等 (2022) 之外再得一条新证: Cha 与 Wang (2026) 以地方报纸停刊作为信息环境冲击做实证, 直接证实媒体停刊是会改变可观测报道集合与信息含量的真实事件, 支撑「将退出发声的媒体来源值得单独处理」这一设计前提; 其边界须写明: 原文把停刊当作外生冲击做因果识别、DV 为公司层面的信息不对称指标、层级为公司-年且语境为英文地方报业, 而本家族只把 _is_ceased_media == 1 的报道作为样本排除条件做并排稳健性, 不做因果推断, 且本项目的排除集采保守口径 (confirmed 与 suspected 并入), 应表述为「疑似退出覆盖媒体」而非严格停刊。三点权重梯子作为研究设计的方法学依据来自 Soebhag 与 Verwijmeren (2024): 该文在资产定价因子模型上自行枚举断点选择、是否剔除 microcaps、行业调整与再平衡频率等构造路径, 实证记录这些研究者自由度带来的结果离散 (non-standard error 与 standard error 之比平均超过 1), 主张研究者须清楚交代并论证这些选择而非独断取一, 本家族在词典政治词权重这一自由度上并排 polw00 / polw05 / polw10 即该主张的落地; 边界在于其自由度维度为投资组合排序等资产定价构造选项而非情感词典权重, 且原文以枚举上百条路径估计 NSE, 本家族仅三个权重取值, 不构成 NSE 的完整估计, 国别与数据层级亦不同。与之互补的是 Merkus (2024) 把规格曲线分析用于国际贸易引力模型, 系统枚举设定选择并展示估计量在整条曲线上的分布, 以判断结论是否被某一设定驱动, 与本家族以 polw10 上端臂对照 polw00 下端臂、界定主结论稳健区间的思路同源; 惟原文枚举的是控制变量与固定效应设定、规模达上百设定且层级为国家对, 与本家族三点阶梯规模不可比, 亦不涉文本测度。应用域上, Branzoli、Marchetti 与 Tarducci (2025) 构造媒体报道的语调测度并把它用于银行融资条件这一银行层级实证问题, 为本家族「文章级词典净极性 → 银行-年聚合」的链条提供近期同域实践; 其国别为意大利、语调测度未使用 Du 等 (2022) 词典亦无政治正面词类概念, 且无 full/ctx/ss 三轨切分与停刊媒体排除, 故仅作前沿存在性参照, 不作本家族任一构造细节的依据。
 ## VAR: exc_du_2022_score_polw10_full
 
 【变体差分】
@@ -116,4 +147,8 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Qin, B., Strömberg, D., & Wu, Y. (2018). Media bias in China. American Economic Review, 108(9), 2442-2476. https://doi.org/10.1257/aer.20170947
 Piotroski, J. D., Wong, T. J., & Zhang, T. (2015). Political incentives to suppress negative information: Evidence from Chinese listed firms. Journal of Accounting Research, 53(2), 405-459. https://doi.org/10.1111/1475-679X.12071
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
+Cha, Y., & Wang, T.-X. (2026). Can firms offset information asymmetry shocks? Evidence from local newspaper closures. Applied Economics Letters, 1-7. https://doi.org/10.1080/13504851.2026.2701294
+Soebhag, A., Van Vliet, B., & Verwijmeren, P. (2024). Non-standard errors in asset pricing: Mind your sorts. Journal of Empirical Finance, 78, 101517. https://doi.org/10.1016/j.jempfin.2024.101517
+Merkus, E. (2024). Gravity Models in International Trade: A Specification Curve Analysis. Journal of Industry, Competition and Trade, 24(1), 17. https://doi.org/10.1007/s10842-024-00426-5
+Branzoli, N., Marchetti, S., & Tarducci, E. (2025). Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy. International Review of Economics & Finance, 104, 104564. https://doi.org/10.1016/j.iref.2025.104564
 <!-- rendered-citations:end -->

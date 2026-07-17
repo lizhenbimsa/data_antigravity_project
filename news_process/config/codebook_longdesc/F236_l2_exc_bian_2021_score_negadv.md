@@ -65,6 +65,31 @@ citations:
   year: 2021
   title: "A new Chinese financial sentiment dictionary for textual analysis in accounting and finance"
   venue: SSRN Working Paper No. 3446388
+- doi: "10.3390/computers12010018"
+  type: "journal"
+  authors: "Naldi, M., & Petroni, S."
+  year: 2023
+  title: "A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools"
+  venue: "Computers"
+  vol: "12"
+  issue: "1"
+  pages_or_artno: "18"
+- doi: "10.1093/llc/fqae013"
+  type: "journal"
+  authors: "Venglařová, K., & Matlach, V."
+  year: 2024
+  title: "Beyond content: discriminatory power of function words in text type classification"
+  venue: "Digital Scholarship in the Humanities"
+  vol: "39"
+  issue: "2"
+  pages_or_artno: "765-789"
+- doi: "10.2139/ssrn.5024959"
+  type: "wp"
+  authors: "Cziraki, P., & Gider, J."
+  year: 2024
+  title: "Newspaper Closures and Trading in Local Stocks"
+  venue: "SSRN"
+  pages_or_artno: "5024959"
 new_dois: []
 ---
 
@@ -79,8 +104,7 @@ new_dois: []
 计算分两级。文章级 (stage 22, tone_words.compute_dict_scores 内 _RULE_ABLATION_VARIANTS 循环) 先对三轨文本各自分词, 在 negadv 规则组合下逐 token 施加否定翻转与转折加权, 每命中一个情感词得到一个带号的 final 值, 全篇归一化得 bian_2021_score_negadv{track} = Σ(final) / Σ|final| ∈ [-1, +1]。该分母是幅度和 Σ|final| 而非裸匹配词数, 且每个消融变体各自 self-normalize, 因此相邻消融级差并非"某规则的纯贡献", 只作 ablation 对照 (audit MATH-1: 消融变体间高度共线, corr 常达 0.99 量级, 披露报 corr 而非并入同一分解式)。面板级 (stage 40, attention_media.py 停刊稳健性 C.4 段) 先由 _is_ceased_media 标记文章所属媒体是否属退出覆盖集, 取 df_alive = 非停刊子集, 对匹配 _SCORE_PATTERNS 的每个文章级得分列 (含 bian_2021_score_ 前缀) 做 bank-year groupby-mean, 输出列名机械前缀 exc_, 即 exc_bian_2021_score_negadv{track}。停刊代理口径须保守解读为"疑似退出覆盖媒体", 不可在论文中表述为严格出版停刊 (NPPA 交叉验证仅改报告标签, 不改剔除集)。此列属情感类, 零文章 bank-year 保持 NaN (不同于计数类 n_articles_exc 的零填契约), 勿连带零填。
 
 【文献定位】
-方法学上本家族坐落在词典法金融情感测量与其稳健性设计的交叉点。Bian et al. (2021) 提供底层中文词表; Du et al. (2022) 在 Review of Finance 论证中文金融文本的语言与领域特异性, 说明为何需要本土化词典而非直接移植英文词表, 是本家族选用中文专用词典的直接依据。转折与否定这类效价转移规则的语言学处理谱系可追溯到 Taboada et al. (2011) 在 Computational Linguistics 提出的 lexicon-based 效价转移方法, negadv 变体保留转折加权、停用程度缩放正是对该谱系中单条规则贡献的敏感性检验。Barbaglia et al. (2025) 的经济文本 lexicon-based 情感分析进一步支持在计量研究中以透明可复现的词典法作为主测度或旁证。方法互证层面, Frankel, Jennings 与 Lee (2022) 在 Management Science 系统比较词典法与机器学习法的披露情感测量, 为本项目"LLM 三家投票为共识 headline、词典法与 BERT 各自并排互为稳健"的多方法设计提供先例; van Atteveldt, van der Velden 与 Boukes (2021) 则从效度角度比较人工标注、众包、词典与机器学习, 提示词典法在特定语域下的适用边界。据此, exc × negadv × 三轨构成的稳健性列并非独立信号, 而是与主词典语调、LLM 语调、BERT 语调各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同规则消融变体或不同样本口径混进同一 over-identified Hansen J 的过度识别检验。三轨 (full/ctx/ss) 亦遵同一铁律: full=标题 prepend 全文正文, ctx=标题+实体窗口, ss=标题+银行与金科同句共现窗 (ss 无共现时回退镜像 ctx/全文, 与 full-only 留篇门控口径一致), 三轨禁混同一 over-identified Hansen J。
-
+方法学上本家族坐落在词典法金融情感测量与其稳健性设计的交叉点。Bian et al. (2021) 提供底层中文词表; Du et al. (2022) 在 Review of Finance 论证中文金融文本的语言与领域特异性, 说明为何需要本土化词典而非直接移植英文词表, 是本家族选用中文专用词典的直接依据。转折与否定这类效价转移规则的语言学处理谱系可追溯到 Taboada et al. (2011) 在 Computational Linguistics 提出的 lexicon-based 效价转移方法, negadv 变体保留转折加权、停用程度缩放正是对该谱系中单条规则贡献的敏感性检验。Barbaglia et al. (2025) 的经济文本 lexicon-based 情感分析进一步支持在计量研究中以透明可复现的词典法作为主测度或旁证。方法互证层面, Frankel, Jennings 与 Lee (2022) 在 Management Science 系统比较词典法与机器学习法的披露情感测量, 为本项目"LLM 三家投票为共识 headline、词典法与 BERT 各自并排互为稳健"的多方法设计提供先例; van Atteveldt, van der Velden 与 Boukes (2021) 则从效度角度比较人工标注、众包、词典与机器学习, 提示词典法在特定语域下的适用边界。据此, exc × negadv × 三轨构成的稳健性列并非独立信号, 而是与主词典语调、LLM 语调、BERT 语调各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同规则消融变体或不同样本口径混进同一 over-identified Hansen J 的过度识别检验。三轨 (full/ctx/ss) 亦遵同一铁律: full=标题 prepend 全文正文, ctx=标题+实体窗口, ss=标题+银行与金科同句共现窗 (ss 无共现时回退镜像 ctx/全文, 与 full-only 留篇门控口径一致), 三轨禁混同一 over-identified Hansen J。 补充的近期方法学证据进一步锚定本族所激活的两条规则与其样本口径。Naldi 与 Petroni (2023) 提出一套基于人工构造测试集的评测方法, 专门度量词典法情感工具对否定的检测与处理能力, 并实证发现各工具在该模块上的表现差异显著; 这为把否定翻转视作词典状态机内可被单独测量、单独失效的模块, 进而单列为一条可独立开关的消融臂, 提供了最贴近的方法学依据。迁移边界须诚实交代: 该文是英文通用领域 (非金融) 的工具评测, 指标为否定检测准确率, 而本族并不评测否定检测是否正确, 只把否定规则的开/关作为银行-年度面板测度的一条稳健性臂, 语料亦为中文金融新闻。转折通道值得与情感词极性分开单列这一构念前提, 由 Venglařová 与 Matlach (2024) 侧面补强: 该文实证显示连词一类功能词在文本类型判别上携带独立于内容词的信息量; 但原文任务为文本类型分类, 并不区分转折连词与其他功能词类, 语料非中文金融新闻, 亦不涉及本族的效价放大与银行-年度聚合, 故仅作构念层旁证, 不构成本族转折加权具体做法的依据。exc_ 口径的现实动机则由 Cziraki 与 Gider (2024) 补充: 该工作论文以报纸停刊为冲击, 实证报道供给退出会改变本地股票的交易行为, 说明媒体退出是真实且有经济后果的样本组成变化。惟须注明, 原文的停刊判定取自外部事件数据并被用于识别冲击, 而本族 ceased_set 是自语料内部推断的疑似退出覆盖保守代理 (confirmed ∪ suspected), 并非严格停刊事实, 用途仅限稳健性子样本; 该文为工作论文, 未经同行评审。
 ## VAR: exc_bian_2021_score_negadv_ctx
 
 【变体差分】
@@ -103,4 +127,7 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
+Naldi, M., & Petroni, S. (2023). A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools. Computers, 12(1), 18. https://doi.org/10.3390/computers12010018
+Venglařová, K., & Matlach, V. (2024). Beyond content: discriminatory power of function words in text type classification. Digital Scholarship in the Humanities, 39(2), 765-789. https://doi.org/10.1093/llc/fqae013
+Cziraki, P., & Gider, J. (2024). Newspaper Closures and Trading in Local Stocks. SSRN No. 5024959 [Working Paper]. https://doi.org/10.2139/ssrn.5024959
 <!-- rendered-citations:end -->

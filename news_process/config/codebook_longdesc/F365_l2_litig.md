@@ -36,6 +36,15 @@ citations:
   title: Dictionary-based textual sentiment and political-word weighting in Chinese financial text
   venue: Review of Finance
   pages_or_artno: n/a
+- doi: "10.1111/ablj.12239"
+  type: "journal"
+  authors: "Tucker, A. M., Xia, Y., & Smelcer, S. N."
+  year: 2024
+  title: "Text, tone, and legal language: Analyzing mutual fund disclosure sentiment"
+  venue: "American Business Law Journal"
+  vol: "61"
+  issue: "1"
+  pages_or_artno: "57-86"
 new_dois: []
 ---
 
@@ -47,8 +56,7 @@ litig_frac 家族衡量一篇报道文本中"诉讼/监管风险"语义词的出
 【方法学与计算】
 计算流程集成在 `pipeline.sentiment.tone_words::_dual_analyze` 内: 该函数对每篇文章的三段候选文本 (content_full / content_ctx / content_ss) 各调用一次 `lm_non_sentiment.py::_compute_lm_non_sentiment_for_text`, 该底层函数本身是 track-agnostic 的纯文本处理函数 (不知道自己在处理哪一轨), 三轨差异完全由调用方喂入哪一段文本决定, 模块本身无需为多轨改动。处理链路为: 先用 jieba (冻结版本 0.42.1, 确定性锚点) 对输入文本分词, 再逐词与 litigious 中文词典做精确匹配计数; 分母并非分词后的全部 token 数, 而是先用 `_LMFLS_NONWORD_RE` 剔除纯数字与标点 token 后剩下的"真词" token 数 (`word_tokens`/`n_tokens`), 命中数除以该真词数得到 litig_frac_{trk}。这一分母口径的历史修正见 `lm_non_sentiment.py` fix(lmfls-01, metric-audit 2026-06-10) 注释: 原实现分母含约 19% 的标点/纯数字 token, 相当于把"蛋糕"做大却没多放"料", 导致 uncert/litig/constr/modal_strong 四个 frac 系统性下偏; 修正后分母只数真正的词, 分子 (命中计数) 本身不受影响 (标点/数字本就不可能命中词典词)。数值域理论上落在 [0,1] 区间且通常远小于 1 (诉讼类措辞在新闻文本中是稀疏事件)。词典本身按语言学规则做过否定翻转/程度副词/转折三项规则的消融处理 (`_RULE_ABLATION_VARIANTS`), 但 litig_frac 是频次占比型测度而非褒贬打分型测度, 不参与该消融梯度 (消融梯度仅作用于情绪极性词典, 不作用于 LM 六个非情绪语用子词典)。三轨文本口径遵循全仓统一定义: full = 标题 + 全文正文 (prepend_title 拼接); ctx = 标题 + 目标银行实体所在句 ±1 句窗口; ss = 标题 + 目标银行∧金科词同句共现窗口 (窗口半径见 `config/filtering.yaml::context_window.ss_sentence_radius`, 默认 1)。当一篇文章不存在银行∧金科同句共现时, content_ss 按镜像 ctx 的回退语义退化为全文 body, 对应 `ss_is_fallback=True`, 此时 litig_frac_ss 是在全文文本上计算而非在真正的共现窗口上计算, 下游聚合到面板层时仍共享同一 n_articles 分母, 不做单独剔除。三轨 (full/ctx/ss) 之间是互为稳健性、不分主次的并排关系: 各轨各自作为一个 just-identified 测度独立进入下游回归, 禁止把 full/ctx/ss 三个版本的 litig_frac 混入同一个 over-identified 的 Hansen J 过度识别检验框架 (三个版本本质是对同一构念的三种文本范围口径, 混用会人为制造工具冗余而非增加识别力度)。
 【文献定位】
-LM 2011 (Loughran & McDonald 2011, Journal of Finance) 是文本情绪与语用词典法在金融/会计文献里的奠基性工作, 首次系统证明通用情绪词典直接套用在正式监管文书上会产生系统性误判, 并按语用功能拆分出包括 litigious 在内的多个专门子词典; 该文原始语料为美国 10-K 年报, 本项目将其移植到中文新闻语境, 是一次跨语言、跨文本类型 (年报 → 新闻报道) 的方法迁移。Loughran & McDonald (2016, Journal of Accounting Research) 是同一研究团队对文本分析方法在会计与金融领域应用的系统性综述, 总结了词典法的适用边界、常见陷阱 (如未做否定翻转导致的方向性误判) 与验证策略, 为本项目在中文语境下沿用词典法并辅以三条语言学规则 (否定/程度/转折) 提供方法学依据。Du et al. (2022, Review of Finance) 讨论的是中文金融文本情绪词典构建中"政治词"类别权重的敏感性问题 (本项目在政治词权重梯度 {0.0, 0.5, 1.0} 上直接沿用其思路), 该文原文针对的是情绪极性词的类别加权而非 litig_frac 这类非情绪语用子词典; 此处引用属于类比性引注而非文献原文结论的直接套用 (原文并未讨论 litigious 子词典的跨语言覆盖度问题) — 类比的落点在于: Du et al. 强调词典类别权重/覆盖度选择需做敏感性披露而非武断取单一值, 这一方法论态度同样应当延伸到理解 litig_frac 在跨语言移植时的效度边界。具体而言, 词典覆盖度、中文法律/监管术语的多样表达 (如"约谈"“责令整改"“立案调查"等非西方法律体系直译词) 未必与英文原始词表逐一对应, 使用者在解读该测度的绝对水平时应保持审慎, 更适合做跨时间/跨样本的相对比较而非绝对阈值判断。
-
+LM 2011 (Loughran & McDonald 2011, Journal of Finance) 是文本情绪与语用词典法在金融/会计文献里的奠基性工作, 首次系统证明通用情绪词典直接套用在正式监管文书上会产生系统性误判, 并按语用功能拆分出包括 litigious 在内的多个专门子词典; 该文原始语料为美国 10-K 年报, 本项目将其移植到中文新闻语境, 是一次跨语言、跨文本类型 (年报 → 新闻报道) 的方法迁移。Loughran & McDonald (2016, Journal of Accounting Research) 是同一研究团队对文本分析方法在会计与金融领域应用的系统性综述, 总结了词典法的适用边界、常见陷阱 (如未做否定翻转导致的方向性误判) 与验证策略, 为本项目在中文语境下沿用词典法并辅以三条语言学规则 (否定/程度/转折) 提供方法学依据。Du et al. (2022, Review of Finance) 讨论的是中文金融文本情绪词典构建中"政治词"类别权重的敏感性问题 (本项目在政治词权重梯度 {0.0, 0.5, 1.0} 上直接沿用其思路), 该文原文针对的是情绪极性词的类别加权而非 litig_frac 这类非情绪语用子词典; 此处引用属于类比性引注而非文献原文结论的直接套用 (原文并未讨论 litigious 子词典的跨语言覆盖度问题) — 类比的落点在于: Du et al. 强调词典类别权重/覆盖度选择需做敏感性披露而非武断取单一值, 这一方法论态度同样应当延伸到理解 litig_frac 在跨语言移植时的效度边界。具体而言, 词典覆盖度、中文法律/监管术语的多样表达 (如"约谈"“责令整改"“立案调查"等非西方法律体系直译词) 未必与英文原始词表逐一对应, 使用者在解读该测度的绝对水平时应保持审慎, 更适合做跨时间/跨样本的相对比较而非绝对阈值判断。 Tucker、Xia 与 Smelcer (2024) 显式分析共同基金披露文本中的法律语言 (legal language) 及其在设定整体披露语调中的作用, 自建定制词典对 164,602 份基金简明招募说明书 (2010–2020) 生成句级与文档级语调分数; 该文为法律语言词表计数可被独立作为一类文本属性来研究提供了近年的存在性证明, 支持本家族把 litig_frac 与情绪极性分离、单列为语用画像一支的做法。迁移边界须诚实标出: 原文语料为英文共同基金披露文件, 其法律语言识别依托英文 LM litigious 表与法律语料, 语调亦未采用对数差分形式, 更无三轨与银行-年聚合结构, 且原文不涉及弱势模态词分析; 本家族则以中文迁移词表在第三方新闻文本上计数, 分母为剔除纯数字与标点后的真词数。故此处仅锚定该测度对象的独立研究价值, 不锚定其词典构造与语调公式。
 ## VAR: litig_frac_full
 
 【变体差分】
@@ -68,4 +76,5 @@ litig_frac_ss 的输入文本 content_ss = 标题 + 目标银行∧金科词同�
 Loughran, Tim; McDonald, Bill. (2011). When Is a Liability Not a Liability? Textual Analysis, Dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Loughran, Tim; McDonald, Bill. (2016). Textual Analysis in Accounting and Finance: A Survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
 Du, Chao; et al. (2022). Dictionary-based textual sentiment and political-word weighting in Chinese financial text. Review of Finance, n/a. https://doi.org/10.1093/rof/rfab036
+Tucker, A. M., Xia, Y., & Smelcer, S. N. (2024). Text, tone, and legal language: Analyzing mutual fund disclosure sentiment. American Business Law Journal, 61(1), 57-86. https://doi.org/10.1111/ablj.12239
 <!-- rendered-citations:end -->

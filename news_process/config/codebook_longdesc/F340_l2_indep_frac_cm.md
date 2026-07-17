@@ -36,6 +36,13 @@ citations:
   venue: China Economic Review
   vol: '93'
   pages_or_artno: Article 102474
+- doi: "10.1080/00036846.2026.2651341"
+  type: "journal"
+  authors: "Sun, J., Liu, M., & Huang, X."
+  year: 2026
+  title: "Technology adoption or independent innovation? Bank competition and SMEs’ incremental innovation strategies"
+  venue: "Applied Economics"
+  pages_or_artno: "1-16"
 new_dois: []
 ---
 
@@ -54,8 +61,7 @@ ss 轨的回退语义镜像 ctx 轨: 当某篇报道中银行与金科关键词�
 分母为 0 (该银行-年在对应轨上无 LLM 分类成功的报道) 时两列均按 `np.where` 规则置 NaN, 而非 0, 以避免"无样本"与"样本存在但自主研发占比恰为 0"两种语义混淆; encode.py 亦为 n_articles_llm_valid_ctx/_ss 缺失整列的极端情形 (上游阶段未产出该轨分类列) 提供 else 分支, 整列置 NaN 并记录 WARNING 日志, 保证下游面板合并不因列缺失而中断。indep_frac_cm_ss 的落盘依赖上游 innovation_collab_mode_ss 分类列的存在性, generate_codebook 仅按 panel.columns 实际存在与否决定是否发射该条目, 缺列时优雅跳过而非报错, 这一模式与家族内其余 _ls/_ss 系列 (locus、substantiveness 维度的 ss 轨对角线) 完全一致。
 
 【文献定位】
-本家族分类判定的理论根基是 Chesbrough (2003) 的开放式创新框架, 该框架区分封闭式 (closed/proprietary) 与开放式 (open/collaborative) 两种创新组织模式, 是管理学与创新经济学文献中区分企业创新来源自主性的经典二元分类依据; Laursen & Salter (2006, SMJ) 进一步以"开放度" (openness) 的搜索广度/深度双维刻画企业外部知识获取行为, 为本家族"自主研发 vs. 外部协同"二分类在实证操作化上提供了先例, 即用离散的信息来源计数或占比来代理企业在创新组织维度上的位置, 而非依赖不可观测的内部研发投入数据。将该分类判定建立在文本挖掘而非问卷/专利数据基础之上, 方法论上借鉴了 Hansen, McMahon & Prat (2018, *Quarterly Journal of Economics*) 用计算语言学方法从会议文本中提取央行决策透明度与审议模式的做法——二者共同的方法论前提是: 组织行为的某些结构性特征 (审议模式、创新组织方式) 可以通过对相关文本的系统性、规则化分类来间接测度, 且该测度可在大样本、跨期面板上规模化复制, 优于依赖问卷或档案数据的传统方法。就"自主性"这一构念本身而言, 公司治理文献中关于独立董事 (independent director) 的研究提供了平行参照: Xia, Zhang, Cao & Xu (2019, *International Review of Economics & Finance*) 与 Zheng (2025, *China Economic Review*) 均在中国资本市场情境下考察治理主体的独立性/自主性如何影响企业行为与合同安排结果, 二者虽考察的是治理结构而非创新组织模式, 但共享"自主性程度可作为可观测占比变量嵌入面板回归"这一实证策略, 为本家族占比型测度在因果识别设计中的使用提供了同类文献支撑。
-
+本家族分类判定的理论根基是 Chesbrough (2003) 的开放式创新框架, 该框架区分封闭式 (closed/proprietary) 与开放式 (open/collaborative) 两种创新组织模式, 是管理学与创新经济学文献中区分企业创新来源自主性的经典二元分类依据; Laursen & Salter (2006, SMJ) 进一步以"开放度" (openness) 的搜索广度/深度双维刻画企业外部知识获取行为, 为本家族"自主研发 vs. 外部协同"二分类在实证操作化上提供了先例, 即用离散的信息来源计数或占比来代理企业在创新组织维度上的位置, 而非依赖不可观测的内部研发投入数据。将该分类判定建立在文本挖掘而非问卷/专利数据基础之上, 方法论上借鉴了 Hansen, McMahon & Prat (2018, *Quarterly Journal of Economics*) 用计算语言学方法从会议文本中提取央行决策透明度与审议模式的做法——二者共同的方法论前提是: 组织行为的某些结构性特征 (审议模式、创新组织方式) 可以通过对相关文本的系统性、规则化分类来间接测度, 且该测度可在大样本、跨期面板上规模化复制, 优于依赖问卷或档案数据的传统方法。就"自主性"这一构念本身而言, 公司治理文献中关于独立董事 (independent director) 的研究提供了平行参照: Xia, Zhang, Cao & Xu (2019, *International Review of Economics & Finance*) 与 Zheng (2025, *China Economic Review*) 均在中国资本市场情境下考察治理主体的独立性/自主性如何影响企业行为与合同安排结果, 二者虽考察的是治理结构而非创新组织模式, 但共享"自主性程度可作为可观测占比变量嵌入面板回归"这一实证策略, 为本家族占比型测度在因果识别设计中的使用提供了同类文献支撑。 在构念出处层面尚可补充一条银行情境下的直接证据: Sun、Liu 与 Huang (2026) 将企业创新策略二分为「技术引进/采纳」与「自主创新」两种互斥模式, 并检验银行竞争对二者间切换的推动作用, 为本家族「自主研发 vs 外部协同」的分类判定提供了银行情境下的直接构念依据。其迁移边界有三: 该文以企业专利与研发投入等结构化指标判定模式归属, 而 indep_frac_cm 与 indep_frac_cm_ss 是 LLM 对 ctx/ss 轨文本判定后再除以同轨有效投票篇数所得的报道占比, 属媒体叙事层测度; 该文主体为中小企业而银行居解释变量侧; 尤须注意该文并无本家族 ctx/ss 对角线双轨的分轨独立分母设计, 故其结论只能锚定二分构念本身, 不可外推至两轨分母口径的差异 —— 在本项目中 ctx 轨与 ss 轨互为稳健性、不分主次, 各自 just-identified 并排, 不得混入同一 over-identified Hansen J。
 ## VAR: indep_frac_cm
 
 【变体差分】
@@ -70,4 +76,5 @@ ss 轨的回退语义镜像 ctx 轨: 当某篇报道中银行与金科关键词�
 Hansen, S., McMahon, M., & Prat, A. (2018). Transparency and deliberation within the FOMC: a computational linguistics approach. The Quarterly Journal of Economics, 133(2), 801-870. https://doi.org/10.1093/qje/qjx045
 Xia, C., Zhang, X., Cao, C., & Xu, N. (2019). Independent director connectedness in China: An examination of the trade credit financing hypothesis. International Review of Economics & Finance, 63, 209-225. https://doi.org/10.1016/j.iref.2018.09.010
 Zheng, Y. (2025). Ownership concentration and independent director effectiveness: Governance challenges under China's new company law. China Economic Review, 93, Article 102474. https://doi.org/10.1016/j.chieco.2025.102474
+Sun, J., Liu, M., & Huang, X. (2026). Technology adoption or independent innovation? Bank competition and SMEs’ incremental innovation strategies. Applied Economics, 1-16. https://doi.org/10.1080/00036846.2026.2651341
 <!-- rendered-citations:end -->

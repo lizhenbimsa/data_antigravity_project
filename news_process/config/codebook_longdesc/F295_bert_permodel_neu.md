@@ -56,6 +56,24 @@ citations:
   title: "FinBERT2: A specialized bidirectional encoder for bridging the gap in finance-specific deployment of large language models"
   venue: "Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2 (KDD '25)"
   pages_or_artno: "5117-5128"
+- doi: "10.1287/mnsc.2022.00261"
+  type: "journal"
+  authors: "Chen, L., & Mankad, S."
+  year: 2025
+  title: "A Structural Topic and Sentiment-Discourse Model for Text Analysis"
+  venue: "Management Science"
+  vol: "71"
+  issue: "7"
+  pages_or_artno: "5767-5787"
+- doi: "10.3982/qe1825"
+  type: "journal"
+  authors: "Ke, S., Montiel Olea, J. L., & Nesbit, J."
+  year: 2024
+  title: "Robust machine learning algorithms for text analysis"
+  venue: "Quantitative Economics"
+  vol: "15"
+  issue: "4"
+  pages_or_artno: "939-970"
 new_dois: []
 ---
 
@@ -74,8 +92,7 @@ new_dois: []
 三轨的既有铁律在本家族同样适用: full/ctx/ss 各自 just-identified 并排, 互为稳健性、不分主次, 禁止把同一构念的三轨版本混入同一 over-identified Hansen J 检验。留篇门控口径遵循 2026-06-29 起的 full-only 规则——一篇报道是否被计入"一篇银行金科报道"只看 `llm_verified_full == True`, ctx/ss 轨的样本行集合是 full 轨留篇集合的子集, 各轨 per-track 独立算列; ss 轨若上游未准备好银行∧金科同句共现窗口 (`content_ss` 回退为全文 body, `ss_is_fallback=True`), 则该篇的 ss 轨 neu 值实质退化为该模型在全文上的推理结果, 与 ctx 轨的回退语义完全镜像——这不是缺陷, 而是三轨架构对"当年没有同句窗口可用"这一常见情形的优雅降级。
 
 【文献定位】
-BERT 类神经网络文本情感分类方法的方法学基础见 Devlin et al. (2019) 提出的双向 Transformer 预训练范式, 以及 Huang, Wang & Yang (2023) 在 *Contemporary Accounting Research* 上验证的金融领域专用 FinBERT 架构——本项目采用的 finbert_cn (yiyanghkust/finbert-tone-chinese) 与 finbert2 均沿此路线针对中文金融语料微调。三条独立情感测量路线 (LLM 投票 / 词典法 / BERT) 互相印证的方法学立场延续了 Huang, Wang & Yang (2023) 在验证 FinBERT 有效性时所强调的跨方法比对精神——该文将 FinBERT 输出与人工标注及传统词典法系统比对以确立效度, 本项目将这一比对逻辑扩展为三条并行路线共同为媒体语调这一核心构念提供互证, 而非仅以单一模型的输出作为最终定论。将文章按"应用场景"与"底层技术"两个分析层次切分的做法呼应 Gomber, Kauffman, Parker & Weber (2018) 在 *Journal of Management Information Systems* 上对金融科技创新的分层框架——该文区分了金融科技的技术使能层与业务应用层, 本项目据此构造 P4 (Gomber locus) treatment 维度, 中性概率的 app/tech 子集均值即是该分层框架在情感测度层面的自然延伸。
-
+BERT 类神经网络文本情感分类方法的方法学基础见 Devlin et al. (2019) 提出的双向 Transformer 预训练范式, 以及 Huang, Wang & Yang (2023) 在 *Contemporary Accounting Research* 上验证的金融领域专用 FinBERT 架构——本项目采用的 finbert_cn (yiyanghkust/finbert-tone-chinese) 与 finbert2 均沿此路线针对中文金融语料微调。三条独立情感测量路线 (LLM 投票 / 词典法 / BERT) 互相印证的方法学立场延续了 Huang, Wang & Yang (2023) 在验证 FinBERT 有效性时所强调的跨方法比对精神——该文将 FinBERT 输出与人工标注及传统词典法系统比对以确立效度, 本项目将这一比对逻辑扩展为三条并行路线共同为媒体语调这一核心构念提供互证, 而非仅以单一模型的输出作为最终定论。将文章按"应用场景"与"底层技术"两个分析层次切分的做法呼应 Gomber, Kauffman, Parker & Weber (2018) 在 *Journal of Management Information Systems* 上对金融科技创新的分层框架——该文区分了金融科技的技术使能层与业务应用层, 本项目据此构造 P4 (Gomber locus) treatment 维度, 中性概率的 app/tech 子集均值即是该分层框架在情感测度层面的自然延伸。 在测度形态的选择上, Chen 与 Mankad (2025) 提出的 STS 结构主题-情感模型引入文档级的连续情感-话语潜变量并允许其被文档级协变量解释, 使篇级情感以连续量而非硬标签进入正式统计推断; 本家族保留篇级 softmax 中性概率再于 bank-year 内取均值、而非仅用 argmax 标签, 与这一以连续情感量为基本单位的前沿做法同向。⚠ 边界: 该文的情感量是贝叶斯生成模型的连续后验潜变量, 与 BERT softmax 的类别概率语义不同, 其模型不设中性类别, 亦不存在篇级概率在实体-期内取均值的聚合步骤 (其用法是潜变量对协变量回归), 语料为评论/话语文本而非中文银行新闻, 故仅为连续概率口径提供一般性佐证, 不构成本族中性概率均值的方法来源。三模型各自 just-identified 并排、不折算为单一 ensemble 的处理, 在方法论立场上可参照 Ke 与 Nesbit (2024): 该文证明 LDA 参数不可识别、文本派生量的后验结论会随先验设定改变, 并给出刻画结论取值区间的算法, 主张把建模者未被数据识别的选择显式化并报告结论在其上的取值范围, 而非只报一个点估计。⚠ 原文研究的是单一 LDA 模型内的先验敏感性, 而非不同分类器之间的模型选择, 未评估任何 BERT 或神经情感分类器, 亦不涉及概率均值口径与中文语料, 故只提供立场层面的支持, 不是本族 per-model 并排的 method-origin。
 ## VAR: fin_sent_zh_neu_app_ctx
 
 【变体差分】
@@ -225,4 +242,6 @@ Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A large language model for e
 Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2019). BERT: Pre-training of deep bidirectional transformers for language understanding. Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics (NAACL-HLT). https://doi.org/10.18653/v1/N19-1423
 Gomber, P., Kauffman, R. J., Parker, C., & Weber, B. W. (2018). On the fintech revolution: Interpreting the forces of innovation, disruption, and transformation in financial services. Journal of Management Information Systems, 35(1), 220-265. https://doi.org/10.1080/07421222.2018.1440766
 Xu, X., Wen, F., Chu, B., Fu, Z., Lin, Q., Liu, J., Fei, B., Li, Y., Zhou, L., & Yang, Z. (2025). FinBERT2: A specialized bidirectional encoder for bridging the gap in finance-specific deployment of large language models. Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2 (KDD '25). https://doi.org/10.1145/3711896.3737219
+Chen, L., & Mankad, S. (2025). A Structural Topic and Sentiment-Discourse Model for Text Analysis. Management Science, 71(7), 5767-5787. https://doi.org/10.1287/mnsc.2022.00261
+Ke, S., Montiel Olea, J. L., & Nesbit, J. (2024). Robust machine learning algorithms for text analysis. Quantitative Economics, 15(4), 939-970. https://doi.org/10.3982/qe1825
 <!-- rendered-citations:end -->

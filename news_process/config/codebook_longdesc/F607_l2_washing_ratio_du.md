@@ -49,6 +49,14 @@ citations:
   vol: "26"
   issue: "3"
   pages_or_artno: "705-723"
+- doi: "10.1016/j.iref.2026.104974"
+  type: "journal"
+  authors: "Li, Y., & Zhu, C."
+  year: 2026
+  title: "Govern digitalization with digitalization: government digital governance and corporate false digital disclosure"
+  venue: "International Review of Economics & Finance"
+  vol: "106"
+  pages_or_artno: "104974"
 new_dois: []
 ---
 
@@ -61,8 +69,7 @@ washing_ratio_du_2022 家族衡量的是"银行金科相关报道中, 被词典�
 计算分两层。第一层是文章级标记(runner.py 步骤 7h 内联构造, 属临时中间列, 不落文章级 parquet), 对每一轨(full/ctx/ss)分别判断 du_2022_score{track} 是否判正(词典打分口径遵循 du_2022 家族自身的正负判定规则, 含政治词权重敏感性口径 polw05 canonical), 再与 innovation_substantiveness_full 的象征性/实质性标签做逻辑与运算, 生成 `_is_du_2022_pos_symb{track}` 与 `_svd_du_2022_pos{track}`(subst-valid denominator, 即"该词典判正且实质性已测量")两组 0/1 指示列——注意这组中间列名带有 du_2022 词典标识前缀, 与方法 A(LLM 投票分支)专用的 `_is_pos_symb{track}`/`_svd_pos{track}` 并非同一列、分子来源也不同(前者锚定 du_2022_score{track} 判正, 后者锚定 is_positive{track} 即 LLM 多数投票判正), 二者互不复用、互不覆写。第二层是面板聚合(export.py 前置的面板构建阶段), 对每个银行-年份单元分别加总 `_is_du_2022_pos_symb{track}` 与 `_svd_du_2022_pos{track}`, 相除得到 washing_ratio_du_2022{track} = Σ(判正∧象征性) / Σ(判正∧已测量)。三轨(full/ctx/ss)口径独立并行: full=标题+正文全文, ctx=标题+银行/金科实体窗口, ss=标题+银行∧金科同句±N窗(config/filtering.yaml::context_window.ss_sentence_radius); 三者严格按 CLAUDE.md 三轨铁律各自 just-identified 并排、互为稳健性不分主次, 绝不可混进同一 over-identified Hansen J 或同一 RHS 回归式。ss 轨若某银行-年份单元内文章无银行∧金科同句共现, 该文章的 content_ss 回退为全文 body(镜像 ctx 的回退语义), ss_is_fallback=True, 但仍共享同一 n_articles 分母, 不改变本家族分子分母的计数逻辑。留篇门控遵循 2026-06-29 起的 full-only 口径: 一篇文章是否算作"一篇有效银行金科报道"只看 llm_verified_full, ctx/ss 轨的 washing_ratio 变体是 conditional-on-full 的测度/稳健性轨, 行宇宙是 full 留篇集的子集; 若 du_2022_score{track} 或 innovation_substantiveness_full 缺测(词典引擎失败或 LLM 分类拒绝作答), 该文章既不进分子也不进分母, 而不是被计为负例, 避免测量失败被误读为"未洗稿"。若某银行-年份单元完全没有满足"词典判正"前置门槛的文章, 分母为零, 比率记为缺失而非 0, 防止零分母除法产生虚假的极端值。
 
 【文献定位】
-本家族的方法论根基有二: 一是 Du, Huang, Wermers & Wu (2022, Review of Finance) 构建的中文金融情感词典, 本家族直接复用其判正判负输出作为测度锚点, 而不是像方法 A 那样依赖 LLM 投票, 目的是在稳健性检验中提供一条不依赖大模型主观判断、完全规则化可复现的平行轨道; 二是企业传播与可持续信息披露文献中"言实分离/漂绿"(greenwashing/washing)的构念传统——Kim & Lyon (2015, Organization Science) 提出的"漂绿 vs. 漂棕"框架区分了企业在环境信息披露上"言过其实"与"讳莫如深"两种偏误方向, 本家族借用其中"言过其实"(正面言辞与实质行动脱节)的核心逻辑, 把分析对象从企业自我披露迁移到第三方新闻报道; Gorovaia & Makrominas (2024, European Financial Management) 运用自然语言处理方法识别企业漂绿信号, 为本家族"用文本挖掘量化言实分离程度"的做法提供了方法学参照; Fan, Tang, Huang & Yang (2025, Pacific-Basin Finance Journal) 从股权集中度与多主体治理视角考察中国资本市场企业漂绿现象的成因, 补充了漂绿构念在公司治理侧的实证证据, 与本家族聚焦文本测度的路径互为补充而非同一方法论谱系。washing_ratio_du_2022 家族与同构念族的 LLM 投票版 washing_ratio、6 词典均值版 washing_ratio_dict、BERT 均值版 washing_ratio_bert、高置信度子样本版 washing_ratio_hc 共同构成"多方法互证"的稳健性矩阵——各方法测的是同一构念的不同操作化实现, 数值不应期望逐一相等, 而应期望方向一致、量级可比。
-
+本家族的方法论根基有二: 一是 Du, Huang, Wermers & Wu (2022, Review of Finance) 构建的中文金融情感词典, 本家族直接复用其判正判负输出作为测度锚点, 而不是像方法 A 那样依赖 LLM 投票, 目的是在稳健性检验中提供一条不依赖大模型主观判断、完全规则化可复现的平行轨道; 二是企业传播与可持续信息披露文献中"言实分离/漂绿"(greenwashing/washing)的构念传统——Kim & Lyon (2015, Organization Science) 提出的"漂绿 vs. 漂棕"框架区分了企业在环境信息披露上"言过其实"与"讳莫如深"两种偏误方向, 本家族借用其中"言过其实"(正面言辞与实质行动脱节)的核心逻辑, 把分析对象从企业自我披露迁移到第三方新闻报道; Gorovaia & Makrominas (2024, European Financial Management) 运用自然语言处理方法识别企业漂绿信号, 为本家族"用文本挖掘量化言实分离程度"的做法提供了方法学参照; Fan, Tang, Huang & Yang (2025, Pacific-Basin Finance Journal) 从股权集中度与多主体治理视角考察中国资本市场企业漂绿现象的成因, 补充了漂绿构念在公司治理侧的实证证据, 与本家族聚焦文本测度的路径互为补充而非同一方法论谱系。washing_ratio_du_2022 家族与同构念族的 LLM 投票版 washing_ratio、6 词典均值版 washing_ratio_dict、BERT 均值版 washing_ratio_bert、高置信度子样本版 washing_ratio_hc 共同构成"多方法互证"的稳健性矩阵——各方法测的是同一构念的不同操作化实现, 数值不应期望逐一相等, 而应期望方向一致、量级可比。 在中文语境下, 该构念的最新前沿测度可进一步补足本家族的存在性依据: Li 与 Zhu (2026) 构造中国企业"虚假数字化披露"(false digital disclosure)测度并检验政府数字治理对其的抑制作用, 其构念内核——数字化叙事强度与实质数字化不匹配——与本家族分子端"词典判正面 ∧ 实质性缺席"的交集定义同义, 为本家族在中国制度背景下的构念可测性提供了同期证据。迁移边界须明示: 该文测度对象为企业年报自我披露文本, 参照系为企业内部数字资产与投入, 观测单位为公司-年; 本家族对象为第三方媒体报道, 实质性由 LLM 逐篇判定而非与财务投入比对, 观测单位为银行-年。该文亦未涉及以中文情感词典分层筛出判正面样本这一环, 故本处只取其构念层锚定, 不作 du_2022 判定器口径的方法学依据。
 ## VAR: washing_ratio_du_2022
 
 【变体差分】
@@ -83,4 +90,5 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Fan, X., Tang, Z., Huang, W., & Yang, K. (2025). Ownership concentration and corporate greenwashing in China's capital markets: Based on a multi-actors perspective. Pacific-Basin Finance Journal, 89, 102600. https://doi.org/10.1016/j.pacfin.2024.102600
 Gorovaia, N., & Makrominas, M. (2024). Identifying greenwashing in corporate-social responsibility reports using natural-language processing. European Financial Management, 31(1), 427-462. https://doi.org/10.1111/eufm.12509
 Kim, E.-H., & Lyon, T. P. (2015). Greenwash vs. brownwash: Exaggeration and undue modesty in corporate sustainability disclosure. Organization Science, 26(3), 705-723. https://doi.org/10.1287/orsc.2014.0949
+Li, Y., & Zhu, C. (2026). Govern digitalization with digitalization: government digital governance and corporate false digital disclosure. International Review of Economics & Finance, 106, 104974. https://doi.org/10.1016/j.iref.2026.104974
 <!-- rendered-citations:end -->

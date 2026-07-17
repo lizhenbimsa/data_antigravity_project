@@ -38,6 +38,14 @@ citations:
   vol: '49'
   issue: '6'
   pages_or_artno: 1173-1193
+- doi: "10.1016/j.pacfin.2024.102493"
+  type: "journal"
+  authors: "Liu, Y., Wang, J., Wen, F., & Wu, C."
+  year: 2024
+  title: "Corporate responses to systemic risk: Talk and action"
+  venue: "Pacific-Basin Finance Journal"
+  vol: "87"
+  pages_or_artno: "102493"
 new_dois: []
 ---
 
@@ -49,8 +57,7 @@ new_dois: []
 【方法学与计算】
 构造分两层。第一层是逐篇二值分类, 由 `_classify_policy_quadrants` 完成: 对给定文本轨道 (full/ctx/ss) 与词频轨道 (Track A=kw, 即 AC 自动机去重命中的金融科技关键词数 `fintech_distinct_keywords`; 本家族固定取 kw 轨, Track B=int 强度分数属另一家族), 先按年度分组分别对政策余弦相似度列 (`policy_cosine_sim_{trk}`) 与关键词频率列在组内取 P25 分位阈值 (`groupby('year').transform(quantile)`), 得到逐年、逐轨的动态阈值 (而非跨年度固定阈值, 以吸收政策议程本身逐年漂移); 再判定单篇是否 `high_freq = freq ≥ 阈值` 且 `high_sim = sim ≥ 阈值`, token 象限取 `high_freq & ~high_sim`。第二层是银行-年聚合: 仅对 sim 与 freq 两列同时非缺失 (measured) 的文章参与分类与均值计算, 缺失行的象限指示置 NaN 而非 False, 使 `groupby(['target_bank','year']).mean()` 的隐式分母恰为该银行该年"已测量"的报道篇数, 而非全体报道篇数——这是 2026-06-11 (fix omni-g-runner-03/g-runner-11) 修复的一处历史缺陷: 旧实现把 `NaN >= 阈值` 判为 False, 使 stage 15 早退产生的全 NaN 相似度年份被误判为"低政策对齐", 连带把全部高词频文章错误计入 Token 象限, 制造了本不存在的伪信号; 修复后未测量的银行-年整体输出 NaN, 与项目 F3 缺失值红线 (Allison 2001; Heckman 1979 提示的样本选择/不可测量应显式标记而非隐式填零) 对齐, 也与本仓一贯的"无数据=未测量"契约一致, 下游面板导出阶段刻意删除了曾经存在的 `fillna(0.0)` 兜底, 因为 0 值在此处具有歧义 (既可能是"确实无关键词/低相似度", 也可能是"该年份根本没有可用相似度测量"), 强填零会向双向固定效应回归注入系统性噪声。此外, 分类前会先经 verified 域 semi-join (24_herd_decay 的 docid/target_bank 键) 过滤, 使象限占比与其余面板测度共享同一"LLM 已验证为真实银行-金科报道"的行宇宙, 但若 verified 键缺失该过滤会优雅降级为在 pre-verification 全集上聚合并记日志告警。
 【文献定位】
-本列族的构念定位介于三条文献线之间: 一是组织理论中的符号管理/脱耦传统, 二是新闻文本量化中的话语-行动分离测量传统, 三是银行数字化转型的实证识别文献。Fiss & Zajac (2006, *Academy of Management Journal*) 确立的框架化-脱耦机制为本列"高词频交叉低政策相似度"这一判定条件提供了组织理论根基: 企业对外话语的框架化强度与其战略实施的实质对齐程度是两条可分离的轴线, 本列族正是用可复算的文本测度 (关键词频率×政策语义相似度) 将这一理论上的可分离性操作化为逐篇二值分类与银行-年占比。Kwan et al. (2024, *Journal of Financial and Quantitative Analysis*) 对银行数字能力的压力测试提示, 仅凭披露话语强度无法可靠代理银行真实的技术资本存量, 支持本列以"话语强度 (关键词频率) 交叉政策语义对齐度"双重条件而非单一词频阈值来界定象征性响应; Fan, Liu, Qian & Wen (2024, *Tax Policy and the Economy*) 在研究金税工程强制性技术采纳时展示了"政策驱动的技术采纳"存在名义合规与实质执行的可分离性, 为本列"高频提及但低政策相似度"这一象限的经济含义 (企业/银行在报道话语层面响应了政策议程但未必真正嵌入政策语义) 提供跨情境的外部佐证。三轨 (full/ctx/ss) 与 P{25,50,75} 分位、Track {kw,int} 词频口径、`_allv` 全年份静态锚点四组维度构成一个完整的规格网格, 本家族仅覆盖 kw 轨 × P25 × full/ctx/ss 三个格点, 其余格点分属兄弟家族, 彼此各自 just-identified 并排、互为稳健性、不分主次, 严禁在同一 over-identified 识别策略 (如 Hansen J 过识别检验) 中同时纳入多个格点作为多重工具或多重内生解释变量的重复来源。
-
+本列族的构念定位介于三条文献线之间: 一是组织理论中的符号管理/脱耦传统, 二是新闻文本量化中的话语-行动分离测量传统, 三是银行数字化转型的实证识别文献。Fiss & Zajac (2006, *Academy of Management Journal*) 确立的框架化-脱耦机制为本列"高词频交叉低政策相似度"这一判定条件提供了组织理论根基: 企业对外话语的框架化强度与其战略实施的实质对齐程度是两条可分离的轴线, 本列族正是用可复算的文本测度 (关键词频率×政策语义相似度) 将这一理论上的可分离性操作化为逐篇二值分类与银行-年占比。Kwan et al. (2024, *Journal of Financial and Quantitative Analysis*) 对银行数字能力的压力测试提示, 仅凭披露话语强度无法可靠代理银行真实的技术资本存量, 支持本列以"话语强度 (关键词频率) 交叉政策语义对齐度"双重条件而非单一词频阈值来界定象征性响应; Fan, Liu, Qian & Wen (2024, *Tax Policy and the Economy*) 在研究金税工程强制性技术采纳时展示了"政策驱动的技术采纳"存在名义合规与实质执行的可分离性, 为本列"高频提及但低政策相似度"这一象限的经济含义 (企业/银行在报道话语层面响应了政策议程但未必真正嵌入政策语义) 提供跨情境的外部佐证。三轨 (full/ctx/ss) 与 P{25,50,75} 分位、Track {kw,int} 词频口径、`_allv` 全年份静态锚点四组维度构成一个完整的规格网格, 本家族仅覆盖 kw 轨 × P25 × full/ctx/ss 三个格点, 其余格点分属兄弟家族, 彼此各自 just-identified 并排、互为稳健性、不分主次, 严禁在同一 over-identified 识别策略 (如 Hansen J 过识别检验) 中同时纳入多个格点作为多重工具或多重内生解释变量的重复来源。 在测度族的更一般层面上, Liu、Wang、Wen 与 Wu (2024, *Pacific-Basin Finance Journal*) 把企业对系统性风险的回应显式拆为 talk (文本表述强度) 与 action (实际举措) 两条可分别测量的维度并检验二者关系, 与本列族以"关键词词频高低"×"政策语义对齐高低"交叉切出 token 象限同属"言—行两维并置"的测度传统, 支持将话语强度与实质对齐视作需分开测量再交叉的两轴而非单一连续量。迁移边界须诚实标注: 该文考察的是企业层面对系统性风险的回应而非银行金融科技采纳, 其 talk 取自公司披露文本、action 取自财务与公司行为代理, 属跨数据源的言行对照; 本列两维则同出于新闻报道文本 (关键词频率 vs 政策余弦相似度), 缺少独立于文本的行动侧证据, 且该文不含年度分位阈值梯子与 bank-year 篇均占比聚合。因此它只为本列的两维交叉构造思路提供同族旁证, 不构成 P25 阈值取值、measured 分母口径或三轨并排安排的直接依据。
 ## VAR: token_adopt_kw_p25
 
 【变体差分】
@@ -70,6 +77,7 @@ new_dois: []
 Kwan, A., Lin, C., Pursiainen, V., & Tai, M. (2024). Stress testing banks' digital capabilities: Evidence from the COVID-19 pandemic. Journal of Financial and Quantitative Analysis, 59(6), 2618-2646. https://doi.org/10.1017/S0022109023000662
 Fan, H., Liu, Y., Qian, N., & Wen, J. (2024). Technological adoption and taxation: The case of China's Golden Tax reform. Tax Policy and the Economy, 38, 101-122. https://doi.org/10.1086/730053
 Fiss, P. C., & Zajac, E. J. (2006). The symbolic management of strategic change: Sensegiving via framing and decoupling. Academy of Management Journal, 49(6), 1173-1193. https://doi.org/10.5465/amj.2006.23478255
+Liu, Y., Wang, J., Wen, F., & Wu, C. (2024). Corporate responses to systemic risk: Talk and action. Pacific-Basin Finance Journal, 87, 102493. https://doi.org/10.1016/j.pacfin.2024.102493
 <!-- rendered-citations:end -->
 </content>
 </invoke>

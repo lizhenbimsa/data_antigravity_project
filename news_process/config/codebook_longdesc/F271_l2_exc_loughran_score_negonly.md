@@ -76,6 +76,22 @@ citations:
   vol: 66
   issue: 1
   pages_or_artno: 35-65
+- doi: "10.3390/computers12010018"
+  type: "journal"
+  authors: "Naldi, M., & Petroni, S."
+  year: 2023
+  title: "A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools"
+  venue: "Computers"
+  vol: "12"
+  issue: "1"
+  pages_or_artno: "18"
+- doi: "10.18653/v1/2025.emnlp-main.1088"
+  type: "journal"
+  authors: "Kim, J., Koo, S., & Lim, H."
+  year: 2025
+  title: "Semantic Inversion, Identical Replies: Revisiting Negation Blindness in Large Language Models"
+  venue: "Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing"
+  pages_or_artno: "21445-21482"
 new_dois: []
 ---
 
@@ -92,8 +108,7 @@ new_dois: []
 三轨、negonly 消融变体、以及"含全部媒体 vs 剔停刊"两个媒体口径, 都是各自 just-identified 并排的稳健性臂: 它们互为稳健性、不分主次, 严禁混进同一 over-identified 的 Hansen J 过度识别检验 (混轨/混消融变体/混媒体口径进同一 GMM 会伪造正交矩)。留篇门控遵循 full-only 口径 (2026-06-29): 一篇报道是否计入银行金科报道宇宙只由 full 轨的 LLM 判定决定, ctx 与 ss 降为 conditional-on-full 的测度/稳健性轨, 其行宇宙是 full 留篇集的子集, 但 per-track 词典得分仍逐轨独立计算。ss 轨的回退语义镜像 ctx: 当某文章无银行与金科同句共现时, content_ss 退回全文正文, ss_is_fallback 记 True。
 
 【文献定位】
-词典法情感测度的方法论基石是 Loughran & McDonald (2011), 该文在 The Journal of Finance 上论证通用心理学词典 (如 Harvard-IV) 在金融文本上系统误判, 提出领域专用金融词表, 本项目 loughran 前缀正是其中文移植。Loughran & McDonald (2016) 在 Journal of Accounting Research 的综述进一步指出词典构造与解析规则选择 (含否定、加权) 会实质影响读数, 为本族的规则消融敏感性提供直接依据。Loughran & McDonald (2024) 在 Journal of Financial and Quantitative Analysis 延续这一测量学传统, 说明文本派生指标须对构造选择做透明的稳健性披露。否定处理这一具体环节, Pröllochs 等 (2016) 在 Decision Support Systems 上以新闻驱动交易为背景系统检验了否定范围检测对情感极性的影响, 正是 negonly 臂隔离否定规则的文献支撑。词典法与机器学习法的相对效度与互为稳健地位, Frankel 等 (2022) 在 Management Science 上做了系统比较, 支持本项目三方法 (LLM/词典/BERT) 各自并排、互不从属的稳健性设计; van Atteveldt 等 (2021) 则从人工标注、众包、词典、机器学习四路对比给出效度基准。中文金融语境的领域特异性由 Du 等 (2022) 在 Review of Finance 上确立, 提示英文词典移植须警惕跨语言语义漂移, 这也是本项目并列六部中文词典而非单一移植的动因。
-
+词典法情感测度的方法论基石是 Loughran & McDonald (2011), 该文在 The Journal of Finance 上论证通用心理学词典 (如 Harvard-IV) 在金融文本上系统误判, 提出领域专用金融词表, 本项目 loughran 前缀正是其中文移植。Loughran & McDonald (2016) 在 Journal of Accounting Research 的综述进一步指出词典构造与解析规则选择 (含否定、加权) 会实质影响读数, 为本族的规则消融敏感性提供直接依据。Loughran & McDonald (2024) 在 Journal of Financial and Quantitative Analysis 延续这一测量学传统, 说明文本派生指标须对构造选择做透明的稳健性披露。否定处理这一具体环节, Pröllochs 等 (2016) 在 Decision Support Systems 上以新闻驱动交易为背景系统检验了否定范围检测对情感极性的影响, 正是 negonly 臂隔离否定规则的文献支撑。词典法与机器学习法的相对效度与互为稳健地位, Frankel 等 (2022) 在 Management Science 上做了系统比较, 支持本项目三方法 (LLM/词典/BERT) 各自并排、互不从属的稳健性设计; van Atteveldt 等 (2021) 则从人工标注、众包、词典、机器学习四路对比给出效度基准。中文金融语境的领域特异性由 Du 等 (2022) 在 Review of Finance 上确立, 提示英文词典移植须警惕跨语言语义漂移, 这也是本项目并列六部中文词典而非单一移植的动因。 否定处理这一模块本身在词典法内部可被单独测量、单独失效, Naldi 与 Petroni (2023) 提供了最贴近本族的方法学锚: 该文以人工构造测试集专门评估多款词典法情感工具对否定的检测与处理能力, 实证发现各工具表现差异显著; 惟其语料为英文通用领域 (非金融), 所度量的是否定检测准确率, 而本族并不做准确率评测, 只把否定规则的开与关物化为面板测度上并排的稳健性臂, 二者在「否定是可独立评估的模块」这一层相通。更宽的构念背景上, Kim、Koo 与 Lim (2025) 提出并验证「查询否定盲区」: 当模型对肯定式查询掌握准确时, 其对语义被否定翻转的同一查询仍产出相同或近似回答, 表明否定至今仍是 NLP 系统中一条独立且未获解决的语义处理轴, 为把否定单列为一条可独立开关、独立报告的规则提供动机。须严格限定的是, 该文为英文 NLP 基准评测, 对象是生成式大语言模型的知识问答与逻辑推理, 既不涉及情感/语调测度, 也不涉及词典状态机与中文否定词表; 本项目的否定翻转是状态机内对否定作用域内命中词的确定性改号, 其「是否正确处理」并不构成问题, 故该文仅作构念层背景动机, 词典法否定处理的直接证据仍以 Naldi 与 Petroni (2023) 与 Pröllochs 等 (2016) 为准。
 ## VAR: exc_loughran_score_negonly_ctx
 
 【变体差分】
@@ -117,4 +132,6 @@ van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validit
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
+Naldi, M., & Petroni, S. (2023). A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools. Computers, 12(1), 18. https://doi.org/10.3390/computers12010018
+Kim, J., Koo, S., & Lim, H. (2025). Semantic Inversion, Identical Replies: Revisiting Negation Blindness in Large Language Models. Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing, 21445-21482. https://doi.org/10.18653/v1/2025.emnlp-main.1088
 <!-- rendered-citations:end -->

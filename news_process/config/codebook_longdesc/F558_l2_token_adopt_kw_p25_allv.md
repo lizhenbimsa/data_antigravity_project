@@ -56,6 +56,13 @@ citations:
   vol: "7"
   issue: "3"
   pages_or_artno: "033054"
+- doi: "10.1108/cms-01-2025-0009"
+  type: "journal"
+  authors: "Chen, F., Wang, W., & Xu, M."
+  year: 2026
+  title: "Symbolic versus substantive compliance from a dual legitimacy perspective: evidence from Chinese firms’ overseas violations"
+  venue: "Chinese Management Studies"
+  pages_or_artno: "1-29"
 new_dois: []
 ---
 
@@ -68,8 +75,7 @@ new_dois: []
 `_classify_policy_quadrants(df_align, sim_col, freq_col, pct)` 对每年 (`groupby('year')`) 分别对 `sim_col`、`freq_col` 取 `quantile(pct/100)` 作为该年阈值 (`transform`, 逐行广播回原表), 再逐篇布尔判定 `high_freq = freq ≥ 年度阈值`、`high_sim = sim ≥ 年度阈值`, `token = high_freq & ~high_sim`。2026-06-11 的 fix(omni-g-runner-03/g-runner-11) 修正了一处历史缺陷: 旧实现在 `sim`/`freq` 缺失 (`NaN`) 时把 `NaN >= thresh` 隐式当作 `False`, 导致 stage 15 三条优雅早退路径写出的全 `NaN` `policy_cosine_sim` 会让全部高词频文章被误判为 Token (零测量被静默伪造成非缺失的面板值)。修正后先算 `measured = sim.notna() & freq.notna()` 掩码, 用 `.where(measured)` 把未测量行显式置 `NaN`, 使 `groupby(...).mean()` 聚合到 bank-year 时自动跳过未测量文章——占比分母是"该年已测量的文章数"而非全部文章数, 与本项目"无数据=未测量(NaN), 而非伪零"的既定契约一致 (同一契约亦见于 `_gated_log_sent`、`jf_coefficient`、`concern_score` 等姊妹测度)。聚合前还先经 `_filter_to_verified_universe` 做 semi-join 过滤 (与 stage 24 `herd_decay` 交集), 确保象限占比只在"已通过留篇门控 (full-only, 2026-06-29)"的文章域上计算——ctx/ss 两轨同样承接 full 轨确定的行宇宙, 不各自独立留篇。年度分位阈值随年份浮动 (每年各自取该年内的 p25), 因此该占比刻画的是银行相对同年同业的"符号化采纳倾向"排位, 而非绝对词频/相似度水平的跨年可比刻度; 分位阈值取 p25 (而非中位数 p50) 意味着"高词频"门槛相对宽松、"低相似度"门槛也相对宽松, 该占比因而对处于分布中段的报道较敏感。
 
 【文献定位】
-该测度所刻画的"话语层面的科技采纳信号与政策实质内容脱耦"这一构念, 呼应银行数字化能力测度与危机压力情境下真实 vs. 表面数字化程度之辨析——Kwan et al. (2024, *Journal of Financial and Quantitative Analysis*) 在压力测试银行数字化能力时同样强调, 仅凭话语或投入规模无法准确反映实质数字化能力, 需要构造能区分"名义投入"与"实际能力"的度量, 这与本测度用双重分位阈值分离"词频高企"与"语义对齐"的思路一脉相承。技术采纳的度量本身在实证文献中也需谨慎处理测量误差与异质性, Fan et al. (2024, *Tax Policy and the Economy*) 在研究金税改革驱动的技术采纳时同样面对"报告/申报行为"与"实质技术使用"的分离问题, 为本测度将"提及"与"对齐"拆分为两个独立可测维度提供了方法论上的平行参照。`kw` 词频轨的构造 (对每篇文章统计 AC 自动机去重命中的金科关键词类型数, 即 distinct keyword count, 本质是一个"类型计数"而非"标记计数") 在方法论谱系上与语料语言学中的型例比 (type-token ratio, TTR) 及其改进指标一脉相承: Covington & McFall (2010) 提出移动平均型例比 (MATTR) 以修正长度依赖偏误, Bestgen (2025) 对 MATTR 的优劣做了系统评估, Rosillo-Rodes et al. (2025) 则在千兆词语料上用熵与型例比联合刻画词汇多样性——三者共同的方法论要点 (基于窗口/分位的相对阈值优于绝对计数阈值, 以规避语料规模/长度对计数型指标的机械偏误) 支持了本测度选择"年度分位数"而非"绝对词数阈值"作为高/低词频判据的设计取舍。
-
+该测度所刻画的"话语层面的科技采纳信号与政策实质内容脱耦"这一构念, 呼应银行数字化能力测度与危机压力情境下真实 vs. 表面数字化程度之辨析——Kwan et al. (2024, *Journal of Financial and Quantitative Analysis*) 在压力测试银行数字化能力时同样强调, 仅凭话语或投入规模无法准确反映实质数字化能力, 需要构造能区分"名义投入"与"实际能力"的度量, 这与本测度用双重分位阈值分离"词频高企"与"语义对齐"的思路一脉相承。技术采纳的度量本身在实证文献中也需谨慎处理测量误差与异质性, Fan et al. (2024, *Tax Policy and the Economy*) 在研究金税改革驱动的技术采纳时同样面对"报告/申报行为"与"实质技术使用"的分离问题, 为本测度将"提及"与"对齐"拆分为两个独立可测维度提供了方法论上的平行参照。`kw` 词频轨的构造 (对每篇文章统计 AC 自动机去重命中的金科关键词类型数, 即 distinct keyword count, 本质是一个"类型计数"而非"标记计数") 在方法论谱系上与语料语言学中的型例比 (type-token ratio, TTR) 及其改进指标一脉相承: Covington & McFall (2010) 提出移动平均型例比 (MATTR) 以修正长度依赖偏误, Bestgen (2025) 对 MATTR 的优劣做了系统评估, Rosillo-Rodes et al. (2025) 则在千兆词语料上用熵与型例比联合刻画词汇多样性——三者共同的方法论要点 (基于窗口/分位的相对阈值优于绝对计数阈值, 以规避语料规模/长度对计数型指标的机械偏误) 支持了本测度选择"年度分位数"而非"绝对词数阈值"作为高/低词频判据的设计取舍。 至于"象征式回应"这一构念在中国制度环境中是否成立, Chen、Wang 与 Xu (2026) 以双重合法性视角、在 2009-2022 年中国上市公司海外违规样本上用分层回归与 bootstrap 区分了「象征性合规」与「实质性合规」, 为本测度 token 象限 (高声量提及、低政策语义对齐) 所依托的象征/实质二分提供了一个中国语境下的近期锚点。须强调该锚点的适用范围仅限 token 格及与之对举的实质格: 原文并未刻画"实质落实但低声量"的静默型态, 故对本桶 hidden 象限并无对应物, 不得据以为其背书。迁移边界亦清楚: 原文主体是企业违规后的合规回应而非银行, 场域非金融科技, 其象征/实质由公司公告与整改行为界定, 不涉及文本相似度、词频强度或年度分位阈值, 观测层级为企业-事件, 与本列银行-年篇均占比的口径不同。
 ## VAR: token_adopt_kw_p25_allv
 
 【变体差分】
@@ -91,4 +97,5 @@ Fan, H., Liu, Y., Qian, N., & Wen, J. (2024). Technological adoption and taxatio
 Covington, M. A., & McFall, J. D. (2010). Cutting the Gordian knot: The moving-average type-token ratio (MATTR). Journal of Quantitative Linguistics, 17(2), 94-100. https://doi.org/10.1080/09296171003643098
 Bestgen, Y. (2025). Estimating lexical diversity using the moving average type-token ratio (MATTR): Pros and cons. Research Methods in Applied Linguistics, 4(1), 100168. https://doi.org/10.1016/j.rmal.2024.100168
 Rosillo-Rodes, P., San Miguel, M., & Sánchez, D. (2025). Entropy and type-token ratio in gigaword corpora. Physical Review Research, 7(3), 033054. https://doi.org/10.1103/rxxz-lk3n
+Chen, F., Wang, W., & Xu, M. (2026). Symbolic versus substantive compliance from a dual legitimacy perspective: evidence from Chinese firms’ overseas violations. Chinese Management Studies, 1-29. https://doi.org/10.1108/cms-01-2025-0009
 <!-- rendered-citations:end -->

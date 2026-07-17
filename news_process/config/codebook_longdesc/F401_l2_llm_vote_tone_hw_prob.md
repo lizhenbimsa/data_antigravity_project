@@ -49,6 +49,13 @@ citations:
   title: Validating large language model annotations
   venue: Federal Reserve Board FEDS Working Paper
   vol: '2026-020'
+- doi: "10.18653/v1/2023.emnlp-main.330"
+  type: "journal"
+  authors: "Tian, K., Mitchell, E., Zhou, A., Sharma, A., Rafailov, R., Yao, H., Finn, C., & Manning, C."
+  year: 2023
+  title: "Just Ask for Calibration: Strategies for Eliciting Calibrated Confidence Scores from Language Models Fine-Tuned with Human Feedback"
+  venue: "Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing"
+  pages_or_artno: "5433-5442"
 new_dois: []
 ---
 
@@ -66,8 +73,7 @@ herd-decay 权重的经济学直觉是: 银行—金科舆论存在"羊群效应
 `_ss` 轨的回退语义镜像 `_ctx`: 当某篇文章没有银行∧金科词同句共现时, `content_ss` 退化为全文正文 (`ss_is_fallback=True`), 该篇文章仍参与 `_ss` 轨的语调计算, 但使用的文本窗口实质等同全文轨; 若上游 `FINTECH_AC` 词典对象为 `None`, 则 `_is_fallback` 列全体置 True, 三轨优雅降级为等价的全文计算而非报错清空。
 
 【文献定位】
-本族聚合体系呼应 de Kok (2025, *Management Science*) 对生成式 LLM 用于会计/金融文本分析的方法论规范: 温度固定为 0、prompt 版本冻结、结果可离线复现缓存, 与本仓库 stage 21 的确定性锚点设计 (prompt v8 字节级冻结、`NEWS_PROCESS_LLM_OFFLINE=1` 离线可复现) 同源。三家 LLM 并排投票而非单一模型专断的设计, 对应 Kamen & Kamen (2025) 关于"LLM 集成 (ensemble) 优于单模型"的多数票聚合思路; 三家互为稳健性、不设主次的定位, 又与 Hansen (2026, FEDS WP) 在无金标准场景下用一致性指标 (κ/α) 验证 LLM 标注质量的思路呼应 — 本仓库对应的多模型一致性度量 (Krippendorff's α、Cohen's κ) 在 `tone_validation.py` 落地。概率化 (prob) 相对离散投票 (vote) 的取舍, 承接文本情感测量三角中"词典法 vs 机器学习法"关于信息颗粒度的经典对比 (Frankel, Jennings & Lee, 2022, *Management Science*): 保留连续概率而非坍缩为三分类标签, 让下游回归可以捕捉语调强度而非仅方向。herd-decay 加权对拥挤报道的降权处理, 延续 Du et al. (2022, *Review of Finance*) 关于中文金融情感测度需针对中国媒体语境做定制化权重设计的方法论精神 (该文也是本仓库政治词权重敏感性设计的原始出处)。
-
+本族聚合体系呼应 de Kok (2025, *Management Science*) 对生成式 LLM 用于会计/金融文本分析的方法论规范: 温度固定为 0、prompt 版本冻结、结果可离线复现缓存, 与本仓库 stage 21 的确定性锚点设计 (prompt v8 字节级冻结、`NEWS_PROCESS_LLM_OFFLINE=1` 离线可复现) 同源。三家 LLM 并排投票而非单一模型专断的设计, 对应 Kamen & Kamen (2025) 关于"LLM 集成 (ensemble) 优于单模型"的多数票聚合思路; 三家互为稳健性、不设主次的定位, 又与 Hansen (2026, FEDS WP) 在无金标准场景下用一致性指标 (κ/α) 验证 LLM 标注质量的思路呼应 — 本仓库对应的多模型一致性度量 (Krippendorff's α、Cohen's κ) 在 `tone_validation.py` 落地。概率化 (prob) 相对离散投票 (vote) 的取舍, 承接文本情感测量三角中"词典法 vs 机器学习法"关于信息颗粒度的经典对比 (Frankel, Jennings & Lee, 2022, *Management Science*): 保留连续概率而非坍缩为三分类标签, 让下游回归可以捕捉语调强度而非仅方向。herd-decay 加权对拥挤报道的降权处理, 延续 Du et al. (2022, *Review of Finance*) 关于中文金融情感测度需针对中国媒体语境做定制化权重设计的方法论精神 (该文也是本仓库政治词权重敏感性设计的原始出处)。 本族分子 llm_prob_score_hw_sum 直接取自三家 LLM 的自报 confidence 字段经 Logit-to-Score 映射所得的概率分, 这一取数方式的实证依据是 Tian 等 (2023): 该文证明对经 RLHF 微调的模型, 直接以自然语言向模型索要口头概率所得的置信度, 比读取模型内部 logit 条件概率更为校准, 支持在仅可访问输出的商用模型上以 prompt 索取 confidence 并将其当作概率量送入打分函数。迁移边界须如实交代: 原文在英文事实型 QA 数据集上度量 ECE, 模型为 2023 年的 GPT-3.5/GPT-4 代次, 而本族语料为中文银行金科新闻的情感三分类, 既未在本项目语料上复测 ECE, 亦未验证该校准优势能否迁移到 deepseekv4/gemini31 两家非 OpenAI 模型; 原文更不涉及跨模型投票、herd-decay 加权求和与 bank-year 面板聚合, 故由 confidence 到 llm_prob_score 的最大熵均分式映射及其加权分母口径仍属研究者选择, 非原文验证过的配置。
 ## VAR: llm_vote_tone_hw_prob_ctx
 
 【变体差分】
@@ -93,5 +99,6 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Kamen, A., & Kamen, Y. (2025). Majority rules: LLM ensemble is a winning approach for content categorization. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2511.15714
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Hansen, A. L. (2026). Validating large language model annotations. Federal Reserve Board FEDS Working Paper [Working Paper]. https://doi.org/10.17016/FEDS.2026.020
+Tian, K., Mitchell, E., Zhou, A., Sharma, A., Rafailov, R., Yao, H., Finn, C., & Manning, C. (2023). Just Ask for Calibration: Strategies for Eliciting Calibrated Confidence Scores from Language Models Fine-Tuned with Human Feedback. Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing, 5433-5442. https://doi.org/10.18653/v1/2023.emnlp-main.330
 <!-- rendered-citations:end -->
 </content>

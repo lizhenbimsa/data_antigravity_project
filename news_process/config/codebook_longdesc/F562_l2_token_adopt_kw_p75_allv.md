@@ -37,6 +37,23 @@ citations:
   venue: Tax Policy and the Economy
   vol: '38'
   pages_or_artno: 101-122
+- doi: "10.1016/j.gfj.2026.101305"
+  type: "journal"
+  authors: "Ge, X., & Luo, Q."
+  year: 2026
+  title: "Greenwashing in green mutual funds: Symbolic ESG vs. substantive carbon emissions"
+  venue: "Global Finance Journal"
+  vol: "72"
+  pages_or_artno: "101305"
+- doi: "10.1017/s147474722400009x"
+  type: "journal"
+  authors: "Bauer, R., Broeders, D., & van Ool, A."
+  year: 2025
+  title: "Walk the green talk? A textual analysis of pension funds' disclosures of sustainable investing"
+  venue: "Journal of Pension Economics and Finance"
+  vol: "24"
+  issue: "2"
+  pages_or_artno: "297-325"
 new_dois: []
 ---
 
@@ -49,8 +66,9 @@ new_dois: []
 象限阈值不是单一固定切点, 而是一条稳健性阶梯: 生产口径同时物化 P25/P50/P75 三档百分位阈值 (家族基名 token_adopt_kw_p{25,50,75}), 阈值取自 sim 分布与 freq 分布各自的样本百分位数, 三档阈值各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified 设定 (镜像政治词权重梯子/词典消融梯子先例)。本家族固定在 P75 一档: 相似度与关键词计数两个维度都以第 75 百分位为"高/低"切点, 是该阶梯里门槛最严格的一档 (进入"高"区间需要排在语料前 25% 分位之外)。`_allv` 后缀标记锚点变体: 与不带 `_allv` 的姊妹列 (token_adopt_kw_p75) 相比, 本列的相似度分子不取逐年滚动重估的 policy_cosine_sim, 而取全年份静态锚点 policy_cosine_sim_allv (2026-06-21 引入的全语料稳健孪生, 消除锚点随年份漂移带来的跨年不可比问题); 两个锚点变体 (vintage / _allv) 同样各自 just-identified 并排, 不设主次。计算前置一道 NaN 安全掩码: 仅当 sim 与 freq 双双非缺失的文章才参与象限分类, 未测量的文章 (如 stage 15 优雅早退产生的全 NaN policy_cosine_sim) 不会被静默误判进任一象限, 而是从分类分母中剔除 (分母 = 该银行-年内 sim/freq 双观测的文章数), 避免测量失败被错误折算成"低对齐"或"低采纳"的伪证据。文章级二元命中结果按银行-年取均值, 得到该银行-年报道语料中落入 Token Adoption 象限的文章占比, 值域 [0,1], 亦可读作"象征性响应强度"。三轨版本 (无后缀/_ctx/_ss) 见下方各 VAR 节。
 
 【文献定位】
-该象限构念定位在文本分析与组织采纳/合规响应文献的交叉处: 一方面继承 Distel et al. (2026) 的语义-政策对齐方法论作为纵深维度, 另一方面把关键词表层密度 (对应更传统的词典法/关键词法信号) 作为正交的第二维度, 二者交叉切分而非相互替代, 从而把"文本提及"与"文本对齐"两种常被混为一谈的信号显式分离。这一设计呼应 Kwan et al. (2024, JFQA) 在银行数字化压力测试文献中揭示的"能力声称"与"能力实证"之间的鸿沟——本象限体系提供了一个基于公开报道文本、无需依赖银行自我披露的替代性识别策略, 用以刻画银行政策响应的真实性梯度而非仅仅其发声频率, Token Adoption 一格 (高关键词表层密度、低语义对齐) 正对应"声称多于实证"的那一端。Fan et al. (2024) 在中国金税改革情境下考察企业"技术采纳"的表层合规与实质落地之间的分离——企业可以在报表/流程层面完成形式上的技术接入却未真正改变实质经营行为, 这一"表态先行、语义/实质空转"的现象与 Token Adoption 象限"高表层符号密度、低深层语义对齐"的构念方向直接对应, 为本象限体系提供跨情境的构念效度佐证; 需明确该文献研究的是税收征管情境下的技术合规行为而非银行金科报道文本, 佐证限于"表态-落地分离"这一一般性机制类比, 不构成同一实证设定的直接检验。阈值梯度设计 (P25/P50/P75) 采用不依赖单一任意切点的多档并排稳健性检验思路, 这一"不把结论押在单一设定上"的方法论取向与计量文献中对估计量在多种规格设定下做系统性稳健性复核的一般实践相通 (参见 Kwon, Yoon & Yotov 2025, JBES, 该文虽处理的是广义 Poisson-PML 估计量而非文本阈值梯子, 但其对"结论不应依赖单一规格选择"的验证逻辑可类比迁移到本家族的百分位阶梯设计上, 此处引用取其方法论一般性而非实证内容直接对应)。
+该象限构念定位在文本分析与组织采纳/合规响应文献的交叉处: 一方面继承 Distel et al. (2026) 的语义-政策对齐方法论作为纵深维度, 另一方面把关键词表层密度 (对应更传统的词典法/关键词法信号) 作为正交的第二维度, 二者交叉切分而非相互替代, 从而把"文本提及"与"文本对齐"两种常被混为一谈的信号显式分离。这一设计呼应 Kwan et al. (2024, JFQA) 在银行数字化压力测试文献中揭示的"能力声称"与"能力实证"之间的鸿沟——本象限体系提供了一个基于公开报道文本、无需依赖银行自我披露的替代性识别策略, 用以刻画银行政策响应的真实性梯度而非仅仅其发声频率, Token Adoption 一格 (高关键词表层密度、低语义对齐) 正对应"声称多于实证"的那一端。Fan et al. (2024) 在中国金税改革情境下考察企业"技术采纳"的表层合规与实质落地之间的分离——企业可以在报表/流程层面完成形式上的技术接入却未真正改变实质经营行为, 这一"表态先行、语义/实质空转"的现象与 Token Adoption 象限"高表层符号密度、低深层语义对齐"的构念方向直接对应, 为本象限体系提供跨情境的构念效度佐证; 需明确该文献研究的是税收征管情境下的技术合规行为而非银行金科报道文本, 佐证限于"表态-落地分离"这一一般性机制类比, 不构成同一实证设定的直接检验。阈值梯度设计 (P25/P50/P75) 采用不依赖单一任意切点的多档并排稳健性检验思路, 这一"不把结论押在单一设定上"的方法论取向与计量文献中对估计量在多种规格设定下做系统性稳健性复核的一般实践相通 (参见 Kwon, Yoon & Yotov 2025, JBES, 该文虽处理的是广义 Poisson-PML 估计量而非文本阈值梯子, 但其对"结论不应依赖单一规格选择"的验证逻辑可类比迁移到本家族的百分位阶梯设计上, 此处引用取其方法论一般性而非实证内容直接对应)。 同一测度族的 2026 年前沿证据来自 Ge 与 Luo (2026): 该文把绿色共同基金的「象征性 ESG (声明/评级层面)」与「实质性碳排放 (真实结果层面)」分别测量后交叉比对以识别洗绿, 其「象征维高而实质维低即判为名不副实」的识别逻辑与本家族 Token Adoption 一格 (表层符号密度高、语义对齐低) 同构。迁移边界: 原文对象为绿色共同基金、层级为基金-期, 象征维用 ESG 声明/评级、实质维用组合碳排放, 两维均非文本测度, 亦不用年度分位阈值把两维二值化成 2×2 象限, 故其佐证限于象限识别逻辑的构念效度, 不涉及本家族的阈值阶梯与文本口径。
 
+与本家族「两维皆在文本内」的设计更贴近的是 Bauer 与 Broeders (2025): 该文用 NLP 文本分析对荷兰养老金年报披露同时构造「意识 (awareness, 声量维)」与「落实 (implementation, 具体性/实质维)」两个均取自同一披露文本的测度, 并发现签署可持续投资倡议提升了表述具体性却对 implementation 无效, 表明同源文本内的声量维与实质维确可分离出经济上有意义的差异。它锚定的正是本家族「不依赖外部行为数据、在同一文本内并置声量与对齐两维再交叉分类」这一环; 迁移边界在于原文分析的是机构自述文本而非第三方新闻报道, 实质维为披露具体性而非政策锚点余弦相似度, 且不做分位二值化、无 2×2 象限与面板聚合口径, 故其不能被读作对本项目 _allv 静态锚点与 P75 一档设定的外部验证。
 ## VAR: token_adopt_kw_p75_allv
 
 【变体差分】
@@ -70,4 +88,6 @@ new_dois: []
 Kwan, A., Lin, C., Pursiainen, V., & Tai, M. (2024). Stress testing banks' digital capabilities: Evidence from the COVID-19 pandemic. Journal of Financial and Quantitative Analysis, 59(6), 2618-2646. https://doi.org/10.1017/S0022109023000662
 Kwon, O., Yoon, J., & Yotov, Y. V. (2025). A generalized Poisson-pseudo maximum likelihood estimator. Journal of Business & Economic Statistics, 44(2), 560-573. https://doi.org/10.1080/07350015.2025.2544190
 Fan, H., Liu, Y., Qian, N., & Wen, J. (2024). Technological adoption and taxation: The case of China's Golden Tax reform. Tax Policy and the Economy, 38, 101-122. https://doi.org/10.1086/730053
+Ge, X., & Luo, Q. (2026). Greenwashing in green mutual funds: Symbolic ESG vs. substantive carbon emissions. Global Finance Journal, 72, 101305. https://doi.org/10.1016/j.gfj.2026.101305
+Bauer, R., Broeders, D., & van Ool, A. (2025). Walk the green talk? A textual analysis of pension funds' disclosures of sustainable investing. Journal of Pension Economics and Finance, 24(2), 297-325. https://doi.org/10.1017/s147474722400009x
 <!-- rendered-citations:end -->

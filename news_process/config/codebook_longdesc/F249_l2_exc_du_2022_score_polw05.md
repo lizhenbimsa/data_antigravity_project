@@ -47,6 +47,51 @@ citations:
   vol: 145
   issue: 2
   pages_or_artno: 445-463
+- doi: "10.1007/s10479-025-06558-z"
+  type: "journal"
+  authors: "Nguyen, V. D., & Gigliarano, C."
+  year: 2025
+  title: "Sensitivity-based weighting method for composite indicators"
+  venue: "Annals of Operations Research"
+- doi: "10.1016/j.jempfin.2024.101517"
+  type: "journal"
+  authors: "Soebhag, A., Van Vliet, B., & Verwijmeren, P."
+  year: 2024
+  title: "Non-standard errors in asset pricing: Mind your sorts"
+  venue: "Journal of Empirical Finance"
+  vol: "78"
+  pages_or_artno: "101517"
+- doi: "10.1007/s10842-024-00426-5"
+  type: "journal"
+  authors: "Merkus, E."
+  year: 2024
+  title: "Gravity Models in International Trade: A Specification Curve Analysis"
+  venue: "Journal of Industry, Competition and Trade"
+  vol: "24"
+  issue: "1"
+  pages_or_artno: "17"
+- doi: "10.1017/s175577392610054x"
+  type: "journal"
+  authors: "Beltran, A., Guariso, D., & Guerrero, O. A."
+  year: 2026
+  title: "Paying the piper: government advertising and media bias"
+  venue: "European Political Science Review"
+  pages_or_artno: "1-20"
+- doi: "10.1080/13504851.2026.2701294"
+  type: "journal"
+  authors: "Cha, Y., & Wang, T.-X."
+  year: 2026
+  title: "Can firms offset information asymmetry shocks? Evidence from local newspaper closures"
+  venue: "Applied Economics Letters"
+  pages_or_artno: "1-7"
+- doi: "10.1016/j.iref.2025.104564"
+  type: "journal"
+  authors: "Branzoli, N., Marchetti, S., & Tarducci, E."
+  year: 2025
+  title: "Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy"
+  venue: "International Review of Economics & Finance"
+  vol: "104"
+  pages_or_artno: "104564"
 new_dois: []
 ---
 
@@ -59,8 +104,7 @@ new_dois: []
 计算链路为: stage 22 逐词计算 final_score = base_score * degree_multiplier * negation (base_score 对政治正面词按 0.5 折算即 polw05, 其余正负词按 1.0 计, degree_multiplier 与 negation 分别对应程度副词与否定翻转两条规则, 转折规则作用于分句权重), 再以 sum(final_score) / sum(abs(final_score)) 归一化, 逐篇产出 du_2022_score_polw05_{full,ctx,ss} 三个文章级列 (polw05 权重固化于词典变体构造, 与词典其余正负词共用同一套语言学规则); attention_media 先调用 detect_defacto_cessation 标注每篇文章的 _is_ceased_media, 再在停刊稳健性块 (C.4 动态发现) 中, 对匹配 _SCORE_PATTERNS 的所有文章级情感列 (含本词典分) 逐列在 df_alive = df[_is_ceased_media == 0] 上做 groupby(target_bank, year).mean(), 加 exc_ 前缀写回面板, 得到 exc_du_2022_score_polw05_{track}。契约上, exc_*tone* 情感类列在零文章 bank-year 保持 NaN (不做计数式零填, 与兄弟计数列 n_articles_exc=0 语义区分)。polw05 的 0.5 是研究者选择, 并配套敏感性梯子: 政治词权重 ∈ {0.0, 0.5, 1.0} 三臂 (polw00 / polw05 / polw10) 各自 just-identified 并排、互为稳健性、不分主次, 严禁把三臂混进同一 over-identified Hansen J; 该梯子与规则消融梯度正交、不交叉 (三权重均在全语言学规则下计算)。三轨 full/ctx/ss 同理各自 just-identified 并排、互为稳健性、不分主次、禁混同一 over-identified Hansen J; 留篇门控为 full-only 口径 (2026-06-29): 是否算作一篇银行金科报道只看 full 轨的 LLM 判定, ctx/ss 为 conditional-on-full 的测度/稳健性轨, ss 回退语义镜像 ctx (无银行与金科同句共现时 content_ss 退回全文)。
 
 【文献定位】
-词典底座直接采自 Du et al. (2022, Review of Finance) 的中文金融情感词典, 该文既提供词表, 也给出政治正面词信号弱于普通正面词的证据, 是 polw05 折中权重与三权重敏感性检验的依据。词典法情感测度的方法学规范可上溯 Loughran & McDonald (2011, Journal of Finance) 对领域专用金融词典优于通用词表的论证; Ma, Zhang & Zhang (2025) 的中文投资者细粒度情感词典进一步佐证中文金融文本需要本土化、领域化词表, 为本家族选用中文金融专用词典而非通用译词提供当代支撑。exc 这一层的动机与做法则对齐 Heese, Pérez-Cavazos & Peter (2022, Journal of Financial Economics) 对地方报纸停刊 (local newspaper closures) 效应的实证发现: 媒体来源退出报道会系统性改变被覆盖主体后续可观测的信息环境与情感画像, 故须以排除停刊来源的替代测度检验主系数稳定性; ceased_media_frac (停刊媒体文章占比) 与本家族共享同一套 detect_defacto_cessation 停刊判定, 是该文献动机在本项目内的直接映射。
-
+词典底座直接采自 Du et al. (2022, Review of Finance) 的中文金融情感词典, 该文既提供词表, 也给出政治正面词信号弱于普通正面词的证据, 是 polw05 折中权重与三权重敏感性检验的依据。词典法情感测度的方法学规范可上溯 Loughran & McDonald (2011, Journal of Finance) 对领域专用金融词典优于通用词表的论证; Ma, Zhang & Zhang (2025) 的中文投资者细粒度情感词典进一步佐证中文金融文本需要本土化、领域化词表, 为本家族选用中文金融专用词典而非通用译词提供当代支撑。exc 这一层的动机与做法则对齐 Heese, Pérez-Cavazos & Peter (2022, Journal of Financial Economics) 对地方报纸停刊 (local newspaper closures) 效应的实证发现: 媒体来源退出报道会系统性改变被覆盖主体后续可观测的信息环境与情感画像, 故须以排除停刊来源的替代测度检验主系数稳定性; ceased_media_frac (停刊媒体文章占比) 与本家族共享同一套 detect_defacto_cessation 停刊判定, 是该文献动机在本项目内的直接映射。 晚近文献在权重取值、停刊排除与应用域三处进一步补强本家族的定位。polw05 的 0.5 属研究者选择, 而复合指标分量权重的设定本身即公认的方法学问题: Nguyen 与 Gigliarano (2025) 指出复合指标聚合中分量权重的取值争议众多而少有彻底解法, 并提出一种由输入对输出方差的贡献比例反推权重的统计方法。此处须诚实声明该文的取径是为权重导出单一有原则的解, 并未主张枚举离散权重阶梯做稳健性, 与本家族三点权重 (0.0 / 0.5 / 1.0) 并排、不分主次的做法取径不同, 故仅作「分量权重不可随手指定」这一问题存在性的方法学邻域参照, 不作本家族做法的依据; 其场景为一般性社会经济复合指标, 不涉情感词典与新闻文本, 亦无中国语境、银行层级与 bank-year 聚合。三臂并排这一做法的直接依据来自 Soebhag 与 Verwijmeren (2024): 该文在资产定价因子模型上枚举断点选择、是否剔除 microcaps、行业调整与再平衡频率等构造路径, 实证记录这些可自由取值的设计选择带来的结果离散 (non-standard error 与 standard error 之比平均超过 1), 主张研究者须清楚交代并论证这些选择而非独断取一; 边界在于其自由度维度为投资组合排序等资产定价构造选项而非情感词典权重, 且原文以枚举上百条路径估计 NSE, 本家族仅枚举三个权重取值, 不构成 NSE 的完整估计。同源地, Merkus (2024) 把规格曲线分析用于国际贸易引力模型, 系统枚举设定选择并展示估计量在整条曲线上的分布, 以判断结论是否被某一设定驱动, 正是本家族「证明主结论不被 0.5 这一取值驱动」的方法原型; 但其枚举维度是控制变量与固定效应设定、规模达上百设定且层级为国家对, 与本家族三点权重阶梯规模不可比。政治正面词何以值得折权, 可由 Beltran、Guariso 与 Guerrero (2026) 提供一条独立的机制性旁证: 该文以墨西哥八家主要报纸逾 20 万篇意见专栏为语料, 以政府广告投放的过度倾斜度量媒体俘获, 发现被俘获媒体对现任总统的负面程度更低、对其主要政治对手的负面程度更高, 提示媒体的政治性正面表述可能反映资助/俘获关系而非基本面信息; 惟原文未构造词典权重、未做任何词类降权, 语境为墨西哥单一国家而非中国, 其偏向以专栏负面语调与广告投放倾斜度量而非词级 political_positive 计数, 且不涉及媒体停刊, 故不作 exc_ 层的依据。exc_ 层则在 Heese et al. (2022) 之外再添一条近期实证: Cha 与 Wang (2026) 以地方报纸停刊作为信息环境冲击, 证实媒体停刊会真实改变可观测的报道集合与信息含量, 支撑「停刊媒体值得单独处理」; 其边界是把停刊当作外生冲击做因果识别、DV 为公司层面信息不对称指标、层级为公司-年且语境为英文地方报业, 而本家族只把停刊媒体作为样本排除条件做并排稳健性, 不做因果。应用域上, Branzoli、Marchetti 与 Tarducci (2025) 构造媒体报道的语调测度并将其用于银行融资条件这一银行层级实证问题, 与本家族「文章级词典语调 → bank-year 均值」的链条同域; 其国别为意大利、语调测度未使用 du_2022 词典亦无 political_positive 词类概念, 且无三轨文本切分与停刊媒体排除, 故只作前沿存在性参照。
 ## VAR: exc_du_2022_score_polw05_full
 
 【变体差分】
@@ -81,4 +125,10 @@ Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-graine
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Heese, J., Pérez-Cavazos, G., & Peter, C. D. (2022). When the local newspaper leaves town: The effects of local newspaper closures on corporate misconduct. Journal of Financial Economics, 145(2), 445-463. https://doi.org/10.1016/j.jfineco.2021.08.015
+Nguyen, V. D., & Gigliarano, C. (2025). Sensitivity-based weighting method for composite indicators. Annals of Operations Research. https://doi.org/10.1007/s10479-025-06558-z
+Soebhag, A., Van Vliet, B., & Verwijmeren, P. (2024). Non-standard errors in asset pricing: Mind your sorts. Journal of Empirical Finance, 78, 101517. https://doi.org/10.1016/j.jempfin.2024.101517
+Merkus, E. (2024). Gravity Models in International Trade: A Specification Curve Analysis. Journal of Industry, Competition and Trade, 24(1), 17. https://doi.org/10.1007/s10842-024-00426-5
+Beltran, A., Guariso, D., & Guerrero, O. A. (2026). Paying the piper: government advertising and media bias. European Political Science Review, 1-20. https://doi.org/10.1017/s175577392610054x
+Cha, Y., & Wang, T.-X. (2026). Can firms offset information asymmetry shocks? Evidence from local newspaper closures. Applied Economics Letters, 1-7. https://doi.org/10.1080/13504851.2026.2701294
+Branzoli, N., Marchetti, S., & Tarducci, E. (2025). Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy. International Review of Economics & Finance, 104, 104564. https://doi.org/10.1016/j.iref.2025.104564
 <!-- rendered-citations:end -->

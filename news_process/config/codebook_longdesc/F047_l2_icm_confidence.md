@@ -43,6 +43,41 @@ citations:
   vol: 27
   issue: 2
   pages_or_artno: 131-150
+- doi: "10.48550/arxiv.2306.13063"
+  type: "arxiv"
+  authors: "Xiong, M., Hu, Z., Lu, X., Li, Y., Fu, J., He, J., & Hooi, B."
+  year: 2023
+  title: "Can LLMs Express Their Uncertainty? An Empirical Evaluation of Confidence Elicitation in LLMs"
+  venue: "arXiv"
+- doi: "10.18653/v1/2024.emnlp-main.173"
+  type: "journal"
+  authors: "Zhang, M., Huang, M., Shi, R., Guo, L., Peng, C., Yan, P., Zhou, Y., & Qiu, X."
+  year: 2024
+  title: "Calibrating the Confidence of Large Language Models by Eliciting Fidelity"
+  venue: "Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing"
+  pages_or_artno: "2959-2979"
+- doi: "10.48550/arxiv.2402.05129"
+  type: "arxiv"
+  authors: "Törnberg, P."
+  year: 2024
+  title: "Best Practices for Text Annotation with Large Language Models"
+  venue: "arXiv"
+- doi: "10.1007/s42001-025-00388-6"
+  type: "journal"
+  authors: "Abraham, L., Arnal, C., & Marie, A."
+  year: 2025
+  title: "Prompt selection matters: enhancing text annotations for social sciences with large language models"
+  venue: "Journal of Computational Social Science"
+  vol: "8"
+  issue: "3"
+  pages_or_artno: "73"
+- doi: "10.18653/v1/2025.naacl-long.179"
+  type: "journal"
+  authors: "Gligoric, K., Zrnic, T., Lee, C., Candes, E., & Jurafsky, D."
+  year: 2025
+  title: "Can Unconfident LLM Annotations Be Used for Confident Conclusions?"
+  venue: "Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers)"
+  pages_or_artno: "3514-3533"
 new_dois: []
 ---
 
@@ -55,8 +90,7 @@ new_dois: []
 计算链路分两段。第一段在 stage 21 (tone_llms): 对每篇报道, 三家 LLM 各自在 collab 维度上返回一个标签 (「自主研发」或「外部协同」) 与一个自报置信度。文章级置信度的聚合口径 (源码 _avg_innovation_confidence) 与标签投票域严格对齐: 只把该维度标签非 None (即被 canonical 标签集接受) 的模型所报置信度纳入, 且仅计入其中严格大于零的正置信度, 取算术均值; 当无任何模型给出有效标签与正置信度时置 0.0。此对齐修正了历史上「模型判 false、标签为 null 却仍 emit 置信度数值」的行污染均值的缺陷 —— 分子 (标签投票) 与伴随置信度 (信号强度) 必须来自同一模型子集。需强调, 该置信度均值本身不引入关键词分类器回退: 关键词回退与 (None, 0.0) 的优雅降级只发生在 collab 标签 / 占比链路的逐篇解析环节 (决定标签取值), 与本置信度均值的计算相互独立、不参与其分子分母。多模型逐篇聚合后写出 innovation_collab_mode_confidence{track}。第二段在 encode.py 的 build_panel: 按 (target_bank, year) 对该文章级列做 groupby-mean, 得到 avg_icm_confidence{track}; 源列缺失时优雅置 NaN, 与相邻 substantiveness (iss) / locus (il) 两维度的三轨聚合块共用同一机械范式。分母口径遵循全项目 full-only 留篇门控 (2026-06-29): 一篇报道是否算作「银行金科报道」只看 llm_verified_full 为真, ctx 与 ss 轨为 conditional-on-full 的测度轨与稳健性轨, 其行宇宙是 full 留篇集的子集, 但 per-track 的置信度均值仍在各自轨上逐列独立计算。ss 轨的文本回退语义镜像 ctx: 当某篇无银行与金科同句共现时, content_ss 回退为全文正文并置 ss_is_fallback 为真。三轨 (full / ctx / ss) 是各自 just-identified 的并排测度、互为稳健性、不分主次, 铁律是禁混进同一 over-identified Hansen J。
 
 【文献定位】
-avg_icm_confidence 的方法学落点是「LLM 自报置信度的度量与解释」这一当代议题。Geng et al. (2024) 对大语言模型置信度估计与校准做了系统综述, 指出模型自报置信度与真实正确率之间常存在系统性偏差 (过自信居多), 因而把 LLM 置信度当作信号使用时需以校准视角审慎解读——这正是本家族只把该均值当作「判别清晰度」代理、而非绝对概率真值的依据。Niculescu-Mizil & Caruana (2005) 从监督学习角度论证了不同分类器在输出「良好概率」上的差异, 为「原始模型分数需经校准才逼近真实频率」提供了经典证据, 支持我们对逐篇置信度做保守解读、以跨模型聚合平滑单模型偏置。Wright & Herrington (2011) 具体论证了偏度、峰度这类高阶矩的标准误与置信区间在常规正态理论假定下存在系统性问题、覆盖率失真; 落到本家族, 当稳健性诊断需要考察银行-年置信度分布的形状 (偏度、尾部, 而非仅点均值) 时, 该文直接告诫不可对其高阶矩天真套用标准正态区间, 须改用自助或专门修正法 —— 这是把置信度均值进一步用于分布层面推断时的具体高阶矩约束, 而非仅对点估计的泛泛提醒。在构念侧, 本家族所判别的「自主研发 vs 外部协同」轴根植于开放式创新研究传统, Laursen & Salter (2006) 以英国制造业企业的实证证据刻画了创新开放度这一战略谱系, 说明企业对外部协同来源的依赖广度与深度是可观测、可分类的战略选择, 从而为本置信度元测度所度量的「协同模式判别清晰度」锚定了顶刊层面的构念合法性——置信度高低正对应该战略轴上信号是否清晰可辨。综合看, 本家族在方法学上定位为「协同模式分类的信号强度元测度」, 与情感语调、创新占比等实体测度构念正交, 服务于稳健性与信号可信度诊断。
-
+avg_icm_confidence 的方法学落点是「LLM 自报置信度的度量与解释」这一当代议题。Geng et al. (2024) 对大语言模型置信度估计与校准做了系统综述, 指出模型自报置信度与真实正确率之间常存在系统性偏差 (过自信居多), 因而把 LLM 置信度当作信号使用时需以校准视角审慎解读——这正是本家族只把该均值当作「判别清晰度」代理、而非绝对概率真值的依据。Niculescu-Mizil & Caruana (2005) 从监督学习角度论证了不同分类器在输出「良好概率」上的差异, 为「原始模型分数需经校准才逼近真实频率」提供了经典证据, 支持我们对逐篇置信度做保守解读、以跨模型聚合平滑单模型偏置。Wright & Herrington (2011) 具体论证了偏度、峰度这类高阶矩的标准误与置信区间在常规正态理论假定下存在系统性问题、覆盖率失真; 落到本家族, 当稳健性诊断需要考察银行-年置信度分布的形状 (偏度、尾部, 而非仅点均值) 时, 该文直接告诫不可对其高阶矩天真套用标准正态区间, 须改用自助或专门修正法 —— 这是把置信度均值进一步用于分布层面推断时的具体高阶矩约束, 而非仅对点估计的泛泛提醒。在构念侧, 本家族所判别的「自主研发 vs 外部协同」轴根植于开放式创新研究传统, Laursen & Salter (2006) 以英国制造业企业的实证证据刻画了创新开放度这一战略谱系, 说明企业对外部协同来源的依赖广度与深度是可观测、可分类的战略选择, 从而为本置信度元测度所度量的「协同模式判别清晰度」锚定了顶刊层面的构念合法性——置信度高低正对应该战略轴上信号是否清晰可辨。综合看, 本家族在方法学上定位为「协同模式分类的信号强度元测度」, 与情感语调、创新占比等实体测度构念正交, 服务于稳健性与信号可信度诊断。 沿校准这一脉络, 近年文献把本家族可主张与不可主张的边界刻画得更细。Xiong 等 (2023) 是黑箱场景下「直接向 LLM 索取自报置信度」这一 elicitation 范式的奠基性系统评测, 建立了 verbalize-based confidence 的基准协议并记录了模型普遍过度自信; 本家族逐篇 conf 列的取数方式即属该范式, 该文用以交代其方法原点。惟该文为 arXiv 预印本 (后发表于 ICLR 2024), 评测对象为当时的 GPT/LLaMA 系模型、任务为英文常识与算术推理, 不含本项目的 gemini31 与 deepseekv4, 亦无面板聚合, 此处仅作 method-origin 收录。Zhang 等 (2024) 进一步把语言模型置信度分解为对问题的不确定性 (Uncertainty) 与对自身所生成答案的保真度 (Fidelity), 提出 UF Calibration 并在六个 RLHF 语言模型与四个 MCQA 数据集上验证, 另提出 IPR 与 CE 两个校准评价指标; 对本家族的锚定仅限「LLM 置信度可被分解并校准」这一方法学存在性 — 该文的置信度由 UF 分解估计得到而非自报, 其是否适用于仅可访问输出的黑箱 API 场景原文未作声明, 不得据此宣称与本项目的生产约束一致; 且其保真度需以选项集与参考答案来定义, 本家族的协同模式判别缺此结构, 故该校准算子在本项目未被实施, 现口径仍是对逐篇原始自报值按有效标签子集取均值、再在银行-年内取算术均值。在标注工程口径上, Törnberg (2024) 提出 LLM 文本标注的操作规范 (prompt 设计、温度与版本固定的可复现性、可靠性与效度的报告要求), 与本家族上游 stage 21 的 prompt v8 字节级冻结加 temperature=0.0 同族; 但该文属立场性指南, 不含实证基准亦无金融面板应用, 其建议面向单模型流程, 未涉及本项目的三家跨厂商聚合与三轨切分, 本项目的遵循属独立工程选择。Abraham、Arnal 与 Marie (2025) 以英文社科语料实证表明 prompt 选择对标注质量有显著且非平凡的影响; 由此可知本家族置信度在单一冻结 prompt 下产出这一事实, 构成一处未量化的已知局限 (本项目刻意不做 prompt 网格, 改 prompt 即全部缓存作废), 而非已被排除的风险。最后, Gligoric、Zrnic、Lee、Candes 与 Jurafsky (2025) 提出 confidence-driven inference, 以 LLM 自报置信度决定哪些样本值得付费人工复标并给出统计有效的点估计与置信区间, 证明低置信标注在恰当处理下仍可支撑可信结论, 为本家族「保留而非丢弃逐篇置信度信息」提供了前沿依据; 但该文的有效推断必须配套人工标注子样本作为 ground truth, 本项目无人工标注回路, 置信度仅用于刻画判别清晰度与稳健性诊断, 未实施其抽样-推断设计, 故本家族不享有该文的统计有效性保证。
 ## VAR: avg_icm_confidence_ctx
 
 【变体差分】
@@ -77,4 +111,9 @@ Geng, J., Cai, F., Wang, Y., Koeppl, H., Nakov, P., & Gurevych, I. (2024). A sur
 Wright, D. B., & Herrington, J. A. (2011). Problematic standard errors and confidence intervals for skewness and kurtosis. Behavior Research Methods, 43(1), 8-17. https://doi.org/10.3758/s13428-010-0044-x
 Niculescu-Mizil, A., & Caruana, R. (2005). Predicting good probabilities with supervised learning. Proceedings of the 22nd International Conference on Machine Learning (ICML), 625-632. https://doi.org/10.1145/1102351.1102430
 Laursen, K., & Salter, A. (2006). Open for innovation: The role of openness in explaining innovation performance among U.K. manufacturing firms. Strategic Management Journal, 27(2), 131-150. https://doi.org/10.1002/smj.507
+Xiong, M., Hu, Z., Lu, X., Li, Y., Fu, J., He, J., & Hooi, B. (2023). Can LLMs Express Their Uncertainty? An Empirical Evaluation of Confidence Elicitation in LLMs. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2306.13063
+Zhang, M., Huang, M., Shi, R., Guo, L., Peng, C., Yan, P., Zhou, Y., & Qiu, X. (2024). Calibrating the Confidence of Large Language Models by Eliciting Fidelity. Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing, 2959-2979. https://doi.org/10.18653/v1/2024.emnlp-main.173
+Törnberg, P. (2024). Best Practices for Text Annotation with Large Language Models. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2402.05129
+Abraham, L., Arnal, C., & Marie, A. (2025). Prompt selection matters: enhancing text annotations for social sciences with large language models. Journal of Computational Social Science, 8(3), 73. https://doi.org/10.1007/s42001-025-00388-6
+Gligoric, K., Zrnic, T., Lee, C., Candes, E., & Jurafsky, D. (2025). Can Unconfident LLM Annotations Be Used for Confident Conclusions?. Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers), 3514-3533. https://doi.org/10.18653/v1/2025.naacl-long.179
 <!-- rendered-citations:end -->

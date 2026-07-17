@@ -52,6 +52,22 @@ citations:
   year: 2025
   title: "Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy"
   venue: "SSRN Working Paper"
+- doi: "10.1016/j.energy.2025.139126"
+  type: "journal"
+  authors: "Hua, X., Dong, D., Xu, Z., & Huang, W."
+  year: 2025
+  title: "Official media sentiments toward energy and equity returns: Evidence from China"
+  venue: "Energy"
+  vol: "340"
+  pages_or_artno: "139126"
+- doi: "10.1016/j.irfa.2023.102761"
+  type: "journal"
+  authors: "Isakin, M., & Pu, X."
+  year: 2023
+  title: "Dispersion in news sentiment and corporate bond returns"
+  venue: "International Review of Financial Analysis"
+  vol: "89"
+  pages_or_artno: "102761"
 new_dois: []
 ---
 
@@ -64,8 +80,7 @@ tone_gap_fin_other 家族衡量同一银行同一年度内, 财经专业媒体 (
 计算分两步。第一步是媒体类型分派: `_classify_content` 对每条报道的「媒体(中文)」名称做字符串规则匹配 (非 NLP 模型), 输出互斥的三分类标签 `_media_type ∈ {fin, comp, other}`; 该分派与情感度量本身完全解耦, 分派错误只影响分组归属不影响语调分值本身。第二步是分组均值差分: 对给定轨道 track (取值 `_full`/`_ctx`/`_ss` 之一), 源列 `src = llm_vote_score{track}`; 模块先做守卫 `if src not in df.columns: continue`, 即若该轨道的上游情感列在当次运行中缺席 (例如上游未产出或被裁剪), 则整条轨道 (含三个缺口列) 优雅跳过, 不写入面板, 而非填充 0 或强制报错。若列存在, 则按 (target_bank, year) 分组、按 `_media_type` 子集分别取 `llm_vote_score{track}` 均值, 得到 `tone_fin_media{track}` 与 `tone_other_media{track}`, 二者逐 bank-year 相减写入 `tone_gap_fin_other{track}`。任一侧子样本在某 bank-year 内为空 (即该年该行该类媒体零篇报道) 时, `.mean()` 返回 NaN, 经 `panel.get(..., np.nan)` 与减法运算自然传播为该 bank-year 该缺口列的 NaN, 是稀疏子样本下的正常缺失, 不代表异常。三轨口径的语义边界至关重要: full 轨为标题+全文语调 (2026-06-29 起 full-only 门控下的留篇判定主轨), ctx 轨为标题+银行/金科实体窗口语调, ss 轨为标题+银行∧金科同句共现窗口语调 (无共现证据时按 CLAUDE.md 记载的 ss 回退语义, 镜像 ctx 的降级规则, 以全文 body 兜底并标记 `ss_is_fallback=True`, 但门控判定与留篇集口径始终以 full 轨为准, ctx/ss 是 conditional-on-full 的测度/稳健性轨, 行宇宙是 full 留篇集的子集); 因此三条 tone_gap_fin_other 列衡量的是"同一构念在三种不同文本窗口下的媒体类型语调缺口", 而非三个独立构念, 三者应各自 just-identified 并排使用、互为稳健性、不分主次, 严禁把三轨系数混入同一 over-identified Hansen J 检验。
 
 【文献定位】
-本家族在方法论谱系上直接继承 Tetlock (2007, Journal of Finance) 开创的"媒体语调作为投资者情绪代理"传统, 并借鉴 You, Zhang & Zhang (2018, Review of Financial Studies) 对媒体异质性 (谁在写、写给谁看) 系统性影响报道信息含量的实证发现, 把这一异质性思路应用到中国银行业新闻语料上, 用"财经专业媒体 vs 其他媒体"的语调落差衡量专业媒体是否存在系统性的报道倾向差异。语调本身的度量依赖 stage 21 三家 LLM 多数投票的中文金融语境情感打分, 该测度构造本身独立于任何特定词典方法。此处援引 Du, Huang, Wermers & Wu (2022, Review of Finance) 仅作背景类比而非直接方法基础: 该文的核心论证是中文语境下情感构念需领域特定校准 (通用情感词典与金融专用词典/模型对同一文本片段可能给出系统性不同的极性判断), 本家族借用的是这一"领域特定校准"的一般性论断本身, 并未采用该文的词典或校准参数; 借用该论断只是为了说明: 类似的领域敏感性逻辑同样适用于跨媒体类型语调比较: 财经专业媒体的行文风格、术语密度与语气习惯天然不同于综合类媒体, tone_gap 度量正是要捕捉这种媒体类型层面的系统性落差而非随机文本噪声。在中国银行业情境下, Fang, Wang, Wang & Yuan (2024, International Review of Economics & Finance) 的银行级媒体情感研究提供了同域参照, 确认媒体情感差异对银行系统性风险与存款稳定性具有可观测的经济含义, 支持了把媒体类型异质性纳入银行-年面板作为控制/机制变量的合理性; Marchetti, Tarducci & Branzoli (2025, SSRN) 则示范了银行×年语调聚合的具体操作口径 (子样本分组均值), 与本家族的聚合逻辑一致。
-
+本家族在方法论谱系上直接继承 Tetlock (2007, Journal of Finance) 开创的"媒体语调作为投资者情绪代理"传统, 并借鉴 You, Zhang & Zhang (2018, Review of Financial Studies) 对媒体异质性 (谁在写、写给谁看) 系统性影响报道信息含量的实证发现, 把这一异质性思路应用到中国银行业新闻语料上, 用"财经专业媒体 vs 其他媒体"的语调落差衡量专业媒体是否存在系统性的报道倾向差异。语调本身的度量依赖 stage 21 三家 LLM 多数投票的中文金融语境情感打分, 该测度构造本身独立于任何特定词典方法。此处援引 Du, Huang, Wermers & Wu (2022, Review of Finance) 仅作背景类比而非直接方法基础: 该文的核心论证是中文语境下情感构念需领域特定校准 (通用情感词典与金融专用词典/模型对同一文本片段可能给出系统性不同的极性判断), 本家族借用的是这一"领域特定校准"的一般性论断本身, 并未采用该文的词典或校准参数; 借用该论断只是为了说明: 类似的领域敏感性逻辑同样适用于跨媒体类型语调比较: 财经专业媒体的行文风格、术语密度与语气习惯天然不同于综合类媒体, tone_gap 度量正是要捕捉这种媒体类型层面的系统性落差而非随机文本噪声。在中国银行业情境下, Fang, Wang, Wang & Yuan (2024, International Review of Economics & Finance) 的银行级媒体情感研究提供了同域参照, 确认媒体情感差异对银行系统性风险与存款稳定性具有可观测的经济含义, 支持了把媒体类型异质性纳入银行-年面板作为控制/机制变量的合理性; Marchetti, Tarducci & Branzoli (2025, SSRN) 则示范了银行×年语调聚合的具体操作口径 (子样本分组均值), 与本家族的聚合逻辑一致。 近年前沿又在本族公式的两个环节上各留下一条可分立援引的痕迹。Hua、Dong、Xu 与 Huang (2025) 以 BERT 对中国官方媒体的新能源报道文本构建官方媒体语调指数, 并检验其与权益回报及企业融资投资行为的关系, 由此为「先按媒体机构属性切出子样本、再在子样本内对文章级语调取均值」这一操作提供了中文语料上的同构先例, 对应本族 tone_fin_media 与 tone_other_media 两个分组均值的构造。须诚实标注的迁移边界是: 该文的切分维度为媒体的官方属性, 与本族由 _classify_content 规则按媒体内容定位分派出的 fin / comp / other 三类彼此正交; 其情感由文本指数法而非三家 LLM 多数投票得到, 层级为行业-日度指数而非 bank-year 三轨面板; 且原文只报告官方侧的语调水平、未对两侧均值作差, 故不锚 fin − other 这一 between-group contrast。Isakin 与 Pu (2023) 把同一发行主体在同期多篇新闻之间的情感离散度作为独立可定价构念度量并检验 (美国公司债、债券-月层级、英文新闻数据库情感), 支撑本族赖以成立的一般性前提 —「同一银行的报道内部语调不一致本身携带信息, 而非只有语调水平携带信息」; 但其离散度是全部报道上的跨文章统计离散, 与本族先按媒体类型划成互补两组再取组均值之差并非同一统计量, 原文亦不做任何媒体来源属性分层, 故仅作前提层参照, 不得视为本族切分维度或作差口径的出处。
 ## VAR: tone_gap_fin_other_full
 
 【变体差分】
@@ -87,4 +102,6 @@ Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media i
 You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Marchetti, S., Tarducci, E., & Branzoli, N. (2025). Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.5220056
+Hua, X., Dong, D., Xu, Z., & Huang, W. (2025). Official media sentiments toward energy and equity returns: Evidence from China. Energy, 340, 139126. https://doi.org/10.1016/j.energy.2025.139126
+Isakin, M., & Pu, X. (2023). Dispersion in news sentiment and corporate bond returns. International Review of Financial Analysis, 89, 102761. https://doi.org/10.1016/j.irfa.2023.102761
 <!-- rendered-citations:end -->

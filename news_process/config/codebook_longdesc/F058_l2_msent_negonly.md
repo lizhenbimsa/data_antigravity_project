@@ -37,6 +37,22 @@ citations:
   vol: 62
   issue: 3
   pages_or_artno: 1139-1168
+- doi: "10.1016/j.jbankfin.2025.107542"
+  type: "journal"
+  authors: "Lehkonen, H., Heimonen, K., & Pukthuanthong, K."
+  year: 2025
+  title: "Media tone is a priced risk factor in currency markets"
+  venue: "Journal of Banking & Finance"
+  vol: "180"
+  pages_or_artno: "107542"
+- doi: "10.1016/j.jfs.2026.101538"
+  type: "journal"
+  authors: "Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S."
+  year: 2026
+  title: "Does media sentiment influence bank supervision?"
+  venue: "Journal of Financial Stability"
+  vol: "84"
+  pages_or_artno: "101538"
 new_dois: []
 ---
 
@@ -49,8 +65,7 @@ new_dois: []
 文章级 msent_negonly 的算法链路是: 先由 build_union_dictionary 把六部中文金融情感词典 (jiang_2021 / yao_2021 / bian_2021 / du_2022 / you_2018 / loughran_mcdonald_zh_2026, 末者即 Loughran & McDonald 2011 的中文主译本) 合并为一部并集词典, 重叠词按极性多数票消解、平票剔除; 再用冻结版 jieba (0.42.1) 分词, 逐 token 走状态机 _compute_sentiment_with_rules。negonly 档的参数设定是 apply_negation=True、apply_degree=False、apply_adversative=False, 即遇到否定词 (如"不""未""无") 时在 NEGATION_WINDOW=2 个分词单元的窗口内翻转后续词的极性 (不乐观计入负面), 但不做"非常"类程度副词的六级权重缩放, 也不做"但是/然而"类转折连词后半句的加权提升。据此得到经否定修正的正、负面词计数 n_pos'、n_neg', 计数型指标取 msent_negonly = (n_neg' - n_pos') / (n_pos' + n_neg'), 取值落在 [-1, +1], 数值越高代表负面语气越重 (符号朝向负面, 与部分正向定义的语气分相反, 使用时须注意方向)。它是计数口径而非自归一 Σ|final| 口径, 因此与同族 rule-ablation 的 {dict}_score_negonly (自归一化得分) 刻意分开, 不混入同一分解式。银行-年聚合在 encode.py 完成: avg_msent_negonly_{track} 取该银行该年全部留篇文章 msent_negonly_{track} 的算术平均; 它与零规则原始极性计数的 avg_msent 配对, 二者之差 (avg_msent_negonly − avg_msent) 即纯否定规则的边际贡献, 用作透明的规则敏感性诊断。据 producer 说明, negonly 档与全规则档在文章级实测高度共线 (相关系数约 0.998–0.999), 印证它是稳健性对照而非独立新信号。
 
 【文献定位】
-本家族的方法学锚点有三。其一是 Tetlock (2007), 它奠定了以正、负面词计数相对差度量媒体语气、并将其接入资产定价回归的经典范式, 是 msent 计数口径的构念原点。其二是 Loughran & McDonald (2011) 在《Journal of Finance》的工作, 它论证了通用情感词典 (如 Harvard IV) 在金融文本上的系统性误分类, 主张改用领域专用词表并以词频而非复杂加权来度量语气——这正是本管道并集词典 (含其中文主译本) 与计数口径的直接依据。其三是 Pröllochs, Feuerriegel & Neumann (2016), 它系统研究了否定作用域检测对新闻驱动情感度量的价值, 为 negonly 档"只保留否定翻转"这一受控消融提供了直接的方法学正当性: 否定处理是词典情感中信息增益最确定、争议最小的一条语法规则, 因此被单独保留作为最小规则基线。凡涉三轨 (full/ctx/ss) 与规则消融梯子的证据, 本管道一律遵循"各自 just-identified 并排、互为稳健性不分主次、禁混进同一 over-identified Hansen J"的铁律; negonly 与 full 规则档、程度/转折各消融档均属规格稳健性并排, 不设 FWER 模板, 彼此正交不交叉。
-
+本家族的方法学锚点有三。其一是 Tetlock (2007), 它奠定了以正、负面词计数相对差度量媒体语气、并将其接入资产定价回归的经典范式, 是 msent 计数口径的构念原点。其二是 Loughran & McDonald (2011) 在《Journal of Finance》的工作, 它论证了通用情感词典 (如 Harvard IV) 在金融文本上的系统性误分类, 主张改用领域专用词表并以词频而非复杂加权来度量语气——这正是本管道并集词典 (含其中文主译本) 与计数口径的直接依据。其三是 Pröllochs, Feuerriegel & Neumann (2016), 它系统研究了否定作用域检测对新闻驱动情感度量的价值, 为 negonly 档"只保留否定翻转"这一受控消融提供了直接的方法学正当性: 否定处理是词典情感中信息增益最确定、争议最小的一条语法规则, 因此被单独保留作为最小规则基线。凡涉三轨 (full/ctx/ss) 与规则消融梯子的证据, 本管道一律遵循"各自 just-identified 并排、互为稳健性不分主次、禁混进同一 over-identified Hansen J"的铁律; negonly 与 full 规则档、程度/转折各消融档均属规格稳健性并排, 不设 FWER 模板, 彼此正交不交叉。 在近期同域文献中, 本家族所依托的比率型计数形态与银行层面应用亦获得进一步印证。Lehkonen、Heimonen 与 Pukthuanthong (2025) 用覆盖全球逾两千家媒体与八百家社交站点的约七百万篇文本构造媒体语调, 证明以正负提及净额除以总提及构成的比率型语调是可跨截面定价的真实风险因子, 为本家族 (n_neg' − n_pos') / (n_pos' + n_neg') 这一比率形态提供了近期顶刊级的经济含义支撑; 但其语调取自 Refinitiv MarketPsych 专有商业指数而非自建词表命中计数, 构造细节不可复核, 亦不含任何否定作用域处理, 故不能据以为 negonly 这一「只保留否定翻转」的规则档设定本身背书, 其层级为货币-国别、语料为英文财经新闻, 与本管道的银行-年、中文报纸口径不同。Aldama-Navarrete、Curti、Hansen 与 Kazinnik (2026) 构造针对特定银行的媒体情感测度并检验其与监管行为的关联, 说明按银行主体归集新闻情感并接入银行层面实证已为顶级金融稳定期刊接受, 锚定的是本家族「逐篇计数极性 → 银行-年均值」这一聚合环; 其语境为美国银行监管 (监管评级与监管行动为因变量), 情感测度构造与本管道六词典并集的计数口径不同, 更未涉及中文否定翻转等语法规则层与 full/ctx/ss 三轨文本设计, 因此对本族只锚定聚合形态, 不锚定极性来源与规则消融梯子。
 ## VAR: avg_msent_negonly_ctx
 
 【变体差分】
@@ -70,4 +85,6 @@ new_dois: []
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Lehkonen, H., Heimonen, K., & Pukthuanthong, K. (2025). Media tone is a priced risk factor in currency markets. Journal of Banking & Finance, 180, 107542. https://doi.org/10.1016/j.jbankfin.2025.107542
+Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S. (2026). Does media sentiment influence bank supervision?. Journal of Financial Stability, 84, 101538. https://doi.org/10.1016/j.jfs.2026.101538
 <!-- rendered-citations:end -->

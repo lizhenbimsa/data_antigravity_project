@@ -14,6 +14,30 @@ citations:
 - {doi: "10.1016/j.pacfin.2024.102600", type: journal, authors: "Fan, X., Tang, Z., Huang, W., & Yang, K.", year: 2025, title: "Ownership concentration and corporate greenwashing in China's capital markets: Based on a multi-actors perspective", venue: "Pacific-Basin Finance Journal", vol: "89", issue: "", pages_or_artno: "Article 102600"}
 - {doi: "10.1016/j.frl.2026.109684", type: journal, authors: "Song, X., Hou, W., Ouyang, Z., & Hao, F.", year: 2026, title: "AI washing: Strategic disclosure and backlash", venue: "Finance Research Letters", vol: "95", issue: "", pages_or_artno: "109684"}
 - {doi: "10.1086/693096", type: journal, authors: "Piotroski, J. D., Wong, T. J., & Zhang, T.", year: 2017, title: "Political bias in corporate news: The role of conglomeration reform in China", venue: "The Journal of Law and Economics", vol: "60", issue: "1", pages_or_artno: "173-207"}
+- doi: "10.1016/j.eap.2025.07.036"
+  type: "journal"
+  authors: "Zhou, H."
+  year: 2025
+  title: "Major shareholders' equity pledge and the “All talk and no action” strategy in digital transformation"
+  venue: "Economic Analysis and Policy"
+  vol: "87"
+  pages_or_artno: "1630-1652"
+- doi: "10.1016/j.jcorpfin.2025.102816"
+  type: "journal"
+  authors: "García Lara, J. M., García Osma, B., Gazizova, I., & Khalilov, A."
+  year: 2025
+  title: "Demand-driven corporate social responsibility: Symbolic versus substantive change after environmental disasters"
+  venue: "Journal of Corporate Finance"
+  vol: "94"
+  pages_or_artno: "102816"
+- doi: "10.1016/j.frl.2025.108096"
+  type: "journal"
+  authors: "Li, Y."
+  year: 2025
+  title: "Can large language models (LLMs) replace human reading? Empirical evidence from sustainability reports"
+  venue: "Finance Research Letters"
+  vol: "85"
+  pages_or_artno: "108096"
 new_dois: []
 ---
 
@@ -26,8 +50,7 @@ washing_ratio_gpt54nano 族测度的是"洗稿式正面报道"在单一 LLM 打�
 计算分两层。第一层是篇章级标记 (`pipeline/panel/runner.py` L1001-L1015, 方法 A2): 对每条报道每一轨, 取该 LLM 的连续情感打分 `gpt54nano_score{track}` (nullable Int8, NaN 表示该模型对该篇未产出有效打分), `fillna(0)` 后判定 `_llm_pos = score > 0`; 若同时 `innovation_substantiveness_full == '象征性'`, 标记 `_is_gpt54nano_pos_symb{track} = 1`, 否则为 0; 另建同域分母标记 `_svd_gpt54nano_pos{track} = _llm_pos & _subst_measured`, 其中 `_subst_measured` 表示该篇的实质性分类结果非缺失 (即 P3 判出了"实质性"或"象征性"其中之一, 未判出的一律不进分母)。这一同域分母设计是 2026-06-11 (fix omni-g-runner-10/14) 的修正: 早期实现分子只数"正面且象征性"、分母却数"全部正面文章" (含实质性分类失败的那批), 导致 LLM 实质性分类失败率越高、洗稿率被系统性拉低的假象 (失败样本进不了分子, 却仍撑大分母)。修正后分子分母同域: 分母只计"该文章的实质性分类确有结果"的正面文章, 分类失败的文章既不进分子也不进分母, 彻底剔除测量失败对比率水平的机械性拖累。第二层是银行-年面板级聚合 (`runner.py` L2209-L2218): 先按银行-年对篇章级标记求和 (`encode.py` agg 字典, `{llm}_pos_count{track}` 与 `{llm}_pos_symb_count{track}`), 再取比: `washing_ratio_gpt54nano{track} = gpt54nano_pos_symb_count{track} / gpt54nano_pos_substvalid_count{track}` (`_safe_ratio` 对分母为 0 的银行-年返回 NaN 而非除零错误或人为 0); 若面板缺 `_substvalid_count` 列 (旧 schema), 回退为物理正面计数 `gpt54nano_pos_count{track}` 并写 WARNING 日志, 但生产口径以 substvalid 分母为准。三轨 full/ctx/ss 使用严格独立的输入列 (`gpt54nano_score_full` / `_ctx` / `_ss`) 与独立的实质性掩码来源 (三轨共用 `innovation_substantiveness_full`, 因 P3 实质性分类本身只在 full 轨产出, 详见下方各 VAR 节口径说明), 分别聚合出三个互相独立的银行-年比率, 互为稳健性、不分主次、各自 just-identified, 禁止把三轨混进同一个 over-identified 的 Hansen J 检验。
 
 【文献定位】
-本族测度处于三条文献脉络的交叉点。第一条是"象征性 vs 实质性"行为分类传统 (Westphal & Zajac 1998 母框架, 本仓库以 `innovation_substantiveness_full` 落地), 用来判定企业动作是"做样子"还是"真投入"。第二条是文本挖掘视角下的漂绿/洗X测度文献: Duchin, Gao & Xu (2025, The Journal of Finance) 提供顶刊级的方法论参照 — 用资产市场证据区分可持续投资的"真"与"假"信号, 其识别策略同样建立在"正面叙事标签"与"独立实质性指标"的交叉表之上; Gorovaia & Makrominas (2024, European Financial Management) 与 Fan, Tang, Huang & Yang (2025, Pacific-Basin Finance Journal) 分别从 NLP 文本分类和股权治理视角提供了漂绿测度的操作化先例; Song, Hou, Ouyang & Hao (2026, Finance Research Letters) 的 AI washing 研究是本族最贴近的"科技叙事洗白"同类构念, 直接支撑把 Bingler et al. (2022) 的气候披露 cheap-talk 框架迁移到金融科技报道场景的合理性。第三条是中国媒体报道情境下的"新闻真实性/政治偏向"研究: Piotroski, Wong & Zhang (2017, The Journal of Law and Economics) 研究中国国企新闻政治偏向的制度成因, 提示中国语境下企业相关新闻报道存在系统性的内容失真动机, 为本族在中国银行-金融科技新闻样本上构造洗稿率测度提供了制度背景支撑。gpt54nano 单模型版本 (method A2) 与三家 LLM 投票的均值版本 (method A, washing_ratio 无模型后缀) 及另外两个单模型版本互为跨厂商稳健性, 三者及 D/D2 词典系列、E/E2 BERT 系列共同构成 pipeline 注释所述"多方法 × 三轨"的洗稿率变体矩阵 — 各方法层面同样各自 just-identified 并排, 不设跨方法的单一权威点估计, 而是作为一组稳健性证据链共同支撑"洗稿现象是否存在"的结论。
-
+本族测度处于三条文献脉络的交叉点。第一条是"象征性 vs 实质性"行为分类传统 (Westphal & Zajac 1998 母框架, 本仓库以 `innovation_substantiveness_full` 落地), 用来判定企业动作是"做样子"还是"真投入"。第二条是文本挖掘视角下的漂绿/洗X测度文献: Duchin, Gao & Xu (2025, The Journal of Finance) 提供顶刊级的方法论参照 — 用资产市场证据区分可持续投资的"真"与"假"信号, 其识别策略同样建立在"正面叙事标签"与"独立实质性指标"的交叉表之上; Gorovaia & Makrominas (2024, European Financial Management) 与 Fan, Tang, Huang & Yang (2025, Pacific-Basin Finance Journal) 分别从 NLP 文本分类和股权治理视角提供了漂绿测度的操作化先例; Song, Hou, Ouyang & Hao (2026, Finance Research Letters) 的 AI washing 研究是本族最贴近的"科技叙事洗白"同类构念, 直接支撑把 Bingler et al. (2022) 的气候披露 cheap-talk 框架迁移到金融科技报道场景的合理性。第三条是中国媒体报道情境下的"新闻真实性/政治偏向"研究: Piotroski, Wong & Zhang (2017, The Journal of Law and Economics) 研究中国国企新闻政治偏向的制度成因, 提示中国语境下企业相关新闻报道存在系统性的内容失真动机, 为本族在中国银行-金融科技新闻样本上构造洗稿率测度提供了制度背景支撑。gpt54nano 单模型版本 (method A2) 与三家 LLM 投票的均值版本 (method A, washing_ratio 无模型后缀) 及另外两个单模型版本互为跨厂商稳健性, 三者及 D/D2 词典系列、E/E2 BERT 系列共同构成 pipeline 注释所述"多方法 × 三轨"的洗稿率变体矩阵 — 各方法层面同样各自 just-identified 并排, 不设跨方法的单一权威点估计, 而是作为一组稳健性证据链共同支撑"洗稿现象是否存在"的结论。 晚近文献进一步充实了上述三条脉络。Zhou (2025) 直接构造并检验中国上市公司数字化转型中的「只说不做」(all talk and no action) 策略, 以股权质押为驱动因素, 证明在中国科技话语场景下「宣称强度远超实质投入」是可测量、可识别的企业策略, 与本族 washing_ratio 的构念定义同源; 但其测度取企业自身年报数字化词频与实际数字投入之比, 主体为非金融上市公司, 识别策略依托股权质押冲击, 本族仅取其构念定义与存在性证据, 不迁移其识别设计。Gazizova 与 Khalilov (2025) 在环境灾难冲击后把企业 CSR 反应实证区分为 symbolic change 与 substantive change 两类, 并检验二者受需求侧压力驱动的差异, 为本族分子/分母所依赖的象征—实质二分提供了公司金融顶刊层面的同构操作化先例; 其象征—实质由公司行动与披露判定、观测单位为公司-事件, 而本族的构念载体是第三方媒体报道对 innovation_substantiveness 的逐篇判定且取比率而非二元分类, 故该文只证明该二分在前沿因果研究中的可用性, 不构成对本族测量方法的背书。就本族作为单模型 (method A2) 版本所倚赖的 LLM 判定器效度前提, Li (2025) 以可持续报告为语料实证比较 LLM 抽取与人工阅读的结果一致性, 评估 LLM 能否替代人工完成文本内容判定, 是 LLM-as-annotator 在金融文本上的前沿效度证据; 但其语料为英文可持续报告、判定任务为可持续内容抽取, 既未涉及象征—实质二分, 亦未做多模型投票, 因此该效度结论不能直接外推到本项目的中文银行新闻语料、创新实质性三值分类任务与 gpt54nano 的具体模型版本 — 本族对判定误差的防线仍在于与其余单模型版本及词典/BERT 系列的并排互证。
 ## VAR: washing_ratio_gpt54nano
 
 【变体差分】
@@ -49,4 +72,7 @@ Gorovaia, N., & Makrominas, M. (2024). Identifying greenwashing in corporate-soc
 Fan, X., Tang, Z., Huang, W., & Yang, K. (2025). Ownership concentration and corporate greenwashing in China's capital markets: Based on a multi-actors perspective. Pacific-Basin Finance Journal, 89, Article 102600. https://doi.org/10.1016/j.pacfin.2024.102600
 Song, X., Hou, W., Ouyang, Z., & Hao, F. (2026). AI washing: Strategic disclosure and backlash. Finance Research Letters, 95, 109684. https://doi.org/10.1016/j.frl.2026.109684
 Piotroski, J. D., Wong, T. J., & Zhang, T. (2017). Political bias in corporate news: The role of conglomeration reform in China. The Journal of Law and Economics, 60(1), 173-207. https://doi.org/10.1086/693096
+Zhou, H. (2025). Major shareholders' equity pledge and the “All talk and no action” strategy in digital transformation. Economic Analysis and Policy, 87, 1630-1652. https://doi.org/10.1016/j.eap.2025.07.036
+García Lara, J. M., García Osma, B., Gazizova, I., & Khalilov, A. (2025). Demand-driven corporate social responsibility: Symbolic versus substantive change after environmental disasters. Journal of Corporate Finance, 94, 102816. https://doi.org/10.1016/j.jcorpfin.2025.102816
+Li, Y. (2025). Can large language models (LLMs) replace human reading? Empirical evidence from sustainability reports. Finance Research Letters, 85, 108096. https://doi.org/10.1016/j.frl.2025.108096
 <!-- rendered-citations:end -->

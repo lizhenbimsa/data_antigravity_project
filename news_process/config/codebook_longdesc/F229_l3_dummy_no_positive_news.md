@@ -45,6 +45,14 @@ citations:
   vol: 228
   issue: 2
   pages_or_artno: 221-243
+- doi: "10.1016/j.jempfin.2024.101512"
+  type: "journal"
+  authors: "Kim, J.-B., Tseng, K., Wang, J. (., & Xi, Y."
+  year: 2024
+  title: "Policy uncertainty, bad news disclosure, and stock price crash risk"
+  venue: "Journal of Empirical Finance"
+  vol: "78"
+  pages_or_artno: "101512"
 new_dois: []
 ---
 
@@ -59,8 +67,7 @@ new_dois: []
 计算链路极短且确定: 在 runner.py 步骤 7 的 washing/dummy 段, 当 pos_count_full 列存在于 panel 时, 引擎对其执行 fillna(0) 后与 0 比较, 令 dummy_no_positive_news = (pos_count_full.fillna(0) <= 0).astype(int)。这里 fillna(0) 是承重的语义设定: pos_count_full 由 Int8 逐篇求和聚合而来, 在 nullable Int64 语义下可能为 NaN (表示该银行-年在 full 轨下没有任何被判正面的观测, 即无观测), 代码显式地把 NaN 与真实的 0 都归为"无正面新闻", 二者在本构念下等价——无论是"有报道但无一篇正面"还是"聚合缺值", 结果都是正面信号缺席, 故 <= 0 的判据把二者一并置 1。取值域严格 {0, 1}, int64 存储, 无量纲。引擎在写列后打印 dummy_no_positive_news=1 的 bank-year 计数作诊断日志。需要强调本列不做任何阈值梯子、权重梯子或轨道分叉: 它就是 pos_count_full 的一个确定性门槛变换, 因此不涉及"梯子各自 just-identified 并排"的口径; 但作为 full 轨留篇门控的产物, 其分母与 n_articles 的 full-only 口径完全一致, 若误用 ctx/ss 计数重算会破坏门控一致性, 属 P0 级错误。
 
 【文献定位】
-本列的构念根植于"媒体缺席的信息后果"这一文献脉络。Heese, Pérez-Cavazos 和 Peter (2022) 在 Journal of Financial Economics 上证明, 当本地报纸退出后, 当地企业的违规行为显著上升——媒体监督的缺席本身是一个有经济后果的处理, 而不只是数据缺失; 这为"正面报道缺席"作为一个独立可分析状态提供了直接的理论正当性。Gao, Lee 和 Murphy (2020) 同样发现报纸关闭后地方政府融资成本上升、信息环境恶化, 进一步说明覆盖度与正面能见度的消失会通过信息渠道传导到真实的金融结果。在测量层面, Shapiro, Sudhof 和 Wilson (2022) 系统论证了新闻情感的可测性与聚合方法, 支撑了本列以 LLM 正面计数为基元、再门槛化为缺席哑变量的做法; Fedyk 和 Hodson (2023) 关于"旧闻"与信息新鲜度的识别则提醒我们, 正面报道的有无还需与信息的时效性区分, 本列刻意只取当年 full 轨的正面计数, 避免把陈旧转载误计为新增正面信号。综合而言, dummy_no_positive_news 把"正面叙事的彻底缺席"这一在媒体经济学中被反复验证为有后果的状态, 物化为可直接进入银行-年面板的稳健信号。
-
+本列的构念根植于"媒体缺席的信息后果"这一文献脉络。Heese, Pérez-Cavazos 和 Peter (2022) 在 Journal of Financial Economics 上证明, 当本地报纸退出后, 当地企业的违规行为显著上升——媒体监督的缺席本身是一个有经济后果的处理, 而不只是数据缺失; 这为"正面报道缺席"作为一个独立可分析状态提供了直接的理论正当性。Gao, Lee 和 Murphy (2020) 同样发现报纸关闭后地方政府融资成本上升、信息环境恶化, 进一步说明覆盖度与正面能见度的消失会通过信息渠道传导到真实的金融结果。在测量层面, Shapiro, Sudhof 和 Wilson (2022) 系统论证了新闻情感的可测性与聚合方法, 支撑了本列以 LLM 正面计数为基元、再门槛化为缺席哑变量的做法; Fedyk 和 Hodson (2023) 关于"旧闻"与信息新鲜度的识别则提醒我们, 正面报道的有无还需与信息的时效性区分, 本列刻意只取当年 full 轨的正面计数, 避免把陈旧转载误计为新增正面信号。综合而言, dummy_no_positive_news 把"正面叙事的彻底缺席"这一在媒体经济学中被反复验证为有后果的状态, 物化为可直接进入银行-年面板的稳健信号。 就此构念在更广信息环境层面的延伸, Kim、Tseng、Wang 与 Xi (2024) 在经济政策不确定性背景下检验管理层坏消息披露与股价崩盘风险的关系, 表明负面信息在时间上的分布本身携带信息含量, 可作为本列「正面叙事的彻底缺席亦是信息环境的一种可分析状态」这一构念动机的背景性参照。但边界须诚实标明: 该文的坏消息源自公司自主披露的时点选择 (发送方内生的隐藏行为), 本列的 pos_count_full 则来自第三方媒体报道经 LLM 三家多数投票的正面判定计数, 被报道银行并不直接控制文本, 故原文的坏消息囤积机制不可直接迁移; 原文 DV 为股价崩盘风险、层级为美国一般上市公司的公司-年, 本列既不作 DV 亦不涉股价数据, 其 pos_count_full.fillna(0) <= 0 的机械角点在 T=19 生产语料上的零值频率与原文样本不可比。该文因此只锚定构念动机层面, 不构成本列的测度来源、阈值依据或效度证据。
 ## VAR: dummy_no_positive_news
 
 【变体差分】
@@ -73,4 +80,5 @@ Heese, J., Pérez-Cavazos, G., & Peter, C. D. (2022). When the local newspaper l
 Gao, P., Lee, C., & Murphy, D. (2020). Financing dies in darkness? The impact of newspaper closures on public finance. Journal of Financial Economics, 135(2), 445-467. https://doi.org/10.1016/j.jfineco.2019.06.003
 Fedyk, A., & Hodson, J. (2023). When can the market identify old news?. Journal of Financial Economics, 149(1), 92-113. https://doi.org/10.1016/j.jfineco.2023.04.008
 Shapiro, A. H., Sudhof, M., & Wilson, D. J. (2022). Measuring news sentiment. Journal of Econometrics, 228(2), 221-243. https://doi.org/10.1016/j.jeconom.2020.07.053
+Kim, J.-B., Tseng, K., Wang, J. (., & Xi, Y. (2024). Policy uncertainty, bad news disclosure, and stock price crash risk. Journal of Empirical Finance, 78, 101512. https://doi.org/10.1016/j.jempfin.2024.101512
 <!-- rendered-citations:end -->

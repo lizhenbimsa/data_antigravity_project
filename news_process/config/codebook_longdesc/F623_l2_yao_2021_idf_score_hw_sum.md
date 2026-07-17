@@ -57,6 +57,14 @@ citations:
   vol: 37
   issue: 2
   pages_or_artno: 267-307
+- doi: "10.1016/j.econlet.2026.113002"
+  type: "journal"
+  authors: "Nakatsuka, H., & Suimon, Y."
+  year: 2026
+  title: "How does the market respond to textual novelty: Joint analysis of similarity and sentiment on Japanese corporate disclosures"
+  venue: "Economics Letters"
+  vol: "265"
+  pages_or_artno: "113002"
 new_dois: []
 ---
 
@@ -69,8 +77,7 @@ new_dois: []
 计算链路分三段。第一段在 stage 22 词典法内, 又细分两步: (a) IDF 权重构建 —— 在与 TF 打分同一语料 (content_full, 标题 prepend 后的全文, 与裸"内容"列不同源, 避免标题词 df 被低估) 上, 对 Yao (2021) 词典中每个词 w 统计文档频率 df(w) 与语料内唯一文档数 N, 算得 log10(N/(1+df(w))), 再做均值归一到 1、并在 P1/P99 分位做 winsorize 截尾以抑制极端稀有词的权重爆炸, 得到 yao_2021_idf_weight(w); 该权重词典与原始极性词典逐词一一对应, 权重仅缩放幅值、不改变极性归属, 与原始词典比较时跨类重叠词集口径一致 (两侧计数取绝对值)。(b) 逐篇打分 —— 对每篇报道分词后, 在 IDF 加权词典上做逐词匹配, 命中情感词依次施加三条语言学规则 (否定词在其后固定窗口内翻转极性、程度副词按倍率缩放幅值、转折词在从句作用域内按转折权重放大后半句, 遇句末标点重置规则状态), 得到每个情感词的 final_score (已含 IDF 幅值缩放), 文章级得分归一化为 Σ(final_score)/Σ|final_score|, 落在 [-1, +1], 即 yao_2021_idf_score。此 IDF 加权口径与不加权的原始 yao_2021_score 互为稳健性、刻意不混用, 二者分别捕获"稀有词驱动的语调"与"全部词等权的语调"两种构念假设。第二段在 stage 24 羊群衰减处理: 对同一目标银行的报道按发布年度截断, 用 TF-IDF 余弦相似度统计每篇报道在同年早前存在多少篇高度相似 (疑似转抄、回声式跟风) 的报道, 记为 n_similar_articles, 再令 herd_weight = 1/(1 + n_similar_articles); 转抄越多则权重越低, 越接近独立首发则权重越接近 1。注意此处羊群衰减用于相似度判定的 TF-IDF 与第一段情感度量用的 IDF 加权词典是两套独立构造 (前者刻画文档间的整体文本相似度, 后者刻画情感词在语料内的稀有度), 命名巧合不代表口径共享。第三段在面板聚合 (runner 步骤 3d 逐篇相乘, encode 的 build_aggregation_dict 求和): 文章级 yao_2021_idf_score 乘以同轨 herd_weight 得到 yao_2021_idf_score_hw, 再在银行-年度分组内求和得到本列。留篇门控采用 full-only 口径 (2026-06-29): 一篇报道是否计入某银行某年的报道宇宙, 由其 full 轨是否被判为一篇银行金科报道决定, 三轨在该留篇集合上分别计列。
 
 【文献定位】
-本测度的方法学谱系由四支文献锚定。IDF 加权情感度量的直接方法学依据是 Jegadeesh 与 Wu (2013, *Journal of Financial Economics*) 提出的"词汇力量" (word power) 框架 —— 该文论证情感词对市场反应的边际信息含量并非均一, 应按词的相对信息量而非等权计数赋权, 这正是本列在 yao_2021 原始词典之上再叠加逐词 IDF 权重的经济学动机: 高频套话词 (如"发展"、"稳健") 信息量低, 应予压低; 低频专有情感表述信息量高, 应予放大。IDF 权重本身的统计构造 (逆文档频率、log(N/df)) 溯源自信息检索经典文献 Spärck Jones (1972, *Journal of Documentation*), 该文首次系统阐释词项特异性的统计解释及其在检索中的应用, 是本管道全部 idf_score 系列指标共享的权重原语出处。词典本身取 Yao (2021), 与本项目使用的其余五部中文金融情感词典 (Jiang 2021、Bian 2021、Du 2022、You 2018、Loughran 中文译本) 并列, 领域特异性价值由 Du et al. (2022, *Review of Finance*) 在顶刊层面进一步确证 —— 该文系统论证语言与领域特异性对中文金融情感度量至关重要, 通用英文词典直译到中文会因制度与语言差异系统性失准, 这正是本管道优先选用中文金融专用词典而非直译词典的依据, 也是 IDF 加权在词典法内部 (而非跨词典) 做稳健性检验的理论前提。逐词施加否定、程度、转折规则并作从句级作用域重置, 遵循 Taboada et al. (2011, *Computational Linguistics*) 确立的词典法情感分析范式。而将 IDF 加权轨与原始等权轨、及词典法整体与机器学习/大模型法并置互证, 呼应 Frankel, Jennings 与 Lee (2022, *Management Science*) 关于披露情感的机器学习法与词典法互为稳健性的先例。需强调本项目内 IDF 加权 (idf_score) 与羊群加权 (hw) 是两个正交的聚合权重维度, 二者叠加使用时各自的稳健性证成互不替代; 六部词典各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同词典或不同聚合权重方案 (等权 sum / IDF 加权 idf_score / 羊群加权 hw / 二者叠加 idf_score_hw) 混进同一 over-identified Hansen J 检验。
-
+本测度的方法学谱系由四支文献锚定。IDF 加权情感度量的直接方法学依据是 Jegadeesh 与 Wu (2013, *Journal of Financial Economics*) 提出的"词汇力量" (word power) 框架 —— 该文论证情感词对市场反应的边际信息含量并非均一, 应按词的相对信息量而非等权计数赋权, 这正是本列在 yao_2021 原始词典之上再叠加逐词 IDF 权重的经济学动机: 高频套话词 (如"发展"、"稳健") 信息量低, 应予压低; 低频专有情感表述信息量高, 应予放大。IDF 权重本身的统计构造 (逆文档频率、log(N/df)) 溯源自信息检索经典文献 Spärck Jones (1972, *Journal of Documentation*), 该文首次系统阐释词项特异性的统计解释及其在检索中的应用, 是本管道全部 idf_score 系列指标共享的权重原语出处。词典本身取 Yao (2021), 与本项目使用的其余五部中文金融情感词典 (Jiang 2021、Bian 2021、Du 2022、You 2018、Loughran 中文译本) 并列, 领域特异性价值由 Du et al. (2022, *Review of Finance*) 在顶刊层面进一步确证 —— 该文系统论证语言与领域特异性对中文金融情感度量至关重要, 通用英文词典直译到中文会因制度与语言差异系统性失准, 这正是本管道优先选用中文金融专用词典而非直译词典的依据, 也是 IDF 加权在词典法内部 (而非跨词典) 做稳健性检验的理论前提。逐词施加否定、程度、转折规则并作从句级作用域重置, 遵循 Taboada et al. (2011, *Computational Linguistics*) 确立的词典法情感分析范式。而将 IDF 加权轨与原始等权轨、及词典法整体与机器学习/大模型法并置互证, 呼应 Frankel, Jennings 与 Lee (2022, *Management Science*) 关于披露情感的机器学习法与词典法互为稳健性的先例。需强调本项目内 IDF 加权 (idf_score) 与羊群加权 (hw) 是两个正交的聚合权重维度, 二者叠加使用时各自的稳健性证成互不替代; 六部词典各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同词典或不同聚合权重方案 (等权 sum / IDF 加权 idf_score / 羊群加权 hw / 二者叠加 idf_score_hw) 混进同一 over-identified Hansen J 检验。 近期文献亦为本列"情感 × 新颖性"的乘性结构提供了外部佐证: Nakatsuka 与 Suimon (2026) 以日本公司披露文本为样本, 对文本相似度 (新颖性) 与情感做联合分析, 检验市场对文本新颖性的反应, 其核心主张是二者须联合建模而非各自单独看待 —— 这正锚定本列把逐篇 yao_2021_idf_score 与羊群权重 1/(1 + n_similar_articles) 相乘、折叠为单一双重加权分这一环的构念动机: 一篇报道的情感信号价值须随其独立性 (相似度的减函数) 联合调整, 而非把语调与转抄程度当作两个可加的独立维度。迁移边界须如实说明: 该文语料为日文的公司披露文件而非第三方中文媒体报道, 其相似度是披露文本之间的连续相似度并与情感做交互式联合分析, 并非本项目所采的 1/(1 + n_similar_articles) 这一具体倒数衰减函数形式, 亦不涉及把二者相乘后再在银行-年度层内求和的层级聚合, 其分析层级为单次披露事件而非银行-年度三轨。因此该文只锚定"情感与文本新颖性须联合而非分立看待"这一前提, 不构成对本列具体权重函数形式、截尾口径或求和聚合算子的证成。
 ## VAR: yao_2021_idf_score_hw_sum_full
 
 【变体差分】
@@ -92,4 +99,5 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Spärck Jones, K. (1972). A statistical interpretation of term specificity and its application in retrieval. Journal of Documentation, 28(1), 11-21. https://doi.org/10.1108/eb026526
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
+Nakatsuka, H., & Suimon, Y. (2026). How does the market respond to textual novelty: Joint analysis of similarity and sentiment on Japanese corporate disclosures. Economics Letters, 265, 113002. https://doi.org/10.1016/j.econlet.2026.113002
 <!-- rendered-citations:end -->

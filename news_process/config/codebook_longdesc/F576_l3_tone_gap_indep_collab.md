@@ -47,6 +47,35 @@ citations:
   vol: "27"
   issue: "2"
   pages_or_artno: "131-150"
+- doi: "10.1108/ijoem-01-2026-0159"
+  type: "journal"
+  authors: "Ferilli, G. B., Palmieri, E., & Cicchiello, A. F."
+  year: 2026
+  title: "Bank–FinTech cooperation: what the empirical evidence reveals in Asia–Pacific countries"
+  venue: "International Journal of Emerging Markets"
+  pages_or_artno: "1-26"
+- doi: "10.1108/ijbm-09-2023-0525"
+  type: "journal"
+  authors: "Le, T., Ngo, T., Nguyen, D. T., & Do, T. T."
+  year: 2024
+  title: "Fintech and banking: friends or foes? Evidence from bank–fintech cooperation"
+  venue: "International Journal of Bank Marketing"
+  vol: "42"
+  issue: "7"
+  pages_or_artno: "1513-1535"
+- doi: "10.1007/s10668-025-07107-1"
+  type: "journal"
+  authors: "Sun, Z., Sun, Y., Qiao, Q., & Zhang, P."
+  year: 2025
+  title: "Independent innovation and collaborative innovation: exploring the impact of digital technology transfer on green innovation from the perspective of innovation element flow"
+  venue: "Environment, Development and Sustainability"
+- doi: "10.2139/ssrn.5265813"
+  type: "wp"
+  authors: "Jamshed, A., Oberoi, J. S., & Lawal, T. O."
+  year: 2025
+  title: "Speaking with One Voice? The Joint Information Content of Tone in MD&A and Risk Factor Disclosures"
+  venue: "SSRN"
+  pages_or_artno: "5265813"
 new_dois: []
 ---
 
@@ -59,8 +88,7 @@ tone_gap_indep_collab 度量的是同一家银行、同一年度内, 媒体报�
 计算链条起自 stage 21 tone_llms 的三家 LLM 情感投票与 innovation_collab_mode 分类, 经 encode.py 的 cm_agg 聚合块按 (target_bank, year) 分组、按 collab_mode ∈ {indep, collab} 拆分后, 分别算出 llm_vote_tone_indep_full 与 llm_vote_tone_collab_full 两条 headline 情感子测度 (headline 口径固定为 full 轨, 与 2026-06-29 起全线切换的 full-only 留篇门控保持一致: 是否判定为"一篇银行金融科技报道"只看 llm_verified_full==True, ctx/ss 是 conditional-on-full 的稳健性轨道而非独立留篇集合)。在此基础上, encode.py 引入了 fix(encode-02) 补丁引入的最小样本量守门: 只有当该银行-年度内 n_articles_indep≥5 且 n_articles_collab≥5 同时成立时, tone_gap_indep_collab 才被赋予实际数值 (panel[...].where(_indep_collab_qual, np.nan)), 否则整个 bank-year 观测被记为缺失。这一守门逻辑与家族 F575 (tone_gap_sub_symb) 完全镜像, 都是为了防止极小样本 (例如某银行某年仅有 1-2 篇协同类报道) 导致的均值估计噪声被误读为系统性语调落差。门控之后, encode.py 还会执行一段纯日志、golden-safe 的分布统计 (n_qual、占全体 bank-year 比例、均值、标准差、中位数), 该统计仅供运行时监控与审计留痕, 不参与任何下游列计算, 也不会写回面板本身。此外, 与 n_articles_indep / n_articles_collab 相关的恒等式校验遵循 R6 规范: 由于上游 collab_mode 判定本身可能因 LLM 分类失败而产生 NaN, 面板层面只保证 n_articles ≥ n_articles_indep + n_articles_collab 的逻辑必然性, 差额由 n_articles_cell_NA_full 兜底追踪, 不强制严格等式。
 
 【文献定位】
-本指标的构念根基是开放式创新理论对"自建能力"与"外部协同"两种创新模式的经典二分, 其奠基性框架见 Chesbrough (2003) 与 Laursen & Salter (2006) 关于企业开放边界选择如何影响创新绩效的论证; Zhang, Ma, Liang & Garrett (2024) 在 Journal of Product Innovation Management 发表的近 20 年开放式创新元分析进一步系统化了"开放度—绩效"关系的调节因素框架, 为本指标将开放度维度 (indep vs collab) 与外部媒体情感表征相勾连提供了理论支点。将媒体语调差异用作银行创新模式选择之市场认知代理的做法, 呼应了金融文本情感分析中"事件驱动情感测度"的传统, 例如 Holzman, Miller & Twedt (2023) 在 The Accounting Review 关于媒体情感与季度盈余披露间约束关系的研究表明, 媒体语调本身携带独立于基本面之外的市场解读信号。在金融科技情境下, Dehghani, Brauneis & Karavidas (2026) 对金融机构专利策略与开放式创新实践的最新实证进一步确认, 银行在自主研发与外部合作之间的策略选择存在系统性异质性, 这一异质性正是 tone_gap_indep_collab 试图从媒体叙事侧捕捉的现象。需要强调的是, 本指标是 P5 论文的辅助诊断/描述性测度, 用以刻画媒体如何差异化评价两种创新模式, 而非该论文因果识别策略中的处理变量或工具变量; P5 主线处理变量另有专门定义 (详见 papers/bank_fintech_collab 模块), 使用者不应将 tone_gap_indep_collab 直接代入回归右侧作为核心自变量, 更适合的用途是作为稳健性描述、异质性分组依据或论文正文中"叙事差距"现象的可视化材料。
-
+本指标的构念根基是开放式创新理论对"自建能力"与"外部协同"两种创新模式的经典二分, 其奠基性框架见 Chesbrough (2003) 与 Laursen & Salter (2006) 关于企业开放边界选择如何影响创新绩效的论证; Zhang, Ma, Liang & Garrett (2024) 在 Journal of Product Innovation Management 发表的近 20 年开放式创新元分析进一步系统化了"开放度—绩效"关系的调节因素框架, 为本指标将开放度维度 (indep vs collab) 与外部媒体情感表征相勾连提供了理论支点。将媒体语调差异用作银行创新模式选择之市场认知代理的做法, 呼应了金融文本情感分析中"事件驱动情感测度"的传统, 例如 Holzman, Miller & Twedt (2023) 在 The Accounting Review 关于媒体情感与季度盈余披露间约束关系的研究表明, 媒体语调本身携带独立于基本面之外的市场解读信号。在金融科技情境下, Dehghani, Brauneis & Karavidas (2026) 对金融机构专利策略与开放式创新实践的最新实证进一步确认, 银行在自主研发与外部合作之间的策略选择存在系统性异质性, 这一异质性正是 tone_gap_indep_collab 试图从媒体叙事侧捕捉的现象。需要强调的是, 本指标是 P5 论文的辅助诊断/描述性测度, 用以刻画媒体如何差异化评价两种创新模式, 而非该论文因果识别策略中的处理变量或工具变量; P5 主线处理变量另有专门定义 (详见 papers/bank_fintech_collab 模块), 使用者不应将 tone_gap_indep_collab 直接代入回归右侧作为核心自变量, 更适合的用途是作为稳健性描述、异质性分组依据或论文正文中"叙事差距"现象的可视化材料。 近期文献可为本指标的两个类目与差分构造补充坐标。Ferilli、Palmieri 与 Cicchiello (2026) 对 2015–2024 年 204 篇同行评议文献作结构化整合综述, 识别出银行–金融科技合作研究的三大簇 (合作对银行绩效、效率与风险承担的影响; 监管套利与影子银行; 组织转型与商业模式重构), 并指出中国是「金科整合如何影响在位银行盈利、信贷配置与系统性风险」的主要经验基础, 由此为 collab 类目在中国银行业的构念存在性与经济重要性提供综述级依据; 惟该文是文献综述而非实证研究, 分析单位是论文而非银行, 既不测量媒体语调也无银行层合作变量, 故只锚定类目的存在性, 不锚定本指标的语调差分构造。Le、Ngo、Nguyen 与 Do (2024) 用越南银行 2007–2019 年样本 (系统 GMM) 自建跨七个金科细分领域的银行–金融科技合作多样性指数, 发现合作多样性总体提升银行风险调整后收益, 但效应依细分领域与所有制而异 (比较型领域为正、支付与移动钱包领域为负, 国有大型与上市银行的正效应更明显), 表明 collab 一侧在银行层可测且对银行经营有实质后果; 但其标题的 'friends or foes' 属修辞设问, 实证仅含合作侧指标而未检验「合作 vs 竞争」二分, 且该文的「竞争」与本指标的 indep (自主研发) 并非同一构念, 故不得据以宣称「两种模式对银行含义不同」已获直接证据, 其单一国别样本、风险调整后收益 DV 与合作事件式测度亦均与本指标的中国银行-年新闻语调差值口径不同。Sun、Sun、Qiao 与 Zhang (2025) 把「自主创新」与「协同创新」作为并列的两条创新路径作对照分析, 显示该二分在中国创新研究中是标准且可测的划分, 可作为 indep/collab 类目划分的近期中文语境构念参照; 该文依托专利与技术转移数据识别路径、主体为区域与企业的绿色创新、产出为创新绩效, 与本指标由 LLM 对新闻篇章判定 innovation_collab_mode、主体为银行、输出为语调落差的口径相距较远, 仅供构念对照而非测度移植。至于「同一主体内两个来源的语调分开计算再作对照」这一思路本身, Jamshed、Oberoi 与 Lawal (2025) 的 SSRN 工作论文以同一份年报的 MD&A 与风险因素两节语调设问 'Speaking with One Voice?', 可作为该方向仍属活跃前沿的存在性提示; 但该文尚未发表, 其摘要在 Crossref/OpenAlex 均不可得且 Semantic Scholar 未收录, 无从证实其是否以「两者之差」为测度 (所谓 'joint information content' 亦可能指联合或交互而非差分), 因此本文档不主张其与本指标「两条件均值相减」的构造同型, 亦不将其作为已发表定论援引。
 ## VAR: tone_gap_indep_collab
 
 【变体差分】
@@ -71,4 +99,8 @@ Zhang, H., Ma, Z., Liang, X., & Garrett, T. C. (2024). Antecedents and outcomes 
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing enthusiasm: Media sentiment and the disciplining role of quarterly earnings announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
 Dehghani, M. A., Brauneis, A., & Karavidas, D. (2026). Patent strategies in the age of FinTech: Understanding IP management practices and open innovation across financial institutions. Technological Forecasting and Social Change, 226, 124581. https://doi.org/10.1016/j.techfore.2026.124581
 Laursen, K., & Salter, A. (2006). Open for innovation: The role of openness in explaining innovation performance among U.K. manufacturing firms. Strategic Management Journal, 27(2), 131-150. https://doi.org/10.1002/smj.507
+Ferilli, G. B., Palmieri, E., & Cicchiello, A. F. (2026). Bank–FinTech cooperation: what the empirical evidence reveals in Asia–Pacific countries. International Journal of Emerging Markets, 1-26. https://doi.org/10.1108/ijoem-01-2026-0159
+Le, T., Ngo, T., Nguyen, D. T., & Do, T. T. (2024). Fintech and banking: friends or foes? Evidence from bank–fintech cooperation. International Journal of Bank Marketing, 42(7), 1513-1535. https://doi.org/10.1108/ijbm-09-2023-0525
+Sun, Z., Sun, Y., Qiao, Q., & Zhang, P. (2025). Independent innovation and collaborative innovation: exploring the impact of digital technology transfer on green innovation from the perspective of innovation element flow. Environment, Development and Sustainability. https://doi.org/10.1007/s10668-025-07107-1
+Jamshed, A., Oberoi, J. S., & Lawal, T. O. (2025). Speaking with One Voice? The Joint Information Content of Tone in MD&A and Risk Factor Disclosures. SSRN No. 5265813 [Working Paper]. https://doi.org/10.2139/ssrn.5265813
 <!-- rendered-citations:end -->

@@ -45,6 +45,23 @@ citations:
   vol: '14'
   issue: '4'
   pages_or_artno: 559-586
+- doi: "10.1016/j.jcorpfin.2026.103033"
+  type: "journal"
+  authors: "Battalio, R., Loughran, T., & McDonald, B."
+  year: 2026
+  title: "How managers frame capital budgeting in investor communications"
+  venue: "Journal of Corporate Finance"
+  vol: "100"
+  pages_or_artno: "103033"
+- doi: "10.1016/j.cjar.2025.100406"
+  type: "journal"
+  authors: "Zhao, J., & Ren, M."
+  year: 2025
+  title: "Innovative or conservative? How clan culture shapes bank digital transformation in China"
+  venue: "China Journal of Accounting Research"
+  vol: "18"
+  issue: "2"
+  pages_or_artno: "100406"
 new_dois: []
 ---
 
@@ -55,8 +72,7 @@ you_2018_neg_count 家族测度的是"一篇报道里出现了多少个负面情
 【方法学与计算】
 计算过程严格遵循 tone_words.py 的通用词典打分流程: 先对文章文本做中文分词(jieba, 版本冻结为 0.42.1 以保证跨 run 的确定性复现), 然后拿分词结果逐词比对 you_2018 词典的 negative 词表, 命中一次即计一次, 不做词频封顶、不做逆文档频率(idf)加权 —— idf 加权版本是另一族测度(参见 `*_idf_tone_sum` 系列), 与本家族原始计数正交。you_2018 词典本身在加载阶段对 positive∩negative 跨类重叠的 5 个词采用"两侧保留"策略(2026-06-24 用户决策, 逆转此前的单侧剔除做法): 重叠词在 positive 与 negative 两个计数器里都各计一次, 这样做的原因是词典本身把这些词同时收录进两个极性表, 项目组认为强行去重会引入主观判断误差, 保留双计更接近词典原始设计意图, 同时也保证了后续 union/msent/ratio 等派生测度的极性 margin 守恒(重叠词以对称 (+1,−1) 计入固定并集词典, 不改变净语调)。三个后缀列 `_full` / `_ctx` / `_ss` 对应的是本项目三轨文本架构下各自独立跑的同一套计数流程, 而不是同一次计数结果的三种切片; 三轨的文本来源不同(full = 标题拼正文全文, ctx = 标题拼实体窗口, ss = 标题拼银行∧金科同句±N窗口), 因此三列数值天然不同且不可相互还原。三轨之间是各自 just-identified 并排、互为稳健性、不分主次的关系, 铁律要求它们绝不可混入同一个 over-identified 的 Hansen J 检验框架, 因为把三条本质上度量不同文本范围的信号硬凑进同一超识别方程会人为制造过度识别约束, 掩盖三轨各自的边际信息。
 【文献定位】
-you_2018 词典的方法学根基来自 You, Zhang & Zhang (2018, Review of Financial Studies)《Who captures the power of the pen?》, 该文首创了针对中国资本市场语境的中文金融情感词典构建思路, 用于研究媒体报道语调对信息环境、股价发现效率的影响机制, 是本项目情感测度族里六部词典中本土化程度较高、且专门面向中国上市公司信息披露与媒体报道场景设计的一部, 与偏英文语境翻译扩充而来的 jiang_2021、bian_2021、loughran 系列形成方法论互补。作为最基础的逐词命中计数, neg_count 家族的角色定位是国内外词典法情感测度文献里普遍确立的"词典命中计数是语调测度的第一层构件"传统的一个具体实现 —— 后续的 tone(标准化语调得分)、score(带语言学规则调整的加权得分)都建立在 pos_count / neg_count 这一层原始计数之上。在方法学谱系上, neg_count 也呼应 Bian, Jia, Li & Yan (2021)提出的中文金融情感词典构建规范, 以及 Pröllochs, Feuerriegel & Neumann (2016, Decision Support Systems) 关于情感分析中否定词处理机制的讨论 —— 本家族的 neg_count 是"否定规则介入前"的裸计数, 与同族的 negonly/negdeg 等语言学规则消融变体形成对照, 后者在 neg_count 基础上叠加否定翻转规则重新计分, 两者构成规则消融梯度上相邻的两级, 彼此正交、互为稳健性检验, 不可混同解读。此外, 从测度哲学上看, 逐词计数这一路径也与 You, H., & Zhang, X.-J. (2009, Review of Accounting Studies)在披露复杂度测度上采取的"表层可数特征(如文档长度、生僻词占比)直接计数、不做语义加权"的朴素计量思路一脉相承 —— 两者都属于"先以可复现的表层特征计数作为构念代理, 再在其上叠加更复杂的加权/归一化处理"这一测度构建范式, neg_count 与该文的复杂度计数指标分属情感与复杂度两个不同构念, 但方法论血缘相近, 可作为本家族"裸计数优先于加权测度"这一设计取舍的一个跨构念参照。
-
+you_2018 词典的方法学根基来自 You, Zhang & Zhang (2018, Review of Financial Studies)《Who captures the power of the pen?》, 该文首创了针对中国资本市场语境的中文金融情感词典构建思路, 用于研究媒体报道语调对信息环境、股价发现效率的影响机制, 是本项目情感测度族里六部词典中本土化程度较高、且专门面向中国上市公司信息披露与媒体报道场景设计的一部, 与偏英文语境翻译扩充而来的 jiang_2021、bian_2021、loughran 系列形成方法论互补。作为最基础的逐词命中计数, neg_count 家族的角色定位是国内外词典法情感测度文献里普遍确立的"词典命中计数是语调测度的第一层构件"传统的一个具体实现 —— 后续的 tone(标准化语调得分)、score(带语言学规则调整的加权得分)都建立在 pos_count / neg_count 这一层原始计数之上。在方法学谱系上, neg_count 也呼应 Bian, Jia, Li & Yan (2021)提出的中文金融情感词典构建规范, 以及 Pröllochs, Feuerriegel & Neumann (2016, Decision Support Systems) 关于情感分析中否定词处理机制的讨论 —— 本家族的 neg_count 是"否定规则介入前"的裸计数, 与同族的 negonly/negdeg 等语言学规则消融变体形成对照, 后者在 neg_count 基础上叠加否定翻转规则重新计分, 两者构成规则消融梯度上相邻的两级, 彼此正交、互为稳健性检验, 不可混同解读。此外, 从测度哲学上看, 逐词计数这一路径也与 You, H., & Zhang, X.-J. (2009, Review of Accounting Studies)在披露复杂度测度上采取的"表层可数特征(如文档长度、生僻词占比)直接计数、不做语义加权"的朴素计量思路一脉相承 —— 两者都属于"先以可复现的表层特征计数作为构念代理, 再在其上叠加更复杂的加权/归一化处理"这一测度构建范式, neg_count 与该文的复杂度计数指标分属情感与复杂度两个不同构念, 但方法论血缘相近, 可作为本家族"裸计数优先于加权测度"这一设计取舍的一个跨构念参照。 就这一构造形态在当代金融顶刊中的存续状态而言, Battalio、Loughran 与 McDonald (2026) 自建 45 个资本预算术语的词表, 对 2010–2020 年业绩说明会文本做逐词命中统计以刻画管理者的措辞框架, 直接证明「固定词表逐词命中、不做长度归一、不跨词表聚合」的原始词次计数至今仍属活跃做法, 且该文有金融词典法原始提出者参与, 恰可锚定 neg_count 这一裸计数层的形态取舍。惟须严格限定: 原文测度的是术语使用频次而非情感极性, 既不作正/负面判定, 词表亦为英文术语表且无否定翻转/程度副词/转折规则层, 分析单元为公司-披露文档, 因此它只锚定原始命中词次的构造形态, 不为本家族 negative 侧的极性方向提供任何背书。同域参照方面, Zhao 与 Ren (2025) 以中国商业银行为样本, 发现宗族文化经短半径信任推高物理网点与人员依赖、风险规避降低风险承担意愿等机制抑制银行数字化转型, 与本项目同国别、同行业且同为银行-年层的文本型变量, 可作为「中国银行业以文本型变量构造银行-年测度」的同域存在性参照。仅此: 原文该测度是否为分词后固定词表逐词命中计数在可得材料中未见披露、未经核实, 故不可据此宣称词表命中频次的技术路线获得背书; 其词表 (若有) 为数字化/科技关键词而非情感词表, 文本源为每银行-年单份年报而非第三方新闻逐篇计数后聚合, 亦无三规则层与 full/ctx/ss 三轨设计。
 ## VAR: you_2018_neg_count_ctx
 
 【变体差分】
@@ -77,4 +93,6 @@ You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The 
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
 You, H., & Zhang, X.-J. (2009). Financial reporting complexity and investor underreaction to 10-K information. Review of Accounting Studies, 14(4), 559-586. https://doi.org/10.1007/s11142-008-9083-2
+Battalio, R., Loughran, T., & McDonald, B. (2026). How managers frame capital budgeting in investor communications. Journal of Corporate Finance, 100, 103033. https://doi.org/10.1016/j.jcorpfin.2026.103033
+Zhao, J., & Ren, M. (2025). Innovative or conservative? How clan culture shapes bank digital transformation in China. China Journal of Accounting Research, 18(2), 100406. https://doi.org/10.1016/j.cjar.2025.100406
 <!-- rendered-citations:end -->

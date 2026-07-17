@@ -54,6 +54,15 @@ citations:
   vol: '71'
   issue: '9'
   pages_or_artno: 7888-7906
+- doi: "10.1609/aaai.v39i18.34120"
+  type: "journal"
+  authors: "Lyu, Q., Shridhar, K., Malaviya, C., Zhang, L., Elazar, Y., Tandon, N., Apidianaki, M., Sachan, M., & Callison-Burch, C."
+  year: 2025
+  title: "Calibrating Large Language Models with Sample Consistency"
+  venue: "Proceedings of the AAAI Conference on Artificial Intelligence"
+  vol: "39"
+  issue: "18"
+  pages_or_artno: "19260-19268"
 new_dois: []
 ---
 
@@ -116,8 +125,7 @@ Peress (2009, JF) 对媒体报道强度本身构成独立信息渠道、简单�
 (0.25/0.30/0.40/0.45 与基线 0.35 并排) 是一种规格稳健性设计: 各阈值档各自
 just-identified 并排, 互为稳健性、不分主次, 用于证明"相似度多高算抄稿"这一
 研究者自选门槛不驱动主结论, 禁止把不同阈值档的加权语调混进同一 over-identified
-Hansen J 检验。
-
+Hansen J 检验。 至于篇级连续语调分中强度因子的取法, Lyu 等 (2025) 通过系统比较多种置信度来源发现, 由多次采样输出之间的一致性导出的置信度, 在校准性上优于模型自报置信度与 logit 概率, 为本族以三家投票一致率而非模型自报分数充当篇级连续权重提供了方法学依据。迁移边界须标明: 该文的一致性取自同一模型正温度下的重复采样, 而本项目 temperature=0.0 且不重复采样, 一致率来自三家异构厂商模型的跨模型投票, 该文并未检验此种跨模型一致率的校准性质, 其英文推理/问答基准任务亦不涉及 τ=0.45 档的跟风衰减加权与银行-年加总。
 ## VAR: llm_vote_cont_hw_thr45_sum_ctx
 
 【变体差分】
@@ -196,4 +204,5 @@ Tetlock, Paul C. (2007). Giving Content to Investor Sentiment: The Role of Media
 Kamen, A., & Kamen, Y. (2025). Majority rules: LLM ensemble is a winning approach for content categorization. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2511.15714
 Fang, Lily, & Peress, Joel. (2009). Media Coverage and the Cross-Section of Stock Returns. The Journal of Finance, 64(5), 2023-2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x
 de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
+Lyu, Q., Shridhar, K., Malaviya, C., Zhang, L., Elazar, Y., Tandon, N., Apidianaki, M., Sachan, M., & Callison-Burch, C. (2025). Calibrating Large Language Models with Sample Consistency. Proceedings of the AAAI Conference on Artificial Intelligence, 39(18), 19260-19268. https://doi.org/10.1609/aaai.v39i18.34120
 <!-- rendered-citations:end -->

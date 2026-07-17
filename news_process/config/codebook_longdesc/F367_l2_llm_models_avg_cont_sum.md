@@ -56,6 +56,19 @@ citations:
   vol: "55"
   issue: "2"
   pages_or_artno: "501-567"
+- doi: "10.48550/arxiv.2406.04692"
+  type: "arxiv"
+  authors: "Wang, J., Wang, J., Athiwaratkun, B., Zhang, C., & Zou, J."
+  year: 2024
+  title: "Mixture-of-Agents Enhances Large Language Model Capabilities"
+  venue: "arXiv"
+- doi: "10.1287/mnsc.2024.08999"
+  type: "journal"
+  authors: "Burtch, G., McFowland, E., Yang, M., & Adomavicius, G."
+  year: 2026
+  title: "EnsembleIV: Creating Instrumental Variables from Ensemble Learners for Robust Statistical Inference with ML- Generated Variables"
+  venue: "Management Science"
+  pages_or_artno: "mnsc.2024.08999"
 new_dois: []
 ---
 
@@ -70,8 +83,7 @@ new_dois: []
 三轨 full/ctx/ss 是 CLAUDE.md 铁律下三份并行文本口径产出的三条独立测度: `_full` = 标题+全文正文; `_ctx` = 标题+银行/金科实体窗口截取文本; `_ss` = 标题+银行∧金科同句 (或 ±N 句窗口) 共现片段, 缺失同句共现时镜像 `_ctx` 的回退语义, 退化为全文 body 并置 `ss_is_fallback=True`, 与 `_ctx` 共享 `n_articles` 分母。三轨在 stage 14 `ctx_materializer` 统一物化文本列, stage 21 情感 LLM 对三轨分别独立跑取分, 因此三条 `llm_models_avg_cont_sum{track}` 各自 just-identified 并排, 互为稳健性、不分主次, 严禁在同一 over-identified Hansen J 或单一 GMM 矩条件系统中混用多轨。留篇门控 (即一篇报道是否计入该银行—金科相关样本) 采用 full-only 口径 (2026-06-29 起): 是否留篇只看 `llm_verified_full == True`, ctx/ss 轨的行宇宙是 full 留篇集合的子集, 三轨各自独立算自己的 cont_sum, 不因 ctx/ss 判定不同而扩大或缩小样本。计算链条为: stage 21 对每篇留篇报道由三家模型分别输出连续强度分 (`{m}_cont_mean{track}`, 篇级); panel 构建阶段按银行—年度对篇级值加总得到 `{m}_cont_sum{track}`; 本家族再对三家模型的 `cont_sum` 取跨模型简单算术均值, 无加权、无 winsorize、无对数变换, 是纯粹的算术平均聚合, 计算成本为 $0 (对已落盘列的行方向平均, 不调用任何 LLM/embedding API)。
 
 【文献定位】
-财务文本情感的三角测量传统 (词典法 / 机器学习 / 大语言模型) 早已认识到单一测度方法存在系统性偏误, Loughran & McDonald (2016, *Journal of Accounting Research*) 系统综述了会计与金融文本分析中不同方法各自的优劣与适用边界, 为多方法并行、互为稳健性的设计取向提供了方法论基础。Huang, Wang & Yang (2023, *Contemporary Accounting Research*) 提出的 FinBERT 表明面向金融领域微调的语言模型能够更精准提取文本中的情感信息, 但也隐含单一模型可能带有厂商/训练语料特异性偏差的风险, 这正是本家族坚持三家模型 (而非单家) 跨厂商综合的动机所在。de Kok (2025, *Management Science*) 系统讨论了在会计研究中使用生成式大语言模型进行文本分析的方法论规范, 强调 temperature=0、prompt 版本冻结等确定性锚点对结果可复现性的重要性, 本项目 stage 21 的 prompt v8 字节级冻结与三家模型缓存命中即可离线 $0 复现的设计正对应这一规范要求。Gilardi, Alizadeh & Kubli (2023, *PNAS*) 的实证表明大语言模型在文本标注任务上可以媲美甚至超过众包人工标注者, 为以 LLM 而非纯词典法作为情感强度的主测度提供了外部效度支撑; 但跨模型一致性并非自动成立, Chae & Davidson (2026, *Sociological Methods & Research*) 综述指出零样本与指令微调的大语言模型在文本分类任务上的表现存在模型间差异, 进一步支持了本项目「三家模型互为稳健性、禁止把跨模型差异误当作单一真值噪声」的设计立场——本家族的跨模型均值正是对这种模型间差异的一种保守综合, 而非替代对三家逐模型子测度的单独审视。
-
+财务文本情感的三角测量传统 (词典法 / 机器学习 / 大语言模型) 早已认识到单一测度方法存在系统性偏误, Loughran & McDonald (2016, *Journal of Accounting Research*) 系统综述了会计与金融文本分析中不同方法各自的优劣与适用边界, 为多方法并行、互为稳健性的设计取向提供了方法论基础。Huang, Wang & Yang (2023, *Contemporary Accounting Research*) 提出的 FinBERT 表明面向金融领域微调的语言模型能够更精准提取文本中的情感信息, 但也隐含单一模型可能带有厂商/训练语料特异性偏差的风险, 这正是本家族坚持三家模型 (而非单家) 跨厂商综合的动机所在。de Kok (2025, *Management Science*) 系统讨论了在会计研究中使用生成式大语言模型进行文本分析的方法论规范, 强调 temperature=0、prompt 版本冻结等确定性锚点对结果可复现性的重要性, 本项目 stage 21 的 prompt v8 字节级冻结与三家模型缓存命中即可离线 $0 复现的设计正对应这一规范要求。Gilardi, Alizadeh & Kubli (2023, *PNAS*) 的实证表明大语言模型在文本标注任务上可以媲美甚至超过众包人工标注者, 为以 LLM 而非纯词典法作为情感强度的主测度提供了外部效度支撑; 但跨模型一致性并非自动成立, Chae & Davidson (2026, *Sociological Methods & Research*) 综述指出零样本与指令微调的大语言模型在文本分类任务上的表现存在模型间差异, 进一步支持了本项目「三家模型互为稳健性、禁止把跨模型差异误当作单一真值噪声」的设计立场——本家族的跨模型均值正是对这种模型间差异的一种保守综合, 而非替代对三家逐模型子测度的单独审视。 沿这一取向, 近年前沿进一步给出了跨模型集成本身的存在性依据与下游处理路径。Wang、Wang、Athiwaratkun、Zhang 与 Zou (2024) 实证表明聚合多个异构大语言模型的输出优于任何单一成员模型, 并刻画了模型间的协作性, 为本家族以三家异构厂商模型并列打分、再对连续强度取跨模型算术均值的架构提供了前沿参照; 惟该文的聚合是分层生成式的 (后层模型读取前层模型的完整回答再合成), 与本家族对连续分直接取算术均值的机械聚合并非同一机制, 其评测亦限于英文指令跟随基准而非中文银行—金融科技新闻情感, 更未讨论 per-model 独立降级与缺列优雅返回 NaN 的语义。Burtch、McFowland、Yang 与 Adomavicius (2026) 则利用集成学习器内部各成员预测之间的差异构造工具变量, 以缓解 ML 生成变量充当回归元时的测量误差偏误, 其「多个成员对同一对象各自打分、成员间存在系统性差异」的结构与本家族同构, 提示跨模型离散度本身可能携带关于测量误差的信息; 但原文的集成成员是同一训练流程下可重采样的 ML 预测器, 差异来源明确, 而本家族成员是三家不可控、不可重采样的闭源商用 LLM, 其构造 IV 的前提未必成立 — 本项目并未实施该方案, 三家子测度仍各自 just-identified 并排、互为稳健性、不分主次, 严禁混入同一 over-identified Hansen J。
 ## VAR: llm_models_avg_cont_sum_full
 
 【变体差分】
@@ -92,4 +104,6 @@ Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A Large Language Model for E
 de Kok, T. (2025). ChatGPT for Textual Analysis? How to Use Generative LLMs in Accounting Research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
 Gilardi, F., Alizadeh, M., & Kubli, M. (2023). ChatGPT Outperforms Crowd Workers for Text-Annotation Tasks. Proceedings of the National Academy of Sciences, 120(30), e2305016120. https://doi.org/10.1073/pnas.2305016120
 Chae, Y., & Davidson, T. (2026). Large Language Models for Text Classification: From Zero-Shot Learning to Instruction-Tuning. Sociological Methods & Research, 55(2), 501-567. https://doi.org/10.1177/00491241251325243
+Wang, J., Wang, J., Athiwaratkun, B., Zhang, C., & Zou, J. (2024). Mixture-of-Agents Enhances Large Language Model Capabilities. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2406.04692
+Burtch, G., McFowland, E., Yang, M., & Adomavicius, G. (2026). EnsembleIV: Creating Instrumental Variables from Ensemble Learners for Robust Statistical Inference with ML- Generated Variables. Management Science, mnsc.2024.08999. https://doi.org/10.1287/mnsc.2024.08999
 <!-- rendered-citations:end -->

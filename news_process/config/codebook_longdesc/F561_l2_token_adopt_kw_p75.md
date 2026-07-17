@@ -38,6 +38,14 @@ citations:
   vol: '83'
   issue: '2'
   pages_or_artno: 340-363
+- doi: "10.1016/j.pacfin.2024.102493"
+  type: "journal"
+  authors: "Liu, Y., Wang, J., Wen, F., & Wu, C."
+  year: 2024
+  title: "Corporate responses to systemic risk: Talk and action"
+  venue: "Pacific-Basin Finance Journal"
+  vol: "87"
+  pages_or_artno: "102493"
 new_dois:
 - 10.1086/226550
 ---
@@ -49,7 +57,7 @@ new_dois:
 【方法学与计算】
 计算分两层。文章层: Track A 词频侧取 stage 15 (fintech_intensity) 产出的 fintech_distinct_keywords (Aho-Corasick 原始去重关键词命中数, 与政治词权重、TF-IDF/SIF 加权的 fintech_intensity_score 即 Track B/int 轨严格区分, 二者互为并排稳健性梯子, 详见 F5xx 系列 int 轨家族); 语义侧取 stage 16 (article_policy_alignment) 产出的 policy_cosine_sim (银行报道文本嵌入与官方金融科技政策文本嵌入之间的余弦相似度, 方法学上移植自 Hassan, Hollander, van Lent & Tahoun (2019, *Quarterly Journal of Economics*) 以文本-语料余弦相似度测度企业层面政治风险暴露的构造思路)。两列先按 year 分组各自求 P75 分位阈值 (`groupby('year').transform(quantile)`), 分位阈值逐年独立估计而非全样本混合, 目的是吸收年度语料规模/写作风格的时变漂移; 随后逐篇比较词频/相似度是否达到当年阈值, 得到布尔象限指示。仅 sim 与 freq 同时非缺失的文章参与分类 (`_classify_policy_quadrants` 的 measured 掩码), 任一测度缺失 (如 stage 15/16 优雅早退产生的全 NaN 中间产物) 的文章指示置 NaN 而非静默计零, 避免在测量失败的年份把高词频文章错误分入 Token 象限、污染分母。银行-年层: 对文章级布尔指示按 (target_bank, year) 分组取均值, pandas `.mean()` 对 NaN 逐元素跳过, 故聚合结果的分母是"该银行该年已成功测量 sim 与 freq 两个量的文章数", 而非该银行该年全部报道数; 若某银行某年全部文章均未测量, 聚合输出为 NaN (不回填 0), 遵循项目 v6/F3 修复确立的"无测量数据 ≠ 零事件"契约 (强行 fillna(0.0) 会把结构性缺失伪装成"零采纳", 系统性压低固定效应回归中的处理组均值, 参见 Allison 2001 关于面板缺失值处理的告诫)。
 【文献定位】
-方法学谱系上, 本家族同时借用三条文献线: 一是文本-政策语义对齐的余弦相似度构造, 直接沿用 Hassan, Hollander, van Lent & Tahoun (2019, *Quarterly Journal of Economics*) 以词嵌入余弦相似度测度企业文本与外部风险语料贴合程度的方法脉络, 及后续金融文本分析对"言语-行动"分离度量的操作化传统; 二是关键词词频侧的稀疏/加权双轨设计参考了公司文本披露研究中对"提及次数"与"语义强度"分离建模的做法, 与银行数字化转型实证研究 (如 Kwan, Lin, Pursiainen & Tai 2024, *Journal of Financial and Quantitative Analysis*, 关于银行数字能力压力测试的证据) 所强调的"披露话语 vs 实际能力"缺口构念高度一致 —— 该文发现银行在压力情境下的数字化陈述与其真实数字韧性存在可观测缺口, 为本家族"象征性/实质性"二分提供了外部效度参照; 三是组织理论对正式结构与实际运作脱钩的经典论证 (Meyer & Rowan 1977, *American Journal of Sociology*), 为"词频高但语义贴合低"这一操作化判据提供理论层面的合法性基础, 而非仅是数据驱动的临时分割。P75 分位阈值本身是稳健性检验设计: 项目主线以 P50 作机制检验基准 (中位数分割与项目内多处既有惯例一致), P25/P75 为对称的稳健性梯子, 三者按 pipeline/panel/runner.py 内 `_percentiles = [25, 50, 75]` 循环并排生成, 互不嵌套、互为并排稳健性 (镜像项目内政治词权重、词典消融等梯子设计惯例)。
+方法学谱系上, 本家族同时借用三条文献线: 一是文本-政策语义对齐的余弦相似度构造, 直接沿用 Hassan, Hollander, van Lent & Tahoun (2019, *Quarterly Journal of Economics*) 以词嵌入余弦相似度测度企业文本与外部风险语料贴合程度的方法脉络, 及后续金融文本分析对"言语-行动"分离度量的操作化传统; 二是关键词词频侧的稀疏/加权双轨设计参考了公司文本披露研究中对"提及次数"与"语义强度"分离建模的做法, 与银行数字化转型实证研究 (如 Kwan, Lin, Pursiainen & Tai 2024, *Journal of Financial and Quantitative Analysis*, 关于银行数字能力压力测试的证据) 所强调的"披露话语 vs 实际能力"缺口构念高度一致 —— 该文发现银行在压力情境下的数字化陈述与其真实数字韧性存在可观测缺口, 为本家族"象征性/实质性"二分提供了外部效度参照; 三是组织理论对正式结构与实际运作脱钩的经典论证 (Meyer & Rowan 1977, *American Journal of Sociology*), 为"词频高但语义贴合低"这一操作化判据提供理论层面的合法性基础, 而非仅是数据驱动的临时分割。P75 分位阈值本身是稳健性检验设计: 项目主线以 P50 作机制检验基准 (中位数分割与项目内多处既有惯例一致), P25/P75 为对称的稳健性梯子, 三者按 pipeline/panel/runner.py 内 `_percentiles = [25, 50, 75]` 循环并排生成, 互不嵌套、互为并排稳健性 (镜像项目内政治词权重、词典消融等梯子设计惯例)。 在同代实证测度上, Liu、Wang、Wen 与 Wu (2024) 把企业对系统性风险的回应拆为 talk (文本表述强度) 与 action (实际举措) 两条可分别测量的维度并检验二者关系, 与本家族用「词频高低 × 政策对齐高低」切分 token 象限属同一「言—行两维并置」的测度族, 为该二分的可操作性提供了近期参照。迁移边界须诚实标明: 原文对象是企业层面对系统性风险的回应而非银行金融科技采纳; 更关键的是, 其 talk 取自披露文本、action 取自财务/公司行为代理, 即「行」一侧有文本之外的独立验证, 而本家族两维均来自新闻文本 (词频 vs 政策余弦), 并无外部行为对照。故该文只锚定「两维并置」这一构造思路, 不得被援引为「本家族低政策相似度即等同于实际行动缺位」的证据; 原文亦不含年度分位阈值梯子与 bank-year 篇均占比聚合。
 【识别策略定位】
 该四象限离散化不进入主识别方程本身 (主回归使用连续型 article_sim_mean / fintech_intensity_mean), 而是作为异质性/机制检验的分组变量或稳健性替代 DV 使用: 例如检验"高词频低相似度"银行-年子样本内处理效应是否显著弱于"高词频高相似度"子样本, 从而排除"报道声量驱动结果而非真实政策响应"的替代解释。
 【与相邻测度的构念区分】
@@ -74,4 +82,5 @@ new_dois:
 Kwan, A., Lin, C., Pursiainen, V., & Tai, M. (2024). Stress testing banks' digital capabilities: Evidence from the COVID-19 pandemic. Journal of Financial and Quantitative Analysis, 59(6), 2618-2646. https://doi.org/10.1017/S0022109023000662
 Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-Level Political Risk: Measurement and Effects. Quarterly Journal of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021
 Meyer, J. W., & Rowan, B. (1977). Institutionalized Organizations: Formal Structure as Myth and Ceremony. American Journal of Sociology, 83(2), 340-363. https://doi.org/10.1086/226550
+Liu, Y., Wang, J., Wen, F., & Wu, C. (2024). Corporate responses to systemic risk: Talk and action. Pacific-Basin Finance Journal, 87, 102493. https://doi.org/10.1016/j.pacfin.2024.102493
 <!-- rendered-citations:end -->

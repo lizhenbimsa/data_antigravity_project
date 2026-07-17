@@ -36,6 +36,22 @@ citations:
   year: 2021
   title: A New Chinese Financial Sentiment Dictionary for Textual Analysis in Accounting and Finance
   venue: SSRN Working Paper
+- doi: "10.1016/j.jsis.2026.101971"
+  type: "journal"
+  authors: "Chen, Z., Hajiheydari, N., Zhang, M., & Lin, Y.-E."
+  year: 2026
+  title: "Corporate digital transformation attention and innovation: strategic commitment or symbolic signalling?"
+  venue: "The Journal of Strategic Information Systems"
+  vol: "35"
+  issue: "2"
+  pages_or_artno: "101971"
+- doi: "10.1108/ara-01-2025-0031"
+  type: "journal"
+  authors: "Guan, J., & Zhuang, X."
+  year: 2025
+  title: "Do digital words reflect real innovation? Evidence from post-M&A earnings conference"
+  venue: "Asian Review of Accounting"
+  pages_or_artno: "1-44"
 new_dois: []
 ---
 
@@ -54,8 +70,7 @@ new_dois: []
 本家族与同族姊妹诊断列 `jiang_2021_pos_count`/`jiang_2021_neg_count` (全部正/负词典命中篇数, 不做实质性同域限定) 在构念上互不重叠: 后者是词典打分器的原始正负计数, 前者是洗稿率计算专用的分母子集计数, 二者不构成可加分解关系。
 
 【文献定位】
-词典构建方法学依据姜富伟等 (2021) 对中文财经文本情绪测度的原始构建, 该文献是本项目中文金融文本情感词典消融组六部词典之一的锚点。象征性管理理论构念 (本列作分母服务的洗稿率所度量的"言行不一致") 溯源自组织理论文献对企业象征性行为 (symbolic action) 与实质性行为 (substantive action) 的经典区分——该区分在金融文本情绪测度语境下的应用需要文本情感词典与内容分类结果的交叉验证, 这正是本列存在的方法论必要性。分母同域校正的统计逻辑呼应 Loughran & McDonald (2011, *The Journal of Finance*) 关于财务文本情感度量须警惕"表面测量与真实构念错配"导致系统性偏误的原则——该文强调英文 10-K 情感词典须结合语境层面校验以避免伪信号, 本列在中文语境下的对应做法是: 分母只纳入 LLM 分类确已成功的那批文章, 以避免分类失败率差异污染洗稿率的跨银行-年可比性。词典消融族的整体设计 (多词典并排互稳健) 亦参照 Bian, Jia, Li & Yan (2021) 关于中文金融情感词典跨来源构建差异对下游测度稳健性影响的讨论, jiang_2021 与家族内其余词典各自产生独立的同域分母计数, 供各自的洗稿率测度并排比较。
-
+词典构建方法学依据姜富伟等 (2021) 对中文财经文本情绪测度的原始构建, 该文献是本项目中文金融文本情感词典消融组六部词典之一的锚点。象征性管理理论构念 (本列作分母服务的洗稿率所度量的"言行不一致") 溯源自组织理论文献对企业象征性行为 (symbolic action) 与实质性行为 (substantive action) 的经典区分——该区分在金融文本情绪测度语境下的应用需要文本情感词典与内容分类结果的交叉验证, 这正是本列存在的方法论必要性。分母同域校正的统计逻辑呼应 Loughran & McDonald (2011, *The Journal of Finance*) 关于财务文本情感度量须警惕"表面测量与真实构念错配"导致系统性偏误的原则——该文强调英文 10-K 情感词典须结合语境层面校验以避免伪信号, 本列在中文语境下的对应做法是: 分母只纳入 LLM 分类确已成功的那批文章, 以避免分类失败率差异污染洗稿率的跨银行-年可比性。词典消融族的整体设计 (多词典并排互稳健) 亦参照 Bian, Jia, Li & Yan (2021) 关于中文金融情感词典跨来源构建差异对下游测度稳健性影响的讨论, jiang_2021 与家族内其余词典各自产生独立的同域分母计数, 供各自的洗稿率测度并排比较。 本列作分母所服务的"正面话语是否只是象征"这一问题, 在近期实证中已被处理为可证伪的经验命题: Chen、Hajiheydari、Zhang 与 Lin (2026) 基于注意力基础观构造企业数字化转型关注度, 以中国上市公司 2007–2020 年样本在"战略实质承诺"与"象征性信号"两个对立解释间做检验, 结果支持实质承诺说而未支持象征性信号说, 为本项目实质性/象征性二分提供当代理论锚点与反面参照。迁移边界须诚实标注: 该文的象征性判定依赖"话语关注度 vs 实际创新产出"的推断性对比, 本列的 `_subst_measured` 掩码则取自 LLM 对单篇报道话语的直接分类标签, 判定机制不同; 且其文本源为公司自述披露、层级为公司-年, 本项目为第三方新闻报道且分三轨。Guan 与 Zhuang (2025) 在中国并购后业绩说明会语境下追问"数字化措辞是否对应真实创新", 以文本测度检验数字化词汇与后续创新产出的对应关系, 与本列所服务的洗稿率构念 (词典判正面的报道中有多大比例其创新话语实为象征性) 高度同域; 但该文以词汇量与创新指标的间接对比推断象征性, 未提出象征性/实质性的逐篇标注方案, 故仅锚定问题意识——本列赖以成立的"逐篇分类可得性"及由此产生的同域分母校正必要性, 在该文中并无对应物。
 ## VAR: jiang_2021_pos_substvalid_count_ctx
 
 【变体差分】
@@ -81,4 +96,6 @@ ss 轨是三轨中对"归因精确度"要求最严格的一支: 只有当银行�
 姜富伟, 孟令超, 唐国豪. (2021). 媒体文本情绪与股票回报预测. 经济学(季刊), 21(4), 1323-1344. https://doi.org/10.13821/j.cnki.ceq.2021.04.10
 Loughran, T., McDonald, B. (2011). When Is a Liability Not a Liability? Textual Analysis, Dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Bian, S., Jia, D., Li, F., Yan, Z. (2021). A New Chinese Financial Sentiment Dictionary for Textual Analysis in Accounting and Finance. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.3446388
+Chen, Z., Hajiheydari, N., Zhang, M., & Lin, Y.-E. (2026). Corporate digital transformation attention and innovation: strategic commitment or symbolic signalling?. The Journal of Strategic Information Systems, 35(2), 101971. https://doi.org/10.1016/j.jsis.2026.101971
+Guan, J., & Zhuang, X. (2025). Do digital words reflect real innovation? Evidence from post-M&A earnings conference. Asian Review of Accounting, 1-44. https://doi.org/10.1108/ara-01-2025-0031
 <!-- rendered-citations:end -->

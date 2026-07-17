@@ -71,6 +71,36 @@ citations:
   year: 2023
   title: "The Dynamics of Disagreement"
   venue: "Review of Financial Studies"
+- doi: "10.2139/ssrn.6566038"
+  type: "wp"
+  authors: "Fu, J. Y., Huang, A. G., Wermers, R. R., Zhang, J., & Zhang, Y."
+  year: 2026
+  title: "The Information Content of Tone Dispersion: Evidence from Earnings Conference Call Q&As"
+  venue: "SSRN Electronic Journal"
+  pages_or_artno: "6566038"
+- doi: "10.3386/w35049"
+  type: "wp"
+  authors: "Goulding, C., Harvey, C., & Kurtović, H."
+  year: 2026
+  title: "Disagreement of Disagreement"
+  venue: "National Bureau of Economic Research"
+  pages_or_artno: "35049"
+- doi: "10.1186/s40854-025-00835-3"
+  type: "journal"
+  authors: "Jin, X., & Tian, Z."
+  year: 2026
+  title: "Online investor disagreement, self-attribution bias, and future stock returns"
+  venue: "Financial Innovation"
+  vol: "12"
+  issue: "1"
+  pages_or_artno: "57"
+- doi: "10.1177/0148558x251384064"
+  type: "journal"
+  authors: "Driskill, M. W."
+  year: 2025
+  title: "Building Better Measures of Analyst Disagreement Around Earnings: Implications for Disagreement, Trading Volume, and Returns"
+  venue: "Journal of Accounting, Auditing & Finance"
+  pages_or_artno: "0148558X251384064"
 new_dois:
   - "10.1093/rfs/hhac075"
 ---
@@ -84,8 +114,7 @@ new_dois:
 计算沿用 Antweiler 与 Frank (2004) 提出、并在中文央行沟通与股票预测研究 (姜富伟等) 中被采用的一致性—分歧指标: 令某银行—年度的姜富伟 (2021) 词典正面词平均比率为 p、负面词平均比率为 n, 则分歧指数 = 根号下 (1 减去 ((p 减 n) 除以 (p 加 n)) 的平方)。该式值域严格落在 0 到 1 之间: 当报道全部偏正 (n 趋于 0) 或全部偏负 (p 趋于 0) 时, 括号内比值趋于正负 1, 平方为 1, 分歧指数取 0, 表示完全一致; 当正负比率相等 (p 等于 n) 时, 比值为 0, 分歧指数取 1, 表示最大分歧。分子分母的 p、n 来自上游 stage 22 词典法产出的 avg_jiang_2021_pos_ratio 与 avg_jiang_2021_neg_ratio 两列 (词级比率, 即报道中命中该词典正/负词的归一化频次在银行—年度上的平均), 分母 (p 加 n) 为 0 时函数返回 NaN, 从而对当年无任何姜富伟词典命中的银行—年度优雅缺失而非虚构一个 0 或 1。实现层面有一处防御: 词级比率虽为浮点, 但同族按篇章计数的 disag_llm 变体的输入曾为 Int8, 在正负计数之和达到 128 时会静默整数回绕, 故 _compute_disag 统一先转 float64 再运算, 对本词典比率输入是无副作用的恒等操作, 但保证了口径在生产规模负面覆盖上升后不会翻错符号。计算在 stage 40 面板构造的步骤 8b 一次性对全部六部词典、LLM 投票、单 LLM、BERT 综合与单 BERT 逐轨批量生成, 本家族即其中 jiang_2021 词典切片。
 
 【文献定位】
-情感分歧作为独立信息维度的经济学地位由一系列顶刊研究奠定。Hong 与 Stein (2007) 在其被广泛引用的综述中系统论证了异质信念 (disagreement) 是理解成交量、波动与资产价格异象的核心机制, 为把分歧从噪声提升为可定价的一阶经济变量提供了理论纲领。Cen、Wei 与 Yang (2017) 进一步实证发现分析师层面的分歧与市场反应不足交互, 对横截面股票回报有显著预测力, 印证了分歧的二阶矩测度承载着均值语气之外的增量信息。Cookson 与 Niessner (2020) 利用投资者社交网络数据把分歧分解为群体内与群体间成分, 为"用文本比率对立度近似意见分歧"这一测度路线提供了微观效度支撑, 本项目 disag_* 系列的分歧分解思路正与之呼应。在测量方法层面, Frankel、Jennings 与 Lee (2022) 直接对比机器学习与词典法在披露情感上的表现, 结论支持多方法互为稳健、不以单一方法为准的做法, 这正是本项目对同一分歧构念同时保留词典、LLM、BERT 三套 per-method 测度的方法学依据。词频输入的效度则由姜富伟、孟令超、唐国豪 (2021) 的中文媒体情绪词典及其对股票回报的预测能力背书, 而 Li 与 Luan (2025) 最新给出的基于新闻的投资者分歧测度与回报关系, 说明该构念在近期文献中仍属活跃前沿。需要强调铁律: 本家族的三轨 (full/ctx/ss) 以及跨词典/跨模型的各 per-method 分歧测度, 均为各自 just-identified 并排、互为稳健性不分主次的独立测度, 严禁把不同轨道或不同方法的分歧列混进同一个 over-identified 的 Hansen J 过度识别检验。Daniel、Klos 与 Rottke (2023, Review of Financial Studies) 用短期约束股票组合的收益率动态刻画了乐观者与悲观者信念的分化与收敛路径, 为分歧作为独立于均值语气的二阶矩定价信息维度提供了近期顶刊证据, 呼应本家族用正负词比率对立度构造分歧指数的测度逻辑。
-
+情感分歧作为独立信息维度的经济学地位由一系列顶刊研究奠定。Hong 与 Stein (2007) 在其被广泛引用的综述中系统论证了异质信念 (disagreement) 是理解成交量、波动与资产价格异象的核心机制, 为把分歧从噪声提升为可定价的一阶经济变量提供了理论纲领。Cen、Wei 与 Yang (2017) 进一步实证发现分析师层面的分歧与市场反应不足交互, 对横截面股票回报有显著预测力, 印证了分歧的二阶矩测度承载着均值语气之外的增量信息。Cookson 与 Niessner (2020) 利用投资者社交网络数据把分歧分解为群体内与群体间成分, 为"用文本比率对立度近似意见分歧"这一测度路线提供了微观效度支撑, 本项目 disag_* 系列的分歧分解思路正与之呼应。在测量方法层面, Frankel、Jennings 与 Lee (2022) 直接对比机器学习与词典法在披露情感上的表现, 结论支持多方法互为稳健、不以单一方法为准的做法, 这正是本项目对同一分歧构念同时保留词典、LLM、BERT 三套 per-method 测度的方法学依据。词频输入的效度则由姜富伟、孟令超、唐国豪 (2021) 的中文媒体情绪词典及其对股票回报的预测能力背书, 而 Li 与 Luan (2025) 最新给出的基于新闻的投资者分歧测度与回报关系, 说明该构念在近期文献中仍属活跃前沿。需要强调铁律: 本家族的三轨 (full/ctx/ss) 以及跨词典/跨模型的各 per-method 分歧测度, 均为各自 just-identified 并排、互为稳健性不分主次的独立测度, 严禁把不同轨道或不同方法的分歧列混进同一个 over-identified 的 Hansen J 过度识别检验。Daniel、Klos 与 Rottke (2023, Review of Financial Studies) 用短期约束股票组合的收益率动态刻画了乐观者与悲观者信念的分化与收敛路径, 为分歧作为独立于均值语气的二阶矩定价信息维度提供了近期顶刊证据, 呼应本家族用正负词比率对立度构造分歧指数的测度逻辑。 沿此测度谱系向前, Fu、Huang、Wermers、Zhang 与 Zhang (2026) 以 FinBERT 测算盈利电话会 Q&A 环节中分析师之间的语调离散, 并报告其信息含量增量于整体语调水平, 从构念层支持本项目把语调的散布与语调的水平分列两族; 惟该文系尚未同行评审的工作论文, 其离散由分类器概率在英文电话会发言者之间的统计散布定义, 与本族对中文新闻篇章作词典正负比率的 Antweiler-Frank 闭式变换并非同源, 仅可作同族构念的前沿存在性引证, 而非公式出处。Goulding、Harvey 与 Kurtović (2026) 系统比较了金融学中多种分歧代理, 指出不同构造方法给出的分歧度量彼此相关性低、结论并不一致, 这为本项目逐词典各出一条 disag_* 并令其互为稳健性、不分主次地并排提供了直接理由; 惟原文对象为美国市场的分析师预测与交易量类代理, 并未评价本族所用的 AF 一致性指标本身。Jin 与 Tian (2026) 在中国市场以在线文本度量投资者分歧并考察其与后续股票收益的关系, 说明中文语境下的文本型分歧测度仍属活跃前沿; 其文本源为投资者论坛帖子、主体为上市公司, 与本族的报纸新闻语料、银行主体及银行-年层级在数据源与分歧公式上均不同。Driskill (2025) 专做分析师分歧测度的构造设计与效度比较, 证明既有离散度测度与盈利公告期异常成交的关联在预测窗口设定不当时会沦为不一致且无定论, 前推 ex ante 窗口并压缩 ex post 窗口后方稳健恢复正向关联; 本族由此取得的仅是一般测度学教训——分歧指标的样本纳入规则会实质影响其效度, 因而 disag_jiang_2021 的逐轨聚合口径与 P+N 为 0 时置 NaN 的纳入规则须显式披露并做敏感性检验; 原文未讨论分母标准化或归一化选择, 亦不涉媒体文本, 不能作为本族分母设定的直接参照。
 ## VAR: disag_jiang_2021_full
 
 【变体差分】
@@ -109,4 +138,8 @@ Cookson, J. A., & Niessner, M. (2020). Why don't we agree? Evidence from a socia
 Cen, L., Wei, K. C. J., & Yang, L. (2017). Disagreement, underreaction, and stock returns. Management Science, 63(4), 1214-1231. https://doi.org/10.1287/mnsc.2015.2405
 Hong, H., & Stein, J. C. (2007). Disagreement and the stock market. Journal of Economic Perspectives, 21(2), 109-128. https://doi.org/10.1257/jep.21.2.109
 Daniel, K. D., Klos, A., & Rottke, S. (2023). The Dynamics of Disagreement. Review of Financial Studies. https://doi.org/10.1093/rfs/hhac075
+Fu, J. Y., Huang, A. G., Wermers, R. R., Zhang, J., & Zhang, Y. (2026). The Information Content of Tone Dispersion: Evidence from Earnings Conference Call Q&As. SSRN Electronic Journal No. 6566038 [Working Paper]. https://doi.org/10.2139/ssrn.6566038
+Goulding, C., Harvey, C., & Kurtović, H. (2026). Disagreement of Disagreement. National Bureau of Economic Research No. 35049 [Working Paper]. https://doi.org/10.3386/w35049
+Jin, X., & Tian, Z. (2026). Online investor disagreement, self-attribution bias, and future stock returns. Financial Innovation, 12(1), 57. https://doi.org/10.1186/s40854-025-00835-3
+Driskill, M. W. (2025). Building Better Measures of Analyst Disagreement Around Earnings: Implications for Disagreement, Trading Volume, and Returns. Journal of Accounting, Auditing & Finance, 0148558X251384064. https://doi.org/10.1177/0148558x251384064
 <!-- rendered-citations:end -->

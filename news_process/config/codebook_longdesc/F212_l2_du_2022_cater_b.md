@@ -52,6 +52,23 @@ citations:
   title: "Inducing domain-specific sentiment lexicons from unlabeled corpora"
   venue: Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing
   pages_or_artno: 595-605
+- doi: "10.1080/21697213.2024.2337262"
+  type: "journal"
+  authors: "Meng, Q., Du, X., & Gong, X."
+  year: 2024
+  title: "Does operational disclosure curb textual tone manipulation by corporate management?"
+  venue: "China Journal of Accounting Studies"
+  vol: "12"
+  issue: "2"
+  pages_or_artno: "247-275"
+- doi: "10.1016/j.frl.2025.107440"
+  type: "journal"
+  authors: "Gui, K., & Hou, H."
+  year: 2025
+  title: "Digital transformation, media coverage, and management tone manipulation"
+  venue: "Finance Research Letters"
+  vol: "81"
+  pages_or_artno: "107440"
 new_dois: []
 ---
 
@@ -64,8 +81,7 @@ new_dois: []
 计算发生在面板构造阶段的算法迎合度全展开步骤 (runner 步骤 8d)。对每条轨道, 引擎先核验词典净语调列与 BERT 正负概率列在面板中同域存在, 再执行同银行同年、同轨道的逐格相减, 得到 du_2022_cater_b 的三轨列。这里的「_b」后缀专指以 BERT 深层模型作为参照引擎, 与以 LLM 三家投票共识为参照的 du_2022_cater (无 b) 是两条并行、构念互补但不可混同的迎合度轨: 前者对照的是概率型判别式深层模型, 后者对照的是生成式大模型的多数投票。两参照引擎各自捕捉不同层面的语境理解能力, 因而在稳健性叙事中作为「各自 just-identified 并排、互为稳健性、不分主次」的两条轨呈现, 严禁将词典—BERT 迎合度与词典—LLM 迎合度混进同一 over-identified 的 Hansen J 过度识别检验。词典侧的净语调经语言学规则 (否定翻转、程度副词、转折) 增强后自归一化; BERT 侧的正负概率为综合三模型的聚合均值, 反映判别式模型对文本整体情感分布的概率判断。两侧测度量纲经各自归一化后落在可比区间, 相减所得落差即为迎合度信号。
 
 【文献定位】
-迎合度构念的思想源流是 Cao 等 (2023) 关于「当机器在聆听时如何说话」的研究, 其核心发现是当披露方预期文本会被算法解析时, 会策略性地调整用词以取悦机器读者; 本家族正是把这一策略性行为操作化为词典引擎与深层引擎打分的可观测差。词典侧测度依托 Du et al. (2022) 发表于 Review of Finance 的中文金融情感词典, 该文系统论证了语言与领域特异性对情感词表构建的关键作用, 指出直接移植英文 Loughran-McDonald 词表到中文金融语境会产生系统性偏差, 因而需要本土化扩充——这正是选用 du_2022 而非通用词典作为迎合度词典侧锚的方法学依据。深层引擎一侧的合理性可由 Nițoi et al. (2023) 佐证, 其构建的深度学习情感指数表明神经模型能捕捉词典方法遗漏的语境情感信号, 从而使词典与深层模型之差具有实质的构念内涵而非纯噪声。词典构造方法学层面, Hamilton et al. (2016) 提出的从无标注语料诱导领域特异情感词表的框架, 与 Ma et al. (2025) 构建的面向中国境内投资者的细粒度中文情感词典 (CN-FSD), 共同刻画了金融情感词典在覆盖度与领域适配上的演进; Sun et al. (2025) 进一步将词典知识与中性特征注入预训练语言模型, 呼应了本迎合度测度「词典与深层模型互补而非替代」的底层假设——二者的差恰是可被审计的信息。
-
+迎合度构念的思想源流是 Cao 等 (2023) 关于「当机器在聆听时如何说话」的研究, 其核心发现是当披露方预期文本会被算法解析时, 会策略性地调整用词以取悦机器读者; 本家族正是把这一策略性行为操作化为词典引擎与深层引擎打分的可观测差。词典侧测度依托 Du et al. (2022) 发表于 Review of Finance 的中文金融情感词典, 该文系统论证了语言与领域特异性对情感词表构建的关键作用, 指出直接移植英文 Loughran-McDonald 词表到中文金融语境会产生系统性偏差, 因而需要本土化扩充——这正是选用 du_2022 而非通用词典作为迎合度词典侧锚的方法学依据。深层引擎一侧的合理性可由 Nițoi et al. (2023) 佐证, 其构建的深度学习情感指数表明神经模型能捕捉词典方法遗漏的语境情感信号, 从而使词典与深层模型之差具有实质的构念内涵而非纯噪声。词典构造方法学层面, Hamilton et al. (2016) 提出的从无标注语料诱导领域特异情感词表的框架, 与 Ma et al. (2025) 构建的面向中国境内投资者的细粒度中文情感词典 (CN-FSD), 共同刻画了金融情感词典在覆盖度与领域适配上的演进; Sun et al. (2025) 进一步将词典知识与中性特征注入预训练语言模型, 呼应了本迎合度测度「词典与深层模型互补而非替代」的底层假设——二者的差恰是可被审计的信息。 从被测行为一侧看, 语调操纵在中文情境中已有直接的实证锚点: Meng、Du 与 Gong (2024) 以中国上市公司为样本测量管理层文本的语调操纵, 即语调正面程度超出基本面可解释部分的成分, 并检验经营性披露对其的约束作用; 其「语调减基准语调」的差分思路与本家族「词典净语调减深层模型净语调」同属语调偏移的量化谱系, 且同样立足中文金融文本的词典化语调测度。迁移边界须写明: 该文的基准来自基本面回归拟合值 (残差法), 文本为企业自述年报, 单位为公司-年, 既未以判别式深层模型充当参照引擎, 也未使用大语言模型或第三方新闻语料, 故它只支撑「中文语境下语调存在可测量的系统性偏离」这一构念前提, 不支撑本列以 BERT 净语调为基准的具体减法口径。Gui 与 Hou (2025) 则把数字化转型、媒体报道与管理层语调操纵三者同时纳入检验, 说明在中国科技转型语境下媒体报道与语调操纵存在实质关联, 与本项目在银行金科报道上度量语调落差的场景同域; 但该文的语调操纵仍以企业自述文本为测量对象, 媒体报道仅作解释与调节变量, 研究主体为非金融上市公司而非银行, 因此本家族只援其情境层面的相关性判断, 不据以主张新闻语调落差与企业自述语调操纵为同一构念。两文合起来的作用是把 du_2022_cater_b 的落差置于「语调偏移可测且具经济内涵」的中文文献脉络中, 而落差的具体读数仍须按词典引擎与 BERT 引擎各自的测度学性质解释: 正值不等于操纵的直接证据, 它同时含两套引擎对同一文本的结构性读法差异, 故本轨与 du_2022_cater (以 LLM 投票共识为参照) 仍各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J。
 ## VAR: du_2022_cater_b_full
 
 【变体差分】
@@ -87,4 +103,6 @@ Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-graine
 Nițoi, M., Pochea, M.-M., & Radu, Ş.-C. (2023). Unveiling the sentiment behind central bank narratives: A novel deep learning index. Journal of Behavioral and Experimental Finance, 38, 100809. https://doi.org/10.1016/j.jbef.2023.100809
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Hamilton, W. L., Clark, K., Leskovec, J., & Jurafsky, D. (2016). Inducing domain-specific sentiment lexicons from unlabeled corpora. Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing, 595-605. https://doi.org/10.18653/v1/d16-1057
+Meng, Q., Du, X., & Gong, X. (2024). Does operational disclosure curb textual tone manipulation by corporate management?. China Journal of Accounting Studies, 12(2), 247-275. https://doi.org/10.1080/21697213.2024.2337262
+Gui, K., & Hou, H. (2025). Digital transformation, media coverage, and management tone manipulation. Finance Research Letters, 81, 107440. https://doi.org/10.1016/j.frl.2025.107440
 <!-- rendered-citations:end -->

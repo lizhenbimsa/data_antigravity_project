@@ -48,6 +48,23 @@ citations:
   vol: '80'
   issue: '1'
   pages_or_artno: 146-156
+- doi: "10.1016/j.intfin.2023.101920"
+  type: "journal"
+  authors: "Aysan, A. F., Caporin, M., & Cepni, O."
+  year: 2024
+  title: "Not all words are equal: Sentiment and jumps in the cryptocurrency market"
+  venue: "Journal of International Financial Markets, Institutions and Money"
+  vol: "91"
+  pages_or_artno: "101920"
+- doi: "10.1287/mnsc.2020.01180"
+  type: "journal"
+  authors: "Cong, L. W., Liang, T., Zhang, X., & Zhu, W."
+  year: 2025
+  title: "Textual Factors: A Scalable, Interpretable, and Data-Driven Approach to Analyzing Unstructured Information"
+  venue: "Management Science"
+  vol: "71"
+  issue: "12"
+  pages_or_artno: "10727-10739"
 new_dois: []
 ---
 
@@ -60,8 +77,7 @@ new_dois: []
 计算分三层。第一层是 IDF 权重构建 (stage 22 `pipeline\sentiment\tone_words.py::build_idf_weights`): 在与词频统计同一份生产语料上 (调用方传入 `content_full`, 缺则回退"内容"列), 对每部词典逐词条计算 raw_idf=log10(N/(1+df)) (N=文档级去重后语料总文档数, df=含该词条的文档数, 信息检索经典 IDF 口径, 与 Spärck Jones (1972) 词条特异性统计诠释一脉相承), 再做均值归一化 (令均值=1, 使不同词典的权重量纲可比) 与 P1/P99 Winsorize (截尾防止极端稀有词权重失控), 得到 `final_idf`, 并输出到 `22_idf_weights.json` (随当次语料在线计算, 并非离线预计算后冻结进 `config/tone_dicts.json`——后者只存 yao_2021 词典的基础极性/base_score, 不存 IDF 权重)。第二层是文章级打分: 对每篇文章的候选文本 (三轨 full/ctx/ss 各自独立扫描), 用 yao_2021 词表做正向/负向词条匹配, 命中词条经否定翻转、程度副词强化/弱化、转折关系降权三条语言学规则调制后, 乘以该词条的 `final_idf` 权重, 再乘以极性符号 (正向 +1、负向 -1) 并求和, 得到该篇文章在该轨道下的 `yao_2021_idf_score` (IDF 加权得分, 与消融梯度族共用同一套否定/程度/转折三规则全 powerset 消融框架 `_RULE_ABLATION_VARIANTS`, 但本身对应"全语言学规则"版本, 不参与消融维度展开)。第三层是提及密度加权与面板聚合 (`pipeline\panel\runner.py` 步骤 3b + `pipeline\panel\encode.py::build_aggregation_dict`): 先用该篇文章的提及密度 `mention_density` (Value-weighted Exposure, Hassan et al. 2019 QJE) 对 `yao_2021_idf_score` 做逐篇加权, 得到 `yao_2021_idf_score_w`; 再按 (银行, 年) 分组求和 (sum), 得到本家族的银行-年 `idf_score_w_sum` 三个轨道列。列名中的 `_w` 后缀因此对应提及密度加权, 而非词条 IDF 权重本身 (IDF 权重已内嵌在无 `_w` 后缀的 `yao_2021_idf_score` 基名之中); 读者理解本测度须区分"词条层面的 IDF 加权"与"篇章层面的提及密度加权"两层不同的加权含义。求和而非求均值的选择, 使该测度同时承载"情感强度"与"报道数量/媒体关注度"两重信息——报道越多且措辞越极端, 加总值越高, 这与家族内其它"均值型"情感测度 (如 `yao_2021_tone`) 构念上互补而非替代。三轨 (full/ctx/ss) 分别对应标题+全文、标题+银行实体窗口、标题+银行∧金科同句±N窗三种文本范围, 各自独立扫描并独立求和, full 为留篇门控主轨 (2026-06-29 起 stage 21 留篇判定 = `llm_verified_full`), ctx/ss 是 conditional-on-full 的测度/稳健性轨、行宇宙为 full 留篇集的子集; 三轨各自 just-identified 并排、互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 设定。ss 轨在无银行∧金科同句共现时按镜像 ctx 轨的回退语义处理 (`content_ss` 退化为全文 body, `ss_is_fallback=True`, 与 ctx 轨共享同一套 `n_articles` 分母口径), 保证三轨在缺失样本上有一致的优雅降级行为而非静默清零。本家族与词典消融梯度族 (7 个非-full 语言学规则变体) 正交: idf_score_w_sum 恒定在"全规则"设定下计算, 不参与消融维度的 powerset 展开, 避免梯度维度与加权维度交叉爆炸列数; 也与政治词权重敏感性梯度 (du_2022 独有) 无涉。
 
 【文献定位】
-本测度的方法学谱系有三条并行线索。其一是中文财经情感词典本身的构建传统: 姚加权等 (2021) 的原始工作是本词典的直接来源, 围绕媒体文本"语调、情绪及市场影响"构建了面向中国资本市场语境的金融情感词表; 与本仓库并存的 jiang_2021/bian_2021/du_2022/you_2018 等词典构成跨词典互为稳健性的并排轨道 (镜像政治词权重梯度、词典消融梯度的先例), 六部词典的比较有 Frankel, Jennings & Lee (2022, *Management Science*) 关于词典法与机器学习法互为稳健性的方法学讨论作为背书——该文强调不同情感测度方法在解释力上各有侧重, 不存在单一"正确"口径, 应作为并排稳健性证据而非相互替代。其二是 IDF 加权本身的信息检索渊源: Spärck Jones (1972, *Journal of Documentation*) 首次提出用逆文档频率刻画词条特异性, 是本测度加权公式 log(N/df) 的原始理论出处; 该思路经 Jegadeesh & Wu (2013, *Journal of Financial Economics*) 引入金融文本分析领域, 用词频驱动的"word power"权重取代朴素符号计数, 显著提升了情感测度对股价反应的预测力, 是本仓库为财经情感词典引入 IDF 加权这一设计决策的直接方法学先例, 也是本家族在顶刊谱系中的锚点文献。其三是加权方案的统计学证成: Sheridan, Ahmed & Farooque (2025/2026, *The American Statistician*) 用 Fisher 精确检验为 TF-IDF 类词条加权提供了假设检验框架下的合理性论证, 说明本测度并非任意的启发式加权, 而是有统计学基础支撑的稀有词升权方案。综合三条线索, yao_2021_idf_score_w_sum 家族在本仓库情感测度体系中定位为"词典法 + IDF 加权"的一个具体实现分支, 与三家 LLM 投票情感 (`llm_vote_tone`)、三模型 BERT 情感互为稳健性、各自 just-identified 并排, 不构成同一识别策略下的过度识别工具组。
-
+本测度的方法学谱系有三条并行线索。其一是中文财经情感词典本身的构建传统: 姚加权等 (2021) 的原始工作是本词典的直接来源, 围绕媒体文本"语调、情绪及市场影响"构建了面向中国资本市场语境的金融情感词表; 与本仓库并存的 jiang_2021/bian_2021/du_2022/you_2018 等词典构成跨词典互为稳健性的并排轨道 (镜像政治词权重梯度、词典消融梯度的先例), 六部词典的比较有 Frankel, Jennings & Lee (2022, *Management Science*) 关于词典法与机器学习法互为稳健性的方法学讨论作为背书——该文强调不同情感测度方法在解释力上各有侧重, 不存在单一"正确"口径, 应作为并排稳健性证据而非相互替代。其二是 IDF 加权本身的信息检索渊源: Spärck Jones (1972, *Journal of Documentation*) 首次提出用逆文档频率刻画词条特异性, 是本测度加权公式 log(N/df) 的原始理论出处; 该思路经 Jegadeesh & Wu (2013, *Journal of Financial Economics*) 引入金融文本分析领域, 用词频驱动的"word power"权重取代朴素符号计数, 显著提升了情感测度对股价反应的预测力, 是本仓库为财经情感词典引入 IDF 加权这一设计决策的直接方法学先例, 也是本家族在顶刊谱系中的锚点文献。其三是加权方案的统计学证成: Sheridan, Ahmed & Farooque (2025/2026, *The American Statistician*) 用 Fisher 精确检验为 TF-IDF 类词条加权提供了假设检验框架下的合理性论证, 说明本测度并非任意的启发式加权, 而是有统计学基础支撑的稀有词升权方案。综合三条线索, yao_2021_idf_score_w_sum 家族在本仓库情感测度体系中定位为"词典法 + IDF 加权"的一个具体实现分支, 与三家 LLM 投票情感 (`llm_vote_tone`)、三模型 BERT 情感互为稳健性、各自 just-identified 并排, 不构成同一识别策略下的过度识别工具组。 在此三条线索之外, 近期文献从两个侧面补强了本家族的定位。其一是加权动机的近期实证旁证: Aysan、Caporin 与 Cepni (2024) 以日内跳跃检测配合 logistic 回归, 发现信息发布提高跳跃概率, 且只有情绪类或关涉市场基本面的情感维度比其它维度更易引发跳跃, 据此提出 "words are not all created equal", 为本家族"词典词条不应等权计入、须差异化赋权"的基本前提提供了近期支持。但须严格限定该锚点的射程: 该文的"非等权"落在情感维度/类别 (情绪 vs 基本面) 层面, 而非本家族按语料稀有度施加的词项级 IDF 加权 (raw_idf=log10(N/(1+df)) 经均值归一化与 P1/P99 Winsorize), 二者仅在"反对等权"这一动机上相通, 权重的函数形式与信息来源完全不同; 其标的为加密货币日内跳跃与英文新闻, 既无中文财经词典口径, 亦不涉及银行-年求和聚合。其二是文本测度构造路线的当代参照: Cong、Liang、Zhang 与 Zhu (2025) 提出可扩展的文本因子框架 (词向量表示 → LSH 聚类 → 主题建模识别可解释的张成簇), 明确把"构造新的文本测度与解释变量"列为其三类应用之一, 并在宏观新闻预测、财报与专利文本上演示。本仓库刻意未走该数据驱动路线, 而保留固定六词典 × IDF 的透明加权口径, 援引该文旨在标明本家族在文本测度构造谱系中的位置与取舍, 而非以之证成本口径: 该文语料为英文, 权重来自词嵌入与聚类而非逐词 log10(N/(1+df)), 不做银行-年求和, 亦无三轨 (full/ctx/ss) 口径, 两条构造路线互不替代, 更不应并入同一识别方程作过度识别之用。
 ## VAR: yao_2021_idf_score_w_sum_ctx
 
 【变体差分】
@@ -82,4 +98,6 @@ Spärck Jones, K. (1972). A statistical interpretation of term specificity and i
 Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis. Journal of Financial Economics, 110(3), 712-729. https://doi.org/10.1016/j.jfineco.2013.08.018
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Sheridan, P., Ahmed, Z., & Farooque, A. A. (2026). A Fisher's exact test justification of the TF-IDF term-weighting scheme. The American Statistician, 80(1), 146-156. https://doi.org/10.1080/00031305.2025.2539241
+Aysan, A. F., Caporin, M., & Cepni, O. (2024). Not all words are equal: Sentiment and jumps in the cryptocurrency market. Journal of International Financial Markets, Institutions and Money, 91, 101920. https://doi.org/10.1016/j.intfin.2023.101920
+Cong, L. W., Liang, T., Zhang, X., & Zhu, W. (2025). Textual Factors: A Scalable, Interpretable, and Data-Driven Approach to Analyzing Unstructured Information. Management Science, 71(12), 10727-10739. https://doi.org/10.1287/mnsc.2020.01180
 <!-- rendered-citations:end -->

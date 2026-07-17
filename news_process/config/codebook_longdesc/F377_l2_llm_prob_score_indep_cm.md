@@ -41,6 +41,12 @@ citations:
   year: 2026
   title: "Validating large language model annotations"
   venue: "Federal Reserve Board FEDS Working Paper No. 2026-020"
+- doi: "10.48550/arxiv.2207.05221"
+  type: "arxiv"
+  authors: "Kadavath, S., Conerly, T., Askell, A., Henighan, T., Drain, D., Perez, E., Schiefer, N., Hatfield-Dodds, Z., DasSarma, N., Tran-Johnson, E., Johnston, S., El-Showk, S., Jones, A., Elhage, N., Hume, T., Chen, A., Bai, Y., Bowman, S., Fort, S., ... Kaplan, J."
+  year: 2022
+  title: "Language Models (Mostly) Know What They Know"
+  venue: "arXiv"
 new_dois: []
 ---
 
@@ -57,8 +63,7 @@ llm_prob_score_indep_cm 家族衡量的是: 在"被三家大语言模型 (gpt-5.
 本家族只落 `_ctx`/`_ss` 两列 (无 `_full` 同名列, `_aggregate_ctx_diagonal` 目前只被 ctx/ss 两处调用, full 轨对角线走另一条内联路径产出的是 `n_articles_indep`/`llm_vote_tone_indep` 等无 `_full` 后缀的列, 未产 `llm_prob_score_indep_cm_full`)。但两列背后的分类判据 (collab_mode) 与被聚合的情感源列 (`llm_prob_score{trk}`) 仍各自独立地在 full/ctx/ss 三个文本轨道上跑一遍, 是本项目"三轨互为稳健性、不分主次"铁律下的并排测度: 三轨各自 just-identified, 绝不允许混进同一个 over-identified 的 Hansen J 检验框架。ss 轨若在给定窗口半径内找不到银行与金科词的同句共现, 回退语义严格镜像 ctx 轨——`content_ss` 退化为全文正文, 对应 `ss_is_fallback=True`, 该行的 `n_articles` 分母口径与 ctx 轨共享处理约定; `FINTECH_AC=None` (金科词自动机未构建) 时 `*_is_fallback` 全体置 True, 全流水线优雅降级而不是报错中断。缓存确定性锚点是 `_llm_cache.db`: prompt 构造单一事实源 `iter_article_track_prompts` 生产/审计共用, temperature=0.0 下缓存命中即可字节级复现, `NEWS_PROCESS_LLM_OFFLINE=1` 离线守卫下缓存 miss 抛 `LLMCacheMissError` 而不再调用付费 API。
 
 【文献定位】
-把 LLM 输出的离散情感标签转换成校准过的连续概率分, 方法学根基是 Niculescu-Mizil & Caruana (2005) 关于监督学习模型输出概率校准 (probability calibration) 的经典论证——分类器的置信度分数只有经过恰当映射才能被当作有意义的连续测度使用, 而不是直接拿 softmax/投票比例这类"生分数"做统计推断; 本家族被聚合的 `llm_prob_score{trk}` 源列正是这一映射的产物。在把大语言模型当作文本标注器使用这一更晚近的方法学谱系里, de Kok (2025, *Management Science*) 系统论证了会计与金融研究中使用生成式 LLM 做文本分析时, temperature 锁定、prompt 冻结、结果缓存等确定性约束的必要性, 与本项目 stage 21 的整体设计范式直接呼应; Hansen (2026, FEDS 工作论文) 进一步讨论了在缺乏人工金标准时如何验证 LLM 标注质量, 呼应本项目多家 LLM 独立投票 + 一致性诊断 (agreement_rate) 的三角验证设计思路。"自主研发 vs. 对外合作"这一分类构念本身承袭 Chesbrough (2003) 开放式创新框架对企业技术获取路径的二元区分, 并借鉴 Gomber, Kauffman, Parker & Weber (2018, *Journal of Management Information Systems*) 对金融科技创新维度体系 (locus/substantiveness/collaboration mode) 的系统化界定——本项目 `innovation_collab_mode` 三维分类标签体系 (locus/substantiveness/collab_mode) 中的 collab_mode 维度即直接对应该文献框架里"合作模式"这一轴, 在本家族中只充当分组判据、不进入被聚合的分值本身。llm_prob_score_indep_cm 家族因此是把"分类维度的 LLM 判定结果"用作条件筛选器, 度量该子样本上情感连续暴露测度的组内均值, 供研究银行金融科技创新战略 (是否倾向自建技术能力) 与舆论口径之间关联的相关命题使用; 与家族内情感维度的 llm_prob_score (基于 logit-to-score 的三分类情感连续分) 共享的是同一个源列而非同一套映射目标——本家族并未对 collab_mode 标签本身再套一层"标签+置信度→连续分"映射, 目标构念是"自主研发子样本内的情感均值"而非"自主研发这一判定有多确定"。
-
+把 LLM 输出的离散情感标签转换成校准过的连续概率分, 方法学根基是 Niculescu-Mizil & Caruana (2005) 关于监督学习模型输出概率校准 (probability calibration) 的经典论证——分类器的置信度分数只有经过恰当映射才能被当作有意义的连续测度使用, 而不是直接拿 softmax/投票比例这类"生分数"做统计推断; 本家族被聚合的 `llm_prob_score{trk}` 源列正是这一映射的产物。在把大语言模型当作文本标注器使用这一更晚近的方法学谱系里, de Kok (2025, *Management Science*) 系统论证了会计与金融研究中使用生成式 LLM 做文本分析时, temperature 锁定、prompt 冻结、结果缓存等确定性约束的必要性, 与本项目 stage 21 的整体设计范式直接呼应; Hansen (2026, FEDS 工作论文) 进一步讨论了在缺乏人工金标准时如何验证 LLM 标注质量, 呼应本项目多家 LLM 独立投票 + 一致性诊断 (agreement_rate) 的三角验证设计思路。"自主研发 vs. 对外合作"这一分类构念本身承袭 Chesbrough (2003) 开放式创新框架对企业技术获取路径的二元区分, 并借鉴 Gomber, Kauffman, Parker & Weber (2018, *Journal of Management Information Systems*) 对金融科技创新维度体系 (locus/substantiveness/collaboration mode) 的系统化界定——本项目 `innovation_collab_mode` 三维分类标签体系 (locus/substantiveness/collab_mode) 中的 collab_mode 维度即直接对应该文献框架里"合作模式"这一轴, 在本家族中只充当分组判据、不进入被聚合的分值本身。llm_prob_score_indep_cm 家族因此是把"分类维度的 LLM 判定结果"用作条件筛选器, 度量该子样本上情感连续暴露测度的组内均值, 供研究银行金融科技创新战略 (是否倾向自建技术能力) 与舆论口径之间关联的相关命题使用; 与家族内情感维度的 llm_prob_score (基于 logit-to-score 的三分类情感连续分) 共享的是同一个源列而非同一套映射目标——本家族并未对 collab_mode 标签本身再套一层"标签+置信度→连续分"映射, 目标构念是"自主研发子样本内的情感均值"而非"自主研发这一判定有多确定"。 在把 LLM 自报置信度当作概率量送入 `compute_prob_score` 映射这一前提上, Kadavath 等 (2022) 提供了 LLM 时代的早期奠基性证据: 该文系统检验语言模型能否自评其答案的正确性, 证明较大模型在格式恰当的多选/判断题上校准良好, 并据此提出让模型先给答案再自评 P(True) 的自评范式, 另研究了无需特定候选答案的 P(IK) 预测, 与上文 Niculescu-Mizil & Caruana (2005) 关于监督学习输出概率校准的经典论证形成接续 — 二者共同支撑"分类器的置信度分数经恰当映射后方可作为连续测度使用"这一前提。须诚实标注其边界: 该文并非本家族做法的方法出处, 原文自评经由专门的 P(True)/P(IK) 探针与 logit 读数, 本项目的 confidence 取自 prompt 结构化输出字段; 其模型代次为 2022 年 Anthropic 内部模型, 与本项目 2026 年三家生产模型不可比; 该文亦只论证到自评概率具备校准性为止, 并未提出把余量 (1−confidence) 在非主类间按最大熵均分再作差 (P正−P负) 的映射 — 本家族被聚合源列所用的这一映射系研究者选择, 非原文成果, 更未涉及按分类判据取子样本条件均值这一环。
 ## VAR: llm_prob_score_indep_cm_ctx
 
 【变体差分】
@@ -73,4 +78,5 @@ de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in a
 Gomber, P., Kauffman, R. J., Parker, C., & Weber, B. W. (2018). On the Fintech Revolution: Interpreting the Forces of Innovation, Disruption, and Transformation in Financial Services. Journal of Management Information Systems, 35(1), 220–265. https://doi.org/10.1080/07421222.2018.1440766
 Niculescu-Mizil, A., & Caruana, R. (2005). Predicting good probabilities with supervised learning. Proceedings of the 22nd International Conference on Machine Learning (ICML), 625–632. https://doi.org/10.1145/1102351.1102430
 Hansen, A. L. (2026). Validating large language model annotations. Federal Reserve Board FEDS Working Paper No. 2026-020 [Working Paper]. https://doi.org/10.17016/FEDS.2026.020
+Kadavath, S., Conerly, T., Askell, A., Henighan, T., Drain, D., Perez, E., Schiefer, N., Hatfield-Dodds, Z., DasSarma, N., Tran-Johnson, E., Johnston, S., El-Showk, S., Jones, A., Elhage, N., Hume, T., Chen, A., Bai, Y., Bowman, S., Fort, S., ... Kaplan, J. (2022). Language Models (Mostly) Know What They Know. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2207.05221
 <!-- rendered-citations:end -->

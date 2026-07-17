@@ -43,6 +43,31 @@ citations:
   title: "Inducing domain-specific sentiment lexicons from unlabeled corpora"
   venue: Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing
   pages_or_artno: 595-605
+- doi: "10.1016/j.jcorpfin.2025.102835"
+  type: "journal"
+  authors: "Schweizer, D., Wang, X., Wu, G., & Zhang, A."
+  year: 2025
+  title: "Political connections and media bias: Evidence from China"
+  venue: "Journal of Corporate Finance"
+  vol: "94"
+  pages_or_artno: "102835"
+- doi: "10.1016/j.pacfin.2024.102499"
+  type: "journal"
+  authors: "Nguyen, M., Samarasinghe, A., & Skully, M."
+  year: 2024
+  title: "Watchdogs or Petdogs: The role of media freedom on banking system stability"
+  venue: "Pacific-Basin Finance Journal"
+  vol: "87"
+  pages_or_artno: "102499"
+- doi: "10.1287/orsc.2022.17237"
+  type: "journal"
+  authors: "Dewan, Y., Simons, T., & Wernicke, G."
+  year: 2024
+  title: "The Ideological Imperative: Corporate Social Responsibility and News Media Coverage of Firms"
+  venue: "Organization Science"
+  vol: "35"
+  issue: "5"
+  pages_or_artno: "1930-1955"
 new_dois: []
 ---
 
@@ -55,8 +80,7 @@ new_dois: []
 计算分三层。第一层在阶段 22 由 tone_words 产出逐篇词典底分 du_2022_score{track} (track ∈ full/ctx/ss)。第二层在面板 runner 步骤 3c 逐篇计算 media_authority_weight: 先按报道所属媒体名称 (精确匹配优先, 去括号模糊匹配兜底, 未命中落默认权重) 查得原始媒体权重, 再对全样本做均值归一化 (raw_series 除以其均值), 使权重均值锚定为 1.0、量纲无关; 随后令 du_2022_score_mw{track} = du_2022_score{track} × media_authority_weight。第三层在 encode 的聚合字典中把逐篇加权底分按银行-年求和, 得 du_2022_score_mw_sum{track}。需强调本家族是加权比率 du_2022_tone_mw 的分子累加量, 本身不是归一化语调: 它除以同银行-年的媒体权威权重之和 (sum_media_authority_weight) 才得到最终的加权净语调。因此它是一个中间累加量, 数值随报道篇数、媒体权威分布与词典命中强度共同变动, 单独解读时须结合分母口径。均值归一化保证了 MW 与等权累加 (score_sum) 在无媒体差异极限下退化一致, 也保证跨样本可比。
 
 【文献定位】
-媒体权威加权属于文本度量的话语权分层稳健性检验, 与以词频密度加权 (VW) 或羊群/产出端加权 (HW) 并列, 三者是同一构念的不同加权基, 各自 just-identified 并排、互为稳健性、不分主次, 禁混进同一 over-identified Hansen J。词典侧的方法学谱系上, Du 等 (2022) 的中文金融词典是本家族的直接底分来源, 强调领域与语言特异性对情感抽取效度的决定性影响; Hamilton 等 (2016) 从无标注语料归纳领域特异极性词表的思路, 为这类领域词典的构造合法性提供方法学背书。近年中文金融情感词典的持续演进 (Ma 等, 2025 构建面向国内投资者的细粒度词典 CN-FSD; Sun 等, 2025 将词典知识与中性特征融入预训练语言模型) 表明词典法在中文金融文本上仍是效度可控、可复现的主力测度, 也说明以多部词典并排 (本项目并列六部词典) 做测量稳健性的必要性。本家族的媒体权威加权正是在既定词典底分上追加一层来源可信度分层, 使银行-年情感累加不被大量低权威通稿稀释。
-
+媒体权威加权属于文本度量的话语权分层稳健性检验, 与以词频密度加权 (VW) 或羊群/产出端加权 (HW) 并列, 三者是同一构念的不同加权基, 各自 just-identified 并排、互为稳健性、不分主次, 禁混进同一 over-identified Hansen J。词典侧的方法学谱系上, Du 等 (2022) 的中文金融词典是本家族的直接底分来源, 强调领域与语言特异性对情感抽取效度的决定性影响; Hamilton 等 (2016) 从无标注语料归纳领域特异极性词表的思路, 为这类领域词典的构造合法性提供方法学背书。近年中文金融情感词典的持续演进 (Ma 等, 2025 构建面向国内投资者的细粒度词典 CN-FSD; Sun 等, 2025 将词典知识与中性特征融入预训练语言模型) 表明词典法在中文金融文本上仍是效度可控、可复现的主力测度, 也说明以多部词典并排 (本项目并列六部词典) 做测量稳健性的必要性。本家族的媒体权威加权正是在既定词典底分上追加一层来源可信度分层, 使银行-年情感累加不被大量低权威通稿稀释。 媒体权威加权这一层的前提与限度须分别锚定, 不可含混。Schweizer、Wang、Wu 与 Zhang (2025) 以中国非国有上市公司新闻报道大样本实证发现, 有政治关联的企业获得显著更正面的媒体报道, 并借 Rule 18 反腐规定强制政治关联董事辞职这一监管冲击做 DiD 确证该因果链, 丑闻期政治关联企业面临更软化的媒体审视; 该文锚定的是「中国的媒体报道语调并非中性的信息镜像, 而可被系统性因素预测地偏移」这一同域前提。须显式声明其限度: 其异质性维度是被报道企业的政治关联属性, 而非媒体来源之间的异质性, 故不可据以主张「来源不同质故须按来源赋权」; 该文未构造任何权重函数, 亦未做权重乘词典分再求和, 样本为上市公司而非银行—年三轨。Nguyen、Samarasinghe 与 Skully (2024) 以跨国样本实证媒体自由度与银行稳定性在银行层与系统层均呈正相关, 并识别出存款人纪律渠道 —— 更高的媒体自由度向存款人扩散更多关于金融中介的信息、激励其约束银行的高风险行为, 且媒体的国有产权会削弱这一正向关系; 本家族仅据此作同域动机性引用, 说明媒体环境对银行侧结果具有系统性影响、媒体自身属性会调节其信息功能, 因而报道不宜被当作与来源无关的同质噪声处理。其边界较宽须如实写明: 该文的媒体维度是国别层面的媒体自由度指数, 与本家族逐篇的 media_authority_weight 既非同一层级也非同一构念, 不可据以声称 outlet 级权威性加权已获前沿支持; 其样本跨国、结果变量为银行体系稳定性, 且不涉及词典情感分与任何乘性加权求和层。outlet 级异质性的直接依据另引 Dewan、Simons 与 Wernicke (2024): 该文考察企业 CSR 行为如何影响新闻媒体对该企业的报道及报道倾向, 并表明该映射受媒体自身意识形态调节, 即不同来源对同一事实的呈现存在系统性差异, 恰是本家族按媒体名逐篇赋权的前提; 但该文语境为美国媒体与美国企业 CSR, 报道量与倾向是结果变量而非加权基, 不构造任何权重函数, 故只锚定「媒体报道非中性、来源有别」, 不锚定 raw_weight 除以均值的具体归一化公式。上述三条锚点与等权累加 (score_sum)、VW、HW 诸加权基之间仍适用同一纪律: 各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J。
 ## VAR: du_2022_score_mw_sum_ctx
 
 【变体差分】
@@ -77,4 +101,7 @@ Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-graine
 Sun, Y., Yuan, H., & Xu, F. (2025). Financial sentiment analysis for pre-trained language models incorporating dictionary knowledge and neutral features. Natural Language Processing Journal, 11, 100148. https://doi.org/10.1016/j.nlp.2025.100148
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Hamilton, W. L., Clark, K., Leskovec, J., & Jurafsky, D. (2016). Inducing domain-specific sentiment lexicons from unlabeled corpora. Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing No. 595-605 [Working Paper]. https://doi.org/10.18653/v1/d16-1057
+Schweizer, D., Wang, X., Wu, G., & Zhang, A. (2025). Political connections and media bias: Evidence from China. Journal of Corporate Finance, 94, 102835. https://doi.org/10.1016/j.jcorpfin.2025.102835
+Nguyen, M., Samarasinghe, A., & Skully, M. (2024). Watchdogs or Petdogs: The role of media freedom on banking system stability. Pacific-Basin Finance Journal, 87, 102499. https://doi.org/10.1016/j.pacfin.2024.102499
+Dewan, Y., Simons, T., & Wernicke, G. (2024). The Ideological Imperative: Corporate Social Responsibility and News Media Coverage of Firms. Organization Science, 35(5), 1930-1955. https://doi.org/10.1287/orsc.2022.17237
 <!-- rendered-citations:end -->

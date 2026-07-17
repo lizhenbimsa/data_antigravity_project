@@ -67,6 +67,14 @@ citations:
   year: 2025
   title: "Media Conglomeration, Local News, and Capital Market Consequences"
   venue: "Management Science"
+- doi: "10.1016/j.frl.2024.105128"
+  type: "journal"
+  authors: "Zhang, Z., & Shen, D."
+  year: 2024
+  title: "Not all the news fitting to reprint: Evidence from price-volume relationship"
+  venue: "Finance Research Letters"
+  vol: "62"
+  pages_or_artno: "105128"
 new_dois:
   - "10.1287/mnsc.2023.02247"
 ---
@@ -88,8 +96,7 @@ nf_media_breadth 隶属伪造检验 (falsification test) 模块下的非金融�
 需要特别澄清的边界: nf_media_breadth 度量的是非金融科技报道 (Non-Fintech) 的媒体来源广度, 服务的是伪造检验的对照组特征构造, 而非核心处理变量本身; 它在 51_falsification_test.py 主流程中随 merge_to_panel 一并左连接进 bank-year 面板 (51_panel_with_controls.parquet/.dta), 与情感三轨 (llm_vote_tone_full/_ctx/_ss) 一起送入 run_diagnostics 计算 Pearson/Spearman 相关矩阵, 作为 H0 (核心处理变量的解释力完全来自一般媒体关注度) vs H1 (核心处理变量含金融科技特异性增量信息) 假设检验的诊断依据之一: 若情感测度与 nf_media_breadth 等一般媒体关注度控制变量的相关系数 |r| < 0.3, 则被视为对 H1 的支持性证据。作为控制变量, nf_media_breadth 本身并不进入本项目任何三轨/co-primary 嵌入/梯子体系——它是伪造检验的辅助诊断列, 与核心处理变量的三轨并排稳健性设计 (full/ctx/ss 各自 just-identified 并排、互为稳健性、禁混进同一 over-identified Hansen J) 是两个独立的方法论层面, 互不交叉, 亦不受 stage 21 全量口径 (2026-06-29 起留篇门控 full-only) 约束——该门控针对的是"一篇报道是否算作金融科技相关文章"这一判定, 而 nf_media_breadth 恰恰统计的是被排除在该判定之外的 Non-Fintech 报道集合, 两者在样本层面互斥而非重叠。
 
 【文献定位】
-nf_media_breadth 的核心构念依据是 Gentzkow & Shapiro (2010, Econometrica) 对美国日报媒体立场异质性的经典论证, 该文强调不同新闻机构在采编选择上存在系统性差异, 单一信源不能代表信息环境的全貌, 唯有跨多家独立信源的覆盖才能降低单一信源偏误或选择性披露对信息环境的支配力——这是本列以 distinct-outlet 计数而非单一"是否被报道"二元指示衡量信息环境丰富程度的直接理论依据。计算口径 (去重前物理行集取 nunique) 的选择进一步呼应 Heese, Pérez-Cavazos & Peter (2022, JFE) 关于地方报纸退出削弱媒体来源多样性、进而弱化公司治理监督效力的因果证据: 该文以报纸停刊这一外生冲击证明媒体来源的"数量"本身 (而非报道总量) 具有独立的信息中介价值; nf_media_breadth 的构念设计与其一致, 计的是覆盖来源数而非覆盖次数。伪造检验的整体识别框架承接本项目 Fintech/Non-Fintech 互补划分范式, nf_media_breadth 作为对照组侧的媒体环境控制变量之一嵌入该框架, 用以排除"银行整体媒体关注度上升"这一混杂渠道对核心处理变量解释力的污染。此外, Peress (2014, JF) 利用报业罢工的自然实验证明媒体存在与否会因果性地影响金融市场信息扩散速度与深度, 从识别策略角度进一步支持"媒体来源多样性是一个应当被控制、而非被忽略的混杂渠道"这一建模选择; Guest (2021, JAR) 关于媒体在盈余新闻信息生产链条中信息中介角色的实证研究、以及 Call, Emett, Maksymov & Sharp (2022, JAE) 基于财经记者的调查证据, 共同确认了新闻媒体作为独立信息中介在资本市场信息生产链条中的作用, 为多信源广度构念的现实基础提供了当代实证背书。Dyer, Lang & Oh (2025, Management Science) 以 Sinclair 电视台并购为外生冲击, 证明地方媒体来源整合会因果性地压缩本地公司报道覆盖并削弱投资者信息获取, 印证媒体来源数量 (而非报道总量) 本身具有独立信息中介价值, 与 nf_media_breadth 以 distinct-outlet 计数而非报道量衡量传播广度的构念设计相呼应。
-
+nf_media_breadth 的核心构念依据是 Gentzkow & Shapiro (2010, Econometrica) 对美国日报媒体立场异质性的经典论证, 该文强调不同新闻机构在采编选择上存在系统性差异, 单一信源不能代表信息环境的全貌, 唯有跨多家独立信源的覆盖才能降低单一信源偏误或选择性披露对信息环境的支配力——这是本列以 distinct-outlet 计数而非单一"是否被报道"二元指示衡量信息环境丰富程度的直接理论依据。计算口径 (去重前物理行集取 nunique) 的选择进一步呼应 Heese, Pérez-Cavazos & Peter (2022, JFE) 关于地方报纸退出削弱媒体来源多样性、进而弱化公司治理监督效力的因果证据: 该文以报纸停刊这一外生冲击证明媒体来源的"数量"本身 (而非报道总量) 具有独立的信息中介价值; nf_media_breadth 的构念设计与其一致, 计的是覆盖来源数而非覆盖次数。伪造检验的整体识别框架承接本项目 Fintech/Non-Fintech 互补划分范式, nf_media_breadth 作为对照组侧的媒体环境控制变量之一嵌入该框架, 用以排除"银行整体媒体关注度上升"这一混杂渠道对核心处理变量解释力的污染。此外, Peress (2014, JF) 利用报业罢工的自然实验证明媒体存在与否会因果性地影响金融市场信息扩散速度与深度, 从识别策略角度进一步支持"媒体来源多样性是一个应当被控制、而非被忽略的混杂渠道"这一建模选择; Guest (2021, JAR) 关于媒体在盈余新闻信息生产链条中信息中介角色的实证研究、以及 Call, Emett, Maksymov & Sharp (2022, JAE) 基于财经记者的调查证据, 共同确认了新闻媒体作为独立信息中介在资本市场信息生产链条中的作用, 为多信源广度构念的现实基础提供了当代实证背书。Dyer, Lang & Oh (2025, Management Science) 以 Sinclair 电视台并购为外生冲击, 证明地方媒体来源整合会因果性地压缩本地公司报道覆盖并削弱投资者信息获取, 印证媒体来源数量 (而非报道总量) 本身具有独立信息中介价值, 与 nf_media_breadth 以 distinct-outlet 计数而非报道量衡量传播广度的构念设计相呼应。 新近文献亦从转载这一侧面支持本列刻意保留去重前物理行集的口径选择。Zhang 与 Shen (2024) 把新闻明确区分为转载/再刊与非转载两类, 并证明二者的市场含义不同, 说明同一稿件的二次分发并非需要剔除的冗余噪声, 而是携带信息含量的文章级属性; 这与 nf_media_breadth 在复合键去重之前统计相异媒体家数、把转载计入「传播广度」构念的设计方向一致。迁移边界在于: 该文的转载判定依赖新闻数据库自带的转载标记, 而非本项目在物理行集与复合键去重集合之间做对照的实现路径; 其分析停在文章级并以价量关系为被解释变量, 未做主体-年度的 distinct-outlet 聚合, 亦不涉及 Fintech / Non-Fintech 互补划分, 故本条仅锚「转载有别于原创、不应被无差别折叠」这一前提, 不锚本列公式本身。
 ## VAR: nf_media_breadth
 
 【变体差分】
@@ -104,4 +111,5 @@ Guest, N. M. (2021). The Information Role of the Media in Earnings News. Journal
 Peress, J. (2014). The Media and the Diffusion of Information in Financial Markets: Evidence from Newspaper Strikes. The Journal of Finance, 69(5), 2007-2043. https://doi.org/10.1111/jofi.12179
 Call, A. C., Emett, S. A., Maksymov, E., & Sharp, N. Y. (2022). Meet the Press: Survey Evidence on Financial Journalists as Information Intermediaries. Journal of Accounting and Economics, 73(2-3), 101455. https://doi.org/10.1016/j.jacceco.2021.101455
 Dyer, T., Lang, M. H., & Oh, J. (2025). Media Conglomeration, Local News, and Capital Market Consequences. Management Science. https://doi.org/10.1287/mnsc.2023.02247
+Zhang, Z., & Shen, D. (2024). Not all the news fitting to reprint: Evidence from price-volume relationship. Finance Research Letters, 62, 105128. https://doi.org/10.1016/j.frl.2024.105128
 <!-- rendered-citations:end -->

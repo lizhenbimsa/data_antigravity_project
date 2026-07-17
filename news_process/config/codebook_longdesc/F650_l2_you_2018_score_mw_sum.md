@@ -50,6 +50,39 @@ citations:
   vol: '68'
   issue: '7'
   pages_or_artno: 5514-5532
+- doi: "10.1016/j.jcorpfin.2025.102835"
+  type: "journal"
+  authors: "Schweizer, D., Wang, X., Wu, G., & Zhang, A."
+  year: 2025
+  title: "Political connections and media bias: Evidence from China"
+  venue: "Journal of Corporate Finance"
+  vol: "94"
+  pages_or_artno: "102835"
+- doi: "10.1287/orsc.2022.17237"
+  type: "journal"
+  authors: "Dewan, Y., Simons, T., & Wernicke, G."
+  year: 2024
+  title: "The Ideological Imperative: Corporate Social Responsibility and News Media Coverage of Firms"
+  venue: "Organization Science"
+  vol: "35"
+  issue: "5"
+  pages_or_artno: "1930-1955"
+- doi: "10.1016/j.pacfin.2024.102499"
+  type: "journal"
+  authors: "Nguyen, M., Samarasinghe, A., & Skully, M."
+  year: 2024
+  title: "Watchdogs or Petdogs: The role of media freedom on banking system stability"
+  venue: "Pacific-Basin Finance Journal"
+  vol: "87"
+  pages_or_artno: "102499"
+- doi: "10.1016/j.pacfin.2025.102721"
+  type: "journal"
+  authors: "Wang, Y., Xiao, J., Wang, L., & Wang, D."
+  year: 2025
+  title: "News sentiment and the cost of debt"
+  venue: "Pacific-Basin Finance Journal"
+  vol: "91"
+  pages_or_artno: "102721"
 new_dois: []
 ---
 
@@ -62,8 +95,7 @@ you_2018_score_mw_sum{track} 度量的是「银行-年」窗口内、以媒体�
 媒体权威性权重的构造依据 Holzman, Miller & Twedt (2023, The Accounting Review)「Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements」Appendix A 的 Outlet Impact Media Sent 加权方法: 该文通过滚动回归估计每家媒体报道对股票周转率的边际贡献, 再按估计出的贡献度排名百分位赋权, 用以说明不同媒体对市场的实际影响力存在系统性差异, 不应等权处理。本项目未逐媒体重新估计边际贡献回归 (数据与算力约束下的简化替代), 而是采用 `config/media_weights.json` 中预先设定的静态权威性评分 (10–100 量表, 财经权威媒体评分显著高于地方都市报/晚报) 作为该边际贡献排名的代理。匹配策略分三级: ① 媒体名精确匹配 `media_weights.json` 键; ② 去括号归一化匹配 (如「扬子晚报(数字报)」归一化为「扬子晚报」再匹配, 处理同一媒体不同版式署名); ③ 两级均未命中则退回 `media_weights.json::default` 键 (默认权重 10, 与 `68_media_diversity.py` 的默认口径严格一致, 避免同一份媒体权重表在不同 producer 里出现两套默认值)。三级匹配后得到原始权重 `raw_weight`, 再做均值归一化 `media_authority_weight = raw_weight / mean(raw_weight)`, 使加权版本量级 ≈ 等权版本 (均值恒为 1), 保证 MW 求和列与不加权求和列在数量级上直接可比、差异纯粹来自媒体权威性分布形态而非量纲平移。逐篇 `you_2018_score_mw{track} = you_2018_score{track} × media_authority_weight` 在 `runner.py` 步骤 3c 生成, 与 VW (`mention_density` 加权) / HW (三轨独立的 `herd_weight{track}` 加权, 缺失时退化单轨) 共用同一「先逐篇加权、再按银行-年求和」的两步流水线, 三者互不覆盖、并行存档。面板聚合阶段 (`encode.py`) 按银行-年分组对 `you_2018_score_mw{track}` 求和, 得到本列; 同批产出的 `sum_media_authority_weight` (权重本身按银行-年求和) 充当分母, 用于下游派生 `you_2018_tone_mw{track} = you_2018_score_mw_sum{track} / sum_media_authority_weight` (加权均值语调, 与本列的加权求和「总量」在语义上互补但非同一测度: 求和反映银行-年总加权情感强度且随报道量单调放大, 加权均值反映去规模效应后的语调水平)。三轨 full/ctx/ss 各自独立走完整套「篇章级词典打分 → 逐篇媒体权威加权 → 银行-年求和」流水线, 互不借用彼此的中间结果。
 
 【文献定位】
-本列的构念定位横跨两支独立文献: 一支是中文金融文本情感词典构造, 另一支是媒体权威性/媒体影响力加权。词典本体锚定 You, Zhang & Zhang (2018, RFS), 该文本身即是媒体语调影响公司融资行为的经典因果识别范式 (「谁捕获了笔的力量」), 与本项目「媒体报道语调 → 银行融资成本/声誉」的核心研究问题高度对齐, 是词典法六本词典中唯一原生服务于金融机构语境 (而非泛用金融文本或年报文本) 的中文词典。加权机制锚定 Holzman, Miller & Twedt (2023, The Accounting Review) 的 Outlet Impact 加权框架, 其核心洞见 (不同媒体对市场的边际影响力存在系统性差异, 等权处理会低估权威媒体、高估长尾小报的实际信息含量) 是本列区别于同族「等权求和」变体的方法学依据。词典法本身的效度与机器学习/LLM 方法的比较参照 Frankel, Jennings & Lee (2022, Management Science)「Disclosure Sentiment: Machine Learning vs. Dictionary Methods」, 该文系统比较了词典法与机器学习情感分类法在披露文本上的表现差异, 是本项目「词典法/LLM 法/BERT 法三法并列、互为稳健性」总体设计的方法学先例之一; du_2022 (Review of Finance) 则是六本词典中另一本聚焦中文金融语境政治词汇特殊性的姊妹词典, 与 you_2018 共同构成词典法多词典梯度的两个代表性节点。
-
+本列的构念定位横跨两支独立文献: 一支是中文金融文本情感词典构造, 另一支是媒体权威性/媒体影响力加权。词典本体锚定 You, Zhang & Zhang (2018, RFS), 该文本身即是媒体语调影响公司融资行为的经典因果识别范式 (「谁捕获了笔的力量」), 与本项目「媒体报道语调 → 银行融资成本/声誉」的核心研究问题高度对齐, 是词典法六本词典中唯一原生服务于金融机构语境 (而非泛用金融文本或年报文本) 的中文词典。加权机制锚定 Holzman, Miller & Twedt (2023, The Accounting Review) 的 Outlet Impact 加权框架, 其核心洞见 (不同媒体对市场的边际影响力存在系统性差异, 等权处理会低估权威媒体、高估长尾小报的实际信息含量) 是本列区别于同族「等权求和」变体的方法学依据。词典法本身的效度与机器学习/LLM 方法的比较参照 Frankel, Jennings & Lee (2022, Management Science)「Disclosure Sentiment: Machine Learning vs. Dictionary Methods」, 该文系统比较了词典法与机器学习情感分类法在披露文本上的表现差异, 是本项目「词典法/LLM 法/BERT 法三法并列、互为稳健性」总体设计的方法学先例之一; du_2022 (Review of Finance) 则是六本词典中另一本聚焦中文金融语境政治词汇特殊性的姊妹词典, 与 you_2018 共同构成词典法多词典梯度的两个代表性节点。 媒体报道语调并非中性信息镜像这一前提, 在近期证据中获得进一步支撑。Schweizer、Wang、Wu 与 Zhang (2025) 以中国非国有上市公司新闻报道大样本实证发现, 有政治关联的企业获得显著更正面的媒体报道, 并借 Rule 18 反腐规定强制政治关联董事辞职这一监管冲击做 DiD 确证该因果链, 丑闻期政治关联企业面临更软化的媒体审视、声誉惩罚被削弱; 该文锚定的是「媒体语调可被系统性因素预测地偏移」这一同域前提, 用以说明本项目不把媒体报道当作等同、无偏的信息载体处理, 但须显式声明其限度: 原文实证的异质性维度是被报道企业的政治关联属性, 而非媒体来源之间的异质性, 样本为中国上市公司而非银行, 层级为公司而非银行-年三轨, 且原文未构造任何权重函数、未做「权重×词典分再求和」, 因此不可据以主张本列按 outlet 逐篇赋权已获直接支持。outlet 级异质性的直接依据另取自 Dewan、Simons 与 Wernicke (2024): 该文实证企业 CSR 行为向新闻报道 (含报道倾向) 的映射受媒体自身意识形态调节, 保守派与非保守派报纸对同类企业行为的呈现存在系统性差异, 这正是本列以 media_authority_weight 逐篇加权、而非把权威财经媒体与地方小报等权混同的构念前提; 迁移边界上原文为美国媒体与美国企业 CSR, 其媒体异质性维度是意识形态倾向而非本项目的 10–100 权威性量表, 报道倾向在原文是结果变量而非乘性权重, 该文只锚定「媒体报道非中性」这一前提, 不锚定权重函数本身。银行侧的动机性参照见 Nguyen、Samarasinghe 与 Skully (2024): 该文以跨国样本实证媒体自由度与银行稳定性在银行层与系统层均呈正相关 (稳健于内生性处理), 并识别出存款人纪律渠道 — 更高的媒体自由度向存款人扩散更多关于金融中介的信息、激励其约束银行的高风险行为, 而媒体的国有产权会削弱这一正向关系, 提示媒体自身属性会调节其信息功能, 故媒体报道不宜被当作与来源无关的同质噪声处理; 该文仅作同域动机性引用, 不构成 mw 权重的构造或效度锚定 — 其媒体维度是国别层面的媒体自由度指数, 与本列逐篇的 media_authority_weight 既非同一层级也非同一构念, 样本为跨国银行体系而非中国单国银行-年三轨, 原文亦不涉及词典情感分与任何乘性加权求和层。应用语境上, Wang、Xiao、Wang 与 Wang (2025) 在中国语境下自新闻报道抽取情感并聚合到企业层面用于债务成本实证, 与本列「中文新闻情感 → 实体-年加权总量」的用法同域, 呼应 you_2018 词典本体所服务的「媒体语调 → 融资行为」问题脉络; 迁移边界上其实体为一般上市公司而非银行, 未设媒体权威性加权层, 亦无三轨文本范围与本项目的银行-年口径, 故只锚定应用语境而非本列的加权算法。
 ## VAR: you_2018_score_mw_sum_full
 
 【变体差分】
@@ -84,4 +116,8 @@ You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The 
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing enthusiasm - Media sentiment and the disciplining role of quarterly earnings announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity - A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment - Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
+Schweizer, D., Wang, X., Wu, G., & Zhang, A. (2025). Political connections and media bias: Evidence from China. Journal of Corporate Finance, 94, 102835. https://doi.org/10.1016/j.jcorpfin.2025.102835
+Dewan, Y., Simons, T., & Wernicke, G. (2024). The Ideological Imperative: Corporate Social Responsibility and News Media Coverage of Firms. Organization Science, 35(5), 1930-1955. https://doi.org/10.1287/orsc.2022.17237
+Nguyen, M., Samarasinghe, A., & Skully, M. (2024). Watchdogs or Petdogs: The role of media freedom on banking system stability. Pacific-Basin Finance Journal, 87, 102499. https://doi.org/10.1016/j.pacfin.2024.102499
+Wang, Y., Xiao, J., Wang, L., & Wang, D. (2025). News sentiment and the cost of debt. Pacific-Basin Finance Journal, 91, 102721. https://doi.org/10.1016/j.pacfin.2025.102721
 <!-- rendered-citations:end -->

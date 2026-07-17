@@ -54,6 +54,31 @@ citations:
   vol: 145
   issue: 2
   pages_or_artno: 445-463
+- doi: "10.3390/computers12010018"
+  type: "journal"
+  authors: "Naldi, M., & Petroni, S."
+  year: 2023
+  title: "A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools"
+  venue: "Computers"
+  vol: "12"
+  issue: "1"
+  pages_or_artno: "18"
+- doi: "10.1093/llc/fqae013"
+  type: "journal"
+  authors: "Venglařová, K., & Matlach, V."
+  year: 2024
+  title: "Beyond content: discriminatory power of function words in text type classification"
+  venue: "Digital Scholarship in the Humanities"
+  vol: "39"
+  issue: "2"
+  pages_or_artno: "765-789"
+- doi: "10.2139/ssrn.5024959"
+  type: "wp"
+  authors: "Cziraki, P., & Gider, J."
+  year: 2024
+  title: "Newspaper Closures and Trading in Local Stocks"
+  venue: "SSRN"
+  pages_or_artno: "5024959"
 new_dois: []
 ---
 
@@ -66,8 +91,7 @@ new_dois: []
 文章级源列 du_2022_score_negadv 由 tone_words.py 的 _analyze_single_article 产出: 该函数对每篇报道分词后, 在 _RULE_ABLATION_VARIANTS 消融变体谱上逐一调用计分内核 _compute_sentiment_with_rules, 以后缀 negadv 对应的规则开关组合物化本列。计分内核 _compute_sentiment_with_rules 对分词后的 token 序列扫描 du_2022 词表, 命中词取其基础极性 base, 再按三条可开关的语言学规则修饰: 否定翻转 (否定词在窗口内出现则翻转其后情感词极性)、程度副词 (程度词按级别缩放情感强度)、转折增益 (转折连词后的分句情感权重上调)。本家族对应的规则组合后缀为 negadv, 即否定翻转 ON、程度副词 OFF、转折增益 ON —— 等价于在全规则基线上关掉程度副词一维 (full 减 degree)。最终分值以幅度口径归一化, 即 signed_final 之和除以 base 绝对值之和, 得到约束于 [-1, 1] 的无量纲极性。聚合环节在 attention_media.py 的 compute_media_heterogeneity 中: 先由 detect_defacto_cessation 依据媒体在语料中的覆盖跨度识别疑似退出媒体集 (confirmed 与 NPPA 交叉验证、suspected 仅数据判据), 逐篇打上 _is_ceased_media 标记; 随后对 _is_ceased_media 等于 0 的存活报道, 按 target_bank 与 year 分组取文章级分值的算术平均, 落成本列。分组为空 (该银行年度无存活媒体报道) 时本列按情感类契约保持 NaN, 绝不零填 —— 零填只施加于 n_articles_exc 一类计数列。留篇门控沿用 full-only 口径 (2026-06-29): 一篇报道是否计入银行金融科技样本仅由 full 轨 LLM 判定, ctx 与 ss 轨为 conditional-on-full 的测度轨与稳健性轨, 其行宇宙是 full 留篇集的子集, per-track 分值照各轨文本独立计算。
 
 【文献定位】
-情感词典法一脉在金融文本分析中源远流长, 中文场景尤须领域专用词表。Du et al. (2022) 在 Review of Finance 上系统论证了语言与领域专用性对中文金融情感测度的重要性, 并交付了本项目采用的 du_2022 词典, 是本家族情感构念的直接来源与顶刊锚。晚近方法学延展方面, Ma, Zhang & Zhang (2025) 构建面向中国境内投资者的细粒度中文情感词典 CN-FSD, 印证领域细分词表对本土金融文本的增益; Sun, Yuan & Xu (2025) 进一步把词典知识与中性特征注入预训练语言模型, 呼应本项目以词典法与 BERT、LLM 三法互为稳健性的多测度设计; Nițoi, Pochea & Radu (2023) 以深度学习指数解读央行叙事情感, 为词典法之外的对照口径提供参照。样本稳健性一侧, Heese, Pérez-Cavazos & Peter (2022) 在 Journal of Financial Economics 上实证地方报纸关停会造成企业监督真空进而抬升违规, 正是本家族剔除疑似退出媒体、检验语调测度是否受媒体退出污染的因果依据。本家族三轨 (full/ctx/ss) 各自 just-identified 并排、互为稳健性、不分主次, 严禁把三轨或多套规则消融变体混进同一 over-identified 的 Hansen J 检验; 规则消融梯度各变体高度共线 (与全规则版相关系数近 0.99), 仅作定性不变的稳健性对照, 不主张某一规则组合更优。
-
+情感词典法一脉在金融文本分析中源远流长, 中文场景尤须领域专用词表。Du et al. (2022) 在 Review of Finance 上系统论证了语言与领域专用性对中文金融情感测度的重要性, 并交付了本项目采用的 du_2022 词典, 是本家族情感构念的直接来源与顶刊锚。晚近方法学延展方面, Ma, Zhang & Zhang (2025) 构建面向中国境内投资者的细粒度中文情感词典 CN-FSD, 印证领域细分词表对本土金融文本的增益; Sun, Yuan & Xu (2025) 进一步把词典知识与中性特征注入预训练语言模型, 呼应本项目以词典法与 BERT、LLM 三法互为稳健性的多测度设计; Nițoi, Pochea & Radu (2023) 以深度学习指数解读央行叙事情感, 为词典法之外的对照口径提供参照。样本稳健性一侧, Heese, Pérez-Cavazos & Peter (2022) 在 Journal of Financial Economics 上实证地方报纸关停会造成企业监督真空进而抬升违规, 正是本家族剔除疑似退出媒体、检验语调测度是否受媒体退出污染的因果依据。本家族三轨 (full/ctx/ss) 各自 just-identified 并排、互为稳健性、不分主次, 严禁把三轨或多套规则消融变体混进同一 over-identified 的 Hansen J 检验; 规则消融梯度各变体高度共线 (与全规则版相关系数近 0.99), 仅作定性不变的稳健性对照, 不主张某一规则组合更优。 就本口径所启用的两条规则而言, 尚可各补一条方法学锚点。否定翻转一侧, Naldi 与 Petroni (2023) 提出一套测试集方法专门评估词典法情感工具对否定的检测与处理能力, 实证各工具在否定处理上的表现差异显著, 表明否定是词典法内部可被单独测量、亦可单独失效的模块, 这正是本项目把否定翻转设为可独立开关的规则维、并令 negadv 这类开启否定的组合与关闭否定的组合并排互证的方法学依据; 迁移边界在于原文为英文通用领域的工具准确率评测, 而本项目不作否定检测准确率评估, 只把规则开关作为中文金融新闻银行年度测度的一条稳健性臂。转折增益一侧, Venglařová 与 Matlach (2024) 实证功能词 (含连词一类的非内容词) 在文本类型判别上具有独立于内容词极性的信息量, 佐证转折连词值得在计分内核中单独建模而非当作可忽略的虚词; 惟原文任务为文本类型分类、并不区分转折连词与其他功能词类, 语料亦非中文金融新闻, 其支撑仅止于「转折类功能词自带独立信息」这一构念层面。样本一侧, Cziraki 与 Gider (2024) 以美国本地报纸停刊为冲击, 发现报道供给退出会改变本地股票的交易行为, 说明媒体退出是携带经济后果的真实样本组成变化, 与 Heese, Pérez-Cavazos & Peter (2022) 一道构成剔停轨的现实动机; 但该文停刊判定取自外部事件数据、被解释变量为交易活动, 而本项目的排除集是 detect_defacto_cessation 自语料内部推断的疑似覆盖退出保守代理, 并非严格停刊事实, 用途限于稳健性子样本而非识别冲击, 且该文为未经同行评审的工作论文, 只作动机性参照。
 ## VAR: exc_du_2022_score_negadv_ctx
 
 【变体差分】
@@ -89,4 +113,7 @@ Sun, Y., Yuan, H., & Xu, F. (2025). Financial sentiment analysis for pre-trained
 Nițoi, M., Pochea, M.-M., & Radu, Ș.-C. (2023). Unveiling the sentiment behind central bank narratives: A novel deep learning index. Journal of Behavioral and Experimental Finance, 38, 100809. https://doi.org/10.1016/j.jbef.2023.100809
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Heese, J., Pérez-Cavazos, G., & Peter, C. D. (2022). When the local newspaper leaves town: The effects of local newspaper closures on corporate misconduct. Journal of Financial Economics, 145(2), 445-463. https://doi.org/10.1016/j.jfineco.2021.08.015
+Naldi, M., & Petroni, S. (2023). A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools. Computers, 12(1), 18. https://doi.org/10.3390/computers12010018
+Venglařová, K., & Matlach, V. (2024). Beyond content: discriminatory power of function words in text type classification. Digital Scholarship in the Humanities, 39(2), 765-789. https://doi.org/10.1093/llc/fqae013
+Cziraki, P., & Gider, J. (2024). Newspaper Closures and Trading in Local Stocks. SSRN No. 5024959 [Working Paper]. https://doi.org/10.2139/ssrn.5024959
 <!-- rendered-citations:end -->

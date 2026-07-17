@@ -94,6 +94,41 @@ citations:
   vol: 62
   issue: 3
   pages_or_artno: 1139-1168
+- doi: "10.1140/epjds/s13688-026-00654-1"
+  type: "journal"
+  authors: "Pokropek, A."
+  year: 2026
+  title: "From keyword-based text measures to latent variables: confirmatory factor analysis with word embeddings"
+  venue: "EPJ Data Science"
+  vol: "15"
+  issue: "1"
+  pages_or_artno: "51"
+- doi: "10.1609/icwsm.v18i1.31443"
+  type: "journal"
+  authors: "Oh, N."
+  year: 2024
+  title: "Sentibank: A Unified Resource of Sentiment Lexicons and Dictionaries"
+  venue: "Proceedings of the International AAAI Conference on Web and Social Media"
+  vol: "18"
+  pages_or_artno: "2003-2013"
+- doi: "10.1057/s41267-025-00798-8"
+  type: "journal"
+  authors: "Pinto, J., & Siano, F."
+  year: 2025
+  title: "Beyond words: the challenge of measuring financial text across borders"
+  venue: "Journal of International Business Studies"
+  vol: "56"
+  issue: "7"
+  pages_or_artno: "921-936"
+- doi: "10.1111/j.1540-6261.2010.01625.x"
+  type: "journal"
+  authors: "Loughran, T., & McDonald, B."
+  year: 2011
+  title: "When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks"
+  venue: "The Journal of Finance"
+  vol: "66"
+  issue: "1"
+  pages_or_artno: "35-65"
 new_dois: []
 ---
 
@@ -106,8 +141,7 @@ new_dois: []
 底层三条语言学修正规则为: 否定翻转 (neg, 当情感词前一定窗口内出现否定词时翻转其极性)、程度副词调节 (deg, 程度副词按其强度缩放邻接情感词的贡献)、转折重加权 (adv, 转折连词后的分句权重上调、之前分句权重下调)。七个消融后缀对应这三条规则的非全集子集: raw 关闭全部三规则 (退化为纯词袋计数), negonly / degonly / advonly 各只开一条, negdeg / negadv / degadv 各开两条; 三规则全开的"全规则"变体即家族之外的 canonical 无后缀 dict_avg_tone, 不属本家族。逐词典打分在状态机内完成, 对每篇文章按 Σfinal / Σ|final| 做自归一化, 使单篇语调落在约 [-1,1] 且与文章长度无关; 随后 geography.py 对六部词典的同名消融变体取跨词典算术平均得到 dict_avg_{sfx}_tone{track}, 缺列由 _safe_mean 优雅返回 NaN 而不崩。三条文本轨 full / ctx / ss 各自独立走完整条链: full 为标题 prepend 加全文正文, ctx 为标题加实体上下文窗口, ss 为标题加银行与金科同句共现窗口, 且 ss 在无共现时镜像 ctx 的回退公理退化为全文正文并置 ss_is_fallback 为真。留篇门控采用 full-only 口径, 一篇是否计入银行金科报道只看 full 轨判定, ctx 与 ss 为 conditional-on-full 的稳健性轨, 行宇宙是 full 留篇集的子集。跨词典均值族属六部词典体系, 其数值随词典集合由五部扩为六部而回溯微变, 属有意的测度改善而非缺陷。
 
 【文献定位】
-消融梯度的方法论正当性直接锚于两支文献。其一是词典法内部的语言学规则争议: Taboada 等 (2011) 系统论证了否定、程度强化与转折等价性转移 (valence shifters) 对基于词典的情感判定至关重要, 忽略它们会系统性错判分句极性; Pröllochs、Feuerriegel 与 Neumann (2016) 进一步在新闻驱动交易情境下量化了否定范围检测对情感信号质量的边际贡献。本家族把这些规则逐条开关物化, 正是对上述争议提供可审计的稳健性回应。其二是跨方法与跨规格的稳健性规范: Frankel、Jennings 与 Lee (2022) 把词典法与机器学习法并置为互为稳健性的测量臂, 为本项目"多规格并排、不分主次"的做法提供先例。García、Hu 与 Rohrer (2023) 强调金融词语情感权重的语料依赖性, 提示任何单一规则配置都不应被当作唯一真值。Du 等 (2022) 与 Tetlock (2007) 则分别奠定中文金融情感词典与媒体语调影响资产定价的实证基础。铁律层面, 七个消融臂各自 just-identified 并排、互为稳健性不分主次, 严禁把不同消融臂混进同一 over-identified 的 Hansen J 检验; 三条文本轨亦同此律, 禁混同一 over-identified Hansen J。
-
+消融梯度的方法论正当性直接锚于两支文献。其一是词典法内部的语言学规则争议: Taboada 等 (2011) 系统论证了否定、程度强化与转折等价性转移 (valence shifters) 对基于词典的情感判定至关重要, 忽略它们会系统性错判分句极性; Pröllochs、Feuerriegel 与 Neumann (2016) 进一步在新闻驱动交易情境下量化了否定范围检测对情感信号质量的边际贡献。本家族把这些规则逐条开关物化, 正是对上述争议提供可审计的稳健性回应。其二是跨方法与跨规格的稳健性规范: Frankel、Jennings 与 Lee (2022) 把词典法与机器学习法并置为互为稳健性的测量臂, 为本项目"多规格并排、不分主次"的做法提供先例。García、Hu 与 Rohrer (2023) 强调金融词语情感权重的语料依赖性, 提示任何单一规则配置都不应被当作唯一真值。Du 等 (2022) 与 Tetlock (2007) 则分别奠定中文金融情感词典与媒体语调影响资产定价的实证基础。铁律层面, 七个消融臂各自 just-identified 并排、互为稳健性不分主次, 严禁把不同消融臂混进同一 over-identified 的 Hansen J 检验; 三条文本轨亦同此律, 禁混同一 over-identified Hansen J。 晚近的测度学讨论从三个侧面进一步充实了本家族的跨词典定位。Pokropek (2026) 指出词典法中研究者选定的关键词极少像量表题项那样接受心理测量学检验 (罕有报告信度、评估内部结构或检验跨子总体与跨时点的测量不变性), 遂提出把单个关键词视作同一潜变量的观测指标, 以词嵌入向量间的中心化余弦相似度矩阵为输入做验证性因子分析, 从而估计因子载荷与拟合指数、计算信度系数并以多组模型检验测量不变性; 该文锚定的是"词表型文本测度应被显式验证与整合而非单一取用"这一立场, 支持本项目不依赖任何单一词典、而并排多部词典并进一步做跨词典整合的总体设计。其边界须写明: 该文的观测指标是一部词表之内的单个关键词、整合方式为基于嵌入相似度的 CFA 载荷估计, 而本家族整合的是六个词典级语调得分、方式为等权算术平均且未估计任何载荷, 故该文不构成 dict_avg 这一具体整合方式的方法学依据; 其语料为社会科学文本而非中文金融新闻, 亦未在规则消融的每一臂上分别整合。Oh (2024) 将 15 部原始情感词典与 43 部预处理词典统一整合为 sentibank 资源库, 覆盖七类体裁与六个领域, 并明确背书依赖专家词表的规则法所提供的透明性, 一方面佐证规则与词典法作为可解释情感测度分支在当代前沿仍被认可, 另一方面表明同一情感构念下并存多部异源词典是该领域的既成事实, 与本家族并排六部中文词典的做法同构; 但该文的问题意识是资源碎片化与验证缺失, 并未主张"不同词典给出不同极性故须并排使用", 亦未做任何跨词典整合或均值运算, 其覆盖为英文社交媒体等体裁、不含本项目所用的中文金融词典, 也未实现否定、程度与转折三规则状态机, 故同样不构成跨词典等权均值的依据。Pinto 与 Siano (2025) 以 85 个国家、200,960 份财报电话会记录为语料 (文本本身即英文), 将美国基准词表直接套用其上, 发现情感与收益的关联在非美国公司弱约 30%, 且定谳主因是文化距离而非语言 (语言特征仅被用作文化价值的工具变量); 其含义是 L&M 式美国基准词表一旦移出美国语境, 即使文本仍是英文, 信号强度亦系统性衰减, 那么把该词表移入中国语境 (既跨文化、又另加中文翻译) 风险只会更大——故本家族所平均的六部词典中经由英文 Loughran 与 McDonald (2011) 词表迁译而来的一支自带测度风险, 更有必要并排本土词典与多个规则臂。其边界须写明: 该文全文无词表翻译、亦无非英语语料, 语料单位是财报电话会记录而非中文金融新闻, 讨论对象限于美国基准词表移出本国语境后的信号衰减, 并未涉及否定、程度、转折规则子集的消融设计与银行年度聚合。
 ## VAR: dict_avg_advonly_tone_ctx
 
 【变体差分】
@@ -221,4 +255,8 @@ Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance:
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
+Pokropek, A. (2026). From keyword-based text measures to latent variables: confirmatory factor analysis with word embeddings. EPJ Data Science, 15(1), 51. https://doi.org/10.1140/epjds/s13688-026-00654-1
+Oh, N. (2024). Sentibank: A Unified Resource of Sentiment Lexicons and Dictionaries. Proceedings of the International AAAI Conference on Web and Social Media, 18, 2003-2013. https://doi.org/10.1609/icwsm.v18i1.31443
+Pinto, J., & Siano, F. (2025). Beyond words: the challenge of measuring financial text across borders. Journal of International Business Studies, 56(7), 921-936. https://doi.org/10.1057/s41267-025-00798-8
+Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 <!-- rendered-citations:end -->

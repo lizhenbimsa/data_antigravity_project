@@ -56,6 +56,29 @@ citations:
   venue: International Review of Economics & Finance
   vol: '91'
   pages_or_artno: 1150-1172
+- doi: "10.1162/rest.a.263"
+  type: "journal"
+  authors: "Frandsen, B., Leslie, E., & McIntyre, S."
+  year: 2025
+  title: "Cluster Jackknife Instrumental Variables Estimation"
+  venue: "Review of Economics and Statistics"
+  pages_or_artno: "1-19"
+- doi: "10.2139/ssrn.4787799"
+  type: "wp"
+  authors: "Ellis, C., & Jaspersen, J. G."
+  year: 2024
+  title: "Fixed Effects and the \"Leave-Out'' Instrument"
+  venue: "SSRN Electronic Journal"
+  pages_or_artno: "4787799"
+- doi: "10.1257/aeri.20240184"
+  type: "journal"
+  authors: "Bobrov, A., Kamdar, R., & Ulate, M."
+  year: 2025
+  title: "Regional Dissent: Do Local Economic Conditions Influence FOMC Votes?"
+  venue: "American Economic Review: Insights"
+  vol: "7"
+  issue: "2"
+  pages_or_artno: "268-284"
 new_dois: []
 ---
 
@@ -68,8 +91,7 @@ prov_leave1out_bert_avg_pos 家族刻画"同省同年份其他银行的媒体报
 计算原语是标准的 leave-one-out 组内均值: 先按 (bank_province, year) 分组, 对组内 BERT 正面篇占比列 (即面板层 `bert_avg_pos_{track}`, 上游来自 stage 23 三家 BERT 模型输出正面篇占比后在面板聚合层求均值的派生列) 求组内求和 `grp_sum` 与组内计数 `grp_cnt`, 随后对每个银行-年观测取 `(grp_sum − 自身值) / (grp_cnt − 1)`。此构造保证目标银行自身的贡献被严格剔除, 区别于普通同省均值 (后者会把自身值也计入分母分子, 引入机械正相关, 破坏 IV 排除性)。有效性判据为组内银行数 `grp_cnt > 1`——若某省某年只有该行一家银行上榜 (或该省样本量 < 5 提前 `continue` 跳过), 则该行该年的 leave-one-out 值记为缺失 (NaN), 而非误填 0 或组均值本身。产生端在完成全部地理列合并后, 会记录一段判读日志: 统计全部 leave-one-out 列的平均有效占比, 若均值 < 0.5 则显式提示"单一银行组多 → 弱工具风险", 提醒该列仅适宜作证伪/稳健性用途而非唯一识别策略——这一点在 T=2 (2017-2018) 开发面板上尤为突出, 省级分组天然稀疏, 实测有效占比常低于全量 T=19 生产面板的预期水平。产生端日志同时给出示例 Stata 命令 `ivreghdfe Y (llm_vote_tone_full = prov_leave1out_tone_full prov_leave1out_dict_tone_full prov_leave1out_bert_avg_pos_full), absorb(target_bank year) cluster(target_bank)` 搭配 `estat overid` 做 Hansen J 检验, 说明本列在实际用法上是作为多工具矩阵中的一支, 与词典口径、LLM 口径同时纳入同一超定 (over-identified) 回归。历史上曾发生列名压缩事故 (fix omni-g-panel-export-04, 2026-06-11): 原始 `prov_leave1out_dict_avg_tone_full` 因超出 Stata 32 字符变量名上限被单侧截断, 导致 `.dta` 内 full/ctx 两轨词干不对称, 后续已改为规范化词干 `prov_leave1out_dict_tone_full` 并同步 Stata 命令引用; 本家族 `bert_avg_pos` 词干本身在 32 字符上限内未受此问题波及, 但记录该修复史是理解相邻列命名规范的必要背景。
 
 【文献定位】
-本家族方法学谱系上承 Hassan et al. (2019, QJE) 关于企业层面文本测度构造与工具识别的一般性讨论——该文虽针对政治风险文本测度, 但其"从共同暴露中剥离出可作为工具的外生成分"的构造逻辑与本家族的地理留一平均高度同构。BERT 正面篇占比的上游测度方法论直接源自 Huang, Wang & Yang (2023, Contemporary Accounting Research) 提出的金融领域微调 BERT 分类器范式 (FinBERT), 本项目 stage 23 的三家 BERT 模型 (finbert_cn/fin_sent_zh/finbert2) 均沿此范式对中文财经文本做三分类情感判别, 正面篇占比即该分类器输出在文章层面聚合后的比例统计量。工具变量的构造哲学参照 Goldsmith-Pinkham, Sorkin & Swift (2020, American Economic Review) 对 Bartik/shift-share 型工具的系统性方法论综述, 该文强调工具的可信度取决于份额分配的外生性来源可追溯、可检验, 这与本家族"排除自身+地理分组"的显式可核验构造原则一致。地理层面情感共振的实证先例可见 Chen, Goldstein, Huang & Vashishtha (2022, JFE) 对银行透明度与存款流动的研究, 以及 Fang, Wang, Wang & Yuan (2024, IREF) 对中国银行媒体情感与系统性风险关系的实证, 二者均支持"同区域银行新闻情感存在可观测共同成分"这一构念前提, 为本家族地理留一工具的经济学合理性提供实证支撑。
-
+本家族方法学谱系上承 Hassan et al. (2019, QJE) 关于企业层面文本测度构造与工具识别的一般性讨论——该文虽针对政治风险文本测度, 但其"从共同暴露中剥离出可作为工具的外生成分"的构造逻辑与本家族的地理留一平均高度同构。BERT 正面篇占比的上游测度方法论直接源自 Huang, Wang & Yang (2023, Contemporary Accounting Research) 提出的金融领域微调 BERT 分类器范式 (FinBERT), 本项目 stage 23 的三家 BERT 模型 (finbert_cn/fin_sent_zh/finbert2) 均沿此范式对中文财经文本做三分类情感判别, 正面篇占比即该分类器输出在文章层面聚合后的比例统计量。工具变量的构造哲学参照 Goldsmith-Pinkham, Sorkin & Swift (2020, American Economic Review) 对 Bartik/shift-share 型工具的系统性方法论综述, 该文强调工具的可信度取决于份额分配的外生性来源可追溯、可检验, 这与本家族"排除自身+地理分组"的显式可核验构造原则一致。地理层面情感共振的实证先例可见 Chen, Goldstein, Huang & Vashishtha (2022, JFE) 对银行透明度与存款流动的研究, 以及 Fang, Wang, Wang & Yuan (2024, IREF) 对中国银行媒体情感与系统性风险关系的实证, 二者均支持"同区域银行新闻情感存在可观测共同成分"这一构念前提, 为本家族地理留一工具的经济学合理性提供实证支撑。 晚近文献进一步在方法学与构念前提两个层面补强了这一构造。Frandsen、Leslie 与 McIntyre (2025) 提出并推导 cluster jackknife (按簇留出) 工具变量估计量, 证明在簇内含多工具与多固定效应的设定下按簇留出可消除标准 2SLS 的偏误, 其按簇留出的思路与本家族按 (bank_province, year) 分组、从组内均值中排除自身的构造同族; 该文为纯计量方法论文 (估计量推导 + 蒙特卡洛 + 一例美国司法/法官指派数据应用), 其留出单位是法官簇, 本家族的留出单位则是同组的单个银行且分组键为地理×年份, 本项目仅借其对留一构造的偏误校正逻辑作方法参照, 并未实施 cluster jackknife 估计。Ellis 与 Jaspersen (2024) 分析留一同侪均值工具在含固定效应模型中的行为, 指出组内留一均值与固定效应同时使用时估计量会出现机械性偏误, 构成本家族构造法的方法学警示文献; 该文为 SSRN 工作论文而非同行评审终稿, 讨论对象是一般线性面板的留一 IV 估计量, 未涉及本项目的 bank-year 层级、亦未涉及被聚合的 BERT 正面篇占比这一底层原子值, 更未讨论本项目 (省份,年份) / (城市,年份) / 经济圈 三种分组键与 min_group_size 守卫, 且本家族的留一列在部分设定中仅作同侪暴露控制变量而非工具, 故须按上述范围节制引用。Bobrov、Kamdar 与 Ulate (2025) 检验区域经济状况是否影响按地区指派的决策者的投票行为, 为“主体所属地理区域的状况会系统性影响其可观测行为”提供了顶刊层面的近期证据, 与前述银行透明度与媒体情感两条实证一同支撑本家族按省份分组构造同侪暴露的经济学前提; 该文主体为美联储地区联储主席、行为为货币政策投票, 与中国银行的媒体报道情感无直接对应, 其地理分组是既定的联储辖区而本项目需自建 (省份,年) 键, 且该文不做留一均值构造、也未把同组他成员的行为作为解释变量, 因此仅锚定“地理分组承载实质经济含义”这一前提, 不锚定 leave-one-out 算子本身。
 【与相邻测度的构念区分】
 本家族与同目录下 `prov_leave1out_tone_{full,ctx,ss}` (情感 LLM 口径)、`prov_leave1out_dict_tone_{full,ctx}` (语言学词典口径) 共享完全相同的地理留一构造原语, 唯一区别在于被聚合的底层情感测度来源不同——本家族聚合的是 stage 23 三家 BERT 分类器的正面篇占比, 而非 stage 21 三家 LLM 投票共识或 stage 22 词典打分。三条口径在方法学谱系上互不隶属、互为独立测量误差来源, 因此在计量上应各自作为 just-identified 工具并排使用、互为稳健性、不分主次——CLAUDE.md「当前状态铁律」明确要求禁止将 LLM/词典/BERT 三条情感测量管线各自产生的地理留一工具混入同一个 over-identified Hansen J 检验框架, 以免不同测量误差结构相互污染过度识别检验的解释力。本家族与"城市粒度"孪生族 `city_leave1out_bert_avg_pos_{full,ctx}` 的区别仅在于地理分组粒度 (省 vs 市), 后者分组更细、组内银行数更少、有效占比通常更低, 二者亦互为稳健性并排, 不应混同为同一识别策略下的替代工具。
 
@@ -94,4 +116,7 @@ Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A Large Language Model for E
 Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik Instruments: What, When, Why, and How. American Economic Review, 110(8), 2586-2624. https://doi.org/10.1257/aer.20181047
 Chen, Q., Goldstein, I., Huang, Z., & Vashishtha, R. (2022). Bank transparency and deposit flows. Journal of Financial Economics, 146(2), 475-501. https://doi.org/10.1016/j.jfineco.2022.07.009
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
+Frandsen, B., Leslie, E., & McIntyre, S. (2025). Cluster Jackknife Instrumental Variables Estimation. Review of Economics and Statistics, 1-19. https://doi.org/10.1162/rest.a.263
+Ellis, C., & Jaspersen, J. G. (2024). Fixed Effects and the "Leave-Out'' Instrument. SSRN Electronic Journal No. 4787799 [Working Paper]. https://doi.org/10.2139/ssrn.4787799
+Bobrov, A., Kamdar, R., & Ulate, M. (2025). Regional Dissent: Do Local Economic Conditions Influence FOMC Votes?. American Economic Review: Insights, 7(2), 268-284. https://doi.org/10.1257/aeri.20240184
 <!-- rendered-citations:end -->

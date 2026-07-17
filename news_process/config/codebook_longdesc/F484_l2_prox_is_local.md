@@ -62,6 +62,33 @@ citations:
   vol: '42'
   issue: '3'
   pages_or_artno: 1713-1743
+- doi: "10.1080/24694452.2025.2564220"
+  type: "journal"
+  authors: "Kong, I., & Purves, R. S."
+  year: 2026
+  title: "Analyzing Geographic Bias of Newspaper Articles Reporting Global Climate Disasters"
+  venue: "Annals of the American Association of Geographers"
+  vol: "116"
+  issue: "2"
+  pages_or_artno: "270-288"
+- doi: "10.1111/irfi.70009"
+  type: "journal"
+  authors: "Chen, H., Chen, Y., & Li, D."
+  year: 2025
+  title: "Local bias under natural disasters"
+  venue: "International Review of Finance"
+  vol: "25"
+  issue: "1"
+  pages_or_artno: "e70009"
+- doi: "10.1111/1911-3846.12935"
+  type: "journal"
+  authors: "Huang, Y., Li, F., Li, T., & Lin, T."
+  year: 2024
+  title: "Local information advantage and stock returns: Evidence from social media"
+  venue: "Contemporary Accounting Research"
+  vol: "41"
+  issue: "2"
+  pages_or_artno: "1089-1119"
 new_dois: []
 ---
 
@@ -74,8 +101,7 @@ new_dois: []
 距离计算走三级坐标退化: 优先精确匹配媒体所在城市名, 匹配不到则做地名清洗后再匹配, 仍匹配不到则退化到该媒体所属省份的省会坐标 (Level 3 插补); 银行总部坐标同样查表取得。两点间距离用 Haversine 球面公式 (地球半径取 6371 km) 计算, 而非欧氏平面近似, 对中国全域跨纬度比较更准确。is_local 列的分母口径是关键: 只统计"媒体地名可地理编码"的报道 (n_geocoded), 而非该 bank-year 全部报道数 (n_total) — 若某 bank-year 全部报道的媒体地名均无法定位 (n_geocoded=0), 圈内有无媒体是"未知"而非"确知为 0", 此时四个 is_local 列与同族 n_media/n_articles/frac 列一并置 NaN, 避免旧版本"is_local=0 但 frac=NaN"的自相矛盾误分类 (2026-06-11 一致性修复)。当 n_geocoded > 0 时, is_local(d) = 1{n_within(d) > 0} 是严格的存在性判定, 与 frac(d) = n_within(d) / n_geocoded 这一比例测度互补: is_local 只问有没有, frac 问多大比例, 二者在圈内报道稀疏 (n_within 常为个位数) 时携带的信息量不完全重叠, 是同一底层距离分布上的两种不同摘要统计量。四个阈值列满足拓扑单调性 (prox_50km_is_local=1 ⟹ prox_100km_is_local=1 ⟹ prox_150km_is_local=1 ⟹ prox_200km_is_local=1), 这一单调性并非运行时代码显式校验的对象, 而是由 n_within(d) 的单调性 (圈越大, 落入圈内的候选报道集合越大, n_within(d) 关于 d 单调不减) 直接推出的数学推论, is_local(d)=1{n_within(d)>0} 作为单调函数的复合自然继承单调性; 代码内嵌的拓扑断言循环 (对 `_n_articles`/`_frac` 两类列做校验) 并不逐列覆盖 `_is_local`, 后者的单调性属于间接保证而非直接断言。省会插补 (Level 3) 会系统性压低省会所在地银行与该省媒体的计算距离 (趋于 0), 使这些银行在小阈值圈内更容易被判为 is_local=1, 属于与银行区位系统相关的插补偏差而非随机测量误差; 家族配套诊断列 `prox_geo_imputed_frac` (F488) 记录插补比例, 供剔除高插补样本或做插补敏感性切分时使用。
 
 【文献定位】
-四阈值梯度设计方法论上呼应 Engelberg & Parsons (2011) 在《Journal of Finance》用多重距离窗口检验媒体报道因果影响衰减模式的做法; is_local 的"是否存在本地覆盖"判定与 Gurun & Butler (2012, Journal of Finance) 的本地媒体炒作假说 (local media hype) 及 Coval & Moskowitz (1999, Journal of Finance) 的本地权益偏好共享"地理距离是信息可得性的代理变量"这一核心识别逻辑。Aguirregabiria, Clark & Wang (2025, American Economic Review) 关于银行分支网络地理流动与信贷可得性的最新证据进一步印证了银行地理布局本身塑造信息与资金流动格局, 支持把"总部周边是否存在媒体覆盖"作为一个有意义的银行层面地理暴露指标。Kang & Nam (2025, Contemporary Accounting Research) 就本地报纸覆盖与机构投资者关注度关联的近期证据, 补强了本家族"本地媒体覆盖存在性"这一二值判定在资本市场信息环境研究中的当代相关性。
-
+四阈值梯度设计方法论上呼应 Engelberg & Parsons (2011) 在《Journal of Finance》用多重距离窗口检验媒体报道因果影响衰减模式的做法; is_local 的"是否存在本地覆盖"判定与 Gurun & Butler (2012, Journal of Finance) 的本地媒体炒作假说 (local media hype) 及 Coval & Moskowitz (1999, Journal of Finance) 的本地权益偏好共享"地理距离是信息可得性的代理变量"这一核心识别逻辑。Aguirregabiria, Clark & Wang (2025, American Economic Review) 关于银行分支网络地理流动与信贷可得性的最新证据进一步印证了银行地理布局本身塑造信息与资金流动格局, 支持把"总部周边是否存在媒体覆盖"作为一个有意义的银行层面地理暴露指标。Kang & Nam (2025, Contemporary Accounting Research) 就本地报纸覆盖与机构投资者关注度关联的近期证据, 补强了本家族"本地媒体覆盖存在性"这一二值判定在资本市场信息环境研究中的当代相关性。 在此基础上, 三条近期锚点分别从分析范式、构念前提与设计同族三个侧面进一步定位本家族。Kong 与 Purves (2026) 对报纸文章检测地名并赋予地理坐标后, 量化报道在空间上的不均衡覆盖, 并考察地名粒度与要素类型对分析的影响, 为"先给新闻报道打地理坐标、再在坐标空间上做覆盖度统计、并同时披露地名可解析性问题"这一范式提供了前沿存在性证明, 呼应本家族对可地理编码报道作距离缓冲判定、并以 `prox_geo_imputed_frac`(F488) 披露回退占比的做法; 但该文语料固定为五家英国报纸、主题为全球气候灾害, 分析单位是"报道-事件发生地"的国别覆盖偏倚, 而非本项目"媒体所在地-银行总部"的双坐标距离, 亦无 bank-year 面板聚合与 n_geocoded=0 置 NaN 的哨兵口径。Chen、Chen 与 Li (2025) 利用逾 24,000 名散户的账户级日度持仓记录, 证明自然灾害下本地投资者比非本地投资者更多增持本地股票且效应由信息优势驱动, 为"本地/异地地理二分确实承载真实信息差异"这一构念前提提供近期依据; 其"本地"关系是投资者持仓行为与标的之间的关系, 与本项目媒体来源地对银行总部的关系在主体与关系类型上均不同, 该文以灾害为外生冲击做异质性检验且 local 取同城/同区二分, 并未使用 50/100/150/200 公里四梯度 Haversine 缓冲, 本项目亦无冲击设计。Huang、Li、Li 与 Lin (2024) 用社交媒体用户地理位置识别本地信息发布者, 按发帖者与公司总部的地理关系切分样本, 比较本地组与非本地组的信息含量差异, 与本桶同城 vs 异城子样本对比的设计同族; 但其数据为社交媒体发帖而非报纸/通讯社媒体来源, 地理归属基于用户 IP 或自报位置, 本项目则基于媒体来源城市字段经地名后缀清洗比对, 且该文以股票收益为被解释变量并仅作同城二分, 未使用连续距离缓冲或 Haversine 球面距离, 研究对象亦为一般上市公司而非银行。三者均只支撑构念与范式层面的前提, 不构成 50/100/150/200 公里阈值取值的文献依据 — 四档阈值仍属研究者选择, 按互为稳健性、不分主次的原则各自 just-identified 并排报告, 禁混入同一 over-identified Hansen J 检验。
 ## VAR: prox_50km_is_local
 
 【变体差分】
@@ -106,4 +132,7 @@ Coval, J. D., & Moskowitz, T. J. (1999). Home bias at home: Local equity prefere
 Engelberg, J. E., & Parsons, C. A. (2011). The causal impact of media in financial markets. The Journal of Finance, 66(1), 67-97. https://doi.org/10.1111/j.1540-6261.2010.01626.x
 Aguirregabiria, V., Clark, R., & Wang, H. (2025). The geographic flow of bank funding and access to credit: Branch networks, synergies, and local competition. American Economic Review, 115(6), 1818-1856. https://doi.org/10.1257/aer.20200374
 Kang, B. U., & Nam, J. S. (2025). Do local newspapers matter to institutional investors?. Contemporary Accounting Research, 42(3), 1713-1743. https://doi.org/10.1111/1911-3846.13049
+Kong, I., & Purves, R. S. (2026). Analyzing Geographic Bias of Newspaper Articles Reporting Global Climate Disasters. Annals of the American Association of Geographers, 116(2), 270-288. https://doi.org/10.1080/24694452.2025.2564220
+Chen, H., Chen, Y., & Li, D. (2025). Local bias under natural disasters. International Review of Finance, 25(1), e70009. https://doi.org/10.1111/irfi.70009
+Huang, Y., Li, F., Li, T., & Lin, T. (2024). Local information advantage and stock returns: Evidence from social media. Contemporary Accounting Research, 41(2), 1089-1119. https://doi.org/10.1111/1911-3846.12935
 <!-- rendered-citations:end -->

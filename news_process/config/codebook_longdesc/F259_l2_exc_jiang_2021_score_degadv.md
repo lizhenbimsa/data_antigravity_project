@@ -67,6 +67,31 @@ citations:
   vol: 37
   issue: 2
   pages_or_artno: 267-307
+- doi: "10.2139/ssrn.5024959"
+  type: "wp"
+  authors: "Cziraki, P., & Gider, J."
+  year: 2024
+  title: "Newspaper Closures and Trading in Local Stocks"
+  venue: "SSRN"
+  pages_or_artno: "5024959"
+- doi: "10.3390/computers12010018"
+  type: "journal"
+  authors: "Naldi, M., & Petroni, S."
+  year: 2023
+  title: "A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools"
+  venue: "Computers"
+  vol: "12"
+  issue: "1"
+  pages_or_artno: "18"
+- doi: "10.1093/llc/fqae013"
+  type: "journal"
+  authors: "Venglařová, K., & Matlach, V."
+  year: 2024
+  title: "Beyond content: discriminatory power of function words in text type classification"
+  venue: "Digital Scholarship in the Humanities"
+  vol: "39"
+  issue: "2"
+  pages_or_artno: "765-789"
 new_dois: []
 ---
 
@@ -83,8 +108,7 @@ new_dois: []
 面板级第二层在 attention_media.py 的停刊稳健性区块完成: 先由 detect_defacto_cessation 依据"某媒体是否停止覆盖目标话题"这一保守代理判定 _is_ceased_media 标记 (须强调这是话题覆盖退出的代理, 并非经证实的报纸停刊), 再取 _is_ceased_media 为零的存活媒体子样本, 按 (target_bank, year) 分组对文章级 jiang_2021_score_degadv{track} 求简单算术均值, 加 exc_ 前缀落为面板列。零文章的银行年度按情感类契约保持缺失 (不做零填), 以区别于计数类列的零填口径。三条文本轨各得一列, 即本家族的三个成员。整个第二层是纯 CPU、零 API、golden-safe 的确定性后处理。
 
 【文献定位】
-在方法学谱系上, 词典法情绪与机器学习、大模型情绪构成互补的三条测量路径。Frankel, Jennings, Lee (2022) 系统比较了披露情绪的机器学习法与词典法, 论证两类方法在不同场景下各有偏误、宜互为稳健性对照, 这正是本项目让六部词典、三家 LLM、三个 BERT 各自并排的先例依据。Cao, Jiang, Yang, Zhang (2023) 进一步指出当机器成为文本读者时企业披露语言会内生调整, 提示任何单一文本情绪测度都需要多口径稳健性支撑。中文语境下, Du, Huang, Wermers, Wu (2022) 强调财经情绪词典的语言与领域特异性, 说明直接移植英文词典会失真、须使用本土构造的中文词表——这为本家族选用姜富伟等 (2021) 的中文词典提供了直接理由。至于程度与转折两条规则本身, Taboada 等 (2011) 的词典法情感分析框架给出了系统的效价转移 (valence shifting) 处理, 包括强化词 (intensifier, 对应 deg) 与对比连词 (对应 adv) 的加权与翻转规则, 是 degadv 组合的方法论出处。而把词典情绪用于资产定价预测的传统, 则可上溯至 Jiang, Lee, Martin, Zhou (2019) 对管理层情绪与股票回报关系的证据。停刊剔除这一层的动机, 来自媒体退场引入的样本选择问题: 存活媒体样本上的情绪若与全样本情绪系数一致, 即可缓解对幸存者偏差污染 Bartik 类工具变量的担忧。
-
+在方法学谱系上, 词典法情绪与机器学习、大模型情绪构成互补的三条测量路径。Frankel, Jennings, Lee (2022) 系统比较了披露情绪的机器学习法与词典法, 论证两类方法在不同场景下各有偏误、宜互为稳健性对照, 这正是本项目让六部词典、三家 LLM、三个 BERT 各自并排的先例依据。Cao, Jiang, Yang, Zhang (2023) 进一步指出当机器成为文本读者时企业披露语言会内生调整, 提示任何单一文本情绪测度都需要多口径稳健性支撑。中文语境下, Du, Huang, Wermers, Wu (2022) 强调财经情绪词典的语言与领域特异性, 说明直接移植英文词典会失真、须使用本土构造的中文词表——这为本家族选用姜富伟等 (2021) 的中文词典提供了直接理由。至于程度与转折两条规则本身, Taboada 等 (2011) 的词典法情感分析框架给出了系统的效价转移 (valence shifting) 处理, 包括强化词 (intensifier, 对应 deg) 与对比连词 (对应 adv) 的加权与翻转规则, 是 degadv 组合的方法论出处。而把词典情绪用于资产定价预测的传统, 则可上溯至 Jiang, Lee, Martin, Zhou (2019) 对管理层情绪与股票回报关系的证据。停刊剔除这一层的动机, 来自媒体退场引入的样本选择问题: 存活媒体样本上的情绪若与全样本情绪系数一致, 即可缓解对幸存者偏差污染 Bartik 类工具变量的担忧。 这一层动机可进一步锚定于 Cziraki 与 Gider (2024): 该工作论文以美国本地报纸停刊为冲击, 实证报道供给退出会改变本地股票的交易行为, 表明媒体退场是有真实经济后果的样本组成变化; 惟须注明其停刊判定源自外部事件数据、被解释变量为本地股票交易活动, 而本族所用的 _is_ceased_media 仅是自语料内部推断的疑似退出覆盖保守代理, 只用于构造稳健性子样本而非识别冲击, 且该文尚未经同行评审。就本臂关闭否定翻转这一设定, Naldi 与 Petroni (2023) 以测试集方法专门评估词典法情感工具的否定检测与处理能力, 实证发现各工具表现差异显著, 印证否定是词典法内部可被单独测量、单独失效的模块, 因而把否定单列为一条可开可关的规则臂是有据的; 其评测对象为英文通用领域工具且以否定检测准确率为度量, 本项目并不做准确率评测, 只把否定规则开关的后果呈现为并排的稳健性臂。至于 adv 规则所依托的转折连词, Venglařová 与 Matlach (2024) 实证显示功能词类 (含连词) 在文本类型判别上具有独立于内容词的信息量, 侧面支持转折标记值得作为一条独立处理的语言学维度; 但该文任务为文本类型分类、未单独区分转折连词, 亦不涉及效价转移规则与银行-年度聚合, 故仅作构念层旁证。
 ## VAR: exc_jiang_2021_score_degadv_full
 
 【变体差分】
@@ -107,4 +131,7 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 姜富伟, 孟令超, 唐国豪. (2021). 媒体文本情绪与股票回报预测. 经济学(季刊), 21(4), 1323-1344. https://doi.org/10.13821/j.cnki.ceq.2021.04.10
 Jiang, F., Lee, J., Martin, X., & Zhou, G. (2019). Manager sentiment and stock returns. Journal of Financial Economics, 132(1), 126-149. https://doi.org/10.1016/j.jfineco.2018.10.001
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
+Cziraki, P., & Gider, J. (2024). Newspaper Closures and Trading in Local Stocks. SSRN No. 5024959 [Working Paper]. https://doi.org/10.2139/ssrn.5024959
+Naldi, M., & Petroni, S. (2023). A Testset-Based Method to Analyse the Negation-Detection Performance of Lexicon-Based Sentiment Analysis Tools. Computers, 12(1), 18. https://doi.org/10.3390/computers12010018
+Venglařová, K., & Matlach, V. (2024). Beyond content: discriminatory power of function words in text type classification. Digital Scholarship in the Humanities, 39(2), 765-789. https://doi.org/10.1093/llc/fqae013
 <!-- rendered-citations:end -->

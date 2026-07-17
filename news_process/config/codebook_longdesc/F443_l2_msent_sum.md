@@ -36,6 +36,22 @@ citations:
   venue: Decision Support Systems
   vol: 88
   pages_or_artno: 67-75
+- doi: "10.1016/j.chieco.2025.102541"
+  type: "journal"
+  authors: "Wei, L., Wei, M., Wu, Y., & Jing, Z."
+  year: 2025
+  title: "Does party organization construction improve chinese banks' stability? Evidence from a new textual index"
+  venue: "China Economic Review"
+  vol: "94"
+  pages_or_artno: "102541"
+- doi: "10.1016/j.jbankfin.2025.107501"
+  type: "journal"
+  authors: "Fernandez-Perez, A., Fuertes, A.-M., Miffre, J., & Zhao, N."
+  year: 2025
+  title: "Newswire tone-overlay commodity portfolios"
+  venue: "Journal of Banking & Finance"
+  vol: "178"
+  pages_or_artno: "107501"
 new_dois: []
 ---
 
@@ -48,8 +64,7 @@ msent_sum 是计数型情感测度 MSENT 在银行-年面板上的加总口径, 
 msent_score 的生成发生在 tone_words.py 的词典法情感引擎内, 是 6 部词典体系 (v3.10.0 由 5 部扩为 6 部) 中专属 MSENT 计数口径的产物, 与 avg_pos_ratio/avg_neg_ratio 等"比率口径"并非同一分子分母结构 —— MSENT 分子是正负命中计数之差, 分母是正负命中计数之和 (自归一化的净极性比例), 比率口径的分母则是全体 word-token 总数。encode.py 在批量聚合阶段对三条文本轨道 (_full/_ctx/_ss) 各自独立调用 groupby(...).sum(), 因此 msent_sum_full / msent_sum_ctx / msent_sum_ss 三列共享同一生成算子与同一词典基, 差异只在于上游喂入的文本窗口不同。三轨彼此是互为稳健性、不分主次的并排测度, 各自 just-identified, 严禁在同一 over-identified Hansen J 检验中把三轨系数混进同一超识别方程; 三者应作为三条独立稳健性证据链分别汇报, 而不是相加或取平均后合并使用。留篇门控口径遵循 2026-06-29 起生效的 full-only 铁律: 一篇报道是否被计入"该银行当年一篇有效金科报道"的判定只看 full 轨的 llm_verified_full 标记, ctx/ss 两轨的行宇宙是 full 轨留篇集合的子集 (conditional-on-full), 因此 msent_sum_ctx / msent_sum_ss 的样本篇数分母与 msent_sum_full 完全一致, 不会因为 ctx/ss 轨自身的文本可得性而扩大或缩小分母。ss 轨的回退语义镜像 ctx 轨: 当某篇文章不存在"目标银行与金科词同句共现"窗口时, content_ss 退化为全文正文 (与 content_ctx 的实体窗口缺失退化逻辑对称), 对应 ss_is_fallback 标记为真, 此时该篇纳入 msent_score_ss 计算所用的文本实质上等同于全文, 但仍与 full 轨的原始未截断正文存在提示词拼接差异, 不可视为完全等价替代。
 
 【文献定位】
-本家族在方法学谱系上直接对接 Tetlock (2007, Journal of Finance) 开创的媒体情绪净极性计数传统: 以固定词表对逐篇报道做正/负词命中计数, 用命中计数之差除以命中计数之和构造篇级净极性分数, 该"净负面占比"式构造是本家族 msent_score/msent_sum 计数口径的直接理论与方法学来源。msent_sum 在 bank-year 层面对篇级 msent_score 求和, 因此同时承载"报道密度"与"净极性方向"两重信息, 与 avg_msent 的纯篇均口径形成互补的总量-强度分解。v3.10.0 六词典扩张披露 (词表由 5 部扩为 6 部, Pearson r(5,6)=0.985, 符号翻转 0.13%, 均值微变约 3.5%) 对本家族三列均适用, 数值层面的历史可比性因此存在一次已披露的、方向明确的测度口径调整, 属词表覆盖改善而非方法误差, 用户在做跨版本比较时应留意这一断点。词典法本身的方法学根基另有 Loughran & McDonald (2011, Journal of Finance) 的支撑: 该文论证通用情感词典迁移到金融文本会系统性误分类, 主张构造金融专用词表并以简单词频计数 (而非复杂加权) 度量语气, 是本项目六部中文金融词典并集构造与固定计数口径 (msent_score 分子分母均为词典命中计数、非幅度加权) 的直接方法学正当性来源。逐篇计数在遇到否定词时的翻转处理则参照 Pröllochs, Feuerriegel & Neumann (2016, Decision Support Systems) 对否定作用域检测在新闻驱动情感度量中价值的系统研究, 支撑本项目在 msent 计数管线里显式引入否定翻转规则的做法。
-
+本家族在方法学谱系上直接对接 Tetlock (2007, Journal of Finance) 开创的媒体情绪净极性计数传统: 以固定词表对逐篇报道做正/负词命中计数, 用命中计数之差除以命中计数之和构造篇级净极性分数, 该"净负面占比"式构造是本家族 msent_score/msent_sum 计数口径的直接理论与方法学来源。msent_sum 在 bank-year 层面对篇级 msent_score 求和, 因此同时承载"报道密度"与"净极性方向"两重信息, 与 avg_msent 的纯篇均口径形成互补的总量-强度分解。v3.10.0 六词典扩张披露 (词表由 5 部扩为 6 部, Pearson r(5,6)=0.985, 符号翻转 0.13%, 均值微变约 3.5%) 对本家族三列均适用, 数值层面的历史可比性因此存在一次已披露的、方向明确的测度口径调整, 属词表覆盖改善而非方法误差, 用户在做跨版本比较时应留意这一断点。词典法本身的方法学根基另有 Loughran & McDonald (2011, Journal of Finance) 的支撑: 该文论证通用情感词典迁移到金融文本会系统性误分类, 主张构造金融专用词表并以简单词频计数 (而非复杂加权) 度量语气, 是本项目六部中文金融词典并集构造与固定计数口径 (msent_score 分子分母均为词典命中计数、非幅度加权) 的直接方法学正当性来源。逐篇计数在遇到否定词时的翻转处理则参照 Pröllochs, Feuerriegel & Neumann (2016, Decision Support Systems) 对否定作用域检测在新闻驱动情感度量中价值的系统研究, 支撑本项目在 msent 计数管线里显式引入否定翻转规则的做法。 就「中文文本 → 银行层面指数 → 银行面板回归」这一整体链路, Wei、Wei、Wu 与 Jing (2025) 构造新的中文文本指数度量中国银行的党组织建设, 并将其接入银行层面面板检验其对银行稳定性的影响, 为本家族所处的应用同域 (中国银行 × 中文文本计量) 提供近期范例。举证限度须诚实标注: 该文的文本源与指数构造口径未经核实 (极可能为银行自身披露文件的主题或关键词计数), 并非六部中文金融词典并集的净极性计数在银行-年层面求和, 其银行稳定性为结果变量, 亦不涉及三轨文本范围与本仓的多层加权口径。就「逐篇语调按标的求和聚合为单元级语调量」这一聚合步骤本身, Fernandez-Perez、Fuertes、Miffre 与 Zhao (2025) 以新闻通讯社 (newswire) 语调叠加构造商品组合信号, 为该求和聚合口径提供近期存在性; 其迁移边界同样须写明: 该判断系据题名保守认定, 原文语料为英文 newswire, 聚合层级为商品-期而非银行-年三轨, 既无 IDF、媒体权威或羊群衰减加权层, 亦不涉及中文六词典并集与本家族的固定命中计数口径。
 ## VAR: msent_sum_ctx
 
 【变体差分】
@@ -69,4 +84,6 @@ msent_sum_ss 是三轨中判据最严格的同句共现 (same-sentence) 轨道, 
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
+Wei, L., Wei, M., Wu, Y., & Jing, Z. (2025). Does party organization construction improve chinese banks' stability? Evidence from a new textual index. China Economic Review, 94, 102541. https://doi.org/10.1016/j.chieco.2025.102541
+Fernandez-Perez, A., Fuertes, A.-M., Miffre, J., & Zhao, N. (2025). Newswire tone-overlay commodity portfolios. Journal of Banking & Finance, 178, 107501. https://doi.org/10.1016/j.jbankfin.2025.107501
 <!-- rendered-citations:end -->

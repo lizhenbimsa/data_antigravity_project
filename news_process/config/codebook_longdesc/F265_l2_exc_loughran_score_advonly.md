@@ -66,6 +66,15 @@ citations:
   vol: 12
   issue: 1
   pages_or_artno: 357-375
+- doi: "10.1057/s41267-025-00798-8"
+  type: "journal"
+  authors: "Pinto, J., & Siano, F."
+  year: 2025
+  title: "Beyond words: the challenge of measuring financial text across borders"
+  venue: "Journal of International Business Studies"
+  vol: "56"
+  issue: "7"
+  pages_or_artno: "921-936"
 new_dois: []
 ---
 
@@ -78,8 +87,7 @@ new_dois: []
 单篇打分链路为: 先在 22_tone_words 阶段对每篇报道逐词匹配 loughran 正、负情感词, 得到基础命中计数; 消融梯度把否定翻转、程度副词、转折三条语言学规则视作可独立开关的算子, 对全部 2 的 3 次方幂集物化为消融变体 raw / negonly / degonly / advonly / negdeg / negadv / degadv (7 个非-full 规则变体), advonly 即"仅转折规则激活"这一格。转折规则的作用是: 遇到转折连词时, 依据 Taboada 等 (2011) 的情境价移 (contextual valence shifting) 思想, 对连词后从句的情感权重做重加权 (转折后为叙述重心), 从而校正"虽然……但是……"式句子里被前半句稀释的真实语调。单篇得分自归一化为 score = (pos_adv − neg_adv)/(pos_adv + neg_adv), 因而每个消融变体各自成一套内部一致的标度, 变体之间高度共线 (审计 MATH-1: corr≈0.99), 属非可加分解, 报告相关系数而非并入同一线性式。面板聚合在 pipeline/panel/attention_media.py::detect_defacto_cessation 完成, 该模块动态发现全部情感列前缀 (含 loughran_score_), 对疑似退出话题覆盖的媒体子集 (confirmed ∪ suspected) 做剔除后按篇平均得到 exc_ 家族的银行-年取值——三点诚实披露之(c) 明确要求 ceased_media_frac / exc_* / n_articles_exc 一律解读为「疑似退出覆盖媒体」稳健性口径 (保守剔除), 不得在论文或本文档中表述为严格停刊 (publication cessation) 口径, 因为 first/last_year 度量的是媒体退出该话题覆盖而非经证实的报纸停刊, 媒体本身可能仍在正常出版只是不再报道银行-金科话题; 留篇总体口径与全项目一致 (full-only 门控, 2026-06-29): 一篇报道是否算入银行金科报道宇宙, 仅由 full 轨的 LLM 验证结果决定, ctx/ss 为 conditional-on-full 的子集测度。
 
 【文献定位】
-方法学上本家族坐落于金融文本分析的词典法一支。Loughran 与 McDonald (2011) 是构念的直接锚, 其后 Loughran 与 McDonald (2016) 的综述系统梳理了词典构造、加权、否定处理等设计自由度, 正是本项目把语言学规则做成幂集消融梯度的依据——综述反复强调这些看似技术性的选择会实质影响语调估计, 因此稳健性检验须显式呈现。Frankel、Jennings 与 Lee (2022) 在 Management Science 上直接比较词典法与机器学习法的语调测量, 论证不同方法互为稳健、不应偏废, 为本项目"词典/LLM/BERT 三法并排、各自 just-identified"的架构提供了先例。转折规则的语言学基础见 Taboada 等 (2011), 其情境价移框架是 advonly 变体的理论来源; Barbaglia 等 (2025) 则在经济文本上验证词典法的持续有效性。方法上须复述本项目铁律: 规则消融的各变体 (raw/advonly/…) 各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同消融变体混进同一 over-identified 的 Hansen J 过度识别检验; 同理三轨 (full/ctx/ss) 亦各自成轨、禁混同一 Hansen J。exc_ 与 bal_ (平衡媒体) 是两条正交的媒体构成稳健性轨, 与规则消融、与三轨彼此独立不交叉。需要注入生成期实测统计处见【动态统计】段, 写手不手填任何面板数字。
-
+方法学上本家族坐落于金融文本分析的词典法一支。Loughran 与 McDonald (2011) 是构念的直接锚, 其后 Loughran 与 McDonald (2016) 的综述系统梳理了词典构造、加权、否定处理等设计自由度, 正是本项目把语言学规则做成幂集消融梯度的依据——综述反复强调这些看似技术性的选择会实质影响语调估计, 因此稳健性检验须显式呈现。Frankel、Jennings 与 Lee (2022) 在 Management Science 上直接比较词典法与机器学习法的语调测量, 论证不同方法互为稳健、不应偏废, 为本项目"词典/LLM/BERT 三法并排、各自 just-identified"的架构提供了先例。转折规则的语言学基础见 Taboada 等 (2011), 其情境价移框架是 advonly 变体的理论来源; Barbaglia 等 (2025) 则在经济文本上验证词典法的持续有效性。方法上须复述本项目铁律: 规则消融的各变体 (raw/advonly/…) 各自 just-identified 并排、互为稳健性、不分主次, 严禁把不同消融变体混进同一 over-identified 的 Hansen J 过度识别检验; 同理三轨 (full/ctx/ss) 亦各自成轨、禁混同一 Hansen J。exc_ 与 bal_ (平衡媒体) 是两条正交的媒体构成稳健性轨, 与规则消融、与三轨彼此独立不交叉。需要注入生成期实测统计处见【动态统计】段, 写手不手填任何面板数字。 就词表移出本国语境后的可比性这一维度而言, Pinto 与 Siano (2025) 以 85 个国家、200,960 份财报电话会记录 (文本本身即英文) 为语料, 把美国基准词表直接套用其上, 发现情感与收益的关联在非美国公司弱约 30%, 且定谳主因是文化距离而非语言 (语言特征仅作文化价值的工具变量); 换言之, L&M 式美国基准词表一旦移出美国语境, 即使文本仍是英文, 信号强度亦系统性衰减, 那么本家族 loughran 词典系 L&M (2011) 英文原表中文主译这一动作既跨文化、又另加中文翻译, 风险只会更大, 这也是本项目不依赖单一词表、而并排多部本土中文词典与多条规则臂的又一动机。须注明该文全文无词表翻译、亦无非英语语料, 语料为财报电话会记录而非中文金融新闻, 且并未涉及否定/程度/转折规则子集的消融设计, 亦无银行-年度聚合层级, 故仅作词表跨语境可比性的背景依据, 不构成 advonly 单规则臂的直接方法学出处。
 ## VAR: exc_loughran_score_advonly_ctx
 
 【变体差分】
@@ -102,4 +110,5 @@ Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance:
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
 Loughran, T., & McDonald, B. (2020). Textual analysis in finance. Annual Review of Financial Economics, 12(1), 357-375. https://doi.org/10.1146/annurev-financial-012820-032249
+Pinto, J., & Siano, F. (2025). Beyond words: the challenge of measuring financial text across borders. Journal of International Business Studies, 56(7), 921-936. https://doi.org/10.1057/s41267-025-00798-8
 <!-- rendered-citations:end -->

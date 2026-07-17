@@ -54,6 +54,26 @@ citations:
   vol: '71'
   issue: '9'
   pages_or_artno: 7888-7906
+- doi: "10.18653/v1/2024.law-1.13"
+  type: "journal"
+  authors: "Rønningstad, E., Velldal, E., & Øvrelid, L."
+  year: 2024
+  title: "A GPT among Annotators: LLM-based Entity-Level Sentiment Annotation"
+  venue: "Proceedings of the 18th Linguistic Annotation Workshop (LAW-XVIII)"
+  pages_or_artno: "133-139"
+- doi: "10.48550/arxiv.2406.04692"
+  type: "arxiv"
+  authors: "Wang, J., Wang, J., Athiwaratkun, B., Zhang, C., & Zou, J."
+  year: 2024
+  title: "Mixture-of-Agents Enhances Large Language Model Capabilities"
+  venue: "arXiv"
+- doi: "10.1287/mnsc.2024.08999"
+  type: "journal"
+  authors: "Burtch, G., McFowland, E., Yang, M., & Adomavicius, G."
+  year: 2026
+  title: "EnsembleIV: Creating Instrumental Variables from Ensemble Learners for Robust Statistical Inference with ML- Generated Variables"
+  venue: "Management Science"
+  pages_or_artno: "mnsc.2024.08999"
 new_dois: []
 ---
 
@@ -74,8 +94,7 @@ new_dois: []
 三轨 (`_full`/`_ctx`/`_ss`) 依 CLAUDE.md「三轨文本架构」铁律各自 just-identified 并排、互为稳健性、不分主次 — 三者严禁混进同一个 over-identified 的 Hansen J 检验框架。full 轨窗口 = 标题 + 全文正文; ctx 轨窗口 = 标题 + 银行实体所在窗口 (`content_ctx`, 由 stage 14 `ctx_materializer` 物化, `prepend_title` 拼接); ss 轨窗口 = 标题 + 银行与金融科技词同句 (或 ±N 句窗, 由 `config/filtering.yaml::context_window.ss_sentence_radius` 控制, 默认 1) 共现的句子集合 (`content_ss`)。ss 轨遵循「镜像 ctx」的回退语义: 当某篇文章在 full-only 留篇集合内、但银行与金融科技词并未出现在同一句 (无同句共现) 时, `content_ss` 退化为使用全文正文作为替代文本、`ss_is_fallback` 标记为 True, 该情形与 ctx 轨"实体窗口取不到时回退全文"的处理原则完全对称, 二者共享同一个"回退时使用全文、并显式标记而非静默丢弃"的设计公理, 且降级不影响该行是否被纳入 `n_articles` 分母的判定 (分母口径由 full 轨门控统一决定)。
 
 【文献定位】
-本家族体现的是"多家 LLM 独立评分再取跨模型均值"这一集成 (ensemble) 范式在金融文本情感测度中的应用。Ludwig, Mullainathan & Rambachan (2025) 系统提出了将 LLM 输出作为计量经济学测量工具时应满足的应用经济学框架, 强调独立重复评分、提示词冻结与确定性温度设置对结果可复现性的重要性, 本项目 stage 21 的 `temperature=0.0`、prompt 版本冻结 (`v8-2026-05-17`) 与三家跨厂商并列评分设计与该框架的建议一致。de Kok (2025) 在会计研究情境下讨论了如何在生成式 LLM 用作文本分析工具时保证 prompt 稳定、缓存复现与跨模型稳健性, 为本项目"缓存键=prompt_version+temperature"的确定性锚点设计提供了方法学参照。Huang, Wang & Yang (2023) 提出 FinBERT 面向金融文本抽取信息的大语言模型路径, 是本项目 BERT 三模型稳健性轨的直接方法学来源之一, 也印证了金融文本情感测度存在"词典法/BERT 法/生成式 LLM 法"三足鼎立的测量三角, `llm_models_avg_tone_sum` 家族对应其中生成式 LLM 一支的跨模型集成投影。Gilardi, Alizadeh & Kubli (2023) 的实证发现生成式对话模型在文本标注任务上可以超过众包标注员的准确度与一致性, 为本项目选择以三家商用 LLM 替代/补充人工标注与词典规则的整体设计取向提供了外部效度佐证。Lan, Wu, Xu, Feng & Zhang (2025) 针对中文金融文本细粒度情感分析给出了 LLM 方案在中文语境下的实证表现, 与本项目处理中文银行—金融科技报道的应用场景直接相关, 支持了在中文财经文本上采用 LLM 打分而非仅依赖英文训练的词典或分类器的合理性。
-
+本家族体现的是"多家 LLM 独立评分再取跨模型均值"这一集成 (ensemble) 范式在金融文本情感测度中的应用。Ludwig, Mullainathan & Rambachan (2025) 系统提出了将 LLM 输出作为计量经济学测量工具时应满足的应用经济学框架, 强调独立重复评分、提示词冻结与确定性温度设置对结果可复现性的重要性, 本项目 stage 21 的 `temperature=0.0`、prompt 版本冻结 (`v8-2026-05-17`) 与三家跨厂商并列评分设计与该框架的建议一致。de Kok (2025) 在会计研究情境下讨论了如何在生成式 LLM 用作文本分析工具时保证 prompt 稳定、缓存复现与跨模型稳健性, 为本项目"缓存键=prompt_version+temperature"的确定性锚点设计提供了方法学参照。Huang, Wang & Yang (2023) 提出 FinBERT 面向金融文本抽取信息的大语言模型路径, 是本项目 BERT 三模型稳健性轨的直接方法学来源之一, 也印证了金融文本情感测度存在"词典法/BERT 法/生成式 LLM 法"三足鼎立的测量三角, `llm_models_avg_tone_sum` 家族对应其中生成式 LLM 一支的跨模型集成投影。Gilardi, Alizadeh & Kubli (2023) 的实证发现生成式对话模型在文本标注任务上可以超过众包标注员的准确度与一致性, 为本项目选择以三家商用 LLM 替代/补充人工标注与词典规则的整体设计取向提供了外部效度佐证。Lan, Wu, Xu, Feng & Zhang (2025) 针对中文金融文本细粒度情感分析给出了 LLM 方案在中文语境下的实证表现, 与本项目处理中文银行—金融科技报道的应用场景直接相关, 支持了在中文财经文本上采用 LLM 打分而非仅依赖英文训练的词典或分类器的合理性。 在此基础上, 三条前沿文献分别锚定本家族的构念层、架构层与下游使用层。Rønningstad 与 Velldal (2024) 评估了 LLM 对特定目标实体的情感 (entity-level sentiment) 标注质量并与人工标注对比, 与本家族所测「针对目标银行而非篇章整体的实体级语调」这一构念同族, 是该构念下 LLM 标注可行性的同族实证; 但其语料为挪威语与英语通用新闻及评论, 目标实体非银行, 且仅采用单一 GPT 模型、只报告标注一致性, 既无三家投票与置信度概率化, 亦不涉及 bank-year 面板聚合与三轨 (full/ctx/ss) 文本切分。Wang、Wang、Athiwaratkun、Zhang 与 Zou (2024) 实证聚合多个异构 LLM 的输出优于任何单一模型, 为本家族对三家 per-model tone_sum 子测度取跨模型算术均值的架构提供前沿存在性依据; 惟其聚合为分层生成式合成, 与本家族的机械算术平均并非同一机制, 评测亦在英文指令跟随基准而非中文财经文本。Burtch、McFowland、Yang 与 Adomavicius (2026) 由集成成员间的预测差异构造工具变量, 以缓解 ML 生成变量作回归元时的测量误差偏误, 与本家族跨模型离散度的结构同构, 为聚合量的下游使用提供了一条已发表的处理路径; 但其成员为同一训练流程下可重采样的 ML 预测器, 本家族成员则是三家闭源 LLM, 差异来源不可控亦不可重采样, 该 IV 前提未必成立 — 本项目未实施该方案, 三家子测度仍各自 just-identified 并排、互为稳健性、不分主次, 严禁混入同一 over-identified Hansen J。
 ## VAR: llm_models_avg_tone_sum_ctx
 
 【变体差分】
@@ -101,4 +120,7 @@ Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A large language model for e
 Gilardi, F., Alizadeh, M., & Kubli, M. (2023). ChatGPT outperforms crowd workers for text-annotation tasks. Proceedings of the National Academy of Sciences, 120(30), e2305016120. https://doi.org/10.1073/pnas.2305016120
 Lan, Y., Wu, Y., Xu, W., Feng, W., & Zhang, Y. (2025). Chinese fine-grained financial sentiment analysis with large language models. Neural Computing and Applications, 37(30), 24883-24892. https://doi.org/10.1007/s00521-024-10603-6
 de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
+Rønningstad, E., Velldal, E., & Øvrelid, L. (2024). A GPT among Annotators: LLM-based Entity-Level Sentiment Annotation. Proceedings of the 18th Linguistic Annotation Workshop (LAW-XVIII), 133-139. https://doi.org/10.18653/v1/2024.law-1.13
+Wang, J., Wang, J., Athiwaratkun, B., Zhang, C., & Zou, J. (2024). Mixture-of-Agents Enhances Large Language Model Capabilities. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2406.04692
+Burtch, G., McFowland, E., Yang, M., & Adomavicius, G. (2026). EnsembleIV: Creating Instrumental Variables from Ensemble Learners for Robust Statistical Inference with ML- Generated Variables. Management Science, mnsc.2024.08999. https://doi.org/10.1287/mnsc.2024.08999
 <!-- rendered-citations:end -->

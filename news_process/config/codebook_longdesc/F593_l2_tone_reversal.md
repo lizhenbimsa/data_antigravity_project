@@ -47,6 +47,21 @@ citations:
   venue: Economics Letters
   vol: '260'
   pages_or_artno: Article 112803
+- doi: "10.1016/j.bir.2026.100863"
+  type: "journal"
+  authors: "Pham, H."
+  year: 2026
+  title: "From ESG noise to firm-specific risk: Adverse ESG sentiment trajectories and idiosyncratic volatility"
+  venue: "Borsa Istanbul Review"
+  pages_or_artno: "100863"
+- doi: "10.1016/j.jfs.2026.101538"
+  type: "journal"
+  authors: "Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S."
+  year: 2026
+  title: "Does media sentiment influence bank supervision?"
+  venue: "Journal of Financial Stability"
+  vol: "84"
+  pages_or_artno: "101538"
 new_dois: []
 ---
 
@@ -59,8 +74,7 @@ tone_reversal 度量的是同一家银行的媒体语调在相邻两个年份之
 计算发生在 `pipeline/panel/runner.py` 的区块 (i) "情感滞后与反转效应"。首先面板按 `target_bank`、`year` 排序, 保证 groupby-shift 操作在正确的时间轴上进行; 随后对三条文本轨道 (`_full`/`_ctx`/`_ss`) 循环, 对每条轨道生成滞后列 `llm_vote_tone{track}_lag1 = panel.groupby('target_bank')[tone].shift(1)`, 再取当期与滞后期之差 `tone_reversal{track} = llm_vote_tone{track} - llm_vote_tone{track}_lag1`。由于上游 `balance_panel()` 已确保面板是银行×年份的完全笛卡尔积 (无缺行的平衡面板), `shift(1)` 严格对应"上一个日历年", 不会因为面板中偶发缺行而错误地跳到更早的年份。首年 (面板样本期第一年) 没有可用的滞后值, `tone_reversal{track}` 依设计取 NaN, 这是预期的边界行为而非缺陷。三分类共识语调 `llm_vote_tone{track}` 本身取值集合近似 {-1, 0, +1} (负面/中性/正面, 由三家 LLM 多数表决产生, 详见 F1xx 段 llm_vote_tone 家族长文), 因此 tone_reversal 的理论取值范围约为 [-2, +2]: 值为 +2 表示银行语调从"最负面"完全反转到"最正面", 值为 -2 表示反向的坍塌式转折, 值为 0 表示语调水平在两年间保持不变 (但不代表期间没有波动, 期间波动由同一区块生成的姊妹变量 `tone_volatility{track}`——按银行分组的 3 年窗滚动标准差——单独刻画, 二者在构念上正交: tone_reversal 是端点差, tone_volatility 是路径方差)。列本身不做任何截尾 (winsorize) 或标准化, 是原始差分值, 供下游模板视需要自行标准化或分箱。
 
 【文献定位】
-本变量的方法学谱系横跨两条文献脉络。第一条是资产定价中的情绪—反转假说: Da, Engelberg & Gao (2015) 的经典发现是投资者情绪指数的极端读数在随后短窗口内系统性地预测收益反转, 隐含的机制是市场参与者 (含媒体叙事者) 对情绪化信息赋予过高权重而后逐步修正; 本变量将这一"修正"逻辑从投资者情绪指数迁移到媒体语调序列本身, 直接检验语调轨迹本身是否呈现均值回归模式, 而非绕道通过股价间接推断。第二条是媒体情绪度量与其经济后果的文献: Tetlock (2007) 证明报纸语调的高频波动含有可预测股票收益的信息, 后续 Shapiro, Sudhof & Wilson (2022) 用经济学专属词典构造的新闻情绪指数进一步验证了语调序列的持续性 (persistence) 与预测力可以脱离单纯的极性计数, Aksoy-Yurdagul, Buchner & Zareei (2026) 的近期研究直接聚焦"新闻情绪的持久性" (persistence of news sentiment) 对未来收益可预测性的含义, 与 tone_reversal 捕捉的"情绪不持久 (即反转)"是同一构念空间的对偶面: 若某银行—年份的 tone_reversal 幅度大, 意味着该期语调持久性低; 若 tone_reversal 长期接近 0 而语调水平本身持续偏离基准, 则指向语调具有较强的路径依赖或结构性偏移而非噪声驱动的临时性冲击。三轨 (full/ctx/ss) 并列计算是本项目情感测度体系的通用设计: full=标题+全文正文, ctx=标题+银行实体窗口, ss=标题+银行∧金科同句 (±1 句窗, 无共现则回退为镜像 ctx 语义的全文, 由 `ss_is_fallback` 标记, 与 n_articles 共享分母)。三条轨道在文献定位上互为稳健性检验、不分主次: 若同一银行—年份在 full 与 ctx/ss 轨道上算出的 tone_reversal 方向与量级高度一致, 则反转效应对文本抽取窗口的选取不敏感, 增强构念效度; 三轨的存在正是为了防止研究者选择性报告某一条最"漂亮"的轨道 (specification curve 逻辑的一个实例)。铁律: 三轨各自 just-identified 并排使用, 严禁将三轨的 tone_reversal 同时塞进同一个 over-identified 的 Hansen J 检验框架中作为多重工具或多重矩条件——这会人为夸大过度识别检验的自由度并混淆构念边界。三轨中门控口径亦须与 2026-06-29 起生效的 full-only 留篇门控保持一致: 是否判定某银行—年份构成"一篇有效的银行金科报道"完全由 `llm_verified_full == True` 决定, ctx/ss 轨道上的 tone_reversal_ctx / tone_reversal_ss 是 conditional-on-full 的测度/稳健性轨, 其行宇宙 (哪些银行—年份有值) 是 full 轨行宇宙的子集, 但每条轨道各自独立地按其自身轨道文本计算语调再差分 (即 ctx 轨的 tone_reversal_ctx 用的是 ctx 轨自身的 llm_vote_tone_ctx 序列做差分, 不借用 full 轨的语调数值)。
-
+本变量的方法学谱系横跨两条文献脉络。第一条是资产定价中的情绪—反转假说: Da, Engelberg & Gao (2015) 的经典发现是投资者情绪指数的极端读数在随后短窗口内系统性地预测收益反转, 隐含的机制是市场参与者 (含媒体叙事者) 对情绪化信息赋予过高权重而后逐步修正; 本变量将这一"修正"逻辑从投资者情绪指数迁移到媒体语调序列本身, 直接检验语调轨迹本身是否呈现均值回归模式, 而非绕道通过股价间接推断。第二条是媒体情绪度量与其经济后果的文献: Tetlock (2007) 证明报纸语调的高频波动含有可预测股票收益的信息, 后续 Shapiro, Sudhof & Wilson (2022) 用经济学专属词典构造的新闻情绪指数进一步验证了语调序列的持续性 (persistence) 与预测力可以脱离单纯的极性计数, Aksoy-Yurdagul, Buchner & Zareei (2026) 的近期研究直接聚焦"新闻情绪的持久性" (persistence of news sentiment) 对未来收益可预测性的含义, 与 tone_reversal 捕捉的"情绪不持久 (即反转)"是同一构念空间的对偶面: 若某银行—年份的 tone_reversal 幅度大, 意味着该期语调持久性低; 若 tone_reversal 长期接近 0 而语调水平本身持续偏离基准, 则指向语调具有较强的路径依赖或结构性偏移而非噪声驱动的临时性冲击。三轨 (full/ctx/ss) 并列计算是本项目情感测度体系的通用设计: full=标题+全文正文, ctx=标题+银行实体窗口, ss=标题+银行∧金科同句 (±1 句窗, 无共现则回退为镜像 ctx 语义的全文, 由 `ss_is_fallback` 标记, 与 n_articles 共享分母)。三条轨道在文献定位上互为稳健性检验、不分主次: 若同一银行—年份在 full 与 ctx/ss 轨道上算出的 tone_reversal 方向与量级高度一致, 则反转效应对文本抽取窗口的选取不敏感, 增强构念效度; 三轨的存在正是为了防止研究者选择性报告某一条最"漂亮"的轨道 (specification curve 逻辑的一个实例)。铁律: 三轨各自 just-identified 并排使用, 严禁将三轨的 tone_reversal 同时塞进同一个 over-identified 的 Hansen J 检验框架中作为多重工具或多重矩条件——这会人为夸大过度识别检验的自由度并混淆构念边界。三轨中门控口径亦须与 2026-06-29 起生效的 full-only 留篇门控保持一致: 是否判定某银行—年份构成"一篇有效的银行金科报道"完全由 `llm_verified_full == True` 决定, ctx/ss 轨道上的 tone_reversal_ctx / tone_reversal_ss 是 conditional-on-full 的测度/稳健性轨, 其行宇宙 (哪些银行—年份有值) 是 full 轨行宇宙的子集, 但每条轨道各自独立地按其自身轨道文本计算语调再差分 (即 ctx 轨的 tone_reversal_ctx 用的是 ctx 轨自身的 llm_vote_tone_ctx 序列做差分, 不借用 full 轨的语调数值)。 近期两项研究可为本变量补充同域坐标。Pham (2026) 以公司层 ESG 新闻情感的「轨迹」(随时间的路径与变化) 而非单期水平作为解释变量, 检验其对特质波动的影响, 与本变量所属的「情感时序动态测度」族同处一个构念空间, 属该方向的前沿存在性证明; 其情感序列取自 ESG 新闻、频率高于年度、DV 为特质波动, 而本变量是银行-年 LLM 共识语调的一阶差分, 差分算子与姊妹变量 tone_volatility 的窗口 (window=3, min_periods=2) 均为本项目自设, 原文并未使用同一公式, 故只锚定「把情感的时序变化而非水平作为测度对象」这一层, 不锚定具体算子。Aldama-Navarrete、Curti、Hansen 与 Kazinnik (2026) 构造针对特定银行的媒体情感测度并检验其与监管行为的关联, 表明把新闻情感按银行主体归集、再进入银行层面实证, 是当前金融稳定领域顶级期刊接受的做法, 为本变量被差分的上游对象 (银行-年媒体语调) 提供了同域应用依据; 迁移边界在于该文是美国银行监管语境 (监管评级/监管行动为 DV), 其情感测度的构造细节与本项目三轨文本、三家 LLM 多数投票的共识语调口径不同, 亦不涉及创新话语的实质性/象征性分类维度, 且未对语调作纵向差分, 因而不能据以主张反转测度本身已有直接先例。
 ## VAR: tone_reversal_ctx
 
 【变体差分】
@@ -81,4 +95,6 @@ Da, Z.; Engelberg, J.; Gao, P. (2015). The sum of all FEARS investor sentiment a
 Tetlock, Paul C. (2007). Giving Content to Investor Sentiment: The Role of Media in the Stock Market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Shapiro, A. H.; Sudhof, M.; Wilson, D. J. (2022). Measuring news sentiment. Journal of Econometrics, 228(2), 221-243. https://doi.org/10.1016/j.jeconom.2020.07.053
 Aksoy-Yurdagul, D.; Buchner, A.; Zareei, A. (2026). The persistence of news sentiment: Implications for return predictability. Economics Letters, 260, Article 112803. https://doi.org/10.1016/j.econlet.2025.112803
+Pham, H. (2026). From ESG noise to firm-specific risk: Adverse ESG sentiment trajectories and idiosyncratic volatility. Borsa Istanbul Review, 100863. https://doi.org/10.1016/j.bir.2026.100863
+Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S. (2026). Does media sentiment influence bank supervision?. Journal of Financial Stability, 84, 101538. https://doi.org/10.1016/j.jfs.2026.101538
 <!-- rendered-citations:end -->

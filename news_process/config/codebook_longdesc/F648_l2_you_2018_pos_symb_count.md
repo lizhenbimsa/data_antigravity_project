@@ -55,6 +55,15 @@ citations:
   vol: 26
   issue: 3
   pages_or_artno: 673-719
+- doi: "10.1016/j.jsis.2026.101971"
+  type: "journal"
+  authors: "Chen, Z., Hajiheydari, N., Zhang, M., & Lin, Y.-E."
+  year: 2026
+  title: "Corporate digital transformation attention and innovation: strategic commitment or symbolic signalling?"
+  venue: "The Journal of Strategic Information Systems"
+  vol: "35"
+  issue: "2"
+  pages_or_artno: "101971"
 new_dois: []
 ---
 
@@ -67,8 +76,7 @@ new_dois: []
 篇章级判定分两步交乘。第一步词典极性: 上游 stage 22 (tone_words) 对每篇报道按 You, Zhang 与 Zhang (2018) 词典算出逐轨情感分 you_2018_score{track}, 大于零即记为正面 (词级正负词加权净分, 归一化到闭区间, 经语言学规则——否定翻转、程度副词、转折——调整后取符号)。词典加载时对 positive∩negative 跨类重叠词 (you_2018 计 5 词) 采取「保留而非剔除」的用户决策 (2026-06-24): 重叠词同时计入正负两侧, 打分时对该词典个体 you_2018_score 净语调拉向中性而非武断选边; union/msent/ratio 等聚合测度因重叠词以 (+1,−1) 平衡双票喂入固定 union 词典而不受影响。第二步象征性判定: stage 21 的大模型对每篇报道给出 innovation_substantiveness 的类别标签 (实质性 / 象征性 / 不适用), 落在象征性者记为象征侧。runner.py 的洗稿率 K 块把两个布尔逐元素求交, 生成篇章级指示列 _is_you_2018_pos_symb{track} (方法 D2, 单词典臂); encode.py 的聚合规格再按银行-年对该指示列 sum, 得到本家族三列。一个承重的口径细节: 象征性判据恒取 innovation_substantiveness_full 这一 full 轨标签 (track-agnostic), 三列共用同一象征掩码, 逐轨变化的只有词典极性符号那一侧。这与全项目 full-only 留篇门控 (2026-06-29) 一致——一篇报道是否算「一篇银行金科报道」只看 full 轨大模型核验, ctx/ss 是 conditional-on-full 的子集测度; 象征侧既然来自 full 轨分类, 就不随文本轨切换而重判。词典极性侧则真正逐轨: full 用标题拼接后的全文, ctx 用标题加实体窗口文本, ss 用标题加银行与金科同句共现窗口文本。缺列 (某轨词典分不存在) 由 valid_agg 自动跳过而非报错, NaN 情感经 fillna 视为非正、永不误入分子。三轨互为稳健性、各自 just-identified 并排, 禁混进同一 over-identified Hansen J; 象征掩码的 full-only 属性也意味着不应把三列当作三套独立象征测度对待, 它们只在词典极性通道上分轨。
 
 【文献定位】
-测度的词典脊柱来自 You, Zhang 与 Zhang (2018) 发表于顶级金融学期刊 Review of Financial Studies 的 "Who captures the power of the pen?", 该文构建并使用了一部覆盖正负情感极性的中文金融文本词典, 系统检验媒体措辞对资本市场信息传递的影响, 是本项目六部并置中文情感词典之一; 其"笔法/措辞权力"命题为本家族"词典判正面"与"大模型判象征"两把尺子的交乘构造提供了直接的构念支撑——正面措辞本身并不保证内容实质。象征侧的构念根植于实质性-象征性脱耦研究: Bingler, Kraus, Leippold 与 Webersinke (2022) 以 ClimateBert 揭示企业气候披露中「廉价表态与挑肥拣瘦」的象征化倾向, 正是本家族把「正面但象征」单独数出来的直接动机——语调为正不等于实质投入, 需要一个能把象征包装从实质行动中剥离的计数。与之同源的中文细粒度情感词典构造思路见 Ma, Zhang 与 Zhang (2025) 对国内投资者情感词典 CN-FSD 的系统化构建, 与 Du, Huang, Wermers 与 Wu (2022) 对中文金融情感词典相对英文词典直译的领域优越性论证, 二者共同支撑「中文金融语料需专用词典而非英文词典直译」的方法论立场, 与本项目并置多部中文词典 (含 You 词典) 互为稳健性的做法同源。词典法文本测度的大样本效度边界另见 You 与 Zhang (2009) 关于财报文本复杂度与投资者反应不足的经典发现, 提示文本测度 (无论复杂度或情感极性) 的经济后果须与内容实质分开检验, 这正是本家族「词典极性 × 象征分类」交乘设计的旨趣所在。本家族即在这一谱系下, 把「词典极性 × 象征分类」的交乘计数作为脱耦分子的单词典实现。
-
+测度的词典脊柱来自 You, Zhang 与 Zhang (2018) 发表于顶级金融学期刊 Review of Financial Studies 的 "Who captures the power of the pen?", 该文构建并使用了一部覆盖正负情感极性的中文金融文本词典, 系统检验媒体措辞对资本市场信息传递的影响, 是本项目六部并置中文情感词典之一; 其"笔法/措辞权力"命题为本家族"词典判正面"与"大模型判象征"两把尺子的交乘构造提供了直接的构念支撑——正面措辞本身并不保证内容实质。象征侧的构念根植于实质性-象征性脱耦研究: Bingler, Kraus, Leippold 与 Webersinke (2022) 以 ClimateBert 揭示企业气候披露中「廉价表态与挑肥拣瘦」的象征化倾向, 正是本家族把「正面但象征」单独数出来的直接动机——语调为正不等于实质投入, 需要一个能把象征包装从实质行动中剥离的计数。与之同源的中文细粒度情感词典构造思路见 Ma, Zhang 与 Zhang (2025) 对国内投资者情感词典 CN-FSD 的系统化构建, 与 Du, Huang, Wermers 与 Wu (2022) 对中文金融情感词典相对英文词典直译的领域优越性论证, 二者共同支撑「中文金融语料需专用词典而非英文词典直译」的方法论立场, 与本项目并置多部中文词典 (含 You 词典) 互为稳健性的做法同源。词典法文本测度的大样本效度边界另见 You 与 Zhang (2009) 关于财报文本复杂度与投资者反应不足的经典发现, 提示文本测度 (无论复杂度或情感极性) 的经济后果须与内容实质分开检验, 这正是本家族「词典极性 × 象征分类」交乘设计的旨趣所在。本家族即在这一谱系下, 把「词典极性 × 象征分类」的交乘计数作为脱耦分子的单词典实现。 近期证据进一步表明, 这一二分本身是可被实证裁决的经验问题而非预设结论: Chen、Hajiheydari、Zhang 与 Lin (2026) 基于注意力基础观构造企业数字化转型关注度 (CDTA), 以中国上市公司 2007–2020 年样本在「战略实质承诺」与「象征性信号」两个对立解释间做检验, 发现 CDTA 仅与突破式创新相关而与渐进式创新及研发支出无关, 从而支持实质承诺说、未支持象征性信号说, 且数字话语与创新的一致性在高问责情境下最强。该文对本家族的锚定是理论框架与反面参照: 象征化并非可默认成立的前提, 故须像本家族这样把「正面但象征」显式数出来交由数据判定; 须明确原文并未提供支持象征性解释的证据, 本家族亦不据此宣称象征包装普遍存在。迁移边界在于: 原文以「话语关注度 vs 实际创新产出」的推断性对比间接判定象征性, 而本项目的 innovation_substantiveness 是 LLM 对单篇报道的直接话语分类标签, 判定机制不同; 原文文本源为公司自述披露, 本项目为第三方新闻; 原文层级为公司-年, 本项目为银行-年且分三轨 (象征判据恒取 full 轨, 仅词典极性符号逐轨变)。
 ## VAR: you_2018_pos_symb_count_full
 
 【变体差分】
@@ -90,4 +98,5 @@ Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022). Cheap talk and
 Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-grained sentiment dictionary for Chinese domestic investors (CN-FSD) and its application. Expert Systems with Applications, 264, 125739. https://doi.org/10.1016/j.eswa.2024.125739
 You, H., & Zhang, X.-J. (2009). Financial reporting complexity and investor underreaction to 10-K information. Review of Accounting Studies, 14(4), 559-586. https://doi.org/10.1007/s11142-008-9083-2
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
+Chen, Z., Hajiheydari, N., Zhang, M., & Lin, Y.-E. (2026). Corporate digital transformation attention and innovation: strategic commitment or symbolic signalling?. The Journal of Strategic Information Systems, 35(2), 101971. https://doi.org/10.1016/j.jsis.2026.101971
 <!-- rendered-citations:end -->

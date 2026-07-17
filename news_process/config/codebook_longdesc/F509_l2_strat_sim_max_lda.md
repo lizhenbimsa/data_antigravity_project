@@ -58,6 +58,14 @@ citations:
   vol: '57'
   issue: '3'
   pages_or_artno: 535-574
+- doi: "10.1016/j.jbusres.2024.115154"
+  type: "journal"
+  authors: "Phillips, D., Edwards, B. D., & Rutherford, M. W."
+  year: 2025
+  title: "Conformity or Differentiation: Optimal distinctiveness through mediating channels"
+  venue: "Journal of Business Research"
+  vol: "189"
+  pages_or_artno: "115154"
 new_dois: []
 ---
 
@@ -70,8 +78,7 @@ new_dois: []
 strat_sim_max_lda 的计算分三步。第一步, 对每期(年)语料池内全部银行的文本 (full/ctx/ss 三轨分别取各自物化文本) 拟合 LDA 主题模型, 得到每家银行-年的主题概率分布向量 θ_i,t (维度 = 主题数 K, 各分量非负且和为 1)。第二步, 对同期所有银行两两计算 Jensen-Shannon 散度的平方根 √JSD(θ_i,t ‖ θ_j,t), 该值由 scipy.spatial.distance.jensenshannon(θ_i, θ_j, base=2) 直接返回——须明确区分: Jensen-Shannon 散度 (JSD) 本身是 KL 散度的对称化、平滑版本, 而 scipy 该函数按其官方语义返回的是 Jensen-Shannon 距离, 即 JSD 的平方根 √JSD, 二者数值不等 (JSD = (√JSD)²)。以 2 为底时 √JSD 严格落入 [0,1] 区间 (√JSD=0 表示两分布完全一致, √JSD=1 表示两分布支撑完全不相交), 相似度按惯例定义为 1 − √JSD (而非 1 − JSD), 因而 strat_sim_max_lda 本身值域是 [0,1], 与文档口径披露 (fix omni-g-strategic-02/03, 2026-06-11) 中"TF-IDF/LDA 轨 (非负向量/分布) ∈ [0,1]"的表述一致——这一点与 Embedding 轨的姊妹列 strat_sim_max_emb 形成鲜明对照: 余弦相似度理论真值域是 [-1,1], 该轨此前曾被误 clip 到 [0,1] (值域删失, 负余弦被地板到 0), 已于该次修复中改正为按真值域处理。第三步, 对每家银行-年, 在同期全部其余银行中取相似度最大的一个作为 strat_sim_max_lda_i,t = max_{j≠i} [1 − √JSD(θ_i,t, θ_j,t)]。分词器口径披露 (fix inject-fintech-word-lda, 2026-06-21): 全部 LDA 列 (含本列) 与全部 word 级 TF-IDF 列自该次修复起统一改用注入 1506 个金科关键词的独立分词器 (_get_diff_tokenizer), 使"金融科技""区块链"等领域复合词在分词阶段整词保留而不被拆散为单字或误切分, 与 char 轨、Embedding 轨对领域词汇的感知口径保持一致; 该口径变更只影响 word/LDA 两个轨道的分词输入, char 轨与 Embedding 轨字节不受影响。
 
 【文献定位】
-本家族方法学谱系的直接源头是 Hoberg & Phillips (2016, Journal of Political Economy) 的文本网络行业 (TNIC) 分类框架, 该文首次证明可以脱离静态 SIC/NAICS 行业代码, 用企业自我描述文本的向量相似度动态刻画产品市场重叠, 本仓库把这一思路迁移到银行-金科报道语料, 用 LDA 主题分布替代产品描述词袋, 用 Jensen-Shannon 散度替代余弦距离, 因而是同一构念族在不同文本表征与不同相似度度量下的方法学延伸。战略定位相似度/差异度的绩效含义参照 Haans (2019, Strategic Management Journal) 关于"在同质与异质品类下差异化对绩效影响"的理论讨论, 以及 Su, Gao & Tan (2024, Strategic Management Journal) 关于企业在竞争与制度双重压力下追求"最优区分度"(optimal distinctiveness) 的最新证据——这两篇论文共同的理论直觉是, 战略相似度既非越高越好也非越低越好, 与同行的定位重叠或定位区分度都会因语境不同而产生不同的绩效含义, 因此本测度体系提供 strat_sim_max (最相似) / strat_diff_n5 (局部平均差异) / centroid_diff (全局定位偏离) 三种几何刻面供后续实证按理论假设灵活选用, 而非预设单一方向的"越大越好"或"越小越好"。方法学基座上, Gentzkow, Kelly & Taddy (2019, Journal of Economic Literature) 对"文本作为数据"的系统性方法论综述为本仓库采用 LDA/TF-IDF/Embedding 三种并行文本表征提供了一般性方法论依据, 明确指出不同文本表征方法在捕捉语义相似度时各有侧重、理应互相印证而非相互替代, 这也是本仓库将 char/word/LDA/Embedding 四条相似度测度并列而非坍缩为单一"最优"方法的方法学出发点; 主题模型本身的技术源头是 Blei, Ng & Jordan (2003) 的经典 LDA 论文 (未纳入本文件白名单引文池, 仅作背景技术脚注)。用文本刻画企业战略定位这一路径, 也呼应 Guzman & Li (2023, Management Science) 对"创业战略测量"提出的方法论框架——该文主张从企业早期文本描述中提炼可比的战略定位向量, 以替代人工编码或粗粒度行业代码, 与本仓库把银行-金科报道文本转成 LDA 主题分布、再用分布间相似度刻画战略定位重叠的做法, 在"用规模化文本提取替代主观编码的战略定位量表"这一方法论取向上是一致的, 二者的差别只在于 Guzman & Li 处理的是企业自我描述而本仓库处理的是第三方新闻报道文本。
-
+本家族方法学谱系的直接源头是 Hoberg & Phillips (2016, Journal of Political Economy) 的文本网络行业 (TNIC) 分类框架, 该文首次证明可以脱离静态 SIC/NAICS 行业代码, 用企业自我描述文本的向量相似度动态刻画产品市场重叠, 本仓库把这一思路迁移到银行-金科报道语料, 用 LDA 主题分布替代产品描述词袋, 用 Jensen-Shannon 散度替代余弦距离, 因而是同一构念族在不同文本表征与不同相似度度量下的方法学延伸。战略定位相似度/差异度的绩效含义参照 Haans (2019, Strategic Management Journal) 关于"在同质与异质品类下差异化对绩效影响"的理论讨论, 以及 Su, Gao & Tan (2024, Strategic Management Journal) 关于企业在竞争与制度双重压力下追求"最优区分度"(optimal distinctiveness) 的最新证据——这两篇论文共同的理论直觉是, 战略相似度既非越高越好也非越低越好, 与同行的定位重叠或定位区分度都会因语境不同而产生不同的绩效含义, 因此本测度体系提供 strat_sim_max (最相似) / strat_diff_n5 (局部平均差异) / centroid_diff (全局定位偏离) 三种几何刻面供后续实证按理论假设灵活选用, 而非预设单一方向的"越大越好"或"越小越好"。方法学基座上, Gentzkow, Kelly & Taddy (2019, Journal of Economic Literature) 对"文本作为数据"的系统性方法论综述为本仓库采用 LDA/TF-IDF/Embedding 三种并行文本表征提供了一般性方法论依据, 明确指出不同文本表征方法在捕捉语义相似度时各有侧重、理应互相印证而非相互替代, 这也是本仓库将 char/word/LDA/Embedding 四条相似度测度并列而非坍缩为单一"最优"方法的方法学出发点; 主题模型本身的技术源头是 Blei, Ng & Jordan (2003) 的经典 LDA 论文 (未纳入本文件白名单引文池, 仅作背景技术脚注)。用文本刻画企业战略定位这一路径, 也呼应 Guzman & Li (2023, Management Science) 对"创业战略测量"提出的方法论框架——该文主张从企业早期文本描述中提炼可比的战略定位向量, 以替代人工编码或粗粒度行业代码, 与本仓库把银行-金科报道文本转成 LDA 主题分布、再用分布间相似度刻画战略定位重叠的做法, 在"用规模化文本提取替代主观编码的战略定位量表"这一方法论取向上是一致的, 二者的差别只在于 Guzman & Li 处理的是企业自我描述而本仓库处理的是第三方新闻报道文本。 沿着同一不预设方向的立场, Phillips、Edwards 与 Rutherford (2025) 在新创企业命名情境下检验趋同与差异化的张力, 并提出二者可经由认知中介机制同时带来合法性, 而非单纯的此消彼长, 这与上文「战略相似度既非越高越好也非越低越好」的判断互为呼应, 为本列以 1 − √JSD 刻画的「与最相似同业的主题分布重叠」提供了理论张力上的当代支撑: 主题重叠既可读作合法性来源, 也可读作定位区隔的缺失, 方向留待下游回归识别。边界上, 该文处理的是新创企业名称的静态命名选择、DV 为合法性知觉, 全文未使用任何文本向量, 更未涉及 LDA 主题分布或 Jensen-Shannon 距离, 单位与语境非银行、非中文新闻, 故本处只锚构念张力、不锚测度算子。
 ## VAR: strat_sim_max_lda
 
 【变体差分】
@@ -93,4 +100,5 @@ Hoberg, G., & Phillips, G. (2016). Text-Based Network Industries and Endogenous 
 Haans, R. F. J. (2019). What's the value of being different when everyone is? The effects of distinctiveness on performance in homogeneous versus heterogeneous categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978
 Su, J., Gao, X., & Tan, J. (2024). Positioning for optimal distinctiveness: How firms manage competitive and institutional pressures under dynamic and complex environment. Strategic Management Journal, 45(2), 333-361. https://doi.org/10.1002/smj.3549
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
+Phillips, D., Edwards, B. D., & Rutherford, M. W. (2025). Conformity or Differentiation: Optimal distinctiveness through mediating channels. Journal of Business Research, 189, 115154. https://doi.org/10.1016/j.jbusres.2024.115154
 <!-- rendered-citations:end -->

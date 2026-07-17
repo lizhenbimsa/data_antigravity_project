@@ -62,6 +62,28 @@ citations:
   vol: 54
   issue: 4
   pages_or_artno: 1187-1230
+- doi: "10.1017/psrm.2024.64"
+  type: "journal"
+  authors: "Ornstein, J. T., Blasingame, E. N., & Truscott, J. S."
+  year: 2025
+  title: "How to train your stochastic parrot: large language models for political texts"
+  venue: "Political Science Research and Methods"
+  vol: "13"
+  issue: "2"
+  pages_or_artno: "264-281"
+- doi: "10.18653/v1/2024.law-1.13"
+  type: "journal"
+  authors: "Rønningstad, E., Velldal, E., & Øvrelid, L."
+  year: 2024
+  title: "A GPT among Annotators: LLM-based Entity-Level Sentiment Annotation"
+  venue: "Proceedings of the 18th Linguistic Annotation Workshop (LAW-XVIII)"
+  pages_or_artno: "133-139"
+- doi: "10.48550/arxiv.2406.04692"
+  type: "arxiv"
+  authors: "Wang, J., Wang, J., Athiwaratkun, B., Zhang, C., & Zou, J."
+  year: 2024
+  title: "Mixture-of-Agents Enhances Large Language Model Capabilities"
+  venue: "arXiv"
 new_dois: []
 ---
 
@@ -74,8 +96,7 @@ new_dois: []
 计数口径承接单模型有符号语调, 而非各家均值或多数投票共识: 共识轨 llm_vote_tone (三家多数票) 已单列, 本族是拆到厂商粒度的稳健性投影。分母语义须与留篇门控对齐——留篇判定为 full-only (2026-06-29 口径): 是否算作一篇「银行金科报道」只看 llm_verified_full 是否为真, ctx 与 ss 轨降为 conditional-on-full 的条件测度轨, 其行宇宙是 full 留篇集的子集, 但每条轨道的正面计数仍按该轨各自的文本输入与该模型该轨的 verified 状态独立计算。三家模型互为稳健性、不分主次: 每家各自 just-identified 并排进入稳健性网格, 严禁把三家的 pos_count 混进同一 over-identified Hansen J 过度识别检验——这是与三轨、co-primary 双轨嵌入、词典消融梯度、政治词权重梯度一致的铁律。per-model 独立降级: 某家模型整体缺席只会掏空该模型自身的计数族, 而不像 co-primary 嵌入那样 both-or-neither 连坐同置 NaN。三轨同样各自 just-identified 并排, ss 轨回退语义镜像 ctx: 当某报道无银行与金科词同句共现时, content_ss 回退为全文正文并置 ss_is_fallback=True, 与 ctx 共享 n_articles 分母。
 
 【文献定位】
-把 LLM 用作可复现的文本标注器而非黑箱, 是近年会计金融计量的方法学主线。de Kok (2025) 系统论证了在会计研究中使用生成式大模型做文本分析时, 必须冻结 prompt、把温度设为 0 并缓存返回, 才能获得跨运行可复现的标注——本项目 stage 21 正是以 temperature=0、prompt v8 字节冻结、缓存命中键锁定的方式落地这一规范, 使单模型正面计数成为确定性锚点。Gilardi et al. (2023) 以实证证明 ChatGPT 在文本标注任务上超越众包工人, 为把单一 LLM 判定作为独立效度轨提供了外部依据; 但正因单模型判定存在厂商特异的系统偏差, 本项目坚持保留三家分厂商计数并排而非只取共识。Loughran & McDonald (2016) 对会计金融文本分析的综述奠定了以词频/极性计数刻画语调的传统, 单模型正面计数即这一传统在 LLM 时代的延伸——把「正面词篇」替换为「模型判正篇」。Huang et al. (2023) 的 FinBERT 代表判别式金融文本模型路线, 与本族的生成式 LLM 路线互为方法三角。Lan et al. (2025) 针对中文细粒度金融情感的大模型应用, 与本项目中文银行金科语料的判定场景直接同域, 支撑单模型中文正面判定的构念效度。
-
+把 LLM 用作可复现的文本标注器而非黑箱, 是近年会计金融计量的方法学主线。de Kok (2025) 系统论证了在会计研究中使用生成式大模型做文本分析时, 必须冻结 prompt、把温度设为 0 并缓存返回, 才能获得跨运行可复现的标注——本项目 stage 21 正是以 temperature=0、prompt v8 字节冻结、缓存命中键锁定的方式落地这一规范, 使单模型正面计数成为确定性锚点。Gilardi et al. (2023) 以实证证明 ChatGPT 在文本标注任务上超越众包工人, 为把单一 LLM 判定作为独立效度轨提供了外部依据; 但正因单模型判定存在厂商特异的系统偏差, 本项目坚持保留三家分厂商计数并排而非只取共识。Loughran & McDonald (2016) 对会计金融文本分析的综述奠定了以词频/极性计数刻画语调的传统, 单模型正面计数即这一传统在 LLM 时代的延伸——把「正面词篇」替换为「模型判正篇」。Huang et al. (2023) 的 FinBERT 代表判别式金融文本模型路线, 与本族的生成式 LLM 路线互为方法三角。Lan et al. (2025) 针对中文细粒度金融情感的大模型应用, 与本项目中文银行金科语料的判定场景直接同域, 支撑单模型中文正面判定的构念效度。 在社会科学测量的同族脉络上, Ornstein、Blasingame 与 Truscott (2025) 以 few-shot prompt 在情感分析、文档标度与主题建模等政治学「文本即数据」任务上做预注册评估, 结论是该做法优于传统有监督学习基线, 并以极低成本达到与专家及众包编码员相当 (comparable, 而非超过) 的水平, 同时给出社科测量任务的 prompt 适配最佳实践与开源软件包; 这正是本族「由 LLM 直接产出文本级标签、再逐单元二值化加总」这一链路的方法学先例。惟其语料为英文政治文本 (立法、演讲等), 采用单一模型而非三家投票, 未构造置信度, 亦无 bank-year 面板聚合、留篇门控与三轨切分, 迁移至中文银行金科语料时上述差异须如实计入; 该文亦不构成对本项目任何置信度列的依据。构念侧, Rønningstad 与 Velldal (2024) 评估 LLM 对「针对特定目标实体」的情感 (entity-level / targeted sentiment) 的标注质量并与人工标注对照, 与本族情感构念恰为同构 — 本项目判定的是「针对目标银行」的实体级语调而非篇章整体语调, 该文因而是这一构念下 LLM 标注可行性的直接同族实证; 但其语料为挪威语与英语的通用新闻及评论、目标实体非银行, 采用单一 GPT 模型且无三家投票与置信度概率化, 只报告标注一致性, 不做面板聚合与三轨切分。至于为何保留三家厂商计数并排而非只留共识轨, Wang、Wang、Athiwaratkun、Zhang 与 Zou (2024) 实证聚合多个异构 LLM 的输出优于任何单一模型并刻画了模型间协作性, 为本项目采用三家异构厂商模型的架构提供了前沿存在性依据; 但其聚合是分层生成式的 (后层模型读取前层模型的完整回答再合成), 与本项目对离散标签取多数票、对连续分取算术均值的机械聚合是不同机制, 评测亦在英文指令跟随基准而非中文银行金科新闻, 且未讨论 per-model 独立降级与缺列 NaN 语义, 故该文仅支撑「异构多模型并用有价值」这一取向, 不构成对本族 per-model 计数口径的直接背书 — 三家仍各自 just-identified 并排、互为稳健性、不分主次, 严禁混进同一 over-identified Hansen J。
 ## VAR: deepseekv4_pos_count_ctx
 
 【变体差分】
@@ -127,4 +148,7 @@ Lan, Y., Wu, Y., Xu, W., Feng, W., & Zhang, Y. (2025). Chinese fine-grained fina
 Gilardi, F., Alizadeh, M., & Kubli, M. (2023). ChatGPT outperforms crowd workers for text-annotation tasks. Proceedings of the National Academy of Sciences, 120(30), e2305016120. https://doi.org/10.1073/pnas.2305016120
 Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A large language model for extracting information from financial text. Contemporary Accounting Research, 40(2), 806-841. https://doi.org/10.1111/1911-3846.12832
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
+Ornstein, J. T., Blasingame, E. N., & Truscott, J. S. (2025). How to train your stochastic parrot: large language models for political texts. Political Science Research and Methods, 13(2), 264-281. https://doi.org/10.1017/psrm.2024.64
+Rønningstad, E., Velldal, E., & Øvrelid, L. (2024). A GPT among Annotators: LLM-based Entity-Level Sentiment Annotation. Proceedings of the 18th Linguistic Annotation Workshop (LAW-XVIII), 133-139. https://doi.org/10.18653/v1/2024.law-1.13
+Wang, J., Wang, J., Athiwaratkun, B., Zhang, C., & Zou, J. (2024). Mixture-of-Agents Enhances Large Language Model Capabilities. arXiv [Preprint]. https://doi.org/10.48550/arxiv.2406.04692
 <!-- rendered-citations:end -->

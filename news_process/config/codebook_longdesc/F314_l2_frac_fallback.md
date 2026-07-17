@@ -46,6 +46,20 @@ citations:
   vol: '64'
   issue: '328'
   pages_or_artno: 1183-1210
+- doi: "10.1108/cafr-12-2025-0269"
+  type: "journal"
+  authors: "Meng, L., Wang, P. P., Lu, H., Yang, W. Y., & Vijayakumar, S."
+  year: 2026
+  title: "Entity-specific text classification with large language models: two applications on financial and brand news"
+  venue: "China Accounting and Finance Review"
+  pages_or_artno: "1-11"
+- doi: "10.1177/10944281251334777"
+  type: "journal"
+  authors: "Iqbal, F., & Pfarrer, M. D."
+  year: 2025
+  title: "Using Coreference Resolution to Mitigate Measurement Error in Text Analysis"
+  venue: "Organizational Research Methods"
+  pages_or_artno: "10944281251334777"
 new_dois: []
 ---
 
@@ -62,8 +76,7 @@ ctx 轨的实体窗口裁剪逻辑与 stage 13 共现硬过滤 (cooccurrence_fil
 【文献定位】
 本家族在方法论谱系上更贴近"链接/裁剪失败即测量退化"这一支文献, 而非情感测度本身。ctx_is_fallback / ss_is_fallback 的生成机制是: 实体窗口裁剪算法尝试把目标银行与金科关键词的邻近窗 (或同句) 从全文中"链接"出来, 一旦这次链接失败 (锚点未命中), 系统才退回全文——这与经典记录链接 (record linkage) 问题中"链接失败退回默认/缺失处理"的结构是同一类操作化风险。Fellegi & Sunter (1969, Journal of the American Statistical Association) 奠定了记录链接的概率判定框架, 明确区分"确定链接""确定非链接""待定"三态, 其"链接判定本身可能失败, 失败态必须被显式标记而非静默吞并"的原则, 正是 frac_ctx_fallback / frac_ss_fallback 把"实体窗口锚定失败"独立物化为可观测布尔旗标 (而非让裁剪失败悄悄退化为看似正常的全文文本) 这一设计选择的方法论源头。Binette & Steorts (2022, Science Advances) 系统梳理了实体消歧/记录链接管道中错误如何在下游传播, 强调链接质量的事后可诊断性是管道可信度的前提条件, 对应本家族"回退比率作为链接质量事后诊断指标"的定位。Kamat & Gutman (2026, Statistical Science) 从缺失数据视角分析"链接文件" (linked files) 中链接失败导致的系统性偏误, 其核心论点——链接失败不应被当作随机缺失处理, 而应作为一种独立的、可能与结果相关的选择机制单独建模——直接对应本家族坚持"聚合缺列时跳过而非静默填零"「NaN 而非填零」的设计取舍。Ward (2023, American Economic Review) 在跨代际流动性研究中处理历史记录匹配误差时, 进一步证明链接/匹配失败率本身往往与研究关心的经济变量相关 (而非纯噪声), 若不显式度量并纳入稳健性检验, 会系统性偏误结论——这正是 frac_ctx_fallback / frac_ss_fallback 被设计为可用于样本筛选与异质性分组协变量的实证依据: 若回退率与银行特征系统性相关, 简单忽略回退样本或不对回退率加以控制, 会重蹈该文献揭示的匹配误差内生性问题。四篇文献共同的方法论启示可归纳为一点: 任何以"实体/窗口/记录链接"为前提的测度设计, 都必须把链接失败本身操作化为可观测、可审计的独立信号, 而非任其退化为看似完好的默认值; frac_ctx_fallback / frac_ss_fallback 正是把这一原则应用到银行金科新闻文本裁剪场景下的具体实现。
 
-需要特别澄清与 CLAUDE.md 铁律的对齐关系: full/ctx/ss 三轨在本项目中是「各自 just-identified 并排、互为稳健性、不分主次」的设计, 三轨情感/属性测度禁止混入同一 over-identified Hansen J 检验。frac_ctx_fallback / frac_ss_fallback 并不参与该稳健性并排本身, 而是对并排设计"有效性前提"的事后审计——它们回答的是"ctx 轨/ss 轨在这个银行-年份格子里, 到底有没有真的提供不同于 full 轨的文本", 是论文披露稳健性检验适用范围时应当引用的诊断证据, 而非又一条待并排的稳健性测度轨道。
-
+需要特别澄清与 CLAUDE.md 铁律的对齐关系: full/ctx/ss 三轨在本项目中是「各自 just-identified 并排、互为稳健性、不分主次」的设计, 三轨情感/属性测度禁止混入同一 over-identified Hansen J 检验。frac_ctx_fallback / frac_ss_fallback 并不参与该稳健性并排本身, 而是对并排设计"有效性前提"的事后审计——它们回答的是"ctx 轨/ss 轨在这个银行-年份格子里, 到底有没有真的提供不同于 full 轨的文本", 是论文披露稳健性检验适用范围时应当引用的诊断证据, 而非又一条待并排的稳健性测度轨道。 在实体粒度抽取这一更直接对口的近期文献上, Meng、Wang、Lu、Yang 与 Vijayakumar (2026) 以 LLM 做实体特定 (entity-specific) 的新闻文本分类基准评测, 明确指出同一篇报道内多实体并存会使文档级分析失效、须在实体粒度上抽取信息, 并在英文金融新闻与中文危机新闻两语料上以 F1 对人工标注做效度评估。这恰好构成本家族所诊断的那次失败的构念前提: ctx/ss 窗口正是实体粒度抽取的尝试, 而 frac_ctx_fallback / frac_ss_fallback 度量的正是这一尝试退回文档级 (全文 body) 的频率。迁移边界须写明: 原文的实体抽取由 LLM 直接完成, 本项目 ctx/ss 的实体识别走词典/AC 自动机与 jieba token 匹配 (LLM 仅用于 stage 21 情感与分类维度), 故该文不构成本项目实体抽取精度的背书; 原文实体宇宙为一般金融/品牌新闻主体, 本项目限定为目标银行且银行侧带否定+短名过滤 (金科侧为裸 AC 词表) 的不对称口径, 原文亦未产出 bank-year 面板聚合, 更无窗口回退机制。Iqbal 与 Pfarrer (2025) 则指出文本分析在多主体文本中的情感归属上存在系统性测量误差 (传统方法易将文本误归于错误主体), 并以共指消解 (coreference resolution) 处理之, 通过两项研究证明该处理可降低测量误差——这支持本家族的一般立场: 一项实体级语言学处理是否成功, 会系统性改变文本测度的取值, 因而处理失败本身必须被显式度量而非静默吞并。但边界须严格把住: 原文的规则是共指消解 (实体指代还原), 与本项目 ctx/ss 的邻近窗口裁剪并非同一操作, 亦非本家族的方法学来源; 原文语料为英文组织管理文本、单位为文档/组织; 且原文立场是规范性的 (主张采纳该规则以减少误差, 隐含存在唯一正确做法), 而本项目 full/ctx/ss 三轨互为稳健性、不分主次、各自 just-identified 并排 (禁混同一 over-identified Hansen J), 故不得据该文把本家族的回退旗标读作「ctx/ss 轨有误、须予纠正」的证据, 它只是并排设计有效性前提的事后审计量。
 ## VAR: frac_ctx_fallback
 
 【变体差分】
@@ -83,4 +96,6 @@ Kamat, G., & Gutman, R. (2026). Analysis of linked files: A missing data perspec
 Ward, Z. (2023). Intergenerational mobility in American history: Accounting for race and measurement error. American Economic Review, 113(12), 3213-3248. https://doi.org/10.1257/aer.20200292
 Binette, O., & Steorts, R. C. (2022). (Almost) all of entity resolution. Science Advances, 8(12), eabi8021. https://doi.org/10.1126/sciadv.abi8021
 Fellegi, I. P., & Sunter, A. B. (1969). A theory for record linkage. Journal of the American Statistical Association, 64(328), 1183-1210. https://doi.org/10.1080/01621459.1969.10501049
+Meng, L., Wang, P. P., Lu, H., Yang, W. Y., & Vijayakumar, S. (2026). Entity-specific text classification with large language models: two applications on financial and brand news. China Accounting and Finance Review, 1-11. https://doi.org/10.1108/cafr-12-2025-0269
+Iqbal, F., & Pfarrer, M. D. (2025). Using Coreference Resolution to Mitigate Measurement Error in Text Analysis. Organizational Research Methods, 10944281251334777. https://doi.org/10.1177/10944281251334777
 <!-- rendered-citations:end -->

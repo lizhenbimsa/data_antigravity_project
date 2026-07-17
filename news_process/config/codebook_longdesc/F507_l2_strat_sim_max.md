@@ -57,6 +57,41 @@ citations:
   vol: '69'
   issue: '1'
   pages_or_artno: 293-324
+- doi: "10.1111/1467-8551.12857"
+  type: "journal"
+  authors: "Kang, J., & Kang, Y."
+  year: 2025
+  title: "Capital Market Scrutiny and Strategic Distinctiveness of the Firm: Evidence from a Natural Experiment"
+  venue: "British Journal of Management"
+  vol: "36"
+  issue: "1"
+  pages_or_artno: "461-476"
+- doi: "10.1177/14761270241254756"
+  type: "journal"
+  authors: "Cuypers, I. R., Ertug, G., Noorderhaven, N. G., & Kavusan, K."
+  year: 2026
+  title: "The distinctiveness effect: How cross-country dissimilarities influence governance decisions"
+  venue: "Strategic Organization"
+  vol: "24"
+  issue: "1"
+  pages_or_artno: "170-205"
+- doi: "10.1016/j.jbusres.2024.115154"
+  type: "journal"
+  authors: "Phillips, D., Edwards, B. D., & Rutherford, M. W."
+  year: 2025
+  title: "Conformity or Differentiation: Optimal distinctiveness through mediating channels"
+  venue: "Journal of Business Research"
+  vol: "189"
+  pages_or_artno: "115154"
+- doi: "10.1080/1540496x.2025.2479064"
+  type: "journal"
+  authors: "Wang, Q., Xiang, C., Xin, Z., & Li, C."
+  year: 2025
+  title: "The Peer Influence on Green Innovation: Evidence from Product-Similarity-Based Peer Firms in China"
+  venue: "Emerging Markets Finance and Trade"
+  vol: "61"
+  issue: "11"
+  pages_or_artno: "3595-3611"
 new_dois: []
 ---
 
@@ -69,8 +104,7 @@ strat_sim_max 家族刻画银行 i 在特定年度与"最相似的那一家同�
 计算管道分两步: 第一步文本向量化, 第二步逐年成对相似度矩阵取行最大值。向量化阶段, char 轨 (无 _w 后缀的三列) 使用字符 n-gram (char_wb) TF-IDF, 不依赖分词器, 对中文文本的编码噪声与分词错误更稳健, 是家族的 canonical 口径; word 轨 (_w 后缀三列) 使用 jieba 分词后的词级 TF-IDF, 自 2026-06-21 起 (fix inject-fintech-word-lda) 改用注入 1506 个金科词的独立分词器 (`_get_diff_tokenizer`), 使"金融科技""区块链"等领域复合词整词保留、不被切碎, 与 char 轨、embedding 轨的领域感知口径对齐; char 轨本身字节不受此次改动影响。char 轨与 word 轨是互为稳健性、不分主次的并排测度——两者对分词误差的敏感性方向相反 (word 轨依赖分词质量, char 轨绕过分词), 因此在回归设计中应各自独立进入模型 (just-identified 并排), 不得混入同一个 over-identified 设定 (如同一 Hansen J 检验同时用 char 与 word 两轨的相似度做过识别工具), 这与项目对三轨文本 (full/ctx/ss)、co-primary 双轨嵌入等其他梯子测度的一贯口径完全一致。第二步, 对每一年度截面, 计算全部同业银行两两之间的余弦相似度矩阵 (方阵, 对角线为自身相似度 1, 计算时剔除), 银行 i 当年的 strat_sim_max 取该行 (排除自身列) 的最大值, 即"该行当年能找到的最相似同业"的相似度。TF-IDF 轨向量为非负 (词频与逆文档频率均非负), 理论余弦值域 ∈ [0,1]; frontmatter unit 字段沿用项目对该测度族值域披露的统一惯例, 主区间标注为 [-1,1] 并附注 "TF-IDF 轨理论上非负向量点积 ∈ [0,1]"——这一并列写法既覆盖了本项目内其他共享同一相似度计算路径的 embedding 轨真实值域 [-1,1] (fix omni-g-strategic-02/03), 也不掩盖 strat_sim_max 系列自身作为 TF-IDF 轨理论值域应为 [0,1] 这一事实; frontmatter 并未将主值域改写为 [0,1], 使用者应以括注的"[0,1]"为 strat_sim_max 系列的理论口径, 主区间 [-1,1] 仅是跨轨统一标注惯例, 并注记极少数情形下浮点余弦截断误差可能产生极小负值 (数值上贴近 0, 不改变"理论非负"的构念判断)。三个文本轨道 (full/ctx/ss) 分别在各自的文本物化列 (`content_full`/`content_ctx`/`content_ss`, stage 14 `ctx_materializer` 产出) 上重跑同一套向量化-最大相似度流程: full 轨用标题+全文正文聚合; ctx 轨用标题+银行/金科实体窗口聚合; ss 轨用标题+银行∧金科同句共现窗口聚合, 若某行某年无同句共现证据则回退为全文 body (镜像 ctx 轨回退语义, 共享 `n_articles` 分母, 由 `ss_is_fallback` 指示列标记)。三轨在同一年度截面上分别独立拟合各自的 TF-IDF 词表与相似度矩阵, 因此不是同一相似度矩阵的子集运算, 而是三套完全独立的向量空间——各自 just-identified 并排, 互为稳健性、不分主次, 禁止混入同一 over-identified Hansen J 检验。留篇口径遵循 full-only 门控 (2026-06-29 起生效): 一篇报道是否计入某银行的"当年文本战略画像", 只看 `llm_verified_full == True` 这一判据; ctx/ss 轨的行宇宙是 full 轨留篇集合的子集, 各轨在此子集上分别聚合文本、分别向量化。
 
 【文献定位】
-strat_sim_max 家族的最直接方法学出处是 Hoberg & Phillips (2016, *Journal of Political Economy*) 提出的文本网络产业分类框架——该文用公司 10-K 产品描述的成对余弦相似度构造"竞争对手邻近度", 本测度将其收窄为逐年最大值统计量, 直接对应该框架里"每家公司的头号文本近邻"这一中间产物。姊妹测度 strat_fluidity 则来自同一研究团队的 Hoberg, Phillips & Prabhala (2014, *The Journal of Finance*) 产品市场流动性构造, 与 strat_sim_max 共享同一底层向量化引擎但衡量不同统计量 (流动性衡量竞争对手集合的整体扩张速度, 而非单一最大相似度)。在"最优区分度"(optimal distinctiveness) 理论脉络上, Haans (2019, *Strategic Management Journal*) 与 Su, Gao & Tan (2024, *Strategic Management Journal*) 均以文本/类别相似度测量企业在同类竞争者中的趋同-分化取舍, 为 strat_sim_max 的经济解释 (相似度高是否等价于战略趋同抑或媒体报道套路化) 提供理论框架。分词与向量化方法学参照 Guzman & Li (2023, *Management Science*) 对创业战略的高维文本测量范式。
-
+strat_sim_max 家族的最直接方法学出处是 Hoberg & Phillips (2016, *Journal of Political Economy*) 提出的文本网络产业分类框架——该文用公司 10-K 产品描述的成对余弦相似度构造"竞争对手邻近度", 本测度将其收窄为逐年最大值统计量, 直接对应该框架里"每家公司的头号文本近邻"这一中间产物。姊妹测度 strat_fluidity 则来自同一研究团队的 Hoberg, Phillips & Prabhala (2014, *The Journal of Finance*) 产品市场流动性构造, 与 strat_sim_max 共享同一底层向量化引擎但衡量不同统计量 (流动性衡量竞争对手集合的整体扩张速度, 而非单一最大相似度)。在"最优区分度"(optimal distinctiveness) 理论脉络上, Haans (2019, *Strategic Management Journal*) 与 Su, Gao & Tan (2024, *Strategic Management Journal*) 均以文本/类别相似度测量企业在同类竞争者中的趋同-分化取舍, 为 strat_sim_max 的经济解释 (相似度高是否等价于战略趋同抑或媒体报道套路化) 提供理论框架。分词与向量化方法学参照 Guzman & Li (2023, *Management Science*) 对创业战略的高维文本测量范式。 在构念合法性层面, Kang 与 Kang (2025) 以自然实验识别外部审视压力对企业战略独特性的因果影响, 表明「相对同业的战略偏离度」是一个可被外生冲击移动、有实质经济内容的量, 为本列所反向刻画的同业接近度提供了当代实证支撑; 但该文的战略独特性基于资本密度、广告与研发强度等财务比率向量相对行业均值的标准化距离, 与本列的媒体报道文本空间在数据生成机制上完全不同, 故本处只锚构念、不锚算子。Cuypers、Ertug、Noorderhaven 与 Kavusan (2026) 在 21,951 起跨境非股权联盟与股权合资样本上把相异度显式操作化为治理结构选择的驱动变量, 并发现语言、宗教、文化等维度的相异度彼此负向调节, 提示相异/相似程度的维度界定本身会改变其效应, 因而本列的向量空间与统计量取法须被显式披露; 须强调该文的多维相异度指语言、宗教、文化等实质不同构念之间的交互, 而非同一构念在不同向量空间下的测度稳健性, 其相异度为 Hofstede 式预定义跨国维度距离、取成对距离而非同业集合内的最大值, 不构成本仓库 char/word/LDA 多轨并排互稳做法的依据。Phillips、Edwards 与 Rutherford (2025) 在新创企业命名情境下检验趋同与差异化的张力, 并提出二者可经由认知中介机制同时带来合法性而非单纯此消彼长, 恰好对应本列「与最相似同业的接近程度」在经济解释上的双重性——高相似度既可读作合法性获取, 也可读作战略区隔的缺失; 该文处理的是静态命名选择、DV 为合法性知觉, 未使用任何文本向量, 单位与语境非银行、非中文新闻, 故只锚构念张力。同域应用证据方面, Wang、Xiang、Xin 与 Li (2025) 在中国上市公司样本上以 Hoberg-Phillips 式产品文本相似度界定同业集合并识别同业间影响, 说明文本相似度定义的同业关系在中国语境下可用且有解释力; 其语料为公司自述的年报产品描述而非本项目的第三方媒体报道, 且原文取同业集合做 peer effect 回归, 并不取集合内的最大相似度作测度。
 ## VAR: strat_sim_max
 
 【变体差分】
@@ -107,4 +141,8 @@ Guzman, J., & Li, A. (2023). Measuring Founding Strategy. Management Science, 69
 Haans, R. F. J. (2019). What's the value of being different when everyone is? The effects of distinctiveness on performance in homogeneous versus heterogeneous categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978
 Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous product differentiation. Journal of Political Economy, 124(5), 1423-1465. https://doi.org/10.1086/688176
 Hoberg, G., Phillips, G., & Prabhala, N. (2014). Product market threats, payouts, and financial flexibility. The Journal of Finance, 69(1), 293-324. https://doi.org/10.1111/jofi.12050
+Kang, J., & Kang, Y. (2025). Capital Market Scrutiny and Strategic Distinctiveness of the Firm: Evidence from a Natural Experiment. British Journal of Management, 36(1), 461-476. https://doi.org/10.1111/1467-8551.12857
+Cuypers, I. R., Ertug, G., Noorderhaven, N. G., & Kavusan, K. (2026). The distinctiveness effect: How cross-country dissimilarities influence governance decisions. Strategic Organization, 24(1), 170-205. https://doi.org/10.1177/14761270241254756
+Phillips, D., Edwards, B. D., & Rutherford, M. W. (2025). Conformity or Differentiation: Optimal distinctiveness through mediating channels. Journal of Business Research, 189, 115154. https://doi.org/10.1016/j.jbusres.2024.115154
+Wang, Q., Xiang, C., Xin, Z., & Li, C. (2025). The Peer Influence on Green Innovation: Evidence from Product-Similarity-Based Peer Firms in China. Emerging Markets Finance and Trade, 61(11), 3595-3611. https://doi.org/10.1080/1540496x.2025.2479064
 <!-- rendered-citations:end -->

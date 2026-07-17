@@ -47,6 +47,14 @@ citations:
   venue: Decision Support Systems
   vol: '88'
   pages_or_artno: 67-75
+- doi: "10.1016/j.iref.2025.104564"
+  type: "journal"
+  authors: "Branzoli, N., Marchetti, S., & Tarducci, E."
+  year: 2025
+  title: "Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy"
+  venue: "International Review of Economics & Finance"
+  vol: "104"
+  pages_or_artno: "104564"
 new_dois: []
 ---
 
@@ -65,8 +73,7 @@ new_dois: []
 三轨 full/ctx/ss 差异仅体现在情感判定所依据的文本窗口与 llm_vote_tone_{trk} 取值, 分母(本省媒体子样本的确定)不随轨道变化——地理归属是文章级客观元数据属性, 与文本窗口无关。full 轨基于标题+全文正文判定基调; ctx 轨基于标题+银行实体窗口判定; ss 轨基于标题+银行∧金科同句±N窗判定(默认 N=1, 见 `config/filtering.yaml::context_window.ss_sentence_radius`), 若某篇文章不存在银行∧金科同句共现, ss 轨回退为镜像 ctx 的全文 body 语义(`ss_is_fallback=True`, 与 ctx 共享同一 n_articles 分母口径)。三轨作为地理媒体偏好构念在不同文本粒度下的测度实现, 严格遵循「各自 just-identified 并排、互为稳健性、不分主次」的家族铁律, 三条估计禁止混入同一 over-identified Hansen J 检验框架内联合识别。
 
 【文献定位】
-本家族的方法论谱系直接对接 Gurun & Butler (2012, Journal of Finance) 的地方媒体炒作(local media hype)研究设计——该文用本地广告收入依赖度作为媒体偏袒本地企业的识别工具, 发现本地报纸系统性对本地企业采取更正面、更少负面的报道基调, 进而影响股票估值与融资成本。本家族将该逻辑迁移到中国银行业新闻情境, 用"总部注册省份是否与媒体注册省份一致"作为本地/非本地的划分依据, 用负面报道占比而非均值基调作为观测量, 意在捕捉本地媒体在负面信息筛选上的独特行为模式。Piotroski, Wong & Zhang (2015, Journal of Accounting Research) 关于中国上市公司政治动机压制负面信息的证据为这一构念提供了制度背景支撑: 若地方政府与本地媒体存在治理关联, 本省媒体的负面报道占比理应系统性低于非本省媒体, 这正是 neg_frac_homeprov 与 neg_frac_nonprov 对照差分要检验的假说。负面基调的识别本身继承了 stage 21 三家 LLM 投票的判定框架, 而负面信息在情感分析中的度量稳健性问题(否定处理、语义范围界定)另见 Pröllochs, Feuerriegel & Neumann (2016, Decision Support Systems) 关于新闻驱动交易情境下否定范围检测的方法论讨论, 以及 Pham et al. (2025, Journal of Economics and Development) 关于新闻负面性与企业困境动态关系的近期实证, 后者为本家族"负面报道占比"这一构念在企业层面结果变量上的经济含义提供了当代实证参照。
-
+本家族的方法论谱系直接对接 Gurun & Butler (2012, Journal of Finance) 的地方媒体炒作(local media hype)研究设计——该文用本地广告收入依赖度作为媒体偏袒本地企业的识别工具, 发现本地报纸系统性对本地企业采取更正面、更少负面的报道基调, 进而影响股票估值与融资成本。本家族将该逻辑迁移到中国银行业新闻情境, 用"总部注册省份是否与媒体注册省份一致"作为本地/非本地的划分依据, 用负面报道占比而非均值基调作为观测量, 意在捕捉本地媒体在负面信息筛选上的独特行为模式。Piotroski, Wong & Zhang (2015, Journal of Accounting Research) 关于中国上市公司政治动机压制负面信息的证据为这一构念提供了制度背景支撑: 若地方政府与本地媒体存在治理关联, 本省媒体的负面报道占比理应系统性低于非本省媒体, 这正是 neg_frac_homeprov 与 neg_frac_nonprov 对照差分要检验的假说。负面基调的识别本身继承了 stage 21 三家 LLM 投票的判定框架, 而负面信息在情感分析中的度量稳健性问题(否定处理、语义范围界定)另见 Pröllochs, Feuerriegel & Neumann (2016, Decision Support Systems) 关于新闻驱动交易情境下否定范围检测的方法论讨论, 以及 Pham et al. (2025, Journal of Economics and Development) 关于新闻负面性与企业困境动态关系的近期实证, 后者为本家族"负面报道占比"这一构念在企业层面结果变量上的经济含义提供了当代实证参照。 与上述文献互补, Branzoli、Marchetti 与 Tarducci (2025) 构造媒体报道的语调测度, 并将其应用于意大利银行的融资条件这一银行层级实证问题, 为"新闻语调→银行层级结果"这一链条提供了近期同域的前沿实践参照, 支撑本家族把本省媒体子样本内的负面报道占比视作可进入银行层级结果方程的解释变量。迁移边界须如实披露: 该文语料为意大利媒体 (意/英文), 非中国中文新闻; 其语调测度既不经由本项目 stage 21 三家 LLM 投票的判定框架, 也未做本省/非本省的媒体注册地切分, 更不含负面篇占比这一离散化处理, 且无 full/ctx/ss 三轨文本切分; 其 DV 为银行融资条件, 与本项目 P1 的 funding_cost 相近但口径与数据源不同。因此该文锚定的是应用域与构造链路的同构性, 而非 neg_frac_homeprov 公式中的任何具体一步。
 ## VAR: neg_frac_homeprov_ctx
 
 【变体差分】
@@ -93,4 +100,5 @@ Gurun, U. G., & Butler, A. W. (2012). Don't believe the hype: Local media slant,
 Piotroski, J. D., Wong, T. J., & Zhang, T. (2015). Political incentives to suppress negative information: Evidence from Chinese listed firms. Journal of Accounting Research, 53(2), 405-459. https://doi.org/10.1111/1475-679X.12071
 Pham, X. T. T., Huynh, D. T., Nguyen, N. T. K., & Luu, T. B. (2025). Investor negativity derived from news shapes firm distress dynamics under bounded rationality. Journal of Economics and Development, 27(4), 309-321. https://doi.org/10.1108/JED-06-2025-0296
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
+Branzoli, N., Marchetti, S., & Tarducci, E. (2025). Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy. International Review of Economics & Finance, 104, 104564. https://doi.org/10.1016/j.iref.2025.104564
 <!-- rendered-citations:end -->

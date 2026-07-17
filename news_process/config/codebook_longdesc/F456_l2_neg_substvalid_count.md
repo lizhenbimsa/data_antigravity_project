@@ -52,6 +52,22 @@ citations:
   year: 2023
   title: ChatGPT outperforms crowd workers for text-annotation tasks
   venue: Proceedings of the National Academy of Sciences
+- doi: "10.1016/j.jaccpubpol.2024.107181"
+  type: "journal"
+  authors: "Cheng, C. A., Jiang, L., & Song, W.-L."
+  year: 2024
+  title: "Media coverage and debt financing choice"
+  venue: "Journal of Accounting and Public Policy"
+  vol: "44"
+  pages_or_artno: "107181"
+- doi: "10.1016/j.frl.2024.105265"
+  type: "journal"
+  authors: "Huang, J., & Ma, L."
+  year: 2024
+  title: "Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation"
+  venue: "Finance Research Letters"
+  vol: "63"
+  pages_or_artno: "105265"
 new_dois: []
 ---
 
@@ -66,8 +82,7 @@ new_dois: []
 本列的存在直接来自一处已知的历史缺陷修复 (fix omni-g-runner-10/g-runner-14, 2026-06-11): 早期洗稿率分母直接用全部负面文章的物理计数 (neg_count{track}), 但分子 neg_sub_count{track} 隐式要求实质性分类已测量成功 (NaN 经 astype(str) 变 'nan' 恒判 False, 永不进分子)。这造成"valid 分子 / physical 分母"的口径失配: 当 LLM 实质性分类失败率上升时 (例如文本过短、ctx/ss 轨窗口截断导致上下文不足), 分子系统性缩水而分母不变, neg_sub_ratio 被人为拉低, 制造"负面报道更象征性"的假象, 而真实原因只是分类失败率抬升。neg_substvalid_count{track} 就是把分母也限定在"负面∧实质性已测量"这一同域子集, 修复该系统性下偏。_svd_denom 辅助函数在消费端保留了向后兼容: 若某次重跑面板 schema 中缺失该列 (旧 schema), 会告警后回退到物理计数 neg_count{track}, 但生产管线在本列存在时恒走同域分母, 不静默混用两种口径。
 
 【文献定位】
-负面报道的"数量 vs 实质性"区分呼应 Piotroski, Wong & Zhang (2015, JAR) 对中国上市公司政治关联企业压制负面信息的实证研究——该文的核心发现是政治关联/激励会系统性压低负面信息的对外披露频次与力度, 说明观测到的负面报道数量本身可能是被压制、被稀释后的结果, 并非负面信息真实存在与否的可靠代理; 这与本家族区分"泛泛负面表态"和"实质性可信的负面报道"的分母限定精神相呼应——二者共同的方法论警示是: 单纯的负面报道计数容易被制度性/激励性因素扭曲, 需引入额外维度 (该文用政治关联强度, 本家族用实质性分类掩码) 加以校正才能得到可信测度。count 型经济计量变量本身的构造与推断陷阱可参照 Cohn, Liu & Wardlaw (2022, JFE) 对金融研究中计数与类计数数据的系统性讨论, 其核心告诫正是分子分母域不一致会产生系统性偏误, 本家族的历史 bug 修复正是该告诫的一个实证案例。文本挖掘中"实质性 vs 象征性"披露的区分传统上溯 Loughran & McDonald (2011, JoF) 关于文本分析中字典/语境判定可靠性的方法论基础, 以及更晚近的 Duchin, Gao & Xu (2025, JoF) 对可持续性披露"洗绿" vs 真实资产市场行为脱钩的实证设计——本家族所在的洗稿率族正是该"披露-行为脱钩"研究范式在中国银行金科新闻语境下的应用。实质性分类由 LLM 三分类输出, 其标注可靠性与"已测量/未测量"掩码逻辑呼应 Gilardi, Alizadeh & Kubli (2023, PNAS) 关于 LLM 文本标注质量与失败模式的讨论, 为 SUBST_VALID_LABELS 掩码机制 (排除拒答/平局导致的伪 NaN) 提供方法学依据。
-
+负面报道的"数量 vs 实质性"区分呼应 Piotroski, Wong & Zhang (2015, JAR) 对中国上市公司政治关联企业压制负面信息的实证研究——该文的核心发现是政治关联/激励会系统性压低负面信息的对外披露频次与力度, 说明观测到的负面报道数量本身可能是被压制、被稀释后的结果, 并非负面信息真实存在与否的可靠代理; 这与本家族区分"泛泛负面表态"和"实质性可信的负面报道"的分母限定精神相呼应——二者共同的方法论警示是: 单纯的负面报道计数容易被制度性/激励性因素扭曲, 需引入额外维度 (该文用政治关联强度, 本家族用实质性分类掩码) 加以校正才能得到可信测度。count 型经济计量变量本身的构造与推断陷阱可参照 Cohn, Liu & Wardlaw (2022, JFE) 对金融研究中计数与类计数数据的系统性讨论, 其核心告诫正是分子分母域不一致会产生系统性偏误, 本家族的历史 bug 修复正是该告诫的一个实证案例。文本挖掘中"实质性 vs 象征性"披露的区分传统上溯 Loughran & McDonald (2011, JoF) 关于文本分析中字典/语境判定可靠性的方法论基础, 以及更晚近的 Duchin, Gao & Xu (2025, JoF) 对可持续性披露"洗绿" vs 真实资产市场行为脱钩的实证设计——本家族所在的洗稿率族正是该"披露-行为脱钩"研究范式在中国银行金科新闻语境下的应用。实质性分类由 LLM 三分类输出, 其标注可靠性与"已测量/未测量"掩码逻辑呼应 Gilardi, Alizadeh & Kubli (2023, PNAS) 关于 LLM 文本标注质量与失败模式的讨论, 为 SUBST_VALID_LABELS 掩码机制 (排除拒答/平局导致的伪 NaN) 提供方法学依据。 就"按极性指示逐篇判定后再在主体-年内求和"这一聚合形态本身而言, Cheng、Jiang 与 Song (2024) 提供了近期实证用例: 该文以 RavenPack (Dow Jones Newswires 全量、relevance=100) 把美国上市公司 2001–2014 年的新闻按公司-年归集为报道量与新闻情感, 作为解释变量进入债务融资方式选择回归, 发现负面盈余新闻显著降低银行贷款与公募债概率、提高私募债概率, 与本家族对负面篇数逐轨求和的分子骨架同形。迁移边界须如实注明: 该文极性来自 RavenPack 专有事件情感分析 (ESS), 既非公开情感词典、亦非人工编码, 更非本项目的三家 LLM 多数投票, 故此处只锚定"按主体-年对极性指示求和"这一聚合形态而不锚定其极性来源; 其主体为美国上市公司而非中国商业银行, 且不含实质性掩码这一分子限定, 亦无 full/ctx/ss 三轨设计。分子中"实质性已测量"这一限定所依托的实质性/象征性二分, 在金融科技议题下的同域应用见 Huang 与 Ma (2024): 该文以金融科技发展为解释变量, 检验其对企业实质性绿色创新与象征性绿色创新的差异化影响, 在中国情境中明确采用该二分, 与本项目 innovation_substantiveness 的二分标签在概念与中文表述上直接对应。其迁移边界在于: 原文的实质/象征由专利类型 (发明 vs 实用新型/外观) 客观划分, 主体为非金融上市公司且金融科技是解释变量; 本家族的实质性标签由 LLM 对新闻文本逐篇判定 (非专利数据), 主体为银行, 金融科技是被报道的议题本身, 原文亦未构造任何比率型 washing 指标。
 【口径铁律】
 本家族三列对应 full/ctx/ss 三轨文本, 各自独立聚合、各自 just-identified 并排, 属互为稳健性、不分主次的规格集合, 严禁混入同一 over-identified Hansen J 检验。full 轨对应留篇门控 (2026-06-29 起 llm_verified_full==True 为唯一留篇判据) 下的主指标, ctx/ss 是 conditional-on-full 的测度/稳健性轨, 其行宇宙是 full 留篇集合的子集。ss 轨遵循镜像 ctx 的回退语义: 当某篇报道无银行∧金科同句共现时, content_ss 退化为全文 body (ss_is_fallback=True), 与 ctx 共享 n_articles 分母口径; FINTECH_AC 缺失时三轨的 *_is_fallback 全部为 True, 优雅降级而非报错。三轨互相之间不可合并进同一右手侧回归或同一识别方程, 只能作为独立稳健性检验并列呈现。
 
@@ -98,4 +113,6 @@ Cohn, J. B., Liu, Z., & Wardlaw, M. I. (2022). Count (and count-like) data in fi
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Duchin, R., Gao, J., & Xu, Q. (2025). Sustainability or greenwashing: Evidence from the asset market for industrial pollution. The Journal of Finance. https://doi.org/10.1111/jofi.13412
 Gilardi, F., Alizadeh, M., & Kubli, M. (2023). ChatGPT outperforms crowd workers for text-annotation tasks. Proceedings of the National Academy of Sciences. https://doi.org/10.1073/pnas.2305016120
+Cheng, C. A., Jiang, L., & Song, W.-L. (2024). Media coverage and debt financing choice. Journal of Accounting and Public Policy, 44, 107181. https://doi.org/10.1016/j.jaccpubpol.2024.107181
+Huang, J., & Ma, L. (2024). Substantive green innovation or symbolic green innovation: The impact of fintech on corporate green innovation. Finance Research Letters, 63, 105265. https://doi.org/10.1016/j.frl.2024.105265
 <!-- rendered-citations:end -->
