@@ -141,6 +141,6 @@ Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stabil
 Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-Level Political Risk: Measurement and Effects. Quarterly Journal of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021
 Ellis, C., & Jaspersen, J. G. (2024). Fixed Effects and the "Leave-Out'' Instrument. SSRN Electronic Journal No. 4787799 [Working Paper]. https://doi.org/10.2139/ssrn.4787799
 Frandsen, B., Leslie, E., & McIntyre, S. (2025). Cluster Jackknife Instrumental Variables Estimation. Review of Economics and Statistics, 1-19. https://doi.org/10.1162/rest.a.263
-Bobrov, A., Kamdar, R., & Ulate, M. (2025). Regional Dissent: Do Local Economic Conditions Influence FOMC Votes?. American Economic Review: Insights, 7(2), 268-284. https://doi.org/10.1257/aeri.20240184
+Bobrov, A., Kamdar, R., & Ulate, M. (2025). Regional Dissent: Do Local Economic Conditions Influence FOMC Votes? American Economic Review: Insights, 7(2), 268-284. https://doi.org/10.1257/aeri.20240184
 Lee, D. K. C., Xu, W., Shi, J., Wang, Y., & Ding, D. (2026). Shock Next Door: Geographic Spillovers in FinTech Lending After Natural Disasters. Econometrics, 14(1), 5. https://doi.org/10.3390/econometrics14010005
 <!-- rendered-citations:end -->

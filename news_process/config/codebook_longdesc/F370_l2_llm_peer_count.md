@@ -160,9 +160,9 @@ llm_peer_count 本身不是模型估计使用的工具变量, 而是一个诊断
 正确的定位是: 本列在方法学意义上是 canonical 列的一个数值恒等副本, 保留原因是 `export.py` 批量生成阈值列标签、`derivative_replication.py::CUTOFF_VARS` 遍历契约等工程需要, 不承载独立于 canonical 的敏感性检验信息, 不应被用来支撑"梯子两端方向一致即证明结论不依赖同行认定严格程度"或"严格门槛下一阶段 F 统计量更脆弱"这类具体统计行为主张——这些主张预设了一个实际不存在的连续阈值机制。若研究者确实需要检验同行认定构造本身的稳健性, 应转向源码明确披露的其它有识别力的维度 (同行名单上限、单模型 vs 多模型查证、句子/篇章查询口径), 这些维度目前未在本家族六列结构中体现, 需另行扩展并单独校验其识别力。
 
 <!-- rendered-citations:begin -->
-Cao, Y., Chen, L., Tucker, J. W., & Wan, C. (2025). Can generative AI help identify peer firms?. Review of Accounting Studies, 30(4), 3344-3386. https://doi.org/10.1007/s11142-025-09892-6
+Cao, Y., Chen, L., Tucker, J. W., & Wan, C. (2025). Can generative AI help identify peer firms? Review of Accounting Studies, 30(4), 3344-3386. https://doi.org/10.1007/s11142-025-09892-6
 Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous product differentiation. Journal of Political Economy, 124(5), 1423-1465. https://doi.org/10.1086/688176
-Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate financial policy?. The Journal of Finance, 69(1), 139-178. https://doi.org/10.1111/jofi.12094
+Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate financial policy? The Journal of Finance, 69(1), 139-178. https://doi.org/10.1111/jofi.12094
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. The Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
 Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effects through social networks. Journal of Econometrics, 150(1), 41-55. https://doi.org/10.1016/j.jeconom.2008.12.021
 de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253

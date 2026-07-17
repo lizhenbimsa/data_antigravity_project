@@ -84,7 +84,7 @@ frac_definite 的计算发生在两个流水线阶段。阶段 22 (tone_words) �
 本列基于 content_ss (标题 + 银行与金科词同句±1句窗口, 半径见 config/filtering.yaml::context_window.ss_sentence_radius) 做确定性词元扫描后聚合, 是三轨中文本覆盖面最窄、聚焦度最高的一轨, 判据原语与 stage 13 共现硬过滤同源但严格程度不同 (ss 要求银行与金科词严格同句, 而 stage 13 硬过滤口径是 ±1 句窗口)。当某文章内不存在银行∧金科同句共现时, 该文章的 content_ss 回退为全文 body 且对应 ss_is_fallback 标记为 True, 此时该文章在 ss 轨的 frac_definite_ss_i 实质上等同于该文章的 full 轨取值, 与 n_articles 共享同一套回退分母口径 (镜像 ctx 轨的回退语义, 而非独立设计)。ss 轨衡量的是"银行与金融科技被同时明确提及的那个具体语句附近, 记者的措辞有多确定", 相比 ctx 轨进一步剔除了泛泛提及银行但未直接关联金科话题的段落, 因而更贴近本项目核心构念 (银行金融科技活动的媒体语调) 的最窄聚焦口径。若某批次 parquet 缺失 clarity_*_ss 上游列 (旧版流水线产出), 该列在阶段 40 聚合时被优雅跳过, mean_frac_definite_ss 整列记为缺失而不会引发下游报错; ss 轨与 full/ctx 两轨同样各自 just-identified 并排, 三者互为稳健性、不分主次, 不得混入同一 over-identified 的 Hansen J 识别检验, 也不与词典消融梯度或政治词权重梯度交叉使用。
 
 <!-- rendered-citations:begin -->
-You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
+You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen? The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Bonsall, S. B., IV, Leone, A. J., Miller, B. P., & Rennekamp, K. (2017). A plain English measure of financial reporting readability. Journal of Accounting and Economics, 63(2-3), 329-357. https://doi.org/10.1016/j.jacceco.2017.03.002
 Zhou, W., Xiong, Y., & Wang, S. (2025). Dialect diversity, corporate annual report text readability and stock price crash risks. Finance Research Letters, 86, 108622. https://doi.org/10.1016/j.frl.2025.108622

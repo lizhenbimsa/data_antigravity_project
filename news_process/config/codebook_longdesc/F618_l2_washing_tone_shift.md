@@ -92,6 +92,6 @@ Westphal, J. D., & Zajac, E. J. (1994). Substance and Symbolism in CEOs' Long-Te
 Westphal, J. D., & Zajac, E. J. (1998). The Symbolic Management of Stockholders: Corporate Governance Reforms and Shareholder Reactions. Administrative Science Quarterly, 43(1), 127-153. https://doi.org/10.2307/2393593
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
 Marchetti, S., Tarducci, E., & Branzoli, N. (2025). Measuring Tone Shifts in Media Coverage: An Empirical Application to Bank Financing Conditions in Italy. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.5220056
-Meng, Q., Du, X., & Gong, X. (2024). Does operational disclosure curb textual tone manipulation by corporate management?. China Journal of Accounting Studies, 12(2), 247-275. https://doi.org/10.1080/21697213.2024.2337262
+Meng, Q., Du, X., & Gong, X. (2024). Does operational disclosure curb textual tone manipulation by corporate management? China Journal of Accounting Studies, 12(2), 247-275. https://doi.org/10.1080/21697213.2024.2337262
 Gui, K., & Hou, H. (2025). Digital transformation, media coverage, and management tone manipulation. Finance Research Letters, 81, 107440. https://doi.org/10.1016/j.frl.2025.107440
 <!-- rendered-citations:end -->

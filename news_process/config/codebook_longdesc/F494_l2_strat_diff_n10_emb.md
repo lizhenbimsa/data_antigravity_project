@@ -69,5 +69,5 @@ Hoberg, G., & Phillips, G. (2016). Text-Based Network Industries and Endogenous 
 Haans, R. F. J. (2019). What's the Value of Being Different When Everyone Is? The Effects of Distinctiveness on Performance in Homogeneous versus Heterogeneous Categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978
 Su, J., Gao, X., & Tan, J. (2024). Positioning for Optimal Distinctiveness: How Firms Manage Competitive and Institutional Pressures under Dynamic and Complex Environment. Strategic Management Journal, 45(2), 333-361. https://doi.org/10.1002/smj.3549
 Arts, S., Cassiman, B., & Hou, J. (2025). Technology Differentiation, Product Market Rivalry, and M&A Transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687
-Steck, H., Ekanadham, C., & Kallus, N. (2024). Is Cosine-Similarity of Embeddings Really about Similarity?. Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526
+Steck, H., Ekanadham, C., & Kallus, N. (2024). Is Cosine-Similarity of Embeddings Really about Similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526
 <!-- rendered-citations:end -->

@@ -125,6 +125,6 @@ Ma, Y., Zhang, T., & Zhang, P. (2025). The construction of a Chinese fine-graine
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
 Xu, W., Yao, Z., & Chen, D. (2019). Chinese annual report readability: Measurement and test. China Journal of Accounting Studies, 7(3), 407-437. https://doi.org/10.1080/21697213.2019.1701259
 Cheng, C. A., Jiang, L., & Song, W.-L. (2024). Media coverage and debt financing choice. Journal of Accounting and Public Policy, 44, 107181. https://doi.org/10.1016/j.jaccpubpol.2024.107181
-Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S. (2026). Does media sentiment influence bank supervision?. Journal of Financial Stability, 84, 101538. https://doi.org/10.1016/j.jfs.2026.101538
+Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S. (2026). Does media sentiment influence bank supervision? Journal of Financial Stability, 84, 101538. https://doi.org/10.1016/j.jfs.2026.101538
 Kanagaretnam, K., Li, W., Shi, G., & Zhou, Z. (2025). Ambiguity of tone in annual reports and bank risk taking. Accounting & Finance, 65(1), 935-970. https://doi.org/10.1111/acfi.13353
 <!-- rendered-citations:end -->

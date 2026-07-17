@@ -94,7 +94,7 @@ new_dois:
 <!-- rendered-citations:begin -->
 Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital finance and FinTech: Current research and future research directions. Journal of Business Economics, 87(5), 537-580. https://doi.org/10.1007/s11573-017-0852-x
 Adner, R., & Kapoor, R. (2010). Value creation in innovation ecosystems: How the structure of technological interdependence affects firm performance in new technology generations. Strategic Management Journal, 31(3), 306-333. https://doi.org/10.1002/smj.821
-Boot, A. W. A. (2000). Relationship banking: What do we know?. Journal of Financial Intermediation, 9(1), 7-25. https://doi.org/10.1006/jfin.2000.0282
+Boot, A. W. A. (2000). Relationship banking: What do we know? Journal of Financial Intermediation, 9(1), 7-25. https://doi.org/10.1006/jfin.2000.0282
 Breznau, N., Rinke, E. M., Wuttke, A., et al. (2022). Observing many researchers using the same data and hypothesis reveals a hidden universe of uncertainty. Proceedings of the National Academy of Sciences, 119(44), e2203150119. https://doi.org/10.1073/pnas.2203150119
 Nach, H. (2025). An Analysis of the news coverage of Fintech in Africa: a natural language processing approach. Quality & Quantity. https://doi.org/10.1007/s11135-024-02045-y
 Zatini, G., Torricella, N., & della Porta, A. (2026). Costly Signals and Cheap Talk: Measuring the Decoupling of ESG Routinisation and Greenwashing Risk. Business Strategy and the Environment. https://doi.org/10.1002/bse.71079

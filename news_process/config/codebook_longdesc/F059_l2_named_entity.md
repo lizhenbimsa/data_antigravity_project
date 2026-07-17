@@ -121,5 +121,5 @@ Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance:
 Hope, O.-K., Hu, D., & Lu, H. (2016). The benefits of specific risk-factor disclosures. Review of Accounting Studies, 21(4), 1005-1045. https://doi.org/10.1007/s11142-016-9371-1
 Aghamolla, C., & Smith, K. (2023). Strategic complexity in disclosure. Journal of Accounting and Economics. https://doi.org/10.1016/j.jacceco.2023.101635
 Yang, J., Zhang, T., Tsai, C.-Y., Lu, Y., & Yao, L. (2024). Evolution and emerging trends of named entity recognition: Bibliometric analysis from 2000 to 2023. Heliyon. https://doi.org/10.1016/j.heliyon.2024.e30053
-Bochkay, K., Brown, S. V., Leone, A. J., & Tucker, J. W. (2022). Textual Analysis in Accounting: What's Next?. Contemporary Accounting Research. https://doi.org/10.1111/1911-3846.12825
+Bochkay, K., Brown, S. V., Leone, A. J., & Tucker, J. W. (2022). Textual Analysis in Accounting: What's Next? Contemporary Accounting Research. https://doi.org/10.1111/1911-3846.12825
 <!-- rendered-citations:end -->

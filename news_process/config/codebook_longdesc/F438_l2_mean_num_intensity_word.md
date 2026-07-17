@@ -196,7 +196,7 @@ new_dois:
 <!-- rendered-citations:begin -->
 Taraj, I., & Wahlström, R. R. (2026). Narratives contextualizing numeric disclosures: Insights from earnings calls. Journal of Business Finance & Accounting, 53(3), 1263-1286. https://doi.org/10.1111/jbfa.70056
 Levy, B. (2026). Caution ahead: Numerical reasoning and look-ahead bias in AI models. Journal of Accounting Research, 64(3), 1139-1188. https://doi.org/10.1111/1475-679X.70058
-Campbell, J. L., Zheng, X., & Zhou, D. (2025). Number of numbers: Does a greater proportion of quantitative textual disclosure reduce information risk?. Journal of Corporate Finance, 94, 102813. https://doi.org/10.1016/j.jcorpfin.2025.102813
+Campbell, J. L., Zheng, X., & Zhou, D. (2025). Number of numbers: Does a greater proportion of quantitative textual disclosure reduce information risk? Journal of Corporate Finance, 94, 102813. https://doi.org/10.1016/j.jcorpfin.2025.102813
 Cai, W., Shi, W., & Jiang, F. (2025). Cheap talk? Strategy disclosure intensity, corporate risk-taking and financial performance. British Journal of Management, 36(1), 361-382. https://doi.org/10.1111/1467-8551.12853
 Siano, F. (2025). The news in earnings announcement disclosures: Capturing word context using LLM methods. Management Science, 71(11), 9831-9855. https://doi.org/10.1287/mnsc.2024.05417
 Lesmy, D., Muchnik, L., & Mugerman, Y. (2025). Lost in the fog: Growing complexity in financial reporting — A comparative study. Humanities and Social Sciences Communications, 12, 848. https://doi.org/10.1057/s41599-025-06094-y

@@ -103,7 +103,7 @@ Duchin, R., Gao, J., & Xu, Q. (2025). Sustainability or greenwashing: Evidence f
 Flammer, C. (2021). Corporate green bonds. Journal of Financial Economics. https://doi.org/10.1016/j.jfineco.2021.01.010
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. The Review of Economic Studies. https://doi.org/10.2307/2298123
 Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik instruments: What, when, why, and how. American Economic Review. https://doi.org/10.1257/aer.20181047
-Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate financial policy?. The Journal of Finance. https://doi.org/10.1111/jofi.12094
+Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate financial policy? The Journal of Finance. https://doi.org/10.1111/jofi.12094
 Westphal, J. D., & Zajac, E. J. (1994). Substance and symbolism in CEOs' long-term incentive plans. Administrative Science Quarterly. https://doi.org/10.2307/2393295
 Ali-Rind, A., Boubaker, S., & Jarjir, S. L. (2023). Peer effects in financial economics: A literature survey. Research in International Business and Finance. https://doi.org/10.1016/j.ribaf.2022.101873
 <!-- rendered-citations:end -->

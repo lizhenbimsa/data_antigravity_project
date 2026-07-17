@@ -101,7 +101,7 @@ new_dois: []
 <!-- rendered-citations:begin -->
 Tetlock, P. C. (2007). Giving Content to Investor Sentiment: The Role of Media in the Stock Market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
-You, J., Zhang, B., & Zhang, L. (2018). Who Captures the Power of the Pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
+You, J., Zhang, B., & Zhang, L. (2018). Who Captures the Power of the Pen? The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media Sentiment, Deposit Stability and Bank Systemic Risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Hua, X., Dong, D., Xu, Z., & Huang, W. (2025). Official media sentiments toward energy and equity returns: Evidence from China. Energy, 340, 139126. https://doi.org/10.1016/j.energy.2025.139126
 Isakin, M., & Pu, X. (2023). Dispersion in news sentiment and corporate bond returns. International Review of Financial Analysis, 89, 102761. https://doi.org/10.1016/j.irfa.2023.102761

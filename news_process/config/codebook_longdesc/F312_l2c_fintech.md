@@ -203,15 +203,15 @@ Li, T., Stasinakis, C., Yeo, W. M., & Da Silva Fernandes, F. (2025). Fintech, fi
 Kwan, A., Lin, C., Pursiainen, V., & Tai, M. (2024). Stress testing banks' digital capabilities: Evidence from the COVID-19 pandemic. Journal of Financial and Quantitative Analysis, 59(6), 2618-2646. https://doi.org/10.1017/S0022109023000662
 Liu, S., Wang, B., & Zhang, Q. (2024). Fintech regulation and bank liquidity creation: Evidence from China. Pacific-Basin Finance Journal, 84, 102276. https://doi.org/10.1016/j.pacfin.2024.102276
 Fang, Y., Wang, Q., Wang, F., & Zhao, Y. (2023). Bank fintech, liquidity creation, and risk-taking: Evidence from China. Economic Modelling, 127, 106445. https://doi.org/10.1016/j.econmod.2023.106445
-Boot, A., Hoffmann, P., Laeven, L., & Ratnovski, L. (2021). Fintech: What's old, what's new?. Journal of Financial Stability, 53, 100836. https://doi.org/10.1016/j.jfs.2020.100836
+Boot, A., Hoffmann, P., Laeven, L., & Ratnovski, L. (2021). Fintech: What's old, what's new? Journal of Financial Stability, 53, 100836. https://doi.org/10.1016/j.jfs.2020.100836
 Lee, C.-C., Li, X., Yu, C.-H., & Zhao, J. (2021). Does fintech innovation improve bank efficiency? Evidence from China's banking industry. International Review of Economics & Finance, 74, 468-483. https://doi.org/10.1016/j.iref.2021.03.009
 Wang, R., Liu, J., & Luo, H. (2021). Fintech development and bank risk taking in China. The European Journal of Finance, 27(4-5), 397-418. https://doi.org/10.1080/1351847x.2020.1805782
 Li, K., Mai, F., Shen, R., & Yan, X. (2021). Measuring corporate culture using machine learning. The Review of Financial Studies, 34(7), 3265-3315. https://doi.org/10.1093/rfs/hhaa079
-Thakor, A. V. (2020). Fintech and banking: What do we know?. Journal of Financial Intermediation, 41, 100833. https://doi.org/10.1016/j.jfi.2019.100833
+Thakor, A. V. (2020). Fintech and banking: What do we know? Journal of Financial Intermediation, 41, 100833. https://doi.org/10.1016/j.jfi.2019.100833
 Cheng, M., & Qu, Y. (2020). Does bank FinTech reduce credit risk? Evidence from China. Pacific-Basin Finance Journal, 63, 101398. https://doi.org/10.1016/j.pacfin.2020.101398
 Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level political risk: Measurement and effects. The Quarterly Journal of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021
 Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital finance and FinTech: Current research and future research directions. Journal of Business Economics, 87(5), 537-580. https://doi.org/10.1007/s11573-017-0852-x
 Zhang, X., & Li, Z. (2025). FinTech: The disruptive force reducing bank competition pressure. Emerging Markets Review. https://doi.org/10.1016/j.ememar.2024.101237
-Yang, F., & Masron, T. A. (2023). Does financial inclusion moderate the effect of digital transformation on banks' performance in China?. Cogent Economics & Finance. https://doi.org/10.1080/23322039.2023.2267270
+Yang, F., & Masron, T. A. (2023). Does financial inclusion moderate the effect of digital transformation on banks' performance in China? Cogent Economics & Finance. https://doi.org/10.1080/23322039.2023.2267270
 Chen, S., Alexiou, C., & Lee, S. (2024). Beyond binary: exploring the interplay of China's digital transformation and firm performance through dual mechanism analysis. Asia Pacific Business Review. https://doi.org/10.1080/13602381.2024.2434010
 <!-- rendered-citations:end -->

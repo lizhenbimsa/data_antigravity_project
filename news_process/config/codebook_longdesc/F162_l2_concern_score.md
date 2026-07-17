@@ -90,6 +90,6 @@ new_dois: []
 Manela, A., & Moreira, A. (2017). News implied volatility and disaster concerns. Journal of Financial Economics, 123(1), 137-162. https://doi.org/10.1016/j.jfineco.2016.01.032
 Baker, S. R., Bloom, N., & Davis, S. J. (2016). Measuring economic policy uncertainty. Quarterly Journal of Economics, 131(4), 1593-1636. https://doi.org/10.1093/qje/qjw024
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
-Bie, S., Feng, G., Guo, N., & He, J. (2026). Can news predict firm bankruptcy?. Journal of Financial Markets, 79, 101002. https://doi.org/10.1016/j.finmar.2025.101002
+Bie, S., Feng, G., Guo, N., & He, J. (2026). Can news predict firm bankruptcy? Journal of Financial Markets, 79, 101002. https://doi.org/10.1016/j.finmar.2025.101002
 Branzoli, N., Marchetti, S., & Tarducci, E. (2025). Measuring tone shifts in media coverage: An empirical application to bank financing conditions in Italy. International Review of Economics & Finance, 104, 104564. https://doi.org/10.1016/j.iref.2025.104564
 <!-- rendered-citations:end -->

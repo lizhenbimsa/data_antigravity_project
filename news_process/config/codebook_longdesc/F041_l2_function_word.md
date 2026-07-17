@@ -123,7 +123,7 @@ Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis.
 Tausczik, Y. R., & Pennebaker, J. W. (2010). The psychological meaning of words: LIWC and computerized text analysis methods. Journal of Language and Social Psychology, 29(1), 24-54. https://doi.org/10.1177/0261927X09351676
 Tetlock, P. C., Saar-Tsechansky, M., & Macskassy, S. (2008). More than words: Quantifying language to measure firms' fundamentals. The Journal of Finance, 63(3), 1437-1467. https://doi.org/10.1111/j.1540-6261.2008.01362.x
 Sproat, R., & Emerson, T. (2003). The first international Chinese word segmentation bakeoff. Proceedings of the Second SIGHAN Workshop on Chinese Language Processing, 133-143. https://doi.org/10.3115/1119250.1119269
-Bochkay, K., Brown, S. V., Leone, A. J., & Tucker, J. W. (2023). Textual Analysis in Accounting: What's Next?. Contemporary Accounting Research. https://doi.org/10.1111/1911-3846.12825
+Bochkay, K., Brown, S. V., Leone, A. J., & Tucker, J. W. (2023). Textual Analysis in Accounting: What's Next? Contemporary Accounting Research. https://doi.org/10.1111/1911-3846.12825
 Crossley, S. A. (2024). Developing Linguistic Constructs of Text Readability Using Natural Language Processing. Scientific Studies of Reading. https://doi.org/10.1080/10888438.2024.2422365
 Pan, W., Li, X., Chen, X., & Xu, R. (2024). Textual form features for text readability assessment. Natural Language Processing. https://doi.org/10.1017/nlp.2024.50
 <!-- rendered-citations:end -->

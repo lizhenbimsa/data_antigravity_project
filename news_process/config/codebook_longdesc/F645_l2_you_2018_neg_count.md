@@ -89,7 +89,7 @@ you_2018 词典的方法学根基来自 You, Zhang & Zhang (2018, Review of Fina
 本列使用的文本轨道是 ss(同句轨): 由标题前置拼接目标银行与金科词严格同句(±N窗口, 默认半径 1, 由 `config/filtering.yaml::context_window.ss_sentence_radius` 控制, 与 stage 13 硬过滤所用的 `cooccurrence_filter.sentence_radius` 是两个独立配置键, 不可混用)共同出现的句子集合而成, 是三轨里文本范围最窄、判据最严格的一条。you_2018_neg_count_ss 统计的是这个严格共现句子集合内出现的 you_2018 negative 词命中数, 意在捕捉"银行与金融科技被同一句话直接关联提及"这一最紧密语境下的情感基调, 是对 ctx 轨"实体窗口"概念的进一步收紧。当一篇报道不存在银行与金科的同句共现(例如两者虽同篇出现但分散在不同段落)时, ss 轨退回全文 body 作为内容并标记 `ss_is_fallback = True`, 这一退回逻辑镜像 ctx 轨的退回语义(共享 `n_articles` 分母口径), 退回后该篇的 ss 计数实质上等同于对全文重新跑一遍计数, 但仍与 full 轨列各自独立执行、独立落盘, 不做数值复用短路。当上游 `FINTECH_AC` 词典对象为 None(金科词识别失效)时, 三轨的 `*_is_fallback` 会整体优雅退化为全 True, ss 轨在这种情形下事实上退化为 full 轨的重复计数, 使用者在解读跨样本 ss 轨的统计特征时应留意这一退化边界情形, 不宜将其误判为真实的"同句强共现"信号缺失。
 
 <!-- rendered-citations:begin -->
-You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
+You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen? The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009
 You, H., & Zhang, X.-J. (2009). Financial reporting complexity and investor underreaction to 10-K information. Review of Accounting Studies, 14(4), 559-586. https://doi.org/10.1007/s11142-008-9083-2

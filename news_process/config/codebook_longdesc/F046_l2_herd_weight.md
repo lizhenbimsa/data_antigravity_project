@@ -337,7 +337,7 @@ Kirkley, A. (2025). Fast nonparametric inference of network backbones for weight
 Lesmy, D., Muchnik, L., & Mugerman, Y. (2025). Lost in the fog: Growing complexity in financial reporting - A comparative study. Humanities and Social Sciences Communications. https://doi.org/10.1057/s41599-025-06094-y
 Sautner, Z., van Lent, L., Vilkov, G., & Zhang, R. (2023). Firm-level climate change exposure. Journal of Finance, 78(3), 1449-1498. https://doi.org/10.1111/jofi.13219
 Yamato, H., Okada, M., & Mori, N. (2023). Trainable weighted pooling method for text classification with BERT. 2023 15th International Congress on Advanced Applied Informatics Winter (IIAI-AAI-Winter), IEEE, 266-271. https://doi.org/10.1109/iiai-aai-winter61682.2023.00056
-Tetlock, P. C. (2011). All the news that's fit to reprint: Do investors react to stale information?. Review of Financial Studies, 24(5), 1481-1512. https://doi.org/10.1093/rfs/hhq141
+Tetlock, P. C. (2011). All the news that's fit to reprint: Do investors react to stale information? Review of Financial Studies, 24(5), 1481-1512. https://doi.org/10.1093/rfs/hhq141
 Opsahl, T., Agneessens, F., & Skvoretz, J. (2010). Node centrality in weighted networks: Generalizing degree and shortest paths. Social Networks, 32(3), 245-251. https://doi.org/10.1016/j.socnet.2010.03.006
 Barrat, A., Barthélemy, M., Pastor-Satorras, R., & Vespignani, A. (2004). The architecture of complex weighted networks. Proceedings of the National Academy of Sciences, 101(11), 3747-3752. https://doi.org/10.1073/pnas.0400087101
 Salton, G., & Buckley, C. (1988). Term-weighting approaches in automatic text retrieval. Information Processing & Management, 24(5), 513-523. https://doi.org/10.1016/0306-4573(88)90021-0

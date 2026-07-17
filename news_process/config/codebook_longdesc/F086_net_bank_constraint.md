@@ -309,7 +309,7 @@ Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm p
 Boucher, V., Rendall, M., Ushchev, P., & Zenou, Y. (2024). Toward a general theory of peer effects. Econometrica, 92(2), 543-565. https://doi.org/10.3982/ECTA21048
 de Paula, A., Rasul, I., & Souza, P. C. L. (2024). Identifying network ties from panel data: Theory and an application to tax competition. The Review of Economic Studies, 92(4), 2691-2729. https://doi.org/10.1093/restud/rdae088
 Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223
-Xu, Y., & Zhao, X. (2024). How does node centrality in a financial network affect asset price prediction?. The North American Journal of Economics and Finance, 73, 102163. https://doi.org/10.1016/j.najef.2024.102163
+Xu, Y., & Zhao, X. (2024). How does node centrality in a financial network affect asset price prediction? The North American Journal of Economics and Finance, 73, 102163. https://doi.org/10.1016/j.najef.2024.102163
 Han, M., Kim, S. H., & Nanda, V. (2024). Institutional brokerage networks: Facilitating liquidity provision. The Review of Financial Studies, 37(9), 2903-2935. https://doi.org/10.1093/rfs/hhae026
 Gao, H., Ru, H., & Yang, X. (2022). The informational role of ownership networks in bank lending. Journal of Financial and Quantitative Analysis, 57(8), 2993-3017. https://doi.org/10.1017/S0022109021000788
 Grieser, W., Hadlock, C., LeSage, J., & Zekhnini, M. (2022). Network effects in corporate financial policies. Journal of Financial Economics, 144(1), 247-272. https://doi.org/10.1016/j.jfineco.2021.05.060
@@ -327,6 +327,6 @@ Gould, R. V., & Fernandez, R. M. (1989). Structures of mediation: A formal appro
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
 Burt, R. S., & Opper, S. (2024). Guanxi and Structural Holes: Strong Bridges from Relational Embedding. American Journal of Sociology. https://doi.org/10.1086/730630
 Harris, J. H., Spyridopoulos, I., Zekhnini, M., & Brunetti, C. (2026). The Role of Networks in Loan Syndicate Markets. Management Science. https://doi.org/10.1287/mnsc.2024.06313
-Hernandez, E., Lee, J. K., & Shaver, J. M. (2024). Toward an improved causal test of network effects: Does alliance network position enhance firm innovation?. Strategic Management Journal. https://doi.org/10.1002/smj.3679
+Hernandez, E., Lee, J. K., & Shaver, J. M. (2024). Toward an improved causal test of network effects: Does alliance network position enhance firm innovation? Strategic Management Journal. https://doi.org/10.1002/smj.3679
 You, S., Wang, L., Zhou, K. Z., & Jia, L. (2025). Structural holes and firm innovation in industrial clusters: A dual embeddedness perspective. Journal of Business Research. https://doi.org/10.1016/j.jbusres.2025.115452
 <!-- rendered-citations:end -->

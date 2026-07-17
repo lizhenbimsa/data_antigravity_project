@@ -264,7 +264,7 @@ Han, M., Kim, S. H., & Nanda, V. K. (2024). Institutional brokerage networks: Fa
 Grieser, W., Hadlock, C., LeSage, J., & Zekhnini, M. (2022). Network effects in corporate financial policies. Journal of Financial Economics, 144(1), 247-272. https://doi.org/10.1016/j.jfineco.2021.05.060
 Jackson, M. O., & Pernoud, A. (2021). Systemic risk in financial networks: A survey. Annual Review of Economics, 13, 171-202. https://doi.org/10.1146/annurev-economics-083120-111540
 Bramoullé, Y., Djebbari, H., & Fortin, B. (2020). Peer effects in networks: A survey. Annual Review of Economics, 12, 603-629. https://doi.org/10.1146/annurev-economics-020320-033926
-Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate financial policy?. The Journal of Finance, 69(1), 139-178. https://doi.org/10.1111/jofi.12094
+Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate financial policy? The Journal of Finance, 69(1), 139-178. https://doi.org/10.1111/jofi.12094
 Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effects through social networks. Journal of Econometrics, 150(1), 41-55. https://doi.org/10.1016/j.jeconom.2008.12.021
 Newman, M. E. J. (2005). A measure of betweenness centrality based on random walks. Social Networks, 27(1), 39-54. https://doi.org/10.1016/j.socnet.2004.11.009
 Newman, M. E. J., & Girvan, M. (2004). Finding and evaluating community structure in networks. Physical Review E, 69(2), 11339. https://doi.org/10.1103/PhysRevE.69.026113
@@ -274,5 +274,5 @@ Freeman, L. C. (1978). Centrality in social networks conceptual clarification. S
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. The Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
 Ricca, F., & Scozzari, A. (2024). Portfolio optimization through a network approach: Network assortative mixing and portfolio diversification. European Journal of Operational Research. https://doi.org/10.1016/j.ejor.2023.07.010
 De Blasis, R., Galati, L., & Petroni, F. (2026). A network-based mixture transition distribution approach to portfolio optimization. Quantitative Finance. https://doi.org/10.1080/14697688.2026.2681609
-Zhu, B., Hu, X., Deng, Y., & Lin, R. (2023). Systemic risk prevention policies targeting systemically important banks: Does clustering pattern matter?. PLOS ONE. https://doi.org/10.1371/journal.pone.0284861
+Zhu, B., Hu, X., Deng, Y., & Lin, R. (2023). Systemic risk prevention policies targeting systemically important banks: Does clustering pattern matter? PLOS ONE. https://doi.org/10.1371/journal.pone.0284861
 <!-- rendered-citations:end -->

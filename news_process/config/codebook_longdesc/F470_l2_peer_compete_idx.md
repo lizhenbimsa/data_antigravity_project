@@ -149,7 +149,7 @@ Ge, S., Li, S., & Zheng, H. (2025). Diamond cuts diamond — News co-mention mom
 Schwenkler, G., & Zheng, H. (2025). News-driven peer co-movement in crypto markets. Journal of Corporate Finance, 93, 102772. https://doi.org/10.1016/j.jcorpfin.2025.102772
 Grieser, W., Hadlock, C., LeSage, J., & Zekhnini, M. (2022). Network effects in corporate financial policies. Journal of Financial Economics, 144(1), 247-272. https://doi.org/10.1016/j.jfineco.2021.05.060
 Lee, C. M. C., Ma, P., & Wang, C. C. Y. (2015). Search-based peer firms — Aggregating investor perceptions through internet co-searches. Journal of Financial Economics, 116(2), 410-431. https://doi.org/10.1016/j.jfineco.2015.02.003
-Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate financial policy?. The Journal of Finance, 69(1), 139-178. https://doi.org/10.1111/jofi.12094
+Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate financial policy? The Journal of Finance, 69(1), 139-178. https://doi.org/10.1111/jofi.12094
 Bramoullé, Y., Djebbari, H., & Fortin, B. (2020). Peer effects in networks — A survey. Annual Review of Economics, 12, 603-629. https://doi.org/10.1146/annurev-economics-020320-033926
 Kakinuma, Y., & Likitratcharoen, D. (2025). Fintech-driven resilience amid pandemic: a text mining analysis of the banking industry with ESG dynamics. Journal of Financial Regulation and Compliance. https://doi.org/10.1108/jfrc-11-2024-0218
 Xu, G. (2024). News Bias in Financial Journalists' Social Networks. Journal of Accounting Research. https://doi.org/10.1111/1475-679x.12560

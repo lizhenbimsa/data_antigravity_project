@@ -162,7 +162,7 @@ You, Zhang & Zhang (2018, Review of Financial Studies) 是本词典的直接方�
 本列为裸计数基线 (不启用任何语言学规则), 文本轨道为 ss (银行∧金科同句±1句窗, 无共现时回退全文并镜像 ctx 语义、共享 n_articles 分母)。是裸计数基线在三轨中语境最紧凑的对应列, 与 ctx/full 两轨互为稳健性并排、各自 just-identified, 不得混入同一 over-identified Hansen J 设定。ss 轨判据要求银行与金科词在同一句 (或±1句窗) 共现方纳入该窗口文本, 该判据与本列的规则维度选择 (raw, 无语言学规则) 正交——即 ss 轨的紧凑语境判据决定"用哪些句子参与计数", 而 raw 规则子集决定"命中词如何计入总和", 二者互不干扰、可独立组合, 与家族内其余变体×轨道的正交设计一致。该列是家族 21 列中语境最紧凑且规则维度最简单的交叉单元, 是理解"文本窗口收窄"与"语言学规则关闭"两个独立维度各自及联合对语调分产生何种边际影响的基准参照点; 与 raw_tone_ctx / raw_tone_full 构成完整三轨组, 三者的相对差异应主要归因于窗口宽窄而非规则选择 (因规则维度在三者间保持恒定为零)。该列也是家族内 7 个非-full 规则子集变体各自 ss 轨 (advonly/degadv/degonly/negadv/negdeg/negonly/raw 共 7 列) 中方法学上最简单的一支, 在稳健性附表中通常与 raw_tone_ctx / raw_tone_full 并列作为 ss 轨规则效应分解的零点参照, 供研究者逐一核对规则叠加在最紧凑语境判据下是否依旧保持与 ctx/full 两轨一致的方向性结论。
 
 <!-- rendered-citations:begin -->
-You, J., Zhang, B., & Zhang, L. (2018). Who Captures the Power of the Pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
+You, J., Zhang, B., & Zhang, L. (2018). Who Captures the Power of the Pen? The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation scope detection in sentiment analysis: Decision support for news-driven trading. Decision Support Systems, 88, 67-75. https://doi.org/10.1016/j.dss.2016.05.009

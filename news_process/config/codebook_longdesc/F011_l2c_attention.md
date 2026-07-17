@@ -347,7 +347,7 @@ Da, Z., Engelberg, J., & Gao, P. (2011). In search of attention. The Journal of 
 Engelberg, J. E., & Parsons, C. A. (2011). The causal impact of media in financial markets. The Journal of Finance, 66(1), 67-97. https://doi.org/10.1111/j.1540-6261.2010.01626.x
 Fang, L., & Peress, J. (2009). Media coverage and the cross-section of stock returns. The Journal of Finance, 64(5), 2023-2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
-Bartik, T. J. (1991). Who benefits from state and local economic development policies?. W.E. Upjohn Institute for Employment Research. https://doi.org/10.17848/9780585223940
+Bartik, T. J. (1991). Who benefits from state and local economic development policies? W.E. Upjohn Institute for Employment Research. https://doi.org/10.17848/9780585223940
 Simpson, E. H. (1949). Measurement of diversity. Nature, 163(4148), 688. https://doi.org/10.1038/163688a0
 Cao, Z., Geman, H., & Wunkaew, W. (2025). The Hype Index: an NLP-driven Measure of Market News Attention. SSRN [Working Paper]. https://doi.org/10.2139/ssrn.5279231
 Guo, X., Macaulay, A., & Song, W. (2024). The Allocation of Corporate News. SSRN Electronic Journal [Working Paper]. https://doi.org/10.2139/ssrn.4768558

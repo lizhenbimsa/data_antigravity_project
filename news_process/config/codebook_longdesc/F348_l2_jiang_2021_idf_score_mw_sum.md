@@ -120,5 +120,5 @@ Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specific
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
 Cao, S., Jiang, W., Yang, B., & Zhang, A. L. (2023). How to talk when a machine is listening: Corporate disclosure in the age of AI. The Review of Financial Studies, 36(9), 3603-3642. https://doi.org/10.1093/rfs/hhad021
 Kim-Hahm, H., Abou-Zaid, A. S., & Mohd, A. (2025). News vs. Social Media: Sentiment Impact on Stock Performance of Big Tech Companies. Journal of Risk and Financial Management. https://doi.org/10.3390/jrfm18120660
-Verma, R., & Verma, P. (2025). Economic News, Social Media Sentiments, and Stock Returns: Which Is a Bigger Driver?. Journal of Risk and Financial Management. https://doi.org/10.3390/jrfm18010016
+Verma, R., & Verma, P. (2025). Economic News, Social Media Sentiments, and Stock Returns: Which Is a Bigger Driver? Journal of Risk and Financial Management. https://doi.org/10.3390/jrfm18010016
 <!-- rendered-citations:end -->

@@ -94,6 +94,6 @@ log_sent_ss 是 log_sent 家族在"银行+金科同句"轨 (ss) 上的实现, �
 Chen, J., & Roth, J. (2024). Logs with zeros? Some problems and solutions. Quarterly Journal of Economics, 139(2), 891-936. https://doi.org/10.1093/qje/qjad054
 Vives, X., & Ye, Z. (2025). Information technology and lender competition. Journal of Financial Economics, 163, Article 103957. https://doi.org/10.1016/j.jfineco.2024.103957
 Pierri, N., & Timmer, Y. (2022). The importance of technology in banking during a crisis. Journal of Monetary Economics, 128, 88-104. https://doi.org/10.1016/j.jmoneco.2022.04.001
-Cho, M., & Choi, A. (2025). Do Auditors Adjust Labour Allocation in Response to Client Media Coverage and Tone?. Abacus, abac.70024. https://doi.org/10.1111/abac.70024
+Cho, M., & Choi, A. (2025). Do Auditors Adjust Labour Allocation in Response to Client Media Coverage and Tone? Abacus, abac.70024. https://doi.org/10.1111/abac.70024
 Tucker, A. M., Xia, Y., & Smelcer, S. N. (2024). Text, tone, and legal language: Analyzing mutual fund disclosure sentiment. American Business Law Journal, 61(1), 57-86. https://doi.org/10.1111/ablj.12239
 <!-- rendered-citations:end -->

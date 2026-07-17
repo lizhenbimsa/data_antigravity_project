@@ -230,7 +230,7 @@ idf 词权思路的方法学锚点是 Gentzkow, Kelly & Taddy (2019, JEL)《Text
 本列在 ss 轨(银行∧金融科技同句窗口)文本上用媒体提及密度对逐篇 you_2018 idf 加权语调分做价值加权聚合: sum(you_2018_idf_score_w_ss) / sum_mention_density。该列组合了"局部语境测度"(ss 轨聚焦银行与金融科技实体紧邻共现的文本)与"提及强度加权"(vw)两层稳健性设计, 分母 sum_mention_density 在三轨间共享同一套提及密度定义(该密度是基于文章整体提及情况估计的, 不因文本抽取轨道切换而重新计算), 因此 vw 加权的分母口径在 full/ctx/ss 三列间是一致的, 差异主要来自分子(不同轨文本上算出的逐篇 idf 语调分乘以提及密度权重后求和)。ss 轨遵循镜像 ctx 的回退语义, 无同句共现的文章其 content_ss 回退为全文, 该篇对分子的贡献等价于用 full 轨语调分乘以其提及密度权重。本列与 you_2018_idf_tone_vw_ctx、you_2018_idf_tone_vw_full 构成 vw 加权口径下的三轨并排收尾组, 完整了本家族"三轨 × (无加权/std/vw/mw/hw/app/tech)"共 21 列的矩阵结构, 各维度正交独立、互为稳健性、禁止混入同一 over-identified 联合识别设定。作为窗口最窄且叠加了提及密度加权的一列, 该列在多数生产样本中触发同句回退比例较高的 bank-year 上会与 vw_full 高度相关(因为回退文章的提及密度权重实质上是对 full 轨语调分再加权), 而在回退比例较低的 bank-year 上则更能体现真实局部语境的强度加权信号, 建议在稳健性报告中同时披露各 bank-year 的回退比例分布作为解读辅助。
 
 <!-- rendered-citations:begin -->
-You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
+You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen? The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
 Spärck Jones, K. (1972). A statistical interpretation of term specificity and its application in retrieval. Journal of Documentation, 28(1), 11-21. https://doi.org/10.1108/eb026526
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing enthusiasm: Media sentiment and the disciplining role of quarterly earnings announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104

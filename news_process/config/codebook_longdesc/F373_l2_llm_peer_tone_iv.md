@@ -328,7 +328,7 @@ new_dois:
 本列是同句轨、阈值零点九零档即五档中最严名义阈值的同行等权剔除语调工具变量。文本轨、滞后与文章级剔除与同句轨系列一致: 以同句轨的银行金科同句共现文本对应的文章级投票分为同行的上一年情感底料, 对焦点银行上一年查证的同行集合外层等权, 内层剔除共提焦点银行的报道, 取上一年规避 Manski (1993) 反射问题、以剔除切断共享报道机械相关。零点九零档原为做银行简称归一时字符串匹配的宽严程度, 并非同行语义相似度阈值; 自修复编号零四与零五移除兜底后完全惰性, 名义归一只走精确、变体表、唯一子串三策略, 本列在盘面上与同句轨其余四档及无后缀基准列逐位相同, 属保留下来的档位脚手架, 不构成活跃阈值敏感性, 亦不应解读为最严同行识别阈值下同句轨的稳健性。用大白话说, 这是名义上最挑剔的一档, 但挑剔度早已不参与计算, 它与其它档一模一样。同句轨语境最窄、缺失最多, 缺列时守卫优雅跳过。构念上须与被工具的焦点银行自身同句轨语调区分。铁律: 与其它阈值档及完整轨、上下文轨各自恰好识别并排、互为稳健性不分主次, 严禁混进同一过度识别检验。留篇口径继承完整轨门控铁律。
 
 <!-- rendered-citations:begin -->
-Cao, Y., Chen, L., Tucker, J. W., & Wan, C. (2025). Can generative AI help identify peer firms?. Review of Accounting Studies, 30(4), 3344-3386. https://doi.org/10.1007/s11142-025-09892-6
+Cao, Y., Chen, L., Tucker, J. W., & Wan, C. (2025). Can generative AI help identify peer firms? Review of Accounting Studies, 30(4), 3344-3386. https://doi.org/10.1007/s11142-025-09892-6
 Ullah, M., Sohag, K., & Hassan, M. K. (2026). Exploring the relationship between bank liquidity risk and the media sentiment index via big data technology: a study during the COVID-19 pandemic and the Russia–Ukraine conflict. Financial Innovation. https://doi.org/10.1186/s40854-025-00887-5
 de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
 Luo, S., Shuai, K., Zhang, Y., Li, W., & He, Y. (2025). Identification and estimation of causal peer effects using instrumental variables. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2504.05658
@@ -338,7 +338,7 @@ Bramoullé, Y., Djebbari, H., & Fortin, B. (2020). Peer effects in networks: A s
 Cheng, M., & Qu, Y. (2020). Does bank FinTech reduce credit risk? Evidence from China. Pacific-Basin Finance Journal, 63, 101398. https://doi.org/10.1016/j.pacfin.2020.101398
 Andrews, I., Stock, J. H., & Sun, L. (2019). Weak instruments in instrumental variables regression: Theory and practice. Annual Review of Economics, 11, 727-753. https://doi.org/10.1146/annurev-economics-080218-025643
 Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous product differentiation. Journal of Political Economy, 124(5), 1423-1465. https://doi.org/10.1086/688176
-Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate financial policy?. The Journal of Finance, 69(1), 139-178. https://doi.org/10.1111/jofi.12094
+Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate financial policy? The Journal of Finance, 69(1), 139-178. https://doi.org/10.1111/jofi.12094
 Montiel Olea, J. L., & Pflueger, C. (2013). A robust test for weak instruments. Journal of Business & Economic Statistics, 31(3), 358-369. https://doi.org/10.1080/00401706.2013.806694
 Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effects through social networks. Journal of Econometrics, 150(1), 41-55. https://doi.org/10.1016/j.jeconom.2008.12.021
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x

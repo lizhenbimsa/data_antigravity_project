@@ -91,7 +91,7 @@ ss 轨的回退语义严格镜像 ctx 轨: 当某篇文章不存在满足银行�
 `jiang_2021_pos_count_ss` 在构念上度量的是"银行与金融科技同句提及处的正面语调密度", 相较 ctx 轨(仅要求银行实体窗口)进一步收窄到"银行-金科强相关语句"这一更精确但样本量更小的子集, 尤其适合用于检验研究结论是否被"泛泛提及银行"的噪声段落而非"银行金科业务本身"的报道段落所驱动。由于窗口/句子截取更严格, 该列在回退发生率较高的样本(如金科相关报道占比低的银行-年单元)中会有相当比例的观测退化为等价 full 轨读数, 分析时应结合 `ss_is_fallback` 标记做敏感性说明, 并遵循三轨并排、禁止混入同一 Hansen J 联合估计的项目铁律, 不与 ctx/full 两轨直接合并回归。
 
 <!-- rendered-citations:begin -->
-Jiang, E. X., Matvos, G., Piskorski, T., & Seru, A. (2024). Monetary tightening and U.S. bank fragility in 2023: Mark-to-market losses and uninsured depositor runs?. Journal of Financial Economics, 159, 103899. https://doi.org/10.1016/j.jfineco.2024.103899
+Jiang, E. X., Matvos, G., Piskorski, T., & Seru, A. (2024). Monetary tightening and U.S. bank fragility in 2023: Mark-to-market losses and uninsured depositor runs? Journal of Financial Economics, 159, 103899. https://doi.org/10.1016/j.jfineco.2024.103899
 姜富伟, 孟令超, 唐国豪. (2021). 媒体文本情绪与股票回报预测. 经济学(季刊), 21(4), 1323-1344. https://doi.org/10.13821/j.cnki.ceq.2021.04.10
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Zhao, J., & Ren, M. (2025). Innovative or conservative? How clan culture shapes bank digital transformation in China. China Journal of Accounting Research, 18(2), 100406. https://doi.org/10.1016/j.cjar.2025.100406

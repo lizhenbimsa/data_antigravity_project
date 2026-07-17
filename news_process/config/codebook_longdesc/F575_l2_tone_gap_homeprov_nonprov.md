@@ -113,7 +113,7 @@ new_dois: []
 【变体差分】
 本列是 `tone_gap_homeprov_nonprov` 族的 ss 轨 (同句共现窗) 口径, 分子端的两个中间均值取自 stage 21 ss 轨文章级语调测度 `llm_vote_score_ss` 按省份子集分别聚合 (而非 bank-year 级已聚合的 `llm_vote_tone_ss`), 该测度以「标题 + 银行∧金科词严格同句 (±N 句窗, N 取 `config/filtering.yaml::context_window.ss_sentence_radius`, 默认 1) 共现」为正文范围, 是三轨中文本粒度最窄、对措辞局部性最敏感的一档。ss 轨的回退语义镜像 ctx 轨: 若某篇文章不存在银行与金科词的严格同句共现, 则 `content_ss` 回退为全文正文、`ss_is_fallback` 置真, 但该文章依然正常计入 ss 轨语调聚合的分母 (即被并入本省或非本省子集参与均值计算), 不因回退状态被剔除或单独处理; 这一"优雅降级"设计确保即便金科词与银行词从未同句出现, 该文章仍能贡献一个 ss 轨语调观测值 (退化为等同 full 轨全文的判定), 而不是制造额外的系统性缺失。行宇宙同样遵循留篇门控 full-only 铁律, 仅在 `llm_verified_full == True` 的文章集合上换算 ss 轨值。ss 轨与 full/ctx 两轨在分析上严格并排、互为稳健性: 三者分别代表"全文语境"、"实体邻近窗口语境"、"严格同句紧邻语境"三种不同宽窄的文本截取假设下, 本省-非本省语调落差是否依然存在、方向是否一致、幅度是否稳定, 是同一构念在三种测量口径下的交叉验证, 任何将三轨同时纳入一个过度识别 (over-identified) Hansen J 检验的用法都违反项目铁律, 应予避免。
 <!-- rendered-citations:begin -->
-You, J., Zhang, B., Zhang, L. (2018). Who Captures the Power of the Pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
+You, J., Zhang, B., Zhang, L. (2018). Who Captures the Power of the Pen? The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Qin, B., Strömberg, D., Wu, Y. (2018). Media Bias in China. American Economic Review, 108(9), 2442-2476. https://doi.org/10.1257/aer.20170947
 Peress, J. (2014). The Media and the Diffusion of Information in Financial Markets: Evidence from Newspaper Strikes. The Journal of Finance, 69(5), 2007-2043. https://doi.org/10.1111/jofi.12179
 Fang, Y., Wang, Q., Wang, Y., Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067

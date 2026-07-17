@@ -118,7 +118,7 @@ ss 轨的判据比 ctx 轨更进一步收窄: ctx 只要求实体出现在同一
 <!-- rendered-citations:begin -->
 Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital finance and FinTech: Current research and future research directions. Journal of Business Economics, 87(5), 537–580. https://doi.org/10.1007/s11573-017-0852-x
 Adner, R., & Kapoor, R. (2010). Value creation in innovation ecosystems: How the structure of technological interdependence affects firm performance in new technology generations. Strategic Management Journal, 31(3), 306–333. https://doi.org/10.1002/smj.821
-Boot, A. W. A. (2000). Relationship banking: What do we know?. Journal of Financial Intermediation, 9(1), 7–25. https://doi.org/10.1006/jfin.2000.0282
+Boot, A. W. A. (2000). Relationship banking: What do we know? Journal of Financial Intermediation, 9(1), 7–25. https://doi.org/10.1006/jfin.2000.0282
 Fang, Y., Wang, Q., Wang, F., & Zhao, Y. (2023). Bank fintech, liquidity creation, and risk-taking: Evidence from China. Economic Modelling, 127, 106445. https://doi.org/10.1016/j.econmod.2023.106445
 Kaufmann, L., Krlev, G., & Brown, M. (. (2025). In Plain Sight: Mechanisms of means–ends decoupling in impact investing. Organization Studies, 46(5), 667-692. https://doi.org/10.1177/01708406241295505
 Ge, X., & Luo, Q. (2026). Greenwashing in green mutual funds: Symbolic ESG vs. substantive carbon emissions. Global Finance Journal, 72, 101305. https://doi.org/10.1016/j.gfj.2026.101305

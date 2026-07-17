@@ -128,7 +128,7 @@ new_dois:
 Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-Level Political Risk: Measurement and Effects. Quarterly Journal of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021
 Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik Instruments: What, When, Why, and How. American Economic Review, 110(8), 2586-2624. https://doi.org/10.1257/aer.20181047
 Manski, C. F. (1993). Identification of Endogenous Social Effects: The Reflection Problem. The Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
-Leary, M. T., & Roberts, M. R. (2014). Do Peer Firms Affect Corporate Financial Policy?. The Journal of Finance, 69(1), 139-178. https://doi.org/10.1111/jofi.12094
+Leary, M. T., & Roberts, M. R. (2014). Do Peer Firms Affect Corporate Financial Policy? The Journal of Finance, 69(1), 139-178. https://doi.org/10.1111/jofi.12094
 Gabaix, X., & Koijen, R. S. J. (2024). Granular Instrumental Variables. Journal of Political Economy, 132(7), 2274-2303. https://doi.org/10.1086/728743
 Jha, M., Liu, H., & Manela, A. (2026). Does Finance Benefit Society? A Language Embedding Approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
 Borusyak, K., Hull, P., & Jaravel, X. (2025). A Practical Guide to Shift-Share Instruments. Journal of Economic Perspectives, 39(1), 181-204. https://doi.org/10.1257/jep.20231370

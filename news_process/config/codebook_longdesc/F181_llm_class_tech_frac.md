@@ -137,6 +137,6 @@ Carlson, N. A., & Burbano, V. (2026). The use of LLMs to annotate data in manage
 Chae, Y., & Davidson, T. (2026). Large language models for text classification: From zero-shot learning to instruction-tuning. Sociological Methods & Research, 55(2), 501-567. https://doi.org/10.1177/00491241251325243
 Ludwig, J., Mullainathan, S., & Rambachan, A. (2025). Large language models: An applied econometric framework. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2412.07031
 Törnberg, P. (2024). Large language models outperform expert coders and supervised classifiers at annotating political social media messages. Social Science Computer Review, 43(6), 1181-1195. https://doi.org/10.1177/08944393241286471
-Chen, M. A., Wu, Q., & Yang, B. (2019). How valuable is FinTech innovation?. Review of Financial Studies, 32(5), 2062-2106. https://doi.org/10.1093/rfs/hhy130
+Chen, M. A., Wu, Q., & Yang, B. (2019). How valuable is FinTech innovation? Review of Financial Studies, 32(5), 2062-2106. https://doi.org/10.1093/rfs/hhy130
 Gomber, P., Kauffman, R. J., Parker, C., & Weber, B. W. (2018). On the fintech revolution: Interpreting the forces of innovation, disruption, and transformation in financial services. Journal of Management Information Systems, 35(1), 220-265. https://doi.org/10.1080/07421222.2018.1440766
 <!-- rendered-citations:end -->

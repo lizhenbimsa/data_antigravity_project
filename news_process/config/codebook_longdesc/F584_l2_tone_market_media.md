@@ -110,7 +110,7 @@ full 轨对市场化媒体子群体的语调水平最贴近传统文献 (如 Tet
 需特别注意 ss 轨与 ctx 轨的判据口径并不相同, 二者虽然都属于"实体聚焦"类文本裁剪, 但 ctx 轨用的是宽松的实体窗口 (`extract` 银行∧金科实体附近 N 词/句范围), 而 ss 轨用的是严格的同句共现判据 (`entity_context.py` 中判定银行名与金科词是否出现在同一自然句内), 两者的判据原语在代码库中是刻意区分、禁止互相复用的两套函数。当一篇市场化媒体报道虽然提及银行与金科词, 但二者分处不同句子 (例如首段提银行, 末段单独讨论金科政策) 时, 该篇文章会在 ss 轨触发回退 (使用全文 body 代替严格同句片段), 而在 ctx 轨仍可能命中窗口内共现, 二者对同一篇文章的处理结果可能不同。使用者若观察到 `tone_market_media_ss` 相对 `tone_market_media_ctx`、`tone_market_media_full` 呈现更大波动或更多缺失, 应首先核查该银行-年组合下市场化媒体报道的同句共现命中率, 而非直接归因于市场化媒体本身语调不稳定。
 
 <!-- rendered-citations:begin -->
-You, J., Zhang, B., & Zhang, L. (2018). Who Captures the Power of the Pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
+You, J., Zhang, B., & Zhang, L. (2018). Who Captures the Power of the Pen? The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Fang, L., & Peress, J. (2009). Media Coverage and the Cross-Section of Stock Returns. The Journal of Finance, 64(5), 2023-2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x
 Tetlock, P. C. (2007). Giving Content to Investor Sentiment; The Role of Media in the Stock Market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104

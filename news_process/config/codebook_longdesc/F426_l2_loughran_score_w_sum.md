@@ -110,5 +110,5 @@ Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance:
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
-Ashwin, J. (2024). Financial news media and volatility: Is there more to newspapers than news?. Journal of Financial Markets, 69, 100896. https://doi.org/10.1016/j.finmar.2024.100896
+Ashwin, J. (2024). Financial news media and volatility: Is there more to newspapers than news? Journal of Financial Markets, 69, 100896. https://doi.org/10.1016/j.finmar.2024.100896
 <!-- rendered-citations:end -->

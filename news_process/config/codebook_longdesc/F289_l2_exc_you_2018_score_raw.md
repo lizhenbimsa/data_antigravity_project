@@ -107,7 +107,7 @@ new_dois:
 由于 ss 窗口通常只覆盖一到两句话, 否定/程度/转折三条规则在如此短的窗口内触发的绝对次数本就稀少, raw 基线与规范全规则列 `exc_you_2018_score_ss` 之间的数值差异预期比 full/ctx 两轨更小, 这是解读本列时须特别注意的一点: ss 轨上规则消融的"定性不变"结论更容易成立, 但样本方差本身也更小, 二者不应混为一谈——前者是规则敏感性问题, 后者是窗口稀薄度问题。本列与 full/ctx 两轨、与同轨七个其余消融变体各自 just-identified 并排, 互为稳健性不分主次, 禁混进同一 over-identified Hansen J。
 
 <!-- rendered-citations:begin -->
-You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
+You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen? Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198

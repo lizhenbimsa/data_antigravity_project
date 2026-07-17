@@ -392,7 +392,7 @@ Li, K., Mai, F., Shen, R., & Yan, X. (2021). Measuring corporate culture using m
 Bellstam, G., Bhagat, S., & Cookson, J. A. (2021). A text-based analysis of corporate innovation. Management Science, 67(7), 4004-4031. https://doi.org/10.1287/mnsc.2020.3682
 Cheng, M., & Qu, Y. (2020). Does bank FinTech reduce credit risk? Evidence from China. Pacific-Basin Finance Journal, 63, Article 101398. https://doi.org/10.1016/j.pacfin.2020.101398
 Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik instruments: What, when, why, and how. American Economic Review, 110(8), 2586-2624. https://doi.org/10.1257/aer.20181047
-Chen, M. A., Wu, Q., & Yang, B. (2019). How valuable is FinTech innovation?. The Review of Financial Studies, 32(5), 2062-2106. https://doi.org/10.1093/rfs/hhy130
+Chen, M. A., Wu, Q., & Yang, B. (2019). How valuable is FinTech innovation? The Review of Financial Studies, 32(5), 2062-2106. https://doi.org/10.1093/rfs/hhy130
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
 Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level political risk: Measurement and effects. The Quarterly Journal of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021
 Qin, B., Strömberg, D., & Wu, Y. (2018). Media bias in China. American Economic Review, 108(9), 2442-2476. https://doi.org/10.1257/aer.20170947

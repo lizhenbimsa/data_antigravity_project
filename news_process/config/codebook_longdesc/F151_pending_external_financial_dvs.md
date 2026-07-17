@@ -156,9 +156,9 @@ Babina, T., Bahaj, S., Buchak, G., De Marco, F., Foulis, A., Gornall, W., Mazzol
 Koranteng, B., & You, K. (2024). Fintech and financial stability: Evidence from spatial analysis for 25 countries. Journal of International Financial Markets, Institutions and Money, 93, 102002. https://doi.org/10.1016/j.intfin.2024.102002
 Miller, C. D., & Wang, R. D. (2024). Product digitization and differentiation strategy change: Evidence from the book publishing industry. Strategic Management Journal, 45(7), 1241-1272. https://doi.org/10.1002/smj.3586
 Arora, A., Belenzon, S., & Sheer, L. (2021). Matching patents to Compustat firms, 1980-2015: Dynamic reassignment, name changes, and ownership structures. Research Policy, 50(5), 104217. https://doi.org/10.1016/j.respol.2021.104217
-Thakor, A. V. (2020). Fintech and banking: What do we know?. Journal of Financial Intermediation, 41, 100833. https://doi.org/10.1016/j.jfi.2019.100833
+Thakor, A. V. (2020). Fintech and banking: What do we know? Journal of Financial Intermediation, 41, 100833. https://doi.org/10.1016/j.jfi.2019.100833
 Ertugrul, M., Lei, J., Qiu, J., & Wan, C. (2017). Annual report readability, tone ambiguity, and the cost of borrowing. Journal of Financial and Quantitative Analysis, 52(2), 811-836. https://doi.org/10.1017/S0022109017000187
 Petersen, M. A. (2009). Estimating standard errors in finance panel data sets: Comparing approaches. Review of Financial Studies, 22(1), 435-480. https://doi.org/10.1093/rfs/hhn053
 Uddin, H., & Barai, M. K. (2026). Fintech Adoption and Bank Risk, Efficiency and Stability: Evidence from Panel Data of Selected Asian Economies. FinTech. https://doi.org/10.3390/fintech5010014
-Elekdag, S. A., Emrullahu, D., & Ben Naceur, S. (2024). Does FinTech Increase Bank Risk Taking?. IMF Working Papers [Working Paper]. https://doi.org/10.5089/9798400265167.001
+Elekdag, S. A., Emrullahu, D., & Ben Naceur, S. (2024). Does FinTech Increase Bank Risk Taking? IMF Working Papers [Working Paper]. https://doi.org/10.5089/9798400265167.001
 <!-- rendered-citations:end -->

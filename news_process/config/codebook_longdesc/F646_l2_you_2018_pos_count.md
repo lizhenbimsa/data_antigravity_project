@@ -103,7 +103,7 @@ full 轨没有回退语义 (它本身即是「未截取」的原始文本, 不�
 ss 轨的判定不对称口径需特别留意: 银行侧命中在共现判定时经过否定与短名过滤 (避免因银行简称歧义误判共现), 而金科侧命中则采用裸 AC 自动机 (Aho-Corasick, 1,506 词) 直接匹配, 二者判定逻辑不对称, 这一不对称性是共现窗口构造阶段 (stage 13/14) 的既定口径, 与 you_2018_pos_count_ss 本身的词典打分逻辑 (打分阶段 stage 22) 相互独立、不产生叠加偏差——即共现窗口一旦确定, ss 轨内部的词典命中计数仍按标准流程独立执行, 不再区分银行侧/金科侧计数。由于 ss 轨窗口通常显著窄于 ctx 轨 (同句 vs 实体窗口), 在未回退情形下 you_2018_pos_count_ss 的命中绝对数一般是三轨中最低者, 适合作为「最严格共现证据下语调仍然为正」这一强假设的证据下限, 常用于稳健性检验中的保守估计场景。
 
 <!-- rendered-citations:begin -->
-You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
+You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen? The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 You, H., & Zhang, X.-J. (2009). Financial reporting complexity and investor underreaction to 10-K information. Review of Accounting Studies, 14(4), 559-586. https://doi.org/10.1007/s11142-008-9083-2
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-based sentiment analysis in finance ; Synthesising the existing literature and exploring future directions. Intelligent Systems in Accounting, Finance and Management, 31(1), e1549. https://doi.org/10.1002/isaf.1549

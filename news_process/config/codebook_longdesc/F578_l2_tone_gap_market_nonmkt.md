@@ -106,7 +106,7 @@ new_dois: []
 需特别注意 `_is_market` 判据 (媒体是否属于市场化名单) 与三轨文本窗口是两套独立机制: 前者是文章元数据层面的固定属性, 不随 full/ctx/ss 而变化; 后者是语调测度时使用的文本范围。因此本列与 full/ctx 两列的分组结构 (市场化 vs 非市场化子样本的成员构成) 完全一致, 差异只体现在每篇报道贡献的 `llm_vote_score_ss` 数值本身, 以及因回退语义导致的子均值分母是否覆盖到无同句共现的报道。由于回退触发条件 (无银行∧金科同句共现) 与市场化/非市场化身份无关, 回退比例在两个子样本间原则上不应有系统性差异; 若观测到市场化媒体与非市场化媒体的 `ss_is_fallback` 比例显著不同, 应在稳健性讨论中单独说明, 因为这会使 ss 轨缺口混入「回退到全文口径的报道占比不同」这一额外差异来源, 削弱其作为严格同句稳健性检验的解释力。
 
 <!-- rendered-citations:begin -->
-You, J., Zhang, B., & Zhang, L. (2018). Who Captures the Power of the Pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
+You, J., Zhang, B., & Zhang, L. (2018). Who Captures the Power of the Pen? The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Fang, L., & Peress, J. (2009). Media Coverage and the Cross-Section of Stock Returns. The Journal of Finance, 64(5), 2023-2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x
 Tetlock, P. C. (2007). Giving Content to Investor Sentiment - The Role of Media in the Stock Market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing Enthusiasm - Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104

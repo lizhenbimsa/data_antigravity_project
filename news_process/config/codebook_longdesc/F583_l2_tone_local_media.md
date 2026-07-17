@@ -122,9 +122,9 @@ ss 轨道的回退语义镜像 ctx 轨道的设计原则: 当某篇报道中不�
 在识别策略与稳健性叙事上, ss 轨道与 full、ctx 三者各自 just-identified 并排、互为稳健性、不分主次——ss 提供的是"语境最贴近的严格共现"证据, 用以排除同一篇报道中银行与金科话题被文章其他部分的无关段落稀释语气信号的可能性; 当研究结论在 full/ctx/ss 三条轨道下方向一致、显著性稳健时, 才能对"地方媒体语气"这一构念的经验发现建立更高的信心。同样禁止将 full/ctx/ss 三条地方语气序列混入同一个 over-identified 的 Hansen J 检验——三轨应始终作为并列的稳健性检验组, 而非叠加的工具变量集合去过度识别单一内生解释变量。
 
 <!-- rendered-citations:begin -->
-Kang, B. U., & Nam, J. S. (2025). Do local newspapers matter to institutional investors?. Contemporary Accounting Research, 42(3), 1713-1743. https://doi.org/10.1111/1911-3846.13049
+Kang, B. U., & Nam, J. S. (2025). Do local newspapers matter to institutional investors? Contemporary Accounting Research, 42(3), 1713-1743. https://doi.org/10.1111/1911-3846.13049
 Heese, J., Pérez-Cavazos, G., & Peter, C. D. (2022). When the local newspaper leaves town: The effects of local newspaper closures on corporate misconduct. Journal of Financial Economics, 145(2), 445-463. https://doi.org/10.1016/j.jfineco.2021.08.015
-You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
+You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen? Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Gurun, U. G., & Butler, A. W. (2012). Don't believe the hype: Local media slant, local advertising, and firm value. Journal of Finance, 67(2), 561-598. https://doi.org/10.1111/j.1540-6261.2012.01725.x
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067

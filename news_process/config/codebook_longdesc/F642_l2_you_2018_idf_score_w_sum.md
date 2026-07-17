@@ -118,7 +118,7 @@ F642 家族刻画的是「you_2018 中文金融情感词典在 IDF (逆文档频
 本列是三轨中判据最严格的 ss (同句共现) 轨: 底层文章级情感分 `you_2018_idf_score_ss` 依据的是 `content_ss` 文本, 即标题 + 「目标银行与金科关键词同句 (可配置 ±N 句窗口半径, 默认半径 1, 由 `config/filtering.yaml::context_window.ss_sentence_radius` 控制, 与 stage 13 硬过滤所用的 `cooccurrence_filter.sentence_radius` 是两个不同的配置键, 不可混淆)」的窗口文本, 是三轨中对"银行∧金科话题真正同句出现"这一构念要求最苛刻的一支。乘数 `mention_density_ss` 是基于该同句窗口文本计算的提及密度权重, 与 full/ctx 两轨的提及密度取值一般不相等, 且更容易因窗口文本过短而在个别文章上出现较低的密度估计。若某篇文章不存在银行与金科词汇的同句共现 (即不满足 ss 轨的结构性判据), 依 CLAUDE.md 铁律 ss 轨回退语义严格镜像 ctx 轨: `content_ss` 退化为全文正文、`ss_is_fallback=True`, 与 `n_articles` 分母共享同一套口径优雅降级, 而非静默清空或产生单边孤儿观测; 该篇仍以退化后的全文文本参与 ss 轨的 IDF 加权情感打分与提及密度加权求和。作为留篇门控体系下 full-only 之外的 conditional-on-full 稳健性轨, 本列覆盖的 bank-year 观测行宇宙同样是 full 轨留篇集合的子集, 且由于 ss 轨判据更严格, 在实证上其非退化观测占比通常低于 ctx 轨 (dev 小样本 T=2 语料下二者甚至可能因数据规模过小而呈现零方差退化, attribut 于样本规模而非测度失效)。本列与 `_full`/`_ctx` 两列在方法学上并排互为稳健性, 三者共同验证"银行-金科语调关联是否对文本窗口宽严的具体设定敏感", 而非构成层层嵌套的主/辅关系, 使用时须与 `_full`/`_ctx` 分别独立进入回归右侧或分别汇报, 严禁混入同一个 over-identified Hansen J 框架联合估计。
 
 <!-- rendered-citations:begin -->
-You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The Review of Financial Studies, 31(1), 43–96. https://doi.org/10.1093/rfs/hhx055
+You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen? The Review of Financial Studies, 31(1), 43–96. https://doi.org/10.1093/rfs/hhx055
 Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis. Journal of Financial Economics, 110(3), 712–729. https://doi.org/10.1016/j.jfineco.2013.08.018
 Spärck Jones, K. (1972). A statistical interpretation of term specificity and its application in retrieval. Journal of Documentation, 28(1), 11–21. https://doi.org/10.1108/eb026526
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673–719. https://doi.org/10.1093/rof/rfab036
@@ -126,5 +126,5 @@ Sheridan, P., Ahmed, Z., & Farooque, A. A. (2026). A Fisher's exact test justifi
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.3446388
 Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learning vs. dictionary methods. Management Science, 68(7), 5514–5532. https://doi.org/10.1287/mnsc.2021.4156
 Hassan, T. A., Hollander, S., van Lent, L., Schwedeler, M., & Tahoun, A. (2023). Firm-Level Exposure to Epidemic Diseases: COVID-19, SARS, and H1N1. The Review of Financial Studies. https://doi.org/10.1093/rfs/hhad044
-Ashwin, J. (2024). Financial news media and volatility: Is there more to newspapers than news?. Journal of Financial Markets, 69, 100896. https://doi.org/10.1016/j.finmar.2024.100896
+Ashwin, J. (2024). Financial news media and volatility: Is there more to newspapers than news? Journal of Financial Markets, 69, 100896. https://doi.org/10.1016/j.finmar.2024.100896
 <!-- rendered-citations:end -->

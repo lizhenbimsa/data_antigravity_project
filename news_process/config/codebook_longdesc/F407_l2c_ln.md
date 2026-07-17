@@ -81,5 +81,5 @@ Adão, R., Kolesár, M., & Morales, E. (2019). Shift-share designs: Theory and i
 Vives, X., & Ye, Z. (2025). Information technology and lender competition. Journal of Financial Economics, 163, Article 103957. https://doi.org/10.1016/j.jfineco.2024.103957
 Call, A. C., Emett, S. A., Maksymov, E., & Sharp, N. Y. (2022). Meet the press: Survey evidence on financial journalists as information intermediaries. Journal of Accounting and Economics, 73(2-3), 101455. https://doi.org/10.1016/j.jacceco.2021.101455
 Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223
-Cho, M., & Choi, A. (2025). Do Auditors Adjust Labour Allocation in Response to Client Media Coverage and Tone?. Abacus, abac.70024. https://doi.org/10.1111/abac.70024
+Cho, M., & Choi, A. (2025). Do Auditors Adjust Labour Allocation in Response to Client Media Coverage and Tone? Abacus, abac.70024. https://doi.org/10.1111/abac.70024
 <!-- rendered-citations:end -->

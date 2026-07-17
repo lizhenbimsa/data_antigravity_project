@@ -96,6 +96,6 @@ ss 轨是三轨中对"归因精确度"要求最严格的一支: 只有当银行�
 姜富伟, 孟令超, 唐国豪. (2021). 媒体文本情绪与股票回报预测. 经济学(季刊), 21(4), 1323-1344. https://doi.org/10.13821/j.cnki.ceq.2021.04.10
 Loughran, T., McDonald, B. (2011). When Is a Liability Not a Liability? Textual Analysis, Dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
 Bian, S., Jia, D., Li, F., Yan, Z. (2021). A New Chinese Financial Sentiment Dictionary for Textual Analysis in Accounting and Finance. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.3446388
-Chen, Z., Hajiheydari, N., Zhang, M., & Lin, Y.-E. (2026). Corporate digital transformation attention and innovation: strategic commitment or symbolic signalling?. The Journal of Strategic Information Systems, 35(2), 101971. https://doi.org/10.1016/j.jsis.2026.101971
+Chen, Z., Hajiheydari, N., Zhang, M., & Lin, Y.-E. (2026). Corporate digital transformation attention and innovation: strategic commitment or symbolic signalling? The Journal of Strategic Information Systems, 35(2), 101971. https://doi.org/10.1016/j.jsis.2026.101971
 Guan, J., & Zhuang, X. (2025). Do digital words reflect real innovation? Evidence from post-M&A earnings conference. Asian Review of Accounting, 1-44. https://doi.org/10.1108/ara-01-2025-0031
 <!-- rendered-citations:end -->

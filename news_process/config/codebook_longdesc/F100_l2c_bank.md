@@ -196,7 +196,7 @@ bank_type 须与若干形近邻居严格区分。与 bank_scale 的区别是维�
 Borusyak, K., Hull, P., & Jaravel, X. (2025). A practical guide to shift-share instruments. Journal of Economic Perspectives, 39(1), 181-204. https://doi.org/10.1257/jep.20231370
 Yang, X., Liu, Z., Li, J., & Xie, Q. (2023). Communities of co-occurrence network of financial firms in news. Procedia Computer Science. https://doi.org/10.1016/j.procs.2023.08.056
 Apfel, N. (2024). Relaxing the exclusion restriction in shift-share instrumental variable estimation. Journal of the Royal Statistical Society Series A: Statistics in Society, 187(3), 748-771. https://doi.org/10.1093/jrsssa/qnad148
-Abadie, A., Athey, S., Imbens, G. W., & Wooldridge, J. M. (2023). When should you adjust standard errors for clustering?. Quarterly Journal of Economics, 138(1), 1-35. https://doi.org/10.1093/qje/qjac038
+Abadie, A., Athey, S., Imbens, G. W., & Wooldridge, J. M. (2023). When should you adjust standard errors for clustering? Quarterly Journal of Economics, 138(1), 1-35. https://doi.org/10.1093/qje/qjac038
 MacKinnon, J. G., Nielsen, M. Ø., & Webb, M. D. (2023). Cluster-robust inference: A guide to empirical practice. Journal of Econometrics, 232(2), 272-299. https://doi.org/10.1016/j.jeconom.2022.04.001
 Borusyak, K., Hull, P., & Jaravel, X. (2022). Quasi-experimental shift-share research designs. Review of Economic Studies, 89(1), 181-213. https://doi.org/10.1093/restud/rdab030
 Breuer, M. (2022). Bartik instruments: An applied introduction. Journal of Financial Reporting, 7(1), 49-67. https://doi.org/10.2308/JFR-2021-003
@@ -204,7 +204,7 @@ Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik instruments: What,
 Adão, R., Kolesár, M., & Morales, E. (2019). Shift-share designs: Theory and inference. Quarterly Journal of Economics, 134(4), 1949-2010. https://doi.org/10.1093/qje/qjz025
 Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effects through social networks. Journal of Econometrics, 150(1), 41-55. https://doi.org/10.1016/j.jeconom.2008.12.021
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
-Bartik, T. J. (1991). Who benefits from state and local economic development policies?. W.E. Upjohn Institute. https://doi.org/10.17848/9780585223940
+Bartik, T. J. (1991). Who benefits from state and local economic development policies? W.E. Upjohn Institute. https://doi.org/10.17848/9780585223940
 Fotheringham, A. S., & Wong, D. W. S. (1991). The modifiable areal unit problem in multivariate statistical analysis. Environment and Planning A: Economy and Space, 23(7), 1025-1044. https://doi.org/10.1068/a231025
 Pielou, E. C. (1966). The measurement of diversity in different types of biological collections. Journal of Theoretical Biology, 13, 131-144. https://doi.org/10.1016/0022-5193(66)90013-0
 Chen, X., He, G., & Li, Q. (2024). Can Fintech development improve the financial inclusion of village and township banks? Evidence from China. Pacific-Basin Finance Journal. https://doi.org/10.1016/j.pacfin.2024.102324

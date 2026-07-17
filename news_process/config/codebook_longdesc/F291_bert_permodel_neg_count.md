@@ -159,7 +159,7 @@ BERT 类预训练语言模型在金融文本情感分类上的适用性已由 Hu
 <!-- rendered-citations:begin -->
 Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A large language model for extracting information from financial text. Contemporary Accounting Research, 40(2), 806-841. https://doi.org/10.1111/1911-3846.12832
 Xu, X., Wen, F., Chu, B., Fu, Z., Lin, Q., Liu, J., Fei, B., Li, Y., Zhou, L., & Yang, Z. (2025). FinBERT2: A specialized bidirectional encoder for bridging the gap in finance-specific deployment of large language models. Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V.2 (KDD '25) No. 5117-5128 [Working Paper]. https://doi.org/10.1145/3711896.3737219
-Bochkay, K., Brown, S. V., Leone, A. J., & Tucker, J. W. (2023). Textual analysis in accounting: What's next?. Contemporary Accounting Research, 40(2), 765-805. https://doi.org/10.1111/1911-3846.12825
+Bochkay, K., Brown, S. V., Leone, A. J., & Tucker, J. W. (2023). Textual analysis in accounting: What's next? Contemporary Accounting Research, 40(2), 765-805. https://doi.org/10.1111/1911-3846.12825
 Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
 Turetken, A. C., & Leippold, M. (2026). Battle of transformers: Adversarial attacks on financial sentiment models. Journal of Banking & Finance, 188, 107698. https://doi.org/10.1016/j.jbankfin.2026.107698
 Hsu, H.-Y., & Hsu, M.-L. (2026). Semantic stability protocol: intercoder reliability for zero-shot classification via AI coders. Quality & Quantity. https://doi.org/10.1007/s11135-026-02832-9

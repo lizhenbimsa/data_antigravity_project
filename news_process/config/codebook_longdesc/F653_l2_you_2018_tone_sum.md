@@ -118,7 +118,7 @@ you_2018 词典源自 You, Zhang & Zhang (2018, *The Review of Financial Studies
 `_ss` 的判据原语 (`extract_bank_fintech_cooccurrence`) 与 stage 13 硬过滤所用的邻近窗口判据 (`has_bank_fintech_cooccurrence_within_radius`) 是两套不同口径, 前者要求严格同句、后者允许 ±1 句半径, 二者刻意不互相复用, 使用者不应把 `_ss` 的窗口半径参数与 stage 13 `cooccurrence_filter.sentence_radius` 混为一谈 (两个不同 config 键)。相对 `_full`/`_ctx` 两轨, `_ss` 是三轨中构念最"苛刻"的一支: 只有当银行实体名与金科关键词在同一句 (或 ±1 句默认半径) 内共同出现时, 该句 (及标题) 才进入打分输入, 因此 `_ss_tone_sum` 更贴近"银行与金融科技被同时、直接提及时的语调", 而非该银行整体媒体形象的语调。这一窄口径的代价是对样本规模的敏感性更高, 在小样本或金科话题稀疏的银行-年度上, `_ss_tone_sum` 的方差和均值都更容易受个别报道或回退机制主导, 解读时应结合 `n_articles_llm_valid_ss` 与回退占比一并考察, 不宜孤立看待单一数值。
 
 <!-- rendered-citations:begin -->
-You, J.; Zhang, B.; Zhang, L. (2018). Who Captures the Power of the Pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
+You, J.; Zhang, B.; Zhang, L. (2018). Who Captures the Power of the Pen? The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Du, Z.; Huang, A. G.; Wermers, R.; Wu, W. (2022). Language and Domain Specificity: A Chinese Financial Sentiment Dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Frankel, R.; Jennings, J.; Lee, J. (2022). Disclosure Sentiment: Machine Learning vs. Dictionary Methods. Management Science, 68(7), 5514-5532. https://doi.org/10.1287/mnsc.2021.4156
 Taboada, M.; Brooke, J.; Tofiloski, M.; Voll, K.; Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049

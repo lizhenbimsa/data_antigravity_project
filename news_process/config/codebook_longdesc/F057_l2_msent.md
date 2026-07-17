@@ -145,7 +145,7 @@ Shapiro, A. H., Sudhof, M., & Wilson, D. J. (2022). Measuring news sentiment. Jo
 Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Fama, E. F., & MacBeth, J. D. (1973). Risk, return, and equilibrium: Empirical tests. Journal of Political Economy, 81(3), 607-636. https://doi.org/10.1086/260061
 Lehkonen, H., Heimonen, K., & Pukthuanthong, K. (2025). Media tone is a priced risk factor in currency markets. Journal of Banking & Finance, 180, 107542. https://doi.org/10.1016/j.jbankfin.2025.107542
-Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S. (2026). Does media sentiment influence bank supervision?. Journal of Financial Stability, 84, 101538. https://doi.org/10.1016/j.jfs.2026.101538
+Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S. (2026). Does media sentiment influence bank supervision? Journal of Financial Stability, 84, 101538. https://doi.org/10.1016/j.jfs.2026.101538
 Bai, C., Duan, Y., & Goodell, J. W. (2025). Multi-media sentiment to systemic risk: Evidence from COVID-19. International Review of Economics & Finance, 97, 103745. https://doi.org/10.1016/j.iref.2024.103745
 Kanagaretnam, K., Li, W., Shi, G., & Zhou, Z. (2025). Ambiguity of tone in annual reports and bank risk taking. Accounting & Finance, 65(1), 935-970. https://doi.org/10.1111/acfi.13353
 <!-- rendered-citations:end -->

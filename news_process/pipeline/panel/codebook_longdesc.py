@@ -175,7 +175,10 @@ def render_citation_apa(c: Dict[str, Any]) -> str:
     ctype = c.get('type', 'journal')
     doi = str(c.get('doi', '') or '').strip()
 
-    head = f'{authors}. ({year}). {title}.'
+    # APA 7 §9.19: 题名以 ?/! 收尾时该终止标点**取代**句点, 不再另加 '.'
+    # (2026-07-18 终局签核 P2: 原实现恒加 '.' 致全库 305 处 'Title?.' 违反)。
+    _tp = '' if title[-1:] in '?!' else '.'
+    head = f'{authors}. ({year}). {title}{_tp}'
     if ctype == 'journal':
         seg = venue
         vol = c.get('vol', '')

@@ -125,5 +125,5 @@ Kim, E.-H., & Lyon, T. P. (2015). Greenwash vs. Brownwash: Exaggeration and Undu
 Duchin, R., Gao, J., & Xu, Q. (2025). Sustainability or Greenwashing: Evidence from the Asset Market for Industrial Pollution. The Journal of Finance. https://doi.org/10.1111/jofi.13412
 Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2024). How Cheap Talk in Climate Disclosures Relates to Climate Initiatives, Corporate Emissions, and Reputation Risk. Journal of Banking & Finance, 164, 107191. https://doi.org/10.1016/j.jbankfin.2024.107191
 Chen, X., Wan, P., Ma, Z., & Yang, Y. (2024). Does corporate digital transformation restrain ESG decoupling? Evidence from China. Humanities and Social Sciences Communications. https://doi.org/10.1057/s41599-024-02921-w
-Bian, W., Wang, S., & Xie, X. (2023). How valuable is FinTech adoption for traditional banks?. European Financial Management. https://doi.org/10.1111/eufm.12424
+Bian, W., Wang, S., & Xie, X. (2023). How valuable is FinTech adoption for traditional banks? European Financial Management. https://doi.org/10.1111/eufm.12424
 <!-- rendered-citations:end -->

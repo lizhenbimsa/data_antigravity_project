@@ -131,7 +131,7 @@ Gurun, U. G., & Butler, A. W. (2012). Don't believe the hype: Local media slant,
 Coval, J. D., & Moskowitz, T. J. (1999). Home bias at home: Local equity preference in domestic portfolios. The Journal of Finance, 54(6), 2045-2073. https://doi.org/10.1111/0022-1082.00181
 Engelberg, J. E., & Parsons, C. A. (2011). The causal impact of media in financial markets. The Journal of Finance, 66(1), 67-97. https://doi.org/10.1111/j.1540-6261.2010.01626.x
 Aguirregabiria, V., Clark, R., & Wang, H. (2025). The geographic flow of bank funding and access to credit: Branch networks, synergies, and local competition. American Economic Review, 115(6), 1818-1856. https://doi.org/10.1257/aer.20200374
-Kang, B. U., & Nam, J. S. (2025). Do local newspapers matter to institutional investors?. Contemporary Accounting Research, 42(3), 1713-1743. https://doi.org/10.1111/1911-3846.13049
+Kang, B. U., & Nam, J. S. (2025). Do local newspapers matter to institutional investors? Contemporary Accounting Research, 42(3), 1713-1743. https://doi.org/10.1111/1911-3846.13049
 Kong, I., & Purves, R. S. (2026). Analyzing Geographic Bias of Newspaper Articles Reporting Global Climate Disasters. Annals of the American Association of Geographers, 116(2), 270-288. https://doi.org/10.1080/24694452.2025.2564220
 Chen, H., Chen, Y., & Li, D. (2025). Local bias under natural disasters. International Review of Finance, 25(1), e70009. https://doi.org/10.1111/irfi.70009
 Huang, Y., Li, F., Li, T., & Lin, T. (2024). Local information advantage and stock returns: Evidence from social media. Contemporary Accounting Research, 41(2), 1089-1119. https://doi.org/10.1111/1911-3846.12935

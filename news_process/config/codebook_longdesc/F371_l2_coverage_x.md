@@ -87,9 +87,9 @@ c=0.85 与紧邻的 c=0.90 共同构成梯子的"严格端"配对, 二者的对�
 由于门槛最高, 部分焦点银行在 c=0.90 下可能只剩个位数甚至零同行通过筛选, 此时应结合 `llm_peer_n_effective`(实际进入均值的面板内同行数) 与 `llm_peer_queried`(该 bank-year 是否成功完成 LLM 查证并可返回空集合) 两个诊断列联合判读: 若某 bank-year 在本列取值缺失或为退化边界值, 大概率是因为严格阈值下同行集合为空而非数据本身缺失, 不应与其他 bank-year 的正常观测值混为一谈直接纳入回归。作为敏感性梯子六档中样本支持最薄弱的一档, `llm_peer_coverage_iv_90` 在正文中通常只作为"极端严格定义下结论仍然成立"的补充证据出现, 不建议单独作为主要稳健性检验依据, 而应与 `_85` 一并解读、互相印证严格端的结论稳定性。
 
 <!-- rendered-citations:begin -->
-Cao, Y., Chen, L., Tucker, J. W., & Wan, C. (2025). Can generative AI help identify peer firms?. Review of Accounting Studies, 30(4), 3344-3386. https://doi.org/10.1007/s11142-025-09892-6
+Cao, Y., Chen, L., Tucker, J. W., & Wan, C. (2025). Can generative AI help identify peer firms? Review of Accounting Studies, 30(4), 3344-3386. https://doi.org/10.1007/s11142-025-09892-6
 Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous product differentiation. Journal of Political Economy, 124(5), 1423-1465. https://doi.org/10.1086/688176
-Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate financial policy?. The Journal of Finance, 69(1), 139-178. https://doi.org/10.1111/jofi.12094
+Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate financial policy? The Journal of Finance, 69(1), 139-178. https://doi.org/10.1111/jofi.12094
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. The Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
 Stock, J. H., & Yogo, M. (2005). Testing for weak instruments in linear IV regression. Identification and Inference for Econometric Models (Cambridge University Press). https://doi.org/10.1017/CBO9780511614491.006
 Andrews, I., Stock, J. H., & Sun, L. (2019). Weak instruments in instrumental variables regression: Theory and practice. Annual Review of Economics, 11, 727-753. https://doi.org/10.1146/annurev-economics-080218-025643

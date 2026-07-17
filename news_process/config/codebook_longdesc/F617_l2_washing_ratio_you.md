@@ -95,7 +95,7 @@ new_dois: []
 由于同句共现的判据比实体窗口更严格 (要求银行名与金科关键词落在同一句而非邻近句段), 该轨天然更容易触发回退, 在覆盖率较低的银行-年组合上 `ss_is_fallback` 比例可能偏高, 此时本列在数值上退化为 `_full` 轨的一个子集口径, 与 `_full` 高度重合是回退机制的预期结果而非计算错误。当同句共现确实存在时, `_ss` 轨给出的是三轨中语境最纯粹、噪声最小的基调信号, 因为它排除了同一段落内与银行-金科关系无关的其他句子, 仅保留银行与金科概念直接并置出现的语句。这使得 `_ss` 轨在检验"洗稿"这一构念时具有独特价值: 若一篇报道中银行与金科同句出现处语气正面, 但该正面语气对应的创新叙事被 LLM 判为象征性而非实质性, 则该证据链条比全文轨或实体窗口轨更直接地指向"标题/邻近文本层面的正面包装与内容实质脱节"这一洗稿核心特征。
 
 <!-- rendered-citations:begin -->
-You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
+You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen? The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Gorovaia, N., & Makrominas, M. (2024). Identifying greenwashing in corporate-social responsibility reports using natural-language processing. European Financial Management, 31(1), 427-462. https://doi.org/10.1111/eufm.12509
 Song, X., Hou, W., Ouyang, Z., & Hao, F. (2026). AI washing: Strategic disclosure and backlash. Finance Research Letters, 95, 109684. https://doi.org/10.1016/j.frl.2026.109684
 Fan, X., Tang, Z., Huang, W., & Yang, K. (2025). Ownership concentration and corporate greenwashing in China's capital markets- Based on a multi-actors perspective. Pacific-Basin Finance Journal, 89, 102600. https://doi.org/10.1016/j.pacfin.2024.102600

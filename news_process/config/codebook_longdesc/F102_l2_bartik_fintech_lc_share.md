@@ -118,7 +118,7 @@ shift-share 工具的一般形式为: 银行层暴露 = Σ_c (基期份额_bc ×
 Babina, T., Bahaj, S., Buchak, G., De Marco, F., Foulis, A., Gornall, W., Mazzola, F., & Yu, T. (2025). Customer data access and fintech entry: Early evidence from open banking. Journal of Financial Economics, 169, 103950. https://doi.org/10.1016/j.jfineco.2024.103950
 Vives, X., & Ye, Z. (2025). Information technology and lender competition. Journal of Financial Economics, 163, 103957. https://doi.org/10.1016/j.jfineco.2024.103957
 Adão, R., Kolesár, M., & Morales, E. (2019). Shift-share designs: Theory and inference. Quarterly Journal of Economics, 134(4), 1949-2010. https://doi.org/10.1093/qje/qjz025
-Chen, M. A., Wu, Q., & Yang, B. (2019). How valuable is FinTech innovation?. Review of Financial Studies, 32(5), 2062-2106. https://doi.org/10.1093/rfs/hhy130
+Chen, M. A., Wu, Q., & Yang, B. (2019). How valuable is FinTech innovation? Review of Financial Studies, 32(5), 2062-2106. https://doi.org/10.1093/rfs/hhy130
 Gomber, P., Kauffman, R. J., Parker, C., & Weber, B. W. (2018). On the fintech revolution: Interpreting the forces of innovation, disruption, and transformation in financial services. Journal of Management Information Systems, 35(1), 220-265. https://doi.org/10.1080/07421222.2018.1440766
 Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital finance and FinTech: Current research and future research directions. Journal of Business Economics, 87(5), 537-580. https://doi.org/10.1007/s11573-017-0852-x
 Borusyak, K., Hull, P., & Jaravel, X. (2025). A Practical Guide to Shift-Share Instruments. Journal of Economic Perspectives. https://doi.org/10.1257/jep.20231370

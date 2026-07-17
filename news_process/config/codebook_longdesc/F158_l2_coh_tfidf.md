@@ -95,6 +95,6 @@ Cohen, L., Malloy, C., & Nguyen, Q. (2020). Lazy prices. Journal of Finance, 75(
 Cohn, J. B., Liu, Z., & Wardlaw, M. I. (2022). Count (and count-like) data in finance. Journal of Financial Economics, 146(2), 529-551. https://doi.org/10.1016/j.jfineco.2022.08.004
 Beltagy, I., Peters, M. E., & Cohan, A. (2020). Longformer: The long-document transformer. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2004.05150
 Xue, X., Wang, L., & Hu, N. (2024). Economic policy uncertainty and corporate social responsibility disclosure similarity: Evidence from China. The British Accounting Review, 56(5), 101305. https://doi.org/10.1016/j.bar.2023.101305
-Zhou, Y., Fan, J., & Xue, L. (2024). How Much Can Machines Learn Finance from Chinese Text Data?. Management Science, 70(12), 8962-8987. https://doi.org/10.1287/mnsc.2022.01468
+Zhou, Y., Fan, J., & Xue, L. (2024). How Much Can Machines Learn Finance from Chinese Text Data? Management Science, 70(12), 8962-8987. https://doi.org/10.1287/mnsc.2022.01468
 Wang, Y., Ye, Q., Wang, J. J., & Wang, Y. (2023). Earnings manipulation and similarity of annual report disclosure: Evidence from China. Accounting & Finance, 63(S1), 1137-1156. https://doi.org/10.1111/acfi.13076
 <!-- rendered-citations:end -->

@@ -145,6 +145,6 @@ Hoberg, G., & Phillips, G. (2016). Text-Based Network Industries and Endogenous 
 Arts, S., Cassiman, B., & Hou, J. (2025). Technology Differentiation, Product Market Rivalry, and M&A Transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687
 Haans, R. F. J. (2019). What's the Value of Being Different When Everyone Is? The Effects of Distinctiveness on Performance in Homogeneous versus Heterogeneous Categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978
 Rodriguez, P. L., & Spirling, A. (2022). Word Embeddings: What Works, What Doesn't, and How to Tell the Difference for Applied Research. The Journal of Politics, 84(1), 101-115. https://doi.org/10.1086/715162
-Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity?. Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526
+Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526
 <!-- rendered-citations:end -->
 </content>

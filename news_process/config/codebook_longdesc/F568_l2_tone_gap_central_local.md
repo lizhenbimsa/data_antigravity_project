@@ -109,7 +109,7 @@ full 轨的另一层特殊性在于其样本行集合本身定义了留篇门控
 从构念严格性角度看, ss 轨可视为三轨中对"该文章是否真的在同时谈论目标银行与金融科技业务"这一前提要求最苛刻的一支: full 轨只要求文章整体与银行相关 (经 stage 13 共现硬过滤), ctx 轨要求实体窗口可物化, 而 ss 轨要求银行与金科关键词在同一句内共现, 三者构成一条构念严格性递增的谱系。因此 ss 轨的中央/地方语调缺口更适合被解读为"在银行与金科业务紧密交织的叙事片段中, 中央级与地方级媒体语调是否存在系统性差异", 而非泛化到该银行的全部报道语境。由于 ss 轨样本行是 full 轨留篇集合与同句共现条件的双重交集, 其分组样本量在三轨中通常最小, 使用者在解读该列的极端值或符号翻转时应格外谨慎核对分组样本量, 避免将小样本噪声误读为层级捕获强度的真实变化; 该列与 ctx/full 两轨的差异应始终作为规格稳健性并排报告, 不设主次、不建立跨轨加权合成指标。
 
 <!-- rendered-citations:begin -->
-You, J., Zhang, B., & Zhang, L. (2018). Who Captures the Power of the Pen?. Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
+You, J., Zhang, B., & Zhang, L. (2018). Who Captures the Power of the Pen? Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media Sentiment, Deposit Stability and Bank Systemic Risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
 Xu, Z., Hua, X., & Zhang, T. (2025). Does Official Media Sentiment Matter for the Stock Market? Evidence from China. Emerging Markets Review, 64, 101234. https://doi.org/10.1016/j.ememar.2024.101234

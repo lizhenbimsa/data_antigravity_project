@@ -237,6 +237,6 @@ Seidman, S. B. (1983). Network structure and minimum degree. Social Networks, 5(
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
 Klaucke, K. (2025). Text Spillover: Measuring connectedness of financial institutions based on news text data. The North American Journal of Economics and Finance. https://doi.org/10.1016/j.najef.2024.102307
 Xu, G. (2024). News Bias in Financial Journalists' Social Networks. Journal of Accounting Research. https://doi.org/10.1111/1475-679X.12560
-Ren, J., & Tang, L. (2025). Interconnected bank networks: Shock amplifiers or absorbers in the financial system?. International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2025.103979
+Ren, J., & Tang, L. (2025). Interconnected bank networks: Shock amplifiers or absorbers in the financial system? International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2025.103979
 Xiang, Y., & Borjigin, S. (2025). Analyst Network: Implications for Systemic Risk of Non-Financial Firms in China. Emerging Markets Finance and Trade. https://doi.org/10.1080/1540496x.2025.2562336
 <!-- rendered-citations:end -->

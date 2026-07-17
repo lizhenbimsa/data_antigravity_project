@@ -133,8 +133,8 @@ Hahn, J., Kuersteiner, G., Santos, A., & Willigrod, W. (2024). Overidentificatio
 Borusyak, K., Hull, P., & Jaravel, X. (2022). Quasi-experimental shift-share research designs. Review of Economic Studies, 89(1), 181-213. https://doi.org/10.1093/restud/rdab030
 Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik instruments: What, when, why, and how. American Economic Review, 110(8), 2586-2624. https://doi.org/10.1257/aer.20181047
 Adão, R., Kolesár, M., & Morales, E. (2019). Shift-share designs: Theory and inference. Quarterly Journal of Economics, 134(4), 1949-2010. https://doi.org/10.1093/qje/qjz025
-Guiso, L., Sapienza, P., & Zingales, L. (2004). Does local financial development matter?. Quarterly Journal of Economics, 119(3), 929-969. https://doi.org/10.1162/0033553041502162
+Guiso, L., Sapienza, P., & Zingales, L. (2004). Does local financial development matter? Quarterly Journal of Economics, 119(3), 929-969. https://doi.org/10.1162/0033553041502162
 Coval, J. D., & Moskowitz, T. J. (1999). Home bias at home: Local equity preference in domestic portfolios. Journal of Finance, 54(6), 2045-2073. https://doi.org/10.1111/0022-1082.00181
-Bartik, T. J. (1991). Who benefits from state and local economic development policies?. W.E. Upjohn Institute for Employment Research. https://doi.org/10.17848/9780585223940
+Bartik, T. J. (1991). Who benefits from state and local economic development policies? W.E. Upjohn Institute for Employment Research. https://doi.org/10.17848/9780585223940
 Ma, Z., Stice, D., Stice, H., & Zhang, Y. (2025). Local newspaper closures and bank loan contracts. Contemporary Accounting Research. https://doi.org/10.1111/1911-3846.13046
 <!-- rendered-citations:end -->

@@ -103,5 +103,5 @@ Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment: Machine learn
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 van Atteveldt, W., van der Velden, M. A. C. G., & Boukes, M. (2021). The validity of sentiment analysis: Comparing manual annotation, crowd-coding, dictionary approaches, and machine learning algorithms. Communication Methods and Measures, 15(2), 121-140. https://doi.org/10.1080/19312458.2020.1869198
 Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financial sentiment dictionary for textual analysis in accounting and finance. SSRN Working Paper No. No. 3446388 [Working Paper]. https://doi.org/10.2139/ssrn.3446388
-Meng, Q., Du, X., & Gong, X. (2024). Does operational disclosure curb textual tone manipulation by corporate management?. China Journal of Accounting Studies, 12(2), 247-275. https://doi.org/10.1080/21697213.2024.2337262
+Meng, Q., Du, X., & Gong, X. (2024). Does operational disclosure curb textual tone manipulation by corporate management? China Journal of Accounting Studies, 12(2), 247-275. https://doi.org/10.1080/21697213.2024.2337262
 <!-- rendered-citations:end -->

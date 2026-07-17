@@ -128,6 +128,6 @@ Borusyak, K., Hull, P., & Jaravel, X. (2022). Quasi-experimental shift-share res
 Lee, D. S., McCrary, J., Moreira, M. J., & Porter, J. (2022). Valid t-ratio inference for IV. American Economic Review, 112(10), 3260-3290. https://doi.org/10.1257/aer.20211063
 Adão, R., Kolesár, M., & Morales, E. (2019). Shift-share designs: Theory and inference. Quarterly Journal of Economics, 134(4), 1949-2010. https://doi.org/10.1093/qje/qjz025
 Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik instruments: What, when, why, and how. American Economic Review, 110(8), 2586-2624. https://doi.org/10.1257/aer.20181047
-Bartik, T. J. (1991). Who benefits from state and local economic development policies?. W.E. Upjohn Institute for Employment Research. https://doi.org/10.17848/9780585223940
+Bartik, T. J. (1991). Who benefits from state and local economic development policies? W.E. Upjohn Institute for Employment Research. https://doi.org/10.17848/9780585223940
 Borusyak, K., Hull, P., & Jaravel, X. (2024). Design-based identification with formula instruments: a review. The Econometrics Journal. https://doi.org/10.1093/ectj/utae003
 <!-- rendered-citations:end -->

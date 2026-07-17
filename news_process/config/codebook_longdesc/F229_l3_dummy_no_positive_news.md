@@ -78,7 +78,7 @@ new_dois: []
 <!-- rendered-citations:begin -->
 Heese, J., Pérez-Cavazos, G., & Peter, C. D. (2022). When the local newspaper leaves town: The effects of local newspaper closures on corporate misconduct. Journal of Financial Economics, 145(2), 445-463. https://doi.org/10.1016/j.jfineco.2021.08.015
 Gao, P., Lee, C., & Murphy, D. (2020). Financing dies in darkness? The impact of newspaper closures on public finance. Journal of Financial Economics, 135(2), 445-467. https://doi.org/10.1016/j.jfineco.2019.06.003
-Fedyk, A., & Hodson, J. (2023). When can the market identify old news?. Journal of Financial Economics, 149(1), 92-113. https://doi.org/10.1016/j.jfineco.2023.04.008
+Fedyk, A., & Hodson, J. (2023). When can the market identify old news? Journal of Financial Economics, 149(1), 92-113. https://doi.org/10.1016/j.jfineco.2023.04.008
 Shapiro, A. H., Sudhof, M., & Wilson, D. J. (2022). Measuring news sentiment. Journal of Econometrics, 228(2), 221-243. https://doi.org/10.1016/j.jeconom.2020.07.053
 Kim, J.-B., Tseng, K., Wang, J. (., & Xi, Y. (2024). Policy uncertainty, bad news disclosure, and stock price crash risk. Journal of Empirical Finance, 78, 101512. https://doi.org/10.1016/j.jempfin.2024.101512
 <!-- rendered-citations:end -->

@@ -96,5 +96,5 @@ Tetlock, Paul C. (2007). Giving Content to Investor Sentiment: The Role of Media
 Shapiro, A. H.; Sudhof, M.; Wilson, D. J. (2022). Measuring news sentiment. Journal of Econometrics, 228(2), 221-243. https://doi.org/10.1016/j.jeconom.2020.07.053
 Aksoy-Yurdagul, D.; Buchner, A.; Zareei, A. (2026). The persistence of news sentiment: Implications for return predictability. Economics Letters, 260, Article 112803. https://doi.org/10.1016/j.econlet.2025.112803
 Pham, H. (2026). From ESG noise to firm-specific risk: Adverse ESG sentiment trajectories and idiosyncratic volatility. Borsa Istanbul Review, 100863. https://doi.org/10.1016/j.bir.2026.100863
-Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S. (2026). Does media sentiment influence bank supervision?. Journal of Financial Stability, 84, 101538. https://doi.org/10.1016/j.jfs.2026.101538
+Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S. (2026). Does media sentiment influence bank supervision? Journal of Financial Stability, 84, 101538. https://doi.org/10.1016/j.jfs.2026.101538
 <!-- rendered-citations:end -->

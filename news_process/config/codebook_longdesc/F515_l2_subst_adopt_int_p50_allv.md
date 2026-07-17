@@ -127,7 +127,7 @@ new_dois: []
 <!-- rendered-citations:begin -->
 Westphal, J. D., & Zajac, E. J. (1994). Substance and Symbolism in CEOs' Long-Term Incentive Plans. Administrative Science Quarterly, 39(3), 367-390. https://doi.org/10.2307/2393295
 Fiss, P. C., & Zajac, E. J. (2006). The Symbolic Management of Strategic Change - Sensegiving via Framing and Decoupling. Academy of Management Journal, 49(6), 1173-1193. https://doi.org/10.5465/amj.2006.23478255
-Kutzbach, M. J., & Pogach, J. (2024). Financial Technology and Relationship Lending: Complements or Substitutes?. Journal of Financial Intermediation, 59, Article 101101. https://doi.org/10.1016/j.jfi.2024.101101
+Kutzbach, M. J., & Pogach, J. (2024). Financial Technology and Relationship Lending: Complements or Substitutes? Journal of Financial Intermediation, 59, Article 101101. https://doi.org/10.1016/j.jfi.2024.101101
 Duchin, R., Gao, J., & Xu, Q. (2025). Sustainability or Greenwashing: Evidence from the Asset Market for Industrial Pollution. The Journal of Finance. https://doi.org/10.1111/jofi.13412
 Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2024). How Cheap Talk in Climate Disclosures Relates to Climate Initiatives, Corporate Emissions, and Reputation Risk. Journal of Banking & Finance, 164, Article 107191. https://doi.org/10.1016/j.jbankfin.2024.107191
 Xu, F. (2026). Bank FinTech Intensity and Financial Performance: Text-Based Evidence from European Banks. SSRN No. 6922688 [Working Paper]. https://doi.org/10.2139/ssrn.6922688

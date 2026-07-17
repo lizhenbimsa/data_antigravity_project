@@ -194,5 +194,5 @@ Beltran, A., Guariso, D., & Guerrero, O. A. (2026). Paying the piper: government
 Soebhag, A., Van Vliet, B., & Verwijmeren, P. (2024). Non-standard errors in asset pricing: Mind your sorts. Journal of Empirical Finance, 78, 101517. https://doi.org/10.1016/j.jempfin.2024.101517
 Merkus, E. (2024). Gravity Models in International Trade: A Specification Curve Analysis. Journal of Industry, Competition and Trade, 24(1), 17. https://doi.org/10.1007/s10842-024-00426-5
 Yan, L., Ma, Y., Li, C., & Tang, G. (2024). Media abnormal tone and cross section of stock returns: Evidence from China. Accounting & Finance, 64(3), 2671-2698. https://doi.org/10.1111/acfi.13230
-Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S. (2026). Does media sentiment influence bank supervision?. Journal of Financial Stability, 84, 101538. https://doi.org/10.1016/j.jfs.2026.101538
+Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S. (2026). Does media sentiment influence bank supervision? Journal of Financial Stability, 84, 101538. https://doi.org/10.1016/j.jfs.2026.101538
 <!-- rendered-citations:end -->

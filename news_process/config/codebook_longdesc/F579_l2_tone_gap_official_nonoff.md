@@ -117,7 +117,7 @@ tone_gap_official_nonoff 家族刻画同一银行同一年度内, 官方媒体 (
 与 ctx 轨类似, ss 轨的官方组/非官方组样本量在理论上不超过 full 轨对应组样本量, 缺口来自两部分: 一是文章通过留篇门控但未能产出 llm_vote_score_ss(极少见, 因回退机制已保证绝大多数情形下该列有值); 二是回退产生的观测虽然计入分母但其底层文本已退化为全文, 使得该文章在 ss 轨的语调贡献在信息内容上趋近于 full 轨而非严格意义上的"同句窗口"语调。解读 tone_gap_official_nonoff_ss 时应留意, 当某银行某年该银行∧金科关键词的同句共现比例很低(即回退比例高)时, ss 轨与 full 轨的数值会天然趋同, 这属于回退机制的预期行为, 不应被误读为"同句窗口未能捕捉到额外信息"。
 
 <!-- rendered-citations:begin -->
-You, J., Zhang, B., & Zhang, L. (2018). Who Captures the Power of the Pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
+You, J., Zhang, B., & Zhang, L. (2018). Who Captures the Power of the Pen? The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Piotroski, J. D., Wong, T. J., & Zhang, T. (2015). Political Incentives to Suppress Negative Information: Evidence from Chinese Listed Firms. Journal of Accounting Research, 53(2), 405-459. https://doi.org/10.1111/1475-679X.12071
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
 Xu, Z., Hua, X., & Zhang, T. (2025). Does Official Media Sentiment Matter for the Stock Market? Evidence from China. Emerging Markets Review, 64, 101234. https://doi.org/10.1016/j.ememar.2024.101234

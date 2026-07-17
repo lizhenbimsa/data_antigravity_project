@@ -108,10 +108,10 @@ token_adopt_int_p25_ss 是三轨体系中的 ss (same-sentence) 轨变体, 其�
 <!-- rendered-citations:begin -->
 Fang, Y., Wang, Q., Wang, F., & Zhao, Y. (2023). Bank Fintech, Liquidity Creation, and Risk-Taking: Evidence from China. Economic Modelling, 127, 106445. https://doi.org/10.1016/j.econmod.2023.106445
 Lee, C.-C., Li, X., Yu, C.-H., & Zhao, J. (2021). Does Fintech Innovation Improve Bank Efficiency? Evidence from China's Banking Industry. International Review of Economics & Finance, 74, 468-483. https://doi.org/10.1016/j.iref.2021.03.009
-Boot, A. W. A. (2000). Relationship Banking: What Do We Know?. Journal of Financial Intermediation, 9(1), 7-25. https://doi.org/10.1006/jfin.2000.0282
+Boot, A. W. A. (2000). Relationship Banking: What Do We Know? Journal of Financial Intermediation, 9(1), 7-25. https://doi.org/10.1006/jfin.2000.0282
 Adner, R., & Kapoor, R. (2010). Value Creation in Innovation Ecosystems: How the Structure of Technological Interdependence Affects Firm Performance in New Technology Generations. Strategic Management Journal, 31(3), 306-333. https://doi.org/10.1002/smj.821
 Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital Finance and FinTech: Current Research and Future Research Directions. Journal of Business Economics, 87(5), 537-580. https://doi.org/10.1007/s11573-017-0852-x
 Todd, A., Bowden, J., & Moshfeghi, Y. (2024). Text-Based Sentiment Analysis in Finance: Synthesising the Existing Literature and Exploring Future Directions. Intelligent Systems in Accounting, Finance and Management, 31(1), e1549. https://doi.org/10.1002/isaf.1549
 Sun, Z., Liu, L., Johan, S., & Zhao, L. (2025). FinTech Adoption and Corporate Greenwashing: A Technology Affordance Perspective. British Journal of Management. https://doi.org/10.1111/1467-8551.12879
-Wang, Z., & Tang, P. (2024). Substantive digital innovation or symbolic digital innovation: Which type of digital innovation is more conducive to corporate ESG performance?. International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2024.05.023
+Wang, Z., & Tang, P. (2024). Substantive digital innovation or symbolic digital innovation: Which type of digital innovation is more conducive to corporate ESG performance? International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2024.05.023
 <!-- rendered-citations:end -->

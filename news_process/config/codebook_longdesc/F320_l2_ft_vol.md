@@ -151,6 +151,6 @@ Manski, C. F. (1993). Identification of Endogenous Social Effects: The Reflectio
 Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of Peer Effects through Social Networks. Journal of Econometrics, 150(1), 41-55. https://doi.org/10.1016/j.jeconom.2008.12.021
 Chen, R., Huang, J., Jin, C., Yang, Y., & Chen, B. (2023). Multidimensional attention to Fintech, trading behavior and stock returns. International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2022.09.007
 Chen, D., & Zhang, Q. (2025). Media attention and corporate digital transformation. International Review of Economics & Finance, 102, 104288. https://doi.org/10.1016/j.iref.2025.104288
-Ashwin, J. (2024). Financial news media and volatility: Is there more to newspapers than news?. Journal of Financial Markets, 69, 100896. https://doi.org/10.1016/j.finmar.2024.100896
+Ashwin, J. (2024). Financial news media and volatility: Is there more to newspapers than news? Journal of Financial Markets, 69, 100896. https://doi.org/10.1016/j.finmar.2024.100896
 deHaan, E., Lawrence, A., & Litjens, R. (2025). Measuring Investor Attention Using Google Search. Management Science, 71(7), 6275-6297. https://doi.org/10.1287/mnsc.2022.02174
 <!-- rendered-citations:end -->

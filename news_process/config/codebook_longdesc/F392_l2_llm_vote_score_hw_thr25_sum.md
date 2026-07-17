@@ -89,7 +89,7 @@ new_dois: []
 本列是 ss 轨道 (标题 + 银行∧金科同句 ±N 窗口文本) 上的 τ=0.25 抄稿衰减加权语调和。其文本构造判据与 ctx 轨不同: ss 要求银行实体与金科关键词在同一句 (或配置的 ±N 句窗口, 默认半径 1) 内共现才纳入窗口文本, 若某篇留篇文章不存在这种同句共现, `content_ss` 回退为全文 body 且置 `ss_is_fallback=True`, 该回退语义与 ctx 轨镜像一致 (回退时的分母与 full 轨共享 `n_articles` 口径)。抄稿相似度聚类 (stage 24) 与 LLM 语调判定均在这一 ss 专属文本上进行, 因此即便某文章在 full/ctx/ss 三轨下都被判定为留篇, 三轨各自的 `herd_weight_thr25` 取值及所属抄稿群划分也可能互不相同, 导致本列的求和结果与 full/ctx 两个变体在数值上不必然一致, 也不构成对彼此的加总或替代。ss 轨样本行宇宙同样是 full 轨留篇集合的子集 (conditional-on-full), 不独立扩展。本列与 ctx/full 两变体、以及同一 ss 轨下基线阈值 τ=0.35 与其余敏感性阈值的同名列, 均各自 just-identified 并排, 互为稳健性观察, 禁止混入同一个 over-identified Hansen J 或联合矩条件检验框架中联合估计。由于 ss 判据 (同句共现) 比 ctx 判据 (实体窗口) 更严格, 当研究者观察到 ss 轨回退比例 (`ss_is_fallback` 占比) 偏高时, 应结合 full 轨结果交叉核对, 避免把"回退样本占主导"误读为"同句共现结构本身的语调效应"。
 
 <!-- rendered-citations:begin -->
-You, J., Zhang, B., & Zhang, L. (2018). Who Captures the Power of the Pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
+You, J., Zhang, B., & Zhang, L. (2018). Who Captures the Power of the Pen? The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Fang, L., & Peress, J. (2009). Media Coverage and the Cross-Section of Stock Returns. The Journal of Finance, 64(5), 2023-2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x
 de Kok, T. (2025). ChatGPT for Textual Analysis? How to Use Generative LLMs in Accounting Research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
 Kamen, A., & Kamen, Y. (2025). Majority Rules: LLM Ensemble is a Winning Approach for Content Categorization. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2511.15714

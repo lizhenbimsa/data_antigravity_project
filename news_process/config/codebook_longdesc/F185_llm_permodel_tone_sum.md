@@ -151,7 +151,7 @@ Carlson, N. A., & Burbano, V. (2026). The use of LLMs to annotate data in manage
 Hansen, A. L. (2026). Validating large language model annotations. FEDS Working Paper No. 2026-020, Federal Reserve Board [Working Paper]. https://doi.org/10.17016/FEDS.2026.020
 de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. Management Science, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
 Ludwig, J., Mullainathan, S., & Rambachan, A. (2025). Large language models: An applied econometric framework. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2412.07031
-Kirtac, K., & Germano, G. (2025). Large language models in finance: What is financial sentiment?. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2503.03612
+Kirtac, K., & Germano, G. (2025). Large language models in finance: What is financial sentiment? arXiv [Preprint]. https://doi.org/10.48550/arXiv.2503.03612
 Gilardi, F., Alizadeh, M., & Kubli, M. (2023). ChatGPT outperforms crowd workers for text-annotation tasks. Proceedings of the National Academy of Sciences, 120(30), e2305016120. https://doi.org/10.1073/pnas.2305016120
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing enthusiasm: Media sentiment and the disciplining role of quarterly earnings announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
 Lopez-Lira, A., & Tang, Y. (2023). Can ChatGPT forecast stock price movements? Return predictability and large language models. SSRN Working Paper No. 4412788 [Working Paper]. https://doi.org/10.2139/ssrn.4412788

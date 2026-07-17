@@ -205,7 +205,7 @@ Yang, X., Liu, Z., Li, J., & Xie, Q. (2023). Communities of co-occurrence networ
 Cookson, J. A., Fox, C., Gil-Bazo, J., Imbet, J. F., & Schiller, C. (2026). Social media as a bank run catalyst. Journal of Financial Economics, 176, 104218. https://doi.org/10.1016/j.jfineco.2025.104218
 Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm performance: A meta-analysis. Journal of the Academy of Marketing Science, 53(1), 79-104. https://doi.org/10.1007/s11747-024-01043-8
 Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223
-Xu, Y., & Zhao, X. (2024). How does node centrality in a financial network affect asset price prediction?. The North American Journal of Economics and Finance, 73, 102163. https://doi.org/10.1016/j.najef.2024.102163
+Xu, Y., & Zhao, X. (2024). How does node centrality in a financial network affect asset price prediction? The North American Journal of Economics and Finance, 73, 102163. https://doi.org/10.1016/j.najef.2024.102163
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Grieser, W., Hadlock, C., LeSage, J., & Zekhnini, M. (2022). Network effects in corporate financial policies. Journal of Financial Economics, 144(1), 247-272. https://doi.org/10.1016/j.jfineco.2021.05.060
 Jackson, M. O., & Pernoud, A. (2021). Systemic risk in financial networks: A survey. Annual Review of Economics, 13, 171-202. https://doi.org/10.1146/annurev-economics-083120-111540
@@ -216,6 +216,6 @@ Romano, J. P., & Wolf, M. (2005). Stepwise multiple testing as formalized data s
 Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
 Sánchez García, J., & Cruz Rambaud, S. (2023). The network econometrics of financial concentration. Review of Managerial Science. https://doi.org/10.1007/s11846-023-00689-y
-Metelski, D., & Sobieraj, J. (2024). Trading Volume Concentration across S&P 500 Index Constituents—A Gini-Based Analysis and Concentration-Driven (Daily Rebalanced) Portfolio Performance Evaluation: Is Chasing Concentration Profitable?. Journal of Risk and Financial Management. https://doi.org/10.3390/jrfm17080325
+Metelski, D., & Sobieraj, J. (2024). Trading Volume Concentration across S&P 500 Index Constituents—A Gini-Based Analysis and Concentration-Driven (Daily Rebalanced) Portfolio Performance Evaluation: Is Chasing Concentration Profitable? Journal of Risk and Financial Management. https://doi.org/10.3390/jrfm17080325
 Mao, Y.-R., Shi, H.-L., Chen, H., & Wan, Y.-L. (2025). Detecting cross-firm momentum effects via shared analyst coverage: The role of leaders. Journal of International Financial Markets, Institutions and Money. https://doi.org/10.1016/j.intfin.2025.102237
 <!-- rendered-citations:end -->

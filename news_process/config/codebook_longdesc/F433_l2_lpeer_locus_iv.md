@@ -111,7 +111,7 @@ F433 属 P4 (bank_fintech_locus, Gomber 谱系) 识别策略工具变量族, 是
 
 <!-- rendered-citations:begin -->
 Manski, C. F. (1993). Identification of Endogenous Social Effects: The Reflection Problem. The Review of Economic Studies, 60(3), 531-542. https://doi.org/10.2307/2298123
-Leary, M. T., & Roberts, M. R. (2014). Do Peer Firms Affect Corporate Financial Policy?. The Journal of Finance, 69(1), 139-178. https://doi.org/10.1111/jofi.12094
+Leary, M. T., & Roberts, M. R. (2014). Do Peer Firms Affect Corporate Financial Policy? The Journal of Finance, 69(1), 139-178. https://doi.org/10.1111/jofi.12094
 Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik Instruments: What, When, Why, and How. American Economic Review, 110(8), 2586-2624. https://doi.org/10.1257/aer.20181047
 Gomber, P., Koch, J.-A., & Siering, M. (2017). Digital Finance and FinTech: Current Research and Future Research Directions. Journal of Business Economics, 87(5), 537-580. https://doi.org/10.1007/s11573-017-0852-x
 Borusyak, K., Hull, P., & Jaravel, X. (2022). Quasi-Experimental Shift-Share Research Designs. The Review of Economic Studies, 89(1), 181-213. https://doi.org/10.1093/restud/rdab030

@@ -98,6 +98,6 @@ Bernard, D., Blankespoor, E., de Kok, T., & Toynbee, S. (2026). Using GPT to mea
 Lesmy, D., Muchnik, L., & Mugerman, Y. (2025). Lost in the fog: Growing complexity in financial reporting—A comparative study. Humanities and Social Sciences Communications, 12, 843. https://doi.org/10.1057/s41599-025-06094-y
 Loughran, T., & McDonald, B. (2024). Measuring firm complexity. Journal of Financial and Quantitative Analysis, 59(6), 2487-2514. https://doi.org/10.1017/S0022109023000716
 Yu, W., & Zhao, G. (2024). Textual disclosure complexity and analysts' weighting of information. Journal of Contemporary Accounting & Economics, 20(1), 100395. https://doi.org/10.1016/j.jcae.2023.100395
-Bushee, B. J., Gow, I. D., & Taylor, D. J. (2018). Linguistic complexity in firm disclosures: Obfuscation or information?. Journal of Accounting Research, 56(1), 85-121. https://doi.org/10.1111/1475-679X.12179
+Bushee, B. J., Gow, I. D., & Taylor, D. J. (2018). Linguistic complexity in firm disclosures: Obfuscation or information? Journal of Accounting Research, 56(1), 85-121. https://doi.org/10.1111/1475-679X.12179
 You, H., & Zhang, X.-J. (2009). Financial reporting complexity and investor underreaction to 10-K information. Review of Accounting Studies, 14(4), 559-586. https://doi.org/10.1007/s11142-008-9083-2
 <!-- rendered-citations:end -->

@@ -294,7 +294,7 @@ Nezami, M., Chisam, N., & Palmatier, R. W. (2025). Network centrality and firm p
 Park, C. (2026). Network centrality drives optimal protection investment against systemic risk propagation in complex systems. Scientific Reports. https://doi.org/10.1038/s41598-025-34645-5
 Petersen, A. M. (et al.). (2025). University digital media co-occurrence networks reveal structure and dynamics of brand visibility in the attention economy. Humanities and Social Sciences Communications. https://doi.org/10.1057/s41599-025-04419-5
 Yu, M., Hu, X., & Zhong, A. (2024). Network centrality, information diffusion and asset pricing. International Review of Financial Analysis, 93, 103223. https://doi.org/10.1016/j.irfa.2024.103223
-Xu, Y., & Zhao, X. (2024). How does node centrality in a financial network affect asset price prediction?. The North American Journal of Economics and Finance, 73, 102163. https://doi.org/10.1016/j.najef.2024.102163
+Xu, Y., & Zhao, X. (2024). How does node centrality in a financial network affect asset price prediction? The North American Journal of Economics and Finance, 73, 102163. https://doi.org/10.1016/j.najef.2024.102163
 Boucher, V., Rendall, M., Ushchev, P., & Zenou, Y. (2024). Toward a general theory of peer effects. Econometrica, 92(2), 543-565. https://doi.org/10.3982/ECTA21048
 Grieser, W., Hadlock, C., LeSage, J., & Zekhnini, M. (2022). Network effects in corporate financial policies. Journal of Financial Economics, 144(1), 247-272. https://doi.org/10.1016/j.jfineco.2021.05.060
 Jackson, M. O., & Pernoud, A. (2021). Systemic risk in financial networks: A survey. Annual Review of Economics, 13, 171-202. https://doi.org/10.1146/annurev-economics-083120-111540
@@ -313,6 +313,6 @@ Seidman, S. B. (1983). Network structure and minimum degree. Social Networks, 5(
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
 Bonacich, P. (1972). Factoring and weighting approaches to status scores and clique identification. The Journal of Mathematical Sociology, 2(1), 113-120. https://doi.org/10.1080/0022250X.1972.9989806
 Wu, Y., Ding, L., Li, N., & Yu, X. (2024). Unveiling the influence of global innovation networks on corporate innovation: evidence from the international semiconductor industry. Scientific Reports. https://doi.org/10.1038/s41598-024-61511-7
-Iqbal, M. S., Bashir, Z., Usman, M., Sabir, S. A., & Sair, S. A. (2025). Webs of influence: Do institutional networks enhance or distort stock price efficiency?. Review of Behavioral Finance. https://doi.org/10.1108/rbf-01-2025-0038
+Iqbal, M. S., Bashir, Z., Usman, M., Sabir, S. A., & Sair, S. A. (2025). Webs of influence: Do institutional networks enhance or distort stock price efficiency? Review of Behavioral Finance. https://doi.org/10.1108/rbf-01-2025-0038
 Alamsyah, A., Ramadhani, D. P., Kristanti, F. T., Nasution, A. H., Mohamad, M. S., Sokkalingam, R., Widiyanesti, S., & Saputra, M. A. A. (2025). Deciphering news sentiment and stock price relationships in Indonesian companies: an AI-based exploration of industry affiliation and news co-occurrence. Discover Artificial Intelligence. https://doi.org/10.1007/s44163-025-00350-5
 <!-- rendered-citations:end -->

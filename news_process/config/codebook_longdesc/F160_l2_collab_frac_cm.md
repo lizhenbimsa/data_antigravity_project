@@ -130,7 +130,7 @@ Chen, X., Yang, Y., & Wei, J. (2025). How do new ventures thrive in ecosystem ve
 Hau, H., Huang, Y., Lin, C., Shan, H., Sheng, Z., & Wei, L. (2024). FinTech credit and entrepreneurial growth. Journal of Finance, 79(5), 3309-3359. https://doi.org/10.1111/jofi.13384
 Zhang, H., Ma, Z., Liang, X., & Garrett, T. C. (2024). Antecedents and outcomes of open innovation over the past 20 years: A framework and meta-analysis. Journal of Product Innovation Management, 41(4), 793-815. https://doi.org/10.1111/jpim.12710
 Puri, M., Qian, Y., & Zheng, X. (2024). From competitors to partners: Banks' venture investments in fintech. NBER Working Paper No. 33297 [Working Paper]. https://doi.org/10.3386/w33297
-Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate financial policy?. Journal of Finance, 69(1), 139-178. https://doi.org/10.1111/jofi.12094
+Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate financial policy? Journal of Finance, 69(1), 139-178. https://doi.org/10.1111/jofi.12094
 Laursen, K., & Salter, A. (2006). Open for innovation: The role of openness in explaining innovation performance among U.K. manufacturing firms. Strategic Management Journal, 27(2), 131-150. https://doi.org/10.1002/smj.507
 Hagedoorn, J. (2002). Inter-firm R&D partnerships: An overview of major trends and patterns since 1960. Research Policy, 31(4), 477-492. https://doi.org/10.1016/S0048-7333(01)00120-2
 <!-- rendered-citations:end -->

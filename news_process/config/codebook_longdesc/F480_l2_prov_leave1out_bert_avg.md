@@ -118,5 +118,5 @@ Chen, Q., Goldstein, I., Huang, Z., & Vashishtha, R. (2022). Bank transparency a
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk: Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Frandsen, B., Leslie, E., & McIntyre, S. (2025). Cluster Jackknife Instrumental Variables Estimation. Review of Economics and Statistics, 1-19. https://doi.org/10.1162/rest.a.263
 Ellis, C., & Jaspersen, J. G. (2024). Fixed Effects and the "Leave-Out'' Instrument. SSRN Electronic Journal No. 4787799 [Working Paper]. https://doi.org/10.2139/ssrn.4787799
-Bobrov, A., Kamdar, R., & Ulate, M. (2025). Regional Dissent: Do Local Economic Conditions Influence FOMC Votes?. American Economic Review: Insights, 7(2), 268-284. https://doi.org/10.1257/aeri.20240184
+Bobrov, A., Kamdar, R., & Ulate, M. (2025). Regional Dissent: Do Local Economic Conditions Influence FOMC Votes? American Economic Review: Insights, 7(2), 268-284. https://doi.org/10.1257/aeri.20240184
 <!-- rendered-citations:end -->

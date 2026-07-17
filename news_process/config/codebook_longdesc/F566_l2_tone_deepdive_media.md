@@ -115,7 +115,7 @@ Guest, N. M. (2021). The information role of the media in earnings news. Journal
 Tetlock, P. C. (2007). Giving content to investor sentiment; The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 Fang, Y., Wang, Q., Wang, Y., & Yuan, Y. (2024). Media sentiment, deposit stability and bank systemic risk; Evidence from China. International Review of Economics & Finance, 91, 1150-1172. https://doi.org/10.1016/j.iref.2024.01.067
 Holzman, E. R., Miller, B. P., & Twedt, B. J. (2023). Curbing enthusiasm; Media sentiment and the disciplining role of quarterly earnings announcements. The Accounting Review, 98(7), 315-345. https://doi.org/10.2308/TAR-2020-0104
-You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
+You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen? The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Zhang, Z., & Shen, D. (2024). Not all the news fitting to reprint: Evidence from price-volume relationship. Finance Research Letters, 62, 105128. https://doi.org/10.1016/j.frl.2024.105128
 Hua, X., Dong, D., Xu, Z., & Huang, W. (2025). Official media sentiments toward energy and equity returns: Evidence from China. Energy, 340, 139126. https://doi.org/10.1016/j.energy.2025.139126
 <!-- rendered-citations:end -->

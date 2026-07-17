@@ -293,5 +293,5 @@ Manski, C. F. (1993). Identification of endogenous social effects: The reflectio
 Freeman, L. C. (1978). Centrality in social networks conceptual clarification. Social Networks, 1(3), 215-239. https://doi.org/10.1016/0378-8733(78)90021-7
 Yang, X., Liu, Z., Li, J., & Xie, Q. (2023). Communities of co-occurrence network of financial firms in news. Procedia Computer Science. https://doi.org/10.1016/j.procs.2023.08.056
 Rojas Rincón, J. S., Acosta-Prado, J. C., & Castellanos Narciso, J. E. (2025). A Bibliometric Analysis on Network-Based Systemic Risk. Risks. https://doi.org/10.3390/risks13110210
-Zhu, B., Hu, X., Deng, Y., & Lin, R. (2023). Systemic risk prevention policies targeting systemically important banks: Does clustering pattern matter?. PLOS ONE. https://doi.org/10.1371/journal.pone.0284861
+Zhu, B., Hu, X., Deng, Y., & Lin, R. (2023). Systemic risk prevention policies targeting systemically important banks: Does clustering pattern matter? PLOS ONE. https://doi.org/10.1371/journal.pone.0284861
 <!-- rendered-citations:end -->

@@ -108,11 +108,11 @@ you_2018 词典法源自 You, Zhang & Zhang (2018, *The Review of Financial Stud
 由于 ss 轨判据最严格, 触发回退的比例 (`ss_is_fallback` 占比) 通常高于 ctx 轨的实体窗口提取失败率, 这意味着本列在多数银行-年样本中相当一部分篇目实际以全文 body 计入 (回退状态), 只有真正存在银行∧金科同句共现的篇目才使用真正窄化的同句窗口文本。因此本列的经济学解读应区分两类贡献: 非回退篇目反映「银行与金融科技交集叙事」的加权情感强度, 回退篇目反映的实质上是该银行该年报道的整体情感 (与 full 轨趋同), 两类混合加总构成最终的银行-年总和。在样本量充足 (T=19 生产语料) 且金科相关报道占比不低的场景下, ss 轨的非回退占比预期显著提升, 该轨的窄化诊断价值随之增强; 在 T=2 开发样本或金科报道稀疏子样本中, ss 轨可能高比例退化为 full 轨的近似, 此为预期而非缺陷。
 
 <!-- rendered-citations:begin -->
-You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen?. The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
+You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of the pen? The Review of Financial Studies, 31(1), 43-96. https://doi.org/10.1093/rfs/hhx055
 Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and domain specificity: A Chinese financial sentiment dictionary. Review of Finance, 26(3), 673-719. https://doi.org/10.1093/rof/rfab036
 Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tosetti, E. (2025). Sentiment analysis of economic text: A lexicon-based approach. Economic Inquiry, 63(1), 125-143. https://doi.org/10.1111/ecin.13264
 Taboada, M., Brooke, J., Tofiloski, M., Voll, K., & Stede, M. (2011). Lexicon-based methods for sentiment analysis. Computational Linguistics, 37(2), 267-307. https://doi.org/10.1162/COLI_a_00049
 Harford, J., He, Q., & Qiu, B. (2026). Firm-Level Labor Shortage Exposure. The Review of Financial Studies, hhag049. https://doi.org/10.1093/rfs/hhag049
-Ashwin, J. (2024). Financial news media and volatility: Is there more to newspapers than news?. Journal of Financial Markets, 69, 100896. https://doi.org/10.1016/j.finmar.2024.100896
+Ashwin, J. (2024). Financial news media and volatility: Is there more to newspapers than news? Journal of Financial Markets, 69, 100896. https://doi.org/10.1016/j.finmar.2024.100896
 Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level political risk: Measurement and effects. The Quarterly Journal of Economics, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021
 <!-- rendered-citations:end -->

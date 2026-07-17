@@ -236,18 +236,18 @@ Gietzmann, M., Grossetti, F., & Lewis, C. M. (2026). Investor distraction and mu
 Haapamäki, E., & Sihvonen, J. (2026). Mandatory cybersecurity disclosure: Early evidence from 10-K reports. International Journal of Accounting Information Systems. https://doi.org/10.1016/j.accinf.2026.100775
 Zhu, X., Li, J., & Wang, Y. (2024). Are risk disclosures in financial reports informative? A text mining-based perspective. Humanities and Social Sciences Communications, 11(1), 1653. https://doi.org/10.1057/s41599-024-04169-w
 Cao, S., Jiang, W., Yang, B., & Zhang, A. L. (2023). How to talk when a machine is listening: Corporate disclosure in the age of AI. The Review of Financial Studies, 36(9), 3603-3642. https://doi.org/10.1093/rfs/hhad021
-Kim, A. G., Muhn, M., & Nikolaev, V. V. (2023). Bloated disclosures: Can ChatGPT help investors process information?. SSRN Working Paper No. 4425527 [Working Paper]. https://doi.org/10.2139/ssrn.4425527
+Kim, A. G., Muhn, M., & Nikolaev, V. V. (2023). Bloated disclosures: Can ChatGPT help investors process information? SSRN Working Paper No. 4425527 [Working Paper]. https://doi.org/10.2139/ssrn.4425527
 Li, F., Yang, M., & Zhang, T. (2023). Does prospectus readability matter for bond issuance pricing? Evidence from China. Pacific-Basin Finance Journal, 80, 102074. https://doi.org/10.1016/j.pacfin.2023.102074
 Blankespoor, E., deHaan, E., & Marinovic, I. (2020). Disclosure processing costs, investors' information choice, and equity market outcomes: A review. Journal of Accounting and Economics, 70(2-3), 101344. https://doi.org/10.1016/j.jacceco.2020.101344
 Cohen, L., Malloy, C., & Nguyen, Q. (2020). Lazy prices. The Journal of Finance, 75(3), 1371-1415. https://doi.org/10.1111/jofi.12885
 Loughran, T., & McDonald, B. (2020). Textual analysis in finance. Annual Review of Financial Economics, 12(1), 357-375. https://doi.org/10.1146/annurev-financial-012820-032249
-Bushee, B. J., Gow, I. D., & Taylor, D. J. (2018). Linguistic complexity in firm disclosures: Obfuscation or information?. Journal of Accounting Research, 56(1), 85-121. https://doi.org/10.1111/1475-679X.12179
+Bushee, B. J., Gow, I. D., & Taylor, D. J. (2018). Linguistic complexity in firm disclosures: Obfuscation or information? Journal of Accounting Research, 56(1), 85-121. https://doi.org/10.1111/1475-679X.12179
 Dyer, T., Lang, M., & Stice-Lawrence, L. (2017). The evolution of 10-K textual disclosure: Evidence from Latent Dirichlet Allocation. Journal of Accounting and Economics, 64(2-3), 221-245. https://doi.org/10.1016/j.jacceco.2017.07.002
 Bonsall, S. B., IV, Leone, A. J., Miller, B. P., & Rennekamp, K. (2017). A plain English measure of financial reporting readability. Journal of Accounting and Economics, 63(2-3), 329-357. https://doi.org/10.1016/j.jacceco.2017.03.002
-Cazier, R. A., & Pfeiffer, R. J. (2016). Why are 10-K filings so long?. Accounting Horizons, 30(1), 1-21. https://doi.org/10.2308/acch-51240
+Cazier, R. A., & Pfeiffer, R. J. (2016). Why are 10-K filings so long? Accounting Horizons, 30(1), 1-21. https://doi.org/10.2308/acch-51240
 Hope, O.-K., Hu, D., & Lu, H. (2016). The benefits of specific risk-factor disclosures. Review of Accounting Studies, 21(4), 1005-1045. https://doi.org/10.1007/s11142-016-9371-1
 Lang, M., & Stice-Lawrence, L. (2015). Textual analysis and international financial reporting: Large sample evidence. Journal of Accounting and Economics, 60(2-3), 110-135. https://doi.org/10.1016/j.jacceco.2015.09.002
 Li, F. (2008). Annual report readability, current earnings, and earnings persistence. Journal of Accounting and Economics, 45(2-3), 221-247. https://doi.org/10.1016/j.jacceco.2008.02.003
-Seebeck, A. (2024). Back to where it started?—Do expanded auditor's reports become sticky, generic and boilerplate over time?. International Journal of Auditing. https://doi.org/10.1111/ijau.12343
+Seebeck, A. (2024). Back to where it started?—Do expanded auditor's reports become sticky, generic and boilerplate over time? International Journal of Auditing. https://doi.org/10.1111/ijau.12343
 Su, F., Zhai, L., & Liu, J. (2023). Do MD&A Risk Disclosures Reduce Stock Price Crash Risk? Evidence from China. International Journal of Financial Studies, 11(4), 147. https://doi.org/10.3390/ijfs11040147
 <!-- rendered-citations:end -->

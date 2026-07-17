@@ -39,7 +39,7 @@
 
 > 净增 12 条(其中 2024–2026 者 12 条)。**已接线家族** (44): F057, F058, F130, F136, F192, F193, F219, F220, F221, F223, F306, F309, F353, F354, F448, F454, F456, F473, F475, F476, F477, F478, F479, F513, F515, F521, F524, F548, F549, F593, F594, F596, F602, F604, F616, F628, F629, F630, F631, F636, F645, F646, F647, F648
 
-- 【2024–2026】Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S. (2026). Does media sentiment influence bank supervision?. Journal of Financial Stability, 84, 101538. https://doi.org/10.1016/j.jfs.2026.101538
+- 【2024–2026】Aldama-Navarrete, D., Curti, F., Hansen, A. L., & Kazinnik, S. (2026). Does media sentiment influence bank supervision? Journal of Financial Stability, 84, 101538. https://doi.org/10.1016/j.jfs.2026.101538
   - *锚定* — 原文构造针对特定银行的媒体情感测度, 并检验其与监管行为的关联, 属「银行为对象的媒体情感计数/极性测度」这一同域前沿应用。它证明了把新闻情感按银行主体归集并进入银行层面实证是当前被顶级金融稳定期刊接受的做法, 但未涉及本项目的三轨文本或 LLM 投票口径。
   - *迁移边界* — 原文为美国银行监管语境(监管评级/监管行动为 DV), 本项目为中国商业银行×金融科技报道语境且 DV 另定; 原文情感测度的构造细节与本项目六词典 union、逐篇 (neg-pos)/(neg+pos) 归一化口径不同; 原文无实质性/象征性创新话语分类维度。
   - 〔Crossref 回读标题: Does media sentiment influence bank supervision?〕
@@ -48,7 +48,7 @@
   - *锚定* — Battalio, Loughran & McDonald (2026) 自建 45 个资本预算术语的词表, 对 2010–2020 年业绩说明会文本做逐词命中统计以刻画管理者措辞框架, 是「固定词表逐词命中的原始词次计数 (不做长度归一、不跨词表聚合)」这一构造在金融顶刊仍属活跃做法的直接证据, 且由金融词典法原始提出者参与。仅此: 原文测度的是术语使用频次而非情感极性, 不涉及正/负面判定, 更不涉及按极性符号对篇数分拆, 因此只锚定 F646 的原始命中词次形态。迁移边界同原候选, 但删去「原文并未提出新词典」一句 (原文明确构造了 45 词的资本预算词表), 改为: 原文词表为英文术语表且无否定翻转/程度副词/转折规则层, 本项目为中文情感词表加三规则。
   - 〔Crossref 回读标题: How managers frame capital budgeting in investor communications〕
   - 〔已接线家族 (2): F645, F646〕
-- 【2024–2026】Chen, Z., Hajiheydari, N., Zhang, M., & Lin, Y.-E. (2026). Corporate digital transformation attention and innovation: strategic commitment or symbolic signalling?. The Journal of Strategic Information Systems, 35(2), 101971. https://doi.org/10.1016/j.jsis.2026.101971
+- 【2024–2026】Chen, Z., Hajiheydari, N., Zhang, M., & Lin, Y.-E. (2026). Corporate digital transformation attention and innovation: strategic commitment or symbolic signalling? The Journal of Strategic Information Systems, 35(2), 101971. https://doi.org/10.1016/j.jsis.2026.101971
   - *锚定* — Chen 等 (2026, JSIS) 基于注意力基础观提出企业数字化转型关注度 (CDTA), 以中国上市公司 2007–2020 年样本, 在「战略实质承诺 vs 象征性信号」两个**对立**解释间做检验, 发现 CDTA 与突破式创新相关而与渐进式创新及研发支出无关, 从而**支持实质承诺说、未支持象征性信号说**, 且数字话语与创新的一致性在高问责情境下最强。其价值在于: 该二分本身是当代数字化/科技话语研究的主流理论框架, 且证明「话语是否只是象征」是可被实证证伪的经验问题 —— 这正是本桶 symb 系列构念的理论锚点与反面参照 (不可据此宣称原文提供了象征性解释)。迁移边界同原候选 原文以「话语关注度 vs 实际创新产出」间接推断, 本项目以 LLM 对单篇报道直接标注实质性/象征性, 判定机制不同; 原文文本源为公司自述披露, 本项目为第三方新闻; 原文层级=公司-年, 本项目=银行-年且分三轨。
   - 〔Crossref 回读标题: Corporate digital transformation attention and innovation: strategic commitment or symbolic signalling?〕
   - 〔已接线家族 (8): F223, F354, F478, F548, F630, F631, F647, F648〕
@@ -130,7 +130,7 @@
   - *迁移边界* — Crossref无摘要,claim据题名与副题保守认定为两来源比较设计;原文语料为英文,聚合到股票-期做收益预测,不做银行-年求和;其'power of words'臂的具体词典与加权口径未经核实,不可据此声称原文验证过本项目六词典×IDF/mw/hw的任一加权层。
   - 〔Crossref 回读标题: Investor sentiment and stock returns: Wisdom of crowds or power of words? Evidence from Seeking Alpha and Wall Street Journal〕
   - 〔已接线家族 (1): F191〕
-- 【2024–2026】Schmeling, M., & Wagner, C. (2025). Does Central Bank Tone Move Asset Prices?. Journal of Financial and Quantitative Analysis, 60(1), 36-67. https://doi.org/10.1017/s0022109024000073
+- 【2024–2026】Schmeling, M., & Wagner, C. (2025). Does Central Bank Tone Move Asset Prices? Journal of Financial and Quantitative Analysis, 60(1), 36-67. https://doi.org/10.1017/s0022109024000073
   - *锚定* — 原文构造央行沟通的语调测度,证明语调意外显著推动股价与利率上行、信用利差与波动风险溢价下行,且该效应稳健于对政策行动本身与常规货币政策冲击的控制。为'文本语调作为一个可分离测度、在控制混淆源后仍具增量解释力'提供近期效度证据,支撑本桶语调求和族作为独立测度进入面板。
   - *迁移边界* — 原文文本为央行声明/沟通(机构自身发布),非第三方媒体报道;语调聚合到会议-事件层而非银行-年三轨求和;英文语料,无词典×IDF/媒体权威/羊群加权;F191(跨六词典取均值)在此仅锚'语调测度独立性'的一般前提,非原文做法。
   - 〔Crossref 回读标题: Does Central Bank Tone Move Asset Prices?〕
@@ -149,7 +149,7 @@
   - *迁移边界* — Crossref无摘要,claim据题名保守认定其为'新中文文本指数+中国银行稳定性';原文文本源与指数构造口径未经核实(极可能为银行自身披露文件的主题/关键词计数),**非**六部情感词典净极性经语言学规则后的银行-年求和;DV为银行稳定性,无三轨与四层加权。
   - 〔Crossref 回读标题: Does party organization construction improve chinese banks' stability? Evidence from a new textual index〕
   - 〔已接线家族 (4): F136, F191, F443, F636〕
-- 【2024–2026】Ashwin, J. (2024). Financial news media and volatility: Is there more to newspapers than news?. Journal of Financial Markets, 69, 100896. https://doi.org/10.1016/j.finmar.2024.100896
+- 【2024–2026】Ashwin, J. (2024). Financial news media and volatility: Is there more to newspapers than news? Journal of Financial Markets, 69, 100896. https://doi.org/10.1016/j.finmar.2024.100896
   - *锚定* — Ashwin 直接把「报纸报道的数量/篇幅维度」与「报道所含的新信息内容」分离, 检验前者是否对波动率有独立于后者的解释力。本项目 sum_wd_mw_* / sum_wd_vw_* 恰恰是把「报道量按来源权威度或提及密度加权」的分母列与语调分子分离的做法, 该文锚定的正是这一分离的必要性。原文真实做的是文本 + 波动率的实证分解。
   - *迁移边界* — 原文语境为英文报纸与股票波动率, 本项目为中文银行金科报道与银行-年面板; 原文的「报道量」是等权计数或版面维度, 未使用媒体权威度权重或实体提及密度权重; 原文波动率是结果变量, 本项目此列是分母。
   - 〔Crossref 回读标题: Financial news media and volatility: Is there more to newspapers than news?〕
@@ -227,7 +227,7 @@
   - *迁移边界* — 原文任务是文本类型分类, 不区分转折连词与其他功能词类, 语料非中文金融新闻, 也不涉及银行-年度聚合; 本项目只取独立转折连词表 (_ADVERSATIVE_WORDS) 命中数除以有效词 token 数, 不做分类任务。
   - 〔Crossref 回读标题: Beyond content: discriminatory power of function words in text type classification〕
   - 〔已接线家族 (10): F024, F232, F236, F241, F243, F245, F257, F259, F276, F282〕
-- 【2024–2026】Yoo, M. (2024). How Much Should We Trust Large Language Model-Based Measures for Accounting and Finance Research?. SSRN No. 4983334 [Working Paper]. https://doi.org/10.2139/ssrn.4983334
+- 【2024–2026】Yoo, M. (2024). How Much Should We Trust Large Language Model-Based Measures for Accounting and Finance Research? SSRN No. 4983334 [Working Paper]. https://doi.org/10.2139/ssrn.4983334
   - *锚定* — 该工作论文就会计与金融研究中由**生成式大语言模型**产出的文本测度, 检讨其可信度与稳定性。对本项目的锚定环节 = **模型产出的文本测度须经独立验证、不可直接当作无误差观测采用**这一一般性方法学告诫; 本项目据此对模型法测度不设唯一 headline, 而令其与词典法测度并排互为稳健性。⚠ 严格边界: 原文论域为**生成式 LLM 测度**, 与本项目 exc_finbert2 / exc_finbert_cn 所用的 **FinBERT 类判别式分类器 softmax 概率**不属同一测度类型, 故本文对该两族**不构成直接依据, 仅为类比性背景**; 原文单位为美国公司披露文本, 本项目为中文银行新闻并在银行-年度层剔除疑似退出覆盖媒体后取均值。工作论文, 未经同行评审, 摘要未能自权威源取得。**建议改挂本项目生成式 LLM 语调族 (B06/B07), 而非词典规则消融族。**
   - 〔Crossref 回读标题: How Much Should We Trust Large Language Model-Based Measures for Accounting and Finance Research?&amp;nbsp;〕
   - 〔⚠ **本条未接入任何指标家族** — 接线层逐族相关性复核判定它与各候选家族的公式无实质关联 (即本项目自己判它为 citation padding)。保留于本补编仅作**文献综述参考**, **不支撑任何指标**; 其 DOI 虽入白名单池, 但零家族引用。〕
@@ -338,7 +338,7 @@
   - *迁移边界* — 原文语料为英文社科文本, 且其核心贡献是遍历 prompt 网格择优; 本项目 prompt v8 已字节级冻结并作为缓存键, 刻意不做 prompt 网格 (改 prompt 即全缓存作废), 故原文提示的 prompt 敏感性在本项目属未量化的已知局限, 而非已排除的风险。
   - 〔Crossref 回读标题: Prompt selection matters: enhancing text annotations for social sciences with large language models〕
   - 〔已接线家族 (6): F032, F047, F399, F400, F402, F405〕
-- 【2024–2026】Gligoric, K., Zrnic, T., Lee, C., Candes, E., & Jurafsky, D. (2025). Can Unconfident LLM Annotations Be Used for Confident Conclusions?. Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers), 3514-3533. https://doi.org/10.18653/v1/2025.naacl-long.179
+- 【2024–2026】Gligoric, K., Zrnic, T., Lee, C., Candes, E., & Jurafsky, D. (2025). Can Unconfident LLM Annotations Be Used for Confident Conclusions? Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers), 3514-3533. https://doi.org/10.18653/v1/2025.naacl-long.179
   - *锚定* — 原文提出 confidence-driven inference: 用 LLM 自报置信度决定哪些样本值得付费人工复标, 并给出统计有效的点估计与置信区间, 实证证明低置信 LLM 标注在恰当处理下仍可支撑可信结论。是'把逐篇 LLM 置信度当作可用统计信息而非丢弃'这一做法的前沿存在性与方法依据, 对应本项目以 confidence 驱动的 avg_category_confidence / avg_icm_confidence 与 low_conf_flag 低置信标记。
   - *迁移边界* — 原文场景为社科调查/标注数据集且必须配套人工标注子样本作为 ground truth 来实现有效推断; 本项目无人工标注回路, 置信度仅用于打分与阈值标记, 未实施该文的抽样-推断设计。原文单模型置信度, 本项目 confidence 经三家投票一致/分歧调整 (一致 → min(kw_conf+0.2,1.0); 分歧 → kw_conf×0.5), 与原文口径不同。
   - 〔Crossref 回读标题: Can Unconfident LLM Annotations Be Used for Confident Conclusions?〕
@@ -425,7 +425,7 @@
   - *锚定* — 原文用大型语言模型阅读中国最大股票论坛的 2.2 亿条散户发帖, 按内容把投资者分歧分解为基本面分歧与噪声分歧: 基本面分歧产生 Miller 型高估 (高分歧股月度风险调整收益低约 0.7%), 噪声分歧则不然而更多反映情绪; 加总的与词典法的分歧指标因与情绪高度绑定而会把两类相反内容混同、甚至指向错误方向。对 F204 锚定「LLM 标签可承载分歧信息」及「加总分歧指标混同异质内容」的前沿实证。**边界**: 系未经同行评审的 SSRN 工作论文; 语料同为中文投资者文本但来源为散户股票论坛发帖, 与本项目的报纸银行报道体裁不同; 分析层级为股票-横截面收益 (2016-2024), 本项目为银行-年面板; 该文按内容分解分歧, 而 F204 仅以正负篇数比构造标量指数并约定 P+N=0 置 NaN, 原文无此处理。
   - 〔Crossref 回读标题: What Investors Disagree About: LLM-Decomposed Retail Disagreement and the Cross-Section of Stock Returns〕
   - 〔已接线家族 (1): F204〕
-- 【2024–2026】Liu, J., Zong, Q., Wang, W., & Song, Y. (2025). Revisiting Epistemic Markers in Confidence Estimation: Can Markers Accurately Reflect Large Language Models’ Uncertainty?. Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 2: Short Papers), 206-221. https://doi.org/10.18653/v1/2025.acl-short.18
+- 【2024–2026】Liu, J., Zong, Q., Wang, W., & Song, Y. (2025). Revisiting Epistemic Markers in Confidence Estimation: Can Markers Accurately Reflect Large Language Models’ Uncertainty? Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 2: Short Papers), 206-221. https://doi.org/10.18653/v1/2025.acl-short.18
   - *锚定* — 原文定义 marker confidence (模型使用某认知标记时的观测准确率), 在多个问答数据集上检验其稳定性, 发现认知标记在分布内泛化良好、在分布外则与真实不确定性对应不稳。对 F035/F042 的锚定仅为**类比层**: 它提示 LLM 自我表达的把握度其可靠性具有领域依赖性: 但原文的置信度载体是认知标记词, 明确与数值型置信度相对立, 故该结论**不能**直接外推至本项目的 [0,1] 数值 conf 列, 亦未在中文金融文本上检验。
   - 〔Crossref 回读标题: Revisiting Epistemic Markers in Confidence Estimation: Can Markers Accurately Reflect Large Language Models’ Uncertainty?〕
   - 〔⚠ **本条未接入任何指标家族** — 接线层逐族相关性复核判定它与各候选家族的公式无实质关联 (即本项目自己判它为 citation padding)。保留于本补编仅作**文献综述参考**, **不支撑任何指标**; 其 DOI 虽入白名单池, 但零家族引用。〕
@@ -434,7 +434,7 @@
   - *迁移边界* — 综述性文献, 不提供针对具体测度的实证结论; 覆盖领域以通用 NLP 任务为主, 不含中文金融新闻语境, 也不涉及把置信度聚合到实体-年面板的做法。
   - 〔Crossref 回读标题: Uncertainty Quantification and Confidence Calibration in Large Language Models: A Survey〕
   - 〔⚠ **本条未接入任何指标家族** — 接线层逐族相关性复核判定它与各候选家族的公式无实质关联 (即本项目自己判它为 citation padding)。保留于本补编仅作**文献综述参考**, **不支撑任何指标**; 其 DOI 虽入白名单池, 但零家族引用。〕
-- 【2024–2026】Ni, S., Bi, K., Yu, L., & Guo, J. (2025). Are Large Language Models More Honest in Their Probabilistic or Verbalized Confidence?. Lecture Notes in Computer Science, 124-135. https://doi.org/10.1007/978-981-96-1710-4_10
+- 【2024–2026】Ni, S., Bi, K., Yu, L., & Guo, J. (2025). Are Large Language Models More Honest in Their Probabilistic or Verbalized Confidence? Lecture Notes in Computer Science, 124-135. https://doi.org/10.1007/978-981-96-1710-4_10
   - *锚定* — 原文直接对比同一模型的 token 概率派生置信度与自报 (verbalized) 置信度在诚实性/校准上的差异。F035/F042 采用的正是 verbalized 一支 (API 黑箱不返回 logprob), 该文是这一取数选择的最新实证权衡依据 — 它报告两种置信度各自的优劣, 并未论证 verbalized 优于概率法。
   - *迁移边界* — 原文任务为知识型问答的正确性判定, 置信度对应「答对与否」; 本项目置信度对应「情感极性判定」这一主观标注任务, 无客观 ground truth, 校准概念不能平移。原文为 NLPCC 会议论文 (LNCS 卷), 非金融期刊。
   - 〔Crossref 回读标题: Are Large Language Models More Honest in Their Probabilistic or Verbalized Confidence?〕
@@ -452,7 +452,7 @@
   - *锚定* — 原文提出在**公司 × 财季**层面分别量化横截面分歧与主观不确定性的方法 (基于分析师盈余指引与预测离散度), 并论证二者虽在实证研究中常被互换使用, 混同却会导致误导甚至相反的结论: 主观不确定性在分歧较低时与波动率正相关, 分歧较高时该关系反转为负; 二者对收益与成交量有相反且相互交互的效应。对 F204 锚定「分歧作为一个与不确定性**在构念上可分离**的独立可测量对象」这一金融学依据, 支持本项目把分歧指数与把握度类测度分列而非合并。**边界**: 未经同行评审的 SSRN 工作论文; 原文的分歧与主观不确定性均由分析师预测数据测得, **完全不涉及 LLM**, 故对本项目由 LLM 标签派生的口径不构成方法学支持, 亦不锚定 F035/F042 的自报置信度取数; 分析层级为公司-财季, 本项目为银行-年面板。
   - 〔Crossref 回读标题: Disagreement, Subjective Uncertainty, and the Stock Market〕
   - 〔已接线家族 (1): F204〕
-- 【2024–2026】Yona, G., Aharoni, R., & Geva, M. (2024). Can Large Language Models Faithfully Express Their Intrinsic Uncertainty in Words?. Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing, 7752-7764. https://doi.org/10.18653/v1/2024.emnlp-main.443
+- 【2024–2026】Yona, G., Aharoni, R., & Geva, M. (2024). Can Large Language Models Faithfully Express Their Intrinsic Uncertainty in Words? Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing, 7752-7764. https://doi.org/10.18653/v1/2024.emnlp-main.443
   - *锚定* — 原文提出 example 级 faithful response uncertainty 指标, 度量 LLM 在知识密集型问答中**以措辞对冲的方式**传达其内在不确定性的忠实度, 并实证主流对齐模型普遍做不到。对 F035/F042 而言, 它锚定的是「LLM 对自身不确定性的**语言化传达**普遍不忠实」这一邻近证据, 属该测度族的风险提示; 原文所测的是生成答案的对冲措辞, **非**本项目所用的数值型自报置信度, 故不能作为 conf 列的效度前提或方法原点。
   - 〔Crossref 回读标题: Can Large Language Models Faithfully Express Their Intrinsic Uncertainty in Words?〕
   - 〔⚠ **本条未接入任何指标家族** — 接线层逐族相关性复核判定它与各候选家族的公式无实质关联 (即本项目自己判它为 citation padding)。保留于本补编仅作**文献综述参考**, **不支撑任何指标**; 其 DOI 虽入白名单池, 但零家族引用。〕
@@ -581,7 +581,7 @@
   - *迁移边界* — 原文测度基于企业自身年报数字化词频与实际数字投入之比, 主体=非金融上市公司, 识别策略=股权质押冲击; 本项目测度基于第三方新闻报道的 LLM 象征性判定占正面报道之比, 主体=商业银行, 且本轮仅取其构念定义与存在性, 不迁移其识别设计。
   - 〔Crossref 回读标题: Major shareholders' equity pledge and the “All talk and no action” strategy in digital transformation〕
   - 〔已接线家族 (4): F602, F605, F611, F612〕
-- 【2024–2026】Meng, Q., Du, X., & Gong, X. (2024). Does operational disclosure curb textual tone manipulation by corporate management?. China Journal of Accounting Studies, 12(2), 247-275. https://doi.org/10.1080/21697213.2024.2337262
+- 【2024–2026】Meng, Q., Du, X., & Gong, X. (2024). Does operational disclosure curb textual tone manipulation by corporate management? China Journal of Accounting Studies, 12(2), 247-275. https://doi.org/10.1080/21697213.2024.2337262
   - *锚定* — 该文在中国情境下测量管理层文本语调操纵 (textual tone manipulation), 即语调正面程度超出基本面可解释部分, 并检验经营性披露的约束作用。其「语调 − 基准语调」的残差/差分思路, 与本项目 washing_tone_shift = 象征性子样本语调 − 全样本语调 属同一类语调偏移量化, 且使用中文金融文本词典化语调测度。
   - *迁移边界* — 原文基准语调来自基本面回归拟合值 (残差法), 语调来源为企业自述年报文本, 单位=公司-年; 本项目基准是同轨全部留篇的 LLM 投票均值语调, 偏移由子样本减法而非回归残差得到, 文本来源为第三方新闻。原文未涉及象征-实质二分, 亦未使用 LLM。
   - 〔Crossref 回读标题: Does operational disclosure curb textual tone manipulation by corporate management?〕
@@ -754,7 +754,7 @@
   - *锚定* — 原文 (中国上市公司 2009-2021) 基于制度理论检验经济政策不确定性对【公司自身跨期】CSR 披露相似度 (CSR time-series disclosure similarity, 即当年报告与自身以往报告的相似程度) 的影响, 发现 EPU 越高、企业越倾向发布与自身过往高度相似的 CSR 报告 (象征性行为); 该效应在国有企业减弱、在财务约束或亏损企业增强。对 F157/F158 (cos(v_{bank,t}, v_{bank,t-1}), 年际相邻期自比) 是构念完全对应的中文语境同域先例 —— 原文正是把『与自身上期文本高度重合』记录为一种可被外部环境驱动的实质性披露行为。迁移边界: 原文单位为上市公司-年的自撰 CSR 报告, 本项目为银行-年第三方新闻报道 (银行非文本作者, 象征性披露的主动选择机制不可直接搬用); 原文把相似度当被解释变量、由 EPU 驱动, 本项目 F157/F158 为面板自变量; 原文为纯时间序列自比, 无同业质心成分, 故不锚定 F148/F149。
   - 〔Crossref 回读标题: Economic policy uncertainty and corporate social responsibility disclosure similarity: Evidence from China〕
   - 〔已接线家族 (4): F157, F158, F362, F363〕
-- 【2024–2026】Zhou, Y., Fan, J., & Xue, L. (2024). How Much Can Machines Learn Finance from Chinese Text Data?. Management Science, 70(12), 8962-8987. https://doi.org/10.1287/mnsc.2022.01468
+- 【2024–2026】Zhou, Y., Fan, J., & Xue, L. (2024). How Much Can Machines Learn Finance from Chinese Text Data? Management Science, 70(12), 8962-8987. https://doi.org/10.1287/mnsc.2022.01468
   - *锚定* — 原文提出 FarmPredict (因子增广 + 稀疏正则框架), 让模型直接从中文财经新闻中学习并预测股票收益, 结论是中文财经文本在词级/文本因子表示下确实携带可观的可学习信号 (正面情感日均 +83bp、负面 −26bp 超额收益, 简单策略年化最高 54%), 且优于其他统计与机器学习基准。对本项目仅提供【构念层】依据: 顶刊层面证实中文财经新闻文本经词级切分后的词袋类表示含有真实经济信息, 从而支持 F158 (jieba 词级 TF-IDF 向量) 这一表示路线在中文语境下并非无信息噪声。⚠ 不得据以主张原文为 TF-IDF 加权或 jieba 分词提供了效度校验 —— 恰相反, 原文的方法论卖点是【不依赖】预定义词典或预训练模型, 由模型自行抽取信息, 全文未评估 TF-IDF 权重方案, 亦未对本项目任何具体列做过校验。迁移边界: 原文目标为日频收益预测的机器学习管线, 不构造年际连贯 (F157/F158 的 t vs t-1)、不构造 leave-one-out 同业质心 (F149)、不涉及 char-ngram TF-IDF, 亦与文本长度列 (F065/F066) 无关; 原文单位为公司层面的中文财经新闻, 本项目为银行-年聚合报道。
   - 〔Crossref 回读标题: How Much Can Machines Learn Finance from Chinese Text Data?〕
   - 〔已接线家族 (1): F158〕
@@ -787,13 +787,13 @@
   - *锚定* — 该文用一个多维文本型融资约束测度 (区分股权市场约束与债务市场约束) 检验其与盈余管理的关系 (46,149 firm-year, 美国上市公司, 1997–2015); 本项目仅据此锚定『从披露文本中提取约束性语言以刻画融资约束』这一测度路线在当代仍活跃的**存在性参照**。⚠ 本文**不是** F163 的 method-origin: 本项目 constr_frac 计数的 LM 2011 constraining 子词典 (174 词) 源自 Bodnaruk, Loughran & McDonald (2015), 与本文的多维文本测度无谱系关系, 后者复杂度亦远高于单维词频型比率。层级为 firm-year vs 本项目 bank-year, 语料为公司自我披露 vs 第三方新闻报道, 国别与 DV 均不同。
   - 〔Crossref 回读标题: Text-based multidimensional financial constraints and earnings management behaviour〕
   - 〔已接线家族 (1): F163〕
-- 【2024–2026】Cho, M., & Choi, A. (2025). Do Auditors Adjust Labour Allocation in Response to Client Media Coverage and Tone?. Abacus, abac.70024. https://doi.org/10.1111/abac.70024
+- 【2024–2026】Cho, M., & Choi, A. (2025). Do Auditors Adjust Labour Allocation in Response to Client Media Coverage and Tone? Abacus, abac.70024. https://doi.org/10.1111/abac.70024
   - *锚定* — 该文同时把『媒体报道量 (coverage)』与『报道语调 (tone)』作为两个并列的公司-年媒体变量来解释审计投入, 与本项目把报道篇数 (ln_ft_articles/ln_nf_articles) 与语调 (log_sent) 分列为两族指标的做法同构, 属该建模范式的近期存在性证明。
   - *迁移边界* — 原文媒体覆盖计数基于英文商业新闻数据库的公司-年匹配, 语调为正负词占比类; 本项目计数基于中文媒体语料经 (target_bank, 标题, 日期) 去重, 且区分金科/非金科两类分子, 语调用 log1p(pos)-log1p(neg) 对数差分并有覆盖门控 NaN 规则。层级=firm-year vs bank-year, DV 不同。
   - 〔Crossref 回读标题: Do Auditors Adjust Labour Allocation in Response to Client Media Coverage and Tone?〕
   - 〔已接线家族 (2): F407, F411〕
 - 【2024–2026】Fang, Y., Wang, F., & Dai, Z. (2025). A Zipfian Approach to Exploring Lexical Complexity Changes in Mandarin Chinese: A Corpus-Based Analysis of Word N-Grams. Journal of Quantitative Linguistics, 32(3), 251-278. https://doi.org/10.1080/09296174.2025.2483080
-  - *锚定* — 该文在《人民日报》1946–2020 新闻语料上, 用 Zipf 律指数刻画现代汉语**词汇**复杂度的历时变化, 并证明该指数与词汇多样性 (lexical diversity)、词汇密度、词汇复杂度三大构念系统相关; 本项目据此锚定 F070 — 『词汇多样性可用频次-类型统计量刻画』这一测度路线的当代定量语言学依据, 且原文语料同为新闻文体 (与本项目新闻域同域, 优于跨域外推)。⚠ 原文分析单位为 word unigram/bigram, 无字级频次分析, 不得据本文支撑 F045 的字频稀有性判定; 其 Zipf 指数与本项目未做长度校正的原始 TTR 数学形式不同, 仅共享『频次-类型分布刻画复杂度』的方法论前提, 亦无 bank-year 面板层级。
+  - *锚定* — 该文在《人民日报》1946–2020 新闻语料上, 用 Zipf 律指数刻画现代汉语**词汇复杂度 (lexical complexity)** 的历时变化, 并证明该指数与其三个下位构念——词汇多样性 (lexical diversity)、词汇密度 (lexical density)、词汇成熟度 (lexical sophistication)——系统相关 (与前二者负相关、与后者正相关); 本项目据此锚定 F070 — 『词汇多样性可用频次-类型统计量刻画』这一测度路线的当代定量语言学依据, 且原文语料同为新闻文体 (与本项目新闻域同域, 优于跨域外推)。⚠ 原文分析单位为 word unigram/bigram, 无字级频次分析, 不得据本文支撑 F045 的字频稀有性判定; 其 Zipf 指数与本项目未做长度校正的原始 TTR 数学形式不同, 仅共享『频次-类型分布刻画复杂度』的方法论前提, 亦无 bank-year 面板层级。
   - 〔Crossref 回读标题: A Zipfian Approach to Exploring Lexical Complexity Changes in Mandarin Chinese: A Corpus-Based Analysis of Word
             <i>N</i>
             -Grams〕
@@ -1020,7 +1020,7 @@
   - *锚定* — 用印尼最大金融科技放贷平台的贷款级数据 (2021-2023), 以空间滞后灾害暴露 (SLX 型) 估计灾害对相邻未受损省份借贷行为的溢出, 并发现溢出随地理连通性 (陆连 vs 海隔) 大幅变化。仅作为金融科技语境下'以空间邻近单元的聚合暴露刻画溢出'这一逻辑的前沿存在性证明, 与本项目经济圈内他行留一均值的空间同侪逻辑同族 (F655)。发表于 MDPI Econometrics, 非本项目优先的顶刊层级, 影响力有限。原文的空间邻近以行政邻接界定而非 Haversine 公里缓冲, 溢出对象是金融科技信贷量而非媒体报道篇数, 故**不锚定**距离缓冲族 (F484/F485); 原文有灾害外生冲击设计, 本项目无; 亦不涉及本项目的经济圈映射规则与 min_group_size 守卫。
   - 〔Crossref 回读标题: Shock Next Door: Geographic Spillovers in FinTech Lending After Natural Disasters〕
   - 〔已接线家族 (1): F655〕
-- 【2024–2026】Bobrov, A., Kamdar, R., & Ulate, M. (2025). Regional Dissent: Do Local Economic Conditions Influence FOMC Votes?. American Economic Review: Insights, 7(2), 268-284. https://doi.org/10.1257/aeri.20240184
+- 【2024–2026】Bobrov, A., Kamdar, R., & Ulate, M. (2025). Regional Dissent: Do Local Economic Conditions Influence FOMC Votes? American Economic Review: Insights, 7(2), 268-284. https://doi.org/10.1257/aeri.20240184
   - *锚定* — 检验区域经济状况是否影响按地区指派的决策者投票行为, 即「主体所属地理区域的状况会系统性影响其可观测行为」。为本桶按省份/经济圈分组构造同侪暴露 (留一均值) 的前提 — 地理分组承载真实的共同冲击 — 提供顶刊层面的近期证据。
   - *迁移边界* — 主体为美联储 FOMC 地区联储主席, 行为为货币政策投票, 与中国银行的媒体报道语调无任何直接对应; 原文的地理分组是既定的联储辖区, 本项目是 (省份,年) / 经济圈映射且需自建; 该文不做留一均值构造, 也未把同组他成员的行为作为解释变量 — 因此仅锚定「地理分组有实质经济含义」这一前提, 不锚定 leave-one-out 算子本身。
   - 〔Crossref 回读标题: Regional Dissent: Do Local Economic Conditions Influence FOMC Votes?〕
@@ -1141,7 +1141,7 @@
 
 > 净增 11 条(其中 2024–2026 者 11 条; **2 条未接入任何家族**, 见各条标注)。**已接线家族** (9): F028, F162, F229, F314, F316, F319, F320, F525, F526
 
-- 【2024–2026】Bie, S., Feng, G., Guo, N., & He, J. (2026). Can news predict firm bankruptcy?. Journal of Financial Markets, 79, 101002. https://doi.org/10.1016/j.finmar.2025.101002
+- 【2024–2026】Bie, S., Feng, G., Guo, N., & He, J. (2026). Can news predict firm bankruptcy? Journal of Financial Markets, 79, 101002. https://doi.org/10.1016/j.finmar.2025.101002
   - *锚定* — 该文用 Dow Jones Newswires 全文新闻以 LLM (ChatGPT) 生成公司层情感预测变量, 对标 FinBERT 与词典模型, 证明新闻情感在财务变量之外对企业破产有增量预测力。可作为「媒体负面情感的聚合测度携带企业困境信号」这一构念的前沿存在性参照, 支持 F162 concern_score 把负面强度作为关切/困境指数分量的立意。⚠ 原文无报道量分量、无 (neg−pos)/(neg+pos) 归一化比, 且本项目样本内无破产银行, 原文的预测性结论不可迁移为 F162 的效度证据。
   - 〔Crossref 回读标题: Can news predict firm bankruptcy?〕
   - 〔已接线家族 (1): F162〕
@@ -1179,7 +1179,7 @@
   - *锚定* — 该文利用美/欧禁止选择性披露的监管出台 (澳/日为无监管对照), 证明监管前新闻日的信息已通过泄露提前进入市场、监管后新闻日才真正传递新信息。可作为「被计为一条新闻的内容未必是新信息」这一问题意识的前沿参照, 用以说明 F319 ft_n_articles_dedup 为何不能把原始篇数直接当作独立信息条数。⚠ 须诚实区分: 原文的信息非新颖性来自监管前的提前泄露, 本项目 F319 的去重是 (target_bank, 标题, 日期) 复合键的机械去重, 只能剔除标题-日期完全一致的重复, 无法识别改写型转载, 亦与原文机制无关。
   - 〔Crossref 回读标题: Is news really news? The effects of selective disclosure regulations〕
   - 〔已接线家族 (1): F319〕
-- 【2024–2026】Semenova, M., Sokolov, V., & Benov, A. (2024). Bank runs and media freedom: What you don’t know won’t hurt you?. Journal of Financial Stability, 74, 101323. https://doi.org/10.1016/j.jfs.2024.101323
+- 【2024–2026】Semenova, M., Sokolov, V., & Benov, A. (2024). Bank runs and media freedom: What you don’t know won’t hurt you? Journal of Financial Stability, 74, 101323. https://doi.org/10.1016/j.jfs.2024.101323
   - *锚定* — 该文检验媒体自由度 (信息可得性的制度维度) 与危机期间零售存款流出的关系, 结果**未支持**媒体自由度直接影响储户行为策略的假设, 仅提示信息限制可能与市场纪律及金融素养效应交互。可作为「储户/公众能否获得银行负面信息构成一种信息环境」这一构念动机的同域 (银行 × 媒体) 文献参照, 用于说明 F162 concern_score 把负面强度与报道量结合刻画信息环境的立意。⚠ 原文为制度层面变量与近乎零结果, 不构成本项目任何列的构造来源或效度证据。
   - 〔Crossref 回读标题: Bank runs and media freedom: What you don’t know won’t hurt you?〕
   - 〔⚠ **本条未接入任何指标家族** — 接线层逐族相关性复核判定它与各候选家族的公式无实质关联 (即本项目自己判它为 citation padding)。保留于本补编仅作**文献综述参考**, **不支撑任何指标**; 其 DOI 虽入白名单池, 但零家族引用。〕
@@ -1369,12 +1369,24 @@ EMNLP Proceedings 等正当学术出处, 未见掠夺性刊。
 | T11 | P2 | **§policy 自我证伪**: 声明「overclaim 条目一律不印 migration_boundary」, 但 15 条 *锚定* 正文里就含该字段名。 | 与 T7 同批净化后, 该声明与实况一致。 |
 | T12 | — | **系统性反查** (referee 点名要求): 除已修的 3 条外, 其余 **27 条 wp/arxiv 是否也有未收录的正式版**? | 逐条 Crossref 同题反查 (阈值 85% token 重叠) → **0 条**真命中 (唯一疑似为哲学书章 *Steadfast Views of Disagreement* vs NBER *Disagreement of Disagreement*, 经回读证伪)。**该缺陷类已收口**。 |
 
-**终局签核中被判为「非本轮引入」而不予整改的** (如实记录, 供独立议题处理):
-- `</content>` / `</invoke>` 等工具调用 XML 标记残留于 **30 个家族 md** —— 逐一对比 `1b9704d0` 证实
-  **本轮之前即存在**, 非本补编产物;
-- `F387` 人工区行首 `+ ` 列表符、5 处 `[0, 2](…)` 数学区间被 markdown 读成链接语法 —— 同为既有,
-  且生产 lint 的模式表只有 heading/bold/table/fence 四项, 不覆盖 list/link;
-- APA 题名以 `?`/`!` 收尾时仍多加句点 (`?.`, APA 7 §9.19) —— **全库既有约定** (本轮前即 258 处),
-  修法须改生产渲染器 `render_citation_apa` 并重渲染全部 655 族, 属**独立议题**, 不与本补编捆绑;
+### 4-ter. 终局签核**第二轮复核**又抓出 2 项 (原判「独立议题」者, 本轮升格整改)
+
+上一版 §4-bis 曾把两项判为「非本轮引入 / 独立议题」暂不处理。第二轮复核 (10 维 × 审+复核) 认定
+其中两项**本轮确有贡献且可低成本根治**, 遂升格整改:
+
+| # | 严重度 | 缺陷 | 整改 |
+|---|---|---|---|
+| U1 | P2 | **APA 7 §9.19 违反**: 题名以 `?`/`!` 收尾时该终止标点应**取代**句点, 而生产渲染器 `render_citation_apa` 恒加 `.` → 全库 **305 处 `Title?.`** (本轮新增约 15 处)。 | **改生产渲染器** (题名末为 `?`/`!` 时不再补句点), **重渲染全部 655 族** → 258 族渲染尾节更新 (diff 逐字节验证为**纯标点**: 310 删 / 310 增, 0 实质变化); 补编 APA 同步。全库 + 补编 `?.` 残留 **= 0**。此为改进整个 codebook 的 APA 合规性, 非仅本补编。 |
+| U2 | NIT | **Zipf 条目误译**: 补编把原文三下位构念之一 lexical **sophistication** 误译为「词汇复杂度」, 与其**上位**构念 lexical complexity 自我重叠 (OpenAlex 摘要证实原文三构念 = lexical diversity / density / **sophistication**, 上位 = lexical complexity)。 | 改为「词汇成熟度 (lexical sophistication)」, 并补上相关性方向 (指数与前二者负相关、与成熟度正相关)。 |
+
+**仍判为「非本轮引入」而留作独立议题的** (如实记录):
+- `</content>` / `</invoke>` 工具调用 XML 标记残留 **30 个家族 md** —— 逐一对比 `1b9704d0` 证实本轮前即存在;
+- `F387` 行首 `+ ` 列表符、5 处 `[0, 2](…)` 数学区间被 markdown 读成链接 —— 既有, 且生产 lint
+  模式表只有 heading/bold/table/fence, 不覆盖 list/link;
 - `Luo & Li (2025, FRL)` 被 `pipeline/panel/geography.py:907` 与 F481 既有正文引用, 但**全池无该 DOI**
-  —— 既有锚点缺口, 本轮未新增该引用的实质内容, 留作独立议题。
+  —— 既有锚点缺口, 本轮未新增该引用的实质内容;
+- **顶刊清单 (`top_journal_list.yaml`) 补入 REStat 等遗漏刊** —— 审计中途改宽清单属自我授权, 挂用户裁定;
+- **姐妹消融臂的锚点把关一致性** (如 Iqbal & Pfarrer 2025 在 bian 母族 F120 收、在 advonly 臂 F232 弃)
+  —— 各家族的实际 citations 逐条可辩护 (母族承载构念、消融臂不必重引每一锚), 无删改必要; 唯 patches.json
+  内部弃用注记的「真正归属」措辞偶有不精确 (F485 注记称仅属 F488, 实则 F486 亦用), 属内部台账瑕疵、
+  不影响任何交付产物, 留待下一份补编统一收口。
