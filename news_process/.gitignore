@@ -63,6 +63,10 @@ models/
 *.bak
 *.log
 
+# LLMs_for_FinTech_dic scratch (arxiv/semantic-scholar 抓取的临时素材; commit e74a5db6
+# 声明「改置于 gitignored tmp/」但当时漏补规则 — 此处补齐, 该目录不入版本控制)
+LLMs_for_FinTech_dic/tmp/
+
 # 临时报告文件
 *审查报告*.md
 *改进报告*.md
