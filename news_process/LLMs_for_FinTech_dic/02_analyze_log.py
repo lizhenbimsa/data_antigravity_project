@@ -11,7 +11,6 @@
 import argparse
 import re
 from collections import defaultdict
-from datetime import datetime
 from pathlib import Path
 from typing import DefaultDict, Dict, List, Optional, Set
 
@@ -19,6 +18,22 @@ from typing import DefaultDict, Dict, List, Optional, Set
 # fix(S12, 2026-07-14): 补 DOMAINS 导入，替换本文件内硬编码的 "26"（历史领域
 # 数量），改为动态 len(DOMAINS)，避免领域列表精简/扩容后报告口径与实际漂移。
 from config import LOG_DIR, DOMAINS
+# 学术化日志支撑（四位有效数字 + 经核验 APA 参考文献；详见 academic.py）
+from academic import sig4, pct4, cite, references_block
+
+# 00_LLMs_for_dic.py 的运行日志固定名 = 其脚本名（同 py 文件名，覆盖写只留最近一次）。
+# 本文件无法以数字前缀名 import 该脚本，故此处以字面量硬编码，须与其文件名保持一致。
+MAIN_RUN_LOG_NAME = "00_LLMs_for_dic.log"
+
+# 本分析报告引用文献 handle（生成采样 / 集合规约 / LLM-as-Judge / 金融文本量化根基）
+# 注：κ 一致性文献 (Fleiss/Landis/McHugh) 归 calculate_kappa.py 各自引用；本报告不做
+# κ 分析，故不列入，以使尾部「参考文献」表严格等于正文 in-text 实引集。
+_CITED_02 = [
+    "gentzkow_2019", "loughran_2011", "kearney_2014", "gomber_2018",
+    "brown_2020", "dekok_2025",
+    "hanley_2019", "li_2021",
+    "zheng_2023", "liu_2023", "ouyang_2022", "gopal_2025", "wei_2022",
+]
 
 
 # ════════════════════════════════════════════════════════════════
@@ -165,7 +180,14 @@ def analyze_log(log_path: Path, output_path: Path) -> None:
         out.append(text)
 
     p("=" * 100)
-    p("大模型调用全面分析报告")
+    p("大模型调用全面分析报告 (LLM Swarm Call Analytics)")
+    p("=" * 100)
+    p("【项目】基于大语言模型群体智能的金融科技领域词典构建管道运行分析：三阶段——种子引导")
+    p(f"  并发生成 {cite('brown_2020', 'dekok_2025')} → 集合规约 {cite('hanley_2019', 'li_2021')}")
+    p(f"  → 机器交叉盲审（LLM-as-a-Judge Swarm，2/3 严格多数，凝缩型 CoT 约束）{cite('zheng_2023', 'liu_2023', 'ouyang_2022', 'gopal_2025', 'wei_2022')}；")
+    p(f"  测度构念承接金融文本量化与专属词典传统 {cite('gentzkow_2019', 'loughran_2011', 'kearney_2014', 'gomber_2018')}。")
+    p("  说明：本报告全部非整数统计量均保留四位有效数字（4 significant figures）。")
+    p("-" * 100)
     p(f"日志文件: {log_path}")
     p(f"日志总行数: {len(lines)}")
     p("=" * 100)
@@ -184,7 +206,7 @@ def analyze_log(log_path: Path, output_path: Path) -> None:
     p(f"  总任务数:   {total_gen_tasks}  (成功 {total_gen_success} + 失败 {total_gen_fail})")
     p(f"  重试次数:   {total_gen_retry}")
     if total_gen_tasks > 0:
-        p(f"  成功率:     {total_gen_success / total_gen_tasks * 100:.2f}%")
+        p(f"  成功率:     {pct4(total_gen_success, total_gen_tasks)}")
     total_kw = sum(m["keywords_total"] for m in gen_models.values())
     p(f"  关键词总产出: {total_kw} 个")
     if gen_start_time and gen_end_time:
@@ -206,7 +228,8 @@ def analyze_log(log_path: Path, output_path: Path) -> None:
             f"{model:<50} {stats['success']:>5} {stats['fail']:>5} "
             f"{stats['retry']:>5} {stats['keywords_total']:>7} "
             # fix(S12, 2026-07-14): 硬编码 /26 → len(DOMAINS) 动态（领域列表现已精简为 1 个）
-            f"{avg_kw:>7.1f} {len(stats['domains']):>5}/{len(DOMAINS)}"
+            # 四位有效数字（sig4）: 平均词数右对齐 7 位
+            f"{sig4(avg_kw):>7s} {len(stats['domains']):>5}/{len(DOMAINS)}"
         )
 
     # 3. 失败模型汇总
@@ -218,8 +241,7 @@ def analyze_log(log_path: Path, output_path: Path) -> None:
         p("=" * 80)
         for model, stats in sorted(failed_models, key=lambda x: x[1]["fail"], reverse=True):
             total = stats["success"] + stats["fail"]
-            rate = stats["success"] / total * 100 if total > 0 else 0
-            p(f"  {model}: 失败 {stats['fail']} 次, 成功 {stats['success']} 次, 成功率 {rate:.1f}%")
+            p(f"  {model}: 失败 {stats['fail']} 次, 成功 {stats['success']} 次, 成功率 {pct4(stats['success'], total)}")
     else:
         p()
         p("三、生成阶段无失败模型 ✅")
@@ -249,7 +271,7 @@ def analyze_log(log_path: Path, output_path: Path) -> None:
     )
     for i, (model, stats) in enumerate(kw_ranked):
         avg = stats["keywords_total"] / stats["success"]
-        p(f"  {i + 1:>2}. {model:<50} 平均 {avg:>6.1f} 词/领域, 总计 {stats['keywords_total']:>5} 词")
+        p(f"  {i + 1:>2}. {model:<50} 平均 {sig4(avg):>6s} 词/领域, 总计 {stats['keywords_total']:>5} 词")
 
     # fix(S12, 2026-07-14): 本节 4 处硬编码 "26"（与 :201/:208 同族缺陷）
     # 一并改 len(DOMAINS) 动态，避免领域列表精简/扩容后报告口径漂移。
@@ -274,7 +296,8 @@ def analyze_log(log_path: Path, output_path: Path) -> None:
     if judge_models:
         p()
         p("=" * 80)
-        p("七、判别阶段统计")
+        p("七、判别阶段统计（机器交叉盲审 LLM-as-a-Judge，零温 T=0，2/3 严格多数截断）")
+        p(f"   {cite('zheng_2023', 'liu_2023', 'ouyang_2022')}")
         p("=" * 80)
         total_j_success = sum(s["success"] for s in judge_models.values())
         total_j_fail = sum(s["fail"] for s in judge_models.values())
@@ -309,6 +332,12 @@ def analyze_log(log_path: Path, output_path: Path) -> None:
     for l in last_lines:
         p(f"  {l}")
 
+    # 十、参考文献（APA；经 crossref/doi.org 核验，逐字誊抄自手稿书目，严禁自造）
+    p()
+    p("=" * 80)
+    for ref_line in references_block(_CITED_02, title="十、参考文献 (References, APA)"):
+        p(ref_line)
+
     # 写入文件
     report = "\n".join(out)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -318,36 +347,26 @@ def analyze_log(log_path: Path, output_path: Path) -> None:
 
 
 def _find_latest_log() -> Optional[Path]:
-    """查找最新的运行日志文件。"""
-    if not LOG_DIR.exists():
-        return None
-    logs = sorted(
-        (f for f in LOG_DIR.iterdir() if f.name.startswith("run_") and f.suffix == ".log"),
-        key=lambda f: f.stat().st_mtime,
-        reverse=True,
-    )
-    return logs[0] if logs else None
+    """返回主运行日志（固定名，只留最近一次），不存在则返回 None。"""
+    log_path = LOG_DIR / MAIN_RUN_LOG_NAME
+    return log_path if log_path.exists() else None
 
 
 def _list_logs() -> None:
-    """列出所有日志文件。"""
+    """列出当前日志文件（每脚本仅保留最近一次，文件名同 py 文件名）。"""
     if not LOG_DIR.exists():
         print("日志目录不存在")
         return
-    logs = sorted(
-        (f for f in LOG_DIR.iterdir() if f.name.startswith("run_") and f.suffix == ".log"),
-        key=lambda f: f.stat().st_mtime,
-        reverse=True,
-    )
+    logs = sorted(f for f in LOG_DIR.iterdir() if f.suffix == ".log")
     if not logs:
         print("没有找到日志文件")
         return
     print(f"\n{'=' * 60}")
-    print(f"  日志文件列表 (共 {len(logs)} 个)")
+    print(f"  当前日志文件 (共 {len(logs)} 个)")
     print(f"{'=' * 60}")
     for i, log in enumerate(logs):
         size_kb = log.stat().st_size / 1024
-        print(f"  {i + 1:>3}. {log.name:<35} ({size_kb:.0f} KB)")
+        print(f"  {i + 1:>3}. {log.name:<35} ({sig4(size_kb)} KB)")
     print()
 
 
@@ -372,8 +391,6 @@ if __name__ == "__main__":
             print(f"❌ 文件不存在: {log_path}")
             raise SystemExit(1)
 
-        # 从日志文件名提取时间戳
-        ts_match = re.search(r"(\d{8}_\d{6})", log_path.name)
-        ts = ts_match.group(1) if ts_match else datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_path = LOG_DIR / f"analysis_{ts}.md"
+        # 分析报告文件名固定为「同 py 文件名」，覆盖写入，只保留最近一次
+        output_path = LOG_DIR / f"{Path(__file__).stem}.md"
         analyze_log(log_path, output_path)

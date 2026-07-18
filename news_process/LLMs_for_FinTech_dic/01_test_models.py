@@ -22,6 +22,7 @@
 # === 标准库 ===
 import argparse
 import concurrent.futures
+import random
 import re
 import json
 import time
@@ -42,13 +43,44 @@ from config import (
     get_client_config,
     get_model_params,
 )
+# 学术化日志支撑（四位有效数字 + 经核验 APA 参考文献；详见 academic.py）
+from academic import sig4, pct4, cite, references_block
+
+# 本报告引用文献 handle（严格等于正文 in-text 实引集：异构模型矩阵抑制架构偏差
+# + 基座模型综述）；此诊断报告仅引这两条，勿列入未 in-text 引用的文献。
+_CITED_01 = ["zheng_2023", "zhao_2023"]
 
 TEST_PROMPT = '请用JSON格式返回3个银行相关关键词。格式：{"keywords": ["词1", "词2", "词3"]}'
+
+# 诊断重试上限：429 限流 / 502·503 网关 / 超时属**可恢复的瞬时错误**，单发诊断遇之即
+# 报"失败"会把「其实可用、只是被并发探测瞬时限流」的模型误判为不可用（假阴性）。故对
+# 瞬时错误做有界指数退避重试，退避策略镜像主管道 00_LLMs_for_dic._calculate_backoff 的
+# 429 分支（上限 6 档、封顶 60s + 抖动），保持全目录一致口径。
+MAX_TEST_RETRIES: int = 5
+
+
+def _is_transient_error(error_str: str) -> bool:
+    """判断错误是否为可重试的瞬时错误（限流 / 网关 / 超时）。"""
+    s = error_str.lower()
+    return (
+        "429" in error_str
+        or "rate limit" in s
+        or "负载已饱和" in error_str
+        or "502" in error_str
+        or "503" in error_str
+        or "timed out" in s
+        or "timeout" in s
+    )
+
+
+def _test_backoff(retry_index: int) -> float:
+    """瞬时错误退避秒数（指数 + 随机抖动；镜像主管道 429 分支）。"""
+    return min(60, (2 ** min(retry_index, 6)) * 2) + random.uniform(0, 15)
 
 
 def test_single_model(args: Tuple[str, Dict[str, str]]) -> Tuple[str, str, str, float]:
     """
-    测试单个模型是否可正常调用。
+    测试单个模型是否可正常调用（对瞬时错误做有界退避重试，避免限流假阴性）。
 
     Args:
         args: (model_name, client_config) 元组
@@ -58,67 +90,84 @@ def test_single_model(args: Tuple[str, Dict[str, str]]) -> Tuple[str, str, str, 
     """
     model_name, client_config = args
     client = OpenAI(**client_config)
-    start = time.time()
+    model_params = get_model_params(model_name)
+    last_err = ""
 
-    try:
-        model_params = get_model_params(model_name)
-        resp = client.chat.completions.create(
-            model=model_name,
-            messages=[{"role": "user", "content": TEST_PROMPT}],
-            timeout=min(REQUEST_TIMEOUT, 120),
-            **model_params,
-        )
-        text = resp.choices[0].message.content
-        elapsed = time.time() - start
-
-        # 清理 <think> 标签和 markdown 代码块
-        cleaned = text or ""
-        cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.DOTALL)
-        cleaned = re.sub(r"<think>.*", "", cleaned, flags=re.DOTALL)
-        # 清理孤立的 </think> 或 </think（未闭合）及其后续内容
-        cleaned = re.sub(r"</think.*", "", cleaned, flags=re.DOTALL)
-        cleaned = re.sub(r"```(?:json)?\s*\n?", "", cleaned)
-        cleaned = cleaned.strip()
-
-        # 验证返回是否为有效 JSON（含正则回退）
-        data = None
+    for attempt in range(MAX_TEST_RETRIES + 1):
+        start = time.time()  # 每次尝试独立计时，"耗时"反映成功调用自身延迟（不含退避等待）
         try:
-            data = json.loads(cleaned)
-        except (json.JSONDecodeError, TypeError, ValueError):
-            # 回退：用正则提取 {...} 部分
-            match = re.search(r"\{.*\}", cleaned, re.DOTALL)
-            if match:
-                try:
-                    data = json.loads(match.group())
-                except (json.JSONDecodeError, ValueError):
-                    pass
+            resp = client.chat.completions.create(
+                model=model_name,
+                messages=[{"role": "user", "content": TEST_PROMPT}],
+                timeout=min(REQUEST_TIMEOUT, 120),
+                **model_params,
+            )
+            text = resp.choices[0].message.content
+            elapsed = time.time() - start
 
-        has_keywords = (
-            isinstance(data, dict)
-            and any(isinstance(v, list) for v in data.values())
-        )
+            # 清理 <think> 标签和 markdown 代码块
+            cleaned = text or ""
+            cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.DOTALL)
+            cleaned = re.sub(r"<think>.*", "", cleaned, flags=re.DOTALL)
+            # 清理孤立的 </think> 或 </think（未闭合）及其后续内容
+            cleaned = re.sub(r"</think.*", "", cleaned, flags=re.DOTALL)
+            cleaned = re.sub(r"```(?:json)?\s*\n?", "", cleaned)
+            cleaned = cleaned.strip()
 
-        if has_keywords:
-            # 展平嵌套列表并只保留字符串元素
-            result_list = next((v for v in data.values() if isinstance(v, list)), [])
-            kw_list = []
-            for item in result_list:
-                if isinstance(item, str):
-                    kw_list.append(item)
-                elif isinstance(item, list):
-                    kw_list.extend(i for i in item if isinstance(i, str))
-            status = "✅ 成功"
-            detail = f"耗时 {elapsed:.1f}s, 返回 {len(kw_list)} 个词: {kw_list[:3]}"
-        else:
-            status = "⚠️ 响应异常"
-            detail = f"耗时 {elapsed:.1f}s, 原始响应: {text[:100]}"
+            # 验证返回是否为有效 JSON（含正则回退）
+            data = None
+            try:
+                data = json.loads(cleaned)
+            except (json.JSONDecodeError, TypeError, ValueError):
+                # 回退：用正则提取 {...} 部分
+                match = re.search(r"\{.*\}", cleaned, re.DOTALL)
+                if match:
+                    try:
+                        data = json.loads(match.group())
+                    except (json.JSONDecodeError, ValueError):
+                        pass
 
-        return (model_name, status, detail, elapsed)
+            has_keywords = (
+                isinstance(data, dict)
+                and any(isinstance(v, list) for v in data.values())
+            )
 
-    except Exception as e:
-        elapsed = time.time() - start
-        err_msg = str(e)[:120]
-        return (model_name, "❌ 失败", f"耗时 {elapsed:.1f}s, 错误: {err_msg}", elapsed)
+            retry_note = f"（重试 {attempt} 次后成功）" if attempt else ""
+            if has_keywords:
+                # 展平嵌套列表并只保留字符串元素
+                result_list = next((v for v in data.values() if isinstance(v, list)), [])
+                kw_list = []
+                for item in result_list:
+                    if isinstance(item, str):
+                        kw_list.append(item)
+                    elif isinstance(item, list):
+                        kw_list.extend(i for i in item if isinstance(i, str))
+                status = "✅ 成功"
+                detail = f"耗时 {sig4(elapsed)}s, 返回 {len(kw_list)} 个词: {kw_list[:3]}{retry_note}"
+            else:
+                status = "⚠️ 响应异常"
+                detail = f"耗时 {sig4(elapsed)}s, 原始响应: {text[:100]}{retry_note}"
+
+            return (model_name, status, detail, elapsed)
+
+        except Exception as e:
+            elapsed = time.time() - start
+            last_err = str(e)
+            # 瞬时错误（429 限流 / 502·503 网关 / 超时）→ 有界指数退避后重试；
+            # 非瞬时错误或已用尽重试次数 → 判定失败。
+            if _is_transient_error(last_err) and attempt < MAX_TEST_RETRIES:
+                time.sleep(_test_backoff(attempt))
+                continue
+            note = f"（重试 {attempt} 次仍失败）" if attempt else ""
+            return (
+                model_name,
+                "❌ 失败",
+                f"耗时 {sig4(elapsed)}s, 错误: {last_err[:120]}{note}",
+                elapsed,
+            )
+
+    # 循环内每条路径均已 return，此处仅为静态分析兜底（理论不可达）。
+    return (model_name, "❌ 失败", f"错误: {last_err[:120]}", 0.0)
 
 
 def run_tests(
@@ -127,6 +176,8 @@ def run_tests(
     """并发测试一组模型。"""
     print(f"\n{'=' * 70}")
     print(f"  {label} — 共 {len(models)} 个模型 (并发数: {max_workers})")
+    print(f"  用途：核验异构大模型 API 可用性；多厂商异构面板旨在抑制单一架构/语料的")
+    print(f"        推断偏差，为词典生成与盲审提供研究基线 {cite('zheng_2023', 'zhao_2023')}")
     print(f"  开始时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"{'=' * 70}\n")
 
@@ -155,12 +206,12 @@ def print_summary(
     print(f"\n{'=' * 70}")
     print(f"  {label} 测试汇总")
     print(f"{'=' * 70}")
-    print(f"  ✅ 成功: {success}/{len(results)}")
+    print(f"  ✅ 成功: {success}/{len(results)} (可用率 {pct4(success, len(results))})")
     if warning:
-        print(f"  ⚠️ 响应异常: {warning}/{len(results)}")
+        print(f"  ⚠️ 响应异常: {warning}/{len(results)} ({pct4(warning, len(results))})")
     if failed:
-        print(f"  ❌ 失败: {failed}/{len(results)}")
-    print(f"  ⏱️ 平均耗时: {avg_time:.1f}s")
+        print(f"  ❌ 失败: {failed}/{len(results)} ({pct4(failed, len(results))})")
+    print(f"  ⏱️ 平均耗时: {sig4(avg_time)}s")
 
     if failed or warning:
         print(f"\n  --- 异常/失败模型详情 ---")
@@ -176,22 +227,29 @@ def print_summary(
 def save_report(
     all_results: List[Tuple[str, str, str, float]], filepath: Path
 ) -> None:
-    """保存测试报告到文件。"""
+    """保存测试报告到文件（学术化：用途/方法学锚定 + 四位有效数字 + APA 参考文献）。"""
+    success = sum(1 for _, s, _, _ in all_results if "成功" in s)
+    warning = sum(1 for _, s, _, _ in all_results if "异常" in s)
+    failed = len(all_results) - success - warning
+    avg_time = sum(e for _, _, _, e in all_results) / len(all_results) if all_results else 0.0
     lines = [
-        "模型可用性测试报告",
+        "模型可用性测试报告 (Heterogeneous LLM API Availability Diagnostic)",
         f"测试时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         "=" * 70,
         "",
+        "【用途 Purpose】核验参与词典生成 / 交叉盲审的异构大模型 API 可用性；多厂商异构",
+        f"  面板旨在抑制单一架构与预训练语料带来的推断偏差 {cite('zheng_2023', 'zhao_2023')}。",
+        "",
+        f"总计 {len(all_results)} 个模型 | 成功 {success}（可用率 {pct4(success, len(all_results))}）"
+        f" | 响应异常 {warning} | 失败 {failed} | 平均耗时 {sig4(avg_time)}s",
+        "",
+        f"{'模型名称':<45s} {'状态':<10s} {'详情'}",
+        f"{'-' * 45} {'-' * 10} {'-' * 50}",
     ]
-    success = sum(1 for _, s, _, _ in all_results if "成功" in s)
-    lines.append(
-        f"总计: {len(all_results)} 个模型, 成功: {success}, 失败: {len(all_results) - success}"
-    )
-    lines.append("")
-    lines.append(f"{'模型名称':<45s} {'状态':<10s} {'详情'}")
-    lines.append(f"{'-' * 45} {'-' * 10} {'-' * 50}")
     for name, status, detail, _ in sorted(all_results, key=lambda x: x[1], reverse=True):
         lines.append(f"{name:<45s} {status:<10s} {detail}")
+    lines.append("")
+    lines.extend(references_block(_CITED_01))
 
     filepath.write_text("\n".join(lines), encoding="utf-8")
     print(f"📄 测试报告已保存至: {filepath}")
@@ -228,9 +286,9 @@ def main() -> None:
         all_results.extend(results2)
         print_summary(results2, "判别模型")
 
-    # 保存报告
+    # 保存报告：文件名固定为「同 py 文件名」，覆盖写入，只保留最近一次
     LOG_DIR.mkdir(parents=True, exist_ok=True)
-    report_file = LOG_DIR / f"test_models_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+    report_file = LOG_DIR / f"{Path(__file__).stem}.log"
     save_report(all_results, report_file)
 
 

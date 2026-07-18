@@ -2,6 +2,50 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
+# 学术化输出支撑（四位有效数字 + 经核验 APA 参考文献；详见 academic.py）
+from academic import sig4, cite, references_block
+
+# 本脚本引用文献 handle（Fleiss κ 原始定义 + Landis-Koch / McHugh 双口径分级
+# + 一致性系数族：Cohen κ 配对基线 / Krippendorff α 标准测度 / Gwet AC1 对高一致偏态稳健
+# + Feinstein-Cicchetti『kappa 悖论』警示——LLM 超多数投票为高一致偏态场景，正切该悖论）
+_CITED_KAPPA = ["fleiss_1971", "landis_1977", "mchugh_2012",
+                "cohen_1960", "hayes_2007", "gwet_2008", "feinstein_1990"]
+
+
+def kappa_bands(k: float) -> tuple:
+    """返回 Fleiss' κ 在 Landis & Koch (1977) 与 McHugh (2012) 两套口径下的一致性等级。
+
+    Landis-Koch (1977): <0 Poor / 0.00-0.20 Slight / 0.21-0.40 Fair /
+      0.41-0.60 Moderate / 0.61-0.80 Substantial / 0.81-1.00 Almost Perfect。
+    McHugh (2012, 更严): <0.40 None-to-Minimal(弱) / 0.40-0.59 Weak /
+      0.60-0.79 Moderate / 0.80-0.90 Strong / >0.90 Almost Perfect。
+    两套口径「不分主次、双重披露」，避免单一分级夸大或低估一致性水平。
+    """
+    if k < 0:
+        lk = "Poor（差）"
+    elif k <= 0.20:
+        lk = "Slight（轻微）"
+    elif k <= 0.40:
+        lk = "Fair（尚可）"
+    elif k <= 0.60:
+        lk = "Moderate（中度）"
+    elif k <= 0.80:
+        lk = "Substantial（高度）"
+    else:
+        lk = "Almost Perfect（几近完全）"
+    if k < 0.40:
+        mh = "None-to-Minimal（无-弱）"
+    elif k < 0.60:
+        mh = "Weak（弱）"
+    elif k < 0.80:
+        mh = "Moderate（中度）"
+    elif k <= 0.90:
+        mh = "Strong（强）"
+    else:
+        mh = "Almost Perfect（几近完全）"
+    return lk, mh
+
+
 def fleiss_kappa(ratings, n_categories):
     """
     计算 Fleiss' Kappa 系数
@@ -60,12 +104,26 @@ try:
     ratings = np.clip(ratings, 0, 1)
 
     k, p_bar, p_e = fleiss_kappa(ratings, n_categories=2)
-    print(f"\n--- Fleiss' Kappa 计算结果 ---")
+    lk_band, mh_band = kappa_bands(k)
+    print("\n--- Fleiss' Kappa 评分者间一致性检验 (Inter-rater Reliability) ---")
+    print(f"方法：多评分者名义量表一致性 {cite('fleiss_1971')}；类别数 = 2 (0=非金融科技, 1=金融科技)。")
     print(f"N (词语总数): {ratings.shape[0]}")
-    print(f"k (模型数量): {ratings.shape[1]}")
-    print(f"P_bar (实际观测一致性): {p_bar:.4f}")
-    print(f"P_e (偶然预期一致性): {p_e:.4f}")
-    print(f"Fleiss' Kappa 系数: {k:.4f}")
-    
+    print(f"k (模型数量/评分者): {ratings.shape[1]}")
+    # 所有非整数一律四位有效数字 (sig4)
+    print(f"P_bar (实际观测一致性): {sig4(p_bar)}")
+    print(f"P_e (偶然预期一致性): {sig4(p_e)}")
+    print(f"Fleiss' Kappa 系数 κ: {sig4(k)}")
+    print("一致性分级（双口径披露，不分主次）：")
+    print(f"  · Landis & Koch (1977): {lk_band}")
+    print(f"  · McHugh (2012, 更严):  {mh_band}")
+    print(f"  {cite('landis_1977', 'mchugh_2012')}")
+    print("一致性系数族与稳健性佐证（不分主次）：")
+    print("  · 配对基线 Cohen κ；标准测度 Krippendorff α；对高一致偏态稳健的 Gwet AC1。")
+    print("  · ⚠ kappa 悖论：高观测一致 + 偏态边缘分布下 κ 可能偏低（LLM 超多数投票即此场景），宜并观 AC1。")
+    print(f"  {cite('cohen_1960', 'hayes_2007', 'gwet_2008', 'feinstein_1990')}")
+    print("\n--- 参考文献 (References, APA) ---")
+    for ref_line in references_block(_CITED_KAPPA, title="参考文献 (References, APA)"):
+        print(ref_line)
+
 except Exception as e:
     print(f"Error: {e}")

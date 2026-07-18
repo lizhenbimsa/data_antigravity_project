@@ -17,7 +17,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from config import get_client_config, get_model_params, build_judge_prompt
+from config import (
+    JUDGE_MODELS,
+    build_judge_prompt,
+    get_client_config,
+    get_model_params,
+)
 from openai import OpenAI
 
 
@@ -31,7 +36,7 @@ def main() -> None:
     print(prompt)
     print("=" * 60)
 
-    models_to_test = ["claude-opus-4-6", "claude-opus-4-5-20251101"]
+    models_to_test = JUDGE_MODELS
 
     for model_name in models_to_test:
         print(f"\n{'=' * 60}")

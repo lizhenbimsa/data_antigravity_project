@@ -10,8 +10,8 @@
 用法：
     python LLMs_for_dic/LLMs_for_dic.py                  # 运行完整流程
     python LLMs_for_dic/LLMs_for_dic.py --resume          # 从断点继续（跳过生成阶段）
-    python LLMs_for_dic/LLMs_for_dic.py --view-logs       # 列出所有历史日志
-    python LLMs_for_dic/LLMs_for_dic.py --view-log latest # 查看最新日志
+    python LLMs_for_dic/LLMs_for_dic.py --view-logs       # 列出当前日志文件
+    python LLMs_for_dic/LLMs_for_dic.py --view-log latest # 查看最新运行日志
 """
 
 # === 标准库 ===
@@ -44,7 +44,6 @@ from config import (
     JUDGE_CHECKPOINT_FILE,
     JUDGE_MODELS,
     LOG_DIR,
-    LOG_RETENTION_COUNT,
     MAX_RETRIES,
     MAX_TOTAL_RETRIES,
     MAX_WORKERS_GENERATE,
@@ -67,6 +66,8 @@ from config import (
     OFFLINE_MODE,
 )
 from llm_cache import LLMCache, LLMCacheMissError
+# 学术化日志支撑 (四位有效数字格式化 + 经核验 APA 参考文献注册表; 详见 academic.py)
+from academic import sig4, pct4, cite, references_block
 
 # 目录级独立 LLM 缓存（LLMS_DIC_CACHE=0 可停用；LLMS_DIC_OFFLINE=1 为 $0 离线重放）
 _llm_cache: Optional[LLMCache] = LLMCache(CACHE_DB_FILE) if CACHE_ENABLED else None
@@ -176,20 +177,15 @@ def _get_client(client_config: Dict[str, str]) -> OpenAI:
         return _client_cache[key]
 
 def setup_logger() -> logging.Logger:
-    """初始化日志系统：同时输出到控制台和日志文件，自动清理旧日志。"""
+    """初始化日志系统：同时输出到控制台和日志文件。
+
+    日志文件名固定为「同 py 文件名」（``00_LLMs_for_dic.log``），文件 Handler
+    以 ``mode="w"`` 覆盖写入 —— 每次运行只保留最近一次日志，不再滚动累积。
+    """
     LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-    # 自动清理旧日志：仅保留最近 LOG_RETENTION_COUNT 个
-    existing_logs = sorted(f for f in LOG_DIR.iterdir() if f.name.startswith("run_") and f.suffix == ".log")
-    if len(existing_logs) > LOG_RETENTION_COUNT:
-        for old_log in existing_logs[:-LOG_RETENTION_COUNT]:
-            try:
-                old_log.unlink()
-            except OSError:
-                pass
-
-    log_filename = f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-    log_filepath = LOG_DIR / log_filename
+    # 日志文件名 = 脚本名（同 py 文件名），每次运行覆盖，只留最近一次
+    log_filepath = LOG_DIR / f"{Path(__file__).stem}.log"
 
     logger = logging.getLogger("LLMs_for_dic")
     logger.setLevel(logging.DEBUG)
@@ -206,8 +202,8 @@ def setup_logger() -> logging.Logger:
     ch.setFormatter(fmt)
     logger.addHandler(ch)
 
-    # 文件 Handler
-    fh = logging.FileHandler(str(log_filepath), encoding="utf-8")
+    # 文件 Handler（mode="w" 覆盖写入，只保留最近一次运行日志）
+    fh = logging.FileHandler(str(log_filepath), mode="w", encoding="utf-8")
     fh.setLevel(logging.DEBUG)
     fh.setFormatter(fmt)
     logger.addHandler(fh)
@@ -217,7 +213,7 @@ def setup_logger() -> logging.Logger:
 
 
 def view_logs() -> None:
-    """列出所有历史日志文件。"""
+    """列出当前日志文件（每脚本仅保留最近一次，文件名同 py 文件名）。"""
     if not LOG_DIR.exists():
         print("暂无运行日志。")
         return
@@ -226,13 +222,13 @@ def view_logs() -> None:
         print("暂无运行日志。")
         return
     print(f"\n{'=' * 60}")
-    print(f"  历史运行日志 (共 {len(files)} 个)")
+    print(f"  当前日志文件 (共 {len(files)} 个)")
     print(f"  目录: {LOG_DIR.resolve()}")
     print(f"{'=' * 60}")
     for i, fp in enumerate(files, 1):
         size = fp.stat().st_size
         mtime = datetime.fromtimestamp(fp.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
-        size_str = f"{size / 1024:.1f}KB" if size >= 1024 else f"{size}B"
+        size_str = f"{sig4(size / 1024)}KB" if size >= 1024 else f"{size}B"
         print(f"  {i:>3}. {fp.name}  ({size_str}, {mtime})")
     print(f"{'=' * 60}")
     print(f"  使用 --view-log <文件名> 查看具体日志")
@@ -249,7 +245,9 @@ def view_log(name: str) -> None:
         print("暂无运行日志。")
         return
     if name == "latest":
-        target = files[-1]
+        # 主运行日志固定名 = 脚本名；缺失时回退到按名排序末位
+        main_log = f"{Path(__file__).stem}.log"
+        target = main_log if main_log in files else files[-1]
     elif name in files:
         target = name
     else:
@@ -263,6 +261,93 @@ def view_log(name: str) -> None:
     print(f"{'=' * 60}\n")
     print(filepath.read_text(encoding="utf-8"))
     print(f"\n{'=' * 60}\n")
+
+
+# ════════════════════════════════════════════════════════════════
+# 学术化运行头 / 尾部参考文献块
+# ════════════════════════════════════════════════════════════════
+# 本轮日志所引全部文献的 handle 集合（footer 由 academic.references_block 渲染为
+# APA 全表）。每个 handle 均对应 academic.REFERENCES 中一条经核验、逐字誊抄自手稿
+# §6 书目的条目——严禁在日志中出现注册表之外的引文。
+_RUN_CITED_HANDLES = [
+    # 方法学根基：金融文本量化 / 专属词典
+    "gentzkow_2019", "loughran_2011", "tetlock_2007", "tetlock_2008",
+    "garcia_2023", "kearney_2014",
+    # 金融科技领域界定与银行数字化测度
+    "gomber_2018", "thakor_2020", "cheng_2020", "goldstein_2021",
+    # 设计原理：群体智能 / 集成学习（多样性聚合胜过单一最强模型）
+    "galton_1907", "hong_2004", "dietterich_2000", "breiman_2001", "wang_2022",
+    # 阶段一：种子引导并发生成（默认温度采样，无梯度微调）
+    "brown_2020", "dekok_2025",
+    # 阶段二：集合规约（无监督扩容的过度映射/假阳性问题）
+    "blei_2003", "hanley_2019", "li_2021",
+    # 阶段三：LLM-as-a-Judge 群体盲审（零温 2/3 严格多数；判别端凝缩型 CoT 约束）
+    # 含 LLM-as-annotator / LLM-as-judge 综述 / 幻觉综述（交叉盲审的动因）
+    "zheng_2023", "liu_2023", "gu_2024", "gilardi_2023", "ouyang_2022",
+    "bernard_2026", "gopal_2025", "wei_2022", "ji_2023",
+    # 验证：评分者间一致性——Fleiss' Kappa（双口径披露）+ 一致性系数族（Cohen κ / Krippendorff α / Gwet AC1）
+    "fleiss_1971", "landis_1977", "mchugh_2012", "cohen_1960", "hayes_2007", "gwet_2008",
+]
+
+
+def _log_run_header(logger: logging.Logger) -> None:
+    """在运行开始处输出学术化项目信息 + 方法学 + 数据 I/O + 配置快照。
+
+    仅陈述本管道的客观设计与运行时配置（读 config 动态值），并以 in-text 引用
+    锚定方法学依据；不预告任何尚未产生的结果，避免过度声明。
+    """
+    bar = "═" * 78
+    logger.info(bar)
+    logger.info("LLMs_for_FinTech_dic ─ 基于大语言模型群体智能的金融科技领域词典构建管道")
+    logger.info(bar)
+    # ── 项目信息 / 方法学 ──────────────────────────────────────────
+    logger.info("【项目信息 Project】面向商业银行「金融科技」垂直领域，构建可复现的高信噪比")
+    logger.info("  特征词典，用于大规模非结构化金融文本的软信息量化测度 "
+                + cite("gentzkow_2019", "loughran_2011", "tetlock_2008", "kearney_2014"))
+    logger.info("  动因：专家先验种子词典存在选择性偏差与更新时滞，无监督向量/主题扩容又易")
+    logger.info("  因语境共现引入偏离金融因果逻辑的假阳性噪声 "
+                + cite("tetlock_2007", "hanley_2019", "li_2021", "garcia_2023"))
+    logger.info("  领域界定与银行数字化测度锚定金融科技实证文献 "
+                + cite("gomber_2018", "thakor_2020", "cheng_2020", "goldstein_2021"))
+    logger.info("【方法学 Method】三阶段全自动构建工作流（无人工在环），另附一致性验证：")
+    logger.info("  ◆ 设计原理（群体智能 Swarm Intelligence）：以多异构模型的多样性聚合替代单一模型——")
+    logger.info("     群体智慧与集成学习理论表明，足够多样的评委/学习器聚合可胜过任一单个最强者，"
+                "其 LLM 原生对应即多路采样多数投票（self-consistency） "
+                + cite("galton_1907", "hong_2004", "dietterich_2000", "breiman_2001", "wang_2022"))
+    logger.info("  ① 种子引导并发生成（Seed-guided Concurrency Generation，无梯度微调）：各异构基座模型")
+    logger.info("     在默认温度下、以领域种子词与格式示范为条件并发重复采样，以查全率/特征分布探测为目标 "
+                + cite("brown_2020", "dekok_2025"))
+    logger.info("  ② 集合迭代精简（Set-based Reduction）：Unicode NFKC 规范化 + 哈希去重 + 超子串")
+    logger.info("     包容剔除算子，收敛为正交原子词根，抑制派生词重复计量 "
+                + cite("blei_2003", "hanley_2019", "li_2021"))
+    logger.info("  ③ 机器交叉盲审（LLM-as-a-Judge Swarm，零温 T=0）：多模型背靠背评分 + 2/3 严格多数")
+    logger.info("     （supermajority，需 > 2/3 家模型认可）截断，判别端施加凝缩型思维链（CoT）约束、"
+                "削减单体模型偏误与幻觉、分离弱共识噪声（大模型作评判者/标注员的一致性与幻觉动因） "
+                + cite("zheng_2023", "gu_2024", "gilardi_2023", "liu_2023", "ouyang_2022",
+                       "bernard_2026", "wei_2022", "ji_2023"))
+    logger.info("  ◇ 验证（Validation，非流水线阶段）：Fleiss' Kappa 评分者间一致性，Landis-Koch 与 McHugh 双口径分级披露；"
+                "并锚定一致性系数族（Cohen κ / Krippendorff α / Gwet AC1）以佐证效度 "
+                + cite("fleiss_1971", "landis_1977", "mchugh_2012", "cohen_1960", "hayes_2007", "gwet_2008"))
+    # ── 数据 I/O ──────────────────────────────────────────────────
+    logger.info("【数据 I/O】输入：Prompt 驱动（无外部原始语料，词汇源自模型预训练知识图谱）；")
+    logger.info(f"  产物 Excel（多 Sheet，含逐步中间态与判别结果）→ {OUTPUT_FILE}")
+    _cache_desc = (f"启用 · {CACHE_DB_FILE}" if CACHE_ENABLED else "停用（直连 API）")
+    logger.info(f"  目录级独立 LLM 缓存：{_cache_desc}"
+                + ("（离线重放 $0）" if OFFLINE_MODE else ""))
+    # ── 配置快照（运行时动态值）──────────────────────────────────
+    _gen_tasks = len(MODELS) * len(DOMAINS) * NUM_REPEAT_PER_MODEL
+    logger.info("【配置快照 Config（运行时动态）】")
+    logger.info(f"  生成模型 {len(MODELS)} 家 · 判别模型 {len(JUDGE_MODELS)} 家 · 领域 {len(DOMAINS)} 个 · "
+                f"每模型重复 {NUM_REPEAT_PER_MODEL} 次 → 生成任务 {_gen_tasks} 个")
+    logger.info(f"  判别批大小 {JUDGE_BATCH_SIZE} · 生成并发 {MAX_WORKERS_GENERATE} · 判别并发 {MAX_WORKERS_JUDGE} · "
+                f"单次超时 {REQUEST_TIMEOUT}s · 全局重试上限 {MAX_TOTAL_RETRIES} · 失败跳过阈值 {MODEL_FAIL_THRESHOLD}")
+    logger.info(bar)
+
+
+def _log_run_references(logger: logging.Logger) -> None:
+    """在运行结束处输出本轮日志引用的全部 APA 参考文献（经核验、逐字誊抄自手稿书目）。"""
+    for line in references_block(_RUN_CITED_HANDLES):
+        logger.info(line)
 
 
 # ════════════════════════════════════════════════════════════════
@@ -439,9 +524,9 @@ def _call_llm_with_retry(
             wait = _calculate_backoff(error_str, i, consecutive_timeouts)
             if consecutive_timeouts >= 5:
                 logger.warning(
-                    f"  [{task_id}] 连续超时{consecutive_timeouts}次，等待{wait:.0f}s"
+                    f"  [{task_id}] 连续超时{consecutive_timeouts}次，等待{sig4(wait)}s"
                 )
-            logger.debug(f"  [{task_id}] 等待 {wait:.1f}s 后重试")
+            logger.debug(f"  [{task_id}] 等待 {sig4(wait)}s 后重试")
             time.sleep(wait)
 
     logger.error(f"  [{task_id}] 达到最大重试次数，任务失败")
@@ -641,14 +726,14 @@ def judge_batch(args: Tuple) -> Tuple[str, List[Tuple[str, int, str]]]:
             coverage = best_partial_count / len(keywords_batch)
             if coverage >= 0.95:
                 logger.warning(
-                    f"  [{task_id}] 重试{attempt + 1}次后覆盖率达 {coverage:.0%} "
+                    f"  [{task_id}] 重试{attempt + 1}次后覆盖率达 {pct4(best_partial_count, len(keywords_batch))} "
                     f"({best_partial_count}/{len(keywords_batch)})，提前采纳部分结果"
                 )
                 return (model_name, best_partial_results)
 
         if attempt < MAX_JUDGE_RETRIES - 1:
             wait = min(15, 2 * (2 ** attempt)) + random.uniform(0, 5)  # 退避等待
-            logger.info(f"  [{task_id}] 判定失败，等待 {wait:.1f}s 后进行第 {attempt + 2} 次重试...")
+            logger.info(f"  [{task_id}] 判定失败，等待 {sig4(wait)}s 后进行第 {attempt + 2} 次重试...")
             time.sleep(wait)
 
     # 超过最大重试次数，如果有部分成功的结果，则返回最佳部分成功结果
@@ -831,8 +916,12 @@ def _simplify_keywords(unique_keywords: List[str]) -> List[str]:
     优化：使用 Set 加速查找，替代纯 Python 实现的 Trie 树以提升性能。
     """
     logger = logging.getLogger("LLMs_for_dic")
-    logger.info(f"开始词根精简，当前去重后词数: {len(unique_keywords)} ...")
-    
+    logger.info(
+        f"--- 阶段② 词根精简（Set-based Reduction）: 超子串包容剔除算子，收敛为正交原子"
+        f"词根以抑制派生词重复计量与无监督扩容假阳性 {cite('hanley_2019', 'li_2021')} ---"
+    )
+    logger.info(f"  当前去重后词数: {len(unique_keywords)} ...")
+
     # 1. 按长度排序：短词在前
     sorted_by_len = sorted(unique_keywords, key=len)
     
@@ -874,10 +963,16 @@ def _simplify_keywords(unique_keywords: List[str]) -> List[str]:
         if count % 10000 == 0:
             elapsed = time.time() - start_time
             rate = count / elapsed if elapsed > 0 else 0
-            logger.info(f"  已处理 {count}/{total} 个词 ({count/total*100:.1f}%), 耗时 {elapsed:.1f}s, 速度 {rate:.0f}词/s")
+            logger.info(
+                f"  已处理 {count}/{total} 个词 ({pct4(count, total)}), "
+                f"耗时 {sig4(elapsed)}s, 速度 {sig4(rate)} 词/s"
+            )
 
     elapsed = time.time() - start_time
-    logger.info(f"词根精简完成。保留: {len(simplified)}/{total}, 总耗时: {elapsed:.2f}s")
+    logger.info(
+        f"阶段② 词根精简完成：保留 {len(simplified)}/{total}（保留率 {pct4(len(simplified), total)}），"
+        f"总耗时 {sig4(elapsed)}s"
+    )
     return simplified
 
 
@@ -971,6 +1066,7 @@ def main(resume: bool = False, dry_run: bool = False) -> None:
 
     logger = setup_logger()
     start_time = time.time()
+    _log_run_header(logger)
     # client_config 现在按模型动态获取，见下方任务构建处
 
     # 缓存状态汇报
@@ -979,7 +1075,7 @@ def main(resume: bool = False, dry_run: bool = False) -> None:
         mode = "离线重放 (miss 即报错, $0)" if OFFLINE_MODE else "在线 (miss 才调 API)"
         logger.info(
             f"🗄️ LLM 缓存已启用 [{mode}]: {cs['db_path']} "
-            f"(现有 {cs['total_entries']} 条, {cs['size_mb']:.1f} MB)"
+            f"(现有 {cs['total_entries']} 条, {sig4(cs['size_mb'])} MB)"
         )
         logger.info(
             "   注意: 缓存命中=重放历史响应; 若要全新多样性采样, "
@@ -1006,7 +1102,7 @@ def main(resume: bool = False, dry_run: bool = False) -> None:
         logger.info(f"  全局重试上限: {MAX_TOTAL_RETRIES}")
         logger.info(f"  模型失败跳过阈值: {MODEL_FAIL_THRESHOLD}")
         est_minutes = gen_task_count * 15 / MAX_WORKERS_GENERATE / 60
-        logger.info(f"  预估生成阶段耗时: ~{est_minutes:.0f} 分钟 (假设平均 15s/任务)")
+        logger.info(f"  预估生成阶段耗时: ~{sig4(est_minutes)} 分钟 (假设平均 15s/任务)")
         logger.info("=" * 60)
         logger.info("提示: 去掉 --dry-run 参数即可正式执行")
         return
@@ -1069,8 +1165,13 @@ def main(resume: bool = False, dry_run: bool = False) -> None:
             total_tasks = len(tasks)
             completed_str = f" (已完成 {len(completed_task_ids)} 个，剩余 {total_tasks} 个)" if completed_task_ids else ""
             logger.info(
-                f"--- 开始并行执行: {len(MODELS)} 个模型 × {len(DOMAINS)} 个领域 "
+                f"--- 阶段① 开始并行执行: {len(MODELS)} 个模型 × {len(DOMAINS)} 个领域 "
                 f"× {NUM_REPEAT_PER_MODEL} 次 = {len(MODELS)*len(DOMAINS)*NUM_REPEAT_PER_MODEL} 个总量{completed_str} ---"
+            )
+            logger.info(
+                "    机制：各异构基座模型在默认温度下、以领域种子词与格式示范为条件并发重复采样"
+                "（Monte-Carlo，无梯度微调），以查全率与特征分布探测为目标 "
+                + cite("brown_2020", "dekok_2025")
             )
 
             with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS_GENERATE) as executor:
@@ -1102,8 +1203,8 @@ def main(resume: bool = False, dry_run: bool = False) -> None:
                     if completed % 10 == 0 or completed == total_tasks:
                         logger.info(
                             f"  📊 生成进度: {completed}/{total_tasks} "
-                            f"({completed / total_tasks * 100:.0f}%), "
-                            f"已收集 {keywords_raw_count} 个词"
+                            f"({pct4(completed, total_tasks)}), "
+                            f"已收集 {keywords_raw_count} 个原始词条"
                         )
                         _save_gen_checkpoint(
                             dom_keywords, all_keywords, all_records,
@@ -1178,8 +1279,14 @@ def main(resume: bool = False, dry_run: bool = False) -> None:
         logger.warning("⚠️ 因中断信号跳过判别阶段，直接保存中间结果")
     else:
         logger.info(
-            f"--- 开始批量判别 (共 {final_count} 个词, "
+            f"--- 阶段③ 开始批量判别 (共 {final_count} 个词, "
             f"每批 {JUDGE_BATCH_SIZE} 个, {len(JUDGE_MODELS)} 个模型) ---"
+        )
+        logger.info(
+            "    机制：机器交叉盲审（LLM-as-a-Judge Swarm），各模型零温 T=0 背靠背评分，"
+            "经 2/3 严格多数（supermajority）截断、并施加凝缩型思维链（CoT）约束削减单体偏误与幻觉 "
+            + cite("zheng_2023", "gu_2024", "gilardi_2023", "liu_2023", "ouyang_2022",
+                   "bernard_2026", "wei_2022", "ji_2023")
         )
 
     judge_start_time = time.time()
@@ -1240,8 +1347,7 @@ def main(resume: bool = False, dry_run: bool = False) -> None:
                 completed += 1
                 # 进度汇报 + 定期保存判别断点
                 if completed % 5 == 0 or completed == len(judge_tasks):
-                    pct = completed / len(judge_tasks) * 100 if len(judge_tasks) > 0 else 100
-                    logger.info(f"  📊 判别进度: {completed}/{len(judge_tasks)} ({pct:.0f}%)")
+                    logger.info(f"  📊 判别进度: {completed}/{len(judge_tasks)} ({pct4(completed, len(judge_tasks))})")
                     _save_judge_checkpoint(model_results, completed, len(judge_tasks))
 
     # 汇报被跳过的模型
@@ -1406,27 +1512,43 @@ def main(resume: bool = False, dry_run: bool = False) -> None:
     # 最终统计输出
     # ====================================================================
     duration = time.time() - start_time
-    logger.info("--- 任务完成 ---")
-    logger.info(f"生成耗时: {gen_duration:.1f}s | 判别耗时: {judge_duration:.1f}s | 总耗时: {duration:.1f}s")
-    logger.info(f"领域数量: {len(DOMAINS)}")
+    _n_ai = len(judge_ok_set)
+    logger.info("═" * 78)
+    logger.info("--- 任务完成：运行结果与统计摘要 (Results & Statistics) ---")
+    logger.info("═" * 78)
     logger.info(
-        f"生成词数: {total_generated} → 去重: {len(unique_keywords)} → 精简: {final_count}"
+        f"【运行期 Runtime】生成耗时 {sig4(gen_duration)}s | 判别耗时 {sig4(judge_duration)}s | "
+        f"总耗时 {sig4(duration)}s（生成占比 {pct4(gen_duration, duration)}）"
+    )
+    logger.info(f"【领域 Domain】数量 {len(DOMAINS)}")
+    # 结果链：生成 → 去重 → 精简/最终 → AI 认可，附四位有效数字留存/认可率
+    logger.info(
+        f"【结果链 Pipeline】生成 {total_generated} → 去重 {len(unique_keywords)} "
+        f"→ 精简/最终 {final_count} → AI 认可 {_n_ai}"
+    )
+    logger.info(
+        f"  去重率 {pct4(len(unique_keywords), total_generated)}（去冗余）｜"
+        f"精简率 {pct4(final_count, len(unique_keywords))}（超子串正交化）｜"
+        f"AI 认可率 {pct4(_n_ai, final_count)}（占最终词表）"
     )
     if _total_retry_count > 0:
-        logger.info(f"全局重试总次数: {_total_retry_count}")
+        logger.info(f"【稳健性 Robustness】全局重试总次数 {_total_retry_count}（费用保护上限 {MAX_TOTAL_RETRIES}）")
     if _llm_cache is not None:
         n_req = _llm_cache.hits + _llm_cache.misses
-        hit_rate = _llm_cache.hits / n_req * 100 if n_req else 0.0
         logger.info(
-            f"LLM 缓存统计: 命中 {_llm_cache.hits} / 未命中 {_llm_cache.misses} "
-            f"(命中率 {hit_rate:.1f}%, 命中部分 $0)"
+            f"【缓存 Cache】命中 {_llm_cache.hits} / 未命中 {_llm_cache.misses} "
+            f"(命中率 {pct4(_llm_cache.hits, n_req)}, 命中部分 $0；确定性 $0 重放锚)"
         )
 
-    # 判别统计
+    # 判别统计（total_score 分布，附四位有效数字占比）
     score_counts = df_final["total_score"].value_counts().sort_index(ascending=False)
-    logger.info("AI判别统计 (total_score 分布):")
+    _n_judged = int(score_counts.sum())
+    logger.info(
+        f"【AI 判别 total_score 分布】受审 {_n_judged} 词，票数越高表示越多模型共识认可 "
+        + cite("zheng_2023", "gopal_2025")
+    )
     for sc, cnt in score_counts.items():
-        logger.info(f"  得分 {sc}: {cnt} 个词")
+        logger.info(f"  得分 {sc}: {cnt} 个词（占 {pct4(cnt, _n_judged)}）")
     # fix(S2, 2026-07-14) + 更新(2026-07-17): 口径声明——上方分布及下表"AI认可"
     # 列均按 2/3 严格多数 (>2/3，即 JUDGE_MODELS 中 >len(JUDGE_MODELS)*2/3 家
     # 模型认可) 统计。⚠ total_score 为整数票数，"恰好 2/3"的临界票仅当模型数可被 3
@@ -1434,15 +1556,15 @@ def main(resume: bool = False, dry_run: bool = False) -> None:
     _min_pass = len(JUDGE_MODELS) * 2 // 3 + 1
     logger.info(
         f"  口径声明(S2): 'AI认可'/上方 total_score 分布均按 2/3 严格多数统计"
-        f"(> {len(JUDGE_MODELS) * 2 / 3:.2f}，即 {len(JUDGE_MODELS)} 家模型中需 ≥{_min_pass} 票)"
+        f"(> {sig4(len(JUDGE_MODELS) * 2 / 3)}，即 {len(JUDGE_MODELS)} 家模型中需 ≥{_min_pass} 票)"
     )
 
-    logger.info("各领域统计:")
+    logger.info("【各领域统计 Per-domain】")
     logger.info(
         f"  {'领域名称':<16s} {'原始':>6s} {'去重':>6s} "
-        f"{'精简':>6s} {'最终':>6s} {'AI认可':>6s}"
+        f"{'精简':>6s} {'最终':>6s} {'AI认可':>6s} {'认可率':>8s}"
     )
-    logger.info(f"  {'-' * 16} {'-' * 6} {'-' * 6} {'-' * 6} {'-' * 6} {'-' * 6}")
+    logger.info(f"  {'-' * 16} {'-' * 6} {'-' * 6} {'-' * 6} {'-' * 6} {'-' * 6} {'-' * 8}")
     for dom in DOMAINS:
         dom_name = dom["name"]
         dom_raw = dom_keywords.get(dom_name, [])
@@ -1454,9 +1576,19 @@ def main(resume: bool = False, dry_run: bool = False) -> None:
         n_ai = len(dom_set & judge_ok_set)
         logger.info(
             f"  {dom_name:<16s} {n_raw:>6d} {n_uniq:>6d} "
-            f"{n_simp:>6d} {n_final:>6d} {n_ai:>6d}"
+            f"{n_simp:>6d} {n_final:>6d} {n_ai:>6d} {pct4(n_ai, n_final):>8s}"
         )
-    logger.info(f"结果已保存至: {OUTPUT_FILE}")
+    # 一致性验证指针（κ 由 calculate_kappa.py 独立离线计算，读该脚本内指定的判别结果 xlsx，
+    # 非本进程内联、亦非必为本轮 OUTPUT_FILE — 当前脚本硬编码指向一份 v1 冻结判别件）
+    logger.info(
+        "【一致性验证 Validation】模型间评分者一致性 Fleiss' Kappa 由 calculate_kappa.py 独立离线"
+        "计算（读该脚本内指定的判别结果 xlsx，当前为 v1 冻结件；非本进程内联）；"
+        "分级采用 Landis-Koch 与 McHugh 双口径披露，一致性系数族（Cohen κ / Krippendorff α / Gwet AC1）为佐证 "
+        + cite("fleiss_1971", "landis_1977", "mchugh_2012", "cohen_1960", "hayes_2007", "gwet_2008")
+    )
+    logger.info(f"【产物 Output】结果已保存至: {OUTPUT_FILE}")
+    # 尾部：本轮日志引用的全部 APA 参考文献（经 crossref/doi.org 核验，逐字誊抄自手稿书目）
+    _log_run_references(logger)
 
 
 # ════════════════════════════════════════════════════════════════
