@@ -21,13 +21,26 @@ JUDGE_CHECKPOINT_FILE = DATA_DIR / "judge_checkpoint.json"
 GEN_CHECKPOINT_FILE = DATA_DIR / "gen_checkpoint.json"
 
 # ════════════════════════════════════════════════════════════════
+# 环境变量加载
+# ════════════════════════════════════════════════════════════════
+# 本子管道独立运行（python 00_LLMs_for_dic.py）时不经主项目 core.config 的
+# _load_dotenv，故在此显式从主项目 news_process/.env（= SCRIPT_DIR.parent/.env）
+# 载入，使 YUNWU_FULL_KEY 等键可被下方 os.environ.get 读到；override=False 不覆盖
+# shell 已显式设定的同名变量（优先级：进程环境 > .env）。
+try:
+    from dotenv import load_dotenv
+    load_dotenv(SCRIPT_DIR.parent / ".env", override=False)
+except ImportError:
+    pass
+
+# ════════════════════════════════════════════════════════════════
 # API 配置（优先从环境变量读取，安全不泄露）
 # ════════════════════════════════════════════════════════════════
 
 BASE_URL: str = os.environ.get(
     "YUNWU_BASE_URL", "https://yunwu.ai/v1"
 )
-API_KEY: str = os.environ.get("YUNWU_API_KEY", "")
+API_KEY: str = os.environ.get("YUNWU_FULL_KEY", "")
 
 # ════════════════════════════════════════════════════════════════
 # LLM 缓存配置（本目录独立缓存，见 llm_cache.py）
@@ -48,16 +61,16 @@ OFFLINE_MODE: bool = os.environ.get("LLMS_DIC_OFFLINE", "").strip().lower() in {
 # 任务参数
 # ════════════════════════════════════════════════════════════════
 
-JUDGE_BATCH_SIZE: int = 100         # 每次批量判别的关键词数量
+JUDGE_BATCH_SIZE: int = 200         # 每次批量判别的关键词数量
 NUM_REPEAT_PER_MODEL: int = 10      # 每个模型、每个领域重复生成的次数
 MAX_WORKERS_GENERATE: int = 200     # 生成阶段并发线程数
 MAX_WORKERS_JUDGE: int = 200        # 判别阶段并发线程数
 MAX_PARSE_RETRIES: int = 100        # 解析失败重试次数
 MAX_JUDGE_RETRIES: int = 200        # 判别解析失败重试次数
 MAX_RETRIES: int = 500              # 单次任务最大重试次数
-MAX_TOTAL_RETRIES: int = 5000       # 全局重试上限（费用保护，防止无限重试）
+MAX_TOTAL_RETRIES: int = 50         # 全局重试上限（费用保护，防止无限重试）
 REQUEST_TIMEOUT: int = 1800         # 单次 API 请求超时（秒），谷歌超时严重
-MODEL_FAIL_THRESHOLD: int = 500     # 模型连续失败此次数后自动跳过
+MODEL_FAIL_THRESHOLD: int = 50      # 模型连续失败此次数后自动跳过
 MAX_CONCURRENT_PER_MODEL: int = 10  # 每个模型的最大并发请求数（防止触发 429 限流）
 LOG_RETENTION_COUNT: int =  10      # 最多保留的日志文件数量（自动清理旧日志）
 
@@ -116,6 +129,28 @@ def get_client_config(model_name: str) -> Dict[str, str]:
     return {"base_url": BASE_URL, "api_key": API_KEY}
 
 
+
+# ════════════════════════════════════════════════════════════════
+# 生成用模型列表（多样性优先，覆盖各大厂商）
+# ════════════════════════════════════════════════════════════════
+# 2026年7月18日，根据14个中国和国外主流大模型，其中7个是美国大模型，7个是中国大模型
+MODELS: List[str] = [
+    "gpt-5.4-nano",
+    "gemini-3.1-flash-lite"
+]
+
+# ════════════════════════════════════════════════════════════════
+# 判别用顶级模型
+# ════════════════════════════════════════════════════════════════
+
+JUDGE_MODELS: List[str] = [
+    "gpt-5.4-nano",
+    "gemini-3.1-flash-lite"
+]
+
+
+"""
+
 # ════════════════════════════════════════════════════════════════
 # 生成用模型列表（多样性优先，覆盖各大厂商）
 # ════════════════════════════════════════════════════════════════
@@ -158,7 +193,7 @@ JUDGE_MODELS: List[str] = [
     "mimo-v2.5-pro",
 ]
 
-
+"""
 
 
 
