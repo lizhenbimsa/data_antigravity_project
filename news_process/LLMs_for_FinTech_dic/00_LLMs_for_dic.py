@@ -59,8 +59,6 @@ from config import (
     SCRIPT_DIR,
     get_client_config,
     get_model_params,
-    get_temperature,
-    is_thinking_model,
     build_generate_prompt,
     build_judge_prompt,
     GEN_CHECKPOINT_FILE,
@@ -483,7 +481,7 @@ def fetch_batch(args: Tuple) -> Tuple[str, str, List[str]]:
         if _shutdown_event.is_set():
             return (model_name, dom_name, [], idx)
 
-        # cache_tag 带 rep 序号 + 解析重试序号：100 次刻意重复采样各占独立缓存槽位
+        # cache_tag 带 rep 序号 + 解析重试序号：NUM_REPEAT_PER_MODEL 次刻意重复采样各占独立缓存槽位
         try:
             text = _call_llm_with_retry(
                 client, model_name, prompt, f"任务 {task_id}", logger,
@@ -501,10 +499,11 @@ def fetch_batch(args: Tuple) -> Tuple[str, str, List[str]]:
         logger.debug(f"  [任务 {task_id}] LLM 原始响应:\n{text}")
         data = _safe_parse_json(text)
 
-        # 提取列表（兼容不同 key 名称）
+        # 提取列表：优先按契约 Key "keywords" 精确取，无则回退遍历首个 list（兼容不同 key 名称）
         result_list: List[str] = []
         if isinstance(data, dict):
-            for v in data.values():
+            _kw = data.get("keywords")
+            for v in ([_kw] if isinstance(_kw, list) else data.values()):
                 if isinstance(v, list):
                     for item in v:
                         if isinstance(item, str):
@@ -581,6 +580,10 @@ def judge_batch(args: Tuple) -> Tuple[str, List[Tuple[str, int, str]]]:
         else:
             logger.debug(f"  [{task_id}] LLM 原始响应:\n{text}")
             data = _safe_parse_json(text)
+            # 防御：_safe_parse_json 对顶层 JSON 数组返回 list，下方 .get 会 AttributeError；
+            # 非 dict 一律视为空，走既有"解析结果不足→重试"兜底（镜像 fetch_batch 的 isinstance 守卫）。
+            if not isinstance(data, dict):
+                data = {}
 
             # 提取 results 列表
             results_list = data.get("results", [])
@@ -1294,12 +1297,13 @@ def main(resume: bool = False, dry_run: bool = False) -> None:
     # ====================================================================
     simplified_set = set(simplified_keywords)
     final_kw_set = set(kw_list)
-    # fix(S2, 2026-07-14): 阈值由 >= (含平票=4) 改严格多数 > (=≥5/8)，
-    # 对齐发表词表 1506 实证口径（发表词表本身未被污染: xlsx 实测 ≥5 计数=1506=
-    # fintech_dict.json 词条数）；平票(=4)不再计入 judge_ok_set。阈值不进 LLM
+    # fix(S2, 2026-07-14): 阈值由 >= (含平票=4) 改严格多数 > (=≥5/8)。
+    # 更新(2026-07-17): 入选判据由简单严格多数 (>1/2) 收紧为 2/3 严格多数
+    # (> len(JUDGE_MODELS)*2/3; 当前 14 家 → >9.33, 即至少 10 票)。阈值不进 LLM
     # 缓存键，此改动只影响未来重跑的词表筛选，不动现有 fintech_dict.json。
+    # ⚠ 家数写死仅作示意；真实门槛恒随 JUDGE_MODELS 动态计算，改模型列表后本行数字须同步。
     judge_ok_set = set(
-        df_final[df_final["total_score"] > len(JUDGE_MODELS) * 0.5]["keyword"]
+        df_final[df_final["total_score"] > len(JUDGE_MODELS) * 2 / 3]["keyword"]
     )
 
     # 构建统计总览
@@ -1423,13 +1427,14 @@ def main(resume: bool = False, dry_run: bool = False) -> None:
     logger.info("AI判别统计 (total_score 分布):")
     for sc, cnt in score_counts.items():
         logger.info(f"  得分 {sc}: {cnt} 个词")
-    # fix(S2, 2026-07-14): 口径声明——上方分布及下表"AI认可"列均按严格多数
-    # (>50%，即 JUDGE_MODELS 中 >len(JUDGE_MODELS)*0.5 家模型认可) 统计；
-    # 平票(=len(JUDGE_MODELS)*0.5)不计入。
+    # fix(S2, 2026-07-14) + 更新(2026-07-17): 口径声明——上方分布及下表"AI认可"
+    # 列均按 2/3 严格多数 (>2/3，即 JUDGE_MODELS 中 >len(JUDGE_MODELS)*2/3 家
+    # 模型认可) 统计。⚠ total_score 为整数票数，"恰好 2/3"的临界票仅当模型数可被 3
+    # 整除时才存在（当前 14 家 → 14*2/3=9.33 非整数，不存在恰好 2/3 的票）。
+    _min_pass = len(JUDGE_MODELS) * 2 // 3 + 1
     logger.info(
-        f"  口径声明(S2): 'AI认可'/上方 total_score 分布均按严格多数统计"
-        f"(> {len(JUDGE_MODELS) * 0.5:.1f}，即 {len(JUDGE_MODELS)} 家模型中需 >50% 认可；"
-        f"平票=不计入)"
+        f"  口径声明(S2): 'AI认可'/上方 total_score 分布均按 2/3 严格多数统计"
+        f"(> {len(JUDGE_MODELS) * 2 / 3:.2f}，即 {len(JUDGE_MODELS)} 家模型中需 ≥{_min_pass} 票)"
     )
 
     logger.info("各领域统计:")
