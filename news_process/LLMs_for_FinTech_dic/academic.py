@@ -338,7 +338,7 @@ REFERENCES: Dict[str, Dict] = {
     "dietterich_2000": {
         "year": 2000,
         "intext": "Dietterich, 2000",
-        "apa": "Dietterich, T. G. (2000). Ensemble methods in machine learning. In Multiple classifier systems (Lecture Notes in Computer Science, Vol. 1857, pp. 1-15). Springer. https://doi.org/10.1007/3-540-45014-9_1",
+        "apa": "Dietterich, T. G. (2000). Ensemble methods in machine learning. In J. Kittler & F. Roli (Eds.), Multiple classifier systems (Lecture Notes in Computer Science, Vol. 1857, pp. 1-15). Springer. https://doi.org/10.1007/3-540-45014-9_1",
         "doi": "10.1007/3-540-45014-9_1",
     },
     "wang_2022": {
@@ -636,7 +636,7 @@ REFERENCES: Dict[str, Dict] = {
     "guo_2022": {
         "year": 2022,
         "intext": "Guo & Wang, 2022",
-        "apa": "Guo, F., & Wang, J. (2022). Quantifying digital financial inclusion in China. In The digital financial revolution in China. Brookings Institution Press. https://doi.org/10.5040/9780815750420.ch-002",
+        "apa": "Guo, F., & Wang, J. (2022). Quantifying digital financial inclusion in China. In D. Dollar & Y. Huang (Eds.), The digital financial revolution in China (pp. 17-44). Brookings Institution Press. https://doi.org/10.5040/9780815750420.ch-002",
         "doi": "10.5040/9780815750420.ch-002",
     },
     "cornelli_2023": {

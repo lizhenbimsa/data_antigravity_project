@@ -265,28 +265,28 @@ pie title 图3. 基于多数投票原则的银行金融科技核心词库占比�
 ## 6. 参考文献 (References)
 *以下 146 篇为本文参考文献与延伸阅读书目（含正文直接引用文献及为读者提供的领域延伸文献），发表于 1955–2026 年间（其中逾半数为 2019 年后成果，并重点纳入 2023–2026 年的最新论文与顶尖工作论文）。在原有「文本量化分析、特征字典架构、大语言模型验证、Fleiss' Kappa 统计测度」四类锚点之上，本次系统扩充了与本管道各做法一一对应的七类方法学锚点：①群体智能 / 集成聚合与多模型投票（本管道核心机制）；②LLM-as-annotator 与计算社会科学的文本标注；③生成式 AI 用于金融·会计实证测度（2023–2026 前沿）；④大语言模型基座·评测·幻觉·提示工程综述；⑤金融科技与商业银行数字化转型测度（含中国数字金融）；⑥专属词典构建、种子词扩展与文本测度方法学；⑦评分者间一致性 / 信度统计（深化 §4.2 双口径披露）。全部 DOI 均经 Crossref / DataCite 实访核验，可解析且题名吻合（arXiv 预印本经 DataCite 核验）：*
 
-1. Argyle, L. P., Busby, E. C., Fulda, N., Gubler, J. R., Rytting, C., & Wingate, D. (2023). Out of one, many: Using language models to simulate human samples. *Political Analysis*, 31(3), 337–351. https://doi.org/10.1017/pan.2023.2
-2. Artstein, R., & Poesio, M. (2008). Inter-coder agreement for computational linguistics. *Computational Linguistics*, 34(4), 555–596. https://doi.org/10.1162/coli.07-034-R2
-3. Ash, E., & Hansen, S. (2023). Text algorithms in economics. *Annual Review of Economics*, 15, 659–688. https://doi.org/10.1146/annurev-economics-082222-074352
+1. Argyle, L. P., Busby, E. C., Fulda, N., Gubler, J. R., Rytting, C., & Wingate, D. (2023). Out of one, many: Using language models to simulate human samples. *Political Analysis*, 31(3), 337-351. https://doi.org/10.1017/pan.2023.2
+2. Artstein, R., & Poesio, M. (2008). Inter-coder agreement for computational linguistics. *Computational Linguistics*, 34(4), 555-596. https://doi.org/10.1162/coli.07-034-R2
+3. Ash, E., & Hansen, S. (2023). Text algorithms in economics. *Annual Review of Economics*, 15, 659-688. https://doi.org/10.1146/annurev-economics-082222-074352
 4. Babina, T., Bahaj, S., Buchak, G., De Marco, F., Foulis, A., Gornall, W., Mazzola, F., & Yu, T. (2025). Customer data access and fintech entry: Early evidence from open banking. *Journal of Financial Economics*, 169, 103950. https://doi.org/10.1016/j.jfineco.2024.103950
 5. Bail, C. A. (2024). Can generative AI improve social science? *Proceedings of the National Academy of Sciences*, 121(21), e2314021121. https://doi.org/10.1073/pnas.2314021121
 6. Baker, M., & Wurgler, J. (2006). Investor sentiment and the cross-section of stock returns. *The Journal of Finance*, 61(4), 1645-1680. https://doi.org/10.1111/j.1540-6261.2006.00885.x
 7. Baker, S. R., Bloom, N., & Davis, S. J. (2016). Measuring economic policy uncertainty. *The Quarterly Journal of Economics*, 131(4), 1593-1636. https://doi.org/10.1093/qje/qjw024
 8. Bao, Y., Ke, B., Li, B., Yu, Y. J., & Zhang, J. (2020). Detecting accounting fraud in publicly traded US firms using a machine learning approach. *Journal of Accounting Research*, 58(1), 199-235. https://doi.org/10.1111/1475-679X.12292
-9. Berg, T., Burg, V., Gombović, A., & Puri, M. (2020). On the rise of FinTechs: Credit scoring using digital footprints. *The Review of Financial Studies*, 33(7), 2845–2897. https://doi.org/10.1093/rfs/hhz099
-10. Berg, T., Fuster, A., & Puri, M. (2022). FinTech lending. *Annual Review of Financial Economics*, 14, 187–207. https://doi.org/10.1146/annurev-financial-101521-112042
+9. Berg, T., Burg, V., Gombović, A., & Puri, M. (2020). On the rise of FinTechs: Credit scoring using digital footprints. *The Review of Financial Studies*, 33(7), 2845-2897. https://doi.org/10.1093/rfs/hhz099
+10. Berg, T., Fuster, A., & Puri, M. (2022). FinTech lending. *Annual Review of Financial Economics*, 14, 187-207. https://doi.org/10.1146/annurev-financial-101521-112042
 11. Bernard, D., Blankespoor, E., de Kok, T., & Toynbee, S. (2026). Using GPT to measure business complexity. *The Accounting Review*, 101(3), 67-102. https://doi.org/10.2308/tar-2023-0716
 12. Blankespoor, E., deHaan, E., & Marinovic, I. (2020). Disclosure processing costs, investors' information choice, and equity market outcomes: A review. *Journal of Accounting and Economics*, 70(2-3), 101344. https://doi.org/10.1016/j.jacceco.2020.101344
 13. Blei, D. M., Ng, A. Y., & Jordan, M. I. (2003). Latent Dirichlet allocation. *Journal of Machine Learning Research*, 3, 993-1022. https://jmlr.org/papers/v3/blei03a.html
-14. Bodnaruk, A., Loughran, T., & McDonald, B. (2015). Using 10-K text to gauge financial constraints. *Journal of Financial and Quantitative Analysis*, 50(4), 623–646. https://doi.org/10.1017/S0022109015000411
+14. Bodnaruk, A., Loughran, T., & McDonald, B. (2015). Using 10-K text to gauge financial constraints. *Journal of Financial and Quantitative Analysis*, 50(4), 623-646. https://doi.org/10.1017/S0022109015000411
 15. Bollen, J., Mao, H., & Zeng, X. (2011). Twitter mood predicts the stock market. *Journal of Computational Science*, 2(1), 1-8. https://doi.org/10.1016/j.jocs.2010.12.007
 16. Boot, A., Hoffmann, P., Laeven, L., & Ratnovski, L. (2021). Fintech: What's old, what's new? *Journal of Financial Stability*, 53, 100836. https://doi.org/10.1016/j.jfs.2020.100836
-17. Breiman, L. (1996). Bagging predictors. *Machine Learning*, 24(2), 123–140. https://doi.org/10.1007/BF00058655
-18. Breiman, L. (2001). Random forests. *Machine Learning*, 45(1), 5–32. https://doi.org/10.1023/A:1010933404324
+17. Breiman, L. (1996). Bagging predictors. *Machine Learning*, 24(2), 123-140. https://doi.org/10.1007/BF00058655
+18. Breiman, L. (2001). Random forests. *Machine Learning*, 45(1), 5-32. https://doi.org/10.1023/A:1010933404324
 19. Brogaard, J., Ringgenberg, M. C., & Sovich, D. (2019). The economic impact of index investing. *The Review of Financial Studies*, 32(9), 3461-3499. https://doi.org/10.1093/rfs/hhy129
 20. Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J. D., ... & Amodei, D. (2020). Language models are few-shot learners. *Advances in Neural Information Processing Systems*, 33, 1877-1901. https://doi.org/10.48550/arXiv.2005.14165
 21. Bubeck, S., Chandrasekaran, V., Eldan, R., Gehrke, J., Horvitz, E., Kamar, E., ... & Zhang, Y. (2023). Sparks of artificial general intelligence: Early experiments with GPT-4. *arXiv preprint arXiv:2303.12712*. https://doi.org/10.48550/arXiv.2303.12712
-22. Buchak, G., Matvos, G., Piskorski, T., & Seru, A. (2018). Fintech, regulatory arbitrage, and the rise of shadow banks. *Journal of Financial Economics*, 130(3), 453–483. https://doi.org/10.1016/j.jfineco.2018.03.011
+22. Buchak, G., Matvos, G., Piskorski, T., & Seru, A. (2018). Fintech, regulatory arbitrage, and the rise of shadow banks. *Journal of Financial Economics*, 130(3), 453-483. https://doi.org/10.1016/j.jfineco.2018.03.011
 23. Buehlmaier, M. M. M., & Whited, T. M. (2018). Are financial constraints priced? Evidence from textual analysis. *The Review of Financial Studies*, 31(7), 2693-2728. https://doi.org/10.1093/rfs/hhy007
 24. Bybee, L. (2023). Surveying generative AI's economic expectations. *arXiv preprint arXiv:2305.02823*. https://doi.org/10.48550/arXiv.2305.02823
 25. Bybee, L., Kelly, B. T., Manela, A., & Xiu, D. (2020). The structure of economic news. National Bureau of Economic Research (No. w26648). https://doi.org/10.3386/w26648
@@ -294,31 +294,31 @@ pie title 图3. 基于多数投票原则的银行金融科技核心词库占比�
 27. Cao, S., Jiang, W., Wang, J., & Yang, B. (2024). From man vs. machine to man + machine: The art and AI of stock analyses. *Journal of Financial Economics*, 160, 103910. https://doi.org/10.1016/j.jfineco.2024.103910
 28. Chae, Y., & Davidson, T. (2025). Large language models for text classification: From zero-shot learning to instruction-tuning. *Sociological Methods & Research*. Advance online publication. https://doi.org/10.1177/00491241251325243
 29. Chan, C.-M., Chen, W., Su, Y., Yu, J., Xue, W., Zhang, S., Fu, J., & Liu, Z. (2023). ChatEval: Towards better LLM-based evaluators through multi-agent debate. *arXiv preprint arXiv:2308.07201*. https://doi.org/10.48550/arXiv.2308.07201
-30. Chang, Y., Wang, X., Wang, J., Wu, Y., Yang, L., Zhu, K., Chen, H., Yi, X., Wang, C., Wang, Y., Ye, W., Zhang, Y., Chang, Y., Yu, P. S., Yang, Q., & Xie, X. (2024). A survey on evaluation of large language models. *ACM Transactions on Intelligent Systems and Technology*, 15(3), 1–45. https://doi.org/10.1145/3641289
+30. Chang, Y., Wang, X., Wang, J., Wu, Y., Yang, L., Zhu, K., Chen, H., Yi, X., Wang, C., Wang, Y., Ye, W., Zhang, Y., Chang, Y., Yu, P. S., Yang, Q., & Xie, X. (2024). A survey on evaluation of large language models. *ACM Transactions on Intelligent Systems and Technology*, 15(3), 1-45. https://doi.org/10.1145/3641289
 31. Chen, J. C.-Y., Saha, S., & Bansal, M. (2023). ReConcile: Round-table conference improves reasoning via consensus among diverse LLMs. *arXiv preprint arXiv:2309.13007*. https://doi.org/10.48550/arXiv.2309.13007
-32. Chen, M. A., Wu, Q., & Yang, B. (2019). How valuable is FinTech innovation? *The Review of Financial Studies*, 32(5), 2062–2106. https://doi.org/10.1093/rfs/hhy130
+32. Chen, M. A., Wu, Q., & Yang, B. (2019). How valuable is FinTech innovation? *The Review of Financial Studies*, 32(5), 2062-2106. https://doi.org/10.1093/rfs/hhy130
 33. Cheng, M., & Qu, Y. (2020). Does bank FinTech reduce credit risk? Evidence from China. *Pacific-Basin Finance Journal*, 63, 101398. https://doi.org/10.1016/j.pacfin.2020.101398
-34. Cohen, J. (1960). A coefficient of agreement for nominal scales. *Educational and Psychological Measurement*, 20(1), 37–46. https://doi.org/10.1177/001316446002000104
+34. Cohen, J. (1960). A coefficient of agreement for nominal scales. *Educational and Psychological Measurement*, 20(1), 37-46. https://doi.org/10.1177/001316446002000104
 35. Cornelli, G., Frost, J., Gambacorta, L., Rau, P. R., Wardrop, R., & Ziegler, T. (2023). Fintech and big tech credit: Drivers of the growth of digital lending. *Journal of Banking & Finance*, 148, 106742. https://doi.org/10.1016/j.jbankfin.2022.106742
-36. D'Acunto, F., Prabhala, N., & Rossi, A. G. (2019). The promises and pitfalls of robo-advising. *The Review of Financial Studies*, 32(5), 1983–2020. https://doi.org/10.1093/rfs/hhz014
+36. D'Acunto, F., Prabhala, N., & Rossi, A. G. (2019). The promises and pitfalls of robo-advising. *The Review of Financial Studies*, 32(5), 1983-2020. https://doi.org/10.1093/rfs/hhz014
 37. Da, Z., Engelberg, J., & Gao, P. (2011). In search of attention. *The Journal of Finance*, 66(5), 1461-1499. https://doi.org/10.1111/j.1540-6261.2011.01679.x
 38. de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. *Management Science*, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253
 39. Devlin, J., Chang, M. W., Lee, K., & Toutanova, K. (2018). BERT: Pre-training of deep bidirectional transformers for language understanding. *arXiv preprint arXiv:1810.04805*. https://doi.org/10.48550/arXiv.1810.04805
 40. Didisheim, A., Ke, S., Kelly, B. T., & Malamud, S. (2023). Complexity in factor pricing models. *SSRN*. https://doi.org/10.2139/ssrn.4388526
-41. Dietterich, T. G. (2000). Ensemble methods in machine learning. In *Multiple classifier systems* (Lecture Notes in Computer Science, Vol. 1857, pp. 1–15). Springer. https://doi.org/10.1007/3-540-45014-9_1
+41. Dietterich, T. G. (2000). Ensemble methods in machine learning. In J. Kittler & F. Roli (Eds.), *Multiple classifier systems* (Lecture Notes in Computer Science, Vol. 1857, pp. 1-15). Springer. https://doi.org/10.1007/3-540-45014-9_1
 42. Dong, Q., Li, L., Dai, D., Zheng, C., Ma, J., Li, R., Xia, H., Xu, J., Wu, Z., Chang, B., Sun, X., Li, L., & Sui, Z. (2023). A survey on in-context learning. *arXiv preprint arXiv:2301.00234*. https://doi.org/10.48550/arXiv.2301.00234
 43. Du, Y., Li, S., Torralba, A., Tenenbaum, J. B., & Mordatch, I. (2023). Improving factuality and reasoning in language models through multiagent debate. *arXiv preprint arXiv:2305.14325*. https://doi.org/10.48550/arXiv.2305.14325
-44. Eisfeldt, A. L., Schubert, G., & Zhang, M. B. (2023). Generative AI and firm values (Working Paper No. 31222). National Bureau of Economic Research. https://doi.org/10.3386/w31222
-45. El-Haj, M., Rayson, P., Walker, M., Young, S., & Simaki, V. (2019). In search of meaning: Lessons, resources and next steps for computational analysis of financial discourse. *Journal of Business Finance & Accounting*, 46(3–4), 265–306. https://doi.org/10.1111/jbfa.12378
+44. Eisfeldt, A. L., Schubert, G., & Zhang, M. B. (2023). Generative AI and firm values. National Bureau of Economic Research (No. w31222). https://doi.org/10.3386/w31222
+45. El-Haj, M., Rayson, P., Walker, M., Young, S., & Simaki, V. (2019). In search of meaning: Lessons, resources and next steps for computational analysis of financial discourse. *Journal of Business Finance & Accounting*, 46(3-4), 265-306. https://doi.org/10.1111/jbfa.12378
 46. Engle, R. F., Giglio, S., Kelly, B., Lee, H., & Stroebel, J. (2020). Hedging climate change news. *The Review of Financial Studies*, 33(3), 1184-1216. https://doi.org/10.1093/rfs/hhz072
 47. Erel, I., Stern, L. H., Tan, C., & Weisbach, M. S. (2021). Selecting directors using machine learning. *The Review of Financial Studies*, 34(7), 3226-3264. https://doi.org/10.1093/rfs/hhab050
 48. Fama, E. F., & French, K. R. (2015). A five-factor asset pricing model. *Journal of Financial Economics*, 116(1), 1-22. https://doi.org/10.1016/j.jfineco.2014.10.010
 49. Fatouros, G., Soldatos, J., Kouroumali, K., Makridis, G., & Kyriazis, D. (2023). Transforming sentiment analysis in the financial domain with ChatGPT. *Machine Learning with Applications*, 14, 100508. https://doi.org/10.1016/j.mlwa.2023.100508
-50. Feinstein, A. R., & Cicchetti, D. V. (1990). High agreement but low kappa: I. The problems of two paradoxes. *Journal of Clinical Epidemiology*, 43(6), 543–549. https://doi.org/10.1016/0895-4356(90)90158-L
-51. Fleiss, J. L. (1971). Measuring nominal scale agreement among many raters. *Psychological Bulletin*, 76(5), 378–382. https://doi.org/10.1037/h0031619
-52. Frost, J., Gambacorta, L., Huang, Y., Shin, H. S., & Zbinden, P. (2019). BigTech and the changing structure of financial intermediation. *Economic Policy*, 34(100), 761–799. https://doi.org/10.1093/epolic/eiaa003
-53. Fuster, A., Plosser, M., Schnabl, P., & Vickery, J. (2019). The role of technology in mortgage lending. *The Review of Financial Studies*, 32(5), 1854–1899. https://doi.org/10.1093/rfs/hhz018
-54. Galton, F. (1907). Vox populi. *Nature*, 75(1949), 450–451. https://doi.org/10.1038/075450a0
+50. Feinstein, A. R., & Cicchetti, D. V. (1990). High agreement but low kappa: I. The problems of two paradoxes. *Journal of Clinical Epidemiology*, 43(6), 543-549. https://doi.org/10.1016/0895-4356(90)90158-L
+51. Fleiss, J. L. (1971). Measuring nominal scale agreement among many raters. *Psychological Bulletin*, 76(5), 378-382. https://doi.org/10.1037/h0031619
+52. Frost, J., Gambacorta, L., Huang, Y., Shin, H. S., & Zbinden, P. (2019). BigTech and the changing structure of financial intermediation. *Economic Policy*, 34(100), 761-799. https://doi.org/10.1093/epolic/eiaa003
+53. Fuster, A., Plosser, M., Schnabl, P., & Vickery, J. (2019). The role of technology in mortgage lending. *The Review of Financial Studies*, 32(5), 1854-1899. https://doi.org/10.1093/rfs/hhz018
+54. Galton, F. (1907). Vox populi. *Nature*, 75(1949), 450-451. https://doi.org/10.1038/075450a0
 55. García, D., Hu, X., & Rohrer, M. (2023). The colour of finance words. *Journal of Financial Economics*, 147(3), 525-549. https://doi.org/10.1016/j.jfineco.2022.11.006
 56. Garcia, D. (2013). Sentiment during recessions. *The Journal of Finance*, 68(3), 1267-1300. https://doi.org/10.1111/jofi.12027
 57. Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. *Journal of Economic Literature*, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
@@ -327,29 +327,29 @@ pie title 图3. 基于多数投票原则的银行金融科技核心词库占比�
 60. Goldstein, I., Spatt, C. S., & Ye, M. (2021). Big data in finance. *The Review of Financial Studies*, 34(7), 3213-3225. https://doi.org/10.1093/rfs/hhab038
 61. Gomber, P., Kauffman, R. J., Parker, C., & Weber, B. W. (2018). On the fintech revolution: Interpreting the forces of innovation, disruption, and transformation in financial services. *Journal of Management Information Systems*, 35(1), 220-265. https://doi.org/10.1080/07421222.2018.1440766
 62. Gopal, R. D., Li, J., Riemer, K., Sarker, S., Singh, P. V., Susarla, A., Bichler, M., & Thatcher, J. B. (2025). Inventing with machines: Generative AI and the evolving landscape of IS research. *Information Systems Research*, 36(4), 1949-1967. https://doi.org/10.1287/isre.2025.editorial.v36.n4
-63. Grennan, J., & Michaely, R. (2021). FinTechs and the market for financial analysis. *Journal of Financial and Quantitative Analysis*, 56(6), 1877–1907. https://doi.org/10.1017/S0022109020000721
-64. Grossmann, I., Feinberg, M., Parker, D. C., Christakis, N. A., Tetlock, P. E., & Cunningham, W. A. (2023). AI and the transformation of social science research. *Science*, 380(6650), 1108–1109. https://doi.org/10.1126/science.adi1778
+63. Grennan, J., & Michaely, R. (2021). FinTechs and the market for financial analysis. *Journal of Financial and Quantitative Analysis*, 56(6), 1877-1907. https://doi.org/10.1017/S0022109020000721
+64. Grossmann, I., Feinberg, M., Parker, D. C., Christakis, N. A., Tetlock, P. E., & Cunningham, W. A. (2023). AI and the transformation of social science research. *Science*, 380(6650), 1108-1109. https://doi.org/10.1126/science.adi1778
 65. Gu, J., Jiang, X., Shi, Z., Tan, H., Zhai, X., Xu, C., Li, W., Shen, Y., Ma, S., Liu, H., Wang, Y., & Guo, J. (2024). A survey on LLM-as-a-judge. *arXiv preprint arXiv:2411.15594*. https://doi.org/10.48550/arXiv.2411.15594
 66. Gu, S., Kelly, B., & Xiu, D. (2020). Empirical asset pricing via machine learning. *The Review of Financial Studies*, 33(5), 2223-2273. https://doi.org/10.1093/rfs/hhaa009
-67. Guo, F., & Wang, J. (2022). Quantifying digital financial inclusion in China. In *The digital financial revolution in China* (pp. 17–44). Brookings Institution Press. https://doi.org/10.5040/9780815750420.ch-002
-68. Gwet, K. L. (2008). Computing inter-rater reliability and its variance in the presence of high agreement. *British Journal of Mathematical and Statistical Psychology*, 61(1), 29–48. https://doi.org/10.1348/000711006X126600
+67. Guo, F., & Wang, J. (2022). Quantifying digital financial inclusion in China. In D. Dollar & Y. Huang (Eds.), *The digital financial revolution in China* (pp. 17-44). Brookings Institution Press. https://doi.org/10.5040/9780815750420.ch-002
+68. Gwet, K. L. (2008). Computing inter-rater reliability and its variance in the presence of high agreement. *British Journal of Mathematical and Statistical Psychology*, 61(1), 29-48. https://doi.org/10.1348/000711006X126600
 69. Hanley, K. W., & Hoberg, G. (2019). Dynamic interpretation of emerging risks in the financial sector. *The Review of Financial Studies*, 32(12), 4543-4603. https://doi.org/10.1093/rfs/hhz023
 70. Hansen, A. L., & Kazinnik, S. (2023). Can ChatGPT decipher Fedspeak? *SSRN Electronic Journal*. https://doi.org/10.2139/ssrn.4399406
 71. Hansen, S., McMahon, M., & Prat, A. (2018). Transparency and deliberation within the FOMC: a computational linguistics approach. *The Quarterly Journal of Economics*, 133(2), 801-870. https://doi.org/10.1093/qje/qjx045
 72. Hassan, T. A., Hollander, S., Van Lent, L., & Tahoun, A. (2019). Firm-level political risk: Measurement and effects. *The Quarterly Journal of Economics*, 134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021
-73. Hassan, T. A., Hollander, S., van Lent, L., Schwedeler, M., & Tahoun, A. (2023). Firm-level exposure to epidemic diseases: COVID-19, SARS, and H1N1. *The Review of Financial Studies*, 36(12), 4919–4964. https://doi.org/10.1093/rfs/hhad044
-74. Hayes, A. F., & Krippendorff, K. (2007). Answering the call for a standard reliability measure for coding data. *Communication Methods and Measures*, 1(1), 77–89. https://doi.org/10.1080/19312450709336664
-75. He, X., Lin, Z., Gong, Y., Jin, A.-L., Zhang, H., Lin, C., Jiao, J., Yiu, S. M., Duan, N., & Chen, W. (2024). AnnoLLM: Making large language models to be better crowdsourced annotators. In *Proceedings of the 2024 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 6: Industry Track)* (pp. 165–190). Association for Computational Linguistics. https://doi.org/10.18653/v1/2024.naacl-industry.15
+73. Hassan, T. A., Hollander, S., van Lent, L., Schwedeler, M., & Tahoun, A. (2023). Firm-level exposure to epidemic diseases: COVID-19, SARS, and H1N1. *The Review of Financial Studies*, 36(12), 4919-4964. https://doi.org/10.1093/rfs/hhad044
+74. Hayes, A. F., & Krippendorff, K. (2007). Answering the call for a standard reliability measure for coding data. *Communication Methods and Measures*, 1(1), 77-89. https://doi.org/10.1080/19312450709336664
+75. He, X., Lin, Z., Gong, Y., Jin, A.-L., Zhang, H., Lin, C., Jiao, J., Yiu, S. M., Duan, N., & Chen, W. (2024). AnnoLLM: Making large language models to be better crowdsourced annotators. In *Proceedings of the 2024 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 6: Industry Track)* (pp. 165-190). Association for Computational Linguistics. https://doi.org/10.18653/v1/2024.naacl-industry.15
 76. Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous product differentiation. *Journal of Political Economy*, 124(5), 1423-1465. https://doi.org/10.1086/688176
 77. Hojati, A., & Nault, B. R. (2026). Content moderation with shadowbanning. *Information Systems Research*, 37(2), 1304-1322. https://doi.org/10.1287/isre.2024.1140
 78. Holtzman, A., Buys, J., Du, L., Forbes, M., & Choi, Y. (2019). The curious case of neural text degeneration. *arXiv preprint arXiv:1904.09751*. https://doi.org/10.48550/arXiv.1904.09751
-79. Hong, L., & Page, S. E. (2004). Groups of diverse problem solvers can outperform groups of high-ability problem solvers. *Proceedings of the National Academy of Sciences*, 101(46), 16385–16389. https://doi.org/10.1073/pnas.0403723101
+79. Hong, L., & Page, S. E. (2004). Groups of diverse problem solvers can outperform groups of high-ability problem solvers. *Proceedings of the National Academy of Sciences*, 101(46), 16385-16389. https://doi.org/10.1073/pnas.0403723101
 80. Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A large language model for extracting information from financial text. *Contemporary Accounting Research*, 40(2), 806-841. https://doi.org/10.1111/1911-3846.12832
-81. Huang, L., Yu, W., Ma, W., Zhong, W., Feng, Z., Wang, H., Chen, Q., Peng, W., Feng, X., Qin, B., & Liu, T. (2025). A survey on hallucination in large language models: Principles, taxonomy, challenges, and open questions. *ACM Transactions on Information Systems*, 43(2), 1–55. https://doi.org/10.1145/3703155
-82. Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis. *Journal of Financial Economics*, 110(3), 712–729. https://doi.org/10.1016/j.jfineco.2013.08.018
-83. Jha, M., Qian, J., Weber, M., & Yang, B. (2024a). ChatGPT and corporate policies (Working Paper No. 32161). National Bureau of Economic Research. https://doi.org/10.3386/w32161
-84. Jha, M., Qian, J., Weber, M., & Yang, B. (2024b). Harnessing generative AI for economic insights [Working paper]. SSRN. https://doi.org/10.2139/ssrn.4976759
-85. Ji, Z., Lee, N., Frieske, R., Yu, T., Su, D., Xu, Y., Ishii, E., Bang, Y. J., Madotto, A., & Fung, P. (2023). Survey of hallucination in natural language generation. *ACM Computing Surveys*, 55(12), 1–38. https://doi.org/10.1145/3571730
+81. Huang, L., Yu, W., Ma, W., Zhong, W., Feng, Z., Wang, H., Chen, Q., Peng, W., Feng, X., Qin, B., & Liu, T. (2025). A survey on hallucination in large language models: Principles, taxonomy, challenges, and open questions. *ACM Transactions on Information Systems*, 43(2), 1-55. https://doi.org/10.1145/3703155
+82. Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for content analysis. *Journal of Financial Economics*, 110(3), 712-729. https://doi.org/10.1016/j.jfineco.2013.08.018
+83. Jha, M., Qian, J., Weber, M., & Yang, B. (2024a). ChatGPT and corporate policies. National Bureau of Economic Research (No. w32161). https://doi.org/10.3386/w32161
+84. Jha, M., Qian, J., Weber, M., & Yang, B. (2024b). Harnessing generative AI for economic insights. *SSRN Electronic Journal*. https://doi.org/10.2139/ssrn.4976759
+85. Ji, Z., Lee, N., Frieske, R., Yu, T., Su, D., Xu, Y., Ishii, E., Bang, Y. J., Madotto, A., & Fung, P. (2023). Survey of hallucination in natural language generation. *ACM Computing Surveys*, 55(12), 1-38. https://doi.org/10.1145/3571730
 86. Jiang, D., Ren, X., & Lin, B. Y. (2023). LLM-Blender: Ensembling large language models with pairwise ranking and generative fusion. *arXiv preprint arXiv:2306.02561*. https://doi.org/10.48550/arXiv.2306.02561
 87. Jiang, F., Lee, J., Martin, X., & Zhou, G. (2019). Manager sentiment and stock returns. *Journal of Financial Economics*, 132(1), 126-149. https://doi.org/10.1016/j.jfineco.2018.10.001
 88. Kıcıman, E., Ness, R., Sharma, A., & Tan, C. (2023). Causal reasoning and large language models: Opening a new frontier for causality. *arXiv*. https://doi.org/10.48550/arXiv.2305.00050
@@ -357,23 +357,23 @@ pie title 图3. 基于多数投票原则的银行金融科技核心词库占比�
 90. Kearney, C., & Liu, S. (2014). Textual sentiment in finance: A survey of methods and models. *International Review of Financial Analysis*, 33, 171-185. https://doi.org/10.1016/j.irfa.2014.02.006
 91. Kelly, B., Papanikolaou, D., Seru, A., & Taddy, M. (2021). Measuring technological innovation over the long run. *American Economic Review: Insights*, 3(3), 303-320. https://doi.org/10.1257/aeri.20190499
 92. Kim, A. G., Muhn, M., & Nikolaev, V. V. (2023). Bloated disclosures: Can ChatGPT help investors process information? *SSRN Electronic Journal*. https://doi.org/10.2139/ssrn.4425527
-93. Kim, A. G., Muhn, M., & Nikolaev, V. V. (2024). Financial statement analysis with large language models [Working paper]. SSRN. https://doi.org/10.2139/ssrn.4835311
-94. King, G., Lam, P., & Roberts, M. E. (2017). Computer-assisted keyword and document set discovery from unstructured text. *American Journal of Political Science*, 61(4), 971–988. https://doi.org/10.1111/ajps.12291
+93. Kim, A. G., Muhn, M., & Nikolaev, V. V. (2024). Financial statement analysis with large language models. *SSRN Electronic Journal*. https://doi.org/10.2139/ssrn.4835311
+94. King, G., Lam, P., & Roberts, M. E. (2017). Computer-assisted keyword and document set discovery from unstructured text. *American Journal of Political Science*, 61(4), 971-988. https://doi.org/10.1111/ajps.12291
 95. Kirtac, K., & Germano, G. (2024). Sentiment trading with large language models. *Finance Research Letters*, 62, 105227. https://doi.org/10.1016/j.frl.2024.105227
 96. Kojima, T., Gu, S. S., Reid, M., Matsuo, Y., & Iwasawa, Y. (2022). Large language models are zero-shot reasoners. *arXiv preprint arXiv:2205.11916*. https://doi.org/10.48550/arXiv.2205.11916
-97. Krippendorff, K. (2004). Reliability in content analysis: Some common misconceptions and recommendations. *Human Communication Research*, 30(3), 411–433. https://doi.org/10.1111/j.1468-2958.2004.tb00738.x
-98. Krippendorff, K. (2011). Agreement and information in the reliability of coding. *Communication Methods and Measures*, 5(2), 93–112. https://doi.org/10.1080/19312458.2011.568376
+97. Krippendorff, K. (2004). Reliability in content analysis: Some common misconceptions and recommendations. *Human Communication Research*, 30(3), 411-433. https://doi.org/10.1111/j.1468-2958.2004.tb00738.x
+98. Krippendorff, K. (2011). Agreement and information in the reliability of coding. *Communication Methods and Measures*, 5(2), 93-112. https://doi.org/10.1080/19312458.2011.568376
 99. Landis, J. R., & Koch, G. G. (1977). The measurement of observer agreement for categorical data. *Biometrics*, 33(1), 159-174. https://doi.org/10.2307/2529310
 100. Li, F. (2008). Annual report readability, current earnings, and earnings persistence. *Journal of Accounting and Economics*, 45(2-3), 221-247. https://doi.org/10.1016/j.jacceco.2008.02.003
 101. Li, J., Zhang, Q., Yu, Y., Fu, Q., & Ye, D. (2024). More agents is all you need. *arXiv preprint arXiv:2402.05120*. https://doi.org/10.48550/arXiv.2402.05120
 102. Li, K., Mai, F., Shen, R., & Yan, X. (2021). Measuring corporate culture using machine learning. *The Review of Financial Studies*, 34(7), 3265-3315. https://doi.org/10.1093/rfs/hhaa079
 103. Liang, T., He, Z., Jiao, W., Wang, X., Wang, Y., Wang, R., Yang, Y., Tu, Z., & Shi, S. (2023). Encouraging divergent thinking in large language models through multi-agent debate. *arXiv preprint arXiv:2305.19118*. https://doi.org/10.48550/arXiv.2305.19118
-104. Liu, P., Yuan, W., Fu, J., Jiang, Z., Hayashi, H., & Neubig, G. (2023). Pre-train, prompt, and predict: A systematic survey of prompting methods in natural language processing. *ACM Computing Surveys*, 55(9), 1–35. https://doi.org/10.1145/3560815
+104. Liu, P., Yuan, W., Fu, J., Jiang, Z., Hayashi, H., & Neubig, G. (2023). Pre-train, prompt, and predict: A systematic survey of prompting methods in natural language processing. *ACM Computing Surveys*, 55(9), 1-35. https://doi.org/10.1145/3560815
 105. Liu, Y., Iter, D., Xu, Y., Wang, S., Xu, R., & Zhu, C. (2023). G-Eval: NLG evaluation using GPT-4 with better human alignment. *arXiv*. https://doi.org/10.48550/arXiv.2303.16634
 106. Lopez-Lira, A., & Tang, Y. (2023). Can ChatGPT forecast stock price movements? Return predictability and large language models. *Available at SSRN 4412788*. https://doi.org/10.2139/ssrn.4412788
 107. Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. *The Journal of Finance*, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
-108. Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. *Journal of Accounting Research*, 54(4), 1187–1230. https://doi.org/10.1111/1475-679X.12123
-109. Loughran, T., & McDonald, B. (2020). Textual analysis in finance. *Annual Review of Financial Economics*, 12, 357–375. https://doi.org/10.1146/annurev-financial-012820-032249
+108. Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. *Journal of Accounting Research*, 54(4), 1187-1230. https://doi.org/10.1111/1475-679X.12123
+109. Loughran, T., & McDonald, B. (2020). Textual analysis in finance. *Annual Review of Financial Economics*, 12, 357-375. https://doi.org/10.1146/annurev-financial-012820-032249
 110. Manela, A., & Moreira, A. (2017). News implied volatility and disaster concerns. *Journal of Financial Economics*, 123(1), 137-162. https://doi.org/10.1016/j.jfineco.2016.01.032
 111. McHugh, M. L. (2012). Interrater reliability: The kappa statistic. *Biochemia Medica*, 22(3), 276-282. https://doi.org/10.11613/bm.2012.031
 112. Mellon, J., Bailey, J., Scott, R., Breckwoldt, J., Miori, M., & Schmedeman, P. (2024). Do AIs know what the most important issue is? Using language models to code open-text social survey responses at scale. *Research & Politics*, 11(1). https://doi.org/10.1177/20531680241231468
@@ -381,36 +381,36 @@ pie title 图3. 基于多数投票原则的银行金融科技核心词库占比�
 114. Naveed, H., Khan, A. U., Qiu, S., Saqib, M., Anwar, S., Usman, M., Akhtar, N., Barnes, N., & Mian, A. (2023). A comprehensive overview of large language models. *arXiv preprint arXiv:2307.06435*. https://doi.org/10.48550/arXiv.2307.06435
 115. Ouyang, L., Wu, J., Jiang, X., Almeida, D., Wainwright, C., ... & Lowe, R. (2022). Training language models to follow instructions with human feedback. *Advances in Neural Information Processing Systems*, 35, 27730-27744. https://doi.org/10.48550/arXiv.2203.02155
 116. Pangakis, N., Wolken, S., & Fasching, N. (2023). Automated annotation with generative AI requires validation. *arXiv preprint arXiv:2306.00176*. https://doi.org/10.48550/arXiv.2306.00176
-117. Passonneau, R. J., & Carpenter, B. (2014). The benefits of a model of annotation. *Transactions of the Association for Computational Linguistics*, 2, 311–326. https://doi.org/10.1162/tacl_a_00185
+117. Passonneau, R. J., & Carpenter, B. (2014). The benefits of a model of annotation. *Transactions of the Association for Computational Linguistics*, 2, 311-326. https://doi.org/10.1162/tacl_a_00185
 118. Pearl, J. (2009). *Causality: Models, reasoning, and inference*. Cambridge University Press. https://doi.org/10.1017/CBO9780511803161
 119. Philippon, T. (2019). On fintech and financial inclusion. National Bureau of Economic Research (No. w26330). https://doi.org/10.3386/w26330
 120. Rathje, S., Mirea, D.-M., Sucholutsky, I., Marjieh, R., Robertson, C. E., & Van Bavel, J. J. (2024). GPT is an effective tool for multilingual psychological text analysis. *Proceedings of the National Academy of Sciences*, 121(34), e2308950121. https://doi.org/10.1073/pnas.2308950121
-121. Rodriguez, P. L., & Spirling, A. (2022). Word embeddings: What works, what doesn't, and how to tell the difference for applied research. *The Journal of Politics*, 84(1), 101–115. https://doi.org/10.1086/715162
-122. Sautner, Z., van Lent, L., Vilkov, G., & Zhang, R. (2023). Firm-level climate change exposure. *The Journal of Finance*, 78(3), 1449–1498. https://doi.org/10.1111/jofi.13219
-123. Scott, W. A. (1955). Reliability of content analysis: The case of nominal scale coding. *Public Opinion Quarterly*, 19(3), 321–325. https://doi.org/10.1086/266577
+121. Rodriguez, P. L., & Spirling, A. (2022). Word embeddings: What works, what doesn't, and how to tell the difference for applied research. *The Journal of Politics*, 84(1), 101-115. https://doi.org/10.1086/715162
+122. Sautner, Z., van Lent, L., Vilkov, G., & Zhang, R. (2023). Firm-level climate change exposure. *The Journal of Finance*, 78(3), 1449-1498. https://doi.org/10.1111/jofi.13219
+123. Scott, W. A. (1955). Reliability of content analysis: The case of nominal scale coding. *Public Opinion Quarterly*, 19(3), 321-325. https://doi.org/10.1086/266577
 124. Shan, G., & Qiu, L. (2026). Examining the impact of generative AI on users' voluntary knowledge contribution: Evidence from a natural experiment on Stack Overflow. *Information Systems Research*, 37(2), 1021-1041. https://doi.org/10.1287/isre.2023.0332
 125. Shiller, R. J. (2017). Narrative economics. *American Economic Review*, 107(4), 967-1004. https://doi.org/10.1257/aer.107.4.967
 126. Siano, F. (2025). The news in earnings announcement disclosures: Capturing word context using LLM methods. *Management Science*, 71(11), 9831-9855. https://doi.org/10.1287/mnsc.2024.05417
-127. Stulz, R. M. (2019). FinTech, BigTech, and the future of banks. *Journal of Applied Corporate Finance*, 31(4), 86–97. https://doi.org/10.1111/jacf.12378
+127. Stulz, R. M. (2019). FinTech, BigTech, and the future of banks. *Journal of Applied Corporate Finance*, 31(4), 86-97. https://doi.org/10.1111/jacf.12378
 128. Törnberg, P. (2023). ChatGPT-4 outperforms experts and crowd workers in annotating political Twitter messages with zero-shot learning. *arXiv preprint arXiv:2304.06588*. https://doi.org/10.48550/arXiv.2304.06588
 129. Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. *The Journal of Finance*, 62(3), 1139-1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x
 130. Tetlock, P. C., Saar-Tsechansky, M., & Macskassy, S. (2008). More than words: Quantifying language to measure firms' fundamentals. *The Journal of Finance*, 63(3), 1437-1467. https://doi.org/10.1111/j.1540-6261.2008.01362.x
 131. Thakor, A. V. (2020). Fintech and banking: What do we know? *Journal of Financial Intermediation*, 41, 100833. https://doi.org/10.1016/j.jfi.2019.100833
 132. Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, Ł., & Polosukhin, I. (2017). Attention is all you need. *Advances in Neural Information Processing Systems*, 30. https://doi.org/10.48550/arXiv.1706.03762
-133. Vives, X. (2019). Digital disruption in banking. *Annual Review of Financial Economics*, 11, 243–272. https://doi.org/10.1146/annurev-financial-100719-120854
+133. Vives, X. (2019). Digital disruption in banking. *Annual Review of Financial Economics*, 11, 243-272. https://doi.org/10.1146/annurev-financial-100719-120854
 134. Wang, J., Wang, J., Athiwaratkun, B., Zhang, C., & Zou, J. (2024). Mixture-of-agents enhances large language model capabilities. *arXiv preprint arXiv:2406.04692*. https://doi.org/10.48550/arXiv.2406.04692
 135. Wang, X., Wei, J., Schuurmans, D., Le, Q., Chi, E., Narang, S., Chowdhery, A., & Zhou, D. (2022). Self-consistency improves chain of thought reasoning in language models. *arXiv preprint arXiv:2203.11171*. https://doi.org/10.48550/arXiv.2203.11171
 136. Wei, J., Wang, X., Schuurmans, D., Bosma, M., Xia, F., ... & Zhou, D. (2022). Chain-of-thought prompting elicits reasoning in large language models. *Advances in Neural Information Processing Systems*, 35, 24824-24837. https://doi.org/10.48550/arXiv.2201.11903
-137. Widmann, T., & Wich, M. (2023). Creating and comparing dictionary, word embedding, and transformer-based models to measure discrete emotions in German political text. *Political Analysis*, 31(4), 626–641. https://doi.org/10.1017/pan.2022.15
-138. Wolpert, D. H. (1992). Stacked generalization. *Neural Networks*, 5(2), 241–259. https://doi.org/10.1016/S0893-6080(05)80023-1
+137. Widmann, T., & Wich, M. (2023). Creating and comparing dictionary, word embedding, and transformer-based models to measure discrete emotions in German political text. *Political Analysis*, 31(4), 626-641. https://doi.org/10.1017/pan.2022.15
+138. Wolpert, D. H. (1992). Stacked generalization. *Neural Networks*, 5(2), 241-259. https://doi.org/10.1016/S0893-6080(05)80023-1
 139. Wu, S., Irsoy, O., Lu, S., Dabravolski, V., Dredze, M., Gehrmann, S., ... & Mann, G. (2023). BloombergGPT: A large language model for finance. *arXiv preprint arXiv:2303.17564*. https://doi.org/10.48550/arXiv.2303.17564
-140. Xie, X., & Wang, S. (2023). Digital transformation of commercial banks in China: Measurement, progress and impact. *China Economic Quarterly International*, 3(1), 35–45. https://doi.org/10.1016/j.ceqi.2023.03.002
+140. Xie, X., & Wang, S. (2023). Digital transformation of commercial banks in China: Measurement, progress and impact. *China Economic Quarterly International*, 3(1), 35-45. https://doi.org/10.1016/j.ceqi.2023.03.002
 141. Yang, Y., Uy, M. C., & Huang, A. (2020). FinBERT: A pretrained language model for financial communications. *arXiv preprint arXiv:2006.08097*. https://doi.org/10.48550/arXiv.2006.08097
 142. Ye, Z., Yoganarasimhan, H., & Zheng, Y. (2024). LOLA: LLM-assisted online learning algorithm for content experiments. *SSRN*. https://doi.org/10.2139/ssrn.4851778
-143. Zapf, A., Castell, S., Morawietz, L., & Karch, A. (2016). Measuring inter-rater reliability for nominal data – which coefficients and confidence intervals are appropriate? *BMC Medical Research Methodology*, 16, Article 93. https://doi.org/10.1186/s12874-016-0200-9
+143. Zapf, A., Castell, S., Morawietz, L., & Karch, A. (2016). Measuring inter-rater reliability for nominal data—which coefficients and confidence intervals are appropriate? *BMC Medical Research Methodology*, 16, Article 93. https://doi.org/10.1186/s12874-016-0200-9
 144. Zhao, W. X., Zhou, K., Li, J., Tang, T., Wang, X., Hou, Y., ... & Wen, J. R. (2023). A survey of large language models. *arXiv preprint arXiv:2303.18223*. https://doi.org/10.48550/arXiv.2303.18223
 145. Zheng, L., Chiang, W.-L., Sheng, Y., Zhuang, S., Wu, Z., Zhuang, Y., Lin, Z., Li, Z., Li, D., Xing, E. P., Zhang, H., Gonzalez, J. E., & Stoica, I. (2023). Judging LLM-as-a-judge with MT-Bench and Chatbot Arena. *Advances in Neural Information Processing Systems*, 36. https://doi.org/10.48550/arXiv.2306.05685
-146. Ziems, C., Held, W., Shaikh, O., Chen, J., Zhang, Z., & Yang, D. (2024). Can large language models transform computational social science? *Computational Linguistics*, 50(1), 237–291. https://doi.org/10.1162/coli_a_00502
+146. Ziems, C., Held, W., Shaikh, O., Chen, J., Zhang, Z., & Yang, D. (2024). Can large language models transform computational social science? *Computational Linguistics*, 50(1), 237-291. https://doi.org/10.1162/coli_a_00502
 
 ---
 
