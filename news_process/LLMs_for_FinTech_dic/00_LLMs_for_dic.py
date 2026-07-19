@@ -3,7 +3,7 @@
 
 功能：
     1. 使用多个 LLM 模型并行生成银行领域关键词
-    2. 去重 → 词根精简 → 拼音排序
+    2. 去重 → 去数字字母 → 词根精简 → 拼音排序
     3. 使用顶级模型批量判别每个关键词的专业度
     4. 汇总保存为多 Sheet 的 Excel 文件
 
@@ -643,6 +643,16 @@ def _call_llm_with_retry(
                     f"  [{task_id}] 模型拒绝 max_tokens 参数，已移除后重试: {error_str[:120]}"
                 )
                 continue
+            # 参数兼容守卫（关思考）：个别端点/代理不接受 extra_body 里的 thinking 字段。
+            # 侦测到即移除 extra_body 后立即重试（不占退避/全局重试预算），优雅降级为思考开启
+            # + 思维链打捞兜底，绝不因新增参数把原本可用的模型（如 MiniMax-M3）打成硬失败。
+            if model_params.get("extra_body") and "thinking" in low:
+                model_params.pop("extra_body", None)
+                logger.warning(
+                    f"  [{task_id}] 端点拒绝 thinking(关思考) 参数，已移除后重试"
+                    f"（回退思考开启，交思维链打捞兜底）: {error_str[:120]}"
+                )
+                continue
             logger.warning(f"  [{task_id}] 重试 {i + 1}/{MAX_RETRIES}: {e}")
 
             # 连续超时计数
@@ -1244,8 +1254,18 @@ def main(dry_run: bool = False) -> None:
     # 去重
     unique_keywords = sorted(set(all_keywords))
 
+    # 去数字字母：只要词汇中包含数字或 ASCII 字母 (如 "P2P"/"AI风控"/"5G支付")
+    # 即整词删除。位于去重之后、词根精简之前；unique_keywords 仍保留纯去重口径
+    # (供 "2-去重后" 表与统计的"去重"列)，过滤结果 filtered_keywords 流向下游。
+    _HAS_ALNUM = re.compile(r"[0-9A-Za-z]")
+    filtered_keywords = [kw for kw in unique_keywords if not _HAS_ALNUM.search(kw)]
+    logger.info(
+        f"  去数字字母: {len(unique_keywords)} → {len(filtered_keywords)} "
+        f"(删除含数字/字母词 {len(unique_keywords) - len(filtered_keywords)} 个)"
+    )
+
     # 词根精简
-    simplified_keywords = _simplify_keywords(unique_keywords)
+    simplified_keywords = _simplify_keywords(filtered_keywords)
 
     gen_duration = time.time() - start_time
 
@@ -1269,6 +1289,9 @@ def main(dry_run: bool = False) -> None:
 
     # ====== 步骤 2: 去重 ======
     df_step2 = pd.DataFrame({"id": range(1, len(unique_keywords) + 1), "keyword": unique_keywords})
+
+    # ====== 步骤 2b: 去数字字母 ======
+    df_step2b = pd.DataFrame({"id": range(1, len(filtered_keywords) + 1), "keyword": filtered_keywords})
 
     # ====== 步骤 3: 词根精简 ======
     df_step3 = pd.DataFrame({
@@ -1388,6 +1411,7 @@ def main(dry_run: bool = False) -> None:
     # ====================================================================
     # 汇总保存
     # ====================================================================
+    filtered_set = set(filtered_keywords)
     simplified_set = set(simplified_keywords)
     final_kw_set = set(kw_list)
     # fix(S2, 2026-07-14): 阈值由 >= (含平票=4) 改严格多数 > (=≥5/8)。
@@ -1409,6 +1433,7 @@ def main(dry_run: bool = False) -> None:
             "领域": dom_name,
             "原始": len(dom_raw),
             "去重": len(dom_set),
+            "去数字字母": len(dom_set & filtered_set),
             "精简": len(dom_set & simplified_set),
             "最终": len(dom_set & final_kw_set),
             "AI认可": len(dom_set & judge_ok_set),
@@ -1417,6 +1442,7 @@ def main(dry_run: bool = False) -> None:
         "领域": "【汇总】",
         "原始": total_generated,
         "去重": len(unique_keywords),
+        "去数字字母": len(filtered_keywords),
         "精简": final_count,
         "最终": final_count,
         "AI认可": len(judge_ok_set),
@@ -1431,6 +1457,7 @@ def main(dry_run: bool = False) -> None:
             df_step1.to_excel(writer, sheet_name="1-原始汇总", index=False)
             df_step1b.to_excel(writer, sheet_name="1b-按领域原始", index=False)
             df_step2.to_excel(writer, sheet_name="2-去重后", index=False)
+            df_step2b.to_excel(writer, sheet_name="2b-去数字字母后", index=False)
             df_step3.to_excel(writer, sheet_name="3-词根精简后", index=False)
             df_step4.to_excel(writer, sheet_name="4-最终结果", index=False)
             df_final.to_excel(writer, sheet_name="5-AI判别结果", index=False)
@@ -1454,6 +1481,13 @@ def main(dry_run: bool = False) -> None:
                 df_dom = pd.DataFrame({"id": range(1, len(dom_unique) + 1), "keyword": dom_unique})
                 writer_sheet = f"去重-{dom_name}"[:31]
                 df_dom.to_excel(writer, sheet_name=writer_sheet, index=False)
+
+                # 去数字字母后
+                dom_filtered = sorted(kw for kw in dom_set if kw in filtered_set)
+                if dom_filtered:
+                    df_af = pd.DataFrame({"id": range(1, len(dom_filtered) + 1), "keyword": dom_filtered})
+                    writer_sheet = f"去数字字母-{dom_name}"[:31]
+                    df_af.to_excel(writer, sheet_name=writer_sheet, index=False)
 
                 # 词根精简后
                 dom_simplified = sorted(kw for kw in dom_set if kw in simplified_set)
@@ -1506,14 +1540,15 @@ def main(dry_run: bool = False) -> None:
         f"总耗时 {sig4(duration)}s（生成占比 {pct4(gen_duration, duration)}）"
     )
     logger.info(f"【领域 Domain】数量 {len(DOMAINS)}")
-    # 结果链：生成 → 去重 → 精简/最终 → AI 认可，附四位有效数字留存/认可率
+    # 结果链：生成 → 去重 → 去数字字母 → 精简/最终 → AI 认可，附四位有效数字留存/认可率
     logger.info(
         f"【结果链 Pipeline】生成 {total_generated} → 去重 {len(unique_keywords)} "
-        f"→ 精简/最终 {final_count} → AI 认可 {_n_ai}"
+        f"→ 去数字字母 {len(filtered_keywords)} → 精简/最终 {final_count} → AI 认可 {_n_ai}"
     )
     logger.info(
         f"  去重率 {pct4(len(unique_keywords), total_generated)}（去冗余）｜"
-        f"精简率 {pct4(final_count, len(unique_keywords))}（超子串正交化）｜"
+        f"去字母率 {pct4(len(filtered_keywords), len(unique_keywords))}（删含数字/字母词）｜"
+        f"精简率 {pct4(final_count, len(filtered_keywords))}（超子串正交化）｜"
         f"AI 认可率 {pct4(_n_ai, final_count)}（占最终词表）"
     )
     if _total_retry_count > 0:
@@ -1546,21 +1581,22 @@ def main(dry_run: bool = False) -> None:
 
     logger.info("【各领域统计 Per-domain】")
     logger.info(
-        f"  {'领域名称':<16s} {'原始':>6s} {'去重':>6s} "
+        f"  {'领域名称':<16s} {'原始':>6s} {'去重':>6s} {'去数字字母':>6s} "
         f"{'精简':>6s} {'最终':>6s} {'AI认可':>6s} {'认可率':>8s}"
     )
-    logger.info(f"  {'-' * 16} {'-' * 6} {'-' * 6} {'-' * 6} {'-' * 6} {'-' * 6} {'-' * 8}")
+    logger.info(f"  {'-' * 16} {'-' * 6} {'-' * 6} {'-' * 6} {'-' * 6} {'-' * 6} {'-' * 6} {'-' * 8}")
     for dom in DOMAINS:
         dom_name = dom["name"]
         dom_raw = dom_keywords.get(dom_name, [])
         dom_set = set(dom_raw)
         n_raw = len(dom_raw)
         n_uniq = len(dom_set)
+        n_filt = len(dom_set & filtered_set)
         n_simp = len(dom_set & simplified_set)
         n_final = len(dom_set & final_kw_set)
         n_ai = len(dom_set & judge_ok_set)
         logger.info(
-            f"  {dom_name:<16s} {n_raw:>6d} {n_uniq:>6d} "
+            f"  {dom_name:<16s} {n_raw:>6d} {n_uniq:>6d} {n_filt:>6d} "
             f"{n_simp:>6d} {n_final:>6d} {n_ai:>6d} {pct4(n_ai, n_final):>8s}"
         )
     # 一致性验证指针（κ 由 calculate_kappa.py 独立离线计算，读该脚本内指定的判别结果 xlsx，
