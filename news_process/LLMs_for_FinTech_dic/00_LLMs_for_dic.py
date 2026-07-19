@@ -537,7 +537,7 @@ def _call_llm_with_retry(
 # 核心任务函数
 # ════════════════════════════════════════════════════════════════
 
-def fetch_batch(args: Tuple) -> Tuple[str, str, List[str]]:
+def fetch_batch(args: Tuple) -> Tuple[str, str, List[str], int]:
     """
     单个生成任务：按指定领域向指定模型请求关键词。
 
@@ -584,7 +584,11 @@ def fetch_batch(args: Tuple) -> Tuple[str, str, List[str]]:
         logger.debug(f"  [任务 {task_id}] LLM 原始响应:\n{text}")
         data = _safe_parse_json(text)
 
-        # 提取列表：优先按契约 Key "keywords" 精确取，无则回退遍历首个 list（兼容不同 key 名称）
+        # 提取列表：优先按契约 Key "keywords" 精确取，无则回退遍历首个 list（兼容不同 key 名称）。
+        # 元素三态兼容（build_generate_prompt 现要求对象数组，但需向后兼容旧缓存/退化响应）：
+        #   - dict → 新契约 {"keyword","reason"}，只取 "keyword"（reason 仅生成端 CoT 约束，不落盘）
+        #   - str  → 旧契约纯词表 / 模型退化返回裸字符串
+        #   - list → 极少数模型把词拆成字符列表，扁平化收字符串
         result_list: List[str] = []
         if isinstance(data, dict):
             _kw = data.get("keywords")
@@ -593,6 +597,10 @@ def fetch_batch(args: Tuple) -> Tuple[str, str, List[str]]:
                     for item in v:
                         if isinstance(item, str):
                             result_list.append(item)
+                        elif isinstance(item, dict):
+                            kw = item.get("keyword")
+                            if isinstance(kw, str) and kw.strip():
+                                result_list.append(kw)
                         elif isinstance(item, list):
                             result_list.extend(str(i) for i in item if isinstance(i, str))
                     break
