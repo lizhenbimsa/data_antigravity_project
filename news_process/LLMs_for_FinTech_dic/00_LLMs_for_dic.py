@@ -452,6 +452,57 @@ def _salvage_json_objects(text: str) -> List[dict]:
     return objects
 
 
+# 推理模型 (reasoning/thinking) 思维链兜底打捞的触发阈值：单模型正常应产 ~200 词，
+# 仅当 JSON 主解析 + 对象打捞合计仍远低于此（几乎颗粒无收）才启用思维链枚举打捞，
+# 避免对「已成功输出大部分 JSON」的正常/半截响应做无谓的二次扫描。
+_REASONING_SALVAGE_TRIGGER: int = 20
+
+# 思维链「N. 候选词 (可选理由)」编号清单的单行匹配：数字序号 + 分隔符 + 单个无空白词根，
+# 行尾仅允许一个可选括注 (如 "(2)")。行尾锚定 ($) 刻意排除英文分析散文
+# (如 "1. Must contain exactly 200 terms")——其序号后是多词句子，不会整行匹配。
+_THINK_ENUM_LINE_RE = re.compile(
+    r"^\s*\d+\s*[.、)]\s*([^\s()（）]{2,20})\s*(?:[（(][^)）]*[)）])?\s*$"
+)
+
+
+def _salvage_reasoning_keywords(text: str) -> List[str]:
+    """从推理 (reasoning/thinking) 模型的 <think> 思维链中打捞其枚举出的候选词。
+
+    专治 MiniMax-M3 等推理模型：整段 <think> 思维链逐条编号列举 ~200 个候选词
+    (并含二次复核)，输出预算 (max_tokens) 在收尾输出 JSON **之前**即被耗尽 →
+    finish_reason=length，content 内根本没有可解析的 JSON (仅一段未闭合的思维链)。
+    此时 `_safe_parse_json` 与 `_salvage_json_objects` 均近乎颗粒无收 (实测仅 3 词)。
+    本函数改从思维链的「N. 候选词」编号清单直接回收该模型列举的候选词——生成阶段
+    本就是过采样 (over-generation)，候选一律交由下游判别阶段 (LLM-as-judge) 过滤，
+    故从思维链回收其枚举候选**等价于**其正常 JSON 产出，不引入方法学偏差，且纯文本
+    处理不调用任何 API (离线重放确定可复现)。亦顺带兜底「模型直接返回 markdown 编号
+    清单而非 JSON」的退化响应。
+
+    - 优先扫描 <think> 区域 (含未闭合)；无 <think> 标签则退回全文以兼容裸思维链。
+    - 行尾锚定的严格单行匹配，排除英文分析散文与破折号复核项 (非编号行)。
+    - 按词去重保序；跨分节重启编号 (如 50+80+70) 因按词去重而天然正确。
+    """
+    if not text:
+        return []
+    m = re.search(r"<think>(.*?)(?:</think>|\Z)", text, re.DOTALL)
+    region = m.group(1) if m else text
+    seen: Set[str] = set()
+    out: List[str] = []
+    for line in region.splitlines():
+        mm = _THINK_ENUM_LINE_RE.match(line)
+        if not mm:
+            continue
+        kw = mm.group(1).strip("：:，,、。.·-—")
+        # 至少含一个中日韩表意文字或拉丁字母，排除纯数字/符号噪声
+        if not kw or not re.search(r"[一-鿿A-Za-z]", kw):
+            continue
+        if kw in seen:
+            continue
+        seen.add(kw)
+        out.append(kw)
+    return out
+
+
 def _calculate_backoff(
     error_str: str,
     retry_index: int,
@@ -705,6 +756,21 @@ def fetch_batch(args: Tuple) -> Tuple[str, str, List[str], int]:
                 logger.warning(
                     f"  [任务 {task_id}] 主解析失败，从截断/畸形响应打捞出 {len(result_list)} 个词"
                     f"（疑似 max_tokens 截断，已尽力恢复）"
+                )
+
+        # 兜底打捞②（推理模型专治）：主解析 + JSON 对象打捞合计仍严重不足时，多因
+        # 推理 (reasoning/thinking) 模型整段 <think> 思维链耗尽 max_tokens、收尾 JSON
+        # 尚未输出即被截断（实测 MiniMax-M3 仅打捞出 3 词）。改从思维链的「N. 候选词」
+        # 编号清单直接回收其枚举出的候选（生成阶段本就过采样、交由判别阶段过滤，故等价
+        # 于正常 JSON 产出）。取更充分者，且纯文本处理不调用 API（离线重放可复现）。
+        if len(result_list) < _REASONING_SALVAGE_TRIGGER:
+            reasoned = _salvage_reasoning_keywords(text or "")
+            if len(reasoned) > len(result_list):
+                result_list = reasoned
+                logger.warning(
+                    f"  [任务 {task_id}] JSON 解析/打捞均近乎失败，从思维链编号清单枚举"
+                    f"打捞出 {len(result_list)} 个候选词"
+                    f"（reasoning 模型输出被 max_tokens 截断或未按 JSON 契约输出，已尽力恢复）"
                 )
 
         if result_list:
