@@ -16,9 +16,6 @@ from typing import Dict, List
 SCRIPT_DIR = Path(__file__).resolve().parent
 LOG_DIR = SCRIPT_DIR / "logs"
 DATA_DIR = SCRIPT_DIR / "data_processed"
-CHECKPOINT_FILE = DATA_DIR / "checkpoint.json"
-JUDGE_CHECKPOINT_FILE = DATA_DIR / "judge_checkpoint.json"
-GEN_CHECKPOINT_FILE = DATA_DIR / "gen_checkpoint.json"
 
 # ════════════════════════════════════════════════════════════════
 # 环境变量加载
@@ -62,7 +59,7 @@ OFFLINE_MODE: bool = os.environ.get("LLMS_DIC_OFFLINE", "").strip().lower() in {
 # ════════════════════════════════════════════════════════════════
 
 JUDGE_BATCH_SIZE: int = 200         # 每次批量判别的关键词数量
-NUM_REPEAT_PER_MODEL: int = 10      # 每个模型、每个领域重复生成的次数
+NUM_REPEAT_PER_MODEL: int = 1       # 每个模型、每个领域重复生成的次数
 MAX_WORKERS_GENERATE: int = 200     # 生成阶段并发线程数
 MAX_WORKERS_JUDGE: int = 200        # 判别阶段并发线程数
 MAX_PARSE_RETRIES: int = 100        # 解析失败重试次数
@@ -72,6 +69,15 @@ MAX_TOTAL_RETRIES: int = 50         # 全局重试上限（费用保护，防止
 REQUEST_TIMEOUT: int = 1800         # 单次 API 请求超时（秒），谷歌超时严重
 MODEL_FAIL_THRESHOLD: int = 50      # 模型连续失败此次数后自动跳过
 MAX_CONCURRENT_PER_MODEL: int = 10  # 每个模型的最大并发请求数（防止触发 429 限流）
+# 单次 API 响应的最大输出 token（显式上限，防止响应被截断）。
+# 背景：生成端每次要求 200 个「对象数组」词条 {keyword, reason}（判别端 200 条
+# {keyword, score, reason}），单条响应体量约 6,000–7,000 输出 token。多数模型默认输出
+# 上限足够，但个别模型（实测 kimi-k2.6）在 yunwu 代理下默认上限偏低（约 4,096），
+# 会在生成到约 150 词处**截断**成非法 JSON → 解析失败 → 触发大量重试。显式抬高上限
+# 让所有模型都能完整输出整个数组。⚠ 这是**运行期 API 参数**，非 Prompt 字段/模型清单/
+# 阈值/数量链的任何一项，与手稿 FinTech_Dictionary_LLMs_Paper_Final.md 的锁步无关，
+# 不改变任何被誊抄的字面。设 None/<=0 则不传 max_tokens（回退各模型默认上限）。
+MAX_OUTPUT_TOKENS: int = 16384      # 16k >> 单条约 7k 需求，对全部 14 个前沿模型均在其输出上限内
 # 日志文件固定命名为「同 py 文件名」并 mode="w" 覆盖写入，只保留最近一次运行，
 # 故不再需要"保留最近 N 个"的滚动清理配置（原 LOG_RETENTION_COUNT 已移除）。
 
@@ -128,6 +134,7 @@ def get_client_config(model_name: str) -> Dict[str, str]:
     所有模型（含豆包）统一走 BASE_URL + API_KEY，不再有厂商专用端点。
     """
     return {"base_url": BASE_URL, "api_key": API_KEY}
+
 
 
 """
@@ -219,98 +226,112 @@ DOMAINS: List[Dict[str, str]] = [
 # Prompt 构建
 # ════════════════════════════════════════════════════════════════
 
-# ══ 生成端 ∩ 判别端 共享的三条「银行金融科技」正向判据理由 (score=1) — SSOT 锁步 ══
-#   顺序与 build_judge_prompt 内 JUDGE_REASONS 前三条严格一一对应（同一 index）：
-#     [0] 银行锚定的领域母词  [1] 有银行·通用科技词(召回向)  [2] 有银行·有科技(精确标记词)
-#   两处唯一互锁点：生成 Prompt 要求模型每词三选一原文照抄，判别 Prompt 的 JUDGE_REASONS
-#   前三条直接引用本列表（勿在 judge 处再写字面，防两端漂移）。改字面 = 两个 Prompt 同步变。
-POSITIVE_REASONS: List[str] = [
-    "银行金融科技领域的核心词汇",   # 银行锚定的领域母词（≈ judge ①金融科技）
-    "银行主体共现的通用科技词汇",   # 有银行·通用科技词，宽口径/召回向（≈ judge ②人工智能）
-    "提及即为银行金融科技词汇",     # 有银行·有科技，精确标记词（≈ judge ③手机银行）
+# ══ 生成端 ∩ 判别端 共享的六条「银行金融科技」判据理由 (单一 SSOT 字面源) ══
+#   合并前本为 POSITIVE_REASONS(正向3) + NEGATIVE_REASONS(否定3) 两独立字面块，现统一为
+#   单一列表 REASONS，每条 = (代表词, reason, score)，score 由 reason 唯一决定：
+#   前三条 score=1（正向，生成端亦用于自我锚定）、后三条 score=0（否定/边界，仅判别端用）。
+#   顺序即 build_judge_prompt 的 1..6 象限，score 降序 1,1,1,0,0,0（末段 4-6 全 0 占最强近因位，
+#   压满「拒收」示范；③手机银行(1)→④柜台业务(0) 于 1→0 交界构成「银行有无科技」最小对比对；
+#   最硬似是而非「第三方支付(有科技·无银行)」殿后；0:1 配比 3:3 平衡，抑多数标签偏置）：
+#     ① 金融科技   银行金融科技领域的核心词汇       1  银行锚定的领域母词
+#     ② 人工智能   银行主体共现的通用科技词汇       1  有银行·通用科技词（宽口径/召回向）
+#     ③ 手机银行   提及即为银行金融科技词汇         1  有银行·有科技（精确标记词）
+#     ④ 柜台业务   无金融科技属性的银行传统业务词汇 0  有银行·无科技（与⑥对称；与③构成科技边界最小对比对）
+#     ⑤ 天气预报   不属于银行金融科技的词汇         0  判0兜底（他类金融/完全无关）
+#     ⑥ 第三方支付 默认主体非银行的金融科技词汇     0  有科技·无银行（最硬似是而非·殿后）
+#   两处 Prompt 均从本列表派生，勿在别处重写字面（防两端漂移）；改字面 = 两个 Prompt 同步变：
+#     · 生成端 build_generate_prompt：取 score==1 的三条 reason 自我锚定（下方 POSITIVE_REASONS）。
+#     · 判别端 build_judge_prompt：直接消费全部六条 (kw, reason, score)（其内 JUDGE_REASONS = REASONS）。
+REASONS: List[tuple] = [
+    ("金融科技",   "银行金融科技领域的核心词汇",       1),
+    ("人工智能",   "银行主体共现的通用科技词汇",       1),
+    ("手机银行",   "提及即为银行金融科技词汇",         1),
+    ("柜台业务",   "无金融科技属性的银行传统业务词汇", 0),
+    ("天气预报",   "不属于银行金融科技的词汇",         0),
+    ("第三方支付", "默认主体非银行的金融科技词汇",     0),
 ]
 
-# ══ 判别端专用的三条 score=0 判据理由（否定/边界），与 POSITIVE_REASONS 对称 ══
-#   顺序与 build_judge_prompt 内 JUDGE_REASONS 后三条严格一一对应（同一 index）：
-#     [0] 有银行·无科技(传统业务)  [1] 判0兜底(他类/无关)  [2] 有科技·无银行(似是而非)
-#   目前仅判别端消费（生成端只用 POSITIVE_REASONS 的正向判据自我锚定），集中于此防字面漂移。
-NEGATIVE_REASONS: List[str] = [
-    "无金融科技属性的银行传统业务词汇",   # 有银行·无科技（≈ judge ④柜台业务；与①对称）
-    "不属于银行金融科技的词汇",           # 判0兜底：他类金融/完全无关（≈ judge ⑤天气预报）
-    "默认主体非银行的金融科技词汇",       # 有科技·无银行，最硬似是而非（≈ judge ⑥第三方支付）
-]
+# 生成端只用正向判据：从 SSOT 按序抽取 score==1 的 reason 文本（逐字等价旧 POSITIVE_REASONS）。
+POSITIVE_REASONS: List[str] = [reason for _kw, reason, score in REASONS if score == 1]
+
+
+def reason_text_from_index(raw) -> str:
+    """把判别端模型返回的 reason 序号 (0-based) 映回 REASONS 理由全文（落盘可读化用）。
+
+    ⚠ 纯本地查表，**不调任何 LLM**：模型按新契约只输出序号（省 token/抗截断），可读文本在
+    我们这侧确定性补回，$0 成本、离线可跑。发生在大模型调用返回**之后**（judge_batch 解析处）。
+    - raw 为 int / 整数浮点(如 0.0) / 纯数字字符串(含首尾空白) 且落在 [0, len(REASONS)) →
+      返回对应 reason 文本。用 int(raw) 直转（int() 对字符串自动 strip、对 float 取整），
+      比 int(str(raw)) 更稳健：后者会把 0.0 变成非法的 "0.0" 而漏映射。
+    - 其它情形（模型仍回了理由全文 / 越界 / 空 / 无法解析）→ 原样 str 返回
+      （向后兼容旧缓存的全文格式 + fail-soft，绝不因单条畸形值崩批）。
+    生成端 reason 不落盘（fetch_batch 只取 keyword），无需反查，故仅判别端消费本函数。
+    """
+    try:
+        idx = int(raw)
+    except (TypeError, ValueError):
+        return str(raw).strip()
+    if 0 <= idx < len(REASONS):
+        return REASONS[idx][1]
+    return str(raw).strip()
 
 
 def build_generate_prompt(domain: Dict[str, str]) -> str:
     """根据银行金融科技领域定义构建关键词生成 Prompt。
 
     每个词汇须附一条「入选理由」，从与判别端共享的 3 条正向判据 POSITIVE_REASONS
-    (score=1) 中三选一原文照抄 —— 在生成端即以同一套「银行 ∩ 金融科技」正向判据自我
-    锚定，压制裸技术词（AI/云计算/大数据…）误报，与 build_judge_prompt 准入判据同源锁步。
+    (score=1) 中三选一 —— 在生成端即以同一套「银行 ∩ 金融科技」正向判据自我锚定，压制裸
+    技术词（AI/云计算/大数据…）误报，与 build_judge_prompt 准入判据同源锁步。理由输出为
+    **序号**（0-2 的整数，即 POSITIVE_REASONS 的 0-index 下标，非理由全文，省 token 抗截断）；
     理由仅作生成端约束（CoT 自我判据），不落盘；下游 fetch_batch 从对象数组只提取
-    "keyword" 字段（并向后兼容旧的纯字符串列表）。
+    "keyword" 字段（并向后兼容旧的纯字符串列表），故 reason 是序号还是全文对下游无影响。
     """
-    reason_menu = "\n".join(f"  {i}. \"{r}\"" for i, r in enumerate(POSITIVE_REASONS, 1))
+    reason_menu = "\n".join(f"  {i}. \"{r}\"" for i, r in enumerate(POSITIVE_REASONS))
     return (
         f"请生成一个包含**200个**中文专业词汇的\"{domain['name']}\"词典。\n"
         f"参考词汇：{domain['description']}\n"
         f"要求：每个词汇应确保简洁、准确且意义明确，涵盖\"{domain['name']}\"的所有领域；"
-        f"并为每个词汇提供一条入选理由，理由必须从以下 3 项中原文照抄选取一个"
-        f"（不得改写、合并或新增）：\n"
+        f"并为每个词汇提供一条入选理由，理由须从以下 3 项中选取一个，reason 只写其**序号**"
+        f"（0-2 的整数，不得写理由全文、改写、合并或新增）：\n"
         f"{reason_menu}\n"
         f"格式：必须严格返回一个JSON对象，Key为\"keywords\"，Value为对象数组，"
-        f"数组中每个对象拥有且仅有两个键：\"keyword\"（词汇）与\"reason\"（须为上述 3 项之一）。\n"
+        f"数组中每个对象拥有且仅有两个键：\"keyword\"（词汇）与\"reason\"（须为上述序号 0-2 之一的整数）。\n"
         f"示例：{{\"keywords\": ["
-        f"{{\"keyword\": \"金融科技\", \"reason\": \"{POSITIVE_REASONS[0]}\"}}, "
-        f"{{\"keyword\": \"人工智能\", \"reason\": \"{POSITIVE_REASONS[1]}\"}}, "
-        f"{{\"keyword\": \"手机银行\", \"reason\": \"{POSITIVE_REASONS[2]}\"}}]}}"
+        f"{{\"keyword\": \"金融科技\", \"reason\": 0}}, "
+        f"{{\"keyword\": \"人工智能\", \"reason\": 1}}, "
+        f"{{\"keyword\": \"手机银行\", \"reason\": 2}}]}}"
     )
 
 def build_judge_prompt(keywords_batch: List[str]) -> str:
     """根据银行金融科技领域定义构建批量判别 Prompt。"""
     kw_list_str = "\n".join(f"{i + 1}. {kw}" for i, kw in enumerate(keywords_batch))
     domain_names = "、".join(d['name'] for d in DOMAINS)
-    # ══ 六类固定判据（SSOT）：(代表词, reason, score)。reason 六选一、原文照抄，
-    #    score 由 reason 唯一决定；判据句已从 prompt 移除，改由这六个理由承载，勿删/勿改写。
-    #    判据本质 = 银行 ∩ 金融科技 两侧俱全 → 1；否则 → 0（0 侧三类：兜底其余=天气预报 / 有科技·无银行=第三方支付 / 有银行·无科技=柜台业务）。
-    #    顺序 (2026-07-19 优化为「排除似是而非」向): score 降序 1,1,1,0,0,0 — 末段 4-6 位全 0（近因最强位压满「拒收」示范），
-    #    最硬似是而非「第三方支付(非银金科)」殿后（占最强近因位）；③手机银行(1)→④柜台业务(0) 于 1→0 交界构成「银行有无科技」最小对比对；
-    #    0:1 配比 3:3 平衡（抑多数标签偏置）；reason_menu 与示例均随此列表序生成。
-    #      ① 金融科技   银行金融科技领域的核心词汇     1  银行锚定的领域母词（方案A加"银行"消 金融科技∩第三方支付 重叠）
-    #      ② 人工智能   银行主体共现的通用科技词汇     1  有银行·通用科技词（宽口径/召回向；「科技」显式限定金科侧，斥非科技泛词）
-    #      ③ 手机银行   提及即为银行金融科技词汇       1  有银行·有科技（精确标记词）
-    #      ④ 柜台业务   无金融科技属性的银行传统业务词汇 0  有银行·无科技（与⑥对称: [所缺]的[所属]词汇; 与③手机银行构成科技边界最小对比对）
-    #      ⑤ 天气预报   不属于银行金融科技的词汇       0  判0兜底（其余全部 0：他类金融/完全无关等，非④非⑥；示例取纯无关词）
-    #      ⑥ 第三方支付 默认主体非银行的金融科技词汇   0  有科技·无银行（最硬似是而非·殿后压最强近因）
-    # ⚠ menu 与示例均由 SSOT 用「,\n」.join 生成，末条自动无尾逗号（不再手工维护）；
+    # ══ 六类固定判据直接复用模块级 SSOT REASONS：(代表词, reason, score)。reason 输出为
+    #    **序号** 0-5（即 REASONS 的 0-index 下标），score 由所选序号唯一决定（判据句已从
+    #    prompt 移除，改由这六个理由承载）。判据本质 = 银行 ∩ 金融科技 两侧俱全 → 1；否则 → 0
+    #    （0 侧三类：兜底其余/有科技·无银行/有银行·无科技）。顺序、六象限含义、近因排布与
+    #    0:1 平衡的完整说明见 REASONS 定义处注释（勿在此重写字面，防两端漂移）。
+    #    ⚠ 序号是输出契约 → REASONS 一旦重排，序号语义随之改变（menu/示例自动同步，无字面漂移）。
+    # ⚠ menu 与示例均由 REASONS 用「,\n」.join 生成，末条自动无尾逗号（不再手工维护）；
     #    doubao 非 JSON-mode 靠 prompt 产合法 JSON，_safe_parse_json 是裸 json.loads。
-    #    六条 reason 全部逐字复用模块级常量（勿在此重写字面，防两端漂移）：
-    #    前三条正向 = POSITIVE_REASONS（生成端与判别端同源共享）；后三条否定 = NEGATIVE_REASONS（仅判别端）。
-    JUDGE_REASONS = [
-        ("金融科技", POSITIVE_REASONS[0], 1),
-        ("人工智能", POSITIVE_REASONS[1], 1),
-        ("手机银行", POSITIVE_REASONS[2], 1),
-        ("柜台业务", NEGATIVE_REASONS[0], 0),
-        ("天气预报", NEGATIVE_REASONS[1], 0),
-        ("第三方支付", NEGATIVE_REASONS[2], 0),
-    ]
+    JUDGE_REASONS = REASONS
     reason_menu = "\n".join(
         f"  {idx}. \"{reason}\" → score={score}"
-        for idx, (_kw, reason, score) in enumerate(JUDGE_REASONS, 1)
+        for idx, (_kw, reason, score) in enumerate(JUDGE_REASONS)
     )
     example_items = ",\n".join(
-        f"  {{\"keyword\": \"{kw}\", \"score\": {score}, \"reason\": \"{reason}\"}}"
-        for (kw, reason, score) in JUDGE_REASONS
+        f"  {{\"keyword\": \"{kw}\", \"score\": {score}, \"reason\": {idx}}}"
+        for idx, (kw, reason, score) in enumerate(JUDGE_REASONS)
     )
     return (
         f"请逐一判断以下{len(keywords_batch)}个词汇是否属于\"{domain_names}\"领域的专业词汇。\n\n"
         f"词汇列表：\n{kw_list_str}\n\n"
         f"要求：判定属于\"{domain_names}\"（银行与金融科技两侧俱全）返回1，否则返回0。"
-        f"每个词汇的 reason 必须从以下 6 个固定理由中原文照抄选取一个（不得改写、合并或新增），"
-        f"score 由所选 reason 唯一决定：\n"
+        f"每个词汇的 reason 须从以下 6 个固定理由中选取一个，reason 只写其**序号**"
+        f"（0-5 的整数，不得写理由全文、改写、合并或新增），score 由所选序号唯一决定：\n"
         f"{reason_menu}\n"
         f"格式：必须严格返回一个JSON对象。包含一个名为'results'的数组，数组中的每个对象拥有且仅有三个键："
-        f"'keyword'（要判定的词汇）、'score'（1或0）和'reason'（判定理由，须为上述 6 个之一）。\n\n"
+        f"'keyword'（要判定的词汇）、'score'（1或0）和'reason'（判定理由的序号，须为上述 0-5 之一的整数）。\n\n"
         f"示例：\n"
         f"{{\"results\": [\n"
         f"{example_items}\n"

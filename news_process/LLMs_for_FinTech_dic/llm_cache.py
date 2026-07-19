@@ -18,7 +18,7 @@ LLMs_for_FinTech_dic 独立大模型缓存模块
   另外 _model_health 状态不进缓存 —— 有模型被跳过的首跑不具备逐字节可复现性。
 - 离线模式：环境变量 LLMS_DIC_OFFLINE=1 时 miss → raise LLMCacheMissError
   （fail-loud，绝不静默调 API 付费，镜像主项目 NEWS_PROCESS_LLM_OFFLINE 语义；
-  消费方 00 脚本捕获后置全局停止事件走优雅中断，保 checkpoint）。
+  消费方 00 脚本捕获后置全局停止事件走优雅中断）。
 - 整体开关：环境变量 LLMS_DIC_CACHE=0 可停用（读写全跳过，行为等同无缓存）。
 - ⚠ 缓存默认开启意味着"再跑一遍"= 重放而非重新采样；想要新的多样性采样，
   须 LLMS_DIC_CACHE=0 或先 --clear 清库。

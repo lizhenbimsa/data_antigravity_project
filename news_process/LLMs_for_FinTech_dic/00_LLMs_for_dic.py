@@ -9,7 +9,6 @@
 
 用法：
     python LLMs_for_dic/LLMs_for_dic.py                  # 运行完整流程
-    python LLMs_for_dic/LLMs_for_dic.py --resume          # 从断点继续（跳过生成阶段）
     python LLMs_for_dic/LLMs_for_dic.py --view-logs       # 列出当前日志文件
     python LLMs_for_dic/LLMs_for_dic.py --view-log latest # 查看最新运行日志
 """
@@ -37,11 +36,9 @@ from pypinyin import lazy_pinyin
 # === 本地配置 ===
 from config import (
     API_KEY,
-    CHECKPOINT_FILE,
     DATA_DIR,
     DOMAINS,
     JUDGE_BATCH_SIZE,
-    JUDGE_CHECKPOINT_FILE,
     JUDGE_MODELS,
     LOG_DIR,
     MAX_RETRIES,
@@ -51,6 +48,7 @@ from config import (
     MAX_PARSE_RETRIES,
     MAX_JUDGE_RETRIES,
     MAX_CONCURRENT_PER_MODEL,
+    MAX_OUTPUT_TOKENS,
     MODEL_FAIL_THRESHOLD,
     MODELS,
     NUM_REPEAT_PER_MODEL,
@@ -60,7 +58,7 @@ from config import (
     get_model_params,
     build_generate_prompt,
     build_judge_prompt,
-    GEN_CHECKPOINT_FILE,
+    reason_text_from_index,
     CACHE_DB_FILE,
     CACHE_ENABLED,
     OFFLINE_MODE,
@@ -390,6 +388,70 @@ def _safe_parse_json(text: str) -> dict:
         return {}
 
 
+def _salvage_json_objects(text: str) -> List[dict]:
+    """从**截断/畸形** JSON 文本中打捞所有括号配平、且能解析为 dict 的内层对象。
+
+    专治部分模型（实测 kimi-k2.6）响应被输出上限截断、或前置自然语言（"用户要求
+    生成…"）导致最外层 JSON 无法闭合的情形：`_safe_parse_json` 此时返回 {}（正则
+    `\\{.*\\}` 在缺失收尾 `}` 时匹配失败），整条响应连同已生成的上百个完整词条一起
+    被丢弃 → 触发大量无谓重试。本函数扫描文本，**跳过无法闭合的最外层容器**，逐个
+    提取内层完整 `{...}` 叶子对象（如 {"keyword": "...", "reason": "..."}）。
+
+    - 字符串感知：正确跳过字符串值内的花括号与转义，不被其误导括号深度。
+    - 遇最外层包装（如 {"keywords": [...]}）：下潜一层继续逐对象打捞（而非整吞）。
+    - 仅作为主解析失败后的兜底路径调用；happy-path（合法 JSON）不经此函数，零行为变更。
+    """
+    if not text:
+        return []
+    objects: List[dict] = []
+    n = len(text)
+    i = 0
+    while i < n:
+        if text[i] != "{":
+            i += 1
+            continue
+        # 从 i 处做「字符串感知」的括号配平，定位与之匹配的收尾 '}'
+        depth = 0
+        in_str = False
+        esc = False
+        end = -1
+        j = i
+        while j < n:
+            c = text[j]
+            if in_str:
+                if esc:
+                    esc = False
+                elif c == "\\":
+                    esc = True
+                elif c == '"':
+                    in_str = False
+            elif c == '"':
+                in_str = True
+            elif c == "{":
+                depth += 1
+            elif c == "}":
+                depth -= 1
+                if depth == 0:
+                    end = j
+                    break
+            j += 1
+        if end == -1:
+            # 从 i 起无法闭合（截断的外层 / 末尾半截对象）：跳过此 '{'，继续找下一个内层对象
+            i += 1
+            continue
+        try:
+            obj = json.loads(text[i:end + 1])
+        except (json.JSONDecodeError, ValueError):
+            obj = None
+        if isinstance(obj, dict) and "keyword" in obj:
+            objects.append(obj)
+            i = end + 1  # 已消费该叶子对象，从其后继续扫描
+        else:
+            # 非叶子（外层包装 / 无 keyword 键）：仅前进一格，下潜到内层继续打捞（并避免死循环）
+            i += 1
+    return objects
+
+
 def _calculate_backoff(
     error_str: str,
     retry_index: int,
@@ -474,6 +536,11 @@ def _call_llm_with_retry(
             )
 
     consecutive_timeouts = 0
+    # max_tokens 显式上限：抬高防止个别模型（如 kimi-k2.6 在 yunwu 默认上限偏低）把
+    # 200 词对象数组截断成非法 JSON。极少数模型/端点若拒绝该参数，下方 except 会侦测
+    # 到「max_tokens/max_completion_tokens」错误签名并**移除后重试**（graceful，绝不
+    # 因新增参数把原本可用的模型打成失败）。
+    use_max_tokens = isinstance(MAX_OUTPUT_TOKENS, int) and MAX_OUTPUT_TOKENS > 0
 
     for i in range(MAX_RETRIES):
         # 检查是否收到中断信号
@@ -488,6 +555,8 @@ def _call_llm_with_retry(
                 "timeout": REQUEST_TIMEOUT,
                 **model_params,
             }
+            if use_max_tokens:
+                call_kwargs["max_tokens"] = MAX_OUTPUT_TOKENS
             # 使用模型信号量控制并发，防止触发 429 限流
             sem = _get_model_semaphore(model_name)
             sem.acquire()
@@ -495,7 +564,17 @@ def _call_llm_with_retry(
                 resp = client.chat.completions.create(**call_kwargs)
             finally:
                 sem.release()
-            content = resp.choices[0].message.content
+            choice = resp.choices[0]
+            content = choice.message.content
+            # 截断预警：finish_reason=length 表示响应因输出上限被硬截断（大概率非法 JSON）。
+            # 仍照常缓存 + 返回，交由下游 _salvage_json_objects 尽力打捞已生成的完整对象；
+            # 此处显式记 WARNING，令截断成为一眼可辨的诊断信号（而非神秘的解析失败）。
+            if getattr(choice, "finish_reason", None) == "length":
+                logger.warning(
+                    f"  [{task_id}] ⚠ 响应因长度上限被截断 "
+                    f"(finish_reason=length, max_tokens={MAX_OUTPUT_TOKENS if use_max_tokens else '模型默认'})，"
+                    f"将尽力打捞已生成内容"
+                )
             # 成功响应写入缓存（原样存，含后续可能解析失败的响应，保证重放可复现）
             if _llm_cache is not None and isinstance(content, str):
                 _llm_cache.put(model_name, prompt, temp_key, cache_tag, content)
@@ -503,6 +582,16 @@ def _call_llm_with_retry(
 
         except Exception as e:
             error_str = str(e)
+            # 参数兼容守卫：个别模型/端点不接受 max_tokens（或要求 max_completion_tokens）。
+            # 侦测到该签名即移除参数后立即重试（不占退避/全局重试预算），保证不因新增参数
+            # 把原本可用的模型误伤为失败；移除后回退各模型默认上限（等同本次改动前的行为）。
+            low = error_str.lower()
+            if use_max_tokens and ("max_tokens" in low or "max_completion_tokens" in low):
+                use_max_tokens = False
+                logger.warning(
+                    f"  [{task_id}] 模型拒绝 max_tokens 参数，已移除后重试: {error_str[:120]}"
+                )
+                continue
             logger.warning(f"  [{task_id}] 重试 {i + 1}/{MAX_RETRIES}: {e}")
 
             # 连续超时计数
@@ -573,7 +662,7 @@ def fetch_batch(args: Tuple) -> Tuple[str, str, List[str], int]:
                 cache_tag=f"gen|{dom_name}|rep{idx}|try{parse_attempt}",
             )
         except LLMCacheMissError as e:
-            # 离线重放遇到首跑缓存空洞：置全局停止走优雅中断（保 checkpoint），
+            # 离线重放遇到首跑缓存空洞：置全局停止走优雅中断，
             # 不让异常炸穿 executor
             logger.error(f"  [任务 {task_id}] {e}")
             _shutdown_event.set()
@@ -604,6 +693,19 @@ def fetch_batch(args: Tuple) -> Tuple[str, str, List[str], int]:
                         elif isinstance(item, list):
                             result_list.extend(str(i) for i in item if isinstance(i, str))
                     break
+
+        # 兜底打捞：主解析拿不到任何词，多因响应被输出上限截断成非法 JSON（外层未闭合）。
+        # 逐个提取已生成的完整 {"keyword",...} 对象，避免把上百个有效词连同半截尾巴一起丢弃。
+        if not result_list:
+            for obj in _salvage_json_objects(text or ""):
+                kw = obj.get("keyword")
+                if isinstance(kw, str) and kw.strip():
+                    result_list.append(kw)
+            if result_list:
+                logger.warning(
+                    f"  [任务 {task_id}] 主解析失败，从截断/畸形响应打捞出 {len(result_list)} 个词"
+                    f"（疑似 max_tokens 截断，已尽力恢复）"
+                )
 
         if result_list:
             logger.info(f"  [任务 {task_id}] 成功获取 {len(result_list)} 个词")
@@ -686,6 +788,18 @@ def judge_batch(args: Tuple) -> Tuple[str, List[Tuple[str, int, str]]]:
                         results_list = v
                         break
 
+            # 兜底打捞：判别端每批 200 条 {keyword,score,reason}（比生成端更长），同样可能被
+            # 输出上限截断。主解析空时，逐个提取已生成的完整判别对象喂给下方 result_map；
+            # 配合既有「部分覆盖 ≥95% 提前采纳」逻辑，截断响应也能贡献大部分判别而非全批重试。
+            if not results_list:
+                salvaged = _salvage_json_objects(text or "")
+                if salvaged:
+                    results_list = salvaged
+                    logger.warning(
+                        f"  [{task_id}] 主解析失败，从截断/畸形响应打捞出 {len(salvaged)} 条判别"
+                        f"（疑似 max_tokens 截断，已尽力恢复）"
+                    )
+
             if results_list and len(results_list) > 0:
                 # 构建 keyword -> (score, reason) 的映射
                 result_map: Dict[str, Tuple[int, str]] = {}
@@ -705,7 +819,10 @@ def judge_batch(args: Tuple) -> Tuple[str, List[Tuple[str, int, str]]]:
                                 f"score={raw_score!r} 无法转为 int，已跳过该词（按未匹配处理）"
                             )
                             continue
-                        rs = str(item.get("reason", "")).strip()
+                        # 模型按新契约只回 reason 序号 (0-5)；此处纯本地查表把序号映回
+                        # REASONS 理由全文，使落盘 _reason 列保持可读（非法/越界/空/仍是全文
+                        # 均 fail-soft 原样返回，不崩批）。见 config.reason_text_from_index。
+                        rs = reason_text_from_index(item.get("reason", ""))
                         result_map[kw] = (sc, rs)
 
                 # 对原始列表按顺序输出，未匹配的补默认值
@@ -752,130 +869,6 @@ def judge_batch(args: Tuple) -> Tuple[str, List[Tuple[str, int, str]]]:
     # 超过最大重试次数，标记失败
     logger.error(f"  [{task_id}] 失败，全部标记为0")
     return (model_name, [(kw, 0, "") for kw in keywords_batch])
-
-
-# ════════════════════════════════════════════════════════════════
-# 断点续传
-# ════════════════════════════════════════════════════════════════
-
-def _save_gen_checkpoint(
-    dom_keywords: Dict[str, List[str]],
-    all_keywords: List[str],
-    all_records: List[Dict[str, str]],
-    keywords_raw_count: int,
-    completed_task_ids: List[str],
-) -> None:
-    """保存生成阶段的中间结果，支持在生成阶段中断后恢复。"""
-    GEN_CHECKPOINT_FILE.parent.mkdir(parents=True, exist_ok=True)
-    checkpoint_data = {
-        "timestamp": datetime.now().isoformat(),
-        "dom_keywords": dom_keywords,
-        "all_keywords": all_keywords,
-        "all_records": all_records,
-        "keywords_raw_count": keywords_raw_count,
-        "completed_task_ids": completed_task_ids,
-    }
-    GEN_CHECKPOINT_FILE.write_text(
-        json.dumps(checkpoint_data, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-
-
-def _load_gen_checkpoint() -> Optional[dict]:
-    """加载生成阶段的中间断点文件，如果不存在返回 None。"""
-    if not GEN_CHECKPOINT_FILE.exists():
-        return None
-    try:
-        data = json.loads(GEN_CHECKPOINT_FILE.read_text(encoding="utf-8"))
-        return data
-    except (json.JSONDecodeError, KeyError):
-        return None
-
-
-def _save_checkpoint(
-    dom_keywords: Dict[str, List[str]],
-    all_keywords: List[str],
-    all_records: List[Dict[str, str]],
-    keywords_raw_count: int,
-    unique_keywords: List[str],
-    simplified_keywords: List[str],
-) -> None:
-    """保存生成阶段的结果到 checkpoint 文件，以便断点续传（进入判别阶段）。"""
-    CHECKPOINT_FILE.parent.mkdir(parents=True, exist_ok=True)
-    checkpoint_data = {
-        "timestamp": datetime.now().isoformat(),
-        "dom_keywords": dom_keywords,
-        "all_keywords": all_keywords,
-        "all_records": all_records,
-        "keywords_raw_count": keywords_raw_count,
-        "unique_keywords": unique_keywords,
-        "simplified_keywords": simplified_keywords,
-    }
-    CHECKPOINT_FILE.write_text(
-        json.dumps(checkpoint_data, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-
-
-def _load_checkpoint() -> Optional[dict]:
-    """加载 checkpoint 文件，返回 None 如果不存在或解析失败。"""
-    if not CHECKPOINT_FILE.exists():
-        return None
-    try:
-        data = json.loads(CHECKPOINT_FILE.read_text(encoding="utf-8"))
-        return data
-    except (json.JSONDecodeError, KeyError):
-        return None
-
-
-def _delete_checkpoint() -> None:
-    """删除所有 checkpoint 文件。"""
-    for fp in (CHECKPOINT_FILE, JUDGE_CHECKPOINT_FILE, GEN_CHECKPOINT_FILE):
-        if fp.exists():
-            fp.unlink()
-
-
-def _save_judge_checkpoint(
-    model_results: Dict[str, Dict[str, List[Any]]],
-    completed_tasks: int,
-    total_tasks: int,
-) -> None:
-    """保存判别阶段中间结果，支持判别阶段断点续传。"""
-    data = {
-        "timestamp": datetime.now().isoformat(),
-        "completed_tasks": completed_tasks,
-        "total_tasks": total_tasks,
-        "model_results": {
-            m: {kw: v for kw, v in results.items()}
-            for m, results in model_results.items()
-        },
-    }
-    JUDGE_CHECKPOINT_FILE.write_text(
-        json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-
-
-def _load_judge_checkpoint() -> Optional[dict]:
-    """加载判别阶段断点，返回 None 如果不存在。"""
-    if not JUDGE_CHECKPOINT_FILE.exists():
-        return None
-    try:
-        data = json.loads(JUDGE_CHECKPOINT_FILE.read_text(encoding="utf-8"))
-        # 结果为具有分数和理由的列表（兼容旧版保存格式）
-        model_results = {}
-        for m, results in data.get("model_results", {}).items():
-            model_results[m] = {}
-            for kw, v in results.items():
-                if isinstance(v, list):
-                    score = int(v[0]) if len(v) > 0 else 0
-                    reason = str(v[1]) if len(v) > 1 else ""
-                    model_results[m][kw] = [score, reason]
-                else:
-                    model_results[m][kw] = [int(v), ""]
-        data["model_results"] = model_results
-        return data
-    except (json.JSONDecodeError, KeyError):
-        return None
 
 
 # ════════════════════════════════════════════════════════════════
@@ -1049,12 +1042,11 @@ def _format_excel_workbook(filepath: Path) -> None:
 # 主函数
 # ════════════════════════════════════════════════════════════════
 
-def main(resume: bool = False, dry_run: bool = False) -> None:
+def main(dry_run: bool = False) -> None:
     """
     主入口：执行完整的关键词生成 → 处理 → 判别 → 保存流程。
 
     Args:
-        resume: 是否从断点继续（跳过生成阶段）
         dry_run: 仅显示任务规模和成本预估，不实际执行
     """
     if not API_KEY:
@@ -1116,131 +1108,78 @@ def main(resume: bool = False, dry_run: bool = False) -> None:
         return
 
     # ====================================================================
-    # 第一阶段：生成关键词（或从断点恢复）
+    # 第一阶段：生成关键词
     # ====================================================================
-    if resume:
-        checkpoint = _load_checkpoint()
-        if checkpoint is None:
-            logger.error("未找到断点文件，无法继续。请先完整运行一次。")
-            return
-        logger.info(f"✅ 从断点恢复 (保存时间: {checkpoint['timestamp']})")
-        dom_keywords = checkpoint["dom_keywords"]
-        all_keywords = checkpoint["all_keywords"]
-        all_records = checkpoint["all_records"]
-        keywords_raw_count = checkpoint["keywords_raw_count"]
-        unique_keywords = checkpoint["unique_keywords"]
-        simplified_keywords = checkpoint["simplified_keywords"]
-    else:
-        # 检查生成阶段断点
-        gen_checkpoint = _load_gen_checkpoint()
-        completed_task_ids = set()
-        
-        if gen_checkpoint:
-            logger.info(f"✅ 从生成阶段中间断点恢复 (保存时间: {gen_checkpoint['timestamp']})")
-            dom_keywords = gen_checkpoint["dom_keywords"]
-            all_keywords = gen_checkpoint["all_keywords"]
-            all_records = gen_checkpoint["all_records"]
-            keywords_raw_count = gen_checkpoint["keywords_raw_count"]
-            completed_task_ids = set(gen_checkpoint.get("completed_task_ids", []))
-            
-            # 确保各领域的 key 都存在
-            for dom in DOMAINS:
-                if dom["name"] not in dom_keywords:
-                    dom_keywords[dom["name"]] = []
-        else:
-            # 按领域收集结果
-            dom_keywords: Dict[str, List[str]] = {dom["name"]: [] for dom in DOMAINS}
-            all_keywords: List[str] = []
-            all_records: List[Dict[str, str]] = []
-            keywords_raw_count = 0
+    # 按领域收集结果
+    dom_keywords: Dict[str, List[str]] = {dom["name"]: [] for dom in DOMAINS}
+    all_keywords: List[str] = []
+    all_records: List[Dict[str, str]] = []
+    keywords_raw_count = 0
 
-        # 构建所有任务: 模型 × 领域 × 重复次数
-        tasks = []
-        for model in MODELS:
-            for dom in DOMAINS:
-                prompt = build_generate_prompt(dom)
-                for i in range(NUM_REPEAT_PER_MODEL):
-                    task_uid = f"{model}::{dom['name']}::{i}"
-                    if task_uid not in completed_task_ids:
-                        tasks.append((model, dom["name"], prompt, i, get_client_config(model)))
+    # 构建所有任务: 模型 × 领域 × 重复次数
+    tasks = []
+    for model in MODELS:
+        for dom in DOMAINS:
+            prompt = build_generate_prompt(dom)
+            for i in range(NUM_REPEAT_PER_MODEL):
+                tasks.append((model, dom["name"], prompt, i, get_client_config(model)))
 
-        if not tasks and completed_task_ids:
-            logger.info("  ✅ 所有生成任务已完成，跳过并发执行阶段。")
-        else:
-            # 随机打乱任务顺序，避免同一模型的请求扎堆导致限流
-            random.shuffle(tasks)
+    # 随机打乱任务顺序，避免同一模型的请求扎堆导致限流
+    random.shuffle(tasks)
 
-            total_tasks = len(tasks)
-            completed_str = f" (已完成 {len(completed_task_ids)} 个，剩余 {total_tasks} 个)" if completed_task_ids else ""
-            logger.info(
-                f"--- 阶段① 开始并行执行: {len(MODELS)} 个模型 × {len(DOMAINS)} 个领域 "
-                f"× {NUM_REPEAT_PER_MODEL} 次 = {len(MODELS)*len(DOMAINS)*NUM_REPEAT_PER_MODEL} 个总量{completed_str} ---"
-            )
-            logger.info(
-                "    机制：各异构基座模型在默认温度下、以领域种子词与格式示范为条件并发重复采样"
-                "（Monte-Carlo，无梯度微调），以查全率与特征分布探测为目标 "
-                + cite("brown_2020", "dekok_2025")
-            )
+    total_tasks = len(tasks)
+    logger.info(
+        f"--- 阶段① 开始并行执行: {len(MODELS)} 个模型 × {len(DOMAINS)} 个领域 "
+        f"× {NUM_REPEAT_PER_MODEL} 次 = {total_tasks} 个总量 ---"
+    )
+    logger.info(
+        "    机制：各异构基座模型在默认温度下、以领域种子词与格式示范为条件并发重复采样"
+        "（Monte-Carlo，无梯度微调），以查全率与特征分布探测为目标 "
+        + cite("brown_2020", "dekok_2025")
+    )
 
-            with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS_GENERATE) as executor:
-                futures = [executor.submit(fetch_batch, task) for task in tasks]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS_GENERATE) as executor:
+        futures = [executor.submit(fetch_batch, task) for task in tasks]
 
-                completed = 0
-                for future in concurrent.futures.as_completed(futures):
-                    if _shutdown_event.is_set():
-                        logger.warning("中断信号已设置，准备保存当前生成断点并退出...")
-                        _save_gen_checkpoint(
-                            dom_keywords, all_keywords, all_records,
-                            keywords_raw_count, list(completed_task_ids)
-                        )
-                        break
+        completed = 0
+        for future in concurrent.futures.as_completed(futures):
+            if _shutdown_event.is_set():
+                logger.warning("中断信号已设置，提前结束生成阶段...")
+                break
 
-                    gen_model, dom_name, res, idx = future.result()
-                    completed += 1
-                    task_uid = f"{gen_model}::{dom_name}::{idx}"
-                    completed_task_ids.add(task_uid)
+            gen_model, dom_name, res, _idx = future.result()
+            completed += 1
 
-                    if res:
-                        dom_keywords[dom_name].extend(res)
-                        all_keywords.extend(res)
-                        keywords_raw_count += len(res)
-                        for kw in res:
-                            all_records.append({"domain": dom_name, "keyword": kw, "model": gen_model})
+            if res:
+                dom_keywords[dom_name].extend(res)
+                all_keywords.extend(res)
+                keywords_raw_count += len(res)
+                for kw in res:
+                    all_records.append({"domain": dom_name, "keyword": kw, "model": gen_model})
 
-                    # 进度汇报 + 定期保存断点
-                    if completed % 10 == 0 or completed == total_tasks:
-                        logger.info(
-                            f"  📊 生成进度: {completed}/{total_tasks} "
-                            f"({pct4(completed, total_tasks)}), "
-                            f"已收集 {keywords_raw_count} 个原始词条"
-                        )
-                        _save_gen_checkpoint(
-                            dom_keywords, all_keywords, all_records,
-                            keywords_raw_count, list(completed_task_ids)
-                        )
+            # 进度汇报
+            if completed % 10 == 0 or completed == total_tasks:
+                logger.info(
+                    f"  📊 生成进度: {completed}/{total_tasks} "
+                    f"({pct4(completed, total_tasks)}), "
+                    f"已收集 {keywords_raw_count} 个原始词条"
+                )
 
-        if _shutdown_event.is_set():
-            logger.warning("⚠️ 因中断信号提前结束生成阶段，已保存已有结果。")
+    if _shutdown_event.is_set():
+        logger.warning("⚠️ 因中断信号提前结束生成阶段，将用已有结果继续。")
 
-        if not all_keywords:
-            logger.error("未获取到任何数据")
-            return
+    if not all_keywords:
+        logger.error("未获取到任何数据")
+        return
 
-        # 清洗关键词
-        all_keywords = _clean_keywords(all_keywords)
+    # 清洗关键词
+    all_keywords = _clean_keywords(all_keywords)
 
-        # 去重
-        unique_keywords = sorted(set(all_keywords))
+    # 去重
+    unique_keywords = sorted(set(all_keywords))
 
-        # 词根精简
-        simplified_keywords = _simplify_keywords(unique_keywords)
-
-        # 保存断点
-        _save_checkpoint(
-            dom_keywords, all_keywords, all_records,
-            keywords_raw_count, unique_keywords, simplified_keywords,
-        )
-        logger.info(f"✅ 生成阶段完成，已保存断点到 {CHECKPOINT_FILE}")
+    # 词根精简
+    simplified_keywords = _simplify_keywords(unique_keywords)
 
     gen_duration = time.time() - start_time
 
@@ -1316,47 +1255,21 @@ def main(resume: bool = False, dry_run: bool = False) -> None:
     # 收集判别结果: {model: {keyword: [score, reason]}}
     model_results: Dict[str, Dict[str, List[Any]]] = {m: {} for m in JUDGE_MODELS}
 
-    # 尝试加载判别阶段断点
-    judge_cp = _load_judge_checkpoint()
-    if judge_cp and resume:
-        logger.info(f"✅ 从判别断点恢复 ({judge_cp['completed_tasks']}/{judge_cp['total_tasks']} 已完成)")
-        model_results = judge_cp["model_results"]
-        # 确保所有判别模型都有 key
-        for m in JUDGE_MODELS:
-            if m not in model_results:
-                model_results[m] = {}
-        
-        # 过滤已完成的判别任务
-        pending_tasks = []
-        for t in judge_tasks:
-            m_name, m_batch, _, _ = t
-            # 若 batch 中的词都已经被该模型判别过，则跳过
-            if all(kw in model_results.get(m_name, {}) for kw in m_batch):
-                pass
-            else:
-                pending_tasks.append(t)
-        
-        if len(pending_tasks) < len(judge_tasks):
-            logger.info(f"  ⏭️ 根据断点，跳过了 {len(judge_tasks) - len(pending_tasks)} 个批量判别任务，剩余 {len(pending_tasks)} 个待执行。")
-        judge_tasks = pending_tasks
-
     if not _shutdown_event.is_set():
         with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS_JUDGE) as executor:
             futures = [executor.submit(judge_batch, t) for t in judge_tasks]
             completed = 0
             for future in concurrent.futures.as_completed(futures):
                 if _shutdown_event.is_set():
-                    logger.warning("中断信号已设置，保存判别进度后退出...")
-                    _save_judge_checkpoint(model_results, completed, len(judge_tasks))
+                    logger.warning("中断信号已设置，提前结束判别阶段...")
                     break
                 model_name, batch_results = future.result()
                 for kw, score, reason in batch_results:
                     model_results[model_name][kw] = [score, reason]
                 completed += 1
-                # 进度汇报 + 定期保存判别断点
+                # 进度汇报
                 if completed % 5 == 0 or completed == len(judge_tasks):
                     logger.info(f"  📊 判别进度: {completed}/{len(judge_tasks)} ({pct4(completed, len(judge_tasks))})")
-                    _save_judge_checkpoint(model_results, completed, len(judge_tasks))
 
     # 汇报被跳过的模型
     skipped = _model_health.get_skipped()
@@ -1507,8 +1420,6 @@ def main(resume: bool = False, dry_run: bool = False) -> None:
         # Excel 专业格式化
         _format_excel_workbook(OUTPUT_FILE)
         logger.info("✅ Excel 格式化完成（冻结首行/自动列宽/表头样式/条件格式）")
-        # 保存成功后删除断点文件
-        _delete_checkpoint()
     except Exception as e:
         logger.error(f"汇总保存失败: {e}")
         bk_file = f"bank_keywords_{int(time.time())}.xlsx"
@@ -1610,10 +1521,6 @@ if __name__ == "__main__":
         "--view-log", type=str, metavar="NAME", help="查看指定日志 (文件名或 latest)"
     )
     parser.add_argument(
-        "--resume", action="store_true",
-        help="从断点继续（跳过生成阶段，直接进入判别）",
-    )
-    parser.add_argument(
         "--dry-run", action="store_true",
         help="仅显示任务规模和成本预估，不实际执行",
     )
@@ -1624,4 +1531,4 @@ if __name__ == "__main__":
     elif args.view_log:
         view_log(args.view_log)
     else:
-        main(resume=args.resume, dry_run=args.dry_run)
+        main(dry_run=args.dry_run)
