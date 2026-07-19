@@ -468,7 +468,7 @@ _THINK_ENUM_LINE_RE = re.compile(
 def _salvage_reasoning_keywords(text: str) -> List[str]:
     """从推理 (reasoning/thinking) 模型的 <think> 思维链中打捞其枚举出的候选词。
 
-    专治 MiniMax-M3 等推理模型：整段 <think> 思维链逐条编号列举 ~200 个候选词
+    专治 MiniMax-M3 等推理模型：整段 <think> 思维链逐条编号列举 ~100 个候选词
     (并含二次复核)，输出预算 (max_tokens) 在收尾输出 JSON **之前**即被耗尽 →
     finish_reason=length，content 内根本没有可解析的 JSON (仅一段未闭合的思维链)。
     此时 `_safe_parse_json` 与 `_salvage_json_objects` 均近乎颗粒无收 (实测仅 3 词)。
