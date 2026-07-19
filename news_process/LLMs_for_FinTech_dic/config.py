@@ -59,14 +59,14 @@ OFFLINE_MODE: bool = os.environ.get("LLMS_DIC_OFFLINE", "").strip().lower() in {
 # ════════════════════════════════════════════════════════════════
 
 JUDGE_BATCH_SIZE: int = 200         # 每次批量判别的关键词数量
-NUM_REPEAT_PER_MODEL: int = 1       # 每个模型、每个领域重复生成的次数
+NUM_REPEAT_PER_MODEL: int = 10       # 每个模型、每个领域重复生成的次数
 MAX_WORKERS_GENERATE: int = 200     # 生成阶段并发线程数
 MAX_WORKERS_JUDGE: int = 200        # 判别阶段并发线程数
 MAX_PARSE_RETRIES: int = 100        # 解析失败重试次数
 MAX_JUDGE_RETRIES: int = 200        # 判别解析失败重试次数
-MAX_RETRIES: int = 500              # 单次任务最大重试次数
+MAX_RETRIES: int = 10              # 单次任务最大重试次数
 MAX_TOTAL_RETRIES: int = 50         # 全局重试上限（费用保护，防止无限重试）
-REQUEST_TIMEOUT: int = 1800         # 单次 API 请求超时（秒），谷歌超时严重
+REQUEST_TIMEOUT: int = 600          # 单次 API 请求超时（秒），谷歌超时严重
 MODEL_FAIL_THRESHOLD: int = 50      # 模型连续失败此次数后自动跳过
 MAX_CONCURRENT_PER_MODEL: int = 10  # 每个模型的最大并发请求数（防止触发 429 限流）
 # 单次 API 响应的最大输出 token（显式上限，防止响应被截断）。
@@ -80,6 +80,24 @@ MAX_CONCURRENT_PER_MODEL: int = 10  # 每个模型的最大并发请求数（防
 MAX_OUTPUT_TOKENS: int = 16384      # 16k >> 单条约 7k 需求，对全部 14 个前沿模型均在其输出上限内
 # 日志文件固定命名为「同 py 文件名」并 mode="w" 覆盖写入，只保留最近一次运行，
 # 故不再需要"保留最近 N 个"的滚动清理配置（原 LOG_RETENTION_COUNT 已移除）。
+
+
+# ════════════════════════════════════════════════════════════════
+# 关闭思维链（reasoning/thinking）的模型 → 其「关思考」请求体片段
+# ════════════════════════════════════════════════════════════════
+# 经 OpenAI SDK 的 extra_body 把这些键合并进请求体**顶层字段**（与 model/messages 平级）。
+# ⚠ 该结构是**模型/端点特定**的：MiniMax-M3 用顶层 thinking:{type:"disabled"}；其它推理模型
+#    （如需关思考）各有各的语法（enable_thinking / reasoning_effort …），**勿**套用本结构
+#    （会被端点拒收）。故本表按模型名**精确命中**，只对**确认支持**的模型注入。
+# 运行期若端点仍拒收该字段，_call_llm_with_retry 的兼容守卫会移除后重试（优雅降级为思考
+# 开启 + 思维链打捞兜底），绝不因此把该模型打成硬失败。
+# ⚠ 这是**运行期 API 参数**，非 Prompt 字段/模型清单/阈值/数量链的任何一项，与手稿
+#    FinTech_Dictionary_LLMs_Paper_Final.md 的锁步无关，不改变任何被誊抄的字面。
+# ⚠ 缓存键不含本字段：既有缓存命中会照原样重放（含旧的思考态响应），本开关只对**缓存
+#    未命中的新调用**生效。
+THINKING_DISABLE_EXTRA_BODY: Dict[str, Dict] = {
+    "MiniMax-M3": {"thinking": {"type": "disabled"}},
+}
 
 
 # ════════════════════════════════════════════════════════════════
@@ -120,6 +138,11 @@ def get_model_params(model_name: str) -> Dict:
         params["response_format"] = {"type": "json_object"}
     if "ERNIE" in model_name:
         params["temperature"] = 0.0000000001
+    # 关闭思维链：对确认支持的模型（如 MiniMax-M3）经 extra_body 注入其「关思考」顶层字段。
+    # dict() 浅拷贝防调用方改到模块级共享字典；端点若拒收由 _call_llm_with_retry 守卫兜底。
+    thinking_off = THINKING_DISABLE_EXTRA_BODY.get(model_name)
+    if thinking_off is not None:
+        params["extra_body"] = dict(thinking_off)
     return params
 
 
@@ -288,7 +311,7 @@ def build_generate_prompt(domain: Dict[str, str]) -> str:
     """
     reason_menu = "\n".join(f"  {i}. \"{r}\"" for i, r in enumerate(POSITIVE_REASONS))
     return (
-        f"请生成一个包含**200个**中文专业词汇的\"{domain['name']}\"词典。\n"
+        f"请生成一个包含**约200个**中文专业词汇的\"{domain['name']}\"词典。\n"
         f"参考词汇：{domain['description']}\n"
         f"要求：每个词汇应确保简洁、准确且意义明确，涵盖\"{domain['name']}\"的所有领域；"
         f"并为每个词汇提供一条入选理由，理由须从以下 3 项中选取一个，reason 只写其**序号**"
