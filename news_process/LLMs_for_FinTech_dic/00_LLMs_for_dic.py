@@ -1416,7 +1416,7 @@ def main(dry_run: bool = False) -> None:
     final_kw_set = set(kw_list)
     # fix(S2, 2026-07-14): 阈值由 >= (含平票=4) 改严格多数 > (=≥5/8)。
     # 更新(2026-07-17): 入选判据由简单严格多数 (>1/2) 收紧为 2/3 严格多数
-    # (> len(JUDGE_MODELS)*2/3; 当前 14 家 → >9.33, 即至少 10 票)。阈值不进 LLM
+    # (> len(JUDGE_MODELS)*2/3; 当前 13 家 → >8.67, 即至少 9 票)。阈值不进 LLM
     # 缓存键，此改动只影响未来重跑的词表筛选，不动现有 fintech_dict.json。
     # ⚠ 家数写死仅作示意；真实门槛恒随 JUDGE_MODELS 动态计算，改模型列表后本行数字须同步。
     judge_ok_set = set(
@@ -1572,7 +1572,7 @@ def main(dry_run: bool = False) -> None:
     # fix(S2, 2026-07-14) + 更新(2026-07-17): 口径声明——上方分布及下表"AI认可"
     # 列均按 2/3 严格多数 (>2/3，即 JUDGE_MODELS 中 >len(JUDGE_MODELS)*2/3 家
     # 模型认可) 统计。⚠ total_score 为整数票数，"恰好 2/3"的临界票仅当模型数可被 3
-    # 整除时才存在（当前 14 家 → 14*2/3=9.33 非整数，不存在恰好 2/3 的票）。
+    # 整除时才存在（当前 13 家 → 13*2/3=8.67 非整数，不存在恰好 2/3 的票）。
     _min_pass = len(JUDGE_MODELS) * 2 // 3 + 1
     logger.info(
         f"  口径声明(S2): 'AI认可'/上方 total_score 分布均按 2/3 严格多数统计"

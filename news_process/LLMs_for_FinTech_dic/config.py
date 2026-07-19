@@ -64,10 +64,10 @@ MAX_WORKERS_GENERATE: int = 200     # 生成阶段并发线程数
 MAX_WORKERS_JUDGE: int = 200        # 判别阶段并发线程数
 MAX_PARSE_RETRIES: int = 100        # 解析失败重试次数
 MAX_JUDGE_RETRIES: int = 200        # 判别解析失败重试次数
-MAX_RETRIES: int = 10              # 单次任务最大重试次数
+MAX_RETRIES: int = 1000              # 单次任务最大重试次数
 MAX_TOTAL_RETRIES: int = 50         # 全局重试上限（费用保护，防止无限重试）
-REQUEST_TIMEOUT: int = 600          # 单次 API 请求超时（秒），谷歌超时严重
-MODEL_FAIL_THRESHOLD: int = 50      # 模型连续失败此次数后自动跳过
+REQUEST_TIMEOUT: int = 3600          # 单次 API 请求超时（秒），谷歌超时严重
+MODEL_FAIL_THRESHOLD: int = 500      # 模型连续失败此次数后自动跳过
 MAX_CONCURRENT_PER_MODEL: int = 10  # 每个模型的最大并发请求数（防止触发 429 限流）
 # 单次 API 响应的最大输出 token（显式上限，防止响应被截断）。
 # 背景：生成端每次要求 200 个「对象数组」词条 {keyword, reason}（判别端 200 条
@@ -77,7 +77,7 @@ MAX_CONCURRENT_PER_MODEL: int = 10  # 每个模型的最大并发请求数（防
 # 让所有模型都能完整输出整个数组。⚠ 这是**运行期 API 参数**，非 Prompt 字段/模型清单/
 # 阈值/数量链的任何一项，与手稿 FinTech_Dictionary_LLMs_Paper_Final.md 的锁步无关，
 # 不改变任何被誊抄的字面。设 None/<=0 则不传 max_tokens（回退各模型默认上限）。
-MAX_OUTPUT_TOKENS: int = 16384      # 16k >> 单条约 7k 需求，对全部 14 个前沿模型均在其输出上限内
+MAX_OUTPUT_TOKENS: int = 16384      # 16k >> 单条约 7k 需求，对全部 13 个前沿模型均在其输出上限内
 # 日志文件固定命名为「同 py 文件名」并 mode="w" 覆盖写入，只保留最近一次运行，
 # 故不再需要"保留最近 N 个"的滚动清理配置（原 LOG_RETENTION_COUNT 已移除）。
 
@@ -166,7 +166,7 @@ def get_client_config(model_name: str) -> Dict[str, str]:
 # ════════════════════════════════════════════════════════════════
 # 生成用模型列表（多样性优先，覆盖各大厂商）
 # ════════════════════════════════════════════════════════════════
-# 2026年7月18日，根据14个中国和国外主流大模型，其中7个是美国大模型，7个是中国大模型
+# 2026年7月19日：原 14 家面板移除 kimi-k3 后为 13 个中国和国外主流大模型，其中 7 个是美国大模型，6 个是中国大模型
 MODELS: List[str] = [
     "gpt-5.4-nano",
     "gemini-3.1-flash-lite"
@@ -187,7 +187,7 @@ JUDGE_MODELS: List[str] = [
 # ════════════════════════════════════════════════════════════════
 # 生成用模型列表（多样性优先，覆盖各大厂商）
 # ════════════════════════════════════════════════════════════════
-# 2026年7月18日，根据14个中国和国外主流大模型，其中7个是美国大模型，7个是中国大模型
+# 2026年7月15日：13 个中国和国外主流大模型，其中 7 个是美国大模型，6 个是中国大模型
 MODELS: List[str] = [
     "claude-fable-5",
     "claude-opus-4-8",
@@ -196,7 +196,6 @@ MODELS: List[str] = [
     "gemini-3.1-pro-preview",
     "gemini-3.5-flash",
     "grok-4.5",
-    "kimi-k3",
     "kimi-k2.6",
     "glm-5.2",
     "qwen3.7-max",
@@ -217,7 +216,6 @@ JUDGE_MODELS: List[str] = [
     "gemini-3.1-pro-preview",
     "gemini-3.5-flash",
     "grok-4.5",
-    "kimi-k3",
     "kimi-k2.6",
     "glm-5.2",
     "qwen3.7-max",
