@@ -125,6 +125,10 @@ def get_model_params(model_name: str) -> Dict:
     注意：返回的 temperature 为默认值（0），调用方可根据场景覆盖或移除：
     - 生成阶段（fetch_batch）：移除 temperature，使用模型自身默认值以获得多样性
     - 判别阶段（judge_batch）：强制 temperature=0 以获得最大确定性
+    ⚠ 采样参数限制披露：对 SAMPLING_PARAM_FILTERED_MODELS（claude-opus-4.7 及之后
+      模型）temperature/top_p/top_k 在官方 API 层面不受支持（传入即 400）、且被
+      yunwu 中转自 2026-07-10 00:00 起静默过滤 → 此处返回的 temperature=0 对该类
+      模型不生效（实际按模型默认温度采样）。详见该常量处完整披露注释。
     """
     # 不支持 response_format 的模型列表
     NO_JSON_MODE_MODELS = {"grok-4-fast", "grok-4.1-fast"}
@@ -223,6 +227,29 @@ JUDGE_MODELS: List[str] = [
     "MiniMax-M3",
     "mimo-v2.5-pro",
 ]
+
+
+# ════════════════════════════════════════════════════════════════
+# 采样参数受限模型（Anthropic claude-opus-4.7+ 技术规格）
+# ════════════════════════════════════════════════════════════════
+# ⚠ 披露（2026-07-21）：Anthropic 对 claude-opus-4.7 及之后的模型（本名单中的
+# claude-fable-5 / claude-opus-4-8 两家）在官方 API 层面不支持自定义采样参数
+# （temperature / top_p / top_k），传入即报 400 参数错误。该限制并非以单独的
+# 「废弃政策」公告发布，而是作为新模型的技术规格与参数约束、随模型发布同步生效；
+# yunwu 中转平台自 2026-07-10 00:00 起对上述模型的这些参数静默过滤（不报错、照常返回）。
+# 影响界定：
+#   - 生成阶段零影响（本就不传 temperature，刻意用模型默认温度求多样性）；
+#   - 判别阶段注入的 temperature=0 对这两家不生效（实际按模型默认温度采样），
+#     其判别票的可复现性由冻结 LLM 缓存保证（缓存键仍含 temperature="0"），
+#     属「缓存冻结级」而非「API 级」确定性——缓存未命中重取时同词判别票可能翻转。
+# ⚠ 刻意维持现状传参与缓存键、勿改：若改为对这两家不传 temperature，
+#   _call_llm_with_retry 的 temp_key 将由 "0" 变 "model-default"
+#   → 两家全部判别缓存作废（离线重放失效、重付费）。
+# 手稿同步披露见 FinTech_Dictionary_LLMs_Paper_Final.md 顶部 v2 banner（2026-07-21 条）。
+SAMPLING_PARAM_FILTERED_MODELS: frozenset = frozenset({
+    "claude-fable-5",
+    "claude-opus-4-8",
+})
 
 
 
