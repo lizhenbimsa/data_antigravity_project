@@ -16,6 +16,13 @@ LLMs_for_FinTech_dic 独立大模型缓存模块
 - ⚠ "$0 离线重放" 的前提 = 首跑干净收尾：首跑中 API 硬失败耗尽重试、模型被
   健康追踪器跳过、Ctrl+C 中断的槽位没有缓存条目（缓存空洞），重放走到即 miss。
   另外 _model_health 状态不进缓存 —— 有模型被跳过的首跑不具备逐字节可复现性。
+  → 盲审复现三件套（2026-07-21，判别阶段 only、生成阶段零触碰）：
+    ① 判决：判别跑完输出「可复现性判决」块（五路降级计数 + 全格覆盖对账；
+       LLMS_DIC_STRICT_REPLAY=1 时判决不过即 SystemExit(1) 拒绝出结果）；
+    ② 存根：judge_manifest_<时间戳>.json 落盘（冻结词表 sha256 + 逐任务逐 try
+       缓存键 + 环境锚点），供事后核验与 --judge-only --from-manifest 冻结重放；
+    ③ 验钞机：python verify_judge_cache_coverage.py 只读核验 manifest 全键
+       覆盖（0 miss + 0 键漂移 + 0 降级 → 盖章可离线 $0 复现）。
 - 离线模式：环境变量 LLMS_DIC_OFFLINE=1 时 miss → raise LLMCacheMissError
   （fail-loud，绝不静默调 API 付费，镜像主项目 NEWS_PROCESS_LLM_OFFLINE 语义；
   消费方 00 脚本捕获后置全局停止事件走优雅中断）。
@@ -83,6 +90,22 @@ class LLMCache:
         # 理论上可构造相邻字段边界移动的碰撞）
         raw = json.dumps([model, temperature, tag, prompt], ensure_ascii=False)
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+    def has(self, model: str, prompt: str, temperature: str, tag: str) -> bool:
+        """只读存在性探测（不计入 hits/misses 会话统计）。
+
+        供盲审复现 manifest 区分「重放命中」与「本次新写」：在真正 get 之前
+        探一次是否已有条目。异常按不存在降级（镜像 get 的降级语义）。
+        """
+        try:
+            key = self.make_key(model, prompt, temperature, tag)
+            with self._lock:
+                row = self._conn.execute(
+                    "SELECT 1 FROM llm_cache WHERE key = ?", (key,)
+                ).fetchone()
+            return row is not None
+        except Exception:
+            return False
 
     def get(self, model: str, prompt: str, temperature: str, tag: str) -> Optional[str]:
         """命中返回缓存的响应文本，未命中（或读取异常降级）返回 None。

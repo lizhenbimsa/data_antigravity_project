@@ -16,8 +16,10 @@
 # === 标准库 ===
 import argparse
 import concurrent.futures
+import hashlib
 import json
 import logging
+import os
 import random
 import re
 import signal
@@ -52,6 +54,7 @@ from config import (
     MODEL_FAIL_THRESHOLD,
     MODELS,
     NUM_REPEAT_PER_MODEL,
+    SAMPLING_PARAM_FILTERED_MODELS,
     REQUEST_TIMEOUT,
     SCRIPT_DIR,
     get_client_config,
@@ -69,6 +72,10 @@ from academic import sig4, pct4, cite, references_block
 
 # 目录级独立 LLM 缓存（LLMS_DIC_CACHE=0 可停用；LLMS_DIC_OFFLINE=1 为 $0 离线重放）
 _llm_cache: Optional[LLMCache] = LLMCache(CACHE_DB_FILE) if CACHE_ENABLED else None
+
+# 零温例外披露去重集（每模型每次运行仅记一次 WARNING；GIL 下 add 原子，并发下极端
+# 情况最多重复一条日志，无正确性影响——见 _call_llm_with_retry 内披露块）
+_sampling_filter_logged: set = set()
 
 # 配置冲突守卫: 离线守卫依赖缓存, CACHE=0 + OFFLINE=1 会让离线承诺 fail-open
 # (静默直连付费 API), 拒绝启动
@@ -323,6 +330,14 @@ def _log_run_header(logger: logging.Logger) -> None:
                 "削减单体模型偏误与幻觉、分离弱共识噪声（大模型作评判者/标注员的一致性与幻觉动因） "
                 + cite("zheng_2023", "gu_2024", "gilardi_2023", "liu_2023", "ouyang_2022",
                        "bernard_2026", "wei_2022", "ji_2023"))
+    # ⚠ 零温例外披露（动态：仅当判别名单含采样参数受限模型时输出；详见 config.py 常量处）
+    _t0_filtered = [m for m in JUDGE_MODELS if m in SAMPLING_PARAM_FILTERED_MODELS]
+    if _t0_filtered:
+        logger.info(f"     ⚠ 零温例外披露：{' / '.join(_t0_filtered)}（属 claude-opus-4.7+）官方 API 不支持自定义")
+        logger.info("       temperature/top_p/top_k——该限制非单独「废弃政策」公告，而是新模型技术规格随模型发布")
+        logger.info("       同步生效；yunwu 中转自 2026-07-10 00:00 起对其静默过滤（不报错、照常返回）→ 零温 T=0")
+        logger.info(f"       对该 {len(_t0_filtered)} 家不生效（实际按模型默认温度采样），其判别票可复现性由冻结 LLM 缓存")
+        logger.info('       保证（缓存键仍含 temperature="0"），属缓存冻结级而非 API 级确定性')
     logger.info("  ◇ 验证（Validation，非流水线阶段）：Fleiss' Kappa 评分者间一致性，Landis-Koch 与 McHugh 双口径分级披露；"
                 "并锚定一致性系数族（Cohen κ / Krippendorff α / Gwet AC1）以佐证效度 "
                 + cite("fleiss_1971", "landis_1977", "mchugh_2012", "cohen_1960", "hayes_2007", "gwet_2008"))
@@ -568,6 +583,25 @@ def _call_llm_with_retry(
     else:
         model_params.pop("temperature", None)
 
+    # ⚠ 零温例外披露（每模型每次运行仅记一次 WARNING；缓存命中路径亦记录——披露同样
+    # 适用于既有缓存响应的来源口径）：SAMPLING_PARAM_FILTERED_MODELS（claude-opus-4.7+）
+    # 的 temperature/top_p/top_k 官方 API 不支持（技术规格随模型发布同步生效，非单独
+    # 废弃公告），yunwu 自 2026-07-10 00:00 起静默过滤 → 注入的 temperature 不生效
+    # （实际默认温度采样），确定性由冻结缓存保证（缓存键仍含 temperature="0"，刻意不改）。
+    if (
+        force_temperature is not None
+        and model_name in SAMPLING_PARAM_FILTERED_MODELS
+        and model_name not in _sampling_filter_logged
+    ):
+        _sampling_filter_logged.add(model_name)
+        logger.warning(
+            f"  [{task_id}] ⚠ 采样参数披露: {model_name} 属 claude-opus-4.7+，官方 API 不支持"
+            f"自定义 temperature/top_p/top_k（技术规格随模型发布同步生效，非单独废弃公告；"
+            f"yunwu 2026-07-10 起静默过滤）→ 注入的 temperature="
+            f"{format(float(force_temperature), 'g')} 不生效（实际按模型默认温度采样），"
+            '其判别票可复现性由冻结 LLM 缓存保证（缓存键仍含 temperature="0"）'
+        )
+
     # ── 缓存前置检查：命中直接返回（$0，不占用信号量/重试预算） ──
     # 数字规范化: int 0 与 float 0.0 归一为 "0"，防止调用方类型漂移导致键分裂
     temp_key = (
@@ -681,6 +715,232 @@ def _call_llm_with_retry(
 
     logger.error(f"  [{task_id}] 达到最大重试次数，任务失败")
     return None
+
+
+# ════════════════════════════════════════════════════════════════
+# 盲审可复现性审计（P1/P2, 2026-07-21 执行计划）
+# ════════════════════════════════════════════════════════════════
+# ⚠ 铁律：本审计设施只挂判别（盲审）阶段 judge_batch 及其后的纯读环节，
+#   生成阶段 fetch_batch 零触碰（用户 2026-07-21 铁律「严禁动生成阶段」）。
+# 结构：{"tasks": {(model, batch_idx): {"attempts": [...], "outcome": str, ...}}}
+#   - attempts: 逐 try 记录 {try, key, cached_before, got_response}
+#   - outcome:  full / partial_adopt / hard_fail / health_skip / shutdown / offline_miss
+# 判决规则（_emit_replay_verdict）：
+#   可复现 ⇔ 全部任务 outcome ∈ {full, partial_adopt}
+#           ∧ 每个尝试过的 try 均有响应入缓存（got_response 全 True）
+#           ∧ 聚合层全格覆盖（len(JUDGE_MODELS)×len(词表) 无缺格——堵 executor
+#             break 丢弃已完成 future 的假阴性通路 G1b）
+#   partial_adopt 单列声明：其重放确定性成立（同缓存响应→同解析路径→同部分采纳），
+#   但存在"覆盖不足补 0"的口径须披露。
+_replay_audit_lock = threading.Lock()
+_replay_audit: Dict[Tuple[str, int], Dict[str, Any]] = {}
+
+# 严格重放门（生产定稿跑用）：判决不通过即 SystemExit(1) 拒绝出结果；默认关。
+STRICT_REPLAY: bool = os.environ.get("LLMS_DIC_STRICT_REPLAY", "").strip().lower() in {
+    "1", "true", "yes", "on",
+}
+
+
+def _audit_task(model: str, batch_idx: int) -> Dict[str, Any]:
+    """取（或惰性建）某判别任务的审计记录（线程安全）。"""
+    with _replay_audit_lock:
+        rec = _replay_audit.get((model, batch_idx))
+        if rec is None:
+            rec = {"attempts": [], "outcome": None, "consumed_try": None, "coverage": None}
+            _replay_audit[(model, batch_idx)] = rec
+        return rec
+
+
+def _audit_attempt(
+    model: str, batch_idx: int, attempt: int, key: str,
+    cached_before: bool, got_response: bool,
+) -> None:
+    """记录一次判别 try：缓存键、调用前是否已有缓存（命中/新写判别）、是否拿到响应。"""
+    rec = _audit_task(model, batch_idx)
+    with _replay_audit_lock:
+        rec["attempts"].append({
+            "try": attempt,
+            "key": key,
+            "cached_before": cached_before,
+            "got_response": got_response,
+        })
+
+
+def _audit_outcome(
+    model: str, batch_idx: int, outcome: str,
+    consumed_try: Optional[int] = None, coverage: Optional[float] = None,
+) -> None:
+    """记录判别任务终局（幂等：首个终局为准，防重试路径重复覆写）。"""
+    rec = _audit_task(model, batch_idx)
+    with _replay_audit_lock:
+        if rec["outcome"] is None:
+            rec["outcome"] = outcome
+            rec["consumed_try"] = consumed_try
+            rec["coverage"] = coverage
+
+
+def _emit_replay_verdict(
+    kw_list: List[str],
+    model_results: Dict[str, Dict[str, Any]],
+    logger: logging.Logger,
+    judge_models: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """盲审可复现性判决：计数器 + 全格覆盖对账，输出判决日志块并返回判决 dict。
+
+    judge_models 缺省用当前 config 的 JUDGE_MODELS；--from-manifest 重放传入
+    manifest 冻结名单（冻结重放语义：以首跑口径对账，不受 config 后续漂移影响）。
+    """
+    from collections import Counter
+
+    _models = list(judge_models) if judge_models is not None else list(JUDGE_MODELS)
+    outcome_counts: Counter = Counter()
+    bad_tasks: List[str] = []
+    no_response_attempts: List[str] = []
+    with _replay_audit_lock:
+        tasks_snapshot = {k: dict(v, attempts=list(v["attempts"])) for k, v in _replay_audit.items()}
+    for (model, bi), rec in sorted(tasks_snapshot.items()):
+        outcome = rec["outcome"] or "unknown"
+        outcome_counts[outcome] += 1
+        if outcome not in {"full", "partial_adopt"}:
+            bad_tasks.append(f"{model}/批次{bi + 1}={outcome}")
+        for att in rec["attempts"]:
+            if not att["got_response"]:
+                no_response_attempts.append(f"{model}/批次{bi + 1}/try{att['try']}")
+
+    # 聚合层全格对账（G1b）：executor break 丢弃已完成 future → model_results 缺格补 0
+    expected_cells = len(_models) * len(kw_list)
+    actual_cells = sum(len(model_results.get(m, {})) for m in _models)
+    missing_cells: List[str] = []
+    if actual_cells != expected_cells:
+        kw_set_by_model = {m: model_results.get(m, {}) for m in _models}
+        for m in _models:
+            miss = [kw for kw in kw_list if kw not in kw_set_by_model[m]]
+            if miss:
+                missing_cells.append(f"{m}: 缺 {len(miss)} 词 (如 {', '.join(miss[:3])} ...)")
+
+    reproducible = (
+        not bad_tasks
+        and not no_response_attempts
+        and actual_cells == expected_cells
+        and outcome_counts.get("unknown", 0) == 0
+    )
+
+    logger.info("═" * 78)
+    logger.info("--- 盲审可复现性判决 (Judge Replay Verdict) ---")
+    logger.info(
+        f"  任务终局分布: " + (", ".join(f"{k}={v}" for k, v in sorted(outcome_counts.items())) or "（无任务）")
+    )
+    logger.info(f"  聚合覆盖对账: {actual_cells}/{expected_cells} 格")
+    if reproducible:
+        logger.info("  ✅ 判决: 本次盲审可 $0 离线逐字节复现（0 降级、0 无响应 try、全格覆盖）")
+        if outcome_counts.get("partial_adopt", 0) > 0:
+            logger.warning(
+                f"  ⚠ 口径声明: {outcome_counts['partial_adopt']} 个任务走部分采纳"
+                "（重放确定性成立，但存在覆盖不足补 0，须在使用侧披露）"
+            )
+    else:
+        logger.warning("  ⚠ 判决: 本次盲审不可 $0 离线复现，明细如下:")
+        for item in bad_tasks[:20]:
+            logger.warning(f"    - 降级任务: {item}")
+        for item in no_response_attempts[:20]:
+            logger.warning(f"    - 无响应 try（缓存空洞）: {item}")
+        for item in missing_cells[:20]:
+            logger.warning(f"    - 聚合缺格: {item}")
+        n_more = max(0, len(bad_tasks) + len(no_response_attempts) + len(missing_cells) - 60)
+        if n_more:
+            logger.warning(f"    ...（另有 {n_more} 条从略，全量见 manifest）")
+    logger.info("═" * 78)
+
+    verdict = {
+        "reproducible": reproducible,
+        "outcome_counts": dict(outcome_counts),
+        "expected_cells": expected_cells,
+        "actual_cells": actual_cells,
+        "bad_tasks": bad_tasks,
+        "no_response_attempts": no_response_attempts,
+        "missing_cells": missing_cells,
+    }
+    if STRICT_REPLAY and not reproducible:
+        logger.error(
+            "[LLMS_DIC_STRICT_REPLAY=1] 判决不通过，拒绝产出结果（已付费响应均已入缓存，"
+            "修复后重跑为 $0 重放）"
+        )
+        raise SystemExit(1)
+    return verdict
+
+
+def _wordlist_sha256(kw_list: List[str]) -> str:
+    """冻结词表指纹：按当前顺序以 \\n 连接后取 sha256（顺序敏感——顺序决定批次切分）。"""
+    return hashlib.sha256("\n".join(kw_list).encode("utf-8")).hexdigest()
+
+
+def _write_judge_manifest(
+    kw_list: List[str],
+    verdict: Dict[str, Any],
+    logger: logging.Logger,
+    output_file: Path,
+    judge_models: Optional[List[str]] = None,
+    batch_size: Optional[int] = None,
+) -> Optional[Path]:
+    """盲审清单 manifest 落盘（P2）：复现凭证，供 verify_judge_cache_coverage.py 核验。
+
+    附加产物，不改动 xlsx 任何 sheet/列；写失败按 WARNING 降级（绝不因留存根失败
+    丢掉已付费判别结果）。
+    """
+    import platform
+
+    try:
+        import pypinyin as _pypinyin
+        _pypinyin_ver = getattr(_pypinyin, "__version__", "unknown")
+    except Exception:  # pragma: no cover - 依赖缺失时留痕即可
+        _pypinyin_ver = "unavailable"
+
+    _models = list(judge_models) if judge_models is not None else list(JUDGE_MODELS)
+    _bsize = batch_size if batch_size is not None else JUDGE_BATCH_SIZE
+    ts = output_file.stem.replace("bank_keywords_", "").replace("judge_replay_", "")
+    manifest_path = DATA_DIR / f"judge_manifest_{ts}.json"
+    with _replay_audit_lock:
+        tasks_out = {
+            f"{model}|batch{bi}": {
+                "attempts": list(rec["attempts"]),
+                "outcome": rec["outcome"],
+                "consumed_try": rec["consumed_try"],
+                "coverage": rec["coverage"],
+            }
+            for (model, bi), rec in sorted(_replay_audit.items())
+        }
+    manifest = {
+        "schema": "llmsdic-judge-manifest/v1",
+        "created_at": datetime.now().isoformat(timespec="seconds"),
+        "run_output_file": output_file.name,
+        "offline_mode": OFFLINE_MODE,
+        "cache_enabled": CACHE_ENABLED,
+        "strict_replay": STRICT_REPLAY,
+        "judge_models": _models,
+        "judge_batch_size": _bsize,
+        "max_judge_retries": MAX_JUDGE_RETRIES,
+        "temperature": "0",
+        "n_words": len(kw_list),
+        "wordlist_sha256": _wordlist_sha256(kw_list),
+        "wordlist": list(kw_list),
+        "n_batches": (len(kw_list) + _bsize - 1) // _bsize,
+        "tasks": tasks_out,
+        "verdict": verdict,
+        "env": {
+            "python": platform.python_version(),
+            "pypinyin": _pypinyin_ver,  # 未钉版；决定词表排序→批次切分→全部判别缓存键
+            "pandas": pd.__version__,
+        },
+    }
+    try:
+        manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        logger.info(f"  [复现凭证] 盲审 manifest 已落盘 -> {manifest_path}")
+        return manifest_path
+    except Exception as e:
+        logger.warning(f"  [复现凭证] manifest 写盘失败（判别结果不受影响）: {e}")
+        return None
 
 
 # ════════════════════════════════════════════════════════════════
@@ -824,17 +1084,32 @@ def judge_batch(args: Tuple) -> Tuple[str, List[Tuple[str, int, str]]]:
 
     for attempt in range(MAX_JUDGE_RETRIES):
         if _shutdown_event.is_set():
+            _audit_outcome(model_name, batch_idx, "shutdown")
             return (model_name, [(kw, 0, "") for kw in keywords_batch])
 
         # 模型健康检查
         if _model_health.should_skip(model_name):
+            _audit_outcome(model_name, batch_idx, "health_skip")
             return (model_name, [(kw, 0, "") for kw in keywords_batch])
 
         prompt = build_judge_prompt(keywords_batch)
         # temperature=0 确定性判别：prompt 本身含全部关键词即可唯一定位；
         # try 序号防止缓存里的坏响应把解析重试锁死在同一条上。
+        # ⚠ 零温例外（2026-07-21 披露）：SAMPLING_PARAM_FILTERED_MODELS（claude-opus-4.7+，
+        # 现即 claude-fable-5 / claude-opus-4-8）的 temperature/top_p/top_k 官方 API 不支持
+        # （技术规格随模型发布同步生效，非单独废弃公告），yunwu 自 2026-07-10 起静默过滤
+        # → 对这两家 temperature=0 不生效（实际默认温度采样），确定性降级为缓存冻结级
+        # （缓存键仍含 temperature="0"，刻意不改）。完整披露见 config.py 该常量处。
         # ⚠ 键=整批 prompt：上游词表哪怕漂移一个词，批次切片整体移位 → 判别缓存
         # 几乎全 miss（正确性无损，纯成本放大）；词表稳定时才有 $0 重放。
+        # ── 复现审计（P1/P2）：记录本 try 的缓存键与命中态（与 _call_llm_with_retry
+        #    的 temp_key="0"/tag 构造严格同构；键结构改动须双处同步） ──
+        _audit_tag = f"judge|try{attempt}"
+        _audit_key = LLMCache.make_key(model_name, prompt, "0", _audit_tag)
+        _cached_before = (
+            _llm_cache.has(model_name, prompt, "0", _audit_tag)
+            if _llm_cache is not None else False
+        )
         try:
             text = _call_llm_with_retry(
                 client, model_name, prompt, task_id, logger,
@@ -842,10 +1117,15 @@ def judge_batch(args: Tuple) -> Tuple[str, List[Tuple[str, int, str]]]:
             )
         except LLMCacheMissError as e:
             # 离线重放遇到首跑缓存空洞：置全局停止走优雅中断，不炸穿 executor
+            _audit_attempt(model_name, batch_idx, attempt, _audit_key, False, False)
+            _audit_outcome(model_name, batch_idx, "offline_miss")
             logger.error(f"  [{task_id}] {e}")
             _shutdown_event.set()
             return (model_name, [(kw, 0, "") for kw in keywords_batch])
 
+        _audit_attempt(
+            model_name, batch_idx, attempt, _audit_key, _cached_before, text is not None
+        )
         if text is None:
             logger.warning(f"  [{task_id}] 第{attempt + 1}次尝试失败，返回为None")
         else:
@@ -911,6 +1191,7 @@ def judge_batch(args: Tuple) -> Tuple[str, List[Tuple[str, int, str]]]:
 
                 if len(result_map) == len(keywords_batch):
                     logger.info(f"  [{task_id}] 成功判别 {len(result_map)}/{len(keywords_batch)} 个词")
+                    _audit_outcome(model_name, batch_idx, "full", consumed_try=attempt, coverage=1.0)
                     return (model_name, batch_results)
                 else:
                     logger.warning(f"  [{task_id}] 第{attempt + 1}次尝试部分判别成功 ({len(result_map)}/{len(keywords_batch)})，未完全覆盖，准备重试")
@@ -930,6 +1211,10 @@ def judge_batch(args: Tuple) -> Tuple[str, List[Tuple[str, int, str]]]:
                     f"  [{task_id}] 重试{attempt + 1}次后覆盖率达 {pct4(best_partial_count, len(keywords_batch))} "
                     f"({best_partial_count}/{len(keywords_batch)})，提前采纳部分结果"
                 )
+                _audit_outcome(
+                    model_name, batch_idx, "partial_adopt",
+                    consumed_try=attempt, coverage=coverage,
+                )
                 return (model_name, best_partial_results)
 
         if attempt < MAX_JUDGE_RETRIES - 1:
@@ -940,10 +1225,15 @@ def judge_batch(args: Tuple) -> Tuple[str, List[Tuple[str, int, str]]]:
     # 超过最大重试次数，如果有部分成功的结果，则返回最佳部分成功结果
     if best_partial_count > 0:
         logger.warning(f"  [{task_id}] 达到最大重试次数，采纳最佳部分判别结果 ({best_partial_count}/{len(keywords_batch)})，其余标记为0")
+        _audit_outcome(
+            model_name, batch_idx, "partial_adopt",
+            coverage=best_partial_count / len(keywords_batch),
+        )
         return (model_name, best_partial_results)
 
     # 超过最大重试次数，标记失败
     logger.error(f"  [{task_id}] 失败，全部标记为0")
+    _audit_outcome(model_name, batch_idx, "hard_fail")
     return (model_name, [(kw, 0, "") for kw in keywords_batch])
 
 
@@ -1324,6 +1614,16 @@ def main(dry_run: bool = False) -> None:
             + cite("zheng_2023", "gu_2024", "gilardi_2023", "liu_2023", "ouyang_2022",
                    "bernard_2026", "wei_2022", "ji_2023")
         )
+        # ⚠ 零温例外披露（动态；详见 config.py::SAMPLING_PARAM_FILTERED_MODELS 常量处）
+        _t0_filtered = [m for m in JUDGE_MODELS if m in SAMPLING_PARAM_FILTERED_MODELS]
+        if _t0_filtered:
+            logger.info(
+                f"    ⚠ 零温例外：{' / '.join(_t0_filtered)}（claude-opus-4.7+）的 "
+                "temperature/top_p/top_k 官方 API 不支持（技术规格随模型发布同步生效，"
+                "非单独废弃公告；yunwu 2026-07-10 00:00 起静默过滤）→ "
+                f"该 {len(_t0_filtered)} 家实际按模型默认温度采样，其判别票可复现性由"
+                '冻结 LLM 缓存保证（缓存键仍含 temperature="0"，缓存 miss 重取时同词判别票可能翻转）'
+            )
 
     judge_start_time = time.time()
 
@@ -1367,6 +1667,10 @@ def main(dry_run: bool = False) -> None:
 
     logger.info("判别完成，正在整理结果...")
     judge_duration = time.time() - judge_start_time
+
+    # ── 盲审可复现性判决 + manifest 落盘（P1/P2；STRICT_REPLAY=1 时判决不过即拒绝出结果）──
+    _verdict = _emit_replay_verdict(kw_list, model_results, logger)
+    _write_judge_manifest(kw_list, _verdict, logger, OUTPUT_FILE)
 
     # ====================================================================
     # 构建判别结果 DataFrame
@@ -1613,6 +1917,129 @@ def main(dry_run: bool = False) -> None:
 
 
 # ════════════════════════════════════════════════════════════════
+# D2: 盲审冻结重放（--judge-only --from-manifest）
+# ════════════════════════════════════════════════════════════════
+
+def judge_replay_from_manifest(manifest_path: Path) -> None:
+    """从 manifest 冻结词表直接重放盲审（跳过生成阶段——正典盲审复现通道）。
+
+    冻结语义：词表、批次大小、模型名单一律取 manifest 记录值（首跑口径），
+    不受当前 config 后续漂移影响；与 config 不一致时 loud WARNING 但照冻结值跑。
+    产物 = 仅判别语义 sheet 的精简 workbook（生成阶段各 sheet 明确省略，
+    见执行计划 §6-D2 口径声明）+ 新 manifest（可再次被验证器核验）。
+    ⚠ 生成阶段零触碰铁律：本函数不 import、不调用 fetch_batch 及任何生成侧逻辑。
+    """
+    logger = setup_logger()
+    manifest = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
+    if manifest.get("schema") != "llmsdic-judge-manifest/v1":
+        raise SystemExit(f"[manifest] 无法识别的 schema: {manifest.get('schema')!r}")
+
+    kw_list: List[str] = list(manifest["wordlist"])
+    recorded_sha = manifest["wordlist_sha256"]
+    actual_sha = _wordlist_sha256(kw_list)
+    if actual_sha != recorded_sha:
+        raise SystemExit(
+            f"[manifest] 词表完整性校验失败: 记录 sha256={recorded_sha[:16]}... "
+            f"实算 {actual_sha[:16]}...（manifest 疑被篡改/损坏，拒绝重放）"
+        )
+    frozen_models: List[str] = list(manifest["judge_models"])
+    frozen_bsize: int = int(manifest["judge_batch_size"])
+    if frozen_models != list(JUDGE_MODELS):
+        logger.warning(
+            "  ⚠ manifest 冻结模型名单与当前 config.JUDGE_MODELS 不一致——按冻结名单重放"
+        )
+    if frozen_bsize != JUDGE_BATCH_SIZE:
+        logger.warning(
+            f"  ⚠ manifest 冻结批次大小 {frozen_bsize} ≠ 当前 config {JUDGE_BATCH_SIZE}"
+            "——按冻结值重放"
+        )
+
+    output_file = DATA_DIR / (
+        f"bank_keywords_judge_replay_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    )
+    logger.info("═" * 78)
+    logger.info("--- 盲审冻结重放 (--judge-only --from-manifest) ---")
+    logger.info(f"  manifest: {manifest_path}")
+    logger.info(
+        f"  冻结口径: {len(kw_list)} 词 / 每批 {frozen_bsize} / {len(frozen_models)} 模型 / "
+        f"离线={OFFLINE_MODE} 缓存={CACHE_ENABLED} 严格门={STRICT_REPLAY}"
+    )
+
+    start_time = time.time()
+    batches = [kw_list[i:i + frozen_bsize] for i in range(0, len(kw_list), frozen_bsize)]
+    judge_tasks = []
+    for model in frozen_models:
+        for bi, batch in enumerate(batches):
+            judge_tasks.append((model, batch, bi, get_client_config(model)))
+    random.shuffle(judge_tasks)
+    logger.info(f"  共 {len(batches)} 批 × {len(frozen_models)} 模型 = {len(judge_tasks)} 任务")
+
+    model_results: Dict[str, Dict[str, Any]] = {m: {} for m in frozen_models}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS_JUDGE) as executor:
+        futures = [executor.submit(judge_batch, t) for t in judge_tasks]
+        completed = 0
+        for future in concurrent.futures.as_completed(futures):
+            if _shutdown_event.is_set():
+                logger.warning("中断信号已设置，提前结束判别阶段...")
+                break
+            model_name, batch_results = future.result()
+            for kw, score, reason in batch_results:
+                model_results[model_name][kw] = [score, reason]
+            completed += 1
+            if completed % 5 == 0 or completed == len(judge_tasks):
+                logger.info(f"  📊 重放进度: {completed}/{len(judge_tasks)} ({pct4(completed, len(judge_tasks))})")
+
+    verdict = _emit_replay_verdict(kw_list, model_results, logger, judge_models=frozen_models)
+    _write_judge_manifest(
+        kw_list, verdict, logger, output_file,
+        judge_models=frozen_models, batch_size=frozen_bsize,
+    )
+
+    # 判别语义 DataFrame（与 main 同构：逐词 × 逐模型 score/reason + total_score）
+    judge_rows = []
+    for kw in kw_list:
+        row: Dict[str, Any] = {"keyword": kw}
+        total = 0
+        for model in frozen_models:
+            key = model.replace(".", "_").replace("-", "_")
+            res = model_results[model].get(kw, [0, ""])
+            score = int(res[0])
+            reason = str(res[1]) if len(res) > 1 else ""
+            row[f"{key}_score"] = score
+            row[f"{key}_reason"] = reason
+            total += score
+        row["total_score"] = total
+        judge_rows.append(row)
+    df_judged = pd.DataFrame(judge_rows)
+    df_wordlist = pd.DataFrame({"id": range(1, len(kw_list) + 1), "keyword": kw_list})
+    df_final = pd.merge(df_wordlist, df_judged, on="keyword", how="left")
+    ordered_cols = ["id", "keyword", "total_score"]
+    for model in frozen_models:
+        key = model.replace(".", "_").replace("-", "_")
+        ordered_cols.append(f"{key}_score")
+        ordered_cols.append(f"{key}_reason")
+    ordered_cols += [c for c in df_final.columns if c not in ordered_cols]
+    df_final = df_final[ordered_cols]
+    df_final = df_final.sort_values(by="total_score", ascending=False).reset_index(drop=True)
+    df_final["id"] = range(1, len(df_final) + 1)
+
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    with pd.ExcelWriter(str(output_file), engine="openpyxl") as writer:
+        df_wordlist.to_excel(writer, sheet_name="4-最终结果", index=False)
+        df_final.to_excel(writer, sheet_name="5-AI判别结果", index=False)
+    _format_excel_workbook(output_file)
+
+    if _llm_cache is not None:
+        n_req = _llm_cache.hits + _llm_cache.misses
+        logger.info(
+            f"【缓存 Cache】命中 {_llm_cache.hits} / 未命中 {_llm_cache.misses} "
+            f"(命中率 {pct4(_llm_cache.hits, n_req)})"
+        )
+    logger.info(f"【产物 Output】重放结果已保存至: {output_file}")
+    logger.info(f"  重放总耗时 {sig4(time.time() - start_time)}s")
+
+
+# ════════════════════════════════════════════════════════════════
 # 入口
 # ════════════════════════════════════════════════════════════════
 
@@ -1626,11 +2053,30 @@ if __name__ == "__main__":
         "--dry-run", action="store_true",
         help="仅显示任务规模和成本预估，不实际执行",
     )
+    parser.add_argument(
+        "--judge-only", action="store_true",
+        help="仅重放盲审（须配 --from-manifest；跳过生成阶段，从冻结词表直接判别）",
+    )
+    parser.add_argument(
+        "--from-manifest", type=str, metavar="PATH", default=None,
+        help="盲审 manifest 路径（默认取 data_processed/ 下最新一份 judge_manifest_*.json）",
+    )
     args = parser.parse_args()
 
     if args.view_logs:
         view_logs()
     elif args.view_log:
         view_log(args.view_log)
+    elif args.judge_only:
+        _mf = args.from_manifest
+        if _mf is None:
+            _candidates = sorted(DATA_DIR.glob("judge_manifest_*.json"))
+            if not _candidates:
+                raise SystemExit("[--judge-only] data_processed/ 下无 judge_manifest_*.json，"
+                                 "请先跑一次完整流程产出 manifest 或用 --from-manifest 指定")
+            _mf = _candidates[-1]
+        judge_replay_from_manifest(Path(_mf))
     else:
+        if args.from_manifest:
+            raise SystemExit("[--from-manifest] 须与 --judge-only 连用")
         main(dry_run=args.dry_run)
