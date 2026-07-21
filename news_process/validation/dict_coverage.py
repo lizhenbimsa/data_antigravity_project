@@ -66,7 +66,7 @@ news_process.validation.dict_coverage — 金融科技词典覆盖率审计
 
 ■ 详细功能说明
 
-**职责**: 量化诊断静态金融科技词典 (`fintech_dict.json`, ~1500 词) 是否够用 —— 从 Precision (踩线噪声)、Coverage (词典遗漏/死词)、Stability (时间老化) 三维全自动审计, 零人工零 LLM 付费。
+**职责**: 量化诊断静态金融科技词典 (`fintech_dict.json`, 607 词, 2026-07-21 换血) 是否够用 —— 从 Precision (踩线噪声)、Coverage (词典遗漏/死词)、Stability (时间老化) 三维全自动审计, 零人工零 LLM 付费。
 
 **输入 (两文件)**: ① `21_tone_llms_full.parquet` (分析 1/2/3, 已过 distinct≥T 阈值的金科文章, 选择后样本; config 键 output_21_tone_llms_full) → 列 `fintech_distinct_keywords` / `llm_verified_full` / `fintech_keyword_details`; ② `12_fintech_news_full.parquet` (分析 4/5, 全量银行新闻含被拒行; output_12_fintech_full) → `is_fintech_news` / `日期`。任一缺则 `sys.exit(1)`。阈值 T = `fintech_news_classification.min_distinct_keywords` (默认 2, 实读自 config/filtering.yaml:20)。
 
@@ -885,7 +885,7 @@ def main():
     logger.info("=" * 72)
     logger.info("阶段 67: 金融科技词典覆盖率审计 (Precision/Coverage/Stability 三维, Sautner et al. 2023 JF)")
     logger.info("=" * 72)
-    logger.info("【功能】给静态金融科技词典 (fintech_dict.json, ~1500 词) 做体检: 判断一篇")
+    logger.info("【功能】给静态金融科技词典 (fintech_dict.json, ~607 词) 做体检: 判断一篇")
     logger.info("        新闻是不是金科新闻, 靠的是这本人工编的关键词词典。本阶段量化诊断它")
     logger.info("        '够不够用', 产出 4 张诊断 CSV (分布/词频/零命中词/时间趋势), 不改任何管道数据。")
     logger.info("【方法】三维全自动审计: ① Precision = 边际通过率 (恰好命中 T 个) + LLM 验证率单调性")

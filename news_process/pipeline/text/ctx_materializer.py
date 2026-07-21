@@ -52,7 +52,7 @@ Plan E P4 A1 (v3.6.0):
 1. 幂等短路: 若五列俱全直接返回; 旧 schema (仅有 content_ctx) 走兼容回填路径——补 content_full/ctx_is_fallback, 并以**哨兵**填 content_ss=content_full、ss_is_fallback=True (保幂等, 不重算 ss; 删 content_ctx 可触发全量重算)。
 2. 全量路径逐行: 取 body_full='内容', title (缺失显式 pd.isna→空, 不注入字面 'nan'), target_bank。
 3. **ctx 轨** = `extract_entity_context(body, 别名, sentence_radius=配置 context_window.sentence_radius 默认1, fallback_char_radius=150, +否定/短名排除)`: 分句→定位银行别名命中句 (经否定/短名排除, has_unexcluded_occurrence)→前后各 radius 句扩窗→O(N log N) 区间合并→' [...] ' 拼接; 无命中回退全文 body (回退公理)。
-4. **ss 轨** = `extract_bank_fintech_cooccurrence(body, 别名, FINTECH_AC, sentence_radius=配置 ss_sentence_radius 默认同ctx, fallback_char_radius=150, +否定/短名排除)`: 命中句 = (该句银行别名经排除后仍在) ∧ (含 ≥1 金科词); **不对称口径**——银行侧套否定/短名排除, 金科侧裸 AC (1506 词); 无共现回退全文 body (镜像 ctx); FINTECH_AC=None 时直接全回退。
+4. **ss 轨** = `extract_bank_fintech_cooccurrence(body, 别名, FINTECH_AC, sentence_radius=配置 ss_sentence_radius 默认同ctx, fallback_char_radius=150, +否定/短名排除)`: 命中句 = (该句银行别名经排除后仍在) ∧ (含 ≥1 金科词); **不对称口径**——银行侧套否定/短名排除, 金科侧裸 AC (607 词, 2026-07-21 换血); 无共现回退全文 body (镜像 ctx); FINTECH_AC=None 时直接全回退。
 5. 三轨文本均经 `prepend_title` 注入标题 (body 已以标题开头则不重复; 标题非句末标点则插中文句号)。
 
 **关键公式/算法** (core/text/entity_context.py): 分句 `_split_sentences` 硬边界正则 `[。！？!?；;]` (逗号/顿号不切); 窗口 `_merge_intervals` O(N log N) 区间合并; 短文本(<3 句)退化为字符级窗口 (`_char_level_fallback`, radius=150, ss 路径额外传 fintech_ac 要求同窗共现)。

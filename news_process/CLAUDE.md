@@ -9,7 +9,7 @@ Claude Code (claude.ai/code) 在本仓工作的指引。
 ## Project Overview
 **news_process**: 把中文银行/金科新闻转成银行-年面板 (计量用): preprocessing → classification → sentiment (LLM/词典/BERT) → 面板构建。
 
-**Current version**: v3.16.0 (2026-07-17)。逐版 changelog 见 git history (CHANGELOG.md 未维护); 本文件 + git history 是版本权威源, 每次大改的权威执行计划在 `scripts/audit/*_EXECUTION_PLAN_*.md`。
+**Current version**: v3.16.0 (2026-07-17)。逐版 changelog 见 git history (CHANGELOG.md 未维护); 本文件 + git history 是版本权威源, 每次大改的权威执行计划在 `scripts/audit/*_EXECUTION_PLAN_*.md`。⚠ 2026-07-21 生产词典换血: `config/fintech_dict.json` 1506→**607 词** (main=b7b70b08, sha16=9c731b78379401e9); 全链缓存/产物已随 2026-07-21/22 九入口审计在线回填重算 (见 `scripts/audit/NINE_ENTRYPOINT_RUN_AUDIT_AND_REMEDIATION_PLAN_2026-07-21.md`); locus_split/S13 placebo/benefit sidecar 三事项待研究决策 (同计划 §4)。
 
 ## 当前状态铁律 (load-bearing, 改动前必读)
 
@@ -24,7 +24,7 @@ Claude Code (claude.ai/code) 在本仓工作的指引。
 - 🚫 **嵌入 ≠ LLM**: stage 21 情感 LLM 是三家投票 (`gpt-5.4-nano`/gpt54nano · `gemini-3.1-flash-lite`/gemini31 走 yunwu · `deepseek-v4-flash`/deepseekv4 直连 api.deepseek.com), 与嵌入模型无关 — 换嵌入时全仓零误改。
 - gate: `test_embedding_coprimary_parity` + `test_qwen_semantic_validity` (ρ≥0.80 / ≥500 对)。⚠ 生产首次播种须验硅基流动 >256 批是否限流 (探针仅验到 n≤256)。
 
-**三轨 `_full`/`_ctx`/`_ss`**: full=标题+正文; ctx=标题+实体窗口; ss=标题+银行∧金科同句±N 窗 (`config/filtering.yaml::context_window.ss_sentence_radius`, 默认1; ≠ `cooccurrence_filter.sentence_radius`)。三轨文本 (`content_{full,ctx,ss}` + `*_is_fallback`) 在 stage 14 `ctx_materializer` 物化 (`prepend_title`, 原始`内容`列不动); 情感 21/22/23/24 均跑三轨。判定不对称: 银行侧=否定+短名过滤, 金科侧=裸 AC 1506 词。
+**三轨 `_full`/`_ctx`/`_ss`**: full=标题+正文; ctx=标题+实体窗口; ss=标题+银行∧金科同句±N 窗 (`config/filtering.yaml::context_window.ss_sentence_radius`, 默认1; ≠ `cooccurrence_filter.sentence_radius`)。三轨文本 (`content_{full,ctx,ss}` + `*_is_fallback`) 在 stage 14 `ctx_materializer` 物化 (`prepend_title`, 原始`内容`列不动); 情感 21/22/23/24 均跑三轨。判定不对称: 银行侧=否定+短名过滤, 金科侧=裸 AC 607 词 (2026-07-21 词典换血 1506→607, main=b7b70b08)。
 - **回退语义** (`_ss` 镜像 `_ctx`): 无同句共现 → `content_ss`=全文 body + `ss_is_fallback`=True; `FINTECH_AC=None` → `*_is_fallback` 全 True 优雅降级。
 - 无 `_title` 独立轨 (v3.8.0 删, 标题改 prepend); 保留非情感信号 `target_bank_in_title` / `fintech_in_title`+`in_title` / `headline_frac` — 勿连带删。
 - 🔒 **留篇门控 = full-only** (2026-06-29): stage 21 是否判为「一篇银行金科报道」只看 `llm_verified_full == True`; ctx/ss 降为 conditional-on-full 稳健性轨。**2 处门控副本必须同步翻** (不同改 → 永久 reject skip → 每跑付费 stage 21): ① `tone_llms.py::df_filtered`; ② `run_pipeline_function.py::_stage21_skip_is_compatible`。skip 上游指纹含三轨文本+回退列, 改物化参数后指纹自动 reject。

@@ -113,7 +113,7 @@ ctx 与 full、ss 三轨道之间是互为稳健性、不分主次的并排关�
 ## VAR: tone_local_media_ss
 
 【变体差分】
-本列是家族在 ss (same-sentence) 文本窗口下的地方级媒体语气均值, 底层文本 `content_ss` 由 stage 14 `materialize_ctx` 物化, 判据为"标题 + 目标银行与金融科技词同句共现 (±N 句窗, N 由 `config/filtering.yaml::context_window.ss_sentence_radius` 配置, 默认 1)"截取的片段——这是三轨中文本粒度最窄、聚焦度最高的一条, 严格要求银行实体与金科词汇在同一句 (或紧邻句窗) 内共同出现, 判定不对称口径为银行侧套用否定词过滤+短名过滤、金科侧套用裸 AC 自动机 1506 词表匹配。
+本列是家族在 ss (same-sentence) 文本窗口下的地方级媒体语气均值, 底层文本 `content_ss` 由 stage 14 `materialize_ctx` 物化, 判据为"标题 + 目标银行与金融科技词同句共现 (±N 句窗, N 由 `config/filtering.yaml::context_window.ss_sentence_radius` 配置, 默认 1)"截取的片段——这是三轨中文本粒度最窄、聚焦度最高的一条, 严格要求银行实体与金科词汇在同一句 (或紧邻句窗) 内共同出现, 判定不对称口径为银行侧套用否定词过滤+短名过滤、金科侧套用裸 AC 自动机 607 词表匹配。
 
 ss 轨道的回退语义镜像 ctx 轨道的设计原则: 当某篇报道中不存在银行∧金科同句共现时 (即找不到满足 ss 判据的句子窗口), `content_ss` 退化为全文 body (与 full 轨道文本一致), 对应的 `ss_is_fallback` 标记列置为 True; 若上游 `FINTECH_AC` 词表自动机为 None (罕见的配置缺失场景), 则该批次全部 `*_is_fallback` 优雅降级为 True。回退发生的篇目共享同一个 `n_articles` 分母, 不会因回退而在计数口径上产生偏差——`tone_local_media_ss` 的聚合分母与 ctx/full 两轨在样本篇数层面保持一致 (均受 full-only 留篇门控约束), 只是部分篇目在回退情形下实际消费的是与 full 相同的全文文本而非严格同句片段。
 

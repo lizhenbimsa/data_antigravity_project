@@ -51,7 +51,7 @@ news_process.pipeline.filtering.news_fintech — 阶段12：金融科技新闻�
 
 **处理步骤** (`main` → joblib `Parallel` 分批 → `classify_batch` → 委托 `analyze_fintech_matches`):
 1. 同 stage 11 的分批/并行框架 (batch_size 默认 5000, n_jobs 满核-1)。
-2. 每篇按 split_ratio (默认 0.5) 按字符数等分上下半; 用全局 Aho-Corasick (`load_fintech_dict`, 1506 词金科词典) 一次线性扫描。
+2. 每篇按 split_ratio (默认 0.5) 按字符数等分上下半; 用全局 Aho-Corasick (`load_fintech_dict`, 607 词金科词典, 2026-07-21 换血) 一次线性扫描。
 
 **关键判定公式** (`analyze_fintech_matches`, 整篇判定——stage 12 **不再** firm-document 展开, 沿用 stage 11 已展开的行):
 - 前置 (多样性): 标题或全文出现 ≥ `MIN_DISTINCT_KEYWORDS` (默认 2) 个**不同**金科词;

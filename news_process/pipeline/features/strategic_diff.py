@@ -88,7 +88,7 @@ top-k N 扩展 (fix topk-n-expansion, 2026-07-02): 下列所有 N-最近邻差�
   LDA · Embedding Qwen · Embedding large _lg × 全轨 full/ctx/ss; 净增 ~75 列), 与 n5 互为稳健性、
   不分主次。下方列清单为省略计仍以 n5/n{3..7} 示例, 实际含各 N。
 口径披露 (fix inject-fintech-word-lda, 2026-06-21): **全部 word 级 TF-IDF 列 (*_w) 与全部 LDA 列
-(*_lda) 自 2026-06-21 起改用注入 1506 金科词的独立分词器** (见 _get_diff_tokenizer), 领域复合词
+(*_lda) 自 2026-06-21 起改用注入全量金科词典 (2026-07-21 起 607 词) 的独立分词器** (见 _get_diff_tokenizer), 领域复合词
 (金融科技/区块链 等) 整词保留, 与 char 轨 (char_wb)/embedding 轨领域感知口径一致; char/emb 列字节不变。
 值域口径 (fix(omni-g-strategic-02/03), 2026-06-11): TF-IDF/LDA 轨 (非负向量/分布)
 ∈ [0,1]; **Embedding 轨余弦真值域 [-1,1]** → 相似度列 (strat_sim_max_emb*, coh_emb*)
@@ -320,7 +320,7 @@ _STOPWORDS = {'的', '了', '在', '是', '和', '与', '为', '对', '等',
 # 旧实现 _jieba_tokenizer 走裸全局 jieba.lcut, 默认词典把绝大多数中文金科复合词切碎
 # (实测 1381/1480 ≥3 字金科词被切, 如 金融科技→金融/科技 · 区块链→区块/链), 致 word 级
 # TF-IDF/LDA 稳健性对照轨的词表与 char 轨/embedding 轨**领域感知口径不一致**。修复: 把
-# fintech_dict.json (1506 词, 与 stage 11/14/15 同源单一事实源) 注入一个**独立** jieba.Tokenizer
+# fintech_dict.json (607 词, 2026-07-21 换血; 与 stage 11/14/15 同源单一事实源) 注入一个**独立** jieba.Tokenizer
 # 实例 (不污染全局 jieba.dt — 镜像 tone_words._get_tone_tokenizer / lexical_complexity
 # ._get_pristine_tokenizer 既有最佳实践), 让 word/LDA 轨看到整词领域复合词。
 # 影响列 = 全部 *_w (word TF-IDF) + 全部 *_lda 列 (含 ctx/ss/policy_similarity 复用)；

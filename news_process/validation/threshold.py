@@ -124,7 +124,7 @@ _REFERENCES = {
         "https://doi.org/10.1257/jel.20181020"
     ),
     # 白话: 用"词典关键词计数过门槛"来判定文本类别的经典范式 (10-K 文本分析) —
-    # 金融科技轨用 1506 词金科词典数 distinct 命中过阈, 与此同源。
+    # 金融科技轨用 607 词金科词典 (2026-07-21 换血) 数 distinct 命中过阈, 与此同源。
     "loughran_mcdonald_dict": (
         "Loughran, T., & McDonald, B. (2011). When is a liability not a "
         "liability? Textual analysis, dictionaries, and 10-Ks. The Journal "

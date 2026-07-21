@@ -38,7 +38,7 @@
 口径 (radius=0 严格同句最严特例时与 stage 13 _ss 轨命中判据【一致】; 生产默认 radius=1 时本过滤
 更宽、二者不等价, 见 entity_context.has_bank_fintech_cooccurrence_within_radius):
     - 保留判据 = ±1 句窗口邻近共现 (银行锚句 i 或其前后邻句含 ≥1 金科词); radius=0 才收窄为同句。
-    - 不对称匹配: 银行侧否定/短名排除 (has_unexcluded_occurrence); 金科侧裸 AC (1506 词)。
+    - 不对称匹配: 银行侧否定/短名排除 (has_unexcluded_occurrence); 金科侧裸 AC (607 词, 2026-07-21 换血)。
     - ⚠ _ss 轨下游交互 (frac_ss_fallback 三态恢复): _ss 命中判据恒严格同句; radius=1 存活行
       新增"仅邻句非同句"行 → 其正文无银行∧金科同句 → ss_is_fallback=True → frac_ss_fallback
       在 match_in_title=true 部分恢复基础上进一步恢复 ∈(0,1) (content_ss 文本信号仍有效)。

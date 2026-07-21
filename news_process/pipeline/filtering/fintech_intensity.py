@@ -76,10 +76,10 @@ news_process.pipeline.filtering.fintech_intensity — 阶段14：金融科技技
 - 金科词典经 `core.text.ahocorasick.load_fintech_dict` 加载(与 stage 12 共享同一份)。
 
 **处理步骤**:
-1. **全局 DF (Module A)** `_compute_global_df_jieba`: 把词典全部关键词 `jieba.add_word` 注入, `_ensure_keywords_injected` 划分 matchable / unmatchable(代码注释记 6/1506 含空格顿号的词 jieba 整词永不可命中, 实际剔除数由 `len(unmatchable)` 运行期计算 → 从权重宇宙剔除并 WARNING 披露)。在全量参考语料上按 **(标题,日期) 去重的唯一文档** 用 jieba 整词统计每个关键词的文档频率 DF 与 N_total(joblib `prefer='threads'` 并行, 分批 2000)。DF 语料列经 `_materialize_df_corpus_column` 在线物化 content_full(prepend_title) 与 TF 端同口径。
+1. **全局 DF (Module A)** `_compute_global_df_jieba`: 把词典全部关键词 `jieba.add_word` 注入, `_ensure_keywords_injected` 划分 matchable / unmatchable(历史语境: 旧 1506 词表有 6 词含空格/顿号 jieba 整词永不可命中; 现 607 词典 (2026-07-21 换血) 实测 0 特殊字符词, 机制不变, 实际剔除数由 `len(unmatchable)` 运行期计算 → 从权重宇宙剔除并 WARNING 披露)。在全量参考语料上按 **(标题,日期) 去重的唯一文档** 用 jieba 整词统计每个关键词的文档频率 DF 与 N_total(joblib `prefer='threads'` 并行, 分批 2000)。DF 语料列经 `_materialize_df_corpus_column` 在线物化 content_full(prepend_title) 与 TF 端同口径。
 2. **综合权重 (Module B)** `_build_intensity_weights`:
    - 步骤A IDF: `raw_idf = log10(N_total/(1+df))` → 均值归一化 → Winsorize(默认 [1,99] 分位)。
-   - 步骤B 语义纯度 (v3.14.0: 零本地模型, 走统一引擎 `_eng.embed_texts(spec)`): 用 co-primary spec(MAIN=Qwen/Qwen3-Embedding-8B 无后缀 / `_lg`=text-embedding-3-large) 各编码一遍关键词表(词表级一次性 ~1506 词, LLMCache 穿透) → IDF 加权普通质心 `np.average(embeddings, axis=0, weights=idf)`(维度无关, 由 `emb.shape[1]` 驱动; 名为 "SIF" 实非 SIF, 无 a/(a+p(w)) 平滑与首主成分去除) → 各关键词对质心余弦 → min-max + floor(anisotropy_floor 默认 0.1) 重标定。
+   - 步骤B 语义纯度 (v3.14.0: 零本地模型, 走统一引擎 `_eng.embed_texts(spec)`): 用 co-primary spec(MAIN=Qwen/Qwen3-Embedding-8B 无后缀 / `_lg`=text-embedding-3-large) 各编码一遍关键词表(词表级一次性 ~607 词, LLMCache 穿透) → IDF 加权普通质心 `np.average(embeddings, axis=0, weights=idf)`(维度无关, 由 `emb.shape[1]` 驱动; 名为 "SIF" 实非 SIF, 无 a/(a+p(w)) 平滑与首主成分去除) → 各关键词对质心余弦 → min-max + floor(anisotropy_floor 默认 0.1) 重标定。
    - 步骤C: `W_i = IDF_i × CosSim_scaled_i` 预乘。
    - 数据退化守卫(DF 空 / IDF 均值≤0 / CosSim 全相同)统一 logger.error 披露降级为纯词频或纯 IDF, 防同名列静默漂移; **嵌入 API 硬失败(embed_texts 返回 None)不降级而回传 None** → main() 走 both-or-neither: 该 spec 三轨 score 全置 NaN(parity: 无后缀族 ⟺ `_lg` 族同损同有, 绝不留单边孤儿列)。
 3. **逐文档打分 (Module C)** `_compute_intensity_scores`, 双重对数核公式:
@@ -89,7 +89,7 @@ news_process.pipeline.filtering.fintech_intensity — 阶段14：金融科技技
 
 **输出列**: `fintech_intensity_score_{full,ctx,ss}` + `intensity_verified_{full,ctx,ss}`, 加无后缀 `fintech_intensity_score` / `intensity_verified`(= _full 别名); v3.14.0 起另加 `_lg` co-primary 孪生族 `fintech_intensity_score_lg_{full,ctx,ss}` + `intensity_verified_lg_{full,ctx,ss}`(text-embedding-3-large, 与无后缀 Qwen 族严格 parity)。
 
-**外部依赖/确定性**: jieba(整词分词, 注入态单源, 锁 jieba==0.42.1)、joblib 线程并行、统一引擎 `pipeline/text/embedding_engine.py::embed_texts`(关键词级语义权重经 co-primary 双 API 模型 Qwen + text-embedding-3-large 各算一遍, 词表级一次性 ~1506 词, 经 LLMCache(_llm_cache.db) 穿透缓存; v3.14.0 起**零本地嵌入模型**, text2vec 已整体移除)。嵌入在线 miss 才付费调 API、命中即 $0(嵌入亦受 NEWS_PROCESS_LLM_OFFLINE 离线守卫: 设=1 时 miss 即 raise RuntimeError 零网络/$0, 与 stage 21 LLMCacheMissError 对称但异常类型不同; 裸环境须设 SSL_CERT_FILE=certifi 修 api.siliconflow.cn / yunwu.ai 证书); 确定性取决于 jieba 版本与嵌入 API 返回。配置节 = config/filtering.yaml::fintech_intensity + config/features.yaml::embedding_api / embedding_large (代码 CONFIG.get('fintech_intensity') / CONFIG.get('embedding_api') / CONFIG.get('embedding_large'))。
+**外部依赖/确定性**: jieba(整词分词, 注入态单源, 锁 jieba==0.42.1)、joblib 线程并行、统一引擎 `pipeline/text/embedding_engine.py::embed_texts`(关键词级语义权重经 co-primary 双 API 模型 Qwen + text-embedding-3-large 各算一遍, 词表级一次性 ~607 词, 经 LLMCache(_llm_cache.db) 穿透缓存; v3.14.0 起**零本地嵌入模型**, text2vec 已整体移除)。嵌入在线 miss 才付费调 API、命中即 $0(嵌入亦受 NEWS_PROCESS_LLM_OFFLINE 离线守卫: 设=1 时 miss 即 raise RuntimeError 零网络/$0, 与 stage 21 LLMCacheMissError 对称但异常类型不同; 裸环境须设 SSL_CERT_FILE=certifi 修 api.siliconflow.cn / yunwu.ai 证书); 确定性取决于 jieba 版本与嵌入 API 返回。配置节 = config/filtering.yaml::fintech_intensity + config/features.yaml::embedding_api / embedding_large (代码 CONFIG.get('fintech_intensity') / CONFIG.get('embedding_api') / CONFIG.get('embedding_large'))。
 
 ■ 白话说明
 
@@ -158,7 +158,7 @@ ANISOTROPY_FLOOR = INTENSITY_CONFIG.get('anisotropy_floor', 0.1)
 
 # ── 嵌入 spec (v3.14.0: 零本地模型, 统一引擎 co-primary 双 API 模型) ──────────────
 # 关键词级语义纯度权重 CosSim_scaled_i 改走统一引擎 _eng.embed_texts(spec=…), 不再用
-# 本地 SentenceTransformer(text2vec)。两 spec 各嵌一遍 ~1506 金科词表 (词表级一次性,
+# 本地 SentenceTransformer(text2vec)。两 spec 各嵌一遍 ~607 金科词表 (词表级一次性,
 # 非逐文档), 互为 co-primary:
 #   MAIN  = embedding_api    (Qwen/Qwen3-Embedding-8B, 无后缀) → fintech_intensity_score
 #   _lg   = embedding_large  (text-embedding-3-large)             → fintech_intensity_score_lg
@@ -176,7 +176,7 @@ logger.info(f"金融科技词典: 共 {len(FINTECH_KEYWORDS)} 个词汇")
 
 # fix(omni-g-fintech-03 组级裁决, 2026-06-11): jieba 注入态单源 — DF 与 TF 共用同一
 # 注入 + 同一可匹配词集 (同分词器原则, 对齐 tone_words._get_tone_tokenizer 先例)。
-# 词典中 6/1506 含空格/顿号的关键词 (如 'Open Banking' / '治理、风险与合规') 会被
+# 历史语境: 旧 1506 词典中 6 词含空格/顿号 (如 'Open Banking' / '治理、风险与合规') 会被
 # jieba 块切分正则在词典查找之前切开, jieba.add_word 注入也**永不可能**成为单 token
 # ("注入" 路径技术不可行) → 按裁决走 "剔除 + 披露": 从权重宇宙 (IDF 归一化 / 质心 /
 # CosSim 重标定) 剔除并 WARNING 披露, 避免 DF=0 的幻影词拉高 IDF 均值、扭曲质心与
@@ -327,7 +327,7 @@ def _build_intensity_weights(
 
     步骤 A: 全局 IDF 计算 + 均值归一化 + Winsorization
     步骤 B: IDF 加权质心 + 各向异性重标定 —— 用 spec 经 _eng.embed_texts 嵌入关键词表
-      (词表级一次性 ~1506 词; 维度无关, np.average(emb, axis=0) 由 emb.shape[1] 驱动)
+      (词表级一次性 ~607 词; 维度无关, np.average(emb, axis=0) 由 emb.shape[1] 驱动)
       (fix omni-g-fintech-02, 2026-06-11: 原称 "SIF 加权质心" 名实不符 — 无
       a/(a+p(w)) 频率权重、无首主成分去除, 实为 IDF 加权普通质心, 措辞已修正)
     步骤 C: 预乘综合权重
@@ -395,7 +395,7 @@ def _build_intensity_weights(
     # fix(omni-g-fintech-02, 2026-06-11): 原注释 "SIF 加权质心" 名实不符, 见模块
     # docstring Arora et al. (2017) 引用降格说明。
     # v3.14.0: 关键词语义编码改走统一引擎 _eng.embed_texts(spec) (零本地模型);
-    # 词表级一次性嵌 ~1506 金科词, 由 LLMCache 穿透 (model_id+文本+version 为键),
+    # 词表级一次性嵌 ~607 金科词, 由 LLMCache 穿透 (model_id+文本+version 为键),
     # 跨 run 命中即 $0; 维度无关 (centroid/cosine 由 emb.shape[1] 驱动)。
     _kw_model = _eng.spec_model(spec) if spec else '(未配置)'
     kw_list = list(idf_weights.keys())
@@ -711,7 +711,7 @@ def main():
     logger.info("【判读】分数越高 = 技术含金量越硬核; verified=True 占比越高 = 越多文章通过验证门槛。")
     logger.info("        三轨分歧(full vs ctx vs ss)越大 = ss/ctx 带来越独立的聚焦信号(支撑三轨稳健性)。")
     logger.info("【确定性】jieba 整词 + joblib 线程并行 (CPU) + 关键词级 co-primary 双 API 嵌入 "
-                "(Qwen 无后缀 + text-embedding-3-large _lg; 词表级一次性 ~1506 词, LLMCache 穿透)。"
+                "(Qwen 无后缀 + text-embedding-3-large _lg; 词表级一次性 ~607 词, LLMCache 穿透)。"
                 "嵌入在线 miss 才付费, 命中即 $0; 离线(NEWS_PROCESS_LLM_OFFLINE=1) miss 即 "
                 "raise RuntimeError 零网络; 确定性取决于 jieba==0.42.1 与嵌入 API 返回。")
 

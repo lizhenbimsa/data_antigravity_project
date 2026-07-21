@@ -181,7 +181,7 @@ new_dois: []
 ## VAR: avg_du_2022_pos_ratio_ss
 
 【变体差分】
-本列为同句共现轨, 三轨中视窗最窄的一条。文章级值在 content_ss 上计算, 即标题加银行与金融科技词在同一句内共现的句子及其前后各 1 句的窗口文本, 半径由 config/filtering.yaml 的 context_window.ss_sentence_radius 控制, 默认 1。共现判定采用管道的不对称口径: 银行侧施加否定与短名过滤, 金融科技侧为裸词表匹配 (1506 词的自动机词表)。回退语义与 ctx 轨机制镜像: 当一篇文章不存在银行与金科的同句共现时, content_ss 回退为全文正文, 同时 ss_is_fallback 置真, 回退篇仍留在行宇宙内共享 n_articles 分母, 其 ss 轨取值实际按全文计算; 金科词表整体缺失时全部文章置回退标志, 优雅降级不崩溃。因此本列在解读上是一个混合口径: 能定位到银行金科同句共现处的文章聚焦到共现语句邻域, 度量的是最贴近该银行金融科技业务表述的正面词密度, 定位不到的文章退回全文口径。这一构造使本列成为三轨中情感归属最强、但受回退混合与短文本方差影响也最大的一臂, 单篇分母最小, 银行-年均值对个别短窗口文章敏感。行宇宙与家族一致, 为 full-only 留篇门控下的 conditional-on-full 测度轨。本列与 full、ctx 两轨互为稳健性、不分主次, 各自 just-identified 并排, 禁混进同一 over-identified Hansen J; 若 canonical full 的结论在本列上定性保持, 则可排除结论由与银行金科主题无关的篇幅情感所驱动的替代解释。
+本列为同句共现轨, 三轨中视窗最窄的一条。文章级值在 content_ss 上计算, 即标题加银行与金融科技词在同一句内共现的句子及其前后各 1 句的窗口文本, 半径由 config/filtering.yaml 的 context_window.ss_sentence_radius 控制, 默认 1。共现判定采用管道的不对称口径: 银行侧施加否定与短名过滤, 金融科技侧为裸词表匹配 (607 词的自动机词表)。回退语义与 ctx 轨机制镜像: 当一篇文章不存在银行与金科的同句共现时, content_ss 回退为全文正文, 同时 ss_is_fallback 置真, 回退篇仍留在行宇宙内共享 n_articles 分母, 其 ss 轨取值实际按全文计算; 金科词表整体缺失时全部文章置回退标志, 优雅降级不崩溃。因此本列在解读上是一个混合口径: 能定位到银行金科同句共现处的文章聚焦到共现语句邻域, 度量的是最贴近该银行金融科技业务表述的正面词密度, 定位不到的文章退回全文口径。这一构造使本列成为三轨中情感归属最强、但受回退混合与短文本方差影响也最大的一臂, 单篇分母最小, 银行-年均值对个别短窗口文章敏感。行宇宙与家族一致, 为 full-only 留篇门控下的 conditional-on-full 测度轨。本列与 full、ctx 两轨互为稳健性、不分主次, 各自 just-identified 并排, 禁混进同一 over-identified Hansen J; 若 canonical full 的结论在本列上定性保持, 则可排除结论由与银行金科主题无关的篇幅情感所驱动的替代解释。
 
 <!-- rendered-citations:begin -->
 Anastasiou, D., Katsafados, A., & Tzomakas, C. (2026). Banks' stock price crash risk prediction with textual analysis: A machine learning approach. Annals of Operations Research, 357(1), 89-111. https://doi.org/10.1007/s10479-025-06567-y

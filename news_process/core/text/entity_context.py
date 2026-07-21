@@ -264,7 +264,7 @@ def extract_bank_fintech_cooccurrence(
     ⚠ 不对称匹配口径 (有意, 与审计脚本一致):
       - 银行侧: has_unexcluded_occurrence —— 套用 stage 11/13 同款否定模式 + 短名
         歧义排除 (NEGATION_AC / SHORT_NAME_EXCLUSIONS)。
-      - 金科侧: fintech_ac.iter 裸 AC 匹配 (1506 词词典), 不做否定/短名过滤。
+      - 金科侧: fintech_ac.iter 裸 AC 匹配 (607 词词典, 2026-07-21 换血), 不做否定/短名过滤。
 
     口径单一事实源 = scripts/audit/measure_bank_fintech_cooccurrence.py
     (sent_has_bank / sent_has_fintech), 保证审计==生产逐字节一致。
@@ -404,7 +404,7 @@ def has_bank_fintech_cooccurrence_within_radius(
 
     不对称口径 (与 extract_bank_fintech_cooccurrence / 审计脚本一致):
       银行侧 has_unexcluded_occurrence (否定+短名排除); 金科侧裸 AC
-      (_sent_has_fintech, 1506 词)。
+      (_sent_has_fintech, 607 词)。
 
     短文本 (<3 句) 退化: 走 _char_level_fallback(fintech_ac=...) 字符窗近似,
     非空即视为共现 (与 extract_bank_fintech_cooccurrence 同回退路径; ⚠ 字符窗
