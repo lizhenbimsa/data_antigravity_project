@@ -157,7 +157,7 @@ compute_cohens_kappa = _eval.compute_cohens_kappa
 EM_CFG = CONFIG.get('entity_masking_test', {})
 PLACEHOLDER = EM_CFG.get('placeholder', '目标银行A')
 PEER_TEMPLATE = EM_CFG.get('peer_placeholder_template', '同业银行{}')
-ENTITY_MASKING_MAX_CONCURRENCY = max(1, min(MAX_CONCURRENCY, int(EM_CFG.get('max_concurrency', 20))))
+ENTITY_MASKING_MAX_CONCURRENCY = max(1, min(MAX_CONCURRENCY, int(EM_CFG.get('max_concurrency', 250))))  # 2026-07-21 用户决策: 项目统一 250 并发 (fallback 同步, 原 20)
 ENTITY_MASKING_REQUEST_SPACING = float(EM_CFG.get('request_spacing_seconds', 0.0))
 ENTITY_MASKING_REQUEST_TIMEOUT_SECONDS = float(
     EM_CFG.get('request_timeout_seconds', min(60.0, _tone_llms.REQUEST_TIMEOUT_TOTAL))

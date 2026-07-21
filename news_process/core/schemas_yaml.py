@@ -65,7 +65,7 @@ class ToneLLMSchema:
     # 重新调实时 API 的最多轮数 (默认 80, 温度=0; 逐轮全局 barrier + 每轮内并发);
     # <=0 关闭 = 直接保守降级。
     sentiment_tie_retry_rounds: int = 80
-    max_concurrency: int = 40
+    max_concurrency: int = 250  # 2026-07-21 用户决策: 项目统一 250 并发 (原默认 40)
     temperature: float = 0.0
     random_seed: int = 42
     force_json: bool = True

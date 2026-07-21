@@ -328,8 +328,8 @@ def _parse_args(argv=None):
         help='New radii to test (comma-separated; default 0,2,3; radius=1 已缓存)',
     )
     parser.add_argument(
-        '--max-concurrency', type=int, default=100,
-        help='LLM 并发上限 (default 100, 雪崩时降至 8 per stage 32a/39 先例)',
+        '--max-concurrency', type=int, default=250,
+        help='LLM 并发上限 (default 250, 2026-07-21 项目统一; 雪崩时降至 8 per stage 32a/39 先例)',
     )
     return parser.parse_args(argv)
 

@@ -101,7 +101,7 @@ class EmbeddingRetryExhaustedError(RuntimeError):
 # API 嵌入批次最大并发数 (asyncio.gather + Semaphore 上限)。各批次结果按 batch_idx
 # 索引收集再按序重组 (绝不依赖完成顺序), 故并发对产出逐位不变, 仅缩短 wall-clock。
 # ⚠ 若调高需留意上游 API 的 RPS / 并发限流 (429 已由 per-batch 固定 10s 间隔重试兜底)。
-EMB_API_CONCURRENCY = 100
+EMB_API_CONCURRENCY = 250  # 2026-07-21 用户决策: 项目统一 250 并发 (原 100)
 
 # LLM raw response archive (顶刊 reproducibility; 不可用时静默降级, 不阻塞)
 try:  # pragma: no cover - import 形态依赖可选包

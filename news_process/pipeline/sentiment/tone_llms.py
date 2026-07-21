@@ -236,7 +236,7 @@ LLM_CONFIG = _ensure_llm_config(CONFIG)
 # 推荐至少 3 个模型, 以实现 2/3 多数投票的稳健共识
 # 学术依据: Wang et al. (2023, ICLR) — Self-consistency 要求多路径采样后取多数
 MODELS = LLM_CONFIG.get('models', [])
-MAX_CONCURRENCY = max(1, int(LLM_CONFIG.get('max_concurrency', 10)))
+MAX_CONCURRENCY = max(1, int(LLM_CONFIG.get('max_concurrency', 250)))  # 2026-07-21 用户决策: 项目统一 250 并发 (fallback 同步, 原 10)
 # Prompt 模板: 包含 {title}, {content}, {target_bank}, {co_mentioned_banks} 占位符
 PROMPT_TEMPLATE = LLM_CONFIG.get('prompt_template', '')
 # Plan-r3 P3-17 接入: 由 core/config.py::_inline_external_prompts 从

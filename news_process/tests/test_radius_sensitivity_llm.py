@@ -159,10 +159,10 @@ def test_parse_args_radii_custom():
 
 
 def test_parse_args_max_concurrency_default():
-    """plan v14 R20-A: 默认并发 100 (yunwu 429 退路 8)."""
+    """plan v14 R20-A: 默认并发 250 (2026-07-21 项目统一; yunwu 429 退路 8)."""
     from news_process.validation.radius_sensitivity_llm import _parse_args
     args = _parse_args([])
-    assert args.max_concurrency == 100
+    assert args.max_concurrency == 250
 
 
 def test_check_launch_prerequisites_returns_dict():

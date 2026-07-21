@@ -194,7 +194,7 @@ compute_krippendorffs_alpha = _eval.compute_krippendorffs_alpha
 PS_CFG = CONFIG.get('prompt_sensitivity_test', {})
 SAMPLE_SIZE = PS_CFG.get('sample_size', 1000)
 RANDOM_SEED = PS_CFG.get('random_seed', 42)
-PROMPT_MAX_CONCURRENCY = max(1, min(MAX_CONCURRENCY, int(PS_CFG.get('max_concurrency', 20))))
+PROMPT_MAX_CONCURRENCY = max(1, min(MAX_CONCURRENCY, int(PS_CFG.get('max_concurrency', 250))))  # 2026-07-21 用户决策: 项目统一 250 并发 (fallback 同步, 原 20)
 PROMPT_REQUEST_SPACING = float(PS_CFG.get('request_spacing_seconds', 0.0))
 PROMPT_REQUEST_TIMEOUT_SECONDS = float(
     PS_CFG.get('request_timeout_seconds', min(60.0, _tone_llms.REQUEST_TIMEOUT_TOTAL))

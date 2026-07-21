@@ -123,7 +123,7 @@ logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 # 严禁硬编码: 确保项目全局参数一致性
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
 MODELS = LLM_CONFIG.get('models', [])
-MAX_CONCURRENCY = max(1, int(LLM_CONFIG.get('max_concurrency', 5)))
+MAX_CONCURRENCY = max(1, int(LLM_CONFIG.get('max_concurrency', 250)))  # 2026-07-21 用户决策: 项目统一 250 并发 (fallback 同步, 原 5)
 TEMPERATURE = LLM_CONFIG.get('temperature', 0.0)
 RANDOM_SEED = LLM_CONFIG.get('random_seed', 42)
 FORCE_JSON = LLM_CONFIG.get('force_json', True)
