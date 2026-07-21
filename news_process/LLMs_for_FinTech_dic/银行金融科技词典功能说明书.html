@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>银行金融科技词典 · 功能说明书（LLMs_for_FinTech_dic）</title>
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['\\(','\\)']], displayMath: [['$$','$$']] },
+  svg: { fontCache: 'local' },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'], ignoreHtmlClass: 'tex2jax_ignore' },
+  startup: { pageReady: () => MathJax.startup.defaultPageReady().then(() => { document.documentElement.setAttribute('data-mathjax','done'); }) }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+<style>
+:root{
+  --ink:#1f2937; --ink2:#475569; --muted:#64748b;
+  --accent:#1d4ed8; --accent-lt:#7ea6f4; --accent-bg:#eff6ff;
+  --line:#e2e8f0; --surface:#fcfcfb; --card:#ffffff;
+  --green:#166534; --green-bg:#f0fdf4; --green-line:#bbf7d0;
+  --amber:#92400e; --amber-bg:#fffbeb; --amber-line:#fde68a;
+  --sidebar-w:292px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  color:var(--ink);background:var(--surface);font-size:15.5px;line-height:1.8}
+/* ───────── 左侧固定目录 ───────── */
+nav#toc{position:fixed;top:0;left:0;bottom:0;width:var(--sidebar-w);overflow-y:auto;
+  background:#0f172a;color:#cbd5e1;padding:22px 0 40px;font-size:13px;line-height:1.5}
+nav#toc .brand{padding:0 20px 14px;border-bottom:1px solid #1e293b;margin-bottom:12px}
+nav#toc .brand b{display:block;color:#fff;font-size:15px;letter-spacing:.02em}
+nav#toc .brand span{color:#94a3b8;font-size:11.5px}
+nav#toc a{display:block;color:#cbd5e1;text-decoration:none;padding:4px 20px;border-left:3px solid transparent}
+nav#toc a:hover{background:#1e293b;color:#fff}
+nav#toc a.h1{font-weight:600;color:#e2e8f0;margin-top:7px}
+nav#toc a.h2{padding-left:34px;color:#94a3b8;font-size:12.3px}
+nav#toc a.active{border-left-color:var(--accent-lt);background:#1e293b;color:#fff}
+/* ───────── 主体 ───────── */
+main{margin-left:var(--sidebar-w);padding:0 48px 90px;max-width:1010px}
+header.hero{padding:52px 0 26px;border-bottom:3px solid var(--accent)}
+header.hero h1{font-size:30px;line-height:1.35;letter-spacing:.01em}
+header.hero .sub{color:var(--ink2);margin-top:10px;font-size:16px}
+header.hero .meta{margin-top:14px;color:var(--muted);font-size:13px}
+header.hero .meta code{background:#f1f5f9;padding:1px 6px;border-radius:4px}
+section{padding-top:8px}
+h2{font-size:23px;margin:52px 0 16px;padding-bottom:8px;border-bottom:2px solid var(--line);
+  scroll-margin-top:24px}
+h2 .no{color:var(--accent);margin-right:8px}
+h3{font-size:17.5px;margin:32px 0 12px;scroll-margin-top:24px}
+h3 .no{color:var(--accent);margin-right:6px;font-size:15px}
+h4{font-size:15.5px;margin:22px 0 8px}
+p{margin:10px 0}
+ul,ol{margin:10px 0 10px 26px}
+li{margin:4px 0}
+strong{font-weight:650}
+a{color:var(--accent)}
+code{font-family:Consolas,"JetBrains Mono",monospace;font-size:.88em;background:#f1f5f9;
+  padding:1px 5px;border-radius:4px;color:#0f172a}
+pre{background:#0f172a;color:#e2e8f0;padding:14px 18px;border-radius:8px;overflow-x:auto;
+  font-size:13px;line-height:1.65;margin:14px 0}
+pre code{background:none;color:inherit;padding:0}
+/* 表格 */
+.tbl-wrap{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;width:100%;font-size:13.8px;background:var(--card)}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:#f1f5f9;font-weight:650;white-space:nowrap}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td.ctr,th.ctr{text-align:center}
+tr.hl td{background:var(--accent-bg)}
+tfoot td{background:#f8fafc;font-weight:600}
+.small{font-size:12.8px;color:var(--muted)}
+/* 摘要卡片 */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px;margin:20px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card .v{font-size:25px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;line-height:1.2}
+.card .k{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.45}
+/* 白话/提示框 */
+.plain,.note,.warn{border-radius:8px;padding:12px 16px;margin:14px 0;font-size:14.2px}
+.plain{background:var(--green-bg);border:1px solid var(--green-line)}
+.plain .tt,.note .tt,.warn .tt{font-weight:700;display:block;margin-bottom:4px}
+.plain .tt{color:var(--green)}
+.note{background:var(--accent-bg);border:1px solid #bfdbfe}
+.note .tt{color:var(--accent)}
+.warn{background:var(--amber-bg);border:1px solid var(--amber-line)}
+.warn .tt{color:var(--amber)}
+/* 条形图 */
+.chart{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px 12px;margin:16px 0}
+.chart .ct{font-weight:650;font-size:14.5px;margin-bottom:2px}
+.chart .cs{font-size:12.3px;color:var(--muted);margin-bottom:10px}
+.brow{display:grid;grid-template-columns:150px 1fr 86px;align-items:center;gap:10px;margin:5px 0;font-size:13px}
+.brow .lb{text-align:right;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.brow .tk{height:15px;background:#eef2f7;border-radius:4px;position:relative}
+.brow .tk i{display:block;height:100%;border-radius:4px;background:var(--accent-lt);min-width:2px}
+.brow .tk i.hi{background:var(--accent)}
+.brow .vl{font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
+.legend{display:flex;gap:18px;margin:8px 0 2px;font-size:12.3px;color:var(--ink2);flex-wrap:wrap}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+/* 流程图 */
+.flow{display:flex;flex-direction:column;gap:0;margin:18px 0}
+.fstep{display:grid;grid-template-columns:118px 1fr;gap:14px;align-items:stretch}
+.fstep .tag{background:var(--accent);color:#fff;border-radius:8px;padding:10px;font-size:12.6px;
+  font-weight:650;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.4}
+.fstep .tag.alt{background:#334155}
+.fstep .tag.gold{background:#7c3aed}
+.fstep .bd{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-size:13.6px}
+.fstep .bd b{color:var(--accent)}
+.farrow{text-align:center;color:var(--muted);font-size:15px;line-height:1.9;margin-left:52px}
+/* 公式块 */
+.eq{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
+  border-radius:8px;padding:6px 18px;margin:14px 0;overflow-x:auto}
+.chk{color:var(--green);font-weight:650}
+/* 引文 */
+.cite{color:var(--ink2)}
+#refs ol{margin-left:0;padding-left:0;list-style:none;counter-reset:ref}
+#refs li{margin:10px 0;padding-left:2.2em;text-indent:-2.2em;font-size:13.8px;line-height:1.7;counter-increment:ref}
+#refs li::before{content:"[" counter(ref) "] ";color:var(--accent);font-weight:600}
+/* 打印 */
+@media print{
+  nav#toc{display:none}
+  main{margin-left:0;padding:0 6mm;max-width:none}
+  body{font-size:11.2pt;background:#fff}
+  .chart,.card,.fstep .bd,.eq,table{break-inside:avoid}
+  h2{break-after:avoid}
+  a{color:inherit;text-decoration:none}
+  pre{background:#f6f8fa;color:#111;border:1px solid #ddd}
+}
+</style>
+</head>
+<body>
+<nav id="toc">
+  <div class="brand"><b>银行金融科技词典</b><span>功能说明书 · LLMs_for_FinTech_dic</span></div>
+  <a class="h1" href="#s1">1 摘要与关键数字</a>
+  <a class="h1" href="#s2">2 整体介绍</a>
+  <a class="h2" href="#s2-1">2.1 项目定位与用途</a>
+  <a class="h2" href="#s2-2">2.2 设计思想：群体智能＋交叉盲审</a>
+  <a class="h2" href="#s2-3">2.3 与主管道 news_process 的关系</a>
+  <a class="h2" href="#s2-4">2.4 参评的 13 个大模型</a>
+  <a class="h1" href="#s3">3 代码规模与工程结构</a>
+  <a class="h2" href="#s3-1">3.1 文件清单与代码行数</a>
+  <a class="h2" href="#s3-2">3.2 配置文件 config.py 详解</a>
+  <a class="h2" href="#s3-3">3.3 运行环境与依赖</a>
+  <a class="h1" href="#s4">4 整体数据流</a>
+  <a class="h2" href="#s4-1">4.1 全流程图</a>
+  <a class="h2" href="#s4-2">4.2 阶段 × Excel Sheet 映射</a>
+  <a class="h1" href="#s5">5 各阶段数据表现</a>
+  <a class="h2" href="#s5-1">5.1 生成：13,247 个原始词</a>
+  <a class="h2" href="#s5-2">5.2 清洗去重：→ 982</a>
+  <a class="h2" href="#s5-3">5.3 去数字字母：→ 915</a>
+  <a class="h2" href="#s5-4">5.4 词根精简：→ 696</a>
+  <a class="h2" href="#s5-5">5.5 AI 盲审：13 家 × 3 轮</a>
+  <a class="h2" href="#s5-6">5.6 AI 认可：591 词</a>
+  <a class="h2" href="#s5-7">5.7 专家盲评：602 词</a>
+  <a class="h2" href="#s5-8">5.8 人机双过半：572 词</a>
+  <a class="h2" href="#s5-9">5.9 专家增补与终选：607 词</a>
+  <a class="h1" href="#s6">6 审核与检验方法</a>
+  <a class="h2" href="#s6-1">6.1 双层多数投票</a>
+  <a class="h2" href="#s6-2">6.2 Fleiss&#39; κ 一致性检验</a>
+  <a class="h2" href="#s6-3">6.3 双口径分级与 κ 悖论</a>
+  <a class="h2" href="#s6-4">6.4 人机一致性检验</a>
+  <a class="h2" href="#s6-5">6.5 可复现性体系</a>
+  <a class="h2" href="#s6-6">6.6 自动化测试与守卫</a>
+  <a class="h2" href="#s6-7">6.7 数据核对与差异披露</a>
+  <a class="h1" href="#s7">7 人工标注（专家盲评）</a>
+  <a class="h2" href="#s7-1">7.1 盲评协议设计</a>
+  <a class="h2" href="#s7-2">7.2 判定标准：六类判据</a>
+  <a class="h2" href="#s7-3">7.3 专家判定行为</a>
+  <a class="h2" href="#s7-4">7.4 信度结果与解读</a>
+  <a class="h1" href="#s8">8 功能逐项说明</a>
+  <a class="h2" href="#s8-1">8.1 主脚本 00_LLMs_for_dic.py</a>
+  <a class="h2" href="#s8-2">8.2 config.py</a>
+  <a class="h2" href="#s8-3">8.3 llm_cache.py</a>
+  <a class="h2" href="#s8-4">8.4 calculate_kappa.py</a>
+  <a class="h2" href="#s8-5">8.5 verify_judge_cache_coverage.py</a>
+  <a class="h2" href="#s8-6">8.6 01_test_models.py</a>
+  <a class="h2" href="#s8-7">8.7 02_analyze_log.py</a>
+  <a class="h2" href="#s8-8">8.8 diag_claude.py</a>
+  <a class="h2" href="#s8-9">8.9 academic.py</a>
+  <a class="h1" href="#s9">9 公式汇编与复核记录</a>
+  <a class="h1" href="#s10">10 局限与使用注意</a>
+  <a class="h1" href="#s11">11 参考文献</a>
+</nav>
+<main>
+
+<header class="hero">
+  <h1>银行金融科技词典 · 功能说明书</h1>
+  <div class="sub">LLMs_for_FinTech_dic：基于大语言模型群体智能与人机双重盲审的领域词典构建管道<br>
+  —— 结合 <code>data_processed/银行金融科技词典20260715.xlsx</code> 的全流程数据表现</div>
+  <div class="meta">
+    数据版本：<code>银行金融科技词典20260715.xlsx</code>（机器判别真跑 2026-07-21；专家盲评汇总同版）&nbsp;·&nbsp;
+    代码基线：v2 三轮盲审协议（config.py / 00_LLMs_for_dic.py）&nbsp;·&nbsp;
+    说明书编制：2026-07-21
+  </div>
+</header>
+<!-- ═══════════════ 1 摘要 ═══════════════ -->
+<section id="s1">
+<h2><span class="no">1</span>摘要与关键数字</h2>
+<p><strong>LLMs_for_FinTech_dic</strong> 是一条独立、可复现的「银行金融科技」中文领域词典构建管道：先让 <strong>13 个中美前沿大语言模型</strong>并发生成候选词，经确定性集合规约（去重 → 去数字字母 → 词根精简）收敛为 696 个正交候选词根；再由<strong>同一批 13 个模型充当「评委团」，每家独立盲审 3 轮</strong>，以「模型内三局两胜 → 模型间严格过半数」的双层多数投票裁决；最后引入 <strong>7 位金融学、统计学等领域博士</strong>做完全独立的人工盲评，按「人机双过半」口径定稿，并吸收专家增补词，形成 <strong>607 词</strong>的最终词典。整个过程的逐阶段中间态、明细票据与统计汇总全部落盘在 <code>银行金融科技词典20260715.xlsx</code> 的 12 个 Sheet 中，本说明书逐一核验并解读。</p>
+
+<div class="cards">
+  <div class="card"><div class="v">13</div><div class="k">参评大模型（美 7 + 中 6），生成与判别同一阵容</div></div>
+  <div class="card"><div class="v">13,247</div><div class="k">原始生成词条（13 模型 × 10 次重复）</div></div>
+  <div class="card"><div class="v">696</div><div class="k">规约后送审候选词根</div></div>
+  <div class="card"><div class="v">27,144</div><div class="k">机器判别票（696 词 × 13 模型 × 3 轮，零缺失）</div></div>
+  <div class="card"><div class="v">591</div><div class="k">AI 认可（≥7/13 家正式票）</div></div>
+  <div class="card"><div class="v">602</div><div class="k">专家认可（≥4/7 位；统计表与明细一致）</div></div>
+  <div class="card"><div class="v">572</div><div class="k">人机双过半交集</div></div>
+  <div class="card"><div class="v">607</div><div class="k">最终词典 = 572 + 专家增补 35</div></div>
+  <div class="card"><div class="v">0.5906</div><div class="k">13 模型正式票 Fleiss&#39; κ（本文复算一致）</div></div>
+  <div class="card"><div class="v">0.4208</div><div class="k">7 位专家 Fleiss&#39; κ（本文实算）</div></div>
+  <div class="card"><div class="v">0.7128</div><div class="k">人机判定 Cohen&#39;s κ（词级一致率 93.0%）</div></div>
+  <div class="card"><div class="v">5,035</div><div class="k">管道代码总行数（9 个 Python 文件）</div></div>
+</div>
+
+<div class="plain"><span class="tt">白话导读</span>
+这本说明书讲的是：我们如何让 13 个「AI 专家」先各自头脑风暴出一大堆「银行金融科技」词汇（一万三千多个），
+把重复的、带数字字母的、互相包含的词合并精简成 696 个候选词；再让这 13 个 AI 背靠背互相打分投票（每个 AI 还要独立投 3 次以防它自己「手抖」），
+超过半数同意的词才算 AI 认可；同时请 7 位真人博士在<strong>完全看不到 AI 打分</strong>的情况下独立评审同一批词；
+最后只有「AI 过半 且 真人过半」都点头的词才进词典，再补上专家认为遗漏的 35 个词，得到 607 个词的最终词典。
+每一步的数字、每一张投票明细都存在一个 Excel 文件里，可以逐票复查。</div>
+</section>
+
+<!-- ═══════════════ 2 整体介绍 ═══════════════ -->
+<section id="s2">
+<h2><span class="no">2</span>整体介绍</h2>
+
+<h3 id="s2-1"><span class="no">2.1</span>项目定位与用途</h3>
+<p>在实证金融与会计研究中，「文本即数据」（text-as-data）方法已成为从新闻、年报、电话会议等非结构化文本中提取软信息的标准工具 <span class="cite">(Gentzkow et al., 2019; Loughran & McDonald, 2016; Ash & Hansen, 2023)</span>。其中<strong>领域词典法</strong>因透明、可解释、可复现，长期是金融文本测度的主力：从情感词典 <span class="cite">(Tetlock, 2007; Loughran & McDonald, 2011; García et al., 2023)</span>、约束词典 <span class="cite">(Bodnaruk et al., 2015)</span> 到主题暴露词典 <span class="cite">(Baker et al., 2016; Hassan et al., 2019; Sautner et al., 2023)</span>，词典质量直接决定测度效度 <span class="cite">(Loughran & McDonald, 2020; Kearney & Liu, 2014)</span>。</p>
+<p>本项目要解决的具体问题是：<strong>为「商业银行 × 金融科技」这一垂直交叉领域构建一部高信噪比中文专业词典</strong>，用于对海量银行新闻做金融科技强度的量化测度（词典由主管道 news_process 以 Aho–Corasick 自动机做精确匹配，是共现过滤、强度测算等多个生产阶段的承重资产）。银行金融科技本身是近年金融经济学的活跃议题 <span class="cite">(Thakor, 2020; Gomber et al., 2018; Goldstein et al., 2021; Vives, 2019; Boot et al., 2021; Stulz, 2019)</span>：金融科技重塑了信贷供给 <span class="cite">(Buchak et al., 2018; Fuster et al., 2019; Berg et al., 2022; Cornelli et al., 2023)</span>、信用评估 <span class="cite">(Berg et al., 2020)</span>、财富管理 <span class="cite">(D'Acunto et al., 2019; Grennan & Michaely, 2021)</span> 与开放银行生态 <span class="cite">(Babina et al., 2025)</span>；对中国银行业的数字化转型测度也已形成专门文献 <span class="cite">(Cheng & Qu, 2020; Xie & Wang, 2023; Guo & Wang, 2022)</span>。</p>
+<p>传统的词典构建做法存在三点公认局限：(1) 研究者人工拟定种子词，受主观经验影响、易有选择性偏差；(2) 金融科技新词层出不穷，静态词典更新滞后；(3) 用词向量、主题模型等无监督方法机械扩容，易因语境共现混入偏离金融逻辑的「通用词噪音」 <span class="cite">(King et al., 2017; Hanley & Hoberg, 2019; Li et al., 2021; Rodriguez & Spirling, 2022; Widmann & Wich, 2023)</span>。本管道用「多模型群体智能生成 + 机器交叉盲审 + 专家独立盲评」三重机制对症化解，属于近年「以生成式大模型辅助文本测度」研究路线 <span class="cite">(de Kok, 2025; Siano, 2025; Bernard et al., 2026; Cao et al., 2024; Kim et al., 2024)</span> 在词典工程上的应用。</p>
+
+<h3 id="s2-2"><span class="no">2.2</span>设计思想：群体智能 ＋ 交叉盲审</h3>
+<p>管道的两大方法学支柱：</p>
+<p><strong>（一）群体智能（Swarm Intelligence）。</strong>「多样化群体的聚合判断优于单个最强个体」是一条跨越百年的经验规律：从 Galton 的「群众的智慧」 <span class="cite">(Galton, 1907)</span>、多样性胜过能力定理 <span class="cite">(Hong & Page, 2004)</span>，到机器学习中的集成方法（bagging、随机森林、stacking） <span class="cite">(Dietterich, 2000; Breiman, 1996; Breiman, 2001; Wolpert, 1992)</span>。在大模型时代，这条规律的原生对应物是多路采样多数投票（self-consistency） <span class="cite">(Wang et al., 2022)</span>、多智能体辩论与聚合 <span class="cite">(Du et al., 2023; Liang et al., 2023; Chan et al., 2023; Chen et al., 2023; Jiang et al., 2023; Wang et al., 2024)</span>，且「更多智能体」本身就能带来单调增益 <span class="cite">(Li et al., 2024)</span>。本管道刻意选用 <strong>13 个异构基座</strong>（不同厂商、不同训练语料、不同架构），以模型间的相互印证抵消单一模型的幻觉与偏差 <span class="cite">(Ji et al., 2023; Huang et al., 2025)</span>。</p>
+<p><strong>（二）机器交叉盲审（LLM-as-a-Judge）。</strong>大模型作为「评委 / 标注员」的可靠性已获系统证据：在多类文本标注任务上超过众包工人 <span class="cite">(Gilardi et al., 2023; Törnberg, 2023; He et al., 2024)</span>，与人类专家高度对齐 <span class="cite">(Zheng et al., 2023; Liu et al., 2023; Rathje et al., 2024)</span>，并被计算社会科学与金融会计研究广泛采用 <span class="cite">(Ziems et al., 2024; Chae & Davidson, 2025; Mellon et al., 2024; Jha et al., 2024a; Hansen & Kazinnik, 2023)</span>；同时文献也一再强调 LLM 标注<strong>必须经过验证</strong>、评审自身存在偏置 <span class="cite">(Pangakis et al., 2023; Gu et al., 2024; Chang et al., 2024)</span>。据此本管道做了四点针对性设计：判别用<strong>零温采样</strong>求确定性 <span class="cite">(Holtzman et al., 2019)</span>；每家模型<strong>独立盲审 3 轮</strong>再取模型内多数（self-consistency 的判别版） <span class="cite">(Wang et al., 2022)</span>；用<strong>六类固定判据 + 序号化理由</strong>施加凝缩型思维链约束 <span class="cite">(Wei et al., 2022; Kojima et al., 2022)</span>；最终以 <strong>Fleiss&#39; κ 一致性检验 + 7 位人类专家盲评</strong>做外部效度验证 <span class="cite">(Fleiss, 1971; Pangakis et al., 2023)</span>。</p>
+<div class="plain"><span class="tt">白话：为什么要 13 个模型、而不是 1 个最强模型？</span>
+单个大模型再强也会「一本正经地胡说八道」（幻觉），而且每家模型的训练数据不同、口味不同。
+就像评职称不会只请一位评委——让 13 个背景各异的评委背靠背独立打分，再数票，个别评委的偏见和失误就会被多数意见「冲淡」。
+统计上这正是「集成学习」的原理：只要评委们的错误不完全相同，投票结果就比任何单个评委更可靠。</div>
+
+<h3 id="s2-3"><span class="no">2.3</span>与主管道 news_process 的关系</h3>
+<p>本目录是 news_process 仓库内的<strong>独立子管道</strong>，与主管道彻底隔离：</p>
+<ul>
+  <li><strong>产物隔离</strong>：跑批只写 <code>data_processed/bank_keywords_&lt;时间戳&gt;.xlsx</code>，<strong>不会</strong>自动写入主项目生产词典 <code>config/fintech_dict.json</code>（承重 stage 12/13/14/15）。换用新词典须人工受控拷贝并触发主管道 golden 全量重生。<strong>状态更新（2026-07-21）</strong>：生产词典已按研究决策由历史 1,506 词版换血为本词典 <strong>607 词</strong>——本说明书实测 <code>config/fintech_dict.json</code> 与工作簿 Sheet 9 终选词表<strong>集合完全相等</strong>（607 = 607，零出入）；下游联动义务见 §10 第 7 条。</li>
+  <li><strong>缓存隔离</strong>：使用目录级独立 SQLite 缓存 <code>data_processed/_llm_cache.db</code>，与主项目 2.1 GB 生产缓存互不干扰；离线开关也是独立的 <code>LLMS_DIC_OFFLINE</code>（主项目的 <code>NEWS_PROCESS_LLM_OFFLINE</code> 对本目录无效）。</li>
+  <li><strong>密钥共用</strong>：经 <code>load_dotenv</code> 读主项目 <code>news_process/.env</code> 的 <code>YUNWU_FULL_KEY</code>，全部 13 个模型统一走 yunwu 中转端点（OpenAI 兼容协议）。</li>
+</ul>
+
+<h3 id="s2-4"><span class="no">2.4</span>参评的 13 个大模型（美 7 ＋ 中 6）</h3>
+<p>生成与判别使用<strong>同一阵容</strong>（<code>config.py::MODELS ≡ JUDGE_MODELS</code>），覆盖中美主要厂商，构成异构「评委团」。选择异构阵容的动因是抑制单一架构 / 语料的系统性偏差 <span class="cite">(Hong & Page, 2004; Dietterich, 2000; Wang et al., 2024)</span>。</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>#</th><th>模型 ID</th><th>厂商</th><th>阵营</th><th>生成词条数</th><th>判别正式票「判 1」率</th><th>三轮全同率</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><code>claude-fable-5</code></td><td>Anthropic</td><td>美</td><td class="num">1,004</td><td class="num">87.9%</td><td class="num">95.1%</td></tr>
+<tr><td>2</td><td><code>claude-opus-4-8</code></td><td>Anthropic</td><td>美</td><td class="num">1,080</td><td class="num">79.9%</td><td class="num">89.1%</td></tr>
+<tr><td>3</td><td><code>gpt-5.6-sol</code></td><td>OpenAI</td><td>美</td><td class="num">999</td><td class="num">78.2%</td><td class="num">92.8%</td></tr>
+<tr><td>4</td><td><code>gpt-5.6-terra</code></td><td>OpenAI</td><td>美</td><td class="num">1,034</td><td class="num">78.3%</td><td class="num">86.8%</td></tr>
+<tr><td>5</td><td><code>gemini-3.1-pro-preview</code></td><td>Google</td><td>美</td><td class="num">1,000</td><td class="num">82.8%</td><td class="num">92.7%</td></tr>
+<tr><td>6</td><td><code>gemini-3.5-flash</code></td><td>Google</td><td>美</td><td class="num">1,001</td><td class="num">80.7%</td><td class="num">86.8%</td></tr>
+<tr><td>7</td><td><code>grok-4.5</code></td><td>xAI</td><td>美</td><td class="num">1,041</td><td class="num">82.9%</td><td class="num">91.4%</td></tr>
+<tr><td>8</td><td><code>kimi-k2.6</code></td><td>月之暗面</td><td>中</td><td class="num">1,005</td><td class="num">67.4%</td><td class="num">76.9%</td></tr>
+<tr><td>9</td><td><code>glm-5.2</code></td><td>智谱</td><td>中</td><td class="num">1,003</td><td class="num">75.3%</td><td class="num">89.5%</td></tr>
+<tr><td>10</td><td><code>qwen3.7-max</code></td><td>阿里</td><td>中</td><td class="num">964</td><td class="num">85.8%</td><td class="num">97.0%</td></tr>
+<tr><td>11</td><td><code>deepseek-v4-pro</code></td><td>深度求索</td><td>中</td><td class="num">1,005</td><td class="num">78.7%</td><td class="num">79.2%</td></tr>
+<tr><td>12</td><td><code>MiniMax-M3</code></td><td>MiniMax</td><td>中</td><td class="num">1,071</td><td class="num">95.3%</td><td class="num">88.9%</td></tr>
+<tr><td>13</td><td><code>mimo-v2.5-pro</code></td><td>小米</td><td>中</td><td class="num">1,040</td><td class="num">89.8%</td><td class="num">88.1%</td></tr>
+</tbody>
+<tfoot><tr><td colspan="4">合计 / 均值</td><td class="num">13,247</td><td class="num">均值 81.8%</td><td class="num">区间 76.9%–97.0%</td></tr></tfoot>
+</table></div>
+<p class="small">注：「判 1 率」= 该模型正式票（三轮内部多数）中投赞成的比例；「三轮全同率」= 该模型对同一词三轮打分完全一致（3:0）的词占比。两列均由本说明书对 Sheet「5-AI判别结果」逐票重算得出。判 1 率跨模型差异（67.4%–95.3%）正说明单模型口径不一，须靠跨模型投票中和。</p>
+</section>
+
+<!-- ═══════════════ 3 代码规模 ═══════════════ -->
+<section id="s3">
+<h2><span class="no">3</span>代码规模与工程结构</h2>
+
+<h3 id="s3-1"><span class="no">3.1</span>文件清单与代码行数</h3>
+<p>管道共 <strong>9 个 Python 文件、5,035 行代码</strong>（含注释与学术化日志文案），另在主仓测试套件挂有 1 个专属测试文件。职责高度分层：主脚本只做流程编排，配置、缓存、引文、验证各归其位。</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>文件</th><th class="num">行数</th><th>职责（一句话）</th><th>类型</th></tr></thead>
+<tbody>
+<tr class="hl"><td><code>00_LLMs_for_dic.py</code></td><td class="num">2,374</td><td>主管道：生成 → 规约 → 三轮盲审 → 投票 → 12-Sheet Excel 落盘 → manifest 存根；另含冻结重放 CLI</td><td>入口</td></tr>
+<tr><td><code>config.py</code></td><td class="num">398</td><td>唯一事实源（SSOT）：模型清单、任务参数、领域定义、六类判据、两个冻结 Prompt</td><td>配置</td></tr>
+<tr><td><code>academic.py</code></td><td class="num">877</td><td>121 条经 Crossref/DataCite 实访核验的 APA 引文注册表 + 学术化日志工具（<code>sig4</code>/<code>pct4</code>/<code>cite</code>）</td><td>支撑</td></tr>
+<tr><td><code>llm_cache.py</code></td><td class="num">236</td><td>目录级 SQLite LLM 响应缓存（SHA-256 键）＋离线模式守卫＋CLI</td><td>支撑</td></tr>
+<tr><td><code>calculate_kappa.py</code></td><td class="num">189</td><td>Fleiss&#39; κ 独立离线计算器（双口径分级、轮内一致率描述统计）</td><td>验证</td></tr>
+<tr><td><code>verify_judge_cache_coverage.py</code></td><td class="num">143</td><td>「验钞机」：核验 manifest 声明的全部判别任务在缓存中零缺失，保证 $0 离线复现</td><td>验证</td></tr>
+<tr><td><code>01_test_models.py</code></td><td class="num">296</td><td>逐模型连通性/JSON 模式诊断（含 429/502/503/超时有界退避重试）</td><td>诊断</td></tr>
+<tr><td><code>02_analyze_log.py</code></td><td class="num">399</td><td>运行日志解析器：产出 <code>logs/02_analyze_log.md</code> 结构化运行报告</td><td>诊断</td></tr>
+<tr><td><code>diag_claude.py</code></td><td class="num">123</td><td>Claude 系模型专项诊断（采样参数过滤行为探针）</td><td>诊断</td></tr>
+</tbody>
+<tfoot><tr><td>合计（本目录）</td><td class="num">5,035</td><td colspan="2">另：主仓 <code>tests/test_llmsdic_judge_reps.py</code> 232 行（8 项测试，见 §6.6）</td></tr></tfoot>
+</table></div>
+
+<div class="chart">
+<div class="ct">代码体量分布（行数）</div>
+<div class="cs">主脚本约占 47%；配置与学术支撑合计约 25%——「重披露、重验证」的工程取向</div>
+<div class="brow"><span class="lb">00_LLMs_for_dic.py</span><span class="tk"><i class="hi" style="width:100%"></i></span><span class="vl">2,374</span></div>
+<div class="brow"><span class="lb">academic.py</span><span class="tk"><i style="width:36.9%"></i></span><span class="vl">877</span></div>
+<div class="brow"><span class="lb">02_analyze_log.py</span><span class="tk"><i style="width:16.8%"></i></span><span class="vl">399</span></div>
+<div class="brow"><span class="lb">config.py</span><span class="tk"><i style="width:16.8%"></i></span><span class="vl">398</span></div>
+<div class="brow"><span class="lb">01_test_models.py</span><span class="tk"><i style="width:12.5%"></i></span><span class="vl">296</span></div>
+<div class="brow"><span class="lb">llm_cache.py</span><span class="tk"><i style="width:9.9%"></i></span><span class="vl">236</span></div>
+<div class="brow"><span class="lb">calculate_kappa.py</span><span class="tk"><i style="width:8.0%"></i></span><span class="vl">189</span></div>
+<div class="brow"><span class="lb">verify_judge_cache_coverage.py</span><span class="tk"><i style="width:6.0%"></i></span><span class="vl">143</span></div>
+<div class="brow"><span class="lb">diag_claude.py</span><span class="tk"><i style="width:5.2%"></i></span><span class="vl">123</span></div>
+</div>
+
+<h3 id="s3-2"><span class="no">3.2</span>配置文件 config.py 详解</h3>
+<p><code>config.py</code>（398 行）是全管道的<strong>单一事实源</strong>：所有可调参数、模型清单、领域定义与两个 Prompt 均集中于此，主脚本零硬编码。它同时也是配套方法学手稿的「事实来源」——手稿逐字誊抄其中的 Prompt 与数量链，因此该文件受「锁步」纪律约束：改动任何 Prompt 字段即构成新研究版本。关键参数分四组：</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>组</th><th>参数</th><th>取值</th><th>作用与设计动因</th></tr></thead>
+<tbody>
+<tr><td rowspan="4">任务规模</td><td><code>NUM_REPEAT_PER_MODEL</code></td><td class="ctr">10</td><td>每模型每领域重复生成次数——默认温度下的多样性采样，扩大候选池覆盖面</td></tr>
+<tr><td><code>JUDGE_BATCH_SIZE</code></td><td class="ctr">100</td><td>判别每批词数：696 词 → 7 批；批内逐词打分</td></tr>
+<tr><td><code>NUM_JUDGE_REPS</code></td><td class="ctr">3</td><td>每模型每批独立盲审轮数（self-consistency）</td></tr>
+<tr><td><code>JUDGE_REP_MAJORITY</code></td><td class="ctr">2</td><td>模型内多数门 = ⌊3/2⌋+1，由轮数唯一决定（代码禁止手改）</td></tr>
+<tr><td rowspan="4">并发与稳健</td><td><code>MAX_WORKERS_GENERATE / JUDGE</code></td><td class="ctr">200 / 200</td><td>线程池并发上限</td></tr>
+<tr><td><code>MAX_CONCURRENT_PER_MODEL</code></td><td class="ctr">10</td><td>单模型并发信号量，防 429 限流</td></tr>
+<tr><td><code>REQUEST_TIMEOUT</code></td><td class="ctr">600 s</td><td>单请求超时</td></tr>
+<tr><td><code>MAX_TOTAL_RETRIES</code></td><td class="ctr">50</td><td>全局重试上限（费用保护，防无限重试烧钱）</td></tr>
+<tr><td rowspan="2">输出契约</td><td><code>MAX_OUTPUT_TOKENS</code></td><td class="ctr">16,384</td><td>显式输出上限：单条判别响应约 6–7k token，个别模型代理端默认上限过低（实测约 4,096）会把 JSON 截断成非法文本，抬高上限根治</td></tr>
+<tr><td><code>THINKING_DISABLE_EXTRA_BODY</code></td><td class="ctr">按模型</td><td>对确认支持的模型（MiniMax-M3）注入「关思维链」请求体字段，端点拒收时自动降级</td></tr>
+<tr><td rowspan="3">缓存与离线</td><td><code>CACHE_DB_FILE</code></td><td class="ctr">SQLite</td><td><code>data_processed/_llm_cache.db</code>，与主项目缓存完全独立</td></tr>
+<tr><td><code>LLMS_DIC_CACHE</code></td><td class="ctr">env</td><td>设 0 停用缓存（读写全跳过）</td></tr>
+<tr><td><code>LLMS_DIC_OFFLINE</code></td><td class="ctr">env</td><td>设 1 进入离线模式：缓存 miss 直接报错、绝不调 API（$0 重放守卫）；与 <code>CACHE=0</code> 同设会被启动守卫拒绝</td></tr>
+</tbody>
+</table></div>
+<p>此外，<code>config.py</code> 还承载三块「内容资产」：① 领域定义 <code>DOMAINS</code>（name =「银行金融科技」+ 约 50 个种子参考词的 description）；② 六条判据 <code>REASONS</code>（生成端与判别端共享的单一字面源，见 §7.2）；③ 两个冻结 Prompt 构建函数 <code>build_generate_prompt</code> / <code>build_judge_prompt</code>（见 §8.2）。文件中另以三引号「死块」形式保留了一个 2 模型试跑清单，属有意停用的历史现场，勿误判为生效配置。</p>
+
+<h3 id="s3-3"><span class="no">3.3</span>运行环境与依赖</h3>
+<ul>
+  <li><strong>解释器</strong>：conda base Python 3.13（Windows）；第三方依赖仅 <code>pandas</code>、<code>openpyxl</code>、<code>openai</code>（SDK，走 OpenAI 兼容协议）、<code>pypinyin</code>（词典拼音排序）、<code>numpy</code>（κ 计算）、<code>python-dotenv</code>（可选）。</li>
+  <li><strong>API 端点</strong>：全部 13 模型统一 <code>https://yunwu.ai/v1</code> 中转（<code>YUNWU_FULL_KEY</code>）；无任何本地模型、无梯度微调。</li>
+  <li><strong>运行入口</strong>：<code>python 00_LLMs_for_dic.py</code>（完整流程）；<code>--dry-run</code> 演练；<code>--judge-only --from-manifest &lt;json&gt;</code> 冻结重放（见 §6.5）；<code>--view-logs / --view-log latest</code> 查日志。</li>
+  <li><strong>运行时长实测</strong>（2026-07-21）：首次付费真跑（判别 273 任务全量调 API）约 55 分钟（12:04–12:59）；缓存全命中后的复跑仅 <strong>33.92 秒</strong>（生成 0.1402 s + 判别 4.588 s，来自运行日志统计段）。</li>
+</ul>
+</section>
+<!-- ═══════════════ 4 整体数据流 ═══════════════ -->
+<section id="s4">
+<h2><span class="no">4</span>整体数据流</h2>
+
+<h3 id="s4-1"><span class="no">4.1</span>全流程图</h3>
+<p>管道为「三阶段自动构建 + 一段人工盲评 + 一段人机融合定稿」的直线型数据流。输入完全由 Prompt 驱动（无外部原始语料，词汇源自各模型的预训练知识），输出为多 Sheet Excel。</p>
+<div class="flow">
+  <div class="fstep"><div class="tag">阶段 ①<br>并发生成</div><div class="bd">13 模型 × 1 领域 × 10 次重复 = <b>130 个生成任务</b>，默认温度采样求多样性；每次要求约 100 个词、每词附「三选一」正向判据理由（序号化，仅作自我锚定约束不落盘）→ 原始词条 <b>13,247</b></div></div>
+  <div class="farrow">▼</div>
+  <div class="fstep"><div class="tag alt">阶段 ②<br>集合规约</div><div class="bd">确定性纯文本运算（$0、可离线）：NFKC 规范化清洗 → 跨模型合并去重 <b>982</b> → 剔含数字/字母词 <b>915</b> → 超子串「词根精简」 <b>696</b> → 拼音排序定序</div></div>
+  <div class="farrow">▼</div>
+  <div class="fstep"><div class="tag">阶段 ③<br>机器交叉盲审</div><div class="bd">696 词 × 7 批 × 13 模型 × 3 轮 = <b>273 个判别任务 / 27,144 张票</b>，零温 T=0，六类固定判据；模型内三局两胜聚成 13 张<b>正式票</b>，严格过半数（≥7）→ <b>AI 认可 591</b></div></div>
+  <div class="farrow">▼</div>
+  <div class="fstep"><div class="tag gold">人工盲评</div><div class="bd">7 位博士对全部 696 个候选词<b>独立盲评</b>（隐去机器全部评分与理由），过半数（≥4）→ <b>专家认可 602</b></div></div>
+  <div class="farrow">▼</div>
+  <div class="fstep"><div class="tag gold">人机融合定稿</div><div class="bd">双过半交集（专家 ≥4 <b>且</b> AI ≥7）→ <b>572</b>；专家增补遗漏词 <b>+35</b> → <b>最终词典 607 词</b></div></div>
+</div>
+
+<div class="chart">
+<div class="ct">数量链漏斗（条宽 = 词数占原始 13,247 的比例）</div>
+<div class="cs">规约段完成 95% 的收敛——去重即砍掉 92.6%，说明 13 个模型生成高度重叠（这本身就是共识信号）</div>
+<div class="brow"><span class="lb">① 原始生成</span><span class="tk"><i style="width:100%"></i></span><span class="vl">13,247</span></div>
+<div class="brow"><span class="lb">② 去重后</span><span class="tk"><i style="width:7.4%"></i></span><span class="vl">982 (7.4%)</span></div>
+<div class="brow"><span class="lb">② 去数字字母</span><span class="tk"><i style="width:6.9%"></i></span><span class="vl">915 (6.9%)</span></div>
+<div class="brow"><span class="lb">② 词根精简</span><span class="tk"><i style="width:5.3%"></i></span><span class="vl">696 (5.3%)</span></div>
+<div class="brow"><span class="lb">③ AI 认可 (≥7/13)</span><span class="tk"><i class="hi" style="width:4.5%"></i></span><span class="vl">591 (4.5%)</span></div>
+<div class="brow"><span class="lb">人机双过半</span><span class="tk"><i class="hi" style="width:4.3%"></i></span><span class="vl">572 (4.3%)</span></div>
+<div class="brow"><span class="lb">终选 (+专家 35)</span><span class="tk"><i class="hi" style="width:4.6%"></i></span><span class="vl">607 (4.6%)</span></div>
+<div class="legend"><span><i style="background:var(--accent-lt)"></i>规约阶段（确定性运算）</span><span><i style="background:var(--accent)"></i>判别/定稿阶段（投票裁决）</span></div>
+</div>
+
+<h3 id="s4-2"><span class="no">4.2</span>阶段 × Excel Sheet 映射</h3>
+<p><code>银行金融科技词典20260715.xlsx</code>（978 KB）共 <strong>12 个 Sheet</strong>，完整保留了「机器管道产物（Sheet 1–5）+ 人工评审层（Sheet 6–9）」的全部中间态，任何一步都可回溯复查：</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Sheet</th><th class="num">数据行</th><th class="num">列</th><th>内容</th><th>产生方式</th></tr></thead>
+<tbody>
+<tr><td>银行关键词统计</td><td class="num">2</td><td class="num">11</td><td>全链数量统计（领域行 + 汇总行）</td><td>汇总</td></tr>
+<tr><td>1-原始汇总</td><td class="num">13,247</td><td class="num">3</td><td>逐条原始词（id / keyword / model）</td><td rowspan="6">机器管道<br>（00_LLMs_for_dic.py）</td></tr>
+<tr><td>1b-按领域原始</td><td class="num">13,247</td><td class="num">4</td><td>同上，另带 domain 列</td></tr>
+<tr><td>2-去重后</td><td class="num">982</td><td class="num">2</td><td>跨模型合并去重后的唯一词</td></tr>
+<tr><td>2b-去数字字母后</td><td class="num">915</td><td class="num">2</td><td>剔除含阿拉伯数字/拉丁字母词后</td></tr>
+<tr><td>3-词根精简后</td><td class="num">696</td><td class="num">2</td><td>超子串包容剔除后的正交词根</td></tr>
+<tr><td>4-最终结果</td><td class="num">696</td><td class="num">2</td><td>按拼音排序的送审候选词表</td></tr>
+<tr class="hl"><td>5-AI判别结果</td><td class="num">696</td><td class="num">94</td><td>逐词 × 13 模型 × 3 轮的全部票据：<code>{model}_score_r1..r3</code> / <code>{model}_reason_r1..r3</code> / <code>{model}_vote</code> + <code>LLMs_total_score</code></td><td>机器盲审</td></tr>
+<tr class="hl"><td>6-专家判别结果</td><td class="num">696</td><td class="num">10</td><td>7 位专家逐词判定（0/1）+ <code>Experts_total_score</code></td><td>人工盲评回收</td></tr>
+<tr><td>7-AI+人工判别结果</td><td class="num">696</td><td class="num">5</td><td>双过半判定列：<code>Experts≥4 &amp; LLMs≥7 → YES/NO</code></td><td rowspan="3">人机融合</td></tr>
+<tr><td>8-判别结果</td><td class="num">572</td><td class="num">2</td><td>通过双过半的词</td></tr>
+<tr><td>9-最终词典(判别结果+专家增加词汇)</td><td class="num">607</td><td class="num">3</td><td>终选词典，备注列区分「AI+人工判别结果」(572) 与「专家增加词汇」(35)</td></tr>
+</tbody>
+</table></div>
+<p class="small">注：机器管道原生产物（<code>bank_keywords_20260721_144911.xlsx</code>）另含 6 个按「阶段-领域」切分的镜像 Sheet（原始-/去重-/去数字字母-/精简-/最终-/判别-银行金融科技），内容与上表 Sheet 1–5 对应，本词典工作簿未重复收录。</p>
+</section>
+
+<!-- ═══════════════ 5 各阶段数据表现 ═══════════════ -->
+<section id="s5">
+<h2><span class="no">5</span>各阶段数据表现（基于 20260715 版工作簿）</h2>
+
+<h3 id="s5-1"><span class="no">5.1</span>阶段①生成：13,247 个原始词条</h3>
+<p>130 个生成任务（13 模型 × 10 次）<strong>全部完成</strong>（运行日志进度锚「130/130 (100%)，已收集 13247 个原始词条」），合计产出 <strong>13,247</strong> 条原始词（Sheet「1-原始汇总」）。各模型单次名义产量约 100 词，10 次合计围绕 1,000 上下小幅波动（964–1,080），波动来自模型对「约 100 个」指令的自由发挥与解析清洗差异——生成端此时<strong>不做对错判断</strong>，只求覆盖面（recall 优先），把好坏交给后端投票裁决 <span class="cite">(Brown et al., 2020; de Kok, 2025)</span>。</p>
+<div class="chart">
+<div class="ct">各模型原始生成量（10 次重复合计）</div>
+<div class="cs">产量高度均衡（极差 116 词），无单一模型主导候选池——多样性设计落地的直接证据</div>
+<div class="brow"><span class="lb">claude-opus-4-8</span><span class="tk"><i style="width:100%"></i></span><span class="vl">1,080</span></div>
+<div class="brow"><span class="lb">MiniMax-M3</span><span class="tk"><i style="width:99.2%"></i></span><span class="vl">1,071</span></div>
+<div class="brow"><span class="lb">grok-4.5</span><span class="tk"><i style="width:96.4%"></i></span><span class="vl">1,041</span></div>
+<div class="brow"><span class="lb">mimo-v2.5-pro</span><span class="tk"><i style="width:96.3%"></i></span><span class="vl">1,040</span></div>
+<div class="brow"><span class="lb">gpt-5.6-terra</span><span class="tk"><i style="width:95.7%"></i></span><span class="vl">1,034</span></div>
+<div class="brow"><span class="lb">deepseek-v4-pro</span><span class="tk"><i style="width:93.1%"></i></span><span class="vl">1,005</span></div>
+<div class="brow"><span class="lb">kimi-k2.6</span><span class="tk"><i style="width:93.1%"></i></span><span class="vl">1,005</span></div>
+<div class="brow"><span class="lb">claude-fable-5</span><span class="tk"><i style="width:93.0%"></i></span><span class="vl">1,004</span></div>
+<div class="brow"><span class="lb">glm-5.2</span><span class="tk"><i style="width:92.9%"></i></span><span class="vl">1,003</span></div>
+<div class="brow"><span class="lb">gemini-3.5-flash</span><span class="tk"><i style="width:92.7%"></i></span><span class="vl">1,001</span></div>
+<div class="brow"><span class="lb">gemini-3.1-pro-preview</span><span class="tk"><i style="width:92.6%"></i></span><span class="vl">1,000</span></div>
+<div class="brow"><span class="lb">gpt-5.6-sol</span><span class="tk"><i style="width:92.5%"></i></span><span class="vl">999</span></div>
+<div class="brow"><span class="lb">qwen3.7-max</span><span class="tk"><i style="width:89.3%"></i></span><span class="vl">964</span></div>
+</div>
+<p>生成端的三个关键设计：</p>
+<ul>
+<li><strong>默认温度采样</strong>：生成阶段刻意<strong>不传</strong> temperature，让每个模型用自身默认温度自由发散，10 次重复间才有多样性 <span class="cite">(Holtzman et al., 2019; Wang et al., 2022)</span>；缓存键携带重复序号（rep tag），防止三次采样被缓存折叠成同一响应。</li>
+<li><strong>种子引导</strong>：Prompt 附约 50 个种子参考词（金融科技、数字金融、手机银行、智能风控……），把发散约束在「银行 × 金融科技」交叉域内。</li>
+<li><strong>生成即自检</strong>：每个词须附「三选一」正向判据理由（序号 0–2），在生成端就以与判别端<strong>同源</strong>的判据自我锚定，从源头压制「裸技术词」误报（详见 §7.2）；理由仅作思维链约束，不落盘 <span class="cite">(Wei et al., 2022; Kojima et al., 2022)</span>。</li>
+</ul>
+
+<h3 id="s5-2"><span class="no">5.2</span>阶段②-a 清洗与去重：13,247 → 982（保留 7.4%）</h3>
+<p>先做逐条清洗（<code>_clean_keywords</code>：过滤空值 → Unicode NFKC 规范化统一全角/半角 → 去「1.」「1、」等序号前缀 → 去首尾标点），再跨模型合并去重，13,247 条收敛为 <strong>982</strong> 个唯一词（Sheet「2-去重后」），压缩率高达 <strong>92.6%</strong>。</p>
+<div class="plain"><span class="tt">白话：砍掉九成不是浪费，是「共识探测」</span>
+13 个模型各自独立生成，结果 92.6% 的词条互相撞车——「金融科技」「手机银行」这类核心词几乎每个模型每次都会写。
+重复率越高的词越可能是真·领域核心词；而去重后剩下的 982 个「唯一词」里，才混着各模型的个性化发挥（既有遗珠也有噪音），
+这正是后面要靠投票来裁决的对象。</div>
+
+<h3 id="s5-3"><span class="no">5.3</span>阶段②-b 去数字字母：982 → 915</h3>
+<p>剔除含阿拉伯数字或拉丁字母的词（如「5G」「5G智慧网点」「AI客服」），982 → <strong>915</strong>（-67 词，Sheet「2b-去数字字母后」）。动因是词典契约为「中文专业词汇」：下游 Aho–Corasick 精确匹配在中文语料上对含英数词的边界行为不稳（子串误命中、大小写变体），且此类概念多有纯中文等价词（如「第五代移动通信」，最终确以候选词身份送审）。</p>
+
+<h3 id="s5-4"><span class="no">5.4</span>阶段②-c 词根精简：915 → 696（保留 76.07%）</h3>
+<p>核心算子是<strong>超子串包容剔除</strong>（<code>_simplify_keywords</code>）：凡一个词完整包含另一个更短的保留词，即视为派生词删除——例如保留「信用风险」则删「信用风险管理」。实现上按词长升序扫描、用哈希集合查子串，915 词 0.001 s 完成。915 → <strong>696</strong>（-219 词）。</p>
+<p>该步的测度学动因：下游按<strong>词频计数</strong>做文本测度时，「智能风控」与「智能风控平台」会在同一句里被重复命中，派生词会造成同一概念的重复计量；先收敛为互不包含的「正交原子词根」，等价于对特征空间做一次去共线处理，也抑制了无监督扩容常见的假阳性膨胀 <span class="cite">(Hanley & Hoberg, 2019; Li et al., 2021; King et al., 2017)</span>。最后按拼音排序（<code>pypinyin</code>）得到送审词表（Sheet「4-最终结果」，696 词）。</p>
+<div class="warn"><span class="tt">已知代价（诚实披露）</span>
+超子串消元是「计数盲」的：只看包含关系、不看词频与语义。个别有独立含义的长词会被短词根吞并（如「数字人民币」若「数字人」在池中会被其吞掉）。
+本版以「宽口径召回 + 后端投票兜底」缓解此风险；该局限已在项目内部评审中立案，属后续版本的已知改进点。</div>
+
+<h3 id="s5-5"><span class="no">5.5</span>阶段③ AI 盲审：13 家 × 3 轮 = 27,144 张票，零缺失</h3>
+<p>696 个候选词按 100 词/批切成 7 批，13 个模型对每批<strong>独立成功调用 3 次</strong>（缓存 tag 携带轮序号 <code>judge|rep{r}|try{n}</code>，杜绝零温同 Prompt 被缓存折叠成假三轮），共 <strong>273 个判别任务</strong>全部完整返回（manifest 逐任务记录 outcome = full），得到 696 × 13 × 3 = <strong>27,144</strong> 个「score ∈ {0,1} + 判据序号」票据——本说明书对 Sheet「5-AI判别结果」逐格重算：<strong>无一缺失</strong>，且 <code>LLMs_total_score</code> 与 13 家 vote 之和<strong>零不一致</strong>。</p>
+<p>模型内三轮再按三局两胜聚成该模型的<strong>正式票</strong>（<code>{model}_vote</code>）。三轮全同率（3:0 的比例）介于 <strong>76.9%（kimi-k2.6）至 97.0%（qwen3.7-max）</strong>：即便锁定零温，个别模型对边界词仍会轮间翻转（deepseek-v4-pro 有 145 词、kimi-k2.6 有 161 词出现 2:1 分歧），这正是 self-consistency 多轮设计要吸收的噪声 <span class="cite">(Wang et al., 2022; Zheng et al., 2023)</span>。</p>
+<div class="chart">
+<div class="ct">13 家正式票总分（LLMs_total_score）分布，N = 696</div>
+<div class="cs">强烈双峰：满票 391 词（56.2%）与 ≤3 票 89 词（12.8%）两端聚集，中间地带稀薄——评委团对多数词有清晰共识，分歧集中在少数边界词</div>
+<div class="brow"><span class="lb">13 票（满票）</span><span class="tk"><i class="hi" style="width:100%"></i></span><span class="vl">391 (56.2%)</span></div>
+<div class="brow"><span class="lb">12 票</span><span class="tk"><i class="hi" style="width:23.3%"></i></span><span class="vl">91 (13.1%)</span></div>
+<div class="brow"><span class="lb">11 票</span><span class="tk"><i class="hi" style="width:8.2%"></i></span><span class="vl">32 (4.6%)</span></div>
+<div class="brow"><span class="lb">10 票</span><span class="tk"><i class="hi" style="width:4.9%"></i></span><span class="vl">19 (2.7%)</span></div>
+<div class="brow"><span class="lb">9 票</span><span class="tk"><i class="hi" style="width:5.9%"></i></span><span class="vl">23 (3.3%)</span></div>
+<div class="brow"><span class="lb">8 票</span><span class="tk"><i class="hi" style="width:4.9%"></i></span><span class="vl">19 (2.7%)</span></div>
+<div class="brow"><span class="lb">7 票（入选线）</span><span class="tk"><i class="hi" style="width:4.1%"></i></span><span class="vl">16 (2.3%)</span></div>
+<div class="brow"><span class="lb">6 票</span><span class="tk"><i style="width:2.0%"></i></span><span class="vl">8 (1.1%)</span></div>
+<div class="brow"><span class="lb">5 票</span><span class="tk"><i style="width:0.8%"></i></span><span class="vl">3 (0.4%)</span></div>
+<div class="brow"><span class="lb">4 票</span><span class="tk"><i style="width:1.3%"></i></span><span class="vl">5 (0.7%)</span></div>
+<div class="brow"><span class="lb">3 票</span><span class="tk"><i style="width:4.6%"></i></span><span class="vl">18 (2.6%)</span></div>
+<div class="brow"><span class="lb">2 票</span><span class="tk"><i style="width:6.4%"></i></span><span class="vl">25 (3.6%)</span></div>
+<div class="brow"><span class="lb">1 票</span><span class="tk"><i style="width:5.9%"></i></span><span class="vl">23 (3.3%)</span></div>
+<div class="brow"><span class="lb">0 票（全否）</span><span class="tk"><i style="width:5.9%"></i></span><span class="vl">23 (3.3%)</span></div>
+<div class="legend"><span><i style="background:var(--accent)"></i>≥7 票：入选（591 词）</span><span><i style="background:var(--accent-lt)"></i>≤6 票：落选（105 词）</span></div>
+</div>
+<p>判据理由的使用分布同样有信息量：27,144 张票的理由序号全部落在六类判据内（零越界、零自造），其中「银行主体共现的通用科技词汇」（宽口径召回臂）被使用 9,782 次（36.0%）居首，「银行金融科技领域的核心词汇」8,134 次（30.0%）次之；三类否定判据合计 5,175 次（19.1%），其中「无金融科技属性的银行传统业务词汇」2,537 次是最主要的拒收理由——与该词典「排除传统银行业务词」的核心动机吻合（各词票据中的理由文本由序号经 <code>reason_text_from_index</code> 本地反查还原为全文落盘，$0 成本）。</p>
+<div class="chart">
+<div class="ct">六类判据被引用次数（27,144 张票，六类合计恰为全量）</div>
+<div class="cs">前三类为「判 1」理由（合计 80.9%），后三类为「判 0」理由（合计 19.1%）</div>
+<div class="brow"><span class="lb">银行主体共现的通用科技词汇 →1</span><span class="tk"><i class="hi" style="width:100%"></i></span><span class="vl">9,782</span></div>
+<div class="brow"><span class="lb">银行金融科技领域的核心词汇 →1</span><span class="tk"><i class="hi" style="width:83.2%"></i></span><span class="vl">8,134</span></div>
+<div class="brow"><span class="lb">提及即为银行金融科技词汇 →1</span><span class="tk"><i class="hi" style="width:41.4%"></i></span><span class="vl">4,053</span></div>
+<div class="brow"><span class="lb">无金融科技属性的银行传统业务词汇 →0</span><span class="tk"><i style="width:25.9%"></i></span><span class="vl">2,537</span></div>
+<div class="brow"><span class="lb">默认主体非银行的金融科技词汇 →0</span><span class="tk"><i style="width:16.9%"></i></span><span class="vl">1,650</span></div>
+<div class="brow"><span class="lb">不属于银行金融科技的词汇 →0</span><span class="tk"><i style="width:10.1%"></i></span><span class="vl">988</span></div>
+<div class="legend"><span><i style="background:var(--accent)"></i>正向判据（判 1）</span><span><i style="background:var(--accent-lt)"></i>否定判据（判 0）</span></div>
+</div>
+
+<h3 id="s5-6"><span class="no">5.6</span>AI 认可：591 词（84.9%）通过 ≥7/13 严格过半数</h3>
+<p>入选规则为<strong>严格过半数</strong>：\( s_w > 13 \times 0.5 = 6.5 \)，即 <strong>≥7 票</strong>（13 为奇数，天然无平票）。591 词过线（84.9%），105 词落选。落选词呈现清晰的语义规律：</p>
+<ul>
+<li><strong>0 票全否词（23 个）</strong>多为「有金融、无科技」或「主体非银行」：第三方支付、稳定币、加密货币、互联网保险、保险科技、私人银行、资产证券化、资本充足率、结构性存款、智慧医疗、智慧校园、智慧政务……与六类判据的否定臂逐一对应。</li>
+<li><strong>中间带（6–8 票）词</strong>是真正的边界词：助贷、科技金融、移动支付、平台金融、嵌入式金融、智能化、金融创新、压力测试、客户体验……模型对「银行属性是否默认成立」意见分裂——这批词恰是后续人工盲评最有增量价值的对象。</li>
+</ul>
+
+<h3 id="s5-7"><span class="no">5.7</span>专家盲评：602 词（86.5%）通过 ≥4/7</h3>
+<p>7 位专家对全部 696 词独立盲评（协议详见 §7），逐词判定 0/1、无一留空。<code>Experts_total_score</code> 分布如下——同样呈「满票主导」形态：满票 340 词（48.9%），全否 27 词（3.9%）。按过半数 ≥4 认可 <strong>602 词</strong>（86.5%；统计表与明细一致）。</p>
+<div class="chart">
+<div class="ct">专家总分（Experts_total_score）分布，N = 696</div>
+<div class="cs">形态与 AI 总分分布同构（两端聚集、中间稀薄），提示人机面对的是同一批「明确词 + 少数边界词」</div>
+<div class="brow"><span class="lb">7 票（满票）</span><span class="tk"><i class="hi" style="width:100%"></i></span><span class="vl">340 (48.9%)</span></div>
+<div class="brow"><span class="lb">6 票</span><span class="tk"><i class="hi" style="width:48.5%"></i></span><span class="vl">165 (23.7%)</span></div>
+<div class="brow"><span class="lb">5 票</span><span class="tk"><i class="hi" style="width:16.8%"></i></span><span class="vl">57 (8.2%)</span></div>
+<div class="brow"><span class="lb">4 票（入选线）</span><span class="tk"><i class="hi" style="width:11.8%"></i></span><span class="vl">40 (5.7%)</span></div>
+<div class="brow"><span class="lb">3 票</span><span class="tk"><i style="width:4.4%"></i></span><span class="vl">15 (2.2%)</span></div>
+<div class="brow"><span class="lb">2 票</span><span class="tk"><i style="width:7.1%"></i></span><span class="vl">24 (3.4%)</span></div>
+<div class="brow"><span class="lb">1 票</span><span class="tk"><i style="width:8.2%"></i></span><span class="vl">28 (4.0%)</span></div>
+<div class="brow"><span class="lb">0 票（全否）</span><span class="tk"><i style="width:7.9%"></i></span><span class="vl">27 (3.9%)</span></div>
+<div class="legend"><span><i style="background:var(--accent)"></i>≥4 票：认可（602 词）</span><span><i style="background:var(--accent-lt)"></i>≤3 票：否决（94 词）</span></div>
+</div>
+
+<h3 id="s5-8"><span class="no">5.8</span>人机双过半：572 词定为词典主体</h3>
+<p>Sheet「7-AI+人工判别结果」按 <code>Experts_total_score ≥ 4 且 LLMs_total_score ≥ 7</code> 逐词判定，<strong>572 词</strong>为 YES——本说明书对 696 行逐行复核该规则，<strong>零错判</strong>。人机 2×2 混淆结构如下：</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th></th><th class="ctr">专家认可（≥4/7）</th><th class="ctr">专家否决</th><th class="ctr">行合计</th></tr></thead>
+<tbody>
+<tr><th>AI 认可（≥7/13）</th><td class="ctr"><strong>572</strong>（双认可 → 入典）</td><td class="ctr">19（仅 AI）</td><td class="ctr">591</td></tr>
+<tr><th>AI 否决</th><td class="ctr">30（仅专家）</td><td class="ctr">75（双否决）</td><td class="ctr">105</td></tr>
+<tr><th>列合计</th><td class="ctr">602</td><td class="ctr">94</td><td class="ctr">696</td></tr>
+</tbody>
+</table></div>
+<p>词级一致率 (572+75)/696 = <strong>93.0%</strong>，Cohen&#39;s κ = <strong>0.7128</strong>（计算见 §6.4）。49 个分歧词的方向也有内容含义：</p>
+<ul>
+<li><strong>仅 AI 认可、专家否决（19 词）</strong>：多为银行运营/合规基础设施词——三类户、二类账户、反洗钱、反欺诈、压力测试、灾难恢复、客户体验、资金存管……AI 倾向把「银行数字化运营的一切」都算进来，专家则认为这些缺乏鲜明的「金融科技」属性。</li>
+<li><strong>仅专家认可、AI 否决（30 词）</strong>：多为「科技属性强、但默认主体未必是银行」的词——量化交易、高频交易、算法交易、去中心化金融、网联、聚合支付、电子钱包、互联网金融、元宇宙……专家按宽口径把银行深度参与的业态也纳入，AI 的六类判据则更严守「主体默认为银行」。</li>
+</ul>
+<div class="plain"><span class="tt">白话：为什么要「双过半」而不是任一方说了算？</span>
+AI 的强项是不知疲倦、口径稳定，但它对「中国银行业语境下这个词到底归谁」的世故理解不如真人专家；
+专家的强项是领域直觉，但 7 个人也各有宽严。「AI 过半 且 专家过半」相当于两道独立安检门——
+只有两边都点头的词才进词典，单边的热情（无论来自机器还是人）都进不了正典，只能作为边界案例留档。</div>
+
+<h3 id="s5-9"><span class="no">5.9</span>专家增补与终选：572 + 35 = 607 词</h3>
+<p>盲评回收后，专家层另行增补了 <strong>35 个</strong>认为被生成/规约环节遗漏的词（Sheet「9-最终词典」备注列 =「专家增加词汇」），与 572 词合并为<strong>最终词典 607 词</strong>。增补词的构成有明显的系统性——多为高频「渠道/动作」类复合词与既有词根的重要变体：</p>
+<ul>
+<li><strong>渠道与支付</strong>：网络银行、掌上银行、网上开户、网上支付、手机支付、银联闪付、自助设备、在线客服；</li>
+<li><strong>线上信贷/理财族</strong>：互联网贷款、互联网信贷、互联网融资、在线融资、线上融资、网上融资、网络融资、网上理财、网络理财、线上金融、线上获客；</li>
+<li><strong>数据与智能族</strong>：数据产品、数据交易、数据生态、数据营销、数字赋能、数字技术、数字人民币、智能分析、智能助理、智能反欺诈、智能反洗钱、人机交互、精准推送、云存储、云服务、卫星遥感。</li>
+</ul>
+<p>值得注意的是「数字人民币」「互联网贷款」本在 <code>config.py</code> 的种子参考词中，却未进入 696 候选——正是 §5.4 所述超子串消元「计数盲」代价的实例（本说明书对候选集实测确认：二者分别被更短词根「数字人」「网贷」吞并）；专家增补层在制度上兜住了这类系统性漏词。</p>
+</section>
+<!-- ═══════════════ 6 审核与检验方法 ═══════════════ -->
+<section id="s6">
+<h2><span class="no">6</span>审核与检验方法</h2>
+<p>本管道的质量保证体系由五层构成：<strong>双层多数投票</strong>（裁决机制）→ <strong>信度检验</strong>（Fleiss&#39; κ / Cohen&#39;s κ）→ <strong>人工盲评外部验证</strong>（§7）→ <strong>可复现性工程</strong>（缓存 / manifest / 冻结重放 / 验证器）→ <strong>自动化测试</strong>。逐层说明如下。</p>
+
+<h3 id="s6-1"><span class="no">6.1</span>双层多数投票：模型内三局两胜 → 模型间严格过半数</h3>
+<p>设候选词 \(w\)，模型 \(m\) 在第 \(r\) 轮（\(r=1,2,3\)）的判分为 \(s_{w,m,r}\in\{0,1\}\)。<strong>第一层（模型内，self-consistency）</strong>把三轮聚成该模型的正式票：</p>
+<div class="eq">$$ v_{w,m} \;=\; \mathbb{1}\!\left[\sum_{r=1}^{R} s_{w,m,r} \;\ge\; \Big\lfloor \tfrac{R}{2} \Big\rfloor + 1\right], \qquad R=3,\;\; \Big\lfloor \tfrac{3}{2} \Big\rfloor + 1 = 2 $$</div>
+<p>即三局两胜。二值判分 + 奇数轮 ⇒ 模型内<strong>永无平票</strong>。<strong>第二层（模型间，严格过半数）</strong>再对 13 张正式票计总并截断：</p>
+<div class="eq">$$ S_w \;=\; \sum_{m=1}^{13} v_{w,m}, \qquad \text{AI 认可} \iff S_w \;&gt;\; 13 \times 0.5 = 6.5 \iff S_w \ge 7 $$</div>
+<p>13 为奇数 ⇒ 模型间同样无平票。此「多数中的多数」结构是集成学习多数投票 <span class="cite">(Dietterich, 2000; Breiman, 1996)</span> 与 LLM self-consistency <span class="cite">(Wang et al., 2022)</span> 的复合：第一层滤掉单模型的<strong>轮间随机噪声</strong>（采样抖动），第二层滤掉单模型的<strong>系统性偏差</strong>（口味）。实测两层各有实质工作量：第一层吸收了最多达 161 词/模型的轮间翻转（§5.5）；第二层在 13 家判 1 率 67.4%–95.3% 的口径分裂下裁出 591 词的共识集（§5.6）。</p>
+<div class="plain"><span class="tt">白话：两层投票分别防什么？</span>
+第一层防「同一个评委手抖」——哪怕锁定零温，大模型对边界词偶尔也会前后不一，三局两胜取它的稳定意见；
+第二层防「某个评委口味偏」——比如 MiniMax 几乎来者不拒（判 1 率 95.3%）、kimi 特别挑剔（67.4%），
+一人一票、过半才算，谁也无法单独把词送进词典或拦在门外。</div>
+
+<h3 id="s6-2"><span class="no">6.2</span>Fleiss&#39; κ 评分者间一致性检验</h3>
+<p>投票机制只保证「有决议」，不保证「决议有共识含金量」。管道用 Fleiss&#39; κ <span class="cite">(Fleiss, 1971)</span> 度量 13 个评委（正式票口径）超越随机水平的一致程度，由独立脚本 <code>calculate_kappa.py</code> 离线计算。设 \(N=696\) 个词、\(n=13\) 个评分者、\(k=2\) 个类别，\(n_{ij}\) 为第 \(i\) 词被判为类别 \(j\) 的评分者数：</p>
+<div class="eq">$$ P_i=\frac{1}{n(n-1)}\left(\sum_{j=1}^{k} n_{ij}^{2}-n\right),\qquad \bar{P}=\frac{1}{N}\sum_{i=1}^{N}P_i,\qquad P_e=\sum_{j=1}^{k}p_j^{2},\qquad p_j=\frac{\sum_i n_{ij}}{N\,n} $$</div>
+<div class="eq">$$ \kappa \;=\; \frac{\bar{P}-P_e}{1-P_e} $$</div>
+<p>代入 20260715 版判别数据（本说明书用独立实现对 Sheet「5-AI判别结果」重算，与管道口径交叉验证）：13 家正式票合计判 1 共 7,398 张，故 \(p_1 = 7398/(696\times 13) = 0.8176\)，\(p_0=0.1824\)；</p>
+<div class="eq">$$ P_e = 0.8176^2 + 0.1824^2 = 0.7018, \qquad \bar{P}=0.8779, \qquad \kappa=\frac{0.8779-0.7018}{1-0.7018}=\frac{0.1761}{0.2982}= \mathbf{0.5906}\;\;\checkmark $$</div>
+<p>与管道权威值<strong>完全一致</strong>。直观解读：13 个评委实际平均两两一致率 87.8%；即便闭眼按边缘比例乱投也会有 70.2% 的「虚假一致」；κ 度量的是刨除运气后、在剩余 29.8% 空间里真正达成的那 17.6 个百分点共识（占比 59.1%）。同法计算 7 位专家的 κ = 0.4208（§7.4）。</p>
+<div class="warn"><span class="tt">口径警示：v2 的 κ 与 v1 不可比</span>
+本版 κ 基于「三轮内部多数聚成的正式票」；历史 v1（8 模型 × 单轮）的 κ = 0.5017 基于单轮裸判分。正式票已先在模型内吸收了轮间噪声，κ 天然更高，两代数字<strong>不可直接比较</strong>——工作簿与手稿均按此口径披露。</div>
+
+<h3 id="s6-3"><span class="no">6.3</span>双口径分级与 κ 悖论</h3>
+<p>κ 数值的「好坏」分级在文献中并无唯一标准，管道刻意采用<strong>双口径并列披露、不分主次</strong>：</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>κ 值</th><th>Landis &amp; Koch (1977) 经典口径</th><th>McHugh (2012) 更严口径</th></tr></thead>
+<tbody>
+<tr class="hl"><td class="num">0.5906（13 模型）</td><td>Moderate（中度一致）</td><td>Weak（弱一致）</td></tr>
+<tr class="hl"><td class="num">0.4208（7 专家）</td><td>Moderate（中度一致）</td><td>Weak（弱一致）</td></tr>
+<tr class="hl"><td class="num">0.7128（人机 Cohen&#39;s κ）</td><td>Substantial（高度一致）</td><td>Moderate（中度一致）</td></tr>
+</tbody>
+</table></div>
+<p>如实并列两套口径 <span class="cite">(Landis & Koch, 1977; McHugh, 2012)</span>，避免单一分级夸大（只报 Landis-Koch）或贬低（只报 McHugh）一致性水平——这是内容分析信度报告的推荐做法 <span class="cite">(Krippendorff, 2004; Artstein & Poesio, 2008; Zapf et al., 2016)</span>。</p>
+<p>另须正视 <strong>κ 悖论</strong> <span class="cite">(Feinstein & Cicchetti, 1990)</span>：当边缘分布高度偏态（本例 81.8% 的票为「判 1」）时，\(P_e\) 被推得很高（0.7018），κ 会<strong>系统性低估</strong>直观一致性——观测一致率明明高达 87.8%，κ 却只有 0.59。因此管道文档同时锚定一致性系数族（配对基线 Cohen&#39;s κ、标准测度 Krippendorff&#39;s α、对偏态稳健的 Gwet&#39;s AC1）作为佐证口径 <span class="cite">(Cohen, 1960; Hayes & Krippendorff, 2007; Krippendorff, 2011; Gwet, 2008; Scott, 1955)</span>。LLM 超多数投票天然处于「高一致 + 偏态」场景，报告 κ 时并观 AC1 是文献明确建议 <span class="cite">(Gwet, 2008; Zapf et al., 2016)</span>。</p>
+<div class="plain"><span class="tt">白话：κ = 0.59 到底算好还是差？</span>
+可以理解为「去掉运气分之后的净共识」。想象考试满分 100，随机蒙也能得 70 分（因为大部分词明摆着是对的），
+13 个评委实际考了 88 分——κ 问的是：在「70 分到 100 分」这 30 分的真本事区间里，你们拿到了几成？答案是约六成。
+按宽标准这叫「中度一致」，按严标准只算「弱一致」；正因为机器共识不是铁板一块，才必须请真人专家再把一道关。</div>
+
+<h3 id="s6-4"><span class="no">6.4</span>人机一致性检验：Cohen&#39;s κ 与查准/查全</h3>
+<p>把「AI 认可（≥7/13）」与「专家认可（≥4/7）」视为两位「裁决者」对同一 696 词的二值判定，按 §5.8 混淆表（a=572, b=19, c=30, d=75）计算配对一致性 <span class="cite">(Cohen, 1960)</span>：</p>
+<div class="eq">$$ p_o=\frac{a+d}{N}=\frac{572+75}{696}=0.9296,\qquad p_e=\frac{591}{696}\cdot\frac{602}{696}+\frac{105}{696}\cdot\frac{94}{696}=0.7548 $$</div>
+<div class="eq">$$ \kappa_{\text{Cohen}}=\frac{p_o-p_e}{1-p_e}=\frac{0.9296-0.7548}{0.2452}= \mathbf{0.7128} \;\;(\text{Landis-Koch: Substantial}) $$</div>
+<p>若以专家判定为基准（human ground truth），机器词典的检索式指标为：</p>
+<div class="eq">$$ \text{查准率 Precision}=\frac{572}{591}=0.968,\qquad \text{查全率 Recall}=\frac{572}{602}=0.950,\qquad F_1=\frac{2PR}{P+R}=0.959 $$</div>
+<p>即机器认可的词 96.8% 获得专家背书、专家认可的词 95.0% 被机器复现——达到 LLM 标注文献中「可用于下游测度」的验证水准 <span class="cite">(Gilardi et al., 2023; Pangakis et al., 2023; Törnberg, 2023; Rathje et al., 2024; Chae & Davidson, 2025)</span>。</p>
+
+<h3 id="s6-5"><span class="no">6.5</span>可复现性体系：缓存 → manifest → 冻结重放 → 验证器</h3>
+<p>付费 LLM 调用天然不可重复（供应商随时改模型），管道用四件套把「同一份词典可被字节级重现」变成可机检的承诺：</p>
+<ul>
+<li><strong>① 内容寻址缓存</strong>（<code>llm_cache.py</code>）：每次 LLM 调用的响应按键
+<div class="eq">$$ \text{key} = \operatorname{SHA-256}\!\big(\text{JSON}[\,\text{model},\ \text{temperature},\ \text{tag},\ \text{prompt}\,]\big) $$</div>
+存入目录级 SQLite（当前 779 条 / 8.16 MB）。tag 携带轮次序号（生成 <code>rep{r}</code>、判别 <code>judge|rep{r}|try{n}</code>），确保「刻意的重复采样」不被缓存折叠。</li>
+<li><strong>② 判别 manifest 存根</strong>：每次跑批落盘 <code>judge_manifest_&lt;时间戳&gt;.json</code>（schema v2），冻结当次判别的全部语义要素：13 模型清单、批大小、temperature、<strong>696 词表全文及其 SHA-256 指纹</strong>（<code>ac5b1fe9…</code>）、三轮协议参数（n_judge_reps=3 / rep_majority=2 / final_vote_threshold），以及 <strong>273 个任务逐 try 的缓存键与结果状态</strong>（本次真跑 273/273 outcome=full）。</li>
+<li><strong>③ 冻结重放通道</strong>：<code>python 00_LLMs_for_dic.py --judge-only --from-manifest &lt;json&gt;</code> 跳过生成阶段，按 manifest 冻结的词表与缓存键纯离线重建判别结果（生成阶段 Sheet 从首跑产物只读拷贝）；配合 <code>LLMS_DIC_OFFLINE=1</code> 严格模式（缓存 miss 直接抛错、绝不调 API）。<strong>验收实测</strong>：v2 重放与首跑产物逐格比对 <strong>0 差异</strong>，重放耗时 0.92 s、成本 $0。</li>
+<li><strong>④ 覆盖验证器</strong>（<code>verify_judge_cache_coverage.py</code>）：独立只读核验「manifest 声明的每个任务的消费键都真实存在于缓存库」，输出五路对账计数；任何缺失即 FAIL——相当于在承诺「可复现」之前先<strong>点钞</strong>。</li>
+</ul>
+<div class="plain"><span class="tt">白话：这套东西解决什么问题？</span>
+大模型 API 是个「活水龙头」：今天问和明天问，答案可能不同，模型甚至会下架。我们把每一次真实问答都按「问题的指纹」存进本地保险柜（缓存），
+再把「这次词典用了哪些问答」开成清单（manifest）。以后任何人想验证词典，不用再花一分钱调 API——
+照清单从保险柜里取出原始答案重新数票即可，数出来必须和当年一模一样（实测确实一格不差）。</div>
+
+<h3 id="s6-6"><span class="no">6.6</span>自动化测试与工程守卫</h3>
+<ul>
+<li><strong>专属测试</strong>：主仓 <code>tests/test_llmsdic_judge_reps.py</code>（232 行，8 项）锁定三轮盲审协议的关键行为：轮次进入缓存 tag（防假三轮）、模型内多数聚合、manifest v2 冻结字段、重放消费冻结参数等。</li>
+<li><strong>启动守卫</strong>：<code>LLMS_DIC_OFFLINE=1</code> 与 <code>LLMS_DIC_CACHE=0</code> 同设时拒绝启动（防「离线承诺」静默失效直连付费 API）；离线模式下缓存 miss 抛 <code>LLMCacheMissError</code> 而非降级。</li>
+<li><strong>费用保护</strong>：全局重试上限 <code>MAX_TOTAL_RETRIES=50</code> + 单模型连续失败熔断 <code>MODEL_FAIL_THRESHOLD</code> + 每模型并发信号量，三重限流防止异常场景下重试风暴烧钱。</li>
+<li><strong>解析韧性</strong>：JSON 解析失败时依次启用对象级打捞（<code>_salvage_json_objects</code>，从截断/污染文本中逐个抢救合法对象）与思维链打捞（<code>_salvage_reasoning_keywords</code>），换 tag 重试则生成新缓存键，绝不覆盖旧证据。</li>
+<li><strong>判分域强制</strong>：判别解析对 score 施加 {0,1} 域校验（评审整改项），畸形值不静默混入计票。</li>
+</ul>
+
+<h3 id="s6-7"><span class="no">6.7</span>数据核对与差异披露（本说明书的复算记录）</h3>
+<p>本说明书对工作簿做了独立全量复算，结果如下——<strong>凡本文引用的数字均以复算值为准</strong>：</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>核对项</th><th>结果</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>逐模型生成量加总 = 13,247</td><td class="ctr chk">✓</td><td>13 模型分项和与 Sheet 1 行数一致</td></tr>
+<tr><td>27,144 张判别票零缺失</td><td class="ctr chk">✓</td><td>696×13×3 逐格非空；理由序号全部落在六类判据内</td></tr>
+<tr><td><code>LLMs_total_score</code> ≡ Σ vote</td><td class="ctr chk">✓</td><td>696 行零不一致</td></tr>
+<tr><td>≥7 票词数 = 591</td><td class="ctr chk">✓</td><td>由总分分布加总复核（16+19+23+19+32+91+391）</td></tr>
+<tr><td>Sheet 7 双过半规则逐行复核</td><td class="ctr chk">✓</td><td>YES=572，零错判</td></tr>
+<tr><td>Sheet 9 构成 = 572+35 = 607</td><td class="ctr chk">✓</td><td>备注列计数吻合</td></tr>
+<tr><td>Fleiss&#39; κ 复算 = 0.5906</td><td class="ctr chk">✓</td><td>独立实现，\(\bar P\)=0.8779 / \(P_e\)=0.7018 逐项吻合</td></tr>
+<tr><td>统计 Sheet 两行 vs 各明细 Sheet 逐格交叉</td><td class="ctr chk">✓</td><td>现版统计表（982 / 915 / 696 / 591 / 602 / 572 / 35 / 607）与明细 Sheet 逐项一致。历史注记：机器产物内部曾存在「去重 984 vs 982」双口径（同一运行日志的统计行载 984、结果链行载 982），早期版工作簿曾随之载 984/603；课题组已于 2026-07-21 定稿前统一修正为 982/602，本说明书复核确认现版<strong>零出入</strong></td></tr>
+<tr><td>生成任务完成度</td><td class="ctr chk">✓</td><td>运行日志进度锚「130/130 (100%)，已收集 13247 个原始词条」</td></tr>
+<tr><td>终选词典 vs 生产词典</td><td class="ctr chk">✓</td><td><code>config/fintech_dict.json</code>（2026-07-21 换血后）与 Sheet 9 终选词表集合完全相等（607 = 607）</td></tr>
+<tr><td>文件名日期 20260715 vs 数据日期</td><td class="ctr">△</td><td>文件名沿用 7-15 立项版号；内容对应 2026-07-21 机器判别真跑（12:04–12:59 付费首跑）与其后的专家盲评汇总，并由课题组持续维护更新</td></tr>
+<tr><td>行序确定性</td><td class="ctr">△</td><td>既有披露：原始 Sheet 行序为并发到达序、拼音排序同键平局受哈希种子影响——均只影响<strong>行序</strong>不影响集合与计数</td></tr>
+</tbody>
+</table></div>
+</section>
+
+<!-- ═══════════════ 7 人工标注 ═══════════════ -->
+<section id="s7">
+<h2><span class="no">7</span>人工标注（专家盲评）情况</h2>
+
+<h3 id="s7-1"><span class="no">7.1</span>盲评协议设计</h3>
+<p>LLM 标注文献的核心告诫是「自动标注必须经人工验证」 <span class="cite">(Pangakis et al., 2023; Gilardi et al., 2023; Ziems et al., 2024)</span>。本项目为此设计了成套的专家盲评协议，配套两份交付物（均在 <code>data_processed/</code>）：</p>
+<ul>
+<li><strong>《银行金融科技词典_评判人盲评表.xlsx》</strong>：696 行 × 4 列（id / keyword / 人工判别（是1，否0） / 备注（选填））。<strong>刻意隐去机器的全部评分与理由</strong>，防止专家被机器结果「锚定」，保证人机一致性检验的独立性。</li>
+<li><strong>《银行金融科技词典说明文档-评判人.docx》</strong>：约 15 分钟读完的评判指南，含研究背景、统一判定标准（与机器判别判据<strong>完全一致</strong>，保证人机可比）、判定示例、边界情形警示、FAQ 与一页自查清单。</li>
+</ul>
+<p>协议的五条关键纪律：① <strong>独立判断</strong>——7 位评判人互不交流、不见机器结果；② <strong>全量判定</strong>——696 词逐词填 1/0，不留空（送审词中既有机器认可也有机器否决的词，文档明示「不要假设列出来的都该判 1」）；③ <strong>统一准绳</strong>——以文档第三部分的两步判定法为标准；④ <strong>格式契约</strong>——只填阿拉伯数字、不改动 id/keyword、不增删行，保证回收后自动对齐；⑤ <strong>保密与限用</strong>——判定结果仅用于方法学效度检验。建议用时 60–90 分钟，可分次完成。这一「多标注人独立编码 + 信度检验」范式沿袭内容分析的标准方法论 <span class="cite">(Krippendorff, 2004; Artstein & Poesio, 2008; Passonneau & Carpenter, 2014)</span>。</p>
+
+<h3 id="s7-2"><span class="no">7.2</span>判定标准：六类判据（人机同一套）</h3>
+<p>判据的本质是一条两侧条件：</p>
+<div class="eq">$$ \text{判 } 1 \iff \underbrace{\text{「银行」侧成立}}_{\text{默认指向银行业机构自身}} \;\land\; \underbrace{\text{「金融科技」侧成立}}_{\text{具科技/数字化内涵，非纯传统业务}} $$</div>
+<p>操作化为六类固定判据（<code>config.py::REASONS</code>，单一字面源；生成端取其正向三条自我锚定，判别端全量消费，人工盲评文档逐类详解同一套标准）。六类按 score 降序排列，负例殿后占据最强「近因」位置，且正负 3:3 平衡以抑制多数标签偏置——few-shot 示例的顺序与配比会系统性影响 LLM 判定，是有据可依的工程选择 <span class="cite">(Dong et al., 2023; Liu, Yuan, et al., 2023)</span>：</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>#</th><th>锚点代表词</th><th>判据理由（逐字）</th><th class="ctr">score</th><th>覆盖象限</th><th class="num">被引次数</th></tr></thead>
+<tbody>
+<tr><td>0</td><td>金融科技</td><td>银行金融科技领域的核心词汇</td><td class="ctr">1</td><td>银行锚定的领域母词</td><td class="num">8,134</td></tr>
+<tr><td>1</td><td>人工智能</td><td>银行主体共现的通用科技词汇</td><td class="ctr">1</td><td>有银行 · 通用科技（宽口径召回臂）</td><td class="num">9,782</td></tr>
+<tr><td>2</td><td>手机银行</td><td>提及即为银行金融科技词汇</td><td class="ctr">1</td><td>有银行 · 有科技（精确标记词）</td><td class="num">4,053</td></tr>
+<tr><td>3</td><td>柜台业务</td><td>无金融科技属性的银行传统业务词汇</td><td class="ctr">0</td><td>有银行 · 无科技</td><td class="num">2,537</td></tr>
+<tr><td>4</td><td>天气预报</td><td>不属于银行金融科技的词汇</td><td class="ctr">0</td><td>判 0 兜底（他类金融/完全无关）</td><td class="num">988</td></tr>
+<tr><td>5</td><td>第三方支付</td><td>默认主体非银行的金融科技词汇</td><td class="ctr">0</td><td>有科技 · 无银行（最硬似是而非，殿后）</td><td class="num">1,650</td></tr>
+</tbody>
+</table></div>
+<p class="small">注：③手机银行(1)→④柜台业务(0) 在 1→0 交界构成「银行有无科技」的最小对比对。评判人文档另附「最需警惕的四类边界情形」，专门拆解「银行给技术产业放贷 ≠ 银行金融科技」这一最致命误报模式。</p>
+
+<h3 id="s7-3"><span class="no">7.3</span>专家构成与判定行为</h3>
+<p>7 位评判人均为金融学、统计学等领域博士（李振、温诗滢、梁辰、纪如昱、宋奕萱、杨翼、余芊谘），回收 7 × 696 = 4,872 个判定，<strong>无一缺失</strong>。个体宽严存在自然差异（认可率 71.6%–90.1%），恰好说明单一专家同样有「口味」，与单一模型同理，须靠过半数聚合：</p>
+<div class="chart">
+<div class="ct">各评判人认可率（判 1 比例，N = 696）</div>
+<div class="cs">均值 80.8%（= 专家票池的边缘判 1 率 p₁ = 0.8079），与 13 模型正式票的 81.8% 惊人接近——人机的整体宽严水平几乎一致</div>
+<div class="brow"><span class="lb">宋奕萱</span><span class="tk"><i class="hi" style="width:90.1%"></i></span><span class="vl">627 (90.1%)</span></div>
+<div class="brow"><span class="lb">余芊谘</span><span class="tk"><i class="hi" style="width:86.2%"></i></span><span class="vl">600 (86.2%)</span></div>
+<div class="brow"><span class="lb">纪如昱</span><span class="tk"><i class="hi" style="width:85.9%"></i></span><span class="vl">598 (85.9%)</span></div>
+<div class="brow"><span class="lb">李振</span><span class="tk"><i class="hi" style="width:82.0%"></i></span><span class="vl">571 (82.0%)</span></div>
+<div class="brow"><span class="lb">温诗滢</span><span class="tk"><i class="hi" style="width:75.0%"></i></span><span class="vl">522 (75.0%)</span></div>
+<div class="brow"><span class="lb">梁辰</span><span class="tk"><i class="hi" style="width:74.7%"></i></span><span class="vl">520 (74.7%)</span></div>
+<div class="brow"><span class="lb">杨翼</span><span class="tk"><i class="hi" style="width:71.6%"></i></span><span class="vl">498 (71.6%)</span></div>
+</div>
+
+<h3 id="s7-4"><span class="no">7.4</span>信度结果与解读</h3>
+<div class="tbl-wrap"><table>
+<thead><tr><th>指标</th><th class="num">数值</th><th>口径</th><th>解读</th></tr></thead>
+<tbody>
+<tr><td>专家间 Fleiss&#39; κ</td><td class="num">0.4208</td><td>N=696, n=7, k=2；\(\bar P\)=0.8202, \(P_e\)=0.6896</td><td>Landis-Koch 中度 / McHugh 弱。人类专家间的净共识<strong>低于</strong> 13 模型正式票（0.5906）</td></tr>
+<tr><td>专家满票率</td><td class="num">48.9%</td><td>340/696 词 7:0 全票认可</td><td>近半数词汇无争议</td></tr>
+<tr><td>人机 Cohen&#39;s κ</td><td class="num">0.7128</td><td>AI≥7 vs 专家≥4 两判定</td><td>Substantial：机器共识与专家共识高度可互认</td></tr>
+<tr><td>机器查准 / 查全（以专家为基准）</td><td class="num">96.8% / 95.0%</td><td>§6.4</td><td>F₁ = 0.959</td></tr>
+</tbody>
+</table></div>
+<p>三点值得注意的发现：</p>
+<ul>
+<li><strong>机器比人更「齐」，但人机高度互认。</strong>专家间 κ（0.4208）低于模型间 κ（0.5906）——真人专家的领域直觉更个性化，而模型受同一判据菜单约束、口径更统一。类似「LLM 标注一致性不低于人类标注者」的现象在标注文献中反复出现 <span class="cite">(Gilardi et al., 2023; Törnberg, 2023; He et al., 2024; Mellon et al., 2024)</span>。但聚合后的两个「委员会决议」高度一致（κ=0.7128，一致率 93.0%），说明分歧主要在个体层面而非制度层面。</li>
+<li><strong>专家层贡献了不可替代的增量。</strong>专家否决了 19 个 AI 认可词（多为运营合规词）、抢救了 30 个 AI 否决词（多为银行深度参与的交易科技词），并增补 35 个系统性漏词（§5.9）——「机器初筛 + 人类终审」的人机协作分工与 man + machine 文献的结论一致 <span class="cite">(Cao et al., 2024; Grossmann et al., 2023; Bail, 2024)</span>。</li>
+<li><strong>协议自带口径声明。</strong>评判人文档明示：为不干扰盲评，文档所举示例词（含六个判据锚点词）在正式一致性计算时将予排除。本节数字为对 Sheet 6 全样本（696 词）的直接复算；若按该排除口径，数值会有微小差异，属两套皆合法的口径选择。</li>
+</ul>
+</section>
+<!-- ═══════════════ 8 功能逐项说明 ═══════════════ -->
+<section id="s8">
+<h2><span class="no">8</span>功能逐项说明</h2>
+
+<h3 id="s8-1"><span class="no">8.1</span>主脚本 00_LLMs_for_dic.py（2,374 行）</h3>
+<p>流程编排与全部业务逻辑所在。按模块拆解：</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>模块</th><th>关键函数</th><th>功能</th></tr></thead>
+<tbody>
+<tr><td>并发与健康</td><td><code>_get_model_semaphore</code> / <code>_ModelHealthTracker</code> / <code>_increment_retry_count</code></td><td>每模型并发信号量（≤10）防限流；连续失败熔断跳过；全局重试计数器实施费用保护；<code>_signal_handler</code> 支持 Ctrl-C 优雅中断（即停不存档）</td></tr>
+<tr><td>学术化日志</td><td><code>setup_logger</code> / <code>_log_run_header</code> / <code>_log_run_references</code></td><td>运行 banner 完整披露方法学、配置快照与采样参数限制；文中引用一律挂接 <code>academic.py</code> 的核验引文；日志尾部输出本轮实引的 APA 参考文献表</td></tr>
+<tr><td>解析与打捞</td><td><code>_safe_parse_json</code> / <code>_salvage_json_objects</code> / <code>_salvage_reasoning_keywords</code></td><td>三级韧性解析：严格 JSON → 从截断/污染文本逐个抢救合法对象（治个别模型输出上限截断）→ 从思维链文本抢救词条；打捞启用均落日志，不静默</td></tr>
+<tr><td>重试与退避</td><td><code>_calculate_backoff</code> / <code>_call_llm_with_retry</code></td><td>按错误类型分层的指数退避+随机抖动（公式见 §9）；统一收口缓存读写、离线守卫、温度控制与「关思维链」注入；对采样参数受限模型逐模型一次性 WARNING 披露</td></tr>
+<tr><td>生成阶段</td><td><code>fetch_batch</code></td><td>单个生成任务（模型×领域×rep）：构建 Prompt → 调用 → 解析对象数组取 keyword（三态兼容旧纯字符串格式）→ 清洗计数</td></tr>
+<tr><td>判别阶段</td><td><code>judge_batch</code> / <code>_rep_vote</code> / <code>_build_judge_dataframe</code></td><td>单个判别任务（模型×批×轮）：零温调用 → 逐词解析 score/reason（域强制 {0,1}）→ 理由序号本地反查为全文 → 三轮聚合正式票 → 组装 94 列判别明细表</td></tr>
+<tr><td>集合规约</td><td><code>_clean_keywords</code> / <code>_simplify_keywords</code></td><td>NFKC 清洗、去序号前缀标点；超子串包容剔除（§5.4）</td></tr>
+<tr><td>落盘</td><td><code>main</code> / <code>_format_excel_workbook</code></td><td>全流程编排 + 统计 Sheet 计算（AI 认可按严格过半数）+ Excel 专业格式化（冻结首行/自动列宽/表头样式/score 红绿条件格式）</td></tr>
+<tr><td>复现三件套</td><td><code>_write_judge_manifest</code> / <code>_audit_*</code> / <code>_emit_replay_verdict</code> / <code>judge_replay_from_manifest</code></td><td>manifest v2 落盘（逐任务逐 try 审计轨迹）；重放判决器（五路计数对账 + STRICT_REPLAY 门）；<code>--judge-only --from-manifest</code> 冻结重放通道（§6.5）</td></tr>
+</tbody>
+</table></div>
+
+<h3 id="s8-2"><span class="no">8.2</span>config.py（398 行）——参数与 Prompt 的单一事实源</h3>
+<p>除 §3.2 的参数外，其核心资产是两个 Prompt 构建函数（与方法学手稿锁步，字面冻结）：</p>
+<ul>
+<li><strong><code>build_generate_prompt(domain)</code></strong>：要求生成约 100 个中文专业词汇，附约 50 词种子参考表；每词须从 3 条正向判据中三选一并<strong>只输出序号</strong>（0–2 整数）；输出契约为严格 JSON 对象数组 <code>{"keywords":[{"keyword","reason"}]}</code>。序号化理由的动因：省 token、抗截断，同时保持判据锁步。</li>
+<li><strong><code>build_judge_prompt(keywords_batch)</code></strong>：对每批 100 词逐词判定，判据句为「银行与金融科技两侧俱全返回 1，否则返回 0」，六类判据菜单与示例由 <code>REASONS</code> 单一字面源程序化生成（menu 与示例自动同步、末条无尾逗号），score 由所选理由序号唯一决定；输出契约 <code>{"results":[{"keyword","score","reason"}]}</code>。</li>
+<li><strong><code>reason_text_from_index(raw)</code></strong>：把模型返回的理由序号映回全文的纯本地查表（int 直转，越界/畸形 fail-soft 原样返回），落盘可读化 $0 成本。</li>
+<li><strong><code>get_model_params / get_client_config / is_thinking_model</code></strong>：按模型返回 API 参数（JSON mode 白名单、ERNIE 温度特例、MiniMax 关思维链注入）与统一端点配置。</li>
+<li><strong><code>SAMPLING_PARAM_FILTERED_MODELS</code></strong>：零温例外披露常量（见 §10）。</li>
+</ul>
+
+<h3 id="s8-3"><span class="no">8.3</span>llm_cache.py（236 行）——目录级 LLM 响应缓存</h3>
+<p><code>LLMCache</code> 类封装 SQLite（键=SHA-256(model|temperature|tag|prompt)，见 §6.5），提供 <code>has/get/put/stats/clear</code>；离线模式下 miss 抛 <code>LLMCacheMissError</code>。自带 CLI：<code>python llm_cache.py --stats / --clear --yes</code>。设计要点：写入用 <code>INSERT OR IGNORE</code>（同键以<strong>首次写入为准</strong>，保证重放稳定）；写失败只记 WARNING 绝不上抛（此时 API 费用已发生，上抛会导致响应被误弃重复付费）；线程锁串行化并发访问；与主项目缓存零共享。</p>
+
+<h3 id="s8-4"><span class="no">8.4</span>calculate_kappa.py（189 行）——κ 独立离线计算器</h3>
+<p>与主管道解耦的验证脚本：缺省自动选取 <code>data_processed/bank_keywords_2*.xlsx</code> 最新完整跑产物（glob 刻意收窄以避免误选重放件），优先消费 <code>_vote</code> 正式票列（v1 单轮产物回退 <code>_score</code> 列并声明口径），输出 N / k / \(\bar P\) / \(P_e\) / κ、Landis-Koch 与 McHugh 双口径分级、逐模型三轮全同率描述统计，并附本轮实引 APA 文献表。<code>P_e=1</code> 退化情形按惯例返回 κ=1 三元组（接口形状恒定）。</p>
+
+<h3 id="s8-5"><span class="no">8.5</span>verify_judge_cache_coverage.py（143 行）——缓存覆盖验证器</h3>
+<p>只读「验钞机」：加载指定（或最新）manifest，对其声明的每个判别任务逐 try 重算缓存键并查库，输出五路对账（任务数 / 声明键数 / 命中数 / 缺失数 / 多余情形），任何缺失即非零退出。用途：在承诺「$0 离线可复现」之前机检兑付能力；也是「盲审复现三件套」中唯一的独立第三方视角。</p>
+
+<h3 id="s8-6"><span class="no">8.6</span>01_test_models.py（296 行）——模型连通性诊断</h3>
+<p>逐模型发送最小探针请求，检验连通性、JSON mode 支持与响应形态；对 429/502/503/超时实施有界指数退避重试（≤5 次，镜像主脚本退避公式），消除瞬时限流造成的假阴性。用于全量付费跑批前的阵容体检（历史上正是它发现了某模型持续 429，触发阵容更换）。</p>
+
+<h3 id="s8-7"><span class="no">8.7</span>02_analyze_log.py（399 行）——运行日志分析器</h3>
+<p>解析 <code>logs/00_LLMs_for_dic.log</code>，产出结构化运行报告 <code>logs/02_analyze_log.md</code>：任务成败矩阵、重试/打捞/降级事件清单、耗时分解与异常摘要。定位是「先看报告、再翻原始日志」的运维入口。</p>
+
+<h3 id="s8-8"><span class="no">8.8</span>diag_claude.py（123 行）——Claude 系手动诊断脚本</h3>
+<p>开发者手动排查 Claude 系模型判别接口返回格式的直连诊断脚本：<strong>刻意绕过</strong>目录级缓存与离线守卫（非确定性、非 $0、不落生产缓存），仅限手动在线执行、不进任何自动化/CI 路径。原名带 <code>test_</code> 前缀会被 pytest 误收集并在导入时触发付费调用，已改名并把全部副作用收进 <code>__main__</code> 块，双重防线杜绝意外触发。</p>
+
+<h3 id="s8-9"><span class="no">8.9</span>academic.py（877 行）——核验引文注册表</h3>
+<p><code>REFERENCES</code> 注册表收录 <strong>121 条</strong>文献，每条含 intext（作者-年括注）、全 APA 串与裸 DOI，<strong>全部经 Crossref / DataCite 实访核验</strong>（期刊/SSRN/NBER/会议走 Crossref，arXiv 走 DataCite），并有「任何新增引文须先核验 DOI」的准入纪律。工具函数：<code>cite(*handles)</code> 生成括注、<code>references_block</code> 生成参考文献表、<code>sig4/pct4</code> 四位有效数字格式化、<code>all_dois()</code> 供外部 DOI 审计复用。本说明书第 11 节的全部参考文献即逐字取自该注册表。</p>
+</section>
+
+<!-- ═══════════════ 9 公式汇编 ═══════════════ -->
+<section id="s9">
+<h2><span class="no">9</span>公式汇编与复核记录</h2>
+<p>本节集中罗列管道涉及的全部公式。每条公式均经「定义核对 → 代入实数据复算 → 与盘上权威值比对」三步复核，复核结论随列。</p>
+
+<h4>9.1 模型内正式票（三局两胜）</h4>
+<div class="eq">$$ v_{w,m}=\mathbb{1}\!\left[\textstyle\sum_{r=1}^{3} s_{w,m,r}\ge 2\right] $$</div>
+<p class="small">复核：对 Sheet 5 全部 696×13 组三轮判分重算 vote，与 <code>{model}_vote</code> 列零不一致。<span class="chk">✓</span></p>
+
+<h4>9.2 模型间严格过半数</h4>
+<div class="eq">$$ \text{AI 认可}(w) \iff S_w=\sum_{m=1}^{13} v_{w,m} &gt; \tfrac{13}{2}=6.5 \iff S_w\ge 7 $$</div>
+<p class="small">复核：\(\#\{w: S_w\ge 7\}=16+19+23+19+32+91+391=591\)，与统计表「AI认可」一致。<span class="chk">✓</span></p>
+
+<h4>9.3 专家过半数与人机双过半</h4>
+<div class="eq">$$ \text{专家认可}(w)\iff E_w\ge\Big\lfloor\tfrac{7}{2}\Big\rfloor+1=4;\qquad \text{入典}(w)\iff (E_w\ge 4)\land(S_w\ge 7) $$</div>
+<p class="small">复核：\(\#\{E_w\ge4\}=40+57+165+340=602\)，与统计表「专家认可」一致；双过半 572 与 Sheet 7/8/9 三处交叉一致。<span class="chk">✓</span></p>
+
+<h4>9.4 Fleiss&#39; κ（多评分者一致性）</h4>
+<div class="eq">$$ \kappa=\frac{\bar P-P_e}{1-P_e},\quad P_i=\frac{\sum_j n_{ij}^2-n}{n(n-1)},\quad \bar P=\frac{1}{N}\sum_i P_i,\quad P_e=\sum_j p_j^2 $$</div>
+<p class="small">复核（13 模型正式票）：\(p_1=7398/9048=0.8176\)，\(P_e=0.7018\)，\(\bar P=0.8779\)，κ=0.1761/0.2982=<strong>0.5906</strong>，与 <code>calculate_kappa.py</code> 权威值一致。<span class="chk">✓</span><br>
+复核（7 专家）：\(p_1=3936/4872=0.8079\)，\(P_e=0.6896\)，\(\bar P=0.8202\)，κ=0.1306/0.3104=<strong>0.4208</strong>。<span class="chk">✓</span></p>
+
+<h4>9.5 Cohen&#39;s κ（人机配对一致性）</h4>
+<div class="eq">$$ \kappa_{\text{Cohen}}=\frac{p_o-p_e}{1-p_e},\qquad p_o=\frac{a+d}{N},\qquad p_e=\frac{(a{+}b)(a{+}c)+(c{+}d)(b{+}d)}{N^2} $$</div>
+<p class="small">复核：a=572, b=19, c=30, d=75 ⇒ \(p_o=647/696=0.9296\)，\(p_e=0.7548\)，κ=<strong>0.7128</strong>。<span class="chk">✓</span></p>
+
+<h4>9.6 查准 / 查全 / F₁（以专家为基准）</h4>
+<div class="eq">$$ P=\frac{572}{591}=0.968,\qquad R=\frac{572}{602}=0.950,\qquad F_1=\frac{2PR}{P+R}=0.959 $$</div>
+<p class="small">复核：混淆表四格取自 Sheet 5/6 交叉重算。<span class="chk">✓</span></p>
+
+<h4>9.7 缓存键（内容寻址）</h4>
+<div class="eq">$$ \text{key}=\operatorname{SHA-256}\!\big(\text{JSON}[\,\text{model},\,\text{temperature},\,\text{tag},\,\text{prompt}\,]\big) $$</div>
+<p class="small">复核：与 <code>llm_cache.py::make_key</code> 实现一致；manifest 记录的消费键可由该式重算命中缓存库（<code>verify_judge_cache_coverage.py</code> 的核验原理）。<span class="chk">✓</span></p>
+
+<h4>9.8 重试退避（指数退避 + 随机抖动）</h4>
+<div class="eq">$$ \text{wait}(k)=\begin{cases} \min\!\big(60,\;2^{\min(k,6)}\times 2\big)+U(0,15) & \text{429 限流}\\[2pt] \min\!\big(30,\;2^{\min(k,5)}\times 2\big)+U(0,10) & \text{超时}\\[2pt] \min\!\big(60,\;2^{\min(k,6)}\times 3\big)+U(0,15) & \text{502/503}\\[2pt] \min\!\big(15,\;2^{\min(k,4)}\big)+U(0,5) & \text{其他错误} \end{cases} $$</div>
+<p class="small">另有连续超时 ≥5 次的特判档：\(60+U(0,30)\)。\(k\) 为重试序号，\(U(a,b)\) 为均匀随机抖动（防重试同步风暴）。复核：与 <code>_calculate_backoff</code> 逐分支一致。<span class="chk">✓</span></p>
+</section>
+
+<!-- ═══════════════ 10 局限 ═══════════════ -->
+<section id="s10">
+<h2><span class="no">10</span>局限与使用注意</h2>
+<ol>
+<li><strong>零温例外（两家 Claude 模型）。</strong>Anthropic 对 claude-opus-4.7 及之后模型（本阵容中 <code>claude-fable-5</code> / <code>claude-opus-4-8</code>）的官方 API 不支持自定义 temperature/top_p/top_k（传入即 400 报错）；yunwu 中转自 2026-07-10 起对其静默过滤。故判别阶段的「零温锁定」对这 2/13 家不生效（实际按模型默认温度采样），其判别票的可复现性由<strong>冻结缓存</strong>保证（缓存键仍含 temperature="0"，键稳定），属「缓存冻结级」而非「API 级」确定性——缓存失效重取时同词判别票可能翻转。该例外已在运行 banner、config 注释与本说明书三处一致披露。</li>
+<li><strong>κ 处于中度/弱一致带。</strong>无论 13 模型（0.5906）还是 7 专家（0.4208），κ 都远未到「几近完全一致」——这既有 κ 悖论对偏态分布的压低效应（§6.3），也真实反映「银行金融科技」边界词的固有模糊性。词典的最终可信度<strong>不依赖任何单一 κ 值</strong>，而依赖双层投票 + 人机双过半 + 专家增补的制度叠加。</li>
+<li><strong>词根精简的计数盲。</strong>超子串消元不看词频与语义，会误吞个别有独立含义的长词（实例：数字人民币、互联网贷款未进候选、由专家增补兜回，§5.9）。改进方向（频次护栏）已立案未实施。</li>
+<li><strong>候选池覆盖受生成端上限约束。</strong>词汇源自 13 个模型的预训练知识，训练截止后出现的全新术语进不了候选池；管道的重跑成本低（约 55 分钟 + API 费用），建议按年度滚动重跑吸收新词。</li>
+<li><strong>机器产物内部曾存在「去重 984 vs 982」双口径</strong>（同一运行日志的统计行与结果链行不一致，§6.7），早期版工作簿曾随之误载 984/603；现版已统一修正、本说明书复核零出入。引用数字一律以明细 Sheet 重算值（即本说明书口径）为准。</li>
+<li><strong>行序非确定。</strong>原始 Sheet 行序为并发到达序、拼音平局受哈希种子影响；比对两次产物应比<strong>集合与计数</strong>而非行号。</li>
+<li><strong>生产切换已发生，联动义务未完结。</strong>2026-07-21 主管道生产词典 <code>config/fintech_dict.json</code> 已按研究决策由 1,506 词版换血为本词典 607 词（本说明书实测两者集合完全相等）。这是重大口径变更：主管道下游全部既有产物（含 golden 快照、面板与手稿数字）自此<strong>陈旧</strong>，须完成 golden 全量重生、新增词嵌入播种与手稿数值披露后方可视为生效——在此之前不得把旧产物与新词典混用。</li>
+<li><strong>工程盲区（已知运维事实）。</strong>本目录被仓库 ruff pre-commit 钩子排除（<code>--force-exclude</code>），代码风格检查不在提交门内；测试保护主要来自主仓 8 项专属测试与运行期守卫。</li>
+</ol>
+</section>
+<!-- ═══════════════ 11 参考文献 ═══════════════ -->
+<section id="s11">
+<h2><span class="no">11</span>参考文献（APA 第 7 版）</h2>
+<p class="small">以下文献<strong>逐字取自本项目 <code>academic.py</code> 的核验引文注册表</strong>（121 条全部经 Crossref / DataCite 实访核验 DOI 与题录），并且每条均在本说明书正文中被实际引用；DOI 均为可访问链接。按第一作者姓氏字母序排列。</p>
+<div id="refs">
+<ol>
+<li>Artstein, R., &amp; Poesio, M. (2008). Inter-coder agreement for computational linguistics. Computational Linguistics, 34(4), 555-596. <a href="https://doi.org/10.1162/coli.07-034-R2">https://doi.org/10.1162/coli.07-034-R2</a></li>
+<li>Ash, E., &amp; Hansen, S. (2023). Text algorithms in economics. Annual Review of Economics, 15, 659-688. <a href="https://doi.org/10.1146/annurev-economics-082222-074352">https://doi.org/10.1146/annurev-economics-082222-074352</a></li>
+<li>Babina, T., Bahaj, S., Buchak, G., De Marco, F., Foulis, A., Gornall, W., Mazzola, F., &amp; Yu, T. (2025). Customer data access and fintech entry: Early evidence from open banking. Journal of Financial Economics, 169, 103950. <a href="https://doi.org/10.1016/j.jfineco.2024.103950">https://doi.org/10.1016/j.jfineco.2024.103950</a></li>
+<li>Bail, C. A. (2024). Can generative AI improve social science? Proceedings of the National Academy of Sciences, 121(21), e2314021121. <a href="https://doi.org/10.1073/pnas.2314021121">https://doi.org/10.1073/pnas.2314021121</a></li>
+<li>Baker, S. R., Bloom, N., &amp; Davis, S. J. (2016). Measuring economic policy uncertainty. The Quarterly Journal of Economics, 131(4), 1593-1636. <a href="https://doi.org/10.1093/qje/qjw024">https://doi.org/10.1093/qje/qjw024</a></li>
+<li>Berg, T., Burg, V., Gombović, A., &amp; Puri, M. (2020). On the rise of FinTechs: Credit scoring using digital footprints. The Review of Financial Studies, 33(7), 2845-2897. <a href="https://doi.org/10.1093/rfs/hhz099">https://doi.org/10.1093/rfs/hhz099</a></li>
+<li>Berg, T., Fuster, A., &amp; Puri, M. (2022). FinTech lending. Annual Review of Financial Economics, 14, 187-207. <a href="https://doi.org/10.1146/annurev-financial-101521-112042">https://doi.org/10.1146/annurev-financial-101521-112042</a></li>
+<li>Bernard, D., Blankespoor, E., de Kok, T., &amp; Toynbee, S. (2026). Using GPT to measure business complexity. The Accounting Review, 101(3), 67-102. <a href="https://doi.org/10.2308/tar-2023-0716">https://doi.org/10.2308/tar-2023-0716</a></li>
+<li>Bodnaruk, A., Loughran, T., &amp; McDonald, B. (2015). Using 10-K text to gauge financial constraints. Journal of Financial and Quantitative Analysis, 50(4), 623-646. <a href="https://doi.org/10.1017/S0022109015000411">https://doi.org/10.1017/S0022109015000411</a></li>
+<li>Boot, A., Hoffmann, P., Laeven, L., &amp; Ratnovski, L. (2021). Fintech: What's old, what's new? Journal of Financial Stability, 53, 100836. <a href="https://doi.org/10.1016/j.jfs.2020.100836">https://doi.org/10.1016/j.jfs.2020.100836</a></li>
+<li>Breiman, L. (1996). Bagging predictors. Machine Learning, 24(2), 123-140. <a href="https://doi.org/10.1007/BF00058655">https://doi.org/10.1007/BF00058655</a></li>
+<li>Breiman, L. (2001). Random forests. Machine Learning, 45(1), 5-32. <a href="https://doi.org/10.1023/A:1010933404324">https://doi.org/10.1023/A:1010933404324</a></li>
+<li>Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J. D., ... &amp; Amodei, D. (2020). Language models are few-shot learners. Advances in Neural Information Processing Systems, 33, 1877-1901. <a href="https://doi.org/10.48550/arXiv.2005.14165">https://doi.org/10.48550/arXiv.2005.14165</a></li>
+<li>Buchak, G., Matvos, G., Piskorski, T., &amp; Seru, A. (2018). Fintech, regulatory arbitrage, and the rise of shadow banks. Journal of Financial Economics, 130(3), 453-483. <a href="https://doi.org/10.1016/j.jfineco.2018.03.011">https://doi.org/10.1016/j.jfineco.2018.03.011</a></li>
+<li>Cao, S., Jiang, W., Wang, J., &amp; Yang, B. (2024). From man vs. machine to man + machine: The art and AI of stock analyses. Journal of Financial Economics, 160, 103910. <a href="https://doi.org/10.1016/j.jfineco.2024.103910">https://doi.org/10.1016/j.jfineco.2024.103910</a></li>
+<li>Chae, Y., &amp; Davidson, T. (2025). Large language models for text classification: From zero-shot learning to instruction-tuning. Sociological Methods &amp; Research. Advance online publication. <a href="https://doi.org/10.1177/00491241251325243">https://doi.org/10.1177/00491241251325243</a></li>
+<li>Chan, C.-M., Chen, W., Su, Y., Yu, J., Xue, W., Zhang, S., Fu, J., &amp; Liu, Z. (2023). ChatEval: Towards better LLM-based evaluators through multi-agent debate. arXiv preprint arXiv:2308.07201. <a href="https://doi.org/10.48550/arXiv.2308.07201">https://doi.org/10.48550/arXiv.2308.07201</a></li>
+<li>Chang, Y., Wang, X., Wang, J., Wu, Y., Yang, L., Zhu, K., Chen, H., Yi, X., Wang, C., Wang, Y., Ye, W., Zhang, Y., Chang, Y., Yu, P. S., Yang, Q., &amp; Xie, X. (2024). A survey on evaluation of large language models. ACM Transactions on Intelligent Systems and Technology, 15(3), 1-45. <a href="https://doi.org/10.1145/3641289">https://doi.org/10.1145/3641289</a></li>
+<li>Chen, J. C.-Y., Saha, S., &amp; Bansal, M. (2023). ReConcile: Round-table conference improves reasoning via consensus among diverse LLMs. arXiv preprint arXiv:2309.13007. <a href="https://doi.org/10.48550/arXiv.2309.13007">https://doi.org/10.48550/arXiv.2309.13007</a></li>
+<li>Cheng, M., &amp; Qu, Y. (2020). Does bank FinTech reduce credit risk? Evidence from China. Pacific-Basin Finance Journal, 63, 101398. <a href="https://doi.org/10.1016/j.pacfin.2020.101398">https://doi.org/10.1016/j.pacfin.2020.101398</a></li>
+<li>Cohen, J. (1960). A coefficient of agreement for nominal scales. Educational and Psychological Measurement, 20(1), 37-46. <a href="https://doi.org/10.1177/001316446002000104">https://doi.org/10.1177/001316446002000104</a></li>
+<li>Cornelli, G., Frost, J., Gambacorta, L., Rau, P. R., Wardrop, R., &amp; Ziegler, T. (2023). Fintech and big tech credit: Drivers of the growth of digital lending. Journal of Banking &amp; Finance, 148, 106742. <a href="https://doi.org/10.1016/j.jbankfin.2022.106742">https://doi.org/10.1016/j.jbankfin.2022.106742</a></li>
+<li>D'Acunto, F., Prabhala, N., &amp; Rossi, A. G. (2019). The promises and pitfalls of robo-advising. The Review of Financial Studies, 32(5), 1983-2020. <a href="https://doi.org/10.1093/rfs/hhz014">https://doi.org/10.1093/rfs/hhz014</a></li>
+<li>de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. Management Science, 71(9), 7888-7906. <a href="https://doi.org/10.1287/mnsc.2023.03253">https://doi.org/10.1287/mnsc.2023.03253</a></li>
+<li>Dietterich, T. G. (2000). Ensemble methods in machine learning. In J. Kittler &amp; F. Roli (Eds.), Multiple classifier systems (Lecture Notes in Computer Science, Vol. 1857, pp. 1-15). Springer. <a href="https://doi.org/10.1007/3-540-45014-9_1">https://doi.org/10.1007/3-540-45014-9_1</a></li>
+<li>Dong, Q., Li, L., Dai, D., Zheng, C., Ma, J., Li, R., Xia, H., Xu, J., Wu, Z., Chang, B., Sun, X., Li, L., &amp; Sui, Z. (2023). A survey on in-context learning. arXiv preprint arXiv:2301.00234. <a href="https://doi.org/10.48550/arXiv.2301.00234">https://doi.org/10.48550/arXiv.2301.00234</a></li>
+<li>Du, Y., Li, S., Torralba, A., Tenenbaum, J. B., &amp; Mordatch, I. (2023). Improving factuality and reasoning in language models through multiagent debate. arXiv preprint arXiv:2305.14325. <a href="https://doi.org/10.48550/arXiv.2305.14325">https://doi.org/10.48550/arXiv.2305.14325</a></li>
+<li>Feinstein, A. R., &amp; Cicchetti, D. V. (1990). High agreement but low kappa: I. The problems of two paradoxes. Journal of Clinical Epidemiology, 43(6), 543-549. <a href="https://doi.org/10.1016/0895-4356(90)90158-L">https://doi.org/10.1016/0895-4356(90)90158-L</a></li>
+<li>Fleiss, J. L. (1971). Measuring nominal scale agreement among many raters. Psychological Bulletin, 76(5), 378-382. <a href="https://doi.org/10.1037/h0031619">https://doi.org/10.1037/h0031619</a></li>
+<li>Fuster, A., Plosser, M., Schnabl, P., &amp; Vickery, J. (2019). The role of technology in mortgage lending. The Review of Financial Studies, 32(5), 1854-1899. <a href="https://doi.org/10.1093/rfs/hhz018">https://doi.org/10.1093/rfs/hhz018</a></li>
+<li>Galton, F. (1907). Vox populi. Nature, 75(1949), 450-451. <a href="https://doi.org/10.1038/075450a0">https://doi.org/10.1038/075450a0</a></li>
+<li>García, D., Hu, X., &amp; Rohrer, M. (2023). The colour of finance words. Journal of Financial Economics, 147(3), 525-549. <a href="https://doi.org/10.1016/j.jfineco.2022.11.006">https://doi.org/10.1016/j.jfineco.2022.11.006</a></li>
+<li>Gentzkow, M., Kelly, B., &amp; Taddy, M. (2019). Text as data. Journal of Economic Literature, 57(3), 535-574. <a href="https://doi.org/10.1257/jel.20181020">https://doi.org/10.1257/jel.20181020</a></li>
+<li>Gilardi, F., Alizadeh, M., &amp; Kubli, M. (2023). ChatGPT outperforms crowd workers for text-annotation tasks. Proceedings of the National Academy of Sciences, 120(30), e2305016120. <a href="https://doi.org/10.1073/pnas.2305016120">https://doi.org/10.1073/pnas.2305016120</a></li>
+<li>Goldstein, I., Spatt, C. S., &amp; Ye, M. (2021). Big data in finance. The Review of Financial Studies, 34(7), 3213-3225. <a href="https://doi.org/10.1093/rfs/hhab038">https://doi.org/10.1093/rfs/hhab038</a></li>
+<li>Gomber, P., Kauffman, R. J., Parker, C., &amp; Weber, B. W. (2018). On the fintech revolution: Interpreting the forces of innovation, disruption, and transformation in financial services. Journal of Management Information Systems, 35(1), 220-265. <a href="https://doi.org/10.1080/07421222.2018.1440766">https://doi.org/10.1080/07421222.2018.1440766</a></li>
+<li>Grennan, J., &amp; Michaely, R. (2021). FinTechs and the market for financial analysis. Journal of Financial and Quantitative Analysis, 56(6), 1877-1907. <a href="https://doi.org/10.1017/S0022109020000721">https://doi.org/10.1017/S0022109020000721</a></li>
+<li>Grossmann, I., Feinberg, M., Parker, D. C., Christakis, N. A., Tetlock, P. E., &amp; Cunningham, W. A. (2023). AI and the transformation of social science research. Science, 380(6650), 1108-1109. <a href="https://doi.org/10.1126/science.adi1778">https://doi.org/10.1126/science.adi1778</a></li>
+<li>Gu, J., Jiang, X., Shi, Z., Tan, H., Zhai, X., Xu, C., Li, W., Shen, Y., Ma, S., Liu, H., Wang, Y., &amp; Guo, J. (2024). A survey on LLM-as-a-judge. arXiv preprint arXiv:2411.15594. <a href="https://doi.org/10.48550/arXiv.2411.15594">https://doi.org/10.48550/arXiv.2411.15594</a></li>
+<li>Guo, F., &amp; Wang, J. (2022). Quantifying digital financial inclusion in China. In D. Dollar &amp; Y. Huang (Eds.), The digital financial revolution in China (pp. 17-44). Brookings Institution Press. <a href="https://doi.org/10.5040/9780815750420.ch-002">https://doi.org/10.5040/9780815750420.ch-002</a></li>
+<li>Gwet, K. L. (2008). Computing inter-rater reliability and its variance in the presence of high agreement. British Journal of Mathematical and Statistical Psychology, 61(1), 29-48. <a href="https://doi.org/10.1348/000711006X126600">https://doi.org/10.1348/000711006X126600</a></li>
+<li>Hanley, K. W., &amp; Hoberg, G. (2019). Dynamic interpretation of emerging risks in the financial sector. The Review of Financial Studies, 32(12), 4543-4603. <a href="https://doi.org/10.1093/rfs/hhz023">https://doi.org/10.1093/rfs/hhz023</a></li>
+<li>Hansen, A. L., &amp; Kazinnik, S. (2023). Can ChatGPT decipher Fedspeak? SSRN Electronic Journal. <a href="https://doi.org/10.2139/ssrn.4399406">https://doi.org/10.2139/ssrn.4399406</a></li>
+<li>Hassan, T. A., Hollander, S., Van Lent, L., &amp; Tahoun, A. (2019). Firm-level political risk: Measurement and effects. The Quarterly Journal of Economics, 134(4), 2135-2202. <a href="https://doi.org/10.1093/qje/qjz021">https://doi.org/10.1093/qje/qjz021</a></li>
+<li>Hayes, A. F., &amp; Krippendorff, K. (2007). Answering the call for a standard reliability measure for coding data. Communication Methods and Measures, 1(1), 77-89. <a href="https://doi.org/10.1080/19312450709336664">https://doi.org/10.1080/19312450709336664</a></li>
+<li>He, X., Lin, Z., Gong, Y., Jin, A.-L., Zhang, H., Lin, C., Jiao, J., Yiu, S. M., Duan, N., &amp; Chen, W. (2024). AnnoLLM: Making large language models to be better crowdsourced annotators. In Proceedings of the 2024 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 6: Industry Track) (pp. 165-190). Association for Computational Linguistics. <a href="https://doi.org/10.18653/v1/2024.naacl-industry.15">https://doi.org/10.18653/v1/2024.naacl-industry.15</a></li>
+<li>Holtzman, A., Buys, J., Du, L., Forbes, M., &amp; Choi, Y. (2019). The curious case of neural text degeneration. arXiv preprint arXiv:1904.09751. <a href="https://doi.org/10.48550/arXiv.1904.09751">https://doi.org/10.48550/arXiv.1904.09751</a></li>
+<li>Hong, L., &amp; Page, S. E. (2004). Groups of diverse problem solvers can outperform groups of high-ability problem solvers. Proceedings of the National Academy of Sciences, 101(46), 16385-16389. <a href="https://doi.org/10.1073/pnas.0403723101">https://doi.org/10.1073/pnas.0403723101</a></li>
+<li>Huang, L., Yu, W., Ma, W., Zhong, W., Feng, Z., Wang, H., Chen, Q., Peng, W., Feng, X., Qin, B., &amp; Liu, T. (2025). A survey on hallucination in large language models: Principles, taxonomy, challenges, and open questions. ACM Transactions on Information Systems, 43(2), 1-55. <a href="https://doi.org/10.1145/3703155">https://doi.org/10.1145/3703155</a></li>
+<li>Jha, M., Qian, J., Weber, M., &amp; Yang, B. (2024a). ChatGPT and corporate policies. National Bureau of Economic Research (No. w32161). <a href="https://doi.org/10.3386/w32161">https://doi.org/10.3386/w32161</a></li>
+<li>Ji, Z., Lee, N., Frieske, R., Yu, T., Su, D., Xu, Y., Ishii, E., Bang, Y. J., Madotto, A., &amp; Fung, P. (2023). Survey of hallucination in natural language generation. ACM Computing Surveys, 55(12), 1-38. <a href="https://doi.org/10.1145/3571730">https://doi.org/10.1145/3571730</a></li>
+<li>Jiang, D., Ren, X., &amp; Lin, B. Y. (2023). LLM-Blender: Ensembling large language models with pairwise ranking and generative fusion. arXiv preprint arXiv:2306.02561. <a href="https://doi.org/10.48550/arXiv.2306.02561">https://doi.org/10.48550/arXiv.2306.02561</a></li>
+<li>Kearney, C., &amp; Liu, S. (2014). Textual sentiment in finance: A survey of methods and models. International Review of Financial Analysis, 33, 171-185. <a href="https://doi.org/10.1016/j.irfa.2014.02.006">https://doi.org/10.1016/j.irfa.2014.02.006</a></li>
+<li>Kim, A. G., Muhn, M., &amp; Nikolaev, V. V. (2024). Financial statement analysis with large language models. SSRN Electronic Journal. <a href="https://doi.org/10.2139/ssrn.4835311">https://doi.org/10.2139/ssrn.4835311</a></li>
+<li>King, G., Lam, P., &amp; Roberts, M. E. (2017). Computer-assisted keyword and document set discovery from unstructured text. American Journal of Political Science, 61(4), 971-988. <a href="https://doi.org/10.1111/ajps.12291">https://doi.org/10.1111/ajps.12291</a></li>
+<li>Kojima, T., Gu, S. S., Reid, M., Matsuo, Y., &amp; Iwasawa, Y. (2022). Large language models are zero-shot reasoners. arXiv preprint arXiv:2205.11916. <a href="https://doi.org/10.48550/arXiv.2205.11916">https://doi.org/10.48550/arXiv.2205.11916</a></li>
+<li>Krippendorff, K. (2004). Reliability in content analysis: Some common misconceptions and recommendations. Human Communication Research, 30(3), 411-433. <a href="https://doi.org/10.1111/j.1468-2958.2004.tb00738.x">https://doi.org/10.1111/j.1468-2958.2004.tb00738.x</a></li>
+<li>Krippendorff, K. (2011). Agreement and information in the reliability of coding. Communication Methods and Measures, 5(2), 93-112. <a href="https://doi.org/10.1080/19312458.2011.568376">https://doi.org/10.1080/19312458.2011.568376</a></li>
+<li>Landis, J. R., &amp; Koch, G. G. (1977). The measurement of observer agreement for categorical data. Biometrics, 33(1), 159-174. <a href="https://doi.org/10.2307/2529310">https://doi.org/10.2307/2529310</a></li>
+<li>Li, J., Zhang, Q., Yu, Y., Fu, Q., &amp; Ye, D. (2024). More agents is all you need. arXiv preprint arXiv:2402.05120. <a href="https://doi.org/10.48550/arXiv.2402.05120">https://doi.org/10.48550/arXiv.2402.05120</a></li>
+<li>Li, K., Mai, F., Shen, R., &amp; Yan, X. (2021). Measuring corporate culture using machine learning. The Review of Financial Studies, 34(7), 3265-3315. <a href="https://doi.org/10.1093/rfs/hhaa079">https://doi.org/10.1093/rfs/hhaa079</a></li>
+<li>Liang, T., He, Z., Jiao, W., Wang, X., Wang, Y., Wang, R., Yang, Y., Tu, Z., &amp; Shi, S. (2023). Encouraging divergent thinking in large language models through multi-agent debate. arXiv preprint arXiv:2305.19118. <a href="https://doi.org/10.48550/arXiv.2305.19118">https://doi.org/10.48550/arXiv.2305.19118</a></li>
+<li>Liu, P., Yuan, W., Fu, J., Jiang, Z., Hayashi, H., &amp; Neubig, G. (2023). Pre-train, prompt, and predict: A systematic survey of prompting methods in natural language processing. ACM Computing Surveys, 55(9), 1-35. <a href="https://doi.org/10.1145/3560815">https://doi.org/10.1145/3560815</a></li>
+<li>Liu, Y., Iter, D., Xu, Y., Wang, S., Xu, R., &amp; Zhu, C. (2023). G-Eval: NLG evaluation using GPT-4 with better human alignment. arXiv. <a href="https://doi.org/10.48550/arXiv.2303.16634">https://doi.org/10.48550/arXiv.2303.16634</a></li>
+<li>Loughran, T., &amp; McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65. <a href="https://doi.org/10.1111/j.1540-6261.2010.01625.x">https://doi.org/10.1111/j.1540-6261.2010.01625.x</a></li>
+<li>Loughran, T., &amp; McDonald, B. (2016). Textual analysis in accounting and finance: A survey. Journal of Accounting Research, 54(4), 1187-1230. <a href="https://doi.org/10.1111/1475-679X.12123">https://doi.org/10.1111/1475-679X.12123</a></li>
+<li>Loughran, T., &amp; McDonald, B. (2020). Textual analysis in finance. Annual Review of Financial Economics, 12, 357-375. <a href="https://doi.org/10.1146/annurev-financial-012820-032249">https://doi.org/10.1146/annurev-financial-012820-032249</a></li>
+<li>McHugh, M. L. (2012). Interrater reliability: The kappa statistic. Biochemia Medica, 22(3), 276-282. <a href="https://doi.org/10.11613/bm.2012.031">https://doi.org/10.11613/bm.2012.031</a></li>
+<li>Mellon, J., Bailey, J., Scott, R., Breckwoldt, J., Miori, M., &amp; Schmedeman, P. (2024). Do AIs know what the most important issue is? Using language models to code open-text social survey responses at scale. Research &amp; Politics, 11(1). <a href="https://doi.org/10.1177/20531680241231468">https://doi.org/10.1177/20531680241231468</a></li>
+<li>Pangakis, N., Wolken, S., &amp; Fasching, N. (2023). Automated annotation with generative AI requires validation. arXiv preprint arXiv:2306.00176. <a href="https://doi.org/10.48550/arXiv.2306.00176">https://doi.org/10.48550/arXiv.2306.00176</a></li>
+<li>Passonneau, R. J., &amp; Carpenter, B. (2014). The benefits of a model of annotation. Transactions of the Association for Computational Linguistics, 2, 311-326. <a href="https://doi.org/10.1162/tacl_a_00185">https://doi.org/10.1162/tacl_a_00185</a></li>
+<li>Rathje, S., Mirea, D.-M., Sucholutsky, I., Marjieh, R., Robertson, C. E., &amp; Van Bavel, J. J. (2024). GPT is an effective tool for multilingual psychological text analysis. Proceedings of the National Academy of Sciences, 121(34), e2308950121. <a href="https://doi.org/10.1073/pnas.2308950121">https://doi.org/10.1073/pnas.2308950121</a></li>
+<li>Rodriguez, P. L., &amp; Spirling, A. (2022). Word embeddings: What works, what doesn't, and how to tell the difference for applied research. The Journal of Politics, 84(1), 101-115. <a href="https://doi.org/10.1086/715162">https://doi.org/10.1086/715162</a></li>
+<li>Sautner, Z., van Lent, L., Vilkov, G., &amp; Zhang, R. (2023). Firm-level climate change exposure. The Journal of Finance, 78(3), 1449-1498. <a href="https://doi.org/10.1111/jofi.13219">https://doi.org/10.1111/jofi.13219</a></li>
+<li>Scott, W. A. (1955). Reliability of content analysis: The case of nominal scale coding. Public Opinion Quarterly, 19(3), 321-325. <a href="https://doi.org/10.1086/266577">https://doi.org/10.1086/266577</a></li>
+<li>Siano, F. (2025). The news in earnings announcement disclosures: Capturing word context using LLM methods. Management Science, 71(11), 9831-9855. <a href="https://doi.org/10.1287/mnsc.2024.05417">https://doi.org/10.1287/mnsc.2024.05417</a></li>
+<li>Stulz, R. M. (2019). FinTech, BigTech, and the future of banks. Journal of Applied Corporate Finance, 31(4), 86-97. <a href="https://doi.org/10.1111/jacf.12378">https://doi.org/10.1111/jacf.12378</a></li>
+<li>Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. The Journal of Finance, 62(3), 1139-1168. <a href="https://doi.org/10.1111/j.1540-6261.2007.01232.x">https://doi.org/10.1111/j.1540-6261.2007.01232.x</a></li>
+<li>Thakor, A. V. (2020). Fintech and banking: What do we know? Journal of Financial Intermediation, 41, 100833. <a href="https://doi.org/10.1016/j.jfi.2019.100833">https://doi.org/10.1016/j.jfi.2019.100833</a></li>
+<li>Törnberg, P. (2023). ChatGPT-4 outperforms experts and crowd workers in annotating political Twitter messages with zero-shot learning. arXiv preprint arXiv:2304.06588. <a href="https://doi.org/10.48550/arXiv.2304.06588">https://doi.org/10.48550/arXiv.2304.06588</a></li>
+<li>Vives, X. (2019). Digital disruption in banking. Annual Review of Financial Economics, 11, 243-272. <a href="https://doi.org/10.1146/annurev-financial-100719-120854">https://doi.org/10.1146/annurev-financial-100719-120854</a></li>
+<li>Wang, J., Wang, J., Athiwaratkun, B., Zhang, C., &amp; Zou, J. (2024). Mixture-of-agents enhances large language model capabilities. arXiv preprint arXiv:2406.04692. <a href="https://doi.org/10.48550/arXiv.2406.04692">https://doi.org/10.48550/arXiv.2406.04692</a></li>
+<li>Wang, X., Wei, J., Schuurmans, D., Le, Q., Chi, E., Narang, S., Chowdhery, A., &amp; Zhou, D. (2022). Self-consistency improves chain of thought reasoning in language models. arXiv preprint arXiv:2203.11171. <a href="https://doi.org/10.48550/arXiv.2203.11171">https://doi.org/10.48550/arXiv.2203.11171</a></li>
+<li>Wei, J., Wang, X., Schuurmans, D., Bosma, M., Xia, F., ... &amp; Zhou, D. (2022). Chain-of-thought prompting elicits reasoning in large language models. Advances in Neural Information Processing Systems, 35, 24824-24837. <a href="https://doi.org/10.48550/arXiv.2201.11903">https://doi.org/10.48550/arXiv.2201.11903</a></li>
+<li>Widmann, T., &amp; Wich, M. (2023). Creating and comparing dictionary, word embedding, and transformer-based models to measure discrete emotions in German political text. Political Analysis, 31(4), 626-641. <a href="https://doi.org/10.1017/pan.2022.15">https://doi.org/10.1017/pan.2022.15</a></li>
+<li>Wolpert, D. H. (1992). Stacked generalization. Neural Networks, 5(2), 241-259. <a href="https://doi.org/10.1016/S0893-6080(05)80023-1">https://doi.org/10.1016/S0893-6080(05)80023-1</a></li>
+<li>Xie, X., &amp; Wang, S. (2023). Digital transformation of commercial banks in China: Measurement, progress and impact. China Economic Quarterly International, 3(1), 35-45. <a href="https://doi.org/10.1016/j.ceqi.2023.03.002">https://doi.org/10.1016/j.ceqi.2023.03.002</a></li>
+<li>Zapf, A., Castell, S., Morawietz, L., &amp; Karch, A. (2016). Measuring inter-rater reliability for nominal data—which coefficients and confidence intervals are appropriate? BMC Medical Research Methodology, 16, Article 93. <a href="https://doi.org/10.1186/s12874-016-0200-9">https://doi.org/10.1186/s12874-016-0200-9</a></li>
+<li>Zheng, L., Chiang, W.-L., Sheng, Y., Zhuang, S., Wu, Z., Zhuang, Y., Lin, Z., Li, Z., Li, D., Xing, E. P., Zhang, H., Gonzalez, J. E., &amp; Stoica, I. (2023). Judging LLM-as-a-judge with MT-Bench and Chatbot Arena. Advances in Neural Information Processing Systems, 36. <a href="https://doi.org/10.48550/arXiv.2306.05685">https://doi.org/10.48550/arXiv.2306.05685</a></li>
+<li>Ziems, C., Held, W., Shaikh, O., Chen, J., Zhang, Z., &amp; Yang, D. (2024). Can large language models transform computational social science? Computational Linguistics, 50(1), 237-291. <a href="https://doi.org/10.1162/coli_a_00502">https://doi.org/10.1162/coli_a_00502</a></li>
+</ol>
+</div>
+</section>
+
+<footer style="margin-top:60px;padding-top:18px;border-top:2px solid var(--line);color:var(--muted);font-size:12.8px">
+<p>本说明书由项目组编制于 2026-07-21，数据取自 <code>LLMs_for_FinTech_dic/data_processed/银行金融科技词典20260715.xlsx</code>（12 Sheet 逐格复算）、
+<code>judge_manifest_20260721_144911.json</code>、运行日志与源代码（v2 三轮盲审协议基线）。
+文中全部统计量均经独立复算核对（复算记录见 §6.7 与 §9）；历史版本统计表的双口径问题已修正并在 §6.7 如实注记。配套交付：本 HTML（左侧目录索引可跳转）与同名 PDF。</p>
+</footer>
+
+</main>
+<script>
+/* 目录滚动高亮 */
+(function(){
+  const links=[...document.querySelectorAll('#toc a')];
+  const map=new Map(links.map(a=>[a.getAttribute('href').slice(1),a]));
+  const heads=[...document.querySelectorAll('h2[id],h3[id]')];
+  function onScroll(){
+    let cur=heads[0];
+    for(const h of heads){ if(h.getBoundingClientRect().top<=90) cur=h; else break; }
+    links.forEach(a=>a.classList.remove('active'));
+    if(cur&&map.has(cur.id)){
+      const a=map.get(cur.id); a.classList.add('active');
+      const r=a.getBoundingClientRect(), n=document.getElementById('toc').getBoundingClientRect();
+      if(r.top<n.top+40||r.bottom>n.bottom-40) a.scrollIntoView({block:'center'});
+    }
+  }
+  document.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+})();
+</script>
+</body>
+</html>
