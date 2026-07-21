@@ -2102,9 +2102,13 @@ def judge_replay_from_manifest(manifest_path: Path) -> None:
 
     冻结语义：词表、批次大小、模型名单一律取 manifest 记录值（首跑口径），
     不受当前 config 后续漂移影响；与 config 不一致时 loud WARNING 但照冻结值跑。
-    产物 = 仅判别语义 sheet 的精简 workbook（生成阶段各 sheet 明确省略，
-    见执行计划 §6-D2 口径声明）+ 新 manifest（可再次被验证器核验）。
-    ⚠ 生成阶段零触碰铁律：本函数不 import、不调用 fetch_batch 及任何生成侧逻辑。
+    产物 = **全阶段完整 workbook**（2026-07-21 用户要求，取代旧「判别语义精简件」口径）：
+    生成阶段各 sheet 从首跑产物（manifest.run_output_file）**只读拷贝**，判别语义
+    sheet（5-AI判别结果 / 判别-*）以本次重放结果重建，4-最终结果 恒以 manifest 冻结
+    词表为准（sha256 已验）；首跑产物缺失时 loud WARNING 降级为判别语义精简件
+    （4-最终结果 + 5-AI判别结果）。另产新 manifest（可再次被验证器核验）。
+    ⚠ 生成阶段零触碰铁律：本函数不 import、不调用 fetch_batch 及任何生成侧逻辑——
+    「完整册」仅复制冻结产物的既有 sheet，不重新执行任何生成计算。
     """
     logger = setup_logger()
     manifest = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
@@ -2218,10 +2222,103 @@ def judge_replay_from_manifest(manifest_path: Path) -> None:
     df_final = df_final.sort_values(by="total_score", ascending=False).reset_index(drop=True)
     df_final["id"] = range(1, len(df_final) + 1)
 
+    # ── 全阶段完整 workbook（2026-07-21 用户要求：生成 + 盲审全部阶段同册）────────
+    # 生成阶段各 sheet 从首跑产物（manifest.run_output_file）**只读拷贝**——生成阶段
+    # 零触碰铁律不破（不执行任何生成侧逻辑，仅复制冻结产物既有 sheet，sheet 顺序保持
+    # 首跑原样）；判别语义 sheet（5-AI判别结果 / 判别-*）以本次重放结果重建；
+    # 4-最终结果 恒以 manifest 冻结词表为准（sha256 已验，词表唯一权威）；统计总览
+    # 「AI认可」列在 v2 口径下按 manifest 冻结门槛与本次重放判别重算（其余列均为生成
+    # 阶段事实，原样拷贝），v1 口径无冻结门槛字段、不重算（原样拷贝并留痕）。
+    _src_name = manifest.get("run_output_file")
+    _src_path = (DATA_DIR / _src_name) if _src_name else None
+    src_sheets: Dict[str, pd.DataFrame] = {}
+    if _src_path is not None and _src_path.exists():
+        try:
+            src_sheets = pd.read_excel(_src_path, sheet_name=None)
+            logger.info(
+                f"  [完整册] 生成阶段 sheet 自首跑产物只读拷贝: {_src_name}"
+                f"（{len(src_sheets)} 个 sheet）"
+            )
+        except Exception as e:
+            src_sheets = {}
+            logger.warning(
+                f"  ⚠ [完整册] 首跑产物读取失败（{_src_name}: {e}）——降级为判别语义精简件"
+            )
+    else:
+        logger.warning(
+            f"  ⚠ [完整册] 首跑产物缺失（{_src_name!r}）——无生成阶段 sheet 可拷贝，"
+            "降级为判别语义精简件（4-最终结果 + 5-AI判别结果）"
+        )
+
+    # v2: 入选门槛取 manifest 冻结值（缺字段按冻结名单严格过半数派生，min_votes=n//2+1，
+    # 与 main 的 > n*0.5 在整数票下恒等价）；v1 无冻结门槛 → 不重算「AI认可」。
+    _frozen_min_votes: Optional[int] = None
+    judge_ok_set: Set[str] = set()
+    if frozen_reps is not None:
+        _fvt = manifest.get("final_vote_threshold") or {}
+        _frozen_min_votes = int(_fvt.get("min_votes", len(frozen_models) // 2 + 1))
+        judge_ok_set = set(
+            df_final[df_final["total_score"] >= _frozen_min_votes]["keyword"]
+        )
+    elif src_sheets:
+        logger.info(
+            "  [完整册] v1 口径无冻结入选门槛字段——统计总览「AI认可」列原样拷贝首跑值（不重算）"
+        )
+
     output_file.parent.mkdir(parents=True, exist_ok=True)
+    _written: Set[str] = set()
     with pd.ExcelWriter(str(output_file), engine="openpyxl") as writer:
-        df_wordlist.to_excel(writer, sheet_name="4-最终结果", index=False)
-        df_final.to_excel(writer, sheet_name="5-AI判别结果", index=False)
+        for sheet_name, src_df in src_sheets.items():
+            if sheet_name == "4-最终结果":
+                df_wordlist.to_excel(writer, sheet_name=sheet_name, index=False)
+            elif sheet_name == "5-AI判别结果":
+                df_final.to_excel(writer, sheet_name=sheet_name, index=False)
+            elif sheet_name.startswith("判别-"):
+                # 该域受审子集 = 首跑同名 sheet 的词集（域归属是生成阶段事实，只读复用；
+                # 词表 sha 已验 → 首跑与重放的受审全集恒同）
+                _kws = set(src_df["keyword"]) if "keyword" in src_df.columns else set()
+                dom_judged = df_final[df_final["keyword"].isin(_kws)].copy()
+                if dom_judged.empty and len(_kws) > 0:
+                    logger.warning(
+                        f"  ⚠ [完整册] {sheet_name} 词集与冻结词表零交集——原样拷贝首跑 sheet"
+                    )
+                    src_df.to_excel(writer, sheet_name=sheet_name, index=False)
+                else:
+                    dom_judged = dom_judged.sort_values(
+                        by="total_score", ascending=False
+                    ).reset_index(drop=True)
+                    dom_judged["id"] = range(1, len(dom_judged) + 1)
+                    dom_judged.to_excel(writer, sheet_name=sheet_name, index=False)
+            elif (
+                sheet_name == "银行关键词统计"
+                and _frozen_min_votes is not None
+                and "领域" in src_df.columns
+                and "AI认可" in src_df.columns
+            ):
+                df_stats = src_df.copy()
+                for _i, _dom in df_stats["领域"].items():
+                    if _dom == "【汇总】":
+                        df_stats.at[_i, "AI认可"] = len(judge_ok_set)
+                    else:
+                        _fin = src_sheets.get(f"最终-{_dom}"[:31])
+                        if _fin is not None and "keyword" in _fin.columns:
+                            df_stats.at[_i, "AI认可"] = len(
+                                set(_fin["keyword"]) & judge_ok_set
+                            )
+                        else:
+                            logger.warning(
+                                f"  ⚠ [完整册] 首跑产物缺「最终-{_dom}」sheet——"
+                                f"统计行「{_dom}」的 AI认可 保留首跑拷贝值"
+                            )
+                df_stats.to_excel(writer, sheet_name=sheet_name, index=False)
+            else:
+                src_df.to_excel(writer, sheet_name=sheet_name, index=False)
+            _written.add(sheet_name)
+        # 判别语义两 sheet 兜底保证在册（无首跑产物 / 首跑产物缺该 sheet 时）
+        if "4-最终结果" not in _written:
+            df_wordlist.to_excel(writer, sheet_name="4-最终结果", index=False)
+        if "5-AI判别结果" not in _written:
+            df_final.to_excel(writer, sheet_name="5-AI判别结果", index=False)
     _format_excel_workbook(output_file)
 
     if _llm_cache is not None:
