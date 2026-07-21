@@ -78,6 +78,17 @@ MAX_CONCURRENT_PER_MODEL: int = 10  # 每个模型的最大并发请求数（防
 # 阈值/数量链的任何一项，与手稿 FinTech_Dictionary_LLMs_Paper_Final.md 的锁步无关，
 # 不改变任何被誊抄的字面。设 None/<=0 则不传 max_tokens（回退各模型默认上限）。
 MAX_OUTPUT_TOKENS: int = 16384      # 16k >> 单条约 7k 需求，对全部 13 个前沿模型均在其输出上限内
+# ── 判别（盲审）self-consistency 轮次协议（2026-07-21 用户裁定） ──
+# 每家判别模型对每批词独立成功调用 NUM_JUDGE_REPS 次，模型内部先按 JUDGE_REP_MAJORITY
+# （三局两胜）多数聚成该模型的**正式票**；13 家正式票再按严格过半数 (>1/2) 截断入选
+# （见 00_LLMs_for_dic.py::judge_ok_set）。二值判分 + 奇数轮 → 模型内永无平票。
+# ⚠ 这是**运行期协议参数**，非 Prompt 字段/模型清单/数量链的任何一项，不改变任何被手稿
+#   FinTech_Dictionary_LLMs_Paper_Final.md 誊抄的字面；协议变更披露走手稿顶部 banner。
+# ⚠ 轮序号必须进缓存 tag（judge|rep{r}|try{n}，方案 B 统一命名）：判别为 temperature=0
+#   同 prompt，不带 rep 序号三轮会被缓存折叠成同一响应 → 内部投票沦为假投票（恒 3:0）。
+#   旧 tag judge|try{n} 的缓存条目保留不删，专供历史 v1 manifest 冻结重放（rep=None 通道）。
+NUM_JUDGE_REPS: int = 3             # 每模型每批独立盲审轮数 (self-consistency)
+JUDGE_REP_MAJORITY: int = NUM_JUDGE_REPS // 2 + 1  # = 2, 模型内多数门（由轮数唯一决定, 勿手改）
 # 日志文件固定命名为「同 py 文件名」并 mode="w" 覆盖写入，只保留最近一次运行，
 # 故不再需要"保留最近 N 个"的滚动清理配置（原 LOG_RETENTION_COUNT 已移除）。
 

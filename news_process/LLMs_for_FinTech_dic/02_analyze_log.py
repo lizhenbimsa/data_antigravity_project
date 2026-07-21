@@ -146,8 +146,11 @@ def analyze_log(log_path: Path, output_path: Path) -> None:
             continue
 
         # 判别阶段 - 成功
+        # fix(2026-07-21): task_id 引入三轮 self-consistency 后形如「判别-模型/批次N/轮R」，
+        # 旧正则要求「批次\d+」后紧邻「]」→ 新格式静默失配、判别统计归零（无报错，最危险
+        # 的失败形态）。三处判别正则统一加可选组 (?:/轮\d+)?，新旧日志格式双兼容。
         m_judge_success = re.search(
-            r"\[判别-(.+?)/批次\d+\] 成功判别", line
+            r"\[判别-(.+?)/批次\d+(?:/轮\d+)?\] 成功判别", line
         )
         if judge_phase_started and m_judge_success:
             model = m_judge_success.group(1)
@@ -157,7 +160,7 @@ def analyze_log(log_path: Path, output_path: Path) -> None:
 
         # 判别阶段 - 失败
         m_judge_fail = re.search(
-            r"\[ERROR\].*\[判别-(.+?)/批次\d+\] 失败", line
+            r"\[ERROR\].*\[判别-(.+?)/批次\d+(?:/轮\d+)?\] 失败", line
         )
         if judge_phase_started and m_judge_fail:
             model = m_judge_fail.group(1)
@@ -166,7 +169,7 @@ def analyze_log(log_path: Path, output_path: Path) -> None:
 
         # 判别阶段 - 重试
         m_judge_retry = re.search(
-            r"\[WARNING\].*\[判别-(.+?)/批次\d+\] 重试 (\d+)", line
+            r"\[WARNING\].*\[判别-(.+?)/批次\d+(?:/轮\d+)?\] 重试 (\d+)", line
         )
         if judge_phase_started and m_judge_retry:
             model = m_judge_retry.group(1)
@@ -184,7 +187,7 @@ def analyze_log(log_path: Path, output_path: Path) -> None:
     p("=" * 100)
     p("【项目】基于大语言模型群体智能的金融科技领域词典构建管道运行分析：三阶段——种子引导")
     p(f"  并发生成 {cite('brown_2020', 'dekok_2025')} → 集合规约 {cite('hanley_2019', 'li_2021')}")
-    p(f"  → 机器交叉盲审（LLM-as-a-Judge Swarm，2/3 严格多数，凝缩型 CoT 约束）{cite('zheng_2023', 'liu_2023', 'ouyang_2022', 'gopal_2025', 'wei_2022')}；")
+    p(f"  → 机器交叉盲审（LLM-as-a-Judge Swarm，模型内三轮 self-consistency 多数 + 模型间严格过半数，凝缩型 CoT 约束）{cite('zheng_2023', 'liu_2023', 'ouyang_2022', 'gopal_2025', 'wei_2022')}；")
     p(f"  测度构念承接金融文本量化与专属词典传统 {cite('gentzkow_2019', 'loughran_2011', 'kearney_2014', 'gomber_2018')}。")
     p("  说明：本报告全部非整数统计量均保留四位有效数字（4 significant figures）。")
     p("-" * 100)
@@ -296,7 +299,7 @@ def analyze_log(log_path: Path, output_path: Path) -> None:
     if judge_models:
         p()
         p("=" * 80)
-        p("七、判别阶段统计（机器交叉盲审 LLM-as-a-Judge，零温 T=0，2/3 严格多数截断）")
+        p("七、判别阶段统计（机器交叉盲审 LLM-as-a-Judge，零温 T=0，模型内三轮多数 + 模型间严格过半数截断）")
         p(f"   {cite('zheng_2023', 'liu_2023', 'ouyang_2022')}")
         p("=" * 80)
         total_j_success = sum(s["success"] for s in judge_models.values())

@@ -168,8 +168,28 @@ def _extract_result_map_block(src: str) -> str:
     return src[start:end]
 
 
+def _load_dic_config():
+    """以唯一模块名从磁盘加载 LLMs_for_FinTech_dic/config.py。
+
+    不动 sys.path（避免与主项目 config/ 目录名冲突）；config.py 仅常量与纯函数定义
+    （dotenv 读 .env 无副作用），仍不 import 00_LLMs_for_dic.py 本体（模块 docstring
+    声明的设计约束不破）。
+    """
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("_llmsdic_config_s12", _CONFIG_SRC_PATH)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def _build_extracted_function(block: str) -> Callable:
-    """把截取出的代码片段包装成可调用函数，在隔离命名空间内 exec（无 import、无 IO）。"""
+    """把截取出的代码片段包装成可调用函数，在隔离命名空间内 exec（无 IO）。
+
+    fix(2026-07-21): 生产代码 2026-07-19 起在该块内调用 config.reason_text_from_index
+    （reason 序号→理由全文反查），沙盒命名空间缺该名字 → NameError 慢性红。注入
+    **真实**函数（从磁盘加载 config.py 取得）而非桩，保持行为断言对生产语义的保真度。
+    """
     dedented = textwrap.dedent(block)
     body = textwrap.indent(dedented, "    ")
     func_src = (
@@ -178,7 +198,9 @@ def _build_extracted_function(block: str) -> Callable:
         f"{body}\n"
         "    return result_map\n"
     )
-    namespace: dict = {}
+    namespace: dict = {
+        "reason_text_from_index": _load_dic_config().reason_text_from_index,
+    }
     exec(compile(func_src, "<s12_extracted_block>", "exec"), namespace)  # noqa: S102
     return namespace["_run"]
 
@@ -203,18 +225,24 @@ def test_s12_bad_score_item_is_skipped_not_raised():
     run = _build_extracted_function(block)
 
     logger = _StubLogger()
+    # fix(评审B, 2026-07-21): 生产代码新增 0/1 域强制——好词样例由越界的 "3" 改为
+    # 合法 "1"；新增两条越界整数负例（int() 可转但域外, 须按坏项跳过而非入 map）。
     results_list = [
-        {"keyword": "好词", "score": "3", "reason": "正常"},
+        {"keyword": "好词", "score": "1", "reason": "正常"},
         {"keyword": "坏词-非数字", "score": "abc", "reason": "畸形"},
         {"keyword": "坏词-None", "score": None, "reason": "畸形2"},
         {"keyword": "坏词-列表", "score": [1, 2], "reason": "畸形3"},
+        {"keyword": "坏词-越界正", "score": 3, "reason": "字段错置"},
+        {"keyword": "坏词-越界负", "score": -1, "reason": "畸形4"},
     ]
 
     # 核心断言: 不应 raise（修复前的裸 int() 会在第二个坏项上直接 ValueError 炸穿循环）
     result_map = run(results_list, logger, "unit-test-task")
 
-    assert result_map.get("好词") == (3, "正常"), "正常项应正确解析入 result_map"
+    assert result_map.get("好词") == (1, "正常"), "正常项应正确解析入 result_map"
     assert "坏词-非数字" not in result_map, "坏 score 项不应被塞入 result_map（应跳过）"
     assert "坏词-None" not in result_map
     assert "坏词-列表" not in result_map
-    assert len(logger.warnings) == 3, f"应对 3 条坏项各记 1 条 warning，实得 {len(logger.warnings)}"
+    assert "坏词-越界正" not in result_map, "越界整数 (3) 须被 0/1 域强制拦截（评审B）"
+    assert "坏词-越界负" not in result_map, "越界整数 (-1) 须被 0/1 域强制拦截（评审B）"
+    assert len(logger.warnings) == 5, f"应对 5 条坏项各记 1 条 warning，实得 {len(logger.warnings)}"

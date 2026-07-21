@@ -53,6 +53,8 @@ from config import (
     MAX_OUTPUT_TOKENS,
     MODEL_FAIL_THRESHOLD,
     MODELS,
+    NUM_JUDGE_REPS,
+    JUDGE_REP_MAJORITY,
     NUM_REPEAT_PER_MODEL,
     SAMPLING_PARAM_FILTERED_MODELS,
     REQUEST_TIMEOUT,
@@ -286,7 +288,8 @@ _RUN_CITED_HANDLES = [
     "brown_2020", "dekok_2025",
     # 阶段二：集合规约（无监督扩容的过度映射/假阳性问题）
     "blei_2003", "hanley_2019", "li_2021",
-    # 阶段三：LLM-as-a-Judge 群体盲审（零温 2/3 严格多数；判别端凝缩型 CoT 约束）
+    # 阶段三：LLM-as-a-Judge 群体盲审（零温；模型内三轮 self-consistency 多数 +
+    # 模型间严格过半数；判别端凝缩型 CoT 约束）
     # 含 LLM-as-annotator / LLM-as-judge 综述 / 幻觉综述（交叉盲审的动因）
     "zheng_2023", "liu_2023", "gu_2024", "gilardi_2023", "ouyang_2022",
     "bernard_2026", "gopal_2025", "wei_2022", "ji_2023",
@@ -325,10 +328,11 @@ def _log_run_header(logger: logging.Logger) -> None:
     logger.info("  ② 集合迭代精简（Set-based Reduction）：Unicode NFKC 规范化 + 哈希去重 + 超子串")
     logger.info("     包容剔除算子，收敛为正交原子词根，抑制派生词重复计量 "
                 + cite("blei_2003", "hanley_2019", "li_2021"))
-    logger.info("  ③ 机器交叉盲审（LLM-as-a-Judge Swarm，零温 T=0）：多模型背靠背评分 + 2/3 严格多数")
-    logger.info("     （supermajority，需 > 2/3 家模型认可）截断，判别端施加凝缩型思维链（CoT）约束、"
+    logger.info(f"  ③ 机器交叉盲审（LLM-as-a-Judge Swarm，零温 T=0）：多模型各 {NUM_JUDGE_REPS} 轮独立背靠背评分，")
+    logger.info(f"     双层多数投票——模型内 ≥{JUDGE_REP_MAJORITY}/{NUM_JUDGE_REPS} 轮多数（self-consistency）聚成正式票，"
+                "模型间按严格过半数（strict majority，需 > 1/2 家模型认可）截断，判别端施加凝缩型思维链（CoT）约束、"
                 "削减单体模型偏误与幻觉、分离弱共识噪声（大模型作评判者/标注员的一致性与幻觉动因） "
-                + cite("zheng_2023", "gu_2024", "gilardi_2023", "liu_2023", "ouyang_2022",
+                + cite("wang_2022", "zheng_2023", "gu_2024", "gilardi_2023", "liu_2023", "ouyang_2022",
                        "bernard_2026", "wei_2022", "ji_2023"))
     # ⚠ 零温例外披露（动态：仅当判别名单含采样参数受限模型时输出；详见 config.py 常量处）
     _t0_filtered = [m for m in JUDGE_MODELS if m in SAMPLING_PARAM_FILTERED_MODELS]
@@ -350,7 +354,8 @@ def _log_run_header(logger: logging.Logger) -> None:
     # ── 配置快照（运行时动态值）──────────────────────────────────
     _gen_tasks = len(MODELS) * len(DOMAINS) * NUM_REPEAT_PER_MODEL
     logger.info("【配置快照 Config（运行时动态）】")
-    logger.info(f"  生成模型 {len(MODELS)} 家 · 判别模型 {len(JUDGE_MODELS)} 家 · 领域 {len(DOMAINS)} 个 · "
+    logger.info(f"  生成模型 {len(MODELS)} 家 · 判别模型 {len(JUDGE_MODELS)} 家 × 每家 {NUM_JUDGE_REPS} 轮"
+                f"（内部多数门 ≥{JUDGE_REP_MAJORITY}）· 领域 {len(DOMAINS)} 个 · "
                 f"每模型重复 {NUM_REPEAT_PER_MODEL} 次 → 生成任务 {_gen_tasks} 个")
     logger.info(f"  判别批大小 {JUDGE_BATCH_SIZE} · 生成并发 {MAX_WORKERS_GENERATE} · 判别并发 {MAX_WORKERS_JUDGE} · "
                 f"单次超时 {REQUEST_TIMEOUT}s · 全局重试上限 {MAX_TOTAL_RETRIES} · 失败跳过阈值 {MODEL_FAIL_THRESHOLD}")
@@ -722,7 +727,10 @@ def _call_llm_with_retry(
 # ════════════════════════════════════════════════════════════════
 # ⚠ 铁律：本审计设施只挂判别（盲审）阶段 judge_batch 及其后的纯读环节，
 #   生成阶段 fetch_batch 零触碰（用户 2026-07-21 铁律「严禁动生成阶段」）。
-# 结构：{"tasks": {(model, batch_idx): {"attempts": [...], "outcome": str, ...}}}
+# 结构：{"tasks": {(model, batch_idx, rep): {"attempts": [...], "outcome": str, ...}}}
+#   - rep: 三轮 self-consistency 的轮序号 0..NUM_JUDGE_REPS-1；历史 v1 manifest
+#     冻结重放（单轮 legacy tag 口径）传 None。同一 run 内 rep 恒同类型（全 int
+#     或全 None），排序用 -1 代 None 防御性归一。
 #   - attempts: 逐 try 记录 {try, key, cached_before, got_response}
 #   - outcome:  full / partial_adopt / hard_fail / health_skip / shutdown / offline_miss
 # 判决规则（_emit_replay_verdict）：
@@ -733,7 +741,19 @@ def _call_llm_with_retry(
 #   partial_adopt 单列声明：其重放确定性成立（同缓存响应→同解析路径→同部分采纳），
 #   但存在"覆盖不足补 0"的口径须披露。
 _replay_audit_lock = threading.Lock()
-_replay_audit: Dict[Tuple[str, int], Dict[str, Any]] = {}
+_replay_audit: Dict[Tuple[str, int, Optional[int]], Dict[str, Any]] = {}
+
+
+def _rep_sort_key(task_key: Tuple[str, int, Optional[int]]) -> Tuple[str, int, int]:
+    """审计任务键排序归一：rep=None（legacy 单轮）映射为 -1，防御 None 参与比较。"""
+    model, bi, rep = task_key
+    return (model, bi, -1 if rep is None else rep)
+
+
+def _task_label(model: str, batch_idx: int, rep: Optional[int]) -> str:
+    """人读任务标签：轮序号仅在三轮口径下展示（legacy 单轮与历史日志格式一致）。"""
+    label = f"{model}/批次{batch_idx + 1}"
+    return label if rep is None else f"{label}/轮{rep + 1}"
 
 # 严格重放门（生产定稿跑用）：判决不通过即 SystemExit(1) 拒绝出结果；默认关。
 STRICT_REPLAY: bool = os.environ.get("LLMS_DIC_STRICT_REPLAY", "").strip().lower() in {
@@ -741,22 +761,22 @@ STRICT_REPLAY: bool = os.environ.get("LLMS_DIC_STRICT_REPLAY", "").strip().lower
 }
 
 
-def _audit_task(model: str, batch_idx: int) -> Dict[str, Any]:
-    """取（或惰性建）某判别任务的审计记录（线程安全）。"""
+def _audit_task(model: str, batch_idx: int, rep: Optional[int]) -> Dict[str, Any]:
+    """取（或惰性建）某判别任务的审计记录（线程安全）。rep=None 为 legacy 单轮口径。"""
     with _replay_audit_lock:
-        rec = _replay_audit.get((model, batch_idx))
+        rec = _replay_audit.get((model, batch_idx, rep))
         if rec is None:
             rec = {"attempts": [], "outcome": None, "consumed_try": None, "coverage": None}
-            _replay_audit[(model, batch_idx)] = rec
+            _replay_audit[(model, batch_idx, rep)] = rec
         return rec
 
 
 def _audit_attempt(
-    model: str, batch_idx: int, attempt: int, key: str,
+    model: str, batch_idx: int, rep: Optional[int], attempt: int, key: str,
     cached_before: bool, got_response: bool,
 ) -> None:
     """记录一次判别 try：缓存键、调用前是否已有缓存（命中/新写判别）、是否拿到响应。"""
-    rec = _audit_task(model, batch_idx)
+    rec = _audit_task(model, batch_idx, rep)
     with _replay_audit_lock:
         rec["attempts"].append({
             "try": attempt,
@@ -767,11 +787,11 @@ def _audit_attempt(
 
 
 def _audit_outcome(
-    model: str, batch_idx: int, outcome: str,
+    model: str, batch_idx: int, rep: Optional[int], outcome: str,
     consumed_try: Optional[int] = None, coverage: Optional[float] = None,
 ) -> None:
     """记录判别任务终局（幂等：首个终局为准，防重试路径重复覆写）。"""
-    rec = _audit_task(model, batch_idx)
+    rec = _audit_task(model, batch_idx, rep)
     with _replay_audit_lock:
         if rec["outcome"] is None:
             rec["outcome"] = outcome
@@ -781,42 +801,51 @@ def _audit_outcome(
 
 def _emit_replay_verdict(
     kw_list: List[str],
-    model_results: Dict[str, Dict[str, Any]],
+    model_results: Dict[Tuple[str, Optional[int]], Dict[str, Any]],
     logger: logging.Logger,
     judge_models: Optional[List[str]] = None,
+    n_judge_reps: Optional[int] = None,
 ) -> Dict[str, Any]:
     """盲审可复现性判决：计数器 + 全格覆盖对账，输出判决日志块并返回判决 dict。
 
     judge_models 缺省用当前 config 的 JUDGE_MODELS；--from-manifest 重放传入
     manifest 冻结名单（冻结重放语义：以首跑口径对账，不受 config 后续漂移影响）。
+    n_judge_reps=None → legacy 单轮口径（v1 manifest 冻结重放，聚合键 rep=None，
+    判决字段与改造前同构）；int → 三轮口径（全格 = 模型 × 词 × 轮）。
     """
     from collections import Counter
 
     _models = list(judge_models) if judge_models is not None else list(JUDGE_MODELS)
+    _reps: List[Optional[int]] = [None] if n_judge_reps is None else list(range(n_judge_reps))
     outcome_counts: Counter = Counter()
     bad_tasks: List[str] = []
     no_response_attempts: List[str] = []
     with _replay_audit_lock:
         tasks_snapshot = {k: dict(v, attempts=list(v["attempts"])) for k, v in _replay_audit.items()}
-    for (model, bi), rec in sorted(tasks_snapshot.items()):
+    for (model, bi, rep), rec in sorted(tasks_snapshot.items(), key=lambda kv: _rep_sort_key(kv[0])):
         outcome = rec["outcome"] or "unknown"
         outcome_counts[outcome] += 1
         if outcome not in {"full", "partial_adopt"}:
-            bad_tasks.append(f"{model}/批次{bi + 1}={outcome}")
+            bad_tasks.append(f"{_task_label(model, bi, rep)}={outcome}")
         for att in rec["attempts"]:
             if not att["got_response"]:
-                no_response_attempts.append(f"{model}/批次{bi + 1}/try{att['try']}")
+                no_response_attempts.append(f"{_task_label(model, bi, rep)}/try{att['try']}")
 
-    # 聚合层全格对账（G1b）：executor break 丢弃已完成 future → model_results 缺格补 0
-    expected_cells = len(_models) * len(kw_list)
-    actual_cells = sum(len(model_results.get(m, {})) for m in _models)
+    # 聚合层全格对账（G1b）：executor break 丢弃已完成 future → model_results 缺格补 0。
+    # 三轮口径下全格 = 模型 × 词 × 轮（每轮独立一格；vote 由分数纯函数派生，不另计格）。
+    expected_cells = len(_models) * len(kw_list) * len(_reps)
+    actual_cells = sum(len(model_results.get((m, r), {})) for m in _models for r in _reps)
     missing_cells: List[str] = []
     if actual_cells != expected_cells:
-        kw_set_by_model = {m: model_results.get(m, {}) for m in _models}
         for m in _models:
-            miss = [kw for kw in kw_list if kw not in kw_set_by_model[m]]
-            if miss:
-                missing_cells.append(f"{m}: 缺 {len(miss)} 词 (如 {', '.join(miss[:3])} ...)")
+            for r in _reps:
+                cell_map = model_results.get((m, r), {})
+                miss = [kw for kw in kw_list if kw not in cell_map]
+                if miss:
+                    _m_label = m if r is None else f"{m}/轮{r + 1}"
+                    missing_cells.append(
+                        f"{_m_label}: 缺 {len(miss)} 词 (如 {', '.join(miss[:3])} ...)"
+                    )
 
     reproducible = (
         not bad_tasks
@@ -860,6 +889,9 @@ def _emit_replay_verdict(
         "no_response_attempts": no_response_attempts,
         "missing_cells": missing_cells,
     }
+    if n_judge_reps is not None:
+        # 三轮口径专属字段；legacy（v1 冻结重放）不加，保持判决结构与改造前同构
+        verdict["n_judge_reps"] = n_judge_reps
     if STRICT_REPLAY and not reproducible:
         logger.error(
             "[LLMS_DIC_STRICT_REPLAY=1] 判决不通过，拒绝产出结果（已付费响应均已入缓存，"
@@ -881,9 +913,20 @@ def _write_judge_manifest(
     output_file: Path,
     judge_models: Optional[List[str]] = None,
     batch_size: Optional[int] = None,
+    n_judge_reps: Optional[int] = None,
+    rep_majority: Optional[int] = None,
 ) -> Optional[Path]:
     """盲审清单 manifest 落盘（P2）：复现凭证，供 verify_judge_cache_coverage.py 核验。
 
+    rep_majority: 与 n_judge_reps 配套的模型内多数门。fix(评审A, 2026-07-21): 冻结
+    重放须传 manifest 冻结值——否则活体 config 协议演进后, 重放新写的 manifest 会
+    落盘 n_judge_reps=冻结值 + rep_majority=活体值 的自相矛盾存根。None 回退当前
+    config 的 JUDGE_REP_MAJORITY（main 首跑口径）。
+
+    n_judge_reps=None → legacy 单轮口径（v1 manifest 冻结重放产出），schema/v1、
+    任务键 {model}|batch{bi}，与改造前逐字段同构（历史核验链不断）；
+    int → 三轮口径，schema/v2、任务键 {model}|batch{bi}|rep{r}，并冻结投票协议参数
+    （n_judge_reps / rep_majority / final_vote_threshold）进复现凭证。
     附加产物，不改动 xlsx 任何 sheet/列；写失败按 WARNING 降级（绝不因留存根失败
     丢掉已付费判别结果）。
     """
@@ -901,16 +944,21 @@ def _write_judge_manifest(
     manifest_path = DATA_DIR / f"judge_manifest_{ts}.json"
     with _replay_audit_lock:
         tasks_out = {
-            f"{model}|batch{bi}": {
+            (f"{model}|batch{bi}" if rep is None else f"{model}|batch{bi}|rep{rep}"): {
                 "attempts": list(rec["attempts"]),
                 "outcome": rec["outcome"],
                 "consumed_try": rec["consumed_try"],
                 "coverage": rec["coverage"],
             }
-            for (model, bi), rec in sorted(_replay_audit.items())
+            for (model, bi, rep), rec in sorted(
+                _replay_audit.items(), key=lambda kv: _rep_sort_key(kv[0])
+            )
         }
     manifest = {
-        "schema": "llmsdic-judge-manifest/v1",
+        "schema": (
+            "llmsdic-judge-manifest/v1" if n_judge_reps is None
+            else "llmsdic-judge-manifest/v2"
+        ),
         "created_at": datetime.now().isoformat(timespec="seconds"),
         "run_output_file": output_file.name,
         "offline_mode": OFFLINE_MODE,
@@ -932,6 +980,17 @@ def _write_judge_manifest(
             "pandas": pd.__version__,
         },
     }
+    if n_judge_reps is not None:
+        # v2 投票协议冻结（复现凭证完备性）：轮数 / 模型内多数门 / 模型间入选门槛
+        manifest["n_judge_reps"] = n_judge_reps
+        manifest["rep_majority"] = (
+            JUDGE_REP_MAJORITY if rep_majority is None else int(rep_majority)
+        )
+        manifest["final_vote_threshold"] = {
+            "rule": "total_score > n_models * 0.5",
+            "n_models": len(_models),
+            "min_votes": len(_models) // 2 + 1,
+        }
     try:
         manifest_path.write_text(
             json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
@@ -1063,34 +1122,40 @@ def fetch_batch(args: Tuple) -> Tuple[str, str, List[str], int]:
     return (model_name, dom_name, [], idx)
 
 
-def judge_batch(args: Tuple) -> Tuple[str, List[Tuple[str, int, str]]]:
+def judge_batch(args: Tuple) -> Tuple[str, Optional[int], List[Tuple[str, int, str]]]:
     """
     批量判别任务：一次发送一批关键词给模型，获取判别得分及理由。
 
     Args:
-        args: (model_name, keywords_batch, batch_idx, client_config) 元组
+        args: (model_name, keywords_batch, batch_idx, rep, client_config) 元组。
+            rep: self-consistency 轮序号 0..NUM_JUDGE_REPS-1（进缓存 tag，三轮各占
+            独立缓存槽位）；None = legacy 单轮口径（仅历史 v1 manifest 冻结重放传入，
+            走改造前 tag judge|try{n} 以命中既有缓存条目）。
 
     Returns:
-        (模型名, [(关键词, 得分, 理由), ...])
+        (模型名, 轮序号, [(关键词, 得分, 理由), ...])
     """
-    model_name, keywords_batch, batch_idx, client_config = args
+    model_name, keywords_batch, batch_idx, rep, client_config = args
 
     client = _get_client(client_config)
     logger = logging.getLogger("LLMs_for_dic")
-    task_id = f"判别-{model_name}/批次{batch_idx + 1}"
+    task_id = f"判别-{_task_label(model_name, batch_idx, rep)}"
+    # 方案 B 统一 tag 命名：三轮 judge|rep{r}|try{n}；legacy（rep=None）保持 judge|try{n}
+    # 逐字节不变——历史 v1 manifest 的 $0 离线重放依赖旧 tag 命中旧缓存条目。
+    _tag_prefix = "judge" if rep is None else f"judge|rep{rep}"
 
     best_partial_results = []
     best_partial_count = 0
 
     for attempt in range(MAX_JUDGE_RETRIES):
         if _shutdown_event.is_set():
-            _audit_outcome(model_name, batch_idx, "shutdown")
-            return (model_name, [(kw, 0, "") for kw in keywords_batch])
+            _audit_outcome(model_name, batch_idx, rep, "shutdown")
+            return (model_name, rep, [(kw, 0, "") for kw in keywords_batch])
 
         # 模型健康检查
         if _model_health.should_skip(model_name):
-            _audit_outcome(model_name, batch_idx, "health_skip")
-            return (model_name, [(kw, 0, "") for kw in keywords_batch])
+            _audit_outcome(model_name, batch_idx, rep, "health_skip")
+            return (model_name, rep, [(kw, 0, "") for kw in keywords_batch])
 
         prompt = build_judge_prompt(keywords_batch)
         # temperature=0 确定性判别：prompt 本身含全部关键词即可唯一定位；
@@ -1104,7 +1169,7 @@ def judge_batch(args: Tuple) -> Tuple[str, List[Tuple[str, int, str]]]:
         # 几乎全 miss（正确性无损，纯成本放大）；词表稳定时才有 $0 重放。
         # ── 复现审计（P1/P2）：记录本 try 的缓存键与命中态（与 _call_llm_with_retry
         #    的 temp_key="0"/tag 构造严格同构；键结构改动须双处同步） ──
-        _audit_tag = f"judge|try{attempt}"
+        _audit_tag = f"{_tag_prefix}|try{attempt}"
         _audit_key = LLMCache.make_key(model_name, prompt, "0", _audit_tag)
         _cached_before = (
             _llm_cache.has(model_name, prompt, "0", _audit_tag)
@@ -1113,18 +1178,18 @@ def judge_batch(args: Tuple) -> Tuple[str, List[Tuple[str, int, str]]]:
         try:
             text = _call_llm_with_retry(
                 client, model_name, prompt, task_id, logger,
-                force_temperature=0, cache_tag=f"judge|try{attempt}",
+                force_temperature=0, cache_tag=_audit_tag,
             )
         except LLMCacheMissError as e:
             # 离线重放遇到首跑缓存空洞：置全局停止走优雅中断，不炸穿 executor
-            _audit_attempt(model_name, batch_idx, attempt, _audit_key, False, False)
-            _audit_outcome(model_name, batch_idx, "offline_miss")
+            _audit_attempt(model_name, batch_idx, rep, attempt, _audit_key, False, False)
+            _audit_outcome(model_name, batch_idx, rep, "offline_miss")
             logger.error(f"  [{task_id}] {e}")
             _shutdown_event.set()
-            return (model_name, [(kw, 0, "") for kw in keywords_batch])
+            return (model_name, rep, [(kw, 0, "") for kw in keywords_batch])
 
         _audit_attempt(
-            model_name, batch_idx, attempt, _audit_key, _cached_before, text is not None
+            model_name, batch_idx, rep, attempt, _audit_key, _cached_before, text is not None
         )
         if text is None:
             logger.warning(f"  [{task_id}] 第{attempt + 1}次尝试失败，返回为None")
@@ -1175,6 +1240,18 @@ def judge_batch(args: Tuple) -> Tuple[str, List[Tuple[str, int, str]]]:
                                 f"score={raw_score!r} 无法转为 int，已跳过该词（按未匹配处理）"
                             )
                             continue
+                        # fix(评审B, 2026-07-21): 0/1 域强制——Prompt 契约 score∈{0,1},
+                        # 但越界整数 (如 score/reason 字段错置产生的 3) 能通过 int() 转换,
+                        # 而下游 _rep_vote 对原始分求和过门 → 单轮一个越界值即可伪造
+                        # ([3,0,0]→sum≥2) 或否决 ([-1,1,1]→sum<2) 模型内多数。域外按坏项
+                        # 跳过 (镜像上方 S12 语义, 走"未匹配补 0"兜底), 使二值不变量在
+                        # 代码层强制而非仅存于 Prompt 文字契约。
+                        if sc not in (0, 1):
+                            logger.warning(
+                                f"  [{task_id}] 判别结果坏项: keyword={kw!r} "
+                                f"score={sc!r} 越出 0/1 域，已跳过该词（按未匹配处理）"
+                            )
+                            continue
                         # 模型按新契约只回 reason 序号 (0-5)；此处纯本地查表把序号映回
                         # REASONS 理由全文，使落盘 _reason 列保持可读（非法/越界/空/仍是全文
                         # 均 fail-soft 原样返回，不崩批）。见 config.reason_text_from_index。
@@ -1191,8 +1268,8 @@ def judge_batch(args: Tuple) -> Tuple[str, List[Tuple[str, int, str]]]:
 
                 if len(result_map) == len(keywords_batch):
                     logger.info(f"  [{task_id}] 成功判别 {len(result_map)}/{len(keywords_batch)} 个词")
-                    _audit_outcome(model_name, batch_idx, "full", consumed_try=attempt, coverage=1.0)
-                    return (model_name, batch_results)
+                    _audit_outcome(model_name, batch_idx, rep, "full", consumed_try=attempt, coverage=1.0)
+                    return (model_name, rep, batch_results)
                 else:
                     logger.warning(f"  [{task_id}] 第{attempt + 1}次尝试部分判别成功 ({len(result_map)}/{len(keywords_batch)})，未完全覆盖，准备重试")
                     if len(result_map) > best_partial_count:
@@ -1212,10 +1289,10 @@ def judge_batch(args: Tuple) -> Tuple[str, List[Tuple[str, int, str]]]:
                     f"({best_partial_count}/{len(keywords_batch)})，提前采纳部分结果"
                 )
                 _audit_outcome(
-                    model_name, batch_idx, "partial_adopt",
+                    model_name, batch_idx, rep, "partial_adopt",
                     consumed_try=attempt, coverage=coverage,
                 )
-                return (model_name, best_partial_results)
+                return (model_name, rep, best_partial_results)
 
         if attempt < MAX_JUDGE_RETRIES - 1:
             wait = min(15, 2 * (2 ** attempt)) + random.uniform(0, 5)  # 退避等待
@@ -1226,15 +1303,106 @@ def judge_batch(args: Tuple) -> Tuple[str, List[Tuple[str, int, str]]]:
     if best_partial_count > 0:
         logger.warning(f"  [{task_id}] 达到最大重试次数，采纳最佳部分判别结果 ({best_partial_count}/{len(keywords_batch)})，其余标记为0")
         _audit_outcome(
-            model_name, batch_idx, "partial_adopt",
+            model_name, batch_idx, rep, "partial_adopt",
             coverage=best_partial_count / len(keywords_batch),
         )
-        return (model_name, best_partial_results)
+        return (model_name, rep, best_partial_results)
 
     # 超过最大重试次数，标记失败
     logger.error(f"  [{task_id}] 失败，全部标记为0")
-    _audit_outcome(model_name, batch_idx, "hard_fail")
-    return (model_name, [(kw, 0, "") for kw in keywords_batch])
+    _audit_outcome(model_name, batch_idx, rep, "hard_fail")
+    return (model_name, rep, [(kw, 0, "") for kw in keywords_batch])
+
+
+# ════════════════════════════════════════════════════════════════
+# 判别聚合：模型内 self-consistency 投票 + 判别语义 DataFrame 单一构建器
+# ════════════════════════════════════════════════════════════════
+
+def _rep_vote(scores: List[int], majority: int) -> int:
+    """模型内 self-consistency 多数票：三轮 0/1 判分之和过 majority(常态=2) 门。
+
+    奇数轮 + 二值判分 → 永无平票；缺轮（该轮 hard_fail/health_skip 全 0 或聚合缺格）
+    按 0 计——保守方向，缺轮绝不可能把词投成 1（判决块会曝光缺轮降级）。
+    0/1 域在 judge_batch 解析处强制（越界整数按坏项跳过），故求和过门即真多数。
+    fix(评审A, 2026-07-21): majority 改显式参数——冻结重放须用 manifest 记录的
+    rep_majority 而非活体 config 值，防 config 轮数协议后续演进使历史 v2 manifest
+    重放的投票门静默漂移（写而不读缺陷）。
+    """
+    return 1 if sum(scores) >= majority else 0
+
+
+def _build_judge_dataframe(
+    kw_list: List[str],
+    model_results: Dict[Tuple[str, Optional[int]], Dict[str, Any]],
+    judge_models: List[str],
+    n_judge_reps: Optional[int],
+    rep_majority: Optional[int] = None,
+) -> Tuple[pd.DataFrame, List[str]]:
+    """由 (model, rep) → {kw: [score, reason]} 聚合层构建判别语义 DataFrame。
+
+    ⚠ 单一构建器：main() 与 --judge-only 冻结重放共用本函数，杜绝历史上「两处
+    DataFrame 副本各改各的」漂移通路（镜像 stage21 双门控教训）。
+
+    n_judge_reps=None → legacy 单轮口径（v1 manifest 冻结重放）：每模型输出
+      {key}_score / {key}_reason 两列，total_score = 13 次单判之和——与改造前
+      逐字节同构（历史重放 A/B 对拍锚）。
+    n_judge_reps=int → 三轮口径：每模型 7 列（score_r1..r3 + reason_r1..r3 + vote），
+      vote = 该模型三轮判分的 ≥rep_majority 多数，total_score = 13 家 vote 之和。
+    rep_majority: 模型内多数门。fix(评审A, 2026-07-21): v2 冻结重放必须传 manifest
+      冻结值（防活体 config 协议演进使历史重放静默失真）；None 回退当前 config
+      的 JUDGE_REP_MAJORITY（main 首跑口径）。
+
+    Returns:
+        (df_judged, ordered_cols)：ordered_cols 以 total_score 开头、按模型序排列
+        判别列（不含 id/keyword，由调用方拼装列序前缀）。
+    """
+    _majority = JUDGE_REP_MAJORITY if rep_majority is None else int(rep_majority)
+    reps: List[Optional[int]] = [None] if n_judge_reps is None else list(range(n_judge_reps))
+    judge_rows: List[Dict[str, Any]] = []
+    for kw in kw_list:
+        row: Dict[str, Any] = {"keyword": kw}
+        total = 0
+        for model in judge_models:
+            key = model.replace(".", "_").replace("-", "_")
+            if n_judge_reps is None:
+                res = model_results[(model, None)].get(kw, [0, ""])
+                if isinstance(res, (int, float)):
+                    score, reason = int(res), ""
+                else:
+                    score = int(res[0])
+                    reason = str(res[1]) if len(res) > 1 else ""
+                row[f"{key}_score"] = score
+                row[f"{key}_reason"] = reason
+                total += score
+            else:
+                rep_scores: List[int] = []
+                for r in reps:
+                    res = model_results[(model, r)].get(kw, [0, ""])
+                    if isinstance(res, (int, float)):
+                        score, reason = int(res), ""
+                    else:
+                        score = int(res[0])
+                        reason = str(res[1]) if len(res) > 1 else ""
+                    row[f"{key}_score_r{r + 1}"] = score
+                    row[f"{key}_reason_r{r + 1}"] = reason
+                    rep_scores.append(score)
+                vote = _rep_vote(rep_scores, _majority)
+                row[f"{key}_vote"] = vote
+                total += vote
+        row["total_score"] = total
+        judge_rows.append(row)
+
+    df_judged = pd.DataFrame(judge_rows)
+    ordered_cols: List[str] = ["total_score"]
+    for model in judge_models:
+        key = model.replace(".", "_").replace("-", "_")
+        if n_judge_reps is None:
+            ordered_cols += [f"{key}_score", f"{key}_reason"]
+        else:
+            ordered_cols += [f"{key}_score_r{r + 1}" for r in reps]
+            ordered_cols += [f"{key}_reason_r{r + 1}" for r in reps]
+            ordered_cols.append(f"{key}_vote")
+    return df_judged, ordered_cols
 
 
 # ════════════════════════════════════════════════════════════════
@@ -1387,10 +1555,11 @@ def _format_excel_workbook(filepath: Path) -> None:
                     max_len = max(max_len, char_len)
                 ws.column_dimensions[get_column_letter(col_idx)].width = min(max_len + 4, 60)
 
-            # 对 score 列应用条件格式（仅含 score 的 Sheet）
+            # 对判分类列应用条件格式，覆盖三代列形态:
+            # {key}_score (v1 单轮) / {key}_score_r{n} + {key}_vote (三轮) / total_score
             for col_idx, cell in enumerate(ws[1], 1):
                 header_val = str(cell.value or "")
-                if header_val.endswith("_score") or header_val == "total_score":
+                if re.search(r"(_score(_r\d+)?|_vote)$", header_val) or header_val == "total_score":
                     for row in ws.iter_rows(min_row=2, min_col=col_idx, max_col=col_idx):
                         for sc_cell in row:
                             if sc_cell.value == 0:
@@ -1462,6 +1631,23 @@ def main(dry_run: bool = False) -> None:
         logger.info(f"  每模型重复次数: {NUM_REPEAT_PER_MODEL}")
         logger.info(f"  生成阶段总任务数: {gen_task_count}")
         logger.info(f"  生成并发数: {MAX_WORKERS_GENERATE}")
+        # 判别任务规模: 词表在生成阶段完成前未知, 报公式; 若盘上有冻结 manifest 则附参考数
+        logger.info(
+            f"  判别阶段任务数 = {len(JUDGE_MODELS)} 模型 × ceil(词数/{JUDGE_BATCH_SIZE}) 批"
+            f" × {NUM_JUDGE_REPS} 轮 (self-consistency, 内部多数门 ≥{JUDGE_REP_MAJORITY})"
+        )
+        _latest_mf = sorted(DATA_DIR.glob("judge_manifest_*.json"))
+        if _latest_mf:
+            try:
+                _mf = json.loads(_latest_mf[-1].read_text(encoding="utf-8"))
+                _nb = int(_mf.get("n_batches", 0))
+                if _nb:
+                    logger.info(
+                        f"  参考最新冻结词表 ({_latest_mf[-1].name}): {_mf.get('n_words')} 词/"
+                        f"{_nb} 批 → 判别任务 {len(JUDGE_MODELS) * _nb * NUM_JUDGE_REPS} 个"
+                    )
+            except Exception:
+                pass
         logger.info(f"  判别批次大小: {JUDGE_BATCH_SIZE}")
         logger.info(f"  判别并发数: {MAX_WORKERS_JUDGE}")
         logger.info(f"  单次超时: {REQUEST_TIMEOUT}s")
@@ -1606,12 +1792,14 @@ def main(dry_run: bool = False) -> None:
     else:
         logger.info(
             f"--- 阶段③ 开始批量判别 (共 {final_count} 个词, "
-            f"每批 {JUDGE_BATCH_SIZE} 个, {len(JUDGE_MODELS)} 个模型) ---"
+            f"每批 {JUDGE_BATCH_SIZE} 个, {len(JUDGE_MODELS)} 个模型 × 每家 {NUM_JUDGE_REPS} 轮) ---"
         )
         logger.info(
-            "    机制：机器交叉盲审（LLM-as-a-Judge Swarm），各模型零温 T=0 背靠背评分，"
-            "经 2/3 严格多数（supermajority）截断、并施加凝缩型思维链（CoT）约束削减单体偏误与幻觉 "
-            + cite("zheng_2023", "gu_2024", "gilardi_2023", "liu_2023", "ouyang_2022",
+            "    机制：机器交叉盲审（LLM-as-a-Judge Swarm），各模型零温 T=0 背靠背评分；"
+            f"双层多数投票——模型内 {NUM_JUDGE_REPS} 轮独立盲审按 ≥{JUDGE_REP_MAJORITY} 轮多数"
+            "（self-consistency）聚成正式票，模型间按严格过半数（strict majority，> 1/2 家）截断，"
+            "并施加凝缩型思维链（CoT）约束削减单体偏误与幻觉 "
+            + cite("wang_2022", "zheng_2023", "gu_2024", "gilardi_2023", "liu_2023", "ouyang_2022",
                    "bernard_2026", "wei_2022", "ji_2023")
         )
         # ⚠ 零温例外披露（动态；详见 config.py::SAMPLING_PARAM_FILTERED_MODELS 常量处）
@@ -1631,18 +1819,21 @@ def main(dry_run: bool = False) -> None:
     batches = [kw_list[i:i + JUDGE_BATCH_SIZE] for i in range(0, len(kw_list), JUDGE_BATCH_SIZE)]
     logger.info(f"  共 {len(batches)} 个批次")
 
-    # 构建判别任务: 模型 × 批次
+    # 构建判别任务: 模型 × 轮 × 批次（rep 序号进缓存 tag，三轮各占独立缓存槽位）
     judge_tasks = []
     for model in JUDGE_MODELS:
-        for bi, batch in enumerate(batches):
-            judge_tasks.append((model, batch, bi, get_client_config(model)))
+        for rep in range(NUM_JUDGE_REPS):
+            for bi, batch in enumerate(batches):
+                judge_tasks.append((model, batch, bi, rep, get_client_config(model)))
 
     # 随机打乱判别任务
     random.shuffle(judge_tasks)
     logger.info(f"  总判别请求数: {len(judge_tasks)} 次")
 
-    # 收集判别结果: {model: {keyword: [score, reason]}}
-    model_results: Dict[str, Dict[str, List[Any]]] = {m: {} for m in JUDGE_MODELS}
+    # 收集判别结果: {(model, rep): {keyword: [score, reason]}}
+    model_results: Dict[Tuple[str, Optional[int]], Dict[str, List[Any]]] = {
+        (m, r): {} for m in JUDGE_MODELS for r in range(NUM_JUDGE_REPS)
+    }
 
     if not _shutdown_event.is_set():
         with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS_JUDGE) as executor:
@@ -1652,9 +1843,9 @@ def main(dry_run: bool = False) -> None:
                 if _shutdown_event.is_set():
                     logger.warning("中断信号已设置，提前结束判别阶段...")
                     break
-                model_name, batch_results = future.result()
+                model_name, rep, batch_results = future.result()
                 for kw, score, reason in batch_results:
-                    model_results[model_name][kw] = [score, reason]
+                    model_results[(model_name, rep)][kw] = [score, reason]
                 completed += 1
                 # 进度汇报
                 if completed % 5 == 0 or completed == len(judge_tasks):
@@ -1669,42 +1860,23 @@ def main(dry_run: bool = False) -> None:
     judge_duration = time.time() - judge_start_time
 
     # ── 盲审可复现性判决 + manifest 落盘（P1/P2；STRICT_REPLAY=1 时判决不过即拒绝出结果）──
-    _verdict = _emit_replay_verdict(kw_list, model_results, logger)
-    _write_judge_manifest(kw_list, _verdict, logger, OUTPUT_FILE)
+    _verdict = _emit_replay_verdict(kw_list, model_results, logger, n_judge_reps=NUM_JUDGE_REPS)
+    _write_judge_manifest(kw_list, _verdict, logger, OUTPUT_FILE, n_judge_reps=NUM_JUDGE_REPS)
 
     # ====================================================================
-    # 构建判别结果 DataFrame
+    # 构建判别结果 DataFrame（单一构建器，与 --judge-only 冻结重放共用）
+    # 每模型 7 列: 三轮 score_r1..r3 + 三轮 reason_r1..r3 + 内部多数票 vote；
+    # total_score = 13 家 vote 之和（语义: 13 张模型内部多数票之和）
     # ====================================================================
-    judge_rows = []
-    for kw in kw_list:
-        row: Dict[str, Any] = {"keyword": kw}
-        total = 0
-        for model in JUDGE_MODELS:
-            key = model.replace(".", "_").replace("-", "_")
-            res = model_results[model].get(kw, [0, ""])
-            if isinstance(res, (int, float)):
-                score = int(res)
-                reason = ""
-            else:
-                score = int(res[0])
-                reason = str(res[1]) if len(res) > 1 else ""
-            row[f"{key}_score"] = score
-            row[f"{key}_reason"] = reason
-            total += score
-        row["total_score"] = total
-        judge_rows.append(row)
-
-    df_judged = pd.DataFrame(judge_rows)
+    df_judged, _judge_cols = _build_judge_dataframe(
+        kw_list, model_results, JUDGE_MODELS, NUM_JUDGE_REPS
+    )
 
     # 合并 ID
     df_final = pd.merge(df_step4, df_judged, on="keyword", how="left")
 
-    # 调整列顺序: id, keyword, total_score, 各模型 score 和 reason
-    ordered_cols = ["id", "keyword", "total_score"]
-    for model in JUDGE_MODELS:
-        key = model.replace(".", "_").replace("-", "_")
-        ordered_cols.append(f"{key}_score")
-        ordered_cols.append(f"{key}_reason")
+    # 调整列顺序: id, keyword, total_score, 各模型三轮判分/理由 + vote
+    ordered_cols = ["id", "keyword"] + _judge_cols
     ordered_cols += [c for c in df_final.columns if c not in ordered_cols]
     df_final = df_final[ordered_cols]
 
@@ -1719,12 +1891,15 @@ def main(dry_run: bool = False) -> None:
     simplified_set = set(simplified_keywords)
     final_kw_set = set(kw_list)
     # fix(S2, 2026-07-14): 阈值由 >= (含平票=4) 改严格多数 > (=≥5/8)。
-    # 更新(2026-07-17): 入选判据由简单严格多数 (>1/2) 收紧为 2/3 严格多数
-    # (> len(JUDGE_MODELS)*2/3; 当前 13 家 → >8.67, 即至少 9 票)。阈值不进 LLM
+    # 更新(2026-07-17): 入选判据由简单严格多数 (>1/2) 收紧为 2/3 严格多数 (历史台账)。
+    # 更新(2026-07-21): 按用户裁定回调为严格过半数 (> len(JUDGE_MODELS) * 0.5;
+    # 当前 13 家 → >6.5, 即至少 7 票)；同批引入模型内三轮 self-consistency,
+    # total_score 语义变为「13 张模型内部多数票之和」(每票 = 该模型 NUM_JUDGE_REPS 轮
+    # 独立盲审的 ≥JUDGE_REP_MAJORITY 多数)。阈值不进 LLM
     # 缓存键，此改动只影响未来重跑的词表筛选，不动现有 fintech_dict.json。
     # ⚠ 家数写死仅作示意；真实门槛恒随 JUDGE_MODELS 动态计算，改模型列表后本行数字须同步。
     judge_ok_set = set(
-        df_final[df_final["total_score"] > len(JUDGE_MODELS) * 2 / 3]["keyword"]
+        df_final[df_final["total_score"] > len(JUDGE_MODELS) * 0.5]["keyword"]
     )
 
     # 构建统计总览
@@ -1873,14 +2048,16 @@ def main(dry_run: bool = False) -> None:
     )
     for sc, cnt in score_counts.items():
         logger.info(f"  得分 {sc}: {cnt} 个词（占 {pct4(cnt, _n_judged)}）")
-    # fix(S2, 2026-07-14) + 更新(2026-07-17): 口径声明——上方分布及下表"AI认可"
-    # 列均按 2/3 严格多数 (>2/3，即 JUDGE_MODELS 中 >len(JUDGE_MODELS)*2/3 家
-    # 模型认可) 统计。⚠ total_score 为整数票数，"恰好 2/3"的临界票仅当模型数可被 3
-    # 整除时才存在（当前 13 家 → 13*2/3=8.67 非整数，不存在恰好 2/3 的票）。
-    _min_pass = len(JUDGE_MODELS) * 2 // 3 + 1
+    # fix(S2, 2026-07-14) + 更新(2026-07-17→2026-07-21): 口径声明——上方分布及下表
+    # "AI认可"列均按严格过半数 (>1/2，即 JUDGE_MODELS 中 >len(JUDGE_MODELS)*0.5 家
+    # 模型认可) 统计；total_score = 13 张模型正式票之和 (每票 = 该模型 NUM_JUDGE_REPS
+    # 轮独立盲审的内部多数)。⚠ "恰好半数"的临界平票仅当模型数为偶数时存在（当前
+    # 13 家奇数 → 13*0.5=6.5 非整数，严格 > 天然无平票）。
+    _min_pass = len(JUDGE_MODELS) // 2 + 1
     logger.info(
-        f"  口径声明(S2): 'AI认可'/上方 total_score 分布均按 2/3 严格多数统计"
-        f"(> {sig4(len(JUDGE_MODELS) * 2 / 3)}，即 {len(JUDGE_MODELS)} 家模型中需 ≥{_min_pass} 票)"
+        f"  口径声明(S2): 'AI认可'/上方 total_score 分布均按严格过半数统计"
+        f"(> {sig4(len(JUDGE_MODELS) * 0.5)}，即 {len(JUDGE_MODELS)} 家模型中需 ≥{_min_pass} 票; "
+        f"每家正式票 = 其 {NUM_JUDGE_REPS} 轮盲审的 ≥{JUDGE_REP_MAJORITY} 轮内部多数)"
     )
 
     logger.info("【各领域统计 Per-domain】")
@@ -1931,8 +2108,21 @@ def judge_replay_from_manifest(manifest_path: Path) -> None:
     """
     logger = setup_logger()
     manifest = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
-    if manifest.get("schema") != "llmsdic-judge-manifest/v1":
-        raise SystemExit(f"[manifest] 无法识别的 schema: {manifest.get('schema')!r}")
+    _schema = manifest.get("schema")
+    if _schema not in {"llmsdic-judge-manifest/v1", "llmsdic-judge-manifest/v2"}:
+        raise SystemExit(f"[manifest] 无法识别的 schema: {_schema!r}")
+    # v1（改造前单轮口径）→ frozen_reps=None → judge_batch 走 legacy tag judge|try{n}
+    # 命中旧缓存条目（方案 B 下旧条目保留不删，历史 $0 复现锚不断）；
+    # v2 → 按记录轮数重放（tag judge|rep{r}|try{n}）。
+    frozen_reps: Optional[int] = (
+        int(manifest["n_judge_reps"]) if _schema.endswith("/v2") else None
+    )
+    # fix(评审A, 2026-07-21): 模型内多数门同样取 manifest 冻结值（此前写而不读——
+    # _rep_vote 恒用活体 config, 若 config 轮数协议后续演进, 历史 v2 manifest 重放的
+    # 投票会静默漂移且判决照旧盖「可复现」）。缺省回退 frozen_reps//2+1（派生律）。
+    frozen_majority: Optional[int] = None
+    if frozen_reps is not None:
+        frozen_majority = int(manifest.get("rep_majority", frozen_reps // 2 + 1))
 
     kw_list: List[str] = list(manifest["wordlist"])
     recorded_sha = manifest["wordlist_sha256"]
@@ -1953,6 +2143,13 @@ def judge_replay_from_manifest(manifest_path: Path) -> None:
             f"  ⚠ manifest 冻结批次大小 {frozen_bsize} ≠ 当前 config {JUDGE_BATCH_SIZE}"
             "——按冻结值重放"
         )
+    if frozen_reps is not None and (
+        frozen_reps != NUM_JUDGE_REPS or frozen_majority != JUDGE_REP_MAJORITY
+    ):
+        logger.warning(
+            f"  ⚠ manifest 冻结轮次协议 ({frozen_reps} 轮/多数门 ≥{frozen_majority}) ≠ "
+            f"当前 config ({NUM_JUDGE_REPS} 轮/≥{JUDGE_REP_MAJORITY})——按冻结协议重放"
+        )
 
     output_file = DATA_DIR / (
         f"bank_keywords_judge_replay_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
@@ -1960,21 +2157,29 @@ def judge_replay_from_manifest(manifest_path: Path) -> None:
     logger.info("═" * 78)
     logger.info("--- 盲审冻结重放 (--judge-only --from-manifest) ---")
     logger.info(f"  manifest: {manifest_path}")
+    _reps_label = "单轮(legacy)" if frozen_reps is None else f"{frozen_reps} 轮/模型"
     logger.info(
         f"  冻结口径: {len(kw_list)} 词 / 每批 {frozen_bsize} / {len(frozen_models)} 模型 / "
-        f"离线={OFFLINE_MODE} 缓存={CACHE_ENABLED} 严格门={STRICT_REPLAY}"
+        f"{_reps_label} / 离线={OFFLINE_MODE} 缓存={CACHE_ENABLED} 严格门={STRICT_REPLAY}"
     )
 
     start_time = time.time()
     batches = [kw_list[i:i + frozen_bsize] for i in range(0, len(kw_list), frozen_bsize)]
+    _reps_iter: List[Optional[int]] = [None] if frozen_reps is None else list(range(frozen_reps))
     judge_tasks = []
     for model in frozen_models:
-        for bi, batch in enumerate(batches):
-            judge_tasks.append((model, batch, bi, get_client_config(model)))
+        for rep in _reps_iter:
+            for bi, batch in enumerate(batches):
+                judge_tasks.append((model, batch, bi, rep, get_client_config(model)))
     random.shuffle(judge_tasks)
-    logger.info(f"  共 {len(batches)} 批 × {len(frozen_models)} 模型 = {len(judge_tasks)} 任务")
+    logger.info(
+        f"  共 {len(batches)} 批 × {len(frozen_models)} 模型 × {len(_reps_iter)} 轮 "
+        f"= {len(judge_tasks)} 任务"
+    )
 
-    model_results: Dict[str, Dict[str, Any]] = {m: {} for m in frozen_models}
+    model_results: Dict[Tuple[str, Optional[int]], Dict[str, Any]] = {
+        (m, r): {} for m in frozen_models for r in _reps_iter
+    }
     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS_JUDGE) as executor:
         futures = [executor.submit(judge_batch, t) for t in judge_tasks]
         completed = 0
@@ -1982,42 +2187,32 @@ def judge_replay_from_manifest(manifest_path: Path) -> None:
             if _shutdown_event.is_set():
                 logger.warning("中断信号已设置，提前结束判别阶段...")
                 break
-            model_name, batch_results = future.result()
+            model_name, rep, batch_results = future.result()
             for kw, score, reason in batch_results:
-                model_results[model_name][kw] = [score, reason]
+                model_results[(model_name, rep)][kw] = [score, reason]
             completed += 1
             if completed % 5 == 0 or completed == len(judge_tasks):
                 logger.info(f"  📊 重放进度: {completed}/{len(judge_tasks)} ({pct4(completed, len(judge_tasks))})")
 
-    verdict = _emit_replay_verdict(kw_list, model_results, logger, judge_models=frozen_models)
+    verdict = _emit_replay_verdict(
+        kw_list, model_results, logger,
+        judge_models=frozen_models, n_judge_reps=frozen_reps,
+    )
     _write_judge_manifest(
         kw_list, verdict, logger, output_file,
         judge_models=frozen_models, batch_size=frozen_bsize,
+        n_judge_reps=frozen_reps, rep_majority=frozen_majority,
     )
 
-    # 判别语义 DataFrame（与 main 同构：逐词 × 逐模型 score/reason + total_score）
-    judge_rows = []
-    for kw in kw_list:
-        row: Dict[str, Any] = {"keyword": kw}
-        total = 0
-        for model in frozen_models:
-            key = model.replace(".", "_").replace("-", "_")
-            res = model_results[model].get(kw, [0, ""])
-            score = int(res[0])
-            reason = str(res[1]) if len(res) > 1 else ""
-            row[f"{key}_score"] = score
-            row[f"{key}_reason"] = reason
-            total += score
-        row["total_score"] = total
-        judge_rows.append(row)
-    df_judged = pd.DataFrame(judge_rows)
+    # 判别语义 DataFrame（单一构建器，与 main 共用；v1 冻结口径自动回落
+    # 单轮 score/reason 两列形态，与改造前产物逐字节同构；
+    # v2 投票门用 manifest 冻结值 frozen_majority, 不受活体 config 漂移影响）
+    df_judged, _judge_cols = _build_judge_dataframe(
+        kw_list, model_results, frozen_models, frozen_reps, rep_majority=frozen_majority
+    )
     df_wordlist = pd.DataFrame({"id": range(1, len(kw_list) + 1), "keyword": kw_list})
     df_final = pd.merge(df_wordlist, df_judged, on="keyword", how="left")
-    ordered_cols = ["id", "keyword", "total_score"]
-    for model in frozen_models:
-        key = model.replace(".", "_").replace("-", "_")
-        ordered_cols.append(f"{key}_score")
-        ordered_cols.append(f"{key}_reason")
+    ordered_cols = ["id", "keyword"] + _judge_cols
     ordered_cols += [c for c in df_final.columns if c not in ordered_cols]
     df_final = df_final[ordered_cols]
     df_final = df_final.sort_values(by="total_score", ascending=False).reset_index(drop=True)

@@ -5,6 +5,12 @@
 互验（防 config 字面漂移）→ 逐键查 _llm_cache.db（只读）。全部命中且零降级 →
 盖章「✅ 认证可离线 $0 复现」；否则逐条列缺失并 exit 1。
 
+双版本（2026-07-21 三轮 self-consistency 改造）：
+  - schema/v1（单轮 legacy）：任务键 {model}|batch{bi}，tag=judge|try{n}——历史
+    manifest 的核验行为与改造前逐字节一致；
+  - schema/v2（三轮）：任务键 {model}|batch{bi}|rep{r}，tag=judge|rep{r}|try{n}，
+    全格 = 模型 × 批 × 轮。
+
 纯只读、$0、不依赖网络；生成阶段零触碰（只消费判别 manifest 与判别缓存键）。
 
 用法（cwd = LLMs_for_FinTech_dic/）：
@@ -30,6 +36,13 @@ def _latest_manifest() -> Path:
 
 
 def main() -> int:
+    # fix(2026-07-21): zh-CN Windows 下管道/重定向 stdout 默认 GBK，成功横幅的 "✅"
+    # (U+2705) 编码即 UnicodeEncodeError——核验全过却以 Traceback 收场（假失败）。
+    # 镜像 llm_cache.py CLI 的既有防护。
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
     parser = argparse.ArgumentParser(description="盲审缓存覆盖验证器（只读, $0）")
     parser.add_argument("--manifest", type=str, default=None, help="manifest 路径（默认最新）")
     parser.add_argument("--db", type=str, default=str(CACHE_DB_FILE), help="缓存库路径")
@@ -37,9 +50,14 @@ def main() -> int:
 
     manifest_path = Path(args.manifest) if args.manifest else _latest_manifest()
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if manifest.get("schema") != "llmsdic-judge-manifest/v1":
-        print(f"✗ 无法识别的 manifest schema: {manifest.get('schema')!r}")
+    schema = manifest.get("schema")
+    if schema not in {"llmsdic-judge-manifest/v1", "llmsdic-judge-manifest/v2"}:
+        print(f"✗ 无法识别的 manifest schema: {schema!r}")
         return 1
+    # v1（单轮 legacy）→ rep=None, tag=judge|try{n}（历史三份 manifest 核验能力不摧毁）；
+    # v2（三轮 self-consistency）→ 任务键带 |rep{r}, tag=judge|rep{r}|try{n}
+    n_reps = int(manifest["n_judge_reps"]) if schema.endswith("/v2") else None
+    reps = [None] if n_reps is None else list(range(n_reps))
 
     kw_list = list(manifest["wordlist"])
     bsize = int(manifest["judge_batch_size"])
@@ -47,9 +65,10 @@ def main() -> int:
     batches = [kw_list[i:i + bsize] for i in range(0, len(kw_list), bsize)]
     tasks = manifest.get("tasks", {})
 
-    print(f"manifest: {manifest_path.name}")
-    print(f"口径: {len(kw_list)} 词 / {len(batches)} 批 / {len(models)} 模型 "
-          f"= {len(batches) * len(models)} 任务; 首跑判决 reproducible="
+    print(f"manifest: {manifest_path.name} (schema={schema.rsplit('/', 1)[-1]})")
+    print(f"口径: {len(kw_list)} 词 / {len(batches)} 批 / {len(models)} 模型 / "
+          f"{'单轮(legacy)' if n_reps is None else f'{n_reps} 轮/模型'} "
+          f"= {len(batches) * len(models) * len(reps)} 任务; 首跑判决 reproducible="
           f"{manifest.get('verdict', {}).get('reproducible')}")
 
     # 只读打开缓存库（mode=ro：绝不写入、绝不建库）
@@ -72,26 +91,30 @@ def main() -> int:
 
     for model in models:
         for bi, batch in enumerate(batches):
-            task = tasks.get(f"{model}|batch{bi}")
-            if task is None:
-                absent_tasks.append(f"{model}/批次{bi + 1}")
-                continue
-            outcome = task.get("outcome")
-            if outcome not in {"full", "partial_adopt"}:
-                degraded.append(f"{model}/批次{bi + 1}: outcome={outcome}")
             prompt = build_judge_prompt(batch)
-            for att in task.get("attempts", []):
-                n = int(att["try"])
-                key_calc = LLMCache.make_key(model, prompt, "0", f"judge|try{n}")
-                n_checked += 1
-                if att.get("key") and att["key"] != key_calc:
-                    drifts.append(f"{model}/批次{bi + 1}/try{n}")
-                    continue  # 键已漂移，查库无意义
-                if not att.get("got_response", False):
-                    degraded.append(f"{model}/批次{bi + 1}/try{n}: 首跑无响应（缓存空洞）")
+            for rep in reps:
+                task_key = f"{model}|batch{bi}" if rep is None else f"{model}|batch{bi}|rep{rep}"
+                label = f"{model}/批次{bi + 1}" + ("" if rep is None else f"/轮{rep + 1}")
+                task = tasks.get(task_key)
+                if task is None:
+                    absent_tasks.append(label)
                     continue
-                if not _in_db(key_calc):
-                    misses.append(f"{model}/批次{bi + 1}/try{n}: {key_calc[:16]}...")
+                outcome = task.get("outcome")
+                if outcome not in {"full", "partial_adopt"}:
+                    degraded.append(f"{label}: outcome={outcome}")
+                for att in task.get("attempts", []):
+                    n = int(att["try"])
+                    tag = f"judge|try{n}" if rep is None else f"judge|rep{rep}|try{n}"
+                    key_calc = LLMCache.make_key(model, prompt, "0", tag)
+                    n_checked += 1
+                    if att.get("key") and att["key"] != key_calc:
+                        drifts.append(f"{label}/try{n}")
+                        continue  # 键已漂移，查库无意义
+                    if not att.get("got_response", False):
+                        degraded.append(f"{label}/try{n}: 首跑无响应（缓存空洞）")
+                        continue
+                    if not _in_db(key_calc):
+                        misses.append(f"{label}/try{n}: {key_calc[:16]}...")
 
     conn.close()
 

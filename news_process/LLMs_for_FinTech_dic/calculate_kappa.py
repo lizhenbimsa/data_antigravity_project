@@ -86,17 +86,77 @@ def fleiss_kappa(ratings, n_categories):
 
     return kappa, P_bar, P_e
 
+def _resolve_input(path_arg, sheet_arg):
+    """解析输入 xlsx 与 sheet。
+
+    fix(2026-07-21): 原硬编码 v1 冻结件 bank_keywords_20260302_011050.xlsx 已不在盘上
+    （历史清理），脚本长期以 Error 收场——改为参数化：--file 指定，缺省取
+    data_processed/ 下最新**完整跑**产物；sheet 缺省取全 workbook 通用的
+    「5-AI判别结果」（完整跑与 --judge-only 冻结重放产物均含该 sheet）。
+    fix(评审C, 2026-07-21): 缺省 glob 收窄为 bank_keywords_2*.xlsx（时间戳前缀）——
+    原 bank_keywords_*.xlsx 会把 bank_keywords_judge_replay_* 也纳入且字典序
+    'j' > '2' 恒排最后, 缺省永远错选冻结重放件（口径还是 v1 单轮）而非最新完整跑;
+    重放件要算 κ 须 --file 显式指定。时间戳文件名字典序即时间序, sorted 末位=最新。
+    """
+    data_dir = Path(__file__).resolve().parent / 'data_processed'
+    path = Path(path_arg) if path_arg else None
+    if path is None:
+        candidates = sorted(data_dir.glob('bank_keywords_2*.xlsx'))
+        if not candidates:
+            raise SystemExit("data_processed/ 下无 bank_keywords_2*.xlsx（先跑一次完整流程）")
+        path = candidates[-1]
+    return path, (sheet_arg or '5-AI判别结果')
+
+
 try:
-    df = pd.read_excel(Path(__file__).resolve().parent / 'data_processed' / 'bank_keywords_20260302_011050.xlsx', sheet_name='判别-金融科技')
-    # 提取所有模型评分列
-    score_cols = [col for col in df.columns if col.endswith('_score') and col != 'total_score']
+    import argparse
+    import sys
+
+    # zh-CN Windows 控制台默认 GBK，防非 GBK 字符崩溃（镜像 llm_cache.py CLI 处理）
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+
+    _parser = argparse.ArgumentParser(description="Fleiss' Kappa 评分者间一致性（独立离线计算）")
+    _parser.add_argument("--file", type=str, default=None, help="判别结果 xlsx（缺省=最新）")
+    _parser.add_argument("--sheet", type=str, default=None, help="sheet 名（缺省=5-AI判别结果）")
+    _args = _parser.parse_args()
+
+    _xlsx, _sheet = _resolve_input(_args.file, _args.sheet)
+    print(f"输入: {_xlsx.name} / sheet={_sheet}")
+    df = pd.read_excel(_xlsx, sheet_name=_sheet)
+
+    # 评分列选择（2026-07-21 三轮 self-consistency 改造后双口径兼容）：
+    # 优先 {key}_vote（13 家正式票 = 各模型三轮盲审的内部多数，κ 衡量正式票间一致性）；
+    # 无 _vote 列（v1 单轮产物）回退 {key}_score（13 次单判）。
+    vote_cols = [col for col in df.columns if col.endswith('_vote')]
+    legacy_cols = [col for col in df.columns if col.endswith('_score') and col != 'total_score']
+    if vote_cols:
+        score_cols = vote_cols
+        print(f"口径: 三轮 self-consistency 正式票 (_vote 列, 与 v1 单判口径的 κ 不可直接比较)")
+    else:
+        score_cols = legacy_cols
+        print("口径: v1 单轮判别 (_score 列)")
     print(f"找到的评分列 ({len(score_cols)} 个):")
     for col in score_cols:
         print(f"  - {col}")
-    
-    # 构造评分矩阵 ratings 形状为 (N, k) 
-    # N = 词语数量, k = 模型数量 (8)
-    # 取值为 0 或 1，表示类别总数为 2 (0=非金融科技, 1=金融科技)
+
+    # 轮内一致率（仅三轮产物有 _score_r* 列时输出）：3:0 全同 vs 2:1 分歧的占比，
+    # 作为模型内 self-consistency 的描述统计（不进 κ）
+    r1_cols = [c for c in df.columns if c.endswith('_score_r1')]
+    if r1_cols:
+        n_rows = len(df)
+        print(f"\n模型内三轮一致率 (unanimous 3:0 占比 | split 2:1 占比, N={n_rows}):")
+        for c1 in r1_cols:
+            base = c1[: -len('_score_r1')]
+            c2, c3 = f"{base}_score_r2", f"{base}_score_r3"
+            if c2 in df.columns and c3 in df.columns and n_rows:
+                same = ((df[c1] == df[c2]) & (df[c2] == df[c3])).mean()
+                print(f"  - {base}: {sig4(same * 100)}% | {sig4((1 - same) * 100)}%")
+
+    # 构造评分矩阵 ratings 形状为 (N, k)
+    # N = 词语数量, k = 模型数量
+    # 取值为 0 或 1，表示类别总数为 2 (0=非银行金融科技, 1=银行金融科技)
     ratings = df[score_cols].values
     
     # 保证所有的值都在 0, 1 之间且没有缺失值
