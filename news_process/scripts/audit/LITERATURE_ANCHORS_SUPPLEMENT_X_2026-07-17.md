@@ -1155,7 +1155,7 @@
   - 〔⚠ **本条未接入任何指标家族** — 接线层逐族相关性复核判定它与各候选家族的公式无实质关联 (即本项目自己判它为 citation padding)。保留于本补编仅作**文献综述参考**, **不支撑任何指标**; 其 DOI 虽入白名单池, 但零家族引用。〕
 - 【2024–2026】Chen, D., & Zhang, Q. (2025). Media attention and corporate digital transformation. International Review of Economics & Finance, 102, 104288. https://doi.org/10.1016/j.iref.2025.104288
   - *锚定* — 该文以媒体关注度 (media attention, 由报道数量类指标构造) 为核心解释变量, 检验其对企业数字化转型的影响, 是中国语境下「媒体关注度量 → 技术/数字化结果」的同域应用。这锚定 F320 ft_vol_yr = ln(1+当年金融科技唯一篇数) 作为金融科技媒体关注度代理的构造与应用定位。
-  - *迁移边界* — 原文对象为 A 股一般上市公司的数字化转型, 本项目对象为商业银行的金融科技报道, 实体宇宙与主题词表均不同 (本项目金科侧为裸 AC 1506 词, 经 stage 13 银行∧金科邻近共现硬过滤); 原文媒体关注度多为公司层面的全主题报道计数, 本项目 ft_vol_yr 只计金融科技唯一篇数; 原文无 ft_vol_prov/ft_vol_city 的 (省/市, 年) 曝露加权 leave-one-out 设计; 原文 DV 为数字化转型指数, 本项目 F320 为右手侧列。
+  - *迁移边界* — 原文对象为 A 股一般上市公司的数字化转型, 本项目对象为商业银行的金融科技报道, 实体宇宙与主题词表均不同 (本项目金科侧为裸 AC 词典 (撰稿时 1506 词, 2026-07-21 换血后现行 607 词), 经 stage 13 银行∧金科邻近共现硬过滤); 原文媒体关注度多为公司层面的全主题报道计数, 本项目 ft_vol_yr 只计金融科技唯一篇数; 原文无 ft_vol_prov/ft_vol_city 的 (省/市, 年) 曝露加权 leave-one-out 设计; 原文 DV 为数字化转型指数, 本项目 F320 为右手侧列。
   - 〔Crossref 回读标题: Media attention and corporate digital transformation〕
   - 〔已接线家族 (1): F320〕
 - 【2024–2026】Huang, Y.-T., Chiu, I.-C., & Hung, M.-W. (2025). Firm-specific news sentiment and stock returns: the impact of relevance and time frames. Applied Economics Letters, 1-10. https://doi.org/10.1080/13504851.2025.2522167

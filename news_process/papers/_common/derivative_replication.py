@@ -168,8 +168,9 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'BARTIK_IV': 'bartik_type_iv_full',
         'TONE_VAR': 'llm_vote_tone_full',
         # 第三轨 ss (银行+金科同句共现, 2026-06-14 全平价): TONE_VAR 的 _full→_ss
-        # 机械镜像, 供 2SLS 模板 foreach sent in full ctx ss 的第 3 列消费
-        # (运行期缺列以 capture confirm variable *_ss 守卫优雅降级)。
+        # 机械镜像。注 (2026-07-22 reconcile, LP-S8-02): 无模板消费 {{TONE_VAR_SS}} —
+        # ss/ctx 轨列名在模板内硬编码 (轨道恒定, 见 strategic_diff/12 M1b/M1c、
+        # llm_peer/11 M6); 保留为无害 unused default。
         'TONE_VAR_SS': 'llm_vote_tone_ss',
         'COHERENCE_VAR': 'coh_tfidf_c_full',
         # MAIN_TREAT/RANDOM_SEED: 原为 v3.7.3 Plan A _title robustness 模板
@@ -194,8 +195,8 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'HET_VAR': 'is_soe',
         'TONE_VAR': 'llm_vote_tone_full',
         # 第三轨 ss (银行+金科同句共现, 2026-06-14 全平价): TONE_VAR 的 _full→_ss
-        # 机械镜像, 供 2SLS 模板 foreach sent in full ctx ss 的第 3 列消费
-        # (运行期缺列以 capture confirm variable *_ss 守卫优雅降级)。
+        # 机械镜像。注 (2026-07-22 reconcile, LP-S8-02): 无模板消费 {{TONE_VAR_SS}} —
+        # ss 列名在 llm_peer/11 M6 内硬编码 (轨道恒定); 保留为无害 unused default。
         'TONE_VAR_SS': 'llm_vote_tone_ss',
         'LLM_PEER_IV': 'llm_peer_tone_iv_full',
         'LLM_PEER_COVERAGE_IV': 'llm_peer_coverage_iv',

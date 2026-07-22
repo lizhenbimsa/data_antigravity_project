@@ -51,7 +51,7 @@ Claude Code (claude.ai/code) 在本仓工作的指引。
 - **冻结锚点**: Prompt v8 字节级冻结 + `jieba == 0.42.1`。
 - **golden 重生 DEFERRED 到生产语料机** (本机 data/raw 空、T=2、付费不可逆); 完整付费 LLM 重处理须先过 **M0 审批门**。重生须 `PYTHONHASHSEED=0` + 全 BLAS 线程钉 1 (`MKL/OPENBLAS/NUMEXPR/OMP_NUM_THREADS=1`)。BLAS-FP 非确定网络列 (9 个): `bank_clustering`/`bank_cfbetween_cent`/`bank_harmonic_cent` × {无后缀,_win1,_sent} → 验零漂移须按全名 drop 排除 (`diff_golden.py` 的 `_KNOWN_BLAS_RE` 子串匹配自动覆盖)。换模/改测度类改动 golden 零字节安全须受控全量重生; manuscript 须披露 Google→Qwen 与 full-only 数值副作用 (`n_articles`/`fintech_share`/`attention_pct` 收缩, 非 bug)。
 - **本机验证套路**: 改测度类改动本机不动 parquet → 用 baseline-stash A/B 差分证「0 新增失败」(committed golden 本就陈旧, T=2 dev 不新增红灯)。
-- **Disk 状态**: ~220 行 (110 banks × 2 years 2017–2018, T=2 dev); 最宽 dta≈3453 列 (随重生漂移, 以实读为准, 勿「旧基数+增量」心算)。真实全量 (目标语料) = **18,198,978 条 / 2007–2025 / T=19** (2026-07-16 裁定: 目标语料=普查全量)。
+- **Disk 状态**: 172 行 (面板存活 86 banks × 2 years 2017–2018, T=2 dev; bank_list 全量=110 家); 最宽 dta≈3453 列 (随重生漂移, 以实读为准, 勿「旧基数+增量」心算)。真实全量 (目标语料) = **18,198,978 条 / 2007–2025 / T=19** (2026-07-16 裁定: 目标语料=普查全量)。
 - **原始语料普查** (stage 00 `raw_census`, 过滤·去重前全量): 183 去重源文件 / 18,198,978 条 / 2007–2025 / 3,740 家媒体; 报纸占 92.93% (16,912,361 行) 保留、其余按行剔除; 精确唯一 18,177,370。该口径即目标语料口径, 但 ≠ stage 00 非递归 `data_excel/*.xlsx` 实处理量。全表见 `build/manual_facts/key_stats.md`。
 
 ## CLI 子命令 (`python -m news_process.papers._common.stata_runner <cmd>`)
@@ -157,7 +157,7 @@ pytest tests/integration/test_panel_reproducibility.py
 `papers/` 含 11 个模块 (8 fully-coded + 3 provisional), 全部具备 `analysis.py`/`figures.py`/`tables.py`, 纳入 `paper_registry.PAPER_IDS_ALL`。
 - **P1–P5 主线** (`bank_fintech_*`): tone (P1) / attention (P2) / substance (P3) / locus (P4) / collab (P5, prov)。
 - **衍生/prov**: `benefit_society` · `brokerage_network` · `llm_peer` · `strategic_diff` · `bank_media_disagreement` (prov) · `bank_news_clarity` (prov)。
-- **treatment vs outcome 是两套**: 主轨 treatment 多为 `*_full` (P1=`llm_vote_tone_full`); outcome/DV 另定 (P1 `funding_cost` / P2 `ln_fintech_investment` / P3 `cost_income_ratio_change_3yr` / P4 `citation_weighted_patent` / P5 `m_and_a_fintech` / benefit&brokerage `roa` / llm_peer `avg_ft_intensity_full` / strategic_diff `tobin_q` / prov `z_score`), 多为外部财务哨兵列。详见 memory `outcome-redesign-2026-06-13`。
+- **treatment vs outcome 是两套**: 主轨 treatment 多为 `*_full` (P1=`llm_vote_tone_full`); outcome/DV 另定 (P1 `funding_cost` / P2 `ln_fintech_investment` / P3 `cost_income_ratio_change_3yr` / P4 `citation_weighted_patent` / P5 `m_and_a_fintech` / benefit&brokerage&llm_peer `roa` (llm_peer 2026-06-14 PORT SAL-3 起主 outcome=roa, `avg_ft_intensity_full` 降为 first-stage 机制佐证) / strategic_diff `tobin_q` / prov `z_score`), 多为外部财务哨兵列。详见 memory `outcome-redesign-2026-06-13`。
 - 公用工具 `papers/_common/` (含 `AI_DISCLOSURE_TEMPLATES.md` 6 系列)。
 > 注: paper ID `P1..P5` 是 portfolio 本地编号, 与其它文档/计划的 `P1/P2/..` 步骤编号是两个独立空间。
 
@@ -178,7 +178,7 @@ Start-Process -FilePath $exe -ArgumentList '/b','do','"<绝对路径\x.do>"' `
 ### 容量 / 模板
 - MP 硬上限远未触顶 (maxvar 120,000)。**core/aux IC 双切分已退役** (单一全列 `.dta`) — **勿**在模板硬编码「前 N 列」截断。行数瓶颈在面板深度 (T=2)。
 - 稳健性 battery (`bootstrap`/`rwolf`/`ritest`/`csdid`) 本机自动拉满 (`set processors 64`); `matsize` Stata 19 自动管理。
-- **147 个 `.do.tmpl`** (`papers/_common/stata_templates/` rglob) = 主线 21 (含 `27_tableA12`/`28_tableA13`) + 8 个 paper 子目录 123 + 归档 3; prov 两篇另 15 不计入。统一头部 `version 19` + `clear all` + `set maxvar 32767` + `set linesize 120` (消费 `$bank_controls` 的根级模板刻意省略 `clear all`)。
+- **147 个 `.do.tmpl`** (`papers/_common/stata_templates/` rglob) = 主线 21 (含 `27_tableA12`/`28_tableA13`) + 8 个 paper 子目录 123 + 归档 3; prov 两篇另 15 不计入。头部分层 (2026-07-22 订正措辞): 完整四行头 (`version 19`+`clear all`+`set maxvar 32767`+`set linesize 120`) 仅根级 `00_master`; 8 个 paper master 为三行头 (`version 19`/`clear all`/`set more off`, 无 maxvar → 按默认 5000 跑, 面板已 3453 列, 余量收窄待决策补 `set maxvar`); 子表仅 `version 19` (master 会话内共享状态, 刻意; 消费 `$bank_controls` 的根级模板刻意省略 `clear all`)。
 - pyreadstat 写 `.dta` 用 **format version 118** (文件格式 spec 编号, ≠ Stata 应用版本; 勿与 `version 19` 混淆)。
 
 ## Known Issues & Workarounds

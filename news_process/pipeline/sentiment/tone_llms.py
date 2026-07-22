@@ -45,7 +45,8 @@ news_process.pipeline.sentiment.tone_llms — 阶段21：统一 LLM 语义精筛
 
 输入：
     模块二前置输出的 `15_fintech_intensity.parquet`
-    (该文件在 12_fintech_news.parquet 基础上追加了 fintech_intensity_score 和 intensity_verified 列)
+    (行宇宙 = 12_fintech_news 经 stage 13/12b 邻近共现硬过滤丢行 + stage 14 物化后的真子集,
+    再追加 fintech_intensity_score 和 intensity_verified 列; 非 12 号全量)
     (硬依赖: 阶段14 缺失即报错终止, 不再静默回退 12; 见 main() 的 "Step 4(a) 硬化")
     
 输出：

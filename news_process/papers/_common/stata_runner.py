@@ -262,7 +262,9 @@ _KNOWN_PLACEHOLDERS_PAPER_SPECIFIC = {
     # network-roles 多角色化 (network-metrics-elevation 2026-06-13): 主/次/中介中心度 +
     # 跨族第二工具 (over-id) + 网络异质性分组; default 值见 derivative_replication.py:141-146。
     # reaudit-t18-2026-06-15: 此前漏登记 → brokerage build-replication 抛"未知占位符"
-    # (烟雾 §四.6); 模板 16/17/19/20 已用, 补登记使全 11 篇可打包。
+    # (烟雾 §四.6); 补登记使全 11 篇可打包。逐键消费实况 (2026-07-22 核): PRIMARY_CENT/
+    # SECONDARY_CENT/MEDIATOR_CENT/OVERID_IV2/NET_HET_VAR 在模板 16/17/19/20 活跃;
+    # MOD_CENT 无模板消费 (18_table9 实用 L.{{CENTRALITY_BROKER}}), 保留为文档化 unused default。
     'PRIMARY_CENT', 'SECONDARY_CENT', 'MEDIATOR_CENT', 'MOD_CENT', 'OVERID_IV2', 'NET_HET_VAR',
     # strategic_diff
     'MAIN_DIFF_VAR', 'FLUIDITY_VAR', 'SIM_MAX_VAR',
@@ -389,7 +391,9 @@ def _substitute_placeholders(content: str, choices: dict) -> str:
         result = result.replace(f'{{{{{key}}}}}', str(value))
     # fail-fast: 检测残留未替换占位符
     import re
-    leftover = re.findall(r'\{\{([A-Z_]+)\}\}', result)
+    # [A-Z0-9_]+ 含数字 token (如 OVERID_IV2/EXT_Y1) — 与 derivative_replication._PLACEHOLDER_RE
+    # 字节同款 (network-metrics-elevation 2026-06-13: 旧 [A-Z_]+ 漏检数字 token, 2026-07-22 同步)
+    leftover = re.findall(r'\{\{([A-Z0-9_]+)\}\}', result)
     if leftover:
         raise ValueError(
             f"占位符未替换完整, 残留: {set(leftover)}. "
@@ -450,7 +454,7 @@ def build_replication_package(
         else:
             # reaudit-t18-2026-06-15: provisional 两篇 (bank_media_disagreement /
             # bank_news_clarity) 模板在 papers/<paper_id>/stata_templates/ (不在 _common 下,
-            # 见 CLAUDE.md "不计入 142")。回退到该路径使全 11 篇均可 build-replication。
+            # 见 CLAUDE.md "prov 两篇另 15 不计入" [147 模板口径])。回退到该路径使全 11 篇均可 build-replication。
             papers_dir = Path(__file__).resolve().parent.parent  # papers/
             template_dir = papers_dir / paper_id / 'stata_templates'
     template_dir = Path(template_dir)

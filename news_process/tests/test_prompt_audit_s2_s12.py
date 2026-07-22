@@ -7,7 +7,7 @@ tests/test_prompt_audit_s2_s12.py — S2/S12 专属断言
 
 - S2: ``LLMs_for_FinTech_dic/00_LLMs_for_dic.py`` 词表判别阈值由
   ``>= len(JUDGE_MODELS)*0.5``（=≥4，含平票）收紧为 ``> len(JUDGE_MODELS)*0.5``
-  （严格多数=≥5/8），对齐当时发表词表 1506 实证口径（LLMs_dic 冻结历史协议; 生产词典 2026-07-21 起 607）。
+  （严格多数; 当时 8 家判别=≥5/8, 现行 13 家=≥7/13, 公式随 JUDGE_MODELS 动态），对齐当时发表词表 1506 实证口径（LLMs_dic 冻结历史协议; 生产词典 2026-07-21 起 607）。
 - S12①: 同文件 :599 附近 ``int(item.get("score", 0))`` 裸转换在 LLM 返回畸形
   score（非数字/None/list 等）时会 ValueError/TypeError 炸穿整个判别主循环，
   改为 try/except 记 warning 并跳过坏项。
@@ -57,7 +57,10 @@ def _read(path: Path) -> str:
 # ---------------------------------------------------------------------------
 
 def test_s2_threshold_is_strict_majority():
-    """S2: judge_ok_set 的阈值须为严格 `>`（=≥5/8），不得回退为 `>=`（=≥4/8 含平票）。"""
+    """S2: judge_ok_set 的阈值须为严格 `>`，不得回退为 `>=`（含平票）。
+
+    具体票数随 JUDGE_MODELS 动态: 当时 8 家=≥5/8 vs ≥4/8; 现行 13 家=≥7/13 vs ≥7/13(平票不存在,
+    奇数家) — 断言只锁运算符, 不锁具体家数。"""
     src = _read(_MAIN_SRC_PATH)
     m = re.search(
         r'df_final\["total_score"\]\s*(>=|>)\s*len\(JUDGE_MODELS\)\s*\*\s*0\.5',

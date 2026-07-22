@@ -147,6 +147,41 @@ else {
     local ar_note "Anderson-Rubin weak-IV-robust CI for M1 not computed (weakiv/condivreg/rivtest not installed or degenerate sample; ssc install weakiv). If KP F < 16.38, 2SLS t-inference is invalid — install weakiv and re-run for the AR CI. "
 }
 
+* ── M1b/M1c: Bartik IV ctx/ss 轨镜像 (2026-07-22 补齐 P1-B 漏网点) ──
+* paper_spec.yaml::identification.iv 声明 fallback=bartik_type_iv_ctx + ss_mirror=
+* [bartik_type_iv_ss], 此前模板零实现 → spec 承诺与复现包不符。补齐口径镜像姐妹
+* IV 模板 (llm_peer/11 M5/M6 idiom): 内生孪生 llm_vote_tone_{ctx,ss} 各配同轨 Bartik
+* 工具, 与 M1 (full) 【各自 just-identified、并排成列】表达对归因窗口的稳健性;
+* 严禁任两轨合成 Hansen J overid (同篇多窗共同冲击同污染, J 零功效,
+* Parente & Santos Silva 2012 EL)。轨道列名硬编码 (非 spec 参数, 轨道恒定);
+* 缺列/缺 ado 优雅跳过 (旧复现包未落盘时不丢整表)。
+capture confirm variable llm_vote_tone_ctx bartik_type_iv_ctx
+if !_rc {
+    capture noisily ivreghdfe {{MAIN_DV}}_w (llm_vote_tone_ctx = bartik_type_iv_ctx) ///
+        {{MAIN_DIFF_VAR}} {{FLUIDITY_VAR}} $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    if !_rc {
+        eststo M1b_ctx
+        capture estadd scalar KPF = e(widstat)
+    }
+}
+else {
+    display "[WARN] ctx 轨列 (llm_vote_tone_ctx / bartik_type_iv_ctx) 不在面板; M1b 跳过"
+}
+capture confirm variable llm_vote_tone_ss bartik_type_iv_ss
+if !_rc {
+    capture noisily ivreghdfe {{MAIN_DV}}_w (llm_vote_tone_ss = bartik_type_iv_ss) ///
+        {{MAIN_DIFF_VAR}} {{FLUIDITY_VAR}} $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    if !_rc {
+        eststo M1c_ss
+        capture estadd scalar KPF = e(widstat)
+    }
+}
+else {
+    display "[WARN] ss 轨列 (llm_vote_tone_ss / bartik_type_iv_ss) 不在面板; M1c 跳过"
+}
+
 * M2-M5: 多方法稳健性 (TF-IDF char vs jieba vs LDA vs Embedding)
 foreach v in strat_diff_n5_w strat_diff_n5_lda strat_diff_n5_emb {
     capture confirm variable `v'
@@ -161,8 +196,8 @@ foreach v in strat_diff_n5_w strat_diff_n5_lda strat_diff_n5_emb {
 * 旧版硬点名 → r(111) 整表丢失; 改为仅引用实际已存储估计, mtitle 同步删列防错位。
 qui estimates dir
 local stored `r(names)'
-local cand_models M1_bartik M_strat_diff_n5_w M_strat_diff_n5_lda M_strat_diff_n5_emb
-local cand_titles `""Bartik-IV (tone)" "TFIDF-jieba" "LDA" "Embedding""'
+local cand_models M1_bartik M1b_ctx M1c_ss M_strat_diff_n5_w M_strat_diff_n5_lda M_strat_diff_n5_emb
+local cand_titles `""Bartik-IV (tone)" "Bartik-IV ctx" "Bartik-IV ss" "TFIDF-jieba" "LDA" "Embedding""'
 local models ""
 local mtitles `""'
 local nmod : word count `cand_models'
@@ -186,6 +221,7 @@ esttab `models' ///
              "KP F: Kleibergen-Paap rk Wald F (Kleibergen-Paap 2006), reported for the just-identified Bartik IV column (M1; single instrument, single endogenous regressor)." ///
              "Stock-Yogo reference: with 1 instrument and 1 endogenous regressor the 10% maximal-IV-SIZE critical value is 16.38 (Stock-Yogo 2005). Maximal-BIAS critical values are undefined for <=2 instruments, so size, not bias, is the relevant weak-IV benchmark here." ///
              "`ar_note'" ///
+             "Bartik-IV ctx / ss columns (M1b/M1c): entity-window and same-sentence tone twins instrumented by their same-track Bartik IVs, each just-identified side-by-side tri-track robustness --- NEVER pooled with the full-track IV into one Hansen J (same-article windows co-contaminate; Parente-Santos Silva 2012)." ///
              "Exclusion restriction (M1): the Bartik instrument = base-period bank-type co-occurrence shares x same-type leave-one-out tone (Goldsmith-Pinkham et al. 2020 AER, share-exogeneity view), so it shifts a bank's tone only through industry-wide type-level media trends and is plausibly orthogonal to that bank's own contemporaneous differentiation/outcome shocks conditional on bank and year FE; peer-mean instrument caveats (Manski 1993; Leary-Roberts 2014 JF) must be disclosed in the paper text.")
 
 display "[OK] Table 3 → $tables_dir/table3_mechanism.tex"
