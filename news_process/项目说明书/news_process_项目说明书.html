@@ -235,7 +235,7 @@ window.MathJax = {
 <a class="h2" href="#sec4">4. 主流水线功能详解</a>
 <a class="h3" href="#sec4-1">4.1 全景总览：十六个阶段一览表</a>
 <a class="h3" href="#sec4-2">4.2 阶段 00：预处理、去重与原始语料普查</a>
-<a class="h3" href="#sec4-3">4.3 阶段 11–12：银行判定与金融科技判定（AC 1,506 词表）</a>
+<a class="h3" href="#sec4-3">4.3 阶段 11–12：银行判定与金融科技判定（AC 607 词表）</a>
 <a class="h3" href="#sec4-4">4.4 阶段 13：银行×金科邻近共现硬过滤</a>
 <a class="h3" href="#sec4-5">4.5 阶段 14：三轨文本物化（full / ctx / ss）</a>
 <a class="h3" href="#sec4-6">4.6 阶段 15–16：金融科技强度与政策对齐</a>
@@ -319,6 +319,7 @@ window.MathJax = {
 <a class="h3" href="#sec10-11">10.11 数值确定性：PYTHONHASHSEED 钉 0、BLAS 线程钉 1、与 9 列已知漂移</a>
 <a class="h3" href="#sec10-12">10.12 测试分层与验收门：254 个测试文件如何咬合成一道墙</a>
 <a class="h3" href="#sec10-13">10.13 一句话心智模型与方法论小结</a>
+<a class="h3" href="#sec10-14">10.14 全入口真跑验证档案</a>
 <a class="h2" href="#sec11">11. 人工标注与人机三角校验</a>
 <a class="h3" href="#sec11-1">11.1 一条贯穿全章的诚实底线：收敛效度 ≠ 效标效度</a>
 <a class="h3" href="#sec11-2">11.2 系统拓扑：两套人工标注 + 两个机器审计</a>
@@ -949,11 +950,11 @@ window.MathJax = {
 </table>
 </div>
 <div class="formula"><span class="lbl">公式 3.1</span> \[ \text{content}_{ss} \;=\; \text{标题} \oplus \{\, \text{句子 } s \;:\; \exists\, \text{银行} \wedge \text{金科 在 } s \text{ 同句共现，邻域半径} \pm N \,\} \]，  其中 \(\oplus\) 表示 prepend_title 前置拼接，\(N\) = ss_sentence_radius（默认 1）</div>
-<p>值得一提的是，"银行侧"与"金科侧"的命中判定采用<b>刻意不对称</b>的口径：银行侧要经过否定词过滤 + 短名过滤（防止"工商银行的说法"这类误命中或简称歧义），金科侧则用裸 Aho-Corasick 扫 1,506 个金科词。这种不对称源自两类实体的性质差异——银行是有限、有歧义的专名，需要精细消歧；金科词是开放、语义明确的术语集，宽松匹配即可。把新闻正确归并到"哪家银行"本质上是实体解析（entity resolution）问题，其精度直接决定面板测度的可信度（<a href="https://doi.org/10.1126/sciadv.abi8021" target="_blank">Binette &amp; Steorts, 2022</a>）。此外，流水线还保留了若干<b>非情感</b>的标题位置信号（如 <code>target_bank_in_title</code>、<code>fintech_in_title</code>、<code>headline_frac</code>），它们不参与情感打分，却是"这篇报道有多聚焦于该银行的金科动向"的重要控制变量。</p>
+<p>值得一提的是，"银行侧"与"金科侧"的命中判定采用<b>刻意不对称</b>的口径：银行侧要经过否定词过滤 + 短名过滤（防止"工商银行的说法"这类误命中或简称歧义），金科侧则用裸 Aho-Corasick 扫 607 个金科词（2026-07-21 词典换血 1506→607）。这种不对称源自两类实体的性质差异——银行是有限、有歧义的专名，需要精细消歧；金科词是开放、语义明确的术语集，宽松匹配即可。把新闻正确归并到"哪家银行"本质上是实体解析（entity resolution）问题，其精度直接决定面板测度的可信度（<a href="https://doi.org/10.1126/sciadv.abi8021" target="_blank">Binette &amp; Steorts, 2022</a>）。此外，流水线还保留了若干<b>非情感</b>的标题位置信号（如 <code>target_bank_in_title</code>、<code>fintech_in_title</code>、<code>headline_frac</code>），它们不参与情感打分，却是"这篇报道有多聚焦于该银行的金科动向"的重要控制变量。</p>
 <p>ctx 与 ss 两轨各配一个回退哨兵列 <code>ctx_is_fallback</code> 与 <code>ss_is_fallback</code>（full 轨本身即回退的目标，无需哨兵），其"优雅降级"语义是整套架构的安全阀：</p>
 <ul>
 <li><b>ss 镜像 ctx 的回退</b>：若一篇报道<b>不存在</b>银行与金科词的同句共现，则 <code>content_ss</code> 回退为全文 body、<code>ss_is_fallback</code> 置 <code>True</code>（并与 ctx 共享 <code>n_articles</code> 分母），从而绝不产生空文本或 NaN 缺口。</li>
-<li><b>金科词典缺席的全局降级</b>：若金科 Aho-Corasick 自动机 <code>FINTECH_AC=None</code>，则 <code>*_is_fallback</code> 全部置 <code>True</code>，三轨优雅退化为全文，绝不静默清空。多模式串匹配底座采用经典 <a href="https://doi.org/10.1145/360825.360855" target="_blank">Aho &amp; Corasick (1975)</a> 算法，保证在千万级语料上线性时间命中 1,506 个金科词。</li>
+<li><b>金科词典缺席的全局降级</b>：若金科 Aho-Corasick 自动机 <code>FINTECH_AC=None</code>，则 <code>*_is_fallback</code> 全部置 <code>True</code>，三轨优雅退化为全文，绝不静默清空。多模式串匹配底座采用经典 <a href="https://doi.org/10.1145/360825.360855" target="_blank">Aho &amp; Corasick (1975)</a> 算法，保证在千万级语料上线性时间命中 607 个金科词。</li>
 </ul>
 <div class="plain"><b>白话</b>：三条轨可以理解成给同一篇报道拍三张"远中近"的照片——full 是整篇全景，ctx 是聚焦到"这家银行"周围一圈，ss 是只对准"银行和金融科技出现在同一句话"的那个特写。三张都留着，是为了让最后的结论不被"到底该看多近"这个主观选择所左右。而"回退"就是：如果某张特写实在拍不到（比如银行和金科从没同句出现），系统就退回用全景照顶上，并诚实地标一个"这是顶替的"记号，绝不留空。</div>
 <h4 id="sec3-4-1">3.4.1 stage 13 共现硬过滤 vs stage 14 三轨物化：两个不同口径</h4>
@@ -1059,7 +1060,7 @@ window.MathJax = {
 <div class="kpi g"><div class="num">3</div><div class="lab">家 LLM 情感投票</div></div>
 <div class="kpi g"><div class="num">3</div><div class="lab">个 BERT 情感模型</div></div>
 <div class="kpi alt"><div class="num">3</div><div class="lab">轨文本 full/ctx/ss</div></div>
-<div class="kpi"><div class="num">1,506</div><div class="lab">金科 AC 词表</div></div>
+<div class="kpi"><div class="num">607</div><div class="lab">金科 AC 词表</div></div>
 </div>
 <p>在正式展开之前需要说清一个贯穿全章的方法论坐标：文本即数据（text-as-data）在金融与会计研究中已成为独立的方法论分支，从早期的词典计数到今天的大语言模型标注，其核心挑战始终是"如何把非结构化文字可靠地映射为可回归的数值变量"（<a href="https://doi.org/10.1257/jel.20181020" target="_blank">Gentzkow, Kelly &amp; Taddy, 2019</a>；<a href="https://doi.org/10.1146/annurev-economics-082222-074352" target="_blank">Ash &amp; Hansen, 2023</a>；<a href="https://doi.org/10.1111/1475-679x.12123" target="_blank">Loughran &amp; McDonald, 2016</a>）。本流水线把这一映射拆成"判定 → 情感/嵌入 → 聚合"三大层次，并在每一层都嵌入了显式的稳健性冗余（三轨、三家 LLM、三模型 BERT、co-primary 双轨嵌入），以对抗单一测量口径带来的隐性研究者自由度（<a href="https://doi.org/10.1111/ecin.12992" target="_blank">Huntington-Klein et al., 2021</a>；<a href="https://doi.org/10.1073/pnas.2203150119" target="_blank">Breznau et al., 2022</a>）。</p>
 <p>另一条贯穿全章的工程坐标是"单源真值 + 声明式编排"。阶段的产出登记在 <code>core/schemas.py::OUTPUT_REGISTRY</code>、依赖登记在 <code>core/dag.py</code>、拆分配置登记在 <code>config/*.yaml</code>、Python 依赖登记在 <code>pyproject.toml</code>——每一类事实只有一个权威出处，任何阶段的增删都必须同步更新对应单源并通过一致性测试。计数不变量被 import 时的 fail-fast 校验钉死：主线阶段 16、验证阶段 16、产出登记 16、thin shim 35（其中 32 注册、3 个刻意不注册）。这套"声明先于实现"的纪律，配合 <code>NN_*.py</code> 只作 ≤30 行薄壳（业务逻辑一律沉到 <code>pipeline.*</code> / <code>validation.*</code>）的约束，使得任何一位读者都能从注册表反推出完整的数据血缘，而不必逐个脚本追踪。这正是把"一次性研究脚本"升级为"可维护研究基础设施"的分水岭。</p>
@@ -1074,7 +1075,7 @@ window.MathJax = {
 <tbody>
 <tr><td>00</td><td><code>00_preprocessing.py</code></td><td>清洗、规范化、去重、原始语料普查</td><td><code>00_preprocessing.parquet</code></td><td><span class="tag">主线核心</span></td></tr>
 <tr><td>11</td><td><code>11_news_bank.py</code></td><td>目标银行实体判定（否定 + 短名过滤）</td><td><code>11_bank_news.parquet</code></td><td><span class="tag">主线核心</span></td></tr>
-<tr><td>12</td><td><code>12_news_fintech.py</code></td><td>金融科技判定（裸 AC 1,506 词）</td><td><code>12_fintech_news.parquet</code>、<code>12_fintech_news_full.parquet</code></td><td><span class="tag">主线核心</span></td></tr>
+<tr><td>12</td><td><code>12_news_fintech.py</code></td><td>金融科技判定（裸 AC 607 词）</td><td><code>12_fintech_news.parquet</code>、<code>12_fintech_news_full.parquet</code></td><td><span class="tag">主线核心</span></td></tr>
 <tr><td>13</td><td><code>13_cooccurrence_filter.py</code></td><td>银行×金科邻近共现硬过滤（丢行）</td><td><code>13_cooccurrence_filtered.parquet</code></td><td><span class="tag">主线核心</span></td></tr>
 <tr><td>14</td><td><code>14_materialize_ctx.py</code></td><td>物化三轨文本 full / ctx / ss</td><td><code>14_news_with_ctx.parquet</code></td><td><span class="tag">主线核心</span></td></tr>
 <tr><td>15</td><td><code>15_fintech_intensity.py</code></td><td>金融科技强度（含 co-primary 双轨嵌入）</td><td><code>15_fintech_intensity.parquet</code></td><td><span class="tag g">co-primary</span></td></tr>
@@ -1110,23 +1111,23 @@ window.MathJax = {
 </div>
 <p>去重的"松紧"本身是一个研究者自由度，因此本流水线把去重阈值单列为验证阶段 62（<code>62_dedup_threshold_sensitivity.py</code>）做敏感性检验：在若干相似度门槛上重算下游关键指标，证明主结论不被某一个"多松算重复"的取值驱动。这与文本数据流程"每一个预处理决策都应被记录并做鲁棒性检查"的方法学共识一致（<a href="https://doi.org/10.1093/pan/mps028" target="_blank">Grimmer &amp; Stewart, 2013</a>）。需要强调的是，普查的递归全量口径（供论文附录）与 stage 00 实际处理的非递归 <code>data_excel/*.xlsx</code> 处理量仍是两个不同数字，前者是"目标语料全集"、后者是"当次运行实处理量"，二者不可混用。</p>
 <div class="note"><b>启用状态。</b>主线核心阶段，无条件执行。普查数字冻结在 <code>build/manual_facts/key_stats.md</code>，供论文 data appendix 直接引用。</div>
-<h3 id="sec4-3">4.3 阶段 11–12：银行判定与金融科技判定（AC 1,506 词表）</h3>
+<h3 id="sec4-3">4.3 阶段 11–12：银行判定与金融科技判定（AC 607 词表）</h3>
 <p><b>功能。</b>这两个阶段是"判定层"，回答两个二元问题：这篇报道<b>是否在谈某家目标银行</b>（stage 11）、<b>是否在谈金融科技</b>（stage 12）。二者共同界定了后续所有分析的样本宇宙。</p>
-<p><b>关键逻辑——刻意不对称的两侧口径。</b>银行侧与金科侧采用有意不同的匹配策略。<b>银行侧</b>使用"否定 + 短名过滤"：银行简称（如"工行""中行"）极易与非银实体或日常用语碰撞，故需配合否定词与短名黑名单降低误报，同时保留 <code>target_bank_in_title</code> 这类"是否出现在标题"的非情感信号（在 <code>news_bank.py</code>）。<b>金科侧</b>则使用"裸 AC 1,506 词"：一张含 1,506 个金融科技词条的词表，经 Aho–Corasick 自动机（<code>FINTECH_AC</code>）一次线性扫描完成全部多模式匹配（<a href="https://doi.org/10.1145/360825.360855" target="_blank">Aho &amp; Corasick, 1975</a>），并保留 <code>fintech_in_title</code> / <code>in_title</code> 等标题信号。金融领域"关键词/词表暴露度"作为构念测量的谱系可追溯到 firm-level political risk 的双词法（<a href="https://doi.org/10.1093/qje/qjz021" target="_blank">Hassan et al., 2019</a>）与词典法在会计金融的长期实践（<a href="https://doi.org/10.1111/j.1540-6261.2010.01625.x" target="_blank">Loughran &amp; McDonald, 2011</a>），而词表本身的构建与验证亦是一门方法（<a href="https://doi.org/10.1111/ajps.12291" target="_blank">King, Lam &amp; Roberts, 2017</a>）。中国情境下"银行金融科技"这一构念的经济内涵，可参照银行金融科技指数与信用风险的实证（<a href="https://doi.org/10.1016/j.pacfin.2020.101398" target="_blank">Cheng &amp; Qu, 2020</a>）与金融科技综述（<a href="https://doi.org/10.1561/114.00000007" target="_blank">Allen, Gu &amp; Jagtiani, 2021</a>）。</p>
+<p><b>关键逻辑——刻意不对称的两侧口径。</b>银行侧与金科侧采用有意不同的匹配策略。<b>银行侧</b>使用"否定 + 短名过滤"：银行简称（如"工行""中行"）极易与非银实体或日常用语碰撞，故需配合否定词与短名黑名单降低误报，同时保留 <code>target_bank_in_title</code> 这类"是否出现在标题"的非情感信号（在 <code>news_bank.py</code>）。<b>金科侧</b>则使用"裸 AC 607 词"：一张含 607 个金融科技词条的词表（2026-07-21 由 1506 词 v1 词典换血为 607 词 v2 词典），经 Aho–Corasick 自动机（<code>FINTECH_AC</code>）一次线性扫描完成全部多模式匹配（<a href="https://doi.org/10.1145/360825.360855" target="_blank">Aho &amp; Corasick, 1975</a>），并保留 <code>fintech_in_title</code> / <code>in_title</code> 等标题信号。金融领域"关键词/词表暴露度"作为构念测量的谱系可追溯到 firm-level political risk 的双词法（<a href="https://doi.org/10.1093/qje/qjz021" target="_blank">Hassan et al., 2019</a>）与词典法在会计金融的长期实践（<a href="https://doi.org/10.1111/j.1540-6261.2010.01625.x" target="_blank">Loughran &amp; McDonald, 2011</a>），而词表本身的构建与验证亦是一门方法（<a href="https://doi.org/10.1111/ajps.12291" target="_blank">King, Lam &amp; Roberts, 2017</a>）。中国情境下"银行金融科技"这一构念的经济内涵，可参照银行金融科技指数与信用风险的实证（<a href="https://doi.org/10.1016/j.pacfin.2020.101398" target="_blank">Cheng &amp; Qu, 2020</a>）与金融科技综述（<a href="https://doi.org/10.1561/114.00000007" target="_blank">Allen, Gu &amp; Jagtiani, 2021</a>）。</p>
 <p><b>输入 / 输出。</b>输入为 <code>00_preprocessing.parquet</code>。stage 11 输出 <code>11_bank_news.parquet</code>；stage 12 输出两份——<code>12_fintech_news.parquet</code>（判定为金科的报道）与 <code>12_fintech_news_full.parquet</code>（过滤前全量，是 <code>fintech_share</code> 分母的来源之一，切勿误判为"已过滤"）。</p>
 <div class="tbl">
 <table>
 <caption>表 4-3　银行侧与金科侧判定口径对比（刻意不对称）</caption>
 <thead><tr><th>维度</th><th>银行侧（stage 11）</th><th>金科侧（stage 12）</th></tr></thead>
 <tbody>
-<tr><td>匹配策略</td><td>短名匹配 + 否定词 + 短名黑名单</td><td>裸 Aho–Corasick 全词匹配（1,506 词）</td></tr>
+<tr><td>匹配策略</td><td>短名匹配 + 否定词 + 短名黑名单</td><td>裸 Aho–Corasick 全词匹配（607 词）</td></tr>
 <tr><td>为何如此</td><td>银行简称易与非银实体/日常用语碰撞，须压误报</td><td>金科词表已人工审校，追求高召回、线性一次扫描</td></tr>
 <tr><td>标题信号</td><td><code>target_bank_in_title</code></td><td><code>fintech_in_title</code> / <code>in_title</code></td></tr>
 <tr><td>退化行为</td><td>无匹配则该行不入银行样本</td><td><code>FINTECH_AC=None</code> → 下游保留全部行 + loud WARNING</td></tr>
 </tbody>
 </table>
 </div>
-<p><b>fintech_share 的分母来源。</b>金科判定还服务于一个重要的面板派生量——银行–年层面的金融科技报道占比 <code>fintech_share</code>。其分母来自两条线：一是 <code>40_article_bank_level</code> 去重后的报道集，二是 <code>12_fintech_news_full</code>（过滤前全量）减去面板后再去重的部分。正因如此，<code>12_fintech_news_full.parquet</code> 必须原样保留其"过滤前全量"语义，任何把它误当"已过滤子集"的读取都会让占比失真。Aho–Corasick 之所以成为金科侧的引擎，在于它把"同时查 1,506 个模式串"的复杂度压到与文本长度线性相关，一次扫描即可标出全部命中位置，这对 1,820 万条量级的语料是决定性的效率优势（<a href="https://doi.org/10.1145/360825.360855" target="_blank">Aho &amp; Corasick, 1975</a>）。</p>
+<p><b>fintech_share 的分母来源。</b>金科判定还服务于一个重要的面板派生量——银行–年层面的金融科技报道占比 <code>fintech_share</code>。其分母来自两条线：一是 <code>40_article_bank_level</code> 去重后的报道集，二是 <code>12_fintech_news_full</code>（过滤前全量）减去面板后再去重的部分。正因如此，<code>12_fintech_news_full.parquet</code> 必须原样保留其"过滤前全量"语义，任何把它误当"已过滤子集"的读取都会让占比失真。Aho–Corasick 之所以成为金科侧的引擎，在于它把"同时查 607 个模式串"的复杂度压到与文本长度线性相关，一次扫描即可标出全部命中位置，这对 1,820 万条量级的语料是决定性的效率优势（<a href="https://doi.org/10.1145/360825.360855" target="_blank">Aho &amp; Corasick, 1975</a>）。</p>
 <div class="warn"><b>安全阀。</b>金科侧的 Aho–Corasick 自动机若因配置缺失退化为 <code>FINTECH_AC=None</code>，下游共现过滤会选择"保留全部行 + 大声 WARNING"而绝不静默清空——fail-loud 而非 fail-silent，是本流水线一以贯之的防御姿态。</div>
 <h3 id="sec4-4">4.4 阶段 13：银行×金科邻近共现硬过滤</h3>
 <p><b>功能。</b>stage 13（脚本 <code>13_cooccurrence_filter.py</code>，原编号 12b）是一道"硬过滤"闸门：它直接<b>丢弃行</b>，只保留"目标银行与至少一个金科词在文本中邻近共现"的报道。"既提到某银行、又提到金融科技"若二者相隔千里，很可能只是版面拼贴而非真正在讲这家银行的金科故事；邻近性约束把这类噪声挡在门外。</p>
@@ -2250,7 +2251,7 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 <h4>8.3.1 步骤 A：IDF 稀缺度（模型无关）</h4>
 <p>逆文档频率衡量一个金科词有多"稀有专属"：越少见的词区分度越高。构造为 <code>raw_idf[kw] = log10(N_total / (1 + df_w))</code>，其中文档频率 df_w 用 <b>jieba 整词匹配</b>在去重后的文档上统计（按 <code>(标题, 日期)</code> 去重），参照语料是<b>全量</b>的 <code>12_fintech_news_full.parquet</code>。随后做均值归一（<code>v / mean_val</code>），再在 <code>[1, 99]</code> 分位处做 Winsorize 缩尾以抑制极端值——这一稳健化处理呼应 <a href="https://doi.org/10.2308/accr-52396" target="_blank">Leone, Minutti-Meza &amp; Wasley (2019)</a> 对影响观测点的处理建议。TF-IDF 加权的思想在金融文本创新度量上早有先例，如 <a href="https://doi.org/10.1287/mnsc.2020.3682" target="_blank">Bellstam, Bhagat &amp; Cookson (2021)</a> 的文本创新度、以及关键词暴露式度量 <a href="https://doi.org/10.1093/qje/qjz021" target="_blank">Hassan et al. (2019)</a>。</p>
 <h4>8.3.2 步骤 B：语义纯度（嵌入驱动，co-primary 双轨的唯一入口）</h4>
-<p>光有稀缺度还不够：有些词虽稀有却偏离"金融科技"语义核心。语义纯度因子把约 1,506 个金科关键词一次性嵌入，计算 IDF 加权质心 <code>centroid = np.average(embeddings, axis=0, weights=idf)</code>，再算每个词到 L2 归一质心的余弦。为防止高维嵌入的各向异性（anisotropy，向量都挤在一个狭窄锥体里、余弦被压缩）导致纯度分辨率坍缩，做 min-max 重标定并加下限 <code>ANISOTROPY_FLOOR = 0.1</code>：</p>
+<p>光有稀缺度还不够：有些词虽稀有却偏离"金融科技"语义核心。语义纯度因子把约 607 个金科关键词一次性嵌入，计算 IDF 加权质心 <code>centroid = np.average(embeddings, axis=0, weights=idf)</code>，再算每个词到 L2 归一质心的余弦。为防止高维嵌入的各向异性（anisotropy，向量都挤在一个狭窄锥体里、余弦被压缩）导致纯度分辨率坍缩，做 min-max 重标定并加下限 <code>ANISOTROPY_FLOOR = 0.1</code>：</p>
 <div class="formula"><span class="lbl">公式 8.4</span>
 \[ \text{CosSim\_scaled}_i \;=\; 0.1 + (1 - 0.1) \cdot \frac{\cos_i - \min \cos}{\max \cos - \min \cos} \]
 </div>
@@ -3321,6 +3322,8 @@ d &= R \cdot 2 \cdot \text{atan2}\left(\sqrt{a},\; \sqrt{1-a}\right)
 <p>回到 A 部分与方法论主线的呼应：16 个验证阶段不是零散的"补充稳健性检验"，而是一张覆盖<b>信度—判别效度—集中度—参数敏感性—跨源一致</b>五个正交维度的检验矩阵，每一维都由公认的方法学锚（Cohen κ、Krippendorff α、Gwet AC1、HTMT/AVE、Shannon/HHI/Gini、Cochran-Armitage、置换零分布）支撑，且严格遵守"互为稳健性、并排陈列、禁混同一 Hansen J"的规格曲线纪律。这套设计的深层判断是：在 1820 万条报道、T=19、跨 3740 家媒体的生产规模上，测度的每一个人为选择都可能被质疑，唯一能让顶刊评审信服的，不是宣称"我的选择是对的"，而是把所有备选都摊开、证明主结论在整片多元宇宙里稳定。晚近的大规模复现审计——<a href="https://doi.org/10.1038/s41586-026-10251-x" target="_blank">Brodeur 等 (2026)</a>、<a href="https://doi.org/10.1287/mnsc.2023.03556" target="_blank">Fišar 等 (2024)</a>、<a href="https://doi.org/10.1111/ecin.13244" target="_blank">Dreber &amp; Johannesson (2024)</a>——正在把"可复现 + 稳健"从加分项变成准入证。本项目把这张准入证的每一道机关，都焊进了流水线的骨架里。</p>
 <div class="note"><b>面向未来的诚实边界</b>：本机为 T=2 开发盘（110 家银行 × 2017–2018，约 0.05% 试跑），故绝大多数<b>推断性</b>判定（κ 阈、HTMT 门、多样性报警）当前只作"流水线正确性检查"，其定谳结论待约 1820 万条 / 2007–2025 / T=19 的生产语料重处理后方能落定——而那次重处理，受 M0 审批门约束，须在冻结的确定性配方下一次性完成。稳健性体系已就位；它等待的，只是全量数据的到来。</div>
 
+<h3 id="sec10-14">10.14 全入口真跑验证档案（最近验证：2026-07-22/23）</h3>
+<p>除上述自动化门外，项目周期性对<b>全部执行入口做顺序真跑审计</b>（单入口单次执行 ≤3 小时约束）。最近一轮为 <b>2026-07-22/23 复跑验证轮</b>（基线 main=<code>587df032</code>，词典 607 化收官后），九个入口——独立词典管线 <code>00_LLMs_for_dic.py</code>、主线 <code>run_pipeline_function.py</code>（16 阶段）、验证线 <code>run_pipeline_validation.py</code>（16 阶段）、<code>run_paper.py</code> 全部 11 篇、<code>80/81/82</code> 号审计工具、以及两条派生管线 <code>company_listed_bank</code> / <code>company_tax_bank</code>——<b>9/9 全部 EXIT=0、项目缺陷 0</b>。核心终值：主线全链在 <code>NEWS_PROCESS_LLM_OFFLINE=1</code> 下零 API 调用跑通（stage 21 缓存验钞 9,423/9,423 全命中、benefit 冻结中心 ×6 经 <code>dict_sha256</code> 四指纹守卫正常消费、0 twin 异常），面板保持 172×3,442 未激活代；词典管线判别决策链与 canonical 工作簿全格 0 差异（生成侧原始转储 sheet 仅行序随线程完成序置换、行多重集恒等，属展示层非确定性观察项）；快测基线恰 11 个已知慢性红、0 新增。逐入口终值与发现定谳见 <code>scripts/audit/NINE_ENTRYPOINT_RERUN_AUDIT_2026-07-22.md</code>（上一轮换血整改审计见同目录 <code>NINE_ENTRYPOINT_RUN_AUDIT_AND_REMEDIATION_PLAN_2026-07-21.md</code>）。这套「全入口真跑 + 离线 $0 重放 + 基线红名单核对」的组合，等于每次大改后把整个项目从头到尾真实执行一遍并留档，是防"改了 A 悄悄弄坏 B"的最后一道整体闸。</p>
 <h2 id="sec11">11. 人工标注与人机三角校验</h2>
 <p class="lead">当一条中文银行报道被三家大语言模型投票、六部情感词典打分、三个 BERT 模型编码之后，我们凭什么相信这些机器给出的"正面/中性/负面"真的对应人类读者读到的情感？本章回答这个问题。它讲述 news_process 如何抽取一小撮文章交给人类编码员盲标，用这批"黄金标准"回过头去检验 LLM、词典、BERT 三法的构建效度，并用一整套标注者间一致性统计（Cohen κ / Krippendorff α / Gwet AC1）、strict/裁决双口径仲裁、四格 ML 权重与误分类相关性诊断，把"人机是否一致"这件事做成可复现、可上顶刊的量化证据。</p>
 <div class="kpis">
@@ -3876,7 +3879,7 @@ d &= R \cdot 2 \cdot \text{atan2}\left(\sqrt{a},\; \sqrt{1-a}\right)
 <div class="plain"><b>白话</b>：这一章讲的两条管线，本质是把「银行怎么样」翻译成「跟银行打交道的企业怎么样」，一条面向上市公司、一条面向更广的纳税企业。为了让这个翻译经得起挑剔，我们同一件事量了十种（或五种）方法互相印证，用哈希指纹锁死每一列的来龙去脉，用「谁先谁后、缺谁就停」的硬规矩防止用错数据，再配三个独立的「体检」环节。所有这些加起来，就是为了一句话：换个研究者、换台机器、隔一年再跑，得到的结果一模一样，而且经得起「你是不是挑了对自己有利的算法」这种质疑。</div>
 
 <h3 id="sec13-6">13.6 独立词典管线：LLMs_for_FinTech_dic（LLM 群体智能造词典）</h3>
-<p>主管线 stage 12 所用的 1,506 词金融科技词典（<code>config/fintech_dict.json</code>）并非人工拍脑袋编制，而是由一条<b>与主项目完全解耦</b>的独立管道 <code>LLMs_for_FinTech_dic/</code>（8 个生产 <code>.py</code> 共 4,030 行；另有 <code>tmp/</code> 下 2 个临时文件 69 行不计入）全自动生成。该管道的方法学定位是「LLM 群体智能 + LLM-as-a-judge 交叉盲审」：让一组异构大模型独立提名候选词，再让同一组模型互为评审投票定夺，全过程温度、缓存与重试均受控，可离线 $0 复现。<b>⚠ 版本口径必须分清</b>：目前<b>已交付并被主管线 stage 12 消费</b>的 1,506 词词典产自 <b>v1 配置</b>（8 家模型 / 简单多数 <code>total_score ≥ 5</code> / 每模型重复 100 次 / 域名「金融科技」）；而<b>当前盘上的 <code>config.py</code> 已切换为 v2</b>（<b>13 家模型</b>，7 美 6 中，系原 14 家移除 <code>kimi-k3</code> 后所得 / <b>2/3 严格超多数</b>阈值 <code>total_score &gt; len(JUDGE_MODELS)×2/3</code>，13 家即需 <b>≥9 票</b> / 每模型重复 <b>10</b> 次 / 每次生成约 100 词并附三选一入选理由 / 域名「银行金融科技」/ 六类固定判据判别 Prompt）。v2 的新数量链与 κ 须由 13 模型付费真跑后方能出具，<b>尚未执行</b>；故下文漏斗与一致性统计<b>全部为 v1 口径的历史事实</b>，与手稿 <code>FinTech_Dictionary_LLMs_Paper_Final.md</code> 所载 v1 banner 一致。管道自带一篇完整方法学论文 <code>FinTech_Dictionary_LLMs_Paper_Final.md</code>（§6 参考文献 146 篇，其中 145 篇带 DOI）；Fleiss κ 的公式与双口径分级披露现已并入该手稿正文，计算实现见 <code>calculate_kappa.py</code>（129 行）。引文注册表下沉到 <code>academic.py</code>（877 行、<code>REFERENCES</code> 共 121 条 APA 条目，其中 120 条带 DOI）作为唯一 SSOT。</p>
+<p>主管线 stage 12 所用的 607 词金融科技词典（2026-07-21 换血前为 1506 词 v1）（<code>config/fintech_dict.json</code>）并非人工拍脑袋编制，而是由一条<b>与主项目完全解耦</b>的独立管道 <code>LLMs_for_FinTech_dic/</code>（8 个生产 <code>.py</code> 共 4,030 行；另有 <code>tmp/</code> 下 2 个临时文件 69 行不计入）全自动生成。该管道的方法学定位是「LLM 群体智能 + LLM-as-a-judge 交叉盲审」：让一组异构大模型独立提名候选词，再让同一组模型互为评审投票定夺，全过程温度、缓存与重试均受控，可离线 $0 复现。<b>⚠ 版本口径必须分清</b>：<b>2026-07-21 换血前</b>交付并被主管线 stage 12 消费的 1,506 词词典产自 <b>v1 配置</b>（8 家模型 / 简单多数 <code>total_score ≥ 5</code> / 每模型重复 100 次 / 域名「金融科技」）；<b>v2 配置已于 2026-07-21 付费真跑并交付</b>（<b>13 家模型</b>，7 美 6 中，系原 14 家移除 <code>kimi-k3</code> 后所得 / 生成侧每模型重复 <b>10</b> 次、每次约 100 词并附三选一入选理由 / 域名「银行金融科技」/ 六类固定判据判别 Prompt / 判别侧每家每批 <b>3 轮 self-consistency</b> 盲审、三局两胜聚成该模型<b>正式票</b>，13 家正式票再按<b>严格过半数</b>（&gt;1/2，即 ≥7/13）截断入选，见 <code>config.py</code> 判别协议注释）。v2 真跑结果链 = 生成 13,247 → 去重 982 → 去数字/字母 915 → 精简/最终 696 → AI 认可 <b>591</b>（占最终词表 84.9%）；生产词典 <code>config/fintech_dict.json</code> 已随之<b>换血为 607 词</b>（2026-07-21，字节 sha256 前 16 位 <code>9c731b78379401e9</code>），判别链具备离线 $0 逐字节复现能力（2026-07-22/23 复跑审计实证，判别决策链全格 0 差异）。下文漏斗与一致性统计<b>全部为 v1 口径的历史事实</b>，与手稿 <code>FinTech_Dictionary_LLMs_Paper_Final.md</code> 所载 v1 banner 一致。管道自带一篇完整方法学论文 <code>FinTech_Dictionary_LLMs_Paper_Final.md</code>（§6 参考文献 146 篇，其中 145 篇带 DOI）；Fleiss κ 的公式与双口径分级披露现已并入该手稿正文，计算实现见 <code>calculate_kappa.py</code>（129 行）。引文注册表下沉到 <code>academic.py</code>（877 行、<code>REFERENCES</code> 共 121 条 APA 条目，其中 120 条带 DOI）作为唯一 SSOT。</p>
 <div class="tbl">
 <table>
 <caption>表 13-9　LLMs_for_FinTech_dic 管道构成与关键参数</caption>
@@ -3905,7 +3908,7 @@ d &= R \cdot 2 \cdot \text{atan2}\left(\sqrt{a},\; \sqrt{1-a}\right)
 </table>
 </div>
 <p>评审一致性以 Fleiss κ 度量（<a href="https://doi.org/10.1037/h0031619" target="_blank">Fleiss, 1971</a>）：N=2,814、n=8 评审、k=2 类，得全局 <b>κ=0.5017</b>，Z&gt;5.0、双侧 p&lt;0.0001，显著拒绝「模型间一致纯属随机」的原假设。项目对该数值做了<b>双口径诚实披露</b>：按 <a href="https://doi.org/10.2307/2529310" target="_blank">Landis &amp; Koch (1977)</a> 分级属「中度一致」（0.41–0.60），而按更严格的 <a href="https://doi.org/10.11613/bm.2012.031" target="_blank">McHugh (2012)</a> 口径则归「弱一致」，两种分级如实并列而不择优呈报。方法学附录同时披露一个已知局限：判别请求失败（超时/限速/JSON 解析失败）与真负类同编码为 0 分，实测未见异常零分聚集，但建议后续版本引入独立哨兵值（NaN）加以区分。耗时结构上，生成阶段仅约 242.5 秒，盲审阶段约 1,971.8 秒，评审是绝对主成本。</p>
-<div class="plain"><b>白话</b>：金融科技词典不是某个人列出来的，而是让 8 个不同厂商的大模型各自「报菜名」100 遍，先把 8 万多条报名去重、去掉互相包含的长词，剩下 2,814 个候选，再让这 8 个模型互相当裁判投票——至少 5 票才能进词典，最后留下 1,506 个词，其中 870 个是 8 个裁判全票通过的「铁词」。裁判们的意见一致程度用统计量 κ=0.50 来衡量，属于「明显强于瞎猜、但也没到高度一致」的水平，项目把宽严两种学术评级标准都写了出来，不挑好听的说。整套流程有独立缓存，重放一遍不花一分钱 API 费。</div>
+<div class="plain"><b>白话</b>：金融科技词典不是某个人列出来的，而是让 8 个不同厂商的大模型各自「报菜名」100 遍，先把 8 万多条报名去重、去掉互相包含的长词，剩下 2,814 个候选，再让这 8 个模型互相当裁判投票——至少 5 票才能进词典，最后留下 1,506 个词，其中 870 个是 8 个裁判全票通过的「铁词」。裁判们的意见一致程度用统计量 κ=0.50 来衡量，属于「明显强于瞎猜、但也没到高度一致」的水平，项目把宽严两种学术评级标准都写了出来，不挑好听的说。（以上为 v1 口径的历史事实；2026-07-21 已按 v2 协议真跑并将生产词典换血为 607 词。）整套流程有独立缓存，重放一遍不花一分钱 API 费。</div>
 
 <section>
 <h2 id="sec14">14. 参考文献</h2>
