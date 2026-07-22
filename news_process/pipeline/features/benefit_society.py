@@ -535,6 +535,28 @@ def _project_texts(texts: list[str], direction: np.ndarray,
 
 _CENTER_SIDECAR_FILENAME = '_benefit_center_sidecar.json'
 
+# S13-v2 加固 (2026-07-22, 九入口审计 §4.4 词典盲区): sidecar 第 4 指纹 = 词典 sha256。
+# 词典换血 (如 2026-07-21 的 1506→607) 改变 ss/ctx 轨语料分布, 但旧三字段
+# (model_id/anchor_sha256/text_pipeline_version) 全探不到 → 冻结 median 陈旧被静默沿用。
+# 现把 config/fintech_dict.json 字节 sha256 纳入冻结/校验字段: 换词典而未删 sidecar
+# 条目 → fail-loud (与三字段同款语义: 双方都存在且不匹配才 raise, 单侧缺失走回填)。
+def _compute_dict_sha256() -> str | None:
+    """config/fintech_dict.json 字节 sha256 (词典指纹; 读不到时 None, 守卫单侧跳过)。"""
+    path = CONFIG.get('paths', {}).get('fintech_dict_file', '')
+    if path and not os.path.isabs(path):
+        # 相对路径 (./config/...) 锚定到包根 (news_process/), 与 cwd 无关 —
+        # 防测试/异 cwd 导入时相对路径失效。
+        _pkg_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        path = os.path.normpath(os.path.join(_pkg_root, path))
+    try:
+        with open(path, 'rb') as f:
+            return hashlib.sha256(f.read()).hexdigest()
+    except OSError:
+        return None
+
+
+_DICT_SHA256 = _compute_dict_sha256()
+
 # 纵深防御 (2026-06-11 实测教训): 同分支并发 agent 曾用 4 篇 toy 数据跑
 # compute_benefit_society_panel (未重定向 OUTPUT_DIR 的旧版测试) → toy median
 # 被冻结进真实 data/processed sidecar。样本量低于此阈值时只现算不持久化,
@@ -544,7 +566,8 @@ _CENTER_MIN_N_TO_FREEZE = 50
 
 def _get_frozen_center(score_key: str, scores: pd.Series, model_id: str,
                        anchor_sha256: str | None = None,
-                       text_pipeline_version: str | None = None) -> float:
+                       text_pipeline_version: str | None = None,
+                       dict_sha256: str | None = None) -> float:
     """pos/neg_frac 阈值中心的单一事实源 (冻结 sidecar)。
 
     fix(omni-g-benefit KNOWN-OPEN①, 2026-06-11): 此前 _center 每次 run 用当期
@@ -607,6 +630,17 @@ def _get_frozen_center(score_key: str, scores: pd.Series, model_id: str,
                 f"text_pipeline_version={text_pipeline_version!r} — 文本处理管线"
                 f"换代须删除 {sidecar_path} 中该条目后重冻结 (防跨管线版本阈值误用)"
             )
+        # S13-v2 (2026-07-22): 第 4 指纹 dict_sha256 同款 fail-loud 校验 — 词典换血
+        # 改变 ss/ctx 轨语料分布, 冻结 median 随之陈旧, 旧三字段探不到该盲区。
+        frozen_dict = entry.get('dict_sha256')
+        if (frozen_dict is not None and dict_sha256 is not None
+                and frozen_dict != dict_sha256):
+            raise ValueError(
+                f"benefit center sidecar 条目 {score_key!r} 冻结自 dict_sha256="
+                f"{frozen_dict[:16]!r}…, 当前词典 sha256={dict_sha256[:16]!r}… — 词典"
+                f"换血须删除 {sidecar_path} 中该条目后重冻结 (防跨词典代际阈值误用; "
+                f"见 NINE_ENTRYPOINT_RUN_AUDIT_AND_REMEDIATION_PLAN_2026-07-21.md §4.4)"
+            )
         # fix(S3, 2026-07-14): 旧条目 (升级前冻结) 缺 anchor_sha256/
         # text_pipeline_version 字段 → warning + 回填字段, **绝不改 center 值**
         # (防当场崩 stage 40, golden-safe 设计要求)。
@@ -617,6 +651,9 @@ def _get_frozen_center(score_key: str, scores: pd.Series, model_id: str,
         if entry.get('text_pipeline_version') is None and text_pipeline_version is not None:
             entry['text_pipeline_version'] = text_pipeline_version
             _backfilled.append('text_pipeline_version')
+        if entry.get('dict_sha256') is None and dict_sha256 is not None:
+            entry['dict_sha256'] = dict_sha256
+            _backfilled.append('dict_sha256')
         if _backfilled:
             logger.warning(
                 f"    {score_key}: sidecar 旧条目缺字段 {_backfilled} (S3 升级前冻结), "
@@ -647,6 +684,7 @@ def _get_frozen_center(score_key: str, scores: pd.Series, model_id: str,
         'model_id': model_id,
         'anchor_sha256': anchor_sha256,
         'text_pipeline_version': text_pipeline_version,
+        'dict_sha256': dict_sha256,
         'method': 'pooled-median (首跑 in-sample, 冻结)',
         'n_scores': n_scores,
         'frozen_utc': datetime.now(timezone.utc).isoformat(timespec='seconds'),
@@ -900,7 +938,8 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
             _center = _get_frozen_center(col_score, df_exploded[col_score],
                                          _eng.spec_model(spec),
                                          anchor_sha256=_ANCHOR_SHA256,
-                                         text_pipeline_version=_eng.spec_version(spec))
+                                         text_pipeline_version=_eng.spec_version(spec),
+                                         dict_sha256=_DICT_SHA256)
             frac = (df_exploded
                     .dropna(subset=[col_score])
                     .groupby(['target_bank', 'year'])[col_score]

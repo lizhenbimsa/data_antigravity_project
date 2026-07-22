@@ -58,6 +58,8 @@ news_process/.test_tmp/
 # 入库与 fintech_locus_split.yaml 同座 config/ (计划原文 eval_reports 落点因
 # 该目录不入库惯例改此处, 属文档化偏离)。
 !news_process/config/locus_split_double_coding_2026-07-14.csv
+# v2 (2026-07-22): 词典 607 换血后 289 新词增量双编码表 (κ=0.8418 证据载体, 同款立法意图)
+!news_process/config/locus_split_double_coding_2026-07-22.csv
 *.parquet
 *.xlsx
 *.xls

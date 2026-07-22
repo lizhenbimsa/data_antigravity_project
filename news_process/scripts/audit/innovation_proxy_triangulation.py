@@ -26,8 +26,8 @@ substance/locus/collab 三个创新维度全部依赖单一方法（LLM 标注�
    获批。W&Z (1994/1998) 的 substantive vs symbolic 区分本质是"是否有可
    验证的具体投入证据"，故用这组 regex 直接抓文本里的"硬证据"密度。
 2. **locus proxy**（对应 innovation_locus/"底层技术 vs 应用场景"）：
-   `config/fintech_locus_split.yaml`（WP-R3 双编码+仲裁产物，1506 词按
-   Gomber et al. 2018 框架二分为 tech/func/unassigned）驱动的 AC 自动机，
+   `config/fintech_locus_split.yaml`（WP-R3 双编码+仲裁产物 v2-2026-07-22，607 词
+   (2026-07-21 词典换血) 按 Gomber et al. 2018 框架二分为 tech/func/unassigned）驱动的 AC 自动机，
    在 tech∪func 论域上算 tech 占比。
 3. **collab proxy**（对应 innovation_collab_mode/"自主研发 vs 外部协同"）：
    协作动词表 × 非银实体（上市公司/税调企业/手工金科名单）AC 共现 ——

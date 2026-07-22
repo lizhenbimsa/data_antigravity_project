@@ -1,8 +1,9 @@
 """WP-R3 创新维度三角化 gate 测试 (locus 词表二分 + proxy 脚本纪律)。
 
-覆盖 (`PROMPT_ASSETS_AUDIT_EXECUTION_PLAN_2026-07-12.md` §10 WP-R3.4 "防误用与决策记录修订"):
+覆盖 (`PROMPT_ASSETS_AUDIT_EXECUTION_PLAN_2026-07-12.md` §10 WP-R3.4 "防误用与决策记录修订";
+v2-2026-07-22: 词典 607 换血后增量重建, 断言基数 1506→607, 双编码表拆 v1 冻结 + v2 增量两份):
   1. `config/fintech_locus_split.yaml` 三桶完整性 —— 并集 = `fintech_dict.json`
-     全部 1506 词 (零遗漏), 三桶两两不交。
+     全部 607 词 (零遗漏), 三桶两两不交。
   2. `fintech_locus_split.yaml` 零 `pipeline/`/`papers/` import (仅
      `scripts/audit/` 消费, 全仓 grep 断言)。
   3. `innovation_proxy_triangulation.py` 产物路径 ⊆ `validation/eval_reports/`
@@ -32,7 +33,8 @@ PROXY_SCRIPT_PATH = SCRIPTS_AUDIT_DIR / "innovation_proxy_triangulation.py"
 # fix(WP-R3-P1, 2026-07-14): 双编码原始表迁 config/ 与 yaml 同座并经 .gitignore
 # negation 入库 (κ=0.8375 的唯一证据载体不可再生, WP-R3.4 立法意图=持久存档与
 # 版本化; 计划原文 eval_reports 落点因该目录不入库惯例改此处, 属文档化偏离)。
-DOUBLE_CODING_CSV = CONFIG_DIR / "locus_split_double_coding_2026-07-14.csv"
+DOUBLE_CODING_CSV_V1 = CONFIG_DIR / "locus_split_double_coding_2026-07-14.csv"  # v1 冻结 (1506 词, 318 保留词溯源)
+DOUBLE_CODING_CSV_V2 = CONFIG_DIR / "locus_split_double_coding_2026-07-22.csv"  # v2 增量 (289 新词)
 
 
 # ---------------------------------------------------------------------------
@@ -57,7 +59,7 @@ class TestLocusSplitBuckets:
             assert isinstance(doc[bucket], list) and len(doc[bucket]) > 0
 
     def test_union_equals_full_dict_zero_missing(self):
-        """并集 = fintech_dict.json 全部 1506 词, 零遗漏。"""
+        """并集 = fintech_dict.json 全部 607 词 (2026-07-21 换血), 零遗漏。"""
         doc = self._load()
         words = self._dict_words()
         union = set(doc["tech"]) | set(doc["func"]) | set(doc["unassigned"])
@@ -65,7 +67,7 @@ class TestLocusSplitBuckets:
             f"三桶并集与词典不等: 词典独有 {set(words) - union}, "
             f"三桶独有 {union - set(words)}"
         )
-        assert len(words) == 1506, f"fintech_dict.json 应恰 1506 词, 实读 {len(words)}"
+        assert len(words) == 607, f"fintech_dict.json 应恰 607 词, 实读 {len(words)}"
 
     def test_buckets_pairwise_disjoint(self):
         doc = self._load()
@@ -86,12 +88,21 @@ class TestLocusSplitBuckets:
         assert meta["n_tech"] == len(doc["tech"])
         assert meta["n_func"] == len(doc["func"])
         assert meta["n_unassigned"] == len(doc["unassigned"])
-        assert meta["n_tech"] + meta["n_func"] + meta["n_unassigned"] == 1506
+        assert meta["n_tech"] + meta["n_func"] + meta["n_unassigned"] == 607
 
     def test_metadata_kappa_above_threshold(self):
-        """双编码 κ 应 > 0.7 (计划预期门槛)。"""
+        """双编码 κ 应 > 0.7 (计划预期门槛)。v2: 289 新词批 κ + v1 全量基准 κ 双锁。"""
         doc = self._load()
-        assert doc["metadata"]["cohens_kappa"] > 0.7
+        meta = doc["metadata"]
+        assert meta["new_words_cohens_kappa"] > 0.7
+        assert meta["v1_baseline"]["cohens_kappa"] > 0.7
+
+    def test_metadata_incremental_bookkeeping(self):
+        """v2 增量账本自洽: 保留 + 新增 = 607; 新增批一致数 + 仲裁数 = 289。"""
+        meta = self._load()["metadata"]
+        assert meta["n_retained_from_v1"] + meta["n_new_double_coded"] == 607
+        assert (meta["new_words_n_agreements"]
+                + meta["new_words_n_disagreements_arbitrated"]) == meta["n_new_double_coded"]
 
     def test_do_not_modify_declaration_present(self):
         """头注须显式声明禁改 fintech_dict.json 本体 (血缘锚点铁律)。"""
@@ -198,31 +209,49 @@ class TestProxyScriptDiscipline:
 # 4. 双编码原始表存档
 # ---------------------------------------------------------------------------
 class TestDoubleCodingArtifact:
-    def test_csv_exists_under_config(self):
-        # fix(WP-R3-P1, 2026-07-14): 存档位由 eval_reports (不入库惯例) 迁 config/
-        # 与 yaml 同座并 negation 入库 — 断言同步 (文档化偏离, 见文件头注)。
-        assert DOUBLE_CODING_CSV.exists(), f"缺双编码原始表 {DOUBLE_CODING_CSV}"
-        assert DOUBLE_CODING_CSV.is_relative_to(CONFIG_DIR)
+    # fix(WP-R3-P1, 2026-07-14): 存档位由 eval_reports (不入库惯例) 迁 config/
+    # 与 yaml 同座并 negation 入库 — 断言同步 (文档化偏离, 见文件头注)。
+    # v2 (2026-07-22): 双表契约 — v1 冻结表 (1506 行, 318 保留词溯源不可再生) +
+    # v2 增量表 (289 新词)。
 
-    def test_csv_row_count_matches_dict(self):
+    @staticmethod
+    def _read(path):
         import csv
-        with open(DOUBLE_CODING_CSV, encoding="utf-8-sig", newline="") as f:
-            rows = list(csv.DictReader(f))
-        assert len(rows) == 1506, f"双编码表应恰 1506 行 (含表头之外), 实读 {len(rows)}"
+        with open(path, encoding="utf-8-sig", newline="") as f:
+            return list(csv.DictReader(f))
+
+    def test_csvs_exist_under_config(self):
+        for p in (DOUBLE_CODING_CSV_V1, DOUBLE_CODING_CSV_V2):
+            assert p.exists(), f"缺双编码原始表 {p}"
+            assert p.is_relative_to(CONFIG_DIR)
+
+    def test_csv_row_counts_match_generations(self):
+        assert len(self._read(DOUBLE_CODING_CSV_V1)) == 1506, "v1 冻结表应恰 1506 行"
+        assert len(self._read(DOUBLE_CODING_CSV_V2)) == 289, "v2 增量表应恰 289 行"
+
+    def test_v2_terms_are_exactly_dict_minus_v1_retained(self):
+        """v2 表词集 = 现词典 − v1 词集 (即恰为 289 新增词, 与 yaml 增量账本互锁)。"""
+        with open(FINTECH_DICT_PATH, encoding="utf-8") as f:
+            words = set(json.load(f))
+        v1_terms = {r["term"] for r in self._read(DOUBLE_CODING_CSV_V1)}
+        v2_terms = {r["term"] for r in self._read(DOUBLE_CODING_CSV_V2)}
+        assert v2_terms == words - v1_terms, "v2 表词集 ≠ 词典−v1 交集"
+        assert len(words & v1_terms) == 318, "v1 保留词数应恰 318"
 
     def test_csv_has_required_columns(self):
         import csv
-        with open(DOUBLE_CODING_CSV, encoding="utf-8-sig", newline="") as f:
-            header = next(csv.reader(f))
-        for col in ("idx", "term", "coder_a_label", "coder_b_label", "agree",
-                    "final_label", "arbitration_rationale"):
-            assert col in header, f"双编码表缺列 {col}"
+        for p in (DOUBLE_CODING_CSV_V1, DOUBLE_CODING_CSV_V2):
+            with open(p, encoding="utf-8-sig", newline="") as f:
+                header = next(csv.reader(f))
+            for col in ("idx", "term", "coder_a_label", "coder_b_label", "agree",
+                        "final_label", "arbitration_rationale"):
+                assert col in header, f"{p.name} 缺列 {col}"
 
     def test_disagreement_rows_have_rationale(self):
-        import csv
-        with open(DOUBLE_CODING_CSV, encoding="utf-8-sig", newline="") as f:
-            rows = list(csv.DictReader(f))
-        disagreements = [r for r in rows if r["agree"] == "False"]
-        assert len(disagreements) > 0
-        missing_rationale = [r["term"] for r in disagreements if not r["arbitration_rationale"].strip()]
-        assert not missing_rationale, f"以下分歧词缺仲裁理由: {missing_rationale}"
+        for p in (DOUBLE_CODING_CSV_V1, DOUBLE_CODING_CSV_V2):
+            rows = self._read(p)
+            disagreements = [r for r in rows if r["agree"] == "False"]
+            assert len(disagreements) > 0, f"{p.name} 无分歧行 (双编码应有分歧)"
+            missing = [r["term"] for r in disagreements
+                       if not r["arbitration_rationale"].strip()]
+            assert not missing, f"{p.name} 以下分歧词缺仲裁理由: {missing}"

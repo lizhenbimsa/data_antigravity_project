@@ -482,9 +482,9 @@ def main():
     from news_process.core.data_versioning import save_parquet_with_metadata
     input_file = os.path.join(CONFIG['paths']['output_dir'],
                               CONFIG['filenames']['output_11_bank_news'])
-    # audit S10/B 修复 (2026-05-30): fintech 分类由 fintech_dict.json (1506 关键词)
-    # 决定; 把它纳入血缘 input_files, 否则编辑词典内容 (路径不变) 后 input_hashes
-    # 不变 → verify_data_integrity 对词典篡改失明。
+    # audit S10/B 修复 (2026-05-30): fintech 分类由 fintech_dict.json (当时 1506 关键词;
+    # 2026-07-21 换血后 607) 决定; 把它纳入血缘 input_files, 否则编辑词典内容 (路径不变)
+    # 后 input_hashes 不变 → verify_data_integrity 对词典篡改失明。
     _fintech_dict = CONFIG['paths'].get('fintech_dict_file')
     input_files = [input_file] + (
         [_fintech_dict] if _fintech_dict and os.path.exists(_fintech_dict) else []

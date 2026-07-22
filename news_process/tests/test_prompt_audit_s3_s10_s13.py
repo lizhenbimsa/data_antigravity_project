@@ -207,11 +207,13 @@ class TestS10OfflineGateReraise:
 
 
 class TestS13PlaceboFintechIntersection:
-    """placebo 关键词与 fintech_dict.json 的交集须 ⊆ {'智能柜员机'} —— 防词典
-    /placebo 词表任一方后续更新扩大交集而未被察觉 (裁定见 §4 明确不修清单 #4:
-    保留「智能柜员机」+ 头注披露, 不再反复; 若交集扩大则须重新走 §2 S13 审计)。"""
+    """placebo 关键词与 fintech_dict.json 的交集须 ⊆ {'自助银行'} —— 防词典
+    /placebo 词表任一方后续更新扩大交集而未被察觉。S13-v2 (2026-07-22, 词典 607 换血
+    + 用户授权全项目 607 化): 交集由 {智能柜员机} (已随换血出局) 换为 {自助银行}
+    (607 新入词); 裁定镜像 2026-07-14 先例 — 保留交集词 + yaml 头注披露, 不再反复;
+    若交集再扩大则须重新走 §2 S13 审计。"""
 
-    _ALLOWED_INTERSECTION = {'智能柜员机'}
+    _ALLOWED_INTERSECTION = {'自助银行'}
 
     @staticmethod
     def _load_placebo_keywords() -> set[str]:
@@ -242,10 +244,11 @@ class TestS13PlaceboFintechIntersection:
             "计划 §2 S13 审计 (placebo 方向性可能被污染)。"
         )
 
-    def test_smart_teller_machine_is_the_documented_single_overlap(self):
-        """锁定当前实测交集恰为 1 词 (与计划 §7 台账"交集恰 1 词"一致); 若变为 0
-        (词被删) 或新增其他重叠词, 本测试会先于上一条泛化 gate 精确报警。"""
+    def test_self_service_bank_is_the_documented_single_overlap(self):
+        """锁定当前实测交集恰为 1 词 (S13-v2, 2026-07-22: 「自助银行」, 与 yaml 头注
+        披露一致); 若变为 0 (词被删) 或新增其他重叠词, 本测试会先于上一条泛化 gate
+        精确报警。(旧名 test_smart_teller_machine_*, 随 607 换血更名。)"""
         placebo_kws = self._load_placebo_keywords()
         fintech_kws = self._load_fintech_dict()
         intersection = placebo_kws & fintech_kws
-        assert intersection == {'智能柜员机'}
+        assert intersection == {'自助银行'}

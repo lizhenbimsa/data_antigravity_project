@@ -16889,26 +16889,26 @@
   },
   "strat_diff_n5_emb": {
    "cjk": 5557,
-   "chars": 13227,
-   "utf8_bytes": 24725,
+   "chars": 13228,
+   "utf8_bytes": 24726,
    "tier": "core"
   },
   "strat_diff_n10_emb": {
    "cjk": 2176,
-   "chars": 5516,
-   "utf8_bytes": 10005,
+   "chars": 5517,
+   "utf8_bytes": 10006,
    "tier": "standard"
   },
   "strat_diff_n20_emb": {
    "cjk": 2478,
-   "chars": 6227,
-   "utf8_bytes": 11359,
+   "chars": 6228,
+   "utf8_bytes": 11360,
    "tier": "standard"
   },
   "strat_diff_n30_emb": {
    "cjk": 3448,
-   "chars": 8899,
-   "utf8_bytes": 16026,
+   "chars": 8900,
+   "utf8_bytes": 16027,
    "tier": "standard"
   },
   "strat_diff_n40_emb": {
@@ -16925,32 +16925,32 @@
   },
   "strat_sim_max_emb": {
    "cjk": 2443,
-   "chars": 5990,
-   "utf8_bytes": 11035,
+   "chars": 5991,
+   "utf8_bytes": 11036,
    "tier": "standard"
   },
   "strat_diff_n5_emb_lg": {
    "cjk": 5452,
-   "chars": 13234,
-   "utf8_bytes": 24512,
+   "chars": 13235,
+   "utf8_bytes": 24513,
    "tier": "core"
   },
   "strat_diff_n10_emb_lg": {
    "cjk": 2122,
-   "chars": 5385,
-   "utf8_bytes": 9761,
+   "chars": 5386,
+   "utf8_bytes": 9762,
    "tier": "standard"
   },
   "strat_diff_n20_emb_lg": {
    "cjk": 2397,
-   "chars": 6226,
-   "utf8_bytes": 11205,
+   "chars": 6227,
+   "utf8_bytes": 11206,
    "tier": "standard"
   },
   "strat_diff_n30_emb_lg": {
    "cjk": 3549,
-   "chars": 9097,
-   "utf8_bytes": 16430,
+   "chars": 9098,
+   "utf8_bytes": 16431,
    "tier": "standard"
   },
   "strat_diff_n40_emb_lg": {
@@ -16967,8 +16967,8 @@
   },
   "strat_sim_max_emb_lg": {
    "cjk": 2397,
-   "chars": 5949,
-   "utf8_bytes": 10898,
+   "chars": 5950,
+   "utf8_bytes": 10899,
    "tier": "standard"
   },
   "centroid_diff_tfidf_c": {
@@ -16991,26 +16991,26 @@
   },
   "centroid_diff_emb": {
    "cjk": 2133,
-   "chars": 6570,
-   "utf8_bytes": 11012,
+   "chars": 6571,
+   "utf8_bytes": 11013,
    "tier": "standard"
   },
   "strat_diff_full": {
    "cjk": 4862,
-   "chars": 11859,
-   "utf8_bytes": 21970,
+   "chars": 11860,
+   "utf8_bytes": 21971,
    "tier": "standard"
   },
   "centroid_diff_emb_lg": {
    "cjk": 2005,
-   "chars": 6395,
-   "utf8_bytes": 10583,
+   "chars": 6396,
+   "utf8_bytes": 10584,
    "tier": "standard"
   },
   "strat_diff_lg_full": {
    "cjk": 4901,
-   "chars": 11943,
-   "utf8_bytes": 22134,
+   "chars": 11944,
+   "utf8_bytes": 22135,
    "tier": "standard"
   },
   "strat_fluidity": {
@@ -17044,15 +17044,15 @@
    "tier": "standard"
   },
   "coh_emb_full": {
-   "cjk": 2096,
-   "chars": 7210,
-   "utf8_bytes": 11550,
+   "cjk": 2093,
+   "chars": 7260,
+   "utf8_bytes": 11594,
    "tier": "standard"
   },
   "coh_emb_lg_full": {
-   "cjk": 2077,
-   "chars": 7496,
-   "utf8_bytes": 11812,
+   "cjk": 2074,
+   "chars": 7546,
+   "utf8_bytes": 11856,
    "tier": "standard"
   },
   "lazy_jaccard_full": {
@@ -17092,15 +17092,15 @@
    "tier": "standard"
   },
   "coh_emb_ctx": {
-   "cjk": 2131,
-   "chars": 7268,
-   "utf8_bytes": 11698,
+   "cjk": 2128,
+   "chars": 7318,
+   "utf8_bytes": 11742,
    "tier": "standard"
   },
   "coh_emb_lg_ctx": {
-   "cjk": 2070,
-   "chars": 7352,
-   "utf8_bytes": 11670,
+   "cjk": 2067,
+   "chars": 7402,
+   "utf8_bytes": 11714,
    "tier": "standard"
   },
   "lazy_jaccard_ctx": {
@@ -17140,15 +17140,15 @@
    "tier": "standard"
   },
   "coh_emb_ss": {
-   "cjk": 2098,
-   "chars": 7345,
-   "utf8_bytes": 11707,
+   "cjk": 2095,
+   "chars": 7395,
+   "utf8_bytes": 11751,
    "tier": "standard"
   },
   "coh_emb_lg_ss": {
-   "cjk": 2099,
-   "chars": 7528,
-   "utf8_bytes": 11898,
+   "cjk": 2096,
+   "chars": 7578,
+   "utf8_bytes": 11942,
    "tier": "standard"
   },
   "lazy_jaccard_ss": {
@@ -17297,26 +17297,26 @@
   },
   "strat_diff_n5_emb_ctx": {
    "cjk": 4891,
-   "chars": 12226,
-   "utf8_bytes": 22340,
+   "chars": 12227,
+   "utf8_bytes": 22341,
    "tier": "standard"
   },
   "strat_diff_n10_emb_ctx": {
    "cjk": 2219,
-   "chars": 5458,
-   "utf8_bytes": 10032,
+   "chars": 5459,
+   "utf8_bytes": 10033,
    "tier": "standard"
   },
   "strat_diff_n20_emb_ctx": {
    "cjk": 2400,
-   "chars": 6077,
-   "utf8_bytes": 11056,
+   "chars": 6078,
+   "utf8_bytes": 11057,
    "tier": "standard"
   },
   "strat_diff_n30_emb_ctx": {
    "cjk": 3446,
-   "chars": 8894,
-   "utf8_bytes": 16017,
+   "chars": 8895,
+   "utf8_bytes": 16018,
    "tier": "standard"
   },
   "strat_diff_n40_emb_ctx": {
@@ -17333,32 +17333,32 @@
   },
   "strat_sim_max_emb_ctx": {
    "cjk": 2459,
-   "chars": 5895,
-   "utf8_bytes": 10960,
+   "chars": 5896,
+   "utf8_bytes": 10961,
    "tier": "standard"
   },
   "strat_diff_n5_emb_lg_ctx": {
    "cjk": 4817,
-   "chars": 12272,
-   "utf8_bytes": 22259,
+   "chars": 12273,
+   "utf8_bytes": 22260,
    "tier": "standard"
   },
   "strat_diff_n10_emb_lg_ctx": {
    "cjk": 2116,
-   "chars": 5402,
-   "utf8_bytes": 9770,
+   "chars": 5403,
+   "utf8_bytes": 9771,
    "tier": "standard"
   },
   "strat_diff_n20_emb_lg_ctx": {
    "cjk": 2435,
-   "chars": 6500,
-   "utf8_bytes": 11566,
+   "chars": 6501,
+   "utf8_bytes": 11567,
    "tier": "standard"
   },
   "strat_diff_n30_emb_lg_ctx": {
    "cjk": 3455,
-   "chars": 8941,
-   "utf8_bytes": 16082,
+   "chars": 8942,
+   "utf8_bytes": 16083,
    "tier": "standard"
   },
   "strat_diff_n40_emb_lg_ctx": {
@@ -17375,8 +17375,8 @@
   },
   "strat_sim_max_emb_lg_ctx": {
    "cjk": 2378,
-   "chars": 5771,
-   "utf8_bytes": 10676,
+   "chars": 5772,
+   "utf8_bytes": 10677,
    "tier": "standard"
   },
   "centroid_diff_tfidf_c_ctx": {
@@ -17399,26 +17399,26 @@
   },
   "centroid_diff_emb_ctx": {
    "cjk": 1985,
-   "chars": 6400,
-   "utf8_bytes": 10542,
+   "chars": 6401,
+   "utf8_bytes": 10543,
    "tier": "standard"
   },
   "strat_diff_ctx": {
    "cjk": 4932,
-   "chars": 11986,
-   "utf8_bytes": 22241,
+   "chars": 11987,
+   "utf8_bytes": 22242,
    "tier": "standard"
   },
   "centroid_diff_emb_lg_ctx": {
    "cjk": 1949,
-   "chars": 6457,
-   "utf8_bytes": 10547,
+   "chars": 6458,
+   "utf8_bytes": 10548,
    "tier": "standard"
   },
   "strat_diff_lg_ctx": {
    "cjk": 4971,
-   "chars": 12070,
-   "utf8_bytes": 22405,
+   "chars": 12071,
+   "utf8_bytes": 22406,
    "tier": "standard"
   },
   "strat_fluidity_ctx": {
@@ -17561,26 +17561,26 @@
   },
   "strat_diff_n5_emb_ss": {
    "cjk": 4821,
-   "chars": 12241,
-   "utf8_bytes": 22226,
+   "chars": 12242,
+   "utf8_bytes": 22227,
    "tier": "standard"
   },
   "strat_diff_n10_emb_ss": {
    "cjk": 2204,
-   "chars": 5445,
-   "utf8_bytes": 9983,
+   "chars": 5446,
+   "utf8_bytes": 9984,
    "tier": "standard"
   },
   "strat_diff_n20_emb_ss": {
    "cjk": 2527,
-   "chars": 6475,
-   "utf8_bytes": 11724,
+   "chars": 6476,
+   "utf8_bytes": 11725,
    "tier": "standard"
   },
   "strat_diff_n30_emb_ss": {
    "cjk": 3472,
-   "chars": 8967,
-   "utf8_bytes": 16137,
+   "chars": 8968,
+   "utf8_bytes": 16138,
    "tier": "standard"
   },
   "strat_diff_n40_emb_ss": {
@@ -17597,32 +17597,32 @@
   },
   "strat_sim_max_emb_ss": {
    "cjk": 2443,
-   "chars": 6018,
-   "utf8_bytes": 11061,
+   "chars": 6019,
+   "utf8_bytes": 11062,
    "tier": "standard"
   },
   "strat_diff_n5_emb_lg_ss": {
    "cjk": 4846,
-   "chars": 12238,
-   "utf8_bytes": 22272,
+   "chars": 12239,
+   "utf8_bytes": 22273,
    "tier": "standard"
   },
   "strat_diff_n10_emb_lg_ss": {
    "cjk": 2191,
-   "chars": 5537,
-   "utf8_bytes": 10062,
+   "chars": 5538,
+   "utf8_bytes": 10063,
    "tier": "standard"
   },
   "strat_diff_n20_emb_lg_ss": {
    "cjk": 2519,
-   "chars": 6600,
-   "utf8_bytes": 11832,
+   "chars": 6601,
+   "utf8_bytes": 11833,
    "tier": "standard"
   },
   "strat_diff_n30_emb_lg_ss": {
    "cjk": 3510,
-   "chars": 9043,
-   "utf8_bytes": 16296,
+   "chars": 9044,
+   "utf8_bytes": 16297,
    "tier": "standard"
   },
   "strat_diff_n40_emb_lg_ss": {
@@ -17639,8 +17639,8 @@
   },
   "strat_sim_max_emb_lg_ss": {
    "cjk": 2400,
-   "chars": 5944,
-   "utf8_bytes": 10896,
+   "chars": 5945,
+   "utf8_bytes": 10897,
    "tier": "standard"
   },
   "centroid_diff_tfidf_c_ss": {
@@ -17663,26 +17663,26 @@
   },
   "centroid_diff_emb_ss": {
    "cjk": 2024,
-   "chars": 6413,
-   "utf8_bytes": 10648,
+   "chars": 6414,
+   "utf8_bytes": 10649,
    "tier": "standard"
   },
   "strat_diff_ss": {
    "cjk": 4975,
-   "chars": 12114,
-   "utf8_bytes": 22458,
+   "chars": 12115,
+   "utf8_bytes": 22459,
    "tier": "standard"
   },
   "centroid_diff_emb_lg_ss": {
    "cjk": 2001,
-   "chars": 6431,
-   "utf8_bytes": 10622,
+   "chars": 6432,
+   "utf8_bytes": 10623,
    "tier": "standard"
   },
   "strat_diff_lg_ss": {
    "cjk": 5014,
-   "chars": 12198,
-   "utf8_bytes": 22622,
+   "chars": 12199,
+   "utf8_bytes": 22623,
    "tier": "standard"
   },
   "strat_fluidity_ss": {
@@ -17717,14 +17717,14 @@
   },
   "auth_sim_emb_full": {
    "cjk": 1406,
-   "chars": 5487,
-   "utf8_bytes": 8441,
+   "chars": 5488,
+   "utf8_bytes": 8442,
    "tier": "standard"
   },
   "auth_sim_emb_lg_full": {
    "cjk": 1388,
-   "chars": 5611,
-   "utf8_bytes": 8537,
+   "chars": 5612,
+   "utf8_bytes": 8538,
    "tier": "standard"
   },
   "auth_sim_tfidf_c_allv_full": {
@@ -17747,14 +17747,14 @@
   },
   "auth_sim_emb_allv_full": {
    "cjk": 1638,
-   "chars": 5442,
-   "utf8_bytes": 8836,
+   "chars": 5443,
+   "utf8_bytes": 8837,
    "tier": "standard"
   },
   "auth_sim_emb_lg_allv_full": {
    "cjk": 1577,
-   "chars": 5505,
-   "utf8_bytes": 8781,
+   "chars": 5506,
+   "utf8_bytes": 8782,
    "tier": "standard"
   },
   "auth_sim_tfidf_c_ctx": {
@@ -17777,14 +17777,14 @@
   },
   "auth_sim_emb_ctx": {
    "cjk": 1404,
-   "chars": 5542,
-   "utf8_bytes": 8492,
+   "chars": 5543,
+   "utf8_bytes": 8493,
    "tier": "standard"
   },
   "auth_sim_emb_lg_ctx": {
    "cjk": 1424,
-   "chars": 5622,
-   "utf8_bytes": 8624,
+   "chars": 5623,
+   "utf8_bytes": 8625,
    "tier": "standard"
   },
   "auth_sim_tfidf_c_allv_ctx": {
@@ -17807,14 +17807,14 @@
   },
   "auth_sim_emb_allv_ctx": {
    "cjk": 1625,
-   "chars": 5400,
-   "utf8_bytes": 8768,
+   "chars": 5401,
+   "utf8_bytes": 8769,
    "tier": "standard"
   },
   "auth_sim_emb_lg_allv_ctx": {
    "cjk": 1605,
-   "chars": 5475,
-   "utf8_bytes": 8809,
+   "chars": 5476,
+   "utf8_bytes": 8810,
    "tier": "standard"
   },
   "auth_sim_tfidf_c_ss": {
@@ -17837,14 +17837,14 @@
   },
   "auth_sim_emb_ss": {
    "cjk": 1436,
-   "chars": 5639,
-   "utf8_bytes": 8671,
+   "chars": 5640,
+   "utf8_bytes": 8672,
    "tier": "standard"
   },
   "auth_sim_emb_lg_ss": {
    "cjk": 1434,
-   "chars": 5642,
-   "utf8_bytes": 8667,
+   "chars": 5643,
+   "utf8_bytes": 8668,
    "tier": "standard"
   },
   "auth_sim_tfidf_c_allv_ss": {
@@ -17867,14 +17867,14 @@
   },
   "auth_sim_emb_allv_ss": {
    "cjk": 1608,
-   "chars": 5407,
-   "utf8_bytes": 8742,
+   "chars": 5408,
+   "utf8_bytes": 8743,
    "tier": "standard"
   },
   "auth_sim_emb_lg_allv_ss": {
    "cjk": 1626,
-   "chars": 5568,
-   "utf8_bytes": 8950,
+   "chars": 5569,
+   "utf8_bytes": 8951,
    "tier": "standard"
   },
   "benefit_mean_full": {

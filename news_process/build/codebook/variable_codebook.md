@@ -1,6 +1,6 @@
 # 变量代码手册（Variable Codebook）
 
-**生成时间**: 2026-07-22 04:39:42
+**生成时间**: 2026-07-22 12:10:59
 
 **变量总数**: 3453
 
@@ -160219,7 +160219,7 @@ Phillips, D., Edwards, B. D., & Rutherford, M. W. (2025). Conformity or Differen
 来源阶段: Stage 25。 生产函数: pipeline\panel\stata_export.py ; pipeline\features\strategic_diff.py。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 25_article_sbert.parquet (co-primary 双轨嵌入向量)。 计算公式: strat_diff_n5_emb = (1/N) · Σ_{j ∈ NN5(i)} (1 − cos(e_i, e_j)), N=5; e_i = 银行 i 当年新闻文档嵌入向量, NN5(i) = 语义空间中与 i 余弦相似度最高的 5 个同行银行; MAIN 轨 e 来自 Qwen3-Embedding-8B (4096 维), _lg 轨来自 text-embedding-3-large (3072 维)。 本列 (panel 实名 strat_diff_n5_emb) 属家族 F504, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.1668; mean=0.3287; max=0.5661。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.1668; mean=0.3289; max=0.5661。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Arts, S., Cassiman, B., & Hou, J. (2025). Technology differentiation, product market rivalry, and M&A transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687
@@ -160239,7 +160239,7 @@ Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous 
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.3287 | 标准差=0.0808 | 最小值=0.1668 | 25分位=0.2714 | 中位数=0.3366 | 75分位=0.3710 | 最大值=0.5661
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.3289 | 标准差=0.0782 | 最小值=0.1668 | 25分位=0.2715 | 中位数=0.3354 | 75分位=0.3766 | 最大值=0.5661
 
 ## strat_diff_n10_emb
 
@@ -160272,7 +160272,7 @@ strat_diff_n10_emb 家族测度的是"该银行当年报道所描绘的经营策
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py (数值计算层, 由 25_article_sbert 产出的 emb_full/emb_ctx/emb_ss 与 _lg 孪生嵌入聚合为银行-年度向量后驱动) + pipeline\panel\stata_export.py (标签装配层)。 上游依赖: 25_article_sbert。 计算公式: strat_diff_n{N}_emb_i = 1 - mean_{j in kNN10(i)} cos(v_i, v_j); 先将每家银行当年同轨全部留篇文章嵌入拼接聚合为一条银行-年度"年度总结"向量 v_i (_aggregate_bank_year_texts), 再在同年度同轨全部银行的年度向量之间构建 bank×bank 余弦相似度矩阵, 为银行 i 取同年度其余银行中相似度最高的 top-10 家(不含自身)作为最近邻同行集合 kNN10(i), 该行最终得分为其年度向量与这 10 家最近邻同行向量余弦相似度均值的 1 减; 单元粒度是银行-年度, 并非文章级最近邻聚合。 本列 (panel 实名 strat_diff_n10_emb) 属家族 F494, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.1923; mean=0.3529; max=0.5903。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.1923; mean=0.3551; max=0.5903。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Guzman, J., & Li, A. (2023). Measuring Founding Strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369
@@ -160282,7 +160282,7 @@ Su, J., Gao, X., & Tan, J. (2024). Positioning for Optimal Distinctiveness: How 
 Arts, S., Cassiman, B., & Hou, J. (2025). Technology Differentiation, Product Market Rivalry, and M&A Transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687
 Steck, H., Ekanadham, C., & Kallus, N. (2024). Is Cosine-Similarity of Embeddings Really about Similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.3529 | 标准差=0.0757 | 最小值=0.1923 | 25分位=0.3136 | 中位数=0.3625 | 75分位=0.3922 | 最大值=0.5903
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.3551 | 标准差=0.0707 | 最小值=0.1923 | 25分位=0.3130 | 中位数=0.3625 | 75分位=0.3987 | 最大值=0.5903
 
 ## strat_diff_n20_emb
 
@@ -160327,7 +160327,7 @@ co-primary 双轨方面: 无后缀 (Qwen) 与 `_lg` (text-embedding-3-large) 是
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py::compute_strategic_differentiation。 上游依赖: 14_materialize_ctx (content_ctx/content_ss 三轨文本物化) -> 25_article_sbert (Qwen/Qwen3-Embedding-8B 主轨 + text-embedding-3-large _lg 双轨嵌入引擎) -> pipeline\panel\stata_export.py (面板列标签与 co-primary 标注)。 计算公式: Ŝ_i = (1/20) · Σ_{j∈J_i^20} δ_ij, δ_ij = 1 − cos(v_i, v_j); v_i 为银行 i 当年金融科技新闻文档的稠密语义嵌入向量 (Qwen/Qwen3-Embedding-8B 或 text-embedding-3-large), J_i^20 为按 δ_ij 升序取的 20 家最近同业银行。 本列 (panel 实名 strat_diff_n20_emb) 属家族 F496, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2339; mean=0.3815; max=0.6225。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2339; mean=0.3862; max=0.6225。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Guzman, J., & Li, A. (2023). Measuring Founding Strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369
@@ -160337,7 +160337,7 @@ Haans, R. F. J. (2019). What's the Value of Being Different When Everyone Is? Th
 Rodriguez, P. L., & Spirling, A. (2022). Word Embeddings: What Works, What Doesn't, and How to Tell the Difference for Applied Research. The Journal of Politics, 84(1), 101-115. https://doi.org/10.1086/715162
 Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.3815 | 标准差=0.0714 | 最小值=0.2339 | 25分位=0.3365 | 中位数=0.3841 | 75分位=0.4191 | 最大值=0.6225
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.3862 | 标准差=0.0660 | 最小值=0.2339 | 25分位=0.3474 | 中位数=0.3844 | 75分位=0.4253 | 最大值=0.6225
 
 ## strat_diff_n30_emb
 
@@ -160375,7 +160375,7 @@ top-k N 是一个可调超参数——邻域窗口选得太窄 (N 很小, 如 N=
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py (面板标签装配于 pipeline\panel\stata_export.py)。 上游依赖: 14_materialize_ctx -> 21_tone_llms。 计算公式: Ŝ_i(bank,year) = 1 - mean(cos_sim(e_i, e_j)) for j in top-N nearest peer BANKS of bank i (within the same year cross-section, ~54-118 banks/year), where e_i is the embedding of bank i's year-aggregated news document (_aggregate_bank_year_texts); N=30. Bank-year is already the unit of observation — no separate article-level-to-bank-year aggregation step exists.。 本列 (panel 实名 strat_diff_n30_emb) 属家族 F498, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2631; mean=0.4024; max=0.6410。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2631; mean=0.4089; max=0.6410。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Guzman, J., & Li, A. (2023). Measuring founding strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369
@@ -160387,7 +160387,7 @@ Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Sia
 Breitung, C., & Müller, S. (2025). Global Business Networks. Journal of Financial Economics. https://doi.org/10.1016/j.jfineco.2025.104007
 Yin, D., Wu, Z., Yokota, K., Matsumoto, K., & Shibayama, S. (2023). Identify novel elements of knowledge with word embedding. PLOS ONE. https://doi.org/10.1371/journal.pone.0284567
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.4024 | 标准差=0.0683 | 最小值=0.2631 | 25分位=0.3571 | 中位数=0.4034 | 75分位=0.4413 | 最大值=0.6410
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4089 | 标准差=0.0630 | 最小值=0.2631 | 25分位=0.3731 | 中位数=0.4143 | 75分位=0.4436 | 最大值=0.6410
 
 ## strat_diff_n40_emb
 
@@ -160516,7 +160516,7 @@ Vamvourellis, D., Tóth, M., Bhagat, S., Desai, D., Mehta, D., & Pasquali, S. (2
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py ; pipeline\panel\stata_export.py。 上游依赖: 25_article_sbert -> 14_materialize_ctx。 计算公式: strat_sim_max_emb = max_{j∈peer(i,t)} cos(v_i, v_j), 其中 v_i 为银行 i 在年 t 的语义向量: 先将该行-年全部合格文章的文本样本拼接 (join) 为单一长字符串 agg_text, 再整体交由嵌入引擎编码得到 v_i (超长文本走朴素分段 chunking + Mean Pooling, 而非逐篇先编码再对多个文章向量取均值), peer(i,t) 为同年可比同行集合; 六列在此式基础上按「文本轨」(full/ctx/ss) 与「嵌入引擎」(Qwen3-Embedding-8B 主轨 / text-embedding-3-large `_lg` 轨) 两个维度做笛卡尔展开取值。。 本列 (panel 实名 strat_sim_max_emb) 属家族 F508, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.4782; mean=0.7259; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.4782; mean=0.7230; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Haans, R. F. J. (2019). What's the value of being different when everyone is? The effects of distinctiveness on performance in homogeneous versus heterogeneous categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978
@@ -160526,7 +160526,7 @@ Hoberg, G., Phillips, G., & Prabhala, N. (2014). Product market threats, payouts
 Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Siamese BERT-networks. Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP), 3980-3990. https://doi.org/10.18653/v1/D19-1410
 Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.7259 | 标准差=0.1194 | 最小值=0.4782 | 25分位=0.6497 | 中位数=0.6948 | 75分位=0.7980 | 最大值=1.0000
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.7230 | 标准差=0.1148 | 最小值=0.4782 | 25分位=0.6448 | 中位数=0.6977 | 75分位=0.7861 | 最大值=1.0000
 
 ## strat_diff_n5_emb_lg
 
@@ -160568,7 +160568,7 @@ Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embedding
 来源阶段: Stage 25。 生产函数: pipeline\panel\stata_export.py ; pipeline\features\strategic_diff.py。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 25_article_sbert.parquet (co-primary 双轨嵌入向量)。 计算公式: strat_diff_n5_emb = (1/N) · Σ_{j ∈ NN5(i)} (1 − cos(e_i, e_j)), N=5; e_i = 银行 i 当年新闻文档嵌入向量, NN5(i) = 语义空间中与 i 余弦相似度最高的 5 个同行银行; MAIN 轨 e 来自 Qwen3-Embedding-8B (4096 维), _lg 轨来自 text-embedding-3-large (3072 维)。 本列 (panel 实名 strat_diff_n5_emb_lg) 属家族 F504, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.0889; mean=0.3139; max=0.5928。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0889; mean=0.3119; max=0.5928。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Arts, S., Cassiman, B., & Hou, J. (2025). Technology differentiation, product market rivalry, and M&A transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687
@@ -160588,7 +160588,7 @@ Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous 
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.3139 | 标准差=0.1140 | 最小值=0.0889 | 25分位=0.2393 | 中位数=0.3193 | 75分位=0.3975 | 最大值=0.5928
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.3119 | 标准差=0.1072 | 最小值=0.0889 | 25分位=0.2387 | 中位数=0.3193 | 75分位=0.3872 | 最大值=0.5928
 
 ## strat_diff_n10_emb_lg
 
@@ -160621,7 +160621,7 @@ strat_diff_n10_emb 家族测度的是"该银行当年报道所描绘的经营策
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py (数值计算层, 由 25_article_sbert 产出的 emb_full/emb_ctx/emb_ss 与 _lg 孪生嵌入聚合为银行-年度向量后驱动) + pipeline\panel\stata_export.py (标签装配层)。 上游依赖: 25_article_sbert。 计算公式: strat_diff_n{N}_emb_i = 1 - mean_{j in kNN10(i)} cos(v_i, v_j); 先将每家银行当年同轨全部留篇文章嵌入拼接聚合为一条银行-年度"年度总结"向量 v_i (_aggregate_bank_year_texts), 再在同年度同轨全部银行的年度向量之间构建 bank×bank 余弦相似度矩阵, 为银行 i 取同年度其余银行中相似度最高的 top-10 家(不含自身)作为最近邻同行集合 kNN10(i), 该行最终得分为其年度向量与这 10 家最近邻同行向量余弦相似度均值的 1 减; 单元粒度是银行-年度, 并非文章级最近邻聚合。 本列 (panel 实名 strat_diff_n10_emb_lg) 属家族 F494, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.1155; mean=0.3355; max=0.6110。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.1155; mean=0.3368; max=0.6110。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Guzman, J., & Li, A. (2023). Measuring Founding Strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369
@@ -160631,7 +160631,7 @@ Su, J., Gao, X., & Tan, J. (2024). Positioning for Optimal Distinctiveness: How 
 Arts, S., Cassiman, B., & Hou, J. (2025). Technology Differentiation, Product Market Rivalry, and M&A Transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687
 Steck, H., Ekanadham, C., & Kallus, N. (2024). Is Cosine-Similarity of Embeddings Really about Similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.3355 | 标准差=0.1135 | 最小值=0.1155 | 25分位=0.2544 | 中位数=0.3371 | 75分位=0.4261 | 最大值=0.6110
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.3368 | 标准差=0.1049 | 最小值=0.1155 | 25分位=0.2672 | 中位数=0.3371 | 75分位=0.4141 | 最大值=0.6110
 
 ## strat_diff_n20_emb_lg
 
@@ -160676,7 +160676,7 @@ co-primary 双轨方面: 无后缀 (Qwen) 与 `_lg` (text-embedding-3-large) 是
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py::compute_strategic_differentiation。 上游依赖: 14_materialize_ctx (content_ctx/content_ss 三轨文本物化) -> 25_article_sbert (Qwen/Qwen3-Embedding-8B 主轨 + text-embedding-3-large _lg 双轨嵌入引擎) -> pipeline\panel\stata_export.py (面板列标签与 co-primary 标注)。 计算公式: Ŝ_i = (1/20) · Σ_{j∈J_i^20} δ_ij, δ_ij = 1 − cos(v_i, v_j); v_i 为银行 i 当年金融科技新闻文档的稠密语义嵌入向量 (Qwen/Qwen3-Embedding-8B 或 text-embedding-3-large), J_i^20 为按 δ_ij 升序取的 20 家最近同业银行。 本列 (panel 实名 strat_diff_n20_emb_lg) 属家族 F496, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.1662; mean=0.3647; max=0.6362。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.1662; mean=0.3706; max=0.6362。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Guzman, J., & Li, A. (2023). Measuring Founding Strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369
@@ -160686,7 +160686,7 @@ Haans, R. F. J. (2019). What's the Value of Being Different When Everyone Is? Th
 Rodriguez, P. L., & Spirling, A. (2022). Word Embeddings: What Works, What Doesn't, and How to Tell the Difference for Applied Research. The Journal of Politics, 84(1), 101-115. https://doi.org/10.1086/715162
 Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.3647 | 标准差=0.1077 | 最小值=0.1662 | 25分位=0.2827 | 中位数=0.3666 | 75分位=0.4549 | 最大值=0.6362
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.3706 | 标准差=0.0987 | 最小值=0.1662 | 25分位=0.3017 | 中位数=0.3855 | 75分位=0.4408 | 最大值=0.6362
 
 ## strat_diff_n30_emb_lg
 
@@ -160724,7 +160724,7 @@ top-k N 是一个可调超参数——邻域窗口选得太窄 (N 很小, 如 N=
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py (面板标签装配于 pipeline\panel\stata_export.py)。 上游依赖: 14_materialize_ctx -> 21_tone_llms。 计算公式: Ŝ_i(bank,year) = 1 - mean(cos_sim(e_i, e_j)) for j in top-N nearest peer BANKS of bank i (within the same year cross-section, ~54-118 banks/year), where e_i is the embedding of bank i's year-aggregated news document (_aggregate_bank_year_texts); N=30. Bank-year is already the unit of observation — no separate article-level-to-bank-year aggregation step exists.。 本列 (panel 实名 strat_diff_n30_emb_lg) 属家族 F498, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2082; mean=0.3888; max=0.6530。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2082; mean=0.3987; max=0.6530。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Guzman, J., & Li, A. (2023). Measuring founding strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369
@@ -160736,7 +160736,7 @@ Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Sia
 Breitung, C., & Müller, S. (2025). Global Business Networks. Journal of Financial Economics. https://doi.org/10.1016/j.jfineco.2025.104007
 Yin, D., Wu, Z., Yokota, K., Matsumoto, K., & Shibayama, S. (2023). Identify novel elements of knowledge with word embedding. PLOS ONE. https://doi.org/10.1371/journal.pone.0284567
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.3888 | 标准差=0.1012 | 最小值=0.2082 | 25分位=0.3089 | 中位数=0.3938 | 75分位=0.4686 | 最大值=0.6530
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.3987 | 标准差=0.0929 | 最小值=0.2082 | 25分位=0.3284 | 中位数=0.4126 | 75分位=0.4633 | 最大值=0.6530
 
 ## strat_diff_n40_emb_lg
 
@@ -160865,7 +160865,7 @@ Vamvourellis, D., Tóth, M., Bhagat, S., Desai, D., Mehta, D., & Pasquali, S. (2
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py ; pipeline\panel\stata_export.py。 上游依赖: 25_article_sbert -> 14_materialize_ctx。 计算公式: strat_sim_max_emb = max_{j∈peer(i,t)} cos(v_i, v_j), 其中 v_i 为银行 i 在年 t 的语义向量: 先将该行-年全部合格文章的文本样本拼接 (join) 为单一长字符串 agg_text, 再整体交由嵌入引擎编码得到 v_i (超长文本走朴素分段 chunking + Mean Pooling, 而非逐篇先编码再对多个文章向量取均值), peer(i,t) 为同年可比同行集合; 六列在此式基础上按「文本轨」(full/ctx/ss) 与「嵌入引擎」(Qwen3-Embedding-8B 主轨 / text-embedding-3-large `_lg` 轨) 两个维度做笛卡尔展开取值。。 本列 (panel 实名 strat_sim_max_emb_lg) 属家族 F508, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.4433; mean=0.7368; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.4433; mean=0.7380; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Haans, R. F. J. (2019). What's the value of being different when everyone is? The effects of distinctiveness on performance in homogeneous versus heterogeneous categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978
@@ -160875,7 +160875,7 @@ Hoberg, G., Phillips, G., & Prabhala, N. (2014). Product market threats, payouts
 Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Siamese BERT-networks. Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP), 3980-3990. https://doi.org/10.18653/v1/D19-1410
 Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.7368 | 标准差=0.1346 | 最小值=0.4433 | 25分位=0.6415 | 中位数=0.7296 | 75分位=0.8210 | 最大值=1.0000
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.7380 | 标准差=0.1289 | 最小值=0.4433 | 25分位=0.6453 | 中位数=0.7284 | 75分位=0.8231 | 最大值=1.0000
 
 ## centroid_diff_tfidf_c
 
@@ -161048,7 +161048,7 @@ Lui, D., Moraru‐Arfire, A., & Tao, C. (2025). The Nexus of Corporate Disclosur
 来源阶段: Stage 40 (panel/network_spillover·network_brokerage)。 生产函数: pipeline\features\strategic_diff.py ; pipeline\panel\stata_export.py。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 25_article_sbert.parquet (co-primary 双轨句向量 emb_full/_lg)。 计算公式: centroid_diff_emb = 1 - cos(c_i, c_{-i}); c_i = mean_a( emb(doc_a) for a in bank_i-year 文档集 ); c_{-i} = leave-one-out 行业质心 = (n·c − c_i)/(n−1) (排除银行 i 自身后的同年样本质心均值); n<2 → NaN; emb = 嵌入引擎句向量 (full 轨 Qwen3-Embedding-8B / _lg 轨 text-embedding-3-large)。 本列 (panel 实名 centroid_diff_emb) 属家族 F147, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.1063; mean=0.2785; max=0.5914。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.1063; mean=0.2729; max=0.5914。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -161062,7 +161062,7 @@ Breitung, C., & Müller, S. (2025). Global Business Networks. Journal of Financi
 Fu, R., Gao, F., & Ma, C. (2025). Do peer narrative disclosures support or disrupt efficient investment? International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2025.104785
 de Bodt, E., & Eckbo, B. E. (2026). An improved text-based industry peer-firm identification algorithm. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.6725723
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.2785 | 标准差=0.0838 | 最小值=0.1063 | 25分位=0.2300 | 中位数=0.2763 | 75分位=0.3230 | 最大值=0.5914
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.2729 | 标准差=0.0779 | 最小值=0.1063 | 25分位=0.2223 | 中位数=0.2722 | 75分位=0.3197 | 最大值=0.5914
 
 ## strat_diff_full
 
@@ -161104,7 +161104,7 @@ de Bodt, E., & Eckbo, B. E. (2026). An improved text-based industry peer-firm id
 来源阶段: Stage 25。 生产函数: news_process/pipeline/features/strategic_diff.py::compute_strategic_differentiation ; news_process/pipeline/panel/stata_export.py。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 25_article_sbert.parquet (co-primary Qwen 与 _lg 嵌入向量) -> 40_panel_yearly.parquet (bank-year 聚合宿主)。 计算公式: strat_diff_n{N}(_w)(_track) = (1/N) Σ_{j∈KNN(i,N)} δ_ij, δ_ij = 1 − cos(v_i, v_j); v = 年内银行文本聚合 TF-IDF 向量 (char_wb / jieba+607金科词); strat_diff(_lg)_{full,ctx,ss} = centroid_diff_emb(_lg) 逐值别名 = 1 − cos(v_i, 年度行业质心)。 本列 (panel 实名 strat_diff_full) 属家族 F493, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.1063; mean=0.2785; max=0.5914。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.1063; mean=0.2729; max=0.5914。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Arts, S., Cassiman, B., & Hou, J. (2025). Technology differentiation, product market rivalry, and M&A transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687
@@ -161121,7 +161121,7 @@ Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous 
 Hoberg, G., Phillips, G., & Prabhala, N. (2014). Product market threats, payouts, and financial flexibility. The Journal of Finance, 69(1), 293-324. https://doi.org/10.1111/jofi.12050
 Meyer, T., Kerkhof, A., Cennamo, C., & Kretschmer, T. (2024). Competing for attention on digital platforms: The case of news outlets. Strategic Management Journal. https://doi.org/10.1002/smj.3600
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.2785 | 标准差=0.0838 | 最小值=0.1063 | 25分位=0.2300 | 中位数=0.2763 | 75分位=0.3230 | 最大值=0.5914
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.2729 | 标准差=0.0779 | 最小值=0.1063 | 25分位=0.2223 | 中位数=0.2722 | 75分位=0.3197 | 最大值=0.5914
 
 ## centroid_diff_emb_lg
 
@@ -161154,7 +161154,7 @@ Meyer, T., Kerkhof, A., Cennamo, C., & Kretschmer, T. (2024). Competing for atte
 来源阶段: Stage 40 (panel/network_spillover·network_brokerage)。 生产函数: pipeline\features\strategic_diff.py ; pipeline\panel\stata_export.py。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 25_article_sbert.parquet (co-primary 双轨句向量 emb_full/_lg)。 计算公式: centroid_diff_emb = 1 - cos(c_i, c_{-i}); c_i = mean_a( emb(doc_a) for a in bank_i-year 文档集 ); c_{-i} = leave-one-out 行业质心 = (n·c − c_i)/(n−1) (排除银行 i 自身后的同年样本质心均值); n<2 → NaN; emb = 嵌入引擎句向量 (full 轨 Qwen3-Embedding-8B / _lg 轨 text-embedding-3-large)。 本列 (panel 实名 centroid_diff_emb_lg) 属家族 F147, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.0837; mean=0.2846; max=0.6084。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0837; mean=0.2781; max=0.6084。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -161168,7 +161168,7 @@ Breitung, C., & Müller, S. (2025). Global Business Networks. Journal of Financi
 Fu, R., Gao, F., & Ma, C. (2025). Do peer narrative disclosures support or disrupt efficient investment? International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2025.104785
 de Bodt, E., & Eckbo, B. E. (2026). An improved text-based industry peer-firm identification algorithm. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.6725723
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.2846 | 标准差=0.1106 | 最小值=0.0837 | 25分位=0.1975 | 中位数=0.2984 | 75分位=0.3645 | 最大值=0.6084
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.2781 | 标准差=0.1045 | 最小值=0.0837 | 25分位=0.2004 | 中位数=0.2921 | 75分位=0.3443 | 最大值=0.6084
 
 ## strat_diff_lg_full
 
@@ -161210,7 +161210,7 @@ de Bodt, E., & Eckbo, B. E. (2026). An improved text-based industry peer-firm id
 来源阶段: Stage 25。 生产函数: news_process/pipeline/features/strategic_diff.py::compute_strategic_differentiation ; news_process/pipeline/panel/stata_export.py。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 25_article_sbert.parquet (co-primary Qwen 与 _lg 嵌入向量) -> 40_panel_yearly.parquet (bank-year 聚合宿主)。 计算公式: strat_diff_n{N}(_w)(_track) = (1/N) Σ_{j∈KNN(i,N)} δ_ij, δ_ij = 1 − cos(v_i, v_j); v = 年内银行文本聚合 TF-IDF 向量 (char_wb / jieba+607金科词); strat_diff(_lg)_{full,ctx,ss} = centroid_diff_emb(_lg) 逐值别名 = 1 − cos(v_i, 年度行业质心)。 本列 (panel 实名 strat_diff_lg_full) 属家族 F493, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.0837; mean=0.2846; max=0.6084。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0837; mean=0.2781; max=0.6084。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Arts, S., Cassiman, B., & Hou, J. (2025). Technology differentiation, product market rivalry, and M&A transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687
@@ -161227,7 +161227,7 @@ Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous 
 Hoberg, G., Phillips, G., & Prabhala, N. (2014). Product market threats, payouts, and financial flexibility. The Journal of Finance, 69(1), 293-324. https://doi.org/10.1111/jofi.12050
 Meyer, T., Kerkhof, A., Cennamo, C., & Kretschmer, T. (2024). Competing for attention on digital platforms: The case of news outlets. Strategic Management Journal. https://doi.org/10.1002/smj.3600
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.2846 | 标准差=0.1106 | 最小值=0.0837 | 25分位=0.1975 | 中位数=0.2984 | 75分位=0.3645 | 最大值=0.6084
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.2781 | 标准差=0.1045 | 最小值=0.0837 | 25分位=0.2004 | 中位数=0.2921 | 75分位=0.3443 | 最大值=0.6084
 
 ## strat_fluidity
 
@@ -161450,7 +161450,7 @@ Dai, L., Gong, P., Jackson, A. B., & Peng, Z. (2026). Controlling the narrative:
 - **标签**: 相邻期文本连贯性(嵌入,全文轨)(对等轨Qwen3-8B)
 - **数据类型**: float64
 - **单位**: 余弦相似度 (无量纲, 值域 [-1,1]; 首年与年份间隙返回 NaN)
-- **取值范围**: 全缺失 (生成时实测)
+- **取值范围**: [0.4020, 0.9442] (生成时实测)
 - **计算公式**: coh_emb = cos(v_{i,t}, v_{i,t-1}); v_{i,t} = 银行 i 第 t 年聚合文本经预训练嵌入模型分段池化后的句向量; 仅当 (i, t-1) 存在时取值, 否则 NaN
 - **来源阶段**: 未知
 - **学术引用**: Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012 \| Zhang, Y., Li, M., Long, D., Zhang, X., Lin, H., Yang, B., Xie, P., Yang, A., Liu, D., Lin, J., Huang, F., & Zhou, J. (2025). Qwen3 Embedding: Advancing text embedding and reranking through foundation models. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2506.05176 \| Zheng, J., Ng, K. C., Zheng, R., & Tam, K. Y. (2024). The effects of sentiment evolution in financial texts: A word embedding approach. Journal of Management Information Systems, 41(1), 178-205. https://doi.org/10.1080/07421222.2023.2301176 \| Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526 \| Neelakantan, A., Xu, T., Puri, R., Radford, A., Han, J. M., Tworek, J., Yuan, Q., Tezak, N., Kim, J. W., Hallacy, C., Heidecke, J., Shyam, P., Power, B., Nekoul, T. E., Sastry, G., Krueger, G., Schnurr, D., Such, F. P., Hsu, K., & Weng, L. (2022). Text and code embeddings by contrastive pre-training. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2201.10005
@@ -161478,7 +161478,7 @@ Dai, L., Gong, P., Jackson, A. B., & Peng, Z. (2026). Controlling the narrative:
 来源阶段: 未知。 生产函数: news_process/pipeline/features/strategic_diff.py::_compute_emb_coherence ; news_process/pipeline/panel/stata_export.py (HEURISTIC_LABELS)。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 21_tone_llms.parquet (full-only 留篇门控行宇宙)。 计算公式: coh_emb = cos(v_{i,t}, v_{i,t-1}); v_{i,t} = 银行 i 第 t 年聚合文本经预训练嵌入模型分段池化后的句向量; 仅当 (i, t-1) 存在时取值, 否则 NaN。 本列 (panel 实名 coh_emb_full) 属家族 F155, 由上述链路机械派生。
 
 【动态统计】
-全缺失 (非缺失 n=0, 观测数=172)。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=29; 缺失率=83.14%; min=0.4020; mean=0.7690; max=0.9442。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -161493,14 +161493,14 @@ Tang, Y., & Yang, Y. (2025). FinMTEB: Finance Massive Text Embedding Benchmark. 
 Liu, J., Yang, Y., & Tam, K. Y. (2024). Beyond Surface Similarity: Detecting Subtle Semantic Shifts in Financial Narratives. Findings of the Association for Computational Linguistics: NAACL 2024 [Working Paper]. https://doi.org/10.18653/v1/2024.findings-naacl.168
 Jehnen, S., Villalba-Díez, J., & Ordieres-Meré, J. (2026). FinTextSim: a domain-specific sentence-transformer for extracting predictive latent topics from financial disclosures. Frontiers in Artificial Intelligence. https://doi.org/10.3389/frai.2026.1752103
 
-**统计信息**: 观测数=172 | 缺失数=172 | 缺失率=100.00%
+**统计信息**: 观测数=172 | 缺失数=143 | 缺失率=83.14% | 均值=0.7690 | 标准差=0.1241 | 最小值=0.4020 | 25分位=0.6844 | 中位数=0.7688 | 75分位=0.8823 | 最大值=0.9442
 
 ## coh_emb_lg_full
 
 - **标签**: 相邻期文本连贯性(嵌入,全文轨)(对等轨emb-3-large)
 - **数据类型**: float64
 - **单位**: 余弦相似度 (无量纲, 值域 [-1,1]; 首年与年份间隙返回 NaN)
-- **取值范围**: 全缺失 (生成时实测)
+- **取值范围**: [0.3965, 0.9321] (生成时实测)
 - **计算公式**: coh_emb = cos(v_{i,t}, v_{i,t-1}); v_{i,t} = 银行 i 第 t 年聚合文本经预训练嵌入模型分段池化后的句向量; 仅当 (i, t-1) 存在时取值, 否则 NaN
 - **来源阶段**: 未知
 - **学术引用**: Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012 \| Zhang, Y., Li, M., Long, D., Zhang, X., Lin, H., Yang, B., Xie, P., Yang, A., Liu, D., Lin, J., Huang, F., & Zhou, J. (2025). Qwen3 Embedding: Advancing text embedding and reranking through foundation models. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2506.05176 \| Zheng, J., Ng, K. C., Zheng, R., & Tam, K. Y. (2024). The effects of sentiment evolution in financial texts: A word embedding approach. Journal of Management Information Systems, 41(1), 178-205. https://doi.org/10.1080/07421222.2023.2301176 \| Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526 \| Neelakantan, A., Xu, T., Puri, R., Radford, A., Han, J. M., Tworek, J., Yuan, Q., Tezak, N., Kim, J. W., Hallacy, C., Heidecke, J., Shyam, P., Power, B., Nekoul, T. E., Sastry, G., Krueger, G., Schnurr, D., Such, F. P., Hsu, K., & Weng, L. (2022). Text and code embeddings by contrastive pre-training. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2201.10005
@@ -161528,7 +161528,7 @@ Jehnen, S., Villalba-Díez, J., & Ordieres-Meré, J. (2026). FinTextSim: a domai
 来源阶段: 未知。 生产函数: news_process/pipeline/features/strategic_diff.py::_compute_emb_coherence ; news_process/pipeline/panel/stata_export.py (HEURISTIC_LABELS)。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 21_tone_llms.parquet (full-only 留篇门控行宇宙)。 计算公式: coh_emb = cos(v_{i,t}, v_{i,t-1}); v_{i,t} = 银行 i 第 t 年聚合文本经预训练嵌入模型分段池化后的句向量; 仅当 (i, t-1) 存在时取值, 否则 NaN。 本列 (panel 实名 coh_emb_lg_full) 属家族 F155, 由上述链路机械派生。
 
 【动态统计】
-全缺失 (非缺失 n=0, 观测数=172)。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=29; 缺失率=83.14%; min=0.3965; mean=0.7650; max=0.9321。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -161543,7 +161543,7 @@ Tang, Y., & Yang, Y. (2025). FinMTEB: Finance Massive Text Embedding Benchmark. 
 Liu, J., Yang, Y., & Tam, K. Y. (2024). Beyond Surface Similarity: Detecting Subtle Semantic Shifts in Financial Narratives. Findings of the Association for Computational Linguistics: NAACL 2024 [Working Paper]. https://doi.org/10.18653/v1/2024.findings-naacl.168
 Jehnen, S., Villalba-Díez, J., & Ordieres-Meré, J. (2026). FinTextSim: a domain-specific sentence-transformer for extracting predictive latent topics from financial disclosures. Frontiers in Artificial Intelligence. https://doi.org/10.3389/frai.2026.1752103
 
-**统计信息**: 观测数=172 | 缺失数=172 | 缺失率=100.00%
+**统计信息**: 观测数=172 | 缺失数=143 | 缺失率=83.14% | 均值=0.7650 | 标准差=0.1299 | 最小值=0.3965 | 25分位=0.7009 | 中位数=0.7711 | 75分位=0.8784 | 最大值=0.9321
 
 ## lazy_jaccard_full
 
@@ -161813,7 +161813,7 @@ Dai, L., Gong, P., Jackson, A. B., & Peng, Z. (2026). Controlling the narrative:
 - **标签**: 相邻期文本连贯性(嵌入,实体窗轨)(对等轨Qwen3-8B)
 - **数据类型**: float64
 - **单位**: 余弦相似度 (无量纲, 值域 [-1,1]; 首年与年份间隙返回 NaN)
-- **取值范围**: 全缺失 (生成时实测)
+- **取值范围**: [0.4706, 0.9344] (生成时实测)
 - **计算公式**: coh_emb = cos(v_{i,t}, v_{i,t-1}); v_{i,t} = 银行 i 第 t 年聚合文本经预训练嵌入模型分段池化后的句向量; 仅当 (i, t-1) 存在时取值, 否则 NaN
 - **来源阶段**: 未知
 - **学术引用**: Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012 \| Zhang, Y., Li, M., Long, D., Zhang, X., Lin, H., Yang, B., Xie, P., Yang, A., Liu, D., Lin, J., Huang, F., & Zhou, J. (2025). Qwen3 Embedding: Advancing text embedding and reranking through foundation models. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2506.05176 \| Zheng, J., Ng, K. C., Zheng, R., & Tam, K. Y. (2024). The effects of sentiment evolution in financial texts: A word embedding approach. Journal of Management Information Systems, 41(1), 178-205. https://doi.org/10.1080/07421222.2023.2301176 \| Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526 \| Neelakantan, A., Xu, T., Puri, R., Radford, A., Han, J. M., Tworek, J., Yuan, Q., Tezak, N., Kim, J. W., Hallacy, C., Heidecke, J., Shyam, P., Power, B., Nekoul, T. E., Sastry, G., Krueger, G., Schnurr, D., Such, F. P., Hsu, K., & Weng, L. (2022). Text and code embeddings by contrastive pre-training. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2201.10005
@@ -161841,7 +161841,7 @@ Dai, L., Gong, P., Jackson, A. B., & Peng, Z. (2026). Controlling the narrative:
 来源阶段: 未知。 生产函数: news_process/pipeline/features/strategic_diff.py::_compute_emb_coherence ; news_process/pipeline/panel/stata_export.py (HEURISTIC_LABELS)。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 21_tone_llms.parquet (full-only 留篇门控行宇宙)。 计算公式: coh_emb = cos(v_{i,t}, v_{i,t-1}); v_{i,t} = 银行 i 第 t 年聚合文本经预训练嵌入模型分段池化后的句向量; 仅当 (i, t-1) 存在时取值, 否则 NaN。 本列 (panel 实名 coh_emb_ctx) 属家族 F155, 由上述链路机械派生。
 
 【动态统计】
-全缺失 (非缺失 n=0, 观测数=172)。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=29; 缺失率=83.14%; min=0.4706; mean=0.7799; max=0.9344。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -161856,14 +161856,14 @@ Tang, Y., & Yang, Y. (2025). FinMTEB: Finance Massive Text Embedding Benchmark. 
 Liu, J., Yang, Y., & Tam, K. Y. (2024). Beyond Surface Similarity: Detecting Subtle Semantic Shifts in Financial Narratives. Findings of the Association for Computational Linguistics: NAACL 2024 [Working Paper]. https://doi.org/10.18653/v1/2024.findings-naacl.168
 Jehnen, S., Villalba-Díez, J., & Ordieres-Meré, J. (2026). FinTextSim: a domain-specific sentence-transformer for extracting predictive latent topics from financial disclosures. Frontiers in Artificial Intelligence. https://doi.org/10.3389/frai.2026.1752103
 
-**统计信息**: 观测数=172 | 缺失数=172 | 缺失率=100.00%
+**统计信息**: 观测数=172 | 缺失数=143 | 缺失率=83.14% | 均值=0.7799 | 标准差=0.1067 | 最小值=0.4706 | 25分位=0.7110 | 中位数=0.7903 | 75分位=0.8519 | 最大值=0.9344
 
 ## coh_emb_lg_ctx
 
 - **标签**: 相邻期文本连贯性(嵌入,实体窗轨)(对等轨emb-3-large)
 - **数据类型**: float64
 - **单位**: 余弦相似度 (无量纲, 值域 [-1,1]; 首年与年份间隙返回 NaN)
-- **取值范围**: 全缺失 (生成时实测)
+- **取值范围**: [0.4050, 0.9438] (生成时实测)
 - **计算公式**: coh_emb = cos(v_{i,t}, v_{i,t-1}); v_{i,t} = 银行 i 第 t 年聚合文本经预训练嵌入模型分段池化后的句向量; 仅当 (i, t-1) 存在时取值, 否则 NaN
 - **来源阶段**: 未知
 - **学术引用**: Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012 \| Zhang, Y., Li, M., Long, D., Zhang, X., Lin, H., Yang, B., Xie, P., Yang, A., Liu, D., Lin, J., Huang, F., & Zhou, J. (2025). Qwen3 Embedding: Advancing text embedding and reranking through foundation models. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2506.05176 \| Zheng, J., Ng, K. C., Zheng, R., & Tam, K. Y. (2024). The effects of sentiment evolution in financial texts: A word embedding approach. Journal of Management Information Systems, 41(1), 178-205. https://doi.org/10.1080/07421222.2023.2301176 \| Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526 \| Neelakantan, A., Xu, T., Puri, R., Radford, A., Han, J. M., Tworek, J., Yuan, Q., Tezak, N., Kim, J. W., Hallacy, C., Heidecke, J., Shyam, P., Power, B., Nekoul, T. E., Sastry, G., Krueger, G., Schnurr, D., Such, F. P., Hsu, K., & Weng, L. (2022). Text and code embeddings by contrastive pre-training. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2201.10005
@@ -161891,7 +161891,7 @@ Jehnen, S., Villalba-Díez, J., & Ordieres-Meré, J. (2026). FinTextSim: a domai
 来源阶段: 未知。 生产函数: news_process/pipeline/features/strategic_diff.py::_compute_emb_coherence ; news_process/pipeline/panel/stata_export.py (HEURISTIC_LABELS)。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 21_tone_llms.parquet (full-only 留篇门控行宇宙)。 计算公式: coh_emb = cos(v_{i,t}, v_{i,t-1}); v_{i,t} = 银行 i 第 t 年聚合文本经预训练嵌入模型分段池化后的句向量; 仅当 (i, t-1) 存在时取值, 否则 NaN。 本列 (panel 实名 coh_emb_lg_ctx) 属家族 F155, 由上述链路机械派生。
 
 【动态统计】
-全缺失 (非缺失 n=0, 观测数=172)。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=29; 缺失率=83.14%; min=0.4050; mean=0.7504; max=0.9438。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -161906,7 +161906,7 @@ Tang, Y., & Yang, Y. (2025). FinMTEB: Finance Massive Text Embedding Benchmark. 
 Liu, J., Yang, Y., & Tam, K. Y. (2024). Beyond Surface Similarity: Detecting Subtle Semantic Shifts in Financial Narratives. Findings of the Association for Computational Linguistics: NAACL 2024 [Working Paper]. https://doi.org/10.18653/v1/2024.findings-naacl.168
 Jehnen, S., Villalba-Díez, J., & Ordieres-Meré, J. (2026). FinTextSim: a domain-specific sentence-transformer for extracting predictive latent topics from financial disclosures. Frontiers in Artificial Intelligence. https://doi.org/10.3389/frai.2026.1752103
 
-**统计信息**: 观测数=172 | 缺失数=172 | 缺失率=100.00%
+**统计信息**: 观测数=172 | 缺失数=143 | 缺失率=83.14% | 均值=0.7504 | 标准差=0.1257 | 最小值=0.4050 | 25分位=0.7038 | 中位数=0.7736 | 75分位=0.8306 | 最大值=0.9438
 
 ## lazy_jaccard_ctx
 
@@ -162176,7 +162176,7 @@ Dai, L., Gong, P., Jackson, A. B., & Peng, Z. (2026). Controlling the narrative:
 - **标签**: 相邻期文本连贯性(嵌入,同句轨)(对等轨Qwen3-8B)
 - **数据类型**: float64
 - **单位**: 余弦相似度 (无量纲, 值域 [-1,1]; 首年与年份间隙返回 NaN)
-- **取值范围**: 全缺失 (生成时实测)
+- **取值范围**: [0.5729, 0.8993] (生成时实测)
 - **计算公式**: coh_emb = cos(v_{i,t}, v_{i,t-1}); v_{i,t} = 银行 i 第 t 年聚合文本经预训练嵌入模型分段池化后的句向量; 仅当 (i, t-1) 存在时取值, 否则 NaN
 - **来源阶段**: 未知
 - **学术引用**: Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012 \| Zhang, Y., Li, M., Long, D., Zhang, X., Lin, H., Yang, B., Xie, P., Yang, A., Liu, D., Lin, J., Huang, F., & Zhou, J. (2025). Qwen3 Embedding: Advancing text embedding and reranking through foundation models. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2506.05176 \| Zheng, J., Ng, K. C., Zheng, R., & Tam, K. Y. (2024). The effects of sentiment evolution in financial texts: A word embedding approach. Journal of Management Information Systems, 41(1), 178-205. https://doi.org/10.1080/07421222.2023.2301176 \| Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526 \| Neelakantan, A., Xu, T., Puri, R., Radford, A., Han, J. M., Tworek, J., Yuan, Q., Tezak, N., Kim, J. W., Hallacy, C., Heidecke, J., Shyam, P., Power, B., Nekoul, T. E., Sastry, G., Krueger, G., Schnurr, D., Such, F. P., Hsu, K., & Weng, L. (2022). Text and code embeddings by contrastive pre-training. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2201.10005
@@ -162204,7 +162204,7 @@ Dai, L., Gong, P., Jackson, A. B., & Peng, Z. (2026). Controlling the narrative:
 来源阶段: 未知。 生产函数: news_process/pipeline/features/strategic_diff.py::_compute_emb_coherence ; news_process/pipeline/panel/stata_export.py (HEURISTIC_LABELS)。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 21_tone_llms.parquet (full-only 留篇门控行宇宙)。 计算公式: coh_emb = cos(v_{i,t}, v_{i,t-1}); v_{i,t} = 银行 i 第 t 年聚合文本经预训练嵌入模型分段池化后的句向量; 仅当 (i, t-1) 存在时取值, 否则 NaN。 本列 (panel 实名 coh_emb_ss) 属家族 F155, 由上述链路机械派生。
 
 【动态统计】
-全缺失 (非缺失 n=0, 观测数=172)。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=29; 缺失率=83.14%; min=0.5729; mean=0.7738; max=0.8993。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -162219,14 +162219,14 @@ Tang, Y., & Yang, Y. (2025). FinMTEB: Finance Massive Text Embedding Benchmark. 
 Liu, J., Yang, Y., & Tam, K. Y. (2024). Beyond Surface Similarity: Detecting Subtle Semantic Shifts in Financial Narratives. Findings of the Association for Computational Linguistics: NAACL 2024 [Working Paper]. https://doi.org/10.18653/v1/2024.findings-naacl.168
 Jehnen, S., Villalba-Díez, J., & Ordieres-Meré, J. (2026). FinTextSim: a domain-specific sentence-transformer for extracting predictive latent topics from financial disclosures. Frontiers in Artificial Intelligence. https://doi.org/10.3389/frai.2026.1752103
 
-**统计信息**: 观测数=172 | 缺失数=172 | 缺失率=100.00%
+**统计信息**: 观测数=172 | 缺失数=143 | 缺失率=83.14% | 均值=0.7738 | 标准差=0.0872 | 最小值=0.5729 | 25分位=0.7274 | 中位数=0.7758 | 75分位=0.8435 | 最大值=0.8993
 
 ## coh_emb_lg_ss
 
 - **标签**: 相邻期文本连贯性(嵌入,同句轨)(对等轨emb-3-large)
 - **数据类型**: float64
 - **单位**: 余弦相似度 (无量纲, 值域 [-1,1]; 首年与年份间隙返回 NaN)
-- **取值范围**: 全缺失 (生成时实测)
+- **取值范围**: [0.4736, 0.9174] (生成时实测)
 - **计算公式**: coh_emb = cos(v_{i,t}, v_{i,t-1}); v_{i,t} = 银行 i 第 t 年聚合文本经预训练嵌入模型分段池化后的句向量; 仅当 (i, t-1) 存在时取值, 否则 NaN
 - **来源阶段**: 未知
 - **学术引用**: Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012 \| Zhang, Y., Li, M., Long, D., Zhang, X., Lin, H., Yang, B., Xie, P., Yang, A., Liu, D., Lin, J., Huang, F., & Zhou, J. (2025). Qwen3 Embedding: Advancing text embedding and reranking through foundation models. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2506.05176 \| Zheng, J., Ng, K. C., Zheng, R., & Tam, K. Y. (2024). The effects of sentiment evolution in financial texts: A word embedding approach. Journal of Management Information Systems, 41(1), 178-205. https://doi.org/10.1080/07421222.2023.2301176 \| Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526 \| Neelakantan, A., Xu, T., Puri, R., Radford, A., Han, J. M., Tworek, J., Yuan, Q., Tezak, N., Kim, J. W., Hallacy, C., Heidecke, J., Shyam, P., Power, B., Nekoul, T. E., Sastry, G., Krueger, G., Schnurr, D., Such, F. P., Hsu, K., & Weng, L. (2022). Text and code embeddings by contrastive pre-training. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2201.10005
@@ -162254,7 +162254,7 @@ Jehnen, S., Villalba-Díez, J., & Ordieres-Meré, J. (2026). FinTextSim: a domai
 来源阶段: 未知。 生产函数: news_process/pipeline/features/strategic_diff.py::_compute_emb_coherence ; news_process/pipeline/panel/stata_export.py (HEURISTIC_LABELS)。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 21_tone_llms.parquet (full-only 留篇门控行宇宙)。 计算公式: coh_emb = cos(v_{i,t}, v_{i,t-1}); v_{i,t} = 银行 i 第 t 年聚合文本经预训练嵌入模型分段池化后的句向量; 仅当 (i, t-1) 存在时取值, 否则 NaN。 本列 (panel 实名 coh_emb_lg_ss) 属家族 F155, 由上述链路机械派生。
 
 【动态统计】
-全缺失 (非缺失 n=0, 观测数=172)。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=29; 缺失率=83.14%; min=0.4736; mean=0.7474; max=0.9174。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -162269,7 +162269,7 @@ Tang, Y., & Yang, Y. (2025). FinMTEB: Finance Massive Text Embedding Benchmark. 
 Liu, J., Yang, Y., & Tam, K. Y. (2024). Beyond Surface Similarity: Detecting Subtle Semantic Shifts in Financial Narratives. Findings of the Association for Computational Linguistics: NAACL 2024 [Working Paper]. https://doi.org/10.18653/v1/2024.findings-naacl.168
 Jehnen, S., Villalba-Díez, J., & Ordieres-Meré, J. (2026). FinTextSim: a domain-specific sentence-transformer for extracting predictive latent topics from financial disclosures. Frontiers in Artificial Intelligence. https://doi.org/10.3389/frai.2026.1752103
 
-**统计信息**: 观测数=172 | 缺失数=172 | 缺失率=100.00%
+**统计信息**: 观测数=172 | 缺失数=143 | 缺失率=83.14% | 均值=0.7474 | 标准差=0.1107 | 最小值=0.4736 | 25分位=0.6944 | 中位数=0.7723 | 75分位=0.8139 | 最大值=0.9174
 
 ## lazy_jaccard_ss
 
@@ -163569,7 +163569,7 @@ Phillips, D., Edwards, B. D., & Rutherford, M. W. (2025). Conformity or Differen
 - **标签**: N近邻战略差异度(N=5,嵌入,实体窗轨)(对等轨Qwen3-8B)
 - **数据类型**: float64
 - **单位**: 无量纲语义距离得分 (余弦距离口径, 值域 [0,2])
-- **取值范围**: [0.2350, 0.5637] (生成时实测)
+- **取值范围**: [0.2175, 0.5637] (生成时实测)
 - **计算公式**: strat_diff_n5_emb = (1/N) · Σ_{j ∈ NN5(i)} (1 − cos(e_i, e_j)), N=5; e_i = 银行 i 当年新闻文档嵌入向量, NN5(i) = 语义空间中与 i 余弦相似度最高的 5 个同行银行; MAIN 轨 e 来自 Qwen3-Embedding-8B (4096 维), _lg 轨来自 text-embedding-3-large (3072 维)
 - **来源阶段**: Stage 25
 - **学术引用**: Arts, S., Cassiman, B., & Hou, J. (2025). Technology differentiation, product market rivalry, and M&A transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687 \| Tang, Y., & Yang, Y. (2025). FinMTEB: Finance Massive Text Embedding Benchmark. Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing [Preprint]. https://doi.org/10.18653/v1/2025.emnlp-main.179 \| Miller, C. D., & Wang, R. D. (2024). Product digitization and differentiation strategy change: Evidence from the book publishing industry. Strategic Management Journal, 45(7), 1241-1272. https://doi.org/10.1002/smj.3586 \| Su, J., Gao, X., & Tan, J. (2024). Positioning for optimal distinctiveness: How firms manage competitive and institutional pressures under dynamic and complex environment. Strategic Management Journal, 45(2), 333-361. https://doi.org/10.1002/smj.3549 \| Zheng, J., Ng, K. C., Zheng, R., & Tam, K. Y. (2024). The effects of sentiment evolution in financial texts: A word embedding approach. Journal of Management Information Systems, 41(1), 178-205. https://doi.org/10.1080/07421222.2023.2301176
@@ -163604,7 +163604,7 @@ Phillips, D., Edwards, B. D., & Rutherford, M. W. (2025). Conformity or Differen
 来源阶段: Stage 25。 生产函数: pipeline\panel\stata_export.py ; pipeline\features\strategic_diff.py。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 25_article_sbert.parquet (co-primary 双轨嵌入向量)。 计算公式: strat_diff_n5_emb = (1/N) · Σ_{j ∈ NN5(i)} (1 − cos(e_i, e_j)), N=5; e_i = 银行 i 当年新闻文档嵌入向量, NN5(i) = 语义空间中与 i 余弦相似度最高的 5 个同行银行; MAIN 轨 e 来自 Qwen3-Embedding-8B (4096 维), _lg 轨来自 text-embedding-3-large (3072 维)。 本列 (panel 实名 strat_diff_n5_emb_ctx) 属家族 F504, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2350; mean=0.3398; max=0.5637。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2175; mean=0.3416; max=0.5637。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Arts, S., Cassiman, B., & Hou, J. (2025). Technology differentiation, product market rivalry, and M&A transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687
@@ -163624,7 +163624,7 @@ Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous 
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.3398 | 标准差=0.0579 | 最小值=0.2350 | 25分位=0.3038 | 中位数=0.3389 | 75分位=0.3652 | 最大值=0.5637
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.3416 | 标准差=0.0579 | 最小值=0.2175 | 25分位=0.3095 | 中位数=0.3402 | 75分位=0.3742 | 最大值=0.5637
 
 ## strat_diff_n10_emb_ctx
 
@@ -163657,7 +163657,7 @@ strat_diff_n10_emb 家族测度的是"该银行当年报道所描绘的经营策
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py (数值计算层, 由 25_article_sbert 产出的 emb_full/emb_ctx/emb_ss 与 _lg 孪生嵌入聚合为银行-年度向量后驱动) + pipeline\panel\stata_export.py (标签装配层)。 上游依赖: 25_article_sbert。 计算公式: strat_diff_n{N}_emb_i = 1 - mean_{j in kNN10(i)} cos(v_i, v_j); 先将每家银行当年同轨全部留篇文章嵌入拼接聚合为一条银行-年度"年度总结"向量 v_i (_aggregate_bank_year_texts), 再在同年度同轨全部银行的年度向量之间构建 bank×bank 余弦相似度矩阵, 为银行 i 取同年度其余银行中相似度最高的 top-10 家(不含自身)作为最近邻同行集合 kNN10(i), 该行最终得分为其年度向量与这 10 家最近邻同行向量余弦相似度均值的 1 减; 单元粒度是银行-年度, 并非文章级最近邻聚合。 本列 (panel 实名 strat_diff_n10_emb_ctx) 属家族 F494, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2525; mean=0.3583; max=0.5829。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2525; mean=0.3629; max=0.5829。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Guzman, J., & Li, A. (2023). Measuring Founding Strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369
@@ -163667,7 +163667,7 @@ Su, J., Gao, X., & Tan, J. (2024). Positioning for Optimal Distinctiveness: How 
 Arts, S., Cassiman, B., & Hou, J. (2025). Technology Differentiation, Product Market Rivalry, and M&A Transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687
 Steck, H., Ekanadham, C., & Kallus, N. (2024). Is Cosine-Similarity of Embeddings Really about Similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.3583 | 标准差=0.0572 | 最小值=0.2525 | 25分位=0.3223 | 中位数=0.3571 | 75分位=0.3889 | 最大值=0.5829
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.3629 | 标准差=0.0540 | 最小值=0.2525 | 25分位=0.3269 | 中位数=0.3618 | 75分位=0.3917 | 最大值=0.5829
 
 ## strat_diff_n20_emb_ctx
 
@@ -163712,7 +163712,7 @@ ctx 轨与 full/ss 轨各自独立聚合、各自独立计算成对余弦距离�
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py::compute_strategic_differentiation。 上游依赖: 14_materialize_ctx (content_ctx/content_ss 三轨文本物化) -> 25_article_sbert (Qwen/Qwen3-Embedding-8B 主轨 + text-embedding-3-large _lg 双轨嵌入引擎) -> pipeline\panel\stata_export.py (面板列标签与 co-primary 标注)。 计算公式: Ŝ_i = (1/20) · Σ_{j∈J_i^20} δ_ij, δ_ij = 1 − cos(v_i, v_j); v_i 为银行 i 当年金融科技新闻文档的稠密语义嵌入向量 (Qwen/Qwen3-Embedding-8B 或 text-embedding-3-large), J_i^20 为按 δ_ij 升序取的 20 家最近同业银行。 本列 (panel 实名 strat_diff_n20_emb_ctx) 属家族 F496, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2804; mean=0.3804; max=0.6033。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2804; mean=0.3876; max=0.6033。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Guzman, J., & Li, A. (2023). Measuring Founding Strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369
@@ -163722,7 +163722,7 @@ Haans, R. F. J. (2019). What's the Value of Being Different When Everyone Is? Th
 Rodriguez, P. L., & Spirling, A. (2022). Word Embeddings: What Works, What Doesn't, and How to Tell the Difference for Applied Research. The Journal of Politics, 84(1), 101-115. https://doi.org/10.1086/715162
 Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.3804 | 标准差=0.0563 | 最小值=0.2804 | 25分位=0.3452 | 中位数=0.3793 | 75分位=0.4156 | 最大值=0.6033
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.3876 | 标准差=0.0526 | 最小值=0.2804 | 25分位=0.3542 | 中位数=0.3859 | 75分位=0.4208 | 最大值=0.6033
 
 ## strat_diff_n30_emb_ctx
 
@@ -163760,7 +163760,7 @@ top-k N 是一个可调超参数——邻域窗口选得太窄 (N 很小, 如 N=
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py (面板标签装配于 pipeline\panel\stata_export.py)。 上游依赖: 14_materialize_ctx -> 21_tone_llms。 计算公式: Ŝ_i(bank,year) = 1 - mean(cos_sim(e_i, e_j)) for j in top-N nearest peer BANKS of bank i (within the same year cross-section, ~54-118 banks/year), where e_i is the embedding of bank i's year-aggregated news document (_aggregate_bank_year_texts); N=30. Bank-year is already the unit of observation — no separate article-level-to-bank-year aggregation step exists.。 本列 (panel 实名 strat_diff_n30_emb_ctx) 属家族 F498, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.3022; mean=0.3959; max=0.6207。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.3022; mean=0.4054; max=0.6207。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Guzman, J., & Li, A. (2023). Measuring founding strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369
@@ -163772,7 +163772,7 @@ Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Sia
 Breitung, C., & Müller, S. (2025). Global Business Networks. Journal of Financial Economics. https://doi.org/10.1016/j.jfineco.2025.104007
 Yin, D., Wu, Z., Yokota, K., Matsumoto, K., & Shibayama, S. (2023). Identify novel elements of knowledge with word embedding. PLOS ONE. https://doi.org/10.1371/journal.pone.0284567
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.3959 | 标准差=0.0552 | 最小值=0.3022 | 25分位=0.3597 | 中位数=0.3893 | 75分位=0.4322 | 最大值=0.6207
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4054 | 标准差=0.0519 | 最小值=0.3022 | 25分位=0.3741 | 中位数=0.4025 | 75分位=0.4368 | 最大值=0.6207
 
 ## strat_diff_n40_emb_ctx
 
@@ -163875,7 +163875,7 @@ Vamvourellis, D., Tóth, M., Bhagat, S., Desai, D., Mehta, D., & Pasquali, S. (2
 - **标签**: 同业最大相似度(嵌入,实体窗轨)(对等轨Qwen3-8B)
 - **数据类型**: float64
 - **单位**: 余弦相似度 [-1,1]
-- **取值范围**: [0.4639, 0.9407] (生成时实测)
+- **取值范围**: [0.4639, 0.9455] (生成时实测)
 - **计算公式**: strat_sim_max_emb = max_{j∈peer(i,t)} cos(v_i, v_j), 其中 v_i 为银行 i 在年 t 的语义向量: 先将该行-年全部合格文章的文本样本拼接 (join) 为单一长字符串 agg_text, 再整体交由嵌入引擎编码得到 v_i (超长文本走朴素分段 chunking + Mean Pooling, 而非逐篇先编码再对多个文章向量取均值), peer(i,t) 为同年可比同行集合; 六列在此式基础上按「文本轨」(full/ctx/ss) 与「嵌入引擎」(Qwen3-Embedding-8B 主轨 / text-embedding-3-large `_lg` 轨) 两个维度做笛卡尔展开取值。
 - **来源阶段**: Stage 25
 - **学术引用**: Haans, R. F. J. (2019). What's the value of being different when everyone is? The effects of distinctiveness on performance in homogeneous versus heterogeneous categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978 \| Su, J., Gao, X., & Tan, J. (2024). Positioning for optimal distinctiveness; How firms manage competitive and institutional pressures under dynamic and complex environment. Strategic Management Journal, 45(2), 333-361. https://doi.org/10.1002/smj.3549 \| Arts, S., Cassiman, B., & Hou, J. (2025). Technology differentiation, product market rivalry, and M&A transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687 \| Hoberg, G., Phillips, G., & Prabhala, N. (2014). Product market threats, payouts, and financial flexibility. The Journal of Finance. https://doi.org/10.1111/jofi.12050 \| Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Siamese BERT-networks. Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP), 3980-3990. https://doi.org/10.18653/v1/D19-1410
@@ -163901,7 +163901,7 @@ Vamvourellis, D., Tóth, M., Bhagat, S., Desai, D., Mehta, D., & Pasquali, S. (2
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py ; pipeline\panel\stata_export.py。 上游依赖: 25_article_sbert -> 14_materialize_ctx。 计算公式: strat_sim_max_emb = max_{j∈peer(i,t)} cos(v_i, v_j), 其中 v_i 为银行 i 在年 t 的语义向量: 先将该行-年全部合格文章的文本样本拼接 (join) 为单一长字符串 agg_text, 再整体交由嵌入引擎编码得到 v_i (超长文本走朴素分段 chunking + Mean Pooling, 而非逐篇先编码再对多个文章向量取均值), peer(i,t) 为同年可比同行集合; 六列在此式基础上按「文本轨」(full/ctx/ss) 与「嵌入引擎」(Qwen3-Embedding-8B 主轨 / text-embedding-3-large `_lg` 轨) 两个维度做笛卡尔展开取值。。 本列 (panel 实名 strat_sim_max_emb_ctx) 属家族 F508, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.4639; mean=0.6996; max=0.9407。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.4639; mean=0.6988; max=0.9455。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Haans, R. F. J. (2019). What's the value of being different when everyone is? The effects of distinctiveness on performance in homogeneous versus heterogeneous categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978
@@ -163911,7 +163911,7 @@ Hoberg, G., Phillips, G., & Prabhala, N. (2014). Product market threats, payouts
 Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Siamese BERT-networks. Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP), 3980-3990. https://doi.org/10.18653/v1/D19-1410
 Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.6996 | 标准差=0.0815 | 最小值=0.4639 | 25分位=0.6588 | 中位数=0.6873 | 75分位=0.7377 | 最大值=0.9407
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.6988 | 标准差=0.0835 | 最小值=0.4639 | 25分位=0.6497 | 中位数=0.6876 | 75分位=0.7373 | 最大值=0.9455
 
 ## strat_diff_n5_emb_lg_ctx
 
@@ -163953,7 +163953,7 @@ Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embedding
 来源阶段: Stage 25。 生产函数: pipeline\panel\stata_export.py ; pipeline\features\strategic_diff.py。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 25_article_sbert.parquet (co-primary 双轨嵌入向量)。 计算公式: strat_diff_n5_emb = (1/N) · Σ_{j ∈ NN5(i)} (1 − cos(e_i, e_j)), N=5; e_i = 银行 i 当年新闻文档嵌入向量, NN5(i) = 语义空间中与 i 余弦相似度最高的 5 个同行银行; MAIN 轨 e 来自 Qwen3-Embedding-8B (4096 维), _lg 轨来自 text-embedding-3-large (3072 维)。 本列 (panel 实名 strat_diff_n5_emb_lg_ctx) 属家族 F504, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.1414; mean=0.3418; max=0.5975。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.1414; mean=0.3432; max=0.5975。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Arts, S., Cassiman, B., & Hou, J. (2025). Technology differentiation, product market rivalry, and M&A transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687
@@ -163973,7 +163973,7 @@ Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous 
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.3418 | 标准差=0.1015 | 最小值=0.1414 | 25分位=0.2711 | 中位数=0.3527 | 75分位=0.4170 | 最大值=0.5975
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.3432 | 标准差=0.0937 | 最小值=0.1414 | 25分位=0.2840 | 中位数=0.3427 | 75分位=0.4063 | 最大值=0.5975
 
 ## strat_diff_n10_emb_lg_ctx
 
@@ -164006,7 +164006,7 @@ strat_diff_n10_emb 家族测度的是"该银行当年报道所描绘的经营策
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py (数值计算层, 由 25_article_sbert 产出的 emb_full/emb_ctx/emb_ss 与 _lg 孪生嵌入聚合为银行-年度向量后驱动) + pipeline\panel\stata_export.py (标签装配层)。 上游依赖: 25_article_sbert。 计算公式: strat_diff_n{N}_emb_i = 1 - mean_{j in kNN10(i)} cos(v_i, v_j); 先将每家银行当年同轨全部留篇文章嵌入拼接聚合为一条银行-年度"年度总结"向量 v_i (_aggregate_bank_year_texts), 再在同年度同轨全部银行的年度向量之间构建 bank×bank 余弦相似度矩阵, 为银行 i 取同年度其余银行中相似度最高的 top-10 家(不含自身)作为最近邻同行集合 kNN10(i), 该行最终得分为其年度向量与这 10 家最近邻同行向量余弦相似度均值的 1 减; 单元粒度是银行-年度, 并非文章级最近邻聚合。 本列 (panel 实名 strat_diff_n10_emb_lg_ctx) 属家族 F494, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.1672; mean=0.3641; max=0.6163。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.1672; mean=0.3693; max=0.6163。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Guzman, J., & Li, A. (2023). Measuring Founding Strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369
@@ -164016,7 +164016,7 @@ Su, J., Gao, X., & Tan, J. (2024). Positioning for Optimal Distinctiveness: How 
 Arts, S., Cassiman, B., & Hou, J. (2025). Technology Differentiation, Product Market Rivalry, and M&A Transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687
 Steck, H., Ekanadham, C., & Kallus, N. (2024). Is Cosine-Similarity of Embeddings Really about Similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.3641 | 标准差=0.1014 | 最小值=0.1672 | 25分位=0.2888 | 中位数=0.3731 | 75分位=0.4312 | 最大值=0.6163
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.3693 | 标准差=0.0933 | 最小值=0.1672 | 25分位=0.3026 | 中位数=0.3731 | 75分位=0.4308 | 最大值=0.6163
 
 ## strat_diff_n20_emb_lg_ctx
 
@@ -164063,7 +164063,7 @@ co-primary 双轨方面: 无后缀 (Qwen) 与 `_lg` (text-embedding-3-large) 是
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py::compute_strategic_differentiation。 上游依赖: 14_materialize_ctx (content_ctx/content_ss 三轨文本物化) -> 25_article_sbert (Qwen/Qwen3-Embedding-8B 主轨 + text-embedding-3-large _lg 双轨嵌入引擎) -> pipeline\panel\stata_export.py (面板列标签与 co-primary 标注)。 计算公式: Ŝ_i = (1/20) · Σ_{j∈J_i^20} δ_ij, δ_ij = 1 − cos(v_i, v_j); v_i 为银行 i 当年金融科技新闻文档的稠密语义嵌入向量 (Qwen/Qwen3-Embedding-8B 或 text-embedding-3-large), J_i^20 为按 δ_ij 升序取的 20 家最近同业银行。 本列 (panel 实名 strat_diff_n20_emb_lg_ctx) 属家族 F496, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2074; mean=0.3921; max=0.6352。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2074; mean=0.4014; max=0.6352。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Guzman, J., & Li, A. (2023). Measuring Founding Strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369
@@ -164073,7 +164073,7 @@ Haans, R. F. J. (2019). What's the Value of Being Different When Everyone Is? Th
 Rodriguez, P. L., & Spirling, A. (2022). Word Embeddings: What Works, What Doesn't, and How to Tell the Difference for Applied Research. The Journal of Politics, 84(1), 101-115. https://doi.org/10.1086/715162
 Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.3921 | 标准差=0.0974 | 最小值=0.2074 | 25分位=0.3136 | 中位数=0.4022 | 75分位=0.4476 | 最大值=0.6352
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4014 | 标准差=0.0902 | 最小值=0.2074 | 25分位=0.3335 | 中位数=0.4032 | 75分位=0.4629 | 最大值=0.6352
 
 ## strat_diff_n30_emb_lg_ctx
 
@@ -164111,7 +164111,7 @@ top-k N 是一个可调超参数——邻域窗口选得太窄 (N 很小, 如 N=
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py (面板标签装配于 pipeline\panel\stata_export.py)。 上游依赖: 14_materialize_ctx -> 21_tone_llms。 计算公式: Ŝ_i(bank,year) = 1 - mean(cos_sim(e_i, e_j)) for j in top-N nearest peer BANKS of bank i (within the same year cross-section, ~54-118 banks/year), where e_i is the embedding of bank i's year-aggregated news document (_aggregate_bank_year_texts); N=30. Bank-year is already the unit of observation — no separate article-level-to-bank-year aggregation step exists.。 本列 (panel 实名 strat_diff_n30_emb_lg_ctx) 属家族 F498, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2449; mean=0.4132; max=0.6523。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2449; mean=0.4270; max=0.6523。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Guzman, J., & Li, A. (2023). Measuring founding strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369
@@ -164123,7 +164123,7 @@ Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Sia
 Breitung, C., & Müller, S. (2025). Global Business Networks. Journal of Financial Economics. https://doi.org/10.1016/j.jfineco.2025.104007
 Yin, D., Wu, Z., Yokota, K., Matsumoto, K., & Shibayama, S. (2023). Identify novel elements of knowledge with word embedding. PLOS ONE. https://doi.org/10.1371/journal.pone.0284567
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.4132 | 标准差=0.0924 | 最小值=0.2449 | 25分位=0.3372 | 中位数=0.4218 | 75分位=0.4621 | 最大值=0.6523
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4270 | 标准差=0.0864 | 最小值=0.2449 | 25分位=0.3584 | 中位数=0.4342 | 75分位=0.4826 | 最大值=0.6523
 
 ## strat_diff_n40_emb_lg_ctx
 
@@ -164226,7 +164226,7 @@ Vamvourellis, D., Tóth, M., Bhagat, S., Desai, D., Mehta, D., & Pasquali, S. (2
 - **标签**: 同业最大相似度(嵌入,实体窗轨)(对等轨emb-3-large)
 - **数据类型**: float64
 - **单位**: 余弦相似度 [-1,1]
-- **取值范围**: [0.4216, 0.9111] (生成时实测)
+- **取值范围**: [0.4216, 0.9256] (生成时实测)
 - **计算公式**: strat_sim_max_emb = max_{j∈peer(i,t)} cos(v_i, v_j), 其中 v_i 为银行 i 在年 t 的语义向量: 先将该行-年全部合格文章的文本样本拼接 (join) 为单一长字符串 agg_text, 再整体交由嵌入引擎编码得到 v_i (超长文本走朴素分段 chunking + Mean Pooling, 而非逐篇先编码再对多个文章向量取均值), peer(i,t) 为同年可比同行集合; 六列在此式基础上按「文本轨」(full/ctx/ss) 与「嵌入引擎」(Qwen3-Embedding-8B 主轨 / text-embedding-3-large `_lg` 轨) 两个维度做笛卡尔展开取值。
 - **来源阶段**: Stage 25
 - **学术引用**: Haans, R. F. J. (2019). What's the value of being different when everyone is? The effects of distinctiveness on performance in homogeneous versus heterogeneous categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978 \| Su, J., Gao, X., & Tan, J. (2024). Positioning for optimal distinctiveness; How firms manage competitive and institutional pressures under dynamic and complex environment. Strategic Management Journal, 45(2), 333-361. https://doi.org/10.1002/smj.3549 \| Arts, S., Cassiman, B., & Hou, J. (2025). Technology differentiation, product market rivalry, and M&A transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687 \| Hoberg, G., Phillips, G., & Prabhala, N. (2014). Product market threats, payouts, and financial flexibility. The Journal of Finance. https://doi.org/10.1111/jofi.12050 \| Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Siamese BERT-networks. Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP), 3980-3990. https://doi.org/10.18653/v1/D19-1410
@@ -164252,7 +164252,7 @@ Vamvourellis, D., Tóth, M., Bhagat, S., Desai, D., Mehta, D., & Pasquali, S. (2
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py ; pipeline\panel\stata_export.py。 上游依赖: 25_article_sbert -> 14_materialize_ctx。 计算公式: strat_sim_max_emb = max_{j∈peer(i,t)} cos(v_i, v_j), 其中 v_i 为银行 i 在年 t 的语义向量: 先将该行-年全部合格文章的文本样本拼接 (join) 为单一长字符串 agg_text, 再整体交由嵌入引擎编码得到 v_i (超长文本走朴素分段 chunking + Mean Pooling, 而非逐篇先编码再对多个文章向量取均值), peer(i,t) 为同年可比同行集合; 六列在此式基础上按「文本轨」(full/ctx/ss) 与「嵌入引擎」(Qwen3-Embedding-8B 主轨 / text-embedding-3-large `_lg` 轨) 两个维度做笛卡尔展开取值。。 本列 (panel 实名 strat_sim_max_emb_lg_ctx) 属家族 F508, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.4216; mean=0.7065; max=0.9111。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.4216; mean=0.7056; max=0.9256。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Haans, R. F. J. (2019). What's the value of being different when everyone is? The effects of distinctiveness on performance in homogeneous versus heterogeneous categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978
@@ -164262,7 +164262,7 @@ Hoberg, G., Phillips, G., & Prabhala, N. (2014). Product market threats, payouts
 Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Siamese BERT-networks. Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP), 3980-3990. https://doi.org/10.18653/v1/D19-1410
 Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.7065 | 标准差=0.1116 | 最小值=0.4216 | 25分位=0.6317 | 中位数=0.6932 | 75分位=0.7992 | 最大值=0.9111
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.7056 | 标准差=0.1074 | 最小值=0.4216 | 25分位=0.6384 | 中位数=0.6932 | 75分位=0.7949 | 最大值=0.9256
 
 ## centroid_diff_tfidf_c_ctx
 
@@ -164435,7 +164435,7 @@ Lui, D., Moraru‐Arfire, A., & Tao, C. (2025). The Nexus of Corporate Disclosur
 来源阶段: Stage 40 (panel/network_spillover·network_brokerage)。 生产函数: pipeline\features\strategic_diff.py ; pipeline\panel\stata_export.py。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 25_article_sbert.parquet (co-primary 双轨句向量 emb_full/_lg)。 计算公式: centroid_diff_emb = 1 - cos(c_i, c_{-i}); c_i = mean_a( emb(doc_a) for a in bank_i-year 文档集 ); c_{-i} = leave-one-out 行业质心 = (n·c − c_i)/(n−1) (排除银行 i 自身后的同年样本质心均值); n<2 → NaN; emb = 嵌入引擎句向量 (full 轨 Qwen3-Embedding-8B / _lg 轨 text-embedding-3-large)。 本列 (panel 实名 centroid_diff_emb_ctx) 属家族 F147, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.1517; mean=0.2655; max=0.5642。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.1517; mean=0.2643; max=0.5642。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -164449,7 +164449,7 @@ Breitung, C., & Müller, S. (2025). Global Business Networks. Journal of Financi
 Fu, R., Gao, F., & Ma, C. (2025). Do peer narrative disclosures support or disrupt efficient investment? International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2025.104785
 de Bodt, E., & Eckbo, B. E. (2026). An improved text-based industry peer-firm identification algorithm. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.6725723
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.2655 | 标准差=0.0693 | 最小值=0.1517 | 25分位=0.2206 | 中位数=0.2562 | 75分位=0.3029 | 最大值=0.5642
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.2643 | 标准差=0.0636 | 最小值=0.1517 | 25分位=0.2206 | 中位数=0.2576 | 75分位=0.2959 | 最大值=0.5642
 
 ## strat_diff_ctx
 
@@ -164491,7 +164491,7 @@ de Bodt, E., & Eckbo, B. E. (2026). An improved text-based industry peer-firm id
 来源阶段: Stage 25。 生产函数: news_process/pipeline/features/strategic_diff.py::compute_strategic_differentiation ; news_process/pipeline/panel/stata_export.py。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 25_article_sbert.parquet (co-primary Qwen 与 _lg 嵌入向量) -> 40_panel_yearly.parquet (bank-year 聚合宿主)。 计算公式: strat_diff_n{N}(_w)(_track) = (1/N) Σ_{j∈KNN(i,N)} δ_ij, δ_ij = 1 − cos(v_i, v_j); v = 年内银行文本聚合 TF-IDF 向量 (char_wb / jieba+607金科词); strat_diff(_lg)_{full,ctx,ss} = centroid_diff_emb(_lg) 逐值别名 = 1 − cos(v_i, 年度行业质心)。 本列 (panel 实名 strat_diff_ctx) 属家族 F493, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.1517; mean=0.2655; max=0.5642。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.1517; mean=0.2643; max=0.5642。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Arts, S., Cassiman, B., & Hou, J. (2025). Technology differentiation, product market rivalry, and M&A transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687
@@ -164508,7 +164508,7 @@ Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous 
 Hoberg, G., Phillips, G., & Prabhala, N. (2014). Product market threats, payouts, and financial flexibility. The Journal of Finance, 69(1), 293-324. https://doi.org/10.1111/jofi.12050
 Meyer, T., Kerkhof, A., Cennamo, C., & Kretschmer, T. (2024). Competing for attention on digital platforms: The case of news outlets. Strategic Management Journal. https://doi.org/10.1002/smj.3600
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.2655 | 标准差=0.0693 | 最小值=0.1517 | 25分位=0.2206 | 中位数=0.2562 | 75分位=0.3029 | 最大值=0.5642
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.2643 | 标准差=0.0636 | 最小值=0.1517 | 25分位=0.2206 | 中位数=0.2576 | 75分位=0.2959 | 最大值=0.5642
 
 ## centroid_diff_emb_lg_ctx
 
@@ -164541,7 +164541,7 @@ Meyer, T., Kerkhof, A., Cennamo, C., & Kretschmer, T. (2024). Competing for atte
 来源阶段: Stage 40 (panel/network_spillover·network_brokerage)。 生产函数: pipeline\features\strategic_diff.py ; pipeline\panel\stata_export.py。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 25_article_sbert.parquet (co-primary 双轨句向量 emb_full/_lg)。 计算公式: centroid_diff_emb = 1 - cos(c_i, c_{-i}); c_i = mean_a( emb(doc_a) for a in bank_i-year 文档集 ); c_{-i} = leave-one-out 行业质心 = (n·c − c_i)/(n−1) (排除银行 i 自身后的同年样本质心均值); n<2 → NaN; emb = 嵌入引擎句向量 (full 轨 Qwen3-Embedding-8B / _lg 轨 text-embedding-3-large)。 本列 (panel 实名 centroid_diff_emb_lg_ctx) 属家族 F147, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.1092; mean=0.2967; max=0.5997。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.1092; mean=0.2950; max=0.5997。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -164555,7 +164555,7 @@ Breitung, C., & Müller, S. (2025). Global Business Networks. Journal of Financi
 Fu, R., Gao, F., & Ma, C. (2025). Do peer narrative disclosures support or disrupt efficient investment? International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2025.104785
 de Bodt, E., & Eckbo, B. E. (2026). An improved text-based industry peer-firm identification algorithm. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.6725723
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.2967 | 标准差=0.1035 | 最小值=0.1092 | 25分位=0.2117 | 中位数=0.2990 | 75分位=0.3532 | 最大值=0.5997
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.2950 | 标准差=0.0978 | 最小值=0.1092 | 25分位=0.2133 | 中位数=0.2948 | 75分位=0.3503 | 最大值=0.5997
 
 ## strat_diff_lg_ctx
 
@@ -164597,7 +164597,7 @@ de Bodt, E., & Eckbo, B. E. (2026). An improved text-based industry peer-firm id
 来源阶段: Stage 25。 生产函数: news_process/pipeline/features/strategic_diff.py::compute_strategic_differentiation ; news_process/pipeline/panel/stata_export.py。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 25_article_sbert.parquet (co-primary Qwen 与 _lg 嵌入向量) -> 40_panel_yearly.parquet (bank-year 聚合宿主)。 计算公式: strat_diff_n{N}(_w)(_track) = (1/N) Σ_{j∈KNN(i,N)} δ_ij, δ_ij = 1 − cos(v_i, v_j); v = 年内银行文本聚合 TF-IDF 向量 (char_wb / jieba+607金科词); strat_diff(_lg)_{full,ctx,ss} = centroid_diff_emb(_lg) 逐值别名 = 1 − cos(v_i, 年度行业质心)。 本列 (panel 实名 strat_diff_lg_ctx) 属家族 F493, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.1092; mean=0.2967; max=0.5997。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.1092; mean=0.2950; max=0.5997。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Arts, S., Cassiman, B., & Hou, J. (2025). Technology differentiation, product market rivalry, and M&A transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687
@@ -164614,7 +164614,7 @@ Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous 
 Hoberg, G., Phillips, G., & Prabhala, N. (2014). Product market threats, payouts, and financial flexibility. The Journal of Finance, 69(1), 293-324. https://doi.org/10.1111/jofi.12050
 Meyer, T., Kerkhof, A., Cennamo, C., & Kretschmer, T. (2024). Competing for attention on digital platforms: The case of news outlets. Strategic Management Journal. https://doi.org/10.1002/smj.3600
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.2967 | 标准差=0.1035 | 最小值=0.1092 | 25分位=0.2117 | 中位数=0.2990 | 75分位=0.3532 | 最大值=0.5997
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.2950 | 标准差=0.0978 | 最小值=0.1092 | 25分位=0.2133 | 中位数=0.2948 | 75分位=0.3503 | 最大值=0.5997
 
 ## strat_fluidity_ctx
 
@@ -165880,7 +165880,7 @@ Phillips, D., Edwards, B. D., & Rutherford, M. W. (2025). Conformity or Differen
 - **标签**: N近邻战略差异度(N=5,嵌入,同句轨)(对等轨Qwen3-8B)
 - **数据类型**: float64
 - **单位**: 无量纲语义距离得分 (余弦距离口径, 值域 [0,2])
-- **取值范围**: [0.2452, 0.5328] (生成时实测)
+- **取值范围**: [0.2154, 0.5328] (生成时实测)
 - **计算公式**: strat_diff_n5_emb = (1/N) · Σ_{j ∈ NN5(i)} (1 − cos(e_i, e_j)), N=5; e_i = 银行 i 当年新闻文档嵌入向量, NN5(i) = 语义空间中与 i 余弦相似度最高的 5 个同行银行; MAIN 轨 e 来自 Qwen3-Embedding-8B (4096 维), _lg 轨来自 text-embedding-3-large (3072 维)
 - **来源阶段**: Stage 25
 - **学术引用**: Arts, S., Cassiman, B., & Hou, J. (2025). Technology differentiation, product market rivalry, and M&A transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687 \| Tang, Y., & Yang, Y. (2025). FinMTEB: Finance Massive Text Embedding Benchmark. Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing [Preprint]. https://doi.org/10.18653/v1/2025.emnlp-main.179 \| Miller, C. D., & Wang, R. D. (2024). Product digitization and differentiation strategy change: Evidence from the book publishing industry. Strategic Management Journal, 45(7), 1241-1272. https://doi.org/10.1002/smj.3586 \| Su, J., Gao, X., & Tan, J. (2024). Positioning for optimal distinctiveness: How firms manage competitive and institutional pressures under dynamic and complex environment. Strategic Management Journal, 45(2), 333-361. https://doi.org/10.1002/smj.3549 \| Zheng, J., Ng, K. C., Zheng, R., & Tam, K. Y. (2024). The effects of sentiment evolution in financial texts: A word embedding approach. Journal of Management Information Systems, 41(1), 178-205. https://doi.org/10.1080/07421222.2023.2301176
@@ -165915,7 +165915,7 @@ Phillips, D., Edwards, B. D., & Rutherford, M. W. (2025). Conformity or Differen
 来源阶段: Stage 25。 生产函数: pipeline\panel\stata_export.py ; pipeline\features\strategic_diff.py。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 25_article_sbert.parquet (co-primary 双轨嵌入向量)。 计算公式: strat_diff_n5_emb = (1/N) · Σ_{j ∈ NN5(i)} (1 − cos(e_i, e_j)), N=5; e_i = 银行 i 当年新闻文档嵌入向量, NN5(i) = 语义空间中与 i 余弦相似度最高的 5 个同行银行; MAIN 轨 e 来自 Qwen3-Embedding-8B (4096 维), _lg 轨来自 text-embedding-3-large (3072 维)。 本列 (panel 实名 strat_diff_n5_emb_ss) 属家族 F504, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2452; mean=0.3482; max=0.5328。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2154; mean=0.3490; max=0.5328。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Arts, S., Cassiman, B., & Hou, J. (2025). Technology differentiation, product market rivalry, and M&A transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687
@@ -165935,7 +165935,7 @@ Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous 
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.3482 | 标准差=0.0525 | 最小值=0.2452 | 25分位=0.3177 | 中位数=0.3491 | 75分位=0.3811 | 最大值=0.5328
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.3490 | 标准差=0.0547 | 最小值=0.2154 | 25分位=0.3206 | 中位数=0.3491 | 75分位=0.3819 | 最大值=0.5328
 
 ## strat_diff_n10_emb_ss
 
@@ -165968,7 +165968,7 @@ strat_diff_n10_emb 家族测度的是"该银行当年报道所描绘的经营策
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py (数值计算层, 由 25_article_sbert 产出的 emb_full/emb_ctx/emb_ss 与 _lg 孪生嵌入聚合为银行-年度向量后驱动) + pipeline\panel\stata_export.py (标签装配层)。 上游依赖: 25_article_sbert。 计算公式: strat_diff_n{N}_emb_i = 1 - mean_{j in kNN10(i)} cos(v_i, v_j); 先将每家银行当年同轨全部留篇文章嵌入拼接聚合为一条银行-年度"年度总结"向量 v_i (_aggregate_bank_year_texts), 再在同年度同轨全部银行的年度向量之间构建 bank×bank 余弦相似度矩阵, 为银行 i 取同年度其余银行中相似度最高的 top-10 家(不含自身)作为最近邻同行集合 kNN10(i), 该行最终得分为其年度向量与这 10 家最近邻同行向量余弦相似度均值的 1 减; 单元粒度是银行-年度, 并非文章级最近邻聚合。 本列 (panel 实名 strat_diff_n10_emb_ss) 属家族 F494, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2629; mean=0.3680; max=0.5573。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2629; mean=0.3724; max=0.5573。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Guzman, J., & Li, A. (2023). Measuring Founding Strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369
@@ -165978,7 +165978,7 @@ Su, J., Gao, X., & Tan, J. (2024). Positioning for Optimal Distinctiveness: How 
 Arts, S., Cassiman, B., & Hou, J. (2025). Technology Differentiation, Product Market Rivalry, and M&A Transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687
 Steck, H., Ekanadham, C., & Kallus, N. (2024). Is Cosine-Similarity of Embeddings Really about Similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.3680 | 标准差=0.0515 | 最小值=0.2629 | 25分位=0.3407 | 中位数=0.3677 | 75分位=0.3975 | 最大值=0.5573
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.3724 | 标准差=0.0495 | 最小值=0.2629 | 25分位=0.3445 | 中位数=0.3678 | 75分位=0.3982 | 最大值=0.5573
 
 ## strat_diff_n20_emb_ss
 
@@ -166028,7 +166028,7 @@ co-primary 双轨方面: 无后缀 (Qwen) 与 `_lg` (text-embedding-3-large) 是
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py::compute_strategic_differentiation。 上游依赖: 14_materialize_ctx (content_ctx/content_ss 三轨文本物化) -> 25_article_sbert (Qwen/Qwen3-Embedding-8B 主轨 + text-embedding-3-large _lg 双轨嵌入引擎) -> pipeline\panel\stata_export.py (面板列标签与 co-primary 标注)。 计算公式: Ŝ_i = (1/20) · Σ_{j∈J_i^20} δ_ij, δ_ij = 1 − cos(v_i, v_j); v_i 为银行 i 当年金融科技新闻文档的稠密语义嵌入向量 (Qwen/Qwen3-Embedding-8B 或 text-embedding-3-large), J_i^20 为按 δ_ij 升序取的 20 家最近同业银行。 本列 (panel 实名 strat_diff_n20_emb_ss) 属家族 F496, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2942; mean=0.3904; max=0.5807。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2942; mean=0.3973; max=0.5807。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Guzman, J., & Li, A. (2023). Measuring Founding Strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369
@@ -166038,7 +166038,7 @@ Haans, R. F. J. (2019). What's the Value of Being Different When Everyone Is? Th
 Rodriguez, P. L., & Spirling, A. (2022). Word Embeddings: What Works, What Doesn't, and How to Tell the Difference for Applied Research. The Journal of Politics, 84(1), 101-115. https://doi.org/10.1086/715162
 Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.3904 | 标准差=0.0500 | 最小值=0.2942 | 25分位=0.3580 | 中位数=0.3872 | 75分位=0.4202 | 最大值=0.5807
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.3973 | 标准差=0.0481 | 最小值=0.2942 | 25分位=0.3682 | 中位数=0.3936 | 75分位=0.4235 | 最大值=0.5807
 
 ## strat_diff_n30_emb_ss
 
@@ -166076,7 +166076,7 @@ top-k N 是一个可调超参数——邻域窗口选得太窄 (N 很小, 如 N=
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py (面板标签装配于 pipeline\panel\stata_export.py)。 上游依赖: 14_materialize_ctx -> 21_tone_llms。 计算公式: Ŝ_i(bank,year) = 1 - mean(cos_sim(e_i, e_j)) for j in top-N nearest peer BANKS of bank i (within the same year cross-section, ~54-118 banks/year), where e_i is the embedding of bank i's year-aggregated news document (_aggregate_bank_year_texts); N=30. Bank-year is already the unit of observation — no separate article-level-to-bank-year aggregation step exists.。 本列 (panel 实名 strat_diff_n30_emb_ss) 属家族 F498, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.3156; mean=0.4057; max=0.5979。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.3156; mean=0.4147; max=0.5979。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Guzman, J., & Li, A. (2023). Measuring founding strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369
@@ -166088,7 +166088,7 @@ Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Sia
 Breitung, C., & Müller, S. (2025). Global Business Networks. Journal of Financial Economics. https://doi.org/10.1016/j.jfineco.2025.104007
 Yin, D., Wu, Z., Yokota, K., Matsumoto, K., & Shibayama, S. (2023). Identify novel elements of knowledge with word embedding. PLOS ONE. https://doi.org/10.1371/journal.pone.0284567
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.4057 | 标准差=0.0494 | 最小值=0.3156 | 25分位=0.3745 | 中位数=0.3998 | 75分位=0.4316 | 最大值=0.5979
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4147 | 标准差=0.0481 | 最小值=0.3156 | 25分位=0.3819 | 中位数=0.4121 | 75分位=0.4422 | 最大值=0.5979
 
 ## strat_diff_n40_emb_ss
 
@@ -166191,7 +166191,7 @@ Vamvourellis, D., Tóth, M., Bhagat, S., Desai, D., Mehta, D., & Pasquali, S. (2
 - **标签**: 同业最大相似度(嵌入,同句轨)(对等轨Qwen3-8B)
 - **数据类型**: float64
 - **单位**: 余弦相似度 [-1,1]
-- **取值范围**: [0.4887, 0.9032] (生成时实测)
+- **取值范围**: [0.4887, 1.0000] (生成时实测)
 - **计算公式**: strat_sim_max_emb = max_{j∈peer(i,t)} cos(v_i, v_j), 其中 v_i 为银行 i 在年 t 的语义向量: 先将该行-年全部合格文章的文本样本拼接 (join) 为单一长字符串 agg_text, 再整体交由嵌入引擎编码得到 v_i (超长文本走朴素分段 chunking + Mean Pooling, 而非逐篇先编码再对多个文章向量取均值), peer(i,t) 为同年可比同行集合; 六列在此式基础上按「文本轨」(full/ctx/ss) 与「嵌入引擎」(Qwen3-Embedding-8B 主轨 / text-embedding-3-large `_lg` 轨) 两个维度做笛卡尔展开取值。
 - **来源阶段**: Stage 25
 - **学术引用**: Haans, R. F. J. (2019). What's the value of being different when everyone is? The effects of distinctiveness on performance in homogeneous versus heterogeneous categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978 \| Su, J., Gao, X., & Tan, J. (2024). Positioning for optimal distinctiveness; How firms manage competitive and institutional pressures under dynamic and complex environment. Strategic Management Journal, 45(2), 333-361. https://doi.org/10.1002/smj.3549 \| Arts, S., Cassiman, B., & Hou, J. (2025). Technology differentiation, product market rivalry, and M&A transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687 \| Hoberg, G., Phillips, G., & Prabhala, N. (2014). Product market threats, payouts, and financial flexibility. The Journal of Finance. https://doi.org/10.1111/jofi.12050 \| Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Siamese BERT-networks. Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP), 3980-3990. https://doi.org/10.18653/v1/D19-1410
@@ -166217,7 +166217,7 @@ Vamvourellis, D., Tóth, M., Bhagat, S., Desai, D., Mehta, D., & Pasquali, S. (2
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py ; pipeline\panel\stata_export.py。 上游依赖: 25_article_sbert -> 14_materialize_ctx。 计算公式: strat_sim_max_emb = max_{j∈peer(i,t)} cos(v_i, v_j), 其中 v_i 为银行 i 在年 t 的语义向量: 先将该行-年全部合格文章的文本样本拼接 (join) 为单一长字符串 agg_text, 再整体交由嵌入引擎编码得到 v_i (超长文本走朴素分段 chunking + Mean Pooling, 而非逐篇先编码再对多个文章向量取均值), peer(i,t) 为同年可比同行集合; 六列在此式基础上按「文本轨」(full/ctx/ss) 与「嵌入引擎」(Qwen3-Embedding-8B 主轨 / text-embedding-3-large `_lg` 轨) 两个维度做笛卡尔展开取值。。 本列 (panel 实名 strat_sim_max_emb_ss) 属家族 F508, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.4887; mean=0.6953; max=0.9032。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.4887; mean=0.6956; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Haans, R. F. J. (2019). What's the value of being different when everyone is? The effects of distinctiveness on performance in homogeneous versus heterogeneous categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978
@@ -166227,7 +166227,7 @@ Hoberg, G., Phillips, G., & Prabhala, N. (2014). Product market threats, payouts
 Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Siamese BERT-networks. Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP), 3980-3990. https://doi.org/10.18653/v1/D19-1410
 Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.6953 | 标准差=0.0793 | 最小值=0.4887 | 25分位=0.6431 | 中位数=0.6869 | 75分位=0.7316 | 最大值=0.9032
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.6956 | 标准差=0.0861 | 最小值=0.4887 | 25分位=0.6420 | 中位数=0.6869 | 75分位=0.7250 | 最大值=1.0000
 
 ## strat_diff_n5_emb_lg_ss
 
@@ -166269,7 +166269,7 @@ Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embedding
 来源阶段: Stage 25。 生产函数: pipeline\panel\stata_export.py ; pipeline\features\strategic_diff.py。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 25_article_sbert.parquet (co-primary 双轨嵌入向量)。 计算公式: strat_diff_n5_emb = (1/N) · Σ_{j ∈ NN5(i)} (1 − cos(e_i, e_j)), N=5; e_i = 银行 i 当年新闻文档嵌入向量, NN5(i) = 语义空间中与 i 余弦相似度最高的 5 个同行银行; MAIN 轨 e 来自 Qwen3-Embedding-8B (4096 维), _lg 轨来自 text-embedding-3-large (3072 维)。 本列 (panel 实名 strat_diff_n5_emb_lg_ss) 属家族 F504, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.1535; mean=0.3568; max=0.5929。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.1535; mean=0.3573; max=0.5929。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Arts, S., Cassiman, B., & Hou, J. (2025). Technology differentiation, product market rivalry, and M&A transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687
@@ -166289,7 +166289,7 @@ Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous 
 Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
 Li, J., Yuan, X., Zhu, X., Emrouznejad, A., Hao, J., & Jin, Y. (2026). Uncovering financial network structures and connectedness from textual risk disclosures. Annals of Operations Research. https://doi.org/10.1007/s10479-026-07305-8
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.3568 | 标准差=0.0989 | 最小值=0.1535 | 25分位=0.2946 | 中位数=0.3699 | 75分位=0.4281 | 最大值=0.5929
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.3573 | 标准差=0.0928 | 最小值=0.1535 | 25分位=0.3031 | 中位数=0.3598 | 75分位=0.4205 | 最大值=0.5929
 
 ## strat_diff_n10_emb_lg_ss
 
@@ -166322,7 +166322,7 @@ strat_diff_n10_emb 家族测度的是"该银行当年报道所描绘的经营策
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py (数值计算层, 由 25_article_sbert 产出的 emb_full/emb_ctx/emb_ss 与 _lg 孪生嵌入聚合为银行-年度向量后驱动) + pipeline\panel\stata_export.py (标签装配层)。 上游依赖: 25_article_sbert。 计算公式: strat_diff_n{N}_emb_i = 1 - mean_{j in kNN10(i)} cos(v_i, v_j); 先将每家银行当年同轨全部留篇文章嵌入拼接聚合为一条银行-年度"年度总结"向量 v_i (_aggregate_bank_year_texts), 再在同年度同轨全部银行的年度向量之间构建 bank×bank 余弦相似度矩阵, 为银行 i 取同年度其余银行中相似度最高的 top-10 家(不含自身)作为最近邻同行集合 kNN10(i), 该行最终得分为其年度向量与这 10 家最近邻同行向量余弦相似度均值的 1 减; 单元粒度是银行-年度, 并非文章级最近邻聚合。 本列 (panel 实名 strat_diff_n10_emb_lg_ss) 属家族 F494, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.1862; mean=0.3787; max=0.6096。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.1862; mean=0.3839; max=0.6096。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Guzman, J., & Li, A. (2023). Measuring Founding Strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369
@@ -166332,7 +166332,7 @@ Su, J., Gao, X., & Tan, J. (2024). Positioning for Optimal Distinctiveness: How 
 Arts, S., Cassiman, B., & Hou, J. (2025). Technology Differentiation, Product Market Rivalry, and M&A Transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687
 Steck, H., Ekanadham, C., & Kallus, N. (2024). Is Cosine-Similarity of Embeddings Really about Similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.3787 | 标准差=0.0978 | 最小值=0.1862 | 25分位=0.3125 | 中位数=0.3894 | 75分位=0.4441 | 最大值=0.6096
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.3839 | 标准差=0.0897 | 最小值=0.1862 | 25分位=0.3299 | 中位数=0.3891 | 75分位=0.4416 | 最大值=0.6096
 
 ## strat_diff_n20_emb_lg_ss
 
@@ -166379,7 +166379,7 @@ ss 轨的回退语义镜像 ctx 轨: 若某篇报道全篇不存在银行与金�
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py::compute_strategic_differentiation。 上游依赖: 14_materialize_ctx (content_ctx/content_ss 三轨文本物化) -> 25_article_sbert (Qwen/Qwen3-Embedding-8B 主轨 + text-embedding-3-large _lg 双轨嵌入引擎) -> pipeline\panel\stata_export.py (面板列标签与 co-primary 标注)。 计算公式: Ŝ_i = (1/20) · Σ_{j∈J_i^20} δ_ij, δ_ij = 1 − cos(v_i, v_j); v_i 为银行 i 当年金融科技新闻文档的稠密语义嵌入向量 (Qwen/Qwen3-Embedding-8B 或 text-embedding-3-large), J_i^20 为按 δ_ij 升序取的 20 家最近同业银行。 本列 (panel 实名 strat_diff_n20_emb_lg_ss) 属家族 F496, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2342; mean=0.4057; max=0.6325。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2342; mean=0.4154; max=0.6325。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Guzman, J., & Li, A. (2023). Measuring Founding Strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369
@@ -166389,7 +166389,7 @@ Haans, R. F. J. (2019). What's the Value of Being Different When Everyone Is? Th
 Rodriguez, P. L., & Spirling, A. (2022). Word Embeddings: What Works, What Doesn't, and How to Tell the Difference for Applied Research. The Journal of Politics, 84(1), 101-115. https://doi.org/10.1086/715162
 Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.4057 | 标准差=0.0924 | 最小值=0.2342 | 25分位=0.3380 | 中位数=0.4142 | 75分位=0.4653 | 最大值=0.6325
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4154 | 标准差=0.0857 | 最小值=0.2342 | 25分位=0.3529 | 中位数=0.4146 | 75分位=0.4699 | 最大值=0.6325
 
 ## strat_diff_n30_emb_lg_ss
 
@@ -166427,7 +166427,7 @@ top-k N 是一个可调超参数——邻域窗口选得太窄 (N 很小, 如 N=
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py (面板标签装配于 pipeline\panel\stata_export.py)。 上游依赖: 14_materialize_ctx -> 21_tone_llms。 计算公式: Ŝ_i(bank,year) = 1 - mean(cos_sim(e_i, e_j)) for j in top-N nearest peer BANKS of bank i (within the same year cross-section, ~54-118 banks/year), where e_i is the embedding of bank i's year-aggregated news document (_aggregate_bank_year_texts); N=30. Bank-year is already the unit of observation — no separate article-level-to-bank-year aggregation step exists.。 本列 (panel 实名 strat_diff_n30_emb_lg_ss) 属家族 F498, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2728; mean=0.4270; max=0.6482。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2728; mean=0.4403; max=0.6482。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Guzman, J., & Li, A. (2023). Measuring founding strategy. Management Science, 69(1), 101-118. https://doi.org/10.1287/mnsc.2022.4369
@@ -166439,7 +166439,7 @@ Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Sia
 Breitung, C., & Müller, S. (2025). Global Business Networks. Journal of Financial Economics. https://doi.org/10.1016/j.jfineco.2025.104007
 Yin, D., Wu, Z., Yokota, K., Matsumoto, K., & Shibayama, S. (2023). Identify novel elements of knowledge with word embedding. PLOS ONE. https://doi.org/10.1371/journal.pone.0284567
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.4270 | 标准差=0.0860 | 最小值=0.2728 | 25分位=0.3605 | 中位数=0.4318 | 75分位=0.4833 | 最大值=0.6482
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4403 | 标准差=0.0808 | 最小值=0.2728 | 25分位=0.3777 | 中位数=0.4388 | 75分位=0.4939 | 最大值=0.6482
 
 ## strat_diff_n40_emb_lg_ss
 
@@ -166542,7 +166542,7 @@ Vamvourellis, D., Tóth, M., Bhagat, S., Desai, D., Mehta, D., & Pasquali, S. (2
 - **标签**: 同业最大相似度(嵌入,同句轨)(对等轨emb-3-large)
 - **数据类型**: float64
 - **单位**: 余弦相似度 [-1,1]
-- **取值范围**: [0.4518, 0.8945] (生成时实测)
+- **取值范围**: [0.4518, 1.0000] (生成时实测)
 - **计算公式**: strat_sim_max_emb = max_{j∈peer(i,t)} cos(v_i, v_j), 其中 v_i 为银行 i 在年 t 的语义向量: 先将该行-年全部合格文章的文本样本拼接 (join) 为单一长字符串 agg_text, 再整体交由嵌入引擎编码得到 v_i (超长文本走朴素分段 chunking + Mean Pooling, 而非逐篇先编码再对多个文章向量取均值), peer(i,t) 为同年可比同行集合; 六列在此式基础上按「文本轨」(full/ctx/ss) 与「嵌入引擎」(Qwen3-Embedding-8B 主轨 / text-embedding-3-large `_lg` 轨) 两个维度做笛卡尔展开取值。
 - **来源阶段**: Stage 25
 - **学术引用**: Haans, R. F. J. (2019). What's the value of being different when everyone is? The effects of distinctiveness on performance in homogeneous versus heterogeneous categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978 \| Su, J., Gao, X., & Tan, J. (2024). Positioning for optimal distinctiveness; How firms manage competitive and institutional pressures under dynamic and complex environment. Strategic Management Journal, 45(2), 333-361. https://doi.org/10.1002/smj.3549 \| Arts, S., Cassiman, B., & Hou, J. (2025). Technology differentiation, product market rivalry, and M&A transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687 \| Hoberg, G., Phillips, G., & Prabhala, N. (2014). Product market threats, payouts, and financial flexibility. The Journal of Finance. https://doi.org/10.1111/jofi.12050 \| Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Siamese BERT-networks. Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP), 3980-3990. https://doi.org/10.18653/v1/D19-1410
@@ -166568,7 +166568,7 @@ Vamvourellis, D., Tóth, M., Bhagat, S., Desai, D., Mehta, D., & Pasquali, S. (2
 来源阶段: Stage 25。 生产函数: pipeline\features\strategic_diff.py ; pipeline\panel\stata_export.py。 上游依赖: 25_article_sbert -> 14_materialize_ctx。 计算公式: strat_sim_max_emb = max_{j∈peer(i,t)} cos(v_i, v_j), 其中 v_i 为银行 i 在年 t 的语义向量: 先将该行-年全部合格文章的文本样本拼接 (join) 为单一长字符串 agg_text, 再整体交由嵌入引擎编码得到 v_i (超长文本走朴素分段 chunking + Mean Pooling, 而非逐篇先编码再对多个文章向量取均值), peer(i,t) 为同年可比同行集合; 六列在此式基础上按「文本轨」(full/ctx/ss) 与「嵌入引擎」(Qwen3-Embedding-8B 主轨 / text-embedding-3-large `_lg` 轨) 两个维度做笛卡尔展开取值。。 本列 (panel 实名 strat_sim_max_emb_lg_ss) 属家族 F508, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.4518; mean=0.6871; max=0.8945。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.4518; mean=0.6909; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Haans, R. F. J. (2019). What's the value of being different when everyone is? The effects of distinctiveness on performance in homogeneous versus heterogeneous categories. Strategic Management Journal, 40(1), 3-27. https://doi.org/10.1002/smj.2978
@@ -166578,7 +166578,7 @@ Hoberg, G., Phillips, G., & Prabhala, N. (2014). Product market threats, payouts
 Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Siamese BERT-networks. Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP), 3980-3990. https://doi.org/10.18653/v1/D19-1410
 Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.6871 | 标准差=0.1035 | 最小值=0.4518 | 25分位=0.6007 | 中位数=0.6786 | 75分位=0.7722 | 最大值=0.8945
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.6909 | 标准差=0.1103 | 最小值=0.4518 | 25分位=0.6047 | 中位数=0.6788 | 75分位=0.7707 | 最大值=1.0000
 
 ## centroid_diff_tfidf_c_ss
 
@@ -166751,7 +166751,7 @@ Lui, D., Moraru‐Arfire, A., & Tao, C. (2025). The Nexus of Corporate Disclosur
 来源阶段: Stage 40 (panel/network_spillover·network_brokerage)。 生产函数: pipeline\features\strategic_diff.py ; pipeline\panel\stata_export.py。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 25_article_sbert.parquet (co-primary 双轨句向量 emb_full/_lg)。 计算公式: centroid_diff_emb = 1 - cos(c_i, c_{-i}); c_i = mean_a( emb(doc_a) for a in bank_i-year 文档集 ); c_{-i} = leave-one-out 行业质心 = (n·c − c_i)/(n−1) (排除银行 i 自身后的同年样本质心均值); n<2 → NaN; emb = 嵌入引擎句向量 (full 轨 Qwen3-Embedding-8B / _lg 轨 text-embedding-3-large)。 本列 (panel 实名 centroid_diff_emb_ss) 属家族 F147, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.1631; mean=0.2711; max=0.5291。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.1631; mean=0.2704; max=0.5291。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -166765,7 +166765,7 @@ Breitung, C., & Müller, S. (2025). Global Business Networks. Journal of Financi
 Fu, R., Gao, F., & Ma, C. (2025). Do peer narrative disclosures support or disrupt efficient investment? International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2025.104785
 de Bodt, E., & Eckbo, B. E. (2026). An improved text-based industry peer-firm identification algorithm. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.6725723
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.2711 | 标准差=0.0640 | 最小值=0.1631 | 25分位=0.2340 | 中位数=0.2623 | 75分位=0.3003 | 最大值=0.5291
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.2704 | 标准差=0.0604 | 最小值=0.1631 | 25分位=0.2337 | 中位数=0.2587 | 75分位=0.3108 | 最大值=0.5291
 
 ## strat_diff_ss
 
@@ -166807,7 +166807,7 @@ de Bodt, E., & Eckbo, B. E. (2026). An improved text-based industry peer-firm id
 来源阶段: Stage 25。 生产函数: news_process/pipeline/features/strategic_diff.py::compute_strategic_differentiation ; news_process/pipeline/panel/stata_export.py。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 25_article_sbert.parquet (co-primary Qwen 与 _lg 嵌入向量) -> 40_panel_yearly.parquet (bank-year 聚合宿主)。 计算公式: strat_diff_n{N}(_w)(_track) = (1/N) Σ_{j∈KNN(i,N)} δ_ij, δ_ij = 1 − cos(v_i, v_j); v = 年内银行文本聚合 TF-IDF 向量 (char_wb / jieba+607金科词); strat_diff(_lg)_{full,ctx,ss} = centroid_diff_emb(_lg) 逐值别名 = 1 − cos(v_i, 年度行业质心)。 本列 (panel 实名 strat_diff_ss) 属家族 F493, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.1631; mean=0.2711; max=0.5291。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.1631; mean=0.2704; max=0.5291。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Arts, S., Cassiman, B., & Hou, J. (2025). Technology differentiation, product market rivalry, and M&A transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687
@@ -166824,7 +166824,7 @@ Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous 
 Hoberg, G., Phillips, G., & Prabhala, N. (2014). Product market threats, payouts, and financial flexibility. The Journal of Finance, 69(1), 293-324. https://doi.org/10.1111/jofi.12050
 Meyer, T., Kerkhof, A., Cennamo, C., & Kretschmer, T. (2024). Competing for attention on digital platforms: The case of news outlets. Strategic Management Journal. https://doi.org/10.1002/smj.3600
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.2711 | 标准差=0.0640 | 最小值=0.1631 | 25分位=0.2340 | 中位数=0.2623 | 75分位=0.3003 | 最大值=0.5291
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.2704 | 标准差=0.0604 | 最小值=0.1631 | 25分位=0.2337 | 中位数=0.2587 | 75分位=0.3108 | 最大值=0.5291
 
 ## centroid_diff_emb_lg_ss
 
@@ -166857,7 +166857,7 @@ Meyer, T., Kerkhof, A., Cennamo, C., & Kretschmer, T. (2024). Competing for atte
 来源阶段: Stage 40 (panel/network_spillover·network_brokerage)。 生产函数: pipeline\features\strategic_diff.py ; pipeline\panel\stata_export.py。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 25_article_sbert.parquet (co-primary 双轨句向量 emb_full/_lg)。 计算公式: centroid_diff_emb = 1 - cos(c_i, c_{-i}); c_i = mean_a( emb(doc_a) for a in bank_i-year 文档集 ); c_{-i} = leave-one-out 行业质心 = (n·c − c_i)/(n−1) (排除银行 i 自身后的同年样本质心均值); n<2 → NaN; emb = 嵌入引擎句向量 (full 轨 Qwen3-Embedding-8B / _lg 轨 text-embedding-3-large)。 本列 (panel 实名 centroid_diff_emb_lg_ss) 属家族 F147, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.1401; mean=0.3034; max=0.5929。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.1401; mean=0.3021; max=0.5929。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -166871,7 +166871,7 @@ Breitung, C., & Müller, S. (2025). Global Business Networks. Journal of Financi
 Fu, R., Gao, F., & Ma, C. (2025). Do peer narrative disclosures support or disrupt efficient investment? International Review of Economics & Finance. https://doi.org/10.1016/j.iref.2025.104785
 de Bodt, E., & Eckbo, B. E. (2026). An improved text-based industry peer-firm identification algorithm. SSRN Working Paper [Working Paper]. https://doi.org/10.2139/ssrn.6725723
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.3034 | 标准差=0.0962 | 最小值=0.1401 | 25分位=0.2257 | 中位数=0.3035 | 75分位=0.3596 | 最大值=0.5929
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.3021 | 标准差=0.0909 | 最小值=0.1401 | 25分位=0.2351 | 中位数=0.2983 | 75分位=0.3566 | 最大值=0.5929
 
 ## strat_diff_lg_ss
 
@@ -166913,7 +166913,7 @@ de Bodt, E., & Eckbo, B. E. (2026). An improved text-based industry peer-firm id
 来源阶段: Stage 25。 生产函数: news_process/pipeline/features/strategic_diff.py::compute_strategic_differentiation ; news_process/pipeline/panel/stata_export.py。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 25_article_sbert.parquet (co-primary Qwen 与 _lg 嵌入向量) -> 40_panel_yearly.parquet (bank-year 聚合宿主)。 计算公式: strat_diff_n{N}(_w)(_track) = (1/N) Σ_{j∈KNN(i,N)} δ_ij, δ_ij = 1 − cos(v_i, v_j); v = 年内银行文本聚合 TF-IDF 向量 (char_wb / jieba+607金科词); strat_diff(_lg)_{full,ctx,ss} = centroid_diff_emb(_lg) 逐值别名 = 1 − cos(v_i, 年度行业质心)。 本列 (panel 实名 strat_diff_lg_ss) 属家族 F493, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.1401; mean=0.3034; max=0.5929。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.1401; mean=0.3021; max=0.5929。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Arts, S., Cassiman, B., & Hou, J. (2025). Technology differentiation, product market rivalry, and M&A transactions. Strategic Management Journal, 46(4), 837-862. https://doi.org/10.1002/smj.3687
@@ -166930,7 +166930,7 @@ Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous 
 Hoberg, G., Phillips, G., & Prabhala, N. (2014). Product market threats, payouts, and financial flexibility. The Journal of Finance, 69(1), 293-324. https://doi.org/10.1111/jofi.12050
 Meyer, T., Kerkhof, A., Cennamo, C., & Kretschmer, T. (2024). Competing for attention on digital platforms: The case of news outlets. Strategic Management Journal. https://doi.org/10.1002/smj.3600
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.3034 | 标准差=0.0962 | 最小值=0.1401 | 25分位=0.2257 | 中位数=0.3035 | 75分位=0.3596 | 最大值=0.5929
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.3021 | 标准差=0.0909 | 最小值=0.1401 | 25分位=0.2351 | 中位数=0.2983 | 75分位=0.3566 | 最大值=0.5929
 
 ## strat_fluidity_ss
 
@@ -167191,7 +167191,7 @@ Caldara, D., & Iacoviello, M. (2022). Measuring geopolitical risk. American Econ
 来源阶段: 未知。 生产函数: news_process/pipeline/features/policy_similarity.py::compute_authoritative_similarity (_ghost_anchor_metrics 助手) ; news_process/pipeline/panel/stata_export.py (HEURISTIC_LABELS)。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> config/authoritative_corpus.txt (权威政策语料, 按 vintage 年份切分) -> 25_article_sbert.parquet (co-primary 嵌入引擎共享口径)。 计算公式: auth_sim_emb{track} = cos( E(银行年度聚合文本_track), E(权威政策 vintage 锚点文本) ); E = 嵌入编码器 (MAIN=Qwen/Qwen3-Embedding-8B 4096 维; _lg=text-embedding-3-large 3072 维); ghost-anchor 提取 = 对称相似度矩阵末列 sim[:-1,-1]。 本列 (panel 实名 auth_sim_emb_full) 属家族 F017, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2136; mean=0.4628; max=0.5907。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2136; mean=0.4730; max=0.5907。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Zhang, Y., Li, M., Long, D., Zhang, X., Lin, H., Yang, B., Xie, P., Yang, A., Liu, D., Lin, J., Huang, F., & Zhou, J. (2025). Qwen3 Embedding: Advancing text embedding and reranking through foundation models. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2506.05176
@@ -167203,7 +167203,7 @@ You, K. (2025). Semantics at an angle: When cosine similarity works until it doe
 Neelakantan, A., Xu, T., Puri, R., Radford, A., Han, J. M., Tworek, J., Yuan, Q., Tezak, N., Kim, J. W., Hallacy, C., Heidecke, J., Shyam, P., Power, B., Nekoul, T. E., Sastry, G., Krueger, G., Schnurr, D., Such, F. P., Hsu, K., & Weng, L. (2022). Text and code embeddings by contrastive pre-training. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2201.10005
 Muennighoff, N., Tazi, N., Magne, L., & Reimers, N. (2023). MTEB: Massive text embedding benchmark. Proceedings of the 17th Conference of the European Chapter of the Association for Computational Linguistics, 2014-2037. https://doi.org/10.18653/v1/2023.eacl-main.148
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.4628 | 标准差=0.0672 | 最小值=0.2136 | 25分位=0.4155 | 中位数=0.4611 | 75分位=0.5123 | 最大值=0.5907
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4730 | 标准差=0.0632 | 最小值=0.2136 | 25分位=0.4283 | 中位数=0.4710 | 75分位=0.5245 | 最大值=0.5907
 
 ## auth_sim_emb_lg_full
 
@@ -167239,7 +167239,7 @@ Muennighoff, N., Tazi, N., Magne, L., & Reimers, N. (2023). MTEB: Massive text e
 来源阶段: 未知。 生产函数: news_process/pipeline/features/policy_similarity.py::compute_authoritative_similarity (_ghost_anchor_metrics 助手) ; news_process/pipeline/panel/stata_export.py (HEURISTIC_LABELS)。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> config/authoritative_corpus.txt (权威政策语料, 按 vintage 年份切分) -> 25_article_sbert.parquet (co-primary 嵌入引擎共享口径)。 计算公式: auth_sim_emb{track} = cos( E(银行年度聚合文本_track), E(权威政策 vintage 锚点文本) ); E = 嵌入编码器 (MAIN=Qwen/Qwen3-Embedding-8B 4096 维; _lg=text-embedding-3-large 3072 维); ghost-anchor 提取 = 对称相似度矩阵末列 sim[:-1,-1]。 本列 (panel 实名 auth_sim_emb_lg_full) 属家族 F017, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2293; mean=0.4399; max=0.6445。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2293; mean=0.4496; max=0.6445。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Zhang, Y., Li, M., Long, D., Zhang, X., Lin, H., Yang, B., Xie, P., Yang, A., Liu, D., Lin, J., Huang, F., & Zhou, J. (2025). Qwen3 Embedding: Advancing text embedding and reranking through foundation models. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2506.05176
@@ -167251,7 +167251,7 @@ You, K. (2025). Semantics at an angle: When cosine similarity works until it doe
 Neelakantan, A., Xu, T., Puri, R., Radford, A., Han, J. M., Tworek, J., Yuan, Q., Tezak, N., Kim, J. W., Hallacy, C., Heidecke, J., Shyam, P., Power, B., Nekoul, T. E., Sastry, G., Krueger, G., Schnurr, D., Such, F. P., Hsu, K., & Weng, L. (2022). Text and code embeddings by contrastive pre-training. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2201.10005
 Muennighoff, N., Tazi, N., Magne, L., & Reimers, N. (2023). MTEB: Massive text embedding benchmark. Proceedings of the 17th Conference of the European Chapter of the Association for Computational Linguistics, 2014-2037. https://doi.org/10.18653/v1/2023.eacl-main.148
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.4399 | 标准差=0.0992 | 最小值=0.2293 | 25分位=0.3534 | 中位数=0.4245 | 75分位=0.5224 | 最大值=0.6445
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4496 | 标准差=0.0956 | 最小值=0.2293 | 25分位=0.3726 | 中位数=0.4433 | 75分位=0.5221 | 最大值=0.6445
 
 ## auth_sim_tfidf_c_allv_full
 
@@ -167425,7 +167425,7 @@ Simonsohn, U., Simmons, J. P., & Nelson, L. D. (2020). Specification curve analy
 来源阶段: 未知。 生产函数: news_process/pipeline/features/policy_similarity.py::_ghost_anchor_metrics。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 权威政策语料 (policy_alignment.load_policy_corpus_docs, 全年份静态锚点) -> 25_article_sbert.parquet (co-primary 嵌入引擎 emb / emb_lg)。 计算公式: auth_sim_emb_allv{track} = cos(v_bank_year, v_anchor_allv); v_bank_year = 该银行该年聚合文本的嵌入向量, v_anchor_allv = 全年份权威政策语料静态锚点的嵌入向量 (幽灵锚点法, 取同构相似度矩阵末列 sim[:-1,-1]); emb 轨用 Qwen3-Embedding-8B, emb_lg 轨用 text-embedding-3-large。 本列 (panel 实名 auth_sim_emb_allv_full) 属家族 F016, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2337; mean=0.5293; max=0.6774。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2337; mean=0.5353; max=0.6774。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Liu, Y., Cao, Z., & Wen, F. (2024). Textual similarity between firm and government: Measurement and pricing. Economics Letters, 241, 111823. https://doi.org/10.1016/j.econlet.2024.111823
@@ -167437,7 +167437,7 @@ Muennighoff, N., Tazi, N., Magne, L., & Reimers, N. (2023). MTEB: Massive text e
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. The Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
 Rodriguez, P. L., & Spirling, A. (2022). Word embeddings: What works, what doesn't, and how to tell the difference for applied research. The Journal of Politics, 84(1), 101-115. https://doi.org/10.1086/715162
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.5293 | 标准差=0.0808 | 最小值=0.2337 | 25分位=0.4810 | 中位数=0.5272 | 75分位=0.5923 | 最大值=0.6774
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.5353 | 标准差=0.0744 | 最小值=0.2337 | 25分位=0.4851 | 中位数=0.5402 | 75分位=0.5897 | 最大值=0.6774
 
 ## auth_sim_emb_lg_allv_full
 
@@ -167470,7 +167470,7 @@ Rodriguez, P. L., & Spirling, A. (2022). Word embeddings: What works, what doesn
 来源阶段: 未知。 生产函数: news_process/pipeline/features/policy_similarity.py::_ghost_anchor_metrics。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 权威政策语料 (policy_alignment.load_policy_corpus_docs, 全年份静态锚点) -> 25_article_sbert.parquet (co-primary 嵌入引擎 emb / emb_lg)。 计算公式: auth_sim_emb_allv{track} = cos(v_bank_year, v_anchor_allv); v_bank_year = 该银行该年聚合文本的嵌入向量, v_anchor_allv = 全年份权威政策语料静态锚点的嵌入向量 (幽灵锚点法, 取同构相似度矩阵末列 sim[:-1,-1]); emb 轨用 Qwen3-Embedding-8B, emb_lg 轨用 text-embedding-3-large。 本列 (panel 实名 auth_sim_emb_lg_allv_full) 属家族 F016, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2294; mean=0.5123; max=0.7148。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2294; mean=0.5204; max=0.7148。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Liu, Y., Cao, Z., & Wen, F. (2024). Textual similarity between firm and government: Measurement and pricing. Economics Letters, 241, 111823. https://doi.org/10.1016/j.econlet.2024.111823
@@ -167482,7 +167482,7 @@ Muennighoff, N., Tazi, N., Magne, L., & Reimers, N. (2023). MTEB: Massive text e
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. The Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
 Rodriguez, P. L., & Spirling, A. (2022). Word embeddings: What works, what doesn't, and how to tell the difference for applied research. The Journal of Politics, 84(1), 101-115. https://doi.org/10.1086/715162
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.5123 | 标准差=0.1130 | 最小值=0.2294 | 25分位=0.4237 | 中位数=0.4956 | 75分位=0.6171 | 最大值=0.7148
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.5204 | 标准差=0.1080 | 最小值=0.2294 | 25分位=0.4277 | 中位数=0.5154 | 75分位=0.6131 | 最大值=0.7148
 
 ## auth_sim_tfidf_c_ctx
 
@@ -167653,7 +167653,7 @@ Caldara, D., & Iacoviello, M. (2022). Measuring geopolitical risk. American Econ
 来源阶段: 未知。 生产函数: news_process/pipeline/features/policy_similarity.py::compute_authoritative_similarity (_ghost_anchor_metrics 助手) ; news_process/pipeline/panel/stata_export.py (HEURISTIC_LABELS)。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> config/authoritative_corpus.txt (权威政策语料, 按 vintage 年份切分) -> 25_article_sbert.parquet (co-primary 嵌入引擎共享口径)。 计算公式: auth_sim_emb{track} = cos( E(银行年度聚合文本_track), E(权威政策 vintage 锚点文本) ); E = 嵌入编码器 (MAIN=Qwen/Qwen3-Embedding-8B 4096 维; _lg=text-embedding-3-large 3072 维); ghost-anchor 提取 = 对称相似度矩阵末列 sim[:-1,-1]。 本列 (panel 实名 auth_sim_emb_ctx) 属家族 F017, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2245; mean=0.4736; max=0.5767。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2245; mean=0.4788; max=0.5767。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Zhang, Y., Li, M., Long, D., Zhang, X., Lin, H., Yang, B., Xie, P., Yang, A., Liu, D., Lin, J., Huang, F., & Zhou, J. (2025). Qwen3 Embedding: Advancing text embedding and reranking through foundation models. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2506.05176
@@ -167665,7 +167665,7 @@ You, K. (2025). Semantics at an angle: When cosine similarity works until it doe
 Neelakantan, A., Xu, T., Puri, R., Radford, A., Han, J. M., Tworek, J., Yuan, Q., Tezak, N., Kim, J. W., Hallacy, C., Heidecke, J., Shyam, P., Power, B., Nekoul, T. E., Sastry, G., Krueger, G., Schnurr, D., Such, F. P., Hsu, K., & Weng, L. (2022). Text and code embeddings by contrastive pre-training. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2201.10005
 Muennighoff, N., Tazi, N., Magne, L., & Reimers, N. (2023). MTEB: Massive text embedding benchmark. Proceedings of the 17th Conference of the European Chapter of the Association for Computational Linguistics, 2014-2037. https://doi.org/10.18653/v1/2023.eacl-main.148
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.4736 | 标准差=0.0597 | 最小值=0.2245 | 25分位=0.4444 | 中位数=0.4722 | 75分位=0.5160 | 最大值=0.5767
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4788 | 标准差=0.0555 | 最小值=0.2245 | 25分位=0.4475 | 中位数=0.4814 | 75分位=0.5166 | 最大值=0.5767
 
 ## auth_sim_emb_lg_ctx
 
@@ -167701,7 +167701,7 @@ Muennighoff, N., Tazi, N., Magne, L., & Reimers, N. (2023). MTEB: Massive text e
 来源阶段: 未知。 生产函数: news_process/pipeline/features/policy_similarity.py::compute_authoritative_similarity (_ghost_anchor_metrics 助手) ; news_process/pipeline/panel/stata_export.py (HEURISTIC_LABELS)。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> config/authoritative_corpus.txt (权威政策语料, 按 vintage 年份切分) -> 25_article_sbert.parquet (co-primary 嵌入引擎共享口径)。 计算公式: auth_sim_emb{track} = cos( E(银行年度聚合文本_track), E(权威政策 vintage 锚点文本) ); E = 嵌入编码器 (MAIN=Qwen/Qwen3-Embedding-8B 4096 维; _lg=text-embedding-3-large 3072 维); ghost-anchor 提取 = 对称相似度矩阵末列 sim[:-1,-1]。 本列 (panel 实名 auth_sim_emb_lg_ctx) 属家族 F017, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2428; mean=0.4231; max=0.6195。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2428; mean=0.4269; max=0.6195。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Zhang, Y., Li, M., Long, D., Zhang, X., Lin, H., Yang, B., Xie, P., Yang, A., Liu, D., Lin, J., Huang, F., & Zhou, J. (2025). Qwen3 Embedding: Advancing text embedding and reranking through foundation models. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2506.05176
@@ -167713,7 +167713,7 @@ You, K. (2025). Semantics at an angle: When cosine similarity works until it doe
 Neelakantan, A., Xu, T., Puri, R., Radford, A., Han, J. M., Tworek, J., Yuan, Q., Tezak, N., Kim, J. W., Hallacy, C., Heidecke, J., Shyam, P., Power, B., Nekoul, T. E., Sastry, G., Krueger, G., Schnurr, D., Such, F. P., Hsu, K., & Weng, L. (2022). Text and code embeddings by contrastive pre-training. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2201.10005
 Muennighoff, N., Tazi, N., Magne, L., & Reimers, N. (2023). MTEB: Massive text embedding benchmark. Proceedings of the 17th Conference of the European Chapter of the Association for Computational Linguistics, 2014-2037. https://doi.org/10.18653/v1/2023.eacl-main.148
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.4231 | 标准差=0.0950 | 最小值=0.2428 | 25分位=0.3532 | 中位数=0.4026 | 75分位=0.4991 | 最大值=0.6195
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4269 | 标准差=0.0911 | 最小值=0.2428 | 25分位=0.3569 | 中位数=0.4111 | 75分位=0.4991 | 最大值=0.6195
 
 ## auth_sim_tfidf_c_allv_ctx
 
@@ -167861,7 +167861,7 @@ Simonsohn, U., Simmons, J. P., & Nelson, L. D. (2020). Specification curve analy
 - **标签**: 权威政策对齐度(嵌入,实体窗轨)(对等轨Qwen3-8B)(全年份锚)
 - **数据类型**: float64
 - **单位**: 余弦相似度 (无量纲, 值域 [0,1])
-- **取值范围**: [0.2479, 0.6537] (生成时实测)
+- **取值范围**: [0.2479, 0.6650] (生成时实测)
 - **计算公式**: auth_sim_emb_allv{track} = cos(v_bank_year, v_anchor_allv); v_bank_year = 该银行该年聚合文本的嵌入向量, v_anchor_allv = 全年份权威政策语料静态锚点的嵌入向量 (幽灵锚点法, 取同构相似度矩阵末列 sim[:-1,-1]); emb 轨用 Qwen3-Embedding-8B, emb_lg 轨用 text-embedding-3-large
 - **来源阶段**: 未知
 - **学术引用**: Liu, Y., Cao, Z., & Wen, F. (2024). Textual similarity between firm and government: Measurement and pricing. Economics Letters, 241, 111823. https://doi.org/10.1016/j.econlet.2024.111823 \| Zhang, Y., Li, M., Long, D., Zhang, X., Lin, H., Yang, B., Xie, P., Yang, A., Liu, D., Lin, J., Huang, F., & Zhou, J. (2025). Qwen3 Embedding: Advancing text embedding and reranking through foundation models. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2506.05176 \| You, K. (2025). Semantics at an angle: When cosine similarity works until it doesn't. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2504.16318 \| Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526 \| Neelakantan, A., Xu, T., Puri, R., Radford, A., Han, J. M., Tworek, J., Yuan, Q., Tezak, N., Kim, J. W., Hallacy, C., Heidecke, J., Shyam, P., Power, B., Nekoul, T. E., Sastry, G., Krueger, G., Schnurr, D., Such, F. P., Hsu, K., ... Weng, L. (2022). Text and code embeddings by contrastive pre-training. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2201.10005
@@ -167887,7 +167887,7 @@ Simonsohn, U., Simmons, J. P., & Nelson, L. D. (2020). Specification curve analy
 来源阶段: 未知。 生产函数: news_process/pipeline/features/policy_similarity.py::_ghost_anchor_metrics。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 权威政策语料 (policy_alignment.load_policy_corpus_docs, 全年份静态锚点) -> 25_article_sbert.parquet (co-primary 嵌入引擎 emb / emb_lg)。 计算公式: auth_sim_emb_allv{track} = cos(v_bank_year, v_anchor_allv); v_bank_year = 该银行该年聚合文本的嵌入向量, v_anchor_allv = 全年份权威政策语料静态锚点的嵌入向量 (幽灵锚点法, 取同构相似度矩阵末列 sim[:-1,-1]); emb 轨用 Qwen3-Embedding-8B, emb_lg 轨用 text-embedding-3-large。 本列 (panel 实名 auth_sim_emb_allv_ctx) 属家族 F016, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2479; mean=0.5331; max=0.6537。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2479; mean=0.5356; max=0.6650。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Liu, Y., Cao, Z., & Wen, F. (2024). Textual similarity between firm and government: Measurement and pricing. Economics Letters, 241, 111823. https://doi.org/10.1016/j.econlet.2024.111823
@@ -167899,7 +167899,7 @@ Muennighoff, N., Tazi, N., Magne, L., & Reimers, N. (2023). MTEB: Massive text e
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. The Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
 Rodriguez, P. L., & Spirling, A. (2022). Word embeddings: What works, what doesn't, and how to tell the difference for applied research. The Journal of Politics, 84(1), 101-115. https://doi.org/10.1086/715162
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.5331 | 标准差=0.0725 | 最小值=0.2479 | 25分位=0.4933 | 中位数=0.5396 | 75分位=0.5839 | 最大值=0.6537
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.5356 | 标准差=0.0672 | 最小值=0.2479 | 25分位=0.4940 | 中位数=0.5393 | 75分位=0.5839 | 最大值=0.6650
 
 ## auth_sim_emb_lg_allv_ctx
 
@@ -167932,7 +167932,7 @@ Rodriguez, P. L., & Spirling, A. (2022). Word embeddings: What works, what doesn
 来源阶段: 未知。 生产函数: news_process/pipeline/features/policy_similarity.py::_ghost_anchor_metrics。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 权威政策语料 (policy_alignment.load_policy_corpus_docs, 全年份静态锚点) -> 25_article_sbert.parquet (co-primary 嵌入引擎 emb / emb_lg)。 计算公式: auth_sim_emb_allv{track} = cos(v_bank_year, v_anchor_allv); v_bank_year = 该银行该年聚合文本的嵌入向量, v_anchor_allv = 全年份权威政策语料静态锚点的嵌入向量 (幽灵锚点法, 取同构相似度矩阵末列 sim[:-1,-1]); emb 轨用 Qwen3-Embedding-8B, emb_lg 轨用 text-embedding-3-large。 本列 (panel 实名 auth_sim_emb_lg_allv_ctx) 属家族 F016, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2343; mean=0.4919; max=0.7123。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2343; mean=0.4938; max=0.7123。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Liu, Y., Cao, Z., & Wen, F. (2024). Textual similarity between firm and government: Measurement and pricing. Economics Letters, 241, 111823. https://doi.org/10.1016/j.econlet.2024.111823
@@ -167944,7 +167944,7 @@ Muennighoff, N., Tazi, N., Magne, L., & Reimers, N. (2023). MTEB: Massive text e
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. The Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
 Rodriguez, P. L., & Spirling, A. (2022). Word embeddings: What works, what doesn't, and how to tell the difference for applied research. The Journal of Politics, 84(1), 101-115. https://doi.org/10.1086/715162
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.4919 | 标准差=0.1083 | 最小值=0.2343 | 25分位=0.4177 | 中位数=0.4828 | 75分位=0.5781 | 最大值=0.7123
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4938 | 标准差=0.1047 | 最小值=0.2343 | 25分位=0.4152 | 中位数=0.4831 | 75分位=0.5810 | 最大值=0.7123
 
 ## auth_sim_tfidf_c_ss
 
@@ -168115,7 +168115,7 @@ Caldara, D., & Iacoviello, M. (2022). Measuring geopolitical risk. American Econ
 来源阶段: 未知。 生产函数: news_process/pipeline/features/policy_similarity.py::compute_authoritative_similarity (_ghost_anchor_metrics 助手) ; news_process/pipeline/panel/stata_export.py (HEURISTIC_LABELS)。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> config/authoritative_corpus.txt (权威政策语料, 按 vintage 年份切分) -> 25_article_sbert.parquet (co-primary 嵌入引擎共享口径)。 计算公式: auth_sim_emb{track} = cos( E(银行年度聚合文本_track), E(权威政策 vintage 锚点文本) ); E = 嵌入编码器 (MAIN=Qwen/Qwen3-Embedding-8B 4096 维; _lg=text-embedding-3-large 3072 维); ghost-anchor 提取 = 对称相似度矩阵末列 sim[:-1,-1]。 本列 (panel 实名 auth_sim_emb_ss) 属家族 F017, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2513; mean=0.4725; max=0.5808。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2513; mean=0.4775; max=0.5808。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Zhang, Y., Li, M., Long, D., Zhang, X., Lin, H., Yang, B., Xie, P., Yang, A., Liu, D., Lin, J., Huang, F., & Zhou, J. (2025). Qwen3 Embedding: Advancing text embedding and reranking through foundation models. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2506.05176
@@ -168127,7 +168127,7 @@ You, K. (2025). Semantics at an angle: When cosine similarity works until it doe
 Neelakantan, A., Xu, T., Puri, R., Radford, A., Han, J. M., Tworek, J., Yuan, Q., Tezak, N., Kim, J. W., Hallacy, C., Heidecke, J., Shyam, P., Power, B., Nekoul, T. E., Sastry, G., Krueger, G., Schnurr, D., Such, F. P., Hsu, K., & Weng, L. (2022). Text and code embeddings by contrastive pre-training. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2201.10005
 Muennighoff, N., Tazi, N., Magne, L., & Reimers, N. (2023). MTEB: Massive text embedding benchmark. Proceedings of the 17th Conference of the European Chapter of the Association for Computational Linguistics, 2014-2037. https://doi.org/10.18653/v1/2023.eacl-main.148
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.4725 | 标准差=0.0601 | 最小值=0.2513 | 25分位=0.4372 | 中位数=0.4798 | 75分位=0.5177 | 最大值=0.5808
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4775 | 标准差=0.0549 | 最小值=0.2513 | 25分位=0.4455 | 中位数=0.4835 | 75分位=0.5137 | 最大值=0.5808
 
 ## auth_sim_emb_lg_ss
 
@@ -168163,7 +168163,7 @@ Muennighoff, N., Tazi, N., Magne, L., & Reimers, N. (2023). MTEB: Massive text e
 来源阶段: 未知。 生产函数: news_process/pipeline/features/policy_similarity.py::compute_authoritative_similarity (_ghost_anchor_metrics 助手) ; news_process/pipeline/panel/stata_export.py (HEURISTIC_LABELS)。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> config/authoritative_corpus.txt (权威政策语料, 按 vintage 年份切分) -> 25_article_sbert.parquet (co-primary 嵌入引擎共享口径)。 计算公式: auth_sim_emb{track} = cos( E(银行年度聚合文本_track), E(权威政策 vintage 锚点文本) ); E = 嵌入编码器 (MAIN=Qwen/Qwen3-Embedding-8B 4096 维; _lg=text-embedding-3-large 3072 维); ghost-anchor 提取 = 对称相似度矩阵末列 sim[:-1,-1]。 本列 (panel 实名 auth_sim_emb_lg_ss) 属家族 F017, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2307; mean=0.4076; max=0.6414。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2307; mean=0.4126; max=0.6414。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Zhang, Y., Li, M., Long, D., Zhang, X., Lin, H., Yang, B., Xie, P., Yang, A., Liu, D., Lin, J., Huang, F., & Zhou, J. (2025). Qwen3 Embedding: Advancing text embedding and reranking through foundation models. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2506.05176
@@ -168175,7 +168175,7 @@ You, K. (2025). Semantics at an angle: When cosine similarity works until it doe
 Neelakantan, A., Xu, T., Puri, R., Radford, A., Han, J. M., Tworek, J., Yuan, Q., Tezak, N., Kim, J. W., Hallacy, C., Heidecke, J., Shyam, P., Power, B., Nekoul, T. E., Sastry, G., Krueger, G., Schnurr, D., Such, F. P., Hsu, K., & Weng, L. (2022). Text and code embeddings by contrastive pre-training. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2201.10005
 Muennighoff, N., Tazi, N., Magne, L., & Reimers, N. (2023). MTEB: Massive text embedding benchmark. Proceedings of the 17th Conference of the European Chapter of the Association for Computational Linguistics, 2014-2037. https://doi.org/10.18653/v1/2023.eacl-main.148
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.4076 | 标准差=0.0910 | 最小值=0.2307 | 25分位=0.3424 | 中位数=0.3771 | 75分位=0.4667 | 最大值=0.6414
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4126 | 标准差=0.0876 | 最小值=0.2307 | 25分位=0.3463 | 中位数=0.4060 | 75分位=0.4771 | 最大值=0.6414
 
 ## auth_sim_tfidf_c_allv_ss
 
@@ -168323,7 +168323,7 @@ Simonsohn, U., Simmons, J. P., & Nelson, L. D. (2020). Specification curve analy
 - **标签**: 权威政策对齐度(嵌入,同句轨)(对等轨Qwen3-8B)(全年份锚)
 - **数据类型**: float64
 - **单位**: 余弦相似度 (无量纲, 值域 [0,1])
-- **取值范围**: [0.2644, 0.6584] (生成时实测)
+- **取值范围**: [0.2644, 0.6650] (生成时实测)
 - **计算公式**: auth_sim_emb_allv{track} = cos(v_bank_year, v_anchor_allv); v_bank_year = 该银行该年聚合文本的嵌入向量, v_anchor_allv = 全年份权威政策语料静态锚点的嵌入向量 (幽灵锚点法, 取同构相似度矩阵末列 sim[:-1,-1]); emb 轨用 Qwen3-Embedding-8B, emb_lg 轨用 text-embedding-3-large
 - **来源阶段**: 未知
 - **学术引用**: Liu, Y., Cao, Z., & Wen, F. (2024). Textual similarity between firm and government: Measurement and pricing. Economics Letters, 241, 111823. https://doi.org/10.1016/j.econlet.2024.111823 \| Zhang, Y., Li, M., Long, D., Zhang, X., Lin, H., Yang, B., Xie, P., Yang, A., Liu, D., Lin, J., Huang, F., & Zhou, J. (2025). Qwen3 Embedding: Advancing text embedding and reranking through foundation models. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2506.05176 \| You, K. (2025). Semantics at an angle: When cosine similarity works until it doesn't. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2504.16318 \| Steck, H., Ekanadham, C., & Kallus, N. (2024). Is cosine-similarity of embeddings really about similarity? Companion Proceedings of the ACM Web Conference 2024, 887-890. https://doi.org/10.1145/3589335.3651526 \| Neelakantan, A., Xu, T., Puri, R., Radford, A., Han, J. M., Tworek, J., Yuan, Q., Tezak, N., Kim, J. W., Hallacy, C., Heidecke, J., Shyam, P., Power, B., Nekoul, T. E., Sastry, G., Krueger, G., Schnurr, D., Such, F. P., Hsu, K., ... Weng, L. (2022). Text and code embeddings by contrastive pre-training. arXiv [Preprint]. https://doi.org/10.48550/arXiv.2201.10005
@@ -168349,7 +168349,7 @@ Simonsohn, U., Simmons, J. P., & Nelson, L. D. (2020). Specification curve analy
 来源阶段: 未知。 生产函数: news_process/pipeline/features/policy_similarity.py::_ghost_anchor_metrics。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 权威政策语料 (policy_alignment.load_policy_corpus_docs, 全年份静态锚点) -> 25_article_sbert.parquet (co-primary 嵌入引擎 emb / emb_lg)。 计算公式: auth_sim_emb_allv{track} = cos(v_bank_year, v_anchor_allv); v_bank_year = 该银行该年聚合文本的嵌入向量, v_anchor_allv = 全年份权威政策语料静态锚点的嵌入向量 (幽灵锚点法, 取同构相似度矩阵末列 sim[:-1,-1]); emb 轨用 Qwen3-Embedding-8B, emb_lg 轨用 text-embedding-3-large。 本列 (panel 实名 auth_sim_emb_allv_ss) 属家族 F016, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2644; mean=0.5299; max=0.6584。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2644; mean=0.5316; max=0.6650。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Liu, Y., Cao, Z., & Wen, F. (2024). Textual similarity between firm and government: Measurement and pricing. Economics Letters, 241, 111823. https://doi.org/10.1016/j.econlet.2024.111823
@@ -168361,7 +168361,7 @@ Muennighoff, N., Tazi, N., Magne, L., & Reimers, N. (2023). MTEB: Massive text e
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. The Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
 Rodriguez, P. L., & Spirling, A. (2022). Word embeddings: What works, what doesn't, and how to tell the difference for applied research. The Journal of Politics, 84(1), 101-115. https://doi.org/10.1086/715162
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.5299 | 标准差=0.0720 | 最小值=0.2644 | 25分位=0.4876 | 中位数=0.5414 | 75分位=0.5778 | 最大值=0.6584
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.5316 | 标准差=0.0665 | 最小值=0.2644 | 25分位=0.4895 | 中位数=0.5409 | 75分位=0.5789 | 最大值=0.6650
 
 ## auth_sim_emb_lg_allv_ss
 
@@ -168394,7 +168394,7 @@ Rodriguez, P. L., & Spirling, A. (2022). Word embeddings: What works, what doesn
 来源阶段: 未知。 生产函数: news_process/pipeline/features/policy_similarity.py::_ghost_anchor_metrics。 上游依赖: 14_materialize_ctx.parquet (content_full / content_ctx / content_ss) -> 权威政策语料 (policy_alignment.load_policy_corpus_docs, 全年份静态锚点) -> 25_article_sbert.parquet (co-primary 嵌入引擎 emb / emb_lg)。 计算公式: auth_sim_emb_allv{track} = cos(v_bank_year, v_anchor_allv); v_bank_year = 该银行该年聚合文本的嵌入向量, v_anchor_allv = 全年份权威政策语料静态锚点的嵌入向量 (幽灵锚点法, 取同构相似度矩阵末列 sim[:-1,-1]); emb 轨用 Qwen3-Embedding-8B, emb_lg 轨用 text-embedding-3-large。 本列 (panel 实名 auth_sim_emb_lg_allv_ss) 属家族 F016, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=75; 缺失率=56.40%; min=0.2286; mean=0.4775; max=0.6922。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.2286; mean=0.4808; max=0.6922。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Liu, Y., Cao, Z., & Wen, F. (2024). Textual similarity between firm and government: Measurement and pricing. Economics Letters, 241, 111823. https://doi.org/10.1016/j.econlet.2024.111823
@@ -168406,7 +168406,7 @@ Muennighoff, N., Tazi, N., Magne, L., & Reimers, N. (2023). MTEB: Massive text e
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. The Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
 Rodriguez, P. L., & Spirling, A. (2022). Word embeddings: What works, what doesn't, and how to tell the difference for applied research. The Journal of Politics, 84(1), 101-115. https://doi.org/10.1086/715162
 
-**统计信息**: 观测数=172 | 缺失数=97 | 缺失率=56.40% | 均值=0.4775 | 标准差=0.1041 | 最小值=0.2286 | 25分位=0.4049 | 中位数=0.4644 | 75分位=0.5640 | 最大值=0.6922
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4808 | 标准差=0.1012 | 最小值=0.2286 | 25分位=0.4024 | 中位数=0.4719 | 75分位=0.5713 | 最大值=0.6922
 
 ## benefit_mean_full
 
@@ -168601,7 +168601,7 @@ Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis fo
 来源阶段: 未知。 生产函数: news_process/pipeline/features/benefit_society.py::compute_benefit_society_panel (审计对照链路 = pipeline/features/benefit_society_audit_combined.py, audit-only, 产 80_alt_anchor_and_placebo_panel.parquet, 不触碰主面板)。 上游依赖: 14_materialize_ctx 物化的三轨文本列 content_full / content_ctx / content_ss (含 ss_is_fallback) -> embedding_engine.embed_texts 统一嵌入引擎 (canonical = Qwen/Qwen3-Embedding-8B 4096 维; _lg = text-embedding-3-large 3072 维) -> 27_benefit_direction 方向向量 .npy 与 _lg 对偶 (各带 .sidecar.json 记 model_id/dim) -> data/processed/_benefit_center_sidecar.json (pos/neg_frac 阈值中心冻结 sidecar)。 计算公式: 文章级 a_j = cos(s_j, p), p = mean(POSITIVE_ANCHORS 嵌入) - mean(NEGATIVE_ANCHORS 嵌入) (Jha-Liu-Manela 双极锚点投影); bank-year 聚合: benefit_pos_frac = mean(a_j > c), benefit_neg_frac = mean(a_j < c), c = 冻结 pooled median (每 score 列独立条目, _benefit_center_sidecar.json, 记 model_id 且不匹配即 fail-loud); benefit_std = std(a_j, ddof=1), 单观测保持 NaN 不 fillna(0)。 本列 (panel 实名 benefit_pos_frac_full) 属家族 F110, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.4856; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.4630; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -168629,7 +168629,7 @@ Gorovaia, N., & Makrominas, M. (2025). Identifying greenwashing in corporate-soc
 Okeke, A. (2026). Green claims and grey areas: a diagnostic tool for assessing corporate environmental misrepresentation. International Journal of Disclosure and Governance. https://doi.org/10.1057/s41310-026-00371-1
 Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 
-**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4856 | 标准差=0.3980 | 最小值=0.0000 | 25分位=0.0000 | 中位数=0.5000 | 75分位=1.0000 | 最大值=1.0000
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4630 | 标准差=0.3991 | 最小值=0.0000 | 25分位=0.0000 | 中位数=0.4444 | 75分位=0.9722 | 最大值=1.0000
 
 ## benefit_neg_frac_full
 
@@ -168673,7 +168673,7 @@ Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis fo
 来源阶段: 未知。 生产函数: news_process/pipeline/features/benefit_society.py::compute_benefit_society_panel (审计对照链路 = pipeline/features/benefit_society_audit_combined.py, audit-only, 产 80_alt_anchor_and_placebo_panel.parquet, 不触碰主面板)。 上游依赖: 14_materialize_ctx 物化的三轨文本列 content_full / content_ctx / content_ss (含 ss_is_fallback) -> embedding_engine.embed_texts 统一嵌入引擎 (canonical = Qwen/Qwen3-Embedding-8B 4096 维; _lg = text-embedding-3-large 3072 维) -> 27_benefit_direction 方向向量 .npy 与 _lg 对偶 (各带 .sidecar.json 记 model_id/dim) -> data/processed/_benefit_center_sidecar.json (pos/neg_frac 阈值中心冻结 sidecar)。 计算公式: 文章级 a_j = cos(s_j, p), p = mean(POSITIVE_ANCHORS 嵌入) - mean(NEGATIVE_ANCHORS 嵌入) (Jha-Liu-Manela 双极锚点投影); bank-year 聚合: benefit_pos_frac = mean(a_j > c), benefit_neg_frac = mean(a_j < c), c = 冻结 pooled median (每 score 列独立条目, _benefit_center_sidecar.json, 记 model_id 且不匹配即 fail-loud); benefit_std = std(a_j, ddof=1), 单观测保持 NaN 不 fillna(0)。 本列 (panel 实名 benefit_neg_frac_full) 属家族 F110, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.5140; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.5368; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -168701,7 +168701,7 @@ Gorovaia, N., & Makrominas, M. (2025). Identifying greenwashing in corporate-soc
 Okeke, A. (2026). Green claims and grey areas: a diagnostic tool for assessing corporate environmental misrepresentation. International Journal of Disclosure and Governance. https://doi.org/10.1057/s41310-026-00371-1
 Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 
-**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.5140 | 标准差=0.3978 | 最小值=0.0000 | 25分位=0.0000 | 中位数=0.5000 | 75分位=1.0000 | 最大值=1.0000
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.5368 | 标准差=0.3990 | 最小值=0.0000 | 25分位=0.0278 | 中位数=0.5556 | 75分位=1.0000 | 最大值=1.0000
 
 ## benefit_mean_ctx
 
@@ -168896,7 +168896,7 @@ Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis fo
 来源阶段: 未知。 生产函数: news_process/pipeline/features/benefit_society.py::compute_benefit_society_panel (审计对照链路 = pipeline/features/benefit_society_audit_combined.py, audit-only, 产 80_alt_anchor_and_placebo_panel.parquet, 不触碰主面板)。 上游依赖: 14_materialize_ctx 物化的三轨文本列 content_full / content_ctx / content_ss (含 ss_is_fallback) -> embedding_engine.embed_texts 统一嵌入引擎 (canonical = Qwen/Qwen3-Embedding-8B 4096 维; _lg = text-embedding-3-large 3072 维) -> 27_benefit_direction 方向向量 .npy 与 _lg 对偶 (各带 .sidecar.json 记 model_id/dim) -> data/processed/_benefit_center_sidecar.json (pos/neg_frac 阈值中心冻结 sidecar)。 计算公式: 文章级 a_j = cos(s_j, p), p = mean(POSITIVE_ANCHORS 嵌入) - mean(NEGATIVE_ANCHORS 嵌入) (Jha-Liu-Manela 双极锚点投影); bank-year 聚合: benefit_pos_frac = mean(a_j > c), benefit_neg_frac = mean(a_j < c), c = 冻结 pooled median (每 score 列独立条目, _benefit_center_sidecar.json, 记 model_id 且不匹配即 fail-loud); benefit_std = std(a_j, ddof=1), 单观测保持 NaN 不 fillna(0)。 本列 (panel 实名 benefit_pos_frac_ctx) 属家族 F110, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.4236; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.4115; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -168924,7 +168924,7 @@ Gorovaia, N., & Makrominas, M. (2025). Identifying greenwashing in corporate-soc
 Okeke, A. (2026). Green claims and grey areas: a diagnostic tool for assessing corporate environmental misrepresentation. International Journal of Disclosure and Governance. https://doi.org/10.1057/s41310-026-00371-1
 Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 
-**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4236 | 标准差=0.3933 | 最小值=0.0000 | 25分位=0.0000 | 中位数=0.4444 | 75分位=0.7889 | 最大值=1.0000
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4115 | 标准差=0.3878 | 最小值=0.0000 | 25分位=0.0000 | 中位数=0.4118 | 75分位=0.7639 | 最大值=1.0000
 
 ## benefit_neg_frac_ctx
 
@@ -168968,7 +168968,7 @@ Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis fo
 来源阶段: 未知。 生产函数: news_process/pipeline/features/benefit_society.py::compute_benefit_society_panel (审计对照链路 = pipeline/features/benefit_society_audit_combined.py, audit-only, 产 80_alt_anchor_and_placebo_panel.parquet, 不触碰主面板)。 上游依赖: 14_materialize_ctx 物化的三轨文本列 content_full / content_ctx / content_ss (含 ss_is_fallback) -> embedding_engine.embed_texts 统一嵌入引擎 (canonical = Qwen/Qwen3-Embedding-8B 4096 维; _lg = text-embedding-3-large 3072 维) -> 27_benefit_direction 方向向量 .npy 与 _lg 对偶 (各带 .sidecar.json 记 model_id/dim) -> data/processed/_benefit_center_sidecar.json (pos/neg_frac 阈值中心冻结 sidecar)。 计算公式: 文章级 a_j = cos(s_j, p), p = mean(POSITIVE_ANCHORS 嵌入) - mean(NEGATIVE_ANCHORS 嵌入) (Jha-Liu-Manela 双极锚点投影); bank-year 聚合: benefit_pos_frac = mean(a_j > c), benefit_neg_frac = mean(a_j < c), c = 冻结 pooled median (每 score 列独立条目, _benefit_center_sidecar.json, 记 model_id 且不匹配即 fail-loud); benefit_std = std(a_j, ddof=1), 单观测保持 NaN 不 fillna(0)。 本列 (panel 实名 benefit_neg_frac_ctx) 属家族 F110, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.5763; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.5841; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -168996,7 +168996,7 @@ Gorovaia, N., & Makrominas, M. (2025). Identifying greenwashing in corporate-soc
 Okeke, A. (2026). Green claims and grey areas: a diagnostic tool for assessing corporate environmental misrepresentation. International Journal of Disclosure and Governance. https://doi.org/10.1057/s41310-026-00371-1
 Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 
-**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.5763 | 标准差=0.3934 | 最小值=0.0000 | 25分位=0.2111 | 中位数=0.5556 | 75分位=1.0000 | 最大值=1.0000
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.5841 | 标准差=0.3916 | 最小值=0.0000 | 25分位=0.2111 | 中位数=0.5882 | 75分位=1.0000 | 最大值=1.0000
 
 ## benefit_mean_ss
 
@@ -169191,7 +169191,7 @@ Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis fo
 来源阶段: 未知。 生产函数: news_process/pipeline/features/benefit_society.py::compute_benefit_society_panel (审计对照链路 = pipeline/features/benefit_society_audit_combined.py, audit-only, 产 80_alt_anchor_and_placebo_panel.parquet, 不触碰主面板)。 上游依赖: 14_materialize_ctx 物化的三轨文本列 content_full / content_ctx / content_ss (含 ss_is_fallback) -> embedding_engine.embed_texts 统一嵌入引擎 (canonical = Qwen/Qwen3-Embedding-8B 4096 维; _lg = text-embedding-3-large 3072 维) -> 27_benefit_direction 方向向量 .npy 与 _lg 对偶 (各带 .sidecar.json 记 model_id/dim) -> data/processed/_benefit_center_sidecar.json (pos/neg_frac 阈值中心冻结 sidecar)。 计算公式: 文章级 a_j = cos(s_j, p), p = mean(POSITIVE_ANCHORS 嵌入) - mean(NEGATIVE_ANCHORS 嵌入) (Jha-Liu-Manela 双极锚点投影); bank-year 聚合: benefit_pos_frac = mean(a_j > c), benefit_neg_frac = mean(a_j < c), c = 冻结 pooled median (每 score 列独立条目, _benefit_center_sidecar.json, 记 model_id 且不匹配即 fail-loud); benefit_std = std(a_j, ddof=1), 单观测保持 NaN 不 fillna(0)。 本列 (panel 实名 benefit_pos_frac_ss) 属家族 F110, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.4514; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.4119; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -169219,7 +169219,7 @@ Gorovaia, N., & Makrominas, M. (2025). Identifying greenwashing in corporate-soc
 Okeke, A. (2026). Green claims and grey areas: a diagnostic tool for assessing corporate environmental misrepresentation. International Journal of Disclosure and Governance. https://doi.org/10.1057/s41310-026-00371-1
 Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 
-**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4514 | 标准差=0.4050 | 最小值=0.0000 | 25分位=0.0000 | 中位数=0.5000 | 75分位=0.8167 | 最大值=1.0000
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4119 | 标准差=0.3918 | 最小值=0.0000 | 25分位=0.0000 | 中位数=0.4615 | 75分位=0.7639 | 最大值=1.0000
 
 ## benefit_neg_frac_ss
 
@@ -169263,7 +169263,7 @@ Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis fo
 来源阶段: 未知。 生产函数: news_process/pipeline/features/benefit_society.py::compute_benefit_society_panel (审计对照链路 = pipeline/features/benefit_society_audit_combined.py, audit-only, 产 80_alt_anchor_and_placebo_panel.parquet, 不触碰主面板)。 上游依赖: 14_materialize_ctx 物化的三轨文本列 content_full / content_ctx / content_ss (含 ss_is_fallback) -> embedding_engine.embed_texts 统一嵌入引擎 (canonical = Qwen/Qwen3-Embedding-8B 4096 维; _lg = text-embedding-3-large 3072 维) -> 27_benefit_direction 方向向量 .npy 与 _lg 对偶 (各带 .sidecar.json 记 model_id/dim) -> data/processed/_benefit_center_sidecar.json (pos/neg_frac 阈值中心冻结 sidecar)。 计算公式: 文章级 a_j = cos(s_j, p), p = mean(POSITIVE_ANCHORS 嵌入) - mean(NEGATIVE_ANCHORS 嵌入) (Jha-Liu-Manela 双极锚点投影); bank-year 聚合: benefit_pos_frac = mean(a_j > c), benefit_neg_frac = mean(a_j < c), c = 冻结 pooled median (每 score 列独立条目, _benefit_center_sidecar.json, 记 model_id 且不匹配即 fail-loud); benefit_std = std(a_j, ddof=1), 单观测保持 NaN 不 fillna(0)。 本列 (panel 实名 benefit_neg_frac_ss) 属家族 F110, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.5485; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.5878; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -169291,7 +169291,7 @@ Gorovaia, N., & Makrominas, M. (2025). Identifying greenwashing in corporate-soc
 Okeke, A. (2026). Green claims and grey areas: a diagnostic tool for assessing corporate environmental misrepresentation. International Journal of Disclosure and Governance. https://doi.org/10.1057/s41310-026-00371-1
 Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 
-**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.5485 | 标准差=0.4050 | 最小值=0.0000 | 25分位=0.1833 | 中位数=0.5000 | 75分位=1.0000 | 最大值=1.0000
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.5878 | 标准差=0.3919 | 最小值=0.0000 | 25分位=0.2361 | 中位数=0.5385 | 75分位=1.0000 | 最大值=1.0000
 
 ## benefit_mean_lg_full
 
@@ -169486,7 +169486,7 @@ Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis fo
 来源阶段: 未知。 生产函数: news_process/pipeline/features/benefit_society.py::compute_benefit_society_panel (审计对照链路 = pipeline/features/benefit_society_audit_combined.py, audit-only, 产 80_alt_anchor_and_placebo_panel.parquet, 不触碰主面板)。 上游依赖: 14_materialize_ctx 物化的三轨文本列 content_full / content_ctx / content_ss (含 ss_is_fallback) -> embedding_engine.embed_texts 统一嵌入引擎 (canonical = Qwen/Qwen3-Embedding-8B 4096 维; _lg = text-embedding-3-large 3072 维) -> 27_benefit_direction 方向向量 .npy 与 _lg 对偶 (各带 .sidecar.json 记 model_id/dim) -> data/processed/_benefit_center_sidecar.json (pos/neg_frac 阈值中心冻结 sidecar)。 计算公式: 文章级 a_j = cos(s_j, p), p = mean(POSITIVE_ANCHORS 嵌入) - mean(NEGATIVE_ANCHORS 嵌入) (Jha-Liu-Manela 双极锚点投影); bank-year 聚合: benefit_pos_frac = mean(a_j > c), benefit_neg_frac = mean(a_j < c), c = 冻结 pooled median (每 score 列独立条目, _benefit_center_sidecar.json, 记 model_id 且不匹配即 fail-loud); benefit_std = std(a_j, ddof=1), 单观测保持 NaN 不 fillna(0)。 本列 (panel 实名 benefit_pos_frac_lg_full) 属家族 F110, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.4624; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.4462; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -169514,7 +169514,7 @@ Gorovaia, N., & Makrominas, M. (2025). Identifying greenwashing in corporate-soc
 Okeke, A. (2026). Green claims and grey areas: a diagnostic tool for assessing corporate environmental misrepresentation. International Journal of Disclosure and Governance. https://doi.org/10.1057/s41310-026-00371-1
 Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 
-**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4624 | 标准差=0.4179 | 最小值=0.0000 | 25分位=0.0000 | 中位数=0.4500 | 75分位=1.0000 | 最大值=1.0000
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4462 | 标准差=0.4196 | 最小值=0.0000 | 25分位=0.0000 | 中位数=0.4038 | 75分位=1.0000 | 最大值=1.0000
 
 ## benefit_neg_frac_lg_full
 
@@ -169558,7 +169558,7 @@ Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis fo
 来源阶段: 未知。 生产函数: news_process/pipeline/features/benefit_society.py::compute_benefit_society_panel (审计对照链路 = pipeline/features/benefit_society_audit_combined.py, audit-only, 产 80_alt_anchor_and_placebo_panel.parquet, 不触碰主面板)。 上游依赖: 14_materialize_ctx 物化的三轨文本列 content_full / content_ctx / content_ss (含 ss_is_fallback) -> embedding_engine.embed_texts 统一嵌入引擎 (canonical = Qwen/Qwen3-Embedding-8B 4096 维; _lg = text-embedding-3-large 3072 维) -> 27_benefit_direction 方向向量 .npy 与 _lg 对偶 (各带 .sidecar.json 记 model_id/dim) -> data/processed/_benefit_center_sidecar.json (pos/neg_frac 阈值中心冻结 sidecar)。 计算公式: 文章级 a_j = cos(s_j, p), p = mean(POSITIVE_ANCHORS 嵌入) - mean(NEGATIVE_ANCHORS 嵌入) (Jha-Liu-Manela 双极锚点投影); bank-year 聚合: benefit_pos_frac = mean(a_j > c), benefit_neg_frac = mean(a_j < c), c = 冻结 pooled median (每 score 列独立条目, _benefit_center_sidecar.json, 记 model_id 且不匹配即 fail-loud); benefit_std = std(a_j, ddof=1), 单观测保持 NaN 不 fillna(0)。 本列 (panel 实名 benefit_neg_frac_lg_full) 属家族 F110, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.5376; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.5533; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -169586,7 +169586,7 @@ Gorovaia, N., & Makrominas, M. (2025). Identifying greenwashing in corporate-soc
 Okeke, A. (2026). Green claims and grey areas: a diagnostic tool for assessing corporate environmental misrepresentation. International Journal of Disclosure and Governance. https://doi.org/10.1057/s41310-026-00371-1
 Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 
-**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.5376 | 标准差=0.4179 | 最小值=0.0000 | 25分位=0.0000 | 中位数=0.5500 | 75分位=1.0000 | 最大值=1.0000
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.5533 | 标准差=0.4194 | 最小值=0.0000 | 25分位=0.0000 | 中位数=0.5962 | 75分位=1.0000 | 最大值=1.0000
 
 ## benefit_mean_lg_ctx
 
@@ -169781,7 +169781,7 @@ Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis fo
 来源阶段: 未知。 生产函数: news_process/pipeline/features/benefit_society.py::compute_benefit_society_panel (审计对照链路 = pipeline/features/benefit_society_audit_combined.py, audit-only, 产 80_alt_anchor_and_placebo_panel.parquet, 不触碰主面板)。 上游依赖: 14_materialize_ctx 物化的三轨文本列 content_full / content_ctx / content_ss (含 ss_is_fallback) -> embedding_engine.embed_texts 统一嵌入引擎 (canonical = Qwen/Qwen3-Embedding-8B 4096 维; _lg = text-embedding-3-large 3072 维) -> 27_benefit_direction 方向向量 .npy 与 _lg 对偶 (各带 .sidecar.json 记 model_id/dim) -> data/processed/_benefit_center_sidecar.json (pos/neg_frac 阈值中心冻结 sidecar)。 计算公式: 文章级 a_j = cos(s_j, p), p = mean(POSITIVE_ANCHORS 嵌入) - mean(NEGATIVE_ANCHORS 嵌入) (Jha-Liu-Manela 双极锚点投影); bank-year 聚合: benefit_pos_frac = mean(a_j > c), benefit_neg_frac = mean(a_j < c), c = 冻结 pooled median (每 score 列独立条目, _benefit_center_sidecar.json, 记 model_id 且不匹配即 fail-loud); benefit_std = std(a_j, ddof=1), 单观测保持 NaN 不 fillna(0)。 本列 (panel 实名 benefit_pos_frac_lg_ctx) 属家族 F110, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.4851; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.4501; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -169809,7 +169809,7 @@ Gorovaia, N., & Makrominas, M. (2025). Identifying greenwashing in corporate-soc
 Okeke, A. (2026). Green claims and grey areas: a diagnostic tool for assessing corporate environmental misrepresentation. International Journal of Disclosure and Governance. https://doi.org/10.1057/s41310-026-00371-1
 Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 
-**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4851 | 标准差=0.4126 | 最小值=0.0000 | 25分位=0.0000 | 中位数=0.5000 | 75分位=1.0000 | 最大值=1.0000
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4501 | 标准差=0.4067 | 最小值=0.0000 | 25分位=0.0000 | 中位数=0.4500 | 75分位=1.0000 | 最大值=1.0000
 
 ## benefit_neg_frac_lg_ctx
 
@@ -169853,7 +169853,7 @@ Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis fo
 来源阶段: 未知。 生产函数: news_process/pipeline/features/benefit_society.py::compute_benefit_society_panel (审计对照链路 = pipeline/features/benefit_society_audit_combined.py, audit-only, 产 80_alt_anchor_and_placebo_panel.parquet, 不触碰主面板)。 上游依赖: 14_materialize_ctx 物化的三轨文本列 content_full / content_ctx / content_ss (含 ss_is_fallback) -> embedding_engine.embed_texts 统一嵌入引擎 (canonical = Qwen/Qwen3-Embedding-8B 4096 维; _lg = text-embedding-3-large 3072 维) -> 27_benefit_direction 方向向量 .npy 与 _lg 对偶 (各带 .sidecar.json 记 model_id/dim) -> data/processed/_benefit_center_sidecar.json (pos/neg_frac 阈值中心冻结 sidecar)。 计算公式: 文章级 a_j = cos(s_j, p), p = mean(POSITIVE_ANCHORS 嵌入) - mean(NEGATIVE_ANCHORS 嵌入) (Jha-Liu-Manela 双极锚点投影); bank-year 聚合: benefit_pos_frac = mean(a_j > c), benefit_neg_frac = mean(a_j < c), c = 冻结 pooled median (每 score 列独立条目, _benefit_center_sidecar.json, 记 model_id 且不匹配即 fail-loud); benefit_std = std(a_j, ddof=1), 单观测保持 NaN 不 fillna(0)。 本列 (panel 实名 benefit_neg_frac_lg_ctx) 属家族 F110, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.5139; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.5412; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -169881,7 +169881,7 @@ Gorovaia, N., & Makrominas, M. (2025). Identifying greenwashing in corporate-soc
 Okeke, A. (2026). Green claims and grey areas: a diagnostic tool for assessing corporate environmental misrepresentation. International Journal of Disclosure and Governance. https://doi.org/10.1057/s41310-026-00371-1
 Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 
-**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.5139 | 标准差=0.4121 | 最小值=0.0000 | 25分位=0.0000 | 中位数=0.5000 | 75分位=1.0000 | 最大值=1.0000
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.5412 | 标准差=0.4077 | 最小值=0.0000 | 25分位=0.0000 | 中位数=0.5238 | 75分位=1.0000 | 最大值=1.0000
 
 ## benefit_mean_lg_ss
 
@@ -170076,7 +170076,7 @@ Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis fo
 来源阶段: 未知。 生产函数: news_process/pipeline/features/benefit_society.py::compute_benefit_society_panel (审计对照链路 = pipeline/features/benefit_society_audit_combined.py, audit-only, 产 80_alt_anchor_and_placebo_panel.parquet, 不触碰主面板)。 上游依赖: 14_materialize_ctx 物化的三轨文本列 content_full / content_ctx / content_ss (含 ss_is_fallback) -> embedding_engine.embed_texts 统一嵌入引擎 (canonical = Qwen/Qwen3-Embedding-8B 4096 维; _lg = text-embedding-3-large 3072 维) -> 27_benefit_direction 方向向量 .npy 与 _lg 对偶 (各带 .sidecar.json 记 model_id/dim) -> data/processed/_benefit_center_sidecar.json (pos/neg_frac 阈值中心冻结 sidecar)。 计算公式: 文章级 a_j = cos(s_j, p), p = mean(POSITIVE_ANCHORS 嵌入) - mean(NEGATIVE_ANCHORS 嵌入) (Jha-Liu-Manela 双极锚点投影); bank-year 聚合: benefit_pos_frac = mean(a_j > c), benefit_neg_frac = mean(a_j < c), c = 冻结 pooled median (每 score 列独立条目, _benefit_center_sidecar.json, 记 model_id 且不匹配即 fail-loud); benefit_std = std(a_j, ddof=1), 单观测保持 NaN 不 fillna(0)。 本列 (panel 实名 benefit_pos_frac_lg_ss) 属家族 F110, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.4734; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.4488; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -170104,7 +170104,7 @@ Gorovaia, N., & Makrominas, M. (2025). Identifying greenwashing in corporate-soc
 Okeke, A. (2026). Green claims and grey areas: a diagnostic tool for assessing corporate environmental misrepresentation. International Journal of Disclosure and Governance. https://doi.org/10.1057/s41310-026-00371-1
 Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 
-**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4734 | 标准差=0.4083 | 最小值=0.0000 | 25分位=0.0000 | 中位数=0.5000 | 75分位=1.0000 | 最大值=1.0000
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.4488 | 标准差=0.4106 | 最小值=0.0000 | 25分位=0.0000 | 中位数=0.4750 | 75分位=1.0000 | 最大值=1.0000
 
 ## benefit_neg_frac_lg_ss
 
@@ -170148,7 +170148,7 @@ Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis fo
 来源阶段: 未知。 生产函数: news_process/pipeline/features/benefit_society.py::compute_benefit_society_panel (审计对照链路 = pipeline/features/benefit_society_audit_combined.py, audit-only, 产 80_alt_anchor_and_placebo_panel.parquet, 不触碰主面板)。 上游依赖: 14_materialize_ctx 物化的三轨文本列 content_full / content_ctx / content_ss (含 ss_is_fallback) -> embedding_engine.embed_texts 统一嵌入引擎 (canonical = Qwen/Qwen3-Embedding-8B 4096 维; _lg = text-embedding-3-large 3072 维) -> 27_benefit_direction 方向向量 .npy 与 _lg 对偶 (各带 .sidecar.json 记 model_id/dim) -> data/processed/_benefit_center_sidecar.json (pos/neg_frac 阈值中心冻结 sidecar)。 计算公式: 文章级 a_j = cos(s_j, p), p = mean(POSITIVE_ANCHORS 嵌入) - mean(NEGATIVE_ANCHORS 嵌入) (Jha-Liu-Manela 双极锚点投影); bank-year 聚合: benefit_pos_frac = mean(a_j > c), benefit_neg_frac = mean(a_j < c), c = 冻结 pooled median (每 score 列独立条目, _benefit_center_sidecar.json, 记 model_id 且不匹配即 fail-loud); benefit_std = std(a_j, ddof=1), 单观测保持 NaN 不 fillna(0)。 本列 (panel 实名 benefit_neg_frac_lg_ss) 属家族 F110, 由上述链路机械派生。
 
 【动态统计】
-dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.5259; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
+dtype=float64; 非缺失 n=115; 缺失率=33.14%; min=0.0000; mean=0.5502; max=1.0000。注: 以上为生成期从面板实测注入的开发期数值, 生产 T=19 重生后以实读为准。
 
 【学术文献】
 Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society? A language embedding approach. Review of Financial Studies, 39(5), 1227-1266. https://doi.org/10.1093/rfs/hhaf012
@@ -170176,7 +170176,7 @@ Gorovaia, N., & Makrominas, M. (2025). Identifying greenwashing in corporate-soc
 Okeke, A. (2026). Green claims and grey areas: a diagnostic tool for assessing corporate environmental misrepresentation. International Journal of Disclosure and Governance. https://doi.org/10.1057/s41310-026-00371-1
 Chuang, H.-M., He, H.-C., & Hu, M.-C. (2025). Chinese Financial News Analysis for Sentiment and Stock Prediction: A Comparative Framework with Language Models. Big Data and Cognitive Computing. https://doi.org/10.3390/bdcc9100263
 
-**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.5259 | 标准差=0.4084 | 最小值=0.0000 | 25分位=0.0000 | 中位数=0.5000 | 75分位=1.0000 | 最大值=1.0000
+**统计信息**: 观测数=172 | 缺失数=57 | 缺失率=33.14% | 均值=0.5502 | 标准差=0.4109 | 最小值=0.0000 | 25分位=0.0000 | 中位数=0.5250 | 75分位=1.0000 | 最大值=1.0000
 
 ## article_sim_mean
 

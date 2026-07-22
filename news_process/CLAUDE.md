@@ -9,7 +9,7 @@ Claude Code (claude.ai/code) 在本仓工作的指引。
 ## Project Overview
 **news_process**: 把中文银行/金科新闻转成银行-年面板 (计量用): preprocessing → classification → sentiment (LLM/词典/BERT) → 面板构建。
 
-**Current version**: v3.16.0 (2026-07-17)。逐版 changelog 见 git history (CHANGELOG.md 未维护); 本文件 + git history 是版本权威源, 每次大改的权威执行计划在 `scripts/audit/*_EXECUTION_PLAN_*.md`。⚠ 2026-07-21 生产词典换血: `config/fintech_dict.json` 1506→**607 词** (main=b7b70b08, sha16=9c731b78379401e9); 全链缓存/产物已随 2026-07-21/22 九入口审计在线回填重算 (见 `scripts/audit/NINE_ENTRYPOINT_RUN_AUDIT_AND_REMEDIATION_PLAN_2026-07-21.md`); locus_split/S13 placebo/benefit sidecar 三事项待研究决策 (同计划 §4)。
+**Current version**: v3.16.0 (2026-07-17)。逐版 changelog 见 git history (CHANGELOG.md 未维护); 本文件 + git history 是版本权威源, 每次大改的权威执行计划在 `scripts/audit/*_EXECUTION_PLAN_*.md`。⚠ 2026-07-21 生产词典换血: `config/fintech_dict.json` 1506→**607 词** (main=b7b70b08, sha16=9c731b78379401e9); 全链缓存/产物已随 2026-07-21/22 九入口审计在线回填重算 (见 `scripts/audit/NINE_ENTRYPOINT_RUN_AUDIT_AND_REMEDIATION_PLAN_2026-07-21.md`)。2026-07-22 用户裁定**全项目 607 化、严禁 1506 残留**, 三决策项已落地: S13-v2 placebo 白名单换血 {自助银行}; locus_split v2 增量双编码 (289 新词 κ=0.8418, 三桶 215/307/85, v1 双编码表冻结存档); benefit sidecar 补第 4 指纹 `dict_sha256` + 删旧重冻结 (607 语料 median), 27 号/80 号/两侧线同批重生。
 
 ## 当前状态铁律 (load-bearing, 改动前必读)
 

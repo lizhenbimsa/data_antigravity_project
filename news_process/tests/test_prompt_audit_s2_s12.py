@@ -7,7 +7,7 @@ tests/test_prompt_audit_s2_s12.py — S2/S12 专属断言
 
 - S2: ``LLMs_for_FinTech_dic/00_LLMs_for_dic.py`` 词表判别阈值由
   ``>= len(JUDGE_MODELS)*0.5``（=≥4，含平票）收紧为 ``> len(JUDGE_MODELS)*0.5``
-  （严格多数=≥5/8），对齐发表词表 1506 实证口径。
+  （严格多数=≥5/8），对齐当时发表词表 1506 实证口径（LLMs_dic 冻结历史协议; 生产词典 2026-07-21 起 607）。
 - S12①: 同文件 :599 附近 ``int(item.get("score", 0))`` 裸转换在 LLM 返回畸形
   score（非数字/None/list 等）时会 ValueError/TypeError 炸穿整个判别主循环，
   改为 try/except 记 warning 并跳过坏项。
@@ -66,7 +66,7 @@ def test_s2_threshold_is_strict_majority():
     assert m is not None, "未找到 judge_ok_set 阈值比较表达式，源码结构已变化"
     assert m.group(1) == ">", (
         f"阈值回退为 {m.group(1)!r}（含平票）—— S2 要求严格多数 '>' "
-        "（对齐发表词表 1506 实证口径），防止未来无意中改回宽松阈值"
+        "（对齐当时发表词表 1506 实证口径, LLMs_dic 冻结历史协议），防止未来无意中改回宽松阈值"
     )
     assert "fix(S2" in src, "S2 阈值改动缺 fix-tag 注释（§0-5 纪律）"
     # 阈值不进 LLM 缓存键的口径声明也须同批留痕（防后人误以为要清缓存重跑）
