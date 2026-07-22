@@ -260,8 +260,8 @@ window.MathJax = {
 <a class="h3" href="#sec4-13">4.13 阶段 46：Stata 导出（.dta + 标签 .do + codebook）</a>
 <a class="h3" href="#sec4-14">4.14 阶段 51：伪造检验与面板控制变量</a>
 <a class="h3" href="#sec4-15">4.15 always-on 与确定性收束</a>
-<a class="h2" href="#sec5">5. 八大执行入口详解</a>
-<a class="h3" href="#sec5-1">5.1 八入口总览</a>
+<a class="h2" href="#sec5">5. 九大执行入口详解</a>
+<a class="h3" href="#sec5-1">5.1 九入口总览</a>
 <a class="h3" href="#sec5-2">5.2 主线编排器：run_pipeline_function.py</a>
 <a class="h3" href="#sec5-3">5.3 验证编排器：run_pipeline_validation.py</a>
 <a class="h3" href="#sec5-4">5.4 论文调度器：run_paper.py</a>
@@ -414,7 +414,7 @@ window.MathJax = {
 <thead><tr><th>板块</th><th>章节</th><th>回答的核心问题</th></tr></thead>
 <tbody>
 <tr><td><b>总览与工程</b></td><td>第 1–2 章</td><td>项目定位、研究价值、数据资产、代码规模与单一真源（SSOT）工程结构</td></tr>
-<tr><td><b>流程与功能</b></td><td>第 3–5 章</td><td>端到端数据流、逐阶段功能详解、八大执行入口的用法与设计</td></tr>
+<tr><td><b>流程与功能</b></td><td>第 3–5 章</td><td>端到端数据流、逐阶段功能详解、九大执行入口的用法与设计</td></tr>
 <tr><td><b>指标全书</b></td><td>第 6–9 章</td><td>每一个文本指标的定义、精确计算公式与白话说明（词典 / LLM+BERT / 嵌入 / 网络+IV+控制）</td></tr>
 <tr><td><b>审核与标注</b></td><td>第 10–11 章</td><td>稳健性检验、确定性与 golden 复现、人工标注与人机三角校验</td></tr>
 <tr><td><b>产出与文献</b></td><td>第 12–14 章</td><td>11 篇可撰写论文、两条派生数据管线、1,156 条已核验参考文献</td></tr>
@@ -770,11 +770,11 @@ window.MathJax = {
 <p>第四个真源是依赖管理。<code>pyproject.toml</code>（位于仓库根，比 <code>news_process/</code> 高一层）声明 <code>news-process</code> 包版本 3.15.0、<code>requires-python &gt;= 3.10</code>，并单点列出 <b>31 个运行时依赖</b>——从 pandas/numpy/pyarrow 这类数据骨架，到 jieba（中文分词）、pyahocorasick（Aho-Corasick 多模式匹配）、datasketch（MinHash LSH 去重）、faiss-cpu（向量检索）、tiktoken（分词计费）、transformers/sentence-transformers（BERT/嵌入）、krippendorff（标注一致性），再到 pyreadstat（Stata <code>.dta</code> 读写）。<code>requirements.txt</code> 仅作回退，锁定版本走 <code>requirements.lock</code>。把依赖收敛到单一声明源，是让"环境可复现"成为可能的前提——正如 <a href="https://doi.org/10.1371/journal.pcbi.1003285" target="_blank">Sandve et al. (2013)</a> 在《可复现计算研究十条简单规则》中反复强调的，记录并冻结每一个软件版本，是计算研究可复现的第一道防线。</p>
 <div class="formula">
 <span class="lbl">公式 2.1</span>
-\[ \text{注册阶段总数} \;=\; \lvert \text{STAGES\_MAIN} \rvert + \lvert \text{STAGES\_VALIDATION} \rvert \;=\; 16 + 16 \;=\; 32 \]
+\[ \text{注册阶段总数} \;=\; \lvert \text{STAGES_MAIN} \rvert + \lvert \text{STAGES_VALIDATION} \rvert \;=\; 16 + 16 \;=\; 32 \]
 </div>
 <div class="formula">
 <span class="lbl">公式 2.2</span>
-\[ \text{OUTPUT\_REGISTRY 文件名总数} \;=\; 22\ (\text{parquet}) \;+\; 3\ (\text{stage 46 导出}) \;=\; 25 \]
+\[ \text{OUTPUT_REGISTRY 文件名总数} \;=\; 22\ (\text{parquet}) \;+\; 3\ (\text{stage 46 导出}) \;=\; 25 \]
 </div>
 <h3 id="sec2-5">2.5 Thin shim 冻结纪律与计数不变量</h3>
 <p>本章最后一节聚焦全仓最独特、也最能体现工程克制的一项纪律：thin shim 冻结。项目根下有 35 个形如 <code>NN_*.py</code> 的脚本（<code>00_preprocessing.py</code>、<code>21_tone_llms.py</code>、<code>60_bank_fintech_threshold.py</code> 等），它们是流水线的"命令行入口门牌"，但每个都被严格限制在 <b>30 行以内</b>——真正的业务逻辑一律归 <code>pipeline.*</code> 或 <code>validation.*</code>。<b>绝不</b>往 shim 加业务逻辑，是全仓最不容侵犯的铁律之一。</p>
@@ -995,12 +995,12 @@ window.MathJax = {
 </div>
 <p>Qwen3-Embedding 是 2025 年发布的开源 embedding/reranking 基础模型族（<a href="https://doi.org/10.48550/arXiv.2506.05176" target="_blank">Zhang et al., 2025</a>），在大规模文本嵌入基准（MTEB，<a href="https://doi.org/10.18653/v1/2023.eacl-main.148" target="_blank">Muennighoff et al., 2023</a>；金融专用 FinMTEB，<a href="https://doi.org/10.18653/v1/2025.emnlp-main.179" target="_blank">Tang &amp; Yang, 2025</a>）上表现优异。引擎 <code>embed_texts</code> 纯走 API、维度由 <code>emb.shape[1]</code> 驱动（维度无关），token 切块采用 cl100k / 8191。产 co-primary 双轨嵌入列的是 stage 15（fintech_intensity）、stage 25（<code>article_sbert</code>，dual-emit <code>emb_{full,ctx,ss}</code> 及其 <code>_lg</code> 孪生）、stage 26（<code>semantic_staleness_*</code> 及 <code>_lg</code>）三处。</p>
 <p>"零本地模型、纯 API"是一个刻意的工程取舍。好处是无须在本机维护数十 GB 的模型权重与 GPU 环境，换模型只需改一处 config 键（外加同步散落的硬编码回退默认值）；代价是每次嵌入都要付费调用外部端点，因此<b>缓存</b>成了成本与可复现的双重命门。嵌入族同样受 <code>NEWS_PROCESS_LLM_OFFLINE</code> 守卫：离线时 miss 即 raise <code>RuntimeError</code>，绝不偷偷付费联网；只有在线且缓存 miss 时才真正计费。文本超长时按 cl100k 分词、以 8191 token 为界切块，长文档嵌入的这类工程细节（截断、分块、模型选择）对下游测度的影响不容小觑，已有专门的模型选择研究提示其敏感性。而选择两条来自<b>不同厂商、不同维度</b>（阿里 Qwen 4096 维 vs OpenAI 3072 维）的嵌入并列为 co-primary，本身就是对"某一嵌入空间的特质是否驱动结论"这一稳健性问题的直接回应——这与用词嵌入做社会科学测量时"换模型、换语料即换结论"的告诫一脉相承（<a href="https://doi.org/10.1086/715162" target="_blank">Rodriguez &amp; Spirling, 2022</a>）。</p>
-<div class="formula"><span class="lbl">公式 3.2</span> parity 双射（both-or-neither）：  对任一测度列 \(c\)，  \(c\) 存在 \(\Leftrightarrow\) \(\text{c\_lg}\) 存在；  且 embed 返回 None 时，同族两列（\(c\), \(\text{c\_lg}\)）<b>同置 NaN</b>，绝无单边孤儿</div>
+<div class="formula"><span class="lbl">公式 3.2</span> parity 双射（both-or-neither）：  对任一测度列 \(c\)，  \(c\) 存在 \(\Leftrightarrow\) \(\text{c_lg}\) 存在；  且 embed 返回 None 时，同族两列（\(c\), \(\text{c_lg}\)）<b>同置 NaN</b>，绝无单边孤儿</div>
 <div class="warn"><b>两条铁律</b>：① 两条 co-primary 嵌入各自 just-identified 并排，<b>禁混进同一 over-identified Hansen J</b>；② 列名严格双射（both-or-neither），任一 embed 为 None 则同族两列一起置 NaN。此外，本项目对嵌入<b>刻意零 instruct 前缀</b>——因为这里的相似度任务是"文档↔文档 / 文档↔锚点句"的<b>对称</b>任务，而 Qwen3 官方 instruct 前缀面向<b>非对称检索</b>（query→document），对称任务加前缀反而引入任务失配；且无前缀文本已作为缓存键语料冻结，事后加前缀 = 全部嵌入缓存作废 + golden 全漂移。</div>
 <p><b>carve-out（挖除项）</b>值得单独强调：新颖度测度里的 <code>surface_staleness</code> / <code>surface_highstale</code> 走的是 <b>MinHash</b>（局部敏感哈希，<a href="https://doi.org/10.1109/sequen.1997.666900" target="_blank">Broder, 1997</a>）而非嵌入，因此<b>没有 <code>_lg</code> 孪生</b>，不受 both-or-neither 双射约束。它与语义陈旧度（基于嵌入余弦相似度）构成"表层 vs 语义"两个正交视角。</p>
 <h4 id="sec3-5-1">3.5.1 语义与表层新颖度：报道是"新料"还是"旧闻翻炒"</h4>
 <p>stage 26 的新颖度族回答一个经济学上很有意思的问题：一篇报道究竟带来了新信息，还是只是把旧闻换个说法再发一遍？这一构念直接呼应"陈旧信息"文献——投资者对旧新闻的反应、"懒惰价格"式的文本年复一年微改，以及旧闻能否被市场识别（<a href="https://doi.org/10.1093/rfs/hhq141" target="_blank">Tetlock, 2011</a>；<a href="https://doi.org/10.1111/jofi.12885" target="_blank">Cohen, Malloy &amp; Nguyen, 2020</a>；<a href="https://doi.org/10.1016/j.jfineco.2023.04.008" target="_blank">Fedyk &amp; Hodson, 2023</a>），也与"在线信息生产中的抄袭/转载"研究相通（<a href="https://doi.org/10.1093/restud/rdz061" target="_blank">Cagé, Hervé &amp; Viaud, 2020</a>）。</p>
-<div class="formula"><span class="lbl">公式 3.3</span> 语义陈旧度 \[ \text{semantic\_staleness}(d_t) \;=\; \max_{d' \in \text{过往窗}} \frac{e_t \cdot e_{d'}}{\lVert e_t \rVert \cdot \lVert e_{d'} \rVert} \]，  \(e\) 为报道嵌入向量，余弦相似度越高 → 越"陈旧"</div>
+<div class="formula"><span class="lbl">公式 3.3</span> 语义陈旧度 \[ \text{semantic_staleness}(d_t) \;=\; \max_{d' \in \text{过往窗}} \frac{e_t \cdot e_{d'}}{\lVert e_t \rVert \cdot \lVert e_{d'} \rVert} \]，  \(e\) 为报道嵌入向量，余弦相似度越高 → 越"陈旧"</div>
 <div class="plain"><b>白话</b>：语义陈旧度用"意思像不像"来判断——把今天这篇的"语义指纹"（嵌入向量）跟前些天所有报道的指纹比一比，如果跟某篇几乎一模一样，就说明它是旧闻翻炒。表层陈旧度（MinHash）则用"字面像不像"来判断——直接比词句的重叠程度。前者抓"换了说法但意思没变"，后者抓"几乎逐字复制"，两个角度互补。</div>
 <div class="note">须注意，嵌入余弦相似度虽是事实上的标配，但其数值本身对训练目标与正则相当敏感，未必总能忠实反映"语义相似"（<a href="https://doi.org/10.1145/3589335.3651526" target="_blank">Steck et al., 2024</a>）。本项目以双轨嵌入互为稳健性、并辅以 MinHash 表层轨，正是为对冲单一相似度测度的脆弱性。</div>
 <h3 id="sec3-6">3.6 情感三法、最终面板、伪造检验与 Stata 交付</h3>
@@ -1195,9 +1195,9 @@ window.MathJax = {
 <p><b>功能。</b>stage 14（<code>ctx_materializer</code>）把"同一篇报道"物化成三种粒度递减的文本视图，是本流水线情感与嵌入分析的<b>三轨架构</b>底座。三轨互为稳健性，让同一构念在"全文—实体窗口—严格同句"三种阅读范围下都被测一遍。</p>
 <div class="formula"><span class="lbl">公式 4.2</span>
 \[\begin{aligned}
-\text{content\_full} &= \text{标题} \oplus \text{正文全文} \text{；} \\
-\text{content\_ctx} &= \text{标题} \oplus \text{实体上下文窗口} \text{；} \\
-\text{content\_ss} &= \text{标题} \oplus \{\, \text{银行} \wedge \text{金科 同句 } \pm N \text{ 窗} \,\}
+\text{content_full} &= \text{标题} \oplus \text{正文全文} \text{；} \\
+\text{content_ctx} &= \text{标题} \oplus \text{实体上下文窗口} \text{；} \\
+\text{content_ss} &= \text{标题} \oplus \{\, \text{银行} \wedge \text{金科 同句 } \pm N \text{ 窗} \,\}
 \end{aligned}\]
 </div>
 <p><b>关键逻辑。</b><b>full</b> = 标题 + 正文全文；<b>ctx</b> = 标题 + 实体上下文窗口；<b>ss</b> = 标题 + "银行与金科同句 ±N 句"窗口（N 由 <code>config/filtering.yaml::context_window.ss_sentence_radius</code> 控制，默认 1；注意这与 stage 13 的 <code>cooccurrence_filter.sentence_radius</code> 是两个不同的键）。三轨文本列 <code>content_full</code> / <code>content_ctx</code> / <code>content_ss</code> 及其回退标志 <code>*_is_fallback</code> 全部在此阶段物化，采用 <code>prepend_title</code>（标题前置拼接），原始"内容"列保持不动。v3.8.0 起已删除独立的 <code>_title</code> 轨（标题改为前置），但仍保留 <code>headline_frac</code> 等非情感信号。<b>回退语义</b>是三轨优雅降级的关键：当一篇报道找不到"银行与金科同句"共现时，<code>content_ss</code> 回退为全文正文、<code>ss_is_fallback=True</code>（<code>_ss</code> 镜像 <code>_ctx</code> 的回退逻辑）；若整个 <code>FINTECH_AC=None</code>，则 <code>*_is_fallback</code> 全 True，全轨优雅降级。</p>
@@ -1230,8 +1230,8 @@ window.MathJax = {
 <p><b>功能。</b>stage 21 是情感层的旗舰：对每篇报道的每一轨（full/ctx/ss），请<b>三家</b>相互独立的大语言模型各判一次正/中/负情感，经多数投票得到<b>逐篇</b>共识标签，再在银行–年上取均值得到面板列 <code>llm_vote_tone</code>。三家分别是 <code>gpt-5.4-nano</code>（gpt54nano）、<code>gemini-3.1-flash-lite</code>（gemini31，两家均走 yunwu 网关）与 <code>deepseek-v4-flash</code>（deepseekv4，直连 <code>api.deepseek.com</code>）。</p>
 <div class="formula"><span class="lbl">公式 4.4（两步：逐篇投票分 → 银行–年面板均值）</span>
 \[\begin{aligned}
-\text{llm\_vote\_score}_{a,\text{trk}} &= \operatorname{majority}\big\{\, \text{tone}_{m,a,\text{trk}} \;:\; m \in M ,\; \text{verified}_{m,a}=\text{True} \,\big\} \in \{-1,\,0,\,+1\} \\[4pt]
-\text{llm\_vote\_tone}_{b,y,\text{trk}} &= \frac{1}{|A_{b,y}|} \sum_{a \in A_{b,y}} \text{llm\_vote\_score}_{a,\text{trk}} \; \in \[-1,\,+1\]
+\text{llm_vote_score}_{a,\text{trk}} &= \operatorname{majority}\big\{\, \text{tone}_{m,a,\text{trk}} \;:\; m \in M ,\; \text{verified}_{m,a}=\text{True} \,\big\} \in \{-1,\,0,\,+1\} \\[4pt]
+\text{llm_vote_tone}_{b,y,\text{trk}} &= \frac{1}{|A_{b,y}|} \sum_{a \in A_{b,y}} \text{llm_vote_score}_{a,\text{trk}} \; \in [-1,\,+1]
 \end{aligned}\]
 <div class="note" style="margin:10px 0 0"><b>两处极易读错。</b>① <b>只数「通过验证」的模型票</b>：某模型若判该文并非银行金科报道（<code>verified=False</code>），它的情感意见不计入投票；平局或空票<b>保守降级为中性</b>（0），而非丢弃。② <b>面板列是连续的</b>：<code>llm_vote_tone</code> 是逐篇 ±1/0 分在银行–年上的<b>均值</b>，取值连续 ∈ [−1, +1]（盘上 <code>llm_vote_tone_full</code> 实测 19 个不同取值），<b>不是</b>逐篇的众数标签本身。<code>llm_vote_tone_full</code> 即论文 P1 的 <code>treatment.primary</code>。</div>
 </div>
@@ -1245,7 +1245,7 @@ window.MathJax = {
 <p><b>关键逻辑——语言学规则消融梯度。</b>朴素的词典计数会被否定、程度副词、转折等语言现象扭曲，因此本阶段把三条语言学规则（否定翻转、程度副词加权、转折让步）做成完整 powerset，物化为 7 个非-full 消融变体 <code>{dict}_score_{raw,negonly,degonly,advonly,negdeg,negadv,degadv}</code>，覆盖 6 部词典 × 3 轨。各变体自归一化、非可加分解（高度共线，corr≈0.99，故报相关而非并入同一回归式）。SSOT 为 <code>tone_words._RULE_ABLATION_VARIANTS</code>。词典法在金融情感的地位与局限（相对机器学习）有系统对照（<a href="https://doi.org/10.1111/j.1540-6261.2010.01625.x" target="_blank">Loughran &amp; McDonald, 2011</a>；<a href="https://doi.org/10.1287/mnsc.2021.4156" target="_blank">Frankel, Jennings &amp; Lee, 2022</a>；<a href="https://doi.org/10.1111/ecin.13264" target="_blank">Barbaglia et al., 2025</a>），否定与效价转换处理是绕不开的一环（<a href="https://doi.org/10.1016/j.dss.2016.05.009" target="_blank">Pröllochs, Feuerriegel &amp; Neumann, 2016</a>；<a href="https://doi.org/10.1111/j.1467-8640.2006.00277.x" target="_blank">Kennedy &amp; Inkpen, 2006</a>），媒体情绪对市场的作用则由 Tetlock 奠基（<a href="https://doi.org/10.1111/j.1540-6261.2007.01232.x" target="_blank">Tetlock, 2007</a>）。</p>
 <p><b>政治词权重敏感性（du_2022 独有）。</b>依据 Du 等（2022）关于中文金融情感中"政治正面词信号弱于普通正面词"的发现，其 1,434 个 <code>political_positive</code> 词以 0.5 权重计入正侧，并做敏感性检验：令政治词权重 ∈ {0.0, 0.5, 1.0} 三者互为稳健性、不分主次（<a href="https://doi.org/10.1093/rof/rfab036" target="_blank">Du et al., 2022</a>）。落地为 <code>du_2022_score_polw{00,05,10}</code> / <code>du_2022_polw{00,05,10}_tone{track}</code>，SSOT 为 <code>tone_words.POLITICAL_WEIGHT_VARIANTS</code>。</p>
 <div class="formula"><span class="lbl">公式 4.5</span>
-\[ \text{du\_2022\_score\_polw}\lambda \;=\; \frac{\sum \text{final\_score}}{\sum \lvert \text{final\_score} \rvert} \;\in\; [-1,\, +1] \]
+\[ \text{du_2022_score_polw}\lambda \;=\; \frac{\sum \text{final_score}}{\sum \lvert \text{final_score} \rvert} \;\in\; [-1,\, +1] \]
 ，正侧普通词以 base=1、政治正面词以 base=\( \lambda \) 计入 ,   \( \lambda \in \{0.0,\, 0.5,\, 1.0\} \)
 </div>
 <p><b>套话比率的工程硬化。</b>套话比率原用单遍 <code>fit_transform</code> 计算，v3.16.0 已改造为分块 exact two-pass（字节等价、golden 零漂移）以抵御生产规模（T=19）下的 OOM。套话/模板化披露的度量在会计文本研究里久有传统（<a href="https://doi.org/10.1016/j.jacceco.2017.07.002" target="_blank">Dyer, Lang &amp; Stice-Lawrence, 2017</a>；<a href="https://doi.org/10.1016/j.jacceco.2015.09.002" target="_blank">Lang &amp; Stice-Lawrence, 2015</a>）。词典法与 LLM/人工标注孰优的效度对照，则提醒我们保留多口径而非独尊其一（<a href="https://doi.org/10.1080/19312458.2020.1869198" target="_blank">van Atteveldt, van der Velden &amp; Boukes, 2021</a>）。</p>
@@ -1255,7 +1255,7 @@ window.MathJax = {
 <p><b>功能。</b>stage 23 用三个金融领域微调的 BERT 模型对每篇报道每轨给出情感概率，作为与词典法、LLM 法并列的第三条测量线。三模型为 <code>finbert_cn</code>、<code>fin_sent_zh</code>、<code>finbert2</code>，co-equal、不分主次，SSOT 为 <code>encode.BERT_MODELS</code>。</p>
 <p><b>关键逻辑。</b>BERT 类双向编码器是金融文本分类与信息抽取的主力（<a href="https://doi.org/10.18653/v1/n19-1423" target="_blank">Devlin et al., 2019</a>；<a href="https://doi.org/10.1111/1911-3846.12832" target="_blank">Huang, Wang &amp; Yang, 2023</a>；<a href="https://doi.org/10.24963/ijcai.2020/622" target="_blank">Liu et al., 2020</a>），最新的 FinBERT2 进一步弥合了金融专用部署的差距（<a href="https://doi.org/10.1145/3711896.3737219" target="_blank">Xu et al., 2025</a>）。三模型各自独立降级（某个模型缺席只掉自身列族，而非 co-primary 嵌入的 both-or-neither）。Phase 2 追加了 signed <code>{short}_net_tone{track}</code> = mean(pos) − mean(neg) ∈ [−1,1]。在此之上，stage 23 从概率列做零成本后处理，衍生出 <b>BERT 分布形状五族</b>（+69 面板列，SSOT = <code>pipeline/panel/bert_distribution.py</code>）：① 归一化熵——<b>逐篇</b>算 \( H_a \)（三分类模型 c ∈ {正, 中, 负}、K = 3；<code>finbert2</code> 只读正/负两列、K = 2 的 Bernoulli 熵；真三分类模型若缺中性列则该键<b>不产</b>，禁静默降级为 K=2），再在银行–年上<b>取均值</b>得面板列 <code>{b}_tone_entropy{trk}</code>；② 极端负面占比 <code>{b}_xneg_frac[_t80/_t95]</code>；③ 净基调偏度 <code>{b}_net_tone_skew</code>（原始 skew，非 NCSKEW，但其思想源自条件偏度与崩盘风险文献，<a href="https://doi.org/10.1016/s0304-405x(01)00066-6" target="_blank">Chen, Hong &amp; Stein, 2001</a>）；④ 跨模型标签异质 <code>bert_xmodel_lblhet</code> / <code>bert_xmodel_disp</code>；⑤ 年内噪声校正波动 <code>{b}_nt_iyvol</code> 与年内趋势 <code>{b}_nt_iytrend</code>。</p>
 <div class="formula"><span class="lbl">公式 4.6</span>
-\[ \text{\{b\}\_tone\_entropy} \;=\; \frac{-\sum_{c \in \{\text{pos},\,\text{neu},\,\text{neg}\}} p_c \cdot \log p_c}{\log K} \;\in\; [0,1] \]
+\[ \text{\{b\}_tone_entropy} \;=\; \frac{-\sum_{c \in \{\text{pos},\,\text{neu},\,\text{neg}\}} p_c \cdot \log p_c}{\log K} \;\in\; [0,1] \]
 </div>
 <p><b>长文本与截断。</b>BERT 类模型受 512 token 上下文窗口约束，中文长报道必然涉及截断或分块——如何截断（首段/首尾/滑窗）本身会影响分类结果，是一个不可忽视的实现选择（<a href="https://doi.org/10.1007/978-3-030-32381-3_16" target="_blank">Sun et al., 2019</a>；<a href="https://doi.org/10.1002/widm.70019" target="_blank">Alva Principe, Chiarini &amp; Viviani, 2025</a>）。三轨架构在此处恰好提供了天然缓冲：<code>_ss</code> 与 <code>_ctx</code> 轨本就是聚焦的短文本，截断损失远小于 <code>_full</code> 轨，因而三轨并置也间接对冲了长文本截断带来的测量噪声。三法（词典/LLM/BERT）互为稳健性的意义正在于此——没有任何单一方法在所有维度上占优，词典透明但对语境迟钝、LLM 语境强但贵且需效度背书、BERT 快但受窗口所限（<a href="https://doi.org/10.1287/mnsc.2021.4156" target="_blank">Frankel, Jennings &amp; Lee, 2022</a>）。</p>
 <div class="warn"><b>可比性红线。</b>finbert2 为二分类（Bernoulli），其熵与三分类"模糊度"构念不可比，且逐篇 ≡ |net_tone| 的单调递减变换（ρ ≡ −1）；<code>_xneg_frac</code> 的阈值语义 model-specific，只能比标准化 β、禁比占比水平。铁律不变：阈值梯子/per-model/三轨各自 just-identified 并排，禁混同一 over-identified Hansen J；BERT 族无 <code>_lg</code>（非嵌入 carve-out）。</div>
@@ -1289,8 +1289,8 @@ window.MathJax = {
 </div>
 <div class="formula"><span class="lbl">公式 4.8</span>
 \[\begin{aligned}
-\text{semantic\_staleness}_i &\approx \max_{j \in \text{prior}} \cos(e_i ,\, e_j) \text{；} \\
-\text{surface\_staleness}_i &\approx \max_{j \in \text{prior}} \hat{J}_{\text{MinHash}}(d_i ,\, d_j)
+\text{semantic_staleness}_i &\approx \max_{j \in \text{prior}} \cos(e_i ,\, e_j) \text{；} \\
+\text{surface_staleness}_i &\approx \max_{j \in \text{prior}} \hat{J}_{\text{MinHash}}(d_i ,\, d_j)
 \end{aligned}\]
 </div>
 <p><b>关键逻辑。</b>"旧闻/陈词"这一构念在金融文本研究中影响深远：文本与前序披露高度相似（"懒惰的价格"）预示负向后续表现（<a href="https://doi.org/10.1111/jofi.12885" target="_blank">Cohen, Malloy &amp; Nguyen, 2020</a>），市场对"旧新闻"的识别能力有限（<a href="https://doi.org/10.1016/j.jfineco.2023.04.008" target="_blank">Fedyk &amp; Hodson, 2023</a>），而"新新闻往往是坏新闻"（<a href="https://doi.org/10.48550/arXiv.2309.05560" target="_blank">Glasserman, Mamaysky &amp; Qin, 2023</a>）。语义轨用嵌入捕捉"意思上的重复"，表层轨用 MinHash 捕捉"字面上的近重复"（<a href="https://doi.org/10.1109/sequen.1997.666900" target="_blank">Broder, 1997</a>），二者互补。<code>surface_staleness</code> 是刻意的非嵌入 carve-out，因而没有 <code>_lg</code> 孪生、不参与 co-primary 的 both-or-neither 守卫。</p>
@@ -1313,16 +1313,16 @@ window.MathJax = {
 </table>
 </div>
 <div class="formula"><span class="lbl">公式 4.9</span>
-\[ \text{bartik\_iv}_{g,t} \;=\; \sum_k s_{g,k,0} \cdot G_{k,t} \]
+\[ \text{bartik_iv}_{g,t} \;=\; \sum_k s_{g,k,0} \cdot G_{k,t} \]
 （初始份额 × 冲击）；
-\[ \text{loo\_peer}_i \;=\; \frac{1}{\lvert G \rvert - 1} \sum_{j \in G,\, j \neq i} x_j \]
+\[ \text{loo_peer}_i \;=\; \frac{1}{\lvert G \rvert - 1} \sum_{j \in G,\, j \neq i} x_j \]
 </div>
 <p>三引擎共产出 7 篇 paper_spec 的 <code>identification.iv</code> 与 7 个 2SLS 模板。Bartik / shift-share 工具变量的有效性依赖"份额外生或冲击外生"的可信度，其识别假设与推断近年被系统澄清（<a href="https://doi.org/10.1093/restud/rdab030" target="_blank">Borusyak, Hull &amp; Jaravel, 2022</a>；<a href="https://doi.org/10.1257/jep.20231370" target="_blank">Borusyak, Hull &amp; Jaravel, 2025</a>；<a href="https://doi.org/10.1093/qje/qjz025" target="_blank">Adão, Kolesár &amp; Morales, 2019</a>），应用者亦有面向财务研究的实操指南（<a href="https://doi.org/10.2308/jfr-2021-003" target="_blank">Breuer, 2022</a>；<a href="https://doi.org/10.17848/9780585223940" target="_blank">Bartik, 1991</a>）。同业留一均值作为 peer-effects 识别手段，则要小心反射问题（reflection problem）与弱工具（<a href="https://doi.org/10.1146/annurev-economics-080218-025643" target="_blank">Andrews, Stock &amp; Sun, 2019</a>）。</p>
 <p><b>两级聚合与注意力指数。</b>面板编排的骨架是一次"文章 → 银行 → 年"的两级坍缩。第一级把文章级信号聚到"文章–银行"（一篇报道可能提及多家银行，故需去重展开），第二级再聚到"银行–年"。沿途产出三个粒度的注意力指数副表——全国、省–年、市–年（<code>40_attn_index_{year,province_year,city_year}</code>）——以支撑地理异质性分析；这些副表恒用默认名、不入用户可改名范围。媒体注意力/关注度作为独立于情感的信息维度，其对资产价格与投资者行为的作用有大量证据（<a href="https://doi.org/10.1111/j.1540-6261.2011.01679.x" target="_blank">Da, Engelberg &amp; Gao, 2011</a>；<a href="https://doi.org/10.1016/j.jfineco.2024.103870" target="_blank">Cookson et al., 2024</a>）。</p>
 <p><b>网络外溢的三判据敏感性。</b>面板层还构造银行间的媒体共现网络，据此计算 33 个结构指标（SSOT = <code>network_spillover.NETWORK_METRIC_BASES</code>），并对"两家银行算不算共现"给出三档判据——同篇（无后缀）、±1 句窗（<code>_win1</code>）、严格同句（<code>_sent</code>），共 +66 列。三判据互为稳健性、并排比较，判据主体是"银行∧银行"（原语 <code>entity_context.map_bank_sentence_positions</code>，与 stage 13 的银行∧金科口径不同）。网络中心性与信息在网络中的扩散对定价的作用，是把"同业外溢"落到可回归变量的理论依据（<a href="https://doi.org/10.1016/j.irfa.2024.103223" target="_blank">Yu, Hu &amp; Zhong, 2024</a>；<a href="https://doi.org/10.1093/rfs/hhac058" target="_blank">Cookson, Engelberg &amp; Mullins, 2023</a>）。需要留意的是，<code>bank_clustering</code> / <code>bank_cfbetween_cent</code> / <code>bank_harmonic_cent</code> 三个基名 × 三判据共 9 列属 BLAS 浮点非确定列，golden 零漂移校验须按全名 drop 排除。</p>
 <p><b>Janis–Fadner 舆论倾向系数（步骤 7i）。</b>作为语调均值的稳健性替代，面板层另聚合一个报道方向失衡系数 <code>jf_coefficient{track}</code>（代码内注明构念出自 Janis &amp; Fadner 1965 的失衡系数与 Deephouse 2000 的管理学应用；二者不在本项目 DOI 白名单池内，故此处不附链接）：</p>
 <div class="formula"><span class="lbl">公式 4.10</span>
-\( \text{JF} = \dfrac{P^2 - P \cdot N}{T^2} \)（当 \( P &gt; N \)）；　\( \text{JF} = \dfrac{P \cdot N - N^2}{T^2} \)（当 \( N &gt; P \)）；　\( \text{JF} = 0 \)（当 \( P = N \)），　\( T = P + N + \text{中性} = \text{n\_articles\_llm\_valid\{track\}} \)
+\( \text{JF} = \dfrac{P^2 - P \cdot N}{T^2} \)（当 \( P &gt; N \)）；　\( \text{JF} = \dfrac{P \cdot N - N^2}{T^2} \)（当 \( N &gt; P \)）；　\( \text{JF} = 0 \)（当 \( P = N \)），　\( T = P + N + \text{中性} = \text{n_articles_llm_valid\{track\}} \)
 </div>
 <p>其中 P/N 为该银行-年 LLM 判定正面/负面的有效篇数。关键口径是<b>分母 T² 必须把中性报道计入</b>（metric-audit 2026-06-10 修正）：若沿用 (P+N)²，一家 100 篇里 90 篇中性、10 篇正面的银行会被误判为"舆论一边倒"满分 1.0，canonical 口径下实为 0.01。实现于 <code>pipeline/panel/runner.py</code> 步骤 7i，带理论域 [−1,1] 越界即崩守卫（防 Int8 整数溢出回归）。</p>
 <div class="warn"><b>铁律。</b>两条 co-primary 嵌入、三轨、三家 LLM、三模型 BERT、三政治词权重——每一族都各自 just-identified 并排，<b>禁混进同一个 over-identified Hansen J</b>。这是贯穿全面板的稳健性纪律：并排的替代测量是"规格稳健性"，不是"更多矩条件"。</div>
@@ -1362,7 +1362,7 @@ window.MathJax = {
 <p>综观全章，十六个阶段并不是十六段孤立的代码，而是一条把"1,820 万条嘈杂中文报道"逐层提纯为"每家银行每年一行、每一列都可溯源"的证据链。它在每一个可能引入研究者自由度的关口——判定门槛、情感口径、嵌入模型、新颖度度量、工具变量构造——都布下了并排的替代测量与 always-on 的稳健性检查，并用缓存与冻结键把最贵的一步锁进可复现的确定性之中。这既是对文本即数据方法学"测量必须可验证、结论必须可复算"之要求的正面回应（<a href="https://doi.org/10.1146/annurev-economics-082222-074352" target="_blank">Ash &amp; Hansen, 2023</a>），也是本项目区别于一次性数据清洗脚本的根本所在。</p>
 <div class="plain"><b>白话</b>：这套流水线最讲究的一件事是"别人照着跑一遍，得到的结果和我们分毫不差"。为此我们把最贵、最容易飘的那步（问大模型情绪）的每一次回答都存进一个缓存库，冻结提问的措辞和参数；下次再跑，直接翻缓存、一分钱不花、结果一模一样。同时所有稳健性检查都设成"每次必跑"，避免出现"我们只报了对自己有利的那一版"的嫌疑。</div>
 
-<h2 id="sec5">5. 八大执行入口详解</h2>
+<h2 id="sec5">5. 九大执行入口详解</h2>
 <p class="lead">整个 news_process 仓库对外暴露<strong>九个</strong>可以直接用 <code>python …</code> 敲下去的执行入口。其中<strong>八个</strong>构成主管道执行体系，是本章的对象：三个是<strong>编排器</strong>（把几十个阶段串起来跑）、三个是<strong>不注册的审计工具</strong>（旁路检查、不碰主数据）、两个是<strong>派生子管线</strong>（在主管道产物之上再造两套银企共现面板）。第九个入口 <code>LLMs_for_FinTech_dic/00_LLMs_for_dic.py</code> 与主 DAG <strong>完全解耦</strong>——它自带独立 argparse、用专属离线开关 <code>LLMS_DIC_OFFLINE</code>（主管道的 <code>NEWS_PROCESS_LLM_OFFLINE</code> 对其无效），产出的正是 stage 12 所消费的金科词典本身，故在 <a href="#sec13-6">§13.6</a> 单独详解、本章不再展开。本章逐一拆解这八个主管道入口的命令行用法、职责边界与关键工程机制——子进程隔离、并发锁、三重指纹安检、fail-fast、退出码契约与日志学术化富集，让读者既能"照着敲就能跑"，也能理解每一道防线为何存在。</p>
 <div class="kpis">
 <div class="kpi"><div class="num">9</div><div class="lab">执行入口（8 主管道 + 1 词典管线）</div></div>
@@ -1372,7 +1372,7 @@ window.MathJax = {
 <div class="kpi alt"><div class="num">16+16</div><div class="lab">主线 + 验证阶段</div></div>
 <div class="kpi g"><div class="num">01→04</div><div class="lab">派生管线硬依赖链</div></div>
 </div>
-<h3 id="sec5-1">5.1 八入口总览</h3>
+<h3 id="sec5-1">5.1 九入口总览</h3>
 <p>这八个主管道入口分属三个家族（第九个入口 <code>00_LLMs_for_dic.py</code> 详见 <a href="#sec13-6">§13.6</a>）。<strong>编排器家族</strong>（<code>run_pipeline_function.py</code> / <code>run_pipeline_validation.py</code> / <code>run_paper.py</code>）负责把声明式 DAG 里的阶段按依赖顺序拉起来跑，是"生产线的总开关"。<strong>审计 shim 家族</strong>（<code>80</code> / <code>81</code> / <code>82</code>）是三个极薄的适配层，逻辑全在 <code>pipeline.*</code> 后端，刻意<strong>不注册进 DAG</strong>，由用户按需手动触发。<strong>派生管线家族</strong>（<code>company_listed_bank/run_pipeline.py</code> / <code>company_tax_bank/run_pipeline.py</code>）各自把主管道的产物当只读上游，再造一套银企共现面板，同样独立于主 DAG。</p>
 <div class="plain"><b>白话</b>：可以把主管道想象成一条"新闻→面板"的自动化流水线。第一个入口是流水线的绿色启动按钮；第二个入口是质检车间的启动按钮；第三个是把成品打包成"一篇论文的复现材料"的封装按钮。剩下三个 shim 是墙上挂的三把手电筒——想抽查哪里就照哪里，但绝不动流水线本身。最后两个派生管线是"用同一批原料另开的两条支线产品"。
 
@@ -1566,7 +1566,7 @@ window.MathJax = {
 <p>管线本身只冻结"测度目录"并造加权面板，不做估计：银企共现媒体报道（构念）→ 银行×年测度经 <code>cw/ce</code> 双臂加权投影到公司×年（测度）→ 下游论文按暴露设计接财务侧结果变量（识别）。步骤 02 在 21_full 留篇宇宙上用 5,528 家公司名 variant 做 Aho-Corasick <strong>三轨</strong>（full/ctx/ss）扫描，判定"该报道是否同时谈及目标银行与该公司"，再聚成公司×年；归年用 docid 全局最早日期的年份，并施加 own-bank 剔除（银行系公司 vs 自家银行）。核心的加权通式是把"某银行的年度测度"按"该公司当年与各银行的共现份额"投影下来：</p>
 <div class="formula">
 <span class="lbl">公式 5.1</span>
-\[ \text{cw\_}X_t(i,\, \text{yr}) \;=\; \sum_b \left[ \frac{\text{n\_cooc}_t(b,\, i,\, \text{yr})}{\sum_{b'} \text{n\_cooc}_t(b',\, i,\, \text{yr})} \right] \times X_t(b,\, \text{yr}) \]
+\[ \text{cw_}X_t(i,\, \text{yr}) \;=\; \sum_b \left[ \frac{\text{n_cooc}_t(b,\, i,\, \text{yr})}{\sum_{b'} \text{n_cooc}_t(b',\, i,\, \text{yr})} \right] \times X_t(b,\, \text{yr}) \]
 </div>
 <p>其中分母限"该测度该年非缺失共现银行"并重归一（测度缺失不摊薄），<code>ce_X</code> 则是等权算术平均稳健臂。加上步骤 03 的七套替代关系权（<code>loan/branch/board/supervisor/exec/dsg/shareholder</code>）与步骤 04 的 frozenw/mainbankw，合计聚合臂达 <strong>10</strong>。这套"多权源并排"的设计正是规格曲线思想在数据生产层的物化：</p>
 <div class="warn"><b>铁律</b>：三轨（full/ctx/ss）、<code>cw</code>-<code>ce</code> 两臂、八权、两替代聚合臂均"互为稳健性、不分主次"，各自 just-identified 并排，<strong>禁混同一 over-identified Hansen J、禁面板横向 merge、禁同一 RHS 并置同名测度</strong>。这条纪律与 <a href="https://doi.org/10.48550/arXiv.2404.17049" target="_blank">Hahn, Kuersteiner, Santos &amp; Willigrod (2024)</a> 关于"把多个份额型工具堆进同一过度识别检验，其拒绝可能只反映份额结构差异而非工具无效"的警示同向。
@@ -1620,7 +1620,7 @@ window.MathJax = {
 </div>
 <div class="note">两管线<strong>共用同一份负清单</strong> <code>COMPANY_BANK_COOC_PANEL_CUT_LIST_v23.txt</code>（F8 测度中立性——两企业宇宙的裁剪口径同源，防"按结果挑测度"的不对称）。二者只读消费主管道 <code>data/processed/</code> 产物、各写自有 <code>data/</code>（整目录 gitignore，~16GB / ~55GB 级），唯一入库 SSOT 是各自的 registry yaml。listed×tax 两管线间可并发，但须在主管道空闲时运行。这种"把权重矩阵怎么选摊开成规格曲线"的做法，正是 <a href="https://doi.org/10.1257/jep.20231370" target="_blank">Borusyak, Hull &amp; Jaravel (2025)</a> shift-share 实践指南与 <a href="https://doi.org/10.1093/qje/qjz025" target="_blank">Adão, Kolesár &amp; Morales (2019)</a> 份额结构推断的数据生产层落地。</div>
 <h3 id="sec5-8">5.8 横切设计：子进程隔离 · 并发锁 · 退出码契约 · 日志富集</h3>
-<p>八个入口在具体职责上各异，但共享一套横切工程纪律。理解这套纪律，才能理解为什么这个项目"跑起来慢一点，但每一步都可被审计、可被字节级复现"。</p>
+<p>这八个主管道入口在具体职责上各异，但共享一套横切工程纪律。理解这套纪律，才能理解为什么这个项目"跑起来慢一点，但每一步都可被审计、可被字节级复现"。</p>
 <h4>并发保护的三种形态</h4>
 <p>三种入口用三种并发策略。主线与验证编排器共享同一把 <code>PipelineLock</code>（二者都读写 <code>output_dir/</code>，互斥防数据竞争与日志互踩）；两条派生管线各用自己的<strong>单实例锁</strong>（<code>O_CREAT|O_EXCL</code> 原子锁文件，fail-loud 拒排队）；<code>run_paper</code> 与三个审计 shim 则不获锁——因为它们要么只读、要么调度别的进程。所有锁都遵守同一条设计序：<strong>锁必须先于文件日志接管</strong>。因为 <code>setup_logging</code> 以 <code>'w'</code> 模式打开日志文件，若第二实例先接管文件日志再被锁拒，会把正在跑实例的 <code>run_pipeline.log</code> 首写截断清零；被拒实例的报错因此走 console 兜底 handler、不触盘。</p>
 <div class="plain"><b>白话</b>：想象两个人同时冲进同一间厨房做同一道菜——锅碗瓢盆会被抢来抢去，最后两锅都糊。并发锁就是厨房门口的"占用"牌：谁先进去挂上牌，第二个人就被挡在门外（而不是硬挤进去把第一个人的半成品毁掉）。而"锁先于日志"的讲究是：别让第二个被挡的人在被赶走之前，顺手把厨房的记账本擦掉重写了。
@@ -1628,11 +1628,11 @@ window.MathJax = {
 </div><h4>退出码契约</h4>
 <p>每个入口都对 shell 层承诺清晰的退出码语义，使自动化脚本可靠判成败。主线/验证编排器：全成功正常退出、任一阶段失败 <code>sys.exit(1)</code>。<code>run_paper</code>：0 成功 / 1 导入失败或缺 <code>main()</code> 或子论文返回 1 / 2 未知 paper_id，且子论文 <code>analysis.main()</code> 的 int 返回值直接转 process exit code。派生管线：任一步非零退出即 fail-loud 中断，返回该步 rc。三个 shim：<code>sys.exit(main())</code> 直接透传后端返回码。这条契约配合 fail-fast，使"带病续跑"在设计层就不可能发生——<a href="https://doi.org/10.1111/ecin.13244" target="_blank">Dreber &amp; Johannesson (2024)</a> 区分的"同数据同代码可重算"（reproducibility）正是靠这种可判定的成败信号支撑的。</p>
 <h4>日志学术化富集与方法论引文</h4>
-<p>八个入口的日志都不只记"跑到哪一步"，而是刻意做成<strong>复现材料级的审计底稿</strong>：banner 里写清流水线定位、上下游、复现命令、关键 config、环境库版本；逐步记录实际命令行、注入的 env（<code>PYTHONHASHSEED=0</code>）、产物精确字节数、registry 哈希锚三方对比。这直接回应"复现代码会随时间流失"（<a href="https://doi.org/10.1111/ecin.13267" target="_blank">Fink &amp; Marcus (2024)</a>）——把复现命令直接写进每次运行日志头，使任一未来读者仅凭 <code>.log</code> 即能定位并重跑全链。更进一步，日志尾部还嵌入经 Crossref/引文池核验的方法论引文（含可访问 DOI 链接，绝不伪造）：主/验证编排器锚定 Sandve et al. (2013)、Simonsohn et al. (2020)、Steegen et al. (2016) 等；派生管线的 <code>_log_references()</code> 更是一次性 emit 十几到二十余条 APA 引文，逐条把"这条文献支撑了本脚本的哪个具体设计决策"讲清楚。</p>
+<p>八个主管道入口的日志都不只记"跑到哪一步"，而是刻意做成<strong>复现材料级的审计底稿</strong>：banner 里写清流水线定位、上下游、复现命令、关键 config、环境库版本；逐步记录实际命令行、注入的 env（<code>PYTHONHASHSEED=0</code>）、产物精确字节数、registry 哈希锚三方对比。这直接回应"复现代码会随时间流失"（<a href="https://doi.org/10.1111/ecin.13267" target="_blank">Fink &amp; Marcus (2024)</a>）——把复现命令直接写进每次运行日志头，使任一未来读者仅凭 <code>.log</code> 即能定位并重跑全链。更进一步，日志尾部还嵌入经 Crossref/引文池核验的方法论引文（含可访问 DOI 链接，绝不伪造）：主/验证编排器锚定 Sandve et al. (2013)、Simonsohn et al. (2020)、Steegen et al. (2016) 等；派生管线的 <code>_log_references()</code> 更是一次性 emit 十几到二十余条 APA 引文，逐条把"这条文献支撑了本脚本的哪个具体设计决策"讲清楚。</p>
 <p>把执行序、口径、随机种子全部固化并入日志，本质是把"跑法自由度"这一发散源在团队内压到零。<a href="https://doi.org/10.1177/2515245917747646" target="_blank">Silberzahn et al. (2018)</a> 的"多分析者，同一数据集"实验表明，即便同一数据同一假设，29 个团队也会得出方向不一致的结论；<a href="https://doi.org/10.1073/pnas.2203150119" target="_blank">Breznau et al. (2022)</a> 进一步揭示即使全流程透明，隐性建模决策仍造成"隐藏的不确定性宇宙"；<a href="https://doi.org/10.1111/ecin.12992" target="_blank">Huntington-Klein et al. (2021)</a> 则证明数据清洗/样本构建阶段的隐藏决策与建模决策同样改变结论。本项目的应对是：把数据构建决策显式编号入册（registry 负清单 / D 系决策）、全量转发子步 stderr、逐步落盘字节数——让隐性决策无处藏身。这也是对 <a href="https://doi.org/10.1257/aer.20190687" target="_blank">Brodeur, Cook &amp; Heyes (2020)</a> 所记录的"p 值在显著性阈值附近异常堆积"这一选择性报告痕迹的结构性预防：全部平行面板一次性批量产齐并逐权独立落盘，"只挑显著的那个报"在数据生产层就无操作空间。</p>
 <div class="note">对复现纪律的坚持并非孤例。<a href="https://doi.org/10.1287/mnsc.2023.03556" target="_blank">Fišar et al. (2024)</a> 的期刊级复现协作与 <a href="https://doi.org/10.3386/w33753" target="_blank">Brodeur et al. (2025)</a> 的标准化众包复现都指向同一结论：数据 + 代码 + "能一键重跑的入口 + 环境说明"到位时，绝大部分结果可复现，材料完备度是第一决定因素。<a href="https://doi.org/10.1561/104.00000112" target="_blank">Chen &amp; Zimmermann (2022)</a> 更直言——把面板生产做成可一键重建的代码，本身就是研究基础设施。本章的八个主管道入口（连同 §13.6 的词典管线入口，全仓共九个），就是这套基础设施的对外把手：每一个都可被单条命令确定性重放，每一次运行都留下可作复现底稿的日志。
 
-</div><p>综上，八大执行入口不是八个孤立的脚本，而是一套分层协作的执行体系：三个编排器负责主线生产、稳健性验证与论文封装，三个不注册 shim 提供旁路审计而绝不污染主数据，两条派生管线在同一批原料上另造两套银企共现面板。贯穿其中的子进程隔离、并发锁、三重指纹安检、fail-fast、退出码契约与日志富集，共同把"新闻文本 → 计量面板"这条长链做成了可审计、可复现、可交付的研究基础设施——既经得起顶刊审稿人对稳健性的追问，也经得起 data editor 对复现材料完备度的核验。</p>
+</div><p>综上，九大执行入口不是九个孤立的脚本，而是一套分层协作的执行体系：三个编排器负责主线生产、稳健性验证与论文封装，三个不注册 shim 提供旁路审计而绝不污染主数据，两条派生管线在同一批原料上另造两套银企共现面板。贯穿其中的子进程隔离、并发锁、三重指纹安检、fail-fast、退出码契约与日志富集，共同把"新闻文本 → 计量面板"这条长链做成了可审计、可复现、可交付的研究基础设施——既经得起顶刊审稿人对稳健性的追问，也经得起 data editor 对复现材料完备度的核验。</p>
 
 <h2 id="sec6">6. 文本指标全书（一）：词典法情感测度</h2>
 <p class="lead">本章进入 news_process 流水线的文本计量核心，系统转写在 stage 22（<code>tone_words</code>）中生产的全部<b>词典法</b>（lexicon-based / dictionary-based）文本指标。所谓词典法，是把一部预先标好褒贬的"情感词典"当作"标尺"，逐词扫描每一篇新闻、按语法规则修正后累加得分——它不训练任何模型、不调用任何付费 API，因而具有<b>零边际成本、逐字节可复现、完全可审计</b>三大工程属性，是本项目情感三法（词典法 / LLM 法 / BERT 法）中最透明、最可解释的一支，也是另外两支昂贵测度的"廉价旁证"与稳健性锚。</p>
@@ -1656,16 +1656,16 @@ window.MathJax = {
 <p>词典法的心脏是 <code>_compute_sentiment_with_rules</code>（<code>tone_words.py:633</code>）。它把一篇文章的 jieba 分词序列 <code>tokens</code> 当作输入，逐 token 跑一台<b>有限状态机</b>，维护三个状态变量：<code>negation_remaining</code>（否定作用窗口的剩余 token 数）、<code>degree_multiplier</code>（当前程度副词倍率）、<code>adversative_active</code>（是否处于转折词之后的加权区）。当扫描到一个命中情感词典的 token 时，按下式打分：</p>
 <div class="formula">
 <span class="lbl">公式 6.1</span>
-\( \text{base\_score} = \text{sentiment\_dict}[\text{token}] \)  （正词 +1.0 / 负词 −1.0 / du_2022 政治正面词 +0.5）<br/>
-若 \( \text{negation\_remaining} &gt; 0 \) 且 apply_negation：  \( \text{base\_score} \leftarrow -\text{base\_score} \)  （否定翻转）<br/>
-\( \text{final\_score} = \text{base\_score} \times \text{degree\_multiplier} \)  （程度副词六级权重）<br/>
-若 adversative_active 且 apply_adversative：  \( \text{final\_score} \leftarrow \text{final\_score} \times \text{ADVERSATIVE\_BOOST} \)  (=1.5)<br/>
-\( \text{total\_score} \mathrel{+}= \text{final\_score} \)  ；  \( \text{total\_abs\_score} \mathrel{+}= \lvert \text{final\_score} \rvert \)
+\( \text{base_score} = \text{sentiment_dict}[\text{token}] \)  （正词 +1.0 / 负词 −1.0 / du_2022 政治正面词 +0.5）<br/>
+若 \( \text{negation_remaining} &gt; 0 \) 且 apply_negation：  \( \text{base_score} \leftarrow -\text{base_score} \)  （否定翻转）<br/>
+\( \text{final_score} = \text{base_score} \times \text{degree_multiplier} \)  （程度副词六级权重）<br/>
+若 adversative_active 且 apply_adversative：  \( \text{final_score} \leftarrow \text{final_score} \times \text{ADVERSATIVE_BOOST} \)  (=1.5)<br/>
+\( \text{total_score} \mathrel{+}= \text{final_score} \)  ；  \( \text{total_abs_score} \mathrel{+}= \lvert \text{final_score} \rvert \)
 </div>
 <p>把全文所有情感词的贡献累加后，最终得分通过<b>加权幅度归一化</b>落到有界区间（<code>tone_words.py:812</code>）：</p>
 <div class="formula">
 <span class="lbl">公式 6.2</span>
-\[ \text{normalized\_score} \;=\; \frac{\sum_i \text{final\_score}_i}{\sum_i \lvert \text{final\_score}_i \rvert} \;\in\; [-1,\, +1] \]
+\[ \text{normalized_score} \;=\; \frac{\sum_i \text{final_score}_i}{\sum_i \lvert \text{final_score}_i \rvert} \;\in\; [-1,\, +1] \]
 （分母 = 0 ⟹ 得分 0.0）
 </div>
 <div class="warn"><b>承重设计（fix omni-g-tonewords-09）</b>：归一化分母是<b>加权幅度之和 ∑|final|</b>，而<b>非</b>裸匹配词数。这一选择使分子分母同时包含 degree×adversative 权重，从而保证结果恒有界于 [−1,+1]，与 LLM/BERT 的有界 tone 轨在同一量纲上可比。若误用裸词数作分母，程度副词会把分数推出 [−1,+1] 区间，破坏跨方法可比性。</div>
@@ -1762,9 +1762,9 @@ window.MathJax = {
 <div class="formula">
 <span class="lbl">公式 6.3</span>
 \[ \begin{aligned}
-\text{raw\_idf}(w) &= \log_{10}\!\left[ \frac{N}{1 + \text{df}(w)} \right] \\
-\text{norm\_idf}(w) &= \frac{\text{raw\_idf}(w)}{\text{mean}(\text{raw\_idf})} \\
-\text{final\_idf}(w) &= \text{Winsorize}_{P1,\, P99}\big( \text{norm\_idf}(w) \big)
+\text{raw_idf}(w) &= \log_{10}\!\left[ \frac{N}{1 + \text{df}(w)} \right] \\
+\text{norm_idf}(w) &= \frac{\text{raw_idf}(w)}{\text{mean}(\text{raw_idf})} \\
+\text{final_idf}(w) &= \text{Winsorize}_{P1,\, P99}\big( \text{norm_idf}(w) \big)
 \end{aligned} \]
 </div>
 <p>加权词典的词条得分为 <code>weighted_score(w) = base_score(w) × idf_weight(w)</code>（<code>_build_idf_weighted_dict</code>，<code>tone_words.py:1142</code>），其中 N 与 df 按<b>唯一文档</b>去重统计（fix omni-g-tonewords-04，避免同源转载稿重复计数抬高 df）。落盘列为 <code>{dict}_idf_score{track}</code> / <code>{dict}_idf_label{track}</code> / <code>{dict}_idf_zscore{track}</code>，IDF 权重本身写入 <code>22_idf_weights.json</code>。IDF 的思想可上溯至 <a href="https://doi.org/10.1108/eb026526" target="_blank">Spärck Jones (1972)</a> 与 <a href="https://doi.org/10.1016/0306-4573(88)90021-0" target="_blank">Salton &amp; Buckley (1988)</a> 的经典术语加权，其统计学正当性近年由 <a href="https://doi.org/10.1080/00031305.2025.2539241" target="_blank">Sheridan, Ahmed &amp; Farooque (2026)</a> 用 Fisher 精确检验重新论证。</p>
@@ -1846,7 +1846,7 @@ window.MathJax = {
 <p>"罕见词率"刻画的是文本使用低频/生僻词的程度，对应 <a href="https://doi.org/10.1007/s11142-008-9083-2" target="_blank">You &amp; Zhang (2009)</a> 的报告复杂度与 GKT (2019) 的稀有词构念。词 w 判为罕见当且仅当 <code>FREQ.get(w,0) ≤ cutoff</code> 且非纯数字/纯拉丁（<code>_NON_LEXICAL_TOKEN_RE</code>）。⚠ 这里有一处必须如实披露的<b>命名与实测的落差</b>：由于 jieba 0.42.1 冻结词典的低频侧存在巨量频次并列（freq=2 约 4 万词、freq=3 约 16 万词），<code>≤ cutoff</code> 这一谓词使 c=3 实际覆盖了 distinct 词的整段 (11.6%, 57.25%]（三档实测约 c2≈11.6% / c3≈57.2% / c5≈63.4%），计入 OOV（freq=0）后更升至约 70%。因此该列度量的实为<b>「非高频词率」</b>，而非紧致的「最稀有 20% 尾部」——行文与论文中<b>不得</b>表述为「低频 20% 阈值」。cutoff 阈值本身是一个研究者自由度，故设三档梯子（<code>RARE_WORD_FREQ_CUTOFFS=(2.0,3.0,5.0)</code>，<code>lexical_complexity.py:111</code>）：</p>
 <div class="formula">
 <span class="lbl">公式 6.4</span>
-\[ \text{rare\_word\_ratio}_{c}\{\text{track}\} \;=\; \frac{\text{n\_rare}(w : \text{FREQ}(w) \leq c)}{\text{n\_real}} \,,\quad c \in \{2,\, 3,\, 5\} \]
+\[ \text{rare_word_ratio}_{c}\{\text{track}\} \;=\; \frac{\text{n_rare}(w : \text{FREQ}(w) \leq c)}{\text{n_real}} \,,\quad c \in \{2,\, 3,\, 5\} \]
 </div>
 <p>canonical cutoff = 3.0（<code>_rare_word_cutoff()</code>，≡ 分位 <code>RARE_WORD_PERCENTILE=20</code> 在 jieba 0.42.1 冻结词典上的实测值，gate 锚死 == 3.0），列名 <code>rare_word_ratio{track}</code>；c=2、c=5 为稳健臂 <code>rare_word_ratio_c2{track}</code> / <code>rare_word_ratio_c5{track}</code>（<code>_RARE_CUTOFF_VARIANT_KEYS</code>）。</p>
 <div class="warn">⚠ 只用<b>频次 cutoff 梯子</b>{2,3,5}，<b>不用分位梯子</b>{10,20,30}——后者在 jieba 冻结词典上数学退化（大量词共享同一冻结频次，分位切点落在平台上导致跳变），故禁用。gate 测试 <code>tests/test_rare_word_cutoff_ladder.py</code> 锚死 canonical cutoff==3.0。</div>
@@ -1878,7 +1878,7 @@ window.MathJax = {
 <h4>6.7b　数字披露密度 <code>num_intensity</code>：三轨 × 双分母</h4>
 <p><b>构念。</b>一篇报道里「有多少硬数字」——数字密度高意味着叙述以可核查的量化事实为主，密度低则更可能是定性表态。该族由独立模块 <code>pipeline/sentiment/numerical_intensity.py</code>（637 行）真三轨生产，面板落 <b>6 列</b>（3 轨 × 2 个分母）。构念锚点为 <a href="https://doi.org/10.1111/j.1911-3846.2011.01125.x" target="_blank">Davis &amp; Tama-Sweet (2012)</a> 的数值披露强度。</p>
 <div class="formula"><span class="lbl">公式 6.5（数字密度：句级与词级双分母）</span>
-\[ \text{num\_intensity}_{\text{trk}} = \frac{n_{\text{numeric}}}{n_{\text{sentences}}} , \qquad \text{num\_intensity\_word}_{\text{trk}} = \frac{n_{\text{numeric}}}{n_{\text{real\_word\_tokens}}} \]
+\[ \text{num_intensity}_{\text{trk}} = \frac{n_{\text{numeric}}}{n_{\text{sentences}}} , \qquad \text{num_intensity_word}_{\text{trk}} = \frac{n_{\text{numeric}}}{n_{\text{real_word_tokens}}} \]
 （两者互为稳健性、不进同一 Hansen J）
 </div>
 <p><b>为什么必须有两个分母。</b>中文新闻的句号使用远比英文披露文本稀疏（长句 + 逗号连缀成段），句级分母会被系统性压低、使密度虚高，因此另设 jieba 真词数分母作并排稳健臂。词级分母所用的非词正则 <code>_LMFLS_NONWORD_RE</code> 与 FLS、clarity、词典 <code>pos_ratio</code> 同源（<code>lm_non_sentiment.py:59</code>，排除纯标点与纯数字 token），三族因此同口径、可横比。</p>
@@ -1909,9 +1909,9 @@ window.MathJax = {
 <p>实现为语料级<b>精确两遍</b>（exact two-pass）：Pass 1 统计 char_wb (4,6)-gram 的文档频率，凡 <code>DF/N ≥ DF_RATIO_THRESHOLD</code> 的 n-gram 归入"套话集"；Pass 2 逐文计算命中套话 n-gram 的出现数占全部 n-gram 出现数的比例：</p>
 <div class="formula">
 <span class="lbl">公式 6.7</span>
-\[ \text{boilerplate\_phrase\_ratio}\{\text{track}\} \;=\; \frac{\sum \text{命中套话集的 n-gram 出现数}}{\sum \text{全部 n-gram 出现数}} \]
+\[ \text{boilerplate_phrase_ratio}\{\text{track}\} \;=\; \frac{\sum \text{命中套话集的 n-gram 出现数}}{\sum \text{全部 n-gram 出现数}} \]
 （round 6）<br/>
-套话集 \( = \left\{\, g : \dfrac{\text{DF}(g)}{N} \geq 0.10,\ \ g \text{ 为 char\_wb 的 4–6 字 n-gram} \,\right\} \)
+套话集 \( = \left\{\, g : \dfrac{\text{DF}(g)}{N} \geq 0.10,\ \ g \text{ 为 char_wb 的 4–6 字 n-gram} \,\right\} \)
 </div>
 <div class="tbl">
 <table>
@@ -2001,7 +2001,7 @@ n_s(d) &= \sum_{t \in T(d)} \mathbf{1}\big[\, t \in D_s \,\big] \\[2pt]
 
 <div class="formula">
 <span class="lbl">公式 6.9</span>
-\[ \mathcal{C} \;=\; \Big\{\, \texttt{\{prefix\}\_frac\{suffix\}} \;:\; \text{prefix} \in \text{SUBSET\_PREFIXES},\ \ \text{suffix} \in \{\,\texttt{\_full},\ \texttt{\_ctx},\ \texttt{\_ss}\,\} \Big\} \]
+\[ \mathcal{C} \;=\; \Big\{\, \texttt{\{prefix\}_frac\{suffix\}} \;:\; \text{prefix} \in \text{SUBSET_PREFIXES},\ \ \text{suffix} \in \{\,\texttt{_full},\ \texttt{_ctx},\ \texttt{_ss}\,\} \Big\} \]
 \[ \lvert \mathcal{C} \rvert \;=\; 6 \times 3 \;=\; 18 \quad\text{（panel 列）} \]
 （<code>get_panel_columns(suffix)</code>，<code>lm_non_sentiment.py:195-206</code>）
 </div>
@@ -2010,7 +2010,7 @@ n_s(d) &= \sum_{t \in T(d)} \mathbf{1}\big[\, t \in D_s \,\big] \\[2pt]
 
 <div class="formula">
 <span class="lbl">公式 6.10</span>
-\[ \texttt{\{prefix\}\_frac\_\{track\}}_{\,i,y} \;=\; \frac{1}{\lvert A_{i,y}^{\ast} \rvert} \sum_{d \in A_{i,y}^{\ast}} \text{frac}_s(d) , \qquad A_{i,y}^{\ast} = \big\{\, d \in A_{i,y} : \text{frac}_s(d) \neq \text{NaN} \,\big\} \]
+\[ \texttt{\{prefix\}_frac_\{track\}}_{\,i,y} \;=\; \frac{1}{\lvert A_{i,y}^{\ast} \rvert} \sum_{d \in A_{i,y}^{\ast}} \text{frac}_s(d) , \qquad A_{i,y}^{\ast} = \big\{\, d \in A_{i,y} : \text{frac}_s(d) \neq \text{NaN} \,\big\} \]
 （<code>encode_collab.py:1488, 1507-1516</code>；<code>pandas</code> 的 <code>mean</code> 自动跳过 NaN，故空文本篇不污染分母）
 </div>
 
@@ -2069,16 +2069,16 @@ n_s(d) &= \sum_{t \in T(d)} \mathbf{1}\big[\, t \in D_s \,\big] \\[2pt]
 <div class="formula"><span class="lbl">公式 7.1</span> <code>majority_vote_bool</code>：final_v = <b>1</b> 当且仅当  \( \sum_m v_m > n / 2 \)  （严格 &gt;50%；三家里需 ≥2 票，两家在场时 1 票不通过）</div>
 <p><b>第二步——情感（分类多数决，且只让已验证的模型投）</b>。这是本项目最讲究的一处口径：情感票 <code>s_votes_verified_only</code> <b>只纳入该篇 verification=True 的模型</b>。也就是说，若某家判定"这不是银行金科报道"，它对情感就没有投票权。文章级聚合逻辑 <code>_aggregate_track</code> 如下：</p>
 <div class="formula"><span class="lbl">公式 7.2</span>
-\( \text{final\_v} = \text{majority\_vote\_bool}(\text{v\_votes}) \)<br/>
-若 final_v = 真：\( \text{final\_s} = \text{majority\_vote\_sentiment}( \text{s\_votes\_verified\_only} ,\ \text{tie\_strategy} = \textbf{'neutral'} ) \)；若返回 None（空票或平局）→ \( \text{final\_s} = \text{'中性'} \)<br/>
-若 final_v = 假：\( \text{final\_s} = \text{None} \)（非金科文章，情感记 N/A）
+\( \text{final_v} = \text{majority_vote_bool}(\text{v_votes}) \)<br/>
+若 final_v = 真：\( \text{final_s} = \text{majority_vote_sentiment}( \text{s_votes_verified_only} ,\ \text{tie_strategy} = \textbf{'neutral'} ) \)；若返回 None（空票或平局）→ \( \text{final_s} = \text{'中性'} \)<br/>
+若 final_v = 假：\( \text{final_s} = \text{None} \)（非金科文章，情感记 N/A）
 </div>
 <p>平局与空票在已验证轨（final_v=真）并非立即定音：在线模式下先绕过缓存对该（行×轨）重调 LLM 最多 <code>SENTIMENT_TIE_RETRY_ROUNDS=80</code> 轮（温度=0，<code>force_refresh</code> 绕过缓存读取侧，否则首跑票被原样返回、平局永不可能被打破），试图打破平局/补齐缺票（用户 2026-06-24 决策）；80 轮耗尽仍未决（或处于 <code>NEWS_PROCESS_LLM_OFFLINE=1</code> 离线模式）才保守降级为"中性"（<code>tie_default='中性'</code>，用户 2026-06-23 决策，逆转了早期 v6 版"平局→None"的口径）。内部实现上 <code>majority_vote_sentiment(tie_strategy='neutral')</code> 等价于 <code>majority_vote_categorical(tie_strategy='conservative', tie_default='中性')</code>。这种"宁可保守判中性、不轻易判有向"的设计，与自动标注文献里对"不确定就别硬下有向结论"的告诫一脉相承——<a href="https://doi.org/10.48550/arXiv.2408.15204" target="_blank">Gligorić et al. (2024)</a> 讨论了如何用"不自信的 LLM 标注"仍得出可靠结论，<a href="https://doi.org/10.48550/arXiv.2306.04746" target="_blank">Egami et al. (2023)</a> 则给出把不完美代理变量喂进下游推断的"设计驱动监督学习"框架。</p>
 <div class="plain"><b>白话</b>：三位编辑各读一篇文章，先各自回答"这算不算一篇讲这家银行搞金融科技的新闻"。至少两位说"算"，这篇才留下。接着，只让说"算"的那几位再判正/中/负——不认这是金科新闻的人，对情感不投票。如果留下投票的人打成平手、或干脆没人投，就保守记"中性"，绝不硬猜方向。</div>
 <h4>数值编码与面板聚合</h4>
 <p>在 <code>encode_sentiment</code> 里，三条文本轨 <code>_full/_ctx/_ss</code> 各跑一遍。情感标签经 <code>SENTIMENT_MAP</code> 映射为 {+1, 0, −1}，并对"调用失败 ∨ 未定义平局 ∨ 该篇 verified=False"统一置为缺失（<code>pd.NA</code>），最终存为省内存的 <code>Int8</code>：</p>
 <div class="formula"><span class="lbl">公式 7.3</span>
-<code>llm_vote_score{track}</code> \( = \text{map}(\text{SENTIMENT\_MAP}) \) ，再对 invalid_mask（\( \text{call\_failure} \vee \text{undefined} \vee \text{verified} = \text{False} \)）置 NA<br/>
+<code>llm_vote_score{track}</code> \( = \text{map}(\text{SENTIMENT_MAP}) \) ，再对 invalid_mask（\( \text{call_failure} \vee \text{undefined} \vee \text{verified} = \text{False} \)）置 NA<br/>
 per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自身 \( \text{verified} = \text{False} \) 置 NA
 </div>
 <p>面板聚合把银行—年内所有留篇的分数聚成一批共识列，其中 <code>llm_vote_tone{track}</code> 就是全项目的 canonical headline，也是主线论文 P1 的 primary treatment：</p>
@@ -2096,7 +2096,7 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 </tbody>
 </table>
 </div>
-<div class="formula"><span class="lbl">公式 7.4</span> \( \displaystyle \text{llm\_vote\_tone}_{b,y} = \frac{1}{n_{b,y}} \cdot \sum_{a \in \text{留篇}(b,y)} \text{final\_s}(a) \) ，  \( \text{final\_s} \in \{+1,\, 0,\, -1\} \)</div>
+<div class="formula"><span class="lbl">公式 7.4</span> \( \displaystyle \text{llm_vote_tone}_{b,y} = \frac{1}{n_{b,y}} \cdot \sum_{a \in \text{留篇}(b,y)} \text{final_s}(a) \) ，  \( \text{final_s} \in \{+1,\, 0,\, -1\} \)</div>
 <p>其中 <code>llm_vote_cont</code> 引入了"共识强度"：把 ±1 的离散情感分按该篇「是否银行金科」<b>验证票</b>的一致率 <code>llm_agreement_rate</code> 加权（⚠ 不是情感票自身的一致率——后者是另一列 <code>llm_agreement_rate_s</code>，只作质量诊断、不进入 <code>llm_vote_cont</code>），一致率越高、连续语调越接近满格。这与 <a href="https://doi.org/10.48550/arXiv.2504.18884" target="_blank">Niimi (2025)</a> "用简单集成换取更稳定文本分类"的思路一致——多数越压倒、结论越可信。把离散标签映射为 {+1, 0, −1} 再取均值，本身就是新闻情感文献的标准做法：<a href="https://doi.org/10.1016/j.jeconom.2020.07.053" target="_blank">Shapiro, Sudhof &amp; Wilson (2022, J. Econometrics)</a> 的新闻情感指数、<a href="https://doi.org/10.2469/faj.v73.n3.3" target="_blank">Heston &amp; Sinha (2017)</a> 由新闻预测收益，都建立在类似的"分数聚合"范式上；本项目只是把打分器从词典/浅层模型换成了三家异构 LLM 的合议。</p>
 <h4>为什么是"验证优先、平局保守"</h4>
 <p>这套投票口径里最值得强调的两个设计决策，都服务于"少犯错"而非"多下判断"。其一是 <b>verified-only 情感门控</b>：只有认定"这是一篇银行金科报道"的模型才有情感投票权。这避免了一类隐蔽污染——某家模型明明判"这文章跟金科无关"，却仍被逼着给一个情感分，那个分数纯属噪声，若纳入投票会稀释真正读懂题材的模型的判断。其二是 <b>平局→中性</b>：两票在场时一票不足以翻案（严格 &gt;50%），三票平分或空票一律记中性。这与 <a href="https://doi.org/10.48550/arXiv.2408.15204" target="_blank">Gligorić et al. (2024)</a> 关于"不自信标注宁可保守"的主张、以及 <a href="https://doi.org/10.6092/issn.1971-8853/19461" target="_blank">Törnberg (2024a)</a> 的 LLM 标注最佳实践一致：把不确定性显式编码为"中性"，而不是让它伪装成有向信号。数值上，所有"调用失败 ∨ 未定义平局 ∨ 该篇未验证"都收敛到统一的缺失码 <code>pd.NA</code>，聚合时被 mean/count 自动跳过，从源头杜绝了"用 0 冒充缺失"的分母污染。</p>
@@ -2108,7 +2108,7 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 即 <code>gpt54nano_tone_full</code> / <code>gemini31_tone_full</code> / <code>deepseekv4_tone_full</code> 等
 </div>
 <p>在此之上，<code>geography.py</code> 再算一层"均值 ensemble"：把三家的银行—年 tone 逐行取宏平均（mean-of-means，缺列优雅 NaN，<b>不是</b>重新投票），得到 <code>llm_models_avg_tone{track}</code>，另有加总、连续、标准差的孪生列，以及提及密度加权 VW（<code>mention_density</code>）/ 媒体权威性加权 MW（<code>media_authority_weight</code>）/ 羊群衰减加权 HW（<code>herd_weight</code>）三种加权变体。要注意 mean-of-means 与"把三家的票重新汇总投一次"（vote-of-votes）在数学上不等价——前者对每家银行—年均值一视同仁地平均，后者会让报道多的银行—年隐性主导。本项目刻意选前者，因为它与 per-model tone 的口径直接对齐，便于在同一张表里逐家、逐 ensemble 地做稳健性对照。VW/MW/HW 加权则服务于不同的加总权重稳健性问题（等权 vs 提及密度 / 媒体权威 / 羊群衰减权），同样是并排稳健臂而非主测度。</p>
-<div class="formula"><span class="lbl">公式 7.6</span> \[ \text{llm\_models\_avg\_tone}\{track\} = \text{\_safe\_mean}\left( [\, \text{gpt54nano\_tone},\ \text{gemini31\_tone},\ \text{deepseekv4\_tone} \,]_{\{track\}} \right) \]</div>
+<div class="formula"><span class="lbl">公式 7.6</span> \[ \text{llm_models_avg_tone}\{track\} = \text{_safe_mean}\left( [\, \text{gpt54nano_tone},\ \text{gemini31_tone},\ \text{deepseekv4_tone} \,]_{\{track\}} \right) \]</div>
 <div class="tbl">
 <table>
 <caption>表 7-2　LLM 情感的三个视角：共识 / per-model / ensemble</caption>
@@ -2167,7 +2167,7 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 </table>
 </div>
 <div class="formula"><span class="lbl">公式 7.8</span>
-\[ \text{tech\_frac}_{b,y} \;=\; \frac{\text{n\_articles\_tech}_{b,y}}{\text{n\_valid}_{b,y}} \]
+\[ \text{tech_frac}_{b,y} \;=\; \frac{\text{n_articles_tech}_{b,y}}{\text{n_valid}_{b,y}} \]
 （n_valid &gt; 0 时；否则 NaN） · ctx/ss 对角变体改用 <code>n_articles_llm_valid_ctx / _ss</code> 作分母，保持轨内对称</div>
 <p><b>(b) per-model frac（跨厂商稳健臂，<code>LLM_CLASS_SPEC</code> 直接驱动）</b>。这一族让每家模型单独回答同一个分类问题，用来检查分类结论是否被某一家带偏。门控指示列在 <code>encode_sentiment</code> 产出：对每篇文章，只有该模型自身 verified=True 才计入，标签命中目标类记 1、否则记 0、未验证记 <code>pd.NA</code>：</p>
 <div class="formula"><span class="lbl">公式 7.9</span>
@@ -2175,7 +2175,7 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 面板聚合 <code>{short}_{metric}{track}</code> = (<code>{short}_{metric}_src{track}</code>, mean)，mean 跳过 NaN
 </div>
 <div class="formula"><span class="lbl">公式 7.10</span>
-\[ \text{\{short\}\_sub\_frac}_{b,y} \;=\; \frac{\#\{\, \text{该模型 verified} \;\wedge\; \text{标签} = \text{实质性} \,\}}{\#\{\, \text{该模型 verified} \,\}} \]
+\[ \text{\{short\}_sub_frac}_{b,y} \;=\; \frac{\#\{\, \text{该模型 verified} \;\wedge\; \text{标签} = \text{实质性} \,\}}{\#\{\, \text{该模型 verified} \,\}} \]
 （tech_frac 分子目标类 = 底层技术，collab_frac = 外部协同）
 </div>
 <p>由于 mean 自动跳过 NaN，分子就是"该模型 verified 且标签命中目标类的篇数"，分母是"该模型 verified 的篇数"——这是 per-model 版的 <code>n_articles_llm_valid</code>。产出如 <code>gpt54nano_sub_frac_full</code>、<code>gemini31_tech_frac_full</code>、<code>deepseekv4_collab_frac_full</code>（3 模型 × 3 维 × 3 轨）。注意每个维度允许"缺标残差"：实质 + 象征占比之和可以 ≤ 1（有些文章两极都没判到）。</p>
@@ -2192,7 +2192,7 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 <h4>概率均值聚合与有符号 net_tone</h4>
 <p>面板聚合先把逐篇概率取银行—年均值（正面均值 <code>_pos</code>、负面均值 <code>_neg</code>，三分类另有 <code>_neu</code>，以及三者各自的加总孪生列 <code>_pos_sum</code>／<code>_neg_sum</code>／<code>_neu_sum</code>；标准差孪生列只对正面概率产出一条 <code>{short}_pos_std</code>）。真正进对照表的旗舰列是 Phase 2 后处理的<b>有符号净语调</b>：</p>
 <div class="formula"><span class="lbl">公式 7.11</span>
-\[ \text{\{short\}\_net\_tone}_{b,y} \;=\; \overline{P(\text{正面})}_{b,y} \;-\; \overline{P(\text{负面})}_{b,y} \;\in\; [-1,\, 1] \]</div>
+\[ \text{\{short\}_net_tone}_{b,y} \;=\; \overline{P(\text{正面})}_{b,y} \;-\; \overline{P(\text{负面})}_{b,y} \;\in\; [-1,\, 1] \]</div>
 <p>产出 <code>finbert_cn_net_tone_full</code>、<code>fin_sent_zh_net_tone_ctx</code>、<code>finbert2_net_tone_ss</code> 等（3 模型 × 3 轨 = 9 列）。<b>只产 mean、不产 _std</b>——因为 std(pos − neg) ≠ std(pos) − std(neg)，两者不是同一个统计量；而由于 BERT 逐篇原子失败时 pos/neg 同置 NaN、篇级掩码一致，面板层的差值恰好等于篇均的有符号净语调。<code>net_tone</code> 与 LLM 的 <code>_tone</code> 同处 [−1, 1] 尺度，方便放进同一张跨模型对照表比标准化系数。之所以用"正减负"而非直接取 argmax 标签的均值，是因为概率差保留了强度信息：一篇 0.9/0.05/0.05 的强正面与一篇 0.4/0.35/0.25 的弱正面，argmax 都记 +1，但 net_tone 会分别记 +0.85 与 +0.05，忠实反映了模型的确信程度。这与前述 LLM 连续语调 <code>llm_vote_cont</code> 引入共识强度的动机一脉相承——尽量少丢弃打分器给出的信息。</p>
 <div class="plain"><b>白话</b>：三个金融 BERT 各给每篇文章打出"正/中/负"的概率。某银行某年把正面概率求平均、负面概率求平均，两者一减就是 <code>net_tone</code>，范围 −1 到 +1，越正表示这一年关于它的报道语气越暖。finbert2 只有正负两类（没中性），所以它的 net_tone 尺度跟另两家不完全一样，比较时只比标准化后的回归系数。</div>
 <div class="warn"><b>per-model 独立降级</b>：BERT 三模型是 co-equal 的稳健臂，<b>无 ensemble headline</b>。某个模型缺席（如未配 <code>FINBERT2_MODEL_DIR</code>）只掉它自己那一族列，兄弟模型照跑——这与 co-primary 嵌入的 both-or-neither 硬绑定<b>不同</b>。三模型各自恰好识别、并排陈列，禁混同一 over-identified Hansen J。BERT 无 <code>_lg</code> 双轨（非嵌入 carve-out）。</div>
@@ -2217,13 +2217,13 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 </div><h4>家族 (2) 极端负面尾部占比 <code>{b}_xneg_frac[_t80/_t95]{trk}</code>（27 列）</h4>
 <p>数一年里"模型判定负面概率超过阈值 τ"的极端唱衰报道占多大比例，是崩盘风险文本预测文献的常见做法（如 <a href="https://doi.org/10.1007/s10479-025-06567-y" target="_blank">Anastasiou et al. (2026)</a> 用文本预测银行股价崩盘）。阈值梯子的 SSOT：</p>
 <div class="formula"><span class="lbl">SSOT 7.4</span> <code>_XNEG_TAGS = {0.80: '_t80', 0.90: '', 0.95: '_t95'}</code> · <code>XNEG_THRESHOLDS = (0.80, 0.90, 0.95)</code> · <code>XNEG_CANONICAL = 0.90</code></div>
-<div class="formula"><span class="lbl">公式 7.14</span> \( \text{xneg\_ind}_{\text{art}} = \mathbb{1}[\, P(\text{负面}) > \tau \,] \in \{0,\, 1\} \)；  面板占比 \( = \#\{\, P(\text{负面}) > \tau \,\} \,/\, \#\{\, P(\text{负面})\ \text{非缺篇} \,\} \)</div>
+<div class="formula"><span class="lbl">公式 7.14</span> \( \text{xneg_ind}_{\text{art}} = \mathbb{1}[\, P(\text{负面}) > \tau \,] \in \{0,\, 1\} \)；  面板占比 \( = \#\{\, P(\text{负面}) > \tau \,\} \,/\, \#\{\, P(\text{负面})\ \text{非缺篇} \,\} \)</div>
 <p>门槛与守卫：canonical 用 τ=0.90（无后缀，镜像 <code>RARE_WORD_FREQ_CUTOFFS=3</code> 无后缀先例），0.80/0.95 作梯子稳健臂。指示值为 float，<b>NaN 保持 NaN、严禁 <code>fillna(0)</code></b>（否则缺概率篇被误当"非极端负面"污染分母）。三阈值同源同掩码 → 面板占比逐格精确单调（t80 ≥ 无后缀 ≥ t95）。⚠ 阈值语义 model-specific：finbert2 重归一后概率尺度与三分类不同，禁跨模型比占比水平，只比标准化 β；三阈值梯子各自恰好识别，禁混同一 over-identified Hansen J。</p>
 <div class="plain"><b>白话</b>：τ 越高（0.95）越严苛，命中越少。canonical 用 0.90，0.80/0.95 是稳健梯子。不同模型概率刻度不一样，只能比标准化系数，不能直接比占比高低。
 
 </div><h4>家族 (3) 净语调偏度 <code>{b}_net_tone_skew{trk}</code>（9 列）</h4>
 <p>偏度看"坏话是不是集中爆发"。方法论移植自 <a href="https://doi.org/10.1016/s0304-405x(01)00066-6" target="_blank">Chen, Hong &amp; Stein (2001, JFE)</a> 的收益率条件偏度崩盘度量（并见 <a href="https://doi.org/10.1016/j.jfineco.2008.10.003" target="_blank">Hutton, Marcus &amp; Tehranian (2009)</a> 的不透明度—崩盘风险），但对象从收益率换成了情感得分。逐篇净语调 nt<sub>art</sub> = P(正面) − P(负面) ∈ [−1,1]，其银行—年均值恒等于面板 <code>{b}_net_tone</code>；偏度用 pandas groupby 的 <code>'skew'</code>（即调整 Fisher-Pearson 标准化矩，G1 样本偏度）。</p>
-<div class="formula"><span class="lbl">公式 7.15</span> \( \text{skew}_{b,y} = \text{G1}\left( \{\, \text{nt}_{\text{art}} : \text{art} \in \text{银行—年}(b,y) \,\} \right) \)，  当有效篇数 \( n \geq \text{SKEW\_MIN\_N} = 10 \) 时出值，否则置 NaN</div>
+<div class="formula"><span class="lbl">公式 7.15</span> \( \text{skew}_{b,y} = \text{G1}\left( \{\, \text{nt}_{\text{art}} : \text{art} \in \text{银行—年}(b,y) \,\} \right) \)，  当有效篇数 \( n \geq \text{SKEW_MIN_N} = 10 \) 时出值，否则置 NaN</div>
 <p>门槛与守卫：<code>SKEW_MIN_N = 10</code>——n&lt;10 的样本偏度纯噪声（|G1| 上界 n=3→√3、n=4→2），这与 <a href="https://doi.org/10.1177/1073191116669784" target="_blank">Piovesana &amp; Senior (2018)</a>、<a href="https://doi.org/10.3758/s13428-010-0044-x" target="_blank">Wright &amp; Herrington (2011)</a> 关于小样本偏度不可靠的告诫一致。掩码所用 n 的口径 = <code>_nt_n_{b}{trk}</code> 的 count（= <code>_nt_art</code> 非 NaN 篇数，与 groupby 'skew' 的 n 同口径）；<b>严禁用 <code>pos_count</code></b> 作 n，因为它是 argmax 判正篇数，等于"以语调为条件的内生样本选择"。</p>
 <div class="warn"><b>构念继承警告</b>：本列是 <b>raw skew</b>（正号 = 右偏），<b>不是 NCSKEW</b>（无负号）。虽方法移植自崩盘文献，但对象换成情感得分后，构念含义<b>不继承</b>——不要照搬"负偏 = 崩盘风险高"的解读。</div>
 <h4>家族 (4) 跨模型分歧双轨 <code>bert_xmodel_lblhet</code> + <code>bert_xmodel_disp</code>（6 列）</h4>
@@ -2251,7 +2251,7 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 其中 \( \hat{\sigma}^2 = \frac{\sum_{n_t \geq 2} (n_t - 1)\, s_t^2}{\sum_{n_t \geq 2} (n_t - 1)} \)（池化文章级方差，ddof=1）
 </div>
 <p>门槛：<code>IYVOL_MIN_MONTHS = 3</code>，即有效月 T ≥ 3 <b>且</b>至少 1 个月 n<sub>t</sub> ≥ 2（否则 σ̂² 不可估 → NaN，宁缺勿噪）；校正项对全部有效月求和（含 n<sub>t</sub>=1，其噪声最大恰最须校正）。年内闭式趋势 <code>iytrend</code> 是月均值 m 对实际月号 x 的 OLS 斜率：</p>
-<div class="formula"><span class="lbl">公式 7.19</span> \( \text{iytrend} = \frac{S_{xy}}{S_{xx}} = \frac{\sum (x - \bar{x})(m - \bar{m})}{\sum (x - \bar{x})^2} \) ，  有效月 \( \geq \text{IYTREND\_MIN\_MONTHS} = 6 \) 时才产</div>
+<div class="formula"><span class="lbl">公式 7.19</span> \( \text{iytrend} = \frac{S_{xy}}{S_{xx}} = \frac{\sum (x - \bar{x})(m - \bar{m})}{\sum (x - \bar{x})^2} \) ，  有效月 \( \geq \text{IYTREND_MIN_MONTHS} = 6 \) 时才产</div>
 <div class="warn"><b>确定性守卫</b>：<code>iytrend</code> <b>严禁用 <code>lstsq</code>/<code>polyfit</code></b>——LAPACK 会破坏跨机器逐位可复现口径（同 <code>abnormal_tone</code> 的 <code>_KNOWN_BLAS_RE</code> 问题族），必须用去中心化和式的闭式解。这条守卫是全项目"确定性/golden 铁律"在时序指标上的落地。可复现性本身是当代实证经济学的硬约束，见 <a href="https://doi.org/10.1038/s41586-026-10251-x" target="_blank">Brodeur et al. (2026, Nature)</a> 对经济学与政治学研究可复现性的大规模评估。</div>
 <div class="plain"><b>白话</b>：iyvol 先扣掉"报道太少测不准"那部分假波动，得到真实的年内语调起伏；只有一个月有数据、或每月都只有一篇时估不出噪声，就直接留空。iytrend 把每月平均语调对月份号拉一条回归直线，斜率为正 = 年内越来越暖、为负 = 越来越冷；至少半年（6 个月）数据才算。刻意用手写公式而不是 numpy 拟合函数，是为了保证换台机器结果一模一样。
 
@@ -2328,14 +2328,14 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 </div>
 <p>其中 TF<sub>d,i</sub> 是词 i 在文档 d 中的词频、L<sub>d</sub> 是文档字符长度。分子 <code>1+ln(TF)</code> 对词频取对数，抑制"同一个金科词反复刷屏"式的堆砌；分母 <code>1+ln(L)</code> 按文档长度压分，防止长文单凭篇幅堆出高分。这个"双对数"结构并非临时拼凑，而是信息检索中久经检验的 sublinear TF 加权思想：一个词第一次出现携带的信息，远多于它第十次出现；同理，一篇报道的技术浓度应看"单位篇幅里塞进了多少专属金科词"，而非绝对堆砌量——否则通稿式长文会仅凭啰嗦而虚高。这正是 <a href="https://doi.org/10.1257/jel.20181020" target="_blank">Gentzkow, Kelly &amp; Taddy (2019)</a> 综述里反复强调的文本特征归一化原则。复合关键词权重 W<sub>i</sub> 是两个因子的乘积：</p>
 <div class="formula"><span class="lbl">公式 8.3</span>
-\[ W_i \;=\; \text{IDF}_i \times \text{CosSim\_scaled}_i \]
+\[ W_i \;=\; \text{IDF}_i \times \text{CosSim_scaled}_i \]
 </div>
 <h4>8.3.1 步骤 A：IDF 稀缺度（模型无关）</h4>
 <p>逆文档频率衡量一个金科词有多"稀有专属"：越少见的词区分度越高。构造为 <code>raw_idf[kw] = log10(N_total / (1 + df_w))</code>，其中文档频率 df_w 用 <b>jieba 整词匹配</b>在去重后的文档上统计（按 <code>(标题, 日期)</code> 去重），参照语料是<b>全量</b>的 <code>12_fintech_news_full.parquet</code>。随后做均值归一（<code>v / mean_val</code>），再在 <code>[1, 99]</code> 分位处做 Winsorize 缩尾以抑制极端值——这一稳健化处理呼应 <a href="https://doi.org/10.2308/accr-52396" target="_blank">Leone, Minutti-Meza &amp; Wasley (2019)</a> 对影响观测点的处理建议。TF-IDF 加权的思想在金融文本创新度量上早有先例，如 <a href="https://doi.org/10.1287/mnsc.2020.3682" target="_blank">Bellstam, Bhagat &amp; Cookson (2021)</a> 的文本创新度、以及关键词暴露式度量 <a href="https://doi.org/10.1093/qje/qjz021" target="_blank">Hassan et al. (2019)</a>。</p>
 <h4>8.3.2 步骤 B：语义纯度（嵌入驱动，co-primary 双轨的唯一入口）</h4>
 <p>光有稀缺度还不够：有些词虽稀有却偏离"金融科技"语义核心。语义纯度因子把约 607 个金科关键词一次性嵌入，计算 IDF 加权质心 <code>centroid = np.average(embeddings, axis=0, weights=idf)</code>，再算每个词到 L2 归一质心的余弦。为防止高维嵌入的各向异性（anisotropy，向量都挤在一个狭窄锥体里、余弦被压缩）导致纯度分辨率坍缩，做 min-max 重标定并加下限 <code>ANISOTROPY_FLOOR = 0.1</code>：</p>
 <div class="formula"><span class="lbl">公式 8.4</span>
-\[ \text{CosSim\_scaled}_i \;=\; 0.1 + (1 - 0.1) \cdot \frac{\cos_i - \min \cos}{\max \cos - \min \cos} \]
+\[ \text{CosSim_scaled}_i \;=\; 0.1 + (1 - 0.1) \cdot \frac{\cos_i - \min \cos}{\max \cos - \min \cos} \]
 </div>
 <div class="note"><b>关键设计</b>：这个指标里 co-primary 双轨只影响<b>关键词级的语义纯度权重</b>（词表级、一次性计算），而 TF、IDF、文档长度那套机器是模型无关的。因此 <code>_lg</code> 孪生族与本章其它指标的双轨语义略有不同——它替换的只是 W<sub>i</sub> 中的 CosSim_scaled 分量。三条文本轨（full/ctx/ss）仅在打分所用文本列（<code>content_full/ctx/ss</code>）上不同，文档长度 L<sub>d</sub> 用各轨自己的实际字符数。</div>
 <p>若某文档去重后的独立金科词少于 <code>MIN_DISTINCT_KEYWORDS_JIEBA (=2)</code>（即只提到 1 个孤立金科词），则该篇 <code>score = NaN</code>、<code>verified = False</code>，在下游银行-年均值中被自动剔除。</p>
@@ -2376,13 +2376,13 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 <h4>8.5.1 表层陈旧度（MinHash + LSHForest Jaccard，无 <code>_lg</code>）</h4>
 <p>表层尺看"字面雷同"。它把文本切成字符 3-gram shingle（<code>SHINGLE_SIZE = 3</code>，对中文友好、无需分词），做 <code>MinHash(num_perm=128)</code> 指纹，每天重建一次 <code>MinHashLSHForest</code> 近邻索引，在窗口 <code>[d−7d, d)</code> 内查 top-10 候选，取 Jaccard 相似度最大者：</p>
 <div class="formula"><span class="lbl">公式 8.5</span>
-\[ \text{surface\_staleness}_i \;=\; \max_{j \in \text{LSH-top10}(i)} \; \text{Jaccard}\big( \text{MinHash}_i,\, \text{MinHash}_j \big) \]
+\[ \text{surface_staleness}_i \;=\; \max_{j \in \text{LSH-top10}(i)} \; \text{Jaccard}\big( \text{MinHash}_i,\, \text{MinHash}_j \big) \]
 </div>
 <p>MinHash 是 <a href="https://doi.org/10.1109/sequen.1997.666900" target="_blank">Broder (1997)</a> 提出的经典近似去重技术（另一路线 SimHash 见 <a href="https://doi.org/10.1145/509907.509965" target="_blank">Charikar (2002)</a>），至今仍是大规模语料去重的主力——参见 <a href="https://doi.org/10.48550/arXiv.2406.17557" target="_blank">Penedo et al. (2024, FineWeb)</a> 与 <a href="https://doi.org/10.48550/arXiv.2411.04257" target="_blank">Khan et al. (2024, LSHBloom)</a>。首周或空窗记 <b>NaN</b>；窗口非空但无 LSH 命中记 <b>0.0</b>。由于 MinHash 不是嵌入，<b>本尺无 <code>_lg</code> 孪生</b>（carve-out）。</p>
 <h4>8.5.2 语义陈旧度（Faiss IndexFlatIP＝余弦，双轨）</h4>
 <p>语义尺看"意思雷同"。它复用 stage 25 的篇章向量，在单位向量上用 <code>faiss.IndexFlatIP(dim)</code>（内积＝余弦）做每日滚动窗的批量 top-1 检索：</p>
 <div class="formula"><span class="lbl">公式 8.6</span>
-\[ \text{semantic\_staleness}_i \;=\; \max_{j\,:\; d-7 \,\leq\, \text{day}_j \,&lt;\, d_i} \; \cos\big( \text{emb}_i,\, \text{emb}_j \big) \]
+\[ \text{semantic_staleness}_i \;=\; \max_{j\,:\; d-7 \,\leq\, \text{day}_j \,&lt;\, d_i} \; \cos\big( \text{emb}_i,\, \text{emb}_j \big) \]
 </div>
 <p>空窗（含首周或仅有同日邻居）→ <b>NaN</b>（无 0.0 哨兵，非空窗必有 top-1）。维度无关（4096 或 3072 都能流过），主轨与 <code>_lg</code> 各算一遍。</p>
 <div class="tbl">
@@ -2406,7 +2406,7 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 </div><h3 id="sec8-6">8.6 政策语义对齐余弦（Stage 16 · vintage-aware 锚点）</h3>
 <p>这个指标给每篇金科新闻打一个"与官方政策对齐"的分：把已发布的权威政策文本浓缩成一个"标准答案向量"（锚点），再算新闻向量与它的余弦。文件为 <code>pipeline/filtering/policy_alignment.py</code>。这类"以锚点/主题向量对文本打分"的思路，与 <a href="https://doi.org/10.1093/rfs/hhz072" target="_blank">Engle et al. (2020)</a> 的气候新闻对冲、<a href="https://doi.org/10.1111/jofi.13219" target="_blank">Sautner et al. (2023a)</a> 的企业级气候暴露、以及 <a href="https://doi.org/10.2139/ssrn.5201335" target="_blank">Araujo et al. (2025, Word2Prices)</a> 的央行沟通嵌入一脉相承。政策不确定性的度量传统亦可追溯至 <a href="https://doi.org/10.1093/qje/qjw024" target="_blank">Baker, Bloom &amp; Davis (2016)</a> 与 <a href="https://doi.org/10.1257/aer.20191823" target="_blank">Caldara &amp; Iacoviello (2022)</a>。核心公式（<code>_cosine_for_spec</code>）：</p>
 <div class="formula"><span class="lbl">公式 8.7</span>
-\( \text{policy\_cosine\_sim}_i = \cos\big( \text{emb}(\text{article}_i),\, \text{emb}(\text{auth\_anchor}_y) \big) \) ，　\( \cos(A,B) = \frac{A \cdot B}{\lVert A \rVert\, \lVert B \rVert} \)
+\( \text{policy_cosine_sim}_i = \cos\big( \text{emb}(\text{article}_i),\, \text{emb}(\text{auth_anchor}_y) \big) \) ，　\( \cos(A,B) = \frac{A \cdot B}{\lVert A \rVert\, \lVert B \rVert} \)
 </div>
 <p>锚点是权威政策语料分块嵌入后的<b>均值池化 + L2 归一</b>（<code>anchor = sub.mean(axis=0); anchor / ∥anchor∥</code>）。</p>
 <h4>8.6.1 Vintage-aware：防前视偏误</h4>
@@ -2456,7 +2456,7 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 </div>
 <p>银行-年聚合用 <code>groupby(['target_bank','year']).agg(mean)</code>（<code>runner.py:2097-2103</code>），pandas 的 <code>mean</code> 自动跳过 NaN，故<b>分母＝该 bank-year 已测量篇数</b>而非物理篇数：</p>
 <div class="formula"><span class="lbl">公式 8.11</span>
-\[ \text{token\_adopt}_{b,y} \;=\; \frac{\sum_{i \in \mathcal{A}_{b,y}} m_i \cdot \text{token}_i}{\sum_{i \in \mathcal{A}_{b,y}} m_i} \;\in\; [0,1] \]
+\[ \text{token_adopt}_{b,y} \;=\; \frac{\sum_{i \in \mathcal{A}_{b,y}} m_i \cdot \text{token}_i}{\sum_{i \in \mathcal{A}_{b,y}} m_i} \;\in\; [0,1] \]
 </div>
 <p>\(\mathcal{A}_{b,y}\) 是银行 \(b\) 年份 \(y\) 的文章集合，且已先经 <code>_filter_to_verified_universe</code>（<code>runner.py:287-309</code>）按 <code>(docid, target_bank)</code> 对 <code>24_herd_decay</code> 做 semi-join，收敛到与面板其余文本测度<b>同一个 LLM-verified 聚合域</b>。<code>hidden_adopt</code>／<code>subst_adopt</code> 同式，只换分子。全 bank-year 未测量则输出 NaN，<b>绝不 fillna(0)</b>（<code>runner.py:2111-2119</code>）。</p>
 
@@ -2566,7 +2566,7 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 </div>
 <p>关键工程手法是<b>幽灵锚点（Ghost Anchor）</b>：把该年的政策锚点文本当作第 \(N{+}1\) 家"虚拟银行"挂到当年银行文本列表末尾（<code>policy_similarity.py:121</code>），整体送进与 §8.8 完全相同的 <code>_build_*</code> 矩阵提取器，再取对称矩阵<b>最后一列</b>的切片 <code>sim[:-1, -1]</code> 即得各银行对锚点的相似度（<code>:126</code>、<code>:128</code>、<code>:133</code>、<code>:158</code>）：</p>
 <div class="formula"><span class="lbl">公式 8.17</span>
-\[ \mathbf{T}_y \;=\; \big[\,D_{1,y},\,\dots,\,D_{N,y},\, A_y \,\big], \qquad \text{auth\_sim}_{b,y} \;=\; \big[\mathrm{Sim}(\mathbf{T}_y)\big]_{b,\,N+1} \]
+\[ \mathbf{T}_y \;=\; \big[\,D_{1,y},\,\dots,\,D_{N,y},\, A_y \,\big], \qquad \text{auth_sim}_{b,y} \;=\; \big[\mathrm{Sim}(\mathbf{T}_y)\big]_{b,\,N+1} \]
 </div>
 <p>这一手法的意义不在省算力，而在<b>可比性</b>：锚点与银行共享同一份 TF-IDF 词表、同一个 LDA 主题模型、同一个嵌入模型与同一套分段池化，绝不出现"银行用一套口径、政策用另一套口径"的隐性不可比。</p>
 <div class="note">该（轨, 年）银行数 <code>&lt; 3</code> 时跳过并 WARNING（<code>policy_similarity.py:396-401</code>），镜像 §8.8 的 LDA 主题数稳定性守卫——T=19 早期稀疏年份因此可能整年 NaN，不是 bug。</div>
@@ -2574,15 +2574,15 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 <h4 id="sec8-9-2">8.9.2 五把尺子</h4>
 <p>同一批 \(\mathbf{T}_y\) 用至多五种表示各算一遍，互为稳健性（<code>_ghost_anchor_metrics</code>，<code>policy_similarity.py:87-166</code>；"至多 5 维"的自述见 <code>:336-337</code>，第五维 <code>emb_lg</code> 是否产出由 <code>_LARGE_SPEC</code> 决定，<code>:84</code>）：</p>
 <div class="formula"><span class="lbl">公式 8.18</span>
-\[ \text{auth\_sim\_tfidf\_c} = \cos\!\big(\phi_{c}(D_{b,y}),\, \phi_{c}(A_y)\big), \qquad \text{auth\_sim\_tfidf\_w} = \cos\!\big(\phi_{w}(D_{b,y}),\, \phi_{w}(A_y)\big) \]
+\[ \text{auth_sim_tfidf_c} = \cos\!\big(\phi_{c}(D_{b,y}),\, \phi_{c}(A_y)\big), \qquad \text{auth_sim_tfidf_w} = \cos\!\big(\phi_{w}(D_{b,y}),\, \phi_{w}(A_y)\big) \]
 </div>
 <p>\(\phi_c\) 为 <code>char_wb</code> ngram(2,4) 字符向量化、\(\phi_w\) 为注入金科词典的 jieba 词级向量化（<code>_jieba_tokenizer</code> 保留 len≥2 token 并去停用词，<code>strategic_diff.py:374-385</code>），两者均取 <code>max_features=5000, min_df=1, max_df=0.95, sublinear_tf=True</code>（<code>strategic_diff.py:553-563</code>）；<code>max_df</code> 过滤后词表清空则捕 <code>ValueError</code> 降级 <code>max_df=1.0</code>（<code>:566-571</code>）。<code>sublinear_tf</code> 即对词频做次线性（对数）压缩。LDA 轨则先取主题分布 \(\theta\)，再由 Jensen-Shannon <b>距离</b>（<code>scipy.spatial.distance.jensenshannon</code>，已含开方）反号为相似度（<code>policy_similarity.py:133</code>）：</p>
 <div class="formula"><span class="lbl">公式 8.19</span>
-\[ \text{auth\_sim\_lda} \;=\; 1 - \mathrm{JS}\big(\theta_{b,y},\, \theta_{A_y}\big), \qquad \mathrm{JS}(P,Q)=\sqrt{\tfrac{1}{2}\mathrm{KL}\!\left(P\Vert M\right)+\tfrac{1}{2}\mathrm{KL}\!\left(Q\Vert M\right)},\; M=\tfrac{P+Q}{2} \]
+\[ \text{auth_sim_lda} \;=\; 1 - \mathrm{JS}\big(\theta_{b,y},\, \theta_{A_y}\big), \qquad \mathrm{JS}(P,Q)=\sqrt{\tfrac{1}{2}\mathrm{KL}\!\left(P\Vert M\right)+\tfrac{1}{2}\mathrm{KL}\!\left(Q\Vert M\right)},\; M=\tfrac{P+Q}{2} \]
 </div>
 <p>对数底取 2（<code>strategic_diff.py:645</code>，源码注明原缺 <code>base=</code> 时上界为 \(\sqrt{\ln 2}\approx 0.833\) 而非 1），故 \(\mathrm{JS}\in[0,1]\)、<code>auth_sim_lda</code> \(\in[0,1]\)。主题数 <code>K = max(10, n_banks // 30)</code>（<code>:618</code>）——源码自陈：在 &lt;300 家银行/年时该式恒被 10 兜底，属<b>伪自适应</b>，无 perplexity/held-out 驱动选 K，亦无 K∈{5,15,20} 敏感性列（<code>:595-601</code> 显式披露）。确定性靠 <code>random_state=42</code> ＋ <code>n_jobs=1</code>（<code>:635-637</code>；<code>:602-605</code> 记录并行 E-step 的浮点求和序会破坏逐位可复现，实测 \(\max|\Delta\theta|\approx 0.99\)）。嵌入轨为 co-primary 双轨：</p>
 <div class="formula"><span class="lbl">公式 8.20</span>
-\[ \text{auth\_sim\_emb}^{(m)} \;=\; \frac{e_m(D_{b,y}) \cdot e_m(A_y)}{\lVert e_m(D_{b,y})\rVert\,\lVert e_m(A_y)\rVert}, \qquad m \in \{\text{MAIN(Qwen)},\ \text{lg(large)}\} \]
+\[ \text{auth_sim_emb}^{(m)} \;=\; \frac{e_m(D_{b,y}) \cdot e_m(A_y)}{\lVert e_m(D_{b,y})\rVert\,\lVert e_m(A_y)\rVert}, \qquad m \in \{\text{MAIN(Qwen)},\ \text{lg(large)}\} \]
 </div>
 <div class="tbl">
 <table>
@@ -2621,9 +2621,9 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 <h4 id="sec8-9-4">8.9.4 <code>article_sim_mean/std</code>：同一构念的文章级聚合口径</h4>
 <p>与"先聚合后向量化"的 <code>auth_sim_*</code> 并列，面板还保留一条<b>先向量化后聚合</b>的对照线：把 §8.6 的文章级 <code>policy_cosine_sim</code> 按 (银行, 年) 取一阶矩与二阶矩（<code>pipeline/panel/runner.py:1932-1956</code>）：</p>
 <div class="formula"><span class="lbl">公式 8.21</span>
-\[ \text{article\_sim\_mean}_{b,y} = \frac{1}{n_{b,y}}\sum_{a \in \mathcal{V}_{b,y}} s_a, \qquad \text{article\_sim\_std}_{b,y} = \sqrt{\frac{1}{n_{b,y}-1}\sum_{a \in \mathcal{V}_{b,y}} \big(s_a - \overline{s}_{b,y}\big)^2} \]
+\[ \text{article_sim_mean}_{b,y} = \frac{1}{n_{b,y}}\sum_{a \in \mathcal{V}_{b,y}} s_a, \qquad \text{article_sim_std}_{b,y} = \sqrt{\frac{1}{n_{b,y}-1}\sum_{a \in \mathcal{V}_{b,y}} \big(s_a - \overline{s}_{b,y}\big)^2} \]
 </div>
-<p>其中 \(s_a=\text{policy\_cosine\_sim}_a\)。两点口径必须写进方法论：<b>①聚合域</b> \(\mathcal{V}_{b,y}\) 不是 stage 14 的规则预筛全集，而是经 <code>_filter_to_verified_universe</code> semi-join 收敛到 LLM-verified 子集（<code>runner.py:1913-1918</code>），与全仓其余面板测度同域——源码记录历史上两者不一致曾造成盘上孪生对取值分歧与 phantom bank-year。<b>②单观测的 std 保持 NaN</b>：\(n_{b,y}=1\) 时 \(\mathrm{ddof}=1\) 的样本标准差数学上未定义，代码<b>刻意不 <code>fillna(0)</code></b>，否则会把"离散度不可估计"伪装成"零分歧"的假观测（<code>runner.py:1957-1962</code>）。</p>
+<p>其中 \(s_a=\text{policy_cosine_sim}_a\)。两点口径必须写进方法论：<b>①聚合域</b> \(\mathcal{V}_{b,y}\) 不是 stage 14 的规则预筛全集，而是经 <code>_filter_to_verified_universe</code> semi-join 收敛到 LLM-verified 子集（<code>runner.py:1913-1918</code>），与全仓其余面板测度同域——源码记录历史上两者不一致曾造成盘上孪生对取值分歧与 phantom bank-year。<b>②单观测的 std 保持 NaN</b>：\(n_{b,y}=1\) 时 \(\mathrm{ddof}=1\) 的样本标准差数学上未定义，代码<b>刻意不 <code>fillna(0)</code></b>，否则会把"离散度不可估计"伪装成"零分歧"的假观测（<code>runner.py:1957-1962</code>）。</p>
 <div class="tbl">
 <table>
 <caption>表 8-13　<code>article_sim_*</code> 列名与来源列</caption>
@@ -2645,7 +2645,7 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 <p>套话率度量一篇新闻里"人人都在说的空话短语"占了多大比重。它虽属"文本指标全书"的收尾，却是本章唯一<b>不涉及嵌入</b>的指标（char-ngram 文档频率，非嵌入，故无 <code>_lg</code>），放在这里是为完整覆盖"篇章级语义/风格测度"。构念渊源见 <a href="https://doi.org/10.1016/j.jacceco.2017.07.002" target="_blank">Dyer, Lang &amp; Stice-Lawrence (2017)</a> 对 10-K 套话化的刻画、<a href="https://doi.org/10.2308/acch-51240" target="_blank">Cazier &amp; Pfeiffer (2016)</a> 对披露越来越长的追问，以及 <a href="https://doi.org/10.1111/jofi.12162" target="_blank">Loughran &amp; McDonald (2014)</a> 对可读性/文件冗余的测量。文件为 <code>pipeline/sentiment/boilerplate.py</code>，算法是<b>分块 exact two-pass</b>（与旧单遍 <code>fit_transform</code> 逐字节等价，但内存友好，供生产 T=19 语料抗 OOM）。</p>
 <p><b>第一遍（Pass 1）</b>：逐块用 <code>char_wb (4,6)-gram</code> 的 CountVectorizer，累加精确的全局文档频率 <code>global_df[ng] += chunk_df</code>（不变量 I：DF 可加），并统计每篇的 ngram 总数。据此定义套话集：<code>boiler_set = {ng : global_df[ng]/N ≥ 0.10}</code>（<code>DF_RATIO_THRESHOLD = 0.10</code>，即出现在 ≥10% 文档中的短语）。<b>第二遍（Pass 2）</b>：用固定小词表 <code>CountVectorizer(vocabulary=sorted(boiler_set))</code>，逐篇算：</p>
 <div class="formula"><span class="lbl">公式 8.22</span>
-\[ \text{boilerplate\_phrase\_ratio}_d \;=\; \frac{\#\{\,\text{套话 ngram 在 } d \text{ 中的出现次数}\,\}}{\#\{\,\text{$d$ 中全部 ngram 出现次数}\,\}} \]
+\[ \text{boilerplate_phrase_ratio}_d \;=\; \frac{\#\{\,\text{套话 ngram 在 } d \text{ 中的出现次数}\,\}}{\#\{\,\text{$d$ 中全部 ngram 出现次数}\,\}} \]
 </div>
 <p>（<code>round(..., 6)</code>；总数为 0 → NaN。）工厂函数 <code>_make_vectorizer</code> 锁死 <code>min_df=1(int)</code>、<code>max_df=1.0(float)</code>、<code>max_features=None</code>（无语料级剪枝，否则不变量破裂），分词器 <code>analyzer='char_wb'</code>、<code>ngram_range=(4,6)</code>、无 HASHSEED 依赖（确定性）。</p>
 <p>之所以把"单遍 <code>fit_transform</code>"改造成"分块 exact two-pass"，是生产语料规模逼出来的工程硬化。开发样本 T=2 只有约两百行，单遍无压力；但目标语料一千八百余万条报道，若一次性把全语料的 char 4~6 元组词表连同稀疏计数矩阵驻留内存，极易触发 OOM。两遍法把"统计全局文档频率"与"逐篇计算占比"拆开：第一遍只累加可加的计数、不保留矩阵，第二遍用小到只含套话集的固定词表逐篇扫描，峰值内存由此可控。关键是这套改造被要求与旧单遍<b>逐字节等价</b>——即任何一篇文档的套话率数值必须与老算法完全相同，否则历史 golden 会漂移。为此代码保留了 <code>single_pass</code> 冻结参照臂并以专门的等价性测试守卫，做到"提速不改数"。这类"套话/样板语言"度量在披露文献里有丰富先例，如 <a href="https://doi.org/10.1111/1475-679x.12179" target="_blank">Bushee, Gow &amp; Taylor (2018)</a> 对语言复杂度、以及 <a href="https://doi.org/10.1093/rfs/hhad021" target="_blank">Cao et al. (2023)</a> 对"机器可读性"如何反向塑造披露措辞的讨论。</p>
@@ -2720,14 +2720,14 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 <h3 id="sec9-3">9.3 一阶 / 二阶网络溢出：W·tone 与 W²（破解反射的核心）</h3>
 <p>拿到 <code>W</code> 之后，核心函数 <code>compute_network_spillovers</code> 计算「同行去年的舆论」如何流向本行。关键工程细节是：只对<b>实际观测到情感</b>的同伴求加权均值，并按观测权重之和重新归一（<b>绝不</b> <code>fillna(0)</code> 把缺情感的同伴当成零情感，那会系统性把溢出往中性方向拉偏）。</p>
 <div class="formula"><span class="lbl">公式 9.3（一阶溢出）</span>
-\[ \text{peer\_tone}_{i,t} \;=\; \frac{\sum_{j \in \text{obs}} W[i]_{t-1} \cdot \text{tone}_{j,t-1}}{\sum_{j \in \text{obs}} W[i]_{t-1}} \]
+\[ \text{peer_tone}_{i,t} \;=\; \frac{\sum_{j \in \text{obs}} W[i]_{t-1} \cdot \text{tone}_{j,t-1}}{\sum_{j \in \text{obs}} W[i]_{t-1}} \]
 （分母 &gt; 0 才有值，否则 NaN）
 </div>
 <p>其中 <code>obs = ~isnan(tone_arr)</code> 是「去年有观测情感的同伴」掩码。这就是列 <code>peer_tone_lag1_full / _ctx / _ss</code>（三轨各一，后缀跟随情感轨；<code>W</code> 恒来自 full 共现邻接、对情感轨保持 track-agnostic）。</p>
 <p><b>二阶溢出</b>是本项目破解反射的第二把钥匙。把 <code>W</code> 自乘得到「朋友的朋友」矩阵 <code>W²</code>，再把对角线清零——对角项 <code>W²[i,i]</code> 恰恰是「本行 → 邻居 → 本行」的回流，正是它破坏了排他性；剔掉它，二阶溢出就成了合法的 brokerage 工具变量：</p>
 <div class="formula"><span class="lbl">公式 9.4（二阶溢出 / brokerage IV）</span>
-\( W2 = W \cdot W \);　\( \text{fill\_diagonal}(W2,\, 0) \)<br/>
-\[ \text{peer\_tone\_2nd}_{i,t} \;=\; \frac{\sum_{j \in \text{obs}} W2[i]_{t-1} \cdot \text{tone}_{j,t-1}}{\sum_{j \in \text{obs}} W2[i]_{t-1}} \]
+\( W2 = W \cdot W \);　\( \text{fill_diagonal}(W2,\, 0) \)<br/>
+\[ \text{peer_tone_2nd}_{i,t} \;=\; \frac{\sum_{j \in \text{obs}} W2[i]_{t-1} \cdot \text{tone}_{j,t-1}}{\sum_{j \in \text{obs}} W2[i]_{t-1}} \]
 </div>
 <p>落列 <code>peer_tone_2nd_lag1_full / _ctx / _ss</code>，在 2SLS 里作为一阶溢出的显式工具。这条排他约束的理论来源正是 <a href="https://doi.org/10.1016/j.jeconom.2008.12.021" target="_blank">Bramoullé, Djebbari &amp; Fortin (2009)</a>：只要网络中存在「间接相连但直接不相连」的银行对，二阶邻居的特征就能提供一阶同伴效应所需的外生变差，而去对角保证工具本身不含本行信息。</p>
 <div class="plain"><b>白话</b>：想证明「我的直接朋友的舆论影响了我」，可以用「我朋友的朋友的舆论」当撬棍——因为「朋友的朋友」通常不直接影响我，却会影响我的朋友，从而间接决定了我朋友的舆论。唯一要小心的是：如果「朋友的朋友」绕一圈其实就是我自己，那这根撬棍就作废了。去对角线，就是把「绕回自己」的那部分抠掉。
@@ -2832,12 +2832,12 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 <h3 id="sec9-6">9.6 嵌入同业网、diag 变体与认知邻近度</h3>
 <p>共现网络只看「有没有被一起提到」，忽略了「内容像不像」。函数 <code>_compute_embedding_peer_network_pass</code> 换一种连边逻辑：把每个 bank-year 的所有文本拼成一份「超级文档」、送入嵌入引擎得到向量，再用余弦相似度定义同业权重。</p>
 <div class="formula"><span class="lbl">公式 9.5（嵌入同业权重）</span>
-\( \text{sim} = \text{cosine\_similarity}(\text{emb\_matrix}) \);　\( \text{fill\_diagonal}(\text{sim},\, 0) \)　（自身不算同行）<br/>
-\( \text{sim\_w} = \text{clip}(\text{sim},\, 0, \text{None}) \)　（负 cosine → 0，防负权重）;　\( \text{W\_emb} = \text{row\_stochastic\_normalize}(\text{sim\_w}) \)
+\( \text{sim} = \text{cosine_similarity}(\text{emb_matrix}) \);　\( \text{fill_diagonal}(\text{sim},\, 0) \)　（自身不算同行）<br/>
+\( \text{sim_w} = \text{clip}(\text{sim},\, 0, \text{None}) \)　（负 cosine → 0，防负权重）;　\( \text{W_emb} = \text{row_stochastic_normalize}(\text{sim_w}) \)
 </div>
 <p>传播公式与共现网同型（obs-mask 重归一）：</p>
 <div class="formula"><span class="lbl">公式 9.6</span>
-\[ \text{emb\_peer\_tone}_{i,t} \;=\; \frac{\sum_{j \in \text{obs}} \text{W\_emb}[i]_{t-1} \cdot \text{tone}_{j,t-1}}{\sum_{j \in \text{obs}} \text{W\_emb}[i]_{t-1}} \]
+\[ \text{emb_peer_tone}_{i,t} \;=\; \frac{\sum_{j \in \text{obs}} \text{W_emb}[i]_{t-1} \cdot \text{tone}_{j,t-1}}{\sum_{j \in \text{obs}} \text{W_emb}[i]_{t-1}} \]
 </div>
 <p>另有 <code>bank_emb_sim_mean = mean(np.delete(sim[i], i))</code>（用未 clip 的真值余弦、排除对角），度量本行与全网的平均语义相似度。这里有两种 <b>W-轨</b> 模式，落列语义截然不同，务必分清：</p>
 <div class="tbl">
@@ -2858,7 +2858,7 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 <h3 id="sec9-7">9.7 跟风衰减权重（stage 24）：给「抄稿」打折</h3>
 <p>中国财经媒体生态里，一条银行消息常被几十家媒体几乎逐字转抄。若把这些高度雷同的稿件都当独立情绪信号加总，就等于给同一件事重复计票、把情感均值往「热点方向」注水。stage 24 的 <code>herd_decay.py</code> 用<b>跟风衰减权重</b>把重复稿降权。SSOT 参数：相似度阈值 <code>SIMILARITY_THRESHOLD=0.35</code>（闭边界，代码用 <code>≥</code>）、时间窗 <code>TIME_WINDOW_DAYS=7</code>。</p>
 <div class="formula"><span class="lbl">公式 9.7（跟风衰减权重）</span>
-\[ \text{weight}_j \;=\; \frac{1}{1 + \text{n\_similar\_predecessors}_j} \]
+\[ \text{weight}_j \;=\; \frac{1}{1 + \text{n_similar_predecessors}_j} \]
 </div>
 <p>其中 <code>n_similar_predecessors_j</code> = 同一 <code>target_bank</code>、发布<b>早于</b> j、且 <code>|date_i − date_j| ≤ 7 天</code>、且 <code>cosine_sim(i,j) ≥ 0.35</code> 的更早文章 i 的<b>数量</b>。原创首篇权重 = 1，第 10 篇雷同抄稿 ≈ 1/10。相似度用 <code>char_wb</code> TF-IDF（ngram 2–4）→ 余弦；≤2000 篇/前缀走 dense（全 N×N 余弦 + 7 天窗下三角 mask），&gt;2000 篇走 7 天窗双指针分桶 <code>O(N·window)</code>，与 dense 逐位等价。</p>
 <div class="plain"><b>白话</b>：给每篇稿子问一句「你发出来之前 7 天内，有几篇长得跟你几乎一样的旧文？」有 <code>n</code> 篇，你的分量就打折成 <code>1/(1+n)</code>。第一个报道某事的原创稿满权 1，后面跟风转抄的越多、每篇越不值钱。这样加权后的情感均值，就不会被「同一件事被抄了 50 遍」灌水。这套「陈旧/重复信息该被折价」的思想，正是 <a href="https://doi.org/10.1093/rfs/hhq141" target="_blank">Tetlock (2011)</a>「陈旧新闻」与 <a href="https://doi.org/10.1111/jofi.12885" target="_blank">Cohen, Malloy &amp; Nguyen (2020)</a>「懒惰价格」的测量学落地；信息是渐进披露还是集中爆发会影响市场反应，见 <a href="https://doi.org/10.1093/rfs/hhu003" target="_blank">Da, Gurun &amp; Warachka (2014)</a>；羊群行为的系统性风险维度见 <a href="https://doi.org/10.3390/risks13120243" target="_blank">Zhang, Miao &amp; Zhang (2025)</a>。</div>
@@ -2905,9 +2905,9 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 <p><code>share_{i,g,T0}</code> 直接复用面板已有的 <code>bartik_type_share_{g}</code> 列（步骤 7e 产出，<a href="https://doi.org/10.1257/aer.20181047" target="_blank">Goldsmith-Pinkham et al. (2020)</a>「GPSS」基期共现份额，冻结不变）；<code>shift</code> 是组 <code>g</code> 内<b>其他银行</b>文章级 shift 变量的年度均值（剔己）：</p>
 <div class="formula"><span class="lbl">公式 9.10（剔己组内冲击）</span>
 \[\begin{aligned}
-\text{remain\_sum} &= \text{组}g\text{年}t\text{总和} - \text{银行}i\text{在组}g\text{年}t\text{的贡献和}\\
-\text{remain\_cnt} &= \text{组}g\text{年}t\text{文章数} - \text{银行}i\text{在组}g\text{年}t\text{的文章数}\\
-\text{shift}_{g,t} &= \frac{\text{remain\_sum}}{\text{remain\_cnt}}
+\text{remain_sum} &= \text{组}g\text{年}t\text{总和} - \text{银行}i\text{在组}g\text{年}t\text{的贡献和}\\
+\text{remain_cnt} &= \text{组}g\text{年}t\text{文章数} - \text{银行}i\text{在组}g\text{年}t\text{的文章数}\\
+\text{shift}_{g,t} &= \frac{\text{remain_sum}}{\text{remain_cnt}}
 \end{aligned}\]
 （remain_cnt &gt; 0 才算，否则 NaN）
 </div>
@@ -2935,9 +2935,9 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 <h3 id="sec9-9">9.9 面板注意力测度：n_articles、attention_pct 与 fintech_share 分母</h3>
 <p>注意力是本项目的第二大处理变量族（P2 论文的核心）。<a href="https://doi.org/10.1111/j.1540-6261.2009.01493.x" target="_blank">Fang &amp; Peress (2009)</a> 证明媒体覆盖度本身就有资产定价含义，<a href="https://doi.org/10.1111/j.1540-6261.2011.01679.x" target="_blank">Da, Engelberg &amp; Gao (2011)</a> 用搜索量直接度量投资者注意力——本项目在 bank-year 层把这些思想落成一组篇数与份额指标。首先是两种<b>刻意区分</b>的篇数：</p>
 <div class="formula"><span class="lbl">公式 9.12（两种篇数，encode.py）</span>
-\( \text{n\_articles} = \text{size}(\text{llm\_vote\_score\_full}) \)　# 物理新闻篇数（含 NA），媒体关注度用<br/>
-\( \text{n\_articles\_llm\_valid} = \text{count}(\text{llm\_vote\_score\_full}) \)　# LLM 有效投票篇数 = 分类型比率的分母<br/>
-\( \text{headline\_frac} = \text{mean}(\text{in\_title}) \)　# 该银行该年「上标题」稿件占比
+\( \text{n_articles} = \text{size}(\text{llm_vote_score_full}) \)　# 物理新闻篇数（含 NA），媒体关注度用<br/>
+\( \text{n_articles_llm_valid} = \text{count}(\text{llm_vote_score_full}) \)　# LLM 有效投票篇数 = 分类型比率的分母<br/>
+\( \text{headline_frac} = \text{mean}(\text{in_title}) \)　# 该银行该年「上标题」稿件占比
 </div>
 <p><code>n_articles</code>（<code>size</code>，数物理篇数）与 <code>n_articles_llm_valid</code>（<code>count</code>，分类占比分母）是两种篇数，绝不可混用；ctx/ss 轨各设独立分母 <code>n_articles_llm_valid_ctx/_ss</code>，而 ss 轨的物理分母共享 <code>n_articles</code>（回退镜像 ctx，不另设 <code>n_articles_ss</code>）。firm-level 处理变量族由 <code>compute_attention_treatments</code> 产出：</p>
 <div class="tbl">
@@ -2958,8 +2958,8 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 <div class="note"><b>锚点更正</b>：<code>attention_index</code> 是 Fang-Peress <b>extensive</b> 覆盖量（未归一），<b>不是</b> Hassan QJE 的 intensive 份额；若要严格的 Hassan intensive 口径，请用 <code>attention_pct</code> / <code>density</code>。value-weighted 曝露的思想来自 <a href="https://doi.org/10.1093/qje/qjz021" target="_blank">Hassan et al. (2019)</a>，注意力有限导致的欠反应见 <a href="https://doi.org/10.1111/j.1540-6261.2009.01501.x" target="_blank">Hirshleifer, Lim &amp; Teoh (2009)</a>，信息显著性对崩盘风险的作用见 <a href="https://doi.org/10.1016/j.jempfin.2025.101670" target="_blank">Chen et al. (2026)</a>。三轨各自 just-identified 并排，禁混同一 Hansen J。</div>
 <p><b>地理注意力指数</b>族 <code>ft_attn_*</code>/<code>ft_vol_*</code>（<code>attention_media.py</code>）在省/市 × 年层做曝露加权 leave-one-out，从「本行自身 fintech 报道越多 → 其 <code>ft_attn</code> 机械越高」的反射性内生中剥离：</p>
 <div class="formula"><span class="lbl">公式 9.13（geo LOO 注意力，_loo_den≥5 守卫）</span>
-\( \text{\_loo\_den} = \text{cell\_total} - \text{own\_total} \);　\( \text{\_loo\_num} = \text{clip}(\text{cell\_ft} - \text{own\_ft},\ \text{lower}=0) \)<br/>
-\( \text{ft\_attn\_\{prov,city\}} = \frac{\text{\_loo\_num}}{\text{\_loo\_den}} \)　（_loo_den ≥ 5 才算，否则 NaN）;　\( \text{ft\_vol\_\{prov,city\}} = \ln(1 + \text{LOO fintech 篇数均值}) \)
+\( \text{_loo_den} = \text{cell_total} - \text{own_total} \);　\( \text{_loo_num} = \text{clip}(\text{cell_ft} - \text{own_ft},\ \text{lower}=0) \)<br/>
+\( \text{ft_attn_\{prov,city\}} = \frac{\text{_loo_num}}{\text{_loo_den}} \)　（_loo_den ≥ 5 才算，否则 NaN）;　\( \text{ft_vol_\{prov,city\}} = \ln(1 + \text{LOO fintech 篇数均值}) \)
 </div>
 <p>这里的 leave-one-out 处理值得单独说明。若直接用「某省当年 fintech 报道占比」作银行的地理注意力暴露，会掉进一个隐蔽的反射陷阱：一家在本省 fintech 报道量很大的银行，本身就会把全省的 fintech 占比抬高，于是「暴露」与「该行自己的报道」机械正相关。剔己（<code>cell_ft − own_ft</code>）之后，剩下的才是「除本行外、本省同侪营造的 fintech 舆论氛围」，这才是能作为外生环境变量使用的暴露度。<code>_loo_den ≥ 5</code> 的守卫则防止在报道极稀薄的省份-年份单元上得到方差爆炸的噪声比值。年度级的 <code>ft_attn_yr</code>（当年 fintech 唯一篇数 ÷ 当年全部银行新闻唯一篇数）与 <code>ft_vol_yr</code>（<code>ln(1 + 当年 fintech 唯一篇数)</code>）则提供全国层面的议程份额与总量基准。这类「注意力份额」测量的资产定价含义，可追溯至 <a href="https://doi.org/10.1093/rfs/hhu072" target="_blank">Da, Engelberg &amp; Gao (2015)</a> 与 <a href="https://doi.org/10.1016/j.jfineco.2024.103870" target="_blank">Cookson, Lu, Mullins &amp; Niessner (2024)</a> 的社会信号研究。</p>
 <h4>attention_pct 与 fintech_share 的分母区别（最易混）</h4>
@@ -2975,9 +2975,9 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 </table>
 </div>
 <div class="formula"><span class="lbl">公式 9.14（fintech_share，controls.py）</span>
-\( \text{all\_n\_articles} = \text{\_ft\_count} + \text{nf\_n\_articles} \)　（去重同基相加）<br/>
-\( \text{all\_ln\_coverage} = \ln(1 + \text{all\_n\_articles}) \);　\( \text{zero\_coverage} = \mathbb{1}\left[\text{all\_n\_articles} == 0\right] \)<br/>
-\( \text{fintech\_share} = \frac{\text{\_ft\_count}}{\text{all\_n\_articles}} \)　（all_n_articles &gt; 0，否则 NaN）
+\( \text{all_n_articles} = \text{_ft_count} + \text{nf_n_articles} \)　（去重同基相加）<br/>
+\( \text{all_ln_coverage} = \ln(1 + \text{all_n_articles}) \);　\( \text{zero_coverage} = \mathbb{1}\left[\text{all_n_articles} == 0\right] \)<br/>
+\( \text{fintech_share} = \frac{\text{_ft_count}}{\text{all_n_articles}} \)　（all_n_articles &gt; 0，否则 NaN）
 </div>
 <div class="plain"><b>白话</b>：两个都叫「金科占比」，但分母不是一回事。<code>attention_pct</code> 的分母是「这家银行今年被写的所有稿子」——语料<b>已在 stage 00 做过全局去重</b>（精确去重 + MinHash Jaccard ≥ 0.8 + 5 工作日窗，通稿/转载只留首发），但<b>没有再按 (银行, 标题, 日期) 复合键做第二道去重</b>；<code>fintech_share</code> 的分子分母则统一过了这第二道去重。两者的差别在于「第二道去重做没做」，<b>而不是</b>「转载算不算数」，度量的是媒体议程里 fintech 占多大声量；<code>fintech_share</code> 的分母是「去重后的金科稿 + 去重后的非金科稿」，两块<b>同一去重口径</b>再相加，度量的是这家银行本身的业务被报道时有多「金科化」。混用分母会让两个构念张冠李戴。<code>fintech_share</code> 的结构镜像 Hassan 的 PRisk/(PRisk+NPRisk)，覆盖度对数化沿用 <a href="https://doi.org/10.1111/j.1540-6261.2009.01493.x" target="_blank">Fang &amp; Peress (2009)</a>。</div>
 <h4>9.9.1　去重口径敏感性：把「怎样算重复」也做成并排梯子</h4>
@@ -3030,7 +3030,7 @@ per-model：<code>{short}_score{track}</code> = 同映射，再对该模型自�
 <p>金融地理学有一条稳健规律：本地媒体对本地企业的报道更多、更偏向正面。<a href="https://doi.org/10.1111/0022-1082.00181" target="_blank">Coval &amp; Moskowitz (1999)</a> 的本地偏好、<a href="https://doi.org/10.1111/j.1540-6261.2012.01725.x" target="_blank">Gurun &amp; Butler (2012)</a> 的本地媒体正偏、<a href="https://doi.org/10.1111/j.1540-6261.2010.01626.x" target="_blank">Engelberg &amp; Parsons (2011)</a> 的多距离媒体梯度，都要求把「报道来源与银行总部的地理距离」纳入分析。函数 <code>compute_geo_proximity_buffers</code> 用四个 km 阈值各画一个圈做二值 within 判定：</p>
 <div class="warn"><b>务必看清</b>：这是<b>硬阈值圈</b>而非连续距离衰减核——四个阈值各画一个圈做二值 within，<b>不是</b> <code>exp(−d)</code> 型核。连续型 inverse-distance 加权在别处（<code>entity_context.py</code> 的句级距离，供词典法加权，<a href="https://doi.org/10.1111/jofi.13219" target="_blank">Sautner et al. (2023a)</a>）。</div>
 <div class="formula"><span class="lbl">公式 9.15（Haversine 球面距离）</span>
-\[ \text{\_DISTANCE\_THRESHOLDS\_KM} = [50,\, 100,\, 150,\, 200]; \quad R = 6371.0\,\text{km} \]
+\[ \text{_DISTANCE_THRESHOLDS_KM} = [50,\, 100,\, 150,\, 200]; \quad R = 6371.0\,\text{km} \]
 \[\begin{aligned}
 a &= \sin^2(\Delta\text{lat}/2) + \cos(\text{lat}_1)\cdot\cos(\text{lat}_2)\cdot\sin^2(\Delta\text{lon}/2)\\
 d &= R \cdot 2 \cdot \text{atan2}\left(\sqrt{a},\; \sqrt{1-a}\right)
@@ -3097,9 +3097,9 @@ d &= R \cdot 2 \cdot \text{atan2}\left(\sqrt{a},\; \sqrt{1-a}\right)
 
 <div class="formula"><span class="lbl">公式 9.17（分层语调与语调差，三轨 τ ∈ {_full, _ctx, _ss}）</span>
 \[ A^{s}_{b,t} = \left\{\, i \in A_{b,t} \;:\; \delta^{\,s}_i = 1 \,\right\},\qquad
-\text{llm\_vote\_score}^{\,\tau}_i \in \{-1,\,0,\,+1\} \]
+\text{llm_vote_score}^{\,\tau}_i \in \{-1,\,0,\,+1\} \]
 \[ \text{tone}^{\,s,\tau}_{b,t}
-= \frac{1}{\left|A^{s}_{b,t}\right|}\sum_{i \in A^{s}_{b,t}} \text{llm\_vote\_score}^{\,\tau}_i \]
+= \frac{1}{\left|A^{s}_{b,t}\right|}\sum_{i \in A^{s}_{b,t}} \text{llm_vote_score}^{\,\tau}_i \]
 \[ \text{gap}^{\,A,B,\tau}_{b,t}
 = \text{tone}^{\,A,\tau}_{b,t} - \text{tone}^{\,B,\tau}_{b,t} \]
 落列名分别为 <code>tone_{s}_media{track}</code> 与 <code>tone_gap_{A}_{B}{track}</code>。
@@ -3132,7 +3132,7 @@ d &= R \cdot 2 \cdot \text{atan2}\left(\sqrt{a},\; \sqrt{1-a}\right)
 
 <div class="formula"><span class="lbl">公式 9.18（媒体来源集中度 HHI，与三轨正交）</span>
 \[ s_{m,b,t} = \frac{n_{m,b,t}}{\sum_{m' \in M_{b,t}} n_{m',b,t}},\qquad
-\text{media\_hhi}_{b,t} = \sum_{m \in M_{b,t}} s_{m,b,t}^{\,2} \in (0,\,1] \]
+\text{media_hhi}_{b,t} = \sum_{m \in M_{b,t}} s_{m,b,t}^{\,2} \in (0,\,1] \]
 </div>
 
 <p><code>media_hhi</code>（<code>:1503-1508</code>，实现为 <code>value_counts(normalize=True)</code> 的平方和）取值 1 表示该银行当年全部报道来自<b>同一家</b>媒体，越接近 0 表示来源越分散。它是 track-agnostic 的元数据度量——不随 full/ctx/ss 变化，因此<b>不分轨</b>，只有一列。它同时是语调差族的必备控制：若某 bank-year 只有两家媒体，任何 <code>tone_gap</code> 都可能只是两个小样本均值的噪声之差。</p>
@@ -3164,16 +3164,16 @@ d &= R \cdot 2 \cdot \text{atan2}\left(\sqrt{a},\; \sqrt{1-a}\right)
 
 <p><b>第一步：谁算「已退出」。</b>函数 <code>detect_defacto_cessation</code>（<code>attention_media.py:109</code>，默认 <code>threshold_gap=2</code>，调用处 <code>attention_media.py:1681-1682</code> 不覆盖该默认）先按媒体名聚合覆盖跨度（<code>attention_media.py:142-145</code>：<code>first_year=min(year)</code>、<code>last_year=max(year)</code>、<code>n_articles=size</code>），再以<b>末年落后于样本末端</b>加<b>最低样本量</b>双条件判定（<code>attention_media.py:146-151</code>）：</p>
 <div class="formula"><span class="lbl">公式 9.19（数据驱动的覆盖退出判据）</span>
-\[ Y_{\max} = \max_i \text{year}_i, \qquad \text{cutoff} = Y_{\max} - g, \qquad g = \text{threshold\_gap} = 2 \]
-\[ \mathcal{D} = \bigl\{\, m \;\big|\; \text{last\_year}(m) &lt; \text{cutoff} \;\wedge\; n_{\text{art}}(m) \ge 10 \,\bigr\} \]
+\[ Y_{\max} = \max_i \text{year}_i, \qquad \text{cutoff} = Y_{\max} - g, \qquad g = \text{threshold_gap} = 2 \]
+\[ \mathcal{D} = \bigl\{\, m \;\big|\; \text{last_year}(m) &lt; \text{cutoff} \;\wedge\; n_{\text{art}}(m) \ge 10 \,\bigr\} \]
 </div>
 <p>门槛 <code>n_articles >= 10</code> 用于滤掉「一辈子只发过两三篇」的偶发媒体——它们的 <code>last_year</code> 早本就近乎无信息，纳入只会稀释判据。随后与 NPPA（国家新闻出版署）注册报刊全表交叉验证：读 <code>config/paths.yaml:25</code> 的 <code>nppa_newspapers_csv</code>，把<b>出版状态 ∈ {注销, 停办, 休刊}</b> 的机构名收进 <code>nppa_ceased</code>（<code>attention_media.py:153-167</code>；文件缺失或解析失败仅 WARNING，不中断）。四分标签与排除集如下（<code>attention_media.py:169-172</code>、<code>:187</code>）：</p>
 <div class="formula"><span class="lbl">公式 9.20（NPPA 四分标签与排除集）</span>
 \[\begin{aligned}
 \text{confirmed} &= \mathcal{D} \cap \mathcal{N}, &\qquad \text{suspected} &= \mathcal{D} \setminus \mathcal{N},\\
-\text{nppa\_only} &= (\mathcal{N} \cap \mathcal{M}) \setminus \mathcal{D}, &\qquad \text{active} &= \mathcal{M} \setminus \mathcal{D}.
+\text{nppa_only} &= (\mathcal{N} \cap \mathcal{M}) \setminus \mathcal{D}, &\qquad \text{active} &= \mathcal{M} \setminus \mathcal{D}.
 \end{aligned}\]
-\[ \mathcal{C} \;=\; \text{confirmed} \cup \text{suspected} \;=\; \mathcal{D}, \qquad \text{\_is\_ceased\_media}_i \;=\; \mathbf{1}\bigl[\,\text{媒体(中文)}_i \in \mathcal{C}\,\bigr] \]
+\[ \mathcal{C} \;=\; \text{confirmed} \cup \text{suspected} \;=\; \mathcal{D}, \qquad \text{_is_ceased_media}_i \;=\; \mathbf{1}\bigl[\,\text{媒体(中文)}_i \in \mathcal{C}\,\bigr] \]
 </div>
 <p>其中 \(\mathcal{M}\) 为语料内全部媒体、\(\mathcal{N}\) 为 NPPA 停办名单。关键在第二行的恒等式：<b>排除集恰等于数据驱动集 \(\mathcal{D}\)</b>——NPPA 交叉验证<b>只生成报告标签、不收窄排除集</b>，未获官方证实的 <code>suspected</code> 全量进入排除集（<code>attention_media.py:116-117</code>）。这是刻意的保守选择：宁可多剔几家，也不让一家可疑媒体污染对照臂。四分结果落盘 <code>42_cessation_report.xlsx</code>（写 Excel 失败则退化为 <code>.csv</code>，<code>attention_media.py:194-197</code>）；文章级标记 <code>_is_ceased_media</code> 在其所在的外层函数 <code>compute_media_heterogeneity</code>（<code>attention_media.py:1176</code>）末尾，随其余 <code>_is_*</code> 中间列统一 drop、不进面板（<code>attention_media.py:1747-1750</code>）。</p>
 
@@ -3181,15 +3181,15 @@ d &= R \cdot 2 \cdot \text{atan2}\left(\sqrt{a},\; \sqrt{1-a}\right)
 
 <p><b>第二步：两个 bank-year 汇总列。</b>暴露度 <code>ceased_media_frac</code> 与剔后篇数 <code>n_articles_exc</code>（<code>attention_media.py:1689-1698</code>）：</p>
 <div class="formula"><span class="lbl">公式 9.21（暴露度与剔后篇数）</span>
-\[ \text{ceased\_media\_frac}_{b,t} \;=\; \frac{1}{N_{b,t}}\sum_{i \in \Omega_{b,t}} \text{\_is\_ceased\_media}_i \;\in\; [0,1] \]
-\[ \text{n\_articles\_exc}_{b,t} \;=\; \bigl|\{\, i \in \Omega_{b,t} \;:\; \text{\_is\_ceased\_media}_i = 0 \,\}\bigr| \]
+\[ \text{ceased_media_frac}_{b,t} \;=\; \frac{1}{N_{b,t}}\sum_{i \in \Omega_{b,t}} \text{_is_ceased_media}_i \;\in\; [0,1] \]
+\[ \text{n_articles_exc}_{b,t} \;=\; \bigl|\{\, i \in \Omega_{b,t} \;:\; \text{_is_ceased_media}_i = 0 \,\}\bigr| \]
 </div>
 <p>\(\Omega_{b,t}\) 为该 bank-year 的全部文章行、\(N_{b,t}=|\Omega_{b,t}|\)。<code>ceased_media_frac</code> 本身即一个可直接入回归的<b>连续暴露度</b>：若基准结果只在高暴露银行上成立，那是幸存者偏差在说话，而非金融科技。</p>
 
-<p><b>第三步：<code>exc_*</code> 族的构造律。</b>令 \(\Omega^{\text{alive}}_{b,t} = \{\, i \in \Omega_{b,t} : \text{\_is\_ceased\_media}_i = 0 \,\}\)（<code>attention_media.py:1710</code>），则对任一文章级情感测度 \(X\)、任一轨 \(\tau \in \{\text{\_full},\ \text{\_ctx},\ \text{\_ss}\}\)：</p>
+<p><b>第三步：<code>exc_*</code> 族的构造律。</b>令 \(\Omega^{\text{alive}}_{b,t} = \{\, i \in \Omega_{b,t} : \text{_is_ceased_media}_i = 0 \,\}\)（<code>attention_media.py:1710</code>），则对任一文章级情感测度 \(X\)、任一轨 \(\tau \in \{\text{_full},\ \text{_ctx},\ \text{_ss}\}\)：</p>
 <div class="formula"><span class="lbl">公式 9.22（剔除退出媒体后的同名重算）</span>
-\[ \bigl(\text{exc\_}X^{\tau}\bigr)_{b,t} \;=\; \frac{1}{\bigl|\Omega^{\text{alive}}_{b,t}\bigr|}\sum_{i \in \Omega^{\text{alive}}_{b,t}} X^{\tau}(i) \]
-\[ \bigl(\text{exc\_tone}^{\tau}\bigr)_{b,t} \;=\; \operatorname{mean}_{\,i \in \Omega^{\text{alive}}_{b,t}} \ \text{llm\_vote\_score}^{\tau}(i) \]
+\[ \bigl(\text{exc_}X^{\tau}\bigr)_{b,t} \;=\; \frac{1}{\bigl|\Omega^{\text{alive}}_{b,t}\bigr|}\sum_{i \in \Omega^{\text{alive}}_{b,t}} X^{\tau}(i) \]
+\[ \bigl(\text{exc_tone}^{\tau}\bigr)_{b,t} \;=\; \operatorname{mean}_{\,i \in \Omega^{\text{alive}}_{b,t}} \ \text{llm_vote_score}^{\tau}(i) \]
 </div>
 <p>即<b>同一聚合算子、同一轨、只换求和域</b>——分母是剔后的存活篇数而非原篇数，故 <code>exc_*</code> 与主族是严格的「同构对照臂」，可直接比系数而无需重新标准化。<code>exc_tone{track}</code> 由 (C.3) 单独物化（<code>attention_media.py:1711-1719</code>）；其余由 (C.4) 按前缀表 <code>_SCORE_PATTERNS</code>（SSOT：<code>attention_media.py:40-56</code>，13 个前缀 = <code>llm_vote_score_</code> + 三家 per-model + 六部词典 + 三款 BERT 的 <code>正面</code> 概率）<b>动态发现</b>（<code>attention_media.py:1721-1738</code>）。跳过规则为 <code>src.endswith('_w') or '_mw_' in src or '_idf_' in src or src.startswith('llm_vote_score_')</code>（<code>attention_media.py:1727-1729</code>）——末项使 <code>llm_vote_score_*</code> 整族让位给 (C.3)，故 LLM 投票在 <code>exc_</code> 族中<b>只有</b> <code>exc_tone{track}</code> 一列。</p>
 
@@ -3208,7 +3208,7 @@ d &= R \cdot 2 \cdot \text{atan2}\left(\sqrt{a},\; \sqrt{1-a}\right)
 </table>
 </div>
 
-<div class="note"><b>后缀语义必须实读、不可望文生义</b>：<code>_w</code> 是<b>提及密度加权</b>孪生 \(X_w = X \times \text{mention\_density}\)（步骤 3b，<code>pipeline/panel/runner.py:765-806</code>），<b>不是</b>媒体权威性加权；媒体权威性加权的后缀是 <code>_mw</code>（\(X_{mw} = X \times \text{media\_authority\_weight}\)，<code>runner.py:816-849</code>，权重由 <code>compute_media_authority_weights</code> 产出，<code>pipeline/panel/encode.py:454</code>），而它恰被 (C.4) 的 <code>'_mw_' in src</code> 规则整族排除、<b>根本不进 <code>exc_*</code></b>（<code>_idf_</code> 同理）。<code>_hw</code> 是跟风衰减加权孪生 \(X_{hw} = X \times \text{herd\_weight}^{\tau}\)（步骤 3d，<code>runner.py:885-918</code>，权重来自 stage 24）。<b>不对称之源</b>：<code>_mw</code>/<code>_idf</code> 用<b>子串</b>匹配，而 <code>_w</code> 用<b>结尾</b>匹配（<code>src.endswith('_w')</code>）；三轨后缀位于最外层（形如 <code>bian_2021_score_w_full</code>），故 <code>endswith('_w')</code> 实际从不命中，<code>_w</code>/<code>_hw</code> 孪生全数进入动态发现——上表的 10/3 列核算即由此而来。另有长名护栏：<code>len(col) > 32</code> 时打 WARNING（<code>attention_media.py:1731-1732</code>），因 Stata 变量名上限即 32 字符。</div>
+<div class="note"><b>后缀语义必须实读、不可望文生义</b>：<code>_w</code> 是<b>提及密度加权</b>孪生 \(X_w = X \times \text{mention_density}\)（步骤 3b，<code>pipeline/panel/runner.py:765-806</code>），<b>不是</b>媒体权威性加权；媒体权威性加权的后缀是 <code>_mw</code>（\(X_{mw} = X \times \text{media_authority_weight}\)，<code>runner.py:816-849</code>，权重由 <code>compute_media_authority_weights</code> 产出，<code>pipeline/panel/encode.py:454</code>），而它恰被 (C.4) 的 <code>'_mw_' in src</code> 规则整族排除、<b>根本不进 <code>exc_*</code></b>（<code>_idf_</code> 同理）。<code>_hw</code> 是跟风衰减加权孪生 \(X_{hw} = X \times \text{herd_weight}^{\tau}\)（步骤 3d，<code>runner.py:885-918</code>，权重来自 stage 24）。<b>不对称之源</b>：<code>_mw</code>/<code>_idf</code> 用<b>子串</b>匹配，而 <code>_w</code> 用<b>结尾</b>匹配（<code>src.endswith('_w')</code>）；三轨后缀位于最外层（形如 <code>bian_2021_score_w_full</code>），故 <code>endswith('_w')</code> 实际从不命中，<code>_w</code>/<code>_hw</code> 孪生全数进入动态发现——上表的 10/3 列核算即由此而来。另有长名护栏：<code>len(col) > 32</code> 时打 WARNING（<code>attention_media.py:1731-1732</code>），因 Stata 变量名上限即 32 字符。</div>
 
 <div class="warn"><b>NaN 契约不可连带零填</b>：<code>n_articles_exc</code> 是<b>计数类</b>，left-join 后对零文章 bank-year 补 <code>fillna(0).astype('int64')</code>（<code>attention_media.py:1699-1705</code>）——因为「Σ over ∅ = 0」在计数语义下成立，且必须与兄弟列 <code>n_articles=0</code> 保持一致，否则 <code>.dta</code> 里一个显 <code>.</code> 一个显 <code>0</code> 自相矛盾。但 <code>ceased_media_frac</code>（比例类）与全部 <code>exc_*</code>（情感类）<b>必须保持 NaN</b>（契约注释见 <code>attention_media.py:1704</code>）：一个 bank-year 若剔后无稿，其「平均语气」是<b>未定义</b>而非「中性 0」，零填会把缺失伪装成真实观测、把估计量拉向 0。</div>
 
@@ -3396,7 +3396,7 @@ d &= R \cdot 2 \cdot \text{atan2}\left(\sqrt{a},\; \sqrt{1-a}\right)
 <div class="note"><b>同名不同构念的诚实披露</b>：<code>cross_outlet_tone_variance_*</code> <b>不是</b> bank_media_disagreement 论文的冻结主处理变量——本阶段是"事件窗条件"方差，论文规格是"无条件全年横截面"方差。这类"同名列、不同口径"的显式披露贯穿全项目，是防止下游误用的关键护栏。</div>
 <h3 id="sec10-8">10.8 (B) golden 列哈希快照：不哈希文件字节，只哈希列的值</h3>
 <p>稳健性回答"结论稳不稳"，确定性回答"结果可不可复现"。后者的基石是 golden 快照体系。它的第一条设计智慧是：<b>刻意不哈希 parquet 文件字节</b>。pyarrow 元数据、Snappy 分块边界、嵌入时间戳在重复写入间本就不稳定，字节哈希会在每次重写时假阳性。取而代之，它哈希<b>每一列的值</b>：</p>
-<div class="formula"><span class="lbl">公式 10.10</span> \( \text{column\_hash}(s) \;=\; \left( \sum \text{hash\_pandas\_object}(s,\ \text{index=False}) \right) \;\&amp;\; \left( 2^{64} - 1 \right) \)，以 016x 无符号 64 位十六进制表示</div>
+<div class="formula"><span class="lbl">公式 10.10</span> \( \text{column_hash}(s) \;=\; \left( \sum \text{hash_pandas_object}(s,\ \text{index=False}) \right) \;\&amp;\; \left( 2^{64} - 1 \right) \)，以 016x 无符号 64 位十六进制表示</div>
 <p><code>index=False</code> 使哈希独立于行索引标签；<code>.sum()</code> 折叠使其对列内元素置换敏感（打乱一列会改变求和）却对 parquet 容器不敏感。生成器 <code>scripts/migrate/generate_golden_snapshot.py</code> 与门测试 <code>tests/integration/test_panel_reproducibility.py</code> 内含<b>数值完全等价（同式、同 64 位掩码、同 <code>016x</code> 输出）的两份独立实现</b>（写法与函数名略有差异，非逐字节同源）。每个 parquet 的快照记录 <code>file / size_bytes / n_rows / n_columns / columns_order（有序列表）/ dtypes / column_hashes（列→u64 hex 映射）</code>；顶层元数据记 <code>schema_version / generated_utc / git_tag / data_dir / hash_method</code>，并特别记录 <b>LLM 溯源</b>：<code>llm_snapshot_date</code> 与 <code>llm_models</code>（当前 <code>["gpt54nano","gemini31","deepseekv4"]</code>）——这让未来的 diff 能区分"数据漂移"与"LLM API 端点漂移"两种截然不同的变化。</p>
 <div class="plain"><b>白话</b>：想验证"这次跑出来的表和上次一模一样"，最笨的办法是比两个文件的字节——但 parquet 文件里塞了时间戳、压缩块边界这些"每次写都不一样"的杂物，字节比每次都会误报"不一样"。聪明的办法是：把每一列的数值取出来算一个 64 位指纹，只要每列的指纹和存档一致，就证明数据内容一字不差，哪怕文件字节因压缩细节而不同。这就是"列哈希"。</div>
 <p>追踪哪些阶段并非手写——<code>_derive_expected_stages()</code> 从 <code>core/schemas.py::OUTPUT_REGISTRY</code> 抽出每个 <code>.parquet</code>，再并上 <code>_ORPHAN_WHITELIST</code>（当前仅退役阶段孤儿 <code>30_text2vec_indicators.parquet</code>）。这一"单源派生"消除了 OUTPUT_REGISTRY 与 <b>golden 生成器</b>预期列表之间的漂移（审计 S9）：某阶段进出 OUTPUT_REGISTRY 时，golden 生成器自动跟随；守卫测试 <code>test_golden_stages_subset_of_registry_or_orphan_whitelist</code> 另保证 golden 追踪的阶段不越出"注册表 ∪ 孤儿白名单"。<b>但须如实说明：单源派生只覆盖生成器一侧，复现门测试的参数化清单至今仍是硬编码的 18 项</b>（<code>tests/integration/test_panel_reproducibility.py:116-134</code>），它既<b>少于</b>由 OUTPUT_REGISTRY 派生的产物集（缺 <code>14_news_with_ctx</code>、<code>16_article_alignment</code>、<code>25_article_embeddings</code>、<code>26_article_staleness</code>、<code>26_staleness_panel</code> 等），又仍列着已退役的 <code>30_text2vec_indicators.parquet</code>。因此"三方漂移已消除"的说法只对生成器一侧成立，参数化清单与注册表之间的第三方漂移<b>尚未</b>被机器闸住，属已知待办。门测试对既在 golden 又在盘上的每个 parquet 做两件事——(1) 列集一致：盘上列须与 golden <code>columns_order</code> 完全相等，报 <code>extra</code>（盘上新增）与 <code>missing</code>（golden 独有）；(2) 逐列哈希比对：重算每列哈希、汇总不一致、以 <code>基线=… 当前=…</code> 的 diff 触发 <code>pytest.fail</code>。盘上缺该 parquet、或 golden 无记录/无 <code>column_hashes</code> 时优雅跳过（非失败）。两个守卫测试保护快照自身完整性：<code>test_golden_snapshot_has_content</code>（至少一阶段带哈希）与 <code>test_golden_stages_subset_of_registry_or_orphan_whitelist</code>（每个 golden 追踪阶段须在 OUTPUT_REGISTRY 或孤儿白名单内——这就是防三方漂移的 S9 门）。</p>
@@ -3427,7 +3427,7 @@ d &= R \cdot 2 \cdot \text{atan2}\left(\sqrt{a},\; \sqrt{1-a}\right)
 <p>golden 体系的复现性，最终系于<b>阶段 21（LLM 三家投票）是否确定性</b>。它唯一的非确定源是缓存未命中→付费 API 重调→投票可能翻转（有据可查的一例：DeepSeek 单模型票 True→False 翻转，掉了一家边际 1 篇报道的银行，面板 176→174 行）。堵住这个源头，靠的是缓存 + 离线守卫 + 冻结锚点三件套。</p>
 <p>物理缓存 <code>data/processed/_llm_cache.db</code>（2026-07-17 死条目清剪：213,323→29,088 条、约 2.1GB→1.3GB；其后随 2026-07-21/22 词典 607 化换血与九入口在线回填增长，<b>截至 2026-07-22 盘上实测 35,084 条 / 1,704,259,584 字节（约 1.6 GB）</b>，只留当前语料×当前 prompt 活键）是跨-run 复现锚，<b>绝不可删</b>。它是 SQLite（<code>check_same_thread=False</code> + WAL），键为 <code>TEXT PRIMARY KEY</code>，每次 <code>get()</code> 都是 O(log n) 索引点查而非全表扫描——所以"删库省扫描时间"是伪命题，删库的真实代价是 29,088 次付费 API 重调（嵌入两轨 17,124 条 = Qwen 8,567 + emb3-large 8,557；三家 LLM 11,964 条 = gpt-5.4-nano 4,012 + gemini31 3,976 + deepseek-v4 3,976）+ golden 锚丢失。缓存键是以下串的 SHA-256：</p>
 <div class="formula"><span class="lbl">公式 10.11</span>
-\[ \text{key} = \text{SHA-256}\left( \text{\{SCHEMA\_VERSION\}} \mid \text{\{len:model\_id\}:\{model\_id\}} \mid \text{\{len:prompt\}:\{prompt\}} \mid \text{\{len:pv\}:\{prompt\_version\}} \mid \text{\{temperature\}} \right) \]
+\[ \text{key} = \text{SHA-256}\left( \text{\{SCHEMA_VERSION\}} \mid \text{\{len:model_id\}:\{model_id\}} \mid \text{\{len:prompt\}:\{prompt\}} \mid \text{\{len:pv\}:\{prompt_version\}} \mid \text{\{temperature\}} \right) \]
 （仅当 \( \text{temperature} \neq 0.0 \) 时追加 seed:{n}）</div>
 <p>长度前缀（<code>len:x</code>）防拼接碰撞——<b>四个变长字段（model_id / prompt / prompt_version）均带长度前缀</b>（<code>core/caching.py:297–303</code>；模块 docstring <code>:199</code> 为陈旧简写，以实现为准）；温度=0.0 贪婪解码下 seed 无关故不入键；<code>SCHEMA_VERSION</code>（当前 <code>v1</code>）是全局一次性失效开关。"静默陈旧"防御靠一整套版本门：SCHEMA_VERSION / prompt_version×3 / text_pipeline_version×2（嵌入）/ PREPROCESS_CODE_VERSION——改一个提示词就 bump 其 <code># version:</code> 头，旧缓存静默未命中→重调；换嵌入模型须 bump <code>config/features.yaml::embedding_api.text_pipeline_version</code>。</p>
 <p><b>冻结锚点</b>是复现性的物理基础。生产提示词 <code>config/prompts/unified_cot.txt</code> 头 = <code># version: v8-2026-05-17</code>；缓存命中要求 <code>prompt_version='v8-2026-05-17'</code>、<code>temperature=0.0</code>。字节冻结门 <code>tests/test_prompt_v8_frozen.py</code> 锁两个摘要：<b>raw（CRLF）</b> <code>sha256=0430ba3c…</code>（sidecar/公示指纹域）与 <b>LF 归一</b> <code>sha256=14952b06…</code>（缓存键真正消费的域——<code>core/config.py</code> 以文本模式 universal-newlines 读入，故缓存键对行尾不敏感，由 <code>test_eol_immunity_of_prompt_loader</code> 证明）。提示构造 SSOT = <code>tone_llms.iter_article_track_prompts</code>（生产与审计共用→键一致）。此外 <code>jieba == 0.42.1</code> 冻结（<code>requirements.lock:57</code>）：jieba 分词喂词典情感/罕见词/FLS 列，版本变动会改 <code>frozenset</code> 边界词元计数而破坏 golden，钉死后阶段 22 无须重跑（$0 LLM）。</p>
@@ -3625,7 +3625,7 @@ d &= R \cdot 2 \cdot \text{atan2}\left(\sqrt{a},\; \sqrt{1-a}\right)
 <div class="plain"><b>白话</b>：两位标注员意见不一致时怎么办？本项目不用「谁资历高听谁的」，而是走<b>第三人仲裁</b>：请第三位编码员独立再判一次。同时刻意保留两套口径并排报告——一套是「严格口径」（只认两人本来就一致的样本，最干净但样本量小），一套是「裁决口径」（把仲裁后的结果也算进来，样本量大但掺进了裁决者的判断）。两套都报出来，读者自己判断结论是否依赖于仲裁方式，而不是由作者替读者选一个。</div>
 <h3 id="sec11-6">11.6 四格 ML（Manski–Lerman）权重</h3>
 <p>抽样器 ② 对少数类/硬样本做了过采，这意味着未加权的准确率是"分层条件"的，无法外推到总体语料。要把样本里的结论无偏地推回全语料，就必须给每行配一个抽样权重。</p>
-<div class="formula"><span class="lbl">公式 11.4</span> 四格总体权重 ：\( w = \frac{\text{cell}_{\text{pop}} / n_{\text{pop\_total}}}{\text{cell}_{\text{smp}} / n_{\text{smp\_total}}} \)，其中 \( \text{cell} = \{\text{一致},\ \text{分歧}\} \times \{\text{预测负面},\ \text{非负面}\} \)</div>
+<div class="formula"><span class="lbl">公式 11.4</span> 四格总体权重 ：\( w = \frac{\text{cell}_{\text{pop}} / n_{\text{pop_total}}}{\text{cell}_{\text{smp}} / n_{\text{smp_total}}} \)，其中 \( \text{cell} = \{\text{一致},\ \text{分歧}\} \times \{\text{预测负面},\ \text{非负面}\} \)</div>
 <p>这正是选择性抽样估计的经典校正（<a href="https://doi.org/10.2307/1914121" target="_blank">Manski &amp; Lerman, 1977</a>）。<code>generate_validation_sample</code> 按行写 <code>population_weight</code>。为什么是<b>四格</b>而非两格？因为"负面过采"横切了"一致/分歧"这一维——负面样本既可能落在一致堆也可能落在分歧堆，所以要做 2×2 = 4 格的后分层（poststratification）才能保证无偏；格内抽取是简单随机抽样（SRS），故格内入样概率均匀。</p>
 <div class="plain"><b>白话</b>：假设我们在样本里"重点照顾"了难判和负面的文章，它们在样本里的比例远高于在全语料里的比例。如果直接用样本准确率代表全语料，就等于让这些"被过度挑出来的"文章过度发言。四格权重的作用，就是给每一类文章一个"复原砝码"：样本里被高抽的类砝码小、被低抽的类砝码大，加权之后就还原成全语料的真实构成。</div>
 <div class="tbl">
@@ -3753,7 +3753,7 @@ d &= R \cdot 2 \cdot \text{atan2}\left(\sqrt{a},\; \sqrt{1-a}\right)
 <h3 id="sec12-2">12.2 P1 · bank_fintech_tone —— 媒体语调与存款人纪律</h3>
 <p><b>理论定位。</b>P1 属于"存款人纪律"（depositor discipline）范式在媒体维度的延伸：媒体对一家银行金融科技动向的<b>语调方向</b>（褒贬、乐观悲观）改变储户与债权人对该行的风险感知，进而传导到其融资成本。媒体语调进入资产价格与投资者情绪的经典证据始于 <a href="https://doi.org/10.1111/j.1540-6261.2007.01232.x" target="_blank">Tetlock (2007)</a>，而将金融专业词典引入文本情感度量则奠基于 <a href="https://doi.org/10.1111/j.1540-6261.2010.01625.x" target="_blank">Loughran &amp; McDonald (2011)</a>。银行层面的"信息—存款流"机制近年被 <a href="https://doi.org/10.1016/j.jfineco.2022.07.009" target="_blank">Chen, Goldstein, Huang &amp; Vashishtha (2022)</a> 与 <a href="https://doi.org/10.1016/j.iref.2024.01.067" target="_blank">Fang et al. (2024)</a>（中国媒体情绪、存款稳定性与系统性风险）实证刻画；社交媒体作为挤兑催化剂的极端情形见 <a href="https://doi.org/10.1016/j.jfineco.2025.104218" target="_blank">Cookson et al. (2026)</a>，存款特许权在利率冲击下的挤兑逻辑见 <a href="https://doi.org/10.1111/jofi.70034" target="_blank">Drechsler et al. (2026)</a>。</p>
 <div class="formula"><span class="lbl">公式 12.1</span>
-\[ \text{funding\_cost}_{it} = \beta \cdot \text{llm\_vote\_tone\_full}_{it} + \gamma' X_{it} + \mu_i + \lambda_t + \varepsilon_{it} \]
+\[ \text{funding_cost}_{it} = \beta \cdot \text{llm_vote_tone_full}_{it} + \gamma' X_{it} + \mu_i + \lambda_t + \varepsilon_{it} \]
 （银行固定效应 \(\mu_i\) + 年份固定效应 \(\lambda_t\)，识别 \(\beta &lt; 0\)）</div>
 <p><b>处理→结局。</b>主处理是三家 LLM 多数投票共识语调 <code>llm_vote_tone_full</code>（连续测度，含符号与强度），主结局是融资成本 <code>funding_cost</code>，次级结局为 <code>loan_growth</code>、<code>roa</code>、<code>tobin_q</code>。识别基线是银行内·年内长面板双向固定效应；工具变量首选<b>同省留一</b>（province leave-one-out）同伴语调（同省其它银行 tone 的留一均值，属地理 LOO 引擎，区别于 P2–P5／benefit 按银行类型分组的 <code>leave_one_out_peer_*_iv</code>） <code>prov_leave1out_tone_full</code>，回退到广义 Bartik 类型暴露 <code>bartik_type_iv_full</code>。<b>差异化主张</b>：P1 度量情感的<b>符号 + 幅度</b>（连续语调），与 P2 无符号的暴露强度、P3/P4 的二元公告属性、以及网络类论文（仅银行层，无同伴网络/中心性）严格区分。<b>识别铁律的落点</b>之一是它有一个非延后的人工 κ 效度门控——<code>tone</code> 构念必须先通过真实人工双编码的 Cohen κ 一致性检验（<a href="https://doi.org/10.1177/001316446002000104" target="_blank">Cohen, 1960</a>；κ 的量级解读遵循 <a href="https://doi.org/10.2307/2529310" target="_blank">Landis &amp; Koch, 1977</a>）才可发表，语调度量的外部效度参照 <a href="https://doi.org/10.1080/19312458.2020.1869198" target="_blank">van Atteveldt et al. (2021)</a>。<b>目标期刊</b>：JFQA（首选）／RFS、JFE（进取）。</p>
 <p><b>度量细节的经济学含义。</b>P1 的语调之所以用"三家 LLM 多数投票 + 六词典规则消融梯度 + 政治词权重 {0.0, 0.5, 1.0} 敏感性"这一套繁复口径，正是为了回应文本情感度量长期被诟病的"研究者自由度"问题：同一批文本，不同词典、不同规则会得到不同符号。项目把这些替代口径全部物化为互为稳健性的并排轨道，而非藏在脚注里。词典法给词赋权的思想可上溯到 <a href="https://doi.org/10.1016/j.jfineco.2013.08.018" target="_blank">Jegadeesh &amp; Wu (2013)</a> 的"词力量"（word power）加权方案。至于为何主结局锁定融资成本：媒体语调若真通过存款人/债权人的风险感知起作用，最直接的价格出口就是该行的资金成本——媒体情绪对随后盈余公告的"泼冷水"纪律作用见 <a href="https://doi.org/10.2308/tar-2020-0104" target="_blank">Holzman, Miller &amp; Twedt (2023)</a>。存款人纪律的原始范式（Martinez Peria &amp; Schmukler, 2001；Iyer &amp; Puri, 2012）虽不在本项目已核验文献池内，但其"储户会因坏消息用脚投票"的核心机制，正是 P1 假设 β &lt; 0 的理论支点。</p>
@@ -3766,7 +3766,7 @@ d &= R \cdot 2 \cdot \text{atan2}\left(\sqrt{a},\; \sqrt{1-a}\right)
 <h3 id="sec12-4">12.4 P3 · bank_fintech_substance —— 实质 vs 象征（脱耦）</h3>
 <p><b>理论定位。</b>P3 直接把管理学的"脱耦"（decoupling）理论搬到银行金融科技公告上：一则金融科技战略公告究竟是<b>实质性</b>行动，还是仅为<b>象征性</b>表态？这一"实质与象征"框架源自 <a href="https://doi.org/10.2307/2393295" target="_blank">Westphal &amp; Zajac (1994)</a> 与 <a href="https://doi.org/10.2307/2393593" target="_blank">Westphal &amp; Zajac (1998)</a>，符号管理与框架的组织机制见 <a href="https://doi.org/10.5465/amj.2006.23478255" target="_blank">Fiss &amp; Zajac (2006)</a>。近年在可持续/绿色披露领域的脱耦证据（"言"与"行"的偏离）密集出现，如 <a href="https://doi.org/10.1287/orsc.2014.0949" target="_blank">Kim &amp; Lyon (2015)</a> 的漂绿/漂褐、<a href="https://doi.org/10.1287/mnsc.2024.07420" target="_blank">Giannetti et al. (2026)</a> 对"光鲜绿色"银行披露与实际放贷脱节的检验，以及 <a href="https://doi.org/10.1002/csr.3114" target="_blank">Cepeda et al. (2025)</a> 的系统综述；战略披露强度与风险承担的"廉价言谈"关系见 <a href="https://doi.org/10.1111/1467-8551.12853" target="_blank">Cai, Shi &amp; Jiang (2025)</a>。</p>
 <div class="formula"><span class="lbl">公式 12.2</span>
-\[ \Delta_{3\text{yr}}\text{cost\_income\_ratio}_{it} = \beta \cdot \text{sub\_frac}_{it} + \gamma' X_{it} + \mu_i + \lambda_t + \varepsilon_{it} \]
+\[ \Delta_{3\text{yr}}\text{cost_income_ratio}_{it} = \beta \cdot \text{sub_frac}_{it} + \gamma' X_{it} + \mu_i + \lambda_t + \varepsilon_{it} \]
 （实质公告 \(\beta &lt; 0\)，象征公告 \(\beta \approx 0\)）</div>
 <p><b>处理→结局。</b>主处理 <code>sub_frac</code>（实质性公告占比，二元判定聚合），最锐利的可证伪检验是<b>成本收入比的 3 年前瞻变化</b> <code>cost_income_ratio_change_3yr</code>：真干的银行成本收入比应显著下降，嘴上说说的则趋近于零。次级结局含 <code>long_run_roa_change_3yr</code>、<code>misconduct_penalty_count</code>、<code>ceo_turnover_2yr</code>、<code>executive_pay_change</code>、<code>board_change</code>。识别基线为银行内·年内长面板；IV 首选 <code>leave_one_out_peer_subst_iv</code>，回退 <code>bartik_subst_iv_full</code>。<b>差异化主张</b>：W&amp;Z 的二元实质性，与 P1 连续语调、P4 locus、P5 Chesbrough 协作模式正交（其中 P3/P4/P5 三个二元属性维度正交，共同构成 2³=8 战略象限；P1 为连续语调，与三者正交但不进入此列联表）。效度门控要求 <code>substantiveness</code> 构念的真实人工 κ。<b>目标期刊</b>：SMJ→AMJ→ASQ 阶梯，被拒时有 JFE "披露质量"救援路径。</p>
 <p><b>为什么成本收入比的三年前瞻变化是"最锐利的可证伪检验"？</b>脱耦理论的核心难点在于：实质与象征在<b>公告当下</b>看起来往往一模一样——两家银行都可以开新闻发布会宣布"全面拥抱金融科技"。区分二者的唯一办法是看后续三年是否真有效率改善落地。若某类公告后成本收入比系统性下降（金融科技替代人力、压缩运营成本），它就是实质性的；若公告只是姿态、后续毫无效率变化（β≈0），它就是象征性的。这种"言行是否一致"的检验在可持续披露领域已被反复验证，例如 <a href="https://doi.org/10.1002/csr.3172" target="_blank">Velte (2025)</a> 对 CSR 脱耦与避税的检验、以及 <a href="https://doi.org/10.1287/mnsc.2024.07420" target="_blank">Giannetti et al. (2026)</a> 揭示的"绿色披露与实际放贷脱节"。P3 把这一逻辑首次系统地移植到银行金融科技战略上——它不是问"银行说了什么"，而是问"银行说的话三年后兑现了没有"。</p>
@@ -3877,12 +3877,12 @@ d &= R \cdot 2 \cdot \text{atan2}\left(\sqrt{a},\; \sqrt{1-a}\right)
 <h4>13.2.2 加权公式与两套缺失语义</h4>
 <p>全管线通用的媒体共现加权公式如下：对公司 <code>i</code>、年份 <code>yr</code>、银行侧测度 <code>X</code>，其份额加权臂 <code>cw</code> 为</p>
 <div class="formula"><span class="lbl">公式 13.1</span>
-\[ \text{cw\_}X_t(i, \text{yr}) \;=\; \sum_b \left[ \frac{\text{n\_cooc}_t(b, i, \text{yr})}{\sum_{b'} \text{n\_cooc}_t(b', i, \text{yr})} \right] \times X_t(b, \text{yr}) \]
+\[ \text{cw_}X_t(i, \text{yr}) \;=\; \sum_b \left[ \frac{\text{n_cooc}_t(b, i, \text{yr})}{\sum_{b'} \text{n_cooc}_t(b', i, \text{yr})} \right] \times X_t(b, \text{yr}) \]
 </div>
 <p>其中 <code>n_cooc<sub>t</sub>(b, i, yr)</code> 是公司 <code>i</code> 在 <code>t</code> 轨与银行 <code>b</code> 于 <code>yr</code> 年的共现报道数；方括号内即公司 <code>i</code> 对银行 <code>b</code> 的暴露份额，权重之和归一为 1。一个关键的稳健化处理（D12）是：分母只对<b>「该测度该年非缺失的共现银行」</b>求和并重新归一——若某家共现银行当年的 <code>X</code> 缺失，它不参与分母，从而不会把有值银行的份额稀释掉（X 缺失不摊薄）。与之并列的等权稳健臂 <code>ce</code>（D13）则是对所有共现银行的测度取简单算术平均：</p>
 <div class="formula"><span class="lbl">公式 13.2</span>
-\[ \text{ce\_}X_t(i, \text{yr}) \;=\; \frac{1}{\lvert B_{i,\text{yr},t} \rvert} \times \sum_{b \in B_{i,\text{yr},t}} X_t(b, \text{yr}) \]
-，其中 \( B_{i,\text{yr},t} = \{\, b : X_t(b, \text{yr}) \neq \text{缺失} \ \text{且}\ \text{n\_cooc}_t(b, i, \text{yr}) > 0 \,\} \)
+\[ \text{ce_}X_t(i, \text{yr}) \;=\; \frac{1}{\lvert B_{i,\text{yr},t} \rvert} \times \sum_{b \in B_{i,\text{yr},t}} X_t(b, \text{yr}) \]
+，其中 \( B_{i,\text{yr},t} = \{\, b : X_t(b, \text{yr}) \neq \text{缺失} \ \text{且}\ \text{n_cooc}_t(b, i, \text{yr}) > 0 \,\} \)
 </div>
 <div class="plain"><b>白话</b>：<code>cw</code> 是「谁跟我同框越多，谁的分量越重」的加权平均——一家企业若和四大行天天同框、和某小城商行偶尔同框，那四大行的金融科技活跃度就主导了这家企业的暴露值。<code>ce</code> 则是「不管同框多少次，每家共现银行一人一票」的简单平均。两者量的是同一件事，但对「关系强度是否该体现在权重里」这个建模选择给出两种答案，互为稳健性对照。</div>
 <p>管线严格区分<b>两套缺失语义</b>，并由 gate 强制二者互斥：计数类列（如 <code>n_cooc_*</code>）无命中时填 <b>0</b>（这是真零——确实没有共现）；而加权测度列（<code>cw_*</code>/<code>ce_*</code>）在无共现或无可用银行时置<b>缺失</b>（Stata 的 <code>.</code>，绝不是 0——这是「无从计算」而非「计算结果为零」）。混淆二者是暴露设计里的经典错误，会把「没暴露」误当成「暴露为零」，系统性压低估计。此外还有<b>门控双宇宙</b>的精妙设计：权重（份额）用的是 canonical 不门控计数（21_full 全宇宙，保证暴露份额稳定），而被加权的测度 <code>X</code> 用的是 verified 宇宙（沿主管道 40 面板的上游门控）。二者故意不同源，前者要广覆盖以定份额，后者要严口径以保测度质量。</p>
