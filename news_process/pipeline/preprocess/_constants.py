@@ -153,7 +153,12 @@ NORMALIZATION_PARAMS = CONFIG.get('normalization', {})
 #   必须 bump 此版本号, 否则旧缓存 (含未归一的变体媒体名) 仍命中, 归一不生效。
 # v3 (2026-06-25): MEDIA_NAME_OVERRIDES 新增 24 个媒体名归一 (改名/typo/省名前缀/后缀报/
 #   地方版; 媒体权重覆盖率补全) → 旧缓存须失效重算以应用归一。
-PREPROCESS_CODE_VERSION = 'v3-2026-06-25-media-canon'
+# v4 (2026-07-23): F1b — load.py read_excel 加 dtype={'docid': str} (Wisers 跨批 docid
+#   int64↔32-hex-MD5 漂移致 2026-06 抓取的 2025 语料 7 源 cast(str→int64) 失败、整源静默
+#   丢弃 → 2025 全年 644,494 行零贡献). 归 string 改变 per-file 加载语义 (docid 列 dtype),
+#   故必 bump 使 176 个旧 int64-docid 缓存失效重算; 否则缓存命中会把流式 writer schema
+#   又锁回 int64 → hex-docid 新文件仍 cast 失败, 修复静默失效. 详见 load.py:420 处注释。
+PREPROCESS_CODE_VERSION = 'v4-2026-07-23-docid-str'
 
 # 可复现性/溯源横幅 (Round 8): import 时一次性回显 per-file 缓存失效键
 # PREPROCESS_CODE_VERSION (改变清洗语义必 bump → 旧缓存失效重算, 防盘上语料成为不同清洗

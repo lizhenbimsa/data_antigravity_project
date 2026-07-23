@@ -419,7 +419,23 @@ def _process_single_file(file_path: str) -> pd.DataFrame | None:
             warnings.simplefilter("ignore", UserWarning)
             df_chunk = pd.read_excel(
                 file_path, sheet_name=SHEET_NAME,
-                engine="calamine", usecols=REQUIRED_COLUMNS
+                engine="calamine", usecols=REQUIRED_COLUMNS,
+                # F1b (2026-07-23): docid 强制读为 string. Wisers 跨抓取批 docid
+                # 表示漂移 —— 旧批 = 结构化 int64 (YYYYMMDD+序列, 如
+                # 2007032500003780081); 新批 (2026-06 补抓 2025 语料) = 32-hex
+                # MD5 字符串 (docid 列即 MD5 Docid). 若任 calamine 类型推断: 流式
+                # pq.ParquetWriter 由首个完成文件锁定 schema (几乎必为老批 int64),
+                # 后到的 hex-docid 文件 table.cast(str→int64) 抛 ArrowInvalid →
+                # 整源计入 failed_files 静默丢弃 (曾致 2025 全年 644,494 行零贡献,
+                # 见 source_reconciliation.json). 归 string 后新老批 schema 天然统一
+                # (filter.py step7 已把其余 object 列统一 string, docid 是唯一漏网
+                # 的非 object 列), 且保留真身 (数值 ID 的字符串形态 + MD5 真身),
+                # 无损可溯. docid 全仓仅作 (docid,target_bank) join / 去重 tiebreak
+                # 键 (零算术/零 astype(int), 且不进任何面板 dta), string 完全兼容;
+                # 老 docid 等宽 19 位 → 字典序≡数值序, 去重存活集逐位不变 (golden
+                # 安全). 配套 bump PREPROCESS_CODE_VERSION 使旧 int64 缓存失效重算,
+                # 否则缓存命中会把 writer schema 又锁回 int64 → 修复失效.
+                dtype={"docid": str},
             )
 
         logger.info(f"  加载 {len(df_chunk):,} 行, 开始过滤...")
