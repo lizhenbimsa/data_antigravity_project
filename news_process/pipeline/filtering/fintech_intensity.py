@@ -187,8 +187,15 @@ logger.info(f"金融科技词典: 共 {len(FINTECH_KEYWORDS)} 个词汇")
 _KW_STATE: dict = {'injected': False, 'matchable': None, 'unmatchable': None}
 
 
-def _ensure_keywords_injected() -> tuple:
+def _ensure_keywords_injected(silent: bool = False) -> tuple:
     """注入全部关键词到 jieba 并划分可匹配/永不可匹配两类 (幂等, 进程内缓存)。
+
+    Args:
+        silent: True 时抑制 unmatchable 披露 warning。⚠ loky 进程后端 worker 必须传
+            silent=True 调用 — worker 侧任何 logger 写入都会触发本阶段 .log 的
+            ``_DelayedTruncatingRotatingHandler`` 首写截断, 毁掉主进程取证日志
+            (与 stage 12 "worker 不写日志" 同一安全约束)。主进程调用 silent=False,
+            unmatchable 披露恰好在主进程 emit 一次。
 
     Returns:
         tuple: (matchable: list[str], unmatchable: list[str])
@@ -203,13 +210,79 @@ def _ensure_keywords_injected() -> tuple:
         _KW_STATE['matchable'] = matchable
         _KW_STATE['unmatchable'] = unmatchable
         _KW_STATE['injected'] = True
-        if unmatchable:
+        if unmatchable and not silent:
             logger.warning(
                 f"⚠ 词典披露[fintech_intensity] (fix omni-g-fintech 组级, 2026-06-11): "
                 f"{len(unmatchable)}/{len(FINTECH_KEYWORDS)} 个关键词含 jieba 块切分"
                 f"边界字符 (空格/标点), 整词分词永不可命中, 已从 IDF/质心/CosSim "
                 f"权重宇宙剔除 (TF 端本就不可见, 不影响单篇得分命中): {unmatchable}")
     return _KW_STATE['matchable'], _KW_STATE['unmatchable']
+
+
+# ============================================================================
+# 1b. jieba 分词并行 worker + 工况自适应后端 (perf fix 2026-07-24)
+# ============================================================================
+# 病根: jieba.cut 是纯 Python、持 GIL, 原 `Parallel(prefer='threads')` 在多核上退化
+#   为单核 —— 生产 164 万篇全局 DF 分词曾耗时 1h48m (占 stage 15 墙钟 90%, 逼爆父端
+#   7200s 超时)。对比 stage 11/12 走 loky 进程后端 (news_bank/news_fintech) 同规模语料
+#   仅 5-6 分钟。
+# 修法: 分词 worker 提升为模块级 (loky 需 pickle-by-ref) + 工况自适应后端:
+#   · 大工况 (batch 数 >= _PROC_PARALLEL_MIN_BATCHES, 生产语料) → loky 进程后端, 真并行
+#     绕过 GIL;
+#   · 小工况 (测试 / 小样本) → 保持 threads, 免 Windows 进程 spawn 开销 + pytest 多进程
+#     怪癖 (test_omni_fix_fintech 逐调直接命中)。
+# 字节等价 (byte-equivalent-by-construction, 经 scripts/audit/verify 真数据 A/B 实证):
+#   · worker 侧 silent 自注入 jieba (_ensure_keywords_injected(silent=True)) + 自算 kw_set
+#     → 每个 loky worker 的 jieba 分词态与主进程逐字节一致 (jieba.cut 确定, 注入同序同集);
+#   · DF = set(jieba.cut) & kw_set 的**整数**计数, 跨块 Counter 求和 order-independent →
+#     n_jobs / 后端无关;
+#   · TF = 逐 doc 独立 Counter (整数), loky 保持结果顺序 (按提交序返回) → 下游打分的
+#     浮点求和 `score += (ln_tf/ln_L)*W` 在**主进程串行**执行、tf.items() 迭代序不变 →
+#     逐字节一致 (与 sklearn LDA 那种 n_jobs 依赖的浮点切片累加**不同**, 本阶段并行段纯
+#     整数、零浮点累加, 故后端切换零数值副作用)。
+_PROC_PARALLEL_MIN_BATCHES = 16   # >= 16 批 (~3.2 万篇) 才切进程后端; 之下用线程
+
+
+def _parallel_kwargs(num_batches: int) -> dict:
+    """按工况规模选 joblib 后端: 大 → 进程 (绕 GIL 真并行); 小 → 线程 (免 spawn 开销)。
+
+    两后端对本阶段分词输出严格字节等价 (见上方 §1b 论证), 仅影响墙钟, 不影响任何产物列。
+    """
+    if num_batches >= _PROC_PARALLEL_MIN_BATCHES:
+        return {'n_jobs': -1, 'prefer': 'processes'}
+    return {'n_jobs': -1, 'prefer': 'threads'}
+
+
+def _df_chunk_worker(chunk_texts: list) -> Counter:
+    """全局 DF 分块 worker (模块级, 供 loky 进程后端 pickle-by-ref)。
+
+    worker 侧 **silent** 自注入 jieba + 自算 kw_set (进程后端每 worker 一份, 幂等缓存),
+    使分词态与主进程逐字节一致; 绝不 logger 写入 (防 .log 延迟截断)。返回本块的
+    {关键词: 命中该词的唯一文档数} 局部 Counter, 由调用方跨块求和 (order-independent)。
+    """
+    matchable, _ = _ensure_keywords_injected(silent=True)
+    kw_set = set(matchable)
+    local = Counter()
+    for text in chunk_texts:
+        local.update(set(jieba.cut(text)) & kw_set)
+    return local
+
+
+def _tokenize_chunk_worker(chunk_texts: list) -> list:
+    """逐文档 TF 分块 worker (模块级, 供 loky 进程后端 pickle-by-ref)。
+
+    同 _df_chunk_worker: worker 侧 silent 自注入 jieba + 自算 kw_set, 绝不 log。
+    返回本块逐 doc 的 Counter(整词命中金科词); loky 按提交序保序返回 → 下游打分浮点
+    求和顺序与线程后端逐字节一致。
+    """
+    matchable, _ = _ensure_keywords_injected(silent=True)
+    kw_set = set(matchable)
+    chunk_results = []
+    for text in chunk_texts:
+        tokens = list(jieba.cut(text))
+        tf = Counter(t for t in tokens if t in kw_set)
+        chunk_results.append(tf)
+    return chunk_results
 
 
 # ============================================================================
@@ -271,8 +344,9 @@ def _compute_global_df_jieba(df_full: pd.DataFrame, text_col: str = '内容') ->
     Returns:
         tuple: (keyword_doc_freq: Counter, N_total: int)
     """
-    matchable, _ = _ensure_keywords_injected()
-    kw_set = set(matchable)
+    # 主进程注入 (幂等) + 一次 unmatchable 披露 warning; DF 分词走 _df_chunk_worker
+    # (worker 侧 silent 自注入 + 自算 kw_set, 见 §1b), 故此处不再需要把 kw_set 传进 worker。
+    _ensure_keywords_injected()
 
     if text_col not in df_full.columns:
         logger.warning(f"  DF 语料列 '{text_col}' 不存在, 回退至 '内容'")
@@ -292,19 +366,15 @@ def _compute_global_df_jieba(df_full: pd.DataFrame, text_col: str = '内容') ->
         logger.info("全局 DF 解析完成: 0 篇唯一文档")
         return keyword_doc_freq, 0
 
-    def _chunk_df(chunk_texts):
-        local = Counter()
-        for text in chunk_texts:
-            local.update(set(jieba.cut(text)) & kw_set)
-        return local
-
     batch_size = 2000
     num_batches = max(1, (N_total - 1) // batch_size + 1)
     chunks = [texts[i * batch_size:(i + 1) * batch_size]
               for i in range(num_batches)]
-    logger.info(f"全局 DF (jieba 整词, 唯一文档语料): {N_total} 篇, {num_batches} 批次")
-    results = Parallel(n_jobs=-1, prefer='threads')(
-        delayed(_chunk_df)(chunk) for chunk in chunks
+    _pk = _parallel_kwargs(num_batches)
+    logger.info(f"全局 DF (jieba 整词, 唯一文档语料): {N_total} 篇, {num_batches} 批次 "
+                f"[joblib 后端={_pk['prefer']}]")
+    results = Parallel(**_pk)(
+        delayed(_df_chunk_worker)(chunk) for chunk in chunks
     )
     for local in results:
         keyword_doc_freq.update(local)
@@ -501,31 +571,25 @@ def _compute_intensity_scores(
     """
     # fix(omni-g-fintech-03 组级, 2026-06-11): 注入走单源 helper, TF 匹配集与
     # DF 统计集 (_compute_global_df_jieba) 严格同一 (不可匹配词本就不可能命中)
-    matchable, _ = _ensure_keywords_injected()
+    # 主进程注入 (幂等); TF 分词走 _tokenize_chunk_worker (worker 侧 silent 自注入 +
+    # 自算 kw_set, 见 §1b), 此处不再需要把 kw_set 传进 worker。
+    _ensure_keywords_injected()
 
     if text_col not in df.columns:
         # 缺失时回退到 '内容' (保证 ctx/ss 轨在 stage 13 未跑时不崩)
         logger.warning(f"  '{text_col}' 列不存在, 回退至 '内容' (单轨退化)")
         text_col = '内容'
     contents = df[text_col].fillna('').astype(str).tolist()
-    kw_set = set(matchable)
-
-    def _tokenize_chunk(chunk_texts):
-        chunk_results = []
-        for text in chunk_texts:
-            tokens = list(jieba.cut(text))
-            tf = Counter(t for t in tokens if t in kw_set)
-            chunk_results.append(tf)
-        return chunk_results
 
     batch_size = 2000
     n_docs = len(contents)
     num_batches = max(1, (n_docs - 1) // batch_size + 1)
     chunks = [contents[i * batch_size:(i + 1) * batch_size] for i in range(num_batches)]
 
-    logger.info(f"Jieba 并行分词: {n_docs} 篇, {num_batches} 批次")
-    parallel_results = Parallel(n_jobs=-1, prefer='threads')(
-        delayed(_tokenize_chunk)(chunk) for chunk in chunks
+    _pk = _parallel_kwargs(num_batches)
+    logger.info(f"Jieba 并行分词: {n_docs} 篇, {num_batches} 批次 [joblib 后端={_pk['prefer']}]")
+    parallel_results = Parallel(**_pk)(
+        delayed(_tokenize_chunk_worker)(chunk) for chunk in chunks
     )
 
     all_tfs = []
@@ -632,7 +696,8 @@ def _log_environment_and_config(full_path: str, ctx_path: str,
         logger.info(f"     · Winsorize 分位 WINSORIZE_PERCENTILES={WINSORIZE_PERCENTILES} "
                     f"| 各向异性下限 ANISOTROPY_FLOOR={sig4(ANISOTROPY_FLOOR)}")
         logger.info(f"     · 金科词典规模: {len(FINTECH_KEYWORDS):,} 个词汇 "
-                    "| 并行 n_jobs=-1 (joblib threads), batch_size=2000")
+                    f"| 并行 n_jobs=-1 (joblib 自适应: >= {_PROC_PARALLEL_MIN_BATCHES} 批走"
+                    "进程后端绕 GIL, 之下走线程), batch_size=2000")
         logger.info(f"     · 完整配置键: {intensity_cfg_keys}")
 
         logger.info("  📖 方法论依据 (引文逐字取自经核验注册表; 中文白话=本阶段为何用该方法)")

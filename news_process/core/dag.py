@@ -213,6 +213,20 @@ STAGES_MAIN: list[StageSpec] = [
         name="阶段15: 金融科技技术重度评分 (TF-IDF, 三轨 full/ctx/ss)",
         script="15_fintech_intensity.py",
         group="main", kind="filter",
+        # fix(2026-07-24): 生产规模语料下本阶段曾被默认 7200s 父端强杀 (九入口编排 ②
+        # 于 00:41:30 中断)。当时工况 (logs/15_fintech_intensity.log):
+        #   ① 全局 DF: 164.3 万篇唯一文档 jieba 整词分词 = 6509s (~1h48m, 占 90%);
+        #   ② IDF×CosSim 权重 + 关键词嵌入 (词表级 607 词, LLMCache 命中即 $0): 秒级;
+        #   ③④ 24.2 万篇 × 三轨 × co-primary 双嵌入空间逐文档打分 ≈ 3240s (~54min)。
+        # 根因 = jieba.cut 纯 Python 持 GIL, 而分词并行原走 prefer='threads' → 32 核退化
+        # 单核 (故 DF 慢到 1h48m)。已双管齐下修复:
+        #   (a) fintech_intensity.py §1b: 分词并行改工况自适应后端 — 大工况 (>=16 批,
+        #       生产语料) 走 loky 进程后端真并行绕 GIL, 小工况 (测试) 留线程免 spawn 开销;
+        #       字节等价经真数据 A/B 实证 (DF/TF/打分 thread==process 逐字节); DF/打分实测
+        #       提速数倍~数十倍 → 全阶段 ~2.9h 降到分钟级, 亦覆盖全量普查规模 (约1819万/T=19)。
+        #   (b) 本 timeout 显式提至 21600s (6h, 对齐 21/25/26 重阶段档) 作安全上限 —
+        #       (a) 后余量已极大, 保留高上限仅为兜底真挂起/宿主极端争用, 非常态需要。
+        timeout=21600,
     ),
     StageSpec(
         name="阶段16: 文章级政策语义对齐度",
