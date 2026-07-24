@@ -105,6 +105,7 @@ news_process.pipeline.filtering.fintech_intensity — 阶段14：金融科技技
 
 import logging
 import math
+import multiprocessing
 import os
 import platform
 import sys
@@ -172,7 +173,14 @@ CACHE_DB_PATH = CONFIG['paths'].get(
 
 # 加载金融科技词典（与阶段 12 共享同一份词典）
 FINTECH_KEYWORDS, _ = load_fintech_dict(CONFIG['paths'].get('fintech_dict_file', ''))
-logger.info(f"金融科技词典: 共 {len(FINTECH_KEYWORDS)} 个词汇")
+# fix(2026-07-24): 词典规模横幅只在主进程 emit — loky 进程后端 worker import 本模块时
+# 也会执行模块级代码, worker 侧首条 logger 写入会触发本阶段 .log 的延迟截断 handler,
+# NUL 填充 + 截掉主进程已写的环境/配置横幅 (2026-07-24 04:40 生产真跑实证: worker
+# PID 29708 的横幅写入毁掉了 PID 22648 主进程的日志头)。判据 = multiprocessing
+# parent_process() 主进程恒 None、任何 spawn/loky 子进程恒非 None (与 §1b "worker
+# 绝不 log" 同一安全约束, 补齐 silent=True 之外遗漏的最后一处模块级写点)。
+if multiprocessing.parent_process() is None:
+    logger.info(f"金融科技词典: 共 {len(FINTECH_KEYWORDS)} 个词汇")
 
 # fix(omni-g-fintech-03 组级裁决, 2026-06-11): jieba 注入态单源 — DF 与 TF 共用同一
 # 注入 + 同一可匹配词集 (同分词器原则, 对齐 tone_words._get_tone_tokenizer 先例)。

@@ -74,7 +74,13 @@ logger = logging.getLogger(__name__)
 # 批次偏小、永不超限。超长文本 (如权威政策语料) 走朴素分段 (naive chunking) + Mean Pooling。
 _EMB_ENCODING = tiktoken.get_encoding("cl100k_base")
 EMB_MAX_TOKENS = 8191
-EMB_MAX_TOKENS_PER_REQUEST = 250_000
+# fix(2026-07-24): 新增环境变量 NEWS_PROCESS_EMB_MAX_TOKENS_PER_REQ 运维覆盖 (默认
+#   250_000 不变)。动因 = stage 16 生产首播 `_lg`/yunwu 轨: 25 万 token 大批在服务端
+#   高峰时段响应超过单次尝试 180s 超时 → 全部批反复 TimeoutError 重试, 吞吐塌缩到
+#   ~5 批/80min (2026-07-24 18:20-19:44 实证)。调小单批 token 上限使响应回到秒级即可
+#   绕开; 分批口径只影响请求分组, 不进缓存键 (缓存键=逐字文本), 对产出逐位无影响。
+EMB_MAX_TOKENS_PER_REQUEST = int(os.environ.get(
+    'NEWS_PROCESS_EMB_MAX_TOKENS_PER_REQ', '250000'))
 
 # 2026-06-26 全项目统一: 嵌入 API 每次重试固定间隔 10s (flat, 不再指数退避)
 RETRY_DELAY = 10
@@ -101,7 +107,12 @@ class EmbeddingRetryExhaustedError(RuntimeError):
 # API 嵌入批次最大并发数 (asyncio.gather + Semaphore 上限)。各批次结果按 batch_idx
 # 索引收集再按序重组 (绝不依赖完成顺序), 故并发对产出逐位不变, 仅缩短 wall-clock。
 # ⚠ 若调高需留意上游 API 的 RPS / 并发限流 (429 已由 per-batch 固定 10s 间隔重试兜底)。
-EMB_API_CONCURRENCY = 250  # 2026-07-21 用户决策: 项目统一 250 并发 (原 100)
+# fix(2026-07-24): 新增环境变量 NEWS_PROCESS_EMB_CONCURRENCY 运维覆盖 (默认 250 不变,
+#   仍即 2026-07-21 用户决策)。动因 = stage 16 生产首播 (2025 语料新嵌入面) 撞硅基流动
+#   TPM 限流: 250 并发把 token 预算瞬间打满 → 大面积 429 重试风暴, 尾部批 80 次×10s
+#   重试耗尽 → 整轨 None→NaN。TPM 是吞吐硬约束时降并发不损失 wall-clock, 却把"排队深度
+#   超过 800s 重试耐心"的耗尽风险显著压低; 并发只影响墙钟不影响产出字节 (见上注)。
+EMB_API_CONCURRENCY = int(os.environ.get('NEWS_PROCESS_EMB_CONCURRENCY', '250'))
 
 # LLM raw response archive (顶刊 reproducibility; 不可用时静默降级, 不阻塞)
 try:  # pragma: no cover - import 形态依赖可选包
