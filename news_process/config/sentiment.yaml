@@ -16,7 +16,7 @@ tone_llm_processing:
   # 原指数退避 min(retry_delay*2**attempt, 600) 会使单个持续失败请求耗尽 80 次重试 ≈ 12h,
   # 且退避期间占住并发槽拖垮整阶段; 见 pipeline/sentiment/tone_llms.py::_compute_retry_sleep。
   sentiment_tie_retry_rounds: 80                    # 用户决策 2026-06-24: verified 轨情感平局/空票在保守降级'中性'前, 绕过缓存重新调实时 API 最多 80 轮(温度=0)打破平局/补齐缺票; 逐轮全局 barrier + 每轮内全部待决(行×轨)×模型票并发; 仅在线模式执行(离线只读), 新票回写缓存; 设 <=0 关闭=直接保守降级
-  max_concurrency: 500                              # 2026-07-24 用户决策: stage 21 提至 500 并发 (2026-07-21 曾统一 250, 2026-05-14 统一 100, 原 v6/N4=40); 监控 yunwu 网关 429 抖动, 若雪崩回退至 250/100
+  max_concurrency: 250                              # 2026-07-25 回退: 500 并发实测触发 gemini31 (yunwu) 连接层雪崩 (~400 弃票/分钟, 全部"连接暂不可用"型), 按预设回退线降回 250 (2026-07-24 曾试 500, 2026-07-21 统一 250, 2026-05-14 统一 100)
   temperature: 0.0                                  # 推理温度（0 = 确定性输出）
   random_seed: 42                                   # 随机种子（确保确定性输出）
   force_json: true                                  # 启用 response_format 强制 JSON 输出
