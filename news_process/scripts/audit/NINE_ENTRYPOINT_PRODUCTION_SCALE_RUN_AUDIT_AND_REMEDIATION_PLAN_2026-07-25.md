@@ -239,6 +239,73 @@ main=`6e5beb89` (F1/F2/F3/F4/F5 + 10 个新 gate + 本计划文档)。
 - **待验 (② 抵达 stage 25 前必做)**: ② 会重生 `14_news_with_ctx.parquet`; 须在其重生后
   **重跑一次只读探针**确认仍 100% 命中 (理论上确定性重跑逐字节相同, 但不得假定)。
 
+### F16 [MAJOR · 可观测性 · 待整改] **24 个 `pipeline.*` 模块**的 INFO 诊断从不进任何阶段日志
+
+> ⚠ **范围两次扩大**: 初判仅 `embedding_engine`; 2026-07-26 stage 22 生产收官后实测,
+> 凡用 `logging.getLogger(__name__)` 的模块**全都**落空 —— 全仓 **24 个**
+> (`grep -rln "logging.getLogger(__name__)" pipeline/ core/ validation/`), 与 28 个用
+> `setup_logging` 的阶段模块几乎对半。受影响者含 `boilerplate` / `archive` /
+> `codebook` / `benefit_society_*` / `verified_universe` 等承重模块。
+>
+> **本轮实拍的直接审计损失**: 我为让生产首播可审计而专门加的 boilerplate 诊断 ——
+> 「进程并行 exact two-pass — N 文 / M 块」「Pass1 完成 (global_df **N entry**)」
+> 「套话集 N/M」—— **一行都没进 `22_tone_words.log`**。⟹ 本轮**无法**用实测 global_df
+> entry 数去回验 P0 的 1.596 亿外推 (只能间接说「未触 400M 硬闸、未触 100M 软预算告警,
+> 且阶段 EXIT=0」)。这正是 F16 危害的实证: **最该被看见的数字恰恰看不见**。
+
+- **实证**: `grep -c '缓存拦截' logs/{15,16,25}_*.log` = **0 / 0 / 0**;
+  `logs/run_pipeline_function.log` 亦 0。而这三个阶段本轮/上轮都确实跑过 `embed_texts`
+  (25 号冒烟 6 次调用全命中)。
+- **机理**: `embedding_engine.py:69` 用 `logging.getLogger(__name__)` (模块 logger, 无 handler),
+  记录向 **root** 传播; 而 `core/logging.py::setup_logging` 把 handler 挂在**阶段名 logger**
+  (如 `16_article_policy_alignment`) 上并置 `propagate=False` — 两者不在同一条链上。
+  root 无 file handler ⟹ INFO 级记录**落地为空**; WARNING+ 经 `logging.lastResort` 走 stderr
+  (故重试告警可见, 但**信息级诊断全丢**)。
+- **丢了什么 (都是审计第一线的数)**: 「缓存拦截: 命中 N 条 / 缺失 M 条 (命中率 X%)」——
+  **确认「$0 复现」的头号证据**; 「预分配输出矩阵 N×D」内存诊断; 「动态分批为 N 批」;
+  「API 进度 i/n 批完成」; 引擎 banner (含方法论引文与并发/重试配置); 输出单位向量自检。
+- **现场后果 (本轮实拍)**: stage 16 于 01:19:19 打完 token 诊断后**静默 33 分钟**
+  (进程实测 100% 单线程 CPU、RSS 21.1 GB, 确在工作) —— 该阶段耗时占比最大的嵌入段在
+  阶段日志里**完全不可见**, 审计者无法判断它是在跑、在重试、还是卡死。
+- **建议修法 (log-only, golden 中性)**: `setup_logging` 额外把同一 file handler 挂到
+  `logging.getLogger('news_process')` 包级 logger 上 (阶段 logger 以 STAGE_NAME 命名, 不在
+  `news_process.*` 命名空间下 ⟹ 不会重复输出)。⚠ 会显著增加日志行数, 且改的是 load-bearing
+  的 `core/logging.py` — **本轮 ② 运行期间不动** (各阶段子进程会即时拾取新码), 待 ② 收官后实施并复验。
+
+### F17 [MINOR-MAJOR · 性能 · 待整改] `split_text_for_embedding` 对每条文本无条件全量 BPE 编码
+
+- **真**: 该函数仅为判断「是否超 `EMB_MAX_TOKENS` 需切块」就对**每条**文本跑一次完整
+  `_EMB_ENCODING.encode()`; 而生产实测仅 **0.90%** 的文本真需切块。docstring 称
+  「短文本原样返回 (避免 encode/decode 往返)」—— **只避免了 decode, encode 一次不少**,
+  属误导表述。
+- **放大倍数**: `embed_texts` 每阶段被调 **6 次** (3 轨 × 2 spec), 而两 spec 共用同一
+  cl100k 编码器 ⟹ 后 3 次的编码结果与前 3 次**完全相同**, 纯冗余。
+- **可证明字节等价的短路**: cl100k 是 **byte-level BPE**, 每 token 至少覆盖 1 个 UTF-8
+  字节 ⟹ `n_tokens ≤ n_bytes`。故 `len(text.encode('utf-8')) <= EMB_MAX_TOKENS` 时必然
+  无需切块, 可直接 `return [text]` 而**完全不编码**。
+  ⚠ **不可用字符数做界**: CJK 单字符可被切成多个 token (本语料实测 1.21 token/字),
+  `n_tokens ≤ n_chars` **不成立**; 只有字节界严格。
+- **实测 (20,000 篇真实生产语料)**: 现状 211.1 µs/条 → 短路 71.5 µs/条 = **2.95×**;
+  **逐元素输出相同 True**; 90.85% 的文本被短路跳过编码。生产外推 (6 次调用 × 242,000 篇):
+  **5.1 min → 1.7 min**。受益阶段: 15/16/25/26/27/40 全部。
+- **待整改**: 与 F16 同批 (② 收官后), 附带订正上述误导 docstring。
+
+### F18 [观察 · 归因未闭合] stage 16 的 60.6 min 里约 36 min 尚未归因 —— 应由运行期自我度量, 而非外部基准反推
+
+- **已归因 (2026-07-26 外部基准, 均在真实缓存/语料上实测)**: SQLite 取数 1.9 min +
+  JSON 解析 17.1 min + tiktoken 切块判定 5.1 min ≈ **24 min**; 阶段内部计时报
+  「嵌入+余弦计算 3614s」占全阶段 99.4% (总 3659s)。
+- **缺口方向已知**: 上述组件基准取自 3,000–20,000 行小样本, 而生产是 242,000 行 ——
+  `embed_texts` 的输出矩阵在生产为 **4 GB** (小样本仅 49 MB), 进程 RSS 实测 21.1 GB,
+  逐行写入 4 GB 矩阵的缺页/内存压力在小样本上**测不出来** ⟹ 小样本外推**系统性低估**。
+- **正解 (不再外部反推)**: 随 F16 一并在 `embed_texts` 内加纯日志分段计时
+  (split / cache-scan / API / pool / 写回), 让下一趟生产运行**自己**把
+  「嵌入+余弦 3614s」拆成可审计的几段。
+- ⚠ **方法论教训 (本轮实弹)**: 本条最初我据外部基准推断「批量取代逐条点查」为首选优化
+  (F-①), 实测后 **1.03× (省约 3 秒)** 被自己否掉; 同轮还发现常被当作「大批量友好写法」
+  的 TEMP 表 JOIN 在取 70KB blob 时**慢 17 倍**。结论: 对已知总耗时的阶段, **先让它自报
+  分段计时, 再谈优化**; 外部微基准只能证伪、不足以定位。
+
 ### F14 [MINOR · 陈旧注释误导 · 报告] 「stage 25 = strategic_diff」是重编号残留, 且其缓存论断已被实测证伪
 
 - **三处** (第三处于 2026-07-26 F15 审核时追加): `core/dag.py:296` / `pipeline/filtering/

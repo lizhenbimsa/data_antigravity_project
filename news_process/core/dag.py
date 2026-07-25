@@ -173,7 +173,9 @@ STAGES_MAIN: list[StageSpec] = [
         name="阶段00: 数据预处理",
         script="00_preprocessing.py",
         group="main", kind="preprocess",
-        timeout=10000,
+        # F19 (2026-07-26): 旧 10000s 对**冷缓存全量重解析**实测 6,708s (111.8 min,
+        # 2026-07-24) 只剩 1.49× 余量 —— 热缓存趟本轮 3,785s 看似宽裕是假象。提至 6h。
+        timeout=21600,  # 热缓存实测 3,785s / 冷缓存全量重解析实测 6,708s
     ),
 
     # ── 模块二：新闻筛选模块 ──
@@ -232,7 +234,10 @@ STAGES_MAIN: list[StageSpec] = [
         name="阶段16: 文章级政策语义对齐度",
         script="16_article_policy_alignment.py",
         group="main", kind="filter",
-        timeout=7200,  # 阶段内含 Embedding API 调用
+        # F19 (2026-07-26 生产实测校准): 本阶段生产实测 **3659s**, 旧 7200s 仅剩 1.97× 余量。
+        # 其耗时主体是「嵌入+余弦 3614s (99.4%)」—— 全命中缓存下仍需逐条取数+JSON 解析
+        # 145.2 万次。提至 21600s (6h) 对齐 15/21/25/26 重阶段档。
+        timeout=21600,  # 生产实测 3659s; 阶段内含 Embedding API 调用 (全命中亦耗时)
     ),
     # ── 模块三：新闻情感模块 ──
     # 21 (LLM) / 22 (词典) / 23 (BERT) / 24 (跟风衰减) 自 2026-06-13 起全部为无条件
@@ -258,6 +263,10 @@ STAGES_MAIN: list[StageSpec] = [
         name="阶段22: 词典法情感分析",
         script="22_tone_words.py",
         group="main", kind="sentiment",
+        # F19 (2026-07-26 生产实测校准): 生产实测 **3744s** (④三轨打分 1880s + ⑤派生
+        # 含 boilerplate 1768s), 旧默认 7200s 仅剩 1.92× 余量。⚠ 该值已是**进程并行后**的
+        # 耗时 (整改前外推 ≈8h), 若日后回退串行后端会立刻超时。
+        timeout=21600,  # 生产实测 3744s (已并行化)
     ),
     # 2026-06-12 用户决策: BERT 文章级情感"全部启用, 不再条件启用" — stage 23
     # 改为无条件 always-on (省略 enabled_when, 取 StageSpec 默认 always_enabled,
@@ -267,6 +276,13 @@ STAGES_MAIN: list[StageSpec] = [
         name="阶段23: BERT模型情感分析",
         script="23_tone_berts.py",
         group="main", kind="sentiment",
+        # 🔴 F19 (2026-07-26): **本阶段曾因缺显式 timeout 继承默认 7200s 而在生产首播中被
+        # 强杀** —— 实测跑到 140,000/169,811 (82.4%, 19.48 篇/秒) 时触顶, 完成需 ≈8,717s。
+        # 与 2026-07-24 stage 15 被强杀**同型同根** (那次只修了 15, 没回头审整张超时表)。
+        # 口径: 3 模型 × 3 轨 × 滑窗(stride 0.5, max_length 512), deterministic_mode=
+        # cpu_strict 故 GPU 路径**关 AMP** (刻意, 换位级可复现) → 吞吐约 19-20 篇/秒。
+        # 43200s (12h) = 实测需求的 ~5×, 覆盖 GPU 争用/更大语料/inference_cache 冷启动。
+        timeout=43200,  # 生产实测需 ≈8,717s (19.48 篇/秒 × 169,811 篇)
     ),
 
     # ── 模块四b：跟风衰减权重 (硬依赖 stage 23 BERT 输出) ──
@@ -285,6 +301,9 @@ STAGES_MAIN: list[StageSpec] = [
         name="阶段24: 跟风衰减权重",
         script="24_herd_decay_processor.py",
         group="main", kind="sentiment",
+        # F19: 生产规模未实测 (② 首播止于 stage 23); T=2 仅 12.15s, 但输入由 833 行
+        # 涨到 169,811 行 (204×)。保守提至 3h, 待实测后按 ≥4× 余量回校。
+        timeout=10800,
     ),
 
     # ── 模块四c：text2vec 稳健性指标 — 已退役 (2026-05-29 双模型重构) ──
@@ -333,7 +352,11 @@ STAGES_MAIN: list[StageSpec] = [
         ),
         script="40_panel_export_main.py",
         group="main", kind="panel",
-        timeout=7200,  # 阶段内含 Stage 25/26/27 Embedding 计算
+        # F19: 生产规模未实测 (② 首播止于 stage 23)。本阶段是全链最重的编排器 (内含
+        # 41-47 七个子步: IV 三引擎 / 网络三轨×33 指标×3 判据 / benefit 六轨 / llm_peer
+        # PEER prompt), 输入由 833 篇涨到 169,811 篇。旧 7200s 是 T=2 时代值, 生产极可能
+        # 不足 → 提至 6h; 待实测后按 ≥4× 余量回校。
+        timeout=21600,  # 阶段内含 Stage 25/26/27 Embedding 计算
     ),
 
     # ── v3.2.0 M6 (plan v14 §9.1): Stata 数据导出层 ──
@@ -343,7 +366,10 @@ STAGES_MAIN: list[StageSpec] = [
         name="阶段46: Stata 数据导出 (pyreadstat .dta + labels)",
         script="46_stata_export.py",
         group="main", kind="export",
-        timeout=600,  # 跨平台 pyreadstat 写 .dta, 小面板 (~168 行) < 1 分钟
+        # 🔴 F19: 旧值 600s 的注释依据是「小面板 (~168 行)」—— 那是 **T=2 dev 面板**。
+        # 生产面板由 86 banks × 2 years = 172 行 涨到 bank_list 全量 × 2007-2025,
+        # 且最宽 dta 已 3,400+ 列 → pyreadstat 写盘时间不可按 T=2 外推。提至 1h。
+        timeout=3600,  # 跨平台 pyreadstat 写 .dta + labels + codebook
     ),
 
     # ── 模块六：伪造检验 ──
@@ -351,6 +377,8 @@ STAGES_MAIN: list[StageSpec] = [
         name="阶段51: 伪造检验对照变量构建",
         script="51_falsification_test.py",
         group="main", kind="falsification",
+        # F19: 生产规模未实测; T=2 时在默认 7200s 内完成。输入随面板放大 → 提至 3h 留余量。
+        timeout=10800,
     ),
 ]
 
