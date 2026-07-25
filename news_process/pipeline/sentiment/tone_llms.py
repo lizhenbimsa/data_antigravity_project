@@ -59,7 +59,7 @@ news_process.pipeline.sentiment.tone_llms — 阶段21：统一 LLM 语义精筛
 
 ■ 详细功能说明
 
-**输入**: 读 stage 14 输出 `15_fintech_intensity.parquet` (硬依赖, 缺失即报错终止, 不再静默回退 stage 12; main() Step 4(a) 硬化; 因 LLM 需 stage 14 的 `fintech_intensity_score`/`intensity_verified` 列)。关键输入列: `内容`(全文)、`标题`、`content_ctx`(stage 13 物化, 缺则 main() 调 `_materialize_content_ctx` 兜底)、`content_ss`(stage 13 单一事实源物化, 缺则 `iter_article_track_prompts` 优雅回退 content_full)、`target_bank`、`co_mentioned_banks`。
+**输入**: 读 stage 15 输出 `15_fintech_intensity.parquet` (硬依赖, 缺失即报错终止, 不再静默回退 stage 12; main() Step 4(a) 硬化; 因 LLM 需 stage 15 的 `fintech_intensity_score`/`intensity_verified` 列)。关键输入列: `内容`(全文)、`标题`、`content_ctx`(stage 14 `ctx_materializer` 物化, 缺则 main() 调 `_materialize_content_ctx` 兜底)、`content_ss`(stage 14 单一事实源物化, 缺则 `iter_article_track_prompts` 优雅回退 content_full)、`target_bank`、`co_mentioned_banks`。
 
 **处理步骤**: ①`main()` 加载 parquet + schema 守护; ②`LLMCache(_llm_cache.db)` 打开 SQLite 缓存; ③`asyncio.run(run_all_llms(...))` 对每篇文章 × 三轨 × 三个 LLM 家族异步并发请求 (信号量 MAX_CONCURRENCY 控并发); ④`_aggregate_track` 对每轨返回 18 元组聚合 (verified 三角验证投票 + sentiment 投票 + locus/substantiveness/collab_mode 三维分类投票 + logit-to-score 概率分数); ⑤逐模型存档列 + 轨级聚合列写回 DataFrame; ⑥verified_full 全文轨过滤 (full-only) 后写 `21_tone_llms.parquet`, 全量写 `21_tone_llms_full.parquet`。
 
@@ -415,16 +415,35 @@ class AsyncModelAvailability:
         async with self._lock:
             self._preflighted.add(model_id)
 
-    async def note_transient_failure(self, model_id: str, reason: str, row_idx: int) -> None:
-        """记录一次性传输/服务端故障 (不停用模型, 仅把该次结果从投票剔除)。"""
-        logger.info(f"[{model_id}] 行 {row_idx}: {reason}，该次结果将从投票中排除")
+    async def note_transient_failure(self, model_id: str, reason: str, row_idx: int,
+                                     track: str | None = None) -> None:
+        """记录一次性传输/服务端故障 (不停用模型, 仅把该次结果从投票剔除)。
+
+        fix(D10a, 2026-07-25 stage21 日志审计): 增打 ``track``。此前弃票行只有
+        ``model_id`` + ``row_idx``, 而阶段末尾的警告要求运维判断"失败是否集中于
+        单一模型/单一**轨**" —— 日志本身不提供轨信息, 判据不可执行 (只能靠满票
+        统计间接反推轨道分布, 无法定位到具体 (行, 轨))。
+
+        ``track`` 为可选关键字参数以保持**向后兼容**: 本类被 ``validation/
+        entity_masking.py`` 与 ``validation/prompt_sensitivity.py`` (stage 66/70)
+        复用, 且 ``tests/test_tone_llms_logger_redirect.py`` 以 3 位置参数调用;
+        缺省 None 时输出与历史逐字符一致。
+        """
+        _where = f"行 {row_idx}" + (f" [轨 {track}]" if track else "")
+        logger.info(f"[{model_id}] {_where}: {reason}，该次结果将从投票中排除")
 
 
 AUTH_FAILURE_STATUSES = {401, 403}
 
 
-def _summarize_auth_failure(status: int, resp_text: str) -> str:
-    """返回简洁且不含密钥的授权失败摘要 (截断长消息, 剥离 request id)。"""
+def _extract_api_error_message(resp_text: str) -> str:
+    """从 API 错误响应体提取简洁消息 (截断长消息, 剥离 request id, 不含密钥)。
+
+    refactor(D4, 2026-07-25): 由 ``_summarize_auth_failure`` 原地抽出, 供其与
+    ``_summarize_http_failure`` 共用。抽出前后 ``_summarize_auth_failure`` 的
+    返回值**逐字符等价** (含 JSON 非 dict 时 ``AttributeError`` 不被捕获这一
+    既有行为, 刻意保持不变, 不在本次日志文案修复里夹带行为改动)。
+    """
     message = ""
     try:
         payload = json.loads(resp_text or "{}")
@@ -437,7 +456,23 @@ def _summarize_auth_failure(status: int, resp_text: str) -> str:
         message = message.split("(request id:", 1)[0].strip()
     if len(message) > 120:
         message = message[:117] + "..."
+    return message
+
+
+def _summarize_auth_failure(status: int, resp_text: str) -> str:
+    """返回简洁且不含密钥的授权失败摘要 (截断长消息, 剥离 request id)。"""
+    message = _extract_api_error_message(resp_text)
     return f"状态码 {status} 授权失败" + (f" ({message})" if message else "")
+
+
+def _summarize_http_failure(resp_text: str) -> str:
+    """返回**不可重试** HTTP 错误 (非 401/403/429/5xx) 的简洁原因摘要。
+
+    用于 ``fetch_llm_async`` 的 fail-fast 出口 (典型: DeepSeek 400
+    "Content Exists Risk" 内容风控), 让 ``last_failure_reason`` 如实反映
+    真实终止原因, 而非上一次瞬时失败的陈旧残留 (见 D4)。
+    """
+    return _extract_api_error_message(resp_text) or "无错误正文"
 
 
 def _strip_prepended_title(text: str, title: str) -> str:
@@ -815,6 +850,17 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
                                     "后续缺缓存请求将跳过，已缓存响应仍会复用"
                                 )
                             return row_idx, model_id, None, track
+                        # fix(D4, 2026-07-25 stage21 日志审计): 本分支是**不可重试**
+                        # 错误的 fail-fast 出口 (典型: DeepSeek 400 "Content Exists
+                        # Risk" 内容风控), 只调用 1 次即 break。此前不更新
+                        # last_failure_reason → 下方 :~845 打印的是该请求**上一次**
+                        # 失败原因的陈旧残留 (实测把 400 内容风控报成"连续 80 次请求
+                        # 等待超过时限"), 把"永久拒绝、重试无解"误导为"超时/网络问题、
+                        # 调大超时可解"。此处显式覆写为真实终止原因。
+                        last_failure_reason = (
+                            f"HTTP {resp.status} 不可重试错误 (fail-fast, 未重试): "
+                            f"{_summarize_http_failure(resp_text)}"
+                        )
                         logger.error(f"[{model_id}] API 错误 {resp.status}: {resp_text}")
                         break
             except asyncio.TimeoutError:
@@ -835,9 +881,13 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
     # 5xx/429/网络抖动通常是瞬时问题，不能因此停用整轮模型；否则大样本验证会
     # 因单次故障跳过后续缺缓存请求，扭曲稳健性指标。
     if model_availability is not None:
-        await model_availability.note_transient_failure(model_id, last_failure_reason, row_idx)
+        # D10a: 传 track, 让弃票行可定位到具体 (行, 轨) — 见 note_transient_failure docstring
+        await model_availability.note_transient_failure(
+            model_id, last_failure_reason, row_idx, track)
     else:
-        logger.info(f"[{model_id}] 行 {row_idx}: {last_failure_reason}，该模型结果将从投票中排除")
+        logger.info(
+            f"[{model_id}] 行 {row_idx} [轨 {track}]: {last_failure_reason}，"
+            "该模型结果将从投票中排除")
     return row_idx, model_id, None, track
 
 
@@ -850,7 +900,7 @@ def iter_article_track_prompts(df: pd.DataFrame):
     (缓存全命中 ⟺ golden 可 $0 复现) 可被审计如实证明, 不会因 prompt
     构造在两处各写一遍而悄悄漂移。
 
-    要求 df 含 ``content_ctx`` / ``content_ss`` 列 (stage 13 物化); 缺失时分别
+    要求 df 含 ``content_ctx`` / ``content_ss`` 列 (stage 14 物化); 缺失时分别
     回退到 ``内容`` (content_full)。
     与历史 full/ctx 行为字节级等价 (原 run_all_llms 内联构造), 不改任何既有
     缓存键; 第三轨 ss (银行+金科同句共现) 是纯加性新增, 仅多 yield 一组
@@ -929,7 +979,21 @@ async def run_all_llms(df: pd.DataFrame, models: list, cache: LLMCache = None) -
             await preflight_model_availability(session, models, model_availability)
         # 构建任务列表：每行 x 每轨道 x 每模型 (prompt 经 iter_article_track_prompts
         # 单一事实源构造, 与缓存覆盖审计字节级一致)
+        # fix(D10b, 2026-07-25 stage21 日志审计): 本循环在生产规模下要物化
+        # 242,000 × 3 轨 × 3 模型 = 2,178,000 个协程, 实测**独占 10 分 14 秒**且
+        # 期间零日志输出 (随后缓存命中批量瞬回, 7 秒内从 5% 连刷到 95%) — 运维上
+        # 无法区分"正在建 task"与"进程卡死"。此处按 rows 分批打进度, 使建表阶段
+        # 可观测。纯日志, 不改任何构建顺序/内容。
         real_tasks = []
+        _n_rows = len(df)
+        _row_seen = 0
+        _row_report = max(1, _n_rows // 10)   # 每 10% 行汇报一次
+        _row_next = _row_report
+        _last_idx = None
+        logger.info(
+            f"🧱 构建三轨请求任务列表: {_n_rows:,d} 行 × 3 轨 × {len(models)} 模型 "
+            f"= {_n_rows * 3 * len(models):,d} 个协程 (大样本下本步骤耗时可观, 属正常)"
+        )
         for idx, track, prompt in iter_article_track_prompts(df):
             for m in models:
                 real_tasks.append(
@@ -940,7 +1004,18 @@ async def run_all_llms(df: pd.DataFrame, models: list, cache: LLMCache = None) -
                         prompt_version=PROMPT_VERSION,
                     )
                 )
-        
+            # iter_article_track_prompts 对同一行连续 yield 三轨 → 行号变化即换行
+            if idx != _last_idx:
+                _last_idx = idx
+                _row_seen += 1
+                if _row_seen >= _row_next or _row_seen == _n_rows:
+                    logger.info(
+                        f"🧱 任务构建进度: {_row_seen:,d}/{_n_rows:,d} 行 "
+                        f"({pct4(_row_seen / _n_rows) if _n_rows else 'n/a'}), "
+                        f"已铺开 {len(real_tasks):,d} 个协程"
+                    )
+                    _row_next += _row_report
+
         completed = 0
         total = len(real_tasks)
         report_interval = max(1, total // 20)  # 每 5% 汇报一次
@@ -2140,7 +2215,7 @@ def _log_environment_and_methodology(input_path: str) -> None:
         )
 
         logger.info("  📂 输入 / 输出文件 (config/paths.yaml::output_dir + filenames)")
-        logger.info(f"     · 输入:     {input_path} (stage 14 fintech_intensity, 硬依赖)")
+        logger.info(f"     · 输入:     {input_path} (stage 15 fintech_intensity, 硬依赖)")
         logger.info(f"     · 缓存:     {cache_db} (确定性锚点, 勿删铁律)")
         logger.info(f"     · 输出全量: {out_full} (含 verified True/False, 供验证模块)")
         logger.info(f"     · 输出主表: {out_main} (verified_full 全文轨过滤 full-only, 下游 stage 22/24/45 消费)")
@@ -2331,13 +2406,17 @@ def main():
     if not os.path.exists(path_14):
         raise RuntimeError(
             f"[stage 21] 上游输入缺失: {path_14} 不存在。"
-            f" Stage 21 (LLM 三轨情感分析) 硬依赖 stage 14 输出的 "
+            f" Stage 21 (LLM 三轨情感分析) 硬依赖 stage 15 输出的 "
             f"fintech_intensity_score 列。请先运行 "
             f"`python -m news_process.pipeline.filtering.fintech_intensity` "
             f"产出 {input_14} 后再重试。"
         )
     input_path = path_14
-    logger.info(f"使用阶段14输出: {input_14}")
+    # fix(D7, 2026-07-25): 文案原作"使用阶段14输出", 与其所指的 15_*.parquet 自相
+    # 矛盾 (v3.11.0 shim 重编号后漏改)。config 键 `output_14_fintech_intensity` 与
+    # 变量名 input_14/path_14 **刻意保留**历史编号 (SSOT, 改动波及 paths.yaml;
+    # 同 CLAUDE.md 既有惯例"路径键仍 output_12b_cooccurrence"), 仅订正面向用户的文案。
+    logger.info(f"使用阶段15输出: {input_14}")
 
     # 项目/环境信息 + 运行配置 + 方法论依据 (含 DOI) — 日志富集 2026-06-24, golden-safe
     _log_environment_and_methodology(input_path)
@@ -2367,9 +2446,17 @@ def main():
         )
         if not _present_in['content_ss']:
             logger.warning(
+                # fix(D7, 2026-07-25): 两处订正 — ① 原文案含一个硬编码行锚指向 ss→full
+                # 回退语句, 但该锚**早已失准** (审计时实测: 它指到的是
+                # iter_article_track_prompts 的 def/docstring 处, 与真实回退语句相差约
+                # 19 行, 且任何上游插入都会继续放大偏差)。改为**不依赖行号**的符号引用,
+                # 从根上消除位移失效 —— 本注释亦刻意不写任何具体行号;
+                # ② content_ss 的物化阶段是 stage 14 (ctx_materializer), 非 stage 13
+                # (v3.11.0 重编号后漏改)。
                 "  ⚠ content_ss 列缺失 → ss(银行+金科同句)稳健性轨将由 "
-                "iter_article_track_prompts 回退 content_full (:845-847), ss 轨退化为 "
-                "full 副本而非真同句轨; 复现/审稿前须确认 stage 13 已物化 content_ss。"
+                "iter_article_track_prompts 回退 content_full (见该函数内 content_ss "
+                "取值处), ss 轨退化为 full 副本而非真同句轨; "
+                "复现/审稿前须确认 stage 14 已物化 content_ss。"
             )
         else:
             # ss 轨真实性诊断: content_ss 非空率 (ss_is_fallback=True 行回退全文 body, 虽非空
@@ -2378,7 +2465,7 @@ def main():
             logger.info(
                 f"  · content_ss 非空 {_ss_nonempty:,d} 行 "
                 f"({pct4(_ss_nonempty / _nrow_in) if _nrow_in else 'N/A'}); "
-                "ss_is_fallback=True 行虽有值但回退全文 (见 stage 13 物化)。"
+                "ss_is_fallback=True 行虽有值但回退全文 (见 stage 14 物化)。"
             )
     except Exception as _e_io:
         logger.debug(f"  · 输入 provenance 诊断跳过 (非阻塞): {_e_io}")
@@ -2391,14 +2478,30 @@ def main():
     # 注: 第三轨 content_ss 的单一事实源是 stage 13 (本备援只兜底 ctx); 缺
     # content_ss 时由 iter_article_track_prompts 回退 content_full (ss→full)。
     if 'content_ctx' in df.columns:
-        logger.info("  'content_ctx' 已存在 (v3.6.0 stage 13 上游已物化), 跳过重复物化")
+        # ⚠ D7 订正纪律 (2026-07-25): 本行是**历史陈述**, 不得把 13 直接改成 14 —
+        # `git log -S` 查实该串引入于 1cd99574 (v3.5.1+v3.6.0), 而 NN_*.py shim
+        # 重编号发生在 13896371 (v3.11.0); v3.6.0 < v3.11.0, 写作当时物化阶段确实
+        # 叫 stage 13。改数字会造出"v3.6.0 时就有 stage 14"这句新的失实陈述, 故
+        # 改为带版本限定的写法。
+        logger.info("  'content_ctx' 已存在 (v3.6.0 时的 stage 13 = 现 stage 14 上游已物化), 跳过重复物化")
     else:
         df = _materialize_content_ctx(df)
     
     # 初始化 LLM 请求级 SQLite 缓存
     cache_db = os.path.join(CONFIG["paths"]["output_dir"], '_llm_cache.db')
     with LLMCache(cache_db) as cache:
-        logger.info(f"LLM 缓存: {cache.size()} 条已缓存, 路径: {cache_db}")
+        # fix(D11, 2026-07-25 stage21 日志审计): cache.size() 是全表 COUNT(*), 而
+        # _llm_cache.db 按设计是**混合库** — stage21 三家 LLM + llm_peer + 嵌入
+        # (stage 15/25/26/27) 共库, 靠 key 内 model_id 区分 (见 memory
+        # cache-strategy-unified-audit-2026-07-01)。旧文案"LLM 缓存: N 条已缓存"
+        # 在本阶段语境下会被读成"stage21 的 LLM 响应有 N 条", 据此估算 stage21
+        # 缓存覆盖率会系统性**高估**; 且会把库体积全部误归因于 stage21 (实测体积
+        # 主体是嵌入向量, 单条 63–92 KB, 而 stage21 响应仅 0.8–1.1 KB)。
+        logger.info(
+            f"缓存库总条目: {cache.size():,d} 条 "
+            f"(⚠ 混合库: stage21 三家 LLM + llm_peer + 嵌入共库, 非 stage21 专有), "
+            f"路径: {cache_db}"
+        )
 
         # 异步并发大模型（三轨 full/ctx/ss）
         logger.info(f"开始分发三轨组合模型处理任务，包含模型: {[m['short_name'] for m in MODELS]}")
@@ -3149,10 +3252,23 @@ def main():
                 # 底层 vs 应用 / collab→Laursen & Salter 2006 开放式创新外部搜索广度。
                 if _base in _INNOV_CONSTRUCT_REFERENCES:
                     logger.info(f"      📖 {_dname}构念源: {_INNOV_CONSTRUCT_REFERENCES[_base]}")
+            # fix(D8, 2026-07-25 stage21 日志审计): 原文案**无条件**声称"极端单边在
+            # T=2 小样本属正常退化, 须以全量 T=19 为准" — 在 242,000 行生产规模真跑
+            # 时照打, 把全量真实分布 (实测 应用场景 97.86% / 实质性 95.72%) 误导性地
+            # 解释成"小样本退化、别当真", 恰好掩盖了 DV 变异不足这一真问题 (D9)。
+            # 改为规模自适应: 仅盘面小样本才提 T=2 (阈值与下方 ⑩ 小样本警告一致)。
+            _is_small_sample = _total <= 2000
             logger.info(
                 "    判读: 二元构成是下游 P3/P4/P5 论文主因变量之源; 因平局/低置信票按保守 MAP 降级到"
-                "基类(应用场景/象征性/自主研发), 该方向占比天然偏高 — 极端单边(如某类>99%)在 T=2 小样本"
-                "属正常退化, 须以全量 T=19 占比为准, 不可据盘面下实质结论。"
+                "基类(应用场景/象征性/自主研发), 该方向占比天然偏高 — "
+                + (
+                    "极端单边(如某类>99%)在 T=2 盘面小样本属正常退化, "
+                    "须以全量 T=19 占比为准, 不可据盘面下实质结论。"
+                    if _is_small_sample else
+                    f"本次为**生产规模** ({_total:,d} 行), 该分布可作实质解读: "
+                    "极端单边(如某类>99%)不再可用小样本退化解释, 须核查是否 DV 变异不足 "
+                    "(会削弱下游回归识别力) 并在手稿如实披露。"
+                )
             )
 
             # ⑦ 模型间一致性 (ensemble inter-model agreement) — 3-LLM 多数决的可靠性 / inter-rater 替代量
